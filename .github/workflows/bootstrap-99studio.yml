@@ -1,0 +1,144 @@
+name: Bootstrap standalone 99 Club Studio
+
+on:
+  push:
+    paths:
+      - ".github/workflows/bootstrap-99studio.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out target repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch current 99 Club Studio source
+        run: |
+          git clone --depth 1 --branch master https://github.com/techtinkerclub/techtinkerclub.github.io.git _source
+
+      - name: Copy standalone application
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p assets _pages tools scripts docs .github/workflows _data
+          rm -rf assets/99club tools/99-club scripts/99club docs/99club
+          cp -a _source/assets/99club assets/
+          cp -a _source/tools/99-club tools/
+          cp -a _source/scripts/99club scripts/
+          cp -a _source/docs/99club docs/
+
+          find _pages -maxdepth 1 -type f -name '99-club*.md' -delete 2>/dev/null || true
+          cp -a _source/_pages/99-club*.md _pages/
+
+          cp _source/.github/workflows/99club-qa.yml .github/workflows/99club-qa.yml
+          cp _source/Gemfile Gemfile
+          cp _source/package.json package.json
+          cp _source/package-lock.json package-lock.json
+
+          # Remove the old club identity from public-facing 99 Club Studio copy.
+          find _pages assets/99club tools/99-club -type f \
+            \( -name '*.md' -o -name '*.html' -o -name '*.js' -o -name '*.css' -o -name '*.json' -o -name '*.webmanifest' \) -print0 |
+            xargs -0 sed -i \
+              -e 's/Tech Tinker Club · 99 Club Studio/99 Club Studio/g' \
+              -e 's/Tech Tinker Club’s current Classic default/The current Classic default/g' \
+              -e "s/Tech Tinker Club's current Classic default/The current Classic default/g"
+
+          cat > _config.yml <<'EOF'
+          title: "99 Club Studio"
+          masthead_title: "99 Club Studio"
+          description: "Free classroom maths worksheets, games and puzzle tools."
+          baseurl: ""
+          url: "https://99studio.uk"
+          repository: techtinkerclub/99club
+
+          remote_theme: "mmistakes/minimal-mistakes@4.24.0"
+          minimal_mistakes_skin: "contrast"
+
+          plugins:
+            - jekyll-feed
+            - jekyll-include-cache
+            - jekyll-sitemap
+
+          include:
+            - "_pages"
+
+          header:
+            nav: true
+
+          defaults:
+            - scope:
+                path: ""
+                type: "pages"
+              values:
+                layout: single
+                author_profile: false
+          markdown: kramdown
+          EOF
+
+          cat > _data/navigation.yml <<'EOF'
+          main:
+            - title: "99 Club"
+              url: /tools/99-club/
+            - title: "Custom Worksheets"
+              url: /tools/99-club/custom/
+            - title: "Games & Puzzles"
+              url: /tools/99-club/games/
+            - title: "Play Online"
+              url: /tools/99-club/games/play/
+            - title: "Help"
+              url: /tools/99-club/help/
+          EOF
+
+          cat > index.md <<'EOF'
+          ---
+          layout: null
+          title: "99 Club Studio"
+          sitemap: true
+          ---
+          <!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width,initial-scale=1">
+            <title>99 Club Studio</title>
+            <meta http-equiv="refresh" content="0; url=/tools/99-club/">
+            <link rel="canonical" href="/tools/99-club/">
+          </head>
+          <body>
+            <p><a href="/tools/99-club/">Open 99 Club Studio</a></p>
+          </body>
+          </html>
+          EOF
+
+          rm -rf _source
+
+      - name: Record remaining public Tech Tinker Club references
+        run: |
+          {
+            echo "# Standalone migration identity audit"
+            echo
+            echo "Generated during bootstrap. Remaining public-facing references:"
+            echo
+            grep -RIn --exclude='MIGRATION_IDENTITY_AUDIT.md' "Tech Tinker Club\|techtinker\.club\|techtinkerclub" _pages assets/99club tools/99-club 2>/dev/null || true
+          } > MIGRATION_IDENTITY_AUDIT.md
+
+      - name: Commit migrated site
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nothing to migrate."
+            exit 0
+          fi
+          git commit -m "Bootstrap standalone 99 Club Studio site"
+          git push
