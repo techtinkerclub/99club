@@ -99,7 +99,7 @@ function bannerMarkup(){
   const privacy=String(cfg.privacyPath||'/privacy/');
   return '<aside class="tt99-analytics-banner" aria-label="Analytics choice">'+
     '<div><strong>Help improve 99 Club Studio</strong>'+
-    '<p>Allow anonymous Google Analytics so we can see which pages, downloads and games are useful. We do not send pupil names, school names, worksheet content or answers. <a href="'+privacy+'">Privacy details</a>.</p></div>'+
+    '<p>Allow anonymous Google Analytics so we can see which pages, downloads and games are useful. No pupil or school personal data is collected through analytics. <a href="'+privacy+'">Privacy details</a>.</p></div>'+
     '<div class="tt99-analytics-banner__actions">'+
     '<button type="button" data-analytics-deny>No thanks</button>'+
     '<button type="button" data-analytics-allow>Allow analytics</button>'+
@@ -108,8 +108,9 @@ function bannerMarkup(){
 function showBanner(){
   if(!validMeasurement||choice||document.querySelector('.tt99-analytics-banner'))return;
   document.body.insertAdjacentHTML('beforeend',bannerMarkup());
-  document.querySelector('[data-analytics-allow]')?.addEventListener('click',()=>setChoice('allow'));
-  document.querySelector('[data-analytics-deny]')?.addEventListener('click',()=>setChoice('deny'));
+  const banner=document.querySelector('.tt99-analytics-banner');
+  banner?.querySelector('[data-analytics-allow]')?.addEventListener('click',()=>setChoice('allow'));
+  banner?.querySelector('[data-analytics-deny]')?.addEventListener('click',()=>setChoice('deny'));
 }
 function removeBanner(){document.querySelector('.tt99-analytics-banner')?.remove();}
 function settingsMarkup(){
