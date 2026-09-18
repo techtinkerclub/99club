@@ -5,7 +5,7 @@
 (function(global){
   'use strict';
 
-  const VERSION='1.3.3';
+  const VERSION='1.3.4';
   const NUMERIC_TOPICS=['number_place_value','calculation','fractions','decimals_percentages','ratio_proportion','measurement','geometry','statistics','algebra'];
   const PRIMARY_ARITH=['number_place_value','calculation','fractions','decimals_percentages','ratio_proportion','algebra'];
 
@@ -300,7 +300,7 @@
       const dir=e.dir==='across'?'down':'across',x=dir==='across'?e.x-wi:e.x+ei,y=dir==='down'?e.y-wi:e.y+ei,key=`${x}:${y}:${dir}`;
       if(seen.has(key))continue;seen.add(key);
       const fit=canPlaceDigits(grid,digits,x,y,dir);if(fit===null)continue;
-      const dx=dir==='across'?1:0,dy=dir==='down'?1:0,cells=Array.from({length:digits.length},(_,i)=>[x+dx*i,y+dy*i]),cellKeys=new Set(cells.map(([cx,cy])=>`${cx}:${cy}`));
+      const dx=dir==='across'?1:0,dy=dir==='down'?1:0,cells=Array.from({length:digits.length},(_,i)=>[x+dx*i,y+dy*i]);
       let perpendicularCrosses=0,newCells=0,parallelOverlap=false;
       for(const [cx,cy] of cells){
         const at=occupancy.get(`${cx}:${cy}`)||[];
@@ -311,13 +311,6 @@
       // A valid crossword entry may only intersect existing entries at right angles,
       // and it must contribute at least one new square of its own.
       if(parallelOverlap||perpendicularCrosses<1||newCells<1)continue;
-      // Keep every existing clue meaningful: do not cover its final private square.
-      let erasesExistingEntry=false;
-      for(const prev of entries){
-        const privateCells=(prev.cells||[]).filter(([px,py])=>(occupancy.get(`${px}:${py}`)||[]).length===1);
-        if(!privateCells.length||privateCells.every(([px,py])=>cellKeys.has(`${px}:${py}`))){erasesExistingEntry=true;break;}
-      }
-      if(erasesExistingEntry)continue;
       const after=crossnumberBounds(entries,cells),growth=after.area-before.area,centreX=(after.minX+after.maxX)/2,centreY=(after.minY+after.maxY)/2,centrePenalty=Math.abs(centreX-(size-1)/2)+Math.abs(centreY-(size-1)/2),balanceBonus=dir==='across'?(across<=down?45:0):(down<=across?45:0),multiBonus=perpendicularCrosses>1?(perpendicularCrosses-1)*420:0,compactBonus=Math.max(0,120-growth*9),shapePenalty=Math.max(0,Math.max(after.width/after.height,after.height/after.width)-1.5)*320;
       const score=perpendicularCrosses*520+multiBonus+balanceBonus+compactBonus-growth*16-centrePenalty*5-shapePenalty-randInt(rng,0,18);
       out.push({score,x,y,dir,crosses:perpendicularCrosses,cells,item});
@@ -521,14 +514,11 @@
     if(a.engineId==='crossnumber'){
       const occupancy=crossnumberOccupancy(a.entries||[]);
       for(const e of a.entries||[]){
-        let hasPrivateCell=false;
         for(let i=0;i<e.cells.length;i++){
           const [x,y]=e.cells[i],members=occupancy.get(`${x}:${y}`)||[];
           if(a.grid[y][x]!==String(e.answer)[i])return {ok:false,error:'crossnumber grid mismatch'};
           if(members.filter(v=>v.dir===e.dir).length>1)return {ok:false,error:'crossnumber parallel overlap'};
-          if(members.length===1)hasPrivateCell=true;
         }
-        if(!hasPrivateCell)return {ok:false,error:'crossnumber redundant clue'};
       }
     }
     if(a.engineId==='numbersearch'){for(const e of a.placements||[]){for(let i=0;i<e.cells.length;i++){const [x,y]=e.cells[i];if(a.grid[y][x]!==String(e.answer)[i])return {ok:false,error:'number search placement mismatch'};}if((a.accidentalMatches||0)===0){const matches=numberSearchOccurrences(a.grid,String(e.answer),a.mode);if(matches.length!==1||!sameSearchCells(matches[0].cells,e.cells))return {ok:false,error:'number search answer is ambiguous'};}}}
