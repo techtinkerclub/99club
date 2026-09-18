@@ -3,6 +3,6 @@
  * Example format: G-ABC123DE45
  */
 window.TT99_ANALYTICS_CONFIG = Object.freeze({
-  ga4MeasurementId: '',
+  ga4MeasurementId: 'G-844RPWD4HE',
   privacyPath: '/privacy/'
 });
