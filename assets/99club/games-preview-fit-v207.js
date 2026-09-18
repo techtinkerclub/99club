@@ -45,6 +45,44 @@
     return Number.isFinite(left)?{left,top,right,bottom,width:Math.max(1,right-left),height:Math.max(1,bottom-top)}:null;
   }
 
+  function fitSumGrid(activity){
+    const wrap=activity.querySelector(':scope > .tt99-sumgrid-wrap');
+    const stage=wrap?.querySelector(':scope > .tt99-sumgrid-stage');
+    const board=stage?.querySelector(':scope > .tt99-sumgrid-board');
+    if(!wrap||!stage||!board)return false;
+    const twoPerPage=!!activity.closest('.tt99-game-activities.count-2');
+    const threePerPage=!!activity.closest('.tt99-game-activities.count-3');
+    const size=threePerPage?145:(twoPerPage?190:210);
+
+    activity.dataset.tt99PreviewFit='sumgrid';
+    activity.style.setProperty('--tt99-preview-body-scale','1');
+    activity.dataset.previewBodyScale='1.0000';
+
+    wrap.style.setProperty('zoom','1','important');
+    wrap.style.setProperty('transform','none','important');
+    wrap.style.setProperty('width','100%','important');
+    stage.style.setProperty('zoom','1','important');
+    stage.style.setProperty('transform','none','important');
+    stage.style.setProperty('width',size+'px','important');
+    stage.style.setProperty('height',size+'px','important');
+    stage.style.setProperty('aspect-ratio','1 / 1','important');
+    board.style.setProperty('width','100%','important');
+    board.style.setProperty('height','100%','important');
+    board.style.setProperty('grid-template-columns','repeat(3,minmax(0,1fr))','important');
+    board.style.setProperty('grid-template-rows','repeat(3,minmax(0,1fr))','important');
+
+    const clueSize=Math.max(26,Math.min(32,size*.158));
+    stage.querySelectorAll(':scope > .tt99-sumgrid-clue').forEach((el,i)=>{
+      el.style.setProperty('width',clueSize+'px','important');
+      el.style.setProperty('height',clueSize+'px','important');
+      const x=(i%2?2:1)*size/3,y=(i<2?1:2)*size/3;
+      el.style.setProperty('left',x+'px','important');
+      el.style.setProperty('top',y+'px','important');
+      el.style.setProperty('transform','translate(-50%,-50%)','important');
+    });
+    return true;
+  }
+
   function fitCrossword(activity){
     const layout=activity.querySelector(':scope > .tt99-crossword-layout');
     const grid=layout?.querySelector(':scope > .tt99-crossword-grid');
@@ -78,6 +116,9 @@
 
   function fitActivity(activity){
     if(!activity?.isConnected)return;
+    if(activity.querySelector(':scope > .tt99-sumgrid-wrap')){
+      if(fitSumGrid(activity))return;
+    }
     if(activity.classList.contains('tt99-crossword')||activity.classList.contains('tt99-crossnumber')){
       if(fitCrossword(activity))return;
     }
@@ -138,5 +179,5 @@
   if(document.fonts?.ready)document.fonts.ready.then(schedule).catch(()=>{});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
 
-  global.TT99GamesPreviewFitV207={version:'2.09',refresh:schedule,fitActivity};
+  global.TT99GamesPreviewFitV207={version:'2.10',refresh:schedule,fitActivity};
 })(typeof globalThis!=='undefined'?globalThis:this);
