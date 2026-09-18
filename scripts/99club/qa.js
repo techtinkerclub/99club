@@ -103,6 +103,21 @@ function settingsFor(id,def,difficulty){
 }
 function branchWeight(node,values){if(!node)return NaN;if(node.type==='group')return Number(node.count)*Number(values[node.shape]);return branchWeight(node.left,values)+branchWeight(node.right,values);}
 function checkSpecific(id,p){
+  if(id==='crossnumber'){
+    const occupancy=new Map();
+    for(const e of p.entries||[])for(const [x,y] of e.cells||[]){
+      const key=`${x}:${y}`;if(!occupancy.has(key))occupancy.set(key,[]);occupancy.get(key).push(e);
+    }
+    for(const e of p.entries||[]){
+      let privateCells=0;
+      for(const [x,y] of e.cells||[]){
+        const members=occupancy.get(`${x}:${y}`)||[];
+        if(members.filter(q=>q.dir===e.dir).length>1)fail(id,'same-direction entries overlap',`${e.number} ${e.dir}`);
+        if(members.length===1)privateCells++;
+      }
+      if(!privateCells)fail(id,'redundant clue has no private square',`${e.number} ${e.dir}: ${e.clue}`);
+    }
+  }
   if(id==='brokencalc'){
     if(p.bracketsAllowed!==false)fail(id,'bracketsAllowed must be false');
     if((p.keys||[]).some(k=>k==='('||k===')'))fail(id,'bracket key leaked into generated puzzle');
