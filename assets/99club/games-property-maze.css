@@ -1,28 +1,28 @@
-/* 99 Club Studio · Number Property Maze preview v1.0.1
+/* 99 Club Studio · Number Property Maze preview v1.0.2
  * Keep these selectors in sync with renderPropertyMaze() in games-app.js.
  */
 .tt99-propertymaze-layout{display:grid;grid-template-columns:minmax(230px,.54fr) minmax(190px,.46fr);gap:18px;align-items:center;height:calc(100% - 66px);padding:4px 10px 8px}
 .tt99-propertymaze-grid{display:grid;grid-template-columns:repeat(var(--propertymaze-size),1fr);grid-template-rows:repeat(var(--propertymaze-size),1fr);aspect-ratio:1/1;width:min(100%,390px);justify-self:center;border:1.4px solid #6f898e;background:#fff;overflow:hidden}
 .tt99-propertymaze-cell{position:relative;display:grid;place-items:center;min-width:0;min-height:0;border-right:1px solid #bdccce;border-bottom:1px solid #bdccce;background:#fff;color:#294b52}
-.tt99-propertymaze-cell b{font-size:clamp(6px,.77vw,11px);line-height:1;text-align:center}
+.tt99-propertymaze-cell b{font-size:clamp(8px,.95vw,13px);line-height:1;text-align:center}
 .tt99-propertymaze-cell.start,.tt99-propertymaze-cell.finish{background:#eef8f6;color:#176e66;font-weight:900}
-.tt99-propertymaze-cell.start b,.tt99-propertymaze-cell.finish b{font-size:clamp(5px,.58vw,8px);letter-spacing:.02em}
+.tt99-propertymaze-cell.start b,.tt99-propertymaze-cell.finish b{font-size:clamp(5.8px,.68vw,9.4px);letter-spacing:.02em}
 .tt99-propertymaze-cell.correct-route{background:#dff4ef}
 .tt99-propertymaze-cell.correct-route:not(.start):not(.finish){box-shadow:inset 0 0 0 1px #5ba89f}
 .tt99-propertymaze-side{align-self:stretch;display:flex;flex-direction:column;justify-content:center;gap:7px;min-width:0;color:#52696e}
-.tt99-propertymaze-side>small{color:#708287;font-size:clamp(5px,.55vw,7.5px);font-weight:800;text-transform:uppercase;letter-spacing:.04em}
-.tt99-propertymaze-side>strong{padding:9px 10px;border:1px solid #cfe3df;border-radius:9px;background:#f4faf9;color:#1e6d66;font-size:clamp(7px,.78vw,10.5px);line-height:1.25}
-.tt99-propertymaze-side>span{color:#667d81;font-size:clamp(5px,.58vw,8px);line-height:1.35}
-.tt99-propertymaze-side>em{font-style:normal;color:#315b5a;font-size:clamp(7px,.76vw,10px);font-weight:900;letter-spacing:.08em}
+.tt99-propertymaze-side>small{color:#708287;font-size:clamp(6px,.66vw,8.8px);font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+.tt99-propertymaze-side>strong{padding:10px 12px;border:1px solid #cfe3df;border-radius:9px;background:#f4faf9;color:#1e6d66;font-size:clamp(8.3px,.92vw,12.4px);line-height:1.25}
+.tt99-propertymaze-side>span{color:#667d81;font-size:clamp(6px,.68vw,9.2px);line-height:1.35}
+.tt99-propertymaze-side>em{font-style:normal;color:#315b5a;font-size:clamp(8px,.88vw,11.5px);font-weight:900;letter-spacing:.08em}
 
 /* Compact three-activity sheets without collapsing the grid. */
 .tt99-game-activities.count-3 .tt99-propertymaze-layout{grid-template-columns:minmax(135px,.48fr) 1fr;gap:6px;padding:1px 4px 3px}
 .tt99-game-activities.count-3 .tt99-propertymaze-grid{max-width:150px}
 .tt99-game-activities.count-3 .tt99-propertymaze-side{gap:3px}
-.tt99-game-activities.count-3 .tt99-propertymaze-side>strong{padding:4px 5px;font-size:5.2px}
-.tt99-game-activities.count-3 .tt99-propertymaze-side>span{font-size:4.6px;line-height:1.2}
-.tt99-game-activities.count-3 .tt99-propertymaze-side>small{font-size:4.2px}
-.tt99-game-activities.count-3 .tt99-propertymaze-side>em{font-size:5.2px}
+.tt99-game-activities.count-3 .tt99-propertymaze-side>strong{padding:5px 6px;font-size:6px}
+.tt99-game-activities.count-3 .tt99-propertymaze-side>span{font-size:5.2px;line-height:1.2}
+.tt99-game-activities.count-3 .tt99-propertymaze-side>small{font-size:4.8px}
+.tt99-game-activities.count-3 .tt99-propertymaze-side>em{font-size:6px}
 
 @media(max-width:900px){.tt99-propertymaze-layout{grid-template-columns:1fr;height:auto}.tt99-propertymaze-grid{max-width:340px}.tt99-propertymaze-side{align-self:auto}}
 @media print{.tt99-propertymaze-cell.correct-route{background:#eaf7f3!important}}
