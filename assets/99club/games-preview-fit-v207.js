@@ -83,6 +83,51 @@
     return true;
   }
 
+  function fitColourLogic(activity){
+    const layout=activity.querySelector(':scope > .tt99-cl-paper-layout');
+    const grid=layout?.querySelector('.tt99-cl-paper-grid');
+    const rules=layout?.querySelector('.tt99-cl-print-rules');
+    if(!layout||!grid||!rules)return false;
+    const cs=getComputedStyle(grid);
+    const n=Math.max(1,Number(cs.getPropertyValue('--cl-n'))||1);
+    const twoPerPage=!!activity.closest('.tt99-game-activities.count-2');
+    const threePerPage=!!activity.closest('.tt99-game-activities.count-3');
+    const cell=threePerPage?30:(twoPerPage?42:48);
+    const maxSize=threePerPage?165:(twoPerPage?210:240);
+    const size=Math.min(maxSize,n*cell);
+
+    activity.dataset.tt99PreviewFit='colourlogic';
+    activity.style.setProperty('--tt99-preview-body-scale','1');
+    activity.dataset.previewBodyScale='1.0000';
+
+    layout.style.setProperty('zoom','1','important');
+    layout.style.setProperty('transform','none','important');
+    layout.style.setProperty('display','grid','important');
+    layout.style.setProperty('grid-template-columns',size+'px minmax(0,1fr)','important');
+    layout.style.setProperty('gap',twoPerPage?'16px':'18px','important');
+    layout.style.setProperty('align-items','start','important');
+    layout.style.setProperty('width','100%','important');
+
+    const left=grid.parentElement;
+    if(left){
+      left.style.setProperty('width',size+'px','important');
+      left.style.setProperty('max-width',size+'px','important');
+    }
+    grid.style.setProperty('zoom','1','important');
+    grid.style.setProperty('transform','none','important');
+    grid.style.setProperty('width',size+'px','important');
+    grid.style.setProperty('height',size+'px','important');
+    grid.style.setProperty('max-width','none','important');
+    grid.style.setProperty('grid-template-columns','repeat('+n+',minmax(0,1fr))','important');
+    grid.style.setProperty('grid-template-rows','repeat('+n+',minmax(0,1fr))','important');
+    grid.querySelectorAll(':scope > span').forEach(el=>{
+      el.style.setProperty('width','auto','important');
+      el.style.setProperty('height','auto','important');
+      el.style.setProperty('aspect-ratio','auto','important');
+    });
+    return true;
+  }
+
   function fitCrossword(activity){
     const layout=activity.querySelector(':scope > .tt99-crossword-layout');
     const grid=layout?.querySelector(':scope > .tt99-crossword-grid');
@@ -118,6 +163,9 @@
     if(!activity?.isConnected)return;
     if(activity.querySelector(':scope > .tt99-sumgrid-wrap')){
       if(fitSumGrid(activity))return;
+    }
+    if(activity.classList.contains('tt99-colourlogic-print')){
+      if(fitColourLogic(activity))return;
     }
     if(activity.classList.contains('tt99-crossword')||activity.classList.contains('tt99-crossnumber')){
       if(fitCrossword(activity))return;
@@ -179,5 +227,5 @@
   if(document.fonts?.ready)document.fonts.ready.then(schedule).catch(()=>{});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
 
-  global.TT99GamesPreviewFitV207={version:'2.10',refresh:schedule,fitActivity};
+  global.TT99GamesPreviewFitV207={version:'2.11',refresh:schedule,fitActivity};
 })(typeof globalThis!=='undefined'?globalThis:this);
