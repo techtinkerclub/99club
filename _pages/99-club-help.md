@@ -227,7 +227,7 @@ sidebar: false
 
   <section class="tt99-guide-section">
     <h2>Privacy</h2>
-    <p>99 Club Studio runs in your browser. School details, logos and questions are processed on the device rather than uploaded to Tech Tinker Club. The teacher QR uses the part of the web address after <code>#</code>, which is not sent to the website server.</p>
+    <p>99 Club Studio runs in your browser. School details, logos and questions are processed on the device rather than uploaded to 99 Club Studio. The teacher QR uses the part of the web address after <code>#</code>, which is not sent to the website server.</p>
     <p>A downloaded Full backup is an ordinary JSON file and may contain the school/class/teacher text and logo you entered. Store or share it as you would any other school working file.</p>
     <p><a class="tt99-secondary tt99-guide-action" href="/tools/99-club/">Back to 99 Club Studio →</a></p>
   </section>

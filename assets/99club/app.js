@@ -10,7 +10,7 @@
   const CUSTOM_KEY = 'tt99-custom-presets-v1';
   const VERSION = '1.19.3';
   const APP_NAME = '99 Club Studio';
-  const APP_URL = 'https://techtinker.club/tools/99-club/';
+  const APP_URL = 'https://99studio.uk/tools/99-club/';
   const CUSTOM_WORKSPACE_KEY = 'tt99-custom-settings-v1';
   const GENERATION_VERSION = 1;
   const MAX_PRINT_QR_VERSION = 14;
@@ -432,7 +432,7 @@
             <img src="/assets/99club/images/99club-studio-shield.png" alt="99 Club achievement shield">
           </div>
           <div class="tt99-hero__copy">
-            <span class="tt99-eyebrow">Tech Tinker Club · Free classroom tool</span>
+            <span class="tt99-eyebrow">99 Club Studio · Free classroom tool</span>
             <h1 id="tt99-hero-title" class="tt99-sr-only">99 Club Studio</h1>
             <img class="tt99-hero__wordmark" src="/assets/99club/images/99club-studio-wordmark.png" alt="99 Club Studio — Maths for further progress">
             <p class="tt99-hero__slogan">Practice. Progress. Confidence.</p>
@@ -465,7 +465,7 @@
             <div class="tt99-kofi-heading">
               <img src="/assets/99club/images/kofi-cup.png?v=19.4" alt="" aria-hidden="true">
               <div>
-                <span>Support Tech Tinker Club</span>
+                <span>Support 99 Club Studio</span>
                 <h2 id="tt99-kofi-title">Buy me a coffee</h2>
               </div>
             </div>
@@ -480,7 +480,7 @@
           <button type="button" class="tt99-contact-backdrop" data-contact-close aria-label="Close contact form"></button>
           <section class="tt99-contact-card" role="dialog" aria-modal="true" aria-labelledby="tt99-contact-title">
             <button type="button" class="tt99-contact-close" data-contact-close aria-label="Close contact form">×</button>
-            <span class="tt99-contact-kicker">Tech Tinker Club</span>
+            <span class="tt99-contact-kicker">99 Club Studio</span>
             <h2 id="tt99-contact-title">Contact</h2>
             <p>Questions, feedback or something not working? Send me a message about 99 Club Studio.</p>
             <form id="tt99-contact-form">
@@ -504,7 +504,7 @@
                 <button type="submit" class="tt99-contact-send">Send message</button>
               </div>
               <div id="tt99-contact-status" class="tt99-contact-status" role="status" aria-live="polite"></div>
-              <small class="tt99-contact-note">Only the details you enter in this contact form are sent through FormSubmit to Tech Tinker Club. Worksheet, school and logo data stay on your device. Please do not include pupil personal information.</small>
+              <small class="tt99-contact-note">Only the details you enter in this contact form are sent through FormSubmit to 99 Club Studio. Worksheet, school and logo data stay on your device. Please do not include pupil personal information.</small>
             </form>
           </section>
         </div>
@@ -750,7 +750,7 @@
       iframe.id='tt99-kofi-iframe';
       iframe.className='tt99-kofi-iframe';
       iframe.src='https://ko-fi.com/bogdan2618/?hidefeed=true&widget=true&embed=true&preview=true';
-      iframe.title='Support Tech Tinker Club on Ko-fi';
+      iframe.title='Support 99 Club Studio on Ko-fi';
       iframe.loading='eager';
       iframe.setAttribute('allow','payment');
       iframe.addEventListener('load',()=>panel.querySelector('.tt99-kofi-loading')?.remove(),{once:true});

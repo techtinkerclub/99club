@@ -1,4 +1,4 @@
-/* Tech Tinker Club - Custom Worksheets angles & turns engine
+/* 99 Club Studio - Custom Worksheets angles & turns engine
  * v0.1 / Angles Stage 1
  *
  * Research-led visual module covering the primary progression from turns in

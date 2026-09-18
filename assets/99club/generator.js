@@ -1,4 +1,4 @@
-/* Tech Tinker Club - 99 Club worksheet generator core
+/* 99 Club Studio - 99 Club worksheet generator core
  * Pure JavaScript, deterministic and browser/Node friendly.
  */
 (function (global) {

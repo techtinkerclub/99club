@@ -11,7 +11,7 @@
   const CUSTOM_KEY = 'tt99-custom-presets-v1';
   const VERSION = '1.23.0';
   const APP_NAME = '99 Club Studio · Custom Worksheets';
-  const APP_URL = 'https://techtinker.club/tools/99-club/custom/';
+  const APP_URL = 'https://99studio.uk/tools/99-club/custom/';
   const GENERATION_VERSION = 1;
   const MAX_PRINT_QR_VERSION = 14;
   const MAX_TEACHER_NOTE = 240;

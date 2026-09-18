@@ -31,7 +31,7 @@ function modalMarkup(){
         <div class="tt99-kofi-heading">
           <img src="/assets/99club/images/kofi-cup.png?v=19.4" alt="" aria-hidden="true">
           <div>
-            <span>Support Tech Tinker Club</span>
+            <span>Support 99 Club Studio</span>
             <h2 id="tt99-kofi-title">Buy me a coffee</h2>
           </div>
         </div>
@@ -46,7 +46,7 @@ function modalMarkup(){
       <button type="button" class="tt99-contact-backdrop" data-contact-close aria-label="Close contact form"></button>
       <section class="tt99-contact-card" role="dialog" aria-modal="true" aria-labelledby="tt99-contact-title">
         <button type="button" class="tt99-contact-close" data-contact-close aria-label="Close contact form">×</button>
-        <span class="tt99-contact-kicker">Tech Tinker Club</span>
+        <span class="tt99-contact-kicker">99 Club Studio</span>
         <h2 id="tt99-contact-title">Contact</h2>
         <p>Questions, feedback or something not working? Send me a message about 99 Club Studio.</p>
         <form id="tt99-contact-form">
@@ -70,7 +70,7 @@ function modalMarkup(){
             <button type="submit" class="tt99-contact-send">Send message</button>
           </div>
           <div id="tt99-contact-status" class="tt99-contact-status" role="status" aria-live="polite"></div>
-          <small class="tt99-contact-note">Only the details you enter in this contact form are sent through FormSubmit to Tech Tinker Club. Worksheet, school and logo data stay on your device. Please do not include pupil personal information.</small>
+          <small class="tt99-contact-note">Only the details you enter in this contact form are sent through FormSubmit to 99 Club Studio. Worksheet, school and logo data stay on your device. Please do not include pupil personal information.</small>
         </form>
       </section>
     </div>`;
@@ -105,7 +105,7 @@ function ensureKofiPanel(root){
   iframe.id='tt99-kofi-iframe';
   iframe.className='tt99-kofi-iframe';
   iframe.src='https://ko-fi.com/bogdan2618/?hidefeed=true&widget=true&embed=true&preview=true';
-  iframe.title='Support Tech Tinker Club on Ko-fi';
+  iframe.title='Support 99 Club Studio on Ko-fi';
   iframe.loading='eager';
   iframe.setAttribute('allow','payment');
   iframe.addEventListener('load',()=>panel.querySelector('.tt99-kofi-loading')?.remove(),{once:true});

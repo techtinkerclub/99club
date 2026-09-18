@@ -1,4 +1,4 @@
-/* Tech Tinker Club - Custom Worksheets coordinate geometry engine
+/* 99 Club Studio - Custom Worksheets coordinate geometry engine
  * v0.2 / visual coordinates stage 2
  *
  * Adds curriculum-mapped coordinate/translation/reflection questions to the

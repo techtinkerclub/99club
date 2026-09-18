@@ -1002,3 +1002,10 @@ body.tt99-contact-open{overflow:hidden}
 
 /* v1.20 — Custom Worksheets blank-canvas topic selection */
 .tt99-family-selection-tools{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 14px;margin:8px 0 12px;border:1px solid #d8e5e3;border-radius:12px;background:#f7fbfa}.tt99-family-selection-tools>div{display:flex;flex-direction:column;gap:2px}.tt99-family-selection-tools b{color:#15384d}.tt99-family-selection-tools small{color:#657681}.tt99-family-strand-actions{display:flex;justify-content:flex-end;padding:8px 12px 0}.tt99-family-strand-actions .tt99-linkbtn{font-size:.78rem}.tt99-family-weights-empty{margin:10px 0 4px;padding:11px 13px;border:1px dashed #ccd9dc;border-radius:10px;color:#64747d;background:#fbfcfc}.tt99-empty-preview{min-height:520px;display:grid;place-items:center;background:#fff;border:1px solid #e2e8ea;border-radius:8px;box-shadow:0 8px 24px rgba(18,50,75,.08);padding:30px}.tt99-empty-preview>div{max-width:430px;text-align:center;display:flex;flex-direction:column;gap:8px}.tt99-empty-preview b{font-size:1.05rem;color:#12324b}.tt99-empty-preview span{color:#667984;line-height:1.5}.tt99-family-strand.has-selected>summary{background:#eef8f5}.tt99-family-strand.has-selected>summary b{color:#0a6c67}.tt99-family-strand.has-selected{border-color:#9ecfc7}.tt99-family-selection-tools button:disabled{opacity:.45;cursor:not-allowed}@media(max-width:640px){.tt99-family-selection-tools{align-items:stretch;flex-direction:column}.tt99-family-selection-tools button{width:100%}.tt99-empty-preview{min-height:360px}}
+
+/* Standalone 99 Club Studio: hide the legacy Tech Tinker Club support
+   integration until a dedicated 99 Club Studio support account exists. */
+#tt99-root .tt99-support-link,
+#tt99-root .tt99-kofi-modal {
+  display:none!important;
+}

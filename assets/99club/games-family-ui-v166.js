@@ -18,7 +18,7 @@ function brandHero(mode){
     <svg class="tt99-brand-graph" viewBox="0 0 150 130" aria-hidden="true" focusable="false" fill="none"><path d="M18 106H134M40 118V18"/><path class="curve" d="M41 105 C65 105 80 99 91 88 C106 73 114 48 125 24"/></svg>
     <div class="tt99-brand-hero__mark"><img src="/assets/99club/images/99club-studio-shield.png" alt="99 Club achievement shield"></div>
     <div class="tt99-brand-hero__copy">
-      <span class="tt99-eyebrow">Tech Tinker Club · Free classroom tool</span>
+      <span class="tt99-eyebrow">99 Club Studio · Free classroom tool</span>
       <img class="tt99-brand-wordmark" src="/assets/99club/images/99club-studio-wordmark.png" alt="99 Club Studio — Maths for further progress">
       <h1 class="tt99-brand-page-title">${title}<span class="tt99-brand-page-note">${note}</span></h1>
     </div>

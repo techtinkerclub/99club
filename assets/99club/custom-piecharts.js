@@ -1,4 +1,4 @@
-/* Tech Tinker Club - Custom Worksheets pie chart engine
+/* 99 Club Studio - Custom Worksheets pie chart engine
  * v0.1 / visual pie charts stage 1
  *
  * Year 6 curriculum-led visual statistics module.  This file owns the pie

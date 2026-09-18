@@ -122,7 +122,7 @@
   function drawFooter(page,left){
     page.line(M,PAGE_H-28,PAGE_W-M,PAGE_H-28,{color:[232,237,238],width:.6});
     page.text(M,PAGE_H-15,clean(left||'Generated locally'),5.8,{color:[130,145,149]});
-    page.text(PAGE_W-M,PAGE_H-15,'techtinker.club/tools/99-club/games/',5.8,{color:[130,145,149],align:'right'});
+    page.text(PAGE_W-M,PAGE_H-15,'99studio.uk/tools/99-club/games/',5.8,{color:[130,145,149],align:'right'});
   }
 
   function activityFrame(page,x,y,w,h,index,a){
