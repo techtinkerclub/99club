@@ -532,7 +532,7 @@
     font-size:8px!important;
   }
   .tt99-game-paper .tt99-game-activities.count-2 .tt99-sumgrid-letter{
-    width:14px!important;height:14px!important;left:3px!important;top:3px!important;font-size:5px!important;
+    width:14px!important;height:14px!important;left:50%!important;top:3px!important;transform:translateX(-50%)!important;font-size:5px!important;
   }
   .tt99-game-paper .tt99-game-activities.count-2 .tt99-sumgrid-cell{
     font-size:10px!important;
