@@ -172,7 +172,8 @@
      scaled as one fixed A4 surface by games-preview-parity-v206.js. */
 
   .tt99-game-paper .tt99-word-layout{
-    grid-template-columns:minmax(0,1.18fr) minmax(150px,.82fr)!important;
+    grid-template-columns:minmax(0,1.06fr) minmax(180px,.94fr)!important;
+    gap:10px!important;
     height:auto!important;
     min-height:0!important;
   }
