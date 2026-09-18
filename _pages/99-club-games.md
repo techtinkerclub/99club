@@ -96,7 +96,7 @@ sitemap: true
 <script src="/assets/99club/games-pdf-new-puzzles-v197.js?v=1"></script>
 <script src="/assets/99club/games-pdf-extra-puzzles-v204.js?v=1"></script>
 <script src="/assets/99club/games-layout-v1321.js?v=2"></script>
-<script src="/assets/99club/games-app.js?v=29" defer></script>
+<script src="/assets/99club/games-app.js?v=30" defer></script>
 <script src="/assets/99club/games-operationgrid-print-v158-ui.js?v=1" defer></script>
 <script src="/assets/99club/games-operationgrid-print-v160-ui.js?v=1" defer></script>
 <script src="/assets/99club/games-operationgrid-print-v155-ui.js?v=1" defer></script>
