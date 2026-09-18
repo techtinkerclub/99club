@@ -1,4 +1,4 @@
-/* 99 Club Studio · Games & Puzzles UI behaviour patch v1.34.0
+/* 99 Club Studio · Games & Puzzles UI behaviour patch v1.34.1
  * Keeps configuration local to each game, contextualises vocabulary,
  * shortens crowded header metadata and adds preview overflow diagnostics.
  */
@@ -59,8 +59,18 @@
   function moveActiveConfiguration(){
     const panel=root.querySelector('.tt99-engine-panel');
     if(!panel)return;
-    const card=root.querySelector('.tt99-engine-card.is-active');
+    let card=root.querySelector('.tt99-engine-card.is-active');
+    if(!card){
+      const heading=(panel.querySelector('.tt99-engine-panel-head h3')?.textContent||'').trim().replace(/\s+setup$/i,'');
+      if(heading){
+        card=[...root.querySelectorAll('.tt99-engine-card')].find(el=>
+          (el.querySelector('.tt99-engine-include b')?.textContent||'').trim()===heading
+        )||null;
+      }
+    }
     if(!card)return;
+    root.querySelectorAll('.tt99-engine-card.is-active').forEach(el=>{if(el!==card)el.classList.remove('is-active');});
+    card.classList.add('is-active');
     panel.classList.add('tt99-engine-panel-inline');
     if(card.nextElementSibling!==panel)card.insertAdjacentElement('afterend',panel);
   }
