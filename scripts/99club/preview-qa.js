@@ -69,9 +69,42 @@ function prepare(){
         if(Math.abs(r.width-r0.width)>2||Math.abs(r.height-r0.height)>2) {fail('square-grid',(g.className||'grid')+' has unequal cell tracks');break;}
       }
     }
+
+    async function previewReplaceTest(){
+      const stack=document.querySelector('.tt99-games-pupil-pages');
+      const activity=stack?.querySelector('.tt99-game-activity');
+      const btn=activity?.querySelector('[data-replace-activity]');
+      if(!activity||!btn){fail('preview-replace','Activity replacement control missing');return;}
+      const before=activity.innerHTML;
+      btn.click();
+      await sleep(220);
+      const after=document.querySelector('.tt99-games-pupil-pages .tt99-game-activity')?.innerHTML||'';
+      if(!after||after===before)fail('preview-replace','Activity replacement did not change the puzzle');
+      else pass('preview-replace','Activity replacement changed the rendered puzzle');
+    }
+    async function configurePlacementTest(){
+      const cardTitle=card=>(card?.querySelector('.tt99-engine-include b')?.textContent||'').trim();
+      const titles=[...document.querySelectorAll('.tt99-engine-card')].map(cardTitle).filter(Boolean);
+      let checked=0;
+      for(const title of titles){
+        const card=[...document.querySelectorAll('.tt99-engine-card')].find(x=>cardTitle(x)===title);
+        const btn=card?.querySelector('.tt99-engine-configure:not([disabled])');
+        if(!btn)continue;
+        btn.click(); await sleep(45);
+        const current=[...document.querySelectorAll('.tt99-engine-card')].find(x=>cardTitle(x)===title);
+        const panel=document.querySelector('.tt99-engine-panel');
+        if(!current||!panel){fail('configure-placement',title+': configuration panel did not open');continue;}
+        if(panel.previousElementSibling!==current)fail('configure-placement',title+': configuration panel is not directly under its game card');
+        else checked++;
+      }
+      if(!checked)fail('configure-placement','No enabled game configuration panels were exercised');
+      else pass('configure-placement',checked+' game configuration panels opened directly under their cards');
+    }
     async function run(){
       try{
         await sleep(1800);
+        await previewReplaceTest();
+        await configurePlacementTest();
         const stack=document.querySelector('.tt99-games-pupil-pages');
         if(!stack)return fail('boot','Pupil preview stack missing');
         const total=Number(window.TT99GamesPreviewPagerV155?.counts?.pupil)||Number(stack.querySelector('[data-preview-total]')?.textContent)||stack.querySelectorAll('.tt99-game-paper').length;
