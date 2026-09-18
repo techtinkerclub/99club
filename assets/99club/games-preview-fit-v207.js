@@ -62,17 +62,31 @@
     if(scale<.999)scale*=.985;
     scale=setScale(activity,scale);
 
-    // Zoom changes flow dimensions. Re-check the actual activity scroll box and
-    // tighten once or twice if a renderer still exceeds the frame.
-    for(let i=0;i<3;i++){
-      const overflowW=Math.max(0,activity.scrollWidth-activity.clientWidth);
-      const overflowH=Math.max(0,activity.scrollHeight-activity.clientHeight);
-      if(overflowW<=1&&overflowH<=1)break;
-      const rw=activity.scrollWidth>0?activity.clientWidth/activity.scrollWidth:1;
-      const rh=activity.scrollHeight>0?activity.clientHeight/activity.scrollHeight:1;
-      const adjust=Math.min(1,rw,rh)*.985;
+    // Zoom changes flow dimensions. Re-check both layout overflow and the actual
+    // painted body rectangle: some browsers report scroll metrics before zoomed
+    // descendants have fully contributed to the visual overflow.
+    for(let i=0;i<4;i++){
+      const now=activity.getBoundingClientRect(),nowStyle=getComputedStyle(activity);
+      const nowPadR=parseFloat(nowStyle.paddingRight)||0,nowPadB=parseFloat(nowStyle.paddingBottom)||0;
+      const rightLimit=now.right-nowPadR,bottomLimit=now.bottom-nowPadB;
+      let maxRight=-Infinity,maxBottom=-Infinity,minLeft=Infinity,minTop=Infinity;
+      for(const el of bodies){
+        const r=el.getBoundingClientRect();
+        if(!r.width&&!r.height)continue;
+        minLeft=Math.min(minLeft,r.left);minTop=Math.min(minTop,r.top);
+        maxRight=Math.max(maxRight,r.right);maxBottom=Math.max(maxBottom,r.bottom);
+      }
+      const visualW=Number.isFinite(maxRight)?Math.max(1,maxRight-minLeft):1;
+      const visualH=Number.isFinite(maxBottom)?Math.max(1,maxBottom-minTop):1;
+      const availVisualW=Number.isFinite(minLeft)?Math.max(1,rightLimit-minLeft):visualW;
+      const availVisualH=Number.isFinite(minTop)?Math.max(1,bottomLimit-minTop):visualH;
+      const rwVisual=maxRight>rightLimit+1?availVisualW/visualW:1;
+      const rhVisual=maxBottom>bottomLimit+1?availVisualH/visualH:1;
+      const rwScroll=activity.scrollWidth>activity.clientWidth+1?activity.clientWidth/activity.scrollWidth:1;
+      const rhScroll=activity.scrollHeight>activity.clientHeight+1?activity.clientHeight/activity.scrollHeight:1;
+      const adjust=Math.min(1,rwVisual,rhVisual,rwScroll,rhScroll);
       if(adjust>=.999)break;
-      scale=setScale(activity,scale*adjust);
+      scale=setScale(activity,scale*adjust*.978);
     }
   }
 
@@ -99,5 +113,5 @@
   if(document.fonts?.ready)document.fonts.ready.then(schedule).catch(()=>{});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
 
-  global.TT99GamesPreviewFitV207={version:'2.07',refresh:schedule,fitActivity};
+  global.TT99GamesPreviewFitV207={version:'2.07.1',refresh:schedule,fitActivity};
 })(typeof globalThis!=='undefined'?globalThis:this);
