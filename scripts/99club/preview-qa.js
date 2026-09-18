@@ -69,6 +69,20 @@ function prepare(){
         if(Math.abs(r.width-r0.width)>2||Math.abs(r.height-r0.height)>2) {fail('square-grid',(g.className||'grid')+' has unequal cell tracks');break;}
       }
     }
+    function inspectSumGrid(activity){
+      const stage=activity.querySelector('.tt99-sumgrid-stage'),board=activity.querySelector('.tt99-sumgrid-board');
+      if(!stage||!board)return;
+      const sr=stage.getBoundingClientRect(),br=board.getBoundingClientRect();
+      if(Math.abs(br.width-br.height)>2)fail('sumgrid-geometry','Board is not square: '+br.width.toFixed(1)+'×'+br.height.toFixed(1));
+      if(Math.abs(sr.width-br.width)>2||Math.abs(sr.height-br.height)>2)fail('sumgrid-geometry','Stage and board sizes differ');
+      const targets=[[1,1],[2,1],[1,2],[2,2]];
+      [...activity.querySelectorAll('.tt99-sumgrid-clue')].forEach((el,i)=>{
+        const r=el.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
+        const t=targets[i]||[0,0],ex=br.left+t[0]*br.width/3,ey=br.top+t[1]*br.height/3;
+        if(Math.abs(cx-ex)>2||Math.abs(cy-ey)>2)fail('sumgrid-geometry','Circle '+(i+1)+' is misaligned by '+Math.round(cx-ex)+','+Math.round(cy-ey)+' px');
+      });
+    }
+
     function inspectCrosswordGrid(g){
       const style=getComputedStyle(g),cols=Math.max(1,Number(style.getPropertyValue('--cw'))||1),rows=Math.max(1,Number(style.getPropertyValue('--ch'))||1);
       const gr=g.getBoundingClientRect(),expected=cols/rows,actual=gr.width/Math.max(1,gr.height);
@@ -134,6 +148,7 @@ function prepare(){
           for(const a of p.querySelectorAll('.tt99-game-activity'))inspectActivity(a);
           for(const g of p.querySelectorAll('.tt99-kakuro-grid,.tt99-cage-grid,.tt99-numberpath-grid,.tt99-extra-path-grid,.tt99-extra-search-grid,.tt99-extra-perimeter-grid,.tt99-shikaku-grid,.tt99-sumgrid-board'))inspectSquareGrid(g);
           for(const g of p.querySelectorAll('.tt99-crossword-grid'))inspectCrosswordGrid(g);
+          for(const a of p.querySelectorAll('.tt99-game-activity'))inspectSumGrid(a);
           if(i<total-1){
             const next=stack.querySelector('[data-preview-next]');
             if(!next||next.disabled){fail('pager','Could not advance from preview page '+(i+1));break;}
