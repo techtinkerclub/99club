@@ -21,4 +21,4 @@ sitemap: true
 <script src="/assets/99club/simple-pdf.js?v=19.4"></script>
 <script src="/assets/99club/pdf-layout.js?v=19.4"></script>
 <script src="/assets/99club/qr-lite.js?v=19.4"></script>
-<script src="/assets/99club/app.js?v=19.8" defer></script>
+<script src="/assets/99club/app.js?v=19.9" defer></script>
