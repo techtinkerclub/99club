@@ -27,7 +27,7 @@ sitemap: true
 
         <section class="tt99-guide-section tt99-guide-highlight">
           <h2>Google Analytics</h2>
-          <p>When you choose <strong>Allow analytics</strong>, 99 Club Studio loads Google Analytics 4. It can provide ordinary website statistics such as page views, sessions, broad traffic source/referrer information, approximate geographic reporting, device/browser information and navigation through the site.</p>
+          <p>99 Club Studio loads the Google tag using Google Consent Mode with analytics storage set to <strong>denied</strong> by default. While analytics storage is denied, Google may receive consent-aware cookieless measurement signals. If you choose <strong>Allow analytics</strong>, analytics storage is then granted and Google Analytics 4 can provide ordinary website statistics such as page views, sessions, broad traffic source/referrer information, approximate geographic reporting, device/browser information and navigation through the site.</p>
           <p>Studio also sends a limited set of product events so we can understand which parts of the free tool are useful. Examples include the type of worksheet PDF downloaded, the selected 99 Club challenge, which puzzle engines are added to or downloaded in a games pack, and which online games are started or completed.</p>
           <div class="tt99-guide-note"><strong>Not sent as analytics event data:</strong> pupil names, school names, teacher names, uploaded logos, worksheet question text, answers, custom vocabulary, contact-form text, recreation codes or generated puzzle seeds.</div>
           <p>Advertising-related Google consent remains disabled in the Studio implementation. Analytics is used to improve 99 Club Studio, not to personalise advertising.</p>
@@ -35,7 +35,7 @@ sitemap: true
 
         <section class="tt99-guide-section">
           <h2>Your choice</h2>
-          <p>Google Analytics is not loaded unless you allow analytics. You can change your choice later using the <strong>Privacy & analytics</strong> control at the bottom of the site. Choosing not to allow analytics does not restrict the worksheets or games.</p>
+          <p>Analytics storage is not granted unless you allow analytics. You can change your choice later using the <strong>Privacy & analytics</strong> control at the bottom of the site. Choosing not to allow analytics does not restrict the worksheets or games.</p>
           <p>Google provides the analytics service and processes analytics information under its own service and privacy terms. You can read Google's privacy information at <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy & Terms</a>.</p>
         </section>
 
