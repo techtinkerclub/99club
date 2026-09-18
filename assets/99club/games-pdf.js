@@ -10,7 +10,7 @@
   if(!P)return;
 
   const INK=[36,67,74], MUTED=[96,116,121], TEAL=[15,138,131], LINE=[207,220,222], PALE=[244,249,248], DARK=[61,86,91], HIT=[218,242,237], WHITE=[255,255,255];
-  const M=34, PAGE_W=P.PAGE_W, PAGE_H=P.PAGE_H;
+  const PAGE_GEO=global.TT99GamesPageGeometry||{};\n  const M=Number(PAGE_GEO.margin)||34, PAGE_W=Number(PAGE_GEO.pageWidth)||P.PAGE_W, PAGE_H=Number(PAGE_GEO.pageHeight)||P.PAGE_H;
 
   function clean(s){return P.asciiish(String(s??''));}
   function cap(s){s=String(s||'');return s.charAt(0).toUpperCase()+s.slice(1);}
@@ -122,7 +122,7 @@
   function drawFooter(page,left){
     page.line(M,PAGE_H-28,PAGE_W-M,PAGE_H-28,{color:[232,237,238],width:.6});
     page.text(M,PAGE_H-15,clean(left||'Generated locally'),5.8,{color:[130,145,149]});
-    page.text(PAGE_W-M,PAGE_H-15,'99studio.uk/tools/99-club/games/',5.8,{color:[130,145,149],align:'right'});
+    page.text(PAGE_W-M,PAGE_H-15,'99studio.uk/games/',5.8,{color:[130,145,149],align:'right'});
   }
 
   function activityFrame(page,x,y,w,h,index,a){
@@ -517,7 +517,7 @@ function drawPropertyMaze(page,a,answers,x,y,w,h,index){
   function addSheetPage(doc,sheet,answers,settings,topics,seed){
     const page=doc.addPage({orientation:'portrait'});
     drawPageHeader(page,`${answers?'Teacher answers':'Pupil sheet'} ${sheet.index}`,settings,topics,answers?'Answer key':'Name: ____________________');
-    const acts=sheet.activities||[],count=Math.max(1,acts.length),bodyTop=110,bodyBottom=PAGE_H-42,gap=12,ah=(bodyBottom-bodyTop-gap*(count-1))/count,w=PAGE_W-2*M;
+    const acts=sheet.activities||[],count=Math.max(1,acts.length),bodyTop=Number(PAGE_GEO.bodyTop)||110,bodyBottom=PAGE_H-(Number(PAGE_GEO.bodyBottom)||42),gap=Number(PAGE_GEO.activityGap)||12,ah=(bodyBottom-bodyTop-gap*(count-1))/count,w=PAGE_W-2*M;
     acts.forEach((a,i)=>drawActivity(page,a,answers,M,bodyTop+i*(ah+gap),w,ah,i+1));
     drawFooter(page,`Generated locally · ${seed}`);
   }
