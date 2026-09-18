@@ -435,3 +435,108 @@
     max-height:148px!important;
   }
 }
+
+
+/* v2.11 · later-engine half-page geometry matched to PDF caps */
+@media screen {
+  /* Extra-puzzle PDF overlays cap these square boards at about 250pt. */
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-extra-path-grid,
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-extra-perimeter-grid{
+    width:min(100%,250px)!important;
+    margin-top:2px!important;
+    margin-bottom:0!important;
+  }
+
+  /* Binary / puzzle-pack grids use the same compact half-page footprint. */
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-takuzu-grid{
+    width:min(100%,258px)!important;
+    margin:3px auto 2px!important;
+  }
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-takuzu-rules{
+    margin-top:1px!important;
+    gap:3px!important;
+  }
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-takuzu-rules span{
+    padding:2px 4px!important;
+  }
+
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-killer-grid,
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-mines-grid{
+    width:min(100%,248px)!important;
+    margin:3px auto 2px!important;
+  }
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-v140-note{
+    margin:1px auto 0!important;
+    line-height:1.15!important;
+  }
+
+  /* Hashi PDF chooses h - heading - 27pt, roughly 240pt on a half page. */
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-hashi-board{
+    width:min(100%,240px)!important;
+    margin:3px auto 2px!important;
+  }
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-hashi-key{
+    margin-top:1px!important;
+    gap:10px!important;
+  }
+
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-sumplete-grid{
+    width:min(100%,248px)!important;
+    margin:3px auto 1px!important;
+  }
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-sumplete-key{
+    margin-top:1px!important;
+    line-height:1.15!important;
+  }
+
+  /* Shikaku PDF uses h - heading - 26pt: ~240pt in a half-page activity. */
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-shikaku-grid{
+    width:min(100%,238px)!important;
+    margin:3px auto 2px!important;
+  }
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-shikaku-note{
+    margin-top:1px!important;
+    line-height:1.15!important;
+  }
+
+  /* Sum-grid PDF caps the board near 190–210pt and reserves room below. */
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-sumgrid-wrap{
+    width:100%!important;
+    margin:3px auto 0!important;
+    gap:4px!important;
+  }
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-sumgrid-stage{
+    width:190px!important;
+  }
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-sumgrid-clue{
+    width:30px!important;
+    height:30px!important;
+    font-size:8px!important;
+  }
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-sumgrid-letter{
+    width:14px!important;height:14px!important;left:3px!important;top:3px!important;font-size:5px!important;
+  }
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-sumgrid-cell{
+    font-size:10px!important;
+  }
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-sumgrid-groups{
+    gap:4px!important;
+    flex-wrap:nowrap!important;
+  }
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-sumgrid-groups>span{
+    min-width:68px!important;
+    padding:3px 6px!important;
+    gap:3px!important;
+  }
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-sumgrid-groups b{
+    width:15px!important;height:15px!important;font-size:5px!important;
+  }
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-sumgrid-groups em,
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-sumgrid-groups strong{
+    font-size:6px!important;
+  }
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-sumgrid-note{
+    font-size:5.8px!important;
+    line-height:1.15!important;
+  }
+}
