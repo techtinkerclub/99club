@@ -117,7 +117,7 @@ function settingsMarkup(){
   return '<div class="tt99-analytics-panel" hidden>'+
     '<section class="tt99-analytics-panel__card" role="dialog" aria-modal="true" aria-labelledby="tt99-analytics-title">'+
     '<div class="tt99-analytics-panel__head"><div><h2 id="tt99-analytics-title">Privacy & analytics</h2>'+
-    '<p>99 Club Studio uses Google Analytics only when you allow it. Analytics is used to understand visits, downloads and anonymous feature usage so the free tools can be improved.</p></div>'+
+    '<p>99 Club Studio loads the Google tag with analytics storage disabled. If you allow analytics, it can then use analytics storage to understand visits, downloads and anonymous feature usage so the free tools can be improved.</p></div>'+
     '<button type="button" class="tt99-analytics-panel__close" data-analytics-close aria-label="Close">×</button></div>'+
     '<div class="tt99-analytics-panel__state"></div>'+
     '<p>No pupil names, school names, uploaded logos, worksheet questions, answers, free text or recreation codes are deliberately sent as analytics events. <a href="'+privacy+'">Read the privacy details</a>.</p>'+
