@@ -10,7 +10,7 @@
   const CUSTOM_KEY = 'tt99-custom-presets-v1';
   const VERSION = '1.19.3';
   const APP_NAME = '99 Club Studio';
-  const APP_URL = 'https://99studio.uk/tools/99-club/';
+  const APP_URL = 'https://99studio.uk/';
   const CUSTOM_WORKSPACE_KEY = 'tt99-custom-settings-v1';
   const GENERATION_VERSION = 1;
   const MAX_PRINT_QR_VERSION = 14;
@@ -436,9 +436,14 @@
             <h1 id="tt99-hero-title" class="tt99-sr-only">99 Club Studio</h1>
             <img class="tt99-hero__wordmark" src="/assets/99club/images/99club-studio-wordmark.png" alt="99 Club Studio — Maths for further progress">
             <p class="tt99-hero__slogan">Practice. Progress. Confidence.</p>
+            <nav class="tt99-studio-nav" aria-label="99 Club Studio tools">
+              <span class="is-active" aria-current="page">99 Club</span>
+              <a href="/tools/99-club/custom/">Custom Worksheets</a>
+              <a href="/tools/99-club/games/">Games &amp; Puzzles</a>
+              <a href="/tools/99-club/games/play/">Play Online</a>
+            </nav>
           </div>
-          <div class="tt99-hero-tools" aria-label="99 Club Studio links">
-            <a href="/tools/99-club/games/" class="tt99-hero-tool tt99-games-link"><span aria-hidden="true">▦</span>Games &amp; puzzles</a>
+          <div class="tt99-hero-tools" aria-label="99 Club Studio support links">
             <a href="/tools/99-club/help/" class="tt99-hero-tool tt99-help-link" target="_blank" rel="noopener"><span aria-hidden="true">?</span>Help &amp; guide</a>
             <button type="button" id="tt99-contact-open" class="tt99-hero-tool tt99-contact-link"><span aria-hidden="true">✉</span>Contact</button>
             <button type="button" id="tt99-kofi-open" class="tt99-hero-tool tt99-support-link"><img class="tt99-kofi-cup" src="/assets/99club/images/kofi-cup.png?v=19.4" alt="" aria-hidden="true">Buy me a coffee</button>
