@@ -1,0 +1,78 @@
+/* 99 Club Studio · Online Play square-grid stability v1.72
+ * Keep square puzzle boards genuinely square on mobile browsers by defining
+ * both row and column tracks explicitly and allowing cells to shrink below
+ * their intrinsic content size. This prevents rows/columns from being sized
+ * by clue/value content.
+ */
+
+/* Shared number-grid games: Sudoku, Takuzu, Futoshiki, Killer Sudoku,
+ * Arithmetic Cages and the sum-grid family. */
+.tt99-numbergrid{
+  grid-template-columns:repeat(var(--n),minmax(0,1fr))!important;
+  grid-template-rows:repeat(var(--n),minmax(0,1fr))!important;
+  grid-auto-rows:minmax(0,1fr)!important;
+}
+.tt99-numbergrid-cell{
+  width:100%;
+  height:100%;
+  min-width:0;
+  min-height:0;
+  box-sizing:border-box;
+}
+
+/* Hidden Gems / Mines */
+.tt99-mines-grid{
+  grid-template-columns:repeat(var(--n),minmax(0,1fr))!important;
+  grid-template-rows:repeat(var(--n),minmax(0,1fr))!important;
+  grid-auto-rows:minmax(0,1fr)!important;
+}
+.tt99-mines-cell{
+  width:100%;
+  height:100%;
+  min-width:0;
+  min-height:0;
+  box-sizing:border-box;
+}
+
+/* Number Path */
+.tt99-numberpath-grid{
+  grid-template-columns:repeat(var(--n),minmax(0,1fr))!important;
+  grid-template-rows:repeat(var(--n),minmax(0,1fr))!important;
+  grid-auto-rows:minmax(0,1fr)!important;
+}
+.tt99-numberpath-cell{
+  width:100%;
+  height:100%;
+  min-width:0;
+  min-height:0;
+  box-sizing:border-box;
+}
+
+/* Word Search */
+.tt99-wordsearch-grid{
+  grid-template-columns:repeat(var(--n),minmax(0,1fr))!important;
+  grid-template-rows:repeat(var(--n),minmax(0,1fr))!important;
+  grid-auto-rows:minmax(0,1fr)!important;
+}
+.tt99-wordsearch-cell{
+  width:100%;
+  height:100%;
+  min-width:0;
+  min-height:0;
+  box-sizing:border-box;
+}
+
+/* Shikaku already had explicit rows and columns, but use zero-minimum tracks so
+ * clue bubbles cannot influence track sizing on narrow screens. */
+.tt99-play-shikaku-grid,
+.tt99-play-shikaku-overlays{
+  grid-template-columns:repeat(var(--cols),minmax(0,1fr))!important;
+  grid-template-rows:repeat(var(--rows),minmax(0,1fr))!important;
+}
+.tt99-play-shikaku-cell{
+  width:100%;
+  height:100%;
+  min-width:0;
+  min-height:0;
+  box-sizing:border-box;
+}

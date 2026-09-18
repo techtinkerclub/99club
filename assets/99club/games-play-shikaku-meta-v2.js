@@ -1,0 +1,2 @@
+/* Shikaku metadata for the multi-game online library. */
+(function(global){'use strict';const P=global.TT99GamesPlay,a=P?.adapters?.get('shikaku');if(!a)return;Object.assign(a,{order:1,icon:'▤',shortTitle:'Shikaku',category:'Area & spatial logic',blurb:'Divide the grid into rectangles whose areas match the clues.',howTitle:'Draw rectangles',howText:'Drag from one corner to the opposite corner. Every rectangle needs exactly one clue and its area must equal that clue.'});})(typeof globalThis!=='undefined'?globalThis:this);

@@ -1,0 +1,27 @@
+/* 99 Club Studio · v1.32.1 layout corrections
+   Crossgrid operator hints + nonogram preview frame. */
+.tt99-equation-crossgrid>span.operator.blank{position:relative}
+.tt99-equation-crossgrid>span.operator.blank::after{
+  content:"?";
+  position:absolute;
+  top:7%;
+  right:9%;
+  color:#73868a;
+  font-size:clamp(5px,.48vw,8px);
+  font-weight:900;
+  line-height:1;
+  pointer-events:none;
+}
+
+.tt99-nonogram-grid .pixel.ng-frame-top{border-top:2px solid #536d72}
+.tt99-nonogram-grid .pixel.ng-frame-right{border-right:2px solid #536d72}
+.tt99-nonogram-grid .pixel.ng-frame-bottom{border-bottom:2px solid #536d72}
+.tt99-nonogram-grid .pixel.ng-frame-left{border-left:2px solid #536d72}
+
+@media print{
+  .tt99-equation-crossgrid>span.operator.blank::after{font-size:5pt;top:5%;right:7%;color:#555}
+  .tt99-nonogram-grid .pixel.ng-frame-top{border-top:1.4pt solid #4f676c!important}
+  .tt99-nonogram-grid .pixel.ng-frame-right{border-right:1.4pt solid #4f676c!important}
+  .tt99-nonogram-grid .pixel.ng-frame-bottom{border-bottom:1.4pt solid #4f676c!important}
+  .tt99-nonogram-grid .pixel.ng-frame-left{border-left:1.4pt solid #4f676c!important}
+}

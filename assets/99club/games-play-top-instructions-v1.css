@@ -1,0 +1,9 @@
+/* 99 Club Studio · Online Play top instructions v1 */
+.tt99-play-top-instructions{display:grid;gap:6px;margin:0 0 12px;padding:10px 12px;border:1px solid #dce8e9;border-radius:12px;background:#f7fbfa}
+.tt99-play-top-instructions .tt99-play-instruction{margin:0;color:var(--play-ink);font-size:.9rem;line-height:1.45;font-weight:650}
+.tt99-play-top-instructions .tt99-play-live-rule{margin:0;padding-top:1px;color:var(--play-teal);font-size:.82rem;line-height:1.4;font-weight:800}
+.tt99-play-top-instructions .tt99-play-live-rule[hidden]{display:none}
+.tt99-play-top-instructions .tt99-play-how{border-top:0;padding-top:0;margin:0}
+.tt99-play-top-instructions .tt99-play-how strong{display:none}
+.tt99-play-top-instructions .tt99-play-how p{margin:0;color:var(--play-muted);font-size:.8rem;line-height:1.4}
+@media(max-width:520px){.tt99-play-top-instructions{padding:9px 10px;margin-bottom:10px}.tt99-play-top-instructions .tt99-play-instruction{font-size:.86rem}.tt99-play-top-instructions .tt99-play-live-rule{font-size:.78rem}.tt99-play-top-instructions .tt99-play-how p{font-size:.77rem}}

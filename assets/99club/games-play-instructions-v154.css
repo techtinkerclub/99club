@@ -1,0 +1,8 @@
+/* 99 Club Studio · Online Play instruction cleanup v1.54 */
+.tt99-play-top-instructions-v154{display:grid;gap:7px;margin:0 0 14px;padding:12px 14px;border:1px solid #d7e6e7;border-radius:14px;background:#f7fbfa}
+.tt99-play-top-instructions-v154 .tt99-play-instruction{margin:0;color:var(--play-ink);font-size:.94rem;line-height:1.48;font-weight:680}
+.tt99-play-top-instructions-v154 .tt99-play-live-rule{margin:0;padding-top:5px;border-top:1px solid #dfeceb;color:var(--play-teal);font-size:.86rem;line-height:1.42;font-weight:850}
+.tt99-play-top-instructions-v154 .tt99-play-live-rule[hidden],.tt99-play-how[hidden]{display:none!important}
+/* Legacy adapter notes now repeat information carried by the top card. */
+#tt99-play-board .tt99-play-board-tip,#tt99-play-board .tt99-cycle-note,#tt99-play-board .tt99-hashi-note,#tt99-play-board .tt99-arith-note{display:none!important}
+@media(max-width:520px){.tt99-play-top-instructions-v154{padding:10px 11px;margin-bottom:11px}.tt99-play-top-instructions-v154 .tt99-play-instruction{font-size:.88rem}.tt99-play-top-instructions-v154 .tt99-play-live-rule{font-size:.82rem}}

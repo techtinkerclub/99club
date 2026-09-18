@@ -1,0 +1,10 @@
+'use strict';
+const assert=require('assert');
+const L=require('../games-puzzle-redesign-v135-logic.js');
+const code=L.operationCodeData({difficulty:'standard',rows:[{text:'43 □ 17 = 60',ops:['+']},{text:'61 □ 45 = 16',ops:['-']} ]});
+assert.equal(code.code.length,2);assert(code.code.every(Number.isFinite));assert.notEqual(code.locks[0].map['+'],undefined);
+const symbols={difficulty:'standard',names:['A','B'],values:[6,4],equations:[{text:'A + A = 12'},{text:'A + B = 10'}]};
+assert.deepEqual(L.solveSymbolValues(symbols),{A:6,B:4});assert.equal(L.symbolTarget(symbols).answer,16);
+const balance={difficulty:'standard',seed:'qa',rows:[{display:'43 + 13 = 51 + □',solution:'43 + 13 = 51 + 5',answer:5},{display:'20 + 8 = 12 + □',solution:'20 + 8 = 12 + 16',answer:16}]};
+const repair=L.repairData(balance);assert.equal(repair.rows.length,2);assert.equal(repair.tiles.filter(x=>!x.decoy).length,2);assert.equal(repair.decoyCount,1);assert.equal(L.repairData(balance).tiles.map(x=>x.value).join(','),repair.tiles.map(x=>x.value).join(','));
+console.log('Games v1.36 redesign logic: PASS');

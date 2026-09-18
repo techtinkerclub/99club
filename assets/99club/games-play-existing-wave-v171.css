@@ -1,0 +1,46 @@
+/* 99 Club Studio · Existing printable games → Online Play wave v1.71
+ * Acceptance rules: fixed grid tracks, square cells where the puzzle uses a
+ * square grid, solid structural boundaries, mobile-safe controls.
+ */
+
+/* ---------- Number Towers / Skyscrapers ---------- */
+.tt99-play-numbertowers{width:min(100%,720px);margin-inline:auto}
+.tt99-towers-shell{display:grid;gap:14px;justify-items:center}
+.tt99-towers-board{display:grid;grid-template-columns:.72fr repeat(var(--towers),minmax(0,1fr)) .72fr;grid-template-rows:.72fr repeat(var(--towers),minmax(0,1fr)) .72fr;width:min(100%,610px);aspect-ratio:1;box-sizing:border-box}
+.tt99-towers-cell,.tt99-towers-clue,.tt99-towers-corner{min-width:0;min-height:0;box-sizing:border-box}
+.tt99-towers-cell{appearance:none;display:grid;place-items:center;width:100%;height:100%;padding:0;border:1px solid #8ca5a8;background:#fff;color:#294c51;font:850 clamp(.86rem,3.6vw,1.42rem)/1 inherit;cursor:pointer}
+.tt99-towers-cell.is-selected{position:relative;z-index:3;background:#eaf6f4;box-shadow:inset 0 0 0 3px #16847b}
+.tt99-towers-cell.is-related{background:#eef7fb}
+.tt99-towers-cell.is-wrong{background:#fff0eb;color:#8d4939;box-shadow:inset 0 0 0 3px #cd7a64}
+.tt99-towers-clue{display:flex;align-items:center;justify-content:center;gap:2px;color:#365d62;font:850 clamp(.55rem,2.2vw,.82rem)/1 inherit}
+.tt99-towers-clue i{font-style:normal;color:#16847b;font-size:.82em}.tt99-towers-clue.top,.tt99-towers-clue.bottom{flex-direction:column}.tt99-towers-clue.left,.tt99-towers-clue.right{flex-direction:row}
+.tt99-towers-clue.is-hint{border-radius:9px;background:#fff4cf;color:#755919;box-shadow:inset 0 0 0 2px #e7c55e}
+.tt99-towers-keypad{display:grid;grid-template-columns:repeat(var(--keys),minmax(48px,1fr));gap:7px;width:min(100%,470px)}
+.tt99-towers-keypad button{appearance:none;min-height:47px;border:1px solid #c5d7d8;border-radius:11px;background:#fff;color:#294c51;font:850 .95rem/1 inherit;cursor:pointer}.tt99-towers-keypad .clear{grid-column:1/-1;color:#657c80;font-size:.76rem}.tt99-towers-keypad button:disabled{opacity:.46;cursor:not-allowed}
+
+/* ---------- Number Property Maze ---------- */
+.tt99-play-propertymaze,.tt99-play-answermaze{display:grid;gap:13px;width:min(100%,720px);margin-inline:auto;justify-items:center}
+.tt99-propertymaze-rule{display:flex;align-items:baseline;gap:8px;width:min(100%,620px);padding:10px 13px;border:1px solid #cfe0de;border-radius:13px;background:#f6fbfa;color:#34575c}.tt99-propertymaze-rule small{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.055em;color:#6a8185}.tt99-propertymaze-rule strong{font-size:.88rem;color:#176e67}
+.tt99-propertymaze-board,.tt99-answermaze-board{display:grid;grid-template-columns:repeat(var(--maze-n),minmax(0,1fr));grid-template-rows:repeat(var(--maze-n),minmax(0,1fr));width:min(100%,620px);aspect-ratio:1;border:2px solid #496d72;background:#496d72;gap:1px;box-sizing:border-box}
+.tt99-propertymaze-cell,.tt99-answermaze-cell{appearance:none;display:grid;place-items:center;min-width:0;min-height:0;width:100%;height:100%;box-sizing:border-box;padding:3px;border:0;background:#fff;color:#294d52;font:850 clamp(.62rem,3.25vw,1.12rem)/1.05 inherit;cursor:pointer;position:relative}
+.tt99-propertymaze-cell.is-start,.tt99-propertymaze-cell.is-finish,.tt99-answermaze-cell.is-start,.tt99-answermaze-cell.is-finish{font-size:clamp(.43rem,1.8vw,.7rem);letter-spacing:.025em;background:#e7f3f1;color:#176e67}
+.tt99-propertymaze-cell.is-path,.tt99-answermaze-cell.is-path{background:#dff1ed;color:#234f53}
+.tt99-propertymaze-cell.is-current,.tt99-answermaze-cell.is-current{z-index:3;background:#cfebe5;box-shadow:inset 0 0 0 3px #16847b}
+.tt99-propertymaze-cell.is-wrong,.tt99-answermaze-cell.is-wrong{background:#fff0eb!important;color:#8d4939;box-shadow:inset 0 0 0 3px #cd7a64!important}.tt99-propertymaze-cell.is-hint,.tt99-answermaze-cell.is-hint{box-shadow:inset 0 0 0 3px #d7ad32;background:#fff7dc}.tt99-answermaze-cell.is-attempt{background:#fff7dc;box-shadow:inset 0 0 0 2px #d8b34d}
+.tt99-propertymaze-tip,.tt99-answermaze-tip{margin:0;color:#687d81;font-size:.7rem;line-height:1.4;text-align:center}
+.tt99-answermaze-question{width:min(100%,620px);display:grid;gap:4px;padding:12px 14px;border:1px solid #cfe0de;border-radius:14px;background:#f7fbfa;color:#294d52;box-sizing:border-box}.tt99-answermaze-question small{font-size:.65rem;font-weight:850;text-transform:uppercase;letter-spacing:.06em;color:#16847b}.tt99-answermaze-question strong{font-size:clamp(.9rem,3.2vw,1.18rem);line-height:1.25}.tt99-answermaze-question span{font-size:.68rem;color:#6a7f83;line-height:1.35}.tt99-answermaze-question.is-hint{background:#fff9e6;border-color:#e4ca77}
+
+/* ---------- Maths Crossnumber ---------- */
+.tt99-play-crossnumber{width:100%}
+.tt99-crossnumber-layout{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(230px,.72fr);gap:18px;align-items:start;width:min(100%,980px);margin-inline:auto}
+.tt99-crossnumber-board{display:grid;grid-template-columns:repeat(var(--cw),minmax(0,1fr));grid-template-rows:repeat(var(--ch),minmax(0,1fr));width:min(100%,610px);aspect-ratio:var(--cw) / var(--ch);border:2px solid #405f64;background:#405f64;gap:1px;box-sizing:border-box;margin-inline:auto}
+.tt99-crossnumber-cell,.tt99-crossnumber-block{min-width:0;min-height:0;width:100%;height:100%;box-sizing:border-box}
+.tt99-crossnumber-block{display:block;background:#405f64}
+.tt99-crossnumber-cell{appearance:none;position:relative;display:grid;place-items:center;padding:0;border:0;background:#fff;color:#294d52;font:850 clamp(.66rem,2.45vw,1.05rem)/1 inherit;cursor:pointer}
+.tt99-crossnumber-cell small{position:absolute;top:3px;left:4px;color:#5e777b;font:800 clamp(.35rem,1.15vw,.5rem)/1 Arial,sans-serif}.tt99-crossnumber-cell.is-entry{background:#f1f8f7}.tt99-crossnumber-cell.is-selected{z-index:3;background:#e8f4fb;box-shadow:inset 0 0 0 3px #5b9cc3}.tt99-crossnumber-cell.is-hint{background:#fff7dc}.tt99-crossnumber-cell.is-wrong{background:#fff0eb!important;color:#8d4939;box-shadow:inset 0 0 0 3px #cd7a64!important}
+.tt99-crossnumber-keypad{display:grid;grid-template-columns:repeat(5,minmax(44px,1fr));gap:6px;width:min(100%,470px);margin:12px auto 0}.tt99-crossnumber-keypad button{appearance:none;min-height:44px;border:1px solid #c6d7d8;border-radius:10px;background:#fff;color:#294d52;font:850 .9rem/1 inherit;cursor:pointer}.tt99-crossnumber-keypad .clear{grid-column:1/-1;color:#657d81;font-size:.75rem}.tt99-crossnumber-keypad button:disabled{opacity:.45;cursor:not-allowed}
+.tt99-crossnumber-clues{display:grid;gap:13px}.tt99-crossnumber-clues section{padding:11px;border:1px solid #d5e2e2;border-radius:13px;background:#fbfdfd}.tt99-crossnumber-clues h3{margin:0 0 7px;color:#2f555a;font-size:.76rem;text-transform:uppercase;letter-spacing:.05em}.tt99-crossnumber-clue{appearance:none;display:grid;grid-template-columns:27px 1fr;gap:6px;width:100%;padding:6px;border:0;border-radius:8px;background:transparent;color:#3e5a5f;text-align:left;cursor:pointer;font:inherit}.tt99-crossnumber-clue b{color:#176e67;font-size:.68rem}.tt99-crossnumber-clue span{font-size:.68rem;line-height:1.35}.tt99-crossnumber-clue:hover,.tt99-crossnumber-clue.is-active{background:#edf7f5}.tt99-crossnumber-clue.is-hint{background:#fff4cf;box-shadow:inset 0 0 0 1px #e1c35f}
+
+@media(max-width:760px){.tt99-crossnumber-layout{grid-template-columns:1fr}.tt99-crossnumber-clues{grid-template-columns:1fr 1fr}.tt99-crossnumber-board{width:min(100%,620px)}}
+@media(max-width:560px){.tt99-towers-keypad,.tt99-crossnumber-keypad{position:sticky;bottom:6px;z-index:20;padding:7px;border-radius:14px;background:rgba(248,251,251,.95);backdrop-filter:blur(7px);box-shadow:0 4px 16px rgba(36,68,75,.12)}.tt99-crossnumber-clues{grid-template-columns:1fr}.tt99-propertymaze-board,.tt99-answermaze-board{width:100%}.tt99-towers-board{width:100%}.tt99-crossnumber-cell small{top:2px;left:3px}.tt99-crossnumber-layout{gap:13px}}
+@media(max-width:390px){.tt99-propertymaze-cell,.tt99-answermaze-cell{font-size:clamp(.56rem,4.1vw,.94rem)}.tt99-propertymaze-cell.is-start,.tt99-propertymaze-cell.is-finish,.tt99-answermaze-cell.is-start,.tt99-answermaze-cell.is-finish{font-size:.39rem}.tt99-crossnumber-keypad{gap:5px}.tt99-crossnumber-keypad button{min-height:41px}}

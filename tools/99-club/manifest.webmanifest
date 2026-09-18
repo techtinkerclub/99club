@@ -1,0 +1,40 @@
+{
+  "id": "/tools/99-club/",
+  "name": "99 Club Studio",
+  "short_name": "99 Club",
+  "description": "Create printable primary maths resources and play generated maths puzzles.",
+  "start_url": "/tools/99-club/",
+  "scope": "/tools/99-club/",
+  "display": "standalone",
+  "background_color": "#f5f8f8",
+  "theme_color": "#147d75",
+  "orientation": "any",
+  "categories": ["education", "productivity"],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "/assets/99club/pwa/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/99club/pwa/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Maths Games",
+      "short_name": "Games",
+      "url": "/tools/99-club/games/"
+    },
+    {
+      "name": "Play Online",
+      "short_name": "Play",
+      "url": "/tools/99-club/games/play/"
+    }
+  ]
+}

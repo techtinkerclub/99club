@@ -1,0 +1,149 @@
+/* 99 Club Studio · printable Symbol Decoder v1.89 */
+.tt99-symbol-decoder-print .tt99-game-instruction{margin-bottom:10px}
+.tt99-print-decoder-message{
+  border:1px solid #cbdedd;
+  border-radius:14px;
+  padding:10px 12px;
+  background:#f5faf9;
+  text-align:center;
+  margin:8px 0 10px;
+}
+.tt99-print-decoder-message>small{
+  display:block;
+  color:#688083;
+  font-size:.66rem;
+  font-weight:900;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  margin-bottom:6px;
+}
+.tt99-print-decoder-code{
+  display:grid;
+  grid-template-columns:repeat(var(--decoder-count,6),minmax(0,1fr));
+  gap:4px;
+  width:min(100%,620px);
+  margin:0 auto;
+}
+.tt99-print-decoder-code>span{
+  min-width:0;
+  aspect-ratio:1;
+  max-width:42px;
+  width:100%;
+  justify-self:center;
+  display:grid;
+  place-items:center;
+  border:1.4px solid #80aaa5;
+  border-radius:9px;
+  background:#fff;
+  color:#245c60;
+  font-size:clamp(.72rem,2.5vw,1.12rem);
+  font-weight:900;
+}
+.tt99-print-decoder-code>span.answer-fill{background:#e3f4f0;border-color:#58a196;color:#176f66}
+.tt99-print-decoder-answer-label{
+  display:block;
+  margin:8px 0 4px;
+  color:#536f73;
+  font-size:.62rem;
+  font-weight:900;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.tt99-print-decoder-answer{
+  display:grid;
+  grid-template-columns:repeat(var(--decoder-count,6),minmax(0,1fr));
+  gap:4px;
+  width:min(100%,620px);
+  margin:0 auto;
+}
+.tt99-print-decoder-answer>span{
+  min-width:0;
+  aspect-ratio:1;
+  max-width:34px;
+  width:100%;
+  justify-self:center;
+  display:grid;
+  place-items:center;
+  border:1.2px solid #a7c0be;
+  border-radius:6px;
+  background:#fff;
+  color:#176f66;
+  font-size:clamp(.72rem,2.2vw,1rem);
+  font-weight:900;
+}
+.tt99-print-decoder-answer>span.answer-fill{background:#e8f5f2;border-color:#6aa9a1}
+.tt99-print-decoder-alphabet{
+  margin:8px auto 0;
+  max-width:660px;
+  color:#61797c;
+  font-size:.59rem;
+  line-height:1.45;
+}
+.tt99-print-decoder-alphabet strong{
+  display:block;
+  margin-bottom:2px;
+  color:#4d686c;
+  font-size:.6rem;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+.tt99-print-decoder-alphabet span{display:block;white-space:nowrap}
+.tt99-print-decoder-key{display:block;margin-top:6px;color:#71878a;font-size:.66rem;font-weight:700}
+.tt99-print-decoder-definition{
+  margin:7px auto 0;
+  max-width:620px;
+  color:#4c676b;
+  font-size:.72rem;
+  line-height:1.35;
+}
+.tt99-print-decoder-definition strong{color:#2a555a}
+.tt99-print-decoder-clues{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:6px;
+  margin:8px 0;
+}
+.tt99-print-decoder-clues>div{
+  min-width:0;
+  border:1px solid #d4e2e1;
+  border-radius:9px;
+  background:#fff;
+  padding:6px 8px;
+  text-align:center;
+  color:#294f54;
+  font-size:.82rem;
+  font-weight:800;
+}
+.tt99-print-decoder-locks{
+  display:grid;
+  grid-template-columns:repeat(var(--decoder-symbol-count,4),minmax(0,1fr));
+  gap:5px;
+  margin-top:7px;
+}
+.tt99-print-decoder-locks>span{
+  min-width:0;
+  border-bottom:1.5px solid #91afad;
+  padding:4px 2px 5px;
+  text-align:center;
+  color:#315a5f;
+  font-size:.75rem;
+  font-weight:800;
+  white-space:nowrap;
+}
+@media(max-width:600px){
+  .tt99-print-decoder-message{padding:8px}
+  .tt99-print-decoder-code{gap:3px}
+  .tt99-print-decoder-code>span{max-width:36px;border-radius:7px;font-size:.78rem}
+  .tt99-print-decoder-answer>span{max-width:30px}
+  .tt99-print-decoder-alphabet{font-size:.52rem}
+  .tt99-print-decoder-clues{grid-template-columns:1fr 1fr;gap:4px}
+  .tt99-print-decoder-clues>div{font-size:.72rem;padding:5px 4px}
+  .tt99-print-decoder-locks{gap:3px}
+  .tt99-print-decoder-locks>span{font-size:.64rem}
+}
+@media print{
+  .tt99-print-decoder-message{break-inside:avoid;background:#fff}
+  .tt99-print-decoder-code>span{background:#fff!important}
+  .tt99-print-decoder-code>span.answer-fill{background:#eef7f5!important}
+  .tt99-print-decoder-answer>span,.tt99-print-decoder-answer>span.answer-fill{background:#fff!important}
+}

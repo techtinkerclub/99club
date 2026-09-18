@@ -1,0 +1,7 @@
+/* 99 Club Studio · Broken Calculator keypad polish v1.52 */
+.tt99-play-brokencalc .tt99-calc-pad .equals{grid-column:1/-1;min-height:52px}
+.tt99-play-brokencalc .tt99-calc-pad button[data-calc-key="÷"],
+.tt99-play-brokencalc .tt99-calc-pad button[data-calc-key="×"],
+.tt99-play-brokencalc .tt99-calc-pad button[data-calc-key="-"],
+.tt99-play-brokencalc .tt99-calc-pad button[data-calc-key="+"]{font-size:1.25rem}
+@media(max-width:520px){.tt99-play-brokencalc .tt99-calc-pad .equals{min-height:48px}}

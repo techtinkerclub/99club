@@ -1,0 +1,16 @@
+{
+  "version": "1.21.1",
+  "date": "2026-09-10",
+  "scope": "Custom Worksheets hotfix only",
+  "pie_fix": {
+    "visual_engine_cache_version": 6,
+    "pie_asset_cache_version": 3,
+    "polygon_capable_canvas_required_for_colour_fill": true,
+    "line_outline_fallback": true
+  },
+  "workspace_views": ["options", "balanced", "preview"],
+  "default_workspace_view": "balanced",
+  "workspace_view_persisted": true,
+  "public_help_mentions_custom": false,
+  "public_99_club_changed": false
+}

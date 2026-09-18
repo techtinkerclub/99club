@@ -1,0 +1,119 @@
+/* 99 Club Studio · Arithmagons result-node layout v1.78
+ * Keep high-difficulty pentagon/hexagon diagrams readable by using compact
+ * circular result nodes instead of wide pills at connection midpoints.
+ */
+
+/* Connection results use the same footprint as corner nodes. This matters on
+   challenge diagrams where outer-side and selected-diagonal results sit close
+   together. Wide pills overlap even when the underlying graph is valid. */
+.tt99-play-arithmagon .tt99-arith-link{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  grid-template-columns:none!important;
+  gap:0!important;
+  width:clamp(48px,11vw,66px)!important;
+  height:clamp(48px,11vw,66px)!important;
+  min-width:0!important;
+  min-height:0!important;
+  max-width:none!important;
+  padding:0!important;
+  border:2px solid #829fa3!important;
+  border-radius:50%!important;
+  background:#fff!important;
+  box-sizing:border-box!important;
+  overflow:visible!important;
+}
+.tt99-play-arithmagon .tt99-arith-link.is-given{
+  background:#f8fbfb!important;
+}
+.tt99-play-arithmagon .tt99-arith-link.is-diagonal{
+  background:#f5f9f9!important;
+  border-color:#91a9ac!important;
+}
+.tt99-play-arithmagon .tt99-arith-link strong,
+.tt99-play-arithmagon .tt99-arith-link .tt99-structure-entry,
+.tt99-play-arithmagon .tt99-arith-link .tt99-capture-value{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:100%!important;
+  height:100%!important;
+  min-width:0!important;
+  min-height:0!important;
+  max-width:none!important;
+  max-height:none!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:50%!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  color:#294d52!important;
+  text-align:center!important;
+  font:900 clamp(.68rem,2.8vw,.9rem)/1 system-ui!important;
+  box-sizing:border-box!important;
+}
+
+/* The operation is already stated once above the diagram for normal + or ×
+   puzzles, so repeating it at every result only adds clutter. Mixed-operation
+   puzzles keep a tiny badge attached to each result node. */
+.tt99-play-arithmagon .tt99-arith-link>small{display:none!important}
+.tt99-play-arithmagon.is-mixed-ops .tt99-arith-link>small{
+  position:absolute!important;
+  z-index:5!important;
+  top:-6px!important;
+  right:-6px!important;
+  display:grid!important;
+  place-items:center!important;
+  width:20px!important;
+  height:20px!important;
+  margin:0!important;
+  padding:0!important;
+  border:2px solid #fff!important;
+  border-radius:50%!important;
+  background:#dff1ee!important;
+  color:#176e67!important;
+  font:900 .7rem/1 system-ui!important;
+  box-shadow:0 1px 3px rgba(35,70,77,.15)!important;
+}
+
+/* Selected result/corner nodes use exactly the same focus language. */
+.tt99-play-arithmagon .tt99-arith-link.tt99-entry-host-active,
+.tt99-play-arithmagon .tt99-arith-node.tt99-entry-host-active{
+  background:#eaf4ff!important;
+  border-color:#5c9ccc!important;
+  box-shadow:0 0 0 3px rgba(92,156,204,.18)!important;
+}
+
+@media(max-width:560px){
+  .tt99-play-arithmagon .tt99-arith-node,
+  .tt99-play-arithmagon .tt99-arith-link{
+    width:48px!important;
+    height:48px!important;
+  }
+  .tt99-play-arithmagon .tt99-arith-link strong,
+  .tt99-play-arithmagon .tt99-arith-link .tt99-structure-entry,
+  .tt99-play-arithmagon .tt99-arith-link .tt99-capture-value{
+    font-size:.72rem!important;
+  }
+}
+@media(max-width:390px){
+  .tt99-play-arithmagon .tt99-arith-node,
+  .tt99-play-arithmagon .tt99-arith-link{
+    width:42px!important;
+    height:42px!important;
+  }
+  .tt99-play-arithmagon .tt99-arith-link strong,
+  .tt99-play-arithmagon .tt99-arith-link .tt99-structure-entry,
+  .tt99-play-arithmagon .tt99-arith-link .tt99-capture-value{
+    font-size:.66rem!important;
+  }
+  .tt99-play-arithmagon.is-mixed-ops .tt99-arith-link>small{
+    width:18px!important;
+    height:18px!important;
+    top:-5px!important;
+    right:-5px!important;
+    font-size:.62rem!important;
+  }
+}

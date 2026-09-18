@@ -1,0 +1,87 @@
+/* 99 Club Studio · Online Play number structures wave v1.73 */
+
+/* Shared numeric entry */
+.tt99-structure-entry{appearance:none;width:100%;height:100%;min-width:0;min-height:0;box-sizing:border-box;border:0;background:transparent;color:#234b50;text-align:center;font:900 clamp(.74rem,3.2vw,1.15rem)/1 system-ui;padding:0;outline:none}
+.tt99-structure-entry:focus{background:#eef7ff;box-shadow:inset 0 0 0 3px #5c9ccc}
+.tt99-structure-entry.is-wrong{background:#fff0eb!important;box-shadow:inset 0 0 0 3px #cd7a64!important;color:#8d4939}
+.tt99-structure-entry.is-hint{background:#fff7dc!important;box-shadow:inset 0 0 0 3px #d7ad32!important}
+
+/* Number Pyramid */
+.tt99-play-pyramid{width:min(100%,720px);display:grid;gap:11px;justify-items:center}
+.tt99-pyramid-board{display:grid;gap:5px;width:min(100%,650px);padding:8px 4px}
+.tt99-pyramid-row{display:flex;justify-content:center;gap:5px;min-width:0}
+.tt99-pyramid-brick{display:grid;place-items:center;flex:0 1 calc((100% - (var(--levels) - 1)*5px)/var(--levels));width:clamp(42px,calc(88vw/var(--levels)),76px);max-width:76px;aspect-ratio:1.45/1;box-sizing:border-box;border:1px solid #9eb6b9;border-radius:8px;background:#fff;color:#294d52;font:900 clamp(.72rem,2.8vw,1.05rem)/1 system-ui;overflow:hidden}
+.tt99-pyramid-brick.is-given{background:#eaf4f2;border-color:#b6d2cf;color:#1f625d}
+.tt99-pyramid-brick.is-entry{border-color:#7f9fa3;background:#fbfdfd;box-shadow:0 2px 5px rgba(38,71,77,.05)}
+.tt99-pyramid-brick .tt99-structure-entry{border-radius:7px}
+
+/* Magic Squares */
+.tt99-play-magic{width:min(100%,660px);display:grid;gap:13px;justify-items:center}
+.tt99-magic-target,.tt99-mshape-target,.tt99-arith-rule{width:min(100%,580px);box-sizing:border-box;border:1px solid #cfe0de;border-radius:13px;background:#f5faf9;padding:9px 12px;text-align:center;color:#47666b;font-size:.78rem;font-weight:800;line-height:1.4}
+.tt99-magic-target strong,.tt99-mshape-target strong{color:#176e67;font-size:.96rem}
+.tt99-magic-grid{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));grid-template-rows:repeat(var(--n),minmax(0,1fr));width:min(100%,520px);aspect-ratio:1;border:2px solid #45676b;background:#45676b;gap:1px;box-sizing:border-box}
+.tt99-magic-cell{appearance:none;display:grid;place-items:center;min-width:0;min-height:0;width:100%;height:100%;box-sizing:border-box;padding:0;border:0;background:#fff;color:#294d52;font:900 clamp(.88rem,4vw,1.42rem)/1 system-ui}
+.tt99-magic-cell.is-given{background:#eef6f5}
+.tt99-magic-cell.is-pick{cursor:pointer}
+.tt99-magic-cell.is-pick.is-selected{position:relative;z-index:2;background:#e8f4fb;box-shadow:inset 0 0 0 3px #5b9cc3}
+.tt99-magic-cell.is-pick.is-wrong{background:#fff0eb;box-shadow:inset 0 0 0 3px #cd7a64;color:#8d4939}
+.tt99-magic-cell .tt99-structure-entry{font-size:inherit}
+.tt99-magic-total-entry{width:min(100%,260px)}
+.tt99-magic-total-entry label,.tt99-repair-control label{display:grid;grid-template-columns:auto minmax(90px,1fr);align-items:center;gap:10px}
+.tt99-magic-total-entry label>span,.tt99-repair-control label>span{color:#657c80;font-size:.76rem;font-weight:850}
+.tt99-magic-total-entry .tt99-structure-entry,.tt99-repair-control .tt99-structure-entry{height:42px;border:1px solid #bfd0d2;border-radius:10px;background:#fff;padding:0 8px;font-size:.95rem}
+.tt99-binary-choice{display:flex;gap:9px;flex-wrap:wrap;justify-content:center}
+.tt99-binary-choice button{appearance:none;min-height:44px;border:1px solid #bfd1d3;border-radius:12px;background:#fff;color:#31555a;padding:9px 14px;font:850 .82rem/1.2 system-ui;cursor:pointer}
+.tt99-binary-choice button.is-selected{border-color:#16847b;background:#eaf6f4;box-shadow:inset 0 0 0 2px rgba(22,132,123,.15);color:#176e67}
+.tt99-binary-choice button.is-wrong{border-color:#cd7a64;background:#fff0eb;color:#8d4939}
+.tt99-repair-control{display:grid;gap:6px;width:min(100%,390px);padding:10px 12px;border:1px solid #d6e2e3;border-radius:13px;background:#fbfdfd;box-sizing:border-box}
+.tt99-repair-control small{color:#728589;font-size:.68rem;line-height:1.35;text-align:center}
+
+/* Arithmagons */
+.tt99-play-arithmagon{width:min(100%,720px);display:grid;gap:12px;justify-items:center}
+.tt99-arith-stage{position:relative;width:min(100%,590px);aspect-ratio:1;box-sizing:border-box;margin:auto;overflow:visible}
+.tt99-arith-svg,.tt99-mshape-svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.tt99-arith-line{stroke:#68878b;stroke-width:1.5;vector-effect:non-scaling-stroke}
+.tt99-arith-line.is-diagonal{stroke:#9aadb0;stroke-width:1.2}
+.tt99-arith-node,.tt99-arith-link{position:absolute;display:grid;place-items:center;transform:translate(-50%,-50%);box-sizing:border-box;z-index:3}
+.tt99-arith-node{width:clamp(48px,11vw,66px);height:clamp(48px,11vw,66px);border:2px solid #476e73;border-radius:50%;background:#fff;color:#294d52;font:900 clamp(.8rem,3.3vw,1.12rem)/1 system-ui;box-shadow:0 2px 6px rgba(35,70,77,.1);overflow:hidden}
+.tt99-arith-node.is-given{background:#eaf4f2;color:#1f625d}
+.tt99-arith-node .tt99-structure-entry{border-radius:50%}
+.tt99-arith-link{grid-template-columns:auto minmax(34px,auto);gap:3px;min-width:58px;min-height:40px;padding:4px 6px;border:1px solid #a9bec1;border-radius:11px;background:#fff;box-shadow:0 2px 6px rgba(35,70,77,.08)}
+.tt99-arith-link.is-diagonal{background:#f8fbfb}
+.tt99-arith-link small{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#e7f2f1;color:#176e67;font:900 .72rem/1 system-ui}
+.tt99-arith-link strong{font:900 .9rem/1 system-ui;color:#294d52;text-align:center}
+.tt99-arith-link .tt99-structure-entry{width:46px;height:30px;font-size:.84rem;border-radius:7px}
+.tt99-arith-rule{font-size:.75rem}
+
+/* Magic Number Shapes */
+.tt99-play-magicshape{width:min(100%,720px);display:grid;gap:12px;justify-items:center}
+.tt99-mshape-stage{position:relative;width:min(100%,590px);aspect-ratio:1;margin:auto;box-sizing:border-box;overflow:visible}
+.tt99-mshape-line{fill:none;stroke:#66878a;stroke-width:1.55;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.tt99-mshape-node{appearance:none;position:absolute;display:grid;place-items:center;transform:translate(-50%,-50%);z-index:3;width:clamp(46px,10.5vw,62px);height:clamp(46px,10.5vw,62px);box-sizing:border-box;border:2px solid #476e73;border-radius:50%;background:#fff;color:#294d52;font:900 clamp(.76rem,3vw,1.06rem)/1 system-ui;box-shadow:0 2px 6px rgba(35,70,77,.1);padding:0;overflow:hidden}
+.tt99-mshape-node.is-given{background:#eef6f5;color:#1f625d}
+.tt99-mshape-node.is-pick{cursor:pointer}
+.tt99-mshape-node.is-pick.is-selected{background:#e8f4fb;border-color:#5b9cc3;box-shadow:0 0 0 3px rgba(91,156,195,.16)}
+.tt99-mshape-node.is-pick.is-wrong{background:#fff0eb;border-color:#cd7a64;color:#8d4939}
+.tt99-mshape-node .tt99-structure-entry{border-radius:50%;font-size:inherit}
+
+/* Completion snapshot: keep diagrams compact */
+.tt99-play-complete-snapshot .tt99-pyramid-board{width:min(100%,400px)}
+.tt99-play-complete-snapshot .tt99-magic-grid{width:min(100%,390px)}
+.tt99-play-complete-snapshot .tt99-arith-stage,.tt99-play-complete-snapshot .tt99-mshape-stage{width:min(100%,400px)}
+.tt99-play-complete-snapshot .tt99-binary-choice,.tt99-play-complete-snapshot .tt99-repair-control,.tt99-play-complete-snapshot .tt99-magic-total-entry{display:none!important}
+
+@media(max-width:560px){
+  .tt99-pyramid-board{gap:4px;padding-inline:0}.tt99-pyramid-row{gap:4px}.tt99-pyramid-brick{border-radius:6px}
+  .tt99-magic-grid{width:100%}
+  .tt99-arith-stage,.tt99-mshape-stage{width:min(96vw,500px)}
+  .tt99-arith-node{width:48px;height:48px;font-size:.78rem}
+  .tt99-arith-link{min-width:51px;min-height:36px;padding:3px 4px}.tt99-arith-link small{width:17px;height:17px;font-size:.62rem}.tt99-arith-link .tt99-structure-entry{width:39px;height:27px;font-size:.72rem}
+  .tt99-mshape-node{width:46px;height:46px;font-size:.75rem}
+}
+@media(max-width:390px){
+  .tt99-pyramid-brick{font-size:.66rem}.tt99-structure-entry{font-size:.7rem}
+  .tt99-arith-node{width:42px;height:42px}.tt99-arith-link{min-width:46px;transform:translate(-50%,-50%) scale(.9)}
+  .tt99-mshape-node{width:42px;height:42px}
+  .tt99-magic-total-entry label,.tt99-repair-control label{grid-template-columns:1fr;gap:5px}
+}

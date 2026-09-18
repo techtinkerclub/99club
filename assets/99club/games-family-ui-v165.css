@@ -1,0 +1,106 @@
+/* 99 Club Studio · Games family UI v1.65
+ * Shared hero language for Printable Games + Online Play,
+ * plus a compact game/options control deck and modal game library.
+ */
+
+/* ---------- shared product-family hero ---------- */
+.tt99-games-hero.tt99-family-hero,
+.tt99-play-hero.tt99-family-hero{
+  position:relative;overflow:hidden;display:grid!important;
+  grid-template-columns:minmax(0,1fr) minmax(250px,340px);
+  gap:28px;align-items:center;
+  padding:30px 32px!important;margin:0 0 4px!important;
+  border:1px solid #d7e8e5!important;border-radius:26px!important;
+  background:linear-gradient(135deg,#edf9f6 0%,#f7fbfa 55%,#fff7e8 100%)!important;
+  box-shadow:0 12px 32px rgba(20,81,77,.08)!important;
+}
+.tt99-family-hero:after{content:"";position:absolute;width:290px;height:290px;border-radius:50%;right:-118px;top:-145px;background:rgba(242,184,75,.16);pointer-events:none}
+.tt99-family-hero--play:before{content:"";position:absolute;width:190px;height:190px;border:36px solid rgba(20,125,117,.055);border-radius:50%;right:205px;bottom:-126px;pointer-events:none}
+.tt99-family-hero--print:before{content:"";position:absolute;width:180px;height:138px;right:205px;bottom:-74px;border:2px solid rgba(20,125,117,.08);border-radius:18px;transform:rotate(-5deg);pointer-events:none}
+.tt99-family-hero__copy{position:relative;z-index:1;min-width:0}
+.tt99-family-hero .tt99-eyebrow{margin-bottom:8px!important;color:#147d75!important;font-size:.75rem!important;font-weight:850!important;letter-spacing:.12em!important;text-transform:uppercase!important}
+.tt99-family-hero h1{margin:0 0 10px!important;font-size:clamp(2.15rem,4vw,3.45rem)!important;line-height:1.01!important;letter-spacing:-.045em!important;color:#203d43!important}
+.tt99-family-hero p{max-width:790px!important;margin:0!important;color:#586a70!important;font-size:1rem!important;line-height:1.55!important}
+.tt99-family-hero__side{position:relative;z-index:1;display:grid;gap:13px;justify-items:end;min-width:0}
+.tt99-family-hero__identity{display:flex;align-items:center;gap:12px;width:min(100%,320px);padding:11px 13px;border:1px solid rgba(170,207,201,.85);border-radius:17px;background:rgba(255,255,255,.78);backdrop-filter:blur(6px)}
+.tt99-family-hero__identity img{width:62px;height:62px;object-fit:contain;flex:0 0 62px}
+.tt99-family-hero__identity>span{display:flex;flex-direction:column;min-width:0}
+.tt99-family-hero__identity strong{color:#174f4b;font-size:.88rem;line-height:1.15}
+.tt99-family-hero__identity small{margin-top:4px;color:#718287;font-size:.67rem;font-weight:700;line-height:1.25}
+.tt99-family-hero__mode{display:inline-flex;align-items:center;gap:6px;width:max-content;margin-bottom:4px;padding:4px 7px;border-radius:999px;background:#e8f5f2;color:#11726b;font-size:.58rem;font-weight:900;text-transform:uppercase;letter-spacing:.07em}
+.tt99-family-hero__mode-icon{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:#147d75;color:#fff;font-size:.66rem;line-height:1}
+.tt99-family-hero nav,.tt99-family-hero .tt99-games-nav{display:flex!important;justify-content:flex-end!important;gap:7px!important;flex-wrap:wrap!important;margin:0!important}
+.tt99-family-hero nav a,.tt99-family-hero .tt99-games-nav a{display:inline-flex!important;align-items:center!important;min-height:38px!important;padding:7px 11px!important;border:1px solid #b9d6d2!important;border-radius:10px!important;background:rgba(255,255,255,.88)!important;color:#155f59!important;font-size:.72rem!important;font-weight:850!important;text-decoration:none!important;box-shadow:none!important}
+.tt99-family-hero nav a:hover,.tt99-family-hero nav a:focus-visible,.tt99-family-hero .tt99-games-nav a:hover,.tt99-family-hero .tt99-games-nav a:focus-visible{background:#eaf6f3!important;border-color:#84bdb6!important;text-decoration:none!important}
+.tt99-family-hero nav a.is-support,.tt99-family-hero .tt99-games-nav a.is-support{border-color:#e3c47c!important;background:#fff7df!important;color:#745414!important}
+
+/* ---------- Online Play: current game + controls ---------- */
+#tt99-play-root .tt99-play-shell{gap:14px}
+.tt99-play-control-deck{display:grid;gap:0;border:1px solid #cfe0df;border-radius:19px;background:#fff;box-shadow:0 7px 22px rgba(36,68,75,.065);overflow:visible}
+.tt99-play-control-deck .tt99-play-gamebar{border:0!important;border-radius:18px 18px 0 0!important;box-shadow:none!important;padding:14px 16px!important;background:linear-gradient(180deg,#fff,#fbfdfd)!important}
+.tt99-play-current{gap:13px!important}.tt99-play-current .tt99-play-game-icon{width:46px;height:46px;border-radius:13px;font-size:1.3rem}
+.tt99-play-current small{font-size:.66rem!important}.tt99-play-current h2{font-size:1.2rem!important}
+.tt99-play-current-meta{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px;color:#6b7f82;font-size:.68rem;font-weight:700}
+.tt99-play-current-meta span{display:inline-flex;align-items:center;min-height:23px;padding:3px 7px;border:1px solid #d8e5e4;border-radius:999px;background:#f4f9f8}
+.tt99-play-gamebar-actions{gap:7px!important}
+.tt99-play-gamebar-actions button{min-height:38px!important;border-radius:10px!important;padding:8px 11px!important;font-size:.76rem!important;font-weight:850!important}
+#tt99-play-change-game{border-color:#147d75!important;background:#147d75!important;color:#fff!important;box-shadow:0 3px 9px rgba(20,125,117,.15)}
+#tt99-play-change-game:hover,#tt99-play-change-game:focus-visible{background:#0f6f68!important;color:#fff!important}
+.tt99-play-gamebar-actions>span{display:none!important}
+
+/* Compact configuration strip */
+.tt99-play-control-deck .tt99-play-setup{display:grid!important;grid-template-columns:minmax(250px,.85fr) minmax(300px,1.35fr) auto;gap:12px;align-items:start;padding:13px 16px 15px!important;border:0!important;border-top:1px solid #e2eceb!important;border-radius:0 0 18px 18px!important;background:#f8fbfa!important;box-shadow:none!important}
+.tt99-play-control-deck .tt99-play-mode{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0!important;padding:3px;border:1px solid #d7e4e3;border-radius:12px;background:#edf3f2}
+.tt99-play-control-deck .tt99-play-mode button{min-height:49px;padding:8px 10px!important;border:0!important;border-radius:9px!important;background:transparent!important;font-size:.78rem!important}
+.tt99-play-control-deck .tt99-play-mode button span{margin-top:2px!important;font-size:.61rem!important}
+.tt99-play-control-deck .tt99-play-mode button.is-active{background:#fff!important;box-shadow:0 2px 7px rgba(30,65,69,.10)!important;color:#0e716a!important}
+.tt99-play-control-deck .tt99-play-settings{margin:0!important;padding:0!important;border:1px solid #d7e4e3!important;border-radius:12px;background:#fff;overflow:hidden}
+.tt99-play-control-deck .tt99-play-settings summary{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:55px;margin:0!important;padding:9px 12px;list-style:none;cursor:pointer;color:#31545a;font-size:.77rem;font-weight:850}
+.tt99-play-control-deck .tt99-play-settings summary::-webkit-details-marker{display:none}
+.tt99-play-control-deck .tt99-play-settings summary:after{content:"▾";flex:0 0 auto;color:#6b8285;font-size:.8rem;transition:transform .16s ease}
+.tt99-play-control-deck .tt99-play-settings[open] summary:after{transform:rotate(180deg)}
+.tt99-play-settings-summary{display:block;min-width:0;margin-top:3px;color:#718388;font-size:.63rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tt99-play-settings-label{display:block;min-width:0}
+.tt99-play-control-deck .tt99-play-options{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important;padding:10px 11px 11px;border-top:1px solid #e6eeee}
+.tt99-play-control-deck .tt99-play-options label>span{font-size:.65rem!important}
+.tt99-play-control-deck .tt99-play-options select{min-height:38px!important;padding:7px 8px!important;font-size:.78rem!important}
+.tt99-play-control-deck .tt99-play-setup-actions{display:flex!important;flex-direction:column;gap:6px;margin:0!important;min-width:130px}
+.tt99-play-control-deck .tt99-play-setup-actions button{width:100%;min-height:37px!important;padding:7px 10px!important;font-size:.7rem!important;white-space:nowrap}
+
+/* ---------- Online Play: game chooser drawer ---------- */
+.tt99-play-library.tt99-play-library--drawer{position:fixed!important;inset:0!important;z-index:2147482900!important;display:grid!important;place-items:start center!important;padding:clamp(18px,5vw,60px) 16px!important;background:rgba(20,44,48,.52)!important;backdrop-filter:blur(7px);border:0!important;border-radius:0!important;box-shadow:none!important;overflow:auto!important}
+.tt99-play-library.tt99-play-library--drawer[hidden]{display:none!important}
+.tt99-play-library-panel{width:min(1080px,100%);max-height:calc(100dvh - clamp(36px,10vw,120px));display:grid;grid-template-rows:auto auto auto minmax(0,1fr);overflow:hidden;border:1px solid #c9dcda;border-radius:22px;background:#f8fbfb;box-shadow:0 24px 70px rgba(15,43,47,.25);padding:17px}
+.tt99-play-library-panel .tt99-play-library-head{padding:1px 1px 4px}.tt99-play-library-panel .tt99-play-library-head h2{font-size:1.28rem!important}.tt99-play-library-panel .tt99-play-library-head small{font-size:.64rem!important}
+.tt99-play-library-panel .tt99-play-library-head button{width:38px;height:38px;display:grid;place-items:center;padding:0!important;border-radius:50%!important;font-size:1.25rem!important}
+.tt99-play-library-panel .tt99-play-search{margin:9px 0!important}.tt99-play-library-panel .tt99-play-search span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+.tt99-play-library-panel .tt99-play-search input{min-height:43px;padding:9px 13px!important;border-radius:12px!important;font-size:.86rem!important}
+.tt99-play-library-panel .tt99-play-library-filters{margin:0 0 10px!important;gap:5px!important}
+.tt99-play-library-panel .tt99-play-library-filters button{min-height:32px;padding:5px 9px!important;font-size:.65rem!important}
+.tt99-play-library-panel .tt99-play-library-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important;min-height:0;overflow:auto;padding:1px 3px 3px 1px;align-content:start}
+.tt99-play-library-panel .tt99-play-game-card{min-height:78px!important;padding:10px!important;border-radius:12px!important;grid-template-columns:38px minmax(0,1fr)!important;gap:9px!important}
+.tt99-play-library-panel .tt99-play-game-card .tt99-play-game-icon{width:38px;height:38px;border-radius:10px;font-size:1rem}
+.tt99-play-library-panel .tt99-play-game-card strong{font-size:.83rem!important}.tt99-play-library-panel .tt99-play-game-card small{font-size:.61rem!important}.tt99-play-library-panel .tt99-play-game-card em{font-size:.65rem!important;line-height:1.25!important;margin-top:3px!important}
+.tt99-play-library-panel .tt99-play-game-card b{font-size:.52rem!important}
+html.tt99-game-library-open,html.tt99-game-library-open body{overflow:hidden!important}
+html.tt99-game-library-open .masthead,html.tt99-game-library-open #footer,html.tt99-game-library-open .page__footer{pointer-events:none!important}
+
+#tt99-games-root .tt99-games-principle{margin-top:10px}
+
+@media(max-width:900px){
+  .tt99-games-hero.tt99-family-hero,.tt99-play-hero.tt99-family-hero{grid-template-columns:1fr;padding:24px!important;gap:18px}
+  .tt99-family-hero__side{justify-items:start;width:100%}.tt99-family-hero__identity{width:min(100%,360px)}
+  .tt99-family-hero nav,.tt99-family-hero .tt99-games-nav{justify-content:flex-start!important}
+  .tt99-play-control-deck .tt99-play-setup{grid-template-columns:1fr 1.25fr}.tt99-play-control-deck .tt99-play-setup-actions{grid-column:1/-1;flex-direction:row}.tt99-play-control-deck .tt99-play-setup-actions button{width:auto}
+  .tt99-play-library-panel .tt99-play-library-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@media(max-width:620px){
+  .tt99-games-hero.tt99-family-hero,.tt99-play-hero.tt99-family-hero{padding:19px!important;border-radius:20px!important}
+  .tt99-family-hero__identity img{width:52px;height:52px;flex-basis:52px}.tt99-family-hero h1{font-size:2.25rem!important}
+  .tt99-family-hero nav a,.tt99-family-hero .tt99-games-nav a{min-height:36px!important;padding:6px 9px!important;font-size:.67rem!important}
+  .tt99-play-control-deck .tt99-play-gamebar{display:grid!important;gap:10px}.tt99-play-gamebar-actions{justify-content:flex-start!important}
+  .tt99-play-control-deck .tt99-play-setup{grid-template-columns:1fr!important;padding:11px!important}.tt99-play-control-deck .tt99-play-setup-actions{grid-column:auto;flex-direction:row;flex-wrap:wrap}.tt99-play-control-deck .tt99-play-setup-actions button{width:auto;flex:1 1 130px}
+  .tt99-play-control-deck .tt99-play-options{grid-template-columns:1fr 1fr!important}
+  .tt99-play-library.tt99-play-library--drawer{padding:8px!important;place-items:start stretch!important}.tt99-play-library-panel{max-height:calc(100dvh - 16px);border-radius:16px;padding:12px}.tt99-play-library-panel .tt99-play-library-grid{grid-template-columns:1fr!important}.tt99-play-library-panel .tt99-play-game-card em{display:block!important}
+}
+@media(max-width:390px){.tt99-play-control-deck .tt99-play-options{grid-template-columns:1fr!important}.tt99-family-hero__identity{padding:9px}.tt99-family-hero__identity small{display:none}}

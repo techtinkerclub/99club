@@ -1,0 +1,46 @@
+/* 99 Club Studio · v1.38 Number Towers directional clue tabs */
+.tt99-numbertowers-grid .tower-clue.tt99-v138-viewclue{
+  position:relative;
+  align-self:center;
+  justify-self:center;
+  width:27px;
+  height:27px;
+  padding:0!important;
+  background:#6f8387;
+  color:#263f44;
+  font-size:clamp(7px,.78vw,11px)!important;
+  font-weight:950;
+  line-height:1;
+}
+.tt99-numbertowers-grid .tower-clue.tt99-v138-viewclue>span{
+  position:absolute;
+  inset:1px;
+  display:grid;
+  place-items:center;
+  background:#f0f3f3;
+}
+.tt99-numbertowers-grid .tower-clue.tt99-v138-top,
+.tt99-numbertowers-grid .tower-clue.tt99-v138-top>span{
+  clip-path:polygon(0 0,100% 0,100% 74%,50% 100%,0 74%);
+}
+.tt99-numbertowers-grid .tower-clue.tt99-v138-bottom,
+.tt99-numbertowers-grid .tower-clue.tt99-v138-bottom>span{
+  clip-path:polygon(0 26%,50% 0,100% 26%,100% 100%,0 100%);
+}
+.tt99-numbertowers-grid .tower-clue.tt99-v138-left,
+.tt99-numbertowers-grid .tower-clue.tt99-v138-left>span{
+  clip-path:polygon(0 0,74% 0,100% 50%,74% 100%,0 100%);
+}
+.tt99-numbertowers-grid .tower-clue.tt99-v138-right,
+.tt99-numbertowers-grid .tower-clue.tt99-v138-right>span{
+  clip-path:polygon(26% 0,100% 0,100% 100%,26% 100%,0 50%);
+}
+.tt99-numbertowers-grid .tower-clue.tt99-v138-top>span{padding-bottom:4px}
+.tt99-numbertowers-grid .tower-clue.tt99-v138-bottom>span{padding-top:4px}
+.tt99-numbertowers-grid .tower-clue.tt99-v138-left>span{padding-right:4px}
+.tt99-numbertowers-grid .tower-clue.tt99-v138-right>span{padding-left:4px}
+.tt99-numbertowers-key:before{content:"Edge tabs point in the direction you are looking. ";font-weight:800;color:#536e72}
+.tt99-game-activities.count-2 .tt99-numbertowers-grid .tower-clue.tt99-v138-viewclue{width:22px;height:22px;font-size:7px!important}
+.tt99-game-activities.count-3 .tt99-numbertowers-grid .tower-clue.tt99-v138-viewclue{width:16px;height:16px;font-size:5.5px!important}
+.tt99-game-activities.count-3 .tt99-numbertowers-grid .tower-clue.tt99-v138-top>span{padding-bottom:2px}.tt99-game-activities.count-3 .tt99-numbertowers-grid .tower-clue.tt99-v138-bottom>span{padding-top:2px}.tt99-game-activities.count-3 .tt99-numbertowers-grid .tower-clue.tt99-v138-left>span{padding-right:2px}.tt99-game-activities.count-3 .tt99-numbertowers-grid .tower-clue.tt99-v138-right>span{padding-left:2px}
+@media print{.tt99-numbertowers-grid .tower-clue.tt99-v138-viewclue>span{background:#f4f5f5!important}}

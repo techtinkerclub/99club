@@ -1,0 +1,50 @@
+/* 99 Club Studio · Symbol Decoder v1.88 */
+.tt99-play-symbol-decoder{display:grid;gap:16px;min-width:0}
+.tt99-decoder-mission{border:1px solid #cfe0de;border-radius:20px;background:linear-gradient(180deg,#f7fbfa,#eef7f5);padding:18px;text-align:center}
+.tt99-decoder-mission>small,.tt99-decoder-reveal>small{display:block;font-weight:900;letter-spacing:.09em;color:#6b8082;font-size:.75rem}
+.tt99-decoder-mission h3{margin:.35rem 0 .8rem;color:#214b50;font-size:clamp(1.15rem,4vw,1.55rem)}
+.tt99-decoder-mission p{margin:.8rem 0 0;color:#647a7d;font-size:.92rem}
+.tt99-decoder-code{display:flex;justify-content:center;gap:7px;flex-wrap:wrap}
+.tt99-decoder-code span{width:clamp(38px,11vw,54px);aspect-ratio:1;display:grid;place-items:center;position:relative;border:2px solid #adc5c3;border-radius:13px;background:#fff;color:#376569;font-size:clamp(1.25rem,5vw,1.8rem);font-weight:900}
+.tt99-decoder-code span.is-cracked{background:#e4f6f1;border-color:#68aa9f;color:#176f66;transform:translateY(-1px)}
+.tt99-decoder-code small{position:absolute;right:4px;top:2px;font-size:.62rem;color:#278f81}
+
+.tt99-decoder-clues{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.tt99-decoder-clues>div{border:1px solid #cbdedd;border-radius:18px;background:#fff;padding:14px;text-align:center;min-width:0}
+.tt99-decoder-clues small{display:block;color:#71878a;font-weight:900;letter-spacing:.08em;text-transform:uppercase;font-size:.7rem;margin-bottom:5px}
+.tt99-decoder-clues strong{font-size:clamp(1.15rem,4vw,1.5rem);color:#234e53;line-height:1.5;overflow-wrap:anywhere}
+.tt99-decoder-eq-symbol{display:inline-grid;grid-template-rows:auto auto;vertical-align:middle;place-items:center;min-width:1.1em;margin:0 .05em}
+.tt99-decoder-eq-symbol b{font-size:1.1em;line-height:1}
+.tt99-decoder-eq-symbol small{font-size:.55em;line-height:1;color:#248d80;margin:2px 0 0;letter-spacing:0}
+.tt99-decoder-eq-symbol.is-cracked b{color:#168277}
+
+.tt99-decoder-locks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.tt99-decoder-locks button{min-height:92px;border:2px solid #abc3c1;border-radius:18px;background:#fff;display:grid;grid-template-columns:auto 1fr;grid-template-rows:1fr auto;align-items:center;gap:0 12px;padding:13px 16px;text-align:left;color:#244f54}
+.tt99-decoder-locks button>span{grid-row:1/3;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:#e9f5f3;color:#178274;font-size:1.6rem;font-weight:900}
+.tt99-decoder-locks button>b{min-width:0;min-height:1.4em;border-bottom:3px solid #97b6b3;font-size:1.55rem;text-align:center}
+.tt99-decoder-locks button>em{font-style:normal;color:#87999b;font-size:.75rem;font-weight:900;letter-spacing:.06em;text-align:center}
+.tt99-decoder-locks button.is-selected{outline:3px solid rgba(24,139,126,.18);border-color:#188b7e}
+.tt99-decoder-locks button.is-wrong{border-color:#bd6666;background:#fff8f8}
+.tt99-decoder-locks button.is-hint{box-shadow:0 0 0 4px rgba(224,171,64,.18)}
+.tt99-decoder-locks button.is-cracked{background:#e7f7f2;border-color:#55a397}
+.tt99-decoder-locks button.is-cracked>span{background:#1d897d;color:#fff}
+.tt99-decoder-locks button.is-cracked>b{border-bottom-color:transparent;color:#176e65}
+.tt99-decoder-locks button.is-cracked>em{color:#176e65}
+
+.tt99-decoder-reveal{border:2px solid #65a89e;border-radius:20px;background:#e8f8f3;padding:18px;text-align:center}
+.tt99-decoder-reveal strong{display:block;margin:.25rem 0;color:#176d65;font-size:clamp(1.8rem,8vw,2.8rem);letter-spacing:.08em}
+.tt99-decoder-reveal p{margin:.25rem auto 0;max-width:42rem;color:#496b6e}
+
+.tt99-play-symbol-decoder .tt99-wave186-keypad{margin-top:0}
+
+@media(max-width:620px){
+  .tt99-decoder-clues{grid-template-columns:1fr}
+  .tt99-decoder-locks{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .tt99-decoder-locks button{min-height:82px;padding:10px 12px;gap:0 8px}
+  .tt99-decoder-locks button>span{width:44px;height:44px;font-size:1.35rem}
+}
+@media(max-width:390px){
+  .tt99-decoder-locks{grid-template-columns:1fr}
+  .tt99-decoder-code{gap:5px}
+  .tt99-decoder-code span{width:36px;border-radius:10px}
+}

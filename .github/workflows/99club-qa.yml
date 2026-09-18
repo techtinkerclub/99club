@@ -1,0 +1,100 @@
+name: 99 Club QA
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'assets/99club/**'
+      - '_pages/99-club-games*.md'
+      - 'scripts/99club/**'
+      - '.github/workflows/99club-qa.yml'
+  pull_request:
+    paths:
+      - 'assets/99club/**'
+      - '_pages/99-club-games*.md'
+      - 'scripts/99club/**'
+      - '.github/workflows/99club-qa.yml'
+  schedule:
+    - cron: '17 3 * * 1'
+  workflow_dispatch:
+    inputs:
+      samples:
+        description: 'Samples per engine difficulty'
+        required: false
+        default: '20'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: 99club-qa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  engine-and-contract-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run 99 Club QA
+        env:
+          QA_SAMPLES: ${{ github.event_name == 'schedule' && '60' || github.event.inputs.samples || '20' }}
+        run: node scripts/99club/qa.js
+      - name: Upload QA report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: 99club-qa-report
+          path: 99club-qa-report.json
+          if-no-files-found: ignore
+
+  browser-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare browser harness
+        run: node scripts/99club/browser-qa.js prepare
+      - name: Exercise online games at phone and desktop widths
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8765 --bind 127.0.0.1 > /tmp/99club-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          sleep 1
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then
+            echo 'No Chrome/Chromium executable is available on this runner.' >&2
+            exit 1
+          fi
+
+          "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --window-size=390,844 --virtual-time-budget=120000 --dump-dom \
+            http://127.0.0.1:8765/99club-browser-qa.html > /tmp/99club-browser-phone.html
+          node scripts/99club/browser-qa.js check /tmp/99club-browser-phone.html
+          cp 99club-browser-qa-report.json 99club-browser-qa-phone-report.json
+
+          "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --window-size=1200,900 --virtual-time-budget=120000 --dump-dom \
+            http://127.0.0.1:8765/99club-browser-qa.html > /tmp/99club-browser-desktop.html
+          node scripts/99club/browser-qa.js check /tmp/99club-browser-desktop.html
+          cp 99club-browser-qa-report.json 99club-browser-qa-desktop-report.json
+      - name: Compare runtime catalogue with help guides
+        run: node scripts/99club/help-coverage.js
+      - name: Upload browser QA report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: 99club-browser-qa-report
+          path: |
+            99club-browser-qa-report.json
+            99club-browser-qa-phone-report.json
+            99club-browser-qa-desktop-report.json
+          if-no-files-found: ignore

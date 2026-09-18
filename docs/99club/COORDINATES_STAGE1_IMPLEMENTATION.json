@@ -1,0 +1,30 @@
+{
+  "module": "Custom Worksheets - Coordinate Geometry Stage 1",
+  "version": "0.1.0",
+  "date": "2026-09-10",
+  "scope": "hidden Custom Worksheets only",
+  "families": {
+    "coordinates_y4": {"year": 4, "subtypes": 10, "pool_entries": 60, "grid": "first quadrant 0..10"},
+    "transformations_y5": {"year": 5, "subtypes": 8, "pool_entries": 48, "grid": "first quadrant 0..10"},
+    "coordinates_y6": {"year": 6, "subtypes": 12, "pool_entries": 72, "grid": "four quadrants -6..6"}
+  },
+  "visual_type": "coordinate",
+  "shared_visual_registry": "TT99VisualRenderers",
+  "depends_on": "Graphical Statistics Stage 1 visual worksheet compositor",
+  "regression_boundary": {
+    "public_99_club_changed": false,
+    "generator_js_changed_by_coordinate_stage": false,
+    "pdf_layout_js_changed_by_coordinate_stage": false,
+    "simple_pdf_js_changed_by_coordinate_stage": false
+  },
+  "qa": {
+    "repository_smoke": "PASS",
+    "javascript_syntax": "PASS",
+    "coordinate_1000_seed_each_family": "PASS",
+    "graphical_statistics_pool_regression": "PASS",
+    "mixed_visual_text_stress": "PASS",
+    "portrait_render_review": "PASS",
+    "landscape_render_review": "PASS",
+    "local_chromium_ui_clickthrough": "BLOCKED_BY_QA_ENVIRONMENT"
+  }
+}

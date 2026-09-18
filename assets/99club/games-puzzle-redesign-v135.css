@@ -1,0 +1,130 @@
+/* 99 Club Studio · v1.35 puzzle presentation prototypes
+ * Operation Codebreaker, Symbol Equations, Function Machines and Balance the Equation.
+ * Browser-preview layer only while the designs are reviewed.
+ */
+
+/* --------------------------------------------------------------------------
+   Shared
+   -------------------------------------------------------------------------- */
+.tt99-v135-puzzle-body{min-width:0}
+.tt99-v135-subtle{color:#71858a;font-size:clamp(4.5px,.52vw,7px);line-height:1.25}
+
+/* --------------------------------------------------------------------------
+   Operation Codebreaker
+   -------------------------------------------------------------------------- */
+.tt99-operationgrid.tt99-v135-redesigned .tt99-game-instruction{margin-bottom:1.2%}
+.tt99-v135-code-key{display:flex;align-items:center;justify-content:center;gap:7px;margin:5px auto 7px;padding:6px 9px;border:1px solid #c9dedb;border-radius:10px;background:#f3faf8;width:max-content;max-width:96%}
+.tt99-v135-code-key>strong{color:#416368;font-size:clamp(5px,.55vw,7px);text-transform:uppercase;letter-spacing:.05em}
+.tt99-v135-code-key-list{display:flex;gap:5px;flex-wrap:wrap;justify-content:center}
+.tt99-v135-code-choice{display:inline-flex;align-items:center;gap:4px;padding:3px 6px;border:1px solid #bdd6d2;border-radius:999px;background:#fff;color:#24474c;font-size:clamp(5px,.58vw,8px);font-weight:850;white-space:nowrap}
+.tt99-v135-code-choice b{display:grid;place-items:center;min-width:15px;height:15px;padding:0 3px;border-radius:5px;background:#dff2ee;color:#126b63;font-size:inherit}
+.tt99-v135-lock-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:5px 7px 6px}
+.tt99-v135-lock-card{display:grid;grid-template-columns:25px minmax(0,1fr);min-height:66px;border:1px solid #cfe0e1;border-radius:11px;background:linear-gradient(180deg,#fcfefe,#f7fbfa);overflow:hidden}
+.tt99-v135-lock-id{display:grid;place-items:center;background:#e3f3ef;color:#106c64;font-size:clamp(5px,.58vw,8px);font-weight:950}
+.tt99-v135-lock-content{display:flex;flex-direction:column;justify-content:center;gap:5px;padding:6px 8px;min-width:0}
+.tt99-v135-lock-equation{display:flex;align-items:center;justify-content:center;gap:4px;color:#294950;font-size:clamp(8px,.92vw,13px);font-weight:900;white-space:nowrap}
+.tt99-v135-op-blank{display:inline-grid;place-items:center;width:28px;height:27px;border:2px solid #4f8d86;border-radius:7px;background:#fff;color:#0f736a;font-size:clamp(10px,1.1vw,16px);font-weight:950}
+.tt99-v135-lock-choices{display:flex;justify-content:center;gap:4px;flex-wrap:wrap}
+.tt99-v135-lock-choices .tt99-v135-code-choice{padding:2px 5px;font-size:clamp(4.5px,.48vw,6.5px)}
+.tt99-v135-final-code{display:flex;align-items:center;justify-content:center;gap:9px;margin:7px auto 0;padding:7px 10px;border:1.5px solid #78aaa4;border-radius:12px;background:#eef8f6;width:max-content;max-width:96%}
+.tt99-v135-final-code>strong{color:#31575c;font-size:clamp(5px,.55vw,7px);text-transform:uppercase;letter-spacing:.05em}
+.tt99-v135-code-boxes{display:flex;gap:5px}
+.tt99-v135-code-pos{display:flex;flex-direction:column;align-items:center;gap:2px}
+.tt99-v135-code-pos small{color:#799095;font-size:clamp(3.5px,.38vw,5px);font-weight:800}
+.tt99-v135-code-box{display:grid;place-items:center;width:27px;height:27px;border:1.5px solid #709b96;border-radius:6px;background:#fff;color:#0e716a;font-size:clamp(8px,.9vw,13px);font-weight:950}
+.tt99-v135-code-box.is-answer{background:#dff3ee}
+
+/* --------------------------------------------------------------------------
+   Symbol Equations — decode the symbols, then solve the mystery value
+   -------------------------------------------------------------------------- */
+.tt99-symbols.tt99-v135-redesigned .tt99-game-instruction{margin-bottom:1.1%}
+.tt99-v135-symbol-board{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(150px,.65fr);gap:10px;align-items:stretch;margin:7px 8px}
+.tt99-v135-symbol-clues{display:grid;gap:6px}
+.tt99-v135-symbol-clue{display:grid;grid-template-columns:25px 1fr;align-items:center;min-height:44px;border:1px solid #d4e1e2;border-radius:10px;background:#fbfdfd;overflow:hidden}
+.tt99-v135-symbol-clue>span:first-child{display:grid;place-items:center;align-self:stretch;background:#edf6f4;color:#547278;font-size:clamp(4px,.45vw,6px);font-weight:900;text-transform:uppercase}
+.tt99-v135-symbol-equation{display:flex;align-items:center;justify-content:center;gap:4px;padding:5px;color:#294950;font-size:clamp(8px,.9vw,13px);font-weight:900;white-space:nowrap}
+.tt99-v135-symbol{display:inline-grid;place-items:center;width:22px;height:22px;color:#127269;font-size:clamp(12px,1.25vw,18px);font-weight:950;line-height:1}
+.tt99-v135-symbol-mystery{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:6px;padding:9px;border:1.5px solid #77aaa4;border-radius:12px;background:linear-gradient(180deg,#edf8f5,#f8fcfb);text-align:center}
+.tt99-v135-symbol-mystery>small{color:#56757a;font-size:clamp(4px,.46vw,6px);font-weight:900;text-transform:uppercase;letter-spacing:.06em}
+.tt99-v135-symbol-target{display:flex;align-items:center;justify-content:center;gap:3px;min-height:34px;color:#243f46;font-size:clamp(9px,1vw,14px);font-weight:950;white-space:nowrap}
+.tt99-v135-mystery-answer{display:grid;place-items:center;min-width:48px;height:29px;padding:0 8px;border:1.5px solid #558e87;border-radius:8px;background:#fff;color:#0f7169;font-size:clamp(8px,.9vw,13px);font-weight:950}
+.tt99-v135-mystery-answer.is-answer{background:#dff3ee}
+.tt99-v135-symbol-values{display:flex;justify-content:center;gap:7px;flex-wrap:wrap;margin:6px 8px 0}
+.tt99-v135-symbol-value{display:inline-flex;align-items:center;gap:4px;padding:4px 7px;border:1px solid #d0dfe0;border-radius:8px;background:#fff;color:#526b70;font-size:clamp(5px,.55vw,7px);font-weight:800}
+.tt99-v135-symbol-value b{color:#116e66;font-size:1.08em}
+
+/* --------------------------------------------------------------------------
+   Function Machines — visual flow modules; table stays intact
+   -------------------------------------------------------------------------- */
+.tt99-functionmachine.tt99-v135-redesigned .tt99-machine-rule{display:none!important}
+.tt99-v135-machine{display:flex;align-items:stretch;justify-content:center;gap:5px;margin:7px auto 9px;max-width:92%}
+.tt99-v135-machine-terminal{display:flex;flex-direction:column;justify-content:center;align-items:center;min-width:68px;padding:7px 8px;border:1.5px solid #6fa29c;border-radius:12px;background:#eff8f6;color:#31575c}
+.tt99-v135-machine-terminal small{font-size:clamp(3.8px,.4vw,5px);font-weight:900;letter-spacing:.08em}
+.tt99-v135-machine-terminal b{margin-top:2px;font-size:clamp(7px,.78vw,10px);text-transform:uppercase}
+.tt99-v135-machine-arrow{display:grid;place-items:center;color:#65928d;font-size:clamp(10px,1.1vw,16px);font-weight:900}
+.tt99-v135-machine-stage{position:relative;display:flex;flex-direction:column;justify-content:center;align-items:center;min-width:78px;padding:6px 10px;border:2px solid #4d8f88;border-radius:10px;background:linear-gradient(180deg,#fff,#edf8f5);box-shadow:inset 0 -4px 0 rgba(66,133,125,.08)}
+.tt99-v135-machine-stage:before,.tt99-v135-machine-stage:after{content:"";position:absolute;top:7px;width:7px;height:7px;border:1px solid #8fb8b3;border-radius:50%;background:#dcefeb}
+.tt99-v135-machine-stage:before{left:7px}.tt99-v135-machine-stage:after{right:7px}
+.tt99-v135-machine-stage small{color:#668086;font-size:clamp(3.5px,.38vw,5px);font-weight:900;text-transform:uppercase;letter-spacing:.05em}
+.tt99-v135-machine-stage b{margin-top:2px;color:#116e66;font-size:clamp(10px,1.2vw,17px);line-height:1}
+.tt99-v135-machine-reverse{margin:-3px auto 6px;text-align:center;color:#71858a;font-size:clamp(4px,.47vw,6.4px)}
+
+/* --------------------------------------------------------------------------
+   Balance the Equation — equation scales rather than worksheet rows
+   -------------------------------------------------------------------------- */
+.tt99-balance.tt99-v135-redesigned .tt99-game-instruction{margin-bottom:1.1%}
+.tt99-v135-balance-list{display:grid;gap:7px;margin:7px 8px}
+.tt99-v135-balance-card{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 48px minmax(0,1fr);align-items:center;gap:7px;min-height:58px;padding:6px 9px 8px;border:1px solid #d2e1e2;border-radius:11px;background:linear-gradient(180deg,#fcfefe,#f7fbfa)}
+.tt99-v135-balance-card:before{content:"";position:absolute;left:18%;right:18%;top:12px;height:2px;background:#769a97;border-radius:2px}
+.tt99-v135-pan{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;min-height:34px;margin-top:10px;padding:5px 8px;border:1.5px solid #7fa5a1;border-radius:8px 8px 15px 15px;background:#fff;color:#294950;font-size:clamp(7px,.82vw,11px);font-weight:900;text-align:center;white-space:nowrap}
+.tt99-v135-pan:before{content:"";position:absolute;left:50%;top:-10px;width:1px;height:10px;background:#8ca9a7}
+.tt99-v135-balance-centre{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;margin-top:5px}
+.tt99-v135-balance-centre b{display:grid;place-items:center;width:28px;height:28px;border:2px solid #4f8e87;border-radius:50%;background:#e6f4f1;color:#116d65;font-size:clamp(8px,.9vw,12px)}
+.tt99-v135-balance-centre:after{content:"";width:0;height:0;margin-top:-1px;border-left:12px solid transparent;border-right:12px solid transparent;border-bottom:0;border-top:15px solid #6f9793}
+.tt99-v135-balance-blank{display:inline-grid;place-items:center;min-width:28px;height:24px;margin:0 2px;border:2px solid #4f8e87;border-radius:6px;background:#f7fcfb;color:#0e7169}
+.tt99-v135-balance-card.is-answer .tt99-v135-pan{background:#f4fbf9}
+
+/* Dense previews ---------------------------------------------------------- */
+.tt99-game-activities.count-2 .tt99-v135-lock-card{min-height:44px}
+.tt99-game-activities.count-2 .tt99-v135-symbol-clue{min-height:34px}
+.tt99-game-activities.count-2 .tt99-v135-balance-card{min-height:42px;gap:5px;padding:3px 6px 5px}
+.tt99-game-activities.count-2 .tt99-v135-balance-card:before{top:8px}
+.tt99-game-activities.count-2 .tt99-v135-pan{min-height:25px;margin-top:7px;padding:3px 5px}
+.tt99-game-activities.count-2 .tt99-v135-machine-stage{min-width:58px;padding:4px 7px}
+.tt99-game-activities.count-2 .tt99-v135-machine-terminal{min-width:52px;padding:4px 6px}
+
+.tt99-game-activities.count-3 .tt99-v135-code-key{margin:2px auto 3px;padding:3px 5px;gap:4px}
+.tt99-game-activities.count-3 .tt99-v135-lock-grid{gap:3px;margin:2px 3px}
+.tt99-game-activities.count-3 .tt99-v135-lock-card{min-height:28px;grid-template-columns:17px 1fr}
+.tt99-game-activities.count-3 .tt99-v135-lock-content{gap:2px;padding:2px 4px}
+.tt99-game-activities.count-3 .tt99-v135-op-blank{width:18px;height:18px;border-width:1px;border-radius:4px;font-size:8px}
+.tt99-game-activities.count-3 .tt99-v135-lock-choices{display:none}
+.tt99-game-activities.count-3 .tt99-v135-final-code{margin-top:3px;padding:3px 5px;gap:5px}
+.tt99-game-activities.count-3 .tt99-v135-code-box{width:18px;height:18px;border-width:1px}
+.tt99-game-activities.count-3 .tt99-v135-code-pos small{display:none}
+.tt99-game-activities.count-3 .tt99-v135-symbol-board{gap:4px;margin:2px 3px}
+.tt99-game-activities.count-3 .tt99-v135-symbol-clues{gap:2px}
+.tt99-game-activities.count-3 .tt99-v135-symbol-clue{min-height:24px;grid-template-columns:17px 1fr}
+.tt99-game-activities.count-3 .tt99-v135-symbol-equation{padding:2px;font-size:6px}
+.tt99-game-activities.count-3 .tt99-v135-symbol{width:13px;height:13px;font-size:10px}
+.tt99-game-activities.count-3 .tt99-v135-symbol-mystery{gap:2px;padding:3px}
+.tt99-game-activities.count-3 .tt99-v135-symbol-values{display:none}
+.tt99-game-activities.count-3 .tt99-v135-machine{gap:2px;margin:3px auto 4px}
+.tt99-game-activities.count-3 .tt99-v135-machine-terminal{min-width:38px;padding:2px 3px;border-radius:6px}
+.tt99-game-activities.count-3 .tt99-v135-machine-stage{min-width:43px;padding:2px 4px;border-width:1px;border-radius:5px}
+.tt99-game-activities.count-3 .tt99-v135-machine-stage:before,.tt99-game-activities.count-3 .tt99-v135-machine-stage:after{display:none}
+.tt99-game-activities.count-3 .tt99-v135-machine-reverse{display:none}
+.tt99-game-activities.count-3 .tt99-v135-balance-list{gap:2px;margin:2px 3px}
+.tt99-game-activities.count-3 .tt99-v135-balance-card{min-height:26px;grid-template-columns:1fr 25px 1fr;gap:2px;padding:1px 3px 2px}
+.tt99-game-activities.count-3 .tt99-v135-balance-card:before{top:5px;height:1px}
+.tt99-game-activities.count-3 .tt99-v135-pan{min-height:18px;margin-top:4px;padding:1px 3px;border-width:1px;border-radius:4px 4px 8px 8px;font-size:5px}
+.tt99-game-activities.count-3 .tt99-v135-pan:before{top:-5px;height:5px}
+.tt99-game-activities.count-3 .tt99-v135-balance-centre b{width:17px;height:17px;border-width:1px;font-size:6px}
+.tt99-game-activities.count-3 .tt99-v135-balance-centre:after{border-left-width:7px;border-right-width:7px;border-top-width:8px}
+.tt99-game-activities.count-3 .tt99-v135-balance-blank{min-width:16px;height:14px;border-width:1px;border-radius:3px}
+
+@media(max-width:720px){
+  .tt99-v135-symbol-board{grid-template-columns:1fr}
+  .tt99-v135-machine{flex-wrap:wrap}
+  .tt99-v135-lock-grid{grid-template-columns:1fr}
+}

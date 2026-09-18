@@ -1,0 +1,13 @@
+{
+  "_pages/99-club.md": true,
+  "_pages/99-club-help.md": true,
+  "assets/99club/app.js": true,
+  "assets/99club/generator.js": true,
+  "assets/99club/pdf-layout.js": true,
+  "assets/99club/simple-pdf.js": true,
+  "assets/99club/qr-lite.js": true,
+  "assets/99club/99club.css": true,
+  "assets/99club/custom-piecharts.js": true,
+  "assets/99club/custom-coordinates.js": true,
+  "assets/99club/custom-graphs.js": true
+}

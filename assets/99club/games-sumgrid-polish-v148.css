@@ -1,0 +1,21 @@
+/* 99 Club Studio · Corner/Linked Sum Grid polish v1.48 */
+/* Force true 3 × 3 square geometry in both printable preview and Online Play. */
+.tt99-sumgrid-board,
+.tt99-play-sumgrid .tt99-numbergrid{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  grid-template-rows:repeat(3,minmax(0,1fr))!important;
+}
+.tt99-sumgrid-cell,
+.tt99-play-sumgrid .tt99-numbergrid-cell{
+  min-width:0!important;
+  min-height:0!important;
+}
+/* Keep A/B/C labels away from the four internal sum circles. */
+.tt99-sumgrid-letter,
+.tt99-play-group-letter{
+  left:50%!important;
+  right:auto!important;
+  top:5px!important;
+  transform:translateX(-50%)!important;
+  z-index:5!important;
+}

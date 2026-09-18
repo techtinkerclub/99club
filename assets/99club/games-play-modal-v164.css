@@ -1,0 +1,18 @@
+/* 99 Club Studio · Online Play modal isolation v1.64 */
+html.tt99-share-open,html.tt99-share-open body{overflow:hidden!important}
+html.tt99-share-open .masthead,
+html.tt99-share-open #footer,
+html.tt99-share-open .page__footer{visibility:hidden!important;pointer-events:none!important}
+html.tt99-share-open .tt99-share-dialog{z-index:2147483646!important}
+
+/* Completion modal lives inside #main, so lift that stacking context above the host chrome. */
+body:has(#tt99-play-complete:not([hidden])) #main{position:relative!important;z-index:2147483000!important}
+body:has(#tt99-play-complete:not([hidden])) .masthead,
+body:has(#tt99-play-complete:not([hidden])) #footer,
+body:has(#tt99-play-complete:not([hidden])) .page__footer{visibility:hidden!important;pointer-events:none!important}
+
+/* Host theme permalink anchors must not pollute the visible play title. */
+#tt99-play-game-title .header-link,
+#tt99-play-game-title .anchorjs-link,
+#tt99-play-game-title .header-link-symbol,
+#tt99-play-game-title a[href^="#"]{display:none!important}

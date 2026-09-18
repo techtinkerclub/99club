@@ -1,0 +1,198 @@
+/* 99 Club Studio · Games & Puzzles UI polish v1.34.0 */
+
+/* Step 1: topics are global curriculum filters, not vocabulary counters. */
+.tt99-games-topic-grid.tt99-topics-v134{
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:7px;
+}
+.tt99-topics-v134 .tt99-game-topic span{
+  min-height:44px;
+  justify-content:center;
+  padding:9px 11px;
+}
+.tt99-topics-v134 .tt99-game-topic small{display:none!important}
+
+/* Step 2: keep configuration physically attached to the game being edited. */
+.tt99-engine-library{align-items:start}
+.tt99-engine-panel.tt99-engine-panel-inline{
+  grid-column:1/-1;
+  margin:8px 0 3px;
+  border-color:#9dcfc9;
+  box-shadow:0 0 0 2px rgba(20,125,117,.055);
+}
+.tt99-engine-card.is-active{
+  border-color:var(--tt99-teal);
+  background:#f5fbfa;
+  box-shadow:0 0 0 2px rgba(20,125,117,.07);
+}
+.tt99-engine-card.is-active .tt99-engine-configure{font-weight:850}
+
+/* Vocabulary now belongs to Vocabulary & language rather than being Step 5. */
+.tt99-vocab-inline-v134{
+  margin:10px 11px 12px;
+  border:1px solid #d6e4e3;
+  border-radius:12px;
+  background:#fbfdfd;
+  overflow:hidden;
+}
+.tt99-game-category:not(.is-open)>.tt99-vocab-inline-v134{display:none}
+.tt99-vocab-manager-v134>summary{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:11px 12px;
+  cursor:pointer;
+  list-style:none;
+  color:#315d5a;
+}
+.tt99-vocab-manager-v134>summary::-webkit-details-marker{display:none}
+.tt99-vocab-manager-v134>summary>span{display:flex;min-width:0;flex-direction:column}
+.tt99-vocab-manager-v134>summary strong{font-size:.72rem}
+.tt99-vocab-manager-v134>summary small{margin-top:2px;color:#7d8e92;font-size:.57rem;font-weight:700}
+.tt99-vocab-manager-v134>summary em{font-style:normal;font-size:.58rem;font-weight:800;color:#2d716b}
+.tt99-vocab-manager-v134[open]>summary{border-bottom:1px solid #e2eaea;background:#f4faf9}
+.tt99-vocab-manager-v134[open]>summary em::before{content:'Close';font-size:0}
+.tt99-vocab-manager-v134-body{padding:11px 12px 12px}
+.tt99-vocab-inline-v134 .tt99-vocab-add{margin-top:0}
+.tt99-vocab-inline-v134 .tt99-vocab-summary{max-height:360px;overflow:auto;padding-right:2px}
+.tt99-vocab-inline-v134 .tt99-vocab-portability{margin-top:10px}
+
+/* Step 3: one coherent pack builder instead of uneven columns. */
+.tt99-pack-builder-v134{
+  display:grid;
+  gap:11px;
+  margin-top:13px;
+}
+.tt99-pack-summary-v134{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:10px 12px;
+  border:1px solid #cfe3df;
+  border-radius:11px;
+  background:#f3faf8;
+}
+.tt99-pack-summary-v134 span{display:flex;min-width:0;flex-direction:column}
+.tt99-pack-summary-v134 small{color:#718489;font-size:.59rem;font-weight:750}
+.tt99-pack-summary-v134 strong{margin-top:2px;color:#176b64;font-size:.78rem}
+.tt99-pack-type-v134,.tt99-pack-options-v134{display:grid;gap:10px}
+.tt99-pack-options-v134{grid-template-columns:repeat(2,minmax(0,1fr))}
+.tt99-pack-options-v134.is-manual{grid-template-columns:minmax(0,1fr)}
+.tt99-pack-builder-v134 .tt99-field{margin:0}
+.tt99-pack-builder-v134 .tt99-field>small{min-height:0;margin-top:5px}
+.tt99-pack-builder-v134 input[type=number]{width:100%}
+.tt99-pack-preserved-v134{margin:0;color:#788b90;font-size:.61rem;line-height:1.35}
+.tt99-random-pack-mix-v134{
+  padding:11px 12px;
+  border:1px solid #d3e3e2;
+  border-radius:11px;
+  background:#fbfdfd;
+}
+.tt99-random-pack-mix-head-v134{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:8px;
+}
+.tt99-random-pack-mix-head-v134 strong{color:#2d555a;font-size:.7rem}
+.tt99-random-pack-mix-head-v134 small{max-width:280px;color:#7b8d91;font-size:.57rem;line-height:1.3;text-align:right}
+.tt99-random-pack-weights-v134{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.tt99-random-pack-weight-v134{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 64px;
+  align-items:center;
+  gap:4px 8px;
+  padding:7px 8px;
+  border:1px solid #dce6e7;
+  border-radius:9px;
+  background:#fff;
+}
+.tt99-random-pack-weight-v134 span{font-size:.61rem;font-weight:850;color:#415b60}
+.tt99-random-pack-weight-v134 input{
+  width:64px!important;
+  min-width:0;
+  padding:5px 6px!important;
+  font-size:.7rem!important;
+}
+.tt99-random-pack-weight-v134 b{grid-column:1/-1;color:#74888d;font-size:.56rem}
+.tt99-random-pack-weight-v134.is-derived{background:#f4f7f7}
+.tt99-random-pack-weight-v134.is-derived input{background:#edf2f2;color:#718287}
+.tt99-random-pack-presets-v134{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.tt99-random-pack-presets-v134 button{
+  appearance:none;
+  min-height:28px;
+  padding:5px 8px;
+  border:1px solid #cbdedb;
+  border-radius:999px;
+  background:#fff;
+  color:#28655f;
+  font:750 .57rem/1 system-ui;
+  cursor:pointer;
+}
+.tt99-random-pack-presets-v134 button:hover{background:#edf8f6}
+.tt99-random-mode .tt99-game-categories,
+.tt99-random-mode .tt99-selected-games,
+.tt99-random-mode .tt99-games-library-tools,
+.tt99-random-mode .tt99-engine-panel,
+.tt99-random-mode .tt99-vocab-inline-v134{display:none!important}
+
+/* Preview/PDF parity: keep every activity inside its printable frame. */
+.tt99-game-paper{isolation:isolate}
+.tt99-game-paper-header,.tt99-game-paper-identity,.tt99-game-activities,.tt99-game-activity{min-width:0}
+.tt99-game-paper-identity{overflow:hidden}
+.tt99-game-paper-identity p{
+  max-width:100%;
+  white-space:normal;
+  overflow-wrap:anywhere;
+  line-height:1.18;
+}
+.tt99-game-activity{
+  position:relative;
+  overflow:hidden!important;
+  contain:layout paint;
+}
+.tt99-game-activity>*{min-width:0;max-width:100%}
+.tt99-game-activity svg{display:block;max-width:100%;max-height:100%}
+.tt99-game-activity img{max-width:100%;max-height:100%;object-fit:contain}
+.tt99-game-activity [class*="-layout"],
+.tt99-game-activity [class*="-wrap"],
+.tt99-game-activity [class*="-grid"],
+.tt99-game-activity [class*="-items"]{min-width:0;max-width:100%}
+.tt99-game-activity p,.tt99-game-activity li,.tt99-game-activity span{overflow-wrap:anywhere}
+.tt99-game-activities.count-2 .tt99-game-activity,
+.tt99-game-activities.count-3 .tt99-game-activity{padding:1.7%}
+.tt99-game-activities.count-3 .tt99-game-instruction{margin:.7% 0 1.1%;line-height:1.15}
+.tt99-game-activities.count-3 .tt99-game-activity-head h3{line-height:1.05}
+.tt99-game-activities.count-3 svg{max-height:118px}
+
+/* Keep large puzzle surfaces bounded rather than allowing them to escape the card. */
+.tt99-game-activity .tt99-word-grid,
+.tt99-game-activity .tt99-crossword-grid,
+.tt99-game-activity .tt99-maze-grid,
+.tt99-game-activity .tt99-propertymaze-grid,
+.tt99-game-activity .tt99-magic-grid,
+.tt99-game-activity .tt99-sudoku-grid,
+.tt99-game-activity .tt99-kakuro-grid,
+.tt99-game-activity .tt99-cage-grid,
+.tt99-game-activity .tt99-numberpath-grid,
+.tt99-game-activity .tt99-sumplete-grid,
+.tt99-game-activity .tt99-equation-crossgrid{
+  max-width:100%!important;
+  max-height:100%!important;
+}
+.tt99-game-activity[data-tt99-overflow="true"]{outline:1px dashed rgba(148,102,55,.18);outline-offset:-2px}
+
+@media(max-width:900px){
+  .tt99-pack-options-v134{grid-template-columns:1fr 1fr}
+}
+@media(max-width:640px){
+  .tt99-games-topic-grid.tt99-topics-v134{grid-template-columns:1fr}
+  .tt99-pack-options-v134,.tt99-random-pack-weights-v134{grid-template-columns:1fr}
+  .tt99-random-pack-mix-head-v134{flex-direction:column}
+  .tt99-random-pack-mix-head-v134 small{text-align:left}
+  .tt99-random-pack-weight-v134{grid-template-columns:minmax(0,1fr) 90px}
+  .tt99-random-pack-weight-v134 input{width:90px!important}
+}

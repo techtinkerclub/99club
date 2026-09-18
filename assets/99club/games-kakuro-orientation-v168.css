@@ -1,0 +1,15 @@
+/* 99 Club Studio · Kakuro clue orientation v1.68
+ * Standard Kakuro convention: across clue in the upper-right triangle,
+ * down clue in the lower-left triangle, separated by a \ diagonal.
+ */
+.tt99-kakuro-grid .block.has-clue:after{
+  background:linear-gradient(to top right,transparent 49%,#f2f6f6 49.4%,#f2f6f6 50.6%,transparent 51%)!important;
+}
+.tt99-kakuro-grid .block i.across{right:8%!important;top:7%!important;left:auto!important;bottom:auto!important}
+.tt99-kakuro-grid .block i.down{left:8%!important;bottom:7%!important;right:auto!important;top:auto!important}
+
+@media print{
+  .tt99-kakuro-grid .block.has-clue:after{
+    background:linear-gradient(to top right,transparent 49%,#f2f6f6 49.4%,#f2f6f6 50.6%,transparent 51%)!important;
+  }
+}
