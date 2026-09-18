@@ -24,7 +24,7 @@ function prepare(){
       engineSettings:{}
     }));
   })();
-  <\/script>`;
+  </script>`;
   const scripts=js.map(u=>u.includes('/games-app.js')?setup+`<script src="${u}"><\/script>`:`<script src="${u}"><\/script>`).join('\n');
   const runner=String.raw`
   <script>
@@ -90,7 +90,7 @@ function prepare(){
     window.addEventListener('unhandledrejection',e=>fail('runtime','Unhandled rejection: '+String(e.reason||'')));
     if(document.readyState==='complete')run();else window.addEventListener('load',run,{once:true});
   })();
-  <\/script>`;
+  </script>`;
   const html=`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">${css.map(u=>`<link rel="stylesheet" href="${u}">`).join('\n')}<style>body{margin:0}.tt99-games-shell{max-width:1200px;margin:0 auto}#preview-qa-result{display:block}</style></head><body><div id="tt99-games-root"></div>${scripts}${runner}</body></html>`;
   fs.writeFileSync(HARNESS,html);console.log('Prepared '+path.basename(HARNESS)+' with '+js.length+' scripts and '+css.length+' stylesheets.');
 }
