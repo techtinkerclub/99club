@@ -1,5 +1,6 @@
-/* 99 Club Studio analytics v1.0.0
- * GA4 is deliberately loaded only after the visitor allows analytics.
+/* 99 Club Studio analytics v1.1.0
+ * Google Consent Mode is initialised in the page head before gtag.js loads.
+ * Analytics storage remains denied until the visitor allows analytics.
  * Product events must never include pupil/school names, worksheet content,
  * free text, answers, seeds, URLs containing recreation data, or uploaded data.
  */
@@ -11,7 +12,6 @@ const measurementId=String(cfg.ga4MeasurementId||'').trim();
 const validMeasurement=/^G-[A-Z0-9]+$/i.test(measurementId);
 const PREF_KEY='tt99-analytics-choice-v1';
 let choice=readChoice();
-let gaLoaded=false;
 
 function readChoice(){
   try{
@@ -43,28 +43,9 @@ function gtag(){
   global.dataLayer=global.dataLayer||[];
   global.dataLayer.push(arguments);
 }
-function loadGA(){
-  if(gaLoaded||!validMeasurement||choice!=='allow')return;
-  gaLoaded=true;
+function ensureGtag(){
   global.dataLayer=global.dataLayer||[];
   global.gtag=global.gtag||gtag;
-  global.gtag('consent','default',{
-    analytics_storage:'granted',
-    ad_storage:'denied',
-    ad_user_data:'denied',
-    ad_personalization:'denied'
-  });
-  global.gtag('js',new Date());
-  global.gtag('config',measurementId,{
-    send_page_view:true,
-    allow_google_signals:false,
-    allow_ad_personalization_signals:false
-  });
-  const script=document.createElement('script');
-  script.async=true;
-  script.src='https://www.googletagmanager.com/gtag/js?id='+encodeURIComponent(measurementId);
-  script.referrerPolicy='strict-origin-when-cross-origin';
-  document.head.appendChild(script);
 }
 function clearGaCookies(){
   const names=['_ga'];
@@ -78,17 +59,20 @@ function clearGaCookies(){
 function setChoice(next){
   writeChoice(next);
   removeBanner();
-  if(next==='allow')loadGA();
-  else{
-    if(global.gtag)global.gtag('consent','update',{analytics_storage:'denied',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied'});
-    clearGaCookies();
-  }
+  ensureGtag();
+  global.gtag('consent','update',{
+    analytics_storage:next==='allow'?'granted':'denied',
+    ad_storage:'denied',
+    ad_user_data:'denied',
+    ad_personalization:'denied'
+  });
+  if(next!=='allow')clearGaCookies();
+  if(global.TT99Analytics)global.TT99Analytics.enabled=next==='allow';
   updateSettingsState();
 }
 function track(name,params){
   if(choice!=='allow'||!validMeasurement)return false;
-  loadGA();
-  if(!global.gtag)return false;
+  ensureGtag();
   global.gtag('event',String(name||'').slice(0,40),cleanParams(params));
   return true;
 }
@@ -177,11 +161,11 @@ function boot(){
     global.TT99Analytics={track:()=>false,openSettings:()=>{},enabled:false,configured:false};
     return;
   }
+  ensureGtag();
   global.TT99Analytics={track,openSettings,enabled:choice==='allow',configured:true};
   bindNavigation();
   ensureSettings();
-  if(choice==='allow')loadGA();
-  else if(!choice)showBanner();
+  if(!choice)showBanner();
 }
 
 global.TT99Analytics={track,openSettings,enabled:false,configured:validMeasurement};
