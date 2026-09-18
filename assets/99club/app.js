@@ -854,7 +854,7 @@
         console.error('99 Club contact form:',err);
         if(status){
           status.className='tt99-contact-status is-error';
-          status.innerHTML='Sorry, the message could not be sent just now. Please try again, or email <a href="mailto:techtinkerclub@gmail.com">techtinkerclub@gmail.com</a>.';
+          status.textContent='Sorry, the message could not be sent just now. Please try again in a moment.';
         }
       }finally{
         if(sendButton){
