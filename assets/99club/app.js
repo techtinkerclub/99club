@@ -10,7 +10,7 @@
   const CUSTOM_KEY = 'tt99-custom-presets-v1';
   const VERSION = '1.19.3';
   const APP_NAME = '99 Club Studio';
-  const APP_URL = 'https://99studio.uk/tools/99-club/';
+  const APP_URL = 'https://99studio.uk/';
   const CUSTOM_WORKSPACE_KEY = 'tt99-custom-settings-v1';
   const GENERATION_VERSION = 1;
   const MAX_PRINT_QR_VERSION = 14;
