@@ -173,7 +173,8 @@
 
   .tt99-game-paper .tt99-word-layout{
     grid-template-columns:minmax(0,1.18fr) minmax(150px,.82fr)!important;
-    height:calc(100% - 38px)!important;
+    height:auto!important;
+    min-height:0!important;
   }
   .tt99-game-paper .tt99-word-grid{width:min(100%,390px)!important}
 
