@@ -42,7 +42,7 @@ sitemap: true
 <link rel="stylesheet" href="/assets/99club/games-operationgrid-print-v158.css?v=1">
 <link rel="stylesheet" href="/assets/99club/games-operationgrid-print-v160.css?v=1">
 <link rel="stylesheet" href="/assets/99club/games-preview-pager-v155.css?v=1">
-<link rel="stylesheet" href="/assets/99club/games-preview-parity-v206.css?v=3">
+<link rel="stylesheet" href="/assets/99club/games-preview-parity-v206.css?v=4">
 <script src="/assets/99club/games-vocabulary.js?v=1"></script>
 <script src="/assets/99club/games-arithmetic.js?v=9"></script>
 <script src="/assets/99club/games-brokencalc-quality-v152.js?v=2"></script>
@@ -99,14 +99,14 @@ sitemap: true
 <script src="/assets/99club/games-pdf-new-puzzles-v197.js?v=1"></script>
 <script src="/assets/99club/games-pdf-extra-puzzles-v204.js?v=1"></script>
 <script src="/assets/99club/games-layout-v1321.js?v=2"></script>
-<script src="/assets/99club/games-app.js?v=32" defer></script>
+<script src="/assets/99club/games-app.js?v=33" defer></script>
 <script src="/assets/99club/games-preview-parity-v206.js?v=1" defer></script>
 <script src="/assets/99club/games-operationgrid-print-v158-ui.js?v=1" defer></script>
 <script src="/assets/99club/games-operationgrid-print-v160-ui.js?v=1" defer></script>
 <script src="/assets/99club/games-operationgrid-print-v155-ui.js?v=1" defer></script>
 <script src="/assets/99club/games-random-ui.js?v=4" defer></script>
 <script src="/assets/99club/games-card-links-v205.js?v=4" defer></script>
-<script src="/assets/99club/games-ui-v134.js?v=1" defer></script>
+<script src="/assets/99club/games-ui-v134.js?v=2" defer></script>
 <script src="/assets/99club/games-puzzle-redesign-v136.js?v=2" defer></script>
 <script src="/assets/99club/games-v137.js?v=1" defer></script>
 <script src="/assets/99club/games-v138.js?v=1" defer></script>
@@ -116,7 +116,7 @@ sitemap: true
 <script src="/assets/99club/games-shikaku-v143-ui.js?v=1" defer></script>
 <script src="/assets/99club/games-sum-grids-v147-ui.js?v=2" defer></script>
 <script src="/assets/99club/games-focus-topics-v145-ui.js?v=1" defer></script>
-<script src="/assets/99club/games-preview-fit-v207.js?v=1" defer></script>
+<script src="/assets/99club/games-preview-fit-v207.js?v=2" defer></script>
 <script>
 window.addEventListener('DOMContentLoaded',function(){
   const root=document.getElementById('tt99-games-root');
