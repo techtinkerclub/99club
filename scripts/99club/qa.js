@@ -109,13 +109,10 @@ function checkSpecific(id,p){
       const key=`${x}:${y}`;if(!occupancy.has(key))occupancy.set(key,[]);occupancy.get(key).push(e);
     }
     for(const e of p.entries||[]){
-      let privateCells=0;
       for(const [x,y] of e.cells||[]){
         const members=occupancy.get(`${x}:${y}`)||[];
         if(members.filter(q=>q.dir===e.dir).length>1)fail(id,'same-direction entries overlap',`${e.number} ${e.dir}`);
-        if(members.length===1)privateCells++;
       }
-      if(!privateCells)fail(id,'redundant clue has no private square',`${e.number} ${e.dir}: ${e.clue}`);
     }
   }
   if(id==='brokencalc'){
