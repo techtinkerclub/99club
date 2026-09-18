@@ -102,16 +102,28 @@ function prepare(){
     }
 
     async function previewReplaceTest(){
-      const stack=document.querySelector('.tt99-games-pupil-pages');
+      let stack=document.querySelector('.tt99-games-pupil-pages');
+      const total=Number(window.TT99GamesPreviewPagerV155?.counts?.pupil)||Number(stack?.querySelector('[data-preview-total]')?.textContent)||1;
+      const target=Math.min(3,total);
+      if(target>1){
+        const input=stack?.querySelector('.tt99-preview-pager input');
+        if(input){input.value=String(target);input.dispatchEvent(new Event('change',{bubbles:true}));await sleep(180);}
+      }
+      stack=document.querySelector('.tt99-games-pupil-pages');
+      const beforePage=Number(stack?.querySelector('.tt99-preview-pager input')?.value)||1;
       const activity=stack?.querySelector('.tt99-game-activity');
       const btn=activity?.querySelector('[data-replace-activity]');
       if(!activity||!btn){fail('preview-replace','Activity replacement control missing');return;}
       const before=activity.innerHTML;
       btn.click();
-      await sleep(220);
-      const after=document.querySelector('.tt99-games-pupil-pages .tt99-game-activity')?.innerHTML||'';
+      await sleep(420);
+      stack=document.querySelector('.tt99-games-pupil-pages');
+      const after=stack?.querySelector('.tt99-game-activity')?.innerHTML||'';
+      const afterPage=Number(stack?.querySelector('.tt99-preview-pager input')?.value)||1;
       if(!after||after===before)fail('preview-replace','Activity replacement did not change the puzzle');
       else pass('preview-replace','Activity replacement changed the rendered puzzle');
+      if(afterPage!==beforePage)fail('preview-pager','Activity replacement moved preview from page '+beforePage+' to page '+afterPage);
+      else pass('preview-pager','Activity replacement preserved preview page '+beforePage);
     }
     async function configurePlacementTest(){
       const cardTitle=card=>(card?.querySelector('.tt99-engine-include b')?.textContent||'').trim();
