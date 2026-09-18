@@ -69,6 +69,14 @@ function prepare(){
         if(Math.abs(r.width-r0.width)>2||Math.abs(r.height-r0.height)>2) {fail('square-grid',(g.className||'grid')+' has unequal cell tracks');break;}
       }
     }
+    function inspectColourLogic(activity){
+      const grid=activity.querySelector('.tt99-cl-paper-grid');if(!grid)return;
+      const n=Math.max(1,Number(getComputedStyle(grid).getPropertyValue('--cl-n'))||1);
+      const w=grid.offsetWidth,h=grid.offsetHeight,cell=w/n;
+      if(Math.abs(w-h)>2)fail('colourlogic-geometry','Grid is not square: '+w+'×'+h);
+      if(activity.closest('.tt99-game-activities.count-2')&&cell<38)fail('colourlogic-geometry','Half-page cells are too small: '+cell.toFixed(1)+' px');
+    }
+
     function inspectSumGrid(activity){
       const stage=activity.querySelector('.tt99-sumgrid-stage'),board=activity.querySelector('.tt99-sumgrid-board');
       if(!stage||!board)return;
@@ -182,6 +190,7 @@ function prepare(){
           for(const g of p.querySelectorAll('.tt99-kakuro-grid,.tt99-cage-grid,.tt99-numberpath-grid,.tt99-extra-path-grid,.tt99-extra-search-grid,.tt99-extra-perimeter-grid,.tt99-shikaku-grid,.tt99-sumgrid-board'))inspectSquareGrid(g);
           for(const g of p.querySelectorAll('.tt99-crossword-grid'))inspectCrosswordGrid(g);
           for(const a of p.querySelectorAll('.tt99-game-activity'))inspectSumGrid(a);
+          for(const a of p.querySelectorAll('.tt99-colourlogic-print'))inspectColourLogic(a);
           if(i<total-1){
             const next=stack.querySelector('[data-preview-next]');
             if(!next||next.disabled){fail('pager','Could not advance from preview page '+(i+1));break;}
