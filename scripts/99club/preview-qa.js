@@ -24,7 +24,7 @@ function prepare(){
     localStorage.setItem('tt99-games-activity-count-v1',String(ids.length));
     localStorage.setItem('tt99-games-activities-per-sheet-v2','2');
     localStorage.setItem('tt99-games-settings-v4',JSON.stringify({
-      minYear:1,maxYear:6,topics:${JSON.stringify(topics)},
+      minYear:6,maxYear:6,topics:${JSON.stringify(topics)},
       activityCount:ids.length,sheets:Math.ceil(ids.length/2),activitiesPerSheet:2,includeAnswers:true,workedExamples:'none',
       selectedEngines:ids,personalisation:{schoolName:'',packTitle:'Preview QA',classLabel:'',worksheetDate:'',logoDataUrl:'',logoWidth:0,logoHeight:0},
       engineSettings:{}
