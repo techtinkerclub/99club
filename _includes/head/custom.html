@@ -1,0 +1,45 @@
+<!-- 99 Club Studio standalone head additions -->
+{% if page.url == '/' or page.url contains '/tools/99-club/' %}
+{% assign tt99_build = site.github.build_revision | default: site.time %}
+<meta name="tt99-build" content="{{ tt99_build | escape }}">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#147d75">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="99 Club Studio">
+<link rel="apple-touch-icon" sizes="192x192" href="/assets/99club/pwa/icon-192.png">
+<link rel="stylesheet" href="/assets/99club/pwa/pwa.css?v=5">
+<script src="/assets/99club/pwa/pwa-register.js?v=5" defer></script>
+<script src="/assets/99club/banner-actions-v2.js?v=2" defer></script>
+<style>
+  /* 99 Club Studio is now the whole site, so the theme masthead is redundant. */
+  .masthead{display:none!important}
+  body{padding-top:0!important}
+  .initial-content{margin-top:0!important}
+</style>
+{% endif %}
+
+{% if page.url == '/tools/99-club/games/' or page.url == '/tools/99-club/games/play/' %}
+<link rel="stylesheet" href="/assets/99club/games-sumgrid-polish-v148.css?v=1">
+<link rel="stylesheet" href="/assets/99club/games-family-ui-v166.css?v=1">
+<script src="/assets/99club/games-sum-grid-align-v1.js?v=1" defer></script>
+<script src="/assets/99club/games-family-ui-v166.js?v=2" defer></script>
+{% endif %}
+
+{% if page.url == '/tools/99-club/games/' %}
+<script src="/assets/99club/games-numbersearch-quality-v151.js?v=1" defer></script>
+<script src="/assets/99club/games-pdf-sum-grids-v148.js?v=1" defer></script>
+<script src="/assets/99club/games-pdf-v162.js?v=1" defer></script>
+<script src="/assets/99club/games-selector-ux-v162.js?v=2" defer></script>
+{% endif %}
+
+{% if page.url == '/tools/99-club/games/play/' %}
+<link rel="stylesheet" href="/assets/99club/games-play-top-instructions-v1.css?v=1">
+<link rel="stylesheet" href="/assets/99club/games-play-ux-v162.css?v=1">
+<script src="/assets/99club/games-play-top-instructions-v1.js?v=2" defer></script>
+<script src="/assets/99club/games-play-feedback-v163.js?v=1" defer></script>
+{% endif %}
+
+{% if page.url == '/tools/99-club/games/help/' %}
+<script src="/assets/99club/games-help-sum-grids-v147.js?v=2" defer></script>
+{% endif %}
