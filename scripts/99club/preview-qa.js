@@ -81,6 +81,17 @@ function prepare(){
         const t=targets[i]||[0,0],ex=br.left+t[0]*br.width/3,ey=br.top+t[1]*br.height/3;
         if(Math.abs(cx-ex)>2||Math.abs(cy-ey)>2)fail('sumgrid-geometry','Circle '+(i+1)+' is misaligned by '+Math.round(cx-ex)+','+Math.round(cy-ey)+' px');
       });
+      const clues=[...activity.querySelectorAll('.tt99-sumgrid-clue')].map(el=>el.getBoundingClientRect());
+      [...activity.querySelectorAll('.tt99-sumgrid-cell')].forEach(cell=>{
+        const badge=cell.querySelector('.tt99-sumgrid-letter');if(!badge)return;
+        const cr=cell.getBoundingClientRect(),lr=badge.getBoundingClientRect();
+        const cx=cr.left+cr.width/2,lx=lr.left+lr.width/2,ly=lr.top+lr.height/2;
+        if(Math.abs(lx-cx)>2)fail('sumgrid-geometry','Group badge is not centred in its cell');
+        for(const q of clues){
+          const qx=q.left+q.width/2,qy=q.top+q.height/2,min=(q.width+lr.width)/2+2;
+          if(Math.hypot(lx-qx,ly-qy)<min)fail('sumgrid-geometry','Group badge overlaps a sum circle');
+        }
+      });
     }
 
     function inspectCrosswordGrid(g){
