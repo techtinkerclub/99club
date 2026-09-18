@@ -69,6 +69,23 @@ function prepare(){
         if(Math.abs(r.width-r0.width)>2||Math.abs(r.height-r0.height)>2) {fail('square-grid',(g.className||'grid')+' has unequal cell tracks');break;}
       }
     }
+    function inspectCrosswordGrid(g){
+      const style=getComputedStyle(g),cols=Math.max(1,Number(style.getPropertyValue('--cw'))||1),rows=Math.max(1,Number(style.getPropertyValue('--ch'))||1);
+      const gr=g.getBoundingClientRect(),expected=cols/rows,actual=gr.width/Math.max(1,gr.height);
+      if(Math.abs(actual-expected)>.03)fail('crossword-geometry','Grid ratio '+actual.toFixed(3)+' does not match '+cols+'×'+rows);
+      const cells=[...g.querySelectorAll(':scope > span.open')].filter(visible);
+      const byPos=new Map();
+      for(const el of cells){
+        const s=getComputedStyle(el),col=Number(s.gridColumnStart),row=Number(s.gridRowStart),r=el.getBoundingClientRect();
+        if(Math.abs(r.width-r.height)>2)fail('crossword-geometry','Cell '+col+','+row+' is not square: '+r.width.toFixed(1)+'×'+r.height.toFixed(1));
+        byPos.set(col+':'+row,{r,col,row});
+      }
+      for(const {r,col,row} of byPos.values()){
+        const right=byPos.get((col+1)+':'+row),down=byPos.get(col+':'+(row+1));
+        if(right&&Math.abs(right.r.left-r.right)>2)fail('crossword-geometry','Across cells '+col+','+row+' and '+(col+1)+','+row+' do not touch');
+        if(down&&Math.abs(down.r.top-r.bottom)>2)fail('crossword-geometry','Down cells '+col+','+row+' and '+col+','+(row+1)+' do not touch');
+      }
+    }
 
     async function previewReplaceTest(){
       const stack=document.querySelector('.tt99-games-pupil-pages');
@@ -116,6 +133,7 @@ function prepare(){
           if(!p){fail('boot','Preview page '+(i+1)+' was not mounted');break;}
           for(const a of p.querySelectorAll('.tt99-game-activity'))inspectActivity(a);
           for(const g of p.querySelectorAll('.tt99-kakuro-grid,.tt99-cage-grid,.tt99-numberpath-grid,.tt99-extra-path-grid,.tt99-extra-search-grid,.tt99-extra-perimeter-grid,.tt99-shikaku-grid,.tt99-sumgrid-board'))inspectSquareGrid(g);
+          for(const g of p.querySelectorAll('.tt99-crossword-grid'))inspectCrosswordGrid(g);
           if(i<total-1){
             const next=stack.querySelector('[data-preview-next]');
             if(!next||next.disabled){fail('pager','Could not advance from preview page '+(i+1));break;}
