@@ -936,7 +936,12 @@
     state.clubId=id;
     state.rules=loadRulesFor(state.schemeId,id);
     if(id==='worksheet') state.advancedOpen=true;
-    state.seed=newStudioSeed(id); state.status=''; generateAll(); render();
+    state.seed=newStudioSeed(id); state.status=''; generateAll();
+    window.TT99Analytics?.track('challenge_selected',{
+      scheme_id:state.schemeId,
+      challenge_id:String(id).startsWith('custom-')?'custom':id
+    });
+    render();
   }
   function resetRules(){
     const p=getBasePreset(state.schemeId,state.clubId); if(!p)return;
@@ -1458,6 +1463,15 @@
       const badge=await badgeImageForPdf();
       const doc=L.buildDocument({rules:state.rules,sheets:state.sheets,school:state.school,kind,orientation:state.orientation,qrByVariant,teacherNote:state.teacherNote,badge:badge?{imageDataUrl:badge.dataUrl,width:badge.width,height:badge.height}:{}});
       doc.save(L.filename(state.rules,kind,state.orientation));
+      window.TT99Analytics?.track('worksheet_download',{
+        pdf_kind:kind,
+        scheme_id:state.schemeId,
+        challenge_id:String(state.clubId).startsWith('custom-')?'custom':state.clubId,
+        variant_count:state.variants,
+        question_count:Number(state.rules?.questionCount)||0,
+        orientation:state.orientation,
+        answer_qr:state.includeAnswerQr?1:0
+      });
       state.status=qrOmitted?`PDF created. ${qrOmitted} answer-sheet QR ${qrOmitted===1?'code was':'codes were'} omitted because the recreation data was too large.`:'PDF created.'; render();
     } catch(err){ console.error(err); state.status='PDF generation failed in this browser. Please refresh and try again.';render(); }
   }
