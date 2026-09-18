@@ -72,7 +72,7 @@ sitemap: true
 <script src="/assets/99club/games-pack-mode.js?v=3"></script>
 <script src="/assets/99club/games-performance-v142.js?v=1"></script>
 <script src="/assets/99club/games-performance-v149.js?v=1"></script>
-<script src="/assets/99club/games-preview-pager-v155.js?v=1"></script>
+<script src="/assets/99club/games-preview-pager-v155.js?v=2"></script>
 <script src="/assets/99club/games-wordsearch-quality-v150.js?v=1"></script>
 <script src="/assets/99club/games-instructions-v139.js?v=3"></script>
 <script src="/assets/99club/games-puzzle-redesign-v135-logic.js?v=1"></script>
