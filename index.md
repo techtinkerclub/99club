@@ -1,18 +1,24 @@
 ---
-layout: null
+layout: default
 title: "99 Club Studio"
+permalink: /
+sidebar: false
 sitemap: true
 ---
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>99 Club Studio</title>
-  <meta http-equiv="refresh" content="0; url=/tools/99-club/">
-  <link rel="canonical" href="/tools/99-club/">
-</head>
-<body>
-  <p><a href="/tools/99-club/">Open 99 Club Studio</a></p>
-</body>
-</html>
+
+<div id="main" class="tt99-page-main" role="main">
+  <article class="splash">
+    <section class="page__content">
+      <div id="tt99-root">
+        <noscript>This worksheet generator needs JavaScript enabled in your browser.</noscript>
+      </div>
+    </section>
+  </article>
+</div>
+
+<link rel="stylesheet" href="/assets/99club/99club.css?v=20.1">
+<script src="/assets/99club/generator.js?v=19.4"></script>
+<script src="/assets/99club/simple-pdf.js?v=19.4"></script>
+<script src="/assets/99club/pdf-layout.js?v=19.4"></script>
+<script src="/assets/99club/qr-lite.js?v=19.4"></script>
+<script src="/assets/99club/app.js?v=19.6" defer></script>
