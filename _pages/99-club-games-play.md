@@ -1,6 +1,7 @@
 ---
 layout: default
-title: "Play Maths Games Online · 99 Club Studio"
+title: "Play Maths Games Online"
+description: "Play free browser-based maths puzzles with fresh generated challenges, hints and optional timed modes."
 permalink: /play/
 sidebar: false
 sitemap: true

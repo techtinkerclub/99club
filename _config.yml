@@ -1,9 +1,17 @@
 title: "99 Club Studio"
+name: "99 Club Studio"
+locale: "en-GB"
+title_separator: "·"
+og_image: "/assets/99club/images/99club-studio-wordmark.png"
 masthead_title: "99 Club Studio"
-description: "Free classroom maths worksheets, games and puzzle tools."
+description: "Free printable primary maths worksheets, classroom games and online number puzzles."
 baseurl: ""
 url: "https://99studio.uk"
 repository: techtinkerclub/99club
+
+social:
+  type: Organization
+  name: "99 Club Studio"
 
 remote_theme: "mmistakes/minimal-mistakes@4.24.0"
 minimal_mistakes_skin: "contrast"

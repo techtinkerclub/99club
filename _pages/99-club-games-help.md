@@ -1,6 +1,7 @@
 ---
 layout: default
-title: "Maths Games & Puzzles Help · 99 Club Studio"
+title: "Maths Games & Puzzle Guides"
+description: "Rules, worked examples and solving strategies for the printable and online maths games in 99 Club Studio."
 permalink: /help/games/
 sidebar: false
 sitemap: true

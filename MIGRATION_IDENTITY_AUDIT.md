@@ -18,6 +18,12 @@ The primary public routes are:
 - `/contact/`
 - `/privacy/`
 
+## Search and sharing identity
+
+Public pages use `https://99studio.uk` as the canonical site URL. Page-specific titles and descriptions are defined for the main public routes, Open Graph metadata uses the 99 Club Studio wordmark, the site locale is `en-GB`, and the root page exposes Educational WebApplication structured data.
+
+`/robots.txt` points crawlers to the generated sitemap and excludes the hidden Custom Worksheets workspace. The hidden workspace also emits `noindex,nofollow` and remains outside the sitemap.
+
 ## Compatibility
 
 The former public `/tools/99-club/...` pages are redirect-only compatibility routes so existing links and bookmarks continue to resolve.

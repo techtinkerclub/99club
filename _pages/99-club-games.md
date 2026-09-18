@@ -1,6 +1,7 @@
 ---
 layout: default
-title: "Maths Games & Puzzles · 99 Club Studio"
+title: "Printable Maths Games & Puzzles"
+description: "Create printable primary maths games and puzzle packs with answer sheets, worked examples and optional classroom personalisation."
 permalink: /games/
 sidebar: false
 sitemap: true

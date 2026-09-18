@@ -1,6 +1,7 @@
 ---
 layout: default
-title: "Contact · 99 Club Studio"
+title: "Contact"
+description: "Contact 99 Club Studio with feedback, bug reports and classroom suggestions."
 permalink: /contact/
 sidebar: false
 sitemap: true

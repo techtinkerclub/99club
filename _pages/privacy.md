@@ -1,6 +1,7 @@
 ---
 layout: default
-title: "Privacy & analytics · 99 Club Studio"
+title: "Privacy & Analytics"
+description: "How 99 Club Studio handles local worksheet data, analytics consent and contact-form information."
 permalink: /privacy/
 sidebar: false
 sitemap: true

@@ -1,6 +1,7 @@
 ---
 layout: default
-title: "99 Club Studio Help"
+title: "Help for Teachers"
+description: "Teacher guide to 99 Club Studio worksheets, challenge schemes, settings, printing, QR recreation and classroom use."
 permalink: /help/
 sidebar: false
 ---

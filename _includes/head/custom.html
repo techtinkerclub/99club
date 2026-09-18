@@ -3,11 +3,34 @@
 {% assign tt99_build = site.github.build_revision | default: site.time %}
 <meta name="tt99-build" content="{{ tt99_build | escape }}">
 <link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/assets/99club/pwa/icon-512.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/99club/pwa/icon-192.png" type="image/png" sizes="192x192">
 <meta name="theme-color" content="#147d75">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="99 Club Studio">
 <link rel="apple-touch-icon" sizes="192x192" href="/assets/99club/pwa/icon-192.png">
+{% if page.url == '/tools/99-club/custom/' %}
+<meta name="robots" content="noindex,nofollow">
+{% endif %}
+{% if page.url == '/' %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "99 Club Studio",
+  "url": "https://99studio.uk/",
+  "applicationCategory": "EducationalApplication",
+  "operatingSystem": "Any",
+  "description": "Free printable primary maths worksheets, classroom games and online number puzzles.",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "GBP"
+  }
+}
+</script>
+{% endif %}
 <link rel="stylesheet" href="/assets/99club/pwa/pwa.css?v=5">
 <script src="/assets/99club/pwa/pwa-register.js?v=6" defer></script>
 <script src="/assets/99club/banner-actions-v2.js?v=3" defer></script>

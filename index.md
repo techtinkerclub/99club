@@ -1,6 +1,7 @@
 ---
 layout: default
-title: "99 Club Studio"
+title: "Free Primary Maths Worksheets & Games"
+description: "Free printable 99 Club maths worksheets, primary maths games and online number puzzles for classroom practice. Generate pupil sheets and answers in your browser."
 permalink: /
 sidebar: false
 sitemap: true
