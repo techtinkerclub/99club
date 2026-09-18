@@ -1,7 +1,7 @@
-/* 99 Club Studio PWA registration + install/update helper v4 */
+/* 99 Club Studio PWA registration + install/update helper v5 */
 (function(){
 'use strict';
-if(!location.pathname.startsWith('/tools/99-club/'))return;
+if(!(location.pathname==='/'||location.pathname.startsWith('/tools/99-club/')))return;
 
 const standalone=window.matchMedia?.('(display-mode: standalone)').matches||window.navigator.standalone===true;
 const isiOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
@@ -146,7 +146,7 @@ function watchRegistration(reg){
 function registerSW(){
   if(!('serviceWorker' in navigator))return;
   window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('/tools/99-club/sw.js',{scope:'/tools/99-club/'}).then(watchRegistration).catch(err=>console.warn('99 Club PWA service worker registration failed',err));
+    navigator.serviceWorker.register('/sw.js',{scope:'/'}).then(watchRegistration).catch(err=>console.warn('99 Club PWA service worker registration failed',err));
   });
   navigator.serviceWorker.addEventListener('controllerchange',()=>{
     if(standalone&&!refreshing)showUpdate(updateTarget||currentBuild);
@@ -200,7 +200,7 @@ window.addEventListener('appinstalled',()=>{hideCard();deferredPrompt=null;});
 
 function maybeShowIOS(){
   if(standalone||sessionStorage.getItem('tt99-pwa-dismissed')==='1')return;
-  if(isiOS&&isSafari&&location.pathname==='/tools/99-club/')setTimeout(ensureCard,900);
+  if(isiOS&&isSafari&&(location.pathname==='/'||location.pathname==='/tools/99-club/'))setTimeout(ensureCard,900);
 }
 
 function startUpdateChecks(){
