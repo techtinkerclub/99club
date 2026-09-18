@@ -10,7 +10,8 @@
   if(!P)return;
 
   const INK=[36,67,74], MUTED=[96,116,121], TEAL=[15,138,131], LINE=[207,220,222], PALE=[244,249,248], DARK=[61,86,91], HIT=[218,242,237], WHITE=[255,255,255];
-  const PAGE_GEO=global.TT99GamesPageGeometry||{};\n  const M=Number(PAGE_GEO.margin)||34, PAGE_W=Number(PAGE_GEO.pageWidth)||P.PAGE_W, PAGE_H=Number(PAGE_GEO.pageHeight)||P.PAGE_H;
+  const PAGE_GEO=global.TT99GamesPageGeometry||{};
+  const M=Number(PAGE_GEO.margin)||34, PAGE_W=Number(PAGE_GEO.pageWidth)||P.PAGE_W, PAGE_H=Number(PAGE_GEO.pageHeight)||P.PAGE_H;
 
   function clean(s){return P.asciiish(String(s??''));}
   function cap(s){s=String(s||'');return s.charAt(0).toUpperCase()+s.slice(1);}
