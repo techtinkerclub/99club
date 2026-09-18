@@ -139,7 +139,7 @@
     const instruction=a.mode==='definitions'?'Work out each maths word from its definition, then find it in the grid.':'Read each maths word and its meaning, then find the word in the grid.';
     drawWrapped(page,x+12,top,instruction,w-24,7,{color:MUTED,maxLines:1});
     drawWrapped(page,x+12,top+12,a.directionTipPdf||a.directionLabel||'',w-24,6.2,{bold:true,color:TEAL,maxLines:1});
-    const bodyY=top+28, bodyH=h-(bodyY-y)-12, leftW=Math.min(w*.54,bodyH), gap=14, rightX=x+12+leftW+gap, rightW=w-24-leftW-gap;
+    const bodyY=top+28, bodyH=h-(bodyY-y)-12, leftW=Math.min(w*.50,bodyH), gap=10, rightX=x+12+leftW+gap, rightW=w-24-leftW-gap;
     const gridX=x+12, gridY=bodyY, size=a.size||a.grid?.length||12, cell=Math.min(leftW/size,bodyH/size), gridW=cell*size;
     const answerCells=new Set((a.placements||[]).flatMap(p=>(p.cells||[]).map(([cx,cy])=>`${cx}:${cy}`)));
     for(let gy=0;gy<size;gy++)for(let gx=0;gx<size;gx++){
@@ -148,9 +148,9 @@
       page.text(cx+cell/2,cy+cell*.68,clean(a.grid?.[gy]?.[gx]||''),Math.max(4.4,Math.min(8,cell*.48)),{bold:true,color:INK,align:'center'});
     }
     const entries=a.placements||[],maxPer=h<220?2:3,labels=entries.map((p,i)=>a.mode==='definitions'?`${i+1}. ${p.definition}${needsEnumeration(p.term)?` ${enumeration(p.term)}`:''}`:`${i+1}. ${p.term} — ${p.definition}`),availTextH=Math.max(40,y+h-17-(bodyY+2));
-    let fs=h<220?7.2:h<360?8.0:8.6;
+    let fs=h<220?7.8:h<360?8.5:9.0;
     const needed=size=>labels.reduce((sum,label)=>sum+Math.min(maxPer,wrap(label,rightW,size,false).length)*(size*1.18)+1.5,0);
-    while(fs>6.8&&needed(fs)>availTextH)fs-=.2;
+    while(fs>7.2&&needed(fs)>availTextH)fs-=.2;
     const lh=fs*1.18;let cy=bodyY+2;
     for(let i=0;i<entries.length;i++){
       const lines=wrap(labels[i],rightW,fs,false).slice(0,maxPer);
