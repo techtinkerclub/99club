@@ -28,7 +28,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          mkdir -p assets _pages tools scripts docs .github/workflows _data
+          mkdir -p assets _pages tools scripts docs _data
           rm -rf assets/99club tools/99-club scripts/99club docs/99club
           cp -a _source/assets/99club assets/
           cp -a _source/tools/99-club tools/
@@ -38,7 +38,6 @@ jobs:
           find _pages -maxdepth 1 -type f -name '99-club*.md' -delete 2>/dev/null || true
           cp -a _source/_pages/99-club*.md _pages/
 
-          cp _source/.github/workflows/99club-qa.yml .github/workflows/99club-qa.yml
           cp _source/Gemfile Gemfile
           cp _source/package.json package.json
           cp _source/package-lock.json package-lock.json
