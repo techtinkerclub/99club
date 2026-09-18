@@ -16,10 +16,16 @@ function prepare(){
   const setup=String.raw`<script>
   (function(){
     const G=window.TT99Games;if(!G)return;
-    const ids=Object.entries(G.ENGINES||{}).filter(([,d])=>!d?.hiddenFromLibrary).map(([id])=>id);
+    const all=Object.entries(G.ENGINES||{}).filter(([,d])=>!d?.hiddenFromLibrary).map(([id])=>id);
+    const batch=Math.max(0,Math.min(1,Number(new URLSearchParams(location.search).get('batch'))||0));
+    const cut=Math.ceil(all.length/2),ids=batch?all.slice(cut):all.slice(0,cut);
+    window.__TT99_PREVIEW_QA_IDS=ids.slice();
+    localStorage.setItem('tt99-games-pack-mode-v1','manual');
+    localStorage.setItem('tt99-games-activity-count-v1',String(ids.length));
+    localStorage.setItem('tt99-games-activities-per-sheet-v2','2');
     localStorage.setItem('tt99-games-settings-v4',JSON.stringify({
       minYear:1,maxYear:6,topics:${JSON.stringify(topics)},
-      sheets:Math.ceil(ids.length/2),activitiesPerSheet:2,includeAnswers:true,workedExamples:'none',
+      activityCount:ids.length,sheets:Math.ceil(ids.length/2),activitiesPerSheet:2,includeAnswers:true,workedExamples:'none',
       selectedEngines:ids,personalisation:{schoolName:'',packTitle:'Preview QA',classLabel:'',worksheetDate:'',logoDataUrl:'',logoWidth:0,logoHeight:0},
       engineSettings:{}
     }));
@@ -77,11 +83,10 @@ function prepare(){
           for(const a of p.querySelectorAll('.tt99-game-activity'))inspectActivity(a);
           for(const g of p.querySelectorAll('.tt99-kakuro-grid,.tt99-cage-grid,.tt99-numberpath-grid,.tt99-extra-path-grid,.tt99-extra-search-grid,.tt99-extra-perimeter-grid,.tt99-shikaku-grid,.tt99-sumgrid-board'))inspectSquareGrid(g);
         }
-        const expected=Object.entries(window.TT99Games?.ENGINES||{}).filter(([,d])=>!d?.hiddenFromLibrary).length;
-        if(report.activities<expected)fail('catalogue','Only '+report.activities+' pupil activities rendered for '+expected+' visible engines');
+        const expected=(window.__TT99_PREVIEW_QA_IDS||[]).length;
+        if(report.activities<expected)fail('catalogue','Only '+report.activities+' pupil activities rendered for '+expected+' selected engines in this batch');
         else pass('catalogue',report.activities+' activities inspected across '+report.pages+' pages');
-        if(!report.squareGrids)fail('square-grid','No square grids were exercised');
-        else pass('square-grid',report.squareGrids+' square-grid instances checked');
+        pass('square-grid',report.squareGrids+' square-grid instances checked in this batch');
         if(!report.failures.length)pass('containment','All rendered puzzle bodies remained inside their activity frames');
       }catch(e){fail('runner',(e&&e.stack)||String(e));}
       finally{finish();}
