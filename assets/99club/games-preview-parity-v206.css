@@ -418,3 +418,20 @@
   .tt99-game-paper .tt99-game-activities.count-2 .tt99-balance-paper-centre .stand{font-size:1.4rem!important}
   .tt99-game-paper .tt99-game-activities.count-2 .tt99-balance-paper-centre>b{bottom:10px!important;height:18px!important}
 }
+
+
+/* v2.10 · final first-batch half-page geometry */
+@media screen {
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-equation-crossgrid{
+    width:min(100%,270px)!important;
+    margin-top:4px!important;
+  }
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-diamond-items.visual{
+    height:calc(100% - 84px)!important;
+    margin:2px 8px!important;
+    row-gap:3px!important;
+  }
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-diamond-items.visual .tt99-diamond-svg{
+    max-height:148px!important;
+  }
+}
