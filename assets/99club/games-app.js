@@ -3,6 +3,7 @@
   'use strict';
   const G=window.TT99Games,PDF=window.TT99GamesPDF,root=document.getElementById('tt99-games-root');
   if(!G||!root)return;
+  const track=(name,params)=>window.TT99Analytics?.track(name,params);
 
   const SETTINGS_KEY='tt99-games-settings-v4',LEGACY_KEYS=['tt99-games-settings-v3','tt99-games-settings-v2','tt99-games-settings-v1'],VOCAB_KEY='tt99-games-vocab-v1';
   const DEFAULTS={
@@ -408,10 +409,10 @@
     root.querySelectorAll('[data-category-select]').forEach(btn=>btn.addEventListener('click',()=>{const cat=GAME_CATEGORIES.find(c=>c.id===btn.dataset.categorySelect),eligible=compatibleSet(),set=new Set(state.settings.selectedEngines);for(const id of cat?.engines||[])if(eligible.has(id))set.add(id);state.settings.selectedEngines=[...set];regen(`${cat?.label||'Category'}: compatible games selected.`);}));
     root.querySelectorAll('[data-category-clear]').forEach(btn=>btn.addEventListener('click',()=>{const cat=GAME_CATEGORIES.find(c=>c.id===btn.dataset.categoryClear),ids=new Set(cat?.engines||[]);state.settings.selectedEngines=state.settings.selectedEngines.filter(id=>!ids.has(id));if(ids.has(state.activeEngine))state.activeEngine='';regen(`${cat?.label||'Category'} cleared.`);}));
     root.querySelector('#games-clear-all')?.addEventListener('click',()=>{state.settings.selectedEngines=[];state.activeEngine='';regen('All games cleared. Choose any compatible games to build a new pack.');});
-    root.querySelectorAll('[data-engine-select]').forEach(el=>el.addEventListener('change',()=>{const id=el.dataset.engineSelect,selected=new Set(state.settings.selectedEngines);if(el.checked)selected.add(id);else selected.delete(id);state.settings.selectedEngines=[...selected];if(!el.checked&&state.activeEngine===id)state.activeEngine='';regen(el.checked?`${G.ENGINES[id].title} added to this pack.`:`${G.ENGINES[id].title} removed from this pack.`);}));
+    root.querySelectorAll('[data-engine-select]').forEach(el=>el.addEventListener('change',()=>{const id=el.dataset.engineSelect,selected=new Set(state.settings.selectedEngines);if(el.checked)selected.add(id);else selected.delete(id);state.settings.selectedEngines=[...selected];if(!el.checked&&state.activeEngine===id)state.activeEngine='';track('game_pack_selection',{game_id:id,selection_action:el.checked?'add':'remove',selection_source:'individual',difficulty:state.settings.engineSettings?.[id]?.difficulty||'standard'});regen(el.checked?`${G.ENGINES[id].title} added to this pack.`:`${G.ENGINES[id].title} removed from this pack.`);}));
     root.querySelectorAll('[data-remove-engine]').forEach(btn=>btn.addEventListener('click',()=>{const id=btn.dataset.removeEngine;state.settings.selectedEngines=state.settings.selectedEngines.filter(x=>x!==id);if(state.activeEngine===id)state.activeEngine='';regen(`${G.ENGINES[id]?.title||'Game'} removed from this pack.`);}));
     root.querySelectorAll('[data-configure-engine]').forEach(btn=>btn.addEventListener('click',()=>{const id=btn.dataset.configureEngine;state.activeEngine=state.activeEngine===id?'':id;const cat=ENGINE_CATEGORY[id];if(cat)state.openCategories.add(cat);render();}));root.querySelector('[data-close-engine]')?.addEventListener('click',()=>{state.activeEngine='';render();});
-    root.querySelectorAll('[data-engine-difficulty]').forEach(btn=>btn.addEventListener('click',()=>{const [id,value]=btn.dataset.engineDifficulty.split(':');state.settings.engineSettings[id].difficulty=value;if(value==='mixed'&&!state.settings.engineSettings[id].difficultyWeights)state.settings.engineSettings[id].difficultyWeights={easy:25,standard:50,challenge:25};regen(`${G.ENGINES[id].title} difficulty updated.`);}));
+    root.querySelectorAll('[data-engine-difficulty]').forEach(btn=>btn.addEventListener('click',()=>{const [id,value]=btn.dataset.engineDifficulty.split(':');state.settings.engineSettings[id].difficulty=value;if(value==='mixed'&&!state.settings.engineSettings[id].difficultyWeights)state.settings.engineSettings[id].difficultyWeights={easy:25,standard:50,challenge:25};track('game_difficulty_selected',{game_id:id,difficulty:value,context:'worksheet_pack'});regen(`${G.ENGINES[id].title} difficulty updated.`);}));
     root.querySelectorAll('[data-mix-edge]').forEach(el=>el.addEventListener('change',()=>{const [id,key]=el.dataset.mixEdge.split(':'),w={...(state.settings.engineSettings[id].difficultyWeights||{easy:25,standard:50,challenge:25})},v=Math.max(0,Math.min(100,Number(el.value)||0));w[key]=v;const other=key==='easy'?'challenge':'easy';if(w.easy+w.challenge>100)w[other]=Math.max(0,100-v);w.standard=100-w.easy-w.challenge;state.settings.engineSettings[id].difficultyWeights=w;regen(`${G.ENGINES[id].title} mixed-difficulty weights updated.`);}));
     root.querySelectorAll('[data-mix-preset]').forEach(btn=>btn.addEventListener('click',()=>{const [id,easy,standard,challenge]=btn.dataset.mixPreset.split(':');state.settings.engineSettings[id].difficultyWeights={easy:Number(easy),standard:Number(standard),challenge:Number(challenge)};regen(`${G.ENGINES[id].title} mixed-difficulty preset applied.`);}));
     root.querySelectorAll('[data-engine-option]').forEach(el=>el.addEventListener('change',()=>{const [id,key]=el.dataset.engineOption.split(':');state.settings.engineSettings[id][key]=el.value;regen(`${G.ENGINES[id].title} setup updated.`);}));
@@ -434,6 +435,25 @@
     try{
       const doc=PDF.buildDocument({pack:state.pack,settings:state.settings,kind,topics:G.TOPICS,seed:state.seed});
       doc.save(PDF.filename(state.settings,kind));
+      const activityCounts={};
+      for(const sheet of (state.pack?.sheets||[]))for(const activity of (sheet.activities||[])){
+        const id=String(activity.engineId||'unknown');
+        activityCounts[id]=(activityCounts[id]||0)+1;
+      }
+      const totalActivities=Object.values(activityCounts).reduce((sum,n)=>sum+Number(n||0),0);
+      track('game_pack_download',{
+        pdf_kind:kind,
+        sheet_count:Number(state.settings.sheets)||0,
+        activity_count:totalActivities,
+        game_count:Object.keys(activityCounts).length,
+        worked_examples:state.settings.workedExamples==='front'?1:0
+      });
+      Object.entries(activityCounts).forEach(([id,count])=>track('game_in_download',{
+        game_id:id,
+        pdf_kind:kind,
+        activity_count:count,
+        difficulty:state.settings.engineSettings?.[id]?.difficulty||'standard'
+      }));
       state.status=kind==='student'?'Pupil sheets PDF created.':kind==='answers'?'Answer key PDF created.':'Combined pupil + answers PDF created.';
       render();
     }catch(err){
