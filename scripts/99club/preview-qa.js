@@ -75,11 +75,21 @@ function prepare(){
       const sr=stage.getBoundingClientRect(),br=board.getBoundingClientRect();
       if(Math.abs(br.width-br.height)>2)fail('sumgrid-geometry','Board is not square: '+br.width.toFixed(1)+'×'+br.height.toFixed(1));
       if(Math.abs(sr.width-br.width)>2||Math.abs(sr.height-br.height)>2)fail('sumgrid-geometry','Stage and board sizes differ');
-      const targets=[[1,1],[2,1],[1,2],[2,2]];
+      const targets=[[1,1],[2,1],[1,2],[2,2]],clueRects=[];
       [...activity.querySelectorAll('.tt99-sumgrid-clue')].forEach((el,i)=>{
         const r=el.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
+        clueRects.push(r);
         const t=targets[i]||[0,0],ex=br.left+t[0]*br.width/3,ey=br.top+t[1]*br.height/3;
         if(Math.abs(cx-ex)>2||Math.abs(cy-ey)>2)fail('sumgrid-geometry','Circle '+(i+1)+' is misaligned by '+Math.round(cx-ex)+','+Math.round(cy-ey)+' px');
+      });
+      [...activity.querySelectorAll('.tt99-sumgrid-cell')].forEach(cell=>{
+        const badge=cell.querySelector('.tt99-sumgrid-letter');if(!badge)return;
+        const cr=cell.getBoundingClientRect(),r=badge.getBoundingClientRect();
+        if(r.top<cr.top+4||r.bottom>cr.bottom-4||r.left<cr.left+4||r.right>cr.right-4)fail('sumgrid-geometry','Group badge is not inset inside its cell');
+        for(const q of clueRects){
+          const overlap=Math.min(r.right,q.right)-Math.max(r.left,q.left)>1&&Math.min(r.bottom,q.bottom)-Math.max(r.top,q.top)>1;
+          if(overlap){fail('sumgrid-geometry','Group badge overlaps a sum circle');break;}
+        }
       });
       const clues=[...activity.querySelectorAll('.tt99-sumgrid-clue')].map(el=>el.getBoundingClientRect());
       [...activity.querySelectorAll('.tt99-sumgrid-cell')].forEach(cell=>{
