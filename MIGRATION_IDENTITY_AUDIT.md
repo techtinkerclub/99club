@@ -1,11 +1,25 @@
 # Standalone migration identity audit
 
-Remaining legacy identifiers after public rebrand:
+## Public identity
 
-assets/99club/banner-actions-v1.js:171:    const endpoint=['https://formsubmit.co/ajax/','techtinkerclub','@','gmail.com'].join('');
-assets/99club/banner-actions-v1.js:210:        status.innerHTML='Sorry, the message could not be sent just now. Please try again, or email <a href="mailto:techtinkerclub@gmail.com">techtinkerclub@gmail.com</a>.';
-assets/99club/app.js:807:      const endpoint=['https://formsubmit.co/ajax/','techtinkerclub','@','gmail.com'].join('');
-assets/99club/app.js:852:          status.innerHTML='Sorry, the message could not be sent just now. Please try again, or email <a href="mailto:techtinkerclub@gmail.com">techtinkerclub@gmail.com</a>.';
-assets/99club/banner-actions-v2.js:70:    const endpoint=['https://formsubmit.co/ajax/','techtinkerclub','@','gmail.com'].join(''),original=send?.textContent||'Send message';
-assets/99club/banner-actions-v2.js:77:    }catch(err){console.error('99 Club contact form:',err);if(status){status.className='tt99-contact-status is-error';status.innerHTML='Sorry, the message could not be sent just now. Please try again, or email <a href="mailto:techtinkerclub@gmail.com">techtinkerclub@gmail.com</a>.';}}
-assets/99club/99club.css:1006:/* Standalone 99 Club Studio: hide the legacy Tech Tinker Club support
+Public-facing Tech Tinker Club branding and the legacy Tech Tinker Club email fallback have been removed from 99 Club Studio.
+
+The standalone site is served from `https://99studio.uk/`, with the inherited website masthead hidden and Studio navigation presented inside the product UI.
+
+## Compatibility
+
+The former Tech Tinker Club 99 Club pages are redirect-only compatibility pages. Existing links continue to resolve to their corresponding pages on `99studio.uk`.
+
+The legacy `/tools/99-club/` path is also retained on the standalone site for old bookmarks and installed-app compatibility.
+
+## Remaining operational dependency
+
+The contact form still delivers through FormSubmit to the existing legacy mailbox. The recipient address is not shown in the Studio interface or in contact-form error messages.
+
+Files containing that delivery endpoint:
+
+- `assets/99club/app.js`
+- `assets/99club/banner-actions-v1.js`
+- `assets/99club/banner-actions-v2.js`
+
+Once a dedicated 99 Studio contact mailbox or form endpoint exists, those three delivery targets should be changed together.
