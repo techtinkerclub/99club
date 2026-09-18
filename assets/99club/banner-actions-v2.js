@@ -74,7 +74,7 @@ function bindContact(modal){
       let data=null;try{data=await response.json();}catch(_err){}
       if(!response.ok||(data&&(data.success===false||data.success==='false')))throw new Error((data&&data.message)||`Contact form returned ${response.status}`);
       form.reset();if(status){status.className='tt99-contact-status is-success';status.textContent='Thanks — your message was submitted.';}
-    }catch(err){console.error('99 Club contact form:',err);if(status){status.className='tt99-contact-status is-error';status.innerHTML='Sorry, the message could not be sent just now. Please try again, or email <a href="mailto:techtinkerclub@gmail.com">techtinkerclub@gmail.com</a>.';}}
+    }catch(err){console.error('99 Club contact form:',err);if(status){status.className='tt99-contact-status is-error';status.textContent='Sorry, the message could not be sent just now. Please try again in a moment.';}}
     finally{if(send){send.disabled=false;send.textContent=original;}}
   });
 }
