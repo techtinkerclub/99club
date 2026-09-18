@@ -74,14 +74,20 @@ function prepare(){
         await sleep(1800);
         const stack=document.querySelector('.tt99-games-pupil-pages');
         if(!stack)return fail('boot','Pupil preview stack missing');
-        const pages=[...stack.querySelectorAll('.tt99-game-paper')];
-        report.pages=pages.length;if(!pages.length)return fail('boot','No printable preview pages generated');
-        for(const p of pages)p.style.display='block';
-        window.TT99GamesPreviewFitV207?.refresh?.();
-        await sleep(500);
-        for(const p of pages){
+        const total=Number(window.TT99GamesPreviewPagerV155?.counts?.pupil)||Number(stack.querySelector('[data-preview-total]')?.textContent)||stack.querySelectorAll('.tt99-game-paper').length;
+        report.pages=total;if(!total)return fail('boot','No printable preview pages generated');
+        for(let i=0;i<total;i++){
+          window.TT99GamesPreviewFitV207?.refresh?.();
+          await sleep(i?120:450);
+          const p=stack.querySelector(':scope > article.tt99-game-paper');
+          if(!p){fail('boot','Preview page '+(i+1)+' was not mounted');break;}
           for(const a of p.querySelectorAll('.tt99-game-activity'))inspectActivity(a);
           for(const g of p.querySelectorAll('.tt99-kakuro-grid,.tt99-cage-grid,.tt99-numberpath-grid,.tt99-extra-path-grid,.tt99-extra-search-grid,.tt99-extra-perimeter-grid,.tt99-shikaku-grid,.tt99-sumgrid-board'))inspectSquareGrid(g);
+          if(i<total-1){
+            const next=stack.querySelector('[data-preview-next]');
+            if(!next||next.disabled){fail('pager','Could not advance from preview page '+(i+1));break;}
+            next.click();
+          }
         }
         const expected=(window.__TT99_PREVIEW_QA_IDS||[]).length;
         if(report.activities<expected)fail('catalogue','Only '+report.activities+' pupil activities rendered for '+expected+' selected engines in this batch');
