@@ -184,7 +184,25 @@
     height:calc(100% - 58px)!important;
     min-height:0!important;
   }
-  .tt99-game-paper .tt99-crossword-grid{width:auto!important;max-width:100%!important;height:100%!important}
+  .tt99-game-paper .tt99-crossword-grid{
+    display:grid!important;
+    grid-template-columns:repeat(var(--cw),minmax(0,1fr))!important;
+    grid-template-rows:repeat(var(--ch),minmax(0,1fr))!important;
+    width:100%!important;
+    height:auto!important;
+    max-width:100%!important;
+    max-height:none!important;
+    aspect-ratio:var(--cw) / var(--ch)!important;
+    align-self:start!important;
+    justify-self:center!important;
+  }
+  .tt99-game-paper .tt99-crossword-grid>span.open{
+    width:auto!important;
+    height:auto!important;
+    min-width:0!important;
+    min-height:0!important;
+    aspect-ratio:auto!important;
+  }
   .tt99-game-paper .tt99-crossword-clue-group h4{font-size:8px!important}
   .tt99-game-paper .tt99-crossword-clue-group li,
   .tt99-game-paper .tt99-crossword-bank{font-size:6.5px!important;line-height:1.22!important}
@@ -559,5 +577,13 @@
     margin-top:0!important;
     font-size:5.7px!important;
     line-height:1.1!important;
+  }
+}
+
+
+/* v2.09 · protect crossword geometry from generic preview scaling */
+@media screen {
+  .tt99-game-paper .tt99-crossword[data-tt99-preview-fit="1"] > .tt99-crossword-layout{
+    zoom:1!important;
   }
 }
