@@ -83,6 +83,40 @@
     return true;
   }
 
+  function fitMaze(activity){
+    const layout=activity.querySelector(':scope > .tt99-maze-layout');
+    const grid=layout?.querySelector(':scope > .tt99-maze-grid');
+    const questions=layout?.querySelector(':scope > .tt99-maze-questions');
+    if(!layout||!grid||!questions)return false;
+    const twoPerPage=!!activity.closest('.tt99-game-activities.count-2');
+    const threePerPage=!!activity.closest('.tt99-game-activities.count-3');
+    const size=threePerPage?150:(twoPerPage?235:285);
+
+    activity.dataset.tt99PreviewFit='maze';
+    activity.style.setProperty('--tt99-preview-body-scale','1');
+    activity.dataset.previewBodyScale='1.0000';
+
+    layout.style.setProperty('zoom','1','important');
+    layout.style.setProperty('transform','none','important');
+    layout.style.setProperty('display','grid','important');
+    layout.style.setProperty('grid-template-columns',size+'px minmax(0,1fr)','important');
+    layout.style.setProperty('gap',threePerPage?'8px':'12px','important');
+    layout.style.setProperty('align-items','center','important');
+    layout.style.setProperty('width','100%','important');
+    layout.style.setProperty('height','calc(100% - 66px)','important');
+
+    grid.style.setProperty('zoom','1','important');
+    grid.style.setProperty('transform','none','important');
+    grid.style.setProperty('width',size+'px','important');
+    grid.style.setProperty('height',size+'px','important');
+    grid.style.setProperty('max-width','none','important');
+    grid.style.setProperty('aspect-ratio','1 / 1','important');
+
+    questions.style.setProperty('zoom','1','important');
+    questions.style.setProperty('transform','none','important');
+    return true;
+  }
+
   function fitColourLogic(activity){
     const layout=activity.querySelector(':scope > .tt99-cl-paper-layout');
     const grid=layout?.querySelector('.tt99-cl-paper-grid');
@@ -167,6 +201,9 @@
     if(activity.classList.contains('tt99-colourlogic-print')){
       if(fitColourLogic(activity))return;
     }
+    if(activity.classList.contains('tt99-maze')){
+      if(fitMaze(activity))return;
+    }
     if(activity.classList.contains('tt99-crossword')||activity.classList.contains('tt99-crossnumber')){
       if(fitCrossword(activity))return;
     }
@@ -227,5 +264,5 @@
   if(document.fonts?.ready)document.fonts.ready.then(schedule).catch(()=>{});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
 
-  global.TT99GamesPreviewFitV207={version:'2.11',refresh:schedule,fitActivity};
+  global.TT99GamesPreviewFitV207={version:'2.12',refresh:schedule,fitActivity};
 })(typeof globalThis!=='undefined'?globalThis:this);
