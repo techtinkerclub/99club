@@ -36,13 +36,13 @@ sitemap: true
 <link rel="stylesheet" href="/assets/99club/games-new-puzzles-v197-fix.css?v=1">
 <link rel="stylesheet" href="/assets/99club/games-extra-puzzles-v204.css?v=4">
 <link rel="stylesheet" href="/assets/99club/games-shikaku-v143.css?v=1">
-<link rel="stylesheet" href="/assets/99club/games-sum-grids-v147.css?v=3">
+<link rel="stylesheet" href="/assets/99club/games-sum-grids-v147.css?v=4">
 <link rel="stylesheet" href="/assets/99club/games-focus-topics-v145.css?v=1">
 <link rel="stylesheet" href="/assets/99club/games-operationgrid-print-v155.css?v=1">
 <link rel="stylesheet" href="/assets/99club/games-operationgrid-print-v158.css?v=1">
 <link rel="stylesheet" href="/assets/99club/games-operationgrid-print-v160.css?v=1">
 <link rel="stylesheet" href="/assets/99club/games-preview-pager-v155.css?v=1">
-<link rel="stylesheet" href="/assets/99club/games-preview-parity-v206.css?v=5">
+<link rel="stylesheet" href="/assets/99club/games-preview-parity-v206.css?v=6">
 <script src="/assets/99club/games-vocabulary.js?v=1"></script>
 <script src="/assets/99club/games-arithmetic.js?v=9"></script>
 <script src="/assets/99club/games-brokencalc-quality-v152.js?v=2"></script>
@@ -92,7 +92,7 @@ sitemap: true
 <script src="/assets/99club/games-pdf-shikaku-v143.js?v=2"></script>
 <script src="/assets/99club/games-pdf-worked-v146.js?v=3"></script>
 <script src="/assets/99club/games-pdf-no-year-v145.js?v=1"></script>
-<script src="/assets/99club/games-pdf-sum-grids-v147.js?v=3"></script>
+<script src="/assets/99club/games-pdf-sum-grids-v147.js?v=4"></script>
 <script src="/assets/99club/games-pdf-v155.js?v=1"></script>
 <script src="/assets/99club/games-pdf-v158.js?v=1"></script>
 <script src="/assets/99club/games-pdf-v160.js?v=1"></script>
