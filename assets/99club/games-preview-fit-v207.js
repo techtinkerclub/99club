@@ -45,8 +45,42 @@
     return Number.isFinite(left)?{left,top,right,bottom,width:Math.max(1,right-left),height:Math.max(1,bottom-top)}:null;
   }
 
+  function fitCrossword(activity){
+    const layout=activity.querySelector(':scope > .tt99-crossword-layout');
+    const grid=layout?.querySelector(':scope > .tt99-crossword-grid');
+    const clues=layout?.querySelector(':scope > .tt99-crossword-clues');
+    if(!layout||!grid||!clues)return false;
+    const cs=getComputedStyle(grid);
+    const cols=Math.max(1,Number(cs.getPropertyValue('--cw'))||1);
+    const rows=Math.max(1,Number(cs.getPropertyValue('--ch'))||1);
+    const ls=getComputedStyle(layout);
+    const gap=parseFloat(ls.columnGap||ls.gap)||0;
+    const layoutW=Math.max(1,layout.clientWidth);
+    const layoutH=Math.max(1,layout.clientHeight);
+    const cluesW=Math.max(0,clues.offsetWidth);
+    const leftW=Math.max(1,layoutW-cluesW-gap);
+    const cell=Math.max(1,Math.min(leftW/cols,layoutH/rows));
+    grid.style.setProperty('width',(cell*cols)+'px','important');
+    grid.style.setProperty('height',(cell*rows)+'px','important');
+    grid.style.setProperty('max-width','none','important');
+    grid.style.setProperty('max-height','none','important');
+    grid.style.setProperty('aspect-ratio',cols+' / '+rows,'important');
+    grid.querySelectorAll(':scope > span.open').forEach(el=>{
+      el.style.setProperty('width','auto','important');
+      el.style.setProperty('height','auto','important');
+      el.style.setProperty('aspect-ratio','auto','important');
+    });
+    activity.dataset.tt99PreviewFit='crossword';
+    activity.style.setProperty('--tt99-preview-body-scale','1');
+    activity.dataset.previewBodyScale='1.0000';
+    return true;
+  }
+
   function fitActivity(activity){
     if(!activity?.isConnected)return;
+    if(activity.classList.contains('tt99-crossword')||activity.classList.contains('tt99-crossnumber')){
+      if(fitCrossword(activity))return;
+    }
     const bodies=bodyChildren(activity);
     if(!bodies.length)return;
 
@@ -104,5 +138,5 @@
   if(document.fonts?.ready)document.fonts.ready.then(schedule).catch(()=>{});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
 
-  global.TT99GamesPreviewFitV207={version:'2.08',refresh:schedule,fitActivity};
+  global.TT99GamesPreviewFitV207={version:'2.09',refresh:schedule,fitActivity};
 })(typeof globalThis!=='undefined'?globalThis:this);
