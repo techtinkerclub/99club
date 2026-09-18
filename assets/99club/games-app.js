@@ -1,4 +1,4 @@
-/* 99 Club Studio · Maths Games & Puzzles UI v1.10.1 — mixed difficulty + vocabulary refinements + Number Property Maze */
+/* 99 Club Studio · Maths Games & Puzzles UI v1.10.2 — mixed difficulty + vocabulary refinements + Number Property Maze */
 (function(){
   'use strict';
   const G=window.TT99Games,PDF=window.TT99GamesPDF,root=document.getElementById('tt99-games-root');
@@ -31,6 +31,21 @@
   if(!initialOpen.size)initialOpen.add('vocabulary');
   const state={settings:initialSettings,customVocabulary:loadVocabulary(),seed:newSeed(),previewAnswers:false,activeEngine:'',openCategories:initialOpen,personalisationOpen:false,replaceCounter:0,status:'Choose the maths, include the games you want, then configure each game separately.'};
   state.pack=G.generatePack(state.settings,state.seed,state.customVocabulary);
+
+  // Preview replacement controls are delegated so late UI patches and every
+  // re-render keep working reliably, including installed/mobile Safari.
+  if(root.dataset.previewReplaceDelegated!=='1'){
+    root.dataset.previewReplaceDelegated='1';
+    root.addEventListener('click',e=>{
+      const btn=e.target.closest?.('[data-replace-activity],[data-replace-word]');
+      if(!btn||!root.contains(btn))return;
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation?.();
+      if(btn.dataset.replaceActivity!=null)replaceActivity(btn.dataset.replaceActivity);
+      else if(btn.dataset.replaceWord!=null)replaceWord(btn.dataset.replaceWord);
+    },true);
+  }
 
   function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
   function cap(s){return String(s||'').charAt(0).toUpperCase()+String(s||'').slice(1);}
@@ -423,7 +438,7 @@
     root.querySelector('#games-date-clear')?.addEventListener('click',()=>{state.settings.personalisation.worksheetDate='';save();state.status='Date removed from the pack.';render();});
     root.querySelector('#games-logo')?.addEventListener('change',handleLogo);root.querySelector('#games-remove-logo')?.addEventListener('click',()=>{Object.assign(state.settings.personalisation,{logoDataUrl:'',logoWidth:0,logoHeight:0});save();state.status='School logo removed.';render();});
     root.querySelector('#games-new-version')?.addEventListener('click',()=>regen('Fresh puzzle version generated with the same teaching settings.',true));root.querySelector('#games-pdf-student')?.addEventListener('click',()=>downloadGamesPDF('student'));root.querySelector('#games-pdf-answer')?.addEventListener('click',()=>downloadGamesPDF('answers'));root.querySelector('#games-pdf-both')?.addEventListener('click',()=>downloadGamesPDF('both'));root.querySelectorAll('[data-preview]').forEach(btn=>btn.addEventListener('click',()=>{state.previewAnswers=btn.dataset.preview==='answers';render();}));
-    root.querySelectorAll('[data-replace-activity]').forEach(btn=>btn.addEventListener('click',e=>{e.stopPropagation();replaceActivity(btn.dataset.replaceActivity);}));root.querySelectorAll('[data-replace-word]').forEach(btn=>btn.addEventListener('click',e=>{e.stopPropagation();replaceWord(btn.dataset.replaceWord);}));
+
     root.querySelector('#vocab-add')?.addEventListener('click',addVocabulary);root.querySelectorAll('[data-delete-vocab]').forEach(btn=>btn.addEventListener('click',()=>{const i=Number(btn.dataset.deleteVocab);state.customVocabulary.splice(i,1);refreshPack(false);state.status='Personal vocabulary entry removed from this browser.';render();}));root.querySelector('#vocab-export')?.addEventListener('click',exportVocabulary);root.querySelector('#vocab-import')?.addEventListener('change',importVocabulary);root.querySelector('#vocab-clear')?.addEventListener('click',()=>{if(!state.customVocabulary.length)return;if(confirm('Clear all My vocabulary entries stored in this browser?')){state.customVocabulary=[];refreshPack(false);state.status='My vocabulary cleared. Built-in vocabulary was not changed.';render();}});
   }
 
