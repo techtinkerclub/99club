@@ -2,6 +2,6 @@
 
 Standalone repository for **99 Club Studio** — classroom maths tools, printable worksheets, games and puzzle resources.
 
-Public site: `https://99studio.uk` (custom domain setup pending migration).
+Public site: `https://99studio.uk`
 
-The project is being migrated from the Tech Tinker Club website so that 99 Club Studio can have its own identity and deployment. Existing Tech Tinker Club links will be retained as redirects after the new site is verified.
+The standalone migration is live. The domain root serves 99 Club Studio directly, the site is installable as a root-scope PWA, and the former Tech Tinker Club 99 Club URLs are retained as redirect-only compatibility links.
