@@ -1,0 +1,165 @@
+/* 99 Club Studio · PDF-faithful games preview shell v2.06
+ * Screen only: lay out each preview sheet in the same point coordinate space
+ * as the direct PDF exporter. JS zooms the complete fixed sheet to fit.
+ * Individual puzzle bodies remain interactive DOM and are refined separately.
+ */
+@media screen {
+  #tt99-games-root{
+    --tt99-preview-page-w:595.28px;
+    --tt99-preview-page-h:841.89px;
+    --tt99-preview-margin:34px;
+  }
+
+  .tt99-games-preview-stack{
+    align-items:center;
+    width:100%;
+    min-width:0;
+  }
+
+  .tt99-game-paper{
+    box-sizing:border-box!important;
+    flex:none!important;
+    width:var(--tt99-preview-page-w)!important;
+    height:var(--tt99-preview-page-h)!important;
+    min-width:var(--tt99-preview-page-w)!important;
+    max-width:none!important;
+    min-height:0!important;
+    aspect-ratio:auto!important;
+    margin:0!important;
+    padding:21px 34px 28px!important;
+    border-radius:4px;
+    overflow:hidden!important;
+    transform:none!important;
+    transform-origin:top left;
+    background:#fff;
+  }
+
+  /* PDF header rule is at y=94; page content begins at y=21. */
+  .tt99-game-paper>header.tt99-game-paper-header{
+    box-sizing:border-box;
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) auto!important;
+    align-items:start!important;
+    gap:9px!important;
+    width:auto!important;
+    height:73px!important;
+    min-height:73px!important;
+    margin:0!important;
+    padding:0 0 12px!important;
+    border-bottom:1px solid #cfdcde!important;
+  }
+  .tt99-game-paper>header.tt99-game-paper-header:has(.tt99-game-paper-logo){
+    grid-template-columns:38px minmax(0,1fr) auto!important;
+  }
+  .tt99-game-paper-logo{
+    display:grid!important;
+    place-items:center;
+    width:38px!important;
+    height:38px!important;
+    margin:0!important;
+  }
+  .tt99-game-paper-logo img{max-width:100%;max-height:100%;object-fit:contain}
+  .tt99-game-paper-identity{min-width:0!important}
+  .tt99-game-paper-identity>span{
+    margin:0!important;
+    color:#24434a!important;
+    font-size:8.4px!important;
+    font-weight:800!important;
+    line-height:10px!important;
+    letter-spacing:0!important;
+    text-transform:none!important;
+  }
+  .tt99-game-paper-identity h2{
+    margin:4px 0 3px!important;
+    color:#24434a!important;
+    font-size:18px!important;
+    line-height:20px!important;
+  }
+  .tt99-game-paper-identity p{
+    margin:0!important;
+    color:#607479!important;
+    font-size:7.7px!important;
+    line-height:9px!important;
+  }
+  .tt99-game-name-line{
+    align-self:start!important;
+    margin-top:27px!important;
+    color:#607479!important;
+    font-size:8px!important;
+    font-weight:750!important;
+    line-height:10px!important;
+    white-space:nowrap;
+  }
+
+  /* Direct PDF activity area: y=110 through PAGE_H-42, with 12pt gaps. */
+  .tt99-game-paper>.tt99-game-activities{
+    position:absolute!important;
+    left:34px!important;
+    right:34px!important;
+    top:110px!important;
+    bottom:42px!important;
+    display:grid!important;
+    width:auto!important;
+    height:auto!important;
+    margin:0!important;
+    padding:0!important;
+    gap:12px!important;
+  }
+  .tt99-game-activities.count-1{grid-template-rows:1fr!important}
+  .tt99-game-activities.count-2{grid-template-rows:repeat(2,minmax(0,1fr))!important}
+  .tt99-game-activities.count-3{grid-template-rows:repeat(3,minmax(0,1fr))!important}
+
+  .tt99-game-activity{
+    box-sizing:border-box!important;
+    min-width:0!important;
+    min-height:0!important;
+    margin:0!important;
+    padding:12px!important;
+    border:1px solid #cfdcde!important;
+    border-radius:0!important;
+    overflow:hidden!important;
+    background:#fff!important;
+  }
+  .tt99-game-activity-head{gap:10px!important}
+  .tt99-game-activity-head>div>span{
+    font-size:8.4px!important;
+    line-height:10px!important;
+  }
+  .tt99-game-activity h3{
+    margin:0!important;
+    font-size:14px!important;
+    line-height:16px!important;
+  }
+  .tt99-game-activity-head>small{
+    font-size:8.4px!important;
+    line-height:10px!important;
+  }
+  .tt99-game-instruction{
+    margin:7px 0 9px!important;
+    font-size:7px!important;
+    line-height:1.25!important;
+  }
+
+  /* PDF footer rule is 28pt from the bottom; preview page number lives in pager. */
+  .tt99-game-paper>footer{
+    box-sizing:border-box!important;
+    left:34px!important;
+    right:34px!important;
+    bottom:9px!important;
+    height:20px!important;
+    margin:0!important;
+    padding-top:6px!important;
+    border-top:1px solid #e8edee!important;
+    color:#829195!important;
+    font-size:5.8px!important;
+    line-height:7px!important;
+  }
+  .tt99-game-paper>footer .tt99-paper-page-number{display:none!important}
+
+  /* Keep edit controls usable without allowing them to affect sheet geometry. */
+  .tt99-preview-replace{zoom:1!important}
+}
+
+@media print {
+  .tt99-game-paper{zoom:1!important}
+}
