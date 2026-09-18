@@ -60,10 +60,15 @@ for(const cls of ['tt99-propertymaze-layout','tt99-propertymaze-grid','tt99-prop
 assert(/\.tt99-propertymaze-grid\s*\{[^}]*display:grid/.test(css),'Property Maze grid is not explicitly rendered as CSS grid');
 assert(css.includes('repeat(var(--propertymaze-size),1fr)'),'Property Maze grid does not honour the generated maze size');
 assert(/\.tt99-propertymaze-cell\s*\{[^}]*display:grid/.test(css),'Property Maze cells do not have explicit cell layout');
+assert(css.includes('font-size:clamp(8px,.95vw,13px)'),'Property Maze grid numbers regressed to unreadably small text');
+assert(css.includes('font-size:clamp(8.3px,.92vw,12.4px)'),'Property Maze rule card text regressed to unreadably small text');
 
 // PDF integration remains independent of browser preview styling.
 require(path.join(ROOT,'simple-pdf.js'));
 require(path.join(ROOT,'games-pdf.js'));
+const pdfSource=fs.readFileSync(path.join(ROOT,'games-pdf.js'),'utf8');
+assert(pdfSource.includes('Math.max(5.8,Math.min(9.6,cell*.31))'),'Property Maze PDF grid-number sizing regressed');
+assert(pdfSource.includes("rule,qw-16,9.8"),'Property Maze PDF rule-card sizing regressed');
 const PDF=global.TT99GamesPDF;
 const doc=PDF.buildDocument({pack:{seed:'PM-QA',sheets:[{index:1,activities:[generated]}]},settings:gSettings,topics:G.TOPICS,kind:'both',seed:'PM-QA'});
 assert(doc.pages.length===2,'Property Maze pupil+answer PDF should contain two pages');
@@ -73,5 +78,5 @@ fs.writeFileSync('/tmp/property-maze-qa.pdf',Buffer.from(doc.outputBytes()));
 
 const page=fs.readFileSync(path.resolve(ROOT,'../../_pages/99-club-games.md'),'utf8');
 assert(page.includes('games-property-maze.js?v=1'),'Games page does not load Property Maze engine');
-assert(page.includes('games-property-maze.css?v=2'),'Games page does not load the repaired Property Maze styles');
+assert(page.includes('games-property-maze.css?v=3'),'Games page does not load the readable Property Maze styles');
 console.log('Games v1.33.1 Number Property Maze regression: PASS · generation, unique routes, preview class/CSS contract and PDF integration.');
