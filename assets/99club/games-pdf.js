@@ -307,14 +307,14 @@ function drawPropertyMaze(page,a,answers,x,y,w,h,index){
   for(let r=0;r<size;r++)for(let c=0;c<size;c++){
     const key=`${r}:${c}`,isStart=key===start,isFinish=key===finish,onRoute=route.has(key),fill=answers&&onRoute?HIT:WHITE,stroke=isStart||isFinish?[68,126,120]:[158,178,181];
     page.rect(gx+c*cell,gy+r*cell,cell,cell,{fill,stroke,width:isStart||isFinish?1:.55});
-    fitDiagramText(page,gx+c*cell+cell/2,gy+r*cell+cell*.64,formatNumber(a.grid?.[r]?.[c]),cell-5,Math.max(5,Math.min(8.2,cell*.27)),{bold:true,color:isStart||isFinish?TEAL:INK});
-    if(isStart||isFinish)page.text(gx+c*cell+(isFinish?cell-2.3:2.3),gy+r*cell+6,isStart?'START':'FINISH',Math.max(3.2,Math.min(4.5,cell*.13)),{bold:true,color:TEAL,align:isFinish?'right':'left'});
+    fitDiagramText(page,gx+c*cell+cell/2,gy+r*cell+cell*.64,formatNumber(a.grid?.[r]?.[c]),cell-5,Math.max(5.8,Math.min(9.6,cell*.31)),{bold:true,color:isStart||isFinish?TEAL:INK});
+    if(isStart||isFinish)page.text(gx+c*cell+(isFinish?cell-2.3:2.3),gy+r*cell+6,isStart?'START':'FINISH',Math.max(3.8,Math.min(5.2,cell*.15)),{bold:true,color:TEAL,align:isFinish?'right':'left'});
   }
-  const qx=x+gridAvailW+22,qw=w-gridAvailW-35,rule=clean(a.rule?.shortLabel||a.rule?.label||'Number property');page.text(qx,bodyY+10,'Rule',9,{bold:true,color:DARK});
-  box(page,qx,bodyY+18,qw,52,PALE,LINE,.7);drawWrapped(page,qx+8,bodyY+33,'Move only through',qw-16,7,{bold:true,color:MUTED,maxLines:1});drawWrapped(page,qx+8,bodyY+49,rule,qw-16,8.4,{bold:true,color:TEAL,maxLines:2});
+  const qx=x+gridAvailW+22,qw=w-gridAvailW-35,rule=clean(a.rule?.shortLabel||a.rule?.label||'Number property');page.text(qx,bodyY+10,'Rule',9.6,{bold:true,color:DARK});
+  box(page,qx,bodyY+18,qw,56,PALE,LINE,.7);drawWrapped(page,qx+8,bodyY+34,'Move only through',qw-16,7.6,{bold:true,color:MUTED,maxLines:1});drawWrapped(page,qx+8,bodyY+51,rule,qw-16,9.8,{bold:true,color:TEAL,maxLines:2});
   const dead=a.deadEndCount||0,note=answers?'Highlighted cells show the unique START to FINISH route.':dead?`${dead} matching ${dead===1?'number is':'numbers are'} a dead end. Not every matching square is on the final route.`:'All matching squares belong to the route in this version.';
-  drawWrapped(page,qx,bodyY+88,note,qw,7,{color:answers?TEAL:MUTED,bold:!!answers,maxLines:5});
-  if(answers&&dead)drawWrapped(page,qx,bodyY+129,`${dead} matching ${dead===1?'dead end is':'dead ends are'} deliberately outside the answer route.`,qw,6.8,{color:MUTED,maxLines:4});
+  drawWrapped(page,qx,bodyY+92,note,qw,7.5,{color:answers?TEAL:MUTED,bold:!!answers,maxLines:5});
+  if(answers&&dead)drawWrapped(page,qx,bodyY+134,`${dead} matching ${dead===1?'dead end is':'dead ends are'} deliberately outside the answer route.`,qw,7.2,{color:MUTED,maxLines:4});
 }
 
   function drawCrossnumber(page,a,answers,x,y,w,h,index){
