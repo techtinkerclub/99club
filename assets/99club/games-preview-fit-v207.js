@@ -28,65 +28,56 @@
     return s;
   }
 
+  function visualBounds(bodies){
+    let left=Infinity,top=Infinity,right=-Infinity,bottom=-Infinity;
+    for(const body of bodies){
+      const nodes=[body,...body.querySelectorAll('*')];
+      for(const el of nodes){
+        if(el.matches?.('.tt99-preview-replace'))continue;
+        const style=getComputedStyle(el);
+        if(style.display==='none'||style.visibility==='hidden')continue;
+        const r=el.getBoundingClientRect();
+        if(r.width<.5&&r.height<.5)continue;
+        left=Math.min(left,r.left);top=Math.min(top,r.top);
+        right=Math.max(right,r.right);bottom=Math.max(bottom,r.bottom);
+      }
+    }
+    return Number.isFinite(left)?{left,top,right,bottom,width:Math.max(1,right-left),height:Math.max(1,bottom-top)}:null;
+  }
+
   function fitActivity(activity){
     if(!activity?.isConnected)return;
     const bodies=bodyChildren(activity);
     if(!bodies.length)return;
 
-    setScale(activity,1);
+    let scale=setScale(activity,1);
     const ar=activity.getBoundingClientRect();
     const cs=getComputedStyle(activity);
     const padL=parseFloat(cs.paddingLeft)||0,padR=parseFloat(cs.paddingRight)||0;
     const padT=parseFloat(cs.paddingTop)||0,padB=parseFloat(cs.paddingBottom)||0;
-    const innerW=Math.max(1,activity.clientWidth-padL-padR);
-    const innerH=Math.max(1,activity.clientHeight-padT-padB);
-    const innerLeft=ar.left+padL,innerRight=innerLeft+innerW,innerBottom=ar.top+padT+innerH;
+    const limits={
+      left:ar.left+padL,
+      right:ar.right-padR,
+      top:ar.top+padT,
+      bottom:ar.bottom-padB
+    };
 
-    let bodyTop=Infinity,naturalBottom=-Infinity,naturalLeft=Infinity,naturalRight=-Infinity;
-    for(const el of bodies){
-      const r=el.getBoundingClientRect();
-      if(!r.width&&!r.height)continue;
-      bodyTop=Math.min(bodyTop,r.top);
-      naturalBottom=Math.max(naturalBottom,r.top+Math.max(r.height,el.scrollHeight||0));
-      naturalLeft=Math.min(naturalLeft,r.left);
-      naturalRight=Math.max(naturalRight,r.left+Math.max(r.width,el.scrollWidth||0));
-    }
-    if(!Number.isFinite(bodyTop))return;
+    for(let i=0;i<5;i++){
+      const b=visualBounds(bodies);
+      if(!b)return;
+      const overLeft=Math.max(0,limits.left-b.left);
+      const overRight=Math.max(0,b.right-limits.right);
+      const overTop=Math.max(0,limits.top-b.top);
+      const overBottom=Math.max(0,b.bottom-limits.bottom);
+      if(overLeft<=1&&overRight<=1&&overTop<=1&&overBottom<=1)break;
 
-    const naturalH=Math.max(1,naturalBottom-bodyTop);
-    const availableH=Math.max(1,innerBottom-bodyTop);
-    const naturalW=Math.max(1,naturalRight-naturalLeft);
-    let scale=Math.min(1,availableH/naturalH,innerW/naturalW);
-
-    // Leave a tiny safety margin so borders/antialiasing never appear clipped.
-    if(scale<.999)scale*=.985;
-    scale=setScale(activity,scale);
-
-    // Zoom changes flow dimensions. Re-check both layout overflow and the actual
-    // painted body rectangle: some browsers report scroll metrics before zoomed
-    // descendants have fully contributed to the visual overflow.
-    for(let i=0;i<4;i++){
-      const now=activity.getBoundingClientRect(),nowStyle=getComputedStyle(activity);
-      const nowPadR=parseFloat(nowStyle.paddingRight)||0,nowPadB=parseFloat(nowStyle.paddingBottom)||0;
-      const rightLimit=now.right-nowPadR,bottomLimit=now.bottom-nowPadB;
-      let maxRight=-Infinity,maxBottom=-Infinity,minLeft=Infinity,minTop=Infinity;
-      for(const el of bodies){
-        const r=el.getBoundingClientRect();
-        if(!r.width&&!r.height)continue;
-        minLeft=Math.min(minLeft,r.left);minTop=Math.min(minTop,r.top);
-        maxRight=Math.max(maxRight,r.right);maxBottom=Math.max(maxBottom,r.bottom);
-      }
-      const visualW=Number.isFinite(maxRight)?Math.max(1,maxRight-minLeft):1;
-      const visualH=Number.isFinite(maxBottom)?Math.max(1,maxBottom-minTop):1;
-      const availVisualW=Number.isFinite(minLeft)?Math.max(1,rightLimit-minLeft):visualW;
-      const availVisualH=Number.isFinite(minTop)?Math.max(1,bottomLimit-minTop):visualH;
-      const rwVisual=maxRight>rightLimit+1?availVisualW/visualW:1;
-      const rhVisual=maxBottom>bottomLimit+1?availVisualH/visualH:1;
-      const rwScroll=activity.scrollWidth>activity.clientWidth+1?activity.clientWidth/activity.scrollWidth:1;
-      const rhScroll=activity.scrollHeight>activity.clientHeight+1?activity.clientHeight/activity.scrollHeight:1;
-      const adjust=Math.min(1,rwVisual,rhVisual,rwScroll,rhScroll);
+      const availableW=Math.max(1,(limits.right-limits.left)-Math.max(0,b.left-limits.left));
+      const availableH=Math.max(1,limits.bottom-Math.max(b.top,limits.top));
+      const rw=(overLeft>1||overRight>1)?availableW/b.width:1;
+      const rh=(overTop>1||overBottom>1)?availableH/b.height:1;
+      const adjust=Math.min(1,rw,rh);
       if(adjust>=.999)break;
-      scale=setScale(activity,scale*adjust*.978);
+      scale=setScale(activity,scale*adjust*.985);
     }
   }
 
@@ -113,5 +104,5 @@
   if(document.fonts?.ready)document.fonts.ready.then(schedule).catch(()=>{});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
 
-  global.TT99GamesPreviewFitV207={version:'2.07.1',refresh:schedule,fitActivity};
+  global.TT99GamesPreviewFitV207={version:'2.08',refresh:schedule,fitActivity};
 })(typeof globalThis!=='undefined'?globalThis:this);
