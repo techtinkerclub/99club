@@ -1,5 +1,5 @@
 <!-- 99 Club Studio standalone head additions -->
-{% if page.url == '/' or page.url contains '/tools/99-club/' %}
+{% if page.url == '/' or page.url contains '/tools/99-club/' or page.url == '/privacy/' %}
 {% assign tt99_build = site.github.build_revision | default: site.time %}
 <meta name="tt99-build" content="{{ tt99_build | escape }}">
 <link rel="manifest" href="/manifest.webmanifest">
@@ -11,6 +11,9 @@
 <link rel="stylesheet" href="/assets/99club/pwa/pwa.css?v=5">
 <script src="/assets/99club/pwa/pwa-register.js?v=5" defer></script>
 <script src="/assets/99club/banner-actions-v2.js?v=3" defer></script>
+<link rel="stylesheet" href="/assets/99club/analytics.css?v=1">
+<script src="/assets/99club/analytics-config.js?v=1"></script>
+<script src="/assets/99club/analytics.js?v=1" defer></script>
 <style>
   /* 99 Club Studio is now the whole site, so the theme masthead is redundant. */
   .masthead{display:none!important}
