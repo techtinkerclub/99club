@@ -9,7 +9,10 @@
   "background_color": "#f5f8f8",
   "theme_color": "#147d75",
   "orientation": "any",
-  "categories": ["education", "productivity"],
+  "categories": [
+    "education",
+    "productivity"
+  ],
   "prefer_related_applications": false,
   "icons": [
     {
@@ -30,11 +33,6 @@
       "name": "99 Club",
       "short_name": "99 Club",
       "url": "/"
-    },
-    {
-      "name": "Custom Worksheets",
-      "short_name": "Worksheets",
-      "url": "/tools/99-club/custom/"
     },
     {
       "name": "Maths Games",
