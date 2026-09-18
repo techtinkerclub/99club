@@ -1,4 +1,4 @@
-/* 99 Club Studio · paged worksheet preview v1.55
+/* 99 Club Studio · paged worksheet preview v1.56
  * Replaces the old truncated vertical preview with a virtualised one-page reader.
  * The complete page markup is retained in memory, while only one pupil/worked
  * page and one answer page are mounted in the DOM during normal browsing.
@@ -53,13 +53,16 @@ function buildPager(stack,kind){
 }
 function enhance(){
   const pupil=root.querySelector('.tt99-games-pupil-pages'),answers=root.querySelector('.tt99-games-answer-pages');
-  if(pupil){if(pupil!==lastPupilStack){lastPupilStack=pupil;pupilIndex=0;}buildPager(pupil,'pupil');}
-  if(answers){if(answers!==lastAnswerStack){lastAnswerStack=answers;answerIndex=0;}buildPager(answers,'answers');}
+  // Re-renders replace the preview stack element even when the user is only
+  // regenerating one activity. Keep the current virtual page and let showPage()
+  // clamp it if the regenerated pack now contains fewer pages.
+  if(pupil){if(pupil!==lastPupilStack)lastPupilStack=pupil;buildPager(pupil,'pupil');}
+  if(answers){if(answers!==lastAnswerStack)lastAnswerStack=answers;buildPager(answers,'answers');}
 }
 function inflate(stack,kind){const all=sources(kind);if(!stack||!all.length)return;stack.querySelectorAll(':scope > article.tt99-game-paper').forEach(el=>el.remove());all.forEach((html,i)=>{const page=createPage(html);if(page){pageNumber(page,i,all.length);stack.appendChild(page);}});}
 function beforePrint(){printing=true;inflate(root.querySelector('.tt99-games-pupil-pages'),'pupil');inflate(root.querySelector('.tt99-games-answer-pages'),'answers');global.TT99OperationGridPrintUIV155?.scan?.();}
 function afterPrint(){printing=false;const pupil=root.querySelector('.tt99-games-pupil-pages'),answers=root.querySelector('.tt99-games-answer-pages');if(pupil)showPage(pupil,'pupil');if(answers)showPage(answers,'answers');}
 new MutationObserver(schedule).observe(root,{childList:true});global.addEventListener?.('beforeprint',beforePrint);global.addEventListener?.('afterprint',afterPrint);
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
-global.TT99GamesPreviewPagerV155={version:'1.55',refresh:schedule,virtualizeHTML,get counts(){return {pupil:sources('pupil').length,answers:sources('answers').length};}};
+global.TT99GamesPreviewPagerV155={version:'1.56',refresh:schedule,virtualizeHTML,get counts(){return {pupil:sources('pupil').length,answers:sources('answers').length};}};
 })(typeof globalThis!=='undefined'?globalThis:this);
