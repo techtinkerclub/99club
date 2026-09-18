@@ -279,7 +279,7 @@
   }
   function drawMaze(page,a,answers,x,y,w,h,index){
     const top=activityFrame(page,x,y,w,h,index,a);drawWrapped(page,x+12,top,a.instruction,w-24,6.4,{color:MUTED,maxLines:2});
-    const bodyY=top+31,bodyH=h-(bodyY-y)-10,size=a.size||5,gridAvailW=w*.48,cell=Math.min((gridAvailW-8)/size,(bodyH-4)/size,42),gridW=cell*size,gx=x+14+(gridAvailW-gridW)/2,gy=bodyY+Math.max(0,(bodyH-gridW)/2),route=new Map((a.path||[]).map((p,i)=>[`${p[0]}:${p[1]}`,i]));
+    const bodyY=top+31,bodyH=h-(bodyY-y)-10,size=a.size||5,gridAvailW=w*.46,cell=Math.min((gridAvailW-8)/size,(bodyH-4)/size,42),gridW=cell*size,gx=x+14+(gridAvailW-gridW)/2,gy=bodyY+Math.max(0,(bodyH-gridW)/2),route=new Map((a.path||[]).map((p,i)=>[`${p[0]}:${p[1]}`,i]));
     for(let r=0;r<size;r++)for(let c=0;c<size;c++){
       const cellData=a.grid?.[r]?.[c],key=`${c}:${r}`,onRoute=route.has(key),fill=answers&&onRoute?HIT:WHITE,stroke=cellData?.kind==='start'||cellData?.kind==='finish'?[68,126,120]:[158,178,181];
       page.rect(gx+c*cell,gy+r*cell,cell,cell,{fill,stroke,width:cellData?.kind==='start'||cellData?.kind==='finish'?1:.55});
@@ -288,15 +288,15 @@
       fitText(page,gx+c*cell+cell/2,gy+r*cell+cell*.62,label,cell-5,fs,{bold:true,color:cellData.kind==='start'||cellData.kind==='finish'?TEAL:INK,align:'center'});
       if(answers&&cellData.kind==='answer'&&cellData.step)page.text(gx+c*cell+2.4,gy+r*cell+6,String(cellData.step),3.8,{bold:true,color:TEAL});
     }
-    const qx=x+gridAvailW+22,qw=w-gridAvailW-35;page.text(qx,bodyY+8,'Questions',8.5,{bold:true,color:DARK});
-    const noteH=10,usableQH=Math.max(32,bodyH-24-noteH),qh=usableQH/Math.max(1,a.steps.length),qfs=Math.max(7.0,Math.min(8.5,qh*.42));let cy=bodyY+18;
+    const qx=x+gridAvailW+18,qw=w-gridAvailW-31;page.text(qx,bodyY+8,'Questions',9.2,{bold:true,color:DARK});
+    const noteH=10,usableQH=Math.max(32,bodyH-24-noteH),qh=usableQH/Math.max(1,a.steps.length),qfs=Math.max(7.8,Math.min(9.4,qh*.46));let cy=bodyY+18;
     for(let i=0;i<a.steps.length;i++){
       const st=a.steps[i],baseline=cy+Math.min(qh*.66,qfs+1.1);page.text(qx,baseline,`${i+1}.`,Math.max(3.4,qfs-.15),{bold:true,color:TEAL});
       fitText(page,qx+12,baseline,clean(st.question),qw-(answers?43:14),qfs,{bold:true,color:DARK});
       if(answers)fitText(page,qx+qw-2,baseline,formatNumber(st.answer),28,qfs,{bold:true,color:TEAL,align:'right'});
       cy+=qh;
     }
-    page.text(qx,bodyY+bodyH-2,answers?'Highlighted cells = route':'Only up / down / left / right',Math.max(6.8,Math.min(7.6,qfs)),{color:MUTED});
+    page.text(qx,bodyY+bodyH-2,answers?'Highlighted cells = route':'Only up / down / left / right',Math.max(7.0,Math.min(8.0,qfs)),{color:MUTED});
   }
 
   function crossStarts(a){const m=new Map();for(const e of a.entries||[]){const k=`${e.x}:${e.y}`;if(!m.has(k))m.set(k,e.number);}return m;}
