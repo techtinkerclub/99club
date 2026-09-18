@@ -84,8 +84,8 @@ function enhanceCard(card){
   const actions=document.createElement('div');
   actions.className='tt99-engine-card-actions';
   actions.append(
-    link('/tools/99-club/games/play/?game='+encodeURIComponent(id),'▶ Play online','is-play',id),
-    link('/tools/99-club/games/help/?guide='+encodeURIComponent(id),'? Guide','is-guide',id)
+    link('/play/?game='+encodeURIComponent(id),'▶ Play online','is-play',id),
+    link('/help/games/?guide='+encodeURIComponent(id),'? Guide','is-guide',id)
   );
   configure.insertAdjacentElement('beforebegin',actions);
   actions.appendChild(configure);

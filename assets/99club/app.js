@@ -167,7 +167,7 @@
   function showHelp(button,key){
     const item=HELP_TEXT[key], pop=root.querySelector('#tt99-help-popover'); if(!item||!pop)return;
     root.querySelectorAll('[data-help-key]').forEach(b=>b.setAttribute('aria-expanded','false'));
-    pop.innerHTML=`<div class="tt99-help-popover__head"><strong>${esc(item[0])}</strong><button type="button" class="tt99-help-close" aria-label="Close help">×</button></div><p>${esc(item[1])}</p><a href="/tools/99-club/help/" target="_blank" rel="noopener">Open full Help & guide</a>`;
+    pop.innerHTML=`<div class="tt99-help-popover__head"><strong>${esc(item[0])}</strong><button type="button" class="tt99-help-close" aria-label="Close help">×</button></div><p>${esc(item[1])}</p><a href="/help/" target="_blank" rel="noopener">Open full Help & guide</a>`;
     pop.hidden=false; button.setAttribute('aria-expanded','true');
     const r=button.getBoundingClientRect(), gap=9, width=Math.min(330,innerWidth-24);
     pop.style.width=`${width}px`; let left=Math.min(innerWidth-width-12,Math.max(12,r.left+r.width/2-width/2));
@@ -438,8 +438,8 @@
             <p class="tt99-hero__slogan">Practice. Progress. Confidence.</p>
           </div>
           <div class="tt99-hero-tools" aria-label="99 Club Studio links">
-            <a href="/tools/99-club/games/" class="tt99-hero-tool tt99-games-link"><span aria-hidden="true">▦</span>Games &amp; puzzles</a>
-            <a href="/tools/99-club/help/" class="tt99-hero-tool tt99-help-link" target="_blank" rel="noopener"><span aria-hidden="true">?</span>Help &amp; guide</a>
+            <a href="/games/" class="tt99-hero-tool tt99-games-link"><span aria-hidden="true">▦</span>Games &amp; puzzles</a>
+            <a href="/help/" class="tt99-hero-tool tt99-help-link" target="_blank" rel="noopener"><span aria-hidden="true">?</span>Help &amp; guide</a>
             <button type="button" id="tt99-contact-open" class="tt99-hero-tool tt99-contact-link"><span aria-hidden="true">✉</span>Contact</button>
             <button type="button" id="tt99-kofi-open" class="tt99-hero-tool tt99-support-link"><img class="tt99-kofi-cup" src="/assets/99club/images/kofi-cup.png?v=19.4" alt="" aria-hidden="true">Buy me a coffee</button>
           </div>

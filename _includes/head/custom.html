@@ -1,5 +1,5 @@
 <!-- 99 Club Studio standalone head additions -->
-{% if page.url == '/' or page.url contains '/tools/99-club/' or page.url == '/privacy/' %}
+{% if page.url == '/' or page.url == '/games/' or page.url == '/play/' or page.url == '/help/' or page.url == '/help/games/' or page.url == '/contact/' or page.url == '/privacy/' or page.url == '/tools/99-club/custom/' %}
 {% assign tt99_build = site.github.build_revision | default: site.time %}
 <meta name="tt99-build" content="{{ tt99_build | escape }}">
 <link rel="manifest" href="/manifest.webmanifest">
@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="99 Club Studio">
 <link rel="apple-touch-icon" sizes="192x192" href="/assets/99club/pwa/icon-192.png">
 <link rel="stylesheet" href="/assets/99club/pwa/pwa.css?v=5">
-<script src="/assets/99club/pwa/pwa-register.js?v=5" defer></script>
+<script src="/assets/99club/pwa/pwa-register.js?v=6" defer></script>
 <script src="/assets/99club/banner-actions-v2.js?v=3" defer></script>
 <link rel="stylesheet" href="/assets/99club/analytics.css?v=1">
 <script src="/assets/99club/analytics-config.js?v=1"></script>
@@ -35,7 +35,7 @@
   });
 </script>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-844RPWD4HE"></script>
-<script src="/assets/99club/analytics.js?v=4" defer></script>
+<script src="/assets/99club/analytics.js?v=5" defer></script>
 <style>
   /* 99 Club Studio is now the whole site, so the theme masthead is redundant. */
   .masthead{display:none!important}
@@ -44,27 +44,27 @@
 </style>
 {% endif %}
 
-{% if page.url == '/tools/99-club/games/' or page.url == '/tools/99-club/games/play/' %}
+{% if page.url == '/games/' or page.url == '/play/' %}
 <link rel="stylesheet" href="/assets/99club/games-sumgrid-polish-v148.css?v=1">
 <link rel="stylesheet" href="/assets/99club/games-family-ui-v166.css?v=1">
 <script src="/assets/99club/games-sum-grid-align-v1.js?v=1" defer></script>
-<script src="/assets/99club/games-family-ui-v166.js?v=2" defer></script>
+<script src="/assets/99club/games-family-ui-v166.js?v=3" defer></script>
 {% endif %}
 
-{% if page.url == '/tools/99-club/games/' %}
+{% if page.url == '/games/' %}
 <script src="/assets/99club/games-numbersearch-quality-v151.js?v=1" defer></script>
 <script src="/assets/99club/games-pdf-sum-grids-v148.js?v=1" defer></script>
 <script src="/assets/99club/games-pdf-v162.js?v=1" defer></script>
 <script src="/assets/99club/games-selector-ux-v162.js?v=2" defer></script>
 {% endif %}
 
-{% if page.url == '/tools/99-club/games/play/' %}
+{% if page.url == '/play/' %}
 <link rel="stylesheet" href="/assets/99club/games-play-top-instructions-v1.css?v=1">
 <link rel="stylesheet" href="/assets/99club/games-play-ux-v162.css?v=1">
 <script src="/assets/99club/games-play-top-instructions-v1.js?v=2" defer></script>
 <script src="/assets/99club/games-play-feedback-v163.js?v=1" defer></script>
 {% endif %}
 
-{% if page.url == '/tools/99-club/games/help/' %}
+{% if page.url == '/help/games/' %}
 <script src="/assets/99club/games-help-sum-grids-v147.js?v=2" defer></script>
 {% endif %}

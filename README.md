@@ -4,4 +4,14 @@ Standalone repository for **99 Club Studio** — classroom maths tools, printabl
 
 Public site: `https://99studio.uk`
 
-The standalone migration is live. The domain root serves 99 Club Studio directly, the site is installable as a root-scope PWA, and the former Tech Tinker Club 99 Club URLs are retained as redirect-only compatibility links.
+Public routes use the standalone structure:
+
+- `/` — 99 Club worksheet generator
+- `/games/` — printable Maths Games & Puzzles
+- `/play/` — online games
+- `/help/` — 99 Club help
+- `/help/games/` — game guides
+- `/contact/` — contact entry page
+- `/privacy/` — privacy and analytics
+
+The former `/tools/99-club/...` public URLs are retained as redirect-only compatibility routes. The hidden Custom Worksheets workspace remains available at its existing direct URL and is not linked from public navigation.

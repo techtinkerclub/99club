@@ -7,7 +7,7 @@ function brandHero(mode){
   const play=mode==='play';
   const title=play?'Play Online':'Maths Games & Puzzles';
   const note=play?'Fresh interactive maths puzzles · Relaxed or Challenge mode':'Build polished printable maths games and puzzle packs';
-  const alternate=play?tool('/tools/99-club/games/','▦','Printable games'):tool('/tools/99-club/games/play/','▶','Play online');
+  const alternate=play?tool('/games/','▦','Printable games'):tool('/play/','▶','Play online');
   return `
     <span class="tt99-brand-math tt99-brand-math--x2" aria-hidden="true">x²</span>
     <span class="tt99-brand-math tt99-brand-math--sum" aria-hidden="true">a + b</span>
@@ -23,9 +23,9 @@ function brandHero(mode){
       <h1 class="tt99-brand-page-title">${title}<span class="tt99-brand-page-note">${note}</span></h1>
     </div>
     <nav class="tt99-brand-tools" aria-label="99 Club Studio sections">
-      ${tool('/tools/99-club/','99','99 Club')}
+      ${tool('/','99','99 Club')}
       ${alternate}
-      ${tool('/tools/99-club/games/help/','?','Help & guide')}
+      ${tool('/help/games/','?','Help & guide')}
       <button type="button" class="tt99-brand-tool tt99-brand-tool--contact" data-tt99-contact-open aria-haspopup="dialog"><span aria-hidden="true">✉</span>Contact</button>
       <button type="button" class="tt99-brand-tool tt99-brand-tool--support" data-tt99-kofi-open aria-haspopup="dialog"><img class="tt99-brand-kofi" src="/assets/99club/images/kofi-cup.png?v=19.4" alt="" aria-hidden="true">Buy me a coffee</button>
     </nav>`;

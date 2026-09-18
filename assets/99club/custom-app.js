@@ -398,7 +398,7 @@
         <section class="tt99-custom-hero" aria-labelledby="tt99-custom-title">
           <div><span class="tt99-eyebrow">99 Club Studio</span><div class="tt99-custom-title-row"><h1 id="tt99-custom-title">Custom Worksheets</h1><span class="tt99-beta-pill">Beta</span></div><p>Build targeted starters, homework, quizzes and retrieval practice. This workspace is separate so new curriculum, visual and future word-problem generators can grow without changing the stable 99 Club workflow.</p></div>
           <div class="tt99-custom-hero-actions">
-            <a class="tt99-secondary tt99-custom-back" href="/tools/99-club/">← Back to 99 Club</a><a class="tt99-secondary tt99-custom-back" href="/tools/99-club/games/">Games &amp; puzzles</a>
+            <a class="tt99-secondary tt99-custom-back" href="/">← Back to 99 Club</a><a class="tt99-secondary tt99-custom-back" href="/games/">Games &amp; puzzles</a>
           </div>
         </section>
         <div class="tt99-custom-intro-note"><strong>Build exactly what you need.</strong><span>Custom Worksheets now starts with no topics selected. Choose freely across the curriculum catalogue; supported charts, pie charts, coordinates and angle geometry use deterministic generated visuals.</span></div>

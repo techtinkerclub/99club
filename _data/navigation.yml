@@ -1,9 +1,9 @@
 main:
   - title: "99 Club"
-    url: /tools/99-club/
+    url: /
   - title: "Games & Puzzles"
-    url: /tools/99-club/games/
+    url: /games/
   - title: "Play Online"
-    url: /tools/99-club/games/play/
+    url: /play/
   - title: "Help"
-    url: /tools/99-club/help/
+    url: /help/

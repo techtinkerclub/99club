@@ -17,8 +17,8 @@ sitemap: false
 <script>
 (function(){
   const q=new URLSearchParams(location.search),token=q.get('c');
-  if(!token){location.replace('/tools/99-club/games/play/');return;}
-  location.replace('/tools/99-club/games/play/?c='+encodeURIComponent(token));
+  if(!token){location.replace('/play/');return;}
+  location.replace('/play/?c='+encodeURIComponent(token));
 })();
 </script>
 </body>

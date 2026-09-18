@@ -1,16 +1,17 @@
-/* 99 Club Studio root-scope PWA service worker v1.1.4 */
+/* 99 Club Studio root-scope PWA service worker v1.1.5 */
 'use strict';
 
 const CACHE_PREFIX='tt99-studio-';
-const CACHE_NAME=CACHE_PREFIX+'v1.1.4';
+const CACHE_NAME=CACHE_PREFIX+'v1.1.5';
 const CORE_PAGES=[
   '/',
-  '/tools/99-club/',
-  '/tools/99-club/custom/',
-  '/tools/99-club/games/',
-  '/tools/99-club/games/play/',
-  '/tools/99-club/games/help/',
-  '/tools/99-club/help/'
+  '/games/',
+  '/play/',
+  '/help/',
+  '/help/games/',
+  '/contact/',
+  '/privacy/',
+  '/tools/99-club/custom/'
 ];
 const CORE_FILES=[
   '/manifest.webmanifest',

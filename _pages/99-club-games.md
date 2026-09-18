@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "Maths Games & Puzzles · 99 Club Studio"
-permalink: /tools/99-club/games/
+permalink: /games/
 sidebar: false
 sitemap: true
 ---
@@ -96,12 +96,12 @@ sitemap: true
 <script src="/assets/99club/games-pdf-new-puzzles-v197.js?v=1"></script>
 <script src="/assets/99club/games-pdf-extra-puzzles-v204.js?v=1"></script>
 <script src="/assets/99club/games-layout-v1321.js?v=2"></script>
-<script src="/assets/99club/games-app.js?v=31" defer></script>
+<script src="/assets/99club/games-app.js?v=32" defer></script>
 <script src="/assets/99club/games-operationgrid-print-v158-ui.js?v=1" defer></script>
 <script src="/assets/99club/games-operationgrid-print-v160-ui.js?v=1" defer></script>
 <script src="/assets/99club/games-operationgrid-print-v155-ui.js?v=1" defer></script>
 <script src="/assets/99club/games-random-ui.js?v=4" defer></script>
-<script src="/assets/99club/games-card-links-v205.js?v=3" defer></script>
+<script src="/assets/99club/games-card-links-v205.js?v=4" defer></script>
 <script src="/assets/99club/games-ui-v134.js?v=1" defer></script>
 <script src="/assets/99club/games-puzzle-redesign-v136.js?v=2" defer></script>
 <script src="/assets/99club/games-v137.js?v=1" defer></script>
@@ -125,7 +125,7 @@ window.addEventListener('DOMContentLoaded',function(){
       play.setAttribute('data-game-play-link','');
       nav.appendChild(play);
     }
-    play.href='/tools/99-club/games/play/';
+    play.href='/play/';
     play.textContent='Play online';
     let link=nav.querySelector('[data-game-guides-link]');
     if(!link){
@@ -133,7 +133,7 @@ window.addEventListener('DOMContentLoaded',function(){
       link.setAttribute('data-game-guides-link','');
       nav.appendChild(link);
     }
-    link.href='/tools/99-club/games/help/';
+    link.href='/help/games/';
     link.textContent='Help';
   }
   tidyHeaderNav();

@@ -1,7 +1,8 @@
-/* 99 Club Studio PWA registration + install/update helper v5 */
+/* 99 Club Studio PWA registration + install/update helper v6 */
 (function(){
 'use strict';
-if(!(location.pathname==='/'||location.pathname.startsWith('/tools/99-club/')))return;
+const APP_PATHS=new Set(['/','/games/','/play/','/help/','/help/games/','/contact/','/privacy/','/tools/99-club/custom/']);
+if(!APP_PATHS.has(location.pathname))return;
 
 const standalone=window.matchMedia?.('(display-mode: standalone)').matches||window.navigator.standalone===true;
 const isiOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
@@ -216,7 +217,7 @@ window.addEventListener('appinstalled',()=>{hideCard();deferredPrompt=null;});
 
 function maybeShowIOS(){
   if(standalone||sessionStorage.getItem('tt99-pwa-dismissed')==='1')return;
-  if(isiOS&&isSafari&&(location.pathname==='/'||location.pathname==='/tools/99-club/'))setTimeout(ensureCard,900);
+  if(isiOS&&isSafari&&location.pathname==='/')setTimeout(ensureCard,900);
 }
 
 function startUpdateChecks(){

@@ -37,12 +37,12 @@
     {
       "name": "Maths Games",
       "short_name": "Games",
-      "url": "/tools/99-club/games/"
+      "url": "/games/"
     },
     {
       "name": "Play Online",
       "short_name": "Play",
-      "url": "/tools/99-club/games/play/"
+      "url": "/play/"
     }
   ]
 }

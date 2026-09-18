@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "Maths Games & Puzzles Help · 99 Club Studio"
-permalink: /tools/99-club/games/help/
+permalink: /help/games/
 sidebar: false
 sitemap: true
 ---
@@ -19,7 +19,7 @@ sitemap: true
             <h1>Maths Games &amp; Puzzles help</h1>
             <p>A complete guide to choosing the maths, selecting and configuring puzzles, building printable packs, using worked examples and understanding every game in the library.</p>
           </div>
-          <a class="tt99-secondary tt99-guide-action" href="/tools/99-club/games/">← Back to Games &amp; Puzzles</a>
+          <a class="tt99-secondary tt99-guide-action" href="/games/">← Back to Games &amp; Puzzles</a>
         </div>
 
         <div class="tt99-guide-note"><strong>Quick start:</strong> select one or more teaching focuses, pick compatible games, configure their difficulty, then generate and download the pupil sheets and matching answers.</div>
@@ -148,5 +148,5 @@ sitemap: true
   </article>
 </div>
 
-<script src="/assets/99club/games-help-guides.js?v=1.3.2" defer></script>
+<script src="/assets/99club/games-help-guides.js?v=1.3.3" defer></script>
 <script src="/assets/99club/games-help-operationgrid-v153.js?v=1" defer></script>

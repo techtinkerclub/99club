@@ -140,7 +140,7 @@
     document.body.appendChild(direct);
     direct.querySelector('[data-direct-close]')?.addEventListener('click',()=>{
       globalThis.close();
-      setTimeout(()=>{if(!document.hidden)location.href='/tools/99-club/games/';},80);
+      setTimeout(()=>{if(!document.hidden)location.href='/games/';},80);
     });
     direct.querySelector('[data-direct-print]')?.addEventListener('click',()=>{
       document.body.classList.add('tt99-print-direct-game-guide');

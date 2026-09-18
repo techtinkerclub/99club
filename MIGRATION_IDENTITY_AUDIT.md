@@ -6,11 +6,25 @@ Public-facing Tech Tinker Club branding and the legacy Tech Tinker Club email fa
 
 The standalone site is served from `https://99studio.uk/`, with the inherited website masthead hidden and Studio navigation presented inside the product UI.
 
+## Public routes
+
+The primary public routes are:
+
+- `/`
+- `/games/`
+- `/play/`
+- `/help/`
+- `/help/games/`
+- `/contact/`
+- `/privacy/`
+
 ## Compatibility
 
-The former Tech Tinker Club 99 Club pages are redirect-only compatibility pages. Existing links continue to resolve to their corresponding pages on `99studio.uk`.
+The former public `/tools/99-club/...` pages are redirect-only compatibility routes so existing links and bookmarks continue to resolve.
 
-The legacy `/tools/99-club/` path is also retained on the standalone site for old bookmarks and installed-app compatibility.
+The hidden Custom Worksheets workspace remains at `/tools/99-club/custom/` and is intentionally excluded from public navigation and the sitemap.
+
+The legacy narrow-scope PWA files remain in place so older installed copies can be retired safely by the root-scope PWA registration code.
 
 ## Remaining operational dependency
 

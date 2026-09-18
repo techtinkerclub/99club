@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "99 Club Studio Help"
-permalink: /tools/99-club/help/
+permalink: /help/
 sidebar: false
 ---
 
@@ -18,7 +18,7 @@ sidebar: false
       <h1>Help for teachers</h1>
       <p>Everything you need to create, review, save and recreate 99 Club progression sheets, plus searchable, printable guides for every current Maths Games &amp; Puzzles activity.</p>
     </div>
-    <a class="tt99-secondary tt99-guide-action" href="/tools/99-club/">← Back to 99 Club</a>
+    <a class="tt99-secondary tt99-guide-action" href="/">← Back to 99 Club</a>
   </div>
 
   <div class="tt99-guide-note"><strong>Quick start:</strong> add your school details, leave <b>Classic 99 Club</b> selected, choose a challenge, check the short rule summary, then generate and download. The standard Classic default is 5 minutes and three perfect attempts; the attempts do not need to be consecutive.</div>
@@ -49,7 +49,7 @@ sidebar: false
 
   <section id="games" class="tt99-guide-section tt99-guide-highlight">
     <h2>Maths Games &amp; Puzzles</h2>
-    <p>The separate <a href="/tools/99-club/games/">Games &amp; Puzzles</a> page builds printable independent activities from reusable game engines. The library is organised into <strong>accordion categories</strong> so a large puzzle catalogue stays manageable.</p>
+    <p>The separate <a href="/games/">Games &amp; Puzzles</a> page builds printable independent activities from reusable game engines. The library is organised into <strong>accordion categories</strong> so a large puzzle catalogue stays manageable.</p>
     <p><strong>Choose games by category.</strong> Open a category, tick individual games, use <strong>Select compatible</strong> to include the games that genuinely fit the chosen year/topics, or use <strong>Clear</strong> / <strong>Clear all games</strong>. Categories with selected games are highlighted and show their selected count. Opening or selecting a game does not collapse the category.</p>
     <p><strong>Each game keeps its own setup.</strong> Press <strong>Configure</strong> beside a selected game to change its difficulty and specialist options, then press <strong>Done</strong> to fully collapse the setup. The selected-games tray keeps a compact summary of the saved choices.</p>
     <p><strong>Vocabulary &amp; language:</strong> Maths Word Search and Maths Crossword share the curated maths vocabulary catalogue. Word Search can show <strong>words + definitions</strong> or <strong>definitions only</strong>, with automatic or teacher-selected directions. Multi-word crossword clues show answer lengths such as <strong>(5, 5)</strong>.</p>
@@ -229,7 +229,7 @@ sidebar: false
     <h2>Privacy</h2>
     <p>99 Club Studio runs in your browser. School details, logos and questions are processed on the device rather than uploaded to 99 Club Studio. The teacher QR uses the part of the web address after <code>#</code>, which is not sent to the website server.</p>
     <p>A downloaded Full backup is an ordinary JSON file and may contain the school/class/teacher text and logo you entered. Store or share it as you would any other school working file.</p>
-    <p><a class="tt99-secondary tt99-guide-action" href="/tools/99-club/">Back to 99 Club Studio →</a></p>
+    <p><a class="tt99-secondary tt99-guide-action" href="/">Back to 99 Club Studio →</a></p>
   </section>
 </div>
     </section>
