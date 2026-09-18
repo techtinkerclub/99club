@@ -487,7 +487,7 @@ function drawPropertyMaze(page,a,answers,x,y,w,h,index){
       const n=a.solution.length,cell=Math.min(48,(w-80)/n),gx=x+w/2-n*cell/2,gy=bodyY+8;for(let i=0;i<n;i++){drawRoundRect(page,gx+i*cell,gy,cell-5,cell-5,6,{fill:WHITE,stroke:[126,157,158],width:.8});page.text(gx+i*cell+(cell-5)/2,gy+12,String(i+1),4.8,{bold:true,color:MUTED,align:'center'});if(answers)diagramText(page,gx+i*cell+(cell-5)/2,gy+(cell-5)*.66,a.solution[i],9,{bold:true,color:TEAL});}
       let cy=gy+cell+4;for(let i=0;i<a.clues.length;i++){cy+=drawWrapped(page,x+24,cy,`${i+1}. ${a.clues[i].text}`,w-48,5.8,{color:DARK,maxLines:1,compact:true})+2;}
     }else{
-      const n=a.size,cell=Math.min(35,(w*.42)/n,(h-92)/n),gw=n*cell,gx=x+18,gy=bodyY+5;for(let r=0;r<n;r++)for(let c=0;c<n;c++){page.rect(gx+c*cell,gy+r*cell,cell,cell,{fill:WHITE,stroke:[126,157,158],width:.7});if(answers)diagramText(page,gx+c*cell+cell/2,gy+r*cell+cell*.65,a.solutionGrid[r][c],8.5,{bold:true,color:TEAL});}let cy=gy,rx=gx+gw+17,rw=x+w-18-rx;for(let i=0;i<a.clues.length;i++){cy+=drawWrapped(page,rx,cy,`${i+1}. ${a.clues[i].text}`,rw,5.6,{color:DARK,maxLines:2,compact:true})+2;}
+      const n=a.size,cell=Math.min(42,(w*.42)/n,(h-92)/n),gw=n*cell,gx=x+18,gy=bodyY+5;for(let r=0;r<n;r++)for(let c=0;c<n;c++){page.rect(gx+c*cell,gy+r*cell,cell,cell,{fill:WHITE,stroke:[126,157,158],width:.7});if(answers)diagramText(page,gx+c*cell+cell/2,gy+r*cell+cell*.65,a.solutionGrid[r][c],8.5,{bold:true,color:TEAL});}let cy=gy,rx=gx+gw+17,rw=x+w-18-rx;for(let i=0;i<a.clues.length;i++){cy+=drawWrapped(page,rx,cy,`${i+1}. ${a.clues[i].text}`,rw,5.6,{color:DARK,maxLines:2,compact:true})+2;}
     }
   }
 
