@@ -78,7 +78,7 @@ sitemap: true
 <script src="/assets/99club/games-puzzle-redesign-v135-logic.js?v=1"></script>
 <script src="/assets/99club/simple-pdf.js?v=19.4"></script>
 <script src="/assets/99club/games-page-geometry-v206.js?v=1"></script>
-<script src="/assets/99club/games-pdf.js?v=29"></script>
+<script src="/assets/99club/games-pdf.js?v=30"></script>
 <script src="/assets/99club/games-pdf-v136.js?v=3"></script>
 <script src="/assets/99club/games-pdf-v137.js?v=1"></script>
 <script src="/assets/99club/games-pdf-v138.js?v=1"></script>
@@ -116,7 +116,7 @@ sitemap: true
 <script src="/assets/99club/games-shikaku-v143-ui.js?v=1" defer></script>
 <script src="/assets/99club/games-sum-grids-v147-ui.js?v=2" defer></script>
 <script src="/assets/99club/games-focus-topics-v145-ui.js?v=1" defer></script>
-<script src="/assets/99club/games-preview-fit-v207.js?v=3" defer></script>
+<script src="/assets/99club/games-preview-fit-v207.js?v=4" defer></script>
 <script>
 window.addEventListener('DOMContentLoaded',function(){
   const root=document.getElementById('tt99-games-root');
