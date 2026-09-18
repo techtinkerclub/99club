@@ -19,7 +19,7 @@ sitemap: true
 <link rel="stylesheet" href="/assets/99club/games.css?v=22">
 <link rel="stylesheet" href="/assets/99club/games-kakuro-orientation-v168.css?v=1">
 <link rel="stylesheet" href="/assets/99club/games-sumplete.css?v=1">
-<link rel="stylesheet" href="/assets/99club/games-property-maze.css?v=2">
+<link rel="stylesheet" href="/assets/99club/games-property-maze.css?v=3">
 <link rel="stylesheet" href="/assets/99club/games-layout-v1321.css?v=1">
 <link rel="stylesheet" href="/assets/99club/games-ui-v134.css?v=1">
 <link rel="stylesheet" href="/assets/99club/games-puzzle-redesign-v136.css?v=1">
@@ -78,7 +78,7 @@ sitemap: true
 <script src="/assets/99club/games-puzzle-redesign-v135-logic.js?v=1"></script>
 <script src="/assets/99club/simple-pdf.js?v=19.4"></script>
 <script src="/assets/99club/games-page-geometry-v206.js?v=1"></script>
-<script src="/assets/99club/games-pdf.js?v=32"></script>
+<script src="/assets/99club/games-pdf.js?v=33"></script>
 <script src="/assets/99club/games-pdf-v136.js?v=3"></script>
 <script src="/assets/99club/games-pdf-v137.js?v=1"></script>
 <script src="/assets/99club/games-pdf-v138.js?v=1"></script>
