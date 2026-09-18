@@ -139,7 +139,7 @@
     const instruction=a.mode==='definitions'?'Work out each maths word from its definition, then find it in the grid.':'Read each maths word and its meaning, then find the word in the grid.';
     drawWrapped(page,x+12,top,instruction,w-24,7,{color:MUTED,maxLines:1});
     drawWrapped(page,x+12,top+12,a.directionTipPdf||a.directionLabel||'',w-24,6.2,{bold:true,color:TEAL,maxLines:1});
-    const bodyY=top+28, bodyH=h-(bodyY-y)-12, leftW=Math.min(w*.50,bodyH), gap=10, rightX=x+12+leftW+gap, rightW=w-24-leftW-gap;
+    const bodyY=top+28, bodyH=h-(bodyY-y)-12, leftW=Math.min(w*.52,bodyH), gap=10, rightX=x+12+leftW+gap, rightW=w-24-leftW-gap;
     const gridX=x+12, gridY=bodyY, size=a.size||a.grid?.length||12, cell=Math.min(leftW/size,bodyH/size), gridW=cell*size;
     const answerCells=new Set((a.placements||[]).flatMap(p=>(p.cells||[]).map(([cx,cy])=>`${cx}:${cy}`)));
     for(let gy=0;gy<size;gy++)for(let gx=0;gx<size;gx++){
