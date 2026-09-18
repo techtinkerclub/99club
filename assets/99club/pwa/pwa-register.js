@@ -143,9 +143,25 @@ function watchRegistration(reg){
   reg.update().catch(()=>{});
 }
 
+async function removeLegacyRegistration(){
+  if(!('serviceWorker' in navigator)||!navigator.serviceWorker.getRegistrations)return;
+  try{
+    const regs=await navigator.serviceWorker.getRegistrations();
+    await Promise.all(regs.map(reg=>{
+      const worker=reg.active||reg.waiting||reg.installing;
+      const script=worker?.scriptURL||'';
+      return script.includes('/tools/99-club/sw.js')?reg.unregister():Promise.resolve(false);
+    }));
+  }catch(e){}
+}
+
 function registerSW(){
   if(!('serviceWorker' in navigator))return;
-  window.addEventListener('load',()=>{
+  window.addEventListener('load',async()=>{
+    // Earlier builds registered a narrower /tools/99-club/ worker. Remove it
+    // before installing the root-scope worker so nested Studio pages do not
+    // remain controlled by the legacy cache.
+    await removeLegacyRegistration();
     navigator.serviceWorker.register('/sw.js',{scope:'/'}).then(watchRegistration).catch(err=>console.warn('99 Club PWA service worker registration failed',err));
   });
   navigator.serviceWorker.addEventListener('controllerchange',()=>{
