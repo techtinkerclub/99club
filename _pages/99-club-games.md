@@ -42,7 +42,7 @@ sitemap: true
 <link rel="stylesheet" href="/assets/99club/games-operationgrid-print-v158.css?v=1">
 <link rel="stylesheet" href="/assets/99club/games-operationgrid-print-v160.css?v=1">
 <link rel="stylesheet" href="/assets/99club/games-preview-pager-v155.css?v=1">
-<link rel="stylesheet" href="/assets/99club/games-preview-parity-v206.css?v=7">
+<link rel="stylesheet" href="/assets/99club/games-preview-parity-v206.css?v=8">
 <script src="/assets/99club/games-vocabulary.js?v=1"></script>
 <script src="/assets/99club/games-arithmetic.js?v=9"></script>
 <script src="/assets/99club/games-brokencalc-quality-v152.js?v=2"></script>
@@ -78,7 +78,7 @@ sitemap: true
 <script src="/assets/99club/games-puzzle-redesign-v135-logic.js?v=1"></script>
 <script src="/assets/99club/simple-pdf.js?v=19.4"></script>
 <script src="/assets/99club/games-page-geometry-v206.js?v=1"></script>
-<script src="/assets/99club/games-pdf.js?v=31"></script>
+<script src="/assets/99club/games-pdf.js?v=32"></script>
 <script src="/assets/99club/games-pdf-v136.js?v=3"></script>
 <script src="/assets/99club/games-pdf-v137.js?v=1"></script>
 <script src="/assets/99club/games-pdf-v138.js?v=1"></script>
@@ -116,7 +116,7 @@ sitemap: true
 <script src="/assets/99club/games-shikaku-v143-ui.js?v=1" defer></script>
 <script src="/assets/99club/games-sum-grids-v147-ui.js?v=2" defer></script>
 <script src="/assets/99club/games-focus-topics-v145-ui.js?v=1" defer></script>
-<script src="/assets/99club/games-preview-fit-v207.js?v=4" defer></script>
+<script src="/assets/99club/games-preview-fit-v207.js?v=5" defer></script>
 <script>
 window.addEventListener('DOMContentLoaded',function(){
   const root=document.getElementById('tt99-games-root');
