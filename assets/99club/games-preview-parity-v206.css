@@ -268,3 +268,49 @@
   /* Final safety net: no renderer may paint outside its allocated activity. */
   .tt99-game-paper .tt99-game-activity>*{max-width:100%}
 }
+
+
+/* v2.07 · universal activity fitting + square-grid invariants */
+@media screen {
+  /* Only puzzle bodies are scaled when a renderer would exceed its activity box.
+     Titles and instructions remain at the PDF-like preview size. */
+  .tt99-game-paper .tt99-game-activity[data-tt99-preview-fit="1"]
+    > :not(.tt99-replace-activity):not(.tt99-game-activity-head):not(.tt99-game-instruction){
+    zoom:var(--tt99-preview-body-scale,1);
+  }
+
+  /* Square puzzle families must use equal row and column tracks. */
+  .tt99-game-paper .tt99-kakuro-grid,
+  .tt99-game-paper .tt99-cage-grid,
+  .tt99-game-paper .tt99-numberpath-grid{
+    grid-template-rows:repeat(var(--logic-n),minmax(0,1fr))!important;
+  }
+  .tt99-game-paper .tt99-kakuro-grid>span,
+  .tt99-game-paper .tt99-cage-grid>span,
+  .tt99-game-paper .tt99-numberpath-grid>span{
+    aspect-ratio:auto!important;
+    min-width:0!important;
+    min-height:0!important;
+  }
+
+  .tt99-game-paper .tt99-extra-path-grid,
+  .tt99-game-paper .tt99-extra-search-grid,
+  .tt99-game-paper .tt99-extra-perimeter-grid{
+    grid-template-rows:repeat(var(--n),minmax(0,1fr))!important;
+  }
+  .tt99-game-paper .tt99-extra-path-grid>span,
+  .tt99-game-paper .tt99-extra-search-grid>span,
+  .tt99-game-paper .tt99-extra-perimeter-grid>span{
+    min-width:0!important;
+    min-height:0!important;
+  }
+
+  .tt99-game-paper .tt99-shikaku-grid{
+    grid-template-columns:repeat(var(--shikaku-cols),minmax(0,1fr))!important;
+    grid-template-rows:repeat(var(--shikaku-rows),minmax(0,1fr))!important;
+  }
+  .tt99-game-paper .tt99-sumgrid-board{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    grid-template-rows:repeat(3,minmax(0,1fr))!important;
+  }
+}
