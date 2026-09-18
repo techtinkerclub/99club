@@ -103,10 +103,13 @@ jobs:
             echo 'No Chrome/Chromium executable is available on this runner.' >&2
             exit 1
           fi
-          "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
-            --window-size=390,844 --virtual-time-budget=180000 --dump-dom \
-            http://127.0.0.1:8766/99club-preview-qa.html > /tmp/99club-preview-phone.html
-          node scripts/99club/preview-qa.js check /tmp/99club-preview-phone.html
+          for BATCH in 0 1; do
+            "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
+              --window-size=390,844 --virtual-time-budget=180000 --dump-dom \
+              "http://127.0.0.1:8766/99club-preview-qa.html?batch=$BATCH" > "/tmp/99club-preview-phone-$BATCH.html"
+            node scripts/99club/preview-qa.js check "/tmp/99club-preview-phone-$BATCH.html"
+            cp 99club-preview-qa-report.json "99club-preview-qa-batch-$BATCH-report.json"
+          done
       - name: Upload browser QA report
         if: always()
         uses: actions/upload-artifact@v4
@@ -117,4 +120,6 @@ jobs:
             99club-browser-qa-phone-report.json
             99club-browser-qa-desktop-report.json
             99club-preview-qa-report.json
+            99club-preview-qa-batch-0-report.json
+            99club-preview-qa-batch-1-report.json
           if-no-files-found: ignore
