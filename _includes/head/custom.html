@@ -13,7 +13,29 @@
 <script src="/assets/99club/banner-actions-v2.js?v=3" defer></script>
 <link rel="stylesheet" href="/assets/99club/analytics.css?v=1">
 <script src="/assets/99club/analytics-config.js?v=1"></script>
-<script src="/assets/99club/analytics.js?v=1" defer></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = window.gtag || function(){ dataLayer.push(arguments); };
+  (function(){
+    var choice='';
+    try{ choice=localStorage.getItem('tt99-analytics-choice-v1')||''; }catch(_){}
+    gtag('consent','default',{
+      analytics_storage: choice==='allow' ? 'granted' : 'denied',
+      ad_storage:'denied',
+      ad_user_data:'denied',
+      ad_personalization:'denied',
+      wait_for_update:500
+    });
+  })();
+  gtag('js', new Date());
+  gtag('config', 'G-844RPWD4HE', {
+    send_page_view:true,
+    allow_google_signals:false,
+    allow_ad_personalization_signals:false
+  });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-844RPWD4HE"></script>
+<script src="/assets/99club/analytics.js?v=2" defer></script>
 <style>
   /* 99 Club Studio is now the whole site, so the theme masthead is redundant. */
   .masthead{display:none!important}
