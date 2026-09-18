@@ -315,3 +315,32 @@
     grid-template-rows:repeat(3,minmax(0,1fr))!important;
   }
 }
+
+
+/* v2.08 · reliable coarse-pointer preview controls */
+@media screen {
+  .tt99-game-paper .tt99-preview-replace{
+    z-index:60!important;
+    touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+    overflow:visible!important;
+    pointer-events:auto!important;
+  }
+}
+@media screen and (pointer:coarse) {
+  .tt99-game-paper .tt99-replace-activity{
+    width:30px!important;
+    height:30px!important;
+    right:3px!important;
+    top:3px!important;
+    opacity:.92!important;
+    font-size:17px!important;
+  }
+  .tt99-game-paper .tt99-preview-replace::before{
+    content:"";
+    position:absolute;
+    inset:-18px;
+    border-radius:999px;
+    pointer-events:auto;
+  }
+}
