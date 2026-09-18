@@ -9,7 +9,7 @@ The site contains a privacy-first Google Analytics 4 integration plus Studio-spe
 3. Put that value in `assets/99club/analytics-config.js` as `ga4MeasurementId`.
 4. Deploy. The analytics choice UI appears only when a valid GA4 Measurement ID is configured.
 
-Google Analytics is loaded only after the visitor chooses **Allow analytics**. Advertising-related consent/signals remain disabled.
+The Google tag loads with Google Consent Mode. Analytics storage defaults to **denied** and is changed to **granted** only after the visitor chooses **Allow analytics**. Advertising-related consent/signals remain disabled.
 
 ## Automatically available GA4 information
 
