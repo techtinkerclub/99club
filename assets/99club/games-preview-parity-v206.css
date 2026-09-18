@@ -588,3 +588,37 @@
     zoom:1!important;
   }
 }
+
+
+/* v2.13 · readable Correct-Answer Maze question column */
+@media screen {
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-maze-layout{
+    grid-template-columns:235px minmax(0,1fr)!important;
+    gap:12px!important;
+    padding:2px 6px 6px!important;
+  }
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-maze-grid{
+    width:235px!important;
+    height:235px!important;
+    max-width:none!important;
+  }
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-maze-questions h4{
+    margin:0 0 6px!important;
+    font-size:9.4px!important;
+    line-height:1.1!important;
+  }
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-maze-questions ol{
+    gap:3px!important;
+  }
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-maze-questions li{
+    grid-template-columns:20px minmax(0,1fr) auto!important;
+    gap:4px!important;
+    font-size:8.4px!important;
+    line-height:1.22!important;
+  }
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-maze-questions small{
+    margin-top:6px!important;
+    font-size:6.6px!important;
+    line-height:1.2!important;
+  }
+}
