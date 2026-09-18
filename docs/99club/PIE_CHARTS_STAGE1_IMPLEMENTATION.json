@@ -1,0 +1,27 @@
+{
+  "module": "Custom Worksheets Pie Charts Stage 1",
+  "app_version": "1.21",
+  "module_version": "0.1.1",
+  "date": "2026-09-10",
+  "families": {
+    "pie_charts_y6": {
+      "subtypes": 21,
+      "pool_entries": 84,
+      "bucket": "Year 6 core"
+    },
+    "pie_charts_reasoning_y6": {
+      "subtypes": 11,
+      "pool_entries": 44,
+      "bucket": "Year 6 reasoning"
+    },
+    "pie_charts_extension": {
+      "subtypes": 5,
+      "pool_entries": 20,
+      "bucket": "Extension"
+    }
+  },
+  "renderer": "custom-piecharts.js registered through TT99VisualRenderers.pie",
+  "shared_palette": "TT99VisualPalette in custom-graphs.js",
+  "public_99_club_changed": false,
+  "research_catalogue": "Pie_Charts_Question_Type_Source_Matrix_v0.3.csv"
+}

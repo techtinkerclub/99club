@@ -1,0 +1,69 @@
+/* 99 Club Studio · Colour Logic + Mobile Balance corrections v1.98 */
+
+/* Colour Logic: fill the entire selected box, keeping the letter as a
+   non-colour accessibility cue. */
+.tt99-cl-row button.has-colour,
+.tt99-cl-grid button.has-colour{
+  background:var(--cl);
+  border-color:#6f8f91;
+}
+.tt99-cl-row button.has-colour b,
+.tt99-cl-grid button.has-colour b{
+  width:100%;
+  height:100%;
+  border-radius:inherit;
+  background:transparent;
+  color:#fff;
+  opacity:1;
+  text-shadow:0 1px 2px rgba(0,0,0,.32);
+  font-size:clamp(1rem,3.3vw,1.28rem);
+}
+.tt99-cl-row button.has-colour small{
+  color:#fff;
+  text-shadow:0 1px 2px rgba(0,0,0,.42);
+}
+.tt99-cl-row button.has-colour.is-wrong,
+.tt99-cl-grid button.has-colour.is-wrong{
+  background:var(--cl);
+  box-shadow:inset 0 0 0 4px #b64d3c;
+}
+
+/* Mobile Balance: equal-arm geometry is calculated by the renderer. Hanging
+   strings stay vertical and each child bar has an independent angle. */
+.tt99-mobile-total-note{
+  margin:2px 8px 7px;
+  text-align:center;
+  color:#526f73;
+  font-size:.73rem;
+  line-height:1.35;
+  font-weight:750;
+}
+.tt99-mobile-svg .tt99-mobile-pivot{
+  fill:#f7fbfb;
+  stroke:#607e82;
+  stroke-width:2;
+}
+.tt99-mobile-svg .tt99-mobile-subtree,
+.tt99-mobile-svg .tt99-mobile-leaf{
+  transform-box:view-box;
+}
+
+/* Match answer-card icons to the colours used in the mobile itself. */
+.tt99-mobile-values .s-circle{fill:#3f68c5}
+.tt99-mobile-values .s-square{fill:#e48932}
+.tt99-mobile-values .s-triangle{fill:#41a56a}
+.tt99-mobile-values .s-diamond{fill:#d95b4f}
+.tt99-mobile-values .s-star{fill:#8c5bc7}
+.tt99-mobile-values .shape{stroke:rgba(0,0,0,.12);stroke-width:1}
+
+/* Printable HTML preview: larger grids/text and a more generous mobile. */
+.tt99-cl-paper-grid{width:min(300px,58%)}
+.tt99-cl-print-rules{font-size:.7rem;line-height:1.35;gap:4px}
+.tt99-cl-print-key span{font-size:.64rem}
+.tt99-mobilebalance-print .tt99-mobile-paper-wrap{grid-template-columns:minmax(0,1fr) 170px;gap:16px}
+.tt99-mobile-paper-svg{max-height:220px}
+.tt99-mobile-paper-values span{font-size:.7rem;padding:6px 8px}
+
+@media(max-width:700px){
+  .tt99-mobile-total-note{font-size:.7rem}
+}

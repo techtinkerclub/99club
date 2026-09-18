@@ -1,0 +1,5 @@
+---
+layout: null
+permalink: /tools/99-club/version.json
+---
+{% assign tt99_build = site.github.build_revision | default: site.time %}{"version":{{ tt99_build | jsonify }}}

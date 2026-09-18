@@ -1,0 +1,62 @@
+/* 99 Club Studio · Killer / Sum Sudoku cage polish v1.81
+ * Visual hierarchy:
+ *   1. Sudoku outer/box rails
+ *   2. normal cell grid
+ *   3. cage outlines (thin, solid, neutral grey)
+ */
+
+:root{
+  --tt99-killer-cage:#879497;
+  --tt99-killer-target:#566568;
+}
+
+/* Online Play: cage edges are inset elements created by the shared number-grid renderer. */
+.tt99-play-killer .cage-edge{
+  border-color:var(--tt99-killer-cage)!important;
+  opacity:.92;
+}
+.tt99-play-killer .cage-edge.top,
+.tt99-play-killer .cage-edge.bottom{
+  border-top:1px solid var(--tt99-killer-cage)!important;
+}
+.tt99-play-killer .cage-edge.left,
+.tt99-play-killer .cage-edge.right{
+  border-left:1px solid var(--tt99-killer-cage)!important;
+}
+
+/* When a cage boundary sits on a strong Sudoku box rail, the box rail itself
+   is the boundary. Hiding the inset duplicate keeps the hierarchy clean. */
+.tt99-play-killer .tt99-numbergrid-cell.box-top > .cage-edge.top,
+.tt99-play-killer .tt99-numbergrid-cell.box-bottom > .cage-edge.bottom,
+.tt99-play-killer .tt99-numbergrid-cell.box-left > .cage-edge.left,
+.tt99-play-killer .tt99-numbergrid-cell.box-right > .cage-edge.right{
+  display:none!important;
+}
+
+.tt99-play-killer .cage-target{
+  color:var(--tt99-killer-target)!important;
+  background:rgba(255,255,255,.94)!important;
+  padding:1px 2px;
+  border-radius:3px;
+}
+.tt99-play-killer .tt99-numbergrid-cell.is-given .cage-target{
+  background:rgba(241,246,245,.96)!important;
+}
+
+/* Printable browser preview: the older renderer places cage boundaries on
+   cell edges. Keep them slightly darker than the normal grid, but clearly
+   lighter/thinner than the heavy Sudoku box rails. */
+.tt99-killer-grid .cage-top{border-top:1px solid var(--tt99-killer-cage)!important}
+.tt99-killer-grid .cage-left{border-left:1px solid var(--tt99-killer-cage)!important}
+.tt99-killer-grid .cage-right{border-right:1px solid var(--tt99-killer-cage)!important}
+.tt99-killer-grid .cage-bottom{border-bottom:1px solid var(--tt99-killer-cage)!important}
+.tt99-killer-grid small{
+  color:var(--tt99-killer-target)!important;
+  background:rgba(255,255,255,.94);
+  padding:0 1px;
+  border-radius:2px;
+}
+
+@media print{
+  :root{--tt99-killer-cage:#7f8a8d;--tt99-killer-target:#4f5c5f}
+}

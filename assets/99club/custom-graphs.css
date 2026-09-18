@@ -1,0 +1,84 @@
+/* Custom Worksheets graphical statistics stage 1 - loaded on /custom/ only */
+.tt99-visual-preview-stack{display:flex;flex-direction:column;align-items:center;gap:18px;width:100%}
+.tt99-visual-preview-stack .tt99-visual-paper{display:block;width:min(100%,760px);height:auto;flex:none}
+.tt99-visual-preview-stack .tt99-visual-paper.is-landscape{width:min(100%,1040px)}
+.tt99-visual-preview-stack .tt99-visual-paper+.tt99-visual-paper{margin-top:4px}
+.tt99-graph-layout-note{margin-top:12px;padding:10px 12px;border:1px solid #cfe2df;border-radius:10px;background:#f3faf8;color:#40565b;font-size:.7rem;line-height:1.4}
+.tt99-graph-layout-note b{display:block;margin-bottom:2px;color:#0d6c66;font-size:.72rem}
+.tt99-graph-layout-note span{display:block}
+@media(max-width:720px){.tt99-visual-preview-stack{gap:12px}.tt99-graph-layout-note{font-size:.68rem}}
+
+
+/* v1.21.2 — Custom Worksheets workspace view switcher.
+   Kept in this established Custom-only stylesheet so deployment does not depend
+   on an additional CSS asset. All rules remain scoped to #tt99-root. */
+#tt99-root .tt99-workspace-view-switcher{
+  position:sticky;
+  top:10px;
+  z-index:70;
+  display:flex;
+  align-items:center;
+  gap:3px;
+  width:max-content;
+  max-width:100%;
+  margin:0 0 12px auto;
+  padding:4px;
+  border:1px solid #cfdcde;
+  border-radius:12px;
+  background:rgba(248,251,251,.97);
+  box-shadow:0 5px 16px rgba(31,62,72,.11);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+}
+#tt99-root .tt99-workspace-view-switcher>span{
+  padding:0 7px 0 6px;
+  color:#687b80;
+  font-size:.62rem;
+  font-weight:850;
+  line-height:1;
+  white-space:nowrap;
+}
+#tt99-root .tt99-workspace-view-switcher button{
+  appearance:none;
+  -webkit-appearance:none;
+  border:0;
+  border-radius:8px;
+  background:transparent;
+  color:#5f7076;
+  padding:7px 10px;
+  font:800 .65rem/1 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  cursor:pointer;
+  transition:background .14s ease,color .14s ease,box-shadow .14s ease;
+}
+#tt99-root .tt99-workspace-view-switcher button:hover,
+#tt99-root .tt99-workspace-view-switcher button:focus-visible{
+  background:#edf4f3;
+  color:#245f5a;
+  outline:none;
+}
+#tt99-root .tt99-workspace-view-switcher button.is-active{
+  background:#fff;
+  color:#0f766e;
+  box-shadow:0 1px 5px rgba(25,62,70,.14);
+}
+
+/* Balanced intentionally mirrors the public 99 Club desktop proportions. */
+#tt99-root .tt99-workspace--custom.is-balanced{
+  grid-template-columns:minmax(430px,520px) minmax(600px,1fr);
+}
+/* More room for the large curriculum/options catalogue while editing. */
+#tt99-root .tt99-workspace--custom.is-options-focus{
+  grid-template-columns:minmax(620px,720px) minmax(470px,1fr);
+}
+/* More room for the A4 preview while reviewing. */
+#tt99-root .tt99-workspace--custom.is-preview-focus{
+  grid-template-columns:minmax(360px,420px) minmax(760px,1fr);
+}
+
+@media(max-width:1220px){
+  #tt99-root .tt99-workspace--custom.is-balanced,
+  #tt99-root .tt99-workspace--custom.is-options-focus,
+  #tt99-root .tt99-workspace--custom.is-preview-focus{grid-template-columns:1fr}
+  #tt99-root .tt99-workspace--custom .tt99-preview-panel{position:static}
+  #tt99-root .tt99-workspace-view-switcher{display:none}
+}

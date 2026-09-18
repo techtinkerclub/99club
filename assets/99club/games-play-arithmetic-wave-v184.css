@@ -1,0 +1,280 @@
+/* 99 Club Studio · Online Play arithmetic wave v1.84
+ * Number Trail, Number Connections, Number Search and Equation Crossgrid.
+ * Shared contract: same board width, focus language, keypad sizing and
+ * mobile behaviour as the established Online Play puzzles.
+ */
+
+/* ---------- Shared wave controls ---------- */
+.tt99-play-numbertrail,
+.tt99-play-numberconnections,
+.tt99-play-numbersearch,
+.tt99-play-equationcrossgrid{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  margin-inline:auto;
+  box-sizing:border-box;
+}
+.tt99-play-numbertrail button,
+.tt99-play-numberconnections button,
+.tt99-play-equationcrossgrid button{
+  touch-action:manipulation;
+}
+.tt99-wave184-keypad{
+  display:grid;
+  gap:7px;
+  width:min(100%,430px);
+  margin:14px auto 0;
+}
+.tt99-wave184-digits{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:7px;
+}
+.tt99-wave184-keypad button{
+  appearance:none;
+  min-width:0;
+  min-height:46px;
+  border:1px solid #c6d7d8;
+  border-radius:10px;
+  background:#fff;
+  color:#294d52;
+  font:850 .95rem/1 inherit;
+  cursor:pointer;
+}
+.tt99-wave184-keypad button:hover:not(:disabled),
+.tt99-wave184-keypad button:focus-visible{
+  border-color:#75aaa7;
+  background:#f0f8f7;
+  outline:none;
+}
+.tt99-wave184-keypad button:disabled{opacity:.43;cursor:not-allowed}
+.tt99-wave184-keypad [data-wave-clear]{color:#657d81;font-size:.72rem}
+.tt99-wave184-keypad.has-ops{grid-template-columns:1fr;align-items:start}
+.tt99-wave184-keypad.has-ops .tt99-wave184-digits{grid-template-columns:repeat(4,minmax(0,1fr))}
+.tt99-wave184-ops{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+.tt99-wave184-ops button{font-size:1.08rem;color:#176e67}
+
+/* ---------- Number Trail ---------- */
+.tt99-play-numbertrail{display:grid;gap:13px;justify-items:center;width:min(100%,720px)}
+.tt99-trail-rule{
+  display:flex;
+  align-items:baseline;
+  gap:8px;
+  width:min(100%,620px);
+  box-sizing:border-box;
+  padding:10px 13px;
+  border:1px solid #cfe0de;
+  border-radius:13px;
+  background:#f6fbfa;
+  color:#34575c;
+}
+.tt99-trail-rule span{font-size:.68rem;font-weight:850;text-transform:uppercase;letter-spacing:.055em;color:#6a8185}
+.tt99-trail-rule strong{font-size:.92rem;color:#176e67}
+.tt99-trail-board{
+  display:grid;
+  grid-template-columns:repeat(var(--trail-cols),minmax(0,1fr));
+  grid-auto-rows:minmax(0,1fr);
+  gap:7px;
+  width:min(100%,620px);
+  box-sizing:border-box;
+}
+.tt99-trail-cell{
+  appearance:none;
+  position:relative;
+  display:grid;
+  place-items:center;
+  aspect-ratio:1;
+  min-width:0;
+  min-height:0;
+  width:100%;
+  padding:4px;
+  border:1px solid #9fb6b8;
+  border-radius:13px;
+  background:#fff;
+  color:#294d52;
+  font:850 clamp(.82rem,3vw,1.18rem)/1 inherit;
+  box-sizing:border-box;
+}
+.tt99-trail-cell small{position:absolute;top:5px;left:6px;color:#718589;font:750 clamp(.42rem,1.6vw,.57rem)/1 inherit}
+.tt99-trail-cell.is-given{background:#f1f6f5;color:#284f53}
+.tt99-trail-cell.is-editable{cursor:pointer}
+.tt99-trail-cell.is-editable:hover{background:#f7fbfb}
+.tt99-trail-cell.is-selected{z-index:3;background:#e8f4fb;box-shadow:inset 0 0 0 3px #5b9cc3;border-color:#5b9cc3}
+.tt99-trail-cell.is-hint{background:#fff7dc;box-shadow:inset 0 0 0 3px #d7ad32;border-color:#d7ad32}
+.tt99-trail-cell.is-wrong{background:#fff0eb!important;color:#8d4939;box-shadow:inset 0 0 0 3px #cd7a64!important;border-color:#cd7a64}
+
+/* ---------- Number Search ---------- */
+.tt99-play-numbersearch{width:min(100%,980px)}
+.tt99-numbersearch-layout{
+  display:grid;
+  grid-template-columns:minmax(0,1.12fr) minmax(230px,.72fr);
+  gap:18px;
+  align-items:start;
+  width:100%;
+  min-width:0;
+}
+.tt99-numbersearch-grid{
+  display:grid;
+  grid-template-columns:repeat(var(--n),minmax(0,1fr));
+  grid-template-rows:repeat(var(--n),minmax(0,1fr));
+  width:min(100%,610px);
+  aspect-ratio:1;
+  box-sizing:border-box;
+  border:2px solid #496d72;
+  background:#496d72;
+  gap:1px;
+  margin-inline:auto;
+  touch-action:none;
+  user-select:none;
+  -webkit-user-select:none;
+}
+.tt99-numbersearch-cell{
+  display:grid;
+  place-items:center;
+  min-width:0;
+  min-height:0;
+  width:100%;
+  height:100%;
+  box-sizing:border-box;
+  background:#fff;
+  color:#294d52;
+  font:850 clamp(.48rem,2.5vw,.94rem)/1 inherit;
+}
+.tt99-numbersearch-cell.is-drag{background:#e8f4fb;box-shadow:inset 0 0 0 2px #5b9cc3}
+.tt99-numbersearch-cell.is-found{background:#dff1ed;color:#214e51;box-shadow:inset 0 0 0 1px #66a9a3}
+.tt99-numbersearch-questions{min-width:0;padding:11px;border:1px solid #d5e2e2;border-radius:13px;background:#fbfdfd}
+.tt99-numbersearch-questions>p{margin:0 0 8px;color:#2f555a;font-size:.76rem;text-transform:uppercase;letter-spacing:.05em}
+.tt99-numbersearch-questions ol{display:grid;gap:4px;margin:0;padding-left:1.55rem}
+.tt99-numbersearch-questions li{padding:6px 7px;border-radius:8px;color:#3e5a5f}
+.tt99-numbersearch-questions li b{font-size:.72rem;line-height:1.35}
+.tt99-numbersearch-questions li span{display:block;margin-top:2px;color:#176e67;font-size:.65rem;font-weight:800}
+.tt99-numbersearch-questions li.is-found{background:#edf7f5;text-decoration:line-through;text-decoration-thickness:1px}
+.tt99-numbersearch-questions li.is-hint{background:#fff4cf;box-shadow:inset 0 0 0 1px #e1c35f}
+.tt99-play-numbersearch .tt99-play-board-tip{margin:10px auto 0;width:min(100%,610px);color:#687d81;font-size:.7rem;line-height:1.4;text-align:center}
+
+/* ---------- Number Connections ---------- */
+.tt99-play-numberconnections{display:grid;gap:13px;width:min(100%,800px);justify-items:center}
+.tt99-conn-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+  width:100%;
+  min-width:0;
+}
+.tt99-conn-card{
+  min-width:0;
+  padding:12px;
+  border:1px solid #d3e1e1;
+  border-radius:15px;
+  background:#fff;
+  box-sizing:border-box;
+}
+.tt99-conn-card header{display:grid;gap:3px;margin-bottom:10px}
+.tt99-conn-card header small{color:#6b8084;font-size:.62rem;font-weight:850;text-transform:uppercase;letter-spacing:.055em}
+.tt99-conn-card header strong{color:#2e555a;font-size:.82rem;line-height:1.25}
+.tt99-conn-value{
+  display:grid;
+  place-items:center;
+  min-width:46px;
+  min-height:42px;
+  padding:4px 7px;
+  border:1px solid #9fb6b8;
+  border-radius:10px;
+  background:#fff;
+  color:#294d52;
+  font:850 .9rem/1 inherit;
+  box-sizing:border-box;
+  font-variant-numeric:tabular-nums;
+}
+button.tt99-conn-value{appearance:none;cursor:pointer}
+.tt99-conn-value.is-given{background:#f1f6f5}
+.tt99-conn-value.is-editable.is-selected{z-index:3;background:#e8f4fb;box-shadow:inset 0 0 0 3px #5b9cc3;border-color:#5b9cc3}
+.tt99-conn-value.is-editable.is-hint{background:#fff7dc;box-shadow:inset 0 0 0 3px #d7ad32;border-color:#d7ad32}
+.tt99-conn-value.is-editable.is-wrong{background:#fff0eb!important;color:#8d4939;box-shadow:inset 0 0 0 3px #cd7a64!important;border-color:#cd7a64}
+.tt99-conn-spokes{display:grid;gap:6px}
+.tt99-conn-spoke{display:grid;grid-template-columns:minmax(54px,1fr) 26px minmax(54px,1fr);gap:5px;align-items:center}
+.tt99-conn-spoke>span{min-width:0}.tt99-conn-spoke .tt99-conn-value{width:100%}
+.tt99-conn-spoke>i{text-align:center;color:#16847b;font-style:normal;font-weight:900}
+.tt99-factor-centre{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;padding:8px;border-radius:11px;background:#f5faf9}
+.tt99-factor-centre>span{color:#617b7f;font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.045em}
+.tt99-factor-pairs{display:grid;gap:6px}
+.tt99-factor-row{display:grid;grid-template-columns:minmax(0,1fr) 25px minmax(0,1fr);gap:5px;align-items:center}
+.tt99-factor-row>span:nth-child(2){text-align:center;color:#527176;font-weight:900}.tt99-factor-row .tt99-conn-value{width:100%}
+.tt99-diamond{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  grid-template-areas:". top ." "left . right" ". bottom .";
+  gap:8px;
+  align-items:center;
+  width:min(100%,250px);
+  aspect-ratio:1;
+  margin-inline:auto;
+  padding:8px;
+  box-sizing:border-box;
+  background:linear-gradient(45deg,transparent 49.4%,#cbdadb 49.5%,#cbdadb 50.5%,transparent 50.6%),linear-gradient(-45deg,transparent 49.4%,#cbdadb 49.5%,#cbdadb 50.5%,transparent 50.6%);
+}
+.tt99-diamond .top{grid-area:top}.tt99-diamond .left{grid-area:left}.tt99-diamond .right{grid-area:right}.tt99-diamond .bottom{grid-area:bottom}
+.tt99-diamond .tt99-conn-value{justify-self:stretch;position:relative;z-index:2}
+
+/* ---------- Arithmetic Equation Crossgrid ---------- */
+.tt99-play-equationcrossgrid{display:grid;gap:13px;justify-items:center;width:min(100%,720px)}
+.tt99-crossgrid-board{
+  display:grid;
+  grid-template-columns:repeat(var(--cross-n),minmax(0,1fr));
+  grid-template-rows:repeat(var(--cross-n),minmax(0,1fr));
+  width:min(100%,620px);
+  aspect-ratio:1;
+  border:2px solid #405f64;
+  background:#405f64;
+  gap:1px;
+  box-sizing:border-box;
+}
+.tt99-crossgrid-cell,.tt99-crossgrid-block{
+  min-width:0;
+  min-height:0;
+  width:100%;
+  height:100%;
+  box-sizing:border-box;
+}
+.tt99-crossgrid-block{display:block;background:#405f64}
+.tt99-crossgrid-cell{
+  display:grid;
+  place-items:center;
+  padding:2px;
+  border:0;
+  background:#fff;
+  color:#294d52;
+  font:850 clamp(.58rem,2.75vw,1.04rem)/1 inherit;
+  overflow:hidden;
+  font-variant-numeric:tabular-nums;
+}
+button.tt99-crossgrid-cell{appearance:none;cursor:pointer}
+.tt99-crossgrid-cell.is-given{background:#f7faf9}
+.tt99-crossgrid-cell.is-operator{color:#176e67;font-weight:900}
+.tt99-crossgrid-cell.is-editable.is-selected{z-index:3;background:#e8f4fb;box-shadow:inset 0 0 0 3px #5b9cc3}
+.tt99-crossgrid-cell.is-editable.is-hint{background:#fff7dc;box-shadow:inset 0 0 0 3px #d7ad32}
+.tt99-crossgrid-cell.is-editable.is-wrong{background:#fff0eb!important;color:#8d4939;box-shadow:inset 0 0 0 3px #cd7a64!important}
+.tt99-play-equationcrossgrid.is-size-10 .tt99-crossgrid-cell{font-size:clamp(.48rem,2.25vw,.82rem)}
+
+@media(max-width:760px){
+  .tt99-numbersearch-layout{grid-template-columns:1fr}
+  .tt99-numbersearch-questions{width:min(100%,620px);margin-inline:auto;box-sizing:border-box}
+  .tt99-conn-grid{grid-template-columns:1fr}
+  .tt99-play-numberconnections{width:min(100%,620px)}
+}
+@media(max-width:560px){
+  .tt99-wave184-keypad{position:sticky;bottom:6px;z-index:20;padding:7px;border-radius:14px;background:rgba(248,251,251,.95);backdrop-filter:blur(7px);box-shadow:0 4px 16px rgba(36,68,75,.12);box-sizing:border-box}
+  .tt99-wave184-keypad button{min-height:48px;font-size:1rem}
+  .tt99-trail-board,.tt99-numbersearch-grid,.tt99-crossgrid-board{width:100%}
+  .tt99-trail-board{gap:5px}
+  .tt99-trail-cell{border-radius:10px;padding:2px}
+  .tt99-conn-card{padding:10px}
+  .tt99-conn-value{min-width:42px;min-height:40px;padding-inline:5px}
+}
+@media(max-width:390px){
+  .tt99-wave184-digits,.tt99-wave184-ops{gap:5px}.tt99-wave184-keypad button{min-height:44px}
+  .tt99-trail-cell{font-size:clamp(.72rem,5vw,1rem)}
+  .tt99-numbersearch-cell{font-size:clamp(.43rem,3.1vw,.72rem)}
+  .tt99-play-equationcrossgrid.is-size-10 .tt99-crossgrid-cell{font-size:clamp(.42rem,2.55vw,.68rem)}
+}

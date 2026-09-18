@@ -1,0 +1,66 @@
+/* 99 Club Studio · Custom Worksheets workspace layout
+ * v1.21.1
+ * Loaded only by /tools/99-club/custom/. Keeps public 99 Club layout untouched.
+ */
+
+#tt99-root .tt99-workspace-view-switcher{
+  position:sticky;
+  top:8px;
+  z-index:30;
+  display:flex;
+  align-items:center;
+  gap:3px;
+  width:max-content;
+  max-width:100%;
+  margin:0 0 10px auto;
+  padding:4px;
+  border:1px solid #cfdcde;
+  border-radius:11px;
+  background:rgba(248,251,251,.96);
+  box-shadow:0 5px 16px rgba(31,62,72,.10);
+  backdrop-filter:blur(8px);
+}
+#tt99-root .tt99-workspace-view-switcher>span{
+  padding:0 7px 0 5px;
+  color:#6c7d82;
+  font-size:.62rem;
+  font-weight:800;
+  white-space:nowrap;
+}
+#tt99-root .tt99-workspace-view-switcher button{
+  appearance:none;
+  border:0;
+  border-radius:7px;
+  background:transparent;
+  color:#5f7076;
+  padding:6px 9px;
+  font:800 .65rem/1 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  cursor:pointer;
+}
+#tt99-root .tt99-workspace-view-switcher button:hover{background:#edf4f3;color:#245f5a}
+#tt99-root .tt99-workspace-view-switcher button.is-active{
+  background:#fff;
+  color:#0f766e;
+  box-shadow:0 1px 5px rgba(25,62,70,.12);
+}
+
+/* Balanced deliberately matches the normal public 99 Club proportions. */
+#tt99-root .tt99-workspace--custom.is-balanced{
+  grid-template-columns:minmax(430px,520px) minmax(600px,1fr);
+}
+/* Editing mode: enough room for the large curriculum catalogue without crushing preview completely. */
+#tt99-root .tt99-workspace--custom.is-options-focus{
+  grid-template-columns:minmax(620px,720px) minmax(470px,1fr);
+}
+/* Review mode: keep options usable but favour an A4/landscape preview. */
+#tt99-root .tt99-workspace--custom.is-preview-focus{
+  grid-template-columns:minmax(360px,420px) minmax(760px,1fr);
+}
+
+@media(max-width:1220px){
+  #tt99-root .tt99-workspace--custom.is-balanced,
+  #tt99-root .tt99-workspace--custom.is-options-focus,
+  #tt99-root .tt99-workspace--custom.is-preview-focus{grid-template-columns:1fr}
+  #tt99-root .tt99-workspace--custom .tt99-preview-panel{position:static}
+  #tt99-root .tt99-workspace-view-switcher{display:none}
+}

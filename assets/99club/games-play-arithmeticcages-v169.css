@@ -1,0 +1,58 @@
+/* 99 Club Studio · Arithmetic Cages online-play polish v1.69
+ * Keep every grid cell exactly square and replace inset dashed cage outlines
+ * with clean, solid cage boundaries on the grid lines.
+ */
+.tt99-play-arithmeticcages .tt99-numbergrid{
+  grid-template-columns:repeat(var(--n),minmax(0,1fr));
+  grid-template-rows:repeat(var(--n),minmax(0,1fr));
+  grid-auto-rows:minmax(0,1fr);
+}
+.tt99-play-arithmeticcages .tt99-numbergrid-cell{
+  width:100%;
+  height:100%;
+  box-sizing:border-box;
+}
+
+/* Arithmetic Cages use one shared solid boundary between neighbouring cages.
+ * Top/left edges are sufficient for internal boundaries; the main grid border
+ * already supplies the outside bottom/right edge. This avoids doubled lines.
+ */
+.tt99-play-arithmeticcages .cage-edge{
+  z-index:8;
+  border:0;
+  pointer-events:none;
+}
+.tt99-play-arithmeticcages .cage-edge.top{
+  display:block;
+  top:0;
+  left:0;
+  right:0;
+  border-top:3px solid #4f777b;
+}
+.tt99-play-arithmeticcages .cage-edge.left{
+  display:block;
+  top:0;
+  bottom:0;
+  left:0;
+  border-left:3px solid #4f777b;
+}
+.tt99-play-arithmeticcages .cage-edge.bottom,
+.tt99-play-arithmeticcages .cage-edge.right{
+  display:none;
+}
+.tt99-play-arithmeticcages .cage-target{
+  z-index:9;
+  left:5px;
+  top:4px;
+  background:rgba(255,255,255,.95);
+  padding:1px 3px;
+}
+.tt99-play-arithmeticcages .tt99-numbergrid-cell.is-given .cage-target{
+  background:rgba(241,246,245,.96);
+}
+
+@media(max-width:560px){
+  .tt99-play-arithmeticcages .cage-edge.top{border-top-width:2.5px}
+  .tt99-play-arithmeticcages .cage-edge.left{border-left-width:2.5px}
+  .tt99-play-arithmeticcages .cage-target{left:4px;top:3px}
+}

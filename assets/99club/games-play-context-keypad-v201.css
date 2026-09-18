@@ -1,0 +1,137 @@
+/* 99 Club Studio · unified contextual keypad drawer v2.02
+ * Input-capability aware: touch opens automatically; desktop keeps the
+ * on-screen pad tucked away until the user asks for it.
+ */
+
+#tt99-play-board .tt99-context-pad-managed:not(.tt99-context-pad-active){
+  display:none!important;
+}
+
+#tt99-play-board .tt99-context-pad-launcher{
+  display:inline-flex;align-items:center;justify-content:center;gap:.4rem;
+  min-height:38px;margin:.75rem auto 0;padding:.5rem .9rem;
+  border:1px solid #b9d1d0;border-radius:999px;background:#f5faf9;
+  color:#24575a;font:700 .88rem/1 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  box-shadow:none;cursor:pointer;
+}
+#tt99-play-board .tt99-context-pad-launcher[hidden]{display:none!important}
+#tt99-play-board .tt99-context-pad-launcher:hover,
+#tt99-play-board .tt99-context-pad-launcher:focus-visible{
+  border-color:#74aaa6;background:#edf7f5;outline:none;
+}
+
+#tt99-play-board .tt99-context-pad-active{
+  position:fixed!important;left:50%!important;right:auto!important;
+  bottom:max(12px,env(safe-area-inset-bottom))!important;
+  transform:translateX(-50%)!important;z-index:1200!important;
+  width:min(calc(100vw - 28px),520px)!important;max-width:520px!important;
+  max-height:min(62vh,520px)!important;overflow:auto!important;
+  margin:0!important;padding:34px 10px 10px!important;box-sizing:border-box!important;
+  border:1px solid #bfd3d4!important;border-radius:18px!important;
+  background:rgba(248,251,251,.98)!important;
+  -webkit-backdrop-filter:blur(9px);backdrop-filter:blur(9px);
+  box-shadow:0 10px 32px rgba(35,66,72,.24)!important;
+}
+
+#tt99-play-board .tt99-context-pad-handle{
+  position:absolute;left:8px;right:8px;top:4px;
+  display:flex;align-items:center;justify-content:flex-start;gap:8px;
+  height:26px;min-height:26px!important;padding:0 2px!important;
+  border:0!important;border-radius:10px!important;background:transparent!important;
+  color:#597478!important;box-shadow:none!important;z-index:4;cursor:grab;
+  font:700 .74rem/1 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  user-select:none;touch-action:none;
+}
+#tt99-play-board .tt99-context-pad-dragging .tt99-context-pad-handle{cursor:grabbing}
+#tt99-play-board .tt99-context-handle-bar{
+  display:block;width:34px;height:4px;border-radius:99px;background:#9bb2b4;flex:0 0 auto
+}
+#tt99-play-board .tt99-context-handle-text{display:block;flex:1;white-space:nowrap}
+#tt99-play-board .tt99-context-pad-reset,
+#tt99-play-board .tt99-context-pad-toggle{
+  display:grid!important;place-items:center!important;
+  width:26px!important;height:24px!important;min-height:24px!important;padding:0!important;
+  border:0!important;border-radius:8px!important;background:transparent!important;
+  color:#597478!important;box-shadow:none!important;font:800 .9rem/1 inherit!important;cursor:pointer!important
+}
+#tt99-play-board .tt99-context-pad-reset:hover,
+#tt99-play-board .tt99-context-pad-toggle:hover,
+#tt99-play-board .tt99-context-pad-reset:focus-visible,
+#tt99-play-board .tt99-context-pad-toggle:focus-visible{background:#e6f1f0!important;outline:1px solid #9ebfbd}
+#tt99-play-board .tt99-context-pad-active button{min-height:44px}
+
+#tt99-play-board .tt99-context-pad-active.tt99-context-pad-collapsed{
+  width:150px!important;height:34px!important;max-height:34px!important;
+  padding:0!important;overflow:hidden!important;border-radius:17px!important;
+}
+#tt99-play-board .tt99-context-pad-active.tt99-context-pad-collapsed > :not(.tt99-context-pad-handle){
+  display:none!important;
+}
+#tt99-play-board .tt99-context-pad-active.tt99-context-pad-collapsed .tt99-context-pad-handle{
+  left:8px;right:8px;top:4px;
+}
+#tt99-play-board .tt99-context-pad-active.tt99-context-pad-collapsed .tt99-context-pad-reset{display:none!important}
+
+#tt99-play-board .tt99-context-pad-active.tt99-context-pad-collapsed .tt99-context-handle-bar{
+  background:#6f9295;
+}
+
+
+/* Preserve the native internal layout of each keypad, but make sure inherited
+   fixed widths/margins cannot push the drawer off-screen. */
+#tt99-play-board .tt99-context-pad-active.tt99-wave184-keypad,
+#tt99-play-board .tt99-context-pad-active.tt99-wave186-keypad,
+#tt99-play-board .tt99-context-pad-active.tt99-v196-keypad,
+#tt99-play-board .tt99-context-pad-active.tt99-number-keypad,
+#tt99-play-board .tt99-context-pad-active.tt99-alpha-pad,
+#tt99-play-board .tt99-context-pad-active.tt99-towers-keypad,
+#tt99-play-board .tt99-context-pad-active.tt99-crossnumber-keypad,
+#tt99-play-board .tt99-context-pad-active.tt99-letter-keypad,
+#tt99-play-board .tt99-context-pad-active.tt99-extra-op-pad{
+  min-width:0!important;
+}
+
+/* Width safety for controls that use width:100% together with padding/borders. */
+.tt99-numbergrid,.tt99-number-keypad,
+.tt99-kakuro-board,.tt99-kakuro-keypad,
+.tt99-alpha-equation,.tt99-alpha-pad,
+.tt99-calc-shell,.tt99-target-card,
+.tt99-propertymaze-rule,.tt99-towers-keypad,.tt99-crossnumber-keypad,
+.tt99-pyramid-board{
+  box-sizing:border-box;
+  max-width:100%;
+}
+
+@media(min-width:761px){
+  #tt99-play-board[data-tt99-input-profile="desktop"] .tt99-context-pad-launcher{
+    margin-top:.55rem;min-height:34px;padding:.42rem .8rem;font-size:.82rem;opacity:.9
+  }
+  #tt99-play-board[data-tt99-input-profile="desktop"] .tt99-context-pad-active{
+    width:min(460px,calc(100vw - 40px))!important;
+    bottom:20px!important;
+  }
+  #tt99-play-board .tt99-context-pad-active.tt99-context-pad-moved{
+    left:var(--tt99-pad-x)!important;top:var(--tt99-pad-y)!important;
+    right:auto!important;bottom:auto!important;transform:none!important;
+  }
+}
+
+@media(max-width:700px){
+  #tt99-play-board .tt99-context-pad-handle{cursor:default;touch-action:auto}
+  #tt99-play-board .tt99-context-pad-reset{display:none!important}
+  #tt99-play-board .tt99-context-pad-active{
+    width:min(calc(100vw - 20px),470px)!important;max-width:470px!important;
+    bottom:max(8px,env(safe-area-inset-bottom))!important;
+    padding:32px 9px 9px!important;border-radius:16px!important;
+  }
+  #tt99-play-board .tt99-context-pad-active button{min-height:46px}
+}
+
+@media(max-width:390px){
+  #tt99-play-board .tt99-context-pad-active{
+    width:calc(100vw - 12px)!important;padding:31px 7px 7px!important;
+    bottom:max(5px,env(safe-area-inset-bottom))!important
+  }
+  #tt99-play-board .tt99-context-pad-active button{min-height:43px}
+  #tt99-play-board .tt99-context-pad-launcher{font-size:.82rem}
+}

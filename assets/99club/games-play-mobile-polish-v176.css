@@ -1,0 +1,199 @@
+/* 99 Club Studio · Online Play mobile polish v1.77
+ * - enforces one board-width contract across Online Play
+ * - keeps all recent number-structure games inside the same play width
+ * - aligns focus/selection treatment with established Online Play number grids
+ * - aligns the free-number keypad layout with the shared numeric keypad pattern
+ * - restores compact Arithmagon result bubbles
+ * - enlarges Maths Crossnumber clue numbers
+ * - keeps solved/captured values centred for html2canvas/iOS
+ */
+
+/* ---------- Shared board-shell width contract ----------
+   Every puzzle lives in the same board card and must shrink inside it. This
+   prevents one game family from widening the page because of intrinsic/viewport
+   sizing. */
+.tt99-play-stage,
+.tt99-play-board-card,
+.tt99-play-board-wrap,
+#tt99-play-board{
+  min-width:0!important;
+  max-width:100%!important;
+  box-sizing:border-box!important;
+}
+#tt99-play-board{
+  width:100%!important;
+}
+
+/* ---------- Shared width contract for the latest four games ----------
+   Never use viewport widths inside the board card: 96vw can be wider than the
+   card itself once its padding is included. */
+.tt99-play-pyramid,
+.tt99-play-magic,
+.tt99-play-arithmagon,
+.tt99-play-magicshape{
+  width:min(100%,680px)!important;
+  max-width:100%!important;
+  margin-inline:auto!important;
+  box-sizing:border-box!important;
+}
+.tt99-pyramid-board,
+.tt99-magic-grid,
+.tt99-magic-transform-source,
+.tt99-magic-transform-answer-label,
+.tt99-arith-stage,
+.tt99-mshape-stage{
+  max-width:100%!important;
+  box-sizing:border-box!important;
+}
+.tt99-arith-stage,
+.tt99-mshape-stage{
+  width:min(100%,590px)!important;
+}
+
+/* ---------- Shared numeric-entry selection language ----------
+   Existing number-grid puzzles use the pale blue + #5c9ccc selected state.
+   Apply the same visual language to the newer free-number entry puzzles while
+   keeping the highlight on the real cell/node, never on an inner input. */
+.tt99-magic-cell.tt99-entry-host-active,
+.tt99-pyramid-brick.tt99-entry-host-active,
+.tt99-arith-link.tt99-entry-host-active,
+.tt99-magic-total-entry label.tt99-entry-host-active,
+.tt99-repair-control label.tt99-entry-host-active{
+  background:#eaf4ff!important;
+  border-color:#5c9ccc!important;
+  box-shadow:inset 0 0 0 3px #5c9ccc!important;
+}
+.tt99-arith-node.tt99-entry-host-active,
+.tt99-mshape-node.tt99-entry-host-active{
+  background:#eaf4ff!important;
+  border-color:#5c9ccc!important;
+  box-shadow:0 0 0 3px rgba(92,156,204,.18)!important;
+}
+
+/* ---------- Shared free-number keypad ----------
+   Match the established number-keypad rhythm: three equal numeric columns,
+   consistent key size and a stable final action row. */
+.tt99-structure-keypad{
+  width:min(100%,420px)!important;
+  grid-template-columns:repeat(3,minmax(52px,1fr))!important;
+  gap:7px!important;
+}
+.tt99-structure-keypad button{
+  min-height:48px!important;
+  border-radius:11px!important;
+  font-size:1rem!important;
+}
+.tt99-structure-keypad .clear{
+  grid-column:span 2!important;
+}
+
+/* Frozen values are used by completion previews/share-card capture. Flexbox is
+   more reliable than CSS Grid in html2canvas on iOS, especially inside
+   absolutely positioned/transformed puzzle nodes. */
+.tt99-capture-value{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:100%!important;
+  height:100%!important;
+  min-width:0!important;
+  min-height:0!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+  color:inherit!important;
+  text-align:center!important;
+  font:inherit!important;
+  font-weight:900!important;
+  line-height:1!important;
+  box-sizing:border-box!important;
+}
+
+/* Arithmagon connection entries are compact result bubbles, not full-cell inputs.
+   v1.75's generic 100% input rule made blank links expand across the stage on iOS. */
+.tt99-arith-link.is-entry{
+  width:auto!important;
+  min-width:58px!important;
+  max-width:88px!important;
+  grid-template-columns:20px 46px!important;
+  justify-content:center;
+}
+.tt99-arith-link .tt99-structure-entry,
+.tt99-arith-link .tt99-capture-value{
+  -webkit-appearance:none!important;
+  appearance:none!important;
+  width:46px!important;
+  min-width:46px!important;
+  max-width:46px!important;
+  height:30px!important;
+  min-height:30px!important;
+  max-height:30px!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  outline:0!important;
+  box-shadow:none!important;
+  background:transparent!important;
+  border-radius:7px!important;
+  color:inherit!important;
+  text-align:center!important;
+  font:900 .84rem/1 system-ui!important;
+  box-sizing:border-box!important;
+}
+
+/* Crossnumber clue indices need to remain obvious even on a large 4×6 board. */
+.tt99-crossnumber-cell small{
+  top:4px!important;
+  left:5px!important;
+  font-size:clamp(.62rem,2vw,.85rem)!important;
+  line-height:1!important;
+  font-weight:900!important;
+}
+
+@media(max-width:560px){
+  .tt99-play-pyramid,
+  .tt99-play-magic,
+  .tt99-play-arithmagon,
+  .tt99-play-magicshape,
+  .tt99-pyramid-board,
+  .tt99-magic-grid,
+  .tt99-arith-stage,
+  .tt99-mshape-stage{
+    width:100%!important;
+    max-width:100%!important;
+  }
+
+  .tt99-structure-keypad{
+    width:100%!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:7px!important;
+  }
+  .tt99-structure-keypad button{min-height:46px!important}
+
+  .tt99-arith-link.is-entry{
+    min-width:51px!important;
+    max-width:72px!important;
+    grid-template-columns:17px 39px!important;
+  }
+  .tt99-arith-link .tt99-structure-entry,
+  .tt99-arith-link .tt99-capture-value{
+    width:39px!important;
+    min-width:39px!important;
+    max-width:39px!important;
+    height:27px!important;
+    min-height:27px!important;
+    max-height:27px!important;
+    font-size:.72rem!important;
+  }
+  .tt99-crossnumber-cell small{
+    top:3px!important;
+    left:4px!important;
+    font-size:clamp(.62rem,2.6vw,.8rem)!important;
+  }
+}
+
+@media(max-width:390px){
+  .tt99-structure-keypad{gap:5px!important}
+  .tt99-structure-keypad button{min-height:43px!important}
+}

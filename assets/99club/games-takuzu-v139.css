@@ -1,0 +1,12 @@
+/* 99 Club Studio · v1.39 Binary Puzzle / Takuzu */
+.tt99-takuzu-grid{--takuzu-n:6;display:grid;grid-template-columns:repeat(var(--takuzu-n),1fr);width:min(100%,390px);aspect-ratio:1;margin:10px auto 7px;border:2px solid #4f7075;background:#fff}
+.tt99-takuzu-grid .takuzu-cell{display:grid;place-items:center;border-right:1px solid #a9bec1;border-bottom:1px solid #a9bec1;color:#294b51;font-size:clamp(13px,1.45vw,21px);font-weight:900;line-height:1;background:#fff}
+.tt99-takuzu-grid .takuzu-cell.is-last-col{border-right:0}.tt99-takuzu-grid .takuzu-cell.is-last-row{border-bottom:0}
+.tt99-takuzu-grid .takuzu-cell.given{background:#f2f7f6;color:#244b50}
+.tt99-takuzu-grid .takuzu-cell.answer-fill{background:#e2f3ef;color:#0e746b}
+.tt99-takuzu-rules{display:flex;justify-content:center;gap:7px;flex-wrap:wrap;margin:4px auto 0;max-width:560px;color:#5f777b;font-size:clamp(5px,.55vw,7.5px)}
+.tt99-takuzu-rules span{padding:4px 7px;border:1px solid #d5e2e2;border-radius:999px;background:#fafcfc}
+.tt99-v139-takuzu-card-note{font-size:.58rem;color:#74888d;line-height:1.25;margin:4px 0 0}
+.tt99-game-activities.count-2 .tt99-takuzu-grid{width:min(100%,270px)}
+.tt99-game-activities.count-3 .tt99-takuzu-grid{width:min(100%,185px);margin-top:4px}.tt99-game-activities.count-3 .tt99-takuzu-grid .takuzu-cell{font-size:8px}.tt99-game-activities.count-3 .tt99-takuzu-rules{display:none}
+@media print{.tt99-takuzu-grid .takuzu-cell{background:#fff!important}.tt99-takuzu-grid .takuzu-cell.answer-fill{background:#eaf5f2!important}}

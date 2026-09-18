@@ -1,0 +1,58 @@
+/* 99 Club Studio · Sumplete / Cross-Out Sums */
+.tt99-sumplete-grid{
+  --sumplete-n:5;
+  display:grid;
+  grid-template-columns:repeat(var(--sumplete-n),minmax(0,1fr)) minmax(42px,.82fr);
+  grid-template-rows:repeat(var(--sumplete-n),minmax(0,1fr)) minmax(38px,.76fr);
+  width:min(100%,390px);
+  aspect-ratio:1;
+  margin:7px auto;
+  border:1.5px solid #607b80;
+  background:#fff;
+}
+.tt99-sumplete-grid>span{
+  position:relative;
+  display:grid;
+  place-items:center;
+  min-width:0;
+  min-height:0;
+  border-right:.8px solid #aababc;
+  border-bottom:.8px solid #aababc;
+  background:#fff;
+  color:#294a51;
+  font-size:clamp(8px,.95vw,15px);
+  font-weight:850;
+  line-height:1;
+}
+.tt99-sumplete-grid>span.target{
+  background:#f1f8f6;
+  color:#176f67;
+  font-weight:950;
+}
+.tt99-sumplete-grid>span.corner{
+  background:#e8f3f1;
+  color:#4a6b6f;
+  font-size:clamp(5px,.5vw,8px);
+  letter-spacing:.04em;
+}
+.tt99-sumplete-grid>span.answer-keep{background:#e6f6f2;color:#126c64}
+.tt99-sumplete-grid>span.answer-cross{color:#9aa8ab;font-weight:700}
+.tt99-sumplete-grid>span.answer-cross:before,
+.tt99-sumplete-grid>span.answer-cross:after{
+  content:"";
+  position:absolute;
+  left:15%;right:15%;top:50%;
+  height:1.4px;
+  background:#a46860;
+  transform:rotate(35deg);
+  transform-origin:center;
+}
+.tt99-sumplete-grid>span.answer-cross:after{transform:rotate(-35deg)}
+.tt99-sumplete-key{margin:3px 0 0;text-align:center;color:#71868b;font-size:clamp(5px,.52vw,7px)}
+.tt99-game-activities.count-2 .tt99-sumplete-grid{width:min(100%,270px)}
+.tt99-game-activities.count-3 .tt99-sumplete-grid{width:min(100%,185px);margin-top:3px}
+@media(max-width:900px){.tt99-sumplete-grid{width:min(100%,340px)}}
+@media print{
+  .tt99-sumplete-grid>span,.tt99-sumplete-grid>span.target,.tt99-sumplete-grid>span.corner{background:#fff!important}
+  .tt99-sumplete-grid>span.answer-keep{background:#fff!important}
+}

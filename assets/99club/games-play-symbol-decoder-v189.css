@@ -1,0 +1,51 @@
+/* 99 Club Studio · Symbol Decoder online polish v1.89 */
+.tt99-play-symbol-decoder .tt99-decoder-code{
+  display:grid;
+  grid-template-columns:repeat(var(--tt99-decoder-length,6),minmax(0,1fr));
+  gap:clamp(3px,.8vw,7px);
+  width:min(100%,var(--tt99-decoder-max,420px));
+  margin-inline:auto;
+  flex-wrap:initial;
+}
+.tt99-play-symbol-decoder .tt99-decoder-code span{
+  width:100%;
+  min-width:0;
+  max-width:54px;
+  justify-self:center;
+  font-size:clamp(.95rem,4.4vw,1.8rem);
+  border-radius:clamp(8px,2vw,13px);
+}
+.tt99-play-symbol-decoder.is-decoder-long .tt99-decoder-code span{
+  font-size:clamp(.86rem,3.8vw,1.5rem);
+}
+.tt99-play-symbol-decoder.is-decoder-very-long .tt99-decoder-code span{
+  font-size:clamp(.78rem,3.5vw,1.35rem);
+}
+.tt99-play-symbol-decoder .tt99-decoder-inline-definition{
+  margin:.7rem auto 0;
+  padding:.65rem .85rem;
+  width:min(100%,42rem);
+  border:0;
+  border-top:1px solid #c9ddda;
+  border-radius:0;
+  background:transparent;
+}
+.tt99-play-symbol-decoder .tt99-decoder-inline-definition>small,
+.tt99-play-symbol-decoder .tt99-decoder-inline-definition>strong{
+  display:none;
+}
+.tt99-play-symbol-decoder .tt99-decoder-inline-definition>p{
+  margin:0;
+  color:#496b6e;
+  font-size:clamp(.88rem,3.5vw,1rem);
+  line-height:1.4;
+}
+.tt99-play-symbol-decoder .tt99-decoder-inline-definition>p::before{
+  content:'Meaning: ';
+  font-weight:800;
+  color:#315b60;
+}
+@media(max-width:390px){
+  .tt99-play-symbol-decoder .tt99-decoder-code{gap:3px}
+  .tt99-play-symbol-decoder .tt99-decoder-code span{max-width:none}
+}

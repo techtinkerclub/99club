@@ -1,0 +1,37 @@
+{
+  "module": "Custom Worksheets - Coordinate Geometry Stage 2",
+  "version": "0.2.0",
+  "date": "2026-09-10",
+  "families": {
+    "coordinates_y4": {"year": 4, "subtypes": 12, "pool_entries": 72},
+    "transformations_y5": {"year": 5, "subtypes": 9, "pool_entries": 54},
+    "coordinates_y6": {"year": 6, "subtypes": 18, "pool_entries": 108},
+    "coordinates_extension": {"year": null, "extension": true, "subtypes": 4, "pool_entries": 24}
+  },
+  "total_coordinate_subtypes": 43,
+  "total_coordinate_pool_entries": 258,
+  "custom_selection": {
+    "default_selected_topics": 0,
+    "year_quick_selects": false,
+    "clear_one_category": true,
+    "clear_all": true,
+    "teacher_controlled_accordion": true,
+    "optional_year_profile_selects_topics": false
+  },
+  "regression_boundary": {
+    "public_99_club_page_changed": false,
+    "classic_and_post99_fixed_seed_cases_checked": 150,
+    "fixed_seed_differences": 0
+  },
+  "qa": {
+    "base_smoke": "PASS",
+    "visual_smoke": "PASS",
+    "coordinate_1000_seed_stress_each_family": "PASS",
+    "coordinate_visual_bounds": "PASS",
+    "graph_pool_regression": "PASS",
+    "mixed_visual_text_stress": "PASS",
+    "portrait_visual_document": "PASS",
+    "landscape_visual_document": "PASS",
+    "mutation_observer_removed": true
+  }
+}

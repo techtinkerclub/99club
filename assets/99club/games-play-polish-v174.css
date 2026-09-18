@@ -1,0 +1,53 @@
+/* 99 Club Studio · Online Play polish v1.75 */
+
+/* Shared virtual keypad for Number Pyramid / Magic Squares / Arithmagons / Magic Shapes. */
+.tt99-structure-keypad{width:min(100%,430px);margin:10px auto 0;grid-template-columns:repeat(4,minmax(0,1fr))!important}
+.tt99-structure-keypad button{min-height:46px}
+.tt99-structure-keypad .clear{grid-column:span 3}
+
+/* The number itself must not draw a second native input-shaped focus box. The
+   puzzle cell/node is the selection surface; this keeps circles circular and
+   grid values centred on iOS as well as desktop. */
+.tt99-magic-cell .tt99-structure-entry,
+.tt99-pyramid-brick .tt99-structure-entry,
+.tt99-arith-node .tt99-structure-entry,
+.tt99-arith-link .tt99-structure-entry,
+.tt99-mshape-node .tt99-structure-entry{
+  -webkit-appearance:none!important;appearance:none!important;
+  width:100%;height:100%;min-width:0;min-height:0;margin:0!important;padding:0!important;
+  border:0!important;outline:0!important;box-shadow:none!important;background:transparent!important;
+  border-radius:inherit!important;color:inherit;text-align:center;font:inherit;font-weight:900;line-height:1;
+}
+.tt99-structure-entry:focus,.tt99-structure-entry:focus-visible{outline:0!important;box-shadow:none!important}
+.tt99-structure-entry.is-keypad-active{outline:0!important;box-shadow:none!important}
+.tt99-entry-host-active{border-color:#178b82!important;box-shadow:0 0 0 3px rgba(23,139,130,.20)!important}
+
+/* html2canvas and the completion preview use static text instead of native
+   input controls. This avoids Safari/html2canvas placing typed values against
+   the top edge of a cell. */
+.tt99-capture-value{display:grid!important;place-items:center!important;width:100%!important;height:100%!important;min-width:0;min-height:0;margin:0!important;padding:0!important;border:0!important;background:transparent!important;color:inherit!important;text-align:center!important;font:inherit!important;font-weight:900!important;line-height:1!important;box-sizing:border-box}
+
+/* Magic Square transform mode must show the square being transformed. */
+.tt99-magic-transform-source{width:min(100%,520px);display:grid;gap:9px;padding:11px;border:1px solid #d3e3e1;border-radius:14px;background:#f8fbfa;box-sizing:border-box}
+.tt99-magic-transform-source-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;color:#47666b}
+.tt99-magic-transform-source-head strong{font-size:.84rem;color:#24555a}
+.tt99-magic-transform-source-head span{font-size:.7rem;font-weight:700}
+.tt99-magic-source-grid{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));grid-template-rows:repeat(var(--n),minmax(0,1fr));aspect-ratio:1;border:2px solid #78979a;background:#78979a;gap:1px;box-sizing:border-box}
+.tt99-magic-source-grid>div{display:grid;place-items:center;min-width:0;min-height:0;background:#eef6f5;color:#294d52;font:900 clamp(.82rem,3.8vw,1.25rem)/1 system-ui}
+.tt99-magic-transform-answer-label{width:min(100%,520px);margin-bottom:-6px;color:#657c80;text-align:left;font-size:.72rem;font-weight:850}
+
+/* Completed puzzles should never retain a transient focus/selection state. */
+.tt99-play-complete-snapshot .is-selected,
+.tt99-play-complete-snapshot .is-related,
+.tt99-play-complete-snapshot .is-same,
+.tt99-play-complete-snapshot .is-current,
+.tt99-play-complete-snapshot .is-hint,
+.tt99-play-complete-snapshot .is-wrong,
+.tt99-play-complete-snapshot .is-keypad-active,
+.tt99-play-complete-snapshot .tt99-entry-host-active{box-shadow:none!important;outline:none!important}
+
+@media(max-width:560px){
+  .tt99-structure-keypad{width:100%;gap:7px}
+  .tt99-structure-keypad button{min-height:48px;font-size:1rem}
+  .tt99-magic-transform-source-head{display:grid;gap:2px}
+}

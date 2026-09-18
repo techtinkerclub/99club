@@ -1,0 +1,37 @@
+/* 99 Club Studio · contextual mobile keypad v2.00
+ * Long puzzles keep their normal inline keypad on desktop. On narrow screens,
+ * tapping an editable answer promotes that existing keypad to a compact floating
+ * control so pupils do not need to scroll several screens to enter a value.
+ */
+@media(max-width:700px){
+  #tt99-play-board.tt99-has-context-pad{padding-bottom:var(--tt99-context-pad-space,190px)!important}
+  #tt99-play-board .tt99-context-pad-active{
+    position:fixed!important;
+    left:50%!important;
+    right:auto!important;
+    bottom:max(8px,env(safe-area-inset-bottom))!important;
+    transform:translateX(-50%)!important;
+    z-index:1200!important;
+    width:min(calc(100vw - 20px),470px)!important;
+    max-width:470px!important;
+    margin:0!important;
+    padding:9px!important;
+    box-sizing:border-box!important;
+    border:1px solid #bfd3d4!important;
+    border-radius:16px!important;
+    background:rgba(248,251,251,.97)!important;
+    -webkit-backdrop-filter:blur(9px);
+    backdrop-filter:blur(9px);
+    box-shadow:0 8px 28px rgba(35,66,72,.20)!important;
+  }
+  #tt99-play-board .tt99-context-pad-active button{min-height:46px}
+  #tt99-play-board .tt99-context-pad-active.tt99-wave184-keypad,
+  #tt99-play-board .tt99-context-pad-active.tt99-wave186-keypad,
+  #tt99-play-board .tt99-context-pad-active.tt99-v196-keypad,
+  #tt99-play-board .tt99-context-pad-active.tt99-alpha-pad,
+  #tt99-play-board .tt99-context-pad-active.tt99-kakuro-keypad{gap:6px}
+}
+@media(max-width:390px){
+  #tt99-play-board .tt99-context-pad-active{width:calc(100vw - 12px)!important;padding:7px!important;bottom:max(5px,env(safe-area-inset-bottom))!important}
+  #tt99-play-board .tt99-context-pad-active button{min-height:43px}
+}

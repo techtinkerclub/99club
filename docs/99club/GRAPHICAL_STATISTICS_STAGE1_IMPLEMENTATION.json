@@ -1,0 +1,40 @@
+{
+  "version": "0.1.0",
+  "date": "2026-09-10",
+  "scope": "Custom Worksheets graphical Statistics integration",
+  "new_teacher_families": [
+    "bar_charts",
+    "time_graphs",
+    "line_graphs"
+  ],
+  "catalogue_sizes": {
+    "bar_chart_stable_types": 46,
+    "line_graph_stable_types": 29
+  },
+  "eligible_core_plus_counts": {
+    "bar_charts": {
+      "3": 18,
+      "4": 30
+    },
+    "time_graphs": {
+      "4": 11
+    },
+    "line_graphs": {
+      "5": 20,
+      "6": 26
+    }
+  },
+  "implemented_default_types": {
+    "bar": 29,
+    "line": 26
+  },
+  "layout": "automatic multi-page S/M/L/XL-style footprint packing; graph M/L/XL plus text S",
+  "public_99_club_changed": false,
+  "known_deferred": [
+    "open-ended own-data bar-chart investigation",
+    "cross-topic/extension graph types not default-selected",
+    "Y6 line-graph construction families not yet built",
+    "pie charts",
+    "pictograms/tables/timetables"
+  ]
+}

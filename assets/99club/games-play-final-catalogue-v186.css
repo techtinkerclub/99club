@@ -1,0 +1,103 @@
+/* 99 Club Studio · final printable-catalogue Online Play wave v1.86
+ * Symbol Equations, Function Machines, Equation Repair and Maths Crossword.
+ */
+
+/* ---------- shared numeric keypad ---------- */
+.tt99-wave186-keypad{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:7px;
+  width:min(100%,470px);
+  margin:14px auto 0;
+}
+.tt99-wave186-keypad button{
+  appearance:none;min-width:0;min-height:46px;padding:7px;
+  border:1px solid #c6d7d8;border-radius:11px;background:#fff;color:#294d52;
+  font:850 .95rem/1 inherit;cursor:pointer;touch-action:manipulation;
+}
+.tt99-wave186-keypad button:hover:not(:disabled),.tt99-wave186-keypad button:focus-visible{border-color:#75aaa7;background:#f0f8f7;outline:none}
+.tt99-wave186-keypad button:disabled{opacity:.43;cursor:not-allowed}
+.tt99-wave186-keypad .clear{grid-column:span 2;color:#657d81;font-size:.75rem}
+
+/* ---------- Symbol Equations ---------- */
+.tt99-play-symbols{display:grid;gap:14px;width:min(100%,720px);margin-inline:auto}
+.tt99-symbol-equations{display:grid;gap:9px;width:min(100%,620px);margin-inline:auto}
+.tt99-symbol-equations>div{display:grid;grid-template-columns:86px minmax(0,1fr);align-items:center;gap:10px;padding:12px 14px;border:1px solid #d3e1e1;border-radius:13px;background:#fff;box-sizing:border-box}
+.tt99-symbol-equations small{color:#6a8185;font-size:.66rem;font-weight:850;text-transform:uppercase;letter-spacing:.05em}
+.tt99-symbol-equations strong{color:#294d52;font:900 clamp(1rem,4vw,1.32rem)/1.2 inherit;text-align:center}
+.tt99-symbol-answers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;width:min(100%,520px);margin-inline:auto}
+.tt99-symbol-answers button{appearance:none;display:grid;grid-template-columns:auto 1fr;align-items:center;gap:8px;min-width:0;min-height:66px;padding:10px 13px;border:1px solid #a7bdbe;border-radius:13px;background:#fff;color:#294d52;cursor:pointer;box-sizing:border-box;touch-action:manipulation}
+.tt99-symbol-answers button>span{display:grid;place-items:center;width:34px;aspect-ratio:1;border-radius:50%;background:#e9f5f3;color:#176e67;font-weight:950}
+.tt99-symbol-answers button>b{display:grid;place-items:center;min-height:38px;border-bottom:2px solid #9eb6b7;font-size:1.08rem}
+.tt99-symbol-answers button.is-selected{background:#e8f4fb;box-shadow:inset 0 0 0 3px #5b9cc3;border-color:#5b9cc3}
+.tt99-symbol-answers button.is-hint{background:#fff7dc;box-shadow:inset 0 0 0 3px #d7ad32;border-color:#d7ad32}
+.tt99-symbol-answers button.is-wrong{background:#fff0eb;color:#8d4939;box-shadow:inset 0 0 0 3px #cd7a64;border-color:#cd7a64}
+
+/* ---------- Function Machines ---------- */
+.tt99-play-functionmachine{display:grid;gap:14px;width:min(100%,760px);margin-inline:auto}
+.tt99-machine-rule{display:grid;gap:8px;width:min(100%,660px);margin-inline:auto;padding:12px 14px;border:1px solid #cfe0de;border-radius:14px;background:#f6fbfa;box-sizing:border-box}
+.tt99-machine-rule>small{color:#6a8185;font-size:.67rem;font-weight:850;text-transform:uppercase;letter-spacing:.055em}
+.tt99-machine-rule>div{display:flex;align-items:center;justify-content:center;gap:7px;flex-wrap:wrap;color:#294d52}
+.tt99-machine-rule span{font-size:.72rem;font-weight:800;color:#617b7f}
+.tt99-machine-rule i{font-style:normal;color:#16847b;font-weight:900}
+.tt99-machine-rule strong{padding:7px 10px;border:1px solid #95bbb7;border-radius:9px;background:#fff;color:#176e67;font-size:.9rem}
+.tt99-machine-rows{display:grid;gap:8px;width:min(100%,600px);margin-inline:auto}
+.tt99-machine-rows>div{display:grid;grid-template-columns:34px minmax(0,1fr) 38px minmax(0,1fr);align-items:center;gap:7px;min-width:0}
+.tt99-machine-rows>div>small{display:grid;place-items:center;color:#73888c;font-size:.64rem;font-weight:850}
+.tt99-machine-rows>div>i{text-align:center;color:#16847b;font-style:normal;font-weight:950}
+.tt99-machine-rows .given,.tt99-machine-rows button{display:grid;place-items:center;min-width:0;min-height:48px;padding:5px;border:1px solid #a9bdbf;border-radius:11px;box-sizing:border-box;font:900 .98rem/1 inherit;color:#294d52}
+.tt99-machine-rows .given{background:#eef5f4}
+.tt99-machine-rows button{appearance:none;background:#fff;cursor:pointer;touch-action:manipulation}
+.tt99-machine-rows button.is-selected{background:#e8f4fb;box-shadow:inset 0 0 0 3px #5b9cc3;border-color:#5b9cc3}
+.tt99-machine-rows button.is-hint{background:#fff7dc;box-shadow:inset 0 0 0 3px #d7ad32;border-color:#d7ad32}
+.tt99-machine-rows button.is-wrong{background:#fff0eb;color:#8d4939;box-shadow:inset 0 0 0 3px #cd7a64;border-color:#cd7a64}
+
+/* ---------- Equation Repair ---------- */
+.tt99-play-balance{display:grid;gap:14px;width:min(100%,760px);margin-inline:auto}
+.tt99-balance-list{display:grid;gap:9px;width:min(100%,680px);margin-inline:auto}
+.tt99-balance-list>div{display:grid;grid-template-columns:34px minmax(0,1fr) minmax(62px,100px) minmax(0,1fr);align-items:center;gap:7px;min-width:0;padding:8px 10px;border:1px solid #d5e2e2;border-radius:12px;background:#fff;box-sizing:border-box;color:#294d52;font:850 clamp(.8rem,3vw,1.02rem)/1.25 inherit}
+.tt99-balance-list small{color:#73888c;font-size:.62rem;text-align:center}
+.tt99-balance-list>div>span:first-of-type{text-align:right}.tt99-balance-list>div>span:last-child{text-align:left}
+.tt99-balance-list button{appearance:none;display:grid;place-items:center;min-width:0;min-height:43px;padding:4px 7px;border:1px solid #9eb6b7;border-radius:9px;background:#fff;color:#294d52;font:900 1rem/1 inherit;cursor:pointer;touch-action:manipulation}
+.tt99-balance-list button.is-selected{background:#e8f4fb;box-shadow:inset 0 0 0 3px #5b9cc3;border-color:#5b9cc3}
+.tt99-balance-list button.is-hint{background:#fff7dc;box-shadow:inset 0 0 0 3px #d7ad32;border-color:#d7ad32}
+.tt99-balance-list button.is-wrong{background:#fff0eb;color:#8d4939;box-shadow:inset 0 0 0 3px #cd7a64;border-color:#cd7a64}
+
+/* ---------- Maths Crossword ---------- */
+.tt99-play-crossword{width:100%;min-width:0}
+.tt99-crossword-layout{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(250px,.78fr);gap:18px;align-items:start;width:min(100%,1000px);margin-inline:auto;min-width:0}
+.tt99-crossword-grid{display:grid;grid-template-columns:repeat(var(--cw),minmax(0,1fr));grid-template-rows:repeat(var(--ch),minmax(0,1fr));width:min(100%,650px);aspect-ratio:var(--cw)/var(--ch);box-sizing:border-box;margin-inline:auto;min-width:0;background:transparent}
+.tt99-crossword-grid>[data-cw],.tt99-crossword-void{min-width:0;min-height:0;width:100%;height:100%;box-sizing:border-box}
+.tt99-crossword-void{display:block;background:transparent}
+.tt99-crossword-grid>[data-cw]{appearance:none;position:relative;display:grid;place-items:center;margin:-.5px;padding:0;border:1px solid #668387;background:#fff;color:#294d52;font:900 clamp(.58rem,2.2vw,.94rem)/1 inherit;cursor:pointer;touch-action:manipulation;z-index:1}
+.tt99-crossword-grid>[data-cw] small{position:absolute;top:2px;left:3px;color:#617b7f;font:800 clamp(.32rem,1vw,.44rem)/1 Arial,sans-serif}
+.tt99-crossword-grid>[data-cw].is-related{background:#f0f7f6}
+.tt99-crossword-grid>[data-cw].is-selected{z-index:4;background:#e8f4fb;box-shadow:inset 0 0 0 3px #5b9cc3}
+.tt99-crossword-grid>[data-cw].is-wrong{z-index:3;background:#fff0eb;color:#8d4939;box-shadow:inset 0 0 0 3px #cd7a64}
+.tt99-crossword-bank{display:grid;gap:3px;width:min(100%,650px);margin:10px auto 0;padding:9px 11px;border:1px solid #d4e2e1;border-radius:11px;background:#f8fbfa;box-sizing:border-box;color:#597277}
+.tt99-crossword-bank strong{font-size:.65rem;text-transform:uppercase;letter-spacing:.055em}.tt99-crossword-bank span{font-size:.68rem;line-height:1.45}
+.tt99-crossword-clues{display:grid;gap:12px;min-width:0}.tt99-crossword-clues section{display:grid;gap:4px;padding:10px;border:1px solid #d5e2e2;border-radius:13px;background:#fbfdfd}
+.tt99-crossword-clues h3{margin:0 0 4px;color:#2f555a;font-size:.73rem;text-transform:uppercase;letter-spacing:.06em}
+.tt99-crossword-clues button{appearance:none;display:grid;grid-template-columns:26px minmax(0,1fr);gap:6px;width:100%;min-width:0;padding:6px;border:0;border-radius:8px;background:transparent;color:#3e5a5f;text-align:left;cursor:pointer;font:inherit}
+.tt99-crossword-clues button b{color:#176e67;font-size:.68rem}.tt99-crossword-clues button span{font-size:.68rem;line-height:1.35;overflow-wrap:anywhere}
+.tt99-crossword-clues button:hover,.tt99-crossword-clues button.is-active{background:#edf7f5}.tt99-crossword-clues button.is-hint{background:#fff4cf;box-shadow:inset 0 0 0 1px #e1c35f}
+.tt99-letter-keypad{display:grid;gap:5px;width:min(100%,650px);margin:12px auto 0;padding:8px;border:1px solid #d5e2e2;border-radius:14px;background:#f8fbfb;box-sizing:border-box}
+.tt99-letter-keypad>div{display:grid;grid-template-columns:repeat(var(--letters,10),minmax(0,1fr));gap:4px}.tt99-letter-keypad>div:nth-child(1){--letters:10}.tt99-letter-keypad>div:nth-child(2){--letters:9;padding-inline:4%}.tt99-letter-keypad>div:nth-child(3){--letters:7;padding-inline:12%}.tt99-letter-keypad>div.controls{grid-template-columns:1fr 2fr;padding-inline:12%}
+.tt99-letter-keypad button{appearance:none;min-width:0;min-height:39px;padding:2px;border:1px solid #c6d7d8;border-radius:8px;background:#fff;color:#294d52;font:850 clamp(.62rem,2.4vw,.82rem)/1 inherit;cursor:pointer;touch-action:manipulation}
+.tt99-letter-keypad button:disabled{opacity:.43;cursor:not-allowed}
+
+@media(max-width:760px){
+  .tt99-crossword-layout{grid-template-columns:1fr}.tt99-crossword-clues{grid-template-columns:1fr 1fr}.tt99-crossword-grid{width:min(100%,650px)}
+}
+@media(max-width:560px){
+  .tt99-wave186-keypad,.tt99-letter-keypad{position:sticky;bottom:6px;z-index:20;background:rgba(248,251,251,.96);backdrop-filter:blur(7px);box-shadow:0 4px 16px rgba(36,68,75,.12)}
+  .tt99-symbol-equations>div{grid-template-columns:1fr;gap:4px}.tt99-symbol-equations small{text-align:center}
+  .tt99-symbol-answers{grid-template-columns:repeat(2,minmax(0,1fr))}.tt99-machine-rule>div{gap:5px}.tt99-machine-rule strong{padding:6px 8px}
+  .tt99-balance-list>div{grid-template-columns:25px minmax(0,1fr) 68px minmax(0,1fr);gap:4px;padding-inline:6px}
+  .tt99-crossword-clues{grid-template-columns:1fr}.tt99-crossword-grid>[data-cw]{font-size:clamp(.52rem,3.4vw,.85rem)}
+  .tt99-letter-keypad{padding:6px}.tt99-letter-keypad button{min-height:41px}
+}
+@media(max-width:390px){
+  .tt99-symbol-answers{grid-template-columns:1fr 1fr}.tt99-machine-rows>div{grid-template-columns:25px minmax(0,1fr) 25px minmax(0,1fr)}
+  .tt99-balance-list>div{font-size:.75rem}.tt99-crossword-clues button span{font-size:.64rem}
+}

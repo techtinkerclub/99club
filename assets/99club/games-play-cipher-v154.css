@@ -1,0 +1,7 @@
+/* 99 Club Studio · Operation Codebreaker cipher helper v1.54 */
+.tt99-cipher-rule{font-size:.9rem;line-height:1.52;padding:12px 14px}.tt99-cipher-rule strong{color:#24565a}
+.tt99-cipher-pairs>span{min-width:54px;padding:10px 9px}.tt99-cipher-pairs b{font-size:1.34rem}.tt99-cipher-pairs small{font-size:.83rem;letter-spacing:.02em}
+/* A–Z shown as two generous 13-letter rows rather than one tiny compressed line. */
+.tt99-cipher-alphabet{display:grid;grid-template-columns:repeat(13,minmax(0,1fr));gap:4px 2px;padding:12px 8px;border-top:1px solid #e2ebec;border-bottom:1px solid #e2ebec;font:900 1.02rem/1.35 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:0;text-align:center;color:#516d72;overflow:visible;overflow-wrap:normal}
+.tt99-cipher-alphabet span{display:grid;place-items:center;min-height:27px;border-radius:6px}
+@media(max-width:620px){.tt99-cipher-rule{font-size:.84rem;padding:10px 11px}.tt99-cipher-pairs>span{min-width:46px;padding:8px 7px}.tt99-cipher-pairs b{font-size:1.2rem}.tt99-cipher-alphabet{font-size:.9rem;gap:3px 1px;padding:9px 5px}.tt99-cipher-alphabet span{min-height:24px}}
