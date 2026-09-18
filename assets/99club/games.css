@@ -798,3 +798,39 @@
   .tt99-crossnumber .tt99-crossword-grid.is-tall{height:auto!important;width:min(100%,430px)!important}
   .tt99-kakuro .tt99-kakuro-grid{width:min(100%,430px)!important}
 }
+
+/* v1.31.6 — Crossnumber layout/readability polish */
+.tt99-crossnumber .tt99-crossword-layout{
+  grid-template-columns:minmax(0,.55fr) minmax(0,.45fr);
+  gap:10px;
+}
+.tt99-crossnumber .tt99-crossword-clues{
+  align-content:center;
+  gap:9px;
+}
+.tt99-crossnumber .tt99-crossword-grid i{
+  font-size:clamp(7px,.62vw,9.5px);
+}
+.tt99-crossnumber .tt99-crossword-clue-group h4{
+  font-size:clamp(7.8px,.78vw,10.5px);
+  line-height:1.1;
+  margin-bottom:4px;
+}
+.tt99-crossnumber .tt99-crossword-clue-group li{
+  font-size:clamp(5.8px,.60vw,8px);
+  line-height:1.2;
+  margin-bottom:3px;
+}
+.tt99-game-activities.count-2 .tt99-crossnumber .tt99-crossword-clue-group li{
+  font-size:clamp(5.4px,.56vw,7.4px);
+  line-height:1.18;
+}
+.tt99-game-activities.count-3 .tt99-crossnumber .tt99-crossword-clue-group h4{
+  font-size:6.6px;
+}
+.tt99-game-activities.count-3 .tt99-crossnumber .tt99-crossword-clue-group li{
+  font-size:4.8px;
+  line-height:1.08;
+  margin-bottom:1px;
+}
+
