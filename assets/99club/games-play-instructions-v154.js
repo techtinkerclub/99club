@@ -29,7 +29,7 @@ const COPY={
   sumplete:'Cross out numbers so the numbers left make every row and column target. A crossed-out number counts in neither its row nor its column; tap again to restore it.',
   symbols:'Use the linked clues to find each symbol value. The same symbol always has the same value and different symbols represent different letter values; convert 1=A, 2=B, … 26=Z to reveal the word.',
   functionmachine:'Apply the machine stages in printed order from Input to Output. If the input is missing, undo the stages in reverse order using inverse operations.',
-  balance:'Solve the balances to collect the missing weights. On the final scale, use every collected weight exactly once and make the two pan totals equal.',
+  balance:'Make both sides of each equation equal. A solved balance unlocks its common value as a weight; on the final scale, use every collected weight exactly once and make the two pan totals equal.',
   alphametics:'Replace each letter with one digit so the addition is correct. The same letter keeps its digit, different letters use different digits, and no word may start with 0.',
   sudoku:'Use each number once in every row and column, and in Sudoku once in every outlined box. The rule is per row, column and box — a number may appear again elsewhere in the grid.',
   futoshiki:'Use each number once in every row and column. Obey every inequality sign: the pointed/narrow end faces the smaller number.',
