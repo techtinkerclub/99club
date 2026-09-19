@@ -1,7 +1,7 @@
 ---
 layout: default
-title: "School Website Publishing Guide"
-description: "Complete step-by-step guide for adding 99 Club Studio parent-practice links, cards, PNG images, website packs and widgets to a school website."
+title: "School Website Integration Help"
+description: "Complete school website integration help for adding 99 Club Studio parent-practice links, cards, PNG images, website packs and widgets."
 permalink: /schools/
 sidebar: false
 sitemap: true
@@ -13,7 +13,7 @@ sitemap: true
       <div class="tt99-guide">
         <div class="tt99-guide-hero">
           <div>
-            <span class="tt99-eyebrow">99 Club Studio · School website help</span>
+            <span class="tt99-eyebrow">99 Club Studio · School website integration help</span>
             <h1>Adding 99 Club Studio to your school website</h1>
             <p>A complete, platform-neutral guide for teachers, maths leads and school website editors. Start here whether you want one simple link, a picture/card, a complete website pack or an embedded widget.</p>
           </div>
@@ -22,7 +22,7 @@ sitemap: true
 
         <div class="tt99-guide-note"><strong>You do not need to be a web developer.</strong> The safest approach is to use the simplest option your school website editor supports. Nothing in 99 Club Studio changes the school website automatically: an authorised member of staff must add or replace the link/card/widget in the school website editor and publish the page.</div>
 
-        <nav class="tt99-guide-nav" aria-label="School website help topics">
+        <nav class="tt99-guide-nav" aria-label="School website integration help topics">
           <a href="#choose">Choose a method</a>
           <a href="#before">Before you start</a>
           <a href="#plain-link">Plain link / school button</a>
@@ -196,7 +196,7 @@ sitemap: true
           <ol>
             <li>Configure a printable puzzle pack in Maths Games &amp; Puzzles.</li>
             <li>Open its parent-sharing panel.</li>
-            <li>Choose <strong>Add current pack to widget</strong>.</li>
+            <li>Choose <strong>Open widget builder</strong>. The current locked pack is carried into the builder automatically.</li>
             <li>The Widget Builder opens with that locked pack included.</li>
             <li>To add a different printable pack, return to Maths Games &amp; Puzzles, configure another setup and add that pack as well.</li>
             <li>In the Widget Builder, tick any online games you want parents to see.</li>
