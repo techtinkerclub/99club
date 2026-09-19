@@ -4,7 +4,23 @@
 (function(global){
 'use strict';
 const ROOT_ID='tt99-play-root',STORE_PREFIX='tt99-games-play-v2',adapters=new Map();
-const track=(name,params)=>global.TT99Analytics?.track(name,params);
+function analyticsAttribution(){
+  let integrationId='',sourceOrigin='';
+  try{
+    const raw=new URLSearchParams(global.location.search).get('via')||'';
+    if(/^wid_[a-z0-9]{8,32}$/i.test(raw))integrationId=raw.toLowerCase();
+  }catch(_){}
+  try{
+    const ref=String(global.document?.referrer||'');
+    if(ref){
+      const origin=new URL(ref).origin;
+      if(/^https?:\/\//i.test(origin)&&origin!==global.location.origin)sourceOrigin=origin;
+    }
+  }catch(_){}
+  return {integration_id:integrationId||undefined,source_origin:sourceOrigin||undefined};
+}
+const PLAY_ATTRIBUTION=analyticsAttribution();
+const track=(name,params)=>global.TT99Analytics?.track(name,{...PLAY_ATTRIBUTION,...(params||{})});
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const clone=x=>JSON.parse(JSON.stringify(x));
 const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
