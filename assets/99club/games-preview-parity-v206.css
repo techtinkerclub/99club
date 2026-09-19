@@ -706,3 +706,54 @@
     width:min(100%,296px)!important;
   }
 }
+
+
+/* v2.16 · compact half-page vocabulary and four-wheel layouts */
+@media screen {
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-word-pairs{
+    gap:2px!important;
+  }
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-word-pairs>div{
+    padding:2px 4px!important;
+  }
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-word-pairs b{
+    font-size:6.2px!important;
+    line-height:1.05!important;
+  }
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-word-pairs span{
+    font-size:5.4px!important;
+    line-height:1.10!important;
+  }
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-word-clues li,
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-word-bank span{
+    font-size:5.6px!important;
+    line-height:1.10!important;
+    margin-bottom:2px!important;
+  }
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-word-answer-list{
+    margin-top:3px!important;
+    padding-top:3px!important;
+    font-size:5.4px!important;
+    line-height:1.15!important;
+  }
+
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-wheel-items.visual.items-4{
+    height:calc(100% - 76px)!important;
+    grid-template-rows:repeat(2,minmax(0,1fr))!important;
+    gap:4px!important;
+    margin:2px 8px!important;
+    align-items:stretch!important;
+    align-content:stretch!important;
+  }
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-wheel-items.visual.items-4 .tt99-wheel-visual{
+    height:100%!important;
+    min-height:0!important;
+    overflow:hidden!important;
+  }
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-wheel-items.visual.items-4 .tt99-wheel-svg{
+    width:auto!important;
+    height:100%!important;
+    max-width:100%!important;
+    max-height:none!important;
+  }
+}
