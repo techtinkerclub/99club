@@ -11,7 +11,7 @@ search: false
 <link rel="stylesheet" href="/assets/99club/99club.css?v=20.2">
 <link rel="stylesheet" href="/assets/99club/widget-builder.css?v=2">
 <script src="/assets/99club/generator.js?v=20"></script>
-<script src="/assets/99club/school-usage.js?v=1.2"></script>
+<script src="/assets/99club/school-usage-config.js?v=2"></script><script src="/assets/99club/school-usage.js?v=2"></script>
 <script src="/assets/99club/parent-practice.js?v=1.2"></script>
 <script src="/assets/99club/widget-config.js?v=2"></script>
 <script src="/assets/99club/widget-builder.js?v=5" defer></script>
