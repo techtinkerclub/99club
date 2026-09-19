@@ -262,6 +262,11 @@ if(!nonogramPlay.includes('edge-top')||!nonogramPlay.includes('edge-bottom')||!n
 const extraPlay=read('assets/99club/games-play-extra-puzzles-v204.js');
 if(!extraPlay.includes('hint-cell'))fail('squaresearch-ux','Square Search no longer uses a cell-level hint');
 ok('input-ux','Unified touch/desktop keypad contract checked');
+const previewFit=read('assets/99club/games-preview-fit-v207.js');
+if(previewFit.indexOf('function fitNumberSearch(activity)')<0)fail('preview-fit','Dedicated Number Search fitter missing');
+if(previewFit.indexOf('availableH')<0||previewFit.indexOf('Math.min(desired,availableH,availableW)')<0)fail('preview-fit','Number Search fitter no longer caps the grid to its activity frame');
+if(previewFit.indexOf("activity.dataset.tt99PreviewFit='numbersearch'")<0)fail('preview-fit','Number Search preview-fit marker missing');
+ok('preview-fit','Number Search containment guard checked');
 if(!read('assets/99club/games-play-core-v2.js').includes('tt99-play-hint-popup'))fail('hint-ux','Floating hint popup markup missing');
 if(!read('assets/99club/games-play-core-v2.js').includes('data-hint-drag'))fail('hint-ux','Draggable hint handle missing');
 if(!read('assets/99club/games-play-core-v2.js').includes('tt99-play-hint-popup-close'))fail('hint-ux','Hint close control missing');

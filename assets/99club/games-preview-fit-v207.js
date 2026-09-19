@@ -169,7 +169,7 @@
     if(!layout||!grid||!side)return false;
     const twoPerPage=!!activity.closest('.tt99-game-activities.count-2');
     const threePerPage=!!activity.closest('.tt99-game-activities.count-3');
-    const size=threePerPage?235:(twoPerPage?340:420);
+    const desired=threePerPage?235:(twoPerPage?340:420);
     const gap=threePerPage?8:12;
 
     activity.dataset.tt99PreviewFit='numbersearch';
@@ -180,11 +180,28 @@
     layout.style.setProperty('zoom','1','important');
     layout.style.setProperty('transform','none','important');
     layout.style.setProperty('display','grid','important');
-    layout.style.setProperty('grid-template-columns',size+'px minmax(0,1fr)','important');
     layout.style.setProperty('gap',gap+'px','important');
     layout.style.setProperty('align-items','center','important');
     layout.style.setProperty('width','100%','important');
-    layout.style.setProperty('height','calc(100% - 70px)','important');
+    layout.style.setProperty('height','auto','important');
+
+    /* The paper preview is itself scaled on phones, so raw getBoundingClientRect()
+       pixels cannot be used directly as CSS pixels. Convert the remaining visual
+       height back to the activity's unscaled coordinate system, then cap the
+       square to that space. This keeps a larger Number Search without ever
+       letting it cross the activity frame. */
+    const ar=activity.getBoundingClientRect();
+    const lr=layout.getBoundingClientRect();
+    const scaleY=ar.height/Math.max(1,activity.offsetHeight||activity.clientHeight||ar.height);
+    const padBottom=parseFloat(getComputedStyle(activity).paddingBottom)||0;
+    const availableH=Math.max(90,Math.floor((ar.bottom-lr.top)/Math.max(.01,scaleY)-padBottom-2));
+    const layoutW=Math.max(1,layout.clientWidth);
+    const sideReserve=threePerPage?125:(twoPerPage?185:210);
+    const availableW=Math.max(90,layoutW-sideReserve-gap);
+    const size=Math.max(90,Math.min(desired,availableH,availableW));
+
+    layout.style.setProperty('grid-template-columns',size+'px minmax(0,1fr)','important');
+    layout.style.setProperty('height',availableH+'px','important');
 
     grid.style.setProperty('zoom','1','important');
     grid.style.setProperty('transform','none','important');
@@ -197,6 +214,7 @@
     side.style.setProperty('zoom','1','important');
     side.style.setProperty('transform','none','important');
     side.style.setProperty('align-self','center','important');
+    side.style.setProperty('max-height',availableH+'px','important');
     return true;
   }
 
@@ -305,5 +323,5 @@
   if(document.fonts?.ready)document.fonts.ready.then(schedule).catch(()=>{});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
 
-  global.TT99GamesPreviewFitV207={version:'2.13',refresh:schedule,fitActivity};
+  global.TT99GamesPreviewFitV207={version:'2.14',refresh:schedule,fitActivity};
 })(typeof globalThis!=='undefined'?globalThis:this);
