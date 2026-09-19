@@ -136,7 +136,7 @@
 
   function drawWordSearch(page,a,answers,x,y,w,h,index){
     const top=activityFrame(page,x,y,w,h,index,a);
-    const instruction=a.mode==='definitions'?'Work out each maths word from its definition, then find it in the grid.':'Read each maths word and its meaning, then find the word in the grid.';
+    const instruction=a.instruction||'Use the clue list to find every maths word.';
     drawWrapped(page,x+12,top,instruction,w-24,7,{color:MUTED,maxLines:1});
     drawWrapped(page,x+12,top+12,a.directionTipPdf||a.directionLabel||'',w-24,6.2,{bold:true,color:TEAL,maxLines:1});
     const bodyY=top+28, bodyH=h-(bodyY-y)-12, leftW=Math.min(w*.52,bodyH), gap=10, rightX=x+12+leftW+gap, rightW=w-24-leftW-gap;
@@ -162,7 +162,7 @@
 
   function drawPyramid(page,a,answers,x,y,w,h,index){
     const top=activityFrame(page,x,y,w,h,index,a);
-    drawWrapped(page,x+12,top,`${a.instruction||'Each brick is the sum of the two bricks directly below it.'} Fill every empty brick.`,w-24,7,{color:MUTED,maxLines:2});
+    drawWrapped(page,x+12,top,a.instruction||'Each brick equals the sum of the two directly below it. Fill every blank.',w-24,7,{color:MUTED,maxLines:2});
     const rows=a.rows||[],n=rows.length,maxCols=rows[n-1]?.length||n,bodyTop=top+28,availH=h-(bodyTop-y)-18,cellW=Math.min(58,(w-40)/maxCols),cellH=Math.min(34,availH/Math.max(1,n)),missing=new Set(a.missingSet||[]);
     let cy=bodyTop+Math.max(0,(availH-cellH*n)/2);
     rows.forEach((row,r)=>{const rowW=row.length*cellW,startX=x+w/2-rowW/2;row.forEach((v,c)=>{const key=`${r}:${c}`,wasBlank=missing.has(key),blank=wasBlank&&!answers,answerFill=answers&&wasBlank;page.rect(startX+c*cellW,cy,cellW-2,cellH-2,{fill:answerFill?HIT:blank?PALE:WHITE,stroke:[107,137,140],width:.8});if(!blank)page.text(startX+c*cellW+(cellW-2)/2,cy+cellH*.62,String(v),Math.min(10,cellH*.38),{bold:answerFill,color:answerFill?TEAL:INK,align:'center'});});cy+=cellH;});
@@ -171,7 +171,7 @@
   function crosswordStarts(a){const map=new Map();for(const e of a.entries||[]){const k=`${e.x}:${e.y}`;if(!map.has(k))map.set(k,e.number);}return map;}
   function drawCrossword(page,a,answers,x,y,w,h,index){
     const top=activityFrame(page,x,y,w,h,index,a);
-    drawWrapped(page,x+12,top,'Use the definitions to complete the crossword. Ignore spaces and punctuation in answers.',w-24,7,{color:MUTED,maxLines:2});
+    drawWrapped(page,x+12,top,a.instruction||'Solve the clues and complete the crossword.',w-24,7,{color:MUTED,maxLines:2});
     const bodyY=top+28,bodyH=h-(bodyY-y)-12,gap=16,leftMax=w*.51,cols=a.width||a.grid?.[0]?.length||1,rows=a.height||a.grid?.length||1,gridAvailH=Math.max(24,bodyH-8);
     const cell=Math.min((leftMax-4)/cols,gridAvailH/rows,30),gridW=cell*cols,gridH=cell*rows,gridX=x+12+(leftMax-gridW)/2,gridY=bodyY+4+(gridAvailH-gridH)/2,rightX=x+12+leftMax+gap,rightW=w-24-leftMax-gap,starts=crosswordStarts(a);
     // Freeform classroom criss-cross: draw only answer cells. Empty locations
@@ -296,7 +296,7 @@
       if(answers)fitText(page,qx+qw-2,baseline,formatNumber(st.answer),28,qfs,{bold:true,color:TEAL,align:'right'});
       cy+=qh;
     }
-    page.text(qx,bodyY+bodyH-2,answers?'Highlighted cells = route':'Only up / down / left / right',Math.max(7.0,Math.min(8.0,qfs)),{color:MUTED});
+    if(answers)page.text(qx,bodyY+bodyH-2,'Highlighted cells = route',Math.max(7.0,Math.min(8.0,qfs)),{color:MUTED});
   }
 
   function crossStarts(a){const m=new Map();for(const e of a.entries||[]){const k=`${e.x}:${e.y}`;if(!m.has(k))m.set(k,e.number);}return m;}
