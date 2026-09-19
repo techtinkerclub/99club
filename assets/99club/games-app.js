@@ -7,7 +7,8 @@
     const schoolName=String(state?.settings?.personalisation?.schoolName||'').trim();
     return {
       school_key:SU?.makeSchoolKey?.(schoolName)||undefined,
-      source_origin:SU?.referrerOrigin?.()||undefined
+      source_origin:SU?.referrerOrigin?.()||undefined,
+      app_mode:(window.matchMedia?.('(display-mode: standalone)').matches||window.navigator.standalone===true)?'pwa':'browser'
     };
   }
   const track=(name,params)=>window.TT99Analytics?.track(name,{...analyticsContext(),...(params||{})});
