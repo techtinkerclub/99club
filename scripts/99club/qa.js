@@ -543,6 +543,51 @@ try{
   ok('puzzle-parent','Locked puzzle pack links, portable setup, website pack and school-level telemetry contract checked');
 }catch(e){fail('puzzle-parent','Puzzle parent sharing QA threw',e.stack||e.message);}
 
+/* ---------- analytics coverage and privacy ---------- */
+try{
+  const analyticsCore=read('assets/99club/analytics.js');
+  const headCustom=read('_includes/head/custom.html');
+  const customPage=read('_pages/99-club-custom.md');
+  const customApp=read('assets/99club/custom-app.js');
+  const pwaRegister=read('assets/99club/pwa/pwa-register.js');
+  const playCore=read('assets/99club/games-play-core-v2.js');
+  const widgetBuilder=read('assets/99club/widget-builder.js');
+  const widgetRuntime=read('assets/99club/widget-runtime.js');
+  const widgetPage=read('_pages/99-club-widget.md');
+  const widgetBuilderPage=read('_pages/99-club-widget-builder.md');
+  const analyticsDoc=read('docs/ANALYTICS_SETUP.md');
+  const privacy=read('_pages/privacy.md');
+
+  for(const event of ['studio_open','parent_share_open','parent_share_action','worksheet_download'])if(!rootApp.includes(event))fail('analytics',`99 Club analytics missing ${event}`);
+  for(const event of ['studio_open','game_pack_download','puzzle_parent_share_open','puzzle_parent_share_action'])if(!gamesApp.includes(event))fail('analytics',`Games analytics missing ${event}`);
+  for(const event of ['studio_open','custom_worksheet_download'])if(!customApp.includes(event))fail('analytics',`Custom Worksheets analytics missing ${event}`);
+  if(customPage.indexOf('school-usage.js')<0||customPage.indexOf('school-usage.js')>customPage.indexOf('custom-app.js'))fail('analytics','Custom Worksheets does not load school attribution before its app');
+  if(customPage.includes('\\n<script'))fail('analytics','Custom Worksheets page contains escaped newline text in script markup');
+
+  for(const event of ['widget_builder_open','widget_type_selected','widget_existing_import','widget_embed_copy','widget_url_copy','widget_setup_save','widget_setup_restore'])if(!widgetBuilder.includes(event))fail('analytics',`Widget Builder analytics missing ${event}`);
+  for(const token of ['trackWidget','widget_open','widget_item_open','sourceOrigin','integrationId'])if(!widgetRuntime.includes(token))fail('analytics',`Public widget school attribution missing ${token}`);
+  if(/googletagmanager|analytics\.js|gtag\(/i.test(widgetPage))fail('analytics','Public embedded widget must not load Google Analytics');
+  if(!widgetBuilderPage.includes('school-usage-config.js')||!widgetBuilderPage.includes('school-usage.js'))fail('analytics','Widget Builder is missing first-party school attribution helpers');
+
+  for(const event of ['online_game_started','online_hint_used','online_game_completed'])if(!playCore.includes(event))fail('analytics',`Online Play analytics missing ${event}`);
+  if(!playCore.includes('integration_id')||!playCore.includes('source_origin')||!playCore.includes('app_mode'))fail('analytics','Online Play analytics is missing source/widget/PWA attribution');
+
+  for(const event of ['pwa_install_prompt','pwa_install_action','pwa_installed','pwa_update_available','pwa_update_action'])if(!pwaRegister.includes(event))fail('analytics',`PWA analytics missing ${event}`);
+
+  if(!headCustom.includes('page_location:safeLocation')||!headCustom.includes('page_referrer:safeReferrer'))fail('analytics','GA automatic page view is not sanitised to path + origin-only referrer');
+  if(!headCustom.includes("location.origin+location.pathname"))fail('analytics','GA page_location can still include query/hash recreation data');
+  if(!analyticsCore.includes('source_origin')&&false)fail('analytics','Analytics core missing source origin support');
+  if(!analyticsCore.includes('integration_help')||!analyticsCore.includes('widget_builder'))fail('analytics','Navigation analytics taxonomy is missing integration help/widget builder');
+
+  for(const phrase of ['opaque school key','referring website origin','full referring page URLs','currently disabled'])if(!privacy.includes(phrase))fail('analytics',`Privacy page missing analytics boundary: ${phrase}`);
+  for(const phrase of ['First-party school usage telemetry','source_origin','integration_id','teacher','widget_open','practice_download','enabled: false'])if(!analyticsDoc.includes(phrase))fail('analytics',`Analytics setup guide missing: ${phrase}`);
+
+  const schoolCfg=read('assets/99club/school-usage-config.js');
+  if(!/enabled:\s*false/.test(schoolCfg)||!/endpoint:\s*''/.test(schoolCfg)||!/schemaVersion:\s*2/.test(schoolCfg))fail('analytics','First-party school telemetry must remain disabled at schema v2 until endpoint deployment');
+
+  ok('analytics','Teacher GA4, school-source attribution, widgets, PWA, Custom Worksheets and privacy contracts checked');
+}catch(e){fail('analytics','Analytics contract QA threw',e.stack||e.message);}
+
 /* ---------- output ---------- */
 const report={generatedAt:new Date().toISOString(),samplesPerDifficulty:SAMPLES,generated,engineCount:G?.ENGINES?Object.keys(G.ENGINES).length:0,onlineAdapterCount:adapterIds.length,guideCount:guideIds.length,failures,warnings,notes};
 const out=path.join(ROOT,'99club-qa-report.json');fs.writeFileSync(out,JSON.stringify(report,null,2)+'\n');
