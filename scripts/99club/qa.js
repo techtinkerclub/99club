@@ -249,7 +249,8 @@ for(const id of publicGameIds){
 if(!printInstructions.includes('operation signs may be reused'))fail('instruction-audit','Reusable operation-sign rule missing from printable instructions');
 if(!printInstructions.includes('working digit or operation key may be reused'))fail('instruction-audit','Broken Calculator key-reuse rule missing from printable instructions');
 if(!printInstructions.includes('the same digit may appear in a different run'))fail('instruction-audit','Kakuro repeat-scope rule missing from printable instructions');
-if(!printInstructions.includes('two-cell − or ÷ cage, either order is allowed'))fail('instruction-audit','Arithmetic Cages subtraction/division order rule missing');
+if(!printInstructions.includes('two-cell − or ÷, either order is allowed'))fail('instruction-audit','Arithmetic Cages subtraction/division order rule missing');
+if(!printInstructions.includes('Cages have no extra no-repeat rule'))fail('instruction-audit','Arithmetic Cages repeat-scope rule missing');
 if(!printInstructions.includes('Allowed signs may be reused'))fail('instruction-audit','Insert Operations sign-reuse rule missing');
 if(!printInstructions.includes('top circle is the total weight of the whole mobile'))fail('instruction-audit','Mobile Balance top-total explanation missing');
 if(!onlineInstructions.includes('.tt99-play-numbersearch .tt99-play-board-tip'))fail('instruction-audit','Number Search live direction rule is not mirrored above the board');
