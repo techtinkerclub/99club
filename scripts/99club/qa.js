@@ -447,7 +447,7 @@ if(rootApp.includes("That school configuration uses a worksheet generation versi
 if(!rootApp.includes("cards/'+parentPracticeCardFilename(id)")||!rootApp.includes("README.html")||!rootApp.includes("practice-links.csv"))fail('parent-practice','Website pack does not include cards, guide and link mapping');
 const schoolInfo=read('_pages/99-club-schools.md');
 if(!schoolInfo.includes('normal HTTPS link')||!schoolInfo.includes('plugin')||!schoolInfo.includes('iframe'))fail('parent-practice','Information-for-schools page does not explain the no-integration security model');
-if(!schoolInfo.includes('website-card HTML')||!schoolInfo.includes("website's own card or button"))fail('parent-practice','Information-for-schools page does not explain the website-card/plain-link choices');
+if(!schoolInfo.includes('ready-made website card HTML')||!schoolInfo.includes("website's own card or button"))fail('parent-practice','Information-for-schools page does not explain the website-card/plain-link choices');
 for(const phrase of ['Option 3: use a downloadable PNG card image','The PNG itself does not contain the clickable link','Save the school\'s club configuration','Download the complete website pack','practice-links.csv','99-club-school-configuration.json','Copy all links','Important when the school changes the rules','Bronze, Silver, Gold, Platinum or Diamond'])if(!schoolInfo.includes(phrase))fail('parent-practice',`School website guide missing: ${phrase}`);
 ok('parent-practice','Teacher share UI, stripped parent route, combined PDF and school information contract checked');
 
