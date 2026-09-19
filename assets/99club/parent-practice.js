@@ -1,11 +1,14 @@
 /* 99 Club Studio - parent practice link codec
- * Carries school-selected maths rules in the URL fragment only.
+ * Carries school-selected maths rules in the URL fragment.
  * No pupil, parent, school-name, logo, seed, score or progress data is encoded.
+ * An optional opaque school-level usage key may be included for aggregate
+ * school usage statistics; it contains no school name.
  */
 (function(global){
   'use strict';
 
   const G=global.TT99Generator || (typeof require!=='undefined' ? require('./generator.js') : null);
+  const SU=global.TT99SchoolUsage || (typeof require!=='undefined' ? require('./school-usage.js') : null);
   if(!G)throw new Error('99 Club parent practice requires TT99Generator');
 
   const PREFIX='TT99P1.';
@@ -55,7 +58,8 @@
     const clubId=safeId(input.clubId,'33');
     const rules=G.normalizeRules(clone(input.rules||baseRules(schemeId,clubId)||G.CLASSIC_PRESETS['33']));
     const orientation=input.orientation==='landscape'?'landscape':'portrait';
-    return {schemeId,clubId,rules,orientation};
+    const schoolUsageKey=SU?.validSchoolKey?.(input.schoolUsageKey||input.schoolKey||input.schoolUsage?.schoolKey)||'';
+    return {schemeId,clubId,rules,orientation,schoolUsageKey};
   }
 
   function compactPayload(input){
@@ -67,7 +71,9 @@
     // configuration, not a place to carry a school, teacher or custom preset name.
     const rules=clone(cfg.rules);
     for(const key of ['id','name','tagline','sourceSchemeId','sourceClubId','worksheetTitle'])delete rules[key];
-    return {v:VERSION,g:1,s:cfg.schemeId,c:cfg.clubId,o:cfg.orientation==='landscape'?'l':'p',r:rules};
+    const payload={v:VERSION,g:1,s:cfg.schemeId,c:cfg.clubId,o:cfg.orientation==='landscape'?'l':'p',r:rules};
+    if(cfg.schoolUsageKey)payload.u=cfg.schoolUsageKey;
+    return payload;
   }
 
   function utf8ToBase64Url(text){
@@ -109,7 +115,7 @@
     const schemeId=safeId(payload.s,'classic');
     const clubId=safeId(payload.c,'33');
     if(!payload.r || typeof payload.r!=='object')throw new Error('This parent practice link does not contain a rules snapshot');
-    return normaliseConfig({schemeId,clubId,rules:payload.r,orientation:payload.o==='l'?'landscape':'portrait'});
+    return normaliseConfig({schemeId,clubId,rules:payload.r,orientation:payload.o==='l'?'landscape':'portrait',schoolUsageKey:payload.u});
   }
 
   function originBase(origin){
