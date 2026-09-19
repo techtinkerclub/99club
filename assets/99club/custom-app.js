@@ -17,6 +17,7 @@
   const MAX_TEACHER_NOTE = 240;
   const PRE_RESTORE_KEY = 'tt99-pre-restore-snapshot-v1';
   const Q = window.TT99QR;
+  const SU = window.TT99SchoolUsage;
   const ADVANCED_CHALLENGE_IDS = new Set(['bronze','silver','gold','platinum','diamond']);
   const BADGE_IMAGE_BY_CLUB = {
     '11':'11club.png','22':'22club.png','33':'33club.png','44':'44club.png','55':'55club.png','66':'66club.png','77':'77club.png','88':'88club.png','99':'99club.png',
@@ -115,6 +116,15 @@
     status: '',
     rulesError: ''
   };
+  function analyticsContext(){
+    return {
+      school_key:SU?.makeSchoolKey?.(state.school?.schoolName||'')||undefined,
+      source_origin:SU?.referrerOrigin?.()||undefined
+    };
+  }
+  function track(name,params){
+    window.TT99Analytics?.track(name,{...analyticsContext(),...(params||{})});
+  }
   const openCurriculumStrands = new Set();
 
   root.addEventListener('click',e=>{
@@ -145,6 +155,10 @@
   if (!restoredExactSheets) generateAll();
   else { refreshSheetCodes(); refreshRulesError(); persist(); }
   render();
+  window.addEventListener('load',()=>{
+    track('studio_open',{area:'custom'});
+    SU?.trackStudio?.('studio_open',state.school?.schoolName||'',{area:'custom'});
+  },{once:true});
   setTimeout(loadRecreationFromLocation,0);
 
   function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -1242,6 +1256,15 @@
       const badge=await badgeImageForPdf();
       const doc=L.buildDocument({rules:state.rules,sheets:state.sheets,school:state.school,kind,orientation:state.orientation,qrByVariant,teacherNote:state.teacherNote,badge:badge?{imageDataUrl:badge.dataUrl,width:badge.width,height:badge.height}:{}});
       doc.save(L.filename(state.rules,kind,state.orientation));
+      track('custom_worksheet_download',{
+        pdf_kind:kind,
+        variant_count:state.variants,
+        question_count:Number(state.rules?.questionCount)||0,
+        orientation:state.orientation,
+        topic_count:Array.isArray(state.rules?.families)?state.rules.families.length:0,
+        curriculum_year:Number(state.rules?.curriculumYear)||0
+      });
+      SU?.trackStudio?.('custom_worksheet_download',state.school?.schoolName||'',{area:'custom'});
       state.status=qrOmitted?`PDF created. ${qrOmitted} answer-sheet QR ${qrOmitted===1?'code was':'codes were'} omitted because the recreation data was too large.`:'PDF created.'; render();
     } catch(err){ console.error(err); state.status='PDF generation failed in this browser. Please refresh and try again.';render(); }
   }
