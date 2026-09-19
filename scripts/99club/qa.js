@@ -284,7 +284,7 @@ const previewSums=read('assets/99club/games-sum-grids-v147-ui.js');
 if(!previewCode.includes('allowed signs may be reused'))fail('instruction-audit','Operation Codebreaker preview overwrites the reviewed reuse rule');
 if(!previewRedesign.includes('different symbols use different letter values'))fail('instruction-audit','Symbol Decoder redesigned preview loses the value-uniqueness rule');
 if(previewRedesign.includes('tt99-v136-reverse">For a missing input'))fail('instruction-audit','Function Machine preview still duplicates reverse-working instructions');
-if(!previewTowers.includes('its number is how many towers are visible'))fail('instruction-audit','Number Towers preview does not explain edge clue values');
+if(!previewTowers.includes('Each edge clue is how many towers are visible'))fail('instruction-audit','Number Towers preview does not explain edge clue values');
 if(previewTakuzu.includes('<div class="tt99-takuzu-rules"><span>Equal 0s and 1s'))fail('instruction-audit','Takuzu preview still repeats its complete rule set below the grid');
 if(!previewPack.includes('never cross or pass through another island'))fail('instruction-audit','Hashi preview loses the no-pass-through rule');
 if(!previewSums.includes('Starter digits are fixed'))fail('instruction-audit','Corner/Linked Sum preview does not identify fixed starters');
