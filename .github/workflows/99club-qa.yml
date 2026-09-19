@@ -11,6 +11,7 @@ on:
       - '_layouts/practice.html'
       - '_layouts/puzzle-practice.html'
       - '_pages/99-club-schools.md'
+      - '_pages/99-club-widget*.md'
       - '_pages/privacy.md'
       - 'index.md'
       - 'scripts/99club/**'
@@ -24,6 +25,7 @@ on:
       - '_layouts/practice.html'
       - '_layouts/puzzle-practice.html'
       - '_pages/99-club-schools.md'
+      - '_pages/99-club-widget*.md'
       - '_pages/privacy.md'
       - 'index.md'
       - 'scripts/99club/**'
@@ -57,6 +59,8 @@ jobs:
         env:
           QA_SAMPLES: ${{ github.event_name == 'schedule' && '60' || github.event.inputs.samples || '20' }}
         run: node scripts/99club/qa.js
+      - name: Run school widget QA
+        run: node scripts/99club/widget-qa.js
       - name: Upload QA report
         if: always()
         uses: actions/upload-artifact@v4
