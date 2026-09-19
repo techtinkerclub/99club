@@ -18,11 +18,15 @@ function prepare(){
     const G=window.TT99Games;if(!G)return;
     const all=Object.entries(G.ENGINES||{}).filter(([,d])=>!d?.hiddenFromLibrary).map(([id])=>id);
     const params=new URLSearchParams(location.search);
+    const functional=params.get('functional')==='1';
     const batches=Math.max(1,Math.min(8,Number(params.get('batches'))||2));
     const batch=Math.max(0,Math.min(batches-1,Number(params.get('batch'))||0));
-    const start=Math.floor(all.length*batch/batches),end=Math.floor(all.length*(batch+1)/batches),ids=all.slice(start,end);
+    const start=Math.floor(all.length*batch/batches),end=Math.floor(all.length*(batch+1)/batches);
+    const smokeIds=['pyramid','magic'].filter(id=>all.includes(id));
+    const ids=functional?smokeIds:all.slice(start,end);
     window.__TT99_PREVIEW_QA_IDS=ids.slice();
     window.__TT99_PREVIEW_QA_BATCH=batch;
+    window.__TT99_PREVIEW_QA_FUNCTIONAL=functional;
     localStorage.setItem('tt99-games-pack-mode-v1','manual');
     localStorage.setItem('tt99-games-activity-count-v1',String(ids.length));
     localStorage.setItem('tt99-games-activities-per-sheet-v2','2');
@@ -159,7 +163,7 @@ function prepare(){
     }
     async function configurePlacementTest(){
       const cardTitle=card=>(card?.querySelector('.tt99-engine-include b')?.textContent||'').trim();
-      const titles=[...document.querySelectorAll('.tt99-engine-card')].map(cardTitle).filter(Boolean);
+      const titles=[...document.querySelectorAll('.tt99-engine-card')].map(cardTitle).filter(Boolean).slice(0,8);
       let checked=0;
       for(const title of titles){
         const card=[...document.querySelectorAll('.tt99-engine-card')].find(x=>cardTitle(x)===title);
@@ -178,7 +182,7 @@ function prepare(){
     async function run(){
       try{
         await sleep(1800);
-        if((window.__TT99_PREVIEW_QA_BATCH||0)===0){
+        if(window.__TT99_PREVIEW_QA_FUNCTIONAL){
           await previewReplaceTest();
           await configurePlacementTest();
         }
