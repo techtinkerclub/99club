@@ -652,7 +652,8 @@
   async function restoreParentPracticeSchoolConfig(file){
     const d=JSON.parse(await readTextFile(file));
     if(!d||d.kind!=='tt99-school-parent-practice-config'||Number(d.configVersion)!==1||!d.clubs||typeof d.clubs!=='object')throw new Error('That file is not a valid 99 Club school configuration.');
-    if(d.generationVersion&&Number(d.generationVersion)!==GENERATION_VERSION)throw new Error('That school configuration uses a worksheet generation version this build does not support.');
+    // This file stores rule snapshots rather than generated questions, so it is
+    // intentionally portable across later worksheet-generation versions.
     const schemeId=d.schemeId&&G.SCHEME_PRESETS[d.schemeId]?d.schemeId:'classic';
     state.schemeId=schemeId;
     for(const id of PARENT_CLUB_IDS){
