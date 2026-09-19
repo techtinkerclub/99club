@@ -11,6 +11,7 @@ const currentBuild=document.querySelector('meta[name="tt99-build"]')?.content?.t
 const appliedKey='tt99-pwa-applied-build';
 const dismissedKey='tt99-pwa-update-dismissed';
 let deferredPrompt=null;
+const track=(name,params)=>window.TT99Analytics?.track(name,params||{});
 let installCard=null;
 let updateCard=null;
 let updateTarget='';
@@ -61,6 +62,7 @@ function showUpdate(target){
   if(safeGet(sessionStorage,dismissedKey)===version)return;
   updateTarget=version;
   if(updateCard)return;
+  track('pwa_update_available',{target_build:version});
   updateCard=document.createElement('aside');
   updateCard.className='tt99-pwa-update';
   updateCard.setAttribute('role','status');
@@ -69,6 +71,7 @@ function showUpdate(target){
   document.body.appendChild(updateCard);
   updateCard.querySelector('.tt99-pwa-update__action').addEventListener('click',refreshToLatest);
   updateCard.querySelector('.tt99-pwa-update__close').addEventListener('click',()=>{
+    track('pwa_update_action',{action:'dismiss'});
     safeSet(sessionStorage,dismissedKey,version);
     hideUpdate();
   });
@@ -85,6 +88,7 @@ async function clearStudioCaches(){
 async function refreshToLatest(){
   if(refreshing)return;
   refreshing=true;
+  track('pwa_update_action',{action:'refresh'});
   const button=updateCard?.querySelector('.tt99-pwa-update__action');
   if(button){button.disabled=true;button.textContent='Updating…';}
   const target=updateTarget||currentBuild;
@@ -172,12 +176,13 @@ function registerSW(){
 
 function ensureCard(){
   if(standalone||installCard)return;
+  track('pwa_install_prompt',{platform:isiOS?'ios':'other'});
   installCard=document.createElement('aside');
   installCard.className='tt99-pwa-install';
   installCard.setAttribute('aria-label','Install 99 Club Studio');
   installCard.innerHTML='<div><strong>Install 99 Club Studio</strong><span>Use it like an app and keep recent resources available offline.</span></div><button type="button" class="tt99-pwa-install__action">Install</button><button type="button" class="tt99-pwa-install__close" aria-label="Dismiss install message">×</button>';
   document.body.appendChild(installCard);
-  installCard.querySelector('.tt99-pwa-install__close').addEventListener('click',()=>{sessionStorage.setItem('tt99-pwa-dismissed','1');hideCard();});
+  installCard.querySelector('.tt99-pwa-install__close').addEventListener('click',()=>{track('pwa_install_action',{action:'dismiss',platform:isiOS?'ios':'other'});sessionStorage.setItem('tt99-pwa-dismissed','1');hideCard();});
   installCard.querySelector('.tt99-pwa-install__action').addEventListener('click',install);
 }
 
@@ -196,6 +201,7 @@ function iosInstructions(){
 }
 
 async function install(){
+  track('pwa_install_action',{action:'install',platform:isiOS?'ios':'other'});
   if(deferredPrompt){
     const p=deferredPrompt;
     deferredPrompt=null;
@@ -213,7 +219,7 @@ window.addEventListener('beforeinstallprompt',e=>{
   deferredPrompt=e;
   if(sessionStorage.getItem('tt99-pwa-dismissed')!=='1')ensureCard();
 });
-window.addEventListener('appinstalled',()=>{hideCard();deferredPrompt=null;});
+window.addEventListener('appinstalled',()=>{track('pwa_installed',{platform:isiOS?'ios':'other'});hideCard();deferredPrompt=null;});
 
 function maybeShowIOS(){
   if(standalone||sessionStorage.getItem('tt99-pwa-dismissed')==='1')return;
