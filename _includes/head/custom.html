@@ -51,11 +51,23 @@
     });
   })();
   gtag('js', new Date());
-  gtag('config', 'G-844RPWD4HE', {
-    send_page_view:true,
-    allow_google_signals:false,
-    allow_ad_personalization_signals:false
-  });
+  (function(){
+    var safeLocation=location.origin+location.pathname;
+    var safeReferrer='';
+    try{
+      if(document.referrer){
+        var ref=new URL(document.referrer);
+        if(ref.origin!==location.origin&&/^https?:$/.test(ref.protocol))safeReferrer=ref.origin;
+      }
+    }catch(_){}
+    gtag('config', 'G-844RPWD4HE', {
+      send_page_view:true,
+      page_location:safeLocation,
+      page_referrer:safeReferrer,
+      allow_google_signals:false,
+      allow_ad_personalization_signals:false
+    });
+  })();
 </script>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-844RPWD4HE"></script>
 <script src="/assets/99club/analytics.js?v=6" defer></script>
@@ -111,11 +123,23 @@
     });
   })();
   gtag('js', new Date());
-  gtag('config', 'G-844RPWD4HE', {
-    send_page_view:true,
-    allow_google_signals:false,
-    allow_ad_personalization_signals:false
-  });
+  (function(){
+    var safeLocation=location.origin+location.pathname;
+    var safeReferrer='';
+    try{
+      if(document.referrer){
+        var ref=new URL(document.referrer);
+        if(ref.origin!==location.origin&&/^https?:$/.test(ref.protocol))safeReferrer=ref.origin;
+      }
+    }catch(_){}
+    gtag('config', 'G-844RPWD4HE', {
+      send_page_view:true,
+      page_location:safeLocation,
+      page_referrer:safeReferrer,
+      allow_google_signals:false,
+      allow_ad_personalization_signals:false
+    });
+  })();
 </script>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-844RPWD4HE"></script>
 <script src="/assets/99club/analytics.js?v=6" defer></script>
