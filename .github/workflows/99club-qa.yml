@@ -197,3 +197,42 @@ jobs:
             99club-preview-qa-report.json
             99club-preview-qa-batch-${{ matrix.batch }}-report.json
           if-no-files-found: ignore
+
+
+  preview-controls-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare printable preview harness
+        run: node scripts/99club/preview-qa.js prepare
+      - name: Exercise printable preview controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8769 --bind 127.0.0.1 > /tmp/99club-preview-controls-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          sleep 1
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then
+            echo 'No Chrome/Chromium executable is available on this runner.' >&2
+            exit 1
+          fi
+          "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --window-size=390,844 --virtual-time-budget=60000 --dump-dom \
+            "http://127.0.0.1:8769/99club-preview-qa.html?functional=1" > /tmp/99club-preview-controls.html
+          node scripts/99club/preview-qa.js check /tmp/99club-preview-controls.html
+          cp 99club-preview-qa-report.json 99club-preview-controls-report.json
+      - name: Upload preview controls QA report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: 99club-preview-controls-qa
+          path: |
+            99club-preview-qa-report.json
+            99club-preview-controls-report.json
+          if-no-files-found: ignore
