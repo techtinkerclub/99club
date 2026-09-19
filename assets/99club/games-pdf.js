@@ -136,7 +136,7 @@
 
   function drawWordSearch(page,a,answers,x,y,w,h,index){
     const top=activityFrame(page,x,y,w,h,index,a);
-    const instruction=a.mode==='definitions'?'Work out each maths word from its definition, then find it in the grid.':'Read each maths word and its meaning, then find the word in the grid.';
+    const instruction=a.instruction||'Use the clue list to find every maths word.';
     drawWrapped(page,x+12,top,instruction,w-24,7,{color:MUTED,maxLines:1});
     drawWrapped(page,x+12,top+12,a.directionTipPdf||a.directionLabel||'',w-24,6.2,{bold:true,color:TEAL,maxLines:1});
     const bodyY=top+28, bodyH=h-(bodyY-y)-12, leftW=Math.min(w*.52,bodyH), gap=10, rightX=x+12+leftW+gap, rightW=w-24-leftW-gap;
@@ -162,7 +162,7 @@
 
   function drawPyramid(page,a,answers,x,y,w,h,index){
     const top=activityFrame(page,x,y,w,h,index,a);
-    drawWrapped(page,x+12,top,`${a.instruction||'Each brick is the sum of the two bricks directly below it.'} Fill every empty brick.`,w-24,7,{color:MUTED,maxLines:2});
+    drawWrapped(page,x+12,top,a.instruction||'Each brick equals the sum of the two directly below it. Fill every blank.',w-24,7,{color:MUTED,maxLines:2});
     const rows=a.rows||[],n=rows.length,maxCols=rows[n-1]?.length||n,bodyTop=top+28,availH=h-(bodyTop-y)-18,cellW=Math.min(58,(w-40)/maxCols),cellH=Math.min(34,availH/Math.max(1,n)),missing=new Set(a.missingSet||[]);
     let cy=bodyTop+Math.max(0,(availH-cellH*n)/2);
     rows.forEach((row,r)=>{const rowW=row.length*cellW,startX=x+w/2-rowW/2;row.forEach((v,c)=>{const key=`${r}:${c}`,wasBlank=missing.has(key),blank=wasBlank&&!answers,answerFill=answers&&wasBlank;page.rect(startX+c*cellW,cy,cellW-2,cellH-2,{fill:answerFill?HIT:blank?PALE:WHITE,stroke:[107,137,140],width:.8});if(!blank)page.text(startX+c*cellW+(cellW-2)/2,cy+cellH*.62,String(v),Math.min(10,cellH*.38),{bold:answerFill,color:answerFill?TEAL:INK,align:'center'});});cy+=cellH;});
@@ -171,7 +171,7 @@
   function crosswordStarts(a){const map=new Map();for(const e of a.entries||[]){const k=`${e.x}:${e.y}`;if(!map.has(k))map.set(k,e.number);}return map;}
   function drawCrossword(page,a,answers,x,y,w,h,index){
     const top=activityFrame(page,x,y,w,h,index,a);
-    drawWrapped(page,x+12,top,'Use the definitions to complete the crossword. Ignore spaces and punctuation in answers.',w-24,7,{color:MUTED,maxLines:2});
+    drawWrapped(page,x+12,top,a.instruction||'Solve the clues and complete the crossword.',w-24,7,{color:MUTED,maxLines:2});
     const bodyY=top+28,bodyH=h-(bodyY-y)-12,gap=16,leftMax=w*.51,cols=a.width||a.grid?.[0]?.length||1,rows=a.height||a.grid?.length||1,gridAvailH=Math.max(24,bodyH-8);
     const cell=Math.min((leftMax-4)/cols,gridAvailH/rows,30),gridW=cell*cols,gridH=cell*rows,gridX=x+12+(leftMax-gridW)/2,gridY=bodyY+4+(gridAvailH-gridH)/2,rightX=x+12+leftMax+gap,rightW=w-24-leftMax-gap,starts=crosswordStarts(a);
     // Freeform classroom criss-cross: draw only answer cells. Empty locations
@@ -296,7 +296,7 @@
       if(answers)fitText(page,qx+qw-2,baseline,formatNumber(st.answer),28,qfs,{bold:true,color:TEAL,align:'right'});
       cy+=qh;
     }
-    page.text(qx,bodyY+bodyH-2,answers?'Highlighted cells = route':'Only up / down / left / right',Math.max(7.0,Math.min(8.0,qfs)),{color:MUTED});
+    if(answers)page.text(qx,bodyY+bodyH-2,'Highlighted cells = route',Math.max(7.0,Math.min(8.0,qfs)),{color:MUTED});
   }
 
   function crossStarts(a){const m=new Map();for(const e of a.entries||[]){const k=`${e.x}:${e.y}`;if(!m.has(k))m.set(k,e.number);}return m;}
@@ -414,12 +414,12 @@ function drawPropertyMaze(page,a,answers,x,y,w,h,index){
 
   function drawBalance(page,a,answers,x,y,w,h,index){
     const paper=a.paper||{},rows=paper.rows||a.rows||[],f=paper.finalChallenge||a.finalChallenge||{},labels='ABCDEFGHIJKLMNOPQRSTUVWXYZ',label=i=>rows[i]?.weightLabel||labels[i]||String(i+1),top=activityFrame(page,x,y,w,h,index,{...a,title:'Balance Lab'});
-    drawWrapped(page,x+12,top,'Find the value of each weight so both sides of every equation are equal.',w-24,6.2,{color:MUTED,maxLines:1});
+    drawWrapped(page,x+12,top,a.instruction||'Balance each equation to find the missing weights, then use them on the final scale.',w-24,6.2,{color:MUTED,maxLines:2});
     function token(tx,ty,tw,th,lab,value,filled){drawRoundRect(page,tx,ty,tw,th,5,{fill:filled?HIT:WHITE,stroke:[22,139,130],width:.85});drawCircle(page,tx+11,ty+th/2,7.2,{fill:[22,139,130],stroke:[22,139,130],width:.5});diagramText(page,tx+11,ty+th/2+2.1,lab,5.4,{bold:true,color:WHITE});if(filled)diagramText(page,tx+tw-14,ty+th/2+2.4,formatNumber(value),6.4,{bold:true,color:[15,111,104]});else page.line(tx+23,ty+th/2+2,tx+tw-7,ty+th/2+2,{color:[110,134,137],width:.55});}
     const cols=2,gapX=7,gapY=6,bodyY=top+25,cardW=(w-30-gapX)/2,cardH=Math.max(37,Math.min(44,(h-178)/2));
     rows.slice(0,4).forEach((r,i)=>{const rr=Math.floor(i/2),cc=i%2,cx=x+15+cc*(cardW+gapX),cy=bodyY+rr*(cardH+gapY),shown=r.display,needle='□',pos=shown.indexOf(needle),before=pos>=0?shown.slice(0,pos):shown,after=pos>=0?shown.slice(pos+needle.length):'',fs=7.2,preW=diagramTextWidth(before,fs,true),postW=diagramTextWidth(after,fs,true),tw=44,eqGap=5,totalW=preW+postW+tw+eqGap*2,start=cx+cardW/2-totalW/2,baseline=cy+cardH*.62;drawRoundRect(page,cx,cy,cardW,cardH,6,{fill:WHITE,stroke:[207,224,223],width:.65});page.text(cx+7,cy+10,`WEIGHT ${label(i)}`,4.8,{bold:true,color:MUTED});if(before)page.text(start,baseline,clean(before),fs,{bold:true,color:INK});const tx=start+preW+eqGap;token(tx,baseline-13,tw,22,label(i),r.answer,answers);if(after)page.text(tx+tw+eqGap,baseline,clean(after),fs,{bold:true,color:INK});});
     const resultY=bodyY+2*(cardH+gapY)+1,resultH=29;drawRoundRect(page,x+15,resultY,w-30,resultH,6,{fill:[240,248,246],stroke:[205,222,220],width:.6});page.text(x+25,resultY+18,'YOUR WEIGHTS',4.8,{bold:true,color:MUTED});const resultStart=x+100,resultGap=7,resultW=(w-130-resultGap*3)/4;rows.slice(0,4).forEach((r,i)=>token(resultStart+i*(resultW+resultGap),resultY+4,resultW,21,label(i),r.answer,answers));
-    const fy=resultY+resultH+7,fh=y+h-fy-9;drawRoundRect(page,x+15,fy,w-30,fh,7,{fill:[245,250,249],stroke:[166,194,191],width:.75});page.text(x+25,fy+13,answers?'FINAL BALANCE - EXAMPLE SOLUTION':'FINAL BALANCE',5.2,{bold:true,color:[15,111,104]});drawWrapped(page,x+25,fy+25,'Use A, B, C and D exactly once. Put two weights on each side, then make the totals match.',w-50,5.0,{color:DARK,maxLines:1,compact:true});
+    const fy=resultY+resultH+7,fh=y+h-fy-9;drawRoundRect(page,x+15,fy,w-30,fh,7,{fill:[245,250,249],stroke:[166,194,191],width:.75});page.text(x+25,fy+13,answers?'FINAL BALANCE - EXAMPLE SOLUTION':'FINAL BALANCE',5.2,{bold:true,color:[15,111,104]});drawWrapped(page,x+25,fy+25,'Put two collected weights on each side, then make the totals match.',w-50,5.0,{color:DARK,maxLines:1,compact:true});
     const centre=x+w/2,beamY=fy+43,beamHalf=Math.min(78,w*.195),panW=Math.min(145,(w-92)/2),panY=fy+54,panH=Math.max(36,fh-62);page.line(centre-beamHalf,beamY,centre+beamHalf,beamY,{color:[100,132,135],width:2.8});rawPath(page,[`${pdfN(centre)} ${pdfN(page.height-(beamY+1))} m`,`${pdfN(centre-14)} ${pdfN(page.height-(fy+fh-7))} l`,`${pdfN(centre+14)} ${pdfN(page.height-(fy+fh-7))} l`,'h'],{fill:[100,132,135],stroke:[100,132,135],width:.5});drawCircle(page,centre,beamY,3.7,{fill:WHITE,stroke:[100,132,135],width:.8});
     function drawPan(px,side){
       const items=rows.map((r,i)=>({r,i})).filter(z=>f.solutionSides?.[z.i]===side),pcx=px+panW/2,anchor=side==='L'?centre-beamHalf:centre+beamHalf,totalBandH=14,totalLineY=panY+panH-totalBandH,slotGap=7,slotW=(panW-31-slotGap)/2,slotH=Math.min(20,Math.max(16,totalLineY-panY-17)),slotY=panY+13,slotStart=px+12;

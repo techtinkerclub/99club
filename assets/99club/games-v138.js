@@ -19,7 +19,7 @@ function refineMachines(){
     const bits=['<div class="tt99-v138-machine-port">Input</div>'];
     stages.forEach((s,i)=>{bits.push('<span class="tt99-v138-machine-link"></span>');bits.push(`<div class="tt99-v138-machine-stage"><small>${esc(s.label)}</small>${esc(s.op)}</div>`);});
     bits.push('<span class="tt99-v138-machine-link"></span><div class="tt99-v138-machine-port">Output</div>');
-    old.insertAdjacentHTML('afterend',`<div class="tt99-v138-machine">${bits.join('')}</div><p class="tt99-v138-machine-note">If the input is missing, start at the output and undo the operations in reverse order.</p>`);
+    old.insertAdjacentHTML('afterend',`<div class="tt99-v138-machine">${bits.join('')}</div>`);
   });
 }
 function enhance(){refineCode();refineMachines();}

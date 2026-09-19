@@ -11,7 +11,7 @@ function enhance(section){
  if(section.dataset.opPrint158==='1')return;
  const instruction=section.querySelector('.tt99-game-instruction');if(!instruction)return;const raw=instruction.textContent||'',m=raw.match(MARK);if(!m)return;const p=decode(m[1]);if(!p)return;
  const answers=!!section.closest('.tt99-game-paper.is-answer'),locks=[...section.querySelectorAll('.tt99-operation-lock')];if(!locks.length)return;
- instruction.textContent='Make every equation true. Use the operator key to turn each numbered sign into a code digit, then use the completed code to crack the secret word.';
+ instruction.textContent='Make every equation true; allowed signs may be reused. Follow brackets and normal operation order. Use the operator key to turn solved signs into code digits, then crack the secret word.';
  const host=document.createElement('div');host.className='tt99-opprint158';let pos=0;
  const cards=locks.map((lock,i)=>{const eq=lock.querySelector('.tt99-lock-equation')?.cloneNode(true);if(!eq)return'';eq.querySelectorAll('.tt99-op-slot').forEach(slot=>{pos++;const op=slot.textContent.trim();slot.className='tt99-op158-slot'+(answers?' is-answer':'');slot.innerHTML=`<small>#${pos}</small>${answers?`<b>${esc(opLabel(op))}</b>`:''}`;});return `<div class="tt99-op158-equation"><span>Equation ${i+1}</span>${eq.outerHTML}</div>`;}).join('');
  const pairs=Object.entries(p.operatorDigits||{}),code=p.code||[],moves=p.moves||[],cipher=String(p.cipher||'');

@@ -239,6 +239,84 @@ const guideIds=[...helpSrc.matchAll(/\{id:'([^']+)'[^\n]*title:'([^']*)'/g)].fil
 const missingGuides=adapterIds.filter(id=>!guideIds.includes(id));
 if(missingGuides.length)fail('help-guides','Online games missing one-page guide',missingGuides.join(', '));
 else ok('help-guides',`All ${adapterIds.length} online games have a guide`);
+const printInstructions=read('assets/99club/games-instructions-v139.js');
+const onlineInstructions=read('assets/99club/games-play-instructions-v154.js');
+const publicGameIds=['wordsearch','crossword','pyramid','magic','arithmagon','magicshape','numbertrail','numberwheels','maze','propertymaze','crossnumber','numbersearch','equationcrossgrid','target','brokencalc','operationgrid','kakuro','arithmeticcages','sumplete','symbols','functionmachine','balance','alphametics','sudoku','futoshiki','nonogram','numberpath','numbertowers','takuzu','killersudoku','hashi','mathsmines','shikaku','cornersum','linkedsum','colourlogic','mobilebalance','diagonalpath','squaresearch','insertops','perimeterregions'];
+for(const id of publicGameIds){
+  if(!printInstructions.includes("case'"+id+"'"))fail('instruction-audit',id+': printable reviewed instruction missing');
+  if(!onlineInstructions.includes("\n  "+id+":"))fail('instruction-audit',id+': online reviewed instruction missing');
+}
+if(!printInstructions.includes('operation signs may be reused'))fail('instruction-audit','Reusable operation-sign rule missing from printable instructions');
+if(!printInstructions.includes('working digit or operation key may be reused'))fail('instruction-audit','Broken Calculator key-reuse rule missing from printable instructions');
+if(!printInstructions.includes('the same digit may appear in a different run'))fail('instruction-audit','Kakuro repeat-scope rule missing from printable instructions');
+if(!printInstructions.includes('two-cell − or ÷, either order is allowed'))fail('instruction-audit','Arithmetic Cages subtraction/division order rule missing');
+if(!printInstructions.includes('Cages have no extra no-repeat rule'))fail('instruction-audit','Arithmetic Cages repeat-scope rule missing');
+if(!printInstructions.includes('Allowed signs may be reused'))fail('instruction-audit','Insert Operations sign-reuse rule missing');
+if(!printInstructions.includes('top circle is the total weight of the whole mobile'))fail('instruction-audit','Mobile Balance top-total explanation missing');
+if(!onlineInstructions.includes('.tt99-play-numbersearch .tt99-play-board-tip'))fail('instruction-audit','Number Search live direction rule is not mirrored above the board');
+if(!onlineInstructions.includes('Target answers do not overlap'))fail('instruction-audit','Number Search no-overlap rule missing online');
+if(!onlineInstructions.includes('duplicate tiles are separate'))fail('instruction-audit','Target Number duplicate-tile rule missing online');
+ok('instruction-audit','All 41 public games have reviewed print and online first-sight instructions');
+const pdfTakuzu=read('assets/99club/games-pdf-takuzu-v139.js');
+const pdfTowers=read('assets/99club/games-pdf-v138-flowfix.js');
+const pdfCode=read('assets/99club/games-pdf-v158.js');
+const pdfSums=read('assets/99club/games-pdf-sum-grids-v147.js');
+const pdfNew=read('assets/99club/games-pdf-new-puzzles-v197.js');
+const pdfHashi=read('assets/99club/games-pdf-v1401.js');
+if(!pdfTakuzu.includes('No two completed rows or columns may be identical.'))fail('instruction-audit','Takuzu PDF is missing the uniqueness rule');
+if(pdfTakuzu.includes('Equal 0s/1s  ·  No 000 or 111  ·  No duplicate rows or columns'))fail('instruction-audit','Takuzu PDF still duplicates its full rule set below the grid');
+if(!pdfTowers.includes('Each edge clue is how many towers are visible from that side'))fail('instruction-audit','Number Towers PDF does not explain what the edge number means');
+if(!pdfTowers.includes('using inverse operations'))fail('instruction-audit','Function Machine PDF does not explain reverse working clearly');
+if(!pdfTowers.includes('taller towers hide shorter ones behind them'))fail('instruction-audit','Number Towers PDF does not explain visibility blocking');
+if(!pdfTowers.includes('function wrap(value,maxWidth,size'))fail('instruction-audit','Function Machine / Number Towers PDF instruction wrapping missing');
+if(!pdfCode.includes('allowed signs may be reused'))fail('instruction-audit','Operation Codebreaker PDF does not explain sign reuse');
+if(!pdfCode.includes('normal operation order'))fail('instruction-audit','Operation Codebreaker PDF does not explain operation order');
+if(!pdfSums.includes('Starter digits are fixed'))fail('instruction-audit','Corner/Linked Sum PDF does not identify starter digits as fixed');
+if(!pdfSums.includes('A cell can contribute to more than one overlapping circle.'))fail('instruction-audit','Corner Sum PDF overlap clarification missing');
+if(!pdfNew.includes('maxLines:2'))fail('instruction-audit','Colour Logic / Mobile Balance PDF may truncate the reviewed instruction');
+if((pdfNew.match(/top circle is the total weight of the whole mobile/gi)||[]).length>0)fail('instruction-audit','Mobile Balance PDF still duplicates its top-total explanation outside reviewed copy');
+if(!pdfHashi.includes('never cross or pass through another island'))fail('instruction-audit','Hashi PDF pass-through rule missing');
+ok('instruction-audit','Specialised PDF overlays keep the reviewed rules complete and non-duplicated');
+const previewCode=read('assets/99club/games-operationgrid-print-v158-ui.js');
+const previewRedesign=read('assets/99club/games-puzzle-redesign-v136.js');
+const previewTowers=read('assets/99club/games-v137.js');
+const previewTakuzu=read('assets/99club/games-takuzu-v139-ui.js');
+const previewPack=read('assets/99club/games-puzzle-pack-v140-ui.js');
+const previewSums=read('assets/99club/games-sum-grids-v147-ui.js');
+if(!previewCode.includes('allowed signs may be reused'))fail('instruction-audit','Operation Codebreaker preview overwrites the reviewed reuse rule');
+if(!previewRedesign.includes('different symbols use different letter values'))fail('instruction-audit','Symbol Decoder redesigned preview loses the value-uniqueness rule');
+if(previewRedesign.includes('tt99-v136-reverse">For a missing input'))fail('instruction-audit','Function Machine preview still duplicates reverse-working instructions');
+if(!previewTowers.includes('Each edge clue is how many towers are visible'))fail('instruction-audit','Number Towers preview does not explain edge clue values');
+if(previewTakuzu.includes('<div class="tt99-takuzu-rules"><span>Equal 0s and 1s'))fail('instruction-audit','Takuzu preview still repeats its complete rule set below the grid');
+if(!previewPack.includes('never cross or pass through another island'))fail('instruction-audit','Hashi preview loses the no-pass-through rule');
+if(!previewSums.includes('Starter digits are fixed'))fail('instruction-audit','Corner/Linked Sum preview does not identify fixed starters');
+if(!previewSums.includes('A cell can contribute to more than one overlapping circle.'))fail('instruction-audit','Corner Sum preview overlap clarification missing');
+ok('instruction-audit','Late printable-preview overlays preserve the reviewed instructions');
+const previewMachine=read('assets/99club/games-v138.js');
+if(previewMachine.includes('tt99-v138-machine-note'))fail('instruction-audit','Function Machine printable preview still repeats reverse-working instructions');
+const duplicateOnlineSelectors=[
+  '.tt99-play-wordsearch .tt99-play-board-tip',
+  '.tt99-play-numbersearch .tt99-play-board-tip',
+  '.tt99-sumplete-wrap .tt99-play-board-tip',
+  '.tt99-nonogram-scroll + .tt99-cycle-note',
+  '.tt99-play-mines .tt99-cycle-note',
+  '.tt99-play-hashi .tt99-hashi-note',
+  '.tt99-play-numberpath .tt99-cycle-note',
+  '.tt99-pyramid-board + .tt99-cycle-note',
+  '.tt99-play-brokencalc .tt99-arith-note',
+  '.tt99-play-target .tt99-arith-note',
+  '.tt99-play-propertymaze .tt99-propertymaze-tip',
+  '.tt99-play-answermaze .tt99-answermaze-tip',
+  '.tt99-play-sumgrid .tt99-play-board-tip',
+  '.tt99-play-operationgrid .tt99-opgrid-rule',
+  '.tt99-play-colourlogic .tt99-cl-tap',
+  '.tt99-extra-path-grid + .tt99-arith-note',
+  '.tt99-extra-perimeter-grid.online + .tt99-arith-note'
+];
+for(const sel of duplicateOnlineSelectors)if(!onlineInstructions.includes(sel))fail('instruction-audit',`Online duplicate-rule cleanup lost selector: ${sel}`);
+if(!onlineInstructions.includes('Tap an operator box to cycle through the allowed signs'))fail('instruction-audit','Operation Codebreaker top instruction lost its interaction rule');
+if(!onlineInstructions.includes('Tap a box to cycle colours'))fail('instruction-audit','Colour Logic top instruction lost its interaction rule');
+ok('instruction-audit','Static online rule duplication is removed while dynamic board guidance is preserved');
 const helpPage=read('_pages/99-club-games-help.md');
 const stated=(helpPage.match(/covers all <strong>(\d+) current one-player games<\/strong>/)||[])[1];
 if(stated&&Number(stated)!==guideIds.length)fail('help-guides',`Help-page guide count says ${stated}, library contains ${guideIds.length}`);

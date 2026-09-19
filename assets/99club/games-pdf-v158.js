@@ -18,7 +18,7 @@ function drawEquation(e,row,answers,x,y,w,h,startIndex){
 function redraw(e,a,answers,x,y,w,h,index){
  const p=a.printCipher;if(!p)return;rect(e,x,y,w,h,{fill:C.white,stroke:C.line,width:.8});
  text(e,x+12,y+18,`ACTIVITY ${index}`,8.2,{bold:true,color:C.muted});text(e,x+12,y+39,'Operation Codebreaker',14,{bold:true});text(e,x+w-12,y+19,String(a.difficulty||''),8,{color:C.muted,align:'right'});
- fit(e,x+12,y+57,'Make every equation true. Use the operator key to turn each numbered sign into a code digit.',w-24,7,{color:C.muted});fit(e,x+12,y+69,'Then use the completed code to crack the secret word.',w-24,6.6,{color:C.muted});
+ fit(e,x+12,y+57,'Make every equation true; allowed signs may be reused. Follow brackets and normal operation order.',w-24,6.6,{color:C.muted});fit(e,x+12,y+69,'Use the operator key to turn solved signs into code digits, then crack the secret word.',w-24,6.4,{color:C.muted});
  const pairs=Object.entries(p.operatorDigits||{}),keyY=y+78;rect(e,x+12,keyY,w-24,25,{fill:C.pale,stroke:C.line,width:.65});text(e,x+20,keyY+16,'OPERATOR KEY',5.2,{bold:true,color:C.muted});let kx=x+105;for(const [op,d] of pairs){text(e,kx,keyY+17,`${opLabel(op)} = ${d}`,7,{bold:true,color:C.teal});kx+=54;}
  const code=p.code||[],rows=a.rows||[],footerH=h<390?82:96,eqTop=keyY+34,eqBottom=y+h-footerH-8,cols=2,rn=Math.ceil(rows.length/cols),gx=8,gy=6,cw=(w-32-gx)/2,ch=Math.max(34,Math.min(57,(eqBottom-eqTop-gy*(rn-1))/Math.max(1,rn)));let pos=1;
  rows.forEach((r,i)=>{const rr=Math.floor(i/cols),cc=i%cols,cx=x+12+cc*(cw+gx),cy=eqTop+rr*(ch+gy);pos=drawEquation(e,r,answers,cx,cy,cw,ch,pos);});

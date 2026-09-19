@@ -46,7 +46,7 @@
       const title=activity.querySelector('.tt99-game-activity-head h3')?.textContent||'';if(!/Number Towers/i.test(title))return;
       const p=activity.querySelector('.tt99-game-instruction'),data=decodePayload(p?.textContent||'');if(!data)return;
       activity.dataset.v137Towers='1';const answer=!!activity.closest('.tt99-game-paper.is-answer'),n=data.n,grid=data.solution||[],clues=data.clues||{};
-      if(p)p.textContent=`Fill the grid with 1–${n}, using each height once in every row and column. Edge clues show how many towers are visible from that direction.`;
+      if(p)p.textContent=`Fill the grid with 1–${n}, using each height once in every row and column. Each edge clue is how many towers are visible looking from that side; taller towers hide shorter ones behind them.`;
       [...activity.children].filter(el=>!el.matches('.tt99-preview-replace,.tt99-game-activity-head,.tt99-game-instruction')).forEach(el=>el.remove());
       const cells=[];cells.push('<span class="tower-corner"></span>');for(let c=0;c<n;c++)cells.push(`<span class="tower-clue">${clues.top?.[c]||''}</span>`);cells.push('<span class="tower-corner"></span>');
       for(let r=0;r<n;r++){
