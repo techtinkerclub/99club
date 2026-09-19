@@ -1,7 +1,7 @@
 ---
 layout: default
-title: "99 Club home practice – guide for schools"
-description: "Step-by-step guide for adding school-led 99 Club practice links, website cards and PNG card images to a school website."
+title: "Home practice – guide for schools"
+description: "Step-by-step guide for adding school-led 99 Club and puzzle-practice links, website cards and PNG card images to a school website."
 permalink: /schools/
 sidebar: false
 sitemap: true
@@ -14,8 +14,8 @@ sitemap: true
         <div class="tt99-guide-hero">
           <div>
             <span class="tt99-eyebrow">99 Club Studio</span>
-            <h1>Adding 99 Club home practice to a school website</h1>
-            <p>A practical guide for maths leads, website administrators and school IT teams.</p>
+            <h1>Adding school-led home practice to a school website</h1>
+            <p>A practical guide for 99 Club worksheets and Maths Games &amp; Puzzles, written for maths leads, website administrators and school IT teams.</p>
           </div>
           <a class="tt99-secondary tt99-guide-action" href="/">← Back to 99 Club Studio</a>
         </div>
@@ -91,6 +91,25 @@ sitemap: true
           <h2>What parents see</h2>
           <p>Parents see the 99 Club badge, the club name, question count, target time and print layout, followed by one main button to download a new worksheet and answers. Every download creates new questions from the same fixed rules.</p>
           <p>Parents do not need an account and do not see the Studio rule editor.</p>
+        </section>
+
+        <section class="tt99-guide-section" id="puzzle-practice">
+          <h2>Maths Games &amp; Puzzles: share a locked puzzle pack</h2>
+          <p>The printable <strong>Maths Games &amp; Puzzles</strong> generator now has the same school-led sharing idea. Configure the year range, topics, selected puzzle types, difficulty and specialist puzzle options first, then use <strong>Create parent link</strong> in the Build the pack section.</p>
+          <p>The parent receives one locked link for the <strong>whole current puzzle pack</strong>. They see a simple summary and one button to create a fresh puzzle pack with matching answers. They do not see the puzzle editor and cannot change the school-selected settings.</p>
+          <p>If the school wants several different home-practice choices — for example <em>Year 4 arithmetic puzzles</em> and <em>Upper KS2 logic puzzles</em> — configure, save and share each setup separately.</p>
+
+          <h3>Save and restore the puzzle setup</h3>
+          <p>Puzzle settings are remembered automatically in the current browser, but that is not a long-term backup. <strong>Save puzzle setup</strong> downloads one JSON file containing the complete printable-puzzle configuration: year/topic choices, every puzzle engine setting, selected puzzle types, pack options, personalisation and the school's saved vocabulary.</p>
+          <p><strong>Restore puzzle setup</strong> recreates that configuration on another computer or after browser storage has been cleared. The file stores settings rather than generated puzzles, so a new random pack is created after restoration.</p>
+
+          <h3>Puzzle website card and website pack</h3>
+          <p>The puzzle sharing window provides the same practical website options: <strong>Copy link</strong>, <strong>Copy website card</strong>, <strong>Download card image</strong> and <strong>Download website pack</strong>.</p>
+          <p>The puzzle website ZIP contains the PNG card, <code>practice-link.txt</code>, a short <code>README.html</code> and <code>99-club-puzzle-configuration.json</code> so the exact setup can be restored later.</p>
+          <div class="tt99-guide-note"><strong>Changing the puzzle setup creates a new link.</strong> Existing published links deliberately keep the settings they were created with. If the visible card summary changes, replace the card image or HTML as well.</div>
+
+          <h3>Personal vocabulary</h3>
+          <p>If a shared puzzle pack uses relevant entries from <strong>My vocabulary</strong>, the required terms and definitions are included in the locked parent link so Word Search or Crossword can reproduce the intended activity. School/class names, logos, worksheet dates and generated puzzle seeds are still excluded from that link. Very large personal vocabulary sets may need to be reduced before one shareable URL can be created.</p>
         </section>
 
         <section class="tt99-guide-section">
