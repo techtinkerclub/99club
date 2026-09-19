@@ -499,6 +499,9 @@ try{
 
   const usage=SchoolUsage2.puzzlePracticePayload('puzzle_practice_download',decoded);
   if(!usage||usage.school_key!==schoolKey||usage.game_count!==2||usage.min_year!==4||usage.max_year!==5||usage.sheet_count!==2||usage.activities_per_sheet!==2)fail('school-usage','Aggregate puzzle-practice payload is incomplete');
+  if(!Array.isArray(usage.topic_ids)||!usage.topic_ids.includes('calculation'))fail('school-usage','Puzzle usage payload is missing aggregate topic ids');
+  if(!Array.isArray(usage.game_difficulties)||!usage.game_difficulties.includes('pyramid:challenge'))fail('school-usage','Puzzle usage payload is missing per-game difficulty modes');
+  if(Number(usage.custom_vocabulary_count)!==0)fail('school-usage','Puzzle usage custom vocabulary count is incorrect for a non-vocabulary pack');
   for(const forbidden of ['school_name','pupil','parent','seed','url','referrer','score','customVocabulary'])if(JSON.stringify(usage).includes(forbidden))fail('school-usage',`Puzzle usage payload leaked forbidden field ${forbidden}`);
   if(SchoolUsage2.enabled())fail('school-usage','School telemetry must remain disabled until the final analytics design is approved');
 
@@ -507,7 +510,7 @@ try{
   if(/analytics|gtag|googletagmanager/i.test(puzzleLayout))fail('puzzle-parent','Puzzle parent layout loads Google Analytics');
   for(const required of ['games-engine.js','games-pdf.js','school-usage.js','games-parent-practice.js','games-parent-practice-page.js'])if(!puzzleLayout.includes(required))fail('puzzle-parent',`Puzzle parent layout missing ${required}`);
   if(gamesPage.indexOf('games-parent-practice.js')<0||gamesPage.indexOf('games-parent-practice.js')>gamesPage.indexOf('games-app.js'))fail('puzzle-parent','Puzzle sharing codec must load before games-app.js');
-  for(const required of ['games-parent-share','tt99-puzzle-parent-modal','Save puzzle setup','Restore puzzle setup','Download website pack','puzzleConfigData','restorePuzzleConfig','downloadPuzzleWebsitePack','createPuzzleShareCardBlob','tt99-school-puzzle-config'])if(!gamesApp.includes(required))fail('puzzle-parent',`Printable puzzle sharing UI missing ${required}`);
+  for(const required of ['games-parent-share','tt99-puzzle-parent-modal','Save puzzle setup','Restore puzzle setup','Download website pack','puzzleConfigData','restorePuzzleConfig','downloadPuzzleWebsitePack','createPuzzleShareCardBlob','tt99-school-puzzle-config','open_parent_view','restore_config'])if(!gamesApp.includes(required))fail('puzzle-parent',`Printable puzzle sharing UI missing ${required}`);
   if(!gamesApp.includes("kind:'tt99-school-puzzle-config'")||!gamesApp.includes('customVocabulary:G.clone(state.customVocabulary)'))fail('puzzle-parent','Portable puzzle setup does not preserve full settings and custom vocabulary');
   const schoolInfo2=read('_pages/99-club-schools.md'),privacy2=read('_pages/privacy.md');
   for(const phrase of ['id="puzzle-practice"','Save puzzle setup','Restore puzzle setup','Download website pack','Personal vocabulary'])if(!schoolInfo2.includes(phrase))fail('puzzle-parent',`School puzzle-sharing guide missing: ${phrase}`);
