@@ -698,3 +698,11 @@
     max-height:none!important;
   }
 }
+
+
+/* v2.15 · half-page Word Search uses its compact A4 footprint */
+@media screen {
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-word-grid{
+    width:min(100%,296px)!important;
+  }
+}
