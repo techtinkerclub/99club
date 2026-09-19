@@ -183,8 +183,11 @@ function prepare(){
       try{
         await sleep(1800);
         if(window.__TT99_PREVIEW_QA_FUNCTIONAL){
+          report.engineIds=(window.__TT99_PREVIEW_QA_IDS||[]).slice();
           await previewReplaceTest();
           await configurePlacementTest();
+          if(!report.failures.length)pass('preview-controls','Replacement and configuration controls passed the smoke test');
+          return;
         }
         report.engineIds=(window.__TT99_PREVIEW_QA_IDS||[]).slice();
         let stack=document.querySelector('.tt99-games-pupil-pages');
