@@ -53,7 +53,7 @@ sitemap: true
 <script src="/assets/99club/games-operationgrid-print-v158.js?v=3"></script>
 <script src="/assets/99club/games-crossgrid-v1321.js?v=2"></script>
 <script src="/assets/99club/games-property-maze.js?v=1"></script>
-<script src="/assets/99club/games-number-logic.js?v=3"></script>
+<script src="/assets/99club/games-number-logic.js?v=4"></script>
 <script src="/assets/99club/games-extra-puzzles-v204.js?v=2"></script>
 <script src="/assets/99club/games-takuzu-v139.js?v=1"></script>
 <script src="/assets/99club/games-takuzu-v139-logic.js?v=1"></script>
