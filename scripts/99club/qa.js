@@ -432,6 +432,8 @@ for(const required of ['generator.js','simple-pdf.js','pdf-layout.js','school-us
 const parentUi=read('assets/99club/parent-practice-page.js');
 if(/localStorage|sessionStorage/.test(parentUi))fail('parent-practice','Parent practice page stores browser profile/progress state');
 if(!rootApp.includes('parentPracticePreviewLink')||!rootApp.includes("searchParams.set('preview','1')"))fail('parent-practice','Teacher Preview links are not marked with preview=1 for PWA-safe return navigation');
+if(!rootApp.includes('parentPracticeWebsiteCard(state.clubId,true)'))fail('parent-practice','Clickable teacher card preview does not use the PWA-safe preview URL');
+if(!rootApp.includes('School website integration help'))fail('parent-practice','Parent sharing panel is missing the School website integration help label');
 if(!parentUi.includes('isTeacherPreview')||!parentUi.includes('Back to 99 Club Studio')||!parentUi.includes('tt99-practice-previewbar'))fail('parent-practice','Teacher parent-practice preview is missing its PWA-safe return control');
 if(!parentUi.includes("kind:'both'")||!parentUi.includes("answerContext:{label:'Answer copy'"))fail('parent-practice','Parent page does not create the promised combined worksheet + answers PDF');
 if(!parentUi.includes('G.newSeed'))fail('parent-practice','Parent downloads are not regenerated with fresh questions');
@@ -518,6 +520,8 @@ try{
   if(gamesPage.indexOf('games-parent-practice.js')<0||gamesPage.indexOf('games-parent-practice.js')>gamesPage.indexOf('games-app.js'))fail('puzzle-parent','Puzzle sharing codec must load before games-app.js');
   for(const required of ['games-parent-share','tt99-puzzle-parent-modal','Save puzzle setup','Restore puzzle setup','Download website pack','puzzleConfigData','restorePuzzleConfig','downloadPuzzleWebsitePack','createPuzzleShareCardBlob','tt99-school-puzzle-config','open_parent_view','restore_config'])if(!gamesApp.includes(required))fail('puzzle-parent',`Printable puzzle sharing UI missing ${required}`);
   if(!gamesApp.includes('puzzleSharePreviewLink')||!gamesApp.includes("searchParams.set('preview','1')"))fail('puzzle-parent','Puzzle teacher preview links are not marked with preview=1 for PWA-safe return navigation');
+  if(!gamesApp.includes('puzzleShareWebsiteCard(true)'))fail('puzzle-parent','Clickable teacher puzzle card preview does not use the PWA-safe preview URL');
+  if(!gamesApp.includes('School website integration help'))fail('puzzle-parent','Puzzle sharing panel is missing the School website integration help label');
   if(!puzzleParentUi.includes('isTeacherPreview')||!puzzleParentUi.includes('Back to Maths Games &amp; Puzzles')||!puzzleParentUi.includes('tt99-practice-previewbar'))fail('puzzle-parent','Puzzle teacher preview is missing its PWA-safe return control');
   if(!gamesApp.includes('Open widget builder')||gamesApp.includes('Add current pack to widget'))fail('puzzle-parent','Maths Games widget action is not aligned with the 99 Club Open widget builder wording');
   if(!gamesApp.includes("kind:'tt99-school-puzzle-config'")||!gamesApp.includes('customVocabulary:G.clone(state.customVocabulary)'))fail('puzzle-parent','Portable puzzle setup does not preserve full settings and custom vocabulary');
