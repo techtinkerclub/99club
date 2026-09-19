@@ -120,7 +120,7 @@ sitemap: true
 <script src="/assets/99club/games-play-extra-puzzles-v204.js?v=5"></script>
 <script src="/assets/99club/games-play-context-keypad-v201.js?v=6"></script>
 <script src="/assets/99club/games-play-library-v4.js?v=7"></script>
-<script src="/assets/99club/games-play-instructions-v154.js?v=3"></script>
+<script src="/assets/99club/games-play-instructions-v154.js?v=4"></script>
 <script src="/assets/99club/games-play-completion-preview-v1.js?v=3"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="/assets/99club/games-play-share-v164.js?v=3"></script>
