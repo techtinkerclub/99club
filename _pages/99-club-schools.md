@@ -62,6 +62,26 @@ sitemap: true
         </section>
 
         <section class="tt99-guide-section">
+          <h2>Save the school's club configuration</h2>
+          <p>Studio automatically remembers club edits in the current browser, but browser storage is not a long-term backup. After configuring the school's 11–99 and post-99 challenges, open <strong>Create parent links</strong> and choose <strong>Save school configuration</strong>.</p>
+          <p>The downloaded JSON file contains a snapshot of the rules for all 14 parent-practice levels in the currently selected ruleset scheme, plus the print orientation and school name. It does not contain pupil data, generated worksheets, scores or teacher notes.</p>
+          <p>On another computer or after browser data has been cleared, use <strong>Restore school configuration</strong>. Existing custom presets and unrelated schemes are left alone; the saved club rules are restored into the selected scheme.</p>
+          <div class="tt99-guide-note"><strong>Keep this file somewhere independent of the browser.</strong> It is the easiest way to preserve the work involved in configuring every club.</div>
+        </section>
+
+        <section class="tt99-guide-section">
+          <h2>Download the complete website pack</h2>
+          <p><strong>Download website pack</strong> creates one ZIP file for the school website administrator. It contains:</p>
+          <ul>
+            <li>all 14 PNG card images, from 11 Club through Diamond;</li>
+            <li><code>practice-links.csv</code>, matching every club to its locked practice URL;</li>
+            <li>a short <code>README.html</code> with implementation instructions; and</li>
+            <li><code>99-club-school-configuration.json</code>, so the club rules used to create the pack can be restored later.</li>
+          </ul>
+          <p>If the website administrator does not need the images, <strong>Copy all links</strong> provides the same club-to-URL mapping directly from Studio for pasting into an email, document or website editor.</p>
+        </section>
+
+        <section class="tt99-guide-section">
           <h2>Important when the school changes the rules</h2>
           <p>Each parent-practice URL is a snapshot of the maths rules at the moment it is created. This is intentional: a link already published by a school must not silently change because Studio defaults change later.</p>
           <p>If the maths lead changes a club's rules, create a <strong>new parent link</strong> and replace the old website link. If the visible description on an HTML or PNG card has changed as well, copy or download a fresh card too. An old published link will continue to use the old rules.</p>
