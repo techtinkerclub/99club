@@ -88,7 +88,7 @@ sitemap: true
             <li><strong>Preview:</strong> a way to check a page before publishing it.</li>
             <li><strong>Publish / Save / Update:</strong> the action that makes the change live for parents.</li>
           </ul>
-          <p>99 Club Studio does not need access to the school website account. It only gives the teacher the public link/card/embed code to paste into the school's normal website editor.</p>
+          <p>99 Club Studio does not need access to the school website account. It only gives the teacher the public link/card/embed code to paste into the school's normal website editor. The plain-link/card routes use a normal HTTPS link; the widget route is an optional accountless widget embed.</p>
         </section>
 
         <section id="plain-link" class="tt99-guide-section">
@@ -156,7 +156,7 @@ sitemap: true
         </section>
 
         <section id="website-pack" class="tt99-guide-section tt99-guide-highlight">
-          <h2>Option 4: download the complete website pack</h2>
+          <h2>Option 4: Download the complete website pack</h2>
           <p>The website pack is designed for handover. A maths lead can configure the practice in Studio, download one ZIP and give that ZIP to the person who manages the school website.</p>
 
           <h3>99 Club website pack</h3>
@@ -180,7 +180,7 @@ sitemap: true
           <p>Widgets are the compact multi-choice option. They are useful when the school wants several activities visible in one neat embedded panel instead of placing lots of separate buttons/cards on the webpage.</p>
 
           <h3>99 Club Widget</h3>
-          <p>The 99 Club Widget can show any selection of 11–99 and Bronze, Silver, Gold, Platinum and Diamond. Each visible level keeps the school-selected maths rules.</p>
+          <p>The 99 Club Widget can show any selection of 11–99 and Bronze, Silver, Gold, Platinum or Diamond. Each visible level keeps the school-selected maths rules.</p>
           <ol>
             <li>Configure the Club rules in the normal 99 Club Studio editor.</li>
             <li>Open <strong>Create parent links</strong>.</li>
