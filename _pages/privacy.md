@@ -41,6 +41,12 @@ sitemap: true
         </section>
 
         <section class="tt99-guide-section">
+          <h2>Parent practice links</h2>
+          <p>The dedicated parent-practice page at <code>/practice/</code> is separate from the main Studio interface. A practice link carries only the selected maths rules and print orientation. It does not include pupil names, parent details, school names, teacher names, uploaded logos, worksheet dates, teacher notes, scores, progress history or generated question seeds.</p>
+          <p>The parent-practice page does not load the Studio analytics code and does not ask for a login or personal information. Worksheet generation and PDF creation happen in the browser.</p>
+        </section>
+
+        <section class="tt99-guide-section">
           <h2>Contact form</h2>
           <p>If you choose to send a message through the Contact form, the details you type are sent through FormSubmit so the message can be delivered. Please do not include pupil personal information.</p>
         </section>
