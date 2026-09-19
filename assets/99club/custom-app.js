@@ -119,7 +119,8 @@
   function analyticsContext(){
     return {
       school_key:SU?.makeSchoolKey?.(state.school?.schoolName||'')||undefined,
-      source_origin:SU?.referrerOrigin?.()||undefined
+      source_origin:SU?.referrerOrigin?.()||undefined,
+      app_mode:(window.matchMedia?.('(display-mode: standalone)').matches||window.navigator.standalone===true)?'pwa':'browser'
     };
   }
   function track(name,params){
