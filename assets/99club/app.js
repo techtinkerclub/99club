@@ -535,17 +535,23 @@
   }
   function parentPracticeWebsiteSummary(clubId=state.clubId){
     const id=String(clubId),rules=id===String(state.clubId)?state.rules:loadRulesFor(state.schemeId,id);
-    const count=Number(rules?.questionCount)||0;
-    const timed=rules?.timeEnabled===false?'Untimed':`${Number(rules?.timeMinutes)||5} min`;
-    return `${count} questions · ${timed} · Printable worksheet + answers`;
+    const useful=String(G.rulesSummary(rules)||'')
+      .split(' · ')
+      .filter(part=>part && !/perfect|advance|consecutive/i.test(part))
+      .slice(0,4);
+    if(!useful.length){
+      const count=Number(rules?.questionCount)||0;
+      useful.push(`${count} questions`,rules?.timeEnabled===false?'Untimed':`${Number(rules?.timeMinutes)||5} min`);
+    }
+    useful.push('worksheet + answers');
+    return useful.join(' · ');
   }
   function parentPracticeWebsiteCard(clubId=state.clubId){
     return PP.websiteCardHtml(
       parentPracticeLink(clubId),
       parentPracticeName(clubId),
       parentPracticeWebsiteBadge(clubId),
-      parentPracticeWebsiteSummary(clubId),
-      'Practice at home'
+      parentPracticeWebsiteSummary(clubId)
     );
   }
   function renderParentPracticeModal(){
