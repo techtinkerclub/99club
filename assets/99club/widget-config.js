@@ -124,7 +124,7 @@ function fromClubRules(input){
     const patch=diff(base,G.normalizeRules(clone(current)));if(patch!==undefined)clubPatches[id]=patch;
   }
   const school={name:src.school?.name||src.school?.schoolName||src.schoolName||'',logo:src.school?.logo||src.school?.logoDataUrl||src.schoolLogo||''};
-  return normalise({widgetType:src.widgetType||'club',school,schemeId,orientation,selectedClubs:CLUB_IDS,clubPatches,puzzles:src.puzzles||[],games:src.games||[],defaultTab:src.defaultTab});
+  return normalise({widgetType:src.widgetType||'club',integrationId:src.integrationId||'',school,schemeId,orientation,selectedClubs:CLUB_IDS,clubPatches,puzzles:src.puzzles||[],games:src.games||[],defaultTab:src.defaultTab});
 }
 function clubRules(cfg,id){
   const c=normalise(cfg),base=PP.baseRules(c.schemeId,id);
