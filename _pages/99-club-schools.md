@@ -23,7 +23,7 @@ sitemap: true
         <section class="tt99-guide-section tt99-guide-highlight">
           <h2>What this feature does</h2>
           <p>A teacher or maths lead chooses the 99 Club rules in Studio first. Studio then creates a locked parent-practice link for that club. Parents opening the link do not see the rule editor: they see a simple page that creates a fresh printable worksheet and matching answers using the school-selected rules.</p>
-          <p>The school website only needs a normal HTTPS link to 99 Club Studio. It does not need a plugin, JavaScript, iframe, login integration or access to the school content-management system.</p>
+          <p>For the simplest routes, the school website only needs a normal HTTPS link to 99 Club Studio. Schools that want several choices in one compact panel can also use the optional accountless <strong>School Website Widgets</strong>. The widget route uses a standard iframe/embed block supplied by the school's existing website editor; it does not require a school account in 99 Club Studio.</p>
         </section>
 
         <section class="tt99-guide-section">
@@ -59,6 +59,19 @@ sitemap: true
             <li>Publish the page and test the image from a phone and a desktop browser.</li>
           </ol>
           <div class="tt99-guide-note"><strong>The PNG itself does not contain the clickable link.</strong> The school website administrator must attach the matching practice URL to the uploaded image. This keeps the image usable in ordinary school website systems.</div>
+        </section>
+
+        <section class="tt99-guide-section tt99-guide-highlight">
+          <h2>Option 4: use a School Website Widget</h2>
+          <p>Widgets are useful when the school wants several parent choices in one neat embedded panel. 99 Club Studio now provides two normal widget types:</p>
+          <ul>
+            <li><strong>99 Club Widget</strong> – selected 11–99 and Bronze–Diamond levels using the school's configured maths rules.</li>
+            <li><strong>Maths Games Widget</strong> – selected locked printable puzzle packs and/or selected online games.</li>
+          </ul>
+          <p>A combined widget remains available under <strong>More options</strong>, but separate Club and Games widgets are usually clearer and easier to place around a school website.</p>
+          <p>The widget can show the school's public name and logo. Printable puzzle packs may also carry relevant school-entered mathematical vocabulary; the Widget Builder clearly marks this as public content.</p>
+          <p>The website editor only needs to paste the generated embed code into an <strong>Embed</strong>, <strong>Custom HTML</strong>, <strong>HTML</strong>, <strong>Code</strong> or equivalent block. If the school platform does not allow iframe/embed code, use the link/card/PNG routes above instead.</p>
+          <p><a class="tt99-secondary" href="/schools/widgets/"><strong>Open the full step-by-step widget tutorial →</strong></a></p>
         </section>
 
         <section class="tt99-guide-section">
@@ -114,7 +127,8 @@ sitemap: true
 
         <section class="tt99-guide-section">
           <h2>Privacy and security</h2>
-          <p>The practice link deliberately excludes pupil names, parent details, teacher names, uploaded school logos, worksheet dates, scores, progress history, teacher notes and generated question seeds. If a school name has been entered in Studio, the link can contain an opaque school-level key for future aggregate usage statistics; the school name itself is not placed in the parent URL.</p>
+          <p>Ordinary 99 Club parent-practice links deliberately exclude pupil names, parent details, teacher names, uploaded school logos, worksheet dates, scores, progress history, teacher notes and generated question seeds. If a school name has been entered in Studio, a practice link can contain an opaque school-level key; the school name itself is not placed in that ordinary practice URL.</p>
+          <p><strong>School Website Widgets are different by design:</strong> the school name and compact logo are public presentation content inside the widget configuration. A Maths Games Widget can also contain locked puzzle-pack links with the relevant school-entered vocabulary needed to reproduce Word Search/Crossword activities. Treat anything deliberately added to a public widget as public website content and do not use pupil/private information there.</p>
           <p>The parent-practice page does not load Google Analytics or advertising code, does not ask for a login and does not request pupil or parent information. School-level usage telemetry is currently disabled and no collection endpoint is configured.</p>
           <p>The wider 99 Club Studio website has a separate <a href="/privacy/">Privacy &amp; analytics</a> page.</p>
         </section>
