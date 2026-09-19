@@ -37,7 +37,7 @@ function prepare(){
   const runner=String.raw`
   <script>
   (function(){
-    const report={failures:[],passes:[],activities:0,pages:0,scaled:0,minScale:1,squareGrids:0};
+    const report={failures:[],passes:[],activities:0,pages:0,scaled:0,minScale:1,squareGrids:0,engineIds:[]};
     const fail=(area,msg)=>report.failures.push({area,msg});
     const pass=(area,msg)=>report.passes.push({area,msg});
     const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -179,32 +179,48 @@ function prepare(){
         await sleep(1800);
         await previewReplaceTest();
         await configurePlacementTest();
+        report.engineIds=(window.__TT99_PREVIEW_QA_IDS||[]).slice();
         let stack=document.querySelector('.tt99-games-pupil-pages');
         if(!stack)return fail('boot','Pupil preview stack missing');
-        const resetInput=stack.querySelector('.tt99-preview-pager input');
-        if(resetInput){
-          resetInput.value='1';
-          resetInput.dispatchEvent(new Event('change',{bubbles:true}));
+        const jumpToPage=async n=>{
+          stack=document.querySelector('.tt99-games-pupil-pages');
+          const input=stack?.querySelector('.tt99-preview-pager input');
+          if(!input)return false;
+          input.value=String(n);
+          input.dispatchEvent(new Event('change',{bubbles:true}));
           await sleep(180);
           stack=document.querySelector('.tt99-games-pupil-pages');
-        }
+          return Number(stack?.querySelector('.tt99-preview-pager input')?.value)===n;
+        };
         const total=Number(window.TT99GamesPreviewPagerV155?.counts?.pupil)||Number(stack.querySelector('[data-preview-total]')?.textContent)||stack.querySelectorAll('.tt99-game-paper').length;
         report.pages=total;if(!total)return fail('boot','No printable preview pages generated');
+        if(total>1){
+          if(!(await jumpToPage(1)))fail('pager','Could not reset preview to page 1');
+          else{
+            const next=stack.querySelector('[data-preview-next]');
+            if(!next||next.disabled)fail('pager','Next button is disabled on page 1 of '+total);
+            else{
+              next.click();await sleep(180);
+              stack=document.querySelector('.tt99-games-pupil-pages');
+              const pageAfterNext=Number(stack?.querySelector('.tt99-preview-pager input')?.value)||0;
+              if(pageAfterNext!==2)fail('pager','Next button moved to page '+pageAfterNext+' instead of page 2');
+              else pass('pager','Next button advanced from page 1 to page 2');
+            }
+            await jumpToPage(1);
+          }
+        }
         for(let i=0;i<total;i++){
+          if(!(await jumpToPage(i+1))){fail('pager','Could not jump to preview page '+(i+1)+' of '+total);break;}
           window.TT99GamesPreviewFitV207?.refresh?.();
           await sleep(i?120:450);
-          const p=stack.querySelector(':scope > article.tt99-game-paper');
+          stack=document.querySelector('.tt99-games-pupil-pages');
+          const p=stack?.querySelector(':scope > article.tt99-game-paper');
           if(!p){fail('boot','Preview page '+(i+1)+' was not mounted');break;}
           for(const a of p.querySelectorAll('.tt99-game-activity'))inspectActivity(a);
           for(const g of p.querySelectorAll('.tt99-kakuro-grid,.tt99-cage-grid,.tt99-numberpath-grid,.tt99-extra-path-grid,.tt99-extra-search-grid,.tt99-extra-perimeter-grid,.tt99-shikaku-grid,.tt99-sumgrid-board'))inspectSquareGrid(g);
           for(const g of p.querySelectorAll('.tt99-crossword-grid'))inspectCrosswordGrid(g);
           for(const a of p.querySelectorAll('.tt99-game-activity'))inspectSumGrid(a);
           for(const a of p.querySelectorAll('.tt99-colourlogic-print'))inspectColourLogic(a);
-          if(i<total-1){
-            const next=stack.querySelector('[data-preview-next]');
-            if(!next||next.disabled){fail('pager','Could not advance from preview page '+(i+1));break;}
-            next.click();
-          }
         }
         const expected=(window.__TT99_PREVIEW_QA_IDS||[]).length;
         if(report.activities<expected)fail('catalogue','Only '+report.activities+' pupil activities rendered for '+expected+' selected engines in this batch');
@@ -227,7 +243,7 @@ function check(file){
   if(!m){console.error('Preview QA result marker not found.');process.exit(1);}
   const report=JSON.parse(Buffer.from(m[1],'base64').toString('utf8'));
   fs.writeFileSync(path.join(ROOT,'99club-preview-qa-report.json'),JSON.stringify(report,null,2)+'\n');
-  for(const x of report.failures||[])console.error('FAIL ['+x.area+'] '+x.msg);
+  for(const x of report.failures||[])console.error('FAIL ['+x.area+'] '+x.msg);\n  if(report.failures?.length&&report.engineIds?.length)console.error('Batch engines: '+report.engineIds.join(', '));
   console.log('Preview QA: '+(report.failures||[]).length+' failure(s), '+report.activities+' activities, '+report.pages+' pages, '+report.scaled+' scaled, min scale '+report.minScale.toFixed(3)+'.');
   if(report.failures?.length)process.exit(1);
 }
