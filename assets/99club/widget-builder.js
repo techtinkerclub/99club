@@ -4,10 +4,36 @@ const root=document.getElementById('tt99-widget-builder'),W=window.TT99SchoolWid
 if(!root||!W)return;
 
 const STORE='tt99-widget-builder-v1',HANDOFF='tt99-widget-handoff-v1';
+const SU=window.TT99SchoolUsage;
+const track=(name,params)=>window.TT99Analytics?.track(name,params);
 const clubNames={11:'11 Club',22:'22 Club',33:'33 Club',44:'44 Club',55:'55 Club',66:'66 Club',77:'77 Club',88:'88 Club',99:'99 Club',bronze:'Bronze',silver:'Silver',gold:'Gold',platinum:'Platinum',diamond:'Diamond'};
 let draft=loadDraft(),status='';
 
 function clone(v){return JSON.parse(JSON.stringify(v));}
+function newIntegrationId(){
+  try{
+    const a=new Uint32Array(2);crypto.getRandomValues(a);
+    return 'wid_'+a[0].toString(36)+a[1].toString(36);
+  }catch(_){return 'wid_'+Date.now().toString(36)+Math.floor(Math.random()*1e9).toString(36);}
+}
+function ensureIntegrationId(config){
+  if(!config.integrationId||!W.cleanIntegrationId?.(config.integrationId))config.integrationId=newIntegrationId();
+  return config;
+}
+function schoolKey(){return SU?.makeSchoolKey?.(draft.school?.name||'')||'';}
+function analyticsSummary(extra={}){
+  return {
+    widget_type:draft.widgetType,
+    school_key:schoolKey()||undefined,
+    club_count:draft.selectedClubs?.length||0,
+    puzzle_pack_count:draft.puzzles?.length||0,
+    online_game_count:draft.games?.length||0,
+    has_school_name:draft.school?.name?1:0,
+    has_school_logo:draft.school?.logo?1:0,
+    custom_vocabulary_count:(draft.puzzles||[]).reduce((n,p)=>n+(Number(p.vocabCount)||0),0),
+    ...extra
+  };
+}
 function requestedType(){
   const q=new URLSearchParams(location.search).get('type');
   return q==='club'||q==='games'||q==='combined'?q:'';
@@ -16,10 +42,10 @@ function loadDraft(){
   try{
     const saved=JSON.parse(localStorage.getItem(STORE)||'{}'),type=requestedType();
     if(type)saved.widgetType=type;
-    return W.normalise(saved);
-  }catch(_){return W.normalise({widgetType:requestedType()||'club',selectedClubs:W.CLUB_IDS,games:[]});}
+    return ensureIntegrationId(W.normalise(saved));
+  }catch(_){return ensureIntegrationId(W.normalise({widgetType:requestedType()||'club',selectedClubs:W.CLUB_IDS,games:[]}));}
 }
-function save(){draft=W.normalise(draft);try{localStorage.setItem(STORE,JSON.stringify(draft));}catch(_){}}
+function save(){draft=ensureIntegrationId(W.normalise(draft));try{localStorage.setItem(STORE,JSON.stringify(draft));}catch(_){}}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function download(name,text,type='application/json'){const blob=new Blob([text],{type}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),800);}
 function copy(text,msg){
@@ -75,7 +101,7 @@ async function applyHandoff(){
 }
 function importToken(text){
   const token=W.tokenFromText(text);if(!token)throw new Error('No TT99W1 widget configuration was found.');
-  draft=W.decode(token);save();status='Existing widget configuration recreated. The live school website has not changed.';render();
+  draft=ensureIntegrationId(W.decode(token));save();status='Existing widget configuration recreated. The live school website has not changed.';track('widget_existing_import',analyticsSummary());render();
 }
 function typeName(){return draft.widgetType==='club'?'99 Club Widget':draft.widgetType==='games'?'Maths Games Widget':'Combined Maths Widget';}
 function typeChooser(){
@@ -139,6 +165,7 @@ function bind(){
   root.querySelectorAll('[data-widget-type]').forEach(btn=>btn.addEventListener('click',()=>{
     draft.widgetType=btn.dataset.widgetType;
     if((draft.widgetType==='club'||draft.widgetType==='combined')&&!draft.selectedClubs.length)draft.selectedClubs=[...W.CLUB_IDS];
+    track('widget_type_selected',analyticsSummary());
     status='';render();
   }));
   root.querySelector('#wb-school-name')?.addEventListener('change',e=>{draft.school.name=String(e.target.value||'').trim().slice(0,80);status='School name updated in this widget draft.';render();});
@@ -151,18 +178,27 @@ function bind(){
   root.querySelector('#wb-no-clubs')?.addEventListener('click',()=>{draft.selectedClubs=[];status='';render();});
   root.querySelector('#wb-no-games')?.addEventListener('click',()=>{draft.games=[];status='';render();});
   root.querySelector('#wb-default-tab')?.addEventListener('change',e=>{draft.defaultTab=e.target.value;status='';render();});
-  root.querySelector('#wb-copy-embed')?.addEventListener('click',()=>copy(W.embedCode(draft,location.origin),typeName()+' embed code copied.'));
-  root.querySelector('#wb-copy-url')?.addEventListener('click',()=>copy(W.buildUrl(draft,location.origin),typeName()+' URL copied.'));
+  root.querySelector('#wb-copy-embed')?.addEventListener('click',()=>{
+    copy(W.embedCode(draft,location.origin),typeName()+' embed code copied.');
+    track('widget_embed_copy',analyticsSummary());
+    SU?.trackStudio?.('widget_embed_copy',draft.school?.name||'',{area:'widget_builder'});
+  });
+  root.querySelector('#wb-copy-url')?.addEventListener('click',()=>{
+    copy(W.buildUrl(draft,location.origin),typeName()+' URL copied.');
+    track('widget_url_copy',analyticsSummary());
+  });
   root.querySelector('#wb-code')?.addEventListener('click',e=>e.currentTarget.select());
   root.querySelector('#wb-import')?.addEventListener('click',()=>{try{importToken(root.querySelector('#wb-import-text')?.value||'');}catch(err){status=err?.message||'That widget could not be imported.';render();}});
-  root.querySelector('#wb-save-json')?.addEventListener('click',()=>{const payload={kind:'tt99-school-widget-setup',configVersion:1,savedAt:new Date().toISOString(),config:W.normalise(draft)};download('99studio-'+draft.widgetType+'-widget.json',JSON.stringify(payload,null,2)+'\n');status='Widget setup downloaded.';render();});
-  root.querySelector('#wb-restore-json')?.addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{const d=JSON.parse(await file.text());if(d?.kind!=='tt99-school-widget-setup'||Number(d.configVersion)!==1||!d.config)throw new Error('That file is not a 99 Studio widget setup.');draft=W.normalise(d.config);save();status='Widget setup restored.';render();}catch(err){status=err?.message||'That widget setup could not be restored.';render();}});
+  root.querySelector('#wb-save-json')?.addEventListener('click',()=>{const payload={kind:'tt99-school-widget-setup',configVersion:1,savedAt:new Date().toISOString(),config:W.normalise(draft)};download('99studio-'+draft.widgetType+'-widget.json',JSON.stringify(payload,null,2)+'\n');track('widget_setup_save',analyticsSummary());status='Widget setup downloaded.';render();});
+  root.querySelector('#wb-restore-json')?.addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{const d=JSON.parse(await file.text());if(d?.kind!=='tt99-school-widget-setup'||Number(d.configVersion)!==1||!d.config)throw new Error('That file is not a 99 Studio widget setup.');draft=ensureIntegrationId(W.normalise(d.config));save();track('widget_setup_restore',analyticsSummary());status='Widget setup restored.';render();}catch(err){status=err?.message||'That widget setup could not be restored.';render();}});
 }
 
 (async function start(){
   await applyHandoff();
   const direct=W.tokenFromText(decodeURIComponent(location.hash||''));
   if(direct){try{draft=W.decode(direct);save();status='Widget configuration loaded from the URL.';}catch(_){}}
+  track('widget_builder_open',analyticsSummary({entry_type:requestedType()||draft.widgetType}));
+  SU?.trackStudio?.('widget_builder_open',draft.school?.name||'',{area:'widget_builder'});
   render();
 })();
 })();
