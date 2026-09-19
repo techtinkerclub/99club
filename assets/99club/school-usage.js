@@ -114,20 +114,21 @@
     const c=config&&typeof config==='object'?config:{};
     const r=c.rules&&typeof c.rules==='object'?c.rules:{};
     const schoolKey=validSchoolKey(c.schoolUsageKey||c.schoolKey||c.schoolUsage?.schoolKey);
-    if(!schoolKey)return null;
+    const ctx=usageContext(c.usageContext||c);
     const event=String(eventName||'').trim();
     if(!/^(practice_open|practice_download)$/.test(event))return null;
+    if(!schoolKey&&!ctx.sourceOrigin&&!ctx.integrationId)return null;
     const out={
       schema_version:SCHEMA_VERSION,
       event,
-      school_key:schoolKey,
+      school_key:schoolKey||undefined,
       club_id:cleanId(c.clubId)||'unknown',
       scheme_id:cleanId(c.schemeId)||'unknown',
       question_count:Number.isFinite(Number(r.questionCount))?Number(r.questionCount):undefined,
       mode:cleanId(r.mode)||'unknown',
       orientation:c.orientation==='landscape'?'landscape':'portrait'
     };
-    appendAttribution(out,c.usageContext||c);
+    appendAttribution(out,ctx);
     Object.keys(out).forEach(k=>out[k]===undefined&&delete out[k]);
     return out;
   }
@@ -136,9 +137,10 @@
     const c=config&&typeof config==='object'?config:{};
     const s=c.settings&&typeof c.settings==='object'?c.settings:{};
     const schoolKey=validSchoolKey(c.schoolUsageKey||c.schoolKey||c.schoolUsage?.schoolKey);
-    if(!schoolKey)return null;
+    const ctx=usageContext(c.usageContext||c);
     const event=String(eventName||'').trim();
     if(!/^(puzzle_practice_open|puzzle_practice_download)$/.test(event))return null;
+    if(!schoolKey&&!ctx.sourceOrigin&&!ctx.integrationId)return null;
     const gameIds=(Array.isArray(s.selectedEngines)?s.selectedEngines:[]).map(id=>cleanId(id)).filter(Boolean).slice(0,50);
     const topicIds=(Array.isArray(s.topics)?s.topics:[]).map(id=>cleanId(id)).filter(Boolean).slice(0,20);
     const gameDifficulties=gameIds.map(id=>{
@@ -148,7 +150,7 @@
     const out={
       schema_version:SCHEMA_VERSION,
       event,
-      school_key:schoolKey,
+      school_key:schoolKey||undefined,
       game_ids:gameIds,
       game_count:gameIds.length,
       topic_ids:topicIds,
@@ -160,7 +162,7 @@
       worked_examples:s.workedExamples==='front'?1:0,
       custom_vocabulary_count:Array.isArray(c.customVocabulary)?Math.min(999,c.customVocabulary.length):0
     };
-    appendAttribution(out,c.usageContext||c);
+    appendAttribution(out,ctx);
     Object.keys(out).forEach(k=>out[k]===undefined&&delete out[k]);
     return out;
   }
