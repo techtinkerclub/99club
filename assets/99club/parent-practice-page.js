@@ -43,6 +43,15 @@
     return '<div class="tt99-practice-previewbar"><div><strong>Teacher preview</strong><span> · This is the parent-facing practice page.</span></div><a href="/">← Back to 99 Club Studio</a></div>';
   }
 
+  function schoolUsageContext(){
+    let via='';
+    try{via=new URLSearchParams(location.search).get('via')||'';}catch(_){}
+    return {
+      integrationId:SU?.cleanIntegrationId?.(via)||'',
+      sourceOrigin:SU?.referrerOrigin?.()||''
+    };
+  }
+
   function challengeName(){
     const id=String(config&&config.clubId||'99').toLowerCase();
     return String(config&&config.rules&&config.rules.name || CLUB_NAMES[id] || (id.replace(/(^|[-_])([a-z])/g,(_,a,b)=>a+b.toUpperCase())+' Club'));
@@ -178,6 +187,7 @@
     const token=tokenFromLocation();
     if(!token)throw new Error('This link does not contain a practice preset.');
     config=PP.decode(token);
+    config.usageContext=schoolUsageContext();
     render();
     SU?.trackPractice?.('practice_open',config);
   }catch(err){
