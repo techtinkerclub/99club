@@ -60,13 +60,10 @@
 
   function compactPayload(input){
     const cfg=normaliseConfig(input);
-    const base=baseRules(cfg.schemeId,cfg.clubId);
-    const payload={v:VERSION,s:cfg.schemeId,c:cfg.clubId,o:cfg.orientation==='landscape'?'l':'p'};
-    if(base){
-      const diff=diffObject(base,cfg.rules);
-      if(diff&&Object.keys(diff).length)payload.d=diff;
-    }else payload.r=cfg.rules;
-    return payload;
+    // Keep a complete rules snapshot in the link. Parent links are intended to be
+    // long-lived school resources, so a later change to Studio's built-in defaults
+    // must not silently change what an already-published school link practises.
+    return {v:VERSION,g:1,s:cfg.schemeId,c:cfg.clubId,o:cfg.orientation==='landscape'?'l':'p',r:cfg.rules};
   }
 
   function utf8ToBase64Url(text){
@@ -107,12 +104,8 @@
     if(!payload || Number(payload.v)!==VERSION)throw new Error('Unsupported parent practice link version');
     const schemeId=safeId(payload.s,'classic');
     const clubId=safeId(payload.c,'33');
-    const base=baseRules(schemeId,clubId);
-    let rules;
-    if(payload.r)rules=payload.r;
-    else if(base)rules=mergeObject(base,payload.d||{});
-    else throw new Error('This parent practice preset is not available in this build');
-    return normaliseConfig({schemeId,clubId,rules,orientation:payload.o==='l'?'landscape':'portrait'});
+    if(!payload.r || typeof payload.r!=='object')throw new Error('This parent practice link does not contain a rules snapshot');
+    return normaliseConfig({schemeId,clubId,rules:payload.r,orientation:payload.o==='l'?'landscape':'portrait'});
   }
 
   function originBase(origin){
