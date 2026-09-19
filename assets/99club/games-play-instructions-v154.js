@@ -44,7 +44,7 @@ const COPY={
   cornersum:'Place the digits 1–9 exactly once. Each circle is the sum of the four cells in its overlapping 2 × 2 window; any starter digits are fixed.',
   linkedsum:'Place the digits 1–9 exactly once. Match every overlapping 2 × 2 circle total and every A/B/C group total at the same time; starter digits are fixed.',
   colourlogic:'Make every clue true at the same time. In a row puzzle use each listed colour exactly once; in a grid puzzle fill every box with one of the shown colours and obey all count, position and neighbour rules.',
-  mobilebalance:'Every horizontal bar is an equal-arm balance. Repeated shapes have the same value; a lower branch counts as its whole combined weight on the bar above. A number in the top circle is the total weight of the whole mobile.',
+  mobilebalance:'Every horizontal bar is an equal-arm balance. Repeated shapes have the same value, and a lower branch counts as its whole combined weight on the bar above.',
   diagonalpath:'Use every number from 1 to the final number exactly once. Consecutive numbers may touch by a side or corner; printed anchors are fixed. The next missing number is shown; tap a blank square to place it.',
   squaresearch:'Find every non-overlapping 2 × 2 block whose four numbers total the target. Correct blocks never share a cell; tap a 2 × 2 block to select or clear it.',
   insertops:'Keep the printed numbers in order and put one allowed operation sign in every gap. Allowed signs may be reused; normal operation order applies and brackets are not used.',
