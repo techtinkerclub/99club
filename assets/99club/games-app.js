@@ -97,10 +97,143 @@
     const selected=selectedCompatible();
     const built=puzzleShareLink();
     const preview=built.link?puzzleShareWebsiteCard():'';
-    const vocabRelevant=GPP.compactVocabulary?GPP.compactVocabulary(state.customVocabulary,GPP.publicSettings(state.settings)).length:0;
+    let vocabRelevant=0;try{vocabRelevant=GPP.compactVocabulary?GPP.compactVocabulary(state.customVocabulary,GPP.publicSettings(state.settings)).length:0;}catch(_){}
     return `<div id="tt99-puzzle-parent-modal" class="tt99-parent-modal" hidden><button type="button" class="tt99-parent-backdrop" data-puzzle-parent-close aria-label="Close puzzle sharing"></button><section class="tt99-parent-card" role="dialog" aria-modal="true" aria-labelledby="tt99-puzzle-parent-title"><button type="button" class="tt99-parent-close" data-puzzle-parent-close aria-label="Close puzzle sharing">×</button><span class="tt99-parent-kicker">School-led home practice</span><h2 id="tt99-puzzle-parent-title">Share this puzzle setup</h2><p>Parents get a stripped-down page that creates a fresh puzzle pack and matching answers using these fixed puzzle choices and difficulty settings.</p><div class="tt99-parent-notice"><strong>Privacy by design:</strong> the parent link excludes school/class names, worksheet dates, logos and generated puzzle seeds. If this setup uses relevant My vocabulary entries, those terms and definitions are included so the shared pack can reproduce the intended vocabulary puzzles.</div>${built.error?`<div class="tt99-status">${esc(built.error)}</div>`:`<div class="tt99-parent-current"><strong>Current puzzle setup</strong><small>${esc(puzzleShareSummary())}${vocabRelevant?` · ${vocabRelevant} personal vocabulary entr${vocabRelevant===1?'y':'ies'} included`:''}</small><div class="tt99-parent-website-preview" aria-label="Preview of the school website puzzle card">${preview}</div><div class="tt99-parent-link-row"><input id="tt99-puzzle-parent-link" type="text" readonly value="${esc(built.link)}" aria-label="Puzzle parent practice link"><button type="button" id="tt99-puzzle-copy-link">Copy link</button><a href="${esc(built.link)}" target="_blank" rel="noopener">Open parent view</a></div><div class="tt99-parent-card-tools"><button type="button" id="tt99-puzzle-copy-card">Copy website card</button><button type="button" id="tt99-puzzle-download-card">Download card image</button></div></div>`}<div class="tt99-parent-pack"><div class="tt99-parent-pack__copy"><strong>Save, restore or hand over this setup</strong><small>Your puzzle choices are already remembered automatically in this browser. These files make the setup portable and safe to hand to another member of staff or a website administrator.</small></div><div class="tt99-parent-pack__actions"><button type="button" id="tt99-puzzle-download-web-pack" ${built.link?'':'disabled'}>Download website pack</button><button type="button" id="tt99-puzzle-save-config">Save puzzle setup</button><label class="tt99-parent-restore">Restore puzzle setup<input id="tt99-puzzle-restore-config" type="file" accept="application/json,.json"></label></div></div><div id="tt99-puzzle-parent-status" class="tt99-status" role="status" aria-live="polite" hidden></div><div class="tt99-parent-footer"><span>One shared link represents the whole current puzzle pack. Configure another pack and save/share it separately if the school wants several different home-practice choices.</span><a href="/schools/#puzzle-practice" target="_blank" rel="noopener">Puzzle sharing guide</a></div></section></div>`;
   }
 
+
+  function puzzleSafeDateStamp(){
+    const d=new Date(),pad=n=>String(n).padStart(2,'0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  }
+  function puzzleDownloadBlob(filename,blob){
+    const url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1500);
+  }
+  function puzzleDownloadJson(filename,data){
+    puzzleDownloadBlob(filename,new Blob([JSON.stringify(data,null,2)+'\n'],{type:'application/json'}));
+  }
+  async function puzzleReadTextFile(file){
+    if(file?.text)return file.text();
+    return new Promise((resolve,reject)=>{
+      const reader=new FileReader();reader.onload=()=>resolve(String(reader.result||''));reader.onerror=()=>reject(reader.error||new Error('Could not read file.'));reader.readAsText(file);
+    });
+  }
+  function puzzleConfigData(){
+    return {
+      kind:'tt99-school-puzzle-config',
+      configVersion:1,
+      app:'99 Club Studio',
+      engineVersion:G.VERSION,
+      savedAt:new Date().toISOString(),
+      settings:G.clone(state.settings),
+      customVocabulary:G.clone(state.customVocabulary)
+    };
+  }
+  function puzzleConfigFilename(){
+    const school=String(personalisation().schoolName||'school').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'school';
+    return `99-club-${school}-puzzle-setup-${puzzleSafeDateStamp()}.json`;
+  }
+  function savePuzzleConfig(){
+    puzzleDownloadJson(puzzleConfigFilename(),puzzleConfigData());
+  }
+  async function restorePuzzleConfig(file){
+    const d=JSON.parse(await puzzleReadTextFile(file));
+    if(!d||d.kind!=='tt99-school-puzzle-config'||Number(d.configVersion)!==1||!d.settings||typeof d.settings!=='object')throw new Error('That file is not a valid 99 Club puzzle setup.');
+    state.settings=G.normalizeSettings(d.settings);
+    state.customVocabulary=G.sanitizeCustomVocabulary(d.customVocabulary||[]);
+    state.activeEngine='';
+    state.openCategories=new Set(GAME_CATEGORIES.filter(cat=>cat.engines.some(id=>state.settings.selectedEngines.includes(id))).map(cat=>cat.id));
+    if(!state.openCategories.size)state.openCategories.add('vocabulary');
+    state.seed=newSeed();state.replaceCounter=0;
+    state.pack=G.generatePack(state.settings,state.seed,state.customVocabulary);
+    save();
+    state.status='Puzzle setup restored. All puzzle choices, difficulty settings, pack settings, personalisation and saved vocabulary from the file are now active.';
+    render();
+  }
+  function puzzleLoadImage(url){
+    return new Promise((resolve,reject)=>{
+      const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(new Error('Could not load the 99 Club Studio badge.'));img.src=url;
+    });
+  }
+  function puzzleRoundedRect(ctx,x,y,w,h,r){
+    const rr=Math.min(r,w/2,h/2);
+    ctx.beginPath();ctx.moveTo(x+rr,y);ctx.arcTo(x+w,y,x+w,y+h,rr);ctx.arcTo(x+w,y+h,x,y+h,rr);ctx.arcTo(x,y+h,x,y,rr);ctx.arcTo(x,y,x+w,y,rr);ctx.closePath();
+  }
+  function puzzleWrapText(ctx,text,maxWidth,maxLines=2){
+    const words=String(text||'').split(/\s+/).filter(Boolean),lines=[];let line='';
+    for(const word of words){
+      const test=line?line+' '+word:word;
+      if(ctx.measureText(test).width<=maxWidth||!line)line=test;
+      else{lines.push(line);line=word;if(lines.length===maxLines-1)break;}
+    }
+    if(lines.length<maxLines&&line)lines.push(line);
+    const consumed=lines.join(' ').split(/\s+/).filter(Boolean).length;
+    if(consumed<words.length&&lines.length){
+      let last=lines[lines.length-1];
+      while(last&&ctx.measureText(last+'…').width>maxWidth)last=last.replace(/\s+\S+$/,'');
+      lines[lines.length-1]=(last||lines[lines.length-1])+'…';
+    }
+    return lines;
+  }
+  async function createPuzzleShareCardBlob(){
+    const canvas=document.createElement('canvas');canvas.width=1200;canvas.height=260;const ctx=canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width,canvas.height);ctx.shadowColor='rgba(36,52,59,.10)';ctx.shadowBlur=16;ctx.shadowOffsetY=5;
+    puzzleRoundedRect(ctx,14,14,1172,232,32);ctx.fillStyle='#ffffff';ctx.fill();ctx.shadowColor='transparent';ctx.lineWidth=3;ctx.strokeStyle='#d6e1e4';ctx.stroke();
+    try{
+      const badge=await puzzleLoadImage('/assets/99club/images/99club-studio-shield.png'),max=150,scale=Math.min(max/badge.naturalWidth,max/badge.naturalHeight),w=Math.round(badge.naturalWidth*scale),h=Math.round(badge.naturalHeight*scale);
+      ctx.drawImage(badge,55+(150-w)/2,55+(150-h)/2,w,h);
+    }catch(_){}
+    ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.fillStyle='#24343b';ctx.font='700 46px Arial, sans-serif';ctx.fillText(puzzleShareTitle(),230,105);
+    ctx.fillStyle='#65747b';ctx.font='400 28px Arial, sans-serif';puzzleWrapText(ctx,puzzleShareSummary(),760,2).forEach((line,i)=>ctx.fillText(line,230,153+i*38));
+    ctx.fillStyle='#147d75';ctx.beginPath();ctx.arc(1105,130,44,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff';ctx.font='700 44px Arial, sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('→',1105,127);
+    return new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('Could not create the puzzle-card image.')),'image/png'));
+  }
+  function puzzleCardFilename(){
+    const title=puzzleShareTitle().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'maths-puzzle-practice';
+    return title+'-home-practice.png';
+  }
+  async function downloadPuzzleShareCard(){
+    puzzleDownloadBlob(puzzleCardFilename(),await createPuzzleShareCardBlob());
+  }
+  let puzzleCrcTable=null;
+  function puzzleCrc32(bytes){
+    if(!puzzleCrcTable){
+      puzzleCrcTable=new Uint32Array(256);
+      for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=(c&1)?(0xedb88320^(c>>>1)):(c>>>1);puzzleCrcTable[n]=c>>>0;}
+    }
+    let crc=0xffffffff;for(const b of bytes)crc=puzzleCrcTable[(crc^b)&0xff]^(crc>>>8);return (crc^0xffffffff)>>>0;
+  }
+  function puzzleDosDateTime(date=new Date()){
+    const year=Math.max(1980,date.getFullYear());
+    return {time:((date.getHours()&31)<<11)|((date.getMinutes()&63)<<5)|((Math.floor(date.getSeconds()/2))&31),date:(((year-1980)&127)<<9)|(((date.getMonth()+1)&15)<<5)|(date.getDate()&31)};
+  }
+  function puzzleZipHeader(size,writer){const out=new Uint8Array(size),view=new DataView(out.buffer);writer(view);return out;}
+  async function puzzleZip(entries){
+    const encoder=new TextEncoder(),locals=[],centrals=[];let offset=0;
+    for(const entry of entries){
+      const nameBytes=encoder.encode(entry.name),data=entry.data instanceof Blob?new Uint8Array(await entry.data.arrayBuffer()):(entry.data instanceof Uint8Array?entry.data:encoder.encode(String(entry.data??''))),crc=puzzleCrc32(data),dt=puzzleDosDateTime(entry.date||new Date());
+      const local=puzzleZipHeader(30+nameBytes.length,view=>{view.setUint32(0,0x04034b50,true);view.setUint16(4,20,true);view.setUint16(6,0x0800,true);view.setUint16(8,0,true);view.setUint16(10,dt.time,true);view.setUint16(12,dt.date,true);view.setUint32(14,crc,true);view.setUint32(18,data.length,true);view.setUint32(22,data.length,true);view.setUint16(26,nameBytes.length,true);view.setUint16(28,0,true);new Uint8Array(view.buffer,30,nameBytes.length).set(nameBytes);});
+      const central=puzzleZipHeader(46+nameBytes.length,view=>{view.setUint32(0,0x02014b50,true);view.setUint16(4,20,true);view.setUint16(6,20,true);view.setUint16(8,0x0800,true);view.setUint16(10,0,true);view.setUint16(12,dt.time,true);view.setUint16(14,dt.date,true);view.setUint32(16,crc,true);view.setUint32(20,data.length,true);view.setUint32(24,data.length,true);view.setUint16(28,nameBytes.length,true);view.setUint16(30,0,true);view.setUint16(32,0,true);view.setUint16(34,0,true);view.setUint16(36,0,true);view.setUint32(38,0,true);view.setUint32(42,offset,true);new Uint8Array(view.buffer,46,nameBytes.length).set(nameBytes);});
+      locals.push(local,data);centrals.push(central);offset+=local.length+data.length;
+    }
+    const centralSize=centrals.reduce((n,x)=>n+x.length,0),eocd=puzzleZipHeader(22,view=>{view.setUint32(0,0x06054b50,true);view.setUint16(4,0,true);view.setUint16(6,0,true);view.setUint16(8,entries.length,true);view.setUint16(10,entries.length,true);view.setUint32(12,centralSize,true);view.setUint32(16,offset,true);view.setUint16(20,0,true);});
+    return new Blob([...locals,...centrals,eocd],{type:'application/zip'});
+  }
+  function puzzleWebsitePackReadme(link){
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>99 Club puzzle-practice website pack</title><style>body{font:16px/1.55 Arial,sans-serif;max-width:850px;margin:40px auto;padding:0 24px;color:#24343b}h1,h2{color:#0d5e58}code{background:#f1f5f5;padding:2px 5px;border-radius:4px}.note{padding:12px 14px;background:#eef8f6;border-left:4px solid #147d75}</style></head><body><h1>Maths puzzle-practice website pack</h1><p>This pack contains a ready-made image card, the matching locked parent-practice link and a restoreable copy of the puzzle setup that created it.</p><h2>Website setup</h2><ol><li>Upload <code>${esc(puzzleCardFilename())}</code> to the school website.</li><li>Make the image clickable.</li><li>Use the URL in <code>practice-link.txt</code> as its destination.</li><li>Add alt text such as “Maths puzzle home practice – printable puzzle pack and answers”.</li><li>Open the link once and download a test PDF before publishing.</li></ol><div class="note"><strong>If the puzzle choices or difficulty settings change:</strong> create a new parent link and replace the old website link. If the visible card description changes, replace the PNG too. Existing links deliberately keep their original settings.</div><p>Full guide: <a href="https://99studio.uk/schools/#puzzle-practice">https://99studio.uk/schools/#puzzle-practice</a></p></body></html>`;
+  }
+  async function downloadPuzzleWebsitePack(){
+    const built=puzzleShareLink();if(!built.link)throw new Error(built.error||'Could not create a parent puzzle link.');
+    const entries=[
+      {name:puzzleCardFilename(),data:await createPuzzleShareCardBlob()},
+      {name:'practice-link.txt',data:puzzleShareTitle()+'\n'+built.link+'\n'},
+      {name:'README.html',data:puzzleWebsitePackReadme(built.link)},
+      {name:'99-club-puzzle-configuration.json',data:JSON.stringify(puzzleConfigData(),null,2)+'\n'}
+    ];
+    puzzleDownloadBlob(`99-club-puzzle-website-pack-${puzzleSafeDateStamp()}.zip`,await puzzleZip(entries));
+  }
 
   function render(){
     const eligible=compatibleSet();
