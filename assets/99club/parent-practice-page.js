@@ -173,7 +173,7 @@
         answerContext:{label:'Answer copy',message:'Answers for the practice sheet on the previous page.'}
       });
       doc.save(L.filename(config.rules,'both',config.orientation));
-      SU?.trackPractice?.('practice_download',config);
+      if(!isTeacherPreview())SU?.trackPractice?.('practice_download',config);
       setStatus('PDF created. Click the button again whenever you want another fresh practice sheet.',false);
     }catch(err){
       console.error(err);
@@ -189,7 +189,7 @@
     config=PP.decode(token);
     config.usageContext=schoolUsageContext();
     render();
-    SU?.trackPractice?.('practice_open',config);
+    if(!isTeacherPreview())SU?.trackPractice?.('practice_open',config);
   }catch(err){
     renderError(err&&err.message);
   }
