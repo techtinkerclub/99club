@@ -77,9 +77,19 @@
     return decodeURIComponent(escape(binary));
   }
 
+  function compactSettings(settings){
+    const s=publicSettings(settings);
+    const engineSettings={};
+    for(const id of s.selectedEngines||[])if(s.engineSettings?.[id])engineSettings[id]=clone(s.engineSettings[id]);
+    return {
+      minYear:s.minYear,maxYear:s.maxYear,topics:clone(s.topics),sheets:s.sheets,activitiesPerSheet:s.activitiesPerSheet,
+      includeAnswers:true,workedExamples:s.workedExamples,selectedEngines:clone(s.selectedEngines),engineSettings
+    };
+  }
+
   function compactPayload(input){
     const cfg=normaliseConfig(input);
-    const payload={v:VERSION,s:cfg.settings};
+    const payload={v:VERSION,s:compactSettings(cfg.settings)};
     if(cfg.customVocabulary.length)payload.x=cfg.customVocabulary;
     if(cfg.schoolUsageKey)payload.u=cfg.schoolUsageKey;
     return payload;
@@ -123,7 +133,7 @@
     '</a>';
   }
 
-  const api={PREFIX,VERSION,MAX_TOKEN_LENGTH,MAX_CUSTOM_VOCAB,publicSettings,compactVocabulary,normaliseConfig,compactPayload,encode,decode,buildLink,websiteCardHtml};
+  const api={PREFIX,VERSION,MAX_TOKEN_LENGTH,MAX_CUSTOM_VOCAB,publicSettings,compactSettings,compactVocabulary,normaliseConfig,compactPayload,encode,decode,buildLink,websiteCardHtml};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   global.TT99GamesParentPractice=api;
 }(typeof window!=='undefined'?window:globalThis));
