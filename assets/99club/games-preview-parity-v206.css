@@ -285,7 +285,7 @@
     grid-template-columns:minmax(0,.58fr) minmax(0,.42fr)!important;
   }
   .tt99-game-paper .count-2 .tt99-numbersearch-grid,
-  .tt99-game-paper .tt99-game-activities.count-2 .tt99-numbersearch-grid{width:min(100%,340px)!important}
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-numbersearch-grid{width:min(100%,315px)!important}
   .tt99-game-paper .count-2 .tt99-numbersearch-questions li,
   .tt99-game-paper .tt99-game-activities.count-2 .tt99-numbersearch-questions li{
     font-size:7.8px!important;
