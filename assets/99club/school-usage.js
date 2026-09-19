@@ -1,9 +1,10 @@
 /* 99 Club Studio - school-level usage telemetry scaffold.
  * Privacy boundary:
- * - no pupil/parent identifiers
+ * - organisation/source-site analytics, not pupil/parent tracking
  * - no persistent visitor ID, cookies or localStorage
- * - no worksheet questions, answers, seeds, URLs or free text
- * - parent links may carry only an opaque school-level key
+ * - no worksheet questions, answers, seeds, full URLs, page paths or free text
+ * - referrers are reduced to scheme + host only (origin)
+ * - parent links may carry only an opaque school-level key and optional widget integration ID
  * Network transmission remains disabled unless TT99_SCHOOL_USAGE_CONFIG.enabled
  * is explicitly switched on and an endpoint is configured.
  */
@@ -11,7 +12,7 @@
   'use strict';
 
   const cfg=global.TT99_SCHOOL_USAGE_CONFIG||{};
-  const SCHEMA_VERSION=Number(cfg.schemaVersion)||1;
+  const SCHEMA_VERSION=Number(cfg.schemaVersion)||2;
   const KEY_PREFIX='sch_';
 
   function cleanSchoolName(value){
@@ -66,6 +67,49 @@
     return /^[a-zA-Z0-9_-]+$/.test(s)&&s.length<=max?s:'';
   }
 
+  function cleanIntegrationId(value){
+    const s=String(value||'').trim().toLowerCase();
+    return /^wid_[a-z0-9]{8,32}$/.test(s)?s:'';
+  }
+
+  function cleanOrigin(value){
+    const text=String(value||'').trim();
+    if(!text)return '';
+    try{
+      const base=global.location?.href||'https://99studio.uk/';
+      const url=new URL(text,base);
+      if(!/^https?:$/.test(url.protocol))return '';
+      return url.origin.slice(0,180);
+    }catch(_){return '';}
+  }
+
+  function referrerOrigin(){
+    try{
+      const origin=cleanOrigin(global.document?.referrer||'');
+      const own=cleanOrigin(global.location?.origin||'');
+      return origin&&origin!==own?origin:'';
+    }catch(_){return '';}
+  }
+
+  function usageContext(input){
+    const c=input&&typeof input==='object'?input:{};
+    const integrationId=cleanIntegrationId(c.integrationId||c.integration_id||c.via);
+    const sourceOrigin=cleanOrigin(c.sourceOrigin||c.source_origin)||referrerOrigin();
+    return {
+      integrationId,
+      sourceOrigin,
+      sourceKind:integrationId?'widget':(sourceOrigin?'referrer':'direct')
+    };
+  }
+
+  function appendAttribution(out,context){
+    const ctx=usageContext(context);
+    if(ctx.integrationId)out.integration_id=ctx.integrationId;
+    if(ctx.sourceOrigin)out.source_origin=ctx.sourceOrigin;
+    out.source_kind=ctx.sourceKind;
+    return out;
+  }
+
   function practicePayload(eventName,config){
     const c=config&&typeof config==='object'?config:{};
     const r=c.rules&&typeof c.rules==='object'?c.rules:{};
@@ -83,6 +127,7 @@
       mode:cleanId(r.mode)||'unknown',
       orientation:c.orientation==='landscape'?'landscape':'portrait'
     };
+    appendAttribution(out,c.usageContext||c);
     Object.keys(out).forEach(k=>out[k]===undefined&&delete out[k]);
     return out;
   }
@@ -114,6 +159,52 @@
       activities_per_sheet:Number.isFinite(Number(s.activitiesPerSheet))?Number(s.activitiesPerSheet):undefined,
       worked_examples:s.workedExamples==='front'?1:0,
       custom_vocabulary_count:Array.isArray(c.customVocabulary)?Math.min(999,c.customVocabulary.length):0
+    };
+    appendAttribution(out,c.usageContext||c);
+    Object.keys(out).forEach(k=>out[k]===undefined&&delete out[k]);
+    return out;
+  }
+
+  function studioUsagePayload(action,schoolName,data){
+    const d=schoolDescriptor(schoolName);
+    const extra=data&&typeof data==='object'?data:{};
+    const sourceOrigin=cleanOrigin(extra.sourceOrigin||extra.source_origin)||referrerOrigin();
+    if(!d&&!sourceOrigin)return null;
+    const cleanAction=cleanId(action,60);
+    if(!cleanAction)return null;
+    const out={
+      schema_version:SCHEMA_VERSION,
+      event:'studio_use',
+      action:cleanAction,
+      school_key:d?.schoolKey||undefined,
+      area:cleanId(extra.area,40)||undefined,
+      source_origin:sourceOrigin||undefined
+    };
+    Object.keys(out).forEach(k=>out[k]===undefined&&delete out[k]);
+    return out;
+  }
+
+  function widgetPayload(eventName,context){
+    const c=context&&typeof context==='object'?context:{};
+    const event=String(eventName||'').trim();
+    if(!/^(widget_open|widget_item_open)$/.test(event))return null;
+    const schoolKey=validSchoolKey(c.schoolKey)||makeSchoolKey(c.schoolName);
+    const sourceOrigin=cleanOrigin(c.sourceOrigin)||referrerOrigin();
+    const integrationId=cleanIntegrationId(c.integrationId);
+    if(!schoolKey&&!sourceOrigin)return null;
+    const out={
+      schema_version:SCHEMA_VERSION,
+      event,
+      school_key:schoolKey||undefined,
+      source_origin:sourceOrigin||undefined,
+      source_kind:'widget',
+      integration_id:integrationId||undefined,
+      widget_type:cleanId(c.widgetType,20)||'unknown',
+      club_count:Number.isFinite(Number(c.clubCount))?Math.max(0,Number(c.clubCount)):undefined,
+      puzzle_pack_count:Number.isFinite(Number(c.puzzlePackCount))?Math.max(0,Number(c.puzzlePackCount)):undefined,
+      online_game_count:Number.isFinite(Number(c.onlineGameCount))?Math.max(0,Number(c.onlineGameCount)):undefined,
+      item_type:cleanId(c.itemType,30)||undefined,
+      item_id:cleanId(c.itemId,80)||undefined
     };
     Object.keys(out).forEach(k=>out[k]===undefined&&delete out[k]);
     return out;
@@ -148,15 +239,25 @@
   }
 
   function trackPractice(eventName,config){
-    const payload=practicePayload(eventName,config);
-    if(!payload)return Promise.resolve(false);
-    return sendPayload(payload);
+    return Promise.resolve(sendPayload(practicePayload(eventName,config)));
   }
 
   function trackPuzzlePractice(eventName,config){
-    const payload=puzzlePracticePayload(eventName,config);
-    if(!payload)return Promise.resolve(false);
-    return sendPayload(payload);
+    return Promise.resolve(sendPayload(puzzlePracticePayload(eventName,config)));
+  }
+
+  function trackWidget(eventName,context){
+    return Promise.resolve(sendPayload(widgetPayload(eventName,context)));
+  }
+
+  function trackStudio(action,schoolName,data){
+    const registration=registrationPayload(schoolName);
+    const usage=studioUsagePayload(action,schoolName,data);
+    if(!registration&&!usage)return Promise.resolve(false);
+    return Promise.all([
+      registration?sendPayload(registration):Promise.resolve(false),
+      usage?sendPayload(usage):Promise.resolve(false)
+    ]).then(values=>values.some(Boolean));
   }
 
   function registrationPayload(name){
@@ -176,12 +277,20 @@
     makeSchoolKey,
     validSchoolKey,
     schoolDescriptor,
+    cleanOrigin,
+    referrerOrigin,
+    cleanIntegrationId,
+    usageContext,
     practicePayload,
     puzzlePracticePayload,
+    studioUsagePayload,
+    widgetPayload,
     registrationPayload,
     registerSchool,
+    trackStudio,
     trackPractice,
-    trackPuzzlePractice
+    trackPuzzlePractice,
+    trackWidget
   };
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   global.TT99SchoolUsage=api;
