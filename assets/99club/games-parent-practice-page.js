@@ -29,6 +29,15 @@
     return '<div class="tt99-practice-previewbar"><div><strong>Teacher preview</strong><span> · This is the parent-facing puzzle page.</span></div><a href="/games/">← Back to Maths Games &amp; Puzzles</a></div>';
   }
 
+  function schoolUsageContext(){
+    let via='';
+    try{via=new URLSearchParams(location.search).get('via')||'';}catch(_){}
+    return {
+      integrationId:SU?.cleanIntegrationId?.(via)||'',
+      sourceOrigin:SU?.referrerOrigin?.()||''
+    };
+  }
+
   function newSeed(){
     const a=new Uint32Array(2);
     if(globalThis.crypto?.getRandomValues)globalThis.crypto.getRandomValues(a);
@@ -116,6 +125,7 @@
   try{
     const token=tokenFromLocation();if(!token)throw new Error('This link does not contain a puzzle-practice setup.');
     config=PP.decode(token);
+    config.usageContext=schoolUsageContext();
     if(!G.selectedCompatibleEngines(config.settings).length)throw new Error('This puzzle-practice setup does not contain any compatible puzzle types.');
     render();
     SU?.trackPuzzlePractice?.('puzzle_practice_open',config);
