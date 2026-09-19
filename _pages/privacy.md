@@ -42,8 +42,9 @@ sitemap: true
 
         <section class="tt99-guide-section">
           <h2>Parent practice links</h2>
-          <p>The dedicated parent-practice page at <code>/practice/</code> is separate from the main Studio interface. A practice link carries only the selected maths rules and print orientation. It does not include pupil names, parent details, school names, teacher names, uploaded logos, worksheet dates, teacher notes, scores, progress history or generated question seeds.</p>
-          <p>The parent-practice page does not load the Studio analytics code and does not ask for a login or personal information. Worksheet generation and PDF creation happen in the browser.</p>
+          <p>The dedicated parent-practice page at <code>/practice/</code> is separate from the main Studio interface. A practice link carries the selected maths rules and print orientation. If a school name has been entered when the link is created, the link can also carry an opaque school-level key derived from that name. The school name itself is not placed in the parent link. Pupil names, parent details, teacher names, uploaded logos, worksheet dates, teacher notes, scores, progress history and generated question seeds are not included.</p>
+          <p>The parent-practice page does not load the Studio Google Analytics code and does not ask for a login or personal information. Worksheet generation and PDF creation happen in the browser.</p>
+          <p>A separate school-level usage telemetry scaffold exists so that aggregate use of school-issued practice links can be measured later without creating parent or pupil profiles. <strong>That telemetry is currently disabled and has no collection endpoint configured.</strong> Before it is enabled, this notice and the analytics settings will be updated to describe the final collection precisely.</p>
         </section>
 
         <section class="tt99-guide-section">
