@@ -16,7 +16,7 @@ function arrow(c,x1,y,x2,col=TEALD,width=1.25){const head=7,half=4;line(c,x1,y,x
 function frame(c,x,y,w,h,index,a,instruction){rect(c,x,y,w,h,WHITE,LINE,.8);text(c,x+12,y+18,`ACTIVITY ${index}`,8.4,{bold:true,color:MUT});text(c,x+12,y+37,a.title||'Activity',14,{bold:true});text(c,x+w-12,y+19,String(a.difficulty||''),8.2,{color:MUT,align:'right'});text(c,x+12,y+53,instruction,7.4,{color:MUT});return y+68;}
 
 function drawMachine(c,a,answers,x,y,w,h,index){
-  const top=frame(c,x,y,w,h,index,a,'Follow the process from Input to Output. If the input is missing, undo the operations in reverse order.');
+  const top=frame(c,x,y,w,h,index,a,'Apply the machine stages in order from Input to Output. If an input is missing, undo the stages in reverse order using inverse operations.');
   const ops=a.operations||[],cy=top+28,portW=72,portH=34,stageW=Math.min(72,(w-2*portW-95)/Math.max(1,ops.length)),stageH=34,link=24,total=2*portW+ops.length*stageW+(ops.length+1)*link,start=x+w/2-total/2;
   let xx=start;
   roundRect(c,xx,cy,portW,portH,17,CREAM,[91,143,137],1);text(c,xx+portW/2,cy+22.5,'Input',9.3,{bold:true,align:'center'});xx+=portW;
@@ -34,7 +34,7 @@ function drawMachine(c,a,answers,x,y,w,h,index){
 
 function tag(c,side,cx,cy,value){if(!value)return;const v=String(value);if(side==='top'){polygon(c,[[cx-10,cy-23],[cx+10,cy-23],[cx+10,cy-8],[cx,cy],[cx-10,cy-8]],TAG,TAGB,.75);text(c,cx,cy-10,v,7.2,{bold:true,align:'center'});}else if(side==='bottom'){polygon(c,[[cx,cy],[cx+10,cy+8],[cx+10,cy+23],[cx-10,cy+23],[cx-10,cy+8]],TAG,TAGB,.75);text(c,cx,cy+17,v,7.2,{bold:true,align:'center'});}else if(side==='left'){polygon(c,[[cx-23,cy-10],[cx-8,cy-10],[cx,cy],[cx-8,cy+10],[cx-23,cy+10]],TAG,TAGB,.75);text(c,cx-14,cy+3,v,7.2,{bold:true,align:'center'});}else{polygon(c,[[cx,cy],[cx+8,cy-10],[cx+23,cy-10],[cx+23,cy+10],[cx+8,cy+10]],TAG,TAGB,.75);text(c,cx+14,cy+3,v,7.2,{bold:true,align:'center'});}}
 function drawTowers(c,a,answers,x,y,w,h,index){
-  const size=a.size||0;if(!size)return;const top=frame(c,x,y,w,h,index,a,`Fill the grid with 1-${size}, using each height once in every row and column. Each edge tab points in the direction you are looking.`),availH=h-(top-y)-18,outer=Math.min(w*.68,availH),pad=31,cell=(outer-2*pad)/size,gw=cell*size,gx=x+w/2-gw/2,gy=top+pad+Math.max(0,(availH-outer)/2),clues=a.clues||{},sol=a.solutionGrid||[];
+  const size=a.size||0;if(!size)return;const top=frame(c,x,y,w,h,index,a,`Fill with 1-${size}, using each height once per row and column. Each edge tab points in the viewing direction; its number is how many towers are visible.`),availH=h-(top-y)-18,outer=Math.min(w*.68,availH),pad=31,cell=(outer-2*pad)/size,gw=cell*size,gx=x+w/2-gw/2,gy=top+pad+Math.max(0,(availH-outer)/2),clues=a.clues||{},sol=a.solutionGrid||[];
   rect(c,x+5,top-3,w-10,h-(top-y)-4,WHITE,WHITE,.1);
   for(let r=0;r<size;r++)for(let col=0;col<size;col++){rect(c,gx+col*cell,gy+r*cell,cell,cell,WHITE,[118,143,147],.55);if(answers)text(c,gx+col*cell+cell/2,gy+r*cell+cell*.64,String(sol[r][col]),Math.min(12,cell*.34),{bold:true,color:TEALD,align:'center'});}
   line(c,gx,gy,gx+gw,gy,[71,103,108],1.25);line(c,gx,gy+gw,gx+gw,gy+gw,[71,103,108],1.25);line(c,gx,gy,gx,gy+gw,[71,103,108],1.25);line(c,gx+gw,gy,gx+gw,gy+gw,[71,103,108],1.25);
