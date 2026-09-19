@@ -132,7 +132,7 @@
     return '<a href="'+href+'" target="_blank" rel="noopener noreferrer" style="'+style+'">'+text+'</a>';
   }
 
-  const api={PREFIX,VERSION,baseRules,normaliseConfig,compactPayload,encode,decode,buildLink,buttonHtml};
+  const api={PREFIX,VERSION,MAX_TOKEN_LENGTH,baseRules,normaliseConfig,compactPayload,encode,decode,buildLink,buttonHtml};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   global.TT99ParentPractice=api;
 }(typeof window!=='undefined'?window:globalThis));
