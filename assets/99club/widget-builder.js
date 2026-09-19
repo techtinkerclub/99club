@@ -15,7 +15,7 @@ function requestedType(){
 function loadDraft(){
   try{
     const saved=JSON.parse(localStorage.getItem(STORE)||'{}'),type=requestedType();
-    if(type&&!saved.widgetType)saved.widgetType=type;
+    if(type)saved.widgetType=type;
     return W.normalise(saved);
   }catch(_){return W.normalise({widgetType:requestedType()||'club',selectedClubs:W.CLUB_IDS,games:[]});}
 }
@@ -136,7 +136,11 @@ function render(){
   bind();
 }
 function bind(){
-  root.querySelectorAll('[data-widget-type]').forEach(btn=>btn.addEventListener('click',()=>{draft.widgetType=btn.dataset.widgetType;status='';render();}));
+  root.querySelectorAll('[data-widget-type]').forEach(btn=>btn.addEventListener('click',()=>{
+    draft.widgetType=btn.dataset.widgetType;
+    if((draft.widgetType==='club'||draft.widgetType==='combined')&&!draft.selectedClubs.length)draft.selectedClubs=[...W.CLUB_IDS];
+    status='';render();
+  }));
   root.querySelector('#wb-school-name')?.addEventListener('change',e=>{draft.school.name=String(e.target.value||'').trim().slice(0,80);status='School name updated in this widget draft.';render();});
   root.querySelector('#wb-logo')?.addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{const logo=await fileLogo(file);if(!logo)throw new Error('The logo could not be reduced enough for the public widget.');draft.school.logo=logo;status='School logo added to this widget.';render();}catch(err){status=err?.message||'That logo could not be used.';render();}});
   root.querySelector('#wb-remove-logo')?.addEventListener('click',()=>{draft.school.logo='';status='School logo removed from this widget draft.';render();});
