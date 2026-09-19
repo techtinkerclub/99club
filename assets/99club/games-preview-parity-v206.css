@@ -665,3 +665,36 @@
     line-height:1.2!important;
   }
 }
+
+
+/* v2.14 · catalogue QA half-page containment */
+@media screen {
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-crossnumber .tt99-crossword-grid.is-balanced,
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-crossnumber .tt99-crossword-grid.is-wide{
+    width:calc(100% - 8px)!important;
+  }
+
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-equation-crossgrid{
+    width:min(100%,262px)!important;
+  }
+
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-factor-items.visual.items-4{
+    height:calc(100% - 76px)!important;
+    grid-template-rows:repeat(2,minmax(0,1fr))!important;
+    gap:4px!important;
+    margin:2px 8px!important;
+    align-items:stretch!important;
+    align-content:stretch!important;
+  }
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-factor-items.visual.items-4 .tt99-factor-visual{
+    height:100%!important;
+    min-height:0!important;
+    overflow:hidden!important;
+  }
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-factor-items.visual.items-4 .tt99-factor-svg{
+    width:auto!important;
+    height:100%!important;
+    max-width:100%!important;
+    max-height:none!important;
+  }
+}
