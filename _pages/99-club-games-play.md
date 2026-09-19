@@ -20,7 +20,7 @@ sitemap: true
 <link rel="stylesheet" href="/assets/99club/games-play-wave1.css?v=2">
 <link rel="stylesheet" href="/assets/99club/games-play-wave2.css?v=1">
 <link rel="stylesheet" href="/assets/99club/games-play-wave3.css?v=2">
-<link rel="stylesheet" href="/assets/99club/games-play-sum-grids-v1.css?v=3">
+<link rel="stylesheet" href="/assets/99club/games-play-sum-grids-v1.css?v=4">
 <link rel="stylesheet" href="/assets/99club/games-play-ux-v4.css?v=1">
 <link rel="stylesheet" href="/assets/99club/games-play-wave4.css?v=1">
 <link rel="stylesheet" href="/assets/99club/games-play-operationgrid-v2.css?v=1">
