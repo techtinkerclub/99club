@@ -101,7 +101,7 @@ function instruction(a){
     case'colourlogic':
       return a.variant==='row'
         ?'Place each listed colour exactly once in the row. Every position, order and neighbour clue must be true at the same time.'
-        :'Fill every box with one of the shown colours. All row, column, position, count and neighbour rules shown must be true at the same time.';
+        :'Fill every box with one of the shown colours. Colours may repeat unless a rule limits them; all row, column, position, count and neighbour rules must be true together.';
     case'mobilebalance':
       return `Every horizontal bar is an equal-arm balance. Repeated shapes have the same value, and a lower branch counts as its whole combined weight above. ${a.topTotal!=null?'The top circle is the total weight of the whole mobile.':''}`;
     case'diagonalpath':
