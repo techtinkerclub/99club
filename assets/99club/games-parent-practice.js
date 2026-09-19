@@ -32,10 +32,13 @@
     return s;
   }
 
-  function compactVocabulary(entries){
-    return G.sanitizeCustomVocabulary(entries||[]).slice(0,MAX_CUSTOM_VOCAB).map(x=>[
-      x.topic,x.term,x.definition,x.minYear,x.maxYear
-    ]);
+  function compactVocabulary(entries,settings){
+    const s=G.normalizeSettings(settings||{});
+    const relevant=G.sanitizeCustomVocabulary(entries||[]).filter(x=>
+      s.topics.includes(x.topic) && x.minYear<=s.maxYear && x.maxYear>=s.minYear
+    );
+    if(relevant.length>MAX_CUSTOM_VOCAB)throw new Error('This setup uses too many personal vocabulary entries for one parent link. Export/save the puzzle setup, or reduce the personal vocabulary used by these topics.');
+    return relevant.map(x=>[x.topic,x.term,x.definition,x.minYear,x.maxYear]);
   }
 
   function expandVocabulary(rows){
@@ -48,7 +51,7 @@
   function normaliseConfig(input){
     if(!input||typeof input!=='object')throw new Error('Puzzle practice configuration is missing');
     const settings=publicSettings(input.settings||input);
-    const customVocabulary=compactVocabulary(input.customVocabulary);
+    const customVocabulary=compactVocabulary(input.customVocabulary,settings);
     const schoolUsageKey=SU?.validSchoolKey?.(input.schoolUsageKey||input.schoolKey||input.schoolUsage?.schoolKey)||'';
     return {settings,customVocabulary,schoolUsageKey};
   }
