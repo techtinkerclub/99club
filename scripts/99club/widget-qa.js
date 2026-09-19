@@ -20,7 +20,7 @@ clubs['diamond'].arithmeticMax=900;
 
 const tinyLogo='data:image/png;base64,AAAA';
 const clubCfg=W.fromClubRules({
-  widgetType:'club',schemeId:'classic',orientation:'landscape',clubs,
+  widgetType:'club',integrationId:'wid_test12345',schemeId:'classic',orientation:'landscape',clubs,
   school:{schoolName:'Oakfield Primary School',logoDataUrl:tinyLogo},
   games:['maze','sumplete'],
   puzzles:[{link:'https://99studio.uk/practice/puzzles/#p=TT99GP1.TEST',minYear:4,maxYear:5,gameCount:3,vocabCount:2}]
@@ -29,6 +29,7 @@ clubCfg.selectedClubs=['33','55','diamond'];
 const clubToken=W.encode(clubCfg),clubRound=W.decode(clubToken);
 check(clubToken.startsWith('TT99W1.'),'widget token has versioned prefix');
 check(clubRound.widgetType==='club','99 Club widget type round-trips');
+check(clubRound.integrationId==='wid_test12345','widget integration ID round-trips');
 check(clubRound.selectedClubs.join(',')==='33,55,diamond','selected clubs round-trip');
 check(clubRound.games.length===0&&clubRound.puzzles.length===0,'99 Club public token strips games and puzzle packs');
 check(clubRound.school.name==='Oakfield Primary School','public school name round-trips');
@@ -42,7 +43,8 @@ check(/^https:\/\/99studio\.uk\/practice\/#p=TT99P1\./.test(clubUrl),'widget rec
 const clubEmbed=W.embedCode(clubRound,'https://99studio.uk');
 check(clubEmbed.includes('title="99 Club home practice"'),'Club embed has specific accessible title');
 check(clubEmbed.includes('sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"'),'embed is sandboxed');
-check(clubEmbed.includes('referrerpolicy="no-referrer"'),'embed suppresses referrer');
+check(clubEmbed.includes('referrerpolicy="origin"'),'embed requests origin-only referrer attribution');
+check(!clubEmbed.includes('noreferrer'),'embed does not suppress source-site attribution');
 check(!clubEmbed.includes('allow-same-origin'),'embed does not grant same-origin access');
 
 const gamesCfg=W.normalise({
@@ -69,6 +71,8 @@ check(combined.widgetType==='combined','older widget configurations default to c
 
 const badLogo=W.normalise({widgetType:'club',school:{name:'School',logo:'javascript:alert(1)'}});
 check(badLogo.school.logo==='','non-image school logo data is rejected');
+const badIntegration=W.normalise({widgetType:'club',integrationId:'<script>alert(1)</script>'});
+check(badIntegration.integrationId==='','unsafe widget integration ID is rejected');
 
 const widgetUrl=W.buildUrl(gamesRound,'https://99studio.uk');
 check(/^https:\/\/99studio\.uk\/widget\/#w=TT99W1\./.test(widgetUrl),'widget URL is fragment-configured');
