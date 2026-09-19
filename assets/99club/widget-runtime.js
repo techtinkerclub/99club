@@ -38,8 +38,10 @@ const widgetContext={
   puzzlePackCount:cfg.puzzles?.length||0,
   onlineGameCount:cfg.games?.length||0
 };
-SU?.registerSchool?.(cfg.school?.name||'');
-SU?.trackWidget?.('widget_open',widgetContext);
+if(sourceOrigin){
+  SU?.registerSchool?.(cfg.school?.name||'');
+  SU?.trackWidget?.('widget_open',widgetContext);
+}
 
 const isClub=cfg.widgetType==='club',isGames=cfg.widgetType==='games';
 const title=isClub?'99 Club home practice':isGames?'Maths games & puzzles':'Maths home practice';
@@ -75,7 +77,7 @@ root.innerHTML='<section class="ttw-shell ttw-shell--'+esc(cfg.widgetType)+'" ar
   '<div class="ttw-foot"><span>School-selected practice · powered by 99 Club Studio</span><a href="/privacy/" target="_blank" rel="noopener">Privacy</a></div></section>';
 
 root.querySelectorAll('[data-widget-item]').forEach(link=>link.addEventListener('click',()=>{
-  SU?.trackWidget?.('widget_item_open',{
+  if(sourceOrigin)SU?.trackWidget?.('widget_item_open',{
     ...widgetContext,
     itemType:link.dataset.widgetItem||'unknown',
     itemId:link.dataset.widgetId||'unknown'
