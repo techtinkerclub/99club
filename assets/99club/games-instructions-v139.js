@@ -51,7 +51,7 @@ function instruction(a){
     case'propertymaze':
       return 'Move from START to FINISH only up, down, left or right through numbers that match the stated rule. Matching squares may include dead ends.';
     case'crossnumber':
-      return 'Solve each clue. Across answers go left to right and Down answers top to bottom; write one digit per cell. Crossing answers share the same digit.';
+      return 'Solve each clue. Across goes left to right and Down top to bottom; write one digit per cell. Crossings share a digit, and digits may repeat in different cells.';
     case'numbersearch':
       return 'Calculate each answer, then find its digits in one continuous straight line. Use the directions listed below; target answers do not overlap.';
     case'equationcrossgrid':
@@ -65,7 +65,7 @@ function instruction(a){
     case'kakuro':
       return 'Fill white cells with 1–9. Each across/down run must add to its clue and cannot repeat a digit within that run; the same digit may appear in a different run.';
     case'arithmeticcages':
-      return `Fill the grid with 1–${n}, using each number once in every row and column. Each cage must make its target using the shown operation; for a two-cell − or ÷ cage, either order is allowed.`;
+      return `Fill the grid with 1–${n}, using each number once in every row and column. Each cage must make its target; for two-cell − or ÷, either order is allowed. Cages have no extra no-repeat rule.`;
     case'sumplete':
       return 'Cross out numbers so the numbers left make every row and column target. A crossed-out number counts in neither its row nor its column.';
     case'symbols':
