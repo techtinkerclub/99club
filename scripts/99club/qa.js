@@ -433,15 +433,18 @@ const parentUi=read('assets/99club/parent-practice-page.js');
 if(/localStorage|sessionStorage/.test(parentUi))fail('parent-practice','Parent practice page stores browser profile/progress state');
 if(!parentUi.includes("kind:'both'")||!parentUi.includes("answerContext:{label:'Answer copy'"))fail('parent-practice','Parent page does not create the promised combined worksheet + answers PDF');
 if(!parentUi.includes('G.newSeed'))fail('parent-practice','Parent downloads are not regenerated with fresh questions');
+for(const label of ['Bronze Club','Silver Club','Gold Club','Platinum Club','Diamond Club'])if(!parentUi.includes(label))fail('parent-practice',`Parent view is missing proper post-99 label ${label}`);
 const rootApp=read('assets/99club/app.js'),rootPage=read('index.md');
-for(const required of ['tt99-parent-open','PARENT_CLUB_IDS','parentPracticeLink','PP.websiteCardHtml','tt99-parent-copy-current-card','data-parent-copy-card','tt99-parent-copy-all','SU?.makeSchoolKey'])if(!rootApp.includes(required))fail('parent-practice',`Teacher sharing UI missing ${required}`);
+for(const required of ['tt99-parent-open','PARENT_CORE_CLUB_IDS','PARENT_POST99_CLUB_IDS','parentPracticeLink','PP.websiteCardHtml','tt99-parent-copy-current-card','data-parent-copy-card','data-parent-download-card','downloadParentPracticeCardImage','canvas.toBlob','tt99-parent-copy-all','SU?.makeSchoolKey'])if(!rootApp.includes(required))fail('parent-practice',`Teacher sharing UI missing ${required}`);
+for(const id of ['bronze','silver','gold','platinum','diamond'])if(!rootApp.includes(`'${id}'`))fail('parent-practice',`Post-99 parent preview is missing ${id}`);
 if(rootPage.indexOf('school-usage.js')<0||rootPage.indexOf('school-usage.js')>rootPage.indexOf('parent-practice.js'))fail('school-usage','School usage module must load before the parent practice codec');
 if(rootPage.indexOf('parent-practice.js')<0||rootPage.indexOf('parent-practice.js')>rootPage.indexOf('app.js'))fail('parent-practice','Parent practice codec must load before the main app');
 const pdfLayout=read('assets/99club/pdf-layout.js');
 if(!pdfLayout.includes('answerContext={}')||!pdfLayout.includes("answerContext?.label||'Teacher answer copy'"))fail('parent-practice','PDF layout lacks parent-friendly answer-copy context');
 const schoolInfo=read('_pages/99-club-schools.md');
 if(!schoolInfo.includes('normal HTTPS link')||!schoolInfo.includes('plugin')||!schoolInfo.includes('iframe'))fail('parent-practice','Information-for-schools page does not explain the no-integration security model');
-if(!schoolInfo.includes('website-card HTML')||!schoolInfo.includes('plain link remains the simplest choice'))fail('parent-practice','Information-for-schools page does not explain the optional website-card fallback');
+if(!schoolInfo.includes('website-card HTML')||!schoolInfo.includes("website's own card or button"))fail('parent-practice','Information-for-schools page does not explain the website-card/plain-link choices');
+for(const phrase of ['Option 3: use a downloadable PNG card image','The PNG itself does not contain the clickable link','Important when the school changes the rules','Bronze, Silver, Gold, Platinum or Diamond'])if(!schoolInfo.includes(phrase))fail('parent-practice',`School website guide missing: ${phrase}`);
 ok('parent-practice','Teacher share UI, stripped parent route, combined PDF and school information contract checked');
 
 /* ---------- output ---------- */
