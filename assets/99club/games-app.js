@@ -88,12 +88,12 @@
     const sample=names.slice(0,3).join(', ');
     return sample?`${head} · ${sample}${names.length>3?' + more':''}`:head;
   }
-  function puzzleShareWebsiteCard(){
+  function puzzleShareWebsiteCard(teacherPreview=false){
     const {link}=puzzleShareLink();
-    return link&&GPP?GPP.websiteCardHtml(link,puzzleShareTitle(),puzzleShareSummary()):'';
+    const target=teacherPreview?puzzleSharePreviewLinkFromLink(link):link;
+    return target&&GPP?GPP.websiteCardHtml(target,puzzleShareTitle(),puzzleShareSummary()):'';
   }
-  function puzzleSharePreviewLink(){
-    const {link}=puzzleShareLink();
+  function puzzleSharePreviewLinkFromLink(link){
     if(!link)return '';
     try{
       const url=new URL(link,location.origin);
@@ -101,11 +101,14 @@
       return url.href;
     }catch(_){return link;}
   }
+  function puzzleSharePreviewLink(){
+    return puzzleSharePreviewLinkFromLink(puzzleShareLink().link);
+  }
   function renderPuzzleParentModal(){
     if(!GPP)return '';
     const selected=selectedCompatible();
     const built=puzzleShareLink();
-    const preview=built.link?puzzleShareWebsiteCard():'';
+    const preview=built.link?puzzleShareWebsiteCard(true):'';
     const previewLink=built.link?puzzleSharePreviewLink():'';
     let vocabRelevant=0;try{vocabRelevant=GPP.compactVocabulary?GPP.compactVocabulary(state.customVocabulary,GPP.publicSettings(state.settings)).length:0;}catch(_){}
     return `<div id="tt99-puzzle-parent-modal" class="tt99-parent-modal" hidden><button type="button" class="tt99-parent-backdrop" data-puzzle-parent-close aria-label="Close puzzle sharing"></button><section class="tt99-parent-card" role="dialog" aria-modal="true" aria-labelledby="tt99-puzzle-parent-title"><button type="button" class="tt99-parent-close" data-puzzle-parent-close aria-label="Close puzzle sharing">×</button><span class="tt99-parent-kicker">School-led home practice</span><h2 id="tt99-puzzle-parent-title">Share this puzzle setup</h2><p>Parents get a stripped-down page that creates a fresh puzzle pack and matching answers using these fixed puzzle choices and difficulty settings.</p><div class="tt99-parent-helpbar"><div><strong>Putting this on your school website?</strong><small>See every supported method — plain links, school buttons, ready-made cards, PNG images, website packs and widgets — with step-by-step instructions and troubleshooting.</small></div><a href="/schools/" target="_blank" rel="noopener">School website integration help</a></div><div class="tt99-parent-notice"><strong>Privacy by design:</strong> the parent link excludes school/class names, worksheet dates, logos and generated puzzle seeds. If this setup uses relevant My vocabulary entries, those terms and definitions are included so the shared pack can reproduce the intended vocabulary puzzles.</div>${built.error?`<div class="tt99-status">${esc(built.error)}</div>`:`<div class="tt99-parent-current"><strong>Current puzzle setup</strong><small>${esc(puzzleShareSummary())}${vocabRelevant?` · ${vocabRelevant} personal vocabulary entr${vocabRelevant===1?'y':'ies'} included`:''}</small><div class="tt99-parent-website-preview" aria-label="Preview of the school website puzzle card">${preview}</div><div class="tt99-parent-link-row"><input id="tt99-puzzle-parent-link" type="text" readonly value="${esc(built.link)}" aria-label="Puzzle parent practice link"><button type="button" id="tt99-puzzle-copy-link">Copy link</button><a href="${esc(previewLink)}" target="_blank" rel="noopener" id="tt99-puzzle-open-parent">Open parent view</a></div><div class="tt99-parent-card-tools"><button type="button" id="tt99-puzzle-copy-card">Copy website card</button><button type="button" id="tt99-puzzle-download-card">Download card image</button></div></div>`}<div class="tt99-parent-pack"><div class="tt99-parent-pack__copy"><strong>Save, restore or hand over this setup</strong><small>Your puzzle choices are already remembered automatically in this browser. These files make the setup portable and safe to hand to another member of staff or a website administrator.</small></div><div class="tt99-parent-pack__actions"><button type="button" id="tt99-puzzle-download-web-pack" ${built.link?'':'disabled'}>Download website pack</button><button type="button" id="tt99-puzzle-save-config">Save puzzle setup</button><label class="tt99-parent-restore">Restore puzzle setup<input id="tt99-puzzle-restore-config" type="file" accept="application/json,.json"></label></div></div><div class="tt99-parent-pack"><div class="tt99-parent-pack__copy"><strong>Alternative: Maths Games Widget</strong><small>Open the widget builder with this locked puzzle setup already included as one parent choice. If the pack uses My vocabulary, the relevant terms and definitions travel with the public locked link.</small></div><div class="tt99-parent-pack__actions"><button type="button" id="tt99-puzzle-widget-add" >Open widget builder</button></div></div><div id="tt99-puzzle-parent-status" class="tt99-status" role="status" aria-live="polite" hidden></div><div class="tt99-parent-footer"><span>One shared link represents the whole current puzzle pack. Configure another pack and save/share it separately if the school wants several different home-practice choices.</span></div></section></div>`;
