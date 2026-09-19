@@ -14,6 +14,12 @@
     bronze:'bronzeclub.png',silver:'silverclub.png',gold:'goldclub.png',platinum:'platinumclub.png',diamond:'diamondclub.png'
   };
 
+  const CLUB_NAMES={
+    '11':'11 Club','22':'22 Club','33':'33 Club','44':'44 Club','55':'55 Club',
+    '66':'66 Club','77':'77 Club','88':'88 Club','99':'99 Club',
+    bronze:'Bronze Club',silver:'Silver Club',gold:'Gold Club',platinum:'Platinum Club',diamond:'Diamond Club'
+  };
+
   let config=null;
   let badgeCache=null;
 
@@ -28,7 +34,8 @@
   }
 
   function challengeName(){
-    return String(config&&config.rules&&config.rules.name || ((config&&config.clubId)||'99')+' Club');
+    const id=String(config&&config.clubId||'99').toLowerCase();
+    return String(config&&config.rules&&config.rules.name || CLUB_NAMES[id] || (id.replace(/(^|[-_])([a-z])/g,(_,a,b)=>a+b.toUpperCase())+' Club'));
   }
 
   function badgeUrl(){
