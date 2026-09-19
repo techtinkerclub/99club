@@ -1001,7 +1001,7 @@
     modal.querySelector('#tt99-parent-copy-current')?.addEventListener('click',()=>copy(parentPracticeLink(),'Parent practice link copied.'));
     modal.querySelector('#tt99-parent-current-link')?.addEventListener('click',e=>e.currentTarget.select());
     modal.querySelectorAll('[data-parent-copy-link]').forEach(btn=>btn.addEventListener('click',()=>copy(parentPracticeLink(btn.dataset.parentCopyLink),parentPracticeName(btn.dataset.parentCopyLink)+' link copied.')));
-    modal.querySelector('#tt99-parent-copy-current-card')?.addEventListener('click',()=>copy(parentPracticeWebsiteCard(),currentName+' website card HTML copied.'));
+    modal.querySelector('#tt99-parent-copy-current-card')?.addEventListener('click',()=>copy(parentPracticeWebsiteCard(),parentPracticeName()+' website card HTML copied.'));
     modal.querySelectorAll('[data-parent-copy-card]').forEach(btn=>btn.addEventListener('click',()=>{
       const id=btn.dataset.parentCopyCard;
       copy(parentPracticeWebsiteCard(id),parentPracticeName(id)+' website card HTML copied.');
