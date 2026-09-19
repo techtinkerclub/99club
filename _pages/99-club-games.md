@@ -16,7 +16,7 @@ sitemap: true
 </div>
 
 <link rel="stylesheet" href="/assets/99club/99club.css?v=19.4">
-<link rel="stylesheet" href="/assets/99club/parent-practice.css?v=1.4">
+<link rel="stylesheet" href="/assets/99club/parent-practice.css?v=1.5">
 <link rel="stylesheet" href="/assets/99club/games.css?v=24">
 <link rel="stylesheet" href="/assets/99club/games-kakuro-orientation-v168.css?v=1">
 <link rel="stylesheet" href="/assets/99club/games-sumplete.css?v=1">
@@ -103,7 +103,7 @@ sitemap: true
 <script src="/assets/99club/school-usage-config.js?v=1"></script>
 <script src="/assets/99club/school-usage.js?v=1.2"></script>
 <script src="/assets/99club/games-parent-practice.js?v=1"></script>
-<script src="/assets/99club/games-app.js?v=40" defer></script>
+<script src="/assets/99club/games-app.js?v=41" defer></script>
 <script src="/assets/99club/games-preview-parity-v206.js?v=1" defer></script>
 <script src="/assets/99club/games-operationgrid-print-v158-ui.js?v=2" defer></script>
 <script src="/assets/99club/games-operationgrid-print-v160-ui.js?v=1" defer></script>
