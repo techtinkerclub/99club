@@ -446,8 +446,11 @@ if(!rootApp.includes("for(const id of PARENT_CLUB_IDS)clubs[id]=G.clone(loadRule
 if(rootApp.includes("That school configuration uses a worksheet generation version this build does not support."))fail('parent-practice','Rule-only school configuration should remain portable across generator versions');
 if(!rootApp.includes("cards/'+parentPracticeCardFilename(id)")||!rootApp.includes("README.html")||!rootApp.includes("practice-links.csv"))fail('parent-practice','Website pack does not include cards, guide and link mapping');
 const schoolInfo=read('_pages/99-club-schools.md');
-if(!schoolInfo.includes('normal HTTPS link')||!schoolInfo.includes('plugin')||!schoolInfo.includes('iframe'))fail('parent-practice','Information-for-schools page does not explain the no-integration security model');
+const schoolWidgetHelp=read('_pages/99-club-widget-help.md');
+if(!schoolInfo.includes('normal HTTPS link')||!schoolInfo.includes('optional accountless')||!schoolInfo.includes('iframe/embed'))fail('parent-practice','Information-for-schools page does not distinguish no-integration links/cards from the optional accountless widget embed');
 if(!schoolInfo.includes('ready-made website card HTML')||!schoolInfo.includes("website's own card or button"))fail('parent-practice','Information-for-schools page does not explain the website-card/plain-link choices');
+for(const phrase of ['Website words explained in plain English','Create a 99 Club Widget','Create a Maths Games Widget','Put the widget on the school website','Change a widget later','Custom vocabulary: useful, but remember it is public','Troubleshooting','Before publishing: teacher-friendly checklist'])if(!schoolWidgetHelp.includes(phrase))fail('parent-practice',`Detailed widget guide missing: ${phrase}`);
+if(/Juniper/i.test(schoolWidgetHelp))fail('parent-practice','Detailed widget guide must stay platform-neutral');
 for(const phrase of ['Option 3: use a downloadable PNG card image','The PNG itself does not contain the clickable link','Save the school\'s club configuration','Download the complete website pack','practice-links.csv','99-club-school-configuration.json','Copy all links','Important when the school changes the rules','Bronze, Silver, Gold, Platinum or Diamond'])if(!schoolInfo.includes(phrase))fail('parent-practice',`School website guide missing: ${phrase}`);
 ok('parent-practice','Teacher share UI, stripped parent route, combined PDF and school information contract checked');
 
