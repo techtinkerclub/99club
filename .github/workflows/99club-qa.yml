@@ -161,7 +161,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        batch: [0, 1, 2, 3]
+        batch: [0, 1, 2, 3, 4, 5, 6, 7]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -185,7 +185,7 @@ jobs:
           BATCH="${{ matrix.batch }}"
           "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
             --window-size=390,844 --virtual-time-budget=180000 --dump-dom \
-            "http://127.0.0.1:8766/99club-preview-qa.html?batch=$BATCH&batches=4" > "/tmp/99club-preview-phone-$BATCH.html"
+            "http://127.0.0.1:8766/99club-preview-qa.html?batch=$BATCH&batches=8" > "/tmp/99club-preview-phone-$BATCH.html"
           node scripts/99club/preview-qa.js check "/tmp/99club-preview-phone-$BATCH.html"
           cp 99club-preview-qa-report.json "99club-preview-qa-batch-$BATCH-report.json"
       - name: Upload printable QA report
