@@ -127,6 +127,10 @@
     return {schema_version:SCHEMA_VERSION,event:'school_register',school_key:d.schoolKey,school_name:d.schoolName};
   }
 
+  function registerSchool(name){
+    return sendPayload(registrationPayload(name));
+  }
+
   const api={
     enabled,
     cleanSchoolName,
@@ -136,6 +140,7 @@
     schoolDescriptor,
     practicePayload,
     registrationPayload,
+    registerSchool,
     trackPractice
   };
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
