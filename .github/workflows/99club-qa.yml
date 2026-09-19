@@ -6,12 +6,20 @@ on:
     paths:
       - 'assets/99club/**'
       - '_pages/99-club-games*.md'
+      - '_pages/99-club-practice.md'
+      - '_pages/99-club-schools.md'
+      - '_pages/privacy.md'
+      - 'index.md'
       - 'scripts/99club/**'
       - '.github/workflows/99club-qa.yml'
   pull_request:
     paths:
       - 'assets/99club/**'
       - '_pages/99-club-games*.md'
+      - '_pages/99-club-practice.md'
+      - '_pages/99-club-schools.md'
+      - '_pages/privacy.md'
+      - 'index.md'
       - 'scripts/99club/**'
       - '.github/workflows/99club-qa.yml'
   schedule:
@@ -86,6 +94,26 @@ jobs:
             http://127.0.0.1:8765/99club-browser-qa.html > /tmp/99club-browser-desktop.html
           node scripts/99club/browser-qa.js check /tmp/99club-browser-desktop.html
           cp 99club-browser-qa-report.json 99club-browser-qa-desktop-report.json
+      - name: Exercise parent practice download flow
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/99club/parent-practice-browser-qa.js prepare
+          python3 -m http.server 8767 --bind 127.0.0.1 > /tmp/99club-parent-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          sleep 1
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then
+            echo 'No Chrome/Chromium executable is available on this runner.' >&2
+            exit 1
+          fi
+          TARGET="$(cat 99club-parent-practice-qa-url.txt)"
+          "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --window-size=390,844 --virtual-time-budget=30000 --dump-dom \
+            "http://127.0.0.1:8767${TARGET}" > /tmp/99club-parent-practice.html
+          node scripts/99club/parent-practice-browser-qa.js check /tmp/99club-parent-practice.html
+
       - name: Compare runtime catalogue with help guides
         run: node scripts/99club/help-coverage.js
       - name: Prepare printable preview harness
@@ -119,6 +147,7 @@ jobs:
             99club-browser-qa-report.json
             99club-browser-qa-phone-report.json
             99club-browser-qa-desktop-report.json
+            99club-parent-practice-qa-report.json
             99club-preview-qa-report.json
             99club-preview-qa-batch-0-report.json
             99club-preview-qa-batch-1-report.json

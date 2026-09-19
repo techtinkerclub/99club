@@ -8,7 +8,7 @@
 
   const STORAGE_KEY = 'tt99-settings-v1';
   const CUSTOM_KEY = 'tt99-custom-presets-v1';
-  const VERSION = '1.19.3';
+  const VERSION = '1.19.4';
   const APP_NAME = '99 Club Studio';
   const APP_URL = 'https://99studio.uk/';
   const CUSTOM_WORKSPACE_KEY = 'tt99-custom-settings-v1';
@@ -17,6 +17,8 @@
   const MAX_TEACHER_NOTE = 240;
   const PRE_RESTORE_KEY = 'tt99-pre-restore-snapshot-v1';
   const Q = window.TT99QR;
+  const PP = window.TT99ParentPractice;
+  const PARENT_CLUB_IDS = ['11','22','33','44','55','66','77','88','99'];
   const ADVANCED_CHALLENGE_IDS = new Set(['bronze','silver','gold','platinum','diamond']);
   const BADGE_IMAGE_BY_CLUB = {
     '11':'11club.png','22':'22club.png','33':'33club.png','44':'44club.png','55':'55club.png','66':'66club.png','77':'77club.png','88':'88club.png','99':'99club.png',
@@ -508,8 +510,34 @@
             </form>
           </section>
         </div>
+        ${renderParentPracticeModal()}
       </div>`;
     bindEvents();
+  }
+
+  function parentPracticeConfig(clubId=state.clubId){
+    const id=String(clubId);
+    const rules=id===String(state.clubId)?state.rules:loadRulesFor(state.schemeId,id);
+    return {schemeId:state.schemeId,clubId:id,rules:G.clone(rules),orientation:state.orientation};
+  }
+  function parentPracticeLink(clubId=state.clubId){
+    if(!PP)return '';
+    return PP.buildLink(parentPracticeConfig(clubId),location.origin);
+  }
+  function parentPracticeName(clubId=state.clubId){
+    const id=String(clubId),rules=id===String(state.clubId)?state.rules:loadRulesFor(state.schemeId,id);
+    return String(rules?.name||`${id} Club`);
+  }
+  function parentPracticeButtonLabel(clubId=state.clubId){return `${parentPracticeName(clubId)} practice`;}
+  function renderParentPracticeModal(){
+    if(!PP)return '';
+    const currentLink=parentPracticeLink();
+    const currentName=parentPracticeName();
+    const clubs=PARENT_CLUB_IDS.map(id=>{
+      const link=parentPracticeLink(id),name=parentPracticeName(id),badge=badgeUrlForClub(id);
+      return `<article class="tt99-parent-club"><div class="tt99-parent-club__title"><img src="${esc(badge)}" alt=""><div><b>${esc(name)}</b><span>${esc(G.rulesSummary(loadRulesFor(state.schemeId,id)))}</span></div></div><div class="tt99-parent-club-actions"><a href="${esc(link)}" target="_blank" rel="noopener">Preview</a><button type="button" data-parent-copy-link="${esc(id)}">Copy link</button><button type="button" data-parent-copy-button="${esc(id)}">Copy button</button></div></article>`;
+    }).join('');
+    return `<div id="tt99-parent-modal" class="tt99-parent-modal" hidden><button type="button" class="tt99-parent-backdrop" data-parent-close aria-label="Close parent practice links"></button><section class="tt99-parent-card" role="dialog" aria-modal="true" aria-labelledby="tt99-parent-title"><button type="button" class="tt99-parent-close" data-parent-close aria-label="Close parent practice links">×</button><span class="tt99-parent-kicker">School-led home practice</span><h2 id="tt99-parent-title">Parent practice links</h2><p>These links keep the maths settings under school control. Parents get a deliberately simple page that creates a fresh printable worksheet and matching answers.</p><div class="tt99-parent-notice"><strong>Privacy by design:</strong> the link contains maths rules only. School name, class, teacher, logo, date, teacher note, pupil details, scores and question seeds are not included. The parent practice page does not load Studio analytics.</div><div class="tt99-parent-current"><strong>Current challenge: ${esc(currentName)}</strong><small>${esc(G.rulesSummary(state.rules))} · ${esc(state.orientation==='landscape'?'Landscape':'Portrait')}</small><div class="tt99-parent-link-row"><input id="tt99-parent-current-link" type="text" readonly value="${esc(currentLink)}" aria-label="Current parent practice link"><button type="button" id="tt99-parent-copy-current">Copy link</button><a href="${esc(currentLink)}" target="_blank" rel="noopener">Open parent view</a></div><div class="tt99-parent-button-preview" aria-label="School website button examples">${PP.buttonHtml(currentLink,parentPracticeButtonLabel(),'teal')}${PP.buttonHtml(currentLink,'Download '+currentName+' practice','gold')}${PP.buttonHtml(currentLink,'Practice at home','outline')}</div><div class="tt99-parent-club-actions" style="margin-top:8px"><button type="button" data-parent-copy-style="teal">Copy teal button</button><button type="button" data-parent-copy-style="gold">Copy gold button</button><button type="button" data-parent-copy-style="outline">Copy outline button</button></div></div><div class="tt99-parent-section-head"><div><h3>11–99 website links</h3><p>Uses the saved rules for each club in the currently selected ruleset scheme.</p></div><button type="button" class="tt99-parent-copy-all" id="tt99-parent-copy-all">Copy all button HTML</button></div><div class="tt99-parent-clubs">${clubs}</div><div id="tt99-parent-status" class="tt99-status" role="status" aria-live="polite" hidden></div><div class="tt99-parent-footer"><span>Recommended for a school site: use the plain HTTPS link or your CMS's normal button component.</span><a href="/schools/" target="_blank" rel="noopener">Information for schools</a></div></section></div>`;
   }
 
   function renderStepClub(){
@@ -699,6 +727,7 @@
       <div class="tt99-action-row"><button type="button" class="tt99-primary" id="tt99-new">Generate new questions</button><button type="button" class="tt99-secondary" id="tt99-shuffle">Shuffle order</button></div>
       <div class="tt99-recreate"><div><strong>Recreate from sheet code ${helpButton('sheetCode')}</strong><small>${shortCodeNeedsRules?'This sheet uses customised rules. The short code alone is not enough on another browser; use the Full recreation code or the teacher QR so those rules travel with the sheet.':'For an unchanged built-in challenge, this short code is enough to rebuild the same questions.'}</small></div><div><input id="tt99-sheet-code" type="text" maxlength="100" spellcheck="false" placeholder="e.g. C99-G1-7FK2M9-A"><button type="button" id="tt99-recreate" class="tt99-secondary">Recreate</button></div></div>
       <div class="tt99-downloads"><button id="tt99-pdf-student" class="tt99-download" ${state.rulesError?'disabled':''}><b>Worksheet PDF</b><span>Pupil sheets only</span></button><button id="tt99-pdf-answer" class="tt99-download" ${state.rulesError?'disabled':''}><b>Answer key PDF</b><span>Matching answers${state.includeAnswerQr?' + QR':''}</span></button><button id="tt99-pdf-both" class="tt99-download tt99-download--accent" ${state.rulesError?'disabled':''}><b>Worksheet + answers</b><span>One complete PDF</span></button></div>
+      <div class="tt99-parent-share"><div><strong>School-led parent practice</strong><small>Create simple parent links that lock the maths rules and only offer a fresh worksheet + answers download. No school logo, teacher note or pupil data is included.</small></div><button type="button" class="tt99-secondary" id="tt99-parent-open" ${state.rulesError||!PP?'disabled':''}>Create parent links</button></div>
       <div class="tt99-save-safety"><div><strong>Saved automatically on this browser ${helpButton('saveSafety')}</strong><small>You can carry on without saving manually. Download a Full backup before clearing site data, changing browser/device, or whenever you want a safety copy of everything.</small></div><button type="button" class="tt99-secondary" id="tt99-backup-all">Download full backup</button></div>
       <details class="tt99-portability"><summary>Save, import, reuse & move your work ${helpButton('browserStorage')}</summary>
         <div class="tt99-portability__body">
@@ -900,6 +929,7 @@
     root.querySelector('#tt99-pdf-student')?.addEventListener('click',()=>downloadPDF('student'));
     root.querySelector('#tt99-pdf-answer')?.addEventListener('click',()=>downloadPDF('answers'));
     root.querySelector('#tt99-pdf-both')?.addEventListener('click',()=>downloadPDF('both'));
+    bindParentPracticeEvents();
     root.querySelector('#tt99-export-settings')?.addEventListener('click',exportSettings);
     root.querySelector('#tt99-import-settings')?.addEventListener('change',importSettings);
     root.querySelector('#tt99-copy-full-code')?.addEventListener('click',copyFullRecreationCode);
@@ -908,6 +938,62 @@
     root.querySelector('#tt99-backup-all')?.addEventListener('click',downloadFullBackup);
     root.querySelector('#tt99-restore-backup')?.addEventListener('change',restoreFullBackup);
     root.querySelector('#tt99-undo-restore')?.addEventListener('click',undoLastRestore);
+  }
+
+  function bindParentPracticeEvents(){
+    if(!PP)return;
+    const openButton=root.querySelector('#tt99-parent-open');
+    const modal=root.querySelector('#tt99-parent-modal');
+    if(!modal)return;
+    const status=modal.querySelector('#tt99-parent-status');
+    const setParentStatus=(message)=>{
+      if(!status)return;
+      status.hidden=!message;
+      status.textContent=message||'';
+    };
+    const close=()=>{
+      modal.hidden=true;
+      document.body.classList.remove('tt99-parent-open');
+      openButton?.focus();
+    };
+    const open=()=>{
+      modal.hidden=false;
+      document.body.classList.add('tt99-parent-open');
+      setParentStatus('');
+      window.setTimeout(()=>modal.querySelector('.tt99-parent-close')?.focus(),0);
+    };
+    const copy=async(text,message)=>{
+      try{
+        if(navigator.clipboard?.writeText)await navigator.clipboard.writeText(text);
+        else{
+          const area=document.createElement('textarea');
+          area.value=text;area.setAttribute('readonly','');area.style.position='fixed';area.style.opacity='0';
+          document.body.appendChild(area);area.select();
+          if(!document.execCommand('copy'))throw new Error('copy');
+          area.remove();
+        }
+        setParentStatus(message);
+      }catch(err){setParentStatus('Could not copy automatically. Select the link above and copy it manually.');}
+    };
+    openButton?.addEventListener('click',open);
+    modal.querySelectorAll('[data-parent-close]').forEach(btn=>btn.addEventListener('click',close));
+    modal.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();close();}});
+    modal.querySelector('#tt99-parent-copy-current')?.addEventListener('click',()=>copy(parentPracticeLink(),'Parent practice link copied.'));
+    modal.querySelector('#tt99-parent-current-link')?.addEventListener('click',e=>e.currentTarget.select());
+    modal.querySelectorAll('[data-parent-copy-link]').forEach(btn=>btn.addEventListener('click',()=>copy(parentPracticeLink(btn.dataset.parentCopyLink),parentPracticeName(btn.dataset.parentCopyLink)+' link copied.')));
+    modal.querySelectorAll('[data-parent-copy-button]').forEach(btn=>btn.addEventListener('click',()=>{
+      const id=btn.dataset.parentCopyButton,link=parentPracticeLink(id);
+      copy(PP.buttonHtml(link,parentPracticeButtonLabel(id),'teal'),parentPracticeName(id)+' website button HTML copied.');
+    }));
+    modal.querySelectorAll('[data-parent-copy-style]').forEach(btn=>btn.addEventListener('click',()=>{
+      const style=btn.dataset.parentCopyStyle;
+      const label=style==='gold'?'Download '+parentPracticeName()+' practice':style==='outline'?'Practice at home':parentPracticeButtonLabel();
+      copy(PP.buttonHtml(parentPracticeLink(),label,style),style.charAt(0).toUpperCase()+style.slice(1)+' website button HTML copied.');
+    }));
+    modal.querySelector('#tt99-parent-copy-all')?.addEventListener('click',()=>{
+      const html=PARENT_CLUB_IDS.map(id=>PP.buttonHtml(parentPracticeLink(id),parentPracticeButtonLabel(id),'teal')).join('\n');
+      copy(html,'All 11–99 website button HTML copied.');
+    });
   }
 
   function setOrientation(value){

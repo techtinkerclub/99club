@@ -11,17 +11,17 @@
   function normalizeOrientation(value){ return value === 'landscape' ? 'landscape' : 'portrait'; }
 
   function buildDocument(options){
-    const { rules, sheets, school={}, kind='student', qrByVariant=[], badge={}, teacherNote='' } = options;
+    const { rules, sheets, school={}, kind='student', qrByVariant=[], badge={}, teacherNote='', answerContext={} } = options;
     const orientation = normalizeOrientation(options.orientation);
     const doc = new P.PDFDocument();
     if (school.logoDataUrl) doc.setJpeg(school.logoDataUrl, school.logoWidth, school.logoHeight, 'logo');
     if (badge.imageDataUrl) doc.setJpeg(badge.imageDataUrl, badge.width, badge.height, 'badge');
-    if (kind === 'student' || kind === 'both') sheets.forEach((sheet,i)=>drawPage(doc,rules,sheet,i,school,false,orientation,null,!!badge.imageDataUrl,teacherNote));
-    if (kind === 'answers' || kind === 'both') sheets.forEach((sheet,i)=>drawPage(doc,rules,sheet,i,school,true,orientation,qrByVariant[i]||null,!!badge.imageDataUrl,teacherNote));
+    if (kind === 'student' || kind === 'both') sheets.forEach((sheet,i)=>drawPage(doc,rules,sheet,i,school,false,orientation,null,!!badge.imageDataUrl,teacherNote,answerContext));
+    if (kind === 'answers' || kind === 'both') sheets.forEach((sheet,i)=>drawPage(doc,rules,sheet,i,school,true,orientation,qrByVariant[i]||null,!!badge.imageDataUrl,teacherNote,answerContext));
     return doc;
   }
 
-  function drawPage(doc,rules,sheet,variantIndex,school,answers,orientation='portrait',qrMatrix=null,hasBadge=false,teacherNote=''){
+  function drawPage(doc,rules,sheet,variantIndex,school,answers,orientation='portrait',qrMatrix=null,hasBadge=false,teacherNote='',answerContext={}){
     orientation = normalizeOrientation(orientation);
     const landscape = orientation === 'landscape';
     const page=doc.addPage({orientation}), r=G.normalizeRules(rules), s=school || {};
@@ -86,21 +86,23 @@
       page.rect(margin,instTop,right-margin,instH,{fill:pale,stroke:[222,232,230],width:0.6});
       wrapText(page,G.instructionText(r),margin+10,instTop+(landscape?17:18),right-margin-20,landscape?8.8:9.1,landscape?9.5:10.2,{color:ink});
     }else{
+      const answerLabel=String(answerContext?.label||'Teacher answer copy');
+      const answerMessage=String(answerContext?.message||'');
       const panelTop=landscape?70:78;
       if(qrMatrix){
         const panelH=landscape?66:67;
         page.rect(margin,panelTop,right-margin,panelH,{fill:pale,stroke:[222,232,230],width:0.6});
         const qrSize=landscape?58:60;
         const qrX=right-qrSize-7, qrTop=panelTop+(panelH-qrSize)/2;
-        page.text(margin+10,panelTop+(landscape?17:18),'Teacher answer copy',landscape?10.2:10.4,{bold:true,color:ink});
-        page.text(margin+10,panelTop+(landscape?33:35),'Scan the QR to recreate this exact sheet in 99 Club Studio.',landscape?8.1:8.3,{color:ink});
+        page.text(margin+10,panelTop+(landscape?17:18),answerLabel,landscape?10.2:10.4,{bold:true,color:ink});
+        page.text(margin+10,panelTop+(landscape?33:35),answerMessage||'Scan the QR to recreate this exact sheet in 99 Club Studio.',landscape?8.1:8.3,{color:ink});
         page.text(margin+10,panelTop+(landscape?49:52),`Sheet ${sheet.code}`,landscape?7.5:7.7,{color:muted});
         drawQr(page,qrX,qrTop,qrSize,qrMatrix);
       }else{
         const panelH=landscape?35:38;
         page.rect(margin,panelTop,right-margin,panelH,{fill:pale,stroke:[222,232,230],width:0.6});
-        page.text(margin+10,panelTop+(landscape?15:16),'Teacher answer copy',landscape?9.7:9.9,{bold:true,color:ink});
-        page.text(margin+10,panelTop+(landscape?28:30),`Sheet ${sheet.code} · Recreation QR unavailable — use the Full recreation code if needed.`,landscape?7.2:7.4,{color:muted});
+        page.text(margin+10,panelTop+(landscape?15:16),answerLabel,landscape?9.7:9.9,{bold:true,color:ink});
+        page.text(margin+10,panelTop+(landscape?28:30),answerMessage?`Sheet ${sheet.code} · ${answerMessage}`:`Sheet ${sheet.code} · Recreation QR unavailable — use the Full recreation code if needed.`,landscape?7.2:7.4,{color:muted});
       }
     }
 

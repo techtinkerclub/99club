@@ -372,6 +372,57 @@ if(!cardLinks.includes('preventDefault()')||!cardLinks.includes('stopPropagation
 if(!cardLinks.includes("global.open(url,'_blank'"))fail('game-card-links','Quick links are not explicitly opened in a separate context');
 ok('game-card-links',`Selector quick links cover all ${adapterIds.length} online games / guides`);
 
+/* ---------- parent-practice sharing ---------- */
+const parentAssets=['assets/99club/parent-practice.js','assets/99club/parent-practice-page.js','assets/99club/app.js'];
+for(const rel of parentAssets){
+  if(!exists(rel)){fail('parent-practice',`Missing ${rel}`);continue;}
+  try{new Function(read(rel));}catch(e){fail('parent-practice',`Syntax error in ${rel}`,e.message);}
+}
+try{
+  const ClubG=load('assets/99club/generator.js');
+  delete global.TT99ParentPractice;
+  const ParentPractice=load('assets/99club/parent-practice.js');
+  const base=ClubG.normalizeRules(ClubG.CLASSIC_PRESETS['33']);
+  const stripParentMeta=value=>{const out=JSON.parse(JSON.stringify(value));for(const key of ['id','name','tagline','sourceSchemeId','sourceClubId','worksheetTitle'])delete out[key];return out;};
+  const standard={schemeId:'classic',clubId:'33',rules:base,orientation:'portrait'};
+  const compact=ParentPractice.compactPayload(standard);
+  if(!compact.r||!stable(compact.r,stripParentMeta(base)))fail('parent-practice','Parent link does not freeze the complete school-selected functional rules snapshot');
+  for(const forbidden of ['id','name','tagline','sourceSchemeId','sourceClubId','worksheetTitle'])if(Object.prototype.hasOwnProperty.call(compact.r||{},forbidden))fail('parent-practice',`Parent-link rules leaked display metadata field ${forbidden}`);
+  const token=ParentPractice.encode(standard),decoded=ParentPractice.decode(token);
+  if(token.length>ParentPractice.MAX_TOKEN_LENGTH)fail('parent-practice','Built-in parent practice token exceeds codec size limit',String(token.length));
+  if(!stable(decoded.rules,stripParentMeta(base)))fail('parent-practice','Built-in club functional rules do not survive parent-link round trip');
+  if(decoded.orientation!=='portrait'||decoded.clubId!=='33')fail('parent-practice','Parent-link identity/layout round trip failed');
+  const edited=ClubG.normalizeRules({...base,factorMax:9});
+  const editedToken=ParentPractice.encode({schemeId:'classic',clubId:'33',rules:edited,orientation:'landscape'});
+  const editedDecoded=ParentPractice.decode(editedToken);
+  if(Number(editedDecoded.rules.factorMax)!==9||editedDecoded.orientation!=='landscape')fail('parent-practice','Edited school rules do not survive parent-link round trip');
+  const leakText=JSON.stringify(ParentPractice.compactPayload({schemeId:'classic',clubId:'33',rules:edited,orientation:'portrait',school:{schoolName:'Example'},teacherNote:'secret',pupilName:'child'}));
+  for(const forbidden of ['schoolName','teacherNote','pupilName','logoDataUrl','seed','score','progress'])if(leakText.includes(forbidden))fail('parent-practice',`Parent-link payload leaked forbidden field ${forbidden}`);
+  const link=ParentPractice.buildLink(standard,'https://99studio.uk');
+  if(!link.startsWith('https://99studio.uk/practice/#p=TT99P1.'))fail('parent-practice','Parent practice link does not use the dedicated fragment route',link.slice(0,90));
+  if(link.includes('?'))fail('parent-practice','Parent practice rules should be carried in the URL fragment, not the query string');
+  const button=ParentPractice.buttonHtml(link,'33 Club practice','teal');
+  if(!/^<a /.test(button)||/script|iframe/i.test(button)||!button.includes('noopener'))fail('parent-practice','School website button is not a plain safe hyperlink');
+  ok('parent-practice','Compact school-selected rule links round-trip without personal/school data');
+}catch(e){fail('parent-practice','Codec smoke test threw',e.stack||e.message);}
+
+const parentPage=read('_pages/99-club-practice.md');
+if(!/layout:\s*null/.test(parentPage)||! /permalink:\s*\/practice\//.test(parentPage))fail('parent-practice','Dedicated parent practice route is not standalone');
+if(/analytics|gtag|googletagmanager/i.test(parentPage))fail('parent-practice','Parent practice page loads analytics code');
+for(const required of ['generator.js','simple-pdf.js','pdf-layout.js','parent-practice.js','parent-practice-page.js'])if(!parentPage.includes(required))fail('parent-practice',`Parent practice page missing ${required}`);
+const parentUi=read('assets/99club/parent-practice-page.js');
+if(/localStorage|sessionStorage/.test(parentUi))fail('parent-practice','Parent practice page stores browser profile/progress state');
+if(!parentUi.includes("kind:'both'")||!parentUi.includes("answerContext:{label:'Answer copy'"))fail('parent-practice','Parent page does not create the promised combined worksheet + answers PDF');
+if(!parentUi.includes('G.newSeed'))fail('parent-practice','Parent downloads are not regenerated with fresh questions');
+const rootApp=read('assets/99club/app.js'),rootPage=read('index.md');
+for(const required of ['tt99-parent-open','PARENT_CLUB_IDS','parentPracticeLink','PP.buttonHtml','tt99-parent-copy-all'])if(!rootApp.includes(required))fail('parent-practice',`Teacher sharing UI missing ${required}`);
+if(rootPage.indexOf('parent-practice.js')<0||rootPage.indexOf('parent-practice.js')>rootPage.indexOf('app.js'))fail('parent-practice','Parent practice codec must load before the main app');
+const pdfLayout=read('assets/99club/pdf-layout.js');
+if(!pdfLayout.includes('answerContext={}')||!pdfLayout.includes("answerContext?.label||'Teacher answer copy'"))fail('parent-practice','PDF layout lacks parent-friendly answer-copy context');
+const schoolInfo=read('_pages/99-club-schools.md');
+if(!schoolInfo.includes('normal HTTPS link')||!schoolInfo.includes('plugin')||!schoolInfo.includes('iframe'))fail('parent-practice','Information-for-schools page does not explain the no-integration security model');
+ok('parent-practice','Teacher share UI, stripped parent route, combined PDF and school information contract checked');
+
 /* ---------- output ---------- */
 const report={generatedAt:new Date().toISOString(),samplesPerDifficulty:SAMPLES,generated,engineCount:G?.ENGINES?Object.keys(G.ENGINES).length:0,onlineAdapterCount:adapterIds.length,guideCount:guideIds.length,failures,warnings,notes};
 const out=path.join(ROOT,'99club-qa-report.json');fs.writeFileSync(out,JSON.stringify(report,null,2)+'\n');
