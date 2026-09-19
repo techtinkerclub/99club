@@ -33,6 +33,16 @@
     return match?decodeURIComponent(match[1]):'';
   }
 
+  function isTeacherPreview(){
+    try{return new URLSearchParams(location.search).get('preview')==='1';}
+    catch(_){return false;}
+  }
+
+  function teacherPreviewBar(){
+    if(!isTeacherPreview())return '';
+    return '<div class="tt99-practice-previewbar"><div><strong>Teacher preview</strong><span> · This is the parent-facing practice page.</span></div><a href="/">← Back to 99 Club Studio</a></div>';
+  }
+
   function challengeName(){
     const id=String(config&&config.clubId||'99').toLowerCase();
     return String(config&&config.rules&&config.rules.name || CLUB_NAMES[id] || (id.replace(/(^|[-_])([a-z])/g,(_,a,b)=>a+b.toUpperCase())+' Club'));
@@ -54,6 +64,7 @@
     const r=config.rules;
     root.innerHTML=
       '<main class="tt99-practice-shell">'+
+        teacherPreviewBar()+
         '<section class="tt99-practice-card" aria-labelledby="tt99-practice-title">'+
           '<div class="tt99-practice-brand">'+
             '<img src="/assets/99club/images/99club-studio-shield.png" alt="">'+
@@ -81,7 +92,7 @@
 
   function renderError(message){
     root.innerHTML=
-      '<main class="tt99-practice-shell"><section class="tt99-practice-card tt99-practice-error">'+
+      '<main class="tt99-practice-shell">'+teacherPreviewBar()+'<section class="tt99-practice-card tt99-practice-error">'+
       '<span class="tt99-practice-kicker">99 Club Studio</span>'+
       '<h1>This practice link cannot be opened</h1>'+
       '<p class="tt99-practice-summary">'+esc(message||'The link is incomplete or uses a format this version of 99 Club Studio does not recognise.')+'</p>'+
