@@ -7,6 +7,8 @@ on:
       - 'assets/99club/**'
       - '_pages/99-club-games*.md'
       - '_pages/99-club-practice.md'
+      - '_layouts/practice.html'
+      - '_layouts/practice.html'
       - '_pages/99-club-schools.md'
       - '_pages/privacy.md'
       - 'index.md'
