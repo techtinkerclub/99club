@@ -71,10 +71,12 @@
 
   function utf8ToBase64Url(text){
     if(typeof Buffer!=='undefined')return Buffer.from(text,'utf8').toString('base64url');
-    const bytes=new TextEncoder().encode(text);
     let binary='';
-    const chunk=0x8000;
-    for(let i=0;i<bytes.length;i+=chunk)binary+=String.fromCharCode.apply(null,bytes.subarray(i,i+chunk));
+    if(typeof TextEncoder!=='undefined'){
+      const bytes=new TextEncoder().encode(text);
+      const chunk=0x8000;
+      for(let i=0;i<bytes.length;i+=chunk)binary+=String.fromCharCode.apply(null,bytes.subarray(i,i+chunk));
+    }else binary=unescape(encodeURIComponent(text));
     return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
   }
 
@@ -83,9 +85,12 @@
     let b64=String(text).replace(/-/g,'+').replace(/_/g,'/');
     while(b64.length%4)b64+='=';
     const binary=atob(b64);
-    const bytes=new Uint8Array(binary.length);
-    for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
-    return new TextDecoder().decode(bytes);
+    if(typeof TextDecoder!=='undefined'){
+      const bytes=new Uint8Array(binary.length);
+      for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+      return new TextDecoder().decode(bytes);
+    }
+    return decodeURIComponent(escape(binary));
   }
 
   function encode(input){
