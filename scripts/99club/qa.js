@@ -290,6 +290,31 @@ if(!previewPack.includes('never cross or pass through another island'))fail('ins
 if(!previewSums.includes('Starter digits are fixed'))fail('instruction-audit','Corner/Linked Sum preview does not identify fixed starters');
 if(!previewSums.includes('A cell can contribute to more than one overlapping circle.'))fail('instruction-audit','Corner Sum preview overlap clarification missing');
 ok('instruction-audit','Late printable-preview overlays preserve the reviewed instructions');
+const previewMachine=read('assets/99club/games-v138.js');
+if(previewMachine.includes('tt99-v138-machine-note'))fail('instruction-audit','Function Machine printable preview still repeats reverse-working instructions');
+const duplicateOnlineSelectors=[
+  '.tt99-play-wordsearch .tt99-play-board-tip',
+  '.tt99-play-numbersearch .tt99-play-board-tip',
+  '.tt99-sumplete-wrap .tt99-play-board-tip',
+  '.tt99-nonogram-scroll + .tt99-cycle-note',
+  '.tt99-play-mines .tt99-cycle-note',
+  '.tt99-play-hashi .tt99-hashi-note',
+  '.tt99-play-numberpath .tt99-cycle-note',
+  '.tt99-pyramid-board + .tt99-cycle-note',
+  '.tt99-play-brokencalc .tt99-arith-note',
+  '.tt99-play-target .tt99-arith-note',
+  '.tt99-play-propertymaze .tt99-propertymaze-tip',
+  '.tt99-play-answermaze .tt99-answermaze-tip',
+  '.tt99-play-sumgrid .tt99-play-board-tip',
+  '.tt99-play-operationgrid .tt99-opgrid-rule',
+  '.tt99-play-colourlogic .tt99-cl-tap',
+  '.tt99-extra-path-grid + .tt99-arith-note',
+  '.tt99-extra-perimeter-grid.online + .tt99-arith-note'
+];
+for(const sel of duplicateOnlineSelectors)if(!onlineInstructions.includes(sel))fail('instruction-audit',`Online duplicate-rule cleanup lost selector: ${sel}`);
+if(!onlineInstructions.includes('Tap an operator box to cycle through the allowed signs'))fail('instruction-audit','Operation Codebreaker top instruction lost its interaction rule');
+if(!onlineInstructions.includes('Tap a box to cycle colours'))fail('instruction-audit','Colour Logic top instruction lost its interaction rule');
+ok('instruction-audit','Static online rule duplication is removed while dynamic board guidance is preserved');
 const helpPage=read('_pages/99-club-games-help.md');
 const stated=(helpPage.match(/covers all <strong>(\d+) current one-player games<\/strong>/)||[])[1];
 if(stated&&Number(stated)!==guideIds.length)fail('help-guides',`Help-page guide count says ${stated}, library contains ${guideIds.length}`);
