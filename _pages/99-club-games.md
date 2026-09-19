@@ -109,7 +109,7 @@ sitemap: true
 <script src="/assets/99club/games-ui-v134.js?v=2" defer></script>
 <script src="/assets/99club/games-puzzle-redesign-v136.js?v=3" defer></script>
 <script src="/assets/99club/games-v137.js?v=2" defer></script>
-<script src="/assets/99club/games-v138.js?v=1" defer></script>
+<script src="/assets/99club/games-v138.js?v=2" defer></script>
 <script src="/assets/99club/games-towers-direction-v138.js?v=1" defer></script>
 <script src="/assets/99club/games-takuzu-v139-ui.js?v=2" defer></script>
 <script src="/assets/99club/games-puzzle-pack-v140-ui.js?v=3" defer></script>
