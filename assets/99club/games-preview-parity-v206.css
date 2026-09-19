@@ -268,14 +268,32 @@
   .tt99-game-paper .tt99-wheel-items{grid-template-columns:1fr 1fr!important}
 
   .tt99-game-paper .tt99-numbersearch-layout{
-    grid-template-columns:minmax(0,1.05fr) minmax(180px,.95fr)!important;
+    grid-template-columns:minmax(0,.60fr) minmax(0,.40fr)!important;
+    gap:12px!important;
+    align-items:center!important;
     height:calc(100% - 70px)!important;
   }
-  .tt99-game-paper .tt99-numbersearch-grid{width:min(100%,390px)!important}
+  .tt99-game-paper .tt99-numbersearch-grid{width:min(100%,440px)!important}
+  .tt99-game-paper .tt99-numbersearch-grid span{font-size:10.5px!important}
+  .tt99-game-paper .tt99-numbersearch-questions li{
+    font-size:8.2px!important;
+    line-height:1.22!important;
+    margin-bottom:5px!important;
+  }
+  .tt99-game-paper .count-2 .tt99-numbersearch-layout,
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-numbersearch-layout{
+    grid-template-columns:minmax(0,.58fr) minmax(0,.42fr)!important;
+  }
   .tt99-game-paper .count-2 .tt99-numbersearch-grid,
-  .tt99-game-paper .tt99-game-activities.count-2 .tt99-numbersearch-grid{width:min(100%,300px)!important}
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-numbersearch-grid{width:min(100%,340px)!important}
+  .tt99-game-paper .count-2 .tt99-numbersearch-questions li,
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-numbersearch-questions li{
+    font-size:7.8px!important;
+    line-height:1.18!important;
+    margin-bottom:4px!important;
+  }
   .tt99-game-paper .count-3 .tt99-numbersearch-grid,
-  .tt99-game-paper .tt99-game-activities.count-3 .tt99-numbersearch-grid{width:min(100%,220px)!important}
+  .tt99-game-paper .tt99-game-activities.count-3 .tt99-numbersearch-grid{width:min(100%,235px)!important}
 
   .tt99-game-paper .tt99-equation-crossgrid{width:min(100%,390px)!important}
   .tt99-game-paper .tt99-game-activities.count-2 .tt99-equation-crossgrid{width:min(100%,300px)!important}

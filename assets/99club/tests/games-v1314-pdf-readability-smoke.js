@@ -15,8 +15,10 @@ assert(src.includes("leftMax=w*.54,gap=10"),'crossnumber grid/clue width split r
 assert(src.includes("cell=Math.min((leftMax-2)/cols,bodyH/rows,32)"),'crossnumber grid scale regressed');
 assert(src.includes("Math.max(3.8,Math.min(4.8,cell*.17))"),'crossnumber clue-number sizing regressed');
 assert(src.includes("fs=Math.max(7.2,Math.min(9.0,rowH*.40))"),'crossnumber clue sizing regressed');
-assert(src.includes("fs=Math.max(6.8,Math.min(8.2,rowH*.48))"),'number-search question sizing regressed');
+assert(src.includes("leftW=Math.min(w*.60,bodyH),gap=10"),'number-search width split regressed');
+assert(src.includes("cell=Math.min((leftW-2)/size,bodyH/size,30)"),'number-search grid scale regressed');
+assert(src.includes("fs=Math.max(7.6,Math.min(9.2,rowH*.44))"),'number-search question sizing regressed');
 assert(src.includes("clean(`INPUT -> ${rule} -> OUTPUT`),9.6"),'function-machine rule sizing regressed');
 assert(src.includes("'Input',8.8")&&src.includes("'Output',8.8"),'function-machine table label sizing regressed');
 
-console.log('Games v1.31.6 printable text readability regression: PASS');
+console.log('Games v1.31.7 printable text readability regression: PASS');
