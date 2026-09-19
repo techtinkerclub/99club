@@ -162,6 +162,44 @@
     return true;
   }
 
+  function fitNumberSearch(activity){
+    const layout=activity.querySelector(':scope > .tt99-numbersearch-layout');
+    const grid=layout?.querySelector(':scope > .tt99-numbersearch-grid');
+    const side=layout?.querySelector(':scope > .tt99-numbersearch-side');
+    if(!layout||!grid||!side)return false;
+    const twoPerPage=!!activity.closest('.tt99-game-activities.count-2');
+    const threePerPage=!!activity.closest('.tt99-game-activities.count-3');
+    const size=threePerPage?235:(twoPerPage?340:420);
+    const gap=threePerPage?8:12;
+
+    activity.dataset.tt99PreviewFit='numbersearch';
+    activity.style.setProperty('--tt99-preview-body-scale','1');
+    activity.dataset.previewBodyScale='1.0000';
+    activity.removeAttribute('data-preview-fit-warning');
+
+    layout.style.setProperty('zoom','1','important');
+    layout.style.setProperty('transform','none','important');
+    layout.style.setProperty('display','grid','important');
+    layout.style.setProperty('grid-template-columns',size+'px minmax(0,1fr)','important');
+    layout.style.setProperty('gap',gap+'px','important');
+    layout.style.setProperty('align-items','center','important');
+    layout.style.setProperty('width','100%','important');
+    layout.style.setProperty('height','calc(100% - 70px)','important');
+
+    grid.style.setProperty('zoom','1','important');
+    grid.style.setProperty('transform','none','important');
+    grid.style.setProperty('width',size+'px','important');
+    grid.style.setProperty('height',size+'px','important');
+    grid.style.setProperty('max-width','none','important');
+    grid.style.setProperty('max-height','none','important');
+    grid.style.setProperty('aspect-ratio','1 / 1','important');
+
+    side.style.setProperty('zoom','1','important');
+    side.style.setProperty('transform','none','important');
+    side.style.setProperty('align-self','center','important');
+    return true;
+  }
+
   function fitCrossword(activity){
     const layout=activity.querySelector(':scope > .tt99-crossword-layout');
     const grid=layout?.querySelector(':scope > .tt99-crossword-grid');
@@ -203,6 +241,9 @@
     }
     if(activity.classList.contains('tt99-maze')){
       if(fitMaze(activity))return;
+    }
+    if(activity.classList.contains('tt99-numbersearch')){
+      if(fitNumberSearch(activity))return;
     }
     if(activity.classList.contains('tt99-crossword')||activity.classList.contains('tt99-crossnumber')){
       if(fitCrossword(activity))return;
@@ -264,5 +305,5 @@
   if(document.fonts?.ready)document.fonts.ready.then(schedule).catch(()=>{});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
 
-  global.TT99GamesPreviewFitV207={version:'2.12',refresh:schedule,fitActivity};
+  global.TT99GamesPreviewFitV207={version:'2.13',refresh:schedule,fitActivity};
 })(typeof globalThis!=='undefined'?globalThis:this);
