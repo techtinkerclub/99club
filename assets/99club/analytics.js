@@ -102,7 +102,7 @@ function bannerMarkup(){
   const privacy=String(cfg.privacyPath||'/privacy/');
   return '<aside class="tt99-analytics-banner" aria-label="Analytics choice">'+
     '<div><strong>Help improve 99 Club Studio</strong>'+
-    '<p>Allow anonymous Google Analytics so we can see which pages, downloads and games are useful. No pupil or school personal data is collected through analytics. <a href="'+privacy+'">Privacy details</a>.</p></div>'+
+    '<p>Allow Google Analytics so we can see which pages, downloads, games and sharing features are useful. When available, product events may include an opaque school key and the referring website origin (domain only), but not the school name, pupil/teacher names, worksheet content or full referring page. <a href="'+privacy+'">Privacy details</a>.</p></div>'+
     '<div class="tt99-analytics-banner__actions">'+
     '<button type="button" data-analytics-deny>No thanks</button>'+
     '<button type="button" data-analytics-allow>Allow analytics</button>'+
@@ -121,10 +121,10 @@ function settingsMarkup(){
   return '<div class="tt99-analytics-panel" hidden>'+
     '<section class="tt99-analytics-panel__card" role="dialog" aria-modal="true" aria-labelledby="tt99-analytics-title">'+
     '<div class="tt99-analytics-panel__head"><div><h2 id="tt99-analytics-title">Privacy & analytics</h2>'+
-    '<p>99 Club Studio loads the Google tag with analytics storage disabled. If you allow analytics, it can then use analytics storage to understand visits, downloads and anonymous feature usage so the free tools can be improved.</p></div>'+
+    '<p>99 Club Studio loads the Google tag with analytics storage disabled. If you allow analytics, it can then use analytics storage to understand visits, downloads and feature usage so the free tools can be improved. Product events may include an opaque school key and a referring website origin when available.</p></div>'+
     '<button type="button" class="tt99-analytics-panel__close" data-analytics-close aria-label="Close">×</button></div>'+
     '<div class="tt99-analytics-panel__state"></div>'+
-    '<p>No pupil names, school names, uploaded logos, worksheet questions, answers, free text or recreation codes are deliberately sent as analytics events. <a href="'+privacy+'">Read the privacy details</a>.</p>'+
+    '<p>No pupil names, school names, teacher names, uploaded logos, worksheet questions, answers, custom vocabulary, full referring page URLs, free text or recreation codes are deliberately sent as Google Analytics event data. <a href="'+privacy+'">Read the privacy details</a>.</p>'+
     '<div class="tt99-analytics-panel__actions"><button type="button" data-analytics-deny>Do not allow</button><button type="button" data-analytics-allow>Allow analytics</button></div>'+
     '</section></div>';
 }
