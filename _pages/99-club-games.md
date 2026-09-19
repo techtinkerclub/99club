@@ -74,11 +74,11 @@ sitemap: true
 <script src="/assets/99club/games-performance-v149.js?v=1"></script>
 <script src="/assets/99club/games-preview-pager-v155.js?v=2"></script>
 <script src="/assets/99club/games-wordsearch-quality-v150.js?v=1"></script>
-<script src="/assets/99club/games-instructions-v139.js?v=3"></script>
+<script src="/assets/99club/games-instructions-v139.js?v=4"></script>
 <script src="/assets/99club/games-puzzle-redesign-v135-logic.js?v=1"></script>
 <script src="/assets/99club/simple-pdf.js?v=19.4"></script>
 <script src="/assets/99club/games-page-geometry-v206.js?v=1"></script>
-<script src="/assets/99club/games-pdf.js?v=35"></script>
+<script src="/assets/99club/games-pdf.js?v=36"></script>
 <script src="/assets/99club/games-pdf-v136.js?v=3"></script>
 <script src="/assets/99club/games-pdf-v137.js?v=1"></script>
 <script src="/assets/99club/games-pdf-v138.js?v=1"></script>
@@ -99,7 +99,7 @@ sitemap: true
 <script src="/assets/99club/games-pdf-new-puzzles-v197.js?v=1"></script>
 <script src="/assets/99club/games-pdf-extra-puzzles-v204.js?v=1"></script>
 <script src="/assets/99club/games-layout-v1321.js?v=2"></script>
-<script src="/assets/99club/games-app.js?v=33" defer></script>
+<script src="/assets/99club/games-app.js?v=34" defer></script>
 <script src="/assets/99club/games-preview-parity-v206.js?v=1" defer></script>
 <script src="/assets/99club/games-operationgrid-print-v158-ui.js?v=1" defer></script>
 <script src="/assets/99club/games-operationgrid-print-v160-ui.js?v=1" defer></script>
