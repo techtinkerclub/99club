@@ -7,13 +7,18 @@ const mode=process.argv[2]||'prepare';
 
 function prepare(){
   const G=require(path.join(ROOT,'assets/99club/generator.js'));
-  delete global.TT99ParentPractice;
+  delete global.TT99SchoolUsage;delete global.TT99ParentPractice;
+  const SU=require(path.join(ROOT,'assets/99club/school-usage.js'));
   const PP=require(path.join(ROOT,'assets/99club/parent-practice.js'));
   const rules=G.normalizeRules(Object.assign({},G.CLASSIC_PRESETS['33'],{factorMax:9}));
-  const token=PP.encode({schemeId:'classic',clubId:'33',rules:rules,orientation:'portrait'});
+  const schoolUsageKey=SU.makeSchoolKey('Browser QA Primary School');
+  const token=PP.encode({schemeId:'classic',clubId:'33',rules:rules,orientation:'portrait',schoolUsageKey:schoolUsageKey});
 
   const hook=[
     '(function(){',
+    '  window.__schoolUsageEvents=[];',
+    '  const originalTrack=window.TT99SchoolUsage.trackPractice;',
+    '  window.TT99SchoolUsage.trackPractice=function(name,config){window.__schoolUsageEvents.push({name:name,key:config&&config.schoolUsageKey});return originalTrack.call(window.TT99SchoolUsage,name,config);};',
     '  const original=window.TT99PDFLayout.buildDocument;',
     '  window.TT99PDFLayout.buildDocument=function(options){',
     '    window.__ppBuild=options;',
@@ -46,6 +51,9 @@ function prepare(){
     "      if(root&&root.querySelector('input,textarea,select'))fail('privacy','Parent view unexpectedly asks for form data');",
     "      const title=root&&root.querySelector('#tt99-practice-title')?root.querySelector('#tt99-practice-title').textContent:'';",
     "      if(!/33 Club/i.test(title))fail('preset','Expected 33 Club title, got '+title);",
+    "      if(!window.TT99SchoolUsage||window.TT99SchoolUsage.enabled())fail('school-usage','School usage telemetry should be present but disabled');",
+    "      const openEvent=(window.__schoolUsageEvents||[]).find(x=>x.name==='practice_open');",
+    "      if(!openEvent||!/^sch_/.test(openEvent.key||''))fail('school-usage','Practice-open school usage event was not wired with an opaque school key');",
     "      if(!button)fail('download','Combined PDF button missing');",
     '      else{',
     '        button.click();await sleep(600);',
@@ -57,6 +65,8 @@ function prepare(){
     '        }',
     "        if(!window.__ppSaveCalled)fail('download','PDF save was not invoked');",
     "        if(!/another worksheet \\+ answers/i.test(button.textContent||''))fail('download','Download button did not reset after creation');",
+    "        const downloadEvent=(window.__schoolUsageEvents||[]).find(x=>x.name==='practice_download');",
+    "        if(!downloadEvent||downloadEvent.key!==openEvent?.key)fail('school-usage','Practice-download school usage event was not wired to the same school key');",
     '      }',
     "      if(document.querySelector('script[src*=\"analytics\"],script[src*=\"googletagmanager\"]'))fail('privacy','Analytics script present in parent harness');",
     "      if(!report.failures.length)pass('parent-practice','Locked parent view and combined PDF flow verified in browser');",
@@ -68,7 +78,7 @@ function prepare(){
   ].join('\n');
 
   const html='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>99club-parent-practice-qa:running</title><link rel="stylesheet" href="/assets/99club/parent-practice.css"></head><body class="tt99-practice-body"><div id="tt99-practice-root"></div>'+
-    '<script src="/assets/99club/generator.js"></script><script src="/assets/99club/simple-pdf.js"></script><script src="/assets/99club/pdf-layout.js"></script><script src="/assets/99club/parent-practice.js"></script>'+
+    '<script src="/assets/99club/generator.js"></script><script src="/assets/99club/simple-pdf.js"></script><script src="/assets/99club/pdf-layout.js"></script><script src="/assets/99club/school-usage-config.js"></script><script src="/assets/99club/school-usage.js"></script><script src="/assets/99club/parent-practice.js"></script>'+
     '<script>'+hook+'<\/script><script src="/assets/99club/parent-practice-page.js"></script><script>'+runner+'<\/script></body></html>';
   fs.writeFileSync(HARNESS,html);
   fs.writeFileSync(path.join(ROOT,'99club-parent-practice-qa-url.txt'),'/99club-parent-practice-qa.html#p='+encodeURIComponent(token)+'\n');

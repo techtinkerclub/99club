@@ -23,7 +23,9 @@ sitemap: false
 <script src="/assets/99club/generator.js?v=19.4"></script>
 <script src="/assets/99club/simple-pdf.js?v=19.4"></script>
 <script src="/assets/99club/pdf-layout.js?v=19.5"></script>
-<script src="/assets/99club/parent-practice.js?v=1"></script>
-<script src="/assets/99club/parent-practice-page.js?v=1"></script>
+<script src="/assets/99club/school-usage-config.js?v=1"></script>
+<script src="/assets/99club/school-usage.js?v=1"></script>
+<script src="/assets/99club/parent-practice.js?v=1.1"></script>
+<script src="/assets/99club/parent-practice-page.js?v=1.1"></script>
 </body>
 </html>

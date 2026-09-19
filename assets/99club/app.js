@@ -8,7 +8,7 @@
 
   const STORAGE_KEY = 'tt99-settings-v1';
   const CUSTOM_KEY = 'tt99-custom-presets-v1';
-  const VERSION = '1.19.4';
+  const VERSION = '1.19.5';
   const APP_NAME = '99 Club Studio';
   const APP_URL = 'https://99studio.uk/';
   const CUSTOM_WORKSPACE_KEY = 'tt99-custom-settings-v1';
@@ -18,6 +18,7 @@
   const PRE_RESTORE_KEY = 'tt99-pre-restore-snapshot-v1';
   const Q = window.TT99QR;
   const PP = window.TT99ParentPractice;
+  const SU = window.TT99SchoolUsage;
   const PARENT_CLUB_IDS = ['11','22','33','44','55','66','77','88','99'];
   const ADVANCED_CHALLENGE_IDS = new Set(['bronze','silver','gold','platinum','diamond']);
   const BADGE_IMAGE_BY_CLUB = {
@@ -518,7 +519,8 @@
   function parentPracticeConfig(clubId=state.clubId){
     const id=String(clubId);
     const rules=id===String(state.clubId)?state.rules:loadRulesFor(state.schemeId,id);
-    return {schemeId:state.schemeId,clubId:id,rules:G.clone(rules),orientation:state.orientation};
+    const schoolUsageKey=SU?.makeSchoolKey?.(state.school?.schoolName)||'';
+    return {schemeId:state.schemeId,clubId:id,rules:G.clone(rules),orientation:state.orientation,schoolUsageKey};
   }
   function parentPracticeLink(clubId=state.clubId){
     if(!PP)return '';
@@ -537,7 +539,7 @@
       const link=parentPracticeLink(id),name=parentPracticeName(id),badge=badgeUrlForClub(id);
       return `<article class="tt99-parent-club"><div class="tt99-parent-club__title"><img src="${esc(badge)}" alt=""><div><b>${esc(name)}</b><span>${esc(G.rulesSummary(loadRulesFor(state.schemeId,id)))}</span></div></div><div class="tt99-parent-club-actions"><a href="${esc(link)}" target="_blank" rel="noopener">Preview</a><button type="button" data-parent-copy-link="${esc(id)}">Copy link</button><button type="button" data-parent-copy-button="${esc(id)}">Copy button</button></div></article>`;
     }).join('');
-    return `<div id="tt99-parent-modal" class="tt99-parent-modal" hidden><button type="button" class="tt99-parent-backdrop" data-parent-close aria-label="Close parent practice links"></button><section class="tt99-parent-card" role="dialog" aria-modal="true" aria-labelledby="tt99-parent-title"><button type="button" class="tt99-parent-close" data-parent-close aria-label="Close parent practice links">×</button><span class="tt99-parent-kicker">School-led home practice</span><h2 id="tt99-parent-title">Parent practice links</h2><p>These links keep the maths settings under school control. Parents get a deliberately simple page that creates a fresh printable worksheet and matching answers.</p><div class="tt99-parent-notice"><strong>Privacy by design:</strong> the link contains maths rules only. School name, class, teacher, logo, date, teacher note, pupil details, scores and question seeds are not included. The parent practice page does not load Studio analytics.</div><div class="tt99-parent-current"><strong>Current challenge: ${esc(currentName)}</strong><small>${esc(G.rulesSummary(state.rules))} · ${esc(state.orientation==='landscape'?'Landscape':'Portrait')}</small><div class="tt99-parent-link-row"><input id="tt99-parent-current-link" type="text" readonly value="${esc(currentLink)}" aria-label="Current parent practice link"><button type="button" id="tt99-parent-copy-current">Copy link</button><a href="${esc(currentLink)}" target="_blank" rel="noopener">Open parent view</a></div><div class="tt99-parent-button-preview" aria-label="School website button examples">${PP.buttonHtml(currentLink,parentPracticeButtonLabel(),'teal')}${PP.buttonHtml(currentLink,'Download '+currentName+' practice','gold')}${PP.buttonHtml(currentLink,'Practice at home','outline')}</div><div class="tt99-parent-club-actions" style="margin-top:8px"><button type="button" data-parent-copy-style="teal">Copy teal button</button><button type="button" data-parent-copy-style="gold">Copy gold button</button><button type="button" data-parent-copy-style="outline">Copy outline button</button></div></div><div class="tt99-parent-section-head"><div><h3>11–99 website links</h3><p>Uses the saved rules for each club in the currently selected ruleset scheme.</p></div><button type="button" class="tt99-parent-copy-all" id="tt99-parent-copy-all">Copy all button HTML</button></div><div class="tt99-parent-clubs">${clubs}</div><div id="tt99-parent-status" class="tt99-status" role="status" aria-live="polite" hidden></div><div class="tt99-parent-footer"><span>Recommended for a school site: use the plain HTTPS link or your CMS's normal button component.</span><a href="/schools/" target="_blank" rel="noopener">Information for schools</a></div></section></div>`;
+    return `<div id="tt99-parent-modal" class="tt99-parent-modal" hidden><button type="button" class="tt99-parent-backdrop" data-parent-close aria-label="Close parent practice links"></button><section class="tt99-parent-card" role="dialog" aria-modal="true" aria-labelledby="tt99-parent-title"><button type="button" class="tt99-parent-close" data-parent-close aria-label="Close parent practice links">×</button><span class="tt99-parent-kicker">School-led home practice</span><h2 id="tt99-parent-title">Parent practice links</h2><p>These links keep the maths settings under school control. Parents get a deliberately simple page that creates a fresh printable worksheet and matching answers.</p><div class="tt99-parent-notice"><strong>Privacy by design:</strong> the link contains maths rules and, when a school name is entered, an opaque school-level key. The school name itself, class, teacher, logo, date, teacher note, pupil details, scores and question seeds are not included. School-level practice telemetry is currently disabled while its final analytics/privacy setup is being completed.</div><div class="tt99-parent-current"><strong>Current challenge: ${esc(currentName)}</strong><small>${esc(G.rulesSummary(state.rules))} · ${esc(state.orientation==='landscape'?'Landscape':'Portrait')}</small><div class="tt99-parent-link-row"><input id="tt99-parent-current-link" type="text" readonly value="${esc(currentLink)}" aria-label="Current parent practice link"><button type="button" id="tt99-parent-copy-current">Copy link</button><a href="${esc(currentLink)}" target="_blank" rel="noopener">Open parent view</a></div><div class="tt99-parent-button-preview" aria-label="School website button examples">${PP.buttonHtml(currentLink,parentPracticeButtonLabel(),'teal')}${PP.buttonHtml(currentLink,'Download '+currentName+' practice','gold')}${PP.buttonHtml(currentLink,'Practice at home','outline')}</div><div class="tt99-parent-club-actions" style="margin-top:8px"><button type="button" data-parent-copy-style="teal">Copy teal button</button><button type="button" data-parent-copy-style="gold">Copy gold button</button><button type="button" data-parent-copy-style="outline">Copy outline button</button></div></div><div class="tt99-parent-section-head"><div><h3>11–99 website links</h3><p>Uses the saved rules for each club in the currently selected ruleset scheme.</p></div><button type="button" class="tt99-parent-copy-all" id="tt99-parent-copy-all">Copy all button HTML</button></div><div class="tt99-parent-clubs">${clubs}</div><div id="tt99-parent-status" class="tt99-status" role="status" aria-live="polite" hidden></div><div class="tt99-parent-footer"><span>Recommended for a school site: use the plain HTTPS link or your CMS's normal button component.</span><a href="/schools/" target="_blank" rel="noopener">Information for schools</a></div></section></div>`;
   }
 
   function renderStepClub(){
@@ -960,6 +962,7 @@
       modal.hidden=false;
       document.body.classList.add('tt99-parent-open');
       setParentStatus('');
+      if(state.school?.schoolName)SU?.registerSchool?.(state.school.schoolName);
       window.setTimeout(()=>modal.querySelector('.tt99-parent-close')?.focus(),0);
     };
     const copy=async(text,message)=>{
