@@ -198,6 +198,10 @@ sidebar: false
     </tbody></table></div>
 
     <div class="tt99-guide-note"><strong>Cache and site data are different.</strong> Clearing an ordinary browser cache normally leaves Studio's saved data alone. Clearing site data/storage, using private browsing, changing browser profile, or moving to another device can remove it. Download a Full backup for anything you would be unhappy to lose.</div>
+
+    <h3>Sharing home practice on the school website</h3>
+    <p>Schools can publish locked parent-practice links as normal buttons, ready-made cards, downloadable PNG tiles or optional branded widgets. The widget route is accountless and gives parents a compact menu of school-selected Club levels, printable puzzle packs and/or online games.</p>
+    <p><a class="tt99-secondary" href="/schools/widgets/"><strong>School Website Widgets - full step-by-step guide →</strong></a></p>
   </section>
 
   <section id="recreate" class="tt99-guide-section">
