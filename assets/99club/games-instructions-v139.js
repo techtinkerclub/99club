@@ -20,7 +20,7 @@ function instruction(a){
   const n=Number(a.size)||0;
   switch(a.engineId){
     case'wordsearch':
-      return 'Use the clue list to find every maths word. Each word stays in one straight line; letters may be shared by different words.';
+      return 'Use the clue list to find every maths word. Each word stays in one straight line and follows the directions listed below; letters may be shared by different words.';
     case'crossword':
       return 'Solve the clues. Across goes left to right and Down top to bottom; write one letter per cell. Crossings share a letter. Ignore spaces and punctuation.';
     case'pyramid':
@@ -29,7 +29,7 @@ function instruction(a){
       if(a.puzzleType==='check')return 'Check every row, column and both main diagonals. Decide whether they all have the same total and show enough working to prove it.';
       if(a.puzzleType==='repair')return 'One value is wrong. Replace it so every row, column and both main diagonals have the same total.';
       if(a.puzzleType==='transform')return 'Apply the shown transformation, complete the new square so every row, column and both main diagonals have the same total, then find that total.';
-      return `Fill the blanks so every row, column and both main diagonals total ${G.formatNumber?.(a.magicSum)??a.magicSum}.`;
+      return 'Fill the blanks so every row, column and both main diagonals have the same total.';
     case'sudoku':
       return a.style==='latin'
         ?`Fill the grid with 1–${n}. Use each number once in every row and column; numbers may repeat elsewhere in the grid.`
@@ -107,9 +107,9 @@ function instruction(a){
     case'diagonalpath':
       return `Use every number from 1 to ${n*n} exactly once. Consecutive numbers may touch by a side or a corner; printed numbers are fixed.`;
     case'squaresearch':
-      return `Find all ${a.matches?.length||''} non-overlapping 2 × 2 squares whose four numbers total ${a.target}. Answer squares never share a cell.`;
+      return `Find all ${a.matches?.length||''} non-overlapping 2 × 2 squares that make the target shown. Add all four numbers in each square; answer squares never share a cell.`;
     case'insertops':
-      return `Keep the printed numbers in order and put one allowed operation sign in each gap to make ${a.target}. Allowed signs may be reused; use normal operation order and no brackets.`;
+      return 'Keep the printed numbers in order and put one allowed operation sign in each gap so the equation is true. Allowed signs may be reused; use normal operation order and no brackets.';
     case'perimeterregions':
       return 'Divide every cell into one region. Each region contains exactly one clue, and that clue is its outside perimeter measured in unit grid edges — not its area.';
     case'domino':
