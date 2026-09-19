@@ -137,6 +137,32 @@ function prepare(){
         view.destroy?.();
       }catch(e){fail('mobile-drawer',(e&&e.stack)||String(e));}
     }
+    async function sumGridContainmentTest(){
+      try{
+        const P=window.TT99GamesPlay;
+        for(const id of ['cornersum','linkedsum']){
+          const a=P?.adapters?.get(id);
+          if(!a){fail('sumgrid-mobile',id+' adapter missing');continue;}
+          const frame=document.createElement('div');
+          frame.style.cssText='position:absolute;left:-10000px;top:0;width:332px;max-width:332px;box-sizing:border-box;overflow:hidden;';
+          const host=document.createElement('div');frame.appendChild(host);document.body.appendChild(frame);
+          const cfg=a.normalizeConfig({difficulty:'standard'}),p=a.createPuzzle(cfg,'browser-qa:sumgrid:'+id);
+          const view=a.mount(host,p,{onChange:()=>{},onStatus:()=>{},isPaused:()=>false});
+          await sleep(30);
+          const board=host.querySelector('[data-sumgrid-board]'),grid=host.querySelector('.tt99-numbergrid'),groups=host.querySelector('.tt99-play-sumgrid-groups');
+          if(!board||!grid)fail('sumgrid-mobile',id+' board/grid missing');
+          else{
+            const fr=frame.getBoundingClientRect(),br=board.getBoundingClientRect(),gr=grid.getBoundingClientRect();
+            if(br.left<fr.left-.5||br.right>fr.right+.5)fail('sumgrid-mobile',id+' board escapes 332px mobile frame');
+            if(gr.left<br.left-.5||gr.right>br.right+.5)fail('sumgrid-mobile',id+' number grid escapes its board wrapper');
+            if(grid.scrollWidth>grid.clientWidth+1)fail('sumgrid-mobile',id+' grid has internal horizontal overflow');
+            if(groups&&groups.scrollWidth>groups.clientWidth+1)fail('sumgrid-mobile',id+' A/B/C totals row overflows horizontally');
+          }
+          view.destroy?.();frame.remove();
+        }
+        pass('sumgrid-mobile','Corner Sum and Linked Sum stay inside a 332px mobile frame');
+      }catch(e){fail('sumgrid-mobile',(e&&e.stack)||String(e));}
+    }
     async function hintPopupTest(){
       try{
         const btn=document.getElementById('tt99-play-hint'),popup=document.getElementById('tt99-play-hint-popup'),close=document.getElementById('tt99-play-hint-popup-close');
@@ -152,7 +178,7 @@ function prepare(){
       }catch(e){fail('hint-popup',(e&&e.stack)||String(e));}
     }
     async function run(){
-      try{await sleep(500);await genericAdapterTests();await brokenCalcTest();await colourFillTest();await perimeterDirectTest();await alphameticsVarietyTest();await groupedLibraryTest();await drawerTest();await hintPopupTest();}
+      try{await sleep(500);await genericAdapterTests();await brokenCalcTest();await colourFillTest();await perimeterDirectTest();await alphameticsVarietyTest();await groupedLibraryTest();await drawerTest();await sumGridContainmentTest();await hintPopupTest();}
       catch(e){fail('runner',(e&&e.stack)||String(e));}
       finally{finish();}
     }
