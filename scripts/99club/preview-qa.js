@@ -243,7 +243,8 @@ function check(file){
   if(!m){console.error('Preview QA result marker not found.');process.exit(1);}
   const report=JSON.parse(Buffer.from(m[1],'base64').toString('utf8'));
   fs.writeFileSync(path.join(ROOT,'99club-preview-qa-report.json'),JSON.stringify(report,null,2)+'\n');
-  for(const x of report.failures||[])console.error('FAIL ['+x.area+'] '+x.msg);\n  if(report.failures?.length&&report.engineIds?.length)console.error('Batch engines: '+report.engineIds.join(', '));
+  for(const x of report.failures||[])console.error('FAIL ['+x.area+'] '+x.msg);
+  if(report.failures?.length&&report.engineIds?.length)console.error('Batch engines: '+report.engineIds.join(', '));
   console.log('Preview QA: '+(report.failures||[]).length+' failure(s), '+report.activities+' activities, '+report.pages+' pages, '+report.scaled+' scaled, min scale '+report.minScale.toFixed(3)+'.');
   if(report.failures?.length)process.exit(1);
 }
