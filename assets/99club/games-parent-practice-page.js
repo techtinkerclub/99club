@@ -19,6 +19,16 @@
     return m?decodeURIComponent(m[1]):'';
   }
 
+  function isTeacherPreview(){
+    try{return new URLSearchParams(location.search).get('preview')==='1';}
+    catch(_){return false;}
+  }
+
+  function teacherPreviewBar(){
+    if(!isTeacherPreview())return '';
+    return '<div class="tt99-practice-previewbar"><div><strong>Teacher preview</strong><span> · This is the parent-facing puzzle page.</span></div><a href="/games/">← Back to Maths Games &amp; Puzzles</a></div>';
+  }
+
   function newSeed(){
     const a=new Uint32Array(2);
     if(globalThis.crypto?.getRandomValues)globalThis.crypto.getRandomValues(a);
@@ -47,6 +57,7 @@
     const s=config.settings,names=gameNames(),activityCount=Number(s.sheets||1)*Number(s.activitiesPerSheet||1);
     root.innerHTML=
       '<main class="tt99-practice-shell">'+
+        teacherPreviewBar()+
         '<section class="tt99-practice-card" aria-labelledby="tt99-puzzle-practice-title">'+
           '<div class="tt99-practice-brand">'+
             '<img src="/assets/99club/images/99club-studio-shield.png" alt="">'+
@@ -74,7 +85,7 @@
   }
 
   function renderError(message){
-    root.innerHTML='<main class="tt99-practice-shell"><section class="tt99-practice-card tt99-practice-error"><span class="tt99-practice-kicker">99 Club Studio</span><h1>This puzzle-practice link cannot be opened</h1><p class="tt99-practice-summary">'+esc(message||'The link is incomplete or no longer supported.')+'</p></section></main>';
+    root.innerHTML='<main class="tt99-practice-shell">'+teacherPreviewBar()+'<section class="tt99-practice-card tt99-practice-error"><span class="tt99-practice-kicker">99 Club Studio</span><h1>This puzzle-practice link cannot be opened</h1><p class="tt99-practice-summary">'+esc(message||'The link is incomplete or no longer supported.')+'</p></section></main>';
   }
 
   function status(message,error){
