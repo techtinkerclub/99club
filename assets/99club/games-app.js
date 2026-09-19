@@ -581,6 +581,67 @@
 
   function renderArithmeticActivity(a,answers,index,si,ai){if(a.engineId==='squaresearch'||a.engineId==='insertops')return renderExtraActivity(a,answers,index,si,ai);if(a.engineId==='arithmagon')return renderArithmagon(a,answers,index,si,ai);if(a.engineId==='magicshape')return renderMagicShape(a,answers,index,si,ai);if(a.engineId==='maze')return renderMaze(a,answers,index,si,ai);if(a.engineId==='propertymaze')return renderPropertyMaze(a,answers,index,si,ai);if(a.engineId==='crossnumber')return renderCrossnumber(a,answers,index,si,ai);if(a.engineId==='numbersearch')return renderNumberSearch(a,answers,index,si,ai);if(a.engineId==='equationcrossgrid')return renderEquationCrossgrid(a,answers,index,si,ai);if(a.engineId==='numbertrail')return renderNumberTrail(a,answers,index,si,ai);if(a.engineId==='target')return renderTarget(a,answers,index,si,ai);if(a.engineId==='brokencalc')return renderBrokenCalc(a,answers,index,si,ai);if(a.engineId==='symbols')return renderSymbols(a,answers,index,si,ai);if(a.engineId==='domino')return renderDomino(a,answers,index,si,ai);if(a.engineId==='operationgrid')return renderOperationGrid(a,answers,index,si,ai);if(a.engineId==='numberwheels')return renderNumberWheels(a,answers,index,si,ai);if(a.engineId==='functionmachine')return renderFunctionMachine(a,answers,index,si,ai);if(a.engineId==='balance')return renderBalance(a,answers,index,si,ai);if(a.engineId==='mobilebalance')return renderMobileBalance(a,answers,index,si,ai);if(a.engineId==='colourlogic')return renderColourLogic(a,answers,index,si,ai);return `<section class="tt99-game-activity">${activityReplaceButton(si,ai)}${arithmeticHead(a,index)}</section>`;}
 
+  function bindPuzzleParentEvents(){
+    if(!GPP)return;
+    const openButton=root.querySelector('#games-parent-share');
+    const modal=root.querySelector('#tt99-puzzle-parent-modal');
+    if(!modal)return;
+    const status=modal.querySelector('#tt99-puzzle-parent-status');
+    const setStatus=message=>{if(!status)return;status.hidden=!message;status.textContent=message||'';};
+    const close=()=>{modal.hidden=true;document.body.classList.remove('tt99-parent-open');openButton?.focus();};
+    const open=()=>{
+      modal.hidden=false;document.body.classList.add('tt99-parent-open');setStatus('');
+      if(personalisation().schoolName)SU?.registerSchool?.(personalisation().schoolName);
+      track('puzzle_parent_share_open',{game_count:selectedCompatible().length,sheet_count:Number(state.settings.sheets)||0});
+      window.setTimeout(()=>modal.querySelector('.tt99-parent-close')?.focus(),0);
+    };
+    const copy=async(text,message)=>{
+      try{
+        if(navigator.clipboard?.writeText)await navigator.clipboard.writeText(text);
+        else{
+          const area=document.createElement('textarea');area.value=text;area.setAttribute('readonly','');area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();
+          if(!document.execCommand('copy'))throw new Error('copy');area.remove();
+        }
+        setStatus(message);
+      }catch(_){setStatus('Could not copy automatically. Select the link above and copy it manually.');}
+    };
+    openButton?.addEventListener('click',open);
+    modal.querySelectorAll('[data-puzzle-parent-close]').forEach(btn=>btn.addEventListener('click',close));
+    modal.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();close();}});
+    modal.querySelector('#tt99-puzzle-parent-link')?.addEventListener('click',e=>e.currentTarget.select());
+    modal.querySelector('#tt99-puzzle-copy-link')?.addEventListener('click',()=>{
+      const built=puzzleShareLink();if(!built.link)return setStatus(built.error);
+      copy(built.link,'Parent puzzle-practice link copied.');
+      track('puzzle_parent_share_action',{action:'copy_link',game_count:selectedCompatible().length});
+    });
+    modal.querySelector('#tt99-puzzle-copy-card')?.addEventListener('click',()=>{
+      const card=puzzleShareWebsiteCard();if(!card)return setStatus(puzzleShareLink().error);
+      copy(card,'Puzzle website card HTML copied.');
+      track('puzzle_parent_share_action',{action:'copy_card',game_count:selectedCompatible().length});
+    });
+    modal.querySelector('#tt99-puzzle-download-card')?.addEventListener('click',async e=>{
+      const btn=e.currentTarget;btn.disabled=true;
+      try{await downloadPuzzleShareCard();setStatus('Puzzle website card image downloaded.');track('puzzle_parent_share_action',{action:'download_card',game_count:selectedCompatible().length});}
+      catch(err){setStatus(err?.message||'Could not create the puzzle website card image.');}
+      finally{btn.disabled=false;}
+    });
+    modal.querySelector('#tt99-puzzle-save-config')?.addEventListener('click',()=>{
+      savePuzzleConfig();setStatus('Puzzle setup downloaded. Keep this JSON file to restore the complete puzzle configuration later.');
+      track('puzzle_parent_share_action',{action:'save_config',game_count:selectedCompatible().length});
+    });
+    modal.querySelector('#tt99-puzzle-restore-config')?.addEventListener('change',async e=>{
+      const file=e.target.files?.[0];if(!file)return;
+      try{await restorePuzzleConfig(file);}
+      catch(err){setStatus(err?.message||'That puzzle setup could not be restored.');e.target.value='';}
+    });
+    modal.querySelector('#tt99-puzzle-download-web-pack')?.addEventListener('click',async e=>{
+      const btn=e.currentTarget,old=btn.textContent;btn.disabled=true;btn.textContent='Preparing pack…';setStatus('Creating the image card, link and restoreable puzzle setup…');
+      try{await downloadPuzzleWebsitePack();setStatus('Puzzle website pack downloaded.');track('puzzle_parent_share_action',{action:'download_website_pack',game_count:selectedCompatible().length});}
+      catch(err){console.error(err);setStatus(err?.message||'The puzzle website pack could not be created in this browser.');}
+      finally{btn.disabled=false;btn.textContent=old;}
+    });
+  }
+
   function bind(){
     const regen=(msg,reseed=false)=>{refreshPack(reseed);state.status=msg;render();};
     root.querySelector('#games-min-year')?.addEventListener('change',e=>{state.settings.minYear=Number(e.target.value);if(state.settings.maxYear<state.settings.minYear)state.settings.maxYear=state.settings.minYear;pruneTopics();regen('Year range updated.');});
@@ -603,7 +664,7 @@
     root.querySelector('#games-date-today')?.addEventListener('click',()=>{const d=new Date(),pad=n=>String(n).padStart(2,'0');state.settings.personalisation.worksheetDate=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;save();state.status='Today’s date added to the pack.';render();});
     root.querySelector('#games-date-clear')?.addEventListener('click',()=>{state.settings.personalisation.worksheetDate='';save();state.status='Date removed from the pack.';render();});
     root.querySelector('#games-logo')?.addEventListener('change',handleLogo);root.querySelector('#games-remove-logo')?.addEventListener('click',()=>{Object.assign(state.settings.personalisation,{logoDataUrl:'',logoWidth:0,logoHeight:0});save();state.status='School logo removed.';render();});
-    root.querySelector('#games-new-version')?.addEventListener('click',()=>regen('Fresh puzzle version generated with the same teaching settings.',true));root.querySelector('#games-pdf-student')?.addEventListener('click',()=>downloadGamesPDF('student'));root.querySelector('#games-pdf-answer')?.addEventListener('click',()=>downloadGamesPDF('answers'));root.querySelector('#games-pdf-both')?.addEventListener('click',()=>downloadGamesPDF('both'));root.querySelectorAll('[data-preview]').forEach(btn=>btn.addEventListener('click',()=>{state.previewAnswers=btn.dataset.preview==='answers';render();}));
+    root.querySelector('#games-new-version')?.addEventListener('click',()=>regen('Fresh puzzle version generated with the same teaching settings.',true));root.querySelector('#games-pdf-student')?.addEventListener('click',()=>downloadGamesPDF('student'));root.querySelector('#games-pdf-answer')?.addEventListener('click',()=>downloadGamesPDF('answers'));root.querySelector('#games-pdf-both')?.addEventListener('click',()=>downloadGamesPDF('both'));root.querySelectorAll('[data-preview]').forEach(btn=>btn.addEventListener('click',()=>{state.previewAnswers=btn.dataset.preview==='answers';render();}));\n    bindPuzzleParentEvents();
 
     root.querySelector('#vocab-add')?.addEventListener('click',addVocabulary);root.querySelectorAll('[data-delete-vocab]').forEach(btn=>btn.addEventListener('click',()=>{const i=Number(btn.dataset.deleteVocab);state.customVocabulary.splice(i,1);refreshPack(false);state.status='Personal vocabulary entry removed from this browser.';render();}));root.querySelector('#vocab-export')?.addEventListener('click',exportVocabulary);root.querySelector('#vocab-import')?.addEventListener('change',importVocabulary);root.querySelector('#vocab-clear')?.addEventListener('click',()=>{if(!state.customVocabulary.length)return;if(confirm('Clear all My vocabulary entries stored in this browser?')){state.customVocabulary=[];refreshPack(false);state.status='My vocabulary cleared. Built-in vocabulary was not changed.';render();}});
   }
