@@ -25,6 +25,7 @@ function analyticsSummary(extra={}){
   return {
     widget_type:draft.widgetType,
     school_key:schoolKey()||undefined,
+    source_origin:SU?.referrerOrigin?.()||undefined,
     club_count:draft.selectedClubs?.length||0,
     puzzle_pack_count:draft.puzzles?.length||0,
     online_game_count:draft.games?.length||0,
@@ -197,7 +198,7 @@ function bind(){
   await applyHandoff();
   const direct=W.tokenFromText(decodeURIComponent(location.hash||''));
   if(direct){try{draft=W.decode(direct);save();status='Widget configuration loaded from the URL.';}catch(_){}}
-  track('widget_builder_open',analyticsSummary({entry_type:requestedType()||draft.widgetType}));
+  window.addEventListener('load',()=>track('widget_builder_open',analyticsSummary({entry_type:requestedType()||draft.widgetType})),{once:true});
   SU?.trackStudio?.('widget_builder_open',draft.school?.name||'',{area:'widget_builder'});
   render();
 })();
