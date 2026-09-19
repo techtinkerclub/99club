@@ -34,6 +34,7 @@
 
   function compactVocabulary(entries,settings){
     const s=G.normalizeSettings(settings||{});
+    if(!(s.selectedEngines||[]).some(id=>id==='wordsearch'||id==='crossword'))return [];
     const relevant=G.sanitizeCustomVocabulary(entries||[]).filter(x=>
       s.topics.includes(x.topic) && x.minYear<=s.maxYear && x.maxYear>=s.minYear
     );
