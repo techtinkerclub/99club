@@ -29,6 +29,7 @@ Once activated, GA4 provides the normal website analytics layer, including page 
   - `variant_count`
   - `question_count`
   - `orientation`
+- `action`
   - `answer_qr`
 
 ### Printable Games & Puzzles
