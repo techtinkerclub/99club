@@ -83,20 +83,20 @@ sitemap: true
 <script src="/assets/99club/games-pdf-v137.js?v=1"></script>
 <script src="/assets/99club/games-pdf-v138.js?v=1"></script>
 <script src="/assets/99club/games-pdf-towers-direction-v138.js?v=1"></script>
-<script src="/assets/99club/games-pdf-v138-flowfix.js?v=1"></script>
-<script src="/assets/99club/games-pdf-takuzu-v139.js?v=1"></script>
+<script src="/assets/99club/games-pdf-v138-flowfix.js?v=2"></script>
+<script src="/assets/99club/games-pdf-takuzu-v139.js?v=2"></script>
 <script src="/assets/99club/games-pdf-v140.js?v=1"></script>
 <script src="/assets/99club/games-pdf-killer-v181.js?v=2"></script>
-<script src="/assets/99club/games-pdf-v1401.js?v=1"></script>
+<script src="/assets/99club/games-pdf-v1401.js?v=2"></script>
 <script src="/assets/99club/games-pdf-v141.js?v=1"></script>
 <script src="/assets/99club/games-pdf-shikaku-v143.js?v=2"></script>
 <script src="/assets/99club/games-pdf-worked-v146.js?v=3"></script>
 <script src="/assets/99club/games-pdf-no-year-v145.js?v=1"></script>
-<script src="/assets/99club/games-pdf-sum-grids-v147.js?v=4"></script>
+<script src="/assets/99club/games-pdf-sum-grids-v147.js?v=5"></script>
 <script src="/assets/99club/games-pdf-v155.js?v=1"></script>
-<script src="/assets/99club/games-pdf-v158.js?v=1"></script>
+<script src="/assets/99club/games-pdf-v158.js?v=2"></script>
 <script src="/assets/99club/games-pdf-v160.js?v=1"></script>
-<script src="/assets/99club/games-pdf-new-puzzles-v197.js?v=1"></script>
+<script src="/assets/99club/games-pdf-new-puzzles-v197.js?v=2"></script>
 <script src="/assets/99club/games-pdf-extra-puzzles-v204.js?v=2"></script>
 <script src="/assets/99club/games-layout-v1321.js?v=2"></script>
 <script src="/assets/99club/games-app.js?v=34" defer></script>
