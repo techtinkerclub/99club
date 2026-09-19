@@ -142,7 +142,23 @@
     return '<a href="'+href+'" target="_blank" rel="noopener noreferrer" style="'+style+'">'+text+'</a>';
   }
 
-  const api={PREFIX,VERSION,MAX_TOKEN_LENGTH,baseRules,normaliseConfig,compactPayload,encode,decode,buildLink,buttonHtml};
+  function websiteCardHtml(link,title,badgeUrl,summary,cta){
+    const href=htmlEscape(link);
+    const name=htmlEscape(title||'99 Club practice');
+    const badge=htmlEscape(badgeUrl||'https://99studio.uk/assets/99club/images/99club-studio-shield.png');
+    const detail=htmlEscape(summary||'Printable worksheet + answers');
+    const action=htmlEscape(cta||'Practice at home');
+    return '<a href="'+href+'" target="_blank" rel="noopener noreferrer" style="box-sizing:border-box;display:flex;align-items:center;gap:14px;width:100%;max-width:560px;padding:14px 16px;border:1px solid #d6e1e4;border-radius:14px;background:#ffffff;color:#24343b;text-decoration:none;font-family:Arial,Helvetica,sans-serif;box-shadow:0 2px 8px rgba(36,52,59,.08);">'+
+      '<img src="'+badge+'" alt="" width="58" height="58" style="display:block;width:58px;height:58px;object-fit:contain;flex:0 0 58px;border:0;">'+
+      '<span style="display:block;min-width:0;flex:1 1 auto;">'+
+        '<strong style="display:block;margin:0 0 4px;font-size:18px;line-height:1.15;color:#24343b;">'+name+'</strong>'+
+        '<span style="display:block;font-size:13px;line-height:1.35;color:#65747b;">'+detail+'</span>'+
+      '</span>'+
+      '<span style="display:inline-block;flex:0 0 auto;padding:8px 11px;border-radius:999px;background:#147d75;color:#ffffff;font-size:12px;line-height:1.1;font-weight:700;white-space:nowrap;">'+action+' →</span>'+
+    '</a>';
+  }
+
+  const api={PREFIX,VERSION,MAX_TOKEN_LENGTH,baseRules,normaliseConfig,compactPayload,encode,decode,buildLink,buttonHtml,websiteCardHtml};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   global.TT99ParentPractice=api;
 }(typeof window!=='undefined'?window:globalThis));
