@@ -6,7 +6,7 @@ const G=require(path.join(ROOT,'games-engine.js'));
 const L=G.NUMLOGIC;
 function assert(ok,msg){if(!ok)throw new Error(msg);}
 const IDS=['kakuro','futoshiki','arithmeticcages','nonogram','numberpath'];
-assert(L&&L.VERSION==='1.1.1','Numeric logic module missing/wrong version');
+assert(L&&L.VERSION==='1.1.2','Numeric logic module missing/wrong version');
 assert(JSON.stringify(Object.keys(L.DEFINITIONS))===JSON.stringify(IDS),'Numeric logic IDs changed unexpectedly');
 for(const id of IDS){const e=G.ENGINES[id];assert(e&&e.defaultSettings&&Array.isArray(e.settingsSchema),`${id}: settings contract missing`);assert(e.answerSheetSupport&&e.workedExampleSupport,`${id}: output contract missing`);assert(e.needsDice===false&&e.needsPartner===false,`${id}: must remain print -> pencil -> solve`);}
 
@@ -50,6 +50,14 @@ for(const n of [5,7,10])for(let i=0;i<24;i++){
 for(const n of [5,6,7,9])for(let i=0;i<(n===9?1:4);i++){
   const a=G.generateActivity('kakuro',{minYear:4,maxYear:6,topics:['calculation'],engineSettings:{kakuro:{difficulty:n>=7?'challenge':'standard',gridSize:String(n),givenLevel:['more','balanced','minimum'][i%3]}}},`kakuro-deep:${n}:${i}`);assert(!a.error,`Kakuro ${n}: ${a.error}`);assert(L.validate(a).ok,`Kakuro ${n} validation failed`);
 }
+
+const kakuroPerfStart=Date.now();
+for(let i=0;i<4;i++){
+  const a=G.generateActivity('kakuro',{minYear:6,maxYear:6,topics:['calculation'],engineSettings:{kakuro:{difficulty:'challenge',gridSize:'9',givenLevel:'minimum'}}},`kakuro-perf:${i}`);
+  assert(!a.error&&L.validate(a).ok,`Kakuro performance sample ${i} failed validation`);
+}
+const kakuroPerfMs=Date.now()-kakuroPerfStart;
+assert(kakuroPerfMs<6000,`Kakuro 9x9 generation performance regressed: ${kakuroPerfMs} ms for 4 puzzles`);
 
 // Every new engine must have a concise child-facing worked example.
 for(const id of IDS){const topic=topicFor[id],ex=G.generateWorkedExample(id,{minYear:4,maxYear:5,topics:[topic],engineSettings:{[id]:{difficulty:'standard'}}},`worked:${id}`,[]);assert(ex&&ex.goal&&ex.rules?.length>=2&&ex.steps?.length>=3&&ex.tip&&ex.commonMistake,`${id}: incomplete worked example`);}
