@@ -43,6 +43,10 @@ function cleanLogo(v){
   if(!/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/i.test(s))return '';
   return s.length<=18000?s:'';
 }
+function cleanIntegrationId(v){
+  const s=String(v||'').trim().toLowerCase();
+  return /^wid_[a-z0-9]{8,32}$/.test(s)?s:'';
+}
 function diff(base,current){
   if(Array.isArray(current))return same(base,current)?undefined:clone(current);
   if(!obj(current))return same(base,current)?undefined:current;
@@ -85,6 +89,7 @@ function cleanPuzzle(entry){
 function normalise(input){
   const src=obj(input)?input:{};
   const widgetType=safeType(src.widgetType||src.type);
+  const integrationId=cleanIntegrationId(src.integrationId);
   const schemeId=safeScheme(src.schemeId),orientation=safeOrientation(src.orientation);
   const selectedDefault=widgetType==='games'?[]:CLUB_IDS;
   const selectedClubs=[...new Set((Array.isArray(src.selectedClubs)?src.selectedClubs:selectedDefault).map(String).filter(x=>CLUB_SET.has(x)))];
@@ -102,7 +107,7 @@ function normalise(input){
   if((widgetType==='games'||widgetType==='combined')&&games.length)tabs.push('games');
   const requested=['clubs','puzzles','games'].includes(src.defaultTab)?src.defaultTab:(widgetType==='games'?'puzzles':'clubs');
   const defaultTab=tabs.includes(requested)?requested:(tabs[0]||(widgetType==='games'?'games':'clubs'));
-  return {v:VERSION,widgetType,school,schemeId,orientation,selectedClubs,clubPatches,puzzles,games,defaultTab};
+  return {v:VERSION,widgetType,integrationId,school,schemeId,orientation,selectedClubs,clubPatches,puzzles,games,defaultTab};
 }
 function compactPublic(input){
   const c=normalise(input),out=clone(c);
@@ -163,10 +168,10 @@ function embedCode(input,origin){
   const c=compactPublic(input),src=buildUrl(c,origin);
   const height=c.widgetType==='club'?620:(c.widgetType==='games'?690:720);
   const title=c.widgetType==='club'?'99 Club home practice':c.widgetType==='games'?'Maths games and puzzles':'Maths home practice';
-  return '<iframe src="'+src.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'" title="'+title+'" loading="lazy" referrerpolicy="no-referrer" sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox" style="display:block;width:100%;height:'+height+'px;border:0;border-radius:14px;" ></iframe>';
+  return '<iframe src="'+src.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'" title="'+title+'" loading="lazy" referrerpolicy="origin" sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox" style="display:block;width:100%;height:'+height+'px;border:0;border-radius:14px;" ></iframe>';
 }
 
-const api={PREFIX,VERSION,MAX_TOKEN_LENGTH,WIDGET_TYPES,CLUB_IDS,GAME_IDS,GAME_TITLES,normalise,compactPublic,fromClubRules,clubRules,clubLink,encode,decode,tokenFromText,buildUrl,embedCode};
+const api={PREFIX,VERSION,MAX_TOKEN_LENGTH,WIDGET_TYPES,CLUB_IDS,GAME_IDS,GAME_TITLES,cleanIntegrationId,normalise,compactPublic,fromClubRules,clubRules,clubLink,encode,decode,tokenFromText,buildUrl,embedCode};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 global.TT99SchoolWidget=api;
 })(typeof window!=='undefined'?window:globalThis);
