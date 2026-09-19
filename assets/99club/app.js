@@ -8,7 +8,7 @@
 
   const STORAGE_KEY = 'tt99-settings-v1';
   const CUSTOM_KEY = 'tt99-custom-presets-v1';
-  const VERSION = '1.19.7';
+  const VERSION = '1.19.8';
   const APP_NAME = '99 Club Studio';
   const APP_URL = 'https://99studio.uk/';
   const CUSTOM_WORKSPACE_KEY = 'tt99-custom-settings-v1';
@@ -586,7 +586,7 @@
       img.src=url;
     });
   }
-  async function downloadParentPracticeCardImage(clubId=state.clubId){
+  async function createParentPracticeCardImageBlob(clubId=state.clubId){
     const id=String(clubId),name=parentPracticeName(id),summary=parentPracticeWebsiteSummary(id);
     const canvas=document.createElement('canvas');canvas.width=1200;canvas.height=260;
     const ctx=canvas.getContext('2d');
@@ -609,10 +609,124 @@
     lines.forEach((line,i)=>ctx.fillText(line,230,155+i*38));
     ctx.fillStyle='#147d75';ctx.beginPath();ctx.arc(1105,130,44,0,Math.PI*2);ctx.fill();
     ctx.fillStyle='#ffffff';ctx.font='700 44px Arial, sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('→',1105,127);
-    const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('Could not create the PNG image.')),'image/png'));
+    return new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('Could not create the PNG image.')),'image/png'));
+  }
+  function downloadBlob(filename,blob){
     const url=URL.createObjectURL(blob),a=document.createElement('a');
-    a.href=url;a.download=parentPracticeCardFilename(id);document.body.appendChild(a);a.click();a.remove();
+    a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),1500);
+  }
+  async function downloadParentPracticeCardImage(clubId=state.clubId){
+    downloadBlob(parentPracticeCardFilename(clubId),await createParentPracticeCardImageBlob(clubId));
+  }
+
+  function parentPracticeSchoolConfigData(){
+    const clubs={};
+    for(const id of PARENT_CLUB_IDS)clubs[id]=G.clone(loadRulesFor(state.schemeId,id));
+    return {
+      kind:'tt99-school-parent-practice-config',
+      configVersion:1,
+      app:'99 Club Studio',
+      appVersion:VERSION,
+      generationVersion:GENERATION_VERSION,
+      savedAt:new Date().toISOString(),
+      schemeId:state.schemeId,
+      orientation:state.orientation,
+      school:{schoolName:String(state.school?.schoolName||'').trim()},
+      clubs
+    };
+  }
+  function parentPracticeSchoolConfigFilename(){
+    const school=String(state.school?.schoolName||'school').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'school';
+    return `99-club-${school}-configuration-${safeDateStamp()}.json`;
+  }
+  function downloadParentPracticeSchoolConfig(){
+    downloadJson(parentPracticeSchoolConfigFilename(),parentPracticeSchoolConfigData());
+  }
+  function readTextFile(file){
+    if(file?.text)return file.text();
+    return new Promise((resolve,reject)=>{
+      const reader=new FileReader();reader.onload=()=>resolve(String(reader.result||''));reader.onerror=()=>reject(reader.error||new Error('file'));reader.readAsText(file);
+    });
+  }
+  async function restoreParentPracticeSchoolConfig(file){
+    const d=JSON.parse(await readTextFile(file));
+    if(!d||d.kind!=='tt99-school-parent-practice-config'||Number(d.configVersion)!==1||!d.clubs||typeof d.clubs!=='object')throw new Error('That file is not a valid 99 Club school configuration.');
+    const missing=PARENT_CLUB_IDS.filter(id=>!d.clubs[id]||typeof d.clubs[id]!=='object');
+    if(missing.length)throw new Error('That school configuration is incomplete. Missing: '+missing.map(id=>parentPracticeName(id)).join(', ')+'.');
+    // This file stores rule snapshots rather than generated questions, so it is
+    // intentionally portable across later worksheet-generation versions.
+    const schemeId=d.schemeId&&G.SCHEME_PRESETS[d.schemeId]?d.schemeId:'classic';
+    state.schemeId=schemeId;
+    for(const id of PARENT_CLUB_IDS){
+      if(!d.clubs[id]||typeof d.clubs[id]!=='object')continue;
+      const saved=normalizeForContext(G.clone(d.clubs[id]),id),base=getBasePreset(schemeId,id),key=overrideKey(schemeId,id);
+      if(base&&sameRules(saved,base,id))delete state.ruleOverrides[key];
+      else state.ruleOverrides[key]=G.clone(saved);
+    }
+    if(d.orientation==='landscape'||d.orientation==='portrait')state.orientation=d.orientation;
+    if(d.school&&typeof d.school.schoolName==='string')state.school.schoolName=d.school.schoolName.slice(0,80);
+    if(!PARENT_CLUB_IDS.includes(state.clubId))state.clubId='33';
+    state.rules=loadRulesFor(state.schemeId,state.clubId);
+    state.seed=newStudioSeed(state.clubId);
+    generateAll();
+    state.status='School configuration restored. All 11–99 and post-99 club rules from the file are now available in this browser.';
+    render();
+  }
+
+  function parentPracticeLinksText(){
+    return ['Club\tPractice URL',...PARENT_CLUB_IDS.map(id=>`${parentPracticeName(id)}\t${parentPracticeLink(id)}`)].join('\n');
+  }
+  function parentPracticeLinksCsv(){
+    const q=value=>'"'+String(value??'').replace(/"/g,'""')+'"';
+    return ['Club,Practice URL',...PARENT_CLUB_IDS.map(id=>`${q(parentPracticeName(id))},${q(parentPracticeLink(id))}`)].join('\r\n')+'\r\n';
+  }
+  function parentPracticePackReadme(){
+    const school=esc(state.school?.schoolName||'Your school');
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>99 Club website pack</title><style>body{font:16px/1.55 Arial,sans-serif;max-width:850px;margin:40px auto;padding:0 24px;color:#24343b}h1,h2{color:#0d5e58}code{background:#f1f5f5;padding:2px 5px;border-radius:4px}li{margin:.45em 0}.note{padding:12px 14px;background:#eef8f6;border-left:4px solid #147d75}</style></head><body><h1>99 Club home-practice website pack</h1><p>Prepared for <strong>${school}</strong> on ${esc(new Intl.DateTimeFormat('en-GB',{dateStyle:'long'}).format(new Date()))}.</p><h2>What is included</h2><ul><li><code>cards/</code> — one PNG image for every 11–99 and post-99 challenge.</li><li><code>practice-links.csv</code> — the matching locked practice URL for every card.</li><li><code>99-club-school-configuration.json</code> — a restoreable snapshot of the club rules used for this pack.</li></ul><h2>Using a PNG card</h2><ol><li>Upload the required PNG to the school website.</li><li>Find the matching club in <code>practice-links.csv</code>.</li><li>Make the image clickable and paste that URL as the destination.</li><li>Add alt text such as “33 Club home practice – printable worksheet and answers”.</li><li>Test the link before publishing.</li></ol><div class="note"><strong>If the maths rules are changed later:</strong> create a new practice link and replace the website link. If the text shown on the card changes, download a fresh card too. Existing published links deliberately keep their old rules.</div><p>Full instructions: <a href="https://99studio.uk/schools/">https://99studio.uk/schools/</a></p></body></html>`;
+  }
+  let parentPracticeCrcTable=null;
+  function parentPracticeCrc32(bytes){
+    if(!parentPracticeCrcTable){
+      parentPracticeCrcTable=new Uint32Array(256);
+      for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=(c&1)?(0xedb88320^(c>>>1)):(c>>>1);parentPracticeCrcTable[n]=c>>>0;}
+    }
+    let crc=0xffffffff;for(const b of bytes)crc=parentPracticeCrcTable[(crc^b)&0xff]^(crc>>>8);return (crc^0xffffffff)>>>0;
+  }
+  function parentPracticeDosDateTime(date=new Date()){
+    const year=Math.max(1980,date.getFullYear());
+    return {time:((date.getHours()&31)<<11)|((date.getMinutes()&63)<<5)|((Math.floor(date.getSeconds()/2))&31),date:(((year-1980)&127)<<9)|(((date.getMonth()+1)&15)<<5)|(date.getDate()&31)};
+  }
+  function parentPracticeZipHeader(size,writer){
+    const out=new Uint8Array(size),view=new DataView(out.buffer);writer(view);return out;
+  }
+  async function parentPracticeZip(entries){
+    const encoder=new TextEncoder(),locals=[],centrals=[];let offset=0;
+    for(const entry of entries){
+      const nameBytes=encoder.encode(entry.name),data=entry.data instanceof Blob?new Uint8Array(await entry.data.arrayBuffer()):(entry.data instanceof Uint8Array?entry.data:encoder.encode(String(entry.data??'')));
+      const crc=parentPracticeCrc32(data),dt=parentPracticeDosDateTime(entry.date||new Date());
+      const local=parentPracticeZipHeader(30+nameBytes.length,view=>{
+        view.setUint32(0,0x04034b50,true);view.setUint16(4,20,true);view.setUint16(6,0x0800,true);view.setUint16(8,0,true);view.setUint16(10,dt.time,true);view.setUint16(12,dt.date,true);view.setUint32(14,crc,true);view.setUint32(18,data.length,true);view.setUint32(22,data.length,true);view.setUint16(26,nameBytes.length,true);view.setUint16(28,0,true);
+        new Uint8Array(view.buffer,30,nameBytes.length).set(nameBytes);
+      });
+      const central=parentPracticeZipHeader(46+nameBytes.length,view=>{
+        view.setUint32(0,0x02014b50,true);view.setUint16(4,20,true);view.setUint16(6,20,true);view.setUint16(8,0x0800,true);view.setUint16(10,0,true);view.setUint16(12,dt.time,true);view.setUint16(14,dt.date,true);view.setUint32(16,crc,true);view.setUint32(20,data.length,true);view.setUint32(24,data.length,true);view.setUint16(28,nameBytes.length,true);view.setUint16(30,0,true);view.setUint16(32,0,true);view.setUint16(34,0,true);view.setUint16(36,0,true);view.setUint32(38,0,true);view.setUint32(42,offset,true);
+        new Uint8Array(view.buffer,46,nameBytes.length).set(nameBytes);
+      });
+      locals.push(local,data);centrals.push(central);offset+=local.length+data.length;
+    }
+    const centralSize=centrals.reduce((n,x)=>n+x.length,0),eocd=parentPracticeZipHeader(22,view=>{
+      view.setUint32(0,0x06054b50,true);view.setUint16(4,0,true);view.setUint16(6,0,true);view.setUint16(8,entries.length,true);view.setUint16(10,entries.length,true);view.setUint32(12,centralSize,true);view.setUint32(16,offset,true);view.setUint16(20,0,true);
+    });
+    return new Blob([...locals,...centrals,eocd],{type:'application/zip'});
+  }
+  async function downloadParentPracticeWebsitePack(){
+    const entries=[];
+    for(const id of PARENT_CLUB_IDS)entries.push({name:'cards/'+parentPracticeCardFilename(id),data:await createParentPracticeCardImageBlob(id)});
+    entries.push({name:'practice-links.csv',data:parentPracticeLinksCsv()});
+    entries.push({name:'README.html',data:parentPracticePackReadme()});
+    entries.push({name:'99-club-school-configuration.json',data:JSON.stringify(parentPracticeSchoolConfigData(),null,2)+'\n'});
+    downloadBlob(`99-club-school-website-pack-${safeDateStamp()}.zip`,await parentPracticeZip(entries));
   }
   function renderParentPracticeClubCard(id){
     const link=parentPracticeLink(id),name=parentPracticeName(id),badge=badgeUrlForClub(id);
@@ -624,7 +738,7 @@
     const currentName=parentPracticeName();
     const coreClubs=PARENT_CORE_CLUB_IDS.map(renderParentPracticeClubCard).join('');
     const post99Clubs=PARENT_POST99_CLUB_IDS.map(renderParentPracticeClubCard).join('');
-    return `<div id="tt99-parent-modal" class="tt99-parent-modal" hidden><button type="button" class="tt99-parent-backdrop" data-parent-close aria-label="Close parent practice links"></button><section class="tt99-parent-card" role="dialog" aria-modal="true" aria-labelledby="tt99-parent-title"><button type="button" class="tt99-parent-close" data-parent-close aria-label="Close parent practice links">×</button><span class="tt99-parent-kicker">School-led home practice</span><h2 id="tt99-parent-title">Parent practice links</h2><p>These links keep the maths settings under school control. Parents get a deliberately simple page that creates a fresh printable worksheet and matching answers.</p><div class="tt99-parent-notice"><strong>Privacy by design:</strong> the link contains maths rules and, when a school name is entered, an opaque school-level key. The school name itself, class, teacher, logo, date, teacher note, pupil details, scores and question seeds are not included. School-level practice telemetry is currently disabled while its final analytics/privacy setup is being completed.</div><div class="tt99-parent-current"><strong>Current challenge: ${esc(currentName)}</strong><small>${esc(G.rulesSummary(state.rules))} · ${esc(state.orientation==='landscape'?'Landscape':'Portrait')}</small><div class="tt99-parent-website-preview" aria-label="Preview of the school website practice card">${parentPracticeWebsiteCard()}</div><div class="tt99-parent-link-row"><input id="tt99-parent-current-link" type="text" readonly value="${esc(currentLink)}" aria-label="Current parent practice link"><button type="button" id="tt99-parent-copy-current">Copy link</button><a href="${esc(currentLink)}" target="_blank" rel="noopener">Open parent view</a></div><div class="tt99-parent-card-tools"><button type="button" id="tt99-parent-copy-current-card">Copy website card</button><button type="button" id="tt99-parent-download-current-card">Download card image</button></div></div><div class="tt99-parent-section-head"><div><h3>11–99 website cards</h3><p>Each card is a normal link with its club badge and a compact practice summary.</p></div><button type="button" class="tt99-parent-copy-all" id="tt99-parent-copy-all">Copy all website cards</button></div><div class="tt99-parent-clubs">${coreClubs}</div><div class="tt99-parent-section-head tt99-parent-section-head--post99"><div><h3>Post-99 challenge cards</h3><p>Bronze, Silver, Gold, Platinum and Diamond use the same locked school-led parent flow.</p></div></div><div class="tt99-parent-clubs">${post99Clubs}</div><div id="tt99-parent-status" class="tt99-status" role="status" aria-live="polite" hidden></div><div class="tt99-parent-footer"><span>Plain link, website-card HTML or PNG image: choose whichever fits the school CMS best.</span><a href="/schools/" target="_blank" rel="noopener">Step-by-step website guide</a></div></section></div>`;
+    return `<div id="tt99-parent-modal" class="tt99-parent-modal" hidden><button type="button" class="tt99-parent-backdrop" data-parent-close aria-label="Close parent practice links"></button><section class="tt99-parent-card" role="dialog" aria-modal="true" aria-labelledby="tt99-parent-title"><button type="button" class="tt99-parent-close" data-parent-close aria-label="Close parent practice links">×</button><span class="tt99-parent-kicker">School-led home practice</span><h2 id="tt99-parent-title">Parent practice links</h2><p>These links keep the maths settings under school control. Parents get a deliberately simple page that creates a fresh printable worksheet and matching answers.</p><div class="tt99-parent-notice"><strong>Privacy by design:</strong> the link contains maths rules and, when a school name is entered, an opaque school-level key. The school name itself, class, teacher, logo, date, teacher note, pupil details, scores and question seeds are not included. School-level practice telemetry is currently disabled while its final analytics/privacy setup is being completed.</div><div class="tt99-parent-current"><strong>Current challenge: ${esc(currentName)}</strong><small>${esc(G.rulesSummary(state.rules))} · ${esc(state.orientation==='landscape'?'Landscape':'Portrait')}</small><div class="tt99-parent-website-preview" aria-label="Preview of the school website practice card">${parentPracticeWebsiteCard()}</div><div class="tt99-parent-link-row"><input id="tt99-parent-current-link" type="text" readonly value="${esc(currentLink)}" aria-label="Current parent practice link"><button type="button" id="tt99-parent-copy-current">Copy link</button><a href="${esc(currentLink)}" target="_blank" rel="noopener">Open parent view</a></div><div class="tt99-parent-card-tools"><button type="button" id="tt99-parent-copy-current-card">Copy website card</button><button type="button" id="tt99-parent-download-current-card">Download card image</button></div></div><div class="tt99-parent-pack"><div class="tt99-parent-pack__copy"><strong>School setup &amp; website pack</strong><small>Your club edits are already saved automatically in this browser. Save a portable school configuration for another computer, or download one website pack containing every card image, its matching link, a short guide and the restoreable configuration.</small></div><div class="tt99-parent-pack__actions"><button type="button" id="tt99-parent-download-pack">Download website pack</button><button type="button" id="tt99-parent-copy-links">Copy all links</button><button type="button" id="tt99-parent-save-config">Save school configuration</button><label class="tt99-parent-restore">Restore school configuration<input id="tt99-parent-restore-config" type="file" accept="application/json,.json"></label></div></div><div class="tt99-parent-section-head"><div><h3>11–99 website cards</h3><p>Each card is a normal link with its club badge and a compact practice summary.</p></div><button type="button" class="tt99-parent-copy-all" id="tt99-parent-copy-all">Copy all website cards</button></div><div class="tt99-parent-clubs">${coreClubs}</div><div class="tt99-parent-section-head tt99-parent-section-head--post99"><div><h3>Post-99 challenge cards</h3><p>Bronze, Silver, Gold, Platinum and Diamond use the same locked school-led parent flow.</p></div></div><div class="tt99-parent-clubs">${post99Clubs}</div><div id="tt99-parent-status" class="tt99-status" role="status" aria-live="polite" hidden></div><div class="tt99-parent-footer"><span>Plain link, website-card HTML, PNG image or complete website pack: choose whichever fits the school CMS best.</span><a href="/schools/" target="_blank" rel="noopener">Step-by-step website guide</a></div></section></div>`;
   }
 
   function renderStepClub(){
@@ -1087,6 +1201,22 @@
     modal.querySelector('#tt99-parent-copy-all')?.addEventListener('click',()=>{
       const html=PARENT_CLUB_IDS.map(id=>parentPracticeWebsiteCard(id)).join('\n');
       copy(html,'All 11–99 and post-99 website card HTML copied.');
+    });
+    modal.querySelector('#tt99-parent-copy-links')?.addEventListener('click',()=>copy(parentPracticeLinksText(),'All 11–99 and post-99 parent-practice links copied.'));
+    modal.querySelector('#tt99-parent-save-config')?.addEventListener('click',()=>{
+      downloadParentPracticeSchoolConfig();
+      setParentStatus('School configuration downloaded. It contains a snapshot of all 11–99 and post-99 rules for the current scheme.');
+    });
+    modal.querySelector('#tt99-parent-restore-config')?.addEventListener('change',async e=>{
+      const file=e.target.files?.[0];if(!file)return;
+      try{await restoreParentPracticeSchoolConfig(file);}
+      catch(err){setParentStatus(err?.message||'That file could not be restored.');e.target.value='';}
+    });
+    modal.querySelector('#tt99-parent-download-pack')?.addEventListener('click',async e=>{
+      const btn=e.currentTarget,old=btn.textContent;btn.disabled=true;btn.textContent='Preparing pack…';setParentStatus('Creating card images and website files…');
+      try{await downloadParentPracticeWebsitePack();setParentStatus('Website pack downloaded. It contains all card images, matching links, a short guide and the school configuration.');}
+      catch(err){console.error(err);setParentStatus(err?.message||'The website pack could not be created in this browser.');}
+      finally{btn.disabled=false;btn.textContent=old;}
     });
   }
 

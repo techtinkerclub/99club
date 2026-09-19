@@ -23,7 +23,7 @@ sitemap: true
         <section class="tt99-guide-section tt99-guide-highlight">
           <h2>What this feature does</h2>
           <p>A teacher or maths lead chooses the 99 Club rules in Studio first. Studio then creates a locked parent-practice link for that club. Parents opening the link do not see the rule editor: they see a simple page that creates a fresh printable worksheet and matching answers using the school-selected rules.</p>
-          <p>The school website only links to 99 Club Studio. It does not need a plugin, JavaScript, iframe, login integration or access to the school content-management system.</p>
+          <p>The school website only needs a normal HTTPS link to 99 Club Studio. It does not need a plugin, JavaScript, iframe, login integration or access to the school content-management system.</p>
         </section>
 
         <section class="tt99-guide-section">
@@ -59,6 +59,26 @@ sitemap: true
             <li>Publish the page and test the image from a phone and a desktop browser.</li>
           </ol>
           <div class="tt99-guide-note"><strong>The PNG itself does not contain the clickable link.</strong> The school website administrator must attach the matching practice URL to the uploaded image. This keeps the image usable in ordinary school website systems.</div>
+        </section>
+
+        <section class="tt99-guide-section">
+          <h2>Save the school's club configuration</h2>
+          <p>Studio automatically remembers club edits in the current browser, but browser storage is not a long-term backup. After configuring the school's 11–99 and post-99 challenges, open <strong>Create parent links</strong> and choose <strong>Save school configuration</strong>.</p>
+          <p>The downloaded JSON file contains a snapshot of the rules for all 14 parent-practice levels in the currently selected ruleset scheme, plus the print orientation and school name. It does not contain pupil data, generated worksheets, scores or teacher notes.</p>
+          <p>On another computer or after browser data has been cleared, use <strong>Restore school configuration</strong>. Existing custom presets and unrelated schemes are left alone; the saved club rules are restored into the selected scheme.</p>
+          <div class="tt99-guide-note"><strong>Keep this file somewhere independent of the browser.</strong> It is the easiest way to preserve the work involved in configuring every club.</div>
+        </section>
+
+        <section class="tt99-guide-section">
+          <h2>Download the complete website pack</h2>
+          <p><strong>Download website pack</strong> creates one ZIP file for the school website administrator. It contains:</p>
+          <ul>
+            <li>all 14 PNG card images, from 11 Club through Diamond;</li>
+            <li><code>practice-links.csv</code>, matching every club to its locked practice URL;</li>
+            <li>a short <code>README.html</code> with implementation instructions; and</li>
+            <li><code>99-club-school-configuration.json</code>, so the club rules used to create the pack can be restored later.</li>
+          </ul>
+          <p>If the website administrator does not need the images, <strong>Copy all links</strong> provides the same club-to-URL mapping directly from Studio for pasting into an email, document or website editor.</p>
         </section>
 
         <section class="tt99-guide-section">
