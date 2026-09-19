@@ -1,0 +1,5 @@
+.tt99-puzzle-practice-details{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:22px 0 12px}
+.tt99-puzzle-practice-list{display:flex;flex-wrap:wrap;justify-content:center;gap:7px;margin:8px 0 13px}
+.tt99-puzzle-practice-list span{display:inline-flex;align-items:center;min-height:30px;padding:6px 9px;border:1px solid #dbe5e6;border-radius:999px;background:#f8fbfa;color:#40555b;font-size:.7rem;font-weight:750}
+.tt99-puzzle-practice-topics{margin:0 0 18px;color:#6a787d;font-size:.72rem}
+@media(max-width:520px){.tt99-puzzle-practice-details{grid-template-columns:1fr}.tt99-puzzle-practice-list{justify-content:flex-start}}
