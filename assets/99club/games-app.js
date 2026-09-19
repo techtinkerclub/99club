@@ -759,5 +759,9 @@
   function exportVocabulary(){const payload={kind:'tt99-vocabulary',version:1,exportedAt:new Date().toISOString(),entries:state.customVocabulary},blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='99club-my-vocabulary.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),500);state.status=`Exported ${state.customVocabulary.length} personal vocabulary entr${state.customVocabulary.length===1?'y':'ies'}.`;render();}
   async function importVocabulary(e){const file=e.target.files?.[0];if(!file)return;try{const parsed=JSON.parse(await file.text()),entries=Array.isArray(parsed)?parsed:parsed.entries;if(!Array.isArray(entries))throw new Error('format');const clean=G.sanitizeCustomVocabulary(entries);state.customVocabulary=G.sanitizeCustomVocabulary([...state.customVocabulary,...clean]);refreshPack(false);state.status=`Imported ${clean.length} valid personal vocabulary entr${clean.length===1?'y':'ies'} locally.`;render();}catch(err){state.status='That file is not a valid 99 Club vocabulary JSON file.';render();}}
 
+  window.addEventListener('load',()=>{
+    track('studio_open',{area:'games'});
+    SU?.trackStudio?.('studio_open',personalisation().schoolName||'',{area:'games'});
+  },{once:true});
   render();
 })();
