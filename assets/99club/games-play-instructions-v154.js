@@ -23,7 +23,7 @@ const COPY={
   equationcrossgrid:'Fill missing numbers and operation signs so every horizontal and vertical equation is true. Shared cells belong to both equations; values and operation signs may be reused.',
   target:'Make each target exactly. Use each supplied number tile at most once (duplicate tiles are separate), but allowed operation signs may be reused. Brackets are available and normal operation order applies.',
   brokencalc:'Make each target using only the working calculator keys. Any working digit or operation key may be pressed more than once; normal operation order applies.',
-  operationgrid:'Choose an allowed operation sign for every box so each equation is true; signs may be reused. Follow brackets and normal operation order, then use the operator key to crack the final code.',
+  operationgrid:'Tap an operator box to cycle through the allowed signs. Make every equation true; signs may be reused. Follow brackets and normal operation order, then use the operator key to crack the final code.',
   kakuro:'Fill each white square with 1–9. Every across/down run must add to its clue and cannot repeat a digit within that run; the same digit may appear in a different run.',
   arithmeticcages:'Fill the grid with 1–N, using each number once in every row and column. Each cage must make its target; for two-cell − or ÷, either order is allowed. Cages have no extra no-repeat rule.',
   sumplete:'Cross out numbers so the numbers left make every row and column target. A crossed-out number counts in neither its row nor its column; tap again to restore it.',
@@ -43,7 +43,7 @@ const COPY={
   shikaku:'Divide the whole grid into non-overlapping rectangles. Every rectangle must contain exactly one clue, and that clue equals the rectangle area in squares.',
   cornersum:'Place the digits 1–9 exactly once. Each circle is the sum of the four cells in its overlapping 2 × 2 window; any starter digits are fixed.',
   linkedsum:'Place the digits 1–9 exactly once. Match every overlapping 2 × 2 circle total and every A/B/C group total at the same time; starter digits are fixed.',
-  colourlogic:'Make every clue true at the same time. In a row puzzle use each listed colour exactly once; in a grid puzzle colours may repeat unless a rule limits them. Obey all count, position and neighbour rules.',
+  colourlogic:'Tap a box to cycle colours and make every clue true. In a row puzzle use each listed colour exactly once; in a grid puzzle colours may repeat unless a rule limits them. Obey all count, position and neighbour rules.',
   mobilebalance:'Every horizontal bar is an equal-arm balance. Repeated shapes have the same value, and a lower branch counts as its whole combined weight on the bar above.',
   diagonalpath:'Use every number from 1 to the final number exactly once. Consecutive numbers may touch by a side or corner; printed anchors are fixed. The next missing number is shown; tap a blank square to place it.',
   squaresearch:'Find every non-overlapping 2 × 2 block whose four numbers total the target. Correct blocks never share a cell; tap a 2 × 2 block to select or clear it.',
@@ -81,6 +81,33 @@ function arrange(){
     if(text){if(liveRule.textContent!==text)liveRule.textContent=text;if(liveRule.hidden)liveRule.hidden=false;}
     else{if(liveRule.textContent)liveRule.textContent='';if(!liveRule.hidden)liveRule.hidden=true;}
   }
+
+  // The reviewed top instruction is now the single source for static first-use
+  // rules. Remove older board notes that repeat those same rules. Dynamic search
+  // directions are copied into liveRule above before their old note is removed.
+  const duplicateSelectors=[
+    '.tt99-play-wordsearch .tt99-play-board-tip',
+    '.tt99-play-numbersearch .tt99-play-board-tip',
+    '.tt99-sumplete-wrap .tt99-play-board-tip',
+    '.tt99-play-nonogram + .tt99-cycle-note',
+    '.tt99-nonogram-scroll + .tt99-cycle-note',
+    '.tt99-play-mines .tt99-cycle-note',
+    '.tt99-play-hashi .tt99-hashi-note',
+    '.tt99-play-numberpath .tt99-cycle-note',
+    '.tt99-pyramid-board + .tt99-cycle-note',
+    '.tt99-play-brokencalc .tt99-arith-note',
+    '.tt99-play-target .tt99-arith-note',
+    '.tt99-play-propertymaze .tt99-propertymaze-tip',
+    '.tt99-play-answermaze .tt99-answermaze-tip',
+    '.tt99-play-sumgrid .tt99-play-board-tip',
+    '.tt99-play-operationgrid .tt99-opgrid-cycle',
+    '.tt99-play-operationgrid .tt99-opgrid-rule',
+    '.tt99-play-colourlogic .tt99-cl-tap',
+    '.tt99-extra-path-grid + .tt99-arith-note',
+    '.tt99-extra-op-equation.online ~ .tt99-arith-note',
+    '.tt99-extra-perimeter-grid.online + .tt99-arith-note'
+  ];
+  duplicateSelectors.forEach(sel=>board?.querySelectorAll(sel).forEach(el=>el.remove()));
 }
 function scheduleArrange(){
   if(scheduled)return;scheduled=true;
