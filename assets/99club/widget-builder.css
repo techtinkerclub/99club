@@ -20,3 +20,18 @@
 .tt99-wb-danger{color:#9a3e2e}.tt99-wb-hidden-file{position:absolute;left:-9999px}
 @media(max-width:940px){.tt99-wb-layout{grid-template-columns:1fr}.tt99-wb-preview{position:static}.tt99-wb-preview iframe{height:720px}}
 @media(max-width:620px){.tt99-wb-hero{display:block;padding:17px}.tt99-wb-back{display:inline-block;margin-top:12px}.tt99-wb-clubs{grid-template-columns:repeat(2,minmax(0,1fr))}.tt99-wb-games{grid-template-columns:repeat(2,minmax(0,1fr))}.tt99-wb-card{padding:14px}.tt99-wb-preview iframe{height:820px}}
+
+
+.tt99-wb-type-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.tt99-wb-type{appearance:none;text-align:left;border:1px solid #d7e0e3;border-radius:12px;background:#fff;padding:13px 14px;color:#2e434c;cursor:pointer}
+.tt99-wb-type strong,.tt99-wb-type span{display:block}.tt99-wb-type strong{font-size:14px}.tt99-wb-type span{margin-top:3px;color:#708087;font-size:11px}
+.tt99-wb-type.is-selected{border-color:#147d75;background:#eef8f6;box-shadow:0 0 0 1px #147d75 inset}.tt99-wb-type.is-selected strong{color:#0f665f}
+.tt99-wb-more{margin-top:10px}.tt99-wb-more summary{cursor:pointer;color:#61737b;font-size:12px;font-weight:700}.tt99-wb-type--combined{display:block;width:100%;margin-top:8px}
+.tt99-wb-identity{display:grid;grid-template-columns:108px minmax(0,1fr);gap:16px;align-items:start}
+.tt99-wb-logo-preview{display:grid;place-items:center;width:108px;height:108px;border:1px solid #dbe4e6;border-radius:14px;background:#f8fbfb;overflow:hidden}
+.tt99-wb-logo-preview img{display:block;max-width:88px;max-height:88px;object-fit:contain}
+.tt99-wb-identity-fields{min-width:0}.tt99-wb-field input{width:100%;border:1px solid #bccbd0;border-radius:8px;padding:9px;background:#fff;color:#24343b;font:13px Arial,sans-serif}
+.tt99-wb-help{display:block;margin-top:7px;color:#75838a;font-size:10.5px}
+.tt99-wb-vocab-note{margin:0 0 10px;padding:10px 11px;border-left:4px solid #d39c2c;background:#fff8e5;color:#65511e;font-size:11.5px}
+.tt99-wb-public-badge{display:inline-block;margin-top:5px;padding:3px 7px;border-radius:999px;background:#fff3cd;color:#765b13;font-size:9.5px;font-weight:800}
+@media(max-width:620px){.tt99-wb-type-grid{grid-template-columns:1fr}.tt99-wb-identity{grid-template-columns:78px minmax(0,1fr)}.tt99-wb-logo-preview{width:78px;height:78px}.tt99-wb-logo-preview img{max-width:62px;max-height:62px}}
