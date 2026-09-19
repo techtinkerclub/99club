@@ -201,7 +201,7 @@ sidebar: false
 
     <h3>Sharing home practice on the school website</h3>
     <p>Schools can publish locked parent-practice links as normal buttons, ready-made cards, downloadable PNG tiles or optional branded widgets. The widget route is accountless and gives parents a compact menu of school-selected Club levels, printable puzzle packs and/or online games.</p>
-    <p><a class="tt99-secondary" href="/schools/widgets/"><strong>School Website Widgets - full step-by-step guide →</strong></a></p>
+    <p><a class="tt99-secondary" href="/schools/"><strong>School website publishing - full step-by-step guide →</strong></a></p>
   </section>
 
   <section id="recreate" class="tt99-guide-section">
