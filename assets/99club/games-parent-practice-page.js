@@ -112,7 +112,7 @@
       if(!pack?.sheets?.length)throw new Error('This practice link could not generate a valid puzzle pack.');
       const doc=PDF.buildDocument({pack,settings:config.settings,kind:'both',topics:G.TOPICS,seed});
       doc.save(PDF.filename(config.settings,'both'));
-      SU?.trackPuzzlePractice?.('puzzle_practice_download',config);
+      if(!isTeacherPreview())SU?.trackPuzzlePractice?.('puzzle_practice_download',config);
       status('PDF created. Click again whenever you want another fresh puzzle pack.',false);
     }catch(err){
       console.error(err);
@@ -128,6 +128,6 @@
     config.usageContext=schoolUsageContext();
     if(!G.selectedCompatibleEngines(config.settings).length)throw new Error('This puzzle-practice setup does not contain any compatible puzzle types.');
     render();
-    SU?.trackPuzzlePractice?.('puzzle_practice_open',config);
+    if(!isTeacherPreview())SU?.trackPuzzlePractice?.('puzzle_practice_open',config);
   }catch(err){renderError(err?.message);}
 }());
