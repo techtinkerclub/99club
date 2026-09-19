@@ -5,7 +5,7 @@
 (function(global){
   'use strict';
 
-  const VERSION='1.1.1';
+  const VERSION='1.1.2';
   const TOPICS=['number_place_value','calculation','geometry','algebra'];
   const choiceOptions=values=>values.map(([value,label])=>({value,label}));
   const compat=(excellent=[],reasonable=[])=>Object.fromEntries(['number_place_value','calculation','fractions','decimals_percentages','ratio_proportion','measurement','geometry','statistics','algebra'].map(t=>[t,excellent.includes(t)?'excellent':reasonable.includes(t)?'reasonable':'poor']));
@@ -115,7 +115,63 @@
   function kakuroSize(settings,o){const y=years(settings).max;if(o.gridSize!=='auto')return Number(o.gridSize);if(o.difficulty==='easy'||y<=3)return 5;if(o.difficulty==='challenge'&&y>=5)return 7;return 6;}
   function kakuroRuns(mask){const n=mask.length,runs=[];for(let r=0;r<n;r++){let c=0;while(c<n){if(!mask[r][c]){c++;continue;}const start=c,cs=[];while(c<n&&mask[r][c]){cs.push([r,c]);c++;}if(cs.length>=2)runs.push({dir:'across',cells:cs,clueCell:[r,start-1]});}}for(let c=0;c<n;c++){let r=0;while(r<n){if(!mask[r][c]){r++;continue;}const start=r,cs=[];while(r<n&&mask[r][c]){cs.push([r,c]);r++;}if(cs.length>=2)runs.push({dir:'down',cells:cs,clueCell:[start-1,c]});}}return runs;}
   function fillKakuro(mask,seed){const rng=rngFromSeed(seed),n=mask.length,grid=Array.from({length:n},()=>Array(n).fill(0)),runs=kakuroRuns(mask),cellRuns=new Map();runs.forEach((run,i)=>run.cells.forEach(([r,c])=>{const k=`${r}:${c}`;if(!cellRuns.has(k))cellRuns.set(k,[]);cellRuns.get(k).push(i);}));const whites=cells(n).filter(([r,c])=>mask[r][c]);function rec(i){if(i===whites.length)return true;let best=i,bestCand=null;for(let j=i;j<whites.length;j++){const [r,c]=whites[j],used=new Set();for(const ri of cellRuns.get(`${r}:${c}`)||[])for(const [rr,cc] of runs[ri].cells)if(grid[rr][cc])used.add(grid[rr][cc]);const cand=shuffle([1,2,3,4,5,6,7,8,9].filter(v=>!used.has(v)),rng);if(!bestCand||cand.length<bestCand.length){best=j;bestCand=cand;}}[whites[i],whites[best]]=[whites[best],whites[i]];const [r,c]=whites[i];for(const v of bestCand){grid[r][c]=v;if(rec(i+1))return true;grid[r][c]=0;}return false;}return rec(0)?{grid,runs}:null;}
-  function countKakuro(mask,runs,givens,limit=2){const n=mask.length,grid=Array.from({length:n},()=>Array(n).fill(0)),targets=runs.map(run=>run.target),cellRuns=new Map();runs.forEach((run,i)=>run.cells.forEach(([r,c])=>{const k=`${r}:${c}`;if(!cellRuns.has(k))cellRuns.set(k,[]);cellRuns.get(k).push(i);}));givens.forEach(g=>grid[g.r][g.c]=g.v);let count=0;function candidateOK(r,c,v){for(const ri of cellRuns.get(`${r}:${c}`)||[]){const run=runs[ri],vals=run.cells.map(([rr,cc])=>rr===r&&cc===c?v:grid[rr][cc]).filter(Boolean);if(new Set(vals).size!==vals.length)return false;const sum=vals.reduce((a,b)=>a+b,0),left=run.cells.length-vals.length;if(sum>run.target)return false;if(!left){if(sum!==run.target)return false;continue;}const unused=[1,2,3,4,5,6,7,8,9].filter(d=>!vals.includes(d));if(unused.length<left)return false;const minAdd=unused.slice().sort((a,b)=>a-b).slice(0,left).reduce((a,b)=>a+b,0),maxAdd=unused.slice().sort((a,b)=>b-a).slice(0,left).reduce((a,b)=>a+b,0);if(sum+minAdd>run.target||sum+maxAdd<run.target)return false;}return true;}function rec(){if(count>=limit)return;let best=null,bestCand=null;for(const [r,c] of cells(n))if(mask[r][c]&&!grid[r][c]){const cand=[];for(let v=1;v<=9;v++)if(candidateOK(r,c,v))cand.push(v);if(!cand.length)return;if(!bestCand||cand.length<bestCand.length){best=[r,c];bestCand=cand;if(cand.length===1)break;}}if(!best){count++;return;}const [r,c]=best;for(const v of bestCand){grid[r][c]=v;rec();grid[r][c]=0;if(count>=limit)return;}}rec();return count;}
+  const KAKURO_COMBO_CACHE=new Map();
+  function kakuroComboMasks(len,target){
+    const key=`${len}:${target}`;if(KAKURO_COMBO_CACHE.has(key))return KAKURO_COMBO_CACHE.get(key);
+    const out=[];
+    function rec(next,left,sum,mask){
+      if(left===0){if(sum===target)out.push(mask);return;}
+      for(let d=next;d<=9;d++){if(sum+d>target)break;rec(d+1,left-1,sum+d,mask|(1<<(d-1)));}
+    }
+    rec(1,len,0,0);KAKURO_COMBO_CACHE.set(key,out);return out;
+  }
+  function countKakuro(mask,runs,givens,limit=2){
+    const n=mask.length,N=n*n,grid=new Uint8Array(N),runMasks=new Uint16Array(runs.length),cellRuns=Array.from({length:N},()=>[]);
+    const runCombos=runs.map(run=>kakuroComboMasks(run.cells.length,run.target));
+    runs.forEach((run,ri)=>run.cells.forEach(([r,c])=>cellRuns[r*n+c].push(ri)));
+
+    function supports(ri,used){for(const combo of runCombos[ri])if((combo&used)===used)return true;return false;}
+    for(const g of givens||[]){
+      const id=g.r*n+g.c,bit=1<<(g.v-1);
+      if(grid[id]&&grid[id]!==g.v)return 0;
+      for(const ri of cellRuns[id]){
+        if(runMasks[ri]&bit)return 0;
+        const next=runMasks[ri]|bit;if(!supports(ri,next))return 0;
+      }
+      grid[id]=g.v;for(const ri of cellRuns[id])runMasks[ri]|=bit;
+    }
+
+    const whites=[];for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(mask[r][c])whites.push(r*n+c);
+    function allowedBits(id){
+      let bits=0x1ff;
+      for(const ri of cellRuns[id]){
+        let runBits=0,used=runMasks[ri];
+        for(const combo of runCombos[ri])if((combo&used)===used)runBits|=(combo&~used);
+        bits&=runBits;if(!bits)break;
+      }
+      return bits;
+    }
+
+    let count=0;
+    function rec(){
+      if(count>=limit)return;
+      let best=-1,bits=0,bestCount=10;
+      for(const id of whites)if(!grid[id]){
+        const cb=allowedBits(id);if(!cb)return;
+        let pc=0,x=cb;while(x){x&=x-1;pc++;}
+        if(pc<bestCount){best=id;bits=cb;bestCount=pc;if(pc===1)break;}
+      }
+      if(best<0){count++;return;}
+      while(bits&&count<limit){
+        const bit=bits&-bits;bits-=bit;const v=32-Math.clz32(bit);
+        grid[best]=v;for(const ri of cellRuns[best])runMasks[ri]|=bit;
+        rec();
+        for(const ri of cellRuns[best])runMasks[ri]^=bit;grid[best]=0;
+      }
+    }
+    rec();return count;
+  }
+
   function generateKakuro(settings,seed){const rng=rngFromSeed(seed),o=normalise('kakuro',settings?.engineSettings?.kakuro),n=kakuroSize(settings,o),mask=KAKURO_MASKS[n];for(let attempt=0;attempt<80;attempt++){const f=fillKakuro(mask,`${seed}:fill:${attempt}`);if(!f)continue;const runs=f.runs.map(run=>({...run,target:run.cells.reduce((s,[r,c])=>s+f.grid[r][c],0)})),white=cells(n).filter(([r,c])=>mask[r][c]),givenRatio=o.givenLevel==='more'?.22:o.givenLevel==='balanced'?.10:(o.givenLevel==='minimum'||o.givenLevel==='none')?0:o.difficulty==='easy'?.18:o.difficulty==='challenge'?0:.08,givens=shuffle(white,rngFromSeed(`${seed}:given:${attempt}`)).slice(0,Math.round(white.length*givenRatio)).map(([r,c])=>({r,c,v:f.grid[r][c]}));const set=new Set(givens.map(g=>`${g.r}:${g.c}`));for(const [r,c] of shuffle(white,rng)){if(countKakuro(mask,runs,givens,2)===1)break;const k=`${r}:${c}`;if(set.has(k))continue;givens.push({r,c,v:f.grid[r][c]});set.add(k);}if(countKakuro(mask,runs,givens,2)!==1)continue;const clueCells={};for(const run of runs){const k=run.clueCell.join(':');clueCells[k]=clueCells[k]||{};clueCells[k][run.dir]=run.target;}const display=Array.from({length:n},()=>Array(n).fill(0));givens.forEach(g=>display[g.r][g.c]=g.v);return {engineId:'kakuro',title:'Kakuro · Cross Sums',difficulty:o.difficulty,size:n,mask,solutionGrid:f.grid,displayGrid:display,runs,clueCells,givens,instruction:'Fill each white square with 1–9. Every across/down run must add to its clue, and a digit cannot repeat within one run.',seed,options:o};}return {engineId:'kakuro',title:'Kakuro · Cross Sums',error:'A unique Kakuro could not be built. Generate another version.'};}
 
   function generate(id,settings,seed){if(id==='kakuro')return generateKakuro(settings,seed);if(id==='futoshiki')return generateFutoshiki(settings,seed);if(id==='arithmeticcages')return generateArithmeticCages(settings,seed);if(id==='nonogram')return generateNonogram(settings,seed);if(id==='numberpath')return generateNumberPath(settings,seed);return null;}
