@@ -131,6 +131,16 @@
     rulesError: ''
   };
 
+  function analyticsContext(){
+    return {
+      school_key:SU?.makeSchoolKey?.(state.school?.schoolName||'')||undefined,
+      source_origin:SU?.referrerOrigin?.()||undefined
+    };
+  }
+  function track(name,params){
+    window.TT99Analytics?.track(name,{...analyticsContext(),...(params||{})});
+  }
+
   root.addEventListener('click',e=>{
     const reviewRow=e.target.closest('.tt99-svg-row-review');
     if(reviewRow && !e.target.closest('[data-replace]')){
@@ -739,7 +749,7 @@
   }
   function renderParentPracticeClubCard(id){
     const link=parentPracticeLink(id),previewLink=parentPracticePreviewLink(id),name=parentPracticeName(id),badge=badgeUrlForClub(id);
-    return `<article class="tt99-parent-club"><div class="tt99-parent-club__title"><img src="${esc(badge)}" alt=""><div><b>${esc(name)}</b><span>${esc(G.rulesSummary(loadRulesFor(state.schemeId,id)))}</span></div></div><div class="tt99-parent-club-actions"><a href="${esc(previewLink)}" target="_blank" rel="noopener">Preview</a><button type="button" data-parent-copy-link="${esc(id)}">Copy link</button><button type="button" data-parent-copy-card="${esc(id)}">Copy website card</button><button type="button" class="tt99-parent-image-button" data-parent-download-card="${esc(id)}">Download card image</button></div></article>`;
+    return `<article class="tt99-parent-club"><div class="tt99-parent-club__title"><img src="${esc(badge)}" alt=""><div><b>${esc(name)}</b><span>${esc(G.rulesSummary(loadRulesFor(state.schemeId,id)))}</span></div></div><div class="tt99-parent-club-actions"><a href="${esc(previewLink)}" target="_blank" rel="noopener" data-parent-preview="${esc(id)}">Preview</a><button type="button" data-parent-copy-link="${esc(id)}">Copy link</button><button type="button" data-parent-copy-card="${esc(id)}">Copy website card</button><button type="button" class="tt99-parent-image-button" data-parent-download-card="${esc(id)}">Download card image</button></div></article>`;
   }
   function renderParentPracticeModal(){
     if(!PP)return '';
@@ -748,7 +758,7 @@
     const currentName=parentPracticeName();
     const coreClubs=PARENT_CORE_CLUB_IDS.map(renderParentPracticeClubCard).join('');
     const post99Clubs=PARENT_POST99_CLUB_IDS.map(renderParentPracticeClubCard).join('');
-    return `<div id="tt99-parent-modal" class="tt99-parent-modal" hidden><button type="button" class="tt99-parent-backdrop" data-parent-close aria-label="Close parent practice links"></button><section class="tt99-parent-card" role="dialog" aria-modal="true" aria-labelledby="tt99-parent-title"><button type="button" class="tt99-parent-close" data-parent-close aria-label="Close parent practice links">×</button><span class="tt99-parent-kicker">School-led home practice</span><h2 id="tt99-parent-title">Parent practice links</h2><p>These links keep the maths settings under school control. Parents get a deliberately simple page that creates a fresh printable worksheet and matching answers.</p><div class="tt99-parent-helpbar"><div><strong>Putting this on your school website?</strong><small>See every supported method — plain links, school buttons, ready-made cards, PNG images, website packs and widgets — with step-by-step instructions and troubleshooting.</small></div><a href="/schools/" target="_blank" rel="noopener">School website integration help</a></div><div class="tt99-parent-notice"><strong>Privacy by design:</strong> the link contains maths rules and, when a school name is entered, an opaque school-level key. The school name itself, class, teacher, logo, date, teacher note, pupil details, scores and question seeds are not included. School-level practice telemetry is currently disabled while its final analytics/privacy setup is being completed.</div><div class="tt99-parent-current"><strong>Current challenge: ${esc(currentName)}</strong><small>${esc(G.rulesSummary(state.rules))} · ${esc(state.orientation==='landscape'?'Landscape':'Portrait')}</small><div class="tt99-parent-website-preview" aria-label="Preview of the school website practice card">${parentPracticeWebsiteCard(state.clubId,true)}</div><div class="tt99-parent-link-row"><input id="tt99-parent-current-link" type="text" readonly value="${esc(currentLink)}" aria-label="Current parent practice link"><button type="button" id="tt99-parent-copy-current">Copy link</button><a href="${esc(currentPreviewLink)}" target="_blank" rel="noopener">Open parent view</a></div><div class="tt99-parent-card-tools"><button type="button" id="tt99-parent-copy-current-card">Copy website card</button><button type="button" id="tt99-parent-download-current-card">Download card image</button></div></div><div class="tt99-parent-pack"><div class="tt99-parent-pack__copy"><strong>School setup &amp; website pack</strong><small>Your club edits are already saved automatically in this browser. Save a portable school configuration for another computer, or download one website pack containing every card image, its matching link, a short guide and the restoreable configuration.</small></div><div class="tt99-parent-pack__actions"><button type="button" id="tt99-parent-download-pack">Download website pack</button><button type="button" id="tt99-parent-copy-links">Copy all links</button><button type="button" id="tt99-parent-save-config">Save school configuration</button><label class="tt99-parent-restore">Restore school configuration<input id="tt99-parent-restore-config" type="file" accept="application/json,.json"></label></div></div><div class="tt99-parent-pack"><div class="tt99-parent-pack__copy"><strong>Alternative: 99 Club Widget</strong><small>Keep the card/image route above, or embed one compact branded 99 Club panel on the school website. The widget builder opens separately so it does not add more controls to the worksheet screen.</small></div><div class="tt99-parent-pack__actions"><button type="button" id="tt99-parent-widget-open">Open widget builder</button></div></div><div class="tt99-parent-section-head"><div><h3>11–99 website cards</h3><p>Each card is a normal link with its club badge and a compact practice summary.</p></div><button type="button" class="tt99-parent-copy-all" id="tt99-parent-copy-all">Copy all website cards</button></div><div class="tt99-parent-clubs">${coreClubs}</div><div class="tt99-parent-section-head tt99-parent-section-head--post99"><div><h3>Post-99 challenge cards</h3><p>Bronze, Silver, Gold, Platinum and Diamond use the same locked school-led parent flow.</p></div></div><div class="tt99-parent-clubs">${post99Clubs}</div><div id="tt99-parent-status" class="tt99-status" role="status" aria-live="polite" hidden></div><div class="tt99-parent-footer"><span>Plain link, website-card HTML, PNG image, website pack or widget: choose whichever fits the school website best.</span></div></section></div>`;
+    return `<div id="tt99-parent-modal" class="tt99-parent-modal" hidden><button type="button" class="tt99-parent-backdrop" data-parent-close aria-label="Close parent practice links"></button><section class="tt99-parent-card" role="dialog" aria-modal="true" aria-labelledby="tt99-parent-title"><button type="button" class="tt99-parent-close" data-parent-close aria-label="Close parent practice links">×</button><span class="tt99-parent-kicker">School-led home practice</span><h2 id="tt99-parent-title">Parent practice links</h2><p>These links keep the maths settings under school control. Parents get a deliberately simple page that creates a fresh printable worksheet and matching answers.</p><div class="tt99-parent-helpbar"><div><strong>Putting this on your school website?</strong><small>See every supported method — plain links, school buttons, ready-made cards, PNG images, website packs and widgets — with step-by-step instructions and troubleshooting.</small></div><a href="/schools/" target="_blank" rel="noopener">School website integration help</a></div><div class="tt99-parent-notice"><strong>Privacy by design:</strong> the link contains maths rules and, when a school name is entered, an opaque school-level key. The school name itself, class, teacher, logo, date, teacher note, pupil details, scores and question seeds are not included. School-level practice telemetry is currently disabled while its final analytics/privacy setup is being completed.</div><div class="tt99-parent-current"><strong>Current challenge: ${esc(currentName)}</strong><small>${esc(G.rulesSummary(state.rules))} · ${esc(state.orientation==='landscape'?'Landscape':'Portrait')}</small><div class="tt99-parent-website-preview" aria-label="Preview of the school website practice card">${parentPracticeWebsiteCard(state.clubId,true)}</div><div class="tt99-parent-link-row"><input id="tt99-parent-current-link" type="text" readonly value="${esc(currentLink)}" aria-label="Current parent practice link"><button type="button" id="tt99-parent-copy-current">Copy link</button><a href="${esc(currentPreviewLink)}" target="_blank" rel="noopener" id="tt99-parent-open-view">Open parent view</a></div><div class="tt99-parent-card-tools"><button type="button" id="tt99-parent-copy-current-card">Copy website card</button><button type="button" id="tt99-parent-download-current-card">Download card image</button></div></div><div class="tt99-parent-pack"><div class="tt99-parent-pack__copy"><strong>School setup &amp; website pack</strong><small>Your club edits are already saved automatically in this browser. Save a portable school configuration for another computer, or download one website pack containing every card image, its matching link, a short guide and the restoreable configuration.</small></div><div class="tt99-parent-pack__actions"><button type="button" id="tt99-parent-download-pack">Download website pack</button><button type="button" id="tt99-parent-copy-links">Copy all links</button><button type="button" id="tt99-parent-save-config">Save school configuration</button><label class="tt99-parent-restore">Restore school configuration<input id="tt99-parent-restore-config" type="file" accept="application/json,.json"></label></div></div><div class="tt99-parent-pack"><div class="tt99-parent-pack__copy"><strong>Alternative: 99 Club Widget</strong><small>Keep the card/image route above, or embed one compact branded 99 Club panel on the school website. The widget builder opens separately so it does not add more controls to the worksheet screen.</small></div><div class="tt99-parent-pack__actions"><button type="button" id="tt99-parent-widget-open">Open widget builder</button></div></div><div class="tt99-parent-section-head"><div><h3>11–99 website cards</h3><p>Each card is a normal link with its club badge and a compact practice summary.</p></div><button type="button" class="tt99-parent-copy-all" id="tt99-parent-copy-all">Copy all website cards</button></div><div class="tt99-parent-clubs">${coreClubs}</div><div class="tt99-parent-section-head tt99-parent-section-head--post99"><div><h3>Post-99 challenge cards</h3><p>Bronze, Silver, Gold, Platinum and Diamond use the same locked school-led parent flow.</p></div></div><div class="tt99-parent-clubs">${post99Clubs}</div><div id="tt99-parent-status" class="tt99-status" role="status" aria-live="polite" hidden></div><div class="tt99-parent-footer"><span>Plain link, website-card HTML, PNG image, website pack or widget: choose whichever fits the school website best.</span></div></section></div>`;
   }
 
   function renderStepClub(){
@@ -1171,7 +1181,8 @@
       modal.hidden=false;
       document.body.classList.add('tt99-parent-open');
       setParentStatus('');
-      if(state.school?.schoolName)SU?.registerSchool?.(state.school.schoolName);
+      SU?.trackStudio?.('parent_share_open',state.school?.schoolName||'',{area:'club'});
+      track('parent_share_open',{area:'club',challenge_id:String(state.clubId).startsWith('custom-')?'custom':state.clubId,scheme_id:state.schemeId});
       window.setTimeout(()=>modal.querySelector('.tt99-parent-close')?.focus(),0);
     };
     const copy=async(text,message)=>{
@@ -1190,41 +1201,43 @@
     openButton?.addEventListener('click',open);
     modal.querySelectorAll('[data-parent-close]').forEach(btn=>btn.addEventListener('click',close));
     modal.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();close();}});
-    modal.querySelector('#tt99-parent-copy-current')?.addEventListener('click',()=>copy(parentPracticeLink(),'Parent practice link copied.'));
+    modal.querySelector('#tt99-parent-open-view')?.addEventListener('click',()=>track('parent_share_action',{action:'open_parent_view',club_id:state.clubId}));
+    modal.querySelectorAll('[data-parent-preview]').forEach(link=>link.addEventListener('click',()=>track('parent_share_action',{action:'preview',club_id:link.dataset.parentPreview})));
+    modal.querySelector('#tt99-parent-copy-current')?.addEventListener('click',()=>{copy(parentPracticeLink(),'Parent practice link copied.');track('parent_share_action',{action:'copy_link',club_id:state.clubId});});
     modal.querySelector('#tt99-parent-current-link')?.addEventListener('click',e=>e.currentTarget.select());
-    modal.querySelectorAll('[data-parent-copy-link]').forEach(btn=>btn.addEventListener('click',()=>copy(parentPracticeLink(btn.dataset.parentCopyLink),parentPracticeName(btn.dataset.parentCopyLink)+' link copied.')));
-    modal.querySelector('#tt99-parent-copy-current-card')?.addEventListener('click',()=>copy(parentPracticeWebsiteCard(),parentPracticeName()+' website card HTML copied.'));
+    modal.querySelectorAll('[data-parent-copy-link]').forEach(btn=>btn.addEventListener('click',()=>{copy(parentPracticeLink(btn.dataset.parentCopyLink),parentPracticeName(btn.dataset.parentCopyLink)+' link copied.');track('parent_share_action',{action:'copy_link',club_id:btn.dataset.parentCopyLink});}));
+    modal.querySelector('#tt99-parent-copy-current-card')?.addEventListener('click',()=>{copy(parentPracticeWebsiteCard(),parentPracticeName()+' website card HTML copied.');track('parent_share_action',{action:'copy_card',club_id:state.clubId});});
     modal.querySelector('#tt99-parent-download-current-card')?.addEventListener('click',async()=>{
-      try{await downloadParentPracticeCardImage();setParentStatus(parentPracticeName()+' card image downloaded.');}
+      try{await downloadParentPracticeCardImage();setParentStatus(parentPracticeName()+' card image downloaded.');track('parent_share_action',{action:'download_card',club_id:state.clubId});}
       catch(err){setParentStatus(err?.message||'Could not create the card image.');}
     });
     modal.querySelectorAll('[data-parent-copy-card]').forEach(btn=>btn.addEventListener('click',()=>{
       const id=btn.dataset.parentCopyCard;
-      copy(parentPracticeWebsiteCard(id),parentPracticeName(id)+' website card HTML copied.');
+      copy(parentPracticeWebsiteCard(id),parentPracticeName(id)+' website card HTML copied.');track('parent_share_action',{action:'copy_card',club_id:id});
     }));
     modal.querySelectorAll('[data-parent-download-card]').forEach(btn=>btn.addEventListener('click',async()=>{
       const id=btn.dataset.parentDownloadCard;btn.disabled=true;
-      try{await downloadParentPracticeCardImage(id);setParentStatus(parentPracticeName(id)+' card image downloaded.');}
+      try{await downloadParentPracticeCardImage(id);setParentStatus(parentPracticeName(id)+' card image downloaded.');track('parent_share_action',{action:'download_card',club_id:id});}
       catch(err){setParentStatus(err?.message||'Could not create the card image.');}
       finally{btn.disabled=false;}
     }));
     modal.querySelector('#tt99-parent-copy-all')?.addEventListener('click',()=>{
       const html=PARENT_CLUB_IDS.map(id=>parentPracticeWebsiteCard(id)).join('\n');
-      copy(html,'All 11–99 and post-99 website card HTML copied.');
+      copy(html,'All 11–99 and post-99 website card HTML copied.');track('parent_share_action',{action:'copy_all_cards',club_count:PARENT_CLUB_IDS.length});
     });
-    modal.querySelector('#tt99-parent-copy-links')?.addEventListener('click',()=>copy(parentPracticeLinksText(),'All 11–99 and post-99 parent-practice links copied.'));
+    modal.querySelector('#tt99-parent-copy-links')?.addEventListener('click',()=>{copy(parentPracticeLinksText(),'All 11–99 and post-99 parent-practice links copied.');track('parent_share_action',{action:'copy_all_links',club_count:PARENT_CLUB_IDS.length});});
     modal.querySelector('#tt99-parent-save-config')?.addEventListener('click',()=>{
       downloadParentPracticeSchoolConfig();
-      setParentStatus('School configuration downloaded. It contains a snapshot of all 11–99 and post-99 rules for the current scheme.');
+      setParentStatus('School configuration downloaded. It contains a snapshot of all 11–99 and post-99 rules for the current scheme.');track('parent_share_action',{action:'save_config'});
     });
     modal.querySelector('#tt99-parent-restore-config')?.addEventListener('change',async e=>{
       const file=e.target.files?.[0];if(!file)return;
-      try{await restoreParentPracticeSchoolConfig(file);}
+      try{await restoreParentPracticeSchoolConfig(file);track('parent_share_action',{action:'restore_config'});}
       catch(err){setParentStatus(err?.message||'That file could not be restored.');e.target.value='';}
     });
     modal.querySelector('#tt99-parent-download-pack')?.addEventListener('click',async e=>{
       const btn=e.currentTarget,old=btn.textContent;btn.disabled=true;btn.textContent='Preparing pack…';setParentStatus('Creating card images and website files…');
-      try{await downloadParentPracticeWebsitePack();setParentStatus('Website pack downloaded. It contains all card images, matching links, a short guide and the school configuration.');}
+      try{await downloadParentPracticeWebsitePack();setParentStatus('Website pack downloaded. It contains all card images, matching links, a short guide and the school configuration.');track('parent_share_action',{action:'download_website_pack'});}
       catch(err){console.error(err);setParentStatus(err?.message||'The website pack could not be created in this browser.');}
       finally{btn.disabled=false;btn.textContent=old;}
     });
@@ -1240,7 +1253,7 @@
         };
         localStorage.setItem('tt99-widget-handoff-v1',JSON.stringify(handoff));
         window.open('/widget/builder/?type=club','_blank','noopener,noreferrer');
-        setParentStatus('99 Club Widget builder opened in a new tab with the current Club rules and school identity.');
+        setParentStatus('99 Club Widget builder opened in a new tab with the current Club rules and school identity.');track('parent_share_action',{action:'open_widget_builder'});
       }catch(err){
         setParentStatus('Could not prepare the widget builder from this browser. Save the school configuration and try again.');
       }
@@ -1274,7 +1287,7 @@
     state.rules=loadRulesFor(state.schemeId,id);
     if(id==='worksheet') state.advancedOpen=true;
     state.seed=newStudioSeed(id); state.status=''; generateAll();
-    window.TT99Analytics?.track('challenge_selected',{
+    track('challenge_selected',{
       scheme_id:state.schemeId,
       challenge_id:String(id).startsWith('custom-')?'custom':id
     });
@@ -1800,7 +1813,7 @@
       const badge=await badgeImageForPdf();
       const doc=L.buildDocument({rules:state.rules,sheets:state.sheets,school:state.school,kind,orientation:state.orientation,qrByVariant,teacherNote:state.teacherNote,badge:badge?{imageDataUrl:badge.dataUrl,width:badge.width,height:badge.height}:{}});
       doc.save(L.filename(state.rules,kind,state.orientation));
-      window.TT99Analytics?.track('worksheet_download',{
+      track('worksheet_download',{
         pdf_kind:kind,
         scheme_id:state.schemeId,
         challenge_id:String(state.clubId).startsWith('custom-')?'custom':state.clubId,
@@ -1809,6 +1822,7 @@
         orientation:state.orientation,
         answer_qr:state.includeAnswerQr?1:0
       });
+      SU?.trackStudio?.('worksheet_download',state.school?.schoolName||'',{area:'club'});
       state.status=qrOmitted?`PDF created. ${qrOmitted} answer-sheet QR ${qrOmitted===1?'code was':'codes were'} omitted because the recreation data was too large.`:'PDF created.'; render();
     } catch(err){ console.error(err); state.status='PDF generation failed in this browser. Please refresh and try again.';render(); }
   }
