@@ -595,7 +595,7 @@
     parentPracticeRoundedRect(ctx,14,14,1172,232,32);ctx.fillStyle='#ffffff';ctx.fill();
     ctx.shadowColor='transparent';ctx.lineWidth=3;ctx.strokeStyle='#d6e1e4';ctx.stroke();
     try{
-      const badge=await parentPracticeLoadImage(parentPracticeWebsiteBadge(id));
+      const badge=await parentPracticeLoadImage(badgeUrlForClub(id));
       const max=150,scale=Math.min(max/badge.naturalWidth,max/badge.naturalHeight);
       const w=Math.round(badge.naturalWidth*scale),h=Math.round(badge.naturalHeight*scale);
       ctx.drawImage(badge,55+(150-w)/2,55+(150-h)/2,w,h);
