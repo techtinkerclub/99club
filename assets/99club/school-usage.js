@@ -95,17 +95,25 @@
     const event=String(eventName||'').trim();
     if(!/^(puzzle_practice_open|puzzle_practice_download)$/.test(event))return null;
     const gameIds=(Array.isArray(s.selectedEngines)?s.selectedEngines:[]).map(id=>cleanId(id)).filter(Boolean).slice(0,50);
+    const topicIds=(Array.isArray(s.topics)?s.topics:[]).map(id=>cleanId(id)).filter(Boolean).slice(0,20);
+    const gameDifficulties=gameIds.map(id=>{
+      const value=cleanId(s.engineSettings?.[id]?.difficulty)||'standard';
+      return id+':'+value;
+    });
     const out={
       schema_version:SCHEMA_VERSION,
       event,
       school_key:schoolKey,
       game_ids:gameIds,
       game_count:gameIds.length,
+      topic_ids:topicIds,
+      game_difficulties:gameDifficulties,
       min_year:Number.isFinite(Number(s.minYear))?Number(s.minYear):undefined,
       max_year:Number.isFinite(Number(s.maxYear))?Number(s.maxYear):undefined,
       sheet_count:Number.isFinite(Number(s.sheets))?Number(s.sheets):undefined,
       activities_per_sheet:Number.isFinite(Number(s.activitiesPerSheet))?Number(s.activitiesPerSheet):undefined,
-      worked_examples:s.workedExamples==='front'?1:0
+      worked_examples:s.workedExamples==='front'?1:0,
+      custom_vocabulary_count:Array.isArray(c.customVocabulary)?Math.min(999,c.customVocabulary.length):0
     };
     Object.keys(out).forEach(k=>out[k]===undefined&&delete out[k]);
     return out;
