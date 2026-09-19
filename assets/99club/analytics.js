@@ -81,6 +81,9 @@ function targetLabel(el){
   if(href==='/tools/99-club/games/'||href==='/games/')return 'games';
   if(href==='/tools/99-club/games/play/'||href==='/play/')return 'play_online';
   if(href==='/tools/99-club/help/'||href==='/help/'||href==='/tools/99-club/games/help/'||href==='/help/games/')return 'help';
+  if(href==='/schools/'||href.startsWith('/schools/#'))return 'integration_help';
+  if(href==='/schools/widgets/')return 'widget_help';
+  if(href==='/widget/builder/'||href.startsWith('/widget/builder/?'))return 'widget_builder';
   if(href==='/'||href==='/tools/99-club/')return 'club';
   if(el?.id==='tt99-contact-open'||el?.matches?.('[data-tt99-contact-open]'))return 'contact';
   if(el?.id==='tt99-kofi-open'||el?.matches?.('[data-tt99-kofi-open]'))return 'support';
