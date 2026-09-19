@@ -177,8 +177,15 @@ function prepare(){
         await sleep(1800);
         await previewReplaceTest();
         await configurePlacementTest();
-        const stack=document.querySelector('.tt99-games-pupil-pages');
+        let stack=document.querySelector('.tt99-games-pupil-pages');
         if(!stack)return fail('boot','Pupil preview stack missing');
+        const resetInput=stack.querySelector('.tt99-preview-pager input');
+        if(resetInput){
+          resetInput.value='1';
+          resetInput.dispatchEvent(new Event('change',{bubbles:true}));
+          await sleep(180);
+          stack=document.querySelector('.tt99-games-pupil-pages');
+        }
         const total=Number(window.TT99GamesPreviewPagerV155?.counts?.pupil)||Number(stack.querySelector('[data-preview-total]')?.textContent)||stack.querySelectorAll('.tt99-game-paper').length;
         report.pages=total;if(!total)return fail('boot','No printable preview pages generated');
         for(let i=0;i<total;i++){
