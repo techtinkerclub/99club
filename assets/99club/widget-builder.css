@@ -1,0 +1,22 @@
+.tt99-widget-builder{max-width:1220px;margin:0 auto;padding:6px 0 40px;color:#24343b}
+.tt99-wb-hero{display:flex;justify-content:space-between;gap:24px;align-items:flex-start;margin:0 0 20px;padding:22px;border:1px solid #d9e5e4;border-radius:18px;background:linear-gradient(135deg,#fbfdfd,#eef7f5)}
+.tt99-wb-kicker{display:inline-block;margin-bottom:5px;color:#147d75;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}.tt99-wb-hero h1{margin:0 0 7px;font-size:30px}.tt99-wb-hero p{margin:0;max-width:760px;color:#66767d}
+.tt99-wb-back{white-space:nowrap;text-decoration:none;border:1px solid #c9d7d9;border-radius:9px;padding:9px 13px;background:#fff;color:#35505a;font-weight:700}
+.tt99-wb-note{padding:11px 14px;border-left:4px solid #147d75;background:#eff8f6;color:#4f6269;font-size:13px;margin-bottom:18px}
+.tt99-wb-layout{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(360px,.92fr);gap:20px;align-items:start}
+.tt99-wb-card{border:1px solid #dde5e7;border-radius:14px;background:#fff;padding:18px;margin-bottom:14px;box-shadow:0 2px 9px rgba(36,52,59,.04)}
+.tt99-wb-card h2{margin:0 0 5px;font-size:19px}.tt99-wb-card>p{margin:0 0 14px;color:#6d7a81;font-size:12.5px}
+.tt99-wb-headrow{display:flex;justify-content:space-between;gap:12px;align-items:center}.tt99-wb-actions{display:flex;gap:7px;flex-wrap:wrap}
+.tt99-wb-btn,.tt99-wb-linkbtn{appearance:none;border:1px solid #bccdd0;border-radius:8px;background:#fff;color:#35505a;padding:8px 11px;font:700 12px Arial,sans-serif;text-decoration:none;cursor:pointer}.tt99-wb-btn:hover,.tt99-wb-linkbtn:hover{background:#f4f8f8}.tt99-wb-btn.primary{background:#147d75;border-color:#147d75;color:#fff}
+.tt99-wb-clubs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.tt99-wb-check{display:flex;align-items:center;gap:8px;padding:9px;border:1px solid #e1e7e9;border-radius:8px;background:#fafcfc;font-size:12px;font-weight:700}.tt99-wb-check input{accent-color:#147d75}
+.tt99-wb-subhead{margin:14px 0 7px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#708087;font-weight:800}
+.tt99-wb-pack{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid #e7ebed}.tt99-wb-pack:first-of-type{border-top:0}.tt99-wb-pack strong,.tt99-wb-pack small{display:block}.tt99-wb-pack small{color:#738087;font-size:11px}.tt99-wb-empty{padding:12px;border:1px dashed #cbd7da;border-radius:8px;color:#728087;font-size:12px;background:#fafcfc}
+.tt99-wb-games{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;max-height:360px;overflow:auto;padding:2px}.tt99-wb-games .tt99-wb-check{font-weight:600}
+.tt99-wb-field{display:grid;gap:5px}.tt99-wb-field label{font-size:12px;font-weight:800}.tt99-wb-field select,.tt99-wb-field textarea{width:100%;border:1px solid #bccbd0;border-radius:8px;padding:9px;background:#fff;color:#24343b;font:13px Arial,sans-serif}.tt99-wb-field textarea{min-height:84px;resize:vertical}
+.tt99-wb-preview{position:sticky;top:16px}.tt99-wb-preview iframe{display:block;width:100%;height:690px;border:0;border-radius:14px;background:#fff}
+.tt99-wb-preview-wrap{border:1px solid #d9e2e5;border-radius:16px;background:#f6f9f9;padding:10px}.tt99-wb-preview h2{margin:0 0 8px;font-size:18px}
+.tt99-wb-publish{margin-top:14px}.tt99-wb-code{font:11px/1.4 ui-monospace,SFMono-Regular,Consolas,monospace;word-break:break-all}
+.tt99-wb-status{margin-top:10px;padding:9px 11px;border-radius:8px;background:#edf7f5;color:#285f59;font-size:12px;font-weight:700}
+.tt99-wb-danger{color:#9a3e2e}.tt99-wb-hidden-file{position:absolute;left:-9999px}
+@media(max-width:940px){.tt99-wb-layout{grid-template-columns:1fr}.tt99-wb-preview{position:static}.tt99-wb-preview iframe{height:720px}}
+@media(max-width:620px){.tt99-wb-hero{display:block;padding:17px}.tt99-wb-back{display:inline-block;margin-top:12px}.tt99-wb-clubs{grid-template-columns:repeat(2,minmax(0,1fr))}.tt99-wb-games{grid-template-columns:repeat(2,minmax(0,1fr))}.tt99-wb-card{padding:14px}.tt99-wb-preview iframe{height:820px}}
