@@ -116,7 +116,7 @@ The normal `/games/` page continues to use consent-controlled GA4 for generic pr
   - `game_count`
   - `sheet_count`
 - `puzzle_parent_share_action`
-  - `action` (`copy_link`, `copy_card`, `download_card`, `save_config`, `download_website_pack`)
+  - `action` (`copy_link`, `copy_card`, `open_parent_view`, `download_card`, `save_config`, `restore_config`, `download_website_pack`)
   - `game_count`
 
 Do not add the school name, custom vocabulary, parent URL, puzzle seed or generated question content to these GA4 events.
@@ -145,7 +145,7 @@ Prepared event schema (v1):
 - `school_register`: `school_key`, `school_name`
 - `practice_open`: `school_key`, `club_id`, `scheme_id`, `question_count`, `mode`, `orientation`
 - `practice_download`: same aggregate practice fields as `practice_open`
-- `puzzle_practice_open`: `school_key`, `game_ids`, `game_count`, `min_year`, `max_year`, `sheet_count`, `activities_per_sheet`, `worked_examples`
+- `puzzle_practice_open`: `school_key`, `game_ids`, `game_count`, `topic_ids`, `game_difficulties`, `min_year`, `max_year`, `sheet_count`, `activities_per_sheet`, `worked_examples`, `custom_vocabulary_count`
 - `puzzle_practice_download`: same aggregate puzzle fields as `puzzle_practice_open`
 
 Before enabling this telemetry:
