@@ -22,7 +22,7 @@ function frame(c,x,y,w,h,index,a){rect(c,x,y,w,h,WHITE,LINE,.8);text(c,x+12,y+18
 
 function drawColour(c,a,answers,x,y,w,h,index){
   const top=frame(c,x,y,w,h,index,a);
-  wrapped(c,x+12,top,a.instruction||'Fill the boxes so every rule is true.',w-24,8.2,{color:MUT,maxLines:1});
+  wrapped(c,x+12,top,a.instruction||'Fill the boxes so every rule is true.',w-24,7.6,{color:MUT,maxLines:2,lineHeight:9.4});
   const bodyY=top+28,key=(a.colors||[]).map(v=>`${v.id}=${v.name}`).join('   ');
   fit(c,x+w/2,y+h-18,key,w-42,6.9,{bold:true,color:MUT,align:'center'});
   if(a.variant==='row'){
@@ -52,10 +52,9 @@ function format(v){const q=Number(v);return Number.isFinite(q)?String(Math.round
 
 function drawMobile(c,a,answers,x,y,w,h,index){
   const top=frame(c,x,y,w,h,index,a);
-  wrapped(c,x+12,top,a.instruction||'Every horizontal bar is balanced. Work out the value of each shape.',w-24,8.2,{color:MUT,maxLines:1});
-  const hasTotal=a.topTotal!=null,noteH=hasTotal?14:0;
-  if(hasTotal)wrapped(c,x+12,top+14,'The number in the top circle is the total weight of the whole mobile.',w-24,7.0,{color:MUT,maxLines:1});
-  const bodyY=top+26+noteH,diagramW=w*.70,dx=x+8,dy=bodyY+3,d=depth(a.tree),available=Math.max(150,y+h-dy-18),levelGap=Math.min(60,Math.max(42,(available-72)/Math.max(1,d-1))),shapeGap=Math.min(21,Math.max(16,levelGap*.38)),shapeSize=Math.min(16,Math.max(13,levelGap*.31));
+  wrapped(c,x+12,top,a.instruction||'Every horizontal bar is balanced. Work out the value of each shape.',w-24,7.6,{color:MUT,maxLines:2,lineHeight:9.4});
+  const hasTotal=a.topTotal!=null;
+  const bodyY=top+30,diagramW=w*.70,dx=x+8,dy=bodyY+3,d=depth(a.tree),available=Math.max(150,y+h-dy-18),levelGap=Math.min(60,Math.max(42,(available-72)/Math.max(1,d-1))),shapeGap=Math.min(21,Math.max(16,levelGap*.38)),shapeSize=Math.min(16,Math.max(13,levelGap*.31));
   function rec(node,x0,x1,yy){
     const cx=(x0+x1)/2;
     if(node.type==='group'){
