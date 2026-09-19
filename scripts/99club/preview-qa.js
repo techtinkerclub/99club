@@ -17,8 +17,10 @@ function prepare(){
   (function(){
     const G=window.TT99Games;if(!G)return;
     const all=Object.entries(G.ENGINES||{}).filter(([,d])=>!d?.hiddenFromLibrary).map(([id])=>id);
-    const batch=Math.max(0,Math.min(1,Number(new URLSearchParams(location.search).get('batch'))||0));
-    const cut=Math.ceil(all.length/2),ids=batch?all.slice(cut):all.slice(0,cut);
+    const params=new URLSearchParams(location.search);
+    const batches=Math.max(1,Math.min(8,Number(params.get('batches'))||2));
+    const batch=Math.max(0,Math.min(batches-1,Number(params.get('batch'))||0));
+    const cut=Math.ceil(all.length/batches),ids=all.slice(batch*cut,Math.min(all.length,(batch+1)*cut));
     window.__TT99_PREVIEW_QA_IDS=ids.slice();
     localStorage.setItem('tt99-games-pack-mode-v1','manual');
     localStorage.setItem('tt99-games-activity-count-v1',String(ids.length));
