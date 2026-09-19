@@ -23,7 +23,7 @@ sitemap: true
         <section class="tt99-guide-section tt99-guide-highlight">
           <h2>What this feature does</h2>
           <p>A teacher or maths lead chooses the 99 Club rules in Studio first. Studio then creates a locked parent-practice link for that club. Parents opening the link do not see the rule editor: they see a simple page that creates a fresh printable worksheet and matching answers using the school-selected rules.</p>
-          <p>The school website only links to 99 Club Studio. It does not need a plugin, JavaScript, iframe, login integration or access to the school content-management system.</p>
+          <p>The school website only needs a normal HTTPS link to 99 Club Studio. It does not need a plugin, JavaScript, iframe, login integration or access to the school content-management system.</p>
         </section>
 
         <section class="tt99-guide-section">
