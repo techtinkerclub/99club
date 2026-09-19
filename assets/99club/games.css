@@ -879,4 +879,8 @@
   font-size:5.2px;
   line-height:1.1;
 }
+@media(max-width:900px){
+  .tt99-numbersearch-layout{grid-template-columns:1fr;height:auto}
+  .tt99-numbersearch-grid{width:min(100%,360px)}
+}
 
