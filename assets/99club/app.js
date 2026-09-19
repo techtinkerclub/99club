@@ -1220,10 +1220,17 @@
     });
     modal.querySelector('#tt99-parent-widget-open')?.addEventListener('click',()=>{
       try{
-        const handoff={...parentPracticeSchoolConfigData(),kind:'clubs',handoffVersion:1};
+        const base=parentPracticeSchoolConfigData();
+        const handoff={
+          ...base,kind:'clubs',handoffVersion:1,widgetType:'club',
+          school:{
+            schoolName:String(state.school?.schoolName||'').trim(),
+            logoDataUrl:String(state.school?.logoDataUrl||'')
+          }
+        };
         localStorage.setItem('tt99-widget-handoff-v1',JSON.stringify(handoff));
-        window.open('/widget/builder/','_blank','noopener,noreferrer');
-        setParentStatus('Widget builder opened in a new tab with the current 11–99 and post-99 rules.');
+        window.open('/widget/builder/?type=club','_blank','noopener,noreferrer');
+        setParentStatus('99 Club Widget builder opened in a new tab with the current Club rules and school identity.');
       }catch(err){
         setParentStatus('Could not prepare the widget builder from this browser. Save the school configuration and try again.');
       }
