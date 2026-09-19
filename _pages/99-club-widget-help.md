@@ -13,9 +13,9 @@ sitemap: true
       <div class="tt99-guide">
         <div class="tt99-guide-hero">
           <div>
-            <span class="tt99-eyebrow">99 Club Studio · School website help</span>
-            <h1>School website widgets – step by step</h1>
-            <p>This guide is written for teachers, maths leads and school staff who may only edit the school website occasionally. You do not need to understand HTML, coding or web development to use the widget.</p>
+            <span class="tt99-eyebrow">99 Club Studio · Widget deep-dive</span>
+            <h1>School website widgets – detailed guide</h1>
+            <p>This page is the detailed widget-only reference. If you are deciding between a normal link, school button/card, PNG image, website pack or widget, start with the complete <a href="/schools/"><strong>School Website Publishing Guide</strong></a>.</p>
           </div>
           <a class="tt99-secondary tt99-guide-action" href="/widget/builder/">Open Widget Builder</a>
         </div>
