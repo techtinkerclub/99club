@@ -239,6 +239,23 @@ const guideIds=[...helpSrc.matchAll(/\{id:'([^']+)'[^\n]*title:'([^']*)'/g)].fil
 const missingGuides=adapterIds.filter(id=>!guideIds.includes(id));
 if(missingGuides.length)fail('help-guides','Online games missing one-page guide',missingGuides.join(', '));
 else ok('help-guides',`All ${adapterIds.length} online games have a guide`);
+const printInstructions=read('assets/99club/games-instructions-v139.js');
+const onlineInstructions=read('assets/99club/games-play-instructions-v154.js');
+const publicGameIds=['wordsearch','crossword','pyramid','magic','arithmagon','magicshape','numbertrail','numberwheels','maze','propertymaze','crossnumber','numbersearch','equationcrossgrid','target','brokencalc','operationgrid','kakuro','arithmeticcages','sumplete','symbols','functionmachine','balance','alphametics','sudoku','futoshiki','nonogram','numberpath','numbertowers','takuzu','killersudoku','hashi','mathsmines','shikaku','cornersum','linkedsum','colourlogic','mobilebalance','diagonalpath','squaresearch','insertops','perimeterregions'];
+for(const id of publicGameIds){
+  if(!printInstructions.includes("case'"+id+"'"))fail('instruction-audit',id+': printable reviewed instruction missing');
+  if(!onlineInstructions.includes("\n  "+id+":"))fail('instruction-audit',id+': online reviewed instruction missing');
+}
+if(!printInstructions.includes('operation signs may be reused'))fail('instruction-audit','Reusable operation-sign rule missing from printable instructions');
+if(!printInstructions.includes('working digit or operation key may be reused'))fail('instruction-audit','Broken Calculator key-reuse rule missing from printable instructions');
+if(!printInstructions.includes('the same digit may appear in a different run'))fail('instruction-audit','Kakuro repeat-scope rule missing from printable instructions');
+if(!printInstructions.includes('two-cell − or ÷ cage, either order is allowed'))fail('instruction-audit','Arithmetic Cages subtraction/division order rule missing');
+if(!printInstructions.includes('Allowed signs may be reused'))fail('instruction-audit','Insert Operations sign-reuse rule missing');
+if(!printInstructions.includes('top circle is the total weight of the whole mobile'))fail('instruction-audit','Mobile Balance top-total explanation missing');
+if(!onlineInstructions.includes('.tt99-play-numbersearch .tt99-play-board-tip'))fail('instruction-audit','Number Search live direction rule is not mirrored above the board');
+if(!onlineInstructions.includes('Target answers do not overlap'))fail('instruction-audit','Number Search no-overlap rule missing online');
+if(!onlineInstructions.includes('duplicate tiles are separate'))fail('instruction-audit','Target Number duplicate-tile rule missing online');
+ok('instruction-audit','All 41 public games have reviewed print and online first-sight instructions');
 const helpPage=read('_pages/99-club-games-help.md');
 const stated=(helpPage.match(/covers all <strong>(\d+) current one-player games<\/strong>/)||[])[1];
 if(stated&&Number(stated)!==guideIds.length)fail('help-guides',`Help-page guide count says ${stated}, library contains ${guideIds.length}`);
