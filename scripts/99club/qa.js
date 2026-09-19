@@ -410,14 +410,24 @@ try{
   if(link.includes('?'))fail('parent-practice','Parent practice rules should be carried in the URL fragment, not the query string');
   const card=ParentPractice.websiteCardHtml(link,'33 Club','https://99studio.uk/assets/99club/images/33club.png','33 questions · 5 min · Printable worksheet + answers');
   if(!/^<a /.test(card)||/script|iframe/i.test(card)||!card.includes('noopener'))fail('parent-practice','School website card is not a plain safe hyperlink');
+  if(!card.includes('referrerpolicy="origin"')||card.includes('noreferrer'))fail('school-usage','99 Club website card does not preserve origin-only source attribution');
   if(!card.includes('33club.png')||!card.includes('33 Club')||!card.includes('Printable worksheet + answers'))fail('parent-practice','School website card is missing its badge/title/summary');
   if(!card.includes('width:100%')||!card.includes('border-radius:14px'))fail('parent-practice','School website card lost its compact card styling');
   const usage=SchoolUsage.practicePayload('practice_download',decoded);
   if(!usage||usage.school_key!==schoolKey||usage.club_id!=='33'||usage.question_count!==33)fail('school-usage','Aggregate practice usage payload is incomplete');
+  if(SchoolUsage.cleanOrigin('https://school.example/year-5/home?a=1#x')!=='https://school.example')fail('school-usage','External source URL is not reduced to origin only');
+  const attributed=SchoolUsage.practicePayload('practice_open',{...decoded,usageContext:{sourceOrigin:'https://school.example/year5',integrationId:'wid_abcdefgh'}});
+  if(!attributed||attributed.source_origin!=='https://school.example'||attributed.integration_id!=='wid_abcdefgh'||attributed.source_kind!=='widget')fail('school-usage','Practice attribution does not preserve safe source origin + widget ID');
+  const sourceOnly=SchoolUsage.practicePayload('practice_open',{schemeId:'classic',clubId:'33',rules:base,orientation:'portrait',usageContext:{sourceOrigin:'https://school.example/class-page'}});
+  if(!sourceOnly||sourceOnly.school_key||sourceOnly.source_origin!=='https://school.example')fail('school-usage','Source-only practice attribution is not retained when no school key exists');
+  const studioUse=SchoolUsage.studioUsagePayload('worksheet_download','Example Primary School',{area:'club',sourceOrigin:'https://school.example/path'});
+  if(!studioUse||studioUse.school_key!==schoolKey||studioUse.source_origin!=='https://school.example'||studioUse.action!=='worksheet_download')fail('school-usage','Studio school/source usage payload is incomplete');
+  const widgetUse=SchoolUsage.widgetPayload('widget_open',{schoolName:'Example Primary School',sourceOrigin:'https://school.example/page',integrationId:'wid_abcdefgh',widgetType:'club',clubCount:4});
+  if(!widgetUse||widgetUse.school_key!==schoolKey||widgetUse.source_origin!=='https://school.example'||widgetUse.integration_id!=='wid_abcdefgh'||widgetUse.club_count!==4)fail('school-usage','Widget usage payload is incomplete');
   for(const forbidden of ['school_name','pupil','parent','seed','url','referrer','score'])if(JSON.stringify(usage).includes(forbidden))fail('school-usage',`Practice usage payload leaked forbidden field ${forbidden}`);
   if(SchoolUsage.enabled())fail('school-usage','School telemetry must remain disabled until the final analytics design is approved');
   const schoolUsageConfig=read('assets/99club/school-usage-config.js');
-  if(!/enabled:\s*false/.test(schoolUsageConfig)||!/endpoint:\s*''/.test(schoolUsageConfig))fail('school-usage','Dormant school telemetry config is not safely disabled');
+  if(!/enabled:\s*false/.test(schoolUsageConfig)||!/endpoint:\s*''/.test(schoolUsageConfig)||!/schemaVersion:\s*2/.test(schoolUsageConfig))fail('school-usage','Dormant school telemetry config is not safely disabled at schema v2');
   ok('parent-practice','School-selected rule links round-trip with an opaque school key and no school name');
   ok('school-usage','Aggregate school usage schema is wired but network collection remains disabled');
 }catch(e){fail('parent-practice','Codec smoke test threw',e.stack||e.message);}
@@ -429,16 +439,17 @@ if(/<!doctype html>/i.test(parentPage))fail('parent-practice','Practice page mus
 if(!/^<!doctype html>/i.test(parentLayout.trim()))fail('parent-practice','Standalone practice layout is missing the real document doctype');
 if(/analytics|gtag|googletagmanager/i.test(parentLayout))fail('parent-practice','Parent practice layout loads Google Analytics code');
 for(const required of ['generator.js','simple-pdf.js','pdf-layout.js','school-usage-config.js','school-usage.js','parent-practice.js','parent-practice-page.js'])if(!parentLayout.includes(required))fail('parent-practice',`Parent practice layout missing ${required}`);
+const rootApp=read('assets/99club/app.js'),rootPage=read('index.md');
 const parentUi=read('assets/99club/parent-practice-page.js');
 if(/localStorage|sessionStorage/.test(parentUi))fail('parent-practice','Parent practice page stores browser profile/progress state');
 if(!rootApp.includes('parentPracticePreviewLink')||!rootApp.includes("searchParams.set('preview','1')"))fail('parent-practice','Teacher Preview links are not marked with preview=1 for PWA-safe return navigation');
 if(!rootApp.includes('parentPracticeWebsiteCard(state.clubId,true)'))fail('parent-practice','Clickable teacher card preview does not use the PWA-safe preview URL');
 if(!rootApp.includes('School website integration help'))fail('parent-practice','Parent sharing panel is missing the School website integration help label');
 if(!parentUi.includes('isTeacherPreview')||!parentUi.includes('Back to 99 Club Studio')||!parentUi.includes('tt99-practice-previewbar'))fail('parent-practice','Teacher parent-practice preview is missing its PWA-safe return control');
+if(!parentUi.includes('schoolUsageContext')||!parentUi.includes("if(!isTeacherPreview())SU?.trackPractice"))fail('school-usage','Parent-practice attribution or preview exclusion is missing');
 if(!parentUi.includes("kind:'both'")||!parentUi.includes("answerContext:{label:'Answer copy'"))fail('parent-practice','Parent page does not create the promised combined worksheet + answers PDF');
 if(!parentUi.includes('G.newSeed'))fail('parent-practice','Parent downloads are not regenerated with fresh questions');
 for(const label of ['Bronze Club','Silver Club','Gold Club','Platinum Club','Diamond Club'])if(!parentUi.includes(label))fail('parent-practice',`Parent view is missing proper post-99 label ${label}`);
-const rootApp=read('assets/99club/app.js'),rootPage=read('index.md');
 for(const required of ['tt99-parent-open','PARENT_CORE_CLUB_IDS','PARENT_POST99_CLUB_IDS','parentPracticeLink','PP.websiteCardHtml','tt99-parent-copy-current-card','data-parent-copy-card','data-parent-download-card','downloadParentPracticeCardImage','createParentPracticeCardImageBlob','parentPracticeSchoolConfigData','restoreParentPracticeSchoolConfig','parentPracticeLinksText','parentPracticeLinksCsv','downloadParentPracticeWebsitePack','parentPracticeZip','0x04034b50','0x02014b50','0x06054b50','tt99-parent-download-pack','tt99-parent-copy-links','tt99-parent-save-config','tt99-parent-restore-config','canvas.toBlob','tt99-parent-copy-all','SU?.makeSchoolKey'])if(!rootApp.includes(required))fail('parent-practice',`Teacher sharing UI missing ${required}`);
 for(const id of ['bronze','silver','gold','platinum','diamond'])if(!rootApp.includes(`'${id}'`))fail('parent-practice',`Post-99 parent preview is missing ${id}`);
 if(rootPage.indexOf('school-usage.js')<0||rootPage.indexOf('school-usage.js')>rootPage.indexOf('parent-practice.js'))fail('school-usage','School usage module must load before the parent practice codec');
@@ -466,7 +477,7 @@ for(const rel of puzzleParentAssets){
   try{new Function(read(rel));}catch(e){fail('puzzle-parent',`Syntax error in ${rel}`,e.message);}
 }
 try{
-  global.TT99_SCHOOL_USAGE_CONFIG={enabled:false,endpoint:'',schemaVersion:1};
+  global.TT99_SCHOOL_USAGE_CONFIG={enabled:false,endpoint:'',schemaVersion:2};
   delete global.TT99SchoolUsage;delete global.TT99GamesParentPractice;
   const SchoolUsage2=load('assets/99club/school-usage.js');
   const PuzzleParent=load('assets/99club/games-parent-practice.js');
@@ -504,6 +515,7 @@ try{
   if(link.includes('?'))fail('puzzle-parent','Puzzle practice settings should be carried in the URL fragment');
   const card=PuzzleParent.websiteCardHtml(link,'Maths puzzle practice','Years 4–5 · 2 puzzle types');
   if(!/^<a /.test(card)||/script|iframe/i.test(card)||!card.includes('noopener'))fail('puzzle-parent','Puzzle website card is not a plain safe hyperlink');
+  if(!card.includes('referrerpolicy="origin"')||card.includes('noreferrer'))fail('school-usage','Puzzle website card does not preserve origin-only source attribution');
 
   const usage=SchoolUsage2.puzzlePracticePayload('puzzle_practice_download',decoded);
   if(!usage||usage.school_key!==schoolKey||usage.game_count!==2||usage.min_year!==4||usage.max_year!==5||usage.sheet_count!==2||usage.activities_per_sheet!==2)fail('school-usage','Aggregate puzzle-practice payload is incomplete');
