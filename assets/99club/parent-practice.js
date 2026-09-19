@@ -139,7 +139,7 @@
       outline:'display:inline-block;padding:12px 18px;border-radius:10px;background:#ffffff;color:#0d5e58;text-decoration:none;font:700 16px/1.2 Arial,sans-serif;border:2px solid #147d75;'
     };
     const style=styles[variant]||styles.teal;
-    return '<a href="'+href+'" target="_blank" rel="noopener noreferrer" style="'+style+'">'+text+'</a>';
+    return '<a href="'+href+'" target="_blank" rel="noopener" referrerpolicy="origin" style="'+style+'">'+text+'</a>';
   }
 
   function websiteCardHtml(link,title,badgeUrl,summary){
@@ -147,7 +147,7 @@
     const name=htmlEscape(title||'99 Club practice');
     const badge=htmlEscape(badgeUrl||'https://99studio.uk/assets/99club/images/99club-studio-shield.png');
     const detail=htmlEscape(summary||'Printable worksheet + answers');
-    return '<a href="'+href+'" target="_blank" rel="noopener noreferrer" style="box-sizing:border-box;display:flex;align-items:center;gap:14px;width:100%;max-width:560px;margin:10px 0;padding:14px 16px;border:1px solid #d6e1e4;border-radius:14px;background:#ffffff;color:#24343b;text-decoration:none;font-family:Arial,Helvetica,sans-serif;box-shadow:0 2px 8px rgba(36,52,59,.08);">'+
+    return '<a href="'+href+'" target="_blank" rel="noopener" referrerpolicy="origin" style="box-sizing:border-box;display:flex;align-items:center;gap:14px;width:100%;max-width:560px;margin:10px 0;padding:14px 16px;border:1px solid #d6e1e4;border-radius:14px;background:#ffffff;color:#24343b;text-decoration:none;font-family:Arial,Helvetica,sans-serif;box-shadow:0 2px 8px rgba(36,52,59,.08);">'+
       '<img src="'+badge+'" alt="" width="58" height="58" style="display:block;width:58px;height:58px;object-fit:contain;flex:0 0 58px;border:0;">'+
       '<span style="display:block;min-width:0;flex:1 1 auto;">'+
         '<strong style="display:block;margin:0 0 4px;font-size:18px;line-height:1.15;color:#24343b;">'+name+'</strong>'+
