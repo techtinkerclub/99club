@@ -385,8 +385,9 @@ try{
   const base=ClubG.normalizeRules(ClubG.CLASSIC_PRESETS['33']);
   const standard={schemeId:'classic',clubId:'33',rules:base,orientation:'portrait'};
   const compact=ParentPractice.compactPayload(standard);
-  if(compact.r)fail('parent-practice','Built-in club link stores a full rules object instead of a compact diff');
+  if(!compact.r||!stable(compact.r,base))fail('parent-practice','Parent link does not freeze the complete school-selected rules snapshot');
   const token=ParentPractice.encode(standard),decoded=ParentPractice.decode(token);
+  if(token.length>ParentPractice.MAX_TOKEN_LENGTH)fail('parent-practice','Built-in parent practice token exceeds codec size limit',String(token.length));
   if(!stable(decoded.rules,base))fail('parent-practice','Built-in club rules do not survive parent-link round trip');
   if(decoded.orientation!=='portrait'||decoded.clubId!=='33')fail('parent-practice','Parent-link identity/layout round trip failed');
   const edited=ClubG.normalizeRules({...base,factorMax:9});
