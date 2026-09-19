@@ -103,7 +103,7 @@ sitemap: true
 <script src="/assets/99club/school-usage-config.js?v=1"></script>
 <script src="/assets/99club/school-usage.js?v=1.2"></script>
 <script src="/assets/99club/games-parent-practice.js?v=1"></script>
-<script src="/assets/99club/games-app.js?v=37" defer></script>
+<script src="/assets/99club/games-app.js?v=38" defer></script>
 <script src="/assets/99club/games-preview-parity-v206.js?v=1" defer></script>
 <script src="/assets/99club/games-operationgrid-print-v158-ui.js?v=2" defer></script>
 <script src="/assets/99club/games-operationgrid-print-v160-ui.js?v=1" defer></script>
