@@ -12,6 +12,9 @@
 .tt99-parent-kicker{display:block;color:var(--pp-teal);font-size:.74rem;font-weight:850;letter-spacing:.11em;text-transform:uppercase;margin-bottom:5px}
 .tt99-parent-card h2{margin:0 44px 8px 0;font-size:1.55rem;line-height:1.1}
 .tt99-parent-card>p{margin:0 0 15px;color:var(--pp-muted);max-width:740px}
+.tt99-parent-helpbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 14px;padding:11px 13px;border:1px solid #b9d8d3;border-radius:12px;background:#f6fbfa}
+.tt99-parent-helpbar>div{min-width:0}.tt99-parent-helpbar strong{display:block;font-size:.82rem;color:var(--pp-teal-dark)}.tt99-parent-helpbar small{display:block;margin-top:2px;color:var(--pp-muted);font-size:.69rem;line-height:1.4}
+.tt99-parent-helpbar a{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;min-height:38px;border:1px solid var(--pp-teal);border-radius:9px;background:var(--pp-teal);color:#fff;padding:8px 12px;text-decoration:none;font:800 .73rem/1.2 Inter,ui-sans-serif,system-ui,sans-serif;text-align:center}
 .tt99-parent-notice{border:1px solid #cfe5e1;background:#f1faf8;border-radius:12px;padding:11px 13px;font-size:.78rem;color:#385b5d;margin-bottom:16px}
 .tt99-parent-current{border:1px solid var(--pp-line);border-radius:14px;padding:14px;margin-bottom:18px;background:#fbfcfc}
 .tt99-parent-current strong{display:block;margin-bottom:2px}
@@ -82,6 +85,8 @@ html.tt99-practice-html,body.tt99-practice-body{margin:0;min-height:100%;backgro
 .tt99-practice-foot a{color:#4e696d}
 
 @media(max-width:680px){
+  .tt99-parent-helpbar{align-items:stretch;flex-direction:column}.tt99-parent-helpbar a{width:100%}
+
   .tt99-parent-pack{grid-template-columns:1fr}
   .tt99-parent-clubs{grid-template-columns:1fr 1fr}
   .tt99-parent-link-row{grid-template-columns:1fr 1fr}
