@@ -383,12 +383,14 @@ try{
   delete global.TT99ParentPractice;
   const ParentPractice=load('assets/99club/parent-practice.js');
   const base=ClubG.normalizeRules(ClubG.CLASSIC_PRESETS['33']);
+  const stripParentMeta=value=>{const out=JSON.parse(JSON.stringify(value));for(const key of ['id','name','tagline','sourceSchemeId','sourceClubId','worksheetTitle'])delete out[key];return out;};
   const standard={schemeId:'classic',clubId:'33',rules:base,orientation:'portrait'};
   const compact=ParentPractice.compactPayload(standard);
-  if(!compact.r||!stable(compact.r,base))fail('parent-practice','Parent link does not freeze the complete school-selected rules snapshot');
+  if(!compact.r||!stable(compact.r,stripParentMeta(base)))fail('parent-practice','Parent link does not freeze the complete school-selected functional rules snapshot');
+  for(const forbidden of ['id','name','tagline','sourceSchemeId','sourceClubId','worksheetTitle'])if(Object.prototype.hasOwnProperty.call(compact.r||{},forbidden))fail('parent-practice',`Parent-link rules leaked display metadata field ${forbidden}`);
   const token=ParentPractice.encode(standard),decoded=ParentPractice.decode(token);
   if(token.length>ParentPractice.MAX_TOKEN_LENGTH)fail('parent-practice','Built-in parent practice token exceeds codec size limit',String(token.length));
-  if(!stable(decoded.rules,base))fail('parent-practice','Built-in club rules do not survive parent-link round trip');
+  if(!stable(decoded.rules,stripParentMeta(base)))fail('parent-practice','Built-in club functional rules do not survive parent-link round trip');
   if(decoded.orientation!=='portrait'||decoded.clubId!=='33')fail('parent-practice','Parent-link identity/layout round trip failed');
   const edited=ClubG.normalizeRules({...base,factorMax:9});
   const editedToken=ParentPractice.encode({schemeId:'classic',clubId:'33',rules:edited,orientation:'landscape'});
