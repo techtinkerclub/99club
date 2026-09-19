@@ -110,3 +110,35 @@ Useful custom metrics:
 ## Data minimisation rule
 
 Never add pupil names, school names, teacher names, uploaded logos, custom vocabulary, worksheet question text, answers, contact-form contents, generated seeds or recreation codes to analytics events.
+
+
+## School-level parent-practice usage (currently disabled)
+
+A separate first-party-style telemetry scaffold exists for school-issued parent-practice links. It is deliberately independent of Google Analytics and is configured in `assets/99club/school-usage-config.js`.
+
+Current state:
+
+- `enabled: false`
+- no collection endpoint is configured
+- no school-usage network requests are sent
+- parent-practice pages still load no Google Analytics
+- no pupil or parent identifier, score, worksheet seed, question text, answer, URL, referrer or persistent visitor ID is included
+
+When a teacher has entered a school name, Studio derives a stable opaque school key and places only that key in newly created parent-practice links. The school name itself is not included in the parent URL. The dormant registration event can later associate that key with the public organisation name once the final analytics/privacy design is approved.
+
+Prepared event schema (v1):
+
+- `school_register`: `school_key`, `school_name`
+- `practice_open`: `school_key`, `club_id`, `scheme_id`, `question_count`, `mode`, `orientation`
+- `practice_download`: same aggregate practice fields as `practice_open`
+
+Before enabling this telemetry:
+
+1. decide and document the collection endpoint and retention period;
+2. ensure the endpoint discards request-level IP/user-agent data from stored analytics wherever technically possible;
+3. update `/privacy/`, `/schools/` and any analytics controls to describe the final behaviour accurately;
+4. decide the simple school objection/opt-out mechanism;
+5. set `enabled: true` and the HTTPS endpoint only after the above is complete;
+6. keep the QA rules that prohibit pupil/parent identifiers and user-level tracking.
+
+When parent-practice features change, review the v1 event schema at the same time so the aggregate data continues to answer “which schools are using which practice resources?” without drifting into individual-user tracking.
