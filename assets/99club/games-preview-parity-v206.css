@@ -757,3 +757,12 @@
     max-height:none!important;
   }
 }
+
+
+/* v2.17 · give half-page Word Search definitions enough line width */
+@media screen {
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-word-layout{
+    grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr)!important;
+    gap:8px!important;
+  }
+}
