@@ -60,10 +60,14 @@
 
   function compactPayload(input){
     const cfg=normaliseConfig(input);
-    // Keep a complete rules snapshot in the link. Parent links are intended to be
-    // long-lived school resources, so a later change to Studio's built-in defaults
-    // must not silently change what an already-published school link practises.
-    return {v:VERSION,g:1,s:cfg.schemeId,c:cfg.clubId,o:cfg.orientation==='landscape'?'l':'p',r:cfg.rules};
+    // Keep a complete functional-rules snapshot in the link. Parent links are
+    // intended to be long-lived school resources, so a later change to Studio's
+    // built-in defaults must not silently change an already-published link.
+    // Display/preset metadata is deliberately stripped: the parent URL is a maths
+    // configuration, not a place to carry a school, teacher or custom preset name.
+    const rules=clone(cfg.rules);
+    for(const key of ['id','name','tagline','sourceSchemeId','sourceClubId','worksheetTitle'])delete rules[key];
+    return {v:VERSION,g:1,s:cfg.schemeId,c:cfg.clubId,o:cfg.orientation==='landscape'?'l':'p',r:rules};
   }
 
   function utf8ToBase64Url(text){
