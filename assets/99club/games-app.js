@@ -1,7 +1,7 @@
-/* 99 Club Studio · Maths Games & Puzzles UI v1.10.2 — mixed difficulty + vocabulary refinements + Number Property Maze */
+/* 99 Club Studio · Maths Games & Puzzles UI v1.10.3 — school-led parent puzzle sharing + portable setup */
 (function(){
   'use strict';
-  const G=window.TT99Games,PDF=window.TT99GamesPDF,root=document.getElementById('tt99-games-root');
+  const G=window.TT99Games,PDF=window.TT99GamesPDF,GPP=window.TT99GamesParentPractice,SU=window.TT99SchoolUsage,root=document.getElementById('tt99-games-root');
   if(!G||!root)return;
   const track=(name,params)=>window.TT99Analytics?.track(name,params);
 
@@ -80,6 +80,7 @@
         <div class="tt99-games-principle"><strong>Private by design.</strong><span>Names, logos and your own vocabulary stay on this device. Nothing you add is published to the shared site.</span></div>
         <div class="tt99-games-workspace"><aside class="tt99-games-controls">${renderMathsCard()}${renderGamesCard()}${renderPackCard()}${renderPersonaliseCard()}${renderVocabularyManager()}</aside>
           <main class="tt99-games-preview">${renderPreviewToolbar()}<div class="tt99-games-preview-stack tt99-games-pupil-pages">${renderPupilPreview()}</div><div class="tt99-games-preview-stack tt99-games-answer-pages">${renderPages(true)}</div></main></div>
+        ${renderPuzzleParentModal()}
       </div>`;
     bind();
   }
