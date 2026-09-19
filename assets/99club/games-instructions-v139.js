@@ -51,7 +51,7 @@ function instruction(a){
     case'propertymaze':
       return 'Move from START to FINISH only up, down, left or right through numbers that match the stated rule. Matching squares may include dead ends.';
     case'crossnumber':
-      return 'Solve each clue. Across goes left to right and Down top to bottom; write one digit per cell. Crossings share a digit, and digits may repeat in different cells.';
+      return 'Solve each clue. Across goes left to right and Down top to bottom; write one digit per cell and no units or operation signs. Crossings share a digit, and digits may repeat in different cells.';
     case'numbersearch':
       return 'Calculate each answer, then find its digits in one continuous straight line. Use the directions listed below; target answers do not overlap.';
     case'equationcrossgrid':
@@ -79,7 +79,7 @@ function instruction(a){
     case'nonogram':
       return 'Shade cells to match each row and column clue. Every number is one consecutive shaded block; separate multiple blocks by at least one blank cell and keep them in clue order.';
     case'numberpath':
-      return `Use every number from 1 to ${n*n} exactly once. Consecutive numbers must touch by a side — up, down, left or right — never diagonally.`;
+      return `Use every number from 1 to ${n*n} exactly once. Consecutive numbers must touch by a side — up, down, left or right — never diagonally. Printed numbers are fixed.`;
     case'numbertowers':
       return `Fill the grid with 1–${n}, using each height once in every row and column. Each edge clue is the number of towers visible when looking into that row or column from that side.`;
     case'takuzu':
