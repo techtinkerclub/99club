@@ -26,4 +26,4 @@ sitemap: true
 <script src="/assets/99club/school-usage-config.js?v=1"></script>
 <script src="/assets/99club/school-usage.js?v=1.2"></script>
 <script src="/assets/99club/parent-practice.js?v=1.2"></script>
-<script src="/assets/99club/app.js?v=19.18" defer></script>
+<script src="/assets/99club/app.js?v=19.19" defer></script>
