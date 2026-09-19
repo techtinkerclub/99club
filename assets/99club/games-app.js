@@ -401,7 +401,7 @@
     }
     if(a.engineId==='insertops'){
       const parts=[];for(let i=0;i<a.numbers.length;i++){parts.push(`<b>${a.numbers[i]}</b>`);if(i<a.numbers.length-1)parts.push(`<span class="${answers?'answer-fill':'blank-op'}">${answers?esc(a.solutionOps[i]):'□'}</span>`);}
-      return `<section class="tt99-game-activity tt99-extra-preview tt99-extra-insertops">${replace}${head}<p class="tt99-game-instruction">${esc(a.instruction)}</p><div class="tt99-extra-op-equation">${parts.join('')}<b>=</b><strong>${a.target}</strong></div><p class="tt99-extra-op-rule">Use ${a.allowedOps.map(esc).join(' · ')} · normal order of operations</p></section>`;
+      return `<section class="tt99-game-activity tt99-extra-preview tt99-extra-insertops">${replace}${head}<p class="tt99-game-instruction">${esc(a.instruction)}</p><div class="tt99-extra-op-equation">${parts.join('')}<b>=</b><strong>${a.target}</strong></div><p class="tt99-extra-op-rule">Allowed signs: ${a.allowedOps.map(esc).join(' · ')}</p></section>`;
     }
     if(a.engineId==='perimeterregions'){
       const n=a.size,clueMap=new Map((a.clues||[]).map(q=>[q.idx,q.perimeter])),cells=[];
