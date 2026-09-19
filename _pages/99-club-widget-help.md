@@ -15,7 +15,7 @@ sitemap: true
           <div>
             <span class="tt99-eyebrow">99 Club Studio · Widget deep-dive</span>
             <h1>School website widgets – detailed guide</h1>
-            <p>This page is the detailed widget-only reference. If you are deciding between a normal link, school button/card, PNG image, website pack or widget, start with the complete <a href="/schools/"><strong>School Website Publishing Guide</strong></a>.</p>
+            <p>This page is the detailed widget-only reference. If you are deciding between a normal link, school button/card, PNG image, website pack or widget, start with the complete <a href="/schools/"><strong>School Website Integration Help</strong></a>.</p>
           </div>
           <a class="tt99-secondary tt99-guide-action" href="/widget/builder/">Open Widget Builder</a>
         </div>
@@ -94,7 +94,7 @@ sitemap: true
             <li>If you use <strong>My vocabulary</strong>, add or review the terms and definitions before sharing.</li>
             <li>Add the school name and logo if required.</li>
             <li>Open <strong>Create parent link</strong> / <strong>Share this puzzle setup</strong>.</li>
-            <li>Choose <strong>Add current pack to widget</strong>.</li>
+            <li>Choose <strong>Open widget builder</strong>. The current locked pack is added automatically.</li>
             <li>The Widget Builder opens as a <strong>Maths Games Widget</strong> and adds that locked puzzle pack.</li>
             <li>To add a second different pack, return to Maths Games &amp; Puzzles, change the setup, create the new parent link and add that pack too.</li>
           </ol>
