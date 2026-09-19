@@ -3,7 +3,14 @@
   'use strict';
   const G=window.TT99Games,PDF=window.TT99GamesPDF,GPP=window.TT99GamesParentPractice,SU=window.TT99SchoolUsage,root=document.getElementById('tt99-games-root');
   if(!G||!root)return;
-  const track=(name,params)=>window.TT99Analytics?.track(name,params);
+  function analyticsContext(){
+    const schoolName=String(state?.settings?.personalisation?.schoolName||'').trim();
+    return {
+      school_key:SU?.makeSchoolKey?.(schoolName)||undefined,
+      source_origin:SU?.referrerOrigin?.()||undefined
+    };
+  }
+  const track=(name,params)=>window.TT99Analytics?.track(name,{...analyticsContext(),...(params||{})});
 
   const SETTINGS_KEY='tt99-games-settings-v4',LEGACY_KEYS=['tt99-games-settings-v3','tt99-games-settings-v2','tt99-games-settings-v1'],VOCAB_KEY='tt99-games-vocab-v1';
   const DEFAULTS={
@@ -604,7 +611,7 @@
     const close=()=>{modal.hidden=true;document.body.classList.remove('tt99-parent-open');openButton?.focus();};
     const open=()=>{
       modal.hidden=false;document.body.classList.add('tt99-parent-open');setStatus('');
-      if(personalisation().schoolName)SU?.registerSchool?.(personalisation().schoolName);
+      SU?.trackStudio?.('parent_share_open',personalisation().schoolName||'',{area:'games'});
       track('puzzle_parent_share_open',{game_count:selectedCompatible().length,sheet_count:Number(state.settings.sheets)||0});
       window.setTimeout(()=>modal.querySelector('.tt99-parent-close')?.focus(),0);
     };
@@ -735,6 +742,7 @@
         activity_count:count,
         difficulty:state.settings.engineSettings?.[id]?.difficulty||'standard'
       }));
+      SU?.trackStudio?.('game_pack_download',personalisation().schoolName||'',{area:'games'});
       state.status=kind==='student'?'Pupil sheets PDF created.':kind==='answers'?'Answer key PDF created.':'Combined pupil + answers PDF created.';
       render();
     }catch(err){
