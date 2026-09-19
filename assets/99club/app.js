@@ -8,7 +8,7 @@
 
   const STORAGE_KEY = 'tt99-settings-v1';
   const CUSTOM_KEY = 'tt99-custom-presets-v1';
-  const VERSION = '1.19.4';
+  const VERSION = '1.19.5';
   const APP_NAME = '99 Club Studio';
   const APP_URL = 'https://99studio.uk/';
   const CUSTOM_WORKSPACE_KEY = 'tt99-custom-settings-v1';
@@ -962,6 +962,7 @@
       modal.hidden=false;
       document.body.classList.add('tt99-parent-open');
       setParentStatus('');
+      if(state.school?.schoolName)SU?.registerSchool?.(state.school.schoolName);
       window.setTimeout(()=>modal.querySelector('.tt99-parent-close')?.focus(),0);
     };
     const copy=async(text,message)=>{
