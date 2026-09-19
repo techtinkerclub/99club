@@ -17,7 +17,8 @@ function analyticsAttribution(){
       if(/^https?:\/\//i.test(origin)&&origin!==global.location.origin)sourceOrigin=origin;
     }
   }catch(_){}
-  return {integration_id:integrationId||undefined,source_origin:sourceOrigin||undefined};
+  const appMode=(global.matchMedia?.('(display-mode: standalone)').matches||global.navigator?.standalone===true)?'pwa':'browser';
+  return {integration_id:integrationId||undefined,source_origin:sourceOrigin||undefined,app_mode:appMode};
 }
 const PLAY_ATTRIBUTION=analyticsAttribution();
 const track=(name,params)=>global.TT99Analytics?.track(name,{...PLAY_ATTRIBUTION,...(params||{})});
