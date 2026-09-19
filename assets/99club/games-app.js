@@ -69,6 +69,38 @@
   function humanDate(value){if(!value)return '';const m=String(value).match(/^(\d{4})-(\d{2})-(\d{2})$/);if(!m)return String(value);const d=new Date(Number(m[1]),Number(m[2])-1,Number(m[3]));return d.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});}
   function categorySelected(cat,eligible=compatibleSet()){return cat.engines.filter(id=>eligible.has(id)&&state.settings.selectedEngines.includes(id));}
   function selectedEngineCount(){return selectedCompatible().length;}
+  function puzzleShareConfig(){
+    const schoolUsageKey=SU?.makeSchoolKey?.(personalisation().schoolName)||'';
+    return {settings:G.clone(state.settings),customVocabulary:G.clone(state.customVocabulary),schoolUsageKey};
+  }
+  function puzzleShareLink(){
+    if(!GPP)return {link:'',error:'Parent puzzle sharing is unavailable in this build.'};
+    try{return {link:GPP.buildLink(puzzleShareConfig(),location.origin),error:''};}
+    catch(err){return {link:'',error:err?.message||'This puzzle setup could not be turned into a parent link.'};}
+  }
+  function puzzleShareTitle(){
+    const title=String(personalisation().packTitle||'Maths Games & Puzzles').trim();
+    return title||'Maths Games & Puzzles';
+  }
+  function puzzleShareSummary(){
+    const names=selectedCompatible().map(id=>G.ENGINES[id]?.title||id);
+    const head=`${yearRangeLabel()} · ${names.length} puzzle type${names.length===1?'':'s'} · ${state.settings.sheets*state.settings.activitiesPerSheet} activities`;
+    const sample=names.slice(0,3).join(', ');
+    return sample?`${head} · ${sample}${names.length>3?' + more':''}`:head;
+  }
+  function puzzleShareWebsiteCard(){
+    const {link}=puzzleShareLink();
+    return link&&GPP?GPP.websiteCardHtml(link,puzzleShareTitle(),puzzleShareSummary()):'';
+  }
+  function renderPuzzleParentModal(){
+    if(!GPP)return '';
+    const selected=selectedCompatible();
+    const built=puzzleShareLink();
+    const preview=built.link?puzzleShareWebsiteCard():'';
+    const vocabRelevant=GPP.compactVocabulary?GPP.compactVocabulary(state.customVocabulary,GPP.publicSettings(state.settings)).length:0;
+    return `<div id="tt99-puzzle-parent-modal" class="tt99-parent-modal" hidden><button type="button" class="tt99-parent-backdrop" data-puzzle-parent-close aria-label="Close puzzle sharing"></button><section class="tt99-parent-card" role="dialog" aria-modal="true" aria-labelledby="tt99-puzzle-parent-title"><button type="button" class="tt99-parent-close" data-puzzle-parent-close aria-label="Close puzzle sharing">×</button><span class="tt99-parent-kicker">School-led home practice</span><h2 id="tt99-puzzle-parent-title">Share this puzzle setup</h2><p>Parents get a stripped-down page that creates a fresh puzzle pack and matching answers using these fixed puzzle choices and difficulty settings.</p><div class="tt99-parent-notice"><strong>Privacy by design:</strong> the parent link excludes school/class names, worksheet dates, logos and generated puzzle seeds. If this setup uses relevant My vocabulary entries, those terms and definitions are included so the shared pack can reproduce the intended vocabulary puzzles.</div>${built.error?`<div class="tt99-status">${esc(built.error)}</div>`:`<div class="tt99-parent-current"><strong>Current puzzle setup</strong><small>${esc(puzzleShareSummary())}${vocabRelevant?` · ${vocabRelevant} personal vocabulary entr${vocabRelevant===1?'y':'ies'} included`:''}</small><div class="tt99-parent-website-preview" aria-label="Preview of the school website puzzle card">${preview}</div><div class="tt99-parent-link-row"><input id="tt99-puzzle-parent-link" type="text" readonly value="${esc(built.link)}" aria-label="Puzzle parent practice link"><button type="button" id="tt99-puzzle-copy-link">Copy link</button><a href="${esc(built.link)}" target="_blank" rel="noopener">Open parent view</a></div><div class="tt99-parent-card-tools"><button type="button" id="tt99-puzzle-copy-card">Copy website card</button><button type="button" id="tt99-puzzle-download-card">Download card image</button></div></div>`}<div class="tt99-parent-pack"><div class="tt99-parent-pack__copy"><strong>Save, restore or hand over this setup</strong><small>Your puzzle choices are already remembered automatically in this browser. These files make the setup portable and safe to hand to another member of staff or a website administrator.</small></div><div class="tt99-parent-pack__actions"><button type="button" id="tt99-puzzle-download-web-pack" ${built.link?'':'disabled'}>Download website pack</button><button type="button" id="tt99-puzzle-save-config">Save puzzle setup</button><label class="tt99-parent-restore">Restore puzzle setup<input id="tt99-puzzle-restore-config" type="file" accept="application/json,.json"></label></div></div><div id="tt99-puzzle-parent-status" class="tt99-status" role="status" aria-live="polite" hidden></div><div class="tt99-parent-footer"><span>One shared link represents the whole current puzzle pack. Configure another pack and save/share it separately if the school wants several different home-practice choices.</span><a href="/schools/#puzzle-practice" target="_blank" rel="noopener">Puzzle sharing guide</a></div></section></div>`;
+  }
+
 
   function render(){
     const eligible=compatibleSet();
