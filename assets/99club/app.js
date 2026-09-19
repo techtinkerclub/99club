@@ -165,6 +165,10 @@
   if (!restoredExactSheets) generateAll();
   else { refreshSheetCodes(); refreshRulesError(); persist(); }
   render();
+  window.addEventListener('load',()=>{
+    track('studio_open',{area:'club'});
+    SU?.trackStudio?.('studio_open',state.school?.schoolName||'',{area:'club'});
+  },{once:true});
   setTimeout(loadRecreationFromLocation,0);
 
   function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
