@@ -1,6 +1,6 @@
 /* 99 Club Studio · accountless school website widget configuration.
- * Public, read-only configuration only. No school/pupil names, credentials,
- * arbitrary HTML or personal vocabulary are accepted.
+ * Public, read-only configuration. School name/logo and any vocabulary carried
+ * by a locked puzzle link are intentionally public once embedded by a school.
  */
 (function(global){
 'use strict';
@@ -11,7 +11,8 @@ if(!G||!PP)throw new Error('99 Club widget configuration requires generator + pa
 
 const PREFIX='TT99W1.';
 const VERSION=1;
-const MAX_TOKEN_LENGTH=24000;
+const MAX_TOKEN_LENGTH=32000;
+const WIDGET_TYPES=['club','games','combined'];
 const CLUB_IDS=['11','22','33','44','55','66','77','88','99','bronze','silver','gold','platinum','diamond'];
 const GAME_IDS=[
   'wordsearch','crossword','pyramid','magic','arithmagon','magicshape','numbertrail','numberwheels',
@@ -36,14 +37,19 @@ const GAME_TITLES={
 function clone(v){return v==null?v:JSON.parse(JSON.stringify(v));}
 function obj(v){return !!v&&typeof v==='object'&&!Array.isArray(v);}
 function same(a,b){return JSON.stringify(a)===JSON.stringify(b);}
+function cleanText(v,max=80){return String(v||'').trim().replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').slice(0,max);}
+function cleanLogo(v){
+  const s=String(v||'').trim();
+  if(!/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/i.test(s))return '';
+  return s.length<=18000?s:'';
+}
 function diff(base,current){
   if(Array.isArray(current))return same(base,current)?undefined:clone(current);
   if(!obj(current))return same(base,current)?undefined:current;
   const out={};
   for(const key of Object.keys(current)){
-    // Display-only metadata never belongs in the public widget token.
     if(['id','name','tagline','sourceSchemeId','sourceClubId','worksheetTitle','teacherNote'].includes(key))continue;
-    const d=diff(obj(base)||Array.isArray(base)?base?.[key]:undefined,current[key]);
+    const d=diff((obj(base)||Array.isArray(base))?base?.[key]:undefined,current[key]);
     if(d!==undefined)out[key]=d;
   }
   return Object.keys(out).length?out:undefined;
@@ -55,16 +61,12 @@ function merge(base,patch){
   for(const key of Object.keys(patch))out[key]=merge(out[key],patch[key]);
   return out;
 }
-function safeScheme(v){
-  const id=String(v||'classic');
-  return G.SCHEME_PRESETS?.[id]?id:'classic';
-}
+function safeScheme(v){const id=String(v||'classic');return G.SCHEME_PRESETS?.[id]?id:'classic';}
 function safeOrientation(v){return v==='landscape'?'landscape':'portrait';}
+function safeType(v){return WIDGET_TYPES.includes(String(v))?String(v):'combined';}
 function cleanPuzzleLink(value){
-  const text=String(value||'').trim();
-  if(!text)return '';
-  let u;
-  try{u=new URL(text,'https://99studio.uk');}catch(_){return '';}
+  const text=String(value||'').trim();if(!text)return '';
+  let u;try{u=new URL(text,'https://99studio.uk');}catch(_){return '';}
   if(u.origin!=='https://99studio.uk')return '';
   if(u.pathname!=='/practice/puzzles/'&&!u.pathname.startsWith('/practice/puzzles/'))return '';
   const token=new URLSearchParams(u.hash.replace(/^#/,'' )).get('p')||'';
@@ -77,38 +79,47 @@ function cleanPuzzle(entry){
   const min=Math.max(1,Math.min(6,Number(entry.minYear)||1));
   const max=Math.max(min,Math.min(6,Number(entry.maxYear)||min));
   const count=Math.max(1,Math.min(12,Number(entry.gameCount)||1));
-  return {link,minYear:min,maxYear:max,gameCount:count};
+  const vocabCount=Math.max(0,Math.min(60,Number(entry.vocabCount)||0));
+  return {link,minYear:min,maxYear:max,gameCount:count,vocabCount};
 }
 function normalise(input){
   const src=obj(input)?input:{};
-  const schemeId=safeScheme(src.schemeId);
-  const orientation=safeOrientation(src.orientation);
-  const selectedClubs=[...new Set((Array.isArray(src.selectedClubs)?src.selectedClubs:CLUB_IDS).map(String).filter(x=>CLUB_SET.has(x)))];
+  const widgetType=safeType(src.widgetType||src.type);
+  const schemeId=safeScheme(src.schemeId),orientation=safeOrientation(src.orientation);
+  const selectedDefault=widgetType==='games'?[]:CLUB_IDS;
+  const selectedClubs=[...new Set((Array.isArray(src.selectedClubs)?src.selectedClubs:selectedDefault).map(String).filter(x=>CLUB_SET.has(x)))];
   const clubPatches={};
   if(obj(src.clubPatches))for(const id of selectedClubs)if(obj(src.clubPatches[id]))clubPatches[id]=clone(src.clubPatches[id]);
   const puzzles=(Array.isArray(src.puzzles)?src.puzzles:[]).map(cleanPuzzle).filter(Boolean).slice(0,4);
   const games=[...new Set((Array.isArray(src.games)?src.games:[]).map(String).filter(x=>GAME_SET.has(x)))].slice(0,24);
+  const school={
+    name:cleanText(src.school?.name||src.schoolName||'',80),
+    logo:cleanLogo(src.school?.logo||src.schoolLogo||'')
+  };
   const tabs=[];
-  if(selectedClubs.length)tabs.push('clubs');
-  if(puzzles.length)tabs.push('puzzles');
-  if(games.length)tabs.push('games');
-  const requested=['clubs','puzzles','games'].includes(src.defaultTab)?src.defaultTab:'clubs';
-  const defaultTab=tabs.includes(requested)?requested:(tabs[0]||'clubs');
-  return {v:VERSION,schemeId,orientation,selectedClubs,clubPatches,puzzles,games,defaultTab};
+  if((widgetType==='club'||widgetType==='combined')&&selectedClubs.length)tabs.push('clubs');
+  if((widgetType==='games'||widgetType==='combined')&&puzzles.length)tabs.push('puzzles');
+  if((widgetType==='games'||widgetType==='combined')&&games.length)tabs.push('games');
+  const requested=['clubs','puzzles','games'].includes(src.defaultTab)?src.defaultTab:(widgetType==='games'?'puzzles':'clubs');
+  const defaultTab=tabs.includes(requested)?requested:(tabs[0]||(widgetType==='games'?'games':'clubs'));
+  return {v:VERSION,widgetType,school,schemeId,orientation,selectedClubs,clubPatches,puzzles,games,defaultTab};
+}
+function compactPublic(input){
+  const c=normalise(input),out=clone(c);
+  if(c.widgetType==='club'){out.puzzles=[];out.games=[];out.defaultTab='clubs';}
+  if(c.widgetType==='games'){out.selectedClubs=[];out.clubPatches={};if(!['puzzles','games'].includes(out.defaultTab))out.defaultTab=out.puzzles.length?'puzzles':'games';}
+  return out;
 }
 function fromClubRules(input){
   const src=obj(input)?input:{},schemeId=safeScheme(src.schemeId),orientation=safeOrientation(src.orientation);
-  const rulesMap=obj(src.clubs)?src.clubs:{};
-  const clubPatches={};
+  const rulesMap=obj(src.clubs)?src.clubs:{},clubPatches={};
   for(const id of CLUB_IDS){
-    const current=rulesMap[id];
-    if(!obj(current))continue;
-    const base=PP.baseRules(schemeId,id);
-    if(!base)continue;
-    const patch=diff(base,G.normalizeRules(clone(current)));
-    if(patch!==undefined)clubPatches[id]=patch;
+    const current=rulesMap[id];if(!obj(current))continue;
+    const base=PP.baseRules(schemeId,id);if(!base)continue;
+    const patch=diff(base,G.normalizeRules(clone(current)));if(patch!==undefined)clubPatches[id]=patch;
   }
-  return normalise({schemeId,orientation,selectedClubs:CLUB_IDS,clubPatches,puzzles:src.puzzles||[],games:src.games||[],defaultTab:src.defaultTab});
+  const school={name:src.school?.name||src.school?.schoolName||src.schoolName||'',logo:src.school?.logo||src.school?.logoDataUrl||src.schoolLogo||''};
+  return normalise({widgetType:src.widgetType||'club',school,schemeId,orientation,selectedClubs:CLUB_IDS,clubPatches,puzzles:src.puzzles||[],games:src.games||[],defaultTab:src.defaultTab});
 }
 function clubRules(cfg,id){
   const c=normalise(cfg),base=PP.baseRules(c.schemeId,id);
@@ -131,8 +142,8 @@ function b64ToUtf8(text){
   return new TextDecoder().decode(bytes);
 }
 function encode(input){
-  const token=PREFIX+utf8ToB64(JSON.stringify(normalise(input)));
-  if(token.length>MAX_TOKEN_LENGTH)throw new Error('This widget configuration is too large. Reduce the number of puzzle packs or games.');
+  const token=PREFIX+utf8ToB64(JSON.stringify(compactPublic(input)));
+  if(token.length>MAX_TOKEN_LENGTH)throw new Error('This widget configuration is too large. Use a smaller logo or reduce the number of puzzle packs.');
   return token;
 }
 function decode(token){
@@ -143,20 +154,19 @@ function decode(token){
   if(Number(parsed?.v)!==VERSION)throw new Error('Unsupported widget configuration version');
   return normalise(parsed);
 }
-function tokenFromText(value){
-  const text=String(value||'').trim();
-  const direct=text.match(/TT99W1\.[A-Za-z0-9_-]+/);return direct?direct[0]:'';
-}
+function tokenFromText(value){const m=String(value||'').trim().match(/TT99W1\.[A-Za-z0-9_-]+/);return m?m[0]:'';}
 function buildUrl(input,origin){
   const base=String(origin||'https://99studio.uk').replace(/\/+$/,'')||'https://99studio.uk';
   return base+'/widget/#w='+encodeURIComponent(encode(input));
 }
 function embedCode(input,origin){
-  const src=buildUrl(input,origin);
-  return '<iframe src="'+src.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'" title="Maths home practice" loading="lazy" referrerpolicy="no-referrer" sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox" style="display:block;width:100%;height:690px;border:0;border-radius:14px;" ></iframe>';
+  const c=compactPublic(input),src=buildUrl(c,origin);
+  const height=c.widgetType==='club'?620:(c.widgetType==='games'?690:720);
+  const title=c.widgetType==='club'?'99 Club home practice':c.widgetType==='games'?'Maths games and puzzles':'Maths home practice';
+  return '<iframe src="'+src.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'" title="'+title+'" loading="lazy" referrerpolicy="no-referrer" sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox" style="display:block;width:100%;height:'+height+'px;border:0;border-radius:14px;" ></iframe>';
 }
 
-const api={PREFIX,VERSION,MAX_TOKEN_LENGTH,CLUB_IDS,GAME_IDS,GAME_TITLES,normalise,fromClubRules,clubRules,clubLink,encode,decode,tokenFromText,buildUrl,embedCode};
+const api={PREFIX,VERSION,MAX_TOKEN_LENGTH,WIDGET_TYPES,CLUB_IDS,GAME_IDS,GAME_TITLES,normalise,compactPublic,fromClubRules,clubRules,clubLink,encode,decode,tokenFromText,buildUrl,embedCode};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 global.TT99SchoolWidget=api;
 })(typeof window!=='undefined'?window:globalThis);
