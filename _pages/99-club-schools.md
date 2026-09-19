@@ -23,7 +23,7 @@ sitemap: true
         <section class="tt99-guide-section tt99-guide-highlight">
           <h2>What the school website needs</h2>
           <p>The recommended setup is just a normal HTTPS link from the school website to a 99 Club Studio parent-practice page. The school does not need to install a plugin, add JavaScript, embed an iframe, connect an account or give 99 Club Studio access to its website or content-management system.</p>
-          <p>99 Club Studio can also provide optional ready-made button HTML. That button is still only an ordinary <code>&lt;a&gt;</code> hyperlink with inline styling; it contains no script, iframe or executable integration.</p>
+          <p>99 Club Studio can also provide optional ready-made website-card HTML. Each card is still only an ordinary <code>&lt;a&gt;</code> hyperlink with inline styling, the club badge image and descriptive text; it contains no script, iframe or executable integration. If a school CMS does not allow custom HTML or remote images, use the plain practice link with the CMS's own button/card component instead.</p>
         </section>
 
         <section class="tt99-guide-section">
@@ -46,8 +46,8 @@ sitemap: true
         </section>
 
         <section class="tt99-guide-section">
-          <h2>Useful wording for a school website</h2>
-          <p><strong>99 Club home practice:</strong> Use the button for your child's current club to generate a fresh printable practice sheet and matching answers. The maths settings have been chosen in advance; no account or sign-in is required.</p>
+          <h2>Website links and cards</h2>
+          <p><strong>99 Club home practice:</strong> Use the card for your child's current club to generate a fresh printable practice sheet and matching answers. The maths settings have been chosen in advance; no account or sign-in is required.</p><p>The Studio share panel provides both a plain HTTPS link and an optional compact card styled to match the 99 Club badges. The plain link remains the simplest choice for school website teams with stricter content-security or accessibility policies.</p>
           <p>If your school or IT provider has its own website, safeguarding or data-protection approval process, it should of course apply that process before publishing any external link.</p>
         </section>
       </div>

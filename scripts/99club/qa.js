@@ -408,8 +408,10 @@ try{
   const link=ParentPractice.buildLink(standard,'https://99studio.uk');
   if(!link.startsWith('https://99studio.uk/practice/#p=TT99P1.'))fail('parent-practice','Parent practice link does not use the dedicated fragment route',link.slice(0,90));
   if(link.includes('?'))fail('parent-practice','Parent practice rules should be carried in the URL fragment, not the query string');
-  const button=ParentPractice.buttonHtml(link,'33 Club practice','teal');
-  if(!/^<a /.test(button)||/script|iframe/i.test(button)||!button.includes('noopener'))fail('parent-practice','School website button is not a plain safe hyperlink');
+  const card=ParentPractice.websiteCardHtml(link,'33 Club','https://99studio.uk/assets/99club/images/33club.png','33 questions · 5 min · Printable worksheet + answers');
+  if(!/^<a /.test(card)||/script|iframe/i.test(card)||!card.includes('noopener'))fail('parent-practice','School website card is not a plain safe hyperlink');
+  if(!card.includes('33club.png')||!card.includes('33 Club')||!card.includes('Printable worksheet + answers'))fail('parent-practice','School website card is missing its badge/title/summary');
+  if(!card.includes('width:100%')||!card.includes('border-radius:14px'))fail('parent-practice','School website card lost its compact card styling');
   const usage=SchoolUsage.practicePayload('practice_download',decoded);
   if(!usage||usage.school_key!==schoolKey||usage.club_id!=='33'||usage.question_count!==33)fail('school-usage','Aggregate practice usage payload is incomplete');
   for(const forbidden of ['school_name','pupil','parent','seed','url','referrer','score'])if(JSON.stringify(usage).includes(forbidden))fail('school-usage',`Practice usage payload leaked forbidden field ${forbidden}`);
@@ -421,21 +423,25 @@ try{
 }catch(e){fail('parent-practice','Codec smoke test threw',e.stack||e.message);}
 
 const parentPage=read('_pages/99-club-practice.md');
-if(!/layout:\s*null/.test(parentPage)||! /permalink:\s*\/practice\//.test(parentPage))fail('parent-practice','Dedicated parent practice route is not standalone');
-if(/analytics|gtag|googletagmanager/i.test(parentPage))fail('parent-practice','Parent practice page loads analytics code');
-for(const required of ['generator.js','simple-pdf.js','pdf-layout.js','school-usage-config.js','school-usage.js','parent-practice.js','parent-practice-page.js'])if(!parentPage.includes(required))fail('parent-practice',`Parent practice page missing ${required}`);
+const parentLayout=read('_layouts/practice.html');
+if(!/layout:\s*practice/.test(parentPage)||! /permalink:\s*\/practice\//.test(parentPage))fail('parent-practice','Dedicated parent practice route is not using the standalone practice layout');
+if(/<!doctype html>/i.test(parentPage))fail('parent-practice','Practice page must not contain a markdown-rendered doctype');
+if(!/^<!doctype html>/i.test(parentLayout.trim()))fail('parent-practice','Standalone practice layout is missing the real document doctype');
+if(/analytics|gtag|googletagmanager/i.test(parentLayout))fail('parent-practice','Parent practice layout loads Google Analytics code');
+for(const required of ['generator.js','simple-pdf.js','pdf-layout.js','school-usage-config.js','school-usage.js','parent-practice.js','parent-practice-page.js'])if(!parentLayout.includes(required))fail('parent-practice',`Parent practice layout missing ${required}`);
 const parentUi=read('assets/99club/parent-practice-page.js');
 if(/localStorage|sessionStorage/.test(parentUi))fail('parent-practice','Parent practice page stores browser profile/progress state');
 if(!parentUi.includes("kind:'both'")||!parentUi.includes("answerContext:{label:'Answer copy'"))fail('parent-practice','Parent page does not create the promised combined worksheet + answers PDF');
 if(!parentUi.includes('G.newSeed'))fail('parent-practice','Parent downloads are not regenerated with fresh questions');
 const rootApp=read('assets/99club/app.js'),rootPage=read('index.md');
-for(const required of ['tt99-parent-open','PARENT_CLUB_IDS','parentPracticeLink','PP.buttonHtml','tt99-parent-copy-all','SU?.makeSchoolKey'])if(!rootApp.includes(required))fail('parent-practice',`Teacher sharing UI missing ${required}`);
+for(const required of ['tt99-parent-open','PARENT_CLUB_IDS','parentPracticeLink','PP.websiteCardHtml','tt99-parent-copy-current-card','data-parent-copy-card','tt99-parent-copy-all','SU?.makeSchoolKey'])if(!rootApp.includes(required))fail('parent-practice',`Teacher sharing UI missing ${required}`);
 if(rootPage.indexOf('school-usage.js')<0||rootPage.indexOf('school-usage.js')>rootPage.indexOf('parent-practice.js'))fail('school-usage','School usage module must load before the parent practice codec');
 if(rootPage.indexOf('parent-practice.js')<0||rootPage.indexOf('parent-practice.js')>rootPage.indexOf('app.js'))fail('parent-practice','Parent practice codec must load before the main app');
 const pdfLayout=read('assets/99club/pdf-layout.js');
 if(!pdfLayout.includes('answerContext={}')||!pdfLayout.includes("answerContext?.label||'Teacher answer copy'"))fail('parent-practice','PDF layout lacks parent-friendly answer-copy context');
 const schoolInfo=read('_pages/99-club-schools.md');
 if(!schoolInfo.includes('normal HTTPS link')||!schoolInfo.includes('plugin')||!schoolInfo.includes('iframe'))fail('parent-practice','Information-for-schools page does not explain the no-integration security model');
+if(!schoolInfo.includes('website-card HTML')||!schoolInfo.includes('plain link remains the simplest choice'))fail('parent-practice','Information-for-schools page does not explain the optional website-card fallback');
 ok('parent-practice','Teacher share UI, stripped parent route, combined PDF and school information contract checked');
 
 /* ---------- output ---------- */
