@@ -451,6 +451,70 @@ if(!schoolInfo.includes('ready-made website card HTML')||!schoolInfo.includes("w
 for(const phrase of ['Option 3: use a downloadable PNG card image','The PNG itself does not contain the clickable link','Save the school\'s club configuration','Download the complete website pack','practice-links.csv','99-club-school-configuration.json','Copy all links','Important when the school changes the rules','Bronze, Silver, Gold, Platinum or Diamond'])if(!schoolInfo.includes(phrase))fail('parent-practice',`School website guide missing: ${phrase}`);
 ok('parent-practice','Teacher share UI, stripped parent route, combined PDF and school information contract checked');
 
+/* ---------- school-led puzzle practice sharing ---------- */
+const puzzleParentAssets=['assets/99club/games-parent-practice.js','assets/99club/games-parent-practice-page.js','assets/99club/school-usage.js','assets/99club/games-app.js'];
+for(const rel of puzzleParentAssets){
+  if(!exists(rel)){fail('puzzle-parent',`Missing ${rel}`);continue;}
+  try{new Function(read(rel));}catch(e){fail('puzzle-parent',`Syntax error in ${rel}`,e.message);}
+}
+try{
+  global.TT99_SCHOOL_USAGE_CONFIG={enabled:false,endpoint:'',schemaVersion:1};
+  delete global.TT99SchoolUsage;delete global.TT99GamesParentPractice;
+  const SchoolUsage2=load('assets/99club/school-usage.js');
+  const PuzzleParent=load('assets/99club/games-parent-practice.js');
+  const schoolKey=SchoolUsage2.makeSchoolKey('Example Primary School');
+  const settings=G.normalizeSettings({
+    minYear:4,maxYear:5,topics:['calculation'],sheets:2,activitiesPerSheet:2,workedExamples:'front',
+    selectedEngines:['pyramid','magic'],
+    engineSettings:{
+      pyramid:{difficulty:'challenge',levels:'5',clueLevel:'fewer'},
+      magic:{difficulty:'easy',gridSize:'3',puzzleType:'missing',numberPattern:'classic',clueLevel:'more'}
+    },
+    personalisation:{schoolName:'Example Primary School',packTitle:'Private Y5 pack',classLabel:'5B',worksheetDate:'2026-09-19',logoDataUrl:'',logoWidth:0,logoHeight:0}
+  });
+  const cfg={settings,customVocabulary:[],schoolUsageKey:schoolKey};
+  const compact=PuzzleParent.compactPayload(cfg);
+  if(compact.s.personalisation)fail('puzzle-parent','Parent puzzle payload leaked printable personalisation');
+  if(Object.keys(compact.s.engineSettings||{}).some(id=>!compact.s.selectedEngines.includes(id)))fail('puzzle-parent','Parent puzzle payload carries unselected engine settings');
+  const token=PuzzleParent.encode(cfg),decoded=PuzzleParent.decode(token);
+  if(token.length>PuzzleParent.MAX_TOKEN_LENGTH)fail('puzzle-parent','Puzzle parent token exceeds size contract',String(token.length));
+  if(decoded.schoolUsageKey!==schoolKey)fail('puzzle-parent','Opaque school key did not survive puzzle-link round trip');
+  if(decoded.settings.personalisation.schoolName||decoded.settings.personalisation.classLabel||decoded.settings.personalisation.worksheetDate||decoded.settings.personalisation.logoDataUrl)fail('puzzle-parent','Decoded parent puzzle settings contain school/class/date/logo personalisation');
+  if(decoded.settings.minYear!==4||decoded.settings.maxYear!==5||decoded.settings.sheets!==2||decoded.settings.activitiesPerSheet!==2)fail('puzzle-parent','Puzzle pack-level settings did not survive parent-link round trip');
+  if(decoded.settings.engineSettings.pyramid.difficulty!=='challenge'||String(decoded.settings.engineSettings.pyramid.levels)!=='5')fail('puzzle-parent','Per-engine puzzle settings did not survive parent-link round trip');
+  if(JSON.stringify(compact).includes('Example Primary School')||JSON.stringify(compact).includes('Private Y5 pack')||JSON.stringify(compact).includes('5B'))fail('puzzle-parent','School/class/title data leaked into parent puzzle payload');
+
+  const vocabSettings=G.normalizeSettings({minYear:3,maxYear:4,topics:['calculation'],selectedEngines:['wordsearch'],engineSettings:{wordsearch:{difficulty:'standard'}}});
+  const custom=[{topic:'calculation',term:'Quotient',definition:'The result of a division.',minYear:3,maxYear:6},{topic:'geometry',term:'Vertex',definition:'A corner point.',minYear:2,maxYear:6}];
+  const vocabPayload=PuzzleParent.compactPayload({settings:vocabSettings,customVocabulary:custom,schoolUsageKey:schoolKey});
+  if(!Array.isArray(vocabPayload.x)||vocabPayload.x.length!==1||vocabPayload.x[0][1]!=='Quotient')fail('puzzle-parent','Relevant custom vocabulary is not scoped correctly for shared vocabulary puzzles');
+  const noVocab=PuzzleParent.compactPayload({settings:G.normalizeSettings({...vocabSettings,selectedEngines:['pyramid']}),customVocabulary:custom,schoolUsageKey:schoolKey});
+  if(noVocab.x)fail('puzzle-parent','Custom vocabulary was included when no shared vocabulary puzzle needs it');
+
+  const link=PuzzleParent.buildLink(cfg,'https://99studio.uk');
+  if(!link.startsWith('https://99studio.uk/practice/puzzles/#p=TT99GP1.'))fail('puzzle-parent','Puzzle parent link does not use the dedicated fragment route',link.slice(0,100));
+  if(link.includes('?'))fail('puzzle-parent','Puzzle practice settings should be carried in the URL fragment');
+  const card=PuzzleParent.websiteCardHtml(link,'Maths puzzle practice','Years 4–5 · 2 puzzle types');
+  if(!/^<a /.test(card)||/script|iframe/i.test(card)||!card.includes('noopener'))fail('puzzle-parent','Puzzle website card is not a plain safe hyperlink');
+
+  const usage=SchoolUsage2.puzzlePracticePayload('puzzle_practice_download',decoded);
+  if(!usage||usage.school_key!==schoolKey||usage.game_count!==2||usage.min_year!==4||usage.max_year!==5||usage.sheet_count!==2||usage.activities_per_sheet!==2)fail('school-usage','Aggregate puzzle-practice payload is incomplete');
+  for(const forbidden of ['school_name','pupil','parent','seed','url','referrer','score','customVocabulary'])if(JSON.stringify(usage).includes(forbidden))fail('school-usage',`Puzzle usage payload leaked forbidden field ${forbidden}`);
+  if(SchoolUsage2.enabled())fail('school-usage','School telemetry must remain disabled until the final analytics design is approved');
+
+  const puzzlePage=read('_pages/99-club-puzzle-practice.md'),puzzleLayout=read('_layouts/puzzle-practice.html'),gamesPage=read('_pages/99-club-games.md'),gamesApp=read('assets/99club/games-app.js');
+  if(!/layout:\s*puzzle-practice/.test(puzzlePage)||!/permalink:\s*\/practice\/puzzles\//.test(puzzlePage))fail('puzzle-parent','Dedicated puzzle practice route is missing');
+  if(/analytics|gtag|googletagmanager/i.test(puzzleLayout))fail('puzzle-parent','Puzzle parent layout loads Google Analytics');
+  for(const required of ['games-engine.js','games-pdf.js','school-usage.js','games-parent-practice.js','games-parent-practice-page.js'])if(!puzzleLayout.includes(required))fail('puzzle-parent',`Puzzle parent layout missing ${required}`);
+  if(gamesPage.indexOf('games-parent-practice.js')<0||gamesPage.indexOf('games-parent-practice.js')>gamesPage.indexOf('games-app.js'))fail('puzzle-parent','Puzzle sharing codec must load before games-app.js');
+  for(const required of ['games-parent-share','tt99-puzzle-parent-modal','Save puzzle setup','Restore puzzle setup','Download website pack','puzzleConfigData','restorePuzzleConfig','downloadPuzzleWebsitePack','createPuzzleShareCardBlob','tt99-school-puzzle-config'])if(!gamesApp.includes(required))fail('puzzle-parent',`Printable puzzle sharing UI missing ${required}`);
+  if(!gamesApp.includes("kind:'tt99-school-puzzle-config'")||!gamesApp.includes('customVocabulary:G.clone(state.customVocabulary)'))fail('puzzle-parent','Portable puzzle setup does not preserve full settings and custom vocabulary');
+  const schoolInfo2=read('_pages/99-club-schools.md'),privacy2=read('_pages/privacy.md');
+  for(const phrase of ['id="puzzle-practice"','Save puzzle setup','Restore puzzle setup','Download website pack','Personal vocabulary'])if(!schoolInfo2.includes(phrase))fail('puzzle-parent',`School puzzle-sharing guide missing: ${phrase}`);
+  if(!privacy2.includes('/practice/puzzles/')||!privacy2.includes('My vocabulary'))fail('puzzle-parent','Privacy page does not describe puzzle parent-practice links');
+  ok('puzzle-parent','Locked puzzle pack links, portable setup, website pack and school-level telemetry contract checked');
+}catch(e){fail('puzzle-parent','Puzzle parent sharing QA threw',e.stack||e.message);}
+
 /* ---------- output ---------- */
 const report={generatedAt:new Date().toISOString(),samplesPerDifficulty:SAMPLES,generated,engineCount:G?.ENGINES?Object.keys(G.ENGINES).length:0,onlineAdapterCount:adapterIds.length,guideCount:guideIds.length,failures,warnings,notes};
 const out=path.join(ROOT,'99club-qa-report.json');fs.writeFileSync(out,JSON.stringify(report,null,2)+'\n');

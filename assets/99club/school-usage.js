@@ -87,6 +87,30 @@
     return out;
   }
 
+  function puzzlePracticePayload(eventName,config){
+    const c=config&&typeof config==='object'?config:{};
+    const s=c.settings&&typeof c.settings==='object'?c.settings:{};
+    const schoolKey=validSchoolKey(c.schoolUsageKey||c.schoolKey||c.schoolUsage?.schoolKey);
+    if(!schoolKey)return null;
+    const event=String(eventName||'').trim();
+    if(!/^(puzzle_practice_open|puzzle_practice_download)$/.test(event))return null;
+    const gameIds=(Array.isArray(s.selectedEngines)?s.selectedEngines:[]).map(id=>cleanId(id)).filter(Boolean).slice(0,50);
+    const out={
+      schema_version:SCHEMA_VERSION,
+      event,
+      school_key:schoolKey,
+      game_ids:gameIds,
+      game_count:gameIds.length,
+      min_year:Number.isFinite(Number(s.minYear))?Number(s.minYear):undefined,
+      max_year:Number.isFinite(Number(s.maxYear))?Number(s.maxYear):undefined,
+      sheet_count:Number.isFinite(Number(s.sheets))?Number(s.sheets):undefined,
+      activities_per_sheet:Number.isFinite(Number(s.activitiesPerSheet))?Number(s.activitiesPerSheet):undefined,
+      worked_examples:s.workedExamples==='front'?1:0
+    };
+    Object.keys(out).forEach(k=>out[k]===undefined&&delete out[k]);
+    return out;
+  }
+
   function enabled(){
     return cfg.enabled===true && /^https:\/\//i.test(String(cfg.endpoint||'').trim());
   }
@@ -121,6 +145,12 @@
     return sendPayload(payload);
   }
 
+  function trackPuzzlePractice(eventName,config){
+    const payload=puzzlePracticePayload(eventName,config);
+    if(!payload)return Promise.resolve(false);
+    return sendPayload(payload);
+  }
+
   function registrationPayload(name){
     const d=schoolDescriptor(name);
     if(!d)return null;
@@ -139,9 +169,11 @@
     validSchoolKey,
     schoolDescriptor,
     practicePayload,
+    puzzlePracticePayload,
     registrationPayload,
     registerSchool,
-    trackPractice
+    trackPractice,
+    trackPuzzlePractice
   };
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   global.TT99SchoolUsage=api;

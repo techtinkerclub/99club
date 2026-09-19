@@ -29,6 +29,7 @@ Once activated, GA4 provides the normal website analytics layer, including page 
   - `variant_count`
   - `question_count`
   - `orientation`
+- `action`
   - `answer_qr`
 
 ### Printable Games & Puzzles
@@ -107,6 +108,19 @@ Useful custom metrics:
 - `hint_number`
 - `duration_seconds`
 
+### Printable puzzle sharing events on the main Studio page
+
+The normal `/games/` page continues to use consent-controlled GA4 for generic product events. The school-sharing controls add two non-personal action events:
+
+- `puzzle_parent_share_open`
+  - `game_count`
+  - `sheet_count`
+- `puzzle_parent_share_action`
+  - `action` (`copy_link`, `copy_card`, `download_card`, `save_config`, `download_website_pack`)
+  - `game_count`
+
+Do not add the school name, custom vocabulary, parent URL, puzzle seed or generated question content to these GA4 events.
+
 ## Data minimisation rule
 
 Never add pupil names, school names, teacher names, uploaded logos, custom vocabulary, worksheet question text, answers, contact-form contents, generated seeds or recreation codes to analytics events.
@@ -131,6 +145,8 @@ Prepared event schema (v1):
 - `school_register`: `school_key`, `school_name`
 - `practice_open`: `school_key`, `club_id`, `scheme_id`, `question_count`, `mode`, `orientation`
 - `practice_download`: same aggregate practice fields as `practice_open`
+- `puzzle_practice_open`: `school_key`, `game_ids`, `game_count`, `min_year`, `max_year`, `sheet_count`, `activities_per_sheet`, `worked_examples`
+- `puzzle_practice_download`: same aggregate puzzle fields as `puzzle_practice_open`
 
 Before enabling this telemetry:
 
