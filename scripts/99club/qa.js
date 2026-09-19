@@ -431,6 +431,8 @@ if(/analytics|gtag|googletagmanager/i.test(parentLayout))fail('parent-practice',
 for(const required of ['generator.js','simple-pdf.js','pdf-layout.js','school-usage-config.js','school-usage.js','parent-practice.js','parent-practice-page.js'])if(!parentLayout.includes(required))fail('parent-practice',`Parent practice layout missing ${required}`);
 const parentUi=read('assets/99club/parent-practice-page.js');
 if(/localStorage|sessionStorage/.test(parentUi))fail('parent-practice','Parent practice page stores browser profile/progress state');
+if(!rootApp.includes('parentPracticePreviewLink')||!rootApp.includes("searchParams.set('preview','1')"))fail('parent-practice','Teacher Preview links are not marked with preview=1 for PWA-safe return navigation');
+if(!parentUi.includes('isTeacherPreview')||!parentUi.includes('Back to 99 Club Studio')||!parentUi.includes('tt99-practice-previewbar'))fail('parent-practice','Teacher parent-practice preview is missing its PWA-safe return control');
 if(!parentUi.includes("kind:'both'")||!parentUi.includes("answerContext:{label:'Answer copy'"))fail('parent-practice','Parent page does not create the promised combined worksheet + answers PDF');
 if(!parentUi.includes('G.newSeed'))fail('parent-practice','Parent downloads are not regenerated with fresh questions');
 for(const label of ['Bronze Club','Silver Club','Gold Club','Platinum Club','Diamond Club'])if(!parentUi.includes(label))fail('parent-practice',`Parent view is missing proper post-99 label ${label}`);
@@ -447,6 +449,7 @@ if(rootApp.includes("That school configuration uses a worksheet generation versi
 if(!rootApp.includes("cards/'+parentPracticeCardFilename(id)")||!rootApp.includes("README.html")||!rootApp.includes("practice-links.csv"))fail('parent-practice','Website pack does not include cards, guide and link mapping');
 const schoolInfo=read('_pages/99-club-schools.md');
 const schoolWidgetHelp=read('_pages/99-club-widget-help.md');
+if(!schoolInfo.includes('School website integration help'))fail('parent-practice','Master school guide is not labelled School website integration help');
 if(!schoolInfo.includes('normal HTTPS link')||!schoolInfo.includes('optional accountless')||!schoolInfo.includes('iframe/embed'))fail('parent-practice','Information-for-schools page does not distinguish no-integration links/cards from the optional accountless widget embed');
 if(!schoolInfo.includes('ready-made website card HTML')||!schoolInfo.includes("website's own card or button"))fail('parent-practice','Information-for-schools page does not explain the website-card/plain-link choices');
 for(const phrase of ['Website words explained in plain English','Create a 99 Club Widget','Create a Maths Games Widget','Put the widget on the school website','Change a widget later','Custom vocabulary: useful, but remember it is public','Troubleshooting','Before publishing: teacher-friendly checklist'])if(!schoolWidgetHelp.includes(phrase))fail('parent-practice',`Detailed widget guide missing: ${phrase}`);
@@ -508,12 +511,15 @@ try{
   for(const forbidden of ['school_name','pupil','parent','seed','url','referrer','score','customVocabulary'])if(JSON.stringify(usage).includes(forbidden))fail('school-usage',`Puzzle usage payload leaked forbidden field ${forbidden}`);
   if(SchoolUsage2.enabled())fail('school-usage','School telemetry must remain disabled until the final analytics design is approved');
 
-  const puzzlePage=read('_pages/99-club-puzzle-practice.md'),puzzleLayout=read('_layouts/puzzle-practice.html'),gamesPage=read('_pages/99-club-games.md'),gamesApp=read('assets/99club/games-app.js');
+  const puzzlePage=read('_pages/99-club-puzzle-practice.md'),puzzleLayout=read('_layouts/puzzle-practice.html'),gamesPage=read('_pages/99-club-games.md'),gamesApp=read('assets/99club/games-app.js'),puzzleParentUi=read('assets/99club/games-parent-practice-page.js');
   if(!/layout:\s*puzzle-practice/.test(puzzlePage)||!/permalink:\s*\/practice\/puzzles\//.test(puzzlePage))fail('puzzle-parent','Dedicated puzzle practice route is missing');
   if(/analytics|gtag|googletagmanager/i.test(puzzleLayout))fail('puzzle-parent','Puzzle parent layout loads Google Analytics');
   for(const required of ['games-engine.js','games-pdf.js','school-usage.js','games-parent-practice.js','games-parent-practice-page.js'])if(!puzzleLayout.includes(required))fail('puzzle-parent',`Puzzle parent layout missing ${required}`);
   if(gamesPage.indexOf('games-parent-practice.js')<0||gamesPage.indexOf('games-parent-practice.js')>gamesPage.indexOf('games-app.js'))fail('puzzle-parent','Puzzle sharing codec must load before games-app.js');
   for(const required of ['games-parent-share','tt99-puzzle-parent-modal','Save puzzle setup','Restore puzzle setup','Download website pack','puzzleConfigData','restorePuzzleConfig','downloadPuzzleWebsitePack','createPuzzleShareCardBlob','tt99-school-puzzle-config','open_parent_view','restore_config'])if(!gamesApp.includes(required))fail('puzzle-parent',`Printable puzzle sharing UI missing ${required}`);
+  if(!gamesApp.includes('puzzleSharePreviewLink')||!gamesApp.includes("searchParams.set('preview','1')"))fail('puzzle-parent','Puzzle teacher preview links are not marked with preview=1 for PWA-safe return navigation');
+  if(!puzzleParentUi.includes('isTeacherPreview')||!puzzleParentUi.includes('Back to Maths Games &amp; Puzzles')||!puzzleParentUi.includes('tt99-practice-previewbar'))fail('puzzle-parent','Puzzle teacher preview is missing its PWA-safe return control');
+  if(!gamesApp.includes('Open widget builder')||gamesApp.includes('Add current pack to widget'))fail('puzzle-parent','Maths Games widget action is not aligned with the 99 Club Open widget builder wording');
   if(!gamesApp.includes("kind:'tt99-school-puzzle-config'")||!gamesApp.includes('customVocabulary:G.clone(state.customVocabulary)'))fail('puzzle-parent','Portable puzzle setup does not preserve full settings and custom vocabulary');
   const schoolInfo2=read('_pages/99-club-schools.md'),privacy2=read('_pages/privacy.md');
   for(const phrase of ['id="puzzle-practice"','Save puzzle setup','Restore puzzle setup','Download website pack','Personal vocabulary'])if(!schoolInfo2.includes(phrase))fail('puzzle-parent',`School puzzle-sharing guide missing: ${phrase}`);
