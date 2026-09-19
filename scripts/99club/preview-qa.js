@@ -20,8 +20,9 @@ function prepare(){
     const params=new URLSearchParams(location.search);
     const batches=Math.max(1,Math.min(8,Number(params.get('batches'))||2));
     const batch=Math.max(0,Math.min(batches-1,Number(params.get('batch'))||0));
-    const cut=Math.ceil(all.length/batches),ids=all.slice(batch*cut,Math.min(all.length,(batch+1)*cut));
+    const start=Math.floor(all.length*batch/batches),end=Math.floor(all.length*(batch+1)/batches),ids=all.slice(start,end);
     window.__TT99_PREVIEW_QA_IDS=ids.slice();
+    window.__TT99_PREVIEW_QA_BATCH=batch;
     localStorage.setItem('tt99-games-pack-mode-v1','manual');
     localStorage.setItem('tt99-games-activity-count-v1',String(ids.length));
     localStorage.setItem('tt99-games-activities-per-sheet-v2','2');
@@ -177,8 +178,10 @@ function prepare(){
     async function run(){
       try{
         await sleep(1800);
-        await previewReplaceTest();
-        await configurePlacementTest();
+        if((window.__TT99_PREVIEW_QA_BATCH||0)===0){
+          await previewReplaceTest();
+          await configurePlacementTest();
+        }
         report.engineIds=(window.__TT99_PREVIEW_QA_IDS||[]).slice();
         let stack=document.querySelector('.tt99-games-pupil-pages');
         if(!stack)return fail('boot','Pupil preview stack missing');
