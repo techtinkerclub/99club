@@ -34,13 +34,14 @@ sitemap: true
 
         <section class="tt99-guide-section">
           <h2>What is not put into the practice link</h2>
-          <p>Parent-practice links deliberately exclude pupil names, parent details, school names, teacher names, uploaded logos, worksheet dates, scores, progress history, teacher notes and generated question seeds.</p>
-          <div class="tt99-guide-note"><strong>No school or pupil account is required.</strong> The maths rules are carried in the part of the link after <code>#</code> and interpreted in the browser when the parent opens the page.</div>
+          <p>Parent-practice links deliberately exclude pupil names, parent details, teacher names, uploaded logos, worksheet dates, scores, progress history, teacher notes and generated question seeds. If a school name is present in Studio when links are created, an opaque school-level key can be included so future aggregate usage can be attributed to the issuing school without putting the school name itself into the parent link.</p>
+          <div class="tt99-guide-note"><strong>No school or pupil account is required.</strong> The maths rules and optional opaque school key are carried in the part of the link after <code>#</code> and interpreted in the browser when the parent opens the page.</div>
         </section>
 
         <section class="tt99-guide-section">
           <h2>Parent-practice page privacy</h2>
-          <p>The dedicated <code>/practice/</code> page is intentionally separate from the main Studio interface. It does not load the Studio analytics or advertising code, does not ask for a login, and does not request a pupil name, email address, score or progress information. Worksheet generation and PDF creation happen in the browser.</p>
+          <p>The dedicated <code>/practice/</code> page is intentionally separate from the main Studio interface. It does not load Google Analytics or advertising code, does not ask for a login, and does not request a pupil name, email address, score or progress information. Worksheet generation and PDF creation happen in the browser.</p>
+          <p>The code now includes a separate school-level usage telemetry path for future aggregate statistics such as which club resources are downloaded through a school-issued link. It is currently disabled and no collection endpoint is configured. The final analytics/privacy wording will be updated before that collection is switched on.</p>
           <p>The wider 99 Club Studio website has a separate <a href="/privacy/">Privacy &amp; analytics</a> page describing analytics choices on the main site.</p>
         </section>
 
