@@ -6,5 +6,5 @@
 window.TT99_SCHOOL_USAGE_CONFIG = Object.freeze({
   enabled: false,
   endpoint: '',
-  schemaVersion: 1
+  schemaVersion: 2
 });
