@@ -5,6 +5,7 @@
   const G=window.TT99Generator;
   const L=window.TT99PDFLayout;
   const PP=window.TT99ParentPractice;
+  const SU=window.TT99SchoolUsage;
   if(!root||!G||!L||!PP)return;
 
   const BADGES={
@@ -145,6 +146,7 @@
         answerContext:{label:'Answer copy',message:'Answers for the practice sheet on the previous page.'}
       });
       doc.save(L.filename(config.rules,'both',config.orientation));
+      SU?.trackPractice?.('practice_download',config);
       setStatus('PDF created. Click the button again whenever you want another fresh practice sheet.',false);
     }catch(err){
       console.error(err);
@@ -159,6 +161,7 @@
     if(!token)throw new Error('This link does not contain a practice preset.');
     config=PP.decode(token);
     render();
+    SU?.trackPractice?.('practice_open',config);
   }catch(err){
     renderError(err&&err.message);
   }
