@@ -834,3 +834,49 @@
   margin-bottom:1px;
 }
 
+/* v1.31.7 — Number Search layout/readability polish */
+.tt99-numbersearch-tip{
+  margin:0 0 8px;
+  font-size:clamp(6.5px,.66vw,9px);
+  line-height:1.2;
+}
+.tt99-numbersearch-layout{
+  grid-template-columns:minmax(0,.60fr) minmax(0,.40fr);
+  gap:12px;
+  align-items:center;
+}
+.tt99-numbersearch-grid{
+  width:min(100%,440px);
+  max-height:100%;
+}
+.tt99-numbersearch-grid span{
+  font-size:clamp(8.5px,.92vw,13px);
+}
+.tt99-numbersearch-side{
+  align-self:center;
+}
+.tt99-numbersearch-questions li{
+  margin-bottom:6px;
+  font-size:clamp(6.7px,.68vw,9.2px);
+  line-height:1.28;
+}
+.tt99-game-activities.count-2 .tt99-numbersearch-grid{
+  width:min(100%,340px);
+}
+.tt99-game-activities.count-2 .tt99-numbersearch-layout{
+  grid-template-columns:minmax(0,.58fr) minmax(0,.42fr);
+  gap:12px;
+}
+.tt99-game-activities.count-2 .tt99-numbersearch-questions li{
+  margin-bottom:4px;
+  font-size:clamp(6.4px,.64vw,8.7px);
+  line-height:1.2;
+}
+.tt99-game-activities.count-3 .tt99-numbersearch-grid{
+  width:min(100%,235px);
+}
+.tt99-game-activities.count-3 .tt99-numbersearch-questions li{
+  font-size:5.2px;
+  line-height:1.1;
+}
+
