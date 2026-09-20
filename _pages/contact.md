@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "Contact"
-description: "Contact 99 Club Studio with feedback, bug reports and classroom suggestions."
+description: "Contact 99 Studio with feedback, bug reports and classroom suggestions."
 permalink: /contact/
 sidebar: false
 sitemap: true
@@ -16,16 +16,16 @@ sitemap: true
       <div class="tt99-guide">
         <div class="tt99-guide-hero">
           <div>
-            <span class="tt99-eyebrow">99 Club Studio</span>
+            <span class="tt99-eyebrow">99 Studio</span>
             <h1>Contact</h1>
             <p>Questions, feedback, bug reports and classroom suggestions are welcome.</p>
           </div>
-          <a class="tt99-secondary tt99-guide-action" href="/">← Back to 99 Club Studio</a>
+          <a class="tt99-secondary tt99-guide-action" href="/">← Back to 99 Studio</a>
         </div>
         <section class="tt99-guide-section">
           <h2>Get in touch</h2>
-          <p>Use the <strong>Contact</strong> button above to open the same contact form used throughout 99 Club Studio.</p>
-          <div class="tt99-guide-note"><strong>Please do not include pupil personal information.</strong> Only the details you enter in the contact form are sent; worksheet content, school logos and generated questions stay on your device.</div>
+          <p>Use the <strong>Contact</strong> button above to open the same contact form used throughout 99 Studio.</p>
+          <div class="tt99-guide-note"><strong>Please do not include pupil personal information.</strong></div>
         </section>
       </div>
     </section>
