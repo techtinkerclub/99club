@@ -25,7 +25,7 @@ for(const [id,m] of Object.entries(FAMILIES)){
   if(Array.isArray(G.FAMILY_ORDER)&&!G.FAMILY_ORDER.includes(id))G.FAMILY_ORDER.push(id);
   if(Array.isArray(G.FAMILY_COMPACT_ORDER)&&!G.FAMILY_COMPACT_ORDER.includes(id))G.FAMILY_COMPACT_ORDER.push(id);
 }
-const q=(kind,subtype,i,prompt,answer,extra={})=>({kind,prompt,answer:String(answer),key:`${kind}:${subtype}:${i}:${extra.key||''}`,group:subtype,footprint:extra.footprint||(extra.visual?'L':'M'),marking:extra.marking||{mode:'exact',answer:String(answer)},...extra});
+const q=(kind,subtype,i,prompt,answer,extra={})=>{const {key:keyExtra='',...rest}=extra;return {kind,prompt,answer:String(answer),key:`${kind}:${subtype}:${i}:${keyExtra}`,group:subtype,footprint:rest.footprint||(rest.visual?'L':'M'),marking:rest.marking||{mode:'exact',answer:String(answer)},...rest};};
 const gcd=(a,b)=>{a=Math.abs(a);b=Math.abs(b);while(b){const t=b;b=a%b;a=t;}return a||1;};
 const lcm=(a,b)=>Math.abs(a*b)/gcd(a,b);
 const money=p=>`£${(p/100).toFixed(2)}`;
