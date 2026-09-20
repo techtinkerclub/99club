@@ -53,15 +53,35 @@ function prepare(){
       document.documentElement.dataset.previewQaStatus=pre.dataset.status;document.title='99club-preview-qa:'+pre.dataset.status;
     }
     function titleOf(a){return a.querySelector('.tt99-game-activity-head h3')?.textContent?.trim()||a.className;}
+    function visibleRectWithin(e,boundary){
+      const base=e.getBoundingClientRect();
+      let left=base.left,right=base.right,top=base.top,bottom=base.bottom,p=e.parentElement;
+      while(p&&p!==boundary){
+        const s=getComputedStyle(p),clips=/^(hidden|clip|auto|scroll)$/.test(s.overflowX)||/^(hidden|clip|auto|scroll)$/.test(s.overflowY);
+        if(clips){
+          const r=p.getBoundingClientRect();
+          if(/^(hidden|clip|auto|scroll)$/.test(s.overflowX)){left=Math.max(left,r.left);right=Math.min(right,r.right);}
+          if(/^(hidden|clip|auto|scroll)$/.test(s.overflowY)){top=Math.max(top,r.top);bottom=Math.min(bottom,r.bottom);}
+          if(right<=left||bottom<=top)return null;
+        }
+        p=p.parentElement;
+      }
+      return {left,right,top,bottom};
+    }
+    function classLabel(e){
+      const c=e.className;
+      return typeof c==='string'?c:(c&&typeof c.baseVal==='string'?c.baseVal:e.tagName||'element');
+    }
     function inspectActivity(a){
       report.activities++;
       const ar=a.getBoundingClientRect(),tol=2.5;
       const scale=Number(a.dataset.previewBodyScale||1);if(scale<.999){report.scaled++;report.minScale=Math.min(report.minScale,scale);}
       const descendants=[...a.querySelectorAll('*')].filter(e=>visible(e)&&!e.closest('.tt99-replace-activity'));
       for(const e of descendants){
-        const r=e.getBoundingClientRect();
+        const r=visibleRectWithin(e,a);
+        if(!r)continue;
         if(r.right>ar.right+tol||r.left<ar.left-tol||r.bottom>ar.bottom+tol||r.top<ar.top-tol){
-          fail('containment',titleOf(a)+' -> '+e.className+' outside frame by '+JSON.stringify({left:Math.round(ar.left-r.left),right:Math.round(r.right-ar.right),top:Math.round(ar.top-r.top),bottom:Math.round(r.bottom-ar.bottom)}));
+          fail('containment',titleOf(a)+' -> '+classLabel(e)+' outside frame by '+JSON.stringify({left:Math.round(ar.left-r.left),right:Math.round(r.right-ar.right),top:Math.round(ar.top-r.top),bottom:Math.round(r.bottom-ar.bottom)}));
           break;
         }
       }
