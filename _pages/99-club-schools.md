@@ -42,7 +42,7 @@ sitemap: true
 
         <section id="choose" class="tt99-guide-section tt99-guide-highlight">
           <h2>Choose the easiest method for your school</h2>
-          <p>All of the options below lead to the same locked parent-practice system. The difference is only how the school presents the choices on its website.</p>
+          <p>All of the options below lead to the same school-selected parent-practice system. The difference is only how the school presents the choices on its website.</p>
 
           <div class="tt99-guide-steps">
             <article>
@@ -228,7 +228,7 @@ sitemap: true
         <section id="puzzle-practice" class="tt99-guide-section">
           <h2>Maths Games &amp; Puzzles: share a locked puzzle pack</h2>
           <p>The printable Maths Games &amp; Puzzles generator uses the same school-led idea as 99 Club. Configure the year range, topics, selected puzzle types, difficulty and specialist game options first, then use <strong>Create parent link</strong> / <strong>Share this puzzle setup</strong>.</p>
-          <p>The parent receives one locked link for the <strong>whole current puzzle pack</strong>. They see a deliberately simple page and one download action. They do not see the puzzle editor and cannot change the school-selected settings.</p>
+          <p>The parent receives one school-selected link for the <strong>whole current puzzle pack</strong>. They see a deliberately simple page and one download action. They do not see the puzzle editor and cannot change the school-selected settings.</p>
           <p>If the school wants several different choices — for example <em>Year 4 arithmetic puzzles</em>, <em>Upper KS2 number logic</em> and <em>Vocabulary Practice</em> — create each setup separately. They can be published as separate links/cards or collected into a Maths Games Widget.</p>
 
           <h3>Save puzzle setup</h3>
@@ -266,7 +266,7 @@ sitemap: true
           <h3>Updating a puzzle link/card/PNG</h3>
           <ol>
             <li>Change the puzzle setup in Maths Games &amp; Puzzles.</li>
-            <li>Create the new locked parent link.</li>
+            <li>Create the new school-selected parent link.</li>
             <li>Replace the old website URL/card as appropriate.</li>
             <li>Publish and test.</li>
           </ol>
@@ -305,7 +305,7 @@ sitemap: true
         <section id="vocabulary" class="tt99-guide-section">
           <h2>Personal vocabulary</h2>
           <p>If a shared puzzle pack uses relevant entries from <strong>My vocabulary</strong>, the required terms and definitions are included in the locked parent-practice link so Word Search or Crossword can reproduce the intended activity.</p>
-          <p>A Maths Games Widget keeps those locked pack links and marks when public vocabulary is present.</p>
+          <p>A Maths Games Widget keeps those school-selected pack links and marks when public vocabulary is present.</p>
           <ul>
             <li>Use mathematical terminology, curriculum vocabulary and teaching definitions.</li>
             <li>Do not use pupil names, email addresses, parent information, passwords, internal notes or other private information.</li>
@@ -344,7 +344,7 @@ sitemap: true
           <p>The published URL is an old snapshot. Generate a new parent link from the current rules and replace the old URL on the school website.</p>
 
           <h3>The puzzle pack still uses the old setup</h3>
-          <p>Generate a new locked parent link from the revised puzzle setup. Replace the old website link/card or update the Maths Games Widget.</p>
+          <p>Generate a new school-selected parent link from the revised puzzle setup. Replace the old website link/card or update the Maths Games Widget.</p>
 
           <h3>The widget is too short and has a scrollbar</h3>
           <p>Some website editors override iframe dimensions. Increase the height if the editor provides a height setting. If it does not, a card/PNG layout may be cleaner.</p>
