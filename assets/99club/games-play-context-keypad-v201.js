@@ -354,6 +354,7 @@ window.addEventListener('resize',()=>{
   }
 });
 
+window.TT99ContextKeypad={hide:hidePad,isOpen:()=>!!activePad};
 function boot(){
   installObserver();
   setTimeout(manageCurrentPad,0);

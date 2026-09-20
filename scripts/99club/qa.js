@@ -256,6 +256,15 @@ if(!playCoreSrc.includes("track('online_answer_revealed'"))fail('answer-reveal',
 if(!revealFlow||!revealFlow.includes('state.revealed=true')||!revealFlow.includes('state.finished=true'))fail('answer-reveal','Reveal does not end the current attempt safely');
 if(revealFlow.includes('saveCompletion')||revealFlow.includes('online_game_completed'))fail('answer-reveal','Revealed answers must not count as a completion');
 else ok('answer-reveal',`All ${publicGameIds.length} public games have guarded answer reveal coverage without completion credit`);
+const contextKeypadSrc=read('assets/99club/games-play-context-keypad-v201.js');
+const completionPreviewSrc=read('assets/99club/games-play-completion-preview-v1.js');
+const finishFlow=(playCoreSrc.match(/function finish\(result\)\{[^\n]*\}/)||[''])[0];
+if(!contextKeypadSrc.includes('window.TT99ContextKeypad={hide:hidePad'))fail('completion-splash','Context keypad does not expose the completion close hook');
+if(!finishFlow.includes('dismissCompletionInput();')||finishFlow.indexOf('dismissCompletionInput();')>finishFlow.indexOf('renderCompletion();'))fail('completion-splash','Successful completion does not dismiss input before opening the splash');
+for(const selector of ['tt99-context-pad-launcher','tt99-wave184-keypad','tt99-number-keypad','tt99-structure-keypad','tt99-letter-keypad','tt99-extra-op-pad'])if(!completionPreviewSrc.includes(selector))fail('completion-splash','Completion snapshot sanitiser missing '+selector);
+if(!completionPreviewSrc.includes('fitSnapshot')||!completionPreviewSrc.includes('tt99-play-complete-snapshot-fit'))fail('completion-splash','Completion snapshot fit stage is missing');
+else ok('completion-splash','Successful completion dismisses input first and the splash owns a keypad-free fit-to-frame snapshot');
+
 for(const id of publicGameIds){
   if(!printInstructions.includes("case'"+id+"'"))fail('instruction-audit',id+': printable reviewed instruction missing');
   if(!onlineInstructions.includes("\n  "+id+":"))fail('instruction-audit',id+': online reviewed instruction missing');
