@@ -45,7 +45,7 @@ sitemap: true
           <h2>Shared practice links and school widgets</h2>
           <p>Parent-practice links contain the settings needed to reproduce the school-selected activity. They do not require a pupil or parent account.</p>
           <p>99 Club practice links do not include pupil names, parent details, teacher notes, scores or progress history. Puzzle links also leave out generated puzzle seeds and school/class personalisation. If a shared Word Search or Crossword uses custom vocabulary, the terms and definitions needed for that activity may be included in the shared link.</p>
-          <p>The dedicated parent-practice pages and embedded school widgets do not load the Studio Google Analytics code.</p>
+          <p>The dedicated parent-practice pages and embedded school widgets do not load 99 Club Studio's Google Analytics code.</p>
           <p>Anything deliberately placed in a public widget — such as a school name, logo, selected activities or shared vocabulary — should be treated as public information.</p>
         </section>
 
@@ -56,8 +56,8 @@ sitemap: true
 
         <section class="tt99-guide-section">
           <h2>Data saved on this device</h2>
-          <p>Studio uses browser storage for things such as school/class personalisation, saved worksheet settings, custom vocabulary, widget drafts and online-game records. This information stays with that browser profile until it is replaced or cleared.</p>
-          <div class="tt99-guide-note"><strong>Using a shared computer?</strong> Save any configuration files you need before clearing Studio data.</div>
+          <p>99 Club Studio uses browser storage for things such as school/class personalisation, saved worksheet settings, custom vocabulary, widget drafts and online-game records. This information stays with that browser profile until it is replaced or cleared.</p>
+          <div class="tt99-guide-note"><strong>Using a shared computer?</strong> Save any configuration files you need before clearing 99 Club Studio data.</div>
           <p><button type="button" class="tt99-secondary" id="tt99-clear-local-data">Clear 99 Club Studio data from this device</button></p>
           <p id="tt99-clear-local-status" role="status" aria-live="polite"></p>
         </section>

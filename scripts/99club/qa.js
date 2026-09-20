@@ -648,7 +648,7 @@ try{
   if(!analyticsCore.includes('source_origin')&&false)fail('analytics','Analytics core missing source origin support');
   if(!analyticsCore.includes('integration_help')||!analyticsCore.includes('widget_builder'))fail('analytics','Navigation analytics taxonomy is missing integration help/widget builder');
 
-  for(const phrase of ['Google Analytics is loaded only if you choose','does not send pupil names','random identifier','website origin','parent-practice pages and embedded school widgets do not load the Studio Google Analytics code'])if(!privacy.includes(phrase))fail('analytics',`Privacy page missing plain-English disclosure: ${phrase}`);
+  for(const phrase of ['Google Analytics is loaded only if you choose','does not send pupil names','random identifier','website origin',"parent-practice pages and embedded school widgets do not load 99 Club Studio's Google Analytics code"])if(!privacy.includes(phrase))fail('analytics',`Privacy page missing plain-English disclosure: ${phrase}`);
   for(const phrase of ['First-party school usage telemetry','source_origin','integration_id','teacher','widget_open','practice_download','enabled: false'])if(!analyticsDoc.includes(phrase))fail('analytics',`Analytics setup guide missing: ${phrase}`);
 
   const schoolCfg=read('assets/99club/school-usage-config.js');
@@ -664,7 +664,7 @@ try{
   const schoolGuide=read('_pages/99-club-schools.md');
   for(const phrase of [
     'permalink: /demo/',
-    '99 STUDIO SCHOOL WEBSITE DEMO',
+    '99 CLUB STUDIO SCHOOL WEBSITE DEMO',
     'Fictional example school',
     'Addington-on-Sum Primary School',
     '1 · Buttons',
@@ -684,7 +684,7 @@ try{
   if(exists('_pages/radford-semele-99studio-demo.html')||exists('_pages/radford-semele-99studio-demo-redirect.html'))fail('school-demo','Old Radford-named demo files still exist');
   if(!demoJs.includes("name:'Addington-on-Sum Primary School'")||!demoJs.includes("fillText('AS'"))fail('school-demo','Demo widgets/mark are not using the fictional school identity');
   if(!schoolGuide.includes('href="/demo/"')||!schoolGuide.includes('fictional school website demo')||!schoolGuide.includes('View live demo →'))fail('school-demo','Implementation help does not give a clear live-demo choice');
-  if(/99 Club Studio/.test(schoolGuide))fail('school-demo','School-facing implementation help still uses the old product branding');
+  if(/99 Studio/.test(schoolGuide))fail('school-demo','School-facing implementation help has shortened the 99 Club Studio brand');
   if(!demoJs.includes('initTabs')||!demoJs.includes("history.replaceState"))fail('school-demo','Single demo page does not switch its three integration tabs in-page');
   for(const id of ['11','22','33','44','55','66','77','88','99','bronze','silver','gold','platinum','diamond'])if(!demoJs.includes("'"+id+"'"))fail('school-demo','Shared demo content missing Club '+id);
   if((demoJs.match(/title:'/g)||[]).length<3)fail('school-demo','Demo does not contain at least three printable game-sheet packs');
@@ -728,7 +728,8 @@ try{
   ];
   for(const phrase of bannedPublicPhrases)if(publicCopy.includes(phrase))fail('public-copy','Visitor-facing copy still contains internal/repetitive wording: '+phrase);
   if(!read('_pages/privacy.md').includes('plain-English summary'))fail('public-copy','Privacy page is not using the public-facing summary');
-  if(!read('_pages/99-club-schools.md').includes('Practical guidance for adding 99 Studio practice'))fail('public-copy','School integration page has regressed to older intro copy');
+  if(!read('_pages/99-club-schools.md').includes('Practical guidance for adding 99 Club Studio practice'))fail('public-copy','School integration page has regressed to older intro copy');
+  if(publicCopy.includes('99 Studio')||publicCopy.includes('99 STUDIO'))fail('public-copy','Public copy has shortened the 99 Club Studio brand');
   ok('public-copy','Public pages and major dynamic UI surfaces avoid internal/developer wording');
 }catch(e){fail('public-copy','Public copy audit threw',e.stack||e.message);}
 
