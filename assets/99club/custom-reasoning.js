@@ -85,7 +85,7 @@ function vennPool(){
     if(mode===0){prompt=`There are ${total} children. ${A} are in Club A, ${B} are in Club B and ${both} are in both clubs. How many are in neither club?`;ans=neither;}
     else if(mode===1){prompt=`Club A has ${A} children and Club B has ${B}. ${both} are in both. How many children are in exactly one of the two clubs?`;ans=aOnly+bOnly;}
     else{prompt=`There are ${total} children. ${A} are in Club A, ${B} are in Club B and ${both} are in both. How many are in at least one club?`;ans=aOnly+bOnly+both;}
-    out.push(q('venn_counts',i,prompt,ans,{visual:{type:'reasoning',subtype:'venn',labels:['Club A','Club B'],both},key:`${aOnly}:${bOnly}:${both}:${neither}:${mode}`}));
+    out.push(q('venn_counts',i,prompt,ans,{visual:{type:'reasoning',subtype:'venn',labels:['Club A','Club B'],aOnly,bOnly,both,neither,total,mode},key:`${aOnly}:${bOnly}:${both}:${neither}:${mode}`}));
   }return out;
 }
 function primePool(){
@@ -104,9 +104,13 @@ function formatDuration(sec,mode){
   const mins=sec/60;if(mins===15)return 'one quarter of an hour';if(mins===30)return 'one half of an hour';if(mins===45)return 'three quarters of an hour';return `${mins} minutes`;
 }
 function mixedUnitPool(){
-  const sets=[[600,900,1200,1500],[720,900,1800,2700],[300,1200,1800,2400],[900,1500,2700,3600],[480,900,1800,2700],[600,1200,1800,2700]];
-  const out=[];for(let i=0;i<36;i++){const secs=sets[i%sets.length].map((v,j)=>v+(i%3)*60*j),modes=[0,1,2,1].map((m,j)=>(m+j+i)%3),labels=secs.map((s,j)=>formatDuration(s,modes[j])),order=secs.map((s,j)=>({s,j})).sort((a,b)=>a.s-b.s).map(x=>String.fromCharCode(65+x.j)).join(', ');
-    out.push(q('mixed_unit_order',i,'Order the four times from shortest to longest.',order,{visual:{type:'reasoning',subtype:'unit_order',items:labels},key:labels.join('|'),response:{kind:'short',size:'S',label:'Write the letters in order'}}));
+  const sets=[[600,900,1200,1500],[720,900,1800,2700],[300,1200,1800,2400],[900,1500,2700,3600],[480,900,1800,2700],[660,1320,1980,2640]];
+  const out=[],seen=new Set();
+  for(let si=0;si<sets.length&&out.length<40;si++)for(let offset=0;offset<3&&out.length<40;offset++)for(let shift=0;shift<3&&out.length<40;shift++){
+    const secs=sets[si].map((v,j)=>v+offset*60*(j+1));if(new Set(secs).size!==secs.length)continue;
+    const modes=[0,1,2,1].map((m,j)=>(m+j+shift)%3),labels=secs.map((s,j)=>formatDuration(s,modes[j])),key=labels.join('|');if(seen.has(key))continue;seen.add(key);
+    const order=secs.map((s,j)=>({s,j})).sort((a,b)=>a.s-b.s).map(x=>String.fromCharCode(65+x.j)).join(', ');
+    out.push(q('mixed_unit_order',out.length,'Order the four times from shortest to longest.',order,{visual:{type:'reasoning',subtype:'unit_order',items:labels,seconds:secs},key,response:{kind:'short',size:'S',label:'Write the letters in order'}}));
   }return out;
 }
 function recursivePool(){
@@ -122,8 +126,9 @@ function letterGridPool(){
 }
 function similarPool(){
   const triples=[[3,4,5],[5,12,13],[6,8,10],[8,15,17],[9,12,15],[12,16,20]],out=[];
-  for(let i=0;i<36;i++){const k=2+(i%3),small=triples[i%triples.length].slice(),large=small.map(n=>n*k),hide=i%3,answer=small[hide],shownSmall=small.slice();shownSmall[hide]=null;
-    out.push(q('similar_shapes',i,'The two right-angled triangles are similar. Work out the missing length.',answer,{visual:{type:'reasoning',subtype:'similar_triangles',small:shownSmall,large,scale:k},key:`${small.join(':')}:${k}:${hide}`,footprint:'L'}));
+  for(const small0 of triples)for(const k of [2,3,4])for(const hide of [0,1,2]){
+    const small=small0.slice(),large=small.map(n=>n*k),answer=small[hide],shownSmall=small.slice();shownSmall[hide]=null;
+    out.push(q('similar_shapes',out.length,'The two right-angled triangles are similar. Work out the missing length.',answer,{visual:{type:'reasoning',subtype:'similar_triangles',small:shownSmall,large,scale:k,hiddenIndex:hide},key:`${small.join(':')}:${k}:${hide}`,footprint:'L'}));
   }return out;
 }
 function cuboidPool(){
@@ -132,8 +137,12 @@ function cuboidPool(){
   }return out;
 }
 function recipePool(){
-  const names=['flour','milk','rice','pasta','cheese','tomatoes','stock','yoghurt'];const out=[];for(let i=0;i<32;i++){const serves=[4,5,6][i%3],scale=[2,3][i%2],target=serves*scale,items=[];for(let j=0;j<4;j++){const base=(j+2)*(20+5*((i+j)%5));items.push({name:names[(i+j)%names.length],amount:base,unit:j===1?'ml':'g'});}const answer=items.map(x=>`${x.name} ${x.amount*scale}${x.unit}`).join(', ');
-    out.push(q('recipe_scaling',i,`This recipe serves ${serves}. How much of each ingredient is needed for ${target} people?`,answer,{visual:{type:'reasoning',subtype:'recipe',serves,items},key:`${serves}:${target}:${items.map(x=>x.amount).join('-')}`,footprint:'L'}));
+  const names=['flour','milk','rice','pasta','cheese','tomatoes','stock','yoghurt'],out=[],seen=new Set();
+  for(const serves of [4,5,6])for(const scale of [2,3])for(let start=0;start<names.length&&out.length<48;start++)for(let variant=0;variant<2&&out.length<48;variant++){
+    const target=serves*scale,items=[];for(let j=0;j<4;j++){const amount=(j+2)*(20+5*((start+j+variant*2)%7));items.push({name:names[(start+j)%names.length],amount,unit:j===1?'ml':'g'});}
+    const key=`${serves}:${target}:${items.map(x=>`${x.name}-${x.amount}-${x.unit}`).join('|')}`;if(seen.has(key))continue;seen.add(key);
+    const answer=items.map(x=>`${x.name} ${x.amount*scale}${x.unit}`).join(', ');
+    out.push(q('recipe_scaling',out.length,`This recipe serves ${serves}. How much of each ingredient is needed for ${target} people?`,answer,{visual:{type:'reasoning',subtype:'recipe',serves,target,scale,items},key,footprint:'L'}));
   }return out;
 }
 function relationalMoneyPool(){
