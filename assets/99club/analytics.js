@@ -1,6 +1,6 @@
-/* 99 Club Studio analytics v1.1.0
- * Google Consent Mode is initialised in the page head before gtag.js loads.
- * Analytics storage remains denied until the visitor allows analytics.
+/* 99 Club Studio analytics v1.2.0
+ * Basic-consent model: the Google Analytics library is not requested from
+ * Google until the visitor explicitly chooses Allow analytics.
  * Product events must never include pupil/school names, worksheet content,
  * free text, answers, seeds, URLs containing recreation data, or uploaded data.
  */
@@ -11,7 +11,7 @@ const cfg=global.TT99_ANALYTICS_CONFIG||{};
 const measurementId=String(cfg.ga4MeasurementId||'').trim();
 const validMeasurement=/^G-[A-Z0-9]+$/i.test(measurementId);
 const PREF_KEY='tt99-analytics-choice-v1';
-let choice=readChoice();
+let choice=readChoice(),tagPromise=null,configured=false;
 
 function readChoice(){
   try{
@@ -47,6 +47,50 @@ function ensureGtag(){
   global.dataLayer=global.dataLayer||[];
   global.gtag=global.gtag||gtag;
 }
+function safeReferrer(){
+  try{
+    if(!document.referrer)return '';
+    const ref=new URL(document.referrer);
+    return ref.origin!==location.origin&&/^https?:$/.test(ref.protocol)?ref.origin:'';
+  }catch(_){return '';}
+}
+function configure(){
+  if(configured||choice!=='allow'||!validMeasurement)return;
+  configured=true;
+  ensureGtag();
+  global.gtag('consent','default',{
+    analytics_storage:'granted',
+    ad_storage:'denied',
+    ad_user_data:'denied',
+    ad_personalization:'denied'
+  });
+  global.gtag('js',new Date());
+  global.gtag('config',measurementId,{
+    send_page_view:true,
+    page_location:location.origin+location.pathname,
+    page_referrer:safeReferrer(),
+    allow_google_signals:false,
+    allow_ad_personalization_signals:false
+  });
+}
+function loadGoogleTag(){
+  if(choice!=='allow'||!validMeasurement)return Promise.resolve(false);
+  configure();
+  if(tagPromise)return tagPromise;
+  const existing=document.querySelector('script[data-tt99-ga4]');
+  if(existing)return Promise.resolve(true);
+  tagPromise=new Promise(resolve=>{
+    const script=document.createElement('script');
+    script.async=true;
+    script.dataset.tt99Ga4='1';
+    script.src='https://www.googletagmanager.com/gtag/js?id='+encodeURIComponent(measurementId);
+    script.referrerPolicy='no-referrer';
+    script.addEventListener('load',()=>resolve(true),{once:true});
+    script.addEventListener('error',()=>resolve(false),{once:true});
+    document.head.appendChild(script);
+  });
+  return tagPromise;
+}
 function clearGaCookies(){
   const names=['_ga'];
   if(validMeasurement)names.push('_ga_'+measurementId.replace(/^G-/i,'').replace(/-/g,'_'));
@@ -60,18 +104,23 @@ function setChoice(next){
   writeChoice(next);
   removeBanner();
   ensureGtag();
-  global.gtag('consent','update',{
-    analytics_storage:next==='allow'?'granted':'denied',
-    ad_storage:'denied',
-    ad_user_data:'denied',
-    ad_personalization:'denied'
-  });
-  if(next!=='allow')clearGaCookies();
+  if(next==='allow'){
+    loadGoogleTag();
+  }else{
+    global.gtag('consent','update',{
+      analytics_storage:'denied',
+      ad_storage:'denied',
+      ad_user_data:'denied',
+      ad_personalization:'denied'
+    });
+    clearGaCookies();
+  }
   if(global.TT99Analytics)global.TT99Analytics.enabled=next==='allow';
   updateSettingsState();
 }
 function track(name,params){
   if(choice!=='allow'||!validMeasurement)return false;
+  loadGoogleTag();
   ensureGtag();
   global.gtag('event',String(name||'').slice(0,40),cleanParams(params));
   return true;
@@ -102,7 +151,7 @@ function bannerMarkup(){
   const privacy=String(cfg.privacyPath||'/privacy/');
   return '<aside class="tt99-analytics-banner" aria-label="Analytics choice">'+
     '<div><strong>Help improve 99 Club Studio</strong>'+
-    '<p>Allow Google Analytics so we can see which pages, downloads, games and sharing features are useful. When available, product events may include an opaque school key and the referring website origin (domain only), but not the school name, pupil/teacher names, worksheet content or full referring page. <a href="'+privacy+'">Privacy details</a>.</p></div>'+
+    '<p>Allow Google Analytics so we can see which pages, downloads, games and sharing features are useful. Google Analytics is not loaded unless you choose Allow analytics. Product events may include an opaque school key and the referring website origin (domain only), but not the school name, pupil/teacher names, worksheet content or full referring page. <a href="'+privacy+'">Privacy details</a>.</p></div>'+
     '<div class="tt99-analytics-banner__actions">'+
     '<button type="button" data-analytics-deny>No thanks</button>'+
     '<button type="button" data-analytics-allow>Allow analytics</button>'+
@@ -121,7 +170,7 @@ function settingsMarkup(){
   return '<div class="tt99-analytics-panel" hidden>'+
     '<section class="tt99-analytics-panel__card" role="dialog" aria-modal="true" aria-labelledby="tt99-analytics-title">'+
     '<div class="tt99-analytics-panel__head"><div><h2 id="tt99-analytics-title">Privacy & analytics</h2>'+
-    '<p>99 Club Studio loads the Google tag with analytics storage disabled. If you allow analytics, it can then use analytics storage to understand visits, downloads and feature usage so the free tools can be improved. Product events may include an opaque school key and a referring website origin when available.</p></div>'+
+    '<p>Google Analytics is not loaded unless you allow analytics. If allowed, it can understand visits, downloads and feature usage so the free tools can be improved. Product events may include an opaque school key and a referring website origin when available.</p></div>'+
     '<button type="button" class="tt99-analytics-panel__close" data-analytics-close aria-label="Close">×</button></div>'+
     '<div class="tt99-analytics-panel__state"></div>'+
     '<p>No pupil names, school names, teacher names, uploaded logos, worksheet questions, answers, custom vocabulary, full referring page URLs, free text or recreation codes are deliberately sent as Google Analytics event data. <a href="'+privacy+'">Read the privacy details</a>.</p>'+
@@ -153,7 +202,7 @@ function ensureSettings(){
 function updateSettingsState(){
   const box=document.querySelector('.tt99-analytics-panel__state');
   if(!box)return;
-  box.textContent=choice==='allow'?'Analytics is currently allowed.':choice==='deny'?'Analytics is currently disabled.':'No analytics choice has been saved yet.';
+  box.textContent=choice==='allow'?'Analytics is currently allowed.':choice==='deny'?'Analytics is currently disabled and the Google Analytics library will not load on a fresh page visit.':'No analytics choice has been saved yet.';
 }
 function openSettings(){
   ensureSettings();
@@ -165,10 +214,10 @@ function boot(){
     global.TT99Analytics={track:()=>false,openSettings:()=>{},enabled:false,configured:false};
     return;
   }
-  ensureGtag();
   global.TT99Analytics={track,openSettings,enabled:choice==='allow',configured:true};
   bindNavigation();
   ensureSettings();
+  if(choice==='allow')loadGoogleTag();
   if(!choice)showBanner();
 }
 
