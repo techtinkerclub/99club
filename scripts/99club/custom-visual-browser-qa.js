@@ -32,7 +32,7 @@ function prepare(){
     const els=[...svg.querySelectorAll('text,line,rect,polygon,circle,path,image')].filter(el=>!el.classList.contains('tt99-svg-row-hit')&&!(el.tagName==='rect'&&el.getAttribute('width')==='100%'));
     for(const el of els){
       report.elements++;
-      if(el.tagName==='text'){const fs=Number(el.getAttribute('font-size'));if(Number.isFinite(fs)){report.minFont=Math.min(report.minFont,fs);if(fs<5.7)fail('font',family+' '+orientation+' '+(answers?'answer':'pupil')+' font '+fs+' too small');}}
+      if(el.tagName==='text'&&el.hasAttribute('font-size')){const fs=Number(el.getAttribute('font-size'));if(Number.isFinite(fs)&&fs>0){report.minFont=Math.min(report.minFont,fs);if(fs<5.7)fail('font',family+' '+orientation+' '+(answers?'answer':'pupil')+' font '+fs+' too small');}}
       let b;try{b=el.getBBox();}catch(e){continue;}
       if(!b||![b.x,b.y,b.width,b.height].every(Number.isFinite)){fail('bbox',family+' '+el.tagName+' invalid bbox');continue;}
       const tol=1.5;
@@ -58,7 +58,7 @@ function prepare(){
           if(!html||!/\<svg\b/.test(html)){fail('render',family+' '+orientation+' returned no SVG');continue;}
           if(/NaN|undefined|nullpx|Infinity/.test(html))fail('serialization',family+' '+orientation+' emitted invalid numeric/text token');
           const host=document.createElement('div');host.className='qa-host';host.innerHTML=html;document.body.appendChild(host);
-          const svgs=[...host.querySelectorAll('svg.tt99-visual-paper')];if(!svgs.length)fail('render',family+' '+orientation+' produced no visual paper');
+          const svgs=[...host.querySelectorAll('svg.tt99-paper, svg.tt99-visual-paper')];if(!svgs.length)fail('render',family+' '+orientation+' produced no worksheet SVG');
           svgs.forEach((svg,i)=>checkSvg(svg,family,orientation,answers,i));
           host.remove();
         }
