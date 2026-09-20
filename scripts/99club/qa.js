@@ -286,6 +286,10 @@ else ok('completion-splash','Successful completion dismisses input first and the
 const shareCodecSrc=read('assets/99club/games-play-share-codec-v156.js');
 if(!shareCodecSrc.includes("route!=='/play'&&route!=='/tools/99-club/games/play'"))fail('share-codec','Share codec does not recognise both current and legacy play routes');
 else ok('share-codec','Challenge sharing recognises the current /play route and legacy compatibility route');
+const futoshikiPlaySrc=read('assets/99club/games-play-futoshiki-v1.js');
+if(!futoshikiPlaySrc.includes('Use each number from 1 to')||!futoshikiPlaySrc.includes('exactly once in every row and column'))fail('futoshiki-instructions','Futoshiki instructions do not state the valid number range explicitly');
+if(!playCoreSrc.includes("typeof rule==='function'?rule(state.puzzle,state.config):rule"))fail('futoshiki-instructions','Online Play core does not support puzzle-aware instruction text');
+else ok('futoshiki-instructions','Futoshiki states the dynamic 1..N number range explicitly');
 const onlineShareSrc=read('assets/99club/games-play-share-v164.js');
 for(const token of ['data-share-challenge','data-share-card-native','data-download','data-copy-link','navigator.share'])if(!onlineShareSrc.includes(token))fail('share-panel','Native sharing contract missing '+token);
 for(const legacy of ['facebook.com/sharer','twitter.com/intent','linkedin.com/sharing','data-social=','tt99-share-social','global.open(target'])if(onlineShareSrc.includes(legacy))fail('share-panel','Legacy direct social sharing remains: '+legacy);
