@@ -484,7 +484,7 @@
             <div class="tt99-kofi-heading">
               <img src="/assets/99club/images/kofi-cup.png?v=19.4" alt="" aria-hidden="true">
               <div>
-                <span>Support 99 Club Studio</span>
+                <span>Support 99 Studio</span>
                 <h2 id="tt99-kofi-title">Buy me a coffee</h2>
               </div>
             </div>
@@ -499,9 +499,9 @@
           <button type="button" class="tt99-contact-backdrop" data-contact-close aria-label="Close contact form"></button>
           <section class="tt99-contact-card" role="dialog" aria-modal="true" aria-labelledby="tt99-contact-title">
             <button type="button" class="tt99-contact-close" data-contact-close aria-label="Close contact form">×</button>
-            <span class="tt99-contact-kicker">99 Club Studio</span>
+            <span class="tt99-contact-kicker">99 Studio</span>
             <h2 id="tt99-contact-title">Contact</h2>
-            <p>Questions, feedback or something not working? Send me a message about 99 Club Studio.</p>
+            <p>Questions, feedback or something not working? Send me a message about 99 Studio.</p>
             <form id="tt99-contact-form">
               <label>
                 <span>Name <small>(optional)</small></span>
@@ -523,7 +523,7 @@
                 <button type="submit" class="tt99-contact-send">Send message</button>
               </div>
               <div id="tt99-contact-status" class="tt99-contact-status" role="status" aria-live="polite"></div>
-              <small class="tt99-contact-note">Only the details you enter in this contact form are sent through FormSubmit to 99 Club Studio. Worksheet, school and logo data stay on your device. Please do not include pupil personal information.</small>
+              <small class="tt99-contact-note">Please do not include pupil personal information.</small>
             </form>
           </section>
         </div>
@@ -1083,7 +1083,7 @@
             email:reply,
             _replyto:reply,
             message,
-            _subject:`99 Club Studio contact${name?` — ${name}`:''}`,
+            _subject:`99 Studio contact${name?` — ${name}`:''}`,
             _template:'table',
             _url:location.origin+location.pathname
           })
