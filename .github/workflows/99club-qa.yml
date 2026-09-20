@@ -85,6 +85,8 @@ jobs:
         env:
           QA_SAMPLES: ${{ github.event_name == 'schedule' && '60' || github.event.inputs.samples || '20' }}
         run: node scripts/99club/qa.js
+      - name: Run Custom Worksheet expansion QA
+        run: node scripts/99club/custom-expansion-qa.js
       - name: Run school widget QA
         run: node scripts/99club/widget-qa.js
       - name: Run security and privacy regression checks
@@ -94,7 +96,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: 99club-qa-report
-          path: 99club-qa-report.json
+          path: |
+            99club-qa-report.json
+            99club-custom-expansion-qa-report.json
           if-no-files-found: ignore
 
   browser-smoke:
