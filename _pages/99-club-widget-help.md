@@ -99,7 +99,7 @@ sitemap: true
           <ol>
             <li>In 99 Studio, finish the widget and check the <strong>Parent preview</strong>.</li>
             <li>Choose <strong>Copy embed code</strong>.</li>
-            <li>Open the school's normal website editor and sign in with your authorised account.</li>
+            <li>Open the school's normal website editor and sign in.</li>
             <li>Open the page where the widget should appear, or create a new page if appropriate.</li>
             <li>Add a block that accepts external/embed code. It may be called <strong>Embed</strong>, <strong>Custom HTML</strong>, <strong>HTML</strong>, <strong>Code</strong> or similar.</li>
             <li>Paste the complete code from 99 Studio. Do not remove the beginning <code>&lt;iframe</code> or the ending <code>&lt;/iframe&gt;</code>.</li>
