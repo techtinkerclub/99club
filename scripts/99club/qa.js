@@ -423,7 +423,7 @@ try{
   const studioUse=SchoolUsage.studioUsagePayload('worksheet_download','Example Primary School',{area:'club',sourceOrigin:'https://school.example/path'});
   if(!studioUse||studioUse.school_key!==schoolKey||studioUse.source_origin!=='https://school.example'||studioUse.action!=='worksheet_download')fail('school-usage','Studio school/source usage payload is incomplete');
   const widgetUse=SchoolUsage.widgetPayload('widget_open',{schoolName:'Example Primary School',sourceOrigin:'https://school.example/page',integrationId:'wid_abcdefgh',widgetType:'club',clubCount:4});
-  if(!widgetUse||widgetUse.school_key!==schoolKey||widgetUse.source_origin!=='https://school.example'||widgetUse.integration_id!=='wid_abcdefgh'||widgetUse.club_count!==4)fail('school-usage','Widget usage payload is incomplete');
+  if(!widgetUse||widgetUse.school_key||widgetUse.source_origin!=='https://school.example'||widgetUse.integration_id!=='wid_abcdefgh'||widgetUse.club_count!==4)fail('school-usage','Widget usage payload must use source origin + integration ID without deriving a school key from the public school name');
   for(const forbidden of ['school_name','pupil','parent','seed','url','referrer','score'])if(JSON.stringify(usage).includes(forbidden))fail('school-usage',`Practice usage payload leaked forbidden field ${forbidden}`);
   if(SchoolUsage.enabled())fail('school-usage','School telemetry must remain disabled until the final analytics design is approved');
   const schoolUsageConfig=read('assets/99club/school-usage-config.js');
