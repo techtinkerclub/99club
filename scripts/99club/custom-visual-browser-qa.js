@@ -69,7 +69,7 @@ function prepare(){
   }catch(e){fail('exception',e.stack||e.message);}
   finish();
 })();
-<\/script>`;
+</script>`;
   fs.writeFileSync(HARNESS,`<!doctype html><html><head><meta charset="utf-8"><title>Custom visual QA</title>${styles}<style>body{margin:0}.qa-host{position:absolute;left:-10000px;top:0;width:1200px}.qa-host svg{display:block;width:auto;height:auto}</style></head><body>${scripts}${runner}</body></html>`);
   console.log('Prepared '+path.basename(HARNESS)+' with '+js.length+' scripts and '+css.length+' stylesheets.');
 }
