@@ -76,7 +76,7 @@ sitemap: true
 
 <script src="/assets/99club/games-play-share-codec-v156.js?v=5"></script>
 <script src="/assets/99club/games-play-qr-v156.js?v=1"></script>
-<script src="/assets/99club/games-play-core-v2.js?v=7"></script>
+<script src="/assets/99club/games-play-core-v2.js?v=8"></script>
 <script src="/assets/99club/games-play-number-grid-v1.js?v=1"></script>
 <script src="/assets/99club/games-play-arithmetic-core-v1.js?v=1"></script>
 <script src="/assets/99club/games-play-shikaku-v1.js?v=2"></script>
@@ -124,5 +124,5 @@ sitemap: true
 <script src="/assets/99club/games-play-instructions-v154.js?v=4"></script>
 <script src="/assets/99club/games-play-completion-preview-v1.js?v=4"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="/assets/99club/games-play-share-v164.js?v=4"></script>
+<script src="/assets/99club/games-play-share-v164.js?v=5"></script>
 <script src="/assets/99club/games-play-share-v176-fix.js?v=1"></script>
