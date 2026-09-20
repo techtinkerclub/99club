@@ -79,6 +79,14 @@ jobs:
         run: node scripts/99club/qa.js
       - name: Run school widget QA
         run: node scripts/99club/widget-qa.js
+      - name: Run security hardening smoke checks
+        run: |
+          node --check assets/99club/analytics.js
+          node --check assets/99club/banner-actions-v2.js
+          node --check assets/99club/school-usage.js
+          node --check assets/99club/widget-runtime.js
+          node --check sw.js
+          node scripts/99club/security-smoke.js
       - name: Upload QA report
         if: always()
         uses: actions/upload-artifact@v4
