@@ -222,10 +222,10 @@ function prepare(){
         if(!solution||!host||!clone||!frame)return fail('completion-splash','solved snapshot was not injected');
         if(clone.querySelector('.tt99-context-pad-launcher,.tt99-number-keypad,.tt99-context-pad-handle,.tt99-wave184-keypad,.tt99-wave186-keypad,.tt99-v196-keypad,.tt99-alpha-pad,.tt99-towers-keypad,.tt99-crossnumber-keypad,.tt99-letter-keypad,.tt99-extra-op-pad'))fail('completion-splash','snapshot still contains keypad UI');
         const hr=host.getBoundingClientRect(),fr=frame.getBoundingClientRect();
-        if(fr.left<hr.left-1||fr.right>hr.right+1||fr.top<hr.top-1||fr.bottom>hr.bottom+1)fail('completion-splash','scaled solved snapshot escapes the splash preview frame');
-        if(host.scrollWidth>host.clientWidth+2||host.scrollHeight>host.clientHeight+2)fail('completion-splash','solved snapshot still requires internal scrolling');
-        const scale=Number(clone.dataset.tt99FitScale||1);
-        if(!(scale>0&&scale<1))fail('completion-splash','oversized snapshot was not scaled down');
+        const scale=Number(clone.dataset.tt99FitScale||1),diag=` host=${Math.round(hr.width)}x${Math.round(hr.height)} frame=${Math.round(fr.width)}x${Math.round(fr.height)} scroll=${host.scrollWidth}x${host.scrollHeight} client=${host.clientWidth}x${host.clientHeight} scale=${scale} natural=${clone.dataset.tt99NaturalWidth||'?'}x${clone.dataset.tt99NaturalHeight||'?'}`;
+        if(fr.left<hr.left-1||fr.right>hr.right+1||fr.top<hr.top-1||fr.bottom>hr.bottom+1)fail('completion-splash','scaled solved snapshot escapes the splash preview frame'+diag);
+        if(host.scrollWidth>host.clientWidth+2||host.scrollHeight>host.clientHeight+2)fail('completion-splash','solved snapshot still requires internal scrolling'+diag);
+        if(!(scale>0&&scale<1))fail('completion-splash','oversized snapshot was not scaled down'+diag);
         else pass('completion-splash','keypad-free solved snapshot scales wholly inside the success splash');
         popup.hidden=true;popup.innerHTML='';
       }catch(e){fail('completion-splash',(e&&e.stack)||String(e));}
