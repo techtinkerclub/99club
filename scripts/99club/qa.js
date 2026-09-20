@@ -288,6 +288,10 @@ for(const token of ['data-share-challenge','data-share-card-native','data-downlo
 for(const legacy of ['facebook.com/sharer','twitter.com/intent','linkedin.com/sharing','data-social=','tt99-share-social','global.open(target'])if(onlineShareSrc.includes(legacy))fail('share-panel','Legacy direct social sharing remains: '+legacy);
 if(!onlineShareSrc.includes("global.addEventListener('pageshow',restoreOpenDialog)")||!onlineShareSrc.includes("visibilitychange"))fail('share-panel','Open share panel is not restored when the app resumes');
 else ok('share-panel','Online sharing uses the device share sheet with no direct social-site popups and preserves the open panel on resume');
+const shareCodecSrc=read('assets/99club/games-play-share-codec-v156.js');
+if(!shareCodecSrc.includes('/^(?:\\/play\\/?|\\/tools\\/99-club\\/games\\/play\\/?)$/'))fail('challenge-link-codec','Share codec does not recognise the current /play/ path');
+else ok('challenge-link-codec','Share codec recognises current and legacy Online Play paths before creating /c/ challenge URLs');
+
 if(!onlineShareSrc.includes("share.textContent='Share this puzzle'")||!onlineShareSrc.includes("'Copy puzzle link'"))fail('completion-share-entry','Completion share labels are not simplified');
 for(const legacy of ['Create share card','Challenge someone','Copy short challenge link'])if(onlineShareSrc.includes(legacy))fail('completion-share-entry','Legacy completion sharing wording remains: '+legacy);
 else ok('completion-share-entry','Completion splash has one share-panel entry and one plain-language copy-link action');
