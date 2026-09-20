@@ -1,4 +1,4 @@
-/* 99 Club Studio · compact Online Play challenge links v1.59 */
+/* 99 Club Studio · compact Online Play challenge links v1.60 */
 (function(global){
 'use strict';
 const GAME_TO_CODE={shikaku:'0',sumplete:'1',nonogram:'2',mathsmines:'3',takuzu:'4',sudoku:'5',futoshiki:'6',killersudoku:'7',cornersum:'8',linkedsum:'9',hashi:'a',numberpath:'b',wordsearch:'c',brokencalc:'d',target:'e',operationgrid:'f',kakuro:'g',arithmeticcages:'h',alphametics:'i',numbertowers:'j',propertymaze:'k',maze:'l',crossnumber:'m',pyramid:'n',magic:'o',arithmagon:'p',magicshape:'q',numbertrail:'r',numberwheels:'s',numbersearch:'t',equationcrossgrid:'u',symbols:'v',functionmachine:'w',balance:'x',crossword:'y'};
@@ -18,5 +18,5 @@ function expandIncoming(){const q=new URLSearchParams(global.location.search),to
 expandIncoming();
 history.replaceState=function(state,title,url){if(url!=null){const p=longParts(url);if(p)return nativeReplace(state,title,compactUrl(url));}return nativeReplace(state,title,url);};
 function currentCompactUrl(){return shareUrl(global.location.href);}
-global.TT99PlayShareCodec={version:'1.59',compactUrl,shareUrl,expandToken,currentCompactUrl,GAME_TO_CODE,CODE_TO_GAME};
+global.TT99PlayShareCodec={version:'1.60',compactUrl,shareUrl,expandToken,currentCompactUrl,GAME_TO_CODE,CODE_TO_GAME};
 })(typeof globalThis!=='undefined'?globalThis:this);
