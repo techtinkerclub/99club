@@ -594,22 +594,32 @@ try{
 
 /* ---------- school integration demonstration ---------- */
 try{
-  const buttons=read('_pages/radford-semele-99studio-demo.html');
-  const cards=read('_pages/radford-semele-99studio-demo-cards.html');
-  const widgets=read('_pages/radford-semele-99studio-demo-widgets.html');
+  const demo=read('_pages/radford-semele-99studio-demo.html');
   const demoJs=read('assets/99club/school-demo.js');
-  for(const [name,demo] of [['buttons',buttons],['cards',cards],['widgets',widgets]]){
-    for(const phrase of ['99 CLUB STUDIO DEMONSTRATION','This is not an official Radford Semele school webpage','School website integration help','noindex,nofollow,noarchive'])if(!demo.includes(phrase))fail('school-demo',name+' demo missing: '+phrase);
-    if(/Juniper/i.test(demo))fail('school-demo',name+' demo must stay website-platform neutral');
-  }
-  if(!buttons.includes('1 · Buttons')||!buttons.includes('demo-club-buttons-core')||!buttons.includes('demo-pack-buttons')||!buttons.includes('demo-online-buttons'))fail('school-demo','Buttons page is incomplete');
-  if(!cards.includes('2 · Cards')||!cards.includes('demo-club-cards-core')||!cards.includes('demo-pack-cards')||!cards.includes('demo-online-cards'))fail('school-demo','Cards page is incomplete');
-  if(!widgets.includes('3 · Widgets')||!widgets.includes('demo-club-widget')||!widgets.includes('demo-games-widget'))fail('school-demo','Widgets page is incomplete');
+  for(const phrase of [
+    '99 CLUB STUDIO DEMONSTRATION',
+    'Not an official Radford Semele school webpage',
+    '1 · Buttons',
+    '2 · Cards',
+    '3 · Widgets',
+    'data-demo-panel="buttons"',
+    'data-demo-panel="cards"',
+    'data-demo-panel="widgets"',
+    'demo-club-buttons-core',
+    'demo-club-cards-core',
+    'demo-club-widget',
+    'demo-games-widget',
+    'School website integration help',
+    'noindex,nofollow,noarchive'
+  ])if(!demo.includes(phrase))fail('school-demo','Single school demo missing: '+phrase);
+  if(/Juniper/i.test(demo))fail('school-demo','School integration demo must stay website-platform neutral');
+  if(!demoJs.includes('initTabs')||!demoJs.includes("history.replaceState"))fail('school-demo','Single demo page does not switch its three integration tabs in-page');
   for(const id of ['11','22','33','44','55','66','77','88','99','bronze','silver','gold','platinum','diamond'])if(!demoJs.includes("'"+id+"'"))fail('school-demo','Shared demo content missing Club '+id);
   if((demoJs.match(/title:'/g)||[]).length<3)fail('school-demo','Demo does not contain at least three printable game-sheet packs');
   for(const id of ['maze','sumplete','sudoku','numbertrail','balance','colourlogic'])if(!demoJs.includes("'"+id+"'"))fail('school-demo','Demo online games missing '+id);
   if(!demoJs.includes("selectedClubs:CLUBS.map"))fail('school-demo','Club widget does not include all 14 Club levels');
-  ok('school-demo','Three platform-neutral school integration demo pages checked');
+  if(exists('_pages/radford-semele-99studio-demo-cards.html')||exists('_pages/radford-semele-99studio-demo-widgets.html'))fail('school-demo','Redundant separate school demo pages still exist');
+  ok('school-demo','Single three-tab platform-neutral school integration demo checked');
 }catch(e){fail('school-demo','School integration demo QA threw',e.stack||e.message);}
 
 /* ---------- output ---------- */
