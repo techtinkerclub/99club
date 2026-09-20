@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "Help for Teachers"
-description: "Teacher guide to 99 Club Studio worksheets, challenge schemes, settings, printing, QR recreation and classroom use."
+description: "Teacher guide to 99 Studio worksheets, challenge schemes, settings, printing, QR recreation and classroom use."
 permalink: /help/
 sidebar: false
 ---
@@ -15,7 +15,7 @@ sidebar: false
 <div class="tt99-guide">
   <div class="tt99-guide-hero">
     <div>
-      <span class="tt99-eyebrow">99 Club Studio</span>
+      <span class="tt99-eyebrow">99 Studio</span>
       <h1>Help for teachers</h1>
       <p>Everything you need to create, review, save and recreate 99 Club progression sheets, plus searchable, printable guides for every current Maths Games &amp; Puzzles activity.</p>
     </div>
@@ -50,7 +50,7 @@ sidebar: false
 
   <section id="games" class="tt99-guide-section tt99-guide-highlight">
     <h2>Maths Games &amp; Puzzles</h2>
-    <p>The separate <a href="/games/">Games &amp; Puzzles</a> page builds printable independent activities from reusable game engines. The library is organised into <strong>accordion categories</strong> so a large puzzle catalogue stays manageable.</p>
+    <p>The separate <a href="/games/">Games &amp; Puzzles</a> page builds printable independent activities from a library of maths games and puzzles. The library is organised into <strong>accordion categories</strong> so a large puzzle catalogue stays manageable.</p>
     <p><strong>Choose games by category.</strong> Open a category, tick individual games, use <strong>Select compatible</strong> to include the games that genuinely fit the chosen year/topics, or use <strong>Clear</strong> / <strong>Clear all games</strong>. Categories with selected games are highlighted and show their selected count. Opening or selecting a game does not collapse the category.</p>
     <p><strong>Each game keeps its own setup.</strong> Press <strong>Configure</strong> beside a selected game to change its difficulty and specialist options, then press <strong>Done</strong> to fully collapse the setup. The selected-games tray keeps a compact summary of the saved choices.</p>
     <p><strong>Vocabulary &amp; language:</strong> Maths Word Search and Maths Crossword share the curated maths vocabulary catalogue. Word Search can show <strong>words + definitions</strong> or <strong>definitions only</strong>, with automatic or teacher-selected directions. Multi-word crossword clues show answer lengths such as <strong>(5, 5)</strong>.</p>
@@ -70,7 +70,7 @@ sidebar: false
       <p>This library covers all <strong>32 current one-player games</strong>. Search by game name or filter by category, then open a pupil-friendly one-page guide. Every guide uses a fixed worked example, so the explanation never changes underneath a teacher or pupil, and <strong>Print this guide</strong> produces a clean A4 reference sheet without the surrounding Help page.</p>
       <span class="tt99-game-guide-count" aria-label="32 game guides">32</span>
     </div>
-    <div class="tt99-guide-note"><strong>These guides explain the rules; they do not generate puzzles.</strong> The guide library is deliberately separate from the game engines, so opening or printing help cannot change the current worksheet, seed or answers.</div>
+    <div class="tt99-guide-note"><strong>These guides explain the rules; they do not generate puzzles.</strong> Opening or printing a guide does not change your current worksheet or answers.</div>
     <div id="tt99-game-guide-root"><noscript>Enable JavaScript to search and open the individual game guides.</noscript></div>
   </section>
 
@@ -78,10 +78,10 @@ sidebar: false
     <h2>Review the questions before you print</h2>
     <p>The preview is meant to be editable. If one question is not suitable, use the circular-arrow button beside it to replace just that question. On desktop the button appears when you move over the question; on a touch screen it stays visible.</p>
     <div class="tt99-guide-note"><strong>Replacement stays in the same category.</strong> A fraction is replaced by another fraction, a square root by another square root, a multiplication fact by another multiplication fact, and so on. The replacement also follows the rules currently selected for that category.</div>
-    <p>You can replace the same question more than once. Studio remembers only the <strong>final reviewed worksheet</strong> for recreation purposes; it does not keep every discarded question in the QR code.</p>
+    <p>You can replace the same question more than once. Studio keeps the <strong>final reviewed worksheet</strong> for the recreate/QR feature; discarded versions are not included.</p>
     <p><b>Shuffle questions</b> changes the order without changing the challenge rules. If you later recreate the sheet using its Full recreation code or teacher QR, the final reviewed order is restored.</p>
     <p>The level is shown by its <strong>achievement badge in the top-right of the sheet</strong>. The badge replaces the old repeated text title, so the worksheet stays cleaner while the child can still see immediately which stage they are working on.</p>
-    <p><strong>The preview uses the same page layout routine as the downloaded PDF.</strong> Headers, QR panel, question positions, column spacing and footer therefore use the same A4 coordinates. A browser and a PDF viewer may anti-alias text slightly differently, but the page geometry is the same.</p>
+    <p><strong>The preview follows the same page layout as the downloaded PDF.</strong> Headers, QR panel, question positions, column spacing and footer therefore use the same A4 coordinates. A browser and a PDF viewer may anti-alias text slightly differently, but the page geometry is the same.</p>
     <p>On a phone, Studio keeps the real page proportions instead of squeezing the worksheet into the screen width. The preview is shown at a readable size inside a horizontal scroller; swipe sideways to inspect the rest of a portrait or landscape page. Tap a question to reveal its ↻ replacement control.</p>
   </section>
 
@@ -232,9 +232,7 @@ sidebar: false
 
   <section class="tt99-guide-section">
     <h2>Privacy</h2>
-    <p>99 Club Studio runs in your browser. School details, logos and questions are processed on the device rather than uploaded to 99 Club Studio. The teacher QR uses the part of the web address after <code>#</code>, which is not sent to the website server.</p>
-    <p>A downloaded Full backup is an ordinary JSON file and may contain the school/class/teacher text and logo you entered. Store or share it as you would any other school working file.</p>
-    <p><a class="tt99-secondary tt99-guide-action" href="/">Back to 99 Club Studio →</a></p>
+    <p>99 Studio does not require pupil accounts. For details about saved browser data, analytics and shared practice links, see <a href="/privacy/">Privacy &amp; analytics</a>.</p>
   </section>
 </div>
     </section>
