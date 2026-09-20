@@ -104,6 +104,7 @@ function fractionPool(){
 const out=[];let i=0,forms=[[1,2],[1,3],[2,3],[1,4],[2,4],[3,4],[1,5],[2,5],[3,5],[4,5],[3,8],[5,8],[7,8]];
 for(const [n,d] of forms)for(let v=0;v<3;v++){
 out.push(q('fraction_diagrams','identify_shaded',i++,`What fraction of the diagram is shaded?`,`${n}/${d}`,{key:`${n}:${d}:${v}:id`,visual:{type:'foundation',subtype:'fraction_grid',n,d,variant:v,mode:'identify'}}));
+out.push(q('fraction_diagrams','identify_not_shaded',i++,`What fraction of the diagram is not shaded?`,`${d-n}/${d}`,{key:`${n}:${d}:${v}:not`,visual:{type:'foundation',subtype:'fraction_grid',n,d,variant:v,mode:'not_shaded'}}));
 out.push(q('fraction_diagrams','shade_fraction',i++,`Shade ${n}/${d} of the diagram.`,`${n}/${d} shaded`,{key:`${n}:${d}:${v}:shade`,visual:{type:'foundation',subtype:'fraction_grid',n,d,variant:v,mode:'shade'},marking:{mode:'rubric',answer:`${n}/${d} shaded`,rule:`Exactly ${n} of ${d} equal parts shaded.`}}));
 }
 return out;
@@ -173,7 +174,7 @@ C.text(cx+beamW*.32,trayY-5,`${v.rightMass} g`,10,{bold:true,align:'center',colo
 }else if(v.subtype==='number_line'){
 const vals=v.values||[],left=x+w*.10,right=x+w*.90,cy=y+h*.52;C.line(left,cy,right,cy,{color:ink,width:.9});vals.forEach((n,j)=>{const xx=left+(right-left)*j/(vals.length-1);C.line(xx,cy-7,xx,cy+7,{color:ink,width:.8});const hidden=j===v.missing;C.text(xx,cy+23,hidden?'□':String(n),7,{bold:hidden,align:'center',color:hidden?teal:ink});});
 }else if(v.subtype==='fraction_grid'){
-const d=v.d,n=v.n,cols=d<=5?d:4,rows=Math.ceil(d/cols),gw=w*.62,gh=Math.min(h*.52,90),cw=gw/cols,ch=gh/rows,left=x+(w-gw)/2,top=y+(h-gh)/2,shade=v.mode==='identify'||answers?n:0;
+const d=v.d,n=v.n,cols=d<=5?d:4,rows=Math.ceil(d/cols),gw=w*.62,gh=Math.min(h*.52,90),cw=gw/cols,ch=gh/rows,left=x+(w-gw)/2,top=y+(h-gh)/2,shade=(v.mode==='identify'||v.mode==='not_shaded'||answers)?n:0;
 for(let k=0;k<d;k++){const row=Math.floor(k/cols),col=k%cols;C.rect(left+col*cw,top+row*ch,cw,ch,{fill:k<shade?fill:null,stroke:ink,width:.65});}C.text(x+w/2,top+gh+17,`${d} equal parts`,6.5,{align:'center',color:muted});
 }else if(v.subtype==='block_chart'){
 const vals=v.values||[],max=Math.max(...vals,1),left=x+w*.16,base=y+h*.78,chartH=h*.58,bw=w*.13,gap=w*.055;C.line(left-8,base,left+vals.length*(bw+gap),base,{color:ink,width:.7});

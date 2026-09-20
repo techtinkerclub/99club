@@ -9,15 +9,16 @@ require(path.join(ROOT,'assets/99club/custom-reasoning.js'));
 require(path.join(ROOT,'assets/99club/custom-structured-problems.js'));
 require(path.join(ROOT,'assets/99club/custom-visual-reasoning.js'));
 require(path.join(ROOT,'assets/99club/custom-applied-visuals.js'));
+require(path.join(ROOT,'assets/99club/custom-extra-visuals.js'));
 
-const W=global.TT99CustomWrittenMethods,R=global.TT99CustomReasoning,S=global.TT99CustomStructured,F=global.TT99CustomVisualReasoning,A=global.TT99CustomAppliedVisuals;
+const W=global.TT99CustomWrittenMethods,R=global.TT99CustomReasoning,S=global.TT99CustomStructured,F=global.TT99CustomVisualReasoning,A=global.TT99CustomAppliedVisuals,E=global.TT99CustomExtraVisuals;
 const failures=[],passes=[];
 const fail=(area,msg)=>failures.push({area,msg});
 const pass=(area,msg)=>passes.push({area,msg});
 const num=s=>Number(String(s).replace(/,/g,''));
 const isPrime=n=>{n=Number(n);if(n<2||!Number.isInteger(n))return false;for(let d=2;d*d<=n;d++)if(n%d===0)return false;return true;};
 
-if(!W||!R||!S||!F||!A)fail('load','Expansion modules did not load');
+if(!W||!R||!S||!F||!A||!E)fail('load','Expansion modules did not load');
 else{
   for(const [kind,pool] of Object.entries(W.POOLS||{})){
     if(pool.length<20)fail(kind,`Pool too small: ${pool.length}`);
@@ -28,6 +29,7 @@ else{
   const sv=S.validate();if(!sv.ok)sv.errors.forEach(e=>fail('structured',e));else pass('structured','Structured pool/key baseline validation passed');
   const fv=F.validate();if(!fv.ok)fv.errors.forEach(e=>fail('visual-reasoning',e));else pass('visual-reasoning','Visual-reasoning pool/key/net baseline validation passed');
   const av=A.validate();if(!av.ok)av.errors.forEach(e=>fail('applied-visuals',e));else pass('applied-visuals','Applied-visual pool/key baseline validation passed');
+  const ev=E.validate();if(!ev.ok)ev.errors.forEach(e=>fail('extra-visuals',e));else pass('extra-visuals','Extra-visual pool/key/topology baseline validation passed');
 
   for(const item of R.POOLS.rounding_bounds||[]){
     const m=item.prompt.match(/rounds to ([\d,]+) to the nearest ([\d,]+).*?(smallest|largest)/i);
@@ -294,6 +296,7 @@ else{
     const v=item.visual||{};
     if(!(Number(v.n)>0&&Number(v.d)>0&&Number(v.n)<=Number(v.d)))fail('fraction_diagrams',`${item.key}: invalid fraction model`);
     if(item.group==='identify_shaded'&&item.answer!==`${v.n}/${v.d}`)fail('fraction_diagrams',`${item.key}: shaded fraction mismatch`);
+    if(item.group==='identify_not_shaded'&&item.answer!==`${v.d-v.n}/${v.d}`)fail('fraction_diagrams',`${item.key}: unshaded fraction mismatch`);
   }
   pass('fraction_diagrams','Fraction models and identify answers checked');
 
@@ -319,8 +322,9 @@ else{
     if(item.group==='jug_read'&&item.answer!==`${v.level} ml`)fail('measure_scales',`${item.key}: jug read mismatch`);
     if(item.group==='jug_add_to'&&item.answer!==`${Number(v.target)-Number(v.level)} ml`)fail('measure_scales',`${item.key}: jug add mismatch`);
     if(item.group==='ruler_read'&&item.answer!==`${v.value} cm`)fail('measure_scales',`${item.key}: ruler mismatch`);
+    if(item.group==='joined_lengths'){const expected=(v.values||[]).reduce((a,b)=>a+Number(b),0),shown=Number(String(item.answer).replace(' cm',''));if(Math.abs(shown-expected)>1e-9)fail('measure_scales',`${item.key}: joined-length mismatch`);}
   }
-  pass('measure_scales','Jug and ruler answers independently checked');
+  pass('measure_scales','Jug, ruler and joined-length answers independently checked');
 
   for(const item of A.POOLS.missing_digit_calculations||[]){
     const v=item.visual||{},digit=Number(item.answer);
@@ -352,7 +356,48 @@ else{
   }
   pass('coin_reasoning','Coin totals and change independently recalculated');
 
-  const families=[...Object.keys(W.FAMILIES),...Object.keys(R.FAMILIES),...Object.keys(S.FAMILIES),...Object.keys(F.FAMILIES),...Object.keys(A.FAMILIES)];
+  for(const item of E.POOLS.temperature_visuals||[]){
+    const v=item.visual||{};
+    if(item.group==='read_temperature'&&item.answer!==`${v.value}°C`)fail('temperature_visuals',`${item.key}: read mismatch`);
+    if(item.group==='mark_temperature'&&item.answer!==`${v.value}°C marked`)fail('temperature_visuals',`${item.key}: mark mismatch`);
+    if(item.group==='temperature_change'){
+      const expected=Number(v.value)+Number(v.delta);
+      if(Number(v.final)!==expected||item.answer!==`${expected}°C`)fail('temperature_visuals',`${item.key}: change mismatch`);
+    }
+  }
+  pass('temperature_visuals','Thermometer values and changes independently recalculated');
+
+  for(const item of E.POOLS.symmetry_visuals||[]){
+    const v=item.visual||{},rows=v.rows||[];
+    if(rows.length<3||rows.some(n=>!Number.isInteger(Number(n))||Number(n)<0||Number(n)>3))fail('symmetry_visuals',`${item.key}: invalid half-pattern`);
+    if(item.group==='draw_symmetry_line'&&item.answer!=='vertical line through the centre')fail('symmetry_visuals',`${item.key}: line answer mismatch`);
+  }
+  pass('symmetry_visuals','Generated symmetry half-patterns and axis answers checked');
+
+  for(const item of E.POOLS.tally_charts||[]){
+    const v=item.visual||{};
+    if(item.group==='read_tally'){
+      if(num(item.answer)!==Number(v.counts?.[v.ask]))fail('tally_charts',`${item.key}: read mismatch`);
+    }else if(item.group==='tally_difference'){
+      const h=v.highlight||[],expected=Math.abs(Number(v.counts?.[h[0]])-Number(v.counts?.[h[1]]));
+      if(num(item.answer)!==expected)fail('tally_charts',`${item.key}: difference mismatch`);
+    }else if(item.group==='complete_tally'){
+      if(item.answer!==`${v.counts?.[v.ask]} tally marks`)fail('tally_charts',`${item.key}: completion mismatch`);
+    }
+  }
+  pass('tally_charts','Tally-chart read, difference and completion modes checked');
+
+  const hexDirs=[[1,0],[-1,0],[0,1],[0,-1],[1,-1],[-1,1]];
+  function independentHexPerimeter(cells){const set=new Set((cells||[]).map(p=>p.join(',')));let edges=0;for(const [q0,r0] of cells||[])for(const [dq,dr] of hexDirs)if(!set.has(`${q0+dq},${r0+dr}`))edges++;return edges;}
+  for(const item of E.POOLS.tile_area_perimeter_visual||[]){
+    const v=item.visual||{},p=independentHexPerimeter(v.cells||[]);
+    if(Number(v.perimeter)!==p)fail('tile_area_perimeter_visual',`${item.key}: topology perimeter mismatch`);
+    if(item.group==='hex_perimeter'&&item.answer!==`${p*Number(v.edge)} cm`)fail('tile_area_perimeter_visual',`${item.key}: perimeter answer mismatch`);
+    if(item.group==='hex_area_tiles'&&item.answer!==`${(v.cells||[]).length} square units`)fail('tile_area_perimeter_visual',`${item.key}: area answer mismatch`);
+  }
+  pass('tile_area_perimeter_visual','Hex-tile area and exposed-edge perimeter independently checked');
+
+  const families=[...Object.keys(W.FAMILIES),...Object.keys(R.FAMILIES),...Object.keys(S.FAMILIES),...Object.keys(F.FAMILIES),...Object.keys(A.FAMILIES),...Object.keys(E.FAMILIES)];
   for(const family of families){
     const base=G.clone(G.OPEN_WORKSHEET_PRESET);base.mode='family_mix';base.questionCount=12;base.families=[family];base.familyWeights={[family]:1};base.progressionEnabled=false;
     let questions=[];try{questions=G.generateQuestions(base,`QA:${family}`);}catch(e){fail('generation',`${family}: ${e.stack||e.message}`);continue;}
@@ -367,9 +412,10 @@ else{
   for(const pool of Object.values(S.POOLS))for(const item of pool.filter(q=>q.visual).slice(0,3))try{S.renderStructured(stub,0,0,420,180,item.visual,false);S.renderStructured(stub,0,0,420,180,item.visual,true);}catch(e){fail('render-structured',`${item.key}: ${e.message}`);}
   for(const pool of Object.values(F.POOLS))for(const item of pool.filter(q=>q.visual).slice(0,3))try{F.renderFoundation(stub,0,0,420,180,item.visual,false);F.renderFoundation(stub,0,0,420,180,item.visual,true);}catch(e){fail('render-foundation',`${item.key}: ${e.message}`);}
   for(const pool of Object.values(A.POOLS))for(const item of pool.filter(q=>q.visual).slice(0,3))try{A.renderApplied(stub,0,0,420,180,item.visual,false);A.renderApplied(stub,0,0,420,180,item.visual,true);}catch(e){fail('render-applied',`${item.key}: ${e.message}`);}
+  for(const pool of Object.values(E.POOLS))for(const item of pool.filter(q=>q.visual).slice(0,3))try{E.renderExtra(stub,0,0,420,180,item.visual,false);E.renderExtra(stub,0,0,420,180,item.visual,true);}catch(e){fail('render-extra',`${item.key}: ${e.message}`);}
   pass('render','New visual renderers completed stub-canvas smoke tests');
 }
 const report={generatedAt:new Date().toISOString(),passes,failures};
 require('fs').writeFileSync(path.join(ROOT,'99club-custom-expansion-qa-report.json'),JSON.stringify(report,null,2));
 if(failures.length){console.error(JSON.stringify(report,null,2));process.exit(1);}
-console.log(`Custom expansion QA passed: ${passes.length} checks, ${Object.keys(W.POOLS).length+Object.keys(R.POOLS).length+Object.keys(S.POOLS).length+Object.keys(F.POOLS).length+Object.keys(A.POOLS).length} families.`);
+console.log(`Custom expansion QA passed: ${passes.length} checks, ${Object.keys(W.POOLS).length+Object.keys(R.POOLS).length+Object.keys(S.POOLS).length+Object.keys(F.POOLS).length+Object.keys(A.POOLS).length+Object.keys(E.POOLS).length} families.`);
