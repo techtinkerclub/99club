@@ -28,7 +28,7 @@ sitemap: true
 
         <section class="tt99-guide-section tt99-guide-highlight">
           <h2>Google Analytics</h2>
-          <p>99 Club Studio loads the Google tag using Google Consent Mode with analytics storage set to <strong>denied</strong> by default. While analytics storage is denied, Google may receive consent-aware cookieless measurement signals. If you choose <strong>Allow analytics</strong>, analytics storage is then granted and Google Analytics 4 can provide ordinary website statistics such as page views, sessions, broad traffic source/referrer information, approximate geographic reporting, device/browser information and navigation through the site.</p>
+          <p>99 Club Studio uses a <strong>basic-consent</strong> analytics setup. The Google Analytics script is <strong>not requested from Google at all unless you choose Allow analytics</strong>. If you allow analytics, Google Analytics 4 can then provide ordinary website statistics such as page views, sessions, broad traffic source/referrer information, approximate geographic reporting, device/browser information and navigation through the site. If you choose not to allow analytics, Studio continues to work normally without loading the Google Analytics script.</p>
           <p>Studio also sends a limited set of product events so we can understand which parts of the free tool are useful. Examples include the type of worksheet PDF downloaded, the selected 99 Club challenge, which puzzle engines are added to or downloaded in a games pack, which online games are started or completed, use of the school-sharing tools, widget-builder actions and PWA install/update actions.</p>
           <p>When a school name has been entered in Studio, consented product events can include a stable <strong>opaque school key</strong> derived from that name. The school name itself is not sent to Google Analytics. When the browser supplies an external referrer, Studio can also include the <strong>referring website origin</strong> (for example <code>https://school.example</code>). The path, query string and fragment of the referring page are deliberately discarded.</p>
           <p>Online games opened from a school widget can carry a non-personal widget integration ID so aggregate game usage can be associated with that integration. The ID does not identify a pupil, parent or device.</p>
@@ -38,7 +38,7 @@ sitemap: true
 
         <section class="tt99-guide-section">
           <h2>Your choice</h2>
-          <p>Analytics storage is not granted unless you allow analytics. You can change your choice later using the <strong>Privacy & analytics</strong> control at the bottom of the site. Choosing not to allow analytics does not restrict the worksheets or games.</p>
+          <p>Analytics is not enabled unless you allow it. You can change your choice later using the <strong>Privacy & analytics</strong> control at the bottom of the site. Choosing not to allow analytics does not restrict the worksheets or games. If you later turn analytics off, Studio updates consent to denied and removes its Google Analytics cookies where the browser permits.</p>
           <p>Google provides the analytics service and processes analytics information under its own service and privacy terms. You can read Google's privacy information at <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy & Terms</a>.</p>
         </section>
 
@@ -53,8 +53,21 @@ sitemap: true
         </section>
 
         <section class="tt99-guide-section">
+          <h2>Hosting</h2>
+          <p>99 Club Studio is served using GitHub Pages. Like other web hosting services, the hosting infrastructure can receive ordinary technical request information needed to deliver and protect the website, such as an IP address, browser information and requested page. 99 Club Studio does not require pupil accounts or use its application data to identify individual pupils.</p>
+        </section>
+
+        <section class="tt99-guide-section">
+          <h2>Data saved on this device</h2>
+          <p>Studio uses browser storage for convenience: for example school/class personalisation, saved worksheet settings, custom vocabulary, widget drafts, PWA update state and online-game records. These items remain on this browser profile until they are replaced, cleared by the browser, or cleared here.</p>
+          <div class="tt99-guide-note"><strong>Shared computer?</strong> Save any configuration files you need first, then clear Studio data before handing the browser profile to someone else.</div>
+          <p><button type="button" class="tt99-secondary" id="tt99-clear-local-data">Clear 99 Studio data from this device</button></p>
+          <p id="tt99-clear-local-status" role="status" aria-live="polite"></p>
+        </section>
+
+        <section class="tt99-guide-section">
           <h2>Contact form</h2>
-          <p>If you choose to send a message through the Contact form, the details you type are sent through FormSubmit so the message can be delivered. Please do not include pupil personal information.</p>
+          <p>If you choose to send a message through the Contact form, the name/email/message you enter are sent through FormSubmit so the message can be delivered. The form also sends the 99 Studio <strong>page origin and path only</strong> so a bug report can be associated with the relevant area of the site. Query strings and URL fragments are deliberately excluded. Please do not include pupil personal information.</p>
         </section>
       </div>
     </section>
@@ -63,3 +76,47 @@ sitemap: true
 
 <link rel="stylesheet" href="/assets/99club/99club.css?v=20.2">
 <link rel="stylesheet" href="/assets/99club/games-help-guides.css?v=1.1.1">
+
+
+<script>
+(function(){
+  'use strict';
+  const button=document.getElementById('tt99-clear-local-data');
+  const status=document.getElementById('tt99-clear-local-status');
+  if(!button)return;
+
+  function clearPrefixedStorage(store){
+    let removed=0;
+    try{
+      const keys=[];
+      for(let i=0;i<store.length;i++){const key=store.key(i);if(key&&key.startsWith('tt99-'))keys.push(key);}
+      keys.forEach(key=>{store.removeItem(key);removed++;});
+    }catch(_){}
+    return removed;
+  }
+
+  function clearAnalyticsCookies(){
+    try{
+      const names=document.cookie.split(';').map(x=>x.split('=')[0].trim()).filter(name=>/^_ga(?:_|$)/.test(name));
+      const domains=['',location.hostname,'.'+location.hostname.replace(/^www\./,'')];
+      names.forEach(name=>domains.forEach(domain=>{
+        document.cookie=name+'=; Max-Age=0; path=/; SameSite=Lax'+(domain?'; domain='+domain:'');
+      }));
+    }catch(_){}
+  }
+
+  button.addEventListener('click',async()=>{
+    if(!confirm('Clear saved 99 Studio settings, vocabulary, widget drafts, game records, analytics choice and Studio caches from this browser? Download any school configuration backups you need first.'))return;
+    const removed=clearPrefixedStorage(localStorage)+clearPrefixedStorage(sessionStorage);
+    clearAnalyticsCookies();
+    try{
+      if('caches' in window){
+        const names=await caches.keys();
+        await Promise.all(names.filter(name=>name.startsWith('tt99-studio-')).map(name=>caches.delete(name)));
+      }
+    }catch(_){}
+    if(status)status.textContent='99 Studio browser data cleared ('+removed+' saved items). Reloading with fresh settings…';
+    window.setTimeout(()=>location.reload(),700);
+  });
+})();
+</script>
