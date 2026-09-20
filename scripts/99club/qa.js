@@ -42,6 +42,25 @@ for(const rel of activeAssets){
 }
 ok('syntax',`${activeAssets.length} active local JavaScript assets parsed`);
 
+/* ---------- social preview metadata ---------- */
+const socialPreviewRel='assets/99club/images/99studio-social-preview.png';
+const socialPreviewPath=path.join(ROOT,socialPreviewRel);
+if(!exists(socialPreviewRel))fail('social-preview','Missing crop-safe social preview image');
+else{
+  const png=fs.readFileSync(socialPreviewPath);
+  const isPng=png.length>=24&&png[0]===0x89&&png.toString('ascii',1,4)==='PNG';
+  if(!isPng)fail('social-preview','Social preview asset is not a PNG');
+  else{
+    const width=png.readUInt32BE(16),height=png.readUInt32BE(20);
+    if(width!==1200||height!==630)fail('social-preview','Social preview must be 1200×630',String(width)+'×'+String(height));
+  }
+}
+const challengeSharePage=read('_pages/99-club-challenge.md');
+const siteConfig=read('_config.yml');
+for(const token of ['og:title','og:description','og:image','og:image:width','og:image:height','twitter:card','99studio-social-preview.png'])if(!challengeSharePage.includes(token))fail('social-preview','Challenge page metadata missing '+token);
+if(!siteConfig.includes('og_image: "/assets/99club/images/99studio-social-preview.png"'))fail('social-preview','Global Open Graph fallback still uses the raw wordmark');
+else ok('social-preview','1200×630 crop-safe social image and challenge Open Graph metadata are configured');
+
 /* ---------- load generator stack exactly enough for Node ---------- */
 resetGlobals();
 const engineLoadOrder=[
