@@ -554,6 +554,8 @@ try{
   const widgetBuilder=read('assets/99club/widget-builder.js');
   const widgetRuntime=read('assets/99club/widget-runtime.js');
   const widgetPage=read('_pages/99-club-widget.html');
+  if(fs.existsSync(path.join(ROOT,'_pages/99-club-widget.md')))fail('analytics','Public widget endpoint must be HTML, not Markdown');
+  if(!/^---[\s\S]*?---\s*<!doctype html>/i.test(widgetPage))fail('analytics','Public widget endpoint is not a real standalone HTML document');
   const widgetBuilderPage=read('_pages/99-club-widget-builder.md');
   const analyticsDoc=read('docs/ANALYTICS_SETUP.md');
   const privacy=read('_pages/privacy.md');
