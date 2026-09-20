@@ -296,8 +296,8 @@ for(const token of ['data-share-card-link','data-share-card-native','data-downlo
 for(const legacy of ['facebook.com/sharer','twitter.com/intent','linkedin.com/sharing','data-social=','tt99-share-social','global.open(target'])if(onlineShareSrc.includes(legacy))fail('share-panel','Legacy direct social sharing remains: '+legacy);
 if(!onlineShareSrc.includes('function cardWithLinkPayload(file)')||!onlineShareSrc.includes('url:currentUrl||challengeUrl(),files:[file]'))fail('share-panel','Primary share action does not package the selected PNG together with the exact puzzle URL');
 if(!onlineShareSrc.includes('text:cardCaption()'))fail('share-panel','Primary share action is missing its caption text');
-if(!onlineShareSrc.includes('if(isIOSShareTarget())')||!onlineShareSrc.includes('copyTextSync(captionWithLink())')||!onlineShareSrc.includes("const imageData={title:"))fail('share-panel','iOS image-first sharing fallback is missing');
-if(!onlineShareSrc.includes("secondaryShareAction(){return isIOSShareTarget()?copyCaptionWithLink():shareCard();}"))fail('share-panel','iOS Copy caption + link fallback is not wired');
+if(!onlineShareSrc.includes('if(isIOSShareTarget())')||!onlineShareSrc.includes("const linkData={title:")||!onlineShareSrc.includes('text:cardCaption(),url:currentUrl||challengeUrl()'))fail('share-panel','iOS clean link-sharing fallback is missing');
+if(!onlineShareSrc.includes("secondaryShareAction(){return shareCard();}"))fail('share-panel','iOS image-only secondary action is not wired');
 
 if(!onlineShareSrc.includes("global.addEventListener('pageshow',restoreOpenDialog)")||!onlineShareSrc.includes("visibilitychange"))fail('share-panel','Open share panel is not restored when the app resumes');
 else ok('share-panel','Online sharing uses the device share sheet with no direct social-site popups and preserves the open panel on resume');
