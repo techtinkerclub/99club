@@ -264,6 +264,12 @@ if(!finishFlow.includes('dismissCompletionInput();')||finishFlow.indexOf('dismis
 for(const selector of ['tt99-context-pad-launcher','tt99-wave184-keypad','tt99-number-keypad','tt99-structure-keypad','tt99-letter-keypad','tt99-extra-op-pad'])if(!completionPreviewSrc.includes(selector))fail('completion-splash','Completion snapshot sanitiser missing '+selector);
 if(!completionPreviewSrc.includes('fitSnapshot')||!completionPreviewSrc.includes('tt99-play-complete-snapshot-fit'))fail('completion-splash','Completion snapshot fit stage is missing');
 else ok('completion-splash','Successful completion dismisses input first and the splash owns a keypad-free fit-to-frame snapshot');
+const onlineShareSrc=read('assets/99club/games-play-share-v164.js');
+for(const token of ['data-share-challenge','data-share-card-native','data-download','data-copy-link','navigator.share'])if(!onlineShareSrc.includes(token))fail('share-panel','Native sharing contract missing '+token);
+for(const legacy of ['facebook.com/sharer','twitter.com/intent','linkedin.com/sharing','data-social=','tt99-share-social','global.open(target'])if(onlineShareSrc.includes(legacy))fail('share-panel','Legacy direct social sharing remains: '+legacy);
+if(!onlineShareSrc.includes("global.addEventListener('pageshow',restoreOpenDialog)")||!onlineShareSrc.includes("visibilitychange"))fail('share-panel','Open share panel is not restored when the app resumes');
+else ok('share-panel','Online sharing uses the device share sheet with no direct social-site popups and preserves the open panel on resume');
+
 
 for(const id of publicGameIds){
   if(!printInstructions.includes("case'"+id+"'"))fail('instruction-audit',id+': printable reviewed instruction missing');
