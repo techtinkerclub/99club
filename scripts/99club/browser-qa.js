@@ -227,6 +227,20 @@ function prepare(){
         popup.hidden=true;popup.innerHTML='';
       }catch(e){fail('completion-share-entry',(e&&e.stack)||String(e));}
     }
+    async function challengeLinkCodecTest(){
+      try{
+        const codec=window.TT99PlayShareCodec,share=window.TT99PlayShareV156;
+        if(!codec?.shareUrl||!share?.challengeUrl)return fail('challenge-link-codec','share codec APIs missing');
+        const sample='https://99studio.uk/play/?game=pyramid&seed=codec-qa&mode=relaxed';
+        const out=codec.shareUrl(sample);
+        if(!/^https:\/\/99studio\.uk\/c\/\?c=1~n~r~codec-qa~/.test(out))fail('challenge-link-codec','current /play/ URL was not converted to /c/ challenge URL: '+out);
+        const legacy=codec.shareUrl('https://99studio.uk/tools/99-club/games/play/?game=pyramid&seed=legacy-qa&mode=challenge');
+        if(!/^https:\/\/99studio\.uk\/c\/\?c=1~n~c~legacy-qa~/.test(legacy))fail('challenge-link-codec','legacy play URL conversion regressed: '+legacy);
+        const current=share.challengeUrl();
+        if(!/\/c\/\?c=/.test(current))fail('challenge-link-codec','live share API is not returning /c/ challenge URL: '+current);
+        else pass('challenge-link-codec','current and legacy play URLs both share through /c/ metadata landing page');
+      }catch(e){fail('challenge-link-codec',(e&&e.stack)||String(e));}
+    }
     async function sharePanelTest(){
       try{
         const api=window.TT99PlayShareV156;
@@ -272,7 +286,7 @@ function prepare(){
       }catch(e){fail('completion-splash',(e&&e.stack)||String(e));}
     }
     async function run(){
-      try{await sleep(500);await genericAdapterTests();await brokenCalcTest();await colourFillTest();await perimeterDirectTest();await alphameticsVarietyTest();await groupedLibraryTest();await drawerTest();await sumGridContainmentTest();await hintPopupTest();await answerRevealFlowTest();await completionShareEntryTest();await sharePanelTest();await completionSplashFitTest();}
+      try{await sleep(500);await genericAdapterTests();await brokenCalcTest();await colourFillTest();await perimeterDirectTest();await alphameticsVarietyTest();await groupedLibraryTest();await drawerTest();await sumGridContainmentTest();await hintPopupTest();await answerRevealFlowTest();await completionShareEntryTest();await challengeLinkCodecTest();await sharePanelTest();await completionSplashFitTest();}
       catch(e){fail('runner',(e&&e.stack)||String(e));}
       finally{finish();}
     }
