@@ -5,6 +5,16 @@ on:
     branches: [main]
     paths:
       - 'assets/99club/**'
+      - '_includes/**'
+      - '_layouts/**'
+      - '_config.yml'
+      - 'CNAME'
+      - 'manifest.webmanifest'
+      - 'sw.js'
+      - 'offline.html'
+      - 'Gemfile'
+      - 'package.json'
+      - 'package-lock.json'
       - '_pages/99-club-games*.md'
       - '_pages/99-club-practice.md'
       - '_pages/99-club-puzzle-practice.md'
@@ -22,6 +32,16 @@ on:
   pull_request:
     paths:
       - 'assets/99club/**'
+      - '_includes/**'
+      - '_layouts/**'
+      - '_config.yml'
+      - 'CNAME'
+      - 'manifest.webmanifest'
+      - 'sw.js'
+      - 'offline.html'
+      - 'Gemfile'
+      - 'package.json'
+      - 'package-lock.json'
       - '_pages/99-club-games*.md'
       - '_pages/99-club-practice.md'
       - '_pages/99-club-puzzle-practice.md'
