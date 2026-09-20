@@ -42,9 +42,9 @@ function prepare(){
     }
   }
   try{
-    const G=window.TT99Generator,L=window.TT99PDFLayout,W=window.TT99CustomWrittenMethods,R=window.TT99CustomReasoning,S=window.TT99CustomStructured,F=window.TT99CustomVisualReasoning;
-    if(!G||!L||!W||!R||!S||!F){fail('load','Required generator/layout/expansion modules missing');finish();return;}
-    const families=[...Object.keys(W.FAMILIES),...Object.keys(R.FAMILIES),...Object.keys(S.FAMILIES),...Object.keys(F.FAMILIES)];
+    const G=window.TT99Generator,L=window.TT99PDFLayout,W=window.TT99CustomWrittenMethods,R=window.TT99CustomReasoning,S=window.TT99CustomStructured,F=window.TT99CustomVisualReasoning,A=window.TT99CustomAppliedVisuals;
+    if(!G||!L||!W||!R||!S||!F||!A){fail('load','Required generator/layout/expansion modules missing');finish();return;}
+    const families=[...Object.keys(W.FAMILIES),...Object.keys(R.FAMILIES),...Object.keys(S.FAMILIES),...Object.keys(F.FAMILIES),...Object.keys(A.FAMILIES)];
     report.families=families.slice();
     for(const family of families){
       for(const orientation of ['portrait','landscape']){
