@@ -132,7 +132,7 @@ else if(d==='W')no={u:o.n.slice(),v:o.v.slice(),n:neg(o.u)};
 else if(d==='S')no={u:o.u.slice(),v:neg(o.n),n:o.v.slice()};
 else no={u:o.u.slice(),v:o.n.slice(),n:neg(o.v)};
 ori[j]=no;queue.push(j);}}
-}return ori;
+return ori;
 }
 function cubeNetPool(){
 const out=[];let i=0;
