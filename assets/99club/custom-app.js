@@ -49,7 +49,7 @@
   }
   function newStudioSeed(clubId){return `${clubId}-${randomStudioToken(6)}`;}
   const HELP_TEXT = {
-    customWorksheet: ['Custom worksheet','Use this for starters, quizzes, homework and targeted practice. Choose direct numerical or concise mathematical prompts, give topics relative weights and set the number of questions. Contextual story word problems are deliberately excluded until they have a separate, richer problem engine.'],
+    customWorksheet: ['Custom worksheet','Use this for starters, quizzes, homework and targeted practice. Choose numerical or concise mathematical prompts, give topics relative weights and set the number of questions. Story-based word problems are not included in this tool.'],
     wholeNumberRange: ['Whole-number difficulty','Sets the upper size used by place-value, rounding, number-property and larger calculation families. An optional Year generation profile can adjust this, and you can override it.'],
     decimalSettings: ['Decimal difficulty','Primary pupils work with tenths and hundredths from Year 4 and with thousandths / up to 3 decimal places in Year 5–6. These controls cap the generated decimal precision and size.'],
     ratioSettings: ['Ratio settings','Controls the size of ratio parts and quantities used in Year 6 equivalent-ratio, scale-factor and unequal-sharing questions.'],
@@ -411,7 +411,7 @@
     root.innerHTML = `
       <div class="tt99-shell tt99-shell--custom">
         <section class="tt99-custom-hero" aria-labelledby="tt99-custom-title">
-          <div><span class="tt99-eyebrow">99 Club Studio</span><div class="tt99-custom-title-row"><h1 id="tt99-custom-title">Custom Worksheets</h1><span class="tt99-beta-pill">Beta</span></div><p>Build targeted starters, homework, quizzes and retrieval practice. This workspace is separate so new curriculum, visual and future word-problem generators can grow without changing the stable 99 Club workflow.</p></div>
+          <div><span class="tt99-eyebrow">99 Studio</span><div class="tt99-custom-title-row"><h1 id="tt99-custom-title">Custom Worksheets</h1><span class="tt99-beta-pill">Beta</span></div><p>Build targeted starters, homework, quizzes and retrieval practice by choosing the topics and question types you need.</p></div>
           <div class="tt99-custom-hero-actions">
             <a class="tt99-secondary tt99-custom-back" href="/">← Back to 99 Club</a><a class="tt99-secondary tt99-custom-back" href="/games/">Games &amp; puzzles</a>
           </div>
@@ -428,7 +428,6 @@
           <main class="tt99-preview-panel">
             ${renderPreviewToolbar()}
             <div class="tt99-preview-wrap">${renderPaper()}</div>
-            <div class="tt99-privacy"><strong>Private by design.</strong> Questions, names and school logos are processed only on this device.</div>
           </main>
         </div>
         <div id="tt99-help-popover" class="tt99-help-popover" role="dialog" aria-live="polite" hidden></div>
