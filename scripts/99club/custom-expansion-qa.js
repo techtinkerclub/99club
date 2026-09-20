@@ -6,15 +6,16 @@ global.window=global;
 const G=require(path.join(ROOT,'assets/99club/generator.js'));
 require(path.join(ROOT,'assets/99club/custom-written-methods.js'));
 require(path.join(ROOT,'assets/99club/custom-reasoning.js'));
+require(path.join(ROOT,'assets/99club/custom-structured-problems.js'));
 
-const W=global.TT99CustomWrittenMethods,R=global.TT99CustomReasoning;
+const W=global.TT99CustomWrittenMethods,R=global.TT99CustomReasoning,S=global.TT99CustomStructured;
 const failures=[],passes=[];
 const fail=(area,msg)=>failures.push({area,msg});
 const pass=(area,msg)=>passes.push({area,msg});
 const num=s=>Number(String(s).replace(/,/g,''));
 const isPrime=n=>{n=Number(n);if(n<2||!Number.isInteger(n))return false;for(let d=2;d*d<=n;d++)if(n%d===0)return false;return true;};
 
-if(!W||!R)fail('load','Expansion modules did not load');
+if(!W||!R||!S)fail('load','Expansion modules did not load');
 else{
   for(const [kind,pool] of Object.entries(W.POOLS||{})){
     if(pool.length<20)fail(kind,`Pool too small: ${pool.length}`);
@@ -22,6 +23,7 @@ else{
     pass(kind,`${pool.length} written-method questions validated`);
   }
   const rv=R.validate();if(!rv.ok)rv.errors.forEach(e=>fail('reasoning',e));else pass('reasoning','Pool/key baseline validation passed');
+  const sv=S.validate();if(!sv.ok)sv.errors.forEach(e=>fail('structured',e));else pass('structured','Structured pool/key baseline validation passed');
 
   for(const item of R.POOLS.rounding_bounds||[]){
     const m=item.prompt.match(/rounds to ([\d,]+) to the nearest ([\d,]+).*?(smallest|largest)/i);
@@ -125,7 +127,35 @@ else{
   }
   pass('ratio_coins','Coin ratios and money totals checked');
 
-  const families=[...Object.keys(W.FAMILIES),...Object.keys(R.FAMILIES)];
+  const sixthPowers=[64,729,4096,15625,46656];
+  for(const item of S.POOLS.number_property_constraints||[]){
+    if(item.group!=='square_and_cube')continue;
+    const bound=num((item.prompt.match(/below ([\d,]+)/)||[])[1]),ans=num(item.answer),candidates=sixthPowers.filter(n=>n<bound);
+    const expected=candidates[candidates.length-1];
+    if(ans!==expected)fail('number_property_constraints',`${item.key}: expected greatest sixth power ${expected} below ${bound}, got ${item.answer}`);
+  }
+  pass('number_property_constraints','Square-and-cube bounds independently checked');
+
+  for(const item of S.POOLS.event_cycles||[]){
+    const m=item.prompt.match(/every (\d+) (seconds|minutes).*?every (\d+) \2/);if(!m){fail('event_cycles',item.key);continue;}
+    const a=+m[1],b=+m[3],g=((x,y)=>{while(y){const t=y;y=x%y;x=t;}return x;})(a,b),expected=Math.abs(a*b)/g;
+    if(num(item.answer)!==expected)fail('event_cycles',`${item.key}: expected ${expected}`);
+  }
+  pass('event_cycles','Repeating-event LCM answers checked');
+
+  for(const item of S.POOLS.measure_diagrams||[]){
+    const v=item.visual||{};
+    if(v.subtype==='equal_strips'){
+      const expected=(Number(v.total)-Number(v.fixed||0))/Number(v.n);
+      if(String(item.answer)!==`${expected} cm`)fail('measure_diagrams',`${item.key}: expected ${expected} cm`);
+    }else if(v.subtype==='square_perimeter'){
+      const expected=Number(v.perimeter)/4;
+      if(String(item.answer)!==`${expected} cm`)fail('measure_diagrams',`${item.key}: expected ${expected} cm`);
+    }
+  }
+  pass('measure_diagrams','Diagram measures independently checked');
+
+  const families=[...Object.keys(W.FAMILIES),...Object.keys(R.FAMILIES),...Object.keys(S.FAMILIES)];
   for(const family of families){
     const base=G.clone(G.OPEN_WORKSHEET_PRESET);base.mode='family_mix';base.questionCount=12;base.families=[family];base.familyWeights={[family]:1};base.progressionEnabled=false;
     let questions=[];try{questions=G.generateQuestions(base,`QA:${family}`);}catch(e){fail('generation',`${family}: ${e.stack||e.message}`);continue;}
@@ -137,9 +167,10 @@ else{
   const stub={text(){},line(){},rect(){},polygon(){},image(){}};
   for(const pool of Object.values(W.POOLS))for(const item of pool.slice(0,3))try{W.renderWritten(stub,0,0,420,180,item.visual,false);W.renderWritten(stub,0,0,420,180,item.visual,true);}catch(e){fail('render-written',`${item.key}: ${e.message}`);}
   for(const pool of Object.values(R.POOLS))for(const item of pool.filter(q=>q.visual).slice(0,3))try{R.renderReasoning(stub,0,0,420,180,item.visual,false);R.renderReasoning(stub,0,0,420,180,item.visual,true);}catch(e){fail('render-reasoning',`${item.key}: ${e.message}`);}
+  for(const pool of Object.values(S.POOLS))for(const item of pool.filter(q=>q.visual).slice(0,3))try{S.renderStructured(stub,0,0,420,180,item.visual,false);S.renderStructured(stub,0,0,420,180,item.visual,true);}catch(e){fail('render-structured',`${item.key}: ${e.message}`);}
   pass('render','New visual renderers completed stub-canvas smoke tests');
 }
 const report={generatedAt:new Date().toISOString(),passes,failures};
 require('fs').writeFileSync(path.join(ROOT,'99club-custom-expansion-qa-report.json'),JSON.stringify(report,null,2));
 if(failures.length){console.error(JSON.stringify(report,null,2));process.exit(1);}
-console.log(`Custom expansion QA passed: ${passes.length} checks, ${Object.keys(W.POOLS).length+Object.keys(R.POOLS).length} families.`);
+console.log(`Custom expansion QA passed: ${passes.length} checks, ${Object.keys(W.POOLS).length+Object.keys(R.POOLS).length+Object.keys(S.POOLS).length} families.`);
