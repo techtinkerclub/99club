@@ -85,6 +85,8 @@ jobs:
         env:
           QA_SAMPLES: ${{ github.event_name == 'schedule' && '60' || github.event.inputs.samples || '20' }}
         run: node scripts/99club/qa.js
+      - name: Run Custom Worksheet expansion QA
+        run: node scripts/99club/custom-expansion-qa.js
       - name: Run school widget QA
         run: node scripts/99club/widget-qa.js
       - name: Run security and privacy regression checks
@@ -94,7 +96,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: 99club-qa-report
-          path: 99club-qa-report.json
+          path: |
+            99club-qa-report.json
+            99club-custom-expansion-qa-report.json
           if-no-files-found: ignore
 
   browser-smoke:
@@ -230,6 +234,41 @@ jobs:
             99club-preview-qa-batch-${{ matrix.batch }}-report.json
           if-no-files-found: ignore
 
+
+  custom-visual-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare Custom Worksheet visual harness
+        run: node scripts/99club/custom-visual-browser-qa.js prepare
+      - name: Exercise new Custom Worksheet families
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8770 --bind 127.0.0.1 > /tmp/99club-custom-visual-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          sleep 1
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then
+            echo 'No Chrome/Chromium executable is available on this runner.' >&2
+            exit 1
+          fi
+          "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --window-size=1200,900 --virtual-time-budget=90000 --dump-dom \
+            http://127.0.0.1:8770/99club-custom-visual-qa.html > /tmp/99club-custom-visual.html
+          node scripts/99club/custom-visual-browser-qa.js check /tmp/99club-custom-visual.html
+      - name: Upload Custom visual QA report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: 99club-custom-visual-qa
+          path: 99club-custom-visual-qa-report.json
+          if-no-files-found: ignore
 
   preview-controls-qa:
     runs-on: ubuntu-latest
