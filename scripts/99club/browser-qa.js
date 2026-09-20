@@ -50,6 +50,13 @@ function prepare(){
             const hint=view.hint?.();if(!hint||typeof hint.message!=='string')fail(a.id,'hint() did not return a message');
             view.setFinished?.(true);view.setFinished?.(false);
             const empty=view.emptySnapshot?.();if(empty==null)fail(a.id,'emptySnapshot() returned null/undefined');else view.restore?.(empty);
+            if(typeof view.revealAnswer!=='function')fail(a.id,'missing revealAnswer() contract');
+            else{
+              const revealed=view.revealAnswer();
+              if(revealed===false)fail(a.id,'revealAnswer() declined to reveal the solution');
+              const solved=view.check?.({silent:false});
+              if(!solved?.complete)fail(a.id,'revealed answer does not produce a complete solved state');
+            }
           }
           const width=scratch.clientWidth||390,overflow=scratch.scrollWidth-width;
           if(overflow>8){const m='mobile-width overflow '+Math.round(overflow)+'px at 390px';warn('mobile-layout',a.id+': '+m);item.warnings.push(m);}
@@ -177,8 +184,28 @@ function prepare(){
         }
       }catch(e){fail('hint-popup',(e&&e.stack)||String(e));}
     }
+    async function answerRevealFlowTest(){
+      try{
+        const wrap=document.getElementById('tt99-play-answer-reveal'),open=document.getElementById('tt99-play-reveal-open'),confirm=document.getElementById('tt99-play-reveal-confirm'),cancel=document.getElementById('tt99-play-reveal-cancel'),reveal=document.getElementById('tt99-play-reveal-confirm-btn'),note=document.getElementById('tt99-play-reveal-note'),complete=document.getElementById('tt99-play-complete'),streak=document.getElementById('tt99-play-streak'),best=document.getElementById('tt99-play-best');
+        if(!wrap||!open||!confirm||!cancel||!reveal||!note||!complete)return fail('answer-reveal-ui','answer reveal controls missing');
+        if(wrap.hidden||open.hidden)return fail('answer-reveal-ui','quiet Show answers action is not available on an active puzzle');
+        const streakBefore=streak?.textContent||'',bestBefore=best?.textContent||'';
+        open.click();await sleep(30);
+        if(confirm.hidden||!open.hidden)fail('answer-reveal-ui','first click did not open the confirmation step');
+        cancel.click();await sleep(30);
+        if(!confirm.hidden||open.hidden)fail('answer-reveal-ui','Cancel did not return to the quiet Show answers link');
+        open.click();await sleep(20);reveal.click();await sleep(80);
+        if(note.hidden)fail('answer-reveal-ui','post-reveal no-score explanation is missing');
+        if(!complete.hidden)fail('answer-reveal-ui','revealing answers incorrectly opened the completion card');
+        if((streak?.textContent||'')!==streakBefore)fail('answer-reveal-ui','revealing answers changed the solved streak');
+        if((best?.textContent||'')!==bestBefore)fail('answer-reveal-ui','revealing answers changed the personal best');
+        const status=document.getElementById('tt99-play-status')?.textContent||'';
+        if(!/not count/i.test(status))fail('answer-reveal-ui','status does not explain that the revealed attempt is unscored');
+        else pass('answer-reveal-ui','two-step reveal, cancel path and no-score behaviour verified');
+      }catch(e){fail('answer-reveal-ui',(e&&e.stack)||String(e));}
+    }
     async function run(){
-      try{await sleep(500);await genericAdapterTests();await brokenCalcTest();await colourFillTest();await perimeterDirectTest();await alphameticsVarietyTest();await groupedLibraryTest();await drawerTest();await sumGridContainmentTest();await hintPopupTest();}
+      try{await sleep(500);await genericAdapterTests();await brokenCalcTest();await colourFillTest();await perimeterDirectTest();await alphameticsVarietyTest();await groupedLibraryTest();await drawerTest();await sumGridContainmentTest();await hintPopupTest();await answerRevealFlowTest();}
       catch(e){fail('runner',(e&&e.stack)||String(e));}
       finally{finish();}
     }
