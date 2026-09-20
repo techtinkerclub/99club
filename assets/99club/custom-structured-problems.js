@@ -48,7 +48,7 @@ function ratioPool(){
     out.push(q('ratio_proportion_reasoning','mass_equivalence',i++,`${smallCount} small blocks have the same mass as ${largeCount} large blocks. One small block has a mass of ${smallMass} kg. Find the mass of one large block.`,`${largeMass} kg`,{key:`${smallCount}:${largeCount}:${unit}`,visual:{type:'structured',subtype:'mass_blocks',smallCount,largeCount,smallMass}}));}
   for(let j=0;j<12;j++){const per=12+2*(j%7),students=per*(3+(j%4))+(j%per),needed=Math.ceil(students/per),shown=Math.max(1,needed-(j%3===0?1:0)),answer=shown>=needed?'Yes':'No';
     out.push(q('ratio_proportion_reasoning','minimum_staff',i++,`There must be at least 1 adult for every ${per} pupils. A trip has ${students} pupils and ${shown} adults. Are there enough adults?`,answer,{key:`${per}:${students}:${shown}`,visual:{type:'structured',subtype:'staff_ratio',per,students,shown,needed},response:{kind:'working',size:'S',label:'Show the minimum number needed'}}));}
-  for(let j=0;j<12;j++){const scale=[20,25,40,50][j%4],mapCm=3+(j%8),actual=scale*mapCm,reverse=j%2===1;
+  for(const scale of [20,25,40,50])for(const mapCm of [3,5,7,9])for(const reverse of [false,true]){const actual=scale*mapCm;
     const prompt=reverse?`On a map, 1 cm represents ${scale} km. Two places are ${mapCm} cm apart on the map. How far apart are they in real life?`:`On a map, 1 cm represents ${scale} km. Two places are ${actual} km apart. How far apart should they be on the map?`;
     const answer=reverse?`${actual} km`:`${mapCm} cm`;
     out.push(q('ratio_proportion_reasoning','map_scale',i++,prompt,answer,{key:`${scale}:${mapCm}:${reverse?'r':'m'}`,visual:{type:'structured',subtype:'map_scale',scale,mapCm,actual,reverse}}));}
@@ -74,7 +74,7 @@ function meanPool(){
   for(let j=0;j<24;j++){const mean=8+(j%10),range=6+2*(j%6),low=2+(j%5),high=low+range,mid1=mean-1,mid2=mean+1,vals=[low,mid1,mean,mid2,high],adjust=mean*5-vals.reduce((a,b)=>a+b,0);vals[1]+=adjust;
     if(vals.slice().sort((a,b)=>a-b).join(',')!==vals.join(',')||vals.reduce((a,b)=>a+b,0)!==mean*5)continue;
     const choices=[vals,[low,mid1,mean,mid2,high+1],[low,mid1-1,mean,mid2,high],[low+1,mid1,mean,mid2,high]].map(x=>x.join(', '));
-    out.push(q('mean_reasoning','mean_range_choice',i++,'Which set of five numbers has the stated mean and range?',`A. ${choices[0]}`,{key:`${mean}:${range}:${vals.join('-')}`,choices,correctChoice:0,marking:{mode:'multiple-choice',answer:choices[0]},response:{kind:'short',size:'S',label:`Mean ${mean}; range ${range}`}}));}
+    out.push(q('mean_reasoning','mean_range_choice',i++,`Which set of five numbers has mean ${mean} and range ${range}?`,`A. ${choices[0]}`,{key:`${mean}:${range}:${vals.join('-')}`,choices,correctChoice:0,marking:{mode:'multiple-choice',answer:choices[0]},response:{kind:'short',size:'S',label:`Mean ${mean}; range ${range}`}}));}
   return out;
 }
 function formulaPool(){
@@ -95,9 +95,9 @@ function numberConstraintPool(){
     const sols=[];for(const s of twoDigitSquares(...sr))for(const p of twoDigitPrimes(...pr))for(const c of twoDigitCubes(...cr))if(uniqueDigitsCode([s,p,c]))sols.push(`${s}${p}${c}`);
     const uniq=[...new Set(sols)].sort();if(!uniq.length||uniq.length>6)continue;const key=`${sr.join('-')}:${pr.join('-')}:${cr.join('-')}`;if(seen.has(key))continue;seen.add(key);
     out.push(q('number_property_constraints','square_prime_cube_code',out.length,`A six-digit code is made from three different 2-digit numbers. The first is a square number from ${sr[0]} to ${sr[1]}, the second is a prime from ${pr[0]} to ${pr[1]}, and the third is a cube from ${cr[0]} to ${cr[1]}. All six digits are different. List all possible codes.`,uniq.join(', '),{key,visual:{type:'structured',subtype:'code_boxes',labels:['square','prime','cube'],solutionCount:uniq.length},response:{kind:'working',size:'M',label:'List every code'}}));}
-  const sixthPowers=[64,729,4096,15625,46656];
-  for(let idx=0;idx<sixthPowers.length;idx++)for(let variant=0;variant<4;variant++){
-    const n=sixthPowers[idx],next=sixthPowers[idx+1]||n*8,room=Math.max(2,next-n-1),bound=n+1+Math.floor(room*(variant+1)/5);
+  const sixthPowers=[64,729,4096,15625,46656,117649];
+  for(let idx=0;idx<sixthPowers.length-1;idx++)for(let variant=0;variant<4;variant++){
+    const n=sixthPowers[idx],next=sixthPowers[idx+1],room=Math.max(2,next-n-1),bound=n+1+Math.floor(room*(variant+1)/5);
     out.push(q('number_property_constraints','square_and_cube',out.length,`What is the greatest positive whole number below ${bound.toLocaleString()} that is both a square number and a cube number, other than 1?`,n,{key:`${n}:${bound}`}));
   }
   return out;
@@ -114,8 +114,8 @@ function fractionPool(){
 }
 function eventPool(){
   const out=[];const pairs=[[12,18],[24,28],[15,20],[16,24],[18,30],[20,35],[14,21],[25,30],[27,36],[32,40]];
-  for(let j=0;j<40;j++){const [a,b]=pairs[j%pairs.length],unit=j%2?'seconds':'minutes',next=lcm(a,b);
-    out.push(q('event_cycles','two_repeating_events',j,`One event happens every ${a} ${unit} and another every ${b} ${unit}. They happen together now. After how many ${unit} will they next happen together?`,next,{key:`${a}:${b}:${unit}`,response:{kind:'working',size:'S',label:'Find a common multiple'}}));}
+  for(const [a,b] of pairs)for(const unit of ['minutes','seconds']){const next=lcm(a,b);
+    out.push(q('event_cycles','two_repeating_events',out.length,`One event happens every ${a} ${unit} and another every ${b} ${unit}. They happen together now. After how many ${unit} will they next happen together?`,next,{key:`${a}:${b}:${unit}`,response:{kind:'working',size:'S',label:'Find a common multiple'}}));}
   return out;
 }
 function netPool(){
@@ -129,7 +129,7 @@ function measurePool(){
   for(let j=0;j<30;j++){const n=2+(j%4),strip=4+(j%13),fixed=j%2?3+(j%9):0,total=n*strip+fixed;
     const prompt=fixed?`The diagram has ${n} identical strips and one fixed section of ${fixed} cm. The total length is ${total} cm. Find the width of one identical strip.`:`The diagram shows ${n} identical rectangles in a row with total length ${total} cm. Find the length of one rectangle.`;
     out.push(q('measure_diagrams','equal_strips',i++,prompt,`${strip} cm`,{key:`${n}:${strip}:${fixed}`,visual:{type:'structured',subtype:'equal_strips',n,strip,fixed,total}}));}
-  for(let j=0;j<24;j++){const perimeter=20+4*(j%18),side=perimeter/4;if(!Number.isInteger(side))continue;
+  for(let j=0;j<18;j++){const perimeter=20+4*j,side=perimeter/4;if(!Number.isInteger(side))continue;
     out.push(q('measure_diagrams','square_from_perimeter',i++,`A square has perimeter ${perimeter} cm. Find the length of one side.`,`${side} cm`,{key:String(perimeter),visual:{type:'structured',subtype:'square_perimeter',perimeter}}));}
   return out;
 }
@@ -157,20 +157,26 @@ function renderStructured(C,x,y,w,h,v,answers){
     const cx=x+w/2,cy=y+h*.52,s=Math.min(36,w*.085,h*.16),rot=(v.variant||0)%4,shape=v.shape;
     const square=(gx,gy)=>C.rect(cx+(gx-1.5)*s,cy+(gy-1.5)*s,s,s,{fill:pale,stroke:ink,width:.7});
     if(shape==='cube'){
-      [[0,1],[1,1],[2,1],[3,1],[1,0],[1,2]].forEach(([a,b])=>square(rot%2?b:a,rot%2?a:b));
+      const nets=[
+        [[0,1],[1,1],[2,1],[3,1],[1,0],[1,2]],
+        [[0,1],[1,1],[2,1],[3,1],[2,0],[1,2]],
+        [[1,0],[1,1],[1,2],[1,3],[0,1],[2,2]],
+        [[0,0],[0,1],[1,1],[2,1],[2,2],[3,2]]
+      ];(nets[rot]||nets[0]).forEach(([a,b])=>square(a,b));
     }else if(shape==='cuboid'){
       const W=s*1.18,H=s*.72,D=s*.48,faces=[
         {x:cx-W*1.5,y:cy-H/2,w:W,h:H},{x:cx-W*.5,y:cy-H/2,w:W,h:H},{x:cx+W*.5,y:cy-H/2,w:W,h:H},{x:cx+W*1.5,y:cy-H/2,w:W,h:H},
         {x:cx-W*.5,y:cy-H/2-D,w:W,h:D},{x:cx-W*.5,y:cy+H/2,w:W,h:D}
       ];
+      if(rot%2){faces[4].x+=W;faces[5].x+=W;}
       faces.forEach(f=>C.rect(f.x,f.y,f.w,f.h,{fill:pale,stroke:ink,width:.7}));
-      C.text(cx,cy+h*.35,'rectangular faces',6.3,{align:'center',color:muted});
     }else if(shape==='cylinder'){
-      C.rect(cx-s*1.4,cy-s*.7,s*2.8,s*1.4,{fill:pale,stroke:ink,width:.7});C.polygon(circlePoints(cx,cy-s*1.45,s*.68),{stroke:ink,width:.7});C.polygon(circlePoints(cx,cy+s*1.45,s*.68),{stroke:ink,width:.7});
+      if(rot%2===0){C.rect(cx-s*1.4,cy-s*.7,s*2.8,s*1.4,{fill:pale,stroke:ink,width:.7});C.polygon(circlePoints(cx,cy-s*1.45,s*.68),{stroke:ink,width:.7});C.polygon(circlePoints(cx,cy+s*1.45,s*.68),{stroke:ink,width:.7});}
+      else{C.rect(cx-s*.7,cy-s*1.4,s*1.4,s*2.8,{fill:pale,stroke:ink,width:.7});C.polygon(circlePoints(cx-s*1.45,cy,s*.68),{stroke:ink,width:.7});C.polygon(circlePoints(cx+s*1.45,cy,s*.68),{stroke:ink,width:.7});}
     }else if(shape==='triangular prism'){
-      for(let j=-1;j<=1;j++)C.rect(cx+(j-.5)*s,cy-s*.55,s,s*1.1,{fill:pale,stroke:ink,width:.7});
-      C.polygon([{x:cx-1.5*s,y:cy-s*.55},{x:cx-2.2*s,y:cy},{x:cx-1.5*s,y:cy+s*.55}],{stroke:ink,width:.7});
-      C.polygon([{x:cx+1.5*s,y:cy-s*.55},{x:cx+2.2*s,y:cy},{x:cx+1.5*s,y:cy+s*.55}],{stroke:ink,width:.7});
+      const left=cx-s*1.5,top=cy-s*.55;for(let j=0;j<3;j++)C.rect(left+j*s,top,s,s*1.1,{fill:pale,stroke:ink,width:.7});
+      const attach=rot%3,ax=left+(attach+.5)*s;C.polygon([{x:ax-s*.5,y:top},{x:ax+s*.5,y:top},{x:ax,y:top-s*.82}],{stroke:ink,width:.7});
+      C.polygon([{x:ax-s*.5,y:top+s*1.1},{x:ax+s*.5,y:top+s*1.1},{x:ax,y:top+s*1.92}],{stroke:ink,width:.7});
     }else{
       C.rect(cx-s*.55,cy-s*.55,s*1.1,s*1.1,{fill:pale,stroke:ink,width:.7});
       C.polygon([{x:cx-s*.55,y:cy-s*.55},{x:cx,y:cy-s*1.55},{x:cx+s*.55,y:cy-s*.55}],{stroke:ink,width:.7});
