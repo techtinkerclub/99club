@@ -20,17 +20,23 @@ function badgeUrl(img){return location.origin+'/assets/99club/images/'+img;}
 function genericCard(href,title,summary,img){
  return '<a class="demo-generic-card" href="'+esc(href)+'" target="_blank" rel="noopener" referrerpolicy="origin"><img src="'+esc(img||'/assets/99club/images/99club-studio-shield.png')+'" alt=""><span><strong>'+esc(title)+'</strong><small>'+esc(summary)+'</small></span><b class="demo-arrow" aria-hidden="true">→</b></a>';
 }
+function clubButton([id,name,img]){return '<a class="demo-button" href="'+esc(clubLink(id))+'" target="_blank" rel="noopener" referrerpolicy="origin"><img src="/assets/99club/images/'+img+'" alt="">'+esc(name)+'</a>';}
 function renderButtons(){
- const clubs=document.getElementById('demo-club-buttons');
- if(clubs)clubs.innerHTML=CLUBS.map(([id,name,img])=>'<a class="demo-button" href="'+esc(clubLink(id))+'" target="_blank" rel="noopener" referrerpolicy="origin"><img src="/assets/99club/images/'+img+'" alt="">'+esc(name)+'</a>').join('');
+ const core=document.getElementById('demo-club-buttons-core'),post=document.getElementById('demo-club-buttons-post'),all=document.getElementById('demo-club-buttons');
+ if(core)core.innerHTML=CLUBS.slice(0,9).map(clubButton).join('');
+ if(post)post.innerHTML=CLUBS.slice(9).map(clubButton).join('');
+ if(all)all.innerHTML=CLUBS.map(clubButton).join('');
  const packs=document.getElementById('demo-pack-buttons');
  if(packs)packs.innerHTML=PACKS.map(p=>'<a class="demo-button demo-button--accent" href="'+esc(p.link)+'" target="_blank" rel="noopener" referrerpolicy="origin">'+esc(p.title)+'</a>').join('');
  const online=document.getElementById('demo-online-buttons');
  if(online)online.innerHTML=ONLINE.map(([id,name])=>'<a class="demo-button demo-button--play" href="/play/?game='+encodeURIComponent(id)+'" target="_blank" rel="noopener" referrerpolicy="origin">'+esc(name)+'</a>').join('');
 }
+function clubCard([id,name,img]){return PP.websiteCardHtml(clubLink(id),name,badgeUrl(img),'Fresh printable worksheet + answers');}
 function renderCards(){
- const clubs=document.getElementById('demo-club-cards');
- if(clubs)clubs.innerHTML=CLUBS.map(([id,name,img])=>PP.websiteCardHtml(clubLink(id),name,badgeUrl(img),'Fresh printable worksheet + answers')).join('');
+ const core=document.getElementById('demo-club-cards-core'),post=document.getElementById('demo-club-cards-post'),all=document.getElementById('demo-club-cards');
+ if(core)core.innerHTML=CLUBS.slice(0,9).map(clubCard).join('');
+ if(post)post.innerHTML=CLUBS.slice(9).map(clubCard).join('');
+ if(all)all.innerHTML=CLUBS.map(clubCard).join('');
  const packs=document.getElementById('demo-pack-cards');
  if(packs)packs.innerHTML=PACKS.map(p=>genericCard(p.link,p.title,p.summary+' · fresh pack + answers')).join('');
  const online=document.getElementById('demo-online-cards');
