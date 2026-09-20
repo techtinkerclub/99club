@@ -95,8 +95,11 @@ function numberConstraintPool(){
     const sols=[];for(const s of twoDigitSquares(...sr))for(const p of twoDigitPrimes(...pr))for(const c of twoDigitCubes(...cr))if(uniqueDigitsCode([s,p,c]))sols.push(`${s}${p}${c}`);
     const uniq=[...new Set(sols)].sort();if(!uniq.length||uniq.length>6)continue;const key=`${sr.join('-')}:${pr.join('-')}:${cr.join('-')}`;if(seen.has(key))continue;seen.add(key);
     out.push(q('number_property_constraints','square_prime_cube_code',out.length,`A six-digit code is made from three different 2-digit numbers. The first is a square number from ${sr[0]} to ${sr[1]}, the second is a prime from ${pr[0]} to ${pr[1]}, and the third is a cube from ${cr[0]} to ${cr[1]}. All six digits are different. List all possible codes.`,uniq.join(', '),{key,visual:{type:'structured',subtype:'code_boxes',labels:['square','prime','cube'],solutionCount:uniq.length},response:{kind:'working',size:'M',label:'List every code'}}));}
-  const sixthPowers=[64,729,4096,15625,46656];for(let j=0;j<18;j++){const idx=j%sixthPowers.length,n=sixthPowers[idx],bound=n+1+(j%4)*n;
-    out.push(q('number_property_constraints','square_and_cube',out.length,`Find a positive whole number below ${bound.toLocaleString()} that is both a square number and a cube number, other than 1.`,n,{key:`${n}:${bound}`}));}
+  const sixthPowers=[64,729,4096,15625,46656];
+  for(let idx=0;idx<sixthPowers.length;idx++)for(let variant=0;variant<4;variant++){
+    const n=sixthPowers[idx],next=sixthPowers[idx+1]||n*8,room=Math.max(2,next-n-1),bound=n+1+Math.floor(room*(variant+1)/5);
+    out.push(q('number_property_constraints','square_and_cube',out.length,`What is the greatest positive whole number below ${bound.toLocaleString()} that is both a square number and a cube number, other than 1?`,n,{key:`${n}:${bound}`}));
+  }
   return out;
 }
 function fractionPool(){
@@ -153,9 +156,15 @@ function renderStructured(C,x,y,w,h,v,answers){
   }else if(v.subtype==='shape_net'){
     const cx=x+w/2,cy=y+h*.52,s=Math.min(36,w*.085,h*.16),rot=(v.variant||0)%4,shape=v.shape;
     const square=(gx,gy)=>C.rect(cx+(gx-1.5)*s,cy+(gy-1.5)*s,s,s,{fill:pale,stroke:ink,width:.7});
-    if(shape==='cube'||shape==='cuboid'){
+    if(shape==='cube'){
       [[0,1],[1,1],[2,1],[3,1],[1,0],[1,2]].forEach(([a,b])=>square(rot%2?b:a,rot%2?a:b));
-      if(shape==='cuboid')C.text(cx,cy+h*.35,'rectangular faces',{},{});
+    }else if(shape==='cuboid'){
+      const W=s*1.18,H=s*.72,D=s*.48,faces=[
+        {x:cx-W*1.5,y:cy-H/2,w:W,h:H},{x:cx-W*.5,y:cy-H/2,w:W,h:H},{x:cx+W*.5,y:cy-H/2,w:W,h:H},{x:cx+W*1.5,y:cy-H/2,w:W,h:H},
+        {x:cx-W*.5,y:cy-H/2-D,w:W,h:D},{x:cx-W*.5,y:cy+H/2,w:W,h:D}
+      ];
+      faces.forEach(f=>C.rect(f.x,f.y,f.w,f.h,{fill:pale,stroke:ink,width:.7}));
+      C.text(cx,cy+h*.35,'rectangular faces',6.3,{align:'center',color:muted});
     }else if(shape==='cylinder'){
       C.rect(cx-s*1.4,cy-s*.7,s*2.8,s*1.4,{fill:pale,stroke:ink,width:.7});C.polygon(circlePoints(cx,cy-s*1.45,s*.68),{stroke:ink,width:.7});C.polygon(circlePoints(cx,cy+s*1.45,s*.68),{stroke:ink,width:.7});
     }else if(shape==='triangular prism'){
