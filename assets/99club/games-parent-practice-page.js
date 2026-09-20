@@ -75,7 +75,7 @@
         '<section class="tt99-practice-card" aria-labelledby="tt99-puzzle-practice-title">'+
           '<div class="tt99-practice-brand">'+
             '<img src="/assets/99club/images/99club-studio-shield.png" alt="">'+
-            '<div class="tt99-practice-brand-copy"><b>99 Club Studio</b><span>School-led printable practice</span></div>'+
+            '<div class="tt99-practice-brand-copy"><b>99 Studio</b><span>School-led printable practice</span></div>'+
           '</div>'+
           '<span class="tt99-practice-kicker">Puzzle practice link</span>'+
           '<h1 id="tt99-puzzle-practice-title">Maths Games &amp; Puzzles</h1>'+
@@ -90,16 +90,16 @@
           '<button type="button" id="tt99-puzzle-practice-download" class="tt99-practice-download">Download a new puzzle pack + answers</button>'+
           '<p class="tt99-practice-note">Every download creates fresh puzzles using the same fixed school-selected settings.</p>'+
           '<div id="tt99-puzzle-practice-status" class="tt99-practice-status" role="status" aria-live="polite" hidden></div>'+
-          '<div class="tt99-practice-privacy"><strong>No sign-in and no pupil profile.</strong> This page does not ask for a name, email, score or progress data. Puzzle generation and PDF creation happen in this browser.</div>'+
+
         '</section>'+
-        '<div class="tt99-practice-foot">99 Club Studio · <a href="/privacy/" target="_blank" rel="noopener">privacy information</a></div>'+
+        '<div class="tt99-practice-foot">99 Studio · No sign-in required · <a href="/privacy/" target="_blank" rel="noopener">Privacy</a></div>'+
       '</main>';
 
     root.querySelector('#tt99-puzzle-practice-download')?.addEventListener('click',download);
   }
 
   function renderError(message){
-    root.innerHTML='<main class="tt99-practice-shell">'+teacherPreviewBar()+'<section class="tt99-practice-card tt99-practice-error"><span class="tt99-practice-kicker">99 Club Studio</span><h1>This puzzle-practice link cannot be opened</h1><p class="tt99-practice-summary">'+esc(message||'The link is incomplete or no longer supported.')+'</p></section></main>';
+    root.innerHTML='<main class="tt99-practice-shell">'+teacherPreviewBar()+'<section class="tt99-practice-card tt99-practice-error"><span class="tt99-practice-kicker">99 Studio</span><h1>This puzzle-practice link cannot be opened</h1><p class="tt99-practice-summary">'+esc(message||'The link is incomplete or no longer supported.')+'</p></section></main>';
   }
 
   function status(message,error){
