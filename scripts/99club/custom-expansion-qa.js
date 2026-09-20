@@ -7,15 +7,16 @@ const G=require(path.join(ROOT,'assets/99club/generator.js'));
 require(path.join(ROOT,'assets/99club/custom-written-methods.js'));
 require(path.join(ROOT,'assets/99club/custom-reasoning.js'));
 require(path.join(ROOT,'assets/99club/custom-structured-problems.js'));
+require(path.join(ROOT,'assets/99club/custom-visual-reasoning.js'));
 
-const W=global.TT99CustomWrittenMethods,R=global.TT99CustomReasoning,S=global.TT99CustomStructured;
+const W=global.TT99CustomWrittenMethods,R=global.TT99CustomReasoning,S=global.TT99CustomStructured,F=global.TT99CustomVisualReasoning;
 const failures=[],passes=[];
 const fail=(area,msg)=>failures.push({area,msg});
 const pass=(area,msg)=>passes.push({area,msg});
 const num=s=>Number(String(s).replace(/,/g,''));
 const isPrime=n=>{n=Number(n);if(n<2||!Number.isInteger(n))return false;for(let d=2;d*d<=n;d++)if(n%d===0)return false;return true;};
 
-if(!W||!R||!S)fail('load','Expansion modules did not load');
+if(!W||!R||!S||!F)fail('load','Expansion modules did not load');
 else{
   for(const [kind,pool] of Object.entries(W.POOLS||{})){
     if(pool.length<20)fail(kind,`Pool too small: ${pool.length}`);
@@ -24,6 +25,7 @@ else{
   }
   const rv=R.validate();if(!rv.ok)rv.errors.forEach(e=>fail('reasoning',e));else pass('reasoning','Pool/key baseline validation passed');
   const sv=S.validate();if(!sv.ok)sv.errors.forEach(e=>fail('structured',e));else pass('structured','Structured pool/key baseline validation passed');
+  const fv=F.validate();if(!fv.ok)fv.errors.forEach(e=>fail('visual-reasoning',e));else pass('visual-reasoning','Visual-reasoning pool/key/net baseline validation passed');
 
   for(const item of R.POOLS.rounding_bounds||[]){
     const m=item.prompt.match(/rounds to ([\d,]+) to the nearest ([\d,]+).*?(smallest|largest)/i);
@@ -254,7 +256,63 @@ else{
   }
   pass('measure_diagrams','Diagram measures independently checked');
 
-  const families=[...Object.keys(W.FAMILIES),...Object.keys(R.FAMILIES),...Object.keys(S.FAMILIES)];
+  for(const item of F.POOLS.container_reasoning||[]){
+    const v=item.visual||{};
+    if(item.group==='whole_packs'){
+      const expected=Math.ceil(Number(v.needed)/Number(v.per));
+      if(num(item.answer)!==expected)fail('container_reasoning',`${item.key}: expected ${expected}`);
+    }else if(item.group==='number_of_groups'){
+      const expected=Number(v.needed)/Number(v.per);
+      if(num(item.answer)!==expected)fail('container_reasoning',`${item.key}: expected ${expected}`);
+    }
+  }
+  pass('container_reasoning','Pack ceilings and equal groups independently recalculated');
+
+  const dayNames=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  for(const item of F.POOLS.calendar_reasoning_visual||[]){
+    const v=item.visual||{};
+    const d=item.group==='days_after'?Number(v.targetDate):Number(v.date),expected=dayNames[(Number(v.start)+d-1)%7];
+    if(item.answer!==expected)fail('calendar_reasoning_visual',`${item.key}: expected ${expected}`);
+  }
+  pass('calendar_reasoning_visual','Calendar weekday answers independently recalculated');
+
+  for(const item of F.POOLS.balance_scales||[]){
+    const v=item.visual||{},expected=Number(v.rightMass)/Number(v.leftBlocks);
+    if(item.answer!==`${expected} g`)fail('balance_scales',`${item.key}: expected ${expected} g`);
+  }
+  pass('balance_scales','Balance masses independently recalculated');
+
+  for(const item of F.POOLS.number_line_visuals||[]){
+    const v=item.visual||{},expected=Number(v.values?.[v.missing]);
+    if(num(item.answer)!==expected)fail('number_line_visuals',`${item.key}: expected ${expected}`);
+  }
+  pass('number_line_visuals','Number-line missing values independently checked');
+
+  for(const item of F.POOLS.fraction_diagrams||[]){
+    const v=item.visual||{};
+    if(!(Number(v.n)>0&&Number(v.d)>0&&Number(v.n)<=Number(v.d)))fail('fraction_diagrams',`${item.key}: invalid fraction model`);
+    if(item.group==='identify_shaded'&&item.answer!==`${v.n}/${v.d}`)fail('fraction_diagrams',`${item.key}: shaded fraction mismatch`);
+  }
+  pass('fraction_diagrams','Fraction models and identify answers checked');
+
+  for(const item of F.POOLS.data_diagrams||[]){
+    const v=item.visual||{};
+    if(item.group==='block_chart_missing'){
+      const expected=Number(v.values?.[v.missing]);if(num(item.answer)!==expected)fail('data_diagrams',`${item.key}: block-chart mismatch`);
+    }else if(item.group==='pictogram_read'){
+      const expected=Number(v.counts?.[v.ask])*Number(v.keyValue);if(num(item.answer)!==expected)fail('data_diagrams',`${item.key}: pictogram mismatch`);
+    }
+  }
+  pass('data_diagrams','Block-chart and pictogram answers recalculated');
+
+  const neg=a=>a.map(n=>-n),same=(a,b)=>a&&b&&a.length===b.length&&a.every((n,i)=>n===b[i]);
+  for(const item of F.POOLS.cube_net_reasoning||[]){
+    const v=item.visual||{},ori=F.foldNet(v.cells||[]),marked=Number(v.marked),opp=ori.findIndex((o,j)=>j!==marked&&same(o.n,neg(ori[marked]?.n||[]))),expected=v.labels?.[opp];
+    if(!expected||item.answer!==expected||Number(v.opposite)!==opp)fail('cube_net_reasoning',`${item.key}: opposite-face mismatch`);
+  }
+  pass('cube_net_reasoning','Cube nets independently folded and opposite faces checked');
+
+  const families=[...Object.keys(W.FAMILIES),...Object.keys(R.FAMILIES),...Object.keys(S.FAMILIES),...Object.keys(F.FAMILIES)];
   for(const family of families){
     const base=G.clone(G.OPEN_WORKSHEET_PRESET);base.mode='family_mix';base.questionCount=12;base.families=[family];base.familyWeights={[family]:1};base.progressionEnabled=false;
     let questions=[];try{questions=G.generateQuestions(base,`QA:${family}`);}catch(e){fail('generation',`${family}: ${e.stack||e.message}`);continue;}
@@ -267,9 +325,10 @@ else{
   for(const pool of Object.values(W.POOLS))for(const item of pool.slice(0,3))try{W.renderWritten(stub,0,0,420,180,item.visual,false);W.renderWritten(stub,0,0,420,180,item.visual,true);}catch(e){fail('render-written',`${item.key}: ${e.message}`);}
   for(const pool of Object.values(R.POOLS))for(const item of pool.filter(q=>q.visual).slice(0,3))try{R.renderReasoning(stub,0,0,420,180,item.visual,false);R.renderReasoning(stub,0,0,420,180,item.visual,true);}catch(e){fail('render-reasoning',`${item.key}: ${e.message}`);}
   for(const pool of Object.values(S.POOLS))for(const item of pool.filter(q=>q.visual).slice(0,3))try{S.renderStructured(stub,0,0,420,180,item.visual,false);S.renderStructured(stub,0,0,420,180,item.visual,true);}catch(e){fail('render-structured',`${item.key}: ${e.message}`);}
+  for(const pool of Object.values(F.POOLS))for(const item of pool.filter(q=>q.visual).slice(0,3))try{F.renderFoundation(stub,0,0,420,180,item.visual,false);F.renderFoundation(stub,0,0,420,180,item.visual,true);}catch(e){fail('render-foundation',`${item.key}: ${e.message}`);}
   pass('render','New visual renderers completed stub-canvas smoke tests');
 }
 const report={generatedAt:new Date().toISOString(),passes,failures};
 require('fs').writeFileSync(path.join(ROOT,'99club-custom-expansion-qa-report.json'),JSON.stringify(report,null,2));
 if(failures.length){console.error(JSON.stringify(report,null,2));process.exit(1);}
-console.log(`Custom expansion QA passed: ${passes.length} checks, ${Object.keys(W.POOLS).length+Object.keys(R.POOLS).length+Object.keys(S.POOLS).length} families.`);
+console.log(`Custom expansion QA passed: ${passes.length} checks, ${Object.keys(W.POOLS).length+Object.keys(R.POOLS).length+Object.keys(S.POOLS).length+Object.keys(F.POOLS).length} families.`);
