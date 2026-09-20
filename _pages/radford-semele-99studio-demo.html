@@ -1,0 +1,206 @@
+---
+layout: null
+permalink: /demo/radford-semele/
+sitemap: false
+---
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>Radford Semele · 99 Club Studio school website demonstration</title>
+<meta name="description" content="Working 99 Club Studio school website integration demonstration for Radford Semele CofE Primary School.">
+<style>
+:root{--ink:#25353d;--muted:#68777f;--blue:#243e80;--blue2:#315795;--green:#39785f;--lime:#b9d64a;--teal:#147d75;--line:#dce5e7;--soft:#f5f8f8;--warm:#fff7df;--shadow:0 12px 34px rgba(31,55,75,.10)}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;color:var(--ink);font:16px/1.55 Arial,Helvetica,sans-serif;background:#eef4f3}a{color:inherit}
+.demo-banner{padding:10px 18px;text-align:center;background:#fff1b9;border-bottom:1px solid #e4d17a;color:#604e13;font-size:13px;font-weight:800}
+.shell{width:min(1180px,calc(100% - 28px));margin:18px auto 60px;background:#fff;border:1px solid #dbe4e6;border-radius:22px;overflow:hidden;box-shadow:var(--shadow)}
+.school-head{display:flex;align-items:center;gap:18px;padding:24px 30px;color:#fff;background:linear-gradient(120deg,var(--blue),var(--blue2) 62%,#3d746b)}
+.school-mark{display:grid;place-items:center;width:76px;height:76px;flex:0 0 76px;border-radius:50%;background:#fff;color:var(--blue);border:4px solid rgba(255,255,255,.35);font-weight:900;font-size:25px;line-height:1}
+.school-mark small{display:block;font-size:8px;letter-spacing:.08em;margin-top:3px}.school-head h1{margin:0;font-size:clamp(23px,3vw,36px);line-height:1.08}.school-head p{margin:6px 0 0;opacity:.93;font-size:14px}
+.demo-tools{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:14px 24px;border-bottom:1px solid var(--line);background:#fbfcfc}.demo-tools strong{font-size:13px;color:#4a5f68}.switches{display:flex;gap:8px;flex-wrap:wrap}.switch{border:1px solid #bfd2d1;border-radius:999px;background:#fff;padding:8px 12px;color:#36545b;font-weight:800;font-size:12px;cursor:pointer}.switch[aria-pressed="true"]{background:var(--teal);border-color:var(--teal);color:#fff}
+.page{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:34px;padding:30px}.main{min-width:0}.breadcrumbs{font-size:12px;color:#718089;margin-bottom:10px}.title{margin:0;color:#1f356c;font-size:clamp(30px,4vw,44px);line-height:1.08}.lead{margin:10px 0 0;color:#596870;font-size:17px;max-width:760px}.parent-note{margin:20px 0 30px;padding:13px 15px;border-left:5px solid var(--green);background:#f1f7f4;border-radius:5px;color:#456058}.parent-note strong{color:#285b49}
+.section{margin:34px 0}.section h2{margin:0 0 5px;color:#223b71;font-size:25px}.section-intro{margin:0 0 15px;color:var(--muted);font-size:14px}.native-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.native-link{display:flex;align-items:center;gap:12px;padding:13px;border:1px solid var(--line);border-radius:12px;background:#fff;text-decoration:none;box-shadow:0 2px 8px rgba(20,50,60,.04)}.native-link:hover{border-color:#9fc5bf}.native-link img{width:58px;height:58px;object-fit:contain}.native-link strong,.native-link small{display:block}.native-link small{color:#75838a;font-size:11px;margin-top:2px}.go{margin-left:auto;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--teal);color:#fff;font-weight:900}
+.widget-card{padding:14px;border:1px solid #d8e2e4;border-radius:16px;background:#f7faf9}.widget-card iframe{display:block;width:100%;height:655px;border:0;border-radius:13px;background:#fff}.widget-card.games iframe{height:700px}.widget-label{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}.widget-label strong{font-size:13px}.widget-label span{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--teal);font-weight:900}
+.demo-note{display:none;margin:10px 0 0;padding:11px 12px;border-left:4px solid #d6a336;background:var(--warm);color:#685521;border-radius:4px;font-size:12px}.show-notes .demo-note{display:block}
+.aside-card{padding:16px;background:var(--soft);border-top:5px solid var(--blue);margin-bottom:16px}.aside-card h3{margin:0 0 8px;color:#20396e;font-size:17px}.aside-card p,.aside-card li{font-size:12px;color:#5f6f77}.aside-card ul{padding-left:18px;margin:8px 0}.aside-card a{color:var(--teal);font-weight:800}.qr{display:grid;place-items:center;margin:10px auto;width:160px;height:160px;background:#fff;border:1px solid var(--line);padding:8px}.qr svg{display:block;width:100%;height:100%}.tiny{font-size:10px;color:#7a888e;text-align:center}
+.editor-panel{display:none;margin:18px 0;padding:16px;border:1px solid #c7dcda;border-radius:13px;background:#f1f9f7}.show-notes .editor-panel{display:block}.editor-panel h3{margin:0 0 8px;color:#17665f}.editor-panel ol{margin:7px 0 0;padding-left:20px}.editor-panel li{margin:5px 0;font-size:13px}
+.footer{padding:22px 30px;background:#1d2b4c;color:#dce5ee}.footer strong{color:#fff}.footer p{margin:4px 0;font-size:12px}.footer a{color:#fff;font-weight:800}
+@media(max-width:860px){.page{grid-template-columns:1fr}.aside{order:2}.widget-card iframe,.widget-card.games iframe{height:760px}}
+@media(max-width:600px){.shell{width:min(100% - 14px,1180px);margin-top:7px;border-radius:14px}.school-head{padding:18px}.school-mark{width:58px;height:58px;flex-basis:58px;font-size:19px}.school-head p{font-size:11px}.demo-tools{padding:11px 14px}.page{padding:20px 14px;gap:20px}.native-grid{grid-template-columns:1fr}.widget-card{padding:7px}.widget-card iframe,.widget-card.games iframe{height:820px}.footer{padding:18px}}
+</style>
+</head>
+<body>
+<div class="demo-banner">99 CLUB STUDIO DEMONSTRATION · This is not an official Radford Semele school webpage and does not change the school website.</div>
+<div class="shell">
+  <header class="school-head">
+    <div class="school-mark" aria-label="Demonstration school mark">RS<small>DEMO</small></div>
+    <div><h1>Radford Semele CofE Primary School</h1><p>Demonstration of optional school-selected maths home practice</p></div>
+  </header>
+
+  <div class="demo-tools">
+    <strong>See the same page two ways:</strong>
+    <div class="switches">
+      <button class="switch" id="parent-view" type="button" aria-pressed="true">Parent view</button>
+      <button class="switch" id="notes-view" type="button" aria-pressed="false">Show implementation notes</button>
+    </div>
+  </div>
+
+  <div class="page">
+    <main class="main">
+      <div class="breadcrumbs">Home › Parents › Maths home practice</div>
+      <h2 class="title">Maths home practice</h2>
+      <p class="lead">Optional practice families can use at home. Choose the same 99 Club level your child is working on, download a fresh printable activity, or play a school-selected maths game online.</p>
+
+      <div class="parent-note"><strong>No account is needed.</strong> Printable activities create a fresh worksheet or puzzle pack with matching answers each time the parent presses Download.</div>
+
+      <div class="editor-panel">
+        <h3>What this demonstration is showing</h3>
+        <ol>
+          <li>The school can use ordinary links/cards, widgets, or a mixture of both.</li>
+          <li>99 Club and printable puzzle settings are fixed by the school before sharing.</li>
+          <li>The school website itself does not need a 99 Studio account or special plug-in.</li>
+          <li>Nothing changes on the real school website unless an authorised website editor deliberately adds it.</li>
+        </ol>
+      </div>
+
+      <section class="section">
+        <h2>Simple school buttons/cards</h2>
+        <p class="section-intro">The easiest option: ordinary image links made with the school website editor.</p>
+        <div class="native-grid" id="club-links"></div>
+        <div class="demo-note"><strong>Website editor:</strong> these need only a normal image/button link. Copy the locked parent-practice URL from <em>Create parent links</em> and attach it to the school's own button/card. No iframe is needed.</div>
+      </section>
+
+      <section class="section">
+        <div class="widget-label"><div><h2 style="margin:0">99 Club practice</h2><p class="section-intro" style="margin:3px 0 0">Several levels in one compact panel.</p></div><span>Live widget</span></div>
+        <div class="widget-card"><iframe id="club-widget" title="Demonstration 99 Club school website widget" loading="eager" referrerpolicy="origin" sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"></iframe></div>
+        <div class="demo-note"><strong>Website editor:</strong> this is one iframe/embed block. The teacher chooses the visible Club levels and rules in 99 Studio, then copies the generated embed code into the school's normal website editor.</div>
+      </section>
+
+      <section class="section">
+        <div class="widget-label"><div><h2 style="margin:0">Maths games &amp; printable puzzles</h2><p class="section-intro" style="margin:3px 0 0">School-selected printable packs and online games.</p></div><span>Live widget</span></div>
+        <div class="widget-card games"><iframe id="games-widget" title="Demonstration Maths Games school website widget" loading="eager" referrerpolicy="origin" sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"></iframe></div>
+        <div class="demo-note"><strong>Website editor:</strong> this is a separate Maths Games Widget. The school can add several locked printable packs plus a curated set of online games. Printable packs generate fresh puzzles and answers every time.</div>
+      </section>
+
+      <section class="section">
+        <h2>What happens when a parent clicks?</h2>
+        <p class="section-intro">The shared page is deliberately simpler than the teacher-facing Studio.</p>
+        <div class="native-grid">
+          <a class="native-link" id="year4-pack" href="https://99studio.uk/practice/puzzles/#p=TT99GP1.eyJ2IjoxLCJzIjp7Im1pblllYXIiOjQsIm1heFllYXIiOjQsInRvcGljcyI6WyJjYWxjdWxhdGlvbiIsIm51bWJlcl9wbGFjZV92YWx1ZSJdLCJzaGVldHMiOjIsImFjdGl2aXRpZXNQZXJTaGVldCI6MiwiaW5jbHVkZUFuc3dlcnMiOnRydWUsIndvcmtlZEV4YW1wbGVzIjoibm9uZSIsInNlbGVjdGVkRW5naW5lcyI6WyJtYXplIiwibnVtYmVyc2VhcmNoIiwib3BlcmF0aW9uZ3JpZCJdLCJlbmdpbmVTZXR0aW5ncyI6e319fQ" target="_blank" rel="noopener" referrerpolicy="origin"><img src="/assets/99club/images/99club-studio-shield.png" alt=""><span><strong>Year 4 arithmetic puzzle pack</strong><small>Fresh printable puzzles + answers</small></span><span class="go">→</span></a>
+          <a class="native-link" href="/play/?game=sumplete" target="_blank" rel="noopener" referrerpolicy="origin"><img src="/assets/99club/images/99club-studio-shield.png" alt=""><span><strong>Play Sumplete online</strong><small>No download required</small></span><span class="go">→</span></a>
+        </div>
+        <div class="demo-note"><strong>Try them:</strong> the printable link opens the locked parent-practice page; pressing Download makes a fresh pack. The online game opens directly in the Play area.</div>
+      </section>
+    </main>
+
+    <aside class="aside">
+      <div class="aside-card">
+        <h3>Try it on a phone</h3>
+        <p>Scan this code to open the same working demonstration.</p>
+        <div class="qr" id="demo-qr" aria-label="QR code for this demonstration"></div>
+        <div class="tiny">99studio.uk/demo/radford-semele/</div>
+      </div>
+      <div class="aside-card">
+        <h3>For school staff</h3>
+        <ul>
+          <li>No pupil or parent account required.</li>
+          <li>The school chooses what is shown.</li>
+          <li>Links/cards work on almost any website.</li>
+          <li>Widgets need an Embed/HTML/Code block.</li>
+          <li>Changing a live school page still requires authorised website access.</li>
+        </ul>
+        <p><a href="/schools/" target="_blank" rel="noopener">School website integration help →</a></p>
+      </div>
+      <div class="aside-card">
+        <h3>Want to manage it?</h3>
+        <p><a href="/" target="_blank" rel="noopener">Open 99 Club Studio →</a></p>
+        <p><a href="/games/" target="_blank" rel="noopener">Open Maths Games &amp; Puzzles →</a></p>
+        <p><a href="/widget/builder/" target="_blank" rel="noopener">Open Widget Builder →</a></p>
+      </div>
+      <div class="aside-card">
+        <h3>About the logo</h3>
+        <p>This demo uses an <strong>RS demonstration mark</strong>, not the school's official crest. A real implementation can use the school's approved logo.</p>
+      </div>
+    </aside>
+  </div>
+
+  <footer class="footer">
+    <strong>99 Club Studio school integration demonstration</strong>
+    <p>Created to demonstrate a possible parent experience before making any changes to the school's own website.</p>
+    <p><a href="https://99studio.uk/">99studio.uk</a> · <a href="/schools/">School website integration help</a></p>
+  </footer>
+</div>
+
+<script src="/assets/99club/generator.js?v=20"></script>
+<script src="/assets/99club/parent-practice.js?v=1.3"></script>
+<script src="/assets/99club/widget-config.js?v=4"></script>
+<script src="/assets/99club/qr-lite.js?v=19"></script>
+<script>
+(function(){
+  'use strict';
+  const G=window.TT99Generator,PP=window.TT99ParentPractice,W=window.TT99SchoolWidget,Q=window.TT99QR;
+  if(!G||!PP||!W)return;
+
+  function demoLogo(){
+    try{
+      const c=document.createElement('canvas');c.width=96;c.height=96;
+      const x=c.getContext('2d');x.fillStyle='#243e80';x.beginPath();x.arc(48,48,45,0,Math.PI*2);x.fill();
+      x.lineWidth=5;x.strokeStyle='#b9d64a';x.stroke();
+      x.fillStyle='#fff';x.font='900 30px Arial';x.textAlign='center';x.textBaseline='middle';x.fillText('RS',48,44);
+      x.font='700 10px Arial';x.fillText('DEMO',48,66);
+      return c.toDataURL('image/png');
+    }catch(_){return '';}
+  }
+
+  function clubLink(id){
+    const rules=PP.baseRules('classic',id);
+    return PP.buildLink({schemeId:'classic',clubId:id,rules,orientation:'portrait'},location.origin);
+  }
+  const clubs=[['33','33 Club','33club.png'],['44','44 Club','44club.png'],['55','55 Club','55club.png'],['bronze','Bronze','bronzeclub.png']];
+  const clubHost=document.getElementById('club-links');
+  clubs.forEach(([id,label,img])=>{
+    const a=document.createElement('a');a.className='native-link';a.href=clubLink(id);a.target='_blank';a.rel='noopener';a.referrerPolicy='origin';
+    a.innerHTML='<img src="/assets/99club/images/'+img+'" alt=""><span><strong>'+label+'</strong><small>Fresh printable worksheet + answers</small></span><span class="go">→</span>';
+    clubHost.appendChild(a);
+  });
+
+  const school={name:'Radford Semele CofE Primary School',logo:demoLogo()};
+  const clubCfg=W.normalise({
+    widgetType:'club',integrationId:'wid_rsdemo99c',school,
+    schemeId:'classic',orientation:'portrait',
+    selectedClubs:['33','44','55','66','bronze','silver'],
+    defaultTab:'clubs'
+  });
+  const gamesCfg=W.normalise({
+    widgetType:'games',integrationId:'wid_rsdemogames',school,
+    puzzles:[
+      {link:"https://99studio.uk/practice/puzzles/#p=TT99GP1.eyJ2IjoxLCJzIjp7Im1pblllYXIiOjQsIm1heFllYXIiOjQsInRvcGljcyI6WyJjYWxjdWxhdGlvbiIsIm51bWJlcl9wbGFjZV92YWx1ZSJdLCJzaGVldHMiOjIsImFjdGl2aXRpZXNQZXJTaGVldCI6MiwiaW5jbHVkZUFuc3dlcnMiOnRydWUsIndvcmtlZEV4YW1wbGVzIjoibm9uZSIsInNlbGVjdGVkRW5naW5lcyI6WyJtYXplIiwibnVtYmVyc2VhcmNoIiwib3BlcmF0aW9uZ3JpZCJdLCJlbmdpbmVTZXR0aW5ncyI6e319fQ",minYear:4,maxYear:4,gameCount:3,vocabCount:0},
+      {link:"https://99studio.uk/practice/puzzles/#p=TT99GP1.eyJ2IjoxLCJzIjp7Im1pblllYXIiOjUsIm1heFllYXIiOjYsInRvcGljcyI6WyJjYWxjdWxhdGlvbiIsIm51bWJlcl9wbGFjZV92YWx1ZSIsImdlb21ldHJ5Il0sInNoZWV0cyI6MiwiYWN0aXZpdGllc1BlclNoZWV0IjoyLCJpbmNsdWRlQW5zd2VycyI6dHJ1ZSwid29ya2VkRXhhbXBsZXMiOiJub25lIiwic2VsZWN0ZWRFbmdpbmVzIjpbInN1ZG9rdSIsImZ1dG9zaGlraSIsInN1bXBsZXRlIiwic2hpa2FrdSJdLCJlbmdpbmVTZXR0aW5ncyI6e319fQ",minYear:5,maxYear:6,gameCount:4,vocabCount:0}
+    ],
+    games:['maze','sumplete','sudoku','shikaku','balance','colourlogic'],
+    defaultTab:'puzzles'
+  });
+  document.getElementById('club-widget').src=W.buildUrl(clubCfg,location.origin);
+  document.getElementById('games-widget').src=W.buildUrl(gamesCfg,location.origin);
+
+  const parentBtn=document.getElementById('parent-view'),notesBtn=document.getElementById('notes-view');
+  function notes(on){
+    document.body.classList.toggle('show-notes',on);
+    parentBtn.setAttribute('aria-pressed',String(!on));
+    notesBtn.setAttribute('aria-pressed',String(on));
+  }
+  parentBtn.addEventListener('click',()=>notes(false));
+  notesBtn.addEventListener('click',()=>notes(true));
+
+  if(Q){
+    try{
+      const url=location.origin+'/demo/radford-semele/';
+      document.getElementById('demo-qr').innerHTML=Q.svg(Q.make(url),{quiet:3,label:'Open the Radford Semele 99 Studio demonstration'});
+    }catch(_){}
+  }
+})();
+</script>
+</body>
+</html>
