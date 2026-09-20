@@ -1,4 +1,4 @@
-/* 99 Club Studio · Online Play completion preview v1.0.4 */
+/* 99 Club Studio · Online Play completion preview v1.0.5 */
 (function(global){
 'use strict';
 const watched=new WeakSet();
@@ -64,11 +64,15 @@ function fitSnapshot(solution){
 
   if(!document.contains(solution)||!document.contains(clone))return;
   const limits=fitLimits(board);
-  const rect=clone.getBoundingClientRect();
-  let naturalWidth=Number(clone.dataset.tt99NaturalWidth)||0;
-  let naturalHeight=Number(clone.dataset.tt99NaturalHeight)||0;
-  if(!(naturalWidth>0))naturalWidth=Math.max(1,Math.ceil(clone.scrollWidth||0),Math.ceil(rect.width||0));
-  if(!(naturalHeight>0))naturalHeight=Math.max(1,Math.ceil(clone.scrollHeight||0),Math.ceil(rect.height||0));
+  const compact=global.innerWidth<=520;
+  const previewMax=compact?340:430;
+  const sourceWidth=Number(clone.dataset.tt99SourceWidth)||previewMax;
+  const seededWidth=Math.max(1,Math.min(previewMax,limits.width,sourceWidth));
+  clone.style.setProperty('width',seededWidth+'px','important');
+  clone.style.setProperty('max-width',seededWidth+'px','important');
+
+  const naturalWidth=Math.max(1,Math.ceil(clone.scrollWidth||0),Math.ceil(clone.offsetWidth||0));
+  const naturalHeight=Math.max(1,Math.ceil(clone.scrollHeight||0),Math.ceil(clone.offsetHeight||0));
   clone.dataset.tt99NaturalWidth=String(naturalWidth);
   clone.dataset.tt99NaturalHeight=String(naturalHeight);
   const scale=Math.min(1,limits.width/naturalWidth,limits.height/naturalHeight);
@@ -93,8 +97,10 @@ function injectPreview(){
   const source=document.getElementById('tt99-play-board');
   if(!card||!source||!source.firstElementChild)return;
   const structureValues=[...source.querySelectorAll('.tt99-structure-entry')].map(el=>String(el.value??''));
+  const sourceRect=source.getBoundingClientRect();
   clearTransient(source);
   const clone=source.cloneNode(true);
+  if(sourceRect.width>0)clone.dataset.tt99SourceWidth=String(sourceRect.width);
   sanitiseClone(clone,structureValues);
   clone.classList.add('tt99-play-complete-snapshot');
   clone.setAttribute('aria-hidden','true');

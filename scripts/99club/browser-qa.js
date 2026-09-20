@@ -275,6 +275,21 @@ function prepare(){
         if(host.scrollWidth>host.clientWidth+2||host.scrollHeight>host.clientHeight+2)fail('completion-splash','solved snapshot still requires internal scrolling'+diag);
         if(!(scale>0&&scale<1))fail('completion-splash','oversized snapshot was not scaled down'+diag);
         else pass('completion-splash','keypad-free solved snapshot scales wholly inside the success splash');
+
+        popup.hidden=true;popup.innerHTML='';
+        popup.innerHTML='<div class="tt99-play-complete-card"><span class="tt99-play-complete-mark">✓</span><div><small>Puzzle complete</small><h2>Futoshiki solved</h2><div class="tt99-play-complete-actions"><button>New puzzle</button></div></div></div>';
+        board.className='tt99-numbergrid-host tt99-play-futoshiki';
+        const cells=Array.from({length:25},(_,i)=>'<button class="tt99-numbergrid-cell '+(i%4===0?'is-given':'is-editable')+'"><span class="cell-value">'+((i%5)+1)+'</span></button>').join('');
+        board.innerHTML='<div class="tt99-numbergrid-wrap"><div class="tt99-numbergrid" style="--n:5">'+cells+'<span class="tt99-grid-sign horizontal" style="left:40%;top:30%">&lt;</span></div><div class="tt99-number-keypad"><button>1</button><button>2</button><button>3</button><button>4</button><button>5</button></div></div>';
+        const liveWidth=board.getBoundingClientRect().width;
+        popup.hidden=false;api.injectPreview();await sleep(40);
+        const ngClone=popup.querySelector('.tt99-play-complete-snapshot'),ngFrame=popup.querySelector('.tt99-play-complete-snapshot-fit'),ngHost=popup.querySelector('.tt99-play-complete-solution-board');
+        if(!ngClone||!ngFrame||!ngHost)return fail('completion-splash-numbergrid','number-grid snapshot was not injected');
+        const ngr=ngFrame.getBoundingClientRect(),ngScale=Number(ngClone.dataset.tt99FitScale||1),expected=Math.min(window.innerWidth<=520?340:430,liveWidth,ngHost.clientWidth||9999);
+        if(ngFrame.querySelector('.tt99-number-keypad'))fail('completion-splash-numbergrid','number-grid keypad leaked into completion snapshot');
+        if(ngr.width<Math.max(180,expected*.68))fail('completion-splash-numbergrid','number-grid snapshot collapsed to intrinsic/min-content width: frame='+Math.round(ngr.width)+' live='+Math.round(liveWidth)+' expected≈'+Math.round(expected)+' scale='+ngScale);
+        if(!(ngScale>.65&&ngScale<=1))fail('completion-splash-numbergrid','square number-grid was over-scaled in completion splash: '+ngScale);
+        else pass('completion-splash-numbergrid','number-grid snapshot keeps its live width and remains legible in the success splash');
         popup.hidden=true;popup.innerHTML='';
       }catch(e){fail('completion-splash',(e&&e.stack)||String(e));}
     }
