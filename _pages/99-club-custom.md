@@ -1,6 +1,6 @@
 ---
 layout: default
-title: "Custom Worksheets · 99 Club Studio"
+title: "Custom Worksheets · 99 Studio"
 permalink: /tools/99-club/custom/
 sidebar: false
 sitemap: false
