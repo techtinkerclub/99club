@@ -229,6 +229,13 @@ function prepare(){
     }
     async function sharePanelTest(){
       try{
+        const codec=window.TT99PlayShareCodec;
+        if(!codec?.shareUrl)return fail('share-codec','challenge share codec missing');
+        const current=codec.shareUrl(location.origin+'/play/?game=pyramid&seed=qa-seed&mode=challenge&difficulty=standard');
+        const legacy=codec.shareUrl(location.origin+'/tools/99-club/games/play/?game=pyramid&seed=qa-seed&mode=challenge&difficulty=standard');
+        if(!/^https?:\/\/[^/]+\/c\/\?c=1~n~c~qa-seed~/.test(current))fail('share-codec','current /play route did not become a /c challenge URL: '+current);
+        if(!/^https?:\/\/[^/]+\/c\/\?c=1~n~c~qa-seed~/.test(legacy))fail('share-codec','legacy play route no longer becomes a /c challenge URL: '+legacy);
+        else pass('share-codec','current and legacy play routes both share through the /c metadata route');
         const api=window.TT99PlayShareV156;
         if(!api?.open)return fail('share-panel','share API missing');
         await api.open('challenge');await sleep(40);
