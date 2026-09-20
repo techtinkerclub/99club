@@ -660,10 +660,14 @@ try{
 /* ---------- school integration demonstration ---------- */
 try{
   const demo=read('_pages/radford-semele-99studio-demo.html');
+  const redirect=read('_pages/radford-semele-99studio-demo-redirect.html');
   const demoJs=read('assets/99club/school-demo.js');
+  const schoolGuide=read('_pages/99-club-schools.md');
   for(const phrase of [
-    '99 CLUB STUDIO DEMONSTRATION',
-    'Not an official Radford Semele school webpage',
+    'permalink: /demo/',
+    '99 STUDIO SCHOOL WEBSITE DEMONSTRATION',
+    'Fictional example school',
+    'Addington-on-Sum Primary School',
     '1 · Buttons',
     '2 · Cards',
     '3 · Widgets',
@@ -675,16 +679,19 @@ try{
     'demo-club-widget',
     'demo-games-widget',
     'School website integration help',
-    'noindex,nofollow,noarchive'
-  ])if(!demo.includes(phrase))fail('school-demo','Single school demo missing: '+phrase);
-  if(/Juniper/i.test(demo))fail('school-demo','School integration demo must stay website-platform neutral');
+    'index,follow'
+  ])if(!demo.includes(phrase))fail('school-demo','General school demo missing: '+phrase);
+  if(/Radford Semele|Juniper/i.test(demo+demoJs))fail('school-demo','General school demo must not identify a real school or website platform');
+  if(!demoJs.includes("name:'Addington-on-Sum Primary School'")||!demoJs.includes("fillText('AS'"))fail('school-demo','Demo widgets/mark are not using the fictional school identity');
+  if(!redirect.includes('permalink: /demo/radford-semele/')||!redirect.includes('url=/demo/')||!redirect.includes('location.replace(target)'))fail('school-demo','Previously shared Radford demo URL is not preserved as a redirect');
+  if(!schoolGuide.includes('href="/demo/"')||!schoolGuide.includes('fictional school website demo'))fail('school-demo','Implementation help does not link clearly to the live fictional demo');
   if(!demoJs.includes('initTabs')||!demoJs.includes("history.replaceState"))fail('school-demo','Single demo page does not switch its three integration tabs in-page');
   for(const id of ['11','22','33','44','55','66','77','88','99','bronze','silver','gold','platinum','diamond'])if(!demoJs.includes("'"+id+"'"))fail('school-demo','Shared demo content missing Club '+id);
   if((demoJs.match(/title:'/g)||[]).length<3)fail('school-demo','Demo does not contain at least three printable game-sheet packs');
   for(const id of ['maze','sumplete','sudoku','numbertrail','balance','colourlogic'])if(!demoJs.includes("'"+id+"'"))fail('school-demo','Demo online games missing '+id);
   if(!demoJs.includes("selectedClubs:CLUBS.map"))fail('school-demo','Club widget does not include all 14 Club levels');
   if(exists('_pages/radford-semele-99studio-demo-cards.html')||exists('_pages/radford-semele-99studio-demo-widgets.html'))fail('school-demo','Redundant separate school demo pages still exist');
-  ok('school-demo','Single three-tab platform-neutral school integration demo checked');
+  ok('school-demo','General fictional three-tab school integration demo, help link and legacy redirect checked');
 }catch(e){fail('school-demo','School integration demo QA threw',e.stack||e.message);}
 
 /* ---------- output ---------- */
