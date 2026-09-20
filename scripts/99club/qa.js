@@ -528,11 +528,11 @@ if(!rootApp.includes("cards/'+parentPracticeCardFilename(id)")||!rootApp.include
 const schoolInfo=read('_pages/99-club-schools.md');
 const schoolWidgetHelp=read('_pages/99-club-widget-help.md');
 if(!schoolInfo.includes('School website integration help'))fail('parent-practice','Master school guide is not labelled School website integration help');
-if(!schoolInfo.includes('normal HTTPS link')||!schoolInfo.includes('optional accountless')||!schoolInfo.includes('iframe/embed'))fail('parent-practice','Information-for-schools page does not distinguish no-integration links/cards from the optional accountless widget embed');
+if(!schoolInfo.includes("Plain link or your website's own button/card")||!schoolInfo.includes('Widgets are useful but they are optional')||!schoolInfo.includes('iframe/embed'))fail('parent-practice','Information-for-schools page does not clearly distinguish ordinary links/cards from optional embedded widgets');
 if(!schoolInfo.includes('ready-made website card HTML')||!schoolInfo.includes("website's own card or button"))fail('parent-practice','Information-for-schools page does not explain the website-card/plain-link choices');
-for(const phrase of ['Website words explained in plain English','Create a 99 Club Widget','Create a Maths Games Widget','Put the widget on the school website','Change a widget later','Custom vocabulary: useful, but remember it is public','Troubleshooting','Before publishing: teacher-friendly checklist'])if(!schoolWidgetHelp.includes(phrase))fail('parent-practice',`Detailed widget guide missing: ${phrase}`);
+for(const phrase of ['Create a 99 Club Widget','Create a Maths Games Widget','Put the widget on the school website','Change a widget later','Custom vocabulary','Only use curriculum or teaching content that you are happy to make public','Troubleshooting','Before publishing: teacher-friendly checklist'])if(!schoolWidgetHelp.includes(phrase))fail('parent-practice',`Detailed widget guide missing: ${phrase}`);
 if(/Juniper/i.test(schoolWidgetHelp))fail('parent-practice','Detailed widget guide must stay platform-neutral');
-for(const phrase of ['Option 3: use a downloadable PNG card image','The PNG itself does not contain the clickable link','Save the school\'s club configuration','Download the complete website pack','practice-links.csv','99-club-school-configuration.json','Copy all links','Important when the school changes the rules','Bronze, Silver, Gold, Platinum or Diamond'])if(!schoolInfo.includes(phrase))fail('parent-practice',`School website guide missing: ${phrase}`);
+for(const phrase of ['Option 3: use a downloadable PNG card image','The PNG itself does not contain the clickable link','Save the school\'s club configuration','Download the complete website pack','practice-links.csv','99-club-school-configuration.json','Copy all links','Change published practice later','Published links and widgets keep the setup that was shared at the time','Bronze, Silver, Gold, Platinum or Diamond'])if(!schoolInfo.includes(phrase))fail('parent-practice',`School website guide missing: ${phrase}`);
 ok('parent-practice','Teacher share UI, stripped parent route, combined PDF and school information contract checked');
 
 /* ---------- school-led puzzle practice sharing ---------- */
@@ -606,7 +606,7 @@ try{
   if(!gamesApp.includes("kind:'tt99-school-puzzle-config'")||!gamesApp.includes('customVocabulary:G.clone(state.customVocabulary)'))fail('puzzle-parent','Portable puzzle setup does not preserve full settings and custom vocabulary');
   const schoolInfo2=read('_pages/99-club-schools.md'),privacy2=read('_pages/privacy.md');
   for(const phrase of ['id="puzzle-practice"','Save puzzle setup','Restore puzzle setup','Download website pack','Personal vocabulary'])if(!schoolInfo2.includes(phrase))fail('puzzle-parent',`School puzzle-sharing guide missing: ${phrase}`);
-  if(!privacy2.includes('/practice/puzzles/')||!privacy2.includes('My vocabulary'))fail('puzzle-parent','Privacy page does not describe puzzle parent-practice links');
+  if(!privacy2.includes('Puzzle links also leave out generated puzzle details and school/class personalisation')||!privacy2.includes('custom vocabulary')||!privacy2.includes('terms and definitions needed for that activity may be included in the shared link'))fail('puzzle-parent','Privacy page does not describe puzzle parent-practice links and shared vocabulary clearly');
   ok('puzzle-parent','Locked puzzle pack links, portable setup, website pack and school-level telemetry contract checked');
 }catch(e){fail('puzzle-parent','Puzzle parent sharing QA threw',e.stack||e.message);}
 
