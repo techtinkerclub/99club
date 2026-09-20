@@ -54,7 +54,7 @@ function prepare(){
             else{
               const revealed=view.revealAnswer();
               if(revealed===false)fail(a.id,'revealAnswer() declined to reveal the solution');
-              const solved=view.check?.({silent:true});
+              const solved=view.check?.({silent:false});
               if(!solved?.complete)fail(a.id,'revealed answer does not produce a complete solved state');
             }
           }
