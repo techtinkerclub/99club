@@ -46,15 +46,15 @@ function demoLogo(){
  try{
   const c=document.createElement('canvas');c.width=96;c.height=96;const x=c.getContext('2d');
   x.fillStyle='#243e80';x.beginPath();x.arc(48,48,45,0,Math.PI*2);x.fill();x.lineWidth=5;x.strokeStyle='#b9d64a';x.stroke();
-  x.fillStyle='#fff';x.font='900 30px Arial';x.textAlign='center';x.textBaseline='middle';x.fillText('RS',48,44);x.font='700 10px Arial';x.fillText('DEMO',48,66);
+  x.fillStyle='#fff';x.font='900 30px Arial';x.textAlign='center';x.textBaseline='middle';x.fillText('AS',48,44);x.font='700 10px Arial';x.fillText('DEMO',48,66);
   return c.toDataURL('image/png');
  }catch(_){return '';}
 }
 function renderWidgets(){
  if(!W)return;
- const school={name:'Radford Semele CofE Primary School',logo:demoLogo()};
- const clubCfg=W.normalise({widgetType:'club',integrationId:'wid_rsdemo99c',school,schemeId:'classic',orientation:'portrait',selectedClubs:CLUBS.map(x=>x[0]),defaultTab:'clubs'});
- const gamesCfg=W.normalise({widgetType:'games',integrationId:'wid_rsdemogames',school,puzzles:PACKS.map(p=>({link:p.link,minYear:p.minYear,maxYear:p.maxYear,gameCount:p.gameCount,vocabCount:0})),games:ONLINE.map(x=>x[0]),defaultTab:'puzzles'});
+ const school={name:'Addington-on-Sum Primary School',logo:demoLogo()};
+ const clubCfg=W.normalise({widgetType:'club',integrationId:'wid_generaldemo99c',school,schemeId:'classic',orientation:'portrait',selectedClubs:CLUBS.map(x=>x[0]),defaultTab:'clubs'});
+ const gamesCfg=W.normalise({widgetType:'games',integrationId:'wid_generaldemogames',school,puzzles:PACKS.map(p=>({link:p.link,minYear:p.minYear,maxYear:p.maxYear,gameCount:p.gameCount,vocabCount:0})),games:ONLINE.map(x=>x[0]),defaultTab:'puzzles'});
  const club=document.getElementById('demo-club-widget'),games=document.getElementById('demo-games-widget');
  if(club)club.src=W.buildUrl(clubCfg,location.origin);
  if(games)games.src=W.buildUrl(gamesCfg,location.origin);
