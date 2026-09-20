@@ -53,6 +53,14 @@ else{
   }
   pass('mean_cards','Mean-card totals recalculated');
 
+  for(const item of R.POOLS.venn_counts||[]){
+    const v=item.visual||{},aOnly=Number(v.aOnly),bOnly=Number(v.bOnly),both=Number(v.both),neither=Number(v.neither),total=Number(v.total),mode=Number(v.mode);
+    if(![aOnly,bOnly,both,neither,total].every(Number.isFinite)||aOnly+bOnly+both+neither!==total){fail('venn_counts',`${item.key}: invalid set model`);continue;}
+    const expected=mode===0?neither:mode===1?aOnly+bOnly:aOnly+bOnly+both;
+    if(num(item.answer)!==expected)fail('venn_counts',`${item.key}: expected ${expected}, got ${item.answer}`);
+  }
+  pass('venn_counts','Venn regions and requested totals independently checked');
+
   for(const item of R.POOLS.prime_sum||[]){
     const vals=String(item.answer).split('+').map(s=>Number(s.trim())),target=Number((item.prompt.match(/total of (\d+)/)||[])[1]);
     if(vals.length!==3||new Set(vals).size!==3||vals.some(n=>!isPrime(n))||vals.reduce((a,b)=>a+b,0)!==target)fail('prime_sum',item.key);
@@ -105,8 +113,8 @@ else{
   pass('recipe_scaling','Recipe scale factors checked');
 
   for(const item of R.POOLS.relational_money||[]){
-    const m=item.prompt.match(/(\d+)p more.*?(\d+)p less.*?£(\d+\.\d{2})/),andy=num(item.answer),expected=3*andy+Number(m?.[1]||0)-Number(m?.[2]||0);
-    if(Math.round(Number(m?.[3]||0)*100)!==expected)fail('relational_money',item.key);
+    const m=item.prompt.match(/(\d+)p more.*?(\d+)p less.*?£(\d+\.\d{2})/),am=String(item.answer).match(/^(\d+)p$/),andy=Number(am?.[1]),expected=3*andy+Number(m?.[1]||0)-Number(m?.[2]||0);
+    if(!m||!am||!Number.isFinite(andy)||Math.round(Number(m?.[3]||0)*100)!==expected)fail('relational_money',item.key);
   }
   pass('relational_money','Linked money totals checked');
 
