@@ -27,6 +27,7 @@ search: false
 <script src="/assets/99club/custom-written-methods.js?v=1"></script>
 <script src="/assets/99club/custom-reasoning.js?v=1"></script>
 <script src="/assets/99club/custom-structured-problems.js?v=1"></script>
+<script src="/assets/99club/custom-visual-reasoning.js?v=1"></script>
 <script src="/assets/99club/custom-coordinates.js?v=4"></script>
 <script src="/assets/99club/custom-piecharts.js?v=7"></script>
 <script src="/assets/99club/custom-angles.js?v=8"></script>
