@@ -127,11 +127,11 @@ function clubsCard(){
 function puzzlesCard(){
   const packs=draft.puzzles.length?draft.puzzles.map((p,i)=>{
     const vocab=p.vocabCount?'<span class="tt99-wb-public-badge">'+p.vocabCount+' public vocab entr'+(p.vocabCount===1?'y':'ies')+'</span>':'';
-    return '<div class="tt99-wb-pack"><div><strong>'+esc(puzzleLabel(p))+' puzzle pack</strong><small>'+p.gameCount+' selected game'+(p.gameCount===1?'':'s')+' · locked parent link</small>'+vocab+'</div><button class="tt99-wb-btn tt99-wb-danger" type="button" data-remove-pack="'+i+'">Remove</button></div>';
+    return '<div class="tt99-wb-pack"><div><strong>'+esc(puzzleLabel(p))+' puzzle pack</strong><small>'+p.gameCount+' selected game'+(p.gameCount===1?'':'s')+' · shared parent link</small>'+vocab+'</div><button class="tt99-wb-btn tt99-wb-danger" type="button" data-remove-pack="'+i+'">Remove</button></div>';
   }).join(''):'<div class="tt99-wb-empty">No printable puzzle packs yet. Configure one in Maths Games &amp; Puzzles, open its sharing window and choose <b>Open widget builder</b>.</div>';
   const vocabTotal=draft.puzzles.reduce((n,p)=>n+(Number(p.vocabCount)||0),0);
-  return '<section class="tt99-wb-card"><h2>Printable puzzle packs</h2><p>Up to four locked packs. Packs may include your custom mathematical vocabulary.</p>'+
-   (vocabTotal?'<div class="tt99-wb-vocab-note"><strong>Public vocabulary:</strong> these locked pack links contain '+vocabTotal+' school-entered vocabulary entr'+(vocabTotal===1?'y':'ies')+'. Terms and definitions can be read by anyone with the public widget link. Do not use pupil names or private information.</div>':'')+
+  return '<section class="tt99-wb-card"><h2>Printable puzzle packs</h2><p>Add up to four shared puzzle packs. Packs may include your custom mathematical vocabulary.</p>'+
+   (vocabTotal?'<div class="tt99-wb-vocab-note"><strong>Public vocabulary:</strong> these shared packs contain '+vocabTotal+' school-entered vocabulary entr'+(vocabTotal===1?'y':'ies')+'. Terms and definitions can be read by anyone with the public widget link. Do not use pupil names or private information.</div>':'')+
    packs+'<div class="tt99-wb-actions" style="margin-top:12px"><a class="tt99-wb-linkbtn" href="/games/" target="_blank" rel="noopener">Configure another puzzle pack</a></div></section>';
 }
 function gamesCard(){
@@ -156,8 +156,8 @@ function render(){
   if(draft.widgetType==='club'||draft.widgetType==='combined')body.push(clubsCard());
   if(draft.widgetType==='games'||draft.widgetType==='combined'){body.push(puzzlesCard(),gamesCard());}
   body.push(behaviourCard(),handoverCard());
-  root.innerHTML='<div class="tt99-wb-hero"><div><span class="tt99-wb-kicker">Optional school publishing route</span><h1>'+esc(typeName())+'</h1><p>Create a compact, branded, read-only panel for a school website. The existing cards, PNG images and website packs remain available as the no-embed alternative.</p><div class="tt99-wb-actions" style="margin-top:12px"><a class="tt99-wb-linkbtn" href="/schools/#widgets" target="_blank" rel="noopener">School website integration help</a></div></div><a class="tt99-wb-back" href="/">← 99 Club Studio</a></div>'+
-   '<div class="tt99-wb-note"><strong>Nothing here publishes automatically.</strong> Changes reach the school website only when an authorised website editor replaces the existing embed code in the CMS.</div>'+
+  root.innerHTML='<div class="tt99-wb-hero"><div><span class="tt99-wb-kicker">Optional school publishing route</span><h1>'+esc(typeName())+'</h1><p>Create a compact, branded, read-only panel for a school website. The existing cards, PNG images and website packs remain available as the no-embed alternative.</p><div class="tt99-wb-actions" style="margin-top:12px"><a class="tt99-wb-linkbtn" href="/schools/#widgets" target="_blank" rel="noopener">School website integration help</a></div></div><a class="tt99-wb-back" href="/">← 99 Studio</a></div>'+
+   '<div class="tt99-wb-note">When you are happy with the preview, copy the embed code and add it to the school website.</div>'+
    '<div class="tt99-wb-layout"><div>'+body.join('')+'</div><aside class="tt99-wb-preview"><h2>Parent preview</h2><div class="tt99-wb-preview-wrap"><iframe id="wb-preview-frame" src="'+esc(url)+'" title="'+esc(typeName())+' preview" sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"></iframe></div>'+
    '<section class="tt99-wb-card tt99-wb-publish"><h2>Use on the school website</h2><p>Copy this embed into your school website editor. Updating later means creating a revised embed here and replacing the old one in the website editor.</p><div class="tt99-wb-actions"><button class="tt99-wb-btn primary" id="wb-copy-embed">Copy embed code</button><button class="tt99-wb-btn" id="wb-copy-url">Copy widget URL</button></div><div class="tt99-wb-field" style="margin-top:10px"><label for="wb-code">Generated embed</label><textarea id="wb-code" class="tt99-wb-code" readonly>'+esc(embed)+'</textarea></div>'+(status?'<div class="tt99-wb-status" role="status">'+esc(status)+'</div>':'')+'</section></aside></div>';
   bind();
