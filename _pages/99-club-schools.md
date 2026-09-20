@@ -250,7 +250,9 @@ sitemap: true
         </section>
 
         <section id="update" class="tt99-guide-section">
-          <h2>Important when the school changes the rules or practice setup</h2>
+                    <div class="tt99-guide-note"><strong>What “locked” means:</strong> parents are not given controls to alter the school-selected setup in the normal practice page. Shared configuration tokens are public encoded data, not encryption or a digital signature. A technically determined person could create a modified copy, but that does not alter the link/card/widget published on the school's website.</div>
+
+<h2>Important when the school changes the rules or practice setup</h2>
           <p>Published practice URLs are intentional snapshots. They do not silently change later if a teacher edits Studio or if Studio defaults are updated.</p>
 
           <h3>Updating a normal 99 Club link/card/PNG</h3>
