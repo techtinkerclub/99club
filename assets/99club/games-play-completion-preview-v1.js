@@ -62,29 +62,27 @@ function fitSnapshot(solution){
   const clone=frame?.querySelector('.tt99-play-complete-snapshot');
   if(!board||!frame||!clone)return;
 
-  requestAnimationFrame(()=>{
-    if(!document.contains(solution)||!document.contains(clone))return;
-    const limits=fitLimits(board);
-    const rect=clone.getBoundingClientRect();
-    let naturalWidth=Number(clone.dataset.tt99NaturalWidth)||0;
-    let naturalHeight=Number(clone.dataset.tt99NaturalHeight)||0;
-    if(!(naturalWidth>0))naturalWidth=Math.max(1,Math.ceil(clone.scrollWidth||0),Math.ceil(rect.width||0));
-    if(!(naturalHeight>0))naturalHeight=Math.max(1,Math.ceil(clone.scrollHeight||0),Math.ceil(rect.height||0));
-    clone.dataset.tt99NaturalWidth=String(naturalWidth);
-    clone.dataset.tt99NaturalHeight=String(naturalHeight);
-    const scale=Math.min(1,limits.width/naturalWidth,limits.height/naturalHeight);
-    const scaledWidth=Math.max(1,Math.floor(naturalWidth*scale));
-    const scaledHeight=Math.max(1,Math.floor(naturalHeight*scale));
+  if(!document.contains(solution)||!document.contains(clone))return;
+  const limits=fitLimits(board);
+  const rect=clone.getBoundingClientRect();
+  let naturalWidth=Number(clone.dataset.tt99NaturalWidth)||0;
+  let naturalHeight=Number(clone.dataset.tt99NaturalHeight)||0;
+  if(!(naturalWidth>0))naturalWidth=Math.max(1,Math.ceil(clone.scrollWidth||0),Math.ceil(rect.width||0));
+  if(!(naturalHeight>0))naturalHeight=Math.max(1,Math.ceil(clone.scrollHeight||0),Math.ceil(rect.height||0));
+  clone.dataset.tt99NaturalWidth=String(naturalWidth);
+  clone.dataset.tt99NaturalHeight=String(naturalHeight);
+  const scale=Math.min(1,limits.width/naturalWidth,limits.height/naturalHeight);
+  const scaledWidth=Math.max(1,Math.floor(naturalWidth*scale));
+  const scaledHeight=Math.max(1,Math.floor(naturalHeight*scale));
 
-    frame.style.width=scaledWidth+'px';
-    frame.style.height=scaledHeight+'px';
-    clone.style.position='absolute';
-    clone.style.left='0';
-    clone.style.top='0';
-    clone.style.transformOrigin='top left';
-    clone.style.transform=`scale(${scale})`;
-    clone.dataset.tt99FitScale=scale.toFixed(4);
-  });
+  frame.style.width=scaledWidth+'px';
+  frame.style.height=scaledHeight+'px';
+  clone.style.position='absolute';
+  clone.style.left='0';
+  clone.style.top='0';
+  clone.style.transformOrigin='top left';
+  clone.style.transform=`scale(${scale})`;
+  clone.dataset.tt99FitScale=scale.toFixed(4);
 }
 function injectPreview(){
   const popup=document.getElementById('tt99-play-complete');
