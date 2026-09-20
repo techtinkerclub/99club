@@ -185,7 +185,7 @@ sidebar: false
       <article><h3>Save as reusable preset</h3><p>Use this when you have a rule set you want to choose again, such as <b>Year 6 Diamond – Autumn</b>. The preset is saved in this browser.</p></article>
       <article><h3>Export this setup</h3><p>Downloads one setup file. Use it to send one configuration to a colleague or archive one particular challenge without moving everything else.</p></article>
       <article><h3>Full browser backup</h3><p>Downloads a safety copy of everything 99 Club Studio has saved in this browser: custom presets, challenge edits, current sheets, school details and logo.</p></article>
-      <article><h3>Restore full backup</h3><p>Use a Full backup to move all your 99 Club Studio work to another browser/device or recover after site data has been cleared. A safety snapshot is kept before restoring.</p></article>
+      <article><h3>Restore full backup</h3><p>Use a Full backup to move all your 99 Club Studio work to another browser/device or recover after site data has been cleared. A safety copy is kept before restoring.</p></article>
     </div>
 
     <h3>Which option should I use?</h3>

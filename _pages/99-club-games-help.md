@@ -88,7 +88,7 @@ sitemap: true
         <section id="packs" class="tt99-guide-section">
           <h2>Build the pack</h2>
           <p>Choose how many sheets to make and how many activities should appear on each sheet. When several games are selected, Studio rotates through them rather than filling the whole pack with one game.</p>
-          <p><strong>Generate new version</strong> keeps the teaching settings but changes the seed, giving a fresh set of puzzles. The matching answer sheets are generated from the same seed and solution data.</p>
+          <p><strong>Generate new version</strong> keeps the teaching settings but creates a fresh set of puzzles. The matching answer sheets are created for that same new version.</p>
           
         </section>
 

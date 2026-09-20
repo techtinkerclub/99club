@@ -322,7 +322,7 @@ sitemap: true
           <p>The PNG itself is only an image. Edit that image on the school page and attach the matching copied practice URL as its link.</p>
 
           <h3>The wrong Club level or old rules open</h3>
-          <p>The published URL is an old snapshot. Generate a new parent link from the current rules and replace the old URL on the school website.</p>
+          <p>The published URL keeps the setup that was shared at the time. Generate a new parent link from the current rules and replace the old URL on the school website.</p>
 
           <h3>The puzzle pack still uses the old setup</h3>
           <p>Generate a new parent link from the revised puzzle setup. Replace the old website link/card or update the Maths Games Widget.</p>

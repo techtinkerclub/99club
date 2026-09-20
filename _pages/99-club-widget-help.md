@@ -137,7 +137,7 @@ sitemap: true
           <p>The builder remembers its current draft in the browser, but browser storage should not be treated as the school's permanent record.</p>
           <ol>
             <li>In the Widget Builder choose <strong>Save widget setup</strong>.</li>
-            <li>Store the downloaded JSON file somewhere appropriate for school operational files rather than only in Downloads.</li>
+            <li>Store the downloaded setup file somewhere appropriate for school operational files rather than only in Downloads.</li>
             <li>If another member of staff takes over, they can open the Widget Builder and choose <strong>Restore widget setup</strong>.</li>
           </ol>
           <p>If the backup file has been lost, the published widget itself can still be reconstructed by copying its public URL/embed code and using <strong>Recreate existing widget</strong>.</p>
@@ -171,7 +171,7 @@ sitemap: true
           <p>Return to the Widget Builder, remove the logo and choose it again. Simple PNG, JPEG or WebP school marks work best. Then copy the updated embed and replace the old one on the school website.</p>
 
           <h3>I changed the Club rules but the website still uses the old rules</h3>
-          <p>Published links are intentional snapshots. Reopen the widget from the current 99 Club setup, create the revised widget embed and replace the old embed on the school website.</p>
+          <p>A published widget keeps the setup that was shared at the time. Reopen the widget from the current 99 Club setup, create the revised embed and replace the old one on the school website.</p>
 
           <h3>I changed a puzzle pack but parents still get the old version</h3>
           <p>The existing shared pack keeps its old settings. Add the revised puzzle setup to the Maths Games Widget, remove the old pack if necessary, then publish the new widget embed.</p>
@@ -198,7 +198,7 @@ sitemap: true
             <li>Online games open correctly?</li>
             <li>Widget tested on both a phone and a desktop/laptop?</li>
             <li>School webpage saved/published, not left as a draft?</li>
-            <li>Widget setup JSON saved somewhere sensible for staff handover?</li>
+            <li>Widget setup file saved somewhere sensible for staff handover?</li>
             <li>School's normal website/safeguarding/data-protection approval process followed?</li>
           </ul>
         </section>
