@@ -65,7 +65,7 @@ const providers={
   target:p=>({current:0,states:(p.challenges||[]).map(ch=>{const q=targetTokens(ch);return {tokens:q.tokens,used:q.used,solved:true,tried:true,value:Number(ch.target)};})}),
   numbertowers:grid,
   propertymaze:p=>clone(p.solutionPath||[]),
-  maze:p=>clone(p.path||[]),
+  maze:p=>({path:clone(p.path||[]),step:(p.steps||[]).length,attempt:null}),
   crossnumber:crossnumberSolution,
   pyramid:p=>textGrid(p.rows),
   magic:p=>{
