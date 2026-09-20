@@ -63,5 +63,24 @@ function renderQr(){
  const el=document.getElementById('demo-qr');if(!el||!Q)return;
  try{el.innerHTML=Q.svg(Q.make(location.href.split('#')[0]),{quiet:3,label:'Open this 99 Studio demonstration page'});}catch(_){}
 }
-renderButtons();renderCards();renderWidgets();renderQr();
+function initTabs(){
+ const tabs=[...document.querySelectorAll('[data-demo-tab]')],panels=[...document.querySelectorAll('[data-demo-panel]')];
+ if(!tabs.length||!panels.length)return;
+ function activate(id,focus){
+  tabs.forEach(t=>{const on=t.dataset.demoTab===id;t.setAttribute('aria-selected',String(on));t.tabIndex=on?0:-1;if(on&&focus)t.focus();});
+  panels.forEach(p=>p.hidden=p.dataset.demoPanel!==id);
+  try{history.replaceState(null,'','#'+id);}catch(_){}
+ }
+ const requested=String(location.hash||'').replace(/^#/,'');
+ const initial=tabs.some(t=>t.dataset.demoTab===requested)?requested:'buttons';
+ tabs.forEach((tab,i)=>{
+  tab.addEventListener('click',()=>activate(tab.dataset.demoTab,false));
+  tab.addEventListener('keydown',e=>{
+   if(!['ArrowLeft','ArrowRight'].includes(e.key))return;
+   e.preventDefault();const next=(i+(e.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;activate(tabs[next].dataset.demoTab,true);
+  });
+ });
+ activate(initial,false);
+}
+renderButtons();renderCards();renderWidgets();renderQr();initTabs();
 })();
