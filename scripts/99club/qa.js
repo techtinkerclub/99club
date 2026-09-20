@@ -283,6 +283,9 @@ if(!finishFlow.includes('dismissCompletionInput();')||finishFlow.indexOf('dismis
 for(const selector of ['tt99-context-pad-launcher','tt99-wave184-keypad','tt99-number-keypad','tt99-structure-keypad','tt99-letter-keypad','tt99-extra-op-pad'])if(!completionPreviewSrc.includes(selector))fail('completion-splash','Completion snapshot sanitiser missing '+selector);
 if(!completionPreviewSrc.includes('fitSnapshot')||!completionPreviewSrc.includes('tt99-play-complete-snapshot-fit'))fail('completion-splash','Completion snapshot fit stage is missing');
 else ok('completion-splash','Successful completion dismisses input first and the splash owns a keypad-free fit-to-frame snapshot');
+const shareCodecSrc=read('assets/99club/games-play-share-codec-v156.js');
+if(!shareCodecSrc.includes("route!=='/play'&&route!=='/tools/99-club/games/play'"))fail('share-codec','Share codec does not recognise both current and legacy play routes');
+else ok('share-codec','Challenge sharing recognises the current /play route and legacy compatibility route');
 const onlineShareSrc=read('assets/99club/games-play-share-v164.js');
 for(const token of ['data-share-challenge','data-share-card-native','data-download','data-copy-link','navigator.share'])if(!onlineShareSrc.includes(token))fail('share-panel','Native sharing contract missing '+token);
 for(const legacy of ['facebook.com/sharer','twitter.com/intent','linkedin.com/sharing','data-social=','tt99-share-social','global.open(target'])if(onlineShareSrc.includes(legacy))fail('share-panel','Legacy direct social sharing remains: '+legacy);
