@@ -76,7 +76,7 @@ sitemap: true
 
 <script src="/assets/99club/games-play-share-codec-v156.js?v=6"></script>
 <script src="/assets/99club/games-play-qr-v156.js?v=1"></script>
-<script src="/assets/99club/games-play-core-v2.js?v=8"></script>
+<script src="/assets/99club/games-play-core-v2.js?v=9"></script>
 <script src="/assets/99club/games-play-number-grid-v1.js?v=1"></script>
 <script src="/assets/99club/games-play-arithmetic-core-v1.js?v=1"></script>
 <script src="/assets/99club/games-play-shikaku-v1.js?v=2"></script>
@@ -86,7 +86,7 @@ sitemap: true
 <script src="/assets/99club/games-play-mines-v3.js?v=1"></script>
 <script src="/assets/99club/games-play-takuzu-v1.js?v=1"></script>
 <script src="/assets/99club/games-play-sudoku-v1.js?v=1"></script>
-<script src="/assets/99club/games-play-futoshiki-v1.js?v=1"></script>
+<script src="/assets/99club/games-play-futoshiki-v1.js?v=2"></script>
 <script src="/assets/99club/games-play-killer-v1.js?v=2"></script>
 <script src="/assets/99club/games-play-kakuro-v1.js?v=1"></script>
 <script src="/assets/99club/games-play-arithmeticcages-v1.js?v=1"></script>
