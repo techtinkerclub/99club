@@ -49,12 +49,28 @@ function derivedPool(){
     out.push(q('derived_calculations',i,`Given that ${a} × ${b} = ${p}, work out ${ask} without starting again from scratch.`,ans,{key:`${a}:${b}:${mode}`,response:{kind:'working',size:'S',label:'Show how the known fact helps'}}));
   }return out;
 }
+function applyOp(a,op,b){return op==='*'?a*b:op==='+'?a+b:a-b;}
+function evalFlat(nums,ops){
+  nums=nums.slice();ops=ops.slice();
+  for(let i=0;i<ops.length;){if(ops[i]==='*'){nums.splice(i,2,nums[i]*nums[i+1]);ops.splice(i,1);}else i++;}
+  let v=nums[0];for(let i=0;i<ops.length;i++)v=applyOp(v,ops[i],nums[i+1]);return v;
+}
+function evalSpan(nums,ops,s,e){
+  const inner=evalFlat(nums.slice(s,e+1),ops.slice(s,e)),n=nums.slice(0,s).concat([inner],nums.slice(e+1)),o=ops.slice(0,s).concat(ops.slice(e));
+  return evalFlat(n,o);
+}
+function bracketExpr(nums,ops,s,e){
+  const sym=o=>o==='*'?'×':o==='-'?'−':o,parts=[];
+  for(let i=0;i<nums.length;i++){if(i===s)parts.push('(');parts.push(String(nums[i]));if(i===e)parts.push(')');if(i<ops.length)parts.push(sym(ops[i]));}
+  return parts.join(' ');
+}
 function bracketPool(){
-  const out=[];for(let i=0;i<36;i++){const a=2+i%7,b=3+(i*2)%8,c=2+(i*3)%6,d=1+(i%5),m=i%3;let raw,target,answer;
-    if(m===0){raw=`${a} × ${b} + ${c} − ${d}`;target=a*(b+c)-d;answer=`${a} × (${b} + ${c}) − ${d}`;}
-    else if(m===1){raw=`${a} + ${b} × ${c} − ${d}`;target=(a+b)*c-d;answer=`(${a} + ${b}) × ${c} − ${d}`;}
-    else{raw=`${a} + ${b} × ${c} − ${d}`;target=a+b*(c-d);answer=`${a} + ${b} × (${c} − ${d})`;}
-    out.push(q('insert_brackets',i,`Insert one pair of brackets to make this true:  ${raw} = ${target}`,answer,{key:`${raw}:${target}`,response:{kind:'short',size:'S',label:'Rewrite the calculation with brackets'}}));
+  const out=[],spans=[[0,1],[1,2],[2,3],[0,2],[1,3]];
+  for(let i=0;i<180&&out.length<40;i++){
+    const nums=[2+i%8,3+(i*2)%9,2+(i*3)%7,1+(i*5)%6],mode=i%3,ops=mode===0?['*','+','-']:['+','*','-'],wanted=mode===0?[1,2]:mode===1?[0,1]:[2,3],target=evalSpan(nums,ops,wanted[0],wanted[1]),matches=spans.filter(([s,e])=>evalSpan(nums,ops,s,e)===target);
+    if(matches.length!==1||matches[0][0]!==wanted[0]||matches[0][1]!==wanted[1]||evalFlat(nums,ops)===target)continue;
+    const raw=bracketExpr(nums,ops,-1,-1).replace(/[()]/g,'').trim(),answer=bracketExpr(nums,ops,wanted[0],wanted[1]);
+    out.push(q('insert_brackets',out.length,`Insert one pair of brackets to make this true:  ${raw} = ${target}`,answer,{key:`${raw}:${target}`,response:{kind:'short',size:'S',label:'Rewrite the calculation with brackets'}}));
   }return out;
 }
 function meanPool(){
@@ -73,14 +89,14 @@ function vennPool(){
   }return out;
 }
 function primePool(){
-  const ps=[];for(let n=2;n<=47;n++)if(primes(n))ps.push(n);const bySum=new Map();
+  const ps=[];for(let n=2;n<=89;n++)if(primes(n))ps.push(n);const bySum=new Map();
   for(let a=0;a<ps.length;a++)for(let b=a+1;b<ps.length;b++)for(let c=b+1;c<ps.length;c++){const s=ps[a]+ps[b]+ps[c];if(s>95)break;const arr=bySum.get(s)||[];arr.push([ps[a],ps[b],ps[c]]);bySum.set(s,arr);}
   const uniques=[...bySum.entries()].filter(([,v])=>v.length===1).slice(0,40);
   return uniques.map(([sum,v],i)=>q('prime_sum',i,`Find three different prime numbers with a total of ${sum}.`,v[0].join(' + '),{key:String(sum),response:{kind:'working',size:'S',label:'Prime numbers'}}));
 }
 function factorPairPool(){
   const out=[];for(let product=120;product<=5000&&out.length<42;product+=4){const pairs=[];for(let a=2;a*a<=product;a++)if(product%a===0){const b=product/a;if(!String(a).includes('0')&&!String(b).includes('0'))pairs.push([a,b]);}
-    if(pairs.length===1){const [a,b]=pairs[0];out.push(q('constrained_factor_pairs',out.length,`Two whole numbers multiply to make ${product.toLocaleString()}. Neither number contains the digit 0. What are the two numbers?`,`${a} and ${b}`,{key:String(product),response:{kind:'working',size:'S',label:'Show your factor search'}}));}
+    if(pairs.length===1){const [a,b]=pairs[0];out.push(q('constrained_factor_pairs',out.length,`Two whole numbers greater than 1 multiply to make ${product.toLocaleString()}. Neither number contains the digit 0. What are the two numbers?`,`${a} and ${b}`,{key:String(product),response:{kind:'working',size:'S',label:'Show your factor search'}}));}
   }return out;
 }
 function formatDuration(sec,mode){
@@ -105,8 +121,9 @@ function letterGridPool(){
   }return out;
 }
 function similarPool(){
-  const out=[];for(let i=0;i<36;i++){const k=2+(i%3),a=3+(i%7),b=4+((i*2)%8),c=5+((i*3)%9),hide=i%3,small=[a,b,c],large=small.map(n=>n*k),answer=small[hide],shownSmall=small.slice(),shownLarge=large.slice();shownSmall[hide]=null;
-    out.push(q('similar_shapes',i,'The two triangles are similar. Work out the missing length.',answer,{visual:{type:'reasoning',subtype:'similar_triangles',small:shownSmall,large:shownLarge,scale:k},key:`${a}:${b}:${c}:${k}:${hide}`,footprint:'L'}));
+  const triples=[[3,4,5],[5,12,13],[6,8,10],[8,15,17],[9,12,15],[12,16,20]],out=[];
+  for(let i=0;i<36;i++){const k=2+(i%3),small=triples[i%triples.length].slice(),large=small.map(n=>n*k),hide=i%3,answer=small[hide],shownSmall=small.slice();shownSmall[hide]=null;
+    out.push(q('similar_shapes',i,'The two right-angled triangles are similar. Work out the missing length.',answer,{visual:{type:'reasoning',subtype:'similar_triangles',small:shownSmall,large,scale:k},key:`${small.join(':')}:${k}:${hide}`,footprint:'L'}));
   }return out;
 }
 function cuboidPool(){
@@ -155,9 +172,11 @@ function renderReasoning(C,x,y,w,h,v,answers){
   }else if(v.subtype==='letter_grid'){
     const rows=v.rows||[],cell=Math.min(28,w/7,h/5),left=x+w*.2,top=y+8;rows.forEach((r,ri)=>{r.letters.forEach((ch,ci)=>{C.rect(left+ci*cell,top+ri*cell,cell,cell,{fill:[250,252,252],stroke:line,width:.5});C.text(left+(ci+.5)*cell,top+(ri+.67)*cell,ch,9,{bold:true,align:'center',color:ink});});C.text(left+4.4*cell,top+(ri+.67)*cell,'=',8,{bold:true,color:muted});C.text(left+5.1*cell,top+(ri+.67)*cell,String(r.sum),9,{bold:true,color:teal});});
   }else if(v.subtype==='similar_triangles'){
-    const baseY=y+h*.76,smallX=x+w*.12,largeX=x+w*.55,smallW=w*.23,largeW=w*.34,smallH=h*.38,largeH=h*.55;
+    const baseY=y+h*.78,smallX=x+w*.10,largeX=x+w*.55,sv=v.small||[],lv=v.large||[],ratio=Math.max(.45,Math.min(1.8,Number(lv[1]||8)/Number(lv[0]||6))),smallW=w*.24,smallH=Math.min(h*.48,smallW*ratio),largeW=w*.32,largeH=Math.min(h*.62,largeW*ratio);
     C.polygon([{x:smallX,y:baseY},{x:smallX+smallW,y:baseY},{x:smallX,y:baseY-smallH}],{stroke:ink,width:.9});C.polygon([{x:largeX,y:baseY},{x:largeX+largeW,y:baseY},{x:largeX,y:baseY-largeH}],{stroke:ink,width:.9});
-    const lab=(val)=>val==null?'?':String(val);C.text(smallX+smallW/2,baseY+13,lab(v.small?.[0]),7,{bold:true,align:'center',color:v.small?.[0]==null?teal:ink});C.text(smallX-8,baseY-smallH/2,lab(v.small?.[1]),7,{bold:true,align:'center',color:v.small?.[1]==null?teal:ink});C.text(largeX+largeW/2,baseY+13,lab(v.large?.[0]),7,{bold:true,align:'center',color:ink});C.text(largeX-8,baseY-largeH/2,lab(v.large?.[1]),7,{bold:true,align:'center',color:ink});C.text(x+w/2,y+12,'Similar shapes',7.2,{bold:true,align:'center',color:muted});
+    const lab=(val)=>val==null?'?':String(val),col=(val)=>val==null?teal:ink;
+    C.text(smallX+smallW/2,baseY+13,lab(sv[0]),7,{bold:true,align:'center',color:col(sv[0])});C.text(smallX-8,baseY-smallH/2,lab(sv[1]),7,{bold:true,align:'center',color:col(sv[1])});C.text(smallX+smallW*.58,baseY-smallH*.55,lab(sv[2]),7,{bold:true,align:'center',color:col(sv[2])});
+    C.text(largeX+largeW/2,baseY+13,lab(lv[0]),7,{bold:true,align:'center',color:ink});C.text(largeX-8,baseY-largeH/2,lab(lv[1]),7,{bold:true,align:'center',color:ink});C.text(largeX+largeW*.58,baseY-largeH*.55,lab(lv[2]),7,{bold:true,align:'center',color:ink});C.text(x+w/2,y+12,'Similar right-angled triangles',7.2,{bold:true,align:'center',color:muted});
   }else if(v.subtype==='cuboids'){
     const draw=(xx,yy,ww,hh,dd,vals,label)=>{const dx=dd,dy=-dd*.55;C.rect(xx,yy-hh,ww,hh,{stroke:ink,width:.8});C.polygon([{x:xx,y:yy-hh},{x:xx+dx,y:yy-hh+dy},{x:xx+ww+dx,y:yy-hh+dy},{x:xx+ww,y:yy-hh}],{stroke:ink,width:.8});C.polygon([{x:xx+ww,y:yy},{x:xx+ww+dx,y:yy+dy},{x:xx+ww+dx,y:yy-hh+dy},{x:xx+ww,y:yy-hh}],{stroke:ink,width:.8});C.text(xx+ww/2,yy+13,`${vals[0]} cm`,6.5,{align:'center',color:ink});C.text(xx-9,yy-hh/2,`${vals[2]==null?'?':vals[2]} cm`,6.5,{align:'center',color:vals[2]==null?teal:ink});C.text(xx+ww+dx/2+5,yy+dy/2+8,`${vals[1]} cm`,6.5,{align:'center',color:ink});C.text(xx+ww/2,yy-hh-20,label,7,{bold:true,align:'center',color:muted});};
     draw(x+w*.10,y+h*.76,w*.25,h*.28,18,v.a||[],'Cuboid A');draw(x+w*.58,y+h*.76,w*.25,h*.28,18,v.b||[],'Cuboid B');
