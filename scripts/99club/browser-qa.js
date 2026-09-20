@@ -227,6 +227,7 @@ function prepare(){
         popup.hidden=true;popup.innerHTML='';
       }catch(e){fail('completion-share-entry',(e&&e.stack)||String(e));}
     }
+    // The browser harness itself is not mounted at /play/, so exercise explicit production-shaped URLs here.
     async function challengeLinkCodecTest(){
       try{
         const codec=window.TT99PlayShareCodec,share=window.TT99PlayShareV156;
