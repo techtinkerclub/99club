@@ -509,6 +509,14 @@
     margin-bottom:0!important;
   }
 
+  /* Square Search reserves an extra target banner above the board in the PDF
+     renderer, leaving about 233pt for the grid in a two-activity sheet. */
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-extra-search-grid{
+    width:min(100%,233px)!important;
+    margin-top:2px!important;
+    margin-bottom:0!important;
+  }
+
   /* Binary / puzzle-pack grids use the same compact half-page footprint. */
   .tt99-game-paper .tt99-game-activities.count-2 .tt99-takuzu-grid{
     width:min(100%,258px)!important;
