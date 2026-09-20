@@ -1,8 +1,24 @@
-/* 99 Club Studio · Online Play completion preview v1.0.3 */
-(function(){
+/* 99 Club Studio · Online Play completion preview v1.0.4 */
+(function(global){
 'use strict';
 const watched=new WeakSet();
 const TRANSIENT='.is-selected,.is-related,.is-same,.is-current,.is-hint,.is-wrong,.is-keypad-active,.tt99-entry-host-active';
+const PAD_UI=[
+  '.tt99-context-pad-launcher',
+  '.tt99-context-pad-handle',
+  '.tt99-wave184-keypad',
+  '.tt99-wave186-keypad',
+  '.tt99-v196-keypad',
+  '.tt99-number-keypad',
+  '.tt99-structure-keypad',
+  '.tt99-alpha-pad',
+  '.tt99-towers-keypad',
+  '.tt99-crossnumber-keypad',
+  '.tt99-letter-keypad',
+  '.tt99-extra-op-pad'
+].join(',');
+let resizeQueued=false;
+
 function clearTransient(node){
   document.activeElement?.blur?.();
   node.querySelectorAll?.(TRANSIENT).forEach(el=>el.classList.remove('is-selected','is-related','is-same','is-current','is-hint','is-wrong','is-keypad-active','tt99-entry-host-active'));
@@ -24,12 +40,58 @@ function sanitiseClone(node,structureValues=[]){
     el.setAttribute('aria-hidden','true');
     if('disabled' in el)el.disabled=true;
   });
-  node.querySelectorAll?.('.tt99-number-keypad,.tt99-structure-keypad,.tt99-cycle-note,.tt99-hashi-note,.tt99-hashi-hitlayer,.tt99-play-board-tip').forEach(el=>el.remove());
+  node.querySelectorAll?.(`${PAD_UI},.tt99-cycle-note,.tt99-hashi-note,.tt99-hashi-hitlayer,.tt99-play-board-tip`).forEach(el=>el.remove());
+  node.classList.remove('tt99-has-context-pad','tt99-context-pad-reserve');
+  node.style.removeProperty('--tt99-context-pad-space');
   clearTransient(node);
+}
+function innerSize(el){
+  const cs=getComputedStyle(el);
+  const px=v=>Number.parseFloat(v)||0;
+  return {
+    width:Math.max(1,el.clientWidth-px(cs.paddingLeft)-px(cs.paddingRight)),
+    height:Math.max(1,el.clientHeight-px(cs.paddingTop)-px(cs.paddingBottom))
+  };
+}
+function fitSnapshot(solution){
+  const board=solution?.querySelector('.tt99-play-complete-solution-board');
+  const frame=solution?.querySelector('.tt99-play-complete-snapshot-fit');
+  const clone=frame?.querySelector('.tt99-play-complete-snapshot');
+  if(!board||!frame||!clone)return;
+
+  clone.style.removeProperty('transform');
+  clone.style.removeProperty('transform-origin');
+  clone.style.removeProperty('position');
+  clone.style.removeProperty('left');
+  clone.style.removeProperty('top');
+  frame.style.removeProperty('width');
+  frame.style.removeProperty('height');
+
+  requestAnimationFrame(()=>{
+    if(!document.contains(solution)||!document.contains(clone))return;
+    const limits=innerSize(board);
+    const rect=clone.getBoundingClientRect();
+    const naturalWidth=Math.max(1,Math.ceil(clone.scrollWidth||0),Math.ceil(rect.width||0));
+    const naturalHeight=Math.max(1,Math.ceil(clone.scrollHeight||0),Math.ceil(rect.height||0));
+    const scale=Math.min(1,limits.width/naturalWidth,limits.height/naturalHeight);
+    const scaledWidth=Math.max(1,Math.floor(naturalWidth*scale));
+    const scaledHeight=Math.max(1,Math.floor(naturalHeight*scale));
+
+    frame.style.width=scaledWidth+'px';
+    frame.style.height=scaledHeight+'px';
+    clone.style.position='absolute';
+    clone.style.left='0';
+    clone.style.top='0';
+    clone.style.transformOrigin='top left';
+    clone.style.transform=`scale(${scale})`;
+    clone.dataset.tt99FitScale=scale.toFixed(4);
+  });
 }
 function injectPreview(){
   const popup=document.getElementById('tt99-play-complete');
-  if(!popup||popup.hidden||popup.querySelector('.tt99-play-complete-solution'))return;
+  if(!popup||popup.hidden)return;
+  const existing=popup.querySelector('.tt99-play-complete-solution');
+  if(existing){fitSnapshot(existing);return;}
   const card=popup.querySelector('.tt99-play-complete-card');
   const source=document.getElementById('tt99-play-board');
   if(!card||!source||!source.firstElementChild)return;
@@ -39,11 +101,17 @@ function injectPreview(){
   sanitiseClone(clone,structureValues);
   clone.classList.add('tt99-play-complete-snapshot');
   clone.setAttribute('aria-hidden','true');
+
   const wrap=document.createElement('section');
   wrap.className='tt99-play-complete-solution';
-  wrap.innerHTML='<div class="tt99-play-complete-solution-head"><small>Your solution</small></div><div class="tt99-play-complete-solution-board"></div>';
-  wrap.querySelector('.tt99-play-complete-solution-board').appendChild(clone);
+  wrap.innerHTML='<div class="tt99-play-complete-solution-head"><small>Your solution</small></div><div class="tt99-play-complete-solution-board"><div class="tt99-play-complete-snapshot-fit"></div></div>';
+  wrap.querySelector('.tt99-play-complete-snapshot-fit').appendChild(clone);
   card.appendChild(wrap);
+  fitSnapshot(wrap);
+}
+function refitVisiblePreview(){
+  const solution=document.querySelector('#tt99-play-complete:not([hidden]) .tt99-play-complete-solution');
+  if(solution)fitSnapshot(solution);
 }
 function watch(){
   const popup=document.getElementById('tt99-play-complete');
@@ -61,5 +129,11 @@ function boot(){
   const observer=new MutationObserver(()=>{if(watch())observer.disconnect();});
   observer.observe(root,{childList:true,subtree:true});
 }
+global.addEventListener('resize',()=>{
+  if(resizeQueued)return;
+  resizeQueued=true;
+  requestAnimationFrame(()=>{resizeQueued=false;refitVisiblePreview();});
+});
+global.TT99CompletionPreview={injectPreview,fitSnapshot,refitVisiblePreview};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
-})();
+})(typeof globalThis!=='undefined'?globalThis:this);
