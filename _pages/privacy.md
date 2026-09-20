@@ -66,6 +66,11 @@ sitemap: true
         </section>
 
         <section class="tt99-guide-section">
+          <h2>Support / Ko-fi</h2>
+          <p>Teacher-facing Studio pages can offer an optional <strong>Buy me a coffee</strong> support panel provided by Ko-fi. The Ko-fi iframe is loaded only when you choose to open that panel, and 99 Club Studio requests it with <strong>no referrer information</strong>. The support/payment panel is not offered on the pupil-facing Play Online page. Any information you choose to provide to Ko-fi is handled by Ko-fi under its own terms and privacy practices.</p>
+        </section>
+
+        <section class="tt99-guide-section">
           <h2>Contact form</h2>
           <p>If you choose to send a message through the Contact form, the name/email/message you enter are sent through FormSubmit so the message can be delivered. The form also sends the 99 Studio <strong>page origin and path only</strong> so a bug report can be associated with the relevant area of the site. Query strings and URL fragments are deliberately excluded. Please do not include pupil personal information.</p>
         </section>
