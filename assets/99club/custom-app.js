@@ -49,7 +49,7 @@
   }
   function newStudioSeed(clubId){return `${clubId}-${randomStudioToken(6)}`;}
   const HELP_TEXT = {
-    customWorksheet: ['Custom worksheet','Use this for starters, quizzes, homework and targeted practice. Choose direct numerical or concise mathematical prompts, give topics relative weights and set the number of questions. Contextual story word problems are deliberately excluded until they have a separate, richer problem engine.'],
+    customWorksheet: ['Custom worksheet','Use this for starters, quizzes, homework and targeted practice. Choose numerical or concise mathematical prompts, give topics relative weights and set the number of questions. Story-based word problems are not included in this tool.'],
     wholeNumberRange: ['Whole-number difficulty','Sets the upper size used by place-value, rounding, number-property and larger calculation families. An optional Year generation profile can adjust this, and you can override it.'],
     decimalSettings: ['Decimal difficulty','Primary pupils work with tenths and hundredths from Year 4 and with thousandths / up to 3 decimal places in Year 5–6. These controls cap the generated decimal precision and size.'],
     ratioSettings: ['Ratio settings','Controls the size of ratio parts and quantities used in Year 6 equivalent-ratio, scale-factor and unequal-sharing questions.'],
@@ -93,7 +93,7 @@
     browserStorage: ['Saved in this browser','Studio remembers your work automatically on this browser. This is convenient, but it is not an online account: clearing site data, using private browsing, changing browser profile or moving device can remove it. Download a Full backup for anything important.'],
     fullBackup: ['Full backup','Use this as your safety copy. It contains all Studio data saved in this browser, including reusable presets, challenge edits, the current exact sheets and school personalisation/logo. Restore it on this or another browser when you need everything back.'],
     portableCode: ['Full recreation code','Use this to recreate one exact worksheet on another browser without sending a setup file. It contains the worksheet rules and a compact description of the final reviewed question set/order. Superseded review changes are never carried forward. The school logo is not included.'],
-    answerQr: ['Recreation QR on answer sheets','Adds a QR to the teacher answer copy only. Scan it to reopen the final reviewed worksheet with the same rules and question order. Studio stores compact final-state references rather than your edit history, so repeated replacements do not steadily make the QR denser. School names and logos are not included, and pupil worksheets never receive the QR.'],
+    answerQr: ['Recreation QR on answer sheets','Adds a QR to the teacher answer copy only. Scan it to reopen the final reviewed worksheet with the same rules and question order. Only the final reviewed worksheet is included, so repeated replacements do not make the QR unnecessarily large. School names and logos are not included, and pupil worksheets never receive the QR.'],
     saveSafety: ['How saving works','For normal weekly use, Studio saves automatically in this browser. Save a reusable preset when you want a rule set again, export one setup when you want to share that setup, and download a Full backup when you want a safety copy of everything.']
   };
   const state = {
@@ -380,7 +380,7 @@
       const actions=compactSheetActions([...(Array.isArray(s.actions)?s.actions:[]),['s',token]]);
       return { ...s, questions:G.shuffleQuestions(s.questions, `${s.seed}:${token}`), actions };
     });
-    persist();state.status='Question order shuffled. The recreation recipe keeps only the compact steps needed to rebuild the current sheet.'; render();
+    persist();state.status='Question order shuffled. Recreation codes and the teacher QR will restore this final order.'; render();
   }
 
   function workspaceViewClass(){
@@ -411,7 +411,7 @@
     root.innerHTML = `
       <div class="tt99-shell tt99-shell--custom">
         <section class="tt99-custom-hero" aria-labelledby="tt99-custom-title">
-          <div><span class="tt99-eyebrow">99 Club Studio</span><div class="tt99-custom-title-row"><h1 id="tt99-custom-title">Custom Worksheets</h1><span class="tt99-beta-pill">Beta</span></div><p>Build targeted starters, homework, quizzes and retrieval practice. This workspace is separate so new curriculum, visual and future word-problem generators can grow without changing the stable 99 Club workflow.</p></div>
+          <div><span class="tt99-eyebrow">99 Club Studio</span><div class="tt99-custom-title-row"><h1 id="tt99-custom-title">Custom Worksheets</h1><span class="tt99-beta-pill">Beta</span></div><p>Build targeted starters, homework, quizzes and retrieval practice by choosing the topics and question types you need.</p></div>
           <div class="tt99-custom-hero-actions">
             <a class="tt99-secondary tt99-custom-back" href="/">← Back to 99 Club</a><a class="tt99-secondary tt99-custom-back" href="/games/">Games &amp; puzzles</a>
           </div>
@@ -428,7 +428,6 @@
           <main class="tt99-preview-panel">
             ${renderPreviewToolbar()}
             <div class="tt99-preview-wrap">${renderPaper()}</div>
-            <div class="tt99-privacy"><strong>Private by design.</strong> Questions, names and school logos are processed only on this device.</div>
           </main>
         </div>
         <div id="tt99-help-popover" class="tt99-help-popover" role="dialog" aria-live="polite" hidden></div>
@@ -483,7 +482,7 @@
       </div>
       <div class="tt99-logo-row">
         <div class="tt99-logo-preview">${s.logoDataUrl?`<img src="${s.logoDataUrl}" alt="School logo preview">`:'<span>LOGO</span>'}</div>
-        <div><label class="tt99-upload"><input id="tt99-logo" type="file" accept="image/png,image/jpeg,image/webp"><span>${s.logoDataUrl?'Replace school logo':'Add school logo'}</span></label>${s.logoDataUrl?'<button type="button" class="tt99-linkbtn" id="tt99-remove-logo">Remove logo</button>':''}<small>PNG, JPG or WebP. Resized locally for print.</small></div>
+        <div><label class="tt99-upload"><input id="tt99-logo" type="file" accept="image/png,image/jpeg,image/webp"><span>${s.logoDataUrl?'Replace school logo':'Add school logo'}</span></label>${s.logoDataUrl?'<button type="button" class="tt99-linkbtn" id="tt99-remove-logo">Remove logo</button>':''}<small>PNG, JPG or WebP.</small></div>
       </div>
     </section>`;
   }
@@ -647,8 +646,8 @@
         <div class="tt99-portability__body">
           <div class="tt99-save-map"><div><b>Reuse rules</b><span>Save as a reusable preset in Step 3.</span></div><div><b>Move one setup</b><span>Export / import the current setup below.</span></div><div><b>Protect everything</b><span>Use Full backup above.</span></div><div><b>Recreate one sheet</b><span>Use its sheet code, full recreation code, or teacher QR.</span></div></div>
           <div class="tt99-portable-block"><div><strong>Full recreation code ${helpButton('portableCode')}</strong><small>Copy/paste method for one exact reviewed worksheet. It includes the rules, final question order and teacher note, but not the school logo.</small></div><button type="button" class="tt99-secondary" id="tt99-copy-full-code">Copy full recreation code</button><div class="tt99-portable-load"><textarea id="tt99-full-code" rows="3" spellcheck="false" placeholder="Paste a TT99R recreation code here"></textarea><button type="button" class="tt99-secondary" id="tt99-load-full-code">Recreate</button></div></div>
-          <div class="tt99-portable-block"><div><strong>Full browser backup ${helpButton('fullBackup')}</strong><small>Your complete Studio safety copy: reusable presets, challenge edits, exact sheets, school details and logo. Restore it when moving browser/device or recovering cleared site data.</small></div><div class="tt99-config-actions"><label class="tt99-linkbtn tt99-import">Restore full backup<input id="tt99-restore-backup" type="file" accept="application/json,.json"></label>${canUndo?'<button type="button" class="tt99-linkbtn" id="tt99-undo-restore">Undo last restore</button>':''}</div></div>
-          <div class="tt99-portable-block"><div><strong>One setup file ${helpButton('exportSettings')}</strong><small>A file for this one current setup. Use it to archive or share one challenge without replacing the rest of the recipient's saved Studio work.</small></div><div class="tt99-config-actions"><button type="button" class="tt99-linkbtn" id="tt99-export-settings">Export this setup</button><label class="tt99-linkbtn tt99-import">Import a setup<input id="tt99-import-settings" type="file" accept="application/json,.json"></label></div></div>
+          <div class="tt99-portable-block"><div><strong>Full browser backup ${helpButton('fullBackup')}</strong><small>Your complete 99 Club Studio safety copy: reusable presets, challenge edits, exact sheets, school details and logo. Restore it when moving browser/device or recovering cleared site data.</small></div><div class="tt99-config-actions"><label class="tt99-linkbtn tt99-import">Restore full backup<input id="tt99-restore-backup" type="file" accept="application/json,.json"></label>${canUndo?'<button type="button" class="tt99-linkbtn" id="tt99-undo-restore">Undo last restore</button>':''}</div></div>
+          <div class="tt99-portable-block"><div><strong>One setup file ${helpButton('exportSettings')}</strong><small>A file for this one current setup. Use it to archive or share one challenge without replacing the rest of the recipient's saved 99 Club Studio work.</small></div><div class="tt99-config-actions"><button type="button" class="tt99-linkbtn" id="tt99-export-settings">Export this setup</button><label class="tt99-linkbtn tt99-import">Import a setup<input id="tt99-import-settings" type="file" accept="application/json,.json"></label></div></div>
         </div>
       </details>
       ${state.status?`<div class="tt99-status" role="status">${esc(state.status)}</div>`:''}
@@ -662,7 +661,7 @@
   function renderPaper(){
     const sheet=state.sheets[state.previewVariant];
     if(!sheet)return '';
-    if(!(state.rules.families||[]).length)return `<div class="tt99-empty-preview"><div><b>Your worksheet is empty by design.</b><span>Open a category on the left and select the exact topics you want. Nothing is preselected.</span></div></div>`;
+    if(!(state.rules.families||[]).length)return `<div class="tt99-empty-preview"><div><b>Your worksheet is empty.</b><span>Open a category on the left and select the exact topics you want. Nothing is preselected.</span></div></div>`;
     let qrMatrix=null;
     if(state.previewAnswers&&state.includeAnswerQr){
       try{qrMatrix=qrResultForVariant(state.previewVariant)?.matrix||null;}catch(err){qrMatrix=null;}
@@ -1140,7 +1139,7 @@
   function applyRecreationV1(d,source='Legacy recreation code'){
     if(!d||d.kind!=='TT99R'||d.format!==1||!d.rules)throw new Error('format');
     if(d.schemeId&&G.SCHEME_PRESETS[d.schemeId])state.schemeId=d.schemeId;let requestedId=String(d.clubId||d.rules.id||'').trim()||'33';ensureImportedCustomPreset(requestedId,d.rules);state.clubId=getBasePreset(state.schemeId,requestedId)?requestedId:'33';state.rules=normalizeForContext(d.rules,state.clubId);commitCurrentRules();state.variants=Math.min(4,Math.max(1,Number(d.variants)||1));state.orientation=d.orientation==='landscape'?'landscape':'portrait';state.seed=typeof d.seed==='string'&&d.seed?d.seed:newStudioSeed(state.clubId);state.previewVariant=Math.max(0,Math.min(state.variants-1,Number(d.previewVariant)||0));state.teacherNote=cleanTeacherNote(d.teacherNote||'');if(d.school)state.school={...state.school,...d.school,logoDataUrl:state.school.logoDataUrl,logoWidth:state.school.logoWidth,logoHeight:state.school.logoHeight};
-    if(validExactSheets(d.sheets,state.variants,state.rules)){state.sheets=G.clone(d.sheets);refreshSheetCodes();refreshRulesError();persist();}else generateAll();state.status=`${source} loaded. This was created by an earlier 99 Club Studio/Generator version.`;render();
+    if(validExactSheets(d.sheets,state.variants,state.rules)){state.sheets=G.clone(d.sheets);refreshSheetCodes();refreshRulesError();persist();}else generateAll();state.status=`${source} loaded. This was created by an earlier version of 99 Club Studio.`;render();
   }
   function loadFullRecreationCode(rawOverride){
     let raw=typeof rawOverride==='string'?rawOverride.trim():(root.querySelector('#tt99-full-code')?.value||'').trim();
@@ -1151,7 +1150,7 @@
       if(raw.startsWith('TT99R2.')){applyRecreationV2(JSON.parse(base64UrlToUtf8(raw.slice(7))));return;}
       if(raw.startsWith('TT99R1.')){applyRecreationV1(JSON.parse(base64UrlToUtf8(raw.slice(7))));return;}
       throw new Error('prefix');
-    }catch(err){state.status=String(err.message)==='generation'?'That recreation code uses a generation version this build cannot reproduce.':'That Full recreation code is not valid.';render();}
+    }catch(err){state.status=String(err.message)==='generation'?'That recreation code was made by a version of 99 Club Studio that this version cannot reproduce.':'That Full recreation code is not valid.';render();}
   }
 
   function builtInBaseRules(schemeId,clubId){
@@ -1206,7 +1205,7 @@
         requestedId=tempId;ensureImportedCustomPreset(requestedId,rules,'Imported from teacher QR');
       }else if(String(requestedId).startsWith('custom-')&&!getBasePreset(state.schemeId,requestedId))ensureImportedCustomPreset(requestedId,rules,'Imported from teacher QR');
       state.clubId=getBasePreset(state.schemeId,requestedId)?requestedId:(getBasePreset(state.schemeId,rules.id)?rules.id:'33');state.rules=normalizeForContext(rules,state.clubId);commitCurrentRules();state.seed=String(d.z||newStudioSeed(state.clubId));const qrVariant=Math.max(0,Math.min(3,Number(d.p)||0));state.variants=Math.min(4,Math.max(qrVariant+1,Number(d.v)||1));state.previewVariant=qrVariant;state.orientation=d.o==='l'?'landscape':'portrait';state.teacherNote='';if(Array.isArray(d.m))state.school={...state.school,schoolName:d.m[0]||'',yearGroup:d.m[1]||'',className:d.m[2]||'',teacherName:d.m[3]||'',worksheetDate:d.m[4]||'',logoDataUrl:state.school.logoDataUrl,logoWidth:state.school.logoWidth,logoHeight:state.school.logoHeight};generateAll();if(d.e){const i=state.previewVariant,stateSheet=state.sheets[i];stateSheet.questions=applySheetRecipe(stateSheet.seed,state.rules,d.e);stateSheet.actions=Array.isArray(d.e?.a)?G.clone(d.e.a):[];refreshSheetCodes();refreshRulesError();persist();}state.previewAnswers=true;state.status='Teacher QR recreation loaded. This exact sheet and its rules are ready in 99 Club Studio.';render();
-    }catch(err){state.status='That teacher QR recreation data is not valid or is from an unsupported generation version.';render();}
+    }catch(err){state.status='That teacher QR is not valid or was made by an unsupported version of 99 Club Studio.';render();}
   }
   function loadRecreationFromLocation(){
     try{const hash=String(location.hash||'');const m=hash.match(/^#q=(.+)$/);if(!m)return;const code=decodeURIComponent(m[1]);loadQrRecreationCode(code);if(history?.replaceState)history.replaceState(null,'',location.pathname+location.search);}catch(e){}
@@ -1306,7 +1305,7 @@
       if(exactSheets){state.sheets=G.clone(d.sheets);refreshSheetCodes();state.previewVariant=0;refreshRulesError();persist();}
       else generateAll();
       state.status=exactSheets?'Setup imported, including the exact worksheet versions. Your other browser-saved presets and challenge edits were left untouched.':'Setup imported. Your other browser-saved presets and challenge edits were left untouched.';render();
-    }catch(err){state.status=String(err&&err.message)==='generation'?'That setup uses a worksheet generation version this build does not support.':'That file is not a valid 99 Club Studio setup.';render();}};reader.readAsText(file);
+    }catch(err){state.status=String(err&&err.message)==='generation'?'That setup was made by a version of 99 Club Studio that this version cannot reproduce.':'That file is not a valid 99 Club Studio setup.';render();}};reader.readAsText(file);
   }
 
 

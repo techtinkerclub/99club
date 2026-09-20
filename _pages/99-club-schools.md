@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "School Website Integration Help"
-description: "Complete school website integration help for adding 99 Studio parent-practice links, cards, PNG images, website packs and widgets."
+description: "Complete school website integration help for adding 99 Club Studio parent-practice links, cards, PNG images, website packs and widgets."
 permalink: /schools/
 sidebar: false
 sitemap: true
@@ -13,19 +13,17 @@ sitemap: true
       <div class="tt99-guide">
         <div class="tt99-guide-hero">
           <div>
-            <span class="tt99-eyebrow">99 Studio · School website integration help</span>
-            <h1>Adding 99 Studio to your school website</h1>
-            <p>A complete, platform-neutral guide for teachers, maths leads and school website editors. Start here whether you want one simple link, a picture/card, a complete website pack or an embedded widget.</p>
+            <span class="tt99-eyebrow">99 Club Studio · School website integration help</span>
+            <h1>Adding 99 Club Studio to your school website</h1>
+            <p>Practical guidance for adding 99 Club Studio practice to a school website using ordinary links, visual cards or an embedded widget.</p>
           </div>
           <div class="tt99-guide-hero-actions">
             <a class="tt99-primary tt99-guide-action" href="/demo/">View live demo →</a>
-            <a class="tt99-secondary tt99-guide-action" href="/">← Back to 99 Studio</a>
+            <a class="tt99-secondary tt99-guide-action" href="/">← Back to 99 Club Studio</a>
           </div>
         </div>
 
-        <div class="tt99-guide-note"><strong>You do not need to be a web developer.</strong> The safest approach is to use the simplest option your school website editor supports. Nothing in 99 Studio changes the school website automatically: an authorised member of staff must add or replace the link/card/widget in the school website editor and publish the page.</div>
-
-        <div class="tt99-guide-note"><strong>Want to see the three options before choosing?</strong> Open the <a href="/demo/"><strong>fictional school website demo →</strong></a> to compare ordinary buttons, visual cards and embedded widgets side by side.</div>
+        <div class="tt99-guide-note"><strong>Not sure which route to use?</strong> Open the <a href="/demo/"><strong>fictional school website demo →</strong></a> to compare buttons, cards and widgets side by side. For most schools, a normal link/button or PNG card is the easiest place to start.</div>
 
         <nav class="tt99-guide-nav" aria-label="School website integration help topics">
           <a href="/demo/">Live demo ↗</a>
@@ -48,18 +46,18 @@ sitemap: true
 
         <section id="choose" class="tt99-guide-section tt99-guide-highlight">
           <h2>Choose the easiest method for your school</h2>
-          <p>All of the options below lead to the same locked parent-practice system. The difference is only how the school presents the choices on its website.</p>
+          <p>All of the options below open the same school-selected practice. The difference is simply how those choices appear on the school website.</p>
 
           <div class="tt99-guide-steps">
             <article>
               <b>1</b>
               <h3>Plain link or your website's own button/card</h3>
-              <p><strong>Best starting point.</strong> Copy the locked parent-practice URL from Studio and attach it to a normal text link, button, image tile or card created inside the school website editor.</p>
+              <p><strong>Best starting point.</strong> Copy the parent-practice URL from 99 Club Studio and attach it to a normal text link, button, image tile or card created inside the school website editor.</p>
             </article>
             <article>
               <b>2</b>
               <h3>Ready-made website card HTML</h3>
-              <p>Useful when your website editor accepts Custom HTML/Code. Studio supplies a complete compact card with the badge, description and link.</p>
+              <p>Useful when your website editor accepts Custom HTML/Code. 99 Club Studio supplies a complete compact card with the badge, description and link.</p>
             </article>
             <article>
               <b>3</b>
@@ -94,7 +92,7 @@ sitemap: true
             <li><strong>Preview:</strong> a way to check a page before publishing it.</li>
             <li><strong>Publish / Save / Update:</strong> the action that makes the change live for parents.</li>
           </ul>
-          <p>99 Studio does not need access to the school website account. It only gives the teacher the public link/card/embed code to paste into the school's normal website editor. The plain-link/card routes use a normal HTTPS link; the widget route is an optional accountless widget embed.</p>
+          <p>99 Club Studio gives you the link, card or widget code to add using your school’s normal website editor. It does not need your school website login.</p>
         </section>
 
         <section id="plain-link" class="tt99-guide-section">
@@ -103,7 +101,7 @@ sitemap: true
 
           <h3>For a 99 Club level</h3>
           <ol>
-            <li>Configure the 99 Club rules in the main <a href="/">99 Studio</a> page.</li>
+            <li>Configure the 99 Club rules in the main <a href="/">99 Club Studio</a> page.</li>
             <li>Choose <strong>Create parent links</strong>.</li>
             <li>Find the required Club level.</li>
             <li>Choose <strong>Copy link</strong>.</li>
@@ -124,14 +122,14 @@ sitemap: true
             <li>Preview, publish and test it.</li>
           </ol>
 
-          <div class="tt99-guide-note"><strong>Why this method is so reliable:</strong> the school website only needs a normal HTTPS link. It does not need a plugin, script, account integration or iframe. The school controls the appearance; 99 Studio controls what happens after the parent clicks.</div>
+          <div class="tt99-guide-note"><strong>Why start here:</strong> a normal link works with almost any school website editor and lets the school keep its own button/card styling.</div>
         </section>
 
         <section id="html-card" class="tt99-guide-section">
           <h2>Option 2: use the ready-made website card HTML</h2>
-          <p>Studio can copy a complete little website card containing the badge, title, short description and locked practice link.</p>
+          <p>99 Club Studio can copy a ready-made website card containing the badge, title, short description and practice link.</p>
           <ol>
-            <li>Configure the Club level or puzzle pack in Studio.</li>
+            <li>Configure the Club level or puzzle pack in 99 Club Studio.</li>
             <li>Open the relevant parent-sharing panel.</li>
             <li>Choose <strong>Copy website card</strong>.</li>
             <li>In the school website editor, add a <strong>Custom HTML</strong>, <strong>HTML</strong>, <strong>Code</strong> or equivalent block.</li>
@@ -148,7 +146,7 @@ sitemap: true
           <p>This is usually the easiest visual method when the website editor supports images and links but blocks custom HTML.</p>
           <ol>
             <li>Configure the Club level or puzzle pack and open its parent-sharing panel.</li>
-            <li>Choose <strong>Download card image</strong>. Studio creates a high-resolution PNG.</li>
+            <li>Choose <strong>Download card image</strong>. 99 Club Studio creates a high-resolution PNG.</li>
             <li>Choose <strong>Copy link</strong> for the same Club/pack.</li>
             <li>Upload the PNG to the school website's normal image/media library.</li>
             <li>Add the image to the page.</li>
@@ -163,22 +161,22 @@ sitemap: true
 
         <section id="website-pack" class="tt99-guide-section tt99-guide-highlight">
           <h2>Option 4: Download the complete website pack</h2>
-          <p>The website pack is designed for handover. A maths lead can configure the practice in Studio, download one ZIP and give that ZIP to the person who manages the school website.</p>
+          <p>The website pack is designed for handover. A maths lead can configure the practice in 99 Club Studio, download one ZIP and give that ZIP to the person who manages the school website.</p>
 
           <h3>99 Club website pack</h3>
           <p><strong>Download website pack</strong> creates a ZIP containing:</p>
           <ul>
             <li>all 14 PNG card images, from 11 Club through Diamond;</li>
-            <li><code>practice-links.csv</code>, matching every Club to its locked practice URL;</li>
-            <li>a <code>README.html</code> with implementation instructions; and</li>
+            <li><code>practice-links.csv</code>, matching every Club to its practice URL;</li>
+            <li>a <code>README.html</code> with setup instructions; and</li>
             <li><code>99-club-school-configuration.json</code>, so the Club rules can be restored later.</li>
           </ul>
           <p><strong>Copy all links</strong> provides the Club-to-URL mapping directly if a ZIP is unnecessary.</p>
 
           <h3>Puzzle website pack</h3>
-          <p>The puzzle website pack contains the current pack's PNG card, the locked practice link, a short README and the restoreable puzzle configuration.</p>
+          <p>The puzzle website pack contains the current pack’s PNG card, practice link, short setup guide and restorable puzzle configuration.</p>
 
-          <div class="tt99-guide-note"><strong>Keep the configuration file as well as the images.</strong> The image/card is the public presentation. The JSON configuration is what helps another member of staff recreate and edit the source setup later.</div>
+          <div class="tt99-guide-note"><strong>Keep the configuration file as well as the images.</strong> The image/card is the public presentation. The saved configuration file helps another member of staff recreate and edit the setup later.</div>
         </section>
 
         <section id="widgets" class="tt99-guide-section">
@@ -188,7 +186,7 @@ sitemap: true
           <h3>99 Club Widget</h3>
           <p>The 99 Club Widget can show any selection of 11–99 and Bronze, Silver, Gold, Platinum or Diamond. Each visible level keeps the school-selected maths rules.</p>
           <ol>
-            <li>Configure the Club rules in the normal 99 Studio editor.</li>
+            <li>Configure the Club rules in the normal 99 Club Studio editor.</li>
             <li>Open <strong>Create parent links</strong>.</li>
             <li>Choose <strong>Open widget builder</strong> in the <strong>Alternative: 99 Club Widget</strong> section.</li>
             <li>Check the imported school name and logo.</li>
@@ -198,12 +196,12 @@ sitemap: true
           </ol>
 
           <h3>Maths Games Widget</h3>
-          <p>The Maths Games Widget can contain locked printable puzzle packs, selected online games, or both.</p>
+          <p>The Maths Games Widget can contain school-selected printable puzzle packs, selected online games, or both.</p>
           <ol>
             <li>Configure a printable puzzle pack in Maths Games &amp; Puzzles.</li>
             <li>Open its parent-sharing panel.</li>
-            <li>Choose <strong>Open widget builder</strong>. The current locked pack is carried into the builder automatically.</li>
-            <li>The Widget Builder opens with that locked pack included.</li>
+            <li>Choose <strong>Open widget builder</strong>. The current pack is carried into the builder automatically.</li>
+            <li>The Widget Builder opens with that pack included.</li>
             <li>To add a different printable pack, return to Maths Games &amp; Puzzles, configure another setup and add that pack as well.</li>
             <li>In the Widget Builder, tick any online games you want parents to see.</li>
             <li>If both Printable puzzles and Play online are present, choose which section opens first.</li>
@@ -212,7 +210,7 @@ sitemap: true
 
           <h3>Put a widget on the school website</h3>
           <ol>
-            <li>Copy the widget's complete embed code from 99 Studio.</li>
+            <li>Copy the widget's complete embed code from 99 Club Studio.</li>
             <li>Open the school's normal website editor.</li>
             <li>Open the page where the widget should appear.</li>
             <li>Add an <strong>Embed</strong>, <strong>Custom HTML</strong>, <strong>HTML</strong>, <strong>Code</strong>, <strong>External content</strong> or equivalent block.</li>
@@ -232,14 +230,12 @@ sitemap: true
         </section>
 
         <section id="puzzle-practice" class="tt99-guide-section">
-          <h2>Maths Games &amp; Puzzles: share a locked puzzle pack</h2>
-          <p>The printable Maths Games &amp; Puzzles generator uses the same school-led idea as 99 Club. Configure the year range, topics, selected puzzle types, difficulty and specialist game options first, then use <strong>Create parent link</strong> / <strong>Share this puzzle setup</strong>.</p>
-          <p>The parent receives one locked link for the <strong>whole current puzzle pack</strong>. They see a deliberately simple page and one download action. They do not see the puzzle editor and cannot change the school-selected settings.</p>
-          <p>If the school wants several different choices — for example <em>Year 4 arithmetic puzzles</em>, <em>Upper KS2 number logic</em> and <em>Vocabulary Practice</em> — create each setup separately. They can be published as separate links/cards or collected into a Maths Games Widget.</p>
-
-          <h3>Save puzzle setup</h3>
-          <p><strong>Save puzzle setup</strong> downloads one JSON file containing the complete printable-puzzle configuration: year/topic choices, selected puzzle types, game settings, pack options, personalisation and saved vocabulary.</p>
-          <p><strong>Restore puzzle setup</strong> recreates that configuration on another computer or after browser storage has been cleared. It restores the settings, not an old random puzzle seed, so a fresh pack is generated.</p>
+          <h2>Share a Maths Games &amp; Puzzles pack</h2>
+          <p>Set up the year range, teaching focus, selected puzzle types, difficulty and game options in <a href="/games/">Maths Games &amp; Puzzles</a>, then choose <strong>Create parent link</strong>.</p>
+          <p>The shared page keeps those choices fixed for parents. They get a simple download page rather than the full puzzle editor.</p>
+          <p>If the school wants several choices — for example <em>Year 4 arithmetic</em>, <em>Upper KS2 number logic</em> and <em>Vocabulary practice</em> — create each setup separately. Publish them as individual links/cards or collect them in a Maths Games Widget.</p>
+          <h3>Save the setup for later</h3>
+          <p><strong>Save puzzle setup</strong> downloads the editable configuration. <strong>Restore puzzle setup</strong> can load it on another computer or after browser data has been cleared.</p>
         </section>
 
         <section id="fresh" class="tt99-guide-section tt99-guide-highlight">
@@ -247,58 +243,40 @@ sitemap: true
           <p><strong>Yes.</strong> The school-selected settings remain fixed, but the actual worksheet or puzzles are freshly generated when the parent presses the download button.</p>
 
           <h3>99 Club</h3>
-          <p>A parent clicks a Club link/card/widget choice. The parent-practice page opens with the school's fixed maths rules. When the parent presses <strong>Download a new worksheet + answers</strong>, Studio generates fresh questions. Pressing the button again creates another fresh worksheet using the same rules.</p>
+          <p>A parent clicks a Club link/card/widget choice. The parent-practice page opens with the school's fixed maths rules. When the parent presses <strong>Download a new worksheet + answers</strong>, 99 Club Studio generates fresh questions. Pressing the button again creates another fresh worksheet using the same rules.</p>
 
           <h3>Printable puzzle packs</h3>
-          <p>A parent clicks the pack link/card/widget choice. The locked pack settings open. When they press <strong>Download a new puzzle pack + answers</strong>, Studio generates fresh puzzles using the same selected years, topics, game engines and difficulty settings. Pressing again creates another fresh pack.</p>
+          <p>A parent clicks the pack link/card/widget choice. The school-selected pack settings open. When they press <strong>Download a new puzzle pack + answers</strong>, 99 Club Studio generates fresh puzzles using the same selected years, topics, game types and difficulty settings. Pressing again creates another fresh pack.</p>
 
           <p>This means the school can publish one stable-looking practice choice without uploading new PDFs every week.</p>
         </section>
 
         <section id="update" class="tt99-guide-section">
-                    <div class="tt99-guide-note"><strong>What “locked” means:</strong> parents are not given controls to alter the school-selected setup in the normal practice page. Shared configuration tokens are public encoded data, not encryption or a digital signature. A technically determined person could create a modified copy, but that does not alter the link/card/widget published on the school's website.</div>
+          <h2>Change published practice later</h2>
+          <p>Published links and widgets keep the setup that was shared at the time. If you change the rules in 99 Club Studio, create a new link/card/widget and replace the old one on the school website.</p>
 
-<h2>Important when the school changes the rules or practice setup</h2>
-          <p>Published practice URLs are intentional snapshots. They do not silently change later if a teacher edits Studio or if Studio defaults are updated.</p>
-
-          <h3>Updating a normal 99 Club link/card/PNG</h3>
+          <h3>Link, button or PNG card</h3>
           <ol>
-            <li>Change the Club rules in Studio.</li>
-            <li>Open <strong>Create parent links</strong> again.</li>
-            <li>Copy the new parent-practice link.</li>
-            <li>Replace the old URL on the school website.</li>
-            <li>If the visible card description has also changed, copy/download a fresh website card or PNG.</li>
-            <li>Publish and test.</li>
+            <li>Make the changes in 99 Club Studio.</li>
+            <li>Create the new parent-practice link.</li>
+            <li>If needed, download a fresh card image.</li>
+            <li>Replace the old link/card on the school website and test it.</li>
           </ol>
 
-          <h3>Updating a puzzle link/card/PNG</h3>
+          <h3>Widget</h3>
           <ol>
-            <li>Change the puzzle setup in Maths Games &amp; Puzzles.</li>
-            <li>Create the new locked parent link.</li>
-            <li>Replace the old website URL/card as appropriate.</li>
-            <li>Publish and test.</li>
+            <li>Open the Widget Builder and recreate or restore the existing setup.</li>
+            <li>Make the changes and check the Parent preview.</li>
+            <li>Copy the new embed code.</li>
+            <li>Replace the old embed on the school website and test it.</li>
           </ol>
-
-          <h3>Updating a widget</h3>
-          <ol>
-            <li>Copy the current widget URL or complete embed code from the school website editor.</li>
-            <li>Open the <a href="/widget/builder/">Widget Builder</a>.</li>
-            <li>Under <strong>Import / handover</strong>, paste the current widget URL/embed.</li>
-            <li>Choose <strong>Recreate existing widget</strong>.</li>
-            <li>Make the changes and check Parent preview.</li>
-            <li>Choose <strong>Copy embed code</strong>.</li>
-            <li>Replace the old embed in the school website editor with the new one.</li>
-            <li>Preview, publish and test.</li>
-          </ol>
-
-          <div class="tt99-guide-note"><strong>Recreating or editing something in 99 Studio does not alter the school website.</strong> The public school page changes only after someone with authorised access deliberately replaces the link/card/embed and publishes the webpage.</div>
         </section>
 
         <section id="backup" class="tt99-guide-section">
           <h2>Save, restore and hand over the setup</h2>
 
           <h3>Save the school's club configuration</h3>
-          <p>Studio remembers Club edits in the current browser, but browser storage is not a long-term backup. Open <strong>Create parent links</strong> and choose <strong>Save school configuration</strong>.</p>
+          <p>99 Club Studio remembers Club edits in the current browser, but browser storage is not a long-term backup. Open <strong>Create parent links</strong> and choose <strong>Save school configuration</strong>.</p>
           <p>The downloaded file contains the rules for all 14 parent-practice levels, print orientation and school setup needed to restore the configuration later.</p>
 
           <h3>Save the puzzle setup</h3>
@@ -312,25 +290,20 @@ sitemap: true
 
         <section id="vocabulary" class="tt99-guide-section">
           <h2>Personal vocabulary</h2>
-          <p>If a shared puzzle pack uses relevant entries from <strong>My vocabulary</strong>, the required terms and definitions are included in the locked parent-practice link so Word Search or Crossword can reproduce the intended activity.</p>
-          <p>A Maths Games Widget keeps those locked pack links and marks when public vocabulary is present.</p>
+          <p>If a shared puzzle pack uses relevant entries from <strong>My vocabulary</strong>, the required terms and definitions are included in the shared parent-practice link so Word Search or Crossword can reproduce the intended activity.</p>
+          <p>A Maths Games Widget keeps those shared pack links and marks when public vocabulary is present.</p>
           <ul>
             <li>Use mathematical terminology, curriculum vocabulary and teaching definitions.</li>
             <li>Do not use pupil names, email addresses, parent information, passwords, internal notes or other private information.</li>
-            <li>If the vocabulary changes, create a new locked pack and update the published website link/card/widget.</li>
+            <li>If the vocabulary changes, create a new shared pack and update the published website link/card/widget.</li>
           </ul>
         </section>
 
         <section id="privacy" class="tt99-guide-section">
-          <h2>Privacy, public content and who controls the website</h2>
-          <p>Ordinary 99 Club parent-practice links deliberately exclude pupil names, parent details, teacher names, uploaded logos, worksheet dates, scores, progress history, teacher notes and generated question seeds.</p>
-          <p>Puzzle parent links can include the relevant school-entered vocabulary required by a shared vocabulary activity.</p>
-          <p><strong>School Website Widgets are public by design.</strong> The school name and compact logo are public presentation content inside the widget configuration. Selected Club levels, the maths-rule differences needed to reproduce them, selected online games and locked puzzle-pack links are also part of the public widget configuration.</p>
-          <p>No pupil account, parent account, school login, class list, pupil score or pupil progress record is required for these publishing methods.</p>
-          <p><strong>Website-source attribution:</strong> 99 Studio's generated HTML cards and widgets are designed to expose only the school website <em>origin</em> (for example <code>https://school.example</code>) when source attribution is available. The school page path, query string and fragment are not requested. Normal copied links/PNG buttons rely on the browser and school website's own referrer policy, so their source may sometimes be unavailable.</p>
-          <p>The stripped parent-practice pages and public embedded widget do not load Google Analytics. A separate first-party school-usage system has been prepared for aggregate organisation/site reporting without parent or pupil profiles; <strong>that collector is currently disabled until its endpoint, retention and opt-out arrangements are finalised.</strong></p>
-          <p>Anyone can copy a public widget/link and create their own copy. They cannot change what appears on the school's actual website without authorised access to the school's website editor.</p>
-          <p>See <a href="/privacy/">Privacy &amp; analytics</a> for wider site information.</p>
+          <h2>Privacy and public content</h2>
+          <p>School website links and widgets are public, so use only information you are happy to publish. A school name/logo and any custom vocabulary included in a shared activity may be visible to anyone who can open that link or widget.</p>
+          <p>These sharing options do not require pupil or parent accounts, class lists, pupil scores or pupil progress records.</p>
+          <p>For details about analytics, browser storage and shared practice links, see <a href="/privacy/">Privacy &amp; analytics</a>.</p>
         </section>
 
         <section id="troubleshooting" class="tt99-guide-section">
@@ -349,10 +322,10 @@ sitemap: true
           <p>The PNG itself is only an image. Edit that image on the school page and attach the matching copied practice URL as its link.</p>
 
           <h3>The wrong Club level or old rules open</h3>
-          <p>The published URL is an old snapshot. Generate a new parent link from the current rules and replace the old URL on the school website.</p>
+          <p>The published URL keeps the setup that was shared at the time. Generate a new parent link from the current rules and replace the old URL on the school website.</p>
 
           <h3>The puzzle pack still uses the old setup</h3>
-          <p>Generate a new locked parent link from the revised puzzle setup. Replace the old website link/card or update the Maths Games Widget.</p>
+          <p>Generate a new parent link from the revised puzzle setup. Replace the old website link/card or update the Maths Games Widget.</p>
 
           <h3>The widget is too short and has a scrollbar</h3>
           <p>Some website editors override iframe dimensions. Increase the height if the editor provides a height setting. If it does not, a card/PNG layout may be cleaner.</p>
@@ -403,8 +376,6 @@ sitemap: true
             <li><strong>Use a widget</strong> when the website accepts iframe/embed code and you want several school-selected choices in one tidy panel.</li>
           </ol>
         </section>
-
-        <div class="tt99-guide-note"><strong>Still worried you might break something?</strong> Experimenting in 99 Studio does not change the school website. Nothing becomes public until someone with authorised access deliberately adds or replaces the link/card/embed in the school website editor and publishes the page.</div>
       </div>
     </section>
   </article>

@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "School Website Widget · 99 Club Studio"
-description: "Build an optional accountless school website widget for 99 Club practice, printable puzzle packs and online maths games."
+description: "Build a school website widget for 99 Club practice, printable puzzle packs and online maths games."
 permalink: /widget/builder/
 sidebar: false
 sitemap: false
@@ -14,4 +14,4 @@ search: false
 <script src="/assets/99club/school-usage-config.js?v=2"></script><script src="/assets/99club/school-usage.js?v=2"></script>
 <script src="/assets/99club/parent-practice.js?v=1.3"></script>
 <script src="/assets/99club/widget-config.js?v=4"></script>
-<script src="/assets/99club/widget-builder.js?v=6" defer></script>
+<script src="/assets/99club/widget-builder.js?v=7" defer></script>

@@ -82,14 +82,14 @@ sitemap: true
             <article><h3>Challenge</h3><p>Larger or denser puzzles, fewer givens, richer operations and more competing possibilities before a deduction becomes forced.</p></article>
             <article><h3>Mixed</h3><p>Where offered, a pack can deliberately mix Easy, Standard and Challenge versions of the same game using the chosen proportions.</p></article>
           </div>
-          <p>Many games add specialist controls: grid size, number of clues, allowed operations, number of rectangles, route length, word directions and similar settings. <strong>Auto</strong> is normally the safest starting point because Studio combines the selected teaching focus with the game difficulty to choose sensible defaults.</p>
+          <p>Many games add specialist controls: grid size, number of clues, allowed operations, number of rectangles, route length, word directions and similar settings. <strong>Auto</strong> is a good starting point because 99 Club Studio combines the selected teaching focus with the game difficulty to choose sensible defaults.</p>
         </section>
 
         <section id="packs" class="tt99-guide-section">
           <h2>Build the pack</h2>
           <p>Choose how many sheets to make and how many activities should appear on each sheet. When several games are selected, Studio rotates through them rather than filling the whole pack with one game.</p>
-          <p><strong>Generate new version</strong> keeps the teaching settings but changes the seed, giving a fresh set of puzzles. The matching answer sheets are generated from the same seed and solution data.</p>
-          <div class="tt99-guide-note"><strong>Everything is generated locally in the browser.</strong> School names, logos, custom vocabulary and puzzle choices are not uploaded as part of generating a pack.</div>
+          <p><strong>Generate new version</strong> keeps the teaching settings but creates a fresh set of puzzles. The matching answer sheets are created for that same new version.</p>
+          
         </section>
 
         <section id="worked" class="tt99-guide-section tt99-guide-highlight">
@@ -103,13 +103,13 @@ sitemap: true
           <h2>Review and replace before printing</h2>
           <p>Use the Pupil / Answers toggle above the preview to inspect both sides of the pack. The preview is primarily a review tool; the downloaded PDF is the print target.</p>
           <p>The circular <strong>↻</strong> control beside an activity replaces only that puzzle using the same game and difficulty. Word Search also has a smaller replacement control beside an individual term, allowing one word + definition pair to be swapped without rebuilding the rest of the pack by hand.</p>
-          <div class="tt99-guide-note"><strong>Replacing an activity does not change the teaching focus or the game configuration.</strong> It simply asks the same engine for another valid puzzle.</div>
+          <div class="tt99-guide-note"><strong>Replacing an activity does not change the teaching focus or the game configuration.</strong> It simply creates another valid puzzle using the same settings.</div>
         </section>
 
         <section id="personalise" class="tt99-guide-section">
           <h2>Personalise the pack</h2>
           <p>The optional personalisation section can add an editable pack title, school name, class/year label, date and school logo. Leave any field blank if it is not needed.</p>
-          <p>These details are remembered in the current browser. The logo is resized locally before being placed into the generated PDF.</p>
+          <p>These details are remembered in the current browser. The logo is resized automatically before being placed into the generated PDF.</p>
         </section>
 
         <section id="downloads" class="tt99-guide-section tt99-guide-highlight">
@@ -120,7 +120,7 @@ sitemap: true
             <article><b>2</b><h3>Answer key PDF</h3><p>The same generated puzzles completed or marked with their unique solutions.</p></article>
             <article><b>3</b><h3>Pupil sheets + answers</h3><p>One combined file containing the pupil pack followed by the teacher answers.</p></article>
           </div>
-          <p>The PDF is generated directly by Studio rather than by the browser’s normal page-print layout. This keeps worksheet dimensions, puzzle grids, headers and answer overlays predictable.</p>
+          <p>Downloaded PDFs use a fixed A4 layout, so print dimensions remain consistent even if the on-screen preview looks slightly different.</p>
         </section>
 
         <section id="game-guides" class="tt99-guide-section tt99-guide-highlight">

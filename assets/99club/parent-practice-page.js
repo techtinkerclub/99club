@@ -91,9 +91,9 @@
           '<button type="button" id="tt99-practice-download" class="tt99-practice-download">Download a new worksheet + answers</button>'+
           '<p class="tt99-practice-note">Every download creates a fresh practice sheet using the same fixed maths rules.</p>'+
           '<div id="tt99-practice-status" class="tt99-practice-status" role="status" aria-live="polite" hidden></div>'+
-          '<div class="tt99-practice-privacy"><strong>No sign-in and no pupil profile.</strong> This page does not ask for a name, email, score or progress data. The worksheet is generated in this browser.</div>'+
+
         '</section>'+
-        '<div class="tt99-practice-foot">99 Club Studio · <a href="/privacy/" target="_blank" rel="noopener">privacy information</a></div>'+
+        '<div class="tt99-practice-foot">99 Club Studio · <a href="/privacy/" target="_blank" rel="noopener">Privacy</a></div>'+
       '</main>';
 
     root.querySelector('#tt99-practice-download').addEventListener('click',downloadPractice);

@@ -42,7 +42,7 @@ function contactMarkup(){return `<div id="tt99-contact-modal" class="tt99-contac
       <label class="tt99-contact-honey" aria-hidden="true"><span>Leave this empty</span><input id="tt99-contact-honey" name="_honey" type="text" tabindex="-1" autocomplete="off"></label>
       <div class="tt99-contact-actions"><button type="submit" class="tt99-contact-send">Send message</button></div>
       <div id="tt99-contact-status" class="tt99-contact-status" role="status" aria-live="polite"></div>
-      <small class="tt99-contact-note">Only the details you enter in this contact form are sent through FormSubmit to 99 Club Studio. Worksheet, school and logo data stay on your device. Please do not include pupil personal information.</small>
+      <small class="tt99-contact-note">Please do not include pupil personal information.</small>
     </form>
   </section>
 </div>`;}

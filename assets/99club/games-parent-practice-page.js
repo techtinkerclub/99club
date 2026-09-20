@@ -90,9 +90,9 @@
           '<button type="button" id="tt99-puzzle-practice-download" class="tt99-practice-download">Download a new puzzle pack + answers</button>'+
           '<p class="tt99-practice-note">Every download creates fresh puzzles using the same fixed school-selected settings.</p>'+
           '<div id="tt99-puzzle-practice-status" class="tt99-practice-status" role="status" aria-live="polite" hidden></div>'+
-          '<div class="tt99-practice-privacy"><strong>No sign-in and no pupil profile.</strong> This page does not ask for a name, email, score or progress data. Puzzle generation and PDF creation happen in this browser.</div>'+
+
         '</section>'+
-        '<div class="tt99-practice-foot">99 Club Studio · <a href="/privacy/" target="_blank" rel="noopener">privacy information</a></div>'+
+        '<div class="tt99-practice-foot">99 Club Studio · <a href="/privacy/" target="_blank" rel="noopener">Privacy</a></div>'+
       '</main>';
 
     root.querySelector('#tt99-puzzle-practice-download')?.addEventListener('click',download);

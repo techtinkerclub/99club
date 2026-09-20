@@ -528,11 +528,11 @@ if(!rootApp.includes("cards/'+parentPracticeCardFilename(id)")||!rootApp.include
 const schoolInfo=read('_pages/99-club-schools.md');
 const schoolWidgetHelp=read('_pages/99-club-widget-help.md');
 if(!schoolInfo.includes('School website integration help'))fail('parent-practice','Master school guide is not labelled School website integration help');
-if(!schoolInfo.includes('normal HTTPS link')||!schoolInfo.includes('optional accountless')||!schoolInfo.includes('iframe/embed'))fail('parent-practice','Information-for-schools page does not distinguish no-integration links/cards from the optional accountless widget embed');
+if(!schoolInfo.includes("Plain link or your website's own button/card")||!schoolInfo.includes('Widgets are useful but they are optional')||!schoolInfo.includes('iframe/embed'))fail('parent-practice','Information-for-schools page does not clearly distinguish ordinary links/cards from optional embedded widgets');
 if(!schoolInfo.includes('ready-made website card HTML')||!schoolInfo.includes("website's own card or button"))fail('parent-practice','Information-for-schools page does not explain the website-card/plain-link choices');
-for(const phrase of ['Website words explained in plain English','Create a 99 Club Widget','Create a Maths Games Widget','Put the widget on the school website','Change a widget later','Custom vocabulary: useful, but remember it is public','Troubleshooting','Before publishing: teacher-friendly checklist'])if(!schoolWidgetHelp.includes(phrase))fail('parent-practice',`Detailed widget guide missing: ${phrase}`);
+for(const phrase of ['Create a 99 Club Widget','Create a Maths Games Widget','Put the widget on the school website','Change a widget later','Custom vocabulary','Only use curriculum or teaching content that you are happy to make public','Troubleshooting','Before publishing: teacher-friendly checklist'])if(!schoolWidgetHelp.includes(phrase))fail('parent-practice',`Detailed widget guide missing: ${phrase}`);
 if(/Juniper/i.test(schoolWidgetHelp))fail('parent-practice','Detailed widget guide must stay platform-neutral');
-for(const phrase of ['Option 3: use a downloadable PNG card image','The PNG itself does not contain the clickable link','Save the school\'s club configuration','Download the complete website pack','practice-links.csv','99-club-school-configuration.json','Copy all links','Important when the school changes the rules','Bronze, Silver, Gold, Platinum or Diamond'])if(!schoolInfo.includes(phrase))fail('parent-practice',`School website guide missing: ${phrase}`);
+for(const phrase of ['Option 3: use a downloadable PNG card image','The PNG itself does not contain the clickable link','Save the school\'s club configuration','Download the complete website pack','practice-links.csv','99-club-school-configuration.json','Copy all links','Change published practice later','Published links and widgets keep the setup that was shared at the time','Bronze, Silver, Gold, Platinum or Diamond'])if(!schoolInfo.includes(phrase))fail('parent-practice',`School website guide missing: ${phrase}`);
 ok('parent-practice','Teacher share UI, stripped parent route, combined PDF and school information contract checked');
 
 /* ---------- school-led puzzle practice sharing ---------- */
@@ -606,7 +606,7 @@ try{
   if(!gamesApp.includes("kind:'tt99-school-puzzle-config'")||!gamesApp.includes('customVocabulary:G.clone(state.customVocabulary)'))fail('puzzle-parent','Portable puzzle setup does not preserve full settings and custom vocabulary');
   const schoolInfo2=read('_pages/99-club-schools.md'),privacy2=read('_pages/privacy.md');
   for(const phrase of ['id="puzzle-practice"','Save puzzle setup','Restore puzzle setup','Download website pack','Personal vocabulary'])if(!schoolInfo2.includes(phrase))fail('puzzle-parent',`School puzzle-sharing guide missing: ${phrase}`);
-  if(!privacy2.includes('/practice/puzzles/')||!privacy2.includes('My vocabulary'))fail('puzzle-parent','Privacy page does not describe puzzle parent-practice links');
+  if(!privacy2.includes('Puzzle links also leave out generated puzzle details and school/class personalisation')||!privacy2.includes('custom vocabulary')||!privacy2.includes('terms and definitions needed for that activity may be included in the shared link'))fail('puzzle-parent','Privacy page does not describe puzzle parent-practice links and shared vocabulary clearly');
   ok('puzzle-parent','Locked puzzle pack links, portable setup, website pack and school-level telemetry contract checked');
 }catch(e){fail('puzzle-parent','Puzzle parent sharing QA threw',e.stack||e.message);}
 
@@ -648,7 +648,7 @@ try{
   if(!analyticsCore.includes('source_origin')&&false)fail('analytics','Analytics core missing source origin support');
   if(!analyticsCore.includes('integration_help')||!analyticsCore.includes('widget_builder'))fail('analytics','Navigation analytics taxonomy is missing integration help/widget builder');
 
-  for(const phrase of ['opaque school key','referring website origin','full referring page URLs','currently disabled'])if(!privacy.includes(phrase))fail('analytics',`Privacy page missing analytics boundary: ${phrase}`);
+  for(const phrase of ['Google Analytics is loaded only if you choose','does not send pupil names','random identifier','website origin',"parent-practice pages and embedded school widgets do not load 99 Club Studio's Google Analytics code"])if(!privacy.includes(phrase))fail('analytics',`Privacy page missing plain-English disclosure: ${phrase}`);
   for(const phrase of ['First-party school usage telemetry','source_origin','integration_id','teacher','widget_open','practice_download','enabled: false'])if(!analyticsDoc.includes(phrase))fail('analytics',`Analytics setup guide missing: ${phrase}`);
 
   const schoolCfg=read('assets/99club/school-usage-config.js');
@@ -664,7 +664,7 @@ try{
   const schoolGuide=read('_pages/99-club-schools.md');
   for(const phrase of [
     'permalink: /demo/',
-    '99 STUDIO SCHOOL WEBSITE DEMONSTRATION',
+    '99 CLUB STUDIO SCHOOL WEBSITE DEMO',
     'Fictional example school',
     'Addington-on-Sum Primary School',
     '1 · Buttons',
@@ -677,14 +677,14 @@ try{
     'demo-club-cards-core',
     'demo-club-widget',
     'demo-games-widget',
-    'School website integration help',
+    'School website help →',
     'index,follow'
   ])if(!demo.includes(phrase))fail('school-demo','General school demo missing: '+phrase);
   if(/Radford Semele|Juniper/i.test(demo+demoJs+schoolGuide))fail('school-demo','School-facing demo/help must not identify the old real school or website platform');
   if(exists('_pages/radford-semele-99studio-demo.html')||exists('_pages/radford-semele-99studio-demo-redirect.html'))fail('school-demo','Old Radford-named demo files still exist');
   if(!demoJs.includes("name:'Addington-on-Sum Primary School'")||!demoJs.includes("fillText('AS'"))fail('school-demo','Demo widgets/mark are not using the fictional school identity');
   if(!schoolGuide.includes('href="/demo/"')||!schoolGuide.includes('fictional school website demo')||!schoolGuide.includes('View live demo →'))fail('school-demo','Implementation help does not give a clear live-demo choice');
-  if(/99 Club Studio/.test(schoolGuide))fail('school-demo','School-facing implementation help still uses the old product branding');
+  if(/99 Studio/.test(schoolGuide))fail('school-demo','School-facing implementation help has shortened the 99 Club Studio brand');
   if(!demoJs.includes('initTabs')||!demoJs.includes("history.replaceState"))fail('school-demo','Single demo page does not switch its three integration tabs in-page');
   for(const id of ['11','22','33','44','55','66','77','88','99','bronze','silver','gold','platinum','diamond'])if(!demoJs.includes("'"+id+"'"))fail('school-demo','Shared demo content missing Club '+id);
   if((demoJs.match(/title:'/g)||[]).length<3)fail('school-demo','Demo does not contain at least three printable game-sheet packs');
@@ -693,6 +693,48 @@ try{
   if(exists('_pages/radford-semele-99studio-demo-cards.html')||exists('_pages/radford-semele-99studio-demo-widgets.html'))fail('school-demo','Redundant separate school demo pages still exist');
   ok('school-demo','General fictional three-tab school integration demo and school-facing help polish checked');
 }catch(e){fail('school-demo','School integration demo QA threw',e.stack||e.message);}
+
+/* ---------- public copy audit ---------- */
+try{
+  const publicCopyFiles=[
+    '_pages/99-club-schools.md',
+    '_pages/99-club-widget-help.md',
+    '_pages/privacy.md',
+    '_pages/school-website-demo.html',
+    '_pages/99-club-games-help.md',
+    '_pages/99-club-help.md',
+    'assets/99club/app.js',
+    'assets/99club/custom-app.js',
+    'assets/99club/games-app.js',
+    'assets/99club/widget-builder.js',
+    'assets/99club/parent-practice-page.js',
+    'assets/99club/games-parent-practice-page.js',
+    'assets/99club/widget-runtime.js',
+    'assets/99club/banner-actions-v2.js'
+  ];
+  const publicCopy=publicCopyFiles.map(p=>read(p)).join('\n');
+  const bannedPublicPhrases=[
+    'Privacy by design:',
+    'Private by design.',
+    'opaque school-level key',
+    'school-level practice telemetry',
+    'usage telemetry scaffold',
+    'not encryption or a digital signature',
+    'not encrypted or cryptographically signed',
+    'technically determined person',
+    'Nothing here publishes automatically.',
+    'platform-neutral guide',
+    'accountless widget'
+  ];
+  for(const phrase of bannedPublicPhrases)if(publicCopy.includes(phrase))fail('public-copy','Visitor-facing copy still contains internal/repetitive wording: '+phrase);
+  if(!read('_pages/privacy.md').includes('plain-English summary'))fail('public-copy','Privacy page is not using the public-facing summary');
+  if(!read('_pages/99-club-schools.md').includes('Practical guidance for adding 99 Club Studio practice'))fail('public-copy','School integration page has regressed to older intro copy');
+  if(publicCopy.includes('99 Studio')||publicCopy.includes('99 STUDIO'))fail('public-copy','Public copy has shortened the 99 Club Studio brand');
+  if(/\bby design\b/i.test(publicCopy))fail('public-copy','Public copy has regressed to slogan-style “by design” wording');
+  if(/No sign-in required|No account is needed/i.test(publicCopy))fail('public-copy','Public copy has regressed to repetitive privacy/account slogans');
+  if(/Resized locally for print/i.test(publicCopy))fail('public-copy','Public copy has regressed to implementation-style image-processing wording');
+  ok('public-copy','Public pages and major dynamic UI surfaces avoid internal/developer wording');
+}catch(e){fail('public-copy','Public copy audit threw',e.stack||e.message);}
 
 /* ---------- output ---------- */
 const report={generatedAt:new Date().toISOString(),samplesPerDifficulty:SAMPLES,generated,engineCount:G?.ENGINES?Object.keys(G.ENGINES).length:0,onlineAdapterCount:adapterIds.length,guideCount:guideIds.length,failures,warnings,notes};

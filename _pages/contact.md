@@ -25,7 +25,7 @@ sitemap: true
         <section class="tt99-guide-section">
           <h2>Get in touch</h2>
           <p>Use the <strong>Contact</strong> button above to open the same contact form used throughout 99 Club Studio.</p>
-          <div class="tt99-guide-note"><strong>Please do not include pupil personal information.</strong> Only the details you enter in the contact form are sent; worksheet content, school logos and generated questions stay on your device.</div>
+          <div class="tt99-guide-note"><strong>Please do not include pupil personal information.</strong></div>
         </section>
       </div>
     </section>
