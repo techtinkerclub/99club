@@ -140,7 +140,10 @@ function prepare(){
         if(!pad.classList.contains('tt99-context-pad-active'))fail('keypad-drawer','drawer closed when moving to another fillable box');
         const handle=pad.querySelector('.tt99-context-pad-handle'),toggle=pad.querySelector('.tt99-context-pad-toggle');if(!handle||!toggle)fail('keypad-drawer','drawer handle/toggle missing');else{toggle.click();await sleep(30);if(!pad.classList.contains('tt99-context-pad-collapsed'))fail('keypad-drawer','toggle did not collapse drawer');toggle.click();await sleep(30);if(pad.classList.contains('tt99-context-pad-collapsed'))fail('keypad-drawer','toggle did not reopen drawer');}
         if(!compact&&handle&&typeof PointerEvent==='function'){const r=pad.getBoundingClientRect(),x=r.left+40,y=r.top+12;handle.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerId:7,pointerType:'mouse',clientX:x,clientY:y}));document.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerId:7,pointerType:'mouse',clientX:x+70,clientY:y+35}));document.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,pointerId:7,pointerType:'mouse',clientX:x+70,clientY:y+35}));await sleep(40);if(!pad.classList.contains('tt99-context-pad-moved'))fail('keypad-drawer','desktop drawer did not become draggable');const reset=pad.querySelector('.tt99-context-pad-reset');if(!reset)fail('keypad-drawer','desktop reset-position control missing');else{reset.click();await sleep(20);if(pad.classList.contains('tt99-context-pad-moved'))fail('keypad-drawer','reset-position control did not restore default position');}}
-        const outside=board.querySelector('.tt99-conn-card header')||document.body;outside.click();await sleep(40);if(pad.classList.contains('tt99-context-pad-active'))fail('keypad-drawer','outside tap did not dismiss drawer');else pass('keypad-drawer',compact?'compact auto-open, persist, collapse, reopen and dismiss verified':'desktop stays tucked away until requested; launcher, drag/reset, collapse and dismiss verified');
+        const outside=board.querySelector('.tt99-conn-card header')||document.body;outside.click();await sleep(40);if(pad.classList.contains('tt99-context-pad-active'))fail('keypad-drawer','outside tap did not dismiss drawer');
+        const launcher=board.querySelector('.tt99-context-pad-launcher');launcher?.click();await sleep(30);
+        if(typeof window.TT99ContextKeypad?.hide!=='function')fail('keypad-drawer','completion close hook is missing');
+        else{window.TT99ContextKeypad.hide();await sleep(20);if(pad.classList.contains('tt99-context-pad-active'))fail('keypad-drawer','completion close hook left the keypad open');else pass('keypad-drawer',compact?'compact drawer interactions and completion close hook verified':'desktop drawer interactions and completion close hook verified');}
         view.destroy?.();
       }catch(e){fail('mobile-drawer',(e&&e.stack)||String(e));}
     }
@@ -204,8 +207,31 @@ function prepare(){
         else pass('answer-reveal-ui','two-step reveal, cancel path and no-score behaviour verified');
       }catch(e){fail('answer-reveal-ui',(e&&e.stack)||String(e));}
     }
+    async function completionSplashFitTest(){
+      try{
+        const board=document.getElementById('tt99-play-board'),popup=document.getElementById('tt99-play-complete'),api=window.TT99CompletionPreview;
+        if(!board||!popup||!api?.injectPreview)return fail('completion-splash','completion preview API/hosts missing');
+        popup.hidden=true;
+        popup.innerHTML='<div class="tt99-play-complete-card"><span class="tt99-play-complete-mark">✓</span><div><small>Puzzle complete</small><h2>QA solved puzzle</h2><p>Completion overlay fixture.</p><div class="tt99-play-complete-actions"><button>New puzzle</button></div></div></div>';
+        board.className='';
+        board.innerHTML='<div data-qa-solved style="width:760px;height:980px;max-width:none;background:#fff"><button class="tt99-context-pad-launcher">Keypad</button><div class="tt99-number-keypad tt99-context-pad-active"><button>1</button></div><div style="height:940px;width:740px">Solved board</div></div>';
+        popup.hidden=false;
+        api.injectPreview();
+        await sleep(140);
+        const solution=popup.querySelector('.tt99-play-complete-solution'),host=popup.querySelector('.tt99-play-complete-solution-board'),clone=popup.querySelector('.tt99-play-complete-snapshot'),frame=popup.querySelector('.tt99-play-complete-snapshot-fit');
+        if(!solution||!host||!clone||!frame)return fail('completion-splash','solved snapshot was not injected');
+        if(clone.querySelector('.tt99-context-pad-launcher,.tt99-number-keypad,.tt99-context-pad-handle,.tt99-wave184-keypad,.tt99-wave186-keypad,.tt99-v196-keypad,.tt99-alpha-pad,.tt99-towers-keypad,.tt99-crossnumber-keypad,.tt99-letter-keypad,.tt99-extra-op-pad'))fail('completion-splash','snapshot still contains keypad UI');
+        const hr=host.getBoundingClientRect(),fr=frame.getBoundingClientRect();
+        if(fr.left<hr.left-1||fr.right>hr.right+1||fr.top<hr.top-1||fr.bottom>hr.bottom+1)fail('completion-splash','scaled solved snapshot escapes the splash preview frame');
+        if(host.scrollWidth>host.clientWidth+2||host.scrollHeight>host.clientHeight+2)fail('completion-splash','solved snapshot still requires internal scrolling');
+        const scale=Number(clone.dataset.tt99FitScale||1);
+        if(!(scale>0&&scale<1))fail('completion-splash','oversized snapshot was not scaled down');
+        else pass('completion-splash','keypad-free solved snapshot scales wholly inside the success splash');
+        popup.hidden=true;popup.innerHTML='';
+      }catch(e){fail('completion-splash',(e&&e.stack)||String(e));}
+    }
     async function run(){
-      try{await sleep(500);await genericAdapterTests();await brokenCalcTest();await colourFillTest();await perimeterDirectTest();await alphameticsVarietyTest();await groupedLibraryTest();await drawerTest();await sumGridContainmentTest();await hintPopupTest();await answerRevealFlowTest();}
+      try{await sleep(500);await genericAdapterTests();await brokenCalcTest();await colourFillTest();await perimeterDirectTest();await alphameticsVarietyTest();await groupedLibraryTest();await drawerTest();await sumGridContainmentTest();await hintPopupTest();await answerRevealFlowTest();await completionSplashFitTest();}
       catch(e){fail('runner',(e&&e.stack)||String(e));}
       finally{finish();}
     }
