@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "Help for Teachers"
-description: "Teacher guide to 99 Studio worksheets, challenge schemes, settings, printing, QR recreation and classroom use."
+description: "Teacher guide to 99 Club Studio worksheets, challenge schemes, settings, printing, QR recreation and classroom use."
 permalink: /help/
 sidebar: false
 ---
@@ -15,7 +15,7 @@ sidebar: false
 <div class="tt99-guide">
   <div class="tt99-guide-hero">
     <div>
-      <span class="tt99-eyebrow">99 Studio</span>
+      <span class="tt99-eyebrow">99 Club Studio</span>
       <h1>Help for teachers</h1>
       <p>Everything you need to create, review, save and recreate 99 Club progression sheets, plus searchable, printable guides for every current Maths Games &amp; Puzzles activity.</p>
     </div>
@@ -232,7 +232,7 @@ sidebar: false
 
   <section class="tt99-guide-section">
     <h2>Privacy</h2>
-    <p>99 Studio does not require pupil accounts. For details about saved browser data, analytics and shared practice links, see <a href="/privacy/">Privacy &amp; analytics</a>.</p>
+    <p>99 Club Studio does not require pupil accounts. For details about saved browser data, analytics and shared practice links, see <a href="/privacy/">Privacy &amp; analytics</a>.</p>
   </section>
 </div>
     </section>

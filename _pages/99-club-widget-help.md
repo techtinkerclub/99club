@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "School Website Widgets – Step-by-Step Guide"
-description: "Step-by-step guidance for adding and maintaining 99 Studio widgets on a school website."
+description: "Step-by-step guidance for adding and maintaining 99 Club Studio widgets on a school website."
 permalink: /schools/widgets/
 sidebar: false
 sitemap: true
@@ -13,7 +13,7 @@ sitemap: true
       <div class="tt99-guide">
         <div class="tt99-guide-hero">
           <div>
-            <span class="tt99-eyebrow">99 Studio · School website widgets</span>
+            <span class="tt99-eyebrow">99 Club Studio · School website widgets</span>
             <h1>School website widgets – detailed guide</h1>
             <p>This page is for schools that have already decided to use a widget. If you are still choosing between links, cards and widgets, start with the <a href="/schools/"><strong>School Website Integration Help</strong></a>.</p>
           </div>
@@ -45,7 +45,7 @@ sitemap: true
           <h2>Create a 99 Club Widget</h2>
           <p>The 99 Club Widget is for 11 Club through 99 Club and the Bronze, Silver, Gold, Platinum and Diamond post-99 challenges. Each level keeps the school-selected maths rules.</p>
           <ol>
-            <li>Open the main <a href="/">99 Studio</a> worksheet generator.</li>
+            <li>Open the main <a href="/">99 Club Studio</a> worksheet generator.</li>
             <li>Add the school name and logo if you want them used in the widget.</li>
             <li>Choose the ruleset scheme your school uses and configure the Club levels normally.</li>
             <li>Open <strong>Create parent links</strong>.</li>
@@ -90,19 +90,19 @@ sitemap: true
           <h2>School name and logo</h2>
           <p>The school name and logo are deliberately visible in the public widget so parents can recognise that the practice has been selected by their school.</p>
           <p>The Widget Builder creates a smaller web copy of the uploaded logo so the embed code remains practical. The school name and compact logo are stored inside the public widget configuration. Do not use a logo you do not have permission to publish.</p>
-          <p>The school identity in the widget is separate from the school website itself. Removing a logo from the Widget Builder does not remove images from the school website media library, and changing the school website logo does not automatically change an existing 99 Studio widget.</p>
+          <p>The school identity in the widget is separate from the school website itself. Removing a logo from the Widget Builder does not remove images from the school website media library, and changing the school website logo does not automatically change an existing 99 Club Studio widget.</p>
         </section>
 
         <section id="website" class="tt99-guide-section">
           <h2>Put the widget on the school website</h2>
           <p>The exact buttons vary between website systems, but the process is normally the same.</p>
           <ol>
-            <li>In 99 Studio, finish the widget and check the <strong>Parent preview</strong>.</li>
+            <li>In 99 Club Studio, finish the widget and check the <strong>Parent preview</strong>.</li>
             <li>Choose <strong>Copy embed code</strong>.</li>
             <li>Open the school's normal website editor and sign in.</li>
             <li>Open the page where the widget should appear, or create a new page if appropriate.</li>
             <li>Add a block that accepts external/embed code. It may be called <strong>Embed</strong>, <strong>Custom HTML</strong>, <strong>HTML</strong>, <strong>Code</strong> or similar.</li>
-            <li>Paste the complete code from 99 Studio. Do not remove the beginning <code>&lt;iframe</code> or the ending <code>&lt;/iframe&gt;</code>.</li>
+            <li>Paste the complete code from 99 Club Studio. Do not remove the beginning <code>&lt;iframe</code> or the ending <code>&lt;/iframe&gt;</code>.</li>
             <li>Save the block.</li>
             <li>Use the website editor's <strong>Preview</strong> function if available.</li>
             <li>Check that the widget shows the correct school name/logo and the expected Club levels, puzzle packs or games.</li>

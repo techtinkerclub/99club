@@ -1,6 +1,6 @@
 ---
 layout: default
-title: "School Website Widget · 99 Studio"
+title: "School Website Widget · 99 Club Studio"
 description: "Build a school website widget for 99 Club practice, printable puzzle packs and online maths games."
 permalink: /widget/builder/
 sidebar: false

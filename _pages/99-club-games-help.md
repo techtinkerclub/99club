@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "Maths Games & Puzzle Guides"
-description: "Rules, worked examples and solving strategies for the printable and online maths games in 99 Studio."
+description: "Rules, worked examples and solving strategies for the printable and online maths games in 99 Club Studio."
 permalink: /help/games/
 sidebar: false
 sitemap: true
@@ -16,7 +16,7 @@ sitemap: true
       <div class="tt99-guide">
         <div class="tt99-guide-hero">
           <div>
-            <span class="tt99-eyebrow">99 Studio</span>
+            <span class="tt99-eyebrow">99 Club Studio</span>
             <h1>Maths Games &amp; Puzzles help</h1>
             <p>A complete guide to choosing the maths, selecting and configuring puzzles, building printable packs, using worked examples and understanding every game in the library.</p>
           </div>

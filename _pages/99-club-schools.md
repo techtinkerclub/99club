@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "School Website Integration Help"
-description: "Complete school website integration help for adding 99 Studio parent-practice links, cards, PNG images, website packs and widgets."
+description: "Complete school website integration help for adding 99 Club Studio parent-practice links, cards, PNG images, website packs and widgets."
 permalink: /schools/
 sidebar: false
 sitemap: true
@@ -13,13 +13,13 @@ sitemap: true
       <div class="tt99-guide">
         <div class="tt99-guide-hero">
           <div>
-            <span class="tt99-eyebrow">99 Studio · School website integration help</span>
-            <h1>Adding 99 Studio to your school website</h1>
-            <p>Practical guidance for adding 99 Studio practice to a school website using ordinary links, visual cards or an embedded widget.</p>
+            <span class="tt99-eyebrow">99 Club Studio · School website integration help</span>
+            <h1>Adding 99 Club Studio to your school website</h1>
+            <p>Practical guidance for adding 99 Club Studio practice to a school website using ordinary links, visual cards or an embedded widget.</p>
           </div>
           <div class="tt99-guide-hero-actions">
             <a class="tt99-primary tt99-guide-action" href="/demo/">View live demo →</a>
-            <a class="tt99-secondary tt99-guide-action" href="/">← Back to 99 Studio</a>
+            <a class="tt99-secondary tt99-guide-action" href="/">← Back to 99 Club Studio</a>
           </div>
         </div>
 
@@ -92,7 +92,7 @@ sitemap: true
             <li><strong>Preview:</strong> a way to check a page before publishing it.</li>
             <li><strong>Publish / Save / Update:</strong> the action that makes the change live for parents.</li>
           </ul>
-          <p>99 Studio gives you the link, card or widget code to add using your school’s normal website editor. It does not need your school website login.</p>
+          <p>99 Club Studio gives you the link, card or widget code to add using your school’s normal website editor. It does not need your school website login.</p>
         </section>
 
         <section id="plain-link" class="tt99-guide-section">
@@ -101,7 +101,7 @@ sitemap: true
 
           <h3>For a 99 Club level</h3>
           <ol>
-            <li>Configure the 99 Club rules in the main <a href="/">99 Studio</a> page.</li>
+            <li>Configure the 99 Club rules in the main <a href="/">99 Club Studio</a> page.</li>
             <li>Choose <strong>Create parent links</strong>.</li>
             <li>Find the required Club level.</li>
             <li>Choose <strong>Copy link</strong>.</li>
@@ -186,7 +186,7 @@ sitemap: true
           <h3>99 Club Widget</h3>
           <p>The 99 Club Widget can show any selection of 11–99 and Bronze, Silver, Gold, Platinum or Diamond. Each visible level keeps the school-selected maths rules.</p>
           <ol>
-            <li>Configure the Club rules in the normal 99 Studio editor.</li>
+            <li>Configure the Club rules in the normal 99 Club Studio editor.</li>
             <li>Open <strong>Create parent links</strong>.</li>
             <li>Choose <strong>Open widget builder</strong> in the <strong>Alternative: 99 Club Widget</strong> section.</li>
             <li>Check the imported school name and logo.</li>
@@ -210,7 +210,7 @@ sitemap: true
 
           <h3>Put a widget on the school website</h3>
           <ol>
-            <li>Copy the widget's complete embed code from 99 Studio.</li>
+            <li>Copy the widget's complete embed code from 99 Club Studio.</li>
             <li>Open the school's normal website editor.</li>
             <li>Open the page where the widget should appear.</li>
             <li>Add an <strong>Embed</strong>, <strong>Custom HTML</strong>, <strong>HTML</strong>, <strong>Code</strong>, <strong>External content</strong> or equivalent block.</li>
