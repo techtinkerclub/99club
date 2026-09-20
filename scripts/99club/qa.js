@@ -242,6 +242,20 @@ else ok('help-guides',`All ${adapterIds.length} online games have a guide`);
 const printInstructions=read('assets/99club/games-instructions-v139.js');
 const onlineInstructions=read('assets/99club/games-play-instructions-v154.js');
 const publicGameIds=['wordsearch','crossword','pyramid','magic','arithmagon','magicshape','numbertrail','numberwheels','maze','propertymaze','crossnumber','numbersearch','equationcrossgrid','target','brokencalc','operationgrid','kakuro','arithmeticcages','sumplete','symbols','functionmachine','balance','alphametics','sudoku','futoshiki','nonogram','numberpath','numbertowers','takuzu','killersudoku','hashi','mathsmines','shikaku','cornersum','linkedsum','colourlogic','mobilebalance','diagonalpath','squaresearch','insertops','perimeterregions'];
+const answerRevealSrc=read('assets/99club/games-play-answer-reveal-v1.js');
+const playCoreSrc=read('assets/99club/games-play-core-v2.js');
+const operationRevealSrc=read('assets/99club/games-play-operationgrid-v154.js');
+if(!read(playPage).includes('games-play-answer-reveal-v1.js'))fail('answer-reveal','Answer reveal bridge is not loaded by Online Play');
+for(const id of publicGameIds){
+  const covered=id==='operationgrid'?/function\s+revealAnswer\s*\(/.test(operationRevealSrc):new RegExp('\\n\\s*'+id+'\\s*:').test(answerRevealSrc);
+  if(!covered)fail('answer-reveal',id+': no solved-state reveal provider');
+}
+const revealFlow=(playCoreSrc.match(/function revealAnswers\(\)\{[\s\S]*?\n\}/)||[''])[0];
+if(!playCoreSrc.includes('Are you sure? This will reveal the complete answer and end this attempt.'))fail('answer-reveal','Confirmation copy is missing');
+if(!playCoreSrc.includes("track('online_answer_revealed'"))fail('answer-reveal','Answer reveal analytics event is missing');
+if(!revealFlow||!revealFlow.includes('state.revealed=true')||!revealFlow.includes('state.finished=true'))fail('answer-reveal','Reveal does not end the current attempt safely');
+if(revealFlow.includes('saveCompletion')||revealFlow.includes('online_game_completed'))fail('answer-reveal','Revealed answers must not count as a completion');
+else ok('answer-reveal',`All ${publicGameIds.length} public games have guarded answer reveal coverage without completion credit`);
 for(const id of publicGameIds){
   if(!printInstructions.includes("case'"+id+"'"))fail('instruction-audit',id+': printable reviewed instruction missing');
   if(!onlineInstructions.includes("\n  "+id+":"))fail('instruction-audit',id+': online reviewed instruction missing');
