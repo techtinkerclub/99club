@@ -6,8 +6,6 @@ let dialog=null,currentMode='solved',currentBlob=null,currentUrl='',currentObjec
 function status(text,tone='success'){const el=document.getElementById('tt99-play-status');if(el){el.textContent=text;el.dataset.tone=tone;}}
 function setText(el,value){if(el&&el.textContent!==value)el.textContent=value;}
 function copyText(text){if(navigator.clipboard?.writeText)return navigator.clipboard.writeText(text);const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();return Promise.resolve();}
-function copyTextSync(text){try{const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';ta.style.pointerEvents='none';document.body.appendChild(ta);ta.focus();ta.select();ta.setSelectionRange?.(0,ta.value.length);const ok=document.execCommand?.('copy');ta.remove();if(ok)return true;}catch(_){}
-  try{navigator.clipboard?.writeText?.(text);return !!navigator.clipboard?.writeText;}catch(_){return false;}}
 function isIOSShareTarget(nav=navigator){const ua=String(nav?.userAgent||''),platform=String(nav?.platform||'');return /iP(?:hone|ad|od)/i.test(ua)||platform==='iPhone'||platform==='iPad'||(platform==='MacIntel'&&Number(nav?.maxTouchPoints||0)>1);}
 function challengeUrl(){return Codec.currentCompactUrl();}
 function title(){const el=document.getElementById('tt99-play-game-title');if(!el)return 'Maths Challenge';const copy=el.cloneNode(true);copy.querySelectorAll?.('a').forEach(a=>a.remove());const raw=String(copy.textContent||'').replace(/\s*Permalink\s*$/i,'').trim();return (raw.split('·')[0]||raw||'Maths Challenge').trim();}
@@ -53,9 +51,6 @@ function currentShareFile(){
 }
 function cardCaption(){
   return currentMode==='solved'?`I solved ${title()} on 99 Studio. Can you solve the same puzzle?`:shortText();
-}
-function captionWithLink(){
-  return `${cardCaption()}\n${currentUrl||challengeUrl()}`;
 }
 function cardWithLinkPayload(file){
   return {title:`99 Studio · ${title()}`,text:cardCaption(),url:currentUrl||challengeUrl(),files:[file]};
