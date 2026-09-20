@@ -248,6 +248,9 @@ function prepare(){
         if(!/Share card \+ link/.test(labels)||!/Share image only/.test(labels)||!/Save image/.test(labels)||!/Copy link/.test(labels))fail('share-panel','share action labels are not the simplified set');
         const payload=api.cardWithLinkPayload?.(new File(['qa'],'qa.png',{type:'image/png'}));
         if(!payload||!Array.isArray(payload.files)||payload.files.length!==1||!payload.text||!payload.url)fail('share-panel','card-plus-link payload is missing image, caption or URL');
+        if(!api.isIOSShareTarget?.({userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X)',platform:'iPhone',maxTouchPoints:5}))fail('share-panel','iPhone share-target detection failed');
+        const pasted=api.captionWithLink?.();
+        if(!pasted||!pasted.includes('http'))fail('share-panel','iOS fallback caption is missing its puzzle URL');
         const r=panel.getBoundingClientRect();
         if(r.left<-1||r.right>window.innerWidth+1)fail('share-panel','share panel escapes the viewport');
         dialog.hidden=true;window.dispatchEvent(new Event('pageshow'));await sleep(20);
