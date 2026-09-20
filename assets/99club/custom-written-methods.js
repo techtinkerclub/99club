@@ -10,7 +10,7 @@ const FAMILIES={
   column_subtraction:{label:'column subtraction',strand:'Calculation',years:[3,4,5,6],curriculumId:'KS2 written subtraction'},
   long_multiplication:{label:'formal multiplication',strand:'Calculation',years:[4,5,6],curriculumId:'KS2 written multiplication'},
   short_division:{label:'short division',strand:'Calculation',years:[3,4,5,6],curriculumId:'KS2 written division'},
-  long_division:{label:'long division',strand:'Calculation',years:[6],curriculumId:'Y6 written division'}
+  written_long_division:{label:'written long division',strand:'Calculation',years:[6],curriculumId:'Y6 written division'}
 };
 const IDS=Object.keys(FAMILIES),isKind=k=>IDS.includes(String(k||'')),hasKind=r=>Array.isArray(r?.families)&&r.families.some(isKind);
 const clone=o=>JSON.parse(JSON.stringify(o));
@@ -57,10 +57,10 @@ function longDivisionPool(){
   const divisors=[11,12,13,14,15,16,17,18,21,22,23,24,25,26,27,28,31,32,34,36];
   const out=[];for(let i=0;i<40;i++){
     const divisor=divisors[i%divisors.length],quotient=12+((i+4)*19)%288,dividend=divisor*quotient;
-    out.push(q('long_division',i,'Use long division to calculate.',quotient,{type:'written_method',method:'long_division',divisor,dividend,result:quotient,gridCols:String(dividend).length+5,gridRows:9},`${dividend}/${divisor}`));
+    out.push(q('written_long_division',i,'Use long division to calculate.',quotient,{type:'written_method',method:'long_division',divisor,dividend,result:quotient,gridCols:String(dividend).length+5,gridRows:9},`${dividend}/${divisor}`));
   }return out;
 }
-const POOLS={column_addition:additionPool(),column_subtraction:subtractionPool(),long_multiplication:multiplicationPool(),short_division:shortDivisionPool(),long_division:longDivisionPool()};
+const POOLS={column_addition:additionPool(),column_subtraction:subtractionPool(),long_multiplication:multiplicationPool(),short_division:shortDivisionPool(),written_long_division:longDivisionPool()};
 function pool(kind){return clone(POOLS[kind]||[]);}
 
 function grid(C,x,y,w,h,cols,rows){
