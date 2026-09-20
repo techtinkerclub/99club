@@ -8,6 +8,7 @@ function assert(condition,message){if(!condition){console.error('SECURITY QA FAI
 const head=read('_includes/head/custom.html');
 const analytics=read('assets/99club/analytics.js');
 const banner=read('assets/99club/banner-actions-v2.js');
+const app=read('assets/99club/app.js');
 const play=read('_pages/99-club-games-play.md');
 const telemetry=read('assets/99club/school-usage-config.js');
 const sw=read('sw.js');
@@ -19,8 +20,10 @@ assert(/choice!==['"]allow['"]/.test(analytics)&&/createElement\(['"]script['"]\
   'Analytics loader must remain gated behind explicit allow consent.');
 assert(/html2canvas@1\.4\.1[^\n]+integrity=["']sha512-/i.test(play)&&/crossorigin=["']anonymous["']/i.test(play),
   'html2canvas CDN dependency must stay version-pinned with SRI and crossorigin.');
-assert(/_url:location\.origin\+location\.pathname/.test(banner),
-  'Contact form must send only origin + pathname, never the full URL.');
+assert(/_url:location\.origin\+location\.pathname/.test(banner)&&/_url:location\.origin\+location\.pathname/.test(app),
+  'All contact forms must send only origin + pathname, never the full URL.');
+assert(/referrerPolicy=['"]no-referrer['"]/.test(banner)&&/referrerPolicy=['"]no-referrer['"]/.test(app),
+  'Teacher-facing Ko-fi embeds must not send referrer information.');
 assert(/enabled:\s*false/.test(telemetry)&&/endpoint:\s*['"]['"]/.test(telemetry),
   'First-party school telemetry must remain disabled until separately approved.');
 assert(/SUPPORT_DISABLED_PATHS=new Set\(\[['"]\/play\/['"]/.test(banner),
