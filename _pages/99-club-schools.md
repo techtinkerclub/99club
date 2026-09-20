@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "School Website Integration Help"
-description: "Complete school website integration help for adding 99 Club Studio parent-practice links, cards, PNG images, website packs and widgets."
+description: "Complete school website integration help for adding 99 Studio parent-practice links, cards, PNG images, website packs and widgets."
 permalink: /schools/
 sidebar: false
 sitemap: true
@@ -13,14 +13,17 @@ sitemap: true
       <div class="tt99-guide">
         <div class="tt99-guide-hero">
           <div>
-            <span class="tt99-eyebrow">99 Club Studio · School website integration help</span>
-            <h1>Adding 99 Club Studio to your school website</h1>
+            <span class="tt99-eyebrow">99 Studio · School website integration help</span>
+            <h1>Adding 99 Studio to your school website</h1>
             <p>A complete, platform-neutral guide for teachers, maths leads and school website editors. Start here whether you want one simple link, a picture/card, a complete website pack or an embedded widget.</p>
           </div>
-          <a class="tt99-secondary tt99-guide-action" href="/">← Back to 99 Club Studio</a>
+          <div class="tt99-guide-hero-actions">
+            <a class="tt99-primary tt99-guide-action" href="/demo/">View live demo →</a>
+            <a class="tt99-secondary tt99-guide-action" href="/">← Back to 99 Studio</a>
+          </div>
         </div>
 
-        <div class="tt99-guide-note"><strong>You do not need to be a web developer.</strong> The safest approach is to use the simplest option your school website editor supports. Nothing in 99 Club Studio changes the school website automatically: an authorised member of staff must add or replace the link/card/widget in the school website editor and publish the page.</div>
+        <div class="tt99-guide-note"><strong>You do not need to be a web developer.</strong> The safest approach is to use the simplest option your school website editor supports. Nothing in 99 Studio changes the school website automatically: an authorised member of staff must add or replace the link/card/widget in the school website editor and publish the page.</div>
 
         <div class="tt99-guide-note"><strong>Want to see the three options before choosing?</strong> Open the <a href="/demo/"><strong>fictional school website demo →</strong></a> to compare ordinary buttons, visual cards and embedded widgets side by side.</div>
 
@@ -91,7 +94,7 @@ sitemap: true
             <li><strong>Preview:</strong> a way to check a page before publishing it.</li>
             <li><strong>Publish / Save / Update:</strong> the action that makes the change live for parents.</li>
           </ul>
-          <p>99 Club Studio does not need access to the school website account. It only gives the teacher the public link/card/embed code to paste into the school's normal website editor. The plain-link/card routes use a normal HTTPS link; the widget route is an optional accountless widget embed.</p>
+          <p>99 Studio does not need access to the school website account. It only gives the teacher the public link/card/embed code to paste into the school's normal website editor. The plain-link/card routes use a normal HTTPS link; the widget route is an optional accountless widget embed.</p>
         </section>
 
         <section id="plain-link" class="tt99-guide-section">
@@ -100,7 +103,7 @@ sitemap: true
 
           <h3>For a 99 Club level</h3>
           <ol>
-            <li>Configure the 99 Club rules in the main <a href="/">99 Club Studio</a> page.</li>
+            <li>Configure the 99 Club rules in the main <a href="/">99 Studio</a> page.</li>
             <li>Choose <strong>Create parent links</strong>.</li>
             <li>Find the required Club level.</li>
             <li>Choose <strong>Copy link</strong>.</li>
@@ -185,7 +188,7 @@ sitemap: true
           <h3>99 Club Widget</h3>
           <p>The 99 Club Widget can show any selection of 11–99 and Bronze, Silver, Gold, Platinum or Diamond. Each visible level keeps the school-selected maths rules.</p>
           <ol>
-            <li>Configure the Club rules in the normal 99 Club Studio editor.</li>
+            <li>Configure the Club rules in the normal 99 Studio editor.</li>
             <li>Open <strong>Create parent links</strong>.</li>
             <li>Choose <strong>Open widget builder</strong> in the <strong>Alternative: 99 Club Widget</strong> section.</li>
             <li>Check the imported school name and logo.</li>
@@ -209,7 +212,7 @@ sitemap: true
 
           <h3>Put a widget on the school website</h3>
           <ol>
-            <li>Copy the widget's complete embed code from 99 Club Studio.</li>
+            <li>Copy the widget's complete embed code from 99 Studio.</li>
             <li>Open the school's normal website editor.</li>
             <li>Open the page where the widget should appear.</li>
             <li>Add an <strong>Embed</strong>, <strong>Custom HTML</strong>, <strong>HTML</strong>, <strong>Code</strong>, <strong>External content</strong> or equivalent block.</li>
@@ -401,7 +404,7 @@ sitemap: true
           </ol>
         </section>
 
-        <div class="tt99-guide-note"><strong>Still worried you might break something?</strong> Experimenting in 99 Club Studio does not change the school website. Nothing becomes public until someone with authorised access deliberately adds or replaces the link/card/embed in the school website editor and publishes the page.</div>
+        <div class="tt99-guide-note"><strong>Still worried you might break something?</strong> Experimenting in 99 Studio does not change the school website. Nothing becomes public until someone with authorised access deliberately adds or replaces the link/card/embed in the school website editor and publishes the page.</div>
       </div>
     </section>
   </article>
