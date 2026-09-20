@@ -292,8 +292,10 @@ if(!futoshikiPlaySrc.includes('Use each number from 1 to')||!futoshikiPlaySrc.in
 if(!playCoreSrc.includes("typeof rule==='function'?rule(state.puzzle,state.config):rule"))fail('futoshiki-instructions','Online Play core does not support puzzle-aware instruction text');
 else ok('futoshiki-instructions','Futoshiki states the dynamic 1..N number range explicitly');
 const onlineShareSrc=read('assets/99club/games-play-share-v164.js');
-for(const token of ['data-share-challenge','data-share-card-native','data-download','data-copy-link','navigator.share'])if(!onlineShareSrc.includes(token))fail('share-panel','Native sharing contract missing '+token);
+for(const token of ['data-share-card-link','data-share-card-native','data-download','data-copy-link','navigator.share'])if(!onlineShareSrc.includes(token))fail('share-panel','Native sharing contract missing '+token);
 for(const legacy of ['facebook.com/sharer','twitter.com/intent','linkedin.com/sharing','data-social=','tt99-share-social','global.open(target'])if(onlineShareSrc.includes(legacy))fail('share-panel','Legacy direct social sharing remains: '+legacy);
+if(!onlineShareSrc.includes('function cardWithLinkPayload(file)')||!onlineShareSrc.includes('url:currentUrl||challengeUrl(),files:[file]'))fail('share-panel','Primary share action does not package the selected PNG together with the exact puzzle URL');
+if(!onlineShareSrc.includes('text:cardCaption()'))fail('share-panel','Primary share action is missing its caption text');
 if(!onlineShareSrc.includes("global.addEventListener('pageshow',restoreOpenDialog)")||!onlineShareSrc.includes("visibilitychange"))fail('share-panel','Open share panel is not restored when the app resumes');
 else ok('share-panel','Online sharing uses the device share sheet with no direct social-site popups and preserves the open panel on resume');
 if(!onlineShareSrc.includes("share.textContent='Share this puzzle'")||!onlineShareSrc.includes("'Copy puzzle link'"))fail('completion-share-entry','Completion share labels are not simplified');

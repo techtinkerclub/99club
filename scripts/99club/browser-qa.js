@@ -241,11 +241,13 @@ function prepare(){
         await api.open('challenge');await sleep(40);
         const dialog=document.querySelector('.tt99-share-dialog'),panel=dialog?.querySelector('.tt99-share-panel');
         if(!dialog||dialog.hidden||!panel)return fail('share-panel','share panel did not open');
-        const challenge=dialog.querySelector('[data-share-challenge]'),card=dialog.querySelector('[data-share-card-native]'),save=dialog.querySelector('[data-download]'),copy=dialog.querySelector('[data-copy-link]');
-        if(!challenge||!card||!save||!copy)fail('share-panel','simplified share actions are incomplete');
+        const rich=dialog.querySelector('[data-share-card-link]'),card=dialog.querySelector('[data-share-card-native]'),save=dialog.querySelector('[data-download]'),copy=dialog.querySelector('[data-copy-link]');
+        if(!rich||!card||!save||!copy)fail('share-panel','simplified share actions are incomplete');
         if(dialog.querySelector('[data-social],.tt99-share-social'))fail('share-panel','legacy social-network button grid is still present');
-        const labels=[challenge?.textContent,card?.textContent,save?.textContent,copy?.textContent].join('|');
-        if(!/Share challenge/.test(labels)||!/Share card/.test(labels)||!/Save image/.test(labels)||!/Copy link/.test(labels))fail('share-panel','share action labels are not the simplified set');
+        const labels=[rich?.textContent,card?.textContent,save?.textContent,copy?.textContent].join('|');
+        if(!/Share card \+ link/.test(labels)||!/Share image only/.test(labels)||!/Save image/.test(labels)||!/Copy link/.test(labels))fail('share-panel','share action labels are not the simplified set');
+        const payload=api.cardWithLinkPayload?.(new File(['qa'],'qa.png',{type:'image/png'}));
+        if(!payload||!Array.isArray(payload.files)||payload.files.length!==1||!payload.text||!payload.url)fail('share-panel','card-plus-link payload is missing image, caption or URL');
         const r=panel.getBoundingClientRect();
         if(r.left<-1||r.right>window.innerWidth+1)fail('share-panel','share panel escapes the viewport');
         dialog.hidden=true;window.dispatchEvent(new Event('pageshow'));await sleep(20);
