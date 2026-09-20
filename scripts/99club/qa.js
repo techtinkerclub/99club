@@ -648,7 +648,7 @@ try{
   if(!analyticsCore.includes('source_origin')&&false)fail('analytics','Analytics core missing source origin support');
   if(!analyticsCore.includes('integration_help')||!analyticsCore.includes('widget_builder'))fail('analytics','Navigation analytics taxonomy is missing integration help/widget builder');
 
-  for(const phrase of ['opaque school key','referring website origin','full referring page URLs','currently disabled'])if(!privacy.includes(phrase))fail('analytics',`Privacy page missing analytics boundary: ${phrase}`);
+  for(const phrase of ['Google Analytics is loaded only if you choose','does not send pupil names','random identifier','website origin','parent-practice pages and embedded school widgets do not load the Studio Google Analytics code'])if(!privacy.includes(phrase))fail('analytics',`Privacy page missing plain-English disclosure: ${phrase}`);
   for(const phrase of ['First-party school usage telemetry','source_origin','integration_id','teacher','widget_open','practice_download','enabled: false'])if(!analyticsDoc.includes(phrase))fail('analytics',`Analytics setup guide missing: ${phrase}`);
 
   const schoolCfg=read('assets/99club/school-usage-config.js');
@@ -664,7 +664,7 @@ try{
   const schoolGuide=read('_pages/99-club-schools.md');
   for(const phrase of [
     'permalink: /demo/',
-    '99 STUDIO SCHOOL WEBSITE DEMONSTRATION',
+    '99 STUDIO SCHOOL WEBSITE DEMO',
     'Fictional example school',
     'Addington-on-Sum Primary School',
     '1 · Buttons',
@@ -677,7 +677,7 @@ try{
     'demo-club-cards-core',
     'demo-club-widget',
     'demo-games-widget',
-    'School website integration help',
+    'School website help →',
     'index,follow'
   ])if(!demo.includes(phrase))fail('school-demo','General school demo missing: '+phrase);
   if(/Radford Semele|Juniper/i.test(demo+demoJs+schoolGuide))fail('school-demo','School-facing demo/help must not identify the old real school or website platform');
@@ -693,6 +693,44 @@ try{
   if(exists('_pages/radford-semele-99studio-demo-cards.html')||exists('_pages/radford-semele-99studio-demo-widgets.html'))fail('school-demo','Redundant separate school demo pages still exist');
   ok('school-demo','General fictional three-tab school integration demo and school-facing help polish checked');
 }catch(e){fail('school-demo','School integration demo QA threw',e.stack||e.message);}
+
+/* ---------- public copy audit ---------- */
+try{
+  const publicCopyFiles=[
+    '_pages/99-club-schools.md',
+    '_pages/99-club-widget-help.md',
+    '_pages/privacy.md',
+    '_pages/school-website-demo.html',
+    '_pages/99-club-games-help.md',
+    '_pages/99-club-help.md',
+    'assets/99club/app.js',
+    'assets/99club/custom-app.js',
+    'assets/99club/games-app.js',
+    'assets/99club/widget-builder.js',
+    'assets/99club/parent-practice-page.js',
+    'assets/99club/games-parent-practice-page.js',
+    'assets/99club/widget-runtime.js',
+    'assets/99club/banner-actions-v2.js'
+  ];
+  const publicCopy=publicCopyFiles.map(p=>read(p)).join('\n');
+  const bannedPublicPhrases=[
+    'Privacy by design:',
+    'Private by design.',
+    'opaque school-level key',
+    'school-level practice telemetry',
+    'usage telemetry scaffold',
+    'not encryption or a digital signature',
+    'not encrypted or cryptographically signed',
+    'technically determined person',
+    'Nothing here publishes automatically.',
+    'platform-neutral guide',
+    'accountless widget'
+  ];
+  for(const phrase of bannedPublicPhrases)if(publicCopy.includes(phrase))fail('public-copy','Visitor-facing copy still contains internal/repetitive wording: '+phrase);
+  if(!read('_pages/privacy.md').includes('plain-English summary'))fail('public-copy','Privacy page is not using the public-facing summary');
+  if(!read('_pages/99-club-schools.md').includes('Practical guidance for adding 99 Studio practice'))fail('public-copy','School integration page has regressed to older intro copy');
+  ok('public-copy','Public pages and major dynamic UI surfaces avoid internal/developer wording');
+}catch(e){fail('public-copy','Public copy audit threw',e.stack||e.message);}
 
 /* ---------- output ---------- */
 const report={generatedAt:new Date().toISOString(),samplesPerDifficulty:SAMPLES,generated,engineCount:G?.ENGINES?Object.keys(G.ENGINES).length:0,onlineAdapterCount:adapterIds.length,guideCount:guideIds.length,failures,warnings,notes};
