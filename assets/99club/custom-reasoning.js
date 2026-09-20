@@ -30,7 +30,7 @@ for(const [id,m] of Object.entries(FAMILIES)){
   if(Array.isArray(G.FAMILY_ORDER)&&!G.FAMILY_ORDER.includes(id))G.FAMILY_ORDER.push(id);
   if(Array.isArray(G.FAMILY_COMPACT_ORDER)&&!G.FAMILY_COMPACT_ORDER.includes(id))G.FAMILY_COMPACT_ORDER.push(id);
 }
-const q=(kind,i,prompt,answer,extra={})=>({kind,prompt,answer:String(answer),key:`${kind}:${i}:${extra.key||''}`,group:extra.group||kind,footprint:extra.footprint|| (extra.visual?'L':'M'),marking:extra.marking||{mode:'exact',answer:String(answer)},...extra});
+const q=(kind,i,prompt,answer,extra={})=>{const {key:keyExtra='',...rest}=extra;return {kind,prompt,answer:String(answer),key:`${kind}:${i}:${keyExtra}`,group:rest.group||kind,footprint:rest.footprint||(rest.visual?'L':'M'),marking:rest.marking||{mode:'exact',answer:String(answer)},...rest};};
 const gcd=(a,b)=>{a=Math.abs(a);b=Math.abs(b);while(b){const t=b;b=a%b;a=t;}return a||1;};
 const primes=n=>{if(n<2)return false;for(let d=2;d*d<=n;d++)if(n%d===0)return false;return true;};
 
