@@ -23,7 +23,7 @@ search: false
 <script src="/assets/99club/qr-lite.js?v=19"></script>
 <script src="/assets/99club/school-usage-config.js?v=2"></script>
 <script src="/assets/99club/school-usage.js?v=2"></script>
-<script src="/assets/99club/custom-graphs.js?v=10"></script>
+<script src="/assets/99club/custom-graphs.js?v=10"></script>\n<script src="/assets/99club/custom-written-methods.js?v=1"></script>\n<script src="/assets/99club/custom-reasoning.js?v=1"></script>
 <script src="/assets/99club/custom-coordinates.js?v=4"></script>
 <script src="/assets/99club/custom-piecharts.js?v=7"></script>
 <script src="/assets/99club/custom-angles.js?v=8"></script>
