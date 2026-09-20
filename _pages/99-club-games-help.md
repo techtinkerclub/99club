@@ -82,7 +82,7 @@ sitemap: true
             <article><h3>Challenge</h3><p>Larger or denser puzzles, fewer givens, richer operations and more competing possibilities before a deduction becomes forced.</p></article>
             <article><h3>Mixed</h3><p>Where offered, a pack can deliberately mix Easy, Standard and Challenge versions of the same game using the chosen proportions.</p></article>
           </div>
-          <p>Many games add specialist controls: grid size, number of clues, allowed operations, number of rectangles, route length, word directions and similar settings. <strong>Auto</strong> is a good starting point because Studio combines the selected teaching focus with the game difficulty to choose sensible defaults.</p>
+          <p>Many games add specialist controls: grid size, number of clues, allowed operations, number of rectangles, route length, word directions and similar settings. <strong>Auto</strong> is a good starting point because 99 Club Studio combines the selected teaching focus with the game difficulty to choose sensible defaults.</p>
         </section>
 
         <section id="packs" class="tt99-guide-section">
