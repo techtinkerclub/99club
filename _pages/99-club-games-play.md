@@ -74,7 +74,7 @@ sitemap: true
 <script src="/assets/99club/games-symbol-decoder-v189.js?v=1"></script>
 <script src="/assets/99club/games-wordsearch-quality-v150.js?v=1"></script>
 
-<script src="/assets/99club/games-play-share-codec-v156.js?v=5"></script>
+<script src="/assets/99club/games-play-share-codec-v156.js?v=6"></script>
 <script src="/assets/99club/games-play-qr-v156.js?v=1"></script>
 <script src="/assets/99club/games-play-core-v2.js?v=8"></script>
 <script src="/assets/99club/games-play-number-grid-v1.js?v=1"></script>
