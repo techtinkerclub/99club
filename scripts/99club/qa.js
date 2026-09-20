@@ -282,6 +282,7 @@ if(!contextKeypadSrc.includes('window.TT99ContextKeypad={hide:hidePad'))fail('co
 if(!finishFlow.includes('dismissCompletionInput();')||finishFlow.indexOf('dismissCompletionInput();')>finishFlow.indexOf('renderCompletion();'))fail('completion-splash','Successful completion does not dismiss input before opening the splash');
 for(const selector of ['tt99-context-pad-launcher','tt99-wave184-keypad','tt99-number-keypad','tt99-structure-keypad','tt99-letter-keypad','tt99-extra-op-pad'])if(!completionPreviewSrc.includes(selector))fail('completion-splash','Completion snapshot sanitiser missing '+selector);
 if(!completionPreviewSrc.includes('fitSnapshot')||!completionPreviewSrc.includes('tt99-play-complete-snapshot-fit'))fail('completion-splash','Completion snapshot fit stage is missing');
+if(!completionPreviewSrc.includes('tt99SourceWidth')||!completionPreviewSrc.includes("clone.style.setProperty('width',seededWidth+'px','important')"))fail('completion-splash','Completion snapshot does not seed width from the live board');
 else ok('completion-splash','Successful completion dismisses input first and the splash owns a keypad-free fit-to-frame snapshot');
 const shareCodecSrc=read('assets/99club/games-play-share-codec-v156.js');
 if(!shareCodecSrc.includes("route!=='/play'&&route!=='/tools/99-club/games/play'"))fail('share-codec','Share codec does not recognise both current and legacy play routes');
