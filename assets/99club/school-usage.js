@@ -37,6 +37,7 @@
   }
 
   const SCHOOL_KEY_STORE='tt99-school-keys-v1';
+  const volatileSchoolKeys={};
 
   function randomSchoolKey(){
     try{
@@ -61,9 +62,12 @@
   function makeSchoolKey(name){
     const normal=normaliseSchoolName(name);
     if(!normal)return '';
+    const cached=validSchoolKey(volatileSchoolKeys[normal]);
+    if(cached)return cached;
     const map=readSchoolKeyMap(),existing=validSchoolKey(map[normal]);
-    if(existing)return existing;
+    if(existing){volatileSchoolKeys[normal]=existing;return existing;}
     const key=randomSchoolKey();
+    volatileSchoolKeys[normal]=key;
     try{
       map[normal]=key;
       global.localStorage?.setItem(SCHOOL_KEY_STORE,JSON.stringify(map));
@@ -213,7 +217,7 @@
     const schoolKey=validSchoolKey(c.schoolKey);
     const sourceOrigin=cleanOrigin(c.sourceOrigin)||referrerOrigin();
     const integrationId=cleanIntegrationId(c.integrationId);
-    if(!schoolKey&&!sourceOrigin)return null;
+    if(!schoolKey&&!sourceOrigin&&!integrationId)return null;
     const out={
       schema_version:SCHEMA_VERSION,
       event,
