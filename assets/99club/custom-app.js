@@ -93,7 +93,7 @@
     browserStorage: ['Saved in this browser','Studio remembers your work automatically on this browser. This is convenient, but it is not an online account: clearing site data, using private browsing, changing browser profile or moving device can remove it. Download a Full backup for anything important.'],
     fullBackup: ['Full backup','Use this as your safety copy. It contains all Studio data saved in this browser, including reusable presets, challenge edits, the current exact sheets and school personalisation/logo. Restore it on this or another browser when you need everything back.'],
     portableCode: ['Full recreation code','Use this to recreate one exact worksheet on another browser without sending a setup file. It contains the worksheet rules and a compact description of the final reviewed question set/order. Superseded review changes are never carried forward. The school logo is not included.'],
-    answerQr: ['Recreation QR on answer sheets','Adds a QR to the teacher answer copy only. Scan it to reopen the final reviewed worksheet with the same rules and question order. Studio stores compact final-state references rather than your edit history, so repeated replacements do not steadily make the QR denser. School names and logos are not included, and pupil worksheets never receive the QR.'],
+    answerQr: ['Recreation QR on answer sheets','Adds a QR to the teacher answer copy only. Scan it to reopen the final reviewed worksheet with the same rules and question order. Only the final reviewed worksheet is included, so repeated replacements do not make the QR unnecessarily large. School names and logos are not included, and pupil worksheets never receive the QR.'],
     saveSafety: ['How saving works','For normal weekly use, Studio saves automatically in this browser. Save a reusable preset when you want a rule set again, export one setup when you want to share that setup, and download a Full backup when you want a safety copy of everything.']
   };
   const state = {
@@ -380,7 +380,7 @@
       const actions=compactSheetActions([...(Array.isArray(s.actions)?s.actions:[]),['s',token]]);
       return { ...s, questions:G.shuffleQuestions(s.questions, `${s.seed}:${token}`), actions };
     });
-    persist();state.status='Question order shuffled. The recreation recipe keeps only the compact steps needed to rebuild the current sheet.'; render();
+    persist();state.status='Question order shuffled. Recreation codes and the teacher QR will restore this final order.'; render();
   }
 
   function workspaceViewClass(){

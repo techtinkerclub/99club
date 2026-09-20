@@ -108,7 +108,7 @@
     browserStorage: ['Saved in this browser','Studio remembers your work automatically on this browser. This is convenient, but it is not an online account: clearing site data, using private browsing, changing browser profile or moving device can remove it. Download a Full backup for anything important.'],
     fullBackup: ['Full backup','Use this as your safety copy. It contains all Studio data saved in this browser, including reusable presets, challenge edits, the current exact sheets and school personalisation/logo. Restore it on this or another browser when you need everything back.'],
     portableCode: ['Full recreation code','Use this to recreate one exact worksheet on another browser without sending a setup file. It contains the worksheet rules and a compact description of the final reviewed question set/order. Superseded review changes are never carried forward. The school logo is not included.'],
-    answerQr: ['Recreation QR on answer sheets','Adds a QR to the teacher answer copy only. Scan it to reopen the final reviewed worksheet with the same rules and question order. Studio stores compact final-state references rather than your edit history, so repeated replacements do not steadily make the QR denser. School names and logos are not included, and pupil worksheets never receive the QR.'],
+    answerQr: ['Recreation QR on answer sheets','Adds a QR to the teacher answer copy only. Scan it to reopen the final reviewed worksheet with the same rules and question order. Only the final reviewed worksheet is included, so repeated replacements do not make the QR unnecessarily large. School names and logos are not included, and pupil worksheets never receive the QR.'],
     saveSafety: ['How saving works','For normal weekly use, Studio saves automatically in this browser. Save a reusable preset when you want a rule set again, export one setup when you want to share that setup, and download a Full backup when you want a safety copy of everything.']
   };
   const state = {
@@ -431,7 +431,7 @@
       const actions=compactSheetActions([...(Array.isArray(s.actions)?s.actions:[]),['s',token]]);
       return { ...s, questions:G.shuffleQuestions(s.questions, `${s.seed}:${token}`), actions };
     });
-    persist();state.status='Question order shuffled. The recreation recipe keeps only the compact steps needed to rebuild the current sheet.'; render();
+    persist();state.status='Question order shuffled. Recreation codes and the teacher QR will restore this final order.'; render();
   }
 
   function render(){
@@ -706,7 +706,7 @@
   }
   function parentPracticePackReadme(){
     const school=esc(state.school?.schoolName||'Your school');
-    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>99 Club website pack</title><style>body{font:16px/1.55 Arial,sans-serif;max-width:850px;margin:40px auto;padding:0 24px;color:#24343b}h1,h2{color:#0d5e58}code{background:#f1f5f5;padding:2px 5px;border-radius:4px}li{margin:.45em 0}.note{padding:12px 14px;background:#eef8f6;border-left:4px solid #147d75}</style></head><body><h1>99 Club home-practice website pack</h1><p>Prepared for <strong>${school}</strong> on ${esc(new Intl.DateTimeFormat('en-GB',{dateStyle:'long'}).format(new Date()))}.</p><h2>What is included</h2><ul><li><code>cards/</code> — one PNG image for every 11–99 and post-99 challenge.</li><li><code>practice-links.csv</code> — the matching practice URL for every card.</li><li><code>99-club-school-configuration.json</code> — a restoreable snapshot of the club rules used for this pack.</li></ul><h2>Using a PNG card</h2><ol><li>Upload the required PNG to the school website.</li><li>Find the matching club in <code>practice-links.csv</code>.</li><li>Make the image clickable and paste that URL as the destination.</li><li>Add alt text such as “33 Club home practice – printable worksheet and answers”.</li><li>Test the link before publishing.</li></ol><div class="note"><strong>If the maths rules are changed later:</strong> create a new practice link and replace the website link. If the text shown on the card changes, download a fresh card too. Existing published links deliberately keep their old rules.</div><p>Full instructions: <a href="https://99studio.uk/schools/">https://99studio.uk/schools/</a></p></body></html>`;
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>99 Club website pack</title><style>body{font:16px/1.55 Arial,sans-serif;max-width:850px;margin:40px auto;padding:0 24px;color:#24343b}h1,h2{color:#0d5e58}code{background:#f1f5f5;padding:2px 5px;border-radius:4px}li{margin:.45em 0}.note{padding:12px 14px;background:#eef8f6;border-left:4px solid #147d75}</style></head><body><h1>99 Club home-practice website pack</h1><p>Prepared for <strong>${school}</strong> on ${esc(new Intl.DateTimeFormat('en-GB',{dateStyle:'long'}).format(new Date()))}.</p><h2>What is included</h2><ul><li><code>cards/</code> — one PNG image for every 11–99 and post-99 challenge.</li><li><code>practice-links.csv</code> — the matching practice URL for every card.</li><li><code>99-club-school-configuration.json</code> — a saved copy of the Club rules used for this pack.</li></ul><h2>Using a PNG card</h2><ol><li>Upload the required PNG to the school website.</li><li>Find the matching club in <code>practice-links.csv</code>.</li><li>Make the image clickable and paste that URL as the destination.</li><li>Add alt text such as “33 Club home practice – printable worksheet and answers”.</li><li>Test the link before publishing.</li></ol><div class="note"><strong>If the maths rules are changed later:</strong> create a new practice link and replace the website link. If the text shown on the card changes, download a fresh card too. Existing published links deliberately keep their old rules.</div><p>Full instructions: <a href="https://99studio.uk/schools/">https://99studio.uk/schools/</a></p></body></html>`;
   }
   let parentPracticeCrcTable=null;
   function parentPracticeCrc32(bytes){
@@ -1233,7 +1233,7 @@
     modal.querySelector('#tt99-parent-copy-links')?.addEventListener('click',()=>{copy(parentPracticeLinksText(),'All 11–99 and post-99 parent-practice links copied.');track('parent_share_action',{action:'copy_all_links',club_count:PARENT_CLUB_IDS.length});});
     modal.querySelector('#tt99-parent-save-config')?.addEventListener('click',()=>{
       downloadParentPracticeSchoolConfig();
-      setParentStatus('School configuration downloaded. It contains a snapshot of all 11–99 and post-99 rules for the current scheme.');track('parent_share_action',{action:'save_config'});
+      setParentStatus('School configuration downloaded. It contains a saved copy of all 11–99 and post-99 rules for the current scheme.');track('parent_share_action',{action:'save_config'});
     });
     modal.querySelector('#tt99-parent-restore-config')?.addEventListener('change',async e=>{
       const file=e.target.files?.[0];if(!file)return;
