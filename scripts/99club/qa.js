@@ -588,6 +588,26 @@ try{
   ok('analytics','Teacher GA4, school-source attribution, widgets, PWA, Custom Worksheets and privacy contracts checked');
 }catch(e){fail('analytics','Analytics contract QA threw',e.stack||e.message);}
 
+/* ---------- school integration demonstration ---------- */
+try{
+  const demo=read('_pages/radford-semele-99studio-demo.html');
+  for(const phrase of [
+    '99 CLUB STUDIO DEMONSTRATION',
+    'This is not an official Radford Semele school webpage',
+    'Parent view',
+    'Show implementation notes',
+    '99 Club practice',
+    'Maths games &amp; printable puzzles',
+    'School website integration help',
+    'noindex,nofollow,noarchive',
+    'widget-config.js',
+    'TT99QR'
+  ])if(!demo.includes(phrase))fail('school-demo',`Radford Semele demo missing: ${phrase}`);
+  if(/Juniper/i.test(demo))fail('school-demo','School integration demo must stay website-platform neutral');
+  if(!demo.includes("widgetType:'club'")||!demo.includes("widgetType:'games'"))fail('school-demo','School integration demo is missing live Club/Games widget configurations');
+  ok('school-demo','Single platform-neutral school integration demo checked');
+}catch(e){fail('school-demo','School integration demo QA threw',e.stack||e.message);}
+
 /* ---------- output ---------- */
 const report={generatedAt:new Date().toISOString(),samplesPerDifficulty:SAMPLES,generated,engineCount:G?.ENGINES?Object.keys(G.ENGINES).length:0,onlineAdapterCount:adapterIds.length,guideCount:guideIds.length,failures,warnings,notes};
 const out=path.join(ROOT,'99club-qa-report.json');fs.writeFileSync(out,JSON.stringify(report,null,2)+'\n');
