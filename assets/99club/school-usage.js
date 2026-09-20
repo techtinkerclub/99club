@@ -1,7 +1,9 @@
 /* 99 Club Studio - school-level usage telemetry scaffold.
  * Privacy boundary:
  * - organisation/source-site analytics, not pupil/parent tracking
- * - no persistent visitor ID, cookies or localStorage
+ * - no persistent visitor ID or cookies
+ * - staff-side Studio pages may remember one random organisation key locally
+ *   so public school resources can share a stable opaque identifier
  * - no worksheet questions, answers, seeds, full URLs, page paths or free text
  * - referrers are reduced to scheme + host only (origin)
  * - parent links may carry only an opaque school-level key and optional widget integration ID
@@ -34,21 +36,43 @@
       ?.trim() || cleanSchoolName(value).toLowerCase();
   }
 
-  function hash32(text,seed){
-    let h=(seed>>>0)||2166136261;
-    for(let i=0;i<text.length;i++){
-      h^=text.charCodeAt(i);
-      h=Math.imul(h,16777619)>>>0;
-    }
-    return h>>>0;
+  const SCHOOL_KEY_STORE='tt99-school-keys-v1';
+  const volatileSchoolKeys={};
+
+  function randomSchoolKey(){
+    try{
+      const bytes=new Uint8Array(10);
+      global.crypto?.getRandomValues?.(bytes);
+      if(bytes.some(Boolean)){
+        let s='';
+        for(const b of bytes)s+=b.toString(36).padStart(2,'0');
+        return (KEY_PREFIX+s.replace(/[^a-z0-9]/gi,'')).slice(0,19).toLowerCase();
+      }
+    }catch(_){}
+    return KEY_PREFIX+(Date.now().toString(36)+Math.random().toString(36).slice(2,12)).slice(0,16);
+  }
+
+  function readSchoolKeyMap(){
+    try{
+      const parsed=JSON.parse(global.localStorage?.getItem(SCHOOL_KEY_STORE)||'{}');
+      return parsed&&typeof parsed==='object'&&!Array.isArray(parsed)?parsed:{};
+    }catch(_){return {};}
   }
 
   function makeSchoolKey(name){
     const normal=normaliseSchoolName(name);
     if(!normal)return '';
-    const a=hash32(normal,2166136261).toString(36).padStart(7,'0');
-    const b=hash32(normal,2246822519).toString(36).padStart(7,'0');
-    return (KEY_PREFIX+a+b).slice(0,19);
+    const cached=validSchoolKey(volatileSchoolKeys[normal]);
+    if(cached)return cached;
+    const map=readSchoolKeyMap(),existing=validSchoolKey(map[normal]);
+    if(existing){volatileSchoolKeys[normal]=existing;return existing;}
+    const key=randomSchoolKey();
+    volatileSchoolKeys[normal]=key;
+    try{
+      map[normal]=key;
+      global.localStorage?.setItem(SCHOOL_KEY_STORE,JSON.stringify(map));
+    }catch(_){}
+    return key;
   }
 
   function validSchoolKey(value){
@@ -190,10 +214,10 @@
     const c=context&&typeof context==='object'?context:{};
     const event=String(eventName||'').trim();
     if(!/^(widget_open|widget_item_open)$/.test(event))return null;
-    const schoolKey=validSchoolKey(c.schoolKey)||makeSchoolKey(c.schoolName);
+    const schoolKey=validSchoolKey(c.schoolKey);
     const sourceOrigin=cleanOrigin(c.sourceOrigin)||referrerOrigin();
     const integrationId=cleanIntegrationId(c.integrationId);
-    if(!schoolKey&&!sourceOrigin)return null;
+    if(!schoolKey&&!sourceOrigin&&!integrationId)return null;
     const out={
       schema_version:SCHEMA_VERSION,
       event,
