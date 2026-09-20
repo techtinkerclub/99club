@@ -26,6 +26,9 @@ assert(/referrerPolicy=['"]no-referrer['"]/.test(banner)&&/referrerPolicy=['"]no
   'Teacher-facing Ko-fi embeds must not send referrer information.');
 assert(/enabled:\s*false/.test(telemetry)&&/endpoint:\s*['"]['"]/.test(telemetry),
   'First-party school telemetry must remain disabled until separately approved.');
+const schoolUsage=read('assets/99club/school-usage.js');
+assert(!/function hash32/.test(schoolUsage)&&/SCHOOL_KEY_STORE=['"]tt99-school-keys-v1['"]/.test(schoolUsage),
+  'School identifiers must be random opaque keys, not deterministic hashes of public school names.');
 assert(/SUPPORT_DISABLED_PATHS=new Set\(\[['"]\/play\/['"]/.test(banner),
   'Pupil-facing online play must not expose the Ko-fi payment panel.');
 assert(/\/offline\.html/.test(sw)&&/networkFirstAsset/.test(sw)&&!/staleWhileRevalidate/.test(sw),
