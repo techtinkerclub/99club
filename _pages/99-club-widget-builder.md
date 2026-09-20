@@ -14,4 +14,4 @@ search: false
 <script src="/assets/99club/school-usage-config.js?v=2"></script><script src="/assets/99club/school-usage.js?v=2"></script>
 <script src="/assets/99club/parent-practice.js?v=1.3"></script>
 <script src="/assets/99club/widget-config.js?v=4"></script>
-<script src="/assets/99club/widget-builder.js?v=6" defer></script>
+<script src="/assets/99club/widget-builder.js?v=7" defer></script>
