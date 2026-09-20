@@ -109,7 +109,7 @@ sitemap: true
         <section id="personalise" class="tt99-guide-section">
           <h2>Personalise the pack</h2>
           <p>The optional personalisation section can add an editable pack title, school name, class/year label, date and school logo. Leave any field blank if it is not needed.</p>
-          <p>These details are remembered in the current browser. The logo is resized locally before being placed into the generated PDF.</p>
+          <p>These details are remembered in the current browser. The logo is resized automatically before being placed into the generated PDF.</p>
         </section>
 
         <section id="downloads" class="tt99-guide-section tt99-guide-highlight">

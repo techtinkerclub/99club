@@ -482,7 +482,7 @@
       </div>
       <div class="tt99-logo-row">
         <div class="tt99-logo-preview">${s.logoDataUrl?`<img src="${s.logoDataUrl}" alt="School logo preview">`:'<span>LOGO</span>'}</div>
-        <div><label class="tt99-upload"><input id="tt99-logo" type="file" accept="image/png,image/jpeg,image/webp"><span>${s.logoDataUrl?'Replace school logo':'Add school logo'}</span></label>${s.logoDataUrl?'<button type="button" class="tt99-linkbtn" id="tt99-remove-logo">Remove logo</button>':''}<small>PNG, JPG or WebP. Resized locally for print.</small></div>
+        <div><label class="tt99-upload"><input id="tt99-logo" type="file" accept="image/png,image/jpeg,image/webp"><span>${s.logoDataUrl?'Replace school logo':'Add school logo'}</span></label>${s.logoDataUrl?'<button type="button" class="tt99-linkbtn" id="tt99-remove-logo">Remove logo</button>':''}<small>PNG, JPG or WebP.</small></div>
       </div>
     </section>`;
   }
@@ -661,7 +661,7 @@
   function renderPaper(){
     const sheet=state.sheets[state.previewVariant];
     if(!sheet)return '';
-    if(!(state.rules.families||[]).length)return `<div class="tt99-empty-preview"><div><b>Your worksheet is empty by design.</b><span>Open a category on the left and select the exact topics you want. Nothing is preselected.</span></div></div>`;
+    if(!(state.rules.families||[]).length)return `<div class="tt99-empty-preview"><div><b>Your worksheet is empty.</b><span>Open a category on the left and select the exact topics you want. Nothing is preselected.</span></div></div>`;
     let qrMatrix=null;
     if(state.previewAnswers&&state.includeAnswerQr){
       try{qrMatrix=qrResultForVariant(state.previewVariant)?.matrix||null;}catch(err){qrMatrix=null;}

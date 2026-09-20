@@ -93,7 +93,7 @@
           '<div id="tt99-practice-status" class="tt99-practice-status" role="status" aria-live="polite" hidden></div>'+
 
         '</section>'+
-        '<div class="tt99-practice-foot">99 Club Studio · No sign-in required · <a href="/privacy/" target="_blank" rel="noopener">Privacy</a></div>'+
+        '<div class="tt99-practice-foot">99 Club Studio · <a href="/privacy/" target="_blank" rel="noopener">Privacy</a></div>'+
       '</main>';
 
     root.querySelector('#tt99-practice-download').addEventListener('click',downloadPractice);

@@ -730,6 +730,8 @@ try{
   if(!read('_pages/privacy.md').includes('plain-English summary'))fail('public-copy','Privacy page is not using the public-facing summary');
   if(!read('_pages/99-club-schools.md').includes('Practical guidance for adding 99 Club Studio practice'))fail('public-copy','School integration page has regressed to older intro copy');
   if(publicCopy.includes('99 Studio')||publicCopy.includes('99 STUDIO'))fail('public-copy','Public copy has shortened the 99 Club Studio brand');
+  if(/\bby design\b/i.test(publicCopy))fail('public-copy','Public copy has regressed to slogan-style “by design” wording');
+  if(/No sign-in required|No account is needed/i.test(publicCopy))fail('public-copy','Public copy has regressed to repetitive privacy/account slogans');
   ok('public-copy','Public pages and major dynamic UI surfaces avoid internal/developer wording');
 }catch(e){fail('public-copy','Public copy audit threw',e.stack||e.message);}
 
