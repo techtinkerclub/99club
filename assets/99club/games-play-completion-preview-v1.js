@@ -45,12 +45,15 @@ function sanitiseClone(node,structureValues=[]){
   node.style.removeProperty('--tt99-context-pad-space');
   clearTransient(node);
 }
-function innerSize(el){
+function fitLimits(el){
   const cs=getComputedStyle(el);
   const px=v=>Number.parseFloat(v)||0;
+  const padX=px(cs.paddingLeft)+px(cs.paddingRight),padY=px(cs.paddingTop)+px(cs.paddingBottom);
+  const compact=global.innerWidth<=520;
+  const maxBoxHeight=Math.min(global.innerHeight*(compact?.42:.46),compact?360:460);
   return {
-    width:Math.max(1,el.clientWidth-px(cs.paddingLeft)-px(cs.paddingRight)),
-    height:Math.max(1,el.clientHeight-px(cs.paddingTop)-px(cs.paddingBottom))
+    width:Math.max(1,el.clientWidth-padX),
+    height:Math.max(96,maxBoxHeight-padY)
   };
 }
 function fitSnapshot(solution){
@@ -69,7 +72,7 @@ function fitSnapshot(solution){
 
   requestAnimationFrame(()=>{
     if(!document.contains(solution)||!document.contains(clone))return;
-    const limits=innerSize(board);
+    const limits=fitLimits(board);
     const rect=clone.getBoundingClientRect();
     const naturalWidth=Math.max(1,Math.ceil(clone.scrollWidth||0),Math.ceil(rect.width||0));
     const naturalHeight=Math.max(1,Math.ceil(clone.scrollHeight||0),Math.ceil(rect.height||0));
