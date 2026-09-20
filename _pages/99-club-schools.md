@@ -22,7 +22,10 @@ sitemap: true
 
         <div class="tt99-guide-note"><strong>You do not need to be a web developer.</strong> The safest approach is to use the simplest option your school website editor supports. Nothing in 99 Club Studio changes the school website automatically: an authorised member of staff must add or replace the link/card/widget in the school website editor and publish the page.</div>
 
+        <div class="tt99-guide-note"><strong>Want to see the three options before choosing?</strong> Open the <a href="/demo/"><strong>fictional school website demo →</strong></a> to compare ordinary buttons, visual cards and embedded widgets side by side.</div>
+
         <nav class="tt99-guide-nav" aria-label="School website integration help topics">
+          <a href="/demo/">Live demo ↗</a>
           <a href="#choose">Choose a method</a>
           <a href="#before">Before you start</a>
           <a href="#plain-link">Plain link / school button</a>
