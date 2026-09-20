@@ -257,7 +257,7 @@ sitemap: true
             <li><strong>Website card HTML</strong> if the editor supports custom HTML but you do not need a multi-choice panel.</li>
             <li><strong>Widget</strong> if the editor supports iframe/embed code and you want several school-selected choices in one tidy panel.</li>
           </ol>
-          <p>All four routes lead to the same locked parent-practice system. The difference is only how the choices are presented on the school website.</p>
+          <p>All four routes lead to the same school-selected parent-practice system. The difference is only how the choices are presented on the school website.</p>
         </section>
 
         <div class="tt99-guide-note"><strong>One final reassurance:</strong> if you make a mistake while experimenting in the Widget Builder, you have not changed the school website. Nothing becomes live until an authorised website editor deliberately replaces/pastes the embed and publishes the school page.</div>
