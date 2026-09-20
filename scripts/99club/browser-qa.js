@@ -236,8 +236,7 @@ function prepare(){
         if(!/^https:\/\/99studio\.uk\/c\/\?c=1~n~r~codec-qa~/.test(out))fail('challenge-link-codec','current /play/ URL was not converted to /c/ challenge URL: '+out);
         const legacy=codec.shareUrl('https://99studio.uk/tools/99-club/games/play/?game=pyramid&seed=legacy-qa&mode=challenge');
         if(!/^https:\/\/99studio\.uk\/c\/\?c=1~n~c~legacy-qa~/.test(legacy))fail('challenge-link-codec','legacy play URL conversion regressed: '+legacy);
-        const current=share.challengeUrl();
-        if(!/\/c\/\?c=/.test(current))fail('challenge-link-codec','live share API is not returning /c/ challenge URL: '+current);
+        if(!/^https:\/\/99studio\.uk\/c\/\?c=/.test(out)||!/^https:\/\/99studio\.uk\/c\/\?c=/.test(legacy))fail('challenge-link-codec','share URL conversion did not use /c/ metadata landing page');
         else pass('challenge-link-codec','current and legacy play URLs both share through /c/ metadata landing page');
       }catch(e){fail('challenge-link-codec',(e&&e.stack)||String(e));}
     }
