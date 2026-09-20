@@ -39,7 +39,6 @@ const widgetContext={
   onlineGameCount:cfg.games?.length||0
 };
 if(sourceOrigin){
-  SU?.registerSchool?.(cfg.school?.name||'');
   SU?.trackWidget?.('widget_open',widgetContext);
 }
 
