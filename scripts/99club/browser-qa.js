@@ -207,6 +207,27 @@ function prepare(){
         else pass('answer-reveal-ui','two-step reveal, cancel path and no-score behaviour verified');
       }catch(e){fail('answer-reveal-ui',(e&&e.stack)||String(e));}
     }
+    async function sharePanelTest(){
+      try{
+        const api=window.TT99PlayShareV156;
+        if(!api?.open)return fail('share-panel','share API missing');
+        await api.open('challenge');await sleep(40);
+        const dialog=document.querySelector('.tt99-share-dialog'),panel=dialog?.querySelector('.tt99-share-panel');
+        if(!dialog||dialog.hidden||!panel)return fail('share-panel','share panel did not open');
+        const challenge=dialog.querySelector('[data-share-challenge]'),card=dialog.querySelector('[data-share-card-native]'),save=dialog.querySelector('[data-download]'),copy=dialog.querySelector('[data-copy-link]');
+        if(!challenge||!card||!save||!copy)fail('share-panel','simplified share actions are incomplete');
+        if(dialog.querySelector('[data-social],.tt99-share-social'))fail('share-panel','legacy social-network button grid is still present');
+        const labels=[challenge?.textContent,card?.textContent,save?.textContent,copy?.textContent].join('|');
+        if(!/Share challenge/.test(labels)||!/Share card/.test(labels)||!/Save image/.test(labels)||!/Copy link/.test(labels))fail('share-panel','share action labels are not the simplified set');
+        const r=panel.getBoundingClientRect();
+        if(r.left<-1||r.right>window.innerWidth+1)fail('share-panel','share panel escapes the viewport');
+        dialog.hidden=true;window.dispatchEvent(new Event('pageshow'));await sleep(20);
+        if(dialog.hidden)fail('share-panel','return/resume did not restore the still-open share panel');
+        dialog.querySelector('.tt99-share-close')?.click();await sleep(10);
+        if(!dialog.hidden)fail('share-panel','close control did not dismiss the share panel');
+        else pass('share-panel','native share actions, mobile containment and return-to-panel behaviour verified');
+      }catch(e){fail('share-panel',(e&&e.stack)||String(e));}
+    }
     async function completionSplashFitTest(){
       try{
         const board=document.getElementById('tt99-play-board'),popup=document.getElementById('tt99-play-complete'),api=window.TT99CompletionPreview;
@@ -231,7 +252,7 @@ function prepare(){
       }catch(e){fail('completion-splash',(e&&e.stack)||String(e));}
     }
     async function run(){
-      try{await sleep(500);await genericAdapterTests();await brokenCalcTest();await colourFillTest();await perimeterDirectTest();await alphameticsVarietyTest();await groupedLibraryTest();await drawerTest();await sumGridContainmentTest();await hintPopupTest();await answerRevealFlowTest();await completionSplashFitTest();}
+      try{await sleep(500);await genericAdapterTests();await brokenCalcTest();await colourFillTest();await perimeterDirectTest();await alphameticsVarietyTest();await groupedLibraryTest();await drawerTest();await sumGridContainmentTest();await hintPopupTest();await answerRevealFlowTest();await sharePanelTest();await completionSplashFitTest();}
       catch(e){fail('runner',(e&&e.stack)||String(e));}
       finally{finish();}
     }
