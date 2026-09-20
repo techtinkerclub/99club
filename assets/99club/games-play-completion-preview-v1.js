@@ -62,20 +62,16 @@ function fitSnapshot(solution){
   const clone=frame?.querySelector('.tt99-play-complete-snapshot');
   if(!board||!frame||!clone)return;
 
-  clone.style.removeProperty('transform');
-  clone.style.removeProperty('transform-origin');
-  clone.style.removeProperty('position');
-  clone.style.removeProperty('left');
-  clone.style.removeProperty('top');
-  frame.style.removeProperty('width');
-  frame.style.removeProperty('height');
-
   requestAnimationFrame(()=>{
     if(!document.contains(solution)||!document.contains(clone))return;
     const limits=fitLimits(board);
     const rect=clone.getBoundingClientRect();
-    const naturalWidth=Math.max(1,Math.ceil(clone.scrollWidth||0),Math.ceil(rect.width||0));
-    const naturalHeight=Math.max(1,Math.ceil(clone.scrollHeight||0),Math.ceil(rect.height||0));
+    let naturalWidth=Number(clone.dataset.tt99NaturalWidth)||0;
+    let naturalHeight=Number(clone.dataset.tt99NaturalHeight)||0;
+    if(!(naturalWidth>0))naturalWidth=Math.max(1,Math.ceil(clone.scrollWidth||0),Math.ceil(rect.width||0));
+    if(!(naturalHeight>0))naturalHeight=Math.max(1,Math.ceil(clone.scrollHeight||0),Math.ceil(rect.height||0));
+    clone.dataset.tt99NaturalWidth=String(naturalWidth);
+    clone.dataset.tt99NaturalHeight=String(naturalHeight);
     const scale=Math.min(1,limits.width/naturalWidth,limits.height/naturalHeight);
     const scaledWidth=Math.max(1,Math.floor(naturalWidth*scale));
     const scaledHeight=Math.max(1,Math.floor(naturalHeight*scale));
