@@ -62,6 +62,11 @@
     return selectedEngines().map(id=>G.ENGINES[id]?.title||id);
   }
 
+  function renderGameTypes(names){
+    if(names.length<=5)return '<div class="tt99-puzzle-practice-list" aria-label="Puzzle types">'+names.map(name=>'<span>'+esc(name)+'</span>').join('')+'</div>';
+    return '<details class="tt99-puzzle-practice-more"><summary>View all '+esc(names.length)+' puzzle types</summary><p>'+names.map(esc).join(' · ')+'</p></details>';
+  }
+
   function render(){
     const s=config.settings,names=gameNames(),activityCount=Number(s.sheets||1)*Number(s.activitiesPerSheet||1);
     root.innerHTML=
@@ -80,7 +85,7 @@
             '<div class="tt99-practice-detail"><b>'+esc(activityCount)+'</b><span>activities</span></div>'+
             '<div class="tt99-practice-detail"><b>'+esc(names.length)+'</b><span>puzzle types</span></div>'+
           '</div>'+
-          '<div class="tt99-puzzle-practice-list" aria-label="Puzzle types">'+names.map(name=>'<span>'+esc(name)+'</span>').join('')+'</div>'+
+          renderGameTypes(names)+
           '<p class="tt99-puzzle-practice-topics">'+esc(topicLabel())+'</p>'+
           '<button type="button" id="tt99-puzzle-practice-download" class="tt99-practice-download">Download a new puzzle pack + answers</button>'+
           '<p class="tt99-practice-note">Every download creates fresh puzzles using the same fixed school-selected settings.</p>'+
