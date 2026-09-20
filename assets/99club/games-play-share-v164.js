@@ -1,4 +1,4 @@
-/* 99 Club Studio · result cards + native challenge sharing v1.82 */
+/* 99 Club Studio · result cards + native challenge sharing v1.83 */
 (function(global){
 'use strict';
 const Codec=global.TT99PlayShareCodec,QR=global.TT99PlayQR;if(!Codec||!QR)return;
@@ -35,10 +35,10 @@ function applyPlatformShareCopy(){
   if(!dialog)return;
   const ios=isIOSShareTarget(),intro=dialog.querySelector('.tt99-share-action-intro p'),primary=dialog.querySelector('[data-share-card-link]'),secondary=dialog.querySelector('[data-share-card-native]'),note=dialog.querySelector('.tt99-share-note');
   if(ios){
-    if(primary)primary.textContent='Share card';
-    if(secondary)secondary.textContent='Copy caption + link';
-    if(intro)intro.textContent='On iPhone, share the selected card as the image. 99 Studio copies a ready caption and exact puzzle link for you to paste into the post.';
-    if(note)note.textContent='Facebook and X on iPhone can drop an attached image when a URL is shared with it. This workaround keeps the card image and gives you the caption + puzzle link to paste into the post.';
+    if(primary)primary.textContent='Share challenge';
+    if(secondary)secondary.textContent='Share card';
+    if(intro)intro.textContent='On iPhone, share the exact puzzle link cleanly, or send the selected card as an image on its own.';
+    if(note)note.textContent='Facebook and X decide how link previews look. “Share challenge” sends text + the puzzle link only; “Share card” sends the image only.';
   }else{
     if(primary)primary.textContent='Share card + link';
     if(secondary)secondary.textContent='Share image only';
@@ -66,13 +66,9 @@ async function shareCardWithLink(){
   const file=currentShareFile();
 
   if(isIOSShareTarget()){
-    const copied=copyTextSync(captionWithLink());
-    const imageData={title:`99 Studio · ${title()}`,files:[file]};
-    const canFiles=typeof navigator.canShare!=='function'||navigator.canShare({files:[file]});
-    if(!canFiles){downloadCurrent();return;}
-    status(copied?'Caption + puzzle link copied. Choose Facebook/X, then paste into the post text.':'Sharing the card image. Use Copy link if you also want the puzzle URL.');
-    try{await navigator.share(imageData);}
-    catch(err){if(err?.name!=='AbortError')status('Could not share the card image from this browser. You can save the PNG instead.','warn');}
+    const linkData={title:`99 Studio · ${title()}`,text:cardCaption(),url:currentUrl||challengeUrl()};
+    try{await navigator.share(linkData);}
+    catch(err){if(err?.name!=='AbortError')status('Could not share the puzzle link from this browser. You can use Copy link instead.','warn');}
     return;
   }
 
@@ -93,8 +89,7 @@ async function shareCard(){
   const data={title:`99 Studio · ${title()}`,files:[file]};
   try{await navigator.share(data);}catch(err){if(err?.name!=='AbortError')status('Could not share the image from this browser. You can save the PNG instead.','warn');}
 }
-function copyCaptionWithLink(){return copyText(captionWithLink()).then(()=>status('Caption + puzzle link copied. Paste it into your post text.')).catch(()=>status('Could not copy the caption and puzzle link in this browser.','warn'));}
-function secondaryShareAction(){return isIOSShareTarget()?copyCaptionWithLink():shareCard();}
+function secondaryShareAction(){return shareCard();}
 function copyCompact(){const link=challengeUrl();return copyText(link).then(()=>status('Short challenge link copied. Anyone opening it gets the same puzzle.')).catch(()=>status('Could not copy the challenge link in this browser.','warn'));}
 function injectCompletion(){const box=document.getElementById('tt99-play-complete');if(!box||box.hidden)return;const actions=box.querySelector('.tt99-play-complete-actions');if(!actions)return;setText(actions.querySelector('[data-play-share]'),'Copy puzzle link');actions.querySelectorAll('[data-share-card],[data-challenge-card]').forEach(el=>el.remove());if(actions.querySelector('[data-share-puzzle]'))return;const share=document.createElement('button');share.type='button';share.className='tt99-secondary';share.dataset.sharePuzzle='1';share.textContent='Share this puzzle';share.addEventListener('click',()=>renderDialog('solved'));actions.append(share);}
 let raf=0;function schedule(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;injectCompletion();setText(document.getElementById('tt99-play-share'),'Copy puzzle link');});}
@@ -104,5 +99,5 @@ function restoreOpenDialog(){if(!shareOpenRequested||!dialog)return;dialog.hidde
 global.addEventListener('pageshow',restoreOpenDialog);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')restoreOpenDialog();});
 const playRoot=document.getElementById('tt99-play-root');if(playRoot&&global.MutationObserver)new MutationObserver(schedule).observe(playRoot,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
-global.TT99PlayShareV156={version:'1.82',open:renderDialog,close:closeDialog,challengeUrl,makeCard,shareCardWithLink,shareCard,cardWithLinkPayload,captionWithLink,isIOSShareTarget};
+global.TT99PlayShareV156={version:'1.83',open:renderDialog,close:closeDialog,challengeUrl,makeCard,shareCardWithLink,shareCard,cardWithLinkPayload,isIOSShareTarget};
 })(typeof globalThis!=='undefined'?globalThis:this);
