@@ -207,6 +207,26 @@ function prepare(){
         else pass('answer-reveal-ui','two-step reveal, cancel path and no-score behaviour verified');
       }catch(e){fail('answer-reveal-ui',(e&&e.stack)||String(e));}
     }
+    async function completionShareEntryTest(){
+      try{
+        const popup=document.getElementById('tt99-play-complete');
+        if(!popup)return fail('completion-share-entry','completion popup missing');
+        popup.hidden=false;
+        popup.innerHTML='<div class="tt99-play-complete-card"><div><div class="tt99-play-complete-actions"><button type="button" data-play-share>Copy puzzle link</button></div></div></div>';
+        window.TT99PlayShareV156?.open?.('solved');
+        window.TT99PlayShareV156?.close?.();
+        document.dispatchEvent(new Event('visibilitychange'));
+        await sleep(20);
+        const actions=popup.querySelector('.tt99-play-complete-actions');
+        const entries=actions?.querySelectorAll('[data-share-puzzle]')||[];
+        if(entries.length!==1)fail('completion-share-entry','completion splash should have exactly one share-panel entry');
+        if(actions?.querySelector('[data-share-card],[data-challenge-card]'))fail('completion-share-entry','legacy duplicate share entry remains');
+        if(entries[0]?.textContent!=='Share this puzzle')fail('completion-share-entry','single share entry has the wrong label');
+        if(actions?.querySelector('[data-play-share]')?.textContent!=='Copy puzzle link')fail('completion-share-entry','copy action still uses old challenge-link wording');
+        else pass('completion-share-entry','completion splash uses one Share this puzzle entry plus Copy puzzle link');
+        popup.hidden=true;popup.innerHTML='';
+      }catch(e){fail('completion-share-entry',(e&&e.stack)||String(e));}
+    }
     async function sharePanelTest(){
       try{
         const api=window.TT99PlayShareV156;
@@ -252,7 +272,7 @@ function prepare(){
       }catch(e){fail('completion-splash',(e&&e.stack)||String(e));}
     }
     async function run(){
-      try{await sleep(500);await genericAdapterTests();await brokenCalcTest();await colourFillTest();await perimeterDirectTest();await alphameticsVarietyTest();await groupedLibraryTest();await drawerTest();await sumGridContainmentTest();await hintPopupTest();await answerRevealFlowTest();await sharePanelTest();await completionSplashFitTest();}
+      try{await sleep(500);await genericAdapterTests();await brokenCalcTest();await colourFillTest();await perimeterDirectTest();await alphameticsVarietyTest();await groupedLibraryTest();await drawerTest();await sumGridContainmentTest();await hintPopupTest();await answerRevealFlowTest();await completionShareEntryTest();await sharePanelTest();await completionSplashFitTest();}
       catch(e){fail('runner',(e&&e.stack)||String(e));}
       finally{finish();}
     }
