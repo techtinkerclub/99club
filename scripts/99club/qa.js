@@ -553,7 +553,7 @@ try{
   const playCore=read('assets/99club/games-play-core-v2.js');
   const widgetBuilder=read('assets/99club/widget-builder.js');
   const widgetRuntime=read('assets/99club/widget-runtime.js');
-  const widgetPage=read('_pages/99-club-widget.md');
+  const widgetPage=read('_pages/99-club-widget.html');
   const widgetBuilderPage=read('_pages/99-club-widget-builder.md');
   const analyticsDoc=read('docs/ANALYTICS_SETUP.md');
   const privacy=read('_pages/privacy.md');
