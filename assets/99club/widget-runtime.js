@@ -74,7 +74,7 @@ root.innerHTML='<section class="ttw-shell ttw-shell--'+esc(cfg.widgetType)+'" ar
   (((isClub||cfg.widgetType==='combined')&&cfg.selectedClubs.length)?'<div class="ttw-panel" id="ttw-panel-clubs" role="tabpanel" '+(showTabs?'aria-labelledby="ttw-tab-clubs" ':'')+(defaultTab==='clubs'?'':'hidden')+'><div class="ttw-intro"><h2>99 Club practice</h2><p>Choose the level your child is working on.</p></div><div class="ttw-clubs">'+clubHtml+'</div></div>':'')+
   (((isGames||cfg.widgetType==='combined')&&cfg.puzzles.length)?'<div class="ttw-panel" id="ttw-panel-puzzles" role="tabpanel" '+(showTabs?'aria-labelledby="ttw-tab-puzzles" ':'')+(defaultTab==='puzzles'?'':'hidden')+'><div class="ttw-intro"><h2>Printable puzzle packs</h2><p>Each download makes a fresh pack and answers.</p></div><div class="ttw-features">'+puzzleHtml+'</div></div>':'')+
   (((isGames||cfg.widgetType==='combined')&&cfg.games.length)?'<div class="ttw-panel" id="ttw-panel-games" role="tabpanel" '+(showTabs?'aria-labelledby="ttw-tab-games" ':'')+(defaultTab==='games'?'':'hidden')+'><div class="ttw-intro"><h2>Play online</h2><p>Games open in a new tab.</p></div><div class="ttw-games">'+gameHtml+'</div></div>':'')+
-  '<div class="ttw-foot"><span>School-selected practice · powered by 99 Studio</span><a href="/privacy/" target="_blank" rel="noopener">Privacy</a></div></section>';
+  '<div class="ttw-foot"><span>School-selected practice · powered by 99 Club Studio</span><a href="/privacy/" target="_blank" rel="noopener">Privacy</a></div></section>';
 
 root.querySelectorAll('[data-widget-item]').forEach(link=>link.addEventListener('click',()=>{
   if(sourceOrigin)SU?.trackWidget?.('widget_item_open',{

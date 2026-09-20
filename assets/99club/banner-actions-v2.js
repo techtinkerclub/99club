@@ -22,7 +22,7 @@ function kofiMarkup(){return `<div id="tt99-kofi-modal" class="tt99-kofi-modal" 
   <button type="button" class="tt99-kofi-backdrop" data-kofi-close aria-label="Close Ko-fi support panel"></button>
   <section class="tt99-kofi-card" role="dialog" aria-modal="true" aria-labelledby="tt99-kofi-title">
     <button type="button" class="tt99-kofi-close" data-kofi-close aria-label="Close Ko-fi support panel">×</button>
-    <div class="tt99-kofi-heading"><img src="/assets/99club/images/kofi-cup.png?v=19.4" alt="" aria-hidden="true"><div><span>Support 99 Studio</span><h2 id="tt99-kofi-title">Buy me a coffee</h2></div></div>
+    <div class="tt99-kofi-heading"><img src="/assets/99club/images/kofi-cup.png?v=19.4" alt="" aria-hidden="true"><div><span>Support 99 Club Studio</span><h2 id="tt99-kofi-title">Buy me a coffee</h2></div></div>
     <p>Support the free classroom tools without leaving this page. The payment panel below is provided securely by Ko-fi.</p>
     <div id="tt99-kofi-panel" class="tt99-kofi-panel"><div class="tt99-kofi-loading">Loading Ko-fi…</div></div>
     <div class="tt99-kofi-fallback">If the panel does not load, <a href="${KOFI_URL}" target="_blank" rel="noopener">open Ko-fi in a new tab</a>.</div>
@@ -33,8 +33,8 @@ function contactMarkup(){return `<div id="tt99-contact-modal" class="tt99-contac
   <button type="button" class="tt99-contact-backdrop" data-contact-close aria-label="Close contact form"></button>
   <section class="tt99-contact-card" role="dialog" aria-modal="true" aria-labelledby="tt99-contact-title">
     <button type="button" class="tt99-contact-close" data-contact-close aria-label="Close contact form">×</button>
-    <span class="tt99-contact-kicker">99 Studio</span><h2 id="tt99-contact-title">Contact</h2>
-    <p>Questions, feedback or something not working? Send me a message about 99 Studio.</p>
+    <span class="tt99-contact-kicker">99 Club Studio</span><h2 id="tt99-contact-title">Contact</h2>
+    <p>Questions, feedback or something not working? Send me a message about 99 Club Studio.</p>
     <form id="tt99-contact-form">
       <label><span>Name <small>(optional)</small></span><input id="tt99-contact-name" name="name" type="text" maxlength="80" autocomplete="name"></label>
       <label><span>Your email</span><input id="tt99-contact-email" name="email" type="email" maxlength="160" autocomplete="email" required placeholder="So I can reply"></label>
@@ -73,7 +73,7 @@ function bindContact(modal){
     const endpoint=['https://formsubmit.co/ajax/','techtinkerclub','@','gmail.com'].join(''),original=send?.textContent||'Send message';
     if(status){status.className='tt99-contact-status';status.textContent='';}if(send){send.disabled=true;send.textContent='Sending…';}
     try{
-      const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({name:name||'Not provided',email:reply,_replyto:reply,message,_subject:`99 Studio contact${name?` — ${name}`:''}`,_template:'table',_url:location.origin+location.pathname})});
+      const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({name:name||'Not provided',email:reply,_replyto:reply,message,_subject:`99 Club Studio contact${name?` — ${name}`:''}`,_template:'table',_url:location.origin+location.pathname})});
       let data=null;try{data=await response.json();}catch(_err){}
       if(!response.ok||(data&&(data.success===false||data.success==='false')))throw new Error((data&&data.message)||`Contact form returned ${response.status}`);
       form.reset();if(status){status.className='tt99-contact-status is-success';status.textContent='Thanks — your message was submitted.';}
@@ -91,7 +91,7 @@ function ensureModals(){
   bindKofi(kofi);bindContact(contact);return root;
 }
 
-function ensureKofiPanel(root){const panel=root.querySelector('#tt99-kofi-panel');if(!panel||panel.querySelector('iframe'))return;const iframe=document.createElement('iframe');iframe.id='tt99-kofi-iframe';iframe.className='tt99-kofi-iframe';iframe.src='https://ko-fi.com/bogdan2618/?hidefeed=true&widget=true&embed=true&preview=true';iframe.title='Support 99 Studio on Ko-fi';iframe.loading='eager';iframe.referrerPolicy='no-referrer';iframe.setAttribute('allow','payment');iframe.addEventListener('load',()=>panel.querySelector('.tt99-kofi-loading')?.remove(),{once:true});panel.appendChild(iframe);}
+function ensureKofiPanel(root){const panel=root.querySelector('#tt99-kofi-panel');if(!panel||panel.querySelector('iframe'))return;const iframe=document.createElement('iframe');iframe.id='tt99-kofi-iframe';iframe.className='tt99-kofi-iframe';iframe.src='https://ko-fi.com/bogdan2618/?hidefeed=true&widget=true&embed=true&preview=true';iframe.title='Support 99 Club Studio on Ko-fi';iframe.loading='eager';iframe.referrerPolicy='no-referrer';iframe.setAttribute('allow','payment');iframe.addEventListener('load',()=>panel.querySelector('.tt99-kofi-loading')?.remove(),{once:true});panel.appendChild(iframe);}
 function openKofi(opener){if(!supportEnabled())return;const root=ensureModals(),modal=root.querySelector('#tt99-kofi-modal');if(!modal)return;lastKofiOpener=opener||document.activeElement;modal.hidden=false;document.body.classList.add('tt99-kofi-open');ensureKofiPanel(root);setTimeout(()=>modal.querySelector('.tt99-kofi-close')?.focus(),0);}
 function openContact(opener){const root=ensureModals(),modal=root.querySelector('#tt99-contact-modal');if(!modal)return;lastContactOpener=opener||document.activeElement;modal.hidden=false;document.body.classList.add('tt99-contact-open');setTimeout(()=>modal.querySelector('#tt99-contact-name')?.focus(),0);}
 

@@ -93,7 +93,7 @@
           '<div id="tt99-practice-status" class="tt99-practice-status" role="status" aria-live="polite" hidden></div>'+
 
         '</section>'+
-        '<div class="tt99-practice-foot">99 Studio · No sign-in required · <a href="/privacy/" target="_blank" rel="noopener">Privacy</a></div>'+
+        '<div class="tt99-practice-foot">99 Club Studio · No sign-in required · <a href="/privacy/" target="_blank" rel="noopener">Privacy</a></div>'+
       '</main>';
 
     root.querySelector('#tt99-practice-download').addEventListener('click',downloadPractice);
@@ -102,9 +102,9 @@
   function renderError(message){
     root.innerHTML=
       '<main class="tt99-practice-shell">'+teacherPreviewBar()+'<section class="tt99-practice-card tt99-practice-error">'+
-      '<span class="tt99-practice-kicker">99 Studio</span>'+
+      '<span class="tt99-practice-kicker">99 Club Studio</span>'+
       '<h1>This practice link cannot be opened</h1>'+
-      '<p class="tt99-practice-summary">'+esc(message||'The link is incomplete or uses a format this version of 99 Studio does not recognise.')+'</p>'+
+      '<p class="tt99-practice-summary">'+esc(message||'The link is incomplete or uses a format this version of 99 Club Studio does not recognise.')+'</p>'+
       '</section></main>';
   }
 

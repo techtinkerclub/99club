@@ -411,7 +411,7 @@
     root.innerHTML = `
       <div class="tt99-shell tt99-shell--custom">
         <section class="tt99-custom-hero" aria-labelledby="tt99-custom-title">
-          <div><span class="tt99-eyebrow">99 Studio</span><div class="tt99-custom-title-row"><h1 id="tt99-custom-title">Custom Worksheets</h1><span class="tt99-beta-pill">Beta</span></div><p>Build targeted starters, homework, quizzes and retrieval practice by choosing the topics and question types you need.</p></div>
+          <div><span class="tt99-eyebrow">99 Club Studio</span><div class="tt99-custom-title-row"><h1 id="tt99-custom-title">Custom Worksheets</h1><span class="tt99-beta-pill">Beta</span></div><p>Build targeted starters, homework, quizzes and retrieval practice by choosing the topics and question types you need.</p></div>
           <div class="tt99-custom-hero-actions">
             <a class="tt99-secondary tt99-custom-back" href="/">← Back to 99 Club</a><a class="tt99-secondary tt99-custom-back" href="/games/">Games &amp; puzzles</a>
           </div>
