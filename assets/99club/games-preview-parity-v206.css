@@ -509,6 +509,26 @@
     margin-bottom:0!important;
   }
 
+  /* Square Search's PDF target is a compact text line, not the larger
+     interactive banner. Match that footprint in a two-activity preview. */
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-extra-squaresearch .tt99-extra-search-target{
+    margin:2px 0 4px!important;
+    padding:3px 8px!important;
+    min-height:0!important;
+    border-radius:8px!important;
+    font-size:7px!important;
+    line-height:1.15!important;
+  }
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-extra-squaresearch .tt99-extra-search-target strong{
+    font-size:12px!important;
+    line-height:1!important;
+  }
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-extra-search-grid{
+    width:min(100%,210px)!important;
+    margin-top:2px!important;
+    margin-bottom:0!important;
+  }
+
   /* Binary / puzzle-pack grids use the same compact half-page footprint. */
   .tt99-game-paper .tt99-game-activities.count-2 .tt99-takuzu-grid{
     width:min(100%,258px)!important;

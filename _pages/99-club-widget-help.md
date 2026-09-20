@@ -143,6 +143,7 @@ sitemap: true
           <h3>Printable puzzle packs</h3>
           <p>A parent clicks the selected puzzle pack and sees a simple summary. When they press <strong>Download a new puzzle pack + answers</strong>, Studio generates fresh puzzles using the locked school-selected years, topics, engines and difficulty settings. Pressing again creates another fresh pack.</p>
           <p>The school therefore publishes one stable-looking choice, while families can generate repeated practice without the teacher uploading new PDFs every week.</p>
+          <div class="tt99-guide-note"><strong>What “locked” means:</strong> the normal parent page does not provide controls for changing the school-selected setup. The configuration carried in a public link/widget is encoded for transport, not encrypted or cryptographically signed. Someone who deliberately inspects and rebuilds a public token can create a different copy, but cannot change the version published on the school's website without authorised CMS access.</div>
         </section>
 
         <section id="update" class="tt99-guide-section tt99-guide-highlight">

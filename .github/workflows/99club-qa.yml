@@ -5,6 +5,16 @@ on:
     branches: [main]
     paths:
       - 'assets/99club/**'
+      - '_includes/**'
+      - '_layouts/**'
+      - '_config.yml'
+      - 'CNAME'
+      - 'manifest.webmanifest'
+      - 'sw.js'
+      - 'offline.html'
+      - 'Gemfile'
+      - 'package.json'
+      - 'package-lock.json'
       - '_pages/99-club-games*.md'
       - '_pages/99-club-practice.md'
       - '_pages/99-club-puzzle-practice.md'
@@ -22,6 +32,16 @@ on:
   pull_request:
     paths:
       - 'assets/99club/**'
+      - '_includes/**'
+      - '_layouts/**'
+      - '_config.yml'
+      - 'CNAME'
+      - 'manifest.webmanifest'
+      - 'sw.js'
+      - 'offline.html'
+      - 'Gemfile'
+      - 'package.json'
+      - 'package-lock.json'
       - '_pages/99-club-games*.md'
       - '_pages/99-club-practice.md'
       - '_pages/99-club-puzzle-practice.md'
@@ -67,6 +87,8 @@ jobs:
         run: node scripts/99club/qa.js
       - name: Run school widget QA
         run: node scripts/99club/widget-qa.js
+      - name: Run security and privacy regression checks
+        run: node scripts/99club/security-smoke.js
       - name: Upload QA report
         if: always()
         uses: actions/upload-artifact@v4

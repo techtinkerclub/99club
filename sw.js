@@ -1,8 +1,8 @@
-/* 99 Club Studio root-scope PWA service worker v1.1.16 */
+/* 99 Club Studio root-scope PWA service worker v1.1.17 */
 'use strict';
 
 const CACHE_PREFIX='tt99-studio-';
-const CACHE_NAME=CACHE_PREFIX+'v1.1.16';
+const CACHE_NAME=CACHE_PREFIX+'v1.1.17';
 const CORE_PAGES=[
   '/',
   '/games/',
@@ -14,12 +14,13 @@ const CORE_PAGES=[
   '/tools/99-club/custom/'
 ];
 const CORE_FILES=[
+  '/offline.html',
   '/manifest.webmanifest',
   '/tools/99-club/version.json',
   '/assets/99club/pwa/icon-192.png',
   '/assets/99club/pwa/icon-512.svg',
   '/assets/99club/pwa/pwa.css?v=5',
-  '/assets/99club/pwa/pwa-register.js?v=5'
+  '/assets/99club/pwa/pwa-register.js?v=7'
 ];
 
 function sameOriginAsset(ref){
@@ -68,26 +69,26 @@ self.addEventListener('activate',event=>{
   })());
 });
 
-async function networkFirst(request){
+async function networkFirstPage(request){
   const cache=await caches.open(CACHE_NAME);
   try{
     const response=await fetch(request);
     if(response&&response.ok)await cache.put(request,response.clone());
     return response;
   }catch(e){
-    return (await cache.match(request))||(await cache.match('/'))||Response.error();
+    return (await cache.match(request))||(await cache.match('/offline.html'))||Response.error();
   }
 }
 
-async function staleWhileRevalidate(request){
+async function networkFirstAsset(request){
   const cache=await caches.open(CACHE_NAME);
-  const cached=await cache.match(request);
-  const update=fetch(request).then(async response=>{
+  try{
+    const response=await fetch(request);
     if(response&&response.ok)await cache.put(request,response.clone());
-    return response&&response.ok?response:null;
-  }).catch(()=>null);
-  if(cached){update.catch(()=>null);return cached;}
-  return (await update)||Response.error();
+    return response;
+  }catch(e){
+    return (await cache.match(request))||Response.error();
+  }
 }
 
 self.addEventListener('fetch',event=>{
@@ -97,13 +98,13 @@ self.addEventListener('fetch',event=>{
   if(url.origin!==self.location.origin)return;
 
   if(request.mode==='navigate'){
-    event.respondWith(networkFirst(request));
+    event.respondWith(networkFirstPage(request));
     return;
   }
 
   if(url.pathname.startsWith('/assets/99club/')||
      url.pathname==='/manifest.webmanifest'||
      url.pathname==='/tools/99-club/version.json'){
-    event.respondWith(staleWhileRevalidate(request));
+    event.respondWith(networkFirstAsset(request));
   }
 });

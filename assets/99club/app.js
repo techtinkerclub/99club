@@ -1007,6 +1007,7 @@
       iframe.src='https://ko-fi.com/bogdan2618/?hidefeed=true&widget=true&embed=true&preview=true';
       iframe.title='Support 99 Club Studio on Ko-fi';
       iframe.loading='eager';
+      iframe.referrerPolicy='no-referrer';
       iframe.setAttribute('allow','payment');
       iframe.addEventListener('load',()=>panel.querySelector('.tt99-kofi-loading')?.remove(),{once:true});
       panel.appendChild(iframe);
@@ -1085,7 +1086,7 @@
             message,
             _subject:`99 Club Studio contact${name?` — ${name}`:''}`,
             _template:'table',
-            _url:window.location.href
+            _url:location.origin+location.pathname
           })
         });
 
