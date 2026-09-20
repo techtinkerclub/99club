@@ -492,7 +492,7 @@
 
 /* v1.19 — post-99 extras registry + Help page visual parity */
 .tt99-guide .tt99-guide-action{display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;white-space:nowrap}
-.tt99-guide .tt99-guide-action:hover{text-decoration:none;transform:translateY(-1px)}
+.tt99-guide .tt99-guide-action:hover{text-decoration:none;transform:translateY(-1px)}.tt99-guide-hero-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;flex:0 0 auto}
 .tt99-post99-extras>details{margin:8px 0 9px;border:1px solid #d9e5e4;border-radius:10px;background:#fff;overflow:hidden}
 .tt99-post99-extras>details>summary{list-style:none;display:flex;align-items:center;gap:8px;padding:9px 10px;cursor:pointer;color:#435d62;font-size:.68rem;font-weight:850}
 .tt99-post99-extras>details>summary::-webkit-details-marker{display:none}
@@ -505,7 +505,7 @@
 .tt99-post99-extra-group>b{display:block;margin-bottom:5px;color:#657a7f;font-size:.59rem;text-transform:uppercase;letter-spacing:.045em}
 .tt99-post99-extra-group .tt99-family-chips{margin-top:0}
 .tt99-mental-note{background:#fbfdfc}
-@media(max-width:760px){.tt99-guide{padding:14px 10px 45px}.tt99-guide .tt99-guide-action{width:100%}}
+@media(max-width:760px){.tt99-guide{padding:14px 10px 45px}.tt99-guide-hero-actions{width:100%;justify-content:flex-start}.tt99-guide .tt99-guide-action{width:100%}}
 
 /* v1.19 final — hidden Custom route + exact Help/main shell parity */
 .tt99-page-main:has(.tt99-guide){width:96%!important;max-width:1500px!important;margin:0 auto!important}
