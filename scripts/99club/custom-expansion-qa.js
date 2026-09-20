@@ -8,15 +8,16 @@ require(path.join(ROOT,'assets/99club/custom-written-methods.js'));
 require(path.join(ROOT,'assets/99club/custom-reasoning.js'));
 require(path.join(ROOT,'assets/99club/custom-structured-problems.js'));
 require(path.join(ROOT,'assets/99club/custom-visual-reasoning.js'));
+require(path.join(ROOT,'assets/99club/custom-applied-visuals.js'));
 
-const W=global.TT99CustomWrittenMethods,R=global.TT99CustomReasoning,S=global.TT99CustomStructured,F=global.TT99CustomVisualReasoning;
+const W=global.TT99CustomWrittenMethods,R=global.TT99CustomReasoning,S=global.TT99CustomStructured,F=global.TT99CustomVisualReasoning,A=global.TT99CustomAppliedVisuals;
 const failures=[],passes=[];
 const fail=(area,msg)=>failures.push({area,msg});
 const pass=(area,msg)=>passes.push({area,msg});
 const num=s=>Number(String(s).replace(/,/g,''));
 const isPrime=n=>{n=Number(n);if(n<2||!Number.isInteger(n))return false;for(let d=2;d*d<=n;d++)if(n%d===0)return false;return true;};
 
-if(!W||!R||!S||!F)fail('load','Expansion modules did not load');
+if(!W||!R||!S||!F||!A)fail('load','Expansion modules did not load');
 else{
   for(const [kind,pool] of Object.entries(W.POOLS||{})){
     if(pool.length<20)fail(kind,`Pool too small: ${pool.length}`);
@@ -26,6 +27,7 @@ else{
   const rv=R.validate();if(!rv.ok)rv.errors.forEach(e=>fail('reasoning',e));else pass('reasoning','Pool/key baseline validation passed');
   const sv=S.validate();if(!sv.ok)sv.errors.forEach(e=>fail('structured',e));else pass('structured','Structured pool/key baseline validation passed');
   const fv=F.validate();if(!fv.ok)fv.errors.forEach(e=>fail('visual-reasoning',e));else pass('visual-reasoning','Visual-reasoning pool/key/net baseline validation passed');
+  const av=A.validate();if(!av.ok)av.errors.forEach(e=>fail('applied-visuals',e));else pass('applied-visuals','Applied-visual pool/key baseline validation passed');
 
   for(const item of R.POOLS.rounding_bounds||[]){
     const m=item.prompt.match(/rounds to ([\d,]+) to the nearest ([\d,]+).*?(smallest|largest)/i);
@@ -312,7 +314,45 @@ else{
   }
   pass('cube_net_reasoning','Cube nets independently folded and opposite faces checked');
 
-  const families=[...Object.keys(W.FAMILIES),...Object.keys(R.FAMILIES),...Object.keys(S.FAMILIES),...Object.keys(F.FAMILIES)];
+  for(const item of A.POOLS.measure_scales||[]){
+    const v=item.visual||{};
+    if(item.group==='jug_read'&&item.answer!==`${v.level} ml`)fail('measure_scales',`${item.key}: jug read mismatch`);
+    if(item.group==='jug_add_to'&&item.answer!==`${Number(v.target)-Number(v.level)} ml`)fail('measure_scales',`${item.key}: jug add mismatch`);
+    if(item.group==='ruler_read'&&item.answer!==`${v.value} cm`)fail('measure_scales',`${item.key}: ruler mismatch`);
+  }
+  pass('measure_scales','Jug and ruler answers independently checked');
+
+  for(const item of A.POOLS.missing_digit_calculations||[]){
+    const v=item.visual||{},digit=Number(item.answer);
+    if(!Number.isInteger(digit)||digit<0||digit>9){fail('missing_digit_calculations',`${item.key}: invalid answer digit`);continue;}
+    if(item.group==='addition_digit'){
+      const a=Number(String(v.aMasked).replace('□',String(digit)));if(a+Number(v.b)!==Number(v.result))fail('missing_digit_calculations',`${item.key}: addition mismatch`);
+    }else if(item.group==='subtraction_digit'){
+      const b=Number(String(v.bMasked).replace('□',String(digit)));if(Number(v.aMasked)-b!==Number(v.result))fail('missing_digit_calculations',`${item.key}: subtraction mismatch`);
+    }
+  }
+  pass('missing_digit_calculations','Missing digits independently substituted');
+
+  for(const item of A.POOLS.table_reasoning||[]){
+    const v=item.visual||{},hs=v.highlight||[];
+    if(hs.length!==2)continue;
+    const expected=item.group==='difference'?Math.abs(Number(v.values[hs[0]])-Number(v.values[hs[1]])):Number(v.values[hs[0]])+Number(v.values[hs[1]]);
+    if(num(item.answer)!==expected)fail('table_reasoning',`${item.key}: expected ${expected}`);
+  }
+  pass('table_reasoning','Table differences and totals independently recalculated');
+
+  for(const item of A.POOLS.coin_reasoning||[]){
+    const v=item.visual||{};
+    if(item.group==='coin_total'){
+      const p=(v.values||[]).reduce((s,n,k)=>s+Number(n)*Number(v.counts?.[k]||0),0),expected=p>=100?`£${(p/100).toFixed(2)}`:`${p}p`;
+      if(item.answer!==expected)fail('coin_reasoning',`${item.key}: expected ${expected}`);
+    }else if(item.group==='change'){
+      const paid=Number(v.values?.[0]),expected=paid-Number(v.price);if(item.answer!==`${expected}p`)fail('coin_reasoning',`${item.key}: change mismatch`);
+    }
+  }
+  pass('coin_reasoning','Coin totals and change independently recalculated');
+
+  const families=[...Object.keys(W.FAMILIES),...Object.keys(R.FAMILIES),...Object.keys(S.FAMILIES),...Object.keys(F.FAMILIES),...Object.keys(A.FAMILIES)];
   for(const family of families){
     const base=G.clone(G.OPEN_WORKSHEET_PRESET);base.mode='family_mix';base.questionCount=12;base.families=[family];base.familyWeights={[family]:1};base.progressionEnabled=false;
     let questions=[];try{questions=G.generateQuestions(base,`QA:${family}`);}catch(e){fail('generation',`${family}: ${e.stack||e.message}`);continue;}
@@ -326,9 +366,10 @@ else{
   for(const pool of Object.values(R.POOLS))for(const item of pool.filter(q=>q.visual).slice(0,3))try{R.renderReasoning(stub,0,0,420,180,item.visual,false);R.renderReasoning(stub,0,0,420,180,item.visual,true);}catch(e){fail('render-reasoning',`${item.key}: ${e.message}`);}
   for(const pool of Object.values(S.POOLS))for(const item of pool.filter(q=>q.visual).slice(0,3))try{S.renderStructured(stub,0,0,420,180,item.visual,false);S.renderStructured(stub,0,0,420,180,item.visual,true);}catch(e){fail('render-structured',`${item.key}: ${e.message}`);}
   for(const pool of Object.values(F.POOLS))for(const item of pool.filter(q=>q.visual).slice(0,3))try{F.renderFoundation(stub,0,0,420,180,item.visual,false);F.renderFoundation(stub,0,0,420,180,item.visual,true);}catch(e){fail('render-foundation',`${item.key}: ${e.message}`);}
+  for(const pool of Object.values(A.POOLS))for(const item of pool.filter(q=>q.visual).slice(0,3))try{A.renderApplied(stub,0,0,420,180,item.visual,false);A.renderApplied(stub,0,0,420,180,item.visual,true);}catch(e){fail('render-applied',`${item.key}: ${e.message}`);}
   pass('render','New visual renderers completed stub-canvas smoke tests');
 }
 const report={generatedAt:new Date().toISOString(),passes,failures};
 require('fs').writeFileSync(path.join(ROOT,'99club-custom-expansion-qa-report.json'),JSON.stringify(report,null,2));
 if(failures.length){console.error(JSON.stringify(report,null,2));process.exit(1);}
-console.log(`Custom expansion QA passed: ${passes.length} checks, ${Object.keys(W.POOLS).length+Object.keys(R.POOLS).length+Object.keys(S.POOLS).length+Object.keys(F.POOLS).length} families.`);
+console.log(`Custom expansion QA passed: ${passes.length} checks, ${Object.keys(W.POOLS).length+Object.keys(R.POOLS).length+Object.keys(S.POOLS).length+Object.keys(F.POOLS).length+Object.keys(A.POOLS).length} families.`);
