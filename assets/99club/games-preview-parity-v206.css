@@ -771,11 +771,10 @@
     overflow:hidden!important;
   }
   .tt99-game-paper .tt99-game-activities.count-2 .tt99-wheel-items.visual.items-4 .tt99-wheel-svg{
-    display:block!important;
-    width:100%!important;
+    width:auto!important;
     height:100%!important;
     max-width:100%!important;
-    max-height:100%!important;
+    max-height:none!important;
   }
 }
 
