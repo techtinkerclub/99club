@@ -127,6 +127,105 @@ else{
   }
   pass('ratio_coins','Coin ratios and money totals checked');
 
+  function pence(value){const m=String(value).match(/£(\d+)\.(\d{2})/);return m?Number(m[1])*100+Number(m[2]):NaN;}
+  function qaGcd(a,b){a=Math.abs(a);b=Math.abs(b);while(b){const t=b;b=a%b;a=t;}return a||1;}
+  function qaPrime(n){if(!Number.isInteger(n)||n<2)return false;for(let d=2;d*d<=n;d++)if(n%d===0)return false;return true;}
+
+  for(const item of S.POOLS.percentage_reasoning||[]){
+    if(item.group==='reverse_percentage'){
+      const m=item.prompt.match(/([\d.]+) is what percentage of ([\d.]+)/);if(!m){fail('percentage_reasoning',item.key);continue;}
+      const expected=Number(m[1])/Number(m[2])*100;if(String(item.answer)!==`${expected}%`)fail('percentage_reasoning',`${item.key}: expected ${expected}%`);
+    }else if(item.group==='percentage_count_validity'){
+      const m=item.prompt.match(/has (\d+) staff.*?exactly (\d+)%/);if(!m){fail('percentage_reasoning',item.key);continue;}
+      const exact=Number(m[1])*Number(m[2])/100;if(Number.isInteger(exact)||item.answer!=='No')fail('percentage_reasoning',`${item.key}: expected impossible whole-person claim`);
+    }else if(item.group==='repeated_percentage'){
+      const v=item.visual||{},expected=Number(v.start)*Math.pow(Number(v.p)/100,Number(v.steps));if(num(item.answer)!==expected)fail('percentage_reasoning',`${item.key}: expected ${expected}`);
+    }
+  }
+  pass('percentage_reasoning','Reverse, discrete-count and repeated-percentage modes recalculated');
+
+  for(const item of S.POOLS.ratio_proportion_reasoning||[]){
+    const v=item.visual||{};
+    if(item.group==='success_ratio'){
+      const m=item.prompt.match(/every (\d+) bulbs planted, (\d+) grow.*?(\d+) bulbs grew/);if(!m){fail('ratio_proportion_reasoning',item.key);continue;}
+      const expected=Number(m[3])/Number(m[2])*Number(m[1]);if(num(item.answer)!==expected)fail('ratio_proportion_reasoning',`${item.key}: expected ${expected}`);
+    }else if(item.group==='mass_equivalence'){
+      const expected=Number(v.smallCount)*Number(v.smallMass)/Number(v.largeCount);if(String(item.answer)!==`${expected} kg`)fail('ratio_proportion_reasoning',`${item.key}: expected ${expected} kg`);
+    }else if(item.group==='minimum_staff'){
+      const needed=Math.ceil(Number(v.students)/Number(v.per)),expected=Number(v.shown)>=needed?'Yes':'No';if(Number(v.needed)!==needed||item.answer!==expected)fail('ratio_proportion_reasoning',`${item.key}: staff ratio mismatch`);
+    }else if(item.group==='map_scale'){
+      const expected=v.reverse?`${Number(v.scale)*Number(v.mapCm)} km`:`${Number(v.mapCm)} cm`;if(item.answer!==expected)fail('ratio_proportion_reasoning',`${item.key}: expected ${expected}`);
+    }
+  }
+  pass('ratio_proportion_reasoning','Success ratios, mass equivalence, staffing and map scales checked');
+
+  for(const item of S.POOLS.money_multi_step||[]){
+    if(item.group==='reverse_remaining_fraction'){
+      const m=item.prompt.match(/spent £(\d+\.\d{2}).*?£(\d+\.\d{2}).*?(\d+)\/(\d+) of the original money was left/);if(!m){fail('money_multi_step',item.key);continue;}
+      const spent=Math.round(Number(m[1])*100)+Math.round(Number(m[2])*100),n=+m[3],d=+m[4],expected=spent*d/(d-n);if(pence(item.answer)!==expected)fail('money_multi_step',`${item.key}: expected ${expected}p`);
+    }else if(item.group==='family_ticket_discount'){
+      const m=item.prompt.match(/cost £(\d+\.\d{2}).*?buys (\d+) adult and (\d+) child.*?(\d+)% discount/);if(!m){fail('money_multi_step',item.key);continue;}
+      const adult=Math.round(Number(m[1])*100),adults=+m[2],children=+m[3],discount=+m[4],expected=(adults*adult+children*adult/2)*(100-discount)/100;if(pence(item.answer)!==expected)fail('money_multi_step',`${item.key}: ticket total mismatch`);
+    }else if(item.group==='capacity_revenue'){
+      const m=item.prompt.match(/has (\d+) rows of (\d+) seats\. (\d+) seats are empty\. Each ticket costs £(\d+\.\d{2})/);if(!m){fail('money_multi_step',item.key);continue;}
+      const expected=(+m[1]*+m[2]-+m[3])*Math.round(Number(m[4])*100);if(pence(item.answer)!==expected)fail('money_multi_step',`${item.key}: revenue mismatch`);
+    }else if(item.group==='unit_price_mass'){
+      const m=item.prompt.match(/costs (\d+)p.*?cost of (\d+)\/(\d+) of (\d+) g/);if(!m){fail('money_multi_step',item.key);continue;}
+      const expected=+m[1]*(+m[2]/+m[3]*+m[4]);if(pence(item.answer)!==expected)fail('money_multi_step',`${item.key}: unit-price mismatch`);
+    }
+  }
+  pass('money_multi_step','All structured money modes recalculated');
+
+  for(const item of S.POOLS.mean_reasoning||[]){
+    if(item.group==='removed_item'){
+      const m=item.prompt.match(/(\d+) items have a mean of ([\d.]+).*?remaining (\d+) items is ([\d.]+)/);if(!m){fail('mean_reasoning',item.key);continue;}
+      const total=Number(m[1])*Number(m[2]),remaining=Number(m[3])*Number(m[4]),expected=total-remaining;if(num(item.answer)!==expected)fail('mean_reasoning',`${item.key}: expected removed value ${expected}`);
+    }else if(item.group==='mean_range_choice'){
+      const m=item.prompt.match(/mean (\d+) and range (\d+)/),mean=Number(m?.[1]),range=Number(m?.[2]),valid=(item.choices||[]).filter(s=>{const vals=String(s).split(',').map(Number);return vals.length===5&&vals.reduce((a,b)=>a+b,0)/5===mean&&Math.max(...vals)-Math.min(...vals)===range;});
+      if(valid.length!==1||!String(item.answer).includes(valid[0]))fail('mean_reasoning',`${item.key}: expected exactly one valid choice, got ${valid.length}`);
+    }
+  }
+  pass('mean_reasoning','Removed-item and mean/range-choice modes checked');
+
+  for(const item of S.POOLS.inverse_formula_reasoning||[]){
+    if(item.group==='linear_cost'){
+      const m=item.prompt.match(/cost = (\d+) × number of pages \+ (\d+).*?total cost is (\d+)p/);if(!m){fail('inverse_formula_reasoning',item.key);continue;}
+      const expected=(+m[3]-+m[2])/(+m[1]);if(num(item.answer)!==expected)fail('inverse_formula_reasoning',`${item.key}: expected ${expected}`);
+    }else if(item.group==='inverse_rule'){
+      const m=item.prompt.match(/multiplies a number by (\d+) and then adds (\d+).*?output is (\d+)/);if(!m){fail('inverse_formula_reasoning',item.key);continue;}
+      const expected=(+m[3]-+m[2])/(+m[1]);if(num(item.answer)!==expected)fail('inverse_formula_reasoning',`${item.key}: expected ${expected}`);
+    }
+  }
+  pass('inverse_formula_reasoning','Inverse linear rules independently solved');
+
+  for(const item of S.POOLS.number_property_constraints||[]){
+    if(item.group!=='square_prime_cube_code')continue;
+    const m=item.prompt.match(/square number from (\d+) to (\d+).*?prime from (\d+) to (\d+).*?cube from (\d+) to (\d+)/);if(!m){fail('number_property_constraints',item.key);continue;}
+    const sq=[];for(let n=1;n*n<=+m[2];n++)if(n*n>=+m[1])sq.push(n*n);
+    const ps=[];for(let n=+m[3];n<=+m[4];n++)if(qaPrime(n))ps.push(n);
+    const cubes=[];for(let n=1;n*n*n<=+m[6];n++)if(n*n*n>=+m[5])cubes.push(n*n*n);
+    const codes=[];for(const a of sq)for(const b of ps)for(const d of cubes){const s=`${a}${b}${d}`;if(s.length===6&&new Set(s).size===6)codes.push(s);}
+    const expected=[...new Set(codes)].sort().join(', ');if(item.answer!==expected)fail('number_property_constraints',`${item.key}: code enumeration mismatch`);
+  }
+  pass('number_property_constraints','Square/prime/cube code sets independently enumerated');
+
+  for(const item of S.POOLS.fraction_reasoning||[]){
+    if(item.group==='reverse_fraction_of_whole'){
+      const m=item.prompt.match(/([\d.]+) is (\d+)\/(\d+) of a quantity/);if(!m){fail('fraction_reasoning',item.key);continue;}
+      const expected=Number(m[1])*Number(m[3])/Number(m[2]);if(num(item.answer)!==expected)fail('fraction_reasoning',`${item.key}: expected ${expected}`);
+    }else if(item.group==='fraction_share_remainder'){
+      const m=item.prompt.match(/Alex gets (\d+)\/(\d+), Bea gets (\d+)\/(\d+).*?Alex receives £(\d+\.\d{2})/);if(!m){fail('fraction_reasoning',item.key);continue;}
+      const aP=Math.round(Number(m[5])*100),total=aP*Number(m[2])/Number(m[1]),b=total*Number(m[3])/Number(m[4]),cara=total-aP-b,expected=cara-b;if(pence(item.answer)!==expected)fail('fraction_reasoning',`${item.key}: share difference mismatch`);
+    }
+  }
+  pass('fraction_reasoning','Reverse-fraction and remainder-share problems checked');
+
+  for(const item of S.POOLS.shape_nets||[]){
+    const allowed=new Set(['cube','cuboid','triangular prism','cylinder','square-based pyramid']),v=item.visual||{};
+    if(item.group!=='identify_net'||v.subtype!=='shape_net'||!allowed.has(item.answer)||v.shape!==item.answer||!Number.isInteger(v.variant)||v.variant<0||v.variant>3)fail('shape_nets',`${item.key}: invalid curated net model`);
+  }
+  pass('shape_nets','Curated net models and answers cross-checked');
+
   const sixthPowers=[64,729,4096,15625,46656];
   for(const item of S.POOLS.number_property_constraints||[]){
     if(item.group!=='square_and_cube')continue;
