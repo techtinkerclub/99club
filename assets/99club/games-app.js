@@ -647,7 +647,7 @@
       finally{btn.disabled=false;}
     });
     modal.querySelector('#tt99-puzzle-save-config')?.addEventListener('click',()=>{
-      savePuzzleConfig();setStatus('Puzzle setup downloaded. Keep this JSON file to restore the complete puzzle configuration later.');
+      savePuzzleConfig();setStatus('Puzzle setup downloaded. Keep this setup file if you want to restore the same puzzle configuration later.');
       track('puzzle_parent_share_action',{action:'save_config',game_count:selectedCompatible().length});
     });
     modal.querySelector('#tt99-puzzle-restore-config')?.addEventListener('change',async e=>{
@@ -656,7 +656,7 @@
       catch(err){setStatus(err?.message||'That puzzle setup could not be restored.');e.target.value='';}
     });
     modal.querySelector('#tt99-puzzle-download-web-pack')?.addEventListener('click',async e=>{
-      const btn=e.currentTarget,old=btn.textContent;btn.disabled=true;btn.textContent='Preparing pack…';setStatus('Creating the image card, link and restoreable puzzle setup…');
+      const btn=e.currentTarget,old=btn.textContent;btn.disabled=true;btn.textContent='Preparing pack…';setStatus('Creating the image card, link and restorable puzzle setup…');
       try{await downloadPuzzleWebsitePack();setStatus('Puzzle website pack downloaded.');track('puzzle_parent_share_action',{action:'download_website_pack',game_count:selectedCompatible().length});}
       catch(err){console.error(err);setStatus(err?.message||'The puzzle website pack could not be created in this browser.');}
       finally{btn.disabled=false;btn.textContent=old;}

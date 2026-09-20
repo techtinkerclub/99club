@@ -109,7 +109,7 @@ sitemap: true
   }
 
   button.addEventListener('click',async()=>{
-    if(!confirm('Clear saved 99 Club Studio settings, vocabulary, widget drafts, game records, analytics choice and Studio caches from this browser? Download any school configuration backups you need first.'))return;
+    if(!confirm('Clear saved 99 Club Studio settings, vocabulary, widget drafts, game records, analytics choice and cached 99 Club Studio files from this browser? Download any school configuration backups you need first.'))return;
     const removed=clearPrefixedStorage(localStorage)+clearPrefixedStorage(sessionStorage);
     clearAnalyticsCookies();
     try{

@@ -177,7 +177,7 @@ sitemap: true
           <p>The existing shared pack keeps its old settings. Add the revised puzzle setup to the Maths Games Widget, remove the old pack if necessary, then publish the new widget embed.</p>
 
           <h3>I am taking over from another teacher and do not have their files</h3>
-          <p>If the widget is still live, copy its URL/embed code from the school website editor and use <strong>Recreate existing widget</strong>. For deeper editing of Club or puzzle rules, restore the school's saved configuration files if available, or configure the source activities again in Studio.</p>
+          <p>If the widget is still live, copy its URL/embed code from the school website editor and use <strong>Recreate existing widget</strong>. For deeper editing of Club or puzzle rules, restore the school's saved configuration files if available, or configure the source activities again in 99 Club Studio.</p>
 
           <h3>The widget works in preview but not on the public page</h3>
           <p>First confirm that the school page was actually published rather than only saved as a draft. Then check whether the public website applies stricter embed/security rules than the editor preview. If it does, use the plain-link or PNG method.</p>
