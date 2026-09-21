@@ -57,11 +57,10 @@
     challenge: ['Challenge','Choose the level you want to generate. Bronze, Silver, Gold, Platinum and Diamond are post-99 presets with progressively broader mental-maths content.'],
     perfectAttempts: ['Perfect attempts to advance','How many perfect scores a pupil should achieve before moving on. The Classic scheme now defaults to three; changing this updates the instruction printed on the sheet.'],
     consecutiveAttempts: ['Consecutive perfect attempts','When enabled, the required perfect scores must happen in a row. Leave this off when successful attempts can be accumulated across separate sessions.'],
-    questionType: ['Question type','Controls the broad generator mode. “Mixed question families” lets you combine maths and verbal-reasoning question families and set their relative frequency.'],
+    questionType: ['Question type','Controls the broad generator mode. “Mixed mental arithmetic” lets you combine several question families and set their relative frequency.'],
     unaided: ['Independent / unaided wording','When enabled, the worksheet instruction states that the challenge should be completed independently and without help.'],
-    families: ['Question families','Choose exactly which kinds of questions can appear on the worksheet. A family that is switched off will not be generated.'],
+    families: ['Question families','Choose which kinds of questions can appear on a mixed mental-arithmetic sheet. A family that is switched off will not be generated.'],
     weights: ['Relative question mix','Weight means frequency, not difficulty. A family with weight 4 appears about twice as often as one with weight 2. Weights do not need to add to 100; the app shows the approximate percentage and question count.'],
-    verbalDifficulty: ['Verbal Reasoning difficulty','Easy uses common vocabulary and simpler one-step patterns. Standard broadens the vocabulary and combines more steps. Challenge uses less obvious relationships, richer codes and longer deductions.'],
     teacherNote: ['Teacher note','Optional short note for your own future reference. It is printed only at the end of teacher answer sheets, never on pupil worksheets. The note is saved with browser backups/setup files and Full recreation codes, but is deliberately omitted from the compact answer-sheet QR.'],
     arithmeticRanges: ['Arithmetic ranges','These limits control the number pool for addition, subtraction and related advanced families. The answer limit prevents ordinary arithmetic questions from growing beyond the selected size.'],
     negativeAnswers: ['Negative subtraction answers','Allows subtraction facts whose result is below zero. Leave this off for a conventional primary arithmetic sheet.'],
@@ -517,7 +516,7 @@
     const open=isOpenWorksheet();
     const mathModes=[
       ['double','Doubling'],['repeated_addition','Repeated addition'],['addition','Addition'],['add_subtract','Addition & subtraction'],
-      ['multiply','Multiplication'],['divide','Division'],['mixed','Mixed × and ÷'],['missing_number','Missing-number facts'],['family_mix','Mixed question families']
+      ['multiply','Multiplication'],['divide','Division'],['mixed','Mixed × and ÷'],['missing_number','Missing-number facts'],['family_mix','Mixed mental arithmetic']
     ];
     const hasFamily=(...ids)=>r.mode==='family_mix' && ids.some(id=>r.families.includes(id));
     const tableFamilies=['multiply','divide','missing_number','fact_families','distributive_law','correspondence'];
@@ -540,7 +539,6 @@
     const needRatios=hasFamily('ratio_missing','ratio_share','scale_factor','unit_rate');
     const needCoordinates=hasFamily('coordinates','coordinate_reflection');
     const needStats=hasFamily('mean');
-    const needVerbal=(r.families||[]).some(f=>(G.FAMILY_META?.[f]?.strand||'')==='Verbal Reasoning');
     return `<div class="tt99-advanced">
       ${namedAdvanced?`<div class="tt99-core-note"><strong>${esc(r.name)} core maths is fixed ${helpButton('advancedCore')}</strong><span>All basic multiplication/division uses tables 1–12 and the families that define this named challenge stay enabled. Change weights and meaningful ranges, or add optional extras. Save as a custom preset if you want a completely different structure.</span></div>`:''}
       <div class="tt99-advanced-section"><span class="tt99-field-label">${open?'Worksheet settings':'Challenge settings'}</span>
@@ -554,7 +552,6 @@
         <label class="tt99-check"><input data-rule-check="unaided" type="checkbox" ${r.unaided?'checked':''}><span>State that the sheet should be completed independently/unaided ${helpButton('unaided')}</span></label>
       </div>
       ${r.mode==='family_mix'?renderFamilySelector(r)+renderFamilyWeights(r):''}
-      ${r.mode==='family_mix'&&needVerbal?`<div class="tt99-advanced-section tt99-verbal-difficulty"><span class="tt99-field-label">Verbal Reasoning difficulty ${helpButton('verbalDifficulty')}</span><label class="tt99-field"><select data-rule="verbalDifficulty"><option value="easy" ${r.verbalDifficulty==='easy'?'selected':''}>Easy</option><option value="standard" ${(!r.verbalDifficulty||r.verbalDifficulty==='standard')?'selected':''}>Standard</option><option value="challenge" ${r.verbalDifficulty==='challenge'?'selected':''}>Challenge</option></select><small>Applies only to selected Verbal Reasoning question types.</small></label></div>`:''}
       <details class="tt99-custom-advanced-settings"><summary><b>Advanced difficulty & number ranges</b><span>Usually leave these at the year/profile defaults</span></summary><div class="tt99-custom-advanced-settings__body">
       ${r.mode==='double'?`<div class="tt99-inline-fields">${numField('Smallest number','numberMin',r.numberMin,0,100)}${numField('Largest number','numberMax',r.numberMax,0,100)}</div>`:''}
       ${r.mode==='repeated_addition'?`<div class="tt99-inline-fields">${numField('Smallest addend','addendMin',r.addendMin,0,100)}${numField('Largest addend','addendMax',r.addendMax,0,100)}${numField('Minimum repeats','repeatsMin',r.repeatsMin,2,20)}${numField('Maximum repeats','repeatsMax',r.repeatsMax,2,20)}</div>`:''}
@@ -588,7 +585,7 @@
   function renderFamilySelector(r){
     const core=isNamedAdvanced()?advancedCoreFamilies():[];
     const meta=G.FAMILY_META||{};
-    const strandOrder=['Number & place value','Number properties','Calculation','Fractions','Decimals & percentages','Ratio & proportion','Measurement','Geometry','Algebra','Statistics','Verbal Reasoning','Extension'];
+    const strandOrder=['Number & place value','Number properties','Calculation','Fractions','Decimals & percentages','Ratio & proportion','Measurement','Geometry','Algebra','Statistics','Extension'];
     function yearsText(m){const ys=(m?.years||[]);if(!ys.length)return m?.extension?'Extension':'';return ys.length===1?`Y${ys[0]}`:`Y${Math.min(...ys)}–${Math.max(...ys)}`;}
     function grouped(ids,locked=false){
       return strandOrder.map(strand=>{
@@ -603,7 +600,7 @@
     if(core.length){const extras=FAMILY_ORDER.filter(f=>!core.includes(f));return `<div class="tt99-family-select"><span class="tt99-field-label">Question families ${helpButton('families')}</span><div class="tt99-family-group-label">Core families — always included</div>${grouped(core,true)}<div class="tt99-family-group-label">Optional extras</div>${grouped(extras,false)}<small>Named challenges keep their defining core families. Optional extras can be added or removed; use the weights below to control frequency.</small></div>`;}
     const selectedTotal=r.families.length;
     const selectionTools=isOpenWorksheet()?`<div class="tt99-family-selection-tools"><div><b>${selectedTotal} topic${selectedTotal===1?'':'s'} selected</b><small>Nothing is selected automatically. Open any category and choose exactly the content you want.</small></div><button type="button" class="tt99-secondary" id="tt99-clear-all-families" ${selectedTotal?'':'disabled'}>Clear all selections</button></div>`:'';
-    return `<div class="tt99-family-select"><span class="tt99-field-label">Choose topics ${helpButton('families')}</span>${selectionTools}${grouped(FAMILY_ORDER,false)}<small>Choose freely across the catalogue. Weights control frequency, not difficulty. Verbal Reasoning is grouped separately from the maths topics; generated visual maths uses its dedicated renderers.</small></div>`;
+    return `<div class="tt99-family-select"><span class="tt99-field-label">Choose topics ${helpButton('families')}</span>${selectionTools}${grouped(FAMILY_ORDER,false)}<small>Choose freely across the curriculum catalogue. Weights control frequency, not difficulty. Supported charts, pie charts, coordinate and angle geometry use generated visuals; other diagram-heavy topics remain staged until their dedicated renderers are ready.</small></div>`;
   }
   function renderFamilyWeights(r){
     if(!r.families.length)return `<div class="tt99-family-weights-empty"><b>Topic weights will appear here after you select at least one topic.</b></div>`;
