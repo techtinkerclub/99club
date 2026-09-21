@@ -1,4 +1,4 @@
-/* 99 Club Studio · shared Symbol Decoder engine v1.89
+/* 99 Club Studio · shared Symbol Decoder engine v1.90
  * One deterministic generator for Online Play, browser sheets and PDF sheets.
  */
 (function(global){
@@ -109,6 +109,14 @@ WATER|a liquid essential for life|earth
 WEATHER|the day-to-day conditions of the atmosphere|weather
 WING|a body part used for flight by birds insects and some other animals|animals
 WOOD|the hard material forming much of a tree|plants
+ROCK|a naturally occurring solid material made of minerals|rocks
+MOSS|a small non-flowering plant that grows in damp places|plants
+POND|a small body of still water that supports living things|earth
+MARS|the fourth planet from the Sun|space
+WAVE|a repeating disturbance that transfers energy|physics
+SKIN|the outer protective covering of the body|body
+PUPA|a stage in the life cycle of some insects between larva and adult|animals
+GALAXY|a huge group of stars gas and dust held together by gravity|space
 `.trim();
 const SCIENCE=SCIENCE_DATA.split('\n').map(line=>{const [term,definition,topic]=line.split('|');return {term,definition,topic,theme:'science'};});
 function mathsBank(){return (G.VOCABULARY||[]).map(x=>({term:String(x.term||'').toUpperCase(),definition:String(x.definition||''),topic:x.topic||'maths',theme:'maths'})).filter(x=>/^[A-Z]{4,11}$/.test(x.term));}
@@ -126,6 +134,6 @@ if(def){def.title='Symbol Decoder';def.defaultSettings={difficulty:'standard',th
 const oldGenerate=A.generate.bind(A),oldWorked=A.workedExample.bind(A);
 A.generate=function(id,settings,seed){return id==='symbols'?generate(settings?.engineSettings?.symbols||{},seed):oldGenerate(id,settings,seed);};
 A.workedExample=function(id,settings,seed){if(id!=='symbols')return oldWorked(id,settings,seed);return {engineId:'symbols',title:'Symbol Decoder worked example',kind:'symbols',goal:'Solve the symbol values, turn the values into letters, then reveal the secret word.',rules:['The same symbol always has the same value.','Use 1=A, 2=B, … 26=Z to turn a cracked value into a letter.','A repeated symbol reveals the same letter everywhere in the secret word.'],steps:['Clue: 2 × ◆ = 36, so ◆ = 18.','18 is the 18th letter of the alphabet, so ◆ = R.','Use R’s value in the next linked clue to crack another symbol.','Keep going until every position in the secret word is decoded.'],tip:'Start with the clue that can be solved using only one unknown symbol.',commonMistake:'Do not stop after finding the number — convert it to its alphabet letter too.'};};
-global.TT99SymbolDecoder={VERSION:'1.89',SYMBOLS,SCIENCE,normalise,bank,generate,letterValue};
+global.TT99SymbolDecoder={VERSION:'1.90',SYMBOLS,SCIENCE,normalise,bank,generate,letterValue};
 A.__symbolDecoderV189=true;
 })(typeof globalThis!=='undefined'?globalThis:this);
