@@ -123,7 +123,7 @@ sitemap: true
 <script src="/assets/99club/games-shikaku-v143-ui.js?v=1" defer></script>
 <script src="/assets/99club/games-sum-grids-v147-ui.js?v=3" defer></script>
 <script src="/assets/99club/games-focus-topics-v145-ui.js?v=1" defer></script>
-<script src="/assets/99club/games-preview-fit-v207.js?v=7" defer></script>
+<script src="/assets/99club/games-preview-fit-v207.js?v=8" defer></script>
 <script>
 window.addEventListener('DOMContentLoaded',function(){
   const root=document.getElementById('tt99-games-root');
