@@ -68,7 +68,7 @@ sitemap: true
 
         <section id="choose-games" class="tt99-guide-section">
           <h2>Choose games without losing track of the library</h2>
-          <p>The library is organised into accordion categories: <strong>Vocabulary &amp; language</strong>, <strong>Number patterns &amp; structures</strong>, <strong>Arithmetic &amp; calculation</strong>, <strong>Algebra &amp; relationships</strong>, and <strong>Number logic &amp; grids</strong>.</p>
+          <p>The library is organised into accordion categories: <strong>Vocabulary &amp; language</strong>, <strong>Number patterns &amp; structures</strong>, <strong>Arithmetic &amp; calculation</strong>, <strong>Algebra &amp; relationships</strong>, <strong>Number logic &amp; grids</strong>, and <strong>Verbal Reasoning</strong>. Verbal Reasoning is independent of the maths teaching-focus filters.</p>
           <p>Open a category to see its compatible games. Tick games one by one, use <strong>Select compatible</strong> when you want the whole category, or use <strong>Clear</strong> / <strong>Clear all games</strong> to start again. Categories containing selected games remain highlighted and show their selected count.</p>
           <p>The <strong>Selected games</strong> tray is the quickest way to review the final pack. It shows each included puzzle and a short summary of the saved configuration.</p>
         </section>
@@ -126,8 +126,8 @@ sitemap: true
         <section id="game-guides" class="tt99-guide-section tt99-guide-highlight">
           <h2>How to play every game</h2>
           <div class="tt99-game-guide-intro">
-            <p>This searchable library covers all <strong>41 current one-player games</strong>. Open any game for a pupil-friendly guide with the goal, rules, a concrete example, solving strategy, tip and common mistake. Each guide can also be printed as a clean A4 reference sheet.</p>
-            <span class="tt99-game-guide-count" aria-label="41 game guides">41</span>
+            <p>This searchable library covers all <strong>62 current one-player games</strong>. Open any game for a pupil-friendly guide with the goal, rules, a concrete example, solving strategy, tip and common mistake. Each guide can also be printed as a clean A4 reference sheet.</p>
+            <span class="tt99-game-guide-count" aria-label="62 game guides">62</span>
           </div>
           <div class="tt99-guide-note"><strong>The guides are static reference material.</strong> Opening or printing one cannot change the puzzle currently selected on the Games page.</div>
           <div id="tt99-game-guide-root"><noscript>Enable JavaScript to search and open the individual game guides.</noscript></div>
@@ -149,5 +149,5 @@ sitemap: true
   </article>
 </div>
 
-<script src="/assets/99club/games-help-guides.js?v=1.3.3" defer></script>
+<script src="/assets/99club/games-help-guides.js?v=1.4.0" defer></script>
 <script src="/assets/99club/games-help-operationgrid-v153.js?v=1" defer></script>
