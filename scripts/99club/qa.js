@@ -438,38 +438,46 @@ if(!cardLinks.includes("global.open(url,'_blank'"))fail('game-card-links','Quick
 ok('game-card-links',`Selector quick links cover all ${adapterIds.length} online games / guides`);
 
 /* ---------- parent-practice sharing ---------- */
-const parentAssets=['assets/99club/school-usage-config.js','assets/99club/school-usage.js','assets/99club/parent-practice.js','assets/99club/parent-practice-page.js','assets/99club/app.js'];
+const parentAssets=['assets/99club/school-usage-config.js','assets/99club/school-usage.js','assets/99club/school-brand.js','assets/99club/parent-practice.js','assets/99club/parent-practice-page.js','assets/99club/app.js'];
 for(const rel of parentAssets){
   if(!exists(rel)){fail('parent-practice',`Missing ${rel}`);continue;}
   try{new Function(read(rel));}catch(e){fail('parent-practice',`Syntax error in ${rel}`,e.message);}
 }
 try{
   const ClubG=load('assets/99club/generator.js');
-  delete global.TT99SchoolUsage;delete global.TT99ParentPractice;
+  delete global.TT99SchoolUsage;delete global.TT99SchoolBrand;delete global.TT99ParentPractice;
   const SchoolUsage=load('assets/99club/school-usage.js');
+  const SchoolBrand=load('assets/99club/school-brand.js');
+  global.TT99SchoolBrand=SchoolBrand;
   const ParentPractice=load('assets/99club/parent-practice.js');
   const base=ClubG.normalizeRules(ClubG.CLASSIC_PRESETS['33']);
   const stripParentMeta=value=>{const out=JSON.parse(JSON.stringify(value));for(const key of ['id','name','tagline','sourceSchemeId','sourceClubId','worksheetTitle'])delete out[key];return out;};
   const schoolKey=SchoolUsage.makeSchoolKey('Example Primary School');
   if(!SchoolUsage.validSchoolKey(schoolKey))fail('school-usage','Stable school-level key was not created');
   if(schoolKey!==SchoolUsage.makeSchoolKey('  Example   Primary School  '))fail('school-usage','Equivalent school names do not produce the same school key');
-  const standard={schemeId:'classic',clubId:'33',rules:base,orientation:'portrait',schoolUsageKey:schoolKey};
+  const tinyLogo='data:image/jpeg;base64,AAAA';
+  const publicSchool={schoolName:'Example Primary School',logoDataUrl:tinyLogo,logoWidth:80,logoHeight:40};
+  const standard={schemeId:'classic',clubId:'33',rules:base,orientation:'portrait',schoolUsageKey:schoolKey,school:publicSchool};
   const compact=ParentPractice.compactPayload(standard);
   if(!compact.r||!stable(compact.r,stripParentMeta(base)))fail('parent-practice','Parent link does not freeze the complete school-selected functional rules snapshot');
   for(const forbidden of ['id','name','tagline','sourceSchemeId','sourceClubId','worksheetTitle'])if(Object.prototype.hasOwnProperty.call(compact.r||{},forbidden))fail('parent-practice',`Parent-link rules leaked display metadata field ${forbidden}`);
   if(compact.u!==schoolKey)fail('school-usage','Opaque school key was not included in the practice payload');
-  if(JSON.stringify(compact).includes('Example Primary School'))fail('school-usage','School name leaked into the parent practice token payload');
+  if(compact.i?.n!=='Example Primary School'||compact.i?.l!==tinyLogo)fail('parent-practice','Public school name/logo were not included in the parent practice payload');
+  if(Object.prototype.hasOwnProperty.call(compact.i||{},'worksheetDate'))fail('parent-practice','Parent practice payload stored a worksheet date');
   const token=ParentPractice.encode(standard),decoded=ParentPractice.decode(token);
   if(token.length>ParentPractice.MAX_TOKEN_LENGTH)fail('parent-practice','Built-in parent practice token exceeds codec size limit',String(token.length));
   if(!stable(decoded.rules,stripParentMeta(base)))fail('parent-practice','Built-in club functional rules do not survive parent-link round trip');
   if(decoded.orientation!=='portrait'||decoded.clubId!=='33')fail('parent-practice','Parent-link identity/layout round trip failed');
   if(decoded.schoolUsageKey!==schoolKey)fail('school-usage','Opaque school key does not survive practice-link round trip');
+  if(decoded.school?.name!=='Example Primary School'||decoded.school?.logo!==tinyLogo||decoded.school?.logoWidth!==80||decoded.school?.logoHeight!==40)fail('parent-practice','Public school branding does not survive practice-link round trip');
+  const legacyDecoded=ParentPractice.decode(ParentPractice.encode({schemeId:'classic',clubId:'33',rules:base,orientation:'portrait'}));
+  if(legacyDecoded.school?.name||legacyDecoded.school?.logo)fail('parent-practice','Unbranded parent links do not remain backward compatible');
   const edited=ClubG.normalizeRules({...base,factorMax:9});
   const editedToken=ParentPractice.encode({schemeId:'classic',clubId:'33',rules:edited,orientation:'landscape'});
   const editedDecoded=ParentPractice.decode(editedToken);
   if(Number(editedDecoded.rules.factorMax)!==9||editedDecoded.orientation!=='landscape')fail('parent-practice','Edited school rules do not survive parent-link round trip');
-  const leakText=JSON.stringify(ParentPractice.compactPayload({schemeId:'classic',clubId:'33',rules:edited,orientation:'portrait',schoolUsageKey:schoolKey,school:{schoolName:'Example'},teacherNote:'secret',pupilName:'child'}));
-  for(const forbidden of ['schoolName','teacherNote','pupilName','logoDataUrl','seed','score','progress'])if(leakText.includes(forbidden))fail('parent-practice',`Parent-link payload leaked forbidden field ${forbidden}`);
+  const leakText=JSON.stringify(ParentPractice.compactPayload({schemeId:'classic',clubId:'33',rules:edited,orientation:'portrait',schoolUsageKey:schoolKey,school:{schoolName:'Example',logoDataUrl:tinyLogo,className:'5B',teacherName:'Teacher',worksheetDate:'2026-01-01'},teacherNote:'secret',pupilName:'child'}));
+  for(const forbidden of ['className','teacherName','worksheetDate','teacherNote','pupilName','seed','score','progress'])if(leakText.includes(forbidden))fail('parent-practice',`Parent-link payload leaked forbidden field ${forbidden}`);
   const link=ParentPractice.buildLink(standard,'https://99studio.uk');
   if(!link.startsWith('https://99studio.uk/practice/#p=TT99P1.'))fail('parent-practice','Parent practice link does not use the dedicated fragment route',link.slice(0,90));
   if(link.includes('?'))fail('parent-practice','Parent practice rules should be carried in the URL fragment, not the query string');
@@ -493,7 +501,7 @@ try{
   if(SchoolUsage.enabled())fail('school-usage','School telemetry must remain disabled until the final analytics design is approved');
   const schoolUsageConfig=read('assets/99club/school-usage-config.js');
   if(!/enabled:\s*false/.test(schoolUsageConfig)||!/endpoint:\s*''/.test(schoolUsageConfig)||!/schemaVersion:\s*2/.test(schoolUsageConfig))fail('school-usage','Dormant school telemetry config is not safely disabled at schema v2');
-  ok('parent-practice','School-selected rule links round-trip with an opaque school key and no school name');
+  ok('parent-practice','School-selected rule links round-trip with public school branding, no stored worksheet date and an opaque usage key');
   ok('school-usage','Aggregate school usage schema is wired but network collection remains disabled');
 }catch(e){fail('parent-practice','Codec smoke test threw',e.stack||e.message);}
 
@@ -503,7 +511,7 @@ if(!/layout:\s*practice/.test(parentPage)||! /permalink:\s*\/practice\//.test(pa
 if(/<!doctype html>/i.test(parentPage))fail('parent-practice','Practice page must not contain a markdown-rendered doctype');
 if(!/^<!doctype html>/i.test(parentLayout.trim()))fail('parent-practice','Standalone practice layout is missing the real document doctype');
 if(/analytics|gtag|googletagmanager/i.test(parentLayout))fail('parent-practice','Parent practice layout loads Google Analytics code');
-for(const required of ['generator.js','simple-pdf.js','pdf-layout.js','school-usage-config.js','school-usage.js','parent-practice.js','parent-practice-page.js'])if(!parentLayout.includes(required))fail('parent-practice',`Parent practice layout missing ${required}`);
+for(const required of ['generator.js','simple-pdf.js','pdf-layout.js','school-usage-config.js','school-usage.js','school-brand.js','parent-practice.js','parent-practice-page.js'])if(!parentLayout.includes(required))fail('parent-practice',`Parent practice layout missing ${required}`);
 const rootApp=read('assets/99club/app.js'),rootPage=read('index.md');
 const parentUi=read('assets/99club/parent-practice-page.js');
 if(/localStorage|sessionStorage/.test(parentUi))fail('parent-practice','Parent practice page stores browser profile/progress state');
@@ -513,6 +521,7 @@ if(!rootApp.includes('School website integration help'))fail('parent-practice','
 if(!parentUi.includes('isTeacherPreview')||!parentUi.includes('Back to 99 Club Studio')||!parentUi.includes('tt99-practice-previewbar'))fail('parent-practice','Teacher parent-practice preview is missing its PWA-safe return control');
 if(!parentUi.includes('schoolUsageContext')||!parentUi.includes("if(!isTeacherPreview())SU?.trackPractice"))fail('school-usage','Parent-practice attribution or preview exclusion is missing');
 if(!parentUi.includes("kind:'both'")||!parentUi.includes("answerContext:{label:'Answer copy'"))fail('parent-practice','Parent page does not create the promised combined worksheet + answers PDF');
+if(!parentUi.includes('worksheetDate:B.localIsoDate()')||!parentUi.includes('schoolName:brand.name')||!parentUi.includes('logoDataUrl:brand.logo'))fail('parent-practice','Parent PDF does not force school branding + generation date');
 if(!parentUi.includes('G.newSeed'))fail('parent-practice','Parent downloads are not regenerated with fresh questions');
 for(const label of ['Bronze Club','Silver Club','Gold Club','Platinum Club','Diamond Club'])if(!parentUi.includes(label))fail('parent-practice',`Parent view is missing proper post-99 label ${label}`);
 for(const required of ['tt99-parent-open','PARENT_CORE_CLUB_IDS','PARENT_POST99_CLUB_IDS','parentPracticeLink','PP.websiteCardHtml','tt99-parent-copy-current-card','data-parent-copy-card','data-parent-download-card','downloadParentPracticeCardImage','createParentPracticeCardImageBlob','parentPracticeSchoolConfigData','restoreParentPracticeSchoolConfig','parentPracticeLinksText','parentPracticeLinksCsv','downloadParentPracticeWebsitePack','parentPracticeZip','0x04034b50','0x02014b50','0x06054b50','tt99-parent-download-pack','tt99-parent-copy-links','tt99-parent-save-config','tt99-parent-restore-config','canvas.toBlob','tt99-parent-copy-all','SU?.makeSchoolKey'])if(!rootApp.includes(required))fail('parent-practice',`Teacher sharing UI missing ${required}`);
@@ -536,15 +545,16 @@ for(const phrase of ['Option 3: use a downloadable PNG card image','The PNG itse
 ok('parent-practice','Teacher share UI, stripped parent route, combined PDF and school information contract checked');
 
 /* ---------- school-led puzzle practice sharing ---------- */
-const puzzleParentAssets=['assets/99club/games-parent-practice.js','assets/99club/games-parent-practice-page.js','assets/99club/school-usage.js','assets/99club/games-app.js'];
+const puzzleParentAssets=['assets/99club/school-brand.js','assets/99club/games-parent-practice.js','assets/99club/games-parent-practice-page.js','assets/99club/school-usage.js','assets/99club/games-app.js'];
 for(const rel of puzzleParentAssets){
   if(!exists(rel)){fail('puzzle-parent',`Missing ${rel}`);continue;}
   try{new Function(read(rel));}catch(e){fail('puzzle-parent',`Syntax error in ${rel}`,e.message);}
 }
 try{
   global.TT99_SCHOOL_USAGE_CONFIG={enabled:false,endpoint:'',schemaVersion:2};
-  delete global.TT99SchoolUsage;delete global.TT99GamesParentPractice;
+  delete global.TT99SchoolUsage;delete global.TT99SchoolBrand;delete global.TT99GamesParentPractice;
   const SchoolUsage2=load('assets/99club/school-usage.js');
+  const SchoolBrand2=load('assets/99club/school-brand.js');global.TT99SchoolBrand=SchoolBrand2;
   const PuzzleParent=load('assets/99club/games-parent-practice.js');
   const schoolKey=SchoolUsage2.makeSchoolKey('Example Primary School');
   const settings=G.normalizeSettings({
@@ -556,17 +566,20 @@ try{
     },
     personalisation:{schoolName:'Example Primary School',packTitle:'Private Y5 pack',classLabel:'5B',worksheetDate:'2026-09-19',logoDataUrl:'',logoWidth:0,logoHeight:0}
   });
-  const cfg={settings,customVocabulary:[],schoolUsageKey:schoolKey};
+  const puzzleLogo='data:image/jpeg;base64,BBBB';
+  const cfg={settings,customVocabulary:[],schoolUsageKey:schoolKey,school:{schoolName:'Example Primary School',logoDataUrl:puzzleLogo,logoWidth:72,logoHeight:36}};
   const compact=PuzzleParent.compactPayload(cfg);
   if(compact.s.personalisation)fail('puzzle-parent','Parent puzzle payload leaked printable personalisation');
   if(Object.keys(compact.s.engineSettings||{}).some(id=>!compact.s.selectedEngines.includes(id)))fail('puzzle-parent','Parent puzzle payload carries unselected engine settings');
   const token=PuzzleParent.encode(cfg),decoded=PuzzleParent.decode(token);
   if(token.length>PuzzleParent.MAX_TOKEN_LENGTH)fail('puzzle-parent','Puzzle parent token exceeds size contract',String(token.length));
   if(decoded.schoolUsageKey!==schoolKey)fail('puzzle-parent','Opaque school key did not survive puzzle-link round trip');
-  if(decoded.settings.personalisation.schoolName||decoded.settings.personalisation.classLabel||decoded.settings.personalisation.worksheetDate||decoded.settings.personalisation.logoDataUrl)fail('puzzle-parent','Decoded parent puzzle settings contain school/class/date/logo personalisation');
+  if(decoded.settings.personalisation.schoolName||decoded.settings.personalisation.classLabel||decoded.settings.personalisation.worksheetDate||decoded.settings.personalisation.logoDataUrl)fail('puzzle-parent','Decoded puzzle generation settings contain printable personalisation instead of keeping branding separate');
+  if(decoded.school?.name!=='Example Primary School'||decoded.school?.logo!==puzzleLogo||decoded.school?.logoWidth!==72||decoded.school?.logoHeight!==36)fail('puzzle-parent','Public school branding does not survive puzzle-link round trip');
   if(decoded.settings.minYear!==4||decoded.settings.maxYear!==5||decoded.settings.sheets!==2||decoded.settings.activitiesPerSheet!==2)fail('puzzle-parent','Puzzle pack-level settings did not survive parent-link round trip');
   if(decoded.settings.engineSettings.pyramid.difficulty!=='challenge'||String(decoded.settings.engineSettings.pyramid.levels)!=='5')fail('puzzle-parent','Per-engine puzzle settings did not survive parent-link round trip');
-  if(JSON.stringify(compact).includes('Example Primary School')||JSON.stringify(compact).includes('Private Y5 pack')||JSON.stringify(compact).includes('5B'))fail('puzzle-parent','School/class/title data leaked into parent puzzle payload');
+  if(compact.i?.n!=='Example Primary School'||compact.i?.l!==puzzleLogo)fail('puzzle-parent','Public school name/logo were not included in the puzzle parent payload');
+  if(JSON.stringify(compact).includes('Private Y5 pack')||JSON.stringify(compact).includes('5B')||JSON.stringify(compact).includes('2026-09-19'))fail('puzzle-parent','Class/title/stored-date data leaked into parent puzzle payload');
 
   const vocabSettings=G.normalizeSettings({minYear:3,maxYear:4,topics:['calculation'],selectedEngines:['wordsearch'],engineSettings:{wordsearch:{difficulty:'standard'}}});
   const custom=[{topic:'calculation',term:'Quotient',definition:'The result of a division.',minYear:3,maxYear:6},{topic:'geometry',term:'Vertex',definition:'A corner point.',minYear:2,maxYear:6}];
@@ -593,14 +606,15 @@ try{
   const puzzlePage=read('_pages/99-club-puzzle-practice.md'),puzzleLayout=read('_layouts/puzzle-practice.html'),gamesPage=read('_pages/99-club-games.md'),gamesApp=read('assets/99club/games-app.js'),puzzleParentUi=read('assets/99club/games-parent-practice-page.js');
   if(!/layout:\s*puzzle-practice/.test(puzzlePage)||!/permalink:\s*\/practice\/puzzles\//.test(puzzlePage))fail('puzzle-parent','Dedicated puzzle practice route is missing');
   if(/analytics|gtag|googletagmanager/i.test(puzzleLayout))fail('puzzle-parent','Puzzle parent layout loads Google Analytics');
-  for(const required of ['games-engine.js','games-pdf.js','school-usage.js','games-parent-practice.js','games-parent-practice-page.js'])if(!puzzleLayout.includes(required))fail('puzzle-parent',`Puzzle parent layout missing ${required}`);
+  for(const required of ['games-engine.js','games-pdf.js','school-usage.js','school-brand.js','games-parent-practice.js','games-parent-practice-page.js'])if(!puzzleLayout.includes(required))fail('puzzle-parent',`Puzzle parent layout missing ${required}`);
   if(gamesPage.indexOf('games-parent-practice.js')<0||gamesPage.indexOf('games-parent-practice.js')>gamesPage.indexOf('games-app.js'))fail('puzzle-parent','Puzzle sharing codec must load before games-app.js');
   for(const required of ['games-parent-share','tt99-puzzle-parent-modal','Save puzzle setup','Restore puzzle setup','Download website pack','puzzleConfigData','restorePuzzleConfig','downloadPuzzleWebsitePack','createPuzzleShareCardBlob','tt99-school-puzzle-config','open_parent_view','restore_config'])if(!gamesApp.includes(required))fail('puzzle-parent',`Printable puzzle sharing UI missing ${required}`);
   if(!gamesApp.includes('puzzleSharePreviewLink')||!gamesApp.includes("searchParams.set('preview','1')"))fail('puzzle-parent','Puzzle teacher preview links are not marked with preview=1 for PWA-safe return navigation');
   if(!gamesApp.includes('puzzleShareWebsiteCard(true)'))fail('puzzle-parent','Clickable teacher puzzle card preview does not use the PWA-safe preview URL');
   if(!gamesApp.includes('School website integration help'))fail('puzzle-parent','Puzzle sharing panel is missing the School website integration help label');
   if(!puzzleParentUi.includes('isTeacherPreview')||!puzzleParentUi.includes('Back to Maths Games &amp; Puzzles')||!puzzleParentUi.includes('tt99-practice-previewbar'))fail('puzzle-parent','Puzzle teacher preview is missing its PWA-safe return control');
-  if(!puzzleParentUi.includes('renderGameTypes')||!puzzleParentUi.includes('names.length<=5')||!puzzleParentUi.includes('View all '))fail('puzzle-parent','Large parent puzzle packs do not collapse long puzzle-type lists');
+  if(!puzzleParentUi.includes('worksheetDate:B.localIsoDate()')||!puzzleParentUi.includes('schoolName:brand.name')||!puzzleParentUi.includes('logoDataUrl:brand.logo'))fail('puzzle-parent','Puzzle parent PDF does not force school branding + generation date');
+if(!puzzleParentUi.includes('renderGameTypes')||!puzzleParentUi.includes('names.length<=5')||!puzzleParentUi.includes('View all '))fail('puzzle-parent','Large parent puzzle packs do not collapse long puzzle-type lists');
   if(!gamesApp.includes('selected.length<=5')||!gamesApp.includes('selected games.'))fail('puzzle-parent','Teacher pack summary does not stay concise for large game selections');
   if(!gamesApp.includes('Open widget builder')||gamesApp.includes('Add current pack to widget'))fail('puzzle-parent','Maths Games widget action is not aligned with the 99 Club Open widget builder wording');
   if(!gamesApp.includes("kind:'tt99-school-puzzle-config'")||!gamesApp.includes('customVocabulary:G.clone(state.customVocabulary)'))fail('puzzle-parent','Portable puzzle setup does not preserve full settings and custom vocabulary');
