@@ -4,6 +4,7 @@ title: "Help for Teachers"
 description: "Teacher guide to 99 Club Studio worksheets, challenge schemes, settings, printing, QR recreation and classroom use."
 permalink: /help/
 sidebar: false
+sitemap: true
 ---
 
 <link rel="stylesheet" href="/assets/99club/99club.css?v=20">
