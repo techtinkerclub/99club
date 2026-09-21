@@ -266,6 +266,7 @@
   }
   .tt99-game-paper .tt99-target-list .work{grid-column:auto!important}
   .tt99-game-paper .tt99-wheel-items{grid-template-columns:1fr 1fr!important}
+  .tt99-game-paper .tt99-game-activities.count-2 .tt99-wheel-svg{max-height:155px!important}
 
   .tt99-game-paper .tt99-numbersearch-layout{
     grid-template-columns:minmax(0,.60fr) minmax(0,.40fr)!important;
