@@ -1,18 +1,20 @@
 /* 99 Club Studio - locked parent puzzle-pack links.
- * The shared URL contains only teaching/generation settings, optional sanitised
- * custom vocabulary and an opaque school-level usage key. Printable
- * personalisation (school/class/date/logo) is never placed in the parent URL.
+ * The shared URL contains teaching/generation settings, optional sanitised
+ * custom vocabulary, an opaque school usage key and deliberately public school
+ * branding (school name + compact logo). Class/date/teacher/pupil data is omitted.
+ * Parent downloads always stamp the actual generation date.
  */
 (function(global){
   'use strict';
 
   const G=global.TT99Games || (typeof require!=='undefined' ? require('./games-engine.js') : null);
   const SU=global.TT99SchoolUsage || (typeof require!=='undefined' ? require('./school-usage.js') : null);
-  if(!G)throw new Error('Puzzle parent practice requires TT99Games');
+  const B=global.TT99SchoolBrand || (typeof require!=='undefined' ? require('./school-brand.js') : null);
+  if(!G||!B)throw new Error('Puzzle parent practice requires TT99Games + TT99SchoolBrand');
 
   const PREFIX='TT99GP1.';
   const VERSION=1;
-  const MAX_TOKEN_LENGTH=24000;
+  const MAX_TOKEN_LENGTH=52000;
   const MAX_CUSTOM_VOCAB=60;
 
   function clone(v){return v==null?v:JSON.parse(JSON.stringify(v));}
@@ -54,7 +56,8 @@
     const settings=publicSettings(input.settings||input);
     const customVocabulary=compactVocabulary(input.customVocabulary,settings);
     const schoolUsageKey=SU?.validSchoolKey?.(input.schoolUsageKey||input.schoolKey||input.schoolUsage?.schoolKey)||'';
-    return {settings,customVocabulary,schoolUsageKey};
+    const school=B.normalise(input.school||input.brand||{});
+    return {settings,customVocabulary,schoolUsageKey,school};
   }
 
   function utf8ToBase64Url(text){
@@ -91,6 +94,7 @@
   function compactPayload(input){
     const cfg=normaliseConfig(input);
     const payload={v:VERSION,s:compactSettings(cfg.settings)};
+    const school=B.compact(cfg.school);if(Object.keys(school).length)payload.i=school;
     if(cfg.customVocabulary.length)payload.x=cfg.customVocabulary;
     if(cfg.schoolUsageKey)payload.u=cfg.schoolUsageKey;
     return payload;
@@ -112,7 +116,8 @@
     return {
       settings:publicSettings(payload.s||{}),
       customVocabulary:expandVocabulary(payload.x),
-      schoolUsageKey:SU?.validSchoolKey?.(payload.u)||''
+      schoolUsageKey:SU?.validSchoolKey?.(payload.u)||'',
+      school:B.expand(payload.i)
     };
   }
 

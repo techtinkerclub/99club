@@ -116,9 +116,9 @@ sitemap: true
           <h2>Does the same link make fresh practice?</h2>
           <p><strong>Yes.</strong> The school-selected setup stays the same, but each download creates a fresh worksheet or puzzle pack.</p>
           <h3>99 Club</h3>
-          <p>A parent chooses a Club level in the widget, then downloads a new worksheet and answers. Downloading again creates another worksheet using the same school-selected rules.</p>
+          <p>A parent chooses a Club level in the widget, then downloads a new worksheet and answers. The PDF uses the school name and logo from the widget and the date the worksheet is generated. Downloading again creates another worksheet using the same school-selected rules.</p>
           <h3>Printable puzzle packs</h3>
-          <p>A parent chooses a puzzle pack, then downloads a fresh pack and matching answers using the same selected years, topics, game types and difficulty settings.</p>
+          <p>A parent chooses a puzzle pack, then downloads a fresh pack and matching answers using the same selected years, topics, game types and difficulty settings. The PDF uses the school name and logo from the widget and the date the pack is generated.</p>
         </section>
 
         <section id="update" class="tt99-guide-section tt99-guide-highlight">

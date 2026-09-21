@@ -7,7 +7,8 @@
 
 const G=global.TT99Generator || (typeof require!=='undefined' ? require('./generator.js') : null);
 const PP=global.TT99ParentPractice || (typeof require!=='undefined' ? require('./parent-practice.js') : null);
-if(!G||!PP)throw new Error('99 Club widget configuration requires generator + parent practice');
+const B=global.TT99SchoolBrand || (typeof require!=='undefined' ? require('./school-brand.js') : null);
+if(!G||!PP||!B)throw new Error('99 Club widget configuration requires generator + parent practice + school brand');
 
 const PREFIX='TT99W1.';
 const VERSION=1;
@@ -97,10 +98,12 @@ function normalise(input){
   if(obj(src.clubPatches))for(const id of selectedClubs)if(obj(src.clubPatches[id]))clubPatches[id]=clone(src.clubPatches[id]);
   const puzzles=(Array.isArray(src.puzzles)?src.puzzles:[]).map(cleanPuzzle).filter(Boolean).slice(0,4);
   const games=[...new Set((Array.isArray(src.games)?src.games:[]).map(String).filter(x=>GAME_SET.has(x)))].slice(0,24);
-  const school={
-    name:cleanText(src.school?.name||src.schoolName||'',80),
-    logo:cleanLogo(src.school?.logo||src.schoolLogo||'')
-  };
+  const school=B.normalise({
+    name:src.school?.name||src.schoolName||'',
+    logo:src.school?.logo||src.schoolLogo||'',
+    logoWidth:src.school?.logoWidth||src.logoWidth||0,
+    logoHeight:src.school?.logoHeight||src.logoHeight||0
+  });
   const tabs=[];
   if((widgetType==='club'||widgetType==='combined')&&selectedClubs.length)tabs.push('clubs');
   if((widgetType==='games'||widgetType==='combined')&&puzzles.length)tabs.push('puzzles');
@@ -123,7 +126,7 @@ function fromClubRules(input){
     const base=PP.baseRules(schemeId,id);if(!base)continue;
     const patch=diff(base,G.normalizeRules(clone(current)));if(patch!==undefined)clubPatches[id]=patch;
   }
-  const school={name:src.school?.name||src.school?.schoolName||src.schoolName||'',logo:src.school?.logo||src.school?.logoDataUrl||src.schoolLogo||''};
+  const school={name:src.school?.name||src.school?.schoolName||src.schoolName||'',logo:src.school?.logo||src.school?.logoDataUrl||src.schoolLogo||'',logoWidth:src.school?.logoWidth||src.logoWidth||0,logoHeight:src.school?.logoHeight||src.logoHeight||0};
   return normalise({widgetType:src.widgetType||'club',integrationId:src.integrationId||'',school,schemeId,orientation,selectedClubs:CLUB_IDS,clubPatches,puzzles:src.puzzles||[],games:src.games||[],defaultTab:src.defaultTab});
 }
 function clubRules(cfg,id){
@@ -160,6 +163,11 @@ function decode(token){
   return normalise(parsed);
 }
 function tokenFromText(value){const m=String(value||'').trim().match(/TT99W1\.[A-Za-z0-9_-]+/);return m?m[0]:'';}
+function schoolBrandToken(input){
+  const c=normalise(input);
+  if(!c.school.name&&!c.school.logo)return '';
+  try{return B.encode(c.school);}catch(_){return '';}
+}
 function buildUrl(input,origin){
   const base=String(origin||'https://99studio.uk').replace(/\/+$/,'')||'https://99studio.uk';
   return base+'/widget/#w='+encodeURIComponent(encode(input));
@@ -171,7 +179,7 @@ function embedCode(input,origin){
   return '<iframe src="'+src.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'" title="'+title+'" loading="lazy" referrerpolicy="origin" sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox" style="display:block;width:100%;height:'+height+'px;border:0;border-radius:14px;" ></iframe>';
 }
 
-const api={PREFIX,VERSION,MAX_TOKEN_LENGTH,WIDGET_TYPES,CLUB_IDS,GAME_IDS,GAME_TITLES,cleanIntegrationId,normalise,compactPublic,fromClubRules,clubRules,clubLink,encode,decode,tokenFromText,buildUrl,embedCode};
+const api={PREFIX,VERSION,MAX_TOKEN_LENGTH,WIDGET_TYPES,CLUB_IDS,GAME_IDS,GAME_TITLES,cleanIntegrationId,normalise,compactPublic,fromClubRules,clubRules,clubLink,schoolBrandToken,encode,decode,tokenFromText,buildUrl,embedCode};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 global.TT99SchoolWidget=api;
 })(typeof window!=='undefined'?window:globalThis);

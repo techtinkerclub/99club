@@ -14,10 +14,11 @@ function fallbackIntegrationId(text){
   for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619)>>>0;}
   return 'wid_'+h.toString(36).padStart(8,'0');
 }
-function withVia(url,integrationId){
+function withVia(url,integrationId,brandToken){
   try{
     const u=new URL(url,location.origin);
     if(integrationId)u.searchParams.set('via',integrationId);
+    if(brandToken){const hash=new URLSearchParams(u.hash.replace(/^#/,''));hash.set('brand',brandToken);u.hash=hash.toString();}
     return u.href;
   }catch(_){return url;}
 }
@@ -28,6 +29,7 @@ try{
   cfg=W.decode(rawToken);
 }catch(err){fail(err?.message||'Invalid widget configuration.');return;}
 const integrationId=cfg.integrationId||fallbackIntegrationId(rawToken);
+const schoolBrandToken=W.schoolBrandToken?.(cfg)||'';
 const sourceOrigin=SU?.referrerOrigin?.()||'';
 const widgetContext={
   schoolName:cfg.school?.name||'',
@@ -55,13 +57,13 @@ if(!panels.length){fail('This widget does not contain any activities.');return;}
 const defaultTab=panels.some(x=>x[0]===cfg.defaultTab)?cfg.defaultTab:panels[0][0];
 
 const clubHtml=cfg.selectedClubs.map(id=>{
-  const href=withVia(W.clubLink(cfg,id,location.origin),integrationId),img=badge[id]||'99club-studio-shield.png';
+  const href=withVia(W.clubLink(cfg,id,location.origin),integrationId,schoolBrandToken),img=badge[id]||'99club-studio-shield.png';
   return '<a class="ttw-club" data-widget-item="club" data-widget-id="'+esc(id)+'" href="'+esc(href)+'" target="_blank" rel="noopener noreferrer"><img src="/assets/99club/images/'+esc(img)+'" alt=""><strong>'+esc(names[id]||id)+'</strong><small>Fresh worksheet + answers</small></a>';
 }).join('');
 const puzzleHtml=cfg.puzzles.map(p=>{
   const year=p.minYear===p.maxYear?'Year '+p.minYear:'Years '+p.minYear+'–'+p.maxYear;
   const vocab=p.vocabCount?' · '+p.vocabCount+' school vocab entr'+(p.vocabCount===1?'y':'ies'):'';
-  const href=withVia(p.link,integrationId);
+  const href=withVia(p.link,integrationId,schoolBrandToken);
   const packId='pack_'+(cfg.puzzles.indexOf(p)+1);
   return '<a class="ttw-feature" data-widget-item="puzzle" data-widget-id="'+esc(packId)+'" href="'+esc(href)+'" target="_blank" rel="noopener noreferrer"><img src="/assets/99club/images/99club-studio-shield.png" alt=""><span><strong>'+esc(year)+' puzzle pack</strong><small>'+esc(p.gameCount)+' selected game'+(p.gameCount===1?'':'s')+vocab+' · fresh pack + answers</small></span><b class="ttw-arrow" aria-hidden="true">→</b></a>';
 }).join('');

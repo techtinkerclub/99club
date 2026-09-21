@@ -5,8 +5,9 @@
   const G=window.TT99Games;
   const PDF=window.TT99GamesPDF;
   const PP=window.TT99GamesParentPractice;
+  const B=window.TT99SchoolBrand;
   const SU=window.TT99SchoolUsage;
-  if(!root||!G||!PDF||!PP)return;
+  if(!root||!G||!PDF||!PP||!B)return;
 
   let config=null;
 
@@ -36,6 +37,31 @@
       integrationId:SU?.cleanIntegrationId?.(via)||'',
       sourceOrigin:SU?.referrerOrigin?.()||''
     };
+  }
+
+  function effectiveSchool(){
+    const direct=B.normalise(config?.school||{});
+    let via={name:'',logo:'',logoWidth:0,logoHeight:0};
+    try{
+      const token=new URLSearchParams(String(location.hash||'').replace(/^#/,'')).get('brand')||'';
+      if(token)via=B.decode(token);
+    }catch(_){}
+    return B.normalise({
+      name:via.name||direct.name,
+      logo:via.logo||direct.logo,
+      logoWidth:via.logo?via.logoWidth:direct.logoWidth,
+      logoHeight:via.logo?via.logoHeight:direct.logoHeight
+    });
+  }
+
+  function completeSchoolDimensions(brand){
+    if(!brand?.logo || (Number(brand.logoWidth)>0&&Number(brand.logoHeight)>0))return Promise.resolve(brand);
+    return new Promise(resolve=>{
+      const img=new Image();
+      img.onload=()=>resolve({...brand,logoWidth:img.naturalWidth||1,logoHeight:img.naturalHeight||1});
+      img.onerror=()=>resolve(brand);
+      img.src=brand.logo;
+    });
   }
 
   function newSeed(){
@@ -107,7 +133,7 @@
     el.hidden=!message;el.textContent=message||'';el.classList.toggle('is-error',!!error);
   }
 
-  function download(){
+  async function download(){
     const button=root.querySelector('#tt99-puzzle-practice-download');
     if(button){button.disabled=true;button.textContent='Creating PDF…';}
     status('',false);
@@ -115,7 +141,17 @@
       const seed=newSeed();
       const pack=G.generatePack(config.settings,seed,config.customVocabulary||[]);
       if(!pack?.sheets?.length)throw new Error('This practice link could not generate a valid puzzle pack.');
-      const doc=PDF.buildDocument({pack,settings:config.settings,kind:'both',topics:G.TOPICS,seed});
+      const brand=await completeSchoolDimensions(effectiveSchool()),settings=G.clone(config.settings);
+      settings.personalisation={
+        schoolName:brand.name,
+        packTitle:'Maths Games & Puzzles',
+        classLabel:'',
+        worksheetDate:B.localIsoDate(),
+        logoDataUrl:brand.logo,
+        logoWidth:brand.logoWidth,
+        logoHeight:brand.logoHeight
+      };
+      const doc=PDF.buildDocument({pack,settings,kind:'both',topics:G.TOPICS,seed});
       doc.save(PDF.filename(config.settings,'both'));
       if(!isTeacherPreview())SU?.trackPuzzlePractice?.('puzzle_practice_download',config);
       status('PDF created. Click again whenever you want another fresh puzzle pack.',false);

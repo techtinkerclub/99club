@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const PP=window.TT99ParentPractice,W=window.TT99SchoolWidget,Q=window.TT99QR;
+const PP=window.TT99ParentPractice,W=window.TT99SchoolWidget,B=window.TT99SchoolBrand,Q=window.TT99QR;
 if(!PP)return;
 const CLUBS=[
  ['11','11 Club','11club.png'],['22','22 Club','22club.png'],['33','33 Club','33club.png'],['44','44 Club','44club.png'],['55','55 Club','55club.png'],
@@ -15,7 +15,16 @@ const PACKS=[
 const ONLINE=[['maze','Correct Answer Maze'],['sumplete','Sumplete'],['sudoku','Sudoku'],['numbertrail','Number Trail'],['balance','Balance Lab'],['colourlogic','Colour Logic']];
 
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function clubLink(id){const rules=PP.baseRules('classic',id);return PP.buildLink({schemeId:'classic',clubId:id,rules,orientation:'portrait'},location.origin);}
+let demoBrandCache='';
+function demoBrandToken(){
+ if(demoBrandCache)return demoBrandCache;
+ try{demoBrandCache=B?.encode({schoolName:'Addington-on-Sum Primary School',logoDataUrl:demoLogo(),logoWidth:96,logoHeight:96})||'';}catch(_){demoBrandCache='';}
+ return demoBrandCache;
+}
+function withDemoBrand(link){
+ try{const u=new URL(link,location.origin),token=demoBrandToken();if(token){const hash=new URLSearchParams(u.hash.replace(/^#/,''));hash.set('brand',token);u.hash=hash.toString();}return u.href;}catch(_){return link;}
+}
+function clubLink(id){const rules=PP.baseRules('classic',id);return withDemoBrand(PP.buildLink({schemeId:'classic',clubId:id,rules,orientation:'portrait'},location.origin));}
 function badgeUrl(img){return location.origin+'/assets/99club/images/'+img;}
 function genericCard(href,title,summary,img){
  return '<a class="demo-generic-card" href="'+esc(href)+'" target="_blank" rel="noopener" referrerpolicy="origin"><img src="'+esc(img||'/assets/99club/images/99club-studio-shield.png')+'" alt=""><span><strong>'+esc(title)+'</strong><small>'+esc(summary)+'</small></span><b class="demo-arrow" aria-hidden="true">→</b></a>';
@@ -27,7 +36,7 @@ function renderButtons(){
  if(post)post.innerHTML=CLUBS.slice(9).map(clubButton).join('');
  if(all)all.innerHTML=CLUBS.map(clubButton).join('');
  const packs=document.getElementById('demo-pack-buttons');
- if(packs)packs.innerHTML=PACKS.map(p=>'<a class="demo-button demo-button--accent" href="'+esc(p.link)+'" target="_blank" rel="noopener" referrerpolicy="origin">'+esc(p.title)+'</a>').join('');
+ if(packs)packs.innerHTML=PACKS.map(p=>'<a class="demo-button demo-button--accent" href="'+esc(withDemoBrand(p.link))+'" target="_blank" rel="noopener" referrerpolicy="origin">'+esc(p.title)+'</a>').join('');
  const online=document.getElementById('demo-online-buttons');
  if(online)online.innerHTML=ONLINE.map(([id,name])=>'<a class="demo-button demo-button--play" href="/play/?game='+encodeURIComponent(id)+'" target="_blank" rel="noopener" referrerpolicy="origin">'+esc(name)+'</a>').join('');
 }
@@ -38,7 +47,7 @@ function renderCards(){
  if(post)post.innerHTML=CLUBS.slice(9).map(clubCard).join('');
  if(all)all.innerHTML=CLUBS.map(clubCard).join('');
  const packs=document.getElementById('demo-pack-cards');
- if(packs)packs.innerHTML=PACKS.map(p=>genericCard(p.link,p.title,p.summary+' · fresh pack + answers')).join('');
+ if(packs)packs.innerHTML=PACKS.map(p=>genericCard(withDemoBrand(p.link),p.title,p.summary+' · fresh pack + answers')).join('');
  const online=document.getElementById('demo-online-cards');
  if(online)online.innerHTML=ONLINE.map(([id,name])=>genericCard('/play/?game='+encodeURIComponent(id),'Play '+name,'Interactive maths game · opens online')).join('');
 }
@@ -52,7 +61,7 @@ function demoLogo(){
 }
 function renderWidgets(){
  if(!W)return;
- const school={name:'Addington-on-Sum Primary School',logo:demoLogo()};
+ const school={name:'Addington-on-Sum Primary School',logo:demoLogo(),logoWidth:96,logoHeight:96};
  const clubCfg=W.normalise({widgetType:'club',integrationId:'wid_generaldemo99c',school,schemeId:'classic',orientation:'portrait',selectedClubs:CLUBS.map(x=>x[0]),defaultTab:'clubs'});
  const gamesCfg=W.normalise({widgetType:'games',integrationId:'wid_generaldemogames',school,puzzles:PACKS.map(p=>({link:p.link,minYear:p.minYear,maxYear:p.maxYear,gameCount:p.gameCount,vocabCount:0})),games:ONLINE.map(x=>x[0]),defaultTab:'puzzles'});
  const club=document.getElementById('demo-club-widget'),games=document.getElementById('demo-games-widget');

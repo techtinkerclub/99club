@@ -18,6 +18,7 @@
   const PRE_RESTORE_KEY = 'tt99-pre-restore-snapshot-v1';
   const Q = window.TT99QR;
   const PP = window.TT99ParentPractice;
+  const B = window.TT99SchoolBrand;
   const SU = window.TT99SchoolUsage;
   const PARENT_CORE_CLUB_IDS = ['11','22','33','44','55','66','77','88','99'];
   const PARENT_POST99_CLUB_IDS = ['bronze','silver','gold','platinum','diamond'];
@@ -28,6 +29,7 @@
     bronze:'bronzeclub.png',silver:'silverclub.png',gold:'goldclub.png',platinum:'platinumclub.png',diamond:'diamondclub.png'
   };
   const badgeImageCache = new Map();
+  let parentShareLogoCache={source:'',dataUrl:'',width:0,height:0};
   const ALL_TABLES = Array.from({length:12},(_,i)=>i+1);
   const LEGACY_FAMILY_ORDER = ['addition','subtraction','multiply','divide','missing_number','square','square_root','cube','bodmas','scaled_multiply','scaled_divide','fraction_of','percentage_of','negative_numbers','roman_numerals','angle_facts','simple_algebra'];
   const FAMILY_ORDER = Array.isArray(G.FAMILY_ORDER) ? G.FAMILY_ORDER.slice() : LEGACY_FAMILY_ORDER.slice();
@@ -166,6 +168,7 @@
   if (!restoredExactSheets) generateAll();
   else { refreshSheetCodes(); refreshRulesError(); persist(); }
   render();
+  refreshParentShareLogo().then(changed=>{if(changed)render();}).catch(()=>{});
   window.addEventListener('load',()=>{
     track('studio_open',{area:'club'});
     SU?.trackStudio?.('studio_open',state.school?.schoolName||'',{area:'club'});
@@ -532,11 +535,59 @@
     bindEvents();
   }
 
+  function compactParentLogoDataUrl(dataUrl){
+    const src=String(dataUrl||'');if(!src||!B)return Promise.resolve({dataUrl:'',width:0,height:0});
+    return new Promise((resolve,reject)=>{
+      const img=new Image();
+      img.onload=()=>{
+        try{
+          const limit=Math.min(9000,Number(B.MAX_LOGO_LENGTH)||9000),sizes=[180,150,120,96],qualities=[.76,.62,.50,.42];
+          let last=null;
+          for(const maxSize of sizes){
+            const scale=Math.min(1,maxSize/Math.max(img.naturalWidth,img.naturalHeight));
+            const w=Math.max(1,Math.round(img.naturalWidth*scale)),h=Math.max(1,Math.round(img.naturalHeight*scale));
+            const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+            const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);ctx.drawImage(img,0,0,w,h);
+            for(const quality of qualities){
+              const out=canvas.toDataURL('image/jpeg',quality);last={dataUrl:out,width:w,height:h};
+              if(out.length<=limit)return resolve(last);
+            }
+          }
+          if(last&&last.dataUrl.length<=(Number(B.MAX_LOGO_LENGTH)||18000))return resolve(last);
+          reject(new Error('School logo could not be reduced enough for a public practice link.'));
+        }catch(err){reject(err);}
+      };
+      img.onerror=()=>reject(new Error('School logo could not be prepared for sharing.'));
+      img.src=src;
+    });
+  }
+  async function refreshParentShareLogo(force=false){
+    const src=String(state.school?.logoDataUrl||'');
+    if(!src){const changed=!!parentShareLogoCache.source;parentShareLogoCache={source:'',dataUrl:'',width:0,height:0};return changed;}
+    if(!force&&parentShareLogoCache.source===src)return false;
+    if(B&&src.length<=Math.min(9000,Number(B.MAX_LOGO_LENGTH)||9000)){
+      parentShareLogoCache={source:src,dataUrl:src,width:Number(state.school.logoWidth)||0,height:Number(state.school.logoHeight)||0};return true;
+    }
+    const compact=await compactParentLogoDataUrl(src);
+    parentShareLogoCache={source:src,dataUrl:compact.dataUrl,width:compact.width,height:compact.height};return true;
+  }
+  function parentPublicSchool(){
+    const src=String(state.school?.logoDataUrl||''),cached=parentShareLogoCache.source===src?parentShareLogoCache:null;
+    const fallback=src&&B&&src.length<=Math.min(9000,Number(B.MAX_LOGO_LENGTH)||9000)?{dataUrl:src,width:Number(state.school.logoWidth)||0,height:Number(state.school.logoHeight)||0}:null;
+    const logo=cached||fallback||{dataUrl:'',width:0,height:0};
+    return {
+      schoolName:String(state.school?.schoolName||'').trim(),
+      logoDataUrl:logo.dataUrl,
+      logoWidth:logo.width,
+      logoHeight:logo.height
+    };
+  }
+
   function parentPracticeConfig(clubId=state.clubId){
     const id=String(clubId);
     const rules=id===String(state.clubId)?state.rules:loadRulesFor(state.schemeId,id);
     const schoolUsageKey=SU?.makeSchoolKey?.(state.school?.schoolName)||'';
-    return {schemeId:state.schemeId,clubId:id,rules:G.clone(rules),orientation:state.orientation,schoolUsageKey};
+    return {schemeId:state.schemeId,clubId:id,rules:G.clone(rules),orientation:state.orientation,schoolUsageKey,school:parentPublicSchool()};
   }
   function parentPracticeLink(clubId=state.clubId){
     if(!PP)return '';
@@ -655,7 +706,7 @@
       savedAt:new Date().toISOString(),
       schemeId:state.schemeId,
       orientation:state.orientation,
-      school:{schoolName:String(state.school?.schoolName||'').trim()},
+      school:parentPublicSchool(),
       clubs
     };
   }
@@ -688,7 +739,11 @@
       else state.ruleOverrides[key]=G.clone(saved);
     }
     if(d.orientation==='landscape'||d.orientation==='portrait')state.orientation=d.orientation;
-    if(d.school&&typeof d.school.schoolName==='string')state.school.schoolName=d.school.schoolName.slice(0,80);
+    if(d.school){
+      const restoredSchool=B?.normalise?.(d.school)||{name:String(d.school.schoolName||'').slice(0,80),logo:'',logoWidth:0,logoHeight:0};
+      state.school.schoolName=restoredSchool.name;
+      if(restoredSchool.logo){state.school.logoDataUrl=restoredSchool.logo;state.school.logoWidth=restoredSchool.logoWidth;state.school.logoHeight=restoredSchool.logoHeight;parentShareLogoCache={source:restoredSchool.logo,dataUrl:restoredSchool.logo,width:restoredSchool.logoWidth,height:restoredSchool.logoHeight};}
+    }
     if(!PARENT_CLUB_IDS.includes(state.clubId))state.clubId='33';
     state.rules=loadRulesFor(state.schemeId,state.clubId);
     state.seed=newStudioSeed(state.clubId);
@@ -952,7 +1007,7 @@
       <div class="tt99-action-row"><button type="button" class="tt99-primary" id="tt99-new">Generate new questions</button><button type="button" class="tt99-secondary" id="tt99-shuffle">Shuffle order</button></div>
       <div class="tt99-recreate"><div><strong>Recreate from sheet code ${helpButton('sheetCode')}</strong><small>${shortCodeNeedsRules?'This sheet uses customised rules. The short code alone is not enough on another browser; use the Full recreation code or the teacher QR so those rules travel with the sheet.':'For an unchanged built-in challenge, this short code is enough to rebuild the same questions.'}</small></div><div><input id="tt99-sheet-code" type="text" maxlength="100" spellcheck="false" placeholder="e.g. C99-G1-7FK2M9-A"><button type="button" id="tt99-recreate" class="tt99-secondary">Recreate</button></div></div>
       <div class="tt99-downloads"><button id="tt99-pdf-student" class="tt99-download" ${state.rulesError?'disabled':''}><b>Worksheet PDF</b><span>Pupil sheets only</span></button><button id="tt99-pdf-answer" class="tt99-download" ${state.rulesError?'disabled':''}><b>Answer key PDF</b><span>Matching answers${state.includeAnswerQr?' + QR':''}</span></button><button id="tt99-pdf-both" class="tt99-download tt99-download--accent" ${state.rulesError?'disabled':''}><b>Worksheet + answers</b><span>One complete PDF</span></button></div>
-      <div class="tt99-parent-share"><div><strong>School-led parent practice</strong><small>Create simple parent links that lock the maths rules and only offer a fresh worksheet + answers download. No school logo, teacher note or pupil data is included.</small></div><button type="button" class="tt99-secondary" id="tt99-parent-open" ${state.rulesError||!PP?'disabled':''}>Create parent links</button></div>
+      <div class="tt99-parent-share"><div><strong>School-led parent practice</strong><small>Create simple parent links that lock the maths rules. Parent downloads use the school name/logo and stamp the actual generation date; class, teacher, pupil and note fields are not shared.</small></div><button type="button" class="tt99-secondary" id="tt99-parent-open" ${state.rulesError||!PP?'disabled':''}>Create parent links</button></div>
       <div class="tt99-save-safety"><div><strong>Saved automatically on this browser ${helpButton('saveSafety')}</strong><small>You can carry on without saving manually. Download a Full backup before clearing site data, changing browser/device, or whenever you want a safety copy of everything.</small></div><button type="button" class="tt99-secondary" id="tt99-backup-all">Download full backup</button></div>
       <details class="tt99-portability"><summary>Save, import, reuse & move your work ${helpButton('browserStorage')}</summary>
         <div class="tt99-portability__body">
@@ -1119,7 +1174,7 @@
     root.querySelectorAll('[data-delete-preset]').forEach(btn=>btn.addEventListener('click',()=>deletePreset(btn.dataset.deletePreset)));
     root.querySelectorAll('[data-school]').forEach(input=>input.addEventListener('input',()=>{ state.school[input.dataset.school]=input.value; persist(); softRenderPaper(); }));
     const logo=root.querySelector('#tt99-logo'); if(logo) logo.addEventListener('change',handleLogo);
-    root.querySelector('#tt99-remove-logo')?.addEventListener('click',()=>{ state.school.logoDataUrl='';state.school.logoWidth=0;state.school.logoHeight=0;persist();render(); });
+    root.querySelector('#tt99-remove-logo')?.addEventListener('click',()=>{ state.school.logoDataUrl='';state.school.logoWidth=0;state.school.logoHeight=0;parentShareLogoCache={source:'',dataUrl:'',width:0,height:0};persist();render(); });
     root.querySelector('#tt99-toggle-rules')?.addEventListener('click',()=>{state.advancedOpen=!state.advancedOpen;render();});
     root.querySelector('#tt99-reset-rules')?.addEventListener('click',resetRules);
     root.querySelector('#tt99-reset-scheme')?.addEventListener('click',resetScheme);
@@ -1253,7 +1308,9 @@
           ...base,kind:'clubs',handoffVersion:1,widgetType:'club',
           school:{
             schoolName:String(state.school?.schoolName||'').trim(),
-            logoDataUrl:String(state.school?.logoDataUrl||'')
+            logoDataUrl:String(state.school?.logoDataUrl||''),
+            logoWidth:Number(state.school?.logoWidth)||0,
+            logoHeight:Number(state.school?.logoHeight)||0
           }
         };
         localStorage.setItem('tt99-widget-handoff-v1',JSON.stringify(handoff));
@@ -1795,7 +1852,7 @@
   async function handleLogo(e){
     const file=e.target.files?.[0]; if(!file)return;
     if(file.size>8*1024*1024){state.status='Logo is too large. Please choose an image under 8 MB.';render();return;}
-    try { const result=await imageFileToJpeg(file,360); state.school.logoDataUrl=result.dataUrl; state.school.logoWidth=result.width; state.school.logoHeight=result.height; persist();state.status='School logo added.';render(); }
+    try { const result=await imageFileToJpeg(file,360); state.school.logoDataUrl=result.dataUrl; state.school.logoWidth=result.width; state.school.logoHeight=result.height; await refreshParentShareLogo(true); persist();state.status='School logo added.';render(); }
     catch(err){state.status='That logo could not be read. Try a PNG or JPG.';render();}
   }
   function imageFileToJpeg(file,maxSize){ return new Promise((resolve,reject)=>{ const img=new Image(); const url=URL.createObjectURL(file); img.onload=()=>{ const scale=Math.min(1,maxSize/Math.max(img.naturalWidth,img.naturalHeight)); const w=Math.max(1,Math.round(img.naturalWidth*scale)),h=Math.max(1,Math.round(img.naturalHeight*scale)); const c=document.createElement('canvas');c.width=w;c.height=h;const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);ctx.drawImage(img,0,0,w,h);URL.revokeObjectURL(url);resolve({dataUrl:c.toDataURL('image/jpeg',0.9),width:w,height:h});};img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('image'));};img.src=url;}); }

@@ -13,7 +13,8 @@ function prepare(){
       selectedEngines:['pyramid'],
       engineSettings:{pyramid:{difficulty:'standard',levels:'3',clueLevel:'balanced'}}
     },
-    u:'sch_browserqa12'
+    u:'sch_browserqa12',
+    i:{n:'Browser QA Primary School',l:'data:image/jpeg;base64,AAAA',w:80,h:40}
   };
   const token='TT99GP1.'+Buffer.from(JSON.stringify(payload),'utf8').toString('base64url');
   const layout=fs.readFileSync(path.join(ROOT,'_layouts/puzzle-practice.html'),'utf8');
@@ -67,7 +68,11 @@ function prepare(){
     "          if(window.__puzzleBuild.kind!=='both')fail('download','Puzzle parent download did not request puzzle + answers');",
     "          const settings=window.__puzzleBuild.settings||{};",
     "          if(!Array.isArray(settings.selectedEngines)||settings.selectedEngines[0]!=='pyramid')fail('preset','Selected puzzle engine was not preserved');",
-    "          if(settings.personalisation&&settings.personalisation.schoolName)fail('privacy','School personalisation leaked into parent PDF settings');",
+    "          const p=settings.personalisation||{};",
+    "          if(p.schoolName!=='Browser QA Primary School')fail('branding','Puzzle parent PDF lost school name');",
+    "          if(p.logoDataUrl!=='data:image/jpeg;base64,AAAA')fail('branding','Puzzle parent PDF lost school logo');",
+    "          if(p.worksheetDate!==window.TT99SchoolBrand.localIsoDate())fail('date','Puzzle parent PDF did not use generation date');",
+    "          if(p.classLabel)fail('privacy','Puzzle parent PDF included class personalisation');",
     '        }',
     "        if(!window.__puzzleSaveCalled)fail('download','Puzzle PDF save was not invoked');",
     "        const dl=(window.__puzzleSchoolEvents||[]).find(x=>x.name==='puzzle_practice_download');",
