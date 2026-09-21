@@ -1,4 +1,7 @@
 <!-- 99 Club Studio standalone head additions -->
+{% if page.robots %}
+<meta name="robots" content="{{ page.robots | escape }}">
+{% endif %}
 {% if page.url == '/' or page.url == '/games/' or page.url == '/play/' or page.url == '/help/' or page.url == '/help/games/' or page.url == '/contact/' or page.url == '/privacy/' or page.url == '/tools/99-club/custom/' %}
 {% assign tt99_build = site.github.build_revision | default: site.time %}
 <meta name="tt99-build" content="{{ tt99_build | escape }}">
@@ -10,9 +13,6 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="99 Club Studio">
 <link rel="apple-touch-icon" sizes="192x192" href="/assets/99club/pwa/icon-192.png">
-{% if page.url == '/tools/99-club/custom/' %}
-<meta name="robots" content="noindex,nofollow">
-{% endif %}
 {% if page.url == '/' %}
 <script type="application/ld+json">
 {
