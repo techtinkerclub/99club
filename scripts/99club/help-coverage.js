@@ -54,6 +54,6 @@ const page=fs.readFileSync(path.join(ROOT,'_pages/99-club-games-help.md'),'utf8'
 const stated=Number((page.match(/covers all <strong>(\d+) current one-player games<\/strong>/)||[])[1]||0);
 if(missing.length)console.error('Missing one-page guides for runtime games: '+missing.join(', '));
 if(orphan.length)console.warn('Guides without an online runtime adapter: '+orphan.join(', '));
-if(stated!==runtime.length)console.error(`Help page says ${stated} games but runtime registered ${runtime.length}.`);
+if(stated!==guides.length)console.error(`Help page says ${stated} printable types but guide library contains ${guides.length}.`);
 console.log(`Help coverage: ${guides.length} visible guides, ${runtime.length} runtime games.`);
-if(missing.length||stated!==runtime.length||process.exitCode)process.exit(1);
+if(missing.length||stated!==guides.length||process.exitCode)process.exit(1);
