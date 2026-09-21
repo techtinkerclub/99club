@@ -5,14 +5,16 @@
 (function(global){
   'use strict';
 
-  const VERSION='1.9.0';
+  const VERSION='1.10.0';
   let VOCAB_DATA=global.TT99GamesVocabularyV2||null;
   let ARITH=global.TT99ArithmeticGames||null;
   let NUMLOGIC=global.TT99NumberLogicGames||null;
+  let VR=global.TT99VerbalReasoning||null;
   if(!VOCAB_DATA && typeof require==='function'){
     try{VOCAB_DATA=require('./games-vocabulary.js');}catch(e){}
     try{ARITH=require('./games-arithmetic.js');}catch(e){}
     try{NUMLOGIC=require('./games-number-logic.js');}catch(e){}
+    try{VR=require('./games-verbal-reasoning.js');}catch(e){}
   }
 
   const TOPICS={
@@ -90,7 +92,7 @@
       compatibility:{number_place_value:'excellent',calculation:'reasonable',fractions:'poor',decimals_percentages:'poor',ratio_proportion:'poor',measurement:'poor',geometry:'poor',statistics:'poor',algebra:'reasonable'}
     }
   };
-  const ENGINES={...CORE_ENGINES,...((ARITH&&ARITH.DEFINITIONS)||{}),...((NUMLOGIC&&NUMLOGIC.DEFINITIONS)||{})};
+  const ENGINES={...CORE_ENGINES,...((ARITH&&ARITH.DEFINITIONS)||{}),...((NUMLOGIC&&NUMLOGIC.DEFINITIONS)||{}),...((VR&&VR.DEFINITIONS)||{})};
 
   function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
   function clone(v){return JSON.parse(JSON.stringify(v));}
@@ -142,6 +144,7 @@
     const defaults=ENGINES[engineId]?.defaultSettings||{},generationRaw=raw?.difficulty==='mixed'?{...raw,difficulty:'standard'}:raw;
     if(ARITH&&ARITH.DEFINITIONS&&ARITH.DEFINITIONS[engineId])return attachDifficultyProfile(raw,ARITH.normalise(engineId,generationRaw));
     if(NUMLOGIC&&NUMLOGIC.DEFINITIONS&&NUMLOGIC.DEFINITIONS[engineId])return attachDifficultyProfile(raw,NUMLOGIC.normalise(engineId,generationRaw));
+    if(VR&&VR.DEFINITIONS&&VR.DEFINITIONS[engineId])return attachDifficultyProfile(raw,VR.normalise(engineId,generationRaw));
     if(engineId==='wordsearch'){
       const legacyMode=raw.clueMode||raw.wordSearchMode;
       return attachDifficultyProfile(raw,{
@@ -194,6 +197,7 @@
     };
     if(ARITH&&ARITH.DEFINITIONS)for(const id of Object.keys(ARITH.DEFINITIONS))engineSettings[id]=normalizeEngineSettings(id,{difficulty:legacyDifficulty,...(rawEngineSettings[id]||{})});
     if(NUMLOGIC&&NUMLOGIC.DEFINITIONS)for(const id of Object.keys(NUMLOGIC.DEFINITIONS))engineSettings[id]=normalizeEngineSettings(id,{difficulty:legacyDifficulty,...(rawEngineSettings[id]||{})});
+    if(VR&&VR.DEFINITIONS)for(const id of Object.keys(VR.DEFINITIONS))engineSettings[id]=normalizeEngineSettings(id,{difficulty:legacyDifficulty,...(rawEngineSettings[id]||{})});
     const hasExplicitSelection=Array.isArray(input.selectedEngines);
     let selectedEngines=hasExplicitSelection?input.selectedEngines.filter(id=>ENGINES[id]&&!ENGINES[id].hiddenFromLibrary):[];
     if(!hasExplicitSelection&&input.gameMode==='single'&&ENGINES[input.gameId]&&!ENGINES[input.gameId].hiddenFromLibrary)selectedEngines=[input.gameId];
@@ -214,7 +218,14 @@
   }
 
   function compatibleEngines(settings){
-    const s=normalizeSettings(settings);return Object.values(ENGINES).filter(engine=>!engine.hiddenFromLibrary&&s.topics.some(t=>{if(!['excellent','reasonable'].includes(engine.compatibility[t]))return false;const min=Number(engine.topicYearMin?.[t]||1),max=Number(engine.topicYearMax?.[t]||6);return s.maxYear>=min&&s.minYear<=max;})).map(x=>x.id);
+    const s=normalizeSettings(settings);return Object.values(ENGINES).filter(engine=>{
+      if(engine.hiddenFromLibrary)return false;
+      if(engine.topicIndependent){
+        const min=Number(engine.minYear||1),max=Number(engine.maxYear||6);
+        return s.maxYear>=min&&s.minYear<=max;
+      }
+      return s.topics.some(t=>{if(!['excellent','reasonable'].includes(engine.compatibility[t]))return false;const min=Number(engine.topicYearMin?.[t]||1),max=Number(engine.topicYearMax?.[t]||6);return s.maxYear>=min&&s.minYear<=max;});
+    }).map(x=>x.id);
   }
   function selectedCompatibleEngines(settings){
     const s=normalizeSettings(settings),eligible=new Set(compatibleEngines(s)),selected=s.selectedEngines.filter(id=>eligible.has(id));
@@ -493,6 +504,7 @@
     const s=normalizeSettings(settings);
     if(ARITH&&ARITH.DEFINITIONS&&ARITH.DEFINITIONS[engineId])return ARITH.workedExample(engineId,s,seed);
     if(NUMLOGIC&&NUMLOGIC.DEFINITIONS&&NUMLOGIC.DEFINITIONS[engineId])return NUMLOGIC.workedExample(engineId,s,seed);
+    if(VR&&VR.DEFINITIONS&&VR.DEFINITIONS[engineId])return VR.workedExample(engineId,s,seed);
     if(engineId==='pyramid'){
       const rng=rngFromSeed(seed),a=randInt(rng,2,6),b=randInt(rng,2,6),c=randInt(rng,2,6),rows=buildPyramid([a,b,c]),missingValue=b;
       return {engineId,title:'Number Pyramid worked example',kind:'pyramid',rows,exampleMissing:'2:1',goal:'Fill every empty brick using the addition rule.',rules:['A brick is the sum of the two bricks directly below it.','If a lower brick is missing, use subtraction to work backwards.'],steps:[`${a} + ${b} = ${a+b}, so the left middle brick is ${a+b}.`,`${b} + ${c} = ${b+c}, so the right middle brick is ${b+c}.`,`${a+b} + ${b+c} = ${rows[0][0]}, so the top brick is ${rows[0][0]}.`,`Working backwards also works: ${a+b} - ${a} = ${missingValue}.`],tip:'Check each completed brick against the two bricks below it.',commonMistake:'Do not add bricks that are not directly next to each other.'};
@@ -535,6 +547,7 @@
     if(!activity||activity.error)return '';
     if(activity.engineId==='alphametics'&&activity.templateId)return `alphametics:${activity.templateId}`;
     if(activity.engineId==='symbols'&&activity.word)return `symbols:${String(activity.word).toUpperCase()}`;
+    if(VR?.DEFINITIONS?.[activity.engineId]&&activity.contentKey)return `vr:${activity.contentKey}`;
     return '';
   }
   function withFiniteExclusions(settings,used){
@@ -542,7 +555,8 @@
     copy._finiteExclusions={
       ...current,
       alphametics:[...(used.alphametics||[])],
-      symbols:[...(used.symbols||[])]
+      symbols:[...(used.symbols||[])],
+      vr:[...(used.vr||[])]
     };
     return copy;
   }
@@ -550,13 +564,13 @@
   function generateActivity(engineId,settings,seed,customVocabulary=[]){
     const finiteExclusions=settings?._finiteExclusions;
     let s=normalizeSettings(settings);
-    if(finiteExclusions)s._finiteExclusions={alphametics:[...(finiteExclusions.alphametics||[])],symbols:[...(finiteExclusions.symbols||[])]};
+    if(finiteExclusions)s._finiteExclusions={alphametics:[...(finiteExclusions.alphametics||[])],symbols:[...(finiteExclusions.symbols||[])],vr:[...(finiteExclusions.vr||[])]};
     if(s.engineSettings[engineId]?.difficulty==='mixed'){const exclusions=s._finiteExclusions;s=settingsWithDifficulty(s,engineId,resolveSingleDifficulty(s,engineId,seed));if(exclusions)s._finiteExclusions=exclusions;}
-    if(ARITH&&ARITH.DEFINITIONS&&ARITH.DEFINITIONS[engineId])return ARITH.generate(engineId,s,seed);if(NUMLOGIC&&NUMLOGIC.DEFINITIONS&&NUMLOGIC.DEFINITIONS[engineId])return NUMLOGIC.generate(engineId,s,seed);if(engineId==='pyramid')return generateNumberPyramid(s,seed);if(engineId==='crossword')return generateCrossword(s,seed,customVocabulary);if(engineId==='magic')return generateMagicSquare(s,seed);if(engineId==='sudoku')return generateSudoku(s,seed);return generateWordSearch(s,seed,customVocabulary);}
+    if(ARITH&&ARITH.DEFINITIONS&&ARITH.DEFINITIONS[engineId])return ARITH.generate(engineId,s,seed);if(NUMLOGIC&&NUMLOGIC.DEFINITIONS&&NUMLOGIC.DEFINITIONS[engineId])return NUMLOGIC.generate(engineId,s,seed);if(VR&&VR.DEFINITIONS&&VR.DEFINITIONS[engineId])return VR.generate(engineId,s,seed);if(engineId==='pyramid')return generateNumberPyramid(s,seed);if(engineId==='crossword')return generateCrossword(s,seed,customVocabulary);if(engineId==='magic')return generateMagicSquare(s,seed);if(engineId==='sudoku')return generateSudoku(s,seed);return generateWordSearch(s,seed,customVocabulary);}
   function generatePack(settings,seed='games',customVocabulary=[]){
     const s=normalizeSettings(settings),selected=selectedCompatibleEngines(s),sheets=[];
     if(!selected.length)return {version:VERSION,seed,settings:s,workedExamples:[],sheets:[]};
-    const total=s.sheets*s.activitiesPerSheet,enginePlan=Array.from({length:total},(_,i)=>chooseEngine(s,i,seed)),counts={},seen={},difficultyPlans={},operationPlans={},finiteUsed={alphametics:new Set(),symbols:new Set()};
+    const total=s.sheets*s.activitiesPerSheet,enginePlan=Array.from({length:total},(_,i)=>chooseEngine(s,i,seed)),counts={},seen={},difficultyPlans={},operationPlans={},finiteUsed={alphametics:new Set(),symbols:new Set(),vr:new Set()};
     enginePlan.forEach(id=>counts[id]=(counts[id]||0)+1);for(const [id,count] of Object.entries(counts)){difficultyPlans[id]=weightedDifficultyPlan(s,id,count,seed);if(id==='arithmagon')operationPlans[id]=arithmagonOperationPlan(s,count,seed);}
     let globalIndex=0,capacityMessage='';
     outer:for(let sheetIndex=0;sheetIndex<s.sheets;sheetIndex++){
@@ -589,9 +603,9 @@
       if(activities.length)sheets.push({index:sheetIndex+1,activities});
     }
     const workedExamples=s.workedExamples==='front'?selected.map((id,i)=>{const ws=s.engineSettings[id]?.difficulty==='mixed'?settingsWithDifficulty(s,id,'standard'):s;return generateWorkedExample(id,ws,`${seed}:worked:${i}:${id}`,customVocabulary);}).filter(Boolean):[];
-    return {version:VERSION,seed,settings:s,workedExamples,sheets,capacityMessage,finiteBankKeys:[...finiteUsed.alphametics].map(x=>`alphametics:${x}`).concat([...finiteUsed.symbols].map(x=>`symbols:${x}`))};
+    return {version:VERSION,seed,settings:s,workedExamples,sheets,capacityMessage,finiteBankKeys:[...finiteUsed.alphametics].map(x=>`alphametics:${x}`).concat([...finiteUsed.symbols].map(x=>`symbols:${x}`),[...finiteUsed.vr].map(x=>`vr:${x}`))};
   }
 
-  const api={VERSION,TOPICS,ENGINES,ARITH,NUMLOGIC,VOCABULARY,VOCABULARY_METADATA,normalizeSettings,normalizeEngineSettings,normalizeDifficultyWeights,weightedDifficultyPlan,settingsWithDifficulty,arithmagonOperationPlan,compatibleEngines,selectedCompatibleEngines,sanitizeCustomVocabulary,vocabularyCountForTopic,vocabularyFor,crosswordVocabularyFor,generateWordSearch,replaceWordSearchEntry,generateNumberPyramid,generateCrossword,generateMagicSquare,generateSudoku,generateMiniSudoku,generateWorkedExample,generateActivity,generatePack,finiteContentKey,normalizeTerm,puzzleTermSuitable,answerEnumeration,needsEnumeration,formatNumber,rngFromSeed,clone,wordSearchDirections,_matrixRank:matrixRank,_pyramidCoefficientRows:pyramidCoefficientRows,_isMagicGrid:isMagicGrid,_magicLineSums:magicLineSums,_magicEquationRows:magicEquationRows,_countSudokuSolutions:countSudokuSolutions,_sudokuBoxShape:sudokuBoxShape};
+  const api={VERSION,TOPICS,ENGINES,ARITH,NUMLOGIC,VR,VOCABULARY,VOCABULARY_METADATA,normalizeSettings,normalizeEngineSettings,normalizeDifficultyWeights,weightedDifficultyPlan,settingsWithDifficulty,arithmagonOperationPlan,compatibleEngines,selectedCompatibleEngines,sanitizeCustomVocabulary,vocabularyCountForTopic,vocabularyFor,crosswordVocabularyFor,generateWordSearch,replaceWordSearchEntry,generateNumberPyramid,generateCrossword,generateMagicSquare,generateSudoku,generateMiniSudoku,generateWorkedExample,generateActivity,generatePack,finiteContentKey,normalizeTerm,puzzleTermSuitable,answerEnumeration,needsEnumeration,formatNumber,rngFromSeed,clone,wordSearchDirections,_matrixRank:matrixRank,_pyramidCoefficientRows:pyramidCoefficientRows,_isMagicGrid:isMagicGrid,_magicLineSums:magicLineSums,_magicEquationRows:magicEquationRows,_countSudokuSolutions:countSudokuSolutions,_sudokuBoxShape:sudokuBoxShape};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;global.TT99Games=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
