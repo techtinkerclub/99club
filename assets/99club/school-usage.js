@@ -179,8 +179,6 @@
       game_count:gameIds.length,
       topic_ids:topicIds,
       game_difficulties:gameDifficulties,
-      min_year:Number.isFinite(Number(s.minYear))?Number(s.minYear):undefined,
-      max_year:Number.isFinite(Number(s.maxYear))?Number(s.maxYear):undefined,
       sheet_count:Number.isFinite(Number(s.sheets))?Number(s.sheets):undefined,
       activities_per_sheet:Number.isFinite(Number(s.activitiesPerSheet))?Number(s.activitiesPerSheet):undefined,
       worked_examples:s.workedExamples==='front'?1:0,

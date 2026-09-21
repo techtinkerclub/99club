@@ -620,7 +620,8 @@ try{
   if(decoded.schoolUsageKey!==schoolKey)fail('puzzle-parent','Opaque school key did not survive puzzle-link round trip');
   if(decoded.settings.personalisation.schoolName||decoded.settings.personalisation.classLabel||decoded.settings.personalisation.worksheetDate||decoded.settings.personalisation.logoDataUrl)fail('puzzle-parent','Decoded puzzle generation settings contain printable personalisation instead of keeping branding separate');
   if(decoded.school?.name!=='Example Primary School'||decoded.school?.logo!==puzzleLogo||decoded.school?.logoWidth!==72||decoded.school?.logoHeight!==36)fail('puzzle-parent','Public school branding does not survive puzzle-link round trip');
-  if(decoded.settings.minYear!==4||decoded.settings.maxYear!==5||decoded.settings.sheets!==2||decoded.settings.activitiesPerSheet!==2)fail('puzzle-parent','Puzzle pack-level settings did not survive parent-link round trip');
+  if(decoded.settings.sheets!==2||decoded.settings.activitiesPerSheet!==2)fail('puzzle-parent','Puzzle pack-level settings did not survive parent-link round trip');
+  if(Object.prototype.hasOwnProperty.call(compact.s,'minYear')||Object.prototype.hasOwnProperty.call(compact.s,'maxYear'))fail('puzzle-parent','New puzzle parent payload still carries legacy Year-range fields');
   if(decoded.settings.engineSettings.pyramid.difficulty!=='challenge'||String(decoded.settings.engineSettings.pyramid.levels)!=='5')fail('puzzle-parent','Per-engine puzzle settings did not survive parent-link round trip');
   if(compact.i?.n!=='Example Primary School'||compact.i?.l!==puzzleLogo)fail('puzzle-parent','Public school name/logo were not included in the puzzle parent payload');
   if(JSON.stringify(compact).includes('Private Y5 pack')||JSON.stringify(compact).includes('5B')||JSON.stringify(compact).includes('2026-09-19'))fail('puzzle-parent','Class/title/stored-date data leaked into parent puzzle payload');
@@ -635,12 +636,13 @@ try{
   const link=PuzzleParent.buildLink(cfg,'https://99studio.uk');
   if(!link.startsWith('https://99studio.uk/practice/puzzles/#p=TT99GP1.'))fail('puzzle-parent','Puzzle parent link does not use the dedicated fragment route',link.slice(0,100));
   if(link.includes('?'))fail('puzzle-parent','Puzzle practice settings should be carried in the URL fragment');
-  const card=PuzzleParent.websiteCardHtml(link,'Maths puzzle practice','Years 4–5 · 2 puzzle types');
+  const card=PuzzleParent.websiteCardHtml(link,'Maths puzzle practice','2 puzzle types · Calculation');
   if(!/^<a /.test(card)||/script|iframe/i.test(card)||!card.includes('noopener'))fail('puzzle-parent','Puzzle website card is not a plain safe hyperlink');
   if(!card.includes('referrerpolicy="origin"')||card.includes('noreferrer'))fail('school-usage','Puzzle website card does not preserve origin-only source attribution');
 
   const usage=SchoolUsage2.puzzlePracticePayload('puzzle_practice_download',decoded);
-  if(!usage||usage.school_key!==schoolKey||usage.game_count!==2||usage.min_year!==4||usage.max_year!==5||usage.sheet_count!==2||usage.activities_per_sheet!==2)fail('school-usage','Aggregate puzzle-practice payload is incomplete');
+  if(!usage||usage.school_key!==schoolKey||usage.game_count!==2||usage.sheet_count!==2||usage.activities_per_sheet!==2)fail('school-usage','Aggregate puzzle-practice payload is incomplete');
+  if(Object.prototype.hasOwnProperty.call(usage,'min_year')||Object.prototype.hasOwnProperty.call(usage,'max_year'))fail('school-usage','Puzzle usage payload still carries legacy Year-range fields');
   if(!Array.isArray(usage.topic_ids)||!usage.topic_ids.includes('calculation'))fail('school-usage','Puzzle usage payload is missing aggregate topic ids');
   if(!Array.isArray(usage.game_difficulties)||!usage.game_difficulties.includes('pyramid:challenge'))fail('school-usage','Puzzle usage payload is missing per-game difficulty modes');
   if(Number(usage.custom_vocabulary_count)!==0)fail('school-usage','Puzzle usage custom vocabulary count is incorrect for a non-vocabulary pack');
