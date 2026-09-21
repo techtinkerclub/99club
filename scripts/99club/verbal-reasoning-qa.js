@@ -7,6 +7,30 @@ assert(VR.VERSION==='2.08.0','wrong VR core version');
 assert(VR.TYPE_IDS.length===21,'expected 21 verbal reasoning types');
 
 const report={version:VR.VERSION,types:{},errors:[]},coreIssues=[];
+function formatIssues(q,id,d){
+  const e=[],c=q?.check||{},size=d==='easy'?2:d==='standard'?3:4;
+  if(id==='insert_letter'&&(c.kind!=='insert4'||!Array.isArray(c.words)||c.words.length!==4))e.push('Type 1 must use one letter to make four words');
+  if(id==='letter_code'&&(d==='easy'?c.kind!=='letter_code':c.kind!=='letter_code_decode'))e.push('Type 3 difficulty format drifted');
+  if(id==='closest_meaning'&&(c.kind!=='syn_pair'||c.groupA?.length!==size||c.groupB?.length!==size))e.push('Type 4 group structure drifted');
+  if(id==='hidden_word'&&(c.kind!=='hidden_row'||c.row?.length!==(d==='easy'?4:d==='standard'?5:6)))e.push('Type 5 search-row structure drifted');
+  if(id==='missing_word'&&c.kind!=='missing_classic')e.push('Type 6 must remove a real three-letter word');
+  if(id==='letters_for_numbers'&&(c.kind!=='letter_number_expr'||c.terms?.length!==(d==='easy'?2:d==='standard'?3:4)))e.push('Type 7 expression depth drifted');
+  if(id==='move_letter'&&(c.kind!=='move'||String(q.answer).length!==1))e.push('Type 8 answer must be the moved letter');
+  if(id==='word_connections'&&(c.kind!=='analogy_pair'||c.group1?.length!==size||c.group2?.length!==size))e.push('Type 10 two-group structure drifted');
+  if(id==='compound_words'&&(c.kind!=='compound_unique'||c.groupA?.length!==size||c.groupB?.length!==size))e.push('Type 12 group structure drifted');
+  if(id==='make_word'&&(c.kind!=='make_word'||!String(q.key).startsWith('mw2:')))e.push('Type 13 must infer from two completed examples');
+  if(id==='letter_connections'&&c.kind==='letter_connections'){
+    if(d==='easy'&&c.s1!==c.s2)e.push('Type 14 Easy should use one shared forward shift');
+    if(d==='standard'&&!(c.s1>0&&c.s2>0))e.push('Type 14 Standard should use two forward shifts');
+    if(d==='challenge'&&!(c.s1>0&&c.s2<0))e.push('Type 14 Challenge should use opposing shifts');
+  }else if(id==='letter_connections')e.push('Type 14 relation metadata missing');
+  if(id==='reading_information'&&c.kind!=='reading_expected')e.push('Type 15 deduction metadata missing');
+  if(id==='opposite_meaning'&&(c.kind!=='ant_pair'||c.groupA?.length!==size||c.groupB?.length!==size))e.push('Type 16 group structure drifted');
+  if(id==='related_numbers'&&c.kind!=='related_unique')e.push('Type 18 must reject competing supported rules');
+  if(id==='word_number_codes'&&c.kind!=='wn_scrambled')e.push('Type 19 must use scrambled code matching');
+  if(id==='same_meaning'&&(c.kind!=='link'||c.pairs?.length!==2||c.pairs.some(p=>p.length!==2)))e.push('Type 21 must use two clue pairs');
+  return e;
+}
 for(const d of VR.DIFFICULTIES){
   for(const id of VR.TYPE_IDS){
     const keys=new Set();let generated=0;
@@ -16,6 +40,7 @@ for(const d of VR.DIFFICULTIES){
         const q=VR.generate(id,d,seed),again=VR.generate(id,d,seed),v=VR.validate(q);
         if(!v.ok)coreIssues.push(id+'/'+d+' invalid: '+v.errors.join(', '));
         if(JSON.stringify(q)!==JSON.stringify(again))coreIssues.push(id+'/'+d+' is not deterministic');
+        for(const issue of formatIssues(q,id,d))coreIssues.push(id+'/'+d+' format: '+issue);
         keys.add(q.key);generated++;
       }catch(err){coreIssues.push(id+'/'+d+' generation failed: '+(err?.message||err));break;}
     }
@@ -73,4 +98,4 @@ for(const d of VR.DIFFICULTIES){
 }
 
 require('fs').writeFileSync('99club-verbal-reasoning-qa-report.json',JSON.stringify(report,null,2));
-console.log('PASS verbal reasoning v2.08: 21 types × 3 difficulties validated; 40-question single-type packs are duplicate-free; Custom and random scope checks passed.');
+console.log('PASS verbal reasoning v2.08: 21 types × 3 difficulties validated for format, answer integrity and variety; 40-question single-type packs are duplicate-free; Custom and random scope checks passed.');
