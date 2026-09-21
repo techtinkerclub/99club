@@ -1,6 +1,39 @@
 (function(){
   'use strict';
-  const G = window.TT99Generator;
+  const G = window.TT99Generator;\  function renderCurriculumCoverageMap(){
+    if(!C || !Array.isArray(C.objectives) || !C.objectives.length) return '';
+    const errors=typeof C.validate==='function'?C.validate():[];
+    const totals=typeof C.summary==='function'?C.summary():{total:C.objectives.length,live:0,partial:0,planned:0};
+    const groups=typeof C.group==='function'?C.group():[];
+    const pill=(status,count)=>`<span class="tt99-curriculum-status tt99-curriculum-status--${esc(status)}">${esc(C.STATUS_LABELS?.[status]||status)} ${Number(count)||0}</span>`;
+    const providerText=row=>{
+      if(!row.providers?.length)return 'No question provider yet';
+      return 'Provider: '+row.providers.map(id=>G.FAMILY_LABELS?.[id]||id).join(', ');
+    };
+    const domainHtml=groups.map(group=>{
+      const rows=group.subcategories.flatMap(x=>x.objectives);
+      const s=typeof C.summary==='function'?C.summary(rows):{total:rows.length,live:0,partial:0,planned:0};
+      const subHtml=group.subcategories.map(sub=>`<section class="tt99-curriculum-subcategory">
+        <h4>${esc(sub.name)}</h4>
+        <div class="tt99-curriculum-objectives">${sub.objectives.map(row=>`<div class="tt99-curriculum-objective">
+          <span class="tt99-curriculum-year">Y${esc(row.year)}</span>
+          <span class="tt99-curriculum-objective__text"><b>${esc(row.label)}</b><small>${esc(row.id)} · ${esc(providerText(row))}${row.notes?` · ${esc(row.notes)}`:''}</small></span>
+          <span class="tt99-curriculum-status tt99-curriculum-status--${esc(row.status)}">${esc(C.STATUS_LABELS?.[row.status]||row.status)}</span>
+        </div>`).join('')}</div>
+      </section>`).join('');
+      return `<details class="tt99-curriculum-domain"><summary><strong>${esc(group.domain)}</strong><small>${s.total} objectives · ${s.live} live · ${s.partial} partial · ${s.planned} planned</small></summary>${subHtml}</details>`;
+    }).join('');
+    return `<details class="tt99-curriculum-map">
+      <summary><div><strong>Curriculum coverage map</strong><small>Read-only development view. This does not change the current worksheet generator or your saved selections.</small></div><span class="tt99-curriculum-map__totals">${pill('live',totals.live)}${pill('partial',totals.partial)}${pill('planned',totals.planned)}</span></summary>
+      <div class="tt99-curriculum-map__body">
+        <p class="tt99-curriculum-map__note">Every statutory area can live here even before it has a question provider. <b>Live</b> means there is a direct provider now; <b>Partial</b> means existing questions cover some of the objective but not granularly enough; <b>Planned</b> means the curriculum leaf is deliberately present but not selectable yet.</p>
+        ${errors.length?`<div class="tt99-curriculum-map__error"><b>Registry validation:</b> ${esc(errors.join(' · '))}</div>`:''}
+        ${domainHtml}
+      </div>
+    </details>`;
+  }
+
+n  const C = window.TT99CurriculumRegistry;
   const P = window.TT99SimplePDF;
   const L = window.TT99PDFLayout;
   const root = document.getElementById('tt99-root');
@@ -9,7 +42,7 @@
   const STORAGE_KEY = 'tt99-custom-settings-v1';
   const LEGACY_MAIN_STORAGE_KEY = 'tt99-settings-v1';
   const CUSTOM_KEY = 'tt99-custom-presets-v1';
-  const VERSION = '1.23.0';
+  const VERSION = '1.24.0';
   const APP_NAME = '99 Club Studio · Custom Worksheets';
   const APP_URL = 'https://99studio.uk/tools/99-club/custom/';
   const GENERATION_VERSION = 1;
@@ -551,7 +584,7 @@
         ${open?'':`<label class="tt99-check"><input data-rule-check="consecutivePerfectAttempts" type="checkbox" ${r.consecutivePerfectAttempts?'checked':''}><span>Perfect attempts must be consecutive ${helpButton('consecutiveAttempts')}</span></label>`}
         <label class="tt99-check"><input data-rule-check="unaided" type="checkbox" ${r.unaided?'checked':''}><span>State that the sheet should be completed independently/unaided ${helpButton('unaided')}</span></label>
       </div>
-      ${r.mode==='family_mix'?renderFamilySelector(r)+renderFamilyWeights(r):''}
+      ${open?renderCurriculumCoverageMap():''}\n      ${r.mode==='family_mix'?renderFamilySelector(r)+renderFamilyWeights(r):''}
       <details class="tt99-custom-advanced-settings"><summary><b>Advanced difficulty & number ranges</b><span>Usually leave these at the year/profile defaults</span></summary><div class="tt99-custom-advanced-settings__body">
       ${r.mode==='double'?`<div class="tt99-inline-fields">${numField('Smallest number','numberMin',r.numberMin,0,100)}${numField('Largest number','numberMax',r.numberMax,0,100)}</div>`:''}
       ${r.mode==='repeated_addition'?`<div class="tt99-inline-fields">${numField('Smallest addend','addendMin',r.addendMin,0,100)}${numField('Largest addend','addendMax',r.addendMax,0,100)}${numField('Minimum repeats','repeatsMin',r.repeatsMin,2,20)}${numField('Maximum repeats','repeatsMax',r.repeatsMax,2,20)}</div>`:''}
