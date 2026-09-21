@@ -1,4 +1,4 @@
-/* 99 Club Studio · Games pack mode v1.2.0
+/* 99 Club Studio · Games pack mode v1.3.0
  * Adds exact activity counts and deterministic random-compatible packs.
  * Random packs can use one fixed difficulty or a quota-based mixed profile.
  */
@@ -136,14 +136,17 @@
     return {...settings,engineSettings};
   }
   function regenerateRandomDifficulties(sheets,settings,seed,plan,customVocabulary){
-    let k=0;const difficultyByEngine={};
+    let k=0;const difficultyByEngine={},finiteUsed={alphametics:new Set(),symbols:new Set()};
     const out=sheets.map((sheet,si)=>({...sheet,activities:(sheet.activities||[]).map((activity,ai)=>{
       const engineId=activity?.engineId;if(!engineId)return activity;
       const requested=plan[k++]||'standard',difficulty=closestSupportedDifficulty(engineId,requested);
       if(!difficultyByEngine[engineId])difficultyByEngine[engineId]=difficulty;
       if(typeof G.generateActivity!=='function')return {...activity,difficulty};
-      const activitySettings=applyRandomDifficulty(settings,[engineId],difficulty),activitySeed=`${seed}:S${si+1}:A${ai+1}:${engineId}`;
-      return G.generateActivity(engineId,activitySettings,activitySeed,customVocabulary);
+      let activitySettings=applyRandomDifficulty(settings,[engineId],difficulty);
+      activitySettings={...activitySettings,_finiteExclusions:{alphametics:[...finiteUsed.alphametics],symbols:[...finiteUsed.symbols]}};
+      const activitySeed=`${seed}:S${si+1}:A${ai+1}:${engineId}`,next=G.generateActivity(engineId,activitySettings,activitySeed,customVocabulary),key=G.finiteContentKey?.(next)||'';
+      if(key){const [bank,value]=key.split(':',2);finiteUsed[bank]?.add(value);}
+      return next;
     })}));
     return {sheets:out,difficultyByEngine};
   }
@@ -185,7 +188,7 @@
     selectedCompatibleEngines,
     generatePack,
     generateRandomPack,
-    PACK_MODE:{version:'1.2.0',storageModeKey:STORAGE_MODE,storageCountKey:STORAGE_COUNT,storageDifficultyKey:STORAGE_DIFFICULTY,storageDifficultyWeightsKey:STORAGE_WEIGHTS,storagePerPageKey:STORAGE_PER_PAGE,difficulties:RANDOM_DIFFICULTIES.slice(),singleDifficulties:SINGLE_DIFFICULTIES.slice(),defaultDifficultyWeights:{...DEFAULT_WEIGHTS},maxActivities:40}
+    PACK_MODE:{version:'1.3.0',storageModeKey:STORAGE_MODE,storageCountKey:STORAGE_COUNT,storageDifficultyKey:STORAGE_DIFFICULTY,storageDifficultyWeightsKey:STORAGE_WEIGHTS,storagePerPageKey:STORAGE_PER_PAGE,difficulties:RANDOM_DIFFICULTIES.slice(),singleDifficulties:SINGLE_DIFFICULTIES.slice(),defaultDifficultyWeights:{...DEFAULT_WEIGHTS},maxActivities:40}
   });
   G.__packModeV1=true;
 })(typeof globalThis!=='undefined'?globalThis:this);
