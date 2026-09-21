@@ -62,12 +62,12 @@ function prepare(){
     '        else{',
     "          if(window.__ppBuild.kind!=='both')fail('download','Parent download did not request worksheet + answers');",
     "          if(window.__ppBuild.rules&&window.__ppBuild.rules.factorMax!==9)fail('preset','Edited school rule factorMax=9 was not preserved');",
-    "          if(!window.__ppBuild.answerContext||window.__ppBuild.answerContext.label!=='Answer copy')fail('download','Parent answer page still uses teacher-copy wording');
-          const school=window.__ppBuild.school||{};
-          if(school.schoolName!=='Browser QA Primary School')fail('branding','Parent PDF lost school name');
-          if(school.logoDataUrl!=='data:image/jpeg;base64,AAAA')fail('branding','Parent PDF lost school logo');
-          if(school.worksheetDate!==window.TT99SchoolBrand.localIsoDate())fail('date','Parent PDF did not use generation date');
-          if(school.className||school.teacherName||school.yearGroup)fail('privacy','Parent PDF included teacher/class/year personalisation');",
+    "          if(!window.__ppBuild.answerContext||window.__ppBuild.answerContext.label!=='Answer copy')fail('download','Parent answer page still uses teacher-copy wording');",
+    "          const school=window.__ppBuild.school||{};",
+    "          if(school.schoolName!=='Browser QA Primary School')fail('branding','Parent PDF lost school name');",
+    "          if(school.logoDataUrl!=='data:image/jpeg;base64,AAAA')fail('branding','Parent PDF lost school logo');",
+    "          if(school.worksheetDate!==window.TT99SchoolBrand.localIsoDate())fail('date','Parent PDF did not use generation date');",
+    "          if(school.className||school.teacherName||school.yearGroup)fail('privacy','Parent PDF included teacher/class/year personalisation');",
     '        }',
     "        if(!window.__ppSaveCalled)fail('download','PDF save was not invoked');",
     "        if(!/another worksheet \\+ answers/i.test(button.textContent||''))fail('download','Download button did not reset after creation');",
