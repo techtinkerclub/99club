@@ -535,6 +535,7 @@
     if(!activity||activity.error)return '';
     if(activity.engineId==='alphametics'&&activity.templateId)return `alphametics:${activity.templateId}`;
     if(activity.engineId==='symbols'&&activity.word)return `symbols:${String(activity.word).toUpperCase()}`;
+    if(activity.engineId==='verbalreasoning'&&activity.questionKey)return `verbal:${String(activity.questionKey)}`;
     return '';
   }
   function withFiniteExclusions(settings,used){
@@ -542,7 +543,8 @@
     copy._finiteExclusions={
       ...current,
       alphametics:[...(used.alphametics||[])],
-      symbols:[...(used.symbols||[])]
+      symbols:[...(used.symbols||[])],
+      verbal:[...(used.verbal||[])]
     };
     return copy;
   }
@@ -550,13 +552,13 @@
   function generateActivity(engineId,settings,seed,customVocabulary=[]){
     const finiteExclusions=settings?._finiteExclusions;
     let s=normalizeSettings(settings);
-    if(finiteExclusions)s._finiteExclusions={alphametics:[...(finiteExclusions.alphametics||[])],symbols:[...(finiteExclusions.symbols||[])]};
+    if(finiteExclusions)s._finiteExclusions={alphametics:[...(finiteExclusions.alphametics||[])],symbols:[...(finiteExclusions.symbols||[])],verbal:[...(finiteExclusions.verbal||[])]};
     if(s.engineSettings[engineId]?.difficulty==='mixed'){const exclusions=s._finiteExclusions;s=settingsWithDifficulty(s,engineId,resolveSingleDifficulty(s,engineId,seed));if(exclusions)s._finiteExclusions=exclusions;}
     if(ARITH&&ARITH.DEFINITIONS&&ARITH.DEFINITIONS[engineId])return ARITH.generate(engineId,s,seed);if(NUMLOGIC&&NUMLOGIC.DEFINITIONS&&NUMLOGIC.DEFINITIONS[engineId])return NUMLOGIC.generate(engineId,s,seed);if(engineId==='pyramid')return generateNumberPyramid(s,seed);if(engineId==='crossword')return generateCrossword(s,seed,customVocabulary);if(engineId==='magic')return generateMagicSquare(s,seed);if(engineId==='sudoku')return generateSudoku(s,seed);return generateWordSearch(s,seed,customVocabulary);}
   function generatePack(settings,seed='games',customVocabulary=[]){
     const s=normalizeSettings(settings),selected=selectedCompatibleEngines(s),sheets=[];
     if(!selected.length)return {version:VERSION,seed,settings:s,workedExamples:[],sheets:[]};
-    const total=s.sheets*s.activitiesPerSheet,enginePlan=Array.from({length:total},(_,i)=>chooseEngine(s,i,seed)),counts={},seen={},difficultyPlans={},operationPlans={},finiteUsed={alphametics:new Set(),symbols:new Set()};
+    const total=s.sheets*s.activitiesPerSheet,enginePlan=Array.from({length:total},(_,i)=>chooseEngine(s,i,seed)),counts={},seen={},difficultyPlans={},operationPlans={},finiteUsed={alphametics:new Set(),symbols:new Set(),verbal:new Set()};
     enginePlan.forEach(id=>counts[id]=(counts[id]||0)+1);for(const [id,count] of Object.entries(counts)){difficultyPlans[id]=weightedDifficultyPlan(s,id,count,seed);if(id==='arithmagon')operationPlans[id]=arithmagonOperationPlan(s,count,seed);}
     let globalIndex=0,capacityMessage='';
     outer:for(let sheetIndex=0;sheetIndex<s.sheets;sheetIndex++){
@@ -576,7 +578,7 @@
         }
         const key=finiteContentKey(activity);
         if(key){
-          const [bank,value]=key.split(':',2);
+          const cut=key.indexOf(':'),bank=cut>=0?key.slice(0,cut):key,value=cut>=0?key.slice(cut+1):'';
           if(finiteUsed[bank]?.has(value)){
             capacityMessage=`${ENGINES[engineId]?.title||'This puzzle type'} produced a repeated finite-bank item, so the pack stopped rather than include a duplicate.`;
             if(activities.length)sheets.push({index:sheetIndex+1,activities});
@@ -589,7 +591,7 @@
       if(activities.length)sheets.push({index:sheetIndex+1,activities});
     }
     const workedExamples=s.workedExamples==='front'?selected.map((id,i)=>{const ws=s.engineSettings[id]?.difficulty==='mixed'?settingsWithDifficulty(s,id,'standard'):s;return generateWorkedExample(id,ws,`${seed}:worked:${i}:${id}`,customVocabulary);}).filter(Boolean):[];
-    return {version:VERSION,seed,settings:s,workedExamples,sheets,capacityMessage,finiteBankKeys:[...finiteUsed.alphametics].map(x=>`alphametics:${x}`).concat([...finiteUsed.symbols].map(x=>`symbols:${x}`))};
+    return {version:VERSION,seed,settings:s,workedExamples,sheets,capacityMessage,finiteBankKeys:[...finiteUsed.alphametics].map(x=>`alphametics:${x}`).concat([...finiteUsed.symbols].map(x=>`symbols:${x}`),[...finiteUsed.verbal].map(x=>`verbal:${x}`))};
   }
 
   const api={VERSION,TOPICS,ENGINES,ARITH,NUMLOGIC,VOCABULARY,VOCABULARY_METADATA,normalizeSettings,normalizeEngineSettings,normalizeDifficultyWeights,weightedDifficultyPlan,settingsWithDifficulty,arithmagonOperationPlan,compatibleEngines,selectedCompatibleEngines,sanitizeCustomVocabulary,vocabularyCountForTopic,vocabularyFor,crosswordVocabularyFor,generateWordSearch,replaceWordSearchEntry,generateNumberPyramid,generateCrossword,generateMagicSquare,generateSudoku,generateMiniSudoku,generateWorkedExample,generateActivity,generatePack,finiteContentKey,normalizeTerm,puzzleTermSuitable,answerEnumeration,needsEnumeration,formatNumber,rngFromSeed,clone,wordSearchDirections,_matrixRank:matrixRank,_pyramidCoefficientRows:pyramidCoefficientRows,_isMagicGrid:isMagicGrid,_magicLineSums:magicLineSums,_magicEquationRows:magicEquationRows,_countSudokuSolutions:countSudokuSolutions,_sudokuBoxShape:sudokuBoxShape};

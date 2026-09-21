@@ -13,9 +13,11 @@
   const STORAGE_PER_PAGE='tt99-games-activities-per-sheet-v2';
   const STORAGE_DIFFICULTY='tt99-games-random-difficulty-v1';
   const STORAGE_WEIGHTS='tt99-games-random-difficulty-weights-v1';
+  const STORAGE_SCOPE='tt99-games-random-scope-v1';
   const SINGLE_DIFFICULTIES=['easy','standard','challenge'];
   const RANDOM_DIFFICULTIES=[...SINGLE_DIFFICULTIES,'mixed'];
   const DEFAULT_WEIGHTS={easy:25,standard:50,challenge:25};
+  const RANDOM_SCOPES=['maths','mixed','verbal'];
   const baseNormalize=G.normalizeSettings.bind(G);
   const baseSelected=G.selectedCompatibleEngines.bind(G);
   const baseCompatible=G.compatibleEngines.bind(G);
@@ -64,6 +66,18 @@
     if(input._forceRandomDifficultyWeights)return normalizeDifficultyWeights(input._forceRandomDifficultyWeights);
     return parseStoredWeights()||normalizeDifficultyWeights(input.randomDifficultyWeights||DEFAULT_WEIGHTS);
   }
+  function resolveScope(input={}){
+    if(RANDOM_SCOPES.includes(input._forceRandomScope))return input._forceRandomScope;
+    const stored=storageGet(STORAGE_SCOPE);
+    if(RANDOM_SCOPES.includes(stored))return stored;
+    return RANDOM_SCOPES.includes(input.randomScope)?input.randomScope:'maths';
+  }
+  function engineInScope(id,scope){
+    const verbal=G.ENGINES?.[id]?.contentArea==='verbal';
+    if(scope==='verbal')return verbal;
+    if(scope==='mixed')return true;
+    return !verbal;
+  }
   function resolveActivitiesPerSheet(input,base){
     const stored=storageGet(STORAGE_PER_PAGE);
     const raw=stored??input.activitiesPerSheet??base.activitiesPerSheet??2;
@@ -72,7 +86,7 @@
   function normalizeSettings(input={}){
     const base=baseNormalize(input);
     const activityCount=resolveCount(input,base),activitiesPerSheet=resolveActivitiesPerSheet(input,base);
-    return {...base,activityCount,packMode:resolveMode(input),randomDifficulty:resolveDifficulty(input),randomDifficultyWeights:resolveDifficultyWeights(input),activitiesPerSheet,sheets:Math.ceil(activityCount/activitiesPerSheet)};
+    return {...base,activityCount,packMode:resolveMode(input),randomDifficulty:resolveDifficulty(input),randomDifficultyWeights:resolveDifficultyWeights(input),randomScope:resolveScope(input),activitiesPerSheet,sheets:Math.ceil(activityCount/activitiesPerSheet)};
   }
   function manualSettings(settings){
     const s=normalizeSettings(settings);
@@ -136,16 +150,16 @@
     return {...settings,engineSettings};
   }
   function regenerateRandomDifficulties(sheets,settings,seed,plan,customVocabulary){
-    let k=0;const difficultyByEngine={},finiteUsed={alphametics:new Set(),symbols:new Set()};
+    let k=0;const difficultyByEngine={},finiteUsed={alphametics:new Set(),symbols:new Set(),verbal:new Set()};
     const out=sheets.map((sheet,si)=>({...sheet,activities:(sheet.activities||[]).map((activity,ai)=>{
       const engineId=activity?.engineId;if(!engineId)return activity;
       const requested=plan[k++]||'standard',difficulty=closestSupportedDifficulty(engineId,requested);
       if(!difficultyByEngine[engineId])difficultyByEngine[engineId]=difficulty;
       if(typeof G.generateActivity!=='function')return {...activity,difficulty};
       let activitySettings=applyRandomDifficulty(settings,[engineId],difficulty);
-      activitySettings={...activitySettings,_finiteExclusions:{alphametics:[...finiteUsed.alphametics],symbols:[...finiteUsed.symbols]}};
+      activitySettings={...activitySettings,_finiteExclusions:{alphametics:[...finiteUsed.alphametics],symbols:[...finiteUsed.symbols],verbal:[...finiteUsed.verbal]}};
       const activitySeed=`${seed}:S${si+1}:A${ai+1}:${engineId}`,next=G.generateActivity(engineId,activitySettings,activitySeed,customVocabulary),key=G.finiteContentKey?.(next)||'';
-      if(key){const [bank,value]=key.split(':',2);finiteUsed[bank]?.add(value);}
+      if(key){const cut=key.indexOf(':'),bank=cut>=0?key.slice(0,cut):key,value=cut>=0?key.slice(cut+1):'';finiteUsed[bank]?.add(value);}
       return next;
     })}));
     return {sheets:out,difficultyByEngine};
@@ -155,7 +169,7 @@
     let requested={...s,activitiesPerSheet:s.activitiesPerSheet,sheets:Math.ceil(s.activityCount/s.activitiesPerSheet),workedExamples:'none',_forcePackMode:'manual',packMode:'manual'};
 
     if(s.packMode==='random'){
-      const compatible=baseCompatible(requested);
+      const compatible=baseCompatible(requested).filter(id=>engineInScope(id,s.randomScope));
       requested.selectedEngines=shuffleDeterministic(compatible,seed);
       requested=applyRandomDifficulty(requested,compatible,s.randomDifficulty==='mixed'?'standard':s.randomDifficulty);
     }
@@ -177,7 +191,7 @@
         }).filter(Boolean)
       : [];
 
-    return {...raw,settings:s,sheets,workedExamples,activityCount:s.activityCount,packMode:s.packMode,randomDifficulty:s.randomDifficulty,randomDifficultyWeights:s.randomDifficultyWeights,randomDifficultyPlan:randomPlan,usedEngineIds:usedIds};
+    return {...raw,settings:s,sheets,workedExamples,activityCount:s.activityCount,packMode:s.packMode,randomDifficulty:s.randomDifficulty,randomDifficultyWeights:s.randomDifficultyWeights,randomScope:s.randomScope,randomDifficultyPlan:randomPlan,usedEngineIds:usedIds};
   }
   function generateRandomPack(settings,seed='games',customVocabulary=[]){
     return generatePack({...settings,_forcePackMode:'random'},seed,customVocabulary);
@@ -188,7 +202,7 @@
     selectedCompatibleEngines,
     generatePack,
     generateRandomPack,
-    PACK_MODE:{version:'1.3.0',storageModeKey:STORAGE_MODE,storageCountKey:STORAGE_COUNT,storageDifficultyKey:STORAGE_DIFFICULTY,storageDifficultyWeightsKey:STORAGE_WEIGHTS,storagePerPageKey:STORAGE_PER_PAGE,difficulties:RANDOM_DIFFICULTIES.slice(),singleDifficulties:SINGLE_DIFFICULTIES.slice(),defaultDifficultyWeights:{...DEFAULT_WEIGHTS},maxActivities:40}
+    PACK_MODE:{version:'1.3.0',storageModeKey:STORAGE_MODE,storageCountKey:STORAGE_COUNT,storageDifficultyKey:STORAGE_DIFFICULTY,storageDifficultyWeightsKey:STORAGE_WEIGHTS,storageRandomScopeKey:STORAGE_SCOPE,storagePerPageKey:STORAGE_PER_PAGE,difficulties:RANDOM_DIFFICULTIES.slice(),randomScopes:RANDOM_SCOPES.slice(),singleDifficulties:SINGLE_DIFFICULTIES.slice(),defaultDifficultyWeights:{...DEFAULT_WEIGHTS},maxActivities:40}
   });
   G.__packModeV1=true;
 })(typeof globalThis!=='undefined'?globalThis:this);
