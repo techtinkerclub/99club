@@ -691,7 +691,9 @@ try{
   if(customPage.indexOf('school-usage.js')<0||customPage.indexOf('school-usage.js')>customPage.indexOf('custom-app.js'))fail('analytics','Custom Worksheets does not load school attribution before its app');
   if(customPage.includes('\\n<script'))fail('analytics','Custom Worksheets page contains escaped newline text in script markup');
 
-  for(const event of ['widget_builder_open','widget_type_selected','widget_existing_import','widget_embed_copy','widget_url_copy','widget_setup_save','widget_setup_restore'])if(!widgetBuilder.includes(event))fail('analytics',`Widget Builder analytics missing ${event}`);
+  for(const event of ['widget_builder_open','widget_existing_import','widget_embed_copy','widget_url_copy','widget_setup_save','widget_setup_restore'])if(!widgetBuilder.includes(event))fail('analytics',`Widget Builder analytics missing ${event}`);
+  if(!widgetBuilder.includes('widget_type:draft.widgetType'))fail('analytics','Widget Builder open/action analytics no longer carry the fixed widget type');
+  if(widgetBuilder.includes('widget_type_selected'))fail('analytics','Widget Builder still tracks the removed widget-type selector');
   for(const token of ['trackWidget','widget_open','widget_item_open','sourceOrigin','integrationId'])if(!widgetRuntime.includes(token))fail('analytics',`Public widget school attribution missing ${token}`);
   if(/googletagmanager|analytics\.js|gtag\(/i.test(widgetPage))fail('analytics','Public embedded widget must not load Google Analytics');
   if(!widgetBuilderPage.includes('school-usage-config.js')||!widgetBuilderPage.includes('school-usage.js'))fail('analytics','Widget Builder is missing first-party school attribution helpers');
