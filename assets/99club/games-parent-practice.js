@@ -14,7 +14,7 @@
 
   const PREFIX='TT99GP1.';
   const VERSION=1;
-  const MAX_TOKEN_LENGTH=36000;
+  const MAX_TOKEN_LENGTH=52000;
   const MAX_CUSTOM_VOCAB=60;
 
   function clone(v){return v==null?v:JSON.parse(JSON.stringify(v));}
