@@ -126,7 +126,7 @@ sitemap: true
         <section id="game-guides" class="tt99-guide-section tt99-guide-highlight">
           <h2>How to play every game</h2>
           <div class="tt99-game-guide-intro">
-            <p>This searchable library covers all <strong>62 current one-player games</strong>. Open any game for a pupil-friendly guide with the goal, rules, a concrete example, solving strategy, tip and common mistake. Each guide can also be printed as a clean A4 reference sheet.</p>
+            <p>This searchable library covers all <strong>62 current printable game and puzzle types</strong>. Open any game for a pupil-friendly guide with the goal, rules, a concrete example, solving strategy, tip and common mistake. Each guide can also be printed as a clean A4 reference sheet.</p>
             <span class="tt99-game-guide-count" aria-label="62 game guides">62</span>
           </div>
           <div class="tt99-guide-note"><strong>The guides are static reference material.</strong> Opening or printing one cannot change the puzzle currently selected on the Games page.</div>
