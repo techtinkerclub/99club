@@ -415,6 +415,66 @@ else{
   for(const pool of Object.values(E.POOLS))for(const item of pool.filter(q=>q.visual).slice(0,3))try{E.renderExtra(stub,0,0,420,180,item.visual,false);E.renderExtra(stub,0,0,420,180,item.visual,true);}catch(e){fail('render-extra',`${item.key}: ${e.message}`);}
   pass('render','New visual renderers completed stub-canvas smoke tests');
 }
+
+/* Curriculum registry contract: hidden Custom area only.
+ * Keep this read-only: it validates metadata and loader order without executing
+ * the Custom app or altering any question-generation path.
+ */
+try{
+  require(path.join(ROOT,'assets/99club/custom-curriculum-registry.js'));
+  const C=global.TT99CurriculumRegistry;
+  if(!C||!Array.isArray(C.objectives))fail('curriculum-registry','Registry did not load');
+  else{
+    const registryErrors=typeof C.validate==='function'?C.validate():['Registry validate() missing'];
+    registryErrors.forEach(e=>fail('curriculum-registry',e));
+    const ids=C.objectives.map(x=>x.id);
+    if(new Set(ids).size!==ids.length)fail('curriculum-registry','Objective IDs are not unique');
+    for(const year of [1,2,3,4,5,6])if(!C.objectives.some(x=>Number(x.year)===year))fail('curriculum-registry',`Year ${year} has no objectives`);
+    const expectedDomains=['Number & place value','Addition & subtraction','Multiplication & division','Number properties','Fractions','Decimals & percentages','Ratio & proportion','Measurement','Geometry','Statistics','Algebra'];
+    for(const domain of expectedDomains)if(!C.objectives.some(x=>x.domain===domain))fail('curriculum-registry',`Missing domain: ${domain}`);
+    if(C.objectives.length<250)fail('curriculum-registry',`Registry unexpectedly small: ${C.objectives.length} objectives`);
+
+    const familyFiles=[
+      'assets/99club/generator.js',
+      'assets/99club/custom-written-methods.js',
+      'assets/99club/custom-reasoning.js',
+      'assets/99club/custom-structured-problems.js',
+      'assets/99club/custom-visual-reasoning.js',
+      'assets/99club/custom-applied-visuals.js',
+      'assets/99club/custom-extra-visuals.js',
+      'assets/99club/custom-graphs.js',
+      'assets/99club/custom-coordinates.js',
+      'assets/99club/custom-piecharts.js',
+      'assets/99club/custom-angles.js'
+    ];
+    const familyIds=new Set();
+    for(const rel of familyFiles){
+      const src=require('fs').readFileSync(path.join(ROOT,rel),'utf8');
+      for(const match of src.matchAll(/([A-Za-z0-9_]+)\s*:\s*\{\s*label\s*:/g))familyIds.add(match[1]);
+    }
+    const providerIds=[...new Set(C.objectives.flatMap(x=>Array.isArray(x.providers)?x.providers:[]))];
+    const missingProviders=providerIds.filter(id=>!familyIds.has(id));
+    if(missingProviders.length)fail('curriculum-registry',`Unknown provider IDs: ${missingProviders.join(', ')}`);
+
+    const appSource=require('fs').readFileSync(path.join(ROOT,'assets/99club/custom-app.js'),'utf8');
+    try{new Function(appSource);pass('curriculum-registry','Custom app syntax compiled');}
+    catch(e){fail('curriculum-registry',`Custom app syntax error: ${e.message}`);}
+
+    const pageSource=require('fs').readFileSync(path.join(ROOT,'_pages/99-club-custom.md'),'utf8');
+    const registryPos=pageSource.indexOf('/assets/99club/custom-curriculum-registry.js');
+    const appPos=pageSource.indexOf('/assets/99club/custom-app.js');
+    if(registryPos<0)fail('curriculum-registry','Hidden Custom page does not load the registry');
+    if(appPos<0)fail('curriculum-registry','Hidden Custom page does not load custom-app.js');
+    if(registryPos>=0&&appPos>=0&&registryPos>appPos)fail('curriculum-registry','Registry must load before custom-app.js');
+
+    const s=typeof C.summary==='function'?C.summary():null;
+    if(!s)fail('curriculum-registry','Registry summary() missing');
+    else pass('curriculum-registry',`${s.total} curriculum leaves validated: ${s.live} live, ${s.partial} partial, ${s.planned} planned; ${providerIds.length} provider IDs resolved`);
+  }
+}catch(e){
+  fail('curriculum-registry',e.stack||e.message);
+}
+
 const report={generatedAt:new Date().toISOString(),passes,failures};
 require('fs').writeFileSync(path.join(ROOT,'99club-custom-expansion-qa-report.json'),JSON.stringify(report,null,2));
 if(failures.length){console.error(JSON.stringify(report,null,2));process.exit(1);}

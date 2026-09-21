@@ -17,6 +17,7 @@ search: false
 
 <link rel="stylesheet" href="/assets/99club/99club.css?v=20">
 <link rel="stylesheet" href="/assets/99club/custom-graphs.css?v=2">
+<link rel="stylesheet" href="/assets/99club/custom-curriculum.css?v=1">
 <script src="/assets/99club/generator.js?v=20"></script>
 <script src="/assets/99club/simple-pdf.js?v=19"></script>
 <script src="/assets/99club/pdf-layout.js?v=19"></script>
@@ -33,4 +34,5 @@ search: false
 <script src="/assets/99club/custom-coordinates.js?v=4"></script>
 <script src="/assets/99club/custom-piecharts.js?v=7"></script>
 <script src="/assets/99club/custom-angles.js?v=8"></script>
-<script src="/assets/99club/custom-app.js?v=230" defer></script>
+<script src="/assets/99club/custom-curriculum-registry.js?v=3"></script>
+<script src="/assets/99club/custom-app.js?v=231" defer></script>
