@@ -27,7 +27,7 @@ function stable(a,b){return JSON.stringify(a)===JSON.stringify(b);}
 function sourceScripts(page){return [...read(page).matchAll(/<script\s+[^>]*src=["']([^"']+)["'][^>]*>/g)].map(m=>m[1]).filter(x=>x.startsWith('/assets/99club/'));}
 function localFromUrl(url){return url.split('?')[0].replace(/^\//,'');}
 function resetGlobals(){
-  for(const k of ['TT99GamesVocabularyV2','TT99ArithmeticGames','TT99NumberLogicGames','TT99Games','TT99GamesPlay','TT99PlayArithmetic','TT99AlphaLibrary'])delete global[k];
+  for(const k of ['TT99GamesVocabularyV2','TT99ArithmeticGames','TT99NumberLogicGames','TT99Games','TT99GamesPlay','TT99PlayArithmetic','TT99AlphaLibrary','TT99SymbolDecoder'])delete global[k];
   global.window=global;global.globalThis=global;
 }
 function load(rel){const full=path.join(ROOT,rel);delete require.cache[require.resolve(full)];return require(full);}
@@ -97,6 +97,41 @@ for(const rel of engineLoadOrder){
 }
 const G=global.TT99Games,A=global.TT99ArithmeticGames,N=global.TT99NumberLogicGames;
 if(!G||!G.ENGINES)fail('engine-load','TT99Games did not initialise');
+
+/* ---------- finite-bank capacity + no-repeat packs ---------- */
+if(G&&global.TT99AlphaLibrary&&N?.V140?.ALPHAMETICS?.solve){
+  const alphaTemplates=global.TT99AlphaLibrary.templates||[],solve=N.V140.ALPHAMETICS.solve;
+  for(const t of alphaTemplates){
+    const solutions=solve(t,t.givens||{},2);
+    if(solutions.length!==1)fail('finite-bank',`Alphametics template is not uniquely solvable: ${t.id}`,String(solutions.length));
+  }
+  for(const difficulty of ['easy','standard','challenge']){
+    const count=alphaTemplates.filter(t=>t.difficulty===difficulty).length;
+    if(count<40)fail('finite-bank',`Alphametics ${difficulty} bank has fewer than 40 unique templates`,String(count));
+    const settings={minYear:5,maxYear:6,topics:['algebra'],sheets:20,activitiesPerSheet:2,selectedEngines:['alphametics'],workedExamples:'none',engineSettings:{alphametics:{difficulty,hintLevel:'auto',theme:'auto'}}};
+    const pack=G.generatePack(settings,`qa-alpha-40-${difficulty}`),activities=(pack.sheets||[]).flatMap(s=>s.activities||[]),keys=activities.map(a=>G.finiteContentKey?.(a)).filter(Boolean);
+    if(activities.length!==40)fail('finite-bank',`40-item Alphametics ${difficulty} pack did not contain 40 activities`,String(activities.length));
+    if(new Set(keys).size!==40)fail('finite-bank',`40-item Alphametics ${difficulty} pack repeated a template`,`${new Set(keys).size}/40 unique`);
+  }
+  ok('finite-bank','Alphametics has >=40 unique templates per difficulty and 40-item packs sample without replacement');
+}
+if(G&&global.TT99SymbolDecoder){
+  for(const difficulty of ['easy','standard','challenge']){
+    const scienceCount=global.TT99SymbolDecoder.bank('science',difficulty).length;
+    if(scienceCount<40)fail('finite-bank',`Science Symbol Decoder ${difficulty} bank has fewer than 40 unique words`,String(scienceCount));
+  }
+  for(const difficulty of ['easy','challenge']){
+    const settings={minYear:5,maxYear:6,topics:['algebra'],sheets:20,activitiesPerSheet:2,selectedEngines:['symbols'],workedExamples:'none',engineSettings:{symbols:{difficulty,theme:'science',equationStyle:'auto'}}};
+    const pack=G.generatePack(settings,`qa-symbols-40-${difficulty}`),activities=(pack.sheets||[]).flatMap(s=>s.activities||[]),keys=activities.map(a=>G.finiteContentKey?.(a)).filter(Boolean);
+    if(activities.length!==40)fail('finite-bank',`40-item Symbol Decoder ${difficulty} pack did not contain 40 activities`,String(activities.length));
+    if(new Set(keys).size!==40)fail('finite-bank',`40-item Symbol Decoder ${difficulty} pack repeated a secret word`,`${new Set(keys).size}/40 unique`);
+  }
+  ok('finite-bank','Symbol Decoder science banks support 40 unique items without replacement');
+}
+const randomUiSource=read('assets/99club/games-random-ui.js');
+if(!randomUiSource.includes('max="40"')||!randomUiSource.includes('Maximum 40 activities per pack.'))fail('pack-limit','Pack setup does not clearly enforce and explain the 40-activity maximum');
+else ok('pack-limit','Pack setup visibly enforces the 40-activity maximum');
+
 
 const packAuditLoadOrder=[
   'assets/99club/games-instructions-v139.js',
