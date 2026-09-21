@@ -5,8 +5,9 @@
   const G=window.TT99Generator;
   const L=window.TT99PDFLayout;
   const PP=window.TT99ParentPractice;
+  const B=window.TT99SchoolBrand;
   const SU=window.TT99SchoolUsage;
-  if(!root||!G||!L||!PP)return;
+  if(!root||!G||!L||!PP||!B)return;
 
   const BADGES={
     '11':'11club.png','22':'22club.png','33':'33club.png','44':'44club.png','55':'55club.png',
@@ -50,6 +51,21 @@
       integrationId:SU?.cleanIntegrationId?.(via)||'',
       sourceOrigin:SU?.referrerOrigin?.()||''
     };
+  }
+
+  function effectiveSchool(){
+    const direct=B.normalise(config?.school||{});
+    let via={name:'',logo:'',logoWidth:0,logoHeight:0};
+    try{
+      const token=new URLSearchParams(location.search).get('brand')||'';
+      if(token)via=B.decode(token);
+    }catch(_){}
+    return B.normalise({
+      name:via.name||direct.name,
+      logo:via.logo||direct.logo,
+      logoWidth:via.logo?via.logoWidth:direct.logoWidth,
+      logoHeight:via.logo?via.logoHeight:direct.logoHeight
+    });
   }
 
   function challengeName(){
@@ -161,10 +177,20 @@
     try{
       const sheet=randomSheet();
       const badge=await badgeForPdf();
+      const brand=effectiveSchool();
       const doc=L.buildDocument({
         rules:config.rules,
         sheets:[sheet],
-        school:{},
+        school:{
+          schoolName:brand.name,
+          yearGroup:'',
+          className:'',
+          teacherName:'',
+          worksheetDate:B.localIsoDate(),
+          logoDataUrl:brand.logo,
+          logoWidth:brand.logoWidth,
+          logoHeight:brand.logoHeight
+        },
         kind:'both',
         orientation:config.orientation,
         qrByVariant:[],
