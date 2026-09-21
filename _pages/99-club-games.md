@@ -104,7 +104,7 @@ sitemap: true
 <script src="/assets/99club/school-usage.js?v=2"></script>
 <script src="/assets/99club/school-brand.js?v=1"></script>
 <script src="/assets/99club/games-parent-practice.js?v=3"></script>
-<script src="/assets/99club/games-app.js?v=45" defer></script>
+<script src="/assets/99club/games-app.js?v=46" defer></script>
 <script src="/assets/99club/games-preview-parity-v206.js?v=1" defer></script>
 <script src="/assets/99club/games-operationgrid-print-v158-ui.js?v=2" defer></script>
 <script src="/assets/99club/games-operationgrid-print-v160-ui.js?v=1" defer></script>
