@@ -74,6 +74,16 @@
 .tt99-extra-preview .tt99-extra-perimeter-grid{width:min(100%,330px)}
 .tt99-extra-preview .tt99-extra-op-equation{font-size:1.45rem}
 .tt99-extra-op-rule{text-align:center;color:#687d81;font-size:.84rem}
+.tt99-extra-op-allowed{display:grid;justify-items:center;gap:.28rem;margin-top:.7rem;color:#687d81;text-align:center}
+.tt99-extra-op-allowed strong{font-size:.96rem;line-height:1.1;font-weight:800}
+.tt99-extra-op-allowed span{font-size:1.28rem;line-height:1;font-weight:850;color:#0f7770;letter-spacing:.08em}
+.tt99-game-activities.count-2 .tt99-extra-op-allowed{margin-top:.4rem;gap:.18rem}
+.tt99-game-activities.count-2 .tt99-extra-op-allowed strong{font-size:.72rem}
+.tt99-game-activities.count-2 .tt99-extra-op-allowed span{font-size:.96rem}
+.tt99-game-activities.count-3 .tt99-extra-op-allowed{margin-top:.2rem;gap:.12rem}
+.tt99-game-activities.count-3 .tt99-extra-op-allowed strong{font-size:.58rem}
+.tt99-game-activities.count-3 .tt99-extra-op-allowed span{font-size:.76rem}
+
 
 /* Grouped Play Online library */
 .tt99-play-library-grid.tt99-library-grouped{display:block!important}

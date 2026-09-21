@@ -330,6 +330,8 @@ const pdfNew=read('assets/99club/games-pdf-new-puzzles-v197.js');
 const pdfHashi=read('assets/99club/games-pdf-v1401.js');
 const pdfAlpha=read('assets/99club/games-pdf-v141.js');
 const pdfExtra=read('assets/99club/games-pdf-extra-puzzles-v204.js');
+const alphaPreview=read('assets/99club/games-puzzle-pack-v140-ui.js');
+const extraPreviewApp=read('assets/99club/games-app.js');
 if(!pdfTakuzu.includes('No two completed rows or columns may be identical.'))fail('instruction-audit','Takuzu PDF is missing the uniqueness rule');
 if(pdfTakuzu.includes('Equal 0s/1s  ·  No 000 or 111  ·  No duplicate rows or columns'))fail('instruction-audit','Takuzu PDF still duplicates its full rule set below the grid');
 if(!pdfTowers.includes('Each edge clue is how many towers are visible from that side'))fail('instruction-audit','Number Towers PDF does not explain what the edge number means');
@@ -345,6 +347,9 @@ if((pdfNew.match(/top circle is the total weight of the whole mobile/gi)||[]).le
 if(!pdfHashi.includes('never cross or pass through another island'))fail('instruction-audit','Hashi PDF pass-through rule missing');
 if(!pdfAlpha.includes('Letter values')||!pdfAlpha.includes('drawLetterValues')||!pdfAlpha.includes('alphaLetters'))fail('print-layout','Alphametics PDF lost its letter-to-digit answer area');
 if(!pdfExtra.includes("'Allowed operations',9")||!pdfExtra.includes("11.5,{bold:true,color:TEAL"))fail('print-layout','Insert Operations PDF allowed-operation prompt is no longer prominent');
+if(!alphaPreview.includes('Letter values')||!alphaPreview.includes('tt99-alpha-value'))fail('preview-layout','Alphametics preview lost its letter-value workspace');
+if(alphaPreview.includes('No digit hints')||alphaPreview.includes('Meaningful-word template:'))fail('preview-copy','Alphametics preview regressed to obsolete hint/template wording');
+if(!extraPreviewApp.includes('tt99-extra-op-allowed')||!extraPreviewApp.includes('Allowed operations'))fail('preview-layout','Insert Operations preview lost prominent allowed-operation guidance');
 ok('instruction-audit','Specialised PDF overlays keep the reviewed rules complete and non-duplicated');
 const previewCode=read('assets/99club/games-operationgrid-print-v158-ui.js');
 const previewRedesign=read('assets/99club/games-puzzle-redesign-v136.js');

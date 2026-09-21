@@ -34,6 +34,26 @@
 .tt99-alpha-cell.empty{border-color:transparent;background:transparent}.tt99-alpha-cell.answer{background:#e6f4f1;color:#0c746b;border-color:#76aaa5}
 .tt99-alpha-rule{grid-column:1/-1;height:2px;background:#456a70;margin:2px 0 3px}.tt99-alpha-grid-row.result .tt99-alpha-cell{border-width:2px}
 .tt99-alpha-hints{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:14px}.tt99-alpha-hints span{padding:4px 8px;border:1px solid #d1e1df;border-radius:999px;background:#fff;color:#49696e;font-size:clamp(5px,.58vw,8px);font-weight:800}.tt99-alpha-hints .answer{background:#e6f4f1;color:#0c746b}
+.tt99-alpha-values{margin-top:12px;text-align:center;color:#49696e}
+.tt99-alpha-values>strong{display:block;margin-bottom:6px;font-size:8px;line-height:1;font-weight:850}
+.tt99-alpha-values>div{display:flex;justify-content:center;gap:6px;flex-wrap:wrap}
+.tt99-alpha-value{display:grid;grid-template-columns:auto 22px;align-items:center;gap:4px}
+.tt99-alpha-value b{font-size:7px;color:#294b51}
+.tt99-alpha-value i{display:grid;place-items:center;width:22px;height:20px;border:1px solid #b9ced0;border-radius:4px;background:#fff;color:#0c746b;font:800 8px/1 Arial,sans-serif;font-style:normal}
+.tt99-alpha-value.is-filled i{background:#eef8f6;border-color:#76aaa5}
+.tt99-alpha-value.answer i{background:#e6f4f1}
+.tt99-game-activities.count-2 .tt99-alpha-values{margin-top:8px}
+.tt99-game-activities.count-2 .tt99-alpha-values>strong{font-size:7px;margin-bottom:4px}
+.tt99-game-activities.count-2 .tt99-alpha-values>div{gap:4px}
+.tt99-game-activities.count-2 .tt99-alpha-value{grid-template-columns:auto 18px;gap:3px}
+.tt99-game-activities.count-2 .tt99-alpha-value i{width:18px;height:17px;font-size:7px}
+.tt99-game-activities.count-3 .tt99-alpha-values{margin-top:5px}
+.tt99-game-activities.count-3 .tt99-alpha-values>strong{font-size:6px;margin-bottom:3px}
+.tt99-game-activities.count-3 .tt99-alpha-values>div{gap:3px}
+.tt99-game-activities.count-3 .tt99-alpha-value{grid-template-columns:auto 15px;gap:2px}
+.tt99-game-activities.count-3 .tt99-alpha-value b{font-size:5.6px}
+.tt99-game-activities.count-3 .tt99-alpha-value i{width:15px;height:14px;font-size:5.8px}
+
 
 .tt99-game-activities.count-2 .tt99-v140-grid{width:min(100%,270px)}.tt99-game-activities.count-2 .tt99-hashi-board{width:min(100%,300px)}
 .tt99-game-activities.count-2 .tt99-alpha-sum-grid{grid-template-columns:28px repeat(var(--alpha-cols),32px);gap:4px}.tt99-game-activities.count-2 .tt99-alpha-cell{width:32px;height:32px;font-size:15px}.tt99-game-activities.count-2 .tt99-alpha-op{font-size:22px}

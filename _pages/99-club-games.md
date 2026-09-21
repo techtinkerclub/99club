@@ -29,13 +29,13 @@ sitemap: true
 <link rel="stylesheet" href="/assets/99club/games-towers-direction-v138.css?v=1">
 <link rel="stylesheet" href="/assets/99club/games-v138-flowfix.css?v=1">
 <link rel="stylesheet" href="/assets/99club/games-takuzu-v139.css?v=1">
-<link rel="stylesheet" href="/assets/99club/games-puzzle-pack-v140.css?v=3">
+<link rel="stylesheet" href="/assets/99club/games-puzzle-pack-v140.css?v=4">
 <link rel="stylesheet" href="/assets/99club/games-killer-cages-v181.css?v=1">
 <link rel="stylesheet" href="/assets/99club/games-symbol-decoder-v189.css?v=2">
 <link rel="stylesheet" href="/assets/99club/games-balance-lab-v192.css?v=4">
 <link rel="stylesheet" href="/assets/99club/games-new-puzzles-v196.css?v=1">
 <link rel="stylesheet" href="/assets/99club/games-new-puzzles-v197-fix.css?v=1">
-<link rel="stylesheet" href="/assets/99club/games-extra-puzzles-v204.css?v=4">
+<link rel="stylesheet" href="/assets/99club/games-extra-puzzles-v204.css?v=5">
 <link rel="stylesheet" href="/assets/99club/games-shikaku-v143.css?v=1">
 <link rel="stylesheet" href="/assets/99club/games-sum-grids-v147.css?v=4">
 <link rel="stylesheet" href="/assets/99club/games-focus-topics-v145.css?v=1">
@@ -104,7 +104,7 @@ sitemap: true
 <script src="/assets/99club/school-usage.js?v=2"></script>
 <script src="/assets/99club/school-brand.js?v=1"></script>
 <script src="/assets/99club/games-parent-practice.js?v=3"></script>
-<script src="/assets/99club/games-app.js?v=46" defer></script>
+<script src="/assets/99club/games-app.js?v=47" defer></script>
 <script src="/assets/99club/games-preview-parity-v206.js?v=1" defer></script>
 <script src="/assets/99club/games-operationgrid-print-v158-ui.js?v=2" defer></script>
 <script src="/assets/99club/games-operationgrid-print-v160-ui.js?v=1" defer></script>
@@ -117,7 +117,7 @@ sitemap: true
 <script src="/assets/99club/games-v138.js?v=2" defer></script>
 <script src="/assets/99club/games-towers-direction-v138.js?v=1" defer></script>
 <script src="/assets/99club/games-takuzu-v139-ui.js?v=2" defer></script>
-<script src="/assets/99club/games-puzzle-pack-v140-ui.js?v=3" defer></script>
+<script src="/assets/99club/games-puzzle-pack-v140-ui.js?v=4" defer></script>
 <script src="/assets/99club/games-shikaku-v143-ui.js?v=1" defer></script>
 <script src="/assets/99club/games-sum-grids-v147-ui.js?v=3" defer></script>
 <script src="/assets/99club/games-focus-topics-v145-ui.js?v=1" defer></script>
