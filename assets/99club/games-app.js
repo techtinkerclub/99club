@@ -1,7 +1,7 @@
 /* 99 Club Studio · Maths Games & Puzzles UI v1.10.3 — school-led parent puzzle sharing + portable setup */
 (function(){
   'use strict';
-  const G=window.TT99Games,PDF=window.TT99GamesPDF,GPP=window.TT99GamesParentPractice,SU=window.TT99SchoolUsage,root=document.getElementById('tt99-games-root');
+  const G=window.TT99Games,PDF=window.TT99GamesPDF,GPP=window.TT99GamesParentPractice,B=window.TT99SchoolBrand,SU=window.TT99SchoolUsage,root=document.getElementById('tt99-games-root');
   if(!G||!root)return;
   function analyticsContext(){
     const schoolName=String(state?.settings?.personalisation?.schoolName||'').trim();
@@ -38,6 +38,7 @@
   const initialOpen=new Set(GAME_CATEGORIES.filter(cat=>cat.engines.some(id=>initialSettings.selectedEngines.includes(id))).map(cat=>cat.id));
   if(!initialOpen.size)initialOpen.add('vocabulary');
   const state={settings:initialSettings,customVocabulary:loadVocabulary(),seed:newSeed(),previewAnswers:false,activeEngine:'',openCategories:initialOpen,personalisationOpen:false,replaceCounter:0,status:'Choose the maths, include the games you want, then configure each game separately.'};
+  let parentShareLogoCache={source:'',dataUrl:'',width:0,height:0};
   state.pack=G.generatePack(state.settings,state.seed,state.customVocabulary);
 
   // Preview replacement controls are delegated so late UI patches and every
@@ -77,13 +78,55 @@
   function humanDate(value){if(!value)return '';const m=String(value).match(/^(\d{4})-(\d{2})-(\d{2})$/);if(!m)return String(value);const d=new Date(Number(m[1]),Number(m[2])-1,Number(m[3]));return d.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});}
   function categorySelected(cat,eligible=compatibleSet()){return cat.engines.filter(id=>eligible.has(id)&&state.settings.selectedEngines.includes(id));}
   function selectedEngineCount(){return selectedCompatible().length;}
-  function puzzleShareConfig(){
-    const schoolUsageKey=SU?.makeSchoolKey?.(personalisation().schoolName)||'';
-    return {settings:G.clone(state.settings),customVocabulary:G.clone(state.customVocabulary),schoolUsageKey};
+  function compactParentLogoDataUrl(dataUrl){
+    const src=String(dataUrl||'');if(!src||!B)return Promise.resolve({dataUrl:'',width:0,height:0});
+    return new Promise((resolve,reject)=>{
+      const img=new Image();
+      img.onload=()=>{
+        try{
+          const limit=Math.min(9000,Number(B.MAX_LOGO_LENGTH)||9000),sizes=[180,150,120,96],qualities=[.76,.62,.50,.42];
+          let last=null;
+          for(const maxSize of sizes){
+            const scale=Math.min(1,maxSize/Math.max(img.naturalWidth,img.naturalHeight));
+            const w=Math.max(1,Math.round(img.naturalWidth*scale)),h=Math.max(1,Math.round(img.naturalHeight*scale));
+            const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+            const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);ctx.drawImage(img,0,0,w,h);
+            for(const quality of qualities){
+              const out=canvas.toDataURL('image/jpeg',quality);last={dataUrl:out,width:w,height:h};
+              if(out.length<=limit)return resolve(last);
+            }
+          }
+          if(last&&last.dataUrl.length<=(Number(B.MAX_LOGO_LENGTH)||18000))return resolve(last);
+          reject(new Error('School logo could not be reduced enough for a public practice link.'));
+        }catch(err){reject(err);}
+      };
+      img.onerror=()=>reject(new Error('School logo could not be prepared for sharing.'));
+      img.src=src;
+    });
   }
-  function puzzleShareLink(){
+  async function refreshParentShareLogo(force=false){
+    const p=personalisation(),src=String(p.logoDataUrl||'');
+    if(!src){const changed=!!parentShareLogoCache.source;parentShareLogoCache={source:'',dataUrl:'',width:0,height:0};return changed;}
+    if(!force&&parentShareLogoCache.source===src)return false;
+    if(B&&src.length<=Math.min(9000,Number(B.MAX_LOGO_LENGTH)||9000)){
+      parentShareLogoCache={source:src,dataUrl:src,width:Number(p.logoWidth)||0,height:Number(p.logoHeight)||0};return true;
+    }
+    const compact=await compactParentLogoDataUrl(src);
+    parentShareLogoCache={source:src,dataUrl:compact.dataUrl,width:compact.width,height:compact.height};return true;
+  }
+  function parentPublicSchool(){
+    const p=personalisation(),src=String(p.logoDataUrl||''),cached=parentShareLogoCache.source===src?parentShareLogoCache:null;
+    const fallback=src&&B&&src.length<=Math.min(9000,Number(B.MAX_LOGO_LENGTH)||9000)?{dataUrl:src,width:Number(p.logoWidth)||0,height:Number(p.logoHeight)||0}:null;
+    const logo=cached||fallback||{dataUrl:'',width:0,height:0};
+    return {schoolName:String(p.schoolName||'').trim(),logoDataUrl:logo.dataUrl,logoWidth:logo.width,logoHeight:logo.height};
+  }
+  function puzzleShareConfig(includeSchool=true){
+    const schoolUsageKey=SU?.makeSchoolKey?.(personalisation().schoolName)||'';
+    return {settings:G.clone(state.settings),customVocabulary:G.clone(state.customVocabulary),schoolUsageKey,school:includeSchool?parentPublicSchool():{}};
+  }
+  function puzzleShareLink(includeSchool=true){
     if(!GPP)return {link:'',error:'Parent puzzle sharing is unavailable in this build.'};
-    try{return {link:GPP.buildLink(puzzleShareConfig(),location.origin),error:''};}
+    try{return {link:GPP.buildLink(puzzleShareConfig(includeSchool),location.origin),error:''};}
     catch(err){return {link:'',error:err?.message||'This puzzle setup could not be turned into a parent link.'};}
   }
   function puzzleShareTitle(){
@@ -316,7 +359,7 @@
     return '';
   }
 
-  function renderPackCard(){const s=state.settings,selected=selectedCompatible(),ready=selected.length>0,disabled=PDF&&ready?'':'disabled';return `<section class="tt99-games-card"><div class="tt99-games-step"><span>3</span><div><h2>Build the pack</h2><p>${!selected.length?'Choose at least one compatible game above.':selected.length===1?`Every activity will use ${esc(G.ENGINES[selected[0]].title)}.`:selected.length<=5?`Activities will rotate through ${selected.map(id=>esc(G.ENGINES[id].title)).join(', ')}.`:`Activities will rotate through ${selected.length} selected games.`}</p></div></div><input type="hidden" id="games-sheets" value="${s.sheets}"><input type="hidden" id="games-activities" value="${s.activitiesPerSheet}"><div class="tt99-games-grid2"><label class="tt99-field wide"><span>Worked examples</span><select id="games-worked"><option value="none" ${s.workedExamples==='none'?'selected':''}>None</option><option value="front" ${s.workedExamples==='front'?'selected':''}>At front — one example for each selected game</option></select><small>Examples use separate, simpler data and explain the goal, rules, steps, tip and common mistake.</small></label></div><div class="tt99-games-actions tt99-games-actions-single"><button type="button" class="tt99-primary" id="games-new-version" ${ready?'':'disabled'}>Generate new version</button></div><div class="tt99-games-download-heading"><strong>Download PDFs</strong><small>Like the main 99 Club: pupil sheets, matching answers, or one combined pack.</small></div><div class="tt99-downloads tt99-games-downloads"><button id="games-pdf-student" class="tt99-download" ${disabled}><b>Pupil sheets PDF</b><span>${s.workedExamples==='front'?'Worked examples + pupil sheets':'Pupil sheets only'}</span></button><button id="games-pdf-answer" class="tt99-download" ${disabled}><b>Answer key PDF</b><span>Matching completed games</span></button><button id="games-pdf-both" class="tt99-download tt99-download--accent" ${disabled}><b>Pupil sheets + answers</b><span>One complete PDF</span></button></div><div class="tt99-parent-share"><div><strong>School-led parent puzzle practice</strong><small>Share this complete puzzle setup as a simple parent link, website card or downloadable website pack. Parents see the school-selected settings without the puzzle editor.</small></div><button type="button" class="tt99-secondary" id="games-parent-share" ${ready&&GPP?'':'disabled'}>Create parent link</button></div><div class="tt99-status">${esc(state.status)}</div></section>`;}
+  function renderPackCard(){const s=state.settings,selected=selectedCompatible(),ready=selected.length>0,disabled=PDF&&ready?'':'disabled';return `<section class="tt99-games-card"><div class="tt99-games-step"><span>3</span><div><h2>Build the pack</h2><p>${!selected.length?'Choose at least one compatible game above.':selected.length===1?`Every activity will use ${esc(G.ENGINES[selected[0]].title)}.`:selected.length<=5?`Activities will rotate through ${selected.map(id=>esc(G.ENGINES[id].title)).join(', ')}.`:`Activities will rotate through ${selected.length} selected games.`}</p></div></div><input type="hidden" id="games-sheets" value="${s.sheets}"><input type="hidden" id="games-activities" value="${s.activitiesPerSheet}"><div class="tt99-games-grid2"><label class="tt99-field wide"><span>Worked examples</span><select id="games-worked"><option value="none" ${s.workedExamples==='none'?'selected':''}>None</option><option value="front" ${s.workedExamples==='front'?'selected':''}>At front — one example for each selected game</option></select><small>Examples use separate, simpler data and explain the goal, rules, steps, tip and common mistake.</small></label></div><div class="tt99-games-actions tt99-games-actions-single"><button type="button" class="tt99-primary" id="games-new-version" ${ready?'':'disabled'}>Generate new version</button></div><div class="tt99-games-download-heading"><strong>Download PDFs</strong><small>Like the main 99 Club: pupil sheets, matching answers, or one combined pack.</small></div><div class="tt99-downloads tt99-games-downloads"><button id="games-pdf-student" class="tt99-download" ${disabled}><b>Pupil sheets PDF</b><span>${s.workedExamples==='front'?'Worked examples + pupil sheets':'Pupil sheets only'}</span></button><button id="games-pdf-answer" class="tt99-download" ${disabled}><b>Answer key PDF</b><span>Matching completed games</span></button><button id="games-pdf-both" class="tt99-download tt99-download--accent" ${disabled}><b>Pupil sheets + answers</b><span>One complete PDF</span></button></div><div class="tt99-parent-share"><div><strong>School-led parent puzzle practice</strong><small>Share this complete puzzle setup as a simple parent link, website card or downloadable website pack. Parent downloads use the school name/logo and stamp the actual generation date.</small></div><button type="button" class="tt99-secondary" id="games-parent-share" ${ready&&GPP?'':'disabled'}>Create parent link</button></div><div class="tt99-status">${esc(state.status)}</div></section>`;}
 
   function renderPersonaliseCard(){const p=personalisation();return `<section class="tt99-games-card tt99-personalise-card"><details id="games-personalisation" ${state.personalisationOpen?'open':''}><summary><div class="tt99-games-step"><span>4</span><div><h2>Personalise the pack</h2><p>Optional. School details and logo are remembered on this browser.</p></div></div><span class="tt99-details-state">${state.personalisationOpen?'Hide':'Open'}</span></summary><div class="tt99-personalise-body"><div class="tt99-games-grid2"><label class="tt99-field wide"><span>Pack title</span><input type="text" maxlength="100" data-personal="packTitle" value="${esc(p.packTitle||'Maths Games & Puzzles')}" placeholder="Maths Games & Puzzles"></label><label class="tt99-field wide"><span>School name</span><input type="text" maxlength="100" data-personal="schoolName" value="${esc(p.schoolName||'')}" placeholder="e.g. Oakfield Primary School"></label><label class="tt99-field"><span>Class / year label</span><input type="text" maxlength="80" data-personal="classLabel" value="${esc(p.classLabel||'')}" placeholder="e.g. Year 5 · 5B"></label><label class="tt99-field"><span>Date on sheet</span><input type="date" data-personal="worksheetDate" value="${esc(p.worksheetDate||'')}"><small>Leave blank to omit the date.</small></label></div><div class="tt99-personal-date-actions"><button type="button" class="tt99-ghost" id="games-date-today">Use today</button><button type="button" class="tt99-ghost" id="games-date-clear" ${p.worksheetDate?'':'disabled'}>Remove date</button></div><div class="tt99-games-logo-row"><div class="tt99-games-logo-preview">${p.logoDataUrl?`<img src="${p.logoDataUrl}" alt="School logo preview">`:'<span>LOGO</span>'}</div><div><label class="tt99-secondary tt99-games-logo-upload"><input id="games-logo" type="file" accept="image/png,image/jpeg,image/webp"><span>${p.logoDataUrl?'Replace school logo':'Add school logo'}</span></label>${p.logoDataUrl?'<button type="button" class="tt99-ghost" id="games-remove-logo">Remove logo</button>':''}<small>PNG, JPG or WebP.</small></div></div></div></details></section>`;}
 
@@ -662,7 +705,7 @@
       finally{btn.disabled=false;btn.textContent=old;}
     });
     modal.querySelector('#tt99-puzzle-widget-add')?.addEventListener('click',()=>{
-      const built=puzzleShareLink();
+      const built=puzzleShareLink(false);
       if(!built.link){setStatus(built.error||'This puzzle setup cannot be shared yet.');return;}
       let personalCount=0;
       try{personalCount=GPP.compactVocabulary?GPP.compactVocabulary(state.customVocabulary,GPP.publicSettings(state.settings)).length:0;}catch(_){}
@@ -708,14 +751,14 @@
     root.querySelectorAll('[data-personal]').forEach(el=>el.addEventListener('change',()=>{state.settings.personalisation[el.dataset.personal]=el.value;state.settings=G.normalizeSettings(state.settings);save();state.status='Pack personalisation updated.';render();}));
     root.querySelector('#games-date-today')?.addEventListener('click',()=>{const d=new Date(),pad=n=>String(n).padStart(2,'0');state.settings.personalisation.worksheetDate=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;save();state.status='Today’s date added to the pack.';render();});
     root.querySelector('#games-date-clear')?.addEventListener('click',()=>{state.settings.personalisation.worksheetDate='';save();state.status='Date removed from the pack.';render();});
-    root.querySelector('#games-logo')?.addEventListener('change',handleLogo);root.querySelector('#games-remove-logo')?.addEventListener('click',()=>{Object.assign(state.settings.personalisation,{logoDataUrl:'',logoWidth:0,logoHeight:0});save();state.status='School logo removed.';render();});
+    root.querySelector('#games-logo')?.addEventListener('change',handleLogo);root.querySelector('#games-remove-logo')?.addEventListener('click',()=>{Object.assign(state.settings.personalisation,{logoDataUrl:'',logoWidth:0,logoHeight:0});parentShareLogoCache={source:'',dataUrl:'',width:0,height:0};save();state.status='School logo removed.';render();});
     root.querySelector('#games-new-version')?.addEventListener('click',()=>regen('Fresh puzzle version generated with the same teaching settings.',true));root.querySelector('#games-pdf-student')?.addEventListener('click',()=>downloadGamesPDF('student'));root.querySelector('#games-pdf-answer')?.addEventListener('click',()=>downloadGamesPDF('answers'));root.querySelector('#games-pdf-both')?.addEventListener('click',()=>downloadGamesPDF('both'));root.querySelectorAll('[data-preview]').forEach(btn=>btn.addEventListener('click',()=>{state.previewAnswers=btn.dataset.preview==='answers';render();}));
     bindPuzzleParentEvents();
 
     root.querySelector('#vocab-add')?.addEventListener('click',addVocabulary);root.querySelectorAll('[data-delete-vocab]').forEach(btn=>btn.addEventListener('click',()=>{const i=Number(btn.dataset.deleteVocab);state.customVocabulary.splice(i,1);refreshPack(false);state.status='Personal vocabulary entry removed from this browser.';render();}));root.querySelector('#vocab-export')?.addEventListener('click',exportVocabulary);root.querySelector('#vocab-import')?.addEventListener('change',importVocabulary);root.querySelector('#vocab-clear')?.addEventListener('click',()=>{if(!state.customVocabulary.length)return;if(confirm('Clear all My vocabulary entries stored in this browser?')){state.customVocabulary=[];refreshPack(false);state.status='My vocabulary cleared. Built-in vocabulary was not changed.';render();}});
   }
 
-  async function handleLogo(e){const file=e.target.files?.[0];if(!file)return;if(file.size>8*1024*1024){state.status='Logo is too large. Please choose an image under 8 MB.';render();return;}try{const result=await imageFileToJpeg(file,360);Object.assign(state.settings.personalisation,{logoDataUrl:result.dataUrl,logoWidth:result.width,logoHeight:result.height});save();state.status='School logo added.';render();}catch(err){state.status='That logo could not be read. Try a PNG, JPG or WebP.';render();}}
+  async function handleLogo(e){const file=e.target.files?.[0];if(!file)return;if(file.size>8*1024*1024){state.status='Logo is too large. Please choose an image under 8 MB.';render();return;}try{const result=await imageFileToJpeg(file,360);Object.assign(state.settings.personalisation,{logoDataUrl:result.dataUrl,logoWidth:result.width,logoHeight:result.height});await refreshParentShareLogo(true);save();state.status='School logo added.';render();}catch(err){state.status='That logo could not be read. Try a PNG, JPG or WebP.';render();}}
   function imageFileToJpeg(file,maxSize){return new Promise((resolve,reject)=>{const img=new Image(),url=URL.createObjectURL(file);img.onload=()=>{const scale=Math.min(1,maxSize/Math.max(img.naturalWidth,img.naturalHeight)),w=Math.max(1,Math.round(img.naturalWidth*scale)),h=Math.max(1,Math.round(img.naturalHeight*scale)),c=document.createElement('canvas');c.width=w;c.height=h;const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);ctx.drawImage(img,0,0,w,h);URL.revokeObjectURL(url);resolve({dataUrl:c.toDataURL('image/jpeg',0.9),width:w,height:h});};img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('image'));};img.src=url;});}
 
   function downloadGamesPDF(kind){
@@ -764,4 +807,5 @@
     SU?.trackStudio?.('studio_open',personalisation().schoolName||'',{area:'games'});
   },{once:true});
   render();
+  refreshParentShareLogo().then(changed=>{if(changed)render();}).catch(()=>{});
 })();
