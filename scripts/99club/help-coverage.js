@@ -11,7 +11,7 @@ const guides=[...help.matchAll(/\{id:'([^']+)'[^\n]*title:'([^']*)'/g)].filter(m
 const guideSet=new Set(guides),runtimeSet=new Set(runtime);
 const visualStart=help.indexOf('const V={'),visualEnd=help.indexOf('};\n    return V[id]',visualStart);
 const visualBlock=visualStart>=0&&visualEnd>visualStart?help.slice(visualStart,visualEnd):'';
-const visualIds=[...visualBlock.matchAll(/^\s{6}([a-z0-9]+):/gm)].map(m=>m[1]);
+const visualIds=[...visualBlock.matchAll(/^\s{6}([a-z0-9_]+):/gm)].map(m=>m[1]);
 const missingVisuals=guides.filter(id=>!visualIds.includes(id));
 if(missingVisuals.length){console.error('Visible guides missing worked-example visuals: '+missingVisuals.join(', '));process.exitCode=1;}
 const guideLines=help.split('\n').filter(line=>/^\s*\{id:'[^']+',title:'[^']+'/.test(line)&&!line.includes('hidden:true'));
