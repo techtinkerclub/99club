@@ -112,7 +112,7 @@ sitemap: true
 <script src="/assets/99club/games-operationgrid-print-v160-ui.js?v=1" defer></script>
 <script src="/assets/99club/games-operationgrid-print-v155-ui.js?v=1" defer></script>
 <script src="/assets/99club/games-random-ui.js?v=6" defer></script>
-<script src="/assets/99club/games-card-links-v205.js?v=4" defer></script>
+<script src="/assets/99club/games-card-links-v205.js?v=5" defer></script>
 <script src="/assets/99club/games-ui-v134.js?v=2" defer></script>
 <script src="/assets/99club/games-puzzle-redesign-v136.js?v=3" defer></script>
 <script src="/assets/99club/games-v137.js?v=2" defer></script>
