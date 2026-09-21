@@ -243,7 +243,7 @@ sitemap: true
           <p><strong>Yes.</strong> The school-selected settings remain fixed, but the actual worksheet or puzzles are freshly generated when the parent presses the download button.</p>
 
           <h3>99 Club</h3>
-          <p>A parent clicks a Club link/card/widget choice. The parent-practice page opens with the school's fixed maths rules. When the parent presses <strong>Download a new worksheet + answers</strong>, 99 Club Studio generates fresh questions. Pressing the button again creates another fresh worksheet using the same rules.</p>
+          <p>A parent clicks a Club link/card/widget choice. The parent-practice page opens with the school's fixed maths rules. When the parent presses <strong>Download a new worksheet + answers</strong>, 99 Club Studio generates fresh questions. The PDF uses the school's public name and logo and automatically prints the date it is generated, overriding any worksheet date entered earlier in the teacher editor. Pressing the button again creates another fresh worksheet using the same rules.</p>
 
           <h3>Printable puzzle packs</h3>
           <p>A parent clicks the pack link/card/widget choice. The school-selected pack settings open. When they press <strong>Download a new puzzle pack + answers</strong>, 99 Club Studio generates fresh puzzles using the same selected years, topics, game types and difficulty settings. Pressing again creates another fresh pack.</p>
