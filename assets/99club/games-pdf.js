@@ -505,6 +505,36 @@ function drawPropertyMaze(page,a,answers,x,y,w,h,index){
 
   function drawArithmeticActivity(page,a,answers,x,y,w,h,index){if(a.engineId==='arithmagon')return drawArithmagon(page,a,answers,x,y,w,h,index);if(a.engineId==='magicshape')return drawMagicShape(page,a,answers,x,y,w,h,index);if(a.engineId==='maze')return drawMaze(page,a,answers,x,y,w,h,index);if(a.engineId==='propertymaze')return drawPropertyMaze(page,a,answers,x,y,w,h,index);if(a.engineId==='crossnumber')return drawCrossnumber(page,a,answers,x,y,w,h,index);if(a.engineId==='numbersearch')return drawNumberSearch(page,a,answers,x,y,w,h,index);if(a.engineId==='equationcrossgrid')return drawEquationCrossgrid(page,a,answers,x,y,w,h,index);if(a.engineId==='numbertrail')return drawNumberTrail(page,a,answers,x,y,w,h,index);if(a.engineId==='target')return drawTarget(page,a,answers,x,y,w,h,index);if(a.engineId==='brokencalc')return drawBrokenCalc(page,a,answers,x,y,w,h,index);if(a.engineId==='symbols')return drawSymbols(page,a,answers,x,y,w,h,index);if(a.engineId==='domino')return drawDomino(page,a,answers,x,y,w,h,index);if(a.engineId==='operationgrid')return drawOperationGrid(page,a,answers,x,y,w,h,index);if(a.engineId==='numberwheels')return drawNumberWheels(page,a,answers,x,y,w,h,index);if(a.engineId==='functionmachine')return drawFunctionMachine(page,a,answers,x,y,w,h,index);if(a.engineId==='balance')return drawBalance(page,a,answers,x,y,w,h,index);if(a.engineId==='mobilebalance')return drawMobileBalance(page,a,answers,x,y,w,h,index);}
 
+  function drawVerbalReasoning(page,a,answers,x,y,w,h,index){
+    const top=activityFrame(page,x,y,w,h,index,a),pad=12;
+    drawWrapped(page,x+pad,top,a.instruction||'Choose the best answer for each question.',w-pad*2,7.1,{color:MUTED,maxLines:2});
+    const items=a.items||[],bodyTop=top+25,bottom=y+h-12,gap=6,available=Math.max(50,bottom-bodyTop-gap*Math.max(0,items.length-1)),itemH=available/Math.max(1,items.length),letters='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    items.forEach((it,qi)=>{
+      const qy=bodyTop+qi*(itemH+gap),qh=itemH;
+      box(page,x+pad,qy,w-pad*2,qh,[253,254,254],[216,227,228],.55);
+      drawCircle(page,x+pad+12,qy+13,8,{fill:[237,246,245],stroke:[196,218,215],width:.55});
+      diagramText(page,x+pad+12,qy+15.5,String(qi+1),6.4,{bold:true,color:[44,100,94]});
+      const tx=x+pad+25,tw=w-pad*2-33;let cy=qy+8;
+      if(it.context?.length){
+        const context=it.context.join('   ·   ');
+        cy+=drawWrapped(page,tx,cy,context,tw,6.7,{bold:true,color:[58,84,88],maxLines:2,compact:true})+3;
+      }
+      cy+=drawWrapped(page,tx,cy,it.stem||'',tw,7.2,{bold:true,color:DARK,maxLines:2})+4;
+      const opts=it.options||[],colGap=7,colW=(tw-colGap)/2,rowH=18;
+      opts.slice(0,4).forEach((opt,oi)=>{
+        const row=Math.floor(oi/2),col=oi%2,ox=tx+col*(colW+colGap),oy=cy+row*(rowH+3),correct=answers&&String(opt)===String(it.answer);
+        drawRoundRect(page,ox,oy,colW,rowH,4,{fill:correct?HIT:WHITE,stroke:correct?[111,171,163]:[211,222,223],width:.55});
+        drawCircle(page,ox+10,oy+9,5.2,{fill:correct?[57,125,117]:[235,241,241],stroke:null,width:0});
+        diagramText(page,ox+10,oy+11,String(letters[oi]||''),5.1,{bold:true,color:correct?WHITE:[65,91,95]});
+        fitText(page,ox+19,oy+11.5,String(opt),colW-24,6.5,{bold:correct,color:correct?TEAL:INK,compact:true});
+      });
+      if(answers){
+        const ey=Math.min(qy+qh-9,cy+2*(rowH+3)+3);
+        if(ey<qy+qh-4)drawWrapped(page,tx,ey,'Answer: '+it.answer+'. '+(it.explanation||''),tw,6.2,{bold:true,color:TEAL,maxLines:1,compact:true});
+      }
+    });
+  }
+
   function drawActivity(page,a,answers,x,y,w,h,index){
     if(a?.error){const top=activityFrame(page,x,y,w,h,index,a||{});drawWrapped(page,x+12,top,clean(a.error),w-24,8,{color:[140,70,60]});return;}
     if(a.engineId==='pyramid')return drawPyramid(page,a,answers,x,y,w,h,index);
@@ -513,6 +543,7 @@ function drawPropertyMaze(page,a,answers,x,y,w,h,index){
     if(a.engineId==='sudoku')return drawSudoku(page,a,answers,x,y,w,h,index);
     if(['arithmagon','magicshape','maze','propertymaze','crossnumber','numbersearch','equationcrossgrid','numbertrail','target','brokencalc','symbols','domino','operationgrid','numberwheels','functionmachine','balance','mobilebalance'].includes(a.engineId))return drawArithmeticActivity(page,a,answers,x,y,w,h,index);
     if(['kakuro','futoshiki','arithmeticcages','nonogram','numberpath','sumplete','colourlogic'].includes(a.engineId))return drawNumberLogicActivity(page,a,answers,x,y,w,h,index);
+    if(global.TT99VerbalReasoning?.DEFINITIONS?.[a.engineId])return drawVerbalReasoning(page,a,answers,x,y,w,h,index);
     return drawWordSearch(page,a,answers,x,y,w,h,index);
   }
 
@@ -547,7 +578,7 @@ function drawPropertyMaze(page,a,answers,x,y,w,h,index){
       const cell=22,sx=x+w/2-(5*cell+34)/2;page.text(sx+27,cy+15,'2 1',7.5,{bold:true,color:DARK,align:'right'});for(let i=0;i<5;i++)page.rect(sx+34+i*cell,cy,cell,cell,{fill:[0,1,3].includes(i)?[62,81,86]:WHITE,stroke:[120,145,149],width:.65});cy+=cell+5;cy+=drawWrapped(page,x+12,cy,'Clue 2 1 means two shaded cells, at least one gap, then one shaded cell.',w-24,7.2,{color:MUTED,maxLines:2})+6;
     }else if(ex.kind==='numberpath'){
       const vals=[1,2,3,6,5,4,7,8,9],cell=22,sx=x+w/2-cell*1.5;for(let r=0;r<3;r++)for(let c=0;c<3;c++){const v=vals[r*3+c];page.rect(sx+c*cell,cy+r*cell,cell,cell,{fill:WHITE,stroke:[120,145,149],width:.65});page.text(sx+c*cell+cell/2,cy+r*cell+15,String(v),7.5,{bold:true,color:(v===1||v===9)?TEAL:INK,align:'center'});}cy+=cell*3+5;cy+=drawWrapped(page,x+12,cy,'The sequence winds through edge-touching cells: 1, 2, 3, 4 ... 9.',w-24,7.2,{color:MUTED,maxLines:2})+6;
-    }else if(['arithmagon','magicshape','maze','propertymaze','crossnumber','numbersearch','equationcrossgrid','numbertrail','target','brokencalc','symbols','domino','operationgrid','numberwheels','functionmachine','balance'].includes(ex.kind)){
+    }else if(['arithmagon','magicshape','maze','propertymaze','crossnumber','numbersearch','equationcrossgrid','numbertrail','target','brokencalc','symbols','domino','operationgrid','numberwheels','functionmachine','balance'].includes(ex.kind)||global.TT99VerbalReasoning?.DEFINITIONS?.[ex.kind]){
       box(page,x+12,cy,w-24,26,[243,250,248],[211,231,227],.6);page.text(x+20,cy+11,clean(ex.title||'Worked example').replace(/ worked example$/i,''),7.7,{bold:true,color:[40,93,89]});page.text(x+20,cy+22,'Follow the worked steps below, then try the generated activity.',6.8,{color:MUTED});cy+=36;
     }else if(ex.kind==='wordsearch'){
       const intro=ex.mode==='definitions'?`Definition: ${ex.definition||''}${needsEnumeration(ex.term)?` ${ex.enumeration||enumeration(ex.term)}`:''}`:`${ex.term||''} - ${ex.definition||''}`;cy+=drawWrapped(page,x+12,cy,intro,w-24,8.0,{color:DARK,maxLines:2})+8;
