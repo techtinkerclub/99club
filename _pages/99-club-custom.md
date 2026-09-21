@@ -16,7 +16,7 @@ search: false
 </div>
 
 <link rel="stylesheet" href="/assets/99club/99club.css?v=20">
-<link rel="stylesheet" href="/assets/99club/custom-graphs.css?v=2">
+<link rel="stylesheet" href="/assets/99club/custom-graphs.css?v=2">\n<link rel="stylesheet" href="/assets/99club/custom-curriculum.css?v=1">
 <script src="/assets/99club/generator.js?v=20"></script>
 <script src="/assets/99club/simple-pdf.js?v=19"></script>
 <script src="/assets/99club/pdf-layout.js?v=19"></script>
