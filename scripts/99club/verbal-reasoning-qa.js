@@ -6,20 +6,27 @@ function assert(v,m){if(!v)throw new Error(m);}
 assert(VR.VERSION==='2.08.0','wrong VR core version');
 assert(VR.TYPE_IDS.length===21,'expected 21 verbal reasoning types');
 
-const report={version:VR.VERSION,types:{},errors:[]};
+const report={version:VR.VERSION,types:{},errors:[]},coreIssues=[];
 for(const d of VR.DIFFICULTIES){
   for(const id of VR.TYPE_IDS){
-    const keys=new Set();
+    const keys=new Set();let generated=0;
     for(let i=0;i<60;i++){
       const seed='vrqa:'+id+':'+d+':'+i;
-      const q=VR.generate(id,d,seed),again=VR.generate(id,d,seed),v=VR.validate(q);
-      assert(v.ok,id+'/'+d+' invalid: '+v.errors.join(', '));
-      assert(JSON.stringify(q)===JSON.stringify(again),id+'/'+d+' is not deterministic');
-      keys.add(q.key);
+      try{
+        const q=VR.generate(id,d,seed),again=VR.generate(id,d,seed),v=VR.validate(q);
+        if(!v.ok)coreIssues.push(id+'/'+d+' invalid: '+v.errors.join(', '));
+        if(JSON.stringify(q)!==JSON.stringify(again))coreIssues.push(id+'/'+d+' is not deterministic');
+        keys.add(q.key);generated++;
+      }catch(err){coreIssues.push(id+'/'+d+' generation failed: '+(err?.message||err));break;}
     }
-    assert(keys.size>=40,id+'/'+d+' has weak variety: only '+keys.size+' unique from 60 seeds');
-    report.types[id+':'+d]={sampled:60,unique:keys.size};
+    if(keys.size<40)coreIssues.push(id+'/'+d+' has weak variety: only '+keys.size+' unique from '+generated+' generated seeds');
+    report.types[id+':'+d]={sampled:generated,unique:keys.size};
   }
+}
+if(coreIssues.length){
+  report.errors.push(...coreIssues);
+  require('fs').writeFileSync('99club-verbal-reasoning-qa-report.json',JSON.stringify(report,null,2));
+  throw new Error('VR core QA failed:\n - '+coreIssues.join('\n - '));
 }
 
 require(path.join(ROOT,'games-vocabulary.js'));
