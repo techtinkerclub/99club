@@ -216,7 +216,7 @@ var DEFINITIONS={
 
 function normalise(id,raw){raw=raw||{};var base=DEFINITIONS[id]?DEFINITIONS[id].defaultSettings:{difficulty:'standard'};return Object.assign({},base,raw,{difficulty:clampDifficulty(raw.difficulty||base.difficulty)});}
 function buildActivity(id,o,items,instruction,seed){
- var seen=new Set(),cleanItems=[];(items||[]).forEach(function(it){if(it&&!seen.has(it.key)){seen.add(it.key);cleanItems.push(it);}});
+ var seen=new Set(),cleanItems=[];(items||[]).forEach(function(it){if(it&&cleanItems.length<1&&!seen.has(it.key)){seen.add(it.key);cleanItems.push(it);}});
  var key=hashString(id+':'+o.difficulty+':'+cleanItems.map(function(x){return x.key;}).join('::')).toString(36);
  return {engineId:id,vrType:id,title:DEFINITIONS[id].title,difficulty:o.difficulty,instruction:instruction,items:cleanItems,contentKey:key,seed:seed,options:o,engineVersion:VERSION};
 }
