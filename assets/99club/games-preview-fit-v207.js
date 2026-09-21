@@ -194,7 +194,7 @@
     const lr=layout.getBoundingClientRect();
     const scaleY=ar.height/Math.max(1,activity.offsetHeight||activity.clientHeight||ar.height);
     const padBottom=parseFloat(getComputedStyle(activity).paddingBottom)||0;
-    const availableH=Math.max(90,Math.floor((ar.bottom-lr.top)/Math.max(.01,scaleY)-padBottom-2));
+    const availableH=Math.max(90,Math.floor((ar.bottom-lr.top)/Math.max(.01,scaleY)-padBottom-30));
     const layoutW=Math.max(1,layout.clientWidth);
     const sideReserve=threePerPage?125:(twoPerPage?185:210);
     const availableW=Math.max(90,layoutW-sideReserve-gap);
@@ -323,5 +323,5 @@
   if(document.fonts?.ready)document.fonts.ready.then(schedule).catch(()=>{});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
 
-  global.TT99GamesPreviewFitV207={version:'2.14',refresh:schedule,fitActivity};
+  global.TT99GamesPreviewFitV207={version:'2.15',refresh:schedule,fitActivity};
 })(typeof globalThis!=='undefined'?globalThis:this);
