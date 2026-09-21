@@ -1304,7 +1304,9 @@
           ...base,kind:'clubs',handoffVersion:1,widgetType:'club',
           school:{
             schoolName:String(state.school?.schoolName||'').trim(),
-            logoDataUrl:String(state.school?.logoDataUrl||'')
+            logoDataUrl:String(state.school?.logoDataUrl||''),
+            logoWidth:Number(state.school?.logoWidth)||0,
+            logoHeight:Number(state.school?.logoHeight)||0
           }
         };
         localStorage.setItem('tt99-widget-handoff-v1',JSON.stringify(handoff));
