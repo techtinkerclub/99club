@@ -34,5 +34,5 @@ search: false
 <script src="/assets/99club/custom-coordinates.js?v=4"></script>
 <script src="/assets/99club/custom-piecharts.js?v=7"></script>
 <script src="/assets/99club/custom-angles.js?v=8"></script>
-<script src="/assets/99club/custom-curriculum-registry.js?v=1"></script>
+<script src="/assets/99club/custom-curriculum-registry.js?v=2"></script>
 <script src="/assets/99club/custom-app.js?v=231" defer></script>
