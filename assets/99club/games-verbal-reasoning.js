@@ -389,7 +389,7 @@ function generate(id,settings,seed){
  }catch(err){return {engineId:id,title:def.title,difficulty:o.difficulty,error:err&&err.message||'A valid verbal-reasoning activity could not be generated.'};}
 }
 function validate(a){
- if(!a||a.error)return {ok:false,error:a&&a.error||'missing activity'};if(!DEFINITIONS[a.engineId])return {ok:false,error:'unknown verbal-reasoning type'};if(DIFFICULTIES.indexOf(a.difficulty)<0)return {ok:false,error:'invalid difficulty'};if(!Array.isArray(a.items)||a.items.length<2)return {ok:false,error:'not enough questions'};
+ if(!a||a.error)return {ok:false,error:a&&a.error||'missing activity'};if(!DEFINITIONS[a.engineId])return {ok:false,error:'unknown verbal-reasoning type'};if(DIFFICULTIES.indexOf(a.difficulty)<0)return {ok:false,error:'invalid difficulty'};if(!Array.isArray(a.items)||a.items.length<1)return {ok:false,error:'question missing'};
  var keys=new Set();for(var i=0;i<a.items.length;i++){var it=a.items[i];if(!it||!it.stem||!it.answer||!Array.isArray(it.options)||it.options.length<3)return {ok:false,error:'question '+(i+1)+' is incomplete'};if(new Set(it.options).size!==it.options.length)return {ok:false,error:'question '+(i+1)+' has duplicate options'};if(it.options.filter(function(x){return String(x)===String(it.answer);}).length!==1)return {ok:false,error:'question '+(i+1)+' does not have exactly one displayed answer'};if(!it.explanation)return {ok:false,error:'question '+(i+1)+' has no explanation'};if(keys.has(it.key))return {ok:false,error:'question repeated inside one activity'};keys.add(it.key);}
  return {ok:true};
 }
