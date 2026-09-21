@@ -42,6 +42,10 @@ function applyFocusAccordionState(){
 function refreshCategoryCounts(){
   root.querySelectorAll('.tt99-game-category').forEach(cat=>{
     const inputs=[...cat.querySelectorAll('.tt99-engine-card input[type="checkbox"]')];
+    // Closed categories intentionally do not render their engine cards. In that
+    // state the count already rendered by games-app is authoritative; treating
+    // the absent cards as an empty category would incorrectly overwrite it as 0/0.
+    if(!inputs.length)return;
     const compatible=inputs.filter(i=>!i.disabled),selected=compatible.filter(i=>i.checked);
     const count=cat.querySelector('.tt99-game-category-toggle em');
     const nextCount=`${selected.length}/${compatible.length} selected`;
