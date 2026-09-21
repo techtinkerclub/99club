@@ -70,6 +70,9 @@ family:'MOTHER FATHER SISTER BROTHER AUNT UNCLE COUSIN NIECE NEPHEW PARENT'.spli
 time:'DAY NIGHT SPRING SUMMER WINTER APRIL MARCH'.split(' '),
 places:'HOME SCHOOL PARK FARM GARDEN TOWN COAST'.split(' ')
 };
+var CATEGORY_LINK_LABELS={colours:'COLOUR',animals:'ANIMAL',fruit:'FRUIT',school:'SCHOOL',weather:'WEATHER',body:'BODY',transport:'TRANSPORT',home:'HOME',nature:'NATURE',food:'FOOD',family:'FAMILY',time:'TIME',places:'PLACE'};
+var CATEGORY_CLUES={colours:'a colour',animals:'an animal',fruit:'a fruit',school:'something linked with school',weather:'a weather word',body:'a body part',transport:'a form of transport',home:'something found or used at home',nature:'a nature word',food:'a food word',family:'a family word',time:'a time or season word',places:'a place word'};
+
 var SYN=[
 'FAST QUICK RAPID SWIFT','SMART CLEVER WISE BRIGHT','BIG LARGE GIANT MASSIVE VAST ENORMOUS','SMALL TINY LITTLE',
 'HAPPY GLAD CHEERFUL DELIGHTED','SAD GLOOMY UNHAPPY','CALM QUIET TRANQUIL PEACEFUL','BRAVE BOLD COURAGEOUS FEARLESS',
@@ -124,6 +127,15 @@ var RESTORE=[
 ['CAMERA','something used to take photographs'],['PIRATE','a robber at sea'],['ISLAND','land surrounded by water'],
 ['DOCTOR','a medical professional'],['DENTIST','a person who looks after teeth']
 ].map(function(x){return{word:x[0],clue:x[1]};});
+var restoreSeen=new Set(RESTORE.map(function(x){return x.word;}));
+Object.keys(CATEGORIES).forEach(function(cat){
+  (CATEGORIES[cat]||[]).forEach(function(word){
+    if(word.length>=5&&word.length<=8&&!restoreSeen.has(word)){
+      RESTORE.push({word:word,clue:CATEGORY_CLUES[cat]||('a '+cat+' word')});
+      restoreSeen.add(word);
+    }
+  });
+});
 var LINKS=[
 ['EARTH','GLOBE PLANET SOIL MUD'],['QUICK','FAST RAPID SWIFT SPEEDY'],['SMART','CLEVER WISE BRIGHT SHARP'],
 ['LARGE','BIG GIANT MASSIVE VAST'],['SMALL','TINY LITTLE MINI SHORT'],['CALM','QUIET PEACEFUL TRANQUIL STILL'],
@@ -132,6 +144,10 @@ var LINKS=[
 ['ALLOW','PERMIT LET APPROVE ENABLE'],['CHOOSE','PICK SELECT DECIDE ELECT'],['HELP','AID ASSIST SUPPORT SERVE']
 ].map(function(x){return{answer:x[0],clues:x[1].split(' ')};});
 var LINK_BANK=LINKS.slice();
+Object.keys(CATEGORY_LINK_LABELS).forEach(function(cat){
+  var clues=(CATEGORIES[cat]||[]).slice();
+  if(clues.length>=4)LINK_BANK.push({answer:CATEGORY_LINK_LABELS[cat],clues:clues});
+});
 SYN.forEach(function(set){
   set.forEach(function(answer,idx){
     var clues=set.filter(function(_,i){return i!==idx;});
