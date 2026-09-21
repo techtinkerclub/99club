@@ -578,7 +578,7 @@
         }
         const key=finiteContentKey(activity);
         if(key){
-          const [bank,value]=key.split(':',2);
+          const cut=key.indexOf(':'),bank=cut>=0?key.slice(0,cut):key,value=cut>=0?key.slice(cut+1):'';
           if(finiteUsed[bank]?.has(value)){
             capacityMessage=`${ENGINES[engineId]?.title||'This puzzle type'} produced a repeated finite-bank item, so the pack stopped rather than include a duplicate.`;
             if(activities.length)sheets.push({index:sheetIndex+1,activities});
