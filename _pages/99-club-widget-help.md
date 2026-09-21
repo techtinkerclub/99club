@@ -17,7 +17,7 @@ sitemap: true
             <h1>School website widgets – detailed guide</h1>
             <p>This page is for schools that have already decided to use a widget. If you are still choosing between links, cards and widgets, start with the <a href="/schools/"><strong>School Website Integration Help</strong></a>.</p>
           </div>
-          <a class="tt99-secondary tt99-guide-action" href="/widget/builder/">Open Widget Builder</a>
+          <div class="tt99-guide-actions"><a class="tt99-secondary tt99-guide-action" href="/widget/builder/?type=club">Open 99 Club Widget Builder</a><a class="tt99-secondary tt99-guide-action" href="/widget/builder/?type=games">Open Maths Games Widget Builder</a></div>
         </div>
 
         <nav class="tt99-guide-nav" aria-label="Widget help topics">
@@ -51,7 +51,6 @@ sitemap: true
             <li>Open <strong>Create parent links</strong>.</li>
             <li>Find <strong>Alternative: 99 Club Widget</strong> and choose <strong>Open widget builder</strong>.</li>
             <li>The Widget Builder opens separately and imports the current Club rules, school name and a compact copy of the logo.</li>
-            <li>Under <strong>Widget type</strong>, leave <strong>99 Club</strong> selected.</li>
             <li>Under <strong>School identity</strong>, check the school name and logo. You can replace or remove the logo here without changing the main worksheet setup.</li>
             <li>Under <strong>99 Club levels</strong>, tick only the levels you want parents to see. Use <strong>All</strong> or <strong>None</strong> if that is faster.</li>
             <li>Check the <strong>Parent preview</strong> on the right-hand side.</li>
@@ -67,7 +66,7 @@ sitemap: true
           <h3>Add a printable puzzle pack</h3>
           <ol>
             <li>Open <a href="/games/">Maths Games &amp; Puzzles</a>.</li>
-            <li>Choose the year range, curriculum topics, puzzle types and difficulty/settings you want.</li>
+            <li>Choose the teaching focus, puzzle types and difficulty/settings you want.</li>
             <li>If you use <strong>My vocabulary</strong>, add or review the terms and definitions before sharing.</li>
             <li>Add the school name and logo if required.</li>
             <li>Open <strong>Create parent link</strong> / <strong>Share this puzzle setup</strong>.</li>
@@ -75,7 +74,7 @@ sitemap: true
             <li>The Widget Builder opens as a <strong>Maths Games Widget</strong> and adds that puzzle pack.</li>
             <li>To add a second different pack, return to Maths Games &amp; Puzzles, change the setup, create the new parent link and add that pack too.</li>
           </ol>
-          <p>A widget can currently contain up to four separately configured printable packs. For example, a school could offer <em>Year 4 Arithmetic</em>, <em>Upper KS2 Number Logic</em> and <em>Vocabulary Practice</em> as separate parent choices.</p>
+          <p>A widget can currently contain up to four separately configured printable packs. For example, a school could offer <em>Arithmetic Fluency</em>, <em>Number Logic</em> and <em>Vocabulary Practice</em> as separate parent choices.</p>
 
           <h3>Add online games</h3>
           <ol>
@@ -118,14 +117,14 @@ sitemap: true
           <h3>99 Club</h3>
           <p>A parent chooses a Club level in the widget, then downloads a new worksheet and answers. The PDF uses the school name and logo from the widget and the date the worksheet is generated. Downloading again creates another worksheet using the same school-selected rules.</p>
           <h3>Printable puzzle packs</h3>
-          <p>A parent chooses a puzzle pack, then downloads a fresh pack and matching answers using the same selected years, topics, game types and difficulty settings. The PDF uses the school name and logo from the widget and the date the pack is generated.</p>
+          <p>A parent chooses a puzzle pack, then downloads a fresh pack and matching answers using the same selected teaching focus, game types and difficulty settings. The PDF uses the school name and logo from the widget and the date the pack is generated.</p>
         </section>
 
         <section id="update" class="tt99-guide-section tt99-guide-highlight">
           <h2>Change a widget later</h2>
           <ol>
             <li>Copy the current widget URL or embed code from the school website editor.</li>
-            <li>Open the <a href="/widget/builder/">Widget Builder</a> and use <strong>Recreate existing widget</strong>.</li>
+            <li>Open the matching builder — <a href="/widget/builder/?type=club">99 Club</a> or <a href="/widget/builder/?type=games">Maths Games</a> — and use <strong>Recreate existing widget</strong>.</li>
             <li>Make the changes and check the Parent preview.</li>
             <li>Copy the new embed code.</li>
             <li>Replace the old embed on the school website, then preview and publish.</li>
@@ -193,7 +192,7 @@ sitemap: true
             <li>Any public custom vocabulary checked for private/pupil information?</li>
             <li>Each Club link opens the expected Club level?</li>
             <li>A test 99 Club PDF downloads and contains fresh questions + answers?</li>
-            <li>Each printable puzzle pack opens with the expected year/topics/games?</li>
+            <li>Each printable puzzle pack opens with the expected teaching focus and games?</li>
             <li>A test puzzle pack downloads and contains fresh puzzles + answers?</li>
             <li>Online games open correctly?</li>
             <li>Widget tested on both a phone and a desktop/laptop?</li>
