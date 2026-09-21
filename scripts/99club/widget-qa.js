@@ -79,7 +79,7 @@ const badIntegration=W.normalise({widgetType:'club',integrationId:'<script>alert
 check(badIntegration.integrationId==='','unsafe widget integration ID is rejected');
 
 const runtime=require('fs').readFileSync(path.join(ROOT,'assets/99club/widget-runtime.js'),'utf8');
-check(runtime.includes("searchParams.set('brand',brandToken)")&&runtime.includes('schoolBrandToken'),'widget runtime passes school branding to printable practice links');
+check(runtime.includes("hash.set('brand',brandToken)")&&runtime.includes('schoolBrandToken')&&!runtime.includes("searchParams.set('brand',brandToken)"),'widget runtime keeps school branding in the client-side practice fragment');
 
 const widgetUrl=W.buildUrl(gamesRound,'https://99studio.uk');
 check(/^https:\/\/99studio\.uk\/widget\/#w=TT99W1\./.test(widgetUrl),'widget URL is fragment-configured');
