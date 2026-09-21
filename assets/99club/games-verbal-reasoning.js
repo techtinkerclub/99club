@@ -145,8 +145,19 @@ function wordPool(difficulty,min,max){var dmax=difficulty==='easy'?Math.min(5,ma
 var _hiddenCandidates=null;
 function hiddenCandidates(){
  if(_hiddenCandidates)return _hiddenCandidates;
- var hosts=ALL_WORDS.filter(function(w){return w.length>=3&&w.length<=6;}),targets=hosts,out=[],seen=new Set();
- hosts.forEach(function(a){hosts.forEach(function(b){if(a===b)return;var joined=a+b,boundary=a.length;targets.forEach(function(target){var start=joined.indexOf(target);if(start>=0&&start<boundary&&start+target.length>boundary){var k=signature([a,b,target]);if(!seen.has(k)){seen.add(k);out.push({a:a,b:b,target:target});}}});});});
+ var hosts=ALL_WORDS.filter(function(w){return w.length>=3&&w.length<=6;}),byPair=new Map(),out=[];
+ hosts.forEach(function(a){hosts.forEach(function(b){
+   if(a===b)return;
+   var joined=a+b,boundary=a.length,targets=new Set();
+   for(var start=Math.max(0,boundary-5);start<boundary;start++){
+     for(var end=boundary+1;end<=Math.min(joined.length,start+6);end++){
+       var target=joined.slice(start,end);
+       if(target.length>=3&&WORD_SET.has(target))targets.add(target);
+     }
+   }
+   if(targets.size===1)byPair.set(a+'|'+b,{a:a,b:b,target:Array.from(targets)[0]});
+ });});
+ byPair.forEach(function(v){out.push(v);});
  if(!out.length)out.push({a:'fast',b:'one',target:'stone'});
  _hiddenCandidates=out;return out;
 }
@@ -162,7 +173,10 @@ function moveCandidates(){
   ['flame','are','lame','fare','f'],['blend','end','lend','bend','b'],['slate','pin','late','spin','s'],['glove','ate','love','gate','g'],['scare','pin','care','spin','s'],
   ['crash','old','rash','cold','c'],['brace','rat','race','brat','b'],['trace','rip','race','trip','t'],['snail','pin','nail','spin','s']
  ].forEach(function(x){var f={source:x[0],receiver:x[1],newSource:x[2],newReceiver:x[3],letter:x[4]},k=signature(x);if(!seen.has(k)){seen.add(k);out.push(f);}});
- _moveCandidates=out;return out;
+ var grouped=new Map();
+ out.forEach(function(m){var k=m.source+'|'+m.receiver;if(!grouped.has(k))grouped.set(k,[]);grouped.get(k).push(m);});
+ var uniqueMoves=[];grouped.forEach(function(list){var unique=uniq(list.map(function(x){return signature([x.newSource,x.newReceiver]);}));if(unique.length===1)uniqueMoves.push(list[0]);});
+ _moveCandidates=uniqueMoves.length?uniqueMoves:out;return _moveCandidates;
 }
 var _completionPairs=null;
 function completionPairs(){
@@ -207,14 +221,34 @@ function buildActivity(id,o,items,instruction,seed){
  return {engineId:id,vrType:id,title:DEFINITIONS[id].title,difficulty:o.difficulty,instruction:instruction,items:cleanItems,contentKey:key,seed:seed,options:o,engineVersion:VERSION};
 }
 
+function lettersForMask(mask){
+ var out=[];'abcdefghijklmnopqrstuvwxyz'.split('').forEach(function(ch){if(WORD_SET.has(mask.replace('_',ch)))out.push(ch.toUpperCase());});return out;
+}
 function generateInsert(o,seed){
- var rng=rngFromSeed(seed),max=o.difficulty==='easy'?1:o.difficulty==='standard'?2:3,available=INSERT_PATTERNS.filter(function(x){return x.level<=max;}),letters=uniq(available.map(function(x){return x.letter;}).filter(function(l){return available.filter(function(x){return x.letter===l;}).length>=2;})),items=[];
- for(var q=0;q<3;q++){var letter=pick(letters,rng),pairs=shuffle(available.filter(function(x){return x.letter===letter;}),rng),a=pairs[0],b=pairs.filter(function(x){return x.mask!==a.mask;})[0]||pairs[1],opts=makeOptions(letter,shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').filter(function(x){return x!==letter;}),rng),rng,4);items.push(makeItem('Which ONE letter completes both words?',letter,opts,'Putting '+letter+' in both gaps gives '+a.word.toUpperCase()+' and '+b.word.toUpperCase()+'.',signature([a.mask,b.mask,letter]),[a.mask.toUpperCase(),b.mask.toUpperCase()]));}
+ var rng=rngFromSeed(seed),max=o.difficulty==='easy'?1:o.difficulty==='standard'?2:3,available=INSERT_PATTERNS.filter(function(x){return x.level<=max;}),candidates=[];
+ for(var i=0;i<available.length;i++)for(var j=i+1;j<available.length;j++){
+   var a=available[i],b=available[j];if(a.mask===b.mask)continue;
+   var common=lettersForMask(a.mask).filter(function(ch){return lettersForMask(b.mask).indexOf(ch)>=0;});
+   if(common.length===1&&common[0]===a.letter&&a.letter===b.letter)candidates.push({a:a,b:b,letter:a.letter});
+ }
+ if(!candidates.length)throw new Error('No unambiguous insert-letter pairs are available for this difficulty.');
+ var items=[],used=new Set(),guard=0;
+ while(items.length<3&&guard++<60){
+   var p=pick(candidates,rng),key=signature([p.a.mask,p.b.mask,p.letter]);if(used.has(key))continue;used.add(key);
+   var opts=makeOptions(p.letter,shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').filter(function(x){return x!==p.letter;}),rng),rng,4);
+   items.push(makeItem('Which ONE letter completes both words?',p.letter,opts,'Putting '+p.letter+' in both gaps gives '+p.a.word.toUpperCase()+' and '+p.b.word.toUpperCase()+'.',key,[p.a.mask.toUpperCase(),p.b.mask.toUpperCase()]));
+ }
  return buildActivity('vr_insertletter',o,items,'Put the same letter into both gaps. Choose the only letter that makes two real words.',seed);
 }
+function categoryMembership(word){return Object.keys(CATEGORIES).filter(function(cat){return CATEGORIES[cat].indexOf(word)>=0;});}
+function uniqueCategoryWords(cat){return CATEGORIES[cat].filter(function(w){return categoryMembership(w).length===1;});}
 function generateOdd(o,seed){
- var rng=rngFromSeed(seed),cats=Object.keys(CATEGORIES),items=[];
- for(var q=0;q<3;q++){var core=pick(cats,rng),others=shuffle(cats.filter(function(c){return c!==core;}),rng),coreWords=shuffle(CATEGORIES[core],rng).slice(0,3),odd1=pick(CATEGORIES[others[0]],rng),odd2=pick(CATEGORIES[others[1]],rng),words=shuffle(coreWords.concat([odd1,odd2]),rng),correct=[odd1,odd2].sort().map(cap).join(' & '),d=[];for(var i=0;i<words.length;i++)for(var j=i+1;j<words.length;j++){var p=[words[i],words[j]].sort().map(cap).join(' & ');if(p!==correct)d.push(p);}items.push(makeItem('Which TWO words are the odd ones out?',correct,makeOptions(correct,d,rng,4),coreWords.map(cap).join(', ')+' belong to the same group: '+core+'.',signature([core].concat(words)),words.map(cap)));}
+ var rng=rngFromSeed(seed),cats=Object.keys(CATEGORIES).filter(function(cat){return uniqueCategoryWords(cat).length>=3;}),items=[];
+ for(var q=0;q<3;q++){
+   var core=pick(cats,rng),others=shuffle(cats.filter(function(cat){return cat!==core&&uniqueCategoryWords(cat).length;}),rng),coreWords=shuffle(uniqueCategoryWords(core),rng).slice(0,3),odd1=pick(uniqueCategoryWords(others[0]),rng),odd2=pick(uniqueCategoryWords(others[1]),rng),words=shuffle(coreWords.concat([odd1,odd2]),rng),correct=[odd1,odd2].sort().map(cap).join(' & '),d=[];
+   for(var i=0;i<words.length;i++)for(var j=i+1;j<words.length;j++){var pair=[words[i],words[j]].sort().map(cap).join(' & ');if(pair!==correct)d.push(pair);}
+   items.push(makeItem('Which TWO words are the odd ones out?',correct,makeOptions(correct,d,rng,4),coreWords.map(cap).join(', ')+' belong to the same group: '+core+'.',signature([core].concat(words)),words.map(cap)));
+ }
  return buildActivity('vr_oddonesout',o,items,'In each set, three words belong together. Choose the pair that does not belong.',seed);
 }
 function codeRule(difficulty,rng){
@@ -240,7 +274,11 @@ function generateHidden(o,seed){
 }
 function generateMissing(o,seed){
  var rng=rngFromSeed(seed),pool=wordPool(o.difficulty,4,8),items=[];
- for(var q=0;q<3;q++){var word=pick(pool,rng),want=o.difficulty==='easy'?1:o.difficulty==='standard'?2:pick([2,3],rng),len=Math.min(want,word.length-2),start=randInt(rng,1,word.length-len-1),chunk=word.slice(start,start+len).toUpperCase(),mask=(word.slice(0,start)+new Array(len+1).join('_')+word.slice(start+len)).toUpperCase(),chunks=[];pool.forEach(function(w){for(var i=1;i+len<w.length;i++)chunks.push(w.slice(i,i+len).toUpperCase());});items.push(makeItem('Which letters complete '+mask+'?',chunk,makeOptions(chunk,shuffle(chunks,rng),rng,4),mask+' becomes '+word.toUpperCase()+' when '+chunk+' is restored.',signature([word,start,len]),[mask]));}
+ for(var q=0;q<3;q++){
+   var word=pick(pool,rng),want=o.difficulty==='easy'?1:o.difficulty==='standard'?2:pick([2,3],rng),len=Math.min(want,word.length-2),start=randInt(rng,1,word.length-len-1),chunk=word.slice(start,start+len).toUpperCase(),prefix=word.slice(0,start),suffix=word.slice(start+len),mask=(prefix+new Array(len+1).join('_')+suffix).toUpperCase(),chunks=[];
+   pool.forEach(function(w){for(var i=1;i+len<w.length;i++){var candidate=w.slice(i,i+len).toUpperCase();if(candidate!==chunk&&!WORD_SET.has(prefix+candidate.toLowerCase()+suffix))chunks.push(candidate);}});
+   items.push(makeItem('Which letters complete '+mask+'?',chunk,makeOptions(chunk,shuffle(uniq(chunks),rng),rng,4),mask+' becomes '+word.toUpperCase()+' when '+chunk+' is restored.',signature([word,start,len]),[mask]));
+ }
  return buildActivity('vr_missingword',o,items,'Choose the missing letter or letter group that makes a real word.',seed);
 }
 function uniqueDigits(rng,n){return shuffle([1,2,3,4,5,6,7,8,9],rng).slice(0,n);}
@@ -270,8 +308,12 @@ function generateNumberSeries(o,seed){
  return buildActivity('vr_numberseries',o,items,'Find the number pattern and choose the next term.',seed);
 }
 function generateCompound(o,seed){
- var rng=rngFromSeed(seed),pool=poolForLevel(COMPOUNDS,o.difficulty),items=[];
- for(var q=0;q<3;q++){var c=pick(pool,rng),reverse=o.difficulty!=='easy'&&rng()<.45,answer=cap(reverse?c.left:c.right),stem=reverse?'Which word goes before '+c.right.toUpperCase()+' to make a compound word?':'Which word goes after '+c.left.toUpperCase()+' to make a compound word?',d=shuffle(pool.filter(function(x){return x!==c;}),rng).map(function(x){return cap(reverse?x.left:x.right);});items.push(makeItem(stem,answer,makeOptions(answer,d,rng,4),cap(c.left)+' + '+c.right+' = '+cap(c.left+c.right)+'.',signature([c.left,c.right,reverse]),[]));}
+ var rng=rngFromSeed(seed),pool=poolForLevel(COMPOUNDS,o.difficulty),allSet=new Set(COMPOUNDS.map(function(x){return x.left+'|'+x.right;})),items=[];
+ for(var q=0;q<3;q++){
+   var c=pick(pool,rng),reverse=o.difficulty!=='easy'&&rng()<.45,answer=cap(reverse?c.left:c.right),stem=reverse?'Which word goes before '+c.right.toUpperCase()+' to make a compound word?':'Which word goes after '+c.left.toUpperCase()+' to make a compound word?',raw=uniq(pool.filter(function(x){return x!==c;}).map(function(x){return reverse?x.left:x.right;}));
+   var d=raw.filter(function(candidate){return reverse?!allSet.has(candidate+'|'+c.right):!allSet.has(c.left+'|'+candidate);}).map(cap);
+   items.push(makeItem(stem,answer,makeOptions(answer,d,rng,4),cap(c.left)+' + '+c.right+' = '+cap(c.left+c.right)+'.',signature([c.left,c.right,reverse]),[]));
+ }
  return buildActivity('vr_compoundwords',o,items,'Choose the word that makes one familiar compound word.',seed);
 }
 function generateMakeWord(o,seed){
@@ -287,7 +329,16 @@ function generateLetterConnections(o,seed){
 var NAMES=['Ava','Ben','Cara','Dylan','Erin','Finn','Grace','Hugo'];
 function generateReading(o,seed){
  var rng=rngFromSeed(seed),count=o.difficulty==='easy'?3:o.difficulty==='standard'?4:5,items=[],wanted=o.difficulty==='challenge'?2:3,guard=0;
- while(items.length<wanted&&guard++<50){var names=shuffle(NAMES,rng).slice(0,count),base=randInt(rng,8,18),deltas=[],scores=[base];for(var i=0;i<count-1;i++){var delta=randInt(rng,2,6)*(rng()<.35?-1:1);deltas.push(delta);scores.push(scores[scores.length-1]+delta);}if(new Set(scores).size!==scores.length)continue;var facts=[names[0]+' scored '+scores[0]+' points.'];for(var j=1;j<count;j++){var diff=scores[j]-scores[j-1];facts.push(names[j]+' scored '+Math.abs(diff)+' '+(diff>0?'more':'fewer')+' points than '+names[j-1]+'.');}var stem,answer,d,ex;if(items.length%2===0){var idx=randInt(rng,1,count-1);stem='How many points did '+names[idx]+' score?';answer=String(scores[idx]);d=scores.filter(function(_,k){return k!==idx;}).map(String);ex='Following the chain gives '+names[idx]+' = '+scores[idx]+'.';}else{var mx=Math.max.apply(null,scores),mi=scores.indexOf(mx);stem='Who scored the most points?';answer=names[mi];d=names.filter(function(_,k){return k!==mi;});ex=names[mi]+' has the highest score: '+mx+'.';}items.push(makeItem(stem,answer,makeOptions(answer,d,rng,4),ex,signature(facts.concat([stem,answer])),facts));}
+ while(items.length<wanted&&guard++<80){
+   var names=shuffle(NAMES,rng).slice(0,count),base=randInt(rng,o.difficulty==='challenge'?22:14,o.difficulty==='challenge'?34:26),scores=[base];
+   for(var i=0;i<count-1;i++){var delta=randInt(rng,2,6)*(rng()<.35?-1:1);scores.push(scores[scores.length-1]+delta);}
+   if(Math.min.apply(null,scores)<1||new Set(scores).size!==scores.length)continue;
+   var facts=[names[0]+' scored '+scores[0]+' points.'];for(var j=1;j<count;j++){var diff=scores[j]-scores[j-1];facts.push(names[j]+' scored '+Math.abs(diff)+' '+(diff>0?'more':'fewer')+' points than '+names[j-1]+'.');}
+   var stem,answer,d,ex,opts;
+   if(items.length%2===0){var idx=randInt(rng,1,count-1);stem='How many points did '+names[idx]+' score?';answer=String(scores[idx]);opts=numericOptions(Number(answer),rng,6);ex='Following the chain gives '+names[idx]+' = '+scores[idx]+'.';}
+   else{var mx=Math.max.apply(null,scores),mi=scores.indexOf(mx);stem='Who scored the most points?';answer=names[mi];d=names.filter(function(_,k){return k!==mi;}).concat(shuffle(NAMES.filter(function(n){return names.indexOf(n)<0;}),rng));opts=makeOptions(answer,d,rng,4);ex=names[mi]+' has the highest score: '+mx+'.';}
+   items.push(makeItem(stem,answer,opts,ex,signature(facts.concat([stem,answer])),facts));
+ }
  return buildActivity('vr_readinginfo',o,items,'Read the facts carefully. Use only the information given to make the deduction.',seed);
 }
 function generateOpposite(o,seed){
@@ -309,7 +360,11 @@ function generateWordNumberCodes(o,seed){
 }
 function generateCompleteWord(o,seed){
  var rng=rngFromSeed(seed),max=o.difficulty==='easy'?1:o.difficulty==='standard'?2:3,all=completionPairs(),pool=all.filter(function(x){return x.level<=max;}),items=[];if(!pool.length)pool=all;
- for(var q=0;q<3;q++){var p=pick(pool,rng),answer=p.chunk.toUpperCase(),sameLen=uniq(all.filter(function(x){return x.chunk.length===p.chunk.length;}).map(function(x){return x.chunk.toUpperCase();}).filter(function(x){return x!==answer;}));items.push(makeItem('Which SAME letter group completes both words?',answer,makeOptions(answer,sameLen,rng,4),p.a.mask.toUpperCase()+' becomes '+p.a.word.toUpperCase()+' and '+p.b.mask.toUpperCase()+' becomes '+p.b.word.toUpperCase()+'.',signature([p.a.mask,p.b.mask,p.chunk]),[p.a.mask.toUpperCase(),p.b.mask.toUpperCase()]));}return buildActivity('vr_completeword',o,items,'Put the same missing letter group into both word patterns.',seed);
+ for(var q=0;q<3;q++){
+   var p=pick(pool,rng),answer=p.chunk.toUpperCase(),sameLen=uniq(all.filter(function(x){return x.chunk.length===p.chunk.length;}).map(function(x){return x.chunk.toUpperCase();}).filter(function(x){if(x===answer)return false;var low=x.toLowerCase();return !(WORD_SET.has(p.a.mask.replace('_',low))&&WORD_SET.has(p.b.mask.replace('_',low)));}));
+   items.push(makeItem('Which SAME letter group completes both words?',answer,makeOptions(answer,sameLen,rng,4),p.a.mask.toUpperCase()+' becomes '+p.a.word.toUpperCase()+' and '+p.b.mask.toUpperCase()+' becomes '+p.b.word.toUpperCase()+'.',signature([p.a.mask,p.b.mask,p.chunk]),[p.a.mask.toUpperCase(),p.b.mask.toUpperCase()]));
+ }
+ return buildActivity('vr_completeword',o,items,'Put the same missing letter group into both word patterns.',seed);
 }
 function generateCommonLink(o,seed){
  var rng=rngFromSeed(seed),pool=poolForLevel(COMMON_LINKS,o.difficulty),items=[];
@@ -323,8 +378,15 @@ var GENERATORS={
  vr_completesum:generateCompleteSum,vr_relatednumbers:generateRelatedNumbers,vr_wordnumbercodes:generateWordNumberCodes,vr_completeword:generateCompleteWord,vr_commonlink:generateCommonLink
 };
 function generate(id,settings,seed){
- var def=DEFINITIONS[id];if(!def)return null;var raw=settings&&settings.engineSettings&&settings.engineSettings[id]||{},o=normalise(id,raw),fn=GENERATORS[id];
- try{var a=fn(o,String(seed||'vr')+':'+id),v=validate(a);if(!v.ok)return {engineId:id,title:def.title,difficulty:o.difficulty,error:v.error||'A valid verbal-reasoning activity could not be generated.'};return a;}catch(err){return {engineId:id,title:def.title,difficulty:o.difficulty,error:err&&err.message||'A valid verbal-reasoning activity could not be generated.'};}
+ var def=DEFINITIONS[id];if(!def)return null;var raw=settings&&settings.engineSettings&&settings.engineSettings[id]||{},o=normalise(id,raw),fn=GENERATORS[id],excluded=new Set(settings&&settings._finiteExclusions&&settings._finiteExclusions.vr||[]);
+ try{
+   for(var attempt=0;attempt<32;attempt++){
+     var a=fn(o,String(seed||'vr')+':'+id+':'+attempt),v=validate(a);
+     if(!v.ok)continue;
+     if(!excluded.has(String(a.contentKey)))return a;
+   }
+   return {engineId:id,title:def.title,difficulty:o.difficulty,error:'No unused Verbal Reasoning activity remains for these settings.'};
+ }catch(err){return {engineId:id,title:def.title,difficulty:o.difficulty,error:err&&err.message||'A valid verbal-reasoning activity could not be generated.'};}
 }
 function validate(a){
  if(!a||a.error)return {ok:false,error:a&&a.error||'missing activity'};if(!DEFINITIONS[a.engineId])return {ok:false,error:'unknown verbal-reasoning type'};if(DIFFICULTIES.indexOf(a.difficulty)<0)return {ok:false,error:'invalid difficulty'};if(!Array.isArray(a.items)||a.items.length<2)return {ok:false,error:'not enough questions'};
