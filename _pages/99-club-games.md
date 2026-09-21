@@ -60,17 +60,17 @@ sitemap: true
 <script src="/assets/99club/games-takuzu-v139-logic.js?v=1"></script>
 <script src="/assets/99club/games-puzzle-pack-v140.js?v=1"></script>
 <script src="/assets/99club/games-puzzle-pack-v140-hashi.js?v=1"></script>
-<script src="/assets/99club/games-alphametics-library-v141.js?v=1"></script>
+<script src="/assets/99club/games-alphametics-library-v141.js?v=2"></script>
 <script src="/assets/99club/games-number-towers-v137.js?v=1"></script>
 <script src="/assets/99club/games-number-towers-v137-unique.js?v=1"></script>
 <script src="/assets/99club/games-number-path-v2.js?v=1"></script>
 <script src="/assets/99club/games-sumplete.js?v=1"></script>
 <script src="/assets/99club/games-shikaku-v143.js?v=1"></script>
 <script src="/assets/99club/games-sum-grids-v147.js?v=1"></script>
-<script src="/assets/99club/games-engine.js?v=15"></script>
-<script src="/assets/99club/games-symbol-decoder-v189.js?v=1"></script>
+<script src="/assets/99club/games-engine.js?v=16"></script>
+<script src="/assets/99club/games-symbol-decoder-v189.js?v=2"></script>
 <script src="/assets/99club/games-focus-topics-v145.js?v=1"></script>
-<script src="/assets/99club/games-pack-mode.js?v=3"></script>
+<script src="/assets/99club/games-pack-mode.js?v=4"></script>
 <script src="/assets/99club/games-performance-v142.js?v=1"></script>
 <script src="/assets/99club/games-performance-v149.js?v=1"></script>
 <script src="/assets/99club/games-preview-pager-v155.js?v=2"></script>
@@ -104,12 +104,12 @@ sitemap: true
 <script src="/assets/99club/school-usage.js?v=2"></script>
 <script src="/assets/99club/school-brand.js?v=1"></script>
 <script src="/assets/99club/games-parent-practice.js?v=3"></script>
-<script src="/assets/99club/games-app.js?v=47" defer></script>
+<script src="/assets/99club/games-app.js?v=48" defer></script>
 <script src="/assets/99club/games-preview-parity-v206.js?v=1" defer></script>
 <script src="/assets/99club/games-operationgrid-print-v158-ui.js?v=2" defer></script>
 <script src="/assets/99club/games-operationgrid-print-v160-ui.js?v=1" defer></script>
 <script src="/assets/99club/games-operationgrid-print-v155-ui.js?v=1" defer></script>
-<script src="/assets/99club/games-random-ui.js?v=4" defer></script>
+<script src="/assets/99club/games-random-ui.js?v=5" defer></script>
 <script src="/assets/99club/games-card-links-v205.js?v=4" defer></script>
 <script src="/assets/99club/games-ui-v134.js?v=2" defer></script>
 <script src="/assets/99club/games-puzzle-redesign-v136.js?v=3" defer></script>
