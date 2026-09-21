@@ -18,7 +18,7 @@ function withVia(url,integrationId,brandToken){
   try{
     const u=new URL(url,location.origin);
     if(integrationId)u.searchParams.set('via',integrationId);
-    if(brandToken)u.searchParams.set('brand',brandToken);
+    if(brandToken){const hash=new URLSearchParams(u.hash.replace(/^#/,''));hash.set('brand',brandToken);u.hash=hash.toString();}
     return u.href;
   }catch(_){return url;}
 }
