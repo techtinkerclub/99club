@@ -6,6 +6,7 @@ const ROOT=path.resolve(__dirname,'../..');
 global.window=global;global.globalThis=global;
 const G=require(path.join(ROOT,'assets/99club/generator.js'));
 global.TT99Generator=G;
+const B=require(path.join(ROOT,'assets/99club/school-brand.js'));global.TT99SchoolBrand=B;
 const PP=require(path.join(ROOT,'assets/99club/parent-practice.js'));
 global.TT99ParentPractice=PP;
 const W=require(path.join(ROOT,'assets/99club/widget-config.js'));
@@ -21,7 +22,7 @@ clubs['diamond'].arithmeticMax=900;
 const tinyLogo='data:image/png;base64,AAAA';
 const clubCfg=W.fromClubRules({
   widgetType:'club',integrationId:'wid_test12345',schemeId:'classic',orientation:'landscape',clubs,
-  school:{schoolName:'Oakfield Primary School',logoDataUrl:tinyLogo},
+  school:{schoolName:'Oakfield Primary School',logoDataUrl:tinyLogo,logoWidth:80,logoHeight:40},
   games:['maze','sumplete'],
   puzzles:[{link:'https://99studio.uk/practice/puzzles/#p=TT99GP1.TEST',minYear:4,maxYear:5,gameCount:3,vocabCount:2}]
 });
@@ -34,6 +35,9 @@ check(clubRound.selectedClubs.join(',')==='33,55,diamond','selected clubs round-
 check(clubRound.games.length===0&&clubRound.puzzles.length===0,'99 Club public token strips games and puzzle packs');
 check(clubRound.school.name==='Oakfield Primary School','public school name round-trips');
 check(clubRound.school.logo===tinyLogo,'compact public school logo round-trips');
+check(clubRound.school.logoWidth===80&&clubRound.school.logoHeight===40,'public school logo dimensions round-trip');
+const brandToken=W.schoolBrandToken(clubRound),brand=B.decode(brandToken);
+check(brand.name==='Oakfield Primary School'&&brand.logo===tinyLogo,'widget creates reusable public school-brand token');
 check(clubRound.orientation==='landscape','orientation round-trips');
 check(W.clubRules(clubRound,'55').factorMax===11,'custom Club rule patch round-trips');
 check(W.clubRules(clubRound,'diamond').arithmeticMax===900,'post-99 custom rule patch round-trips');
@@ -49,7 +53,7 @@ check(!clubEmbed.includes('allow-same-origin'),'embed does not grant same-origin
 
 const gamesCfg=W.normalise({
   widgetType:'games',
-  school:{name:'Oakfield Primary School',logo:tinyLogo},
+  school:{name:'Oakfield Primary School',logo:tinyLogo,logoWidth:80,logoHeight:40},
   selectedClubs:['33','44'],
   games:['maze','sumplete','not-real'],
   puzzles:[
@@ -73,6 +77,9 @@ const badLogo=W.normalise({widgetType:'club',school:{name:'School',logo:'javascr
 check(badLogo.school.logo==='','non-image school logo data is rejected');
 const badIntegration=W.normalise({widgetType:'club',integrationId:'<script>alert(1)</script>'});
 check(badIntegration.integrationId==='','unsafe widget integration ID is rejected');
+
+const runtime=require('fs').readFileSync(path.join(ROOT,'assets/99club/widget-runtime.js'),'utf8');
+check(runtime.includes("searchParams.set('brand',brandToken)")&&runtime.includes('schoolBrandToken'),'widget runtime passes school branding to printable practice links');
 
 const widgetUrl=W.buildUrl(gamesRound,'https://99studio.uk');
 check(/^https:\/\/99studio\.uk\/widget\/#w=TT99W1\./.test(widgetUrl),'widget URL is fragment-configured');
