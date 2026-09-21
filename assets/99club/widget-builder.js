@@ -57,16 +57,17 @@ function puzzleLabel(p){return p.minYear===p.maxYear?'Year '+p.minYear:'Years '+
 function logoPreview(){return draft.school?.logo||'/assets/99club/images/99club-studio-shield.png';}
 function compactLogo(dataUrl){
   return new Promise((resolve,reject)=>{
-    if(!dataUrl)return resolve('');
+    if(!dataUrl)return resolve({dataUrl:'',width:0,height:0});
     const img=new Image();
     img.onload=()=>{
       try{
         const max=96,scale=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight)),w=Math.max(1,Math.round(img.naturalWidth*scale)),h=Math.max(1,Math.round(img.naturalHeight*scale));
-        const c=document.createElement('canvas');c.width=w;c.height=h;
-        const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);ctx.drawImage(img,0,0,w,h);
-        let out=c.toDataURL('image/jpeg',.76);
-        if(out.length>17500)out=c.toDataURL('image/jpeg',.58);
-        resolve(out.length<=18000?out:'');
+        const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+        const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);ctx.drawImage(img,0,0,w,h);
+        let out=canvas.toDataURL('image/jpeg',.76);
+        if(out.length>9000)out=canvas.toDataURL('image/jpeg',.58);
+        if(out.length>18000)out=canvas.toDataURL('image/jpeg',.42);
+        resolve(out.length<=18000?{dataUrl:out,width:w,height:h}:{dataUrl:'',width:0,height:0});
       }catch(err){reject(err);}
     };
     img.onerror=()=>reject(new Error('logo'));
@@ -74,7 +75,7 @@ function compactLogo(dataUrl){
   });
 }
 async function fileLogo(file){
-  if(!file)return '';
+  if(!file)return {dataUrl:'',width:0,height:0};
   if(file.size>8*1024*1024)throw new Error('Please choose a logo smaller than 8 MB.');
   return compactLogo(await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result||''));r.onerror=()=>reject(r.error||new Error('logo'));r.readAsDataURL(file);}));
 }
@@ -88,12 +89,12 @@ async function applyHandoff(){
       draft={...draft,widgetType:'club',schemeId:imported.schemeId,orientation:imported.orientation,clubPatches:imported.clubPatches,selectedClubs:selected};
       if(imported.school?.name)draft.school.name=imported.school.name;
       const rawLogo=h.school?.logoDataUrl||h.school?.logo||'';
-      if(rawLogo){const logo=await compactLogo(rawLogo);if(logo)draft.school.logo=logo;}
+      if(rawLogo){const logo=await compactLogo(rawLogo);if(logo.dataUrl)Object.assign(draft.school,{logo:logo.dataUrl,logoWidth:logo.width,logoHeight:logo.height});}
       status='Current 99 Club rules and school identity imported. Choose which Club levels to display.';
     }else if(h.kind==='puzzle'&&h.link){
       draft={...draft,widgetType:'games'};
       if(h.schoolName)draft.school.name=String(h.schoolName).slice(0,80);
-      if(h.logoDataUrl){const logo=await compactLogo(h.logoDataUrl);if(logo)draft.school.logo=logo;}
+      if(h.logoDataUrl){const logo=await compactLogo(h.logoDataUrl);if(logo.dataUrl)Object.assign(draft.school,{logo:logo.dataUrl,logoWidth:logo.width,logoHeight:logo.height});}
       draft=W.normalise({...draft,puzzles:[...(draft.puzzles||[]),h]});
       status=h.vocabCount?'Puzzle pack added, including '+h.vocabCount+' school vocabulary entr'+(h.vocabCount===1?'y':'ies')+'.':'Current puzzle pack added to the Maths Games widget.';
     }
@@ -170,8 +171,8 @@ function bind(){
     status='';render();
   }));
   root.querySelector('#wb-school-name')?.addEventListener('change',e=>{draft.school.name=String(e.target.value||'').trim().slice(0,80);status='School name updated in this widget draft.';render();});
-  root.querySelector('#wb-logo')?.addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{const logo=await fileLogo(file);if(!logo)throw new Error('The logo could not be reduced enough for the public widget.');draft.school.logo=logo;status='School logo added to this widget.';render();}catch(err){status=err?.message||'That logo could not be used.';render();}});
-  root.querySelector('#wb-remove-logo')?.addEventListener('click',()=>{draft.school.logo='';status='School logo removed from this widget draft.';render();});
+  root.querySelector('#wb-logo')?.addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{const logo=await fileLogo(file);if(!logo.dataUrl)throw new Error('The logo could not be reduced enough for the public widget.');Object.assign(draft.school,{logo:logo.dataUrl,logoWidth:logo.width,logoHeight:logo.height});status='School logo added to this widget.';render();}catch(err){status=err?.message||'That logo could not be used.';render();}});
+  root.querySelector('#wb-remove-logo')?.addEventListener('click',()=>{Object.assign(draft.school,{logo:'',logoWidth:0,logoHeight:0});status='School logo removed from this widget draft.';render();});
   root.querySelectorAll('[data-club]').forEach(el=>el.addEventListener('change',()=>{const set=new Set(draft.selectedClubs);el.checked?set.add(el.dataset.club):set.delete(el.dataset.club);draft.selectedClubs=W.CLUB_IDS.filter(id=>set.has(id));status='';render();}));
   root.querySelectorAll('[data-game]').forEach(el=>el.addEventListener('change',()=>{const ids=new Set(draft.games);if(el.checked&&ids.size>=24){status='Widget v1 is limited to 24 online games. Remove one before adding another.';render();return;}el.checked?ids.add(el.dataset.game):ids.delete(el.dataset.game);draft.games=W.GAME_IDS.filter(id=>ids.has(id));status='';render();}));
   root.querySelectorAll('[data-remove-pack]').forEach(btn=>btn.addEventListener('click',()=>{draft.puzzles.splice(Number(btn.dataset.removePack),1);status='Puzzle pack removed from this widget draft.';render();}));
