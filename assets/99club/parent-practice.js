@@ -1,19 +1,20 @@
 /* 99 Club Studio - parent practice link codec
- * Carries school-selected maths rules in the URL fragment.
- * No pupil, parent, school-name, logo, seed, score or progress data is encoded.
- * An optional opaque school-level usage key may be included for aggregate
- * school usage statistics; it contains no school name.
+ * Carries school-selected maths rules plus deliberately public school branding
+ * (school name + compact logo) in the URL fragment. Pupil/parent details,
+ * teacher notes, generated questions, scores and progress are never encoded.
+ * The worksheet date is never stored here: parent downloads use generation day.
  */
 (function(global){
   'use strict';
 
   const G=global.TT99Generator || (typeof require!=='undefined' ? require('./generator.js') : null);
   const SU=global.TT99SchoolUsage || (typeof require!=='undefined' ? require('./school-usage.js') : null);
-  if(!G)throw new Error('99 Club parent practice requires TT99Generator');
+  const B=global.TT99SchoolBrand || (typeof require!=='undefined' ? require('./school-brand.js') : null);
+  if(!G||!B)throw new Error('99 Club parent practice requires TT99Generator + TT99SchoolBrand');
 
   const PREFIX='TT99P1.';
   const VERSION=1;
-  const MAX_TOKEN_LENGTH=24000;
+  const MAX_TOKEN_LENGTH=32000;
 
   function clone(value){return value==null?value:JSON.parse(JSON.stringify(value));}
   function isObject(value){return !!value && typeof value==='object' && !Array.isArray(value);}
@@ -59,7 +60,8 @@
     const rules=G.normalizeRules(clone(input.rules||baseRules(schemeId,clubId)||G.CLASSIC_PRESETS['33']));
     const orientation=input.orientation==='landscape'?'landscape':'portrait';
     const schoolUsageKey=SU?.validSchoolKey?.(input.schoolUsageKey||input.schoolKey||input.schoolUsage?.schoolKey)||'';
-    return {schemeId,clubId,rules,orientation,schoolUsageKey};
+    const school=B.normalise(input.school||input.brand||{});
+    return {schemeId,clubId,rules,orientation,schoolUsageKey,school};
   }
 
   function compactPayload(input){
@@ -72,6 +74,7 @@
     const rules=clone(cfg.rules);
     for(const key of ['id','name','tagline','sourceSchemeId','sourceClubId','worksheetTitle'])delete rules[key];
     const payload={v:VERSION,g:1,s:cfg.schemeId,c:cfg.clubId,o:cfg.orientation==='landscape'?'l':'p',r:rules};
+    const school=B.compact(cfg.school);if(Object.keys(school).length)payload.i=school;
     if(cfg.schoolUsageKey)payload.u=cfg.schoolUsageKey;
     return payload;
   }
@@ -115,7 +118,7 @@
     const schemeId=safeId(payload.s,'classic');
     const clubId=safeId(payload.c,'33');
     if(!payload.r || typeof payload.r!=='object')throw new Error('This parent practice link does not contain a rules snapshot');
-    return normaliseConfig({schemeId,clubId,rules:payload.r,orientation:payload.o==='l'?'landscape':'portrait',schoolUsageKey:payload.u});
+    return normaliseConfig({schemeId,clubId,rules:payload.r,orientation:payload.o==='l'?'landscape':'portrait',schoolUsageKey:payload.u,school:B.expand(payload.i)});
   }
 
   function originBase(origin){
