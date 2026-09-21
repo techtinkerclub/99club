@@ -5,8 +5,8 @@
 'use strict';
 const PREFIX='TT99B1.';
 const VERSION=1;
-const MAX_LOGO_LENGTH=10000;
-const MAX_TOKEN_LENGTH=16000;
+const MAX_LOGO_LENGTH=18000;
+const MAX_TOKEN_LENGTH=26000;
 function cleanText(v,max=80){return String(v||'').trim().replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').slice(0,max);}
 function cleanLogo(v){
   const s=String(v||'').trim();
