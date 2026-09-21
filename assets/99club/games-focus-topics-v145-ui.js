@@ -1,4 +1,4 @@
-/* 99 Club Studio · Games granular topic selector UI v1.45 */
+/* 99 Club Studio · Games granular topic selector UI v1.45.1 · topic-only */
 (function(global){
 'use strict';
 const root=document.getElementById('tt99-games-root'),G=global.TT99Games;if(!root||!G?.FOCUS_TOPICS||root.dataset.focusTopicsV145==='1')return;
@@ -21,27 +21,22 @@ function applyFocus(ids){
   delete global.__tt99PendingGameFocusTopics;
 }
 function build(){
-  const oldGrid=root.querySelector('.tt99-games-topic-grid'),oldYear=root.querySelector('#games-min-year')?.closest('.tt99-games-grid2'),label=root.querySelector('.tt99-games-topic-label');if(!oldGrid||!oldYear)return;
-  oldGrid.classList.add('tt99-topic-legacy-v145');oldGrid.hidden=true;oldYear.classList.add('tt99-year-legacy-v145');oldYear.hidden=true;if(label)label.hidden=true;
+  const oldGrid=root.querySelector('.tt99-games-topic-grid'),label=root.querySelector('.tt99-games-topic-label');if(!oldGrid)return;
+  oldGrid.classList.add('tt99-topic-legacy-v145');oldGrid.hidden=true;if(label)label.hidden=true;
   const card=oldGrid.closest('.tt99-games-card');if(!card||card.querySelector('.tt99-focus-v145'))return;
   const s=stored(),selected=new Set(s.focusTopics||[]),groups=(G.FOCUS_GROUPS||[]).map((group,i)=>{
     const topics=Object.entries(G.FOCUS_TOPICS).filter(([,m])=>m.group===group.id),selectedCount=topics.filter(([id])=>selected.has(id)).length;
     return `<details class="tt99-focus-group ${selectedCount?'has-selection':''}" ${selectedCount||i===0?'open':''}><summary><span><strong>${esc(group.label)}</strong><small>${selectedCount?`${selectedCount} selected`:'Choose a focus'}</small></span><em>▾</em></summary><div class="tt99-focus-topic-list">${topics.map(([id,m])=>`<label class="tt99-focus-topic ${selected.has(id)?'is-selected':''}"><input type="checkbox" data-focus-topic="${id}" ${selected.has(id)?'checked':''}><span>${esc(m.label)}</span></label>`).join('')}</div></details>`;
   }).join('');
   const el=document.createElement('div');el.className='tt99-focus-v145';el.innerHTML=`<div class="tt99-focus-heading"><span>Teaching focus</span><small>Choose one or more precise areas. Number ranges and automatic puzzle sizing are handled for you; difficulty is configured separately for each game.</small></div><div class="tt99-focus-actions"><button type="button" class="tt99-ghost" data-focus-all>Select all</button><button type="button" class="tt99-ghost" data-focus-core>Core arithmetic</button></div><div class="tt99-focus-groups">${groups}</div>`;
-  oldYear.insertAdjacentElement('afterend',el);
+  oldGrid.insertAdjacentElement('afterend',el);
   el.querySelectorAll('[data-focus-topic]').forEach(cb=>cb.addEventListener('change',()=>{const ids=[...el.querySelectorAll('[data-focus-topic]:checked')].map(x=>x.dataset.focusTopic);if(!ids.length){cb.checked=true;return;}applyFocus(ids);}));
   el.querySelector('[data-focus-all]')?.addEventListener('click',()=>applyFocus(Object.keys(G.FOCUS_TOPICS)));
   el.querySelector('[data-focus-core]')?.addEventListener('click',()=>applyFocus(['addition_subtraction','multiplication_division','inverse_missing']));
 }
-function removeYearControlsAndWording(){
-  // The vocabulary editor used to expose its own year range. With no Games year
-  // filter this would be misleading, so new personal terms simply span primary.
-  const min=root.querySelector('#vocab-min-year'),max=root.querySelector('#vocab-max-year');
-  if(min){min.value='1';min.closest('.tt99-field')?.classList.add('tt99-year-legacy-v145');}
-  if(max){max.value='6';max.closest('.tt99-field')?.classList.add('tt99-year-legacy-v145');}
-  // Preserve underlying `auto` values but remove obsolete Year wording from
-  // specialist game settings.
+function removeLegacyYearWording(){
+  // Preserve internal automatic generation settings, but never present them as
+  // teacher-facing year recommendations.
   root.querySelectorAll('option').forEach(opt=>{
     const text=String(opt.textContent||'').trim();
     if(/^Auto for year\s*\/\s*difficulty$/i.test(text))opt.textContent='Auto for difficulty';
@@ -62,7 +57,7 @@ function patchPdfMetadata(){
   const PDF=global.TT99GamesPDF;if(!PDF?.buildDocument||PDF.__focusTopicsV145)return;
   const base=PDF.buildDocument.bind(PDF);PDF.buildDocument=function(opts={}){const s=G.normalizeSettings(opts.settings||{}),label=focusSummary(s),key='__tt99_focus_summary__';return base({...opts,settings:{...(opts.settings||{}),minYear:s.minYear,maxYear:s.maxYear,hideYearLabel:true,topics:[key],focusTopics:s.focusTopics,generationLevel:s.generationLevel},topics:{...(opts.topics||{}),[key]:{label}}});};PDF.__focusTopicsV145=true;
 }
-function enhance(){build();removeYearControlsAndWording();patchVisibleMetadata();}
+function enhance(){build();removeLegacyYearWording();patchVisibleMetadata();}
 function schedule(){if(scheduled)return;scheduled=true;queueMicrotask(()=>{scheduled=false;enhance();});}
 patchPdfMetadata();
 // games-app replaces the root's first child on render. Watching only root-level

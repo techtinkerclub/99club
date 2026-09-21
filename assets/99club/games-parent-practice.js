@@ -37,11 +37,9 @@
   function compactVocabulary(entries,settings){
     const s=G.normalizeSettings(settings||{});
     if(!(s.selectedEngines||[]).some(id=>id==='wordsearch'||id==='crossword'))return [];
-    const relevant=G.sanitizeCustomVocabulary(entries||[]).filter(x=>
-      s.topics.includes(x.topic) && x.minYear<=s.maxYear && x.maxYear>=s.minYear
-    );
+    const relevant=G.sanitizeCustomVocabulary(entries||[]).filter(x=>s.topics.includes(x.topic));
     if(relevant.length>MAX_CUSTOM_VOCAB)throw new Error('This setup uses too many personal vocabulary entries for one parent link. Export/save the puzzle setup, or reduce the personal vocabulary used by these topics.');
-    return relevant.map(x=>[x.topic,x.term,x.definition,x.minYear,x.maxYear]);
+    return relevant.map(x=>[x.topic,x.term,x.definition]);
   }
 
   function expandVocabulary(rows){
@@ -86,8 +84,9 @@
     const engineSettings={};
     for(const id of s.selectedEngines||[])if(s.engineSettings?.[id])engineSettings[id]=clone(s.engineSettings[id]);
     return {
-      minYear:s.minYear,maxYear:s.maxYear,topics:clone(s.topics),sheets:s.sheets,activitiesPerSheet:s.activitiesPerSheet,
-      includeAnswers:true,workedExamples:s.workedExamples,selectedEngines:clone(s.selectedEngines),engineSettings
+      minYear:s.minYear,maxYear:s.maxYear,topics:clone(s.topics),focusTopics:clone(s.focusTopics||[]),generationLevel:Number(s.generationLevel)||undefined,
+      sheets:s.sheets,activitiesPerSheet:s.activitiesPerSheet,includeAnswers:true,workedExamples:s.workedExamples,
+      selectedEngines:clone(s.selectedEngines),engineSettings
     };
   }
 

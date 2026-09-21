@@ -71,12 +71,9 @@
     return 'GP-'+a[0].toString(36)+a[1].toString(36);
   }
 
-  function yearLabel(){
-    const s=config.settings;
-    return s.minYear===s.maxYear?'Year '+s.minYear:'Years '+s.minYear+'–'+s.maxYear;
-  }
-
   function topicLabel(){
+    const focus=Array.isArray(config.settings.focusTopics)?config.settings.focusTopics:[];
+    if(focus.length&&G.FOCUS_TOPICS)return focus.map(id=>G.FOCUS_TOPICS[id]?.label||id).join(' · ');
     return (config.settings.topics||[]).map(id=>G.TOPICS[id]?.label||id).join(' · ');
   }
 
@@ -107,7 +104,7 @@
           '<h1 id="tt99-puzzle-practice-title">Maths Games &amp; Puzzles</h1>'+
           '<p class="tt99-practice-summary">The puzzle choices and difficulty settings were fixed before this link was shared. You do not need to configure anything.</p>'+
           '<div class="tt99-puzzle-practice-details">'+
-            '<div class="tt99-practice-detail"><b>'+esc(yearLabel())+'</b><span>age range</span></div>'+
+            '<div class="tt99-practice-detail"><b>Fresh</b><span>new pack each time</span></div>'+
             '<div class="tt99-practice-detail"><b>'+esc(activityCount)+'</b><span>activities</span></div>'+
             '<div class="tt99-practice-detail"><b>'+esc(names.length)+'</b><span>puzzle types</span></div>'+
           '</div>'+

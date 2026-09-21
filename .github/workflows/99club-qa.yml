@@ -91,6 +91,8 @@ jobs:
         run: node scripts/99club/verbal-reasoning-qa.js
       - name: Run Custom Worksheet expansion QA
         run: node scripts/99club/custom-expansion-qa.js
+      - name: Run Games public UI contracts
+        run: node scripts/99club/games-public-ui-qa.js
       - name: Run school widget QA
         run: node scripts/99club/widget-qa.js
       - name: Run security and privacy regression checks

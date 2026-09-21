@@ -241,7 +241,7 @@
   function vocabularyPool(settings,customVocabulary=[],purpose='wordsearch'){
     const s=normalizeSettings(settings),all=VOCABULARY.concat(sanitizeCustomVocabulary(customVocabulary));
     const engineId=purpose==='crossword'?'crossword':'wordsearch',difficulty=s.engineSettings[engineId].difficulty;
-    return all.filter(x=>vocabularyMatchesSelectedTopic(x,s.topics)&&x.minYear<=s.maxYear&&x.maxYear>=s.minYear&&
+    return all.filter(x=>vocabularyMatchesSelectedTopic(x,s.topics)&&(x.source==='mine'||(x.minYear<=s.maxYear&&x.maxYear>=s.minYear))&&
       (purpose==='crossword'?x.crosswordSuitable:x.wordsearchSuitable)&&
       (difficulty==='challenge'||x.priority!=='extension'));
   }
@@ -280,7 +280,7 @@
   }
   function generateWordSearch(settings,seed,customVocabulary=[]){
     const s=normalizeSettings(settings),rng=rngFromSeed(seed),available=vocabularyFor(s,customVocabulary);
-    if(available.length<4)return {engineId:'wordsearch',title:'Maths Word Search',error:'Not enough vocabulary is available for this year/topic selection. Add My vocabulary entries or choose another topic.'};
+    if(available.length<4)return {engineId:'wordsearch',title:'Maths Word Search',error:'Not enough vocabulary is available for this teaching focus. Add My vocabulary entries or choose another topic.'};
     const count=wordSearchCount(s,available.length),chosen=shuffle(available,rng).slice(0,count);return buildWordSearchFromItems(s,seed,chosen);
   }
   function replaceWordSearchEntry(activity,index,settings,seed,customVocabulary=[]){
@@ -482,10 +482,10 @@
     entries.sort((a,b)=>a.number-b.number||(a.dir==='across'?-1:1));return {grid,entries,width:w,height:h};
   }
   function generateCrossword(settings,seed,customVocabulary=[]){
-    const s=normalizeSettings(settings),available=crosswordVocabularyFor(s,customVocabulary);if(available.length<4)return {engineId:'crossword',title:'Maths Crossword',error:'Not enough crossword vocabulary is available for this year/topic selection.'};
+    const s=normalizeSettings(settings),available=crosswordVocabularyFor(s,customVocabulary);if(available.length<4)return {engineId:'crossword',title:'Maths Crossword',error:'Not enough crossword vocabulary is available for this teaching focus.'};
     const size=crosswordGridSize(s),target=crosswordCount(s,available.length),rng=rngFromSeed(seed),candidatePool=shuffle(available,rng).slice(0,Math.min(40,available.length));let best=null,bestQ=null;
     for(let attempt=0;attempt<64;attempt++){const raw=crosswordAttempt(shuffle(candidatePool,rngFromSeed(`${seed}:order:${attempt}`)),size,`${seed}:cw:${attempt}`,target),q=crosswordQuality(raw);if(!best||q.score>bestQ.score){best=raw;bestQ=q;}}
-    if(!best||best.entries.length<4)return {engineId:'crossword',title:'Maths Crossword',error:'A connected crossword could not be built from this selection. Try a wider year/topic range or generate a new version.'};
+    if(!best||best.entries.length<4)return {engineId:'crossword',title:'Maths Crossword',error:'A connected crossword could not be built from this selection. Try a wider teaching focus or generate a new version.'};
     const final=finaliseCrossword(best,size),o=crosswordOptions(s);return {engineId:'crossword',title:'Maths Crossword',topicIds:[...new Set(final.entries.flatMap(x=>x.appTopics||[x.topic]))],grid:final.grid,entries:final.entries,width:final.width,height:final.height,difficulty:o.difficulty,wordBank:crosswordWordBank(s),crossings:bestQ?.crossings||0,yearText:yearText(s.minYear,s.maxYear),seed,options:o};
   }
 

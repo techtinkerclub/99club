@@ -81,11 +81,10 @@ function cleanPuzzleLink(value){
 function cleanPuzzle(entry){
   if(!entry||typeof entry!=='object')return null;
   const link=cleanPuzzleLink(entry.link);if(!link)return null;
-  const min=Math.max(1,Math.min(6,Number(entry.minYear)||1));
-  const max=Math.max(min,Math.min(6,Number(entry.maxYear)||min));
+  const title=cleanText(entry.title||entry.name||'Maths puzzle pack',80)||'Maths puzzle pack';
   const count=Math.max(1,Math.min(12,Number(entry.gameCount)||1));
   const vocabCount=Math.max(0,Math.min(60,Number(entry.vocabCount)||0));
-  return {link,minYear:min,maxYear:max,gameCount:count,vocabCount};
+  return {link,title,gameCount:count,vocabCount};
 }
 function normalise(input){
   const src=obj(input)?input:{};

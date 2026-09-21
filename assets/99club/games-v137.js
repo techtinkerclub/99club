@@ -14,16 +14,15 @@
   function loadSettings(){try{return JSON.parse(global.localStorage?.getItem(SETTINGS_KEY)||'{}')||{};}catch(e){return {};}}
   function saveSettings(s){try{global.localStorage?.setItem(SETTINGS_KEY,JSON.stringify(s));return true;}catch(e){return false;}}
   function numberTowersCompatible(){
-    const ys=[...root.querySelectorAll('#games-min-year,#games-max-year')].map(x=>Number(x.value)||3);const max=Math.max(...ys,3);
     const topics=[...root.querySelectorAll('[data-topic]:checked')].map(x=>x.dataset.topic);
-    return max>=3&&(topics.includes('number_place_value')||topics.includes('geometry'));
+    return topics.includes('number_place_value')||topics.includes('geometry');
   }
   function injectNumberTowersCard(){
     const category=root.querySelector('[data-category-toggle="logic"]')?.closest('.tt99-game-category'),library=category?.querySelector('.tt99-engine-library');
     if(!library||library.querySelector('[data-v137-numbertowers]'))return;
     const stored=loadSettings(),selected=new Set(stored.selectedEngines||[]),on=selected.has('numbertowers'),ok=numberTowersCompatible(),card=document.createElement('article');
     card.className=`tt99-engine-card ${on&&ok?'is-selected':''} ${ok?'':'is-incompatible'}`;card.dataset.v137Numbertowers='1';
-    card.innerHTML=`<label class="tt99-engine-include"><input type="checkbox" data-v137-tower-select ${on&&ok?'checked':''} ${ok?'':'disabled'}><span class="tt99-engine-check"></span><span><b>Number Towers · Skyscrapers</b><small>Number logic & grids</small></span></label><div class="tt99-engine-summary"><span>${esc(stored.engineSettings?.numbertowers?.difficulty||'standard')}</span><span>${esc(stored.engineSettings?.numbertowers?.gridSize==='auto'||!stored.engineSettings?.numbertowers?.gridSize?'Auto grid':stored.engineSettings.numbertowers.gridSize+'×'+stored.engineSettings.numbertowers.gridSize)}</span></div><button type="button" class="tt99-engine-configure" data-v137-tower-configure ${ok?'':'disabled'}>Configure</button>${!ok?'<p class="tt99-engine-compatibility">Best suited to Years 3–6 with Number & place value or Geometry selected.</p>':'<p class="tt99-v137-tower-card-note">Use edge clues to work out how many towers are visible from each direction.</p>'}`;
+    card.innerHTML=`<label class="tt99-engine-include"><input type="checkbox" data-v137-tower-select ${on&&ok?'checked':''} ${ok?'':'disabled'}><span class="tt99-engine-check"></span><span><b>Number Towers · Skyscrapers</b><small>Number logic & grids</small></span></label><div class="tt99-engine-summary"><span>${esc(stored.engineSettings?.numbertowers?.difficulty||'standard')}</span><span>${esc(stored.engineSettings?.numbertowers?.gridSize==='auto'||!stored.engineSettings?.numbertowers?.gridSize?'Auto grid':stored.engineSettings.numbertowers.gridSize+'×'+stored.engineSettings.numbertowers.gridSize)}</span></div><button type="button" class="tt99-engine-configure" data-v137-tower-configure ${ok?'':'disabled'}>Configure</button>${!ok?'<p class="tt99-engine-compatibility">Choose Number & place value or Geometry to use this puzzle.</p>':'<p class="tt99-v137-tower-card-note">Use edge clues to work out how many towers are visible from each direction.</p>'}`;
     library.appendChild(card);
     card.querySelector('[data-v137-tower-select]')?.addEventListener('change',e=>{
       const s=loadSettings();s.selectedEngines=Array.isArray(s.selectedEngines)?s.selectedEngines:[];const set=new Set(s.selectedEngines);

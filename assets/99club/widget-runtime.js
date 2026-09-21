@@ -61,11 +61,11 @@ const clubHtml=cfg.selectedClubs.map(id=>{
   return '<a class="ttw-club" data-widget-item="club" data-widget-id="'+esc(id)+'" href="'+esc(href)+'" target="_blank" rel="noopener noreferrer"><img src="/assets/99club/images/'+esc(img)+'" alt=""><strong>'+esc(names[id]||id)+'</strong><small>Fresh worksheet + answers</small></a>';
 }).join('');
 const puzzleHtml=cfg.puzzles.map(p=>{
-  const year=p.minYear===p.maxYear?'Year '+p.minYear:'Years '+p.minYear+'–'+p.maxYear;
+  const title=String(p.title||'Maths puzzle pack').trim()||'Maths puzzle pack';
   const vocab=p.vocabCount?' · '+p.vocabCount+' school vocab entr'+(p.vocabCount===1?'y':'ies'):'';
   const href=withVia(p.link,integrationId,schoolBrandToken);
   const packId='pack_'+(cfg.puzzles.indexOf(p)+1);
-  return '<a class="ttw-feature" data-widget-item="puzzle" data-widget-id="'+esc(packId)+'" href="'+esc(href)+'" target="_blank" rel="noopener noreferrer"><img src="/assets/99club/images/99club-studio-shield.png" alt=""><span><strong>'+esc(year)+' puzzle pack</strong><small>'+esc(p.gameCount)+' selected game'+(p.gameCount===1?'':'s')+vocab+' · fresh pack + answers</small></span><b class="ttw-arrow" aria-hidden="true">→</b></a>';
+  return '<a class="ttw-feature" data-widget-item="puzzle" data-widget-id="'+esc(packId)+'" href="'+esc(href)+'" target="_blank" rel="noopener noreferrer"><img src="/assets/99club/images/99club-studio-shield.png" alt=""><span><strong>'+esc(title)+'</strong><small>'+esc(p.gameCount)+' selected game'+(p.gameCount===1?'':'s')+vocab+' · fresh pack + answers</small></span><b class="ttw-arrow" aria-hidden="true">→</b></a>';
 }).join('');
 const gameHtml=cfg.games.map(id=>'<a class="ttw-game" data-widget-item="online_game" data-widget-id="'+esc(id)+'" href="/play/?game='+encodeURIComponent(id)+'&via='+encodeURIComponent(integrationId)+'" target="_blank" rel="noopener noreferrer"><span class="ttw-play" aria-hidden="true">▶</span><span>'+esc(W.GAME_TITLES[id]||id)+'</span></a>').join('');
 

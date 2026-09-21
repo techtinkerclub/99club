@@ -225,15 +225,15 @@ sitemap: true
           <h3>School name and logo</h3>
           <p>The widget can show the school's public name and logo so parents can recognise who selected the practice. The Widget Builder creates a small web copy of the logo so the embed remains practical. School name/logo in a widget are public presentation content.</p>
 
-          <h3>Combined widget</h3>
-          <p>A Combined widget is available under <strong>More options</strong>, but separate 99 Club and Maths Games widgets are normally easier for schools to place and manage.</p>
+          <h3>Separate builders</h3>
+          <p>The <strong>99 Club Widget</strong> and <strong>Maths Games Widget</strong> are separate tools. The 99 Club builder only manages Club practice; the Maths Games builder only manages printable puzzle packs and online games.</p>
         </section>
 
         <section id="puzzle-practice" class="tt99-guide-section">
           <h2>Share a Maths Games &amp; Puzzles pack</h2>
-          <p>Set up the year range, teaching focus, selected puzzle types, difficulty and game options in <a href="/games/">Maths Games &amp; Puzzles</a>, then choose <strong>Create parent link</strong>.</p>
+          <p>Set up the teaching focus, selected puzzle types, difficulty and game options in <a href="/games/">Maths Games &amp; Puzzles</a>, then choose <strong>Create parent link</strong>.</p>
           <p>The shared page keeps those choices fixed for parents. They get a simple download page rather than the full puzzle editor.</p>
-          <p>If the school wants several choices — for example <em>Year 4 arithmetic</em>, <em>Upper KS2 number logic</em> and <em>Vocabulary practice</em> — create each setup separately. Publish them as individual links/cards or collect them in a Maths Games Widget.</p>
+          <p>If the school wants several choices — for example <em>Arithmetic fluency</em>, <em>Number logic</em> and <em>Vocabulary practice</em> — create each setup separately. Publish them as individual links/cards or collect them in a Maths Games Widget.</p>
           <h3>Save the setup for later</h3>
           <p><strong>Save puzzle setup</strong> downloads the editable configuration. <strong>Restore puzzle setup</strong> can load it on another computer or after browser data has been cleared.</p>
         </section>
@@ -246,7 +246,7 @@ sitemap: true
           <p>A parent clicks a Club link/card/widget choice. The parent-practice page opens with the school's fixed maths rules. When the parent presses <strong>Download a new worksheet + answers</strong>, 99 Club Studio generates fresh questions. The PDF uses the school's public name and logo and automatically prints the date it is generated, overriding any worksheet date entered earlier in the teacher editor. Pressing the button again creates another fresh worksheet using the same rules.</p>
 
           <h3>Printable puzzle packs</h3>
-          <p>A parent clicks the pack link/card/widget choice. The school-selected pack settings open. When they press <strong>Download a new puzzle pack + answers</strong>, 99 Club Studio generates fresh puzzles using the same selected years, topics, game types and difficulty settings. The PDF uses the school's public name and logo and automatically prints the date it is generated, overriding any date from the teacher setup. Pressing again creates another fresh pack.</p>
+          <p>A parent clicks the pack link/card/widget choice. The school-selected pack settings open. When they press <strong>Download a new puzzle pack + answers</strong>, 99 Club Studio generates fresh puzzles using the same selected teaching focus, game types and difficulty settings. The PDF uses the school's public name and logo and automatically prints the date it is generated, overriding any date from the teacher setup. Pressing again creates another fresh pack.</p>
 
           <p>This means the school can publish one stable-looking practice choice without uploading new PDFs every week.</p>
         </section>

@@ -1,4 +1,4 @@
-/* 99 Club Studio · Games & Puzzles UI behaviour patch v1.34.1
+/* 99 Club Studio · Games & Puzzles UI behaviour patch v1.34.2
  * Keeps configuration local to each game, contextualises vocabulary,
  * shortens crowded header metadata and adds preview overflow diagnostics.
  */
@@ -112,6 +112,19 @@
     }
   }
 
+  function restoreCategorySummaries(){
+    root.querySelectorAll('.tt99-game-category[data-category-selected][data-category-compatible]').forEach(category=>{
+      const selected=Math.max(0,Number(category.dataset.categorySelected)||0);
+      const compatible=Math.max(0,Number(category.dataset.categoryCompatible)||0);
+      const count=category.querySelector('.tt99-game-category-toggle em');
+      const expected=`${selected}/${compatible} selected`;
+      if(count&&count.textContent!==expected)count.textContent=expected;
+      category.classList.toggle('has-selection',selected>0);
+      const clear=category.querySelector('[data-category-clear]');
+      if(clear)clear.disabled=selected===0;
+    });
+  }
+
   function selectedTopicInfo(){
     const inputs=[...root.querySelectorAll('[data-topic]:checked')];
     const ids=inputs.map(el=>el.dataset.topic).filter(Boolean);
@@ -146,6 +159,7 @@
     removeInternalNotes();
     moveActiveConfiguration();
     moveVocabularyManager();
+    restoreCategorySummaries();
     shortenPreviewMetadata();
     auditPreviewOverflow();
   }
