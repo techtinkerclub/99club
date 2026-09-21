@@ -68,6 +68,16 @@
     });
   }
 
+  function completeSchoolDimensions(brand){
+    if(!brand?.logo || (Number(brand.logoWidth)>0&&Number(brand.logoHeight)>0))return Promise.resolve(brand);
+    return new Promise(resolve=>{
+      const img=new Image();
+      img.onload=()=>resolve({...brand,logoWidth:img.naturalWidth||1,logoHeight:img.naturalHeight||1});
+      img.onerror=()=>resolve(brand);
+      img.src=brand.logo;
+    });
+  }
+
   function challengeName(){
     const id=String(config&&config.clubId||'99').toLowerCase();
     return String(config&&config.rules&&config.rules.name || CLUB_NAMES[id] || (id.replace(/(^|[-_])([a-z])/g,(_,a,b)=>a+b.toUpperCase())+' Club'));
@@ -177,7 +187,7 @@
     try{
       const sheet=randomSheet();
       const badge=await badgeForPdf();
-      const brand=effectiveSchool();
+      const brand=await completeSchoolDimensions(effectiveSchool());
       const doc=L.buildDocument({
         rules:config.rules,
         sheets:[sheet],
