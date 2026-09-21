@@ -706,7 +706,7 @@
       savedAt:new Date().toISOString(),
       schemeId:state.schemeId,
       orientation:state.orientation,
-      school:{schoolName:String(state.school?.schoolName||'').trim()},
+      school:parentPublicSchool(),
       clubs
     };
   }
@@ -739,7 +739,11 @@
       else state.ruleOverrides[key]=G.clone(saved);
     }
     if(d.orientation==='landscape'||d.orientation==='portrait')state.orientation=d.orientation;
-    if(d.school&&typeof d.school.schoolName==='string')state.school.schoolName=d.school.schoolName.slice(0,80);
+    if(d.school){
+      const restoredSchool=B?.normalise?.(d.school)||{name:String(d.school.schoolName||'').slice(0,80),logo:'',logoWidth:0,logoHeight:0};
+      state.school.schoolName=restoredSchool.name;
+      if(restoredSchool.logo){state.school.logoDataUrl=restoredSchool.logo;state.school.logoWidth=restoredSchool.logoWidth;state.school.logoHeight=restoredSchool.logoHeight;parentShareLogoCache={source:restoredSchool.logo,dataUrl:restoredSchool.logo,width:restoredSchool.logoWidth,height:restoredSchool.logoHeight};}
+    }
     if(!PARENT_CLUB_IDS.includes(state.clubId))state.clubId='33';
     state.rules=loadRulesFor(state.schemeId,state.clubId);
     state.seed=newStudioSeed(state.clubId);
