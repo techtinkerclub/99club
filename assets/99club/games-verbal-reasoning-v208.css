@@ -1,0 +1,36 @@
+/* 99 Club Studio · Verbal Reasoning UI v2.08 */
+.tt99-vr-engine-panel{--vr-border:#d9e4e6}
+.tt99-vr-picker{margin-top:1rem;border-top:1px solid var(--vr-border);padding-top:1rem}
+.tt99-vr-picker-head{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:.8rem}
+.tt99-vr-picker-head strong{display:block;font-size:.98rem}
+.tt99-vr-picker-head small{display:block;color:#5d6d72;margin-top:.15rem}
+.tt99-vr-type-group{border:1px solid var(--vr-border);border-radius:12px;padding:.75rem;margin:.65rem 0;background:#fbfdfd}
+.tt99-vr-type-group>div:first-child{display:flex;justify-content:space-between;gap:1rem;align-items:baseline;margin-bottom:.55rem}
+.tt99-vr-type-group>div:first-child small{color:#65767b}
+.tt99-vr-type-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem}
+.tt99-vr-type{display:flex;border:1px solid #dbe4e6;border-radius:10px;background:#fff;cursor:pointer;min-width:0}
+.tt99-vr-type input{position:absolute;opacity:0;pointer-events:none}
+.tt99-vr-type span{display:block;padding:.55rem .65rem;width:100%;border-radius:9px}
+.tt99-vr-type b{display:block;font-size:.86rem;color:#23363b}
+.tt99-vr-type small{display:block;margin-top:.15rem;color:#68777b;font-size:.73rem;line-height:1.28}
+.tt99-vr-type.is-selected{border-color:#498e8c;box-shadow:0 0 0 1px #498e8c inset;background:#f0f8f7}
+.tt99-vr-type.is-selected b{color:#176b68}
+.tt99-verbal-reasoning .tt99-game-instruction{font-size:1rem;line-height:1.52;margin:.9rem 0 1rem}
+.tt99-vr-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.55rem;margin:.75rem 0}
+.tt99-vr-choices span{display:block;border:1px solid #d5e0e2;border-radius:8px;padding:.55rem .7rem;background:#fff;line-height:1.3}
+.tt99-vr-choices b{color:#176b68;margin-right:.3rem}
+.tt99-vr-working{margin-top:1.2rem;display:flex;align-items:flex-end;gap:.6rem}
+.tt99-vr-working i{height:1.35rem;border-bottom:1.4px solid #758b90;flex:1}
+.tt99-vr-answer{margin-top:1rem;padding:.65rem .8rem;border-radius:8px;background:#eef8f6;color:#174f4d}
+.tt99-vr-answer small{display:block;color:#52696d;margin-top:.3rem;line-height:1.35}
+.tt99-verbal-difficulty{margin-top:.8rem}
+@media (max-width:760px){
+  .tt99-vr-type-grid,.tt99-vr-choices{grid-template-columns:1fr}
+  .tt99-vr-picker-head{display:block}
+  .tt99-vr-picker-head button{margin-top:.55rem}
+}
+@media print{
+  .tt99-vr-picker{display:none!important}
+  .tt99-verbal-reasoning .tt99-game-instruction{font-size:10pt}
+  .tt99-vr-choices span{break-inside:avoid}
+}
