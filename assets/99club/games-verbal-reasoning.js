@@ -280,11 +280,18 @@ function generateInsert(o,seed){
 function categoryMembership(word){return Object.keys(CATEGORIES).filter(function(cat){return CATEGORIES[cat].indexOf(word)>=0;});}
 function uniqueCategoryWords(cat){return CATEGORIES[cat].filter(function(w){return categoryMembership(w).length===1;});}
 function generateOdd(o,seed){
- var rng=rngFromSeed(seed),cats=Object.keys(CATEGORIES).filter(function(cat){return uniqueCategoryWords(cat).length>=3;}),items=[];
+ var rng=rngFromSeed(seed),allCats=Object.keys(CATEGORIES).filter(function(cat){return uniqueCategoryWords(cat).length>=3;}),simple=['animals','fruit','colours','transport','body','school'],cats=o.difficulty==='easy'?allCats.filter(function(cat){return simple.indexOf(cat)>=0;}):allCats,items=[];
  for(var q=0;q<3;q++){
-   var core=pick(cats,rng),others=shuffle(cats.filter(function(cat){return cat!==core&&uniqueCategoryWords(cat).length;}),rng),coreWords=shuffle(uniqueCategoryWords(core),rng).slice(0,3),odd1=pick(uniqueCategoryWords(others[0]),rng),odd2=pick(uniqueCategoryWords(others[1]),rng),words=shuffle(coreWords.concat([odd1,odd2]),rng),correct=[odd1,odd2].sort().map(cap).join(' & '),d=[];
+   var core=pick(cats,rng),others=shuffle(allCats.filter(function(cat){return cat!==core&&uniqueCategoryWords(cat).length>=2;}),rng),coreWords=shuffle(uniqueCategoryWords(core),rng).slice(0,3),odd1,odd2;
+   if(o.difficulty==='challenge'){
+     var oddPair=shuffle(uniqueCategoryWords(others[0]),rng).slice(0,2);odd1=oddPair[0];odd2=oddPair[1];
+   }else{
+     odd1=pick(uniqueCategoryWords(others[0]),rng);odd2=pick(uniqueCategoryWords(others[1]),rng);
+   }
+   var words=shuffle(coreWords.concat([odd1,odd2]),rng),correct=[odd1,odd2].sort().map(cap).join(' & '),d=[];
    for(var i=0;i<words.length;i++)for(var j=i+1;j<words.length;j++){var pair=[words[i],words[j]].sort().map(cap).join(' & ');if(pair!==correct)d.push(pair);}
-   items.push(makeItem('Which TWO words are the odd ones out?',correct,makeOptions(correct,d,rng,4),coreWords.map(cap).join(', ')+' belong to the same group: '+core+'.',signature([core].concat(words)),words.map(cap)));
+   var why=o.difficulty==='challenge'?'The other two form a smaller pair, but the question asks for the two outside the group of three.':'The remaining two come from different groups.';
+   items.push(makeItem('Which TWO words are the odd ones out?',correct,makeOptions(correct,d,rng,4),coreWords.map(cap).join(', ')+' belong to the same group: '+core+'. '+why,signature([core,o.difficulty].concat(words)),words.map(cap)));
  }
  return buildActivity('vr_oddonesout',o,items,'In each set, three words belong together. Choose the pair that does not belong.',seed);
 }
@@ -392,8 +399,16 @@ function generateRelatedNumbers(o,seed){
 }
 function encodeWord(word,map,compact){return word.split('').map(function(ch){return map[ch];}).join(compact?'':'-');}
 function generateWordNumberCodes(o,seed){
- var rng=rngFromSeed(seed),items=[];
- for(var q=0;q<3;q++){var fam=pick(CODE_FAMILIES,rng),target=fam[2],clues=fam.slice(0,2),letters=uniq(fam.join('').split('')),digits=uniqueDigits(rng,letters.length),map={};letters.forEach(function(ch,i){map[ch]=digits[i];});var compact=o.difficulty==='challenge',answer=encodeWord(target,map,compact),context=clues.map(function(w){return w+' = '+encodeWord(w,map,compact);}),alts=[];for(var i=0;i<3;i++){var bad=Object.assign({},map),l=pick(letters,rng);bad[l]=((bad[l]+i+1)%9)+1;alts.push(encodeWord(target,bad,compact));}items.push(makeItem('Using the code, what is the number code for '+target+'?',answer,makeOptions(answer,alts,rng,4),'Use repeated letters in the examples to identify each digit.',signature(context.concat([target,answer])),context));}return buildActivity('vr_wordnumbercodes',o,items,'Each letter always has the same digit. Use the example words to work out the target code.',seed);
+ var rng=rngFromSeed(seed),items=[],pool=CODE_FAMILIES.filter(function(f){return o.difficulty==='easy'?f[2].length===3:f[2].length===4;});
+ if(!pool.length)pool=CODE_FAMILIES;
+ for(var q=0;q<3;q++){
+   var fam=pick(pool,rng),target=fam[2],clues=fam.slice(0,2),letters=uniq(fam.join('').split('')),digits=uniqueDigits(rng,letters.length),map={};letters.forEach(function(ch,i){map[ch]=digits[i];});
+   var compact=o.difficulty==='challenge',answer=encodeWord(target,map,compact),context=clues.map(function(w){return w+' = '+encodeWord(w,map,compact);}),alts=[];
+   if(o.difficulty==='challenge')context=shuffle(context,rng);
+   for(var i=0;i<3;i++){var bad=Object.assign({},map),l=pick(letters,rng);bad[l]=((bad[l]+i+1)%9)+1;alts.push(encodeWord(target,bad,compact));}
+   items.push(makeItem('Using the code, what is the number code for '+target+'?',answer,makeOptions(answer,alts,rng,4),'Use repeated letters in the examples to identify each digit.',signature([o.difficulty].concat(context,[target,answer])),context));
+ }
+ return buildActivity('vr_wordnumbercodes',o,items,'Each letter always has the same digit. Use the example words to work out the target code.',seed);
 }
 function generateCompleteWord(o,seed){
  var rng=rngFromSeed(seed),max=o.difficulty==='easy'?1:o.difficulty==='standard'?2:3,all=completionPairs(),pool=all.filter(function(x){return x.level<=max;}),items=[];if(!pool.length)pool=all;
