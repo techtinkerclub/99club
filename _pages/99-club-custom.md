@@ -5,6 +5,7 @@ permalink: /tools/99-club/custom/
 sidebar: false
 sitemap: false
 search: false
+robots: "noindex,nofollow,noarchive"
 ---
 
 <div id="main" class="tt99-page-main" role="main">
