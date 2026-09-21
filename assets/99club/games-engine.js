@@ -548,7 +548,10 @@
   }
 
   function generateActivity(engineId,settings,seed,customVocabulary=[]){
-    let s=normalizeSettings(settings);if(s.engineSettings[engineId]?.difficulty==='mixed')s=settingsWithDifficulty(s,engineId,resolveSingleDifficulty(s,engineId,seed));
+    const finiteExclusions=settings?._finiteExclusions;
+    let s=normalizeSettings(settings);
+    if(finiteExclusions)s._finiteExclusions={alphametics:[...(finiteExclusions.alphametics||[])],symbols:[...(finiteExclusions.symbols||[])]};
+    if(s.engineSettings[engineId]?.difficulty==='mixed'){const exclusions=s._finiteExclusions;s=settingsWithDifficulty(s,engineId,resolveSingleDifficulty(s,engineId,seed));if(exclusions)s._finiteExclusions=exclusions;}
     if(ARITH&&ARITH.DEFINITIONS&&ARITH.DEFINITIONS[engineId])return ARITH.generate(engineId,s,seed);if(NUMLOGIC&&NUMLOGIC.DEFINITIONS&&NUMLOGIC.DEFINITIONS[engineId])return NUMLOGIC.generate(engineId,s,seed);if(engineId==='pyramid')return generateNumberPyramid(s,seed);if(engineId==='crossword')return generateCrossword(s,seed,customVocabulary);if(engineId==='magic')return generateMagicSquare(s,seed);if(engineId==='sudoku')return generateSudoku(s,seed);return generateWordSearch(s,seed,customVocabulary);}
   function generatePack(settings,seed='games',customVocabulary=[]){
     const s=normalizeSettings(settings),selected=selectedCompatibleEngines(s),sheets=[];
