@@ -349,10 +349,11 @@
   function renderVerbalTypePicker(o){
     const VR=G.VERBAL;if(!VR)return '';
     const selected=new Set(o.questionTypes||VR.TYPE_IDS),groups=VR.TYPE_GROUPS.map(group=>{
+      const count=group.types.filter(id=>selected.has(id)).length;
       const items=group.types.map(typeId=>{const t=VR.TYPES[typeId],on=selected.has(typeId);return `<label class="tt99-vr-type ${on?'is-selected':''}"><input type="checkbox" data-vr-type="${typeId}" ${on?'checked':''}><span><b>${t.n}. ${esc(t.label)}</b><small>${esc(t.description)}</small></span></label>`;}).join('');
-      return `<section class="tt99-vr-type-group"><div><strong>${esc(group.label)}</strong><small>${group.types.filter(id=>selected.has(id)).length}/${group.types.length} selected</small></div><div class="tt99-vr-type-grid">${items}</div></section>`;
+      return `<details class="tt99-vr-type-group"><summary><span><strong>${esc(group.label)}</strong><small>${count}/${group.types.length} selected</small></span></summary><div class="tt99-vr-type-grid">${items}</div></details>`;
     }).join('');
-    return `<div class="tt99-vr-picker"><div class="tt99-vr-picker-head"><div><strong>Question types</strong><small>Choose any combination. “All 21” gives the broadest mixed pack.</small></div><button type="button" class="tt99-ghost" data-vr-types-action="all">Select all 21</button></div>${groups}</div>`;
+    return `<div class="tt99-vr-picker"><div class="tt99-vr-picker-head"><div><strong>Question types</strong><small>All 21 are included by default. Open a group only if you want to narrow the mix.</small></div><button type="button" class="tt99-ghost" data-vr-types-action="all">Select all 21</button></div>${groups}</div>`;
   }
 
   function renderEngineConfiguration(){
