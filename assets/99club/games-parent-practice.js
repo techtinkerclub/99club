@@ -84,7 +84,7 @@
     const engineSettings={};
     for(const id of s.selectedEngines||[])if(s.engineSettings?.[id])engineSettings[id]=clone(s.engineSettings[id]);
     return {
-      minYear:s.minYear,maxYear:s.maxYear,topics:clone(s.topics),focusTopics:clone(s.focusTopics||[]),generationLevel:Number(s.generationLevel)||undefined,
+      topics:clone(s.topics),focusTopics:clone(s.focusTopics||[]),generationLevel:Number(s.generationLevel)||undefined,
       sheets:s.sheets,activitiesPerSheet:s.activitiesPerSheet,includeAnswers:true,workedExamples:s.workedExamples,
       selectedEngines:clone(s.selectedEngines),engineSettings
     };
