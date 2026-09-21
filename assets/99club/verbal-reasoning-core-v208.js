@@ -87,7 +87,12 @@ var ANTONYMS=[
 ['STRONG','WEAK'],['EARLY','LATE'],['FULL','EMPTY'],['OPEN','CLOSE'],['HARD','SOFT'],['ROUGH','SMOOTH'],['BRAVE','TIMID'],
 ['NEAR','FAR'],['LOUD','QUIET'],['WET','DRY'],['CLEAN','DIRTY'],['TRUE','FALSE'],['RIGHT','WRONG'],['BEGIN','FINISH'],
 ['ARRIVE','DEPART'],['INCREASE','DECREASE'],['ANCIENT','MODERN'],['SUPERIOR','INFERIOR'],['ABUNDANT','SCARCE'],
-['SIMPLE','COMPLEX'],['FREQUENT','RARE'],['ACTIVE','IDLE'],['AWAKE','ASLEEP'],['KIND','HARSH'],['PROUD','MODEST']
+['SIMPLE','COMPLEX'],['FREQUENT','RARE'],['ACTIVE','IDLE'],['AWAKE','ASLEEP'],['KIND','HARSH'],['PROUD','MODEST'],
+['UP','DOWN'],['IN','OUT'],['ABOVE','BELOW'],['BEFORE','AFTER'],['FIRST','LAST'],['MORE','LESS'],['HIGH','LOW'],
+['DEEP','SHALLOW'],['THICK','THIN'],['RICH','POOR'],['GIVE','TAKE'],['BUY','SELL'],['PUSH','PULL'],['LOVE','HATE'],
+['LAUGH','CRY'],['WIN','LOSE'],['SAFE','DANGEROUS'],['FRIEND','ENEMY'],['PRESENT','ABSENT'],['ACCEPT','REFUSE'],
+['REMEMBER','FORGET'],['INCLUDE','EXCLUDE'],['CREATE','DESTROY'],['EXPAND','CONTRACT'],['GENEROUS','SELFISH'],
+['CAUTIOUS','RECKLESS'],['PERMANENT','TEMPORARY'],['MAJOR','MINOR']
 ];
 var RELATIONS=[
 {name:'young animal',pairs:[['DOG','PUPPY'],['CAT','KITTEN'],['SHEEP','LAMB'],['COW','CALF'],['HORSE','FOAL']]},
@@ -229,7 +234,7 @@ function gen4(d,seed){
     ga=shuffle(r,ga);gb=shuffle(r,gb);
     var linked=[];ga.forEach(function(x){gb.forEach(function(y){if(synLinked(x,y))linked.push(x+'|'+y);});});
     if(linked.length!==1)continue;
-    return makeQ('closest_meaning',d,'Choose one word from each group that are CLOSEST in meaning.  Group 1: '+ga.join(', ')+'   Group 2: '+gb.join(', '),a+' — '+b,{key:'syn:'+a+':'+b+':'+ga.join(',')+':'+gb.join(','),explanation:a+' and '+b+' have closely related meanings.',check:{kind:'syn_pair',a:a,b:b,groupA:ga,groupB:gb}});
+    return makeQ('closest_meaning',d,'Choose one word from each group that are CLOSEST in meaning.  Group 1: '+ga.join(', ')+'   Group 2: '+gb.join(', '),a+' — '+b,{key:'syn-core:'+[a,b].sort().join(':'),explanation:a+' and '+b+' have closely related meanings.',check:{kind:'syn_pair',a:a,b:b,groupA:ga,groupB:gb}});
   }
   return null;
 }
@@ -304,7 +309,7 @@ function gen10(d,seed){
   var r=rngFromSeed(seed),rel=choose(r,RELATIONS.filter(function(x){return x.pairs.length>=2;})),ps=shuffle(r,rel.pairs),p1=ps[0],p2=ps[1],dir=r()<.5?0:1,a=p1[dir],b=p1[1-dir],c=p2[dir],ans=p2[1-dir],groupSize=d==='easy'?2:d==='challenge'?4:3;
   var d1=distract(r,10,[a,b,c,ans],d).filter(function(w){return w!==b;}).slice(0,groupSize-1),d2=distract(r,14,[a,b,c,ans].concat(d1),d).filter(function(w){return w!==ans;}).slice(0,groupSize-1);
   var g1=shuffle(r,[b].concat(d1)),g2=shuffle(r,[ans].concat(d2));
-  return makeQ('word_connections',d,a+' is to ('+g1.join(', ')+') as '+c+' is to ('+g2.join(', ')+'). Choose ONE word from each group.',b+' — '+ans,{key:'ana2:'+rel.name+':'+a+':'+b+':'+c+':'+ans+':'+g1.join(',')+':'+g2.join(','),explanation:b+' and '+ans+' complete the same relationship: '+rel.name+'.',check:{kind:'analogy_pair',relation:rel.name,a:a,b:b,c:c,answer:ans,group1:g1,group2:g2}});
+  return makeQ('word_connections',d,a+' is to ('+g1.join(', ')+') as '+c+' is to ('+g2.join(', ')+'). Choose ONE word from each group.',b+' — '+ans,{key:'ana-core:'+rel.name+':'+a+':'+b+':'+c+':'+ans,explanation:b+' and '+ans+' complete the same relationship: '+rel.name+'.',check:{kind:'analogy_pair',relation:rel.name,a:a,b:b,c:c,answer:ans,group1:g1,group2:g2}});
 }
 function ns(mode,start,step,i){var v=start,k;if(mode==='add')return start+step*i;if(mode==='double')return start*Math.pow(2,i);if(mode==='alternate'){for(k=0;k<i;k++)v+=k%2===0?step:step+2;return v;}if(mode==='growing'){for(k=1;k<=i;k++)v+=step*k;return v;}if(mode==='muladd'){for(k=0;k<i;k++)v=v*2+step;return v;}return v;}
 function gen11(d,seed){var r=rngFromSeed(seed),mode=d==='easy'?choose(r,['add','double']):d==='standard'?choose(r,['add','alternate','growing']):choose(r,['alternate','growing','muladd']),start=randInt(r,1,d==='easy'?18:d==='standard'?16:14),step=randInt(r,2,d==='easy'?9:d==='standard'?8:7),seq=Array.from({length:5},function(_,i){return ns(mode,start,step,i);}),ans=ns(mode,start,step,5),opts=shuffle(r,unique([ans,ans+step,Math.max(0,ans-step),ans+2])).map(String).slice(0,4),contentStep=mode==='double'?0:step;return makeQ('number_series',d,'What number comes next?  '+seq.join(', ')+', ...',ans,{choices:opts,key:'ns:'+mode+':'+start+':'+contentStep,explanation:'Continue the same number rule.',check:{kind:'number_series',mode:mode,start:start,step:step,index:5}});}
@@ -314,7 +319,7 @@ function gen12(d,seed){
   guard=0;while(right.length<size&&guard++<300){x=choose(r,ar);if(right.indexOf(x)>=0)continue;if(left.some(function(z){return COMPOUND_SET.has(z+'+'+x);}))continue;right.push(x);}
   if(left.length!==size||right.length!==size)return gen12(d,seed+':retry');
   var la=shuffle(r,left),ra=shuffle(r,right),valid=[];la.forEach(function(l){ra.forEach(function(rrr){if(COMPOUND_SET.has(l+'+'+rrr))valid.push(l+'|'+rrr);});});if(valid.length!==1)return gen12(d,seed+':retry2');
-  return makeQ('compound_words',d,'Choose one word from each group to make ONE compound word.  Group 1: '+la.join(', ')+'   Group 2: '+ra.join(', '),target[0]+' + '+target[1],{answerText:target[0]+target[1],key:'comp2:'+target.join('+')+':'+la.join(',')+':'+ra.join(','),explanation:target[0]+' + '+target[1]+' = '+target[0]+target[1]+'.',check:{kind:'compound_unique',left:target[0],right:target[1],groupA:la,groupB:ra}});
+  return makeQ('compound_words',d,'Choose one word from each group to make ONE compound word.  Group 1: '+la.join(', ')+'   Group 2: '+ra.join(', '),target[0]+' + '+target[1],{answerText:target[0]+target[1],key:'comp-core:'+target.join('+'),explanation:target[0]+' + '+target[1]+' = '+target[0]+target[1]+'.',check:{kind:'compound_unique',left:target[0],right:target[1],groupA:la,groupB:ra}});
 }
 var MP=[{id:'f2l2',label:'first 2 letters of the first word + last 2 of the second',fn:function(a,b){return a.slice(0,2)+b.slice(-2);}},{id:'l2f2',label:'last 2 + first 2',fn:function(a,b){return a.slice(-2)+b.slice(0,2);}},{id:'f1l3',label:'first 1 + last 3',fn:function(a,b){return a.slice(0,1)+b.slice(-3);}},{id:'f3l1',label:'first 3 + last 1',fn:function(a,b){return a.slice(0,3)+b.slice(-1);}}],MW_CACHE=null;
 function mwc(){if(MW_CACHE)return MW_CACHE;var out=[];MP.forEach(function(p){WORDS.forEach(function(a){WORDS.forEach(function(b){if(a===b||a.length<4||b.length<4)return;var z=p.fn(a,b);if(WORD_SET.has(z)&&z!==a&&z!==b)out.push({p:p,a:a,b:b,result:z});});});});MW_CACHE=out;return out;}
@@ -357,7 +362,7 @@ function gen16(d,seed){
     for(var j=0;j<cands.length&&gb.length<size;j++){var w=cands[j];if(gb.indexOf(w)>=0||ga.some(function(x){return antLinked(x,w);}))continue;gb.push(w);}
     if(ga.length!==size||gb.length!==size)continue;ga=shuffle(r,ga);gb=shuffle(r,gb);
     var pairs=0;ga.forEach(function(x){gb.forEach(function(y){if(antLinked(x,y))pairs++;});});if(pairs!==1)continue;
-    return makeQ('opposite_meaning',d,'Choose one word from each group that are most OPPOSITE in meaning.  Group 1: '+ga.join(', ')+'   Group 2: '+gb.join(', '),a+' — '+b,{key:'ant2:'+a+':'+b+':'+ga.join(',')+':'+gb.join(','),explanation:a+' and '+b+' are opposites.',check:{kind:'ant_pair',a:a,b:b,groupA:ga,groupB:gb}});
+    return makeQ('opposite_meaning',d,'Choose one word from each group that are most OPPOSITE in meaning.  Group 1: '+ga.join(', ')+'   Group 2: '+gb.join(', '),a+' — '+b,{key:'ant-core:'+[a,b].sort().join(':'),explanation:a+' and '+b+' are opposites.',check:{kind:'ant_pair',a:a,b:b,groupA:ga,groupB:gb}});
   }
   return null;
 }
