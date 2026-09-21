@@ -1,4 +1,4 @@
-/* 99 Club Studio · v1.41 Alphametics library
+/* 99 Club Studio · v1.42 Alphametics library
  * Curated real-word puzzles. Runtime is fully local/offline.
  * ESDB/SCOWL is used as the reference word-list source for development validation;
  * see docs/99club/ALPHAMETICS_ESDB.md for source/licence and update workflow.
@@ -43,19 +43,21 @@ function normalise(raw={}){
  return o;
 }
 NL.normalise=function(id,raw={}){if(id==='alphametics')return normalise(raw);return BASE_NORMALISE(id,raw);};
-function choose(o,seed){
+function choose(o,seed,excludeIds=[]){
  if(o.legacyTemplate){
   const legacy=LIBRARY.find(t=>t.id===o.legacyTemplate||t.id===String(o.legacyTemplate).replace(/-/g,'_'));
   if(legacy)return legacy;
  }
- let pool=LIBRARY.filter(t=>t.difficulty===o.difficulty&&(o.theme==='auto'||t.theme===o.theme));
- if(!pool.length)pool=LIBRARY.filter(t=>o.theme==='auto'||t.theme===o.theme);
- if(!pool.length)pool=LIBRARY;
+ const excluded=new Set(Array.isArray(excludeIds)?excludeIds:[]);
+ let pool=LIBRARY.filter(t=>!excluded.has(t.id)&&t.difficulty===o.difficulty&&(o.theme==='auto'||t.theme===o.theme));
+ if(!pool.length&&!excluded.size)pool=LIBRARY.filter(t=>o.theme==='auto'||t.theme===o.theme);
+ if(!pool.length&&!excluded.size)pool=LIBRARY;
  const rng=rngFromSeed(seed);
  return pool[Math.floor(rng()*pool.length)];
 }
 function generateAlpha(settings,seed){
- const raw=settings?.engineSettings?.alphametics||{},o=normalise(raw),t=choose(o,`${seed}:alpha-v141`);
+ const raw=settings?.engineSettings?.alphametics||{},o=normalise(raw),t=choose(o,`${seed}:alpha-v141`,settings?._finiteExclusions?.alphametics||[]);
+ if(!t)return {engineId:'alphametics',title:'Word Codes · Alphametics',error:'No unused Alphametics template remains for these settings.'};
  const base=solve(t,t.givens||{},20);
  if(!base.length)return {engineId:'alphametics',title:'Word Codes · Alphametics',error:'The selected word code has no solution.'};
  const solution=base[0],givens={...(t.givens||{})},rng=rngFromSeed(`${seed}:alpha-hints-v141`),letters=shuffle(Object.keys(solution),rng);
@@ -74,6 +76,6 @@ NL.V140.ALPHAMETICS.libraryVersion='1.41';
 NL.V140.ALPHAMETICS.themes=THEMES;
 NL.V140.ALPHAMETICS.generate=generateAlpha;
 NL.__alphaLibraryV141=true;
-global.TT99AlphaLibrary={VERSION:'1.41',templates:LIBRARY,themes:THEMES,source:'ESDB/SCOWL development reference; curated runtime library'};
+global.TT99AlphaLibrary={VERSION:'1.42',templates:LIBRARY,themes:THEMES,source:'ESDB/SCOWL development reference; curated runtime library'};
 if(typeof module!=='undefined'&&module.exports)module.exports=global.TT99AlphaLibrary;
 })(typeof globalThis!=='undefined'?globalThis:this);
