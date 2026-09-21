@@ -40,6 +40,7 @@
   const state={settings:initialSettings,customVocabulary:loadVocabulary(),seed:newSeed(),previewAnswers:false,activeEngine:'',openCategories:initialOpen,personalisationOpen:false,replaceCounter:0,status:'Choose the maths, include the games you want, then configure each game separately.'};
   let parentShareLogoCache={source:'',dataUrl:'',width:0,height:0};
   state.pack=G.generatePack(state.settings,state.seed,state.customVocabulary);
+  if(state.pack?.capacityMessage)state.status=state.pack.capacityMessage;
 
   // Preview replacement controls are delegated so late UI patches and every
   // re-render keep working reliably, including installed/mobile Safari.
@@ -731,7 +732,7 @@
   }
 
   function bind(){
-    const regen=(msg,reseed=false)=>{refreshPack(reseed);state.status=msg;render();};
+    const regen=(msg,reseed=false)=>{refreshPack(reseed);state.status=state.pack?.capacityMessage||msg;render();};
     root.querySelector('#games-min-year')?.addEventListener('change',e=>{state.settings.minYear=Number(e.target.value);if(state.settings.maxYear<state.settings.minYear)state.settings.maxYear=state.settings.minYear;pruneTopics();regen('Year range updated.');});
     root.querySelector('#games-max-year')?.addEventListener('change',e=>{state.settings.maxYear=Number(e.target.value);if(state.settings.minYear>state.settings.maxYear)state.settings.minYear=state.settings.maxYear;pruneTopics();regen('Year range updated.');});
     root.querySelectorAll('[data-topic]').forEach(el=>el.addEventListener('change',()=>{const ids=[...root.querySelectorAll('[data-topic]:checked')].map(x=>x.dataset.topic);state.settings.topics=ids.length?ids:[el.dataset.topic];regen(ids.length?'Topic selection updated.':'At least one topic is kept selected.');}));
