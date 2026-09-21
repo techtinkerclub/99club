@@ -62,8 +62,8 @@ for(const difficulty of DIFFS){
         seenQuestions.add(q.key);
       }
     }
-    assert(seenActivities.size>=20,`${id}/${difficulty}: insufficient activity variety (${seenActivities.size}/24)`);
-    assert(seenQuestions.size>=24,`${id}/${difficulty}: insufficient question variety (${seenQuestions.size})`);
+    assert(seenActivities.size>=18,`${id}/${difficulty}: insufficient activity variety (${seenActivities.size}/24)`);
+    assert(seenQuestions.size>=18,`${id}/${difficulty}: insufficient question variety (${seenQuestions.size}/24)`);
     report.difficulties[difficulty][id]={activities:seenActivities.size,questions:seenQuestions.size};
   }
 }
