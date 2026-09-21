@@ -54,6 +54,16 @@
     });
   }
 
+  function completeSchoolDimensions(brand){
+    if(!brand?.logo || (Number(brand.logoWidth)>0&&Number(brand.logoHeight)>0))return Promise.resolve(brand);
+    return new Promise(resolve=>{
+      const img=new Image();
+      img.onload=()=>resolve({...brand,logoWidth:img.naturalWidth||1,logoHeight:img.naturalHeight||1});
+      img.onerror=()=>resolve(brand);
+      img.src=brand.logo;
+    });
+  }
+
   function newSeed(){
     const a=new Uint32Array(2);
     if(globalThis.crypto?.getRandomValues)globalThis.crypto.getRandomValues(a);
@@ -123,7 +133,7 @@
     el.hidden=!message;el.textContent=message||'';el.classList.toggle('is-error',!!error);
   }
 
-  function download(){
+  async function download(){
     const button=root.querySelector('#tt99-puzzle-practice-download');
     if(button){button.disabled=true;button.textContent='Creating PDF…';}
     status('',false);
@@ -131,7 +141,7 @@
       const seed=newSeed();
       const pack=G.generatePack(config.settings,seed,config.customVocabulary||[]);
       if(!pack?.sheets?.length)throw new Error('This practice link could not generate a valid puzzle pack.');
-      const brand=effectiveSchool(),settings=G.clone(config.settings);
+      const brand=await completeSchoolDimensions(effectiveSchool()),settings=G.clone(config.settings);
       settings.personalisation={
         schoolName:brand.name,
         packTitle:'Maths Games & Puzzles',
