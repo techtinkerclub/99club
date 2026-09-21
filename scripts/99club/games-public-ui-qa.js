@@ -33,6 +33,7 @@ check(!/Years? 3[–-]6|games-min-year|games-max-year/i.test(towers),'Number Tow
 check(!/Years? 3[–-]6|games-min-year|games-max-year/i.test(takuzu),'Takuzu UI has no Year recommendation/gate');
 check(!/topic\/year range|year\/topic/i.test(shikaku),'Shikaku UI has no Year-range wording');
 check(!/year\/topic selection|year\/topic range/i.test(engine),'Games engine errors refer to teaching focus rather than Year ranges');
+check(engine.includes("x.source==='mine'||"),'teacher-added vocabulary is not filtered by the hidden legacy Year scale');
 check(!/age range|function yearLabel\(|Years? ['"+]/i.test(parentPage),'parent puzzle page has no Year/age-range claim');
 check(!/data-widget-type|Combined Maths Widget|Combined widget/i.test(builder)&&builder.includes('BUILDER_MODE'),'widget builder is locked to separate Club/Games modes');
 check(builder.includes('data-pack-title')&&runtime.includes("p.title||'Maths puzzle pack'"),'Games widget uses teacher-editable puzzle-pack display names');
