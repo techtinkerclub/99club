@@ -103,24 +103,24 @@ sitemap: true
 <script src="/assets/99club/school-usage-config.js?v=2"></script>
 <script src="/assets/99club/school-usage.js?v=2"></script>
 <script src="/assets/99club/school-brand.js?v=1"></script>
-<script src="/assets/99club/games-parent-practice.js?v=3"></script>
-<script src="/assets/99club/games-app.js?v=48" defer></script>
+<script src="/assets/99club/games-parent-practice.js?v=4"></script>
+<script src="/assets/99club/games-app.js?v=49" defer></script>
 <script src="/assets/99club/games-preview-parity-v206.js?v=1" defer></script>
 <script src="/assets/99club/games-operationgrid-print-v158-ui.js?v=2" defer></script>
 <script src="/assets/99club/games-operationgrid-print-v160-ui.js?v=1" defer></script>
 <script src="/assets/99club/games-operationgrid-print-v155-ui.js?v=1" defer></script>
-<script src="/assets/99club/games-random-ui.js?v=5" defer></script>
+<script src="/assets/99club/games-random-ui.js?v=6" defer></script>
 <script src="/assets/99club/games-card-links-v205.js?v=4" defer></script>
-<script src="/assets/99club/games-ui-v134.js?v=2" defer></script>
+<script src="/assets/99club/games-ui-v134.js?v=3" defer></script>
 <script src="/assets/99club/games-puzzle-redesign-v136.js?v=3" defer></script>
-<script src="/assets/99club/games-v137.js?v=2" defer></script>
+<script src="/assets/99club/games-v137.js?v=3" defer></script>
 <script src="/assets/99club/games-v138.js?v=2" defer></script>
 <script src="/assets/99club/games-towers-direction-v138.js?v=1" defer></script>
 <script src="/assets/99club/games-takuzu-v139-ui.js?v=2" defer></script>
 <script src="/assets/99club/games-puzzle-pack-v140-ui.js?v=4" defer></script>
 <script src="/assets/99club/games-shikaku-v143-ui.js?v=1" defer></script>
 <script src="/assets/99club/games-sum-grids-v147-ui.js?v=3" defer></script>
-<script src="/assets/99club/games-focus-topics-v145-ui.js?v=1" defer></script>
+<script src="/assets/99club/games-focus-topics-v145-ui.js?v=2" defer></script>
 <script src="/assets/99club/games-preview-fit-v207.js?v=7" defer></script>
 <script>
 window.addEventListener('DOMContentLoaded',function(){
