@@ -87,6 +87,7 @@ const engineLoadOrder=[
   'assets/99club/games-sumplete.js',
   'assets/99club/games-shikaku-v143.js',
   'assets/99club/games-sum-grids-v147.js',
+  'assets/99club/games-verbal-reasoning.js',
   'assets/99club/games-engine.js',
   'assets/99club/games-symbol-decoder-v189.js',
   'assets/99club/games-wordsearch-quality-v150.js'
