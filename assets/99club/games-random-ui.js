@@ -1,4 +1,4 @@
-/* 99 Club Studio · Random pack UI v1.3.0
+/* 99 Club Studio · Random pack UI v1.4.0
  * Compact, mode-aware pack builder for manual and random-compatible packs.
  */
 (function(global){
@@ -69,7 +69,7 @@
         </div>
         <div class="tt99-pack-options-v134 ${currentMode==='manual'?'is-manual':''}">
           ${currentMode==='random'?`<label class="tt99-field"><span>Difficulty</span><select id="games-random-difficulty"><option value="easy" ${currentDifficulty==='easy'?'selected':''}>Easy</option><option value="standard" ${currentDifficulty==='standard'?'selected':''}>Standard</option><option value="challenge" ${currentDifficulty==='challenge'?'selected':''}>Challenge</option><option value="mixed" ${currentDifficulty==='mixed'?'selected':''}>Mixed — weighted</option></select><small>${currentDifficulty==='mixed'?'Uses the mix below across the whole pack.':'Applied consistently across the random pack.'}</small></label>`:''}
-          <label class="tt99-field"><span>Number of activities</span><input id="games-activity-count" type="number" min="1" max="40" step="1" value="${currentCount}"><small>Choose up to 40 activities for the pack.</small></label><label class="tt99-field"><span>Activities per sheet</span><select id="games-activities-per-sheet"><option value="1" ${currentPerPage===1?'selected':''}>1</option><option value="2" ${currentPerPage===2?'selected':''}>2</option></select><small>The sheet count is calculated automatically. Two per sheet is the compact default.</small></label>
+          <label class="tt99-field"><span>Number of activities</span><input id="games-activity-count" type="number" min="1" max="40" step="1" value="${currentCount}"><small><strong>Maximum 40 activities per pack.</strong> Finite puzzle libraries are used without repeats.</small></label><label class="tt99-field"><span>Activities per sheet</span><select id="games-activities-per-sheet"><option value="1" ${currentPerPage===1?'selected':''}>1</option><option value="2" ${currentPerPage===2?'selected':''}>2</option></select><small>The sheet count is calculated automatically. Two per sheet is the compact default.</small></label>
         </div>
         ${currentMode==='random'&&currentDifficulty==='mixed'?mixedControls(currentWeights):''}
         ${currentMode==='random'?'<p class="tt99-pack-preserved-v134">Your manual game choices and their settings are preserved while Random compatible is selected.</p>':''}`;
@@ -77,7 +77,8 @@
 
       holder.querySelector('#games-pack-mode')?.addEventListener('change',e=>{setStored(MODE_KEY,e.target.value==='random'?'random':'manual');root.querySelector('#games-new-version')?.click();});
       holder.querySelector('#games-random-difficulty')?.addEventListener('change',e=>{setStored(DIFFICULTY_KEY,['easy','standard','challenge','mixed'].includes(e.target.value)?e.target.value:'standard');root.querySelector('#games-new-version')?.click();});
-      holder.querySelector('#games-activity-count')?.addEventListener('change',e=>{const n=Math.max(1,Math.min(40,Math.round(Number(e.target.value)||1)));setStored(COUNT_KEY,n);root.querySelector('#games-new-version')?.click();});
+      holder.querySelector('#games-activity-count')?.addEventListener('input',e=>{const n=Number(e.target.value);if(Number.isFinite(n)&&n>40)e.target.value='40';});
+      holder.querySelector('#games-activity-count')?.addEventListener('change',e=>{const n=Math.max(1,Math.min(40,Math.round(Number(e.target.value)||1)));e.target.value=String(n);setStored(COUNT_KEY,n);root.querySelector('#games-new-version')?.click();});
       holder.querySelector('#games-activities-per-sheet')?.addEventListener('change',e=>{setStored(PER_PAGE_KEY,Number(e.target.value)===1?1:2);root.querySelector('#games-new-version')?.click();});
       const updateEdge=key=>{
         let easy=Math.max(0,Math.min(100,Number(holder.querySelector('#games-random-easy')?.value??currentWeights.easy)||0));
