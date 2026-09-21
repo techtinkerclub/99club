@@ -41,6 +41,11 @@ assert(repeatedStandard<=4,`Standard repeated-addend cap exceeded: ${repeatedSta
 assert(repeatedChallenge<=2,`Challenge repeated-addend cap exceeded: ${repeatedChallenge}/40`);
 assert(repeatedTotal<=24,`overall repeated-addend cap exceeded: ${repeatedTotal}/120`);
 
+const distinctLetters=t=>new Set(t.adds.concat(t.result).join('')).size;
+assert(byDifficulty.easy.every(t=>distinctLetters(t)<=8),`Easy contains a puzzle with more than 8 distinct letters`);
+assert(byDifficulty.standard.every(t=>distinctLetters(t)<=9),`Standard contains a puzzle with 10 distinct letters`);
+assert(byDifficulty.challenge.filter(t=>distinctLetters(t)===10).length>=36,`Challenge should be dominated by 10-letter interactions`);
+
 for(const difficulty of ['easy','standard','challenge'])for(const theme of ['classic','math','school','food','nature','body','family','colour']){
  const count=byDifficulty[difficulty].filter(t=>t.theme===theme).length;
  assert(count>=2,`${difficulty}/${theme} should have at least two curated choices, got ${count}`);
