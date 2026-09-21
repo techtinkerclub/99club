@@ -620,7 +620,7 @@ if(!puzzleParentUi.includes('renderGameTypes')||!puzzleParentUi.includes('names.
   if(!gamesApp.includes("kind:'tt99-school-puzzle-config'")||!gamesApp.includes('customVocabulary:G.clone(state.customVocabulary)'))fail('puzzle-parent','Portable puzzle setup does not preserve full settings and custom vocabulary');
   const schoolInfo2=read('_pages/99-club-schools.md'),privacy2=read('_pages/privacy.md');
   for(const phrase of ['id="puzzle-practice"','Save puzzle setup','Restore puzzle setup','Download website pack','Personal vocabulary'])if(!schoolInfo2.includes(phrase))fail('puzzle-parent',`School puzzle-sharing guide missing: ${phrase}`);
-  if(!privacy2.includes('Puzzle links also leave out generated puzzle details and school/class personalisation')||!privacy2.includes('custom vocabulary')||!privacy2.includes('terms and definitions needed for that activity may be included in the shared link'))fail('puzzle-parent','Privacy page does not describe puzzle parent-practice links and shared vocabulary clearly');
+  if(!privacy2.includes("Parent-practice links may include the school's public name and a compact copy of its logo")||!privacy2.includes('stored worksheet date')||!privacy2.includes('date it is generated')||!privacy2.includes('custom vocabulary')||!privacy2.includes('terms and definitions needed for that activity may be included in the shared link'))fail('puzzle-parent','Privacy page does not describe parent branding, generation dates and shared vocabulary clearly');
   ok('puzzle-parent','Locked puzzle pack links, portable setup, website pack and school-level telemetry contract checked');
 }catch(e){fail('puzzle-parent','Puzzle parent sharing QA threw',e.stack||e.message);}
 
