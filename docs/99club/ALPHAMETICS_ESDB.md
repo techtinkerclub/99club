@@ -35,14 +35,17 @@ A dictionary word is only a candidate; it is **not automatically a good Alphamet
 1. use familiar, age-appropriate British-English words;
 2. reject proper nouns, abbreviations, offensive/adult terms, obscure variants and punctuation/hyphenated forms;
 3. normally keep words between 3 and 6 letters for print readability;
-4. combine words into addition patterns such as `WORD + WORD = WORD` (and occasionally three-addend classics);
-5. reject combinations using more than 10 distinct letters;
-6. run the Alphametics column/carry solver;
-7. keep only puzzles with a mathematically valid solution;
-8. prefer puzzles with exactly one solution before hints;
-9. where a classic puzzle has several solutions, store a fixed clue only when that clue makes the puzzle unique (for example `TWO + TWO = FOUR` with `O = 4`);
-10. assign each retained puzzle a difficulty and a familiar-word theme;
-11. visually inspect a sample in browser and PDF before release.
+4. prefer **distinct addends** such as `WORD + OTHER = RESULT`; repeated-addend forms such as `WORD + WORD = RESULT` are a useful introductory subtype, not the default catalogue structure;
+5. keep repeated-addend puzzles concentrated in **Easy**, allow none or very few in **Standard**, and reserve **Challenge** for distinct interacting addends apart from recognised classic exceptions;
+6. reject combinations using more than 10 distinct letters;
+7. run the Alphametics column/carry solver;
+8. keep only puzzles with a mathematically valid solution;
+9. prefer puzzles with exactly one solution before hints;
+10. where a classic puzzle has several solutions, store a fixed clue only when that clue makes the puzzle unique (for example `TWO + TWO = FOUR` with `O = 4`);
+11. maintain **at least 40 validated puzzles in each difficulty bank** so a maximum-size worksheet can be generated without repeating a template when the theme is set to All;
+12. keep every visible word theme represented at every difficulty; a narrow theme may legitimately reach its finite capacity before 40, in which case generation must stop rather than repeat;
+13. assign difficulty from the actual reasoning load (distinct letters, interacting columns/carries and support), not simply from word length;
+14. visually inspect a sample in browser and PDF before release.
 
 ## Runtime design
 
@@ -58,5 +61,7 @@ A dictionary word is only a candidate; it is **not automatically a good Alphamet
 - Colours
 
 The engine chooses deterministically from the selected difficulty/theme using the worksheet seed. It still runs the solver and guarantees a unique puzzle after any supplied digit hints.
+
+The current balanced catalogue contains **120 puzzles: 40 Easy, 40 Standard and 40 Challenge**. Repeated-addend templates are intentionally capped as a minority of the full bank and are concentrated in Easy. Pack generation tracks finite template IDs and will stop with a capacity message rather than repeat a puzzle.
 
 This approach is preferable to querying a dictionary at runtime because it keeps the public tool fast, reproducible, private, offline-friendly and safe from inappropriate/obscure vocabulary.
