@@ -1,7 +1,7 @@
 (function(global){
   'use strict';
 
-  const VERSION='0.1.0';
+  const VERSION='0.1.1';
   const SOURCE={
     jurisdiction:'England',
     stages:'KS1/KS2',
@@ -134,6 +134,7 @@
   leaf('Y3-NPV-COMPARE',3,'Number & place value','Represent, compare & order','Compare and order numbers to 1,000','live',['compare_numbers'],'Number - number and place value');
   leaf('Y3-NPV-REPRESENT',3,'Number & place value','Represent & estimate','Represent and estimate three-digit numbers using varied representations','partial',['number_line_visuals'],'Number - number and place value');
   leaf('Y3-NPV-WORDS',3,'Number & place value','Read & write numbers','Read and write numbers to 1,000 in numerals and words','live',['number_words'],'Number - number and place value');
+  leaf('Y3-NPV-PROBLEMS',3,'Number & place value','Problem solving','Solve number and practical problems using Year 3 place-value ideas','partial',['number_card_constraints','number_line_visuals'],'Number - number and place value','Existing reasoning providers cover parts of this objective; richer contextual templates are still needed.');
 
   leaf('Y3-AS-3D-ONES',3,'Addition & subtraction','Mental calculation','Add/subtract ones to/from a three-digit number','live',['addition','subtraction'],'Number - addition and subtraction');
   leaf('Y3-AS-3D-TENS',3,'Addition & subtraction','Mental calculation','Add/subtract tens to/from a three-digit number','live',['addition','subtraction'],'Number - addition and subtraction');
@@ -156,6 +157,7 @@
   leaf('Y3-FR-EQUIV',3,'Fractions','Equivalent fractions','Recognise/show equivalent fractions with small denominators','live',['equivalent_fractions','fraction_diagrams'],'Number - fractions');
   leaf('Y3-FR-ADD-SUB',3,'Fractions','Add & subtract fractions','Add/subtract fractions with the same denominator within one whole','live',['fraction_add_subtract'],'Number - fractions');
   leaf('Y3-FR-COMPARE',3,'Fractions','Compare & order','Compare/order unit fractions and same-denominator fractions','live',['fraction_compare'],'Number - fractions');
+  leaf('Y3-FR-PROBLEMS',3,'Fractions','Problem solving','Solve problems involving the Year 3 fraction objectives','partial',['fraction_reasoning','fraction_diagrams','fraction_of'],'Number - fractions','Direct skills are covered; a broader contextual/reasoning library is still needed.');
 
   leaf('Y3-MEAS-MIXED',3,'Measurement','Length, mass & capacity','Measure, compare, add and subtract length, mass and capacity','partial',['measure_compare','metric_conversion'],'Measurement');
   leaf('Y3-MEAS-PERIMETER',3,'Measurement','Perimeter','Measure perimeter of simple 2-D shapes','live',['perimeter'],'Measurement');
@@ -184,6 +186,7 @@
   leaf('Y4-NPV-REPRESENT',4,'Number & place value','Represent & estimate','Represent and estimate larger whole numbers','partial',['number_line_visuals'],'Number - number and place value');
   leaf('Y4-NPV-ROUND',4,'Number & place value','Rounding','Round whole numbers to nearest 10, 100 or 1,000','live',['rounding_whole'],'Number - number and place value');
   leaf('Y4-NPV-ROMAN',4,'Number & place value','Roman numerals','Read Roman numerals to 100','live',['roman_numerals'],'Number - number and place value');
+  leaf('Y4-NPV-PROBLEMS',4,'Number & place value','Problem solving','Solve number and practical problems using Year 4 place-value ideas and larger positive numbers','partial',['number_card_constraints','rounding_bounds','number_line_visuals'],'Number - number and place value','Existing reasoning families cover selected forms; contextual breadth remains incomplete.');
 
   leaf('Y4-AS-COLUMN',4,'Addition & subtraction','Written methods','Add/subtract up to four digits using column methods','live',['column_addition','column_subtraction'],'Number - addition and subtraction');
   leaf('Y4-AS-ESTIMATE-CHECK',4,'Addition & subtraction','Estimation & checking','Estimate and use inverse operations to check','live',['estimate_calculation','fact_families'],'Number - addition and subtraction');
@@ -236,6 +239,7 @@
   leaf('Y5-NPV-ROUND',5,'Number & place value','Rounding','Round numbers to 1,000,000 to specified powers of 10','live',['rounding_whole'],'Number - number and place value');
   leaf('Y5-NPV-ROMAN',5,'Number & place value','Roman numerals','Read Roman numerals to 1,000 and recognise years','live',['roman_numerals'],'Number - number and place value');
   leaf('Y5-NPV-SEQUENCES',5,'Number & place value','Sequences','Recognise and describe linear sequences involving fractions/decimals','partial',['number_sequences','fraction_sequences'],'Number - number and place value');
+  leaf('Y5-NPV-PROBLEMS',5,'Number & place value','Problem solving','Solve number and practical problems using the Year 5 place-value objectives','partial',['number_card_constraints','rounding_bounds','number_line_visuals'],'Number - number and place value','Existing reasoning families cover selected forms; contextual breadth remains incomplete.');
 
   leaf('Y5-AS-COLUMN',5,'Addition & subtraction','Written methods','Add/subtract whole numbers with more than four digits using column methods','live',['column_addition','column_subtraction'],'Number - addition and subtraction');
   leaf('Y5-AS-MENTAL',5,'Addition & subtraction','Mental calculation','Add/subtract mentally with increasingly large numbers','live',['addition','subtraction'],'Number - addition and subtraction');
@@ -245,6 +249,7 @@
   leaf('Y5-NP-FACTORS',5,'Number properties','Factors','Find multiples, factors, factor pairs and common factors','live',['multiple_check','factor_check','factor_pairs','common_factors'],'Number - multiplication and division');
   leaf('Y5-NP-PRIMES',5,'Number properties','Primes','Use prime/composite vocabulary and identify primes to 100','live',['prime_numbers'],'Number - multiplication and division');
   leaf('Y5-NP-SQUARE-CUBE',5,'Number properties','Square & cube numbers','Recognise/use square and cube numbers and notation','live',['square','cube'],'Number - multiplication and division');
+  leaf('Y5-NP-PROBLEMS',5,'Number properties','Problem solving','Solve problems using factors, multiples, square numbers and cube numbers','partial',['number_property_constraints','constrained_factor_pairs','event_cycles'],'Number - multiplication and division','Strong reasoning coverage exists, but the curriculum objective spans a wider contextual range.');
   leaf('Y5-MD-LONG-MULT',5,'Multiplication & division','Written multiplication','Multiply up to four digits by one/two digits including long multiplication','live',['long_multiplication','multidigit_multiply'],'Number - multiplication and division');
   leaf('Y5-MD-MENTAL',5,'Multiplication & division','Mental multiplication/division','Multiply/divide mentally using known facts','live',['derived_calculations','scaled_multiply','scaled_divide'],'Number - multiplication and division');
   leaf('Y5-MD-SHORT-DIV',5,'Multiplication & division','Written division','Divide up to four digits by one digit using short division','live',['short_division','division_remainders'],'Number - multiplication and division');
@@ -292,6 +297,7 @@
   leaf('Y6-NPV-10M',6,'Number & place value','Large numbers','Read/write/order/compare numbers to 10,000,000 and determine digit values','live',['place_value','compare_numbers','number_words'],'Number - number and place value');
   leaf('Y6-NPV-ROUND',6,'Number & place value','Rounding','Round whole numbers to a required degree of accuracy','live',['rounding_whole','rounding_custom'],'Number - number and place value');
   leaf('Y6-NPV-NEGATIVE',6,'Number & place value','Negative numbers','Use negative numbers in context and calculate intervals across zero','live',['negative_numbers','temperature_interval','number_line_visuals'],'Number - number and place value');
+  leaf('Y6-NPV-PROBLEMS',6,'Number & place value','Problem solving','Solve number and practical problems using the Year 6 place-value objectives','partial',['number_card_constraints','rounding_bounds','temperature_interval'],'Number - number and place value','Existing providers cover selected forms; broader contextual question templates are still needed.');
 
   leaf('Y6-MD-LONG-MULT',6,'Multiplication & division','Written multiplication','Multiply up to four digits by a two-digit number using long multiplication','live',['long_multiplication'],'Number - addition, subtraction, multiplication and division');
   leaf('Y6-MD-LONG-DIV',6,'Multiplication & division','Written division','Divide up to four digits by two digits using long division','live',['written_long_division','long_division'],'Number - addition, subtraction, multiplication and division');
