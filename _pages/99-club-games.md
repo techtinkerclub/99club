@@ -44,6 +44,7 @@ sitemap: true
 <link rel="stylesheet" href="/assets/99club/games-operationgrid-print-v160.css?v=1">
 <link rel="stylesheet" href="/assets/99club/games-preview-pager-v155.css?v=1">
 <link rel="stylesheet" href="/assets/99club/games-preview-parity-v206.css?v=15">
+<link rel="stylesheet" href="/assets/99club/games-verbal-reasoning.css?v=1">
 <script src="/assets/99club/games-vocabulary.js?v=1"></script>
 <script src="/assets/99club/games-arithmetic.js?v=9"></script>
 <script src="/assets/99club/games-brokencalc-quality-v152.js?v=2"></script>
@@ -67,10 +68,11 @@ sitemap: true
 <script src="/assets/99club/games-sumplete.js?v=1"></script>
 <script src="/assets/99club/games-shikaku-v143.js?v=1"></script>
 <script src="/assets/99club/games-sum-grids-v147.js?v=1"></script>
-<script src="/assets/99club/games-engine.js?v=16"></script>
+<script src="/assets/99club/games-verbal-reasoning.js?v=1"></script>
+<script src="/assets/99club/games-engine.js?v=17"></script>
 <script src="/assets/99club/games-symbol-decoder-v189.js?v=2"></script>
 <script src="/assets/99club/games-focus-topics-v145.js?v=1"></script>
-<script src="/assets/99club/games-pack-mode.js?v=4"></script>
+<script src="/assets/99club/games-pack-mode.js?v=5"></script>
 <script src="/assets/99club/games-performance-v142.js?v=1"></script>
 <script src="/assets/99club/games-performance-v149.js?v=1"></script>
 <script src="/assets/99club/games-preview-pager-v155.js?v=2"></script>
@@ -79,7 +81,7 @@ sitemap: true
 <script src="/assets/99club/games-puzzle-redesign-v135-logic.js?v=1"></script>
 <script src="/assets/99club/simple-pdf.js?v=19.4"></script>
 <script src="/assets/99club/games-page-geometry-v206.js?v=1"></script>
-<script src="/assets/99club/games-pdf.js?v=36"></script>
+<script src="/assets/99club/games-pdf.js?v=37"></script>
 <script src="/assets/99club/games-pdf-v136.js?v=3"></script>
 <script src="/assets/99club/games-pdf-v137.js?v=1"></script>
 <script src="/assets/99club/games-pdf-v138.js?v=1"></script>
@@ -104,12 +106,12 @@ sitemap: true
 <script src="/assets/99club/school-usage.js?v=2"></script>
 <script src="/assets/99club/school-brand.js?v=1"></script>
 <script src="/assets/99club/games-parent-practice.js?v=3"></script>
-<script src="/assets/99club/games-app.js?v=48" defer></script>
+<script src="/assets/99club/games-app.js?v=49" defer></script>
 <script src="/assets/99club/games-preview-parity-v206.js?v=1" defer></script>
 <script src="/assets/99club/games-operationgrid-print-v158-ui.js?v=2" defer></script>
 <script src="/assets/99club/games-operationgrid-print-v160-ui.js?v=1" defer></script>
 <script src="/assets/99club/games-operationgrid-print-v155-ui.js?v=1" defer></script>
-<script src="/assets/99club/games-random-ui.js?v=5" defer></script>
+<script src="/assets/99club/games-random-ui.js?v=6" defer></script>
 <script src="/assets/99club/games-card-links-v205.js?v=4" defer></script>
 <script src="/assets/99club/games-ui-v134.js?v=2" defer></script>
 <script src="/assets/99club/games-puzzle-redesign-v136.js?v=3" defer></script>
