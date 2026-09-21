@@ -19,6 +19,7 @@ const takuzu=syntax('assets/99club/games-takuzu-v139-ui.js');
 const shikaku=syntax('assets/99club/games-shikaku-v143-ui.js');
 const engine=syntax('assets/99club/games-engine.js');
 const parentPage=syntax('assets/99club/games-parent-practice-page.js');
+const parentShare=syntax('assets/99club/games-parent-practice.js');
 const builder=syntax('assets/99club/widget-builder.js');
 const runtime=syntax('assets/99club/widget-runtime.js');
 
@@ -35,6 +36,9 @@ check(!/topic\/year range|year\/topic/i.test(shikaku),'Shikaku UI has no Year-ra
 check(!/year\/topic selection|year\/topic range/i.test(engine),'Games engine errors refer to teaching focus rather than Year ranges');
 check(engine.includes("x.source==='mine'||"),'teacher-added vocabulary is not filtered by the hidden legacy Year scale');
 check(!/age range|function yearLabel\(|Years? ['"+]/i.test(parentPage),'parent puzzle page has no Year/age-range claim');
+const compactShare=parentShare.slice(parentShare.indexOf('function compactSettings'),parentShare.indexOf('function compactPayload'));
+check(!/\bminYear\b|\bmaxYear\b/.test(compactShare),'new Games parent links do not carry legacy Year-range fields');
+check(parentShare.includes("minYear:row?.[3],maxYear:row?.[4]"),'older parent links remain decodable for backwards compatibility');
 check(!/data-widget-type|Combined Maths Widget|Combined widget/i.test(builder)&&builder.includes('BUILDER_MODE'),'widget builder is locked to separate Club/Games modes');
 check(builder.includes('data-pack-title')&&runtime.includes("p.title||'Maths puzzle pack'"),'Games widget uses teacher-editable puzzle-pack display names');
 check(!/p\.minYear|p\.maxYear|Year ['"+]/.test(runtime),'widget runtime does not derive puzzle labels from Year ranges');
