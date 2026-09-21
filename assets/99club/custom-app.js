@@ -57,9 +57,9 @@
     challenge: ['Challenge','Choose the level you want to generate. Bronze, Silver, Gold, Platinum and Diamond are post-99 presets with progressively broader mental-maths content.'],
     perfectAttempts: ['Perfect attempts to advance','How many perfect scores a pupil should achieve before moving on. The Classic scheme now defaults to three; changing this updates the instruction printed on the sheet.'],
     consecutiveAttempts: ['Consecutive perfect attempts','When enabled, the required perfect scores must happen in a row. Leave this off when successful attempts can be accumulated across separate sessions.'],
-    questionType: ['Question type','Controls the broad generator mode. “Mixed mental arithmetic” lets you combine several question families and set their relative frequency.'],
+    questionType: ['Question type','Controls the broad generator mode. “Mixed question families” lets you combine maths and verbal-reasoning question families and set their relative frequency.'],
     unaided: ['Independent / unaided wording','When enabled, the worksheet instruction states that the challenge should be completed independently and without help.'],
-    families: ['Question families','Choose which kinds of questions can appear on a mixed mental-arithmetic sheet. A family that is switched off will not be generated.'],
+    families: ['Question families','Choose exactly which kinds of questions can appear on the worksheet. A family that is switched off will not be generated.'],
     weights: ['Relative question mix','Weight means frequency, not difficulty. A family with weight 4 appears about twice as often as one with weight 2. Weights do not need to add to 100; the app shows the approximate percentage and question count.'],
     verbalDifficulty: ['Verbal Reasoning difficulty','Easy uses common vocabulary and simpler one-step patterns. Standard broadens the vocabulary and combines more steps. Challenge uses less obvious relationships, richer codes and longer deductions.'],
     teacherNote: ['Teacher note','Optional short note for your own future reference. It is printed only at the end of teacher answer sheets, never on pupil worksheets. The note is saved with browser backups/setup files and Full recreation codes, but is deliberately omitted from the compact answer-sheet QR.'],
@@ -517,7 +517,7 @@
     const open=isOpenWorksheet();
     const mathModes=[
       ['double','Doubling'],['repeated_addition','Repeated addition'],['addition','Addition'],['add_subtract','Addition & subtraction'],
-      ['multiply','Multiplication'],['divide','Division'],['mixed','Mixed × and ÷'],['missing_number','Missing-number facts'],['family_mix','Mixed mental arithmetic']
+      ['multiply','Multiplication'],['divide','Division'],['mixed','Mixed × and ÷'],['missing_number','Missing-number facts'],['family_mix','Mixed question families']
     ];
     const hasFamily=(...ids)=>r.mode==='family_mix' && ids.some(id=>r.families.includes(id));
     const tableFamilies=['multiply','divide','missing_number','fact_families','distributive_law','correspondence'];
