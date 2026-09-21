@@ -6,6 +6,7 @@ permalink: /widget/builder/
 sidebar: false
 sitemap: false
 search: false
+robots: "noindex,nofollow,noarchive"
 ---
 <div id="main" class="tt99-page-main" role="main"><article class="splash"><section class="page__content"><div id="tt99-widget-builder"><noscript>This widget builder needs JavaScript enabled.</noscript></div></section></article></div>
 <link rel="stylesheet" href="/assets/99club/99club.css?v=20.2">

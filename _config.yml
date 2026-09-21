@@ -24,6 +24,26 @@ plugins:
 include:
   - "_pages"
 
+# Keep maintainer/QA material in the repository, but never copy it to the public site.
+exclude:
+  - .github
+  - .sass-cache
+  - .jekyll-cache
+  - gemfiles
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor/bundle/
+  - vendor/cache/
+  - vendor/gems/
+  - vendor/ruby/
+  - docs
+  - scripts
+  - README.md
+  - MIGRATION_IDENTITY_AUDIT.md
+  - package.json
+  - package-lock.json
+
 header:
   nav: true
 
@@ -34,4 +54,5 @@ defaults:
     values:
       layout: single
       author_profile: false
+      sitemap: false
 markdown: kramdown

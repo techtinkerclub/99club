@@ -97,6 +97,8 @@ jobs:
         run: node scripts/99club/widget-qa.js
       - name: Run security and privacy regression checks
         run: node scripts/99club/security-smoke.js
+      - name: Run search indexability regression checks
+        run: node scripts/99club/seo-indexability-qa.js
       - name: Upload QA report
         if: always()
         uses: actions/upload-artifact@v4
