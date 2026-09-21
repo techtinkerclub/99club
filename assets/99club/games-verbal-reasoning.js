@@ -47,15 +47,54 @@ var CATEGORIES={
  jobs:['nurse','doctor','teacher','baker','farmer','pilot','driver','artist','builder','chef','dentist','plumber']
 };
 
-var SYNONYMS=[
- ['big','large',1],['small','tiny',1],['quick','fast',1],['happy','glad',1],['begin','start',1],['finish','end',1],
- ['smart','clever',1],['quiet','silent',1],['angry','cross',1],['neat','tidy',1],['ill','sick',1],['choose','select',2],
- ['answer','reply',2],['gift','present',2],['close','shut',1],['speak','talk',1],['look','see',1],['jump','leap',2],
- ['correct','right',1],['safe','secure',2],['story','tale',1],['help','aid',2],['road','street',1],['odd','strange',2],
- ['simple','easy',1],['hard','difficult',2],['brave','bold',2],['rapid','swift',3],['ancient','old',2],['observe','notice',3],
- ['permit','allow',3],['reply','respond',3],['purchase','buy',3],['depart','leave',3],['assist','help',3],['enormous','huge',3]
-].map(function(x){return {a:x[0],b:x[1],level:x[2]};});
-
+var SYNONYM_GROUPS=[
+ {terms:['big','large','huge'],level:1},
+ {terms:['small','little','tiny'],level:1},
+ {terms:['quick','fast','speedy'],level:1},
+ {terms:['happy','glad','cheerful'],level:1},
+ {terms:['angry','cross','mad'],level:1},
+ {terms:['quiet','silent','still'],level:1},
+ {terms:['smart','clever','bright'],level:1},
+ {terms:['neat','tidy','orderly'],level:1},
+ {terms:['ill','sick','unwell'],level:1},
+ {terms:['choose','select','pick'],level:1},
+ {terms:['close','shut','seal'],level:1},
+ {terms:['speak','talk','chat'],level:1},
+ {terms:['look','see','view'],level:1},
+ {terms:['jump','leap','hop'],level:1},
+ {terms:['correct','right','accurate'],level:1},
+ {terms:['help','aid','assist'],level:1},
+ {terms:['odd','strange','unusual'],level:1},
+ {terms:['simple','easy','plain'],level:1},
+ {terms:['hard','difficult','tough'],level:1},
+ {terms:['brave','bold','fearless'],level:1},
+ {terms:['safe','secure','protected'],level:1},
+ {terms:['finish','end','stop'],level:1},
+ {terms:['begin','start','commence'],level:2},
+ {terms:['answer','reply','response'],level:2},
+ {terms:['story','tale','account'],level:2},
+ {terms:['repair','mend','fix'],level:2},
+ {terms:['create','make','produce'],level:2},
+ {terms:['empty','vacant','bare'],level:2},
+ {terms:['careful','cautious','wary'],level:2},
+ {terms:['kind','gentle','caring'],level:2},
+ {terms:['ancient','old','aged'],level:2},
+ {terms:['observe','notice','spot'],level:2},
+ {terms:['permit','allow','approve'],level:2},
+ {terms:['depart','leave','exit'],level:2},
+ {terms:['enormous','vast','immense'],level:3},
+ {terms:['purchase','buy','acquire'],level:3},
+ {terms:['reply','respond','answer'],level:3},
+ {terms:['dangerous','risky','unsafe'],level:3},
+ {terms:['honest','truthful','sincere'],level:3},
+ {terms:['destroy','ruin','wreck'],level:3},
+ {terms:['calm','peaceful','tranquil'],level:3},
+ {terms:['important','major','significant'],level:3}
+];
+var SYNONYMS=[];
+SYNONYM_GROUPS.forEach(function(g){
+ for(var i=0;i<g.terms.length;i++)for(var j=i+1;j<g.terms.length;j++)SYNONYMS.push({a:g.terms[i],b:g.terms[j],level:g.level});
+});
 var ANTONYMS=[
  ['hot','cold',1],['big','small',1],['fast','slow',1],['early','late',1],['old','young',1],['light','dark',1],
  ['open','closed',1],['full','empty',1],['high','low',1],['hard','soft',1],['wet','dry',1],['happy','sad',1],
@@ -87,15 +126,13 @@ var RELATIONS=[
  {name:'tool and user',level:3,pairs:[['stethoscope','doctor'],['palette','artist'],['trowel','builder'],['whisk','chef'],['spanner','mechanic'],['needle','tailor']]}
 ];
 
-var COMMON_LINKS=[
- {clues:['quick','rapid'],answer:'fast',level:1},{clues:['begin','open'],answer:'start',level:1},{clues:['finish','stop'],answer:'end',level:1},
- {clues:['tiny','little'],answer:'small',level:1},{clues:['large','huge'],answer:'big',level:1},{clues:['glad','cheerful'],answer:'happy',level:1},
- {clues:['silent','still'],answer:'quiet',level:2},{clues:['clever','bright'],answer:'smart',level:2},{clues:['road','avenue'],answer:'street',level:2},
- {clues:['select','pick'],answer:'choose',level:2},{clues:['secure','protected'],answer:'safe',level:2},{clues:['reply','response'],answer:'answer',level:2},
- {clues:['observe','spot'],answer:'notice',level:3},{clues:['permit','approve'],answer:'allow',level:3},{clues:['assist','support'],answer:'help',level:3},
- {clues:['depart','go'],answer:'leave',level:3},{clues:['enormous','vast'],answer:'huge',level:3},{clues:['purchase','obtain'],answer:'buy',level:3}
-];
-
+var COMMON_LINKS=[];
+SYNONYM_GROUPS.filter(function(g){return g.terms.length>=3;}).forEach(function(g){
+ for(var ai=0;ai<g.terms.length;ai++){
+   var answer=g.terms[ai],others=g.terms.filter(function(_,i){return i!==ai;});
+   for(var i=0;i<others.length;i++)for(var j=i+1;j<others.length;j++)COMMON_LINKS.push({clues:[others[i],others[j]],answer:answer,level:g.level});
+ }
+});
 var INSERT_PATTERNS=[
  ['c_t','cat','A',1],['h_t','hat','A',1],['m_p','map','A',1],['b_g','bag','A',1],['f_n','fan','A',1],['p_n','pan','A',1],['c_p','cap','A',1],
  ['pl_ne','plane','A',2],['gr_pe','grape','A',2],['sh_re','share','A',2],['st_rt','start','A',2],['bl_ck','black','A',2],['cr_ne','crane','A',3],['tr_ce','trace','A',3],['br_ke','brake','A',3],['fl_me','flame','A',3],
@@ -310,7 +347,7 @@ function generateNumberSeries(o,seed){
 function generateCompound(o,seed){
  var rng=rngFromSeed(seed),pool=poolForLevel(COMPOUNDS,o.difficulty),allSet=new Set(COMPOUNDS.map(function(x){return x.left+'|'+x.right;})),items=[];
  for(var q=0;q<3;q++){
-   var c=pick(pool,rng),reverse=o.difficulty!=='easy'&&rng()<.45,answer=cap(reverse?c.left:c.right),stem=reverse?'Which word goes before '+c.right.toUpperCase()+' to make a compound word?':'Which word goes after '+c.left.toUpperCase()+' to make a compound word?',raw=uniq(pool.filter(function(x){return x!==c;}).map(function(x){return reverse?x.left:x.right;}));
+   var c=pick(pool,rng),reverse=rng()<.5,answer=cap(reverse?c.left:c.right),stem=reverse?'Which word goes before '+c.right.toUpperCase()+' to make a compound word?':'Which word goes after '+c.left.toUpperCase()+' to make a compound word?',raw=uniq(pool.filter(function(x){return x!==c;}).map(function(x){return reverse?x.left:x.right;}));
    var d=raw.filter(function(candidate){return reverse?!allSet.has(candidate+'|'+c.right):!allSet.has(c.left+'|'+candidate);}).map(cap);
    items.push(makeItem(stem,answer,makeOptions(answer,d,rng,4),cap(c.left)+' + '+c.right+' = '+cap(c.left+c.right)+'.',signature([c.left,c.right,reverse]),[]));
  }
@@ -380,7 +417,7 @@ var GENERATORS={
 function generate(id,settings,seed){
  var def=DEFINITIONS[id];if(!def)return null;var raw=settings&&settings.engineSettings&&settings.engineSettings[id]||{},o=normalise(id,raw),fn=GENERATORS[id],excluded=new Set(settings&&settings._finiteExclusions&&settings._finiteExclusions.vr||[]);
  try{
-   for(var attempt=0;attempt<32;attempt++){
+   for(var attempt=0;attempt<128;attempt++){
      var a=fn(o,String(seed||'vr')+':'+id+':'+attempt),v=validate(a);
      if(!v.ok)continue;
      if(!excluded.has(String(a.contentKey)))return a;
