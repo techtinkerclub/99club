@@ -92,7 +92,14 @@ var ANTONYMS=[
 ['DEEP','SHALLOW'],['THICK','THIN'],['RICH','POOR'],['GIVE','TAKE'],['BUY','SELL'],['PUSH','PULL'],['LOVE','HATE'],
 ['LAUGH','CRY'],['WIN','LOSE'],['SAFE','DANGEROUS'],['FRIEND','ENEMY'],['PRESENT','ABSENT'],['ACCEPT','REFUSE'],
 ['REMEMBER','FORGET'],['INCLUDE','EXCLUDE'],['CREATE','DESTROY'],['EXPAND','CONTRACT'],['GENEROUS','SELFISH'],
-['CAUTIOUS','RECKLESS'],['PERMANENT','TEMPORARY'],['MAJOR','MINOR']
+['CAUTIOUS','RECKLESS'],['PERMANENT','TEMPORARY'],['MAJOR','MINOR'],
+['BIG','SMALL'],['LONG','SHORT'],['GOOD','BAD'],['OLD','NEW'],['LEFT','RIGHT'],['DAY','NIGHT'],['BLACK','WHITE'],
+['START','STOP'],['LIGHT','DARK'],['SWEET','SOUR'],['HARD','EASY'],['ROUND','FLAT'],['SHARP','BLUNT'],['TIGHT','LOOSE'],
+['FRONT','BACK'],['MANY','FEW'],['ALL','NONE'],['SAME','OTHER'],['HERE','THERE'],['RISE','FALL'],['COME','GO'],
+['ARRIVE','LEAVE'],['BUILD','BREAK'],['JOIN','SPLIT'],['GAIN','LOSE'],['LIVE','DIE'],['ALIVE','DEAD'],['BEGIN','END'],
+['UNDER','OVER'],['NORTH','SOUTH'],['EAST','WEST'],['MALE','FEMALE'],['SAFE','UNSAFE'],['KIND','CRUEL'],['POLITE','RUDE'],
+['CALM','ANGRY'],['TAME','WILD'],['PROUD','HUMBLE'],['MODEST','VAIN'],['FOUND','LOST'],['INNER','OUTER'],['UPPER','LOWER'],
+['ALWAYS','NEVER'],['OFTEN','RARELY'],['ENTER','LEAVE'],['REMEMBER','FORGET'],['INCLUDE','EXCLUDE'],['CREATE','DESTROY']
 ];
 var RELATIONS=[
 {name:'young animal',pairs:[['DOG','PUPPY'],['CAT','KITTEN'],['SHEEP','LAMB'],['COW','CALF'],['HORSE','FOAL']]},
@@ -112,7 +119,19 @@ var COMPOUNDS=[
 ['NIGHT','LIGHT'],['FOOT','STEP'],['BOOK','MARK'],['CUP','CAKE'],['PAN','CAKE'],['JELLY','FISH'],['SEA','SHELL'],
 ['SAND','PIT'],['SAND','CASTLE'],['POST','BOX'],['MAIL','BOX'],['TOOTH','PASTE'],['BED','TIME'],['BIRTH','DAY'],
 ['WEEK','END'],['UP','STAIRS'],['DOWN','STAIRS'],['OUT','SIDE'],['IN','SIDE'],['EVERY','ONE'],['ANY','THING'],
-['SOME','THING'],['NO','THING'],['RAIN','DROP'],['SNOW','BALL']
+['SOME','THING'],['NO','THING'],['RAIN','DROP'],['SNOW','BALL'],
+['BACK','PACK'],['BATH','TUB'],['BED','SIDE'],['BLACK','BIRD'],['BLACK','BOARD'],['BLACK','BERRY'],['BLUE','BELL'],['BLUE','BERRY'],
+['BOOK','SHELF'],['BOOK','SHOP'],['BOOK','WORM'],['BREAK','FAST'],['BUTTER','CUP'],['CARD','BOARD'],['CHEESE','CAKE'],
+['CLASS','MATE'],['CLOCK','WORK'],['COAST','LINE'],['CORN','FIELD'],['COW','BOY'],['CUP','BOARD'],['DAY','LIGHT'],['DOOR','STEP'],
+['DOOR','WAY'],['EAR','RING'],['EARTH','QUAKE'],['FARM','HOUSE'],['FIRE','PLACE'],['FIRE','FLY'],['FISH','CAKE'],['FISH','BOWL'],
+['FOOT','PATH'],['FOOT','WEAR'],['GREEN','HOUSE'],['HAIR','BRUSH'],['HAND','SHAKE'],['HEAD','ACHE'],['HEAD','LIGHT'],['HORSE','BACK'],
+['HOUSE','BOAT'],['ICE','BERG'],['JELLY','BEAN'],['KEY','BOARD'],['LAKE','SIDE'],['LIGHT','HOUSE'],['NEWS','PAPER'],['NOTE','BOOK'],
+['PAN','CAKE'],['PLAY','MATE'],['RIVER','SIDE'],['ROAD','SIDE'],['SCHOOL','WORK'],['SEA','SHORE'],['SHOE','LACE'],['SHOP','KEEPER'],
+['SNOW','FLAKE'],['SUN','RISE'],['SUN','SET'],['SUN','SHINE'],['TABLE','TOP'],['TEA','POT'],['TEA','SPOON'],['TREE','HOUSE'],
+['WALL','PAPER'],['WATER','MELON'],['WATER','PROOF'],['WHEEL','BARROW'],['WIND','MILL'],['WORK','BOOK'],['WORK','PLACE'],['WRIST','WATCH'],
+['AIR','LINE'],['AIR','PLANE'],['BIRD','HOUSE'],['BOOK','STORE'],['CAR','PET'],['CAR','PORT'],['CROSS','ROAD'],['DOWN','HILL'],
+['DRAGON','FLY'],['FARM','LAND'],['FIRE','SIDE'],['FOOT','PRINT'],['HAND','WRITING'],['HOME','SICK'],['LAND','MARK'],['LIFE','TIME'],
+['MOON','BEAM'],['PLAY','HOUSE'],['RAIN','FALL'],['SEA','WEED'],['SIDE','WALK'],['STAR','LIGHT'],['TOOTH','ACHE'],['WATER','WAY']
 ];
 var COMPOUND_SET=new Set(COMPOUNDS.map(function(p){return p[0]+'+'+p[1];}));
 var RESTORE=[
@@ -270,7 +289,7 @@ function gen5(d,seed){
   return makeQ('hidden_word',d,'A FOUR-letter word is hidden across one join in this row. Which neighbouring pair contains it?  '+row.join('   '),answer,{choices:choices,answerText:answer+' → '+x.target,key:'hiddenrow:'+row.join(':')+':'+x.target,explanation:x.left+' + '+x.right+' hides '+x.target+' across the join.',check:{kind:'hidden_row',row:row,pair:[x.left,x.right],target:x.target}});
 }
 var SHORT3=new Set(('THE HER GET EAT EAR ART CAR ASK ANT AND ONE PEN SON FOR WIN DEN BUT SUM LET BET SET END TEA ATE MAN RAN SIT LOW ALL ARE DAY RED SEA SUN AIR ARM BAG BED BEE BUS CAT COW CUP DAD DOG EGG EYE FLY FOX HAT HOT ICE INK JAR LEG LIP MAP MUD MUM NAN OLD SAD SKY TOE TOP WET').split(' '));
-var MISSING_WORD_BANK=unique(('FATHER MOTHER BROTHER ANOTHER GATHERED TOGETHER WEATHER FEATHER LEATHER HEART HEARD LEARN BEARD EARTH SEARCH CLEAR NEARBY FEARFUL START SMART PARTY ARTIST STARTED SMARTER CARPET CARTON CARROT CARRY BASKET MASKED TASKED ASKED PLANT GIANT CHANT WANTED PLANTED GRANTED HANDLE CANDLE SANDAL RANDOM PANDA GRAND BRAND STAND BLAND STONE MONEY HONEY ALONE CLONE PHONE LONELY PENCIL PENNY LESSON PERSON SEASON FOREST FORGET FORMAL BEFORE INFORM WINDOW WINTER WINNER SWING TWINS GARDEN SUDDEN HIDDEN DENTAL DENTIST BUTTON BUTTER SUMMER LETTER BETTER SETTER FRIEND BLEND TREND SPEND STEAM TEAPOT TEACHER TREAT GREAT CHEAT WHEAT WATER LATER CATER HATER PLATE CRATE STATE SKATE SLATE CREATE ISLAND HUMAN WOMAN MANNER MANAGE MANTLE ELEPHANT IMPORTANT PRESENT ABSENT REMEMBER FORGOTTEN INCLUDE EXCLUDE CONTRACT EXPAND GENEROUS CAUTIOUS TEMPORARY').split(' '));
+var MISSING_WORD_BANK=unique(WORDS.concat(('FATHER MOTHER BROTHER ANOTHER GATHERED TOGETHER WEATHER FEATHER LEATHER HEART HEARD LEARN BEARD EARTH SEARCH CLEAR NEARBY FEARFUL START SMART PARTY ARTIST STARTED SMARTER CARPET CARTON CARROT CARRY BASKET MASKED TASKED ASKED PLANT GIANT CHANT WANTED PLANTED GRANTED HANDLE CANDLE SANDAL RANDOM PANDA GRAND BRAND STAND BLAND STONE MONEY HONEY ALONE CLONE PHONE LONELY PENCIL PENNY LESSON PERSON SEASON FOREST FORGET FORMAL BEFORE INFORM WINDOW WINTER WINNER SWING TWINS GARDEN SUDDEN HIDDEN DENTAL DENTIST BUTTON BUTTER SUMMER LETTER BETTER SETTER FRIEND BLEND TREND SPEND STEAM TEAPOT TEACHER TREAT GREAT CHEAT WHEAT WATER LATER CATER HATER PLATE CRATE STATE SKATE SLATE CREATE ISLAND HUMAN WOMAN MANNER MANAGE MANTLE ELEPHANT IMPORTANT PRESENT ABSENT REMEMBER FORGOTTEN INCLUDE EXCLUDE CONTRACT EXPAND GENEROUS CAUTIOUS TEMPORARY EARTHEN LEARNING TEACHING READING WRITING HEARING SEARCHING STARTER ARTWORK CARTOON BARGAIN GARDENER FARMER MARKETPLACE BEDROOM BATHROOM CLASSROOM PLAYGROUND FOOTBALL HANDBAG RAINCOAT SUNLIGHT MOONLIGHT NOTEBOOK NEWSPAPER').split(' ')));
 var MISSING_CACHE=null;
 function missingClassicCandidates(){
   if(MISSING_CACHE)return MISSING_CACHE;
@@ -427,11 +446,24 @@ function gen19(d,seed){
 var EP=[{id:'first3',label:'first three letters',fn:function(w){return w.slice(0,3);}},{id:'last3',label:'last three letters',fn:function(w){return w.slice(-3);}},{id:'124',label:'1st, 2nd and 4th letters',fn:function(w){return w[0]+w[1]+w[3];}},{id:'l23',label:'last, 2nd and 3rd letters',fn:function(w){return w.slice(-1)+w[1]+w[2];}}],CW_CACHE=null;
 function cwc(){if(CW_CACHE)return CW_CACHE;var o=[];EP.forEach(function(p){WORDS.forEach(function(w){if(w.length<4)return;var z=p.fn(w);if(WORD_SET.has(z))o.push({p:p,w:w,result:z});});});CW_CACHE=o;return o;}
 function gen20(d,seed){var r=rngFromSeed(seed),allowed=d==='easy'?['first3','last3']:d==='standard'?['first3','last3','124']:EP.map(function(x){return x.id;}),pool=shuffle(r,cwc().filter(function(x){return allowed.indexOf(x.p.id)>=0;})),e1=pool[0],e2=pool.find(function(x){return e1&&x.p.id===e1.p.id&&x.result!==e1.result;}),tar=pool.find(function(x){return e1&&e2&&x.p.id===e1.p.id&&x.result!==e1.result&&x.result!==e2.result;});if(!e1||!e2||!tar)return null;return makeQ('complete_word',d,'Find the pattern: '+e1.w+' → '+e1.result+',  '+e2.w+' → '+e2.result+'.  Using the same pattern, '+tar.w+' → ?',tar.result,{choices:shuffle(r,[tar.result].concat(distract(r,3,[tar.result],d,3))),key:'cw:'+e1.p.id+':'+e1.w+':'+e2.w+':'+tar.w,explanation:'Take the '+e1.p.label+'.',check:{kind:'cw',pattern:e1.p.id,word:tar.w}});}
+var LINK_VARIANT_CACHE={};
+function commonLinkVariants(d){
+  if(LINK_VARIANT_CACHE[d])return LINK_VARIANT_CACHE[d];
+  var out=[],seen=new Set();
+  LINK_BANK.forEach(function(e){
+    if(!suitable(e.answer,d))return;
+    var clues=unique(e.clues.filter(function(x){return suitable(x,d);}));
+    for(var a=0;a<clues.length-3;a++)for(var b=a+1;b<clues.length-2;b++)for(var cc=b+1;cc<clues.length-1;cc++)for(var dd=cc+1;dd<clues.length;dd++){
+      var set=[clues[a],clues[b],clues[cc],clues[dd]],key=e.answer+'|'+set.slice().sort().join(',');
+      if(!seen.has(key)){seen.add(key);out.push({answer:e.answer,clues:set});}
+    }
+  });
+  LINK_VARIANT_CACHE[d]=out;return out;
+}
 function gen21(d,seed){
-  var r=rngFromSeed(seed),pool=LINK_BANK.filter(function(e){var a=e.clues.filter(function(x){return suitable(x,d);});return suitable(e.answer,d)&&a.length>=4;}),e=choose(r,pool);
-  if(!e)return null;
-  var clues=shuffle(r,e.clues.filter(function(x){return suitable(x,d);})).slice(0,4),choiceCount=d==='easy'?3:d==='standard'?4:5,opts=shuffle(r,[e.answer].concat(distract(r,choiceCount-1,[e.answer].concat(clues),d)));
-  return makeQ('same_meaning',d,'Which ONE answer goes equally well with BOTH pairs?  ('+clues[0]+', '+clues[1]+')   ('+clues[2]+', '+clues[3]+')',e.answer,{choices:opts,key:'link2:'+e.answer+':'+clues.slice().sort().join(','),explanation:e.answer+' links both pairs by meaning.',check:{kind:'link',answer:e.answer,pairs:[[clues[0],clues[1]],[clues[2],clues[3]]]}});
+  var r=rngFromSeed(seed),variant=choose(r,commonLinkVariants(d));if(!variant)return null;
+  var clues=shuffle(r,variant.clues),choiceCount=d==='easy'?3:d==='standard'?4:5,opts=shuffle(r,[variant.answer].concat(distract(r,choiceCount-1,[variant.answer].concat(clues),d)));
+  return makeQ('same_meaning',d,'Which ONE answer goes equally well with BOTH pairs?  ('+clues[0]+', '+clues[1]+')   ('+clues[2]+', '+clues[3]+')',variant.answer,{choices:opts,key:'link2:'+variant.answer+':'+variant.clues.slice().sort().join(','),explanation:variant.answer+' links both pairs by meaning.',check:{kind:'link',answer:variant.answer,pairs:[[clues[0],clues[1]],[clues[2],clues[3]]]}});
 }
 
 var GENERATORS={insert_letter:gen1,odd_ones_out:gen2,letter_code:gen3,closest_meaning:gen4,hidden_word:gen5,missing_word:gen6,letters_for_numbers:gen7,move_letter:gen8,letter_series:gen9,word_connections:gen10,number_series:gen11,compound_words:gen12,make_word:gen13,letter_connections:gen14,reading_information:gen15,opposite_meaning:gen16,complete_sum:gen17,related_numbers:gen18,word_number_codes:gen19,complete_word:gen20,same_meaning:gen21};
