@@ -48,7 +48,7 @@ for(const d of VR.DIFFICULTIES){
     assert(!pack.capacityMessage,id+'/'+d+' 40-pack hit capacity: '+pack.capacityMessage);
     assert(acts.length===40,id+'/'+d+' 40-pack generated '+acts.length);
     assert(new Set(acts.map(a=>a.questionKey)).size===40,id+'/'+d+' 40-pack repeated a question');
-    assert(acts.every(a=>G.validateActivity(a).ok),id+'/'+d+' 40-pack has invalid activity');
+    assert(acts.every(a=>VR.validate(a.question).ok),id+'/'+d+' 40-pack has invalid activity');
   }
 }
 const randomMaths=G.generatePack({...G.normalizeSettings({minYear:3,maxYear:4,topics:['calculation']}),packMode:'random',randomScope:'maths',activityCount:12,activitiesPerSheet:2},'vr-random-maths');
