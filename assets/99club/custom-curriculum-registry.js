@@ -1,7 +1,7 @@
 (function(global){
   'use strict';
 
-  const VERSION='0.1.1';
+  const VERSION='0.1.2';
   const SOURCE={
     jurisdiction:'England',
     stages:'KS1/KS2',
@@ -55,6 +55,7 @@
   leaf('Y1-MD-GROUP-SHARE',1,'Multiplication & division','Grouping & sharing','Solve one-step grouping and sharing problems','partial',['correspondence','fraction_diagrams'],'Number - multiplication and division','Needs explicit early-years grouping versus sharing providers.');
   leaf('Y1-MD-ARRAYS',1,'Multiplication & division','Arrays','Use simple arrays to reason about multiplication and division','planned',[],'Number - multiplication and division');
   leaf('Y1-MD-DOUBLES',1,'Multiplication & division','Doubling','Double small numbers and quantities','live',['double'],'Number - multiplication and division');
+  leaf('Y1-MD-ONE-STEP',1,'Multiplication & division','One-step problems','Solve one-step multiplication and division problems using concrete/pictorial models and arrays','partial',['correspondence','container_reasoning'],'Number - multiplication and division','Existing providers cover selected structures; explicit Year 1 visual/template questions are still needed.');
 
   leaf('Y1-FR-HALVES',1,'Fractions','Recognise & find fractions','Recognise and find one half of shapes, objects and quantities','live',['fraction_of','fraction_diagrams'],'Number - fractions');
   leaf('Y1-FR-QUARTERS',1,'Fractions','Recognise & find fractions','Recognise and find one quarter of shapes, objects and quantities','live',['fraction_of','fraction_diagrams'],'Number - fractions');
@@ -65,6 +66,10 @@
   leaf('Y1-MEAS-COMPARE-CAPACITY',1,'Measurement','Capacity & volume','Compare and describe capacity and volume','partial',['measure_compare'],'Measurement');
   leaf('Y1-MEAS-COMPARE-TIME',1,'Measurement','Time language','Compare durations using everyday time language','live',['time_language'],'Measurement');
   leaf('Y1-MEAS-NONSTANDARD',1,'Measurement','Measuring','Measure and record using early/non-standard measures','planned',[],'Measurement');
+  leaf('Y1-MEAS-RECORD-LENGTH',1,'Measurement','Measuring & recording','Measure and begin to record lengths and heights','planned',[],'Measurement');
+  leaf('Y1-MEAS-RECORD-MASS',1,'Measurement','Measuring & recording','Measure and begin to record mass/weight','planned',[],'Measurement');
+  leaf('Y1-MEAS-RECORD-CAPACITY',1,'Measurement','Measuring & recording','Measure and begin to record capacity and volume','planned',[],'Measurement');
+  leaf('Y1-MEAS-RECORD-TIME',1,'Measurement','Measuring & recording','Measure and begin to record time in hours, minutes and seconds','partial',['clock_reasoning_visual','time_language'],'Measurement','Clock/time language is available; direct elapsed-time measurement recording is not yet granularly covered.');
   leaf('Y1-MEAS-COINS-NOTES',1,'Measurement','Money','Recognise common coins and notes and know their values','partial',['coin_reasoning','money'],'Measurement');
   leaf('Y1-MEAS-SEQUENCE-EVENTS',1,'Measurement','Calendar & chronology','Sequence events using chronological language','live',['time_language'],'Measurement');
   leaf('Y1-MEAS-DATES',1,'Measurement','Calendar & chronology','Use days, weeks, months and years vocabulary','live',['calendar_facts','calendar_reasoning_visual'],'Measurement');
@@ -148,6 +153,7 @@
   leaf('Y3-MD-STATEMENTS',3,'Multiplication & division','Equations & symbols','Write and calculate multiplication/division statements using known facts','live',['multiply','divide','missing_number'],'Number - multiplication and division');
   leaf('Y3-MD-SCALING',3,'Multiplication & division','Scaling','Solve positive integer scaling problems','live',['correspondence','scaled_multiply'],'Number - multiplication and division');
   leaf('Y3-MD-CORRESPONDENCE',3,'Multiplication & division','Correspondence','Solve correspondence and combinations problems','partial',['correspondence'],'Number - multiplication and division');
+  leaf('Y3-MD-MISSING',3,'Multiplication & division','Missing numbers','Solve missing-number multiplication and division problems','live',['missing_number'],'Number - multiplication and division');
   leaf('Y3-MD-GROUP-SHARE',3,'Multiplication & division','Grouping & sharing','Solve contextual grouping/sharing problems','partial',['container_reasoning','correspondence'],'Number - multiplication and division');
 
   leaf('Y3-FR-TENTHS',3,'Fractions','Tenths','Count in tenths and connect tenths with division by 10','partial',['fraction_sequences','fraction_diagrams'],'Number - fractions');
@@ -163,6 +169,7 @@
   leaf('Y3-MEAS-PERIMETER',3,'Measurement','Perimeter','Measure perimeter of simple 2-D shapes','live',['perimeter'],'Measurement');
   leaf('Y3-MEAS-MONEY',3,'Measurement','Money','Add/subtract money and give change using £ and p','live',['money','coin_reasoning'],'Measurement');
   leaf('Y3-MEAS-CLOCKS',3,'Measurement','Time','Read/write analogue, 12-hour and 24-hour time','live',['clock_reasoning_visual','time_12_24'],'Measurement');
+  leaf('Y3-MEAS-CLOCK-ROMAN',3,'Measurement','Time','Read analogue clock faces using Roman numerals I to XII','partial',['clock_reasoning_visual','roman_numerals'],'Measurement','The ingredients exist; a dedicated Roman-clock question mode is still needed.');
   leaf('Y3-MEAS-TIME-MINUTE',3,'Measurement','Time','Estimate/read time to nearest minute and compare seconds/minutes/hours','partial',['clock_reasoning_visual','time_duration'],'Measurement');
   leaf('Y3-MEAS-CALENDAR',3,'Measurement','Calendar & time facts','Use seconds/minute and days/month/year/leap-year facts','live',['calendar_facts','time_conversion'],'Measurement');
   leaf('Y3-MEAS-DURATION',3,'Measurement','Duration','Compare and calculate event durations','live',['time_duration'],'Measurement');
@@ -186,6 +193,7 @@
   leaf('Y4-NPV-REPRESENT',4,'Number & place value','Represent & estimate','Represent and estimate larger whole numbers','partial',['number_line_visuals'],'Number - number and place value');
   leaf('Y4-NPV-ROUND',4,'Number & place value','Rounding','Round whole numbers to nearest 10, 100 or 1,000','live',['rounding_whole'],'Number - number and place value');
   leaf('Y4-NPV-ROMAN',4,'Number & place value','Roman numerals','Read Roman numerals to 100','live',['roman_numerals'],'Number - number and place value');
+  leaf('Y4-NPV-ROMAN-HISTORY',4,'Number & place value','Roman numerals','Understand that numeral systems changed over time and that zero/place value were later developments','planned',[],'Number - number and place value','Best suited to a small curated question library rather than a numeric generator.');
   leaf('Y4-NPV-PROBLEMS',4,'Number & place value','Problem solving','Solve number and practical problems using Year 4 place-value ideas and larger positive numbers','partial',['number_card_constraints','rounding_bounds','number_line_visuals'],'Number - number and place value','Existing reasoning families cover selected forms; contextual breadth remains incomplete.');
 
   leaf('Y4-AS-COLUMN',4,'Addition & subtraction','Written methods','Add/subtract up to four digits using column methods','live',['column_addition','column_subtraction'],'Number - addition and subtraction');
@@ -271,6 +279,7 @@
   leaf('Y5-DEC-PROBLEMS',5,'Decimals & percentages','Context problems','Solve problems involving numbers to 3 d.p.','partial',['decimal_add_subtract','decimal_multiply'],'Number - fractions (including decimals and percentages)');
   leaf('Y5-PCT-MEANING',5,'Decimals & percentages','Percentage meaning','Understand percent as parts per 100 and write as fraction/decimal','live',['fraction_decimal_percent'],'Number - fractions (including decimals and percentages)');
   leaf('Y5-PCT-EQUIV',5,'Decimals & percentages','Fraction/decimal/percentage equivalence','Use common fraction–decimal–percentage equivalences','live',['fraction_decimal_percent'],'Number - fractions (including decimals and percentages)');
+  leaf('Y5-PCT-EQUIV-PROBLEMS',5,'Decimals & percentages','Fraction/decimal/percentage equivalence','Solve problems requiring known percentage and decimal equivalents of common fractions','partial',['fraction_decimal_percent','percentage_reasoning'],'Number - fractions (including decimals and percentages)','Direct equivalence is live; broader contextual problem forms need expansion.');
   leaf('Y5-DEC-NUMBER-LINE',5,'Decimals & percentages','Decimal number lines','Locate decimals/fractions on number lines, including crossing zero','planned',[],'Number - fractions (including decimals and percentages)');
 
   leaf('Y5-MEAS-METRIC',5,'Measurement','Metric conversions','Convert between metric units','live',['metric_conversion'],'Measurement');
@@ -338,6 +347,7 @@
   leaf('Y6-ALG-GENERALISE',6,'Algebra','Generalisation','Reason with equivalent expressions and generalise number patterns','partial',['letter_sum_grid','inverse_formula_reasoning'],'Algebra');
 
   leaf('Y6-MEAS-CONVERT',6,'Measurement','Unit conversions','Calculate/convert standard units using decimals to 3 d.p.','live',['metric_conversion','time_conversion'],'Measurement');
+  leaf('Y6-MEAS-CONVERSION-PROBLEMS',6,'Measurement','Unit conversions','Solve problems involving calculation and conversion of measures using decimals to 3 d.p.','partial',['metric_conversion','time_conversion','measure_diagrams'],'Measurement','Direct conversions are live; richer contextual conversion problems are only partially covered.');
   leaf('Y6-MEAS-MILES-KM',6,'Measurement','Metric/imperial','Convert between miles and kilometres','partial',['imperial_conversion'],'Measurement');
   leaf('Y6-MEAS-AREA-PERIM',6,'Measurement','Area & perimeter relationships','Reason that equal areas can have different perimeters and vice versa','live',['area_perimeter_relationships','tile_area_perimeter_visual'],'Measurement');
   leaf('Y6-MEAS-FORMULAE',6,'Measurement','Formulae','Recognise when area/volume formulae can be used','partial',['area','volume','formula_substitution'],'Measurement');
@@ -347,7 +357,7 @@
   leaf('Y6-GEO-DRAW-2D',6,'Geometry','Draw shapes','Draw 2-D shapes using given dimensions and angles','planned',[],'Geometry - properties of shapes');
   leaf('Y6-GEO-NETS',6,'Geometry','3-D shapes & nets','Recognise, describe and build simple 3-D shapes including nets','partial',['shape_nets','cube_net_reasoning'],'Geometry - properties of shapes');
   leaf('Y6-GEO-CLASSIFY-ANGLES',6,'Geometry','Classify & reason','Compare/classify shapes and find unknown angles in triangles, quadrilaterals and regular polygons','live',['angles_triangles_y6','angles_quads_polygons_y6','visual_shape_properties'],'Geometry - properties of shapes');
-  leaf('Y6-GEO-CIRCLES',6,'Geometry','Circles','Name circle parts and use diameter = 2 × radius','live',['circle_properties'],'Geometry - properties of shapes');
+  leaf('Y6-GEO-CIRCLES',6,'Geometry','Circles','Name radius, diameter and circumference and use diameter = 2 × radius','live',['circle_properties'],'Geometry - properties of shapes');
   leaf('Y6-GEO-ANGLE-REL',6,'Geometry','Angles','Use angles at a point, on a line and vertically opposite to find unknowns','live',['angles_lines_points_y5_6','angles_reasoning_y5_6'],'Geometry - properties of shapes');
   leaf('Y6-GEO-COORDS',6,'Geometry','Coordinates','Describe positions in all four quadrants','live',['coordinates_y6'],'Geometry - position and direction');
   leaf('Y6-GEO-TRANSFORM',6,'Geometry','Transformations','Draw/translate shapes and reflect them in coordinate axes','live',['coordinates_y6'],'Geometry - position and direction');
