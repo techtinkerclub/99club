@@ -27,7 +27,7 @@ function toCustom(kind,q,index){
 function pool(kind,rules){
   var f=FAMILIES[kind];if(!f)return[];
   var d=difficulty(rules),ck=f.typeId+'|'+d;if(cache.has(ck))return clone(cache.get(ck));
-  var raw=VR.samplePool(f.typeId,d,160,'custom-vr-v208'),out=raw.map(function(q,i){return toCustom(kind,q,i);});
+  var raw=VR.samplePool(f.typeId,d,240,'custom-vr-v208'),out=raw.map(function(q,i){return toCustom(kind,q,i);});
   cache.set(ck,out);return clone(out);
 }
 var prev={questionPool:G.questionPool.bind(G),questionByKey:G.questionByKey.bind(G),questionPoolIndex:G.questionPoolIndex.bind(G),questionByPoolIndex:G.questionByPoolIndex.bind(G),generateQuestions:G.generateQuestions.bind(G),replaceQuestion:G.replaceQuestion.bind(G)};
@@ -39,7 +39,7 @@ function hashString(str){var h=2166136261>>>0,s=String(str);for(var i=0;i<s.leng
 function rngFor(seed){if(typeof G.rngFromSeed==='function')return G.rngFromSeed(seed);var a=hashString(seed)||1234567;return function(){a=(Math.imul(a,1664525)+1013904223)>>>0;return a/4294967296;};}
 function shuf(a,r){var o=a.slice();for(var i=o.length-1;i>0;i--){var j=Math.floor(r()*(i+1)),x=o[i];o[i]=o[j];o[j]=x;}return o;}
 function weightedCounts(rules,rng){var bag=[];(rules.families||[]).forEach(function(f){for(var i=0;i<Math.max(1,Number(rules.familyWeights&&rules.familyWeights[f])||1);i++)bag.push(f);});var cycle=shuf(bag,rng),counts={};(rules.families||[]).forEach(function(f){counts[f]=0;});for(var j=0;j<Number(rules.questionCount||0);j++)counts[cycle[j%cycle.length]]++;return counts;}
-function pick(p,n,r){if(!p.length)return[];var s=shuf(p,r),out=[];for(var i=0;i<n;i++)out.push(clone(s[i%s.length]));return out;}
+function pick(p,n,r){if(!p.length)return[];return shuf(p,r).slice(0,Math.min(n,p.length)).map(clone);}
 G.generateQuestions=function(inputRules,seed){
   var rules=G.normalizeRules(inputRules);
   if(rules.mode!=='family_mix'||!hasKind(rules))return prev.generateQuestions(inputRules,seed);
@@ -49,7 +49,8 @@ G.generateQuestions=function(inputRules,seed){
 };
 G.replaceQuestion=function(questions,index,inputRules,seed){
   var cur=questions&&questions[index];if(!cur||!isKind(cur.kind))return prev.replaceQuestion(questions,index,inputRules,seed);
-  var rules=G.normalizeRules(inputRules),p=pool(cur.kind,rules).filter(function(q){return q.key!==cur.key;}),used=new Set(questions.filter(function(_,i){return i!==index;}).map(function(q){return q.key;})),c=p.filter(function(q){return !used.has(q.key);}),rng=rngFor(String(seed||'')+':vr-replace'),choice=shuf(c.length?c:p,rng)[0];
+  var rules=G.normalizeRules(inputRules),p=pool(cur.kind,rules).filter(function(q){return q.key!==cur.key;}),used=new Set(questions.filter(function(_,i){return i!==index;}).map(function(q){return q.key;})),c=p.filter(function(q){return !used.has(q.key);}),rng=rngFor(String(seed||'')+':vr-replace');
+  if(!c.length)return questions.slice();var choice=shuf(c,rng)[0];
   if(!choice)return questions.slice();var out=questions.slice();out[index]=clone(choice);out[index].number=index+1;return out;
 };
 function validate(){
