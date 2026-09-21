@@ -14,7 +14,7 @@
 
   const PREFIX='TT99P1.';
   const VERSION=1;
-  const MAX_TOKEN_LENGTH=32000;
+  const MAX_TOKEN_LENGTH=48000;
 
   function clone(value){return value==null?value:JSON.parse(JSON.stringify(value));}
   function isObject(value){return !!value && typeof value==='object' && !Array.isArray(value);}
