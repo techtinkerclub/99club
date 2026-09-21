@@ -12,11 +12,11 @@ var TYPE_GROUPS=[
 {id:'logic',label:'Number & logic',types:['number_series','reading_information','complete_sum','related_numbers']}
 ];
 var TYPES={
-insert_letter:{n:1,label:'Insert a Letter',group:'words',description:'Use the same missing letter to complete two words.'},
+insert_letter:{n:1,label:'Insert a Letter',group:'words',description:'Use the same letter in two brackets to make four complete words.'},
 odd_ones_out:{n:2,label:'Two Odd Ones Out',group:'meaning',description:'Find the two words that do not belong with the other three.'},
 letter_code:{n:3,label:'Letter Codes',group:'codes',description:'Infer a letter-coding rule and apply it to another word.'},
 closest_meaning:{n:4,label:'Closest Meaning',group:'meaning',description:'Choose the pair of words with the closest meanings.'},
-hidden_word:{n:5,label:'Hidden Word',group:'words',description:'Find a word hidden across neighbouring words.'},
+hidden_word:{n:5,label:'Hidden Word',group:'words',description:'Find a four-letter word hidden across the join between neighbouring words.'},
 missing_word:{n:6,label:'Restore the Missing Letters',group:'words',description:'Restore consecutive missing letters to complete a word.'},
 letters_for_numbers:{n:7,label:'Letters for Numbers',group:'codes',description:'Use letter values to calculate an answer and give it as a letter.'},
 move_letter:{n:8,label:'Move a Letter',group:'words',description:'Move one letter from one word to another so both become new words.'},
@@ -30,7 +30,7 @@ reading_information:{n:15,label:'Reading Information',group:'logic',description:
 opposite_meaning:{n:16,label:'Opposite Meaning',group:'meaning',description:'Choose the pair of words with opposite meanings.'},
 complete_sum:{n:17,label:'Complete the Sum',group:'logic',description:'Find the missing number that makes two expressions equal.'},
 related_numbers:{n:18,label:'Related Numbers',group:'logic',description:'Infer the relationship in number groups and complete another.'},
-word_number_codes:{n:19,label:'Word–Number Codes',group:'codes',description:'Use a letter-to-digit code to encode a word.'},
+word_number_codes:{n:19,label:'Word–Number Codes',group:'codes',description:'Match scrambled word codes, then encode the remaining word.'},
 complete_word:{n:20,label:'Complete the Word',group:'words',description:'Infer which letters are extracted from each word.'},
 same_meaning:{n:21,label:'Same Meaning / Common Link',group:'meaning',description:'Find one word that links all the clues by meaning.'}
 };
@@ -158,30 +158,126 @@ LINK_BANK=Array.from(new Map(LINK_BANK.map(function(e){return[e.answer+'|'+e.clu
 
 function distract(r,n,blocked,d,len){var b=new Set(blocked||[]),p=shuffle(r,wordPool(d).filter(function(w){return !b.has(w)&&(!len||w.length===len);})),o=[];for(var i=0;i<p.length&&o.length<n;i++)if(o.indexOf(p[i])<0)o.push(p[i]);return o;}
 var INSERT_CACHE=null;
-function insertCandidates(){if(INSERT_CACHE)return INSERT_CACHE;var by={},out=[];WORDS.forEach(function(w){if(w.length<4||w.length>8)return;for(var i=1;i<w.length-1;i++){var letter=w[i],pattern=w.slice(0,i)+'?'+w.slice(i+1),k=letter;(by[k]||(by[k]=[])).push({word:w,pattern:pattern,index:i});}});Object.keys(by).forEach(function(k){var a=by[k];for(var i=0;i<a.length;i++)for(var j=i+1;j<a.length;j++)if(a[i].word!==a[j].word)out.push({letter:k,a:a[i],b:a[j]});});INSERT_CACHE=out;return out;}
-function gen1(d,seed){var r=rngFromSeed(seed),p=insertCandidates().filter(function(x){return suitable(x.a.word,d)&&suitable(x.b.word,d);}),x=choose(r,p),letters=shuffle(r,unique([x.letter,alpha(ai(x.letter)+1),alpha(ai(x.letter)-1),alpha(ai(x.letter)+2)])).slice(0,d==='easy'?3:4);if(letters.indexOf(x.letter)<0)letters[0]=x.letter;return makeQ('insert_letter',d,'Which SAME letter completes both words?  '+x.a.pattern+'   '+x.b.pattern,x.letter,{choices:shuffle(r,letters),key:'insert:'+x.a.word+':'+x.b.word+':'+x.letter,explanation:'The missing letter is '+x.letter+': '+x.a.word+' and '+x.b.word+'.',check:{kind:'insert',a:x.a.word,b:x.b.word,letter:x.letter,ia:x.a.index,ib:x.b.index}});}
-function gen2(d,seed){var r=rngFromSeed(seed),names=Object.keys(CATEGORIES),cat=choose(r,names),m=shuffle(r,CATEGORIES[cat].filter(function(w){return suitable(w,d);})).slice(0,3);if(m.length<3)return gen2(d,seed+':r');var o=shuffle(r,names.filter(function(x){return x!==cat;})),odd=[choose(r,CATEGORIES[o[0]]),choose(r,CATEGORIES[o[1]])],all=shuffle(r,m.concat(odd));return makeQ('odd_ones_out',d,'Which TWO words are the odd ones out?  '+all.join('   '),odd.slice().sort().join(' & '),{key:'odd:'+cat+':'+m.slice().sort().join(',')+':'+odd.slice().sort().join(','),explanation:m.join(', ')+' belong to one group ('+cat+').',check:{kind:'set',answer:odd.slice().sort()}});}
+function insertCandidates(){
+  if(INSERT_CACHE)return INSERT_CACHE;
+  var by={},out=[];
+  WORDS.forEach(function(w){
+    if(w.length<3||w.length>9)return;
+    var end=w.slice(-1),start=w.charAt(0);
+    (by[end]||(by[end]={left:[],right:[]})).left.push({frag:w.slice(0,-1),word:w});
+    (by[start]||(by[start]={left:[],right:[]})).right.push({frag:w.slice(1),word:w});
+  });
+  Object.keys(by).forEach(function(letter){
+    var box=by[letter],groups=[];
+    (box.left||[]).forEach(function(l){(box.right||[]).forEach(function(r){
+      if(l.word!==r.word&&l.frag.length>=2&&r.frag.length>=2)groups.push({left:l,right:r});
+    });});
+    for(var i=0;i<groups.length;i++)for(var j=i+1;j<groups.length;j++){
+      var g1=groups[i],g2=groups[j],words=[g1.left.word,g1.right.word,g2.left.word,g2.right.word];
+      if(new Set(words).size===4)out.push({letter:letter,g1:g1,g2:g2,words:words});
+    }
+  });
+  INSERT_CACHE=out;return out;
+}
+function gen1(d,seed){
+  var r=rngFromSeed(seed),p=insertCandidates().filter(function(x){return x.words.every(function(w){return suitable(w,d);});}),x=choose(r,p);
+  if(!x)return null;
+  var letters=shuffle(r,unique([x.letter,alpha(ai(x.letter)+1),alpha(ai(x.letter)-1),alpha(ai(x.letter)+2),alpha(ai(x.letter)-2)])).slice(0,d==='easy'?3:4);
+  if(letters.indexOf(x.letter)<0)letters[0]=x.letter;
+  var prompt='Which SAME letter fits both brackets to make FOUR words?  '+x.g1.left.frag+' (?) '+x.g1.right.frag+'    '+x.g2.left.frag+' (?) '+x.g2.right.frag;
+  return makeQ('insert_letter',d,prompt,x.letter,{choices:shuffle(r,letters),key:'insert4:'+x.words.join(':')+':'+x.letter,explanation:'The letter '+x.letter+' makes '+x.words.join(', ')+'.',check:{kind:'insert4',letter:x.letter,left1:x.g1.left.frag,right1:x.g1.right.frag,left2:x.g2.left.frag,right2:x.g2.right.frag,words:x.words}});
+}
+function gen2(d,seed){
+  var r=rngFromSeed(seed),names=Object.keys(CATEGORIES);
+  for(var tries=0;tries<80;tries++){
+    var cat=choose(r,names),targetSet=new Set(CATEGORIES[cat]),m=shuffle(r,CATEGORIES[cat].filter(function(w){return suitable(w,d);})).slice(0,3);
+    if(m.length<3)continue;
+    var otherCats=shuffle(r,names.filter(function(x){return x!==cat;})),odd=[];
+    for(var oi=0;oi<otherCats.length&&odd.length<2;oi++){
+      var candidates=CATEGORIES[otherCats[oi]].filter(function(w){return !targetSet.has(w)&&odd.indexOf(w)<0&&suitable(w,d);});
+      if(candidates.length)odd.push(choose(r,candidates));
+    }
+    if(odd.length<2)continue;
+    var all=shuffle(r,m.concat(odd));
+    return makeQ('odd_ones_out',d,'Which TWO words are the odd ones out?  '+all.join('   '),odd.slice().sort().join(' & '),{key:'odd:'+cat+':'+m.slice().sort().join(',')+':'+odd.slice().sort().join(','),explanation:m.join(', ')+' belong to one group ('+cat+'); '+odd.join(' and ')+' do not.',check:{kind:'set',answer:odd.slice().sort(),members:m,targetCategory:cat}});
+  }
+  return null;
+}
 function codeTransform(w,mode,a,b){var cs=cleanWord(w).split('');if(mode==='reverse_shift')cs.reverse();return cs.map(function(ch,i){var s=mode==='alternate'?(i%2===0?a:b):a;return alpha(ai(ch)+s);}).join('');}
 function gen3(d,seed){var r=rngFromSeed(seed),p=wordPool(d).filter(function(w){return w.length>=4&&w.length<=6;}),ex=choose(r,p),target=choose(r,p.filter(function(w){return w!==ex;})),mode='shift',a=choose(r,[-3,-2,-1,1,2,3]),b=0;if(d==='standard'){mode='alternate';b=a>0?-1:1;}if(d==='challenge'){mode='reverse_shift';a=choose(r,[-3,-2,2,3]);}var coded=codeTransform(ex,mode,a,b),ans=codeTransform(target,mode,a,b),wrong=unique([codeTransform(target,'shift',a+(a>0?1:-1),0),codeTransform(target,'alternate',a,b||-a),target.split('').reverse().join('')]).filter(function(x){return x!==ans;});return makeQ('letter_code',d,'If '+ex+' is written as '+coded+', how is '+target+' written using the SAME code?',ans,{choices:shuffle(r,[ans].concat(wrong.slice(0,3))),key:'lc:'+mode+':'+a+':'+b+':'+ex+':'+target,explanation:d==='easy'?'Each letter moves by the same number of alphabet places.':d==='standard'?'The shift alternates from one letter to the next.':'Reverse the word, then apply the alphabet shift.',check:{kind:'letter_code',word:target,mode:mode,a:a,b:b}});}
 var SYNPAIRS=[];SYN.forEach(function(s){for(var i=0;i<s.length;i++)for(var j=i+1;j<s.length;j++)SYNPAIRS.push([s[i],s[j],s]);});
-function gen4(d,seed){var r=rngFromSeed(seed),pair=choose(r,SYNPAIRS.filter(function(x){return suitable(x[0],d)&&suitable(x[1],d);})),a=pair[0],b=pair[1],set=pair[2],os=shuffle(r,SYN.filter(function(s){return s!==set;})),ga=shuffle(r,[a,choose(r,os[0]),choose(r,os[1])]).slice(0,d==='easy'?2:3),gb=shuffle(r,[b,choose(r,os[2]),choose(r,os[3])]).slice(0,d==='easy'?2:3);return makeQ('closest_meaning',d,'Choose one word from each group that are closest in meaning.  Group 1: '+ga.join(', ')+'   Group 2: '+gb.join(', '),a+' — '+b,{key:'syn:'+a+':'+b+':'+ga.join(',')+':'+gb.join(','),explanation:a+' and '+b+' have closely related meanings.',check:{kind:'pair',a:a,b:b}});}
+function synLinked(a,b){return SYN.some(function(set){return set.indexOf(a)>=0&&set.indexOf(b)>=0;});}
+function gen4(d,seed){
+  var r=rngFromSeed(seed),pairPool=SYNPAIRS.filter(function(x){return suitable(x[0],d)&&suitable(x[1],d);}),size=d==='easy'?2:d==='challenge'?4:3;
+  for(var tries=0;tries<100;tries++){
+    var pair=choose(r,pairPool),a=pair[0],b=pair[1],ga=[a],gb=[b],cands=shuffle(r,wordPool(d).filter(function(w){return w!==a&&w!==b;}));
+    for(var i=0;i<cands.length&&ga.length<size;i++){var wa=cands[i];if(!synLinked(wa,b))ga.push(wa);}
+    cands=shuffle(r,cands);
+    for(var j=0;j<cands.length&&gb.length<size;j++){var wb=cands[j];if(gb.indexOf(wb)>=0||ga.some(function(x){return synLinked(x,wb);}))continue;gb.push(wb);}
+    if(ga.length!==size||gb.length!==size)continue;
+    ga=shuffle(r,ga);gb=shuffle(r,gb);
+    var linked=[];ga.forEach(function(x){gb.forEach(function(y){if(synLinked(x,y))linked.push(x+'|'+y);});});
+    if(linked.length!==1)continue;
+    return makeQ('closest_meaning',d,'Choose one word from each group that are CLOSEST in meaning.  Group 1: '+ga.join(', ')+'   Group 2: '+gb.join(', '),a+' — '+b,{key:'syn:'+a+':'+b+':'+ga.join(',')+':'+gb.join(','),explanation:a+' and '+b+' have closely related meanings.',check:{kind:'syn_pair',a:a,b:b,groupA:ga,groupB:gb}});
+  }
+  return null;
+}
 var HIDDEN_CACHE=null;
-function hiddenCandidates(){if(HIDDEN_CACHE)return HIDDEN_CACHE;var four=WORDS.filter(function(w){return w.length===4;}),out=[],seen=new Set();for(var i=0;i<WORDS.length;i++){var l=WORDS[i];for(var j=0;j<WORDS.length;j++){var rr=WORDS[j];if(l===rr)continue;for(var k=1;k<=3;k++){var t=l.slice(-k)+rr.slice(0,4-k);if(t.length===4&&WORD_SET.has(t)){var key=l+'|'+rr+'|'+t;if(!seen.has(key)){seen.add(key);out.push({left:l,right:rr,target:t,k:k});}}}}}HIDDEN_CACHE=out;return out;}
+function hiddenCandidates(){
+  if(HIDDEN_CACHE)return HIDDEN_CACHE;
+  var byPair=new Map();
+  for(var i=0;i<WORDS.length;i++){
+    var l=WORDS[i];
+    for(var j=0;j<WORDS.length;j++){
+      var rr=WORDS[j];if(l===rr)continue;
+      var targets=[];
+      for(var k=1;k<=3;k++){var t=l.slice(-k)+rr.slice(0,4-k);if(t.length===4&&WORD_SET.has(t))targets.push({target:t,k:k});}
+      targets=Array.from(new Map(targets.map(function(x){return[x.target,x];})).values());
+      if(targets.length===1)byPair.set(l+'|'+rr,{left:l,right:rr,target:targets[0].target,k:targets[0].k});
+    }
+  }
+  HIDDEN_CACHE=Array.from(byPair.values());return HIDDEN_CACHE;
+}
 function gen5(d,seed){var r=rngFromSeed(seed),p=hiddenCandidates().filter(function(x){return suitable(x.left,d)&&suitable(x.right,d);}),x=choose(r,p),choices=shuffle(r,[x.target].concat(distract(r,3,[x.target],d,4)));return makeQ('hidden_word',d,'A four-letter word is hidden across the join between these neighbouring words:  '+x.left+' '+x.right+'  What is it?',x.target,{choices:choices,key:'hidden:'+x.left+':'+x.right+':'+x.target,explanation:'The end of '+x.left+' and the start of '+x.right+' make '+x.target+'.',check:{kind:'hidden',left:x.left,right:x.right,target:x.target}});}
 function gen6(d,seed){var r=rngFromSeed(seed),p=RESTORE.filter(function(x){return suitable(x.word,d)&&x.word.length>=5;}),x=choose(r,p),max=x.word.length-3,start=randInt(r,1,Math.max(1,max-1)),removed=x.word.slice(start,start+3),shown=x.word.slice(0,start)+'___'+x.word.slice(start+3),opts=shuffle(r,[removed].concat(unique(distract(r,10,[x.word],d).map(function(w){return w.slice(0,3);})).filter(function(z){return z.length===3&&z!==removed;}).slice(0,3)));return makeQ('missing_word',d,'Restore the THREE consecutive missing letters:  '+shown+'  ('+x.clue+')',removed,{choices:opts,key:'restore:'+x.word+':'+start,answerText:removed+' → '+x.word,explanation:'Putting '+removed+' into the gap gives '+x.word+'.',check:{kind:'restore',word:x.word,start:start,removed:removed}});}
 function gen7(d,seed){var r=rngFromSeed(seed),count=d==='easy'?5:d==='standard'?6:7,letters=shuffle(r,'ABCDEFGHJKLMNPQRSTUVWXYZ'.split('')).slice(0,count),values={},avail=shuffle(r,Array.from({length:d==='challenge'?25:16},function(_,i){return i+1;}));letters.forEach(function(l,i){values[l]=avail[i];});var tries=0;while(tries++<40){var a=choose(r,letters),b=choose(r,letters.filter(function(x){return x!==a;})),op=d==='challenge'&&r()<.45?'−':'+',num=op==='+'?values[a]+values[b]:Math.abs(values[a]-values[b]),ans=letters.find(function(l){return values[l]===num;});if(ans){var opts=shuffle(r,[ans].concat(shuffle(r,letters.filter(function(x){return x!==ans;})).slice(0,3))),map=letters.map(function(l){return l+'='+values[l];}).join(', ');return makeQ('letters_for_numbers',d,'Use these values: '+map+'.  Which letter has the value of '+a+' '+op+' '+b+'?',ans,{choices:opts,key:'ln:'+map+':'+a+op+b,explanation:String(values[a])+' '+op+' '+String(values[b])+' = '+String(num)+', and '+ans+' = '+String(num)+'.',check:{kind:'letter_number',values:values,a:a,b:b,op:op}});}}return null;}
 var MOVE_CACHE=null;
 function moveCandidates(){if(MOVE_CACHE)return MOVE_CACHE;var out=[],seen=new Set(),words=WORDS.filter(function(w){return w.length>=3&&w.length<=7;}),rec={};words.forEach(function(b){for(var pos=0;pos<=b.length;pos++)for(var k=0;k<26;k++){var letter=alpha(k),nb=b.slice(0,pos)+letter+b.slice(pos);if(WORD_SET.has(nb)&&nb!==b)(rec[letter]||(rec[letter]=[])).push({before:b,after:nb,pos:pos});}});words.forEach(function(a){for(var i=0;i<a.length;i++){var letter=a[i],na=a.slice(0,i)+a.slice(i+1);if(!WORD_SET.has(na))continue;(rec[letter]||[]).forEach(function(b){if(b.before===a||b.after===a||b.before===na)return;var key=[a,b.before,na,b.after,letter].join('|');if(!seen.has(key)){seen.add(key);out.push({a:a,b:b.before,na:na,nb:b.after,letter:letter,index:i,pos:b.pos});}});}});MOVE_CACHE=out;return out;}
-function gen8(d,seed){var r=rngFromSeed(seed),max=d==='easy'?5:d==='standard'?6:7,p=moveCandidates().filter(function(x){return x.a.length<=max&&x.b.length<=max;}),x=choose(r,p);if(!x)return null;return makeQ('move_letter',d,'Move ONE letter from '+x.a+' to '+x.b+'. Do not rearrange the remaining letters. What two new words do you make?',x.na+' + '+x.nb,{key:'move:'+x.a+':'+x.b+':'+x.na+':'+x.nb,explanation:'Move '+x.letter+': '+x.a+' → '+x.na+', and '+x.b+' → '+x.nb+'.',check:{kind:'move',a:x.a,b:x.b,na:x.na,nb:x.nb,letter:x.letter,index:x.index,pos:x.pos}});}
+function uniqueMoveCandidates(){
+  var grouped=new Map();
+  moveCandidates().forEach(function(x){var k=x.a+'|'+x.b,arr=grouped.get(k)||[];arr.push(x);grouped.set(k,arr);});
+  var out=[];
+  grouped.forEach(function(arr){
+    var answers=Array.from(new Map(arr.map(function(x){return[x.letter+'|'+x.na+'|'+x.nb,x];})).values());
+    if(answers.length===1)out.push(answers[0]);
+  });
+  return out;
+}
+function gen8(d,seed){
+  var r=rngFromSeed(seed),max=d==='easy'?5:d==='standard'?6:7,p=uniqueMoveCandidates().filter(function(x){return x.a.length<=max&&x.b.length<=max;}),x=choose(r,p);
+  if(!x)return null;
+  var opts=shuffle(r,unique([x.letter,alpha(ai(x.letter)+1),alpha(ai(x.letter)-1),alpha(ai(x.letter)+2)])).slice(0,4);if(opts.indexOf(x.letter)<0)opts[0]=x.letter;
+  return makeQ('move_letter',d,'One letter can be moved from '+x.a+' to '+x.b+' to make TWO new words. The other letters stay in order. Which letter moves?',x.letter,{choices:opts,answerText:x.letter+' ('+x.na+' + '+x.nb+')',key:'move:'+x.a+':'+x.b+':'+x.letter+':'+x.na+':'+x.nb,explanation:'Move '+x.letter+': '+x.a+' → '+x.na+', and '+x.b+' → '+x.nb+'.',check:{kind:'move',a:x.a,b:x.b,na:x.na,nb:x.nb,letter:x.letter,index:x.index,pos:x.pos}});
+}
 function lsv(mode,i,a,b){if(mode==='opposite')return[alpha(a+i),alpha(b-i)];if(mode==='step2')return[alpha(a+2*i),alpha(b-2*i)];if(mode==='alternate')return[alpha(a+i+(i%2)),alpha(b-i-(i%2))];return[alpha(a+i),alpha(b+2*i)];}
 function gen9(d,seed){var r=rngFromSeed(seed),mode=d==='easy'?'opposite':d==='standard'?choose(r,['opposite','step2']):choose(r,['alternate','mixed']),a=randInt(r,0,mode==='step2'?10:12),b=randInt(r,mode==='step2'?10:13,25),shown=[];for(var i=0;i<4;i++)shown.push(lsv(mode,i,a,b).join(''));var ans=lsv(mode,4,a,b).join(''),opts=shuffle(r,unique([ans,lsv(mode,3,a,b).join(''),lsv('opposite',4,a,b).join(''),lsv('step2',4,a,b).join('')])).slice(0,4);if(opts.indexOf(ans)<0)opts[0]=ans;return makeQ('letter_series',d,'What comes next?  '+shown.join('   ')+'   ?',ans,{choices:opts,key:'ls:'+mode+':'+a+':'+b,explanation:'Continue the same movement through the alphabet in each position.',check:{kind:'letter_series',mode:mode,a:a,b:b,index:4}});}
-function gen10(d,seed){var r=rngFromSeed(seed),rel=choose(r,RELATIONS.filter(function(x){return x.pairs.length>=2;})),ps=shuffle(r,rel.pairs),p1=ps[0],p2=ps[1],dir=r()<.5?0:1,a=p1[dir],b=p1[1-dir],c=p2[dir],ans=p2[1-dir],opts=shuffle(r,[ans].concat(distract(r,3,[a,b,c,ans],d)));return makeQ('word_connections',d,a+' is to '+b+' as '+c+' is to ...?',ans,{choices:opts,key:'ana:'+rel.name+':'+a+':'+b+':'+c+':'+ans,explanation:'Both pairs use the same relationship: '+rel.name+'.',check:{kind:'analogy',relation:rel.name,answer:ans}});}
+function gen10(d,seed){
+  var r=rngFromSeed(seed),rel=choose(r,RELATIONS.filter(function(x){return x.pairs.length>=2;})),ps=shuffle(r,rel.pairs),p1=ps[0],p2=ps[1],dir=r()<.5?0:1,a=p1[dir],b=p1[1-dir],c=p2[dir],ans=p2[1-dir],groupSize=d==='easy'?2:3;
+  var d1=distract(r,8,[a,b,c,ans],d).filter(function(w){return w!==b;}).slice(0,groupSize-1),d2=distract(r,12,[a,b,c,ans].concat(d1),d).filter(function(w){return w!==ans;}).slice(0,groupSize-1);
+  var g1=shuffle(r,[b].concat(d1)),g2=shuffle(r,[ans].concat(d2));
+  return makeQ('word_connections',d,a+' is to ('+g1.join(', ')+') as '+c+' is to ('+g2.join(', ')+'). Choose ONE word from each group.',b+' — '+ans,{key:'ana2:'+rel.name+':'+a+':'+b+':'+c+':'+ans+':'+g1.join(',')+':'+g2.join(','),explanation:b+' and '+ans+' complete the same relationship: '+rel.name+'.',check:{kind:'analogy_pair',relation:rel.name,a:a,b:b,c:c,answer:ans,group1:g1,group2:g2}});
+}
 function ns(mode,start,step,i){var v=start,k;if(mode==='add')return start+step*i;if(mode==='double')return start*Math.pow(2,i);if(mode==='alternate'){for(k=0;k<i;k++)v+=k%2===0?step:step+2;return v;}if(mode==='growing'){for(k=1;k<=i;k++)v+=step*k;return v;}if(mode==='muladd'){for(k=0;k<i;k++)v=v*2+step;return v;}return v;}
 function gen11(d,seed){var r=rngFromSeed(seed),mode=d==='easy'?choose(r,['add','double']):d==='standard'?choose(r,['add','alternate','growing']):choose(r,['alternate','growing','muladd']),start=randInt(r,1,d==='easy'?18:d==='standard'?16:14),step=randInt(r,2,d==='easy'?9:d==='standard'?8:7),seq=Array.from({length:5},function(_,i){return ns(mode,start,step,i);}),ans=ns(mode,start,step,5),opts=shuffle(r,unique([ans,ans+step,Math.max(0,ans-step),ans+2])).map(String).slice(0,4),contentStep=mode==='double'?0:step;return makeQ('number_series',d,'What number comes next?  '+seq.join(', ')+', ...',ans,{choices:opts,key:'ns:'+mode+':'+start+':'+contentStep,explanation:'Continue the same number rule.',check:{kind:'number_series',mode:mode,start:start,step:step,index:5}});}
 function gen12(d,seed){var r=rngFromSeed(seed),target=choose(r,COMPOUNDS),left=[target[0]],right=[target[1]],al=unique(COMPOUNDS.map(function(x){return x[0];})).filter(function(x){return x!==target[0];}),ar=unique(COMPOUNDS.map(function(x){return x[1];})).filter(function(x){return x!==target[1];}),guard=0,x;while(left.length<3&&guard++<200){x=choose(r,al);if(left.indexOf(x)>=0)continue;if(right.some(function(z){return COMPOUND_SET.has(x+'+'+z);}))continue;left.push(x);}guard=0;while(right.length<3&&guard++<200){x=choose(r,ar);if(right.indexOf(x)>=0)continue;if(left.some(function(z){return COMPOUND_SET.has(z+'+'+x);}))continue;right.push(x);}var la=shuffle(r,left),ra=shuffle(r,right);return makeQ('compound_words',d,'Choose one word from each group to make a compound word.  Group 1: '+la.join(', ')+'   Group 2: '+ra.join(', '),target[0]+' + '+target[1],{answerText:target[0]+target[1],key:'comp:'+target.join('+')+':'+la.join(',')+':'+ra.join(','),explanation:target[0]+' + '+target[1]+' = '+target[0]+target[1]+'.',check:{kind:'compound',left:target[0],right:target[1]}});}
 var MP=[{id:'f2l2',label:'first 2 letters of the first word + last 2 of the second',fn:function(a,b){return a.slice(0,2)+b.slice(-2);}},{id:'l2f2',label:'last 2 + first 2',fn:function(a,b){return a.slice(-2)+b.slice(0,2);}},{id:'f1l3',label:'first 1 + last 3',fn:function(a,b){return a.slice(0,1)+b.slice(-3);}},{id:'f3l1',label:'first 3 + last 1',fn:function(a,b){return a.slice(0,3)+b.slice(-1);}}],MW_CACHE=null;
 function mwc(){if(MW_CACHE)return MW_CACHE;var out=[];MP.forEach(function(p){WORDS.forEach(function(a){WORDS.forEach(function(b){if(a===b||a.length<4||b.length<4)return;var z=p.fn(a,b);if(WORD_SET.has(z)&&z!==a&&z!==b)out.push({p:p,a:a,b:b,result:z});});});});MW_CACHE=out;return out;}
-function gen13(d,seed){var r=rngFromSeed(seed),allowed=d==='easy'?['f2l2']:d==='standard'?['f2l2','l2f2']:MP.map(function(x){return x.id;}),pool=shuffle(r,mwc().filter(function(x){return allowed.indexOf(x.p.id)>=0;})),ex=pool[0],tar=pool.find(function(x){return ex&&x.p.id===ex.p.id&&x.result!==ex.result&&x.a!==ex.a&&x.b!==ex.b;});if(!ex||!tar)return null;return makeQ('make_word',d,'Work out the rule: '+ex.a+' + '+ex.b+' → '+ex.result+'.  Using the SAME rule, what word is made from '+tar.a+' + '+tar.b+'?',tar.result,{choices:shuffle(r,[tar.result].concat(distract(r,3,[tar.result],d,tar.result.length))),key:'mw:'+ex.p.id+':'+ex.a+':'+ex.b+':'+tar.a+':'+tar.b,explanation:'Use '+ex.p.label+'.',check:{kind:'make_word',pattern:ex.p.id,a:tar.a,b:tar.b}});}
+function gen13(d,seed){
+  var r=rngFromSeed(seed),allowed=d==='easy'?['f2l2']:d==='standard'?['f2l2','l2f2']:MP.map(function(x){return x.id;}),pool=shuffle(r,mwc().filter(function(x){return allowed.indexOf(x.p.id)>=0;})),ex1=pool[0],ex2=pool.find(function(x){return ex1&&x.p.id===ex1.p.id&&x.result!==ex1.result&&x.a!==ex1.a&&x.b!==ex1.b;}),tar=pool.find(function(x){return ex1&&ex2&&x.p.id===ex1.p.id&&x.result!==ex1.result&&x.result!==ex2.result&&x.a!==ex1.a&&x.a!==ex2.a&&x.b!==ex1.b&&x.b!==ex2.b;});
+  if(!ex1||!ex2||!tar)return null;
+  var prompt='Complete the third group in the SAME way:  '+ex1.a+' ('+ex1.result+') '+ex1.b+'    '+ex2.a+' ('+ex2.result+') '+ex2.b+'    '+tar.a+' (?) '+tar.b;
+  return makeQ('make_word',d,prompt,tar.result,{choices:shuffle(r,[tar.result].concat(distract(r,3,[tar.result],d,tar.result.length))),key:'mw2:'+ex1.p.id+':'+ex1.a+':'+ex1.b+':'+ex2.a+':'+ex2.b+':'+tar.a+':'+tar.b,explanation:'Each middle word uses the '+ex1.p.label+'.',check:{kind:'make_word',pattern:ex1.p.id,a:tar.a,b:tar.b}});
+}
 function gen14(d,seed){var r=rngFromSeed(seed),s1=randInt(r,1,d==='easy'?3:5),s2=d==='easy'?s1:(randInt(r,-4,4)||2),b1=randInt(r,0,14),b2=randInt(r,5,20),rows=[];for(var i=0;i<3;i++)rows.push(alpha(b1+i)+alpha(b2+i)+' → '+alpha(b1+i+s1)+alpha(b2+i+s2));var ans=alpha(b1+3+s1)+alpha(b2+3+s2),opts=shuffle(r,unique([ans,alpha(b1+4+s1)+alpha(b2+3+s2),alpha(b1+3+s1)+alpha(b2+4+s2),alpha(b1+3-s1)+alpha(b2+3-s2)])).slice(0,4);return makeQ('letter_connections',d,'Apply the same letter relationship:  '+rows.join('   ')+'   '+alpha(b1+3)+alpha(b2+3)+' → ?',ans,{choices:opts,key:'lcon:'+s1+':'+s2+':'+b1+':'+b2,explanation:'Move each letter by the same fixed amount as in the examples.',check:{kind:'letter_connections',s1:s1,s2:s2,b1:b1+3,b2:b2+3}});}
 var NAMES='ALEX BEN CHLOE DAN EMMA FINN GRACE HARRY ISLA JACK LILY MAYA NOAH OLIVIA'.split(' ');
 function gen15(d,seed){var r=rngFromSeed(seed),n=d==='easy'?3:d==='standard'?4:5,names=shuffle(r,NAMES).slice(0,n),v=randInt(r,12,25),order=[];for(var i=0;i<n;i++){if(i)v+=randInt(r,3,8);order.push({name:names[i],value:v});}var facts=[order[0].name+' takes '+order[0].value+' minutes.'];for(i=1;i<n;i++)facts.push(order[i].name+' takes '+(order[i].value-order[i-1].value)+' minutes longer than '+order[i-1].name+'.');var truth=order[n-1].name+' takes the longest.',falseS=[order[0].name+' takes the longest.',order[1].name+' takes less time than '+order[0].name+'.',order[n-1].name+' takes less time than '+order[1].name+'.',order[0].name+' and '+order[1].name+' take the same time.'],choices=shuffle(r,[truth].concat(falseS.slice(0,d==='easy'?2:3)));return makeQ('reading_information',d,'Read the facts, then choose the statement that MUST be true.  '+facts.join(' '),truth,{choices:choices,key:'ri:'+order.map(function(x){return x.name+'='+x.value;}).join(','),explanation:'The facts put the times in this order: '+order.map(function(x){return x.name+' '+x.value;}).join(' < ')+' minutes.',check:{kind:'reading',order:order}});}
@@ -193,10 +289,15 @@ function gen19(d,seed){var r=rngFromSeed(seed),p=shuffle(r,wordPool(d).filter(fu
 var EP=[{id:'first3',label:'first three letters',fn:function(w){return w.slice(0,3);}},{id:'last3',label:'last three letters',fn:function(w){return w.slice(-3);}},{id:'124',label:'1st, 2nd and 4th letters',fn:function(w){return w[0]+w[1]+w[3];}},{id:'l23',label:'last, 2nd and 3rd letters',fn:function(w){return w.slice(-1)+w[1]+w[2];}}],CW_CACHE=null;
 function cwc(){if(CW_CACHE)return CW_CACHE;var o=[];EP.forEach(function(p){WORDS.forEach(function(w){if(w.length<4)return;var z=p.fn(w);if(WORD_SET.has(z))o.push({p:p,w:w,result:z});});});CW_CACHE=o;return o;}
 function gen20(d,seed){var r=rngFromSeed(seed),allowed=d==='easy'?['first3','last3']:d==='standard'?['first3','last3','124']:EP.map(function(x){return x.id;}),pool=shuffle(r,cwc().filter(function(x){return allowed.indexOf(x.p.id)>=0;})),e1=pool[0],e2=pool.find(function(x){return e1&&x.p.id===e1.p.id&&x.result!==e1.result;}),tar=pool.find(function(x){return e1&&e2&&x.p.id===e1.p.id&&x.result!==e1.result&&x.result!==e2.result;});if(!e1||!e2||!tar)return null;return makeQ('complete_word',d,'Find the pattern: '+e1.w+' → '+e1.result+',  '+e2.w+' → '+e2.result+'.  Using the same pattern, '+tar.w+' → ?',tar.result,{choices:shuffle(r,[tar.result].concat(distract(r,3,[tar.result],d,3))),key:'cw:'+e1.p.id+':'+e1.w+':'+e2.w+':'+tar.w,explanation:'Take the '+e1.p.label+'.',check:{kind:'cw',pattern:e1.p.id,word:tar.w}});}
-function gen21(d,seed){var r=rngFromSeed(seed),pool=LINK_BANK.filter(function(e){return suitable(e.answer,d)&&e.clues.filter(function(x){return suitable(x,d);}).length>=(d==='easy'?2:3);}),e=choose(r,pool),available=e.clues.filter(function(x){return suitable(x,d);}),count=d==='easy'?2:3,clues=shuffle(r,available).slice(0,count),opts=shuffle(r,[e.answer].concat(distract(r,3,[e.answer].concat(clues),d)));return makeQ('same_meaning',d,'Which ONE word links these clues by meaning?  '+clues.join('   '),e.answer,{choices:opts,key:'link:'+e.answer+':'+clues.slice().sort().join(','),explanation:e.answer+' is the common meaning or link.',check:{kind:'link',answer:e.answer}});}
+function gen21(d,seed){
+  var r=rngFromSeed(seed),pool=LINK_BANK.filter(function(e){var a=e.clues.filter(function(x){return suitable(x,d);});return suitable(e.answer,d)&&a.length>=4;}),e=choose(r,pool);
+  if(!e)return null;
+  var clues=shuffle(r,e.clues.filter(function(x){return suitable(x,d);})).slice(0,4),choiceCount=d==='easy'?3:d==='standard'?4:5,opts=shuffle(r,[e.answer].concat(distract(r,choiceCount-1,[e.answer].concat(clues),d)));
+  return makeQ('same_meaning',d,'Which ONE answer goes equally well with BOTH pairs?  ('+clues[0]+', '+clues[1]+')   ('+clues[2]+', '+clues[3]+')',e.answer,{choices:opts,key:'link2:'+e.answer+':'+clues.slice().sort().join(','),explanation:e.answer+' links both pairs by meaning.',check:{kind:'link',answer:e.answer,pairs:[[clues[0],clues[1]],[clues[2],clues[3]]]}});
+}
 
 var GENERATORS={insert_letter:gen1,odd_ones_out:gen2,letter_code:gen3,closest_meaning:gen4,hidden_word:gen5,missing_word:gen6,letters_for_numbers:gen7,move_letter:gen8,letter_series:gen9,word_connections:gen10,number_series:gen11,compound_words:gen12,make_word:gen13,letter_connections:gen14,reading_information:gen15,opposite_meaning:gen16,complete_sum:gen17,related_numbers:gen18,word_number_codes:gen19,complete_word:gen20,same_meaning:gen21};
-function check(q){var c=q.check;if(!c)return true;if(c.kind==='insert')return c.a[c.ia]===c.letter&&c.b[c.ib]===c.letter;if(c.kind==='hidden')return(c.left+c.right).indexOf(c.target)>=0;if(c.kind==='restore')return c.word.slice(c.start,c.start+3)===c.removed;if(c.kind==='letter_code')return codeTransform(c.word,c.mode,c.a,c.b)===q.answer;if(c.kind==='letter_number'){var v=c.op==='+'?c.values[c.a]+c.values[c.b]:Math.abs(c.values[c.a]-c.values[c.b]);return c.values[q.answer]===v;}if(c.kind==='move')return WORD_SET.has(c.na)&&WORD_SET.has(c.nb)&&c.a.slice(0,c.index)+c.a.slice(c.index+1)===c.na;if(c.kind==='letter_series')return lsv(c.mode,c.index,c.a,c.b).join('')===q.answer;if(c.kind==='number_series')return String(ns(c.mode,c.start,c.step,c.index))===q.answer;if(c.kind==='compound')return COMPOUND_SET.has(c.left+'+'+c.right);if(c.kind==='make_word'){var p=MP.find(function(x){return x.id===c.pattern;});return p&&p.fn(c.a,c.b)===q.answer;}if(c.kind==='letter_connections')return alpha(c.b1+c.s1)+alpha(c.b2+c.s2)===q.answer;if(c.kind==='reading'){var a=c.order.slice().sort(function(x,y){return x.value-y.value;});return q.answer===a[a.length-1].name+' takes the longest.';}if(c.kind==='sum')return String(c.answer)===q.answer;if(c.kind==='related')return String(rr(c.mode,c.a,c.b))===q.answer;if(c.kind==='wn')return c.target.split('').map(function(x){return c.map[x];}).join('')===q.answer;if(c.kind==='cw'){var pp=EP.find(function(x){return x.id===c.pattern;});return pp&&pp.fn(c.word)===q.answer;}if(c.kind==='link')return c.answer===q.answer;return true;}
+function check(q){var c=q.check;if(!c)return true;if(c.kind==='insert')return c.a[c.ia]===c.letter&&c.b[c.ib]===c.letter;if(c.kind==='insert4')return c.words.length===4&&c.left1+c.letter===c.words[0]&&c.letter+c.right1===c.words[1]&&c.left2+c.letter===c.words[2]&&c.letter+c.right2===c.words[3];if(c.kind==='hidden')return(c.left+c.right).indexOf(c.target)>=0;if(c.kind==='restore')return c.word.slice(c.start,c.start+3)===c.removed;if(c.kind==='letter_code')return codeTransform(c.word,c.mode,c.a,c.b)===q.answer;if(c.kind==='letter_number'){var v=c.op==='+'?c.values[c.a]+c.values[c.b]:Math.abs(c.values[c.a]-c.values[c.b]);return c.values[q.answer]===v;}if(c.kind==='move')return WORD_SET.has(c.na)&&WORD_SET.has(c.nb)&&c.a.slice(0,c.index)+c.a.slice(c.index+1)===c.na;if(c.kind==='letter_series')return lsv(c.mode,c.index,c.a,c.b).join('')===q.answer;if(c.kind==='number_series')return String(ns(c.mode,c.start,c.step,c.index))===q.answer;if(c.kind==='compound')return COMPOUND_SET.has(c.left+'+'+c.right);if(c.kind==='make_word'){var p=MP.find(function(x){return x.id===c.pattern;});return p&&p.fn(c.a,c.b)===q.answer;}if(c.kind==='letter_connections')return alpha(c.b1+c.s1)+alpha(c.b2+c.s2)===q.answer;if(c.kind==='reading'){var a=c.order.slice().sort(function(x,y){return x.value-y.value;});return q.answer===a[a.length-1].name+' takes the longest.';}if(c.kind==='syn_pair'){var pairs=0;c.groupA.forEach(function(x){c.groupB.forEach(function(y){if(synLinked(x,y))pairs++;});});return pairs===1&&synLinked(c.a,c.b);}if(c.kind==='sum')return String(c.answer)===q.answer;if(c.kind==='related')return String(rr(c.mode,c.a,c.b))===q.answer;if(c.kind==='wn')return c.target.split('').map(function(x){return c.map[x];}).join('')===q.answer;if(c.kind==='cw'){var pp=EP.find(function(x){return x.id===c.pattern;});return pp&&pp.fn(c.word)===q.answer;}if(c.kind==='link')return c.answer===q.answer;return true;}
 function validate(q){var e=[];if(!q||!TYPES[q.typeId])e.push('unknown type');if(!DIFFICULTIES.includes(q&&q.difficulty))e.push('bad difficulty');if(!String(q&&q.prompt||'').trim())e.push('blank prompt');if(!String(q&&q.answer||'').trim())e.push('blank answer');if(!String(q&&q.key||'').trim())e.push('blank key');if(Array.isArray(q&&q.choices)){if(new Set(q.choices).size!==q.choices.length)e.push('duplicate choices');if(q.choices.indexOf(String(q.answer))<0&&q.choices.indexOf(String(q.answerText))<0)e.push('answer missing from choices');}if(q&&!check(q))e.push('answer validation failed');return{ok:e.length===0,errors:e};}
 function generate(typeId,difficulty,seed){if(!TYPES[typeId])throw new Error('Unknown verbal reasoning type: '+typeId);var d=diff(difficulty||'standard'),fn=GENERATORS[typeId];for(var n=0;n<100;n++){var q=fn(d,String(seed||'vr')+':'+n);if(q&&validate(q).ok)return q;}throw new Error('Could not generate a valid '+TYPES[typeId].label+' question.');}
 function generateFromTypes(ids,difficulty,seed,exclude){ids=unique((ids||[]).filter(function(id){return TYPES[id];}));if(!ids.length)ids=TYPE_IDS.slice();var blocked=new Set(exclude||[]),r=rngFromSeed(seed),order=shuffle(r,ids);for(var n=0;n<160;n++){var id=order[n%order.length],q=generate(id,difficulty,String(seed)+':type:'+id+':'+n);if(!blocked.has(q.key))return q;}throw new Error('No unused verbal reasoning question remains for the selected settings.');}
