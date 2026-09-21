@@ -43,7 +43,7 @@
     const direct=B.normalise(config?.school||{});
     let via={name:'',logo:'',logoWidth:0,logoHeight:0};
     try{
-      const token=new URLSearchParams(location.search).get('brand')||'';
+      const token=new URLSearchParams(String(location.hash||'').replace(/^#/,'')).get('brand')||'';
       if(token)via=B.decode(token);
     }catch(_){}
     return B.normalise({
