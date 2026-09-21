@@ -120,7 +120,7 @@ if(G&&global.TT99SymbolDecoder){
     const scienceCount=global.TT99SymbolDecoder.bank('science',difficulty).length;
     if(scienceCount<40)fail('finite-bank',`Science Symbol Decoder ${difficulty} bank has fewer than 40 unique words`,String(scienceCount));
   }
-  for(const difficulty of ['easy','challenge']){
+  for(const difficulty of ['easy','standard','challenge']){
     const settings={minYear:5,maxYear:6,topics:['algebra'],sheets:20,activitiesPerSheet:2,selectedEngines:['symbols'],workedExamples:'none',engineSettings:{symbols:{difficulty,theme:'science',equationStyle:'auto'}}};
     const pack=G.generatePack(settings,`qa-symbols-40-${difficulty}`),activities=(pack.sheets||[]).flatMap(s=>s.activities||[]),keys=activities.map(a=>G.finiteContentKey?.(a)).filter(Boolean);
     if(activities.length!==40)fail('finite-bank',`40-item Symbol Decoder ${difficulty} pack did not contain 40 activities`,String(activities.length));
