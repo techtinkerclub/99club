@@ -96,6 +96,13 @@ for(const d of VR.DIFFICULTIES){
   assert(qs.every(q=>String(q.kind).startsWith('vr_')),'Custom '+d+' leaked non-VR questions');
   assert(new Set(qs.map(q=>q.key)).size===qs.length,'Custom '+d+' repeated exact questions in a 42-question mixed sheet');
 }
+for(const d of VR.DIFFICULTIES){
+  const finiteFamily='vr_compound_words';
+  const rules=CG.normalizeRules({...CG.OPEN_WORKSHEET_PRESET,mode:'family_mix',questionCount:200,families:[finiteFamily],verbalDifficulty:d,familyWeights:{[finiteFamily]:1}});
+  const qs=CG.generateQuestions(rules,'custom-vr-oversize:'+d);
+  assert(qs.length>=40,'Custom '+d+' finite verbal family fell below useful capacity: '+qs.length);
+  assert(new Set(qs.map(q=>q.key)).size===qs.length,'Custom '+d+' oversized finite verbal sheet wrapped around and repeated questions');
+}
 
 require('fs').writeFileSync('99club-verbal-reasoning-qa-report.json',JSON.stringify(report,null,2));
-console.log('PASS verbal reasoning v2.08: 21 types × 3 difficulties validated for format, answer integrity and variety; 40-question single-type packs are duplicate-free; Custom and random scope checks passed.');
+console.log('PASS verbal reasoning v2.08: 21 types × 3 difficulties validated for format, answer integrity and variety; 40-question single-type packs are duplicate-free; oversized Custom finite banks stop before repeating; Custom and random scope checks passed.');
