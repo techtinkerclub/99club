@@ -24,7 +24,7 @@ const clubCfg=W.fromClubRules({
   widgetType:'club',integrationId:'wid_test12345',schemeId:'classic',orientation:'landscape',clubs,
   school:{schoolName:'Oakfield Primary School',logoDataUrl:tinyLogo,logoWidth:80,logoHeight:40},
   games:['maze','sumplete'],
-  puzzles:[{link:'https://99studio.uk/practice/puzzles/#p=TT99GP1.TEST',minYear:4,maxYear:5,gameCount:3,vocabCount:2}]
+  puzzles:[{link:'https://99studio.uk/practice/puzzles/#p=TT99GP1.TEST',title:'Friday Fluency',gameCount:3,vocabCount:2}]
 });
 clubCfg.selectedClubs=['33','55','diamond'];
 const clubToken=W.encode(clubCfg),clubRound=W.decode(clubToken);
@@ -57,8 +57,8 @@ const gamesCfg=W.normalise({
   selectedClubs:['33','44'],
   games:['maze','sumplete','not-real'],
   puzzles:[
-    {link:'https://99studio.uk/practice/puzzles/#p=TT99GP1.TEST',minYear:4,maxYear:5,gameCount:3,vocabCount:7},
-    {link:'https://evil.example/practice/puzzles/#p=TT99GP1.TEST',minYear:4,maxYear:4,gameCount:2}
+    {link:'https://99studio.uk/practice/puzzles/#p=TT99GP1.TEST',title:'Friday maths puzzles',gameCount:3,vocabCount:7},
+    {link:'https://evil.example/practice/puzzles/#p=TT99GP1.TEST',title:'Bad link',gameCount:2}
   ],
   defaultTab:'puzzles'
 });
@@ -68,6 +68,8 @@ check(gamesRound.selectedClubs.length===0&&Object.keys(gamesRound.clubPatches).l
 check(gamesRound.games.join(',')==='maze,sumplete','unknown games are rejected');
 check(gamesRound.puzzles.length===1,'non-99studio puzzle links are rejected');
 check(gamesRound.puzzles[0].vocabCount===7,'public vocabulary count metadata round-trips');
+check(gamesRound.puzzles[0].title==='Friday maths puzzles','teacher puzzle-pack display title round-trips');
+check(!('minYear' in gamesRound.puzzles[0])&&!('maxYear' in gamesRound.puzzles[0]),'public widget puzzle metadata does not expose Year ranges');
 check(gamesRound.school.name==='Oakfield Primary School','school identity is available to Games widget');
 
 const combined=W.normalise({selectedClubs:['33'],games:['maze']});
@@ -80,6 +82,10 @@ check(badIntegration.integrationId==='','unsafe widget integration ID is rejecte
 
 const runtime=require('fs').readFileSync(path.join(ROOT,'assets/99club/widget-runtime.js'),'utf8');
 check(runtime.includes("hash.set('brand',brandToken)")&&runtime.includes('schoolBrandToken')&&!runtime.includes("searchParams.set('brand',brandToken)"),'widget runtime keeps school branding in the client-side practice fragment');
+check(runtime.includes("p.title||'Maths puzzle pack'")&&!runtime.includes('p.minYear')&&!runtime.includes('p.maxYear'),'widget runtime uses teacher puzzle titles rather than Year labels');
+const builder=require('fs').readFileSync(path.join(ROOT,'assets/99club/widget-builder.js'),'utf8');
+check(builder.includes('BUILDER_MODE')&&!builder.includes('data-widget-type')&&!/Combined Maths Widget|Combined widget/.test(builder),'widget builder is locked to separate 99 Club or Maths Games modes');
+check(builder.includes('data-pack-title')&&builder.includes('Puzzle pack display name updated.'),'Games widget builder exposes teacher-editable puzzle-pack names');
 
 const widgetUrl=W.buildUrl(gamesRound,'https://99studio.uk');
 check(/^https:\/\/99studio\.uk\/widget\/#w=TT99W1\./.test(widgetUrl),'widget URL is fragment-configured');
