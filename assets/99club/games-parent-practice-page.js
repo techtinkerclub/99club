@@ -76,27 +76,12 @@
     return s.minYear===s.maxYear?'Year '+s.minYear:'Years '+s.minYear+'–'+s.maxYear;
   }
 
+  function topicLabel(){
+    return (config.settings.topics||[]).map(id=>G.TOPICS[id]?.label||id).join(' · ');
+  }
+
   function selectedEngines(){
     return G.selectedCompatibleEngines(config.settings);
-  }
-
-  function contentProfile(){
-    const ids=selectedEngines(),hasVerbal=ids.some(id=>G.ENGINES[id]?.contentArea==='verbal'),hasMaths=ids.some(id=>G.ENGINES[id]?.contentArea!=='verbal');
-    return {hasVerbal,hasMaths};
-  }
-
-  function practiceTitle(){
-    const p=contentProfile();
-    if(p.hasVerbal&&!p.hasMaths)return 'Verbal Reasoning Practice';
-    if(p.hasVerbal&&p.hasMaths)return 'Games, Puzzles & Verbal Reasoning';
-    return 'Maths Games & Puzzles';
-  }
-
-  function topicLabel(){
-    const p=contentProfile();
-    if(p.hasVerbal&&!p.hasMaths)return 'Verbal Reasoning';
-    const maths=(config.settings.topics||[]).map(id=>G.TOPICS[id]?.label||id).join(' · ');
-    return p.hasVerbal?(maths?maths+' · Verbal Reasoning':'Verbal Reasoning'):maths;
   }
 
   function gameNames(){
@@ -119,7 +104,7 @@
             '<div class="tt99-practice-brand-copy"><b>99 Club Studio</b><span>School-led printable practice</span></div>'+
           '</div>'+
           '<span class="tt99-practice-kicker">Puzzle practice link</span>'+
-          '<h1 id="tt99-puzzle-practice-title">'+esc(practiceTitle())+'</h1>'+
+          '<h1 id="tt99-puzzle-practice-title">Maths Games &amp; Puzzles</h1>'+
           '<p class="tt99-practice-summary">The puzzle choices and difficulty settings were fixed before this link was shared. You do not need to configure anything.</p>'+
           '<div class="tt99-puzzle-practice-details">'+
             '<div class="tt99-practice-detail"><b>'+esc(yearLabel())+'</b><span>age range</span></div>'+
@@ -159,7 +144,7 @@
       const brand=await completeSchoolDimensions(effectiveSchool()),settings=G.clone(config.settings);
       settings.personalisation={
         schoolName:brand.name,
-        packTitle:practiceTitle(),
+        packTitle:'Maths Games & Puzzles',
         classLabel:'',
         worksheetDate:B.localIsoDate(),
         logoDataUrl:brand.logo,
