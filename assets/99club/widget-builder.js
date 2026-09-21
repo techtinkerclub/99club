@@ -47,6 +47,7 @@ function loadDraft(){
     const saved=JSON.parse(own||legacy||'{}'),previousType=saved.widgetType;
     saved.widgetType=BUILDER_MODE;
     if(!own&&legacy&&previousType&&previousType!==BUILDER_MODE){
+      saved.integrationId='';
       if(BUILDER_MODE==='club'){saved.selectedClubs=[...W.CLUB_IDS];saved.puzzles=[];saved.games=[];}
       else{saved.selectedClubs=[];saved.clubPatches={};}
     }
@@ -190,13 +191,13 @@ function bind(){
   root.querySelector('#wb-code')?.addEventListener('click',e=>e.currentTarget.select());
   root.querySelector('#wb-import')?.addEventListener('click',()=>{try{importToken(root.querySelector('#wb-import-text')?.value||'');}catch(err){status=err?.message||'That widget could not be imported.';render();}});
   root.querySelector('#wb-save-json')?.addEventListener('click',()=>{const payload={kind:'tt99-school-widget-setup',configVersion:1,savedAt:new Date().toISOString(),config:W.normalise(draft)};download('99studio-'+draft.widgetType+'-widget.json',JSON.stringify(payload,null,2)+'\n');track('widget_setup_save',analyticsSummary());status='Widget setup downloaded.';render();});
-  root.querySelector('#wb-restore-json')?.addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{const d=JSON.parse(await file.text());if(d?.kind!=='tt99-school-widget-setup'||Number(d.configVersion)!==1||!d.config)throw new Error('That file is not a 99 Club Studio widget setup.');draft=ensureIntegrationId(W.normalise(d.config));save();track('widget_setup_restore',analyticsSummary());status='Widget setup restored.';render();}catch(err){status=err?.message||'That widget setup could not be restored.';render();}});
+  root.querySelector('#wb-restore-json')?.addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{const d=JSON.parse(await file.text());if(d?.kind!=='tt99-school-widget-setup'||Number(d.configVersion)!==1||!d.config)throw new Error('That file is not a 99 Club Studio widget setup.');const imported=ensureIntegrationId(W.normalise(d.config));if(imported.widgetType!==BUILDER_MODE)throw new Error(BUILDER_MODE==='club'?'That file belongs to the Maths Games Widget builder.':'That file belongs to the 99 Club Widget builder.');draft=imported;save();track('widget_setup_restore',analyticsSummary());status='Widget setup restored.';render();}catch(err){status=err?.message||'That widget setup could not be restored.';render();}});
 }
 
 (async function start(){
   await applyHandoff();
   const direct=W.tokenFromText(decodeURIComponent(location.hash||''));
-  if(direct){try{draft=W.decode(direct);save();status='Widget configuration loaded from the URL.';}catch(_){}}
+  if(direct){try{const imported=W.decode(direct);if(imported.widgetType===BUILDER_MODE){draft=imported;save();status='Widget configuration loaded from the URL.';}else status=BUILDER_MODE==='club'?'That URL belongs to the Maths Games Widget builder.':'That URL belongs to the 99 Club Widget builder.';}catch(_){}}
   window.addEventListener('load',()=>track('widget_builder_open',analyticsSummary({entry_type:requestedType()||draft.widgetType})),{once:true});
   SU?.trackStudio?.('widget_builder_open',draft.school?.name||'',{area:'widget_builder'});
   render();
