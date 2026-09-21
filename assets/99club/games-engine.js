@@ -241,7 +241,7 @@
   function vocabularyPool(settings,customVocabulary=[],purpose='wordsearch'){
     const s=normalizeSettings(settings),all=VOCABULARY.concat(sanitizeCustomVocabulary(customVocabulary));
     const engineId=purpose==='crossword'?'crossword':'wordsearch',difficulty=s.engineSettings[engineId].difficulty;
-    return all.filter(x=>vocabularyMatchesSelectedTopic(x,s.topics)&&x.minYear<=s.maxYear&&x.maxYear>=s.minYear&&
+    return all.filter(x=>vocabularyMatchesSelectedTopic(x,s.topics)&&(x.source==='mine'||(x.minYear<=s.maxYear&&x.maxYear>=s.minYear))&&
       (purpose==='crossword'?x.crosswordSuitable:x.wordsearchSuitable)&&
       (difficulty==='challenge'||x.priority!=='extension'));
   }
