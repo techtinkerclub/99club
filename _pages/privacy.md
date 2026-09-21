@@ -44,7 +44,7 @@ sitemap: true
         <section class="tt99-guide-section">
           <h2>Shared practice links and school widgets</h2>
           <p>Parent-practice links contain the settings needed to reproduce the school-selected activity. They do not require a pupil or parent account.</p>
-          <p>99 Club practice links do not include pupil names, parent details, teacher notes, scores or progress history. Puzzle links also leave out generated puzzle details and school/class personalisation. If a shared Word Search or Crossword uses custom vocabulary, the terms and definitions needed for that activity may be included in the shared link.</p>
+          <p>Parent-practice links may include the school's public name and a compact copy of its logo so parent-generated printouts carry the school identity. They do not include class names, teacher names, pupil names, parent details, teacher notes, scores, progress history or a stored worksheet date. The date printed on a parent-generated worksheet or puzzle pack is the date it is generated. Puzzle links also leave out generated puzzle details; if a shared Word Search or Crossword uses custom vocabulary, the terms and definitions needed for that activity may be included in the shared link.</p>
           <p>The dedicated parent-practice pages and embedded school widgets do not load 99 Club Studio's Google Analytics code.</p>
           <p>Anything deliberately placed in a public widget — such as a school name, logo, selected activities or shared vocabulary — should be treated as public information.</p>
         </section>
