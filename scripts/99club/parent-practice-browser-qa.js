@@ -7,12 +7,13 @@ const mode=process.argv[2]||'prepare';
 
 function prepare(){
   const G=require(path.join(ROOT,'assets/99club/generator.js'));
-  delete global.TT99SchoolUsage;delete global.TT99ParentPractice;
+  delete global.TT99SchoolUsage;delete global.TT99SchoolBrand;delete global.TT99ParentPractice;
   const SU=require(path.join(ROOT,'assets/99club/school-usage.js'));
+  const B=require(path.join(ROOT,'assets/99club/school-brand.js'));global.TT99SchoolBrand=B;
   const PP=require(path.join(ROOT,'assets/99club/parent-practice.js'));
   const rules=G.normalizeRules(Object.assign({},G.CLASSIC_PRESETS['33'],{factorMax:9}));
   const schoolUsageKey=SU.makeSchoolKey('Browser QA Primary School');
-  const token=PP.encode({schemeId:'classic',clubId:'33',rules:rules,orientation:'portrait',schoolUsageKey:schoolUsageKey});
+  const token=PP.encode({schemeId:'classic',clubId:'33',rules:rules,orientation:'portrait',schoolUsageKey:schoolUsageKey,school:{schoolName:'Browser QA Primary School',logoDataUrl:'data:image/jpeg;base64,AAAA',logoWidth:80,logoHeight:40}});
 
   const hook=[
     '(function(){',
@@ -61,7 +62,12 @@ function prepare(){
     '        else{',
     "          if(window.__ppBuild.kind!=='both')fail('download','Parent download did not request worksheet + answers');",
     "          if(window.__ppBuild.rules&&window.__ppBuild.rules.factorMax!==9)fail('preset','Edited school rule factorMax=9 was not preserved');",
-    "          if(!window.__ppBuild.answerContext||window.__ppBuild.answerContext.label!=='Answer copy')fail('download','Parent answer page still uses teacher-copy wording');",
+    "          if(!window.__ppBuild.answerContext||window.__ppBuild.answerContext.label!=='Answer copy')fail('download','Parent answer page still uses teacher-copy wording');
+          const school=window.__ppBuild.school||{};
+          if(school.schoolName!=='Browser QA Primary School')fail('branding','Parent PDF lost school name');
+          if(school.logoDataUrl!=='data:image/jpeg;base64,AAAA')fail('branding','Parent PDF lost school logo');
+          if(school.worksheetDate!==window.TT99SchoolBrand.localIsoDate())fail('date','Parent PDF did not use generation date');
+          if(school.className||school.teacherName||school.yearGroup)fail('privacy','Parent PDF included teacher/class/year personalisation');",
     '        }',
     "        if(!window.__ppSaveCalled)fail('download','PDF save was not invoked');",
     "        if(!/another worksheet \\+ answers/i.test(button.textContent||''))fail('download','Download button did not reset after creation');",
@@ -78,7 +84,7 @@ function prepare(){
   ].join('\n');
 
   const html='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>99club-parent-practice-qa:running</title><link rel="stylesheet" href="/assets/99club/parent-practice.css"></head><body class="tt99-practice-body"><div id="tt99-practice-root"></div>'+
-    '<script src="/assets/99club/generator.js"></script><script src="/assets/99club/simple-pdf.js"></script><script src="/assets/99club/pdf-layout.js"></script><script src="/assets/99club/school-usage-config.js"></script><script src="/assets/99club/school-usage.js"></script><script src="/assets/99club/parent-practice.js"></script>'+
+    '<script src="/assets/99club/generator.js"></script><script src="/assets/99club/simple-pdf.js"></script><script src="/assets/99club/pdf-layout.js"></script><script src="/assets/99club/school-usage-config.js"></script><script src="/assets/99club/school-usage.js"></script><script src="/assets/99club/school-brand.js"></script><script src="/assets/99club/parent-practice.js"></script>'+
     '<script>'+hook+'<\/script><script src="/assets/99club/parent-practice-page.js"></script><script>'+runner+'<\/script></body></html>';
   fs.writeFileSync(HARNESS,html);
   fs.writeFileSync(path.join(ROOT,'99club-parent-practice-qa-url.txt'),'/99club-parent-practice-qa.html#p='+encodeURIComponent(token)+'\n');
