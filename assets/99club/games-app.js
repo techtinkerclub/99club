@@ -715,7 +715,7 @@
           kind:'puzzle',handoffVersion:1,widgetType:'games',link:built.link,
           minYear:Number(state.settings.minYear)||1,maxYear:Number(state.settings.maxYear)||6,
           gameCount:selectedCompatible().length,vocabCount:personalCount,
-          schoolName:String(p.schoolName||'').trim(),logoDataUrl:String(p.logoDataUrl||'')
+          schoolName:String(p.schoolName||'').trim(),logoDataUrl:String(p.logoDataUrl||''),logoWidth:Number(p.logoWidth)||0,logoHeight:Number(p.logoHeight)||0
         };
         localStorage.setItem('tt99-widget-handoff-v1',JSON.stringify(handoff));
         window.open('/widget/builder/?type=games','_blank','noopener,noreferrer');
