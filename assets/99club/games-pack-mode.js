@@ -159,7 +159,7 @@
       let activitySettings=applyRandomDifficulty(settings,[engineId],difficulty);
       activitySettings={...activitySettings,_finiteExclusions:{alphametics:[...finiteUsed.alphametics],symbols:[...finiteUsed.symbols],verbal:[...finiteUsed.verbal]}};
       const activitySeed=`${seed}:S${si+1}:A${ai+1}:${engineId}`,next=G.generateActivity(engineId,activitySettings,activitySeed,customVocabulary),key=G.finiteContentKey?.(next)||'';
-      if(key){const [bank,value]=key.split(':',2);finiteUsed[bank]?.add(value);}
+      if(key){const cut=key.indexOf(':'),bank=cut>=0?key.slice(0,cut):key,value=cut>=0?key.slice(cut+1):'';finiteUsed[bank]?.add(value);}
       return next;
     })}));
     return {sheets:out,difficultyByEngine};
