@@ -22,7 +22,7 @@ function demoBrandToken(){
  return demoBrandCache;
 }
 function withDemoBrand(link){
- try{const u=new URL(link,location.origin),token=demoBrandToken();if(token)u.searchParams.set('brand',token);return u.href;}catch(_){return link;}
+ try{const u=new URL(link,location.origin),token=demoBrandToken();if(token){const hash=new URLSearchParams(u.hash.replace(/^#/,''));hash.set('brand',token);u.hash=hash.toString();}return u.href;}catch(_){return link;}
 }
 function clubLink(id){const rules=PP.baseRules('classic',id);return withDemoBrand(PP.buildLink({schemeId:'classic',clubId:id,rules,orientation:'portrait'},location.origin));}
 function badgeUrl(img){return location.origin+'/assets/99club/images/'+img;}
