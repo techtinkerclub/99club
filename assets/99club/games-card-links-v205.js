@@ -1,4 +1,4 @@
-/* 99 Club Studio · quick links on game selector cards v2.05
+/* 99 Club Studio · quick links on game selector cards v2.06
  * Adds direct "Play online" and "Guide" links to every game card without
  * disturbing the teacher's current pack-builder state.
  */
@@ -10,14 +10,21 @@ const G=global.TT99Games;
 if(!root||!G||root.dataset.cardLinksV205==='1')return;
 root.dataset.cardLinksV205='1';
 
-const LINK_IDS=[
+const PLAY_IDS=[
   'wordsearch','crossword','pyramid','magic','arithmagon','magicshape','numbertrail','numberwheels',
   'maze','propertymaze','crossnumber','numbersearch','equationcrossgrid','target','brokencalc','operationgrid',
   'kakuro','arithmeticcages','sumplete','symbols','functionmachine','balance','alphametics','sudoku','futoshiki',
   'nonogram','numberpath','numbertowers','takuzu','killersudoku','hashi','mathsmines','shikaku','cornersum',
   'linkedsum','colourlogic','mobilebalance','diagonalpath','squaresearch','insertops','perimeterregions'
 ];
-const supported=new Set(LINK_IDS);
+const GUIDE_ONLY_IDS=[
+  'vr_insertletter','vr_oddonesout','vr_lettercode','vr_closestmeaning','vr_hiddenword','vr_missingword',
+  'vr_lettersnumbers','vr_moveletter','vr_letterseries','vr_wordconnections','vr_numberseries','vr_compoundwords',
+  'vr_makeword','vr_letterconnections','vr_readinginfo','vr_oppositemeaning','vr_completesum','vr_relatednumbers',
+  'vr_wordnumbercodes','vr_completeword','vr_commonlink'
+];
+const LINK_IDS=PLAY_IDS.concat(GUIDE_ONLY_IDS);
+const playable=new Set(PLAY_IDS),supported=new Set(LINK_IDS);
 
 function idForCard(card){
   const direct=card.querySelector('[data-engine-select]')?.dataset.engineSelect;
@@ -83,10 +90,8 @@ function enhanceCard(card){
 
   const actions=document.createElement('div');
   actions.className='tt99-engine-card-actions';
-  actions.append(
-    link('/play/?game='+encodeURIComponent(id),'▶ Play online','is-play',id),
-    link('/help/games/?guide='+encodeURIComponent(id),'? Guide','is-guide',id)
-  );
+  if(playable.has(id))actions.append(link('/play/?game='+encodeURIComponent(id),'▶ Play online','is-play',id));
+  actions.append(link('/help/games/?guide='+encodeURIComponent(id),'? Guide','is-guide',id));
   configure.insertAdjacentElement('beforebegin',actions);
   actions.appendChild(configure);
   card.dataset.tt99Quicklinks='1';
@@ -107,5 +112,5 @@ function schedule(){
 new MutationObserver(schedule).observe(root,{childList:true,subtree:true});
 schedule();
 
-global.TT99GameCardLinks={version:'2.05.2',ids:LINK_IDS.slice()};
+global.TT99GameCardLinks={version:'2.06.0',ids:LINK_IDS.slice(),playIds:PLAY_IDS.slice(),guideOnlyIds:GUIDE_ONLY_IDS.slice()};
 })(typeof globalThis!=='undefined'?globalThis:this);
