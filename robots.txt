@@ -5,6 +5,5 @@ sitemap: false
 ---
 User-agent: *
 Allow: /
-Disallow: /tools/99-club/custom/
 
 Sitemap: https://99studio.uk/sitemap.xml
