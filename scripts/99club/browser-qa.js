@@ -207,6 +207,20 @@ function prepare(){
         else pass('answer-reveal-ui','two-step reveal, cancel path and no-score behaviour verified');
       }catch(e){fail('answer-reveal-ui',(e&&e.stack)||String(e));}
     }
+    async function paperExportEntryTest(){
+      try{
+        const entry=document.querySelector('.tt99-play-setup-actions [data-paper-export]');
+        if(!entry)return fail('paper-export-ui','Print / save action missing from play controls');
+        if(entry.textContent!=='Print / save')fail('paper-export-ui','play export action has the wrong label');
+        entry.click();await sleep(40);
+        const dialog=document.querySelector('.tt99-paper-export-dialog');
+        if(!dialog||dialog.hidden)return fail('paper-export-ui','paper export dialog did not open');
+        for(const sel of ['[data-paper-pdf]','[data-paper-png]','[data-paper-copy]','[data-paper-answer-pdf]'])if(!dialog.querySelector(sel))fail('paper-export-ui','paper export dialog missing '+sel);
+        dialog.querySelector('.tt99-paper-export-close')?.click();await sleep(10);
+        if(!dialog.hidden)fail('paper-export-ui','paper export dialog did not close');
+        else pass('paper-export-ui','Print / save opens PDF, PNG, copy-image and optional answer controls');
+      }catch(e){fail('paper-export-ui',(e&&e.stack)||String(e));}
+    }
     async function completionShareEntryTest(){
       try{
         const popup=document.getElementById('tt99-play-complete');
@@ -298,7 +312,7 @@ function prepare(){
       }catch(e){fail('completion-splash',(e&&e.stack)||String(e));}
     }
     async function run(){
-      try{await sleep(500);await genericAdapterTests();await brokenCalcTest();await colourFillTest();await perimeterDirectTest();await alphameticsVarietyTest();await groupedLibraryTest();await drawerTest();await sumGridContainmentTest();await hintPopupTest();await answerRevealFlowTest();await completionShareEntryTest();await sharePanelTest();await completionSplashFitTest();}
+      try{await sleep(500);await genericAdapterTests();await brokenCalcTest();await colourFillTest();await perimeterDirectTest();await alphameticsVarietyTest();await groupedLibraryTest();await drawerTest();await sumGridContainmentTest();await hintPopupTest();await answerRevealFlowTest();await paperExportEntryTest();await completionShareEntryTest();await sharePanelTest();await completionSplashFitTest();}
       catch(e){fail('runner',(e&&e.stack)||String(e));}
       finally{finish();}
     }

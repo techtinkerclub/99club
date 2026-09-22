@@ -348,6 +348,12 @@ if(revealFlow.includes('saveCompletion')||revealFlow.includes('online_game_compl
 else ok('answer-reveal',`All ${publicGameIds.length} public games have guarded answer reveal coverage without completion credit`);
 const contextKeypadSrc=read('assets/99club/games-play-context-keypad-v201.js');
 const completionPreviewSrc=read('assets/99club/games-play-completion-preview-v1.js');
+const paperExportSrc=read('assets/99club/games-play-paper-export-v1.js');
+const playPageSrc=read(playPage);
+if(!playPageSrc.includes('games-play-paper-export-v1.css')||!playPageSrc.includes('games-play-paper-export-v1.js')||!playPageSrc.includes('simple-pdf.js'))fail('paper-export','Online Play is missing the exact-puzzle export asset stack');
+for(const token of ['Print / save','Download PDF','Save PNG','Copy image','Include answer page in PDF','adapter.createPuzzle(config,seed)','view.revealAnswer','html2canvas','TT99SimplePDF'])if(!paperExportSrc.includes(token))fail('paper-export','Exact-puzzle export contract missing '+token);
+if(!paperExportSrc.includes("activeKind='puzzle'")||!paperExportSrc.includes("cache.puzzle=null;cache.answer=null"))fail('paper-export','Exact-puzzle export does not reset to a clean puzzle when the URL seed/settings change');
+else ok('paper-export','Online Play can rebuild the exact seeded puzzle as clean PDF/PNG/copy-image output with optional answer page');
 if(!playCoreSrc.includes('data-play-surprise>Surprise me</button>')||!playCoreSrc.includes("querySelector('[data-play-surprise]')?.addEventListener('click',surprise)"))fail('completion-splash','Completion splash is missing the Surprise me action or handler');
 else ok('completion-splash','Completion splash offers New puzzle, Surprise me and Choose another game paths');
 const finishFlow=(playCoreSrc.match(/function finish\(result\)\{[^\n]*\}/)||[''])[0];

@@ -29,6 +29,7 @@ sitemap: true
 <link rel="stylesheet" href="/assets/99club/games-play-instructions-v154.css?v=1">
 <link rel="stylesheet" href="/assets/99club/games-play-cipher-v154.css?v=1">
 <link rel="stylesheet" href="/assets/99club/games-play-share-v156.css?v=2">
+<link rel="stylesheet" href="/assets/99club/games-play-paper-export-v1.css?v=1">
 <link rel="stylesheet" href="/assets/99club/games-play-wave5.css?v=2">
 <link rel="stylesheet" href="/assets/99club/games-play-kakuro-v170.css?v=1">
 <link rel="stylesheet" href="/assets/99club/games-play-arithmeticcages-v169.css?v=1">
@@ -124,6 +125,8 @@ sitemap: true
 <script src="/assets/99club/games-play-library-v4.js?v=7"></script>
 <script src="/assets/99club/games-play-instructions-v154.js?v=4"></script>
 <script src="/assets/99club/games-play-completion-preview-v1.js?v=5"></script>
+<script src="/assets/99club/simple-pdf.js?v=19.4"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/assets/99club/games-play-share-v164.js?v=8"></script>
 <script src="/assets/99club/games-play-share-v176-fix.js?v=1"></script>
+<script src="/assets/99club/games-play-paper-export-v1.js?v=1"></script>
