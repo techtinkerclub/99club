@@ -509,6 +509,102 @@ function auditHashi(p){
   return contradictionAudit(ds,prop,s=>s.every(d=>d.size===1));
 }
 
+/* ---------- Alphametics: column/carry deduction audit ---------- */
+function auditAlphametic(p){
+  const words=(p.addends||[]).concat([p.result]),letters=Array.from(new Set(words.join(''))),letterIndex=new Map(letters.map((x,i)=>[x,i]));
+  const lead=new Set(words.filter(w=>w.length>1).map(w=>w[0])),maxLen=Math.max(...words.map(w=>w.length)),addCount=(p.addends||[]).length;
+  const state=letters.map(ch=>{
+    const d=new Set(Array.from({length:10},(_,i)=>i);
+    if(lead.has(ch))d.delete(0);
+    if(p.givens&&p.givens[ch]!=null)return new Set([Number(p.givens[ch])]);
+    return d;
+  });
+  const carryOffset=state.length;
+  for(let col=0;col<=maxLen;col++){
+    if(col===0||col===maxLen)state.push(new Set([0]));
+    else state.push(new Set(Array.from({length:Math.max(1,addCount)},(_,i)=>i)));
+  }
+
+  function matchingExists(domains,forcedI=-1,forcedV=-1){
+    const order=letters.map((_,i)=>i).sort((a,b)=>domains[a].size-domains[b].size),used=new Set();
+    function rec(k){
+      if(k===order.length)return true;
+      const i=order[k],vals=i===forcedI?[forcedV]:Array.from(domains[i]);
+      for(const v of vals){
+        if(!domains[i].has(v)||used.has(v))continue;
+        used.add(v);if(rec(k+1))return true;used.delete(v);
+      }
+      return false;
+    }
+    return rec(0);
+  }
+
+  const columns=[];
+  for(let col=0;col<maxLen;col++){
+    const coeff=new Map();
+    for(const w of p.addends||[]){
+      const ch=col<w.length?w[w.length-1-col]:null;
+      if(ch)coeff.set(ch,(coeff.get(ch)||0)+1);
+    }
+    const rch=col<p.result.length?p.result[p.result.length-1-col]:null;
+    if(rch)coeff.set(rch,(coeff.get(rch)||0)-1);
+    const vars=Array.from(coeff.keys()).map(ch=>letterIndex.get(ch));
+    vars.push(carryOffset+col,carryOffset+col+1);
+    columns.push({coeff,vars:Array.from(new Set(vars)),cin:carryOffset+col,cout:carryOffset+col+1});
+  }
+
+  function propagate(s){
+    let changed=true,passes=0;
+    while(changed&&passes++<100){
+      changed=false;
+      /* Global all-different support across letters. */
+      if(!matchingExists(s))return {ok:false,passes};
+      for(let i=0;i<letters.length;i++)for(const v of Array.from(s[i])){
+        if(!matchingExists(s,i,v)){s[i].delete(v);changed=true;if(!s[i].size)return {ok:false,passes};}
+      }
+
+      for(const column of columns){
+        const supports=new Map(column.vars.map(i=>[i,new Set()])),assign=new Map(),usedLetters=new Set(),vars=column.vars.slice().sort((a,b)=>s[a].size-s[b].size);
+        function rec(k){
+          if(k===vars.length){
+            let value=Number(assign.get(column.cin)||0)-10*Number(assign.get(column.cout)||0);
+            for(const [ch,coef] of column.coeff)value+=coef*Number(assign.get(letterIndex.get(ch)));
+            if(value===0)for(const i of column.vars)supports.get(i).add(assign.get(i));
+            return;
+          }
+          const i=vars[k],isLetter=i<letters.length;
+          for(const v of s[i]){
+            if(isLetter&&usedLetters.has(v))continue;
+            assign.set(i,v);if(isLetter)usedLetters.add(v);rec(k+1);if(isLetter)usedLetters.delete(v);assign.delete(i);
+          }
+        }
+        rec(0);
+        for(const i of column.vars){
+          const sup=supports.get(i);if(!sup.size)return {ok:false,passes};
+          for(const v of Array.from(s[i]))if(!sup.has(v)){s[i].delete(v);changed=true;if(!s[i].size)return {ok:false,passes};}
+        }
+      }
+    }
+    return {ok:true,passes};
+  }
+  const a=contradictionAudit(state,prop,s=>s.slice(0,letters.length).every(d=>d.size===1),500);
+  a.letters=letters.length;a.columns=maxLen;
+  return a;
+}
+
+function auditAlphameticsLibrary(){
+  const lib=global.TT99AlphaLibrary&&global.TT99AlphaLibrary.templates||[],summary={easy:{total:0,solved:0,contradictions:0,max:0},standard:{total:0,solved:0,contradictions:0,max:0},challenge:{total:0,solved:0,contradictions:0,max:0}},stalled=[];
+  for(const t of lib){
+    const difficulty=t.difficulty||'standard',settings={minYear:1,maxYear:6,topics:['algebra','calculation'],engineSettings:{alphametics:{difficulty,hintLevel:'auto',theme:'auto',template:t.id}}};
+    const p=G.generateActivity('alphametics',settings,'deduction:alphametics:'+t.id,[]);
+    const a=p&&!p.error?auditAlphametic(p):{solved:false,error:p&&p.error||'generation failed'};
+    const s=summary[difficulty]||summary.standard;s.total++;
+    if(a.solved){s.solved++;s.contradictions+=Number(a.contradictions||0);s.max=Math.max(s.max,Number(a.contradictions||0));}
+    else stalled.push({id:t.id,difficulty,a});
+  }
+  return {summary,stalled};
+}
+
 /* ---------- Existing explicit deduction guards ---------- */
 function auditGuarded(p){
   if(p.engineId==='colourlogic')return A.COLOURLOGIC_DEDUCTION.audit(p);
@@ -579,7 +675,19 @@ console.log('  Symbol Equations / Function Machines / Balance: direct equation o
 console.log('');
 console.log('SEARCH / EXPLORATION FAMILIES (not subject to no-branch gate)');
 console.log('  Target Number, Broken Calculator, Insert the Operations, Target Square Search.');
-console.log('  Alphametics is reported separately by the existing uniqueness/library QA; candidate testing is intrinsic to the genre.');
+const alphaAudit=auditAlphameticsLibrary();
+console.log('');
+console.log('ALPHAMETICS COLUMN/CARRY AUDIT');
+for(const difficulty of ['easy','standard','challenge']){
+  const s=alphaAudit.summary[difficulty];
+  console.log('  '+difficulty+': '+s.solved+'/'+s.total+' solved by propagation + contradiction; '+s.contradictions+' contradiction eliminations total; max '+s.max+' in one puzzle.');
+}
+if(alphaAudit.stalled.length)console.log('  '+alphaAudit.stalled.length+' curated template(s) still require deeper branching: '+alphaAudit.stalled.map(x=>x.id).join(', '));
+else console.log('  All curated Alphametics templates passed the column/carry audit.');
+console.log('');
+console.log('SEARCH / EXPLORATION FAMILIES (not subject to no-branch gate)');
+console.log('  Target Number, Broken Calculator, Insert the Operations, Target Square Search.');
+console.log('  Number Property Maze deliberately includes valid-looking dead ends at Standard/Challenge; route backtracking is part of that maze design.');
 console.log('  Balance Lab final weight split is an intentional partition/search challenge.');
 
 if(failures.length){
