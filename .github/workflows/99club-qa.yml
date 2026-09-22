@@ -99,6 +99,8 @@ jobs:
         run: node scripts/99club/security-smoke.js
       - name: Run search indexability regression checks
         run: node scripts/99club/seo-indexability-qa.js
+      - name: Run deduction-solvability audit
+        run: DEDUCTION_SAMPLES=5 node scripts/99club/deduction-audit.js
       - name: Upload QA report
         if: always()
         uses: actions/upload-artifact@v4
