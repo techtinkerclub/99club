@@ -163,7 +163,7 @@ function futoshikiExtra(p,ds){
   }
   for(let r=0;r<n;r++)for(let c=0;c<n-1;c++){const s=p.hSigns&&p.hSigns[r]&&p.hSigns[r][c];if(s&&!arc(idx(r,c),idx(r,c+1),s==='<'))return false;}
   for(let r=0;r<n-1;r++)for(let c=0;c<n;c++){const s=p.vSigns&&p.vSigns[r]&&p.vSigns[r][c];if(s&&!arc(idx(r,c),idx(r+1,c),s==='^'))return false;}
-  return changed;
+  return changed?true:null;
 }
 function auditFutoshiki(p){return auditSudoku(Object.assign({},p,{style:'latin'}),futoshikiExtra);}
 
@@ -196,7 +196,7 @@ function cageExtra(cages,distinctWithin){
         for(const v of Array.from(ds[cells[k]]))if(!supports.has(v)){const q=remove(ds,cells[k],v);if(q<0)return false;if(q)changed=true;}
       }
     }
-    return changed;
+    return changed?true:null;
   };
 }
 function auditArithmeticCages(p){
