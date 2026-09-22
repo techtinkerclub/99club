@@ -67,6 +67,7 @@ const engineLoadOrder=[
   'assets/99club/games-vocabulary.js',
   'assets/99club/games-arithmetic.js',
   'assets/99club/games-new-puzzles-v196.js',
+  'assets/99club/games-colourlogic-deduction-v209.js',
   'assets/99club/games-balance-lab-v192.js',
   'assets/99club/games-operationgrid-v153.js',
   'assets/99club/games-operationgrid-print-v155.js',
@@ -184,6 +185,9 @@ function checkSpecific(id,p){
   if(id==='colourlogic'){
     if(p.solutionCount!==1)fail(id,'puzzle is not marked uniquely solvable',String(p.solutionCount));
     if(!Array.isArray(p.clues)||p.clues.length<2)fail(id,'too few clues');
+    if(p.deductionStats?.solved!==true)fail(id,'puzzle is not marked deduction-solvable');
+    const audit=A?.COLOURLOGIC_DEDUCTION?.audit?.(p);
+    if(!audit?.solved)fail(id,'deduction audit stalls and would require an arbitrary branch',JSON.stringify(audit||{}));
   }
   if(id==='mobilebalance'){
     const vals=p.values||{};
@@ -255,6 +259,21 @@ if(G&&G.ENGINES){
   }
   ok('engines',`${Object.keys(G.ENGINES).length} engines stress-tested; ${generated} deterministic generations performed`);
 }
+
+/* ---------- Colour Logic deduction/no-guess coverage ---------- */
+if(A?.COLOURLOGIC_DEDUCTION?.audit){
+  let checked=0,contradictions=0;
+  for(const layout of ['row','grid','auto'])for(let i=0;i<8;i++){
+    const settings={engineSettings:{colourlogic:{difficulty:'challenge',layout,ruleStyle:'mixed'}}};
+    const p=A.generate('colourlogic',settings,`qa:colourlogic-deduction:${layout}:${i}`);
+    if(!p||p.error){fail('colourlogic-deduction','challenge generation failed',p?.error||'empty');continue;}
+    const audit=A.COLOURLOGIC_DEDUCTION.audit(p);checked++;
+    contradictions+=Number(audit?.contradictions||0);
+    if(!audit?.solved)fail('colourlogic-deduction',`deduction audit stalled for ${layout} seed ${i}`,JSON.stringify(audit||{}));
+    if(p.deductionStats?.solved!==true)fail('colourlogic-deduction','generated puzzle lost deduction metadata');
+  }
+  if(checked===24)ok('colourlogic-deduction',`24 Challenge puzzles passed propagation + contradiction audit; ${contradictions} contradiction eliminations exercised`);
+}else fail('colourlogic-deduction','deduction audit module is not loaded');
 
 /* ---------- Alphametics full-library coverage ---------- */
 const alphaLib=global.TT99AlphaLibrary;

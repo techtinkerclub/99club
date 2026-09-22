@@ -48,6 +48,7 @@ sitemap: true
 <script src="/assets/99club/games-arithmetic.js?v=9"></script>
 <script src="/assets/99club/games-brokencalc-quality-v152.js?v=2"></script>
 <script src="/assets/99club/games-new-puzzles-v196.js?v=2"></script>
+<script src="/assets/99club/games-colourlogic-deduction-v209.js?v=1"></script>
 <script src="/assets/99club/games-balance-lab-v192.js?v=3"></script>
 <script src="/assets/99club/games-operationgrid-v153.js?v=1"></script>
 <script src="/assets/99club/games-operationgrid-print-v155.js?v=1"></script>

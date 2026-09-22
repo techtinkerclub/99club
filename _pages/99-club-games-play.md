@@ -53,6 +53,7 @@ sitemap: true
 <script src="/assets/99club/games-vocabulary.js?v=1"></script>
 <script src="/assets/99club/games-arithmetic.js?v=8"></script>
 <script src="/assets/99club/games-new-puzzles-v196.js?v=1"></script>
+<script src="/assets/99club/games-colourlogic-deduction-v209.js?v=1"></script>
 <script src="/assets/99club/games-crossgrid-v1321.js?v=3"></script>
 <script src="/assets/99club/games-property-maze.js?v=1"></script>
 <script src="/assets/99club/games-operationgrid-v153.js?v=1"></script>
