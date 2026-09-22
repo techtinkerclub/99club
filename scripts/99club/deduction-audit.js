@@ -587,7 +587,7 @@ function auditAlphametic(p){
     }
     return {ok:true,passes};
   }
-  const a=contradictionAudit(state,prop,s=>s.slice(0,letters.length).every(d=>d.size===1),500);
+  const a=contradictionAudit(state,propagate,s=>s.slice(0,letters.length).every(d=>d.size===1),500);
   a.letters=letters.length;a.columns=maxLen;
   return a;
 }
