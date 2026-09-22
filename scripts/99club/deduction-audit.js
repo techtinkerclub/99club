@@ -662,6 +662,25 @@ for(const id of Object.keys(auditors)){
   }
 }
 
+/* ---------- Diagonal Path clue-density diagnostic ---------- */
+console.log('');
+console.log('DIAGONAL PATH CHALLENGE CLUE-DENSITY DIAGNOSTIC');
+for(const clueLevel of ['auto','balanced','more']){
+  let totalContradictions=0,totalGivens=0,solved=0,maxContradictions=0;
+  const runs=Math.max(5,Math.min(SAMPLES,20));
+  for(let i=0;i<runs;i++){
+    const settings=settingsFor('diagonalpath','challenge');
+    settings.engineSettings.diagonalpath.clueLevel=clueLevel;
+    const p=G.generateActivity('diagonalpath',settings,'density:diagonalpath:'+clueLevel+':'+i,[]);
+    const a=auditPath(p,true);
+    if(a.solved)solved++;
+    totalContradictions+=Number(a.contradictions||0);
+    maxContradictions=Math.max(maxContradictions,Number(a.contradictions||0));
+    totalGivens+=(p.givens||[]).length;
+  }
+  console.log('  '+clueLevel+': '+solved+'/'+runs+' solved; avg anchors '+(totalGivens/runs).toFixed(1)+'; avg contradictions '+(totalContradictions/runs).toFixed(1)+'; max '+maxContradictions+'.');
+}
+
 /* Structural families where the generator itself proves a direct algebraic
  * determination rather than a search path. Keep these in the report so they
  * are not accidentally mistaken for unaudited logic puzzles.
