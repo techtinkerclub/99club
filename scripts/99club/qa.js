@@ -348,6 +348,8 @@ if(revealFlow.includes('saveCompletion')||revealFlow.includes('online_game_compl
 else ok('answer-reveal',`All ${publicGameIds.length} public games have guarded answer reveal coverage without completion credit`);
 const contextKeypadSrc=read('assets/99club/games-play-context-keypad-v201.js');
 const completionPreviewSrc=read('assets/99club/games-play-completion-preview-v1.js');
+if(!playCoreSrc.includes('data-play-surprise>Surprise me</button>')||!playCoreSrc.includes("querySelector('[data-play-surprise]')?.addEventListener('click',surprise)"))fail('completion-splash','Completion splash is missing the Surprise me action or handler');
+else ok('completion-splash','Completion splash offers New puzzle, Surprise me and Choose another game paths');
 const finishFlow=(playCoreSrc.match(/function finish\(result\)\{[^\n]*\}/)||[''])[0];
 if(!contextKeypadSrc.includes('window.TT99ContextKeypad={hide:hidePad'))fail('completion-splash','Context keypad does not expose the completion close hook');
 if(!finishFlow.includes('dismissCompletionInput();')||finishFlow.indexOf('dismissCompletionInput();')>finishFlow.indexOf('renderCompletion();'))fail('completion-splash','Successful completion does not dismiss input before opening the splash');
