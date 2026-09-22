@@ -99,6 +99,23 @@ for(const rel of engineLoadOrder){
 const G=global.TT99Games,A=global.TT99ArithmeticGames,N=global.TT99NumberLogicGames;
 if(!G||!G.ENGINES)fail('engine-load','TT99Games did not initialise');
 
+/* ---------- word-search direction balance ---------- */
+if(G){
+  const directionKeys=['1,0','0,1','1,1','-1,1'],totals=Object.fromEntries(directionKeys.map(k=>[k,0]));
+  const settings={minYear:1,maxYear:6,topics:Object.keys(G.TOPICS),engineSettings:{wordsearch:{difficulty:'standard',directionMode:'diagonal',wordCount:'9',gridSize:'14'}}};
+  let placed=0,errors=0;
+  for(let i=0;i<120;i++){
+    const a=G.generateWordSearch(settings,`qa-wordsearch-balance-${i}`);
+    if(a?.error){errors++;continue;}
+    for(const p of a.placements||[]){const key=`${p.dx},${p.dy}`;if(key in totals){totals[key]++;placed++;}}
+  }
+  const shares=directionKeys.map(k=>placed?totals[k]/placed:0),spread=Math.max(...shares)-Math.min(...shares);
+  if(errors)fail('wordsearch-balance','Standard Word Search direction audit produced generation errors',String(errors));
+  if(placed<900)fail('wordsearch-balance','Standard Word Search direction audit placed too few words',String(placed));
+  if(spread>0.12)fail('wordsearch-balance','Standard Word Search directions are materially imbalanced',JSON.stringify(Object.fromEntries(directionKeys.map((k,i)=>[k,Number(shares[i].toFixed(3))]))));
+  else ok('wordsearch-balance',`120 standard grids keep horizontal, vertical and both diagonal directions balanced (spread ${spread.toFixed(3)})`);
+}
+
 /* ---------- finite-bank capacity + no-repeat packs ---------- */
 if(G&&global.TT99AlphaLibrary&&N?.V140?.ALPHAMETICS?.solve){
   const alphaTemplates=global.TT99AlphaLibrary.templates||[],solve=N.V140.ALPHAMETICS.solve;
