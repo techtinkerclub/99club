@@ -5,7 +5,7 @@
 (function(global){
   'use strict';
 
-  const VERSION='1.9.0';
+  const VERSION='1.9.1';
   let VOCAB_DATA=global.TT99GamesVocabularyV2||null;
   let ARITH=global.TT99ArithmeticGames||null;
   let NUMLOGIC=global.TT99NumberLogicGames||null;
@@ -258,21 +258,34 @@
   function vocabularyFor(settings,customVocabulary=[]){
     const size=wordSearchGridSize(settings);return vocabularyPool(settings,customVocabulary,'wordsearch').filter(x=>normalizeTerm(x.term).length<=size&&x.minimumWordsearchGrid<=size);
   }
-  function placeWord(grid,word,rng,dirs){
-    const n=grid.length;
-    for(let attempt=0;attempt<500;attempt++){
-      const [dx,dy]=dirs[randInt(rng,0,dirs.length-1)],x0=randInt(rng,0,n-1),y0=randInt(rng,0,n-1),x1=x0+dx*(word.length-1),y1=y0+dy*(word.length-1);
+  function wordPlacementCandidates(grid,word,dir){
+    const n=grid.length,[dx,dy]=dir,out=[];
+    for(let y0=0;y0<n;y0++)for(let x0=0;x0<n;x0++){
+      const x1=x0+dx*(word.length-1),y1=y0+dy*(word.length-1);
       if(x1<0||x1>=n||y1<0||y1>=n)continue;
-      let ok=true;for(let i=0;i<word.length;i++){const x=x0+dx*i,y=y0+dy*i,c=grid[y][x];if(c&&c!==word[i]){ok=false;break;}}
-      if(!ok)continue;
-      const cells=[];for(let i=0;i<word.length;i++){const x=x0+dx*i,y=y0+dy*i;grid[y][x]=word[i];cells.push([x,y]);}
-      return {cells,dx,dy};
-    }return null;
+      let ok=true;
+      for(let i=0;i<word.length;i++){const x=x0+dx*i,y=y0+dy*i,c=grid[y][x];if(c&&c!==word[i]){ok=false;break;}}
+      if(ok)out.push({x0,y0,dx,dy});
+    }
+    return out;
+  }
+  function placeWord(grid,word,rng,dirs,directionUsage){
+    const usage=directionUsage||new Map(),viable=[];
+    for(const dir of dirs){
+      const key=`${dir[0]},${dir[1]}`,candidates=wordPlacementCandidates(grid,word,dir);
+      if(candidates.length)viable.push({key,used:usage.get(key)||0,candidates});
+    }
+    if(!viable.length)return null;
+    const leastUsed=Math.min(...viable.map(v=>v.used)),directionPool=viable.filter(v=>v.used===leastUsed),choice=directionPool[randInt(rng,0,directionPool.length-1)],candidate=choice.candidates[randInt(rng,0,choice.candidates.length-1)];
+    const cells=[];
+    for(let i=0;i<word.length;i++){const x=candidate.x0+candidate.dx*i,y=candidate.y0+candidate.dy*i;grid[y][x]=word[i];cells.push([x,y]);}
+    usage.set(choice.key,choice.used+1);
+    return {cells,dx:candidate.dx,dy:candidate.dy};
   }
   function buildWordSearchFromItems(settings,seed,items){
-    const s=normalizeSettings(settings),rng=rngFromSeed(seed),size=wordSearchGridSize(s),grid=Array.from({length:size},()=>Array(size).fill('')),placements=[],direction=wordSearchDirections(s);
+    const s=normalizeSettings(settings),rng=rngFromSeed(seed),size=wordSearchGridSize(s),grid=Array.from({length:size},()=>Array(size).fill('')),placements=[],direction=wordSearchDirections(s),directionUsage=new Map();
     const tagged=items.map((item,order)=>({...item,_displayOrder:order})),ordered=tagged.slice().sort((a,b)=>normalizeTerm(b.term).length-normalizeTerm(a.term).length);
-    for(const item of ordered){const word=normalizeTerm(item.term),placed=placeWord(grid,word,rng,direction.dirs);if(placed)placements.push({id:item.id,term:item.term,definition:item.definition,source:item.source,topic:item.topic,appTopics:item.appTopics,cells:placed.cells,dx:placed.dx,dy:placed.dy,_displayOrder:item._displayOrder});}
+    for(const item of ordered){const word=normalizeTerm(item.term),placed=placeWord(grid,word,rng,direction.dirs,directionUsage);if(placed)placements.push({id:item.id,term:item.term,definition:item.definition,source:item.source,topic:item.topic,appTopics:item.appTopics,cells:placed.cells,dx:placed.dx,dy:placed.dy,_displayOrder:item._displayOrder});}
     placements.sort((a,b)=>a._displayOrder-b._displayOrder);for(const p of placements)delete p._displayOrder;
     const alphabet='EEEEEEEEAAAAAAIIIIIOOOONNNNRRRRTTTTSSSSLLLCCDDMPUFGHBVYWKXJQZ';
     for(let y=0;y<size;y++)for(let x=0;x<size;x++)if(!grid[y][x])grid[y][x]=alphabet[randInt(rng,0,alphabet.length-1)];
