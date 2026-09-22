@@ -514,7 +514,7 @@ function auditAlphametic(p){
   const words=(p.addends||[]).concat([p.result]),letters=Array.from(new Set(words.join(''))),letterIndex=new Map(letters.map((x,i)=>[x,i]));
   const lead=new Set(words.filter(w=>w.length>1).map(w=>w[0])),maxLen=Math.max(...words.map(w=>w.length)),addCount=(p.addends||[]).length;
   const state=letters.map(ch=>{
-    const d=new Set(Array.from({length:10},(_,i)=>i);
+    const d=new Set(Array.from({length:10},(_,i)=>i));
     if(lead.has(ch))d.delete(0);
     if(p.givens&&p.givens[ch]!=null)return new Set([Number(p.givens[ch])]);
     return d;
