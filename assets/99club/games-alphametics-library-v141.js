@@ -67,8 +67,9 @@ function generateAlpha(settings,seed){
  for(const ch of letters){if(Object.keys(givens).length>=fixedBase+desired)break;if(givens[ch]==null)givens[ch]=solution[ch];}
  while(solve(t,givens,2).length!==1){const ch=letters.find(x=>givens[x]==null);if(!ch)break;givens[ch]=solution[ch];}
  if(solve(t,givens,2).length!==1)return {engineId:'alphametics',title:'Word Codes · Alphametics',error:'A unique word code could not be prepared.'};
+ let logic=NL.V140.ALPHAMETICS.logic?.(t,givens),extraGivens=0;if(!logic?.solved){for(const ch of letters){if(givens[ch]!=null)continue;givens[ch]=solution[ch];extraGivens++;logic=NL.V140.ALPHAMETICS.logic?.(t,givens);if(logic?.solved)break;}}if(!logic?.solved)return {engineId:'alphametics',title:'Word Codes · Alphametics',error:'A deduction-solvable word code could not be prepared.'};
  const payload={adds:t.adds,result:t.result,givens,solution,label:t.label,theme:t.theme,library:'v1.43'};
- return {engineId:'alphametics',title:'Word Codes · Alphametics',difficulty:o.difficulty,templateId:t.id,theme:t.theme,addends:t.adds,result:t.result,givens,solution,seed,options:o,engineVersion:'1.1.0',instruction:`Replace each letter with a digit so the addition is correct. The same letter always means the same digit, different letters use different digits, and a word cannot start with 0.${marker(payload)}`};
+ return {engineId:'alphametics',title:'Word Codes · Alphametics',difficulty:o.difficulty,templateId:t.id,theme:t.theme,addends:t.adds,result:t.result,givens,solution,logicStats:{solved:true,passes:logic.passes,eliminations:logic.eliminations,extraGivens},seed,options:o,engineVersion:'1.2.0',instruction:`Replace each letter with a digit so the addition is correct. The same letter always means the same digit, different letters use different digits, and a word cannot start with 0.${marker(payload)}`};
 }
 NL.generate=function(id,settings,seed){if(id==='alphametics')return generateAlpha(settings,seed);return BASE_GENERATE(id,settings,seed);};
 NL.V140.ALPHAMETICS.templates=LIBRARY;
