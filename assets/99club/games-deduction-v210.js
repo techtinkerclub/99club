@@ -38,13 +38,7 @@ function allDiff(domains,cells){
   }
   return {ok:true,changed};
 }
-function contradictionWithin(domains,propagate,depth){
-  const q=propagate(domains);if(!q.ok)return true;if(domains.every(s=>s.size===1)||depth<=0)return false;
-  const pick=domains.map((s,i)=>({i,n:s.size})).filter(x=>x.n>1).sort((a,b)=>a.n-b.n||a.i-b.i)[0];if(!pick)return false;
-  for(const v of domains[pick.i]){const child=cloneDomains(domains);child[pick.i].clear();child[pick.i].add(v);if(!contradictionWithin(child,propagate,depth-1))return false;}
-  return true;
-}
-function genericDeduce(domains,propagate,{indirect=true,maxRounds=160,probeDepth=0}={}){
+function genericDeduce(domains,propagate,{indirect=true,maxRounds=160}={}){
   let passes=0,indirectEliminations=0;
   for(let round=0;round<maxRounds;round++){
     const q=propagate(domains);passes+=q.passes||1;if(!q.ok)return {solved:false,contradiction:true,domains,passes,indirectEliminations};
@@ -56,7 +50,8 @@ function genericDeduce(domains,propagate,{indirect=true,maxRounds=160,probeDepth
     outer:for(const {i} of order){
       for(const v of [...domains[i]]){
         const test=cloneDomains(domains);test[i].clear();test[i].add(v);
-        if(contradictionWithin(test,propagate,probeDepth)){domains[i].delete(v);indirectEliminations++;eliminated=true;if(!domains[i].size)return {solved:false,contradiction:true,domains,passes,indirectEliminations};break outer;}
+        const t=propagate(test);
+        if(!t.ok){domains[i].delete(v);indirectEliminations++;eliminated=true;if(!domains[i].size)return {solved:false,contradiction:true,domains,passes,indirectEliminations};break outer;}
       }
     }
     if(!eliminated)break;
@@ -186,7 +181,7 @@ function auditTowers(p){
     for(let c=0;c<n;c++){const q=allDiff(d,Array.from({length:n},(_,r)=>key(r,c,n)));if(!q.ok)return {ok:false,changed:total+changed,passes};changed+=q.changed;}
     total+=changed;if(!changed)return {ok:true,changed:total,passes};
   }return {ok:true,changed:total,passes};};
-  return {...genericDeduce(domains,prop,{probeDepth:1}),engineId:'numbertowers'};
+  return {...genericDeduce(domains,prop),engineId:'numbertowers'};
 }
 function auditKiller(p){
   const n=Number(p.size),domains=baseLatinDomains(n,p.displayGrid),units=latinUnits(n,Number(p.boxRows),Number(p.boxCols)),cages=(p.cages||[]).map(cg=>({cells:cg.cells.map(([r,c])=>key(r,c,n)),target:Number(cg.target)}));
@@ -346,6 +341,13 @@ function ensureDeduction(id,settings,seed){
   else if(id==='numbertowers')p=towerFullClues(p);
   else if(['cornersum','linkedsum'].includes(id))p=strengthenSumGrid(p);
   q=audit(p);if(q.solved){p.deductionStats=p.deductionStats||q;return p;}
+  if(id==='numbertowers'){
+    for(let attempt=1;attempt<=24;attempt++){
+      let cand=BASE_N_GENERATE(id,settings,seed+':deduction:'+attempt);if(!cand||cand.error)continue;
+      let a=audit(cand);if(!a.solved){cand=towerFullClues(cand);a=audit(cand);}
+      if(a.solved){cand.seed=seed;cand.deductionStats=cand.deductionStats||a;return cand;}
+    }
+  }
   if(RETRY.has(id))for(let attempt=1;attempt<=18;attempt++){const cand=BASE_N_GENERATE(id,settings,seed+':deduction:'+attempt);if(!cand||cand.error)continue;const a=audit(cand);if(a.solved){cand.seed=seed;cand.deductionStats=a;return cand;}}
   return {...p,error:'A deduction-solvable '+(p.title||id)+' puzzle could not be built. Generate another version.',deductionStats:q};
 }
