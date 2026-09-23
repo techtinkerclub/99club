@@ -79,6 +79,36 @@
       for(const row of rowCandidates[r]){let ok=true;for(let c=0;c<n;c++)if(cols[c].has(row[c])){ok=false;break;}if(!ok)continue;grid[r]=row;for(let c=0;c<n;c++)cols[c].add(row[c]);for(let c=0;c<n&&ok;c++)ok=topPossible(c,r+1);if(ok)rec(r+1);for(let c=0;c<n;c++)cols[c].delete(row[c]);if(count.v>=limit)return;}}
     rec(0);return count.v;
   }
+
+  function solveTowersByLogic(n,clues){
+    const all=()=>new Set(Array.from({length:n},(_,i)=>i+1)),domains=Array.from({length:n},()=>Array.from({length:n},all)),ps=perms(n);let passes=0,eliminations=0;
+    function reduce(set,allowed){let changed=false;for(const v of [...set])if(!allowed.has(v)){set.delete(v);eliminations++;changed=true;}return changed;}
+    function grid(){return domains.map(row=>row.map(s=>s.size===1?[...s][0]:0));}
+    for(let guard=0;guard<120;guard++){
+      passes++;let changed=false;
+      for(let r=0;r<n;r++){
+        const opts=ps.filter(p=>cluesMatch(p,clues.left[r]||0,clues.right[r]||0)&&p.every((v,c)=>domains[r][c].has(v)));
+        if(!opts.length)return {solved:false,contradiction:true,passes,eliminations,grid:grid(),domains};
+        for(let c=0;c<n;c++){const allowed=new Set(opts.map(p=>p[c]));if(reduce(domains[r][c],allowed))changed=true;if(!domains[r][c].size)return {solved:false,contradiction:true,passes,eliminations,grid:grid(),domains};}
+      }
+      for(let c=0;c<n;c++){
+        const opts=ps.filter(p=>cluesMatch(p,clues.top[c]||0,clues.bottom[c]||0)&&p.every((v,r)=>domains[r][c].has(v)));
+        if(!opts.length)return {solved:false,contradiction:true,passes,eliminations,grid:grid(),domains};
+        for(let r=0;r<n;r++){const allowed=new Set(opts.map(p=>p[r]));if(reduce(domains[r][c],allowed))changed=true;if(!domains[r][c].size)return {solved:false,contradiction:true,passes,eliminations,grid:grid(),domains};}
+      }
+      if(domains.every(row=>row.every(s=>s.size===1)))return {solved:true,contradiction:false,passes,eliminations,grid:grid(),domains};
+      if(!changed)return {solved:false,contradiction:false,passes,eliminations,grid:grid(),domains};
+    }
+    return {solved:false,contradiction:false,passes,eliminations,grid:grid(),domains};
+  }
+  function restoreTowerCluesUntilLogical(solution,clues,seed){
+    const full=towerClues(solution),out={top:clues.top.slice(),right:clues.right.slice(),bottom:clues.bottom.slice(),left:clues.left.slice()},rng=rngFromSeed(String(seed)+':tower-logic'),missing=[];
+    for(const side of ['top','right','bottom','left'])for(let i=0;i<solution.length;i++)if(!out[side][i])missing.push([side,i]);
+    let audit=solveTowersByLogic(solution.length,out),restored=0;
+    for(const [side,i] of shuffle(missing,rng)){if(audit.solved)break;out[side][i]=full[side][i];restored++;audit=solveTowersByLogic(solution.length,out);}
+    return {clues:out,audit,restored};
+  }
+
   function towerSize(settings,o){if(o.gridSize!=='auto')return Number(o.gridSize);if(o.difficulty==='easy')return 4;if(o.difficulty==='challenge')return 6;return 5;}
   function clueTargetRatio(o){if(o.clueLevel==='more')return .78;if(o.clueLevel==='balanced')return .60;if(o.clueLevel==='fewer')return .44;return o.difficulty==='easy'?.80:o.difficulty==='challenge'?.44:.60;}
   function encodePayload(data){const s=JSON.stringify(data);if(typeof btoa==='function')return btoa(s);if(typeof Buffer!=='undefined')return Buffer.from(s,'utf8').toString('base64');return s;}
@@ -94,15 +124,16 @@
     // Second reduction pass attempts to approach the target while preserving uniqueness.
     let shown=['top','right','bottom','left'].reduce((s,side)=>s+clues[side].filter(Boolean).length,0);
     if(shown>wanted){for(const [side,i] of shuffle(all,rngFromSeed(`${seed}:towers:reduce`))){if(shown<=wanted)break;if(!clues[side][i])continue;const old=clues[side][i];clues[side][i]=0;if(countTowerSolutions(n,clues,2)===1)shown--;else clues[side][i]=old;}}
-    const payload={n,solution,clues};
-    return {engineId:'numbertowers',title:'Number Towers · Skyscrapers',difficulty:o.difficulty,size:n,solutionGrid:solution,clues,seed,options:o,
+    const repaired=restoreTowerCluesUntilLogical(solution,clues,seed),finalClues=repaired.clues,audit=repaired.audit;if(!audit.solved)return {engineId:'numbertowers',title:'Number Towers · Skyscrapers',error:'A deduction-solvable Number Towers puzzle could not be built. Generate another version.'};
+    const payload={n,solution,clues:finalClues};
+    return {engineId:'numbertowers',title:'Number Towers · Skyscrapers',difficulty:o.difficulty,size:n,solutionGrid:solution,clues:finalClues,logicStats:{solved:true,passes:audit.passes,eliminations:audit.eliminations,restoredClues:repaired.restored},seed,options:o,
       instruction:`Fill the grid with 1–${n}, using each height once in every row and column. Edge clues tell how many towers are visible from that direction. [[TT99TOWERS:${encodePayload(payload)}]]`};
   }
   function validateNumberTowers(a){
     if(!a||a.error)return {ok:false,error:a?.error||'missing activity'};const n=a.size,g=a.solutionGrid;if(!Array.isArray(g)||g.length!==n)return {ok:false,error:'tower grid size mismatch'};
     for(let r=0;r<n;r++){if(new Set(g[r]).size!==n)return {ok:false,error:'tower row repeat'};const col=g.map(row=>row[r]);if(new Set(col).size!==n)return {ok:false,error:'tower column repeat'};}
     const actual=towerClues(g);for(const side of ['top','right','bottom','left'])for(let i=0;i<n;i++)if(a.clues?.[side]?.[i]&&a.clues[side][i]!==actual[side][i])return {ok:false,error:`tower ${side} clue mismatch`};
-    if(countTowerSolutions(n,a.clues,2)!==1)return {ok:false,error:'number towers not unique'};return {ok:true};
+    if(countTowerSolutions(n,a.clues,2)!==1)return {ok:false,error:'number towers not unique'};const logic=solveTowersByLogic(n,a.clues);if(!logic.solved)return {ok:false,error:'number towers requires guessing; deduction solver stalled'};for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(logic.grid[r][c]!==g[r][c])return {ok:false,error:'number towers deduction solution mismatch'};return {ok:true,logicPasses:logic.passes};
   }
 
   const baseGenerate=NL.generate.bind(NL),baseWorked=NL.workedExample.bind(NL),baseValidate=NL.validate.bind(NL);
@@ -120,6 +151,8 @@
   NL.validate=function(a){if(a?.engineId==='numbertowers')return validateNumberTowers(a);return baseValidate(a);};
   NL._countTowerSolutions=countTowerSolutions;
   NL._towerClues=towerClues;
+  NL._solveTowersByLogic=solveTowersByLogic;
+  NL._restoreTowerCluesUntilLogical=restoreTowerCluesUntilLogical;
 
   if(typeof module!=='undefined'&&module.exports)module.exports=NL;global.TT99NumberLogicGames=NL;
 })(typeof globalThis!=='undefined'?globalThis:this);
