@@ -282,7 +282,7 @@
       const rng=rngFromSeed(String(seed)+':logic-repair');
       for(let guard=0;guard<n*n&&!logic.solved;guard++){
         const unresolved=[];for(let v=2;v<n*n;v++)if(!present.has(v))unresolved.push([v,logic.domains[v].size]);
-        if(!unresolved.length)break;const min=Math.min(...unresolved.map(x=>x[1])),pool=unresolved.filter(x=>x[1]===min),v=pool[Math.floor(rng()*pool.length)],[r,c]=path[v-1];
+        if(!unresolved.length)break;const min=Math.min(...unresolved.map(x=>x[1])),pool=unresolved.filter(x=>x[1]===min),choice=pool[Math.floor(rng()*pool.length)],v=choice[0],[r,c]=path[v-1];
         givens.push({r,c,v});present.add(v);extraGivens++;logic=solveNumberPathByLogic(n,givens);
       }
     }
