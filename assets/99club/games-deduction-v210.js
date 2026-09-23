@@ -302,7 +302,13 @@ function audit(p){
   try{return fn(p);}catch(e){return {solved:false,error:e?.message||String(e),engineId:p.engineId};}
 }
 function addGridGiven(p,r,c,v){
-  p.displayGrid[r][c]=v;p.givens=p.givens||[];if(!p.givens.some(g=>Number(g.r)===r&&Number(g.c)===c))p.givens.push({r,c,v});return p;
+  p.displayGrid[r][c]=v;
+  if(p.engineId==='sudoku'){
+    const n=Number(p.size);p.givenSet=[];p.missingSet=[];
+    for(let rr=0;rr<n;rr++)for(let cc=0;cc<n;cc++)(Number(p.displayGrid[rr][cc]||0)?p.givenSet:p.missingSet).push(rr+':'+cc);
+    return p;
+  }
+  p.givens=p.givens||[];if(!p.givens.some(g=>Number(g.r)===r&&Number(g.c)===c))p.givens.push({r,c,v});return p;
 }
 function strengthenByGivens(p,maxAdds=20){
   if(!p.solutionGrid||!p.displayGrid)return p;const n=Number(p.size),order=[];
@@ -311,7 +317,7 @@ function strengthenByGivens(p,maxAdds=20){
   return p;
 }
 function strengthenAlpha(p){
-  const letters=Object.keys(p.solution||{}).sort(),givens=p.givens||(p.givens={});for(const ch of letters){if(givens[ch]!=null)continue;givens[ch]=p.solution[ch];const q=audit(p);if(q.solved){p.deductionStats={...q,extraClues:1};return p;}}return p;
+  const letters=Object.keys(p.solution||{}).sort(),givens=p.givens||(p.givens={});let added=0;for(const ch of letters){if(givens[ch]!=null)continue;givens[ch]=p.solution[ch];added++;const q=audit(p);if(q.solved){p.deductionStats={...q,extraClues:added};return p;}}return p;
 }
 function towerFullClues(p){
   const sol=p.solutionGrid,n=Number(p.size);if(!sol)return p;const full={top:[],bottom:[],left:[],right:[]};for(let r=0;r<n;r++){full.left[r]=visible(sol[r]);full.right[r]=visible(sol[r].slice().reverse());}for(let c=0;c<n;c++){const col=sol.map(row=>row[c]);full.top[c]=visible(col);full.bottom[c]=visible(col.slice().reverse());}
@@ -323,7 +329,7 @@ function strengthenPath(p,maxAdds=20){
 }
 function strengthenSumGrid(p){
   const sol=Array.isArray(p.solution)?p.solution:(p.solutionGrid||[]).flat(),have=new Set((p.givens||[]).map(g=>Number(g.i??g.index??(Number(g.r)*3+Number(g.c)))));p.givens=p.givens||[];
-  for(let i=0,added=0;i<9;i++)if(!have.has(i)){p.givens.push({i,v:Number(sol[i])});added++;const q=audit(p);if(q.solved){p.deductionStats={...q,extraClues:added};return p;}}return p;
+  for(let i=0,added=0;i<9;i++)if(!have.has(i)){p.givens.push({index:i,r:Math.floor(i/3),c:i%3,v:Number(sol[i])});added++;if(p.displayGrid?.[Math.floor(i/3)])p.displayGrid[Math.floor(i/3)][i%3]=Number(sol[i]);const q=audit(p);if(q.solved){p.deductionStats={...q,extraClues:added};return p;}}return p;
 }
 const BASE_N_GENERATE=N.generate.bind(N),BASE_N_VALIDATE=N.validate.bind(N);
 const RETRY=new Set(['arithmeticcages','nonogram','hashi','sumplete','shikaku','perimeterregions']);
@@ -343,7 +349,7 @@ N.validate=function(p){const base=BASE_N_VALIDATE(p);if(!base?.ok||!p||!IDS.has(
 
 // Sudoku lives in games-engine rather than TT99NumberLogicGames, so wrap both
 // public Sudoku entry points after games-engine has been created.
-const BASE_G_SUDOKU=G.generateSudoku.bind(G),BASE_G_ACTIVITY=G.generateActivity.bind(G);
+const BASE_G_SUDOKU=G.generateSudoku.bind(G),BASE_G_ACTIVITY=G.generateActivity.bind(G),BASE_G_PACK=G.generatePack.bind(G);
 function ensureSudoku(settings,seed){
   let p=BASE_G_SUDOKU(settings,seed),q=auditSudoku(p);if(q.solved){p.deductionStats=q;return p;}
   p=strengthenByGivens(p,Math.max(10,Number(p.size)||6));q=auditSudoku(p);p.deductionStats=q;
@@ -354,6 +360,16 @@ G.generateMiniSudoku=ensureSudoku;
 G.generateActivity=function(id,settings,seed,customVocabulary){
   if(id==='sudoku')return ensureSudoku(settings,seed);
   return BASE_G_ACTIVITY(id,settings,seed,customVocabulary);
+};
+G.generatePack=function(settings,seed,customVocabulary){
+  const pack=BASE_G_PACK(settings,seed,customVocabulary);
+  for(const sheet of pack?.sheets||[])for(let i=0;i<(sheet.activities||[]).length;i++){
+    const p=sheet.activities[i];if(p?.engineId!=='sudoku'||p.error)continue;
+    let q=auditSudoku(p);if(!q.solved)p=strengthenByGivens(p,Math.max(10,Number(p.size)||6)),q=auditSudoku(p);
+    p.deductionStats=q;if(!q.solved)p.error='A deduction-solvable '+(p.title||'Sudoku')+' puzzle could not be built. Generate another version.';
+    sheet.activities[i]=p;
+  }
+  return pack;
 };
 G.DEDUCTION={VERSION,IDS:[...IDS],audit,solvers:AUDIT,ensureSudoku,policy:'propagation + all-different support + one-level contradiction elimination; no recursive guessing'};
 N.DEDUCTION=G.DEDUCTION;
