@@ -40,7 +40,7 @@
   }
   function makeTowers(settings,seed){
     const o=NL.normalise('numbertowers',settings?.engineSettings?.numbertowers),n=towerSize(settings,o),rng=rngFromSeed(`${seed}:clues`),list=candidates(n,seed);let solution=null,full=null;
-    for(const grid of list){const clues=NL._towerClues(grid);if(NL._countTowerSolutions(n,clues,2)===1){solution=grid;full=clues;break;}}
+    for(const grid of list){const clues=NL._towerClues(grid),logic=NL._solveTowersByLogic?.(n,clues);if(NL._countTowerSolutions(n,clues,2)===1&&logic?.solved){solution=grid;full=clues;break;}}
     // Rare fallback: use the original generator if the compact candidate family did not produce a unique signature.
     if(!solution){const fallback=base('numbertowers',settings,`${seed}:fallback`);if(fallback&&!fallback.error&&NL.validate(fallback).ok)return fallback;return {engineId:'numbertowers',title:'Number Towers · Skyscrapers',error:'A unique Number Towers puzzle could not be built. Generate another version.'};}
     const clues=cloneClues(full),all=[];for(const side of ['top','right','bottom','left'])for(let i=0;i<n;i++)all.push([side,i]);
