@@ -1,11 +1,11 @@
-/* 99 Club Studio · extra puzzle engines v2.04
+/* 99 Club Studio · extra puzzle engines v2.05
  * Original deterministic generators: Diagonal Number Path, Target Square Search,
  * Insert the Operations and Perimeter Regions.
  */
 (function(global){
 'use strict';
 const A=global.TT99ArithmeticGames,N=global.TT99NumberLogicGames;
-if(!A||!N||global.TT99ExtraPuzzles?.version==='2.04')return;
+if(!A||!N||global.TT99ExtraPuzzles?.version==='2.05')return;
 const NUMERIC=A.NUMERIC_TOPICS||['number_place_value','calculation','fractions','decimals_percentages','ratio_proportion','measurement','geometry','statistics','algebra'];
 const compat=(excellent=[],reasonable=[])=>Object.fromEntries(NUMERIC.map(t=>[t,excellent.includes(t)?'excellent':reasonable.includes(t)?'reasonable':'poor']));
 const choiceOptions=values=>values.map(([value,label])=>({value,label}));
