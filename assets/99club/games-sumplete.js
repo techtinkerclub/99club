@@ -12,7 +12,7 @@
   }
   if(!base||base.__sumpleteV1)return;
 
-  const VERSION='1.0.0';
+  const VERSION='1.1.0';
   const ORIGINAL_GENERATE=base.generate.bind(base);
   const ORIGINAL_VALIDATE=base.validate.bind(base);
   const ORIGINAL_WORKED=base.workedExample.bind(base);
@@ -159,6 +159,21 @@
     rec(0);return {count,nodes,rowCandidateCounts:candidates.map(x=>x.length)};
   }
 
+
+  function solveByLogic(values,rowTargets,colTargets){
+    const n=values.length,domains=Array.from({length:n},()=>Array.from({length:n},()=>new Set([0,1]))),rowOpts=values.map((row,r)=>rowMasks(row,rowTargets[r])),colOpts=Array.from({length:n},(_,c)=>{const col=values.map(row=>row[c]);return rowMasks(col,colTargets[c]);});let passes=0,eliminations=0;
+    function reduce(set,allowed){let ch=false;for(const v of [...set])if(!allowed.has(v)){set.delete(v);eliminations++;ch=true;}return ch;}
+    function maskOK(mask,line,isCol){for(let i=0;i<n;i++){const v=(mask&(1<<i))?1:0,r=isCol?i:line,c=isCol?line:i;if(!domains[r][c].has(v))return false;}return true;}
+    function result(contradiction=false){const mask=domains.map(row=>row.map(s=>s.size===1?[...s][0]===1:null));return {solved:!contradiction&&domains.every(row=>row.every(s=>s.size===1)),contradiction,passes,eliminations,mask,domains};}
+    for(let guard=0;guard<120;guard++){
+      passes++;let changed=false;
+      for(let r=0;r<n;r++){rowOpts[r]=rowOpts[r].filter(m=>maskOK(m,r,false));if(!rowOpts[r].length)return result(true);for(let c=0;c<n;c++){const allowed=new Set(rowOpts[r].map(m=>(m&(1<<c))?1:0));if(reduce(domains[r][c],allowed))changed=true;}}
+      for(let c=0;c<n;c++){colOpts[c]=colOpts[c].filter(m=>maskOK(m,c,true));if(!colOpts[c].length)return result(true);for(let r=0;r<n;r++){const allowed=new Set(colOpts[c].map(m=>(m&(1<<r))?1:0));if(reduce(domains[r][c],allowed))changed=true;}}
+      const out=result(false);if(out.solved)return out;if(!changed)return out;
+    }
+    return result(false);
+  }
+
   function complexityScore(analysis,n){
     const branch=analysis.rowCandidateCounts.reduce((s,x)=>s+Math.max(0,x-1),0);
     return branch*4+Math.log2(Math.max(2,analysis.nodes))*3+n*n;
@@ -176,8 +191,8 @@
       const rng=rngFromSeed(`${seed}:sumplete:${attempt}`),values=makeValues(n,rng,min,max),mask=makeMask(n,rng,o.difficulty);
       if(!maskIsNonTrivial(mask))continue;
       const targets=targetsFor(values,mask),analysis=analyseSolutions(values,targets.rowTargets,targets.colTargets,2);
-      if(analysis.count!==1)continue;
-      const score=complexityScore(analysis,n),candidate={values,mask,...targets,analysis,score};
+      if(analysis.count!==1)continue;const logic=solveByLogic(values,targets.rowTargets,targets.colTargets);if(!logic.solved)continue;
+      const score=complexityScore(analysis,n),candidate={values,mask,...targets,analysis,logic,score};
       if(desiredComplexity(o,n,score)){best=candidate;break;}
       if(o.difficulty==='challenge'){if(score>bestRank){best=candidate;bestRank=score;}}
       else if(score<bestRank){best=candidate;bestRank=score;}
@@ -186,7 +201,7 @@
     return {
       engineId:'sumplete',title:'Sumplete · Cross-Out Sums',difficulty:o.difficulty,size:n,
       valueGrid:best.values,solutionMask:best.mask,rowTargets:best.rowTargets,colTargets:best.colTargets,
-      scale:1,valueFormat:'whole',complexity:Math.round(best.score),solutionStats:{nodes:best.analysis.nodes,rowCandidateCounts:best.analysis.rowCandidateCounts},
+      scale:1,valueFormat:'whole',complexity:Math.round(best.score),solutionStats:{nodes:best.analysis.nodes,rowCandidateCounts:best.analysis.rowCandidateCounts},logicStats:{solved:true,passes:best.logic.passes,eliminations:best.logic.eliminations},
       instruction:'Cross out some numbers. The numbers left in each row must add to the target on its right, and the numbers left in each column must add to the target below it.',
       seed,options:o,engineVersion:VERSION
     };
@@ -205,8 +220,8 @@
     const t=targetsFor(a.valueGrid,a.solutionMask);
     if(JSON.stringify(t.rowTargets)!==JSON.stringify(a.rowTargets)||JSON.stringify(t.colTargets)!==JSON.stringify(a.colTargets))return {ok:false,error:'sumplete targets do not match solution'};
     const analysis=analyseSolutions(a.valueGrid,a.rowTargets,a.colTargets,2);
-    if(analysis.count!==1)return {ok:false,error:analysis.count===0?'sumplete has no solution':'sumplete is not unique'};
-    return {ok:true};
+    if(analysis.count!==1)return {ok:false,error:analysis.count===0?'sumplete has no solution':'sumplete is not unique'};const logic=solveByLogic(a.valueGrid,a.rowTargets,a.colTargets);if(!logic.solved)return {ok:false,error:'sumplete requires guessing; deduction solver stalled'};for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(logic.mask[r][c]!==a.solutionMask[r][c])return {ok:false,error:'sumplete deduction solution mismatch'};
+    return {ok:true,logicPasses:logic.passes};
   }
 
   function workedExample(){
@@ -223,7 +238,7 @@
   base.generate=function(id,settings,seed){if(id==='sumplete')return generateSumplete(settings,seed);return ORIGINAL_GENERATE(id,settings,seed);};
   base.validate=function(a){if(a?.engineId==='sumplete')return validateSumplete(a);return ORIGINAL_VALIDATE(a);};
   base.workedExample=function(id,...args){if(id==='sumplete')return workedExample();return ORIGINAL_WORKED(id,...args);};
-  base.SUMPLETE={VERSION,DEFINITION:DEF,generate:generateSumplete,validate:validateSumplete,analyseSolutions};
+  base.SUMPLETE={VERSION,DEFINITION:DEF,generate:generateSumplete,validate:validateSumplete,analyseSolutions,solveByLogic};
   base.__sumpleteV1=true;
 
   if(typeof module!=='undefined'&&module.exports)module.exports=base;
