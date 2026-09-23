@@ -8,7 +8,7 @@
   const base=global.TT99NumberLogicGames;
   if(!base||base.__numberPathV2)return;
 
-  const VERSION='2.0.0';
+  const VERSION='2.1.0';
   const ORIGINAL_GENERATE=base.generate.bind(base);
   const ORIGINAL_VALIDATE=base.validate.bind(base);
   const ORIGINAL_WORKED=base.workedExample.bind(base);
@@ -202,6 +202,29 @@
     return count;
   }
 
+
+  function solveNumberPathByLogic(n,givens){
+    const N=n*n,cells=allCells(n),cellKeys=cells.map(key),cellByKey=new Map(cells.map(p=>[key(p),p])),domains=Array.from({length:N+1},()=>new Set(cellKeys));let passes=0,eliminations=0;
+    for(const g of givens||[])domains[Number(g.v)]=new Set([key([Number(g.r),Number(g.c)])]);
+    function reduce(v,allowed){let changed=false;for(const k of [...domains[v]])if(!allowed.has(k)){domains[v].delete(k);eliminations++;changed=true;}return changed;}
+    function adjacentSupport(source,target){const allowed=new Set();for(const k of source){const p=cellByKey.get(k);if(!p)continue;for(const q of neighbours(p[0],p[1],n))if(target.has(key(q))){allowed.add(k);break;}}return allowed;}
+    function result(contradiction=false){const positions=Array(N+1).fill(null);for(let v=1;v<=N;v++)if(domains[v].size===1)positions[v]=cellByKey.get([...domains[v]][0]).slice();const grid=Array.from({length:n},()=>Array(n).fill(0));for(let v=1;v<=N;v++)if(positions[v])grid[positions[v][0]][positions[v][1]]=v;return {solved:!contradiction&&domains.slice(1).every(s=>s.size===1),contradiction,passes,eliminations,positions,grid,domains};}
+    for(let guard=0;guard<N*4;guard++){
+      passes++;let changed=false;
+      for(let v=1;v<N;v++){
+        const a=adjacentSupport(domains[v],domains[v+1]),b=adjacentSupport(domains[v+1],domains[v]);
+        if(reduce(v,a))changed=true;if(reduce(v+1,b))changed=true;if(!domains[v].size||!domains[v+1].size)return result(true);
+      }
+      const singletonCells=new Map();
+      for(let v=1;v<=N;v++)if(domains[v].size===1){const k=[...domains[v]][0];if(singletonCells.has(k)&&singletonCells.get(k)!==v)return result(true);singletonCells.set(k,v);}
+      for(const [k,owner] of singletonCells)for(let v=1;v<=N;v++)if(v!==owner&&domains[v].delete(k)){eliminations++;changed=true;if(!domains[v].size)return result(true);}
+      const byCell=new Map(cellKeys.map(k=>[k,[]]));for(let v=1;v<=N;v++)for(const k of domains[v])byCell.get(k).push(v);
+      for(const [k,vals] of byCell){if(!vals.length)return result(true);if(vals.length===1&&domains[vals[0]].size>1){const only=new Set([k]);if(reduce(vals[0],only))changed=true;}}
+      const out=result(false);if(out.solved)return out;if(!changed)return out;
+    }
+    return result(false);
+  }
+
   function turnValues(path){
     const out=new Set();
     for(let i=1;i<path.length-1;i++){
@@ -254,9 +277,18 @@
   function generateNumberPath(settings,seed){
     const o=normalise(settings),n=pathSize(settings,o),path=generateWindingPath(n,seed),solution=Array.from({length:n},()=>Array(n).fill(0));
     path.forEach(([r,c],i)=>solution[r][c]=i+1);
-    const givens=removeCluesUniquely(path,n,o,seed),display=Array.from({length:n},()=>Array(n).fill(0));
-    givens.forEach(g=>display[g.r][g.c]=g.v);
-    return {engineId:'numberpath',title:'Number Path',difficulty:o.difficulty,size:n,solutionGrid:solution,displayGrid:display,givens,path:path.map(p=>p.slice()),pathMetrics:pathMetrics(path),instruction:`Fill every square with the numbers 1 to ${n*n}. Use each number exactly once. Consecutive numbers must be in squares that share a side — up, down, left or right. Diagonals do not count.`,seed,options:o,engineVersion:VERSION};
+    const givens=removeCluesUniquely(path,n,o,seed),present=new Set(givens.map(g=>g.v));let logic=solveNumberPathByLogic(n,givens),extraGivens=0;
+    if(!logic.solved){
+      const rng=rngFromSeed(String(seed)+':logic-repair');
+      for(let guard=0;guard<n*n&&!logic.solved;guard++){
+        const unresolved=[];for(let v=2;v<n*n;v++)if(!present.has(v))unresolved.push([v,logic.domains[v].size]);
+        if(!unresolved.length)break;const min=Math.min(...unresolved.map(x=>x[1])),pool=unresolved.filter(x=>x[1]===min),v=pool[Math.floor(rng()*pool.length)],[r,c]=path[v-1];
+        givens.push({r,c,v});present.add(v);extraGivens++;logic=solveNumberPathByLogic(n,givens);
+      }
+    }
+    if(!logic.solved)return {engineId:'numberpath',title:'Number Path',error:'A deduction-solvable Number Path could not be built. Generate another version.'};
+    const display=Array.from({length:n},()=>Array(n).fill(0));givens.forEach(g=>display[g.r][g.c]=g.v);
+    return {engineId:'numberpath',title:'Number Path',difficulty:o.difficulty,size:n,solutionGrid:solution,displayGrid:display,givens,path:path.map(p=>p.slice()),pathMetrics:pathMetrics(path),logicStats:{solved:true,passes:logic.passes,eliminations:logic.eliminations,extraGivens},instruction:'Fill every square with the numbers 1 to '+(n*n)+'. Use each number exactly once. Consecutive numbers must be in squares that share a side — up, down, left or right. Diagonals do not count.',seed,options:o,engineVersion:VERSION};
   }
 
   function validateNumberPath(a){
@@ -271,7 +303,8 @@
     if(!a.givens?.some(g=>g.v===1)||!a.givens?.some(g=>g.v===N))return {ok:false,error:'number path endpoints must be shown'};
     const solutions=countNumberPathSolutions(n,a.givens,2,n>=7?520000:260000);
     if(solutions!==1)return {ok:false,error:solutions===0?'number path has no solution':'number path is not unique'};
-    return {ok:true};
+    const logic=solveNumberPathByLogic(n,a.givens);if(!logic.solved)return {ok:false,error:'number path requires guessing; deduction solver stalled'};for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(logic.grid[r][c]!==a.solutionGrid[r][c])return {ok:false,error:'number path deduction solution mismatch'};
+    return {ok:true,logicPasses:logic.passes};
   }
 
   function workedExample(){
@@ -282,9 +315,10 @@
   base.validate=function(a){if(a?.engineId==='numberpath')return validateNumberPath(a);return ORIGINAL_VALIDATE(a);};
   base.workedExample=function(id,...args){if(id==='numberpath')return workedExample();return ORIGINAL_WORKED(id,...args);};
   base._countNumberPathSolutions=countNumberPathSolutions;
+  base._solveNumberPathByLogic=solveNumberPathByLogic;
   base._generateWindingNumberPath=generateWindingPath;
   base._numberPathMetrics=pathMetrics;
-  base.NUMBER_PATH_V2={VERSION,generate:generateNumberPath,validate:validateNumberPath,countSolutions:countNumberPathSolutions,generatePath:generateWindingPath,pathMetrics};
+  base.NUMBER_PATH_V2={VERSION,generate:generateNumberPath,validate:validateNumberPath,countSolutions:countNumberPathSolutions,solveByLogic:solveNumberPathByLogic,generatePath:generateWindingPath,pathMetrics};
   base.__numberPathV2=true;
 
   if(typeof module!=='undefined'&&module.exports)module.exports=base;
