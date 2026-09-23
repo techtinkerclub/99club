@@ -89,6 +89,7 @@ const engineLoadOrder=[
   'assets/99club/games-shikaku-v143.js',
   'assets/99club/games-sum-grids-v147.js',
   'assets/99club/games-engine.js',
+  'assets/99club/games-deduction-v210.js',
   'assets/99club/games-symbol-decoder-v189.js',
   'assets/99club/games-wordsearch-quality-v150.js'
 ];
@@ -199,6 +200,11 @@ function checkSpecific(id,p){
       const proof=A.BROKENCALC_QUALITY?.reachable?.(t.target,p);if(!proof)fail(id,`QA cannot prove target ${t.target} reachable`);
     }
   }
+  if(id==='sudoku'){
+    const audit=G?.DEDUCTION?.audit?.(p);
+    if(!audit?.solved)fail(id,'Sudoku/Latin puzzle requires an arbitrary branch',JSON.stringify(audit||{}));
+    if(p.deductionStats?.solved!==true)fail(id,'Sudoku/Latin puzzle is missing deduction metadata');
+  }
   if(id==='colourlogic'){
     if(p.solutionCount!==1)fail(id,'puzzle is not marked uniquely solvable',String(p.solutionCount));
     if(!Array.isArray(p.clues)||p.clues.length<2)fail(id,'too few clues');
@@ -276,6 +282,14 @@ if(G&&G.ENGINES){
   }
   ok('engines',`${Object.keys(G.ENGINES).length} engines stress-tested; ${generated} deterministic generations performed`);
 }
+
+/* ---------- all deduction-puzzle coverage ---------- */
+if(G?.DEDUCTION?.audit){
+  const expected=['sudoku','futoshiki','arithmeticcages','kakuro','nonogram','numberpath','diagonalpath','numbertowers','killersudoku','hashi','mathsmines','sumplete','shikaku','alphametics','cornersum','linkedsum','perimeterregions','takuzu','colourlogic'];
+  const covered=new Set(G.DEDUCTION.IDS||[]);
+  for(const id of expected)if(!covered.has(id))fail('deduction-policy',id+' is missing from the no-guess policy');
+  if(expected.every(id=>covered.has(id)))ok('deduction-policy',expected.length+' constraint-puzzle families are covered by the no-arbitrary-branch policy');
+}else fail('deduction-policy','shared deduction-quality gate is not loaded');
 
 /* ---------- Colour Logic deduction/no-guess coverage ---------- */
 if(A?.COLOURLOGIC_DEDUCTION?.audit){
