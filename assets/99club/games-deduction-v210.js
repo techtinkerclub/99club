@@ -175,13 +175,50 @@ function visible(line){let m=0,c=0;for(const v of line)if(v>m){m=v;c++;}return c
 const permCache=new Map();
 function perms(n){if(permCache.has(n))return permCache.get(n);const out=[],a=range(n);function rec(pre,rest){if(!rest.length){out.push(pre);return;}for(let i=0;i<rest.length;i++)rec(pre.concat(rest[i]),rest.slice(0,i).concat(rest.slice(i+1)));}rec([],a);permCache.set(n,out);return out;}
 function auditTowers(p){
-  const n=Number(p.size),all=perms(n),rowSets=Array.from({length:n},(_,r)=>all.filter(x=>(!p.clues.left[r]||visible(x)===p.clues.left[r])&&(!p.clues.right[r]||visible(x.slice().reverse())===p.clues.right[r]))),domains=Array.from({length:n*n},()=>new Set(range(n)));
-  const prop=d=>{let total=0,passes=0;for(let spin=0;spin<100;spin++){passes++;let changed=0;
-    for(let r=0;r<n;r++){const viable=rowSets[r].filter(row=>row.every((v,c)=>d[key(r,c,n)].has(v)));if(!viable.length)return {ok:false,changed:total+changed,passes};for(let c=0;c<n;c++){const q=keepOnly(d[key(r,c,n)],new Set(viable.map(x=>x[c])));if(q<0)return {ok:false,changed:total+changed,passes};changed+=q;}}
-    for(let c=0;c<n;c++){const q=allDiff(d,Array.from({length:n},(_,r)=>key(r,c,n)));if(!q.ok)return {ok:false,changed:total+changed,passes};changed+=q.changed;}
-    total+=changed;if(!changed)return {ok:true,changed:total,passes};
-  }return {ok:true,changed:total,passes};};
-  return {...genericDeduce(domains,prop),engineId:'numbertowers'};
+  const n=Number(p.size),all=perms(n);
+  const rows=Array.from({length:n},(_,r)=>all.filter(x=>(!p.clues.left[r]||visible(x)===p.clues.left[r])&&(!p.clues.right[r]||visible(x.slice().reverse())===p.clues.right[r])));
+  const cols=Array.from({length:n},(_,c)=>all.filter(x=>(!p.clues.top[c]||visible(x)===p.clues.top[c])&&(!p.clues.bottom[c]||visible(x.slice().reverse())===p.clues.bottom[c])));
+  if(rows.some(x=>!x.length)||cols.some(x=>!x.length))return {solved:false,contradiction:true,passes:0,indirectEliminations:0,engineId:'numbertowers'};
+  function cloneLines(lines){return lines.map(x=>x.slice());}
+  function propagate(R,C){
+    let changed=0,passes=0;
+    for(let spin=0;spin<100;spin++){passes++;let step=0;
+      for(let r=0;r<n;r++){
+        const next=R[r].filter(row=>row.every((v,c)=>C[c].some(col=>col[r]===v)));
+        if(!next.length)return {ok:false,changed,passes};step+=R[r].length-next.length;R[r]=next;
+      }
+      for(let c=0;c<n;c++){
+        const next=C[c].filter(col=>col.every((v,r)=>R[r].some(row=>row[c]===v)));
+        if(!next.length)return {ok:false,changed,passes};step+=C[c].length-next.length;C[c]=next;
+      }
+      changed+=step;if(!step)return {ok:true,changed,passes};
+    }
+    return {ok:true,changed,passes};
+  }
+  let passes=0,indirectEliminations=0;
+  for(let round=0;round<100;round++){
+    const q=propagate(rows,cols);passes+=q.passes||1;if(!q.ok)return {solved:false,contradiction:true,passes,indirectEliminations,engineId:'numbertowers'};
+    if(rows.every(x=>x.length===1)&&cols.every(x=>x.length===1))return {solved:true,passes,indirectEliminations,engineId:'numbertowers'};
+    if(q.changed)continue;
+    let eliminated=false;
+    const choices=[];
+    rows.forEach((x,i)=>{if(x.length>1)choices.push({kind:'r',i,n:x.length});});
+    cols.forEach((x,i)=>{if(x.length>1)choices.push({kind:'c',i,n:x.length});});
+    choices.sort((a,b)=>a.n-b.n||a.kind.localeCompare(b.kind)||a.i-b.i);
+    outer:for(const pick of choices){
+      const list=pick.kind==='r'?rows[pick.i]:cols[pick.i];
+      for(const candidate of list.slice()){
+        const R=cloneLines(rows),C=cloneLines(cols);
+        if(pick.kind==='r')R[pick.i]=[candidate];else C[pick.i]=[candidate];
+        if(!propagate(R,C).ok){
+          const live=pick.kind==='r'?rows[pick.i]:cols[pick.i],at=live.indexOf(candidate);if(at>=0)live.splice(at,1);
+          indirectEliminations++;eliminated=true;break outer;
+        }
+      }
+    }
+    if(!eliminated)break;
+  }
+  return {solved:rows.every(x=>x.length===1)&&cols.every(x=>x.length===1),passes,indirectEliminations,engineId:'numbertowers'};
 }
 function auditKiller(p){
   const n=Number(p.size),domains=baseLatinDomains(n,p.displayGrid),units=latinUnits(n,Number(p.boxRows),Number(p.boxCols)),cages=(p.cages||[]).map(cg=>({cells:cg.cells.map(([r,c])=>key(r,c,n)),target:Number(cg.target)}));
