@@ -130,6 +130,12 @@ function alphaLogic(t,givens={}){
   passes++;let changed=false,singles=new Map();
   for(const ch of letters)if(domains[ch].size===1){const d=[...domains[ch]][0];if(singles.has(d)&&singles.get(d)!==ch)return result(true);singles.set(d,ch);}
   for(const ch of letters)if(domains[ch].size>1)for(const d of singles.keys())if(domains[ch].delete(d)){eliminations++;changed=true;}
+  function hasDistinctMatching(forceCh,forceD){
+   const order=letters.slice().sort((a,b)=>(a===forceCh?-100:domains[a].size)-(b===forceCh?-100:domains[b].size)),used=new Set();
+   function rec(i){if(i===order.length)return true;const ch=order[i],vals=ch===forceCh?[forceD]:[...domains[ch]];for(const d of vals){if(!domains[ch].has(d)||used.has(d))continue;used.add(d);if(rec(i+1))return true;used.delete(d);}return false;}
+   return rec(0);
+  }
+  for(const ch of letters)for(const d of [...domains[ch]])if(!hasDistinctMatching(ch,d)){domains[ch].delete(d);eliminations++;changed=true;if(!domains[ch].size)return result(true);}
   for(let col=0;col<maxLen;col++){const q=columnOptions(col);if(!q.out.length)return result(true);for(const ch of q.vars){const allowed=new Set(q.out.map(x=>x.assign[ch]));if(reduce(domains[ch],allowed))changed=true;if(!domains[ch].size)return result(true);}if(reduce(carry[col],new Set(q.out.map(x=>x.cin))))changed=true;if(reduce(carry[col+1],new Set(q.out.map(x=>x.cout))))changed=true;if(!carry[col].size||!carry[col+1].size)return result(true);}
   const out=result(false);if(out.solved)return out;if(!changed)return out;
  }
