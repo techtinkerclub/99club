@@ -5,7 +5,7 @@
 (function(global){
 'use strict';
 const NL=global.TT99NumberLogicGames;if(!NL||NL.__sumGridsV147)return;
-const VERSION='1.0.0',BASE_GENERATE=NL.generate.bind(NL),BASE_VALIDATE=NL.validate.bind(NL),BASE_WORKED=NL.workedExample.bind(NL),BASE_NORMALISE=NL.normalise.bind(NL);
+const VERSION='1.1.0',BASE_GENERATE=NL.generate.bind(NL),BASE_VALIDATE=NL.validate.bind(NL),BASE_WORKED=NL.workedExample.bind(NL),BASE_NORMALISE=NL.normalise.bind(NL);
 const TOPICS=['number_place_value','calculation','fractions','decimals_percentages','ratio_proportion','measurement','geometry','statistics','algebra'];
 const compat=(excellent=[],reasonable=[])=>Object.fromEntries(TOPICS.map(t=>[t,excellent.includes(t)?'excellent':reasonable.includes(t)?'reasonable':'poor']));
 const opts=a=>a.map(([value,label])=>({value,label}));
@@ -37,6 +37,26 @@ function solve(data,limit=2,nodeLimit=500000){
  function rec(){if(count>=limit||capped)return;if(++nodes>nodeLimit){capped=true;return;}const i=chooseCell();if(i<0){count++;if(!first)first=state.slice();return;}const forced=givenMap.get(i),domain=forced?[forced]:availableDigits();for(const v of domain){if(used&(1<<v))continue;state[i]=v;used|=1<<v;if(allFeasible([i]))rec();used&=~(1<<v);state[i]=0;if(count>=limit||capped)return;}}
  rec();return {count,nodes,capped,solution:first};
 }
+
+function solveByLogic(data){
+ const cons=constraints(data),domains=Array.from({length:9},()=>new Set([1,2,3,4,5,6,7,8,9]));for(const g of data.givens||[]){const i=Number(g.index??(g.r*3+g.c));domains[i]=new Set([Number(g.v)]);}let passes=0,eliminations=0;
+ function tuples(q){const out=[],vals=Array(q.cells.length).fill(0),used=new Set();function rec(k,sum){if(k===vals.length){if(sum===q.target)out.push(vals.slice());return;}for(let v=1;v<=9;v++){if(used.has(v)||sum+v>q.target)continue;used.add(v);vals[k]=v;rec(k+1,sum+v);used.delete(v);}}rec(0,0);return out;}
+ const items=cons.map(q=>({q,tuples:tuples(q)}));
+ function reduce(i,allowed){let ch=false;for(const v of [...domains[i]])if(!allowed.has(v)){domains[i].delete(v);eliminations++;ch=true;}return ch;}
+ function result(contradiction=false){const solution=domains.map(s=>s.size===1?[...s][0]:0);return {solved:!contradiction&&domains.every(s=>s.size===1),contradiction,passes,eliminations,solution,domains};}
+ function combos(arr,k,start=0,pick=[],out=[]){if(pick.length===k){out.push(pick.slice());return out;}for(let i=start;i<=arr.length-(k-pick.length);i++){pick.push(arr[i]);combos(arr,k,i+1,pick,out);pick.pop();}return out;}
+ for(let guard=0;guard<120;guard++){
+  passes++;let changed=false;
+  for(const item of items){item.tuples=item.tuples.filter(t=>t.every((v,k)=>domains[item.q.cells[k]].has(v)));if(!item.tuples.length)return result(true);for(let k=0;k<item.q.cells.length;k++){const allowed=new Set(item.tuples.map(t=>t[k]));if(reduce(item.q.cells[k],allowed))changed=true;}}
+  const fixed=new Map();for(let i=0;i<9;i++)if(domains[i].size===1){const v=[...domains[i]][0];if(fixed.has(v))return result(true);fixed.set(v,i);}
+  for(let i=0;i<9;i++)if(domains[i].size>1)for(const v of fixed.keys())if(domains[i].delete(v)){eliminations++;changed=true;}
+  for(let v=1;v<=9;v++){const spots=[];for(let i=0;i<9;i++)if(domains[i].has(v))spots.push(i);if(!spots.length)return result(true);if(spots.length===1&&domains[spots[0]].size>1){if(reduce(spots[0],new Set([v])))changed=true;}}
+  const open=Array.from({length:9},(_,i)=>i).filter(i=>domains[i].size>1);for(const k of [2,3]){const eligible=open.filter(i=>domains[i].size<=k);for(const group of combos(eligible,k)){const union=new Set();group.forEach(i=>domains[i].forEach(v=>union.add(v)));if(union.size!==k)continue;const own=new Set(group);for(const i of open)if(!own.has(i))for(const v of union)if(domains[i].delete(v)){eliminations++;changed=true;}}}
+  if(domains.some(s=>!s.size))return result(true);const out=result(false);if(out.solved)return out;if(!changed)return out;
+ }
+ return result(false);
+}
+
 function requestedGivens(id,o){if(o.givenLevel==='more')return id==='cornersum'?4:3;if(o.givenLevel==='balanced')return 2;if(o.givenLevel==='fewer')return 0;if(o.difficulty==='easy')return id==='cornersum'?3:2;if(o.difficulty==='challenge')return 0;return 1;}
 function candidateGivens(solution,count,rng){return shuffle(Array.from({length:9},(_,i)=>i),rng).slice(0,count).map(index=>({index,r:Math.floor(index/3),c:index%3,v:solution[index]}));}
 function encode(data){const s=JSON.stringify(data);if(typeof btoa==='function')return btoa(unescape(encodeURIComponent(s)));if(typeof Buffer!=='undefined')return Buffer.from(s,'utf8').toString('base64');return s;}
@@ -47,21 +67,22 @@ function generateOne(id,settings,seed){const o=normalise(id,settings?.engineSett
    let givens=candidateGivens(solution,wanted,rng),probe=solve({...data,givens},2,160000);
    if(probe.count!==1||probe.capped){const remaining=shuffle(Array.from({length:9},(_,i)=>i).filter(i=>!givens.some(g=>g.index===i)),rng);for(const i of remaining){givens.push({index:i,r:Math.floor(i/3),c:i%3,v:solution[i]});probe=solve({...data,givens},2,160000);if(probe.count===1&&!probe.capped)break;}}
    if(probe.count!==1||probe.capped)continue;
-   const extra=Math.max(0,givens.length-wanted),score=extra*1000+probe.nodes;if(!best||score<best.score)best={solution,totals,groups,givens,probe,score};if(extra===0)break;
+   let logic=solveByLogic({...data,givens}),logicExtra=0;if(!logic.solved){const set=new Set(givens.map(g=>g.index)),remaining=shuffle(Array.from({length:9},(_,i)=>i).filter(i=>!set.has(i)),rng);for(const i of remaining){givens.push({index:i,r:Math.floor(i/3),c:i%3,v:solution[i]});logicExtra++;logic=solveByLogic({...data,givens});if(logic.solved)break;}}if(!logic.solved)continue;
+   const extra=Math.max(0,givens.length-wanted),score=extra*1000+probe.nodes;if(!best||score<best.score)best={solution,totals,groups,givens,probe,logic,logicExtra,score};if(extra===0)break;
  }
  if(!best)return {engineId:id,title:DEFS[id].title,error:'A unique sum-grid puzzle could not be built. Generate another version.'};
  const display=Array(9).fill(null);best.givens.forEach(g=>display[g.index]=g.v);const payload={kind:id,windowTotals:best.totals,givens:best.givens,groups:best.groups,solution:best.solution};
  const instruction=id==='cornersum'?'Place 1–9 once each. Each corner target is the sum of the four cells in its overlapping 2 × 2 window.':'Place 1–9 once each. Match every overlapping 2 × 2 window total and each lettered A/B/C group total.';
- return {engineId:id,title:DEFS[id].title,difficulty:o.difficulty,size:3,solutionGrid:[best.solution.slice(0,3),best.solution.slice(3,6),best.solution.slice(6,9)],solution:best.solution,displayGrid:[display.slice(0,3),display.slice(3,6),display.slice(6,9)],windowTotals:best.totals,givens:best.givens,groups:best.groups,solverNodes:best.probe.nodes,seed,options:o,engineVersion:VERSION,instruction:instruction+marker(id,payload)};
+ return {engineId:id,title:DEFS[id].title,difficulty:o.difficulty,size:3,solutionGrid:[best.solution.slice(0,3),best.solution.slice(3,6),best.solution.slice(6,9)],solution:best.solution,displayGrid:[display.slice(0,3),display.slice(3,6),display.slice(6,9)],windowTotals:best.totals,givens:best.givens,groups:best.groups,solverNodes:best.probe.nodes,logicStats:{solved:true,passes:best.logic.passes,eliminations:best.logic.eliminations,extraGivens:best.logicExtra},seed,options:o,engineVersion:VERSION,instruction:instruction+marker(id,payload)};
 }
 function validPermutation(a){return Array.isArray(a)&&a.length===9&&a.every(v=>Number.isInteger(v)&&v>=1&&v<=9)&&new Set(a).size===9;}
 function validateOne(a){if(!a||a.error)return {ok:false,error:a?.error||'missing activity'};const id=a.engineId;if(!DEFS[id])return BASE_VALIDATE(a);const sol=Array.isArray(a.solution)?a.solution:(a.solutionGrid||[]).flat();if(!validPermutation(sol))return {ok:false,error:'sum-grid solution must use 1–9 exactly once'};const totals=windowTotals(sol);if(!Array.isArray(a.windowTotals)||totals.some((v,i)=>v!==Number(a.windowTotals[i])))return {ok:false,error:'sum-grid window total mismatch'};if(id==='linkedsum'){const groups=a.groups||[],cells=groups.flatMap(g=>g.cells||[]);if(groups.length!==3||cells.length!==9||new Set(cells).size!==9||cells.some(i=>i<0||i>8))return {ok:false,error:'linked sum groups must partition all nine cells'};for(const g of groups)if(g.cells.reduce((s,i)=>s+sol[i],0)!==Number(g.target))return {ok:false,error:'linked sum group total mismatch'};}
  for(const g of a.givens||[]){const i=Number(g.index??(g.r*3+g.c));if(sol[i]!==Number(g.v))return {ok:false,error:'sum-grid starter digit mismatch'};}
- const q=solve({windowTotals:a.windowTotals,groups:a.groups||[],givens:a.givens||[]},2,500000);if(q.capped)return {ok:false,error:'sum-grid uniqueness check exceeded safe search limit'};if(q.count!==1)return {ok:false,error:q.count===0?'sum-grid has no solution':'sum-grid is not unique'};if(!q.solution||q.solution.some((v,i)=>v!==sol[i]))return {ok:false,error:'stored sum-grid answer does not match unique solution'};return {ok:true,solverNodes:q.nodes};}
+ const data={windowTotals:a.windowTotals,groups:a.groups||[],givens:a.givens||[]},q=solve(data,2,500000);if(q.capped)return {ok:false,error:'sum-grid uniqueness check exceeded safe search limit'};if(q.count!==1)return {ok:false,error:q.count===0?'sum-grid has no solution':'sum-grid is not unique'};if(!q.solution||q.solution.some((v,i)=>v!==sol[i]))return {ok:false,error:'stored sum-grid answer does not match unique solution'};const logic=solveByLogic(data);if(!logic.solved)return {ok:false,error:'sum-grid requires guessing; deduction solver stalled'};if(logic.solution.some((v,i)=>v!==sol[i]))return {ok:false,error:'sum-grid deduction solution mismatch'};return {ok:true,solverNodes:q.nodes,logicPasses:logic.passes};}
 function worked(id){if(id==='cornersum')return {engineId:id,kind:id,title:'Corner Sum Grid worked example',goal:'Place 1–9 once each so every overlapping four-cell window matches its target.',rules:['Use each digit from 1 to 9 exactly once.','Each target belongs to the four cells in one overlapping 2 × 2 window.','A starter digit, if shown, is fixed.'],steps:['Pick a window with useful known values.','Subtract known cells from its target to find the total still needed.','Compare that remaining total with an overlapping window, then rule out digits already used elsewhere.'],tip:'The four windows overlap, so a number in the centre contributes to all four totals.',commonMistake:'Do not reuse a digit: the grid must contain 1, 2, 3, 4, 5, 6, 7, 8 and 9 exactly once.'};return {engineId:id,kind:id,title:'Linked Sum Grid worked example',goal:'Place 1–9 once each while satisfying both overlapping window sums and A/B/C group totals.',rules:['Use each digit from 1 to 9 exactly once.','Each local target totals an overlapping 2 × 2 window.','Cells carrying the same letter also add to that letter total.'],steps:['Use a local window to work out a missing subtotal.','Use an A, B or C group total to connect cells that are not next to each other.','Cross-check both kinds of total before fixing a digit.'],tip:'A cell belongs to a local window and a letter group, so every placement has two kinds of consequences.',commonMistake:'The letters are groups, not values: three A cells add to the A target.'};}
 NL.generate=function(id,settings,seed){if(DEFS[id])return generateOne(id,settings,seed);return BASE_GENERATE(id,settings,seed);};
 NL.validate=function(a){if(DEFS[a?.engineId])return validateOne(a);return BASE_VALIDATE(a);};
 NL.workedExample=function(id,...args){if(DEFS[id])return worked(id);return BASE_WORKED(id,...args);};
-NL.V147={VERSION,DEFINITIONS:DEFS,WINDOWS,generate:generateOne,validate:validateOne,solve,windowTotals};NL.__sumGridsV147=true;
+NL.V147={VERSION,DEFINITIONS:DEFS,WINDOWS,generate:generateOne,validate:validateOne,solve,solveByLogic,windowTotals};NL.__sumGridsV147=true;
 if(typeof module!=='undefined'&&module.exports)module.exports=NL;global.TT99NumberLogicGames=NL;
 })(typeof globalThis!=='undefined'?globalThis:this);
