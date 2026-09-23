@@ -59,7 +59,7 @@ sitemap: true
 <script src="/assets/99club/games-property-maze.js?v=1"></script>
 <script src="/assets/99club/games-operationgrid-v153.js?v=1"></script>
 <script src="/assets/99club/games-brokencalc-quality-v152.js?v=2"></script>
-<script src="/assets/99club/games-number-logic.js?v=4"></script>
+<script src="/assets/99club/games-number-logic.js?v=5"></script>
 <script src="/assets/99club/games-extra-puzzles-v204.js?v=2"></script>
 <script src="/assets/99club/games-number-towers-v137.js?v=1"></script>
 <script src="/assets/99club/games-number-towers-v137-unique.js?v=1"></script>
