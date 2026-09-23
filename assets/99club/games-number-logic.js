@@ -5,7 +5,7 @@
 (function(global){
   'use strict';
 
-  const VERSION='1.1.2';
+  const VERSION='1.2.0';
   const TOPICS=['number_place_value','calculation','geometry','algebra'];
   const choiceOptions=values=>values.map(([value,label])=>({value,label}));
   const compat=(excellent=[],reasonable=[])=>Object.fromEntries(['number_place_value','calculation','fractions','decimals_percentages','ratio_proportion','measurement','geometry','statistics','algebra'].map(t=>[t,excellent.includes(t)?'excellent':reasonable.includes(t)?'reasonable':'poor']));
@@ -78,11 +78,118 @@
   function buildCages(solution,settings,o,rng){const n=solution.length,unassigned=new Set(cells(n).map(x=>x.join(':'))),cages=[],allowed=arithmeticAllowed(settings,o);while(unassigned.size){const first=choose([...unassigned],rng).split(':').map(Number);let targetSize=o.cageSize==='small'?choose([1,2],rng):o.cageSize==='larger'?choose([2,2,3],rng):(o.difficulty==='easy'?choose([1,1,2],rng):choose([1,2,2,3],rng));const group=[first];unassigned.delete(first.join(':'));while(group.length<targetSize){const frontier=[];for(const [r,c] of group)for(const p of neighbours(r,c,n))if(unassigned.has(p.join(':')))frontier.push(p);if(!frontier.length)break;const p=choose(frontier,rng);group.push(p);unassigned.delete(p.join(':'));}const vals=group.map(([r,c])=>solution[r][c]),op=cageOp(vals,allowed,rng),target=cageTarget(vals,op);cages.push({cells:group,op,target});}return cages;}
   function cageAllows(cage,grid,n){const vals=cage.cells.map(([r,c])=>grid[r][c]),filled=vals.filter(Boolean);if(cage.op==='=')return !filled.length||filled[0]===cage.target;if(cage.op==='+'){const s=filled.reduce((a,b)=>a+b,0);return s<=cage.target&&(filled.length<cage.cells.length||s===cage.target);}if(cage.op==='×'){const p=filled.reduce((a,b)=>a*b,1);return p<=cage.target&&cage.target%p===0&&(filled.length<cage.cells.length||p===cage.target);}if(filled.length<2)return true;return Math.abs(filled[0]-filled[1])===cage.target||Math.max(...filled)/Math.min(...filled)===cage.target;}
   function countCageSolutions(n,cages,limit=2){const grid=Array.from({length:n},()=>Array(n).fill(0)),cellCage=new Map();cages.forEach((cg,i)=>cg.cells.forEach(([r,c])=>cellCage.set(`${r}:${c}`,i)));let count=0;function valid(r,c,v){for(let i=0;i<n;i++){if(grid[r][i]===v||grid[i][c]===v)return false;}grid[r][c]=v;const ok=cageAllows(cages[cellCage.get(`${r}:${c}`)],grid,n);grid[r][c]=0;return ok;}function rec(pos=0){if(count>=limit)return;if(pos===n*n){count++;return;}let best=null,bestCand=null;for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(!grid[r][c]){const cand=[];for(let v=1;v<=n;v++)if(valid(r,c,v))cand.push(v);if(!cand.length)return;if(!bestCand||cand.length<bestCand.length){best=[r,c];bestCand=cand;if(cand.length===1)break;}}if(!best){count++;return;}const [r,c]=best;for(const v of bestCand){grid[r][c]=v;if(cageAllows(cages[cellCage.get(`${r}:${c}`)],grid,n))rec(pos+1);grid[r][c]=0;if(count>=limit)return;}}rec();return count;}
-  function arithmeticCageSize(settings,o){const y=years(settings).max;if(o.gridSize!=='auto')return Number(o.gridSize);if(o.difficulty==='easy'||y<=3)return 4;if(o.difficulty==='challenge'&&y>=5)return 6;return 5;}
-  function generateArithmeticCages(settings,seed){const rng=rngFromSeed(seed),o=normalise('arithmeticcages',settings?.engineSettings?.arithmeticcages),n=arithmeticCageSize(settings,o),solution=latinSolution(n,rng);let cages=null;for(let attempt=0;attempt<80;attempt++){cages=buildCages(solution,settings,o,rngFromSeed(`${seed}:cages:${attempt}`));if(countCageSolutions(n,cages,2)===1)break;cages=null;}if(!cages){ // Guaranteed unique fallback: split random cages until enough singleton anchors exist.
-      cages=buildCages(solution,settings,{...o,cageSize:'small'},rngFromSeed(`${seed}:fallback`));const singles=new Set(cages.filter(c=>c.cells.length===1).flatMap(c=>c.cells.map(x=>x.join(':'))));for(const [r,c] of shuffle(cells(n),rng)){if(countCageSolutions(n,cages,2)===1)break;const idx=cages.findIndex(c=>c.cells.some(([rr,cc])=>rr===r&&cc===c));if(idx<0||cages[idx].cells.length===1)continue;const old=cages[idx],rest=old.cells.filter(([rr,cc])=>rr!==r||cc!==c),vals=rest.map(([rr,cc])=>solution[rr][cc]),op=cageOp(vals,arithmeticAllowed(settings,o),rng);cages.splice(idx,1,{cells:[[r,c]],op:'=',target:solution[r][c]},{cells:rest,op,target:cageTarget(vals,op)});}
+
+  function cageTupleWorks(cage,values){
+    if(cage.op==='=')return values.length===1&&values[0]===cage.target;
+    if(cage.op==='+')return values.reduce((a,b)=>a+b,0)===cage.target;
+    if(cage.op==='×')return values.reduce((a,b)=>a*b,1)===cage.target;
+    if(cage.op==='−')return values.length===2&&Math.abs(values[0]-values[1])===cage.target;
+    if(cage.op==='÷'){if(values.length!==2)return false;const hi=Math.max(...values),lo=Math.min(...values);return lo!==0&&hi/lo===cage.target;}
+    return false;
+  }
+  function cageTuples(n,cage){
+    const out=[],vals=Array(cage.cells.length).fill(0);
+    function rec(i){
+      if(i===vals.length){if(cageTupleWorks(cage,vals))out.push(vals.slice());return;}
+      const [r,c]=cage.cells[i];
+      for(let v=1;v<=n;v++){
+        let ok=true;
+        for(let j=0;j<i;j++){const [rr,cc]=cage.cells[j];if((rr===r||cc===c)&&vals[j]===v){ok=false;break;}}
+        if(!ok)continue;vals[i]=v;rec(i+1);
+      }
     }
-    return {engineId:'arithmeticcages',title:'Arithmetic Cages',difficulty:o.difficulty,size:n,solutionGrid:solution,cages,instruction:`Fill the grid with 1–${n}, using each number once in every row and column. Each outlined cage must make its target using the operation shown.`,seed,options:o};}
+    rec(0);return out;
+  }
+  function lineSupports(domains,cells,n){
+    const supports=cells.map(()=>new Set()),used=new Set(),pick=Array(cells.length).fill(0);let count=0;
+    function rec(i){
+      if(i===cells.length){count++;for(let k=0;k<cells.length;k++)supports[k].add(pick[k]);return;}
+      const [r,c]=cells[i],vals=[...domains[r][c]].sort((a,b)=>a-b);
+      for(const v of vals){if(used.has(v))continue;used.add(v);pick[i]=v;rec(i+1);used.delete(v);}
+    }
+    rec(0);return {count,supports};
+  }
+  function solveCagesByLogic(n,cages){
+    const all=()=>new Set(Array.from({length:n},(_,i)=>i+1)),domains=Array.from({length:n},()=>Array.from({length:n},all));
+    const cageData=cages.map(cage=>({cage,tuples:cageTuples(n,cage)}));let passes=0,eliminations=0;
+    function reduce(set,allowed){
+      let changed=false;for(const v of [...set])if(!allowed.has(v)){set.delete(v);eliminations++;changed=true;}return changed;
+    }
+    function contradiction(){return {solved:false,contradiction:true,passes,eliminations,grid:domains.map(row=>row.map(s=>s.size===1?[...s][0]:0)),domains};}
+    for(let guard=0;guard<120;guard++){
+      passes++;let changed=false;
+      for(const item of cageData){
+        item.tuples=item.tuples.filter(tuple=>tuple.every((v,i)=>{const [r,c]=item.cage.cells[i];return domains[r][c].has(v);}));
+        if(!item.tuples.length)return contradiction();
+        for(let i=0;i<item.cage.cells.length;i++){
+          const allowed=new Set(item.tuples.map(t=>t[i])),[r,c]=item.cage.cells[i];
+          if(reduce(domains[r][c],allowed))changed=true;if(!domains[r][c].size)return contradiction();
+        }
+      }
+      const lines=[];
+      for(let r=0;r<n;r++)lines.push(Array.from({length:n},(_,c)=>[r,c]));
+      for(let c=0;c<n;c++)lines.push(Array.from({length:n},(_,r)=>[r,c]));
+      for(const cells of lines){
+        const q=lineSupports(domains,cells,n);if(!q.count)return contradiction();
+        for(let i=0;i<cells.length;i++){const [r,c]=cells[i];if(reduce(domains[r][c],q.supports[i]))changed=true;if(!domains[r][c].size)return contradiction();}
+      }
+      if(domains.every(row=>row.every(s=>s.size===1))){
+        return {solved:true,contradiction:false,passes,eliminations,grid:domains.map(row=>row.map(s=>[...s][0])),domains};
+      }
+      if(!changed)return {solved:false,contradiction:false,passes,eliminations,grid:domains.map(row=>row.map(s=>s.size===1?[...s][0]:0)),domains};
+    }
+    return {solved:false,contradiction:false,passes,eliminations,grid:domains.map(row=>row.map(s=>s.size===1?[...s][0]:0)),domains};
+  }
+  function connectedCells(group){
+    if(group.length<=1)return true;const seen=new Set([group[0].join(':')]),stack=[group[0]];
+    while(stack.length){const [r,c]=stack.pop();for(const [rr,cc] of group){const k=rr+':'+cc;if(!seen.has(k)&&Math.abs(r-rr)+Math.abs(c-cc)===1){seen.add(k);stack.push([rr,cc]);}}}
+    return seen.size===group.length;
+  }
+  function repairCagesForLogic(solution,settings,o,seed,cages){
+    const n=solution.length,out=cages.map(cg=>({cells:cg.cells.map(p=>p.slice()),op:cg.op,target:cg.target})),rng=rngFromSeed(String(seed)+':logic-repair');
+    for(let guard=0;guard<n*n;guard++){
+      const audit=solveCagesByLogic(n,out);if(audit.solved)return {cages:out,audit,extraSingles:out.filter(cg=>cg.cells.length===1).length-cages.filter(cg=>cg.cells.length===1).length};
+      const unresolved=[];for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(audit.domains[r][c].size>1)unresolved.push([r,c,audit.domains[r][c].size]);
+      const candidates=shuffle(unresolved,rng).sort((a,b)=>a[2]-b[2]);
+      let changed=false;
+      for(const [r,c] of candidates){
+        const idx=out.findIndex(cg=>cg.cells.length>1&&cg.cells.some(([rr,cc])=>rr===r&&cc===c));if(idx<0)continue;
+        const old=out[idx],rest=old.cells.filter(([rr,cc])=>rr!==r||cc!==c);if(!connectedCells(rest))continue;
+        const vals=rest.map(([rr,cc])=>solution[rr][cc]),op=cageOp(vals,arithmeticAllowed(settings,o),rng),replacement=[{cells:[[r,c]],op:'=',target:solution[r][c]}];
+        if(rest.length)replacement.push({cells:rest,op,target:cageTarget(vals,op)});
+        out.splice(idx,1,...replacement);changed=true;break;
+      }
+      if(!changed)break;
+    }
+    const audit=solveCagesByLogic(n,out);return {cages:out,audit,extraSingles:out.filter(cg=>cg.cells.length===1).length-cages.filter(cg=>cg.cells.length===1).length};
+  }
+
+  function arithmeticCageSize(settings,o){const y=years(settings).max;if(o.gridSize!=='auto')return Number(o.gridSize);if(o.difficulty==='easy'||y<=3)return 4;if(o.difficulty==='challenge'&&y>=5)return 6;return 5;}
+  function generateArithmeticCages(settings,seed){
+    const rng=rngFromSeed(seed),o=normalise('arithmeticcages',settings?.engineSettings?.arithmeticcages),n=arithmeticCageSize(settings,o),solution=latinSolution(n,rng);let firstUnique=null;
+    for(let attempt=0;attempt<120;attempt++){
+      const candidate=buildCages(solution,settings,o,rngFromSeed(String(seed)+':cages:'+attempt));
+      if(countCageSolutions(n,candidate,2)!==1)continue;
+      if(!firstUnique)firstUnique=candidate;
+      const audit=solveCagesByLogic(n,candidate);
+      if(audit.solved)return {engineId:'arithmeticcages',title:'Arithmetic Cages',difficulty:o.difficulty,size:n,solutionGrid:solution,cages:candidate,logicStats:{solved:true,passes:audit.passes,eliminations:audit.eliminations,extraSingles:0},instruction:'Fill the grid with 1–'+n+', using each number once in every row and column. Each outlined cage must make its target using the operation shown.',seed,options:o};
+    }
+    let base=firstUnique;
+    if(!base){
+      base=buildCages(solution,settings,{...o,cageSize:'small'},rngFromSeed(String(seed)+':fallback'));
+      const order=shuffle(cells(n),rng),singles=new Set(base.filter(c=>c.cells.length===1).flatMap(c=>c.cells.map(x=>x.join(':'))));
+      for(const [r,c] of order){
+        if(countCageSolutions(n,base,2)===1)break;const k=r+':'+c;if(singles.has(k))continue;
+        const idx=base.findIndex(cg=>cg.cells.some(([rr,cc])=>rr===r&&cc===c));if(idx<0||base[idx].cells.length===1)continue;
+        const old=base[idx],rest=old.cells.filter(([rr,cc])=>rr!==r||cc!==c);if(!connectedCells(rest))continue;
+        const vals=rest.map(([rr,cc])=>solution[rr][cc]),op=cageOp(vals,arithmeticAllowed(settings,o),rng);
+        base.splice(idx,1,{cells:[[r,c]],op:'=',target:solution[r][c]},{cells:rest,op,target:cageTarget(vals,op)});singles.add(k);
+      }
+    }
+    const repaired=repairCagesForLogic(solution,settings,o,seed,base),audit=repaired.audit;
+    if(countCageSolutions(n,repaired.cages,2)!==1||!audit.solved)return {engineId:'arithmeticcages',title:'Arithmetic Cages',error:'A deduction-solvable Arithmetic Cages puzzle could not be built. Generate another version.'};
+    return {engineId:'arithmeticcages',title:'Arithmetic Cages',difficulty:o.difficulty,size:n,solutionGrid:solution,cages:repaired.cages,logicStats:{solved:true,passes:audit.passes,eliminations:audit.eliminations,extraSingles:repaired.extraSingles},instruction:'Fill the grid with 1–'+n+', using each number once in every row and column. Each outlined cage must make its target using the operation shown.',seed,options:o};
+  }
 
   // ---------- Nonogram ----------
   function lineClue(line){const out=[];let run=0;for(const v of line){if(v)run++;else if(run){out.push(run);run=0;}}if(run)out.push(run);return out.length?out:[0];}
@@ -177,12 +284,12 @@
   function generate(id,settings,seed){if(id==='kakuro')return generateKakuro(settings,seed);if(id==='futoshiki')return generateFutoshiki(settings,seed);if(id==='arithmeticcages')return generateArithmeticCages(settings,seed);if(id==='nonogram')return generateNonogram(settings,seed);if(id==='numberpath')return generateNumberPath(settings,seed);return null;}
   function workedExample(id){const base={engineId:id,kind:id,title:`${DEFINITIONS[id]?.title||id} worked example`};if(id==='kakuro')return {...base,goal:'Choose digits so a run reaches its clue total without repeats.',rules:['Use digits 1–9.','Digits in one run must add to the clue.','A digit cannot repeat inside the same run.'],steps:['A two-cell run has clue 4.','The two digits must be different, so 2 + 2 is not allowed.','The only pair is 1 and 3.','Use crossing runs to decide which cell is 1 and which is 3.'],tip:'Short runs with small or large totals often have very few possible combinations.',commonMistake:'Never repeat a digit within one across or down run.'};if(id==='futoshiki')return {...base,goal:'Fill the grid while obeying row, column and inequality rules.',rules:['Use 1–N once in every row and column.','The open side of < or > faces the larger number.'],steps:['In a 4 × 4 row, 1, 2 and 4 are already used.','The missing number is 3.','Check the inequality beside that cell.','If it says 3 < 4, the placement is valid.'],tip:'A cell on the smaller side of an inequality cannot contain the largest number.',commonMistake:'Do not treat the inequality as decoration — it is a compulsory clue.'};if(id==='arithmeticcages')return {...base,goal:'Use arithmetic cage targets together with the row/column no-repeat rule.',rules:['Use 1–N once in every row and column.','Numbers in each cage must make the target using its operation.'],steps:['A two-cell cage says 6× in a 4 × 4 grid.','Possible digits are 2 and 3.','Use the row and column to decide which cell is 2 and which is 3.','Check that 2 × 3 = 6.'],tip:'Work on cages with only one or two possible number combinations first.',commonMistake:'A correct cage is not enough if a row or column repeats a number.'};if(id==='nonogram')return {...base,goal:'Shade cells so every row and column matches its run-length clues.',rules:['Each clue number is a consecutive block of shaded cells.','Separate blocks have at least one empty cell between them.','Blocks appear in the clue order.'],steps:['On a 5-cell row, clue 5 means all five cells are shaded.','Clue 2 1 means two shaded cells, a gap, then one shaded cell.','Use completed rows to help decide the crossing columns.'],tip:'Start with clues that almost fill the whole line.',commonMistake:'Two clue blocks must have at least one empty square between them.'};if(id==='numberpath')return {...base,goal:'Complete the number sequence through touching cells.',rules:['Write every number in order.','Consecutive numbers must touch along an edge, not diagonally.'],steps:['You can see 7 and 10 with two blanks between them.','The blanks must contain 8 and 9 in that order.','Each new number must touch the number immediately before and after it.'],tip:'Work between pairs of given anchor numbers that are close together.',commonMistake:'Do not jump diagonally between consecutive numbers.'};return null;}
   function validate(a){if(!a||a.error)return {ok:false,error:a?.error||'missing activity'};if(a.engineId==='futoshiki'){for(let r=0;r<a.size;r++){if(new Set(a.solutionGrid[r]).size!==a.size)return {ok:false,error:'futoshiki row repeat'};const col=a.solutionGrid.map(row=>row[r]);if(new Set(col).size!==a.size)return {ok:false,error:'futoshiki column repeat'};}if(countFutoshiki(a.size,a.givens,a.hSigns,a.vSigns,2)!==1)return {ok:false,error:'futoshiki not unique'};}
-    if(a.engineId==='arithmeticcages'){if(countCageSolutions(a.size,a.cages,2)!==1)return {ok:false,error:'arithmetic cages not unique'};for(const cg of a.cages){const vals=cg.cells.map(([r,c])=>a.solutionGrid[r][c]);if(Math.abs(cageTarget(vals,cg.op)-cg.target)>1e-9)return {ok:false,error:'cage target mismatch'};}}
+    if(a.engineId==='arithmeticcages'){if(countCageSolutions(a.size,a.cages,2)!==1)return {ok:false,error:'arithmetic cages not unique'};const logic=solveCagesByLogic(a.size,a.cages);if(!logic.solved)return {ok:false,error:'arithmetic cages requires guessing; deduction solver stalled'};for(const cg of a.cages){const vals=cg.cells.map(([r,c])=>a.solutionGrid[r][c]);if(Math.abs(cageTarget(vals,cg.op)-cg.target)>1e-9)return {ok:false,error:'cage target mismatch'};}for(let r=0;r<a.size;r++)for(let c=0;c<a.size;c++)if(logic.grid[r][c]!==a.solutionGrid[r][c])return {ok:false,error:'arithmetic cages deduction solution mismatch'};}
     if(a.engineId==='nonogram'){const rows=a.solutionGrid.map(lineClue),cols=Array.from({length:a.size},(_,c)=>lineClue(a.solutionGrid.map(row=>row[c])));if(JSON.stringify(rows)!==JSON.stringify(a.rowClues)||JSON.stringify(cols)!==JSON.stringify(a.colClues))return {ok:false,error:'nonogram clues mismatch'};if(countNonogramSolutions(a.rowClues,a.colClues,2)!==1)return {ok:false,error:'nonogram not unique'};}
     if(a.engineId==='numberpath'){for(let v=1;v<a.size*a.size;v++){let p1=null,p2=null;for(let r=0;r<a.size;r++)for(let c=0;c<a.size;c++){if(a.solutionGrid[r][c]===v)p1=[r,c];if(a.solutionGrid[r][c]===v+1)p2=[r,c];}if(!p1||!p2||Math.abs(p1[0]-p2[0])+Math.abs(p1[1]-p2[1])!==1)return {ok:false,error:'number path broken'};}if(countNumberPathSolutions(a.size,a.givens,2)!==1)return {ok:false,error:'number path not unique'};}
     if(a.engineId==='kakuro'){if(countKakuro(a.mask,a.runs,a.givens,2)!==1)return {ok:false,error:'kakuro not unique'};for(const run of a.runs){const vals=run.cells.map(([r,c])=>a.solutionGrid[r][c]);if(new Set(vals).size!==vals.length||vals.reduce((x,y)=>x+y,0)!==run.target)return {ok:false,error:'kakuro run mismatch'};}}
     return {ok:true};}
 
-  const api={VERSION,DEFINITIONS,normalise,generate,workedExample,validate,_countFutoshiki:countFutoshiki,_countCageSolutions:countCageSolutions,_countNonogramSolutions:countNonogramSolutions,_countNumberPathSolutions:countNumberPathSolutions,_countKakuro:countKakuro,_fillKakuro:fillKakuro,_kakuroRuns:kakuroRuns,_KAKURO_MASKS:KAKURO_MASKS};
+  const api={VERSION,DEFINITIONS,normalise,generate,workedExample,validate,_countFutoshiki:countFutoshiki,_countCageSolutions:countCageSolutions,_solveCagesByLogic:solveCagesByLogic,_countNonogramSolutions:countNonogramSolutions,_countNumberPathSolutions:countNumberPathSolutions,_countKakuro:countKakuro,_fillKakuro:fillKakuro,_kakuroRuns:kakuroRuns,_KAKURO_MASKS:KAKURO_MASKS};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;global.TT99NumberLogicGames=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
