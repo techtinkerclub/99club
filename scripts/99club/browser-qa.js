@@ -230,7 +230,7 @@ function prepare(){
         window.TT99PlayShareV156?.open?.('solved');
         window.TT99PlayShareV156?.close?.();
         document.dispatchEvent(new Event('visibilitychange'));
-        await sleep(20);
+        for(let i=0;i<20&&!popup.querySelector('[data-share-puzzle]');i++)await sleep(20);
         const actions=popup.querySelector('.tt99-play-complete-actions');
         const entries=actions?.querySelectorAll('[data-share-puzzle]')||[];
         if(entries.length!==1)fail('completion-share-entry','completion splash should have exactly one share-panel entry');
