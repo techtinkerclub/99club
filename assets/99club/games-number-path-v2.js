@@ -204,13 +204,35 @@
 
 
   function solveNumberPathByLogic(n,givens){
-    const N=n*n,cells=allCells(n),cellKeys=cells.map(key),cellByKey=new Map(cells.map(p=>[key(p),p])),domains=Array.from({length:N+1},()=>new Set(cellKeys));let passes=0,eliminations=0;
-    for(const g of givens||[])domains[Number(g.v)]=new Set([key([Number(g.r),Number(g.c)])]);
+    const N=n*n,cells=allCells(n),cellKeys=cells.map(key),cellByKey=new Map(cells.map(p=>[key(p),p])),domains=Array.from({length:N+1},()=>new Set(cellKeys)),fixed=new Map(),reserved=new Map();let passes=0,eliminations=0;
+    for(const g of givens||[]){const v=Number(g.v),k=key([Number(g.r),Number(g.c)]);domains[v]=new Set([k]);fixed.set(v,k);reserved.set(k,v);}
     function reduce(v,allowed){let changed=false;for(const k of [...domains[v]])if(!allowed.has(k)){domains[v].delete(k);eliminations++;changed=true;}return changed;}
     function adjacentSupport(source,target){const allowed=new Set();for(const k of source){const p=cellByKey.get(k);if(!p)continue;for(const q of neighbours(p[0],p[1],n))if(target.has(key(q))){allowed.add(k);break;}}return allowed;}
     function result(contradiction=false){const positions=Array(N+1).fill(null);for(let v=1;v<=N;v++)if(domains[v].size===1)positions[v]=cellByKey.get([...domains[v]][0]).slice();const grid=Array.from({length:n},()=>Array(n).fill(0));for(let v=1;v<=N;v++)if(positions[v])grid[positions[v][0]][positions[v][1]]=v;return {solved:!contradiction&&domains.slice(1).every(s=>s.size===1),contradiction,passes,eliminations,positions,grid,domains};}
-    for(let guard=0;guard<N*4;guard++){
+    function buildSegment(a,b){
+      const startKey=fixed.get(a),endKey=fixed.get(b),steps=b-a;if(!startKey||!endKey)return [];
+      const start=cellByKey.get(startKey),end=cellByKey.get(endKey),path=[startKey],used=new Set([startKey]),out=[];let nodes=0;
+      function rec(v,p){
+        if(nodes++>250000)return;
+        const left=b-v,d=manhattan(p,end);if(d>left||((left-d)&1))return;
+        if(v===b){if(key(p)===endKey)out.push(path.slice());return;}
+        for(const q of neighbours(p[0],p[1],n)){
+          const k=key(q),locked=reserved.get(k);if(used.has(k)||(locked!=null&&locked!==v+1))continue;
+          if(v+1===b&&k!==endKey)continue;if(v+1<b&&k===endKey)continue;
+          used.add(k);path.push(k);rec(v+1,q);path.pop();used.delete(k);
+        }
+      }
+      rec(a,start);return out;
+    }
+    const anchors=[...fixed.keys()].sort((a,b)=>a-b),segments=[];
+    for(let i=0;i<anchors.length-1;i++){const a=anchors[i],b=anchors[i+1],options=buildSegment(a,b);if(!options.length)return result(true);segments.push({a,b,options});}
+    for(let guard=0;guard<N*5;guard++){
       passes++;let changed=false;
+      for(const seg of segments){
+        seg.options=seg.options.filter(path=>path.every((k,off)=>domains[seg.a+off].has(k)));
+        if(!seg.options.length)return result(true);
+        for(let v=seg.a;v<=seg.b;v++){const off=v-seg.a,allowed=new Set(seg.options.map(p=>p[off]));if(reduce(v,allowed))changed=true;if(!domains[v].size)return result(true);}
+      }
       for(let v=1;v<N;v++){
         const a=adjacentSupport(domains[v],domains[v+1]),b=adjacentSupport(domains[v+1],domains[v]);
         if(reduce(v,a))changed=true;if(reduce(v+1,b))changed=true;if(!domains[v].size||!domains[v+1].size)return result(true);
@@ -219,12 +241,14 @@
       for(let v=1;v<=N;v++)if(domains[v].size===1){const k=[...domains[v]][0];if(singletonCells.has(k)&&singletonCells.get(k)!==v)return result(true);singletonCells.set(k,v);}
       for(const [k,owner] of singletonCells)for(let v=1;v<=N;v++)if(v!==owner&&domains[v].delete(k)){eliminations++;changed=true;if(!domains[v].size)return result(true);}
       const byCell=new Map(cellKeys.map(k=>[k,[]]));for(let v=1;v<=N;v++)for(const k of domains[v])byCell.get(k).push(v);
-      for(const [k,vals] of byCell){if(!vals.length)return result(true);if(vals.length===1&&domains[vals[0]].size>1){const only=new Set([k]);if(reduce(vals[0],only))changed=true;}}
+      for(const [k,vals] of byCell){if(!vals.length)return result(true);if(vals.length===1&&domains[vals[0]].size>1){if(reduce(vals[0],new Set([k])))changed=true;}}
+      const signatures=new Map();
+      for(let v=1;v<=N;v++)if(domains[v].size>1&&domains[v].size<=4){const sig=[...domains[v]].sort().join('|'),arr=signatures.get(sig)||[];arr.push(v);signatures.set(sig,arr);}
+      for(const [sig,vals] of signatures){const keys=sig.split('|');if(vals.length!==keys.length)continue;const owned=new Set(vals);for(let v=1;v<=N;v++)if(!owned.has(v))for(const k of keys)if(domains[v].delete(k)){eliminations++;changed=true;if(!domains[v].size)return result(true);}}
       const out=result(false);if(out.solved)return out;if(!changed)return out;
     }
     return result(false);
   }
-
   function turnValues(path){
     const out=new Set();
     for(let i=1;i<path.length-1;i++){
