@@ -112,7 +112,7 @@ const ALPHA_TEMPLATES=[
 ];
 function alphaSolve(t,givens={},limit=2){const words=t.adds.concat([t.result]),letters=[...new Set(words.join(''))],lead=new Set(words.filter(w=>w.length>1).map(w=>w[0]));if(letters.length>10)return [];const maxLen=Math.max(...words.map(w=>w.length)),assign={...givens},used=new Set(Object.values(assign)),sol=[];if([...lead].some(ch=>assign[ch]===0))return sol;function colRec(col,carry){if(sol.length>=limit)return;if(col>=maxLen){if(carry===0)sol.push({...assign});return;}const chars=t.adds.map(w=>col<w.length?w[w.length-1-col]:null),rch=col<t.result.length?t.result[t.result.length-1-col]:null;function addRec(i,total){if(sol.length>=limit)return;if(i===chars.length){const value=total+carry,d=value%10,next=Math.floor(value/10);if(rch==null){if(d===0)colRec(col+1,next);return;}if(assign[rch]!=null){if(assign[rch]===d)colRec(col+1,next);return;}if(used.has(d)||(d===0&&lead.has(rch)))return;assign[rch]=d;used.add(d);colRec(col+1,next);used.delete(d);delete assign[rch];return;}const ch=chars[i];if(ch==null){addRec(i+1,total);return;}if(assign[ch]!=null){addRec(i+1,total+assign[ch]);return;}for(let d=0;d<=9;d++){if(used.has(d)||(d===0&&lead.has(ch)))continue;assign[ch]=d;used.add(d);addRec(i+1,total+d);used.delete(d);delete assign[ch];}}addRec(0,0);}colRec(0,0);return sol;}
 
-function alphaLogic(t,givens={}){
+function alphaLogic(t,givens={},allowLookahead=true){
  const words=t.adds.concat([t.result]),letters=[...new Set(words.join(''))],lead=new Set(words.filter(w=>w.length>1).map(w=>w[0])),maxLen=Math.max(...words.map(w=>w.length)),domains=Object.fromEntries(letters.map(ch=>[ch,new Set(Array.from({length:10},(_,i)=>i).filter(d=>!(d===0&&lead.has(ch))))])),carry=Array.from({length:maxLen+1},(_,i)=>new Set(i===0||i===maxLen?[0]:Array.from({length:t.adds.length+1},(_,x)=>x)));let passes=0,eliminations=0;
  for(const [ch,v] of Object.entries(givens||{}))if(domains[ch])domains[ch]=new Set([Number(v)]);
  function reduce(set,allowed){let changed=false;for(const v of [...set])if(!allowed.has(v)){set.delete(v);eliminations++;changed=true;}return changed;}
@@ -137,7 +137,13 @@ function alphaLogic(t,givens={}){
   }
   for(const ch of letters)for(const d of [...domains[ch]])if(!hasDistinctMatching(ch,d)){domains[ch].delete(d);eliminations++;changed=true;if(!domains[ch].size)return result(true);}
   for(let col=0;col<maxLen;col++){const q=columnOptions(col);if(!q.out.length)return result(true);for(const ch of q.vars){const allowed=new Set(q.out.map(x=>x.assign[ch]));if(reduce(domains[ch],allowed))changed=true;if(!domains[ch].size)return result(true);}if(reduce(carry[col],new Set(q.out.map(x=>x.cin))))changed=true;if(reduce(carry[col+1],new Set(q.out.map(x=>x.cout))))changed=true;if(!carry[col].size||!carry[col+1].size)return result(true);}
-  const out=result(false);if(out.solved)return out;if(!changed)return out;
+  const out=result(false);if(out.solved)return out;
+  if(!changed&&allowLookahead){
+   let pruned=false;
+   for(const ch of letters){if(domains[ch].size<=1)continue;for(const d of [...domains[ch]]){const probe=alphaLogic(t,{...(givens||{}),[ch]:d},false);if(probe.contradiction){domains[ch].delete(d);eliminations++;pruned=true;if(!domains[ch].size)return result(true);}}}
+   if(pruned)continue;
+  }
+  if(!changed)return out;
  }
  return result(false);
 }
