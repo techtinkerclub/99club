@@ -5,7 +5,7 @@
 (function(global){
   'use strict';
 
-  const VERSION='1.9.1';
+  const VERSION='1.10.0';
   let VOCAB_DATA=global.TT99GamesVocabularyV2||null;
   let ARITH=global.TT99ArithmeticGames||null;
   let NUMLOGIC=global.TT99NumberLogicGames||null;
@@ -420,6 +420,28 @@
     if(!best)return 1;
     let count=0;const [r,c]=best;for(const v of bestCandidates){grid[r][c]=v;count+=countSudokuSolutions(grid,style,limit-count);grid[r][c]=0;if(count>=limit)return count;}return count;
   }
+
+  function sudokuUnitSupports(domains,cells){
+    const supports=cells.map(()=>new Set()),used=new Set(),pick=Array(cells.length).fill(0);let count=0;
+    function rec(i){if(i===cells.length){count++;for(let k=0;k<cells.length;k++)supports[k].add(pick[k]);return;}const [r,c]=cells[i];for(const v of [...domains[r][c]].sort((a,b)=>a-b)){if(used.has(v))continue;used.add(v);pick[i]=v;rec(i+1);used.delete(v);}}
+    rec(0);return {count,supports};
+  }
+  function solveSudokuByLogic(displayGrid,style='sudoku'){
+    const n=displayGrid.length,all=()=>new Set(Array.from({length:n},(_,i)=>i+1)),domains=Array.from({length:n},(_,r)=>Array.from({length:n},(_,c)=>displayGrid[r][c]?new Set([displayGrid[r][c]]):all())),box=sudokuBoxShape(n);let passes=0,eliminations=0;
+    function reduce(set,allowed){let changed=false;for(const v of [...set])if(!allowed.has(v)){set.delete(v);eliminations++;changed=true;}return changed;}
+    function grid(){return domains.map(row=>row.map(s=>s.size===1?[...s][0]:0));}
+    for(let guard=0;guard<150;guard++){
+      passes++;let changed=false,units=[];
+      for(let r=0;r<n;r++)units.push(Array.from({length:n},(_,c)=>[r,c]));
+      for(let c=0;c<n;c++)units.push(Array.from({length:n},(_,r)=>[r,c]));
+      if(style==='sudoku')for(let r0=0;r0<n;r0+=box.rows)for(let c0=0;c0<n;c0+=box.cols){const cells=[];for(let r=r0;r<r0+box.rows;r++)for(let c=c0;c<c0+box.cols;c++)cells.push([r,c]);units.push(cells);}
+      for(const cells of units){const q=sudokuUnitSupports(domains,cells);if(!q.count)return {solved:false,contradiction:true,passes,eliminations,grid:grid(),domains};for(let i=0;i<cells.length;i++){const [r,c]=cells[i];if(reduce(domains[r][c],q.supports[i]))changed=true;if(!domains[r][c].size)return {solved:false,contradiction:true,passes,eliminations,grid:grid(),domains};}}
+      if(domains.every(row=>row.every(s=>s.size===1)))return {solved:true,contradiction:false,passes,eliminations,grid:grid(),domains};
+      if(!changed)return {solved:false,contradiction:false,passes,eliminations,grid:grid(),domains};
+    }
+    return {solved:false,contradiction:false,passes,eliminations,grid:grid(),domains};
+  }
+
   function sudokuTargetBlanks(settings,size){
     const o=sudokuOptions(settings);
     let base,adjust;
@@ -429,10 +451,14 @@
     return clamp(base+adjust,3,size*size-8);
   }
   function generateMiniSudoku(settings,seed){
-    const s=normalizeSettings(settings),o=s.engineSettings.sudoku,size=sudokuGridSize(s),style=sudokuStyle(s,seed),solutionGrid=permuteSudokuSolution(size,style,seed),rng=rngFromSeed(`${seed}:mask`),displayGrid=cloneGrid(solutionGrid),positions=shuffle(Array.from({length:size*size},(_,i)=>[Math.floor(i/size),i%size]),rng),target=sudokuTargetBlanks(s,size),removed=[];
-    for(const [r,c] of positions){if(removed.length>=target)break;const old=displayGrid[r][c];displayGrid[r][c]=0;const test=cloneGrid(displayGrid);if(countSudokuSolutions(test,style,2)===1)removed.push(`${r}:${c}`);else displayGrid[r][c]=old;}
-    const box=sudokuBoxShape(size),title=style==='latin'?'Latin Square':'Sudoku',instruction=style==='latin'?`Fill the grid with the numbers 1 to ${size}. Each number must appear once in every row and once in every column.`:`Fill the grid with the numbers 1 to ${size}. Each number must appear once in every row, every column and every outlined box.`;
-    return {engineId:'sudoku',title,topicIds:s.topics.filter(t=>['number_place_value','calculation','algebra'].includes(t)),size,style,boxRows:box.rows,boxCols:box.cols,difficulty:o.difficulty,solutionGrid,displayGrid,givenSet:Array.from({length:size*size},(_,i)=>`${Math.floor(i/size)}:${i%size}`).filter(k=>!removed.includes(k)),missingSet:removed,instruction,yearText:yearText(s.minYear,s.maxYear),seed,options:o};
+    const s=normalizeSettings(settings),o=s.engineSettings.sudoku,size=sudokuGridSize(s),style=sudokuStyle(s,seed),solutionGrid=permuteSudokuSolution(size,style,seed),rng=rngFromSeed(String(seed)+':mask'),displayGrid=cloneGrid(solutionGrid),positions=shuffle(Array.from({length:size*size},(_,i)=>[Math.floor(i/size),i%size]),rng),target=sudokuTargetBlanks(s,size),removed=[];
+    for(const [r,c] of positions){if(removed.length>=target)break;const old=displayGrid[r][c];displayGrid[r][c]=0;const test=cloneGrid(displayGrid);if(countSudokuSolutions(test,style,2)===1)removed.push(r+':'+c);else displayGrid[r][c]=old;}
+    let logic=solveSudokuByLogic(displayGrid,style),restored=0;
+    if(!logic.solved){for(const key of shuffle(removed,rngFromSeed(String(seed)+':logic-repair'))){const [r,c]=key.split(':').map(Number);if(displayGrid[r][c])continue;displayGrid[r][c]=solutionGrid[r][c];restored++;logic=solveSudokuByLogic(displayGrid,style);if(logic.solved)break;}}
+    if(!logic.solved)return {engineId:'sudoku',title:style==='latin'?'Latin Square':'Sudoku',error:'A deduction-solvable puzzle could not be built. Generate another version.'};
+    const box=sudokuBoxShape(size),title=style==='latin'?'Latin Square':'Sudoku',instruction=style==='latin'?'Fill the grid with the numbers 1 to '+size+'. Each number must appear once in every row and once in every column.':'Fill the grid with the numbers 1 to '+size+'. Each number must appear once in every row, every column and every outlined box.',givenSet=[],missingSet=[];
+    for(let r=0;r<size;r++)for(let c=0;c<size;c++)(displayGrid[r][c]?givenSet:missingSet).push(r+':'+c);
+    return {engineId:'sudoku',title,topicIds:s.topics.filter(t=>['number_place_value','calculation','algebra'].includes(t)),size,style,boxRows:box.rows,boxCols:box.cols,difficulty:o.difficulty,solutionGrid,displayGrid,givenSet,missingSet,logicStats:{solved:true,passes:logic.passes,eliminations:logic.eliminations,restoredGivens:restored},instruction,yearText:yearText(s.minYear,s.maxYear),seed,options:o};
   }
 
 
@@ -607,6 +633,6 @@
     return {version:VERSION,seed,settings:s,workedExamples,sheets,capacityMessage,finiteBankKeys:[...finiteUsed.alphametics].map(x=>`alphametics:${x}`).concat([...finiteUsed.symbols].map(x=>`symbols:${x}`),[...finiteUsed.verbal].map(x=>`verbal:${x}`))};
   }
 
-  const api={VERSION,TOPICS,ENGINES,ARITH,NUMLOGIC,VOCABULARY,VOCABULARY_METADATA,normalizeSettings,normalizeEngineSettings,normalizeDifficultyWeights,weightedDifficultyPlan,settingsWithDifficulty,arithmagonOperationPlan,compatibleEngines,selectedCompatibleEngines,sanitizeCustomVocabulary,vocabularyCountForTopic,vocabularyFor,crosswordVocabularyFor,generateWordSearch,replaceWordSearchEntry,generateNumberPyramid,generateCrossword,generateMagicSquare,generateSudoku,generateMiniSudoku,generateWorkedExample,generateActivity,generatePack,finiteContentKey,normalizeTerm,puzzleTermSuitable,answerEnumeration,needsEnumeration,formatNumber,rngFromSeed,clone,wordSearchDirections,_matrixRank:matrixRank,_pyramidCoefficientRows:pyramidCoefficientRows,_isMagicGrid:isMagicGrid,_magicLineSums:magicLineSums,_magicEquationRows:magicEquationRows,_countSudokuSolutions:countSudokuSolutions,_sudokuBoxShape:sudokuBoxShape};
+  const api={VERSION,TOPICS,ENGINES,ARITH,NUMLOGIC,VOCABULARY,VOCABULARY_METADATA,normalizeSettings,normalizeEngineSettings,normalizeDifficultyWeights,weightedDifficultyPlan,settingsWithDifficulty,arithmagonOperationPlan,compatibleEngines,selectedCompatibleEngines,sanitizeCustomVocabulary,vocabularyCountForTopic,vocabularyFor,crosswordVocabularyFor,generateWordSearch,replaceWordSearchEntry,generateNumberPyramid,generateCrossword,generateMagicSquare,generateSudoku,generateMiniSudoku,generateWorkedExample,generateActivity,generatePack,finiteContentKey,normalizeTerm,puzzleTermSuitable,answerEnumeration,needsEnumeration,formatNumber,rngFromSeed,clone,wordSearchDirections,_matrixRank:matrixRank,_pyramidCoefficientRows:pyramidCoefficientRows,_isMagicGrid:isMagicGrid,_magicLineSums:magicLineSums,_magicEquationRows:magicEquationRows,_countSudokuSolutions:countSudokuSolutions,_solveSudokuByLogic:solveSudokuByLogic,_sudokuBoxShape:sudokuBoxShape};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;global.TT99Games=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
