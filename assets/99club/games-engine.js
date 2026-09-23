@@ -428,20 +428,36 @@
   }
   function solveSudokuByLogic(displayGrid,style='sudoku'){
     const n=displayGrid.length,all=()=>new Set(Array.from({length:n},(_,i)=>i+1)),domains=Array.from({length:n},(_,r)=>Array.from({length:n},(_,c)=>displayGrid[r][c]?new Set([displayGrid[r][c]]):all())),box=sudokuBoxShape(n);let passes=0,eliminations=0;
-    function reduce(set,allowed){let changed=false;for(const v of [...set])if(!allowed.has(v)){set.delete(v);eliminations++;changed=true;}return changed;}
+    function remove(set,v){if(set.size>1&&set.delete(v)){eliminations++;return true;}return false;}
+    function setOnly(set,v){let changed=false;for(const x of [...set])if(x!==v){set.delete(x);eliminations++;changed=true;}return changed;}
     function grid(){return domains.map(row=>row.map(s=>s.size===1?[...s][0]:0));}
-    for(let guard=0;guard<150;guard++){
+    function combos(arr,k,start=0,pick=[],out=[]){if(pick.length===k){out.push(pick.slice());return out;}for(let i=start;i<=arr.length-(k-pick.length);i++){pick.push(arr[i]);combos(arr,k,i+1,pick,out);pick.pop();}return out;}
+    for(let guard=0;guard<180;guard++){
       passes++;let changed=false,units=[];
       for(let r=0;r<n;r++)units.push(Array.from({length:n},(_,c)=>[r,c]));
       for(let c=0;c<n;c++)units.push(Array.from({length:n},(_,r)=>[r,c]));
       if(style==='sudoku')for(let r0=0;r0<n;r0+=box.rows)for(let c0=0;c0<n;c0+=box.cols){const cells=[];for(let r=r0;r<r0+box.rows;r++)for(let c=c0;c<c0+box.cols;c++)cells.push([r,c]);units.push(cells);}
-      for(const cells of units){const q=sudokuUnitSupports(domains,cells);if(!q.count)return {solved:false,contradiction:true,passes,eliminations,grid:grid(),domains};for(let i=0;i<cells.length;i++){const [r,c]=cells[i];if(reduce(domains[r][c],q.supports[i]))changed=true;if(!domains[r][c].size)return {solved:false,contradiction:true,passes,eliminations,grid:grid(),domains};}}
+      for(const cells of units){
+        const fixed=new Map();
+        for(const [r,c] of cells)if(domains[r][c].size===1){const v=[...domains[r][c]][0];if(fixed.has(v))return {solved:false,contradiction:true,passes,eliminations,grid:grid(),domains};fixed.set(v,[r,c]);}
+        for(const [r,c] of cells)if(domains[r][c].size>1)for(const v of fixed.keys())if(remove(domains[r][c],v))changed=true;
+        for(let v=1;v<=n;v++){const spots=cells.filter(([r,c])=>domains[r][c].has(v));if(!spots.length)return {solved:false,contradiction:true,passes,eliminations,grid:grid(),domains};if(spots.length===1){const [r,c]=spots[0];if(setOnly(domains[r][c],v))changed=true;}}
+        const open=cells.filter(([r,c])=>domains[r][c].size>1);
+        for(const k of [2,3]){
+          const eligible=open.filter(([r,c])=>domains[r][c].size<=k);
+          for(const group of combos(eligible,k)){
+            const union=new Set();group.forEach(([r,c])=>domains[r][c].forEach(v=>union.add(v)));if(union.size!==k)continue;
+            const chosen=new Set(group.map(([r,c])=>r+':'+c));
+            for(const [r,c] of open)if(!chosen.has(r+':'+c))for(const v of union)if(remove(domains[r][c],v))changed=true;
+          }
+        }
+      }
+      if(domains.some(row=>row.some(s=>!s.size)))return {solved:false,contradiction:true,passes,eliminations,grid:grid(),domains};
       if(domains.every(row=>row.every(s=>s.size===1)))return {solved:true,contradiction:false,passes,eliminations,grid:grid(),domains};
       if(!changed)return {solved:false,contradiction:false,passes,eliminations,grid:grid(),domains};
     }
     return {solved:false,contradiction:false,passes,eliminations,grid:grid(),domains};
   }
-
   function sudokuTargetBlanks(settings,size){
     const o=sudokuOptions(settings);
     let base,adjust;
