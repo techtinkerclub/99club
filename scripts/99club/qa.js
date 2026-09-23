@@ -187,6 +187,21 @@ function checkSpecific(id,p){
       }
     }
   }
+  if(id==='futoshiki'){
+    if(p.logicStats?.solved!==true)fail(id,'puzzle is not marked deduction-solvable');
+    const audit=N?._solveFutoshikiByLogic?.(p.size,p.givens,p.hSigns,p.vSigns);
+    if(!audit?.solved)fail(id,'deduction audit stalls and would require guessing',JSON.stringify(audit?{passes:audit.passes,eliminations:audit.eliminations}:{}));
+  }
+  if(id==='kakuro'){
+    if(p.logicStats?.solved!==true)fail(id,'puzzle is not marked deduction-solvable');
+    const audit=N?._solveKakuroByLogic?.(p.mask,p.runs,p.givens);
+    if(!audit?.solved)fail(id,'deduction audit stalls and would require guessing',JSON.stringify(audit?{passes:audit.passes,eliminations:audit.eliminations}:{}));
+  }
+  if(id==='numbertowers'){
+    if(p.logicStats?.solved!==true)fail(id,'puzzle is not marked deduction-solvable');
+    const audit=N?._solveTowersByLogic?.(p.size,p.clues);
+    if(!audit?.solved)fail(id,'deduction audit stalls and would require guessing',JSON.stringify(audit?{passes:audit.passes,eliminations:audit.eliminations}:{}));
+  }
   if(id==='arithmeticcages'){
     if(p.logicStats?.solved!==true)fail(id,'puzzle is not marked deduction-solvable');
     const audit=N?._solveCagesByLogic?.(p.size,p.cages);
