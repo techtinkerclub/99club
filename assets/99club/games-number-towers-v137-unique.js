@@ -49,8 +49,10 @@
       if(removed>=target)break;const old=clues[side][i];clues[side][i]=0;
       if(NL._countTowerSolutions(n,clues,2)===1)removed++;else clues[side][i]=old;
     }
-    const payload={n,solution,clues};
-    return {engineId:'numbertowers',title:'Number Towers · Skyscrapers',difficulty:o.difficulty,size:n,solutionGrid:solution,clues,seed,options:o,
+    const repaired=NL._restoreTowerCluesUntilLogical(solution,clues,seed),finalClues=repaired.clues,audit=repaired.audit;
+    if(!audit?.solved)return {engineId:'numbertowers',title:'Number Towers · Skyscrapers',error:'A deduction-solvable Number Towers puzzle could not be built. Generate another version.'};
+    const payload={n,solution,clues:finalClues};
+    return {engineId:'numbertowers',title:'Number Towers · Skyscrapers',difficulty:o.difficulty,size:n,solutionGrid:solution,clues:finalClues,logicStats:{solved:true,passes:audit.passes,eliminations:audit.eliminations,restoredClues:repaired.restored},seed,options:o,
       instruction:`Fill the grid with 1–${n}, using each height once in every row and column. Edge clues tell how many towers are visible from that direction. [[TT99TOWERS:${encodePayload(payload)}]]`};
   }
   NL.generate=function(id,settings,seed){return id==='numbertowers'?makeTowers(settings,seed):base(id,settings,seed);};
