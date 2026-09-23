@@ -175,6 +175,9 @@ function settingsFor(id,def,difficulty){
 }
 function branchWeight(node,values){if(!node)return NaN;if(node.type==='group')return Number(node.count)*Number(values[node.shape]);return branchWeight(node.left,values)+branchWeight(node.right,values);}
 function checkSpecific(id,p){
+  const guardedMeta=new Set(['nonogram','numberpath','killersudoku','hashi','alphametics','sumplete','shikaku','cornersum','linkedsum','diagonalpath','perimeterregions']);
+  if(guardedMeta.has(id)&&p.logicStats?.solved!==true)fail(id,'puzzle is not marked deduction-solvable');
+  if(id==='takuzu'&&p.logicStats?.logicSolvable!==true)fail(id,'Takuzu is not marked deduction-solvable');
   if(id==='crossnumber'){
     const occupancy=new Map();
     for(const e of p.entries||[])for(const [x,y] of e.cells||[]){
@@ -226,6 +229,10 @@ function checkSpecific(id,p){
       const proof=A.BROKENCALC_QUALITY?.reachable?.(t.target,p);if(!proof)fail(id,`QA cannot prove target ${t.target} reachable`);
     }
   }
+  if(id==='mathsmines'){
+    const audit=N?.V140?.MINES?.logic?.(p.size,p.clues,p.gemCount,new Set(p.solutionGems||[]));
+    if(!audit?.solved)fail(id,'deduction audit stalls and would require guessing',JSON.stringify(audit||{}));
+  }
   if(id==='colourlogic'){
     if(p.solutionCount!==1)fail(id,'puzzle is not marked uniquely solvable',String(p.solutionCount));
     if(!Array.isArray(p.clues)||p.clues.length<2)fail(id,'too few clues');
@@ -247,6 +254,11 @@ function checkSpecific(id,p){
   }
 }
 
+const deductionPolicyIds=['sudoku','futoshiki','arithmeticcages','kakuro','nonogram','numberpath','numbertowers','takuzu','killersudoku','hashi','mathsmines','alphametics','sumplete','shikaku','cornersum','linkedsum','colourlogic','diagonalpath','perimeterregions'];
+if(G?.ENGINES){
+  const missing=deductionPolicyIds.filter(id=>!G.ENGINES[id]);if(missing.length)fail('deduction-policy','Expected deduction engine missing from catalogue',missing.join(', '));
+  else ok('deduction-policy',deductionPolicyIds.length+' constraint-puzzle engines are covered by the no-guess policy');
+}
 if(G&&G.ENGINES&&typeof G.generateWorkedExample==='function'){
   const visible=Object.entries(G.ENGINES).filter(([,def])=>!def?.hiddenFromLibrary).map(([id])=>id).sort();
   let workedOk=0;
