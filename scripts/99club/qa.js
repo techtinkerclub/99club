@@ -187,6 +187,12 @@ function checkSpecific(id,p){
       }
     }
   }
+  if(id==='sudoku'){
+    if(p.logicStats?.solved!==true)fail(id,'puzzle is not marked deduction-solvable');
+    const audit=G?._solveSudokuByLogic?.(p.displayGrid,p.style);
+    if(!audit?.solved)fail(id,'deduction audit stalls and would require guessing',JSON.stringify(audit?{passes:audit.passes,eliminations:audit.eliminations}:{}));
+    else for(let r=0;r<p.size;r++)for(let c=0;c<p.size;c++)if(audit.grid[r][c]!==p.solutionGrid[r][c])fail(id,'deduction audit reached the wrong grid',r+':'+c);
+  }
   if(id==='futoshiki'){
     if(p.logicStats?.solved!==true)fail(id,'puzzle is not marked deduction-solvable');
     const audit=N?._solveFutoshikiByLogic?.(p.size,p.givens,p.hSigns,p.vSigns);
