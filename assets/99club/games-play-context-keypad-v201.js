@@ -310,6 +310,7 @@ document.addEventListener('click',e=>{
     activeEntry=entry;
     if(activePad===pad){
       setPadSpace();
+      keepBoardClearOfPad();
       keepEntryVisible(entry);
     }else if(autoOpenForCurrentInput()){
       setTimeout(()=>openPad(pad,entry),0);
