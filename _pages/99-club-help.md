@@ -33,7 +33,7 @@ sitemap: true
     <a href="#schemes">Challenges</a>
     <a href="#rules">Changing rules</a>
     <a href="#extras">Post-99 extras</a>
-    <a href="#fractions">Fractions & percentages</a>
+    <a href="#fractions">Fractions</a>
     <a href="#saving">Saving & sharing</a>
     <a href="#recreate">Recreating a sheet</a>
     <a href="#recovery">Recovery examples</a>
@@ -158,11 +158,11 @@ sitemap: true
   </section>
 
   <section id="fractions" class="tt99-guide-section">
-    <h2>Fractions, decimals and percentages</h2>
+    <h2>Fractions</h2>
     <h3>Decimals</h3>
     <p>Decimal families are available as optional additions to mixed/advanced 99 Club rules, including place value, rounding, ×/÷ by 10/100/1000, decimal addition/subtraction, upper-KS2 multiplication/division and fraction/decimal/percentage equivalence. Decimal comparison is intentionally excluded from the rapid mental-maths extras. The standard Classic progression is unchanged unless you explicitly edit its rules.</p>
 
-    <div class="tt99-guide-note"><strong>Diamond fraction profile:</strong> the default Diamond challenge uses fractions of amounts, fraction addition/subtraction and proper-fraction × whole-number questions. Its +/− questions favour the same denominator or related denominators where one is a multiple of the other, and can include mixed-number calculations.</div>
+    <div class="tt99-guide-note"><strong>Diamond fraction profile:</strong> the default Diamond challenge uses fractions of amounts, fraction addition/subtraction and proper-fraction × whole-number questions. Its +/− questions use the same denominator or related denominators where one is a multiple of the other, and can include mixed-number calculations.</div>
 
     <h3>Fractions of quantities</h3>
     <p>The denominator buttons choose which denominator families may appear. Selecting denominator <b>5</b> can produce <code>1/5</code>, <code>2/5</code>, <code>3/5</code> or <code>4/5</code>; it does not mean “1/5 only”.</p>
