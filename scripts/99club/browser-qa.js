@@ -159,6 +159,36 @@ function prepare(){
         search.value='';search.dispatchEvent(new Event('input',{bubbles:true}));await sleep(60);
       }catch(e){fail('grouped-library',(e&&e.stack)||String(e));}
     }
+    async function sudokuLatinClarityTest(){
+      try{
+        const a=window.TT99GamesPlay?.adapters?.get('sudoku');
+        if(!a)return fail('sudoku-latin-clarity','Sudoku / Latin Squares adapter missing');
+        const latinCfg=a.normalizeConfig({difficulty:'standard',gridSize:'6',puzzleStyle:'latin',clueLevel:'balanced'});
+        const sudokuCfg=a.normalizeConfig({difficulty:'standard',gridSize:'6',puzzleStyle:'sudoku',clueLevel:'balanced'});
+        const latin=a.createPuzzle(latinCfg,'browser-qa:latin-clarity');
+        const sudoku=a.createPuzzle(sudokuCfg,'browser-qa:sudoku-clarity');
+        const latinTitle=typeof a.puzzleTitle==='function'?a.puzzleTitle(latin,latinCfg):'';
+        const sudokuTitle=typeof a.puzzleTitle==='function'?a.puzzleTitle(sudoku,sudokuCfg):'';
+        const latinInstruction=typeof a.instruction==='function'?a.instruction(latin,latinCfg):String(a.instruction||'');
+        const sudokuInstruction=typeof a.instruction==='function'?a.instruction(sudoku,sudokuCfg):String(a.instruction||'');
+        if(latin.style!=='latin'||latinTitle!=='Latin Square')fail('sudoku-latin-clarity','Latin puzzle is not clearly titled Latin Square');
+        if(!/Latin square/i.test(latinInstruction)||!/no box rules/i.test(latinInstruction))fail('sudoku-latin-clarity','Latin instruction does not explicitly explain row/column-only rules');
+        if(sudoku.style==='latin'||sudokuTitle!=='Sudoku')fail('sudoku-latin-clarity','Sudoku puzzle is not clearly titled Sudoku');
+        if(!/Sudoku/i.test(sudokuInstruction)||!/outlined box/i.test(sudokuInstruction))fail('sudoku-latin-clarity','Sudoku instruction does not explicitly explain the outlined-box rule');
+        if(latinTitle==='Latin Square'&&sudokuTitle==='Sudoku'&&/no box rules/i.test(latinInstruction)&&/outlined box/i.test(sudokuInstruction))pass('sudoku-latin-clarity','Sudoku and Latin Square have distinct live titles and rule descriptions');
+
+        if(window.innerWidth<=820){
+          const title=document.getElementById('tt99-play-game-title'),share=document.getElementById('tt99-play-share');
+          if(!title||!share)return fail('mobile-play-labels','mobile title/share controls missing');
+          const original=title.textContent;title.textContent='Sudoku & Latin Squares';
+          const ts=getComputedStyle(title),after=getComputedStyle(share,'::after');
+          if(ts.whiteSpace==='nowrap'||ts.textOverflow==='ellipsis')fail('mobile-play-labels','mobile game title is still forced into an ellipsis');
+          if(after.content!=='"Copy link"'&&after.content!=="'Copy link'")fail('mobile-play-labels','mobile share button does not use the compact Copy link label');
+          title.textContent=original;
+          if(ts.whiteSpace!=='nowrap'&&ts.textOverflow!=='ellipsis'&&(after.content==='"Copy link"'||after.content==="'Copy link'"))pass('mobile-play-labels','mobile game title can wrap and share action uses compact wording');
+        }
+      }catch(e){fail('sudoku-latin-clarity',(e&&e.stack)||String(e));}
+    }
     async function drawerTest(){
       try{
         const P=window.TT99GamesPlay,a=P?.adapters?.get('numberwheels'),board=document.getElementById('tt99-play-board');if(!a||!board)return fail('mobile-drawer','Number Connections adapter or board missing');
@@ -379,7 +409,7 @@ function prepare(){
       }catch(e){fail('completion-splash',(e&&e.stack)||String(e));}
     }
     async function run(){
-      try{await sleep(500);await initialInstructionStatusTest();await safeFitLayoutTest();await genericAdapterTests();await brokenCalcTest();await colourFillTest();await perimeterDirectTest();await alphameticsVarietyTest();await groupedLibraryTest();await drawerTest();await sumGridContainmentTest();await hintPopupTest();await answerRevealFlowTest();await paperExportEntryTest();await completionShareEntryTest();await sharePanelTest();await completionSplashFitTest();await searchDirectionInstructionTest();}
+      try{await sleep(500);await initialInstructionStatusTest();await safeFitLayoutTest();await genericAdapterTests();await brokenCalcTest();await colourFillTest();await perimeterDirectTest();await alphameticsVarietyTest();await groupedLibraryTest();await sudokuLatinClarityTest();await drawerTest();await sumGridContainmentTest();await hintPopupTest();await answerRevealFlowTest();await paperExportEntryTest();await completionShareEntryTest();await sharePanelTest();await completionSplashFitTest();await searchDirectionInstructionTest();}
       catch(e){fail('runner',(e&&e.stack)||String(e));}
       finally{finish();}
     }
