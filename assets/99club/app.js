@@ -8,7 +8,7 @@
 
   const STORAGE_KEY = 'tt99-settings-v1';
   const CUSTOM_KEY = 'tt99-custom-presets-v1';
-  const VERSION = '1.19.9';
+  const VERSION = '1.19.10';
   const APP_NAME = '99 Club Studio';
   const APP_URL = 'https://99studio.uk/';
   const CUSTOM_WORKSPACE_KEY = 'tt99-custom-settings-v1';
@@ -49,6 +49,28 @@
     {key:'statistics',label:'Statistics', ids:['mean']}
   ].map(group=>({...group,ids:group.ids.filter(id=>G.FAMILY_META?.[id]&&!G.FAMILY_META[id].retired)}));
   const POST99_EXTRA_FAMILY_ORDER = [...new Set(POST99_EXTRA_GROUPS.flatMap(group=>group.ids))];
+  const POST99_GROUP_HELP = {
+    number:{description:'Extra missing-number and number-property work beyond the named challenge core.',examples:[['add_sub_missing','___ + 7 = 19'],['missing_number','7 × ___ = 42'],['negative_numbers','5 − 12 = −7'],['factor_check','Is 6 a factor of 42?']]},
+    fractions:{description:'Additional fraction skills beyond any fraction work already built into this challenge.',examples:[['equivalent_fractions','3/4 = ?/12'],['simplify_fractions','6/8 = 3/4'],['mixed_improper','1 3/4 = 7/4'],['fraction_add_subtract','3/4 + 4/12'],['fraction_multiply_whole','5/6 × 3'],['fraction_multiply','2/3 × 3/5'],['fraction_divide_whole','3/4 ÷ 2']]},
+    fdp:{description:'Decimal work plus percentage and fraction–decimal–percentage equivalence not already in the core.',examples:[['decimal_scale','3.6 × 100'],['fraction_decimal_percent','0.75 = 3/4 = 75%'],['percentage_of','25% of 80'],['decimal_add_subtract','4.7 + 2.35']]},
+    calculation:{description:'Extra rapid-calculation skills not already included in the named challenge core.',examples:[['scaled_multiply','6 × 70'],['scaled_divide','4200 ÷ 60'],['bodmas','3 + 4 × 5'],['angle_facts','180° − 65°']]},
+    ratio:{description:'Short ratio and proportion questions designed for mental calculation.',examples:[['ratio_missing','3:5 = 12:?'],['ratio_share','Share 48 in the ratio 3:5'],['scale_factor','Scale factor 3: 4 → 12']]},
+    measurement:{description:'Concise measurement, time, money, calendar and temperature calculations.',examples:[['metric_conversion','2.5 m = ? cm'],['time_duration','14:35 to 15:20'],['money','£5 − £3.65'],['temperature_interval','−3°C to 5°C']]},
+    statistics:{description:'Short statistics questions suitable for rapid mental practice.',examples:[['mean','Mean of 4, 6 and 8']]},
+  };
+  const POST99_CORE_HELP = {
+    bronze:['Bronze core families','Multiplication and exact division using all 1–12 tables. Examples: 7 × 8; 72 ÷ 9.'],
+    silver:['Silver core families','Addition, subtraction, multiplication and division. Examples: 146 − 38; 84 ÷ 7.'],
+    gold:['Gold core families','Silver core maths plus square numbers and exact square roots. Examples: 11²; √81.'],
+    platinum:['Platinum core families','Gold core maths plus order of operations. Examples: 3 + 4 × 5; √144.'],
+    diamond:['Diamond core families','Four operations, squares/roots, order of operations, scaled facts, percentages and core fraction calculations. Examples: 3/7 of 28; 3/4 + 4/12.']
+  };
+  function post99GroupHelp(group,visibleIds){
+    const meta=POST99_GROUP_HELP[group.key]||{description:'Optional post-99 mental-maths practice.',examples:[]};
+    const visible=new Set(visibleIds||[]);
+    const examples=(meta.examples||[]).filter(pair=>visible.has(pair[0])).slice(0,2).map(pair=>pair[1]);
+    return [group.label,meta.description+(examples.length?' Examples: '+examples.join('; ')+'.':'')];
+  }
   // UI-only state: an extra category stays open while its checkboxes cause the editor to re-render.
   const openPost99ExtraGroups = new Set();
   // Preserve historical compact-recreation family codes; append new families only after the old prefix.
@@ -964,10 +986,13 @@
         if(!ids.length)return '';
         const count=ids.filter(f=>selected.has(f)).length;
         const shouldOpen=openPost99ExtraGroups.has(group.key);
-        return `<details class="tt99-family-strand tt99-post99-extra-group ${count?'has-selected':''}" data-post99-group="${esc(group.key)}" ${shouldOpen?'open':''}><summary><b>${esc(group.label)}</b><small>${count}/${ids.length} selected</small></summary><div class="tt99-family-chips">${ids.map(f=>`<label><input type="checkbox" data-family="${f}" ${selected.has(f)?'checked':''}><span>${esc(G.FAMILY_LABELS[f]||f)}</span></label>`).join('')}</div></details>`;
+        const helpKey=`post99-group-${group.key}`;
+        HELP_TEXT[helpKey]=post99GroupHelp(group,ids);
+        return `<details class="tt99-family-strand tt99-post99-extra-group ${count?'has-selected':''}" data-post99-group="${esc(group.key)}" ${shouldOpen?'open':''}><summary><b>${esc(group.label)}</b>${helpButton(helpKey)}<small>${count}/${ids.length} selected</small></summary><div class="tt99-family-chips">${ids.map(f=>`<label><input type="checkbox" data-family="${f}" ${selected.has(f)?'checked':''}><span>${esc(G.FAMILY_LABELS[f]||f)}</span></label>`).join('')}</div></details>`;
       }).join('');
       const count=[...selected].filter(f=>POST99_EXTRA_FAMILY_ORDER.includes(f)&&!core.includes(f)).length;
-      return `<div class="tt99-family-select tt99-post99-extras"><span class="tt99-field-label">Post-99 mental-maths extras ${helpButton('families')}</span><div class="tt99-family-group-label">Core families — always included</div><div class="tt99-family-chips tt99-family-chips--locked">${core.map(f=>`<span class="tt99-family-locked">${esc(G.FAMILY_LABELS[f]||f)} <b aria-hidden="true">✓</b></span>`).join('')}</div><div class="tt99-family-group-label tt99-post99-extra-heading">Optional extras <small>${count?`${count} selected`:'none selected'}</small></div>${groups}<small>Extras are available only for Bronze–Diamond and saved post-99 presets. Selected categories are highlighted; open categories stay open until you close them yourself. Wider curriculum work belongs in Custom Worksheets.</small></div>`;
+      HELP_TEXT.post99Core=POST99_CORE_HELP[state.clubId]||HELP_TEXT.advancedCore;
+      return `<div class="tt99-family-select tt99-post99-extras"><span class="tt99-field-label">Post-99 mental-maths extras ${helpButton('families')}</span><div class="tt99-family-group-label tt99-family-group-label--help"><span>Core families — always included</span>${helpButton('post99Core')}</div><div class="tt99-family-chips tt99-family-chips--locked">${core.map(f=>`<span class="tt99-family-locked">${esc(G.FAMILY_LABELS[f]||f)} <b aria-hidden="true">✓</b></span>`).join('')}</div><div class="tt99-family-group-label tt99-post99-extra-heading">Optional extras <small>${count?`${count} selected`:'none selected'}</small></div>${groups}<small>Extras are available only for Bronze–Diamond and saved post-99 presets. Selected categories are highlighted; open categories stay open until you close them yourself. Wider curriculum work belongs in Custom Worksheets.</small></div>`;
     }
     // 11–99 editing remains deliberately narrow: no post-99 extras are offered here.
     const visible=BASE_11_99_FAMILY_ORDER.filter(f=>G.FAMILY_META?.[f]&&!G.FAMILY_META[f].retired);
