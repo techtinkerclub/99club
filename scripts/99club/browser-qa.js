@@ -275,6 +275,13 @@ function prepare(){
 
         const r=panel.getBoundingClientRect();
         if(r.left<-1||r.right>window.innerWidth+1)fail('share-panel','share panel escapes the viewport');
+        if(window.innerWidth>720){
+          const preview=dialog.querySelector('.tt99-share-preview'),img=preview?.querySelector('img'),pr=preview?.getBoundingClientRect(),ir=img?.getBoundingClientRect();
+          if(!preview||!img||!pr||!ir)fail('share-panel-desktop-fit','desktop share preview image is unavailable');
+          else if(ir.left<pr.left-1||ir.right>pr.right+1||ir.top<pr.top-1||ir.bottom>pr.bottom+1)fail('share-panel-desktop-fit','share card is clipped inside the desktop preview');
+          else if(panel.scrollHeight>panel.clientHeight+2)fail('share-panel-desktop-fit','desktop share panel still requires vertical scrolling');
+          else pass('share-panel-desktop-fit','complete share card fits inside the desktop modal without scrolling');
+        }
         dialog.hidden=true;window.dispatchEvent(new Event('pageshow'));await sleep(20);
         if(dialog.hidden)fail('share-panel','return/resume did not restore the still-open share panel');
         dialog.querySelector('.tt99-share-close')?.click();await sleep(10);
