@@ -134,6 +134,37 @@
     padding:32px 9px 9px!important;border-radius:16px!important;
   }
   #tt99-play-board .tt99-context-pad-active button{min-height:46px}
+
+  /* Crossword uses a phone-style QWERTY drawer rather than stretching every
+     letter into the generic keypad proportions. */
+  #tt99-play-board .tt99-context-pad-active.tt99-letter-keypad{
+    width:min(calc(100vw - 12px),430px)!important;
+    max-width:430px!important;
+    padding:32px 6px 8px!important;
+    gap:5px!important;
+    overflow:hidden!important;
+  }
+  #tt99-play-board .tt99-context-pad-active.tt99-letter-keypad>div:not(.tt99-context-pad-handle){
+    gap:3px!important;
+  }
+  #tt99-play-board .tt99-context-pad-active.tt99-letter-keypad button[data-letter]{
+    min-height:40px!important;
+    height:40px!important;
+    padding:0!important;
+    border-radius:7px!important;
+    font-size:.8rem!important;
+    line-height:1!important;
+  }
+  #tt99-play-board .tt99-context-pad-active.tt99-letter-keypad>div.controls{
+    gap:6px!important;
+    padding-inline:8%!important;
+  }
+  #tt99-play-board .tt99-context-pad-active.tt99-letter-keypad>div.controls button{
+    min-height:38px!important;
+    height:38px!important;
+    padding:0 8px!important;
+    font-size:.72rem!important;
+  }
 }
 
 @media(max-width:390px){
