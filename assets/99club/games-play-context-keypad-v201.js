@@ -117,13 +117,17 @@ function setPadSpace(){
     b.style.removeProperty('--tt99-context-pad-space');
     return;
   }
-  requestAnimationFrame(()=>{
+  const apply=()=>{
     if(!activePad||!document.contains(activePad)||activePad.classList.contains('tt99-context-pad-collapsed'))return;
     const h=Math.ceil(activePad.getBoundingClientRect().height);
     const space=Math.max(0,h+24);
     b.classList.add('tt99-context-pad-reserve');
     b.style.setProperty('--tt99-context-pad-space',space+'px');
-  });
+  };
+  // Apply immediately so there is never a visible expanded-without-reserve frame,
+  // then refresh once after layout in case the drawer height changed.
+  apply();
+  requestAnimationFrame(apply);
 }
 function keepBoardClearOfPad(){
   const b=board();
