@@ -181,12 +181,12 @@ function prepare(){
           const title=document.getElementById('tt99-play-game-title'),share=document.getElementById('tt99-play-share');
           if(!title||!share)return fail('mobile-play-labels','mobile title/share controls missing');
           const original=title.textContent;title.textContent='Sudoku & Latin Squares';
-          const ts=getComputedStyle(title),label=share.textContent.trim(),after=getComputedStyle(share,'::after');
+          const ts=getComputedStyle(title),label=share.textContent.trim(),ss=getComputedStyle(share);
           if(ts.whiteSpace==='nowrap'||ts.textOverflow==='ellipsis')fail('mobile-play-labels','mobile game title is still forced into an ellipsis');
           if(label!=='Copy link')fail('mobile-play-labels','mobile share button text is not intrinsically compact: '+label);
-          if(after.content!=='"Copy link"'&&after.content!=="'Copy link'")fail('mobile-play-labels','mobile share-button fallback label is missing');
+          if(ss.fontSize==='0px')fail('mobile-play-labels','mobile share button still depends on a pseudo-element label');
           title.textContent=original;
-          if(ts.whiteSpace!=='nowrap'&&ts.textOverflow!=='ellipsis'&&label==='Copy link')pass('mobile-play-labels','mobile game title can wrap and share action uses intrinsic compact wording');
+          if(ts.whiteSpace!=='nowrap'&&ts.textOverflow!=='ellipsis'&&label==='Copy link'&&ss.fontSize!=='0px')pass('mobile-play-labels','mobile game title can wrap and Copy link is real button text');
         }
       }catch(e){fail('sudoku-latin-clarity',(e&&e.stack)||String(e));}
     }
@@ -326,7 +326,7 @@ function prepare(){
         const popup=document.getElementById('tt99-play-complete');
         if(!popup)return fail('completion-share-entry','completion popup missing');
         popup.hidden=false;
-        popup.innerHTML='<div class="tt99-play-complete-card"><div><div class="tt99-play-complete-actions"><button type="button" data-play-share>Copy puzzle link</button></div></div></div>';
+        popup.innerHTML='<div class="tt99-play-complete-card"><div><div class="tt99-play-complete-actions"><button type="button" data-play-share aria-label="Copy puzzle link">Copy link</button></div></div></div>';
         window.TT99PlayShareV156?.open?.('solved');
         window.TT99PlayShareV156?.close?.();
         document.dispatchEvent(new Event('visibilitychange'));
@@ -336,8 +336,8 @@ function prepare(){
         if(entries.length!==1)fail('completion-share-entry','completion splash should have exactly one share-panel entry');
         if(actions?.querySelector('[data-share-card],[data-challenge-card]'))fail('completion-share-entry','legacy duplicate share entry remains');
         if(entries[0]?.textContent!=='Share this puzzle')fail('completion-share-entry','single share entry has the wrong label');
-        if(actions?.querySelector('[data-play-share]')?.textContent!=='Copy puzzle link')fail('completion-share-entry','copy action still uses old challenge-link wording');
-        else pass('completion-share-entry','completion splash uses one Share this puzzle entry plus Copy puzzle link');
+        if(actions?.querySelector('[data-play-share]')?.textContent!=='Copy link')fail('completion-share-entry','completion copy action is not compact');
+        else pass('completion-share-entry','completion splash uses one Share this puzzle entry plus compact Copy link');
         popup.hidden=true;popup.innerHTML='';
       }catch(e){fail('completion-share-entry',(e&&e.stack)||String(e));}
     }
