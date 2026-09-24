@@ -28,7 +28,7 @@ sitemap: true
 <link rel="stylesheet" href="/assets/99club/games-play-brokencalc-v152.css?v=1">
 <link rel="stylesheet" href="/assets/99club/games-play-instructions-v154.css?v=1">
 <link rel="stylesheet" href="/assets/99club/games-play-cipher-v154.css?v=1">
-<link rel="stylesheet" href="/assets/99club/games-play-share-v156.css?v=2">
+<link rel="stylesheet" href="/assets/99club/games-play-share-v156.css?v=3">
 <link rel="stylesheet" href="/assets/99club/games-play-paper-export-v1.css?v=1">
 <link rel="stylesheet" href="/assets/99club/games-play-wave5.css?v=2">
 <link rel="stylesheet" href="/assets/99club/games-play-kakuro-v170.css?v=1">
