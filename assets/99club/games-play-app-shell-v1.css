@@ -228,9 +228,10 @@ html.tt99-play-app-shell body{touch-action:manipulation}
   }
 
   #tt99-play-root[data-app-shell="1"] .tt99-play-setup{
-    height:50px;
-    min-height:50px;
-    max-height:50px;
+    height:50px!important;
+    min-height:50px!important;
+    max-height:50px!important;
+    box-sizing:border-box!important;
     padding:4px 7px!important;
     grid-template-columns:auto minmax(220px,1fr) auto;
     gap:6px;
