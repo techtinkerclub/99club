@@ -179,7 +179,7 @@
    width contract sets that ID to width:100%!important, which otherwise defeats
    Shikaku's intended square cap and creates an ~900px-tall board on desktop. */
 #tt99-play-root #tt99-play-board.tt99-play-shikaku{
-  width:min(100%,630px,calc(100dvh - 300px))!important;
+  width:min(100%,630px,var(--tt99-square-fit,calc(100dvh - 300px)))!important;
   max-width:630px!important;
   margin-inline:auto;
 }
