@@ -345,7 +345,6 @@ html.tt99-play-app-shell body{touch-action:manipulation}
   #tt99-play-root[data-app-shell="1"] .tt99-play-current h2{font-size:.92rem}
   #tt99-play-root[data-app-shell="1"] .tt99-play-gamebar-actions{gap:3px}
   #tt99-play-root[data-app-shell="1"] .tt99-play-gamebar-actions button{padding-inline:6px}
-  #tt99-play-root[data-app-shell="1"] #tt99-play-share{display:none}
   #tt99-play-root[data-app-shell="1"] .tt99-play-setup{grid-template-columns:auto auto 1fr}
   #tt99-play-root[data-app-shell="1"] .tt99-play-setup-actions{justify-content:end}
   #tt99-play-root[data-app-shell="1"] .tt99-play-setup-actions button{padding-inline:6px}
