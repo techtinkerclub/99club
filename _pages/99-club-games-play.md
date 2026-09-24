@@ -50,7 +50,6 @@ sitemap: true
 <link rel="stylesheet" href="/assets/99club/games-new-puzzles-v197-fix.css?v=2">
 <link rel="stylesheet" href="/assets/99club/games-play-context-keypad-v201.css?v=6">
 <link rel="stylesheet" href="/assets/99club/games-extra-puzzles-v204.css?v=5">
-<link rel="stylesheet" href="/assets/99club/games-play-app-shell-v1.css?v=2">
 
 <script src="/assets/99club/games-vocabulary.js?v=1"></script>
 <script src="/assets/99club/games-arithmetic.js?v=8"></script>
@@ -132,4 +131,3 @@ sitemap: true
 <script src="/assets/99club/games-play-share-v164.js?v=8"></script>
 <script src="/assets/99club/games-play-share-v176-fix.js?v=1"></script>
 <script src="/assets/99club/games-play-paper-export-v1.js?v=1"></script>
-<script src="/assets/99club/games-play-app-shell-v1.js?v=1"></script>
