@@ -1,4 +1,4 @@
-/* 99 Club Studio · unified contextual keypad drawer v2.02
+/* 99 Club Studio · unified contextual keypad drawer v2.03
  * One input model across phone, tablet, hybrid and desktop:
  * - touch/pen selection opens the drawer automatically;
  * - desktop keeps the drawer closed by default so the physical keyboard can be used;
@@ -112,8 +112,34 @@ function clearBoardSpace(){
 function setPadSpace(){
   const b=board();
   if(!b)return;
-  b.classList.remove('tt99-context-pad-reserve');
-  b.style.removeProperty('--tt99-context-pad-space');
+  if(!activePad||activePad.classList.contains('tt99-context-pad-collapsed')||!keepClearOfPad()){
+    b.classList.remove('tt99-context-pad-reserve');
+    b.style.removeProperty('--tt99-context-pad-space');
+    return;
+  }
+  const apply=()=>{
+    if(!activePad||!document.contains(activePad)||activePad.classList.contains('tt99-context-pad-collapsed'))return;
+    const h=Math.ceil(activePad.getBoundingClientRect().height);
+    const space=Math.max(0,h+24);
+    b.classList.add('tt99-context-pad-reserve');
+    b.style.setProperty('--tt99-context-pad-space',space+'px');
+  };
+  // Apply immediately so there is never a visible expanded-without-reserve frame,
+  // then refresh once after layout in case the drawer height changed.
+  apply();
+  requestAnimationFrame(apply);
+}
+function keepBoardClearOfPad(){
+  const b=board();
+  if(!b||!activePad||!keepClearOfPad()||activePad.classList.contains('tt99-context-pad-collapsed'))return;
+  requestAnimationFrame(()=>{
+    if(!activePad||!document.contains(activePad)||!document.contains(b))return;
+    const pr=activePad.getBoundingClientRect(),br=b.getBoundingClientRect();
+    const safeTop=72,gap=14,available=Math.max(0,pr.top-safeTop-gap);
+    if(br.height<=available&&br.bottom>pr.top-gap){
+      window.scrollBy({top:br.bottom-(pr.top-gap),behavior:'smooth'});
+    }
+  });
 }
 function setCollapsed(collapsed){
   if(!activePad)return;
@@ -126,7 +152,7 @@ function setCollapsed(collapsed){
     toggle.textContent=collapsed?'⌃':'⌄';
   }
   setPadSpace();
-  if(!collapsed)keepEntryVisible(activeEntry);
+  if(!collapsed){keepBoardClearOfPad();keepEntryVisible(activeEntry);}
 }
 function keepEntryVisible(entry){
   if(!entry||!activePad||!keepClearOfPad())return;
@@ -208,6 +234,7 @@ function openPad(pad,entry){
   b.classList.add('tt99-has-context-pad');
   syncLauncher();
   setPadSpace();
+  keepBoardClearOfPad();
   keepEntryVisible(activeEntry);
 }
 function manageCurrentPad(){
@@ -287,6 +314,7 @@ document.addEventListener('click',e=>{
     activeEntry=entry;
     if(activePad===pad){
       setPadSpace();
+      keepBoardClearOfPad();
       keepEntryVisible(entry);
     }else if(autoOpenForCurrentInput()){
       setTimeout(()=>openPad(pad,entry),0);
@@ -350,6 +378,7 @@ window.addEventListener('resize',()=>{
     }
     applyDragPosition(activePad);
     setPadSpace();
+    keepBoardClearOfPad();
     keepEntryVisible(activeEntry);
   }
 });
