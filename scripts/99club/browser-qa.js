@@ -57,10 +57,11 @@ function prepare(){
         const after=stage.getBoundingClientRect().top;
         if(Math.abs(after-before)>4)fail('safe-fit','opening Puzzle settings pushes the play stage by '+Math.round(after-before)+'px instead of overlaying it');
         settings.open=false;await sleep(20);
-        const sr=stage.getBoundingClientRect(),rr=root.getBoundingClientRect();
-        if(sr.left<-2||sr.right>window.innerWidth+2)fail('safe-fit','play stage escapes the viewport horizontally');
-        if(window.innerWidth>=821&&window.innerHeight>=700&&sr.bottom>window.innerHeight+18)fail('safe-fit','desktop play stage still extends below a normal viewport by '+Math.round(sr.bottom-window.innerHeight)+'px');
-        if(window.innerWidth<=820&&window.innerHeight>=700&&rr.bottom>window.innerHeight+80)warn('safe-fit-mobile','mobile play area exceeds one viewport; normal scrolling remains as fallback');
+        const sr=stage.getBoundingClientRect(),rr=root.getBoundingClientRect(),wrap=root.querySelector('.tt99-play-board-wrap')?.getBoundingClientRect(),br=board.getBoundingClientRect();
+        const diag=' game='+(document.getElementById('tt99-play-game-title')?.textContent||'?')+' viewport='+window.innerWidth+'x'+window.innerHeight+' stage='+Math.round(sr.top)+'..'+Math.round(sr.bottom)+' board='+Math.round(br.width)+'x'+Math.round(br.height)+' boardScroll='+board.scrollWidth+'x'+board.scrollHeight+' wrap='+(wrap?Math.round(wrap.width)+'x'+Math.round(wrap.height):'?')+' class='+board.className;
+        if(sr.left<-2||sr.right>window.innerWidth+2)fail('safe-fit','play stage escapes the viewport horizontally'+diag);
+        if(window.innerWidth>=821&&window.innerHeight>=700&&sr.bottom>window.innerHeight+18)fail('safe-fit','desktop play stage still extends below a normal viewport by '+Math.round(sr.bottom-window.innerHeight)+'px;'+diag);
+        if(window.innerWidth<=820&&window.innerHeight>=700&&rr.bottom>window.innerHeight+80)warn('safe-fit-mobile','mobile play area exceeds one viewport; normal scrolling remains as fallback;'+diag);
         if(Math.abs(after-before)<=4&&htmlOverflow!=='hidden'&&bodyOverflow!=='hidden'&&(!transform||transform==='none')&&(window.innerWidth<821||window.innerHeight<700||sr.bottom<=window.innerHeight+18))pass('safe-fit','compact play layout fits the normal viewport without page-locking or board transforms');
       }catch(e){fail('safe-fit',(e&&e.stack)||String(e));}
     }
