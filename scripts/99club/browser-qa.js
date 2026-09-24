@@ -43,6 +43,11 @@ function prepare(){
         const hero=root.querySelector('.tt99-play-hero');
         if(hero&&getComputedStyle(hero).display!=='none')fail('app-shell','large Play Online hero still consumes play-space');
         if(!root.querySelector('.tt99-play-app-nav a[href="/games/"]'))fail('app-shell','return-to-games navigation was lost from the compact app bar');
+        if(window.innerWidth>=821){
+          const gamebar=root.querySelector('.tt99-play-gamebar')?.getBoundingClientRect(),setup=root.querySelector('.tt99-play-setup')?.getBoundingClientRect();
+          if(gamebar&&gamebar.height>70)fail('app-shell','desktop game header regressed above compact height: '+Math.round(gamebar.height)+'px');
+          if(setup&&setup.height>54)fail('app-shell','desktop setup toolbar regressed above compact height: '+Math.round(setup.height)+'px');
+        }
         else pass('app-shell','no-scroll play shell fits the viewport and keeps Surprise me + return navigation');
       }catch(e){fail('app-shell',(e&&e.stack)||String(e));}
     }
