@@ -1,0 +1,328 @@
+/* 99 Club Studio · Online Play safe viewport fit v2.0
+ * Compact the existing, proven play layout so normal play fits in one viewport
+ * on common desktop/mobile sizes. Deliberately does NOT lock html/body overflow
+ * and does NOT transform the board. Small screens retain ordinary page scrolling
+ * as a safety fallback instead of clipping the puzzle.
+ */
+
+#tt99-play-root{
+  max-width:1480px;
+  padding:4px 8px 12px;
+}
+#tt99-play-root .tt99-play-shell{gap:8px}
+
+/* Keep the page identity/navigation, but remove the large marketing-style hero. */
+#tt99-play-root .tt99-play-hero{
+  min-height:30px;
+  padding:0 2px;
+  align-items:center;
+  gap:10px;
+}
+#tt99-play-root .tt99-play-hero .tt99-eyebrow,
+#tt99-play-root .tt99-play-hero p{display:none}
+#tt99-play-root .tt99-play-hero h1{
+  margin:0;
+  font-size:.92rem;
+  line-height:1;
+}
+#tt99-play-root .tt99-play-hero nav{gap:5px;margin-left:auto}
+#tt99-play-root .tt99-play-hero nav a{
+  padding:5px 8px;
+  font-size:.68rem;
+}
+
+/* Current game bar. */
+#tt99-play-root .tt99-play-gamebar{
+  min-height:46px;
+  padding:6px 9px;
+  border-radius:12px;
+}
+#tt99-play-root .tt99-play-current{min-width:0;gap:7px}
+#tt99-play-root .tt99-play-current .tt99-play-game-icon{
+  width:34px;
+  height:34px;
+  min-width:34px;
+  flex-basis:34px;
+  border-radius:9px;
+}
+#tt99-play-root .tt99-play-current h2{
+  margin:0;
+  font-size:1.04rem;
+  line-height:1.08;
+}
+#tt99-play-root .tt99-play-current small{font-size:.6rem}
+#tt99-play-root .tt99-play-gamebar-actions{gap:5px;flex-wrap:nowrap}
+#tt99-play-root .tt99-play-gamebar-actions button{
+  min-height:32px;
+  padding:6px 9px;
+  font-size:.7rem;
+}
+#tt99-play-root .tt99-play-gamebar-actions>span{
+  padding:5px 7px;
+  font-size:.66rem;
+}
+
+/* Options are collapsed by default in core. Opening them overlays the play area
+   instead of pushing the puzzle down. */
+#tt99-play-root .tt99-play-setup{
+  padding:6px 8px;
+  border-radius:12px;
+  display:grid;
+  grid-template-columns:auto minmax(220px,1fr) auto;
+  gap:6px;
+  align-items:center;
+  position:relative;
+  z-index:30;
+}
+#tt99-play-root .tt99-play-mode{
+  display:flex;
+  gap:4px;
+  margin:0;
+}
+#tt99-play-root .tt99-play-mode button{
+  min-height:32px;
+  padding:6px 10px;
+  border-radius:9px;
+  font-size:.72rem;
+  text-align:center;
+}
+#tt99-play-root .tt99-play-mode button span{display:none}
+#tt99-play-root .tt99-play-settings{
+  min-width:0;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  position:relative;
+}
+#tt99-play-root .tt99-play-settings summary{
+  min-height:32px;
+  margin:0!important;
+  padding:6px 10px;
+  display:flex;
+  align-items:center;
+  border:1px solid var(--play-line);
+  border-radius:9px;
+  background:#fff;
+  font-size:.71rem;
+  line-height:1.05;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  box-sizing:border-box;
+}
+#tt99-play-root .tt99-play-settings[open] summary{margin-bottom:0!important}
+#tt99-play-root .tt99-play-settings[open] #tt99-play-options{
+  position:absolute;
+  left:0;
+  top:calc(100% + 6px);
+  z-index:90;
+  width:min(620px,calc(100vw - 28px));
+  max-height:min(60dvh,500px);
+  overflow:auto;
+  grid-template-columns:repeat(3,minmax(145px,1fr));
+  gap:9px;
+  padding:12px;
+  border:1px solid #cadcdd;
+  border-radius:13px;
+  background:#fff;
+  box-shadow:0 16px 40px rgba(20,52,57,.18);
+  box-sizing:border-box;
+}
+#tt99-play-root .tt99-play-setup-actions{
+  margin:0;
+  gap:5px;
+  flex-wrap:nowrap;
+}
+#tt99-play-root .tt99-play-setup-actions button{
+  min-height:32px;
+  padding:6px 9px;
+  border-radius:9px;
+  font-size:.7rem;
+  white-space:nowrap;
+}
+
+/* Main play area stays the existing layout, just with less chrome. */
+#tt99-play-root .tt99-play-stage{
+  grid-template-columns:minmax(0,1fr) 248px;
+  gap:8px;
+}
+#tt99-play-root .tt99-play-board-card{
+  padding:8px;
+  border-radius:14px;
+}
+#tt99-play-root .tt99-play-board-head{
+  min-height:28px;
+  margin-bottom:5px;
+}
+#tt99-play-root .tt99-play-top-instructions-v154{
+  display:block;
+  margin:0 0 6px;
+  padding:6px 8px;
+  border:1px solid #d7e6e7;
+  border-radius:9px;
+  background:#f7fbfa;
+}
+#tt99-play-root .tt99-play-top-instructions-v154 .tt99-play-instruction{
+  margin:0;
+  color:var(--play-ink);
+  font-size:.76rem;
+  line-height:1.28;
+  font-weight:680;
+}
+#tt99-play-root .tt99-play-board-wrap{
+  min-height:clamp(280px,calc(100dvh - 330px),420px);
+  padding:8px;
+  border-radius:12px;
+}
+
+/* Shikaku mounts its square class directly on #tt99-play-board. An older shared
+   width contract sets that ID to width:100%!important, which otherwise defeats
+   Shikaku's intended square cap and creates an ~900px-tall board on desktop. */
+#tt99-play-root #tt99-play-board.tt99-play-shikaku{
+  width:min(100%,630px,var(--tt99-square-fit,calc(100dvh - 300px)))!important;
+  max-width:630px!important;
+  margin-inline:auto;
+}
+#tt99-play-root .tt99-play-instruction.is-top{margin:0}
+#tt99-play-root .tt99-play-tools{
+  top:8px;
+  padding:8px;
+  gap:7px;
+  border-radius:14px;
+}
+#tt99-play-root .tt99-play-tools button{
+  min-height:32px;
+  padding:6px 5px;
+  font-size:.72rem;
+}
+#tt99-play-root .tt99-play-stats{gap:4px}
+#tt99-play-root .tt99-play-stats div{padding:6px 4px}
+#tt99-play-root .tt99-play-how{display:none!important}
+#tt99-play-root .tt99-play-answer-reveal{margin:5px auto 0;min-height:1rem}
+
+/* Game chooser behaves as an overlay/drawer so opening it never lengthens play. */
+#tt99-play-root .tt99-play-library:not([hidden]){
+  position:fixed;
+  z-index:1200;
+  left:max(10px,calc((100vw - min(1120px,calc(100vw - 20px)))/2));
+  right:max(10px,calc((100vw - min(1120px,calc(100vw - 20px)))/2));
+  top:clamp(10px,6dvh,60px);
+  bottom:clamp(10px,6dvh,60px);
+  margin:0;
+  overflow:auto;
+  box-shadow:0 20px 60px rgba(16,45,50,.26);
+}
+
+/* Mobile/tablet: keep the board as the main content and flatten tools into a HUD.
+   Scrolling remains available as a fallback on very short devices. */
+@media(max-width:820px){
+  #tt99-play-root{padding:3px 5px 8px}
+  #tt99-play-root .tt99-play-shell{gap:6px}
+  #tt99-play-root .tt99-play-hero{display:none}
+  #tt99-play-root .tt99-play-gamebar{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:center;
+    min-height:42px;
+    padding:5px 6px;
+  }
+  #tt99-play-root .tt99-play-current .tt99-play-game-icon{
+    width:30px;height:30px;min-width:30px;flex-basis:30px;
+  }
+  #tt99-play-root .tt99-play-current small{display:none}
+  #tt99-play-root .tt99-play-current h2{font-size:.9rem}
+  #tt99-play-root .tt99-play-gamebar-actions{gap:3px}
+  #tt99-play-root .tt99-play-gamebar-actions>span{display:none}
+  #tt99-play-root .tt99-play-gamebar-actions button{
+    min-height:30px;
+    padding:5px 6px;
+    font-size:.64rem;
+  }
+
+  #tt99-play-root .tt99-play-setup{
+    grid-template-columns:auto minmax(0,1fr);
+    padding:5px;
+    gap:4px;
+  }
+  #tt99-play-root .tt99-play-mode button,
+  #tt99-play-root .tt99-play-settings summary{
+    min-height:30px;
+    padding:5px 7px;
+    font-size:.66rem;
+  }
+  #tt99-play-root .tt99-play-setup-actions{
+    grid-column:1/-1;
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    width:100%;
+  }
+  #tt99-play-root .tt99-play-setup-actions button{
+    min-width:0;
+    min-height:30px;
+    padding:5px 4px;
+    font-size:.64rem;
+  }
+  #tt99-play-root .tt99-play-settings[open] #tt99-play-options{
+    position:fixed;
+    left:8px;
+    right:8px;
+    top:auto;
+    bottom:8px;
+    width:auto;
+    max-height:62dvh;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+
+  #tt99-play-root .tt99-play-stage{
+    grid-template-columns:1fr;
+    gap:5px;
+  }
+  #tt99-play-root .tt99-play-board-card{padding:5px}
+  #tt99-play-root .tt99-play-board-head{min-height:24px;margin-bottom:3px}
+  #tt99-play-root .tt99-play-top-instructions-v154{
+    margin-bottom:4px;
+    padding:5px 6px;
+  }
+  #tt99-play-root .tt99-play-top-instructions-v154 .tt99-play-instruction{
+    font-size:.7rem;
+    line-height:1.22;
+  }
+  #tt99-play-root .tt99-play-board-wrap{
+    min-height:0;
+    padding:5px;
+  }
+
+  #tt99-play-root .tt99-play-tools{
+    position:static;
+    display:grid;
+    grid-template-columns:repeat(5,minmax(0,1fr));
+    gap:4px;
+    padding:5px;
+  }
+  #tt99-play-root .tt99-play-tool-row,
+  #tt99-play-root .tt99-play-tool-row:nth-child(2){display:contents}
+  #tt99-play-root .tt99-play-tools button{
+    min-width:0;
+    min-height:30px;
+    padding:5px 2px;
+    font-size:.64rem;
+  }
+  #tt99-play-root .tt99-play-stats{display:none}
+  #tt99-play-root .tt99-play-answer-reveal{font-size:.68rem;margin-top:3px}
+  #tt99-play-root .tt99-play-library:not([hidden]){
+    inset:6px;
+  }
+}
+
+@media(max-width:430px){
+  #tt99-play-root .tt99-play-current .tt99-play-game-icon{display:none}
+  #tt99-play-root .tt99-play-gamebar-actions button{padding-inline:5px}
+  #tt99-play-root .tt99-play-mode button{padding-inline:6px}
+  #tt99-play-root .tt99-play-setup-actions button{font-size:.61rem}
+}
+
+@media(max-height:560px) and (orientation:landscape){
+  #tt99-play-root .tt99-play-top-instructions-v154{display:none}
+  #tt99-play-root .tt99-play-board-head{display:none}
+  #tt99-play-root .tt99-play-tools button{min-height:28px}
+}

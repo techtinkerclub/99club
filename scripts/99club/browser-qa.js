@@ -32,10 +32,40 @@ function prepare(){
       try{
         await sleep(80);
         const status=document.getElementById('tt99-play-status');
+        const panel=document.querySelector('.tt99-play-top-instructions-v154');
+        const visibleInstruction=[...document.querySelectorAll('.tt99-play-top-instructions-v154 .tt99-play-instruction')].filter(el=>getComputedStyle(el).display!=='none'&&el.textContent.trim());
+        const visibleLegacy=[...document.querySelectorAll('.tt99-play-live-rule')].filter(el=>getComputedStyle(el).display!=='none'&&el.textContent.trim());
         if(status?.textContent?.trim())fail('instruction-single-source','initial play status repeats guidance below the board: '+status.textContent.trim());
         else if(status&&getComputedStyle(status).display!=='none')fail('instruction-single-source','empty initial status still leaves a blank card below the board');
-        else pass('instruction-single-source','initial status is hidden; first-use guidance lives only in the instruction card');
+        else if(!panel||visibleInstruction.length!==1)fail('instruction-single-source','expected exactly one visible first-use instruction block, found '+visibleInstruction.length);
+        else if(visibleLegacy.length)fail('instruction-single-source','legacy live-rule paragraph is visible as a duplicate instruction');
+        else pass('instruction-single-source','exactly one first-use instruction block is visible and initial status is hidden');
       }catch(e){fail('instruction-single-source',(e&&e.stack)||String(e));}
+    }
+    async function safeFitLayoutTest(){
+      try{
+        await sleep(80);
+        const root=document.getElementById('tt99-play-root'),settings=root?.querySelector('.tt99-play-settings'),stage=root?.querySelector('.tt99-play-stage'),board=document.getElementById('tt99-play-board');
+        if(!root||!settings||!stage||!board)return fail('safe-fit','Online Play safe-fit hosts are unavailable');
+        if(settings.open)fail('safe-fit','Puzzle settings still start expanded');
+        const htmlOverflow=getComputedStyle(document.documentElement).overflowY,bodyOverflow=getComputedStyle(document.body).overflowY;
+        const measuredFit=getComputedStyle(root).getPropertyValue('--tt99-square-fit').trim();
+        if(!measuredFit)fail('safe-fit','real viewport measurement helper did not publish --tt99-square-fit');
+        if(htmlOverflow==='hidden'||bodyOverflow==='hidden')fail('safe-fit','safe-fit must not lock document scrolling');
+        const transform=getComputedStyle(board).transform;
+        if(transform&&transform!=='none')fail('safe-fit','live board is transformed/scaled instead of participating in layout: '+transform);
+        const before=stage.getBoundingClientRect().top;
+        settings.open=true;await sleep(30);
+        const after=stage.getBoundingClientRect().top;
+        if(Math.abs(after-before)>4)fail('safe-fit','opening Puzzle settings pushes the play stage by '+Math.round(after-before)+'px instead of overlaying it');
+        settings.open=false;await sleep(20);
+        const sr=stage.getBoundingClientRect(),rr=root.getBoundingClientRect(),wrap=root.querySelector('.tt99-play-board-wrap')?.getBoundingClientRect(),br=board.getBoundingClientRect();
+        const diag=' game='+(document.getElementById('tt99-play-game-title')?.textContent||'?')+' viewport='+window.innerWidth+'x'+window.innerHeight+' stage='+Math.round(sr.top)+'..'+Math.round(sr.bottom)+' board='+Math.round(br.width)+'x'+Math.round(br.height)+' boardScroll='+board.scrollWidth+'x'+board.scrollHeight+' wrap='+(wrap?Math.round(wrap.width)+'x'+Math.round(wrap.height):'?')+' class='+board.className;
+        if(sr.left<-2||sr.right>window.innerWidth+2)fail('safe-fit','play stage escapes the viewport horizontally'+diag);
+        if(window.innerWidth>=821&&window.innerHeight>=700&&sr.bottom>window.innerHeight+18)fail('safe-fit','desktop play stage still extends below a normal viewport by '+Math.round(sr.bottom-window.innerHeight)+'px;'+diag);
+        if(window.innerWidth<=820&&window.innerHeight>=700&&rr.bottom>window.innerHeight+80)warn('safe-fit-mobile','mobile play area exceeds one viewport; normal scrolling remains as fallback;'+diag);
+        if(Math.abs(after-before)<=4&&htmlOverflow!=='hidden'&&bodyOverflow!=='hidden'&&(!transform||transform==='none')&&(window.innerWidth<821||window.innerHeight<700||sr.bottom<=window.innerHeight+18))pass('safe-fit','compact play layout fits the normal viewport without page-locking or board transforms');
+      }catch(e){fail('safe-fit',(e&&e.stack)||String(e));}
     }
     async function genericAdapterTests(){
       const P=window.TT99GamesPlay;if(!P){fail('boot','TT99GamesPlay missing');return;}
@@ -295,13 +325,15 @@ function prepare(){
         open.click();await sleep(40);
         const pick=document.querySelector('[data-game-id="numbersearch"]');if(!pick)return fail('search-directions','Number Search card is unavailable');
         pick.click();
-        for(let i=0;i<20;i++){const live=document.querySelector('.tt99-play-top-instructions-v154 .tt99-play-live-rule');if(live&&!live.hidden&&/Directions:/i.test(live.textContent||''))break;await sleep(25);}
-        const board=document.getElementById('tt99-play-board'),source=board?.querySelector('.tt99-play-board-tip'),live=document.querySelector('.tt99-play-top-instructions-v154 .tt99-play-live-rule');
+        for(let i=0;i<20;i++){const instruction=document.querySelector('.tt99-play-top-instructions-v154 .tt99-play-instruction');if(instruction&&/Directions:/i.test(instruction.textContent||''))break;await sleep(25);}
+        const board=document.getElementById('tt99-play-board'),source=board?.querySelector('.tt99-play-board-tip'),instruction=document.querySelector('.tt99-play-top-instructions-v154 .tt99-play-instruction');
+        const visibleTop=[...document.querySelectorAll('.tt99-play-top-instructions-v154 .tt99-play-instruction,.tt99-play-top-instructions-v154 .tt99-play-live-rule')].filter(el=>getComputedStyle(el).display!=='none'&&el.textContent.trim());
         if(!board?.classList.contains('tt99-play-numbersearch'))fail('search-directions','Change game did not mount Number Search on the live board');
         if(!source)fail('search-directions','hidden Number Search direction source is missing from the live board');
-        if(!live||live.hidden||!/Directions:/i.test(live.textContent||''))fail('search-directions','generated direction rule was not mirrored into the top instruction card');
+        if(!instruction||!/Directions:/i.test(instruction.textContent||''))fail('search-directions','generated direction rule was not folded into the single top instruction');
         if(source&&getComputedStyle(source).display!=='none')fail('search-directions','legacy under-board direction note is visibly duplicated');
-        if(board?.classList.contains('tt99-play-numbersearch')&&source&&live&&!live.hidden&&/Directions:/i.test(live.textContent||'')&&getComputedStyle(source).display==='none')pass('search-directions','real game switch shows the dynamic direction rule once above the board');
+        if(visibleTop.length!==1)fail('search-directions','search directions render in '+visibleTop.length+' visible top instruction blocks instead of one');
+        if(board?.classList.contains('tt99-play-numbersearch')&&source&&instruction&&/Directions:/i.test(instruction.textContent||'')&&getComputedStyle(source).display==='none'&&visibleTop.length===1)pass('search-directions','real game switch shows instructions + dynamic direction rule once in one top block');
       }catch(e){fail('search-directions',(e&&e.stack)||String(e));}
     }
     async function completionSplashFitTest(){
@@ -343,7 +375,7 @@ function prepare(){
       }catch(e){fail('completion-splash',(e&&e.stack)||String(e));}
     }
     async function run(){
-      try{await sleep(500);await initialInstructionStatusTest();await genericAdapterTests();await brokenCalcTest();await colourFillTest();await perimeterDirectTest();await alphameticsVarietyTest();await groupedLibraryTest();await drawerTest();await sumGridContainmentTest();await hintPopupTest();await answerRevealFlowTest();await paperExportEntryTest();await completionShareEntryTest();await sharePanelTest();await completionSplashFitTest();await searchDirectionInstructionTest();}
+      try{await sleep(500);await initialInstructionStatusTest();await safeFitLayoutTest();await genericAdapterTests();await brokenCalcTest();await colourFillTest();await perimeterDirectTest();await alphameticsVarietyTest();await groupedLibraryTest();await drawerTest();await sumGridContainmentTest();await hintPopupTest();await answerRevealFlowTest();await paperExportEntryTest();await completionShareEntryTest();await sharePanelTest();await completionSplashFitTest();await searchDirectionInstructionTest();}
       catch(e){fail('runner',(e&&e.stack)||String(e));}
       finally{finish();}
     }
