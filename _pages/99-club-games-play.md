@@ -132,3 +132,4 @@ sitemap: true
 <script src="/assets/99club/games-play-share-v164.js?v=8"></script>
 <script src="/assets/99club/games-play-share-v176-fix.js?v=1"></script>
 <script src="/assets/99club/games-play-paper-export-v1.js?v=1"></script>
+<script src="/assets/99club/games-play-safe-fit-v2.js?v=1"></script>
