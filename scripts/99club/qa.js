@@ -578,6 +578,25 @@ try{
   ok('diamond-fractions',`Diamond includes ${fractionCount}/100 core fraction questions and all requested example forms`);
 }catch(e){fail('diamond-fractions','Diamond fraction QA threw',e.stack||e.message);}
 
+/* ---------- post-99 category help ---------- */
+try{
+  const post99App=read('assets/99club/app.js');
+  const post99Css=read('assets/99club/99club.css');
+  const main99=read('index.md');
+  const groupKeys=['number','fractions','fdp','calculation','ratio','measurement','statistics'];
+  for(const key of groupKeys){
+    if(!post99App.includes(key+":{description:"))fail('post99-category-help',`Missing help metadata for ${key}`);
+  }
+  if(!post99App.includes("HELP_TEXT[helpKey]=post99GroupHelp(group,ids)"))fail('post99-category-help','Optional category help is not generated from the visible families');
+  if(!post99App.includes("${helpButton(helpKey)}<small>"))fail('post99-category-help','Optional category tiles do not include the standard circled help button');
+  if(!post99App.includes("helpButton('post99Core')"))fail('post99-category-help','Core families heading is missing its help button');
+  if(!post99App.includes("POST99_CORE_HELP[state.clubId]"))fail('post99-category-help','Core help is not challenge-specific');
+  if(!post99App.includes("e.stopPropagation()"))fail('post99-category-help','Help click no longer guards against toggling the category accordion');
+  if(!post99Css.includes("summary>.tt99-help-btn"))fail('post99-category-help','Category help button placement CSS is missing');
+  if(!main99.includes('99club.css?v=20.3')||!main99.includes('app.js?v=19.26'))fail('post99-category-help','Category-help assets are not cache-busted');
+  ok('post99-category-help','Core and all optional post-99 categories have concise contextual help buttons');
+}catch(e){fail('post99-category-help','Post-99 category help QA threw',e.stack||e.message);}
+
 /* ---------- parent-practice sharing ---------- */
 const parentAssets=['assets/99club/school-usage-config.js','assets/99club/school-usage.js','assets/99club/school-brand.js','assets/99club/parent-practice.js','assets/99club/parent-practice-page.js','assets/99club/app.js'];
 for(const rel of parentAssets){
