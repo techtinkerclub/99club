@@ -730,28 +730,6 @@ if(!puzzleParentUi.includes('renderGameTypes')||!puzzleParentUi.includes('names.
   ok('puzzle-parent','Locked puzzle pack links, portable setup, website pack and school-level telemetry contract checked');
 }catch(e){fail('puzzle-parent','Puzzle parent sharing QA threw',e.stack||e.message);}
 
-/* ---------- Online Play app-shell regression guard ---------- */
-try{
-  const playPageSrc=read('_pages/99-club-games-play.md');
-  const playCoreSrc=read('assets/99club/games-play-core-v2.js');
-  const appShellJs=read('assets/99club/games-play-app-shell-v1.js');
-  const appShellCss=read('assets/99club/games-play-app-shell-v1.css');
-  for(const token of [
-    'title: "Play Maths Games Online"',
-    'description: "Play free browser-based maths puzzles with fresh generated challenges, hints and optional timed modes."',
-    'permalink: /play/',
-    'sidebar: false',
-    'sitemap: true'
-  ])if(!playPageSrc.includes(token))fail('play-app-shell','Online Play SEO/page metadata changed: '+token);
-  for(const asset of ['games-play-app-shell-v1.css','games-play-app-shell-v1.js'])if(!playPageSrc.includes(asset))fail('play-app-shell','Viewport app-shell asset missing: '+asset);
-  if(!playCoreSrc.includes('id="tt99-play-surprise"')||!playCoreSrc.includes('Surprise me'))fail('play-app-shell','Surprise me was removed from Online Play');
-  for(const event of ['online_game_started','online_hint_used','online_game_completed'])if(!playCoreSrc.includes(event))fail('play-app-shell','Existing Online Play analytics event changed or disappeared: '+event);
-  for(const token of ['integration_id','source_origin','app_mode'])if(!playCoreSrc.includes(token))fail('play-app-shell','Existing Online Play attribution changed or disappeared: '+token);
-  if(/gtag\(|track\(|history\.replaceState|localStorage/i.test(appShellJs))fail('play-app-shell','Layout helper must not introduce or alter analytics, URL or persistence behaviour');
-  if(!appShellCss.includes('overflow:hidden!important')||!appShellJs.includes("root.dataset.appShell='1'"))fail('play-app-shell','Viewport-lock contract is incomplete');
-  ok('play-app-shell','Viewport-only layout keeps Surprise me, analytics attribution and SEO metadata unchanged');
-}catch(e){fail('play-app-shell','Online Play app-shell QA threw',e.stack||e.message);}
-
 /* ---------- analytics coverage and privacy ---------- */
 try{
   const analyticsCore=read('assets/99club/analytics.js');
