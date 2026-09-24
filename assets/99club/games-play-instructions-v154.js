@@ -1,4 +1,4 @@
-/* 99 Club Studio · Online Play instruction cleanup v1.54.2
+/* 99 Club Studio · Online Play instruction cleanup v1.54.3
  * One concise, complete first-sight rule block above the board for every
  * playable game. Avoids duplicated helper paragraphs while keeping genuinely
  * puzzle-specific live rules such as Word/Number Search directions.
@@ -8,7 +8,7 @@
 const Play=global.TT99GamesPlay;if(!Play?.adapters)return;
 
 const COPY={
-  wordsearch:'Find every maths word by dragging in one straight line from its first letter to its last. Letters may belong to more than one word; use the direction rule shown below.',
+  wordsearch:'Find every maths word by dragging in one straight line from its first letter to its last. Letters may belong to more than one word; use the direction rule shown directly below.',
   crossword:'Solve the clues and fill the grid one letter per cell. Across goes left to right and Down top to bottom; crossings share a letter, and spaces or punctuation are not entered.',
   pyramid:'Each brick equals the sum of the two directly below it. Fill every blank; work backwards with subtraction when needed.',
   magic:'A magic square has the same total in every row, column and both main diagonals. Follow the task shown: complete it, check it, repair the wrong value or transform it.',
@@ -19,7 +19,7 @@ const COPY={
   maze:'Solve the questions in order. From your current square move only up, down, left or right to the adjacent square containing that answer, then continue until FINISH.',
   propertymaze:'Move from START to FINISH only up, down, left or right through numbers matching the stated property. Matching squares may include deliberate dead ends.',
   crossnumber:'Solve each clue and enter only digits — no units or operation signs. Across runs left to right and Down top to bottom; crossings share a digit, and digits may repeat in different cells.',
-  numbersearch:'Calculate each listed answer, then drag across its digits in one continuous straight line. Target answers do not overlap; use the direction rule shown below.',
+  numbersearch:'Calculate each listed answer, then drag across its digits in one continuous straight line. Target answers do not overlap; use the direction rule shown directly below.',
   equationcrossgrid:'Fill missing numbers and operation signs so every horizontal and vertical equation is true. Shared cells belong to both equations; values and operation signs may be reused.',
   target:'Make each target exactly. Use each supplied number tile at most once (duplicate tiles are separate), but allowed operation signs may be reused. Brackets are available and normal operation order applies.',
   brokencalc:'Make each target using only the working calculator keys. Any working digit or operation key may be pressed more than once; normal operation order applies.',
@@ -75,7 +75,8 @@ function arrange(){
   // Search directions depend on the generated puzzle/settings, so mirror that
   // genuinely live rule at the top before hiding the old under-board note.
   const board=document.getElementById('tt99-play-board');
-  const directionTip=board?.querySelector('.tt99-play-wordsearch .tt99-play-board-tip, .tt99-play-numbersearch .tt99-play-board-tip');
+  const isSearchBoard=board?.matches?.('.tt99-play-wordsearch, .tt99-play-numbersearch');
+  const directionTip=isSearchBoard?board.querySelector('.tt99-play-board-tip'):null;
   const text=directionTip?.textContent?.trim()||'';
   if(liveRule){
     if(text){if(liveRule.textContent!==text)liveRule.textContent=text;if(liveRule.hidden)liveRule.hidden=false;}
@@ -83,11 +84,10 @@ function arrange(){
   }
 
   // The reviewed top instruction is now the single source for static first-use
-  // rules. Remove older board notes that repeat those same rules. Dynamic search
-  // directions are copied into liveRule above before their old note is removed.
+  // rules. Search direction notes are deliberately kept in the board DOM as a
+  // hidden live source; removing them caused the next MutationObserver pass to
+  // clear the mirrored direction rule above the board.
   const duplicateSelectors=[
-    '.tt99-play-wordsearch .tt99-play-board-tip',
-    '.tt99-play-numbersearch .tt99-play-board-tip',
     '.tt99-sumplete-wrap .tt99-play-board-tip',
     '.tt99-play-nonogram + .tt99-cycle-note',
     '.tt99-nonogram-scroll + .tt99-cycle-note',
@@ -111,15 +111,14 @@ function arrange(){
 }
 function scheduleArrange(){
   if(scheduled)return;scheduled=true;
-  const run=()=>{scheduled=false;arrange();};
-  if(typeof requestAnimationFrame==='function')requestAnimationFrame(run);else setTimeout(run,0);
+  setTimeout(()=>{scheduled=false;arrange();},0);
 }
 function boot(){
   arrange();
   const root=document.getElementById('tt99-play-root');
   // Mutations inside arrange() can themselves be observed. Scheduling once per
   // frame prevents observer cascades and keeps this layer cheap even on phones.
-  if(root&&window.MutationObserver)new MutationObserver(scheduleArrange).observe(root,{childList:true,subtree:true});
+  if(root&&window.MutationObserver)new MutationObserver(scheduleArrange).observe(root,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })(typeof globalThis!=='undefined'?globalThis:this);

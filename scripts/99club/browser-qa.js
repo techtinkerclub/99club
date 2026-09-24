@@ -28,6 +28,15 @@ function prepare(){
     }
     window.addEventListener('error',e=>fail('runtime',e.message||String(e.error||'window error')));
     window.addEventListener('unhandledrejection',e=>fail('runtime','Unhandled rejection: '+String(e.reason||'')));
+    async function initialInstructionStatusTest(){
+      try{
+        await sleep(80);
+        const status=document.getElementById('tt99-play-status');
+        if(status?.textContent?.trim())fail('instruction-single-source','initial play status repeats guidance below the board: '+status.textContent.trim());
+        else if(status&&getComputedStyle(status).display!=='none')fail('instruction-single-source','empty initial status still leaves a blank card below the board');
+        else pass('instruction-single-source','initial status is hidden; first-use guidance lives only in the instruction card');
+      }catch(e){fail('instruction-single-source',(e&&e.stack)||String(e));}
+    }
     async function genericAdapterTests(){
       const P=window.TT99GamesPlay;if(!P){fail('boot','TT99GamesPlay missing');return;}
       const list=P.gameList||[];if(list.length<35)fail('catalogue','Expected at least 35 online games, found '+list.length);else pass('catalogue',list.length+' online games registered');
@@ -273,6 +282,21 @@ function prepare(){
         else pass('share-panel','native share actions, mobile containment and return-to-panel behaviour verified');
       }catch(e){fail('share-panel',(e&&e.stack)||String(e));}
     }
+    async function searchDirectionInstructionTest(){
+      try{
+        const open=document.getElementById('tt99-play-change-game');if(!open)return fail('search-directions','Change game control is unavailable');
+        open.click();await sleep(40);
+        const pick=document.querySelector('[data-game-id="numbersearch"]');if(!pick)return fail('search-directions','Number Search card is unavailable');
+        pick.click();
+        for(let i=0;i<20;i++){const live=document.querySelector('.tt99-play-top-instructions-v154 .tt99-play-live-rule');if(live&&!live.hidden&&/Directions:/i.test(live.textContent||''))break;await sleep(25);}
+        const board=document.getElementById('tt99-play-board'),source=board?.querySelector('.tt99-play-board-tip'),live=document.querySelector('.tt99-play-top-instructions-v154 .tt99-play-live-rule');
+        if(!board?.classList.contains('tt99-play-numbersearch'))fail('search-directions','Change game did not mount Number Search on the live board');
+        if(!source)fail('search-directions','hidden Number Search direction source is missing from the live board');
+        if(!live||live.hidden||!/Directions:/i.test(live.textContent||''))fail('search-directions','generated direction rule was not mirrored into the top instruction card');
+        if(source&&getComputedStyle(source).display!=='none')fail('search-directions','legacy under-board direction note is visibly duplicated');
+        if(board?.classList.contains('tt99-play-numbersearch')&&source&&live&&!live.hidden&&/Directions:/i.test(live.textContent||'')&&getComputedStyle(source).display==='none')pass('search-directions','real game switch shows the dynamic direction rule once above the board');
+      }catch(e){fail('search-directions',(e&&e.stack)||String(e));}
+    }
     async function completionSplashFitTest(){
       try{
         const board=document.getElementById('tt99-play-board'),popup=document.getElementById('tt99-play-complete'),api=window.TT99CompletionPreview;
@@ -312,7 +336,7 @@ function prepare(){
       }catch(e){fail('completion-splash',(e&&e.stack)||String(e));}
     }
     async function run(){
-      try{await sleep(500);await genericAdapterTests();await brokenCalcTest();await colourFillTest();await perimeterDirectTest();await alphameticsVarietyTest();await groupedLibraryTest();await drawerTest();await sumGridContainmentTest();await hintPopupTest();await answerRevealFlowTest();await paperExportEntryTest();await completionShareEntryTest();await sharePanelTest();await completionSplashFitTest();}
+      try{await sleep(500);await initialInstructionStatusTest();await genericAdapterTests();await brokenCalcTest();await colourFillTest();await perimeterDirectTest();await alphameticsVarietyTest();await groupedLibraryTest();await drawerTest();await sumGridContainmentTest();await hintPopupTest();await answerRevealFlowTest();await paperExportEntryTest();await completionShareEntryTest();await sharePanelTest();await completionSplashFitTest();await searchDirectionInstructionTest();}
       catch(e){fail('runner',(e&&e.stack)||String(e));}
       finally{finish();}
     }

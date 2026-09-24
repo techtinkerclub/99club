@@ -411,7 +411,7 @@ if(!printInstructions.includes('two-cell − or ÷, either order is allowed'))fa
 if(!printInstructions.includes('Cages have no extra no-repeat rule'))fail('instruction-audit','Arithmetic Cages repeat-scope rule missing');
 if(!printInstructions.includes('Allowed signs may be reused'))fail('instruction-audit','Insert Operations sign-reuse rule missing');
 if(!printInstructions.includes('top circle is the total weight of the whole mobile'))fail('instruction-audit','Mobile Balance top-total explanation missing');
-if(!onlineInstructions.includes('.tt99-play-numbersearch .tt99-play-board-tip'))fail('instruction-audit','Number Search live direction rule is not mirrored above the board');
+if(!onlineInstructions.includes("isSearchBoard=board?.matches?.('.tt99-play-wordsearch, .tt99-play-numbersearch')")||!onlineInstructions.includes("board.querySelector('.tt99-play-board-tip')"))fail('instruction-audit','Search live direction rule is not mirrored from the active board into the top instruction card');
 if(!onlineInstructions.includes('Target answers do not overlap'))fail('instruction-audit','Number Search no-overlap rule missing online');
 if(!onlineInstructions.includes('duplicate tiles are separate'))fail('instruction-audit','Target Number duplicate-tile rule missing online');
 ok('instruction-audit','All 41 public games have reviewed print and online first-sight instructions');
@@ -462,8 +462,6 @@ ok('instruction-audit','Late printable-preview overlays preserve the reviewed in
 const previewMachine=read('assets/99club/games-v138.js');
 if(previewMachine.includes('tt99-v138-machine-note'))fail('instruction-audit','Function Machine printable preview still repeats reverse-working instructions');
 const duplicateOnlineSelectors=[
-  '.tt99-play-wordsearch .tt99-play-board-tip',
-  '.tt99-play-numbersearch .tt99-play-board-tip',
   '.tt99-sumplete-wrap .tt99-play-board-tip',
   '.tt99-nonogram-scroll + .tt99-cycle-note',
   '.tt99-play-mines .tt99-cycle-note',
@@ -481,6 +479,10 @@ const duplicateOnlineSelectors=[
   '.tt99-extra-perimeter-grid.online + .tt99-arith-note'
 ];
 for(const sel of duplicateOnlineSelectors)if(!onlineInstructions.includes(sel))fail('instruction-audit',`Online duplicate-rule cleanup lost selector: ${sel}`);
+if(onlineInstructions.includes("'.tt99-play-wordsearch .tt99-play-board-tip'")||onlineInstructions.includes("'.tt99-play-numbersearch .tt99-play-board-tip'"))fail('instruction-audit','Search direction source is still removed from the DOM instead of being retained for live mirroring');
+const playCore=read('assets/99club/games-play-core-v2.js'),playCss=read('assets/99club/games-play-v1.css');
+if(!playCore.includes("setStatus('');"))fail('instruction-audit','Initial play status still repeats adapter start guidance');
+if(!playCss.includes('.tt99-play-status:empty{display:none}'))fail('instruction-audit','Empty initial status strip is still visible');
 if(!onlineInstructions.includes('Tap an operator box to cycle through the allowed signs'))fail('instruction-audit','Operation Codebreaker top instruction lost its interaction rule');
 if(!onlineInstructions.includes('Tap a box to cycle colours'))fail('instruction-audit','Colour Logic top instruction lost its interaction rule');
 ok('instruction-audit','Static online rule duplication is removed while dynamic board guidance is preserved');
