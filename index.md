@@ -17,7 +17,7 @@ sitemap: true
   </article>
 </div>
 
-<link rel="stylesheet" href="/assets/99club/99club.css?v=20.2">
+<link rel="stylesheet" href="/assets/99club/99club.css?v=20.3">
 <link rel="stylesheet" href="/assets/99club/parent-practice.css?v=1.5">
 <script src="/assets/99club/generator.js?v=19.5"></script>
 <script src="/assets/99club/simple-pdf.js?v=19.4"></script>
@@ -27,4 +27,4 @@ sitemap: true
 <script src="/assets/99club/school-usage.js?v=2"></script>
 <script src="/assets/99club/school-brand.js?v=1"></script>
 <script src="/assets/99club/parent-practice.js?v=1.4"></script>
-<script src="/assets/99club/app.js?v=19.25" defer></script>
+<script src="/assets/99club/app.js?v=19.26" defer></script>
