@@ -3,6 +3,15 @@
  * on-screen pad tucked away until the user asks for it.
  */
 
+
+/* Expanded touch drawers are fixed to the viewport. Reserve their measured
+   height after the puzzle so the lower rows can be scrolled fully above the
+   drawer instead of being trapped underneath it. The reserve is removed again
+   when the drawer is collapsed or closed. */
+#tt99-play-board.tt99-context-pad-reserve{
+  margin-bottom:var(--tt99-context-pad-space,0px)!important;
+}
+
 #tt99-play-board .tt99-context-pad-managed:not(.tt99-context-pad-active){
   display:none!important;
 }
