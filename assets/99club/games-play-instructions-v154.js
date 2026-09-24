@@ -1,4 +1,4 @@
-/* 99 Club Studio · Online Play instruction cleanup v1.54.3
+/* 99 Club Studio · Online Play instruction cleanup v1.54.4
  * One concise, complete first-sight rule block above the board for every
  * playable game. Avoids duplicated helper paragraphs while keeping genuinely
  * puzzle-specific live rules such as Word/Number Search directions.
@@ -8,7 +8,7 @@
 const Play=global.TT99GamesPlay;if(!Play?.adapters)return;
 
 const COPY={
-  wordsearch:'Find every maths word by dragging in one straight line from its first letter to its last. Letters may belong to more than one word; use the direction rule shown directly below.',
+  wordsearch:'Find every maths word by dragging in one straight line from its first letter to its last. Letters may belong to more than one word.',
   crossword:'Solve the clues and fill the grid one letter per cell. Across goes left to right and Down top to bottom; crossings share a letter, and spaces or punctuation are not entered.',
   pyramid:'Each brick equals the sum of the two directly below it. Fill every blank; work backwards with subtraction when needed.',
   magic:'A magic square has the same total in every row, column and both main diagonals. Follow the task shown: complete it, check it, repair the wrong value or transform it.',
@@ -19,7 +19,7 @@ const COPY={
   maze:'Solve the questions in order. From your current square move only up, down, left or right to the adjacent square containing that answer, then continue until FINISH.',
   propertymaze:'Move from START to FINISH only up, down, left or right through numbers matching the stated property. Matching squares may include deliberate dead ends.',
   crossnumber:'Solve each clue and enter only digits — no units or operation signs. Across runs left to right and Down top to bottom; crossings share a digit, and digits may repeat in different cells.',
-  numbersearch:'Calculate each listed answer, then drag across its digits in one continuous straight line. Target answers do not overlap; use the direction rule shown directly below.',
+  numbersearch:'Calculate each listed answer, then drag across its digits in one continuous straight line. Target answers do not overlap.',
   equationcrossgrid:'Fill missing numbers and operation signs so every horizontal and vertical equation is true. Shared cells belong to both equations; values and operation signs may be reused.',
   target:'Make each target exactly. Use each supplied number tile at most once (duplicate tiles are separate), but allowed operation signs may be reused. Brackets are available and normal operation order applies.',
   brokencalc:'Make each target using only the working calculator keys. Any working digit or operation key may be pressed more than once; normal operation order applies.',
@@ -56,32 +56,34 @@ for(const [id,text] of Object.entries(COPY)){
   a.instruction=text;
 }
 
-let panel=null,liveRule=null,scheduled=false;
+let panel=null,scheduled=false;
 function arrange(){
   const card=document.querySelector('.tt99-play-board-card'),head=card?.querySelector('.tt99-play-board-head'),instruction=document.getElementById('tt99-play-instruction');
   if(!card||!head||!instruction)return;
   if(!panel||!panel.isConnected){
     panel=document.createElement('div');panel.className='tt99-play-top-instructions tt99-play-top-instructions-v154';
-    liveRule=document.createElement('p');liveRule.className='tt99-play-live-rule';liveRule.hidden=true;
     head.insertAdjacentElement('afterend',panel);
   }
   if(instruction.parentElement!==panel)panel.appendChild(instruction);
-  if(liveRule&&liveRule.parentElement!==panel)panel.appendChild(liveRule);
   instruction.classList.add('is-top');
 
   // One rule block is enough; the older sidebar paragraph repeats it.
   const how=document.querySelector('.tt99-play-how');if(how&&!how.hidden)how.hidden=true;
 
-  // Search directions depend on the generated puzzle/settings, so mirror that
-  // genuinely live rule at the top before hiding the old under-board note.
+  // Search directions are generated per puzzle. Fold that live rule into the
+  // same instruction paragraph instead of rendering a second paragraph.
+  const current=instruction.textContent.trim();
+  const lastCombined=instruction.dataset.tt99CombinedInstruction||'';
+  if(!lastCombined||current!==lastCombined)instruction.dataset.tt99BaseInstruction=current;
   const board=document.getElementById('tt99-play-board');
   const isSearchBoard=board?.matches?.('.tt99-play-wordsearch, .tt99-play-numbersearch');
   const directionTip=isSearchBoard?board.querySelector('.tt99-play-board-tip'):null;
-  const text=directionTip?.textContent?.trim()||'';
-  if(liveRule){
-    if(text){if(liveRule.textContent!==text)liveRule.textContent=text;if(liveRule.hidden)liveRule.hidden=false;}
-    else{if(liveRule.textContent)liveRule.textContent='';if(!liveRule.hidden)liveRule.hidden=true;}
-  }
+  const directionText=directionTip?.textContent?.trim()||'';
+  const base=(instruction.dataset.tt99BaseInstruction||current).trim();
+  const combined=(directionText?base+' '+directionText:base).trim();
+  if(instruction.textContent.trim()!==combined)instruction.textContent=combined;
+  instruction.dataset.tt99CombinedInstruction=combined;
+  panel.querySelectorAll('.tt99-play-live-rule').forEach(el=>el.remove());
 
   // The reviewed top instruction is now the single source for static first-use
   // rules. Search direction notes are deliberately kept in the board DOM as a
