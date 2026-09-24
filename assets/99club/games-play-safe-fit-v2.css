@@ -174,6 +174,15 @@
   padding:8px;
   border-radius:12px;
 }
+
+/* Shikaku mounts its square class directly on #tt99-play-board. An older shared
+   width contract sets that ID to width:100%!important, which otherwise defeats
+   Shikaku's intended square cap and creates an ~900px-tall board on desktop. */
+#tt99-play-root #tt99-play-board.tt99-play-shikaku{
+  width:min(100%,630px,calc(100dvh - 300px))!important;
+  max-width:630px!important;
+  margin-inline:auto;
+}
 #tt99-play-root .tt99-play-instruction.is-top{margin:0}
 #tt99-play-root .tt99-play-tools{
   top:8px;
@@ -202,15 +211,6 @@
   margin:0;
   overflow:auto;
   box-shadow:0 20px 60px rgba(16,45,50,.26);
-}
-
-/* Short desktop windows: zoom participates in layout (unlike transform), so
-   larger boards shrink without leaving a clipped/blank transformed footprint. */
-@media(min-width:821px) and (max-height:820px){
-  #tt99-play-root #tt99-play-board{zoom:.90}
-}
-@media(min-width:821px) and (max-height:700px){
-  #tt99-play-root #tt99-play-board{zoom:.82}
 }
 
 /* Mobile/tablet: keep the board as the main content and flatten tools into a HUD.
