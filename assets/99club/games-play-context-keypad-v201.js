@@ -1,4 +1,4 @@
-/* 99 Club Studio · unified contextual keypad drawer v2.03
+/* 99 Club Studio · unified contextual keypad drawer v2.04
  * One input model across phone, tablet, hybrid and desktop:
  * - touch/pen selection opens the drawer automatically;
  * - desktop keeps the drawer closed by default so the physical keyboard can be used;
@@ -98,8 +98,9 @@ function ensureHandle(pad){
   h=document.createElement('div');
   h.className='tt99-context-pad-handle';
   h.setAttribute('role','toolbar');
-  h.setAttribute('aria-label',`${padLabel(pad)} controls`);
-  h.innerHTML='<span class="tt99-context-handle-bar" aria-hidden="true"></span><span class="tt99-context-handle-text">Keypad</span><button type="button" class="tt99-context-pad-reset" aria-label="Reset keypad position">↺</button><button type="button" class="tt99-context-pad-toggle" aria-label="Collapse keypad">⌄</button>';
+  const label=padLabel(pad);
+  h.setAttribute('aria-label',`${label} controls`);
+  h.innerHTML=`<span class="tt99-context-handle-bar" aria-hidden="true"></span><span class="tt99-context-handle-text">${label}</span><button type="button" class="tt99-context-pad-reset" aria-label="Reset keypad position">↺</button><button type="button" class="tt99-context-pad-toggle" aria-label="Collapse ${label.toLowerCase()}">⌄</button>`;
   pad.insertBefore(h,pad.firstChild);
   return h;
 }
