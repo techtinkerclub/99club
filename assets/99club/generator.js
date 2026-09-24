@@ -1011,7 +1011,7 @@
         if(cy!==3 || a+b<=common)out.push({kind:'fraction_add_subtract',prompt:`${n1}/${d1} + ${n2}/${d2} =`,answer:fractionText(a+b,common),key:`fas:a:${n1}:${d1}:${n2}:${d2}`});
         if(a>=b)out.push({kind:'fraction_add_subtract',prompt:`${n1}/${d1} - ${n2}/${d2} =`,answer:fractionText(a-b,common),key:`fas:s:${n1}:${d1}:${n2}:${d2}`});
         if(includeMixed){
-          const w=1+(n1%3),A=(w*d1+n1)*(common/d1);
+          const w=1+((n1-1)%3),A=(w*d1+n1)*(common/d1);
           out.push({kind:'fraction_add_subtract',prompt:`${w} ${n1}/${d1} + ${n2}/${d2} =`,answer:mixedText(A+b,common),key:`fas:mpa:${w}:${n1}:${d1}:${n2}:${d2}`});
           if(A>=b)out.push({kind:'fraction_add_subtract',prompt:`${w} ${n1}/${d1} - ${n2}/${d2} =`,answer:mixedText(A-b,common),key:`fas:mps:${w}:${n1}:${d1}:${n2}:${d2}`});
         }
