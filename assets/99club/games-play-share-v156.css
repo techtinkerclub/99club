@@ -1,4 +1,4 @@
-/* 99 Club Studio · result/share cards v1.80 */
+/* 99 Club Studio · result/share cards v1.81 */
 .tt99-play-share-launch{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.tt99-play-share-launch button{min-height:40px}
 .tt99-share-dialog{position:fixed;inset:0;z-index:1300;display:grid;place-items:center;padding:18px;background:rgba(19,43,47,.58);backdrop-filter:blur(7px)}.tt99-share-dialog[hidden]{display:none!important}
 .tt99-share-panel{width:min(860px,100%);max-height:min(94vh,900px);overflow:auto;border:1px solid #cfe0e0;border-radius:22px;background:#fff;box-shadow:0 24px 70px rgba(16,48,52,.24);padding:20px;box-sizing:border-box}
@@ -9,5 +9,12 @@
 .tt99-share-actions{display:grid;gap:8px}.tt99-share-actions button,.tt99-share-utilities button{appearance:none;min-height:46px;border:1px solid #c8d9da;border-radius:11px;background:#fff;color:#2d5358;padding:9px 11px;font:800 .82rem/1.2 system-ui;cursor:pointer}.tt99-share-actions .primary{border-color:#11857c;background:#11857c;color:#fff}.tt99-share-actions button:hover,.tt99-share-utilities button:hover{border-color:#7cb9b3;background:#eff8f6;color:#0e716a}.tt99-share-actions .primary:hover{background:#0d766e;color:#fff}
 .tt99-share-utilities{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding-top:4px;border-top:1px solid #e1e9ea}.tt99-share-utilities button{min-height:39px;background:transparent;color:#597176;font-size:.73rem}
 .tt99-share-note{margin:0;color:#718489;font-size:.69rem;line-height:1.45}
+@media(min-width:721px){
+  .tt99-share-panel{overflow:hidden;display:grid;grid-template-rows:auto auto minmax(0,1fr)}
+  .tt99-share-body{min-height:0;height:min(710px,calc(94vh - 170px))}
+  .tt99-share-preview{min-height:0;height:100%;overflow:hidden}
+  .tt99-share-preview img{width:auto;max-width:100%;max-height:min(650px,calc(94vh - 210px));object-fit:contain}
+  .tt99-share-side{min-height:0;max-height:100%;overflow:auto}
+}
 @media(max-width:720px){.tt99-share-dialog{padding:8px}.tt99-share-panel{padding:14px;border-radius:18px}.tt99-share-body{grid-template-columns:1fr;gap:12px}.tt99-share-preview{min-height:260px;padding:8px}.tt99-share-preview img{width:min(100%,440px)}.tt99-share-side{padding:13px}.tt99-share-actions{grid-template-columns:1fr 1fr}.tt99-share-note{text-align:center}}
 @media(max-width:430px){.tt99-share-tabs{grid-template-columns:1fr 1fr}.tt99-share-actions{grid-template-columns:1fr}.tt99-share-utilities{grid-template-columns:1fr 1fr}.tt99-share-panel{max-height:96vh}.tt99-share-preview{min-height:220px}}
