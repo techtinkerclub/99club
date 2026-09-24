@@ -75,7 +75,8 @@ function arrange(){
   // Search directions depend on the generated puzzle/settings, so mirror that
   // genuinely live rule at the top before hiding the old under-board note.
   const board=document.getElementById('tt99-play-board');
-  const directionTip=board?.querySelector('.tt99-play-wordsearch .tt99-play-board-tip, .tt99-play-numbersearch .tt99-play-board-tip');
+  const isSearchBoard=board?.matches?.('.tt99-play-wordsearch, .tt99-play-numbersearch');
+  const directionTip=isSearchBoard?board.querySelector('.tt99-play-board-tip'):null;
   const text=directionTip?.textContent?.trim()||'';
   if(liveRule){
     if(text){if(liveRule.textContent!==text)liveRule.textContent=text;if(liveRule.hidden)liveRule.hidden=false;}
