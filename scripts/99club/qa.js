@@ -508,7 +508,7 @@ if(!drawer.includes('pointermove'))fail('input-ux','Draggable keypad pointer han
 if(!drawer.includes('clampDragPosition'))fail('input-ux','Draggable keypad viewport clamping missing');
 if(!drawer.includes('tt99-context-pad-reserve')||!drawer.includes('--tt99-context-pad-space')||!drawer.includes('keepBoardClearOfPad'))fail('input-ux','Expanded mobile keypad no longer reserves/clears puzzle space');
 if(!drawerCss.includes('#tt99-play-board.tt99-context-pad-reserve')||!drawerCss.includes('margin-bottom:var(--tt99-context-pad-space'))fail('input-ux','Keypad reserve is not represented in document flow');
-if(!playPageForInput.includes('games-play-context-keypad-v201.css?v=7')||!playPageForInput.includes('games-play-context-keypad-v201.js?v=8'))fail('input-ux','Keypad clearance assets are not cache-busted');
+if(!playPageForInput.includes('games-play-context-keypad-v201.css?v=8')||!playPageForInput.includes('games-play-context-keypad-v201.js?v=9'))fail('input-ux','Keypad clearance assets are not cache-busted');
 const nonogramPlay=read('assets/99club/games-play-nonogram-v2.js');
 if(!nonogramPlay.includes('edge-top')||!nonogramPlay.includes('edge-bottom')||!nonogramPlay.includes('edge-left')||!nonogramPlay.includes('edge-right'))fail('nonogram-ux','Nonogram playable-grid outer frame markers missing');
 const extraPlay=read('assets/99club/games-play-extra-puzzles-v204.js');
@@ -794,8 +794,13 @@ try{
   const fitJs=read('assets/99club/games-play-safe-fit-v2.js');
   const instructions=read('assets/99club/games-play-instructions-v154.js');
   const sudokuPlay=read('assets/99club/games-play-sudoku-v1.js');
+  const sharePlay=read('assets/99club/games-play-share-v164.js');
+  const contextPadCss=read('assets/99club/games-play-context-keypad-v201.css');
+  const contextPadJs=read('assets/99club/games-play-context-keypad-v201.js');
+  const catalogueCss=read('assets/99club/games-play-final-catalogue-v186.css');
   if(!playPage.includes('games-play-safe-fit-v2.css?v=2')||!playPage.includes('games-play-safe-fit-v2.js?v=1'))fail('play-safe-fit','safe-fit assets are not both loaded by /play/');
   if(!playPage.includes('games-play-core-v2.js?v=13')||!playPage.includes('games-play-instructions-v154.js?v=7')||!playPage.includes('games-play-sudoku-v1.js?v=2'))fail('play-safe-fit','changed Online Play assets are not cache-busted');
+  if(!playPage.includes('games-play-final-catalogue-v186.css?v=2')||!playPage.includes('games-play-context-keypad-v201.css?v=8')||!playPage.includes('games-play-context-keypad-v201.js?v=9')||!playPage.includes('games-play-share-v164.js?v=9'))fail('mobile-play-controls','mobile keyboard/copy-link assets are not cache-busted');
   if(/<details class="tt99-play-settings"\s+open>/.test(playCore))fail('play-safe-fit','Puzzle settings still start expanded');
   if(/html\.tt99-play-app-shell|overflow\s*:\s*hidden\s*!important/i.test(fitCss))fail('play-safe-fit','safe-fit must not restore the old document viewport lock');
   if(/#tt99-play-board[^{}]*\{[^}]*transform\s*:/is.test(fitCss))fail('play-safe-fit','safe-fit must not transform-scale the live board');
@@ -807,7 +812,11 @@ try{
   if(!playCore.includes("adapter().puzzleTitle"))fail('sudoku-latin-clarity','Online Play core does not support puzzle-specific display titles');
   if(!sudokuPlay.includes("'Latin Square':'Sudoku'")||!sudokuPlay.includes('There are no box rules.')||!sudokuPlay.includes('outlined box'))fail('sudoku-latin-clarity','Sudoku / Latin adapter does not provide distinct titles and rules');
   if(!fitCss.includes("content:'Copy link'")||!fitCss.includes('white-space:normal'))fail('mobile-play-labels','mobile title/share-label fit rules are missing');
-  ok('play-safe-fit','Safe compact layout and single-instruction source are wired without document locking or board transforms');
+  if(!sharePlay.includes("setText(topShare,'Copy link')")||!sharePlay.includes("setAttribute('aria-label','Copy puzzle link')"))fail('mobile-play-labels','share script can still restore the long label into the mobile button');
+  if(!catalogueCss.includes('div:nth-last-child(4)')||!catalogueCss.includes('div:nth-last-child(3)')||!catalogueCss.includes('div:nth-last-child(2)')||catalogueCss.includes('div:nth-child(1){--letters:10}'))fail('crossword-keyboard','crossword keyboard rows are still coupled to the prepended contextual handle');
+  if(!contextPadCss.includes('.tt99-context-pad-active.tt99-letter-keypad')||!contextPadCss.includes('button[data-letter]')||!contextPadCss.includes('height:40px!important'))fail('crossword-keyboard','compact mobile crossword keyboard drawer rules are missing');
+  if(!contextPadJs.includes("const label=padLabel(pad)")||!contextPadJs.includes('tt99-context-handle-text'))fail('crossword-keyboard','contextual letter drawer does not expose the Keyboard label');
+  ok('play-safe-fit','Safe compact layout, mobile controls and single-instruction source are wired without document locking or board transforms');
 }catch(e){fail('play-safe-fit','Online Play safe-fit QA threw',e.stack||e.message);}
 
 /* ---------- analytics coverage and privacy ---------- */

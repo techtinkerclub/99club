@@ -87,12 +87,12 @@ async function shareCard(){
 function secondaryShareAction(){return shareCard();}
 function copyCompact(){const link=challengeUrl();return copyText(link).then(()=>status('Short challenge link copied. Anyone opening it gets the same puzzle.')).catch(()=>status('Could not copy the challenge link in this browser.','warn'));}
 function injectCompletion(){const box=document.getElementById('tt99-play-complete');if(!box||box.hidden)return;const actions=box.querySelector('.tt99-play-complete-actions');if(!actions)return;setText(actions.querySelector('[data-play-share]'),'Copy puzzle link');actions.querySelectorAll('[data-share-card],[data-challenge-card]').forEach(el=>el.remove());if(actions.querySelector('[data-share-puzzle]'))return;const share=document.createElement('button');share.type='button';share.className='tt99-secondary';share.dataset.sharePuzzle='1';share.textContent='Share this puzzle';share.addEventListener('click',()=>renderDialog('solved'));actions.append(share);}
-let raf=0;function schedule(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;injectCompletion();setText(document.getElementById('tt99-play-share'),'Copy puzzle link');});}
+let raf=0;function schedule(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;injectCompletion();const topShare=document.getElementById('tt99-play-share');setText(topShare,'Copy link');if(topShare){topShare.setAttribute('aria-label','Copy puzzle link');topShare.title='Copy puzzle link';}});}
 document.addEventListener('click',e=>{const b=e.target.closest?.('#tt99-play-share,[data-play-share]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();copyCompact();},{capture:true});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&dialog&&!dialog.hidden){e.preventDefault();closeDialog();}},true);
 function restoreOpenDialog(){if(!shareOpenRequested||!dialog)return;dialog.hidden=false;document.documentElement.classList.add('tt99-share-open');}
 global.addEventListener('pageshow',restoreOpenDialog);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')restoreOpenDialog();});
 const playRoot=document.getElementById('tt99-play-root');if(playRoot&&global.MutationObserver)new MutationObserver(schedule).observe(playRoot,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
-global.TT99PlayShareV156={version:'1.83',open:renderDialog,close:closeDialog,challengeUrl,makeCard,shareCardWithLink,shareCard,cardWithLinkPayload,isIOSShareTarget};
+global.TT99PlayShareV156={version:'1.84',open:renderDialog,close:closeDialog,challengeUrl,makeCard,shareCardWithLink,shareCard,cardWithLinkPayload,isIOSShareTarget};
 })(typeof globalThis!=='undefined'?globalThis:this);
