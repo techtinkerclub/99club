@@ -33,7 +33,8 @@ function prepare(){
         await sleep(80);
         const status=document.getElementById('tt99-play-status');
         if(status?.textContent?.trim())fail('instruction-single-source','initial play status repeats guidance below the board: '+status.textContent.trim());
-        else pass('instruction-single-source','initial status is empty; first-use guidance lives only in the instruction card');
+        else if(status&&getComputedStyle(status).display!=='none')fail('instruction-single-source','empty initial status still leaves a blank card below the board');
+        else pass('instruction-single-source','initial status is hidden; first-use guidance lives only in the instruction card');
       }catch(e){fail('instruction-single-source',(e&&e.stack)||String(e));}
     }
     async function genericAdapterTests(){
