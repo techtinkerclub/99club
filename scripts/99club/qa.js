@@ -561,6 +561,8 @@ try{
   if(appSrc.includes("label:'Decimals, fractions & percentages'"))fail('diamond-fractions','Fractions are still merged into the decimals/percentages category');
   for(const id of ['fraction_of','equivalent_fractions','simplify_fractions','mixed_improper','fraction_add_subtract','fraction_multiply_whole','fraction_multiply','fraction_divide_whole'])if(!appSrc.includes(id))fail('diamond-fractions',`Fractions settings category is missing ${id}`);
   if(!appSrc.includes('fractionAddSubtractRelatedOnly')||!appSrc.includes('fractionAddSubtractMixed'))fail('diamond-fractions','Fraction +/- profile controls are missing from settings');
+  const mainPage=read('index.md'),practiceLayout=read('_layouts/practice.html'),widgetBuilder=read('_pages/99-club-widget-builder.md'),widgetPage=read('_pages/99-club-widget.html');
+  if(!mainPage.includes('generator.js?v=19.5')||!practiceLayout.includes('generator.js?v=19.5')||!widgetBuilder.includes('generator.js?v=20.1')||!widgetPage.includes('generator.js?v=20.1'))fail('diamond-fractions','Updated fraction generator is not cache-busted on every 99 Club delivery route');
   const poolKinds=['fraction_of','fraction_add_subtract','fraction_multiply_whole'];
   const pool=poolKinds.flatMap(kind=>ClubFractions.questionPool(kind,diamond));
   const examples=['4/5 of 20 =','3/7 of 28 =','4/5 + 3/5 =','1 1/8 + 7/8 =','3/4 + 4/12 =','12/15 - 1/5 =','1/3 × 2 =','5/6 × 3 ='];
