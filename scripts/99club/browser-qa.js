@@ -284,19 +284,17 @@ function prepare(){
     }
     async function searchDirectionInstructionTest(){
       try{
-        const P=window.TT99GamesPlay,a=P?.adapters?.get('numbersearch'),board=document.getElementById('tt99-play-board'),instruction=document.getElementById('tt99-play-instruction');
-        if(!a||!board||!instruction)return fail('search-directions','Number Search adapter or live board is unavailable');
-        const cfg=a.normalizeConfig({difficulty:'standard',questionCount:'10',gridSize:'11',directionMode:'diagonal'}),p=a.createPuzzle(cfg,'browser-qa:numbersearch-directions');
-        board.className='';board.innerHTML='';
-        const view=a.mount(board,p,{onChange:()=>{},onStatus:()=>{},isPaused:()=>false});
-        instruction.textContent=a.instruction||'';
-        await sleep(120);
-        const source=board.querySelector('.tt99-play-board-tip'),live=document.querySelector('.tt99-play-top-instructions-v154 .tt99-play-live-rule');
-        if(!source)fail('search-directions','hidden Number Search direction source was removed from the board DOM');
+        const open=document.getElementById('tt99-play-change-game');if(!open)return fail('search-directions','Change game control is unavailable');
+        open.click();await sleep(40);
+        const pick=document.querySelector('[data-game-id="numbersearch"]');if(!pick)return fail('search-directions','Number Search card is unavailable');
+        pick.click();
+        for(let i=0;i<20;i++){const live=document.querySelector('.tt99-play-top-instructions-v154 .tt99-play-live-rule');if(live&&!live.hidden&&/Directions:/i.test(live.textContent||''))break;await sleep(25);}
+        const board=document.getElementById('tt99-play-board'),source=board?.querySelector('.tt99-play-board-tip'),live=document.querySelector('.tt99-play-top-instructions-v154 .tt99-play-live-rule');
+        if(!board?.classList.contains('tt99-play-numbersearch'))fail('search-directions','Change game did not mount Number Search on the live board');
+        if(!source)fail('search-directions','hidden Number Search direction source is missing from the live board');
         if(!live||live.hidden||!/Directions:/i.test(live.textContent||''))fail('search-directions','generated direction rule was not mirrored into the top instruction card');
         if(source&&getComputedStyle(source).display!=='none')fail('search-directions','legacy under-board direction note is visibly duplicated');
-        if(source&&live&&!live.hidden&&/Directions:/i.test(live.textContent||'')&&getComputedStyle(source).display==='none')pass('search-directions','dynamic direction rule is shown once above the board and retained across observer passes');
-        view?.destroy?.();
+        if(board?.classList.contains('tt99-play-numbersearch')&&source&&live&&!live.hidden&&/Directions:/i.test(live.textContent||'')&&getComputedStyle(source).display==='none')pass('search-directions','real game switch shows the dynamic direction rule once above the board');
       }catch(e){fail('search-directions',(e&&e.stack)||String(e));}
     }
     async function completionSplashFitTest(){
