@@ -111,15 +111,14 @@ function arrange(){
 }
 function scheduleArrange(){
   if(scheduled)return;scheduled=true;
-  const run=()=>{scheduled=false;arrange();};
-  if(typeof requestAnimationFrame==='function')requestAnimationFrame(run);else setTimeout(run,0);
+  setTimeout(()=>{scheduled=false;arrange();},0);
 }
 function boot(){
   arrange();
   const root=document.getElementById('tt99-play-root');
   // Mutations inside arrange() can themselves be observed. Scheduling once per
   // frame prevents observer cascades and keeps this layer cheap even on phones.
-  if(root&&window.MutationObserver)new MutationObserver(scheduleArrange).observe(root,{childList:true,subtree:true});
+  if(root&&window.MutationObserver)new MutationObserver(scheduleArrange).observe(root,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })(typeof globalThis!=='undefined'?globalThis:this);
