@@ -1020,7 +1020,7 @@
           out.push({kind:'fraction_add_subtract',prompt:`${w1} ${n1}/${d1} + ${w2} ${n2}/${d2} =`,answer:mixedText(A+B,common),key:`fas:ma:${w1}:${n1}:${d1}:${w2}:${n2}:${d2}`});
           if(A>=B)out.push({kind:'fraction_add_subtract',prompt:`${w1} ${n1}/${d1} - ${w2} ${n2}/${d2} =`,answer:mixedText(A-B,common),key:`fas:ms:${w1}:${n1}:${d1}:${w2}:${n2}:${d2}`});
         }
-        if(out.length>2600)return out;
+        if(out.length>(relatedOnly?6000:2600))return out;
       }
     }return out;
   }
