@@ -508,7 +508,7 @@ if(!drawer.includes('pointermove'))fail('input-ux','Draggable keypad pointer han
 if(!drawer.includes('clampDragPosition'))fail('input-ux','Draggable keypad viewport clamping missing');
 if(!drawer.includes('tt99-context-pad-reserve')||!drawer.includes('--tt99-context-pad-space')||!drawer.includes('keepBoardClearOfPad'))fail('input-ux','Expanded mobile keypad no longer reserves/clears puzzle space');
 if(!drawerCss.includes('#tt99-play-board.tt99-context-pad-reserve')||!drawerCss.includes('margin-bottom:var(--tt99-context-pad-space'))fail('input-ux','Keypad reserve is not represented in document flow');
-if(!playPageForInput.includes('games-play-context-keypad-v201.css?v=7')||!playPageForInput.includes('games-play-context-keypad-v201.js?v=8'))fail('input-ux','Keypad clearance assets are not cache-busted');
+if(!playPageForInput.includes('games-play-context-keypad-v201.css?v=8')||!playPageForInput.includes('games-play-context-keypad-v201.js?v=9'))fail('input-ux','Keypad clearance assets are not cache-busted');
 const nonogramPlay=read('assets/99club/games-play-nonogram-v2.js');
 if(!nonogramPlay.includes('edge-top')||!nonogramPlay.includes('edge-bottom')||!nonogramPlay.includes('edge-left')||!nonogramPlay.includes('edge-right'))fail('nonogram-ux','Nonogram playable-grid outer frame markers missing');
 const extraPlay=read('assets/99club/games-play-extra-puzzles-v204.js');
