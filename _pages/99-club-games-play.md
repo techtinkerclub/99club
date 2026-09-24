@@ -16,7 +16,7 @@ sitemap: true
 </div>
 
 <link rel="stylesheet" href="/assets/99club/99club.css?v=19.4">
-<link rel="stylesheet" href="/assets/99club/games-play-v1.css?v=4">
+<link rel="stylesheet" href="/assets/99club/games-play-v1.css?v=5">
 <link rel="stylesheet" href="/assets/99club/games-play-wave1.css?v=2">
 <link rel="stylesheet" href="/assets/99club/games-play-wave2.css?v=1">
 <link rel="stylesheet" href="/assets/99club/games-play-wave3.css?v=2">
