@@ -181,13 +181,40 @@ function prepare(){
           const title=document.getElementById('tt99-play-game-title'),share=document.getElementById('tt99-play-share');
           if(!title||!share)return fail('mobile-play-labels','mobile title/share controls missing');
           const original=title.textContent;title.textContent='Sudoku & Latin Squares';
-          const ts=getComputedStyle(title),after=getComputedStyle(share,'::after');
+          const ts=getComputedStyle(title),label=share.textContent.trim(),after=getComputedStyle(share,'::after');
           if(ts.whiteSpace==='nowrap'||ts.textOverflow==='ellipsis')fail('mobile-play-labels','mobile game title is still forced into an ellipsis');
-          if(after.content!=='"Copy link"'&&after.content!=="'Copy link'")fail('mobile-play-labels','mobile share button does not use the compact Copy link label');
+          if(label!=='Copy link')fail('mobile-play-labels','mobile share button text is not intrinsically compact: '+label);
+          if(after.content!=='"Copy link"'&&after.content!=="'Copy link'")fail('mobile-play-labels','mobile share-button fallback label is missing');
           title.textContent=original;
-          if(ts.whiteSpace!=='nowrap'&&ts.textOverflow!=='ellipsis'&&(after.content==='"Copy link"'||after.content==="'Copy link'"))pass('mobile-play-labels','mobile game title can wrap and share action uses compact wording');
+          if(ts.whiteSpace!=='nowrap'&&ts.textOverflow!=='ellipsis'&&label==='Copy link')pass('mobile-play-labels','mobile game title can wrap and share action uses intrinsic compact wording');
         }
       }catch(e){fail('sudoku-latin-clarity',(e&&e.stack)||String(e));}
+    }
+    async function crosswordKeyboardTest(){
+      try{
+        const P=window.TT99GamesPlay,a=P?.adapters?.get('crossword'),board=document.getElementById('tt99-play-board');
+        if(!a||!board)return fail('crossword-keyboard','Maths Crossword adapter or play board missing');
+        board.innerHTML='';board.className='';
+        const cfg=a.normalizeConfig({difficulty:'easy',wordCount:'6',gridSize:'13',wordBank:'show',area:'all'}),p=a.createPuzzle(cfg,'browser-qa:crossword-keyboard');
+        const view=a.mount(board,p,{onChange:()=>{},onStatus:()=>{},isPaused:()=>false});
+        await sleep(80);
+        const pad=board.querySelector('.tt99-letter-keypad'),rows=pad?[...pad.querySelectorAll(':scope > div:not(.tt99-context-pad-handle):not(.controls)')]:[];
+        const counts=rows.map(row=>row.querySelectorAll('[data-letter]').length);
+        if(!pad)return fail('crossword-keyboard','letter keyboard missing');
+        if(counts.join(',')!=='10,9,7')fail('crossword-keyboard','QWERTY row structure changed after keypad handle insertion: '+counts.join(','));
+        const first=board.querySelector('[data-cw]');first?.click();await sleep(120);
+        if(window.innerWidth<=700){
+          if(!pad.classList.contains('tt99-context-pad-active'))fail('crossword-keyboard','mobile crossword keyboard did not open as contextual drawer');
+          const pr=pad.getBoundingClientRect(),keys=[...pad.querySelectorAll('[data-letter]')],heights=keys.map(k=>k.getBoundingClientRect().height);
+          if(pr.left<-.5||pr.right>window.innerWidth+.5)fail('crossword-keyboard','mobile keyboard escapes the viewport');
+          if(pad.scrollWidth>pad.clientWidth+1)fail('crossword-keyboard','mobile keyboard has horizontal overflow');
+          if(heights.some(h=>h<36||h>44))fail('crossword-keyboard','mobile letter keys are not compact phone-keyboard height: '+heights.slice(0,3).map(Math.round).join(','));
+          const handleText=pad.querySelector('.tt99-context-handle-text')?.textContent?.trim();
+          if(handleText!=='Keyboard')fail('crossword-keyboard','letter drawer handle is not labelled Keyboard');
+          if(pr.left>=-.5&&pr.right<=window.innerWidth+.5&&pad.scrollWidth<=pad.clientWidth+1&&heights.every(h=>h>=36&&h<=44)&&handleText==='Keyboard')pass('crossword-keyboard','mobile QWERTY drawer is compact, contained and correctly labelled');
+        }else pass('crossword-keyboard','crossword keyboard row structure verified');
+        view.destroy?.();window.TT99ContextKeypad?.hide?.();
+      }catch(e){fail('crossword-keyboard',(e&&e.stack)||String(e));}
     }
     async function drawerTest(){
       try{
@@ -409,7 +436,7 @@ function prepare(){
       }catch(e){fail('completion-splash',(e&&e.stack)||String(e));}
     }
     async function run(){
-      try{await sleep(500);await initialInstructionStatusTest();await safeFitLayoutTest();await genericAdapterTests();await brokenCalcTest();await colourFillTest();await perimeterDirectTest();await alphameticsVarietyTest();await groupedLibraryTest();await sudokuLatinClarityTest();await drawerTest();await sumGridContainmentTest();await hintPopupTest();await answerRevealFlowTest();await paperExportEntryTest();await completionShareEntryTest();await sharePanelTest();await completionSplashFitTest();await searchDirectionInstructionTest();}
+      try{await sleep(500);await initialInstructionStatusTest();await safeFitLayoutTest();await genericAdapterTests();await brokenCalcTest();await colourFillTest();await perimeterDirectTest();await alphameticsVarietyTest();await groupedLibraryTest();await sudokuLatinClarityTest();await crosswordKeyboardTest();await drawerTest();await sumGridContainmentTest();await hintPopupTest();await answerRevealFlowTest();await paperExportEntryTest();await completionShareEntryTest();await sharePanelTest();await completionSplashFitTest();await searchDirectionInstructionTest();}
       catch(e){fail('runner',(e&&e.stack)||String(e));}
       finally{finish();}
     }
