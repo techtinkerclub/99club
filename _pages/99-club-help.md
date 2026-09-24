@@ -109,7 +109,7 @@ sitemap: true
         <tr><td>Silver</td><td>Addition, subtraction, multiplication and division</td></tr>
         <tr><td>Gold</td><td>Silver content plus squares and exact square roots</td></tr>
         <tr><td>Platinum</td><td>Gold content plus order of operations / brackets</td></tr>
-        <tr><td>Diamond</td><td>Platinum content plus scaled facts, fractions and percentages</td></tr>
+        <tr><td>Diamond</td><td>Platinum content plus scaled facts, fractions of amounts, fraction addition/subtraction, fraction × whole number and percentages</td></tr>
       </tbody>
     </table></div>
     <p>Named Bronze–Diamond challenges keep their defining core maths switched on. You can still change how often each type appears, adjust useful ranges and add optional advanced families. If you want a completely different structure, save it as a custom preset.</p>
@@ -138,7 +138,7 @@ sitemap: true
     <div class="tt99-guide-note"><strong>The inclusion rule is simple:</strong> an extra should be short to read, quick to understand, realistically solvable mentally, and not depend on a diagram. Comparison-heavy, formal written-calculation and verbose problem-solving families are intentionally outside the rapid 99 Club extras.</div>
     <div class="tt99-guide-family-grid">
       <article><h3>Missing numbers & number</h3><p>Missing +/− and ×/÷ values, negative numbers, Roman numerals, factors, multiples, factor pairs, common factors/multiples, squares, cubes, powers of 10 and simple algebraic missing values.</p></article>
-      <article><h3>Decimals, fractions & percentages</h3><p>Decimal place value and rounding, decimal ×/÷ 10/100/1000, concise decimal calculations, fractions of quantities, percentages of quantities and fraction↔decimal↔percentage equivalence. Number-comparison families are not included here.</p></article>
+      <article><h3>Fractions</h3><p>Fractions now have their own post-99 category: fractions of quantities, equivalent/simplified fractions, mixed/improper conversion, fraction addition/subtraction, fraction × whole number, fraction × fraction and fraction ÷ whole number. Diamond includes fractions of amounts, +/− and fraction × whole number in its core mix.</p></article><article><h3>Decimals & percentages</h3><p>Decimal place value and rounding, decimal ×/÷ 10/100/1000, concise decimal calculations, percentages of quantities and fraction↔decimal↔percentage equivalence. Number-comparison families are not included here.</p></article>
       <article><h3>Mental calculation</h3><p>Scaled multiplication/division, order of operations and short angle facts such as complements to 90°, 180° or 360°.</p></article>
       <article><h3>Ratio & proportion</h3><p>Compact equivalent-ratio, ratio-sharing and scale-factor calculations. Longer contextual ratio/rate problems are intentionally outside the rapid 99 Club extras.</p></article>
       <article><h3>Measurement & time</h3><p>Metric unit conversions, time-unit conversions, durations, 12/24-hour time, time words, calendar facts, money/change, temperature intervals and simple stated metric/imperial approximations. No clocks, rulers or other graphical measuring tasks are generated here.</p></article>
@@ -161,6 +161,8 @@ sitemap: true
     <h2>Fractions, decimals and percentages</h2>
     <h3>Decimals</h3>
     <p>Decimal families are available as optional additions to mixed/advanced 99 Club rules, including place value, rounding, ×/÷ by 10/100/1000, decimal addition/subtraction, upper-KS2 multiplication/division and fraction/decimal/percentage equivalence. Decimal comparison is intentionally excluded from the rapid mental-maths extras. The standard Classic progression is unchanged unless you explicitly edit its rules.</p>
+
+    <div class="tt99-guide-note"><strong>Diamond fraction profile:</strong> the default Diamond challenge uses fractions of amounts, fraction addition/subtraction and proper-fraction × whole-number questions. Its +/− questions favour the same denominator or related denominators where one is a multiple of the other, and can include mixed-number calculations.</div>
 
     <h3>Fractions of quantities</h3>
     <p>The denominator buttons choose which denominator families may appear. Selecting denominator <b>5</b> can produce <code>1/5</code>, <code>2/5</code>, <code>3/5</code> or <code>4/5</code>; it does not mean “1/5 only”.</p>

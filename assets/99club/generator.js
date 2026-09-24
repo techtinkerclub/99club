@@ -101,13 +101,15 @@
       avoidExactDuplicates: true, avoidReversedDuplicates: false
     },
     diamond: {
-      id: 'diamond', name: 'Diamond Club', tagline: 'Broad advanced mental maths', questionCount: 100,
+      id: 'diamond', name: 'Diamond Club', tagline: 'Advanced mental maths with fractions', questionCount: 100,
       mode: 'family_mix',
-      families: ['addition','subtraction','multiply','divide','square','square_root','bodmas','scaled_multiply','scaled_divide','fraction_of','percentage_of'],
-      familyWeights: { addition:2, subtraction:2, multiply:2, divide:2, square:1, square_root:1, bodmas:2, scaled_multiply:2, scaled_divide:1, fraction_of:1, percentage_of:1 },
+      families: ['addition','subtraction','multiply','divide','square','square_root','bodmas','scaled_multiply','scaled_divide','fraction_of','fraction_add_subtract','fraction_multiply_whole','percentage_of'],
+      familyWeights: { addition:2, subtraction:2, multiply:2, divide:2, square:1, square_root:1, bodmas:2, scaled_multiply:2, scaled_divide:1, fraction_of:2, fraction_add_subtract:2, fraction_multiply_whole:1, percentage_of:1 },
       arithmeticMin: 0, arithmeticMax: 1000, arithmeticOperandMax: 850,
       tables: range(1, 12), factorMin: 1, factorMax: 12, squareMin: 1, squareMax: 12, bodmasMax: 12,
-      fractionDenominators: [2,3,4,5,10], percentageChoices: [10,20,25,50,75],
+      fractionDenominators: [2,3,4,5,6,7,8,10,12,15],
+      fractionAddSubtractRelatedOnly: true, fractionAddSubtractMixed: true,
+      percentageChoices: [10,20,25,50,75],
       timeMinutes: 5, perfectAttempts: 2, unaided: true,
       avoidExactDuplicates: true, avoidReversedDuplicates: false
     }
@@ -428,6 +430,8 @@
     if (compatibleMissing.length) r.missingNumberPositions = compatibleMissing;
     else r.missingNumberPositions = r.missingNumberOperations.includes('multiply') ? ['multiply_second','multiply_first'] : ['divide_divisor','divide_dividend'];
     r.fractionDenominators = normalizeNumberList(r.fractionDenominators, [2,3,4,5,10], 2, 100);
+    r.fractionAddSubtractRelatedOnly = !!r.fractionAddSubtractRelatedOnly;
+    r.fractionAddSubtractMixed = !!r.fractionAddSubtractMixed;
     r.fractionQuantityMin = clampInt(r.fractionQuantityMin, 1, 5000, 1);
     r.fractionQuantityMax = clampInt(r.fractionQuantityMax, r.fractionQuantityMin, 5000, Math.max(500, r.fractionQuantityMin));
     r.percentageChoices = normalizeNumberList(r.percentageChoices, [10,20,25,50,75], 1, 100);
@@ -994,22 +998,29 @@
   }
   function buildMixedImproperPool(rules){const out=[];for(const d of fractionDenoms(rules))for(let whole=1;whole<=8;whole++)for(let n=1;n<d;n++){const imp=whole*d+n;out.push({kind:'mixed_improper',prompt:`${imp}/${d} as a mixed number =`,answer:`${whole} ${n}/${d}`,key:`mi:m:${imp}:${d}`});out.push({kind:'mixed_improper',prompt:`${whole} ${n}/${d} as an improper fraction =`,answer:`${imp}/${d}`,key:`mi:i:${whole}:${n}:${d}`});}return out;}
   function buildFractionAddSubtractPool(rules){
-    const out=[],ds=fractionDenoms(rules).slice(0,8),cy=Number(rules.curriculumYear)||0;
+    const out=[],ds=fractionDenoms(rules).slice(0,10),cy=Number(rules.curriculumYear)||0;
+    const relatedOnly=!!rules.fractionAddSubtractRelatedOnly;
+    const includeMixed=!!rules.fractionAddSubtractMixed;
     for(const d1 of ds)for(const d2 of ds){
       if((cy===3||cy===4) && d1!==d2)continue;
-      if(cy===5 && Math.max(d1,d2)%Math.min(d1,d2)!==0)continue;
+      if((cy===5||relatedOnly) && d1!==d2 && Math.max(d1,d2)%Math.min(d1,d2)!==0)continue;
       const common=lcm(d1,d2);if(common>60)continue;
       for(let n1=1;n1<d1;n1++)for(let n2=1;n2<d2;n2++){
         const a=n1*(common/d1),b=n2*(common/d2);
         // Year 3 statutory addition/subtraction stays within one whole.
         if(cy!==3 || a+b<=common)out.push({kind:'fraction_add_subtract',prompt:`${n1}/${d1} + ${n2}/${d2} =`,answer:fractionText(a+b,common),key:`fas:a:${n1}:${d1}:${n2}:${d2}`});
         if(a>=b)out.push({kind:'fraction_add_subtract',prompt:`${n1}/${d1} - ${n2}/${d2} =`,answer:fractionText(a-b,common),key:`fas:s:${n1}:${d1}:${n2}:${d2}`});
+        if(includeMixed){
+          const w=1+((n1-1)%3),A=(w*d1+n1)*(common/d1);
+          out.push({kind:'fraction_add_subtract',prompt:`${w} ${n1}/${d1} + ${n2}/${d2} =`,answer:mixedText(A+b,common),key:`fas:mpa:${w}:${n1}:${d1}:${n2}:${d2}`});
+          if(A>=b)out.push({kind:'fraction_add_subtract',prompt:`${w} ${n1}/${d1} - ${n2}/${d2} =`,answer:mixedText(A-b,common),key:`fas:mps:${w}:${n1}:${d1}:${n2}:${d2}`});
+        }
         if(cy>=6){
           const w1=1+(n1%3),w2=1+(n2%2),A=(w1*d1+n1)*(common/d1),B=(w2*d2+n2)*(common/d2);
           out.push({kind:'fraction_add_subtract',prompt:`${w1} ${n1}/${d1} + ${w2} ${n2}/${d2} =`,answer:mixedText(A+B,common),key:`fas:ma:${w1}:${n1}:${d1}:${w2}:${n2}:${d2}`});
           if(A>=B)out.push({kind:'fraction_add_subtract',prompt:`${w1} ${n1}/${d1} - ${w2} ${n2}/${d2} =`,answer:mixedText(A-B,common),key:`fas:ms:${w1}:${n1}:${d1}:${w2}:${n2}:${d2}`});
         }
-        if(out.length>2200)return out;
+        if(out.length>(relatedOnly?6000:2600))return out;
       }
     }return out;
   }

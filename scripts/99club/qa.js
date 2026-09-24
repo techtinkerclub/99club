@@ -546,6 +546,38 @@ if(!cardLinks.includes('preventDefault()')||!cardLinks.includes('stopPropagation
 if(!cardLinks.includes("global.open(url,'_blank'"))fail('game-card-links','Quick links are not explicitly opened in a separate context');
 ok('game-card-links',`Selector quick links cover all ${adapterIds.length} online games / guides`);
 
+/* ---------- Diamond fraction progression ---------- */
+try{
+  const ClubFractions=load('assets/99club/generator.js');
+  const appSrc=read('assets/99club/app.js');
+  const helpSrc=read('_pages/99-club-help.md');
+  const diamond=ClubFractions.normalizeRules(ClubFractions.CHALLENGE_PRESETS.diamond);
+  const requiredCore=['fraction_of','fraction_add_subtract','fraction_multiply_whole'];
+  for(const id of requiredCore)if(!diamond.families.includes(id))fail('diamond-fractions',`Diamond core is missing ${id}`);
+  for(const d of [7,12,15])if(!diamond.fractionDenominators.includes(d))fail('diamond-fractions',`Diamond denominators are missing ${d}`);
+  if(!diamond.fractionAddSubtractRelatedOnly)fail('diamond-fractions','Diamond fraction +/- no longer defaults to same/related denominators');
+  if(!diamond.fractionAddSubtractMixed)fail('diamond-fractions','Diamond fraction +/- no longer includes mixed-number forms');
+  if(!appSrc.includes("{key:'fractions',label:'Fractions'"))fail('diamond-fractions','Post-99 settings do not expose Fractions as their own category');
+  if(appSrc.includes("label:'Decimals, fractions & percentages'"))fail('diamond-fractions','Fractions are still merged into the decimals/percentages category');
+  for(const id of ['fraction_of','equivalent_fractions','simplify_fractions','mixed_improper','fraction_add_subtract','fraction_multiply_whole','fraction_multiply','fraction_divide_whole'])if(!appSrc.includes(id))fail('diamond-fractions',`Fractions settings category is missing ${id}`);
+  if(!appSrc.includes('fractionAddSubtractRelatedOnly')||!appSrc.includes('fractionAddSubtractMixed'))fail('diamond-fractions','Fraction +/- profile controls are missing from settings');
+  const mainPage=read('index.md'),practiceLayout=read('_layouts/practice.html'),widgetBuilder=read('_pages/99-club-widget-builder.md'),widgetPage=read('_pages/99-club-widget.html');
+  if(!mainPage.includes('generator.js?v=19.5')||!practiceLayout.includes('generator.js?v=19.5')||!widgetBuilder.includes('generator.js?v=20.1')||!widgetPage.includes('generator.js?v=20.1'))fail('diamond-fractions','Updated fraction generator is not cache-busted on every 99 Club delivery route');
+  const poolKinds=['fraction_of','fraction_add_subtract','fraction_multiply_whole'];
+  const pool=poolKinds.flatMap(kind=>ClubFractions.questionPool(kind,diamond));
+  const examples=['4/5 of 20 =','3/7 of 28 =','4/5 + 3/5 =','1 1/8 + 7/8 =','3/4 + 4/12 =','12/15 - 1/5 =','1/3 × 2 =','5/6 × 3 ='];
+  for(const prompt of examples)if(!pool.some(q=>q.prompt===prompt))fail('diamond-fractions',`School-requested example is absent from Diamond pool: ${prompt}`);
+  const addSub=ClubFractions.questionPool('fraction_add_subtract',diamond);
+  if(addSub.some(q=>q.prompt==='2/3 + 1/5 ='))fail('diamond-fractions','Diamond related-denominator profile allows unrelated 3/5 denominator pair');
+  const generatedDiamond=ClubFractions.generateQuestions(diamond,'qa-diamond-fraction-mix');
+  const counts=generatedDiamond.reduce((m,q)=>(m[q.kind]=(m[q.kind]||0)+1,m),{});
+  for(const id of requiredCore)if(!counts[id])fail('diamond-fractions',`100-question Diamond sheet produced no ${id}`);
+  const fractionCount=requiredCore.reduce((n,id)=>n+(counts[id]||0),0);
+  if(fractionCount<20)fail('diamond-fractions','Diamond fraction presence fell below a meaningful share',String(fractionCount));
+  if(!helpSrc.includes('Diamond fraction profile:')||!helpSrc.includes('fraction addition/subtraction'))fail('diamond-fractions','Teacher help does not describe the stronger Diamond fraction profile');
+  ok('diamond-fractions',`Diamond includes ${fractionCount}/100 core fraction questions and all requested example forms`);
+}catch(e){fail('diamond-fractions','Diamond fraction QA threw',e.stack||e.message);}
+
 /* ---------- parent-practice sharing ---------- */
 const parentAssets=['assets/99club/school-usage-config.js','assets/99club/school-usage.js','assets/99club/school-brand.js','assets/99club/parent-practice.js','assets/99club/parent-practice-page.js','assets/99club/app.js'];
 for(const rel of parentAssets){
