@@ -1,8 +1,8 @@
-/* 99 Club Studio root-scope PWA service worker v1.1.17 */
+/* 99 Club Studio root-scope PWA service worker v1.1.18 */
 'use strict';
 
 const CACHE_PREFIX='tt99-studio-';
-const CACHE_NAME=CACHE_PREFIX+'v1.1.17';
+const CACHE_NAME=CACHE_PREFIX+'v1.1.18';
 const CORE_PAGES=[
   '/',
   '/games/',
