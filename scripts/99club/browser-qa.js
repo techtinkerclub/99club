@@ -49,6 +49,8 @@ function prepare(){
         if(!root||!settings||!stage||!board)return fail('safe-fit','Online Play safe-fit hosts are unavailable');
         if(settings.open)fail('safe-fit','Puzzle settings still start expanded');
         const htmlOverflow=getComputedStyle(document.documentElement).overflowY,bodyOverflow=getComputedStyle(document.body).overflowY;
+        const measuredFit=getComputedStyle(root).getPropertyValue('--tt99-square-fit').trim();
+        if(!measuredFit)fail('safe-fit','real viewport measurement helper did not publish --tt99-square-fit');
         if(htmlOverflow==='hidden'||bodyOverflow==='hidden')fail('safe-fit','safe-fit must not lock document scrolling');
         const transform=getComputedStyle(board).transform;
         if(transform&&transform!=='none')fail('safe-fit','live board is transformed/scaled instead of participating in layout: '+transform);
