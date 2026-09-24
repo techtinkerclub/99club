@@ -28,6 +28,24 @@ function prepare(){
     }
     window.addEventListener('error',e=>fail('runtime',e.message||String(e.error||'window error')));
     window.addEventListener('unhandledrejection',e=>fail('runtime','Unhandled rejection: '+String(e.reason||'')));
+    async function appShellTest(){
+      try{
+        await sleep(180);
+        const root=document.getElementById('tt99-play-root'),shell=root?.querySelector('.tt99-play-shell'),stage=root?.querySelector('.tt99-play-stage'),surprise=document.getElementById('tt99-play-surprise'),settings=root?.querySelector('.tt99-play-settings');
+        if(!root||!shell||!stage)return fail('app-shell','Online Play shell is unavailable');
+        if(root.dataset.appShell!=='1')fail('app-shell','viewport-locked app shell did not initialise');
+        if(getComputedStyle(document.documentElement).overflowY!=='hidden')fail('app-shell','document can still vertically scroll while playing');
+        const rr=root.getBoundingClientRect(),sr=stage.getBoundingClientRect();
+        if(rr.bottom>window.innerHeight+2)fail('app-shell','play shell extends below the viewport: '+Math.round(rr.bottom)+' > '+window.innerHeight);
+        if(sr.bottom>rr.bottom+2)fail('app-shell','play stage escapes the viewport-locked shell');
+        if(!surprise||getComputedStyle(surprise).display==='none')fail('app-shell','Surprise me is not available in the compact game bar');
+        if(settings?.open)fail('app-shell','Puzzle settings should start collapsed in app mode');
+        const hero=root.querySelector('.tt99-play-hero');
+        if(hero&&getComputedStyle(hero).display!=='none')fail('app-shell','large Play Online hero still consumes play-space');
+        if(!root.querySelector('.tt99-play-app-nav a[href="/games/"]'))fail('app-shell','return-to-games navigation was lost from the compact app bar');
+        else pass('app-shell','no-scroll play shell fits the viewport and keeps Surprise me + return navigation');
+      }catch(e){fail('app-shell',(e&&e.stack)||String(e));}
+    }
     async function initialInstructionStatusTest(){
       try{
         await sleep(80);
@@ -343,7 +361,7 @@ function prepare(){
       }catch(e){fail('completion-splash',(e&&e.stack)||String(e));}
     }
     async function run(){
-      try{await sleep(500);await initialInstructionStatusTest();await genericAdapterTests();await brokenCalcTest();await colourFillTest();await perimeterDirectTest();await alphameticsVarietyTest();await groupedLibraryTest();await drawerTest();await sumGridContainmentTest();await hintPopupTest();await answerRevealFlowTest();await paperExportEntryTest();await completionShareEntryTest();await sharePanelTest();await completionSplashFitTest();await searchDirectionInstructionTest();}
+      try{await sleep(500);await appShellTest();await initialInstructionStatusTest();await genericAdapterTests();await brokenCalcTest();await colourFillTest();await perimeterDirectTest();await alphameticsVarietyTest();await groupedLibraryTest();await drawerTest();await sumGridContainmentTest();await hintPopupTest();await answerRevealFlowTest();await paperExportEntryTest();await completionShareEntryTest();await sharePanelTest();await completionSplashFitTest();await searchDirectionInstructionTest();}
       catch(e){fail('runner',(e&&e.stack)||String(e));}
       finally{finish();}
     }
