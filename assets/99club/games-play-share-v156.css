@@ -13,7 +13,7 @@
   .tt99-share-panel{overflow:hidden;display:grid;grid-template-rows:auto auto minmax(0,1fr)}
   .tt99-share-body{min-height:0;height:min(710px,calc(94vh - 170px))}
   .tt99-share-preview{min-height:0;height:100%;overflow:hidden}
-  .tt99-share-preview img{width:auto;max-width:100%;max-height:100%;object-fit:contain}
+  .tt99-share-preview img{width:auto;max-width:100%;max-height:min(650px,calc(94vh - 210px));object-fit:contain}
   .tt99-share-side{min-height:0;max-height:100%;overflow:auto}
 }
 @media(max-width:720px){.tt99-share-dialog{padding:8px}.tt99-share-panel{padding:14px;border-radius:18px}.tt99-share-body{grid-template-columns:1fr;gap:12px}.tt99-share-preview{min-height:260px;padding:8px}.tt99-share-preview img{width:min(100%,440px)}.tt99-share-side{padding:13px}.tt99-share-actions{grid-template-columns:1fr 1fr}.tt99-share-note{text-align:center}}
