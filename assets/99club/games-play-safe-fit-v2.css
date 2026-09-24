@@ -269,12 +269,9 @@
     font-size:.64rem;
   }
   #tt99-play-root #tt99-play-share{
-    font-size:0;
-  }
-  #tt99-play-root #tt99-play-share::after{
-    content:'Copy link';
     font-size:.64rem;
     line-height:1;
+    white-space:nowrap;
   }
   #tt99-play-root .tt99-play-settings[open] #tt99-play-options{
     position:fixed;
@@ -347,7 +344,7 @@
   #tt99-play-root .tt99-play-gamebar-actions button{padding-inline:5px}
   #tt99-play-root .tt99-play-mode button{padding-inline:6px}
   #tt99-play-root .tt99-play-setup-actions button{font-size:.61rem}
-  #tt99-play-root #tt99-play-share::after{font-size:.61rem}
+  #tt99-play-root #tt99-play-share{font-size:.61rem}
 }
 
 @media(max-height:560px) and (orientation:landscape){
