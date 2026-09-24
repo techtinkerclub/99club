@@ -523,6 +523,10 @@
 #tt99-root .tt99-post99-extras details.tt99-family-strand.has-selected>summary{background:#eef8f5;color:#205f59}
 #tt99-root .tt99-post99-extras details.tt99-family-strand>summary{margin:0}
 #tt99-root .tt99-post99-extras details.tt99-family-strand .tt99-family-chips{padding:8px 9px 10px}
+#tt99-root .tt99-family-group-label--help{display:flex;align-items:center;gap:4px}
+#tt99-root .tt99-family-group-label--help .tt99-help-btn{margin-left:2px}
+#tt99-root .tt99-post99-extras details.tt99-family-strand>summary>b{margin-right:0}
+#tt99-root .tt99-post99-extras details.tt99-family-strand>summary>.tt99-help-btn{margin-left:2px;margin-right:auto;flex:0 0 18px}
 
 /* v1.19.2 — header contact/support actions + contact modal */
 #tt99-root .tt99-hero__copy{
