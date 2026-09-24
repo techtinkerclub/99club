@@ -793,8 +793,9 @@ try{
   const fitCss=read('assets/99club/games-play-safe-fit-v2.css');
   const fitJs=read('assets/99club/games-play-safe-fit-v2.js');
   const instructions=read('assets/99club/games-play-instructions-v154.js');
-  if(!playPage.includes('games-play-safe-fit-v2.css?v=1')||!playPage.includes('games-play-safe-fit-v2.js?v=1'))fail('play-safe-fit','safe-fit assets are not both loaded by /play/');
-  if(!playPage.includes('games-play-core-v2.js?v=12')||!playPage.includes('games-play-instructions-v154.js?v=6'))fail('play-safe-fit','changed Online Play assets are not cache-busted');
+  const sudokuPlay=read('assets/99club/games-play-sudoku-v1.js');
+  if(!playPage.includes('games-play-safe-fit-v2.css?v=2')||!playPage.includes('games-play-safe-fit-v2.js?v=1'))fail('play-safe-fit','safe-fit assets are not both loaded by /play/');
+  if(!playPage.includes('games-play-core-v2.js?v=13')||!playPage.includes('games-play-instructions-v154.js?v=7')||!playPage.includes('games-play-sudoku-v1.js?v=2'))fail('play-safe-fit','changed Online Play assets are not cache-busted');
   if(/<details class="tt99-play-settings"\s+open>/.test(playCore))fail('play-safe-fit','Puzzle settings still start expanded');
   if(/html\.tt99-play-app-shell|overflow\s*:\s*hidden\s*!important/i.test(fitCss))fail('play-safe-fit','safe-fit must not restore the old document viewport lock');
   if(/#tt99-play-board[^{}]*\{[^}]*transform\s*:/is.test(fitCss))fail('play-safe-fit','safe-fit must not transform-scale the live board');
@@ -802,6 +803,10 @@ try{
   if(!fitJs.includes("'--tt99-square-fit'"))fail('play-safe-fit','safe-fit helper is not publishing the measured square-board size');
   if(instructions.includes("liveRule=document.createElement('p')"))fail('instruction-single-source','instruction layer still creates a second live-rule paragraph');
   if(!instructions.includes("base+' '+directionText"))fail('instruction-single-source','generated search directions are not folded into the single instruction paragraph');
+  if(!instructions.includes("if(id==='sudoku'&&typeof a.instruction==='function')continue"))fail('sudoku-latin-clarity','instruction cleanup overrides the dynamic Sudoku/Latin rule function');
+  if(!playCore.includes("adapter().puzzleTitle"))fail('sudoku-latin-clarity','Online Play core does not support puzzle-specific display titles');
+  if(!sudokuPlay.includes("'Latin Square':'Sudoku'")||!sudokuPlay.includes('There are no box rules.')||!sudokuPlay.includes('outlined box'))fail('sudoku-latin-clarity','Sudoku / Latin adapter does not provide distinct titles and rules');
+  if(!fitCss.includes("content:'Copy link'")||!fitCss.includes('white-space:normal'))fail('mobile-play-labels','mobile title/share-label fit rules are missing');
   ok('play-safe-fit','Safe compact layout and single-instruction source are wired without document locking or board transforms');
 }catch(e){fail('play-safe-fit','Online Play safe-fit QA threw',e.stack||e.message);}
 

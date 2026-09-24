@@ -50,7 +50,7 @@ sitemap: true
 <link rel="stylesheet" href="/assets/99club/games-new-puzzles-v197-fix.css?v=2">
 <link rel="stylesheet" href="/assets/99club/games-play-context-keypad-v201.css?v=7">
 <link rel="stylesheet" href="/assets/99club/games-extra-puzzles-v204.css?v=5">
-<link rel="stylesheet" href="/assets/99club/games-play-safe-fit-v2.css?v=1">
+<link rel="stylesheet" href="/assets/99club/games-play-safe-fit-v2.css?v=2">
 
 <script src="/assets/99club/games-vocabulary.js?v=1"></script>
 <script src="/assets/99club/games-arithmetic.js?v=8"></script>
@@ -80,7 +80,7 @@ sitemap: true
 
 <script src="/assets/99club/games-play-share-codec-v156.js?v=6"></script>
 <script src="/assets/99club/games-play-qr-v156.js?v=1"></script>
-<script src="/assets/99club/games-play-core-v2.js?v=12"></script>
+<script src="/assets/99club/games-play-core-v2.js?v=13"></script>
 <script src="/assets/99club/games-play-number-grid-v1.js?v=1"></script>
 <script src="/assets/99club/games-play-arithmetic-core-v1.js?v=1"></script>
 <script src="/assets/99club/games-play-shikaku-v1.js?v=2"></script>
@@ -89,7 +89,7 @@ sitemap: true
 <script src="/assets/99club/games-play-nonogram-v2.js?v=3"></script>
 <script src="/assets/99club/games-play-mines-v3.js?v=1"></script>
 <script src="/assets/99club/games-play-takuzu-v1.js?v=1"></script>
-<script src="/assets/99club/games-play-sudoku-v1.js?v=1"></script>
+<script src="/assets/99club/games-play-sudoku-v1.js?v=2"></script>
 <script src="/assets/99club/games-play-futoshiki-v1.js?v=2"></script>
 <script src="/assets/99club/games-play-killer-v1.js?v=2"></script>
 <script src="/assets/99club/games-play-kakuro-v1.js?v=1"></script>
@@ -125,7 +125,7 @@ sitemap: true
 <script src="/assets/99club/games-play-context-keypad-v201.js?v=8"></script>
 <script src="/assets/99club/games-play-answer-reveal-v1.js?v=1"></script>
 <script src="/assets/99club/games-play-library-v4.js?v=7"></script>
-<script src="/assets/99club/games-play-instructions-v154.js?v=6"></script>
+<script src="/assets/99club/games-play-instructions-v154.js?v=7"></script>
 <script src="/assets/99club/games-play-completion-preview-v1.js?v=5"></script>
 <script src="/assets/99club/simple-pdf.js?v=19.4"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
