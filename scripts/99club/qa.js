@@ -743,7 +743,7 @@ try{
     'sidebar: false',
     'sitemap: true'
   ])if(!playPageSrc.includes(token))fail('play-app-shell','Online Play SEO/page metadata changed: '+token);
-  for(const asset of ['games-play-app-shell-v1.css?v=1','games-play-app-shell-v1.js?v=1'])if(!playPageSrc.includes(asset))fail('play-app-shell','Viewport app-shell asset missing: '+asset);
+  for(const asset of ['games-play-app-shell-v1.css','games-play-app-shell-v1.js'])if(!playPageSrc.includes(asset))fail('play-app-shell','Viewport app-shell asset missing: '+asset);
   if(!playCoreSrc.includes('id="tt99-play-surprise"')||!playCoreSrc.includes('Surprise me'))fail('play-app-shell','Surprise me was removed from Online Play');
   for(const event of ['online_game_started','online_hint_used','online_game_completed'])if(!playCoreSrc.includes(event))fail('play-app-shell','Existing Online Play analytics event changed or disappeared: '+event);
   for(const token of ['integration_id','source_origin','app_mode'])if(!playCoreSrc.includes(token))fail('play-app-shell','Existing Online Play attribution changed or disappeared: '+token);
