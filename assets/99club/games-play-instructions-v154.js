@@ -1,4 +1,4 @@
-/* 99 Club Studio · Online Play instruction cleanup v1.54.4
+/* 99 Club Studio · Online Play instruction cleanup v1.54.5
  * One concise, complete first-sight rule block above the board for every
  * playable game. Avoids duplicated helper paragraphs while keeping genuinely
  * puzzle-specific live rules such as Word/Number Search directions.
@@ -53,6 +53,9 @@ const COPY={
 
 for(const [id,text] of Object.entries(COPY)){
   const a=Play.adapters.get(id);if(!a)continue;
+  // Sudoku / Latin Squares shares one adapter but the generated puzzle has
+  // different rules. Keep its puzzle-specific instruction function intact.
+  if(id==='sudoku'&&typeof a.instruction==='function')continue;
   a.instruction=text;
 }
 
