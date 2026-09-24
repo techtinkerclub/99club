@@ -290,7 +290,7 @@ function prepare(){
         const view=a.mount(board,p,{onChange:()=>{},onStatus:()=>{},isPaused:()=>false});
         instruction.textContent=a.instruction||'';
         await sleep(120);
-        const source=board.querySelector('.tt99-play-numbersearch .tt99-play-board-tip'),live=document.querySelector('.tt99-play-top-instructions-v154 .tt99-play-live-rule');
+        const source=board.querySelector('.tt99-play-board-tip'),live=document.querySelector('.tt99-play-top-instructions-v154 .tt99-play-live-rule');
         if(!source)fail('search-directions','hidden Number Search direction source was removed from the board DOM');
         if(!live||live.hidden||!/Directions:/i.test(live.textContent||''))fail('search-directions','generated direction rule was not mirrored into the top instruction card');
         if(source&&getComputedStyle(source).display!=='none')fail('search-directions','legacy under-board direction note is visibly duplicated');
