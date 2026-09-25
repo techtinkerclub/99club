@@ -128,12 +128,46 @@ if(mode==='prepare'){
     const canvas=document.getElementById('pv-canvas');
     assert(canvas&&getComputedStyle(canvas).touchAction==='pan-y','Place Value empty board preserves vertical touch scrolling');
   }
+  function testFractions(){
+    TT99Goodies.interaction.clear();
+    assert(TT99Goodies.fractionWall,'Fraction Wall is registered');
+    TT99Goodies.fractionWall();
+
+    assert(document.querySelectorAll('[data-fw-row]').length===12,'Fraction Wall has denominators 1 to 12');
+    assert(document.querySelectorAll('[data-fw-row="2"] .gd-fr-cell.is-on').length===1,'Default focus is one half');
+    assert(document.querySelectorAll('[data-fw-row="4"] .gd-fr-cell.is-equivalent').length===2,'One half automatically highlights two quarters');
+    assert(document.querySelectorAll('[data-fw-row="6"] .gd-fr-cell.is-equivalent').length===3,'One half automatically highlights three sixths');
+
+    const threeQuarters=document.querySelector('[data-fw-wall="4:2"]');
+    assert(threeQuarters,'Three-quarters endpoint exists on the wall');
+    threeQuarters.click();
+    assert(document.querySelector('.gd-fr-focus strong').textContent.trim()==='3/4','Wall tap selects three quarters');
+    assert(document.querySelectorAll('[data-fw-row="8"] .gd-fr-cell.is-equivalent').length===6,'Three quarters automatically highlights six eighths');
+    assert(document.querySelectorAll('[data-fw-row="12"] .gd-fr-cell.is-equivalent').length===9,'Three quarters automatically highlights nine twelfths');
+
+    document.querySelector('[data-fw-use="a"]').click();
+    assert(document.getElementById('fw-an').value==='3'&&document.getElementById('fw-ad').value==='4','Selected wall fraction can be sent directly to A');
+
+    const bTwoThirds=document.querySelector('[data-fw-set="b:2"]');
+    assert(bTwoThirds,'B comparison bar exposes direct numerator segments');
+    bTwoThirds.click();
+    assert(document.getElementById('fw-bn').value==='2'&&document.getElementById('fw-bd').value==='3','Tapping B bar changes its numerator to two thirds');
+    assert(document.querySelector('.gd-fr-equation').textContent.replace(/\s+/g,'').includes('3/4>2/3'),'Comparison updates automatically after direct edits');
+
+    const an=document.getElementById('fw-an'),ad=document.getElementById('fw-ad');
+    an.value='7';ad.value='4';
+    an.dispatchEvent(new Event('input',{bubbles:true}));
+    assert(an.value==='7'&&ad.value==='4','Quick setup preserves improper fractions');
+    assert(document.querySelectorAll('[data-fw-direct="a"] .gd-fr-bar').length===2,'Improper fraction renders across multiple wholes');
+    assert(document.querySelectorAll('[data-fw-direct="a"] .gd-fr-piece.is-fill').length===7,'Improper fraction keeps all seven quarters visible');
+  }
   window.addEventListener('load',function(){
     setTimeout(function(){
       try{
         testMathsCanvas();
         testPlaceValue();
-        result('pass','Maths Canvas and Place Value object interactions work');
+        testFractions();
+        result('pass','Maths Canvas, Place Value and Fraction Wall interactions work');
       }catch(err){
         result('fail',err&&err.message?err.message:String(err));
       }
