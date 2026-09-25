@@ -554,3 +554,11 @@ html.nl-board-page-lock,body.nl-board-page-lock{overflow:hidden!important;oversc
   .gd-answer-live{grid-template-columns:1fr}
   .gd-answer-live>strong{justify-self:start}
 }
+
+
+/* Shared fast classroom challenge action */
+.gd-challenge-action{border:1px solid #a9cbc8;border-radius:999px;background:rgba(242,249,248,.92);padding:6px 10px;color:var(--gd-teal-dark);font:inherit;font-size:.75rem;font-weight:850;cursor:pointer;white-space:nowrap}
+.gd-challenge-action:hover,.gd-challenge-action:focus-visible{background:#fff;border-color:#72aaa5;outline:none;box-shadow:0 0 0 3px rgba(20,125,117,.12)}
+@media(max-width:390px){
+  .gd-challenge-action,.nl-challenge-reveal{white-space:normal;text-align:center}
+}
