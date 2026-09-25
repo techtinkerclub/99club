@@ -688,11 +688,11 @@ function numberLineV2(){
     return `<svg id="nl-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 ${plan.height}" role="img" aria-label="Interactive number line workspace with ${state.lines.length} line${state.lines.length===1?'':'s'}"><defs>${state.lines.map(line=>line.relations.filter(r=>r.type==='jump').map(r=>`<marker id="nl-arrow-${esc(line.id)}-${esc(r.id)}" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,4 L0,8 z" fill="${esc(r.color)}"/></marker>`).join('')).join('')}</defs><rect x="0" y="0" width="1000" height="${plan.height}" rx="18" fill="#ffffff"/>${title}${plan.lines.map(buildLine).join('')}<text x="500" y="${plan.height-6}" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#87969a">99 Club Studio</text></svg>`;
   }
   function boardMarkerRows(){
-    const line=activeLine();
+    const line=activeLine(),scale=scaleFor(line);
     return line.markers.map(m=>`<div class="nl-board-item">
       <input class="nl-board-colour" type="color" value="${esc(m.color)}" data-board-marker-color="${esc(m.id)}" aria-label="Marker colour">
       <input class="nl-board-label" value="${esc(m.label)}" maxlength="12" data-board-marker-label="${esc(m.id)}" aria-label="Marker label">
-      <input class="nl-board-value" type="number" step="${state.step}" min="${state.min}" max="${state.max}" value="${fmt(m.value)}" data-board-marker-value="${esc(m.id)}" aria-label="Marker value">
+      <input class="nl-board-value" type="number" step="${scale.step}" min="${scale.min}" max="${scale.max}" value="${fmt(m.value)}" data-board-marker-value="${esc(m.id)}" aria-label="Marker value">
       <button class="nl-board-mini" type="button" data-board-marker-show="${esc(m.id)}" aria-label="Show or hide marker value">${m.showValue?'◉':'○'}</button>
       <button class="nl-board-mini" type="button" data-board-marker-side="${esc(m.id)}">${m.side==='above'?'↑':'↓'}</button>
       <button class="nl-board-mini nl-board-delete" type="button" data-board-marker-delete="${esc(m.id)}" aria-label="Delete marker">×</button>
@@ -768,7 +768,7 @@ function numberLineV2(){
       const lineId=el.getAttribute('data-line-hit');
       if(boardMode==='add-marker'){
         state.activeLineId=lineId;
-        addMarker(valueFromClientX(e.clientX),lineId);
+        addMarker(valueFromClientX(e.clientX,state.lines.find(l=>l.id===lineId)),lineId);
         boardMode=null;boardMenuOpen=false;
         boardMessage('Marker added. Drag it to fine-tune the position.');
         return;
@@ -818,7 +818,7 @@ function numberLineV2(){
   function moveDrag(e){
     if(!drag)return;
     const line=state.lines.find(l=>l.id===drag.lineId),m=line?.markers.find(x=>x.id===drag.id);if(!m)return;
-    setMarkerValue(m,valueFromClientX(e.clientX));
+    setMarkerValue(m,valueFromClientX(e.clientX,line),line);
     updateChallengeAnswer();
     const input=controls.querySelector('[data-marker-value="'+CSS.escape(m.id)+'"]');if(input&&line.id===state.activeLineId)input.value=fmt(m.value);
     renderStage();
@@ -827,10 +827,10 @@ function numberLineV2(){
   window.addEventListener('pointermove',moveDrag);window.addEventListener('pointerup',endDrag);window.addEventListener('pointercancel',endDrag);
 
   function addMarker(value,lineId=state.activeLineId){
-    const line=state.lines.find(l=>l.id===lineId)||activeLine(),id=nextId('m',line.markers),index=line.markers.length;
+    const line=state.lines.find(l=>l.id===lineId)||activeLine(),scale=scaleFor(line),id=nextId('m',line.markers),index=line.markers.length;
     remember();
     state.activeLineId=line.id;
-    line.markers.push({id,label:String.fromCharCode(65+(index%26)),value:snap(value==null?(state.min+state.max)/2:value,state),color:COLOURS[index%COLOURS.length],showValue:true,side:'above'});
+    line.markers.push({id,label:String.fromCharCode(65+(index%26)),value:snapOnLine(value==null?(scale.min+scale.max)/2:value,line),color:COLOURS[index%COLOURS.length],showValue:true,side:'above'});
     renderAll();
   }
   function addRelation(){
@@ -842,7 +842,7 @@ function numberLineV2(){
     if(state.lines.length>=4)return;
     remember();
     const id=nextId('l',state.lines),index=state.lines.length;
-    state.lines.push({id,label:'Line '+(index+1),showLabels:index===0,valueFormat:'number',denominator:4,tickStride:1,showConsecutiveDifferences:false,consecutiveSide:'above',markers:[],relations:[]});state.activeLineId=id;renderAll();
+    state.lines.push({id,label:'Line '+(index+1),showLabels:false,scaleMode:'shared',min:state.min,max:state.max,step:state.step,labelEvery:state.labelEvery,valueFormat:'number',denominator:4,tickStride:1,showConsecutiveDifferences:false,consecutiveSide:'above',markers:[],relations:[]});state.activeLineId=id;controlTab='setup';renderAll();
   }
   function randomTick(){
     const count=Math.max(1,Math.floor((state.max-state.min)/state.step+1e-8));
@@ -1070,7 +1070,7 @@ function numberLineV2(){
     if(name==='0-100'){state.min=0;state.max=100;state.step=10;state.labelEvery=1}
     if(name==='negative'){state.min=-10;state.max=10;state.step=1;state.labelEvery=1}
     if(name==='decimal'){state.min=0;state.max=1;state.step=.1;state.labelEvery=1}
-    state.lines.forEach(line=>line.markers.forEach(m=>m.value=snap(m.value,state)));renderAll();
+    state.lines.filter(line=>line.scaleMode!=='own').forEach(line=>line.markers.forEach(m=>m.value=snapOnLine(m.value,line)));renderAll();
   }
   function exportName(){
     const ch=state.challenge;
