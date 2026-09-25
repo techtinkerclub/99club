@@ -59,6 +59,17 @@ requireText(toolsB,'data-gd-object','Maths Canvas selectable objects');
 requireText(toolsB,"I.toolButton('grid','grid'",'Maths Canvas grid action');
 requireText(toolsB,'the side tools duplicate, colour, lock or delete it.','Maths Canvas direct interaction hint');
 
+requireText(toolsB,'function coordinateTool()','Coordinate tool');
+requireText(toolsB,'data-co-point','direct coordinate points');
+requireText(toolsB,'nearestCoord','coordinate drag-to-grid mapping');
+requireText(toolsB,'function movePoint','coordinate point movement');
+requireText(toolsB,'Delete point','contextual coordinate deletion');
+requireText(toolsB,"btn('Undo','co-undo')",'coordinate general undo');
+requireText(toolsB,"btn('Redo','co-redo')",'coordinate redo');
+requireText(toolsB,'outside this grid','non-destructive quadrant switching');
+requireText(css,'.gd-co-point.is-selected','selected coordinate point styling');
+requireText(css,'.gd-co-context','contextual coordinate action styling');
+
 requireText(toolsB,'function geoboard()','Geoboard tool');
 requireText(toolsB,'data-ge-vertex','direct Geoboard vertices');
 requireText(toolsB,'nearestPeg','Geoboard drag-to-peg mapping');
