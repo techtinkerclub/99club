@@ -10,7 +10,7 @@ function esc(v){
 
 function sanitiseRichHtml(input){
   const box=document.createElement('div');
-  box.innerHTML=String(input||'');
+  box.innerHTML=String(input||'').slice(0,6000);
   [...box.querySelectorAll('*')].forEach(el=>{
     if(!ALLOWED_TAGS.has(el.tagName)){
       const parent=el.parentNode;
@@ -30,7 +30,7 @@ function sanitiseRichHtml(input){
     const raw=el.getAttribute('size');
     el.setAttribute('size',['1','3','5'].includes(raw)?raw:'3');
   });
-  return box.innerHTML.slice(0,2400);
+  return box.innerHTML;
 }
 
 function plainText(html){
