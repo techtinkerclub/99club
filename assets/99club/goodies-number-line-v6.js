@@ -980,20 +980,69 @@ function numberLineV2(){
     const line=state.lines.find(l=>l.id===lineId)||activeLine(),scale=scaleFor(line),id=nextId('m',line.markers),index=line.markers.length;
     remember();
     state.activeLineId=line.id;
-    line.markers.push({id,label:String.fromCharCode(65+(index%26)),value:snapOnLine(value==null?(scale.min+scale.max)/2:value,line),color:COLOURS[index%COLOURS.length],showValue:true,side:'above'});
+    line.markers.push({id,label:String.fromCharCode(65+(index%26)),value:snapOnLine(value==null?(scale.min+scale.max)/2:value,line),color:COLOURS[index%COLOURS.length],showValue:true,side:'above',positionGroup:''});
     renderAll();
+  }
+  function nextPositionGroup(){
+    const used=new Set();
+    state.lines.forEach(line=>line.markers.forEach(marker=>{if(marker.positionGroup)used.add(marker.positionGroup)}));
+    let i=1;while(used.has('p'+i))i++;
+    return 'p'+i;
+  }
+  function addLinkedPair(line=activeLine()){
+    const main=state.lines[0];if(!line||line.scaleMode!=='linked'||!main)return;
+    if(main.markers.length>=12||line.markers.length>=12){message('This line already has the maximum number of markers.',true);return}
+    remember();
+    const existing=line.markers.filter(m=>m.positionGroup).length,presets=[.5,.25,.75,.4,.6,.2,.8],t=presets[existing%presets.length];
+    const mainScale=scaleFor(main),linkedScale=scaleFor(line);
+    const mainValue=snapToScale(mainScale.min+t*(mainScale.max-mainScale.min),mainScale);
+    const actualT=(mainValue-mainScale.min)/(mainScale.max-mainScale.min);
+    const linkedValue=snapToScale(linkedScale.min+actualT*(linkedScale.max-linkedScale.min),linkedScale);
+    const group=nextPositionGroup(),label=String.fromCharCode(65+(main.markers.length%26)),color=COLOURS[main.markers.length%COLOURS.length];
+    main.markers.push({id:nextId('m',main.markers),label,value:mainValue,color,showValue:true,side:'below',positionGroup:group});
+    line.markers.push({id:nextId('m',line.markers),label,value:linkedValue,color,showValue:true,side:'above',positionGroup:group});
+    state.activeLineId=line.id;renderAll();
+  }
+  function removeMarker(line,id){
+    if(!line)return;
+    const marker=line.markers.find(m=>m.id===id);if(!marker)return;
+    const group=marker.positionGroup;
+    if(group){
+      state.lines.forEach(target=>{
+        const ids=new Set(target.markers.filter(m=>m.positionGroup===group).map(m=>m.id));
+        if(!ids.size)return;
+        target.markers=target.markers.filter(m=>!ids.has(m.id));
+        target.relations=target.relations.filter(r=>!ids.has(r.from)&&!ids.has(r.to));
+      });
+    }else{
+      line.markers=line.markers.filter(m=>m.id!==id);
+      line.relations=line.relations.filter(r=>r.from!==id&&r.to!==id);
+    }
+    syncZoomFollowers();updateChallengeAnswer();
   }
   function addRelation(){
     const line=activeLine();if(line.markers.length<2)return;
     remember();
     const id=nextId('r',line.relations);line.relations.push({id,from:line.markers[0].id,to:line.markers[1].id,type:'difference',color:'#52666d',label:'',showLabel:true,side:'above'});renderAll();
   }
-  function defaultZoomRange(){
+  function mainMarkerZoomRange(){
     const main=state.lines[0],values=(main?.markers||[]).slice(0,2).map(m=>m.value).filter(Number.isFinite);
-    if(values.length===2&&Math.abs(values[0]-values[1])>=state.step/1000){
-      const lo=clamp(Math.min(...values),state.min,state.max),hi=clamp(Math.max(...values),state.min,state.max);
-      if(hi>lo)return {min:cleanNumber(lo),max:cleanNumber(hi)};
-    }
+    if(values.length!==2||Math.abs(values[0]-values[1])<state.step/1000)return null;
+    const lo=clamp(Math.min(...values),state.min,state.max),hi=clamp(Math.max(...values),state.min,state.max);
+    return hi>lo?{min:cleanNumber(lo),max:cleanNumber(hi)}:null;
+  }
+  function syncZoomFollowers(){
+    const z=mainMarkerZoomRange();
+    state.lines.forEach(line=>{
+      if(line.scaleMode!=='zoom'||!line.zoomFollowMarkers)return;
+      if(!z){line.zoomFollowMarkers=false;return}
+      line.min=z.min;line.max=z.max;
+      line.step=Math.max(0.0001,Math.min(line.max-line.min,line.step||state.step));
+      line.markers.forEach(m=>m.value=snapOnLine(m,line));
+    });
+  }
+  function defaultZoomRange(){
+    const markerRange=mainMarkerZoomRange();if(markerRange)return markerRange;
     const span=state.max-state.min;
     let lo=snapToScale(state.min+span/3,state),hi=snapToScale(state.min+span*2/3,state);
     if(hi<=lo){lo=state.min;hi=Math.min(state.max,state.min+Math.max(state.step,span/2))}
