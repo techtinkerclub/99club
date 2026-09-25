@@ -44,7 +44,7 @@ requireText(interaction,"e.key.toLowerCase()==='z'",'undo shortcut');
 requireText(toolsB,'G.interaction','Maths Canvas uses shared interaction layer');
 requireText(toolsB,'I.mount({','Maths Canvas mounts shared controller');
 requireText(toolsB,'data-gd-object','Maths Canvas selectable objects');
-requireText(toolsB,"data-gd-action=\"grid\"",'Maths Canvas grid action');
+requireText(toolsB,"I.toolButton('grid','grid'",'Maths Canvas grid action');
 requireText(toolsB,'double-tap/click to duplicate','Maths Canvas direct interaction hint');
 
 requireText(app,'G.interaction?.clear()','tool switching clears shared interaction listeners');
