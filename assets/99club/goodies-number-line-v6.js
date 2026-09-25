@@ -447,7 +447,7 @@ function numberLineV2(){
     state.step=Math.max(.0001,Math.min(range,num(q('#nl-step')?.value,state.step)));
     state.labelEvery=clamp(Math.round(num(q('#nl-label-every')?.value,state.labelEvery)),1,50);
     state.lines.filter(line=>line.scaleMode==='shared').forEach(line=>line.markers.forEach(m=>m.value=snapOnLine(m,line)));
-    updateChallengeAnswer();
+    syncZoomFollowers();updateChallengeAnswer();
   }
   function applyOwnScaleFromControls(line){
     if(!line||line.scaleMode==='shared')return;
@@ -1048,26 +1048,33 @@ function numberLineV2(){
     if(hi<=lo){lo=state.min;hi=Math.min(state.max,state.min+Math.max(state.step,span/2))}
     return {min:cleanNumber(lo),max:cleanNumber(hi)};
   }
+  function clearPositionGroupsForLine(line){
+    const groups=new Set((line?.markers||[]).map(m=>m.positionGroup).filter(Boolean));
+    if(!groups.size)return;
+    state.lines.forEach(target=>target.markers.forEach(marker=>{if(groups.has(marker.positionGroup))marker.positionGroup=''}));
+  }
   function setLineScaleMode(line,mode,{fresh=false}={}){
     if(!line||line===state.lines[0])return;
     const allowed=['shared','own','zoom','linked'];
     mode=allowed.includes(mode)?mode:'shared';
     if(line.markers.some(m=>m.syncGroup)&&mode!=='shared')return;
     const previous=line.scaleMode;
+    if(previous==='linked'&&mode!=='linked')clearPositionGroupsForLine(line);
     line.scaleMode=mode;
+    line.zoomFollowMarkers=false;
     if(mode==='shared'){
       line.markers.forEach(m=>m.value=snapOnLine(m,line));
       return;
     }
     line.showLabels=true;
     if(mode==='zoom'){
-      const z=(fresh||previous==='shared')?defaultZoomRange():{
+      const markerRange=mainMarkerZoomRange(),z=(fresh||previous==='shared')?defaultZoomRange():{
         min:clamp(line.min,state.min,state.max),
         max:clamp(line.max,state.min,state.max)
       };
       line.min=z.min;line.max=z.max>z.min?z.max:Math.min(state.max,z.min+Math.max(state.step,0.0001));
       line.step=Math.max(0.0001,Math.min(line.max-line.min,state.step));
-      line.labelEvery=1;
+      line.labelEvery=1;line.zoomFollowMarkers=!!markerRange;
       if(!line.label||/^Line \d+$/.test(line.label))line.label='Zoom';
     }else{
       if(fresh||previous==='shared'){
