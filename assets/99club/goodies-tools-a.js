@@ -263,11 +263,14 @@ function fractionWall(){
       const eqN=equivalentNumerator(d);
       const rowFocus=d===focus.d;
       rows.push('<div class="gd-fr-row'+(rowFocus?' is-focus-row':'')+'" data-fw-row="'+d+'" aria-label="Fraction wall denominator '+d+'">'+
-        Array.from({length:d},(_,i)=>{
-          const equivalent=eqN!=null&&i<eqN;
-          const cls='gd-fr-cell'+(equivalent?(rowFocus?' is-on':' is-equivalent'):'')+(rowFocus&&i===focus.n-1?' is-end':'');
-          return '<button type="button" class="'+cls+'" data-fw-wall="'+d+':'+i+'" aria-label="'+(i+1)+'/'+d+'"><span>1/'+d+'</span></button>';
-        }).join('')+
+        '<span class="gd-fr-row-label">'+(d===1?'whole':'1/'+d)+'</span>'+
+        '<div class="gd-fr-row-pieces">'+
+          Array.from({length:d},(_,i)=>{
+            const equivalent=eqN!=null&&i<eqN;
+            const cls='gd-fr-cell'+(equivalent?(rowFocus?' is-on':' is-equivalent'):'')+(rowFocus&&i===focus.n-1?' is-end':'');
+            return '<button type="button" class="'+cls+'" data-fw-wall="'+d+':'+i+'" aria-label="'+(i+1)+'/'+d+'"></button>';
+          }).join('')+
+        '</div>'+
       '</div>');
     }
     return rows.join('');
