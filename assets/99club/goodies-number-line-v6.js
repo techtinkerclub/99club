@@ -272,7 +272,7 @@ function numberLineV2(){
     }else if(ch.type==='midpoint'&&line.markers.length>=2){
       ch.answer=fmt(cleanNumber((line.markers[0].value+line.markers[1].value)/2));
     }else if(ch.type==='nearest-endpoint'){
-      const found=findMarker(ch.hiddenMarkerIds[0]);
+      const found=findMarker(ch.targetMarkerId||ch.hiddenMarkerIds[0]);
       if(found){const dMin=Math.abs(found.marker.value-state.min),dMax=Math.abs(state.max-found.marker.value);ch.answer=fmt(dMin<=dMax?state.min:state.max)}
     }else if(ch.type==='order-markers'){
       ch.answer=[...line.markers].sort((a,b)=>a.value-b.value).map(m=>m.label).join(' < ');
@@ -794,40 +794,95 @@ function numberLineV2(){
     if(!template){message('That challenge needs a different number-line range.',true);return}
     remember();
     if(!beforeChallenge)beforeChallenge=copy({...state,challenge:null});else state=normalise(copy(beforeChallenge));
+
+    const makeLine=(id='l1',label='')=>({
+      id,label,showLabels:true,valueFormat:'number',denominator:4,tickStride:1,
+      showConsecutiveDifferences:false,consecutiveSide:'above',markers:[],relations:[]
+    });
     const a=randomTick(),b=randomDistinct(a),lo=Math.min(a,b),hi=Math.max(a,b);
-    const line={id:'l1',label:'',showLabels:true,showConsecutiveDifferences:false,consecutiveSide:'above',markers:[],relations:[]};
+    const line=makeLine();
     state.lines=[line];state.activeLineId='l1';
+
     if(type==='identify'){
       line.markers=[{id:'m1',label:'A',value:a,color:'#147d75',showValue:true,side:'above'}];
       state.challenge=challengeObject(type,'What number is marker A pointing to?',fmt(a),{hiddenMarkerIds:['m1']});
+
     }else if(type==='interval-value'){
       endpointLabelsOnly();
       state.challenge=challengeObject(type,'What is each equal interval on this number line worth?',fmt(state.step));
+
     }else if(type==='estimate-position'){
       endpointLabelsOnly();
       const target=randomInteriorTick();
       line.markers=[{id:'m1',label:'A',value:target,color:'#147d75',showValue:true,side:'above'}];
       state.challenge=challengeObject(type,'Use the labelled anchors to work out the value of A.',fmt(target),{hiddenMarkerIds:['m1']});
+
     }else if(type==='midpoint'){
       let x=a,y=b,guard=0;
       while(Math.abs(y-x)<state.step*2-1e-10&&guard++<30)y=randomDistinct(x);
       const left=Math.min(x,y),right=Math.max(x,y);
       line.markers=[{id:'m1',label:'A',value:left,color:'#147d75',showValue:true,side:'above'},{id:'m2',label:'B',value:right,color:'#d65a4a',showValue:true,side:'above'}];
       state.challenge=challengeObject(type,'What value is exactly halfway between A and B?',fmt(cleanNumber((left+right)/2)));
+
+    }else if(type==='nearest-endpoint'){
+      endpointLabelsOnly();
+      let target=randomInteriorTick(),guard=0;
+      const mid=(state.min+state.max)/2;
+      while(Math.abs(target-mid)<state.step/1000&&guard++<40)target=randomInteriorTick();
+      line.markers=[{id:'m1',label:'A',value:target,color:'#147d75',showValue:false,side:'above'}];
+      const answer=Math.abs(target-state.min)<=Math.abs(state.max-target)?state.min:state.max;
+      state.challenge=challengeObject(type,'Which labelled endpoint is A closer to?',fmt(answer),{targetMarkerId:'m1'});
+
+    }else if(type==='order-markers'){
+      const values=[],maxTries=100;
+      let tries=0;
+      while(values.length<3&&tries++<maxTries){const v=randomTick();if(!values.some(x=>Math.abs(x-v)<state.step/1000))values.push(v)}
+      while(values.length<3)values.push(cleanNumber(state.min+values.length*state.step));
+      const shuffled=[...values].sort(()=>Math.random()-.5);
+      line.markers=shuffled.map((v,i)=>({id:'m'+(i+1),label:String.fromCharCode(65+i),value:v,color:COLOURS[i],showValue:false,side:'above'}));
+      const answer=[...line.markers].sort((x,y)=>x.value-y.value).map(m=>m.label).join(' < ');
+      state.challenge=challengeObject(type,'Put A, B and C in order from smallest to largest.',answer);
+
     }else if(type==='difference'){
       line.markers=[{id:'m1',label:'A',value:lo,color:'#147d75',showValue:true,side:'above'},{id:'m2',label:'B',value:hi,color:'#d65a4a',showValue:true,side:'above'}];
       line.relations=[{id:'r1',from:'m1',to:'m2',type:'difference',color:'#52666d',label:'',showLabel:true,side:'above'}];
       state.challenge=challengeObject(type,'What is the difference between A and B?',fmt(cleanNumber(hi-lo)),{hiddenRelationIds:['r1']});
+
     }else if(type==='jump'){
       let start=a,end=b;if(Math.abs(end-start)<state.step/1000)end=snap(start+state.step,state);const delta=cleanNumber(end-start);
       line.markers=[{id:'m1',label:'Start',value:start,color:'#147d75',showValue:true,side:'above'},{id:'m2',label:'?',value:end,color:'#d65a4a',showValue:true,side:'above'}];
       line.relations=[{id:'r1',from:'m1',to:'m2',type:'jump',color:'#4169a8',label:(delta>=0?'+':'')+fmt(delta),showLabel:true,side:'above'}];
       state.challenge=challengeObject(type,'Start at '+fmt(start)+' and make the shown jump. Where do you land?',fmt(end),{hiddenMarkerIds:['m2']});
+
     }else if(type==='missing-jump'){
       const delta=cleanNumber(b-a);
       line.markers=[{id:'m1',label:'Start',value:a,color:'#147d75',showValue:true,side:'above'},{id:'m2',label:'End',value:b,color:'#d65a4a',showValue:true,side:'above'}];
       line.relations=[{id:'r1',from:'m1',to:'m2',type:'jump',color:'#4169a8',label:'',showLabel:true,side:'above'}];
       state.challenge=challengeObject(type,'What jump takes you from Start to End?',(delta>=0?'+':'')+fmt(delta),{hiddenRelationIds:['r1']});
+
+    }else if(type==='missing-start'){
+      const delta=cleanNumber(b-a);
+      line.markers=[{id:'m1',label:'Start',value:a,color:'#147d75',showValue:true,side:'above'},{id:'m2',label:'End',value:b,color:'#d65a4a',showValue:true,side:'above'}];
+      line.relations=[{id:'r1',from:'m1',to:'m2',type:'jump',color:'#4169a8',label:(delta>=0?'+':'')+fmt(delta),showLabel:true,side:'above'}];
+      state.challenge=challengeObject(type,'The jump lands at '+fmt(b)+'. What number did it start from?',fmt(a),{hiddenMarkerIds:['m1']});
+
+    }else if(type==='repeated-jumps'){
+      const intervals=Math.max(3,Math.floor((state.max-state.min)/state.step+1e-8));
+      const maxJump=Math.max(1,Math.floor(intervals/3));
+      const jumpTicks=1+Math.floor(Math.random()*maxJump),direction=Math.random()<.5?-1:1;
+      const span=jumpTicks*3;
+      const startIndex=direction>0?Math.floor(Math.random()*(intervals-span+1)):span+Math.floor(Math.random()*(intervals-span+1));
+      const vals=[0,1,2,3].map(i=>cleanNumber(state.min+(startIndex+direction*jumpTicks*i)*state.step));
+      line.markers=vals.map((v,i)=>({id:'m'+(i+1),label:i===0?'Start':(i===3?'?':''),value:v,color:i===0?'#147d75':'#4169a8',showValue:i===0||i===3,side:'above'}));
+      for(let i=0;i<3;i++)line.relations.push({id:'r'+(i+1),from:'m'+(i+1),to:'m'+(i+2),type:'jump',color:'#4169a8',label:(direction>0?'+':'')+fmt(cleanNumber(direction*jumpTicks*state.step)),showLabel:true,side:'above'});
+      state.challenge=challengeObject(type,'Follow the three equal jumps. Where do you finish?',fmt(vals[3]),{hiddenMarkerIds:['m4']});
+
+    }else if(type==='complement'){
+      const target=randomInteriorTick(),end=state.max;
+      line.markers=[{id:'m1',label:'A',value:target,color:'#147d75',showValue:true,side:'above'},{id:'m2',label:'End',value:end,color:'#d65a4a',showValue:true,side:'above'}];
+      line.relations=[{id:'r1',from:'m1',to:'m2',type:'difference',color:'#52666d',label:'',showLabel:true,side:'above'}];
+      state.challenge=challengeObject(type,'How much more is needed to get from A to '+fmt(end)+'?',fmt(cleanNumber(end-target)),{hiddenRelationIds:['r1']});
+
     }else if(type==='across-zero'){
       let left=null,right=null,guard=0;
       while((left==null||right==null)&&guard++<120){
@@ -840,6 +895,7 @@ function numberLineV2(){
       line.markers=[{id:'m1',label:'A',value:left,color:'#147d75',showValue:true,side:'above'},{id:'m2',label:'B',value:right,color:'#d65a4a',showValue:true,side:'above'}];
       line.relations=[{id:'r1',from:'m1',to:'m2',type:'difference',color:'#52666d',label:'',showLabel:true,side:'above'}];
       state.challenge=challengeObject(type,'What is the interval from A to B across zero?',fmt(cleanNumber(right-left)),{hiddenRelationIds:['r1']});
+
     }else if(type==='rounding'){
       const range=state.max-state.min;
       let unit=cleanNumber(state.step*10);
@@ -850,10 +906,52 @@ function numberLineV2(){
       while(Math.abs(target/unit-Math.round(target/unit))<1e-8&&guard++<40)target=randomInteriorTick();
       line.markers=[{id:'m1',label:'A',value:target,color:'#147d75',showValue:true,side:'above'}];
       state.challenge=challengeObject(type,'Round the value at A to the nearest '+fmt(unit)+'.',fmt(cleanNumber(Math.round(target/unit)*unit)),{hiddenMarkerIds:['m1'],roundingUnit:unit});
+
+    }else if(type==='mixed-number'){
+      const d=[2,4,5,8][Math.floor(Math.random()*4)];
+      state.min=0;state.max=3;state.step=1/d;state.labelEvery=d;state.showTickLabels=true;
+      Object.assign(line,{label:'Mixed numbers',valueFormat:'fraction',denominator:d,tickStride:1,showLabels:true});
+      const n=d+1+Math.floor(Math.random()*(2*d-1)),value=cleanNumber(n/d);
+      line.markers=[{id:'mFrac',label:'A',value,color:'#147d75',showValue:true,side:'above'}];
+      state.challenge=challengeObject(type,'What mixed number is marker A pointing to?',fractionText(value,d),{hiddenMarkerIds:['mFrac']});
+
+    }else if(type==='equivalent-fractions'){
+      const d1=[2,3,4,5,6][Math.floor(Math.random()*5)];
+      const possible=[2,3].filter(k=>d1*k<=12),mult=possible[Math.floor(Math.random()*possible.length)]||2,d2=d1*mult;
+      const n1=1+Math.floor(Math.random()*(d1-1)),value=cleanNumber(n1/d1);
+      state.min=0;state.max=1;state.step=1/d2;state.labelEvery=1;state.showTickLabels=true;
+      const top=makeLine('l1',d1+'ths'),bottom=makeLine('l2',d2+'ths');
+      Object.assign(top,{valueFormat:'fraction',denominator:d1,tickStride:mult,showLabels:true});
+      Object.assign(bottom,{valueFormat:'fraction',denominator:d2,tickStride:1,showLabels:false});
+      top.markers=[{id:'mEqTop',label:'A',value,color:'#147d75',showValue:true,side:'above'}];
+      bottom.markers=[{id:'mEqBottom',label:'?',value,color:'#d65a4a',showValue:true,side:'above'}];
+      state.lines=[top,bottom];state.activeLineId='l1';
+      state.challenge=challengeObject(type,'The markers line up at the same value. What equivalent fraction belongs on the '+d2+'ths line?',fractionText(value,d2),{hiddenMarkerIds:['mEqBottom']});
+
+    }else if(type==='fdp-equivalence'){
+      const choices=[{v:.25,d:4},{v:.5,d:2},{v:.75,d:4},{v:.2,d:5},{v:.4,d:5},{v:.6,d:5},{v:.8,d:5}];
+      const pick=choices[Math.floor(Math.random()*choices.length)],value=pick.v,d=pick.d;
+      state.min=0;state.max=1;state.step=1/20;state.labelEvery=20;state.showTickLabels=true;
+      const fraction=makeLine('l1','Fraction'),decimal=makeLine('l2','Decimal'),percent=makeLine('l3','Percent');
+      Object.assign(fraction,{valueFormat:'fraction',denominator:d,tickStride:Math.max(1,20/d),showLabels:false});
+      Object.assign(decimal,{valueFormat:'number',tickStride:2,showLabels:false});
+      Object.assign(percent,{valueFormat:'percent',tickStride:2,showLabels:false});
+      fraction.markers=[{id:'mFdpF',label:'F',value,color:'#147d75',showValue:true,side:'above'}];
+      decimal.markers=[{id:'mFdpD',label:'D',value,color:'#4169a8',showValue:true,side:'above'}];
+      percent.markers=[{id:'mFdpP',label:'?',value,color:'#d65a4a',showValue:true,side:'above'}];
+      state.lines=[fraction,decimal,percent];state.activeLineId='l1';
+      state.challenge=challengeObject(type,'These three markers are aligned. What percentage completes the fraction–decimal–percent match?',fmt(value*100)+'%',{hiddenMarkerIds:['mFdpP']});
+
     }else if(type==='error-scale'){
       endpointLabelsOnly();
       let wrong=cleanNumber(state.step*2);if(Math.abs(wrong-state.step)<1e-10)wrong=cleanNumber(state.step+1);
       state.challenge=challengeObject(type,'A pupil says each interval is worth '+fmt(wrong)+'. Are they correct?','No. Each interval is '+fmt(state.step)+'.',{claimedInterval:wrong});
+
+    }else if(type==='marks-vs-spaces'){
+      endpointLabelsOnly();
+      const intervals=Math.max(1,Math.floor((state.max-state.min)/state.step+1e-8)),marks=intervals+1;
+      state.challenge=challengeObject(type,'A pupil counts '+marks+' marks and says there are '+marks+' equal intervals. Are they correct?','No. There are '+intervals+' equal spaces (intervals). Count the spaces, not the marks.');
+
     }else{
       const count=Math.max(2,Math.floor((state.max-state.min)/state.step+1e-8)),candidates=[];
       for(let i=1;i<count;i++)if(i%state.labelEvery===0)candidates.push(cleanNumber(state.min+i*state.step));
@@ -866,6 +964,7 @@ function numberLineV2(){
       const shuffled=candidates.sort(()=>Math.random()-.5).slice(0,take);
       state.challenge=challengeObject('missing-labels','Fill in the missing number labels on the line.',shuffled.sort((x,y)=>x-y).map(fmt).join(', '),{hiddenTicks:shuffled});
     }
+
     state=normalise(state);challengeType=type;challengeCategory=template.category;challengeTab='standard';openGroups.add('challenge');renderAll();
   }
   function applyPreset(name){
