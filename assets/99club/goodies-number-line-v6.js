@@ -449,6 +449,7 @@ function numberLineV2(){
   }
   function challengeControlsHtml(){
     const ch=state.challenge;
+    const repeatStandard=!!(ch&&ch.mode==='standard'&&ch.type===challengeType);
     const tabs=`<div class="gd-challenge-tabs" role="tablist" aria-label="Challenge mode">
       <button type="button" class="gd-challenge-tab${challengeTab==='standard'?' is-active':''}" data-nl-challenge-tab="standard">Standard</button>
       <button type="button" class="gd-challenge-tab${challengeTab==='custom'?' is-active':''}" data-nl-challenge-tab="custom">Custom</button>
@@ -467,7 +468,7 @@ function numberLineV2(){
     return tabs+`
       ${picker}
       <div class="gd-row">
-        <button class="gd-btn gd-btn--primary" id="nl-generate" type="button">Generate challenge</button>
+        <button class="gd-btn gd-btn--primary" id="nl-generate" type="button">${repeatStandard?'Another like this':'Generate challenge'}</button>
         ${ch&&ch.mode!=='custom'?'<button class="gd-btn" id="nl-edit-challenge" type="button">Edit challenge</button>':''}
         ${ch&&ch.answer?'<button class="gd-btn" id="nl-reveal" type="button">'+(ch.revealed?'Hide answer':'Reveal answer')+'</button>':''}
         ${ch?'<button class="gd-btn" id="nl-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':''}
@@ -830,7 +831,9 @@ function numberLineV2(){
     </div>`;
   }
   function renderStage(){
-    const prompt=state.challenge?(CK?CK.bannerHtml(state.challenge):`<div class="nl-challenge-banner"><span>Challenge</span><strong>${esc(state.challenge.prompt)}</strong></div>`):'';
+    const challengeActions=state.challenge?.mode==='standard'&&CHALLENGE_TEMPLATES.some(t=>t.id===state.challenge.type)
+      ?[{action:'another',label:'Another like this'}]:[];
+    const prompt=state.challenge?(CK?CK.bannerHtml(state.challenge,{actions:challengeActions}):`<div class="nl-challenge-banner"><span>Challenge</span><strong>${esc(state.challenge.prompt)}</strong></div>`):'';
     q('#gd-stage').innerHTML=`<div class="nl-stage-wrap">${prompt}<div class="nl-export-frame">${buildSvg()}</div><p class="nl-drag-help">Drag a marker along its line to move it. Values snap to the chosen tick step.</p></div>${boardUiHtml()}`;
     stage.classList.toggle('is-board-active',boardActive());
     stage.classList.toggle('is-delete-mode',boardMode==='delete');
@@ -1285,8 +1288,11 @@ function numberLineV2(){
   });
 
   stage.addEventListener('click',e=>{
-    const b=e.target.closest('[data-board-action],[data-board-relation-type],[data-board-challenge],[data-board-marker-delete],[data-board-marker-show],[data-board-marker-side],[data-board-relation-delete],[data-board-relation-side]');
+    const b=e.target.closest('[data-challenge-action],[data-board-action],[data-board-relation-type],[data-board-challenge],[data-board-marker-delete],[data-board-marker-show],[data-board-marker-side],[data-board-relation-delete],[data-board-relation-side]');
     if(!b)return;
+    if(b.dataset.challengeAction==='another'&&state.challenge?.mode==='standard'){
+      generateChallenge(state.challenge.type);return;
+    }
     if(b.dataset.boardRelationType){
       if(boardLocked)return;
       boardRelationType=b.dataset.boardRelationType;boardMode='relation';boardFirstMarker=null;boardMenuOpen=false;
