@@ -26,8 +26,67 @@ setPanels(`${field('Numerator','<input class="gd-input" id="fd-n" type="range" m
 function geoboard(){let pts=[];const N=7,W=560,pad=55,step=(W-2*pad)/(N-1);function area(){if(pts.length<3)return 0;let a=0;for(let i=0;i<pts.length;i++){const p=pts[i],n=pts[(i+1)%pts.length];a+=p.x*n.y-n.x*p.y}return Math.abs(a)/2}function perim(){if(pts.length<2)return 0;let p=0;for(let i=0;i<pts.length;i++){const a=pts[i],b=pts[(i+1)%pts.length];p+=Math.hypot(a.x-b.x,a.y-b.y)}return p}function draw(){let grid='';for(let y=0;y<N;y++)for(let x=0;x<N;x++)grid+=`<circle cx="${pad+x*step}" cy="${pad+(N-1-y)*step}" r="5" fill="#b6c7ca" data-gp="${x},${y}"></circle>`;const poly=pts.length?`<polyline class="gd-poly" points="${pts.map(p=>`${pad+p.x*step},${pad+(N-1-p.y)*step}`).join(' ')}${pts.length>2?' '+(pad+pts[0].x*step)+','+(pad+(N-1-pts[0].y)*step):''}"></polyline>`:'';const sel=pts.map((p,i)=>`<circle class="gd-point" cx="${pad+p.x*step}" cy="${pad+(N-1-p.y)*step}" r="8"></circle><text x="${pad+p.x*step+10}" y="${pad+(N-1-p.y)*step-10}" font-size="12">${String.fromCharCode(65+i)}</text>`).join('');q('#gd-stage').innerHTML=`<div class="gd-vis gd-geo"><svg viewBox="0 0 ${W} ${W}">${poly}${grid}${sel}</svg><div class="gd-readout">Vertices: ${pts.length} · Perimeter ≈ ${perim().toFixed(2)} units · Area = ${area().toFixed(2)} square units</div></div>`;qa('[data-gp]',q('#gd-stage')).forEach(x=>x.onclick=()=>{const [px,py]=x.dataset.gp.split(',').map(Number);if(!pts.some(p=>p.x===px&&p.y===py))pts.push({x:px,y:py});draw()})}
 setPanels(`${btn('Undo last vertex','ge-undo')}${btn('Clear shape','ge-clear')}<p class="gd-help">Click grid points in order to make a polygon. Area uses square grid units.</p>`,'');q('#ge-undo').onclick=()=>{pts.pop();draw()};q('#ge-clear').onclick=()=>{pts=[];draw()};draw()}
 
-function mathsCanvas(){let tiles=[],next=1,drag=null;function draw(){q('#gd-stage').innerHTML=`<div class="gd-vis"><div class="gd-canvas" id="mc-canvas">${tiles.map(t=>`<div class="gd-tile${t.symbol?' symbol':''}" data-tile="${t.id}" style="left:${t.x}px;top:${t.y}px">${esc(t.text)}</div>`).join('')}</div></div>`;qa('[data-tile]',q('#gd-stage')).forEach(t=>{t.onpointerdown=e=>{t.setPointerCapture(e.pointerId);const model=tiles.find(x=>x.id==t.dataset.tile);drag={model,dx:e.clientX-t.getBoundingClientRect().left,dy:e.clientY-t.getBoundingClientRect().top,el:t};};t.onpointermove=e=>{if(!drag||drag.el!==t)return;const c=q('#mc-canvas').getBoundingClientRect();drag.model.x=clamp(e.clientX-c.left-drag.dx,0,c.width-t.offsetWidth);drag.model.y=clamp(e.clientY-c.top-drag.dy,0,c.height-t.offsetHeight);t.style.left=drag.model.x+'px';t.style.top=drag.model.y+'px'};t.onpointerup=()=>{drag=null}})}function add(text,symbol=false){tiles.push({id:next++,text,x:20+(tiles.length%8)*65,y:20+Math.floor(tiles.length/8)*65,symbol});draw()}
-setPanels(`<p class="gd-section-title">Add tiles</p><div class="gd-canvas-tools">${['1','2','3','4','5','10','100'].map(x=>`<button class="gd-btn" data-add="${x}">${x}</button>`).join('')}</div><div class="gd-canvas-tools">${['+','−','×','÷','=','<','>','?'].map(x=>`<button class="gd-btn" data-sym="${x}">${x}</button>`).join('')}</div>${field('Custom tile','<div class="gd-row"><input class="gd-input" id="mc-custom" placeholder="e.g. 24"><button class="gd-btn" id="mc-add">Add</button></div>')}${btn('Clear canvas','mc-clear')}<p class="gd-help">Drag tiles around the board to model number sentences, ordering or explanations.</p>`,'');qa('[data-add]',q('#gd-controls')).forEach(x=>x.onclick=()=>add(x.dataset.add));qa('[data-sym]',q('#gd-controls')).forEach(x=>x.onclick=()=>add(x.dataset.sym,true));q('#mc-add').onclick=()=>{const v=q('#mc-custom').value.trim();if(v){add(v);q('#mc-custom').value=''}};q('#mc-clear').onclick=()=>{tiles=[];draw()};draw()}
+function mathsCanvas(){
+const I=G.interaction;
+if(!I){q('#gd-stage').innerHTML='<p class="gd-empty">The interactive canvas could not start.</p>';return;}
+let tiles=[],next=1,grid=true,colourOpen=false,controller=null;
+const colours=['#cbe7e2','#f6cf79','#cfe0f6','#efcfd9','#dbcff2','#d5ead2','#f3d7c4','#ffffff'];
+function textColour(hex){const h=String(hex||'').replace('#','');if(!/^[0-9a-f]{6}$/i.test(h))return '#24343b';const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);return (r*299+g*587+b*114)/1000>155?'#24343b':'#ffffff'}
+function stateSnapshot(){return{tiles:JSON.parse(JSON.stringify(tiles)),next,grid}}
+function restoreState(value){tiles=Array.isArray(value?.tiles)?value.tiles:[];next=Math.max(1,num(value?.next,1));grid=value?.grid!==false;colourOpen=false}
+function selectedTile(id){return tiles.find(t=>String(t.id)===String(id))||null}
+function tileMarkup(t,selectedId){const selected=String(t.id)===String(selectedId),locked=!!t.locked;return '<div class="gd-tile gd-object-tile'+(t.symbol?' symbol':'')+(selected?' is-selected':'')+(locked?' is-locked':'')+'" data-gd-object="'+t.id+'" role="button" tabindex="0" aria-selected="'+(selected?'true':'false')+'" aria-label="'+esc(t.text)+(locked?' locked':'')+'" style="left:'+t.x+'px;top:'+t.y+'px;--gd-tile-fill:'+t.color+';--gd-tile-ink:'+textColour(t.color)+'">'+esc(t.text)+(locked?'<span class="gd-tile-lock" aria-hidden="true">⌑</span>':'')+'</div>'}
+function railMarkup(selected,meta){
+const undo=I.toolButton('undo','undo','Undo','',!meta?.canUndo);
+const redo=I.toolButton('redo','redo','Redo','',!meta?.canRedo);
+const gridButton=I.toolButton('grid','grid',grid?'Turn grid off':'Turn grid on',grid?'is-active':'',false);
+let object='';
+if(selected){
+object=I.toolButton('duplicate','duplicate','Duplicate tile','',false)+
+I.toolButton('colour','colour','Change tile colour',colourOpen?'is-active':'',selected.locked)+
+I.toolButton('lock',selected.locked?'unlock':'lock',selected.locked?'Unlock tile':'Lock tile',selected.locked?'is-active':'',false)+
+I.toolButton('delete','delete','Delete tile','is-danger',selected.locked);
+}
+const swatches=selected&&colourOpen&&!selected.locked?'<div class="gd-object-colours" role="group" aria-label="Tile colour">'+colours.map(col=>'<button type="button" data-gd-colour="'+col+'" aria-label="Use '+col+'" style="--swatch:'+col+'"></button>').join('')+'</div>':'';
+return '<div class="gd-object-ui"><div class="gd-object-rail'+(selected?' is-engaged':'')+'" aria-label="Canvas tools">'+object+(object?'<span class="gd-object-separator"></span>':'')+undo+redo+gridButton+'</div>'+swatches+'</div>'
+}
+function draw(selectedId,meta){
+const selected=selectedTile(selectedId);
+q('#gd-stage').innerHTML='<div class="gd-vis gd-object-workspace"><div class="gd-object-canvas-wrap"><div class="gd-canvas gd-object-canvas'+(grid?' has-grid':'')+'" id="mc-canvas" data-gd-canvas-bg tabindex="0" aria-label="Maths canvas. Tap a tile to select it and drag to move it.">'+tiles.map(t=>tileMarkup(t,selectedId)).join('')+'</div>'+railMarkup(selected,meta)+'</div><div class="gd-object-hint">'+(selected?(selected.locked?'Tile locked · use the lock icon to move or edit it again.':'Drag to move · the side tools duplicate, colour, lock or delete it.'):'Tap a tile to select it. Drag tiles directly around the board.')+'</div></div>'
+}
+function constrainTile(item,x,y,element,canvas){const el=element||canvas.querySelector('[data-gd-object="'+item.id+'"]');const w=el?.offsetWidth||52,h=el?.offsetHeight||52;return{x:clamp(x,0,Math.max(0,canvas.clientWidth-w)),y:clamp(y,0,Math.max(0,canvas.clientHeight-h))}}
+function duplicateTile(item){const canvas=q('#mc-canvas'),copy={...item,id:next++,locked:false};const w=canvas?.clientWidth||700,h=canvas?.clientHeight||420;copy.x=clamp((Number(item.x)||0)+40,0,Math.max(0,w-70));copy.y=clamp((Number(item.y)||0)+40,0,Math.max(0,h-60));tiles.push(copy);return copy}
+function add(text,symbol=false){let id=null;controller.mutate(()=>{id=next++;const canvas=q('#mc-canvas'),width=canvas?.clientWidth||700,cols=Math.max(1,Math.floor(Math.max(80,width-40)/80)),i=tiles.length,x=20+(i%cols)*80,y=20+Math.floor(i/cols)*80;tiles.push({id,text,x,y,symbol,locked:false,color:symbol?'#f6cf79':'#cbe7e2'})});controller.select(id)}
+function bindPalette(){
+qa('[data-mc-add]',q('#gd-controls')).forEach(x=>x.onclick=()=>add(x.dataset.mcAdd,false));
+qa('[data-mc-sym]',q('#gd-controls')).forEach(x=>x.onclick=()=>add(x.dataset.mcSym,true));
+q('#mc-add').onclick=()=>{const v=q('#mc-custom').value.trim();if(v){add(v,false);q('#mc-custom').value=''}};
+q('#mc-clear').onclick=()=>{if(!tiles.length)return;if(!window.confirm('Clear all tiles from this canvas?'))return;controller.mutate(()=>{tiles=[];colourOpen=false})};
+}
+setPanels('<p class="gd-section-title">Add tiles</p><div class="gd-canvas-tools">'+['1','2','3','4','5','10','100'].map(x=>'<button class="gd-btn gd-palette-tile" type="button" data-mc-add="'+x+'">'+x+'</button>').join('')+'</div><div class="gd-canvas-tools">'+['+','−','×','÷','=','<','>','?'].map(x=>'<button class="gd-btn gd-palette-tile is-symbol" type="button" data-mc-sym="'+x+'">'+x+'</button>').join('')+'</div>'+field('Custom tile','<div class="gd-row"><input class="gd-input" id="mc-custom" placeholder="e.g. 24"><button class="gd-btn" type="button" id="mc-add">Add</button></div>')+btn('Clear canvas','mc-clear')+'<p class="gd-help">Tap to add a tile, then work directly on the board. Select a tile for duplicate, colour, lock and delete. On a keyboard: arrows nudge, Delete removes, Ctrl/Cmd+D duplicates, Ctrl/Cmd+Z undoes.</p>','');
+controller=I.mount({
+getItems:()=>tiles,
+getState:stateSnapshot,
+setState:restoreState,
+getCanvas:()=>q('#mc-canvas'),
+getActionRoot:()=>q('#gd-stage'),
+render:draw,
+snap:()=>grid?20:1,
+nudgeStep:()=>grid?20:1,
+constrain:constrainTile,
+duplicate:duplicateTile,
+remove:item=>{tiles=tiles.filter(t=>t!==item);colourOpen=false},
+setColour:(item,colour)=>{item.color=colour;colourOpen=false},
+toggleLock:item=>{item.locked=!item.locked;colourOpen=false},
+onAction:(action,api)=>{
+if(action==='colour'){colourOpen=!colourOpen;api.refresh()}
+else if(action==='grid'){api.mutate(()=>{grid=!grid;colourOpen=false})}
+},
+onSelectionChange:item=>{if(!item)colourOpen=false}
+});
+bindPalette();
+controller.refresh();
+}
 
 Object.assign(G,{coordinateTool,measurementTool,randomiser,balanceTool,timesTableVisual,factorExplorer,fdpExplorer,geoboard,mathsCanvas});
 })(window.TT99Goodies);
