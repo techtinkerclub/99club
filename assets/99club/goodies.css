@@ -377,3 +377,27 @@ html.nl-board-page-lock,body.nl-board-page-lock{overflow:hidden!important;oversc
   .gd-ge-context{display:none!important}
   .gd-geoboard-direct .gd-ge-vertex{filter:none}
 }
+
+
+/* Goodies Coordinates: direct point editing */
+.gd-coordinate-direct{display:grid;gap:10px}
+.gd-coordinate-direct svg{display:block;width:min(100%,720px);height:auto;min-width:0!important;margin:auto;touch-action:pan-y}
+.gd-co-axis-label{font-size:11px;fill:#52666d}
+.gd-co-point{fill:var(--gd-teal);stroke:#fff;stroke-width:3;cursor:grab;touch-action:none;filter:drop-shadow(0 3px 5px rgba(31,61,69,.15))}
+.gd-co-point:active{cursor:grabbing}
+.gd-co-point:hover,.gd-co-point:focus-visible{stroke:#f6cf79;stroke-width:4;outline:none}
+.gd-co-point.is-selected{stroke:#f2b84b;stroke-width:5}
+.gd-co-point-label{font-size:12px;font-weight:850;fill:#344b53;pointer-events:none;user-select:none}
+.gd-co-context{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:42px;padding:8px 10px;border-radius:12px;background:#f5f8f8;color:#607278;font-size:.78rem}
+.gd-co-context button{border:1px solid #e1bcbc;border-radius:9px;background:#fff;color:#9b3f3f;padding:6px 9px;font:inherit;font-size:.72rem;font-weight:850;cursor:pointer;white-space:nowrap}
+.gd-co-context button:hover,.gd-co-context button:focus-visible{background:#fff1f1;outline:none}
+#co-undo:disabled,#co-redo:disabled,#co-clear:disabled{opacity:.42;cursor:default}
+@media(max-width:520px){
+  .gd-co-context{align-items:flex-start;flex-direction:column}
+  .gd-co-context button{align-self:flex-start}
+  .gd-co-point-label{font-size:11px}
+}
+@media print{
+  .gd-co-context{display:none!important}
+  .gd-coordinate-direct .gd-co-point{filter:none}
+}
