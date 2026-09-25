@@ -21,6 +21,8 @@ if(mode==='prepare'){
 </div>
 <script src="/assets/99club/goodies-core.js"></script>
 <script src="/assets/99club/goodies-interaction.js"></script>
+<script src="/assets/99club/goodies-challenge.js"></script>
+<script src="/assets/99club/goodies-number-line-v6.js"></script>
 <script src="/assets/99club/goodies-tools-a.js"></script>
 <script src="/assets/99club/goodies-tools-b.js"></script>
 <script>
@@ -39,6 +41,60 @@ if(mode==='prepare'){
     el.dataset.message=message||'';
     el.textContent=status+': '+(message||'');
   }
+  function testNumberLineChallenges(){
+    assert(window.TT99Goodies&&TT99Goodies.numberLine,'Number Line is registered');
+    assert(TT99Goodies.challengeKit&&TT99Goodies.challengeKit.editorHtml,'Shared challenge framework is registered');
+
+    TT99Goodies.numberLine();
+    assert(document.querySelectorAll('[data-nl-challenge-type]').length>=2,'Standard challenge cards are shown');
+    assert(document.querySelector('[data-nl-challenge-type="identify"]'),'Existing marked-number challenge remains available');
+
+    const intervalCat=document.querySelector('[data-nl-challenge-cat="read"]');
+    assert(intervalCat,'Read & scale challenge category exists');
+    const interval=document.querySelector('[data-nl-challenge-type="interval-value"]');
+    assert(interval,'Interval-value challenge exists');
+    interval.click();
+    document.getElementById('nl-generate').click();
+    assert(document.querySelector('.gd-challenge-banner'),'Generated standard challenge appears above the number line');
+    assert(document.querySelector('.gd-challenge-prompt').textContent.includes('interval'),'Generated interval challenge has contextual prompt');
+    assert(document.querySelector('.gd-challenge-reveal'),'Generated challenge exposes answer contextually');
+
+    document.querySelector('[data-nl-challenge-tab="custom"]').click();
+    assert(document.getElementById('nl-custom-title'),'Custom challenge exposes editable title');
+    assert(document.getElementById('nl-custom-prompt'),'Custom challenge exposes rich-text prompt editor');
+    assert(document.querySelector('[data-gd-rich-action="bold"]'),'Custom challenge exposes bold formatting');
+    assert(document.querySelector('[data-gd-rich-action="italic"]'),'Custom challenge exposes italic formatting');
+    assert(document.querySelector('[data-gd-rich-action="size-large"]'),'Custom challenge exposes text-size formatting');
+
+    const title=document.getElementById('nl-custom-title');
+    title.value='Explain your thinking';
+    title.dispatchEvent(new Event('input',{bubbles:true}));
+    const prompt=document.getElementById('nl-custom-prompt');
+    prompt.innerHTML='Why is <strong>this interval</strong> correct?';
+    prompt.dispatchEvent(new Event('input',{bubbles:true}));
+    assert(document.querySelector('.gd-challenge-banner h3').textContent==='Explain your thinking','Custom title appears on the challenge');
+    assert(document.querySelector('.gd-challenge-prompt strong').textContent==='this interval','Allowed rich text appears in the challenge');
+
+    const answer=document.getElementById('nl-custom-answer');
+    answer.value='Because the equal spaces have the same value.';
+    answer.dispatchEvent(new Event('input',{bubbles:true}));
+    document.getElementById('nl-reveal').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Because the equal spaces'),'Custom answer reveals contextually');
+
+    TT99Goodies.numberLine();
+    const markerCount=document.querySelectorAll('[data-marker-hit]').length;
+    document.querySelector('[data-nl-challenge-tab="custom"]').click();
+    assert(document.querySelectorAll('[data-marker-hit]').length===markerCount,'Starting a custom challenge preserves the current maths setup');
+
+    document.querySelector('[data-nl-challenge-tab="standard"]').click();
+    document.querySelector('[data-nl-challenge-cat="round"]').click();
+    const rounding=document.querySelector('[data-nl-challenge-type="rounding"]');
+    assert(rounding,'Rounding challenge is available');
+    rounding.click();
+    document.getElementById('nl-generate').click();
+    assert(document.querySelector('.gd-challenge-prompt').textContent.includes('nearest'),'Rounding challenge generates a rounding prompt');
+  }
+
   function testMathsCanvas(){
     assert(window.TT99Goodies&&TT99Goodies.mathsCanvas,'Maths Canvas is registered');
     assert(TT99Goodies.interaction&&TT99Goodies.interaction.mount,'Interaction controller is registered');
@@ -270,12 +326,13 @@ if(mode==='prepare'){
   window.addEventListener('load',function(){
     setTimeout(function(){
       try{
+        testNumberLineChallenges();
         testMathsCanvas();
         testPlaceValue();
         testFractions();
         testGeoboard();
         testCoordinates();
-        result('pass','Maths Canvas, Place Value, Fraction Wall, Geoboard and Coordinates interactions work');
+        result('pass','Number Line challenges, Maths Canvas, Place Value, Fraction Wall, Geoboard and Coordinates interactions work');
       }catch(err){
         result('fail',err&&err.message?err.message:String(err));
       }
