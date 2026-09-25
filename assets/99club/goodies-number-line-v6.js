@@ -809,7 +809,7 @@ function numberLineV2(){
   function clearChallenge(){
     if(beforeChallenge){state=normalise(copy(beforeChallenge));beforeChallenge=null}
     else state.challenge=null;
-    challengeTab='standard';
+    challengeTab='standard';exportMode='diagram';
     renderAll();
   }
   function enterCustomChallenge(){
@@ -822,7 +822,7 @@ function numberLineV2(){
     }else if(!state.challenge){
       state.challenge={mode:'custom',type:'custom',title:'Challenge',prompt:'Write your challenge here.',answer:'',answerMode:'manual',revealed:false,hiddenTicks:[],hiddenMarkerIds:[],hiddenRelationIds:[]};
     }
-    challengeTab='custom';openGroups.add('challenge');renderAll();
+    challengeTab='custom';controlTab='challenge';exportMode='challenge';openGroups.add('challenge');renderAll();
   }
   function generateChallenge(type){
     const template=challengeTemplateList().find(t=>t.id===type&&!t.disabled);
@@ -1001,7 +1001,7 @@ function numberLineV2(){
       state.challenge=challengeObject('missing-labels','Fill in the missing number labels on the line.',shuffled.sort((x,y)=>x-y).map(fmt).join(', '),{hiddenTicks:shuffled});
     }
 
-    state=normalise(state);challengeType=type;challengeCategory=template.category;challengeTab='standard';openGroups.add('challenge');renderAll();
+    state=normalise(state);challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';exportMode='challenge';responseLines=template.category==='reason'?3:1;openGroups.add('challenge');renderAll();
   }
   function applyPreset(name){
     beforeChallenge=null;state.challenge=null;
@@ -1011,16 +1011,45 @@ function numberLineV2(){
     if(name==='decimal'){state.min=0;state.max=1;state.step=.1;state.labelEvery=1}
     state.lines.forEach(line=>line.markers.forEach(m=>m.value=snap(m.value,state)));renderAll();
   }
-  function exportName(){return state.title||('number-line-'+fmt(state.min)+'-to-'+fmt(state.max))}
+  function exportName(){
+    const ch=state.challenge;
+    if(exportMode==='challenge'&&ch)return ch.title||state.title||'number-line-challenge';
+    return state.title||('number-line-'+fmt(state.min)+'-to-'+fmt(state.max));
+  }
   function svg(){return q('#nl-svg')}
+  function pupilDiagramSvg(){
+    if(!state.challenge)return svg();
+    const previous=state.challenge.revealed;
+    state.challenge.revealed=false;
+    const markup=buildSvg();
+    state.challenge.revealed=previous;
+    const holder=document.createElement('div');holder.innerHTML=markup;
+    return holder.querySelector('svg');
+  }
+  function exportSvg(){
+    if(exportMode!=='challenge'||!state.challenge||!X?.composeChallengeCardSvg)return svg();
+    const ch=state.challenge,prompt=CK?CK.plainText(ch.promptHtml||ch.prompt||''):ch.prompt||'';
+    return X.composeChallengeCardSvg(pupilDiagramSvg(),{
+      title:ch.title||state.title||'Challenge',
+      prompt,
+      responseLabel:ch.category==='reason'?'Explain your thinking':'Answer',
+      responseLines,
+      brand:'99 Club Studio'
+    });
+  }
   async function exportAction(kind){
     try{
       if(!X)throw new Error('Export tools are not available.');
-      if(kind==='copy'){await X.copyPng(svg());message('Image copied — paste it into your slide or document.')}
-      if(kind==='png'){await X.downloadPng(svg(),exportName(),2);message('PNG downloaded.')}
-      if(kind==='svg'){X.downloadSvg(svg(),exportName());message('SVG downloaded.')}
-      if(kind==='print'){const ch=state.challenge;const prompt=ch?(CK?CK.plainText(ch.promptHtml||ch.prompt||''):ch.prompt||''):'';const title=ch?.title||state.title||'Number line';X.printSvg(svg(),{title,prompt,answer:ch?.answer||'',showAnswer:!!ch?.revealed,landscape:true});message('Print view opened. Choose “Save as PDF” in the print dialog.')}
-      if(kind==='link'){const u=new URL(location.href);u.searchParams.set('nl',encodeState(state));u.hash='number-line';await X.copyText(u.toString());message('Setup link copied. It will reopen this number line exactly as shown.')}
+      if(kind==='link'){const u=new URL(location.href);u.searchParams.set('nl',encodeState(state));u.hash='number-line';await X.copyText(u.toString());message('Setup link copied. It will reopen this number line exactly as shown.');return}
+      const target=exportSvg(),isCard=exportMode==='challenge'&&!!state.challenge;
+      if(kind==='copy'){await X.copyPng(target);message(isCard?'Challenge copied — paste it into your worksheet, slide or document.':'Image copied — paste it into your slide or document.')}
+      if(kind==='png'){await X.downloadPng(target,exportName(),2);message(isCard?'Challenge PNG downloaded.':'PNG downloaded.')}
+      if(kind==='svg'){X.downloadSvg(target,exportName());message(isCard?'Challenge SVG downloaded.':'SVG downloaded.')}
+      if(kind==='print'){
+        if(isCard)X.printSvg(target,{title:'',landscape:true});
+        else X.printSvg(target,{title:state.title||'Number line',landscape:true});
+        message('Print view opened. Choose “Save as PDF” in the print dialog.');
+      }
     }catch(err){message(err?.message||'That export did not work.',true)}
   }
 
@@ -1054,6 +1083,7 @@ function numberLineV2(){
     const t=e.target;
     if(['nl-min','nl-max','nl-step','nl-label-every'].includes(t.id)){state=normalise(state);renderAll();return}
     if(t.id==='nl-active-line'){state.activeLineId=t.value;renderControls();renderStage();return}
+    if(t.id==='nl-response-lines'){responseLines=clamp(Math.round(num(t.value,1)),1,4);renderControls();return}
   });
 
   controls.addEventListener('pointerdown',e=>{
@@ -1061,6 +1091,9 @@ function numberLineV2(){
   });
   controls.addEventListener('click',e=>{
     const b=e.target.closest('button');if(!b)return;const line=activeLine();
+    if(b.dataset.nlWorkflow){controlTab=b.dataset.nlWorkflow;renderControls();return}
+    if(b.dataset.nlObjectTab){objectTab=b.dataset.nlObjectTab;renderControls();return}
+    if(b.dataset.nlExportMode){exportMode=b.dataset.nlExportMode==='challenge'&&state.challenge?'challenge':'diagram';renderControls();return}
     if(b.dataset.nlChallengeTab){
       if(b.dataset.nlChallengeTab==='custom'){enterCustomChallenge();return}
       challengeTab='standard';renderControls();return;
@@ -1095,7 +1128,7 @@ function numberLineV2(){
       }else enterBoardFallback();
       return;
     }
-    if(b.id==='nl-reset'){beforeChallenge=null;state=normalise(DEFAULT_STATE);renderAll();return}
+    if(b.id==='nl-reset'){beforeChallenge=null;state=normalise(DEFAULT_STATE);controlTab='setup';objectTab='markers';exportMode='diagram';renderAll();return}
   });
 
   stage.addEventListener('click',e=>{
