@@ -15,6 +15,14 @@ Google Consent Mode starts with analytics storage denied. Analytics storage is g
 
 GA4 is deliberately **not loaded inside the public embedded school widget** or the stripped parent-practice pages.
 
+### Required web-stream page-view setting
+
+99 Club Studio sends its own consented `page_view` event with a sanitised `page_location` (origin + pathname only) and a sanitised `page_referrer` (same-site origin + pathname, or external origin only).
+
+In the GA4 web stream, keep Enhanced Measurement available for useful events such as scrolls, but under **Page views → Show advanced settings**, turn **Page changes based on browser history events** off. Google otherwise sends additional automatic `page_view` events for `pushState`, `popState` and `replaceState`, which can expose game/share query parameters in GA4 despite the app's manual page-view sanitisation.
+
+This stream-side setting is required in addition to `send_page_view: false` in the site code.
+
 ### Shared product-event context
 
 Where available, teacher-facing events can include:
