@@ -920,7 +920,7 @@ function numberLineV2(){
           <label>Line label <input data-board-line-label value="${esc(line.label)}" maxlength="30" placeholder="optional"></label>
           <div class="nl-board-section"><b>Markers</b>${boardMarkerRows()}</div>
           <div class="nl-board-section"><b>Relationships</b>${boardRelationRows()}</div>
-          <div class="nl-board-more-actions"><button type="button" data-board-action="add-marker"${boardLocked?' disabled':''}>＋ Marker</button><button type="button" data-board-action="add-line"${boardLocked||state.lines.length>=4?' disabled':''}>＋ Line</button>${state.lines.length>1?`<button type="button" class="is-danger" data-board-action="delete-line"${boardLocked?' disabled':''}>Delete line</button>`:''}</div>
+          <div class="nl-board-more-actions"><button type="button" data-board-action="add-marker"${boardLocked?' disabled':''}>＋ Marker</button><button type="button" data-board-action="add-line"${boardLocked||state.lines.length>=4?' disabled':''}>＋ Line</button>${state.lines.indexOf(line)>0?`<button type="button" class="is-danger" data-board-action="delete-line"${boardLocked?' disabled':''}>Delete line</button>`:''}</div>
         </div>`:''}
       </div>
     </div>`;
@@ -1407,7 +1407,7 @@ function numberLineV2(){
   });
 
   controls.addEventListener('change',e=>{
-    const t=e.target;
+    const t=e.target,line=activeLine();
     if(['nl-min','nl-max','nl-step','nl-label-every','nl-line-min','nl-line-max','nl-line-step','nl-line-label-every'].includes(t.id)){state=normalise(state);renderAll();return}
     if(t.id==='nl-active-line'){state.activeLineId=t.value;renderControls();renderStage();return}
     if(t.id==='nl-zoom-follow'&&line.scaleMode==='zoom'){
