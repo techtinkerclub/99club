@@ -150,7 +150,7 @@ function prepare(){
         if(!P||!I||typeof I.render!=='function'||typeof I.has!=='function')return fail('game-icons','shared SVG icon system is missing');
         const list=P.gameList||[],missing=list.filter(a=>!I.has(a.id)).map(a=>a.id);
         if(missing.length)fail('game-icons','missing SVG icons for: '+missing.join(', '));
-        if(list.length!==40)warn('game-icons','icon audit expected 40 registered games; runtime has '+list.length);
+        if(list.length!==41)fail('game-icons','icon audit expected 41 registered games; runtime has '+list.length);
         const header=document.getElementById('tt99-play-current-icon'),headerSvg=header?.querySelector('.tt99-game-icon-svg');
         if(!headerSvg)fail('game-icons','current-game header is not using the shared SVG renderer');
 
