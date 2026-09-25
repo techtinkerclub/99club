@@ -73,7 +73,7 @@ sitemap: true
           <h2>Choose games without losing track of the library</h2>
           <p>The library is organised into accordion categories: <strong>Vocabulary &amp; language</strong>, <strong>Number patterns &amp; structures</strong>, <strong>Arithmetic &amp; calculation</strong>, <strong>Algebra &amp; relationships</strong>, and <strong>Number logic &amp; grids</strong>.</p>
           <div class="tt99-guide-family-grid">
-            <article><h3>Vocabulary &amp; language</h3><p>Maths Word Search and Maths Crossword use the curated maths vocabulary catalogue. Word Search can use words + definitions or definitions only; multi-word Crossword answers show their word lengths.</p></article>
+            <article><h3>Vocabulary &amp; language</h3><p>Maths Word Search and Maths Crossword use the curated maths vocabulary catalogue. Word Search can use words + definitions or definitions only, with automatic or teacher-selected directions; multi-word Crossword answers show their word lengths.</p></article>
             <article><h3>Number patterns &amp; structures</h3><p>Pyramids, magic-number activities, arithmagons, number trails and wheels practise arithmetic relationships, inverse reasoning and patterns.</p></article>
             <article><h3>Arithmetic &amp; calculation</h3><p>Mazes, crossnumbers, number searches, equation grids, target challenges, calculator puzzles, Kakuro, arithmetic cages and Sumplete turn calculation into compact puzzles.</p></article>
             <article><h3>Algebra &amp; relationships</h3><p>Symbol equations, function machines, balance puzzles and Alphametics use unknowns, equality, inverse operations and digit reasoning.</p></article>
