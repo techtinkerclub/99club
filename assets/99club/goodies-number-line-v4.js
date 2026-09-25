@@ -462,6 +462,7 @@ function numberLineV2(){
       <input class="nl-board-colour" type="color" value="${esc(m.color)}" data-board-marker-color="${esc(m.id)}" aria-label="Marker colour">
       <input class="nl-board-label" value="${esc(m.label)}" maxlength="12" data-board-marker-label="${esc(m.id)}" aria-label="Marker label">
       <input class="nl-board-value" type="number" step="${state.step}" min="${state.min}" max="${state.max}" value="${fmt(m.value)}" data-board-marker-value="${esc(m.id)}" aria-label="Marker value">
+      <button class="nl-board-mini" type="button" data-board-marker-show="${esc(m.id)}" aria-label="Show or hide marker value">${m.showValue?'◉':'○'}</button>
       <button class="nl-board-mini" type="button" data-board-marker-side="${esc(m.id)}">${m.side==='above'?'↑':'↓'}</button>
       <button class="nl-board-mini nl-board-delete" type="button" data-board-marker-delete="${esc(m.id)}" aria-label="Delete marker">×</button>
     </div>`).join('')||'<div class="nl-board-empty">No markers on this line.</div>';
@@ -470,7 +471,7 @@ function numberLineV2(){
     const line=activeLine();
     return line.relations.map(r=>{
       const a=line.markers.find(m=>m.id===r.from),b=line.markers.find(m=>m.id===r.to);
-      return `<div class="nl-board-rel"><span>${esc(a?.label||r.from)} → ${esc(b?.label||r.to)} · ${esc(r.type)}</span><button class="nl-board-mini" type="button" data-board-relation-side="${esc(r.id)}">${r.side==='above'?'↑':'↓'}</button><button class="nl-board-mini nl-board-delete" type="button" data-board-relation-delete="${esc(r.id)}">×</button></div>`;
+      return `<div class="nl-board-rel"><span>${esc(a?.label||r.from)} → ${esc(b?.label||r.to)}</span><select data-board-relation-type-edit="${esc(r.id)}"><option value="difference"${r.type==='difference'?' selected':''}>Difference</option><option value="jump"${r.type==='jump'?' selected':''}>Jump</option><option value="interval"${r.type==='interval'?' selected':''}>Interval</option></select><input class="nl-board-colour" type="color" value="${esc(r.color)}" data-board-relation-color="${esc(r.id)}" aria-label="Relationship colour"><button class="nl-board-mini" type="button" data-board-relation-side="${esc(r.id)}">${r.side==='above'?'↑':'↓'}</button><button class="nl-board-mini nl-board-delete" type="button" data-board-relation-delete="${esc(r.id)}">×</button></div>`;
     }).join('')||'<div class="nl-board-empty">No relationships on this line.</div>';
   }
   function boardUiHtml(){
@@ -496,6 +497,7 @@ function numberLineV2(){
         ${boardMoreOpen?`<div class="nl-board-more">
           <div class="nl-board-more-head"><strong>Quick edit</strong><button type="button" data-board-action="exit">Exit board</button></div>
           <label>Editing <select data-board-line-select>${lineOptions}</select></label>
+          <label>Line label <input data-board-line-label value="${esc(line.label)}" maxlength="30" placeholder="optional"></label>
           <div class="nl-board-section"><b>Markers</b>${boardMarkerRows()}</div>
           <div class="nl-board-section"><b>Relationships</b>${boardRelationRows()}</div>
           <div class="nl-board-more-actions"><button type="button" data-board-action="add-marker"${boardLocked?' disabled':''}>＋ Marker</button><button type="button" data-board-action="add-line"${boardLocked||state.lines.length>=4?' disabled':''}>＋ Line</button>${state.lines.length>1?`<button type="button" class="is-danger" data-board-action="delete-line"${boardLocked?' disabled':''}>Delete line</button>`:''}</div>
@@ -632,8 +634,8 @@ function numberLineV2(){
     id=t.dataset.markerColor;if(id){const m=line.markers.find(x=>x.id===id);if(m){m.color=t.value;renderStage()}return}
     id=t.dataset.markerSide;if(id){const m=line.markers.find(x=>x.id===id);if(m){m.side=t.value==='below'?'below':'above';renderStage()}return}
     id=t.dataset.markerShow;if(id){const m=line.markers.find(x=>x.id===id);if(m){m.showValue=t.checked;renderStage()}return}
-    id=t.dataset.relationFrom;if(id){const r=line.relations.find(x=>x.id===id);if(r){r.from=t.value;if(r.from===r.to){const other=line.markers.find(m=>m.id!==r.from);if(other){r.to=other.id;const otherSelect=controls.querySelector('[data-relation-to="'+CSS.escape(id)+'"]');if(otherSelect)otherSelect.value=r.to}}renderStage()}return}
-    id=t.dataset.relationTo;if(id){const r=line.relations.find(x=>x.id===id);if(r){r.to=t.value;if(r.from===r.to){const other=line.markers.find(m=>m.id!==r.to);if(other){r.from=other.id;const otherSelect=controls.querySelector('[data-relation-from="'+CSS.escape(id)+'"]');if(otherSelect)otherSelect.value=r.from}}renderStage()}return}
+    id=t.dataset.relationFrom;if(id){const r=line.relations.find(x=>x.id===id);if(r){r.from=t.value;if(r.from===r.to){const other=line.markers.find(m=>m.id!==r.from);if(other){r.to=other.id;const otherSelect=controls.querySelector('[data-relation-to="'+CSS.escape(id)+'"]');if(otherSelect)otherSelect.value=r.to}}updateChallengeAnswer();renderStage()}return}
+    id=t.dataset.relationTo;if(id){const r=line.relations.find(x=>x.id===id);if(r){r.to=t.value;if(r.from===r.to){const other=line.markers.find(m=>m.id!==r.to);if(other){r.from=other.id;const otherSelect=controls.querySelector('[data-relation-from="'+CSS.escape(id)+'"]');if(otherSelect)otherSelect.value=r.from}}updateChallengeAnswer();renderStage()}return}
     id=t.dataset.relationType;if(id){const r=line.relations.find(x=>x.id===id);if(r){r.type=t.value;renderStage()}return}
     id=t.dataset.relationSide;if(id){const r=line.relations.find(x=>x.id===id);if(r){r.side=t.value==='below'?'below':'above';renderStage()}return}
     id=t.dataset.relationColor;if(id){const r=line.relations.find(x=>x.id===id);if(r){r.color=t.value;renderStage()}return}
@@ -669,7 +671,7 @@ function numberLineV2(){
   });
 
   stage.addEventListener('click',e=>{
-    const b=e.target.closest('[data-board-action],[data-board-relation-type],[data-board-challenge],[data-board-marker-delete],[data-board-marker-side],[data-board-relation-delete],[data-board-relation-side]');
+    const b=e.target.closest('[data-board-action],[data-board-relation-type],[data-board-challenge],[data-board-marker-delete],[data-board-marker-show],[data-board-marker-side],[data-board-relation-delete],[data-board-relation-side]');
     if(!b)return;
     if(b.dataset.boardRelationType){
       if(boardLocked)return;
@@ -681,6 +683,9 @@ function numberLineV2(){
     const line=activeLine();
     if(b.dataset.boardMarkerDelete){
       if(boardLocked)return;remember();line.markers=line.markers.filter(m=>m.id!==b.dataset.boardMarkerDelete);line.relations=line.relations.filter(r=>r.from!==b.dataset.boardMarkerDelete&&r.to!==b.dataset.boardMarkerDelete);updateChallengeAnswer();renderAll();return;
+    }
+    if(b.dataset.boardMarkerShow){
+      if(boardLocked)return;remember();const m=line.markers.find(x=>x.id===b.dataset.boardMarkerShow);if(m)m.showValue=!m.showValue;renderAll();return;
     }
     if(b.dataset.boardMarkerSide){
       if(boardLocked)return;remember();const m=line.markers.find(x=>x.id===b.dataset.boardMarkerSide);if(m)m.side=m.side==='above'?'below':'above';renderAll();return;
@@ -708,9 +713,12 @@ function numberLineV2(){
   stage.addEventListener('change',e=>{
     const t=e.target,line=activeLine();
     if(t.matches('[data-board-line-select]')){state.activeLineId=t.value;renderAll();return}
+    if(t.matches('[data-board-line-label]')){remember();line.label=t.value.slice(0,30);renderAll();return}
     let id=t.dataset.boardMarkerLabel;if(id){remember();const m=line.markers.find(x=>x.id===id);if(m)m.label=t.value.slice(0,12);renderAll();return}
     id=t.dataset.boardMarkerValue;if(id){remember();const m=line.markers.find(x=>x.id===id);if(m)m.value=snap(num(t.value,m.value),state);updateChallengeAnswer();renderAll();return}
     id=t.dataset.boardMarkerColor;if(id){remember();const m=line.markers.find(x=>x.id===id);if(m)m.color=t.value;renderAll();return}
+    id=t.dataset.boardRelationTypeEdit;if(id){remember();const r=line.relations.find(x=>x.id===id);if(r)r.type=t.value;updateChallengeAnswer();renderAll();return}
+    id=t.dataset.boardRelationColor;if(id){remember();const r=line.relations.find(x=>x.id===id);if(r)r.color=t.value;renderAll();return}
   });
   document.addEventListener('fullscreenchange',()=>{
     if(document.fullscreenElement!==stage){boardMenuOpen=false;boardMoreOpen=false;boardChallengeOpen=false;boardMode=null;boardFirstMarker=null;boardLocked=false;renderStage()}
