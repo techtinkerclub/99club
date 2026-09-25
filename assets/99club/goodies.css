@@ -52,3 +52,18 @@
 @media(max-width:1050px){.gd-workspace:has(#nl-controls){grid-template-columns:1fr}.nl-export-frame svg{min-width:620px}}
 @media(max-width:560px){.nl-two{grid-template-columns:1fr}.nl-marker-row{grid-template-columns:34px 1fr 1fr 30px}.nl-marker-row .nl-mini-check{grid-column:2/4}.nl-preset-row,.nl-export-grid{grid-template-columns:1fr 1fr}.nl-export-frame svg{min-width:610px}}
 @media print{.nl-drag-help{display:none!important}.nl-challenge-banner{border:0;background:#fff;padding-left:0}.nl-export-frame svg{min-width:0!important}}
+
+
+/* Number line review refinements: compact marker/helper positioning + comparison lines */
+.gd-workspace:has(#nl-controls){grid-template-columns:minmax(430px,520px) minmax(0,1fr)}
+.nl-marker-row{grid-template-columns:36px minmax(52px,.65fr) minmax(74px,.9fr) minmax(76px,.8fr) auto 30px}
+.nl-marker-row .nl-side{padding:7px 6px;font-size:.78rem}
+.nl-relation-row .nl-side{flex:0 1 88px}
+.nl-group-body>.gd-field>.gd-select#nl-active-line{font-weight:750}
+.nl-export-frame svg{transition:height .12s ease}
+#gd-stage:fullscreen .nl-stage-wrap{width:min(1500px,96vw);margin:auto}
+#gd-stage:fullscreen .nl-export-frame svg{max-height:82vh;width:100%}
+@media(max-width:650px){
+  .nl-marker-row{grid-template-columns:34px 1fr 1fr 78px 30px}
+  .nl-marker-row .nl-mini-check{grid-column:2/5}
+}
