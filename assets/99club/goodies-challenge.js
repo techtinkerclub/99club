@@ -115,11 +115,15 @@ function bannerHtml(challenge,opts={}){
     ?`<button class="nl-challenge-reveal gd-challenge-reveal" type="button" data-board-action="reveal">${ch.revealed?'Hide answer':'Reveal answer'}</button>`
     :'';
   return `<div class="nl-challenge-banner gd-challenge-banner" data-challenge-mode="${ch.mode}">
-    <span>${esc(label)}</span>
-    ${ch.title?`<h3>${esc(ch.title)}</h3>`:''}
-    <div class="gd-challenge-prompt">${ch.promptHtml}</div>
-    ${ch.revealed&&ch.answer?`<em>Answer: ${esc(ch.answer)}</em>`:''}
-    ${answerButton}
+    <span class="gd-challenge-kicker">${esc(label)}</span>
+    <div class="gd-challenge-copy">
+      ${ch.title?`<h3>${esc(ch.title)}</h3>`:''}
+      <div class="gd-challenge-prompt">${ch.promptHtml}</div>
+    </div>
+    <div class="gd-challenge-actions">
+      ${ch.revealed&&ch.answer?`<em>Answer: ${esc(ch.answer)}</em>`:''}
+      ${answerButton}
+    </div>
   </div>`;
 }
 
