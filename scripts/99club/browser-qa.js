@@ -144,6 +144,40 @@ function prepare(){
         if(seen.size<5)fail('alphametics','New puzzle seeds are not producing enough word-puzzle variety ('+seen.size+' distinct)');else pass('alphametics','full library loaded and '+seen.size+' standard puzzles sampled');
       }catch(e){fail('alphametics',(e&&e.stack)||String(e));}
     }
+    async function gameIconSystemTest(){
+      try{
+        const P=window.TT99GamesPlay,I=window.TT99GameIcons,root=document.getElementById('tt99-play-root');
+        if(!P||!I||typeof I.render!=='function'||typeof I.has!=='function')return fail('game-icons','shared SVG icon system is missing');
+        const list=P.gameList||[],missing=list.filter(a=>!I.has(a.id)).map(a=>a.id);
+        if(missing.length)fail('game-icons','missing SVG icons for: '+missing.join(', '));
+        if(list.length!==40)warn('game-icons','icon audit expected 40 registered games; runtime has '+list.length);
+        const header=document.getElementById('tt99-play-current-icon'),headerSvg=header?.querySelector('.tt99-game-icon-svg');
+        if(!headerSvg)fail('game-icons','current-game header is not using the shared SVG renderer');
+
+        const probe=document.createElement('span');
+        probe.className='tt99-play-game-icon';
+        probe.style.cssText='position:absolute;left:-10000px;top:0;width:64px;height:64px;visibility:hidden;';
+        root.appendChild(probe);
+        let structuralBad=[],overflow=[];
+        for(const a of list){
+          probe.innerHTML=I.render(a.id);
+          const svg=probe.querySelector('svg'),pr=probe.getBoundingClientRect(),sr=svg?.getBoundingClientRect();
+          if(!svg||svg.getAttribute('viewBox')!=='0 0 24 24'||svg.querySelector('text')){structuralBad.push(a.id);continue;}
+          if(sr&&(sr.width>pr.width+1||sr.height>pr.height+1||sr.left<pr.left-1||sr.right>pr.right+1||sr.top<pr.top-1||sr.bottom>pr.bottom+1))overflow.push(a.id);
+        }
+        probe.remove();
+        if(structuralBad.length)fail('game-icons','non-standard SVG structure: '+structuralBad.join(', '));
+        if(overflow.length)fail('game-icons','icons escape their badge: '+overflow.join(', '));
+
+        const library=document.getElementById('tt99-play-library'),open=document.getElementById('tt99-play-change-game'),grid=document.getElementById('tt99-play-library-grid');
+        if(library?.hidden)open?.click();
+        await sleep(80);
+        const cards=[...(grid?.querySelectorAll('[data-game-id]')||[])],fallback=cards.filter(card=>!card.querySelector('.tt99-game-icon-svg')||card.querySelector('.tt99-game-icon-fallback'));
+        if(cards.length!==list.length)fail('game-icons','game picker rendered '+cards.length+' icon cards for '+list.length+' games');
+        if(fallback.length)fail('game-icons','game picker fell back to legacy glyphs for: '+fallback.map(c=>c.dataset.gameId).join(', '));
+        if(!missing.length&&!structuralBad.length&&!overflow.length&&!fallback.length&&cards.length===list.length)pass('game-icons',list.length+' coherent SVG icons verified in header and game picker');
+      }catch(e){fail('game-icons',(e&&e.stack)||String(e));}
+    }
     async function groupedLibraryTest(){
       try{
         const open=document.getElementById('tt99-play-change-game'),search=document.getElementById('tt99-play-library-search'),grid=document.getElementById('tt99-play-library-grid');
@@ -436,7 +470,7 @@ function prepare(){
       }catch(e){fail('completion-splash',(e&&e.stack)||String(e));}
     }
     async function run(){
-      try{await sleep(500);await initialInstructionStatusTest();await safeFitLayoutTest();await genericAdapterTests();await brokenCalcTest();await colourFillTest();await perimeterDirectTest();await alphameticsVarietyTest();await groupedLibraryTest();await sudokuLatinClarityTest();await crosswordKeyboardTest();await drawerTest();await sumGridContainmentTest();await hintPopupTest();await answerRevealFlowTest();await paperExportEntryTest();await completionShareEntryTest();await sharePanelTest();await completionSplashFitTest();await searchDirectionInstructionTest();}
+      try{await sleep(500);await initialInstructionStatusTest();await safeFitLayoutTest();await genericAdapterTests();await brokenCalcTest();await colourFillTest();await perimeterDirectTest();await alphameticsVarietyTest();await groupedLibraryTest();await gameIconSystemTest();await sudokuLatinClarityTest();await crosswordKeyboardTest();await drawerTest();await sumGridContainmentTest();await hintPopupTest();await answerRevealFlowTest();await paperExportEntryTest();await completionShareEntryTest();await sharePanelTest();await completionSplashFitTest();await searchDirectionInstructionTest();}
       catch(e){fail('runner',(e&&e.stack)||String(e));}
       finally{finish();}
     }
