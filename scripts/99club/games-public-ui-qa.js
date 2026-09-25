@@ -22,6 +22,7 @@ const parentPage=syntax('assets/99club/games-parent-practice-page.js');
 const parentShare=syntax('assets/99club/games-parent-practice.js');
 const builder=syntax('assets/99club/widget-builder.js');
 const runtime=syntax('assets/99club/widget-runtime.js');
+const playCore=syntax('assets/99club/games-play-core-v2.js');
 
 check(!/From year|To year|Outside the selected year range|yearRangeLabel\(/i.test(app),'Games setup has no teacher-facing Year range control or label');
 check(!/Auto for year(?:\/difficulty|\/topic)?/i.test(app),'Games option labels do not describe automatic settings by Year');
@@ -41,6 +42,9 @@ check(!/\bminYear\b|\bmaxYear\b/.test(compactShare),'new Games parent links do n
 check(parentShare.includes("minYear:row?.[3],maxYear:row?.[4]"),'older parent links remain decodable for backwards compatibility');
 check(!/data-widget-type|Combined Maths Widget|Combined widget/i.test(builder)&&builder.includes('BUILDER_MODE'),'widget builder is locked to separate Club/Games modes');
 check(builder.includes('data-pack-title')&&runtime.includes("p.title||'Maths puzzle pack'"),'Games widget uses teacher-editable puzzle-pack display names');
+check(builder.includes('integration_id:W.cleanIntegrationId?.(draft.integrationId)||undefined'),'Widget builder analytics includes the opaque integration ID');
+check(/function startTimer\(\)\{if\(state\.started\|\|state\.finished\|\|state\.paused\)return;/.test(playCore),'Online Play analytics timer starts on first interaction in both modes');
+check(/duration_seconds:Math\.round\(time\/1000\)/.test(playCore),'Online Play completion telemetry keeps duration_seconds');
 check(!/p\.minYear|p\.maxYear|Year ['"+]/.test(runtime),'widget runtime does not derive puzzle labels from Year ranges');
 
 const schoolGuide=read('_pages/99-club-schools.md');

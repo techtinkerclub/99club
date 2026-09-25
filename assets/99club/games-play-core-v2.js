@@ -37,7 +37,7 @@ function gameList(){return [...adapters.values()].sort((a,b)=>(a.order??99)-(b.o
 const state={adapter:null,config:null,seed:'',puzzle:null,view:null,history:[],redo:[],snapshot:null,mode:'relaxed',started:false,paused:false,startAt:0,elapsed:0,timerId:0,hints:0,finished:false,revealed:false,completion:null,libraryOpen:false};
 let hintPopupPos=null,hintDrag=null,hintSuppressClick=false,analyticsPuzzleKey='';
 function timerMs(){return state.elapsed+(state.started&&!state.paused&&!state.finished?(performance.now()-state.startAt):0);}
-function startTimer(){if(state.mode!=='challenge'||state.started||state.finished||state.paused)return;state.started=true;state.startAt=performance.now();tick();}
+function startTimer(){if(state.started||state.finished||state.paused)return;state.started=true;state.startAt=performance.now();tick();}
 function stopTimer(){if(state.started&&!state.paused)state.elapsed+=performance.now()-state.startAt;state.started=false;clearInterval(state.timerId);state.timerId=0;tick();}
 function pauseTimer(){if(state.mode!=='challenge'||state.finished)return;if(!state.paused){if(state.started){state.elapsed+=performance.now()-state.startAt;state.started=false;}state.paused=true;}else{state.paused=false;state.started=true;state.startAt=performance.now();}tick();renderPause();}
 function tick(){document.getElementById('tt99-play-timer')?.replaceChildren(document.createTextNode(fmtTime(timerMs())));const p=document.getElementById('tt99-play-pause');if(p)p.textContent=state.paused?'Resume':'Pause';}
