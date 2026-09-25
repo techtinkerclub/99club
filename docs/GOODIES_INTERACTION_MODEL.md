@@ -84,6 +84,8 @@ The individual Goodie owns the mathematics:
 - how answers are calculated and validated;
 - which live objects/values an answer can remain bound to.
 
+For custom challenges, prefer **live answer sources** over making the teacher retype values the diagram already knows. The shared editor may present the common “Answer comes from” control, while each Goodie supplies meaningful sources such as a marker value, a difference/jump, an area/perimeter, a coordinate or an equivalent fraction. Selecting a live source should hide the corresponding pupil-facing value and keep Reveal/export answers synchronized when the mathematical object moves.
+
 A challenge should reuse the current board state whenever possible rather than forcing the teacher to rebuild the representation. When a generated standard challenge configures a special board, the previous teaching setup must remain recoverable.
 
 When a challenge is active:
