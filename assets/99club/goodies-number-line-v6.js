@@ -1117,6 +1117,7 @@ function numberLineV2(){
   controls.addEventListener('input',e=>{
     const t=e.target,line=activeLine();
     if(['nl-min','nl-max','nl-step','nl-label-every'].includes(t.id)){applyRangeFromControls();renderStage();return}
+    if(['nl-line-min','nl-line-max','nl-line-step','nl-line-label-every'].includes(t.id)){applyOwnScaleFromControls(line);renderStage();return}
     if(t.id==='nl-title'){state.title=t.value.slice(0,90);renderStage();return}
     if(t.id==='nl-custom-title'&&state.challenge){state.challenge.title=t.value.slice(0,100);renderStage();return}
     if(t.id==='nl-custom-answer'&&state.challenge){state.challenge.answer=t.value.slice(0,400);state.challenge.answerMode='manual';state.challenge.revealed=false;renderStage();return}
@@ -1127,7 +1128,7 @@ function numberLineV2(){
     if(t.id==='nl-consecutive'){line.showConsecutiveDifferences=t.checked;renderStage();return}
     if(t.id==='nl-consecutive-side'){line.consecutiveSide=t.value==='below'?'below':'above';renderStage();return}
     let id=t.dataset.markerLabel;if(id){const m=line.markers.find(x=>x.id===id);if(m){m.label=t.value.slice(0,12);renderStage()}return}
-    id=t.dataset.markerValue;if(id){const m=line.markers.find(x=>x.id===id);if(m){setMarkerValue(m,num(t.value,m.value));updateChallengeAnswer();renderStage()}return}
+    id=t.dataset.markerValue;if(id){const m=line.markers.find(x=>x.id===id);if(m){setMarkerValue(m,num(t.value,m.value),line);updateChallengeAnswer();renderStage()}return}
     id=t.dataset.markerColor;if(id){const m=line.markers.find(x=>x.id===id);if(m){m.color=t.value;renderStage()}return}
     id=t.dataset.markerSide;if(id){const m=line.markers.find(x=>x.id===id);if(m){m.side=t.value==='below'?'below':'above';renderStage()}return}
     id=t.dataset.markerShow;if(id){const m=line.markers.find(x=>x.id===id);if(m){m.showValue=t.checked;renderStage()}return}
@@ -1142,7 +1143,7 @@ function numberLineV2(){
 
   controls.addEventListener('change',e=>{
     const t=e.target;
-    if(['nl-min','nl-max','nl-step','nl-label-every'].includes(t.id)){state=normalise(state);renderAll();return}
+    if(['nl-min','nl-max','nl-step','nl-label-every','nl-line-min','nl-line-max','nl-line-step','nl-line-label-every'].includes(t.id)){state=normalise(state);renderAll();return}
     if(t.id==='nl-active-line'){state.activeLineId=t.value;renderControls();renderStage();return}
     if(t.id==='nl-response-lines'){responseLines=clamp(Math.round(num(t.value,1)),1,4);renderControls();return}
   });
@@ -1153,6 +1154,19 @@ function numberLineV2(){
   controls.addEventListener('click',e=>{
     const b=e.target.closest('button');if(!b)return;const line=activeLine();
     if(b.dataset.nlWorkflow){controlTab=b.dataset.nlWorkflow;renderControls();return}
+    if(b.dataset.nlScaleMode){
+      const idx=state.lines.indexOf(line);if(idx<=0)return;
+      const mode=b.dataset.nlScaleMode==='own'?'own':'shared';
+      if(mode==='own'&&line.markers.some(m=>m.syncGroup)){message('Linked challenge lines stay aligned to the main scale.',true);return}
+      if(line.scaleMode===mode)return;
+      remember();
+      if(mode==='own'){
+        line.scaleMode='own';line.min=state.min;line.max=state.max;line.step=state.step;line.labelEvery=state.labelEvery;
+      }else{
+        line.scaleMode='shared';line.markers.forEach(m=>m.value=snapOnLine(m,line));
+      }
+      renderAll();return;
+    }
     if(b.dataset.nlObjectTab){objectTab=b.dataset.nlObjectTab;renderControls();return}
     if(b.dataset.nlExportMode){exportMode=b.dataset.nlExportMode==='challenge'&&state.challenge?'challenge':'diagram';renderControls();return}
     if(b.dataset.nlChallengeTab){
@@ -1256,7 +1270,7 @@ function numberLineV2(){
     if(t.matches('[data-board-line-select]')){state.activeLineId=t.value;renderAll();return}
     if(t.matches('[data-board-line-label]')){remember();line.label=t.value.slice(0,30);renderAll();return}
     let id=t.dataset.boardMarkerLabel;if(id){remember();const m=line.markers.find(x=>x.id===id);if(m)m.label=t.value.slice(0,12);renderAll();return}
-    id=t.dataset.boardMarkerValue;if(id){remember();const m=line.markers.find(x=>x.id===id);if(m)setMarkerValue(m,num(t.value,m.value));updateChallengeAnswer();renderAll();return}
+    id=t.dataset.boardMarkerValue;if(id){remember();const m=line.markers.find(x=>x.id===id);if(m)setMarkerValue(m,num(t.value,m.value),line);updateChallengeAnswer();renderAll();return}
     id=t.dataset.boardMarkerColor;if(id){remember();const m=line.markers.find(x=>x.id===id);if(m)m.color=t.value;renderAll();return}
     id=t.dataset.boardRelationTypeEdit;if(id){remember();const r=line.relations.find(x=>x.id===id);if(r)r.type=t.value;updateChallengeAnswer();renderAll();return}
     id=t.dataset.boardRelationColor;if(id){remember();const r=line.relations.find(x=>x.id===id);if(r)r.color=t.value;renderAll();return}
