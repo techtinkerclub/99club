@@ -168,7 +168,7 @@ requireText(numberLine,"['challenge','Challenge']",'Number Line challenge workfl
 requireText(numberLine,"['export','Export']",'Number Line export workflow');
 requireText(numberLine,'responseLines','Number Line exported answer-space control');
 requireText(numberLine,'labelSkip','Number Line dense-label collision guard');
-requireText(numberLine,"scaleMode=index>0&&src.scaleMode==='own'?'own':'shared'","Number Line independent-scale state");
+requireText(numberLine,"const allowedScaleModes=['shared','own','zoom','linked']","Number Line teaching-line scale modes");
 requireText(numberLine,'function scaleFor','Number Line per-line scale resolver');
 requireText(numberLine,'function scaleModeLabel','Number Line teaching-line mode labels');
 requireText(numberLine,'function defaultZoomRange','Number Line zoom interval defaults');
