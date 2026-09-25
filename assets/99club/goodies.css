@@ -90,3 +90,62 @@
   .nl-board-item{grid-template-columns:28px 1fr 78px 30px 30px 30px}.nl-board-rel{grid-template-columns:1fr 92px 28px 30px 30px}
 }
 @media print{.nl-board-ui{display:none!important}}
+
+
+/* Number Line v5: responsive/mobile parity. Same tool/state; layout adapts only. */
+html.nl-board-page-lock,body.nl-board-page-lock{overflow:hidden!important;overscroll-behavior:none}
+#gd-stage.nl-board-fallback{position:fixed!important;inset:0!important;z-index:10000!important;width:100vw!important;height:100dvh!important;max-width:none!important;max-height:none!important;min-height:100dvh!important;margin:0!important;border:0!important;border-radius:0!important;background:#fff!important;padding:clamp(12px,2.5vw,30px)!important;overflow:auto!important}
+#gd-stage.nl-board-fallback .nl-board-ui{display:block;position:fixed;inset:0;z-index:30;pointer-events:none;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+#gd-stage.nl-board-fallback .nl-stage-wrap{width:min(1500px,96vw);margin:auto}
+#gd-stage.nl-board-fallback .nl-export-frame svg{max-height:82dvh;width:100%}
+#gd-stage.nl-board-fallback .nl-drag-help{font-size:1rem}
+#gd-stage.is-board-active .nl-export-frame{-webkit-overflow-scrolling:touch}
+#gd-stage.is-board-active .nl-svg-marker{touch-action:none}
+.nl-board-tools-toggle{bottom:max(20px,calc(env(safe-area-inset-bottom) + 12px));right:max(18px,calc(env(safe-area-inset-right) + 12px));min-height:44px}
+.nl-board-menu{bottom:max(70px,calc(env(safe-area-inset-bottom) + 64px));right:max(18px,calc(env(safe-area-inset-right) + 12px))}
+.nl-board-actions button,.nl-board-sub button,.nl-board-more button,.nl-board-mini{min-height:40px}
+.nl-board-more input,.nl-board-more select{min-height:40px}
+@media(max-width:1050px){
+  .gd-workspace:has(#nl-controls){display:flex;flex-direction:column}
+  .gd-workspace:has(#nl-controls) #gd-stage{order:-1;min-height:330px}
+  .gd-workspace:has(#nl-controls) #nl-controls{order:0}
+}
+@media(max-width:700px){
+  .gd-workspace:has(#nl-controls){gap:12px}
+  .gd-workspace:has(#nl-controls) #gd-stage{min-height:280px;padding:10px}
+  .nl-export-frame{border-radius:12px;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+  .nl-export-frame svg{min-width:620px}
+  .nl-drag-help{font-size:.72rem;padding:0 8px}
+  .nl-challenge-banner{gap:7px;padding:9px 10px}.nl-challenge-banner>strong{font-size:.86rem}
+  .nl-board-tools-toggle{right:max(10px,env(safe-area-inset-right));bottom:max(10px,env(safe-area-inset-bottom));min-width:96px;min-height:46px;padding:9px 13px}
+  .nl-board-menu{left:8px;right:8px;bottom:max(64px,calc(env(safe-area-inset-bottom) + 58px));width:auto;max-height:min(72dvh,620px);padding:9px;border-radius:18px}
+  .nl-board-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+  .nl-board-actions button{min-height:46px;font-size:.8rem;padding:8px 7px}
+  .nl-board-sub{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+  .nl-board-sub>span,.nl-board-sub small{grid-column:1/-1}.nl-board-sub button{min-height:44px}
+  .nl-board-more{padding-bottom:max(4px,env(safe-area-inset-bottom))}
+  .nl-board-more-head{position:sticky;top:-10px;z-index:2;background:rgba(255,255,255,.98);padding:8px 0}
+  .nl-board-more>label{align-items:stretch;flex-direction:column;gap:4px}
+  .nl-board-more select,.nl-board-more>label>input{width:100%;min-height:44px}
+  .nl-board-item{grid-template-columns:32px minmax(58px,1fr) 82px 36px 36px 36px;gap:4px}
+  .nl-board-item input,.nl-board-mini{min-height:42px}.nl-board-mini{width:36px;height:42px}
+  .nl-board-rel{grid-template-columns:minmax(0,1fr) 104px 32px 36px 36px;gap:4px}
+  .nl-board-rel select{min-height:42px;font-size:.75rem}.nl-board-rel .nl-board-colour{width:32px!important;height:38px!important}
+  .nl-board-notice{top:max(10px,env(safe-area-inset-top));max-width:calc(100vw - 24px);width:max-content;font-size:.78rem;padding:8px 12px}
+  #gd-stage:fullscreen,#gd-stage.nl-board-fallback{padding:max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left))!important}
+  #gd-stage:fullscreen .nl-stage-wrap,#gd-stage.nl-board-fallback .nl-stage-wrap{width:100%;margin:auto}
+  #gd-stage:fullscreen .nl-export-frame,#gd-stage.nl-board-fallback .nl-export-frame{max-width:100vw;overflow:auto}
+  #gd-stage:fullscreen .nl-export-frame svg,#gd-stage.nl-board-fallback .nl-export-frame svg{min-width:620px;max-height:76dvh;width:auto;margin:auto}
+  #gd-stage:fullscreen .nl-drag-help,#gd-stage.nl-board-fallback .nl-drag-help{font-size:.78rem;margin-bottom:58px}
+}
+@media(max-width:430px){
+  .nl-board-item{grid-template-columns:30px minmax(52px,1fr) 74px 34px 34px 34px}
+  .nl-board-rel{grid-template-columns:1fr 94px 30px 34px 34px}
+  .nl-board-tools-toggle span{display:inline}
+}
+@media(orientation:landscape) and (max-height:560px){
+  .nl-board-menu{max-height:68dvh;bottom:max(58px,calc(env(safe-area-inset-bottom) + 52px))}
+  .nl-board-actions{grid-template-columns:repeat(5,minmax(0,1fr))}
+  .nl-board-actions button{min-height:40px;font-size:.72rem}
+  #gd-stage:fullscreen .nl-export-frame svg,#gd-stage.nl-board-fallback .nl-export-frame svg{max-height:69dvh}
+}
