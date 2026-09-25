@@ -208,4 +208,88 @@ function numberLineV2(){
         </div>
       </details>
 
-      <details class="nl-group" data-nl-group="lines"${groupOpen('lines')}
+      <details class="nl-group" data-nl-group="lines"${groupOpen('lines')}>
+        <summary>Comparison lines <span class="nl-count">${state.lines.length}</span></summary>
+        <div class="nl-group-body">
+          <label class="gd-field"><span>Editing</span><select class="gd-select" id="nl-active-line">${lineOptions}</select></label>
+          <label class="gd-field"><span>Line label (optional)</span><input class="gd-input" id="nl-line-label" maxlength="30" value="${esc(line.label)}" placeholder="e.g. Fractions"></label>
+          <label class="nl-check"><input id="nl-line-labels" type="checkbox"${line.showLabels?' checked':''}> Show number labels on this line</label>
+          <div class="gd-row"><button class="gd-btn" id="nl-add-line" type="button"${state.lines.length>=4?' disabled':''}>+ Add comparison line</button>${state.lines.length>1?'<button class="gd-btn gd-btn--danger" id="nl-delete-line" type="button">Remove this line</button>':''}</div>
+          <p class="gd-help">All lines share the same scale so values align vertically. Add up to four compact lines for comparisons.</p>
+        </div>
+      </details>
+
+      <details class="nl-group" data-nl-group="markers"${groupOpen('markers')}>
+        <summary>Markers <span class="nl-count">${line.markers.length}</span></summary>
+        <div class="nl-group-body">
+          <p class="gd-help">Markers share one compact level on each side. Put individual markers above or below the line as needed.</p>
+          <div class="nl-marker-list">${markerRows||'<p class="gd-help">No markers yet.</p>'}</div>
+          <button class="gd-btn" id="nl-add-marker" type="button">+ Add marker</button>
+        </div>
+      </details>
+
+      <details class="nl-group" data-nl-group="visuals"${groupOpen('visuals')}>
+        <summary>Teaching visuals <span class="nl-count">${line.relations.length}</span></summary>
+        <div class="nl-group-body">
+          <p class="gd-help">Differences and jumps are packed into the nearest free level. Jumps connect marker to marker instead of sitting on the number line.</p>
+          <div class="nl-relation-list">${relationRows||'<p class="gd-help">Add at least two markers, then add a visual relationship.</p>'}</div>
+          <button class="gd-btn" id="nl-add-relation" type="button"${line.markers.length<2?' disabled':''}>+ Add relationship</button>
+          <label class="nl-check"><input id="nl-consecutive" type="checkbox"${line.showConsecutiveDifferences?' checked':''}> Show differences between consecutive markers</label>
+          <label class="gd-field"><span>Consecutive differences position</span><select class="gd-select" id="nl-consecutive-side"><option value="above"${line.consecutiveSide==='above'?' selected':''}>Above</option><option value="below"${line.consecutiveSide==='below'?' selected':''}>Below</option></select></label>
+        </div>
+      </details>
+
+      <details class="nl-group" data-nl-group="challenge"${groupOpen('challenge')||challenge?' open':''}>
+        <summary>Challenge generator${challenge?' <span class="nl-live">active</span>':''}</summary>
+        <div class="nl-group-body">
+          <label class="gd-field"><span>Challenge type</span>
+            <select class="gd-select" id="nl-challenge-type">
+              <option value="identify">What number is marked?</option>
+              <option value="difference">Find the difference</option>
+              <option value="jump">Where do you land?</option>
+              <option value="missing-labels">Fill missing labels</option>
+            </select>
+          </label>
+          <div class="gd-row">
+            <button class="gd-btn gd-btn--primary" id="nl-generate" type="button">Generate challenge</button>
+            ${challenge?'<button class="gd-btn" id="nl-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button><button class="gd-btn" id="nl-clear-challenge" type="button">Back to my setup</button>':''}
+          </div>
+          ${challenge?`<label class="gd-field"><span>Question text</span><textarea class="gd-textarea" id="nl-prompt" rows="3">${esc(challenge.prompt)}</textarea></label>`:''}
+          <p class="gd-help">Challenges use the current range and step, so you control the mathematical level without selecting a year group.</p>
+        </div>
+      </details>
+
+      <details class="nl-group" data-nl-group="export"${groupOpen('export')}>
+        <summary>Export & reuse</summary>
+        <div class="nl-group-body">
+          <div class="nl-export-grid">
+            <button class="gd-btn" id="nl-copy-image" type="button">Copy image</button>
+            <button class="gd-btn" id="nl-png" type="button">Download PNG</button>
+            <button class="gd-btn" id="nl-svg-download" type="button">Download SVG</button>
+            <button class="gd-btn" id="nl-print" type="button">Print / Save PDF</button>
+            <button class="gd-btn" id="nl-copy-link" type="button">Copy setup link</button>
+            <button class="gd-btn" id="nl-fullscreen" type="button">Board view</button>
+          </div>
+          <p class="gd-help">PNG is convenient for slides. SVG stays sharp at any size. Print opens a clean A4 version that can be saved as PDF.</p>
+          <div class="nl-status" id="nl-status" role="status" aria-live="polite"></div>
+        </div>
+      </details>
+
+      <button class="gd-btn gd-btn--danger" id="nl-reset" type="button">Reset number line</button>
+    `;
+  }
+
+  function renderControls(){controls.innerHTML=controlsHtml();bindGroupState()}
+
+  const X0=110,X1=940;
+  function px(value){return X0+(value-state.min)/(state.max-state.min)*(X1-X0)}
+  function valueFromClientX(clientX){
+    const svg=q('#nl-svg');if(!svg)return state.min;
+    const r=svg.getBoundingClientRect(),svgX=(clientX-r.left)/r.width*1000;
+    const raw=state.min+(clamp(svgX,X0,X1)-X0)/(X1-X0)*(state.max-state.min);
+    return snap(raw,state);
+  }
+  function hiddenTick(v){
+    return !!(state.challenge&&!state.challenge.revealed&&state.challenge.hiddenTicks.some(x=>Math.abs(x-v)<state.step/1000));
+  }
+  function 
