@@ -548,15 +548,19 @@ function numberLineV2(){
   function renderControls(){controls.innerHTML=controlsHtml()}
 
   const X0=110,X1=940;
-  function px(value){return X0+(value-state.min)/(state.max-state.min)*(X1-X0)}
-  function valueFromClientX(clientX){
-    const svg=q('#nl-svg');if(!svg)return state.min;
-    const r=svg.getBoundingClientRect(),svgX=(clientX-r.left)/r.width*1000;
-    const raw=state.min+(clamp(svgX,X0,X1)-X0)/(X1-X0)*(state.max-state.min);
-    return snap(raw,state);
+  function px(value,line=state.lines[0]){
+    const scale=scaleFor(line),range=scale.max-scale.min;
+    return X0+(value-scale.min)/range*(X1-X0);
   }
-  function hiddenTick(v){
-    return !!(state.challenge&&!state.challenge.revealed&&state.challenge.hiddenTicks.some(x=>Math.abs(x-v)<state.step/1000));
+  function valueFromClientX(clientX,line=activeLine()){
+    const svg=q('#nl-svg'),scale=scaleFor(line);if(!svg)return scale.min;
+    const r=svg.getBoundingClientRect(),svgX=(clientX-r.left)/r.width*1000;
+    const raw=scale.min+(clamp(svgX,X0,X1)-X0)/(X1-X0)*(scale.max-scale.min);
+    return snapToScale(raw,scale);
+  }
+  function hiddenTick(v,line){
+    const scale=scaleFor(line);
+    return !!(state.challenge&&!state.challenge.revealed&&state.challenge.hiddenTicks.some(x=>Math.abs(x-v)<scale.step/1000));
   }
   function answerBox(cx,cy,w=54,h=24){
     return `<rect class="nl-answer-box" x="${cx-w/2}" y="${cy-h/2}" width="${w}" height="${h}" rx="5" fill="#fff" stroke="#52666d" stroke-width="1.8" stroke-dasharray="5 3"/>`;
@@ -571,13 +575,13 @@ function numberLineV2(){
     const items=[];
     line.relations.filter(r=>r.type!=='interval'&&r.side===side).forEach(r=>{
       const d=relationDisplay(line,r);if(!d)return;
-      const left=Math.min(px(d.a.value),px(d.b.value)),right=Math.max(px(d.a.value),px(d.b.value));
+      const left=Math.min(px(d.a.value,line),px(d.b.value,line)),right=Math.max(px(d.a.value,line),px(d.b.value,line));
       items.push({id:r.id,left,right});
     });
     if(line.showConsecutiveDifferences&&line.consecutiveSide===side){
       const sorted=[...line.markers].sort((a,b)=>a.value-b.value);
       sorted.slice(0,-1).forEach((m,i)=>{
-        const n=sorted[i+1],left=Math.min(px(m.value),px(n.value)),right=Math.max(px(m.value),px(n.value));
+        const n=sorted[i+1],left=Math.min(px(m.value,line),px(n.value,line)),right=Math.max(px(m.value,line),px(n.value,line));
         items.push({id:'auto-'+i,left,right});
       });
     }
@@ -597,7 +601,7 @@ function numberLineV2(){
       const hasAboveMarker=line.markers.some(m=>m.side==='above');
       const hasBelowMarker=line.markers.some(m=>m.side==='below');
       const aboveExtent=Math.max(hasAboveMarker?82:24,above.count?136+(above.count-1)*30:24);
-      const belowLabel=state.showTickLabels&&line.showLabels?42:18;
+      const belowLabel=labelsVisible(line,index)?42:18;
       const belowExtent=Math.max(belowLabel,hasBelowMarker?belowLabel+70:belowLabel,below.count?belowLabel+112+(below.count-1)*30:belowLabel);
       const baseY=cursor+aboveExtent;
       layouts.push({line,index,baseY,above,below,aboveExtent,belowExtent});
@@ -606,46 +610,50 @@ function numberLineV2(){
     return {lines:layouts,height:Math.max(250,cursor+18)};
   }
   function markerCentre(layout,m){
-    const labelBand=state.showTickLabels&&layout.line.showLabels?42:18;
+    const labelBand=labelsVisible(layout.line,layout.index)?42:18;
     return m.side==='above'?layout.baseY-48:layout.baseY+labelBand+38;
   }
   function markerStem(layout,m){
-    const x=px(m.value),cy=markerCentre(layout,m),base=layout.baseY;
+    const line=layout.line,x=px(m.value,line),cy=markerCentre(layout,m),base=layout.baseY;
     if(m.side==='above')return `<line x1="${x}" y1="${base-3}" x2="${x}" y2="${cy+17}" stroke="${esc(m.color)}" stroke-width="2.5"/>`;
-    if(!(state.showTickLabels&&layout.line.showLabels))return `<line x1="${x}" y1="${base+3}" x2="${x}" y2="${cy-17}" stroke="${esc(m.color)}" stroke-width="2.5"/>`;
+    if(!labelsVisible(line,layout.index))return `<line x1="${x}" y1="${base+3}" x2="${x}" y2="${cy-17}" stroke="${esc(m.color)}" stroke-width="2.5"/>`;
     const labelTop=base+20,labelBottom=base+43;
     return `<line x1="${x}" y1="${base+3}" x2="${x}" y2="${labelTop-4}" stroke="${esc(m.color)}" stroke-width="2.5"/><line x1="${x}" y1="${labelBottom+4}" x2="${x}" y2="${cy-17}" stroke="${esc(m.color)}" stroke-width="2.5"/>`;
   }
+  function shortLineLabel(label){
+    const text=String(label||'');return text.length>14?text.slice(0,13)+'…':text;
+  }
   function buildLine(layout){
-    const {line,baseY,above,below,index}=layout;
-    const range=state.max-state.min,rawCount=Math.floor(range/state.step+1e-8),safetyStride=Math.max(1,Math.ceil(rawCount/160)),renderStep=state.step*safetyStride*line.tickStride,tickCount=Math.floor(range/renderStep+1e-8);
-    const pxPerTick=(X1-X0)/Math.max(1,tickCount),majorSpacing=pxPerTick*Math.max(1,state.labelEvery),labelSkip=Math.max(1,Math.ceil(54/majorSpacing));
+    const {line,baseY,above,below,index}=layout,scale=scaleFor(line),showLabels=labelsVisible(line,index);
+    const range=scale.max-scale.min,rawCount=Math.floor(range/scale.step+1e-8),safetyStride=Math.max(1,Math.ceil(rawCount/160)),renderStep=scale.step*safetyStride*line.tickStride,tickCount=Math.floor(range/renderStep+1e-8);
+    const pxPerTick=(X1-X0)/Math.max(1,tickCount),majorSpacing=pxPerTick*Math.max(1,scale.labelEvery),labelSkip=Math.max(1,Math.ceil(54/majorSpacing));
     let intervalLayer='',ticks='',relationshipLayer='',markerLayer='';
     line.relations.filter(r=>r.type==='interval').forEach(r=>{
       const d=relationDisplay(line,r);if(!d)return;
-      const x1=px(d.a.value),x2=px(d.b.value),left=Math.min(x1,x2),w=Math.abs(x2-x1),y=r.side==='above'?baseY-16:baseY;
+      const x1=px(d.a.value,line),x2=px(d.b.value,line),left=Math.min(x1,x2),w=Math.abs(x2-x1),y=r.side==='above'?baseY-16:baseY;
       intervalLayer+=`<rect x="${left}" y="${y}" width="${w}" height="16" rx="6" fill="${esc(r.color)}" opacity=".18"/>`;
-      if(d.show&&d.label){const ty=r.side==='above'?baseY-22:(state.showTickLabels&&line.showLabels?baseY+58:baseY+30);intervalLayer+=`<text x="${(x1+x2)/2}" y="${ty}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="${esc(r.color)}">${esc(d.label)}</text>`}
+      if(d.show&&d.label){const ty=r.side==='above'?baseY-22:(showLabels?baseY+58:baseY+30);intervalLayer+=`<text x="${(x1+x2)/2}" y="${ty}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="${esc(r.color)}">${esc(d.label)}</text>`}
     });
     for(let i=0;i<=tickCount;i++){
-      const v=cleanNumber(state.min+i*renderStep),x=px(v),major=(i%state.labelEvery===0)||i===0||i===tickCount;
+      const v=cleanNumber(scale.min+i*renderStep),x=px(v,line),major=(i%scale.labelEvery===0)||i===0||i===tickCount;
       ticks+=`<line x1="${x}" y1="${baseY-(major?13:8)}" x2="${x}" y2="${baseY+(major?13:8)}" stroke="#33474e" stroke-width="${major?2:1}"/>`;
-      if(state.showTickLabels&&line.showLabels&&major){
-        const hidden=hiddenTick(v),majorIndex=Math.round(i/Math.max(1,state.labelEvery));
+      if(showLabels&&major){
+        const hidden=hiddenTick(v,line),majorIndex=Math.round(i/Math.max(1,scale.labelEvery));
         const showLabel=hidden||i===0||i===tickCount||majorIndex%labelSkip===0;
         if(hidden)ticks+=answerBox(x,baseY+30,50,24);
         else if(showLabel)ticks+=`<text x="${x}" y="${baseY+35}" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" fill="#33474e">${esc(lineValueText(line,v))}</text>`;
       }
     }
     const baseline=`<line class="nl-baseline" data-line-id="${esc(line.id)}" x1="${X0}" y1="${baseY}" x2="${X1}" y2="${baseY}" stroke="#24343b" stroke-width="4" stroke-linecap="round"/><rect data-line-hit="${esc(line.id)}" x="${X0}" y="${baseY-16}" width="${X1-X0}" height="32" fill="transparent" style="cursor:crosshair"/>`;
-    const lineLabel=line.label?`<text x="26" y="${baseY+5}" font-family="Arial,sans-serif" font-size="15" font-weight="700" fill="#52666d">${esc(line.label)}</text>`:'';
+    const scaleBadge=line.scaleMode==='own'?'<tspan font-size="10" font-weight="700" fill="#7a8a8f"> · own scale</tspan>':'';
+    const lineLabel=line.label?`<text x="26" y="${baseY+5}" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#52666d">${esc(shortLineLabel(line.label))}${scaleBadge}</text>`:'';
 
     line.relations.filter(r=>r.type!=='interval').forEach(r=>{
       const d=relationDisplay(line,r);if(!d)return;
-      const x1=px(d.a.value),x2=px(d.b.value),left=Math.min(x1,x2),right=Math.max(x1,x2),mid=(x1+x2)/2;
+      const x1=px(d.a.value,line),x2=px(d.b.value,line),left=Math.min(x1,x2),right=Math.max(x1,x2),mid=(x1+x2)/2;
       const lane=(r.side==='above'?above.map[r.id]:below.map[r.id])||0;
       if(r.type==='difference'){
-        const y=r.side==='above'?baseY-112-lane*30:baseY+(state.showTickLabels&&line.showLabels?112:88)+lane*30;
+        const y=r.side==='above'?baseY-112-lane*30:baseY+(showLabels?112:88)+lane*30;
         const drop=r.side==='above'?9:-9;
         relationshipLayer+=`<path d="M${left} ${y+drop} V${y} H${right} V${y+drop}" fill="none" stroke="${esc(r.color)}" stroke-width="2.4" stroke-linecap="round"/>`;
         if(d.show&&(d.label||d.hidden)){const labelCy=r.side==='above'?y-25:y+25;if(d.hidden)relationshipLayer+=answerBox(mid,labelCy,58,24);else relationshipLayer+=`<rect x="${mid-31}" y="${labelCy-12}" width="62" height="22" rx="10" fill="#fff"/><text x="${mid}" y="${labelCy+4}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="${esc(r.color)}">${esc(d.label)}</text>`}
@@ -661,13 +669,13 @@ function numberLineV2(){
     if(line.showConsecutiveDifferences&&line.markers.length>1){
       const sorted=[...line.markers].sort((a,b)=>a.value-b.value);
       sorted.slice(0,-1).forEach((m,i)=>{
-        const n=sorted[i+1],x1=px(m.value),x2=px(n.value),mid=(x1+x2)/2,side=line.consecutiveSide||'above',lane=(side==='above'?above.map['auto-'+i]:below.map['auto-'+i])||0,y=side==='above'?baseY-112-lane*30:baseY+(state.showTickLabels&&line.showLabels?112:88)+lane*30,drop=side==='above'?9:-9,labelCy=side==='above'?y-23:y+23;
+        const n=sorted[i+1],x1=px(m.value,line),x2=px(n.value,line),mid=(x1+x2)/2,side=line.consecutiveSide||'above',lane=(side==='above'?above.map['auto-'+i]:below.map['auto-'+i])||0,y=side==='above'?baseY-112-lane*30:baseY+(showLabels?112:88)+lane*30,drop=side==='above'?9:-9,labelCy=side==='above'?y-23:y+23;
         relationshipLayer+=`<path d="M${x1} ${y+drop} V${y} H${x2} V${y+drop}" fill="none" stroke="#71858b" stroke-width="1.8"/><rect x="${mid-25}" y="${labelCy-11}" width="50" height="20" rx="10" fill="#fff"/><text x="${mid}" y="${labelCy+4}" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="700" fill="#52666d">${esc(fmt(Math.abs(n.value-m.value)))}</text>`;
       });
     }
 
     line.markers.forEach((m,i)=>{
-      const x=px(m.value),cy=markerCentre(layout,m),hidden=state.challenge&&!state.challenge.revealed&&state.challenge.hiddenMarkerIds.includes(m.id),showValue=m.showValue&&!hidden;
+      const x=px(m.value,line),cy=markerCentre(layout,m),hidden=state.challenge&&!state.challenge.revealed&&state.challenge.hiddenMarkerIds.includes(m.id),showValue=m.showValue&&!hidden;
       const valueY=m.side==='above'?cy-28:cy+34;
       markerLayer+=`<g class="nl-svg-marker" data-line-id="${esc(line.id)}" data-marker-hit="${esc(m.id)}" style="cursor:ew-resize;touch-action:none">${markerStem(layout,m)}<circle cx="${x}" cy="${cy}" r="16" fill="${esc(m.color)}" stroke="#fff" stroke-width="3"/><circle cx="${x}" cy="${cy}" r="22" fill="transparent"/><text x="${x}" y="${cy+5}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="800" fill="${contrast(m.color)}" pointer-events="none">${esc(m.label||String(i+1))}</text>${showValue?`<text x="${x}" y="${valueY}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#33474e" pointer-events="none">${esc(lineValueText(line,m.value))}</text>`:(hidden?answerBox(x,valueY-5,72,24):'')}</g>`;
     });
@@ -677,7 +685,7 @@ function numberLineV2(){
   function buildSvg(){
     const plan=layout();
     const title=state.title?`<text x="500" y="30" text-anchor="middle" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#24343b">${esc(state.title)}</text>`:'';
-    return `<svg id="nl-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 ${plan.height}" role="img" aria-label="Interactive number line from ${esc(fmt(state.min))} to ${esc(fmt(state.max))}"><defs>${state.lines.map(line=>line.relations.filter(r=>r.type==='jump').map(r=>`<marker id="nl-arrow-${esc(line.id)}-${esc(r.id)}" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,4 L0,8 z" fill="${esc(r.color)}"/></marker>`).join('')).join('')}</defs><rect x="0" y="0" width="1000" height="${plan.height}" rx="18" fill="#ffffff"/>${title}${plan.lines.map(buildLine).join('')}<text x="500" y="${plan.height-6}" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#87969a">99 Club Studio</text></svg>`;
+    return `<svg id="nl-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 ${plan.height}" role="img" aria-label="Interactive number line workspace with ${state.lines.length} line${state.lines.length===1?'':'s'}"><defs>${state.lines.map(line=>line.relations.filter(r=>r.type==='jump').map(r=>`<marker id="nl-arrow-${esc(line.id)}-${esc(r.id)}" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,4 L0,8 z" fill="${esc(r.color)}"/></marker>`).join('')).join('')}</defs><rect x="0" y="0" width="1000" height="${plan.height}" rx="18" fill="#ffffff"/>${title}${plan.lines.map(buildLine).join('')}<text x="500" y="${plan.height-6}" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#87969a">99 Club Studio</text></svg>`;
   }
   function boardMarkerRows(){
     const line=activeLine();
