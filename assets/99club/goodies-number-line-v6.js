@@ -392,8 +392,8 @@ function numberLineV2(){
       <div class="nl-marker-card" data-marker-row="${esc(m.id)}">
         <div class="nl-object-card-main">
           <input class="nl-colour" type="color" value="${esc(m.color)}" data-marker-color="${esc(m.id)}" aria-label="Marker colour">
-          <label class="gd-field nl-compact-field"><span>Label</span><input class="gd-input nl-marker-label" value="${esc(m.label)}" maxlength="12" data-marker-label="${esc(m.id)}"></label>
-          <label class="gd-field nl-compact-field"><span>Value</span><input class="gd-input nl-marker-value" type="number" step="${state.step}" min="${state.min}" max="${state.max}" value="${fmt(m.value)}" data-marker-value="${esc(m.id)}"></label>
+          <label class="gd-field nl-compact-field nl-marker-label-field"><span>Label</span><input class="gd-input nl-marker-label" value="${esc(m.label)}" maxlength="12" data-marker-label="${esc(m.id)}"></label>
+          <label class="gd-field nl-compact-field nl-marker-value-field"><span>Value</span><input class="gd-input nl-marker-value" type="number" step="${state.step}" min="${state.min}" max="${state.max}" value="${fmt(m.value)}" data-marker-value="${esc(m.id)}"></label>
           <button class="nl-icon-btn" type="button" data-marker-delete="${esc(m.id)}" aria-label="Delete marker">×</button>
         </div>
         <div class="nl-object-card-options">
@@ -405,10 +405,10 @@ function numberLineV2(){
     const relationRows=line.relations.map(r=>`
       <div class="nl-relation-card" data-relation-row="${esc(r.id)}">
         <div class="nl-object-card-main nl-relation-main">
-          <label class="gd-field nl-compact-field"><span>From</span><select class="gd-select" data-relation-from="${esc(r.id)}">${markerOptions(line,r.from)}</select></label>
+          <label class="gd-field nl-compact-field nl-rel-from"><span>From</span><select class="gd-select" data-relation-from="${esc(r.id)}">${markerOptions(line,r.from)}</select></label>
           <span class="nl-relation-arrow" aria-hidden="true">→</span>
-          <label class="gd-field nl-compact-field"><span>To</span><select class="gd-select" data-relation-to="${esc(r.id)}">${markerOptions(line,r.to)}</select></label>
-          <label class="gd-field nl-compact-field"><span>Visual</span><select class="gd-select" data-relation-type="${esc(r.id)}"><option value="difference"${r.type==='difference'?' selected':''}>Difference</option><option value="jump"${r.type==='jump'?' selected':''}>Jump</option><option value="interval"${r.type==='interval'?' selected':''}>Shade interval</option></select></label>
+          <label class="gd-field nl-compact-field nl-rel-to"><span>To</span><select class="gd-select" data-relation-to="${esc(r.id)}">${markerOptions(line,r.to)}</select></label>
+          <label class="gd-field nl-compact-field nl-rel-type"><span>Visual</span><select class="gd-select" data-relation-type="${esc(r.id)}"><option value="difference"${r.type==='difference'?' selected':''}>Difference</option><option value="jump"${r.type==='jump'?' selected':''}>Jump</option><option value="interval"${r.type==='interval'?' selected':''}>Shade interval</option></select></label>
           <button class="nl-icon-btn" type="button" data-relation-delete="${esc(r.id)}" aria-label="Delete relationship">×</button>
         </div>
         <div class="nl-object-card-options nl-relation-options">
