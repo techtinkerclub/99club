@@ -54,6 +54,7 @@ function normalise(raw){
     prompt:plainText(promptHtml).slice(0,600),
     answer:String(src.answer||'').slice(0,400),
     answerMode:src.answerMode==='manual'?'manual':'bound',
+    answerSource:String(src.answerSource||'').replace(/[^a-zA-Z0-9:_-]/g,'').slice(0,120),
     revealed:!!src.revealed
   };
 }
@@ -81,15 +82,30 @@ function toolbarHtml(prefix){
   </div>`;
 }
 
-function editorHtml(challenge,prefix){
+function editorHtml(challenge,prefix,opts={}){
   const ch=makeCustom(challenge);
+  const supplied=Array.isArray(opts.answerSources)?opts.answerSources:[];
+  const sources=supplied
+    .filter(s=>s&&s.id&&s.label)
+    .map(s=>({id:String(s.id).replace(/[^a-zA-Z0-9:_-]/g,'').slice(0,120),label:String(s.label).slice(0,100)}))
+    .filter(s=>s.id&&s.label);
+  let selected=ch.answerMode==='manual'?'manual':(ch.answerSource||'generated');
+  const choices=[{id:'manual',label:'Type the answer myself'}];
+  if(ch.answerMode==='bound'&&!ch.answerSource)choices.push({id:'generated',label:String(opts.generatedAnswerLabel||'Keep the generated answer').slice(0,100)});
+  choices.push(...sources);
+  if(!choices.some(s=>s.id===selected))selected='manual';
+  const sourceOptions=choices.map(s=>`<option value="${esc(s.id)}"${s.id===selected?' selected':''}>${esc(s.label)}</option>`).join('');
+  const answerEditor=selected==='manual'
+    ?`<label class="gd-field"><span>Answer (optional)</span><input class="gd-input" id="${esc(prefix)}-custom-answer" maxlength="400" value="${esc(ch.answer)}" placeholder="Shown only when Reveal answer is used"></label>`
+    :`<div class="gd-answer-live"><span>Current answer</span><strong>${esc(ch.answer||'—')}</strong><small>This stays linked to the diagram.</small></div>`;
   return `<div class="gd-challenge-editor">
     <label class="gd-field"><span>Title</span><input class="gd-input" id="${esc(prefix)}-custom-title" maxlength="100" value="${esc(ch.title)}" placeholder="e.g. Can you explain why?"></label>
     <label class="gd-field"><span>Question / instructions</span></label>
     ${toolbarHtml(prefix)}
     <div class="gd-rich-editor" id="${esc(prefix)}-custom-prompt" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Write your challenge or teaching prompt…">${ch.promptHtml}</div>
-    <label class="gd-field"><span>Answer (optional)</span><input class="gd-input" id="${esc(prefix)}-custom-answer" maxlength="400" value="${esc(ch.answer)}" placeholder="Shown only when Reveal answer is used"></label>
-    <p class="gd-help">Formatting is deliberately small: bold, italic and three text sizes. The maths canvas stays the important part.</p>
+    ${choices.length>1?`<label class="gd-field"><span>Answer comes from</span><select class="gd-select" id="${esc(prefix)}-custom-answer-source">${sourceOptions}</select></label>`:''}
+    ${answerEditor}
+    <p class="gd-help">Formatting is deliberately small: bold, italic and three text sizes. A linked answer updates automatically when the diagram changes.</p>
   </div>`;
 }
 
