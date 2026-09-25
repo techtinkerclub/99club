@@ -438,4 +438,68 @@ function numberLineV2(){
   }
   function addLine(){
     if(state.lines.length>=4)return;
-    const id=nextId('l',state.lines),index=sta
+    const id=nextId('l',state.lines),index=state.lines.length;
+    state.lines.push({id,label:'Line '+(index+1),showLabels:index===0,showConsecutiveDifferences:false,consecutiveSide:'above',markers:[],relations:[]});state.activeLineId=id;renderAll();
+  }
+  function randomTick(){const count=Math.max(1,Math.floor((state.max-state.min)/state.step+1e-8));return snap(state.min+Math.floor(Math.random()*(count+1))*state.step,state)}
+  function randomDistinct(a){let b=randomTick(),guard=0;while(Math.abs(b-a)<state.step/1000&&guard++<40)b=randomTick();return b}
+  function generateChallenge(type){
+    if(!beforeChallenge)beforeChallenge=copy({...state,challenge:null});else state=normalise(copy(beforeChallenge));
+    const a=randomTick(),b=randomDistinct(a),lo=Math.min(a,b),hi=Math.max(a,b);
+    const line={id:'l1',label:'',showLabels:true,showConsecutiveDifferences:false,consecutiveSide:'above',markers:[],relations:[]};
+    state.lines=[line];state.activeLineId='l1';
+    if(type==='identify'){
+      line.markers=[{id:'m1',label:'A',value:a,color:'#147d75',showValue:true,side:'above'}];
+      state.challenge={type,prompt:'What number is marker A pointing to?',answer:fmt(a),revealed:false,hiddenTicks:[],hiddenMarkerIds:['m1'],hiddenRelationIds:[]};
+    }else if(type==='difference'){
+      line.markers=[{id:'m1',label:'A',value:lo,color:'#147d75',showValue:true,side:'above'},{id:'m2',label:'B',value:hi,color:'#d65a4a',showValue:true,side:'above'}];
+      line.relations=[{id:'r1',from:'m1',to:'m2',type:'difference',color:'#52666d',label:'',showLabel:true,side:'above'}];
+      state.challenge={type,prompt:'What is the difference between A and B?',answer:fmt(cleanNumber(hi-lo)),revealed:false,hiddenTicks:[],hiddenMarkerIds:[],hiddenRelationIds:['r1']};
+    }else if(type==='jump'){
+      let start=a,end=b;if(Math.abs(end-start)<state.step/1000)end=snap(start+state.step,state);const delta=cleanNumber(end-start);
+      line.markers=[{id:'m1',label:'Start',value:start,color:'#147d75',showValue:true,side:'above'},{id:'m2',label:'?',value:end,color:'#d65a4a',showValue:true,side:'above'}];
+      line.relations=[{id:'r1',from:'m1',to:'m2',type:'jump',color:'#4169a8',label:(delta>=0?'+':'')+fmt(delta),showLabel:true,side:'above'}];
+      state.challenge={type,prompt:'Start at '+fmt(start)+' and make the shown jump. Where do you land?',answer:fmt(end),revealed:false,hiddenTicks:[],hiddenMarkerIds:['m2'],hiddenRelationIds:[]};
+    }else{
+      const count=Math.max(2,Math.floor((state.max-state.min)/state.step+1e-8)),candidates=[];
+      for(let i=1;i<count;i++)if(i%state.labelEvery===0)candidates.push(cleanNumber(state.min+i*state.step));
+      const shuffled=candidates.sort(()=>Math.random()-.5).slice(0,Math.min(5,Math.max(2,Math.floor(candidates.length/3))));
+      state.challenge={type:'missing-labels',prompt:'Fill in the missing number labels on the line.',answer:shuffled.sort((x,y)=>x-y).map(fmt).join(', '),revealed:false,hiddenTicks:shuffled,hiddenMarkerIds:[],hiddenRelationIds:[]};
+    }
+    state=normalise(state);openGroups.add('challenge');renderAll();
+  }
+  function applyPreset(name){
+    beforeChallenge=null;state.challenge=null;
+    if(name==='0-20'){state.min=0;state.max=20;state.step=1;state.labelEvery=1}
+    if(name==='0-100'){state.min=0;state.max=100;state.step=10;state.labelEvery=1}
+    if(name==='negative'){state.min=-10;state.max=10;state.step=1;state.labelEvery=1}
+    if(name==='decimal'){state.min=0;state.max=1;state.step=.1;state.labelEvery=1}
+    state.lines.forEach(line=>line.markers.forEach(m=>m.value=snap(m.value,state)));renderAll();
+  }
+  function exportName(){return state.title||('number-line-'+fmt(state.min)+'-to-'+fmt(state.max))}
+  function svg(){return q('#nl-svg')}
+  async function exportAction(kind){
+    try{
+      if(!X)throw new Error('Export tools are not available.');
+      if(kind==='copy'){await X.copyPng(svg());message('Image copied — paste it into your slide or document.')}
+      if(kind==='png'){await X.downloadPng(svg(),exportName(),2);message('PNG downloaded.')}
+      if(kind==='svg'){X.downloadSvg(svg(),exportName());message('SVG downloaded.')}
+      if(kind==='print'){X.printSvg(svg(),{title:state.title||'Number line',prompt:state.challenge?.prompt||'',answer:state.challenge?.answer||'',showAnswer:!!state.challenge?.revealed,landscape:true});message('Print view opened. Choose “Save as PDF” in the print dialog.')}
+      if(kind==='link'){const u=new URL(location.href);u.searchParams.set('nl',encodeState(state));u.hash='number-line';await X.copyText(u.toString());message('Setup link copied. It will reopen this number line exactly as shown.')}
+    }catch(err){message(err?.message||'That export did not work.',true)}
+  }
+
+  controls.addEventListener('input',e=>{
+    const t=e.target,line=activeLine();
+    if(['nl-min','nl-max','nl-step','nl-label-every'].includes(t.id)){applyRangeFromControls();renderStage();return}
+    if(t.id==='nl-title'){state.title=t.value.slice(0,90);renderStage();return}
+    if(t.id==='nl-tick-labels'){state.showTickLabels=t.checked;renderStage();return}
+    if(t.id==='nl-line-label'){line.label=t.value.slice(0,30);renderStage();return}
+    if(t.id==='nl-line-labels'){line.showLabels=t.checked;renderStage();return}
+    if(t.id==='nl-consecutive'){line.showConsecutiveDifferences=t.checked;renderStage();return}
+    if(t.id==='nl-consecutive-side'){line.consecutiveSide=t.value==='below'?'below':'above';renderStage();return}
+    if(t.id==='nl-prompt'&&state.challenge){state.challenge.prompt=t.value.slice(0,220);renderStage();return}
+    let id=t.dataset.markerLabel;if(id){const m=line.markers.find(x=>x.id===id);if(m){m.label=t.value.slice(0,12);renderStage()}return}
+    id=t.dataset.markerValue;if(id){const m=line.markers.find(x=>x.id===id);if(m){m.value=snap(num(t.value,m.value),state);renderStage()}return}
+    id=t.dataset.markerColor;if(id){const m=line.markers.find(x=>x.id===id);if(m){m.color=t.value;renderStage()}return}
+    id=t.dataset.markerSide;if(id){const m=line.markers.find(x=>x.id===
