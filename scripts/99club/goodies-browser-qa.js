@@ -46,6 +46,9 @@ if(mode==='prepare'){
     assert(TT99Goodies.challengeKit&&TT99Goodies.challengeKit.editorHtml,'Shared challenge framework is registered');
 
     TT99Goodies.numberLine();
+    assert(document.querySelectorAll('[data-nl-workflow]').length===4,'Number Line exposes four teacher workflow tabs');
+    assert(document.querySelector('[data-nl-panel="setup"]'),'Number Line opens on Setup');
+    document.querySelector('[data-nl-workflow="challenge"]').click();
     const standardCards=document.querySelectorAll('[data-nl-challenge-type]');
     assert(standardCards.length>=2,'Standard challenge cards are shown (found '+standardCards.length+'): '+String(document.getElementById('nl-controls')?.innerHTML||'').slice(0,500));
     assert(document.querySelector('[data-nl-challenge-type="identify"]'),'Existing marked-number challenge remains available');
@@ -84,6 +87,7 @@ if(mode==='prepare'){
 
     TT99Goodies.numberLine();
     const markerCount=document.querySelectorAll('[data-marker-hit]').length;
+    document.querySelector('[data-nl-workflow="challenge"]').click();
     document.querySelector('[data-nl-challenge-tab="custom"]').click();
     assert(document.querySelectorAll('[data-marker-hit]').length===markerCount,'Starting a custom challenge preserves the current maths setup');
 
@@ -136,6 +140,26 @@ if(mode==='prepare'){
     document.getElementById('nl-generate').click();
     assert(document.querySelectorAll('[data-marker-hit]').length===3,'Order challenge displays three movable markers');
     assert(document.querySelector('.gd-challenge-prompt').textContent.includes('smallest to largest'),'Order challenge asks for positional ordering');
+
+    document.querySelector('[data-nl-workflow="objects"]').click();
+    assert(document.querySelector('[data-nl-panel="objects"]'),'Objects workflow replaces the challenge controls');
+    assert(document.querySelector('[data-nl-object-tab="markers"]'),'Objects workflow has marker and relationship subtabs');
+    document.querySelector('[data-nl-workflow="export"]').click();
+    assert(document.querySelector('[data-nl-export-mode="challenge"]'),'Active challenge offers Challenge card export');
+    assert(document.getElementById('nl-response-lines'),'Challenge export offers answer-space control');
+    const card=TT99Goodies.exportTools.composeChallengeCardSvg(document.getElementById('nl-svg'),{
+      title:'Example challenge',
+      prompt:'Work out the missing value.',
+      responseLabel:'Answer',
+      responseLines:2
+    });
+    assert(card&&card.tagName.toLowerCase()==='svg','Challenge-card composer returns SVG');
+    assert(card.textContent.includes('Example challenge')&&card.textContent.includes('Work out the missing value.'),'Challenge-card export includes title and prompt');
+    assert(card.querySelectorAll('rect').length>=2,'Challenge-card export includes a response box');
+
+    document.querySelectorAll('.nl-workflow-tab,.nl-export-mode button,.nl-export-grid .gd-btn').forEach(el=>{
+      assert(el.scrollWidth<=el.clientWidth+3,'Number Line control text stays inside its container: '+el.textContent.trim());
+    });
   }
 
   function testMathsCanvas(){
