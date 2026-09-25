@@ -375,4 +375,67 @@ function numberLineV2(){
         relationshipLayer+=`<path d="M${left} ${y+drop} V${y} H${right} V${y+drop}" fill="none" stroke="${esc(r.color)}" stroke-width="2.4" stroke-linecap="round"/>`;
         if(d.show&&d.label){const ty=r.side==='above'?y-8:y+20;relationshipLayer+=`<rect x="${mid-31}" y="${ty-14}" width="62" height="21" rx="10" fill="#fff"/><text x="${mid}" y="${ty+1}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="${esc(r.color)}">${esc(d.label)}</text>`}
       }else{
-        const y1=m
+        const y1=markerCentre(layout,d.a),y2=markerCentre(layout,d.b);
+        const controlY=r.side==='above'?Math.min(y1,y2,baseY)-64-lane*30:Math.max(y1,y2,baseY)+64+lane*30;
+        const startY=y1,endY=y2;
+        relationshipLayer+=`<path d="M${x1} ${startY} Q${mid} ${controlY} ${x2} ${endY}" fill="none" stroke="${esc(r.color)}" stroke-width="3" stroke-linecap="round" marker-end="url(#nl-arrow-${esc(line.id)}-${esc(r.id)})"/>`;
+        if(d.show&&d.label){const ty=r.side==='above'?controlY+4:controlY-6;relationshipLayer+=`<rect x="${mid-31}" y="${ty-15}" width="62" height="21" rx="10" fill="#fff"/><text x="${mid}" y="${ty}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="${esc(r.color)}">${esc(d.label)}</text>`}
+      }
+    });
+
+    if(line.showConsecutiveDifferences&&line.markers.length>1){
+      const sorted=[...line.markers].sort((a,b)=>a.value-b.value);
+      sorted.slice(0,-1).forEach((m,i)=>{
+        const n=sorted[i+1],x1=px(m.value),x2=px(n.value),mid=(x1+x2)/2,side=line.consecutiveSide||'above',lane=(side==='above'?above.map['auto-'+i]:below.map['auto-'+i])||0,y=side==='above'?baseY-112-lane*30:baseY+(state.showTickLabels&&line.showLabels?112:88)+lane*30,drop=side==='above'?9:-9,labelY=side==='above'?y-6:y+18;
+        relationshipLayer+=`<path d="M${x1} ${y+drop} V${y} H${x2} V${y+drop}" fill="none" stroke="#71858b" stroke-width="1.8"/><rect x="${mid-25}" y="${labelY-15}" width="50" height="20" rx="10" fill="#fff"/><text x="${mid}" y="${labelY}" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="700" fill="#52666d">${esc(fmt(Math.abs(n.value-m.value)))}</text>`;
+      });
+    }
+
+    line.markers.forEach((m,i)=>{
+      const x=px(m.value),cy=markerCentre(layout,m),hidden=state.challenge&&!state.challenge.revealed&&state.challenge.hiddenMarkerIds.includes(m.id),showValue=m.showValue&&!hidden;
+      const valueY=m.side==='above'?cy-28:cy+34;
+      markerLayer+=`<g class="nl-svg-marker" data-line-id="${esc(line.id)}" data-marker-hit="${esc(m.id)}" style="cursor:ew-resize;touch-action:none">${markerStem(layout,m)}<circle cx="${x}" cy="${cy}" r="16" fill="${esc(m.color)}" stroke="#fff" stroke-width="3"/><circle cx="${x}" cy="${cy}" r="22" fill="transparent"/><text x="${x}" y="${cy+5}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="800" fill="${contrast(m.color)}" pointer-events="none">${esc(m.label||String(i+1))}</text>${showValue?`<text x="${x}" y="${valueY}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#33474e" pointer-events="none">${esc(fmt(m.value))}</text>`:''}</g>`;
+    });
+
+    return intervalLayer+relationshipLayer+baseline+ticks+lineLabel+markerLayer;
+  }
+  function buildSvg(){
+    const plan=layout(),defs=plan.lines.map(l=>buildLine(l)).join('');
+    const title=state.title?`<text x="500" y="30" text-anchor="middle" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#24343b">${esc(state.title)}</text>`:'';
+    return `<svg id="nl-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 ${plan.height}" role="img" aria-label="Interactive number line from ${esc(fmt(state.min))} to ${esc(fmt(state.max))}"><defs>${state.lines.map(line=>line.relations.filter(r=>r.type==='jump').map(r=>`<marker id="nl-arrow-${esc(line.id)}-${esc(r.id)}" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,4 L0,8 z" fill="${esc(r.color)}"/></marker>`).join('')).join('')}</defs><rect x="0" y="0" width="1000" height="${plan.height}" rx="18" fill="#ffffff"/>${title}${plan.lines.map(buildLine).join('')}<text x="500" y="${plan.height-6}" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#87969a">99 Club Studio</text></svg>`;
+  }
+  function renderStage(){
+    const c=state.challenge,prompt=c?`<div class="nl-challenge-banner"><span>Challenge</span><strong>${esc(c.prompt)}</strong>${c.revealed?`<em>Answer: ${esc(c.answer)}</em>`:''}</div>`:'';
+    q('#gd-stage').innerHTML=`<div class="nl-stage-wrap">${prompt}<div class="nl-export-frame">${buildSvg()}</div><p class="nl-drag-help">Drag a marker along its line to move it. Values snap to the chosen tick step.</p></div>`;
+    bindMarkerDragging();
+  }
+  function renderAll(){state=normalise(state);renderControls();renderStage()}
+  function bindMarkerDragging(){
+    qa('[data-marker-hit]',stage).forEach(el=>el.addEventListener('pointerdown',e=>{
+      const lineId=el.getAttribute('data-line-id'),id=el.getAttribute('data-marker-hit');
+      const line=state.lines.find(l=>l.id===lineId);if(!line||!line.markers.some(m=>m.id===id))return;
+      drag={lineId,id};e.preventDefault();
+    }));
+  }
+  function moveDrag(e){
+    if(!drag)return;
+    const line=state.lines.find(l=>l.id===drag.lineId),m=line?.markers.find(x=>x.id===drag.id);if(!m)return;
+    m.value=valueFromClientX(e.clientX);
+    const input=controls.querySelector('[data-marker-value="'+CSS.escape(m.id)+'"]');if(input&&line.id===state.activeLineId)input.value=fmt(m.value);
+    renderStage();
+  }
+  function endDrag(){drag=null}
+  window.addEventListener('pointermove',moveDrag);window.addEventListener('pointerup',endDrag);window.addEventListener('pointercancel',endDrag);
+
+  function addMarker(value){
+    const line=activeLine(),id=nextId('m',line.markers),index=line.markers.length;
+    line.markers.push({id,label:String.fromCharCode(65+(index%26)),value:snap(value==null?(state.min+state.max)/2:value,state),color:COLOURS[index%COLOURS.length],showValue:true,side:'above'});
+    renderAll();
+  }
+  function addRelation(){
+    const line=activeLine();if(line.markers.length<2)return;
+    const id=nextId('r',line.relations);line.relations.push({id,from:line.markers[0].id,to:line.markers[1].id,type:'difference',color:'#52666d',label:'',showLabel:true,side:'above'});renderAll();
+  }
+  function addLine(){
+    if(state.lines.length>=4)return;
+    const id=nextId('l',state.lines),index=sta
