@@ -61,13 +61,14 @@ function normalise(raw){
 
 function makeCustom(raw){
   const src=normalise(raw||{});
+  const keepLiveAnswer=src.mode==='custom'||(src.type&&src.type!=='custom');
   return normalise({
     ...src,
     mode:'custom',
     type:src.type||'custom',
     title:src.title||'Challenge',
     promptHtml:src.promptHtml||'Write your challenge here.',
-    answerMode:src.type&&src.type!=='custom'?src.answerMode:'manual'
+    answerMode:keepLiveAnswer?src.answerMode:'manual'
   });
 }
 
