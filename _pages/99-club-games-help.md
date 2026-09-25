@@ -8,7 +8,7 @@ sitemap: true
 ---
 
 <link rel="stylesheet" href="/assets/99club/99club.css?v=20">
-<link rel="stylesheet" href="/assets/99club/games-help-guides.css?v=1.2.0">
+<link rel="stylesheet" href="/assets/99club/games-help-guides.css?v=1.2.1">
 
 <div id="main" class="tt99-page-main" role="main">
   <article class="splash">
