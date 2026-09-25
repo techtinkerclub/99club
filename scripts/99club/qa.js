@@ -923,11 +923,11 @@ try{
 /* ---------- hidden manipulatives / Number Line classroom contracts ---------- */
 try{
   const goodiesPage=read('_pages/99-club-goodies.md');
-  const numberLine=read('assets/99club/goodies-number-line-v5.js');
+  const numberLine=read('assets/99club/goodies-number-line-v6.js');
   const goodiesCss=read('assets/99club/goodies.css');
   new Function(numberLine);
   if(!goodiesPage.includes('permalink: /goodies/')||!goodiesPage.includes('sitemap: false')||!goodiesPage.includes('search: false')||!goodiesPage.includes('noindex,nofollow,noarchive'))fail('goodies-number-line','Hidden goodies route/indexing contract regressed');
-  if(!goodiesPage.includes('goodies-number-line-v5.js?v=1')||!goodiesPage.includes('goodies.css?v=5'))fail('goodies-number-line','Number Line v5 assets are not cache-busted on /goodies/');
+  if(!goodiesPage.includes('goodies-number-line-v6.js?v=1')||!goodiesPage.includes('goodies.css?v=6'))fail('goodies-number-line','Number Line v6 assets are not cache-busted on /goodies/');
   for(const token of [
     "side:m.side==='below'?'below':'above'",
     'data-marker-side',
@@ -963,13 +963,20 @@ try{
     'function leaveBoardFallback',
     'function boardActive',
     'nl-board-fallback',
-    '× Exit'
-  ])if(!numberLine.includes(token))fail('goodies-number-line','Number Line v5 missing classroom contract: '+token);
+    '× Exit',
+    'function boardIcon',
+    'nl-board-rail',
+    "boardTool('delete'",
+    'nl-challenge-reveal',
+    'is-delete-mode',
+    'Line deleted. Undo is available.',
+    'item.left>=end-0.5'
+  ])if(!numberLine.includes(token))fail('goodies-number-line','Number Line v6 missing classroom contract: '+token);
   if(numberLine.includes('l12 -7 v14')||numberLine.includes('l-12 -7 v14'))fail('goodies-number-line','Bounded Number Line has regained baseline arrowheads');
   if(!goodiesCss.includes('.nl-marker-row .nl-side')||!goodiesCss.includes('#gd-stage:fullscreen'))fail('goodies-number-line','Number Line compact controls / Board view styling missing');
   if(!goodiesCss.includes('.nl-board-tools-toggle')||!goodiesCss.includes('.nl-board-menu.is-open')||!goodiesCss.includes('.nl-board-notice'))fail('goodies-number-line','Number Line floating Board teaching palette styling missing');
-  for(const token of ['#gd-stage.nl-board-fallback','html.nl-board-page-lock','env(safe-area-inset-bottom)','@media(max-width:700px)','@media(orientation:landscape) and (max-height:560px)'])if(!goodiesCss.includes(token))fail('goodies-number-line','Number Line mobile/Board parity styling missing: '+token);
-  ok('goodies-number-line','Hidden Number Line keeps the same teaching controls/state on desktop and mobile, including fallback Board mode, explicit challenge blanks, direct marker dragging, undo/redo, lock, comparison lines and export workflows');
+  for(const token of ['#gd-stage.nl-board-fallback','html.nl-board-page-lock','env(safe-area-inset-bottom)','@media(max-width:700px)','@media(orientation:landscape) and (max-height:560px)','.nl-board-rail','.nl-board-tool:after','.nl-challenge-reveal','#gd-stage.is-delete-mode .nl-baseline'])if(!goodiesCss.includes(token))fail('goodies-number-line','Number Line mobile/Board parity styling missing: '+token);
+  ok('goodies-number-line','Hidden Number Line keeps the same teaching controls/state on desktop and mobile, with a quiet side icon rail, direct delete mode, contextual answer reveal, tidy helper spacing, aligned jumps, fallback Board mode, undo/redo, lock, comparison lines and export workflows');
 }catch(e){fail('goodies-number-line','Number Line classroom QA threw',e.stack||e.message);}
 
 /* ---------- public copy audit ---------- */
