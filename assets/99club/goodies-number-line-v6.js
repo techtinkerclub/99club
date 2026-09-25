@@ -196,6 +196,10 @@ function numberLineV2(){
   let challengeTab=state.challenge?.mode==='custom'?'custom':'standard';
   let challengeCategory='read';
   let challengeType=state.challenge?.type&&CHALLENGE_TEMPLATES.some(t=>t.id===state.challenge.type)?state.challenge.type:'identify';
+  let controlTab=state.challenge?'challenge':'setup';
+  let objectTab='markers';
+  let exportMode=state.challenge?'challenge':'diagram';
+  let responseLines=state.challenge&&state.challenge.category==='reason'?3:1;
   const undoStack=[],redoStack=[];
   const openGroups=new Set(['line','lines','markers','export']);
 
@@ -366,117 +370,132 @@ function numberLineV2(){
   function markerOptions(line,selected){
     return line.markers.map(m=>'<option value="'+esc(m.id)+'"'+(m.id===selected?' selected':'')+'>'+esc(m.label||m.id)+' · '+fmt(m.value)+'</option>').join('');
   }
+  function workflowTabsHtml(){
+    const tabs=[
+      ['setup','Setup'],
+      ['objects','Objects'],
+      ['challenge','Challenge'],
+      ['export','Export']
+    ];
+    return `<div class="nl-workflow-head">
+      <div class="nl-workflow-tabs" role="tablist" aria-label="Number line workflow">
+        ${tabs.map(([id,label])=>`<button type="button" class="nl-workflow-tab${controlTab===id?' is-active':''}" data-nl-workflow="${id}" aria-selected="${controlTab===id?'true':'false'}">${label}${id==='challenge'&&state.challenge?' <span class="nl-workflow-dot" aria-label="Challenge active"></span>':''}</button>`).join('')}
+      </div>
+      <button class="gd-btn nl-present-btn" id="nl-fullscreen" type="button">Present</button>
+    </div>`;
+  }
+
   function controlsHtml(){
     const line=activeLine();
     const lineOptions=state.lines.map((l,i)=>'<option value="'+esc(l.id)+'"'+(l.id===state.activeLineId?' selected':'')+'>Line '+(i+1)+(l.label?' · '+esc(l.label):'')+'</option>').join('');
     const markerRows=line.markers.map(m=>`
-      <div class="nl-marker-row" data-marker-row="${esc(m.id)}">
-        <input class="nl-colour" type="color" value="${esc(m.color)}" data-marker-color="${esc(m.id)}" aria-label="Marker colour">
-        <input class="gd-input nl-marker-label" value="${esc(m.label)}" maxlength="12" data-marker-label="${esc(m.id)}" aria-label="Marker label">
-        <input class="gd-input nl-marker-value" type="number" step="${state.step}" min="${state.min}" max="${state.max}" value="${fmt(m.value)}" data-marker-value="${esc(m.id)}" aria-label="Marker value">
-        <select class="gd-select nl-side" data-marker-side="${esc(m.id)}" aria-label="Marker position"><option value="above"${m.side==='above'?' selected':''}>Above</option><option value="below"${m.side==='below'?' selected':''}>Below</option></select>
-        <label class="nl-mini-check"><input type="checkbox" data-marker-show="${esc(m.id)}"${m.showValue?' checked':''}> value</label>
-        <button class="nl-icon-btn" type="button" data-marker-delete="${esc(m.id)}" aria-label="Delete marker">×</button>
+      <div class="nl-marker-card" data-marker-row="${esc(m.id)}">
+        <div class="nl-object-card-main">
+          <input class="nl-colour" type="color" value="${esc(m.color)}" data-marker-color="${esc(m.id)}" aria-label="Marker colour">
+          <label class="gd-field nl-compact-field"><span>Label</span><input class="gd-input nl-marker-label" value="${esc(m.label)}" maxlength="12" data-marker-label="${esc(m.id)}"></label>
+          <label class="gd-field nl-compact-field"><span>Value</span><input class="gd-input nl-marker-value" type="number" step="${state.step}" min="${state.min}" max="${state.max}" value="${fmt(m.value)}" data-marker-value="${esc(m.id)}"></label>
+          <button class="nl-icon-btn" type="button" data-marker-delete="${esc(m.id)}" aria-label="Delete marker">×</button>
+        </div>
+        <div class="nl-object-card-options">
+          <label class="gd-field nl-compact-field"><span>Position</span><select class="gd-select nl-side" data-marker-side="${esc(m.id)}"><option value="above"${m.side==='above'?' selected':''}>Above</option><option value="below"${m.side==='below'?' selected':''}>Below</option></select></label>
+          <label class="nl-check"><input type="checkbox" data-marker-show="${esc(m.id)}"${m.showValue?' checked':''}> Show value</label>
+        </div>
       </div>`).join('');
+
     const relationRows=line.relations.map(r=>`
-      <div class="nl-relation-row" data-relation-row="${esc(r.id)}">
-        <select class="gd-select" data-relation-from="${esc(r.id)}">${markerOptions(line,r.from)}</select>
-        <span>→</span>
-        <select class="gd-select" data-relation-to="${esc(r.id)}">${markerOptions(line,r.to)}</select>
-        <select class="gd-select" data-relation-type="${esc(r.id)}">
-          <option value="difference"${r.type==='difference'?' selected':''}>Difference</option>
-          <option value="jump"${r.type==='jump'?' selected':''}>Jump</option>
-          <option value="interval"${r.type==='interval'?' selected':''}>Shade interval</option>
-        </select>
-        <select class="gd-select nl-side" data-relation-side="${esc(r.id)}" aria-label="Teaching visual position"><option value="above"${r.side==='above'?' selected':''}>Above</option><option value="below"${r.side==='below'?' selected':''}>Below</option></select>
-        <input class="nl-colour" type="color" value="${esc(r.color)}" data-relation-color="${esc(r.id)}" aria-label="Relationship colour">
-        <input class="gd-input" value="${esc(r.label)}" placeholder="auto label" maxlength="24" data-relation-label="${esc(r.id)}" aria-label="Custom relationship label">
-        <label class="nl-mini-check"><input type="checkbox" data-relation-show="${esc(r.id)}"${r.showLabel?' checked':''}> label</label>
-        <button class="nl-icon-btn" type="button" data-relation-delete="${esc(r.id)}" aria-label="Delete relationship">×</button>
+      <div class="nl-relation-card" data-relation-row="${esc(r.id)}">
+        <div class="nl-object-card-main nl-relation-main">
+          <label class="gd-field nl-compact-field"><span>From</span><select class="gd-select" data-relation-from="${esc(r.id)}">${markerOptions(line,r.from)}</select></label>
+          <span class="nl-relation-arrow" aria-hidden="true">→</span>
+          <label class="gd-field nl-compact-field"><span>To</span><select class="gd-select" data-relation-to="${esc(r.id)}">${markerOptions(line,r.to)}</select></label>
+          <label class="gd-field nl-compact-field"><span>Visual</span><select class="gd-select" data-relation-type="${esc(r.id)}"><option value="difference"${r.type==='difference'?' selected':''}>Difference</option><option value="jump"${r.type==='jump'?' selected':''}>Jump</option><option value="interval"${r.type==='interval'?' selected':''}>Shade interval</option></select></label>
+          <button class="nl-icon-btn" type="button" data-relation-delete="${esc(r.id)}" aria-label="Delete relationship">×</button>
+        </div>
+        <div class="nl-object-card-options nl-relation-options">
+          <input class="nl-colour" type="color" value="${esc(r.color)}" data-relation-color="${esc(r.id)}" aria-label="Relationship colour">
+          <label class="gd-field nl-compact-field nl-grow"><span>Label</span><input class="gd-input" value="${esc(r.label)}" placeholder="Automatic" maxlength="24" data-relation-label="${esc(r.id)}"></label>
+          <label class="gd-field nl-compact-field"><span>Position</span><select class="gd-select nl-side" data-relation-side="${esc(r.id)}"><option value="above"${r.side==='above'?' selected':''}>Above</option><option value="below"${r.side==='below'?' selected':''}>Below</option></select></label>
+          <label class="nl-check"><input type="checkbox" data-relation-show="${esc(r.id)}"${r.showLabel?' checked':''}> Show label</label>
+        </div>
       </div>`).join('');
-    const challenge=state.challenge;
-    return `
-      <details class="nl-group" data-nl-group="line"${groupOpen('line')}>
-        <summary>Number line</summary>
-        <div class="nl-group-body">
-          <div class="nl-two">
-            <label class="gd-field"><span>Minimum</span><input class="gd-input" id="nl-min" type="number" value="${fmt(state.min)}"></label>
-            <label class="gd-field"><span>Maximum</span><input class="gd-input" id="nl-max" type="number" value="${fmt(state.max)}"></label>
-          </div>
-          <div class="nl-two">
-            <label class="gd-field"><span>Tick step</span><input class="gd-input" id="nl-step" type="number" min="0.0001" step="any" value="${fmt(state.step)}"></label>
-            <label class="gd-field"><span>Label every</span><input class="gd-input" id="nl-label-every" type="number" min="1" max="50" value="${state.labelEvery}"></label>
-          </div>
-          <label class="gd-field"><span>Illustration title (optional)</span><input class="gd-input" id="nl-title" maxlength="90" value="${esc(state.title)}" placeholder="e.g. Finding the difference"></label>
-          <label class="nl-check"><input id="nl-tick-labels" type="checkbox"${state.showTickLabels?' checked':''}> Show number labels</label>
-          <div class="nl-preset-row">
-            <button class="gd-btn" type="button" data-nl-preset="0-20">0–20</button>
-            <button class="gd-btn" type="button" data-nl-preset="0-100">0–100</button>
-            <button class="gd-btn" type="button" data-nl-preset="negative">−10–10</button>
-            <button class="gd-btn" type="button" data-nl-preset="decimal">0–1 decimals</button>
-          </div>
-        </div>
-      </details>
 
-      <details class="nl-group" data-nl-group="lines"${groupOpen('lines')}>
-        <summary>Comparison lines <span class="nl-count">${state.lines.length}</span></summary>
-        <div class="nl-group-body">
-          <label class="gd-field"><span>Editing</span><select class="gd-select" id="nl-active-line">${lineOptions}</select></label>
-          <label class="gd-field"><span>Line label (optional)</span><input class="gd-input" id="nl-line-label" maxlength="30" value="${esc(line.label)}" placeholder="e.g. Fractions"></label>
-          <label class="nl-check"><input id="nl-line-labels" type="checkbox"${line.showLabels?' checked':''}> Show number labels on this line</label>
-          <div class="gd-row"><button class="gd-btn" id="nl-add-line" type="button"${state.lines.length>=4?' disabled':''}>+ Add comparison line</button>${state.lines.length>1?'<button class="gd-btn gd-btn--danger" id="nl-delete-line" type="button">Remove this line</button>':''}</div>
-          <p class="gd-help">All lines share the same scale so values align vertically. Add up to four compact lines for comparisons.</p>
+    const setupPanel=`
+      <section class="nl-workflow-panel" data-nl-panel="setup">
+        <div class="nl-panel-title"><div><strong>Set up the line</strong><span>Choose the scale first, then add comparison lines only when they help.</span></div></div>
+        <div class="nl-two">
+          <label class="gd-field"><span>Minimum</span><input class="gd-input" id="nl-min" type="number" value="${fmt(state.min)}"></label>
+          <label class="gd-field"><span>Maximum</span><input class="gd-input" id="nl-max" type="number" value="${fmt(state.max)}"></label>
         </div>
-      </details>
+        <div class="nl-two">
+          <label class="gd-field"><span>Tick step</span><input class="gd-input" id="nl-step" type="number" min="0.0001" step="any" value="${fmt(state.step)}"></label>
+          <label class="gd-field"><span>Label every</span><input class="gd-input" id="nl-label-every" type="number" min="1" max="50" value="${state.labelEvery}"></label>
+        </div>
+        <div class="nl-preset-row">
+          <button class="gd-btn" type="button" data-nl-preset="0-20">0–20</button>
+          <button class="gd-btn" type="button" data-nl-preset="0-100">0–100</button>
+          <button class="gd-btn" type="button" data-nl-preset="negative">−10–10</button>
+          <button class="gd-btn" type="button" data-nl-preset="decimal">0–1 decimals</button>
+        </div>
+        <label class="gd-field"><span>Illustration title (optional)</span><input class="gd-input" id="nl-title" maxlength="90" value="${esc(state.title)}" placeholder="e.g. Finding the difference"></label>
+        <label class="nl-check"><input id="nl-tick-labels" type="checkbox"${state.showTickLabels?' checked':''}> Show number labels</label>
+        <div class="nl-section-rule"></div>
+        <div class="nl-panel-title nl-panel-title--compact"><div><strong>Lines</strong><span>${state.lines.length} of 4</span></div></div>
+        <label class="gd-field"><span>Editing</span><select class="gd-select" id="nl-active-line">${lineOptions}</select></label>
+        <label class="gd-field"><span>Line label (optional)</span><input class="gd-input" id="nl-line-label" maxlength="30" value="${esc(line.label)}" placeholder="e.g. Fractions"></label>
+        <label class="nl-check"><input id="nl-line-labels" type="checkbox"${line.showLabels?' checked':''}> Show number labels on this line</label>
+        <div class="gd-row"><button class="gd-btn" id="nl-add-line" type="button"${state.lines.length>=4?' disabled':''}>+ Add line</button>${state.lines.length>1?'<button class="gd-btn gd-btn--danger" id="nl-delete-line" type="button">Remove line</button>':''}</div>
+        <div class="nl-section-rule"></div>
+        <button class="gd-btn gd-btn--danger nl-reset-compact" id="nl-reset" type="button">Reset number line</button>
+      </section>`;
 
-      <details class="nl-group" data-nl-group="markers"${groupOpen('markers')}>
-        <summary>Markers <span class="nl-count">${line.markers.length}</span></summary>
-        <div class="nl-group-body">
-          <p class="gd-help">Markers share one compact level on each side. Put individual markers above or below the line as needed.</p>
-          <div class="nl-marker-list">${markerRows||'<p class="gd-help">No markers yet.</p>'}</div>
+    const objectsPanel=`
+      <section class="nl-workflow-panel" data-nl-panel="objects">
+        <div class="nl-panel-title"><div><strong>Objects</strong><span>Edit the active line without digging through unrelated settings.</span></div></div>
+        <div class="nl-subtabs">
+          <button type="button" class="${objectTab==='markers'?'is-active':''}" data-nl-object-tab="markers">Markers <span>${line.markers.length}</span></button>
+          <button type="button" class="${objectTab==='relations'?'is-active':''}" data-nl-object-tab="relations">Relationships <span>${line.relations.length}</span></button>
+        </div>
+        ${objectTab==='markers'?`
+          <div class="nl-marker-list">${markerRows||'<p class="gd-help">No markers yet. Add one, then drag it directly on the line.</p>'}</div>
           <button class="gd-btn" id="nl-add-marker" type="button">+ Add marker</button>
-        </div>
-      </details>
-
-      <details class="nl-group" data-nl-group="visuals"${groupOpen('visuals')}>
-        <summary>Teaching visuals <span class="nl-count">${line.relations.length}</span></summary>
-        <div class="nl-group-body">
-          <p class="gd-help">Differences and jumps are packed into the nearest free level. Jumps connect marker to marker instead of sitting on the number line.</p>
-          <div class="nl-relation-list">${relationRows||'<p class="gd-help">Add at least two markers, then add a visual relationship.</p>'}</div>
+        `:`
+          <div class="nl-relation-list">${relationRows||'<p class="gd-help">Add at least two markers, then add a relationship.</p>'}</div>
           <button class="gd-btn" id="nl-add-relation" type="button"${line.markers.length<2?' disabled':''}>+ Add relationship</button>
           <label class="nl-check"><input id="nl-consecutive" type="checkbox"${line.showConsecutiveDifferences?' checked':''}> Show differences between consecutive markers</label>
           <label class="gd-field"><span>Consecutive differences position</span><select class="gd-select" id="nl-consecutive-side"><option value="above"${line.consecutiveSide==='above'?' selected':''}>Above</option><option value="below"${line.consecutiveSide==='below'?' selected':''}>Below</option></select></label>
-        </div>
-      </details>
+        `}
+      </section>`;
 
-      <details class="nl-group" data-nl-group="challenge"${groupOpen('challenge')}>
-        <summary>Challenges${challenge?' <span class="nl-live">active</span>':''}</summary>
-        <div class="nl-group-body">
-          ${challengeControlsHtml()}
-        </div>
-      </details>
+    const challengePanel=`
+      <section class="nl-workflow-panel" data-nl-panel="challenge">
+        <div class="nl-panel-title"><div><strong>Create a challenge</strong><span>Use a standard structure or turn the current diagram into your own question.</span></div></div>
+        ${challengeControlsHtml()}
+      </section>`;
 
-      <details class="nl-group" data-nl-group="export"${groupOpen('export')}>
-        <summary>Export & reuse</summary>
-        <div class="nl-group-body">
-          <div class="nl-export-grid">
-            <button class="gd-btn" id="nl-copy-image" type="button">Copy image</button>
-            <button class="gd-btn" id="nl-png" type="button">Download PNG</button>
-            <button class="gd-btn" id="nl-svg-download" type="button">Download SVG</button>
-            <button class="gd-btn" id="nl-print" type="button">Print / Save PDF</button>
-            <button class="gd-btn" id="nl-copy-link" type="button">Copy setup link</button>
-            <button class="gd-btn" id="nl-fullscreen" type="button">Board view</button>
-          </div>
-          <p class="gd-help">PNG is convenient for slides. SVG stays sharp at any size. Print opens a clean A4 version that can be saved as PDF.</p>
-          <div class="nl-status" id="nl-status" role="status" aria-live="polite"></div>
+    const canCard=!!state.challenge;
+    const exportPanel=`
+      <section class="nl-workflow-panel" data-nl-panel="export">
+        <div class="nl-panel-title"><div><strong>Use it elsewhere</strong><span>Copy into slides/documents, download, print or reopen the setup later.</span></div></div>
+        ${canCard?`<div class="nl-export-mode" role="tablist" aria-label="Export content"><button type="button" class="${exportMode==='challenge'?'is-active':''}" data-nl-export-mode="challenge">Challenge card</button><button type="button" class="${exportMode==='diagram'?'is-active':''}" data-nl-export-mode="diagram">Diagram only</button></div>`:''}
+        ${canCard&&exportMode==='challenge'?`
+          <label class="gd-field"><span>Answer space</span><select class="gd-select" id="nl-response-lines"><option value="1"${responseLines===1?' selected':''}>1 line</option><option value="2"${responseLines===2?' selected':''}>2 lines</option><option value="3"${responseLines===3?' selected':''}>3 lines</option><option value="4"${responseLines===4?' selected':''}>4 lines</option></select></label>
+          <p class="gd-help">The exported challenge card includes the question, the number line and a blank answer box. The correct answer is never printed into the pupil version.</p>
+        `:`<p class="gd-help">Diagram-only export keeps just the mathematical illustration.</p>`}
+        <div class="nl-export-grid">
+          <button class="gd-btn gd-btn--primary" id="nl-copy-image" type="button">Copy ${canCard&&exportMode==='challenge'?'challenge':'image'}</button>
+          <button class="gd-btn" id="nl-png" type="button">PNG</button>
+          <button class="gd-btn" id="nl-svg-download" type="button">SVG</button>
+          <button class="gd-btn" id="nl-print" type="button">Print / PDF</button>
         </div>
-      </details>
+        <div class="nl-section-rule"></div>
+        <button class="gd-btn" id="nl-copy-link" type="button">Copy setup link</button>
+      </section>`;
 
-      <button class="gd-btn gd-btn--danger" id="nl-reset" type="button">Reset number line</button>
-    `;
+    const panel=controlTab==='objects'?objectsPanel:controlTab==='challenge'?challengePanel:controlTab==='export'?exportPanel:setupPanel;
+    return `${workflowTabsHtml()}${panel}<div class="nl-status" id="nl-status" role="status" aria-live="polite"></div>`;
   }
 
-  function renderControls(){controls.innerHTML=controlsHtml();bindGroupState()}
+  function renderControls(){controls.innerHTML=controlsHtml()}
 
   const X0=110,X1=940;
   function px(value){return X0+(value-state.min)/(state.max-state.min)*(X1-X0)}
