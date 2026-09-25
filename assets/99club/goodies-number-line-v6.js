@@ -3,7 +3,28 @@
 if(!G)return;
 const {q,qa,clamp,num,esc,setPanels}=G;
 const X=G.exportTools;
+const CK=G.challengeKit;
 const COLOURS=['#147d75','#d65a4a','#4169a8','#d99024','#7b5fc5','#39945e','#a84f86','#52666d'];
+const CHALLENGE_CATEGORIES=[
+  {id:'read',label:'Read & scale'},
+  {id:'place',label:'Position'},
+  {id:'calculate',label:'Jumps & intervals'},
+  {id:'round',label:'Rounding'},
+  {id:'reason',label:'Reasoning'}
+];
+const CHALLENGE_TEMPLATES=[
+  {id:'identify',category:'read',title:'What number is marked?',desc:'Read the value of a marked point.'},
+  {id:'interval-value',category:'read',title:'Find the interval',desc:'Work out what each equal interval is worth.'},
+  {id:'missing-labels',category:'read',title:'Missing labels',desc:'Fill several missing scale labels.'},
+  {id:'estimate-position',category:'place',title:'Estimate the position',desc:'Use sparse anchors to identify a marked value.'},
+  {id:'midpoint',category:'place',title:'Find the midpoint',desc:'Find the value exactly halfway between two points.'},
+  {id:'difference',category:'calculate',title:'Find the difference',desc:'Find the distance between two marked values.'},
+  {id:'jump',category:'calculate',title:'Where do you land?',desc:'Follow a shown positive or negative jump.'},
+  {id:'missing-jump',category:'calculate',title:'Find the jump',desc:'Work out the jump between a start and end value.'},
+  {id:'across-zero',category:'calculate',title:'Interval across zero',desc:'Find the distance from a negative to a positive value.'},
+  {id:'rounding',category:'round',title:'Round the marked value',desc:'Use the line to round to a sensible unit.'},
+  {id:'error-scale',category:'reason',title:'Spot the scale error',desc:'Decide whether a pupil has read the interval correctly.'}
+];
 const DEFAULT_LINE={
   id:'l1',label:'',showLabels:true,showConsecutiveDifferences:false,consecutiveSide:'above',
   markers:[
@@ -107,14 +128,24 @@ function normalise(input){
   const lineIds=new Set(src.lines.map(l=>l.id));
   src.activeLineId=lineIds.has(src.activeLineId)?src.activeLineId:src.lines[0].id;
   if(src.challenge&&typeof src.challenge==='object'){
-    src.challenge={
+    const base=CK?CK.normalise(src.challenge):{
+      ...src.challenge,
+      mode:src.challenge.mode==='custom'?'custom':'standard',
       type:String(src.challenge.type||''),
-      prompt:String(src.challenge.prompt||'').slice(0,220),
-      answer:String(src.challenge.answer||'').slice(0,220),
-      revealed:!!src.challenge.revealed,
+      title:String(src.challenge.title||'').slice(0,100),
+      promptHtml:esc(src.challenge.prompt||''),
+      prompt:String(src.challenge.prompt||'').slice(0,600),
+      answer:String(src.challenge.answer||'').slice(0,400),
+      answerMode:src.challenge.answerMode==='manual'?'manual':'bound',
+      revealed:!!src.challenge.revealed
+    };
+    src.challenge={
+      ...base,
       hiddenTicks:Array.isArray(src.challenge.hiddenTicks)?src.challenge.hiddenTicks.map(Number).filter(Number.isFinite):[],
       hiddenMarkerIds:Array.isArray(src.challenge.hiddenMarkerIds)?src.challenge.hiddenMarkerIds.map(String):[],
-      hiddenRelationIds:Array.isArray(src.challenge.hiddenRelationIds)?src.challenge.hiddenRelationIds.map(String):[]
+      hiddenRelationIds:Array.isArray(src.challenge.hiddenRelationIds)?src.challenge.hiddenRelationIds.map(String):[],
+      roundingUnit:Number.isFinite(Number(src.challenge.roundingUnit))?Number(src.challenge.roundingUnit):null,
+      claimedInterval:Number.isFinite(Number(src.challenge.claimedInterval))?Number(src.challenge.claimedInterval):null
     };
   }else src.challenge=null;
   return src;
@@ -130,6 +161,9 @@ function numberLineV2(){
   let boardMode=null,boardRelationType='difference',boardFirstMarker=null,boardNotice='';
   let boardNoticeTimer=null;
   let boardFallback=false;
+  let challengeTab=state.challenge?.mode==='custom'?'custom':'standard';
+  let challengeCategory='read';
+  let challengeType=state.challenge?.type&&CHALLENGE_TEMPLATES.some(t=>t.id===state.challenge.type)?state.challenge.type:'identify';
   const undoStack=[],redoStack=[];
   const openGroups=new Set(['line','lines','markers','export']);
 
@@ -189,18 +223,28 @@ function numberLineV2(){
     if(text)boardNoticeTimer=setTimeout(()=>{boardNotice='';renderStage()},2400);
   }
   function updateChallengeAnswer(){
-    const ch=state.challenge;if(!ch)return;
+    const ch=state.challenge;if(!ch||ch.answerMode==='manual')return;
     const line=state.lines[0];if(!line)return;
-    if(ch.type==='identify'){
+    if(ch.type==='identify'||ch.type==='estimate-position'||ch.type==='jump'){
       const id=ch.hiddenMarkerIds[0],m=line.markers.find(x=>x.id===id);
       if(m)ch.answer=fmt(m.value);
-    }else if(ch.type==='difference'){
+    }else if(ch.type==='difference'||ch.type==='across-zero'){
       const id=ch.hiddenRelationIds[0],r=line.relations.find(x=>x.id===id);
       if(r){const a=line.markers.find(x=>x.id===r.from),b=line.markers.find(x=>x.id===r.to);if(a&&b)ch.answer=fmt(Math.abs(cleanNumber(b.value-a.value)))}
-    }else if(ch.type==='jump'){
-      const id=ch.hiddenMarkerIds[0],m=line.markers.find(x=>x.id===id);
-      if(m)ch.answer=fmt(m.value);
+    }else if(ch.type==='missing-jump'){
+      const id=ch.hiddenRelationIds[0],r=line.relations.find(x=>x.id===id);
+      if(r){const a=line.markers.find(x=>x.id===r.from),b=line.markers.find(x=>x.id===r.to);if(a&&b){const d=cleanNumber(b.value-a.value);ch.answer=(d>=0?'+':'')+fmt(d)}}
+    }else if(ch.type==='midpoint'&&line.markers.length>=2){
+      ch.answer=fmt(cleanNumber((line.markers[0].value+line.markers[1].value)/2));
+    }else if(ch.type==='rounding'){
+      const id=ch.hiddenMarkerIds[0],m=line.markers.find(x=>x.id===id),unit=Number(ch.roundingUnit);
+      if(m&&unit>0)ch.answer=fmt(cleanNumber(Math.round(m.value/unit)*unit));
+    }else if(ch.type==='interval-value'){
+      ch.answer=fmt(state.step);
+    }else if(ch.type==='error-scale'){
+      ch.answer='No. Each interval is '+fmt(state.step)+'.';
     }
+    if(CK&&ch.promptHtml!=null)ch.prompt=CK.plainText(ch.promptHtml).slice(0,600);
   }
   function message(text,bad=false){
     const box=q('#nl-status');if(!box)return;
@@ -222,6 +266,43 @@ function numberLineV2(){
     state.step=Math.max(.0001,Math.min(range,num(q('#nl-step')?.value,state.step)));
     state.labelEvery=clamp(Math.round(num(q('#nl-label-every')?.value,state.labelEvery)),1,50);
     state.lines.forEach(line=>line.markers.forEach(m=>m.value=snap(m.value,state)));
+    updateChallengeAnswer();
+  }
+  function challengeTemplateList(){
+    const intervals=Math.max(1,Math.floor((state.max-state.min)/state.step+1e-8));
+    return CHALLENGE_TEMPLATES.map(t=>{
+      if(t.id==='across-zero'&&!(state.min<0&&state.max>0))return {...t,disabled:true,disabledReason:'Use a range that crosses 0.'};
+      if(t.id==='missing-labels'&&intervals<3)return {...t,disabled:true,disabledReason:'Use at least 3 intervals.'};
+      if((t.id==='estimate-position'||t.id==='rounding')&&intervals<2)return {...t,disabled:true,disabledReason:'Use at least 2 intervals.'};
+      return t;
+    });
+  }
+  function challengeControlsHtml(){
+    const ch=state.challenge;
+    const tabs=`<div class="gd-challenge-tabs" role="tablist" aria-label="Challenge mode">
+      <button type="button" class="gd-challenge-tab${challengeTab==='standard'?' is-active':''}" data-nl-challenge-tab="standard">Standard</button>
+      <button type="button" class="gd-challenge-tab${challengeTab==='custom'?' is-active':''}" data-nl-challenge-tab="custom">Custom</button>
+    </div>`;
+    if(challengeTab==='custom'){
+      const custom=ch&&ch.mode==='custom'?ch:(CK?CK.makeCustom(ch||{}):ch);
+      return tabs+`
+        ${custom&&CK?CK.editorHtml(custom,'nl'):'<p class="gd-help">Custom editor unavailable.</p>'}
+        <div class="gd-row">
+          ${ch&&ch.answer?'<button class="gd-btn" id="nl-reveal" type="button">'+(ch.revealed?'Hide answer':'Reveal answer')+'</button>':''}
+          ${ch?'<button class="gd-btn" id="nl-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':''}
+        </div>
+        <p class="gd-help">Custom challenges sit on top of the current maths setup. If you edit a generated challenge, its hidden value can stay mathematically linked until you type a manual answer.</p>`;
+    }
+    const picker=CK?CK.pickerHtml(challengeTemplateList(),CHALLENGE_CATEGORIES,challengeCategory,challengeType,'nl'):'';
+    return tabs+`
+      ${picker}
+      <div class="gd-row">
+        <button class="gd-btn gd-btn--primary" id="nl-generate" type="button">Generate challenge</button>
+        ${ch&&ch.mode!=='custom'?'<button class="gd-btn" id="nl-edit-challenge" type="button">Edit challenge</button>':''}
+        ${ch&&ch.answer?'<button class="gd-btn" id="nl-reveal" type="button">'+(ch.revealed?'Hide answer':'Reveal answer')+'</button>':''}
+        ${ch?'<button class="gd-btn" id="nl-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':''}
+      </div>
+      <p class="gd-help">Challenges use the current range and tick step. Difficulty comes from the scale, sparse labels and the reasoning required—not from a year-group switch.</p>`;
   }
   function markerOptions(line,selected){
     return line.markers.map(m=>'<option value="'+esc(m.id)+'"'+(m.id===selected?' selected':'')+'>'+esc(m.label||m.id)+' · '+fmt(m.value)+'</option>').join('');
@@ -310,22 +391,9 @@ function numberLineV2(){
       </details>
 
       <details class="nl-group" data-nl-group="challenge"${groupOpen('challenge')}>
-        <summary>Challenge generator${challenge?' <span class="nl-live">active</span>':''}</summary>
+        <summary>Challenges${challenge?' <span class="nl-live">active</span>':''}</summary>
         <div class="nl-group-body">
-          <label class="gd-field"><span>Challenge type</span>
-            <select class="gd-select" id="nl-challenge-type">
-              <option value="identify">What number is marked?</option>
-              <option value="difference">Find the difference</option>
-              <option value="jump">Where do you land?</option>
-              <option value="missing-labels">Fill missing labels</option>
-            </select>
-          </label>
-          <div class="gd-row">
-            <button class="gd-btn gd-btn--primary" id="nl-generate" type="button">Generate challenge</button>
-            ${challenge?'<button class="gd-btn" id="nl-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button><button class="gd-btn" id="nl-clear-challenge" type="button">Back to my setup</button>':''}
-          </div>
-          ${challenge?`<label class="gd-field"><span>Question text</span><textarea class="gd-textarea" id="nl-prompt" rows="3">${esc(challenge.prompt)}</textarea></label>`:''}
-          <p class="gd-help">Challenges use the current range and step, so you control the mathematical level without selecting a year group.</p>
+          ${challengeControlsHtml()}
         </div>
       </details>
 
@@ -550,7 +618,7 @@ function numberLineV2(){
     </div>`;
   }
   function renderStage(){
-    const c=state.challenge,prompt=c?`<div class="nl-challenge-banner"><span>Challenge</span><strong>${esc(c.prompt)}</strong>${c.revealed?`<em>Answer: ${esc(c.answer)}</em>`:''}<button class="nl-challenge-reveal" type="button" data-board-action="reveal">${c.revealed?'Hide answer':'Reveal answer'}</button></div>`:'';
+    const prompt=state.challenge?(CK?CK.bannerHtml(state.challenge):`<div class="nl-challenge-banner"><span>Challenge</span><strong>${esc(state.challenge.prompt)}</strong></div>`):'';
     q('#gd-stage').innerHTML=`<div class="nl-stage-wrap">${prompt}<div class="nl-export-frame">${buildSvg()}</div><p class="nl-drag-help">Drag a marker along its line to move it. Values snap to the chosen tick step.</p></div>${boardUiHtml()}`;
     stage.classList.toggle('is-board-active',boardActive());
     stage.classList.toggle('is-delete-mode',boardMode==='delete');
@@ -637,9 +705,50 @@ function numberLineV2(){
     const id=nextId('l',state.lines),index=state.lines.length;
     state.lines.push({id,label:'Line '+(index+1),showLabels:index===0,showConsecutiveDifferences:false,consecutiveSide:'above',markers:[],relations:[]});state.activeLineId=id;renderAll();
   }
-  function randomTick(){const count=Math.max(1,Math.floor((state.max-state.min)/state.step+1e-8));return snap(state.min+Math.floor(Math.random()*(count+1))*state.step,state)}
+  function randomTick(){
+    const count=Math.max(1,Math.floor((state.max-state.min)/state.step+1e-8));
+    return snap(state.min+Math.floor(Math.random()*(count+1))*state.step,state);
+  }
+  function randomInteriorTick(){
+    const count=Math.max(1,Math.floor((state.max-state.min)/state.step+1e-8));
+    if(count<2)return randomTick();
+    return snap(state.min+(1+Math.floor(Math.random()*(count-1)))*state.step,state);
+  }
   function randomDistinct(a){let b=randomTick(),guard=0;while(Math.abs(b-a)<state.step/1000&&guard++<40)b=randomTick();return b}
+  function endpointLabelsOnly(){
+    const count=Math.max(1,Math.floor((state.max-state.min)/state.step+1e-8));
+    state.labelEvery=clamp(count,1,50);
+  }
+  function challengeObject(type,prompt,answer,extra={}){
+    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===type);
+    const base={
+      mode:'standard',type,category:meta?.category||'',title:'',
+      prompt,promptHtml:esc(prompt),answer:String(answer??''),answerMode:'bound',revealed:false,
+      hiddenTicks:[],hiddenMarkerIds:[],hiddenRelationIds:[],...extra
+    };
+    return CK?CK.normalise(base):base;
+  }
+  function clearChallenge(){
+    if(beforeChallenge){state=normalise(copy(beforeChallenge));beforeChallenge=null}
+    else state.challenge=null;
+    challengeTab='standard';
+    renderAll();
+  }
+  function enterCustomChallenge(){
+    remember();
+    if(CK){
+      state.challenge=CK.makeCustom(state.challenge||{
+        type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',
+        hiddenTicks:[],hiddenMarkerIds:[],hiddenRelationIds:[]
+      });
+    }else if(!state.challenge){
+      state.challenge={mode:'custom',type:'custom',title:'Challenge',prompt:'Write your challenge here.',answer:'',answerMode:'manual',revealed:false,hiddenTicks:[],hiddenMarkerIds:[],hiddenRelationIds:[]};
+    }
+    challengeTab='custom';openGroups.add('challenge');renderAll();
+  }
   function generateChallenge(type){
+    const template=challengeTemplateList().find(t=>t.id===type&&!t.disabled);
+    if(!template){message('That challenge needs a different number-line range.',true);return}
     remember();
     if(!beforeChallenge)beforeChallenge=copy({...state,challenge:null});else state=normalise(copy(beforeChallenge));
     const a=randomTick(),b=randomDistinct(a),lo=Math.min(a,b),hi=Math.max(a,b);
@@ -647,23 +756,74 @@ function numberLineV2(){
     state.lines=[line];state.activeLineId='l1';
     if(type==='identify'){
       line.markers=[{id:'m1',label:'A',value:a,color:'#147d75',showValue:true,side:'above'}];
-      state.challenge={type,prompt:'What number is marker A pointing to?',answer:fmt(a),revealed:false,hiddenTicks:[],hiddenMarkerIds:['m1'],hiddenRelationIds:[]};
+      state.challenge=challengeObject(type,'What number is marker A pointing to?',fmt(a),{hiddenMarkerIds:['m1']});
+    }else if(type==='interval-value'){
+      endpointLabelsOnly();
+      state.challenge=challengeObject(type,'What is each equal interval on this number line worth?',fmt(state.step));
+    }else if(type==='estimate-position'){
+      endpointLabelsOnly();
+      const target=randomInteriorTick();
+      line.markers=[{id:'m1',label:'A',value:target,color:'#147d75',showValue:true,side:'above'}];
+      state.challenge=challengeObject(type,'Use the labelled anchors to work out the value of A.',fmt(target),{hiddenMarkerIds:['m1']});
+    }else if(type==='midpoint'){
+      let x=a,y=b,guard=0;
+      while(Math.abs(y-x)<state.step*2-1e-10&&guard++<30)y=randomDistinct(x);
+      const left=Math.min(x,y),right=Math.max(x,y);
+      line.markers=[{id:'m1',label:'A',value:left,color:'#147d75',showValue:true,side:'above'},{id:'m2',label:'B',value:right,color:'#d65a4a',showValue:true,side:'above'}];
+      state.challenge=challengeObject(type,'What value is exactly halfway between A and B?',fmt(cleanNumber((left+right)/2)));
     }else if(type==='difference'){
       line.markers=[{id:'m1',label:'A',value:lo,color:'#147d75',showValue:true,side:'above'},{id:'m2',label:'B',value:hi,color:'#d65a4a',showValue:true,side:'above'}];
       line.relations=[{id:'r1',from:'m1',to:'m2',type:'difference',color:'#52666d',label:'',showLabel:true,side:'above'}];
-      state.challenge={type,prompt:'What is the difference between A and B?',answer:fmt(cleanNumber(hi-lo)),revealed:false,hiddenTicks:[],hiddenMarkerIds:[],hiddenRelationIds:['r1']};
+      state.challenge=challengeObject(type,'What is the difference between A and B?',fmt(cleanNumber(hi-lo)),{hiddenRelationIds:['r1']});
     }else if(type==='jump'){
       let start=a,end=b;if(Math.abs(end-start)<state.step/1000)end=snap(start+state.step,state);const delta=cleanNumber(end-start);
       line.markers=[{id:'m1',label:'Start',value:start,color:'#147d75',showValue:true,side:'above'},{id:'m2',label:'?',value:end,color:'#d65a4a',showValue:true,side:'above'}];
       line.relations=[{id:'r1',from:'m1',to:'m2',type:'jump',color:'#4169a8',label:(delta>=0?'+':'')+fmt(delta),showLabel:true,side:'above'}];
-      state.challenge={type,prompt:'Start at '+fmt(start)+' and make the shown jump. Where do you land?',answer:fmt(end),revealed:false,hiddenTicks:[],hiddenMarkerIds:['m2'],hiddenRelationIds:[]};
+      state.challenge=challengeObject(type,'Start at '+fmt(start)+' and make the shown jump. Where do you land?',fmt(end),{hiddenMarkerIds:['m2']});
+    }else if(type==='missing-jump'){
+      const delta=cleanNumber(b-a);
+      line.markers=[{id:'m1',label:'Start',value:a,color:'#147d75',showValue:true,side:'above'},{id:'m2',label:'End',value:b,color:'#d65a4a',showValue:true,side:'above'}];
+      line.relations=[{id:'r1',from:'m1',to:'m2',type:'jump',color:'#4169a8',label:'',showLabel:true,side:'above'}];
+      state.challenge=challengeObject(type,'What jump takes you from Start to End?',(delta>=0?'+':'')+fmt(delta),{hiddenRelationIds:['r1']});
+    }else if(type==='across-zero'){
+      let left=null,right=null,guard=0;
+      while((left==null||right==null)&&guard++<120){
+        const v=randomTick();
+        if(v<0&&left==null)left=v;
+        if(v>0&&right==null)right=v;
+      }
+      if(left==null)left=state.min;
+      if(right==null)right=state.max;
+      line.markers=[{id:'m1',label:'A',value:left,color:'#147d75',showValue:true,side:'above'},{id:'m2',label:'B',value:right,color:'#d65a4a',showValue:true,side:'above'}];
+      line.relations=[{id:'r1',from:'m1',to:'m2',type:'difference',color:'#52666d',label:'',showLabel:true,side:'above'}];
+      state.challenge=challengeObject(type,'What is the interval from A to B across zero?',fmt(cleanNumber(right-left)),{hiddenRelationIds:['r1']});
+    }else if(type==='rounding'){
+      const range=state.max-state.min;
+      let unit=cleanNumber(state.step*10);
+      if(unit>range)unit=cleanNumber(state.step*5);
+      if(unit>range)unit=cleanNumber(state.step*2);
+      if(unit>range)unit=cleanNumber(state.step);
+      let target=randomInteriorTick(),guard=0;
+      while(Math.abs(target/unit-Math.round(target/unit))<1e-8&&guard++<40)target=randomInteriorTick();
+      line.markers=[{id:'m1',label:'A',value:target,color:'#147d75',showValue:true,side:'above'}];
+      state.challenge=challengeObject(type,'Round the value at A to the nearest '+fmt(unit)+'.',fmt(cleanNumber(Math.round(target/unit)*unit)),{hiddenMarkerIds:['m1'],roundingUnit:unit});
+    }else if(type==='error-scale'){
+      endpointLabelsOnly();
+      let wrong=cleanNumber(state.step*2);if(Math.abs(wrong-state.step)<1e-10)wrong=cleanNumber(state.step+1);
+      state.challenge=challengeObject(type,'A pupil says each interval is worth '+fmt(wrong)+'. Are they correct?','No. Each interval is '+fmt(state.step)+'.',{claimedInterval:wrong});
     }else{
       const count=Math.max(2,Math.floor((state.max-state.min)/state.step+1e-8)),candidates=[];
       for(let i=1;i<count;i++)if(i%state.labelEvery===0)candidates.push(cleanNumber(state.min+i*state.step));
-      const shuffled=candidates.sort(()=>Math.random()-.5).slice(0,Math.min(5,Math.max(2,Math.floor(candidates.length/3))));
-      state.challenge={type:'missing-labels',prompt:'Fill in the missing number labels on the line.',answer:shuffled.sort((x,y)=>x-y).map(fmt).join(', '),revealed:false,hiddenTicks:shuffled,hiddenMarkerIds:[],hiddenRelationIds:[]};
+      if(candidates.length<2){
+        state.labelEvery=1;
+        candidates.length=0;
+        for(let i=1;i<count;i++)candidates.push(cleanNumber(state.min+i*state.step));
+      }
+      const take=Math.min(5,Math.max(2,Math.floor(candidates.length/3)));
+      const shuffled=candidates.sort(()=>Math.random()-.5).slice(0,take);
+      state.challenge=challengeObject('missing-labels','Fill in the missing number labels on the line.',shuffled.sort((x,y)=>x-y).map(fmt).join(', '),{hiddenTicks:shuffled});
     }
-    state=normalise(state);openGroups.add('challenge');renderAll();
+    state=normalise(state);challengeType=type;challengeCategory=template.category;challengeTab='standard';openGroups.add('challenge');renderAll();
   }
   function applyPreset(name){
     beforeChallenge=null;state.challenge=null;
@@ -681,7 +841,7 @@ function numberLineV2(){
       if(kind==='copy'){await X.copyPng(svg());message('Image copied — paste it into your slide or document.')}
       if(kind==='png'){await X.downloadPng(svg(),exportName(),2);message('PNG downloaded.')}
       if(kind==='svg'){X.downloadSvg(svg(),exportName());message('SVG downloaded.')}
-      if(kind==='print'){X.printSvg(svg(),{title:state.title||'Number line',prompt:state.challenge?.prompt||'',answer:state.challenge?.answer||'',showAnswer:!!state.challenge?.revealed,landscape:true});message('Print view opened. Choose “Save as PDF” in the print dialog.')}
+      if(kind==='print'){const ch=state.challenge;const prompt=ch?(CK?CK.plainText(ch.promptHtml||ch.prompt||''):ch.prompt||''):'';const title=ch?.title||state.title||'Number line';X.printSvg(svg(),{title,prompt,answer:ch?.answer||'',showAnswer:!!ch?.revealed,landscape:true});message('Print view opened. Choose “Save as PDF” in the print dialog.')}
       if(kind==='link'){const u=new URL(location.href);u.searchParams.set('nl',encodeState(state));u.hash='number-line';await X.copyText(u.toString());message('Setup link copied. It will reopen this number line exactly as shown.')}
     }catch(err){message(err?.message||'That export did not work.',true)}
   }
@@ -690,12 +850,14 @@ function numberLineV2(){
     const t=e.target,line=activeLine();
     if(['nl-min','nl-max','nl-step','nl-label-every'].includes(t.id)){applyRangeFromControls();renderStage();return}
     if(t.id==='nl-title'){state.title=t.value.slice(0,90);renderStage();return}
+    if(t.id==='nl-custom-title'&&state.challenge){state.challenge.title=t.value.slice(0,100);renderStage();return}
+    if(t.id==='nl-custom-answer'&&state.challenge){state.challenge.answer=t.value.slice(0,400);state.challenge.answerMode='manual';state.challenge.revealed=false;renderStage();return}
+    if(t.id==='nl-custom-prompt'&&state.challenge&&CK){state.challenge.promptHtml=CK.sanitiseRichHtml(t.innerHTML);state.challenge.prompt=CK.plainText(state.challenge.promptHtml).slice(0,600);renderStage();return}
     if(t.id==='nl-tick-labels'){state.showTickLabels=t.checked;renderStage();return}
     if(t.id==='nl-line-label'){line.label=t.value.slice(0,30);const option=q('#nl-active-line')?.selectedOptions?.[0];if(option){const i=state.lines.findIndex(l=>l.id===line.id);option.textContent='Line '+(i+1)+(line.label?' · '+line.label:'')}renderStage();return}
     if(t.id==='nl-line-labels'){line.showLabels=t.checked;renderStage();return}
     if(t.id==='nl-consecutive'){line.showConsecutiveDifferences=t.checked;renderStage();return}
     if(t.id==='nl-consecutive-side'){line.consecutiveSide=t.value==='below'?'below':'above';renderStage();return}
-    if(t.id==='nl-prompt'&&state.challenge){state.challenge.prompt=t.value.slice(0,220);renderStage();return}
     let id=t.dataset.markerLabel;if(id){const m=line.markers.find(x=>x.id===id);if(m){m.label=t.value.slice(0,12);renderStage()}return}
     id=t.dataset.markerValue;if(id){const m=line.markers.find(x=>x.id===id);if(m){m.value=snap(num(t.value,m.value),state);updateChallengeAnswer();renderStage()}return}
     id=t.dataset.markerColor;if(id){const m=line.markers.find(x=>x.id===id);if(m){m.color=t.value;renderStage()}return}
@@ -716,8 +878,21 @@ function numberLineV2(){
     if(t.id==='nl-active-line'){state.activeLineId=t.value;renderControls();renderStage();return}
   });
 
+  controls.addEventListener('pointerdown',e=>{
+    if(e.target.closest('[data-gd-rich-action]'))e.preventDefault();
+  });
   controls.addEventListener('click',e=>{
     const b=e.target.closest('button');if(!b)return;const line=activeLine();
+    if(b.dataset.nlChallengeTab){
+      if(b.dataset.nlChallengeTab==='custom'){enterCustomChallenge();return}
+      challengeTab='standard';renderControls();return;
+    }
+    if(b.dataset.nlChallengeCat){challengeCategory=b.dataset.nlChallengeCat;const first=challengeTemplateList().find(t=>t.category===challengeCategory&&!t.disabled);if(first)challengeType=first.id;renderControls();return}
+    if(b.dataset.nlChallengeType){challengeType=b.dataset.nlChallengeType;renderControls();return}
+    if(b.dataset.gdRichAction&&state.challenge&&CK){
+      e.preventDefault();const editor=q('#nl-custom-prompt',controls);CK.applyFormat(editor,b.dataset.gdRichAction);
+      state.challenge.promptHtml=CK.sanitiseRichHtml(editor?.innerHTML||'');state.challenge.prompt=CK.plainText(state.challenge.promptHtml).slice(0,600);renderStage();return;
+    }
     if(b.dataset.nlPreset){applyPreset(b.dataset.nlPreset);return}
     if(b.id==='nl-add-marker'){addMarker();return}
     if(b.id==='nl-add-relation'){addRelation();return}
@@ -725,9 +900,10 @@ function numberLineV2(){
     if(b.id==='nl-delete-line'&&state.lines.length>1){remember();state.lines=state.lines.filter(l=>l.id!==state.activeLineId);state.activeLineId=state.lines[0].id;renderAll();return}
     if(b.dataset.markerDelete){remember();line.markers=line.markers.filter(m=>m.id!==b.dataset.markerDelete);line.relations=line.relations.filter(r=>r.from!==b.dataset.markerDelete&&r.to!==b.dataset.markerDelete);updateChallengeAnswer();renderAll();return}
     if(b.dataset.relationDelete){remember();line.relations=line.relations.filter(r=>r.id!==b.dataset.relationDelete);updateChallengeAnswer();renderAll();return}
-    if(b.id==='nl-generate'){generateChallenge(q('#nl-challenge-type').value);return}
+    if(b.id==='nl-generate'){generateChallenge(challengeType);return}
+    if(b.id==='nl-edit-challenge'){enterCustomChallenge();return}
     if(b.id==='nl-reveal'&&state.challenge){state.challenge.revealed=!state.challenge.revealed;renderAll();return}
-    if(b.id==='nl-clear-challenge'){if(beforeChallenge)state=normalise(copy(beforeChallenge));beforeChallenge=null;renderAll();return}
+    if(b.id==='nl-clear-challenge'){clearChallenge();return}
     if(b.id==='nl-copy-image'){exportAction('copy');return}
     if(b.id==='nl-png'){exportAction('png');return}
     if(b.id==='nl-svg-download'){exportAction('svg');return}

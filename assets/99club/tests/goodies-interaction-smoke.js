@@ -20,6 +20,7 @@ function syntax(path,text){
 
 const page=read('_pages/99-club-goodies.md');
 const interaction=read('assets/99club/goodies-interaction.js');
+const challenge=read('assets/99club/goodies-challenge.js');
 const toolsA=read('assets/99club/goodies-tools-a.js');
 const toolsB=read('assets/99club/goodies-tools-b.js');
 const app=read('assets/99club/goodies-app.js');
@@ -27,12 +28,18 @@ const css=read('assets/99club/goodies.css');
 const numberLine=read('assets/99club/goodies-number-line-v6.js');
 
 syntax('goodies-interaction.js',interaction);
+syntax('goodies-challenge.js',challenge);
+syntax('goodies-number-line-v6.js',numberLine);
 syntax('goodies-tools-a.js',toolsA);
 syntax('goodies-tools-b.js',toolsB);
 syntax('goodies-app.js',app);
 
+requireOrder(page,'goodies-interaction.js','goodies-challenge.js','Goodies challenge layer follows interaction layer');
+requireOrder(page,'goodies-challenge.js','goodies-number-line-v6.js','Goodies challenge layer loads before Number Line');
 requireOrder(page,'goodies-interaction.js','goodies-tools-b.js','Goodies interaction layer');
 requireText(page,'goodies-number-line-v6.js','Number Line v6 remains the active Number Line');
+requireMatch(page,/goodies-challenge\.js\?v=\d+/,'Goodies challenge cache-bust');
+requireMatch(page,/goodies-number-line-v6\.js\?v=\d+/,'Goodies Number Line cache-bust');
 requireMatch(page,/goodies-interaction\.js\?v=\d+/,'Goodies interaction cache-bust');
 requireMatch(page,/goodies-tools-a\.js\?v=\d+/,'Goodies tools A cache-bust');
 requireMatch(page,/goodies-tools-b\.js\?v=\d+/,'Goodies tools B cache-bust');
@@ -107,8 +114,23 @@ requireText(css,'.gd-object-rail','shared contextual rail styling');
 requireText(css,'@media(hover:none),(pointer:coarse)','touch-specific interaction styling');
 requireText(css,'.gd-object-canvas.has-grid','grid snapping visual');
 
+requireText(challenge,'G.challengeKit=','shared challenge framework');
+requireText(challenge,'function editorHtml','shared custom challenge editor');
+requireText(challenge,'data-gd-rich-action="bold"','shared bold formatting');
+requireText(challenge,'size-large','shared text-size formatting');
+requireText(challenge,'function pickerHtml','shared standard challenge picker');
+
 requireText(numberLine,"boardTool('delete','delete'","Number Line direct delete remains intact");
 requireText(numberLine,'nl-board-rail','Number Line quiet side rail remains intact');
-requireText(numberLine,'nl-challenge-reveal','Number Line contextual challenge reveal remains intact');
+requireText(challenge,'nl-challenge-reveal','Shared contextual challenge reveal remains intact');
+requireText(numberLine,'CK.bannerHtml','Number Line uses the shared contextual challenge banner');
+requireText(numberLine,"{id:'interval-value'","Number Line interval challenge");
+requireText(numberLine,"{id:'estimate-position'","Number Line position challenge");
+requireText(numberLine,"{id:'missing-jump'","Number Line reverse jump challenge");
+requireText(numberLine,"{id:'across-zero'","Number Line across-zero challenge");
+requireText(numberLine,"{id:'rounding'","Number Line rounding challenge");
+requireText(numberLine,"{id:'error-scale'","Number Line reasoning challenge");
+requireText(numberLine,'enterCustomChallenge','Number Line custom challenge mode');
+requireText(numberLine,'CK.editorHtml','Number Line uses shared custom editor');
 
 console.log('Goodies interaction regression checks passed.');

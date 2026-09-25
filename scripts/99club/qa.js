@@ -924,10 +924,13 @@ try{
 try{
   const goodiesPage=read('_pages/99-club-goodies.md');
   const numberLine=read('assets/99club/goodies-number-line-v6.js');
+  const challengeKit=read('assets/99club/goodies-challenge.js');
   const goodiesCss=read('assets/99club/goodies.css');
   new Function(numberLine);
+  new Function(challengeKit);
   if(!goodiesPage.includes('permalink: /goodies/')||!goodiesPage.includes('sitemap: false')||!goodiesPage.includes('search: false')||!goodiesPage.includes('noindex,nofollow,noarchive'))fail('goodies-number-line','Hidden goodies route/indexing contract regressed');
-  if(!/goodies-number-line-v6\.js\?v=\d+/.test(goodiesPage)||!/goodies\.css\?v=\d+/.test(goodiesPage))fail('goodies-number-line','Number Line v6 assets are not cache-busted on /goodies/');
+  if(!/goodies-number-line-v6\.js\?v=\d+/.test(goodiesPage)||!/goodies-challenge\.js\?v=\d+/.test(goodiesPage)||!/goodies\.css\?v=\d+/.test(goodiesPage))fail('goodies-number-line','Number Line / shared challenge assets are not cache-busted on /goodies/');
+  if(goodiesPage.indexOf('goodies-challenge.js')>goodiesPage.indexOf('goodies-number-line-v6.js'))fail('goodies-number-line','Shared challenge framework must load before Number Line v6');
   for(const token of [
     "side:m.side==='below'?'below':'above'",
     'data-marker-side',
@@ -967,11 +970,12 @@ try{
     'function boardIcon',
     'nl-board-rail',
     "boardTool('delete'",
-    'nl-challenge-reveal',
     'is-delete-mode',
     'Line deleted. Undo is available.',
     'item.left>=end-0.5'
   ])if(!numberLine.includes(token))fail('goodies-number-line','Number Line v6 missing classroom contract: '+token);
+  for(const token of ['G.challengeKit=','function bannerHtml','nl-challenge-reveal','data-board-action="reveal"'])if(!challengeKit.includes(token))fail('goodies-number-line','Shared challenge layer missing classroom contract: '+token);
+  if(!numberLine.includes('CK.bannerHtml'))fail('goodies-number-line','Number Line v6 is not using the shared challenge banner');
   if(numberLine.includes('l12 -7 v14')||numberLine.includes('l-12 -7 v14'))fail('goodies-number-line','Bounded Number Line has regained baseline arrowheads');
   if(!goodiesCss.includes('.nl-marker-row .nl-side')||!goodiesCss.includes('#gd-stage:fullscreen'))fail('goodies-number-line','Number Line compact controls / Board view styling missing');
   if(!goodiesCss.includes('.nl-board-tools-toggle')||!goodiesCss.includes('.nl-board-menu.is-open')||!goodiesCss.includes('.nl-board-notice'))fail('goodies-number-line','Number Line floating Board teaching palette styling missing');
