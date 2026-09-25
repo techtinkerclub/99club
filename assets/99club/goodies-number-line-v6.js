@@ -361,6 +361,10 @@ function numberLineV2(){
     else ch.hiddenRelationIds=[resolved.object.id];
     return true;
   }
+  function refreshCustomAnswerReadout(){
+    const el=q('#nl-custom-live-answer',controls);
+    if(el)el.textContent=state.challenge?.answer||'—';
+  }
   function updateChallengeAnswer(){
     const ch=state.challenge;if(!ch||ch.answerMode==='manual')return;
     if(ch.answerSource){
@@ -368,6 +372,7 @@ function numberLineV2(){
       if(resolved)ch.answer=resolved.answer;
       else{ch.answerMode='manual';ch.answerSource=''}
       if(CK&&ch.promptHtml!=null)ch.prompt=CK.plainText(ch.promptHtml).slice(0,600);
+      refreshCustomAnswerReadout();
       return;
     }
     const line=state.lines[0];if(!line)return;
@@ -398,6 +403,7 @@ function numberLineV2(){
       ch.answer='No. Count the equal spaces (intervals), not the marks.';
     }
     if(CK&&ch.promptHtml!=null)ch.prompt=CK.plainText(ch.promptHtml).slice(0,600);
+    refreshCustomAnswerReadout();
   }
   function message(text,bad=false){
     const box=q('#nl-status');if(!box)return;
@@ -1201,7 +1207,7 @@ function numberLineV2(){
     id=t.dataset.markerShow;if(id){const m=line.markers.find(x=>x.id===id);if(m){m.showValue=t.checked;renderStage()}return}
     id=t.dataset.relationFrom;if(id){const r=line.relations.find(x=>x.id===id);if(r){r.from=t.value;if(r.from===r.to){const other=line.markers.find(m=>m.id!==r.from);if(other){r.to=other.id;const otherSelect=controls.querySelector('[data-relation-to="'+CSS.escape(id)+'"]');if(otherSelect)otherSelect.value=r.to}}updateChallengeAnswer();renderStage()}return}
     id=t.dataset.relationTo;if(id){const r=line.relations.find(x=>x.id===id);if(r){r.to=t.value;if(r.from===r.to){const other=line.markers.find(m=>m.id!==r.to);if(other){r.from=other.id;const otherSelect=controls.querySelector('[data-relation-from="'+CSS.escape(id)+'"]');if(otherSelect)otherSelect.value=r.from}}updateChallengeAnswer();renderStage()}return}
-    id=t.dataset.relationType;if(id){const r=line.relations.find(x=>x.id===id);if(r){r.type=t.value;renderStage()}return}
+    id=t.dataset.relationType;if(id){const r=line.relations.find(x=>x.id===id);if(r){r.type=t.value;updateChallengeAnswer();renderStage()}return}
     id=t.dataset.relationSide;if(id){const r=line.relations.find(x=>x.id===id);if(r){r.side=t.value==='below'?'below':'above';renderStage()}return}
     id=t.dataset.relationColor;if(id){const r=line.relations.find(x=>x.id===id);if(r){r.color=t.value;renderStage()}return}
     id=t.dataset.relationLabel;if(id){const r=line.relations.find(x=>x.id===id);if(r){r.label=t.value.slice(0,24);renderStage()}return}
