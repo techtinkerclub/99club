@@ -170,10 +170,17 @@ requireText(numberLine,'responseLines','Number Line exported answer-space contro
 requireText(numberLine,'labelSkip','Number Line dense-label collision guard');
 requireText(numberLine,"scaleMode=index>0&&src.scaleMode==='own'?'own':'shared'","Number Line independent-scale state");
 requireText(numberLine,'function scaleFor','Number Line per-line scale resolver');
+requireText(numberLine,'function scaleModeLabel','Number Line teaching-line mode labels');
+requireText(numberLine,'function defaultZoomRange','Number Line zoom interval defaults');
+requireText(numberLine,'function setLineScaleMode','Number Line teaching-line mode switch');
+requireText(numberLine,'function teachingConnections','Number Line zoom/double visual connections');
+requireText(numberLine,'nl-fit-zoom-markers','Number Line fast zoom-to-markers action');
 requireText(numberLine,'function snapOnLine','Number Line per-line snapping');
 requireText(numberLine,'data-nl-scale-mode="own"','Number Line own-scale control');
 requireText(numberLine,'nl-line-min','Number Line own-scale minimum control');
 requireText(css,'.nl-scale-mode','Number Line scale-mode styling');
+requireText(css,'.nl-scale-mode--four','Number Line four teaching-line choices');
+requireText(css,'.nl-add-line-row','Number Line compact teaching-line creation');
 requireText(exporter,'function composeChallengeCardSvg','shared challenge card export composer');
 requireText(exporter,"responseLabel='Answer'",'shared exported response box');
 
