@@ -35,6 +35,7 @@ requireOrder(page,'goodies-interaction.js','goodies-tools-b.js','Goodies interac
 requireText(page,'goodies-number-line-v6.js','Number Line v6 remains the active Number Line');
 requireMatch(page,/goodies-interaction\.js\?v=\d+/,'Goodies interaction cache-bust');
 requireMatch(page,/goodies-tools-a\.js\?v=\d+/,'Goodies tools A cache-bust');
+requireMatch(page,/goodies-tools-b\.js\?v=\d+/,'Goodies tools B cache-bust');
 requireMatch(page,/goodies\.css\?v=\d+/,'Goodies CSS cache-bust');
 requireText(page,'sitemap: false','Goodies stays out of sitemap');
 requireText(page,'robots: "noindex,nofollow,noarchive"','Goodies stays noindex');
@@ -57,6 +58,17 @@ requireText(toolsB,'I.mount({','Maths Canvas mounts shared controller');
 requireText(toolsB,'data-gd-object','Maths Canvas selectable objects');
 requireText(toolsB,"I.toolButton('grid','grid'",'Maths Canvas grid action');
 requireText(toolsB,'the side tools duplicate, colour, lock or delete it.','Maths Canvas direct interaction hint');
+
+requireText(toolsB,'function geoboard()','Geoboard tool');
+requireText(toolsB,'data-ge-vertex','direct Geoboard vertices');
+requireText(toolsB,'nearestPeg','Geoboard drag-to-peg mapping');
+requireText(toolsB,'function moveVertex','Geoboard vertex movement');
+requireText(toolsB,'Delete vertex','contextual Geoboard deletion');
+requireText(toolsB,"btn('Undo','ge-undo')",'Geoboard general undo');
+requireText(toolsB,"btn('Redo','ge-redo')",'Geoboard redo');
+requireText(toolsB,'Length ≈','two-point Geoboard length');
+requireText(css,'.gd-ge-vertex.is-selected','selected Geoboard vertex styling');
+requireText(css,'.gd-ge-context','contextual Geoboard action styling');
 
 requireText(toolsA,'function placeValue()','Place Value tool');
 requireText(toolsA,'data-pv-column','semantic Place Value columns');
