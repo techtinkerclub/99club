@@ -195,7 +195,6 @@ function mount(options){
       };
       el.onpointerup=endDrag;
       el.onpointercancel=endDrag;
-      el.ondblclick=e=>{e.preventDefault();selectedId=String(el.getAttribute('data-gd-object'));duplicateSelected();};
     });
   }
   function bindActions(){
