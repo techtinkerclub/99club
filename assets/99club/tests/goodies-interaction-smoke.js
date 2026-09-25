@@ -21,6 +21,7 @@ function syntax(path,text){
 const page=read('_pages/99-club-goodies.md');
 const interaction=read('assets/99club/goodies-interaction.js');
 const challenge=read('assets/99club/goodies-challenge.js');
+const exporter=read('assets/99club/goodies-export.js');
 const toolsA=read('assets/99club/goodies-tools-a.js');
 const toolsB=read('assets/99club/goodies-tools-b.js');
 const app=read('assets/99club/goodies-app.js');
@@ -29,6 +30,7 @@ const numberLine=read('assets/99club/goodies-number-line-v6.js');
 
 syntax('goodies-interaction.js',interaction);
 syntax('goodies-challenge.js',challenge);
+syntax('goodies-export.js',exporter);
 syntax('goodies-number-line-v6.js',numberLine);
 syntax('goodies-tools-a.js',toolsA);
 syntax('goodies-tools-b.js',toolsB);
@@ -36,10 +38,12 @@ syntax('goodies-app.js',app);
 
 requireOrder(page,'goodies-interaction.js','goodies-challenge.js','Goodies challenge layer follows interaction layer');
 requireOrder(page,'goodies-challenge.js','goodies-number-line-v6.js','Goodies challenge layer loads before Number Line');
+requireOrder(page,'goodies-export.js','goodies-number-line-v6.js','Goodies export layer loads before Number Line');
 requireOrder(page,'goodies-interaction.js','goodies-tools-b.js','Goodies interaction layer');
 requireText(page,'goodies-number-line-v6.js','Number Line v6 remains the active Number Line');
 requireMatch(page,/goodies-challenge\.js\?v=\d+/,'Goodies challenge cache-bust');
 requireMatch(page,/goodies-number-line-v6\.js\?v=\d+/,'Goodies Number Line cache-bust');
+requireMatch(page,/goodies-export\.js\?v=\d+/,'Goodies export cache-bust');
 requireMatch(page,/goodies-interaction\.js\?v=\d+/,'Goodies interaction cache-bust');
 requireMatch(page,/goodies-tools-a\.js\?v=\d+/,'Goodies tools A cache-bust');
 requireMatch(page,/goodies-tools-b\.js\?v=\d+/,'Goodies tools B cache-bust');
@@ -145,5 +149,14 @@ requireText(numberLine,'snapStep','Number Line linked representation snap constr
 requireText(numberLine,'function setMarkerValue','Number Line linked marker update helper');
 requireText(numberLine,'enterCustomChallenge','Number Line custom challenge mode');
 requireText(numberLine,'CK.editorHtml','Number Line uses shared custom editor');
+requireText(numberLine,'nl-workflow-tabs','Number Line task-based workflow tabs');
+requireText(numberLine,"['setup','Setup']",'Number Line setup workflow');
+requireText(numberLine,"['objects','Objects']",'Number Line objects workflow');
+requireText(numberLine,"['challenge','Challenge']",'Number Line challenge workflow');
+requireText(numberLine,"['export','Export']",'Number Line export workflow');
+requireText(numberLine,'responseLines','Number Line exported answer-space control');
+requireText(numberLine,'labelSkip','Number Line dense-label collision guard');
+requireText(exporter,'function composeChallengeCardSvg','shared challenge card export composer');
+requireText(exporter,"responseLabel='Answer'",'shared exported response box');
 
 console.log('Goodies interaction regression checks passed.');
