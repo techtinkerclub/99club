@@ -611,7 +611,7 @@ function numberLineV2(){
           </select></label>
           <button class="gd-btn" id="nl-add-line" type="button"${state.lines.length>=4?' disabled':''}>+ Add</button>
         </div>
-        ${state.lines.length>1?'<button class="gd-btn gd-btn--danger nl-remove-line" id="nl-delete-line" type="button">Remove selected line</button>':''}
+        ${lineIndex>0?'<button class="gd-btn gd-btn--danger nl-remove-line" id="nl-delete-line" type="button">Remove selected line</button>':''}
         <div class="nl-section-rule"></div>
         <button class="gd-btn gd-btn--danger nl-reset-compact" id="nl-reset" type="button">Reset number line</button>
       </section>`;
@@ -926,8 +926,8 @@ function numberLineV2(){
         return;
       }
       if(boardMode==='delete'){
-        if(state.lines.length<=1){boardMessage('Keep at least one number line. Delete its markers instead.');return}
-        remember();
+        if(lineId===state.lines[0].id){boardMessage('The main number line is the reference line and cannot be deleted.');return}
+        const doomed=state.lines.find(l=>l.id===lineId);remember();clearPositionGroupsForLine(doomed);
         state.lines=state.lines.filter(l=>l.id!==lineId);
         if(state.activeLineId===lineId)state.activeLineId=state.lines[0].id;
         boardMode=null;boardMenuOpen=false;
@@ -942,10 +942,7 @@ function numberLineV2(){
       const line=state.lines.find(l=>l.id===lineId);if(!line||!line.markers.some(m=>m.id===id))return;
       if(boardLocked){e.preventDefault();return}
       if(boardMode==='delete'){
-        e.preventDefault();remember();
-        line.markers=line.markers.filter(m=>m.id!==id);
-        line.relations=line.relations.filter(r=>r.from!==id&&r.to!==id);
-        updateChallengeAnswer();
+        e.preventDefault();remember();removeMarker(line,id);
         boardMode=null;boardMenuOpen=false;
         renderAll();boardMessage('Marker deleted. Undo is available.');
         return;
@@ -1366,7 +1363,7 @@ function numberLineV2(){
   controls.addEventListener('input',e=>{
     const t=e.target,line=activeLine();
     if(['nl-min','nl-max','nl-step','nl-label-every'].includes(t.id)){applyRangeFromControls();renderStage();return}
-    if(['nl-line-min','nl-line-max','nl-line-step','nl-line-label-every'].includes(t.id)){applyOwnScaleFromControls(line);renderStage();return}
+    if(['nl-line-min','nl-line-max','nl-line-step','nl-line-label-every'].includes(t.id)){if(line.scaleMode==='zoom'&&['nl-line-min','nl-line-max'].includes(t.id))line.zoomFollowMarkers=false;applyOwnScaleFromControls(line);renderStage();return}
     if(t.id==='nl-title'){state.title=t.value.slice(0,90);renderStage();return}
     if(t.id==='nl-custom-title'&&state.challenge){state.challenge.title=t.value.slice(0,100);renderStage();return}
     if(t.id==='nl-custom-answer'&&state.challenge){state.challenge.answer=t.value.slice(0,400);state.challenge.answerMode='manual';state.challenge.answerSource='';state.challenge.revealed=false;renderStage();return}
@@ -1394,6 +1391,9 @@ function numberLineV2(){
     const t=e.target;
     if(['nl-min','nl-max','nl-step','nl-label-every','nl-line-min','nl-line-max','nl-line-step','nl-line-label-every'].includes(t.id)){state=normalise(state);renderAll();return}
     if(t.id==='nl-active-line'){state.activeLineId=t.value;renderControls();renderStage();return}
+    if(t.id==='nl-zoom-follow'&&line.scaleMode==='zoom'){
+      line.zoomFollowMarkers=!!t.checked&&!!mainMarkerZoomRange();syncZoomFollowers();renderAll();return;
+    }
     if(t.id==='nl-custom-answer-source'&&state.challenge){
       const chosen=t.value;
       if(!setCustomAnswerSource(chosen)){message('That answer source is no longer available.',true);renderControls();return}
@@ -1429,11 +1429,12 @@ function numberLineV2(){
     }
     if(b.dataset.nlPreset){applyPreset(b.dataset.nlPreset);return}
     if(b.id==='nl-add-marker'){addMarker();return}
+    if(b.id==='nl-add-correspondence'){addLinkedPair(line);return}
     if(b.id==='nl-add-relation'){addRelation();return}
     if(b.id==='nl-add-line'){addLine(q('#nl-new-line-mode')?.value||'shared');return}
     if(b.id==='nl-fit-zoom-markers'&&line.scaleMode==='zoom'){remember();const z=defaultZoomRange();line.min=z.min;line.max=z.max;line.step=Math.max(0.0001,Math.min(line.max-line.min,state.step));line.labelEvery=1;line.markers.forEach(m=>m.value=snapOnLine(m,line));renderAll();return}
-    if(b.id==='nl-delete-line'&&state.lines.length>1){remember();state.lines=state.lines.filter(l=>l.id!==state.activeLineId);state.activeLineId=state.lines[0].id;renderAll();return}
-    if(b.dataset.markerDelete){remember();line.markers=line.markers.filter(m=>m.id!==b.dataset.markerDelete);line.relations=line.relations.filter(r=>r.from!==b.dataset.markerDelete&&r.to!==b.dataset.markerDelete);updateChallengeAnswer();renderAll();return}
+    if(b.id==='nl-delete-line'&&state.lines.indexOf(line)>0){remember();clearPositionGroupsForLine(line);state.lines=state.lines.filter(l=>l.id!==state.activeLineId);state.activeLineId=state.lines[0].id;renderAll();return}
+    if(b.dataset.markerDelete){remember();removeMarker(line,b.dataset.markerDelete);renderAll();return}
     if(b.dataset.relationDelete){remember();line.relations=line.relations.filter(r=>r.id!==b.dataset.relationDelete);updateChallengeAnswer();renderAll();return}
     if(b.id==='nl-generate'){generateChallenge(challengeType);return}
     if(b.id==='nl-edit-challenge'){enterCustomChallenge();return}
@@ -1470,7 +1471,7 @@ function numberLineV2(){
     if(b.dataset.boardChallenge){boardChallengeOpen=false;boardMenuOpen=false;generateChallenge(b.dataset.boardChallenge);return}
     const line=activeLine();
     if(b.dataset.boardMarkerDelete){
-      if(boardLocked)return;remember();line.markers=line.markers.filter(m=>m.id!==b.dataset.boardMarkerDelete);line.relations=line.relations.filter(r=>r.from!==b.dataset.boardMarkerDelete&&r.to!==b.dataset.boardMarkerDelete);updateChallengeAnswer();renderAll();return;
+      if(boardLocked)return;remember();removeMarker(line,b.dataset.boardMarkerDelete);renderAll();return;
     }
     if(b.dataset.boardMarkerShow){
       if(boardLocked)return;remember();const m=line.markers.find(x=>x.id===b.dataset.boardMarkerShow);if(m)m.showValue=!m.showValue;renderAll();return;
@@ -1505,7 +1506,7 @@ function numberLineV2(){
     if(action==='redo'){if(redoStack.length)redo();return}
     if(action==='lock'){boardLocked=!boardLocked;boardMode=null;boardFirstMarker=null;boardMenuOpen=false;boardMoreOpen=false;boardChallengeOpen=false;renderStage();return}
     if(action==='more'){boardMoreOpen=!boardMoreOpen;boardChallengeOpen=false;boardMode=null;boardFirstMarker=null;boardMenuOpen=boardMoreOpen;renderStage();return}
-    if(action==='delete-line'&&state.lines.length>1&&!boardLocked){remember();state.lines=state.lines.filter(l=>l.id!==state.activeLineId);state.activeLineId=state.lines[0].id;renderAll();return}
+    if(action==='delete-line'&&state.lines.indexOf(line)>0&&!boardLocked){remember();clearPositionGroupsForLine(line);state.lines=state.lines.filter(l=>l.id!==state.activeLineId);state.activeLineId=state.lines[0].id;renderAll();return}
     if(action==='exit'){leaveBoard();return}
   });
   stage.addEventListener('pointerdown',e=>{
