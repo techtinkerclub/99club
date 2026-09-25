@@ -111,7 +111,12 @@ if(mode==='prepare'){
     assert(document.querySelector('.gd-challenge-banner h3').textContent==='Explain your thinking','Custom title appears on the challenge');
     assert(document.querySelector('.gd-challenge-prompt strong').textContent==='this interval','Allowed rich text appears in the challenge');
 
+    const generatedSource=document.getElementById('nl-custom-answer-source');
+    assert(generatedSource&&generatedSource.value==='generated','Converted standard challenge keeps its generated live answer');
+    generatedSource.value='manual';
+    generatedSource.dispatchEvent(new Event('change',{bubbles:true}));
     const answer=document.getElementById('nl-custom-answer');
+    assert(answer,'Manual answer field appears when the teacher chooses to type the answer');
     answer.value='Because the equal spaces have the same value.';
     answer.dispatchEvent(new Event('input',{bubbles:true}));
     document.getElementById('nl-reveal').click();
@@ -122,6 +127,30 @@ if(mode==='prepare'){
     document.querySelector('[data-nl-workflow="challenge"]').click();
     document.querySelector('[data-nl-challenge-tab="custom"]').click();
     assert(document.querySelectorAll('[data-marker-hit]').length===markerCount,'Starting a custom challenge preserves the current maths setup');
+    const sourceSelect=document.getElementById('nl-custom-answer-source');
+    assert(sourceSelect,'Custom challenge exposes an answer-source selector');
+    assert([...sourceSelect.options].some(o=>o.value==='marker:l1:m1'),'Marker A can be used as a live answer');
+    assert([...sourceSelect.options].some(o=>o.value==='relation:l1:r1'),'The A → B relationship can be used as a live answer');
+
+    sourceSelect.value='marker:l1:m1';
+    sourceSelect.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.getElementById('nl-custom-live-answer').textContent.trim()==='3','Marker A live answer starts at its current value');
+    assert(document.querySelector('[data-marker-hit="m1"] .nl-answer-box'),'The linked marker value is hidden in challenge mode');
+
+    const liveMarker=document.querySelector('[data-marker-hit="m1"]');
+    const liveSvg=document.getElementById('nl-svg'),liveSvgRect=liveSvg.getBoundingClientRect(),liveMarkerRect=liveMarker.getBoundingClientRect();
+    const targetSvgX=110+((6-(-10))/(20-(-10)))*(940-110);
+    const targetClientX=liveSvgRect.left+(targetSvgX/1000)*liveSvgRect.width;
+    pointer(liveMarker,'pointerdown',liveMarkerRect.left+liveMarkerRect.width/2,liveMarkerRect.top+liveMarkerRect.height/2,41);
+    pointer(liveMarker,'pointermove',targetClientX,liveMarkerRect.top+liveMarkerRect.height/2,41);
+    pointer(liveMarker,'pointerup',targetClientX,liveMarkerRect.top+liveMarkerRect.height/2,41);
+    assert(document.getElementById('nl-custom-live-answer').textContent.trim()==='6','Moving a linked marker updates the custom answer immediately');
+
+    const relationSource=document.getElementById('nl-custom-answer-source');
+    relationSource.value='relation:l1:r1';
+    relationSource.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.querySelector('[data-line-id="l1"] .nl-answer-box'),'A linked relationship hides its calculated label');
+    assert(document.getElementById('nl-custom-live-answer').textContent.trim()==='2','Difference answer uses the current A and B positions');
 
     document.querySelector('[data-nl-challenge-tab="standard"]').click();
     document.querySelector('[data-nl-challenge-cat="round"]').click();
