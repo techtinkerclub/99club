@@ -174,6 +174,14 @@ requireText(numberLine,'function scaleModeLabel','Number Line teaching-line mode
 requireText(numberLine,'function defaultZoomRange','Number Line zoom interval defaults');
 requireText(numberLine,'function setLineScaleMode','Number Line teaching-line mode switch');
 requireText(numberLine,'function teachingConnections','Number Line zoom/double visual connections');
+requireText(numberLine,'zoomFollowMarkers','Number Line live zoom-follow state');
+requireText(numberLine,'function syncZoomFollowers','Number Line live zoom synchronization');
+requireText(numberLine,'positionGroup','Number Line proportional marker-pair state');
+requireText(numberLine,'function addLinkedPair','Number Line corresponding-pair creation');
+requireText(numberLine,'function setPairAppearance','Number Line paired marker appearance synchronization');
+requireText(numberLine,'nl-add-correspondence','Number Line corresponding-pair action');
+requireText(numberLine,'data-position-group','Number Line proportional marker-pair SVG identity');
+requireText(numberLine,'nl-linked-pair-guide','Number Line paired correspondence guide');
 requireText(numberLine,'nl-fit-zoom-markers','Number Line fast zoom-to-markers action');
 requireText(numberLine,'function snapOnLine','Number Line per-line snapping');
 requireText(numberLine,'data-nl-scale-mode="own"','Number Line own-scale control');
@@ -181,6 +189,8 @@ requireText(numberLine,'nl-line-min','Number Line own-scale minimum control');
 requireText(css,'.nl-scale-mode','Number Line scale-mode styling');
 requireText(css,'.nl-scale-mode--four','Number Line four teaching-line choices');
 requireText(css,'.nl-add-line-row','Number Line compact teaching-line creation');
+requireText(css,'.nl-linked-marker-tag','Number Line paired marker styling');
+requireText(css,'.nl-zoom-follow','Number Line live zoom control styling');
 requireText(exporter,'function composeChallengeCardSvg','shared challenge card export composer');
 requireText(exporter,"responseLabel='Answer'",'shared exported response box');
 
