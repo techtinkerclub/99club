@@ -972,7 +972,11 @@ try{
     "boardTool('delete'",
     'is-delete-mode',
     'Line deleted. Undo is available.',
-    'item.left>=end-0.5'
+    'item.left>=end-0.5',
+    "{id:'equivalent-fractions'",
+    "{id:'fdp-equivalence'",
+    'function fractionText',
+    'tickStride'
   ])if(!numberLine.includes(token))fail('goodies-number-line','Number Line v6 missing classroom contract: '+token);
   for(const token of ['G.challengeKit=','function bannerHtml','nl-challenge-reveal','data-board-action="reveal"'])if(!challengeKit.includes(token))fail('goodies-number-line','Shared challenge layer missing classroom contract: '+token);
   if(!numberLine.includes('CK.bannerHtml'))fail('goodies-number-line','Number Line v6 is not using the shared challenge banner');
