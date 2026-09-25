@@ -24,9 +24,16 @@ function frontValue(yaml,key){
 }
 
 const config=read('_config.yml');
-for(const item of ['docs','scripts','README.md','MIGRATION_IDENTITY_AUDIT.md','package.json','package-lock.json']){
+const excludedItems=['docs','scripts','assets/99club/tests','README.md','MIGRATION_IDENTITY_AUDIT.md','package.json','package-lock.json'];
+for(const item of excludedItems){
   check(config.split(/\r?\n/).some(line=>line.trim()==='- '+item),
     'Jekyll excludes '+item+' from the public build');
+}
+const qaReports=fs.readdirSync(path.join(ROOT,'assets/99club')).filter(name=>/QA_REPORT\.md$/i.test(name));
+for(const name of qaReports){
+  const rel='assets/99club/'+name;
+  check(config.split(/\r?\n/).some(line=>line.trim()==='- '+rel),
+    'Jekyll excludes internal QA report '+rel+' from the public build');
 }
 check(/defaults:[\s\S]*type:\s*"pages"[\s\S]*sitemap:\s*false/.test(config),
   'new pages are excluded from the sitemap by default');
@@ -48,6 +55,10 @@ for(const [rel,url] of indexable){
   check(frontValue(p.yaml,'sitemap')==='true',url+' is explicitly opted into the sitemap');
   check(!/noindex/i.test(frontValue(p.yaml,'robots')),url+' is not marked noindex');
 }
+
+const demo=read('_pages/school-website-demo.html');
+check(/<link\s+rel=["']canonical["']\s+href=["']https:\/\/99studio\.uk\/demo\/["']\s*\/?\s*>/i.test(demo),
+  '/demo/ declares the canonical https://99studio.uk/demo/ URL');
 
 const noindexPages=[
   '_pages/99-club-custom.md',
@@ -101,6 +112,8 @@ check(/Sitemap:\s*https:\/\/99studio\.uk\/sitemap\.xml/i.test(robots),
 
 check(fs.existsSync(path.join(ROOT,'docs/99club')),'internal documentation remains preserved in the repository');
 check(fs.existsSync(path.join(ROOT,'scripts/99club')),'QA tooling remains preserved in the repository');
+check(fs.existsSync(path.join(ROOT,'assets/99club/tests')),'browser/game test assets remain preserved in the repository');
+check(qaReports.length>0,'internal QA reports remain preserved in the repository');
 
 if(failures.length){
   console.error('\n'+failures.length+' SEO/indexability contract failure(s).');
