@@ -531,3 +531,15 @@ html.nl-board-page-lock,body.nl-board-page-lock{overflow:hidden!important;oversc
   .nl-rel-from{grid-column:1}.nl-relation-arrow{grid-column:2}.nl-rel-to{grid-column:3}.nl-relation-main>.nl-icon-btn{grid-column:4}
   .nl-rel-type{grid-column:1/5}
 }
+
+
+/* Number Line optional per-line scales */
+.nl-scale-mode{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;padding:4px;border:1px solid #dce5e6;border-radius:11px;background:#f5f8f8}
+.nl-scale-mode button{min-width:0;border:0;border-radius:8px;background:transparent;padding:8px 9px;color:#61747a;font:inherit;font-size:.74rem;font-weight:850;cursor:pointer;white-space:normal;line-height:1.15}
+.nl-scale-mode button.is-active{background:#fff;color:var(--gd-teal-dark);box-shadow:0 1px 4px rgba(31,61,69,.11)}
+.nl-scale-mode button:disabled{opacity:.48;cursor:not-allowed}
+.nl-own-scale{display:grid;gap:8px;padding:10px;border:1px solid #dbe6e7;border-radius:12px;background:#fff}
+.nl-main-scale-note{margin:0;padding:8px 10px;border-radius:10px;background:#f4f8f8}
+@media(max-width:390px){
+  .nl-scale-mode button{font-size:.69rem;padding:8px 5px}
+}
