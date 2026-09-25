@@ -8,7 +8,7 @@ sitemap: true
 ---
 
 <link rel="stylesheet" href="/assets/99club/99club.css?v=20">
-<link rel="stylesheet" href="/assets/99club/games-help-guides.css?v=1.2.0">
+<link rel="stylesheet" href="/assets/99club/games-help-guides.css?v=1.2.1">
 
 <div id="main" class="tt99-page-main" role="main">
   <article class="splash">
@@ -169,12 +169,12 @@ sitemap: true
     </div>
 
     <h3>Which option should I use?</h3>
-    <div class="tt99-guide-table-wrap"><table class="tt99-guide-table"><thead><tr><th>I want to…</th><th>Use</th></tr></thead><tbody>
-      <tr><td>Use the same custom rules next week</td><td><b>Save as reusable preset</b></td></tr>
-      <tr><td>Give one setup to another teacher</td><td><b>Export this setup</b></td></tr>
-      <tr><td>Make a safety copy before clearing browser data</td><td><b>Full browser backup</b></td></tr>
-      <tr><td>Move all my 99 Club Studio work to a new computer</td><td><b>Full browser backup → Restore full backup</b></td></tr>
-      <tr><td>Return to one exact worksheet</td><td><b>Teacher QR</b> or <b>Full recreation code</b></td></tr>
+    <div class="tt99-guide-table-wrap tt99-guide-decision-wrap"><table class="tt99-guide-table tt99-guide-decision-table"><thead><tr><th>I want to…</th><th>Use</th></tr></thead><tbody>
+      <tr><td data-label="I want to…">Use the same custom rules next week</td><td data-label="Use"><b>Save as reusable preset</b></td></tr>
+      <tr><td data-label="I want to…">Give one setup to another teacher</td><td data-label="Use"><b>Export this setup</b></td></tr>
+      <tr><td data-label="I want to…">Make a safety copy before clearing browser data</td><td data-label="Use"><b>Full browser backup</b></td></tr>
+      <tr><td data-label="I want to…">Move all my 99 Club Studio work to a new computer</td><td data-label="Use"><b>Full browser backup → Restore full backup</b></td></tr>
+      <tr><td data-label="I want to…">Return to one exact worksheet</td><td data-label="Use"><b>Teacher QR</b> or <b>Full recreation code</b></td></tr>
     </tbody></table></div>
 
     <div class="tt99-guide-note"><strong>Cache and site data are different.</strong> Clearing an ordinary browser cache normally leaves 99 Club Studio's saved data alone. Clearing site data/storage, using private browsing, changing browser profile, or moving to another device can remove it. Download a Full backup for anything you would be unhappy to lose.</div>
