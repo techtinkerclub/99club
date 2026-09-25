@@ -239,8 +239,110 @@ function placeValue(){
   }
 }
 
-function fractionWall(){let selected=new Set();function draw(){const rows=[];for(let d=1;d<=12;d++)rows.push(`<div class="gd-fr-row" aria-label="Twelfths row denominator ${d}">${Array.from({length:d},(_,i)=>`<button type="button" class="gd-fr-cell${selected.has(d+':'+i)?' is-on':''}" data-fr="${d}:${i}">1/${d}</button>`).join('')}</div>`);const a=clamp(num(q('#fw-an').value,1),0,12),ad=clamp(num(q('#fw-ad').value,2),1,12),b=clamp(num(q('#fw-bn').value,1),0,12),bd=clamp(num(q('#fw-bd').value,3),1,12);const bar=(n,d)=>`<div class="gd-fr-bar">${Array.from({length:d},(_,i)=>`<span class="gd-fr-piece${i<n?' is-fill':''}"></span>`).join('')}</div>`;const av=a/ad,bv=b/bd,sign=Math.abs(av-bv)<1e-10?'=':(av>bv?'>':'<');q('#gd-stage').innerHTML=`<div class="gd-vis"><div class="gd-fraction-wall">${rows.join('')}</div><div class="gd-fr-compare"><div>${bar(a,ad)}<div class="gd-readout">${a}/${ad}</div></div><div>${bar(b,bd)}<div class="gd-readout">${b}/${bd}</div></div></div><div class="gd-equation">${a}/${ad} ${sign} ${b}/${bd}</div></div>`;qa('[data-fr]',q('#gd-stage')).forEach(x=>x.onclick=()=>{const k=x.dataset.fr;selected.has(k)?selected.delete(k):selected.add(k);draw()})}
-setPanels(`<p class="gd-section-title">Compare two fractions</p><div class="gd-row">${field('A numerator','<input class="gd-input gd-small" id="fw-an" type="number" min="0" max="12" value="1">')}${field('A denominator','<input class="gd-input gd-small" id="fw-ad" type="number" min="1" max="12" value="2">')}</div><div class="gd-row">${field('B numerator','<input class="gd-input gd-small" id="fw-bn" type="number" min="0" max="12" value="1">')}${field('B denominator','<input class="gd-input gd-small" id="fw-bd" type="number" min="1" max="12" value="3">')}</div>${btn('Clear wall highlights','fw-clear')}<p class="gd-help">Click any pieces in the wall to highlight them.</p>`,'');['fw-an','fw-ad','fw-bn','fw-bd'].forEach(id=>q('#'+id).oninput=draw);q('#fw-clear').onclick=()=>{selected.clear();draw()};draw()}
+function fractionWall(){
+  let focus={n:1,d:2};
+
+  function gcd(a,b){a=Math.abs(Math.round(a));b=Math.abs(Math.round(b));while(b){const t=b;b=a%b;a=t}return a||1}
+  function simplify(n,d){const g=gcd(n,d);return{n:n/g,d:d/g}}
+  function readFraction(prefix,defaultN,defaultD){
+    const d=clamp(Math.round(num(q('#fw-'+prefix+'d')?.value,defaultD)),1,12);
+    const n=clamp(Math.round(num(q('#fw-'+prefix+'n')?.value,defaultN)),0,12);
+    return{n,d};
+  }
+  function fractionText(f){
+    const s=simplify(f.n,f.d);
+    return s.n===f.n&&s.d===f.d?f.n+'/'+f.d:f.n+'/'+f.d+' = '+s.n+'/'+s.d;
+  }
+  function equivalentNumerator(d){
+    const raw=focus.n*d/focus.d;
+    return Math.abs(raw-Math.round(raw))<1e-10?Math.round(raw):null;
+  }
+  function wallRows(){
+    const rows=[];
+    for(let d=1;d<=12;d++){
+      const eqN=equivalentNumerator(d);
+      const rowFocus=d===focus.d;
+      rows.push('<div class="gd-fr-row'+(rowFocus?' is-focus-row':'')+'" data-fw-row="'+d+'" aria-label="Fraction wall denominator '+d+'">'+
+        Array.from({length:d},(_,i)=>{
+          const equivalent=eqN!=null&&i<eqN;
+          const cls='gd-fr-cell'+(equivalent?(rowFocus?' is-on':' is-equivalent'):'')+(rowFocus&&i===focus.n-1?' is-end':'');
+          return '<button type="button" class="'+cls+'" data-fw-wall="'+d+':'+i+'" aria-label="'+(i+1)+'/'+d+'"><span>1/'+d+'</span></button>';
+        }).join('')+
+      '</div>');
+    }
+    return rows.join('');
+  }
+  function directBar(f,key){
+    const groups=Math.max(1,Math.ceil(f.n/f.d));
+    return '<div class="gd-fr-direct" data-fw-direct="'+key+'">'+Array.from({length:groups},(_,g)=>{
+      return '<div class="gd-fr-bar">'+Array.from({length:f.d},(_,i)=>{
+        const absolute=g*f.d+i+1,fill=absolute<=f.n;
+        return '<button type="button" class="gd-fr-piece'+(fill?' is-fill':'')+'" data-fw-set="'+key+':'+absolute+'" aria-label="Set '+key.toUpperCase()+' numerator to '+absolute+'"></button>';
+      }).join('')+'</div>';
+    }).join('')+'</div>';
+  }
+  function syncFraction(key,f){
+    const n=q('#fw-'+key+'n'),d=q('#fw-'+key+'d');
+    if(n)n.value=f.n;
+    if(d)d.value=f.d;
+  }
+  function useFocus(key){
+    syncFraction(key,focus);
+    draw();
+  }
+  function draw(){
+    const a=readFraction('a',1,2),b=readFraction('b',1,3);
+    syncFraction('a',a);syncFraction('b',b);
+    const av=a.n/a.d,bv=b.n/b.d,sign=Math.abs(av-bv)<1e-10?'=':(av>bv?'>':'<');
+    const simpleFocus=simplify(focus.n,focus.d);
+    const focusText=simpleFocus.n===focus.n&&simpleFocus.d===focus.d
+      ? focus.n+'/'+focus.d
+      : focus.n+'/'+focus.d+' = '+simpleFocus.n+'/'+simpleFocus.d;
+    q('#gd-stage').innerHTML='<div class="gd-vis gd-fractions-workspace">'+
+      '<section class="gd-fr-wall-card">'+
+        '<div class="gd-fr-wall-heading"><div><strong>Fraction wall</strong><span>Tap an endpoint. Equivalent amounts highlight automatically.</span></div>'+
+          '<div class="gd-fr-focus"><span>Selected</span><strong>'+focusText+'</strong><button type="button" data-fw-use="a">Use as A</button><button type="button" data-fw-use="b">Use as B</button></div>'+
+        '</div>'+
+        '<div class="gd-fraction-wall">'+wallRows()+'</div>'+
+      '</section>'+
+      '<section class="gd-fr-compare gd-fr-compare-direct">'+
+        '<div class="gd-fr-compare-card"><div class="gd-fr-card-head"><strong>A</strong><span>'+fractionText(a)+'</span></div>'+directBar(a,'a')+'<p>Tap a segment to change the numerator.</p></div>'+
+        '<div class="gd-fr-compare-card"><div class="gd-fr-card-head"><strong>B</strong><span>'+fractionText(b)+'</span></div>'+directBar(b,'b')+'<p>Tap a segment to change the numerator.</p></div>'+
+      '</section>'+
+      '<div class="gd-equation gd-fr-equation"><span>'+a.n+'/'+a.d+'</span><strong>'+sign+'</strong><span>'+b.n+'/'+b.d+'</span></div>'+
+    '</div>';
+
+    qa('[data-fw-wall]',q('#gd-stage')).forEach(cell=>cell.onclick=()=>{
+      const [d,i]=cell.dataset.fwWall.split(':').map(Number);
+      focus={n:i+1,d};
+      draw();
+    });
+    qa('[data-fw-use]',q('#gd-stage')).forEach(button=>button.onclick=()=>useFocus(button.dataset.fwUse));
+    qa('[data-fw-set]',q('#gd-stage')).forEach(piece=>piece.onclick=()=>{
+      const [key,raw]=piece.dataset.fwSet.split(':');
+      const n=clamp(Math.round(num(raw,0)),0,12);
+      const input=q('#fw-'+key+'n');
+      if(input)input.value=n;
+      draw();
+    });
+  }
+
+  setPanels(
+    '<p class="gd-section-title">Compare two fractions</p>'+
+    '<div class="gd-row">'+
+      field('A numerator','<input class="gd-input gd-small" id="fw-an" type="number" min="0" max="12" value="1">')+
+      field('A denominator','<input class="gd-input gd-small" id="fw-ad" type="number" min="1" max="12" value="2">')+
+    '</div>'+
+    '<div class="gd-row">'+
+      field('B numerator','<input class="gd-input gd-small" id="fw-bn" type="number" min="0" max="12" value="1">')+
+      field('B denominator','<input class="gd-input gd-small" id="fw-bd" type="number" min="1" max="12" value="3">')+
+    '</div>'+
+    '<p class="gd-help">The boxes are the quickest way to set an exact comparison, including improper fractions. On the board, tap the wall to explore equivalence or tap comparison segments to change a numerator directly.</p>',
+    ''
+  );
+  ['fw-an','fw-ad','fw-bn','fw-bd'].forEach(id=>q('#'+id).oninput=draw);
+  draw();
+}
 
 function barModel(){function parse(){return q('#bm-parts').value.split(',').map(x=>x.trim()).filter(Boolean).map(x=>x==='?'?'?':Math.max(0,num(x,0))).slice(0,8)}function draw(){const parts=parse(),known=parts.filter(x=>x!=='?'),sum=known.reduce((a,b)=>a+b,0),unknowns=parts.filter(x=>x==='?').length,totalRaw=q('#bm-total').value.trim(),total=totalRaw?num(totalRaw,0):null,unknownValue=total!=null&&unknowns===1?Math.max(0,total-sum):null;const numeric=parts.map(x=>x==='?'?(unknownValue||Math.max(1,sum/(known.length||1))):x),den=Math.max(1,numeric.reduce((a,b)=>a+b,0));q('#gd-stage').innerHTML=`<div class="gd-vis"><div class="gd-bars"><div class="gd-bar-wrap">${parts.map((p,i)=>`<div class="gd-bar-part${p==='?'?' is-unknown':''}" style="flex:${Math.max(.1,numeric[i]/den*10)}">${p==='?'?(unknownValue!=null?unknownValue:'?'):p}</div>`).join('')}</div><div class="gd-bar-total">Total: ${total!=null?total:(unknowns?'?':sum)}</div></div><div class="gd-equation">${parts.join(' + ')} = ${total!=null?total:(unknowns?'?':sum)}</div></div>`}
 setPanels(`${field('Parts','<input class="gd-input" id="bm-parts" value="30, 20, ?">','Comma-separated values. Use ? for one unknown part.')}${field('Total (optional)','<input class="gd-input" id="bm-total" type="number" min="0" value="80">','If one part is ?, the total calculates it.')}${btn('Example problem','bm-example')}<p class="gd-help">Useful for modelling the structure of a word problem before calculating.</p>`,'');q('#bm-parts').oninput=draw;q('#bm-total').oninput=draw;q('#bm-example').onclick=()=>{const examples=[['24, ?, 16','55'],['35, 35, ?','100'],['? , 18','47'],['12, 12, 12, ?','60']];const e=examples[Math.floor(Math.random()*examples.length)];q('#bm-parts').value=e[0];q('#bm-total').value=e[1];draw()};draw()}
