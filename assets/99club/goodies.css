@@ -401,3 +401,43 @@ html.nl-board-page-lock,body.nl-board-page-lock{overflow:hidden!important;oversc
   .gd-co-context{display:none!important}
   .gd-coordinate-direct .gd-co-point{filter:none}
 }
+
+
+/* Goodies shared challenge framework */
+.gd-challenge-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:4px;border:1px solid #dbe5e6;border-radius:12px;background:#f6f9f9}
+.gd-challenge-tab{border:0;border-radius:9px;background:transparent;padding:8px 10px;font:inherit;font-weight:850;color:#52666d;cursor:pointer}
+.gd-challenge-tab.is-active{background:#fff;color:#1f4f55;box-shadow:0 1px 4px rgba(31,61,69,.12)}
+.gd-challenge-picker{display:grid;gap:10px}
+.gd-challenge-chips{display:flex;gap:6px;overflow-x:auto;padding:1px 0 4px;scrollbar-width:thin}
+.gd-challenge-chip{flex:0 0 auto;border:1px solid #d8e3e4;border-radius:999px;background:#fff;padding:6px 9px;font:inherit;font-size:.74rem;font-weight:800;color:#52666d;cursor:pointer}
+.gd-challenge-chip.is-active{border-color:#80b9b4;background:#eaf6f4;color:#17665f}
+.gd-challenge-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.gd-challenge-card{display:grid;gap:3px;text-align:left;border:1px solid #dce6e7;border-radius:11px;background:#fff;padding:9px;cursor:pointer;color:#344b53}
+.gd-challenge-card strong{font-size:.79rem}
+.gd-challenge-card span{font-size:.68rem;line-height:1.32;color:#6a7b80}
+.gd-challenge-card small{font-size:.64rem;color:#8a6666}
+.gd-challenge-card:hover,.gd-challenge-card:focus-visible{border-color:#8fbcb8;outline:none}
+.gd-challenge-card.is-selected{border-color:#2b847c;background:#eef8f7;box-shadow:0 0 0 1px #2b847c inset}
+.gd-challenge-card:disabled{opacity:.55;cursor:not-allowed}
+.gd-challenge-editor{display:grid;gap:8px}
+.gd-rich-toolbar{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.gd-rich-toolbar button{min-width:32px;height:31px;border:1px solid #d8e3e4;border-radius:8px;background:#fff;color:#40565d;font:inherit;cursor:pointer}
+.gd-rich-toolbar button:hover,.gd-rich-toolbar button:focus-visible{border-color:#79aaa6;background:#f3f9f8;outline:none}
+.gd-rich-divider{width:1px;height:22px;background:#dfe7e8;margin:0 2px}
+.gd-rich-editor{min-height:86px;border:1px solid #cfdcde;border-radius:10px;background:#fff;padding:9px 10px;line-height:1.45;color:#31484f;overflow:auto}
+.gd-rich-editor:focus{outline:2px solid rgba(20,125,117,.18);border-color:#6fa8a3}
+.gd-rich-editor:empty:before{content:attr(data-placeholder);color:#8b999d}
+.gd-rich-editor font[size="1"],.gd-challenge-prompt font[size="1"]{font-size:.82em}
+.gd-rich-editor font[size="3"],.gd-challenge-prompt font[size="3"]{font-size:1em}
+.gd-rich-editor font[size="5"],.gd-challenge-prompt font[size="5"]{font-size:1.22em}
+.gd-challenge-banner h3{margin:0;font-size:1rem;color:#263f46}
+.gd-challenge-prompt{font-weight:750;line-height:1.35}
+.gd-challenge-prompt p,.gd-challenge-prompt div{margin:.15em 0}
+.gd-challenge-prompt ul,.gd-challenge-prompt ol{margin:.2em 0 .2em 1.2em;padding:0}
+@media(max-width:520px){
+  .gd-challenge-cards{grid-template-columns:1fr}
+  .gd-challenge-chip{font-size:.72rem}
+}
+@media print{
+  .gd-rich-toolbar,.gd-challenge-tabs,.gd-challenge-picker{display:none!important}
+}
