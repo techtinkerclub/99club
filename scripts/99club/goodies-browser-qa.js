@@ -90,10 +90,17 @@ if(mode==='prepare'){
     const interval=document.querySelector('[data-nl-challenge-type="interval-value"]');
     assert(interval,'Interval-value challenge exists');
     interval.click();
+    assert(document.getElementById('nl-generate').textContent.includes('Generate challenge'),'Standard picker starts with an explicit Generate challenge action');
     document.getElementById('nl-generate').click();
     assert(document.querySelector('.gd-challenge-banner'),'Generated standard challenge appears above the number line');
     assert(document.querySelector('.gd-challenge-prompt').textContent.includes('interval'),'Generated interval challenge has contextual prompt');
     assert(document.querySelector('.gd-challenge-reveal'),'Generated challenge exposes answer contextually');
+    assert(document.getElementById('nl-generate').textContent.includes('Another like this'),'Active standard challenge changes the editor action to Another like this');
+    const another=document.querySelector('[data-challenge-action="another"]');
+    assert(another&&another.textContent.includes('Another like this'),'Challenge banner exposes Another like this without reopening menus');
+    another.click();
+    assert(document.querySelector('[data-challenge-action="another"]'),'Another like this immediately produces the next challenge of the same type');
+    assert(document.querySelector('.gd-challenge-reveal'),'Repeated classroom challenge still exposes contextual Reveal answer');
 
     document.querySelector('[data-nl-challenge-tab="custom"]').click();
     assert(document.getElementById('nl-custom-title'),'Custom challenge exposes editable title');
