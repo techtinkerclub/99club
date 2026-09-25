@@ -38,6 +38,7 @@ requireText(interaction,"action==='delete'",'direct delete');
 requireText(interaction,"action==='duplicate'",'duplicate action');
 requireText(interaction,"action==='lock'",'lock action');
 requireText(interaction,"e.key==='ArrowLeft'",'keyboard nudge');
+requireText(interaction,"nudgeStep",'snap-aware keyboard nudge');
 requireText(interaction,"e.key==='Delete'",'keyboard delete');
 requireText(interaction,"e.key.toLowerCase()==='z'",'undo shortcut');
 
@@ -45,7 +46,7 @@ requireText(toolsB,'G.interaction','Maths Canvas uses shared interaction layer')
 requireText(toolsB,'I.mount({','Maths Canvas mounts shared controller');
 requireText(toolsB,'data-gd-object','Maths Canvas selectable objects');
 requireText(toolsB,"I.toolButton('grid','grid'",'Maths Canvas grid action');
-requireText(toolsB,'double-tap/click to duplicate','Maths Canvas direct interaction hint');
+requireText(toolsB,'the side tools duplicate, colour, lock or delete it.','Maths Canvas direct interaction hint');
 
 requireText(app,'G.interaction?.clear()','tool switching clears shared interaction listeners');
 requireText(css,'.gd-object-rail','shared contextual rail styling');
