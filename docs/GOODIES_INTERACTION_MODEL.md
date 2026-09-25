@@ -113,6 +113,16 @@ Where useful, a teacher should eventually be able to:
 
 ### Number Line v6
 The richest existing Goodie and the **primary behavioural reference** for:
+
+Its extra lines have four distinct teaching purposes:
+- **Aligned** — the same numeric scale, so equal values sit directly above one another.
+- **Independent** — a separate min/max/tick scale using the full width with no implied numerical alignment.
+- **Zoomed** — the main line highlights a bounded interval and the extra line expands that interval to the full working width; main-line markers are a useful fast default for the zoom bounds.
+- **Double number line** — two proportional scales share horizontal positions while retaining their own numeric values. Keep correspondence guides restrained, and only display a multiplication factor when both scales have a meaningful zero origin.
+
+Do not blur these modes together. The visual relationship must explain why the extra line exists.
+
+The Number Line reference covers:
 - direct dragging;
 - dependent-value updates;
 - quiet side tool rail;
