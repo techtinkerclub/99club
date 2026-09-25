@@ -438,7 +438,7 @@ function numberLineV2(){
         else ticks+=`<text x="${x}" y="${baseY+35}" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" fill="#33474e">${esc(fmt(v))}</text>`;
       }
     }
-    const baseline=`<line x1="${X0}" y1="${baseY}" x2="${X1}" y2="${baseY}" stroke="#24343b" stroke-width="4" stroke-linecap="round"/><rect data-line-hit="${esc(line.id)}" x="${X0}" y="${baseY-16}" width="${X1-X0}" height="32" fill="transparent" style="cursor:crosshair"/>`;
+    const baseline=`<line class="nl-baseline" data-line-id="${esc(line.id)}" x1="${X0}" y1="${baseY}" x2="${X1}" y2="${baseY}" stroke="#24343b" stroke-width="4" stroke-linecap="round"/><rect data-line-hit="${esc(line.id)}" x="${X0}" y="${baseY-16}" width="${X1-X0}" height="32" fill="transparent" style="cursor:crosshair"/>`;
     const lineLabel=line.label?`<text x="26" y="${baseY+5}" font-family="Arial,sans-serif" font-size="15" font-weight="700" fill="#52666d">${esc(line.label)}</text>`:'';
 
     line.relations.filter(r=>r.type!=='interval').forEach(r=>{
@@ -531,7 +531,7 @@ function numberLineV2(){
       boardTool('more','more','Quick edit',boardMoreOpen?'is-active':''),
       boardTool('exit','exit','Exit board','')
     ].join('');
-    const panelOpen=boardMode==='relation'||boardChallengeOpen||boardMoreOpen;
+    const panelOpen=boardMenuOpen&&(boardMode==='relation'||boardChallengeOpen||boardMoreOpen);
     return `<div class="nl-board-ui">
       ${boardNotice?`<div class="nl-board-notice">${esc(boardNotice)}</div>`:''}
       <div class="nl-board-rail${panelOpen||boardMode?' is-engaged':''}" aria-label="Board tools">${rail}</div>
@@ -773,7 +773,16 @@ function numberLineV2(){
     const action=b.dataset.boardAction;
     if(action==='toggle'){return}
     if(action==='add-marker'){if(boardLocked)return;boardMode=boardMode==='add-marker'?null:'add-marker';boardFirstMarker=null;boardMenuOpen=false;boardMoreOpen=false;boardChallengeOpen=false;if(boardMode)boardMessage('Tap the number line where you want the new marker.');else renderStage();return}
-    if(action==='relation'){if(boardLocked||line.markers.length<2)return;boardMode=boardMode==='relation'?null:'relation';boardFirstMarker=null;boardChallengeOpen=false;boardMoreOpen=false;boardMenuOpen=boardMode==='relation';renderStage();return}
+    if(action==='relation'){
+      if(boardLocked||line.markers.length<2)return;
+      if(boardMode==='relation'){
+        if(boardMenuOpen){boardMode=null;boardMenuOpen=false;boardFirstMarker=null}
+        else boardMenuOpen=true;
+      }else{
+        boardMode='relation';boardMenuOpen=true;boardFirstMarker=null;
+      }
+      boardChallengeOpen=false;boardMoreOpen=false;renderStage();return
+    }
     if(action==='add-line'){if(boardLocked||state.lines.length>=4)return;addLine();boardMessage('Comparison line added.');return}
     if(action==='challenge'){boardChallengeOpen=!boardChallengeOpen;boardMoreOpen=false;boardMode=null;boardFirstMarker=null;boardMenuOpen=boardChallengeOpen;renderStage();return}
     if(action==='delete'){if(boardLocked)return;boardMode=boardMode==='delete'?null:'delete';boardFirstMarker=null;boardChallengeOpen=false;boardMoreOpen=false;boardMenuOpen=false;if(boardMode)boardMessage('Tap a marker or number line to delete it.');else renderStage();return}
