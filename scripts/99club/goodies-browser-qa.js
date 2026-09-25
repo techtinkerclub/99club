@@ -194,8 +194,9 @@ if(mode==='prepare'){
     document.getElementById('nl-reveal').click();
     const eqBanner=document.querySelector('.gd-challenge-banner').textContent;
     const eqBottomText=document.querySelector('[data-marker-hit="mEqBottom"]').textContent;
+    const eqValue=eqBottomText.replace('?','').trim();
     assert(eqBanner.includes('Answer:'),'Equivalent-fractions reveal exposes the answer');
-    assert(eqBottomText.includes('/'),'Equivalent-fractions target renders as a fraction after reveal: '+eqBottomText);
+    assert(eqValue&&eqBanner.includes('Answer: '+eqValue),'Equivalent-fractions target and revealed answer agree, including whole-number equivalents: '+eqBottomText);
 
     document.querySelector('[data-nl-challenge-cat="fractions"]').click();
     const fdp=document.querySelector('[data-nl-challenge-type="fdp-equivalence"]');
