@@ -862,6 +862,9 @@ function numberLineV2(){
     if(t.id==='nl-active-line'){state.activeLineId=t.value;renderControls();renderStage();return}
   });
 
+  controls.addEventListener('pointerdown',e=>{
+    if(e.target.closest('[data-gd-rich-action]'))e.preventDefault();
+  });
   controls.addEventListener('click',e=>{
     const b=e.target.closest('button');if(!b)return;const line=activeLine();
     if(b.dataset.nlChallengeTab){
