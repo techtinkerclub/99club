@@ -102,18 +102,25 @@ function decodeState(raw){
 }
 function normaliseLine(raw,state,index){
   const src=raw&&typeof raw==='object'?raw:{};
-  const scaleMode=index>0&&src.scaleMode==='own'?'own':'shared';
-  const ownMin=num(src.min,state.min),ownMaxRaw=num(src.max,state.max),ownMax=ownMaxRaw>ownMin?ownMaxRaw:ownMin+Math.max(num(src.step,state.step),1);
-  const ownRange=ownMax-ownMin,ownStep=Math.max(0.0001,Math.min(ownRange,num(src.step,state.step)));
-  const ownScale={min:ownMin,max:ownMax,step:ownStep};
-  const markerScale=scaleMode==='own'?ownScale:state;
+  const allowedScaleModes=['shared','own','zoom','linked'];
+  const scaleMode=index>0&&allowedScaleModes.includes(src.scaleMode)?src.scaleMode:'shared';
+  let ownMin=num(src.min,state.min),ownMaxRaw=num(src.max,state.max);
+  if(scaleMode==='zoom'){
+    ownMin=clamp(ownMin,state.min,state.max);
+    ownMaxRaw=clamp(ownMaxRaw,state.min,state.max);
+  }
+  const ownMax=ownMaxRaw>ownMin?ownMaxRaw:Math.min(state.max,ownMin+Math.max(num(src.step,state.step),state.step));
+  const safeOwnMax=ownMax>ownMin?ownMax:ownMin+Math.max(num(src.step,state.step),0.0001);
+  const ownRange=safeOwnMax-ownMin,ownStep=Math.max(0.0001,Math.min(ownRange,num(src.step,state.step)));
+  const ownScale={min:ownMin,max:safeOwnMax,step:ownStep};
+  const markerScale=scaleMode==='shared'?state:ownScale;
   const line={
     id:String(src.id||('l'+(index+1))).replace(/[^a-zA-Z0-9_-]/g,'').slice(0,20)||('l'+(index+1)),
     label:String(src.label||'').slice(0,30),
     showLabels:src.showLabels!==false,
     scaleMode,
     min:cleanNumber(ownMin),
-    max:cleanNumber(ownMax),
+    max:cleanNumber(safeOwnMax),
     step:cleanNumber(ownStep),
     labelEvery:clamp(Math.round(num(src.labelEvery,state.labelEvery)),1,50),
     valueFormat:['number','fraction','percent'].includes(src.valueFormat)?src.valueFormat:'number',
@@ -220,9 +227,12 @@ function numberLineV2(){
 
   function activeLine(){return state.lines.find(l=>l.id===state.activeLineId)||state.lines[0]}
   function scaleFor(line){
-    return line?.scaleMode==='own'
+    return line&&line.scaleMode!=='shared'
       ?{min:line.min,max:line.max,step:line.step,labelEvery:line.labelEvery}
       :{min:state.min,max:state.max,step:state.step,labelEvery:state.labelEvery};
+  }
+  function scaleModeLabel(mode){
+    return mode==='own'?'Own scale':mode==='zoom'?'Zoomed interval':mode==='linked'?'Double number line':'Aligned';
   }
   function labelsVisible(line,index=state.lines.indexOf(line)){
     return line.showLabels&&(index===0?state.showTickLabels:true);
@@ -232,13 +242,13 @@ function numberLineV2(){
     if(!marker)return;
     const line=lineHint||state.lines.find(l=>l.markers.includes(marker))||activeLine(),scale=scaleFor(line);
     const customStep=Number(marker.snapStep);
-    const next=customStep>0&&line.scaleMode!=='own'
+    const next=customStep>0&&line.scaleMode==='shared'
       ?cleanNumber(clamp(scale.min+Math.round((value-scale.min)/customStep)*customStep,scale.min,scale.max))
       :snapToScale(value,scale);
     marker.value=next;
-    if(marker.syncGroup&&line.scaleMode!=='own'){
+    if(marker.syncGroup&&line.scaleMode==='shared'){
       state.lines.forEach(otherLine=>otherLine.markers.forEach(other=>{
-        if(other!==marker&&other.syncGroup===marker.syncGroup&&otherLine.scaleMode!=='own')other.value=cleanNumber(clamp(next,scaleFor(otherLine).min,scaleFor(otherLine).max));
+        if(other!==marker&&other.syncGroup===marker.syncGroup&&otherLine.scaleMode==='shared')other.value=cleanNumber(clamp(next,scaleFor(otherLine).min,scaleFor(otherLine).max));
       }));
     }
   }
@@ -424,13 +434,18 @@ function numberLineV2(){
     const range=state.max-state.min;
     state.step=Math.max(.0001,Math.min(range,num(q('#nl-step')?.value,state.step)));
     state.labelEvery=clamp(Math.round(num(q('#nl-label-every')?.value,state.labelEvery)),1,50);
-    state.lines.filter(line=>line.scaleMode!=='own').forEach(line=>line.markers.forEach(m=>m.value=snapOnLine(m,line)));
+    state.lines.filter(line=>line.scaleMode==='shared').forEach(line=>line.markers.forEach(m=>m.value=snapOnLine(m,line)));
     updateChallengeAnswer();
   }
   function applyOwnScaleFromControls(line){
-    if(!line||line.scaleMode!=='own')return;
-    const min=num(q('#nl-line-min')?.value,line.min),max=num(q('#nl-line-max')?.value,line.max);
-    line.min=min;line.max=max<=min?min+Math.max(line.step,1):max;
+    if(!line||line.scaleMode==='shared')return;
+    let min=num(q('#nl-line-min')?.value,line.min),max=num(q('#nl-line-max')?.value,line.max);
+    if(line.scaleMode==='zoom'){
+      min=clamp(min,state.min,state.max);max=clamp(max,state.min,state.max);
+    }
+    line.min=min;line.max=max<=min?min+Math.max(line.step,state.step,0.0001):max;
+    if(line.scaleMode==='zoom')line.max=Math.min(state.max,line.max);
+    if(line.max<=line.min)line.max=Math.min(state.max,line.min+Math.max(state.step,0.0001));
     const range=line.max-line.min;
     line.step=Math.max(.0001,Math.min(range,num(q('#nl-line-step')?.value,line.step)));
     line.labelEvery=clamp(Math.round(num(q('#nl-line-label-every')?.value,line.labelEvery)),1,50);
