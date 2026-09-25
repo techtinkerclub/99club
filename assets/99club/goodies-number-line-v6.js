@@ -106,10 +106,11 @@ function normaliseLine(raw,state,index){
   const scaleMode=index>0&&allowedScaleModes.includes(src.scaleMode)?src.scaleMode:'shared';
   let ownMin=num(src.min,state.min),ownMaxRaw=num(src.max,state.max);
   if(scaleMode==='zoom'){
-    ownMin=clamp(ownMin,state.min,state.max);
-    ownMaxRaw=clamp(ownMaxRaw,state.min,state.max);
+    const fullSpan=Math.max(0.0001,state.max-state.min),minSpan=Math.min(fullSpan,Math.max(0.0001,num(src.step,state.step)));
+    ownMin=clamp(ownMin,state.min,state.max-minSpan);
+    ownMaxRaw=clamp(ownMaxRaw,ownMin+minSpan,state.max);
   }
-  const ownMax=ownMaxRaw>ownMin?ownMaxRaw:Math.min(state.max,ownMin+Math.max(num(src.step,state.step),state.step));
+  const ownMax=ownMaxRaw>ownMin?ownMaxRaw:ownMin+Math.max(num(src.step,state.step),0.0001);
   const safeOwnMax=ownMax>ownMin?ownMax:ownMin+Math.max(num(src.step,state.step),0.0001);
   const ownRange=safeOwnMax-ownMin,ownStep=Math.max(0.0001,Math.min(ownRange,num(src.step,state.step)));
   const ownScale={min:ownMin,max:safeOwnMax,step:ownStep};
@@ -441,11 +442,10 @@ function numberLineV2(){
     if(!line||line.scaleMode==='shared')return;
     let min=num(q('#nl-line-min')?.value,line.min),max=num(q('#nl-line-max')?.value,line.max);
     if(line.scaleMode==='zoom'){
-      min=clamp(min,state.min,state.max);max=clamp(max,state.min,state.max);
+      const fullSpan=Math.max(0.0001,state.max-state.min),minSpan=Math.min(fullSpan,Math.max(0.0001,line.step,state.step));
+      min=clamp(min,state.min,state.max-minSpan);max=clamp(max,min+minSpan,state.max);
     }
     line.min=min;line.max=max<=min?min+Math.max(line.step,state.step,0.0001):max;
-    if(line.scaleMode==='zoom')line.max=Math.min(state.max,line.max);
-    if(line.max<=line.min)line.max=Math.min(state.max,line.min+Math.max(state.step,0.0001));
     const range=line.max-line.min;
     line.step=Math.max(.0001,Math.min(range,num(q('#nl-line-step')?.value,line.step)));
     line.labelEvery=clamp(Math.round(num(q('#nl-line-label-every')?.value,line.labelEvery)),1,50);
@@ -862,7 +862,7 @@ function numberLineV2(){
   }
   function boardUiHtml(){
     const ch=state.challenge,line=activeLine();
-    const lineOptions=state.lines.map((l,i)=>`<option value="${esc(l.id)}"${l.id===state.activeLineId?' selected':''}>Line ${i+1}${l.label?' · '+esc(l.label):''}</option>`).join('');
+    const lineOptions=state.lines.map((l,i)=>`<option value="${esc(l.id)}"${l.id===state.activeLineId?' selected':''}>Line ${i+1}${l.label?' · '+esc(l.label):''}${i>0?' · '+esc(scaleModeLabel(l.scaleMode)):''}</option>`).join('');
     const rail=[
       boardTool('add-marker','marker','Add marker',boardLocked?'is-disabled':(boardMode==='add-marker'?'is-active':'')),
       boardTool('relation','relation','Add relationship',boardLocked||line.markers.length<2?'is-disabled':(boardMode==='relation'?'is-active':'')),
@@ -1303,7 +1303,7 @@ function numberLineV2(){
     if(t.id==='nl-custom-answer'&&state.challenge){state.challenge.answer=t.value.slice(0,400);state.challenge.answerMode='manual';state.challenge.answerSource='';state.challenge.revealed=false;renderStage();return}
     if(t.id==='nl-custom-prompt'&&state.challenge&&CK){state.challenge.promptHtml=CK.sanitiseRichHtml(t.innerHTML);state.challenge.prompt=CK.plainText(state.challenge.promptHtml).slice(0,600);renderStage();return}
     if(t.id==='nl-tick-labels'){state.showTickLabels=t.checked;renderStage();return}
-    if(t.id==='nl-line-label'){line.label=t.value.slice(0,30);const option=q('#nl-active-line')?.selectedOptions?.[0];if(option){const i=state.lines.findIndex(l=>l.id===line.id);option.textContent='Line '+(i+1)+(line.label?' · '+line.label:'')}renderStage();return}
+    if(t.id==='nl-line-label'){line.label=t.value.slice(0,30);const option=q('#nl-active-line')?.selectedOptions?.[0];if(option){const i=state.lines.findIndex(l=>l.id===line.id);option.textContent='Line '+(i+1)+(line.label?' · '+line.label:'')+(i>0?' · '+scaleModeLabel(line.scaleMode):'')}renderStage();return}
     if(t.id==='nl-line-labels'){line.showLabels=t.checked;renderStage();return}
     if(t.id==='nl-consecutive'){line.showConsecutiveDifferences=t.checked;renderStage();return}
     if(t.id==='nl-consecutive-side'){line.consecutiveSide=t.value==='below'?'below':'above';renderStage();return}
