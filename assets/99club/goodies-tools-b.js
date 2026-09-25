@@ -52,7 +52,7 @@ return '<div class="gd-object-ui"><div class="gd-object-rail'+(selected?' is-eng
 }
 function draw(selectedId,meta){
 const selected=selectedTile(selectedId);
-q('#gd-stage').innerHTML='<div class="gd-vis gd-object-workspace"><div class="gd-object-canvas-wrap"><div class="gd-canvas gd-object-canvas'+(grid?' has-grid':'')+'" id="mc-canvas" data-gd-canvas-bg tabindex="0" aria-label="Maths canvas. Tap a tile to select it and drag to move it.">'+tiles.map(t=>tileMarkup(t,selectedId)).join('')+'</div>'+railMarkup(selected,meta)+'</div><div class="gd-object-hint">'+(selected?(selected.locked?'Tile locked · use the lock icon to move or edit it again.':'Drag to move · double-tap/click to duplicate · Delete removes it.'):'Tap a tile to select it. Drag tiles directly around the board.')+'</div></div>'
+q('#gd-stage').innerHTML='<div class="gd-vis gd-object-workspace"><div class="gd-object-canvas-wrap"><div class="gd-canvas gd-object-canvas'+(grid?' has-grid':'')+'" id="mc-canvas" data-gd-canvas-bg tabindex="0" aria-label="Maths canvas. Tap a tile to select it and drag to move it.">'+tiles.map(t=>tileMarkup(t,selectedId)).join('')+'</div>'+railMarkup(selected,meta)+'</div><div class="gd-object-hint">'+(selected?(selected.locked?'Tile locked · use the lock icon to move or edit it again.':'Drag to move · the side tools duplicate, colour, lock or delete it.'):'Tap a tile to select it. Drag tiles directly around the board.')+'</div></div>'
 }
 function constrainTile(item,x,y,element,canvas){const el=element||canvas.querySelector('[data-gd-object="'+item.id+'"]');const w=el?.offsetWidth||52,h=el?.offsetHeight||52;return{x:clamp(x,0,Math.max(0,canvas.clientWidth-w)),y:clamp(y,0,Math.max(0,canvas.clientHeight-h))}}
 function duplicateTile(item){const canvas=q('#mc-canvas'),copy={...item,id:next++,locked:false};const w=canvas?.clientWidth||700,h=canvas?.clientHeight||420;copy.x=clamp((Number(item.x)||0)+30,0,Math.max(0,w-70));copy.y=clamp((Number(item.y)||0)+30,0,Math.max(0,h-60));tiles.push(copy);return copy}
@@ -71,7 +71,8 @@ setState:restoreState,
 getCanvas:()=>q('#mc-canvas'),
 getActionRoot:()=>q('#gd-stage'),
 render:draw,
-snap:()=>grid?10:1,
+snap:()=>grid?20:1,
+nudgeStep:()=>grid?20:1,
 constrain:constrainTile,
 duplicate:duplicateTile,
 remove:item=>{tiles=tiles.filter(t=>t!==item);colourOpen=false},
