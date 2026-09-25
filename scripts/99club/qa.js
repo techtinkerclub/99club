@@ -920,6 +920,36 @@ try{
   ok('school-demo','General fictional three-tab school integration demo and school-facing help polish checked');
 }catch(e){fail('school-demo','School integration demo QA threw',e.stack||e.message);}
 
+/* ---------- hidden manipulatives / Number Line classroom contracts ---------- */
+try{
+  const goodiesPage=read('_pages/99-club-goodies.md');
+  const numberLine=read('assets/99club/goodies-number-line-v3.js');
+  const goodiesCss=read('assets/99club/goodies.css');
+  new Function(numberLine);
+  if(!goodiesPage.includes('permalink: /goodies/')||!goodiesPage.includes('sitemap: false')||!goodiesPage.includes('search: false')||!goodiesPage.includes('noindex,nofollow,noarchive'))fail('goodies-number-line','Hidden goodies route/indexing contract regressed');
+  if(!goodiesPage.includes('goodies-number-line-v3.js?v=1')||!goodiesPage.includes('goodies.css?v=3'))fail('goodies-number-line','Number Line v3 assets are not cache-busted on /goodies/');
+  for(const token of [
+    "side:m.side==='below'?'below':'above'",
+    'data-marker-side',
+    'data-relation-side',
+    'consecutiveSide',
+    'function markerStem',
+    'labelTop=base+20,labelBottom=base+43',
+    'function assignLanes',
+    'const y1=markerCentre(layout,d.a),y2=markerCentre(layout,d.b)',
+    'state.lines.length>=4',
+    'nl-add-line',
+    'activeLineId',
+    'openGroups',
+    'data-nl-group',
+    'Copy setup link',
+    'Board view'
+  ])if(!numberLine.includes(token))fail('goodies-number-line','Number Line v3 missing classroom contract: '+token);
+  if(numberLine.includes('l12 -7 v14')||numberLine.includes('l-12 -7 v14'))fail('goodies-number-line','Bounded Number Line has regained baseline arrowheads');
+  if(!goodiesCss.includes('.nl-marker-row .nl-side')||!goodiesCss.includes('#gd-stage:fullscreen'))fail('goodies-number-line','Number Line compact controls / Board view styling missing');
+  ok('goodies-number-line','Hidden Number Line supports compact above/below markers, packed teaching visuals, comparison lines and export/Board workflows');
+}catch(e){fail('goodies-number-line','Number Line classroom QA threw',e.stack||e.message);}
+
 /* ---------- public copy audit ---------- */
 try{
   const publicCopyFiles=[
