@@ -2,8 +2,211 @@
 'use strict';
 if(!G)return;
 const {q,qa,esc,clamp,num,gcd,field,btn,setPanels}=G;
-function coordinateTool(){let points=[];function draw(){const four=q('#co-four').checked,min=four?-10:0,max=10,range=max-min,W=600,pad=42,step=(W-2*pad)/range;let lines='',labels='';for(let v=min;v<=max;v++){const x=pad+(v-min)*step,y=pad+(max-v)*step;lines+=`<line class="gd-gridline" x1="${x}" y1="${pad}" x2="${x}" y2="${W-pad}"></line><line class="gd-gridline" x1="${pad}" y1="${y}" x2="${W-pad}" y2="${y}"></line>`;if(v%2===0){labels+=`<text x="${x}" y="${W-pad+22}" text-anchor="middle" font-size="11">${v}</text><text x="${pad-12}" y="${y+4}" text-anchor="end" font-size="11">${v}</text>`}}const zeroX=pad+(0-min)*step,zeroY=pad+(max-0)*step;const pts=points.filter(p=>p.x>=min&&p.y>=min).map(p=>`<circle class="gd-point" cx="${pad+(p.x-min)*step}" cy="${pad+(max-p.y)*step}" r="7"></circle><text x="${pad+(p.x-min)*step+10}" y="${pad+(max-p.y)*step-10}" font-size="12">(${p.x}, ${p.y})</text>`).join('');q('#gd-stage').innerHTML=`<div class="gd-vis gd-coord"><svg id="co-svg" viewBox="0 0 ${W} ${W}" role="img" aria-label="Coordinate grid">${lines}<line class="gd-axis" x1="${zeroX}" y1="${pad}" x2="${zeroX}" y2="${W-pad}"></line><line class="gd-axis" x1="${pad}" y1="${zeroY}" x2="${W-pad}" y2="${zeroY}"></line>${labels}${pts}</svg><div class="gd-readout">Points: ${points.map(p=>`(${p.x}, ${p.y})`).join(' · ')||'none'}</div></div>`;q('#co-svg').onclick=e=>{const r=e.currentTarget.getBoundingClientRect(),xv=min+((e.clientX-r.left)/r.width*W-pad)/step,yv=max-(((e.clientY-r.top)/r.height*W-pad)/step);points.push({x:clamp(Math.round(xv),min,max),y:clamp(Math.round(yv),min,max)});draw()}}
-setPanels(`${field('Grid','<label class="gd-row"><input id="co-four" type="checkbox"> Four quadrants (−10 to 10)</label>')}${btn('Clear points','co-clear')}<p class="gd-help">Click an intersection to plot a point.</p>`,'');q('#co-four').onchange=()=>{points=[];draw()};q('#co-clear').onclick=()=>{points=[];draw()};draw()}
+function coordinateTool(){
+  let points=[],selected=-1,drag=null,view=null;
+  const undoStack=[],redoStack=[];
+  const W=600,pad=42;
+
+  function copyPoints(value=points){return value.map(p=>({x:p.x,y:p.y}))}
+  function remember(snapshot=copyPoints()){
+    undoStack.push(copyPoints(snapshot));
+    if(undoStack.length>40)undoStack.shift();
+    redoStack.length=0;
+  }
+  function undo(){
+    if(!undoStack.length)return;
+    redoStack.push(copyPoints());
+    points=copyPoints(undoStack.pop());
+    selected=-1;
+    draw();
+  }
+  function redo(){
+    if(!redoStack.length)return;
+    undoStack.push(copyPoints());
+    points=copyPoints(redoStack.pop());
+    selected=-1;
+    draw();
+  }
+  function config(){
+    const four=!!q('#co-four')?.checked,min=four?-10:0,max=10;
+    return{four,min,max,range:max-min,step:(W-2*pad)/(max-min)};
+  }
+  function visible(p,c=view||config()){
+    return p&&p.x>=c.min&&p.x<=c.max&&p.y>=c.min&&p.y<=c.max;
+  }
+  function occupied(x,y,except=-1){
+    return points.findIndex((p,i)=>i!==except&&p.x===x&&p.y===y);
+  }
+  function pointPx(p,c=view||config()){
+    return{x:pad+(p.x-c.min)*c.step,y:pad+(c.max-p.y)*c.step};
+  }
+  function nearestCoord(e,svg,c=view||config()){
+    const r=svg.getBoundingClientRect();
+    const vx=(e.clientX-r.left)/Math.max(1,r.width)*W;
+    const vy=(e.clientY-r.top)/Math.max(1,r.height)*W;
+    return{
+      x:clamp(Math.round(c.min+(vx-pad)/c.step),c.min,c.max),
+      y:clamp(Math.round(c.max-(vy-pad)/c.step),c.min,c.max)
+    };
+  }
+  function pointsText(){
+    const list=points.map(p=>'('+p.x+', '+p.y+')').join(' · ')||'none';
+    const hidden=points.filter(p=>!visible(p)).length;
+    return'Points: '+list+(hidden?' · '+hidden+' outside this grid '+(hidden===1?'is':'are')+' hidden':'');
+  }
+  function updateGeometry(){
+    qa('[data-co-point]',q('#gd-stage')).forEach(el=>{
+      const i=+el.dataset.coPoint,p=points[i];if(!p||!visible(p))return;
+      const v=pointPx(p);
+      el.setAttribute('cx',v.x);el.setAttribute('cy',v.y);
+      el.dataset.coPos=p.x+','+p.y;
+      el.classList.toggle('is-selected',i===selected);
+      el.setAttribute('aria-label','Point '+p.x+', '+p.y+'. Drag to move.');
+    });
+    qa('[data-co-label]',q('#gd-stage')).forEach(el=>{
+      const i=+el.dataset.coLabel,p=points[i];if(!p||!visible(p))return;
+      const v=pointPx(p);
+      el.setAttribute('x',v.x+10);el.setAttribute('y',v.y-10);
+      el.textContent='('+p.x+', '+p.y+')';
+    });
+    const readout=q('#co-readout');if(readout)readout.textContent=pointsText();
+    const context=q('#co-context-text');
+    if(context)context.textContent=selected>=0&&points[selected]&&visible(points[selected])
+      ? 'Selected ('+points[selected].x+', '+points[selected].y+')'
+      : 'Tap the grid to plot a point. Drag an existing point to move it.';
+    const del=q('[data-co-delete]');
+    if(del)del.hidden=!(selected>=0&&points[selected]&&visible(points[selected]));
+    syncControls();
+  }
+  function movePoint(index,x,y,withHistory=true){
+    const c=view||config(),p=points[index];
+    if(!p||x<c.min||x>c.max||y<c.min||y>c.max||occupied(x,y,index)>=0)return false;
+    if(p.x===x&&p.y===y)return false;
+    if(withHistory)remember();
+    points[index]={x,y};
+    selected=index;
+    return true;
+  }
+  function deletePoint(index){
+    if(index<0||index>=points.length)return;
+    remember();
+    points.splice(index,1);
+    selected=-1;
+    draw();
+  }
+  function syncControls(){
+    const u=q('#co-undo'),r=q('#co-redo'),clear=q('#co-clear');
+    if(u)u.disabled=!undoStack.length;
+    if(r)r.disabled=!redoStack.length;
+    if(clear)clear.disabled=!points.length;
+  }
+  function addOrSelect(x,y){
+    const existing=occupied(x,y);
+    if(existing>=0){selected=existing;draw();return;}
+    remember();
+    points.push({x,y});
+    selected=points.length-1;
+    draw();
+  }
+  function bindStage(){
+    const svg=q('#co-svg');
+    svg.onclick=e=>{
+      if(e.target.closest&&e.target.closest('[data-co-point]'))return;
+      const p=nearestCoord(e,svg);
+      addOrSelect(p.x,p.y);
+    };
+    qa('[data-co-point]',q('#gd-stage')).forEach(point=>{
+      point.onpointerdown=e=>{
+        if(e.button!=null&&e.button!==0)return;
+        e.stopPropagation();
+        const index=+point.dataset.coPoint;
+        selected=index;
+        drag={index,pointerId:e.pointerId,start:copyPoints(),moved:false};
+        try{point.setPointerCapture(e.pointerId)}catch(_){}
+        updateGeometry();
+      };
+      point.onpointermove=e=>{
+        if(!drag||drag.pointerId!==e.pointerId||drag.index!==+point.dataset.coPoint)return;
+        const target=nearestCoord(e,svg),p=points[drag.index];
+        if(!p||(p.x===target.x&&p.y===target.y)||occupied(target.x,target.y,drag.index)>=0)return;
+        if(!drag.moved){
+          remember(drag.start);
+          drag.moved=true;
+        }
+        points[drag.index]={x:target.x,y:target.y};
+        selected=drag.index;
+        updateGeometry();
+      };
+      const finish=e=>{
+        if(!drag||drag.pointerId!==e.pointerId||drag.index!==+point.dataset.coPoint)return;
+        const moved=drag.moved;
+        drag=null;
+        if(moved)draw();else{selected=+point.dataset.coPoint;draw();}
+      };
+      point.onpointerup=finish;
+      point.onpointercancel=finish;
+      point.onkeydown=e=>{
+        const index=+point.dataset.coPoint,p=points[index];if(!p)return;
+        if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();deletePoint(index);return;}
+        let x=p.x,y=p.y;
+        if(e.key==='ArrowLeft')x--;else if(e.key==='ArrowRight')x++;
+        else if(e.key==='ArrowUp')y++;else if(e.key==='ArrowDown')y--;else return;
+        e.preventDefault();
+        const c=view||config();
+        x=clamp(x,c.min,c.max);y=clamp(y,c.min,c.max);
+        if(movePoint(index,x,y,true))draw();
+      };
+    });
+    const del=q('[data-co-delete]');
+    if(del)del.onclick=()=>deletePoint(selected);
+  }
+  function draw(){
+    view=config();
+    if(selected>=0&&!visible(points[selected]))selected=-1;
+    let lines='',labels='';
+    for(let v=view.min;v<=view.max;v++){
+      const x=pad+(v-view.min)*view.step,y=pad+(view.max-v)*view.step;
+      lines+='<line class="gd-gridline" x1="'+x+'" y1="'+pad+'" x2="'+x+'" y2="'+(W-pad)+'"></line>'+
+        '<line class="gd-gridline" x1="'+pad+'" y1="'+y+'" x2="'+(W-pad)+'" y2="'+y+'"></line>';
+      const labelEvery=view.four?2:1;
+      if(v%labelEvery===0){
+        labels+='<text x="'+x+'" y="'+(W-pad+22)+'" text-anchor="middle" class="gd-co-axis-label">'+v+'</text>'+
+          '<text x="'+(pad-12)+'" y="'+(y+4)+'" text-anchor="end" class="gd-co-axis-label">'+v+'</text>';
+      }
+    }
+    const zeroX=pad+(0-view.min)*view.step,zeroY=pad+(view.max-0)*view.step;
+    const plotted=points.map((p,i)=>{
+      if(!visible(p))return'';
+      const v=pointPx(p);
+      return '<circle class="gd-point gd-co-point'+(i===selected?' is-selected':'')+'" data-co-point="'+i+'" data-co-pos="'+p.x+','+p.y+'" tabindex="0" role="button" aria-label="Point '+p.x+', '+p.y+'. Drag to move." cx="'+v.x+'" cy="'+v.y+'" r="9"></circle>'+
+        '<text class="gd-co-point-label" data-co-label="'+i+'" x="'+(v.x+10)+'" y="'+(v.y-10)+'">('+p.x+', '+p.y+')</text>';
+    }).join('');
+    q('#gd-stage').innerHTML='<div class="gd-vis gd-coord gd-coordinate-direct">'+
+      '<svg id="co-svg" data-co-min="'+view.min+'" data-co-max="'+view.max+'" viewBox="0 0 '+W+' '+W+'" aria-label="Interactive coordinate grid">'+
+        lines+
+        '<line class="gd-axis" x1="'+zeroX+'" y1="'+pad+'" x2="'+zeroX+'" y2="'+(W-pad)+'"></line>'+
+        '<line class="gd-axis" x1="'+pad+'" y1="'+zeroY+'" x2="'+(W-pad)+'" y2="'+zeroY+'"></line>'+
+        labels+plotted+
+      '</svg>'+
+      '<div class="gd-co-context"><span id="co-context-text">'+(selected>=0&&points[selected]?'Selected ('+points[selected].x+', '+points[selected].y+')':'Tap the grid to plot a point. Drag an existing point to move it.')+'</span><button type="button" data-co-delete'+(selected>=0&&points[selected]?'':' hidden')+'>Delete point</button></div>'+
+      '<div class="gd-readout" id="co-readout">'+pointsText()+'</div>'+
+    '</div>';
+    bindStage();
+    syncControls();
+  }
+
+  setPanels(
+    field('Grid','<label class="gd-row"><input id="co-four" type="checkbox"> Four quadrants (−10 to 10)</label>')+
+    '<div class="gd-row">'+btn('Undo','co-undo')+btn('Redo','co-redo')+btn('Clear points','co-clear')+'</div>'+
+    '<p class="gd-help">Tap an intersection to plot a point, then drag the point to move it. Switching grid mode no longer deletes your work; points outside the current grid are kept and reappear when they fit again.</p>',
+    ''
+  );
+  q('#co-four').onchange=()=>{selected=-1;draw()};
+  q('#co-undo').onclick=undo;
+  q('#co-redo').onclick=redo;
+  q('#co-clear').onclick=()=>{if(!points.length)return;remember();points=[];selected=-1;draw()};
+  draw();
+}
 
 function measurementTool(){function draw(){const cm=clamp(num(q('#me-cm').value,12.3),0,30),mm=Math.round(cm*10),m=cm/100;let ticks='';for(let i=0;i<=300;i++){const p=i/300*100,h=i%10===0?55:i%5===0?35:22;ticks+=`<span class="gd-ruler-tick" style="left:${p}%;height:${h}px"></span>`;if(i%10===0)ticks+=`<span class="gd-ruler-num" style="left:${p}%">${i/10}</span>`}q('#gd-stage').innerHTML=`<div class="gd-vis"><div class="gd-ruler">${ticks}<span class="gd-ruler-marker" style="left:${cm/30*100}%"></span></div><div class="gd-fdp-readout"><div class="gd-fdp-value"><span>millimetres</span><strong>${mm} mm</strong></div><div class="gd-fdp-value"><span>centimetres</span><strong>${Number(cm.toFixed(1))} cm</strong></div><div class="gd-fdp-value"><span>metres</span><strong>${Number(m.toFixed(3))} m</strong></div></div></div>`}
 setPanels(`${field('Measurement (cm)','<input class="gd-input" id="me-cm" type="range" min="0" max="30" step="0.1" value="12.3">')}${btn('Random mark','me-random')}<p class="gd-help">The ruler is 30 cm with millimetre ticks. The orange marker shows the selected length.</p>`,'');q('#me-cm').oninput=draw;q('#me-random').onclick=()=>{q('#me-cm').value=(Math.floor(Math.random()*301)/10).toFixed(1);draw()};draw()}
