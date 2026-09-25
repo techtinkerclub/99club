@@ -1,0 +1,38 @@
+/* 99 Club Studio · coherent Online Play icon presentation v1.0 */
+#tt99-play-root .tt99-play-game-icon{
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+  padding:0!important;
+  line-height:1!important;
+  font-size:0!important;
+}
+#tt99-play-root .tt99-play-game-icon .tt99-game-icon-svg{
+  display:block;
+  width:68%;
+  height:68%;
+  max-width:44px;
+  max-height:44px;
+  overflow:visible;
+  flex:none;
+}
+#tt99-play-root .tt99-play-current .tt99-play-game-icon .tt99-game-icon-svg{
+  width:70%;
+  height:70%;
+}
+#tt99-play-root .tt99-play-game-card .tt99-play-game-icon .tt99-game-icon-svg{
+  width:64%;
+  height:64%;
+}
+#tt99-play-root .tt99-game-icon-fallback{
+  display:block;
+  font-size:.72rem;
+  font-weight:800;
+  line-height:1;
+}
+@media(max-width:700px){
+  #tt99-play-root .tt99-play-game-card .tt99-play-game-icon .tt99-game-icon-svg{
+    width:62%;
+    height:62%;
+  }
+}

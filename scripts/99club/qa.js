@@ -798,8 +798,12 @@ try{
   const contextPadCss=read('assets/99club/games-play-context-keypad-v201.css');
   const contextPadJs=read('assets/99club/games-play-context-keypad-v201.js');
   const catalogueCss=read('assets/99club/games-play-final-catalogue-v186.css');
+  const iconJs=read('assets/99club/games-play-icons-v1.js');
+  const iconCss=read('assets/99club/games-play-icons-v1.css');
   if(!playPage.includes('games-play-safe-fit-v2.css?v=3')||!playPage.includes('games-play-safe-fit-v2.js?v=1'))fail('play-safe-fit','safe-fit assets are not both loaded by /play/');
-  if(!playPage.includes('games-play-core-v2.js?v=14')||!playPage.includes('games-play-instructions-v154.js?v=7')||!playPage.includes('games-play-sudoku-v1.js?v=2'))fail('play-safe-fit','changed Online Play assets are not cache-busted');
+  if(!playPage.includes('games-play-core-v2.js?v=15')||!playPage.includes('games-play-instructions-v154.js?v=7')||!playPage.includes('games-play-sudoku-v1.js?v=2'))fail('play-safe-fit','changed Online Play assets are not cache-busted');
+  if(!playPage.includes('games-play-icons-v1.js?v=2')||!playPage.includes('games-play-icons-v1.css?v=1'))fail('game-icons','coherent game icon assets are not both loaded by /play/');
+  if(playPage.indexOf('games-play-icons-v1.js?v=1')>playPage.indexOf('games-play-core-v2.js?v=15'))fail('game-icons','game icon renderer must load before Online Play core');
   if(!playPage.includes('games-play-final-catalogue-v186.css?v=2')||!playPage.includes('games-play-context-keypad-v201.css?v=8')||!playPage.includes('games-play-context-keypad-v201.js?v=9')||!playPage.includes('games-play-share-v164.js?v=10'))fail('mobile-play-controls','mobile keyboard/copy-link assets are not cache-busted');
   if(/<details class="tt99-play-settings"\s+open>/.test(playCore))fail('play-safe-fit','Puzzle settings still start expanded');
   if(/html\.tt99-play-app-shell|overflow\s*:\s*hidden\s*!important/i.test(fitCss))fail('play-safe-fit','safe-fit must not restore the old document viewport lock');
@@ -819,6 +823,14 @@ try{
   if(!catalogueCss.includes('div:nth-last-child(4)')||!catalogueCss.includes('div:nth-last-child(3)')||!catalogueCss.includes('div:nth-last-child(2)')||catalogueCss.includes('div:nth-child(1){--letters:10}'))fail('crossword-keyboard','crossword keyboard rows are still coupled to the prepended contextual handle');
   if(!contextPadCss.includes('.tt99-context-pad-active.tt99-letter-keypad')||!contextPadCss.includes('button[data-letter]')||!contextPadCss.includes('height:40px!important'))fail('crossword-keyboard','compact mobile crossword keyboard drawer rules are missing');
   if(!contextPadJs.includes("const label=padLabel(pad)")||!contextPadJs.includes('tt99-context-handle-text'))fail('crossword-keyboard','contextual letter drawer does not expose the Keyboard label');
+  const iconIds=['sumplete','cornersum','linkedsum','killersudoku','kakuro','arithmeticcages','brokencalc','target','operationgrid','maze','crossnumber','arithmagon','pyramid','numbertowers','numberwheels','numbersearch','equationcrossgrid','squaresearch','insertops','symbols','functionmachine','balance','mobilebalance','magic','magicshape','alphametics','numbertrail','propertymaze','diagonalpath','sudoku','futoshiki','takuzu','numberpath','nonogram','mathsmines','hashi','colourlogic','shikaku','perimeterregions','wordsearch','crossword'];
+  for(const id of iconIds)if(!iconJs.includes(id+': svg('))fail('game-icons','coherent SVG icon missing for '+id);
+  if(iconIds.length!==41)fail('game-icons','expected 40 audited game icons');
+  if(!iconJs.includes("viewBox=\"0 0 24 24\"")||!iconJs.includes("stroke-width=\"1.8\""))fail('game-icons','SVG family is not using the shared 24 × 24 drawing system');
+  if(iconJs.includes('<text'))fail('game-icons','game icons must not depend on font-rendered SVG text');
+  if(!iconCss.includes('.tt99-game-icon-svg')||!iconCss.includes('font-size:0!important')||!iconCss.includes('width:68%')||!iconCss.includes('height:68%'))fail('game-icons','shared icon sizing/containment rules are incomplete');
+  if(!playCore.includes('global.TT99GameIcons')||!playCore.includes('gameIconMarkup(a)')||!playCore.includes('icon.innerHTML=gameIconMarkup(a)'))fail('game-icons','Online Play header/library are not using the shared icon renderer');
+  ok('game-icons','All 41 Online Play games have coherent shared SVG icons');
   ok('play-safe-fit','Safe compact layout, mobile controls and single-instruction source are wired without document locking or board transforms');
 }catch(e){fail('play-safe-fit','Online Play safe-fit QA threw',e.stack||e.message);}
 
