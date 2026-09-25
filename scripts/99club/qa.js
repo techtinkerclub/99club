@@ -983,7 +983,7 @@ try{
     'data-nl-export-mode',
     'function pupilDiagramSvg',
     'labelSkip',
-    "scaleMode=index>0&&src.scaleMode==='own'?'own':'shared'",
+    "const allowedScaleModes=['shared','own','zoom','linked']",
     'function scaleFor',
     'function scaleModeLabel',
     'function defaultZoomRange',
