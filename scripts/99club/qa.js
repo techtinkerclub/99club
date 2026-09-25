@@ -989,6 +989,14 @@ try{
     'function defaultZoomRange',
     'function setLineScaleMode',
     'function teachingConnections',
+    'zoomFollowMarkers',
+    'function syncZoomFollowers',
+    'positionGroup',
+    'function addLinkedPair',
+    'function setPairAppearance',
+    'nl-add-correspondence',
+    'data-position-group',
+    'nl-linked-pair-guide',
     'nl-fit-zoom-markers',
     'function snapOnLine',
     'data-nl-scale-mode="own"',
@@ -1007,7 +1015,7 @@ try{
   for(const token of ['function composeChallengeCardSvg',"responseLabel='Answer'",'responseLines'])if(!goodiesExport.includes(token))fail('goodies-number-line','Shared challenge export layer missing classroom contract: '+token);
   if(!numberLine.includes('CK.bannerHtml'))fail('goodies-number-line','Number Line v6 is not using the shared challenge banner');
   if(numberLine.includes('l12 -7 v14')||numberLine.includes('l-12 -7 v14'))fail('goodies-number-line','Bounded Number Line has regained baseline arrowheads');
-  if(!goodiesCss.includes('.nl-workflow-tabs')||!goodiesCss.includes('.nl-marker-card')||!goodiesCss.includes('.nl-scale-mode--four')||!goodiesCss.includes('.nl-add-line-row')||!goodiesCss.includes('.gd-answer-live')||!goodiesCss.includes('.gd-challenge-action')||!goodiesCss.includes('#gd-stage:fullscreen'))fail('goodies-number-line','Number Line teacher workflow / teaching-line / live-answer / challenge-action / Board styling missing');
+  if(!goodiesCss.includes('.nl-workflow-tabs')||!goodiesCss.includes('.nl-marker-card')||!goodiesCss.includes('.nl-scale-mode--four')||!goodiesCss.includes('.nl-add-line-row')||!goodiesCss.includes('.nl-linked-marker-tag')||!goodiesCss.includes('.nl-zoom-follow')||!goodiesCss.includes('.gd-answer-live')||!goodiesCss.includes('.gd-challenge-action')||!goodiesCss.includes('#gd-stage:fullscreen'))fail('goodies-number-line','Number Line teacher workflow / live multi-line / live-answer / challenge-action / Board styling missing');
   if(!goodiesCss.includes('.nl-board-tools-toggle')||!goodiesCss.includes('.nl-board-menu.is-open')||!goodiesCss.includes('.nl-board-notice'))fail('goodies-number-line','Number Line floating Board teaching palette styling missing');
   for(const token of ['#gd-stage.nl-board-fallback','html.nl-board-page-lock','env(safe-area-inset-bottom)','@media(max-width:700px)','@media(orientation:landscape) and (max-height:560px)','.nl-board-rail','.nl-board-tool:after','.nl-challenge-reveal','#gd-stage.is-delete-mode .nl-baseline'])if(!goodiesCss.includes(token))fail('goodies-number-line','Number Line mobile/Board parity styling missing: '+token);
   ok('goodies-number-line','Hidden Number Line keeps desktop/mobile teaching parity with task-based Setup/Objects/Challenge/Export workflow, challenge-card export, quiet Board rail, direct delete, contextual reveal, tidy labels, undo/redo, comparison lines and export reuse');
