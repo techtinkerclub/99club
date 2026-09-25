@@ -70,10 +70,12 @@ function lineValueText(line,value){
   if(line?.valueFormat==='percent')return fmt(cleanNumber(value*100))+'%';
   return fmt(value);
 }
-function snap(v,state){
-  const raw=state.min+Math.round((v-state.min)/state.step)*state.step;
-  return cleanNumber(clamp(raw,state.min,state.max));
+function snapToScale(v,scale){
+  const min=num(scale?.min,0),max=Math.max(min+0.0001,num(scale?.max,min+1)),step=Math.max(0.0001,Math.min(max-min,num(scale?.step,1)));
+  const raw=min+Math.round((v-min)/step)*step;
+  return cleanNumber(clamp(raw,min,max));
 }
+function snap(v,state){return snapToScale(v,state)}
 function nextId(prefix,items){
   let i=1;const used=new Set(items.map(x=>x.id));
   while(used.has(prefix+i))i++;
@@ -100,10 +102,20 @@ function decodeState(raw){
 }
 function normaliseLine(raw,state,index){
   const src=raw&&typeof raw==='object'?raw:{};
+  const scaleMode=index>0&&src.scaleMode==='own'?'own':'shared';
+  const ownMin=num(src.min,state.min),ownMaxRaw=num(src.max,state.max),ownMax=ownMaxRaw>ownMin?ownMaxRaw:ownMin+Math.max(num(src.step,state.step),1);
+  const ownRange=ownMax-ownMin,ownStep=Math.max(0.0001,Math.min(ownRange,num(src.step,state.step)));
+  const ownScale={min:ownMin,max:ownMax,step:ownStep};
+  const markerScale=scaleMode==='own'?ownScale:state;
   const line={
     id:String(src.id||('l'+(index+1))).replace(/[^a-zA-Z0-9_-]/g,'').slice(0,20)||('l'+(index+1)),
     label:String(src.label||'').slice(0,30),
     showLabels:src.showLabels!==false,
+    scaleMode,
+    min:cleanNumber(ownMin),
+    max:cleanNumber(ownMax),
+    step:cleanNumber(ownStep),
+    labelEvery:clamp(Math.round(num(src.labelEvery,state.labelEvery)),1,50),
     valueFormat:['number','fraction','percent'].includes(src.valueFormat)?src.valueFormat:'number',
     denominator:clamp(Math.round(num(src.denominator,4)),2,24),
     tickStride:clamp(Math.round(num(src.tickStride,1)),1,24),
@@ -113,7 +125,7 @@ function normaliseLine(raw,state,index){
       {
         id:String(m.id||('m'+(i+1))).replace(/[^a-zA-Z0-9_-]/g,'').slice(0,20)||('m'+(i+1)),
         label:String(m.label||String.fromCharCode(65+i)).slice(0,12),
-        value:snap(num(m.value,state.min),state),
+        value:snapToScale(num(m.value,markerScale.min),markerScale),
         color:/^#[0-9a-f]{6}$/i.test(m.color||'')?m.color:COLOURS[i%COLOURS.length],
         showValue:m.showValue!==false,
         side:m.side==='below'?'below':'above',
