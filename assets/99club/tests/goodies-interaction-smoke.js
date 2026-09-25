@@ -140,6 +140,8 @@ requireText(numberLine,"{id:'marks-vs-spaces'","Number Line interval misconcepti
 requireText(numberLine,'function fractionText','Number Line fraction display formatter');
 requireText(numberLine,'tickStride','Number Line per-line tick density');
 requireText(numberLine,"valueFormat:'percent'","Number Line percent representation");
+requireText(numberLine,'syncGroup','Number Line aligned marker dependency state');
+requireText(numberLine,'function setMarkerValue','Number Line linked marker update helper');
 requireText(numberLine,'enterCustomChallenge','Number Line custom challenge mode');
 requireText(numberLine,'CK.editorHtml','Number Line uses shared custom editor');
 
