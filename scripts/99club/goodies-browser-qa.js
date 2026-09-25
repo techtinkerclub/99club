@@ -153,6 +153,19 @@ if(mode==='prepare'){
     assert(document.querySelectorAll('.nl-answer-box').length>=1,'A linked relationship hides its calculated label');
     assert(document.getElementById('nl-custom-live-answer').textContent.trim()==='2','Difference answer uses the current A and B positions');
 
+    TT99Goodies.numberLine();
+    document.getElementById('nl-add-line').click();
+    document.querySelector('[data-nl-workflow="objects"]').click();
+    document.getElementById('nl-add-marker').click();
+    document.querySelector('[data-nl-workflow="challenge"]').click();
+    document.querySelector('[data-nl-challenge-tab="custom"]').click();
+    const multiSource=document.getElementById('nl-custom-answer-source');
+    assert([...multiSource.options].some(o=>o.value==='marker:l2:m1'),'Second-line marker can be selected even when marker ids repeat across lines');
+    multiSource.value='marker:l2:m1';
+    multiSource.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.querySelector('[data-line-id="l2"][data-marker-hit="m1"] .nl-answer-box'),'Selected second-line marker is hidden');
+    assert(!document.querySelector('[data-line-id="l1"][data-marker-hit="m1"] .nl-answer-box'),'Same-id marker on the main line remains visible');
+
     document.querySelector('[data-nl-challenge-tab="standard"]').click();
     document.querySelector('[data-nl-challenge-cat="round"]').click();
     const rounding=document.querySelector('[data-nl-challenge-type="rounding"]');
