@@ -26,6 +26,7 @@ function schoolKey(){return SU?.makeSchoolKey?.(draft.school?.name||'')||'';}
 function analyticsSummary(extra={}){
   return {
     widget_type:draft.widgetType,
+    integration_id:W.cleanIntegrationId?.(draft.integrationId)||undefined,
     school_key:schoolKey()||undefined,
     source_origin:SU?.referrerOrigin?.()||undefined,
     club_count:draft.selectedClubs?.length||0,
