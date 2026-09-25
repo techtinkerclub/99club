@@ -5,8 +5,239 @@ const {q,qa,clamp,num,money,field,btn,setPanels}=G;
 function numberLine(){let s={min:-10,max:20,step:1,marker:5};function draw(){s.min=num(q('#nl-min').value,s.min);s.max=num(q('#nl-max').value,s.max);if(s.max<=s.min)s.max=s.min+1;s.step=Math.max(.1,num(q('#nl-step').value,s.step));s.marker=clamp(num(q('#nl-marker').value,s.marker),s.min,s.max);q('#nl-marker').min=s.min;q('#nl-marker').max=s.max;q('#nl-marker').step=s.step;const range=s.max-s.min,n=Math.floor(range/s.step);const maxTicks=50,skip=Math.max(1,Math.ceil(n/maxTicks));let html='<div class="gd-vis"><div class="gd-numberline"><div class="gd-numberline__line"></div>';for(let i=0;i<=n;i+=skip){const v=s.min+i*s.step,p=(v-s.min)/range*100;html+=`<span class="gd-numberline__tick" style="left:${p}%"></span><span class="gd-numberline__label" style="left:${p}%">${Number(v.toFixed(4))}</span>`}const p=(s.marker-s.min)/range*100;html+=`<span class="gd-numberline__marker" style="left:${p}%">${Number(s.marker.toFixed(2))}</span></div><div class="gd-readout">Marker: ${Number(s.marker.toFixed(2))}</div></div>`;q('#gd-stage').innerHTML=html}
 setPanels(`${field('Minimum','<input class="gd-input" id="nl-min" type="number" value="-10">')}${field('Maximum','<input class="gd-input" id="nl-max" type="number" value="20">')}${field('Step','<input class="gd-input" id="nl-step" type="number" min="0.1" step="0.1" value="1">')}${field('Move marker','<input class="gd-input" id="nl-marker" type="range" value="5">')}<div class="gd-row">${btn('− step','nl-down')}${btn('+ step','nl-up')}</div><p class="gd-help">Change the range for negatives, decimals or larger-number work.</p>`,'');['nl-min','nl-max','nl-step','nl-marker'].forEach(id=>q('#'+id).addEventListener('input',draw));q('#nl-down').onclick=()=>{q('#nl-marker').value=clamp(num(q('#nl-marker').value)-s.step,s.min,s.max);draw()};q('#nl-up').onclick=()=>{q('#nl-marker').value=clamp(num(q('#nl-marker').value)+s.step,s.min,s.max);draw()};draw()}
 
-function placeValue(){let value=1234.5;const places=[['10,000',10000],['1,000',1000],['100',100],['10',10],['1',1],['0.1',.1],['0.01',.01]];function draw(){value=clamp(num(q('#pv-value').value,0),0,99999.99);const fixed=value.toFixed(2).padStart(8,'0'),parts=fixed.split('.'),whole=parts[0].padStart(5,'0'),dec=parts[1];const digs=(whole+dec).split('').map(Number);const first=digs.findIndex(d=>d!==0);const shown=places.map((p,i)=>({...p,d:digs[i],show:i>=Math.max(0,first)}));q('#gd-stage').innerHTML=`<div class="gd-vis"><div class="gd-place-board" style="--cols:${places.length}">${shown.map((p,i)=>`<div class="gd-place-col"><div class="gd-place-head">${p[0]}</div><div class="gd-place-digit">${p.d}</div><div class="gd-blocks">${Array.from({length:Math.min(p.d,9)},()=>'<span class="gd-block"></span>').join('')}</div></div>`).join('')}</div><div class="gd-equation">${shown.filter(p=>p.d).map(p=>(p.d*p[1]).toLocaleString('en-GB',{maximumFractionDigits:2})).join(' + ')||'0'}</div></div>`}
-setPanels(`${field('Number','<input class="gd-input" id="pv-value" type="number" min="0" max="99999.99" step="0.01" value="1234.5">')}<div class="gd-row">${btn('Random whole number','pv-random')}${btn('Random decimal','pv-dec')}</div><p class="gd-help">The small blocks show the digit count in each place, not scaled physical base-ten blocks.</p>`,'');q('#pv-value').oninput=draw;q('#pv-random').onclick=()=>{q('#pv-value').value=Math.floor(Math.random()*9999)+1;draw()};q('#pv-dec').onclick=()=>{q('#pv-value').value=(Math.random()*999).toFixed(2);draw()};draw()}
+function placeValue(){
+  const I=G.interaction;
+  if(!I){q('#gd-stage').innerHTML='<p class="gd-empty">The interactive place-value board could not start.</p>';return;}
+  const places=[
+    {label:'10,000',name:'ten thousands',value:10000,color:'#c9dbf2'},
+    {label:'1,000',name:'thousands',value:1000,color:'#d7cef0'},
+    {label:'100',name:'hundreds',value:100,color:'#f0cfda'},
+    {label:'10',name:'tens',value:10,color:'#f2d9bf'},
+    {label:'1',name:'ones',value:1,color:'#f3df86'},
+    {label:'0.1',name:'tenths',value:.1,color:'#cce6dc'},
+    {label:'0.01',name:'hundredths',value:.01,color:'#cde2ee'}
+  ];
+  let tokens=[],next=1,controller=null,resizeObserver=null,resizeFrame=0,lastStageWidth=0,notice='';
+
+  function clean(v){return Math.round((Number(v)||0)*100)/100}
+  function format(v){return clean(v).toLocaleString('en-GB',{minimumFractionDigits:0,maximumFractionDigits:2})}
+  function counts(){const out=Array(places.length).fill(0);tokens.forEach(t=>{if(out[t.place]!=null)out[t.place]++});return out}
+  function total(){return clean(tokens.reduce((sum,t)=>sum+(places[t.place]?.value||0),0))}
+  function nonStandard(){return counts().some(n=>n>9)}
+  function stateSnapshot(){return{tokens:JSON.parse(JSON.stringify(tokens)),next}}
+  function restoreState(value){
+    tokens=Array.isArray(value?.tokens)?value.tokens.map(t=>({...t,place:clamp(Math.round(num(t.place,4)),0,places.length-1)})):[];
+    next=Math.max(1,Math.round(num(value?.next,1)));
+    notice='';
+  }
+  function buildFromNumber(raw){
+    const value=clamp(clean(num(raw,0)),0,99999.99);
+    const fixed=value.toFixed(2).split('.');
+    const digits=(fixed[0].padStart(5,'0')+fixed[1]).split('').map(Number);
+    tokens=[];next=1;
+    digits.forEach((digit,place)=>{
+      for(let n=0;n<digit;n++)tokens.push({id:next++,place,x:0,y:0,locked:false});
+    });
+    layoutTokens();
+    return value;
+  }
+  function boardWidth(){
+    return Math.max(315,q('#pv-canvas')?.clientWidth||((q('#gd-stage')?.clientWidth||720)-4));
+  }
+  function layoutTokens(width=boardWidth()){
+    const compact=width<560,tokenSize=compact?30:36,header=compact?68:78,rowGap=compact?35:42,colWidth=width/places.length;
+    const used=Array(places.length).fill(0);
+    tokens.forEach(t=>{
+      t.place=clamp(Math.round(num(t.place,4)),0,places.length-1);
+      const slot=used[t.place]++;
+      t.x=Math.max(2,t.place*colWidth+(colWidth-tokenSize)/2);
+      t.y=header+12+slot*rowGap;
+    });
+    return Math.max(compact?400:470,header+34+Math.max(1,...used)*rowGap);
+  }
+  function expandedText(){
+    const cs=counts();
+    return cs.map((count,i)=>{
+      if(!count)return'';
+      return count===1?places[i].label:(count+' × '+places[i].label);
+    }).filter(Boolean).join(' + ')||'0';
+  }
+  function stageNotice(){
+    if(notice)return notice;
+    return nonStandard()?'This is a non-standard representation. Regroup to show the same value using standard digits.':'Drag a counter into another column to change its place value.';
+  }
+  function tokenMarkup(t,selectedId){
+    const p=places[t.place],selected=String(t.id)===String(selectedId);
+    return '<button type="button" class="gd-pv-counter'+(selected?' is-selected':'')+(t.locked?' is-locked':'')+'" data-gd-object="'+t.id+'" data-pv-place="'+t.place+'" aria-selected="'+(selected?'true':'false')+'" aria-label="One '+p.name+' counter'+(t.locked?', locked':'')+'" style="left:'+t.x+'px;top:'+t.y+'px;--pv-counter:'+p.color+'"><span aria-hidden="true"></span>'+(t.locked?'<b class="gd-pv-lock" aria-hidden="true">⌑</b>':'')+'</button>';
+  }
+  function railMarkup(selected,meta){
+    const object=selected?
+      I.toolButton('duplicate','duplicate','Duplicate counter','',false)+
+      I.toolButton('lock',selected.locked?'unlock':'lock',selected.locked?'Unlock counter':'Lock counter',selected.locked?'is-active':'',false)+
+      I.toolButton('delete','delete','Delete counter','is-danger',selected.locked):'';
+    const divider=object?'<span class="gd-object-separator"></span>':'';
+    return '<div class="gd-object-ui"><div class="gd-object-rail'+(selected?' is-engaged':'')+'" aria-label="Place-value board tools">'+object+divider+
+      I.toolButton('undo','undo','Undo','',!meta?.canUndo)+
+      I.toolButton('redo','redo','Redo','',!meta?.canRedo)+
+      '</div></div>';
+  }
+  function columnMarkup(place,index,cs){
+    return '<div class="gd-pv-column'+(index===5?' is-decimal-start':'')+'" data-gd-canvas-bg data-pv-column="'+index+'">'+
+      '<div class="gd-pv-head"><strong>'+place.label+'</strong><small>'+place.name+'</small><span data-pv-count="'+index+'">'+cs[index]+'</span><button type="button" data-pv-add="'+index+'" aria-label="Add one '+place.name+' counter">+</button></div>'+
+      '</div>';
+  }
+  function render(selectedId,meta){
+    const height=layoutTokens(),cs=counts(),selected=tokens.find(t=>String(t.id)===String(selectedId))||null;
+    q('#gd-stage').innerHTML='<div class="gd-vis gd-pv-workspace">'+
+      '<div class="gd-pv-board-wrap">'+
+        '<div class="gd-pv-canvas" id="pv-canvas" data-gd-canvas-bg style="min-height:'+height+'px">'+
+          '<div class="gd-pv-columns">'+places.map((p,i)=>columnMarkup(p,i,cs)).join('')+'</div>'+
+          tokens.map(t=>tokenMarkup(t,selectedId)).join('')+
+        '</div>'+
+        railMarkup(selected,meta)+
+      '</div>'+
+      '<div class="gd-pv-summary">'+
+        '<div><span>Number represented</span><strong id="pv-total">'+format(total())+'</strong></div>'+
+        '<div><span>Board representation</span><strong id="pv-expanded">'+expandedText()+'</strong></div>'+
+      '</div>'+
+      '<p class="gd-object-hint" id="pv-hint">'+stageNotice()+'</p>'+
+    '</div>';
+  }
+  function updateLiveSummary(){
+    const totalEl=q('#pv-total'),expandedEl=q('#pv-expanded'),hint=q('#pv-hint'),input=q('#pv-value');
+    if(totalEl)totalEl.textContent=format(total());
+    if(expandedEl)expandedEl.textContent=expandedText();
+    if(hint)hint.textContent=stageNotice();
+    if(input&&document.activeElement!==input)input.value=clean(total()).toFixed(total()%1?2:0);
+    const cs=counts();
+    qa('[data-pv-count]',q('#gd-stage')).forEach(el=>{el.textContent=cs[+el.dataset.pvCount]||0});
+  }
+  function placeFromX(x,width=boardWidth()){
+    const centre=(Number(x)||0)+18;
+    return clamp(Math.floor(centre/(width/places.length)),0,places.length-1);
+  }
+  function addCounter(place){
+    if(tokens.length>=90){notice='This board is full. Delete or regroup some counters first.';controller.refresh();return;}
+    let id=null;
+    controller.mutate(()=>{
+      id=next++;
+      tokens.push({id,place:clamp(place,0,places.length-1),x:0,y:0,locked:false});
+      notice='';
+      layoutTokens();
+    });
+    controller.select(id);
+  }
+  function duplicateCounter(item){
+    if(tokens.length>=90){notice='This board is full. Delete or regroup some counters first.';return null;}
+    const copy={...item,id:next++,locked:false,x:0,y:0};
+    tokens.push(copy);notice='';layoutTokens();return copy;
+  }
+  function bindStage(){
+    qa('[data-pv-add]',q('#gd-stage')).forEach(button=>button.onclick=e=>{
+      e.stopPropagation();addCounter(+button.dataset.pvAdd);
+    });
+    updateLiveSummary();
+  }
+  function syncControls(){
+    const input=q('#pv-value'),regroup=q('#pv-regroup');
+    if(input&&document.activeElement!==input)input.value=clean(total()).toFixed(total()%1?2:0);
+    if(regroup)regroup.disabled=!nonStandard()||total()>99999.99;
+  }
+  function bindControls(){
+    q('#pv-build').onclick=()=>{
+      const raw=q('#pv-value').value;
+      controller.mutate(()=>{buildFromNumber(raw);notice='Board rebuilt from the entered number.'});
+      controller.select(null);
+    };
+    q('#pv-random').onclick=()=>{
+      const value=Math.floor(Math.random()*99999)+1;
+      q('#pv-value').value=value;
+      controller.mutate(()=>{buildFromNumber(value);notice='Random whole number built.'});
+      controller.select(null);
+    };
+    q('#pv-dec').onclick=()=>{
+      const value=(Math.floor(Math.random()*9999999)/100).toFixed(2);
+      q('#pv-value').value=value;
+      controller.mutate(()=>{buildFromNumber(value);notice='Random decimal built.'});
+      controller.select(null);
+    };
+    q('#pv-regroup').onclick=()=>{
+      const value=total();
+      if(value>99999.99){notice='This value is above the current board range, so it cannot be regrouped here.';controller.refresh();return;}
+      controller.mutate(()=>{buildFromNumber(value);notice='Regrouped into standard place-value digits without changing the total.'});
+      controller.select(null);
+    };
+    q('#pv-clear').onclick=()=>{
+      if(!tokens.length)return;
+      if(!window.confirm('Clear all counters from the place-value board?'))return;
+      controller.mutate(()=>{tokens=[];notice='Board cleared.'});
+      controller.select(null);
+    };
+  }
+
+  setPanels(
+    field('Quick setup number','<div class="gd-row"><input class="gd-input" id="pv-value" type="number" min="0" max="99999.99" step="0.01" value="1234.5"><button class="gd-btn" id="pv-build" type="button">Build</button></div>','Use this to prepare a board quickly; after that, work directly with the counters.')+
+    '<div class="gd-row">'+btn('Random whole number','pv-random')+btn('Random decimal','pv-dec')+'</div>'+
+    btn('Regroup counters','pv-regroup')+
+    btn('Clear board','pv-clear')+
+    '<p class="gd-help">Tap + at the top of a column to add one counter. Drag counters between columns; the represented number updates with their place value. Select a counter for duplicate, lock and delete. Left/right arrow keys move a selected counter one place.</p>',
+    ''
+  );
+
+  buildFromNumber(1234.5);
+  controller=I.mount({
+    getItems:()=>tokens,
+    getState:stateSnapshot,
+    setState:restoreState,
+    getCanvas:()=>q('#pv-canvas'),
+    getActionRoot:()=>q('#gd-stage'),
+    render,
+    snap:1,
+    nudgeStep:1,
+    duplicate:duplicateCounter,
+    remove:item=>{tokens=tokens.filter(t=>t!==item);notice='';layoutTokens()},
+    toggleLock:item=>{item.locked=!item.locked;notice=''},
+    constrain:(item,x,y,element,canvas)=>({
+      x:clamp(x,0,Math.max(0,canvas.clientWidth-(element?.offsetWidth||36))),
+      y:clamp(y,70,Math.max(70,canvas.clientHeight-(element?.offsetHeight||36)))
+    }),
+    onMove:item=>{
+      const newPlace=placeFromX(item.x);
+      if(newPlace!==item.place){
+        item.place=newPlace;
+        notice='';
+        const el=q('[data-gd-object="'+item.id+'"]',q('#pv-canvas'));
+        if(el)el.style.setProperty('--pv-counter',places[newPlace].color);
+        updateLiveSummary();
+      }
+    },
+    onDragEnd:item=>{item.place=placeFromX(item.x);notice='';layoutTokens()},
+    nudge:(item,dx)=>{
+      if(!dx)return false;
+      const nextPlace=clamp(item.place+(dx<0?-1:1),0,places.length-1);
+      if(nextPlace===item.place)return false;
+      item.place=nextPlace;notice='';layoutTokens();return true;
+    },
+    afterRender:()=>{bindStage();syncControls()},
+    onDestroy:()=>{
+      if(resizeObserver)resizeObserver.disconnect();
+      if(resizeFrame)cancelAnimationFrame(resizeFrame);
+    }
+  });
+  bindControls();
+  controller.refresh();
+
+  if(typeof ResizeObserver!=='undefined'){
+    resizeObserver=new ResizeObserver(entries=>{
+      const width=entries[0]?.contentRect?.width||0;
+      if(Math.abs(width-lastStageWidth)<2)return;
+      lastStageWidth=width;
+      cancelAnimationFrame(resizeFrame);
+      resizeFrame=requestAnimationFrame(()=>controller?.refresh());
+    });
+    resizeObserver.observe(q('#gd-stage'));
+  }
+}
 
 function fractionWall(){let selected=new Set();function draw(){const rows=[];for(let d=1;d<=12;d++)rows.push(`<div class="gd-fr-row" aria-label="Twelfths row denominator ${d}">${Array.from({length:d},(_,i)=>`<button type="button" class="gd-fr-cell${selected.has(d+':'+i)?' is-on':''}" data-fr="${d}:${i}">1/${d}</button>`).join('')}</div>`);const a=clamp(num(q('#fw-an').value,1),0,12),ad=clamp(num(q('#fw-ad').value,2),1,12),b=clamp(num(q('#fw-bn').value,1),0,12),bd=clamp(num(q('#fw-bd').value,3),1,12);const bar=(n,d)=>`<div class="gd-fr-bar">${Array.from({length:d},(_,i)=>`<span class="gd-fr-piece${i<n?' is-fill':''}"></span>`).join('')}</div>`;const av=a/ad,bv=b/bd,sign=Math.abs(av-bv)<1e-10?'=':(av>bv?'>':'<');q('#gd-stage').innerHTML=`<div class="gd-vis"><div class="gd-fraction-wall">${rows.join('')}</div><div class="gd-fr-compare"><div>${bar(a,ad)}<div class="gd-readout">${a}/${ad}</div></div><div>${bar(b,bd)}<div class="gd-readout">${b}/${bd}</div></div></div><div class="gd-equation">${a}/${ad} ${sign} ${b}/${bd}</div></div>`;qa('[data-fr]',q('#gd-stage')).forEach(x=>x.onclick=()=>{const k=x.dataset.fr;selected.has(k)?selected.delete(k):selected.add(k);draw()})}
 setPanels(`<p class="gd-section-title">Compare two fractions</p><div class="gd-row">${field('A numerator','<input class="gd-input gd-small" id="fw-an" type="number" min="0" max="12" value="1">')}${field('A denominator','<input class="gd-input gd-small" id="fw-ad" type="number" min="1" max="12" value="2">')}</div><div class="gd-row">${field('B numerator','<input class="gd-input gd-small" id="fw-bn" type="number" min="0" max="12" value="1">')}${field('B denominator','<input class="gd-input gd-small" id="fw-bd" type="number" min="1" max="12" value="3">')}</div>${btn('Clear wall highlights','fw-clear')}<p class="gd-help">Click any pieces in the wall to highlight them.</p>`,'');['fw-an','fw-ad','fw-bn','fw-bd'].forEach(id=>q('#'+id).oninput=draw);q('#fw-clear').onclick=()=>{selected.clear();draw()};draw()}
