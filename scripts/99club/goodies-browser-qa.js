@@ -113,7 +113,10 @@ if(mode==='prepare'){
     const bottomX=eqBottom().querySelector('circle').getAttribute('cx');
     assert(topX===bottomX,'Dragging one equivalent marker keeps the aligned marker synchronized');
     document.getElementById('nl-reveal').click();
-    assert(document.querySelector('.gd-challenge-banner').textContent.includes('/'),'Equivalent-fractions reveal shows a fraction answer');
+    const eqBanner=document.querySelector('.gd-challenge-banner').textContent;
+    const eqBottomText=document.querySelector('[data-marker-hit="mEqBottom"]').textContent;
+    assert(eqBanner.includes('Answer:'),'Equivalent-fractions reveal exposes the answer');
+    assert(eqBottomText.includes('/'),'Equivalent-fractions target renders as a fraction after reveal: '+eqBottomText);
 
     document.querySelector('[data-nl-challenge-cat="fractions"]').click();
     const fdp=document.querySelector('[data-nl-challenge-type="fdp-equivalence"]');
