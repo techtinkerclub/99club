@@ -243,7 +243,9 @@ function mount(options){
     if(mod&&e.key.toLowerCase()==='d'){e.preventDefault();duplicateSelected();return;}
     if(e.key==='Escape'){if(selectedId!=null){e.preventDefault();select(null);}return;}
     if(e.key==='Delete'||e.key==='Backspace'){if(selected()){e.preventDefault();removeSelected();}return;}
-    const step=e.shiftKey?10:1;
+    const rawStep=typeof o.nudgeStep==='function'?Number(o.nudgeStep()):Number(o.nudgeStep||1);
+    const baseStep=Number.isFinite(rawStep)&&rawStep>0?rawStep:1;
+    const step=e.shiftKey?baseStep*5:baseStep;
     if(e.key==='ArrowLeft'){e.preventDefault();nudge(-step,0);}
     else if(e.key==='ArrowRight'){e.preventDefault();nudge(step,0);}
     else if(e.key==='ArrowUp'){e.preventDefault();nudge(0,-step);}
