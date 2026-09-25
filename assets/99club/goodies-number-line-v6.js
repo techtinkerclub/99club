@@ -70,10 +70,12 @@ function lineValueText(line,value){
   if(line?.valueFormat==='percent')return fmt(cleanNumber(value*100))+'%';
   return fmt(value);
 }
-function snap(v,state){
-  const raw=state.min+Math.round((v-state.min)/state.step)*state.step;
-  return cleanNumber(clamp(raw,state.min,state.max));
+function snapToScale(v,scale){
+  const min=num(scale?.min,0),max=Math.max(min+0.0001,num(scale?.max,min+1)),step=Math.max(0.0001,Math.min(max-min,num(scale?.step,1)));
+  const raw=min+Math.round((v-min)/step)*step;
+  return cleanNumber(clamp(raw,min,max));
 }
+function snap(v,state){return snapToScale(v,state)}
 function nextId(prefix,items){
   let i=1;const used=new Set(items.map(x=>x.id));
   while(used.has(prefix+i))i++;
@@ -100,10 +102,20 @@ function decodeState(raw){
 }
 function normaliseLine(raw,state,index){
   const src=raw&&typeof raw==='object'?raw:{};
+  const scaleMode=index>0&&src.scaleMode==='own'?'own':'shared';
+  const ownMin=num(src.min,state.min),ownMaxRaw=num(src.max,state.max),ownMax=ownMaxRaw>ownMin?ownMaxRaw:ownMin+Math.max(num(src.step,state.step),1);
+  const ownRange=ownMax-ownMin,ownStep=Math.max(0.0001,Math.min(ownRange,num(src.step,state.step)));
+  const ownScale={min:ownMin,max:ownMax,step:ownStep};
+  const markerScale=scaleMode==='own'?ownScale:state;
   const line={
     id:String(src.id||('l'+(index+1))).replace(/[^a-zA-Z0-9_-]/g,'').slice(0,20)||('l'+(index+1)),
     label:String(src.label||'').slice(0,30),
     showLabels:src.showLabels!==false,
+    scaleMode,
+    min:cleanNumber(ownMin),
+    max:cleanNumber(ownMax),
+    step:cleanNumber(ownStep),
+    labelEvery:clamp(Math.round(num(src.labelEvery,state.labelEvery)),1,50),
     valueFormat:['number','fraction','percent'].includes(src.valueFormat)?src.valueFormat:'number',
     denominator:clamp(Math.round(num(src.denominator,4)),2,24),
     tickStride:clamp(Math.round(num(src.tickStride,1)),1,24),
@@ -113,7 +125,7 @@ function normaliseLine(raw,state,index){
       {
         id:String(m.id||('m'+(i+1))).replace(/[^a-zA-Z0-9_-]/g,'').slice(0,20)||('m'+(i+1)),
         label:String(m.label||String.fromCharCode(65+i)).slice(0,12),
-        value:snap(num(m.value,state.min),state),
+        value:snapToScale(num(m.value,markerScale.min),markerScale),
         color:/^#[0-9a-f]{6}$/i.test(m.color||'')?m.color:COLOURS[i%COLOURS.length],
         showValue:m.showValue!==false,
         side:m.side==='below'?'below':'above',
@@ -207,15 +219,27 @@ function numberLineV2(){
   const controls=q('#nl-controls'),stage=q('#gd-stage');
 
   function activeLine(){return state.lines.find(l=>l.id===state.activeLineId)||state.lines[0]}
-  function setMarkerValue(marker,value){
+  function scaleFor(line){
+    return line?.scaleMode==='own'
+      ?{min:line.min,max:line.max,step:line.step,labelEvery:line.labelEvery}
+      :{min:state.min,max:state.max,step:state.step,labelEvery:state.labelEvery};
+  }
+  function labelsVisible(line,index=state.lines.indexOf(line)){
+    return line.showLabels&&(index===0?state.showTickLabels:true);
+  }
+  function snapOnLine(value,line){return snapToScale(value,scaleFor(line))}
+  function setMarkerValue(marker,value,lineHint=null){
     if(!marker)return;
+    const line=lineHint||state.lines.find(l=>l.markers.includes(marker))||activeLine(),scale=scaleFor(line);
     const customStep=Number(marker.snapStep);
-    const next=customStep>0
-      ?cleanNumber(clamp(state.min+Math.round((value-state.min)/customStep)*customStep,state.min,state.max))
-      :snap(value,state);
+    const next=customStep>0&&line.scaleMode!=='own'
+      ?cleanNumber(clamp(scale.min+Math.round((value-scale.min)/customStep)*customStep,scale.min,scale.max))
+      :snapToScale(value,scale);
     marker.value=next;
-    if(marker.syncGroup){
-      state.lines.forEach(line=>line.markers.forEach(other=>{if(other!==marker&&other.syncGroup===marker.syncGroup)other.value=next}));
+    if(marker.syncGroup&&line.scaleMode!=='own'){
+      state.lines.forEach(otherLine=>otherLine.markers.forEach(other=>{
+        if(other!==marker&&other.syncGroup===marker.syncGroup&&otherLine.scaleMode!=='own')other.value=cleanNumber(clamp(next,scaleFor(otherLine).min,scaleFor(otherLine).max));
+      }));
     }
   }
   function boardActive(){return document.fullscreenElement===stage||boardFallback}
@@ -327,7 +351,17 @@ function numberLineV2(){
     const range=state.max-state.min;
     state.step=Math.max(.0001,Math.min(range,num(q('#nl-step')?.value,state.step)));
     state.labelEvery=clamp(Math.round(num(q('#nl-label-every')?.value,state.labelEvery)),1,50);
-    state.lines.forEach(line=>line.markers.forEach(m=>m.value=snap(m.value,state)));
+    state.lines.filter(line=>line.scaleMode!=='own').forEach(line=>line.markers.forEach(m=>m.value=snapOnLine(m,line)));
+    updateChallengeAnswer();
+  }
+  function applyOwnScaleFromControls(line){
+    if(!line||line.scaleMode!=='own')return;
+    const min=num(q('#nl-line-min')?.value,line.min),max=num(q('#nl-line-max')?.value,line.max);
+    line.min=min;line.max=max<=min?min+Math.max(line.step,1):max;
+    const range=line.max-line.min;
+    line.step=Math.max(.0001,Math.min(range,num(q('#nl-line-step')?.value,line.step)));
+    line.labelEvery=clamp(Math.round(num(q('#nl-line-label-every')?.value,line.labelEvery)),1,50);
+    line.markers.forEach(m=>m.value=snapOnLine(m,line));
     updateChallengeAnswer();
   }
   function challengeTemplateList(){
@@ -386,14 +420,14 @@ function numberLineV2(){
   }
 
   function controlsHtml(){
-    const line=activeLine();
+    const line=activeLine(),lineIndex=state.lines.indexOf(line),activeScale=scaleFor(line),lineHasLinkedMarkers=line.markers.some(m=>m.syncGroup);
     const lineOptions=state.lines.map((l,i)=>'<option value="'+esc(l.id)+'"'+(l.id===state.activeLineId?' selected':'')+'>Line '+(i+1)+(l.label?' · '+esc(l.label):'')+'</option>').join('');
     const markerRows=line.markers.map(m=>`
       <div class="nl-marker-card" data-marker-row="${esc(m.id)}">
         <div class="nl-object-card-main">
           <input class="nl-colour" type="color" value="${esc(m.color)}" data-marker-color="${esc(m.id)}" aria-label="Marker colour">
           <label class="gd-field nl-compact-field nl-marker-label-field"><span>Label</span><input class="gd-input nl-marker-label" value="${esc(m.label)}" maxlength="12" data-marker-label="${esc(m.id)}"></label>
-          <label class="gd-field nl-compact-field nl-marker-value-field"><span>Value</span><input class="gd-input nl-marker-value" type="number" step="${state.step}" min="${state.min}" max="${state.max}" value="${fmt(m.value)}" data-marker-value="${esc(m.id)}"></label>
+          <label class="gd-field nl-compact-field nl-marker-value-field"><span>Value</span><input class="gd-input nl-marker-value" type="number" step="${activeScale.step}" min="${activeScale.min}" max="${activeScale.max}" value="${fmt(m.value)}" data-marker-value="${esc(m.id)}"></label>
           <button class="nl-icon-btn" type="button" data-marker-delete="${esc(m.id)}" aria-label="Delete marker">×</button>
         </div>
         <div class="nl-object-card-options">
@@ -442,7 +476,23 @@ function numberLineV2(){
         <div class="nl-panel-title nl-panel-title--compact"><div><strong>Lines</strong><span>${state.lines.length} of 4</span></div></div>
         <label class="gd-field"><span>Editing</span><select class="gd-select" id="nl-active-line">${lineOptions}</select></label>
         <label class="gd-field"><span>Line label (optional)</span><input class="gd-input" id="nl-line-label" maxlength="30" value="${esc(line.label)}" placeholder="e.g. Fractions"></label>
-        <label class="nl-check"><input id="nl-line-labels" type="checkbox"${line.showLabels?' checked':''}> Show number labels on this line</label>
+        ${lineIndex>0?`<div class="nl-scale-mode" role="group" aria-label="Scale for this line">
+          <button type="button" class="${line.scaleMode!=='own'?'is-active':''}" data-nl-scale-mode="shared">Align to main scale</button>
+          <button type="button" class="${line.scaleMode==='own'?'is-active':''}" data-nl-scale-mode="own"${lineHasLinkedMarkers?' disabled title="Linked challenge lines stay aligned."':''}>Own scale</button>
+        </div>`:'<p class="gd-help nl-main-scale-note">This is the main scale. Extra lines can either align to it or use their own scale.</p>'}
+        ${line.scaleMode==='own'?`<div class="nl-own-scale">
+          <div class="nl-two">
+            <label class="gd-field"><span>Line minimum</span><input class="gd-input" id="nl-line-min" type="number" value="${fmt(line.min)}"></label>
+            <label class="gd-field"><span>Line maximum</span><input class="gd-input" id="nl-line-max" type="number" value="${fmt(line.max)}"></label>
+          </div>
+          <div class="nl-two">
+            <label class="gd-field"><span>Tick step</span><input class="gd-input" id="nl-line-step" type="number" min="0.0001" step="any" value="${fmt(line.step)}"></label>
+            <label class="gd-field"><span>Label every</span><input class="gd-input" id="nl-line-label-every" type="number" min="1" max="50" value="${line.labelEvery}"></label>
+          </div>
+        </div>`:''}
+        ${lineIndex>0?`<label class="nl-check"><input id="nl-line-labels" type="checkbox"${line.showLabels?' checked':''}> Show number labels on this line</label>`:''}
+        ${lineIndex>0&&line.scaleMode==='shared'?'<p class="gd-help">Aligned lines use the same physical scale, so equal values sit directly above one another.</p>':''}
+        ${lineIndex>0&&line.scaleMode==='own'?'<p class="gd-help">Own scale uses the full line width independently. Positions no longer align numerically with the main line.</p>':''}
         <div class="gd-row"><button class="gd-btn" id="nl-add-line" type="button"${state.lines.length>=4?' disabled':''}>+ Add line</button>${state.lines.length>1?'<button class="gd-btn gd-btn--danger" id="nl-delete-line" type="button">Remove line</button>':''}</div>
         <div class="nl-section-rule"></div>
         <button class="gd-btn gd-btn--danger nl-reset-compact" id="nl-reset" type="button">Reset number line</button>
@@ -498,15 +548,19 @@ function numberLineV2(){
   function renderControls(){controls.innerHTML=controlsHtml()}
 
   const X0=110,X1=940;
-  function px(value){return X0+(value-state.min)/(state.max-state.min)*(X1-X0)}
-  function valueFromClientX(clientX){
-    const svg=q('#nl-svg');if(!svg)return state.min;
-    const r=svg.getBoundingClientRect(),svgX=(clientX-r.left)/r.width*1000;
-    const raw=state.min+(clamp(svgX,X0,X1)-X0)/(X1-X0)*(state.max-state.min);
-    return snap(raw,state);
+  function px(value,line=state.lines[0]){
+    const scale=scaleFor(line),range=scale.max-scale.min;
+    return X0+(value-scale.min)/range*(X1-X0);
   }
-  function hiddenTick(v){
-    return !!(state.challenge&&!state.challenge.revealed&&state.challenge.hiddenTicks.some(x=>Math.abs(x-v)<state.step/1000));
+  function valueFromClientX(clientX,line=activeLine()){
+    const svg=q('#nl-svg'),scale=scaleFor(line);if(!svg)return scale.min;
+    const r=svg.getBoundingClientRect(),svgX=(clientX-r.left)/r.width*1000;
+    const raw=scale.min+(clamp(svgX,X0,X1)-X0)/(X1-X0)*(scale.max-scale.min);
+    return snapToScale(raw,scale);
+  }
+  function hiddenTick(v,line){
+    const scale=scaleFor(line);
+    return !!(state.challenge&&!state.challenge.revealed&&state.challenge.hiddenTicks.some(x=>Math.abs(x-v)<scale.step/1000));
   }
   function answerBox(cx,cy,w=54,h=24){
     return `<rect class="nl-answer-box" x="${cx-w/2}" y="${cy-h/2}" width="${w}" height="${h}" rx="5" fill="#fff" stroke="#52666d" stroke-width="1.8" stroke-dasharray="5 3"/>`;
@@ -521,13 +575,13 @@ function numberLineV2(){
     const items=[];
     line.relations.filter(r=>r.type!=='interval'&&r.side===side).forEach(r=>{
       const d=relationDisplay(line,r);if(!d)return;
-      const left=Math.min(px(d.a.value),px(d.b.value)),right=Math.max(px(d.a.value),px(d.b.value));
+      const left=Math.min(px(d.a.value,line),px(d.b.value,line)),right=Math.max(px(d.a.value,line),px(d.b.value,line));
       items.push({id:r.id,left,right});
     });
     if(line.showConsecutiveDifferences&&line.consecutiveSide===side){
       const sorted=[...line.markers].sort((a,b)=>a.value-b.value);
       sorted.slice(0,-1).forEach((m,i)=>{
-        const n=sorted[i+1],left=Math.min(px(m.value),px(n.value)),right=Math.max(px(m.value),px(n.value));
+        const n=sorted[i+1],left=Math.min(px(m.value,line),px(n.value,line)),right=Math.max(px(m.value,line),px(n.value,line));
         items.push({id:'auto-'+i,left,right});
       });
     }
@@ -547,7 +601,7 @@ function numberLineV2(){
       const hasAboveMarker=line.markers.some(m=>m.side==='above');
       const hasBelowMarker=line.markers.some(m=>m.side==='below');
       const aboveExtent=Math.max(hasAboveMarker?82:24,above.count?136+(above.count-1)*30:24);
-      const belowLabel=state.showTickLabels&&line.showLabels?42:18;
+      const belowLabel=labelsVisible(line,index)?42:18;
       const belowExtent=Math.max(belowLabel,hasBelowMarker?belowLabel+70:belowLabel,below.count?belowLabel+112+(below.count-1)*30:belowLabel);
       const baseY=cursor+aboveExtent;
       layouts.push({line,index,baseY,above,below,aboveExtent,belowExtent});
@@ -556,46 +610,50 @@ function numberLineV2(){
     return {lines:layouts,height:Math.max(250,cursor+18)};
   }
   function markerCentre(layout,m){
-    const labelBand=state.showTickLabels&&layout.line.showLabels?42:18;
+    const labelBand=labelsVisible(layout.line,layout.index)?42:18;
     return m.side==='above'?layout.baseY-48:layout.baseY+labelBand+38;
   }
   function markerStem(layout,m){
-    const x=px(m.value),cy=markerCentre(layout,m),base=layout.baseY;
+    const line=layout.line,x=px(m.value,line),cy=markerCentre(layout,m),base=layout.baseY;
     if(m.side==='above')return `<line x1="${x}" y1="${base-3}" x2="${x}" y2="${cy+17}" stroke="${esc(m.color)}" stroke-width="2.5"/>`;
-    if(!(state.showTickLabels&&layout.line.showLabels))return `<line x1="${x}" y1="${base+3}" x2="${x}" y2="${cy-17}" stroke="${esc(m.color)}" stroke-width="2.5"/>`;
+    if(!labelsVisible(line,layout.index))return `<line x1="${x}" y1="${base+3}" x2="${x}" y2="${cy-17}" stroke="${esc(m.color)}" stroke-width="2.5"/>`;
     const labelTop=base+20,labelBottom=base+43;
     return `<line x1="${x}" y1="${base+3}" x2="${x}" y2="${labelTop-4}" stroke="${esc(m.color)}" stroke-width="2.5"/><line x1="${x}" y1="${labelBottom+4}" x2="${x}" y2="${cy-17}" stroke="${esc(m.color)}" stroke-width="2.5"/>`;
   }
+  function shortLineLabel(label){
+    const text=String(label||'');return text.length>14?text.slice(0,13)+'…':text;
+  }
   function buildLine(layout){
-    const {line,baseY,above,below,index}=layout;
-    const range=state.max-state.min,rawCount=Math.floor(range/state.step+1e-8),safetyStride=Math.max(1,Math.ceil(rawCount/160)),renderStep=state.step*safetyStride*line.tickStride,tickCount=Math.floor(range/renderStep+1e-8);
-    const pxPerTick=(X1-X0)/Math.max(1,tickCount),majorSpacing=pxPerTick*Math.max(1,state.labelEvery),labelSkip=Math.max(1,Math.ceil(54/majorSpacing));
+    const {line,baseY,above,below,index}=layout,scale=scaleFor(line),showLabels=labelsVisible(line,index);
+    const range=scale.max-scale.min,rawCount=Math.floor(range/scale.step+1e-8),safetyStride=Math.max(1,Math.ceil(rawCount/160)),renderStep=scale.step*safetyStride*line.tickStride,tickCount=Math.floor(range/renderStep+1e-8);
+    const pxPerTick=(X1-X0)/Math.max(1,tickCount),majorSpacing=pxPerTick*Math.max(1,scale.labelEvery),labelSkip=Math.max(1,Math.ceil(54/majorSpacing));
     let intervalLayer='',ticks='',relationshipLayer='',markerLayer='';
     line.relations.filter(r=>r.type==='interval').forEach(r=>{
       const d=relationDisplay(line,r);if(!d)return;
-      const x1=px(d.a.value),x2=px(d.b.value),left=Math.min(x1,x2),w=Math.abs(x2-x1),y=r.side==='above'?baseY-16:baseY;
+      const x1=px(d.a.value,line),x2=px(d.b.value,line),left=Math.min(x1,x2),w=Math.abs(x2-x1),y=r.side==='above'?baseY-16:baseY;
       intervalLayer+=`<rect x="${left}" y="${y}" width="${w}" height="16" rx="6" fill="${esc(r.color)}" opacity=".18"/>`;
-      if(d.show&&d.label){const ty=r.side==='above'?baseY-22:(state.showTickLabels&&line.showLabels?baseY+58:baseY+30);intervalLayer+=`<text x="${(x1+x2)/2}" y="${ty}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="${esc(r.color)}">${esc(d.label)}</text>`}
+      if(d.show&&d.label){const ty=r.side==='above'?baseY-22:(showLabels?baseY+58:baseY+30);intervalLayer+=`<text x="${(x1+x2)/2}" y="${ty}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="${esc(r.color)}">${esc(d.label)}</text>`}
     });
     for(let i=0;i<=tickCount;i++){
-      const v=cleanNumber(state.min+i*renderStep),x=px(v),major=(i%state.labelEvery===0)||i===0||i===tickCount;
+      const v=cleanNumber(scale.min+i*renderStep),x=px(v,line),major=(i%scale.labelEvery===0)||i===0||i===tickCount;
       ticks+=`<line x1="${x}" y1="${baseY-(major?13:8)}" x2="${x}" y2="${baseY+(major?13:8)}" stroke="#33474e" stroke-width="${major?2:1}"/>`;
-      if(state.showTickLabels&&line.showLabels&&major){
-        const hidden=hiddenTick(v),majorIndex=Math.round(i/Math.max(1,state.labelEvery));
+      if(showLabels&&major){
+        const hidden=hiddenTick(v,line),majorIndex=Math.round(i/Math.max(1,scale.labelEvery));
         const showLabel=hidden||i===0||i===tickCount||majorIndex%labelSkip===0;
         if(hidden)ticks+=answerBox(x,baseY+30,50,24);
         else if(showLabel)ticks+=`<text x="${x}" y="${baseY+35}" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" fill="#33474e">${esc(lineValueText(line,v))}</text>`;
       }
     }
     const baseline=`<line class="nl-baseline" data-line-id="${esc(line.id)}" x1="${X0}" y1="${baseY}" x2="${X1}" y2="${baseY}" stroke="#24343b" stroke-width="4" stroke-linecap="round"/><rect data-line-hit="${esc(line.id)}" x="${X0}" y="${baseY-16}" width="${X1-X0}" height="32" fill="transparent" style="cursor:crosshair"/>`;
-    const lineLabel=line.label?`<text x="26" y="${baseY+5}" font-family="Arial,sans-serif" font-size="15" font-weight="700" fill="#52666d">${esc(line.label)}</text>`:'';
+    const scaleBadge=line.scaleMode==='own'?'<tspan font-size="10" font-weight="700" fill="#7a8a8f"> · own scale</tspan>':'';
+    const lineLabel=line.label?`<text x="26" y="${baseY+5}" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#52666d">${esc(shortLineLabel(line.label))}${scaleBadge}</text>`:'';
 
     line.relations.filter(r=>r.type!=='interval').forEach(r=>{
       const d=relationDisplay(line,r);if(!d)return;
-      const x1=px(d.a.value),x2=px(d.b.value),left=Math.min(x1,x2),right=Math.max(x1,x2),mid=(x1+x2)/2;
+      const x1=px(d.a.value,line),x2=px(d.b.value,line),left=Math.min(x1,x2),right=Math.max(x1,x2),mid=(x1+x2)/2;
       const lane=(r.side==='above'?above.map[r.id]:below.map[r.id])||0;
       if(r.type==='difference'){
-        const y=r.side==='above'?baseY-112-lane*30:baseY+(state.showTickLabels&&line.showLabels?112:88)+lane*30;
+        const y=r.side==='above'?baseY-112-lane*30:baseY+(showLabels?112:88)+lane*30;
         const drop=r.side==='above'?9:-9;
         relationshipLayer+=`<path d="M${left} ${y+drop} V${y} H${right} V${y+drop}" fill="none" stroke="${esc(r.color)}" stroke-width="2.4" stroke-linecap="round"/>`;
         if(d.show&&(d.label||d.hidden)){const labelCy=r.side==='above'?y-25:y+25;if(d.hidden)relationshipLayer+=answerBox(mid,labelCy,58,24);else relationshipLayer+=`<rect x="${mid-31}" y="${labelCy-12}" width="62" height="22" rx="10" fill="#fff"/><text x="${mid}" y="${labelCy+4}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="${esc(r.color)}">${esc(d.label)}</text>`}
@@ -611,13 +669,13 @@ function numberLineV2(){
     if(line.showConsecutiveDifferences&&line.markers.length>1){
       const sorted=[...line.markers].sort((a,b)=>a.value-b.value);
       sorted.slice(0,-1).forEach((m,i)=>{
-        const n=sorted[i+1],x1=px(m.value),x2=px(n.value),mid=(x1+x2)/2,side=line.consecutiveSide||'above',lane=(side==='above'?above.map['auto-'+i]:below.map['auto-'+i])||0,y=side==='above'?baseY-112-lane*30:baseY+(state.showTickLabels&&line.showLabels?112:88)+lane*30,drop=side==='above'?9:-9,labelCy=side==='above'?y-23:y+23;
+        const n=sorted[i+1],x1=px(m.value,line),x2=px(n.value,line),mid=(x1+x2)/2,side=line.consecutiveSide||'above',lane=(side==='above'?above.map['auto-'+i]:below.map['auto-'+i])||0,y=side==='above'?baseY-112-lane*30:baseY+(showLabels?112:88)+lane*30,drop=side==='above'?9:-9,labelCy=side==='above'?y-23:y+23;
         relationshipLayer+=`<path d="M${x1} ${y+drop} V${y} H${x2} V${y+drop}" fill="none" stroke="#71858b" stroke-width="1.8"/><rect x="${mid-25}" y="${labelCy-11}" width="50" height="20" rx="10" fill="#fff"/><text x="${mid}" y="${labelCy+4}" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="700" fill="#52666d">${esc(fmt(Math.abs(n.value-m.value)))}</text>`;
       });
     }
 
     line.markers.forEach((m,i)=>{
-      const x=px(m.value),cy=markerCentre(layout,m),hidden=state.challenge&&!state.challenge.revealed&&state.challenge.hiddenMarkerIds.includes(m.id),showValue=m.showValue&&!hidden;
+      const x=px(m.value,line),cy=markerCentre(layout,m),hidden=state.challenge&&!state.challenge.revealed&&state.challenge.hiddenMarkerIds.includes(m.id),showValue=m.showValue&&!hidden;
       const valueY=m.side==='above'?cy-28:cy+34;
       markerLayer+=`<g class="nl-svg-marker" data-line-id="${esc(line.id)}" data-marker-hit="${esc(m.id)}" style="cursor:ew-resize;touch-action:none">${markerStem(layout,m)}<circle cx="${x}" cy="${cy}" r="16" fill="${esc(m.color)}" stroke="#fff" stroke-width="3"/><circle cx="${x}" cy="${cy}" r="22" fill="transparent"/><text x="${x}" y="${cy+5}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="800" fill="${contrast(m.color)}" pointer-events="none">${esc(m.label||String(i+1))}</text>${showValue?`<text x="${x}" y="${valueY}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#33474e" pointer-events="none">${esc(lineValueText(line,m.value))}</text>`:(hidden?answerBox(x,valueY-5,72,24):'')}</g>`;
     });
@@ -627,14 +685,14 @@ function numberLineV2(){
   function buildSvg(){
     const plan=layout();
     const title=state.title?`<text x="500" y="30" text-anchor="middle" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#24343b">${esc(state.title)}</text>`:'';
-    return `<svg id="nl-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 ${plan.height}" role="img" aria-label="Interactive number line from ${esc(fmt(state.min))} to ${esc(fmt(state.max))}"><defs>${state.lines.map(line=>line.relations.filter(r=>r.type==='jump').map(r=>`<marker id="nl-arrow-${esc(line.id)}-${esc(r.id)}" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,4 L0,8 z" fill="${esc(r.color)}"/></marker>`).join('')).join('')}</defs><rect x="0" y="0" width="1000" height="${plan.height}" rx="18" fill="#ffffff"/>${title}${plan.lines.map(buildLine).join('')}<text x="500" y="${plan.height-6}" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#87969a">99 Club Studio</text></svg>`;
+    return `<svg id="nl-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 ${plan.height}" role="img" aria-label="Interactive number line workspace with ${state.lines.length} line${state.lines.length===1?'':'s'}"><defs>${state.lines.map(line=>line.relations.filter(r=>r.type==='jump').map(r=>`<marker id="nl-arrow-${esc(line.id)}-${esc(r.id)}" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,4 L0,8 z" fill="${esc(r.color)}"/></marker>`).join('')).join('')}</defs><rect x="0" y="0" width="1000" height="${plan.height}" rx="18" fill="#ffffff"/>${title}${plan.lines.map(buildLine).join('')}<text x="500" y="${plan.height-6}" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#87969a">99 Club Studio</text></svg>`;
   }
   function boardMarkerRows(){
-    const line=activeLine();
+    const line=activeLine(),scale=scaleFor(line);
     return line.markers.map(m=>`<div class="nl-board-item">
       <input class="nl-board-colour" type="color" value="${esc(m.color)}" data-board-marker-color="${esc(m.id)}" aria-label="Marker colour">
       <input class="nl-board-label" value="${esc(m.label)}" maxlength="12" data-board-marker-label="${esc(m.id)}" aria-label="Marker label">
-      <input class="nl-board-value" type="number" step="${state.step}" min="${state.min}" max="${state.max}" value="${fmt(m.value)}" data-board-marker-value="${esc(m.id)}" aria-label="Marker value">
+      <input class="nl-board-value" type="number" step="${scale.step}" min="${scale.min}" max="${scale.max}" value="${fmt(m.value)}" data-board-marker-value="${esc(m.id)}" aria-label="Marker value">
       <button class="nl-board-mini" type="button" data-board-marker-show="${esc(m.id)}" aria-label="Show or hide marker value">${m.showValue?'◉':'○'}</button>
       <button class="nl-board-mini" type="button" data-board-marker-side="${esc(m.id)}">${m.side==='above'?'↑':'↓'}</button>
       <button class="nl-board-mini nl-board-delete" type="button" data-board-marker-delete="${esc(m.id)}" aria-label="Delete marker">×</button>
@@ -710,7 +768,7 @@ function numberLineV2(){
       const lineId=el.getAttribute('data-line-hit');
       if(boardMode==='add-marker'){
         state.activeLineId=lineId;
-        addMarker(valueFromClientX(e.clientX),lineId);
+        addMarker(valueFromClientX(e.clientX,state.lines.find(l=>l.id===lineId)),lineId);
         boardMode=null;boardMenuOpen=false;
         boardMessage('Marker added. Drag it to fine-tune the position.');
         return;
@@ -760,7 +818,7 @@ function numberLineV2(){
   function moveDrag(e){
     if(!drag)return;
     const line=state.lines.find(l=>l.id===drag.lineId),m=line?.markers.find(x=>x.id===drag.id);if(!m)return;
-    setMarkerValue(m,valueFromClientX(e.clientX));
+    setMarkerValue(m,valueFromClientX(e.clientX,line),line);
     updateChallengeAnswer();
     const input=controls.querySelector('[data-marker-value="'+CSS.escape(m.id)+'"]');if(input&&line.id===state.activeLineId)input.value=fmt(m.value);
     renderStage();
@@ -769,10 +827,10 @@ function numberLineV2(){
   window.addEventListener('pointermove',moveDrag);window.addEventListener('pointerup',endDrag);window.addEventListener('pointercancel',endDrag);
 
   function addMarker(value,lineId=state.activeLineId){
-    const line=state.lines.find(l=>l.id===lineId)||activeLine(),id=nextId('m',line.markers),index=line.markers.length;
+    const line=state.lines.find(l=>l.id===lineId)||activeLine(),scale=scaleFor(line),id=nextId('m',line.markers),index=line.markers.length;
     remember();
     state.activeLineId=line.id;
-    line.markers.push({id,label:String.fromCharCode(65+(index%26)),value:snap(value==null?(state.min+state.max)/2:value,state),color:COLOURS[index%COLOURS.length],showValue:true,side:'above'});
+    line.markers.push({id,label:String.fromCharCode(65+(index%26)),value:snapOnLine(value==null?(scale.min+scale.max)/2:value,line),color:COLOURS[index%COLOURS.length],showValue:true,side:'above'});
     renderAll();
   }
   function addRelation(){
@@ -784,7 +842,7 @@ function numberLineV2(){
     if(state.lines.length>=4)return;
     remember();
     const id=nextId('l',state.lines),index=state.lines.length;
-    state.lines.push({id,label:'Line '+(index+1),showLabels:index===0,valueFormat:'number',denominator:4,tickStride:1,showConsecutiveDifferences:false,consecutiveSide:'above',markers:[],relations:[]});state.activeLineId=id;renderAll();
+    state.lines.push({id,label:'Line '+(index+1),showLabels:false,scaleMode:'shared',min:state.min,max:state.max,step:state.step,labelEvery:state.labelEvery,valueFormat:'number',denominator:4,tickStride:1,showConsecutiveDifferences:false,consecutiveSide:'above',markers:[],relations:[]});state.activeLineId=id;controlTab='setup';renderAll();
   }
   function randomTick(){
     const count=Math.max(1,Math.floor((state.max-state.min)/state.step+1e-8));
@@ -1012,7 +1070,7 @@ function numberLineV2(){
     if(name==='0-100'){state.min=0;state.max=100;state.step=10;state.labelEvery=1}
     if(name==='negative'){state.min=-10;state.max=10;state.step=1;state.labelEvery=1}
     if(name==='decimal'){state.min=0;state.max=1;state.step=.1;state.labelEvery=1}
-    state.lines.forEach(line=>line.markers.forEach(m=>m.value=snap(m.value,state)));renderAll();
+    state.lines.filter(line=>line.scaleMode!=='own').forEach(line=>line.markers.forEach(m=>m.value=snapOnLine(m.value,line)));renderAll();
   }
   function exportName(){
     const ch=state.challenge;
@@ -1059,6 +1117,7 @@ function numberLineV2(){
   controls.addEventListener('input',e=>{
     const t=e.target,line=activeLine();
     if(['nl-min','nl-max','nl-step','nl-label-every'].includes(t.id)){applyRangeFromControls();renderStage();return}
+    if(['nl-line-min','nl-line-max','nl-line-step','nl-line-label-every'].includes(t.id)){applyOwnScaleFromControls(line);renderStage();return}
     if(t.id==='nl-title'){state.title=t.value.slice(0,90);renderStage();return}
     if(t.id==='nl-custom-title'&&state.challenge){state.challenge.title=t.value.slice(0,100);renderStage();return}
     if(t.id==='nl-custom-answer'&&state.challenge){state.challenge.answer=t.value.slice(0,400);state.challenge.answerMode='manual';state.challenge.revealed=false;renderStage();return}
@@ -1069,7 +1128,7 @@ function numberLineV2(){
     if(t.id==='nl-consecutive'){line.showConsecutiveDifferences=t.checked;renderStage();return}
     if(t.id==='nl-consecutive-side'){line.consecutiveSide=t.value==='below'?'below':'above';renderStage();return}
     let id=t.dataset.markerLabel;if(id){const m=line.markers.find(x=>x.id===id);if(m){m.label=t.value.slice(0,12);renderStage()}return}
-    id=t.dataset.markerValue;if(id){const m=line.markers.find(x=>x.id===id);if(m){setMarkerValue(m,num(t.value,m.value));updateChallengeAnswer();renderStage()}return}
+    id=t.dataset.markerValue;if(id){const m=line.markers.find(x=>x.id===id);if(m){setMarkerValue(m,num(t.value,m.value),line);updateChallengeAnswer();renderStage()}return}
     id=t.dataset.markerColor;if(id){const m=line.markers.find(x=>x.id===id);if(m){m.color=t.value;renderStage()}return}
     id=t.dataset.markerSide;if(id){const m=line.markers.find(x=>x.id===id);if(m){m.side=t.value==='below'?'below':'above';renderStage()}return}
     id=t.dataset.markerShow;if(id){const m=line.markers.find(x=>x.id===id);if(m){m.showValue=t.checked;renderStage()}return}
@@ -1084,7 +1143,7 @@ function numberLineV2(){
 
   controls.addEventListener('change',e=>{
     const t=e.target;
-    if(['nl-min','nl-max','nl-step','nl-label-every'].includes(t.id)){state=normalise(state);renderAll();return}
+    if(['nl-min','nl-max','nl-step','nl-label-every','nl-line-min','nl-line-max','nl-line-step','nl-line-label-every'].includes(t.id)){state=normalise(state);renderAll();return}
     if(t.id==='nl-active-line'){state.activeLineId=t.value;renderControls();renderStage();return}
     if(t.id==='nl-response-lines'){responseLines=clamp(Math.round(num(t.value,1)),1,4);renderControls();return}
   });
@@ -1095,6 +1154,19 @@ function numberLineV2(){
   controls.addEventListener('click',e=>{
     const b=e.target.closest('button');if(!b)return;const line=activeLine();
     if(b.dataset.nlWorkflow){controlTab=b.dataset.nlWorkflow;renderControls();return}
+    if(b.dataset.nlScaleMode){
+      const idx=state.lines.indexOf(line);if(idx<=0)return;
+      const mode=b.dataset.nlScaleMode==='own'?'own':'shared';
+      if(mode==='own'&&line.markers.some(m=>m.syncGroup)){message('Linked challenge lines stay aligned to the main scale.',true);return}
+      if(line.scaleMode===mode)return;
+      remember();
+      if(mode==='own'){
+        line.scaleMode='own';line.min=state.min;line.max=state.max;line.step=state.step;line.labelEvery=state.labelEvery;line.showLabels=true;
+      }else{
+        line.scaleMode='shared';line.markers.forEach(m=>m.value=snapOnLine(m,line));
+      }
+      renderAll();return;
+    }
     if(b.dataset.nlObjectTab){objectTab=b.dataset.nlObjectTab;renderControls();return}
     if(b.dataset.nlExportMode){exportMode=b.dataset.nlExportMode==='challenge'&&state.challenge?'challenge':'diagram';renderControls();return}
     if(b.dataset.nlChallengeTab){
@@ -1198,7 +1270,7 @@ function numberLineV2(){
     if(t.matches('[data-board-line-select]')){state.activeLineId=t.value;renderAll();return}
     if(t.matches('[data-board-line-label]')){remember();line.label=t.value.slice(0,30);renderAll();return}
     let id=t.dataset.boardMarkerLabel;if(id){remember();const m=line.markers.find(x=>x.id===id);if(m)m.label=t.value.slice(0,12);renderAll();return}
-    id=t.dataset.boardMarkerValue;if(id){remember();const m=line.markers.find(x=>x.id===id);if(m)setMarkerValue(m,num(t.value,m.value));updateChallengeAnswer();renderAll();return}
+    id=t.dataset.boardMarkerValue;if(id){remember();const m=line.markers.find(x=>x.id===id);if(m)setMarkerValue(m,num(t.value,m.value),line);updateChallengeAnswer();renderAll();return}
     id=t.dataset.boardMarkerColor;if(id){remember();const m=line.markers.find(x=>x.id===id);if(m)m.color=t.value;renderAll();return}
     id=t.dataset.boardRelationTypeEdit;if(id){remember();const r=line.relations.find(x=>x.id===id);if(r)r.type=t.value;updateChallengeAnswer();renderAll();return}
     id=t.dataset.boardRelationColor;if(id){remember();const r=line.relations.find(x=>x.id===id);if(r)r.color=t.value;renderAll();return}

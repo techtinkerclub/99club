@@ -156,6 +156,12 @@ requireText(numberLine,"['challenge','Challenge']",'Number Line challenge workfl
 requireText(numberLine,"['export','Export']",'Number Line export workflow');
 requireText(numberLine,'responseLines','Number Line exported answer-space control');
 requireText(numberLine,'labelSkip','Number Line dense-label collision guard');
+requireText(numberLine,"scaleMode=index>0&&src.scaleMode==='own'?'own':'shared'","Number Line independent-scale state");
+requireText(numberLine,'function scaleFor','Number Line per-line scale resolver');
+requireText(numberLine,'function snapOnLine','Number Line per-line snapping');
+requireText(numberLine,'data-nl-scale-mode="own"','Number Line own-scale control');
+requireText(numberLine,'nl-line-min','Number Line own-scale minimum control');
+requireText(css,'.nl-scale-mode','Number Line scale-mode styling');
 requireText(exporter,'function composeChallengeCardSvg','shared challenge card export composer');
 requireText(exporter,"responseLabel='Answer'",'shared exported response box');
 
