@@ -292,4 +292,87 @@ function numberLineV2(){
   function hiddenTick(v){
     return !!(state.challenge&&!state.challenge.revealed&&state.challenge.hiddenTicks.some(x=>Math.abs(x-v)<state.step/1000));
   }
-  function 
+  function relationDisplay(line,r){
+    const a=line.markers.find(m=>m.id===r.from),b=line.markers.find(m=>m.id===r.to);if(!a||!b)return null;
+    const delta=cleanNumber(b.value-a.value),auto=r.type==='jump'?(delta>=0?'+':'')+fmt(delta):r.type==='difference'?fmt(Math.abs(delta)):'';
+    const hidden=state.challenge&&!state.challenge.revealed&&state.challenge.hiddenRelationIds.includes(r.id);
+    return {a,b,label:hidden?'?':(r.label||auto),show:r.showLabel};
+  }
+  function assignLanes(line,side){
+    const items=[];
+    line.relations.filter(r=>r.type!=='interval'&&r.side===side).forEach(r=>{
+      const d=relationDisplay(line,r);if(!d)return;
+      const left=Math.min(px(d.a.value),px(d.b.value)),right=Math.max(px(d.a.value),px(d.b.value));
+      items.push({id:r.id,left,right});
+    });
+    if(line.showConsecutiveDifferences&&line.consecutiveSide===side){
+      const sorted=[...line.markers].sort((a,b)=>a.value-b.value);
+      sorted.slice(0,-1).forEach((m,i)=>{
+        const n=sorted[i+1],left=Math.min(px(m.value),px(n.value)),right=Math.max(px(m.value),px(n.value));
+        items.push({id:'auto-'+i,left,right});
+      });
+    }
+    items.sort((a,b)=>a.left-b.left||a.right-b.right);
+    const ends=[],map={};
+    items.forEach(item=>{
+      let lane=ends.findIndex(end=>item.left-end>34);
+      if(lane<0){lane=ends.length;ends.push(item.right)}else ends[lane]=item.right;
+      map[item.id]=lane;
+    });
+    return {map,count:ends.length};
+  }
+  function layout(){
+    const layouts=[];let cursor=state.title?54:28;
+    state.lines.forEach((line,index)=>{
+      const above=assignLanes(line,'above'),below=assignLanes(line,'below');
+      const hasAboveMarker=line.markers.some(m=>m.side==='above');
+      const hasBelowMarker=line.markers.some(m=>m.side==='below');
+      const aboveExtent=Math.max(hasAboveMarker?82:24,above.count?136+(above.count-1)*30:24);
+      const belowLabel=state.showTickLabels&&line.showLabels?42:18;
+      const belowExtent=Math.max(belowLabel,hasBelowMarker?belowLabel+70:belowLabel,below.count?belowLabel+112+(below.count-1)*30:belowLabel);
+      const baseY=cursor+aboveExtent;
+      layouts.push({line,index,baseY,above,below,aboveExtent,belowExtent});
+      cursor=baseY+belowExtent+26;
+    });
+    return {lines:layouts,height:Math.max(250,cursor+18)};
+  }
+  function markerCentre(layout,m){
+    const labelBand=state.showTickLabels&&layout.line.showLabels?42:18;
+    return m.side==='above'?layout.baseY-48:layout.baseY+labelBand+38;
+  }
+  function markerStem(layout,m){
+    const x=px(m.value),cy=markerCentre(layout,m),base=layout.baseY;
+    if(m.side==='above')return `<line x1="${x}" y1="${base-3}" x2="${x}" y2="${cy+17}" stroke="${esc(m.color)}" stroke-width="2.5"/>`;
+    if(!(state.showTickLabels&&layout.line.showLabels))return `<line x1="${x}" y1="${base+3}" x2="${x}" y2="${cy-17}" stroke="${esc(m.color)}" stroke-width="2.5"/>`;
+    const labelTop=base+20,labelBottom=base+43;
+    return `<line x1="${x}" y1="${base+3}" x2="${x}" y2="${labelTop-4}" stroke="${esc(m.color)}" stroke-width="2.5"/><line x1="${x}" y1="${labelBottom+4}" x2="${x}" y2="${cy-17}" stroke="${esc(m.color)}" stroke-width="2.5"/>`;
+  }
+  function buildLine(layout){
+    const {line,baseY,above,below,index}=layout;
+    const range=state.max-state.min,rawCount=Math.floor(range/state.step+1e-8),stride=Math.max(1,Math.ceil(rawCount/160)),renderStep=state.step*stride,tickCount=Math.floor(range/renderStep+1e-8);
+    let intervalLayer='',ticks='',relationshipLayer='',markerLayer='';
+    line.relations.filter(r=>r.type==='interval').forEach(r=>{
+      const d=relationDisplay(line,r);if(!d)return;
+      const x1=px(d.a.value),x2=px(d.b.value),left=Math.min(x1,x2),w=Math.abs(x2-x1),y=r.side==='above'?baseY-16:baseY;
+      intervalLayer+=`<rect x="${left}" y="${y}" width="${w}" height="16" rx="6" fill="${esc(r.color)}" opacity=".18"/>`;
+      if(d.show&&d.label){const ty=r.side==='above'?baseY-22:(state.showTickLabels&&line.showLabels?baseY+58:baseY+30);intervalLayer+=`<text x="${(x1+x2)/2}" y="${ty}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="${esc(r.color)}">${esc(d.label)}</text>`}
+    });
+    for(let i=0;i<=tickCount;i++){
+      const v=cleanNumber(state.min+i*renderStep),x=px(v),major=(i%state.labelEvery===0)||i===0||i===tickCount;
+      ticks+=`<line x1="${x}" y1="${baseY-(major?13:8)}" x2="${x}" y2="${baseY+(major?13:8)}" stroke="#33474e" stroke-width="${major?2:1}"/>`;
+      if(state.showTickLabels&&line.showLabels&&major&&!hiddenTick(v))ticks+=`<text x="${x}" y="${baseY+35}" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" fill="#33474e">${esc(fmt(v))}</text>`;
+    }
+    const baseline=`<line x1="${X0}" y1="${baseY}" x2="${X1}" y2="${baseY}" stroke="#24343b" stroke-width="4" stroke-linecap="round"/>`;
+    const lineLabel=line.label?`<text x="26" y="${baseY+5}" font-family="Arial,sans-serif" font-size="15" font-weight="700" fill="#52666d">${esc(line.label)}</text>`:'';
+
+    line.relations.filter(r=>r.type!=='interval').forEach(r=>{
+      const d=relationDisplay(line,r);if(!d)return;
+      const x1=px(d.a.value),x2=px(d.b.value),left=Math.min(x1,x2),right=Math.max(x1,x2),mid=(x1+x2)/2;
+      const lane=(r.side==='above'?above.map[r.id]:below.map[r.id])||0;
+      if(r.type==='difference'){
+        const y=r.side==='above'?baseY-112-lane*30:baseY+(state.showTickLabels&&line.showLabels?112:88)+lane*30;
+        const drop=r.side==='above'?9:-9;
+        relationshipLayer+=`<path d="M${left} ${y+drop} V${y} H${right} V${y+drop}" fill="none" stroke="${esc(r.color)}" stroke-width="2.4" stroke-linecap="round"/>`;
+        if(d.show&&d.label){const ty=r.side==='above'?y-8:y+20;relationshipLayer+=`<rect x="${mid-31}" y="${ty-14}" width="62" height="21" rx="10" fill="#fff"/><text x="${mid}" y="${ty+1}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="${esc(r.color)}">${esc(d.label)}</text>`}
+      }else{
+        const y1=m
