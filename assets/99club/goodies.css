@@ -294,3 +294,62 @@ html.nl-board-page-lock,body.nl-board-page-lock{overflow:hidden!important;oversc
   .gd-pv-head button,.gd-pv-workspace .gd-object-ui,.gd-pv-workspace .gd-object-hint{display:none!important}
   .gd-pv-canvas{border:1px solid #ccd7d9;box-shadow:none}
 }
+
+
+/* Goodies Fractions: automated equivalence + direct comparison editing */
+.gd-fractions-workspace{display:grid;gap:16px;width:100%}
+.gd-fr-wall-card,.gd-fr-compare-card{border:1px solid #d6e1e2;border-radius:16px;background:#fff}
+.gd-fr-wall-card{padding:14px}
+.gd-fr-wall-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.gd-fr-wall-heading>div:first-child{display:grid;gap:3px}
+.gd-fr-wall-heading strong{font-size:1rem;color:#334a52}
+.gd-fr-wall-heading span{font-size:.76rem;color:#708187}
+.gd-fr-focus{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.gd-fr-focus>span{font-size:.65rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#718187}
+.gd-fr-focus>strong{padding:5px 8px;border-radius:9px;background:#fff4d7;color:#6e581f;font-size:.85rem}
+.gd-fr-focus button{border:1px solid #b8ceca;border-radius:9px;background:#fff;padding:6px 8px;color:var(--gd-teal-dark);font:inherit;font-size:.72rem;font-weight:850;cursor:pointer}
+.gd-fr-focus button:hover,.gd-fr-focus button:focus-visible{background:var(--gd-mint);outline:none}
+.gd-fraction-wall{display:grid;gap:5px}
+.gd-fr-row{display:grid;grid-template-columns:42px minmax(0,1fr);gap:7px;align-items:center}
+.gd-fr-row-label{font-size:.68rem;font-weight:850;color:#66787e;text-align:right;white-space:nowrap}
+.gd-fr-row-pieces{display:flex;gap:2px;min-width:0}
+.gd-fr-cell{appearance:none;flex:1;min-width:0;min-height:26px;padding:0;border:1px solid #b9ccce;background:#f8fbfb;cursor:pointer;transition:background .12s ease,border-color .12s ease,box-shadow .12s ease}
+.gd-fr-cell:first-child{border-radius:7px 0 0 7px}
+.gd-fr-cell:last-child{border-radius:0 7px 7px 0}
+.gd-fr-cell:hover,.gd-fr-cell:focus-visible{background:#edf7f5;outline:none;box-shadow:inset 0 0 0 2px rgba(20,125,117,.18)}
+.gd-fr-cell.is-equivalent{background:#dcefeb;border-color:#9bcac4}
+.gd-fr-cell.is-on{background:#f6cf79;border-color:#b88d34}
+.gd-fr-cell.is-end{box-shadow:inset -3px 0 0 #7f611f}
+.gd-fr-row.is-focus-row .gd-fr-row-label{color:#72591c}
+.gd-fr-compare-direct{margin-top:0}
+.gd-fr-compare-card{padding:12px;display:grid;gap:9px}
+.gd-fr-card-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.gd-fr-card-head strong{width:30px;height:30px;border-radius:9px;background:var(--gd-mint);display:grid;place-items:center;color:var(--gd-teal-dark)}
+.gd-fr-card-head span{font-weight:900;color:#334a52}
+.gd-fr-direct{display:grid;gap:5px}
+.gd-fr-direct .gd-fr-bar{height:40px}
+.gd-fr-direct .gd-fr-piece{appearance:none;min-width:0;padding:0;background:#fff;border:0;border-right:1px solid #b9c8ca;cursor:pointer}
+.gd-fr-direct .gd-fr-piece:last-child{border-right:0}
+.gd-fr-direct .gd-fr-piece.is-fill{background:#cbe7e2}
+.gd-fr-direct .gd-fr-piece:hover,.gd-fr-direct .gd-fr-piece:focus-visible{outline:none;box-shadow:inset 0 0 0 2px rgba(20,125,117,.22)}
+.gd-fr-compare-card p{margin:0;color:#78888d;font-size:.7rem}
+.gd-fr-equation{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:0}
+.gd-fr-equation strong{width:42px;height:42px;border-radius:12px;background:#f5f8f8;display:grid;place-items:center;font-size:1.55rem;color:var(--gd-teal-dark)}
+@media(max-width:700px){
+  .gd-fr-wall-card{padding:10px}
+  .gd-fr-wall-heading{display:grid;gap:9px}
+  .gd-fr-focus{justify-content:flex-start}
+  .gd-fr-row{grid-template-columns:34px minmax(0,1fr);gap:5px}
+  .gd-fr-row-label{font-size:.62rem}
+  .gd-fr-cell{min-height:24px}
+  .gd-fr-compare-direct{grid-template-columns:1fr}
+}
+@media(max-width:420px){
+  .gd-fr-row{grid-template-columns:30px minmax(0,1fr);gap:4px}
+  .gd-fr-row-pieces{gap:1px}
+  .gd-fr-cell{min-height:22px}
+  .gd-fr-focus button{padding:6px 7px}
+}
+@media print{
+  .gd-fr-focus button,.gd-fr-compare-card p{display:none!important}
+}
