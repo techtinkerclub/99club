@@ -10,6 +10,9 @@ function requireOrder(text,a,b,label){
   const ai=text.indexOf(a),bi=text.indexOf(b);
   if(ai<0||bi<0||ai>=bi)throw new Error(label+' must load '+a+' before '+b);
 }
+function requireMatch(text,pattern,label){
+  if(!pattern.test(text))throw new Error(label+' missing: '+pattern);
+}
 function syntax(path,text){
   try{new Function(text)}
   catch(err){throw new Error(path+' syntax error: '+err.message)}
@@ -30,9 +33,9 @@ syntax('goodies-app.js',app);
 
 requireOrder(page,'goodies-interaction.js','goodies-tools-b.js','Goodies interaction layer');
 requireText(page,'goodies-number-line-v6.js','Number Line v6 remains the active Number Line');
-requireText(page,'goodies-interaction.js?v=2','Place Value interaction cache-bust');
-requireText(page,'goodies-tools-a.js?v=2','Place Value tool cache-bust');
-requireText(page,'goodies.css?v=8','Place Value CSS cache-bust');
+requireMatch(page,/goodies-interaction\.js\?v=\d+/,'Goodies interaction cache-bust');
+requireMatch(page,/goodies-tools-a\.js\?v=\d+/,'Goodies tools A cache-bust');
+requireMatch(page,/goodies\.css\?v=\d+/,'Goodies CSS cache-bust');
 requireText(page,'sitemap: false','Goodies stays out of sitemap');
 requireText(page,'robots: "noindex,nofollow,noarchive"','Goodies stays noindex');
 
@@ -65,6 +68,16 @@ requireText(toolsA,'onDragEnd:item','Place Value drag completion');
 requireText(toolsA,'nudge:(item,dx)','Place Value keyboard place movement');
 requireText(css,'.gd-pv-counter','Place Value counter styling');
 requireText(css,'.gd-pv-column.is-decimal-start','Place Value decimal boundary styling');
+
+requireText(toolsA,'function fractionWall()','Fraction Wall tool');
+requireText(toolsA,'function equivalentNumerator','automatic fraction equivalence');
+requireText(toolsA,'data-fw-wall','direct Fraction Wall selection');
+requireText(toolsA,'data-fw-use','contextual Use as A/B actions');
+requireText(toolsA,'data-fw-set','direct comparison numerator editing');
+requireText(toolsA,'function directBar','improper-fraction comparison bars');
+requireText(css,'.gd-fr-cell.is-equivalent','equivalent fraction highlighting');
+requireText(css,'.gd-fr-focus','contextual fraction actions');
+requireText(css,'.gd-fr-compare-direct','direct fraction comparison styling');
 
 requireText(app,'G.interaction?.clear()','tool switching clears shared interaction listeners');
 requireText(css,'.gd-object-rail','shared contextual rail styling');
