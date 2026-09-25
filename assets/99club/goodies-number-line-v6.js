@@ -196,6 +196,10 @@ function numberLineV2(){
   let challengeTab=state.challenge?.mode==='custom'?'custom':'standard';
   let challengeCategory='read';
   let challengeType=state.challenge?.type&&CHALLENGE_TEMPLATES.some(t=>t.id===state.challenge.type)?state.challenge.type:'identify';
+  let controlTab=state.challenge?'challenge':'setup';
+  let objectTab='markers';
+  let exportMode=state.challenge?'challenge':'diagram';
+  let responseLines=state.challenge&&state.challenge.category==='reason'?3:1;
   const undoStack=[],redoStack=[];
   const openGroups=new Set(['line','lines','markers','export']);
 
@@ -366,117 +370,132 @@ function numberLineV2(){
   function markerOptions(line,selected){
     return line.markers.map(m=>'<option value="'+esc(m.id)+'"'+(m.id===selected?' selected':'')+'>'+esc(m.label||m.id)+' · '+fmt(m.value)+'</option>').join('');
   }
+  function workflowTabsHtml(){
+    const tabs=[
+      ['setup','Setup'],
+      ['objects','Objects'],
+      ['challenge','Challenge'],
+      ['export','Export']
+    ];
+    return `<div class="nl-workflow-head">
+      <div class="nl-workflow-tabs" role="tablist" aria-label="Number line workflow">
+        ${tabs.map(([id,label])=>`<button type="button" class="nl-workflow-tab${controlTab===id?' is-active':''}" data-nl-workflow="${id}" aria-selected="${controlTab===id?'true':'false'}">${label}${id==='challenge'&&state.challenge?' <span class="nl-workflow-dot" aria-label="Challenge active"></span>':''}</button>`).join('')}
+      </div>
+      <button class="gd-btn nl-present-btn" id="nl-fullscreen" type="button">Present</button>
+    </div>`;
+  }
+
   function controlsHtml(){
     const line=activeLine();
     const lineOptions=state.lines.map((l,i)=>'<option value="'+esc(l.id)+'"'+(l.id===state.activeLineId?' selected':'')+'>Line '+(i+1)+(l.label?' · '+esc(l.label):'')+'</option>').join('');
     const markerRows=line.markers.map(m=>`
-      <div class="nl-marker-row" data-marker-row="${esc(m.id)}">
-        <input class="nl-colour" type="color" value="${esc(m.color)}" data-marker-color="${esc(m.id)}" aria-label="Marker colour">
-        <input class="gd-input nl-marker-label" value="${esc(m.label)}" maxlength="12" data-marker-label="${esc(m.id)}" aria-label="Marker label">
-        <input class="gd-input nl-marker-value" type="number" step="${state.step}" min="${state.min}" max="${state.max}" value="${fmt(m.value)}" data-marker-value="${esc(m.id)}" aria-label="Marker value">
-        <select class="gd-select nl-side" data-marker-side="${esc(m.id)}" aria-label="Marker position"><option value="above"${m.side==='above'?' selected':''}>Above</option><option value="below"${m.side==='below'?' selected':''}>Below</option></select>
-        <label class="nl-mini-check"><input type="checkbox" data-marker-show="${esc(m.id)}"${m.showValue?' checked':''}> value</label>
-        <button class="nl-icon-btn" type="button" data-marker-delete="${esc(m.id)}" aria-label="Delete marker">×</button>
+      <div class="nl-marker-card" data-marker-row="${esc(m.id)}">
+        <div class="nl-object-card-main">
+          <input class="nl-colour" type="color" value="${esc(m.color)}" data-marker-color="${esc(m.id)}" aria-label="Marker colour">
+          <label class="gd-field nl-compact-field nl-marker-label-field"><span>Label</span><input class="gd-input nl-marker-label" value="${esc(m.label)}" maxlength="12" data-marker-label="${esc(m.id)}"></label>
+          <label class="gd-field nl-compact-field nl-marker-value-field"><span>Value</span><input class="gd-input nl-marker-value" type="number" step="${state.step}" min="${state.min}" max="${state.max}" value="${fmt(m.value)}" data-marker-value="${esc(m.id)}"></label>
+          <button class="nl-icon-btn" type="button" data-marker-delete="${esc(m.id)}" aria-label="Delete marker">×</button>
+        </div>
+        <div class="nl-object-card-options">
+          <label class="gd-field nl-compact-field"><span>Position</span><select class="gd-select nl-side" data-marker-side="${esc(m.id)}"><option value="above"${m.side==='above'?' selected':''}>Above</option><option value="below"${m.side==='below'?' selected':''}>Below</option></select></label>
+          <label class="nl-check"><input type="checkbox" data-marker-show="${esc(m.id)}"${m.showValue?' checked':''}> Show value</label>
+        </div>
       </div>`).join('');
+
     const relationRows=line.relations.map(r=>`
-      <div class="nl-relation-row" data-relation-row="${esc(r.id)}">
-        <select class="gd-select" data-relation-from="${esc(r.id)}">${markerOptions(line,r.from)}</select>
-        <span>→</span>
-        <select class="gd-select" data-relation-to="${esc(r.id)}">${markerOptions(line,r.to)}</select>
-        <select class="gd-select" data-relation-type="${esc(r.id)}">
-          <option value="difference"${r.type==='difference'?' selected':''}>Difference</option>
-          <option value="jump"${r.type==='jump'?' selected':''}>Jump</option>
-          <option value="interval"${r.type==='interval'?' selected':''}>Shade interval</option>
-        </select>
-        <select class="gd-select nl-side" data-relation-side="${esc(r.id)}" aria-label="Teaching visual position"><option value="above"${r.side==='above'?' selected':''}>Above</option><option value="below"${r.side==='below'?' selected':''}>Below</option></select>
-        <input class="nl-colour" type="color" value="${esc(r.color)}" data-relation-color="${esc(r.id)}" aria-label="Relationship colour">
-        <input class="gd-input" value="${esc(r.label)}" placeholder="auto label" maxlength="24" data-relation-label="${esc(r.id)}" aria-label="Custom relationship label">
-        <label class="nl-mini-check"><input type="checkbox" data-relation-show="${esc(r.id)}"${r.showLabel?' checked':''}> label</label>
-        <button class="nl-icon-btn" type="button" data-relation-delete="${esc(r.id)}" aria-label="Delete relationship">×</button>
+      <div class="nl-relation-card" data-relation-row="${esc(r.id)}">
+        <div class="nl-object-card-main nl-relation-main">
+          <label class="gd-field nl-compact-field nl-rel-from"><span>From</span><select class="gd-select" data-relation-from="${esc(r.id)}">${markerOptions(line,r.from)}</select></label>
+          <span class="nl-relation-arrow" aria-hidden="true">→</span>
+          <label class="gd-field nl-compact-field nl-rel-to"><span>To</span><select class="gd-select" data-relation-to="${esc(r.id)}">${markerOptions(line,r.to)}</select></label>
+          <label class="gd-field nl-compact-field nl-rel-type"><span>Visual</span><select class="gd-select" data-relation-type="${esc(r.id)}"><option value="difference"${r.type==='difference'?' selected':''}>Difference</option><option value="jump"${r.type==='jump'?' selected':''}>Jump</option><option value="interval"${r.type==='interval'?' selected':''}>Shade interval</option></select></label>
+          <button class="nl-icon-btn" type="button" data-relation-delete="${esc(r.id)}" aria-label="Delete relationship">×</button>
+        </div>
+        <div class="nl-object-card-options nl-relation-options">
+          <input class="nl-colour" type="color" value="${esc(r.color)}" data-relation-color="${esc(r.id)}" aria-label="Relationship colour">
+          <label class="gd-field nl-compact-field nl-grow"><span>Label</span><input class="gd-input" value="${esc(r.label)}" placeholder="Automatic" maxlength="24" data-relation-label="${esc(r.id)}"></label>
+          <label class="gd-field nl-compact-field"><span>Position</span><select class="gd-select nl-side" data-relation-side="${esc(r.id)}"><option value="above"${r.side==='above'?' selected':''}>Above</option><option value="below"${r.side==='below'?' selected':''}>Below</option></select></label>
+          <label class="nl-check"><input type="checkbox" data-relation-show="${esc(r.id)}"${r.showLabel?' checked':''}> Show label</label>
+        </div>
       </div>`).join('');
-    const challenge=state.challenge;
-    return `
-      <details class="nl-group" data-nl-group="line"${groupOpen('line')}>
-        <summary>Number line</summary>
-        <div class="nl-group-body">
-          <div class="nl-two">
-            <label class="gd-field"><span>Minimum</span><input class="gd-input" id="nl-min" type="number" value="${fmt(state.min)}"></label>
-            <label class="gd-field"><span>Maximum</span><input class="gd-input" id="nl-max" type="number" value="${fmt(state.max)}"></label>
-          </div>
-          <div class="nl-two">
-            <label class="gd-field"><span>Tick step</span><input class="gd-input" id="nl-step" type="number" min="0.0001" step="any" value="${fmt(state.step)}"></label>
-            <label class="gd-field"><span>Label every</span><input class="gd-input" id="nl-label-every" type="number" min="1" max="50" value="${state.labelEvery}"></label>
-          </div>
-          <label class="gd-field"><span>Illustration title (optional)</span><input class="gd-input" id="nl-title" maxlength="90" value="${esc(state.title)}" placeholder="e.g. Finding the difference"></label>
-          <label class="nl-check"><input id="nl-tick-labels" type="checkbox"${state.showTickLabels?' checked':''}> Show number labels</label>
-          <div class="nl-preset-row">
-            <button class="gd-btn" type="button" data-nl-preset="0-20">0–20</button>
-            <button class="gd-btn" type="button" data-nl-preset="0-100">0–100</button>
-            <button class="gd-btn" type="button" data-nl-preset="negative">−10–10</button>
-            <button class="gd-btn" type="button" data-nl-preset="decimal">0–1 decimals</button>
-          </div>
-        </div>
-      </details>
 
-      <details class="nl-group" data-nl-group="lines"${groupOpen('lines')}>
-        <summary>Comparison lines <span class="nl-count">${state.lines.length}</span></summary>
-        <div class="nl-group-body">
-          <label class="gd-field"><span>Editing</span><select class="gd-select" id="nl-active-line">${lineOptions}</select></label>
-          <label class="gd-field"><span>Line label (optional)</span><input class="gd-input" id="nl-line-label" maxlength="30" value="${esc(line.label)}" placeholder="e.g. Fractions"></label>
-          <label class="nl-check"><input id="nl-line-labels" type="checkbox"${line.showLabels?' checked':''}> Show number labels on this line</label>
-          <div class="gd-row"><button class="gd-btn" id="nl-add-line" type="button"${state.lines.length>=4?' disabled':''}>+ Add comparison line</button>${state.lines.length>1?'<button class="gd-btn gd-btn--danger" id="nl-delete-line" type="button">Remove this line</button>':''}</div>
-          <p class="gd-help">All lines share the same scale so values align vertically. Add up to four compact lines for comparisons.</p>
+    const setupPanel=`
+      <section class="nl-workflow-panel" data-nl-panel="setup">
+        <div class="nl-panel-title"><div><strong>Set up the line</strong><span>Choose the scale first, then add comparison lines only when they help.</span></div></div>
+        <div class="nl-two">
+          <label class="gd-field"><span>Minimum</span><input class="gd-input" id="nl-min" type="number" value="${fmt(state.min)}"></label>
+          <label class="gd-field"><span>Maximum</span><input class="gd-input" id="nl-max" type="number" value="${fmt(state.max)}"></label>
         </div>
-      </details>
+        <div class="nl-two">
+          <label class="gd-field"><span>Tick step</span><input class="gd-input" id="nl-step" type="number" min="0.0001" step="any" value="${fmt(state.step)}"></label>
+          <label class="gd-field"><span>Label every</span><input class="gd-input" id="nl-label-every" type="number" min="1" max="50" value="${state.labelEvery}"></label>
+        </div>
+        <div class="nl-preset-row">
+          <button class="gd-btn" type="button" data-nl-preset="0-20">0–20</button>
+          <button class="gd-btn" type="button" data-nl-preset="0-100">0–100</button>
+          <button class="gd-btn" type="button" data-nl-preset="negative">−10–10</button>
+          <button class="gd-btn" type="button" data-nl-preset="decimal">0–1 decimals</button>
+        </div>
+        <label class="gd-field"><span>Illustration title (optional)</span><input class="gd-input" id="nl-title" maxlength="90" value="${esc(state.title)}" placeholder="e.g. Finding the difference"></label>
+        <label class="nl-check"><input id="nl-tick-labels" type="checkbox"${state.showTickLabels?' checked':''}> Show number labels</label>
+        <div class="nl-section-rule"></div>
+        <div class="nl-panel-title nl-panel-title--compact"><div><strong>Lines</strong><span>${state.lines.length} of 4</span></div></div>
+        <label class="gd-field"><span>Editing</span><select class="gd-select" id="nl-active-line">${lineOptions}</select></label>
+        <label class="gd-field"><span>Line label (optional)</span><input class="gd-input" id="nl-line-label" maxlength="30" value="${esc(line.label)}" placeholder="e.g. Fractions"></label>
+        <label class="nl-check"><input id="nl-line-labels" type="checkbox"${line.showLabels?' checked':''}> Show number labels on this line</label>
+        <div class="gd-row"><button class="gd-btn" id="nl-add-line" type="button"${state.lines.length>=4?' disabled':''}>+ Add line</button>${state.lines.length>1?'<button class="gd-btn gd-btn--danger" id="nl-delete-line" type="button">Remove line</button>':''}</div>
+        <div class="nl-section-rule"></div>
+        <button class="gd-btn gd-btn--danger nl-reset-compact" id="nl-reset" type="button">Reset number line</button>
+      </section>`;
 
-      <details class="nl-group" data-nl-group="markers"${groupOpen('markers')}>
-        <summary>Markers <span class="nl-count">${line.markers.length}</span></summary>
-        <div class="nl-group-body">
-          <p class="gd-help">Markers share one compact level on each side. Put individual markers above or below the line as needed.</p>
-          <div class="nl-marker-list">${markerRows||'<p class="gd-help">No markers yet.</p>'}</div>
+    const objectsPanel=`
+      <section class="nl-workflow-panel" data-nl-panel="objects">
+        <div class="nl-panel-title"><div><strong>Objects</strong><span>Edit the active line without digging through unrelated settings.</span></div></div>
+        <div class="nl-subtabs">
+          <button type="button" class="${objectTab==='markers'?'is-active':''}" data-nl-object-tab="markers">Markers <span>${line.markers.length}</span></button>
+          <button type="button" class="${objectTab==='relations'?'is-active':''}" data-nl-object-tab="relations">Relationships <span>${line.relations.length}</span></button>
+        </div>
+        ${objectTab==='markers'?`
+          <div class="nl-marker-list">${markerRows||'<p class="gd-help">No markers yet. Add one, then drag it directly on the line.</p>'}</div>
           <button class="gd-btn" id="nl-add-marker" type="button">+ Add marker</button>
-        </div>
-      </details>
-
-      <details class="nl-group" data-nl-group="visuals"${groupOpen('visuals')}>
-        <summary>Teaching visuals <span class="nl-count">${line.relations.length}</span></summary>
-        <div class="nl-group-body">
-          <p class="gd-help">Differences and jumps are packed into the nearest free level. Jumps connect marker to marker instead of sitting on the number line.</p>
-          <div class="nl-relation-list">${relationRows||'<p class="gd-help">Add at least two markers, then add a visual relationship.</p>'}</div>
+        `:`
+          <div class="nl-relation-list">${relationRows||'<p class="gd-help">Add at least two markers, then add a relationship.</p>'}</div>
           <button class="gd-btn" id="nl-add-relation" type="button"${line.markers.length<2?' disabled':''}>+ Add relationship</button>
           <label class="nl-check"><input id="nl-consecutive" type="checkbox"${line.showConsecutiveDifferences?' checked':''}> Show differences between consecutive markers</label>
           <label class="gd-field"><span>Consecutive differences position</span><select class="gd-select" id="nl-consecutive-side"><option value="above"${line.consecutiveSide==='above'?' selected':''}>Above</option><option value="below"${line.consecutiveSide==='below'?' selected':''}>Below</option></select></label>
-        </div>
-      </details>
+        `}
+      </section>`;
 
-      <details class="nl-group" data-nl-group="challenge"${groupOpen('challenge')}>
-        <summary>Challenges${challenge?' <span class="nl-live">active</span>':''}</summary>
-        <div class="nl-group-body">
-          ${challengeControlsHtml()}
-        </div>
-      </details>
+    const challengePanel=`
+      <section class="nl-workflow-panel" data-nl-panel="challenge">
+        <div class="nl-panel-title"><div><strong>Create a challenge</strong><span>Use a standard structure or turn the current diagram into your own question.</span></div></div>
+        ${challengeControlsHtml()}
+      </section>`;
 
-      <details class="nl-group" data-nl-group="export"${groupOpen('export')}>
-        <summary>Export & reuse</summary>
-        <div class="nl-group-body">
-          <div class="nl-export-grid">
-            <button class="gd-btn" id="nl-copy-image" type="button">Copy image</button>
-            <button class="gd-btn" id="nl-png" type="button">Download PNG</button>
-            <button class="gd-btn" id="nl-svg-download" type="button">Download SVG</button>
-            <button class="gd-btn" id="nl-print" type="button">Print / Save PDF</button>
-            <button class="gd-btn" id="nl-copy-link" type="button">Copy setup link</button>
-            <button class="gd-btn" id="nl-fullscreen" type="button">Board view</button>
-          </div>
-          <p class="gd-help">PNG is convenient for slides. SVG stays sharp at any size. Print opens a clean A4 version that can be saved as PDF.</p>
-          <div class="nl-status" id="nl-status" role="status" aria-live="polite"></div>
+    const canCard=!!state.challenge;
+    const exportPanel=`
+      <section class="nl-workflow-panel" data-nl-panel="export">
+        <div class="nl-panel-title"><div><strong>Use it elsewhere</strong><span>Copy into slides/documents, download, print or reopen the setup later.</span></div></div>
+        ${canCard?`<div class="nl-export-mode" role="tablist" aria-label="Export content"><button type="button" class="${exportMode==='challenge'?'is-active':''}" data-nl-export-mode="challenge">Challenge card</button><button type="button" class="${exportMode==='diagram'?'is-active':''}" data-nl-export-mode="diagram">Diagram only</button></div>`:''}
+        ${canCard&&exportMode==='challenge'?`
+          <label class="gd-field"><span>Answer space</span><select class="gd-select" id="nl-response-lines"><option value="1"${responseLines===1?' selected':''}>1 line</option><option value="2"${responseLines===2?' selected':''}>2 lines</option><option value="3"${responseLines===3?' selected':''}>3 lines</option><option value="4"${responseLines===4?' selected':''}>4 lines</option></select></label>
+          <p class="gd-help">The exported challenge card includes the question, the number line and a blank answer box. The correct answer is never printed into the pupil version.</p>
+        `:`<p class="gd-help">Diagram-only export keeps just the mathematical illustration.</p>`}
+        <div class="nl-export-grid">
+          <button class="gd-btn gd-btn--primary" id="nl-copy-image" type="button">Copy ${canCard&&exportMode==='challenge'?'challenge':'image'}</button>
+          <button class="gd-btn" id="nl-png" type="button">PNG</button>
+          <button class="gd-btn" id="nl-svg-download" type="button">SVG</button>
+          <button class="gd-btn" id="nl-print" type="button">Print / PDF</button>
         </div>
-      </details>
+        <div class="nl-section-rule"></div>
+        <button class="gd-btn" id="nl-copy-link" type="button">Copy setup link</button>
+      </section>`;
 
-      <button class="gd-btn gd-btn--danger" id="nl-reset" type="button">Reset number line</button>
-    `;
+    const panel=controlTab==='objects'?objectsPanel:controlTab==='challenge'?challengePanel:controlTab==='export'?exportPanel:setupPanel;
+    return `${workflowTabsHtml()}${panel}<div class="nl-status" id="nl-status" role="status" aria-live="polite"></div>`;
   }
 
-  function renderControls(){controls.innerHTML=controlsHtml();bindGroupState()}
+  function renderControls(){controls.innerHTML=controlsHtml()}
 
   const X0=110,X1=940;
   function px(value){return X0+(value-state.min)/(state.max-state.min)*(X1-X0)}
@@ -550,6 +569,7 @@ function numberLineV2(){
   function buildLine(layout){
     const {line,baseY,above,below,index}=layout;
     const range=state.max-state.min,rawCount=Math.floor(range/state.step+1e-8),safetyStride=Math.max(1,Math.ceil(rawCount/160)),renderStep=state.step*safetyStride*line.tickStride,tickCount=Math.floor(range/renderStep+1e-8);
+    const pxPerTick=(X1-X0)/Math.max(1,tickCount),majorSpacing=pxPerTick*Math.max(1,state.labelEvery),labelSkip=Math.max(1,Math.ceil(54/majorSpacing));
     let intervalLayer='',ticks='',relationshipLayer='',markerLayer='';
     line.relations.filter(r=>r.type==='interval').forEach(r=>{
       const d=relationDisplay(line,r);if(!d)return;
@@ -561,8 +581,10 @@ function numberLineV2(){
       const v=cleanNumber(state.min+i*renderStep),x=px(v),major=(i%state.labelEvery===0)||i===0||i===tickCount;
       ticks+=`<line x1="${x}" y1="${baseY-(major?13:8)}" x2="${x}" y2="${baseY+(major?13:8)}" stroke="#33474e" stroke-width="${major?2:1}"/>`;
       if(state.showTickLabels&&line.showLabels&&major){
-        if(hiddenTick(v))ticks+=answerBox(x,baseY+30,50,24);
-        else ticks+=`<text x="${x}" y="${baseY+35}" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" fill="#33474e">${esc(lineValueText(line,v))}</text>`;
+        const hidden=hiddenTick(v),majorIndex=Math.round(i/Math.max(1,state.labelEvery));
+        const showLabel=hidden||i===0||i===tickCount||majorIndex%labelSkip===0;
+        if(hidden)ticks+=answerBox(x,baseY+30,50,24);
+        else if(showLabel)ticks+=`<text x="${x}" y="${baseY+35}" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" fill="#33474e">${esc(lineValueText(line,v))}</text>`;
       }
     }
     const baseline=`<line class="nl-baseline" data-line-id="${esc(line.id)}" x1="${X0}" y1="${baseY}" x2="${X1}" y2="${baseY}" stroke="#24343b" stroke-width="4" stroke-linecap="round"/><rect data-line-hit="${esc(line.id)}" x="${X0}" y="${baseY-16}" width="${X1-X0}" height="32" fill="transparent" style="cursor:crosshair"/>`;
@@ -790,7 +812,7 @@ function numberLineV2(){
   function clearChallenge(){
     if(beforeChallenge){state=normalise(copy(beforeChallenge));beforeChallenge=null}
     else state.challenge=null;
-    challengeTab='standard';
+    challengeTab='standard';exportMode='diagram';
     renderAll();
   }
   function enterCustomChallenge(){
@@ -803,7 +825,7 @@ function numberLineV2(){
     }else if(!state.challenge){
       state.challenge={mode:'custom',type:'custom',title:'Challenge',prompt:'Write your challenge here.',answer:'',answerMode:'manual',revealed:false,hiddenTicks:[],hiddenMarkerIds:[],hiddenRelationIds:[]};
     }
-    challengeTab='custom';openGroups.add('challenge');renderAll();
+    challengeTab='custom';controlTab='challenge';exportMode='challenge';openGroups.add('challenge');renderAll();
   }
   function generateChallenge(type){
     const template=challengeTemplateList().find(t=>t.id===type&&!t.disabled);
@@ -982,7 +1004,7 @@ function numberLineV2(){
       state.challenge=challengeObject('missing-labels','Fill in the missing number labels on the line.',shuffled.sort((x,y)=>x-y).map(fmt).join(', '),{hiddenTicks:shuffled});
     }
 
-    state=normalise(state);challengeType=type;challengeCategory=template.category;challengeTab='standard';openGroups.add('challenge');renderAll();
+    state=normalise(state);challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';exportMode='challenge';responseLines=template.category==='reason'?3:1;openGroups.add('challenge');renderAll();
   }
   function applyPreset(name){
     beforeChallenge=null;state.challenge=null;
@@ -992,16 +1014,45 @@ function numberLineV2(){
     if(name==='decimal'){state.min=0;state.max=1;state.step=.1;state.labelEvery=1}
     state.lines.forEach(line=>line.markers.forEach(m=>m.value=snap(m.value,state)));renderAll();
   }
-  function exportName(){return state.title||('number-line-'+fmt(state.min)+'-to-'+fmt(state.max))}
+  function exportName(){
+    const ch=state.challenge;
+    if(exportMode==='challenge'&&ch)return ch.title||state.title||'number-line-challenge';
+    return state.title||('number-line-'+fmt(state.min)+'-to-'+fmt(state.max));
+  }
   function svg(){return q('#nl-svg')}
+  function pupilDiagramSvg(){
+    if(!state.challenge)return svg();
+    const previous=state.challenge.revealed;
+    state.challenge.revealed=false;
+    const markup=buildSvg();
+    state.challenge.revealed=previous;
+    const holder=document.createElement('div');holder.innerHTML=markup;
+    return holder.querySelector('svg');
+  }
+  function exportSvg(){
+    if(exportMode!=='challenge'||!state.challenge||!X?.composeChallengeCardSvg)return svg();
+    const ch=state.challenge,prompt=CK?CK.plainText(ch.promptHtml||ch.prompt||''):ch.prompt||'';
+    return X.composeChallengeCardSvg(pupilDiagramSvg(),{
+      title:ch.title||state.title||'Challenge',
+      prompt,
+      responseLabel:ch.category==='reason'?'Explain your thinking':'Answer',
+      responseLines,
+      brand:'99 Club Studio'
+    });
+  }
   async function exportAction(kind){
     try{
       if(!X)throw new Error('Export tools are not available.');
-      if(kind==='copy'){await X.copyPng(svg());message('Image copied — paste it into your slide or document.')}
-      if(kind==='png'){await X.downloadPng(svg(),exportName(),2);message('PNG downloaded.')}
-      if(kind==='svg'){X.downloadSvg(svg(),exportName());message('SVG downloaded.')}
-      if(kind==='print'){const ch=state.challenge;const prompt=ch?(CK?CK.plainText(ch.promptHtml||ch.prompt||''):ch.prompt||''):'';const title=ch?.title||state.title||'Number line';X.printSvg(svg(),{title,prompt,answer:ch?.answer||'',showAnswer:!!ch?.revealed,landscape:true});message('Print view opened. Choose “Save as PDF” in the print dialog.')}
-      if(kind==='link'){const u=new URL(location.href);u.searchParams.set('nl',encodeState(state));u.hash='number-line';await X.copyText(u.toString());message('Setup link copied. It will reopen this number line exactly as shown.')}
+      if(kind==='link'){const u=new URL(location.href);u.searchParams.set('nl',encodeState(state));u.hash='number-line';await X.copyText(u.toString());message('Setup link copied. It will reopen this number line exactly as shown.');return}
+      const target=exportSvg(),isCard=exportMode==='challenge'&&!!state.challenge;
+      if(kind==='copy'){await X.copyPng(target);message(isCard?'Challenge copied — paste it into your worksheet, slide or document.':'Image copied — paste it into your slide or document.')}
+      if(kind==='png'){await X.downloadPng(target,exportName(),2);message(isCard?'Challenge PNG downloaded.':'PNG downloaded.')}
+      if(kind==='svg'){X.downloadSvg(target,exportName());message(isCard?'Challenge SVG downloaded.':'SVG downloaded.')}
+      if(kind==='print'){
+        if(isCard)X.printSvg(target,{title:'',landscape:true});
+        else X.printSvg(target,{title:state.title||'Number line',landscape:true});
+        message('Print view opened. Choose “Save as PDF” in the print dialog.');
+      }
     }catch(err){message(err?.message||'That export did not work.',true)}
   }
 
@@ -1035,6 +1086,7 @@ function numberLineV2(){
     const t=e.target;
     if(['nl-min','nl-max','nl-step','nl-label-every'].includes(t.id)){state=normalise(state);renderAll();return}
     if(t.id==='nl-active-line'){state.activeLineId=t.value;renderControls();renderStage();return}
+    if(t.id==='nl-response-lines'){responseLines=clamp(Math.round(num(t.value,1)),1,4);renderControls();return}
   });
 
   controls.addEventListener('pointerdown',e=>{
@@ -1042,6 +1094,9 @@ function numberLineV2(){
   });
   controls.addEventListener('click',e=>{
     const b=e.target.closest('button');if(!b)return;const line=activeLine();
+    if(b.dataset.nlWorkflow){controlTab=b.dataset.nlWorkflow;renderControls();return}
+    if(b.dataset.nlObjectTab){objectTab=b.dataset.nlObjectTab;renderControls();return}
+    if(b.dataset.nlExportMode){exportMode=b.dataset.nlExportMode==='challenge'&&state.challenge?'challenge':'diagram';renderControls();return}
     if(b.dataset.nlChallengeTab){
       if(b.dataset.nlChallengeTab==='custom'){enterCustomChallenge();return}
       challengeTab='standard';renderControls();return;
@@ -1076,7 +1131,7 @@ function numberLineV2(){
       }else enterBoardFallback();
       return;
     }
-    if(b.id==='nl-reset'){beforeChallenge=null;state=normalise(DEFAULT_STATE);renderAll();return}
+    if(b.id==='nl-reset'){beforeChallenge=null;state=normalise(DEFAULT_STATE);controlTab='setup';objectTab='markers';exportMode='diagram';renderAll();return}
   });
 
   stage.addEventListener('click',e=>{

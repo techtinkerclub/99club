@@ -63,6 +63,9 @@ Pointer events are the primary direct-manipulation path so mouse, pen and touch 
 ### 7. Challenges are a shared overlay, not a separate tool
 Every suitable Goodie should eventually expose the same **Standard / Custom** challenge language.
 
+The teacher workflow should stay task-based rather than settings-based:
+**Setup → Objects → Challenge → Export/Reuse**. Only the controls relevant to the current task should dominate the panel; avoid long stacks of open configuration sections.
+
 The shared challenge shell owns:
 - Standard / Custom switching;
 - title and prompt presentation;
@@ -70,7 +73,10 @@ The shared challenge shell owns:
 - contextual Reveal answer;
 - common challenge navigation/actions;
 - share/export-safe challenge state;
-- responsive/mobile presentation.
+- responsive/mobile presentation;
+- a reusable challenge-card export pattern containing the title/question, mathematical visual and blank pupil response area.
+
+Challenge exports should be directly usable in teacher-made resources. A pupil-facing export must not leak the revealed/correct answer just because the teacher has revealed it on screen. Prefer a clean PNG/SVG/print card that can be pasted into slides, worksheets or documents without rebuilding the question elsewhere.
 
 The individual Goodie owns the mathematics:
 - which standard challenge families make sense;
