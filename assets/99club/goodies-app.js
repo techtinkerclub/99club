@@ -1,3 +1,7 @@
+(function(G){
+'use strict';
+if(!G)return;
+const {root,CATS,q,qa,numberLine,placeValue,fractionWall,barModel,hundredSquare,multiplicationGrid,arrayBuilder,clockTool,moneyTool,coordinateTool,measurementTool,randomiser,balanceTool,timesTableVisual,factorExplorer,fdpExplorer,geoboard,mathsCanvas}=G;
 const tools=[
   ['number-line','Number line','↔','number','Explore integers, decimals and jumps on a configurable line.','Mental arithmetic, rounding, negative numbers, fractions/decimals and explaining calculation strategies.',numberLine],
   ['place-value','Place value board','123','number','Build numbers by place value and see their expanded form.','Reading, composing and decomposing whole numbers and decimals; useful on an interactive whiteboard.',placeValue],
@@ -41,3 +45,5 @@ function closeTool(){shell.classList.remove('is-tool-open');history.replaceState
 q('#gd-back').addEventListener('click',closeTool);search.addEventListener('input',renderCards);qa('[data-cat]').forEach(b=>b.addEventListener('click',()=>{category=b.dataset.cat;qa('[data-cat]').forEach(x=>x.classList.toggle('is-active',x===b));renderCards()}));
 renderCards();
 const hash=location.hash.slice(1);if(tools.some(t=>t.id===hash))openTool(hash);
+
+})(window.TT99Goodies);
