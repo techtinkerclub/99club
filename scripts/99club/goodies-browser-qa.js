@@ -161,13 +161,61 @@ if(mode==='prepare'){
     assert(document.querySelectorAll('[data-fw-direct="a"] .gd-fr-bar').length===2,'Improper fraction renders across multiple wholes');
     assert(document.querySelectorAll('[data-fw-direct="a"] .gd-fr-piece.is-fill').length===7,'Improper fraction keeps all seven quarters visible');
   }
+  function testGeoboard(){
+    TT99Goodies.interaction.clear();
+    assert(TT99Goodies.geoboard,'Geoboard is registered');
+    TT99Goodies.geoboard();
+
+    function clickPeg(pos){
+      const peg=document.querySelector('[data-gp="'+pos+'"]');
+      assert(peg,'Geoboard peg '+pos+' exists');
+      peg.dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    }
+
+    clickPeg('0,0');
+    clickPeg('4,0');
+    clickPeg('4,3');
+    assert(document.querySelectorAll('[data-ge-vertex]').length===3,'Three peg taps create three vertices');
+    let readout=document.getElementById('ge-readout').textContent;
+    assert(readout.includes('Perimeter ≈ 12.00 units'),'3-4-5 triangle perimeter is 12');
+    assert(readout.includes('Area = 6.00 square units'),'3-4-5 triangle area is 6');
+
+    let vertex=document.querySelector('[data-ge-vertex="1"]');
+    const target=document.querySelector('[data-gp="3,0"]');
+    const vr=vertex.getBoundingClientRect(),tr=target.getBoundingClientRect();
+    const sx=vr.left+vr.width/2,sy=vr.top+vr.height/2;
+    const tx=tr.left+tr.width/2,ty=tr.top+tr.height/2;
+    pointer(vertex,'pointerdown',sx,sy,21);
+    pointer(vertex,'pointermove',tx,ty,21);
+    pointer(vertex,'pointerup',tx,ty,21);
+
+    vertex=document.querySelector('[data-ge-vertex="1"]');
+    assert(vertex&&vertex.dataset.gePos==='3,0','Dragging vertex B snaps it to the new peg');
+    readout=document.getElementById('ge-readout').textContent;
+    assert(readout.includes('Perimeter ≈ 11.16 units'),'Moved triangle perimeter updates immediately');
+    assert(readout.includes('Area = 4.50 square units'),'Moved triangle area updates immediately');
+
+    const del=document.querySelector('[data-ge-delete]');
+    assert(del&&!del.hidden,'Selected vertex exposes direct delete');
+    del.click();
+    assert(document.querySelectorAll('[data-ge-vertex]').length===2,'Delete removes the selected vertex only');
+    readout=document.getElementById('ge-readout').textContent;
+    assert(readout.includes('Length ≈ 5.00 units'),'Two remaining vertices report segment length rather than a fake perimeter');
+
+    const undo=document.getElementById('ge-undo');
+    assert(undo&&!undo.disabled,'Geoboard Undo is available after deletion');
+    undo.click();
+    assert(document.querySelectorAll('[data-ge-vertex]').length===3,'Undo restores the deleted vertex');
+    assert(document.getElementById('ge-readout').textContent.includes('Area = 4.50 square units'),'Undo restores the moved triangle geometry');
+  }
   window.addEventListener('load',function(){
     setTimeout(function(){
       try{
         testMathsCanvas();
         testPlaceValue();
         testFractions();
-        result('pass','Maths Canvas, Place Value and Fraction Wall interactions work');
+        testGeoboard();
+        result('pass','Maths Canvas, Place Value, Fraction Wall and Geoboard interactions work');
       }catch(err){
         result('fail',err&&err.message?err.message:String(err));
       }
