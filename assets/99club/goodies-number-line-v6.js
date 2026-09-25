@@ -254,6 +254,15 @@ function numberLineV2(){
         if(other!==marker&&other.syncGroup===marker.syncGroup&&otherLine.scaleMode==='shared')other.value=cleanNumber(clamp(next,scaleFor(otherLine).min,scaleFor(otherLine).max));
       }));
     }
+    if(marker.positionGroup){
+      const sourceRange=scale.max-scale.min,t=sourceRange?clamp((next-scale.min)/sourceRange,0,1):0;
+      state.lines.forEach(otherLine=>otherLine.markers.forEach(other=>{
+        if(other===marker||other.positionGroup!==marker.positionGroup)return;
+        const targetScale=scaleFor(otherLine),target=targetScale.min+t*(targetScale.max-targetScale.min);
+        other.value=snapToScale(target,targetScale);
+      }));
+    }
+    syncZoomFollowers();
   }
   function boardActive(){return document.fullscreenElement===stage||boardFallback}
   function enterBoardFallback(){
