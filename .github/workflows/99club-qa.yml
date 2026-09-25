@@ -87,6 +87,8 @@ jobs:
         run: node scripts/99club/qa.js
       - name: Run Alphametics catalogue regression
         run: node assets/99club/tests/games-v141-alphametics-smoke.js
+      - name: Run Goodies interaction regression
+        run: node assets/99club/tests/goodies-interaction-smoke.js
       - name: Run Verbal Reasoning regression
         run: node scripts/99club/verbal-reasoning-qa.js
       - name: Run Custom Worksheet expansion QA
