@@ -219,15 +219,27 @@ function numberLineV2(){
   const controls=q('#nl-controls'),stage=q('#gd-stage');
 
   function activeLine(){return state.lines.find(l=>l.id===state.activeLineId)||state.lines[0]}
-  function setMarkerValue(marker,value){
+  function scaleFor(line){
+    return line?.scaleMode==='own'
+      ?{min:line.min,max:line.max,step:line.step,labelEvery:line.labelEvery}
+      :{min:state.min,max:state.max,step:state.step,labelEvery:state.labelEvery};
+  }
+  function labelsVisible(line,index=state.lines.indexOf(line)){
+    return line.showLabels&&(index===0?state.showTickLabels:true);
+  }
+  function snapOnLine(value,line){return snapToScale(value,scaleFor(line))}
+  function setMarkerValue(marker,value,lineHint=null){
     if(!marker)return;
+    const line=lineHint||state.lines.find(l=>l.markers.includes(marker))||activeLine(),scale=scaleFor(line);
     const customStep=Number(marker.snapStep);
-    const next=customStep>0
-      ?cleanNumber(clamp(state.min+Math.round((value-state.min)/customStep)*customStep,state.min,state.max))
-      :snap(value,state);
+    const next=customStep>0&&line.scaleMode!=='own'
+      ?cleanNumber(clamp(scale.min+Math.round((value-scale.min)/customStep)*customStep,scale.min,scale.max))
+      :snapToScale(value,scale);
     marker.value=next;
-    if(marker.syncGroup){
-      state.lines.forEach(line=>line.markers.forEach(other=>{if(other!==marker&&other.syncGroup===marker.syncGroup)other.value=next}));
+    if(marker.syncGroup&&line.scaleMode!=='own'){
+      state.lines.forEach(otherLine=>otherLine.markers.forEach(other=>{
+        if(other!==marker&&other.syncGroup===marker.syncGroup&&otherLine.scaleMode!=='own')other.value=cleanNumber(clamp(next,scaleFor(otherLine).min,scaleFor(otherLine).max));
+      }));
     }
   }
   function boardActive(){return document.fullscreenElement===stage||boardFallback}
@@ -339,7 +351,17 @@ function numberLineV2(){
     const range=state.max-state.min;
     state.step=Math.max(.0001,Math.min(range,num(q('#nl-step')?.value,state.step)));
     state.labelEvery=clamp(Math.round(num(q('#nl-label-every')?.value,state.labelEvery)),1,50);
-    state.lines.forEach(line=>line.markers.forEach(m=>m.value=snap(m.value,state)));
+    state.lines.filter(line=>line.scaleMode!=='own').forEach(line=>line.markers.forEach(m=>m.value=snapOnLine(m,line)));
+    updateChallengeAnswer();
+  }
+  function applyOwnScaleFromControls(line){
+    if(!line||line.scaleMode!=='own')return;
+    const min=num(q('#nl-line-min')?.value,line.min),max=num(q('#nl-line-max')?.value,line.max);
+    line.min=min;line.max=max<=min?min+Math.max(line.step,1):max;
+    const range=line.max-line.min;
+    line.step=Math.max(.0001,Math.min(range,num(q('#nl-line-step')?.value,line.step)));
+    line.labelEvery=clamp(Math.round(num(q('#nl-line-label-every')?.value,line.labelEvery)),1,50);
+    line.markers.forEach(m=>m.value=snapOnLine(m,line));
     updateChallengeAnswer();
   }
   function challengeTemplateList(){
