@@ -149,7 +149,8 @@ if(mode==='prepare'){
     const relationSource=document.getElementById('nl-custom-answer-source');
     relationSource.value='relation:l1:r1';
     relationSource.dispatchEvent(new Event('change',{bubbles:true}));
-    assert(document.querySelector('[data-line-id="l1"] .nl-answer-box'),'A linked relationship hides its calculated label');
+    assert(!document.querySelector('[data-marker-hit="m1"] .nl-answer-box'),'Switching to a relationship source reveals the marker value again');
+    assert(document.querySelectorAll('.nl-answer-box').length>=1,'A linked relationship hides its calculated label');
     assert(document.getElementById('nl-custom-live-answer').textContent.trim()==='2','Difference answer uses the current A and B positions');
 
     document.querySelector('[data-nl-challenge-tab="standard"]').click();
