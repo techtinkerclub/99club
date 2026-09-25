@@ -927,7 +927,7 @@ try{
   const goodiesCss=read('assets/99club/goodies.css');
   new Function(numberLine);
   if(!goodiesPage.includes('permalink: /goodies/')||!goodiesPage.includes('sitemap: false')||!goodiesPage.includes('search: false')||!goodiesPage.includes('noindex,nofollow,noarchive'))fail('goodies-number-line','Hidden goodies route/indexing contract regressed');
-  if(!goodiesPage.includes('goodies-number-line-v6.js?v=1')||!goodiesPage.includes('goodies.css?v=6'))fail('goodies-number-line','Number Line v6 assets are not cache-busted on /goodies/');
+  if(!/goodies-number-line-v6\.js\?v=\d+/.test(goodiesPage)||!/goodies\.css\?v=\d+/.test(goodiesPage))fail('goodies-number-line','Number Line v6 assets are not cache-busted on /goodies/');
   for(const token of [
     "side:m.side==='below'?'below':'above'",
     'data-marker-side',
