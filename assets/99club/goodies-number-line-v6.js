@@ -269,8 +269,13 @@ function numberLineV2(){
     updateChallengeAnswer();
   }
   function challengeTemplateList(){
-    return CHALLENGE_TEMPLATES.map(t=>t.id==='across-zero'&&!(state.min<0&&state.max>0)
-      ?{...t,disabled:true,disabledReason:'Use a range that crosses 0.'}:t);
+    const intervals=Math.max(1,Math.floor((state.max-state.min)/state.step+1e-8));
+    return CHALLENGE_TEMPLATES.map(t=>{
+      if(t.id==='across-zero'&&!(state.min<0&&state.max>0))return {...t,disabled:true,disabledReason:'Use a range that crosses 0.'};
+      if(t.id==='missing-labels'&&intervals<3)return {...t,disabled:true,disabledReason:'Use at least 3 intervals.'};
+      if((t.id==='estimate-position'||t.id==='rounding')&&intervals<2)return {...t,disabled:true,disabledReason:'Use at least 2 intervals.'};
+      return t;
+    });
   }
   function challengeControlsHtml(){
     const ch=state.challenge;
@@ -781,10 +786,14 @@ function numberLineV2(){
       line.relations=[{id:'r1',from:'m1',to:'m2',type:'jump',color:'#4169a8',label:'',showLabel:true,side:'above'}];
       state.challenge=challengeObject(type,'What jump takes you from Start to End?',(delta>=0?'+':'')+fmt(delta),{hiddenRelationIds:['r1']});
     }else if(type==='across-zero'){
-      const count=Math.max(1,Math.floor((state.max-state.min)/state.step+1e-8));
-      const vals=[];for(let i=0;i<=Math.min(count,500);i++)vals.push(cleanNumber(state.min+i*state.step));
-      const neg=vals.filter(v=>v<0),pos=vals.filter(v=>v>0);
-      const left=neg[Math.floor(Math.random()*neg.length)],right=pos[Math.floor(Math.random()*pos.length)];
+      let left=null,right=null,guard=0;
+      while((left==null||right==null)&&guard++<120){
+        const v=randomTick();
+        if(v<0&&left==null)left=v;
+        if(v>0&&right==null)right=v;
+      }
+      if(left==null)left=state.min;
+      if(right==null)right=state.max;
       line.markers=[{id:'m1',label:'A',value:left,color:'#147d75',showValue:true,side:'above'},{id:'m2',label:'B',value:right,color:'#d65a4a',showValue:true,side:'above'}];
       line.relations=[{id:'r1',from:'m1',to:'m2',type:'difference',color:'#52666d',label:'',showLabel:true,side:'above'}];
       state.challenge=challengeObject(type,'What is the interval from A to B across zero?',fmt(cleanNumber(right-left)),{hiddenRelationIds:['r1']});
@@ -793,6 +802,7 @@ function numberLineV2(){
       let unit=cleanNumber(state.step*10);
       if(unit>range)unit=cleanNumber(state.step*5);
       if(unit>range)unit=cleanNumber(state.step*2);
+      if(unit>range)unit=cleanNumber(state.step);
       let target=randomInteriorTick(),guard=0;
       while(Math.abs(target/unit-Math.round(target/unit))<1e-8&&guard++<40)target=randomInteriorTick();
       line.markers=[{id:'m1',label:'A',value:target,color:'#147d75',showValue:true,side:'above'}];
@@ -804,7 +814,13 @@ function numberLineV2(){
     }else{
       const count=Math.max(2,Math.floor((state.max-state.min)/state.step+1e-8)),candidates=[];
       for(let i=1;i<count;i++)if(i%state.labelEvery===0)candidates.push(cleanNumber(state.min+i*state.step));
-      const shuffled=candidates.sort(()=>Math.random()-.5).slice(0,Math.min(5,Math.max(2,Math.floor(candidates.length/3))));
+      if(candidates.length<2){
+        state.labelEvery=1;
+        candidates.length=0;
+        for(let i=1;i<count;i++)candidates.push(cleanNumber(state.min+i*state.step));
+      }
+      const take=Math.min(5,Math.max(2,Math.floor(candidates.length/3)));
+      const shuffled=candidates.sort(()=>Math.random()-.5).slice(0,take);
       state.challenge=challengeObject('missing-labels','Fill in the missing number labels on the line.',shuffled.sort((x,y)=>x-y).map(fmt).join(', '),{hiddenTicks:shuffled});
     }
     state=normalise(state);challengeType=type;challengeCategory=template.category;challengeTab='standard';openGroups.add('challenge');renderAll();
