@@ -1,4 +1,4 @@
-/* 99 Club Studio · coherent Online Play icon set v1.0
+/* 99 Club Studio · coherent Online Play icon set v1.1
  * One deliberately drawn SVG family for the full Online Play catalogue.
  * Icons inherit currentColor so the existing badge palette remains in charge.
  */
@@ -21,6 +21,7 @@ const ICONS={
   crossnumber: svg('<path d="M8 3h8v5h5v8h-5v5H8v-5H3V8h5z"/><path d="M8 8h8v8H8zM12 8v8M8 12h8"/><circle cx="6" cy="10" r=".8" fill="currentColor" stroke="none"/><circle cx="18" cy="14" r=".8" fill="currentColor" stroke="none"/>'),
   arithmagon: svg('<path d="M12 3l8 15H4z"/><circle cx="12" cy="3" r="2"/><circle cx="4" cy="18" r="2"/><circle cx="20" cy="18" r="2"/><circle cx="12" cy="11.8" r="1.5"/>'),
   pyramid: svg('<rect x="9" y="3" width="6" height="4" rx="1"/><rect x="6" y="8.5" width="6" height="4" rx="1"/><rect x="12" y="8.5" width="6" height="4" rx="1"/><rect x="3" y="14" width="6" height="4" rx="1"/><rect x="9" y="14" width="6" height="4" rx="1"/><rect x="15" y="14" width="6" height="4" rx="1"/>'),
+  numbertowers: svg('<path d="M3 20h18"/><rect x="4.5" y="13" width="3.5" height="7" rx=".6"/><rect x="10.2" y="9" width="3.5" height="11" rx=".6"/><rect x="16" y="5" width="3.5" height="15" rx=".6"/><path d="M4 5h5M6.5 2.8L9 5 6.5 7.2"/>'),
   numberwheels: svg('<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="2.2"/><path d="M12 3.5V9.8M12 14.2v6.3M3.5 12h6.3M14.2 12h6.3M6 6l4.4 4.4M13.6 13.6L18 18M18 6l-4.4 4.4M10.4 13.6L6 18"/>'),
   numbersearch: svg('<rect x="3" y="3" width="13" height="13" rx="1.5"/><path d="M7.3 3v13M11.7 3v13M3 7.3h13M3 11.7h13"/><circle cx="16.8" cy="16.8" r="3.1"/><path d="M19.1 19.1L22 22"/>'),
   equationcrossgrid: svg('<path d="M8 3h8v5h5v8h-5v5H8v-5H3V8h5z"/><path d="M6 10h4M8 8v4M14 10h4M14 14h4M14 17h4"/>'),
@@ -54,5 +55,5 @@ function render(id){return ICONS[id]||svg('<rect x="4" y="4" width="16" height="
 function has(id){return Object.prototype.hasOwnProperty.call(ICONS,id);}
 function ids(){return Object.keys(ICONS);}
 
-global.TT99GameIcons=Object.freeze({version:'1.0',render,has,ids});
+global.TT99GameIcons=Object.freeze({version:'1.1',render,has,ids});
 })(typeof globalThis!=='undefined'?globalThis:this);
