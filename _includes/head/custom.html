@@ -56,7 +56,9 @@
     try{
       if(document.referrer){
         var ref=new URL(document.referrer);
-        if(ref.origin!==location.origin&&/^https?:$/.test(ref.protocol))safeReferrer=ref.origin;
+        if(/^https?:$/.test(ref.protocol)){
+          safeReferrer=ref.origin===location.origin ? ref.origin+ref.pathname : ref.origin;
+        }
       }
     }catch(_){}
     window.TT99_ANALYTICS_PAGE_CONTEXT=Object.freeze({
@@ -65,7 +67,7 @@
     });
   })();
 </script>
-<script src="/assets/99club/analytics.js?v=7" defer></script>
+<script src="/assets/99club/analytics.js?v=8" defer></script>
 <style>
   /* 99 Club Studio is now the whole site, so the theme masthead is redundant. */
   .masthead{display:none!important}
@@ -123,7 +125,9 @@
     try{
       if(document.referrer){
         var ref=new URL(document.referrer);
-        if(ref.origin!==location.origin&&/^https?:$/.test(ref.protocol))safeReferrer=ref.origin;
+        if(/^https?:$/.test(ref.protocol)){
+          safeReferrer=ref.origin===location.origin ? ref.origin+ref.pathname : ref.origin;
+        }
       }
     }catch(_){}
     window.TT99_ANALYTICS_PAGE_CONTEXT=Object.freeze({
@@ -132,5 +136,5 @@
     });
   })();
 </script>
-<script src="/assets/99club/analytics.js?v=7" defer></script>
+<script src="/assets/99club/analytics.js?v=8" defer></script>
 {% endif %}
