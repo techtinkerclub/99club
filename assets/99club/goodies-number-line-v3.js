@@ -502,4 +502,46 @@ function numberLineV2(){
     let id=t.dataset.markerLabel;if(id){const m=line.markers.find(x=>x.id===id);if(m){m.label=t.value.slice(0,12);renderStage()}return}
     id=t.dataset.markerValue;if(id){const m=line.markers.find(x=>x.id===id);if(m){m.value=snap(num(t.value,m.value),state);renderStage()}return}
     id=t.dataset.markerColor;if(id){const m=line.markers.find(x=>x.id===id);if(m){m.color=t.value;renderStage()}return}
-    id=t.dataset.markerSide;if(id){const m=line.markers.find(x=>x.id===
+    id=t.dataset.markerSide;if(id){const m=line.markers.find(x=>x.id===id);if(m){m.side=t.value==='below'?'below':'above';renderStage()}return}
+    id=t.dataset.markerShow;if(id){const m=line.markers.find(x=>x.id===id);if(m){m.showValue=t.checked;renderStage()}return}
+    id=t.dataset.relationFrom;if(id){const r=line.relations.find(x=>x.id===id);if(r){r.from=t.value;if(r.from===r.to){const other=line.markers.find(m=>m.id!==r.from);if(other){r.to=other.id;const otherSelect=controls.querySelector('[data-relation-to="'+CSS.escape(id)+'"]');if(otherSelect)otherSelect.value=r.to}}renderStage()}return}
+    id=t.dataset.relationTo;if(id){const r=line.relations.find(x=>x.id===id);if(r){r.to=t.value;if(r.from===r.to){const other=line.markers.find(m=>m.id!==r.to);if(other){r.from=other.id;const otherSelect=controls.querySelector('[data-relation-from="'+CSS.escape(id)+'"]');if(otherSelect)otherSelect.value=r.from}}renderStage()}return}
+    id=t.dataset.relationType;if(id){const r=line.relations.find(x=>x.id===id);if(r){r.type=t.value;renderStage()}return}
+    id=t.dataset.relationSide;if(id){const r=line.relations.find(x=>x.id===id);if(r){r.side=t.value==='below'?'below':'above';renderStage()}return}
+    id=t.dataset.relationColor;if(id){const r=line.relations.find(x=>x.id===id);if(r){r.color=t.value;renderStage()}return}
+    id=t.dataset.relationLabel;if(id){const r=line.relations.find(x=>x.id===id);if(r){r.label=t.value.slice(0,24);renderStage()}return}
+    id=t.dataset.relationShow;if(id){const r=line.relations.find(x=>x.id===id);if(r){r.showLabel=t.checked;renderStage()}return}
+  });
+
+  controls.addEventListener('change',e=>{
+    const t=e.target;
+    if(['nl-min','nl-max','nl-step','nl-label-every'].includes(t.id)){state=normalise(state);renderAll();return}
+    if(t.id==='nl-active-line'){state.activeLineId=t.value;renderControls();renderStage();return}
+  });
+
+  controls.addEventListener('click',e=>{
+    const b=e.target.closest('button');if(!b)return;const line=activeLine();
+    if(b.dataset.nlPreset){applyPreset(b.dataset.nlPreset);return}
+    if(b.id==='nl-add-marker'){addMarker();return}
+    if(b.id==='nl-add-relation'){addRelation();return}
+    if(b.id==='nl-add-line'){addLine();return}
+    if(b.id==='nl-delete-line'&&state.lines.length>1){state.lines=state.lines.filter(l=>l.id!==state.activeLineId);state.activeLineId=state.lines[0].id;renderAll();return}
+    if(b.dataset.markerDelete){line.markers=line.markers.filter(m=>m.id!==b.dataset.markerDelete);line.relations=line.relations.filter(r=>r.from!==b.dataset.markerDelete&&r.to!==b.dataset.markerDelete);renderAll();return}
+    if(b.dataset.relationDelete){line.relations=line.relations.filter(r=>r.id!==b.dataset.relationDelete);renderAll();return}
+    if(b.id==='nl-generate'){generateChallenge(q('#nl-challenge-type').value);return}
+    if(b.id==='nl-reveal'&&state.challenge){state.challenge.revealed=!state.challenge.revealed;renderAll();return}
+    if(b.id==='nl-clear-challenge'){if(beforeChallenge)state=normalise(copy(beforeChallenge));beforeChallenge=null;renderAll();return}
+    if(b.id==='nl-copy-image'){exportAction('copy');return}
+    if(b.id==='nl-png'){exportAction('png');return}
+    if(b.id==='nl-svg-download'){exportAction('svg');return}
+    if(b.id==='nl-print'){exportAction('print');return}
+    if(b.id==='nl-copy-link'){exportAction('link');return}
+    if(b.id==='nl-fullscreen'){const target=q('#gd-stage');if(target?.requestFullscreen)target.requestFullscreen().catch(()=>message('Full-screen mode is not available here.',true));return}
+    if(b.id==='nl-reset'){beforeChallenge=null;state=normalise(DEFAULT_STATE);renderAll();return}
+  });
+
+  renderAll();
+}
+
+G.numberLine=numberLineV2;
+})(window.TT99Goodies);
