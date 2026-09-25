@@ -208,6 +208,65 @@ if(mode==='prepare'){
     assert(document.querySelectorAll('[data-ge-vertex]').length===3,'Undo restores the deleted vertex');
     assert(document.getElementById('ge-readout').textContent.includes('Area = 4.50 square units'),'Undo restores the moved triangle geometry');
   }
+  function testCoordinates(){
+    TT99Goodies.interaction.clear();
+    assert(TT99Goodies.coordinateTool,'Coordinate tool is registered');
+    TT99Goodies.coordinateTool();
+
+    function coordClient(x,y){
+      const svg=document.getElementById('co-svg');
+      const min=Number(svg.dataset.coMin),max=Number(svg.dataset.coMax),W=600,pad=42;
+      const step=(W-2*pad)/(max-min),r=svg.getBoundingClientRect();
+      const px=pad+(x-min)*step,py=pad+(max-y)*step;
+      return{svg,x:r.left+px/W*r.width,y:r.top+py/W*r.height};
+    }
+    function clickCoord(x,y){
+      const p=coordClient(x,y);
+      p.svg.dispatchEvent(new MouseEvent('click',{bubbles:true,clientX:p.x,clientY:p.y}));
+    }
+
+    clickCoord(2,3);
+    clickCoord(8,4);
+    assert(document.querySelectorAll('[data-co-point]').length===2,'Coordinate grid plots two points directly');
+    assert(document.getElementById('co-readout').textContent.includes('(2, 3)'),'Coordinate readout includes the first point');
+
+    let point=document.querySelector('[data-co-point="0"]');
+    const start=point.getBoundingClientRect(),target=coordClient(4,5);
+    pointer(point,'pointerdown',start.left+start.width/2,start.top+start.height/2,31);
+    pointer(point,'pointermove',target.x,target.y,31);
+    pointer(point,'pointerup',target.x,target.y,31);
+
+    point=document.querySelector('[data-co-point="0"]');
+    assert(point&&point.dataset.coPos==='4,5','Dragging a coordinate point snaps it to the new intersection');
+    assert(document.getElementById('co-readout').textContent.includes('(4, 5)'),'Coordinate readout updates after drag');
+
+    const del=document.querySelector('[data-co-delete]');
+    assert(del&&!del.hidden,'Selected coordinate point exposes direct delete');
+    del.click();
+    assert(document.querySelectorAll('[data-co-point]').length===1,'Delete removes only the selected coordinate point');
+
+    const undo=document.getElementById('co-undo');
+    assert(undo&&!undo.disabled,'Coordinate Undo is available after deletion');
+    undo.click();
+    assert(document.querySelectorAll('[data-co-point]').length===2,'Coordinate Undo restores the deleted point');
+    assert(document.querySelector('[data-co-pos="4,5"]'),'Coordinate Undo restores the moved point position');
+
+    const four=document.getElementById('co-four');
+    four.checked=true;
+    four.dispatchEvent(new Event('change',{bubbles:true}));
+    clickCoord(-3,-2);
+    assert(document.querySelectorAll('[data-co-point]').length===3,'Four-quadrant grid accepts a negative point');
+
+    four.checked=false;
+    four.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.querySelectorAll('[data-co-point]').length===2,'Negative point is hidden in first-quadrant view');
+    assert(document.getElementById('co-readout').textContent.includes('1 outside this grid is hidden'),'Grid switch reports preserved hidden point');
+
+    four.checked=true;
+    four.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.querySelectorAll('[data-co-point]').length===3,'Negative point reappears when four quadrants return');
+    assert(document.querySelector('[data-co-pos="-3,-2"]'),'Quadrant switching preserves the negative point data');
+  }
   window.addEventListener('load',function(){
     setTimeout(function(){
       try{
@@ -215,7 +274,8 @@ if(mode==='prepare'){
         testPlaceValue();
         testFractions();
         testGeoboard();
-        result('pass','Maths Canvas, Place Value, Fraction Wall and Geoboard interactions work');
+        testCoordinates();
+        result('pass','Maths Canvas, Place Value, Fraction Wall, Geoboard and Coordinates interactions work');
       }catch(err){
         result('fail',err&&err.message?err.message:String(err));
       }
