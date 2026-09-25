@@ -179,6 +179,8 @@ requireText(numberLine,'function syncZoomFollowers','Number Line live zoom synch
 requireText(numberLine,'positionGroup','Number Line proportional marker-pair state');
 requireText(numberLine,'function addLinkedPair','Number Line corresponding-pair creation');
 requireText(numberLine,'function setPairAppearance','Number Line paired marker appearance synchronization');
+requireText(numberLine,'function resyncPositionGroups','Number Line paired marker scale resynchronization');
+requireText(numberLine,'The main number line is the reference line and cannot be deleted.','Number Line reference-line deletion guard');
 requireText(numberLine,'nl-add-correspondence','Number Line corresponding-pair action');
 requireText(numberLine,'data-position-group','Number Line proportional marker-pair SVG identity');
 requireText(numberLine,'nl-linked-pair-guide','Number Line paired correspondence guide');
