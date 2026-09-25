@@ -301,8 +301,80 @@ function numberLineV2(){
     for(const line of state.lines){const relation=line.relations.find(r=>r.id===id);if(relation)return {line,relation}}
     return null;
   }
+  function customAnswerSources(){
+    const many=state.lines.length>1;
+    const out=[];
+    state.lines.forEach((line,index)=>{
+      const lead=many?((line.label||('Line '+(index+1)))+' · '):'';
+      line.markers.forEach(marker=>out.push({
+        id:'marker:'+line.id+':'+marker.id,
+        label:lead+'Marker '+(marker.label||marker.id)+' value'
+      }));
+      line.relations.forEach(relation=>{
+        const a=line.markers.find(m=>m.id===relation.from),b=line.markers.find(m=>m.id===relation.to);
+        if(!a||!b)return;
+        const kind=relation.type==='jump'?'Jump':relation.type==='interval'?'Interval':'Difference';
+        out.push({
+          id:'relation:'+line.id+':'+relation.id,
+          label:lead+kind+' '+(a.label||a.id)+' → '+(b.label||b.id)
+        });
+      });
+    });
+    return out;
+  }
+  function resolveCustomAnswerSource(source){
+    const parts=String(source||'').split(':');
+    if(parts.length!==3)return null;
+    const [kind,lineId,objectId]=parts,line=state.lines.find(l=>l.id===lineId);
+    if(!line)return null;
+    if(kind==='marker'){
+      const marker=line.markers.find(m=>m.id===objectId);
+      if(!marker)return null;
+      return {kind,line,object:marker,answer:lineValueText(line,marker.value)};
+    }
+    if(kind==='relation'){
+      const relation=line.relations.find(r=>r.id===objectId);
+      if(!relation)return null;
+      const a=line.markers.find(m=>m.id===relation.from),b=line.markers.find(m=>m.id===relation.to);
+      if(!a||!b)return null;
+      const delta=cleanNumber(b.value-a.value),magnitude=lineValueText(line,Math.abs(delta));
+      const answer=relation.type==='jump'?(delta<0?'-':'+')+magnitude:magnitude;
+      return {kind,line,object:relation,answer};
+    }
+    return null;
+  }
+  function setCustomAnswerSource(source){
+    const ch=state.challenge;if(!ch)return false;
+    if(source==='manual'){
+      ch.answerMode='manual';ch.answerSource='';ch.revealed=false;
+      return true;
+    }
+    if(source==='generated'){
+      ch.answerMode='bound';ch.answerSource='';ch.revealed=false;updateChallengeAnswer();
+      return true;
+    }
+    const resolved=resolveCustomAnswerSource(source);
+    if(!resolved)return false;
+    ch.answerMode='bound';ch.answerSource=source;ch.answer=resolved.answer;ch.revealed=false;
+    ch.hiddenTicks=[];ch.hiddenMarkerIds=[];ch.hiddenRelationIds=[];
+    if(resolved.kind==='marker')ch.hiddenMarkerIds=[resolved.line.id+':'+resolved.object.id];
+    else ch.hiddenRelationIds=[resolved.line.id+':'+resolved.object.id];
+    return true;
+  }
+  function refreshCustomAnswerReadout(){
+    const el=q('#nl-custom-live-answer',controls);
+    if(el)el.textContent=state.challenge?.answer||'—';
+  }
   function updateChallengeAnswer(){
     const ch=state.challenge;if(!ch||ch.answerMode==='manual')return;
+    if(ch.answerSource){
+      const resolved=resolveCustomAnswerSource(ch.answerSource);
+      if(resolved)ch.answer=resolved.answer;
+      else{ch.answerMode='manual';ch.answerSource=''}
+      if(CK&&ch.promptHtml!=null)ch.prompt=CK.plainText(ch.promptHtml).slice(0,600);
+      refreshCustomAnswerReadout();
+      return;
+    }
     const line=state.lines[0];if(!line)return;
     if(['identify','estimate-position','jump','missing-start','repeated-jumps','mixed-number','equivalent-fractions','fdp-equivalence'].includes(ch.type)){
       const found=findMarker(ch.hiddenMarkerIds[0]);
@@ -331,6 +403,7 @@ function numberLineV2(){
       ch.answer='No. Count the equal spaces (intervals), not the marks.';
     }
     if(CK&&ch.promptHtml!=null)ch.prompt=CK.plainText(ch.promptHtml).slice(0,600);
+    refreshCustomAnswerReadout();
   }
   function message(text,bad=false){
     const box=q('#nl-status');if(!box)return;
@@ -383,7 +456,7 @@ function numberLineV2(){
     if(challengeTab==='custom'){
       const custom=ch&&ch.mode==='custom'?ch:(CK?CK.makeCustom(ch||{}):ch);
       return tabs+`
-        ${custom&&CK?CK.editorHtml(custom,'nl'):'<p class="gd-help">Custom editor unavailable.</p>'}
+        ${custom&&CK?CK.editorHtml(custom,'nl',{answerSources:customAnswerSources(),generatedAnswerLabel:'Keep the generated live answer'}):'<p class="gd-help">Custom editor unavailable.</p>'}
         <div class="gd-row">
           ${ch&&ch.answer?'<button class="gd-btn" id="nl-reveal" type="button">'+(ch.revealed?'Hide answer':'Reveal answer')+'</button>':''}
           ${ch?'<button class="gd-btn" id="nl-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':''}
@@ -568,7 +641,7 @@ function numberLineV2(){
   function relationDisplay(line,r){
     const a=line.markers.find(m=>m.id===r.from),b=line.markers.find(m=>m.id===r.to);if(!a||!b)return null;
     const delta=cleanNumber(b.value-a.value),auto=r.type==='jump'?(delta>=0?'+':'')+fmt(delta):r.type==='difference'?fmt(Math.abs(delta)):'';
-    const hidden=state.challenge&&!state.challenge.revealed&&state.challenge.hiddenRelationIds.includes(r.id);
+    const hidden=state.challenge&&!state.challenge.revealed&&(state.challenge.hiddenRelationIds.includes(r.id)||state.challenge.hiddenRelationIds.includes(line.id+':'+r.id));
     return {a,b,label:hidden?'':(r.label||auto),show:r.showLabel,hidden};
   }
   function assignLanes(line,side){
@@ -675,7 +748,7 @@ function numberLineV2(){
     }
 
     line.markers.forEach((m,i)=>{
-      const x=px(m.value,line),cy=markerCentre(layout,m),hidden=state.challenge&&!state.challenge.revealed&&state.challenge.hiddenMarkerIds.includes(m.id),showValue=m.showValue&&!hidden;
+      const x=px(m.value,line),cy=markerCentre(layout,m),hidden=state.challenge&&!state.challenge.revealed&&(state.challenge.hiddenMarkerIds.includes(m.id)||state.challenge.hiddenMarkerIds.includes(line.id+':'+m.id)),showValue=m.showValue&&!hidden;
       const valueY=m.side==='above'?cy-28:cy+34;
       markerLayer+=`<g class="nl-svg-marker" data-line-id="${esc(line.id)}" data-marker-hit="${esc(m.id)}" style="cursor:ew-resize;touch-action:none">${markerStem(layout,m)}<circle cx="${x}" cy="${cy}" r="16" fill="${esc(m.color)}" stroke="#fff" stroke-width="3"/><circle cx="${x}" cy="${cy}" r="22" fill="transparent"/><text x="${x}" y="${cy+5}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="800" fill="${contrast(m.color)}" pointer-events="none">${esc(m.label||String(i+1))}</text>${showValue?`<text x="${x}" y="${valueY}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#33474e" pointer-events="none">${esc(lineValueText(line,m.value))}</text>`:(hidden?answerBox(x,valueY-5,72,24):'')}</g>`;
     });
@@ -1120,7 +1193,7 @@ function numberLineV2(){
     if(['nl-line-min','nl-line-max','nl-line-step','nl-line-label-every'].includes(t.id)){applyOwnScaleFromControls(line);renderStage();return}
     if(t.id==='nl-title'){state.title=t.value.slice(0,90);renderStage();return}
     if(t.id==='nl-custom-title'&&state.challenge){state.challenge.title=t.value.slice(0,100);renderStage();return}
-    if(t.id==='nl-custom-answer'&&state.challenge){state.challenge.answer=t.value.slice(0,400);state.challenge.answerMode='manual';state.challenge.revealed=false;renderStage();return}
+    if(t.id==='nl-custom-answer'&&state.challenge){state.challenge.answer=t.value.slice(0,400);state.challenge.answerMode='manual';state.challenge.answerSource='';state.challenge.revealed=false;renderStage();return}
     if(t.id==='nl-custom-prompt'&&state.challenge&&CK){state.challenge.promptHtml=CK.sanitiseRichHtml(t.innerHTML);state.challenge.prompt=CK.plainText(state.challenge.promptHtml).slice(0,600);renderStage();return}
     if(t.id==='nl-tick-labels'){state.showTickLabels=t.checked;renderStage();return}
     if(t.id==='nl-line-label'){line.label=t.value.slice(0,30);const option=q('#nl-active-line')?.selectedOptions?.[0];if(option){const i=state.lines.findIndex(l=>l.id===line.id);option.textContent='Line '+(i+1)+(line.label?' · '+line.label:'')}renderStage();return}
@@ -1134,7 +1207,7 @@ function numberLineV2(){
     id=t.dataset.markerShow;if(id){const m=line.markers.find(x=>x.id===id);if(m){m.showValue=t.checked;renderStage()}return}
     id=t.dataset.relationFrom;if(id){const r=line.relations.find(x=>x.id===id);if(r){r.from=t.value;if(r.from===r.to){const other=line.markers.find(m=>m.id!==r.from);if(other){r.to=other.id;const otherSelect=controls.querySelector('[data-relation-to="'+CSS.escape(id)+'"]');if(otherSelect)otherSelect.value=r.to}}updateChallengeAnswer();renderStage()}return}
     id=t.dataset.relationTo;if(id){const r=line.relations.find(x=>x.id===id);if(r){r.to=t.value;if(r.from===r.to){const other=line.markers.find(m=>m.id!==r.to);if(other){r.from=other.id;const otherSelect=controls.querySelector('[data-relation-from="'+CSS.escape(id)+'"]');if(otherSelect)otherSelect.value=r.from}}updateChallengeAnswer();renderStage()}return}
-    id=t.dataset.relationType;if(id){const r=line.relations.find(x=>x.id===id);if(r){r.type=t.value;renderStage()}return}
+    id=t.dataset.relationType;if(id){const r=line.relations.find(x=>x.id===id);if(r){r.type=t.value;updateChallengeAnswer();renderStage()}return}
     id=t.dataset.relationSide;if(id){const r=line.relations.find(x=>x.id===id);if(r){r.side=t.value==='below'?'below':'above';renderStage()}return}
     id=t.dataset.relationColor;if(id){const r=line.relations.find(x=>x.id===id);if(r){r.color=t.value;renderStage()}return}
     id=t.dataset.relationLabel;if(id){const r=line.relations.find(x=>x.id===id);if(r){r.label=t.value.slice(0,24);renderStage()}return}
@@ -1145,6 +1218,11 @@ function numberLineV2(){
     const t=e.target;
     if(['nl-min','nl-max','nl-step','nl-label-every','nl-line-min','nl-line-max','nl-line-step','nl-line-label-every'].includes(t.id)){state=normalise(state);renderAll();return}
     if(t.id==='nl-active-line'){state.activeLineId=t.value;renderControls();renderStage();return}
+    if(t.id==='nl-custom-answer-source'&&state.challenge){
+      const chosen=t.value;
+      if(!setCustomAnswerSource(chosen)){message('That answer source is no longer available.',true);renderControls();return}
+      renderAll();return;
+    }
     if(t.id==='nl-response-lines'){responseLines=clamp(Math.round(num(t.value,1)),1,4);renderControls();return}
   });
 

@@ -123,6 +123,10 @@ requireText(challenge,'function editorHtml','shared custom challenge editor');
 requireText(challenge,'data-gd-rich-action="bold"','shared bold formatting');
 requireText(challenge,'size-large','shared text-size formatting');
 requireText(challenge,'function pickerHtml','shared standard challenge picker');
+requireText(challenge,'answerSource','shared custom challenge answer-source state');
+requireText(challenge,'custom-live-answer','shared live answer readout template');
+requireText(challenge,'Type the answer myself','shared manual/live answer choice');
+requireText(css,'.gd-answer-live','shared live answer styling');
 
 requireText(numberLine,"boardTool('delete','delete'","Number Line direct delete remains intact");
 requireText(numberLine,'nl-board-rail','Number Line quiet side rail remains intact');
@@ -149,6 +153,10 @@ requireText(numberLine,'snapStep','Number Line linked representation snap constr
 requireText(numberLine,'function setMarkerValue','Number Line linked marker update helper');
 requireText(numberLine,'enterCustomChallenge','Number Line custom challenge mode');
 requireText(numberLine,'CK.editorHtml','Number Line uses shared custom editor');
+requireText(numberLine,'function customAnswerSources','Number Line exposes diagram answer choices');
+requireText(numberLine,'function resolveCustomAnswerSource','Number Line resolves live diagram answers');
+requireText(numberLine,'function setCustomAnswerSource','Number Line binds custom answers to diagram objects');
+requireText(numberLine,'nl-custom-answer-source','Number Line handles live-answer selection');
 requireText(numberLine,'nl-workflow-tabs','Number Line task-based workflow tabs');
 requireText(numberLine,"['setup','Setup']",'Number Line setup workflow');
 requireText(numberLine,"['objects','Objects']",'Number Line objects workflow');
