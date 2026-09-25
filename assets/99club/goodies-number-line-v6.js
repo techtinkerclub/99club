@@ -750,8 +750,9 @@ function numberLineV2(){
         else if(showLabel)ticks+=`<text x="${x}" y="${baseY+35}" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" fill="#33474e">${esc(lineValueText(line,v))}</text>`;
       }
     }
-    const baseline=`<line class="nl-baseline" data-line-id="${esc(line.id)}" x1="${X0}" y1="${baseY}" x2="${X1}" y2="${baseY}" stroke="#24343b" stroke-width="4" stroke-linecap="round"/><rect data-line-hit="${esc(line.id)}" x="${X0}" y="${baseY-16}" width="${X1-X0}" height="32" fill="transparent" style="cursor:crosshair"/>`;
-    const scaleBadge=line.scaleMode==='own'?'<tspan font-size="10" font-weight="700" fill="#7a8a8f"> · own scale</tspan>':'';
+    const baseline=`<line class="nl-baseline" data-line-id="${esc(line.id)}" data-nl-line-mode="${esc(line.scaleMode)}" x1="${X0}" y1="${baseY}" x2="${X1}" y2="${baseY}" stroke="#24343b" stroke-width="4" stroke-linecap="round"/><rect data-line-hit="${esc(line.id)}" x="${X0}" y="${baseY-16}" width="${X1-X0}" height="32" fill="transparent" style="cursor:crosshair"/>`;
+    const badgeText=line.scaleMode==='own'?'own scale':line.scaleMode==='zoom'?'zoom':line.scaleMode==='linked'?'double line':'';
+    const scaleBadge=badgeText?`<tspan font-size="10" font-weight="700" fill="#7a8a8f"> · ${esc(badgeText)}</tspan>`:'';
     const lineLabel=line.label?`<text x="26" y="${baseY+5}" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#52666d">${esc(shortLineLabel(line.label))}${scaleBadge}</text>`:'';
 
     line.relations.filter(r=>r.type!=='interval').forEach(r=>{
@@ -788,10 +789,40 @@ function numberLineV2(){
 
     return intervalLayer+relationshipLayer+baseline+ticks+lineLabel+markerLayer;
   }
+  function linkedFactorText(line){
+    if(Math.abs(state.min)<1e-9&&Math.abs(line.min)<1e-9&&Math.abs(state.max)>1e-9){
+      const factor=cleanNumber(line.max/state.max);
+      if(Number.isFinite(factor)&&Math.abs(factor)>1e-9)return '×'+fmt(factor);
+    }
+    return 'linked';
+  }
+  function teachingConnections(plan){
+    const main=plan.lines[0];if(!main)return '';
+    let out='';
+    plan.lines.slice(1).forEach(item=>{
+      const line=item.line;
+      if(line.scaleMode==='zoom'){
+        const left=clamp(px(line.min,main.line),X0,X1),right=clamp(px(line.max,main.line),X0,X1);
+        if(right>left){
+          out+=`<g class="nl-zoom-link" data-zoom-line="${esc(line.id)}"><path d="M${left} ${main.baseY} L${X0} ${item.baseY} L${X1} ${item.baseY} L${right} ${main.baseY} Z" fill="#147d75" opacity=".035"/><line x1="${left}" y1="${main.baseY}" x2="${X0}" y2="${item.baseY}" stroke="#6c9d98" stroke-width="1.5" stroke-dasharray="5 5" opacity=".55"/><line x1="${right}" y1="${main.baseY}" x2="${X1}" y2="${item.baseY}" stroke="#6c9d98" stroke-width="1.5" stroke-dasharray="5 5" opacity=".55"/><line x1="${left}" y1="${main.baseY}" x2="${right}" y2="${main.baseY}" stroke="#147d75" stroke-width="10" stroke-linecap="round" opacity=".14"/></g>`;
+        }
+      }
+      if(line.scaleMode==='linked'){
+        const top=Math.min(main.baseY,item.baseY),bottom=Math.max(main.baseY,item.baseY),mid=(top+bottom)/2;
+        [X0,(X0+X1)/2,X1].forEach((x,idx)=>{
+          out+=`<line class="nl-linked-guide" data-linked-line="${esc(line.id)}" x1="${x}" y1="${top}" x2="${x}" y2="${bottom}" stroke="#147d75" stroke-width="${idx===1?1.5:1.2}" stroke-dasharray="4 6" opacity="${idx===1?'.28':'.18'}"/>`;
+        });
+        const badge=linkedFactorText(line);
+        out+=`<g class="nl-linked-badge"><rect x="944" y="${mid-11}" width="48" height="22" rx="11" fill="#f1f8f7" stroke="#bad6d3"/><text x="968" y="${mid+4}" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="800" fill="#2f6e69">${esc(badge)}</text></g>`;
+      }
+    });
+    return out;
+  }
   function buildSvg(){
     const plan=layout();
     const title=state.title?`<text x="500" y="30" text-anchor="middle" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#24343b">${esc(state.title)}</text>`:'';
-    return `<svg id="nl-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 ${plan.height}" role="img" aria-label="Interactive number line workspace with ${state.lines.length} line${state.lines.length===1?'':'s'}"><defs>${state.lines.map(line=>line.relations.filter(r=>r.type==='jump').map(r=>`<marker id="nl-arrow-${esc(line.id)}-${esc(r.id)}" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,4 L0,8 z" fill="${esc(r.color)}"/></marker>`).join('')).join('')}</defs><rect x="0" y="0" width="1000" height="${plan.height}" rx="18" fill="#ffffff"/>${title}${plan.lines.map(buildLine).join('')}<text x="500" y="${plan.height-6}" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#87969a">99 Club Studio</text></svg>`;
+    const connections=teachingConnections(plan);
+    return `<svg id="nl-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 ${plan.height}" role="img" aria-label="Interactive number line workspace with ${state.lines.length} line${state.lines.length===1?'':'s'}"><defs>${state.lines.map(line=>line.relations.filter(r=>r.type==='jump').map(r=>`<marker id="nl-arrow-${esc(line.id)}-${esc(r.id)}" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,4 L0,8 z" fill="${esc(r.color)}"/></marker>`).join('')).join('')}</defs><rect x="0" y="0" width="1000" height="${plan.height}" rx="18" fill="#ffffff"/>${title}${connections}${plan.lines.map(buildLine).join('')}<text x="500" y="${plan.height-6}" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#87969a">99 Club Studio</text></svg>`;
   }
   function boardMarkerRows(){
     const line=activeLine(),scale=scaleFor(line);
