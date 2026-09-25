@@ -337,8 +337,8 @@ function numberLineV2(){
       if(!relation)return null;
       const a=line.markers.find(m=>m.id===relation.from),b=line.markers.find(m=>m.id===relation.to);
       if(!a||!b)return null;
-      const delta=cleanNumber(b.value-a.value);
-      const answer=relation.type==='jump'?(delta>=0?'+':'')+fmt(delta):fmt(Math.abs(delta));
+      const delta=cleanNumber(b.value-a.value),magnitude=lineValueText(line,Math.abs(delta));
+      const answer=relation.type==='jump'?(delta<0?'-':'+')+magnitude:magnitude;
       return {kind,line,object:relation,answer};
     }
     return null;
@@ -357,8 +357,8 @@ function numberLineV2(){
     if(!resolved)return false;
     ch.answerMode='bound';ch.answerSource=source;ch.answer=resolved.answer;ch.revealed=false;
     ch.hiddenTicks=[];ch.hiddenMarkerIds=[];ch.hiddenRelationIds=[];
-    if(resolved.kind==='marker')ch.hiddenMarkerIds=[resolved.object.id];
-    else ch.hiddenRelationIds=[resolved.object.id];
+    if(resolved.kind==='marker')ch.hiddenMarkerIds=[resolved.line.id+':'+resolved.object.id];
+    else ch.hiddenRelationIds=[resolved.line.id+':'+resolved.object.id];
     return true;
   }
   function refreshCustomAnswerReadout(){
@@ -641,7 +641,7 @@ function numberLineV2(){
   function relationDisplay(line,r){
     const a=line.markers.find(m=>m.id===r.from),b=line.markers.find(m=>m.id===r.to);if(!a||!b)return null;
     const delta=cleanNumber(b.value-a.value),auto=r.type==='jump'?(delta>=0?'+':'')+fmt(delta):r.type==='difference'?fmt(Math.abs(delta)):'';
-    const hidden=state.challenge&&!state.challenge.revealed&&state.challenge.hiddenRelationIds.includes(r.id);
+    const hidden=state.challenge&&!state.challenge.revealed&&(state.challenge.hiddenRelationIds.includes(r.id)||state.challenge.hiddenRelationIds.includes(line.id+':'+r.id));
     return {a,b,label:hidden?'':(r.label||auto),show:r.showLabel,hidden};
   }
   function assignLanes(line,side){
@@ -748,7 +748,7 @@ function numberLineV2(){
     }
 
     line.markers.forEach((m,i)=>{
-      const x=px(m.value,line),cy=markerCentre(layout,m),hidden=state.challenge&&!state.challenge.revealed&&state.challenge.hiddenMarkerIds.includes(m.id),showValue=m.showValue&&!hidden;
+      const x=px(m.value,line),cy=markerCentre(layout,m),hidden=state.challenge&&!state.challenge.revealed&&(state.challenge.hiddenMarkerIds.includes(m.id)||state.challenge.hiddenMarkerIds.includes(line.id+':'+m.id)),showValue=m.showValue&&!hidden;
       const valueY=m.side==='above'?cy-28:cy+34;
       markerLayer+=`<g class="nl-svg-marker" data-line-id="${esc(line.id)}" data-marker-hit="${esc(m.id)}" style="cursor:ew-resize;touch-action:none">${markerStem(layout,m)}<circle cx="${x}" cy="${cy}" r="16" fill="${esc(m.color)}" stroke="#fff" stroke-width="3"/><circle cx="${x}" cy="${cy}" r="22" fill="transparent"/><text x="${x}" y="${cy+5}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="800" fill="${contrast(m.color)}" pointer-events="none">${esc(m.label||String(i+1))}</text>${showValue?`<text x="${x}" y="${valueY}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#33474e" pointer-events="none">${esc(lineValueText(line,m.value))}</text>`:(hidden?answerBox(x,valueY-5,72,24):'')}</g>`;
     });
