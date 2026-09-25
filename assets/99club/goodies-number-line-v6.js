@@ -825,6 +825,11 @@ function numberLineV2(){
         [X0,(X0+X1)/2,X1].forEach((x,idx)=>{
           out+=`<line class="nl-linked-guide" data-linked-line="${esc(line.id)}" x1="${x}" y1="${top}" x2="${x}" y2="${bottom}" stroke="#147d75" stroke-width="${idx===1?1.5:1.2}" stroke-dasharray="4 6" opacity="${idx===1?'.28':'.18'}"/>`;
         });
+        line.markers.filter(m=>m.positionGroup).forEach(marker=>{
+          const paired=main.line.markers.find(m=>m.positionGroup===marker.positionGroup);if(!paired)return;
+          const xMain=px(paired.value,main.line),xLinked=px(marker.value,line);
+          out+=`<line class="nl-linked-pair-guide" data-position-group="${esc(marker.positionGroup)}" x1="${xMain}" y1="${main.baseY}" x2="${xLinked}" y2="${item.baseY}" stroke="${esc(marker.color)}" stroke-width="2.2" stroke-dasharray="3 4" opacity=".52"/>`;
+        });
         const badge=linkedFactorText(line);
         out+=`<g class="nl-linked-badge"><rect x="944" y="${mid-11}" width="48" height="22" rx="11" fill="#f1f8f7" stroke="#bad6d3"/><text x="968" y="${mid+4}" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="800" fill="#2f6e69">${esc(badge)}</text></g>`;
       }
