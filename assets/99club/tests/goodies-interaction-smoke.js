@@ -130,6 +130,19 @@ requireText(numberLine,"{id:'missing-jump'","Number Line reverse jump challenge"
 requireText(numberLine,"{id:'across-zero'","Number Line across-zero challenge");
 requireText(numberLine,"{id:'rounding'","Number Line rounding challenge");
 requireText(numberLine,"{id:'error-scale'","Number Line reasoning challenge");
+requireText(numberLine,"{id:'order-markers'","Number Line ordering challenge");
+requireText(numberLine,"{id:'missing-start'","Number Line reverse-start challenge");
+requireText(numberLine,"{id:'repeated-jumps'","Number Line repeated-jumps challenge");
+requireText(numberLine,"{id:'mixed-number'","Number Line mixed-number challenge");
+requireText(numberLine,"{id:'equivalent-fractions'","Number Line aligned equivalent-fractions challenge");
+requireText(numberLine,"{id:'fdp-equivalence'","Number Line fraction-decimal-percent challenge");
+requireText(numberLine,"{id:'marks-vs-spaces'","Number Line interval misconception challenge");
+requireText(numberLine,'function fractionText','Number Line fraction display formatter');
+requireText(numberLine,'tickStride','Number Line per-line tick density');
+requireText(numberLine,"valueFormat:'percent'","Number Line percent representation");
+requireText(numberLine,'syncGroup','Number Line aligned marker dependency state');
+requireText(numberLine,'snapStep','Number Line linked representation snap constraint');
+requireText(numberLine,'function setMarkerValue','Number Line linked marker update helper');
 requireText(numberLine,'enterCustomChallenge','Number Line custom challenge mode');
 requireText(numberLine,'CK.editorHtml','Number Line uses shared custom editor');
 

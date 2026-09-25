@@ -94,6 +94,48 @@ if(mode==='prepare'){
     rounding.click();
     document.getElementById('nl-generate').click();
     assert(document.querySelector('.gd-challenge-prompt').textContent.includes('nearest'),'Rounding challenge generates a rounding prompt');
+
+    document.querySelector('[data-nl-challenge-cat="fractions"]').click();
+    const equivalent=document.querySelector('[data-nl-challenge-type="equivalent-fractions"]');
+    assert(equivalent,'Equivalent-fractions multi-line challenge is available');
+    equivalent.click();
+    document.getElementById('nl-generate').click();
+    assert(document.querySelectorAll('[data-line-hit]').length===2,'Equivalent-fractions challenge builds two aligned number lines');
+    assert(document.querySelector('.gd-challenge-prompt').textContent.includes('equivalent fraction'),'Equivalent-fractions challenge has an explicit prompt');
+    assert(document.querySelectorAll('.nl-answer-box').length>=1,'Equivalent-fractions challenge hides the target value with an answer box');
+    const eqTop=document.querySelector('[data-marker-hit="mEqTop"]');
+    const eqBottom=()=>document.querySelector('[data-marker-hit="mEqBottom"]');
+    const eqSvg=document.getElementById('nl-svg'),eqRect=eqSvg.getBoundingClientRect(),topRect=eqTop.getBoundingClientRect();
+    pointer(eqTop,'pointerdown',topRect.left+topRect.width/2,topRect.top+topRect.height/2,31);
+    pointer(eqTop,'pointermove',eqRect.left+eqRect.width*.7,topRect.top+topRect.height/2,31);
+    pointer(eqTop,'pointerup',eqRect.left+eqRect.width*.7,topRect.top+topRect.height/2,31);
+    const topX=document.querySelector('[data-marker-hit="mEqTop"] circle').getAttribute('cx');
+    const bottomX=eqBottom().querySelector('circle').getAttribute('cx');
+    assert(topX===bottomX,'Dragging one equivalent marker keeps the aligned marker synchronized');
+    document.getElementById('nl-reveal').click();
+    const eqBanner=document.querySelector('.gd-challenge-banner').textContent;
+    const eqBottomText=document.querySelector('[data-marker-hit="mEqBottom"]').textContent;
+    assert(eqBanner.includes('Answer:'),'Equivalent-fractions reveal exposes the answer');
+    assert(eqBottomText.includes('/'),'Equivalent-fractions target renders as a fraction after reveal: '+eqBottomText);
+
+    document.querySelector('[data-nl-challenge-cat="fractions"]').click();
+    const fdp=document.querySelector('[data-nl-challenge-type="fdp-equivalence"]');
+    assert(fdp,'Fraction-decimal-percent challenge is available');
+    fdp.click();
+    document.getElementById('nl-generate').click();
+    assert(document.querySelectorAll('[data-line-hit]').length===3,'FDP challenge builds three aligned number lines');
+    const svgText=document.getElementById('nl-svg').textContent;
+    assert(svgText.includes('Fraction')&&svgText.includes('Decimal')&&svgText.includes('Percent'),'FDP challenge labels all three representations');
+    document.getElementById('nl-reveal').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('%'),'FDP challenge reveals a percentage answer');
+
+    document.querySelector('[data-nl-challenge-cat="compare"]').click();
+    const order=document.querySelector('[data-nl-challenge-type="order-markers"]');
+    assert(order,'Order-markers challenge is available');
+    order.click();
+    document.getElementById('nl-generate').click();
+    assert(document.querySelectorAll('[data-marker-hit]').length===3,'Order challenge displays three movable markers');
+    assert(document.querySelector('.gd-challenge-prompt').textContent.includes('smallest to largest'),'Order challenge asks for positional ordering');
   }
 
   function testMathsCanvas(){
