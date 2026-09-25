@@ -301,8 +301,75 @@ function numberLineV2(){
     for(const line of state.lines){const relation=line.relations.find(r=>r.id===id);if(relation)return {line,relation}}
     return null;
   }
+  function customAnswerSources(){
+    const many=state.lines.length>1;
+    const out=[];
+    state.lines.forEach((line,index)=>{
+      const lead=many?((line.label||('Line '+(index+1)))+' · '):'';
+      line.markers.forEach(marker=>out.push({
+        id:'marker:'+line.id+':'+marker.id,
+        label:lead+'Marker '+(marker.label||marker.id)+' value'
+      }));
+      line.relations.forEach(relation=>{
+        const a=line.markers.find(m=>m.id===relation.from),b=line.markers.find(m=>m.id===relation.to);
+        if(!a||!b)return;
+        const kind=relation.type==='jump'?'Jump':relation.type==='interval'?'Interval':'Difference';
+        out.push({
+          id:'relation:'+line.id+':'+relation.id,
+          label:lead+kind+' '+(a.label||a.id)+' → '+(b.label||b.id)
+        });
+      });
+    });
+    return out;
+  }
+  function resolveCustomAnswerSource(source){
+    const parts=String(source||'').split(':');
+    if(parts.length!==3)return null;
+    const [kind,lineId,objectId]=parts,line=state.lines.find(l=>l.id===lineId);
+    if(!line)return null;
+    if(kind==='marker'){
+      const marker=line.markers.find(m=>m.id===objectId);
+      if(!marker)return null;
+      return {kind,line,object:marker,answer:lineValueText(line,marker.value)};
+    }
+    if(kind==='relation'){
+      const relation=line.relations.find(r=>r.id===objectId);
+      if(!relation)return null;
+      const a=line.markers.find(m=>m.id===relation.from),b=line.markers.find(m=>m.id===relation.to);
+      if(!a||!b)return null;
+      const delta=cleanNumber(b.value-a.value);
+      const answer=relation.type==='jump'?(delta>=0?'+':'')+fmt(delta):fmt(Math.abs(delta));
+      return {kind,line,object:relation,answer};
+    }
+    return null;
+  }
+  function setCustomAnswerSource(source){
+    const ch=state.challenge;if(!ch)return false;
+    if(source==='manual'){
+      ch.answerMode='manual';ch.answerSource='';ch.revealed=false;
+      return true;
+    }
+    if(source==='generated'){
+      ch.answerMode='bound';ch.answerSource='';ch.revealed=false;updateChallengeAnswer();
+      return true;
+    }
+    const resolved=resolveCustomAnswerSource(source);
+    if(!resolved)return false;
+    ch.answerMode='bound';ch.answerSource=source;ch.answer=resolved.answer;ch.revealed=false;
+    ch.hiddenTicks=[];ch.hiddenMarkerIds=[];ch.hiddenRelationIds=[];
+    if(resolved.kind==='marker')ch.hiddenMarkerIds=[resolved.object.id];
+    else ch.hiddenRelationIds=[resolved.object.id];
+    return true;
+  }
   function updateChallengeAnswer(){
     const ch=state.challenge;if(!ch||ch.answerMode==='manual')return;
+    if(ch.answerSource){
+      const resolved=resolveCustomAnswerSource(ch.answerSource);
+      if(resolved)ch.answer=resolved.answer;
+      else{ch.answerMode='manual';ch.answerSource=''}
+      if(CK&&ch.promptHtml!=null)ch.prompt=CK.plainText(ch.promptHtml).slice(0,600);
+      return;
+    }
     const line=state.lines[0];if(!line)return;
     if(['identify','estimate-position','jump','missing-start','repeated-jumps','mixed-number','equivalent-fractions','fdp-equivalence'].includes(ch.type)){
       const found=findMarker(ch.hiddenMarkerIds[0]);
@@ -383,7 +450,7 @@ function numberLineV2(){
     if(challengeTab==='custom'){
       const custom=ch&&ch.mode==='custom'?ch:(CK?CK.makeCustom(ch||{}):ch);
       return tabs+`
-        ${custom&&CK?CK.editorHtml(custom,'nl'):'<p class="gd-help">Custom editor unavailable.</p>'}
+        ${custom&&CK?CK.editorHtml(custom,'nl',{answerSources:customAnswerSources(),generatedAnswerLabel:'Keep the generated live answer'}):'<p class="gd-help">Custom editor unavailable.</p>'}
         <div class="gd-row">
           ${ch&&ch.answer?'<button class="gd-btn" id="nl-reveal" type="button">'+(ch.revealed?'Hide answer':'Reveal answer')+'</button>':''}
           ${ch?'<button class="gd-btn" id="nl-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':''}
@@ -1120,7 +1187,7 @@ function numberLineV2(){
     if(['nl-line-min','nl-line-max','nl-line-step','nl-line-label-every'].includes(t.id)){applyOwnScaleFromControls(line);renderStage();return}
     if(t.id==='nl-title'){state.title=t.value.slice(0,90);renderStage();return}
     if(t.id==='nl-custom-title'&&state.challenge){state.challenge.title=t.value.slice(0,100);renderStage();return}
-    if(t.id==='nl-custom-answer'&&state.challenge){state.challenge.answer=t.value.slice(0,400);state.challenge.answerMode='manual';state.challenge.revealed=false;renderStage();return}
+    if(t.id==='nl-custom-answer'&&state.challenge){state.challenge.answer=t.value.slice(0,400);state.challenge.answerMode='manual';state.challenge.answerSource='';state.challenge.revealed=false;renderStage();return}
     if(t.id==='nl-custom-prompt'&&state.challenge&&CK){state.challenge.promptHtml=CK.sanitiseRichHtml(t.innerHTML);state.challenge.prompt=CK.plainText(state.challenge.promptHtml).slice(0,600);renderStage();return}
     if(t.id==='nl-tick-labels'){state.showTickLabels=t.checked;renderStage();return}
     if(t.id==='nl-line-label'){line.label=t.value.slice(0,30);const option=q('#nl-active-line')?.selectedOptions?.[0];if(option){const i=state.lines.findIndex(l=>l.id===line.id);option.textContent='Line '+(i+1)+(line.label?' · '+line.label:'')}renderStage();return}
@@ -1145,6 +1212,11 @@ function numberLineV2(){
     const t=e.target;
     if(['nl-min','nl-max','nl-step','nl-label-every','nl-line-min','nl-line-max','nl-line-step','nl-line-label-every'].includes(t.id)){state=normalise(state);renderAll();return}
     if(t.id==='nl-active-line'){state.activeLineId=t.value;renderControls();renderStage();return}
+    if(t.id==='nl-custom-answer-source'&&state.challenge){
+      const chosen=t.value;
+      if(!setCustomAnswerSource(chosen)){message('That answer source is no longer available.',true);renderControls();return}
+      renderAll();return;
+    }
     if(t.id==='nl-response-lines'){responseLines=clamp(Math.round(num(t.value,1)),1,4);renderControls();return}
   });
 
