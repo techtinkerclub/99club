@@ -62,6 +62,9 @@ function fractionText(value,denominator=4){
   if(whole===0)return sign+rem+'/'+d;
   return sign+whole+' '+rem+'/'+d;
 }
+function fractionFamilyName(d){
+  return ({2:'Halves',3:'Thirds',4:'Quarters',5:'Fifths',6:'Sixths',8:'Eighths',10:'Tenths',12:'Twelfths'})[d]||(d+'ths');
+}
 function lineValueText(line,value){
   if(line?.valueFormat==='fraction')return fractionText(value,line.denominator);
   if(line?.valueFormat==='percent')return fmt(cleanNumber(value*100))+'%';
@@ -345,7 +348,7 @@ function numberLineV2(){
         ${ch&&ch.answer?'<button class="gd-btn" id="nl-reveal" type="button">'+(ch.revealed?'Hide answer':'Reveal answer')+'</button>':''}
         ${ch?'<button class="gd-btn" id="nl-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':''}
       </div>
-      <p class="gd-help">Challenges use the current range and tick step. Difficulty comes from the scale, sparse labels and the reasoning required—not from a year-group switch.</p>`;
+      <p class="gd-help">Most challenges use the current range and tick step. Fraction/representation challenges temporarily build an appropriate aligned scale, then return to your setup when you finish.</p>`;
   }
   function markerOptions(line,selected){
     return line.markers.map(m=>'<option value="'+esc(m.id)+'"'+(m.id===selected?' selected':'')+'>'+esc(m.label||m.id)+' · '+fmt(m.value)+'</option>').join('');
@@ -911,7 +914,8 @@ function numberLineV2(){
       const d=[2,4,5,8][Math.floor(Math.random()*4)];
       state.min=0;state.max=3;state.step=1/d;state.labelEvery=d;state.showTickLabels=true;
       Object.assign(line,{label:'Mixed numbers',valueFormat:'fraction',denominator:d,tickStride:1,showLabels:true});
-      const n=d+1+Math.floor(Math.random()*(2*d-1)),value=cleanNumber(n/d);
+      const candidates=[];for(let n=d+1;n<3*d;n++)if(n%d)candidates.push(n);
+      const n=candidates[Math.floor(Math.random()*candidates.length)],value=cleanNumber(n/d);
       line.markers=[{id:'mFrac',label:'A',value,color:'#147d75',showValue:true,side:'above'}];
       state.challenge=challengeObject(type,'What mixed number is marker A pointing to?',fractionText(value,d),{hiddenMarkerIds:['mFrac']});
 
@@ -920,7 +924,7 @@ function numberLineV2(){
       const possible=[2,3].filter(k=>d1*k<=12),mult=possible[Math.floor(Math.random()*possible.length)]||2,d2=d1*mult;
       const n1=1+Math.floor(Math.random()*(d1-1)),value=cleanNumber(n1/d1);
       state.min=0;state.max=1;state.step=1/d2;state.labelEvery=1;state.showTickLabels=true;
-      const top=makeLine('l1',d1+'ths'),bottom=makeLine('l2',d2+'ths');
+      const top=makeLine('l1',fractionFamilyName(d1)),bottom=makeLine('l2',fractionFamilyName(d2));
       Object.assign(top,{valueFormat:'fraction',denominator:d1,tickStride:mult,showLabels:true});
       Object.assign(bottom,{valueFormat:'fraction',denominator:d2,tickStride:1,showLabels:false});
       top.markers=[{id:'mEqTop',label:'A',value,color:'#147d75',showValue:true,side:'above'}];
