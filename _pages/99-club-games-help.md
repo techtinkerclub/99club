@@ -1,14 +1,14 @@
 ---
 layout: default
-title: "Maths Games & Puzzle Guides"
-description: "Rules, worked examples and solving strategies for the printable and online maths games in 99 Club Studio."
+title: "Maths Games & Puzzles Help"
+description: "Help for 99 Club Studio Maths Games & Puzzles: choosing maths, configuring games, printable packs, online play, sharing and step-by-step game guides."
 permalink: /help/games/
 sidebar: false
 sitemap: true
 ---
 
 <link rel="stylesheet" href="/assets/99club/99club.css?v=20">
-<link rel="stylesheet" href="/assets/99club/games-help-guides.css?v=1.1.1">
+<link rel="stylesheet" href="/assets/99club/games-help-guides.css?v=1.2.0">
 
 <div id="main" class="tt99-page-main" role="main">
   <article class="splash">
@@ -16,27 +16,30 @@ sitemap: true
       <div class="tt99-guide">
         <div class="tt99-guide-hero">
           <div>
-            <span class="tt99-eyebrow">99 Club Studio</span>
-            <h1>Maths Games &amp; Puzzles help</h1>
-            <p>A complete guide to choosing the maths, selecting and configuring puzzles, building printable packs, using worked examples and understanding every game in the library.</p>
+            <span class="tt99-eyebrow">99 Club Studio · Games help</span>
+            <h1>Maths Games &amp; Puzzles Help</h1>
+            <p>Help for printable puzzle packs and Play Online: choose the maths, configure games, review and print, share practice, and open a step-by-step guide for any game.</p>
           </div>
           <a class="tt99-secondary tt99-guide-action" href="/games/">← Back to Games &amp; Puzzles</a>
         </div>
 
+        <nav class="tt99-help-area-switcher" aria-label="Choose help area">
+          <span>Help area</span>
+          <div>
+            <a href="/help/">99 Club</a>
+            <a class="is-active" href="/help/games/" aria-current="page">Maths Games &amp; Puzzles</a>
+          </div>
+        </nav>
+
         <div class="tt99-guide-note"><strong>Quick start:</strong> select one or more teaching focuses, pick compatible games, configure their difficulty, then generate and download the pupil sheets and matching answers.</div>
 
-        <nav class="tt99-guide-nav" aria-label="Games help topics">
-          <a href="#quick-start">Quick start</a>
-          <a href="#choose-maths">Choose the maths</a>
-          <a href="#choose-games">Choose games</a>
-          <a href="#difficulty">Difficulty &amp; options</a>
-          <a href="#packs">Build a pack</a>
-          <a href="#worked">Worked examples</a>
-          <a href="#preview">Preview &amp; replace</a>
-          <a href="#personalise">Personalise</a>
-          <a href="#downloads">PDFs &amp; answers</a>
-          <a href="#game-guides">How to play all games</a>
-          <a href="#troubleshooting">Troubleshooting</a>
+        <nav class="tt99-guide-nav" aria-label="Maths Games and Puzzles help topics">
+          <a href="#quick-start">Getting started</a>
+          <a href="#choose-maths">Choose maths &amp; games</a>
+          <a href="#difficulty">Configure &amp; build</a>
+          <a href="#preview">Review &amp; print</a>
+          <a href="#save-share">Save, share &amp; play online</a>
+          <a href="#game-guides">How to play &amp; troubleshooting</a>
         </nav>
 
         <section id="quick-start" class="tt99-guide-section">
@@ -69,8 +72,16 @@ sitemap: true
         <section id="choose-games" class="tt99-guide-section">
           <h2>Choose games without losing track of the library</h2>
           <p>The library is organised into accordion categories: <strong>Vocabulary &amp; language</strong>, <strong>Number patterns &amp; structures</strong>, <strong>Arithmetic &amp; calculation</strong>, <strong>Algebra &amp; relationships</strong>, and <strong>Number logic &amp; grids</strong>.</p>
-          <p>Open a category to see its compatible games. Tick games one by one, use <strong>Select compatible</strong> when you want the whole category, or use <strong>Clear</strong> / <strong>Clear all games</strong> to start again. Categories containing selected games remain highlighted and show their selected count.</p>
+          <div class="tt99-guide-family-grid">
+            <article><h3>Vocabulary &amp; language</h3><p>Maths Word Search and Maths Crossword use the curated maths vocabulary catalogue. Word Search can use words + definitions or definitions only, with automatic or teacher-selected directions; multi-word Crossword answers show their word lengths.</p></article>
+            <article><h3>Number patterns &amp; structures</h3><p>Pyramids, magic-number activities, arithmagons, number trails and wheels practise arithmetic relationships, inverse reasoning and patterns.</p></article>
+            <article><h3>Arithmetic &amp; calculation</h3><p>Mazes, crossnumbers, number searches, equation grids, target challenges, calculator puzzles, Kakuro, arithmetic cages and Sumplete turn calculation into compact puzzles.</p></article>
+            <article><h3>Algebra &amp; relationships</h3><p>Symbol equations, function machines, balance puzzles and Alphametics use unknowns, equality, inverse operations and digit reasoning.</p></article>
+            <article><h3>Number logic &amp; grids</h3><p>Sudoku, Futoshiki, Nonograms, Number Path, Towers, Takuzu, Killer Sudoku, Hashi and related logic games focus on deduction from concise numerical or spatial rules.</p></article>
+          </div>
+          <p>Open a category to see its compatible games. Tick games one by one, use <strong>Select compatible</strong> when you want the whole category, or use <strong>Clear</strong> / <strong>Clear all games</strong> to start again. Categories containing selected games remain highlighted and show their selected count; selecting a game does not collapse the category.</p>
           <p>The <strong>Selected games</strong> tray is the quickest way to review the final pack. It shows each included puzzle and a short summary of the saved configuration.</p>
+          <div class="tt99-guide-note"><strong>Generated logic puzzles are checked before use.</strong> The generators validate their rules and, where a puzzle type is designed to require one solution, uniqueness is checked before the puzzle is accepted.</div>
         </section>
 
         <section id="difficulty" class="tt99-guide-section tt99-guide-highlight">
@@ -123,6 +134,24 @@ sitemap: true
           <p>Downloaded PDFs use a fixed A4 layout, so print dimensions remain consistent even if the on-screen preview looks slightly different.</p>
         </section>
 
+        <section id="save-share" class="tt99-guide-section">
+          <h2>Save, share &amp; play online</h2>
+
+          <h3>Save and restore a puzzle setup</h3>
+          <p>Use <strong>Save puzzle setup</strong> when you have a pack configuration you want to keep or hand to a colleague. The saved setup preserves the selected teaching focus, games, difficulty/options and saved vocabulary needed to rebuild that configuration. <strong>Restore puzzle setup</strong> loads it again without requiring you to recreate the pack by hand.</p>
+
+          <h3>Share printable practice with families</h3>
+          <p><strong>Create parent link</strong> turns the current puzzle-pack setup into a simplified family-facing page. Parents do not see the full teacher editor: the school-selected settings stay fixed and a fresh puzzle pack with matching answers is generated whenever they download one.</p>
+          <p>If school identity was included in the shared setup, parent-generated PDFs use the public school name/logo and print the date the pack is generated. If the shared activity uses entries from <strong>My vocabulary</strong>, the terms and definitions required for that activity travel with the shared setup.</p>
+
+          <h3>Put the games on a school website</h3>
+          <p>A printable puzzle setup can be published as an ordinary link/button, a ready-made card or PNG image, or as part of a Maths Games Widget. The dedicated <a href="/schools/">School Website Integration Help</a> explains the supported methods, updating published practice and handing the setup to another member of staff.</p>
+
+          <h3>Play Online</h3>
+          <p><a href="/play/">Play Online</a> uses the same game family for browser-based practice. Pupils can choose a game and use Relaxed mode for untimed solving or Challenge mode when they want to race their own time. The <strong>How to play</strong> guides below apply to the puzzle rules whether the activity is opened online or printed.</p>
+          <div class="tt99-guide-note"><strong>Printable and online are two ways of using the same Games area.</strong> Printable Games is for teacher-built packs and PDFs; Play Online is for solving an individual generated game in the browser.</div>
+        </section>
+
         <section id="game-guides" class="tt99-guide-section tt99-guide-highlight">
           <h2>How to play every game</h2>
           <div class="tt99-game-guide-intro">
@@ -141,7 +170,7 @@ sitemap: true
             <article><h3>The preview looks cramped</h3><p>The browser preview is a working preview. Check the PDF before judging print layout; the PDF exporter uses its own fixed A4 geometry.</p></article>
             <article><h3>A puzzle is not suitable</h3><p>Use ↻ to replace only that activity, or change that game’s difficulty/options and generate a new version.</p></article>
             <article><h3>I want the full game rules</h3><p>Use the searchable How to play library above. Each guide can be printed separately for pupils.</p></article>
-            <article><h3>Something looks genuinely broken</h3><p>Keep the game name, difficulty and selected options if possible. Those details make a generator problem much easier to reproduce.</p></article>
+            <article><h3>Something looks genuinely broken</h3><p>Keep the game name, difficulty and selected options if possible. Those details make a generator problem much easier to reproduce, then use <a href="/contact/">Contact</a> to send the details.</p></article>
           </div>
         </section>
       </div>

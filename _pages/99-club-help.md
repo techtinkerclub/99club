@@ -1,14 +1,14 @@
 ---
 layout: default
-title: "Help for Teachers"
-description: "Teacher guide to 99 Club Studio worksheets, challenge schemes, settings, printing, QR recreation and classroom use."
+title: "99 Club Help"
+description: "Help for 99 Club worksheets and challenges: progression schemes, rules, reviewing, printing, saving, sharing and exact worksheet recreation."
 permalink: /help/
 sidebar: false
 sitemap: true
 ---
 
 <link rel="stylesheet" href="/assets/99club/99club.css?v=20">
-<link rel="stylesheet" href="/assets/99club/games-help-guides.css?v=1.0.1">
+<link rel="stylesheet" href="/assets/99club/games-help-guides.css?v=1.2.0">
 
 <div id="main" class="tt99-page-main" role="main">
   <article class="splash">
@@ -16,27 +16,30 @@ sitemap: true
 <div class="tt99-guide">
   <div class="tt99-guide-hero">
     <div>
-      <span class="tt99-eyebrow">99 Club Studio</span>
-      <h1>Help for teachers</h1>
-      <p>Everything you need to create, review, save and recreate 99 Club progression sheets, plus searchable, printable guides for every current Maths Games &amp; Puzzles activity.</p>
+      <span class="tt99-eyebrow">99 Club Studio · 99 Club help</span>
+      <h1>99 Club Help</h1>
+      <p>Everything you need to create, review, save, share and recreate 99 Club progression sheets and post-99 challenges.</p>
     </div>
     <a class="tt99-secondary tt99-guide-action" href="/">← Back to 99 Club</a>
   </div>
 
+  <nav class="tt99-help-area-switcher" aria-label="Choose help area">
+    <span>Help area</span>
+    <div>
+      <a class="is-active" href="/help/" aria-current="page">99 Club</a>
+      <a href="/help/games/">Maths Games &amp; Puzzles</a>
+    </div>
+  </nav>
+
   <div class="tt99-guide-note"><strong>Quick start:</strong> add your school details, leave <b>Classic 99 Club</b> selected, choose a challenge, check the short rule summary, then generate and download. The standard Classic default is 5 minutes and three perfect attempts; the attempts do not need to be consecutive.</div>
 
-  <nav class="tt99-guide-nav" aria-label="Help topics">
-    <a href="#workflow">Making a sheet</a>
-    <a href="#games">Games &amp; puzzles</a>
-    <a href="#game-guides">How to play guides</a>
-    <a href="#review">Reviewing questions</a>
-    <a href="#schemes">Challenges</a>
-    <a href="#rules">Changing rules</a>
-    <a href="#extras">Post-99 extras</a>
-    <a href="#fractions">Fractions</a>
-    <a href="#saving">Saving & sharing</a>
-    <a href="#recreate">Recreating a sheet</a>
-    <a href="#recovery">Recovery examples</a>
+  <nav class="tt99-guide-nav" aria-label="99 Club help topics">
+    <a href="#workflow">Getting started</a>
+    <a href="#schemes">Challenges &amp; maths</a>
+    <a href="#review">Review &amp; print</a>
+    <a href="#saving">Save, reuse &amp; recreate</a>
+    <a href="#home-practice">Home practice &amp; school use</a>
+    <a href="#recovery">Common situations</a>
   </nav>
 
   <section id="workflow" class="tt99-guide-section">
@@ -49,44 +52,7 @@ sitemap: true
     </div>
   </section>
 
-  <section id="games" class="tt99-guide-section tt99-guide-highlight">
-    <h2>Maths Games &amp; Puzzles</h2>
-    <p>The separate <a href="/games/">Games &amp; Puzzles</a> page builds printable independent activities from a library of maths games and puzzles. The library is organised into <strong>accordion categories</strong> so a large puzzle catalogue stays manageable.</p>
-    <p><strong>Choose games by category.</strong> Open a category, tick individual games, use <strong>Select compatible</strong> to include the games that genuinely fit the chosen year/topics, or use <strong>Clear</strong> / <strong>Clear all games</strong>. Categories with selected games are highlighted and show their selected count. Opening or selecting a game does not collapse the category.</p>
-    <p><strong>Each game keeps its own setup.</strong> Press <strong>Configure</strong> beside a selected game to change its difficulty and specialist options, then press <strong>Done</strong> to fully collapse the setup. The selected-games tray keeps a compact summary of the saved choices.</p>
-    <p><strong>Vocabulary &amp; language:</strong> Maths Word Search and Maths Crossword share the curated maths vocabulary catalogue. Word Search can show <strong>words + definitions</strong> or <strong>definitions only</strong>, with automatic or teacher-selected directions. Multi-word crossword clues show answer lengths such as <strong>(5, 5)</strong>.</p>
-    <p><strong>Number patterns &amp; structures:</strong> Number Pyramid, Magic Squares, Arithmagons, Magic Number Shapes, Number Trails &amp; Snakes, and Number Wheels / Flowers / Diamonds practise arithmetic relationships, inverse reasoning and patterns.</p>
-    <p><strong>Arithmetic &amp; calculation:</strong> Correct-Answer Maze, Number Property Maze, Maths Crossnumber, Number Search, Arithmetic Equation Crossgrid, Target Number Challenge, Broken Calculator, Missing Operations, Kakuro / Cross Sums, Arithmetic Cages and Sumplete / Cross-Out Sums turn calculation into compact puzzles.</p>
-    <p><strong>Algebra &amp; relationships:</strong> Symbol Equations, Function Machines, Balance the Equation and Word Codes / Alphametics introduce unknowns, inverse operations, equality and digit reasoning where the selected year/topic makes them appropriate.</p>
-    <p><strong>Number logic &amp; grids:</strong> Sudoku &amp; Latin Squares, Futoshiki, Nonograms / Number Pictures, Number Path, Number Towers / Skyscrapers, Binary Puzzle / Takuzu, Killer Sudoku / Sum Sudoku, Bridges / Hashi and Maths Mines / Hidden Gems use concise numerical and spatial rules rather than story-based logic. Generated puzzles are validated, and uniqueness is checked where the puzzle type requires one solution.</p>
-    <p><strong>Worked examples</strong> can be added at the front of a pack. Each selected game provides child-facing Goal, Rules, Worked steps, Tip and Watch-out guidance using separate practice data.</p>
-    <p><strong>Personalise the pack</strong> with an editable title, school name, optional class/year label, optional date and school logo. These details are remembered locally on that browser and appear consistently on pupil sheets, worked examples and teacher answers.</p>
-    <div class="tt99-guide-note"><strong>Review before printing:</strong> use ↻ on a whole game to replace only that activity. In Word Search, a smaller ↻ beside an individual clue replaces only that term + definition pair while keeping the other selected terms.</div>
-    <p>Downloads follow the main 99 Club model: <strong>Pupil sheets PDF</strong>, <strong>Answer key PDF</strong>, or <strong>Pupil sheets + answers</strong> in one combined pack.</p>
-  </section>
-
-  <section id="game-guides" class="tt99-guide-section tt99-guide-highlight">
-    <h2>How to play every game</h2>
-    <div class="tt99-game-guide-intro">
-      <p>This library covers all <strong>32 current one-player games</strong>. Search by game name or filter by category, then open a pupil-friendly one-page guide. Every guide uses a fixed worked example, so the explanation never changes underneath a teacher or pupil, and <strong>Print this guide</strong> produces a clean A4 reference sheet without the surrounding Help page.</p>
-      <span class="tt99-game-guide-count" aria-label="32 game guides">32</span>
-    </div>
-    <div class="tt99-guide-note"><strong>These guides explain the rules; they do not generate puzzles.</strong> Opening or printing a guide does not change your current worksheet or answers.</div>
-    <div id="tt99-game-guide-root"><noscript>Enable JavaScript to search and open the individual game guides.</noscript></div>
-  </section>
-
-  <section id="review" class="tt99-guide-section tt99-guide-highlight">
-    <h2>Review the questions before you print</h2>
-    <p>The preview is meant to be editable. If one question is not suitable, use the circular-arrow button beside it to replace just that question. On desktop the button appears when you move over the question; on a touch screen it stays visible.</p>
-    <div class="tt99-guide-note"><strong>Replacement stays in the same category.</strong> A fraction is replaced by another fraction, a square root by another square root, a multiplication fact by another multiplication fact, and so on. The replacement also follows the rules currently selected for that category.</div>
-    <p>You can replace the same question more than once. 99 Club Studio keeps the <strong>final reviewed worksheet</strong> for the recreate/QR feature; discarded versions are not included.</p>
-    <p><b>Shuffle questions</b> changes the order without changing the challenge rules. If you later recreate the sheet using its Full recreation code or teacher QR, the final reviewed order is restored.</p>
-    <p>The level is shown by its <strong>achievement badge in the top-right of the sheet</strong>. The badge replaces the old repeated text title, so the worksheet stays cleaner while the child can still see immediately which stage they are working on.</p>
-    <p><strong>The preview follows the same page layout as the downloaded PDF.</strong> Headers, QR panel, question positions, column spacing and footer therefore use the same A4 coordinates. A browser and a PDF viewer may anti-alias text slightly differently, but the page geometry is the same.</p>
-    <p>On a phone, the preview keeps the real page proportions instead of squeezing the worksheet into the screen width. The preview is shown at a readable size inside a horizontal scroller; swipe sideways to inspect the rest of a portrait or landscape page. Tap a question to reveal its ↻ replacement control.</p>
-  </section>
-
-  <section id="schemes" class="tt99-guide-section">
+<section id="schemes" class="tt99-guide-section">
     <h2>Challenges and schemes</h2>
     <p>Schools use several versions of the 99 Club idea, so 99 Club Studio provides presets rather than claiming that one progression is nationally official. <strong>Classic 99 Club</strong> is the standard starting scheme in this app.</p>
 
@@ -176,6 +142,17 @@ sitemap: true
     <p>As with fractions, The generator chooses suitable quantities so the generated answer is a whole number.</p>
   </section>
 
+  <section id="review" class="tt99-guide-section tt99-guide-highlight">
+      <h2>Review the questions before you print</h2>
+      <p>The preview is meant to be editable. If one question is not suitable, use the circular-arrow button beside it to replace just that question. On desktop the button appears when you move over the question; on a touch screen it stays visible.</p>
+      <div class="tt99-guide-note"><strong>Replacement stays in the same category.</strong> A fraction is replaced by another fraction, a square root by another square root, a multiplication fact by another multiplication fact, and so on. The replacement also follows the rules currently selected for that category.</div>
+      <p>You can replace the same question more than once. 99 Club Studio keeps the <strong>final reviewed worksheet</strong> for the recreate/QR feature; discarded versions are not included.</p>
+      <p><b>Shuffle questions</b> changes the order without changing the challenge rules. If you later recreate the sheet using its Full recreation code or teacher QR, the final reviewed order is restored.</p>
+      <p>The level is shown by its <strong>achievement badge in the top-right of the sheet</strong>. The badge replaces the old repeated text title, so the worksheet stays cleaner while the child can still see immediately which stage they are working on.</p>
+      <p><strong>The preview follows the same page layout as the downloaded PDF.</strong> Headers, QR panel, question positions, column spacing and footer therefore use the same A4 coordinates. A browser and a PDF viewer may anti-alias text slightly differently, but the page geometry is the same.</p>
+      <p>On a phone, the preview keeps the real page proportions instead of squeezing the worksheet into the screen width. The preview is shown at a readable size inside a horizontal scroller; swipe sideways to inspect the rest of a portrait or landscape page. Tap a question to reveal its ↻ replacement control.</p>
+    </section>
+
   <section id="teacher-note" class="tt99-guide-section">
     <h2>Teacher note on the answer sheet</h2>
     <p>Step 4 includes an optional teacher note of up to <strong>240 characters</strong>. It prints only at the end of the answer sheet, never on the pupil worksheet. Use it for brief future-reference notes such as a class misconception, a reminder to revisit a topic, or the reason a particular variant was used.</p>
@@ -202,9 +179,15 @@ sitemap: true
 
     <div class="tt99-guide-note"><strong>Cache and site data are different.</strong> Clearing an ordinary browser cache normally leaves 99 Club Studio's saved data alone. Clearing site data/storage, using private browsing, changing browser profile, or moving to another device can remove it. Download a Full backup for anything you would be unhappy to lose.</div>
 
-    <h3>Sharing home practice on the school website</h3>
-    <p>Schools can share parent-practice links as normal buttons, ready-made cards, downloadable PNG tiles or optional widgets. See the <a href="/schools/">school website guide</a> for examples and setup instructions.</p>
-    <p><a class="tt99-secondary" href="/schools/"><strong>School website integration help - full step-by-step guide →</strong></a></p>
+  </section>
+
+  <section id="home-practice" class="tt99-guide-section tt99-guide-highlight">
+    <h2>Home practice &amp; school use</h2>
+    <p>99 Club practice can be shared with families without giving parents the full teacher editor. A parent-practice link keeps the school's chosen Club level and maths rules fixed, then creates a fresh worksheet and matching answers each time the parent downloads one.</p>
+    <p>Parent-generated sheets use the school's public name and logo when those were included in the shared setup, and print the date the sheet is generated rather than carrying an old teacher-entered worksheet date.</p>
+    <p>Schools can publish those practice choices as ordinary links or buttons, ready-made cards, downloadable PNG tiles, or an optional 99 Club website widget.</p>
+    <div class="tt99-guide-note"><strong>Need to put it on a school website?</strong> The separate School Website Integration guide covers links, cards, widgets, updating published practice and handing the setup to another member of staff.</div>
+    <p><a class="tt99-secondary" href="/schools/"><strong>Open School Website Integration Help →</strong></a></p>
   </section>
 
   <section id="recreate" class="tt99-guide-section">
@@ -241,5 +224,3 @@ sitemap: true
     </section>
   </article>
 </div>
-
-<script src="/assets/99club/games-help-guides.js?v=1.0.0" defer></script>

@@ -51,7 +51,28 @@ for(const cls of ['tt99-guide-mini-perimeter .region','tt99-guide-mini-mobile .b
 }
 
 const page=fs.readFileSync(path.join(ROOT,'_pages/99-club-games-help.md'),'utf8');
+const clubHelp=fs.readFileSync(path.join(ROOT,'_pages/99-club-help.md'),'utf8');
 const stated=Number((page.match(/covers all <strong>(\d+) current one-player games<\/strong>/)||[])[1]||0);
+
+// Help information architecture: game-specific guidance has one canonical home.
+if(/id=["']tt99-game-guide-root["']/.test(clubHelp)){
+  console.error('99 Club Help must not embed the Games guide library.');process.exitCode=1;
+}
+if(/games-help-guides\.js/.test(clubHelp)){
+  console.error('99 Club Help must not load the Games guide runtime.');process.exitCode=1;
+}
+if(!/class=["'][^"']*tt99-help-area-switcher/.test(clubHelp)||!clubHelp.includes('href="/help/games/"')){
+  console.error('99 Club Help is missing the Help-area switcher.');process.exitCode=1;
+}
+if(!/class=["'][^"']*tt99-help-area-switcher/.test(page)||!page.includes('href="/help/"')){
+  console.error('Games Help is missing the Help-area switcher.');process.exitCode=1;
+}
+for(const required of ['id="save-share"','href="/play/"','href="/schools/"','id="tt99-game-guide-root"']){
+  if(!page.includes(required)){console.error('Games Help is missing required consolidated content: '+required);process.exitCode=1;}
+}
+for(const required of ['id="workflow"','id="schemes"','id="review"','id="saving"','id="home-practice"','id="recreate"','id="recovery"']){
+  if(!clubHelp.includes(required)){console.error('99 Club Help is missing required section: '+required);process.exitCode=1;}
+}
 if(missing.length)console.error('Missing one-page guides for runtime games: '+missing.join(', '));
 if(orphan.length)console.warn('Guides without an online runtime adapter: '+orphan.join(', '));
 if(stated!==runtime.length)console.error(`Help page says ${stated} games but runtime registered ${runtime.length}.`);
