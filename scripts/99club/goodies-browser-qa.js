@@ -49,6 +49,37 @@ if(mode==='prepare'){
     TT99Goodies.numberLine();
     assert(document.querySelectorAll('[data-nl-workflow]').length===4,'Number Line exposes four teacher workflow tabs');
     assert(document.querySelector('[data-nl-panel="setup"]'),'Number Line opens on Setup');
+
+    document.getElementById('nl-add-line').click();
+    assert(document.getElementById('nl-active-line').value==='l2','New comparison line becomes active');
+    const ownScale=document.querySelector('[data-nl-scale-mode="own"]');
+    assert(ownScale&&!ownScale.disabled,'Extra line can switch to its own scale');
+    ownScale.click();
+    const setInput=(id,value)=>{const el=document.getElementById(id);assert(el,'Expected scale input '+id);el.value=String(value);el.dispatchEvent(new Event('input',{bubbles:true}))};
+    setInput('nl-line-max',200);
+    setInput('nl-line-min',100);
+    setInput('nl-line-step',10);
+    setInput('nl-line-label-every',2);
+    document.querySelector('[data-nl-workflow="objects"]').click();
+    document.getElementById('nl-add-marker').click();
+    const ownMarker=document.querySelector('[data-line-id="l2"][data-marker-hit]');
+    assert(ownMarker,'Independent line accepts its own marker');
+    const ownValue=document.querySelector('[data-marker-value]');
+    assert(ownValue&&Number(ownValue.value)===150,'New marker uses the midpoint of the independent 100–200 scale');
+    assert(Number(ownValue.step)===10,'Marker editing uses the independent line tick step');
+    const ownCx=Number(ownMarker.querySelector('circle').getAttribute('cx'));
+    assert(Math.abs(ownCx-525)<3,'Independent-scale midpoint renders at the centre of its own line');
+    const ownText=document.getElementById('nl-svg').textContent;
+    assert(ownText.includes('100')&&ownText.includes('200'),'Independent line renders its own endpoint labels');
+    assert(ownText.includes('-10')&&ownText.includes('20'),'Main line keeps its original scale');
+
+    document.querySelector('[data-nl-workflow="setup"]').click();
+    document.querySelector('[data-nl-scale-mode="shared"]').click();
+    document.querySelector('[data-nl-workflow="objects"]').click();
+    const sharedValue=document.querySelector('[data-marker-value]');
+    assert(sharedValue&&Number(sharedValue.value)<=20,'Returning to aligned scale clamps the marker to the main scale');
+
+    TT99Goodies.numberLine();
     document.querySelector('[data-nl-workflow="challenge"]').click();
     const standardCards=document.querySelectorAll('[data-nl-challenge-type]');
     assert(standardCards.length>=2,'Standard challenge cards are shown (found '+standardCards.length+'): '+String(document.getElementById('nl-controls')?.innerHTML||'').slice(0,500));
