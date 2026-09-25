@@ -510,7 +510,14 @@ function numberLineV2(){
 
   function controlsHtml(){
     const line=activeLine(),lineIndex=state.lines.indexOf(line),activeScale=scaleFor(line),lineHasLinkedMarkers=line.markers.some(m=>m.syncGroup);
-    const lineOptions=state.lines.map((l,i)=>'<option value="'+esc(l.id)+'"'+(l.id===state.activeLineId?' selected':'')+'>Line '+(i+1)+(l.label?' · '+esc(l.label):'')+'</option>').join('');
+    const lineOptions=state.lines.map((l,i)=>'<option value="'+esc(l.id)+'"'+(l.id===state.activeLineId?' selected':'')+'>Line '+(i+1)+(l.label?' · '+esc(l.label):'')+(i>0?' · '+scaleModeLabel(l.scaleMode):'')+'</option>').join('');
+    const lineModeHelp=line.scaleMode==='zoom'
+      ?'The highlighted interval on the main line is enlarged across this line.'
+      :line.scaleMode==='linked'
+        ?'Matching horizontal positions represent equivalent quantities on a proportional double number line.'
+        :line.scaleMode==='own'
+          ?'This line uses the full width independently; equal positions do not imply equal values.'
+          :'Equal values line up vertically with the main scale.';
     const markerRows=line.markers.map(m=>`
       <div class="nl-marker-card" data-marker-row="${esc(m.id)}">
         <div class="nl-object-card-main">
@@ -565,24 +572,34 @@ function numberLineV2(){
         <div class="nl-panel-title nl-panel-title--compact"><div><strong>Lines</strong><span>${state.lines.length} of 4</span></div></div>
         <label class="gd-field"><span>Editing</span><select class="gd-select" id="nl-active-line">${lineOptions}</select></label>
         <label class="gd-field"><span>Line label (optional)</span><input class="gd-input" id="nl-line-label" maxlength="30" value="${esc(line.label)}" placeholder="e.g. Fractions"></label>
-        ${lineIndex>0?`<div class="nl-scale-mode" role="group" aria-label="Scale for this line">
-          <button type="button" class="${line.scaleMode!=='own'?'is-active':''}" data-nl-scale-mode="shared">Align to main scale</button>
-          <button type="button" class="${line.scaleMode==='own'?'is-active':''}" data-nl-scale-mode="own"${lineHasLinkedMarkers?' disabled title="Linked challenge lines stay aligned."':''}>Own scale</button>
-        </div>`:'<p class="gd-help nl-main-scale-note">This is the main scale. Extra lines can either align to it or use their own scale.</p>'}
-        ${line.scaleMode==='own'?`<div class="nl-own-scale">
+        ${lineIndex>0?`<div class="nl-scale-mode nl-scale-mode--four" role="group" aria-label="Purpose of this line">
+          <button type="button" class="${line.scaleMode==='shared'?'is-active':''}" data-nl-scale-mode="shared">Aligned</button>
+          <button type="button" class="${line.scaleMode==='own'?'is-active':''}" data-nl-scale-mode="own"${lineHasLinkedMarkers?' disabled title="Linked challenge lines stay aligned."':''}>Independent</button>
+          <button type="button" class="${line.scaleMode==='zoom'?'is-active':''}" data-nl-scale-mode="zoom"${lineHasLinkedMarkers?' disabled title="Linked challenge lines stay aligned."':''}>Zoom</button>
+          <button type="button" class="${line.scaleMode==='linked'?'is-active':''}" data-nl-scale-mode="linked"${lineHasLinkedMarkers?' disabled title="Linked challenge lines stay aligned."':''}>Double line</button>
+        </div>`:'<p class="gd-help nl-main-scale-note">This is the main scale. Extra lines can align, stand alone, zoom into it, or form a proportional double number line.</p>'}
+        ${lineIndex>0&&line.scaleMode!=='shared'?`<div class="nl-own-scale" data-line-scale-editor="${esc(line.scaleMode)}">
           <div class="nl-two">
-            <label class="gd-field"><span>Line minimum</span><input class="gd-input" id="nl-line-min" type="number" value="${fmt(line.min)}"></label>
-            <label class="gd-field"><span>Line maximum</span><input class="gd-input" id="nl-line-max" type="number" value="${fmt(line.max)}"></label>
+            <label class="gd-field"><span>${line.scaleMode==='zoom'?'Zoom from':line.scaleMode==='linked'?'Linked minimum':'Line minimum'}</span><input class="gd-input" id="nl-line-min" type="number" value="${fmt(line.min)}"></label>
+            <label class="gd-field"><span>${line.scaleMode==='zoom'?'Zoom to':line.scaleMode==='linked'?'Linked maximum':'Line maximum'}</span><input class="gd-input" id="nl-line-max" type="number" value="${fmt(line.max)}"></label>
           </div>
           <div class="nl-two">
             <label class="gd-field"><span>Tick step</span><input class="gd-input" id="nl-line-step" type="number" min="0.0001" step="any" value="${fmt(line.step)}"></label>
             <label class="gd-field"><span>Label every</span><input class="gd-input" id="nl-line-label-every" type="number" min="1" max="50" value="${line.labelEvery}"></label>
           </div>
+          ${line.scaleMode==='zoom'?'<button class="gd-btn nl-fit-zoom" id="nl-fit-zoom-markers" type="button">Fit zoom to main markers</button>':''}
         </div>`:''}
-        ${lineIndex>0?`<label class="nl-check"><input id="nl-line-labels" type="checkbox"${line.showLabels?' checked':''}> Show number labels on this line</label>`:''}
-        ${lineIndex>0&&line.scaleMode==='shared'?'<p class="gd-help">Aligned lines use the same physical scale, so equal values sit directly above one another.</p>':''}
-        ${lineIndex>0&&line.scaleMode==='own'?'<p class="gd-help">Own scale uses the full line width independently. Positions no longer align numerically with the main line.</p>':''}
-        <div class="gd-row"><button class="gd-btn" id="nl-add-line" type="button"${state.lines.length>=4?' disabled':''}>+ Add line</button>${state.lines.length>1?'<button class="gd-btn gd-btn--danger" id="nl-delete-line" type="button">Remove line</button>':''}</div>
+        ${lineIndex>0?`<label class="nl-check"><input id="nl-line-labels" type="checkbox"${line.showLabels?' checked':''}> Show number labels on this line</label><p class="gd-help nl-line-mode-help">${lineModeHelp}</p>`:''}
+        <div class="nl-add-line-row">
+          <label class="gd-field nl-add-line-kind"><span>Add teaching line</span><select class="gd-select" id="nl-new-line-mode">
+            <option value="shared">Aligned comparison</option>
+            <option value="own">Independent scale</option>
+            <option value="zoom">Zoomed interval</option>
+            <option value="linked">Double number line</option>
+          </select></label>
+          <button class="gd-btn" id="nl-add-line" type="button"${state.lines.length>=4?' disabled':''}>+ Add</button>
+        </div>
+        ${state.lines.length>1?'<button class="gd-btn gd-btn--danger nl-remove-line" id="nl-delete-line" type="button">Remove selected line</button>':''}
         <div class="nl-section-rule"></div>
         <button class="gd-btn gd-btn--danger nl-reset-compact" id="nl-reset" type="button">Reset number line</button>
       </section>`;
