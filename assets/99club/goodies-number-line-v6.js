@@ -946,11 +946,52 @@ function numberLineV2(){
     remember();
     const id=nextId('r',line.relations);line.relations.push({id,from:line.markers[0].id,to:line.markers[1].id,type:'difference',color:'#52666d',label:'',showLabel:true,side:'above'});renderAll();
   }
-  function addLine(){
+  function defaultZoomRange(){
+    const main=state.lines[0],values=(main?.markers||[]).slice(0,2).map(m=>m.value).filter(Number.isFinite);
+    if(values.length===2&&Math.abs(values[0]-values[1])>=state.step/1000){
+      const lo=clamp(Math.min(...values),state.min,state.max),hi=clamp(Math.max(...values),state.min,state.max);
+      if(hi>lo)return {min:cleanNumber(lo),max:cleanNumber(hi)};
+    }
+    const span=state.max-state.min;
+    let lo=snapToScale(state.min+span/3,state),hi=snapToScale(state.min+span*2/3,state);
+    if(hi<=lo){lo=state.min;hi=Math.min(state.max,state.min+Math.max(state.step,span/2))}
+    return {min:cleanNumber(lo),max:cleanNumber(hi)};
+  }
+  function setLineScaleMode(line,mode,{fresh=false}={}){
+    if(!line||line===state.lines[0])return;
+    const allowed=['shared','own','zoom','linked'];
+    mode=allowed.includes(mode)?mode:'shared';
+    if(line.markers.some(m=>m.syncGroup)&&mode!=='shared')return;
+    const previous=line.scaleMode;
+    line.scaleMode=mode;
+    if(mode==='shared'){
+      line.markers.forEach(m=>m.value=snapOnLine(m,line));
+      return;
+    }
+    line.showLabels=true;
+    if(mode==='zoom'){
+      const z=(fresh||previous==='shared')?defaultZoomRange():{
+        min:clamp(line.min,state.min,state.max),
+        max:clamp(line.max,state.min,state.max)
+      };
+      line.min=z.min;line.max=z.max>z.min?z.max:Math.min(state.max,z.min+Math.max(state.step,0.0001));
+      line.step=Math.max(0.0001,Math.min(line.max-line.min,state.step));
+      line.labelEvery=1;
+      if(!line.label||/^Line \d+$/.test(line.label))line.label='Zoom';
+    }else{
+      if(fresh||previous==='shared'){
+        line.min=state.min;line.max=state.max;line.step=state.step;line.labelEvery=state.labelEvery;
+      }
+      if(mode==='linked'&&(!line.label||/^Line \d+$/.test(line.label)))line.label='Double line';
+    }
+    line.markers.forEach(m=>m.value=snapOnLine(m,line));
+  }
+  function addLine(mode='shared'){
     if(state.lines.length>=4)return;
     remember();
     const id=nextId('l',state.lines),index=state.lines.length;
-    state.lines.push({id,label:'Line '+(index+1),showLabels:false,scaleMode:'shared',min:state.min,max:state.max,step:state.step,labelEvery:state.labelEvery,valueFormat:'number',denominator:4,tickStride:1,showConsecutiveDifferences:false,consecutiveSide:'above',markers:[],relations:[]});state.activeLineId=id;controlTab='setup';renderAll();
+    const line={id,label:'Line '+(index+1),showLabels:mode!=='shared',scaleMode:'shared',min:state.min,max:state.max,step:state.step,labelEvery:state.labelEvery,valueFormat:'number',denominator:4,tickStride:1,showConsecutiveDifferences:false,consecutiveSide:'above',markers:[],relations:[]};
+    state.lines.push(line);state.activeLineId=id;setLineScaleMode(line,mode,{fresh:true});controlTab='setup';renderAll();
   }
   function randomTick(){
     const count=Math.max(1,Math.floor((state.max-state.min)/state.step+1e-8));
@@ -1178,7 +1219,7 @@ function numberLineV2(){
     if(name==='0-100'){state.min=0;state.max=100;state.step=10;state.labelEvery=1}
     if(name==='negative'){state.min=-10;state.max=10;state.step=1;state.labelEvery=1}
     if(name==='decimal'){state.min=0;state.max=1;state.step=.1;state.labelEvery=1}
-    state.lines.filter(line=>line.scaleMode!=='own').forEach(line=>line.markers.forEach(m=>m.value=snapOnLine(m.value,line)));renderAll();
+    state.lines.filter(line=>line.scaleMode==='shared').forEach(line=>line.markers.forEach(m=>m.value=snapOnLine(m.value,line)));renderAll();
   }
   function exportName(){
     const ch=state.challenge;
@@ -1269,16 +1310,10 @@ function numberLineV2(){
     if(b.dataset.nlWorkflow){controlTab=b.dataset.nlWorkflow;renderControls();return}
     if(b.dataset.nlScaleMode){
       const idx=state.lines.indexOf(line);if(idx<=0)return;
-      const mode=b.dataset.nlScaleMode==='own'?'own':'shared';
-      if(mode==='own'&&line.markers.some(m=>m.syncGroup)){message('Linked challenge lines stay aligned to the main scale.',true);return}
+      const mode=['shared','own','zoom','linked'].includes(b.dataset.nlScaleMode)?b.dataset.nlScaleMode:'shared';
+      if(mode!=='shared'&&line.markers.some(m=>m.syncGroup)){message('Linked challenge lines stay aligned to the main scale.',true);return}
       if(line.scaleMode===mode)return;
-      remember();
-      if(mode==='own'){
-        line.scaleMode='own';line.min=state.min;line.max=state.max;line.step=state.step;line.labelEvery=state.labelEvery;line.showLabels=true;
-      }else{
-        line.scaleMode='shared';line.markers.forEach(m=>m.value=snapOnLine(m,line));
-      }
-      renderAll();return;
+      remember();setLineScaleMode(line,mode);renderAll();return;
     }
     if(b.dataset.nlObjectTab){objectTab=b.dataset.nlObjectTab;renderControls();return}
     if(b.dataset.nlExportMode){exportMode=b.dataset.nlExportMode==='challenge'&&state.challenge?'challenge':'diagram';renderControls();return}
@@ -1295,7 +1330,8 @@ function numberLineV2(){
     if(b.dataset.nlPreset){applyPreset(b.dataset.nlPreset);return}
     if(b.id==='nl-add-marker'){addMarker();return}
     if(b.id==='nl-add-relation'){addRelation();return}
-    if(b.id==='nl-add-line'){addLine();return}
+    if(b.id==='nl-add-line'){addLine(q('#nl-new-line-mode')?.value||'shared');return}
+    if(b.id==='nl-fit-zoom-markers'&&line.scaleMode==='zoom'){remember();const z=defaultZoomRange();line.min=z.min;line.max=z.max;line.step=Math.max(0.0001,Math.min(line.max-line.min,state.step));line.labelEvery=1;line.markers.forEach(m=>m.value=snapOnLine(m,line));renderAll();return}
     if(b.id==='nl-delete-line'&&state.lines.length>1){remember();state.lines=state.lines.filter(l=>l.id!==state.activeLineId);state.activeLineId=state.lines[0].id;renderAll();return}
     if(b.dataset.markerDelete){remember();line.markers=line.markers.filter(m=>m.id!==b.dataset.markerDelete);line.relations=line.relations.filter(r=>r.from!==b.dataset.markerDelete&&r.to!==b.dataset.markerDelete);updateChallengeAnswer();renderAll();return}
     if(b.dataset.relationDelete){remember();line.relations=line.relations.filter(r=>r.id!==b.dataset.relationDelete);updateChallengeAnswer();renderAll();return}
@@ -1361,7 +1397,7 @@ function numberLineV2(){
       }
       boardChallengeOpen=false;boardMoreOpen=false;renderStage();return
     }
-    if(action==='add-line'){if(boardLocked||state.lines.length>=4)return;addLine();boardMessage('Comparison line added.');return}
+    if(action==='add-line'){if(boardLocked||state.lines.length>=4)return;addLine('shared');boardMessage('Aligned comparison line added.');return}
     if(action==='challenge'){boardChallengeOpen=!boardChallengeOpen;boardMoreOpen=false;boardMode=null;boardFirstMarker=null;boardMenuOpen=boardChallengeOpen;renderStage();return}
     if(action==='delete'){if(boardLocked)return;boardMode=boardMode==='delete'?null:'delete';boardFirstMarker=null;boardChallengeOpen=false;boardMoreOpen=false;boardMenuOpen=false;if(boardMode)boardMessage('Tap a marker or number line to delete it.');else renderStage();return}
     if(action==='reveal'&&state.challenge){state.challenge.revealed=!state.challenge.revealed;renderAll();return}
