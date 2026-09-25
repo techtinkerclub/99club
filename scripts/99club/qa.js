@@ -923,11 +923,11 @@ try{
 /* ---------- hidden manipulatives / Number Line classroom contracts ---------- */
 try{
   const goodiesPage=read('_pages/99-club-goodies.md');
-  const numberLine=read('assets/99club/goodies-number-line-v3.js');
+  const numberLine=read('assets/99club/goodies-number-line-v4.js');
   const goodiesCss=read('assets/99club/goodies.css');
   new Function(numberLine);
   if(!goodiesPage.includes('permalink: /goodies/')||!goodiesPage.includes('sitemap: false')||!goodiesPage.includes('search: false')||!goodiesPage.includes('noindex,nofollow,noarchive'))fail('goodies-number-line','Hidden goodies route/indexing contract regressed');
-  if(!goodiesPage.includes('goodies-number-line-v3.js?v=1')||!goodiesPage.includes('goodies.css?v=3'))fail('goodies-number-line','Number Line v3 assets are not cache-busted on /goodies/');
+  if(!goodiesPage.includes('goodies-number-line-v4.js?v=1')||!goodiesPage.includes('goodies.css?v=4'))fail('goodies-number-line','Number Line v4 assets are not cache-busted on /goodies/');
   for(const token of [
     "side:m.side==='below'?'below':'above'",
     'data-marker-side',
@@ -943,11 +943,27 @@ try{
     'openGroups',
     'data-nl-group',
     'Copy setup link',
-    'Board view'
-  ])if(!numberLine.includes(token))fail('goodies-number-line','Number Line v3 missing classroom contract: '+token);
+    'Board view',
+    'function answerBox',
+    'nl-answer-box',
+    'function boardUiHtml',
+    'data-board-action="add-marker"',
+    'data-board-action="relation"',
+    'data-board-action="undo"',
+    'data-board-action="redo"',
+    'data-board-action="lock"',
+    'data-board-marker-delete',
+    'data-board-marker-show',
+    'data-board-relation-type-edit',
+    'data-board-line-label',
+    'function updateChallengeAnswer',
+    'data-line-hit',
+    'Tap the number line where you want the new marker.'
+  ])if(!numberLine.includes(token))fail('goodies-number-line','Number Line v4 missing classroom contract: '+token);
   if(numberLine.includes('l12 -7 v14')||numberLine.includes('l-12 -7 v14'))fail('goodies-number-line','Bounded Number Line has regained baseline arrowheads');
   if(!goodiesCss.includes('.nl-marker-row .nl-side')||!goodiesCss.includes('#gd-stage:fullscreen'))fail('goodies-number-line','Number Line compact controls / Board view styling missing');
-  ok('goodies-number-line','Hidden Number Line supports compact above/below markers, packed teaching visuals, comparison lines and export/Board workflows');
+  if(!goodiesCss.includes('.nl-board-tools-toggle')||!goodiesCss.includes('.nl-board-menu.is-open')||!goodiesCss.includes('.nl-board-notice'))fail('goodies-number-line','Number Line floating Board teaching palette styling missing');
+  ok('goodies-number-line','Hidden Number Line supports explicit challenge blanks, direct marker dragging, floating Board teaching controls, undo/redo, lock, comparison lines and export workflows');
 }catch(e){fail('goodies-number-line','Number Line classroom QA threw',e.stack||e.message);}
 
 /* ---------- public copy audit ---------- */
