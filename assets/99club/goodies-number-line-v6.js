@@ -117,7 +117,8 @@ function normaliseLine(raw,state,index){
         color:/^#[0-9a-f]{6}$/i.test(m.color||'')?m.color:COLOURS[i%COLOURS.length],
         showValue:m.showValue!==false,
         side:m.side==='below'?'below':'above',
-        syncGroup:String(m.syncGroup||'').replace(/[^a-zA-Z0-9_-]/g,'').slice(0,24)
+        syncGroup:String(m.syncGroup||'').replace(/[^a-zA-Z0-9_-]/g,'').slice(0,24),
+        snapStep:Number.isFinite(Number(m.snapStep))&&Number(m.snapStep)>0?Number(m.snapStep):null
       }
     )):[],
     relations:[]
@@ -204,7 +205,10 @@ function numberLineV2(){
   function activeLine(){return state.lines.find(l=>l.id===state.activeLineId)||state.lines[0]}
   function setMarkerValue(marker,value){
     if(!marker)return;
-    const next=snap(value,state);
+    const customStep=Number(marker.snapStep);
+    const next=customStep>0
+      ?cleanNumber(clamp(state.min+Math.round((value-state.min)/customStep)*customStep,state.min,state.max))
+      :snap(value,state);
     marker.value=next;
     if(marker.syncGroup){
       state.lines.forEach(line=>line.markers.forEach(other=>{if(other!==marker&&other.syncGroup===marker.syncGroup)other.value=next}));
@@ -936,8 +940,8 @@ function numberLineV2(){
       const top=makeLine('l1',fractionFamilyName(d1)),bottom=makeLine('l2',fractionFamilyName(d2));
       Object.assign(top,{valueFormat:'fraction',denominator:d1,tickStride:mult,showLabels:true});
       Object.assign(bottom,{valueFormat:'fraction',denominator:d2,tickStride:1,showLabels:false});
-      top.markers=[{id:'mEqTop',label:'A',value,color:'#147d75',showValue:true,side:'above',syncGroup:'equivalent'}];
-      bottom.markers=[{id:'mEqBottom',label:'?',value,color:'#d65a4a',showValue:true,side:'above',syncGroup:'equivalent'}];
+      top.markers=[{id:'mEqTop',label:'A',value,color:'#147d75',showValue:true,side:'above',syncGroup:'equivalent',snapStep:1/d1}];
+      bottom.markers=[{id:'mEqBottom',label:'?',value,color:'#d65a4a',showValue:true,side:'above',syncGroup:'equivalent',snapStep:1/d1}];
       state.lines=[top,bottom];state.activeLineId='l1';
       state.challenge=challengeObject(type,'The markers line up at the same value. What equivalent fraction belongs on the '+d2+'ths line?',fractionText(value,d2),{hiddenMarkerIds:['mEqBottom']});
 
@@ -949,9 +953,9 @@ function numberLineV2(){
       Object.assign(fraction,{valueFormat:'fraction',denominator:d,tickStride:Math.max(1,20/d),showLabels:false});
       Object.assign(decimal,{valueFormat:'number',tickStride:2,showLabels:false});
       Object.assign(percent,{valueFormat:'percent',tickStride:2,showLabels:false});
-      fraction.markers=[{id:'mFdpF',label:'F',value,color:'#147d75',showValue:true,side:'above',syncGroup:'fdp'}];
-      decimal.markers=[{id:'mFdpD',label:'D',value,color:'#4169a8',showValue:true,side:'above',syncGroup:'fdp'}];
-      percent.markers=[{id:'mFdpP',label:'?',value,color:'#d65a4a',showValue:true,side:'above',syncGroup:'fdp'}];
+      fraction.markers=[{id:'mFdpF',label:'F',value,color:'#147d75',showValue:true,side:'above',syncGroup:'fdp',snapStep:1/d}];
+      decimal.markers=[{id:'mFdpD',label:'D',value,color:'#4169a8',showValue:true,side:'above',syncGroup:'fdp',snapStep:1/d}];
+      percent.markers=[{id:'mFdpP',label:'?',value,color:'#d65a4a',showValue:true,side:'above',syncGroup:'fdp',snapStep:1/d}];
       state.lines=[fraction,decimal,percent];state.activeLineId='l1';
       state.challenge=challengeObject(type,'These three markers are aligned. What percentage completes the fraction–decimal–percent match?',fmt(value*100)+'%',{hiddenMarkerIds:['mFdpP']});
 
