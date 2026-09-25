@@ -562,3 +562,19 @@ html.nl-board-page-lock,body.nl-board-page-lock{overflow:hidden!important;oversc
 @media(max-width:390px){
   .gd-challenge-action,.nl-challenge-reveal{white-space:normal;text-align:center}
 }
+
+
+/* Number Line teaching-line modes: aligned, independent, zoom and double line */
+.nl-scale-mode--four{grid-template-columns:repeat(2,minmax(0,1fr))}
+.nl-line-mode-help{margin:0}
+.nl-add-line-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end}
+.nl-add-line-kind{min-width:0}
+.nl-add-line-row>.gd-btn{min-height:39px;white-space:nowrap}
+.nl-fit-zoom{justify-self:start}
+.nl-own-scale[data-line-scale-editor="zoom"]{border-color:#bad7d3;background:#f8fcfb}
+.nl-own-scale[data-line-scale-editor="linked"]{border-color:#c9d9dc;background:#fbfdfd}
+.nl-remove-line{justify-self:start}
+@media(max-width:420px){
+  .nl-add-line-row{grid-template-columns:1fr}
+  .nl-add-line-row>.gd-btn{width:100%}
+}

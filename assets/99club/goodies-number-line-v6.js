@@ -102,18 +102,26 @@ function decodeState(raw){
 }
 function normaliseLine(raw,state,index){
   const src=raw&&typeof raw==='object'?raw:{};
-  const scaleMode=index>0&&src.scaleMode==='own'?'own':'shared';
-  const ownMin=num(src.min,state.min),ownMaxRaw=num(src.max,state.max),ownMax=ownMaxRaw>ownMin?ownMaxRaw:ownMin+Math.max(num(src.step,state.step),1);
-  const ownRange=ownMax-ownMin,ownStep=Math.max(0.0001,Math.min(ownRange,num(src.step,state.step)));
-  const ownScale={min:ownMin,max:ownMax,step:ownStep};
-  const markerScale=scaleMode==='own'?ownScale:state;
+  const allowedScaleModes=['shared','own','zoom','linked'];
+  const scaleMode=index>0&&allowedScaleModes.includes(src.scaleMode)?src.scaleMode:'shared';
+  let ownMin=num(src.min,state.min),ownMaxRaw=num(src.max,state.max);
+  if(scaleMode==='zoom'){
+    const fullSpan=Math.max(0.0001,state.max-state.min),minSpan=Math.min(fullSpan,Math.max(0.0001,num(src.step,state.step)));
+    ownMin=clamp(ownMin,state.min,state.max-minSpan);
+    ownMaxRaw=clamp(ownMaxRaw,ownMin+minSpan,state.max);
+  }
+  const ownMax=ownMaxRaw>ownMin?ownMaxRaw:ownMin+Math.max(num(src.step,state.step),0.0001);
+  const safeOwnMax=ownMax>ownMin?ownMax:ownMin+Math.max(num(src.step,state.step),0.0001);
+  const ownRange=safeOwnMax-ownMin,ownStep=Math.max(0.0001,Math.min(ownRange,num(src.step,state.step)));
+  const ownScale={min:ownMin,max:safeOwnMax,step:ownStep};
+  const markerScale=scaleMode==='shared'?state:ownScale;
   const line={
     id:String(src.id||('l'+(index+1))).replace(/[^a-zA-Z0-9_-]/g,'').slice(0,20)||('l'+(index+1)),
     label:String(src.label||'').slice(0,30),
     showLabels:src.showLabels!==false,
     scaleMode,
     min:cleanNumber(ownMin),
-    max:cleanNumber(ownMax),
+    max:cleanNumber(safeOwnMax),
     step:cleanNumber(ownStep),
     labelEvery:clamp(Math.round(num(src.labelEvery,state.labelEvery)),1,50),
     valueFormat:['number','fraction','percent'].includes(src.valueFormat)?src.valueFormat:'number',
@@ -220,9 +228,12 @@ function numberLineV2(){
 
   function activeLine(){return state.lines.find(l=>l.id===state.activeLineId)||state.lines[0]}
   function scaleFor(line){
-    return line?.scaleMode==='own'
+    return line&&line.scaleMode!=='shared'
       ?{min:line.min,max:line.max,step:line.step,labelEvery:line.labelEvery}
       :{min:state.min,max:state.max,step:state.step,labelEvery:state.labelEvery};
+  }
+  function scaleModeLabel(mode){
+    return mode==='own'?'Own scale':mode==='zoom'?'Zoomed interval':mode==='linked'?'Double number line':'Aligned';
   }
   function labelsVisible(line,index=state.lines.indexOf(line)){
     return line.showLabels&&(index===0?state.showTickLabels:true);
@@ -232,13 +243,13 @@ function numberLineV2(){
     if(!marker)return;
     const line=lineHint||state.lines.find(l=>l.markers.includes(marker))||activeLine(),scale=scaleFor(line);
     const customStep=Number(marker.snapStep);
-    const next=customStep>0&&line.scaleMode!=='own'
+    const next=customStep>0&&line.scaleMode==='shared'
       ?cleanNumber(clamp(scale.min+Math.round((value-scale.min)/customStep)*customStep,scale.min,scale.max))
       :snapToScale(value,scale);
     marker.value=next;
-    if(marker.syncGroup&&line.scaleMode!=='own'){
+    if(marker.syncGroup&&line.scaleMode==='shared'){
       state.lines.forEach(otherLine=>otherLine.markers.forEach(other=>{
-        if(other!==marker&&other.syncGroup===marker.syncGroup&&otherLine.scaleMode!=='own')other.value=cleanNumber(clamp(next,scaleFor(otherLine).min,scaleFor(otherLine).max));
+        if(other!==marker&&other.syncGroup===marker.syncGroup&&otherLine.scaleMode==='shared')other.value=cleanNumber(clamp(next,scaleFor(otherLine).min,scaleFor(otherLine).max));
       }));
     }
   }
@@ -424,13 +435,17 @@ function numberLineV2(){
     const range=state.max-state.min;
     state.step=Math.max(.0001,Math.min(range,num(q('#nl-step')?.value,state.step)));
     state.labelEvery=clamp(Math.round(num(q('#nl-label-every')?.value,state.labelEvery)),1,50);
-    state.lines.filter(line=>line.scaleMode!=='own').forEach(line=>line.markers.forEach(m=>m.value=snapOnLine(m,line)));
+    state.lines.filter(line=>line.scaleMode==='shared').forEach(line=>line.markers.forEach(m=>m.value=snapOnLine(m,line)));
     updateChallengeAnswer();
   }
   function applyOwnScaleFromControls(line){
-    if(!line||line.scaleMode!=='own')return;
-    const min=num(q('#nl-line-min')?.value,line.min),max=num(q('#nl-line-max')?.value,line.max);
-    line.min=min;line.max=max<=min?min+Math.max(line.step,1):max;
+    if(!line||line.scaleMode==='shared')return;
+    let min=num(q('#nl-line-min')?.value,line.min),max=num(q('#nl-line-max')?.value,line.max);
+    if(line.scaleMode==='zoom'){
+      const fullSpan=Math.max(0.0001,state.max-state.min),minSpan=Math.min(fullSpan,Math.max(0.0001,line.step,state.step));
+      min=clamp(min,state.min,state.max-minSpan);max=clamp(max,min+minSpan,state.max);
+    }
+    line.min=min;line.max=max<=min?min+Math.max(line.step,state.step,0.0001):max;
     const range=line.max-line.min;
     line.step=Math.max(.0001,Math.min(range,num(q('#nl-line-step')?.value,line.step)));
     line.labelEvery=clamp(Math.round(num(q('#nl-line-label-every')?.value,line.labelEvery)),1,50);
@@ -495,7 +510,14 @@ function numberLineV2(){
 
   function controlsHtml(){
     const line=activeLine(),lineIndex=state.lines.indexOf(line),activeScale=scaleFor(line),lineHasLinkedMarkers=line.markers.some(m=>m.syncGroup);
-    const lineOptions=state.lines.map((l,i)=>'<option value="'+esc(l.id)+'"'+(l.id===state.activeLineId?' selected':'')+'>Line '+(i+1)+(l.label?' · '+esc(l.label):'')+'</option>').join('');
+    const lineOptions=state.lines.map((l,i)=>'<option value="'+esc(l.id)+'"'+(l.id===state.activeLineId?' selected':'')+'>Line '+(i+1)+(l.label?' · '+esc(l.label):'')+(i>0?' · '+scaleModeLabel(l.scaleMode):'')+'</option>').join('');
+    const lineModeHelp=line.scaleMode==='zoom'
+      ?'The highlighted interval on the main line is enlarged across this line.'
+      :line.scaleMode==='linked'
+        ?'Matching horizontal positions represent equivalent quantities on a proportional double number line.'
+        :line.scaleMode==='own'
+          ?'This line uses the full width independently; equal positions do not imply equal values.'
+          :'Equal values line up vertically with the main scale.';
     const markerRows=line.markers.map(m=>`
       <div class="nl-marker-card" data-marker-row="${esc(m.id)}">
         <div class="nl-object-card-main">
@@ -550,24 +572,34 @@ function numberLineV2(){
         <div class="nl-panel-title nl-panel-title--compact"><div><strong>Lines</strong><span>${state.lines.length} of 4</span></div></div>
         <label class="gd-field"><span>Editing</span><select class="gd-select" id="nl-active-line">${lineOptions}</select></label>
         <label class="gd-field"><span>Line label (optional)</span><input class="gd-input" id="nl-line-label" maxlength="30" value="${esc(line.label)}" placeholder="e.g. Fractions"></label>
-        ${lineIndex>0?`<div class="nl-scale-mode" role="group" aria-label="Scale for this line">
-          <button type="button" class="${line.scaleMode!=='own'?'is-active':''}" data-nl-scale-mode="shared">Align to main scale</button>
-          <button type="button" class="${line.scaleMode==='own'?'is-active':''}" data-nl-scale-mode="own"${lineHasLinkedMarkers?' disabled title="Linked challenge lines stay aligned."':''}>Own scale</button>
-        </div>`:'<p class="gd-help nl-main-scale-note">This is the main scale. Extra lines can either align to it or use their own scale.</p>'}
-        ${line.scaleMode==='own'?`<div class="nl-own-scale">
+        ${lineIndex>0?`<div class="nl-scale-mode nl-scale-mode--four" role="group" aria-label="Purpose of this line">
+          <button type="button" class="${line.scaleMode==='shared'?'is-active':''}" data-nl-scale-mode="shared">Aligned</button>
+          <button type="button" class="${line.scaleMode==='own'?'is-active':''}" data-nl-scale-mode="own"${lineHasLinkedMarkers?' disabled title="Linked challenge lines stay aligned."':''}>Independent</button>
+          <button type="button" class="${line.scaleMode==='zoom'?'is-active':''}" data-nl-scale-mode="zoom"${lineHasLinkedMarkers?' disabled title="Linked challenge lines stay aligned."':''}>Zoom</button>
+          <button type="button" class="${line.scaleMode==='linked'?'is-active':''}" data-nl-scale-mode="linked"${lineHasLinkedMarkers?' disabled title="Linked challenge lines stay aligned."':''}>Double line</button>
+        </div>`:'<p class="gd-help nl-main-scale-note">This is the main scale. Extra lines can align, stand alone, zoom into it, or form a proportional double number line.</p>'}
+        ${lineIndex>0&&line.scaleMode!=='shared'?`<div class="nl-own-scale" data-line-scale-editor="${esc(line.scaleMode)}">
           <div class="nl-two">
-            <label class="gd-field"><span>Line minimum</span><input class="gd-input" id="nl-line-min" type="number" value="${fmt(line.min)}"></label>
-            <label class="gd-field"><span>Line maximum</span><input class="gd-input" id="nl-line-max" type="number" value="${fmt(line.max)}"></label>
+            <label class="gd-field"><span>${line.scaleMode==='zoom'?'Zoom from':line.scaleMode==='linked'?'Linked minimum':'Line minimum'}</span><input class="gd-input" id="nl-line-min" type="number" value="${fmt(line.min)}"></label>
+            <label class="gd-field"><span>${line.scaleMode==='zoom'?'Zoom to':line.scaleMode==='linked'?'Linked maximum':'Line maximum'}</span><input class="gd-input" id="nl-line-max" type="number" value="${fmt(line.max)}"></label>
           </div>
           <div class="nl-two">
             <label class="gd-field"><span>Tick step</span><input class="gd-input" id="nl-line-step" type="number" min="0.0001" step="any" value="${fmt(line.step)}"></label>
             <label class="gd-field"><span>Label every</span><input class="gd-input" id="nl-line-label-every" type="number" min="1" max="50" value="${line.labelEvery}"></label>
           </div>
+          ${line.scaleMode==='zoom'?'<button class="gd-btn nl-fit-zoom" id="nl-fit-zoom-markers" type="button">Fit zoom to main markers</button>':''}
         </div>`:''}
-        ${lineIndex>0?`<label class="nl-check"><input id="nl-line-labels" type="checkbox"${line.showLabels?' checked':''}> Show number labels on this line</label>`:''}
-        ${lineIndex>0&&line.scaleMode==='shared'?'<p class="gd-help">Aligned lines use the same physical scale, so equal values sit directly above one another.</p>':''}
-        ${lineIndex>0&&line.scaleMode==='own'?'<p class="gd-help">Own scale uses the full line width independently. Positions no longer align numerically with the main line.</p>':''}
-        <div class="gd-row"><button class="gd-btn" id="nl-add-line" type="button"${state.lines.length>=4?' disabled':''}>+ Add line</button>${state.lines.length>1?'<button class="gd-btn gd-btn--danger" id="nl-delete-line" type="button">Remove line</button>':''}</div>
+        ${lineIndex>0?`<label class="nl-check"><input id="nl-line-labels" type="checkbox"${line.showLabels?' checked':''}> Show number labels on this line</label><p class="gd-help nl-line-mode-help">${lineModeHelp}</p>`:''}
+        <div class="nl-add-line-row">
+          <label class="gd-field nl-add-line-kind"><span>Add teaching line</span><select class="gd-select" id="nl-new-line-mode">
+            <option value="shared">Aligned comparison</option>
+            <option value="own">Independent scale</option>
+            <option value="zoom">Zoomed interval</option>
+            <option value="linked">Double number line</option>
+          </select></label>
+          <button class="gd-btn" id="nl-add-line" type="button"${state.lines.length>=4?' disabled':''}>+ Add</button>
+        </div>
+        ${state.lines.length>1?'<button class="gd-btn gd-btn--danger nl-remove-line" id="nl-delete-line" type="button">Remove selected line</button>':''}
         <div class="nl-section-rule"></div>
         <button class="gd-btn gd-btn--danger nl-reset-compact" id="nl-reset" type="button">Reset number line</button>
       </section>`;
@@ -718,8 +750,9 @@ function numberLineV2(){
         else if(showLabel)ticks+=`<text x="${x}" y="${baseY+35}" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" fill="#33474e">${esc(lineValueText(line,v))}</text>`;
       }
     }
-    const baseline=`<line class="nl-baseline" data-line-id="${esc(line.id)}" x1="${X0}" y1="${baseY}" x2="${X1}" y2="${baseY}" stroke="#24343b" stroke-width="4" stroke-linecap="round"/><rect data-line-hit="${esc(line.id)}" x="${X0}" y="${baseY-16}" width="${X1-X0}" height="32" fill="transparent" style="cursor:crosshair"/>`;
-    const scaleBadge=line.scaleMode==='own'?'<tspan font-size="10" font-weight="700" fill="#7a8a8f"> · own scale</tspan>':'';
+    const baseline=`<line class="nl-baseline" data-line-id="${esc(line.id)}" data-nl-line-mode="${esc(line.scaleMode)}" x1="${X0}" y1="${baseY}" x2="${X1}" y2="${baseY}" stroke="#24343b" stroke-width="4" stroke-linecap="round"/><rect data-line-hit="${esc(line.id)}" x="${X0}" y="${baseY-16}" width="${X1-X0}" height="32" fill="transparent" style="cursor:crosshair"/>`;
+    const badgeText=line.scaleMode==='own'?'own scale':line.scaleMode==='zoom'?'zoom':line.scaleMode==='linked'?'double line':'';
+    const scaleBadge=badgeText?`<tspan font-size="10" font-weight="700" fill="#7a8a8f"> · ${esc(badgeText)}</tspan>`:'';
     const lineLabel=line.label?`<text x="26" y="${baseY+5}" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#52666d">${esc(shortLineLabel(line.label))}${scaleBadge}</text>`:'';
 
     line.relations.filter(r=>r.type!=='interval').forEach(r=>{
@@ -756,10 +789,40 @@ function numberLineV2(){
 
     return intervalLayer+relationshipLayer+baseline+ticks+lineLabel+markerLayer;
   }
+  function linkedFactorText(line){
+    if(Math.abs(state.min)<1e-9&&Math.abs(line.min)<1e-9&&Math.abs(state.max)>1e-9){
+      const factor=cleanNumber(line.max/state.max);
+      if(Number.isFinite(factor)&&Math.abs(factor)>1e-9)return '×'+fmt(factor);
+    }
+    return 'linked';
+  }
+  function teachingConnections(plan){
+    const main=plan.lines[0];if(!main)return '';
+    let out='';
+    plan.lines.slice(1).forEach(item=>{
+      const line=item.line;
+      if(line.scaleMode==='zoom'){
+        const left=clamp(px(line.min,main.line),X0,X1),right=clamp(px(line.max,main.line),X0,X1);
+        if(right>left){
+          out+=`<g class="nl-zoom-link" data-zoom-line="${esc(line.id)}"><path d="M${left} ${main.baseY} L${X0} ${item.baseY} L${X1} ${item.baseY} L${right} ${main.baseY} Z" fill="#147d75" opacity=".035"/><line x1="${left}" y1="${main.baseY}" x2="${X0}" y2="${item.baseY}" stroke="#6c9d98" stroke-width="1.5" stroke-dasharray="5 5" opacity=".55"/><line x1="${right}" y1="${main.baseY}" x2="${X1}" y2="${item.baseY}" stroke="#6c9d98" stroke-width="1.5" stroke-dasharray="5 5" opacity=".55"/><line x1="${left}" y1="${main.baseY}" x2="${right}" y2="${main.baseY}" stroke="#147d75" stroke-width="10" stroke-linecap="round" opacity=".14"/></g>`;
+        }
+      }
+      if(line.scaleMode==='linked'){
+        const top=Math.min(main.baseY,item.baseY),bottom=Math.max(main.baseY,item.baseY),mid=(top+bottom)/2;
+        [X0,(X0+X1)/2,X1].forEach((x,idx)=>{
+          out+=`<line class="nl-linked-guide" data-linked-line="${esc(line.id)}" x1="${x}" y1="${top}" x2="${x}" y2="${bottom}" stroke="#147d75" stroke-width="${idx===1?1.5:1.2}" stroke-dasharray="4 6" opacity="${idx===1?'.28':'.18'}"/>`;
+        });
+        const badge=linkedFactorText(line);
+        out+=`<g class="nl-linked-badge"><rect x="944" y="${mid-11}" width="48" height="22" rx="11" fill="#f1f8f7" stroke="#bad6d3"/><text x="968" y="${mid+4}" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="800" fill="#2f6e69">${esc(badge)}</text></g>`;
+      }
+    });
+    return out;
+  }
   function buildSvg(){
     const plan=layout();
     const title=state.title?`<text x="500" y="30" text-anchor="middle" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#24343b">${esc(state.title)}</text>`:'';
-    return `<svg id="nl-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 ${plan.height}" role="img" aria-label="Interactive number line workspace with ${state.lines.length} line${state.lines.length===1?'':'s'}"><defs>${state.lines.map(line=>line.relations.filter(r=>r.type==='jump').map(r=>`<marker id="nl-arrow-${esc(line.id)}-${esc(r.id)}" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,4 L0,8 z" fill="${esc(r.color)}"/></marker>`).join('')).join('')}</defs><rect x="0" y="0" width="1000" height="${plan.height}" rx="18" fill="#ffffff"/>${title}${plan.lines.map(buildLine).join('')}<text x="500" y="${plan.height-6}" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#87969a">99 Club Studio</text></svg>`;
+    const connections=teachingConnections(plan);
+    return `<svg id="nl-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 ${plan.height}" role="img" aria-label="Interactive number line workspace with ${state.lines.length} line${state.lines.length===1?'':'s'}"><defs>${state.lines.map(line=>line.relations.filter(r=>r.type==='jump').map(r=>`<marker id="nl-arrow-${esc(line.id)}-${esc(r.id)}" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,4 L0,8 z" fill="${esc(r.color)}"/></marker>`).join('')).join('')}</defs><rect x="0" y="0" width="1000" height="${plan.height}" rx="18" fill="#ffffff"/>${title}${connections}${plan.lines.map(buildLine).join('')}<text x="500" y="${plan.height-6}" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#87969a">99 Club Studio</text></svg>`;
   }
   function boardMarkerRows(){
     const line=activeLine(),scale=scaleFor(line);
@@ -799,7 +862,7 @@ function numberLineV2(){
   }
   function boardUiHtml(){
     const ch=state.challenge,line=activeLine();
-    const lineOptions=state.lines.map((l,i)=>`<option value="${esc(l.id)}"${l.id===state.activeLineId?' selected':''}>Line ${i+1}${l.label?' · '+esc(l.label):''}</option>`).join('');
+    const lineOptions=state.lines.map((l,i)=>`<option value="${esc(l.id)}"${l.id===state.activeLineId?' selected':''}>Line ${i+1}${l.label?' · '+esc(l.label):''}${i>0?' · '+esc(scaleModeLabel(l.scaleMode)):''}</option>`).join('');
     const rail=[
       boardTool('add-marker','marker','Add marker',boardLocked?'is-disabled':(boardMode==='add-marker'?'is-active':'')),
       boardTool('relation','relation','Add relationship',boardLocked||line.markers.length<2?'is-disabled':(boardMode==='relation'?'is-active':'')),
@@ -914,11 +977,52 @@ function numberLineV2(){
     remember();
     const id=nextId('r',line.relations);line.relations.push({id,from:line.markers[0].id,to:line.markers[1].id,type:'difference',color:'#52666d',label:'',showLabel:true,side:'above'});renderAll();
   }
-  function addLine(){
+  function defaultZoomRange(){
+    const main=state.lines[0],values=(main?.markers||[]).slice(0,2).map(m=>m.value).filter(Number.isFinite);
+    if(values.length===2&&Math.abs(values[0]-values[1])>=state.step/1000){
+      const lo=clamp(Math.min(...values),state.min,state.max),hi=clamp(Math.max(...values),state.min,state.max);
+      if(hi>lo)return {min:cleanNumber(lo),max:cleanNumber(hi)};
+    }
+    const span=state.max-state.min;
+    let lo=snapToScale(state.min+span/3,state),hi=snapToScale(state.min+span*2/3,state);
+    if(hi<=lo){lo=state.min;hi=Math.min(state.max,state.min+Math.max(state.step,span/2))}
+    return {min:cleanNumber(lo),max:cleanNumber(hi)};
+  }
+  function setLineScaleMode(line,mode,{fresh=false}={}){
+    if(!line||line===state.lines[0])return;
+    const allowed=['shared','own','zoom','linked'];
+    mode=allowed.includes(mode)?mode:'shared';
+    if(line.markers.some(m=>m.syncGroup)&&mode!=='shared')return;
+    const previous=line.scaleMode;
+    line.scaleMode=mode;
+    if(mode==='shared'){
+      line.markers.forEach(m=>m.value=snapOnLine(m,line));
+      return;
+    }
+    line.showLabels=true;
+    if(mode==='zoom'){
+      const z=(fresh||previous==='shared')?defaultZoomRange():{
+        min:clamp(line.min,state.min,state.max),
+        max:clamp(line.max,state.min,state.max)
+      };
+      line.min=z.min;line.max=z.max>z.min?z.max:Math.min(state.max,z.min+Math.max(state.step,0.0001));
+      line.step=Math.max(0.0001,Math.min(line.max-line.min,state.step));
+      line.labelEvery=1;
+      if(!line.label||/^Line \d+$/.test(line.label))line.label='Zoom';
+    }else{
+      if(fresh||previous==='shared'){
+        line.min=state.min;line.max=state.max;line.step=state.step;line.labelEvery=state.labelEvery;
+      }
+      if(mode==='linked'&&(!line.label||/^Line \d+$/.test(line.label)))line.label='Double line';
+    }
+    line.markers.forEach(m=>m.value=snapOnLine(m,line));
+  }
+  function addLine(mode='shared'){
     if(state.lines.length>=4)return;
     remember();
     const id=nextId('l',state.lines),index=state.lines.length;
-    state.lines.push({id,label:'Line '+(index+1),showLabels:false,scaleMode:'shared',min:state.min,max:state.max,step:state.step,labelEvery:state.labelEvery,valueFormat:'number',denominator:4,tickStride:1,showConsecutiveDifferences:false,consecutiveSide:'above',markers:[],relations:[]});state.activeLineId=id;controlTab='setup';renderAll();
+    const line={id,label:'Line '+(index+1),showLabels:mode!=='shared',scaleMode:'shared',min:state.min,max:state.max,step:state.step,labelEvery:state.labelEvery,valueFormat:'number',denominator:4,tickStride:1,showConsecutiveDifferences:false,consecutiveSide:'above',markers:[],relations:[]};
+    state.lines.push(line);state.activeLineId=id;setLineScaleMode(line,mode,{fresh:true});controlTab='setup';renderAll();
   }
   function randomTick(){
     const count=Math.max(1,Math.floor((state.max-state.min)/state.step+1e-8));
@@ -1146,7 +1250,7 @@ function numberLineV2(){
     if(name==='0-100'){state.min=0;state.max=100;state.step=10;state.labelEvery=1}
     if(name==='negative'){state.min=-10;state.max=10;state.step=1;state.labelEvery=1}
     if(name==='decimal'){state.min=0;state.max=1;state.step=.1;state.labelEvery=1}
-    state.lines.filter(line=>line.scaleMode!=='own').forEach(line=>line.markers.forEach(m=>m.value=snapOnLine(m.value,line)));renderAll();
+    state.lines.filter(line=>line.scaleMode==='shared').forEach(line=>line.markers.forEach(m=>m.value=snapOnLine(m.value,line)));renderAll();
   }
   function exportName(){
     const ch=state.challenge;
@@ -1199,7 +1303,7 @@ function numberLineV2(){
     if(t.id==='nl-custom-answer'&&state.challenge){state.challenge.answer=t.value.slice(0,400);state.challenge.answerMode='manual';state.challenge.answerSource='';state.challenge.revealed=false;renderStage();return}
     if(t.id==='nl-custom-prompt'&&state.challenge&&CK){state.challenge.promptHtml=CK.sanitiseRichHtml(t.innerHTML);state.challenge.prompt=CK.plainText(state.challenge.promptHtml).slice(0,600);renderStage();return}
     if(t.id==='nl-tick-labels'){state.showTickLabels=t.checked;renderStage();return}
-    if(t.id==='nl-line-label'){line.label=t.value.slice(0,30);const option=q('#nl-active-line')?.selectedOptions?.[0];if(option){const i=state.lines.findIndex(l=>l.id===line.id);option.textContent='Line '+(i+1)+(line.label?' · '+line.label:'')}renderStage();return}
+    if(t.id==='nl-line-label'){line.label=t.value.slice(0,30);const option=q('#nl-active-line')?.selectedOptions?.[0];if(option){const i=state.lines.findIndex(l=>l.id===line.id);option.textContent='Line '+(i+1)+(line.label?' · '+line.label:'')+(i>0?' · '+scaleModeLabel(line.scaleMode):'')}renderStage();return}
     if(t.id==='nl-line-labels'){line.showLabels=t.checked;renderStage();return}
     if(t.id==='nl-consecutive'){line.showConsecutiveDifferences=t.checked;renderStage();return}
     if(t.id==='nl-consecutive-side'){line.consecutiveSide=t.value==='below'?'below':'above';renderStage();return}
@@ -1237,16 +1341,10 @@ function numberLineV2(){
     if(b.dataset.nlWorkflow){controlTab=b.dataset.nlWorkflow;renderControls();return}
     if(b.dataset.nlScaleMode){
       const idx=state.lines.indexOf(line);if(idx<=0)return;
-      const mode=b.dataset.nlScaleMode==='own'?'own':'shared';
-      if(mode==='own'&&line.markers.some(m=>m.syncGroup)){message('Linked challenge lines stay aligned to the main scale.',true);return}
+      const mode=['shared','own','zoom','linked'].includes(b.dataset.nlScaleMode)?b.dataset.nlScaleMode:'shared';
+      if(mode!=='shared'&&line.markers.some(m=>m.syncGroup)){message('Linked challenge lines stay aligned to the main scale.',true);return}
       if(line.scaleMode===mode)return;
-      remember();
-      if(mode==='own'){
-        line.scaleMode='own';line.min=state.min;line.max=state.max;line.step=state.step;line.labelEvery=state.labelEvery;line.showLabels=true;
-      }else{
-        line.scaleMode='shared';line.markers.forEach(m=>m.value=snapOnLine(m,line));
-      }
-      renderAll();return;
+      remember();setLineScaleMode(line,mode);renderAll();return;
     }
     if(b.dataset.nlObjectTab){objectTab=b.dataset.nlObjectTab;renderControls();return}
     if(b.dataset.nlExportMode){exportMode=b.dataset.nlExportMode==='challenge'&&state.challenge?'challenge':'diagram';renderControls();return}
@@ -1263,7 +1361,8 @@ function numberLineV2(){
     if(b.dataset.nlPreset){applyPreset(b.dataset.nlPreset);return}
     if(b.id==='nl-add-marker'){addMarker();return}
     if(b.id==='nl-add-relation'){addRelation();return}
-    if(b.id==='nl-add-line'){addLine();return}
+    if(b.id==='nl-add-line'){addLine(q('#nl-new-line-mode')?.value||'shared');return}
+    if(b.id==='nl-fit-zoom-markers'&&line.scaleMode==='zoom'){remember();const z=defaultZoomRange();line.min=z.min;line.max=z.max;line.step=Math.max(0.0001,Math.min(line.max-line.min,state.step));line.labelEvery=1;line.markers.forEach(m=>m.value=snapOnLine(m,line));renderAll();return}
     if(b.id==='nl-delete-line'&&state.lines.length>1){remember();state.lines=state.lines.filter(l=>l.id!==state.activeLineId);state.activeLineId=state.lines[0].id;renderAll();return}
     if(b.dataset.markerDelete){remember();line.markers=line.markers.filter(m=>m.id!==b.dataset.markerDelete);line.relations=line.relations.filter(r=>r.from!==b.dataset.markerDelete&&r.to!==b.dataset.markerDelete);updateChallengeAnswer();renderAll();return}
     if(b.dataset.relationDelete){remember();line.relations=line.relations.filter(r=>r.id!==b.dataset.relationDelete);updateChallengeAnswer();renderAll();return}
@@ -1329,7 +1428,7 @@ function numberLineV2(){
       }
       boardChallengeOpen=false;boardMoreOpen=false;renderStage();return
     }
-    if(action==='add-line'){if(boardLocked||state.lines.length>=4)return;addLine();boardMessage('Comparison line added.');return}
+    if(action==='add-line'){if(boardLocked||state.lines.length>=4)return;addLine('shared');boardMessage('Aligned comparison line added.');return}
     if(action==='challenge'){boardChallengeOpen=!boardChallengeOpen;boardMoreOpen=false;boardMode=null;boardFirstMarker=null;boardMenuOpen=boardChallengeOpen;renderStage();return}
     if(action==='delete'){if(boardLocked)return;boardMode=boardMode==='delete'?null:'delete';boardFirstMarker=null;boardChallengeOpen=false;boardMoreOpen=false;boardMenuOpen=false;if(boardMode)boardMessage('Tap a marker or number line to delete it.');else renderStage();return}
     if(action==='reveal'&&state.challenge){state.challenge.revealed=!state.challenge.revealed;renderAll();return}

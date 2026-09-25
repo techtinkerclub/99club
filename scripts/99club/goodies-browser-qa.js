@@ -80,6 +80,34 @@ if(mode==='prepare'){
     assert(sharedValue&&Number(sharedValue.value)<=20,'Returning to aligned scale clamps the marker to the main scale');
 
     TT99Goodies.numberLine();
+    const zoomKind=document.getElementById('nl-new-line-mode');
+    assert(zoomKind&&[...zoomKind.options].some(o=>o.value==='zoom')&&[...zoomKind.options].some(o=>o.value==='linked'),'Add teaching line exposes Zoomed interval and Double number line');
+    zoomKind.value='zoom';
+    document.getElementById('nl-add-line').click();
+    assert(document.querySelector('[data-nl-line-mode="zoom"]'),'Zoom line renders as a distinct teaching-line mode');
+    assert(document.querySelector('.nl-zoom-link'),'Zoom line visually connects its source interval to the enlarged line');
+    assert(Number(document.getElementById('nl-line-min').value)===3&&Number(document.getElementById('nl-line-max').value)===8,'Zoom defaults to the two main-line markers when available');
+    setInput('nl-line-min',4);
+    setInput('nl-line-max',6);
+    document.getElementById('nl-fit-zoom-markers').click();
+    assert(Number(document.getElementById('nl-line-min').value)===3&&Number(document.getElementById('nl-line-max').value)===8,'Fit zoom to main markers restores the teaching interval quickly');
+
+    TT99Goodies.numberLine();
+    document.querySelector('[data-nl-preset="0-20"]').click();
+    const linkedKind=document.getElementById('nl-new-line-mode');
+    linkedKind.value='linked';
+    document.getElementById('nl-add-line').click();
+    assert(document.querySelector('[data-nl-line-mode="linked"]'),'Double number line renders as a linked teaching-line mode');
+    assert(document.querySelectorAll('.nl-linked-guide').length===3,'Double number line shows restrained correspondence guides');
+    setInput('nl-line-max',100);
+    setInput('nl-line-step',10);
+    assert(document.querySelector('.nl-linked-badge')?.textContent.includes('×5'),'Zero-based linked scales show the proportional factor when it is meaningful');
+    document.querySelector('[data-nl-workflow="objects"]').click();
+    document.getElementById('nl-add-marker').click();
+    const linkedValue=document.querySelector('[data-marker-value]');
+    assert(linkedValue&&Number(linkedValue.value)===50&&Number(linkedValue.step)===10,'Markers on a double number line use the linked scale rather than the main values');
+
+    TT99Goodies.numberLine();
     document.querySelector('[data-nl-workflow="challenge"]').click();
     const standardCards=document.querySelectorAll('[data-nl-challenge-type]');
     assert(standardCards.length>=2,'Standard challenge cards are shown (found '+standardCards.length+'): '+String(document.getElementById('nl-controls')?.innerHTML||'').slice(0,500));
