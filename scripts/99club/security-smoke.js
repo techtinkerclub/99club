@@ -18,6 +18,10 @@ assert(!/<script[^>]+src=["']https:\/\/www\.googletagmanager\.com\/gtag\/js/i.te
   'Google Analytics must not be loaded unconditionally from the page head.');
 assert(/choice!==['"]allow['"]/.test(analytics)&&/createElement\(['"]script['"]\)/.test(analytics),
   'Analytics loader must remain gated behind explicit allow consent.');
+assert(/send_page_view:\s*false/.test(analytics)&&/gtag\(['"]event['"],['"]page_view['"],safePage\)/.test(analytics),
+  'GA4 page views must be sent manually from the sanitized page context.');
+assert(/ref\.origin===location\.origin\s*\?\s*ref\.origin\+ref\.pathname\s*:\s*ref\.origin/.test(head),
+  'Analytics referrers must strip query strings and fragments before GA4 sees them.');
 assert(/html2canvas@1\.4\.1[^\n]+integrity=["']sha512-/i.test(play)&&/crossorigin=["']anonymous["']/i.test(play),
   'html2canvas CDN dependency must stay version-pinned with SRI and crossorigin.');
 assert(/_url:location\.origin\+location\.pathname/.test(banner)&&/_url:location\.origin\+location\.pathname/.test(app),
