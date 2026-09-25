@@ -420,14 +420,14 @@ function numberLineV2(){
   }
 
   function controlsHtml(){
-    const line=activeLine();
+    const line=activeLine(),lineIndex=state.lines.indexOf(line),activeScale=scaleFor(line),lineHasLinkedMarkers=line.markers.some(m=>m.syncGroup);
     const lineOptions=state.lines.map((l,i)=>'<option value="'+esc(l.id)+'"'+(l.id===state.activeLineId?' selected':'')+'>Line '+(i+1)+(l.label?' · '+esc(l.label):'')+'</option>').join('');
     const markerRows=line.markers.map(m=>`
       <div class="nl-marker-card" data-marker-row="${esc(m.id)}">
         <div class="nl-object-card-main">
           <input class="nl-colour" type="color" value="${esc(m.color)}" data-marker-color="${esc(m.id)}" aria-label="Marker colour">
           <label class="gd-field nl-compact-field nl-marker-label-field"><span>Label</span><input class="gd-input nl-marker-label" value="${esc(m.label)}" maxlength="12" data-marker-label="${esc(m.id)}"></label>
-          <label class="gd-field nl-compact-field nl-marker-value-field"><span>Value</span><input class="gd-input nl-marker-value" type="number" step="${state.step}" min="${state.min}" max="${state.max}" value="${fmt(m.value)}" data-marker-value="${esc(m.id)}"></label>
+          <label class="gd-field nl-compact-field nl-marker-value-field"><span>Value</span><input class="gd-input nl-marker-value" type="number" step="${activeScale.step}" min="${activeScale.min}" max="${activeScale.max}" value="${fmt(m.value)}" data-marker-value="${esc(m.id)}"></label>
           <button class="nl-icon-btn" type="button" data-marker-delete="${esc(m.id)}" aria-label="Delete marker">×</button>
         </div>
         <div class="nl-object-card-options">
@@ -476,7 +476,23 @@ function numberLineV2(){
         <div class="nl-panel-title nl-panel-title--compact"><div><strong>Lines</strong><span>${state.lines.length} of 4</span></div></div>
         <label class="gd-field"><span>Editing</span><select class="gd-select" id="nl-active-line">${lineOptions}</select></label>
         <label class="gd-field"><span>Line label (optional)</span><input class="gd-input" id="nl-line-label" maxlength="30" value="${esc(line.label)}" placeholder="e.g. Fractions"></label>
+        ${lineIndex>0?`<div class="nl-scale-mode" role="group" aria-label="Scale for this line">
+          <button type="button" class="${line.scaleMode!=='own'?'is-active':''}" data-nl-scale-mode="shared">Align to main scale</button>
+          <button type="button" class="${line.scaleMode==='own'?'is-active':''}" data-nl-scale-mode="own"${lineHasLinkedMarkers?' disabled title="Linked challenge lines stay aligned."':''}>Own scale</button>
+        </div>`:'<p class="gd-help nl-main-scale-note">This is the main scale. Extra lines can either align to it or use their own scale.</p>'}
+        ${line.scaleMode==='own'?`<div class="nl-own-scale">
+          <div class="nl-two">
+            <label class="gd-field"><span>Line minimum</span><input class="gd-input" id="nl-line-min" type="number" value="${fmt(line.min)}"></label>
+            <label class="gd-field"><span>Line maximum</span><input class="gd-input" id="nl-line-max" type="number" value="${fmt(line.max)}"></label>
+          </div>
+          <div class="nl-two">
+            <label class="gd-field"><span>Tick step</span><input class="gd-input" id="nl-line-step" type="number" min="0.0001" step="any" value="${fmt(line.step)}"></label>
+            <label class="gd-field"><span>Label every</span><input class="gd-input" id="nl-line-label-every" type="number" min="1" max="50" value="${line.labelEvery}"></label>
+          </div>
+        </div>`:''}
         <label class="nl-check"><input id="nl-line-labels" type="checkbox"${line.showLabels?' checked':''}> Show number labels on this line</label>
+        ${lineIndex>0&&line.scaleMode==='shared'?'<p class="gd-help">Aligned lines use the same physical scale, so equal values sit directly above one another.</p>':''}
+        ${lineIndex>0&&line.scaleMode==='own'?'<p class="gd-help">Own scale uses the full line width independently. Positions no longer align numerically with the main line.</p>':''}
         <div class="gd-row"><button class="gd-btn" id="nl-add-line" type="button"${state.lines.length>=4?' disabled':''}>+ Add line</button>${state.lines.length>1?'<button class="gd-btn gd-btn--danger" id="nl-delete-line" type="button">Remove line</button>':''}</div>
         <div class="nl-section-rule"></div>
         <button class="gd-btn gd-btn--danger nl-reset-compact" id="nl-reset" type="button">Reset number line</button>
