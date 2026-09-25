@@ -249,27 +249,42 @@ function numberLineV2(){
     renderStage();
     if(text)boardNoticeTimer=setTimeout(()=>{boardNotice='';renderStage()},2400);
   }
+  function findMarker(id){
+    for(const line of state.lines){const marker=line.markers.find(m=>m.id===id);if(marker)return {line,marker}}
+    return null;
+  }
+  function findRelation(id){
+    for(const line of state.lines){const relation=line.relations.find(r=>r.id===id);if(relation)return {line,relation}}
+    return null;
+  }
   function updateChallengeAnswer(){
     const ch=state.challenge;if(!ch||ch.answerMode==='manual')return;
     const line=state.lines[0];if(!line)return;
-    if(ch.type==='identify'||ch.type==='estimate-position'||ch.type==='jump'){
-      const id=ch.hiddenMarkerIds[0],m=line.markers.find(x=>x.id===id);
-      if(m)ch.answer=fmt(m.value);
-    }else if(ch.type==='difference'||ch.type==='across-zero'){
-      const id=ch.hiddenRelationIds[0],r=line.relations.find(x=>x.id===id);
-      if(r){const a=line.markers.find(x=>x.id===r.from),b=line.markers.find(x=>x.id===r.to);if(a&&b)ch.answer=fmt(Math.abs(cleanNumber(b.value-a.value)))}
+    if(['identify','estimate-position','jump','missing-start','repeated-jumps','mixed-number','equivalent-fractions','fdp-equivalence'].includes(ch.type)){
+      const found=findMarker(ch.hiddenMarkerIds[0]);
+      if(found)ch.answer=lineValueText(found.line,found.marker.value);
+    }else if(ch.type==='difference'||ch.type==='across-zero'||ch.type==='complement'){
+      const found=findRelation(ch.hiddenRelationIds[0]);
+      if(found){const a=found.line.markers.find(x=>x.id===found.relation.from),b=found.line.markers.find(x=>x.id===found.relation.to);if(a&&b)ch.answer=fmt(Math.abs(cleanNumber(b.value-a.value)))}
     }else if(ch.type==='missing-jump'){
-      const id=ch.hiddenRelationIds[0],r=line.relations.find(x=>x.id===id);
-      if(r){const a=line.markers.find(x=>x.id===r.from),b=line.markers.find(x=>x.id===r.to);if(a&&b){const d=cleanNumber(b.value-a.value);ch.answer=(d>=0?'+':'')+fmt(d)}}
+      const found=findRelation(ch.hiddenRelationIds[0]);
+      if(found){const a=found.line.markers.find(x=>x.id===found.relation.from),b=found.line.markers.find(x=>x.id===found.relation.to);if(a&&b){const d=cleanNumber(b.value-a.value);ch.answer=(d>=0?'+':'')+fmt(d)}}
     }else if(ch.type==='midpoint'&&line.markers.length>=2){
       ch.answer=fmt(cleanNumber((line.markers[0].value+line.markers[1].value)/2));
+    }else if(ch.type==='nearest-endpoint'){
+      const found=findMarker(ch.hiddenMarkerIds[0]);
+      if(found){const dMin=Math.abs(found.marker.value-state.min),dMax=Math.abs(state.max-found.marker.value);ch.answer=fmt(dMin<=dMax?state.min:state.max)}
+    }else if(ch.type==='order-markers'){
+      ch.answer=[...line.markers].sort((a,b)=>a.value-b.value).map(m=>m.label).join(' < ');
     }else if(ch.type==='rounding'){
-      const id=ch.hiddenMarkerIds[0],m=line.markers.find(x=>x.id===id),unit=Number(ch.roundingUnit);
-      if(m&&unit>0)ch.answer=fmt(cleanNumber(Math.round(m.value/unit)*unit));
+      const found=findMarker(ch.hiddenMarkerIds[0]),unit=Number(ch.roundingUnit);
+      if(found&&unit>0)ch.answer=fmt(cleanNumber(Math.round(found.marker.value/unit)*unit));
     }else if(ch.type==='interval-value'){
       ch.answer=fmt(state.step);
     }else if(ch.type==='error-scale'){
       ch.answer='No. Each interval is '+fmt(state.step)+'.';
+    }else if(ch.type==='marks-vs-spaces'){
+      ch.answer='No. Count the equal spaces (intervals), not the marks.';
     }
     if(CK&&ch.promptHtml!=null)ch.prompt=CK.plainText(ch.promptHtml).slice(0,600);
   }
@@ -300,7 +315,8 @@ function numberLineV2(){
     return CHALLENGE_TEMPLATES.map(t=>{
       if(t.id==='across-zero'&&!(state.min<0&&state.max>0))return {...t,disabled:true,disabledReason:'Use a range that crosses 0.'};
       if(t.id==='missing-labels'&&intervals<3)return {...t,disabled:true,disabledReason:'Use at least 3 intervals.'};
-      if((t.id==='estimate-position'||t.id==='rounding')&&intervals<2)return {...t,disabled:true,disabledReason:'Use at least 2 intervals.'};
+      if(['order-markers','repeated-jumps'].includes(t.id)&&intervals<3)return {...t,disabled:true,disabledReason:'Use at least 3 intervals.'};
+      if(['estimate-position','rounding','nearest-endpoint','complement','missing-start'].includes(t.id)&&intervals<2)return {...t,disabled:true,disabledReason:'Use at least 2 intervals.'};
       return t;
     });
   }
