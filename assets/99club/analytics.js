@@ -1,4 +1,4 @@
-/* 99 Club Studio analytics v1.2.0
+/* 99 Club Studio analytics v1.3.0
  * Basic-consent design: Google's analytics script is not requested at all until
  * the visitor explicitly allows analytics. Consent defaults remain denied.
  * Product events must never include pupil/school names, worksheet content,
@@ -60,14 +60,17 @@ function ensureGoogleTag(){
   tagRequested=true;
   ensureGtag();
   const context=analyticsPageContext();
+  const safePage={page_location:context.page_location};
+  if(context.page_referrer)safePage.page_referrer=context.page_referrer;
   global.gtag('js',new Date());
+  global.gtag('set',safePage);
   global.gtag('config',measurementId,{
-    send_page_view:true,
+    send_page_view:false,
     page_location:context.page_location,
-    page_referrer:context.page_referrer,
     allow_google_signals:false,
     allow_ad_personalization_signals:false
   });
+  global.gtag('event','page_view',safePage);
   const script=document.createElement('script');
   script.async=true;
   script.src='https://www.googletagmanager.com/gtag/js?id='+encodeURIComponent(measurementId);
