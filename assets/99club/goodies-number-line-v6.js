@@ -120,6 +120,7 @@ function normaliseLine(raw,state,index){
     label:String(src.label||'').slice(0,30),
     showLabels:src.showLabels!==false,
     scaleMode,
+    zoomFollowMarkers:scaleMode==='zoom'&&src.zoomFollowMarkers===true,
     min:cleanNumber(ownMin),
     max:cleanNumber(safeOwnMax),
     step:cleanNumber(ownStep),
@@ -138,6 +139,7 @@ function normaliseLine(raw,state,index){
         showValue:m.showValue!==false,
         side:m.side==='below'?'below':'above',
         syncGroup:String(m.syncGroup||'').replace(/[^a-zA-Z0-9_-]/g,'').slice(0,24),
+        positionGroup:String(m.positionGroup||'').replace(/[^a-zA-Z0-9_-]/g,'').slice(0,24),
         snapStep:Number.isFinite(Number(m.snapStep))&&Number(m.snapStep)>0?Number(m.snapStep):null
       }
     )):[],
