@@ -73,6 +73,13 @@ for(const required of ['id="save-share"','href="/play/"','href="/schools/"','id=
 for(const required of ['id="workflow"','id="schemes"','id="review"','id="saving"','id="home-practice"','id="recreate"','id="recovery"']){
   if(!clubHelp.includes(required)){console.error('99 Club Help is missing required section: '+required);process.exitCode=1;}
 }
+if(!clubHelp.includes('tt99-guide-decision-table')||!clubHelp.includes('data-label="Use"')){
+  console.error('99 Club Help decision table is missing its mobile stacking hooks.');process.exitCode=1;
+}
+const helpCss=fs.readFileSync(path.join(ROOT,'assets/99club/games-help-guides.css'),'utf8');
+if(!helpCss.includes('.tt99-guide-decision-table td::before')||!helpCss.includes('@media(max-width:640px)')){
+  console.error('Shared Help CSS is missing the mobile decision-table layout.');process.exitCode=1;
+}
 if(missing.length)console.error('Missing one-page guides for runtime games: '+missing.join(', '));
 if(orphan.length)console.warn('Guides without an online runtime adapter: '+orphan.join(', '));
 if(stated!==runtime.length)console.error(`Help page says ${stated} games but runtime registered ${runtime.length}.`);
