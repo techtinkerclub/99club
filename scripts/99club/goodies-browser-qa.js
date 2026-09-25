@@ -46,7 +46,8 @@ if(mode==='prepare'){
     assert(TT99Goodies.challengeKit&&TT99Goodies.challengeKit.editorHtml,'Shared challenge framework is registered');
 
     TT99Goodies.numberLine();
-    assert(document.querySelectorAll('[data-nl-challenge-type]').length>=2,'Standard challenge cards are shown');
+    const standardCards=document.querySelectorAll('[data-nl-challenge-type]');
+    assert(standardCards.length>=2,'Standard challenge cards are shown (found '+standardCards.length+'): '+String(document.getElementById('nl-controls')?.innerHTML||'').slice(0,500));
     assert(document.querySelector('[data-nl-challenge-type="identify"]'),'Existing marked-number challenge remains available');
 
     const intervalCat=document.querySelector('[data-nl-challenge-cat="read"]');
