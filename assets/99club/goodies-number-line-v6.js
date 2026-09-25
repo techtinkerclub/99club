@@ -116,7 +116,8 @@ function normaliseLine(raw,state,index){
         value:snap(num(m.value,state.min),state),
         color:/^#[0-9a-f]{6}$/i.test(m.color||'')?m.color:COLOURS[i%COLOURS.length],
         showValue:m.showValue!==false,
-        side:m.side==='below'?'below':'above'
+        side:m.side==='below'?'below':'above',
+        syncGroup:String(m.syncGroup||'').replace(/[^a-zA-Z0-9_-]/g,'').slice(0,24)
       }
     )):[],
     relations:[]
@@ -201,6 +202,14 @@ function numberLineV2(){
   const controls=q('#nl-controls'),stage=q('#gd-stage');
 
   function activeLine(){return state.lines.find(l=>l.id===state.activeLineId)||state.lines[0]}
+  function setMarkerValue(marker,value){
+    if(!marker)return;
+    const next=snap(value,state);
+    marker.value=next;
+    if(marker.syncGroup){
+      state.lines.forEach(line=>line.markers.forEach(other=>{if(other!==marker&&other.syncGroup===marker.syncGroup)other.value=next}));
+    }
+  }
   function boardActive(){return document.fullscreenElement===stage||boardFallback}
   function enterBoardFallback(){
     boardFallback=true;
@@ -725,7 +734,7 @@ function numberLineV2(){
   function moveDrag(e){
     if(!drag)return;
     const line=state.lines.find(l=>l.id===drag.lineId),m=line?.markers.find(x=>x.id===drag.id);if(!m)return;
-    m.value=valueFromClientX(e.clientX);
+    setMarkerValue(m,valueFromClientX(e.clientX));
     updateChallengeAnswer();
     const input=controls.querySelector('[data-marker-value="'+CSS.escape(m.id)+'"]');if(input&&line.id===state.activeLineId)input.value=fmt(m.value);
     renderStage();
@@ -927,8 +936,8 @@ function numberLineV2(){
       const top=makeLine('l1',fractionFamilyName(d1)),bottom=makeLine('l2',fractionFamilyName(d2));
       Object.assign(top,{valueFormat:'fraction',denominator:d1,tickStride:mult,showLabels:true});
       Object.assign(bottom,{valueFormat:'fraction',denominator:d2,tickStride:1,showLabels:false});
-      top.markers=[{id:'mEqTop',label:'A',value,color:'#147d75',showValue:true,side:'above'}];
-      bottom.markers=[{id:'mEqBottom',label:'?',value,color:'#d65a4a',showValue:true,side:'above'}];
+      top.markers=[{id:'mEqTop',label:'A',value,color:'#147d75',showValue:true,side:'above',syncGroup:'equivalent'}];
+      bottom.markers=[{id:'mEqBottom',label:'?',value,color:'#d65a4a',showValue:true,side:'above',syncGroup:'equivalent'}];
       state.lines=[top,bottom];state.activeLineId='l1';
       state.challenge=challengeObject(type,'The markers line up at the same value. What equivalent fraction belongs on the '+d2+'ths line?',fractionText(value,d2),{hiddenMarkerIds:['mEqBottom']});
 
@@ -940,9 +949,9 @@ function numberLineV2(){
       Object.assign(fraction,{valueFormat:'fraction',denominator:d,tickStride:Math.max(1,20/d),showLabels:false});
       Object.assign(decimal,{valueFormat:'number',tickStride:2,showLabels:false});
       Object.assign(percent,{valueFormat:'percent',tickStride:2,showLabels:false});
-      fraction.markers=[{id:'mFdpF',label:'F',value,color:'#147d75',showValue:true,side:'above'}];
-      decimal.markers=[{id:'mFdpD',label:'D',value,color:'#4169a8',showValue:true,side:'above'}];
-      percent.markers=[{id:'mFdpP',label:'?',value,color:'#d65a4a',showValue:true,side:'above'}];
+      fraction.markers=[{id:'mFdpF',label:'F',value,color:'#147d75',showValue:true,side:'above',syncGroup:'fdp'}];
+      decimal.markers=[{id:'mFdpD',label:'D',value,color:'#4169a8',showValue:true,side:'above',syncGroup:'fdp'}];
+      percent.markers=[{id:'mFdpP',label:'?',value,color:'#d65a4a',showValue:true,side:'above',syncGroup:'fdp'}];
       state.lines=[fraction,decimal,percent];state.activeLineId='l1';
       state.challenge=challengeObject(type,'These three markers are aligned. What percentage completes the fraction–decimal–percent match?',fmt(value*100)+'%',{hiddenMarkerIds:['mFdpP']});
 
@@ -1005,7 +1014,7 @@ function numberLineV2(){
     if(t.id==='nl-consecutive'){line.showConsecutiveDifferences=t.checked;renderStage();return}
     if(t.id==='nl-consecutive-side'){line.consecutiveSide=t.value==='below'?'below':'above';renderStage();return}
     let id=t.dataset.markerLabel;if(id){const m=line.markers.find(x=>x.id===id);if(m){m.label=t.value.slice(0,12);renderStage()}return}
-    id=t.dataset.markerValue;if(id){const m=line.markers.find(x=>x.id===id);if(m){m.value=snap(num(t.value,m.value),state);updateChallengeAnswer();renderStage()}return}
+    id=t.dataset.markerValue;if(id){const m=line.markers.find(x=>x.id===id);if(m){setMarkerValue(m,num(t.value,m.value));updateChallengeAnswer();renderStage()}return}
     id=t.dataset.markerColor;if(id){const m=line.markers.find(x=>x.id===id);if(m){m.color=t.value;renderStage()}return}
     id=t.dataset.markerSide;if(id){const m=line.markers.find(x=>x.id===id);if(m){m.side=t.value==='below'?'below':'above';renderStage()}return}
     id=t.dataset.markerShow;if(id){const m=line.markers.find(x=>x.id===id);if(m){m.showValue=t.checked;renderStage()}return}
@@ -1130,7 +1139,7 @@ function numberLineV2(){
     if(t.matches('[data-board-line-select]')){state.activeLineId=t.value;renderAll();return}
     if(t.matches('[data-board-line-label]')){remember();line.label=t.value.slice(0,30);renderAll();return}
     let id=t.dataset.boardMarkerLabel;if(id){remember();const m=line.markers.find(x=>x.id===id);if(m)m.label=t.value.slice(0,12);renderAll();return}
-    id=t.dataset.boardMarkerValue;if(id){remember();const m=line.markers.find(x=>x.id===id);if(m)m.value=snap(num(t.value,m.value),state);updateChallengeAnswer();renderAll();return}
+    id=t.dataset.boardMarkerValue;if(id){remember();const m=line.markers.find(x=>x.id===id);if(m)setMarkerValue(m,num(t.value,m.value));updateChallengeAnswer();renderAll();return}
     id=t.dataset.boardMarkerColor;if(id){remember();const m=line.markers.find(x=>x.id===id);if(m)m.color=t.value;renderAll();return}
     id=t.dataset.boardRelationTypeEdit;if(id){remember();const r=line.relations.find(x=>x.id===id);if(r)r.type=t.value;updateChallengeAnswer();renderAll();return}
     id=t.dataset.boardRelationColor;if(id){remember();const r=line.relations.find(x=>x.id===id);if(r)r.color=t.value;renderAll();return}
