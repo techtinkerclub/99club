@@ -1021,6 +1021,12 @@ function numberLineV2(){
     line.markers.push({id:nextId('m',line.markers),label,value:linkedValue,color,showValue:true,side:'above',positionGroup:group});
     state.activeLineId=line.id;renderAll();
   }
+  function setPairAppearance(marker,key,value){
+    if(!marker)return;
+    marker[key]=value;
+    if(!marker.positionGroup)return;
+    state.lines.forEach(line=>line.markers.forEach(other=>{if(other!==marker&&other.positionGroup===marker.positionGroup)other[key]=value}));
+  }
   function removeMarker(line,id){
     if(!line)return;
     const marker=line.markers.find(m=>m.id===id);if(!marker)return;
@@ -1392,9 +1398,9 @@ function numberLineV2(){
     if(t.id==='nl-line-labels'){line.showLabels=t.checked;renderStage();return}
     if(t.id==='nl-consecutive'){line.showConsecutiveDifferences=t.checked;renderStage();return}
     if(t.id==='nl-consecutive-side'){line.consecutiveSide=t.value==='below'?'below':'above';renderStage();return}
-    let id=t.dataset.markerLabel;if(id){const m=line.markers.find(x=>x.id===id);if(m){m.label=t.value.slice(0,12);renderStage()}return}
+    let id=t.dataset.markerLabel;if(id){const m=line.markers.find(x=>x.id===id);if(m){setPairAppearance(m,'label',t.value.slice(0,12));renderStage()}return}
     id=t.dataset.markerValue;if(id){const m=line.markers.find(x=>x.id===id);if(m){setMarkerValue(m,num(t.value,m.value),line);updateChallengeAnswer();renderStage()}return}
-    id=t.dataset.markerColor;if(id){const m=line.markers.find(x=>x.id===id);if(m){m.color=t.value;renderStage()}return}
+    id=t.dataset.markerColor;if(id){const m=line.markers.find(x=>x.id===id);if(m){setPairAppearance(m,'color',t.value);renderStage()}return}
     id=t.dataset.markerSide;if(id){const m=line.markers.find(x=>x.id===id);if(m){m.side=t.value==='below'?'below':'above';renderStage()}return}
     id=t.dataset.markerShow;if(id){const m=line.markers.find(x=>x.id===id);if(m){m.showValue=t.checked;renderStage()}return}
     id=t.dataset.relationFrom;if(id){const r=line.relations.find(x=>x.id===id);if(r){r.from=t.value;if(r.from===r.to){const other=line.markers.find(m=>m.id!==r.from);if(other){r.to=other.id;const otherSelect=controls.querySelector('[data-relation-to="'+CSS.escape(id)+'"]');if(otherSelect)otherSelect.value=r.to}}updateChallengeAnswer();renderStage()}return}
@@ -1541,9 +1547,9 @@ function numberLineV2(){
     const t=e.target,line=activeLine();
     if(t.matches('[data-board-line-select]')){state.activeLineId=t.value;renderAll();return}
     if(t.matches('[data-board-line-label]')){remember();line.label=t.value.slice(0,30);renderAll();return}
-    let id=t.dataset.boardMarkerLabel;if(id){remember();const m=line.markers.find(x=>x.id===id);if(m)m.label=t.value.slice(0,12);renderAll();return}
+    let id=t.dataset.boardMarkerLabel;if(id){remember();const m=line.markers.find(x=>x.id===id);if(m)setPairAppearance(m,'label',t.value.slice(0,12));renderAll();return}
     id=t.dataset.boardMarkerValue;if(id){remember();const m=line.markers.find(x=>x.id===id);if(m)setMarkerValue(m,num(t.value,m.value),line);updateChallengeAnswer();renderAll();return}
-    id=t.dataset.boardMarkerColor;if(id){remember();const m=line.markers.find(x=>x.id===id);if(m)m.color=t.value;renderAll();return}
+    id=t.dataset.boardMarkerColor;if(id){remember();const m=line.markers.find(x=>x.id===id);if(m)setPairAppearance(m,'color',t.value);renderAll();return}
     id=t.dataset.boardRelationTypeEdit;if(id){remember();const r=line.relations.find(x=>x.id===id);if(r)r.type=t.value;updateChallengeAnswer();renderAll();return}
     id=t.dataset.boardRelationColor;if(id){remember();const r=line.relations.find(x=>x.id===id);if(r)r.color=t.value;renderAll();return}
   });
