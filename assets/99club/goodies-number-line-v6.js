@@ -569,6 +569,7 @@ function numberLineV2(){
   function buildLine(layout){
     const {line,baseY,above,below,index}=layout;
     const range=state.max-state.min,rawCount=Math.floor(range/state.step+1e-8),safetyStride=Math.max(1,Math.ceil(rawCount/160)),renderStep=state.step*safetyStride*line.tickStride,tickCount=Math.floor(range/renderStep+1e-8);
+    const pxPerTick=(X1-X0)/Math.max(1,tickCount),majorSpacing=pxPerTick*Math.max(1,state.labelEvery),labelSkip=Math.max(1,Math.ceil(54/majorSpacing));
     let intervalLayer='',ticks='',relationshipLayer='',markerLayer='';
     line.relations.filter(r=>r.type==='interval').forEach(r=>{
       const d=relationDisplay(line,r);if(!d)return;
@@ -580,8 +581,10 @@ function numberLineV2(){
       const v=cleanNumber(state.min+i*renderStep),x=px(v),major=(i%state.labelEvery===0)||i===0||i===tickCount;
       ticks+=`<line x1="${x}" y1="${baseY-(major?13:8)}" x2="${x}" y2="${baseY+(major?13:8)}" stroke="#33474e" stroke-width="${major?2:1}"/>`;
       if(state.showTickLabels&&line.showLabels&&major){
-        if(hiddenTick(v))ticks+=answerBox(x,baseY+30,50,24);
-        else ticks+=`<text x="${x}" y="${baseY+35}" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" fill="#33474e">${esc(lineValueText(line,v))}</text>`;
+        const hidden=hiddenTick(v),majorIndex=Math.round(i/Math.max(1,state.labelEvery));
+        const showLabel=hidden||i===0||i===tickCount||majorIndex%labelSkip===0;
+        if(hidden)ticks+=answerBox(x,baseY+30,50,24);
+        else if(showLabel)ticks+=`<text x="${x}" y="${baseY+35}" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" fill="#33474e">${esc(lineValueText(line,v))}</text>`;
       }
     }
     const baseline=`<line class="nl-baseline" data-line-id="${esc(line.id)}" x1="${X0}" y1="${baseY}" x2="${X1}" y2="${baseY}" stroke="#24343b" stroke-width="4" stroke-linecap="round"/><rect data-line-hit="${esc(line.id)}" x="${X0}" y="${baseY-16}" width="${X1-X0}" height="32" fill="transparent" style="cursor:crosshair"/>`;
