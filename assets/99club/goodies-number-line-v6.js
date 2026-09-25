@@ -255,12 +255,26 @@ function numberLineV2(){
       }));
     }
     if(marker.positionGroup){
-      const sourceRange=scale.max-scale.min,t=sourceRange?clamp((next-scale.min)/sourceRange,0,1):0;
-      state.lines.forEach(otherLine=>otherLine.markers.forEach(other=>{
-        if(other===marker||other.positionGroup!==marker.positionGroup)return;
-        const targetScale=scaleFor(otherLine),target=targetScale.min+t*(targetScale.max-targetScale.min);
-        other.value=snapToScale(target,targetScale);
+      const members=[];
+      state.lines.forEach(memberLine=>memberLine.markers.forEach(member=>{
+        if(member.positionGroup===marker.positionGroup)members.push({line:memberLine,marker:member,scale:scaleFor(memberLine)});
       }));
+      const sourceRange=scale.max-scale.min,rawT=sourceRange?clamp((next-scale.min)/sourceRange,0,1):0;
+      const master=members.reduce((best,item)=>{
+        const range=item.scale.max-item.scale.min,norm=range?item.scale.step/range:1;
+        if(!best||norm>best.norm)return {...item,norm};
+        return best;
+      },null);
+      let t=rawT;
+      if(master){
+        const masterRange=master.scale.max-master.scale.min;
+        const masterValue=snapToScale(master.scale.min+rawT*masterRange,master.scale);
+        t=masterRange?clamp((masterValue-master.scale.min)/masterRange,0,1):0;
+      }
+      members.forEach(item=>{
+        const range=item.scale.max-item.scale.min;
+        item.marker.value=snapToScale(item.scale.min+t*range,item.scale);
+      });
     }
     syncZoomFollowers();
   }
