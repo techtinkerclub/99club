@@ -91,6 +91,7 @@ A challenge should reuse the current board state whenever possible rather than f
 When a challenge is active:
 - missing values have explicit answer spaces where the visual itself contains the blank;
 - Reveal answer is contextual beside the challenge;
+- a generated Standard challenge should offer a direct **Another like this** action so a teacher can run question → reveal → next question without reopening menus;
 - moving relevant objects updates a bound answer automatically;
 - a teacher may convert a generated Standard challenge into Custom and rewrite its title/instructions;
 - typing a manual answer deliberately breaks the automatic answer binding;

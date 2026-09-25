@@ -123,6 +123,8 @@ requireText(challenge,'function editorHtml','shared custom challenge editor');
 requireText(challenge,'data-gd-rich-action="bold"','shared bold formatting');
 requireText(challenge,'size-large','shared text-size formatting');
 requireText(challenge,'function pickerHtml','shared standard challenge picker');
+requireText(challenge,'data-challenge-action','shared contextual challenge action hook');
+requireText(css,'.gd-challenge-action','shared classroom challenge action styling');
 requireText(challenge,'answerSource','shared custom challenge answer-source state');
 requireText(challenge,'custom-live-answer','shared live answer readout template');
 requireText(challenge,'Type the answer myself','shared manual/live answer choice');
@@ -153,6 +155,8 @@ requireText(numberLine,'snapStep','Number Line linked representation snap constr
 requireText(numberLine,'function setMarkerValue','Number Line linked marker update helper');
 requireText(numberLine,'enterCustomChallenge','Number Line custom challenge mode');
 requireText(numberLine,'CK.editorHtml','Number Line uses shared custom editor');
+requireText(numberLine,"label:'Another like this'",'Number Line contextual repeat-challenge action');
+requireText(numberLine,"repeatStandard?'Another like this':'Generate challenge'",'Number Line repeat label in challenge controls');
 requireText(numberLine,'function customAnswerSources','Number Line exposes diagram answer choices');
 requireText(numberLine,'function resolveCustomAnswerSource','Number Line resolves live diagram answers');
 requireText(numberLine,'function setCustomAnswerSource','Number Line binds custom answers to diagram objects');
