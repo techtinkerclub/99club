@@ -39,6 +39,11 @@ exclude:
   - vendor/ruby/
   - docs
   - scripts
+  - assets/99club/tests
+  - assets/99club/V1_24_2_QA_REPORT.md
+  - assets/99club/V1_25_0_QA_REPORT.md
+  - assets/99club/V1_27_0_QA_REPORT.md
+  - assets/99club/V1_28_0_QA_REPORT.md
   - README.md
   - MIGRATION_IDENTITY_AUDIT.md
   - package.json
