@@ -994,6 +994,8 @@ try{
     'positionGroup',
     'function addLinkedPair',
     'function setPairAppearance',
+    'function resyncPositionGroups',
+    'The main number line is the reference line and cannot be deleted.',
     'nl-add-correspondence',
     'data-position-group',
     'nl-linked-pair-guide',
