@@ -461,7 +461,7 @@ function numberLineV2(){
     state.step=Math.max(.0001,Math.min(range,num(q('#nl-step')?.value,state.step)));
     state.labelEvery=clamp(Math.round(num(q('#nl-label-every')?.value,state.labelEvery)),1,50);
     state.lines.filter(line=>line.scaleMode==='shared').forEach(line=>line.markers.forEach(m=>m.value=snapOnLine(m,line)));
-    syncZoomFollowers();updateChallengeAnswer();
+    resyncPositionGroups();syncZoomFollowers();updateChallengeAnswer();
   }
   function applyOwnScaleFromControls(line){
     if(!line||line.scaleMode==='shared')return;
@@ -475,6 +475,7 @@ function numberLineV2(){
     line.step=Math.max(.0001,Math.min(range,num(q('#nl-line-step')?.value,line.step)));
     line.labelEvery=clamp(Math.round(num(q('#nl-line-label-every')?.value,line.labelEvery)),1,50);
     line.markers.forEach(m=>m.value=snapOnLine(m,line));
+    if(line.scaleMode==='linked')resyncPositionGroups();
     updateChallengeAnswer();
   }
   function challengeTemplateList(){
@@ -1021,6 +1022,16 @@ function numberLineV2(){
     line.markers.push({id:nextId('m',line.markers),label,value:linkedValue,color,showValue:true,side:'above',positionGroup:group});
     state.activeLineId=line.id;renderAll();
   }
+  function resyncPositionGroups(){
+    const seen=new Set(),main=state.lines[0];
+    const ordered=[...(main?.markers||[]),...state.lines.slice(1).flatMap(line=>line.markers)];
+    ordered.forEach(marker=>{
+      if(!marker.positionGroup||seen.has(marker.positionGroup))return;
+      seen.add(marker.positionGroup);
+      const line=state.lines.find(candidate=>candidate.markers.includes(marker));
+      if(line)setMarkerValue(marker,marker.value,line);
+    });
+  }
   function setPairAppearance(marker,key,value){
     if(!marker)return;
     marker[key]=value;
@@ -1341,7 +1352,7 @@ function numberLineV2(){
     if(name==='0-100'){state.min=0;state.max=100;state.step=10;state.labelEvery=1}
     if(name==='negative'){state.min=-10;state.max=10;state.step=1;state.labelEvery=1}
     if(name==='decimal'){state.min=0;state.max=1;state.step=.1;state.labelEvery=1}
-    state.lines.filter(line=>line.scaleMode==='shared').forEach(line=>line.markers.forEach(m=>m.value=snapOnLine(m.value,line)));renderAll();
+    state.lines.filter(line=>line.scaleMode==='shared').forEach(line=>line.markers.forEach(m=>m.value=snapOnLine(m.value,line)));resyncPositionGroups();syncZoomFollowers();renderAll();
   }
   function exportName(){
     const ch=state.challenge;
