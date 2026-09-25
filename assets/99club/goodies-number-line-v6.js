@@ -517,7 +517,7 @@ function numberLineV2(){
   }
   function buildLine(layout){
     const {line,baseY,above,below,index}=layout;
-    const range=state.max-state.min,rawCount=Math.floor(range/state.step+1e-8),stride=Math.max(1,Math.ceil(rawCount/160)),renderStep=state.step*stride,tickCount=Math.floor(range/renderStep+1e-8);
+    const range=state.max-state.min,rawCount=Math.floor(range/state.step+1e-8),safetyStride=Math.max(1,Math.ceil(rawCount/160)),renderStep=state.step*safetyStride*line.tickStride,tickCount=Math.floor(range/renderStep+1e-8);
     let intervalLayer='',ticks='',relationshipLayer='',markerLayer='';
     line.relations.filter(r=>r.type==='interval').forEach(r=>{
       const d=relationDisplay(line,r);if(!d)return;
@@ -530,7 +530,7 @@ function numberLineV2(){
       ticks+=`<line x1="${x}" y1="${baseY-(major?13:8)}" x2="${x}" y2="${baseY+(major?13:8)}" stroke="#33474e" stroke-width="${major?2:1}"/>`;
       if(state.showTickLabels&&line.showLabels&&major){
         if(hiddenTick(v))ticks+=answerBox(x,baseY+30,50,24);
-        else ticks+=`<text x="${x}" y="${baseY+35}" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" fill="#33474e">${esc(fmt(v))}</text>`;
+        else ticks+=`<text x="${x}" y="${baseY+35}" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" fill="#33474e">${esc(lineValueText(line,v))}</text>`;
       }
     }
     const baseline=`<line class="nl-baseline" data-line-id="${esc(line.id)}" x1="${X0}" y1="${baseY}" x2="${X1}" y2="${baseY}" stroke="#24343b" stroke-width="4" stroke-linecap="round"/><rect data-line-hit="${esc(line.id)}" x="${X0}" y="${baseY-16}" width="${X1-X0}" height="32" fill="transparent" style="cursor:crosshair"/>`;
@@ -565,7 +565,7 @@ function numberLineV2(){
     line.markers.forEach((m,i)=>{
       const x=px(m.value),cy=markerCentre(layout,m),hidden=state.challenge&&!state.challenge.revealed&&state.challenge.hiddenMarkerIds.includes(m.id),showValue=m.showValue&&!hidden;
       const valueY=m.side==='above'?cy-28:cy+34;
-      markerLayer+=`<g class="nl-svg-marker" data-line-id="${esc(line.id)}" data-marker-hit="${esc(m.id)}" style="cursor:ew-resize;touch-action:none">${markerStem(layout,m)}<circle cx="${x}" cy="${cy}" r="16" fill="${esc(m.color)}" stroke="#fff" stroke-width="3"/><circle cx="${x}" cy="${cy}" r="22" fill="transparent"/><text x="${x}" y="${cy+5}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="800" fill="${contrast(m.color)}" pointer-events="none">${esc(m.label||String(i+1))}</text>${showValue?`<text x="${x}" y="${valueY}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#33474e" pointer-events="none">${esc(fmt(m.value))}</text>`:(hidden?answerBox(x,valueY-5,54,24):'')}</g>`;
+      markerLayer+=`<g class="nl-svg-marker" data-line-id="${esc(line.id)}" data-marker-hit="${esc(m.id)}" style="cursor:ew-resize;touch-action:none">${markerStem(layout,m)}<circle cx="${x}" cy="${cy}" r="16" fill="${esc(m.color)}" stroke="#fff" stroke-width="3"/><circle cx="${x}" cy="${cy}" r="22" fill="transparent"/><text x="${x}" y="${cy+5}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="800" fill="${contrast(m.color)}" pointer-events="none">${esc(m.label||String(i+1))}</text>${showValue?`<text x="${x}" y="${valueY}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#33474e" pointer-events="none">${esc(lineValueText(line,m.value))}</text>`:(hidden?answerBox(x,valueY-5,72,24):'')}</g>`;
     });
 
     return intervalLayer+relationshipLayer+baseline+ticks+lineLabel+markerLayer;
@@ -730,7 +730,7 @@ function numberLineV2(){
     if(state.lines.length>=4)return;
     remember();
     const id=nextId('l',state.lines),index=state.lines.length;
-    state.lines.push({id,label:'Line '+(index+1),showLabels:index===0,showConsecutiveDifferences:false,consecutiveSide:'above',markers:[],relations:[]});state.activeLineId=id;renderAll();
+    state.lines.push({id,label:'Line '+(index+1),showLabels:index===0,valueFormat:'number',denominator:4,tickStride:1,showConsecutiveDifferences:false,consecutiveSide:'above',markers:[],relations:[]});state.activeLineId=id;renderAll();
   }
   function randomTick(){
     const count=Math.max(1,Math.floor((state.max-state.min)/state.step+1e-8));
