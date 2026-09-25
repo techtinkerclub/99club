@@ -2,7 +2,7 @@
 
 Status: working design contract for the hidden `/goodies/` lab.
 
-The Goodies lab is moving from a collection of form-driven demos toward one coherent classroom-manipulative workspace. Mathigon Polypad is an interaction benchmark, not a visual or code template: the aim is to reuse the useful interaction principles while keeping 99 Club Studio's own visual language and simpler primary-school scope.
+The Goodies lab is moving from a collection of form-driven demos toward one coherent classroom-manipulative workspace. **Number Line is the primary internal interaction reference.** Mathigon Polypad is only an external source of useful interaction ideas, not a visual, behavioural or code template. Keep 99 Club Studio's own maths-specific automation, visual language and simpler primary-school workflow.
 
 ## Product rules
 
@@ -60,14 +60,38 @@ Pointer events are the primary direct-manipulation path so mouse, pen and touch 
 - Undo/redo should cover meaningful canvas edits.
 - Visual snapping and numerical snapping must agree.
 
-### 7. Challenges are an overlay, not a separate tool
-A challenge should reuse the current board state and temporarily hide/ask for information.
+### 7. Challenges are a shared overlay, not a separate tool
+Every suitable Goodie should eventually expose the same **Standard / Custom** challenge language.
+
+The shared challenge shell owns:
+- Standard / Custom switching;
+- title and prompt presentation;
+- the small rich-text editor;
+- contextual Reveal answer;
+- common challenge navigation/actions;
+- share/export-safe challenge state;
+- responsive/mobile presentation.
+
+The individual Goodie owns the mathematics:
+- which standard challenge families make sense;
+- what can be hidden or turned into an answer;
+- how answers are calculated and validated;
+- which live objects/values an answer can remain bound to.
+
+A challenge should reuse the current board state whenever possible rather than forcing the teacher to rebuild the representation. When a generated standard challenge configures a special board, the previous teaching setup must remain recoverable.
 
 When a challenge is active:
-- missing values have explicit answer spaces;
+- missing values have explicit answer spaces where the visual itself contains the blank;
 - Reveal answer is contextual beside the challenge;
-- moving relevant objects updates the answer;
-- leaving challenge mode restores the teaching representation cleanly.
+- moving relevant objects updates a bound answer automatically;
+- a teacher may convert a generated Standard challenge into Custom and rewrite its title/instructions;
+- typing a manual answer deliberately breaks the automatic answer binding;
+- ending a custom challenge leaves the underlying maths setup intact;
+- leaving a generated challenge restores the prior teaching setup where one exists.
+
+Rich text is intentionally restrained: bold, italic and a few text sizes are useful; fonts, decorative colours, tables and document-editor complexity are not.
+
+Standard challenge libraries should be organised by mathematical task structure (for example Read & Scale, Position, Jumps & Intervals, Rounding, Reasoning), not by arbitrary difficulty labels or year-group guesses. Difficulty should come from the mathematical state: range, interval, sparse labels, crossing zero, fractions/decimals, reverse tasks and reasoning depth.
 
 ### 8. Reusable state
 Where useful, a teacher should eventually be able to:
@@ -79,7 +103,7 @@ Where useful, a teacher should eventually be able to:
 ## Current reference implementations
 
 ### Number Line v6
-The richest existing Goodie and the behavioural reference for:
+The richest existing Goodie and the **primary behavioural reference** for:
 - direct dragging;
 - dependent-value updates;
 - quiet side tool rail;
@@ -90,8 +114,15 @@ The richest existing Goodie and the behavioural reference for:
 - comparison lines;
 - share/export state;
 - mobile parity.
+- the shared Standard / Custom challenge model.
+- generated challenges that can become editable custom teaching prompts.
 
 Do not rewrite it merely to use a new abstraction. Extract common behaviour only when that reduces duplication without regressing the working Number Line.
+
+### Shared challenge framework
+`goodies-challenge.js` is the reusable challenge/editor layer proven first by Number Line.
+
+Do not fork its Standard / Custom tabs, title/prompt editor, reveal behaviour or rich-text toolbar inside individual tools. Extend the shared layer when a genuinely universal need appears; keep mathematical generators and answer bindings inside each Goodie.
 
 ### Maths Canvas pilot
 The first tool using the shared `goodies-interaction.js` controller.
