@@ -103,6 +103,15 @@ if(mode==='prepare'){
     assert(document.querySelectorAll('[data-line-hit]').length===2,'Equivalent-fractions challenge builds two aligned number lines');
     assert(document.querySelector('.gd-challenge-prompt').textContent.includes('equivalent fraction'),'Equivalent-fractions challenge has an explicit prompt');
     assert(document.querySelectorAll('.nl-answer-box').length>=1,'Equivalent-fractions challenge hides the target value with an answer box');
+    const eqTop=document.querySelector('[data-marker-hit="mEqTop"]');
+    const eqBottom=()=>document.querySelector('[data-marker-hit="mEqBottom"]');
+    const eqSvg=document.getElementById('nl-svg'),eqRect=eqSvg.getBoundingClientRect(),topRect=eqTop.getBoundingClientRect();
+    pointer(eqTop,'pointerdown',topRect.left+topRect.width/2,topRect.top+topRect.height/2,31);
+    pointer(eqTop,'pointermove',eqRect.left+eqRect.width*.7,topRect.top+topRect.height/2,31);
+    pointer(eqTop,'pointerup',eqRect.left+eqRect.width*.7,topRect.top+topRect.height/2,31);
+    const topX=document.querySelector('[data-marker-hit="mEqTop"] circle').getAttribute('cx');
+    const bottomX=eqBottom().querySelector('circle').getAttribute('cx');
+    assert(topX===bottomX,'Dragging one equivalent marker keeps the aligned marker synchronized');
     document.getElementById('nl-reveal').click();
     assert(document.querySelector('.gd-challenge-banner').textContent.includes('/'),'Equivalent-fractions reveal shows a fraction answer');
 
