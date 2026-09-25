@@ -8,8 +8,10 @@ const COLOURS=['#147d75','#d65a4a','#4169a8','#d99024','#7b5fc5','#39945e','#a84
 const CHALLENGE_CATEGORIES=[
   {id:'read',label:'Read & scale'},
   {id:'place',label:'Position'},
+  {id:'compare',label:'Compare & order'},
   {id:'calculate',label:'Jumps & intervals'},
   {id:'round',label:'Rounding'},
+  {id:'fractions',label:'Fractions & representations'},
   {id:'reason',label:'Reasoning'}
 ];
 const CHALLENGE_TEMPLATES=[
@@ -18,12 +20,21 @@ const CHALLENGE_TEMPLATES=[
   {id:'missing-labels',category:'read',title:'Missing labels',desc:'Fill several missing scale labels.'},
   {id:'estimate-position',category:'place',title:'Estimate the position',desc:'Use sparse anchors to identify a marked value.'},
   {id:'midpoint',category:'place',title:'Find the midpoint',desc:'Find the value exactly halfway between two points.'},
+  {id:'nearest-endpoint',category:'place',title:'Nearest endpoint',desc:'Decide which labelled endpoint a point is closer to.'},
+  {id:'order-markers',category:'compare',title:'Order the markers',desc:'Use position to put three marked points in order.'},
   {id:'difference',category:'calculate',title:'Find the difference',desc:'Find the distance between two marked values.'},
   {id:'jump',category:'calculate',title:'Where do you land?',desc:'Follow a shown positive or negative jump.'},
   {id:'missing-jump',category:'calculate',title:'Find the jump',desc:'Work out the jump between a start and end value.'},
+  {id:'missing-start',category:'calculate',title:'Find the starting number',desc:'Work backwards from the end of a shown jump.'},
+  {id:'repeated-jumps',category:'calculate',title:'Repeated equal jumps',desc:'Follow several equal jumps to find the final value.'},
+  {id:'complement',category:'calculate',title:'Complete to the endpoint',desc:'Find how much is needed to reach the upper endpoint.'},
   {id:'across-zero',category:'calculate',title:'Interval across zero',desc:'Find the distance from a negative to a positive value.'},
   {id:'rounding',category:'round',title:'Round the marked value',desc:'Use the line to round to a sensible unit.'},
-  {id:'error-scale',category:'reason',title:'Spot the scale error',desc:'Decide whether a pupil has read the interval correctly.'}
+  {id:'mixed-number',category:'fractions',title:'Read a mixed number',desc:'Read a fraction greater than 1 from a marked line.'},
+  {id:'equivalent-fractions',category:'fractions',title:'Equivalent fraction lines',desc:'Use aligned fraction lines to find an equivalent fraction.'},
+  {id:'fdp-equivalence',category:'fractions',title:'Fraction · decimal · percent',desc:'Match the same position across three representations.'},
+  {id:'error-scale',category:'reason',title:'Spot the scale error',desc:'Decide whether a pupil has read the interval correctly.'},
+  {id:'marks-vs-spaces',category:'reason',title:'Marks or intervals?',desc:'Diagnose the common mistake of counting marks instead of spaces.'}
 ];
 const DEFAULT_LINE={
   id:'l1',label:'',showLabels:true,showConsecutiveDifferences:false,consecutiveSide:'above',
@@ -43,6 +54,19 @@ const DEFAULT_STATE={
 function copy(v){return JSON.parse(JSON.stringify(v))}
 function cleanNumber(v){return Math.abs(v)<1e-10?0:Number(Number(v).toFixed(8))}
 function fmt(v){const n=cleanNumber(v);return Number.isInteger(n)?String(n):String(Number(n.toFixed(4)))}
+function fractionText(value,denominator=4){
+  const d=clamp(Math.round(num(denominator,4)),2,24),scaled=Math.round(cleanNumber(value)*d);
+  if(!scaled)return '0';
+  const sign=scaled<0?'-':'',abs=Math.abs(scaled),whole=Math.floor(abs/d),rem=abs%d;
+  if(rem===0)return sign+String(whole);
+  if(whole===0)return sign+rem+'/'+d;
+  return sign+whole+' '+rem+'/'+d;
+}
+function lineValueText(line,value){
+  if(line?.valueFormat==='fraction')return fractionText(value,line.denominator);
+  if(line?.valueFormat==='percent')return fmt(cleanNumber(value*100))+'%';
+  return fmt(value);
+}
 function snap(v,state){
   const raw=state.min+Math.round((v-state.min)/state.step)*state.step;
   return cleanNumber(clamp(raw,state.min,state.max));
@@ -77,6 +101,9 @@ function normaliseLine(raw,state,index){
     id:String(src.id||('l'+(index+1))).replace(/[^a-zA-Z0-9_-]/g,'').slice(0,20)||('l'+(index+1)),
     label:String(src.label||'').slice(0,30),
     showLabels:src.showLabels!==false,
+    valueFormat:['number','fraction','percent'].includes(src.valueFormat)?src.valueFormat:'number',
+    denominator:clamp(Math.round(num(src.denominator,4)),2,24),
+    tickStride:clamp(Math.round(num(src.tickStride,1)),1,24),
     showConsecutiveDifferences:!!src.showConsecutiveDifferences,
     consecutiveSide:src.consecutiveSide==='below'?'below':'above',
     markers:Array.isArray(src.markers)?src.markers.slice(0,12).map((m,i)=>(
