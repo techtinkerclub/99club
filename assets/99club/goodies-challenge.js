@@ -131,6 +131,12 @@ function bannerHtml(challenge,opts={}){
   const answerButton=ch.answer
     ?`<button class="nl-challenge-reveal gd-challenge-reveal" type="button" data-board-action="reveal">${ch.revealed?'Hide answer':'Reveal answer'}</button>`
     :'';
+  const extraActions=Array.isArray(opts.actions)?opts.actions:[];
+  const actionButtons=extraActions
+    .filter(a=>a&&a.action&&a.label)
+    .slice(0,3)
+    .map(a=>`<button class="gd-challenge-action" type="button" data-challenge-action="${esc(String(a.action).replace(/[^a-zA-Z0-9_-]/g,'').slice(0,40))}">${esc(String(a.label).slice(0,60))}</button>`)
+    .join('');
   return `<div class="nl-challenge-banner gd-challenge-banner" data-challenge-mode="${ch.mode}">
     <span class="gd-challenge-kicker">${esc(label)}</span>
     <div class="gd-challenge-copy">
@@ -139,6 +145,7 @@ function bannerHtml(challenge,opts={}){
     </div>
     <div class="gd-challenge-actions">
       ${ch.revealed&&ch.answer?`<em>Answer: ${esc(ch.answer)}</em>`:''}
+      ${actionButtons}
       ${answerButton}
     </div>
   </div>`;
