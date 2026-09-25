@@ -97,7 +97,7 @@ function editorHtml(challenge,prefix,opts={}){
   const sourceOptions=choices.map(s=>`<option value="${esc(s.id)}"${s.id===selected?' selected':''}>${esc(s.label)}</option>`).join('');
   const answerEditor=selected==='manual'
     ?`<label class="gd-field"><span>Answer (optional)</span><input class="gd-input" id="${esc(prefix)}-custom-answer" maxlength="400" value="${esc(ch.answer)}" placeholder="Shown only when Reveal answer is used"></label>`
-    :`<div class="gd-answer-live"><span>Current answer</span><strong>${esc(ch.answer||'—')}</strong><small>This stays linked to the diagram.</small></div>`;
+    :`<div class="gd-answer-live"><span>Current answer</span><strong id="${esc(prefix)}-custom-live-answer">${esc(ch.answer||'—')}</strong><small>This stays linked to the diagram.</small></div>`;
   return `<div class="gd-challenge-editor">
     <label class="gd-field"><span>Title</span><input class="gd-input" id="${esc(prefix)}-custom-title" maxlength="100" value="${esc(ch.title)}" placeholder="e.g. Can you explain why?"></label>
     <label class="gd-field"><span>Question / instructions</span></label>
