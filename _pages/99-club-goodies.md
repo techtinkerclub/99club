@@ -16,8 +16,10 @@ robots: "noindex,nofollow,noarchive"
   </article>
 </div>
 
-<link rel="stylesheet" href="/assets/99club/goodies.css?v=1">
+<link rel="stylesheet" href="/assets/99club/goodies.css?v=2">
 <script src="/assets/99club/goodies-core.js?v=1" defer></script>
+<script src="/assets/99club/goodies-export.js?v=1" defer></script>
 <script src="/assets/99club/goodies-tools-a.js?v=1" defer></script>
+<script src="/assets/99club/goodies-number-line-v2.js?v=1" defer></script>
 <script src="/assets/99club/goodies-tools-b.js?v=1" defer></script>
 <script src="/assets/99club/goodies-app.js?v=1" defer></script>
