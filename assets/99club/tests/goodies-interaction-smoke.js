@@ -122,7 +122,8 @@ requireText(challenge,'function pickerHtml','shared standard challenge picker');
 
 requireText(numberLine,"boardTool('delete','delete'","Number Line direct delete remains intact");
 requireText(numberLine,'nl-board-rail','Number Line quiet side rail remains intact');
-requireText(numberLine,'nl-challenge-reveal','Number Line contextual challenge reveal remains intact');
+requireText(challenge,'nl-challenge-reveal','Shared contextual challenge reveal remains intact');
+requireText(numberLine,'CK.bannerHtml','Number Line uses the shared contextual challenge banner');
 requireText(numberLine,"{id:'interval-value'","Number Line interval challenge");
 requireText(numberLine,"{id:'estimate-position'","Number Line position challenge");
 requireText(numberLine,"{id:'missing-jump'","Number Line reverse jump challenge");
