@@ -194,7 +194,7 @@ html.nl-board-page-lock,body.nl-board-page-lock{overflow:hidden!important;oversc
 /* Goodies shared object interaction pilot: Maths Canvas */
 .gd-object-workspace{display:grid;gap:10px}
 .gd-object-canvas-wrap{position:relative;width:100%}
-.gd-object-canvas{min-height:500px;border:1px solid #c7d6d8;border-radius:18px;background:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.7);overflow:hidden;touch-action:none}
+.gd-object-canvas{min-height:500px;border:1px solid #c7d6d8;border-radius:18px;background:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.7);overflow:hidden;touch-action:pan-y}
 .gd-object-canvas.has-grid{background-image:linear-gradient(to right,rgba(78,112,119,.085) 1px,transparent 1px),linear-gradient(to bottom,rgba(78,112,119,.085) 1px,transparent 1px);background-size:20px 20px;background-position:-1px -1px}
 .gd-object-tile{background:var(--gd-tile-fill,#cbe7e2);color:var(--gd-tile-ink,#24343b);border-color:color-mix(in srgb,var(--gd-tile-fill,#cbe7e2) 66%,#52666d);box-shadow:0 4px 12px rgba(31,61,69,.09);transition:box-shadow .12s ease,transform .12s ease,border-color .12s ease}
 .gd-object-tile:hover{box-shadow:0 6px 17px rgba(31,61,69,.14)}
