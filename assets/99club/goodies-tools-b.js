@@ -23,8 +23,210 @@ setPanels(`${field('Number','<input class="gd-input" id="fe-n" type="number" min
 function fdpExplorer(){function draw(){let d=clamp(Math.round(num(q('#fd-d').value,8)),1,20),n=clamp(Math.round(num(q('#fd-n').value,3)),0,d);q('#fd-n').max=d;if(n>+q('#fd-n').value)q('#fd-n').value=n;const g=gcd(n,d),sn=n/g,sd=d/g,v=n/d,pct=v*100;const bar=`<div class="gd-fdp-bar">${Array.from({length:d},(_,i)=>`<span class="gd-fdp-piece${i<n?' is-fill':''}"></span>`).join('')}</div>`;const fills=Math.round(v*100);q('#gd-stage').innerHTML=`<div class="gd-vis gd-fdp-main">${bar}<div class="gd-fdp-readout"><div class="gd-fdp-value"><span>fraction</span><strong>${sn}/${sd}</strong><small>${n}/${d}</small></div><div class="gd-fdp-value"><span>decimal</span><strong>${Number(v.toFixed(4))}</strong></div><div class="gd-fdp-value"><span>percentage</span><strong>${Number(pct.toFixed(2))}%</strong></div></div><div class="gd-hundred">${Array.from({length:100},(_,i)=>`<span class="${i<fills?'is-fill':''}"></span>`).join('')}</div></div>`}
 setPanels(`${field('Numerator','<input class="gd-input" id="fd-n" type="range" min="0" max="8" value="3">')}${field('Denominator','<input class="gd-input" id="fd-d" type="range" min="1" max="20" value="8">')}<p class="gd-help">The hundred square rounds to the nearest whole percent when the fraction does not map exactly to 100 cells.</p>`,'');q('#fd-n').oninput=draw;q('#fd-d').oninput=draw;draw()}
 
-function geoboard(){let pts=[];const N=7,W=560,pad=55,step=(W-2*pad)/(N-1);function area(){if(pts.length<3)return 0;let a=0;for(let i=0;i<pts.length;i++){const p=pts[i],n=pts[(i+1)%pts.length];a+=p.x*n.y-n.x*p.y}return Math.abs(a)/2}function perim(){if(pts.length<2)return 0;let p=0;for(let i=0;i<pts.length;i++){const a=pts[i],b=pts[(i+1)%pts.length];p+=Math.hypot(a.x-b.x,a.y-b.y)}return p}function draw(){let grid='';for(let y=0;y<N;y++)for(let x=0;x<N;x++)grid+=`<circle cx="${pad+x*step}" cy="${pad+(N-1-y)*step}" r="5" fill="#b6c7ca" data-gp="${x},${y}"></circle>`;const poly=pts.length?`<polyline class="gd-poly" points="${pts.map(p=>`${pad+p.x*step},${pad+(N-1-p.y)*step}`).join(' ')}${pts.length>2?' '+(pad+pts[0].x*step)+','+(pad+(N-1-pts[0].y)*step):''}"></polyline>`:'';const sel=pts.map((p,i)=>`<circle class="gd-point" cx="${pad+p.x*step}" cy="${pad+(N-1-p.y)*step}" r="8"></circle><text x="${pad+p.x*step+10}" y="${pad+(N-1-p.y)*step-10}" font-size="12">${String.fromCharCode(65+i)}</text>`).join('');q('#gd-stage').innerHTML=`<div class="gd-vis gd-geo"><svg viewBox="0 0 ${W} ${W}">${poly}${grid}${sel}</svg><div class="gd-readout">Vertices: ${pts.length} · Perimeter ≈ ${perim().toFixed(2)} units · Area = ${area().toFixed(2)} square units</div></div>`;qa('[data-gp]',q('#gd-stage')).forEach(x=>x.onclick=()=>{const [px,py]=x.dataset.gp.split(',').map(Number);if(!pts.some(p=>p.x===px&&p.y===py))pts.push({x:px,y:py});draw()})}
-setPanels(`${btn('Undo last vertex','ge-undo')}${btn('Clear shape','ge-clear')}<p class="gd-help">Click grid points in order to make a polygon. Area uses square grid units.</p>`,'');q('#ge-undo').onclick=()=>{pts.pop();draw()};q('#ge-clear').onclick=()=>{pts=[];draw()};draw()}
+function geoboard(){
+  let pts=[],selected=-1,drag=null;
+  const undoStack=[],redoStack=[];
+  const N=7,W=560,pad=55,step=(W-2*pad)/(N-1);
+
+  function copyPts(value=pts){return value.map(p=>({x:p.x,y:p.y}))}
+  function remember(snapshot=copyPts()){
+    undoStack.push(copyPts(snapshot));
+    if(undoStack.length>40)undoStack.shift();
+    redoStack.length=0;
+  }
+  function undo(){
+    if(!undoStack.length)return;
+    redoStack.push(copyPts());
+    pts=copyPts(undoStack.pop());
+    selected=-1;
+    draw();
+  }
+  function redo(){
+    if(!redoStack.length)return;
+    undoStack.push(copyPts());
+    pts=copyPts(redoStack.pop());
+    selected=-1;
+    draw();
+  }
+  function area(){
+    if(pts.length<3)return 0;
+    let a=0;
+    for(let i=0;i<pts.length;i++){
+      const p=pts[i],n=pts[(i+1)%pts.length];
+      a+=p.x*n.y-n.x*p.y;
+    }
+    return Math.abs(a)/2;
+  }
+  function segmentLength(){
+    return pts.length===2?Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y):0;
+  }
+  function perimeter(){
+    if(pts.length<3)return 0;
+    let p=0;
+    for(let i=0;i<pts.length;i++){
+      const a=pts[i],b=pts[(i+1)%pts.length];
+      p+=Math.hypot(a.x-b.x,a.y-b.y);
+    }
+    return p;
+  }
+  function pointPx(p){
+    return{x:pad+p.x*step,y:pad+(N-1-p.y)*step};
+  }
+  function polyPoints(){
+    if(!pts.length)return'';
+    const list=pts.map(p=>{const v=pointPx(p);return v.x+','+v.y;});
+    if(pts.length>2)list.push(list[0]);
+    return list.join(' ');
+  }
+  function metricText(){
+    if(pts.length<2)return'Vertices: '+pts.length+' · Add at least two vertices to measure a length.';
+    if(pts.length===2)return'Vertices: 2 · Length ≈ '+segmentLength().toFixed(2)+' units';
+    return'Vertices: '+pts.length+' · Perimeter ≈ '+perimeter().toFixed(2)+' units · Area = '+area().toFixed(2)+' square units';
+  }
+  function occupied(x,y,except=-1){
+    return pts.findIndex((p,i)=>i!==except&&p.x===x&&p.y===y);
+  }
+  function nearestPeg(e,svg){
+    const r=svg.getBoundingClientRect();
+    const vx=(e.clientX-r.left)/Math.max(1,r.width)*W;
+    const vy=(e.clientY-r.top)/Math.max(1,r.height)*W;
+    return{
+      x:clamp(Math.round((vx-pad)/step),0,N-1),
+      y:clamp((N-1)-Math.round((vy-pad)/step),0,N-1)
+    };
+  }
+  function updateGeometry(){
+    const poly=q('[data-ge-poly]',q('#gd-stage'));
+    if(poly)poly.setAttribute('points',polyPoints());
+    qa('[data-ge-vertex]',q('#gd-stage')).forEach(el=>{
+      const i=+el.dataset.geVertex,p=pts[i];if(!p)return;
+      const v=pointPx(p);
+      el.setAttribute('cx',v.x);el.setAttribute('cy',v.y);
+      el.dataset.gePos=p.x+','+p.y;
+      el.classList.toggle('is-selected',i===selected);
+      el.setAttribute('aria-label','Vertex '+String.fromCharCode(65+i)+' at '+p.x+', '+p.y+'. Drag to move.');
+    });
+    qa('[data-ge-label]',q('#gd-stage')).forEach(el=>{
+      const i=+el.dataset.geLabel,p=pts[i];if(!p)return;
+      const v=pointPx(p);
+      el.setAttribute('x',v.x+11);el.setAttribute('y',v.y-11);
+    });
+    const readout=q('#ge-readout');if(readout)readout.textContent=metricText();
+    const context=q('#ge-context-text');
+    if(context)context.textContent=selected>=0&&pts[selected]
+      ? 'Selected '+String.fromCharCode(65+selected)+' · ('+pts[selected].x+', '+pts[selected].y+')'
+      : 'Tap a vertex to select it, or drag it straight to another peg.';
+    const del=q('[data-ge-delete]');
+    if(del)del.hidden=!(selected>=0&&pts[selected]);
+    syncControls();
+  }
+  function moveVertex(index,x,y,withHistory=true){
+    if(!pts[index]||occupied(x,y,index)>=0)return false;
+    if(pts[index].x===x&&pts[index].y===y)return false;
+    if(withHistory)remember();
+    pts[index]={x,y};
+    selected=index;
+    return true;
+  }
+  function deleteVertex(index){
+    if(index<0||index>=pts.length)return;
+    remember();
+    pts.splice(index,1);
+    selected=-1;
+    draw();
+  }
+  function syncControls(){
+    const u=q('#ge-undo'),r=q('#ge-redo'),clear=q('#ge-clear');
+    if(u)u.disabled=!undoStack.length;
+    if(r)r.disabled=!redoStack.length;
+    if(clear)clear.disabled=!pts.length;
+  }
+  function bindStage(){
+    const svg=q('#ge-svg');
+    qa('[data-gp]',q('#gd-stage')).forEach(peg=>peg.onclick=()=>{
+      const [x,y]=peg.dataset.gp.split(',').map(Number);
+      const existing=occupied(x,y);
+      if(existing>=0){selected=existing;draw();return;}
+      remember();
+      pts.push({x,y});
+      selected=pts.length-1;
+      draw();
+    });
+    qa('[data-ge-vertex]',q('#gd-stage')).forEach(vertex=>{
+      vertex.onpointerdown=e=>{
+        if(e.button!=null&&e.button!==0)return;
+        e.stopPropagation();
+        const index=+vertex.dataset.geVertex;
+        selected=index;
+        drag={index,pointerId:e.pointerId,start:copyPts(),moved:false};
+        try{vertex.setPointerCapture(e.pointerId)}catch(_){}
+        updateGeometry();
+      };
+      vertex.onpointermove=e=>{
+        if(!drag||drag.pointerId!==e.pointerId||drag.index!==+vertex.dataset.geVertex)return;
+        const target=nearestPeg(e,svg),p=pts[drag.index];
+        if(!p||(p.x===target.x&&p.y===target.y)||occupied(target.x,target.y,drag.index)>=0)return;
+        if(!drag.moved){
+          remember(drag.start);
+          drag.moved=true;
+        }
+        pts[drag.index]={x:target.x,y:target.y};
+        selected=drag.index;
+        updateGeometry();
+      };
+      const finish=e=>{
+        if(!drag||drag.pointerId!==e.pointerId||drag.index!==+vertex.dataset.geVertex)return;
+        const moved=drag.moved;
+        drag=null;
+        if(moved)draw();else{selected=+vertex.dataset.geVertex;draw();}
+      };
+      vertex.onpointerup=finish;
+      vertex.onpointercancel=finish;
+      vertex.onkeydown=e=>{
+        const index=+vertex.dataset.geVertex,p=pts[index];if(!p)return;
+        if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();deleteVertex(index);return;}
+        let x=p.x,y=p.y;
+        if(e.key==='ArrowLeft')x--;else if(e.key==='ArrowRight')x++;
+        else if(e.key==='ArrowUp')y++;else if(e.key==='ArrowDown')y--;else return;
+        e.preventDefault();
+        x=clamp(x,0,N-1);y=clamp(y,0,N-1);
+        if(moveVertex(index,x,y,true))draw();
+      };
+    });
+    const del=q('[data-ge-delete]');
+    if(del)del.onclick=()=>deleteVertex(selected);
+  }
+  function draw(){
+    let grid='';
+    for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+      const v=pointPx({x,y});
+      grid+='<circle class="gd-ge-peg" cx="'+v.x+'" cy="'+v.y+'" r="5" data-gp="'+x+','+y+'"></circle>';
+    }
+    const poly=pts.length?'<polyline class="gd-poly" data-ge-poly points="'+polyPoints()+'"></polyline>':'<polyline class="gd-poly" data-ge-poly points=""></polyline>';
+    const vertices=pts.map((p,i)=>{
+      const v=pointPx(p),label=String.fromCharCode(65+i);
+      return '<circle class="gd-point gd-ge-vertex'+(i===selected?' is-selected':'')+'" data-ge-vertex="'+i+'" data-ge-pos="'+p.x+','+p.y+'" tabindex="0" role="button" aria-label="Vertex '+label+' at '+p.x+', '+p.y+'. Drag to move." cx="'+v.x+'" cy="'+v.y+'" r="10"></circle>'+
+        '<text class="gd-ge-label" data-ge-label="'+i+'" x="'+(v.x+11)+'" y="'+(v.y-11)+'">'+label+'</text>';
+    }).join('');
+    q('#gd-stage').innerHTML='<div class="gd-vis gd-geo gd-geoboard-direct">'+
+      '<svg id="ge-svg" viewBox="0 0 '+W+' '+W+'" role="img" aria-label="Interactive geoboard">'+grid+poly+vertices+'</svg>'+
+      '<div class="gd-ge-context"><span id="ge-context-text">'+(selected>=0&&pts[selected]?'Selected '+String.fromCharCode(65+selected)+' · ('+pts[selected].x+', '+pts[selected].y+')':'Tap a peg to add a vertex. Drag an existing vertex to reshape the polygon.')+'</span><button type="button" data-ge-delete'+(selected>=0&&pts[selected]?'':' hidden')+'>Delete vertex</button></div>'+
+      '<div class="gd-readout" id="ge-readout">'+metricText()+'</div>'+
+    '</div>';
+    bindStage();
+    syncControls();
+  }
+
+  setPanels(
+    '<div class="gd-row">'+btn('Undo','ge-undo')+btn('Redo','ge-redo')+btn('Clear shape','ge-clear')+'</div>'+
+    '<p class="gd-help">Tap pegs in order to make a shape. Then drag any vertex to another peg instead of rebuilding the polygon. With two vertices the tool shows segment length; with three or more it shows perimeter and area.</p>',
+    ''
+  );
+  q('#ge-undo').onclick=undo;
+  q('#ge-redo').onclick=redo;
+  q('#ge-clear').onclick=()=>{if(!pts.length)return;remember();pts=[];selected=-1;draw()};
+  draw();
+}
 
 function mathsCanvas(){
 const I=G.interaction;
