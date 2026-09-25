@@ -520,7 +520,7 @@ function numberLineV2(){
   }
 
   function controlsHtml(){
-    const line=activeLine(),lineIndex=state.lines.indexOf(line),activeScale=scaleFor(line),lineHasLinkedMarkers=line.markers.some(m=>m.syncGroup);
+    const line=activeLine(),lineIndex=state.lines.indexOf(line),activeScale=scaleFor(line),lineHasLinkedMarkers=line.markers.some(m=>m.syncGroup),zoomCanFollow=!!mainMarkerZoomRange();
     const lineOptions=state.lines.map((l,i)=>'<option value="'+esc(l.id)+'"'+(l.id===state.activeLineId?' selected':'')+'>Line '+(i+1)+(l.label?' · '+esc(l.label):'')+(i>0?' · '+scaleModeLabel(l.scaleMode):'')+'</option>').join('');
     const lineModeHelp=line.scaleMode==='zoom'
       ?'The highlighted interval on the main line is enlarged across this line.'
@@ -540,6 +540,7 @@ function numberLineV2(){
         <div class="nl-object-card-options">
           <label class="gd-field nl-compact-field"><span>Position</span><select class="gd-select nl-side" data-marker-side="${esc(m.id)}"><option value="above"${m.side==='above'?' selected':''}>Above</option><option value="below"${m.side==='below'?' selected':''}>Below</option></select></label>
           <label class="nl-check"><input type="checkbox" data-marker-show="${esc(m.id)}"${m.showValue?' checked':''}> Show value</label>
+          ${m.positionGroup?'<span class="nl-linked-marker-tag">Corresponding pair</span>':''}
         </div>
       </div>`).join('');
 
@@ -591,14 +592,14 @@ function numberLineV2(){
         </div>`:'<p class="gd-help nl-main-scale-note">This is the main scale. Extra lines can align, stand alone, zoom into it, or form a proportional double number line.</p>'}
         ${lineIndex>0&&line.scaleMode!=='shared'?`<div class="nl-own-scale" data-line-scale-editor="${esc(line.scaleMode)}">
           <div class="nl-two">
-            <label class="gd-field"><span>${line.scaleMode==='zoom'?'Zoom from':line.scaleMode==='linked'?'Linked minimum':'Line minimum'}</span><input class="gd-input" id="nl-line-min" type="number" value="${fmt(line.min)}"></label>
-            <label class="gd-field"><span>${line.scaleMode==='zoom'?'Zoom to':line.scaleMode==='linked'?'Linked maximum':'Line maximum'}</span><input class="gd-input" id="nl-line-max" type="number" value="${fmt(line.max)}"></label>
+            <label class="gd-field"><span>${line.scaleMode==='zoom'?'Zoom from':line.scaleMode==='linked'?'Linked minimum':'Line minimum'}</span><input class="gd-input" id="nl-line-min" type="number" value="${fmt(line.min)}"${line.scaleMode==='zoom'&&line.zoomFollowMarkers?' disabled':''}></label>
+            <label class="gd-field"><span>${line.scaleMode==='zoom'?'Zoom to':line.scaleMode==='linked'?'Linked maximum':'Line maximum'}</span><input class="gd-input" id="nl-line-max" type="number" value="${fmt(line.max)}"${line.scaleMode==='zoom'&&line.zoomFollowMarkers?' disabled':''}></label>
           </div>
           <div class="nl-two">
             <label class="gd-field"><span>Tick step</span><input class="gd-input" id="nl-line-step" type="number" min="0.0001" step="any" value="${fmt(line.step)}"></label>
             <label class="gd-field"><span>Label every</span><input class="gd-input" id="nl-line-label-every" type="number" min="1" max="50" value="${line.labelEvery}"></label>
           </div>
-          ${line.scaleMode==='zoom'?'<button class="gd-btn nl-fit-zoom" id="nl-fit-zoom-markers" type="button">Fit zoom to main markers</button>':''}
+          ${line.scaleMode==='zoom'?`<label class="nl-check nl-zoom-follow"><input id="nl-zoom-follow" type="checkbox"${line.zoomFollowMarkers?' checked':''}${zoomCanFollow?'':' disabled'}> Follow first two main markers</label><button class="gd-btn nl-fit-zoom" id="nl-fit-zoom-markers" type="button"${zoomCanFollow?'':' disabled'}>Use current marker interval</button>`:''}
         </div>`:''}
         ${lineIndex>0?`<label class="nl-check"><input id="nl-line-labels" type="checkbox"${line.showLabels?' checked':''}> Show number labels on this line</label><p class="gd-help nl-line-mode-help">${lineModeHelp}</p>`:''}
         <div class="nl-add-line-row">
@@ -624,7 +625,8 @@ function numberLineV2(){
         </div>
         ${objectTab==='markers'?`
           <div class="nl-marker-list">${markerRows||'<p class="gd-help">No markers yet. Add one, then drag it directly on the line.</p>'}</div>
-          <button class="gd-btn" id="nl-add-marker" type="button">+ Add marker</button>
+          <div class="gd-row"><button class="gd-btn" id="nl-add-marker" type="button">+ Add marker</button>${line.scaleMode==='linked'?'<button class="gd-btn gd-btn--primary" id="nl-add-correspondence" type="button">+ Corresponding pair</button>':''}</div>
+          ${line.scaleMode==='linked'?'<p class="gd-help">A corresponding pair adds one marker to the main line and one here. Drag either marker and the other follows proportionally.</p>':''}
         `:`
           <div class="nl-relation-list">${relationRows||'<p class="gd-help">Add at least two markers, then add a relationship.</p>'}</div>
           <button class="gd-btn" id="nl-add-relation" type="button"${line.markers.length<2?' disabled':''}>+ Add relationship</button>
