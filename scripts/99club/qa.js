@@ -801,9 +801,9 @@ try{
   const iconJs=read('assets/99club/games-play-icons-v1.js');
   const iconCss=read('assets/99club/games-play-icons-v1.css');
   if(!playPage.includes('games-play-safe-fit-v2.css?v=3')||!playPage.includes('games-play-safe-fit-v2.js?v=1'))fail('play-safe-fit','safe-fit assets are not both loaded by /play/');
-  if(!playPage.includes('games-play-core-v2.js?v=15')||!playPage.includes('games-play-instructions-v154.js?v=7')||!playPage.includes('games-play-sudoku-v1.js?v=2'))fail('play-safe-fit','changed Online Play assets are not cache-busted');
+  if(!playPage.includes('games-play-core-v2.js?v=16')||!playPage.includes('games-play-instructions-v154.js?v=7')||!playPage.includes('games-play-sudoku-v1.js?v=2'))fail('play-safe-fit','changed Online Play assets are not cache-busted');
   if(!playPage.includes('games-play-icons-v1.js?v=2')||!playPage.includes('games-play-icons-v1.css?v=1'))fail('game-icons','coherent game icon assets are not both loaded by /play/');
-  if(playPage.indexOf('games-play-icons-v1.js?v=1')>playPage.indexOf('games-play-core-v2.js?v=15'))fail('game-icons','game icon renderer must load before Online Play core');
+  if(playPage.indexOf('games-play-icons-v1.js?v=1')>playPage.indexOf('games-play-core-v2.js?v=16'))fail('game-icons','game icon renderer must load before Online Play core');
   if(!playPage.includes('games-play-final-catalogue-v186.css?v=2')||!playPage.includes('games-play-context-keypad-v201.css?v=8')||!playPage.includes('games-play-context-keypad-v201.js?v=9')||!playPage.includes('games-play-share-v164.js?v=10'))fail('mobile-play-controls','mobile keyboard/copy-link assets are not cache-busted');
   if(/<details class="tt99-play-settings"\s+open>/.test(playCore))fail('play-safe-fit','Puzzle settings still start expanded');
   if(/html\.tt99-play-app-shell|overflow\s*:\s*hidden\s*!important/i.test(fitCss))fail('play-safe-fit','safe-fit must not restore the old document viewport lock');
