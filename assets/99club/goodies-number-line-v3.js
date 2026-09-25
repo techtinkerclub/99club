@@ -132,4 +132,80 @@ function numberLineV2(){
   const controls=q('#nl-controls'),stage=q('#gd-stage');
 
   function activeLine(){return state.lines.find(l=>l.id===state.activeLineId)||state.lines[0]}
-  fu
+  function message(text,bad=false){
+    const box=q('#nl-status');if(!box)return;
+    box.textContent=text||'';box.classList.toggle('is-error',!!bad);
+    clearTimeout(statusTimer);
+    if(text)statusTimer=setTimeout(()=>{if(box)box.textContent=''},3600);
+  }
+  function groupOpen(id){return openGroups.has(id)?' open':''}
+  function bindGroupState(){
+    qa('details[data-nl-group]',controls).forEach(d=>d.addEventListener('toggle',()=>{
+      const id=d.dataset.nlGroup;if(!id)return;
+      if(d.open)openGroups.add(id);else openGroups.delete(id);
+    }));
+  }
+  function applyRangeFromControls(){
+    const min=num(q('#nl-min')?.value,state.min),max=num(q('#nl-max')?.value,state.max);
+    state.min=min;state.max=max<=min?min+Math.max(state.step,1):max;
+    const range=state.max-state.min;
+    state.step=Math.max(.0001,Math.min(range,num(q('#nl-step')?.value,state.step)));
+    state.labelEvery=clamp(Math.round(num(q('#nl-label-every')?.value,state.labelEvery)),1,50);
+    state.lines.forEach(line=>line.markers.forEach(m=>m.value=snap(m.value,state)));
+  }
+  function markerOptions(line,selected){
+    return line.markers.map(m=>'<option value="'+esc(m.id)+'"'+(m.id===selected?' selected':'')+'>'+esc(m.label||m.id)+' · '+fmt(m.value)+'</option>').join('');
+  }
+  function controlsHtml(){
+    const line=activeLine();
+    const lineOptions=state.lines.map((l,i)=>'<option value="'+esc(l.id)+'"'+(l.id===state.activeLineId?' selected':'')+'>Line '+(i+1)+(l.label?' · '+esc(l.label):'')+'</option>').join('');
+    const markerRows=line.markers.map(m=>`
+      <div class="nl-marker-row" data-marker-row="${esc(m.id)}">
+        <input class="nl-colour" type="color" value="${esc(m.color)}" data-marker-color="${esc(m.id)}" aria-label="Marker colour">
+        <input class="gd-input nl-marker-label" value="${esc(m.label)}" maxlength="12" data-marker-label="${esc(m.id)}" aria-label="Marker label">
+        <input class="gd-input nl-marker-value" type="number" step="${state.step}" min="${state.min}" max="${state.max}" value="${fmt(m.value)}" data-marker-value="${esc(m.id)}" aria-label="Marker value">
+        <select class="gd-select nl-side" data-marker-side="${esc(m.id)}" aria-label="Marker position"><option value="above"${m.side==='above'?' selected':''}>Above</option><option value="below"${m.side==='below'?' selected':''}>Below</option></select>
+        <label class="nl-mini-check"><input type="checkbox" data-marker-show="${esc(m.id)}"${m.showValue?' checked':''}> value</label>
+        <button class="nl-icon-btn" type="button" data-marker-delete="${esc(m.id)}" aria-label="Delete marker">×</button>
+      </div>`).join('');
+    const relationRows=line.relations.map(r=>`
+      <div class="nl-relation-row" data-relation-row="${esc(r.id)}">
+        <select class="gd-select" data-relation-from="${esc(r.id)}">${markerOptions(line,r.from)}</select>
+        <span>→</span>
+        <select class="gd-select" data-relation-to="${esc(r.id)}">${markerOptions(line,r.to)}</select>
+        <select class="gd-select" data-relation-type="${esc(r.id)}">
+          <option value="difference"${r.type==='difference'?' selected':''}>Difference</option>
+          <option value="jump"${r.type==='jump'?' selected':''}>Jump</option>
+          <option value="interval"${r.type==='interval'?' selected':''}>Shade interval</option>
+        </select>
+        <select class="gd-select nl-side" data-relation-side="${esc(r.id)}" aria-label="Teaching visual position"><option value="above"${r.side==='above'?' selected':''}>Above</option><option value="below"${r.side==='below'?' selected':''}>Below</option></select>
+        <input class="nl-colour" type="color" value="${esc(r.color)}" data-relation-color="${esc(r.id)}" aria-label="Relationship colour">
+        <input class="gd-input" value="${esc(r.label)}" placeholder="auto label" maxlength="24" data-relation-label="${esc(r.id)}" aria-label="Custom relationship label">
+        <label class="nl-mini-check"><input type="checkbox" data-relation-show="${esc(r.id)}"${r.showLabel?' checked':''}> label</label>
+        <button class="nl-icon-btn" type="button" data-relation-delete="${esc(r.id)}" aria-label="Delete relationship">×</button>
+      </div>`).join('');
+    const challenge=state.challenge;
+    return `
+      <details class="nl-group" data-nl-group="line"${groupOpen('line')}>
+        <summary>Number line</summary>
+        <div class="nl-group-body">
+          <div class="nl-two">
+            <label class="gd-field"><span>Minimum</span><input class="gd-input" id="nl-min" type="number" value="${fmt(state.min)}"></label>
+            <label class="gd-field"><span>Maximum</span><input class="gd-input" id="nl-max" type="number" value="${fmt(state.max)}"></label>
+          </div>
+          <div class="nl-two">
+            <label class="gd-field"><span>Tick step</span><input class="gd-input" id="nl-step" type="number" min="0.0001" step="any" value="${fmt(state.step)}"></label>
+            <label class="gd-field"><span>Label every</span><input class="gd-input" id="nl-label-every" type="number" min="1" max="50" value="${state.labelEvery}"></label>
+          </div>
+          <label class="gd-field"><span>Illustration title (optional)</span><input class="gd-input" id="nl-title" maxlength="90" value="${esc(state.title)}" placeholder="e.g. Finding the difference"></label>
+          <label class="nl-check"><input id="nl-tick-labels" type="checkbox"${state.showTickLabels?' checked':''}> Show number labels</label>
+          <div class="nl-preset-row">
+            <button class="gd-btn" type="button" data-nl-preset="0-20">0–20</button>
+            <button class="gd-btn" type="button" data-nl-preset="0-100">0–100</button>
+            <button class="gd-btn" type="button" data-nl-preset="negative">−10–10</button>
+            <button class="gd-btn" type="button" data-nl-preset="decimal">0–1 decimals</button>
+          </div>
+        </div>
+      </details>
+
+      <details class="nl-group" data-nl-group="lines"${groupOpen('lines')}
