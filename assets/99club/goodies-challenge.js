@@ -19,10 +19,10 @@ function sanitiseRichHtml(input){
       el.remove();
       return;
     }
+    const fontSize=el.tagName==='FONT'?el.getAttribute('size'):null;
     [...el.attributes].forEach(a=>el.removeAttribute(a.name));
     if(el.tagName==='FONT'){
-      const raw=String((input&&el.getAttribute?.('size'))||'');
-      const size=['1','3','5'].includes(raw)?raw:'3';
+      const size=['1','3','5'].includes(fontSize)?fontSize:'3';
       el.setAttribute('size',size);
     }
   });
