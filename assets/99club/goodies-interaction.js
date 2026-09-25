@@ -140,6 +140,13 @@ function mount(options){
   }
   function nudge(dx,dy){
     const item=selected();if(!item||isLocked(item))return;
+    if(o.nudge){
+      const before=snapshot();
+      if(o.nudge(item,dx,dy)===false)return;
+      pushSnapshot(before);
+      refresh();
+      return;
+    }
     remember();
     const currentX=Number(item.x)||0,currentY=Number(item.y)||0;
     const pos=constrain(item,currentX+dx,currentY+dy,null);
@@ -191,7 +198,11 @@ function mount(options){
       };
       const endDrag=e=>{
         if(!drag||drag.pointerId!==e.pointerId||drag.element!==el)return;
-        drag=null;refresh();
+        const item=items().find(x=>String(x.id)===drag.id);
+        const moved=drag.remembered;
+        drag=null;
+        if(item&&moved&&o.onDragEnd)o.onDragEnd(item);
+        refresh();
       };
       el.onpointerup=endDrag;
       el.onpointercancel=endDrag;
@@ -254,6 +265,7 @@ function mount(options){
     if(destroyed)return;
     destroyed=true;
     document.removeEventListener('keydown',keydown);
+    if(o.onDestroy)o.onDestroy(api);
     if(active===api)active=null;
   }
   document.addEventListener('keydown',keydown);

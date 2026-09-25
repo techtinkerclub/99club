@@ -17,17 +17,22 @@ function syntax(path,text){
 
 const page=read('_pages/99-club-goodies.md');
 const interaction=read('assets/99club/goodies-interaction.js');
+const toolsA=read('assets/99club/goodies-tools-a.js');
 const toolsB=read('assets/99club/goodies-tools-b.js');
 const app=read('assets/99club/goodies-app.js');
 const css=read('assets/99club/goodies.css');
 const numberLine=read('assets/99club/goodies-number-line-v6.js');
 
 syntax('goodies-interaction.js',interaction);
+syntax('goodies-tools-a.js',toolsA);
 syntax('goodies-tools-b.js',toolsB);
 syntax('goodies-app.js',app);
 
 requireOrder(page,'goodies-interaction.js','goodies-tools-b.js','Goodies interaction layer');
 requireText(page,'goodies-number-line-v6.js','Number Line v6 remains the active Number Line');
+requireText(page,'goodies-interaction.js?v=2','Place Value interaction cache-bust');
+requireText(page,'goodies-tools-a.js?v=2','Place Value tool cache-bust');
+requireText(page,'goodies.css?v=8','Place Value CSS cache-bust');
 requireText(page,'sitemap: false','Goodies stays out of sitemap');
 requireText(page,'robots: "noindex,nofollow,noarchive"','Goodies stays noindex');
 
@@ -41,12 +46,25 @@ requireText(interaction,"e.key==='ArrowLeft'",'keyboard nudge');
 requireText(interaction,"nudgeStep",'snap-aware keyboard nudge');
 requireText(interaction,"e.key==='Delete'",'keyboard delete');
 requireText(interaction,"e.key.toLowerCase()==='z'",'undo shortcut');
+requireText(interaction,'onDragEnd','tool drag-end hook');
+requireText(interaction,'if(o.nudge)','tool-specific keyboard nudge hook');
 
 requireText(toolsB,'G.interaction','Maths Canvas uses shared interaction layer');
 requireText(toolsB,'I.mount({','Maths Canvas mounts shared controller');
 requireText(toolsB,'data-gd-object','Maths Canvas selectable objects');
 requireText(toolsB,"I.toolButton('grid','grid'",'Maths Canvas grid action');
 requireText(toolsB,'the side tools duplicate, colour, lock or delete it.','Maths Canvas direct interaction hint');
+
+requireText(toolsA,'function placeValue()','Place Value tool');
+requireText(toolsA,'data-pv-column','semantic Place Value columns');
+requireText(toolsA,'data-pv-place','semantic counter place state');
+requireText(toolsA,'function buildFromNumber','Place Value quick setup');
+requireText(toolsA,'function placeFromX','drag-to-place mapping');
+requireText(toolsA,'Regroup counters','Place Value regroup action');
+requireText(toolsA,'onDragEnd:item','Place Value drag completion');
+requireText(toolsA,'nudge:(item,dx)','Place Value keyboard place movement');
+requireText(css,'.gd-pv-counter','Place Value counter styling');
+requireText(css,'.gd-pv-column.is-decimal-start','Place Value decimal boundary styling');
 
 requireText(app,'G.interaction?.clear()','tool switching clears shared interaction listeners');
 requireText(css,'.gd-object-rail','shared contextual rail styling');
