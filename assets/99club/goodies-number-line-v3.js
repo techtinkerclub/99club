@@ -239,7 +239,7 @@ function numberLineV2(){
         </div>
       </details>
 
-      <details class="nl-group" data-nl-group="challenge"${groupOpen('challenge')||challenge?' open':''}>
+      <details class="nl-group" data-nl-group="challenge"${groupOpen('challenge')}>
         <summary>Challenge generator${challenge?' <span class="nl-live">active</span>':''}</summary>
         <div class="nl-group-body">
           <label class="gd-field"><span>Challenge type</span>
@@ -400,7 +400,7 @@ function numberLineV2(){
     return intervalLayer+relationshipLayer+baseline+ticks+lineLabel+markerLayer;
   }
   function buildSvg(){
-    const plan=layout(),defs=plan.lines.map(l=>buildLine(l)).join('');
+    const plan=layout();
     const title=state.title?`<text x="500" y="30" text-anchor="middle" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#24343b">${esc(state.title)}</text>`:'';
     return `<svg id="nl-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 ${plan.height}" role="img" aria-label="Interactive number line from ${esc(fmt(state.min))} to ${esc(fmt(state.max))}"><defs>${state.lines.map(line=>line.relations.filter(r=>r.type==='jump').map(r=>`<marker id="nl-arrow-${esc(line.id)}-${esc(r.id)}" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,4 L0,8 z" fill="${esc(r.color)}"/></marker>`).join('')).join('')}</defs><rect x="0" y="0" width="1000" height="${plan.height}" rx="18" fill="#ffffff"/>${title}${plan.lines.map(buildLine).join('')}<text x="500" y="${plan.height-6}" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#87969a">99 Club Studio</text></svg>`;
   }
@@ -494,7 +494,7 @@ function numberLineV2(){
     if(['nl-min','nl-max','nl-step','nl-label-every'].includes(t.id)){applyRangeFromControls();renderStage();return}
     if(t.id==='nl-title'){state.title=t.value.slice(0,90);renderStage();return}
     if(t.id==='nl-tick-labels'){state.showTickLabels=t.checked;renderStage();return}
-    if(t.id==='nl-line-label'){line.label=t.value.slice(0,30);renderStage();return}
+    if(t.id==='nl-line-label'){line.label=t.value.slice(0,30);const option=q('#nl-active-line')?.selectedOptions?.[0];if(option){const i=state.lines.findIndex(l=>l.id===line.id);option.textContent='Line '+(i+1)+(line.label?' · '+line.label:'')}renderStage();return}
     if(t.id==='nl-line-labels'){line.showLabels=t.checked;renderStage();return}
     if(t.id==='nl-consecutive'){line.showConsecutiveDifferences=t.checked;renderStage();return}
     if(t.id==='nl-consecutive-side'){line.consecutiveSide=t.value==='below'?'below':'above';renderStage();return}
