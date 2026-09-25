@@ -490,7 +490,7 @@ function numberLineV2(){
             <label class="gd-field"><span>Label every</span><input class="gd-input" id="nl-line-label-every" type="number" min="1" max="50" value="${line.labelEvery}"></label>
           </div>
         </div>`:''}
-        <label class="nl-check"><input id="nl-line-labels" type="checkbox"${line.showLabels?' checked':''}> Show number labels on this line</label>
+        ${lineIndex>0?`<label class="nl-check"><input id="nl-line-labels" type="checkbox"${line.showLabels?' checked':''}> Show number labels on this line</label>`:''}
         ${lineIndex>0&&line.scaleMode==='shared'?'<p class="gd-help">Aligned lines use the same physical scale, so equal values sit directly above one another.</p>':''}
         ${lineIndex>0&&line.scaleMode==='own'?'<p class="gd-help">Own scale uses the full line width independently. Positions no longer align numerically with the main line.</p>':''}
         <div class="gd-row"><button class="gd-btn" id="nl-add-line" type="button"${state.lines.length>=4?' disabled':''}>+ Add line</button>${state.lines.length>1?'<button class="gd-btn gd-btn--danger" id="nl-delete-line" type="button">Remove line</button>':''}</div>
@@ -1161,7 +1161,7 @@ function numberLineV2(){
       if(line.scaleMode===mode)return;
       remember();
       if(mode==='own'){
-        line.scaleMode='own';line.min=state.min;line.max=state.max;line.step=state.step;line.labelEvery=state.labelEvery;
+        line.scaleMode='own';line.min=state.min;line.max=state.max;line.step=state.step;line.labelEvery=state.labelEvery;line.showLabels=true;
       }else{
         line.scaleMode='shared';line.markers.forEach(m=>m.value=snapOnLine(m,line));
       }
