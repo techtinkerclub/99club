@@ -103,6 +103,7 @@ if(mode==='prepare'){
     const mainA=document.querySelector('[data-marker-value="m1"]');
     mainA.value='4';mainA.dispatchEvent(new Event('input',{bubbles:true}));
     document.querySelector('[data-nl-workflow="setup"]').click();
+    assert(!document.getElementById('nl-delete-line'),'The main reference line cannot be removed while dependent teaching lines exist');
     const backToZoom=document.getElementById('nl-active-line');
     backToZoom.value='l2';backToZoom.dispatchEvent(new Event('change',{bubbles:true}));
     assert(Number(document.getElementById('nl-line-min').value)===4&&Number(document.getElementById('nl-line-max').value)===8,'Moving a followed main marker updates the zoom interval live');
