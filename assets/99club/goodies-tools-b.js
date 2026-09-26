@@ -565,8 +565,280 @@ function coordinateTool(){
   draw();
 }
 
-function measurementTool(){function draw(){const cm=clamp(num(q('#me-cm').value,12.3),0,30),mm=Math.round(cm*10),m=cm/100;let ticks='';for(let i=0;i<=300;i++){const p=i/300*100,h=i%10===0?55:i%5===0?35:22;ticks+=`<span class="gd-ruler-tick" style="left:${p}%;height:${h}px"></span>`;if(i%10===0)ticks+=`<span class="gd-ruler-num" style="left:${p}%">${i/10}</span>`}q('#gd-stage').innerHTML=`<div class="gd-vis"><div class="gd-ruler">${ticks}<span class="gd-ruler-marker" style="left:${cm/30*100}%"></span></div><div class="gd-fdp-readout"><div class="gd-fdp-value"><span>millimetres</span><strong>${mm} mm</strong></div><div class="gd-fdp-value"><span>centimetres</span><strong>${Number(cm.toFixed(1))} cm</strong></div><div class="gd-fdp-value"><span>metres</span><strong>${Number(m.toFixed(3))} m</strong></div></div></div>`}
-setPanels(`${field('Measurement (cm)','<input class="gd-input" id="me-cm" type="range" min="0" max="30" step="0.1" value="12.3">')}${btn('Random mark','me-random')}<p class="gd-help">The ruler is 30 cm with millimetre ticks. The orange marker shows the selected length.</p>`,'');q('#me-cm').oninput=draw;q('#me-random').onclick=()=>{q('#me-cm').value=(Math.floor(Math.random()*301)/10).toFixed(1);draw()};draw()}
+function measurementTool(){
+  const CK=G.challengeKit;
+  let cm=12.3,dragPointer=null;
+  const CHALLENGE_CATEGORIES=[
+    {id:'read',label:'Read & place'},
+    {id:'convert',label:'Convert units'},
+    {id:'reason',label:'Reasoning'}
+  ];
+  const CHALLENGE_TEMPLATES=[
+    {id:'read-mark',category:'read',title:'Read the ruler',desc:'Read the orange marker to the nearest millimetre.'},
+    {id:'place-mark',category:'read',title:'Place the mark',desc:'Move the marker to a requested length.'},
+    {id:'distance-between',category:'read',title:'Distance between marks',desc:'Find the distance between two ruler marks.'},
+    {id:'cm-to-mm',category:'convert',title:'Centimetres to millimetres',desc:'Convert a decimal centimetre length to millimetres.'},
+    {id:'mm-to-cm',category:'convert',title:'Millimetres to centimetres',desc:'Convert millimetres to centimetres.'},
+    {id:'cm-to-m',category:'convert',title:'Centimetres to metres',desc:'Convert centimetres to metres.'},
+    {id:'unit-misconception',category:'reason',title:'Spot the conversion error',desc:'Explain a plausible ×10 / ×100 unit-conversion error.'}
+  ];
+  let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='read-mark',challenge=null,beforeChallenge=null;
+
+  function roundCm(value){return Math.round(clamp(Number(value)||0,0,30)*10)/10}
+  function setCm(value){cm=roundCm(value)}
+  function mmValue(){return Math.round(cm*10)}
+  function metresValue(){return Math.round((cm/100)*10000)/10000}
+  function cmText(value=cm){return Number(roundCm(value).toFixed(1)).toString()}
+  function mText(value=cm){return Number((roundCm(value)/100).toFixed(3)).toString()}
+  function snapshot(){return{cm}}
+  function restoreSnapshot(value){if(value)setCm(value.cm)}
+  function readoutHidden(){return !!(challenge&&!challenge.revealed&&challenge.hiddenReadout)}
+  function markerFrozen(){return !!(challenge&&challenge.mode==='standard'&&challenge.freezeMarker)}
+  function liveAnswer(source){
+    if(source==='cm')return cmText()+' cm';
+    if(source==='mm')return mmValue()+' mm';
+    if(source==='m')return mText()+' m';
+    return'';
+  }
+  function customAnswerSources(){
+    return[
+      {id:'cm',label:'Current marker in centimetres'},
+      {id:'mm',label:'Current marker in millimetres'},
+      {id:'m',label:'Current marker in metres'}
+    ];
+  }
+  function updateChallengeAnswer(){
+    if(!challenge||challenge.answerMode!=='bound'||!challenge.answerSource)return;
+    challenge.answer=liveAnswer(challenge.answerSource);
+    const live=q('#me-custom-live-answer');if(live)live.textContent=challenge.answer||'—';
+    if(challenge.revealed){
+      const shown=q('.gd-challenge-actions em',q('#gd-stage'));
+      if(shown)shown.textContent='Answer: '+challenge.answer;
+    }
+  }
+  function challengeObject(type,prompt,answer,extra={}){
+    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===type);
+    const raw={mode:'standard',type,category:meta?.category||'',title:'',prompt,promptHtml:prompt,answer:String(answer??''),answerMode:'manual',answerSource:'',revealed:false,hiddenReadout:true,freezeMarker:true,secondaryCm:null,...extra};
+    return CK?CK.normalise(raw):raw;
+  }
+  function workflowTabs(){
+    return '<div class="gd-row gd-me-workflow-tabs" role="tablist" aria-label="Measurement workflow">'+
+      '<button class="gd-btn'+(controlTab==='explore'?' gd-btn--primary':'')+'" type="button" data-me-workflow="explore">Explore</button>'+
+      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-me-workflow="challenge">Challenge'+(challenge?' •':'')+'</button></div>';
+  }
+  function exploreControlsHtml(){
+    return field('Measurement (cm)','<input class="gd-input" id="me-cm" type="range" min="0" max="30" step="0.1" value="'+cm.toFixed(1)+'">')+
+      '<div class="gd-row">'+btn('Random mark','me-random')+'</div>'+
+      '<p class="gd-help">Drag or tap directly on the 30 cm ruler. The marker snaps to the nearest millimetre. Arrow keys move a focused marker by 1 mm.</p>';
+  }
+  function challengeControlsHtml(){
+    if(!CK)return '<p class="gd-help">Challenge tools are unavailable.</p>';
+    const tabs=CK.tabsHtml?CK.tabsHtml('me',challengeTab):'';
+    if(challengeTab==='custom'){
+      const custom=challenge&&challenge.mode==='custom'?challenge:CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual'});
+      return tabs+CK.editorHtml(custom,'me',{answerSources:customAnswerSources(),generatedAnswerLabel:'Keep the generated answer'})+
+        '<div class="gd-row">'+(challenge&&challenge.answer?'<button class="gd-btn" id="me-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
+        (challenge?'<button class="gd-btn" id="me-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
+        '<p class="gd-help">Custom challenges stay attached to the live ruler. Bind the answer to the marker in cm, mm or m when you want it to update as the marker moves.</p>';
+    }
+    const picker=CK.pickerHtml(CHALLENGE_TEMPLATES,CHALLENGE_CATEGORIES,challengeCategory,challengeType,'me');
+    const repeat=!!(challenge&&challenge.mode==='standard'&&challenge.type===challengeType);
+    return tabs+picker+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="me-generate" type="button">'+(repeat?'Another like this':'Generate challenge')+'</button>'+
+      (challenge&&challenge.mode!=='custom'?'<button class="gd-btn" id="me-edit-challenge" type="button">Edit challenge</button>':'')+
+      (challenge&&challenge.answer?'<button class="gd-btn" id="me-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
+      (challenge?'<button class="gd-btn" id="me-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>';
+  }
+  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():exploreControlsHtml())}
+  function renderControls(){const panel=q('#gd-controls');if(panel)panel.innerHTML=controlsHtml();bindControls()}
+  function enterCustomChallenge(){
+    if(CK)challenge=CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''});
+    challenge.hiddenReadout=challenge.answerMode==='bound'&&!!challenge.answerSource;
+    challenge.freezeMarker=false;challenge.secondaryCm=null;
+    challengeTab='custom';controlTab='challenge';renderControls();draw();
+  }
+  function setCustomAnswerSource(source){
+    if(!challenge||challenge.mode!=='custom')return;
+    if(source==='manual'){
+      challenge.answerMode='manual';challenge.answerSource='';challenge.hiddenReadout=false;
+    }else if(source==='generated'){
+      challenge.answerMode='bound';challenge.answerSource='';challenge.hiddenReadout=false;
+    }else{
+      challenge.answerMode='bound';challenge.answerSource=source;challenge.answer=liveAnswer(source);challenge.hiddenReadout=true;
+    }
+    challenge.revealed=false;renderControls();draw();
+  }
+  function clearChallenge(){
+    if(beforeChallenge){restoreSnapshot(beforeChallenge);beforeChallenge=null}
+    challenge=null;challengeTab='standard';controlTab='challenge';renderControls();draw();
+  }
+  function randomTenth(min=1,max=299){return Math.max(0,Math.min(300,min+Math.floor(Math.random()*(max-min+1))))/10}
+  function generateChallenge(type){
+    const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
+    if(!beforeChallenge)beforeChallenge=snapshot();else restoreSnapshot(beforeChallenge);
+    if(type==='read-mark'){
+      setCm(randomTenth());
+      challenge=challengeObject(type,'What length does the orange marker show?',cmText()+' cm');
+    }else if(type==='place-mark'){
+      const target=randomTenth(5,295),starts=[0,3,7,12,18,24,30].map(x=>x+Math.floor(Math.random()*5)/10).filter(x=>Math.abs(x-target)>.2);
+      setCm(starts[Math.floor(Math.random()*starts.length)]||0);
+      challenge=challengeObject(type,'Move the orange marker to '+cmText(target)+' cm.',cmText(target)+' cm',{freezeMarker:false,hiddenReadout:true,targetCm:target});
+    }else if(type==='distance-between'){
+      let a=randomTenth(5,220),b=randomTenth(Math.round(a*10)+15,295);
+      if(b<=a){a=5;b=12.5}
+      setCm(b);
+      challenge=challengeObject(type,'How far apart are marks A and B?',cmText(b-a)+' cm',{secondaryCm:a});
+    }else if(type==='cm-to-mm'){
+      setCm(randomTenth());
+      challenge=challengeObject(type,cmText()+' cm is how many millimetres?',mmValue()+' mm');
+    }else if(type==='mm-to-cm'){
+      setCm(randomTenth());
+      challenge=challengeObject(type,mmValue()+' mm is how many centimetres?',cmText()+' cm');
+    }else if(type==='cm-to-m'){
+      setCm(randomTenth(10,300));
+      challenge=challengeObject(type,cmText()+' cm is how many metres?',mText()+' m');
+    }else{
+      setCm([2.4,3.5,7.2,12.3,18.6,24.8][Math.floor(Math.random()*6)]);
+      const wrong=mmValue()*10;
+      challenge=challengeObject(type,'A pupil says '+cmText()+' cm = '+wrong+' mm. Are they correct?','No. '+cmText()+' cm = '+mmValue()+' mm because 1 cm = 10 mm.',{hiddenReadout:true});
+    }
+    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';renderControls();draw();
+  }
+  function rulerValueFromClientX(clientX,ruler){
+    const rect=ruler.getBoundingClientRect(),ratio=clamp((clientX-rect.left)/Math.max(1,rect.width),0,1);
+    return Math.round(ratio*300)/10;
+  }
+  function refreshLiveMeasurement(){
+    updateChallengeAnswer();
+    const marker=q('#me-marker');
+    if(marker){
+      marker.style.left=(cm/30*100)+'%';
+      marker.setAttribute('aria-valuenow',cm.toFixed(1));
+      marker.setAttribute('aria-valuetext',cmText()+' centimetres');
+    }
+    const values=qa('.gd-fdp-value strong',q('#gd-stage'));
+    if(values.length>=3&&!readoutHidden()){
+      values[0].textContent=mmValue()+' mm';
+      values[1].textContent=cmText()+' cm';
+      values[2].textContent=mText()+' m';
+    }
+    const target=q('#me-target-status');
+    if(target&&challenge?.mode==='standard'&&challenge.type==='place-mark'){
+      target.textContent=Math.abs(cm-Number(challenge.targetCm))<.05?'On target ✓':'';
+    }
+    const slider=q('#me-cm',q('#gd-controls'));if(slider)slider.value=cm.toFixed(1);
+  }
+  function setFromPointer(clientX,ruler){
+    if(markerFrozen())return;
+    setCm(rulerValueFromClientX(clientX,ruler));refreshLiveMeasurement();
+  }
+  function bindRuler(){
+    const ruler=q('#me-ruler'),marker=q('#me-marker');if(!ruler||!marker)return;
+    ruler.onpointerdown=e=>{
+      if(markerFrozen()||(e.button!=null&&e.button!==0))return;
+      e.preventDefault();dragPointer=e.pointerId;
+      try{ruler.setPointerCapture(e.pointerId)}catch(_){}
+      setFromPointer(e.clientX,ruler);
+    };
+    ruler.onpointermove=e=>{
+      if(dragPointer!==e.pointerId)return;
+      e.preventDefault();setFromPointer(e.clientX,ruler);
+    };
+    const finish=e=>{if(dragPointer===e.pointerId)dragPointer=null};
+    ruler.onpointerup=finish;ruler.onpointercancel=finish;
+    marker.onkeydown=e=>{
+      if(markerFrozen())return;
+      if(e.key==='ArrowLeft'){e.preventDefault();setCm(cm-.1);refreshLiveMeasurement()}
+      else if(e.key==='ArrowRight'){e.preventDefault();setCm(cm+.1);refreshLiveMeasurement()}
+      else if(e.key==='Home'){e.preventDefault();setCm(0);refreshLiveMeasurement()}
+      else if(e.key==='End'){e.preventDefault();setCm(30);refreshLiveMeasurement()}
+    };
+  }
+  function bindChallengeStageActions(){
+    const stage=q('#gd-stage');if(!stage||!challenge)return;
+    const reveal=q('[data-board-action="reveal"]',stage);
+    if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();draw()};
+    const another=q('[data-challenge-action="another"]',stage);
+    if(another)another.onclick=e=>{e.stopPropagation();if(challenge?.mode==='standard')generateChallenge(challenge.type)};
+  }
+  function bindControls(){
+    const controls=q('#gd-controls');if(!controls)return;
+    qa('[data-me-workflow]',controls).forEach(button=>button.onclick=()=>{
+      controlTab=button.dataset.meWorkflow==='challenge'?'challenge':'explore';renderControls();
+    });
+    if(controlTab==='explore'){
+      const slider=q('#me-cm',controls);if(slider)slider.oninput=()=>{setCm(slider.value);refreshLiveMeasurement()};
+      const random=q('#me-random',controls);if(random)random.onclick=()=>{setCm(Math.floor(Math.random()*301)/10);refreshLiveMeasurement()};
+      return;
+    }
+    qa('[data-me-challenge-tab]',controls).forEach(button=>button.onclick=()=>{
+      if(button.dataset.meChallengeTab==='custom')enterCustomChallenge();else{challengeTab='standard';renderControls()}
+    });
+    qa('[data-me-challenge-cat]',controls).forEach(button=>button.onclick=()=>{
+      challengeCategory=button.dataset.meChallengeCat;
+      const first=CHALLENGE_TEMPLATES.find(t=>t.category===challengeCategory);if(first)challengeType=first.id;
+      renderControls();
+    });
+    qa('[data-me-challenge-type]',controls).forEach(button=>button.onclick=()=>{challengeType=button.dataset.meChallengeType;renderControls()});
+    const generate=q('#me-generate',controls);if(generate)generate.onclick=()=>generateChallenge(challengeType);
+    const edit=q('#me-edit-challenge',controls);if(edit)edit.onclick=enterCustomChallenge;
+    const end=q('#me-clear-challenge',controls);if(end)end.onclick=clearChallenge;
+    const reveal=q('#me-reveal',controls);if(reveal)reveal.onclick=()=>{if(!challenge)return;challenge.revealed=!challenge.revealed;renderControls();draw()};
+    qa('[data-gd-rich-action]',controls).forEach(button=>button.onclick=e=>{
+      e.preventDefault();const editor=q('#me-custom-prompt',controls);
+      if(editor&&CK&&challenge){
+        CK.applyFormat(editor,button.dataset.gdRichAction);
+        challenge.promptHtml=CK.sanitiseRichHtml(editor.innerHTML);
+        challenge.prompt=CK.plainText(challenge.promptHtml).slice(0,600);draw();
+      }
+    });
+    const title=q('#me-custom-title',controls);if(title)title.oninput=()=>{if(!challenge)return;challenge.title=title.value.slice(0,100);draw()};
+    const prompt=q('#me-custom-prompt',controls);if(prompt)prompt.oninput=()=>{
+      if(!challenge||!CK)return;challenge.promptHtml=CK.sanitiseRichHtml(prompt.innerHTML);challenge.prompt=CK.plainText(challenge.promptHtml).slice(0,600);draw();
+    };
+    const source=q('#me-custom-answer-source',controls);if(source)source.onchange=()=>setCustomAnswerSource(source.value);
+    const answer=q('#me-custom-answer',controls);if(answer)answer.oninput=()=>{
+      if(!challenge)return;challenge.answer=answer.value.slice(0,400);challenge.answerMode='manual';challenge.answerSource='';challenge.hiddenReadout=false;
+      if(challenge.revealed)draw();
+    };
+  }
+  function draw(){
+    updateChallengeAnswer();
+    let ticks='';
+    for(let i=0;i<=300;i++){
+      const p=i/300*100,h=i%10===0?55:i%5===0?35:22;
+      ticks+='<span class="gd-ruler-tick" style="left:'+p+'%;height:'+h+'px"></span>';
+      if(i%10===0)ticks+='<span class="gd-ruler-num" style="left:'+p+'%">'+(i/10)+'</span>';
+    }
+    const hidden=readoutHidden(),secondary=challenge&&Number.isFinite(Number(challenge.secondaryCm))?roundCm(challenge.secondaryCm):null;
+    const secondaryMarker=secondary!=null
+      ?'<span class="gd-ruler-marker gd-ruler-marker--secondary" style="left:'+(secondary/30*100)+'%"><span class="gd-ruler-marker-label">A</span></span>'
+      :'';
+    const mainLabel=secondary!=null?'B':'';
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Measurement challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
+    const targetStatus=challenge?.mode==='standard'&&challenge.type==='place-mark'
+      ?'<div class="gd-answer-live" id="me-target-status">'+(Math.abs(cm-Number(challenge.targetCm))<.05?'On target ✓':'')+'</div>'
+      :'';
+    q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-measurement-direct">'+
+      '<div class="gd-ruler'+(markerFrozen()?' is-frozen':' is-interactive')+'" id="me-ruler" data-me-target-cm="'+(challenge?.mode==='standard'&&challenge.type==='place-mark'?challenge.targetCm:'')+'" aria-label="30 centimetre ruler">'+ticks+
+        secondaryMarker+
+        '<span class="gd-ruler-marker is-interactive'+(markerFrozen()?' is-frozen':'')+'" id="me-marker" role="slider" tabindex="0" aria-valuemin="0" aria-valuemax="30" aria-valuenow="'+cm.toFixed(1)+'" aria-valuetext="'+cmText()+' centimetres" style="left:'+(cm/30*100)+'%">'+
+          (mainLabel?'<span class="gd-ruler-marker-label">'+mainLabel+'</span>':'')+
+        '</span>'+
+      '</div>'+
+      '<div class="gd-fdp-readout">'+
+        '<div class="gd-fdp-value"><span>millimetres</span><strong>'+(hidden?'?':mmValue()+' mm')+'</strong></div>'+
+        '<div class="gd-fdp-value"><span>centimetres</span><strong>'+(hidden?'?':cmText()+' cm')+'</strong></div>'+
+        '<div class="gd-fdp-value"><span>metres</span><strong>'+(hidden?'?':mText()+' m')+'</strong></div>'+
+      '</div>'+targetStatus+
+    '</div>';
+    bindRuler();bindChallengeStageActions();
+    const slider=q('#me-cm',q('#gd-controls'));if(slider)slider.value=cm.toFixed(1);
+  }
+
+  setPanels(controlsHtml(),'');
+  bindControls();
+  draw();
+}
 
 function randomiser(){let result='';function draw(){const mode=q('#ra-mode').value;let controls='';if(mode==='dice')controls=field('Number of dice','<input class="gd-input" id="ra-count" type="number" min="1" max="8" value="2">')+field('Sides','<select class="gd-select" id="ra-sides"><option>6</option><option>4</option><option>8</option><option>10</option><option>12</option><option>20</option></select>');if(mode==='spinner')controls=field('Choices','<textarea class="gd-textarea" id="ra-choices" rows="5">Red\nBlue\nGreen\nYellow</textarea>');if(mode==='number')controls=field('Minimum','<input class="gd-input" id="ra-min" type="number" value="1">')+field('Maximum','<input class="gd-input" id="ra-max" type="number" value="100">');if(mode==='card')controls='<p class="gd-help">Draw from a standard 52-card deck.</p>';q('#ra-extra').innerHTML=controls;show(mode)}function show(mode=q('#ra-mode').value){if(mode==='spinner'){q('#gd-stage').innerHTML=`<div class="gd-vis"><div class="gd-spinner">?</div><div class="gd-spinner-result">${esc(result||'Press Spin')}</div></div>`}else q('#gd-stage').innerHTML=`<div class="gd-vis"><div class="gd-random-big">${esc(result||'—')}</div></div>`}function roll(){const mode=q('#ra-mode').value;if(mode==='dice'){const c=clamp(num(q('#ra-count').value,2),1,8),sides=clamp(num(q('#ra-sides').value,6),2,100),vals=Array.from({length:c},()=>1+Math.floor(Math.random()*sides));result=vals.join(' + ')+' = '+vals.reduce((a,b)=>a+b,0)}else if(mode==='number'){let a=num(q('#ra-min').value,1),b=num(q('#ra-max').value,100);if(a>b)[a,b]=[b,a];result=String(Math.floor(a+Math.random()*(b-a+1)))}else if(mode==='spinner'){const a=q('#ra-choices').value.split(/\n|,/).map(x=>x.trim()).filter(Boolean);result=a.length?a[Math.floor(Math.random()*a.length)]:'Add choices'}else{const ranks=['A','2','3','4','5','6','7','8','9','10','J','Q','K'],suits=['♠','♥','♦','♣'];result=ranks[Math.floor(Math.random()*ranks.length)]+suits[Math.floor(Math.random()*suits.length)]}show(mode)}
 setPanels(`${field('Tool','<select class="gd-select" id="ra-mode"><option value="dice">Dice</option><option value="spinner">Spinner</option><option value="number">Random number</option><option value="card">Playing card</option></select>')}<div id="ra-extra"></div>${btn('Generate','ra-go',true)}`,'');q('#ra-mode').onchange=()=>{result='';draw()};q('#ra-go').onclick=roll;draw()}
