@@ -977,9 +977,14 @@ if(mode==='prepare'){
     pointer(p.ruler,'pointerdown',p.x,p.y,81);
     marker=document.getElementById('me-marker');
     assert(marker&&marker.getAttribute('aria-valuenow')==='15.7','Tapping the ruler moves the marker to the nearest millimetre');
+    const dragTo=rulerClient(16.4);
+    pointer(p.ruler,'pointermove',dragTo.x,dragTo.y,81);
+    pointer(p.ruler,'pointerup',dragTo.x,dragTo.y,81);
+    marker=document.getElementById('me-marker');
+    assert(marker.getAttribute('aria-valuenow')==='16.4','Dragging along the ruler updates the marker continuously');
     marker.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
     marker=document.getElementById('me-marker');
-    assert(marker.getAttribute('aria-valuenow')==='15.8','Focused ruler marker moves by 1 mm with the arrow keys');
+    assert(marker.getAttribute('aria-valuenow')==='16.5','Focused ruler marker moves by 1 mm with the arrow keys');
     const teacherValue=marker.getAttribute('aria-valuenow');
 
     document.querySelector('[data-me-workflow="challenge"]').click();
@@ -1009,6 +1014,7 @@ if(mode==='prepare'){
     assert(targetMatch,'Place-the-mark challenge states a numeric centimetre target');
     const targetValue=Number(targetMatch[1]),targetPoint=rulerClient(targetValue);
     pointer(targetPoint.ruler,'pointerdown',targetPoint.x,targetPoint.y,83);
+    pointer(targetPoint.ruler,'pointerup',targetPoint.x,targetPoint.y,83);
     assert(Number(document.getElementById('me-marker').getAttribute('aria-valuenow'))===targetValue,'Place-the-mark challenge keeps direct ruler interaction active');
     assert(document.querySelector('.gd-answer-live')?.textContent.includes('On target'),'Place-the-mark challenge confirms an exact direct placement');
 
