@@ -1207,25 +1207,124 @@ function multiplicationGrid(){let hidden=new Set();function draw(){const size=cl
 setPanels(`${field('Grid size','<input class="gd-input" id="mg-size" type="number" min="5" max="15" value="12">')}${field('Highlight table','<input class="gd-input" id="mg-focus" type="number" min="1" max="15" value="6">')}<div class="gd-row">${btn('Hide 12 random products','mg-hide')}${btn('Show all','mg-show')}</div><p class="gd-help">Click any product to hide/reveal it and turn the grid into a quick retrieval activity.</p>`,'');q('#mg-size').oninput=draw;q('#mg-focus').oninput=draw;q('#mg-hide').onclick=()=>{hidden.clear();const size=clamp(num(q('#mg-size').value,12),5,15);while(hidden.size<Math.min(12,size*size))hidden.add((1+Math.floor(Math.random()*size))+'-'+(1+Math.floor(Math.random()*size)));draw()};q('#mg-show').onclick=()=>{hidden.clear();draw()};draw()}
 
 function arrayBuilder(){
+  const CK=G.challengeKit;
   let rows=4,cols=6,rowSplit=0,colSplit=0,drag=null;
   const MAX=12;
+  const CHALLENGE_CATEGORIES=[
+    {id:'read',label:'Read the array'},
+    {id:'build',label:'Build & relate'},
+    {id:'reason',label:'Reasoning'}
+  ];
+  const CHALLENGE_TEMPLATES=[
+    {id:'count-total',category:'read',title:'How many altogether?',desc:'Use the rows and columns to find the total.'},
+    {id:'multiplication-fact',category:'read',title:'Write the multiplication',desc:'Write the multiplication sentence represented by the array.'},
+    {id:'missing-factor',category:'read',title:'Missing factor',desc:'Use the array to find a hidden row or column count.'},
+    {id:'related-division',category:'build',title:'Related division fact',desc:'Use the array to complete an inverse division fact.'},
+    {id:'build-array',category:'build',title:'Build the array',desc:'Resize the board to make a requested rows-by-columns array.'},
+    {id:'commutative-fact',category:'reason',title:'Commutative fact',desc:'Write the swapped multiplication fact represented by the same total.'},
+    {id:'partial-products',category:'reason',title:'Use the partition',desc:'Read a split array as partial products.'}
+  ];
+  let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='count-total',challenge=null,beforeChallenge=null;
+
   function clampDim(value){return clamp(Math.round(num(value,1)),1,MAX)}
   function normaliseSplits(){
     if(rowSplit>=rows)rowSplit=0;
     if(colSplit>=cols)colSplit=0;
   }
   function total(){return rows*cols}
+  function multiplicationFact(){return rows+' × '+cols+' = '+total()}
+  function repeatedAddition(){return Array.from({length:rows},()=>cols).join(' + ')+' = '+total()}
+  function inverseFacts(){return total()+' ÷ '+rows+' = '+cols+' · '+total()+' ÷ '+cols+' = '+rows}
   function snapshot(){return{rows,cols,rowSplit,colSplit}}
+  function restoreSnapshot(value){
+    if(!value)return;
+    rows=clampDim(value.rows);cols=clampDim(value.cols);
+    rowSplit=clamp(Math.round(num(value.rowSplit,0)),0,Math.max(0,rows-1));
+    colSplit=clamp(Math.round(num(value.colSplit,0)),0,Math.max(0,cols-1));
+    normaliseSplits();drag=null;
+  }
   function setDimensions(nextRows,nextCols){
     rows=clampDim(nextRows);cols=clampDim(nextCols);normaliseSplits();
   }
-  function partitionMath(){
+  function partitionParts(){
     const parts=[];
     const rowBands=rowSplit?[rowSplit,rows-rowSplit]:[rows];
     const colBands=colSplit?[colSplit,cols-colSplit]:[cols];
     rowBands.forEach(r=>colBands.forEach(c=>parts.push({r,c,value:r*c})));
+    return parts;
+  }
+  function partitionMath(){
+    const parts=partitionParts();
     if(parts.length===1)return'';
     return parts.map(p=>p.r+' × '+p.c).join(' + ')+' = '+parts.map(p=>p.value).join(' + ')+' = '+total();
+  }
+  function challengeObject(type,prompt,answer,extra={}){
+    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===type);
+    const raw={
+      mode:'standard',type,category:meta?.category||'',title:'',prompt,promptHtml:prompt,answer:String(answer??''),
+      answerMode:'manual',answerSource:'',revealed:false,freezeBoard:true,
+      hiddenEquation:false,hiddenTotal:false,hiddenRepeated:false,hiddenInverse:false,hiddenPartial:false,hiddenDimensions:[],
+      targetRows:null,targetCols:null,...extra
+    };
+    return CK?CK.normalise(raw):raw;
+  }
+  function hiddenFlag(key){
+    return !!(challenge&&!challenge.revealed&&challenge[key]);
+  }
+  function hiddenDimension(kind){
+    return !!(challenge&&!challenge.revealed&&Array.isArray(challenge.hiddenDimensions)&&challenge.hiddenDimensions.includes(kind));
+  }
+  function challengeFrozen(){
+    return !!(challenge&&challenge.mode==='standard'&&challenge.freezeBoard);
+  }
+  function resolveAnswerSource(source){
+    if(source==='rows')return String(rows);
+    if(source==='cols')return String(cols);
+    if(source==='total')return String(total());
+    if(source==='multiplication')return multiplicationFact();
+    if(source==='repeated')return repeatedAddition();
+    if(source==='division')return inverseFacts();
+    if(source==='partial')return partitionMath()||'No partition';
+    return'';
+  }
+  function customAnswerSources(){
+    const sources=[
+      {id:'rows',label:'Number of rows'},
+      {id:'cols',label:'Number of columns'},
+      {id:'total',label:'Total objects'},
+      {id:'multiplication',label:'Multiplication fact'},
+      {id:'repeated',label:'Repeated addition'},
+      {id:'division',label:'Related division facts'}
+    ];
+    if(rowSplit||colSplit)sources.push({id:'partial',label:'Partial-product calculation'});
+    return sources;
+  }
+  function clearBoundHiding(){
+    if(!challenge)return;
+    challenge.hiddenEquation=false;challenge.hiddenTotal=false;challenge.hiddenRepeated=false;challenge.hiddenInverse=false;challenge.hiddenPartial=false;challenge.hiddenDimensions=[];
+  }
+  function applyBoundHiding(source){
+    clearBoundHiding();if(!challenge)return;
+    if(source==='rows'){
+      challenge.hiddenDimensions=['rows'];challenge.hiddenEquation=false;challenge.hiddenRepeated=true;challenge.hiddenInverse=true;challenge.hiddenPartial=true;
+    }else if(source==='cols'){
+      challenge.hiddenDimensions=['cols'];challenge.hiddenEquation=false;challenge.hiddenRepeated=true;challenge.hiddenInverse=true;challenge.hiddenPartial=true;
+    }else{
+      challenge.hiddenEquation=true;challenge.hiddenRepeated=true;challenge.hiddenInverse=true;challenge.hiddenPartial=true;
+      if(source==='total')challenge.hiddenTotal=true;
+    }
+  }
+  function updateChallengeAnswer(){
+    if(!challenge||challenge.answerMode!=='bound'||!challenge.answerSource)return;
+    const answer=resolveAnswerSource(challenge.answerSource);if(answer!=='')challenge.answer=answer;
+    const live=q('#ab-custom-live-answer');if(live)live.textContent=challenge.answer||'—';
+    if(challenge.revealed){
+      const shown=q('.gd-challenge-actions em',q('#gd-stage'));
+      if(shown)shown.textContent='Answer: '+challenge.answer;
+    }
+  }
+  function buildOnTarget(){
+    return !!(challenge&&challenge.mode==='standard'&&challenge.type==='build-array'&&rows===Number(challenge.targetRows)&&cols===Number(challenge.targetCols));
   }
   function splitOptions(kind){
     const n=kind==='row'?rows:cols,current=kind==='row'?rowSplit:colSplit;
@@ -1233,7 +1332,12 @@ function arrayBuilder(){
     for(let i=1;i<n;i++)h+='<option value="'+i+'"'+(current===i?' selected':'')+'>After '+i+'</option>';
     return h;
   }
-  function controlsHtml(){
+  function workflowTabs(){
+    return '<div class="gd-row gd-ab-workflow-tabs" role="tablist" aria-label="Arrays workflow">'+
+      '<button class="gd-btn'+(controlTab==='explore'?' gd-btn--primary':'')+'" type="button" data-ab-workflow="explore">Explore</button>'+
+      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-ab-workflow="challenge">Challenge'+(challenge?' •':'')+'</button></div>';
+  }
+  function exploreControlsHtml(){
     return field('Rows','<div class="gd-row"><button class="gd-btn" id="ab-row-down" type="button" aria-label="Remove one row">−</button><input class="gd-input gd-array-count" id="ab-r" type="number" min="1" max="'+MAX+'" value="'+rows+'"><button class="gd-btn" id="ab-row-up" type="button" aria-label="Add one row">+</button></div>')+
       field('Columns','<div class="gd-row"><button class="gd-btn" id="ab-col-down" type="button" aria-label="Remove one column">−</button><input class="gd-input gd-array-count" id="ab-c" type="number" min="1" max="'+MAX+'" value="'+cols+'"><button class="gd-btn" id="ab-col-up" type="button" aria-label="Add one column">+</button></div>')+
       '<div class="gd-row"><button class="gd-btn gd-btn--primary" id="ab-swap" type="button">Rotate / swap factors</button><button class="gd-btn" id="ab-random" type="button">Random array</button></div>'+
@@ -1242,34 +1346,172 @@ function arrayBuilder(){
       '<div class="gd-row"><button class="gd-btn" id="ab-clear-splits" type="button"'+(!rowSplit&&!colSplit?' disabled':'')+'>Clear partitions</button></div>'+
       '<p class="gd-help">Work directly on the array too: drag the right edge to change columns and the bottom edge to change rows. Arrow keys work when a resize handle is focused.</p>';
   }
+  function challengeControlsHtml(){
+    if(!CK)return '<p class="gd-help">Challenge tools are unavailable.</p>';
+    const tabs=CK.tabsHtml?CK.tabsHtml('ab',challengeTab):'';
+    if(challengeTab==='custom'){
+      const custom=challenge&&challenge.mode==='custom'?challenge:CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual'});
+      return tabs+CK.editorHtml(custom,'ab',{answerSources:customAnswerSources(),generatedAnswerLabel:'Keep the generated answer'})+
+        '<div class="gd-row">'+(challenge&&challenge.answer?'<button class="gd-btn" id="ab-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
+        (challenge?'<button class="gd-btn" id="ab-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
+        '<p class="gd-help">Custom challenges stay attached to the live array. Bind an answer to rows, columns, total, related facts or a partition calculation when useful.</p>';
+    }
+    const picker=CK.pickerHtml(CHALLENGE_TEMPLATES,CHALLENGE_CATEGORIES,challengeCategory,challengeType,'ab');
+    const repeat=!!(challenge&&challenge.mode==='standard'&&challenge.type===challengeType);
+    return tabs+picker+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="ab-generate" type="button">'+(repeat?'Another like this':'Generate challenge')+'</button>'+
+      (challenge&&challenge.mode!=='custom'?'<button class="gd-btn" id="ab-edit-challenge" type="button">Edit challenge</button>':'')+
+      (challenge&&challenge.answer?'<button class="gd-btn" id="ab-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
+      (challenge?'<button class="gd-btn" id="ab-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>';
+  }
+  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():exploreControlsHtml())}
   function renderControls(){
     const panel=q('#gd-controls');if(panel)panel.innerHTML=controlsHtml();bindControls();
   }
+  function restoreBeforeChallenge(){
+    if(beforeChallenge){restoreSnapshot(beforeChallenge);beforeChallenge=null}
+  }
+  function clearChallenge(){
+    restoreBeforeChallenge();
+    challenge=null;challengeTab='standard';controlTab='challenge';renderControls();draw();
+  }
+  function enterCustomChallenge(){
+    const wasCustom=challenge?.mode==='custom';
+    if(CK)challenge=CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''});
+    if(!challenge.hiddenDimensions)challenge.hiddenDimensions=[];
+    if(!wasCustom)clearBoundHiding();
+    challenge.freezeBoard=false;challenge.revealed=false;
+    challengeTab='custom';controlTab='challenge';renderControls();draw();
+  }
+  function setCustomAnswerSource(source){
+    if(!challenge||challenge.mode!=='custom')return;
+    if(source==='manual'){
+      challenge.answerMode='manual';challenge.answerSource='';clearBoundHiding();
+    }else if(source==='generated'){
+      challenge.answerMode='bound';challenge.answerSource='';clearBoundHiding();
+    }else{
+      challenge.answerMode='bound';challenge.answerSource=source;challenge.answer=resolveAnswerSource(source);applyBoundHiding(source);
+    }
+    challenge.revealed=false;renderControls();draw();
+  }
+  function randomDimension(min=2,max=10){return min+Math.floor(Math.random()*(max-min+1))}
+  function generateChallenge(type){
+    const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
+    if(!beforeChallenge)beforeChallenge=snapshot();else restoreSnapshot(beforeChallenge);
+    rowSplit=0;colSplit=0;
+    const r=randomDimension(),c=randomDimension();
+    setDimensions(r,c);
+    if(type==='count-total'){
+      challenge=challengeObject(type,'How many objects are in the array altogether?',String(total()),{hiddenTotal:true,hiddenRepeated:true,hiddenInverse:true});
+    }else if(type==='multiplication-fact'){
+      challenge=challengeObject(type,'Write the multiplication sentence represented by this array.',multiplicationFact(),{hiddenEquation:true,hiddenRepeated:true,hiddenInverse:true});
+    }else if(type==='missing-factor'){
+      const hideRows=Math.random()<.5,known=hideRows?cols:rows;
+      challenge=challengeObject(
+        type,
+        'There are '+total()+' objects arranged in '+known+' '+(hideRows?'columns':'rows')+'. How many '+(hideRows?'rows':'columns')+' are there?',
+        String(hideRows?rows:cols),
+        {hiddenDimensions:[hideRows?'rows':'cols'],hiddenRepeated:true,hiddenInverse:true}
+      );
+    }else if(type==='related-division'){
+      const divisorRows=Math.random()<.5,divisor=divisorRows?rows:cols,answer=divisorRows?cols:rows;
+      challenge=challengeObject(
+        type,
+        'Complete the related division fact: '+total()+' ÷ '+divisor+' = ?',
+        String(answer),
+        {hiddenDimensions:[divisorRows?'cols':'rows'],hiddenRepeated:true,hiddenInverse:true}
+      );
+    }else if(type==='build-array'){
+      const targetRows=r,targetCols=c,startRows=targetRows===2?3:2,startCols=targetCols===2?3:2;
+      setDimensions(startRows,startCols);
+      challenge=challengeObject(
+        type,
+        'Build an array with '+targetRows+' rows and '+targetCols+' columns.',
+        targetRows+' × '+targetCols+' = '+(targetRows*targetCols),
+        {freezeBoard:false,targetRows,targetCols,hiddenEquation:false,hiddenRepeated:false,hiddenInverse:false}
+      );
+    }else if(type==='commutative-fact'){
+      challenge=challengeObject(
+        type,
+        'The array shows '+multiplicationFact()+'. Write the commutative multiplication fact.',
+        cols+' × '+rows+' = '+total(),
+        {hiddenRepeated:true,hiddenInverse:true}
+      );
+    }else{
+      if(cols>=4&&Math.random()<.65)colSplit=1+Math.floor(Math.random()*(cols-1));
+      else rowSplit=1+Math.floor(Math.random()*(rows-1));
+      normaliseSplits();
+      challenge=challengeObject(
+        type,
+        'Use the partition lines to write the partial-product calculation for this array.',
+        partitionMath(),
+        {hiddenEquation:true,hiddenRepeated:true,hiddenInverse:true,hiddenPartial:true}
+      );
+    }
+    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';
+    renderControls();draw();
+  }
   function mutateDimensions(nextRows,nextCols){
+    if(challengeFrozen())return;
     setDimensions(nextRows,nextCols);renderControls();draw();
   }
   function bindControls(){
     const controls=q('#gd-controls');if(!controls)return;
-    const r=q('#ab-r',controls),c=q('#ab-c',controls);
-    if(r)r.oninput=()=>mutateDimensions(r.value,cols);
-    if(c)c.oninput=()=>mutateDimensions(rows,c.value);
-    const rowDown=q('#ab-row-down',controls);if(rowDown)rowDown.onclick=()=>mutateDimensions(rows-1,cols);
-    const rowUp=q('#ab-row-up',controls);if(rowUp)rowUp.onclick=()=>mutateDimensions(rows+1,cols);
-    const colDown=q('#ab-col-down',controls);if(colDown)colDown.onclick=()=>mutateDimensions(rows,cols-1);
-    const colUp=q('#ab-col-up',controls);if(colUp)colUp.onclick=()=>mutateDimensions(rows,cols+1);
-    const swap=q('#ab-swap',controls);if(swap)swap.onclick=()=>{
-      const oldRows=rows,oldRowSplit=rowSplit;
-      rows=cols;cols=oldRows;rowSplit=colSplit;colSplit=oldRowSplit;normaliseSplits();renderControls();draw();
+    qa('[data-ab-workflow]',controls).forEach(button=>button.onclick=()=>{
+      controlTab=button.dataset.abWorkflow==='challenge'?'challenge':'explore';renderControls();
+    });
+    if(controlTab==='explore'){
+      const r=q('#ab-r',controls),c=q('#ab-c',controls);
+      if(r)r.oninput=()=>mutateDimensions(r.value,cols);
+      if(c)c.oninput=()=>mutateDimensions(rows,c.value);
+      const rowDown=q('#ab-row-down',controls);if(rowDown)rowDown.onclick=()=>mutateDimensions(rows-1,cols);
+      const rowUp=q('#ab-row-up',controls);if(rowUp)rowUp.onclick=()=>mutateDimensions(rows+1,cols);
+      const colDown=q('#ab-col-down',controls);if(colDown)colDown.onclick=()=>mutateDimensions(rows,cols-1);
+      const colUp=q('#ab-col-up',controls);if(colUp)colUp.onclick=()=>mutateDimensions(rows,cols+1);
+      const swap=q('#ab-swap',controls);if(swap)swap.onclick=()=>{
+        const oldRows=rows,oldRowSplit=rowSplit;
+        rows=cols;cols=oldRows;rowSplit=colSplit;colSplit=oldRowSplit;normaliseSplits();renderControls();draw();
+      };
+      const random=q('#ab-random',controls);if(random)random.onclick=()=>{
+        rows=1+Math.floor(Math.random()*MAX);cols=1+Math.floor(Math.random()*MAX);rowSplit=0;colSplit=0;renderControls();draw();
+      };
+      const rs=q('#ab-row-split',controls);if(rs)rs.onchange=()=>{rowSplit=clamp(Math.round(num(rs.value,0)),0,Math.max(0,rows-1));draw();renderControls()};
+      const cs=q('#ab-col-split',controls);if(cs)cs.onchange=()=>{colSplit=clamp(Math.round(num(cs.value,0)),0,Math.max(0,cols-1));draw();renderControls()};
+      const clear=q('#ab-clear-splits',controls);if(clear)clear.onclick=()=>{rowSplit=0;colSplit=0;draw();renderControls()};
+      return;
+    }
+    qa('[data-ab-challenge-tab]',controls).forEach(button=>button.onclick=()=>{
+      if(button.dataset.abChallengeTab==='custom')enterCustomChallenge();else{challengeTab='standard';renderControls()}
+    });
+    qa('[data-ab-challenge-cat]',controls).forEach(button=>button.onclick=()=>{
+      challengeCategory=button.dataset.abChallengeCat;
+      const first=CHALLENGE_TEMPLATES.find(t=>t.category===challengeCategory);if(first)challengeType=first.id;
+      renderControls();
+    });
+    qa('[data-ab-challenge-type]',controls).forEach(button=>button.onclick=()=>{challengeType=button.dataset.abChallengeType;renderControls()});
+    const generate=q('#ab-generate',controls);if(generate)generate.onclick=()=>generateChallenge(challengeType);
+    const edit=q('#ab-edit-challenge',controls);if(edit)edit.onclick=enterCustomChallenge;
+    const end=q('#ab-clear-challenge',controls);if(end)end.onclick=clearChallenge;
+    const reveal=q('#ab-reveal',controls);if(reveal)reveal.onclick=()=>{if(!challenge)return;challenge.revealed=!challenge.revealed;renderControls();draw()};
+    qa('[data-gd-rich-action]',controls).forEach(button=>button.onclick=e=>{
+      e.preventDefault();const editor=q('#ab-custom-prompt',controls);
+      if(editor&&CK&&challenge){
+        CK.applyFormat(editor,button.dataset.gdRichAction);
+        challenge.promptHtml=CK.sanitiseRichHtml(editor.innerHTML);
+        challenge.prompt=CK.plainText(challenge.promptHtml).slice(0,600);draw();
+      }
+    });
+    const title=q('#ab-custom-title',controls);if(title)title.oninput=()=>{if(!challenge)return;challenge.title=title.value.slice(0,100);draw()};
+    const prompt=q('#ab-custom-prompt',controls);if(prompt)prompt.oninput=()=>{
+      if(!challenge||!CK)return;challenge.promptHtml=CK.sanitiseRichHtml(prompt.innerHTML);challenge.prompt=CK.plainText(challenge.promptHtml).slice(0,600);draw();
     };
-    const random=q('#ab-random',controls);if(random)random.onclick=()=>{
-      rows=1+Math.floor(Math.random()*MAX);cols=1+Math.floor(Math.random()*MAX);rowSplit=0;colSplit=0;renderControls();draw();
+    const source=q('#ab-custom-answer-source',controls);if(source)source.onchange=()=>setCustomAnswerSource(source.value);
+    const answer=q('#ab-custom-answer',controls);if(answer)answer.oninput=()=>{
+      if(!challenge)return;challenge.answer=answer.value.slice(0,400);challenge.answerMode='manual';challenge.answerSource='';clearBoundHiding();
+      if(challenge.revealed)draw();
     };
-    const rs=q('#ab-row-split',controls);if(rs)rs.onchange=()=>{rowSplit=clamp(Math.round(num(rs.value,0)),0,Math.max(0,rows-1));draw();renderControls()};
-    const cs=q('#ab-col-split',controls);if(cs)cs.onchange=()=>{colSplit=clamp(Math.round(num(cs.value,0)),0,Math.max(0,cols-1));draw();renderControls()};
-    const clear=q('#ab-clear-splits',controls);if(clear)clear.onclick=()=>{rowSplit=0;colSplit=0;draw();renderControls()};
   }
   function startResize(kind,e){
-    if(e.button!=null&&e.button!==0)return;
+    if(challengeFrozen()||(e.button!=null&&e.button!==0))return;
     e.preventDefault();
     const board=q('#ab-board');if(!board)return;
     const rect=board.getBoundingClientRect();
@@ -1295,15 +1537,15 @@ function arrayBuilder(){
     document.removeEventListener('pointercancel',resizeEnd);
   }
   function bindStage(){
-    const colHandle=q('[data-ab-resize="cols"]'),rowHandle=q('[data-ab-resize="rows"]');
-    if(colHandle){
+    const frozen=challengeFrozen(),colHandle=q('[data-ab-resize="cols"]'),rowHandle=q('[data-ab-resize="rows"]');
+    if(colHandle&&!frozen){
       colHandle.onpointerdown=e=>startResize('cols',e);
       colHandle.onkeydown=e=>{
         if(e.key==='ArrowLeft'){e.preventDefault();mutateDimensions(rows,cols-1)}
         else if(e.key==='ArrowRight'){e.preventDefault();mutateDimensions(rows,cols+1)}
       };
     }
-    if(rowHandle){
+    if(rowHandle&&!frozen){
       rowHandle.onpointerdown=e=>startResize('rows',e);
       rowHandle.onkeydown=e=>{
         if(e.key==='ArrowUp'){e.preventDefault();mutateDimensions(rows-1,cols)}
@@ -1311,30 +1553,50 @@ function arrayBuilder(){
       };
     }
   }
+  function bindChallengeStageActions(){
+    const stage=q('#gd-stage');if(!stage||!challenge)return;
+    const reveal=q('[data-board-action="reveal"]',stage);
+    if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();draw()};
+    const another=q('[data-challenge-action="another"]',stage);
+    if(another)another.onclick=e=>{e.stopPropagation();if(challenge?.mode==='standard')generateChallenge(challenge.type)};
+  }
+  function displayDimension(kind){
+    return hiddenDimension(kind)?'?':String(kind==='rows'?rows:cols);
+  }
+  function equationText(){
+    if(hiddenFlag('hiddenEquation'))return'?';
+    const r=displayDimension('rows'),c=displayDimension('cols'),t=hiddenFlag('hiddenTotal')?'?':String(total());
+    return r+' × '+c+' = '+t;
+  }
   function draw(){
-    normaliseSplits();
+    normaliseSplits();updateChallengeAnswer();
     let cells='';
     for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
       const splitTop=rowSplit&&r===rowSplit,splitLeft=colSplit&&c===colSplit;
       cells+='<span class="gd-array-cell'+(splitTop?' is-row-split':'')+(splitLeft?' is-col-split':'')+'" data-ab-cell="'+r+'-'+c+'"><span class="gd-dot"></span></span>';
     }
-    const repeated=Array.from({length:rows},()=>cols).join(' + ')+' = '+total();
-    const inverse=total()+' ÷ '+rows+' = '+cols+' · '+total()+' ÷ '+cols+' = '+rows;
-    const partial=partitionMath();
-    q('#gd-stage').innerHTML='<div class="gd-vis gd-array-workbench">'+
-      '<div class="gd-array-summary"><strong data-ab-equation>'+rows+' × '+cols+' = '+total()+'</strong><span>'+rows+' row'+(rows===1?'':'s')+' of '+cols+'</span></div>'+
+    const repeated=hiddenFlag('hiddenRepeated')?'?':repeatedAddition();
+    const inverse=hiddenFlag('hiddenInverse')?'?':inverseFacts();
+    const partial=partitionMath(),partialText=hiddenFlag('hiddenPartial')?'?':partial;
+    const rowDisplay=displayDimension('rows'),colDisplay=displayDimension('cols'),frozen=challengeFrozen();
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Array challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
+    const targetStatus=challenge?.mode==='standard'&&challenge.type==='build-array'
+      ?'<div class="gd-answer-live" data-ab-target-status>'+(buildOnTarget()?'On target ✓':'')+'</div>'
+      :'';
+    q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-array-workbench">'+
+      '<div class="gd-array-summary"><strong data-ab-equation>'+equationText()+'</strong><span>'+rowDisplay+' row'+(rowDisplay==='1'?'':'s')+' of '+colDisplay+'</span></div>'+
       '<div class="gd-array-shell">'+
-        '<div class="gd-array-board" id="ab-board" data-ab-rows="'+rows+'" data-ab-cols="'+cols+'" data-ab-row-split="'+rowSplit+'" data-ab-col-split="'+colSplit+'" style="grid-template-columns:repeat('+cols+',var(--ab-cell));grid-template-rows:repeat('+rows+',var(--ab-cell))">'+cells+'</div>'+
-        '<button class="gd-array-resize gd-array-resize--cols" type="button" data-ab-resize="cols" role="slider" aria-label="Columns: '+cols+'. Drag left or right, or use arrow keys." aria-valuemin="1" aria-valuemax="'+MAX+'" aria-valuenow="'+cols+'"><span>'+cols+'</span><small>columns ↔</small></button>'+
-        '<button class="gd-array-resize gd-array-resize--rows" type="button" data-ab-resize="rows" role="slider" aria-label="Rows: '+rows+'. Drag up or down, or use arrow keys." aria-valuemin="1" aria-valuemax="'+MAX+'" aria-valuenow="'+rows+'"><span>'+rows+'</span><small>rows ↕</small></button>'+
+        '<div class="gd-array-board" id="ab-board" data-ab-rows="'+rows+'" data-ab-cols="'+cols+'" data-ab-row-split="'+rowSplit+'" data-ab-col-split="'+colSplit+'" data-ab-frozen="'+(frozen?'true':'false')+'" data-ab-target-rows="'+(challenge?.type==='build-array'?challenge.targetRows:'')+'" data-ab-target-cols="'+(challenge?.type==='build-array'?challenge.targetCols:'')+'" style="grid-template-columns:repeat('+cols+',var(--ab-cell));grid-template-rows:repeat('+rows+',var(--ab-cell))">'+cells+'</div>'+
+        '<button class="gd-array-resize gd-array-resize--cols'+(frozen?' is-frozen':'')+'" type="button" data-ab-resize="cols"'+(frozen?' disabled':'')+' aria-label="'+(hiddenDimension('cols')?'Columns hidden for this challenge.':'Columns: '+cols+(frozen?'. Fixed for this challenge.':'. Drag left or right, or use arrow keys.'))+'"'+(hiddenDimension('cols')?'':' role="slider" aria-valuemin="1" aria-valuemax="'+MAX+'" aria-valuenow="'+cols+'"')+'><span>'+colDisplay+'</span><small>columns ↔</small></button>'+
+        '<button class="gd-array-resize gd-array-resize--rows'+(frozen?' is-frozen':'')+'" type="button" data-ab-resize="rows"'+(frozen?' disabled':'')+' aria-label="'+(hiddenDimension('rows')?'Rows hidden for this challenge.':'Rows: '+rows+(frozen?'. Fixed for this challenge.':'. Drag up or down, or use arrow keys.'))+'"'+(hiddenDimension('rows')?'':' role="slider" aria-valuemin="1" aria-valuemax="'+MAX+'" aria-valuenow="'+rows+'"')+'><span>'+rowDisplay+'</span><small>rows ↕</small></button>'+
       '</div>'+
       '<div class="gd-array-maths">'+
-        '<div class="gd-readout"><span>Repeated addition</span><strong>'+repeated+'</strong></div>'+
-        '<div class="gd-readout"><span>Related division facts</span><strong>'+inverse+'</strong></div>'+
-        (partial?'<div class="gd-readout gd-array-partial" data-ab-partial><span>Partial products</span><strong>'+partial+'</strong></div>':'')+
-      '</div>'+
+        '<div class="gd-readout"><span>Repeated addition</span><strong data-ab-repeated>'+repeated+'</strong></div>'+
+        '<div class="gd-readout"><span>Related division facts</span><strong data-ab-inverse>'+inverse+'</strong></div>'+
+        (partial?'<div class="gd-readout gd-array-partial" data-ab-partial><span>Partial products</span><strong>'+partialText+'</strong></div>':'')+
+      '</div>'+targetStatus+
     '</div>';
-    bindStage();
+    bindStage();bindChallengeStageActions();
   }
   setPanels(controlsHtml(),'');
   bindControls();

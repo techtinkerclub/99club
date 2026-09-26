@@ -1026,6 +1026,100 @@ if(mode==='prepare'){
     pointer(document,'pointerup',rr.left+rr.width/2,rr.top+rr.height/2+cellH*1.2,92);
     board=document.getElementById('ab-board');
     assert(Number(board.dataset.abRows)>=5,'Dragging the bottom edge directly increases rows');
+
+    setNumber('ab-r',4);setNumber('ab-c',6);
+    let teacherRowSplit=document.getElementById('ab-row-split');
+    teacherRowSplit.value='2';teacherRowSplit.dispatchEvent(new Event('change',{bubbles:true}));
+    let teacherColSplit=document.getElementById('ab-col-split');
+    teacherColSplit.value='3';teacherColSplit.dispatchEvent(new Event('change',{bubbles:true}));
+
+    document.querySelector('[data-ab-workflow="challenge"]').click();
+    assert(document.querySelector('[data-ab-challenge-tab="standard"]')&&document.querySelector('[data-ab-challenge-tab="custom"]'),'Arrays uses the shared Standard / Custom challenge tabs');
+    for(const type of ['count-total','multiplication-fact','missing-factor']){
+      assert(document.querySelector('[data-ab-challenge-type="'+type+'"]'),'Array challenge '+type+' is available');
+    }
+    document.getElementById('ab-generate').click();
+    board=document.getElementById('ab-board');
+    assert(document.querySelector('.gd-challenge-banner'),'Generated Array challenge appears above the board');
+    assert(board.dataset.abFrozen==='true','Read-the-array challenge freezes the given array');
+    assert(document.querySelector('[data-ab-equation]').textContent.includes('= ?'),'Count-the-array challenge hides the total in the equation');
+    assert(document.querySelector('[data-ab-repeated]').textContent.trim()==='?'&&document.querySelector('[data-ab-inverse]').textContent.trim()==='?','Count-the-array challenge hides equivalent fact readouts');
+    assert(document.querySelector('[data-ab-resize="cols"]').disabled&&document.querySelector('[data-ab-resize="rows"]').disabled,'Frozen Array challenge disables both resize handles');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer:'),'Array challenge reveals its answer contextually');
+    assert(!document.querySelector('[data-ab-equation]').textContent.includes('?'),'Reveal restores the Array equation');
+    assert(document.querySelector('[data-ab-repeated]').textContent.trim()!=='?','Reveal restores repeated addition');
+
+    document.querySelector('[data-ab-challenge-type="missing-factor"]').click();
+    document.getElementById('ab-generate').click();
+    const hiddenHandle=[...document.querySelectorAll('[data-ab-resize]')].find(h=>h.querySelector('span').textContent.trim()==='?');
+    assert(hiddenHandle,'Missing-factor challenge hides exactly one dimension handle');
+    assert(!hiddenHandle.hasAttribute('aria-valuenow')&&hiddenHandle.getAttribute('aria-label').includes('hidden'),'Hidden Array dimension does not leak through slider accessibility metadata');
+    assert(document.querySelector('[data-ab-equation]').textContent.includes('?'),'Missing-factor challenge shows a genuine missing value in the equation');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(![...document.querySelectorAll('[data-ab-resize]')].some(h=>h.querySelector('span').textContent.trim()==='?'),'Reveal restores the hidden Array dimension');
+
+    document.querySelector('[data-ab-challenge-cat="build"]').click();
+    assert(document.querySelector('[data-ab-challenge-type="related-division"]'),'Related-division challenge is available');
+    const buildType=document.querySelector('[data-ab-challenge-type="build-array"]');
+    assert(buildType,'Build-array challenge is available');
+    buildType.click();
+    document.getElementById('ab-generate').click();
+    board=document.getElementById('ab-board');
+    const targetRows=Number(board.dataset.abTargetRows),targetCols=Number(board.dataset.abTargetCols);
+    assert(Number.isFinite(targetRows)&&Number.isFinite(targetCols)&&targetRows>=2&&targetCols>=2,'Build-array challenge exposes valid semantic target dimensions');
+    assert(board.dataset.abFrozen==='false'&&!document.querySelector('[data-ab-resize="cols"]').disabled,'Build-array challenge keeps direct resizing active');
+    for(let guard=0;guard<20&&Number(document.getElementById('ab-board').dataset.abRows)!==targetRows;guard++){
+      board=document.getElementById('ab-board');
+      const current=Number(board.dataset.abRows),handle=document.querySelector('[data-ab-resize="rows"]');
+      handle.dispatchEvent(new KeyboardEvent('keydown',{key:current<targetRows?'ArrowDown':'ArrowUp',bubbles:true}));
+    }
+    for(let guard=0;guard<20&&Number(document.getElementById('ab-board').dataset.abCols)!==targetCols;guard++){
+      board=document.getElementById('ab-board');
+      const current=Number(board.dataset.abCols),handle=document.querySelector('[data-ab-resize="cols"]');
+      handle.dispatchEvent(new KeyboardEvent('keydown',{key:current<targetCols?'ArrowRight':'ArrowLeft',bubbles:true}));
+    }
+    board=document.getElementById('ab-board');
+    assert(Number(board.dataset.abRows)===targetRows&&Number(board.dataset.abCols)===targetCols,'Build-array challenge can be completed using the direct handles');
+    assert(document.querySelector('[data-ab-target-status]').textContent.includes('On target'),'Build-array challenge confirms an exact construction');
+
+    document.querySelector('[data-ab-challenge-cat="reason"]').click();
+    assert(document.querySelector('[data-ab-challenge-type="commutative-fact"]'),'Commutative-fact challenge is available');
+    const partialType=document.querySelector('[data-ab-challenge-type="partial-products"]');
+    assert(partialType,'Partial-products challenge is available');
+    partialType.click();
+    document.getElementById('ab-generate').click();
+    board=document.getElementById('ab-board');
+    assert(Number(board.dataset.abRowSplit)>0||Number(board.dataset.abColSplit)>0,'Partial-products challenge generates a real partition');
+    assert(document.querySelector('[data-ab-partial] strong').textContent.trim()==='?','Partial-products challenge hides the decomposition answer');
+    assert(document.querySelector('[data-ab-equation]').textContent.trim()==='?','Partial-products challenge hides the whole multiplication equation');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('[data-ab-partial] strong').textContent.includes('×'),'Reveal restores the partial-product calculation');
+
+    document.getElementById('ab-edit-challenge').click();
+    assert(document.querySelector('[data-ab-challenge-tab="custom"]')?.classList.contains('is-active')||document.getElementById('ab-custom-answer-source'),'Editing an Array challenge opens Custom mode');
+    assert(document.querySelector('[data-ab-equation]').textContent.trim()!=='?','Entering Custom mode clears generated hiding rules');
+    const abSource=document.getElementById('ab-custom-answer-source');
+    for(const source of ['rows','cols','total','multiplication','repeated','division','partial']){
+      assert([...abSource.options].some(o=>o.value===source),'Array custom answer source '+source+' is available');
+    }
+    abSource.value='total';abSource.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.querySelector('[data-ab-equation]').textContent.trim()==='?','Binding the Array total hides the direct multiplication answer');
+    const abLiveBefore=document.getElementById('ab-custom-live-answer').textContent.trim();
+    colHandle=document.querySelector('[data-ab-resize="cols"]');
+    colHandle.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
+    const abLiveAfter=document.getElementById('ab-custom-live-answer').textContent.trim();
+    assert(abLiveAfter!==abLiveBefore,'Array live custom total updates when the board resizes');
+
+    const sourceAgain=document.getElementById('ab-custom-answer-source');
+    sourceAgain.value='cols';sourceAgain.dispatchEvent(new Event('change',{bubbles:true}));
+    colHandle=document.querySelector('[data-ab-resize="cols"]');
+    assert(colHandle.querySelector('span').textContent.trim()==='?'&&!colHandle.hasAttribute('aria-valuenow'),'Binding the column count hides that dimension without accessibility leakage');
+
+    document.getElementById('ab-clear-challenge').click();
+    board=document.getElementById('ab-board');
+    assert(board.dataset.abRows==='4'&&board.dataset.abCols==='6','Ending an Array challenge restores the teacher dimensions');
+    assert(board.dataset.abRowSplit==='2'&&board.dataset.abColSplit==='3','Ending an Array challenge restores the teacher partitions');
   }
 
   function testMeasurement(){
