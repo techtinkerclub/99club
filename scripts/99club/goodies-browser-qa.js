@@ -536,6 +536,43 @@ if(mode==='prepare'){
     assert(an.value==='7'&&ad.value==='4','Quick setup preserves improper fractions');
     assert(document.querySelectorAll('[data-fw-direct="a"] .gd-fr-bar').length===2,'Improper fraction renders across multiple wholes');
     assert(document.querySelectorAll('[data-fw-direct="a"] .gd-fr-piece.is-fill').length===7,'Improper fraction keeps all seven quarters visible');
+
+    document.querySelector('[data-fw-mode="workbench"]').click();
+    assert(document.getElementById('fw-strip-canvas'),'Fractions exposes a direct strip workbench');
+    assert(document.querySelectorAll('#fw-strip-canvas [data-gd-object]').length===2,'Fraction workbench starts with two comparison strips');
+    assert(getComputedStyle(document.getElementById('fw-strip-canvas')).touchAction==='pan-y','Fraction workbench preserves vertical touch scrolling outside strips');
+
+    let strip=document.querySelector('#fw-strip-canvas [data-gd-object]');
+    let sr=strip.getBoundingClientRect();
+    pointer(strip,'pointerdown',sr.left+20,sr.top+20,51);
+    pointer(strip,'pointerup',sr.left+20,sr.top+20,51);
+    assert(strip.classList.contains('is-selected'),'Fraction strip can be selected directly');
+
+    document.querySelector('[data-gd-action="duplicate"]').click();
+    assert(document.querySelectorAll('#fw-strip-canvas [data-gd-object]').length===3,'Duplicate creates another fraction strip');
+    assert(document.querySelector('#fw-strip-canvas [data-gd-object].is-selected .gd-fr-strip-head strong').textContent.trim()==='1/2','Duplicated strip remains selected');
+
+    document.querySelector('[data-gd-action="split"]').click();
+    assert(document.querySelector('#fw-strip-canvas [data-gd-object].is-selected .gd-fr-strip-head strong').textContent.trim()==='2/4','Split partitions a strip into twice as many equal pieces');
+    assert(document.querySelectorAll('#fw-strip-canvas [data-gd-object].is-equivalent').length>=1,'Equivalent strips highlight automatically after partitioning');
+
+    document.querySelector('[data-gd-action="simplify"]').click();
+    assert(document.querySelector('#fw-strip-canvas [data-gd-object].is-selected .gd-fr-strip-head strong').textContent.trim()==='1/2','Simplify returns an equivalent strip to lowest terms');
+
+    document.getElementById('fw-align').click();
+    const aligned=[...document.querySelectorAll('#fw-strip-canvas [data-gd-object]')].map(x=>x.style.left);
+    assert(aligned.every(x=>x==='24px'),'Align strips gives all comparison strips a common starting point');
+
+    strip=document.querySelector('#fw-strip-canvas [data-gd-object].is-selected');
+    sr=strip.getBoundingClientRect();
+    pointer(strip,'pointerdown',sr.left+20,sr.top+20,52);
+    pointer(strip,'pointermove',sr.left+80,sr.top+20,52);
+    pointer(strip,'pointerup',sr.left+80,sr.top+20,52);
+    strip=document.querySelector('#fw-strip-canvas [data-gd-object].is-selected');
+    assert(parseFloat(strip.style.left)>24,'Selected fraction strip can be dragged directly');
+
+    document.querySelector('[data-fw-mode="wall"]').click();
+    assert(document.querySelectorAll('[data-fw-row]').length===12,'Switching back restores the full fraction wall without losing the existing tool');
   }
   function testGeoboard(){
     TT99Goodies.interaction.clear();
