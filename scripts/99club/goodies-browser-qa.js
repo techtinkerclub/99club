@@ -469,9 +469,9 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=(svg)=>{pvChallengeSvg=svg.cloneNode(true)};
     document.getElementById('pv-svg-download').click();
     TT99Goodies.exportTools.downloadSvg=pvOldChallengeDownload;
-    assert(pvChallengeSvg&&pvChallengeSvg.querySelector('[data-pv-export="board"]'),'Place Value challenge card embeds the vector board');
+    assert(pvChallengeSvg&&pvChallengeSvg.querySelector('[data-pv-export-board="1"]'),'Place Value challenge card embeds the vector board');
     assert(!pvChallengeSvg.textContent.includes('Answer:'),'Place Value pupil challenge export never includes a revealed answer label');
-    const pvBoardTexts=[...pvChallengeSvg.querySelector('[data-pv-export="board"]').querySelectorAll('text')].map(x=>x.textContent.trim());
+    const pvBoardTexts=[...pvChallengeSvg.querySelectorAll('text')].map(x=>x.textContent.trim());
     const pvNumberLabel=pvBoardTexts.indexOf('Number represented');
     assert(pvNumberLabel>=0&&pvBoardTexts[pvNumberLabel+1]==='?','Place Value pupil export re-hides the represented total after teacher reveal');
     assert(pvChallengeSvg.textContent.includes('What number is represented'),'Place Value challenge-card export includes the pupil prompt');
