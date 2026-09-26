@@ -251,13 +251,15 @@ function placeValue(){
       '</div></div>';
   }
   function columnMarkup(place,index,cs){
+    const countText=columnCountHidden(index)?'?':cs[index];
     return '<div class="gd-pv-column'+(index===5?' is-decimal-start':'')+'" data-gd-canvas-bg data-pv-column="'+index+'">'+
-      '<div class="gd-pv-head"><strong>'+place.label+'</strong><small>'+place.name+'</small><span data-pv-count="'+index+'">'+cs[index]+'</span><button type="button" data-pv-add="'+index+'" aria-label="Add one '+place.name+' counter">+</button></div>'+
+      '<div class="gd-pv-head"><strong>'+place.label+'</strong><small>'+place.name+'</small><span data-pv-count="'+index+'">'+countText+'</span><button type="button" data-pv-add="'+index+'" aria-label="Add one '+place.name+' counter">+</button></div>'+
       '</div>';
   }
   function render(selectedId,meta){
     const height=layoutTokens(),cs=counts(),selected=tokens.find(t=>String(t.id)===String(selectedId))||null;
-    q('#gd-stage').innerHTML='<div class="gd-vis gd-pv-workspace">'+
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Place Value challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
+    q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-pv-workspace">'+
       '<div class="gd-pv-board-wrap">'+
         '<div class="gd-pv-canvas" id="pv-canvas" data-gd-canvas-bg style="min-height:'+height+'px">'+
           '<div class="gd-pv-columns">'+places.map((p,i)=>columnMarkup(p,i,cs)).join('')+'</div>'+
@@ -266,20 +268,21 @@ function placeValue(){
         railMarkup(selected,meta)+
       '</div>'+
       '<div class="gd-pv-summary">'+
-        '<div><span>Number represented</span><strong id="pv-total">'+format(total())+'</strong></div>'+
-        '<div><span>Board representation</span><strong id="pv-expanded">'+expandedText()+'</strong></div>'+
+        '<div><span>Number represented</span><strong id="pv-total"'+(summaryHidden('total')?' class="gd-pv-answer-hidden"':'')+'>'+(summaryHidden('total')?'?':format(total()))+'</strong></div>'+
+        '<div><span>Board representation</span><strong id="pv-expanded"'+(summaryHidden('expanded')?' class="gd-pv-answer-hidden"':'')+'>'+(summaryHidden('expanded')?'Hidden for challenge':expandedText())+'</strong></div>'+
       '</div>'+
       '<p class="gd-object-hint" id="pv-hint">'+stageNotice()+'</p>'+
     '</div>';
   }
   function updateLiveSummary(){
+    updateChallengeAnswer();
     const totalEl=q('#pv-total'),expandedEl=q('#pv-expanded'),hint=q('#pv-hint'),input=q('#pv-value');
-    if(totalEl)totalEl.textContent=format(total());
-    if(expandedEl)expandedEl.textContent=expandedText();
+    if(totalEl)totalEl.textContent=summaryHidden('total')?'?':format(total());
+    if(expandedEl)expandedEl.textContent=summaryHidden('expanded')?'Hidden for challenge':expandedText();
     if(hint)hint.textContent=stageNotice();
     if(input&&document.activeElement!==input)input.value=clean(total()).toFixed(total()%1?2:0);
     const cs=counts();
-    qa('[data-pv-count]',q('#gd-stage')).forEach(el=>{el.textContent=cs[+el.dataset.pvCount]||0});
+    qa('[data-pv-count]',q('#gd-stage')).forEach(el=>{const index=+el.dataset.pvCount;el.textContent=columnCountHidden(index)?'?':(cs[index]||0)});
   }
   function placeFromX(x,width=boardWidth()){
     const centre=(Number(x)||0)+18;
