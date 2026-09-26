@@ -438,6 +438,17 @@ if(mode==='prepare'){
     assert(document.querySelector('[data-pv-count="3"]').textContent==='2','Regrouping converts to two tens');
     assert(document.querySelector('[data-pv-count="4"]').textContent==='0','Regrouping clears the ten ones');
 
+    document.querySelector('[data-pv-workflow="export"]').click();
+    assert(document.getElementById('pv-copy-image')&&document.getElementById('pv-png')&&document.getElementById('pv-svg-download')&&document.getElementById('pv-print'),'Place Value export exposes copy, PNG, SVG and Print/PDF actions');
+    let pvCapturedSvg=null,pvCapturedName='';
+    const pvOldDownloadSvg=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg,name)=>{pvCapturedSvg=svg.cloneNode(true);pvCapturedName=name};
+    document.getElementById('pv-svg-download').click();
+    assert(pvCapturedSvg&&pvCapturedSvg.dataset.pvExport==='board','Place Value board-only export is a deterministic SVG board');
+    assert(pvCapturedSvg.querySelectorAll('text').length>=16,'Place Value SVG export carries semantic column/readout text');
+    assert(pvCapturedName.includes('place-value-board'),'Place Value board export has a reusable filename');
+    TT99Goodies.exportTools.downloadSvg=pvOldDownloadSvg;
+
     document.querySelector('[data-pv-workflow="challenge"]').click();
     assert(document.querySelector('[data-pv-challenge-tab="standard"]'),'Place Value uses the shared Standard / Custom challenge language');
     assert(document.querySelector('[data-pv-challenge-type="read-number"]'),'Place Value read-number challenge is available');
@@ -450,6 +461,20 @@ if(mode==='prepare'){
     document.querySelector('[data-board-action="reveal"]').click();
     assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer:'),'Place Value challenge reveals its answer contextually');
     assert(document.getElementById('pv-total').textContent.trim()!=='?','Reveal restores the live represented total');
+
+    document.querySelector('[data-pv-workflow="export"]').click();
+    assert(document.querySelector('[data-pv-export-mode="challenge"]'),'Active Place Value challenge offers Challenge card export');
+    let pvChallengeSvg=null;
+    const pvOldChallengeDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{pvChallengeSvg=svg.cloneNode(true)};
+    document.getElementById('pv-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=pvOldChallengeDownload;
+    assert(pvChallengeSvg&&pvChallengeSvg.querySelector('[data-pv-export-board="1"]'),'Place Value challenge card embeds the vector board');
+    assert(!pvChallengeSvg.textContent.includes('Answer:'),'Place Value pupil challenge export never includes a revealed answer label');
+    const pvBoardTexts=[...pvChallengeSvg.querySelectorAll('text')].map(x=>x.textContent.trim());
+    const pvNumberLabel=pvBoardTexts.indexOf('Number represented');
+    assert(pvNumberLabel>=0&&pvBoardTexts[pvNumberLabel+1]==='?','Place Value pupil export re-hides the represented total after teacher reveal');
+    assert(pvChallengeSvg.textContent.includes('What number is represented'),'Place Value challenge-card export includes the pupil prompt');
 
     document.querySelector('[data-pv-workflow="challenge"]').click();
     document.querySelector('[data-pv-challenge-tab="custom"]').click();
