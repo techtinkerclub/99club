@@ -1207,7 +1207,7 @@ function multiplicationGrid(){let hidden=new Set();function draw(){const size=cl
 setPanels(`${field('Grid size','<input class="gd-input" id="mg-size" type="number" min="5" max="15" value="12">')}${field('Highlight table','<input class="gd-input" id="mg-focus" type="number" min="1" max="15" value="6">')}<div class="gd-row">${btn('Hide 12 random products','mg-hide')}${btn('Show all','mg-show')}</div><p class="gd-help">Click any product to hide/reveal it and turn the grid into a quick retrieval activity.</p>`,'');q('#mg-size').oninput=draw;q('#mg-focus').oninput=draw;q('#mg-hide').onclick=()=>{hidden.clear();const size=clamp(num(q('#mg-size').value,12),5,15);while(hidden.size<Math.min(12,size*size))hidden.add((1+Math.floor(Math.random()*size))+'-'+(1+Math.floor(Math.random()*size)));draw()};q('#mg-show').onclick=()=>{hidden.clear();draw()};draw()}
 
 function arrayBuilder(){
-  const CK=G.challengeKit;
+  const CK=G.challengeKit,X=G.exportTools;
   let rows=4,cols=6,rowSplit=0,colSplit=0,drag=null;
   const MAX=12;
   const CHALLENGE_CATEGORIES=[
@@ -1225,6 +1225,7 @@ function arrayBuilder(){
     {id:'partial-products',category:'reason',title:'Use the partition',desc:'Read a split array as partial products.'}
   ];
   let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='count-total',challenge=null,beforeChallenge=null;
+  let exportMode='diagram',responseLines=1,exportStatus='';
 
   function clampDim(value){return clamp(Math.round(num(value,1)),1,MAX)}
   function normaliseSplits(){
@@ -1335,7 +1336,8 @@ function arrayBuilder(){
   function workflowTabs(){
     return '<div class="gd-row gd-ab-workflow-tabs" role="tablist" aria-label="Arrays workflow">'+
       '<button class="gd-btn'+(controlTab==='explore'?' gd-btn--primary':'')+'" type="button" data-ab-workflow="explore">Explore</button>'+
-      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-ab-workflow="challenge">Challenge'+(challenge?' •':'')+'</button></div>';
+      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-ab-workflow="challenge">Challenge'+(challenge?' •':'')+'</button>'+
+      '<button class="gd-btn'+(controlTab==='export'?' gd-btn--primary':'')+'" type="button" data-ab-workflow="export">Export / reuse</button></div>';
   }
   function exploreControlsHtml(){
     return field('Rows','<div class="gd-row"><button class="gd-btn" id="ab-row-down" type="button" aria-label="Remove one row">−</button><input class="gd-input gd-array-count" id="ab-r" type="number" min="1" max="'+MAX+'" value="'+rows+'"><button class="gd-btn" id="ab-row-up" type="button" aria-label="Add one row">+</button></div>')+
@@ -1363,7 +1365,134 @@ function arrayBuilder(){
       (challenge&&challenge.answer?'<button class="gd-btn" id="ab-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
       (challenge?'<button class="gd-btn" id="ab-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>';
   }
-  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():exploreControlsHtml())}
+  function exportControlsHtml(){
+    const canCard=!!challenge;
+    if(!canCard&&exportMode==='challenge')exportMode='diagram';
+    return '<div class="nl-panel-title"><div><strong>Use it elsewhere</strong><span>Export a clean vector array or a pupil-ready challenge card.</span></div></div>'+
+      (canCard?'<div class="nl-export-mode ab-export-mode" role="tablist" aria-label="Export content">'+
+        '<button type="button" class="'+(exportMode==='challenge'?'is-active':'')+'" data-ab-export-mode="challenge">Challenge card</button>'+
+        '<button type="button" class="'+(exportMode==='diagram'?'is-active':'')+'" data-ab-export-mode="diagram">Array only</button></div>':'')+
+      (canCard&&exportMode==='challenge'
+        ?'<label class="gd-field"><span>Answer space</span><select class="gd-select" id="ab-response-lines">'+
+          [1,2,3,4].map(n=>'<option value="'+n+'"'+(responseLines===n?' selected':'')+'>'+n+' line'+(n===1?'':'s')+'</option>').join('')+
+          '</select></label><p class="gd-help">The pupil card keeps hidden factors and calculations hidden even if you revealed them on screen.</p>'
+        :'<p class="gd-help">Array-only export contains the current visual model, partitions and visible maths without editing controls.</p>')+
+      '<div class="nl-export-grid ab-export-grid">'+
+        '<button class="gd-btn gd-btn--primary" id="ab-copy-image" type="button">Copy '+(canCard&&exportMode==='challenge'?'challenge':'image')+'</button>'+
+        '<button class="gd-btn" id="ab-png" type="button">PNG</button>'+
+        '<button class="gd-btn" id="ab-svg-download" type="button">SVG</button>'+
+        '<button class="gd-btn" id="ab-print" type="button">Print / PDF</button>'+
+      '</div><p class="gd-help" id="ab-export-status" role="status" aria-live="polite">'+exportStatus+'</p>';
+  }
+  function abSvgEl(name,attrs={},text=''){
+    const el=document.createElementNS('http://www.w3.org/2000/svg',name);
+    Object.entries(attrs).forEach(([key,value])=>el.setAttribute(key,String(value)));
+    if(text!==''&&text!=null)el.textContent=String(text);
+    return el;
+  }
+  function exportHiddenFlag(key,pupil=false){
+    if(!challenge)return false;
+    return pupil?!!challenge[key]:hiddenFlag(key);
+  }
+  function exportHiddenDimension(kind,pupil=false){
+    if(!challenge)return false;
+    if(!Array.isArray(challenge.hiddenDimensions))return false;
+    return pupil?challenge.hiddenDimensions.includes(kind):hiddenDimension(kind);
+  }
+  function exportDimension(kind,pupil=false){
+    return exportHiddenDimension(kind,pupil)?'?':String(kind==='rows'?rows:cols);
+  }
+  function exportEquationText(pupil=false){
+    if(exportHiddenFlag('hiddenEquation',pupil))return'?';
+    const r=exportDimension('rows',pupil),c=exportDimension('cols',pupil),t=exportHiddenFlag('hiddenTotal',pupil)?'?':String(total());
+    return r+' × '+c+' = '+t;
+  }
+  function arrayExportSvg({pupil=false}={}){
+    const buildBlank=!!(pupil&&challenge?.mode==='standard'&&challenge.type==='build-array');
+    const width=900,cell=34,gridRows=buildBlank?MAX:rows,gridCols=buildBlank?MAX:cols;
+    const boardW=gridCols*cell,boardH=gridRows*cell,boardX=(width-boardW)/2,boardY=76;
+    const mathsY=boardY+boardH+62,partial=partitionMath(),showPartial=!!partial&&!buildBlank;
+    const mathsRows=buildBlank?0:(showPartial?4:3),height=buildBlank?boardY+boardH+100:mathsY+mathsRows*48+50;
+    const svg=abSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Array model','data-ab-export':'array'});
+    svg.appendChild(abSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
+    svg.appendChild(abSvgEl('rect',{x:boardX-14,y:boardY-14,width:boardW+28,height:boardH+28,rx:16,fill:'#f8fbfb',stroke:'#9db2b5','stroke-width':2,'data-ab-export-board':'1','data-ab-export-build-grid':buildBlank?'12x12':''}));
+
+    for(let c=1;c<gridCols;c++){
+      const x=boardX+c*cell;
+      svg.appendChild(abSvgEl('line',{x1:x,y1:boardY,x2:x,y2:boardY+boardH,stroke:'#dbe4e5','stroke-width':1,'data-ab-export-grid-line':'col'}));
+    }
+    for(let r=1;r<gridRows;r++){
+      const y=boardY+r*cell;
+      svg.appendChild(abSvgEl('line',{x1:boardX,y1:y,x2:boardX+boardW,y2:y,stroke:'#dbe4e5','stroke-width':1,'data-ab-export-grid-line':'row'}));
+    }
+    if(!buildBlank){
+      for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+        const x=boardX+c*cell,y=boardY+r*cell;
+        svg.appendChild(abSvgEl('circle',{cx:x+cell/2,cy:y+cell/2,r:7.5,fill:'#147d75','data-ab-export-dot':'1'}));
+      }
+    }
+
+    if(!buildBlank&&rowSplit){
+      const y=boardY+rowSplit*cell;
+      svg.appendChild(abSvgEl('line',{x1:boardX,y1:y,x2:boardX+boardW,y2:y,stroke:'#d59b27','stroke-width':5,'data-ab-export-row-split':'1'}));
+    }
+    if(!buildBlank&&colSplit){
+      const x=boardX+colSplit*cell;
+      svg.appendChild(abSvgEl('line',{x1:x,y1:boardY,x2:x,y2:boardY+boardH,stroke:'#d59b27','stroke-width':5,'data-ab-export-col-split':'1'}));
+    }
+
+    if(buildBlank){
+      svg.setAttribute('data-ab-export-build-grid','12x12');
+      svg.appendChild(abSvgEl('text',{x:width/2,y:boardY-34,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':18,'font-weight':850,fill:'#425b62'},'Draw or shade your array'));
+    }else{
+      const rLabel=exportDimension('rows',pupil),cLabel=exportDimension('cols',pupil);
+      svg.appendChild(abSvgEl('text',{x:width/2,y:38,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':18,'font-weight':850,fill:'#425b62','data-ab-export-cols':'1'},cLabel+' columns'));
+      svg.appendChild(abSvgEl('text',{x:boardX-34,y:boardY+boardH/2,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':18,'font-weight':850,fill:'#425b62',transform:'rotate(-90 '+(boardX-34)+' '+(boardY+boardH/2)+')','data-ab-export-rows':'1'},rLabel+' rows'));
+
+      const lines=[
+        ['Multiplication',exportEquationText(pupil)],
+        ['Repeated addition',exportHiddenFlag('hiddenRepeated',pupil)?'?':repeatedAddition()],
+        ['Related division facts',exportHiddenFlag('hiddenInverse',pupil)?'?':inverseFacts()]
+      ];
+      if(showPartial)lines.push(['Partial products',exportHiddenFlag('hiddenPartial',pupil)?'?':partial]);
+      lines.forEach((item,index)=>{
+        const y=mathsY+index*48;
+        svg.appendChild(abSvgEl('rect',{x:96,y:y-27,width:width-192,height:38,rx:10,fill:index===3?'#fff9ea':'#f6f9f9',stroke:'#d9e2e4','stroke-width':1}));
+        svg.appendChild(abSvgEl('text',{x:112,y:y-4,'font-family':'Arial,sans-serif','font-size':11,'font-weight':750,fill:'#718288'},item[0]));
+        svg.appendChild(abSvgEl('text',{x:width-112,y:y-4,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':15,'font-weight':850,fill:'#304b52','data-ab-export-math':index},item[1]));
+      });
+    }
+    svg.appendChild(abSvgEl('text',{x:width-42,y:height-16,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':10,fill:'#87969a'},'99 Club Studio'));
+    return svg;
+  }
+  function exportTargetSvg(){
+    if(exportMode!=='challenge'||!challenge||!X?.composeChallengeCardSvg)return arrayExportSvg({pupil:false});
+    const prompt=CK?CK.plainText(challenge.promptHtml||challenge.prompt||''):challenge.prompt||'';
+    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
+    return X.composeChallengeCardSvg(arrayExportSvg({pupil:true}),{
+      title:challenge.title||meta?.title||'Array challenge',
+      prompt,
+      responseLabel:challenge.type==='build-array'?'Working / answer':challenge.category==='reason'?'Explain your thinking':'Answer',
+      responseLines,
+      brand:'99 Club Studio'
+    });
+  }
+  function exportName(){
+    const meta=challenge&&CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
+    return exportMode==='challenge'&&challenge?(challenge.title||meta?.title||'array-challenge'):'array-'+rows+'x'+cols;
+  }
+  function exportMessage(text){exportStatus=text;const el=q('#ab-export-status');if(el)el.textContent=text}
+  async function exportAction(kind){
+    try{
+      if(!X)throw new Error('Export tools are not available.');
+      const target=exportTargetSvg(),isCard=exportMode==='challenge'&&!!challenge,name=exportName();
+      if(kind==='copy'){await X.copyPng(target);exportMessage(isCard?'Challenge copied — paste it into your worksheet, slide or document.':'Array image copied — paste it into your slide or document.')}
+      if(kind==='png'){await X.downloadPng(target,name,2);exportMessage(isCard?'Challenge PNG downloaded.':'Array PNG downloaded.')}
+      if(kind==='svg'){X.downloadSvg(target,name);exportMessage(isCard?'Challenge SVG downloaded.':'Array SVG downloaded.')}
+      if(kind==='print'){X.printSvg(target,{title:'',landscape:!isCard});exportMessage('Print view opened. Choose “Save as PDF” in the print dialog.')}
+    }catch(err){exportMessage(err?.message||'That export did not work.')}
+  }
+  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():controlTab==='export'?exportControlsHtml():exploreControlsHtml())}
   function renderControls(){
     const panel=q('#gd-controls');if(panel)panel.innerHTML=controlsHtml();bindControls();
   }
@@ -1380,7 +1509,7 @@ function arrayBuilder(){
     if(!challenge.hiddenDimensions)challenge.hiddenDimensions=[];
     if(!wasCustom)clearBoundHiding();
     challenge.freezeBoard=false;challenge.revealed=false;
-    challengeTab='custom';controlTab='challenge';renderControls();draw();
+    challengeTab='custom';controlTab='challenge';exportMode='challenge';exportStatus='';renderControls();draw();
   }
   function setCustomAnswerSource(source){
     if(!challenge||challenge.mode!=='custom')return;
@@ -1448,6 +1577,7 @@ function arrayBuilder(){
       );
     }
     challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';
+    exportMode='challenge';responseLines=template.category==='reason'?3:type==='build-array'?2:1;exportStatus='';
     renderControls();draw();
   }
   function mutateDimensions(nextRows,nextCols){
@@ -1457,8 +1587,22 @@ function arrayBuilder(){
   function bindControls(){
     const controls=q('#gd-controls');if(!controls)return;
     qa('[data-ab-workflow]',controls).forEach(button=>button.onclick=()=>{
-      controlTab=button.dataset.abWorkflow==='challenge'?'challenge':'explore';renderControls();
+      const next=button.dataset.abWorkflow;
+      controlTab=next==='challenge'?'challenge':next==='export'?'export':'explore';renderControls();
     });
+    if(controlTab==='export'){
+      qa('[data-ab-export-mode]',controls).forEach(button=>button.onclick=()=>{
+        exportMode=button.dataset.abExportMode==='challenge'&&challenge?'challenge':'diagram';exportStatus='';renderControls();
+      });
+      const response=q('#ab-response-lines',controls);if(response)response.onchange=()=>{
+        responseLines=clamp(Math.round(num(response.value,1)),1,4);renderControls();
+      };
+      const copyImage=q('#ab-copy-image',controls);if(copyImage)copyImage.onclick=()=>exportAction('copy');
+      const png=q('#ab-png',controls);if(png)png.onclick=()=>exportAction('png');
+      const svgDownload=q('#ab-svg-download',controls);if(svgDownload)svgDownload.onclick=()=>exportAction('svg');
+      const print=q('#ab-print',controls);if(print)print.onclick=()=>exportAction('print');
+      return;
+    }
     if(controlTab==='explore'){
       const r=q('#ab-r',controls),c=q('#ab-c',controls);
       if(r)r.oninput=()=>mutateDimensions(r.value,cols);
