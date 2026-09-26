@@ -1271,6 +1271,20 @@ if(mode==='prepare'){
     teacherNumerals.value='roman';teacherNumerals.dispatchEvent(new Event('change',{bubbles:true}));
     assert(document.getElementById('cl-face').dataset.clHour==='22'&&document.getElementById('cl-face').dataset.clMinute==='35','Teacher Clock setup is prepared before challenges');
 
+    document.querySelector('[data-cl-workflow="export"]').click();
+    assert(document.getElementById('cl-copy-image')&&document.getElementById('cl-png')&&document.getElementById('cl-svg-download')&&document.getElementById('cl-print'),'Clock export exposes copy, PNG, SVG and Print/PDF actions');
+    let clCapturedSvg=null,clCapturedName='';
+    const clOldDownloadSvg=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg,name)=>{clCapturedSvg=svg.cloneNode(true);clCapturedName=name};
+    document.getElementById('cl-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=clOldDownloadSvg;
+    assert(clCapturedSvg&&clCapturedSvg.dataset.clExport==='clock','Clock-only export is a deterministic SVG clock');
+    assert(clCapturedSvg.querySelectorAll('[data-cl-export-tick]').length===60,'Clock SVG export preserves all 60 minute ticks');
+    assert(clCapturedSvg.querySelectorAll('[data-cl-export-hand]').length===2,'Clock SVG export preserves both analogue hands');
+    assert([...clCapturedSvg.querySelectorAll('[data-cl-export-numeral]')].some(x=>x.textContent.trim()==='XII'),'Clock SVG export preserves the Roman numeral face');
+    assert(clCapturedSvg.querySelector('[data-cl-export-readout="24"]').textContent.trim()==='22:35','Clock-only export includes the visible 24-hour readout');
+    assert(clCapturedName.includes('clock-22-35'),'Clock-only export has a reusable time-based filename');
+
     const realClockRandom=Math.random;
     Math.random=()=>0;
     document.querySelector('[data-cl-workflow="challenge"]').click();
@@ -1293,6 +1307,20 @@ if(mode==='prepare'){
     assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer:'),'Clock challenge reveals its answer contextually');
     assert(document.querySelector('[data-cl-readout="12"]').textContent.trim()!=='?','Reveal restores the hidden Clock readout');
 
+    document.querySelector('[data-cl-workflow="export"]').click();
+    assert(document.querySelector('[data-cl-export-mode="challenge"]'),'Active Clock challenge offers Challenge card export');
+    let clReadSvg=null;
+    const clOldReadDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{clReadSvg=svg.cloneNode(true)};
+    document.getElementById('cl-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=clOldReadDownload;
+    assert(clReadSvg&&clReadSvg.querySelector('[data-cl-export-face]'),'Clock challenge card embeds the vector clock face');
+    assert(clReadSvg.querySelectorAll('[data-cl-export-hand]').length===2,'Read-the-clock pupil export preserves the shown analogue hands');
+    assert(clReadSvg.querySelector('[data-cl-export-readout="24"]').textContent.trim()==='?'&&clReadSvg.querySelector('[data-cl-export-readout="12"]').textContent.trim()==='?','Clock pupil export re-hides both readouts after teacher reveal');
+    assert(!clReadSvg.textContent.includes('Answer:'),'Clock pupil challenge export never includes the revealed answer label');
+    assert(clReadSvg.textContent.includes('What time is shown on the analogue clock?'),'Clock challenge-card export includes the pupil prompt');
+
+    document.querySelector('[data-cl-workflow="challenge"]').click();
     document.querySelector('[data-cl-challenge-type="roman-read"]').click();
     document.getElementById('cl-generate').click();
     assert([...document.querySelectorAll('.gd-clock-num')].some(x=>x.textContent.trim()==='XII'),'Roman-read challenge automatically switches the clock face to I–XII');
@@ -1316,6 +1344,16 @@ if(mode==='prepare'){
     assert(Number(face.dataset.clHour)===setTargetHour&&Number(face.dataset.clMinute)===setTargetMinute,'Set-time challenge can be completed using the minute hand');
     assert(document.querySelector('[data-cl-target-status]').textContent.includes('On target'),'Set-time challenge confirms an exact hand placement');
 
+    document.querySelector('[data-cl-workflow="export"]').click();
+    let clSetSvg=null;
+    const clOldSetDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{clSetSvg=svg.cloneNode(true)};
+    document.getElementById('cl-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=clOldSetDownload;
+    assert(clSetSvg.querySelectorAll('[data-cl-export-hand]').length===0,'Set-time pupil card exports a blank clock even after the teacher tests the target');
+    assert(clSetSvg.querySelector('[data-cl-export-draw-centre]')&&clSetSvg.querySelector('[data-cl-export-set-blank]'),'Set-time pupil card provides a clean draw-the-hands face');
+    assert(clSetSvg.textContent.includes('Move the hands to'),'Set-time pupil card keeps the target instruction');
+
     document.querySelector('[data-cl-workflow="challenge"]').click();
     document.querySelector('[data-cl-challenge-cat="set"]').click();
     document.querySelector('[data-cl-challenge-type="elapsed-forward"]').click();
@@ -1328,6 +1366,17 @@ if(mode==='prepare'){
     }
     assert(document.querySelector('[data-cl-target-status]').textContent.includes('On target'),'Elapsed-time challenge can be completed by advancing the analogue hands');
 
+    document.querySelector('[data-cl-workflow="export"]').click();
+    let clElapsedSvg=null;
+    const clOldElapsedDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{clElapsedSvg=svg.cloneNode(true)};
+    document.getElementById('cl-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=clOldElapsedDownload;
+    const elapsedFace=clElapsedSvg.querySelector('[data-cl-export-state="elapsed-start"]');
+    assert(elapsedFace&&elapsedFace.getAttribute('data-cl-export-hour')==='0'&&elapsedFace.getAttribute('data-cl-export-minute')==='0','Elapsed-time pupil export restores the original starting clock state');
+    assert(clElapsedSvg.querySelectorAll('[data-cl-export-hand]').length===2,'Elapsed-time pupil export keeps the original starting hands');
+    assert(clElapsedSvg.querySelector('[data-cl-export-readout="24"]').textContent.trim()==='?','Elapsed-time pupil export keeps the digital shortcut hidden');
+
     document.querySelector('[data-cl-workflow="challenge"]').click();
     document.querySelector('[data-cl-challenge-cat="convert"]').click();
     assert(document.querySelector('[data-cl-challenge-type="twelve-to-twentyfour"]')&&document.querySelector('[data-cl-challenge-type="twentyfour-to-twelve"]'),'Clock exposes both 12 / 24-hour conversion directions');
@@ -1337,6 +1386,16 @@ if(mode==='prepare'){
     assert(document.querySelector('[data-cl-readout="12"]').textContent.trim()==='12:00 am','12-to-24 challenge keeps the 12-hour source visible');
     assert(document.getElementById('cl-face').getAttribute('aria-label')==='Analogue clock for challenge','Conversion challenge does not leak the hidden representation through SVG accessibility text');
 
+    document.querySelector('[data-cl-workflow="export"]').click();
+    let clConvertSvg=null;
+    const clOldConvertDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{clConvertSvg=svg.cloneNode(true)};
+    document.getElementById('cl-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=clOldConvertDownload;
+    assert(clConvertSvg.querySelector('[data-cl-export-readout="24"]').textContent.trim()==='?','12-to-24 pupil export hides the requested 24-hour answer');
+    assert(clConvertSvg.querySelector('[data-cl-export-readout="12"]').textContent.trim()==='12:00 am','12-to-24 pupil export preserves the source representation');
+
+    document.querySelector('[data-cl-workflow="challenge"]').click();
     document.querySelector('[data-cl-challenge-type="twentyfour-to-twelve"]').click();
     document.getElementById('cl-generate').click();
     assert(document.querySelector('[data-cl-readout="24"]').textContent.trim()==='00:00','24-to-12 challenge keeps the 24-hour source visible');
@@ -1365,6 +1424,15 @@ if(mode==='prepare'){
     const clockLiveAfter=document.getElementById('cl-custom-live-answer').textContent.trim();
     assert(clockLiveAfter!==clockLiveBefore,'Clock live custom answer updates as a hand moves');
 
+    document.querySelector('[data-cl-workflow="export"]').click();
+    let clCustomSvg=null;
+    const clOldCustomDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{clCustomSvg=svg.cloneNode(true)};
+    document.getElementById('cl-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=clOldCustomDownload;
+    assert(clCustomSvg.querySelector('[data-cl-export-readout="24"]').textContent.trim()==='?'&&clCustomSvg.querySelector('[data-cl-export-readout="12"]').textContent.trim()==='?','Custom bound Clock answer remains hidden in the pupil export');
+
+    document.querySelector('[data-cl-workflow="challenge"]').click();
     document.getElementById('cl-clear-challenge').click();
     face=document.getElementById('cl-face');
     assert(face.dataset.clHour==='22'&&face.dataset.clMinute==='35','Ending a Clock challenge restores the teacher time');

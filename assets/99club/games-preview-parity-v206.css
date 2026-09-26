@@ -699,7 +699,7 @@
   }
 
   .tt99-game-paper .tt99-game-activities.count-2 .tt99-factor-items.visual.items-4{
-    height:calc(100% - 76px)!important;
+    height:calc(100% - 80px)!important;
     grid-template-rows:repeat(2,minmax(0,1fr))!important;
     gap:4px!important;
     margin:2px 8px!important;

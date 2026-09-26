@@ -21,7 +21,7 @@ robots: "noindex,nofollow,noarchive"
 <script src="/assets/99club/goodies-interaction.js?v=2" defer></script>
 <script src="/assets/99club/goodies-challenge.js?v=5" defer></script>
 <script src="/assets/99club/goodies-export.js?v=2" defer></script>
-<script src="/assets/99club/goodies-tools-a.js?v=13" defer></script>
+<script src="/assets/99club/goodies-tools-a.js?v=14" defer></script>
 <script src="/assets/99club/goodies-number-line-v6.js?v=10" defer></script>
 <script src="/assets/99club/goodies-tools-b.js?v=10" defer></script>
 <script src="/assets/99club/goodies-app.js?v=2" defer></script>
