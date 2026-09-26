@@ -33,6 +33,11 @@ const CHALLENGE_TEMPLATES=[
   {id:'mixed-number',category:'fractions',title:'Read a mixed number',desc:'Read a fraction greater than 1 from a marked line.'},
   {id:'equivalent-fractions',category:'fractions',title:'Equivalent fraction lines',desc:'Use aligned fraction lines to find an equivalent fraction.'},
   {id:'fdp-equivalence',category:'fractions',title:'Fraction · decimal · percent',desc:'Match the same position across three representations.'},
+  {id:'fraction-sequence',category:'fractions',title:'Count in fractions',desc:'Follow equal fractional steps and continue the sequence.'},
+  {id:'fraction-jump',category:'fractions',title:'Fraction jump',desc:'Add or subtract a fraction on a number line.'},
+  {id:'compare-fractions',category:'fractions',title:'Compare fractions',desc:'Compare fractions using aligned scales.'},
+  {id:'zoom-read',category:'read',title:'Read a zoomed interval',desc:'Use a magnified interval to read an exact value.'},
+  {id:'double-line-value',category:'calculate',title:'Double number line',desc:'Find a missing corresponding value on proportional scales.'},
   {id:'error-scale',category:'reason',title:'Spot the scale error',desc:'Decide whether a pupil has read the interval correctly.'},
   {id:'marks-vs-spaces',category:'reason',title:'Marks or intervals?',desc:'Diagnose the common mistake of counting marks instead of spaces.'}
 ];
@@ -1320,6 +1325,66 @@ function numberLineV2(){
       percent.markers=[{id:'mFdpP',label:'?',value,color:'#d65a4a',showValue:true,side:'above',syncGroup:'fdp',snapStep:1/d}];
       state.lines=[fraction,decimal,percent];state.activeLineId='l1';
       state.challenge=challengeObject(type,'These three markers are aligned. What percentage completes the fraction–decimal–percent match?',fmt(value*100)+'%',{hiddenMarkerIds:['mFdpP']});
+
+    }else if(type==='fraction-sequence'){
+      const d=[2,3,4,5,8][Math.floor(Math.random()*5)];
+      state.min=0;state.max=2;state.step=1/d;state.labelEvery=d;state.showTickLabels=true;
+      Object.assign(line,{label:'Count in '+fractionFamilyName(d).toLowerCase(),valueFormat:'fraction',denominator:d,tickStride:1,showLabels:true});
+      const startN=Math.floor(Math.random()*Math.max(1,2*d-2)),nums=[startN,startN+1,startN+2,startN+3],values=nums.map(n=>cleanNumber(n/d));
+      line.markers=values.map((value,i)=>({id:'m'+(i+1),label:i===0?'S':(i===3?'?':String(i)),value,color:i===0?'#147d75':'#4169a8',showValue:true,side:'above'}));
+      for(let i=0;i<3;i++)line.relations.push({id:'r'+(i+1),from:'m'+(i+1),to:'m'+(i+2),type:'jump',color:'#4169a8',label:'+'+fractionText(1/d,d),showLabel:true,side:'above'});
+      state.challenge=challengeObject(type,'Count on in '+fractionFamilyName(d).toLowerCase()+'. What is the missing final value?',fractionText(values[3],d),{hiddenMarkerIds:['m4']});
+
+    }else if(type==='fraction-jump'){
+      const d=[2,3,4,5,8][Math.floor(Math.random()*5)],deltaUnits=1+Math.floor(Math.random()*Math.min(3,d)),direction=Math.random()<.5?-1:1,total=2*d;
+      let startN;
+      if(direction>0)startN=Math.floor(Math.random()*(total-deltaUnits+1));
+      else startN=deltaUnits+Math.floor(Math.random()*(total-deltaUnits+1));
+      const endN=startN+direction*deltaUnits,start=cleanNumber(startN/d),end=cleanNumber(endN/d),delta=cleanNumber(direction*deltaUnits/d);
+      state.min=0;state.max=2;state.step=1/d;state.labelEvery=d;state.showTickLabels=true;
+      Object.assign(line,{label:'Fraction jump',valueFormat:'fraction',denominator:d,tickStride:1,showLabels:true});
+      line.markers=[{id:'m1',label:'S',value:start,color:'#147d75',showValue:true,side:'above'},{id:'m2',label:'?',value:end,color:'#d65a4a',showValue:true,side:'above'}];
+      line.relations=[{id:'r1',from:'m1',to:'m2',type:'jump',color:'#4169a8',label:(delta>=0?'+':'−')+fractionText(Math.abs(delta),d),showLabel:true,side:'above'}];
+      state.challenge=challengeObject(type,'Start at '+fractionText(start,d)+' and make the shown fraction jump. Where do you land?',fractionText(end,d),{hiddenMarkerIds:['m2']});
+
+    }else if(type==='compare-fractions'){
+      const d1=[2,3,4,5,6][Math.floor(Math.random()*5)],d2=d1*2;
+      let n1=1+Math.floor(Math.random()*(d1-1)),n2=1+Math.floor(Math.random()*(d2-1)),guard=0;
+      while(Math.abs(n1/d1-n2/d2)<1e-10&&guard++<30)n2=1+Math.floor(Math.random()*(d2-1));
+      const v1=cleanNumber(n1/d1),v2=cleanNumber(n2/d2),top=makeLine('l1',fractionFamilyName(d1)),bottom=makeLine('l2',fractionFamilyName(d2));
+      state.min=0;state.max=1;state.step=1/d2;state.labelEvery=1;state.showTickLabels=true;
+      Object.assign(top,{valueFormat:'fraction',denominator:d1,tickStride:2,showLabels:true});
+      Object.assign(bottom,{valueFormat:'fraction',denominator:d2,tickStride:1,showLabels:true});
+      top.markers=[{id:'mCmpA',label:'A',value:v1,color:'#147d75',showValue:true,side:'above'}];
+      bottom.markers=[{id:'mCmpB',label:'B',value:v2,color:'#d65a4a',showValue:true,side:'above'}];
+      state.lines=[top,bottom];state.activeLineId='l1';
+      const left=fractionText(v1,d1),right=fractionText(v2,d2),symbol=v1<v2?'<':v1>v2?'>':'=';
+      state.challenge=challengeObject(type,'Compare A and B. Which fraction is greater? Use <, > or =.',left+' '+symbol+' '+right,{hiddenMarkerIds:['l1:mCmpA','l2:mCmpB']});
+
+    }else if(type==='zoom-read'){
+      const decade=2+Math.floor(Math.random()*6),zoomMin=decade*10,zoomMax=zoomMin+10,target=zoomMin+1+Math.floor(Math.random()*9);
+      state.min=0;state.max=100;state.step=10;state.labelEvery=1;state.showTickLabels=true;
+      const main=makeLine('l1','Main scale'),zoom=makeLine('l2','Zoom '+zoomMin+'–'+zoomMax);
+      Object.assign(zoom,{scaleMode:'zoom',zoomFollowMarkers:false,min:zoomMin,max:zoomMax,step:1,labelEvery:1,valueFormat:'number',tickStride:1,showLabels:true});
+      zoom.markers=[{id:'mZoom',label:'A',value:target,color:'#147d75',showValue:true,side:'above'}];
+      state.lines=[main,zoom];state.activeLineId='l2';
+      state.challenge=challengeObject(type,'The lower line zooms into '+zoomMin+' to '+zoomMax+'. What exact value is A?',fmt(target),{hiddenMarkerIds:['l2:mZoom']});
+
+    }else if(type==='double-line-value'){
+      const factor=[2,5][Math.floor(Math.random()*2)],targets=[4,6,8,12,14,16,18],target=targets[Math.floor(Math.random()*targets.length)],known=10;
+      state.min=0;state.max=20;state.step=2;state.labelEvery=1;state.showTickLabels=true;
+      const main=makeLine('l1','Top scale'),linked=makeLine('l2','Linked scale');
+      Object.assign(linked,{scaleMode:'linked',min:0,max:20*factor,step:2*factor,labelEvery:1,valueFormat:'number',tickStride:1,showLabels:true});
+      main.markers=[
+        {id:'mKnownTop',label:'A',value:known,color:'#147d75',showValue:true,side:'above',positionGroup:'p1'},
+        {id:'mTargetTop',label:'B',value:target,color:'#4169a8',showValue:true,side:'above',positionGroup:'p2'}
+      ];
+      linked.markers=[
+        {id:'mKnownBottom',label:'A',value:known*factor,color:'#147d75',showValue:true,side:'below',positionGroup:'p1'},
+        {id:'mTargetBottom',label:'B',value:target*factor,color:'#4169a8',showValue:true,side:'below',positionGroup:'p2'}
+      ];
+      state.lines=[main,linked];state.activeLineId='l2';
+      state.challenge=challengeObject(type,'Use the double number line. B is '+fmt(target)+' on the top scale. What is the corresponding value on the lower scale?',fmt(target*factor),{hiddenMarkerIds:['l2:mTargetBottom']});
 
     }else if(type==='error-scale'){
       endpointLabelsOnly();
