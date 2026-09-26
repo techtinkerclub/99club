@@ -1748,7 +1748,7 @@ function arrayBuilder(){
 }
 
 function clockTool(){
-  const CK=G.challengeKit;
+  const CK=G.challengeKit,X=G.exportTools;
   let hour=10,minute=10,snap=5,numerals='arabic',drag=null;
   const roman=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
   const CHALLENGE_CATEGORIES=[
@@ -1770,6 +1770,7 @@ function clockTool(){
     {id:'hour-hand-misconception',category:'reason',title:'Where should the hour hand be?',desc:'Diagnose the common idea that the hour hand stays on the hour number.'}
   ];
   let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='read-five',challenge=null,beforeChallenge=null;
+  let exportMode='diagram',responseLines=1,exportStatus='';
 
   function mod(value,n){return((value%n)+n)%n}
   function setTime(nextHour,nextMinute){
@@ -1779,7 +1780,8 @@ function clockTool(){
   }
   function h12(){return hour%12||12}
   function pad(value){return String(value).padStart(2,'0')}
-  function time24(){return pad(hour)+':'+pad(minute)}
+  function format24(h,m){return pad(h)+':'+pad(m)}
+  function time24(){return format24(hour,minute)}
   function format12(h,m){return(h%12||12)+':'+pad(m)+' '+(h<12?'am':'pm')}
   function time12(){return format12(hour,minute)}
   function nextH12(){return(hour+1)%12||12}
@@ -1835,7 +1837,7 @@ function clockTool(){
     const raw={
       mode:'standard',type,category:meta?.category||'',title:'',prompt,promptHtml:prompt,answer:String(answer??''),
       answerMode:'manual',answerSource:'',revealed:false,freezeHands:true,hiddenReadouts:['24','12'],
-      targetHour:null,targetMinute:null,...extra
+      targetHour:null,targetMinute:null,startHour:null,startMinute:null,...extra
     };
     return CK?CK.normalise(raw):raw;
   }
@@ -1875,12 +1877,133 @@ function clockTool(){
     return !!(challenge&&!challenge.freezeHands&&Number.isFinite(Number(challenge.targetHour))&&Number.isFinite(Number(challenge.targetMinute))&&hour===Number(challenge.targetHour)&&minute===Number(challenge.targetMinute));
   }
   function controlsHtml(){
-    return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():exploreControlsHtml());
+    return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():controlTab==='export'?exportControlsHtml():exploreControlsHtml());
   }
   function workflowTabs(){
     return '<div class="gd-row gd-cl-workflow-tabs" role="tablist" aria-label="Clock workflow">'+
       '<button class="gd-btn'+(controlTab==='explore'?' gd-btn--primary':'')+'" type="button" data-cl-workflow="explore">Explore</button>'+
-      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-cl-workflow="challenge">Challenge'+(challenge?' •':'')+'</button></div>';
+      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-cl-workflow="challenge">Challenge'+(challenge?' •':'')+'</button>'+
+      '<button class="gd-btn'+(controlTab==='export'?' gd-btn--primary':'')+'" type="button" data-cl-workflow="export">Export / reuse</button></div>';
+  }
+
+  function exportControlsHtml(){
+    const canCard=!!challenge;
+    if(!canCard&&exportMode==='challenge')exportMode='diagram';
+    return '<div class="nl-panel-title"><div><strong>Use it elsewhere</strong><span>Export a clean vector clock or a pupil-ready challenge card.</span></div></div>'+
+      (canCard?'<div class="nl-export-mode cl-export-mode" role="tablist" aria-label="Export content">'+
+        '<button type="button" class="'+(exportMode==='challenge'?'is-active':'')+'" data-cl-export-mode="challenge">Challenge card</button>'+
+        '<button type="button" class="'+(exportMode==='diagram'?'is-active':'')+'" data-cl-export-mode="diagram">Clock only</button></div>':'')+
+      (canCard&&exportMode==='challenge'
+        ?'<label class="gd-field"><span>Answer space</span><select class="gd-select" id="cl-response-lines">'+
+          [1,2,3,4].map(n=>'<option value="'+n+'"'+(responseLines===n?' selected':'')+'>'+n+' line'+(n===1?'':'s')+'</option>').join('')+
+          '</select></label><p class="gd-help">The pupil card keeps hidden time representations hidden even if you revealed them on screen.</p>'
+        :'<p class="gd-help">Clock-only export contains the current face, hands and visible readouts without editing controls.</p>')+
+      '<div class="nl-export-grid cl-export-grid">'+
+        '<button class="gd-btn gd-btn--primary" id="cl-copy-image" type="button">Copy '+(canCard&&exportMode==='challenge'?'challenge':'image')+'</button>'+
+        '<button class="gd-btn" id="cl-png" type="button">PNG</button>'+
+        '<button class="gd-btn" id="cl-svg-download" type="button">SVG</button>'+
+        '<button class="gd-btn" id="cl-print" type="button">Print / PDF</button>'+
+      '</div><p class="gd-help" id="cl-export-status" role="status" aria-live="polite">'+exportStatus+'</p>';
+  }
+  function clSvgEl(name,attrs={},text=''){
+    const el=document.createElementNS('http://www.w3.org/2000/svg',name);
+    Object.entries(attrs).forEach(([key,value])=>el.setAttribute(key,String(value)));
+    if(text!==''&&text!=null)el.textContent=String(text);
+    return el;
+  }
+  function exportReadoutHidden(kind,pupil=false){
+    if(!challenge)return false;
+    if(pupil)return Array.isArray(challenge.hiddenReadouts)&&challenge.hiddenReadouts.includes(kind);
+    return hiddenReadout(kind);
+  }
+  function exportClockState(pupil=false){
+    let h=hour,m=minute,blankHands=false,source='current';
+    if(pupil&&challenge?.mode==='standard'&&(challenge.type==='set-five'||challenge.type==='set-minute')){
+      blankHands=true;source='set-blank';
+    }else if(pupil&&challenge?.mode==='standard'&&challenge.type==='elapsed-forward'&&Number.isFinite(Number(challenge.startHour))&&Number.isFinite(Number(challenge.startMinute))){
+      h=Number(challenge.startHour);m=Number(challenge.startMinute);source='elapsed-start';
+    }
+    return{hour:h,minute:m,blankHands,source};
+  }
+  function clockExportSvg({pupil=false}={}){
+    const state=exportClockState(pupil),width=760,height=690,cx=380,cy=255,r=205;
+    const svg=clSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Analogue clock','data-cl-export':'clock'});
+    svg.appendChild(clSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
+    svg.appendChild(clSvgEl('circle',{cx,cy,r,fill:'#ffffff',stroke:'#43555c','stroke-width':5,'data-cl-export-face':'1','data-cl-export-state':state.source,'data-cl-export-hour':state.hour,'data-cl-export-minute':state.minute}));
+    for(let i=0;i<60;i++){
+      const a=(i*6-90)*Math.PI/180,major=i%5===0,inner=r-(major?25:16),outer=r-8;
+      svg.appendChild(clSvgEl('line',{
+        x1:cx+inner*Math.cos(a),y1:cy+inner*Math.sin(a),
+        x2:cx+outer*Math.cos(a),y2:cy+outer*Math.sin(a),
+        stroke:major?'#40545b':'#71868b','stroke-width':major?3:1.5,'data-cl-export-tick':i
+      }));
+    }
+    for(let i=0;i<12;i++){
+      const n=i+1,a=(n*30-90)*Math.PI/180,x=cx+(r-54)*Math.cos(a),y=cy+(r-54)*Math.sin(a);
+      svg.appendChild(clSvgEl('text',{
+        x,y,'text-anchor':'middle','dominant-baseline':'middle','font-family':'Arial,sans-serif','font-size':22,'font-weight':850,fill:'#334a52','data-cl-export-numeral':n
+      },numerals==='roman'?roman[i]:String(n)));
+    }
+    if(!state.blankHands){
+      const ha=((state.hour%12)+state.minute/60)*30,ma=state.minute*6;
+      const hourA=(ha-90)*Math.PI/180,minuteA=(ma-90)*Math.PI/180;
+      svg.appendChild(clSvgEl('line',{
+        x1:cx,y1:cy,x2:cx+105*Math.cos(hourA),y2:cy+105*Math.sin(hourA),
+        stroke:'#24343b','stroke-width':10,'stroke-linecap':'round','data-cl-export-hand':'hour'
+      }));
+      svg.appendChild(clSvgEl('line',{
+        x1:cx,y1:cy,x2:cx+150*Math.cos(minuteA),y2:cy+150*Math.sin(minuteA),
+        stroke:'#147d75','stroke-width':7,'stroke-linecap':'round','data-cl-export-hand':'minute'
+      }));
+      svg.appendChild(clSvgEl('circle',{cx,cy,r:9,fill:'#f2b84b',stroke:'#8b681f','stroke-width':2}));
+    }else{
+      svg.appendChild(clSvgEl('circle',{cx,cy,r:7,fill:'#ffffff',stroke:'#8b9a9e','stroke-width':2,'data-cl-export-draw-centre':'1'}));
+    }
+
+    const readY=520,cardW=260,gap=30,start=(width-(cardW*2+gap))/2;
+    const values=[
+      ['24-hour',exportReadoutHidden('24',pupil)?'?':format24(state.hour,state.minute),'24'],
+      ['12-hour',exportReadoutHidden('12',pupil)?'?':format12(state.hour,state.minute),'12']
+    ];
+    values.forEach((item,index)=>{
+      const x=start+index*(cardW+gap);
+      svg.appendChild(clSvgEl('rect',{x,y:readY,width:cardW,height:78,rx:13,fill:'#f6f9f9',stroke:'#d9e2e4','stroke-width':1}));
+      svg.appendChild(clSvgEl('text',{x:x+16,y:readY+25,'font-family':'Arial,sans-serif','font-size':12,'font-weight':750,fill:'#718288'},item[0]));
+      svg.appendChild(clSvgEl('text',{x:x+cardW-16,y:readY+55,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':22,'font-weight':900,fill:'#304b52','data-cl-export-readout':item[2]},item[1]));
+    });
+    if(state.blankHands){
+      svg.appendChild(clSvgEl('text',{x:width/2,y:625,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':14,'font-weight':750,fill:'#718288','data-cl-export-set-blank':'1'},'Draw the hands on the clock face'));
+    }
+    svg.appendChild(clSvgEl('text',{x:width-42,y:height-18,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':10,fill:'#87969a'},'99 Club Studio'));
+    return svg;
+  }
+  function exportTargetSvg(){
+    if(exportMode!=='challenge'||!challenge||!X?.composeChallengeCardSvg)return clockExportSvg({pupil:false});
+    const prompt=CK?CK.plainText(challenge.promptHtml||challenge.prompt||''):challenge.prompt||'';
+    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
+    const drawTask=challenge.type==='set-five'||challenge.type==='set-minute';
+    return X.composeChallengeCardSvg(clockExportSvg({pupil:true}),{
+      title:challenge.title||meta?.title||'Clock challenge',
+      prompt,
+      responseLabel:drawTask?'Draw the hands / answer':challenge.category==='reason'?'Explain your thinking':'Answer',
+      responseLines,
+      brand:'99 Club Studio'
+    });
+  }
+  function exportName(){
+    const meta=challenge&&CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
+    return exportMode==='challenge'&&challenge?(challenge.title||meta?.title||'clock-challenge'):'clock-'+format24(hour,minute).replace(':','-');
+  }
+  function exportMessage(text){exportStatus=text;const el=q('#cl-export-status');if(el)el.textContent=text}
+  async function exportAction(kind){
+    try{
+      if(!X)throw new Error('Export tools are not available.');
+      const target=exportTargetSvg(),isCard=exportMode==='challenge'&&!!challenge,name=exportName();
+      if(kind==='copy'){await X.copyPng(target);exportMessage(isCard?'Challenge copied — paste it into your worksheet, slide or document.':'Clock image copied — paste it into your slide or document.')}
+      if(kind==='png'){await X.downloadPng(target,name,2);exportMessage(isCard?'Challenge PNG downloaded.':'Clock PNG downloaded.')}
+      if(kind==='svg'){X.downloadSvg(target,name);exportMessage(isCard?'Challenge SVG downloaded.':'Clock SVG downloaded.')}
+      if(kind==='print'){X.printSvg(target,{title:'',landscape:false});exportMessage('Print view opened. Choose “Save as PDF” in the print dialog.')}
+    }catch(err){exportMessage(err?.message||'That export did not work.')}
   }
   function exploreControlsHtml(){
     return field('Hour (24-hour)','<input class="gd-input gd-small" id="cl-h" type="number" min="0" max="23" value="'+hour+'">')+
@@ -1923,8 +2046,8 @@ function clockTool(){
     const wasCustom=challenge?.mode==='custom';
     if(CK)challenge=CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''});
     if(!wasCustom)clearBoundHiding();
-    challenge.freezeHands=false;challenge.revealed=false;challenge.targetHour=null;challenge.targetMinute=null;
-    challengeTab='custom';controlTab='challenge';renderControls();draw();
+    challenge.freezeHands=false;challenge.revealed=false;challenge.targetHour=null;challenge.targetMinute=null;challenge.startHour=null;challenge.startMinute=null;
+    challengeTab='custom';controlTab='challenge';exportMode='challenge';exportStatus='';renderControls();draw();
   }
   function setCustomAnswerSource(source){
     if(!challenge||challenge.mode!=='custom')return;
@@ -1966,10 +2089,10 @@ function clockTool(){
       });
     }else if(type==='elapsed-forward'){
       hour=randomHour();minute=randomMinute(5);snap=5;
-      const start24=time24(),durations=[15,20,25,30,35,40,45,50,60,75,90],duration=durations[Math.floor(Math.random()*durations.length)];
+      const startHour=hour,startMinute=minute,start24=time24(),durations=[15,20,25,30,35,40,45,50,60,75,90],duration=durations[Math.floor(Math.random()*durations.length)];
       const targetTotal=mod(hour*60+minute+duration,24*60),targetHour=Math.floor(targetTotal/60),targetMinute=targetTotal%60;
       challenge=challengeObject(type,'The clock starts at '+start24+'. Move it forward by '+duration+' minutes.',pad(targetHour)+':'+pad(targetMinute),{
-        freezeHands:false,targetHour,targetMinute,hiddenReadouts:['24','12']
+        freezeHands:false,targetHour,targetMinute,startHour,startMinute,hiddenReadouts:['24','12']
       });
     }else if(type==='twelve-to-twentyfour'){
       hour=randomHour();minute=randomMinute(5);
@@ -1985,6 +2108,7 @@ function clockTool(){
       challenge=challengeObject(type,'A pupil says that at half past '+h12()+' the hour hand should point exactly at '+h12()+'. Are they correct?','No. At half past '+h12()+', the hour hand is halfway between '+h12()+' and '+nextH12()+'.');
     }
     challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';
+    exportMode='challenge';responseLines=template.category==='reason'?3:(type==='set-five'||type==='set-minute'?2:1);exportStatus='';
     renderControls();draw();
   }
   function handPoint(angle,len){
@@ -2099,8 +2223,22 @@ function clockTool(){
   function bindControls(){
     const controls=q('#gd-controls');if(!controls)return;
     qa('[data-cl-workflow]',controls).forEach(button=>button.onclick=()=>{
-      controlTab=button.dataset.clWorkflow==='challenge'?'challenge':'explore';renderControls();
+      const next=button.dataset.clWorkflow;
+      controlTab=next==='challenge'?'challenge':next==='export'?'export':'explore';renderControls();
     });
+    if(controlTab==='export'){
+      qa('[data-cl-export-mode]',controls).forEach(button=>button.onclick=()=>{
+        exportMode=button.dataset.clExportMode==='challenge'&&challenge?'challenge':'diagram';exportStatus='';renderControls();
+      });
+      const response=q('#cl-response-lines',controls);if(response)response.onchange=()=>{
+        responseLines=clamp(Math.round(num(response.value,1)),1,4);renderControls();
+      };
+      const copyImage=q('#cl-copy-image',controls);if(copyImage)copyImage.onclick=()=>exportAction('copy');
+      const png=q('#cl-png',controls);if(png)png.onclick=()=>exportAction('png');
+      const svgDownload=q('#cl-svg-download',controls);if(svgDownload)svgDownload.onclick=()=>exportAction('svg');
+      const print=q('#cl-print',controls);if(print)print.onclick=()=>exportAction('print');
+      return;
+    }
     if(controlTab==='explore'){
       const h=q('#cl-h',controls),m=q('#cl-m',controls);
       if(h)h.oninput=()=>{if(handsFrozen()){refreshControls();return}setTime(clamp(num(h.value,hour),0,23),minute);refreshClock()};
