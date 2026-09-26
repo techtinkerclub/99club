@@ -926,14 +926,16 @@ try{
   const numberLine=read('assets/99club/goodies-number-line-v6.js');
   const challengeKit=read('assets/99club/goodies-challenge.js');
   const goodiesToolsA=read('assets/99club/goodies-tools-a.js');
+  const goodiesToolsB=read('assets/99club/goodies-tools-b.js');
   const goodiesExport=read('assets/99club/goodies-export.js');
   const goodiesCss=read('assets/99club/goodies.css');
   new Function(numberLine);
   new Function(challengeKit);
   new Function(goodiesToolsA);
+  new Function(goodiesToolsB);
   new Function(goodiesExport);
   if(!goodiesPage.includes('permalink: /goodies/')||!goodiesPage.includes('sitemap: false')||!goodiesPage.includes('search: false')||!goodiesPage.includes('noindex,nofollow,noarchive'))fail('goodies-number-line','Hidden goodies route/indexing contract regressed');
-  if(!/goodies-number-line-v6\.js\?v=\d+/.test(goodiesPage)||!/goodies-challenge\.js\?v=\d+/.test(goodiesPage)||!/goodies-tools-a\.js\?v=\d+/.test(goodiesPage)||!/goodies-export\.js\?v=\d+/.test(goodiesPage)||!/goodies\.css\?v=\d+/.test(goodiesPage))fail('goodies-number-line','Number Line / shared challenge/export assets are not cache-busted on /goodies/');
+  if(!/goodies-number-line-v6\.js\?v=\d+/.test(goodiesPage)||!/goodies-challenge\.js\?v=\d+/.test(goodiesPage)||!/goodies-tools-a\.js\?v=\d+/.test(goodiesPage)||!/goodies-tools-b\.js\?v=\d+/.test(goodiesPage)||!/goodies-export\.js\?v=\d+/.test(goodiesPage)||!/goodies\.css\?v=\d+/.test(goodiesPage))fail('goodies-number-line','Number Line / shared challenge/export assets are not cache-busted on /goodies/');
   if(goodiesPage.indexOf('goodies-challenge.js')>goodiesPage.indexOf('goodies-number-line-v6.js'))fail('goodies-number-line','Shared challenge framework must load before Number Line v6');
   for(const token of [
     "side:m.side==='below'?'below':'above'",
@@ -1026,6 +1028,8 @@ try{
   for(const token of ['gd-fr-mode-tabs','fw-strip-canvas','function stripMarkup','function mountWorkbench',"I.toolButton('split'","I.toolButton('simplify'","I.toolButton('align'",'data-fr-strip-piece','function alignStrips','function switchMode',"{id:'identify-strip'","{id:'equivalent-strip'","{id:'compare-strips'","{id:'simplify-strip'","{id:'mixed-improper'","{id:'denominator-misconception'",'function challengeControlsHtml','function generateChallenge','function customAnswerSources','function resolveCustomAnswerSource','data-fw-workflow','fw-custom-answer-source','function bindChallengeStageActions','CK.pickerHtml','CK.bannerHtml','function exportControlsHtml','function exportHidden','function wallExportSvg','function stripsExportSvg','function fractionExportSvg','data-fw-export','data-fw-export-mode','fw-copy-image','fw-svg-download','fw-response-lines'])if(!goodiesToolsA.includes(token))fail('goodies-fractions','Fraction direct-workbench/challenge contract missing: '+token);
   for(const token of ['.gd-fr-strip-canvas','.gd-fr-strip-object','.gd-fr-strip-segment','.gd-fr-strip-object.is-equivalent'])if(!goodiesCss.includes(token))fail('goodies-fractions','Fraction workbench styling missing: '+token);
   ok('goodies-fractions','Fraction Wall keeps its existing maths and adds draggable, partitionable, equivalent-aware strips, shared Standard/Custom challenges and reusable vector exports');
+  for(const token of ["{id:'find-length'","{id:'find-perimeter'","{id:'find-area'","{id:'perimeter-area'","{id:'build-area'","{id:'area-perimeter-units'",'function customAnswerSources','function resolveAnswerSource','function generateChallenge','data-ge-workflow','ge-custom-answer-source','function bindChallengeStageActions','CK.pickerHtml','CK.bannerHtml','hiddenMetrics'])if(!goodiesToolsB.includes(token))fail('goodies-geoboard','Geoboard shared challenge contract missing: '+token);
+  ok('goodies-geoboard','Geoboard keeps direct drag/undo geometry and adds shared Standard/Custom live-measurement challenges');
   for(const token of ['function composeChallengeCardSvg',"responseLabel='Answer'",'responseLines'])if(!goodiesExport.includes(token))fail('goodies-number-line','Shared challenge export layer missing classroom contract: '+token);
   if(!numberLine.includes('CK.bannerHtml'))fail('goodies-number-line','Number Line v6 is not using the shared challenge banner');
   if(numberLine.includes('l12 -7 v14')||numberLine.includes('l-12 -7 v14'))fail('goodies-number-line','Bounded Number Line has regained baseline arrowheads');
