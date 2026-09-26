@@ -206,7 +206,8 @@ function placeValue(){
       (controlTab==='challenge'?challengeControlsHtml():setupControlsHtml());
   }
   function renderControls(){
-    setPanels(controlsHtml(),'');
+    const panel=q('#gd-controls');
+    if(panel)panel.innerHTML=controlsHtml();
     bindControls();
   }
 
