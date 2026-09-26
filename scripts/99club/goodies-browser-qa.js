@@ -701,6 +701,19 @@ if(mode==='prepare'){
     assert(document.querySelectorAll('[data-ge-vertex]').length===3,'Undo restores the deleted vertex');
     assert(document.getElementById('ge-readout').textContent.includes('Area = 4.50 square units'),'Undo restores the moved triangle geometry');
 
+    document.querySelector('[data-ge-workflow="export"]').click();
+    assert(document.getElementById('ge-copy-image')&&document.getElementById('ge-png')&&document.getElementById('ge-svg-download')&&document.getElementById('ge-print'),'Geoboard export exposes copy, PNG, SVG and Print/PDF actions');
+    let geCapturedSvg=null,geCapturedName='';
+    const geOldDownloadSvg=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg,name)=>{geCapturedSvg=svg.cloneNode(true);geCapturedName=name};
+    document.getElementById('ge-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=geOldDownloadSvg;
+    assert(geCapturedSvg&&geCapturedSvg.dataset.geExport==='board','Geoboard board-only export is a deterministic SVG board');
+    assert(geCapturedSvg.querySelectorAll('circle').length>=52,'Geoboard SVG export preserves the peg grid and vertices');
+    assert(geCapturedSvg.querySelector('[data-ge-export-shape]'),'Geoboard SVG export carries the drawn geometry');
+    assert(geCapturedSvg.textContent.includes('Area = 4.50 square units'),'Geoboard board-only export includes visible measurements');
+    assert(geCapturedName.includes('geoboard-shape'),'Geoboard board export has a reusable filename');
+
     document.querySelector('[data-ge-workflow="challenge"]').click();
     assert(document.querySelector('[data-ge-challenge-tab="standard"]')&&document.querySelector('[data-ge-challenge-tab="custom"]'),'Geoboard uses the shared Standard / Custom challenge tabs');
     assert(document.querySelector('[data-ge-challenge-type="find-length"]'),'Geoboard length challenge is available');
@@ -715,6 +728,18 @@ if(mode==='prepare'){
     document.querySelector('[data-board-action="reveal"]').click();
     assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer:'),'Geoboard challenge reveals its answer contextually');
     assert(!document.getElementById('ge-readout').textContent.includes('Length ≈ ?'),'Reveal restores the live length readout');
+
+    document.querySelector('[data-ge-workflow="export"]').click();
+    assert(document.querySelector('[data-ge-export-mode="challenge"]'),'Active Geoboard challenge offers Challenge card export');
+    let geChallengeSvg=null;
+    const geOldChallengeDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{geChallengeSvg=svg.cloneNode(true)};
+    document.getElementById('ge-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=geOldChallengeDownload;
+    assert(geChallengeSvg&&geChallengeSvg.querySelector('[data-ge-export-board]'),'Geoboard challenge card embeds the vector board');
+    assert(!geChallengeSvg.textContent.includes('Answer:'),'Geoboard pupil challenge export never includes a revealed answer label');
+    assert(geChallengeSvg.textContent.includes('Length ≈ ?'),'Geoboard pupil export re-hides the target length after teacher reveal');
+    assert(geChallengeSvg.textContent.includes('What is the length of segment AB?'),'Geoboard challenge-card export includes the pupil prompt');
 
     document.querySelector('[data-ge-workflow="challenge"]').click();
     document.querySelector('[data-ge-challenge-type="find-area"]').click();
@@ -733,9 +758,28 @@ if(mode==='prepare'){
     geSource.dispatchEvent(new Event('change',{bubbles:true}));
     assert(document.getElementById('ge-readout').textContent.includes('Area = ?'),'Binding a custom answer to area hides the pupil-facing area');
     const geLiveBefore=document.getElementById('ge-custom-live-answer').textContent.trim();
-    const freePeg=[...document.querySelectorAll('[data-gp]')].find(peg=>!document.querySelector('[data-ge-pos="'+peg.dataset.gp+'"]'));
-    assert(freePeg,'Geoboard has a free peg for live-answer editing');
-    freePeg.dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    const geVertices=[...document.querySelectorAll('[data-ge-vertex]')].map(v=>{
+      const [x,y]=v.dataset.gePos.split(',').map(Number);return{x,y};
+    });
+    const polygonArea=pts=>Math.abs(pts.reduce((sum,p,i)=>{
+      const n=pts[(i+1)%pts.length];return sum+p.x*n.y-n.x*p.y;
+    },0))/2;
+    const geAreaBefore=polygonArea(geVertices),occupied=new Set(geVertices.map(p=>p.x+','+p.y));
+    let geMove=null;
+    for(let i=0;i<geVertices.length&&!geMove;i++){
+      for(const peg of [...document.querySelectorAll('[data-gp]')]){
+        if(occupied.has(peg.dataset.gp))continue;
+        const [x,y]=peg.dataset.gp.split(',').map(Number),next=geVertices.map(p=>({...p}));
+        next[i]={x,y};
+        if(Math.abs(polygonArea(next)-geAreaBefore)>1e-9){geMove={i,peg};break}
+      }
+    }
+    assert(geMove,'Geoboard has a deterministic vertex move that changes area');
+    let geVertex=document.querySelector('[data-ge-vertex="'+geMove.i+'"]');
+    const geVr=geVertex.getBoundingClientRect(),gePr=geMove.peg.getBoundingClientRect();
+    pointer(geVertex,'pointerdown',geVr.left+geVr.width/2,geVr.top+geVr.height/2,71);
+    pointer(geVertex,'pointermove',gePr.left+gePr.width/2,gePr.top+gePr.height/2,71);
+    pointer(geVertex,'pointerup',gePr.left+gePr.width/2,gePr.top+gePr.height/2,71);
     const geLiveAfter=document.getElementById('ge-custom-live-answer').textContent.trim();
     assert(geLiveAfter!==geLiveBefore,'Geoboard live custom area answer updates when the polygon changes');
 
