@@ -962,6 +962,72 @@ if(mode==='prepare'){
     assert(document.querySelectorAll('[data-co-point]').length===3,'Ending a Coordinates challenge restores the teacher point set');
     assert(document.querySelector('[data-co-pos="-3,-2"]'),'Ending a Coordinates challenge restores the negative teacher point');
   }
+  function testArrayWorkbench(){
+    TT99Goodies.interaction.clear();
+    assert(TT99Goodies.arrayBuilder,'Array Builder is registered');
+    TT99Goodies.arrayBuilder();
+
+    let board=document.getElementById('ab-board');
+    assert(board&&board.dataset.abRows==='4'&&board.dataset.abCols==='6','Array workbench opens as a 4 × 6 model');
+    assert(document.querySelectorAll('[data-ab-cell]').length===24,'Array workbench renders one cell per object');
+    assert(document.querySelector('[data-ab-equation]').textContent.trim()==='4 × 6 = 24','Array equation matches the model');
+    assert(document.querySelector('.gd-array-maths').textContent.includes('6 + 6 + 6 + 6 = 24'),'Array shows repeated addition');
+    assert(document.querySelector('.gd-array-maths').textContent.includes('24 ÷ 4 = 6'),'Array shows related division facts');
+
+    let colHandle=document.querySelector('[data-ab-resize="cols"]');
+    colHandle.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
+    board=document.getElementById('ab-board');
+    assert(board.dataset.abCols==='7'&&document.querySelectorAll('[data-ab-cell]').length===28,'Column resize handle changes the array with the keyboard');
+    let rowHandle=document.querySelector('[data-ab-resize="rows"]');
+    rowHandle.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true}));
+    board=document.getElementById('ab-board');
+    assert(board.dataset.abRows==='5'&&document.querySelectorAll('[data-ab-cell]').length===35,'Row resize handle changes the array with the keyboard');
+
+    const setNumber=(id,value)=>{
+      const input=document.getElementById(id);input.value=String(value);input.dispatchEvent(new Event('input',{bubbles:true}));
+    };
+    setNumber('ab-r',4);setNumber('ab-c',6);
+    const rowSplit=document.getElementById('ab-row-split');
+    rowSplit.value='2';rowSplit.dispatchEvent(new Event('change',{bubbles:true}));
+    const colSplit=document.getElementById('ab-col-split');
+    colSplit.value='3';colSplit.dispatchEvent(new Event('change',{bubbles:true}));
+    board=document.getElementById('ab-board');
+    assert(board.dataset.abRowSplit==='2'&&board.dataset.abColSplit==='3','Array stores row and column partitions explicitly');
+    assert(document.querySelectorAll('.gd-array-cell.is-row-split').length===6,'Row partition crosses the full array width');
+    assert(document.querySelectorAll('.gd-array-cell.is-col-split').length===4,'Column partition crosses the full array height');
+    assert(document.querySelector('[data-ab-partial]').textContent.includes('2 × 3 + 2 × 3 + 2 × 3 + 2 × 3'),'Two partitions expose four partial products');
+
+    document.getElementById('ab-swap').click();
+    board=document.getElementById('ab-board');
+    assert(board.dataset.abRows==='6'&&board.dataset.abCols==='4','Rotate / swap transposes the array dimensions');
+    assert(board.dataset.abRowSplit==='3'&&board.dataset.abColSplit==='2','Rotate / swap transposes the partition positions too');
+    assert(document.querySelector('[data-ab-equation]').textContent.trim()==='6 × 4 = 24','Rotated array keeps the same product');
+
+    document.getElementById('ab-clear-splits').click();
+    board=document.getElementById('ab-board');
+    assert(board.dataset.abRowSplit==='0'&&board.dataset.abColSplit==='0'&&!document.querySelector('[data-ab-partial]'),'Clear partitions returns to a single whole array');
+
+    setNumber('ab-r',4);setNumber('ab-c',6);
+    board=document.getElementById('ab-board');
+    colHandle=document.querySelector('[data-ab-resize="cols"]');
+    const hr=colHandle.getBoundingClientRect(),br=board.getBoundingClientRect(),cellW=br.width/6;
+    pointer(colHandle,'pointerdown',hr.left+hr.width/2,hr.top+hr.height/2,91);
+    pointer(document,'pointermove',hr.left+hr.width/2+cellW*1.2,hr.top+hr.height/2,91);
+    pointer(document,'pointerup',hr.left+hr.width/2+cellW*1.2,hr.top+hr.height/2,91);
+    board=document.getElementById('ab-board');
+    assert(Number(board.dataset.abCols)>=7,'Dragging the right edge directly increases columns');
+
+    setNumber('ab-r',4);setNumber('ab-c',6);
+    board=document.getElementById('ab-board');
+    rowHandle=document.querySelector('[data-ab-resize="rows"]');
+    const rr=rowHandle.getBoundingClientRect(),br2=board.getBoundingClientRect(),cellH=br2.height/4;
+    pointer(rowHandle,'pointerdown',rr.left+rr.width/2,rr.top+rr.height/2,92);
+    pointer(document,'pointermove',rr.left+rr.width/2,rr.top+rr.height/2+cellH*1.2,92);
+    pointer(document,'pointerup',rr.left+rr.width/2,rr.top+rr.height/2+cellH*1.2,92);
+    board=document.getElementById('ab-board');
+    assert(Number(board.dataset.abRows)>=5,'Dragging the bottom edge directly increases rows');
+  }
+
   function testMeasurement(){
     TT99Goodies.interaction.clear();
     assert(TT99Goodies.measurementTool,'Measurement tool is registered');
@@ -1093,7 +1159,8 @@ if(mode==='prepare'){
         testGeoboard();
         testCoordinates();
         testMeasurement();
-        result('pass','Number Line challenges, Maths Canvas, Place Value, Fraction Wall, Geoboard, Coordinates and Measurement interactions work');
+        testArrayWorkbench();
+        result('pass','Number Line challenges, Maths Canvas, Place Value, Fraction Wall, Geoboard, Coordinates, Measurement and Array workbench interactions work');
       }catch(err){
         result('fail',err&&err.message?err.message:String(err));
       }
