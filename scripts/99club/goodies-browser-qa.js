@@ -962,6 +962,87 @@ if(mode==='prepare'){
     assert(document.querySelectorAll('[data-co-point]').length===3,'Ending a Coordinates challenge restores the teacher point set');
     assert(document.querySelector('[data-co-pos="-3,-2"]'),'Ending a Coordinates challenge restores the negative teacher point');
   }
+  function testMeasurement(){
+    TT99Goodies.interaction.clear();
+    assert(TT99Goodies.measurementTool,'Measurement tool is registered');
+    TT99Goodies.measurementTool();
+
+    function rulerClient(value){
+      const ruler=document.getElementById('me-ruler'),r=ruler.getBoundingClientRect();
+      return{ruler,x:r.left+clamp(value/30,0,1)*r.width,y:r.top+r.height/2};
+    }
+    let marker=document.getElementById('me-marker');
+    assert(marker&&marker.getAttribute('aria-valuenow')==='12.3','Measurement ruler starts at the expected marker value');
+    const p=rulerClient(15.7);
+    pointer(p.ruler,'pointerdown',p.x,p.y,81);
+    marker=document.getElementById('me-marker');
+    assert(marker&&marker.getAttribute('aria-valuenow')==='15.7','Tapping the ruler moves the marker to the nearest millimetre');
+    marker.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
+    marker=document.getElementById('me-marker');
+    assert(marker.getAttribute('aria-valuenow')==='15.8','Focused ruler marker moves by 1 mm with the arrow keys');
+    const teacherValue=marker.getAttribute('aria-valuenow');
+
+    document.querySelector('[data-me-workflow="challenge"]').click();
+    assert(document.querySelector('[data-me-challenge-tab="standard"]')&&document.querySelector('[data-me-challenge-tab="custom"]'),'Measurement uses the shared Standard / Custom challenge tabs');
+    for(const type of ['read-mark','place-mark','distance-between']){
+      assert(document.querySelector('[data-me-challenge-type="'+type+'"]'),'Measurement challenge '+type+' is available');
+    }
+    document.querySelector('[data-me-challenge-type="read-mark"]').click();
+    document.getElementById('me-generate').click();
+    assert(document.querySelector('.gd-challenge-banner'),'Generated Measurement challenge appears above the ruler');
+    assert([...document.querySelectorAll('.gd-fdp-value strong')].every(x=>x.textContent.trim()==='?'),'Read-the-ruler challenge hides all equivalent unit readouts');
+    marker=document.getElementById('me-marker');
+    const frozenBefore=marker.getAttribute('aria-valuenow'),frozenMove=rulerClient(4.2);
+    pointer(frozenMove.ruler,'pointerdown',frozenMove.x,frozenMove.y,82);
+    assert(document.getElementById('me-marker').getAttribute('aria-valuenow')===frozenBefore,'Read challenge keeps the given marker fixed');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer:'),'Measurement challenge reveals its answer contextually');
+    assert([...document.querySelectorAll('.gd-fdp-value strong')].some(x=>x.textContent.includes('cm')),'Reveal restores the live unit readouts');
+
+    document.querySelector('[data-me-workflow="challenge"]').click();
+    document.querySelector('[data-me-challenge-cat="read"]').click();
+    document.querySelector('[data-me-challenge-type="place-mark"]').click();
+    document.getElementById('me-generate').click();
+    assert([...document.querySelectorAll('.gd-fdp-value strong')].every(x=>x.textContent.trim()==='?'),'Place-the-mark challenge hides the live numeric readouts');
+    const prompt=document.querySelector('.gd-challenge-prompt').textContent;
+    const targetMatch=prompt.match(/to\s+([0-9.]+)\s*cm/i);
+    assert(targetMatch,'Place-the-mark challenge states a numeric centimetre target');
+    const targetValue=Number(targetMatch[1]),targetPoint=rulerClient(targetValue);
+    pointer(targetPoint.ruler,'pointerdown',targetPoint.x,targetPoint.y,83);
+    assert(Number(document.getElementById('me-marker').getAttribute('aria-valuenow'))===targetValue,'Place-the-mark challenge keeps direct ruler interaction active');
+    assert(document.querySelector('.gd-answer-live')?.textContent.includes('On target'),'Place-the-mark challenge confirms an exact direct placement');
+
+    document.querySelector('[data-me-workflow="challenge"]').click();
+    document.querySelector('[data-me-challenge-type="distance-between"]').click();
+    document.getElementById('me-generate').click();
+    assert(document.querySelector('.gd-ruler-marker--secondary'),'Distance challenge shows a second fixed ruler mark');
+    assert([...document.querySelectorAll('.gd-ruler-marker-label')].some(x=>x.textContent.trim()==='A')&&[...document.querySelectorAll('.gd-ruler-marker-label')].some(x=>x.textContent.trim()==='B'),'Distance challenge labels marks A and B');
+    assert([...document.querySelectorAll('.gd-fdp-value strong')].every(x=>x.textContent.trim()==='?'),'Distance challenge does not leak the answer through unit readouts');
+
+    document.querySelector('[data-me-workflow="challenge"]').click();
+    document.querySelector('[data-me-challenge-cat="convert"]').click();
+    for(const type of ['cm-to-mm','mm-to-cm','cm-to-m']){
+      assert(document.querySelector('[data-me-challenge-type="'+type+'"]'),'Measurement conversion challenge '+type+' is available');
+    }
+    document.querySelector('[data-me-challenge-cat="reason"]').click();
+    assert(document.querySelector('[data-me-challenge-type="unit-misconception"]'),'Measurement unit-conversion misconception challenge is available');
+
+    document.querySelector('[data-me-challenge-tab="custom"]').click();
+    const source=document.getElementById('me-custom-answer-source');
+    assert(source,'Measurement custom challenge exposes live unit answer sources');
+    for(const id of ['cm','mm','m'])assert([...source.options].some(o=>o.value===id),'Measurement custom source '+id+' is available');
+    source.value='mm';source.dispatchEvent(new Event('change',{bubbles:true}));
+    assert([...document.querySelectorAll('.gd-fdp-value strong')].every(x=>x.textContent.trim()==='?'),'Bound custom measurement answer hides all equivalent readouts');
+    const liveBefore=document.getElementById('me-custom-live-answer').textContent.trim();
+    marker=document.getElementById('me-marker');
+    marker.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
+    const liveAfter=document.getElementById('me-custom-live-answer').textContent.trim();
+    assert(liveAfter!==liveBefore,'Measurement live custom answer updates when the marker moves');
+
+    document.getElementById('me-clear-challenge').click();
+    assert(document.getElementById('me-marker').getAttribute('aria-valuenow')===teacherValue,'Ending a Measurement challenge restores the teacher marker position');
+  }
+
   window.addEventListener('load',function(){
     setTimeout(function(){
       try{
@@ -971,7 +1052,8 @@ if(mode==='prepare'){
         testFractions();
         testGeoboard();
         testCoordinates();
-        result('pass','Number Line challenges, Maths Canvas, Place Value, Fraction Wall, Geoboard and Coordinates interactions work');
+        testMeasurement();
+        result('pass','Number Line challenges, Maths Canvas, Place Value, Fraction Wall, Geoboard, Coordinates and Measurement interactions work');
       }catch(err){
         result('fail',err&&err.message?err.message:String(err));
       }
