@@ -231,7 +231,7 @@ function placeValue(){
     const maxCount=Math.max(1,...cs),perRow=3,rows=Math.max(1,Math.ceil(maxCount/perRow)),headerH=80,counterStep=38;
     const pupilSummaryHidden=kind=>!!(challenge&&(Array.isArray(challenge.hiddenSummary)&&challenge.hiddenSummary.includes(kind)||challenge.answerMode==='bound'&&challenge.answerSource===kind));
     const pupilColumnHidden=index=>!!(challenge&&challenge.answerMode==='bound'&&(challenge.answerSource==='count:'+index||challenge.answerSource==='value:'+index));
-    const boardH=headerH+30+rows*counterStep,hideTotal=pupil&&pupilSummaryHidden('total'),hideExpanded=pupil&&pupilSummaryHidden('expanded');
+    const boardH=headerH+30+rows*counterStep,hideTotal=pupil?pupilSummaryHidden('total'):summaryHidden('total'),hideExpanded=pupil?pupilSummaryHidden('expanded'):summaryHidden('expanded');
     const omitSummary=pupil&&challenge?.type==='build-number';
     const summaryH=omitSummary?0:94,height=boardY+boardH+summaryH+42;
     const svg=pvSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Place value board','data-pv-export':'board'});
@@ -244,7 +244,7 @@ function placeValue(){
       if(index>0)svg.appendChild(pvSvgEl('line',{x1:x,y1:boardY,x2:x,y2:boardY+boardH,stroke:isDecimal?'#657b82':'#d7e0e2','stroke-width':isDecimal?4:1.5}));
       svg.appendChild(pvSvgEl('text',{x:x+colW/2,y:boardY+28,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':15,'font-weight':800,fill:'#2f474f'},place.label));
       svg.appendChild(pvSvgEl('text',{x:x+colW/2,y:boardY+49,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':10,fill:'#697b80'},place.name));
-      const countLabel=pupil&&pupilColumnHidden(index)?'?':cs[index];
+      const countLabel=(pupil?pupilColumnHidden(index):columnCountHidden(index))?'?':cs[index];
       svg.appendChild(pvSvgEl('rect',{x:x+colW/2-18,y:boardY+57,width:36,height:18,rx:9,fill:'#edf3f4'}));
       svg.appendChild(pvSvgEl('text',{x:x+colW/2,y:boardY+70,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':11,'font-weight':800,fill:'#52666d'},countLabel));
 
