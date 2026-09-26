@@ -925,13 +925,15 @@ try{
   const goodiesPage=read('_pages/99-club-goodies.md');
   const numberLine=read('assets/99club/goodies-number-line-v6.js');
   const challengeKit=read('assets/99club/goodies-challenge.js');
+  const goodiesToolsA=read('assets/99club/goodies-tools-a.js');
   const goodiesExport=read('assets/99club/goodies-export.js');
   const goodiesCss=read('assets/99club/goodies.css');
   new Function(numberLine);
   new Function(challengeKit);
+  new Function(goodiesToolsA);
   new Function(goodiesExport);
   if(!goodiesPage.includes('permalink: /goodies/')||!goodiesPage.includes('sitemap: false')||!goodiesPage.includes('search: false')||!goodiesPage.includes('noindex,nofollow,noarchive'))fail('goodies-number-line','Hidden goodies route/indexing contract regressed');
-  if(!/goodies-number-line-v6\.js\?v=\d+/.test(goodiesPage)||!/goodies-challenge\.js\?v=\d+/.test(goodiesPage)||!/goodies-export\.js\?v=\d+/.test(goodiesPage)||!/goodies\.css\?v=\d+/.test(goodiesPage))fail('goodies-number-line','Number Line / shared challenge/export assets are not cache-busted on /goodies/');
+  if(!/goodies-number-line-v6\.js\?v=\d+/.test(goodiesPage)||!/goodies-challenge\.js\?v=\d+/.test(goodiesPage)||!/goodies-tools-a\.js\?v=\d+/.test(goodiesPage)||!/goodies-export\.js\?v=\d+/.test(goodiesPage)||!/goodies\.css\?v=\d+/.test(goodiesPage))fail('goodies-number-line','Number Line / shared challenge/export assets are not cache-busted on /goodies/');
   if(goodiesPage.indexOf('goodies-challenge.js')>goodiesPage.indexOf('goodies-number-line-v6.js'))fail('goodies-number-line','Shared challenge framework must load before Number Line v6');
   for(const token of [
     "side:m.side==='below'?'below':'above'",
@@ -1018,7 +1020,9 @@ try{
     "label:'Another like this'",
     "repeatStandard?'Another like this':'Generate challenge'"
   ])if(!numberLine.includes(token))fail('goodies-number-line','Number Line v6 missing classroom contract: '+token);
-  for(const token of ['G.challengeKit=','function bannerHtml','nl-challenge-reveal','data-board-action="reveal"','data-challenge-action','answerSource','Type the answer myself','custom-live-answer'])if(!challengeKit.includes(token))fail('goodies-number-line','Shared challenge layer missing classroom contract: '+token);
+  for(const token of ['G.challengeKit=','function tabsHtml','function bannerHtml','nl-challenge-reveal','data-board-action="reveal"','data-challenge-action','answerSource','Type the answer myself','custom-live-answer'])if(!challengeKit.includes(token))fail('goodies-number-line','Shared challenge layer missing classroom contract: '+token);
+  for(const token of ["{id:'read-number'","{id:'digit-value'","{id:'build-number'","{id:'non-standard'","{id:'zero-placeholder'",'function customAnswerSources','function updateChallengeAnswer','data-pv-workflow','pv-custom-answer-source','CK.tabsHtml'])if(!goodiesToolsA.includes(token))fail('goodies-place-value','Place Value shared challenge contract missing: '+token);
+  ok('goodies-place-value','Place Value shares Standard/Custom challenge shell with live board-bound answer sources');
   for(const token of ['function composeChallengeCardSvg',"responseLabel='Answer'",'responseLines'])if(!goodiesExport.includes(token))fail('goodies-number-line','Shared challenge export layer missing classroom contract: '+token);
   if(!numberLine.includes('CK.bannerHtml'))fail('goodies-number-line','Number Line v6 is not using the shared challenge banner');
   if(numberLine.includes('l12 -7 v14')||numberLine.includes('l-12 -7 v14'))fail('goodies-number-line','Bounded Number Line has regained baseline arrowheads');

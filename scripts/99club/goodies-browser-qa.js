@@ -438,6 +438,44 @@ if(mode==='prepare'){
     assert(document.querySelector('[data-pv-count="3"]').textContent==='2','Regrouping converts to two tens');
     assert(document.querySelector('[data-pv-count="4"]').textContent==='0','Regrouping clears the ten ones');
 
+    document.querySelector('[data-pv-workflow="challenge"]').click();
+    assert(document.querySelector('[data-pv-challenge-tab="standard"]'),'Place Value uses the shared Standard / Custom challenge language');
+    assert(document.querySelector('[data-pv-challenge-type="read-number"]'),'Place Value read-number challenge is available');
+    document.querySelector('[data-pv-challenge-type="read-number"]').click();
+    document.getElementById('pv-generate').click();
+    assert(document.querySelector('.gd-challenge-banner'),'Generated Place Value challenge appears above the board');
+    assert(document.getElementById('pv-total').textContent.trim()==='?','Read-number challenge hides the represented total');
+    assert(document.getElementById('pv-expanded').textContent.includes('Hidden'),'Read-number challenge also hides the expanded representation');
+    assert(document.querySelector('[data-challenge-action="another"]'),'Place Value standard challenge exposes Another like this');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer:'),'Place Value challenge reveals its answer contextually');
+    assert(document.getElementById('pv-total').textContent.trim()!=='?','Reveal restores the live represented total');
+
+    document.querySelector('[data-pv-workflow="challenge"]').click();
+    document.querySelector('[data-pv-challenge-tab="custom"]').click();
+    const pvSource=document.getElementById('pv-custom-answer-source');
+    assert(pvSource,'Place Value custom challenge exposes live answer sources');
+    assert([...pvSource.options].some(o=>o.value==='total'),'Place Value custom answer can bind to the represented total');
+    assert([...pvSource.options].some(o=>o.value==='value:3'),'Place Value custom answer can bind to a column value');
+    pvSource.value='total';
+    pvSource.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.getElementById('pv-total').textContent.trim()==='?','Binding a custom answer to the total hides that pupil-facing value');
+    const liveBefore=document.getElementById('pv-custom-live-answer').textContent.trim();
+    document.querySelector('[data-pv-add="4"]').click();
+    const liveAfter=document.getElementById('pv-custom-live-answer').textContent.trim();
+    assert(liveAfter!==liveBefore,'Place Value live custom answer updates when the board changes');
+
+    document.getElementById('pv-clear-challenge').click();
+    assert(numberText('#pv-total')===20,'Ending the generated/custom Place Value challenge restores the teacher setup');
+
+    document.querySelector('[data-pv-workflow="challenge"]').click();
+    document.querySelector('[data-pv-challenge-cat="build"]').click();
+    assert(document.querySelector('[data-pv-challenge-type="build-number"]'),'Build-number challenge is available');
+    assert(document.querySelector('[data-pv-challenge-type="non-standard"]'),'Non-standard regrouping challenge is available');
+    document.querySelector('[data-pv-challenge-cat="reason"]').click();
+    assert(document.querySelector('[data-pv-challenge-type="zero-placeholder"]'),'Zero-placeholder diagnostic challenge is available');
+
+    document.querySelector('[data-pv-workflow="setup"]').click();
     const canvas=document.getElementById('pv-canvas');
     assert(canvas&&getComputedStyle(canvas).touchAction==='pan-y','Place Value empty board preserves vertical touch scrolling');
   }

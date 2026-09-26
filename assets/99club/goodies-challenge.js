@@ -110,6 +110,14 @@ function editorHtml(challenge,prefix,opts={}){
   </div>`;
 }
 
+function tabsHtml(prefix,active='standard'){
+  const safe=String(prefix||'gd').replace(/[^a-zA-Z0-9_-]/g,'').slice(0,30)||'gd';
+  return `<div class="gd-challenge-tabs" role="tablist" aria-label="Challenge mode">
+    <button type="button" class="gd-challenge-tab${active==='standard'?' is-active':''}" data-${safe}-challenge-tab="standard">Standard</button>
+    <button type="button" class="gd-challenge-tab${active==='custom'?' is-active':''}" data-${safe}-challenge-tab="custom">Custom</button>
+  </div>`;
+}
+
 function pickerHtml(templates,categories,activeCategory,selectedId,prefix){
   const cats=(categories||[]).map(c=>`<button type="button" class="gd-challenge-chip${c.id===activeCategory?' is-active':''}" data-${esc(prefix)}-challenge-cat="${esc(c.id)}">${esc(c.label)}</button>`).join('');
   const cards=(templates||[]).filter(t=>t.category===activeCategory).map(t=>`
@@ -161,5 +169,5 @@ function applyFormat(editor,action){
   else if(action==='size-large')document.execCommand('fontSize',false,'5');
 }
 
-G.challengeKit={normalise,makeCustom,sanitiseRichHtml,plainText,toolbarHtml,editorHtml,pickerHtml,bannerHtml,applyFormat};
+G.challengeKit={normalise,makeCustom,sanitiseRichHtml,plainText,toolbarHtml,tabsHtml,editorHtml,pickerHtml,bannerHtml,applyFormat};
 })(window.TT99Goodies);
