@@ -2309,7 +2309,7 @@ function clockTool(){
 }
 
 function moneyTool(){
-  const I=G.interaction,CK=G.challengeKit;
+  const I=G.interaction,CK=G.challengeKit,X=G.exportTools;
   if(!I){q('#gd-stage').innerHTML='<p class="gd-empty">The interactive money workbench could not start.</p>';return;}
   const DENOMS=[
     {value:1,label:'1p',kind:'coin',shape:'round',size:45,tone:'copper'},
@@ -2341,6 +2341,7 @@ function moneyTool(){
   ];
   let items=[],nextId=1,target=375,controller=null;
   let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='count-total',challenge=null,beforeChallenge=null;
+  let exportMode='board',responseLines=1,exportStatus='';
 
   function metaFor(value){return DENOMS.find(d=>d.value===Number(value))||DENOMS[0]}
   function total(){return items.reduce((sum,item)=>sum+Number(item.value||0),0)}
@@ -2532,7 +2533,8 @@ function moneyTool(){
   function workflowTabs(){
     return '<div class="gd-row gd-money-workflow-tabs" role="tablist" aria-label="Money workflow">'+
       '<button class="gd-btn'+(controlTab==='explore'?' gd-btn--primary':'')+'" type="button" data-mo-workflow="explore">Explore</button>'+
-      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-mo-workflow="challenge">Challenge'+(challenge?' •':'')+'</button></div>';
+      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-mo-workflow="challenge">Challenge'+(challenge?' •':'')+'</button>'+ 
+      '<button class="gd-btn'+(controlTab==='export'?' gd-btn--primary':'')+'" type="button" data-mo-workflow="export">Export / reuse</button></div>';
   }
   function moneyPaletteHtml(){
     return '<div class="gd-field"><span>Add money</span><div class="gd-money-palette">'+DENOMS.map(d=>'<button type="button" class="gd-money-pick gd-money-pick--'+d.kind+'" data-mo-add="'+d.value+'" aria-label="Add '+d.label+'">'+d.label+'</button>').join('')+'</div></div>'+
@@ -2562,11 +2564,11 @@ function moneyTool(){
       (challenge&&challenge.answer?'<button class="gd-btn" id="mo-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
       (challenge?'<button class="gd-btn" id="mo-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+manipulate;
   }
-  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():exploreControlsHtml())}
+  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():controlTab==='export'?exportControlsHtml():exploreControlsHtml())}
   function renderControls(){const panel=q('#gd-controls');if(panel)panel.innerHTML=controlsHtml();bindControls()}
   function restoreBeforeChallenge(){if(beforeChallenge){restore(beforeChallenge);beforeChallenge=null}}
   function clearChallenge(){
-    restoreBeforeChallenge();challenge=null;challengeTab='standard';controlTab='challenge';renderControls();controller.refresh();
+    restoreBeforeChallenge();challenge=null;challengeTab='standard';controlTab='challenge';exportMode='board';exportStatus='';renderControls();controller.refresh();
   }
   function enterCustomChallenge(){
     if(!beforeChallenge)beforeChallenge=snapshot();
@@ -2574,7 +2576,7 @@ function moneyTool(){
     if(CK)challenge=CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''});
     if(!wasCustom)clearBoundHiding();
     challenge.freezeMoney=false;challenge.revealed=false;
-    challengeTab='custom';controlTab='challenge';renderControls();controller.refresh();
+    challengeTab='custom';controlTab='challenge';exportMode='challenge';exportStatus='';renderControls();controller.refresh();
   }
   function setCustomAnswerSource(source){
     if(!challenge||challenge.mode!=='custom')return;
@@ -2617,7 +2619,7 @@ function moneyTool(){
       target=tender-price;items=[];nextId=1;
       challenge=challengeObject(type,'An item costs '+money(price)+'. You pay with '+money(tender)+'. Build the correct change.',money(target),{freezeMoney:false,hiddenTarget:true,price,tender});
     }
-    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';renderControls();controller.refresh();
+    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';exportMode='challenge';exportStatus='';renderControls();controller.refresh();
   }
   function bindMoneyButtons(){
     qa('[data-mo-add]',q('#gd-controls')).forEach(button=>button.onclick=()=>{
