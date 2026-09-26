@@ -1033,6 +1033,22 @@ if(mode==='prepare'){
     let teacherColSplit=document.getElementById('ab-col-split');
     teacherColSplit.value='3';teacherColSplit.dispatchEvent(new Event('change',{bubbles:true}));
 
+    document.querySelector('[data-ab-workflow="export"]').click();
+    assert(document.getElementById('ab-copy-image')&&document.getElementById('ab-png')&&document.getElementById('ab-svg-download')&&document.getElementById('ab-print'),'Array export exposes copy, PNG, SVG and Print/PDF actions');
+    let abCapturedSvg=null,abCapturedName='';
+    const abOldDownloadSvg=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg,name)=>{abCapturedSvg=svg.cloneNode(true);abCapturedName=name};
+    document.getElementById('ab-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=abOldDownloadSvg;
+    assert(abCapturedSvg&&abCapturedSvg.dataset.abExport==='array','Array-only export is a deterministic SVG model');
+    assert(abCapturedSvg.querySelectorAll('[data-ab-export-dot]').length===24,'Array SVG export preserves every object in the 4 × 6 model');
+    assert(abCapturedSvg.querySelector('[data-ab-export-row-split]')&&abCapturedSvg.querySelector('[data-ab-export-col-split]'),'Array SVG export preserves both teacher partition lines');
+    assert(abCapturedSvg.textContent.includes('4 × 6 = 24'),'Array-only export includes the visible multiplication fact');
+    assert(abCapturedName.includes('array-4x6'),'Array-only export has a reusable dimension-based filename');
+
+    const abRealRandom=Math.random;
+    Math.random=()=>0;
+
     document.querySelector('[data-ab-workflow="challenge"]').click();
     assert(document.querySelector('[data-ab-challenge-tab="standard"]')&&document.querySelector('[data-ab-challenge-tab="custom"]'),'Arrays uses the shared Standard / Custom challenge tabs');
     for(const type of ['count-total','multiplication-fact','missing-factor']){
@@ -1050,6 +1066,19 @@ if(mode==='prepare'){
     assert(!document.querySelector('[data-ab-equation]').textContent.includes('?'),'Reveal restores the Array equation');
     assert(document.querySelector('[data-ab-repeated]').textContent.trim()!=='?','Reveal restores repeated addition');
 
+    document.querySelector('[data-ab-workflow="export"]').click();
+    assert(document.querySelector('[data-ab-export-mode="challenge"]'),'Active Array challenge offers Challenge card export');
+    let abCountSvg=null;
+    const abOldCountDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{abCountSvg=svg.cloneNode(true)};
+    document.getElementById('ab-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=abOldCountDownload;
+    assert(abCountSvg&&abCountSvg.querySelector('[data-ab-export-board]'),'Array challenge card embeds the vector array');
+    assert(!abCountSvg.textContent.includes('Answer:'),'Array pupil challenge export never includes a revealed answer label');
+    assert(abCountSvg.querySelector('[data-ab-export-math="0"]').textContent.includes('= ?'),'Count-total pupil export re-hides the total after teacher reveal');
+    assert(abCountSvg.querySelector('[data-ab-export-math="1"]').textContent.trim()==='?','Count-total pupil export re-hides repeated addition');
+
+    document.querySelector('[data-ab-workflow="challenge"]').click();
     document.querySelector('[data-ab-challenge-type="missing-factor"]').click();
     document.getElementById('ab-generate').click();
     const hiddenHandle=[...document.querySelectorAll('[data-ab-resize]')].find(h=>h.querySelector('span').textContent.trim()==='?');
@@ -1059,6 +1088,15 @@ if(mode==='prepare'){
     document.querySelector('[data-board-action="reveal"]').click();
     assert(![...document.querySelectorAll('[data-ab-resize]')].some(h=>h.querySelector('span').textContent.trim()==='?'),'Reveal restores the hidden Array dimension');
 
+    document.querySelector('[data-ab-workflow="export"]').click();
+    let abMissingSvg=null;
+    const abOldMissingDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{abMissingSvg=svg.cloneNode(true)};
+    document.getElementById('ab-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=abOldMissingDownload;
+    assert([...abMissingSvg.querySelectorAll('[data-ab-export-rows],[data-ab-export-cols]')].some(x=>x.textContent.trim().startsWith('?')),'Missing-factor pupil export re-hides the unknown dimension after Reveal');
+
+    document.querySelector('[data-ab-workflow="challenge"]').click();
     document.querySelector('[data-ab-challenge-cat="build"]').click();
     assert(document.querySelector('[data-ab-challenge-type="related-division"]'),'Related-division challenge is available');
     const buildType=document.querySelector('[data-ab-challenge-type="build-array"]');
@@ -1083,6 +1121,18 @@ if(mode==='prepare'){
     assert(Number(board.dataset.abRows)===targetRows&&Number(board.dataset.abCols)===targetCols,'Build-array challenge can be completed using the direct handles');
     assert(document.querySelector('[data-ab-target-status]').textContent.includes('On target'),'Build-array challenge confirms an exact construction');
 
+    document.querySelector('[data-ab-workflow="export"]').click();
+    let abBuildSvg=null;
+    const abOldBuildDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{abBuildSvg=svg.cloneNode(true)};
+    document.getElementById('ab-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=abOldBuildDownload;
+    assert(abBuildSvg.querySelector('[data-ab-export-build-grid="12x12"]'),'Build-array pupil card contains a printable 12 × 12 construction scaffold');
+    assert(abBuildSvg.querySelectorAll('[data-ab-export-grid-line]').length===22,'Build-array pupil scaffold renders the internal 12 × 12 grid efficiently');
+    assert(!abBuildSvg.querySelector('[data-ab-export-dot]'),'Build-array pupil export does not include the teacher\\'s tested attempt');
+    assert(abBuildSvg.textContent.includes('Build an array with'),'Build-array pupil card keeps the target instruction');
+
+    document.querySelector('[data-ab-workflow="challenge"]').click();
     document.querySelector('[data-ab-challenge-cat="reason"]').click();
     assert(document.querySelector('[data-ab-challenge-type="commutative-fact"]'),'Commutative-fact challenge is available');
     const partialType=document.querySelector('[data-ab-challenge-type="partial-products"]');
@@ -1096,6 +1146,16 @@ if(mode==='prepare'){
     document.querySelector('[data-board-action="reveal"]').click();
     assert(document.querySelector('[data-ab-partial] strong').textContent.includes('×'),'Reveal restores the partial-product calculation');
 
+    document.querySelector('[data-ab-workflow="export"]').click();
+    let abPartialSvg=null;
+    const abOldPartialDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{abPartialSvg=svg.cloneNode(true)};
+    document.getElementById('ab-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=abOldPartialDownload;
+    assert(abPartialSvg.querySelector('[data-ab-export-row-split]')||abPartialSvg.querySelector('[data-ab-export-col-split]'),'Partial-products pupil export preserves the visual partition');
+    assert(abPartialSvg.querySelector('[data-ab-export-math="3"]').textContent.trim()==='?','Partial-products pupil export re-hides the decomposition after Reveal');
+
+    document.querySelector('[data-ab-workflow="challenge"]').click();
     document.getElementById('ab-edit-challenge').click();
     assert(document.querySelector('[data-ab-challenge-tab="custom"]')?.classList.contains('is-active')||document.getElementById('ab-custom-answer-source'),'Editing an Array challenge opens Custom mode');
     assert(document.querySelector('[data-ab-equation]').textContent.trim()!=='?','Entering Custom mode clears generated hiding rules');
@@ -1116,10 +1176,20 @@ if(mode==='prepare'){
     colHandle=document.querySelector('[data-ab-resize="cols"]');
     assert(colHandle.querySelector('span').textContent.trim()==='?'&&!colHandle.hasAttribute('aria-valuenow'),'Binding the column count hides that dimension without accessibility leakage');
 
+    document.querySelector('[data-ab-workflow="export"]').click();
+    let abCustomSvg=null;
+    const abOldCustomDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{abCustomSvg=svg.cloneNode(true)};
+    document.getElementById('ab-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=abOldCustomDownload;
+    assert(abCustomSvg.querySelector('[data-ab-export-cols]').textContent.trim().startsWith('?'),'Custom bound column remains hidden in the exported pupil card');
+
+    document.querySelector('[data-ab-workflow="challenge"]').click();
     document.getElementById('ab-clear-challenge').click();
     board=document.getElementById('ab-board');
     assert(board.dataset.abRows==='4'&&board.dataset.abCols==='6','Ending an Array challenge restores the teacher dimensions');
     assert(board.dataset.abRowSplit==='2'&&board.dataset.abColSplit==='3','Ending an Array challenge restores the teacher partitions');
+    Math.random=abRealRandom;
   }
 
   function testMeasurement(){
