@@ -557,12 +557,27 @@ function placeValue(){
 }
 
 function fractionWall(){
-  const I=G.interaction;
+  const I=G.interaction,CK=G.challengeKit;
   let focus={n:1,d:2},compareA={n:1,d:2},compareB={n:1,d:3},mode='wall';
   let strips=[
     {id:1,n:1,d:2,x:28,y:30,locked:false,color:'#cbe7e2'},
     {id:2,n:1,d:3,x:28,y:150,locked:false,color:'#cfe0f6'}
   ],nextStrip=3,controller=null;
+  const CHALLENGE_CATEGORIES=[
+    {id:'read',label:'Read & equivalence'},
+    {id:'compare',label:'Compare'},
+    {id:'convert',label:'Convert & simplify'},
+    {id:'reason',label:'Reasoning'}
+  ];
+  const CHALLENGE_TEMPLATES=[
+    {id:'identify-strip',category:'read',title:'Read the fraction strip',desc:'Identify the fraction represented by a strip.'},
+    {id:'equivalent-strip',category:'read',title:'Find an equivalent fraction',desc:'Use aligned strips to complete an equivalence.'},
+    {id:'compare-strips',category:'compare',title:'Compare two fractions',desc:'Choose <, > or = from visual fraction strips.'},
+    {id:'simplify-strip',category:'convert',title:'Simplify a fraction',desc:'Use the strip structure to write the simplest form.'},
+    {id:'mixed-improper',category:'convert',title:'Improper to mixed',desc:'Read an improper strip and write it as a mixed number.'},
+    {id:'denominator-misconception',category:'reason',title:'Larger denominator?',desc:'Diagnose the common unit-fraction denominator misconception.'}
+  ];
+  let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='identify-strip',challenge=null,beforeChallenge=null;
 
   function gcd(a,b){a=Math.abs(Math.round(a));b=Math.abs(Math.round(b));while(b){const t=b;b=a%b;a=t}return a||1}
   function simplify(n,d){const g=gcd(n,d);return{n:n/g,d:d/g}}
