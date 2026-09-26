@@ -418,7 +418,9 @@ function placeValue(){
   }
   function bindControls(){
     qa('[data-pv-workflow]').forEach(button=>button.onclick=()=>{
-      controlTab=button.dataset.pvWorkflow==='challenge'?'challenge':'setup';renderControls();
+      const nextTab=button.dataset.pvWorkflow;
+      controlTab=nextTab==='challenge'?'challenge':nextTab==='export'?'export':'setup';
+      renderControls();
     });
     const build=q('#pv-build');if(build)build.onclick=()=>{
       const raw=q('#pv-value').value;
@@ -481,6 +483,17 @@ function placeValue(){
       if(!challenge)return;challenge.answer=answer.value.slice(0,400);
       if(challenge.revealed){const shown=q('.gd-challenge-actions em',q('#gd-stage'));if(shown)shown.textContent='Answer: '+challenge.answer}
     };
+
+    qa('[data-pv-export-mode]').forEach(button=>button.onclick=()=>{
+      exportMode=button.dataset.pvExportMode==='challenge'&&challenge?'challenge':'diagram';exportStatus='';renderControls();
+    });
+    const response=q('#pv-response-lines');if(response)response.onchange=()=>{
+      responseLines=clamp(Math.round(num(response.value,1)),1,4);renderControls();
+    };
+    const copyImage=q('#pv-copy-image');if(copyImage)copyImage.onclick=()=>exportAction('copy');
+    const png=q('#pv-png');if(png)png.onclick=()=>exportAction('png');
+    const svgDownload=q('#pv-svg-download');if(svgDownload)svgDownload.onclick=()=>exportAction('svg');
+    const print=q('#pv-print');if(print)print.onclick=()=>exportAction('print');
     syncControls();
   }
 
