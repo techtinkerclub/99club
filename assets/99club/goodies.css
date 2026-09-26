@@ -355,6 +355,40 @@ html.nl-board-page-lock,body.nl-board-page-lock{overflow:hidden!important;oversc
 }
 
 
+/* Goodies Fractions: draggable strip workbench */
+.gd-fr-mode-tabs{margin-bottom:12px}
+.gd-fr-workbench{display:grid;gap:10px;width:100%}
+.gd-fr-strip-canvas-wrap{position:relative;width:100%}
+.gd-fr-strip-canvas{position:relative;width:100%;min-height:500px;border:1px solid #c7d6d8;border-radius:18px;background:#fff;overflow:hidden;touch-action:pan-y;box-shadow:inset 0 0 0 1px rgba(255,255,255,.7);background-image:linear-gradient(to right,rgba(78,112,119,.05) 1px,transparent 1px),linear-gradient(to bottom,rgba(78,112,119,.05) 1px,transparent 1px);background-size:20px 20px;background-position:-1px -1px}
+.gd-fr-strip-object{position:absolute;z-index:2;width:min(292px,calc(100% - 20px));padding:9px 10px 10px;border:2px solid #9eb6b8;border-radius:13px;background:#fff;box-shadow:0 5px 14px rgba(31,61,69,.1);cursor:grab;touch-action:none;user-select:none;transition:border-color .12s ease,box-shadow .12s ease,outline-color .12s ease}
+.gd-fr-strip-object:active{cursor:grabbing}
+.gd-fr-strip-object.is-selected{outline:3px solid rgba(20,125,117,.25);outline-offset:2px;border-color:#4c918a;box-shadow:0 7px 18px rgba(31,61,69,.14)}
+.gd-fr-strip-object.is-equivalent{border-color:#d19a2f;box-shadow:0 0 0 3px rgba(209,154,47,.14),0 5px 14px rgba(31,61,69,.1)}
+.gd-fr-strip-object.is-locked{opacity:.76;cursor:default}
+.gd-fr-strip-head{display:flex;align-items:center;gap:7px;min-height:25px;margin-bottom:7px}
+.gd-fr-strip-head strong{font-size:.95rem;color:#294149}
+.gd-fr-strip-head span{font-size:.76rem;color:#718287;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gd-fr-strip-head em{margin-left:auto;padding:2px 7px;border-radius:999px;background:#fff5d8;color:#8a6320;font-size:.64rem;font-style:normal;font-weight:800;white-space:nowrap}
+.gd-fr-strip-head b{margin-left:auto;color:#60757b}
+.gd-fr-strip-bars{display:grid;gap:5px}
+.gd-fr-strip-whole{display:flex;width:100%;height:27px;border:1px solid #82999e;border-radius:7px;overflow:hidden;background:#fff}
+.gd-fr-strip-segment{flex:1 1 0;min-width:0;padding:0;border:0;border-right:1px solid #9aadb1;background:#fff;cursor:pointer}
+.gd-fr-strip-segment:last-child{border-right:0}
+.gd-fr-strip-segment.is-fill{background:var(--fr-strip,#cbe7e2)}
+.gd-fr-strip-segment:hover,.gd-fr-strip-segment:focus-visible{box-shadow:inset 0 0 0 2px rgba(20,125,117,.36);outline:none}
+.gd-fr-strip-object>small{display:block;margin-top:6px;color:#738388;font-size:.68rem}
+@media(max-width:700px){
+  .gd-fr-strip-canvas{border-radius:14px}
+  .gd-fr-strip-object{width:min(270px,calc(100% - 16px));padding:8px}
+  .gd-fr-strip-whole{height:25px}
+  .gd-fr-strip-head span{display:none}
+}
+@media print{
+  .gd-fr-strip-canvas{border:0;box-shadow:none;background-image:none}
+  .gd-fr-workbench .gd-object-ui,.gd-fr-workbench .gd-object-hint{display:none!important}
+  .gd-fr-strip-object{box-shadow:none}
+}
+
 /* Goodies Geoboard: reshape polygons directly */
 .gd-geoboard-direct{display:grid;gap:10px}
 .gd-geoboard-direct svg{display:block;width:min(100%,680px);height:auto;min-width:0!important;margin:auto;touch-action:pan-y}
