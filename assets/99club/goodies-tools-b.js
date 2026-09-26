@@ -566,7 +566,7 @@ function coordinateTool(){
 }
 
 function measurementTool(){
-  const CK=G.challengeKit;
+  const CK=G.challengeKit,X=G.exportTools;
   let cm=12.3,dragPointer=null;
   const CHALLENGE_CATEGORIES=[
     {id:'read',label:'Read & place'},
@@ -583,6 +583,7 @@ function measurementTool(){
     {id:'unit-misconception',category:'reason',title:'Spot the conversion error',desc:'Explain a plausible ×10 / ×100 unit-conversion error.'}
   ];
   let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='read-mark',challenge=null,beforeChallenge=null;
+  let exportMode='diagram',responseLines=1,exportStatus='';
 
   function roundCm(value){return Math.round(clamp(Number(value)||0,0,30)*10)/10}
   function setCm(value){cm=roundCm(value)}
@@ -624,7 +625,8 @@ function measurementTool(){
   function workflowTabs(){
     return '<div class="gd-row gd-me-workflow-tabs" role="tablist" aria-label="Measurement workflow">'+
       '<button class="gd-btn'+(controlTab==='explore'?' gd-btn--primary':'')+'" type="button" data-me-workflow="explore">Explore</button>'+
-      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-me-workflow="challenge">Challenge'+(challenge?' •':'')+'</button></div>';
+      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-me-workflow="challenge">Challenge'+(challenge?' •':'')+'</button>'+
+      '<button class="gd-btn'+(controlTab==='export'?' gd-btn--primary':'')+'" type="button" data-me-workflow="export">Export / reuse</button></div>';
   }
   function exploreControlsHtml(){
     return field('Measurement (cm)','<input class="gd-input" id="me-cm" type="range" min="0" max="30" step="0.1" value="'+cm.toFixed(1)+'">')+
@@ -648,13 +650,107 @@ function measurementTool(){
       (challenge&&challenge.answer?'<button class="gd-btn" id="me-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
       (challenge?'<button class="gd-btn" id="me-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>';
   }
-  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():exploreControlsHtml())}
+  function exportControlsHtml(){
+    const canCard=!!challenge;
+    if(!canCard&&exportMode==='challenge')exportMode='diagram';
+    return '<div class="nl-panel-title"><div><strong>Use it elsewhere</strong><span>Export the ruler as a clean vector diagram or a pupil-ready challenge card.</span></div></div>'+
+      (canCard?'<div class="nl-export-mode me-export-mode" role="tablist" aria-label="Export content">'+
+        '<button type="button" class="'+(exportMode==='challenge'?'is-active':'')+'" data-me-export-mode="challenge">Challenge card</button>'+
+        '<button type="button" class="'+(exportMode==='diagram'?'is-active':'')+'" data-me-export-mode="diagram">Ruler only</button></div>':'')+
+      (canCard&&exportMode==='challenge'
+        ?'<label class="gd-field"><span>Answer space</span><select class="gd-select" id="me-response-lines">'+
+          [1,2,3,4].map(n=>'<option value="'+n+'"'+(responseLines===n?' selected':'')+'>'+n+' line'+(n===1?'':'s')+'</option>').join('')+
+          '</select></label><p class="gd-help">The pupil card contains the question, ruler and blank answer space. Revealed conversions are hidden again automatically.</p>'
+        :'<p class="gd-help">Ruler-only export contains the current scale, markers and visible unit readouts without editing controls.</p>')+
+      '<div class="nl-export-grid me-export-grid">'+
+        '<button class="gd-btn gd-btn--primary" id="me-copy-image" type="button">Copy '+(canCard&&exportMode==='challenge'?'challenge':'image')+'</button>'+
+        '<button class="gd-btn" id="me-png" type="button">PNG</button>'+
+        '<button class="gd-btn" id="me-svg-download" type="button">SVG</button>'+
+        '<button class="gd-btn" id="me-print" type="button">Print / PDF</button>'+
+      '</div><p class="gd-help" id="me-export-status" role="status" aria-live="polite">'+exportStatus+'</p>';
+  }
+  function meSvgEl(name,attrs={},text=''){
+    const el=document.createElementNS('http://www.w3.org/2000/svg',name);
+    Object.entries(attrs).forEach(([key,value])=>el.setAttribute(key,String(value)));
+    if(text!==''&&text!=null)el.textContent=String(text);
+    return el;
+  }
+  function exportReadoutHidden(pupil=false){
+    if(!challenge)return false;
+    return pupil?!!challenge.hiddenReadout:readoutHidden();
+  }
+  function showMainExportMarker(pupil=false){
+    return !(pupil&&challenge?.mode==='standard'&&challenge.type==='place-mark');
+  }
+  function rulerExportSvg({pupil=false}={}){
+    const width=1100,height=340,left=50,right=50,rulerY=72,rulerH=145,rulerW=width-left-right,baseY=rulerY+rulerH;
+    const svg=meSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'30 centimetre ruler','data-me-export':'ruler'});
+    svg.appendChild(meSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
+    svg.appendChild(meSvgEl('rect',{x:left,y:rulerY,width:rulerW,height:rulerH,rx:8,fill:'#fbfcfc',stroke:'#9fb2b7','stroke-width':2,'data-me-export-ruler':'1'}));
+    for(let i=0;i<=300;i++){
+      const x=left+i/300*rulerW,h=i%10===0?64:i%5===0?42:27;
+      svg.appendChild(meSvgEl('line',{x1:x,y1:baseY-h,x2:x,y2:baseY,stroke:'#344b52','stroke-width':i%10===0?1.8:1}));
+      if(i%10===0)svg.appendChild(meSvgEl('text',{x,y:rulerY+27,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':11,'font-weight':700,fill:'#566a70'},i/10));
+    }
+    const secondary=challenge&&Number.isFinite(Number(challenge.secondaryCm))?roundCm(challenge.secondaryCm):null;
+    function addMarker(value,colour,label,kind){
+      const x=left+roundCm(value)/30*rulerW;
+      svg.appendChild(meSvgEl('line',{x1:x,y1:rulerY-8,x2:x,y2:baseY+2,stroke:colour,'stroke-width':4,'data-me-export-marker':kind}));
+      svg.appendChild(meSvgEl('path',{d:'M '+(x-8)+' '+(rulerY-8)+' L '+(x+8)+' '+(rulerY-8)+' L '+x+' '+(rulerY+5)+' Z',fill:colour}));
+      if(label)svg.appendChild(meSvgEl('text',{x,y:rulerY-22,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':14,'font-weight':900,fill:'#334a52'},label));
+    }
+    if(secondary!=null)addMarker(secondary,'#3186b3','A','secondary');
+    if(showMainExportMarker(pupil))addMarker(cm,'#d98f24',secondary!=null?'B':'','main');
+    const hidden=exportReadoutHidden(pupil),readY=274;
+    const readouts=[
+      ['millimetres',hidden?'?':mmValue()+' mm'],
+      ['centimetres',hidden?'?':cmText()+' cm'],
+      ['metres',hidden?'?':mText()+' m']
+    ];
+    const cardW=285,gap=28,start=(width-(cardW*3+gap*2))/2;
+    readouts.forEach((item,index)=>{
+      const x=start+index*(cardW+gap);
+      svg.appendChild(meSvgEl('rect',{x,y:readY-29,width:cardW,height:50,rx:11,fill:'#f5f8f8',stroke:'#d8e2e4','stroke-width':1}));
+      svg.appendChild(meSvgEl('text',{x:x+14,y:readY-8,'font-family':'Arial,sans-serif','font-size':10,'font-weight':700,fill:'#74868b'},item[0]));
+      svg.appendChild(meSvgEl('text',{x:x+cardW-14,y:readY+6,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':17,'font-weight':900,fill:'#334a52'},item[1]));
+    });
+    svg.appendChild(meSvgEl('text',{x:width-50,y:height-16,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':10,fill:'#87969a'},'99 Club Studio'));
+    return svg;
+  }
+  function exportTargetSvg(){
+    if(exportMode!=='challenge'||!challenge||!X?.composeChallengeCardSvg)return rulerExportSvg({pupil:false});
+    const prompt=CK?CK.plainText(challenge.promptHtml||challenge.prompt||''):challenge.prompt||'';
+    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
+    return X.composeChallengeCardSvg(rulerExportSvg({pupil:true}),{
+      title:challenge.title||meta?.title||'Measurement challenge',
+      prompt,
+      responseLabel:challenge.category==='reason'?'Explain your thinking':'Answer',
+      responseLines,
+      brand:'99 Club Studio'
+    });
+  }
+  function exportName(){
+    const meta=challenge&&CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
+    return exportMode==='challenge'&&challenge?(challenge.title||meta?.title||'measurement-challenge'):'measurement-ruler';
+  }
+  function exportMessage(text){exportStatus=text;const el=q('#me-export-status');if(el)el.textContent=text}
+  async function exportAction(kind){
+    try{
+      if(!X)throw new Error('Export tools are not available.');
+      const target=exportTargetSvg(),isCard=exportMode==='challenge'&&!!challenge,name=exportName();
+      if(kind==='copy'){await X.copyPng(target);exportMessage(isCard?'Challenge copied — paste it into your worksheet, slide or document.':'Ruler image copied — paste it into your slide or document.')}
+      if(kind==='png'){await X.downloadPng(target,name,2);exportMessage(isCard?'Challenge PNG downloaded.':'Ruler PNG downloaded.')}
+      if(kind==='svg'){X.downloadSvg(target,name);exportMessage(isCard?'Challenge SVG downloaded.':'Ruler SVG downloaded.')}
+      if(kind==='print'){X.printSvg(target,{title:'',landscape:true});exportMessage('Print view opened. Choose “Save as PDF” in the print dialog.')}
+    }catch(err){exportMessage(err?.message||'That export did not work.')}
+  }
+  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():controlTab==='export'?exportControlsHtml():exploreControlsHtml())}
   function renderControls(){const panel=q('#gd-controls');if(panel)panel.innerHTML=controlsHtml();bindControls()}
   function enterCustomChallenge(){
     if(CK)challenge=CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''});
     challenge.hiddenReadout=challenge.answerMode==='bound'&&!!challenge.answerSource;
     challenge.freezeMarker=false;challenge.secondaryCm=null;
-    challengeTab='custom';controlTab='challenge';renderControls();draw();
+    challengeTab='custom';controlTab='challenge';exportMode='challenge';exportStatus='';renderControls();draw();
   }
   function setCustomAnswerSource(source){
     if(!challenge||challenge.mode!=='custom')return;
@@ -701,7 +797,8 @@ function measurementTool(){
       const wrong=mmValue()*10;
       challenge=challengeObject(type,'A pupil says '+cmText()+' cm = '+wrong+' mm. Are they correct?','No. '+cmText()+' cm = '+mmValue()+' mm because 1 cm = 10 mm.',{hiddenReadout:true});
     }
-    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';renderControls();draw();
+    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';
+    exportMode='challenge';responseLines=template.category==='reason'?3:1;exportStatus='';renderControls();draw();
   }
   function rulerValueFromClientX(clientX,ruler){
     const rect=ruler.getBoundingClientRect(),ratio=clamp((clientX-rect.left)/Math.max(1,rect.width),0,1);
@@ -763,8 +860,22 @@ function measurementTool(){
   function bindControls(){
     const controls=q('#gd-controls');if(!controls)return;
     qa('[data-me-workflow]',controls).forEach(button=>button.onclick=()=>{
-      controlTab=button.dataset.meWorkflow==='challenge'?'challenge':'explore';renderControls();
+      const next=button.dataset.meWorkflow;
+      controlTab=next==='challenge'?'challenge':next==='export'?'export':'explore';renderControls();
     });
+    if(controlTab==='export'){
+      qa('[data-me-export-mode]',controls).forEach(button=>button.onclick=()=>{
+        exportMode=button.dataset.meExportMode==='challenge'&&challenge?'challenge':'diagram';exportStatus='';renderControls();
+      });
+      const response=q('#me-response-lines',controls);if(response)response.onchange=()=>{
+        responseLines=clamp(Math.round(num(response.value,1)),1,4);renderControls();
+      };
+      const copyImage=q('#me-copy-image',controls);if(copyImage)copyImage.onclick=()=>exportAction('copy');
+      const png=q('#me-png',controls);if(png)png.onclick=()=>exportAction('png');
+      const svgDownload=q('#me-svg-download',controls);if(svgDownload)svgDownload.onclick=()=>exportAction('svg');
+      const print=q('#me-print',controls);if(print)print.onclick=()=>exportAction('print');
+      return;
+    }
     if(controlTab==='explore'){
       const slider=q('#me-cm',controls);if(slider)slider.oninput=()=>{setCm(slider.value);refreshLiveMeasurement()};
       const random=q('#me-random',controls);if(random)random.onclick=()=>{setCm(Math.floor(Math.random()*301)/10);refreshLiveMeasurement()};
