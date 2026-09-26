@@ -1206,8 +1206,140 @@ setPanels(`${field('Highlight','<select class="gd-select" id="hs-mode"><option v
 function multiplicationGrid(){let hidden=new Set();function draw(){const size=clamp(num(q('#mg-size').value,12),5,15),focus=clamp(num(q('#mg-focus').value,6),1,size);let h='<table class="gd-times-grid"><tr><th>×</th>'+Array.from({length:size},(_,i)=>`<th>${i+1}</th>`).join('')+'</tr>';for(let r=1;r<=size;r++){h+=`<tr><th>${r}</th>`;for(let c=1;c<=size;c++){const k=r+'-'+c;h+=`<td class="${r===focus||c===focus?'is-highlight ':''}${hidden.has(k)?'is-hidden':''}" data-cell="${k}">${r*c}</td>`}h+='</tr>'}h+='</table>';q('#gd-stage').innerHTML='<div class="gd-vis">'+h+'</div>';qa('[data-cell]',q('#gd-stage')).forEach(x=>x.onclick=()=>{const k=x.dataset.cell;hidden.has(k)?hidden.delete(k):hidden.add(k);draw()})}
 setPanels(`${field('Grid size','<input class="gd-input" id="mg-size" type="number" min="5" max="15" value="12">')}${field('Highlight table','<input class="gd-input" id="mg-focus" type="number" min="1" max="15" value="6">')}<div class="gd-row">${btn('Hide 12 random products','mg-hide')}${btn('Show all','mg-show')}</div><p class="gd-help">Click any product to hide/reveal it and turn the grid into a quick retrieval activity.</p>`,'');q('#mg-size').oninput=draw;q('#mg-focus').oninput=draw;q('#mg-hide').onclick=()=>{hidden.clear();const size=clamp(num(q('#mg-size').value,12),5,15);while(hidden.size<Math.min(12,size*size))hidden.add((1+Math.floor(Math.random()*size))+'-'+(1+Math.floor(Math.random()*size)));draw()};q('#mg-show').onclick=()=>{hidden.clear();draw()};draw()}
 
-function arrayBuilder(){function draw(){const r=clamp(num(q('#ab-r').value,4),1,12),c=clamp(num(q('#ab-c').value,6),1,12);q('#gd-stage').innerHTML=`<div class="gd-vis"><div class="gd-array" style="grid-template-columns:repeat(${c},20px)">${Array.from({length:r*c},()=>'<span class="gd-dot"></span>').join('')}</div><div class="gd-equation">${r} × ${c} = ${r*c}</div><div class="gd-readout" style="margin-top:12px;text-align:center">${Array.from({length:r},()=>c).join(' + ')} = ${r*c} &nbsp; · &nbsp; ${r*c} ÷ ${r} = ${c}</div></div>`}
-setPanels(`${field('Rows','<input class="gd-input" id="ab-r" type="range" min="1" max="12" value="4">')}${field('Columns','<input class="gd-input" id="ab-c" type="range" min="1" max="12" value="6">')}<div class="gd-row">${btn('Random array','ab-random')}</div>`,'');['ab-r','ab-c'].forEach(id=>q('#'+id).oninput=draw);q('#ab-random').onclick=()=>{q('#ab-r').value=1+Math.floor(Math.random()*12);q('#ab-c').value=1+Math.floor(Math.random()*12);draw()};draw()}
+function arrayBuilder(){
+  let rows=4,cols=6,rowSplit=0,colSplit=0,drag=null;
+  const MAX=12;
+  function clampDim(value){return clamp(Math.round(num(value,1)),1,MAX)}
+  function normaliseSplits(){
+    if(rowSplit>=rows)rowSplit=0;
+    if(colSplit>=cols)colSplit=0;
+  }
+  function total(){return rows*cols}
+  function snapshot(){return{rows,cols,rowSplit,colSplit}}
+  function setDimensions(nextRows,nextCols){
+    rows=clampDim(nextRows);cols=clampDim(nextCols);normaliseSplits();
+  }
+  function partitionMath(){
+    const parts=[];
+    const rowBands=rowSplit?[rowSplit,rows-rowSplit]:[rows];
+    const colBands=colSplit?[colSplit,cols-colSplit]:[cols];
+    rowBands.forEach(r=>colBands.forEach(c=>parts.push({r,c,value:r*c})));
+    if(parts.length===1)return'';
+    return parts.map(p=>p.r+' × '+p.c).join(' + ')+' = '+parts.map(p=>p.value).join(' + ')+' = '+total();
+  }
+  function splitOptions(kind){
+    const n=kind==='row'?rows:cols,current=kind==='row'?rowSplit:colSplit;
+    let h='<option value="0">No split</option>';
+    for(let i=1;i<n;i++)h+='<option value="'+i+'"'+(current===i?' selected':'')+'>After '+i+'</option>';
+    return h;
+  }
+  function controlsHtml(){
+    return field('Rows','<div class="gd-row"><button class="gd-btn" id="ab-row-down" type="button" aria-label="Remove one row">−</button><input class="gd-input gd-array-count" id="ab-r" type="number" min="1" max="'+MAX+'" value="'+rows+'"><button class="gd-btn" id="ab-row-up" type="button" aria-label="Add one row">+</button></div>')+
+      field('Columns','<div class="gd-row"><button class="gd-btn" id="ab-col-down" type="button" aria-label="Remove one column">−</button><input class="gd-input gd-array-count" id="ab-c" type="number" min="1" max="'+MAX+'" value="'+cols+'"><button class="gd-btn" id="ab-col-up" type="button" aria-label="Add one column">+</button></div>')+
+      '<div class="gd-row"><button class="gd-btn gd-btn--primary" id="ab-swap" type="button">Rotate / swap factors</button><button class="gd-btn" id="ab-random" type="button">Random array</button></div>'+
+      field('Partition rows','<select class="gd-select" id="ab-row-split">'+splitOptions('row')+'</select>','Optional split for partial products.')+
+      field('Partition columns','<select class="gd-select" id="ab-col-split">'+splitOptions('col')+'</select>','Use one or both splits to decompose the array.')+
+      '<div class="gd-row"><button class="gd-btn" id="ab-clear-splits" type="button"'+(!rowSplit&&!colSplit?' disabled':'')+'>Clear partitions</button></div>'+
+      '<p class="gd-help">Work directly on the array too: drag the right edge to change columns and the bottom edge to change rows. Arrow keys work when a resize handle is focused.</p>';
+  }
+  function renderControls(){
+    const panel=q('#gd-controls');if(panel)panel.innerHTML=controlsHtml();bindControls();
+  }
+  function mutateDimensions(nextRows,nextCols){
+    setDimensions(nextRows,nextCols);renderControls();draw();
+  }
+  function bindControls(){
+    const controls=q('#gd-controls');if(!controls)return;
+    const r=q('#ab-r',controls),c=q('#ab-c',controls);
+    if(r)r.oninput=()=>mutateDimensions(r.value,cols);
+    if(c)c.oninput=()=>mutateDimensions(rows,c.value);
+    const rowDown=q('#ab-row-down',controls);if(rowDown)rowDown.onclick=()=>mutateDimensions(rows-1,cols);
+    const rowUp=q('#ab-row-up',controls);if(rowUp)rowUp.onclick=()=>mutateDimensions(rows+1,cols);
+    const colDown=q('#ab-col-down',controls);if(colDown)colDown.onclick=()=>mutateDimensions(rows,cols-1);
+    const colUp=q('#ab-col-up',controls);if(colUp)colUp.onclick=()=>mutateDimensions(rows,cols+1);
+    const swap=q('#ab-swap',controls);if(swap)swap.onclick=()=>{
+      const oldRows=rows,oldRowSplit=rowSplit;
+      rows=cols;cols=oldRows;rowSplit=colSplit;colSplit=oldRowSplit;normaliseSplits();renderControls();draw();
+    };
+    const random=q('#ab-random',controls);if(random)random.onclick=()=>{
+      rows=1+Math.floor(Math.random()*MAX);cols=1+Math.floor(Math.random()*MAX);rowSplit=0;colSplit=0;renderControls();draw();
+    };
+    const rs=q('#ab-row-split',controls);if(rs)rs.onchange=()=>{rowSplit=clamp(Math.round(num(rs.value,0)),0,Math.max(0,rows-1));draw();renderControls()};
+    const cs=q('#ab-col-split',controls);if(cs)cs.onchange=()=>{colSplit=clamp(Math.round(num(cs.value,0)),0,Math.max(0,cols-1));draw();renderControls()};
+    const clear=q('#ab-clear-splits',controls);if(clear)clear.onclick=()=>{rowSplit=0;colSplit=0;draw();renderControls()};
+  }
+  function startResize(kind,e){
+    if(e.button!=null&&e.button!==0)return;
+    e.preventDefault();
+    const board=q('#ab-board');if(!board)return;
+    const rect=board.getBoundingClientRect();
+    drag={kind,pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,startRows:rows,startCols:cols,cellW:rect.width/cols,cellH:rect.height/rows};
+    document.addEventListener('pointermove',resizeMove);
+    document.addEventListener('pointerup',resizeEnd,{once:true});
+    document.addEventListener('pointercancel',resizeEnd,{once:true});
+  }
+  function resizeMove(e){
+    if(!drag||e.pointerId!==drag.pointerId)return;
+    e.preventDefault();
+    let nextRows=drag.startRows,nextCols=drag.startCols;
+    if(drag.kind==='cols')nextCols=clampDim(drag.startCols+Math.round((e.clientX-drag.startX)/Math.max(1,drag.cellW)));
+    if(drag.kind==='rows')nextRows=clampDim(drag.startRows+Math.round((e.clientY-drag.startY)/Math.max(1,drag.cellH)));
+    if(nextRows===rows&&nextCols===cols)return;
+    setDimensions(nextRows,nextCols);draw();renderControls();
+  }
+  function resizeEnd(e){
+    if(drag&&e.pointerId!=null&&e.pointerId!==drag.pointerId)return;
+    drag=null;
+    document.removeEventListener('pointermove',resizeMove);
+    document.removeEventListener('pointerup',resizeEnd);
+    document.removeEventListener('pointercancel',resizeEnd);
+  }
+  function bindStage(){
+    const colHandle=q('[data-ab-resize="cols"]'),rowHandle=q('[data-ab-resize="rows"]');
+    if(colHandle){
+      colHandle.onpointerdown=e=>startResize('cols',e);
+      colHandle.onkeydown=e=>{
+        if(e.key==='ArrowLeft'){e.preventDefault();mutateDimensions(rows,cols-1)}
+        else if(e.key==='ArrowRight'){e.preventDefault();mutateDimensions(rows,cols+1)}
+      };
+    }
+    if(rowHandle){
+      rowHandle.onpointerdown=e=>startResize('rows',e);
+      rowHandle.onkeydown=e=>{
+        if(e.key==='ArrowUp'){e.preventDefault();mutateDimensions(rows-1,cols)}
+        else if(e.key==='ArrowDown'){e.preventDefault();mutateDimensions(rows+1,cols)}
+      };
+    }
+  }
+  function draw(){
+    normaliseSplits();
+    let cells='';
+    for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+      const splitTop=rowSplit&&r===rowSplit,splitLeft=colSplit&&c===colSplit;
+      cells+='<span class="gd-array-cell'+(splitTop?' is-row-split':'')+(splitLeft?' is-col-split':'')+'" data-ab-cell="'+r+'-'+c+'"><span class="gd-dot"></span></span>';
+    }
+    const repeated=Array.from({length:rows},()=>cols).join(' + ')+' = '+total();
+    const inverse=total()+' ÷ '+rows+' = '+cols+' · '+total()+' ÷ '+cols+' = '+rows;
+    const partial=partitionMath();
+    q('#gd-stage').innerHTML='<div class="gd-vis gd-array-workbench">'+
+      '<div class="gd-array-summary"><strong data-ab-equation>'+rows+' × '+cols+' = '+total()+'</strong><span>'+rows+' row'+(rows===1?'':'s')+' of '+cols+'</span></div>'+
+      '<div class="gd-array-shell">'+
+        '<div class="gd-array-board" id="ab-board" data-ab-rows="'+rows+'" data-ab-cols="'+cols+'" data-ab-row-split="'+rowSplit+'" data-ab-col-split="'+colSplit+'" style="grid-template-columns:repeat('+cols+',var(--ab-cell));grid-template-rows:repeat('+rows+',var(--ab-cell))">'+cells+'</div>'+
+        '<button class="gd-array-resize gd-array-resize--cols" type="button" data-ab-resize="cols" role="slider" aria-label="Columns: '+cols+'. Drag left or right, or use arrow keys." aria-valuemin="1" aria-valuemax="'+MAX+'" aria-valuenow="'+cols+'"><span>'+cols+'</span><small>columns ↔</small></button>'+
+        '<button class="gd-array-resize gd-array-resize--rows" type="button" data-ab-resize="rows" role="slider" aria-label="Rows: '+rows+'. Drag up or down, or use arrow keys." aria-valuemin="1" aria-valuemax="'+MAX+'" aria-valuenow="'+rows+'"><span>'+rows+'</span><small>rows ↕</small></button>'+
+      '</div>'+
+      '<div class="gd-array-maths">'+
+        '<div class="gd-readout"><span>Repeated addition</span><strong>'+repeated+'</strong></div>'+
+        '<div class="gd-readout"><span>Related division facts</span><strong>'+inverse+'</strong></div>'+
+        (partial?'<div class="gd-readout gd-array-partial" data-ab-partial><span>Partial products</span><strong>'+partial+'</strong></div>':'')+
+      '</div>'+
+    '</div>';
+    bindStage();
+  }
+  setPanels(controlsHtml(),'');
+  bindControls();
+  draw();
+}
 
 function clockTool(){function draw(){const h=clamp(num(q('#cl-h').value,10),0,23),m=clamp(num(q('#cl-m').value,10),0,59),h12=h%12||12,ha=(h%12+m/60)*30,ma=m*6;const nums=Array.from({length:12},(_,i)=>{const n=i+1,a=(n*30-90)*Math.PI/180,x=150+112*Math.cos(a),y=150+112*Math.sin(a);return `<text class="gd-clock-num" x="${x}" y="${y}">${n}</text>`}).join('');const hand=(angle,len,cls)=>{const a=(angle-90)*Math.PI/180;return `<line class="${cls}" x1="150" y1="150" x2="${150+len*Math.cos(a)}" y2="${150+len*Math.sin(a)}"></line>`};q('#gd-stage').innerHTML=`<div class="gd-vis"><div class="gd-clock"><svg viewBox="0 0 300 300" role="img" aria-label="Analogue clock showing ${h12}:${String(m).padStart(2,'0')}"><circle class="gd-clock-face" cx="150" cy="150" r="135"></circle>${nums}${hand(ha,72,'gd-clock-hour')}${hand(ma,102,'gd-clock-minute')}<circle class="gd-clock-centre" cx="150" cy="150" r="7"></circle></svg></div><div class="gd-digital">${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')} <small>(${h12}:${String(m).padStart(2,'0')} ${h<12?'am':'pm'})</small></div></div>`}
 setPanels(`${field('Hour','<input class="gd-input" id="cl-h" type="range" min="0" max="23" value="10">')}${field('Minutes','<input class="gd-input" id="cl-m" type="range" min="0" max="59" step="1" value="10">')}<div class="gd-row">${btn('Random 5-minute time','cl-random')}${btn('Now','cl-now')}</div>`,'');['cl-h','cl-m'].forEach(id=>q('#'+id).oninput=draw);q('#cl-random').onclick=()=>{q('#cl-h').value=Math.floor(Math.random()*24);q('#cl-m').value=Math.floor(Math.random()*12)*5;draw()};q('#cl-now').onclick=()=>{const d=new Date();q('#cl-h').value=d.getHours();q('#cl-m').value=d.getMinutes();draw()};draw()}
