@@ -623,6 +623,7 @@ function fractionWall(){
     strips.forEach((strip,index)=>{
       sources.push({id:'strip:'+strip.id+':fraction',label:'Strip '+(index+1)+' fraction'});
       sources.push({id:'strip:'+strip.id+':simplified',label:'Strip '+(index+1)+' simplified fraction'});
+      sources.push({id:'strip:'+strip.id+':mixed',label:'Strip '+(index+1)+' mixed number'});
     });
     return sources;
   }
@@ -631,9 +632,13 @@ function fractionWall(){
     if(source==='compare-sign'){
       const av=fractionValue(compareA),bv=fractionValue(compareB);return Math.abs(av-bv)<1e-10?'=':(av>bv?'>':'<');
     }
-    const m=String(source||'').match(/^strip:(\d+):(fraction|simplified)$/);if(!m)return'';
+    const m=String(source||'').match(/^strip:(\d+):(fraction|simplified|mixed)$/);if(!m)return'';
     const strip=selectedStrip(m[1]);if(!strip)return'';
     if(m[2]==='fraction')return rawFractionText(strip);
+    if(m[2]==='mixed'){
+      const whole=Math.floor(strip.n/strip.d),rem=strip.n%strip.d;
+      return rem?(whole?whole+' '+rem+'/'+strip.d:rem+'/'+strip.d):String(whole);
+    }
     const s=simplify(strip.n,strip.d);return s.n+'/'+s.d;
   }
   function clearBoundHiding(){
@@ -645,9 +650,9 @@ function fractionWall(){
     if(source==='focus')challenge.hiddenFocusLabel=true;
     else if(source==='compare-sign')challenge.hiddenCompareSign=true;
     else{
-      const m=String(source||'').match(/^strip:(\d+):(fraction|simplified)$/);
+      const m=String(source||'').match(/^strip:(\d+):(fraction|simplified|mixed)$/);
       if(m&&m[2]==='fraction')challenge.hiddenStripLabels=[m[1]];
-      if(m&&m[2]==='simplified')challenge.hiddenStripHints=[m[1]];
+      if(m&&(m[2]==='simplified'||m[2]==='mixed'))challenge.hiddenStripHints=[m[1]];
     }
   }
   function updateChallengeAnswer(){
@@ -767,29 +772,29 @@ function fractionWall(){
     if(type==='identify-strip'){
       const d=dens[Math.floor(Math.random()*dens.length)],f=randomProper(d);
       mode='workbench';strips=[{id:1,...f,x:24,y:24,locked:false,color:'#cbe7e2'}];nextStrip=2;
-      challenge=challengeObject(type,'What fraction is represented by the strip?',rawFractionText(f),{hiddenStripLabels:[1],hiddenStripHints:[1]});
+      challenge=challengeObject(type,'What fraction is represented by the strip?',rawFractionText(f),{answerSource:'strip:1:fraction',hiddenStripLabels:[1],hiddenStripHints:[1]});
     }else if(type==='equivalent-strip'){
       const d=[2,3,4,5,6][Math.floor(Math.random()*5)],f=randomProper(d),target={n:f.n*2,d:f.d*2};
       mode='workbench';strips=[
         {id:1,...f,x:24,y:24,locked:false,color:'#cbe7e2'},
         {id:2,...target,x:24,y:130,locked:false,color:'#cfe0f6'}
       ];nextStrip=3;
-      challenge=challengeObject(type,'The two strips represent the same amount. What fraction with denominator '+target.d+' is equivalent to '+rawFractionText(f)+'?',rawFractionText(target),{hiddenStripLabels:[2],hiddenStripHints:[2]});
+      challenge=challengeObject(type,'The two strips represent the same amount. What fraction with denominator '+target.d+' is equivalent to '+rawFractionText(f)+'?',rawFractionText(target),{answerSource:'strip:2:fraction',hiddenStripLabels:[2],hiddenStripHints:[2]});
     }else if(type==='compare-strips'){
       let a,b,guard=0;
       do{a=randomProper(dens[Math.floor(Math.random()*dens.length)]);b=randomProper(dens[Math.floor(Math.random()*dens.length)]);guard++}while(equivalent(a,b)&&guard<30);
       compareA=a;compareB=b;focus={...a};mode='wall';
       const av=fractionValue(a),bv=fractionValue(b),sign=av>bv?'>':'<';
-      challenge=challengeObject(type,'Which symbol belongs between A and B: <, > or =?',sign,{hiddenCompareSign:true});
+      challenge=challengeObject(type,'Which symbol belongs between A and B: <, > or =?',sign,{answerSource:'compare-sign',hiddenCompareSign:true});
     }else if(type==='simplify-strip'){
       const base=[{n:1,d:2},{n:2,d:3},{n:3,d:4},{n:2,d:5}][Math.floor(Math.random()*4)],factor=2;
       const f={n:base.n*factor,d:base.d*factor};
       mode='workbench';strips=[{id:1,...f,x:24,y:24,locked:false,color:'#f6dfad'}];nextStrip=2;
-      challenge=challengeObject(type,'Simplify the fraction shown to its lowest terms.',rawFractionText(base),{hiddenStripHints:[1]});
+      challenge=challengeObject(type,'Simplify the fraction shown to its lowest terms.',rawFractionText(base),{answerSource:'strip:1:simplified',hiddenStripHints:[1]});
     }else if(type==='mixed-improper'){
       const d=[2,3,4,5][Math.floor(Math.random()*4)],whole=1+Math.floor(Math.random()*2),rem=1+Math.floor(Math.random()*(d-1)),f={n:whole*d+rem,d};
       mode='workbench';strips=[{id:1,...f,x:24,y:24,locked:false,color:'#e7d8f3'}];nextStrip=2;
-      challenge=challengeObject(type,'Write the improper fraction shown as a mixed number.',whole+' '+rem+'/'+d,{hiddenStripHints:[1]});
+      challenge=challengeObject(type,'Write the improper fraction shown as a mixed number.',whole+' '+rem+'/'+d,{answerSource:'strip:1:mixed',hiddenStripHints:[1]});
     }else{
       const small=[3,4,5,6][Math.floor(Math.random()*4)],large=Math.min(12,small*2),a={n:1,d:small},b={n:1,d:large};
       mode='workbench';strips=[
