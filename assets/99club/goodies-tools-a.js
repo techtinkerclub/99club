@@ -672,7 +672,7 @@ function fractionWall(){
     });
     const toWorkbench=q('[data-fw-to-workbench]',q('#gd-stage'));
     if(toWorkbench)toWorkbench.onclick=()=>{
-      const value=normalFraction(focus);strips.push({id:nextStrip++,n:value.n,d:value.d,x:36,y:30+strips.length*110,locked:false,color:'#d5ead2'});
+      addStrip(focus);
       switchMode('workbench');
     };
   }
