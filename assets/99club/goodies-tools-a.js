@@ -591,7 +591,70 @@ function fractionWall(){
     return s.n===value.n&&s.d===value.d?value.n+'/'+value.d:value.n+'/'+value.d+' = '+s.n+'/'+s.d;
   }
   function fractionValue(f){const v=normalFraction(f);return v.n/v.d}
+  function rawFractionText(f){const v=normalFraction(f);return v.n+'/'+v.d}
   function equivalent(a,b){return Math.abs(fractionValue(a)-fractionValue(b))<1e-10}
+  function challengeObject(type,prompt,answer,extra={}){
+    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===type);
+    const raw={mode:'standard',type,category:meta?.category||'',title:'',prompt,promptHtml:prompt,answer:String(answer??''),answerMode:'bound',answerSource:'',revealed:false,hiddenStripLabels:[],hiddenStripHints:[],hiddenFocusLabel:false,hiddenCompareSign:false,...extra};
+    return CK?CK.normalise(raw):raw;
+  }
+  function teachingSnapshot(){
+    return{focus:{...focus},compareA:{...compareA},compareB:{...compareB},mode,strips:JSON.parse(JSON.stringify(strips)),nextStrip};
+  }
+  function restoreTeachingSnapshot(value){
+    if(!value)return;
+    focus=normalFraction(value.focus,1,2);compareA=normalFraction(value.compareA,1,2);compareB=normalFraction(value.compareB,1,3);
+    mode=value.mode==='workbench'?'workbench':'wall';
+    strips=Array.isArray(value.strips)?value.strips.map(s=>({...s,...normalFraction(s),x:num(s.x,28),y:num(s.y,30),locked:!!s.locked,color:s.color||'#cbe7e2'})):[];
+    nextStrip=Math.max(1,Math.round(num(value.nextStrip,1)));
+  }
+  function challengeActiveHidden(key,id=null){
+    if(!challenge||challenge.revealed)return false;
+    if(key==='focus')return !!challenge.hiddenFocusLabel;
+    if(key==='compare')return !!challenge.hiddenCompareSign;
+    const list=key==='strip-label'?challenge.hiddenStripLabels:challenge.hiddenStripHints;
+    return Array.isArray(list)&&list.map(String).includes(String(id));
+  }
+  function customAnswerSources(){
+    const sources=[
+      {id:'focus',label:'Selected wall fraction'},
+      {id:'compare-sign',label:'A/B comparison symbol'}
+    ];
+    strips.forEach((strip,index)=>{
+      sources.push({id:'strip:'+strip.id+':fraction',label:'Strip '+(index+1)+' fraction'});
+      sources.push({id:'strip:'+strip.id+':simplified',label:'Strip '+(index+1)+' simplified fraction'});
+    });
+    return sources;
+  }
+  function resolveCustomAnswerSource(source){
+    if(source==='focus')return rawFractionText(focus);
+    if(source==='compare-sign'){
+      const av=fractionValue(compareA),bv=fractionValue(compareB);return Math.abs(av-bv)<1e-10?'=':(av>bv?'>':'<');
+    }
+    const m=String(source||'').match(/^strip:(\d+):(fraction|simplified)$/);if(!m)return'';
+    const strip=selectedStrip(m[1]);if(!strip)return'';
+    if(m[2]==='fraction')return rawFractionText(strip);
+    const s=simplify(strip.n,strip.d);return s.n+'/'+s.d;
+  }
+  function clearBoundHiding(){
+    if(!challenge)return;
+    challenge.hiddenFocusLabel=false;challenge.hiddenCompareSign=false;challenge.hiddenStripLabels=[];challenge.hiddenStripHints=[];
+  }
+  function applyBoundHiding(source){
+    clearBoundHiding();if(!challenge)return;
+    if(source==='focus')challenge.hiddenFocusLabel=true;
+    else if(source==='compare-sign')challenge.hiddenCompareSign=true;
+    else{
+      const m=String(source||'').match(/^strip:(\d+):(fraction|simplified)$/);
+      if(m&&m[2]==='fraction')challenge.hiddenStripLabels=[m[1]];
+      if(m&&m[2]==='simplified')challenge.hiddenStripHints=[m[1]];
+    }
+  }
+  function updateChallengeAnswer(){
+    if(!challenge||challenge.answerMode!=='bound'||!challenge.answerSource)return;
+    const answer=resolveCustomAnswerSource(challenge.answerSource);if(answer!=='')challenge.answer=answer;
+    const live=q('#fw-custom-live-answer');if(live)live.textContent=challenge.answer||'—';
+  }
   function readCompare(key){
     const fallback=key==='a'?compareA:compareB;
     const d=clamp(Math.round(num(q('#fw-'+key+'d')?.value,fallback.d)),1,12);
