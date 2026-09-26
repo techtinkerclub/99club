@@ -3,9 +3,24 @@
 if(!G)return;
 const {q,qa,esc,clamp,num,gcd,field,btn,setPanels}=G;
 function coordinateTool(){
-  let points=[],selected=-1,drag=null,view=null;
+  const CK=G.challengeKit;
+  let points=[],selected=-1,drag=null,view=null,fourQuadrants=false;
   const undoStack=[],redoStack=[];
   const W=600,pad=42;
+  const CHALLENGE_CATEGORIES=[
+    {id:'read',label:'Read & plot'},
+    {id:'transform',label:'Transform'},
+    {id:'reason',label:'Reasoning'}
+  ];
+  const CHALLENGE_TEMPLATES=[
+    {id:'read-coordinate',category:'read',title:'Read the coordinate',desc:'Read an unlabelled point from the grid.'},
+    {id:'plot-coordinate',category:'read',title:'Plot the point',desc:'Place a point at the given coordinate.'},
+    {id:'missing-coordinate',category:'read',title:'Missing coordinate',desc:'Find the missing x- or y-coordinate.'},
+    {id:'reflect-axis',category:'transform',title:'Reflect in an axis',desc:'Find the coordinate after reflection in the x- or y-axis.'},
+    {id:'translate-point',category:'transform',title:'Translate a point',desc:'Apply a horizontal and vertical displacement.'},
+    {id:'identify-quadrant',category:'reason',title:'Which quadrant?',desc:'Identify the quadrant containing an unlabelled point.'}
+  ];
+  let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='read-coordinate',challenge=null,beforeChallenge=null;
 
   function copyPoints(value=points){return value.map(p=>({x:p.x,y:p.y}))}
   function remember(snapshot=copyPoints()){
@@ -28,7 +43,7 @@ function coordinateTool(){
     draw();
   }
   function config(){
-    const four=!!q('#co-four')?.checked,min=four?-10:0,max=10;
+    const four=!!fourQuadrants,min=four?-10:0,max=10;
     return{four,min,max,range:max-min,step:(W-2*pad)/(max-min)};
   }
   function visible(p,c=view||config()){
@@ -49,38 +64,215 @@ function coordinateTool(){
       y:clamp(Math.round(c.max-(vy-pad)/c.step),c.min,c.max)
     };
   }
+  function pointName(index){return String.fromCharCode(65+(index%26))}
+  function rawCoordinate(p){return'('+p.x+', '+p.y+')'}
+  function hiddenPoint(index){
+    return !!(challenge&&!challenge.revealed&&Array.isArray(challenge.hiddenPointLabels)&&challenge.hiddenPointLabels.map(Number).includes(index));
+  }
+  function pointLabel(index,p){
+    if(!hiddenPoint(index))return rawCoordinate(p);
+    const overrides=challenge&&challenge.pointLabelOverrides&&typeof challenge.pointLabelOverrides==='object'?challenge.pointLabelOverrides:{};
+    return overrides[index]!=null?String(overrides[index]):pointName(index);
+  }
+  function pointAria(index,p){
+    const label=pointLabel(index,p);
+    return hiddenPoint(index)?'Point '+label+'.':'Point '+label+'.';
+  }
   function pointsText(){
-    const list=points.map(p=>'('+p.x+', '+p.y+')').join(' · ')||'none';
+    const list=points.map((p,i)=>pointLabel(i,p)).join(' · ')||'none';
     const hidden=points.filter(p=>!visible(p)).length;
     return'Points: '+list+(hidden?' · '+hidden+' outside this grid '+(hidden===1?'is':'are')+' hidden':'');
   }
+  function quadrantName(p){
+    if(!p)return'';
+    if(p.x===0&&p.y===0)return'origin';
+    if(p.x===0)return'y-axis';
+    if(p.y===0)return'x-axis';
+    if(p.x>0&&p.y>0)return'Quadrant I';
+    if(p.x<0&&p.y>0)return'Quadrant II';
+    if(p.x<0&&p.y<0)return'Quadrant III';
+    return'Quadrant IV';
+  }
+  function teachingSnapshot(){return{points:copyPoints(),selected,fourQuadrants}}
+  function restoreTeachingSnapshot(value){
+    if(!value)return;
+    points=copyPoints(Array.isArray(value.points)?value.points:[]);
+    selected=Number.isInteger(value.selected)&&value.selected>=0&&value.selected<points.length?value.selected:-1;
+    fourQuadrants=!!value.fourQuadrants;
+    undoStack.length=0;redoStack.length=0;
+  }
+  function challengeFrozen(){return !!(challenge&&challenge.mode==='standard'&&challenge.freezePoints)}
+  function resolveCustomAnswerSource(source){
+    const m=String(source||'').match(/^point:(\d+):(coords|x|y|quadrant)$/);
+    if(!m)return'';
+    const index=Number(m[1]),p=points[index];if(!p)return'';
+    if(m[2]==='coords')return rawCoordinate(p);
+    if(m[2]==='x')return String(p.x);
+    if(m[2]==='y')return String(p.y);
+    return quadrantName(p);
+  }
+  function customAnswerSources(){
+    const sources=[];
+    points.forEach((p,index)=>{
+      const name=pointName(index);
+      sources.push({id:'point:'+index+':coords',label:name+' coordinate'});
+      sources.push({id:'point:'+index+':x',label:name+' x-coordinate'});
+      sources.push({id:'point:'+index+':y',label:name+' y-coordinate'});
+      if(fourQuadrants)sources.push({id:'point:'+index+':quadrant',label:name+' quadrant / axis'});
+    });
+    return sources;
+  }
+  function clearBoundHiding(){
+    if(!challenge)return;
+    challenge.hiddenPointLabels=[];challenge.pointLabelOverrides={};
+  }
+  function applyBoundHiding(source){
+    clearBoundHiding();if(!challenge)return;
+    const m=String(source||'').match(/^point:(\d+):(coords|x|y|quadrant)$/);if(!m)return;
+    const index=Number(m[1]),p=points[index];if(!p)return;
+    challenge.hiddenPointLabels=[index];
+    if(m[2]==='x')challenge.pointLabelOverrides={[index]:'(?, '+p.y+')'};
+    else if(m[2]==='y')challenge.pointLabelOverrides={[index]:'('+p.x+', ?)'};
+    else challenge.pointLabelOverrides={[index]:pointName(index)};
+  }
+  function updateChallengeAnswer(){
+    if(!challenge||challenge.answerMode!=='bound'||!challenge.answerSource)return;
+    challenge.answer=resolveCustomAnswerSource(challenge.answerSource);
+    const live=q('#co-custom-live-answer');if(live)live.textContent=challenge.answer||'—';
+    if(challenge.revealed){
+      const shown=q('.gd-challenge-actions em',q('#gd-stage'));
+      if(shown)shown.textContent='Answer: '+challenge.answer;
+    }
+  }
+  function challengeObject(type,prompt,answer,extra={}){
+    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===type);
+    const raw={mode:'standard',type,category:meta?.category||'',title:'',prompt,promptHtml:prompt,answer:String(answer??''),answerMode:'manual',answerSource:'',revealed:false,hiddenPointLabels:[],pointLabelOverrides:{},freezePoints:false,...extra};
+    return CK?CK.normalise(raw):raw;
+  }
+  function workflowTabs(){
+    return '<div class="gd-row gd-co-workflow-tabs" role="tablist" aria-label="Coordinates workflow">'+
+      '<button class="gd-btn'+(controlTab==='explore'?' gd-btn--primary':'')+'" type="button" data-co-workflow="explore">Explore</button>'+
+      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-co-workflow="challenge">Challenge'+(challenge?' •':'')+'</button></div>';
+  }
+  function exploreControlsHtml(){
+    return field('Grid','<label class="gd-row"><input id="co-four" type="checkbox"'+(fourQuadrants?' checked':'')+'> Four quadrants (−10 to 10)</label>')+
+      '<div class="gd-row">'+btn('Undo','co-undo')+btn('Redo','co-redo')+btn('Clear points','co-clear')+'</div>'+
+      '<p class="gd-help">Tap an intersection to plot a point, then drag the point to move it. Switching grid mode does not delete your work; points outside the current grid are kept and reappear when they fit again.</p>';
+  }
+  function challengeControlsHtml(){
+    if(!CK)return '<p class="gd-help">Challenge tools are unavailable.</p>';
+    const tabs=CK.tabsHtml?CK.tabsHtml('co',challengeTab):'';
+    if(challengeTab==='custom'){
+      const custom=challenge&&challenge.mode==='custom'?challenge:CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual'});
+      return tabs+CK.editorHtml(custom,'co',{answerSources:customAnswerSources(),generatedAnswerLabel:'Keep the generated answer'})+
+        '<div class="gd-row">'+(challenge&&challenge.answer?'<button class="gd-btn" id="co-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
+        (challenge?'<button class="gd-btn" id="co-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
+        '<div class="gd-row">'+btn('Undo','co-undo')+btn('Redo','co-redo')+'</div>'+
+        '<p class="gd-help">Custom challenges stay attached to the live coordinate grid. Build the diagram first, then bind the answer to a point coordinate or one component of it if useful.</p>';
+    }
+    const picker=CK.pickerHtml(CHALLENGE_TEMPLATES,CHALLENGE_CATEGORIES,challengeCategory,challengeType,'co');
+    const repeat=!!(challenge&&challenge.mode==='standard'&&challenge.type===challengeType);
+    return tabs+picker+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="co-generate" type="button">'+(repeat?'Another like this':'Generate challenge')+'</button>'+
+      (challenge&&challenge.mode!=='custom'?'<button class="gd-btn" id="co-edit-challenge" type="button">Edit challenge</button>':'')+
+      (challenge&&challenge.answer?'<button class="gd-btn" id="co-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
+      (challenge?'<button class="gd-btn" id="co-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
+      '<div class="gd-row">'+btn('Undo','co-undo')+btn('Redo','co-redo')+'</div>';
+  }
+  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():exploreControlsHtml())}
+  function renderControls(){const panel=q('#gd-controls');if(panel)panel.innerHTML=controlsHtml();bindControls()}
+  function enterCustomChallenge(){
+    if(CK)challenge=CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''});
+    challengeTab='custom';controlTab='challenge';renderControls();draw();
+  }
+  function setCustomAnswerSource(source){
+    if(!challenge||challenge.mode!=='custom')return;
+    if(source==='manual'){
+      challenge.answerMode='manual';challenge.answerSource='';clearBoundHiding();
+    }else if(source==='generated'){
+      challenge.answerMode='bound';challenge.answerSource='';
+    }else{
+      challenge.answerMode='bound';challenge.answerSource=source;challenge.answer=resolveCustomAnswerSource(source);applyBoundHiding(source);
+    }
+    challenge.revealed=false;renderControls();draw();
+  }
+  function clearChallenge(){
+    if(beforeChallenge){restoreTeachingSnapshot(beforeChallenge);beforeChallenge=null}
+    challenge=null;challengeTab='standard';controlTab='challenge';renderControls();draw();
+  }
+  function setGeneratedPoints(next,four=false){
+    points=copyPoints(next);selected=-1;drag=null;fourQuadrants=!!four;undoStack.length=0;redoStack.length=0;
+  }
+  function nonZeroSigned(){
+    const n=1+Math.floor(Math.random()*8);
+    return Math.random()<.5?-n:n;
+  }
+  function generateChallenge(type){
+    const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
+    if(!beforeChallenge)beforeChallenge=teachingSnapshot();else restoreTeachingSnapshot(beforeChallenge);
+    const point={x:1+Math.floor(Math.random()*9),y:1+Math.floor(Math.random()*9)};
+    if(type==='read-coordinate'){
+      setGeneratedPoints([point],false);
+      challenge=challengeObject(type,'What are the coordinates of point A?',rawCoordinate(point),{hiddenPointLabels:[0],pointLabelOverrides:{0:'A'},freezePoints:true});
+    }else if(type==='plot-coordinate'){
+      setGeneratedPoints([],false);
+      challenge=challengeObject(type,'Plot point A at '+rawCoordinate(point)+'.','Point A should be at '+rawCoordinate(point)+'.',{freezePoints:false});
+    }else if(type==='missing-coordinate'){
+      setGeneratedPoints([point],false);
+      const hideX=Math.random()<.5,shown=hideX?'(?, '+point.y+')':'('+point.x+', ?)';
+      challenge=challengeObject(type,'What number is missing from the coordinate shown?',hideX?point.x:point.y,{hiddenPointLabels:[0],pointLabelOverrides:{0:shown},freezePoints:true});
+    }else if(type==='identify-quadrant'){
+      const p={x:nonZeroSigned(),y:nonZeroSigned()};
+      setGeneratedPoints([p],true);
+      challenge=challengeObject(type,'Which quadrant contains point A?',quadrantName(p),{hiddenPointLabels:[0],pointLabelOverrides:{0:'A'},freezePoints:true});
+    }else if(type==='reflect-axis'){
+      const p={x:nonZeroSigned(),y:nonZeroSigned()},axis=Math.random()<.5?'x':'y';
+      setGeneratedPoints([p],true);
+      const target=axis==='x'?{x:p.x,y:-p.y}:{x:-p.x,y:p.y};
+      challenge=challengeObject(type,'Point A is at '+rawCoordinate(p)+'. What are its coordinates after reflection in the '+axis+'-axis?',rawCoordinate(target),{freezePoints:true});
+    }else{
+      let dx=0,dy=0,target=null,guard=0;
+      do{
+        dx=[-3,-2,-1,1,2,3][Math.floor(Math.random()*6)];
+        dy=[-3,-2,-1,1,2,3][Math.floor(Math.random()*6)];
+        target={x:point.x+dx,y:point.y+dy};guard++;
+      }while((target.x<0||target.x>10||target.y<0||target.y>10)&&guard<50);
+      if(target.x<0||target.x>10||target.y<0||target.y>10){dx=1;dy=1;target={x:point.x+1,y:point.y+1}}
+      setGeneratedPoints([point],false);
+      const h=dx>0?dx+' right':Math.abs(dx)+' left',v=dy>0?dy+' up':Math.abs(dy)+' down';
+      challenge=challengeObject(type,'Point A is at '+rawCoordinate(point)+'. Translate it '+h+' and '+v+'. What are the new coordinates?',rawCoordinate(target),{freezePoints:true});
+    }
+    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';renderControls();draw();
+  }
   function updateGeometry(){
+    updateChallengeAnswer();
     qa('[data-co-point]',q('#gd-stage')).forEach(el=>{
       const i=+el.dataset.coPoint,p=points[i];if(!p||!visible(p))return;
       const v=pointPx(p);
       el.setAttribute('cx',v.x);el.setAttribute('cy',v.y);
       el.dataset.coPos=p.x+','+p.y;
       el.classList.toggle('is-selected',i===selected);
-      el.setAttribute('aria-label','Point '+p.x+', '+p.y+'. Drag to move.');
+      el.setAttribute('aria-label',pointAria(i,p)+(challengeFrozen()?' Fixed for this challenge.':' Drag to move.'));
     });
     qa('[data-co-label]',q('#gd-stage')).forEach(el=>{
       const i=+el.dataset.coLabel,p=points[i];if(!p||!visible(p))return;
       const v=pointPx(p);
       el.setAttribute('x',v.x+10);el.setAttribute('y',v.y-10);
-      el.textContent='('+p.x+', '+p.y+')';
+      el.textContent=pointLabel(i,p);
     });
     const readout=q('#co-readout');if(readout)readout.textContent=pointsText();
     const context=q('#co-context-text');
-    if(context)context.textContent=selected>=0&&points[selected]&&visible(points[selected])
-      ? 'Selected ('+points[selected].x+', '+points[selected].y+')'
-      : 'Tap the grid to plot a point. Drag an existing point to move it.';
+    if(context)context.textContent=challengeFrozen()
+      ?'The given point'+(points.length===1?' is':'s are')+' fixed for this challenge.'
+      :selected>=0&&points[selected]&&visible(points[selected])
+        ?'Selected '+pointLabel(selected,points[selected])
+        :'Tap the grid to plot a point. Drag an existing point to move it.';
     const del=q('[data-co-delete]');
-    if(del)del.hidden=!(selected>=0&&points[selected]&&visible(points[selected]));
+    if(del)del.hidden=challengeFrozen()||!(selected>=0&&points[selected]&&visible(points[selected]));
     syncControls();
   }
   function movePoint(index,x,y,withHistory=true){
     const c=view||config(),p=points[index];
-    if(!p||x<c.min||x>c.max||y<c.min||y>c.max||occupied(x,y,index)>=0)return false;
+    if(challengeFrozen()||!p||x<c.min||x>c.max||y<c.min||y>c.max||occupied(x,y,index)>=0)return false;
     if(p.x===x&&p.y===y)return false;
     if(withHistory)remember();
     points[index]={x,y};
@@ -88,7 +280,7 @@ function coordinateTool(){
     return true;
   }
   function deletePoint(index){
-    if(index<0||index>=points.length)return;
+    if(challengeFrozen()||index<0||index>=points.length)return;
     remember();
     points.splice(index,1);
     selected=-1;
@@ -101,8 +293,12 @@ function coordinateTool(){
     if(clear)clear.disabled=!points.length;
   }
   function addOrSelect(x,y){
+    if(challengeFrozen())return;
     const existing=occupied(x,y);
     if(existing>=0){selected=existing;draw();return;}
+    if(challenge&&challenge.mode==='standard'&&challenge.type==='plot-coordinate'&&points.length){
+      remember();points[0]={x,y};selected=0;draw();return;
+    }
     remember();
     points.push({x,y});
     selected=points.length-1;
@@ -117,7 +313,7 @@ function coordinateTool(){
     };
     qa('[data-co-point]',q('#gd-stage')).forEach(point=>{
       point.onpointerdown=e=>{
-        if(e.button!=null&&e.button!==0)return;
+        if(challengeFrozen()||(e.button!=null&&e.button!==0))return;
         e.stopPropagation();
         const index=+point.dataset.coPoint;
         selected=index;
@@ -146,6 +342,7 @@ function coordinateTool(){
       point.onpointerup=finish;
       point.onpointercancel=finish;
       point.onkeydown=e=>{
+        if(challengeFrozen())return;
         const index=+point.dataset.coPoint,p=points[index];if(!p)return;
         if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();deletePoint(index);return;}
         let x=p.x,y=p.y;
@@ -160,7 +357,59 @@ function coordinateTool(){
     const del=q('[data-co-delete]');
     if(del)del.onclick=()=>deletePoint(selected);
   }
+  function bindChallengeStageActions(){
+    const stage=q('#gd-stage');if(!stage||!challenge)return;
+    const reveal=q('[data-board-action="reveal"]',stage);
+    if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();draw()};
+    const another=q('[data-challenge-action="another"]',stage);
+    if(another)another.onclick=e=>{e.stopPropagation();if(challenge?.mode==='standard')generateChallenge(challenge.type)};
+  }
+  function bindControls(){
+    const controls=q('#gd-controls');if(!controls)return;
+    qa('[data-co-workflow]',controls).forEach(button=>button.onclick=()=>{
+      controlTab=button.dataset.coWorkflow==='challenge'?'challenge':'explore';renderControls();
+    });
+    const u=q('#co-undo',controls);if(u)u.onclick=undo;
+    const r=q('#co-redo',controls);if(r)r.onclick=redo;
+    const clear=q('#co-clear',controls);if(clear)clear.onclick=()=>{if(!points.length)return;remember();points=[];selected=-1;draw()};
+    if(controlTab==='explore'){
+      const four=q('#co-four',controls);if(four)four.onchange=()=>{fourQuadrants=!!four.checked;selected=-1;draw()};
+      return;
+    }
+    qa('[data-co-challenge-tab]',controls).forEach(button=>button.onclick=()=>{
+      if(button.dataset.coChallengeTab==='custom')enterCustomChallenge();else{challengeTab='standard';renderControls()}
+    });
+    qa('[data-co-challenge-cat]',controls).forEach(button=>button.onclick=()=>{
+      challengeCategory=button.dataset.coChallengeCat;
+      const first=CHALLENGE_TEMPLATES.find(t=>t.category===challengeCategory);if(first)challengeType=first.id;
+      renderControls();
+    });
+    qa('[data-co-challenge-type]',controls).forEach(button=>button.onclick=()=>{challengeType=button.dataset.coChallengeType;renderControls()});
+    const generate=q('#co-generate',controls);if(generate)generate.onclick=()=>generateChallenge(challengeType);
+    const edit=q('#co-edit-challenge',controls);if(edit)edit.onclick=enterCustomChallenge;
+    const end=q('#co-clear-challenge',controls);if(end)end.onclick=clearChallenge;
+    const reveal=q('#co-reveal',controls);if(reveal)reveal.onclick=()=>{if(!challenge)return;challenge.revealed=!challenge.revealed;renderControls();draw()};
+    qa('[data-gd-rich-action]',controls).forEach(button=>button.onclick=e=>{
+      e.preventDefault();const editor=q('#co-custom-prompt',controls);
+      if(editor&&CK&&challenge){
+        CK.applyFormat(editor,button.dataset.gdRichAction);
+        challenge.promptHtml=CK.sanitiseRichHtml(editor.innerHTML);
+        challenge.prompt=CK.plainText(challenge.promptHtml).slice(0,600);
+        draw();
+      }
+    });
+    const title=q('#co-custom-title',controls);if(title)title.oninput=()=>{if(!challenge)return;challenge.title=title.value.slice(0,100);draw()};
+    const prompt=q('#co-custom-prompt',controls);if(prompt)prompt.oninput=()=>{
+      if(!challenge||!CK)return;challenge.promptHtml=CK.sanitiseRichHtml(prompt.innerHTML);challenge.prompt=CK.plainText(challenge.promptHtml).slice(0,600);draw();
+    };
+    const source=q('#co-custom-answer-source',controls);if(source)source.onchange=()=>setCustomAnswerSource(source.value);
+    const answer=q('#co-custom-answer',controls);if(answer)answer.oninput=()=>{
+      if(!challenge)return;challenge.answer=answer.value.slice(0,400);challenge.answerMode='manual';challenge.answerSource='';
+      if(challenge.revealed)draw();
+    };
+  }
   function draw(){
+    updateChallengeAnswer();
     view=config();
     if(selected>=0&&!visible(points[selected]))selected=-1;
     let lines='',labels='';
@@ -177,34 +426,28 @@ function coordinateTool(){
     const zeroX=pad+(0-view.min)*view.step,zeroY=pad+(view.max-0)*view.step;
     const plotted=points.map((p,i)=>{
       if(!visible(p))return'';
-      const v=pointPx(p);
-      return '<circle class="gd-point gd-co-point'+(i===selected?' is-selected':'')+'" data-co-point="'+i+'" data-co-pos="'+p.x+','+p.y+'" tabindex="0" role="button" aria-label="Point '+p.x+', '+p.y+'. Drag to move." cx="'+v.x+'" cy="'+v.y+'" r="9"></circle>'+
-        '<text class="gd-co-point-label" data-co-label="'+i+'" x="'+(v.x+10)+'" y="'+(v.y-10)+'">('+p.x+', '+p.y+')</text>';
+      const v=pointPx(p),display=pointLabel(i,p);
+      return '<circle class="gd-point gd-co-point'+(i===selected?' is-selected':'')+'" data-co-point="'+i+'" data-co-pos="'+p.x+','+p.y+'" tabindex="0" role="button" aria-label="'+esc(pointAria(i,p)+(challengeFrozen()?' Fixed for this challenge.':' Drag to move.'))+'" cx="'+v.x+'" cy="'+v.y+'" r="9"></circle>'+
+        '<text class="gd-co-point-label" data-co-label="'+i+'" x="'+(v.x+10)+'" y="'+(v.y-10)+'">'+esc(display)+'</text>';
     }).join('');
-    q('#gd-stage').innerHTML='<div class="gd-vis gd-coord gd-coordinate-direct">'+
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Coordinates challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
+    q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-coord gd-coordinate-direct">'+
       '<svg id="co-svg" data-co-min="'+view.min+'" data-co-max="'+view.max+'" viewBox="0 0 '+W+' '+W+'" aria-label="Interactive coordinate grid">'+
         lines+
         '<line class="gd-axis" x1="'+zeroX+'" y1="'+pad+'" x2="'+zeroX+'" y2="'+(W-pad)+'"></line>'+
         '<line class="gd-axis" x1="'+pad+'" y1="'+zeroY+'" x2="'+(W-pad)+'" y2="'+zeroY+'"></line>'+
         labels+plotted+
       '</svg>'+
-      '<div class="gd-co-context"><span id="co-context-text">'+(selected>=0&&points[selected]?'Selected ('+points[selected].x+', '+points[selected].y+')':'Tap the grid to plot a point. Drag an existing point to move it.')+'</span><button type="button" data-co-delete'+(selected>=0&&points[selected]?'':' hidden')+'>Delete point</button></div>'+
-      '<div class="gd-readout" id="co-readout">'+pointsText()+'</div>'+
+      '<div class="gd-co-context"><span id="co-context-text">'+(challengeFrozen()?'The given point'+(points.length===1?' is':'s are')+' fixed for this challenge.':selected>=0&&points[selected]?'Selected '+esc(pointLabel(selected,points[selected])):'Tap the grid to plot a point. Drag an existing point to move it.')+'</span><button type="button" data-co-delete'+(challengeFrozen()||!(selected>=0&&points[selected])?' hidden':'')+'>Delete point</button></div>'+
+      '<div class="gd-readout" id="co-readout">'+esc(pointsText())+'</div>'+
     '</div>';
     bindStage();
+    bindChallengeStageActions();
     syncControls();
   }
 
-  setPanels(
-    field('Grid','<label class="gd-row"><input id="co-four" type="checkbox"> Four quadrants (−10 to 10)</label>')+
-    '<div class="gd-row">'+btn('Undo','co-undo')+btn('Redo','co-redo')+btn('Clear points','co-clear')+'</div>'+
-    '<p class="gd-help">Tap an intersection to plot a point, then drag the point to move it. Switching grid mode no longer deletes your work; points outside the current grid are kept and reappear when they fit again.</p>',
-    ''
-  );
-  q('#co-four').onchange=()=>{selected=-1;draw()};
-  q('#co-undo').onclick=undo;
-  q('#co-redo').onclick=redo;
-  q('#co-clear').onclick=()=>{if(!points.length)return;remember();points=[];selected=-1;draw()};
+  setPanels(controlsHtml(),'');
+  bindControls();
   draw();
 }
 
