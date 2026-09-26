@@ -1009,10 +1009,10 @@ if(mode==='prepare'){
     document.querySelector('[data-me-challenge-type="place-mark"]').click();
     document.getElementById('me-generate').click();
     assert([...document.querySelectorAll('.gd-fdp-value strong')].every(x=>x.textContent.trim()==='?'),'Place-the-mark challenge hides the live numeric readouts');
-    const prompt=document.querySelector('.gd-challenge-prompt').textContent;
-    const targetMatch=prompt.match(/to\s+([0-9.]+)\s*cm/i);
-    assert(targetMatch,'Place-the-mark challenge states a numeric centimetre target');
-    const targetValue=Number(targetMatch[1]),targetPoint=rulerClient(targetValue);
+    const targetValue=Number(document.getElementById('me-ruler').dataset.meTargetCm);
+    assert(Number.isFinite(targetValue),'Place-the-mark challenge exposes a numeric centimetre target');
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes(targetValue+' cm'),'Place-the-mark pupil prompt states the same target');
+    const targetPoint=rulerClient(targetValue);
     pointer(targetPoint.ruler,'pointerdown',targetPoint.x,targetPoint.y,83);
     pointer(targetPoint.ruler,'pointerup',targetPoint.x,targetPoint.y,83);
     assert(Number(document.getElementById('me-marker').getAttribute('aria-valuenow'))===targetValue,'Place-the-mark challenge keeps direct ruler interaction active');
