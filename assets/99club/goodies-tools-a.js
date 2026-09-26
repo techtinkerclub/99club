@@ -637,7 +637,9 @@ function fractionWall(){
     if(m[2]==='fraction')return rawFractionText(strip);
     if(m[2]==='mixed'){
       const whole=Math.floor(strip.n/strip.d),rem=strip.n%strip.d;
-      return rem?(whole?whole+' '+rem+'/'+strip.d:rem+'/'+strip.d):String(whole);
+      if(!rem)return String(whole);
+      const part=simplify(rem,strip.d),tail=part.n+'/'+part.d;
+      return whole?whole+' '+tail:tail;
     }
     const s=simplify(strip.n,strip.d);return s.n+'/'+s.d;
   }
@@ -866,7 +868,7 @@ function fractionWall(){
     const selected=String(strip.id)===String(selectedId),selectedObj=selectedStrip(selectedId),same=selectedObj&&String(selectedObj.id)!==String(strip.id)&&equivalent(strip,selectedObj);
     const simple=simplify(strip.n,strip.d),canSimplify=simple.n!==strip.n||simple.d!==strip.d;
     const hideLabel=challengeActiveHidden('strip-label',strip.id),hideHint=challengeActiveHidden('strip-hint',strip.id);
-    const label=hideLabel?'?':strip.n+'/'+strip.d,secondary=hideLabel?'':fractionText(strip);
+    const label=hideLabel?'?':strip.n+'/'+strip.d,secondary=hideLabel||hideHint?'':fractionText(strip);
     const hint=hideHint?'Work it out':(canSimplify?'Can simplify to '+simple.n+'/'+simple.d:'Value '+Number(fractionValue(strip).toFixed(4)));
     return '<div class="gd-fr-strip-object'+(selected?' is-selected':'')+(same?' is-equivalent':'')+(strip.locked?' is-locked':'')+'" data-gd-object="'+strip.id+'" role="button" tabindex="0" aria-selected="'+(selected?'true':'false')+'" aria-label="Fraction strip'+(hideLabel?' with hidden value':' '+strip.n+'/'+strip.d)+(strip.locked?', locked':'')+'" style="left:'+strip.x+'px;top:'+strip.y+'px;--fr-strip:'+strip.color+'">'+
       '<div class="gd-fr-strip-head"><strong>'+label+'</strong><span>'+secondary+'</span>'+(same?'<em>same value</em>':'')+(strip.locked?'<b aria-hidden="true">⌑</b>':'')+'</div>'+
