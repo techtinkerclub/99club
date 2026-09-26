@@ -1129,7 +1129,7 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=abOldBuildDownload;
     assert(abBuildSvg.querySelector('[data-ab-export-build-grid="12x12"]'),'Build-array pupil card contains a printable 12 × 12 construction scaffold');
     assert(abBuildSvg.querySelectorAll('[data-ab-export-grid-line]').length===22,'Build-array pupil scaffold renders the internal 12 × 12 grid efficiently');
-    assert(!abBuildSvg.querySelector('[data-ab-export-dot]'),'Build-array pupil export does not include the teacher\'s tested attempt');
+    assert(!abBuildSvg.querySelector('[data-ab-export-dot]'),'Build-array pupil export does not include the teacher\\'s tested attempt');
     assert(abBuildSvg.textContent.includes('Build an array with'),'Build-array pupil card keeps the target instruction');
 
     document.querySelector('[data-ab-workflow="challenge"]').click();
