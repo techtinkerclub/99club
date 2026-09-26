@@ -606,7 +606,7 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=(svg)=>{fwChallengeSvg=svg.cloneNode(true)};
     document.getElementById('fw-svg-download').click();
     TT99Goodies.exportTools.downloadSvg=fwOldChallengeDownload;
-    assert(fwChallengeSvg&&fwChallengeSvg.querySelector('[data-fw-export="strips"]'),'Fractions challenge card embeds the vector strip model');
+    assert(fwChallengeSvg&&fwChallengeSvg.querySelector('[data-fw-export-strip]'),'Fractions challenge card embeds the vector strip model');
     assert(!fwChallengeSvg.textContent.includes('Answer:'),'Fractions pupil challenge export never includes a revealed answer label');
     assert([...fwChallengeSvg.querySelectorAll('text')].some(x=>x.textContent.trim()==='?'),'Fractions pupil export re-hides the target strip after teacher reveal');
     assert(fwChallengeSvg.textContent.includes('What fraction is represented'),'Fractions challenge-card export includes the pupil prompt');
