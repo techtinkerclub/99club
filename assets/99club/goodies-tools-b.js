@@ -3,7 +3,7 @@
 if(!G)return;
 const {q,qa,esc,clamp,num,gcd,field,btn,setPanels}=G;
 function coordinateTool(){
-  const CK=G.challengeKit;
+  const CK=G.challengeKit,X=G.exportTools;
   let points=[],selected=-1,drag=null,view=null,fourQuadrants=false;
   const undoStack=[],redoStack=[];
   const W=600,pad=42;
@@ -21,6 +21,7 @@ function coordinateTool(){
     {id:'identify-quadrant',category:'reason',title:'Which quadrant?',desc:'Identify the quadrant containing an unlabelled point.'}
   ];
   let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='read-coordinate',challenge=null,beforeChallenge=null;
+  let exportMode='diagram',responseLines=1,exportStatus='';
 
   function copyPoints(value=points){return value.map(p=>({x:p.x,y:p.y}))}
   function remember(snapshot=copyPoints()){
@@ -152,7 +153,8 @@ function coordinateTool(){
   function workflowTabs(){
     return '<div class="gd-row gd-co-workflow-tabs" role="tablist" aria-label="Coordinates workflow">'+
       '<button class="gd-btn'+(controlTab==='explore'?' gd-btn--primary':'')+'" type="button" data-co-workflow="explore">Explore</button>'+
-      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-co-workflow="challenge">Challenge'+(challenge?' •':'')+'</button></div>';
+      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-co-workflow="challenge">Challenge'+(challenge?' •':'')+'</button>'+
+      '<button class="gd-btn'+(controlTab==='export'?' gd-btn--primary':'')+'" type="button" data-co-workflow="export">Export / reuse</button></div>';
   }
   function exploreControlsHtml(){
     return field('Grid','<label class="gd-row"><input id="co-four" type="checkbox"'+(fourQuadrants?' checked':'')+'> Four quadrants (−10 to 10)</label>')+
@@ -178,11 +180,108 @@ function coordinateTool(){
       (challenge?'<button class="gd-btn" id="co-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
       '<div class="gd-row">'+btn('Undo','co-undo')+btn('Redo','co-redo')+'</div>';
   }
-  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():exploreControlsHtml())}
+  function exportControlsHtml(){
+    const canCard=!!challenge;
+    if(!canCard&&exportMode==='challenge')exportMode='diagram';
+    return '<div class="nl-panel-title"><div><strong>Use it elsewhere</strong><span>Export a clean vector coordinate grid or a pupil-ready challenge card.</span></div></div>'+
+      (canCard?'<div class="nl-export-mode co-export-mode" role="tablist" aria-label="Export content">'+
+        '<button type="button" class="'+(exportMode==='challenge'?'is-active':'')+'" data-co-export-mode="challenge">Challenge card</button>'+
+        '<button type="button" class="'+(exportMode==='diagram'?'is-active':'')+'" data-co-export-mode="diagram">Grid only</button></div>':'')+
+      (canCard&&exportMode==='challenge'
+        ?'<label class="gd-field"><span>Answer space</span><select class="gd-select" id="co-response-lines">'+
+          [1,2,3,4].map(n=>'<option value="'+n+'"'+(responseLines===n?' selected':'')+'>'+n+' line'+(n===1?'':'s')+'</option>').join('')+
+          '</select></label><p class="gd-help">The pupil card contains the question, coordinate grid and blank answer space. Hidden coordinates stay hidden even after Reveal answer.</p>'
+        :'<p class="gd-help">Grid-only export contains the current axes, plotted points, labels and visible readout without editing controls.</p>')+
+      '<div class="nl-export-grid co-export-grid">'+
+        '<button class="gd-btn gd-btn--primary" id="co-copy-image" type="button">Copy '+(canCard&&exportMode==='challenge'?'challenge':'image')+'</button>'+
+        '<button class="gd-btn" id="co-png" type="button">PNG</button>'+
+        '<button class="gd-btn" id="co-svg-download" type="button">SVG</button>'+
+        '<button class="gd-btn" id="co-print" type="button">Print / PDF</button>'+
+      '</div><p class="gd-help" id="co-export-status" role="status" aria-live="polite">'+exportStatus+'</p>';
+  }
+  function coSvgEl(name,attrs={},text=''){
+    const el=document.createElementNS('http://www.w3.org/2000/svg',name);
+    Object.entries(attrs).forEach(([key,value])=>el.setAttribute(key,String(value)));
+    if(text!==''&&text!=null)el.textContent=String(text);
+    return el;
+  }
+  function exportPointHidden(index,pupil=false){
+    if(!challenge)return false;
+    if(!pupil)return hiddenPoint(index);
+    return Array.isArray(challenge.hiddenPointLabels)&&challenge.hiddenPointLabels.map(Number).includes(index);
+  }
+  function exportPointLabel(index,p,pupil=false){
+    if(!exportPointHidden(index,pupil))return rawCoordinate(p);
+    const overrides=challenge&&challenge.pointLabelOverrides&&typeof challenge.pointLabelOverrides==='object'?challenge.pointLabelOverrides:{};
+    return overrides[index]!=null?String(overrides[index]):pointName(index);
+  }
+  function exportPointSet(pupil=false){
+    if(pupil&&challenge?.mode==='standard'&&challenge.type==='plot-coordinate')return [];
+    return points;
+  }
+  function coordinateExportSvg({pupil=false}={}){
+    const c=config(),width=800,height=830,gridX=92,gridY=70,gridSize=620,gridStep=gridSize/c.range,labelEvery=c.four?2:1;
+    const exportPts=exportPointSet(pupil);
+    const svg=coSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Coordinate grid','data-co-export':'grid'});
+    svg.appendChild(coSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
+    svg.appendChild(coSvgEl('rect',{x:48,y:34,width:704,height:720,rx:18,fill:'#fbfcfc',stroke:'#c5d3d6','stroke-width':2,'data-co-export-board':'1'}));
+    for(let v=c.min;v<=c.max;v++){
+      const x=gridX+(v-c.min)*gridStep,y=gridY+(c.max-v)*gridStep;
+      svg.appendChild(coSvgEl('line',{x1:x,y1:gridY,x2:x,y2:gridY+gridSize,stroke:'#d9e2e4','stroke-width':1}));
+      svg.appendChild(coSvgEl('line',{x1:gridX,y1:y,x2:gridX+gridSize,y2:y,stroke:'#d9e2e4','stroke-width':1}));
+      if(v%labelEvery===0){
+        svg.appendChild(coSvgEl('text',{x,y:gridY+gridSize+24,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':11,fill:'#65787e'},v));
+        svg.appendChild(coSvgEl('text',{x:gridX-14,y:y+4,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':11,fill:'#65787e'},v));
+      }
+    }
+    const zeroX=gridX+(0-c.min)*gridStep,zeroY=gridY+(c.max-0)*gridStep;
+    svg.appendChild(coSvgEl('line',{x1:zeroX,y1:gridY,x2:zeroX,y2:gridY+gridSize,stroke:'#526970','stroke-width':2.5}));
+    svg.appendChild(coSvgEl('line',{x1:gridX,y1:zeroY,x2:gridX+gridSize,y2:zeroY,stroke:'#526970','stroke-width':2.5}));
+    exportPts.forEach((p,index)=>{
+      if(!visible(p,c))return;
+      const x=gridX+(p.x-c.min)*gridStep,y=gridY+(c.max-p.y)*gridStep,label=exportPointLabel(index,p,pupil);
+      svg.appendChild(coSvgEl('circle',{cx:x,cy:y,r:9,fill:'#ffffff',stroke:'#2f6f68','stroke-width':4,'data-co-export-point':index}));
+      svg.appendChild(coSvgEl('text',{x:x+13,y:y-12,'font-family':'Arial,sans-serif','font-size':14,'font-weight':800,fill:'#334a52'},label));
+    });
+    const labels=exportPts.map((p,index)=>exportPointLabel(index,p,pupil)).join(' · ')||'none';
+    const outside=exportPts.filter(p=>!visible(p,c)).length;
+    const readout='Points: '+labels+(outside?' · '+outside+' outside this grid '+(outside===1?'is':'are')+' hidden':'');
+    svg.appendChild(coSvgEl('text',{x:width/2,y:785,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':16,'font-weight':700,fill:'#425b62'},readout));
+    svg.appendChild(coSvgEl('text',{x:width-52,y:height-18,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':10,fill:'#87969a'},'99 Club Studio'));
+    return svg;
+  }
+  function exportTargetSvg(){
+    if(exportMode!=='challenge'||!challenge||!X?.composeChallengeCardSvg)return coordinateExportSvg({pupil:false});
+    const prompt=CK?CK.plainText(challenge.promptHtml||challenge.prompt||''):challenge.prompt||'';
+    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
+    return X.composeChallengeCardSvg(coordinateExportSvg({pupil:true}),{
+      title:challenge.title||meta?.title||'Coordinates challenge',
+      prompt,
+      responseLabel:challenge.category==='reason'?'Explain your thinking':'Answer',
+      responseLines,
+      brand:'99 Club Studio'
+    });
+  }
+  function exportName(){
+    const meta=challenge&&CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
+    return exportMode==='challenge'&&challenge?(challenge.title||meta?.title||'coordinates-challenge'):(fourQuadrants?'coordinate-grid-four-quadrants':'coordinate-grid');
+  }
+  function exportMessage(text){exportStatus=text;const el=q('#co-export-status');if(el)el.textContent=text}
+  async function exportAction(kind){
+    try{
+      if(!X)throw new Error('Export tools are not available.');
+      const target=exportTargetSvg(),isCard=exportMode==='challenge'&&!!challenge,name=exportName();
+      if(kind==='copy'){await X.copyPng(target);exportMessage(isCard?'Challenge copied — paste it into your worksheet, slide or document.':'Coordinate grid copied — paste it into your slide or document.')}
+      if(kind==='png'){await X.downloadPng(target,name,2);exportMessage(isCard?'Challenge PNG downloaded.':'Coordinate-grid PNG downloaded.')}
+      if(kind==='svg'){X.downloadSvg(target,name);exportMessage(isCard?'Challenge SVG downloaded.':'Coordinate-grid SVG downloaded.')}
+      if(kind==='print'){X.printSvg(target,{title:'',landscape:false});exportMessage('Print view opened. Choose “Save as PDF” in the print dialog.')}
+    }catch(err){exportMessage(err?.message||'That export did not work.')}
+  }
+  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():controlTab==='export'?exportControlsHtml():exploreControlsHtml())}
   function renderControls(){const panel=q('#gd-controls');if(panel)panel.innerHTML=controlsHtml();bindControls()}
   function enterCustomChallenge(){
     if(CK)challenge=CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''});
-    challengeTab='custom';controlTab='challenge';renderControls();draw();
+    challengeTab='custom';controlTab='challenge';exportMode='challenge';exportStatus='';renderControls();draw();
   }
   function setCustomAnswerSource(source){
     if(!challenge||challenge.mode!=='custom')return;
@@ -241,7 +340,8 @@ function coordinateTool(){
       const h=dx>0?dx+' right':Math.abs(dx)+' left',v=dy>0?dy+' up':Math.abs(dy)+' down';
       challenge=challengeObject(type,'Point A is at '+rawCoordinate(point)+'. Translate it '+h+' and '+v+'. What are the new coordinates?',rawCoordinate(target),{freezePoints:true});
     }
-    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';renderControls();draw();
+    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';
+    exportMode='challenge';responseLines=template.category==='reason'?2:1;exportStatus='';renderControls();draw();
   }
   function updateGeometry(){
     updateChallengeAnswer();
@@ -367,8 +467,22 @@ function coordinateTool(){
   function bindControls(){
     const controls=q('#gd-controls');if(!controls)return;
     qa('[data-co-workflow]',controls).forEach(button=>button.onclick=()=>{
-      controlTab=button.dataset.coWorkflow==='challenge'?'challenge':'explore';renderControls();
+      const next=button.dataset.coWorkflow;
+      controlTab=next==='challenge'?'challenge':next==='export'?'export':'explore';renderControls();
     });
+    if(controlTab==='export'){
+      qa('[data-co-export-mode]',controls).forEach(button=>button.onclick=()=>{
+        exportMode=button.dataset.coExportMode==='challenge'&&challenge?'challenge':'diagram';exportStatus='';renderControls();
+      });
+      const response=q('#co-response-lines',controls);if(response)response.onchange=()=>{
+        responseLines=clamp(Math.round(num(response.value,1)),1,4);renderControls();
+      };
+      const copyImage=q('#co-copy-image',controls);if(copyImage)copyImage.onclick=()=>exportAction('copy');
+      const png=q('#co-png',controls);if(png)png.onclick=()=>exportAction('png');
+      const svgDownload=q('#co-svg-download',controls);if(svgDownload)svgDownload.onclick=()=>exportAction('svg');
+      const print=q('#co-print',controls);if(print)print.onclick=()=>exportAction('print');
+      return;
+    }
     const u=q('#co-undo',controls);if(u)u.onclick=undo;
     const r=q('#co-redo',controls);if(r)r.onclick=redo;
     const clear=q('#co-clear',controls);if(clear)clear.onclick=()=>{if(!points.length)return;remember();points=[];selected=-1;draw()};

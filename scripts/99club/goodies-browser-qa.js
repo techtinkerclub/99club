@@ -852,6 +852,18 @@ if(mode==='prepare'){
     assert(document.querySelectorAll('[data-co-point]').length===3,'Negative point reappears when four quadrants return');
     assert(document.querySelector('[data-co-pos="-3,-2"]'),'Quadrant switching preserves the negative point data');
 
+    document.querySelector('[data-co-workflow="export"]').click();
+    assert(document.getElementById('co-copy-image')&&document.getElementById('co-png')&&document.getElementById('co-svg-download')&&document.getElementById('co-print'),'Coordinates export exposes copy, PNG, SVG and Print/PDF actions');
+    let coCapturedSvg=null,coCapturedName='';
+    const coOldDownloadSvg=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg,name)=>{coCapturedSvg=svg.cloneNode(true);coCapturedName=name};
+    document.getElementById('co-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=coOldDownloadSvg;
+    assert(coCapturedSvg&&coCapturedSvg.dataset.coExport==='grid','Coordinates board-only export is a deterministic SVG grid');
+    assert(coCapturedSvg.querySelectorAll('[data-co-export-point]').length===3,'Coordinates SVG export preserves all visible four-quadrant points');
+    assert(coCapturedSvg.textContent.includes('(-3, -2)'),'Coordinates SVG export preserves negative coordinates');
+    assert(coCapturedName.includes('four-quadrants'),'Coordinates four-quadrant export has a reusable filename');
+
     document.querySelector('[data-co-workflow="challenge"]').click();
     assert(document.querySelector('[data-co-challenge-tab="standard"]')&&document.querySelector('[data-co-challenge-tab="custom"]'),'Coordinates uses the shared Standard / Custom challenge tabs');
     assert(document.querySelector('[data-co-challenge-type="read-coordinate"]'),'Read-coordinate challenge is available');
@@ -878,6 +890,18 @@ if(mode==='prepare'){
     assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer:'),'Coordinates challenge reveals its answer contextually');
     assert(document.querySelector('[data-co-label="0"]').textContent.trim().includes('('),'Reveal restores the hidden coordinate label');
 
+    document.querySelector('[data-co-workflow="export"]').click();
+    assert(document.querySelector('[data-co-export-mode="challenge"]'),'Active Coordinates challenge offers Challenge card export');
+    let coChallengeSvg=null;
+    const coOldChallengeDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{coChallengeSvg=svg.cloneNode(true)};
+    document.getElementById('co-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=coOldChallengeDownload;
+    assert(coChallengeSvg&&coChallengeSvg.querySelector('[data-co-export-board]'),'Coordinates challenge card embeds the vector grid');
+    assert(!coChallengeSvg.textContent.includes('Answer:'),'Coordinates pupil challenge export never includes a revealed answer label');
+    assert(coChallengeSvg.textContent.includes('Points: A'),'Coordinates pupil export re-hides the coordinate after teacher reveal');
+    assert(coChallengeSvg.textContent.includes('What are the coordinates of point A?'),'Coordinates challenge-card export includes the pupil prompt');
+
     document.querySelector('[data-co-workflow="challenge"]').click();
     document.querySelector('[data-co-challenge-cat="read"]').click();
     document.querySelector('[data-co-challenge-type="missing-coordinate"]').click();
@@ -892,6 +916,15 @@ if(mode==='prepare'){
     assert(document.querySelectorAll('[data-co-point]').length===1,'Plot-coordinate challenge lets the pupil place a point directly');
     clickCoord(5,6);
     assert(document.querySelectorAll('[data-co-point]').length===1&&document.querySelector('[data-co-pos="5,6"]'),'Plot-coordinate challenge keeps one movable pupil point rather than accumulating guesses');
+
+    document.querySelector('[data-co-workflow="export"]').click();
+    let coPlotSvg=null;
+    const coOldPlotDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{coPlotSvg=svg.cloneNode(true)};
+    document.getElementById('co-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=coOldPlotDownload;
+    assert(coPlotSvg&&!coPlotSvg.querySelector('[data-co-export-point]'),'Plot-coordinate pupil card exports a blank grid even after the teacher tested a point');
+    assert(coPlotSvg.textContent.includes('Plot point A at'),'Plot-coordinate pupil card keeps the target instruction');
 
     document.querySelector('[data-co-workflow="challenge"]').click();
     document.querySelector('[data-co-challenge-cat="transform"]').click();
