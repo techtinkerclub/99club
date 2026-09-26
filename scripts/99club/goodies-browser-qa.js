@@ -969,7 +969,7 @@ if(mode==='prepare'){
 
     function rulerClient(value){
       const ruler=document.getElementById('me-ruler'),r=ruler.getBoundingClientRect();
-      return{ruler,x:r.left+clamp(value/30,0,1)*r.width,y:r.top+r.height/2};
+      return{ruler,x:r.left+Math.max(0,Math.min(1,value/30))*r.width,y:r.top+r.height/2};
     }
     let marker=document.getElementById('me-marker');
     assert(marker&&marker.getAttribute('aria-valuenow')==='12.3','Measurement ruler starts at the expected marker value');
