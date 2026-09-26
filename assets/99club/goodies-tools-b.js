@@ -819,7 +819,7 @@ function measurementTool(){
       ?'<div class="gd-answer-live" id="me-target-status">'+(Math.abs(cm-Number(challenge.targetCm))<.05?'On target ✓':'')+'</div>'
       :'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-measurement-direct">'+
-      '<div class="gd-ruler'+(markerFrozen()?' is-frozen':' is-interactive')+'" id="me-ruler" aria-label="30 centimetre ruler">'+ticks+
+      '<div class="gd-ruler'+(markerFrozen()?' is-frozen':' is-interactive')+'" id="me-ruler" data-me-target-cm="'+(challenge?.mode==='standard'&&challenge.type==='place-mark'?challenge.targetCm:'')+'" aria-label="30 centimetre ruler">'+ticks+
         secondaryMarker+
         '<span class="gd-ruler-marker is-interactive'+(markerFrozen()?' is-frozen':'')+'" id="me-marker" role="slider" tabindex="0" aria-valuemin="0" aria-valuemax="30" aria-valuenow="'+cm.toFixed(1)+'" aria-valuetext="'+cmText()+' centimetres" style="left:'+(cm/30*100)+'%">'+
           (mainLabel?'<span class="gd-ruler-marker-label">'+mainLabel+'</span>':'')+
