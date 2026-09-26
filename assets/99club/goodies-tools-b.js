@@ -227,7 +227,7 @@ function fdpExplorer(){function draw(){let d=clamp(Math.round(num(q('#fd-d').val
 setPanels(`${field('Numerator','<input class="gd-input" id="fd-n" type="range" min="0" max="8" value="3">')}${field('Denominator','<input class="gd-input" id="fd-d" type="range" min="1" max="20" value="8">')}<p class="gd-help">The hundred square rounds to the nearest whole percent when the fraction does not map exactly to 100 cells.</p>`,'');q('#fd-n').oninput=draw;q('#fd-d').oninput=draw;draw()}
 
 function geoboard(){
-  const CK=G.challengeKit;
+  const CK=G.challengeKit,X=G.exportTools;
   let pts=[],selected=-1,drag=null;
   const undoStack=[],redoStack=[];
   const N=7,W=560,pad=55,step=(W-2*pad)/(N-1);
@@ -245,6 +245,7 @@ function geoboard(){
     {id:'area-perimeter-units',category:'reason',title:'Same number, same measure?',desc:'Reason about area and perimeter when their numerical values match.'}
   ];
   let controlTab='explore',challengeTab='standard',challengeCategory='measure',challengeType='find-length',challenge=null,beforeChallenge=null;
+  let exportMode='diagram',responseLines=1,exportStatus='';
 
   function copyPts(value=pts){return value.map(p=>({x:p.x,y:p.y}))}
   function remember(snapshot=copyPts()){
@@ -338,7 +339,8 @@ function geoboard(){
   function workflowTabs(){
     return '<div class="gd-row gd-ge-workflow-tabs" role="tablist" aria-label="Geoboard workflow">'+
       '<button class="gd-btn'+(controlTab==='explore'?' gd-btn--primary':'')+'" type="button" data-ge-workflow="explore">Explore</button>'+
-      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-ge-workflow="challenge">Challenge'+(challenge?' •':'')+'</button></div>';
+      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-ge-workflow="challenge">Challenge'+(challenge?' •':'')+'</button>'+
+      '<button class="gd-btn'+(controlTab==='export'?' gd-btn--primary':'')+'" type="button" data-ge-workflow="export">Export / reuse</button></div>';
   }
   function exploreControlsHtml(){
     return '<div class="gd-row">'+btn('Undo','ge-undo')+btn('Redo','ge-redo')+btn('Clear shape','ge-clear')+'</div>'+
@@ -363,11 +365,101 @@ function geoboard(){
       (challenge?'<button class="gd-btn" id="ge-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
       '<div class="gd-row">'+btn('Undo','ge-undo')+btn('Redo','ge-redo')+'</div>';
   }
-  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():exploreControlsHtml())}
+  function exportControlsHtml(){
+    const canCard=!!challenge;
+    if(!canCard&&exportMode==='challenge')exportMode='diagram';
+    return '<div class="nl-panel-title"><div><strong>Use it elsewhere</strong><span>Export a clean vector geoboard or a pupil-ready challenge card.</span></div></div>'+
+      (canCard?'<div class="nl-export-mode ge-export-mode" role="tablist" aria-label="Export content">'+
+        '<button type="button" class="'+(exportMode==='challenge'?'is-active':'')+'" data-ge-export-mode="challenge">Challenge card</button>'+
+        '<button type="button" class="'+(exportMode==='diagram'?'is-active':'')+'" data-ge-export-mode="diagram">Board only</button></div>':'')+
+      (canCard&&exportMode==='challenge'
+        ?'<label class="gd-field"><span>Answer space</span><select class="gd-select" id="ge-response-lines">'+
+          [1,2,3,4].map(n=>'<option value="'+n+'"'+(responseLines===n?' selected':'')+'>'+n+' line'+(n===1?'':'s')+'</option>').join('')+
+          '</select></label><p class="gd-help">The pupil card contains the question, geoboard and blank answer space. Revealed measurements are automatically hidden again.</p>'
+        :'<p class="gd-help">Board-only export contains the peg grid, current shape, vertex labels and visible measurements without editing controls.</p>')+
+      '<div class="nl-export-grid ge-export-grid">'+
+        '<button class="gd-btn gd-btn--primary" id="ge-copy-image" type="button">Copy '+(canCard&&exportMode==='challenge'?'challenge':'image')+'</button>'+
+        '<button class="gd-btn" id="ge-png" type="button">PNG</button>'+
+        '<button class="gd-btn" id="ge-svg-download" type="button">SVG</button>'+
+        '<button class="gd-btn" id="ge-print" type="button">Print / PDF</button>'+
+      '</div><p class="gd-help" id="ge-export-status" role="status" aria-live="polite">'+exportStatus+'</p>';
+  }
+  function geSvgEl(name,attrs={},text=''){
+    const el=document.createElementNS('http://www.w3.org/2000/svg',name);
+    Object.entries(attrs).forEach(([key,value])=>el.setAttribute(key,String(value)));
+    if(text!==''&&text!=null)el.textContent=String(text);
+    return el;
+  }
+  function exportMetricHidden(kind,pupil=false){
+    if(!challenge)return false;
+    if(!pupil)return metricHidden(kind);
+    return Array.isArray(challenge.hiddenMetrics)&&challenge.hiddenMetrics.includes(kind);
+  }
+  function geoboardExportSvg({pupil=false}={}){
+    const width=760,height=760,gridPad=82,gridW=596,gridStep=gridW/(N-1),readY=690;
+    const svg=geSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Geoboard','data-ge-export':'board'});
+    svg.appendChild(geSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
+    svg.appendChild(geSvgEl('rect',{x:40,y:38,width:680,height:650,rx:18,fill:'#f8fbfb',stroke:'#c5d3d6','stroke-width':2,'data-ge-export-board':'1'}));
+    function px(p){return{x:gridPad+p.x*gridStep,y:gridPad+(N-1-p.y)*gridStep}}
+    for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+      const v=px({x,y});
+      svg.appendChild(geSvgEl('circle',{cx:v.x,cy:v.y,r:5.5,fill:'#82979b'}));
+    }
+    if(pts.length){
+      const coords=pts.map(p=>{const v=px(p);return v.x+','+v.y});
+      if(pts.length>2)coords.push(coords[0]);
+      svg.appendChild(geSvgEl('polyline',{points:coords.join(' '),fill:pts.length>2?'#cbe7e2':'none','fill-opacity':pts.length>2?.32:0,stroke:'#2f6f68','stroke-width':4,'stroke-linejoin':'round','stroke-linecap':'round','data-ge-export-shape':'1'}));
+    }
+    pts.forEach((p,i)=>{
+      const v=px(p),label=String.fromCharCode(65+i);
+      svg.appendChild(geSvgEl('circle',{cx:v.x,cy:v.y,r:10,fill:'#ffffff',stroke:'#2f6f68','stroke-width':4}));
+      svg.appendChild(geSvgEl('text',{x:v.x+15,y:v.y-13,'font-family':'Arial,sans-serif','font-size':16,'font-weight':800,fill:'#344d54'},label));
+    });
+    const parts=[];
+    const vertexText=exportMetricHidden('vertices',pupil)?'?':String(pts.length);
+    parts.push('Vertices: '+vertexText);
+    if(pts.length===2){
+      parts.push('Length ≈ '+(exportMetricHidden('length',pupil)?'?':segmentLength().toFixed(2)+' units'));
+    }else if(pts.length>=3){
+      parts.push('Perimeter ≈ '+(exportMetricHidden('perimeter',pupil)?'?':perimeter().toFixed(2)+' units'));
+      parts.push('Area = '+(exportMetricHidden('area',pupil)?'?':area().toFixed(2)+' square units'));
+    }
+    svg.appendChild(geSvgEl('text',{x:width/2,y:readY,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':17,'font-weight':700,fill:'#425b62'},parts.join('   ·   ')));
+    svg.appendChild(geSvgEl('text',{x:width-48,y:height-20,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':10,fill:'#87969a'},'99 Club Studio'));
+    return svg;
+  }
+  function exportTargetSvg(){
+    if(exportMode!=='challenge'||!challenge||!X?.composeChallengeCardSvg)return geoboardExportSvg({pupil:false});
+    const prompt=CK?CK.plainText(challenge.promptHtml||challenge.prompt||''):challenge.prompt||'';
+    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
+    return X.composeChallengeCardSvg(geoboardExportSvg({pupil:true}),{
+      title:challenge.title||meta?.title||'Geoboard challenge',
+      prompt,
+      responseLabel:challenge.category==='reason'?'Explain your thinking':'Answer',
+      responseLines,
+      brand:'99 Club Studio'
+    });
+  }
+  function exportName(){
+    const meta=challenge&&CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
+    return exportMode==='challenge'&&challenge?(challenge.title||meta?.title||'geoboard-challenge'):'geoboard-shape';
+  }
+  function exportMessage(text){exportStatus=text;const el=q('#ge-export-status');if(el)el.textContent=text}
+  async function exportAction(kind){
+    try{
+      if(!X)throw new Error('Export tools are not available.');
+      const target=exportTargetSvg(),isCard=exportMode==='challenge'&&!!challenge,name=exportName();
+      if(kind==='copy'){await X.copyPng(target);exportMessage(isCard?'Challenge copied — paste it into your worksheet, slide or document.':'Geoboard image copied — paste it into your slide or document.')}
+      if(kind==='png'){await X.downloadPng(target,name,2);exportMessage(isCard?'Challenge PNG downloaded.':'Geoboard PNG downloaded.')}
+      if(kind==='svg'){X.downloadSvg(target,name);exportMessage(isCard?'Challenge SVG downloaded.':'Geoboard SVG downloaded.')}
+      if(kind==='print'){X.printSvg(target,{title:'',landscape:false});exportMessage('Print view opened. Choose “Save as PDF” in the print dialog.')}
+    }catch(err){exportMessage(err?.message||'That export did not work.')}
+  }
+  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():controlTab==='export'?exportControlsHtml():exploreControlsHtml())}
   function renderControls(){const panel=q('#gd-controls');if(panel)panel.innerHTML=controlsHtml();bindControls()}
   function enterCustomChallenge(){
     if(CK)challenge=CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''});
-    challengeTab='custom';controlTab='challenge';renderControls();draw();
+    challengeTab='custom';controlTab='challenge';exportMode='challenge';exportStatus='';renderControls();draw();
   }
   function setCustomAnswerSource(source){
     if(!challenge||challenge.mode!=='custom')return;
@@ -425,7 +517,8 @@ function geoboard(){
       setGeneratedShape([{x:1,y:1},{x:5,y:1},{x:5,y:5},{x:1,y:5}]);
       challenge=challengeObject(type,'This square has perimeter 16 units and area 16 square units. A pupil says the two measurements are the same because both numbers are 16. Are they correct?','No. Perimeter measures distance around the shape in units; area measures the surface inside it in square units.',{answerMode:'manual'});
     }
-    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';renderControls();draw();
+    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';
+    exportMode='challenge';responseLines=template.category==='reason'?3:1;exportStatus='';renderControls();draw();
   }
   function bindChallengeStageActions(){
     const stage=q('#gd-stage');if(!stage||!challenge)return;
@@ -437,8 +530,22 @@ function geoboard(){
   function bindControls(){
     const controls=q('#gd-controls');if(!controls)return;
     qa('[data-ge-workflow]',controls).forEach(button=>button.onclick=()=>{
-      controlTab=button.dataset.geWorkflow==='challenge'?'challenge':'explore';renderControls();
+      const next=button.dataset.geWorkflow;
+      controlTab=next==='challenge'?'challenge':next==='export'?'export':'explore';renderControls();
     });
+    if(controlTab==='export'){
+      qa('[data-ge-export-mode]',controls).forEach(button=>button.onclick=()=>{
+        exportMode=button.dataset.geExportMode==='challenge'&&challenge?'challenge':'diagram';exportStatus='';renderControls();
+      });
+      const response=q('#ge-response-lines',controls);if(response)response.onchange=()=>{
+        responseLines=clamp(Math.round(num(response.value,1)),1,4);renderControls();
+      };
+      const copyImage=q('#ge-copy-image',controls);if(copyImage)copyImage.onclick=()=>exportAction('copy');
+      const png=q('#ge-png',controls);if(png)png.onclick=()=>exportAction('png');
+      const svgDownload=q('#ge-svg-download',controls);if(svgDownload)svgDownload.onclick=()=>exportAction('svg');
+      const print=q('#ge-print',controls);if(print)print.onclick=()=>exportAction('print');
+      return;
+    }
     const u=q('#ge-undo',controls);if(u)u.onclick=undo;
     const r=q('#ge-redo',controls);if(r)r.onclick=redo;
     const clear=q('#ge-clear',controls);if(clear)clear.onclick=()=>{if(!pts.length)return;remember();pts=[];selected=-1;draw()};
