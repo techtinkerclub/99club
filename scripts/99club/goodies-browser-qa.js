@@ -279,6 +279,50 @@ if(mode==='prepare'){
     document.getElementById('nl-reveal').click();
     assert(document.querySelector('.gd-challenge-banner').textContent.includes('%'),'FDP challenge reveals a percentage answer');
 
+    document.querySelector('[data-nl-challenge-cat="fractions"]').click();
+    const fractionSequence=document.querySelector('[data-nl-challenge-type="fraction-sequence"]');
+    assert(fractionSequence,'Fraction-sequence challenge is available');
+    fractionSequence.click();
+    document.getElementById('nl-generate').click();
+    assert(document.querySelector('.gd-challenge-prompt').textContent.includes('Count on in'),'Fraction-sequence challenge asks pupils to continue equal fractional steps');
+    assert(document.querySelectorAll('[data-marker-hit]').length===4,'Fraction-sequence challenge builds four sequence positions');
+    assert(document.querySelectorAll('.nl-answer-box').length>=1,'Fraction-sequence challenge hides the final value');
+
+    document.querySelector('[data-nl-challenge-cat="fractions"]').click();
+    const fractionJump=document.querySelector('[data-nl-challenge-type="fraction-jump"]');
+    assert(fractionJump,'Fraction-jump challenge is available');
+    fractionJump.click();
+    document.getElementById('nl-generate').click();
+    assert(document.querySelector('.gd-challenge-prompt').textContent.includes('fraction jump'),'Fraction-jump challenge has an explicit calculation prompt');
+    assert(document.querySelector('[data-marker-hit="m2"] .nl-answer-box'),'Fraction-jump challenge hides the landing value');
+
+    document.querySelector('[data-nl-challenge-cat="fractions"]').click();
+    const compareFractions=document.querySelector('[data-nl-challenge-type="compare-fractions"]');
+    assert(compareFractions,'Compare-fractions challenge is available');
+    compareFractions.click();
+    document.getElementById('nl-generate').click();
+    assert(document.querySelectorAll('[data-line-hit]').length===2,'Compare-fractions challenge builds two aligned fraction scales');
+    assert(document.querySelectorAll('.nl-answer-box').length>=2,'Compare-fractions challenge hides both compared values');
+    assert(document.querySelector('.gd-challenge-prompt').textContent.includes('Use <, > or ='),'Compare-fractions challenge makes the comparison task explicit');
+
+    document.querySelector('[data-nl-challenge-cat="read"]').click();
+    const zoomRead=document.querySelector('[data-nl-challenge-type="zoom-read"]');
+    assert(zoomRead,'Zoom-reading challenge is available');
+    zoomRead.click();
+    document.getElementById('nl-generate').click();
+    assert(document.querySelectorAll('[data-line-hit]').length===2,'Zoom-reading challenge builds a main line and zoom line');
+    assert(document.querySelector('[data-nl-line-mode="zoom"]'),'Zoom-reading challenge uses the real zoom teaching-line mode');
+    assert(document.querySelector('.nl-zoom-link'),'Zoom-reading challenge visually connects the magnified interval');
+
+    document.querySelector('[data-nl-challenge-cat="calculate"]').click();
+    const doubleLineValue=document.querySelector('[data-nl-challenge-type="double-line-value"]');
+    assert(doubleLineValue,'Double-number-line missing-value challenge is available');
+    doubleLineValue.click();
+    document.getElementById('nl-generate').click();
+    assert(document.querySelector('[data-nl-line-mode="linked"]'),'Double-number-line challenge uses the real linked teaching-line mode');
+    assert(document.querySelectorAll('.nl-linked-pair-guide').length===2,'Double-number-line challenge shows two corresponding pairs');
+    assert(document.querySelector('[data-line-id="l2"][data-marker-hit="mTargetBottom"] .nl-answer-box'),'Double-number-line challenge hides only the target corresponding value');
+
     document.querySelector('[data-nl-challenge-cat="compare"]').click();
     const order=document.querySelector('[data-nl-challenge-type="order-markers"]');
     assert(order,'Order-markers challenge is available');
