@@ -1748,8 +1748,28 @@ function arrayBuilder(){
 }
 
 function clockTool(){
+  const CK=G.challengeKit;
   let hour=10,minute=10,snap=5,numerals='arabic',drag=null;
   const roman=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
+  const CHALLENGE_CATEGORIES=[
+    {id:'read',label:'Read the clock'},
+    {id:'set',label:'Set & elapsed time'},
+    {id:'convert',label:'12 / 24 hour'},
+    {id:'reason',label:'Reasoning'}
+  ];
+  const CHALLENGE_TEMPLATES=[
+    {id:'read-five',category:'read',title:'Read to 5 minutes',desc:'Read an analogue time shown to a 5-minute interval.'},
+    {id:'read-minute',category:'read',title:'Read to 1 minute',desc:'Read an analogue time to the nearest minute.'},
+    {id:'roman-read',category:'read',title:'Roman numeral clock',desc:'Read a time from a clock labelled I–XII.'},
+    {id:'set-five',category:'set',title:'Set a 5-minute time',desc:'Move the hands to a requested 5-minute time.'},
+    {id:'set-minute',category:'set',title:'Set an exact minute',desc:'Move the hands to an exact minute time.'},
+    {id:'elapsed-forward',category:'set',title:'Move time forward',desc:'Advance the analogue clock by a stated duration.'},
+    {id:'twelve-to-twentyfour',category:'convert',title:'12-hour to 24-hour',desc:'Convert a shown am/pm time to 24-hour notation.'},
+    {id:'twentyfour-to-twelve',category:'convert',title:'24-hour to 12-hour',desc:'Convert a 24-hour time to 12-hour am/pm notation.'},
+    {id:'time-language',category:'reason',title:'Say the time',desc:'Write an analogue time using past/to language.'},
+    {id:'hour-hand-misconception',category:'reason',title:'Where should the hour hand be?',desc:'Diagnose the common idea that the hour hand stays on the hour number.'}
+  ];
+  let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='read-five',challenge=null,beforeChallenge=null;
 
   function mod(value,n){return((value%n)+n)%n}
   function setTime(nextHour,nextMinute){
@@ -1760,7 +1780,18 @@ function clockTool(){
   function h12(){return hour%12||12}
   function pad(value){return String(value).padStart(2,'0')}
   function time24(){return pad(hour)+':'+pad(minute)}
-  function time12(){return h12()+':'+pad(minute)+' '+(hour<12?'am':'pm')}
+  function format12(h,m){return(h%12||12)+':'+pad(m)+' '+(h<12?'am':'pm')}
+  function time12(){return format12(hour,minute)}
+  function nextH12(){return(hour+1)%12||12}
+  function spokenTime(){
+    if(minute===0)return h12()+" o'clock";
+    if(minute===15)return'quarter past '+h12();
+    if(minute===30)return'half past '+h12();
+    if(minute===45)return'quarter to '+nextH12();
+    if(minute<30)return minute+' minute'+(minute===1?'':'s')+' past '+h12();
+    const left=60-minute;
+    return left+' minute'+(left===1?'':'s')+' to '+nextH12();
+  }
   function hourAngle(){return((hour%12)+minute/60)*30}
   function minuteAngle(){return minute*6}
   function handPoint(angle,len){
@@ -1768,6 +1799,15 @@ function clockTool(){
     return{x:150+len*Math.cos(a),y:150+len*Math.sin(a)};
   }
   function faceNumber(n){return numerals==='roman'?roman[n-1]:String(n)}
+  function snapshot(){return{hour,minute,snap,numerals}}
+  function restoreSnapshot(value){
+    if(!value)return;
+    hour=clamp(Math.round(num(value.hour,10)),0,23);
+    minute=clamp(Math.round(num(value.minute,10)),0,59);
+    snap=Number(value.snap)===1?1:5;
+    numerals=value.numerals==='roman'?'roman':'arabic';
+    drag=null;
+  }
   function tickMarkup(){
     let out='';
     for(let i=0;i<60;i++){
@@ -1783,7 +1823,66 @@ function clockTool(){
       return '<text class="gd-clock-num" x="'+x+'" y="'+y+'">'+faceNumber(n)+'</text>';
     }).join('');
   }
+  function hiddenReadout(kind){
+    return !!(challenge&&!challenge.revealed&&Array.isArray(challenge.hiddenReadouts)&&challenge.hiddenReadouts.includes(kind));
+  }
+  function anyTimeHidden(){
+    return !!(challenge&&!challenge.revealed&&Array.isArray(challenge.hiddenReadouts)&&challenge.hiddenReadouts.length);
+  }
+  function handsFrozen(){return !!(challenge&&challenge.mode==='standard'&&challenge.freezeHands)}
+  function challengeObject(type,prompt,answer,extra={}){
+    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===type);
+    const raw={
+      mode:'standard',type,category:meta?.category||'',title:'',prompt,promptHtml:prompt,answer:String(answer??''),
+      answerMode:'manual',answerSource:'',revealed:false,freezeHands:true,hiddenReadouts:['24','12'],
+      targetHour:null,targetMinute:null,...extra
+    };
+    return CK?CK.normalise(raw):raw;
+  }
+  function resolveAnswerSource(source){
+    if(source==='time24')return time24();
+    if(source==='time12')return time12();
+    if(source==='spoken')return spokenTime();
+    if(source==='hour24')return String(hour);
+    if(source==='hour12')return String(h12());
+    if(source==='minute')return String(minute);
+    if(source==='period')return hour<12?'am':'pm';
+    return'';
+  }
+  function customAnswerSources(){
+    return[
+      {id:'time24',label:'Current time — 24-hour'},
+      {id:'time12',label:'Current time — 12-hour'},
+      {id:'spoken',label:'Current time — past / to language'},
+      {id:'hour24',label:'Hour — 24-hour value'},
+      {id:'hour12',label:'Hour — 12-hour value'},
+      {id:'minute',label:'Minute value'},
+      {id:'period',label:'am / pm'}
+    ];
+  }
+  function clearBoundHiding(){if(challenge)challenge.hiddenReadouts=[]}
+  function applyBoundHiding(){if(challenge)challenge.hiddenReadouts=['24','12']}
+  function updateChallengeAnswer(){
+    if(!challenge||challenge.answerMode!=='bound'||!challenge.answerSource)return;
+    const answer=resolveAnswerSource(challenge.answerSource);if(answer!=='')challenge.answer=answer;
+    const live=q('#cl-custom-live-answer');if(live)live.textContent=challenge.answer||'—';
+    if(challenge.revealed){
+      const shown=q('.gd-challenge-actions em',q('#gd-stage'));
+      if(shown)shown.textContent='Answer: '+challenge.answer;
+    }
+  }
+  function onTarget(){
+    return !!(challenge&&!challenge.freezeHands&&Number.isFinite(Number(challenge.targetHour))&&Number.isFinite(Number(challenge.targetMinute))&&hour===Number(challenge.targetHour)&&minute===Number(challenge.targetMinute));
+  }
   function controlsHtml(){
+    return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():exploreControlsHtml());
+  }
+  function workflowTabs(){
+    return '<div class="gd-row gd-cl-workflow-tabs" role="tablist" aria-label="Clock workflow">'+
+      '<button class="gd-btn'+(controlTab==='explore'?' gd-btn--primary':'')+'" type="button" data-cl-workflow="explore">Explore</button>'+
+      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-cl-workflow="challenge">Challenge'+(challenge?' •':'')+'</button></div>';
+  }
+  function exploreControlsHtml(){
     return field('Hour (24-hour)','<input class="gd-input gd-small" id="cl-h" type="number" min="0" max="23" value="'+hour+'">')+
       field('Minutes','<input class="gd-input gd-small" id="cl-m" type="number" min="0" max="59" value="'+minute+'">')+
       field('Hand snapping','<select class="gd-select" id="cl-snap"><option value="5"'+(snap===5?' selected':'')+'>5 minutes</option><option value="1"'+(snap===1?' selected':'')+'>1 minute</option></select>','Controls direct minute-hand dragging and keyboard steps.')+
@@ -1791,29 +1890,133 @@ function clockTool(){
       '<div class="gd-row"><button class="gd-btn gd-btn--primary" id="cl-toggle-period" type="button">Toggle am / pm</button><button class="gd-btn" id="cl-random" type="button">Random 5-minute time</button><button class="gd-btn" id="cl-now" type="button">Now</button></div>'+
       '<p class="gd-help">Drag either clock hand directly. The minute hand carries the hour forward or back when it crosses 12. Focus a hand and use ← / → for precise adjustment.</p>';
   }
+  function challengeControlsHtml(){
+    if(!CK)return'<p class="gd-help">Challenge tools are unavailable.</p>';
+    const tabs=CK.tabsHtml?CK.tabsHtml('cl',challengeTab):'';
+    if(challengeTab==='custom'){
+      const custom=challenge&&challenge.mode==='custom'?challenge:CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual'});
+      return tabs+CK.editorHtml(custom,'cl',{answerSources:customAnswerSources(),generatedAnswerLabel:'Keep the generated answer'})+
+        '<div class="gd-row">'+(challenge&&challenge.answer?'<button class="gd-btn" id="cl-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
+        (challenge?'<button class="gd-btn" id="cl-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
+        '<p class="gd-help">Custom challenges stay linked to the live clock. Bound time answers hide both digital readouts so one representation cannot give away another.</p>';
+    }
+    const picker=CK.pickerHtml(CHALLENGE_TEMPLATES,CHALLENGE_CATEGORIES,challengeCategory,challengeType,'cl');
+    const repeat=!!(challenge&&challenge.mode==='standard'&&challenge.type===challengeType);
+    return tabs+picker+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="cl-generate" type="button">'+(repeat?'Another like this':'Generate challenge')+'</button>'+
+      (challenge&&challenge.mode!=='custom'?'<button class="gd-btn" id="cl-edit-challenge" type="button">Edit challenge</button>':'')+
+      (challenge&&challenge.answer?'<button class="gd-btn" id="cl-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
+      (challenge?'<button class="gd-btn" id="cl-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>';
+  }
   function renderControls(){
     const panel=q('#gd-controls');if(panel)panel.innerHTML=controlsHtml();bindControls();
   }
   function refreshControls(){
     const h=q('#cl-h'),m=q('#cl-m');if(h)h.value=hour;if(m)m.value=minute;
   }
+  function restoreBeforeChallenge(){
+    if(beforeChallenge){restoreSnapshot(beforeChallenge);beforeChallenge=null}
+  }
+  function clearChallenge(){
+    restoreBeforeChallenge();challenge=null;challengeTab='standard';controlTab='challenge';renderControls();draw();
+  }
+  function enterCustomChallenge(){
+    const wasCustom=challenge?.mode==='custom';
+    if(CK)challenge=CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''});
+    if(!wasCustom)clearBoundHiding();
+    challenge.freezeHands=false;challenge.revealed=false;challenge.targetHour=null;challenge.targetMinute=null;
+    challengeTab='custom';controlTab='challenge';renderControls();draw();
+  }
+  function setCustomAnswerSource(source){
+    if(!challenge||challenge.mode!=='custom')return;
+    if(source==='manual'){
+      challenge.answerMode='manual';challenge.answerSource='';clearBoundHiding();
+    }else if(source==='generated'){
+      challenge.answerMode='bound';challenge.answerSource='';clearBoundHiding();
+    }else{
+      challenge.answerMode='bound';challenge.answerSource=source;challenge.answer=resolveAnswerSource(source);applyBoundHiding();
+    }
+    challenge.revealed=false;renderControls();draw();
+  }
+  function randomHour(){return Math.floor(Math.random()*24)}
+  function randomMinute(step=5){return Math.floor(Math.random()*(60/step))*step}
+  function differentStart(targetHour,targetMinute,step){
+    const delta=[15,20,25,30,35,40,45,50,55,60][Math.floor(Math.random()*10)];
+    const startTotal=mod(targetHour*60+targetMinute-delta,24*60);
+    return{hour:Math.floor(startTotal/60),minute:Math.floor(startTotal%60/step)*step};
+  }
+  function generateChallenge(type){
+    const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
+    if(!beforeChallenge)beforeChallenge=snapshot();else restoreSnapshot(beforeChallenge);
+    numerals='arabic';snap=5;
+    if(type==='read-five'){
+      hour=randomHour();minute=randomMinute(5);
+      challenge=challengeObject(type,'What time is shown on the analogue clock?',time12());
+    }else if(type==='read-minute'){
+      hour=randomHour();minute=randomMinute(1);snap=1;
+      challenge=challengeObject(type,'Read the analogue clock to the nearest minute.',time12());
+    }else if(type==='roman-read'){
+      hour=randomHour();minute=randomMinute(5);numerals='roman';
+      challenge=challengeObject(type,'What time is shown on the Roman-numeral clock?',time12());
+    }else if(type==='set-five'||type==='set-minute'){
+      const step=type==='set-minute'?1:5,targetHour=randomHour(),targetMinute=randomMinute(step),start=differentStart(targetHour,targetMinute,step);
+      hour=start.hour;minute=start.minute;snap=step;
+      const targetText=format12(targetHour,targetMinute);
+      challenge=challengeObject(type,'Move the hands to '+targetText+'.',targetText,{
+        freezeHands:false,targetHour,targetMinute,hiddenReadouts:['24','12']
+      });
+    }else if(type==='elapsed-forward'){
+      hour=randomHour();minute=randomMinute(5);snap=5;
+      const start24=time24(),durations=[15,20,25,30,35,40,45,50,60,75,90],duration=durations[Math.floor(Math.random()*durations.length)];
+      const targetTotal=mod(hour*60+minute+duration,24*60),targetHour=Math.floor(targetTotal/60),targetMinute=targetTotal%60;
+      challenge=challengeObject(type,'The clock starts at '+start24+'. Move it forward by '+duration+' minutes.',pad(targetHour)+':'+pad(targetMinute),{
+        freezeHands:false,targetHour,targetMinute,hiddenReadouts:['24','12']
+      });
+    }else if(type==='twelve-to-twentyfour'){
+      hour=randomHour();minute=randomMinute(5);
+      challenge=challengeObject(type,'Write '+time12()+' in 24-hour notation.',time24(),{hiddenReadouts:['24']});
+    }else if(type==='twentyfour-to-twelve'){
+      hour=randomHour();minute=randomMinute(5);
+      challenge=challengeObject(type,'Write '+time24()+' in 12-hour am/pm notation.',time12(),{hiddenReadouts:['12']});
+    }else if(type==='time-language'){
+      hour=randomHour();minute=[0,5,10,15,20,25,30,35,40,45,50,55][Math.floor(Math.random()*12)];
+      challenge=challengeObject(type,'Write the time using past / to language.',spokenTime());
+    }else{
+      hour=1+Math.floor(Math.random()*10);minute=30;
+      challenge=challengeObject(type,'A pupil says that at half past '+h12()+' the hour hand should point exactly at '+h12()+'. Are they correct?','No. At half past '+h12()+', the hour hand is halfway between '+h12()+' and '+nextH12()+'.');
+    }
+    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';
+    renderControls();draw();
+  }
+  function handPoint(angle,len){
+    const a=(angle-90)*Math.PI/180;
+    return{x:150+len*Math.cos(a),y:150+len*Math.sin(a)};
+  }
+  function faceNumber(n){return numerals==='roman'?roman[n-1]:String(n)}
   function refreshClock(){
+    updateChallengeAnswer();
     const hourPt=handPoint(hourAngle(),72),minutePt=handPoint(minuteAngle(),102);
     const hourLine=q('#cl-hour-hand'),minuteLine=q('#cl-minute-hand'),hourHit=q('#cl-hour-hit'),minuteHit=q('#cl-minute-hit');
     [hourLine,hourHit].forEach(el=>{if(el){el.setAttribute('x2',hourPt.x);el.setAttribute('y2',hourPt.y)}});
     [minuteLine,minuteHit].forEach(el=>{if(el){el.setAttribute('x2',minutePt.x);el.setAttribute('y2',minutePt.y)}});
+    const frozen=handsFrozen(),hidden=anyTimeHidden();
     if(hourHit){
-      hourHit.setAttribute('aria-valuenow',hour);
-      hourHit.setAttribute('aria-valuetext','Hour hand, '+time12());
+      if(hidden){hourHit.removeAttribute('aria-valuenow');hourHit.removeAttribute('aria-valuetext');hourHit.setAttribute('aria-label',frozen?'Hour hand fixed for this challenge':'Hour hand for challenge')}
+      else{hourHit.setAttribute('aria-valuenow',hour);hourHit.setAttribute('aria-label','Hour hand');hourHit.setAttribute('aria-valuetext','Hour hand, '+time12())}
     }
     if(minuteHit){
-      minuteHit.setAttribute('aria-valuenow',minute);
-      minuteHit.setAttribute('aria-valuetext','Minute hand, '+minute+' minutes, '+time12());
+      if(hidden){minuteHit.removeAttribute('aria-valuenow');minuteHit.removeAttribute('aria-valuetext');minuteHit.setAttribute('aria-label',frozen?'Minute hand fixed for this challenge':'Minute hand for challenge')}
+      else{minuteHit.setAttribute('aria-valuenow',minute);minuteHit.setAttribute('aria-label','Minute hand');minuteHit.setAttribute('aria-valuetext','Minute hand, '+minute+' minutes, '+time12())}
     }
     const svg=q('#cl-face');
-    if(svg){svg.setAttribute('aria-label','Analogue clock showing '+time12());svg.dataset.clHour=String(hour);svg.dataset.clMinute=String(minute)}
+    if(svg){
+      svg.setAttribute('aria-label',hidden?'Analogue clock for challenge':'Analogue clock showing '+time12());
+      svg.dataset.clHour=String(hour);svg.dataset.clMinute=String(minute);
+    }
     const d24=q('[data-cl-readout="24"]'),d12=q('[data-cl-readout="12"]');
-    if(d24)d24.textContent=time24();if(d12)d12.textContent=time12();
+    if(d24)d24.textContent=hiddenReadout('24')?'?':time24();
+    if(d12)d12.textContent=hiddenReadout('12')?'?':time12();
+    const status=q('[data-cl-target-status]');
+    if(status)status.textContent=onTarget()?'On target ✓':'';
     refreshControls();
   }
   function angleFromPointer(clientX,clientY){
@@ -1827,6 +2030,7 @@ function clockTool(){
     return mod(Math.round(raw/snap)*snap,60);
   }
   function setHandFromPointer(kind,clientX,clientY,carryHour){
+    if(handsFrozen())return;
     const angle=angleFromPointer(clientX,clientY);
     if(kind==='minute'){
       const next=snappedMinute(angle),previous=minute;
@@ -1843,7 +2047,7 @@ function clockTool(){
     refreshClock();
   }
   function startDrag(kind,e){
-    if(e.button!=null&&e.button!==0)return;
+    if(handsFrozen()||(e.button!=null&&e.button!==0))return;
     e.preventDefault();
     drag={kind,pointerId:e.pointerId};
     setHandFromPointer(kind,e.clientX,e.clientY,false);
@@ -1863,20 +2067,21 @@ function clockTool(){
     document.removeEventListener('pointercancel',dragEnd);
   }
   function adjustHand(kind,delta){
+    if(handsFrozen())return;
     if(kind==='minute')setTime(hour,minute+delta*snap);
     else setTime(hour+delta,minute);
     refreshClock();
   }
   function bindStage(){
-    const hourHit=q('#cl-hour-hit'),minuteHit=q('#cl-minute-hit');
-    if(hourHit){
+    const frozen=handsFrozen(),hourHit=q('#cl-hour-hit'),minuteHit=q('#cl-minute-hit');
+    if(hourHit&&!frozen){
       hourHit.onpointerdown=e=>startDrag('hour',e);
       hourHit.onkeydown=e=>{
         if(e.key==='ArrowLeft'||e.key==='ArrowDown'){e.preventDefault();adjustHand('hour',-1)}
         else if(e.key==='ArrowRight'||e.key==='ArrowUp'){e.preventDefault();adjustHand('hour',1)}
       };
     }
-    if(minuteHit){
+    if(minuteHit&&!frozen){
       minuteHit.onpointerdown=e=>startDrag('minute',e);
       minuteHit.onkeydown=e=>{
         if(e.key==='ArrowLeft'||e.key==='ArrowDown'){e.preventDefault();adjustHand('minute',-1)}
@@ -1884,35 +2089,82 @@ function clockTool(){
       };
     }
   }
+  function bindChallengeStageActions(){
+    const stage=q('#gd-stage');if(!stage||!challenge)return;
+    const reveal=q('[data-board-action="reveal"]',stage);
+    if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();draw()};
+    const another=q('[data-challenge-action="another"]',stage);
+    if(another)another.onclick=e=>{e.stopPropagation();if(challenge?.mode==='standard')generateChallenge(challenge.type)};
+  }
   function bindControls(){
     const controls=q('#gd-controls');if(!controls)return;
-    const h=q('#cl-h',controls),m=q('#cl-m',controls);
-    if(h)h.oninput=()=>{setTime(clamp(num(h.value,hour),0,23),minute);refreshClock()};
-    if(m)m.oninput=()=>{setTime(hour,clamp(num(m.value,minute),0,59));refreshClock()};
-    const snapSelect=q('#cl-snap',controls);if(snapSelect)snapSelect.onchange=()=>{snap=Number(snapSelect.value)===1?1:5};
-    const numeralSelect=q('#cl-numerals',controls);if(numeralSelect)numeralSelect.onchange=()=>{numerals=numeralSelect.value==='roman'?'roman':'arabic';draw()};
-    const toggle=q('#cl-toggle-period',controls);if(toggle)toggle.onclick=()=>{setTime(hour+(hour<12?12:-12),minute);refreshClock()};
-    const random=q('#cl-random',controls);if(random)random.onclick=()=>{hour=Math.floor(Math.random()*24);minute=Math.floor(Math.random()*12)*5;refreshClock()};
-    const now=q('#cl-now',controls);if(now)now.onclick=()=>{const d=new Date();hour=d.getHours();minute=d.getMinutes();refreshClock()};
+    qa('[data-cl-workflow]',controls).forEach(button=>button.onclick=()=>{
+      controlTab=button.dataset.clWorkflow==='challenge'?'challenge':'explore';renderControls();
+    });
+    if(controlTab==='explore'){
+      const h=q('#cl-h',controls),m=q('#cl-m',controls);
+      if(h)h.oninput=()=>{if(handsFrozen()){refreshControls();return}setTime(clamp(num(h.value,hour),0,23),minute);refreshClock()};
+      if(m)m.oninput=()=>{if(handsFrozen()){refreshControls();return}setTime(hour,clamp(num(m.value,minute),0,59));refreshClock()};
+      const snapSelect=q('#cl-snap',controls);if(snapSelect)snapSelect.onchange=()=>{snap=Number(snapSelect.value)===1?1:5};
+      const numeralSelect=q('#cl-numerals',controls);if(numeralSelect)numeralSelect.onchange=()=>{numerals=numeralSelect.value==='roman'?'roman':'arabic';draw()};
+      const toggle=q('#cl-toggle-period',controls);if(toggle)toggle.onclick=()=>{if(handsFrozen())return;setTime(hour+(hour<12?12:-12),minute);refreshClock()};
+      const random=q('#cl-random',controls);if(random)random.onclick=()=>{if(handsFrozen())return;hour=randomHour();minute=randomMinute(5);refreshClock()};
+      const now=q('#cl-now',controls);if(now)now.onclick=()=>{if(handsFrozen())return;const d=new Date();hour=d.getHours();minute=d.getMinutes();refreshClock()};
+      return;
+    }
+    qa('[data-cl-challenge-tab]',controls).forEach(button=>button.onclick=()=>{
+      if(button.dataset.clChallengeTab==='custom')enterCustomChallenge();else{challengeTab='standard';renderControls()}
+    });
+    qa('[data-cl-challenge-cat]',controls).forEach(button=>button.onclick=()=>{
+      challengeCategory=button.dataset.clChallengeCat;
+      const first=CHALLENGE_TEMPLATES.find(t=>t.category===challengeCategory);if(first)challengeType=first.id;
+      renderControls();
+    });
+    qa('[data-cl-challenge-type]',controls).forEach(button=>button.onclick=()=>{challengeType=button.dataset.clChallengeType;renderControls()});
+    const generate=q('#cl-generate',controls);if(generate)generate.onclick=()=>generateChallenge(challengeType);
+    const edit=q('#cl-edit-challenge',controls);if(edit)edit.onclick=enterCustomChallenge;
+    const end=q('#cl-clear-challenge',controls);if(end)end.onclick=clearChallenge;
+    const reveal=q('#cl-reveal',controls);if(reveal)reveal.onclick=()=>{if(!challenge)return;challenge.revealed=!challenge.revealed;renderControls();draw()};
+    qa('[data-gd-rich-action]',controls).forEach(button=>button.onclick=e=>{
+      e.preventDefault();const editor=q('#cl-custom-prompt',controls);
+      if(editor&&CK&&challenge){
+        CK.applyFormat(editor,button.dataset.gdRichAction);
+        challenge.promptHtml=CK.sanitiseRichHtml(editor.innerHTML);
+        challenge.prompt=CK.plainText(challenge.promptHtml).slice(0,600);draw();
+      }
+    });
+    const title=q('#cl-custom-title',controls);if(title)title.oninput=()=>{if(!challenge)return;challenge.title=title.value.slice(0,100);draw()};
+    const prompt=q('#cl-custom-prompt',controls);if(prompt)prompt.oninput=()=>{
+      if(!challenge||!CK)return;challenge.promptHtml=CK.sanitiseRichHtml(prompt.innerHTML);challenge.prompt=CK.plainText(challenge.promptHtml).slice(0,600);draw();
+    };
+    const source=q('#cl-custom-answer-source',controls);if(source)source.onchange=()=>setCustomAnswerSource(source.value);
+    const answer=q('#cl-custom-answer',controls);if(answer)answer.oninput=()=>{
+      if(!challenge)return;challenge.answer=answer.value.slice(0,400);challenge.answerMode='manual';challenge.answerSource='';clearBoundHiding();
+      if(challenge.revealed)draw();
+    };
   }
   function draw(){
-    const hp=handPoint(hourAngle(),72),mp=handPoint(minuteAngle(),102);
-    q('#gd-stage').innerHTML='<div class="gd-vis gd-clock-workbench">'+
-      '<div class="gd-clock"><svg id="cl-face" viewBox="0 0 300 300" role="img" aria-label="Analogue clock showing '+time12()+'" data-cl-hour="'+hour+'" data-cl-minute="'+minute+'">'+
+    const hp=handPoint(hourAngle(),72),mp=handPoint(minuteAngle(),102),frozen=handsFrozen(),hidden=anyTimeHidden();
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Clock challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
+    const targetStatus=challenge&&!challenge.freezeHands&&Number.isFinite(Number(challenge.targetHour))
+      ?'<div class="gd-answer-live" data-cl-target-status>'+(onTarget()?'On target ✓':'')+'</div>':'';
+    q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-clock-workbench">'+
+      '<div class="gd-clock"><svg id="cl-face" viewBox="0 0 300 300" role="img" aria-label="'+(hidden?'Analogue clock for challenge':'Analogue clock showing '+time12())+'" data-cl-hour="'+hour+'" data-cl-minute="'+minute+'" data-cl-frozen="'+(frozen?'true':'false')+'" data-cl-target-hour="'+(Number.isFinite(Number(challenge?.targetHour))?challenge.targetHour:'')+'" data-cl-target-minute="'+(Number.isFinite(Number(challenge?.targetMinute))?challenge.targetMinute:'')+'">'+
         '<circle class="gd-clock-face" cx="150" cy="150" r="135"></circle>'+tickMarkup()+numeralMarkup()+
         '<line class="gd-clock-hour" id="cl-hour-hand" x1="150" y1="150" x2="'+hp.x+'" y2="'+hp.y+'"></line>'+
         '<line class="gd-clock-minute" id="cl-minute-hand" x1="150" y1="150" x2="'+mp.x+'" y2="'+mp.y+'"></line>'+
-        '<line class="gd-clock-hand-hit gd-clock-hand-hit--hour" id="cl-hour-hit" data-cl-hand="hour" tabindex="0" role="slider" aria-label="Hour hand" aria-valuemin="0" aria-valuemax="23" aria-valuenow="'+hour+'" x1="150" y1="150" x2="'+hp.x+'" y2="'+hp.y+'"></line>'+
-        '<line class="gd-clock-hand-hit gd-clock-hand-hit--minute" id="cl-minute-hit" data-cl-hand="minute" tabindex="0" role="slider" aria-label="Minute hand" aria-valuemin="0" aria-valuemax="59" aria-valuenow="'+minute+'" x1="150" y1="150" x2="'+mp.x+'" y2="'+mp.y+'"></line>'+
+        '<line class="gd-clock-hand-hit gd-clock-hand-hit--hour'+(frozen?' is-frozen':'')+'" id="cl-hour-hit" data-cl-hand="hour" tabindex="'+(frozen?'-1':'0')+'"'+(hidden?' aria-label="'+(frozen?'Hour hand fixed for this challenge':'Hour hand for challenge')+'"':' role="slider" aria-label="Hour hand" aria-valuemin="0" aria-valuemax="23" aria-valuenow="'+hour+'"')+' x1="150" y1="150" x2="'+hp.x+'" y2="'+hp.y+'"></line>'+
+        '<line class="gd-clock-hand-hit gd-clock-hand-hit--minute'+(frozen?' is-frozen':'')+'" id="cl-minute-hit" data-cl-hand="minute" tabindex="'+(frozen?'-1':'0')+'"'+(hidden?' aria-label="'+(frozen?'Minute hand fixed for this challenge':'Minute hand for challenge')+'"':' role="slider" aria-label="Minute hand" aria-valuemin="0" aria-valuemax="59" aria-valuenow="'+minute+'"')+' x1="150" y1="150" x2="'+mp.x+'" y2="'+mp.y+'"></line>'+
         '<circle class="gd-clock-centre" cx="150" cy="150" r="7"></circle>'+
       '</svg></div>'+
       '<div class="gd-clock-readouts">'+
-        '<div class="gd-readout"><span>24-hour</span><strong data-cl-readout="24">'+time24()+'</strong></div>'+
-        '<div class="gd-readout"><span>12-hour</span><strong data-cl-readout="12">'+time12()+'</strong></div>'+
-      '</div>'+
+        '<div class="gd-readout"><span>24-hour</span><strong data-cl-readout="24">'+(hiddenReadout('24')?'?':time24())+'</strong></div>'+
+        '<div class="gd-readout"><span>12-hour</span><strong data-cl-readout="12">'+(hiddenReadout('12')?'?':time12())+'</strong></div>'+
+      '</div>'+targetStatus+
     '</div>';
-    bindStage();refreshClock();
+    bindStage();bindChallengeStageActions();refreshClock();
   }
+
   setPanels(controlsHtml(),'');
   bindControls();
   draw();

@@ -1259,6 +1259,119 @@ if(mode==='prepare'){
     face=document.getElementById('cl-face');
     assert(Number(face.dataset.clHour)%12===4,'Dragging the hour hand directly selects the intended hour while preserving minutes');
     assert(face.dataset.clMinute==='5','Dragging the hour hand preserves the minute value');
+
+    TT99Goodies.clockTool();
+    const teacherHour=document.getElementById('cl-h');
+    teacherHour.value='22';teacherHour.dispatchEvent(new Event('input',{bubbles:true}));
+    const teacherMinute=document.getElementById('cl-m');
+    teacherMinute.value='35';teacherMinute.dispatchEvent(new Event('input',{bubbles:true}));
+    const teacherSnap=document.getElementById('cl-snap');
+    teacherSnap.value='1';teacherSnap.dispatchEvent(new Event('change',{bubbles:true}));
+    const teacherNumerals=document.getElementById('cl-numerals');
+    teacherNumerals.value='roman';teacherNumerals.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.getElementById('cl-face').dataset.clHour==='22'&&document.getElementById('cl-face').dataset.clMinute==='35','Teacher Clock setup is prepared before challenges');
+
+    const realClockRandom=Math.random;
+    Math.random=()=>0;
+    document.querySelector('[data-cl-workflow="challenge"]').click();
+    assert(document.querySelector('[data-cl-challenge-tab="standard"]')&&document.querySelector('[data-cl-challenge-tab="custom"]'),'Clock uses the shared Standard / Custom challenge tabs');
+    for(const type of ['read-five','read-minute','roman-read']){
+      assert(document.querySelector('[data-cl-challenge-type="'+type+'"]'),'Clock read challenge '+type+' is available');
+    }
+    document.getElementById('cl-generate').click();
+    face=document.getElementById('cl-face');
+    assert(document.querySelector('.gd-challenge-banner'),'Generated Clock challenge appears above the clock');
+    assert(face.dataset.clFrozen==='true','Read-the-clock challenge freezes both hands');
+    assert(document.querySelector('[data-cl-readout="24"]').textContent.trim()==='?'&&document.querySelector('[data-cl-readout="12"]').textContent.trim()==='?','Read-the-clock challenge hides both digital representations');
+    assert(face.getAttribute('aria-label')==='Analogue clock for challenge','Hidden Clock challenge does not leak the time through the SVG label');
+    assert(!document.getElementById('cl-hour-hit').hasAttribute('aria-valuenow')&&!document.getElementById('cl-minute-hit').hasAttribute('aria-valuenow'),'Frozen Clock challenge does not leak the answer through hand slider metadata');
+    const frozenHour=face.dataset.clHour,frozenMinute=face.dataset.clMinute;
+    document.getElementById('cl-minute-hit').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
+    face=document.getElementById('cl-face');
+    assert(face.dataset.clHour===frozenHour&&face.dataset.clMinute===frozenMinute,'Frozen Clock challenge ignores hand keyboard movement');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer:'),'Clock challenge reveals its answer contextually');
+    assert(document.querySelector('[data-cl-readout="12"]').textContent.trim()!=='?','Reveal restores the hidden Clock readout');
+
+    document.querySelector('[data-cl-challenge-type="roman-read"]').click();
+    document.getElementById('cl-generate').click();
+    assert([...document.querySelectorAll('.gd-clock-num')].some(x=>x.textContent.trim()==='XII'),'Roman-read challenge automatically switches the clock face to I–XII');
+    assert(document.querySelector('[data-cl-readout="24"]').textContent.trim()==='?','Roman-read challenge remains pupil-safe');
+
+    document.querySelector('[data-cl-challenge-cat="set"]').click();
+    for(const type of ['set-five','set-minute','elapsed-forward']){
+      assert(document.querySelector('[data-cl-challenge-type="'+type+'"]'),'Clock set challenge '+type+' is available');
+    }
+    document.querySelector('[data-cl-challenge-type="set-five"]').click();
+    document.getElementById('cl-generate').click();
+    face=document.getElementById('cl-face');
+    const setTargetHour=Number(face.dataset.clTargetHour),setTargetMinute=Number(face.dataset.clTargetMinute);
+    assert(Number.isFinite(setTargetHour)&&Number.isFinite(setTargetMinute),'Set-time challenge exposes a semantic target for QA');
+    assert(face.dataset.clFrozen==='false','Set-time challenge keeps both hands interactive');
+    assert(document.querySelector('[data-cl-readout="24"]').textContent.trim()==='?'&&document.querySelector('[data-cl-readout="12"]').textContent.trim()==='?','Set-time challenge hides digital shortcuts');
+    for(let guard=0;guard<30&&(Number(document.getElementById('cl-face').dataset.clHour)!==setTargetHour||Number(document.getElementById('cl-face').dataset.clMinute)!==setTargetMinute);guard++){
+      document.getElementById('cl-minute-hit').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
+    }
+    face=document.getElementById('cl-face');
+    assert(Number(face.dataset.clHour)===setTargetHour&&Number(face.dataset.clMinute)===setTargetMinute,'Set-time challenge can be completed using the minute hand');
+    assert(document.querySelector('[data-cl-target-status]').textContent.includes('On target'),'Set-time challenge confirms an exact hand placement');
+
+    document.querySelector('[data-cl-workflow="challenge"]').click();
+    document.querySelector('[data-cl-challenge-cat="set"]').click();
+    document.querySelector('[data-cl-challenge-type="elapsed-forward"]').click();
+    document.getElementById('cl-generate').click();
+    face=document.getElementById('cl-face');
+    const elapsedTargetHour=Number(face.dataset.clTargetHour),elapsedTargetMinute=Number(face.dataset.clTargetMinute);
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('15 minutes'),'Elapsed-time challenge states the duration');
+    for(let guard=0;guard<30&&(Number(document.getElementById('cl-face').dataset.clHour)!==elapsedTargetHour||Number(document.getElementById('cl-face').dataset.clMinute)!==elapsedTargetMinute);guard++){
+      document.getElementById('cl-minute-hit').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
+    }
+    assert(document.querySelector('[data-cl-target-status]').textContent.includes('On target'),'Elapsed-time challenge can be completed by advancing the analogue hands');
+
+    document.querySelector('[data-cl-workflow="challenge"]').click();
+    document.querySelector('[data-cl-challenge-cat="convert"]').click();
+    assert(document.querySelector('[data-cl-challenge-type="twelve-to-twentyfour"]')&&document.querySelector('[data-cl-challenge-type="twentyfour-to-twelve"]'),'Clock exposes both 12 / 24-hour conversion directions');
+    document.querySelector('[data-cl-challenge-type="twelve-to-twentyfour"]').click();
+    document.getElementById('cl-generate').click();
+    assert(document.querySelector('[data-cl-readout="24"]').textContent.trim()==='?','12-to-24 challenge hides the 24-hour answer');
+    assert(document.querySelector('[data-cl-readout="12"]').textContent.trim()==='12:00 am','12-to-24 challenge keeps the 12-hour source visible');
+    assert(document.getElementById('cl-face').getAttribute('aria-label')==='Analogue clock for challenge','Conversion challenge does not leak the hidden representation through SVG accessibility text');
+
+    document.querySelector('[data-cl-challenge-type="twentyfour-to-twelve"]').click();
+    document.getElementById('cl-generate').click();
+    assert(document.querySelector('[data-cl-readout="24"]').textContent.trim()==='00:00','24-to-12 challenge keeps the 24-hour source visible');
+    assert(document.querySelector('[data-cl-readout="12"]').textContent.trim()==='?','24-to-12 challenge hides the 12-hour answer');
+
+    document.querySelector('[data-cl-challenge-cat="reason"]').click();
+    assert(document.querySelector('[data-cl-challenge-type="time-language"]')&&document.querySelector('[data-cl-challenge-type="hour-hand-misconception"]'),'Clock reasoning challenges are available');
+    document.querySelector('[data-cl-challenge-type="time-language"]').click();
+    document.getElementById('cl-generate').click();
+    assert(document.querySelector('[data-cl-readout="24"]').textContent.trim()==='?','Time-language challenge hides digital answer shortcuts');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('12 o'),'Time-language challenge reveals the generated spoken-time answer');
+
+    document.getElementById('cl-edit-challenge').click();
+    assert(document.getElementById('cl-custom-answer-source'),'Editing a Clock challenge opens Custom mode');
+    assert(document.querySelector('[data-cl-readout="24"]').textContent.trim()!=='?','Entering Custom mode clears generated readout hiding');
+    const clockSource=document.getElementById('cl-custom-answer-source');
+    for(const source of ['time24','time12','spoken','hour24','hour12','minute','period']){
+      assert([...clockSource.options].some(o=>o.value===source),'Clock custom answer source '+source+' is available');
+    }
+    clockSource.value='time24';clockSource.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.querySelector('[data-cl-readout="24"]').textContent.trim()==='?'&&document.querySelector('[data-cl-readout="12"]').textContent.trim()==='?','Bound Clock time hides both equivalent digital readouts');
+    assert(!document.getElementById('cl-minute-hit').hasAttribute('aria-valuenow'),'Custom bound Clock answer is not leaked through interactive hand metadata');
+    const clockLiveBefore=document.getElementById('cl-custom-live-answer').textContent.trim();
+    document.getElementById('cl-minute-hit').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
+    const clockLiveAfter=document.getElementById('cl-custom-live-answer').textContent.trim();
+    assert(clockLiveAfter!==clockLiveBefore,'Clock live custom answer updates as a hand moves');
+
+    document.getElementById('cl-clear-challenge').click();
+    face=document.getElementById('cl-face');
+    assert(face.dataset.clHour==='22'&&face.dataset.clMinute==='35','Ending a Clock challenge restores the teacher time');
+    assert([...document.querySelectorAll('.gd-clock-num')].some(x=>x.textContent.trim()==='XII'),'Ending a Clock challenge restores the teacher Roman-numeral face');
+    document.querySelector('[data-cl-workflow="explore"]').click();
+    assert(document.getElementById('cl-snap').value==='1','Ending a Clock challenge restores the teacher 1-minute snapping');
+    Math.random=realClockRandom;
   }
 
   function testMeasurement(){
