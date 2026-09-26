@@ -950,26 +950,80 @@ function fractionWall(){
     });
     controller.refresh();
   }
+  function bindChallengeStageActions(){
+    const stage=q('#gd-stage');if(!stage||!challenge)return;
+    const reveal=q('[data-board-action="reveal"]',stage);
+    if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();renderRepresentation()};
+    const another=q('[data-challenge-action="another"]',stage);
+    if(another)another.onclick=e=>{e.stopPropagation();if(challenge?.mode==='standard')generateChallenge(challenge.type)};
+  }
+  function renderRepresentation(){
+    updateChallengeAnswer();
+    if(mode==='wall'){
+      I?.clear?.();controller=null;drawWall();
+    }else mountWorkbench();
+  }
   function switchMode(next){
     mode=next==='workbench'?'workbench':'wall';
-    if(mode==='wall'){I?.clear?.();controller=null;renderControls();drawWall()}
-    else{renderControls();mountWorkbench()}
+    renderControls();renderRepresentation();
   }
   function bindControls(){
-    qa('[data-fw-mode]',q('#gd-controls')).forEach(button=>button.onclick=()=>switchMode(button.dataset.fwMode));
-    if(mode==='wall'){
-      ['fw-an','fw-ad','fw-bn','fw-bd'].forEach(id=>{const el=q('#'+id);if(el)el.oninput=()=>{readCompare(id[3]);drawWall()}});
+    const controls=q('#gd-controls');if(!controls)return;
+
+    qa('[data-fw-workflow]',controls).forEach(button=>button.onclick=()=>{
+      controlTab=button.dataset.fwWorkflow==='challenge'?'challenge':'explore';renderControls();
+    });
+
+    if(controlTab==='challenge'){
+      qa('[data-fw-challenge-tab]',controls).forEach(button=>button.onclick=()=>{
+        if(button.dataset.fwChallengeTab==='custom')enterCustomChallenge();
+        else{challengeTab='standard';renderControls()}
+      });
+      qa('[data-fw-challenge-cat]',controls).forEach(button=>button.onclick=()=>{
+        challengeCategory=button.dataset.fwChallengeCat;
+        const first=CHALLENGE_TEMPLATES.find(t=>t.category===challengeCategory);
+        if(first)challengeType=first.id;
+        renderControls();
+      });
+      qa('[data-fw-challenge-type]',controls).forEach(button=>button.onclick=()=>{
+        challengeType=button.dataset.fwChallengeType;renderControls();
+      });
+      qa('[data-gd-rich-action]',controls).forEach(button=>button.onclick=e=>{
+        e.preventDefault();const editor=q('#fw-custom-prompt',controls);if(editor&&CK)CK.applyFormat(editor,button.dataset.gdRichAction);
+      });
+      const generate=q('#fw-generate',controls);if(generate)generate.onclick=()=>generateChallenge(challengeType);
+      const edit=q('#fw-edit-challenge',controls);if(edit)edit.onclick=enterCustomChallenge;
+      const end=q('#fw-clear-challenge',controls);if(end)end.onclick=clearChallenge;
+      const reveal=q('#fw-reveal',controls);if(reveal)reveal.onclick=()=>{if(!challenge)return;challenge.revealed=!challenge.revealed;renderControls();renderRepresentation()};
+
+      const title=q('#fw-custom-title',controls);if(title)title.oninput=()=>{
+        if(!challenge)return;challenge.title=title.value.slice(0,100);renderRepresentation();
+      };
+      const prompt=q('#fw-custom-prompt',controls);if(prompt)prompt.oninput=()=>{
+        if(!challenge||!CK)return;challenge.promptHtml=CK.sanitiseRichHtml(prompt.innerHTML);challenge.prompt=CK.plainText(challenge.promptHtml).slice(0,600);renderRepresentation();
+      };
+      const source=q('#fw-custom-answer-source',controls);if(source)source.onchange=()=>setCustomAnswerSource(source.value);
+      const answer=q('#fw-custom-answer',controls);if(answer)answer.oninput=()=>{
+        if(!challenge)return;challenge.answer=answer.value.slice(0,400);challenge.answerMode='manual';challenge.answerSource='';
+        if(challenge.revealed)renderRepresentation();
+      };
       return;
     }
-    const add=q('#fw-add-strip');if(add)add.onclick=()=>{
-      const raw={n:num(q('#fw-add-n')?.value,focus.n),d:num(q('#fw-add-d')?.value,focus.d)};
+
+    qa('[data-fw-mode]',controls).forEach(button=>button.onclick=()=>switchMode(button.dataset.fwMode));
+    if(mode==='wall'){
+      ['fw-an','fw-ad','fw-bn','fw-bd'].forEach(id=>{const el=q('#'+id,controls);if(el)el.oninput=()=>{readCompare(id[3]);updateChallengeAnswer();drawWall()}});
+      return;
+    }
+    const add=q('#fw-add-strip',controls);if(add)add.onclick=()=>{
+      const raw={n:num(q('#fw-add-n',controls)?.value,focus.n),d:num(q('#fw-add-d',controls)?.value,focus.d)};
       let id=null;controller.mutate(()=>{id=addStrip(raw)});controller.select(id);
     };
-    const addFocus=q('#fw-add-focus');if(addFocus)addFocus.onclick=()=>{let id=null;controller.mutate(()=>{id=addStrip(focus)});controller.select(id)};
-    const align=q('#fw-align');if(align)align.onclick=()=>controller.mutate(alignStrips);
-    const clear=q('#fw-clear-strips');if(clear)clear.onclick=()=>{
+    const addFocus=q('#fw-add-focus',controls);if(addFocus)addFocus.onclick=()=>{let id=null;controller.mutate(()=>{id=addStrip(focus)});controller.select(id)};
+    const align=q('#fw-align',controls);if(align)align.onclick=()=>controller.mutate(alignStrips);
+    const clear=q('#fw-clear-strips',controls);if(clear)clear.onclick=()=>{
       if(!strips.length)return;if(!window.confirm('Clear all fraction strips from the workbench?'))return;
-      controller.mutate(()=>{strips=[]});
+      controller.mutate(()=>{strips=[];updateChallengeAnswer()});
     };
   }
 
