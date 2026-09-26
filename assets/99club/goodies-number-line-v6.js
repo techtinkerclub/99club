@@ -496,10 +496,7 @@ function numberLineV2(){
   function challengeControlsHtml(){
     const ch=state.challenge;
     const repeatStandard=!!(ch&&ch.mode==='standard'&&ch.type===challengeType);
-    const tabs=`<div class="gd-challenge-tabs" role="tablist" aria-label="Challenge mode">
-      <button type="button" class="gd-challenge-tab${challengeTab==='standard'?' is-active':''}" data-nl-challenge-tab="standard">Standard</button>
-      <button type="button" class="gd-challenge-tab${challengeTab==='custom'?' is-active':''}" data-nl-challenge-tab="custom">Custom</button>
-    </div>`;
+    const tabs=CK?.tabsHtml?CK.tabsHtml('nl',challengeTab):'';
     if(challengeTab==='custom'){
       const custom=ch&&ch.mode==='custom'?ch:(CK?CK.makeCustom(ch||{}):ch);
       return tabs+`
