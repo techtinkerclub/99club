@@ -574,6 +574,18 @@ if(mode==='prepare'){
     document.querySelector('[data-fw-mode="wall"]').click();
     assert(document.querySelectorAll('[data-fw-row]').length===12,'Switching back restores the full fraction wall without losing the existing tool');
 
+    document.querySelector('[data-fw-workflow="export"]').click();
+    assert(document.getElementById('fw-copy-image')&&document.getElementById('fw-png')&&document.getElementById('fw-svg-download')&&document.getElementById('fw-print'),'Fractions export exposes copy, PNG, SVG and Print/PDF actions');
+    let fwCapturedSvg=null,fwCapturedName='';
+    const fwOldDownloadSvg=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg,name)=>{fwCapturedSvg=svg.cloneNode(true);fwCapturedName=name};
+    document.getElementById('fw-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=fwOldDownloadSvg;
+    assert(fwCapturedSvg&&fwCapturedSvg.dataset.fwExport==='wall','Fraction Wall exports as a deterministic SVG model');
+    assert(fwCapturedSvg.querySelectorAll('rect').length>30,'Fraction Wall SVG keeps the segmented mathematical structure');
+    assert(fwCapturedSvg.textContent.includes('Fraction wall'),'Fraction Wall SVG includes its semantic heading');
+    assert(fwCapturedName.includes('fraction-wall'),'Fraction Wall export has a reusable filename');
+
     document.querySelector('[data-fw-workflow="challenge"]').click();
     assert(document.querySelector('[data-fw-challenge-tab="standard"]'),'Fractions uses the shared Standard / Custom challenge language');
     assert(document.querySelector('[data-fw-challenge-type="identify-strip"]'),'Read-a-strip challenge is available');
@@ -586,6 +598,20 @@ if(mode==='prepare'){
     document.querySelector('[data-board-action="reveal"]').click();
     assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer:'),'Fractions challenge reveals its answer contextually');
     assert(document.querySelector('#fw-strip-canvas [data-gd-object] .gd-fr-strip-head strong').textContent.trim()!=='?','Reveal restores the hidden strip fraction');
+
+    document.querySelector('[data-fw-workflow="export"]').click();
+    assert(document.querySelector('[data-fw-export-mode="challenge"]'),'Active Fractions challenge offers Challenge card export');
+    let fwChallengeSvg=null;
+    const fwOldChallengeDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{fwChallengeSvg=svg.cloneNode(true)};
+    document.getElementById('fw-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=fwOldChallengeDownload;
+    assert(fwChallengeSvg&&fwChallengeSvg.querySelector('[data-fw-export-strip]'),'Fractions challenge card embeds the vector strip model');
+    assert(!fwChallengeSvg.textContent.includes('Answer:'),'Fractions pupil challenge export never includes a revealed answer label');
+    assert([...fwChallengeSvg.querySelectorAll('text')].some(x=>x.textContent.trim()==='?'),'Fractions pupil export re-hides the target strip after teacher reveal');
+    assert(fwChallengeSvg.textContent.includes('What fraction is represented'),'Fractions challenge-card export includes the pupil prompt');
+
+    document.querySelector('[data-fw-workflow="challenge"]').click();
     document.querySelector('[data-challenge-action="another"]').click();
     assert(document.querySelector('#fw-strip-canvas [data-gd-object] .gd-fr-strip-head strong').textContent.trim()==='?','Another like this creates the next hidden strip challenge directly');
 
