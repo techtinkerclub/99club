@@ -700,6 +700,54 @@ if(mode==='prepare'){
     undo.click();
     assert(document.querySelectorAll('[data-ge-vertex]').length===3,'Undo restores the deleted vertex');
     assert(document.getElementById('ge-readout').textContent.includes('Area = 4.50 square units'),'Undo restores the moved triangle geometry');
+
+    document.querySelector('[data-ge-workflow="challenge"]').click();
+    assert(document.querySelector('[data-ge-challenge-tab="standard"]')&&document.querySelector('[data-ge-challenge-tab="custom"]'),'Geoboard uses the shared Standard / Custom challenge tabs');
+    assert(document.querySelector('[data-ge-challenge-type="find-length"]'),'Geoboard length challenge is available');
+    assert(document.querySelector('[data-ge-challenge-type="find-perimeter"]'),'Geoboard perimeter challenge is available');
+    assert(document.querySelector('[data-ge-challenge-type="find-area"]'),'Geoboard area challenge is available');
+    document.querySelector('[data-ge-challenge-type="find-length"]').click();
+    document.getElementById('ge-generate').click();
+    assert(document.querySelector('.gd-challenge-banner'),'Generated Geoboard challenge appears above the board');
+    assert(document.querySelectorAll('[data-ge-vertex]').length===2,'Length challenge creates a two-point segment');
+    assert(document.getElementById('ge-readout').textContent.includes('Length ≈ ?'),'Length challenge hides the target measurement');
+    assert(document.querySelector('[data-challenge-action="another"]'),'Geoboard standard challenge exposes Another like this');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer:'),'Geoboard challenge reveals its answer contextually');
+    assert(!document.getElementById('ge-readout').textContent.includes('Length ≈ ?'),'Reveal restores the live length readout');
+
+    document.querySelector('[data-ge-workflow="challenge"]').click();
+    document.querySelector('[data-ge-challenge-type="find-area"]').click();
+    document.getElementById('ge-generate').click();
+    assert(document.querySelectorAll('[data-ge-vertex]').length>=3,'Area challenge creates a polygon');
+    assert(document.getElementById('ge-readout').textContent.includes('Area = ?'),'Area challenge hides the area while preserving the shape');
+
+    document.querySelector('[data-ge-workflow="challenge"]').click();
+    document.querySelector('[data-ge-challenge-tab="custom"]').click();
+    const geSource=document.getElementById('ge-custom-answer-source');
+    assert(geSource,'Geoboard custom challenge exposes live answer sources');
+    for(const source of ['length','perimeter','area','perimeter-area','vertices']){
+      assert([...geSource.options].some(o=>o.value===source),'Geoboard custom answer source '+source+' is available');
+    }
+    geSource.value='area';
+    geSource.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.getElementById('ge-readout').textContent.includes('Area = ?'),'Binding a custom answer to area hides the pupil-facing area');
+    const geLiveBefore=document.getElementById('ge-custom-live-answer').textContent.trim();
+    const freePeg=[...document.querySelectorAll('[data-gp]')].find(peg=>!document.querySelector('[data-ge-pos="'+peg.dataset.gp+'"]'));
+    assert(freePeg,'Geoboard has a free peg for live-answer editing');
+    freePeg.dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    const geLiveAfter=document.getElementById('ge-custom-live-answer').textContent.trim();
+    assert(geLiveAfter!==geLiveBefore,'Geoboard live custom area answer updates when the polygon changes');
+
+    document.getElementById('ge-clear-challenge').click();
+    assert(document.querySelectorAll('[data-ge-vertex]').length===3,'Ending a Geoboard challenge restores the teacher shape');
+    assert(document.getElementById('ge-readout').textContent.includes('Area = 4.50 square units'),'Ending a Geoboard challenge restores the original teacher measurements');
+
+    document.querySelector('[data-ge-workflow="challenge"]').click();
+    document.querySelector('[data-ge-challenge-cat="construct"]').click();
+    assert(document.querySelector('[data-ge-challenge-type="build-area"]'),'Geoboard build-a-target-area challenge is available');
+    document.querySelector('[data-ge-challenge-cat="reason"]').click();
+    assert(document.querySelector('[data-ge-challenge-type="area-perimeter-units"]'),'Geoboard units misconception challenge is available');
   }
   function testCoordinates(){
     TT99Goodies.interaction.clear();
