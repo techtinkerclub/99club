@@ -573,6 +573,60 @@ if(mode==='prepare'){
 
     document.querySelector('[data-fw-mode="wall"]').click();
     assert(document.querySelectorAll('[data-fw-row]').length===12,'Switching back restores the full fraction wall without losing the existing tool');
+
+    document.querySelector('[data-fw-workflow="challenge"]').click();
+    assert(document.querySelector('[data-fw-challenge-tab="standard"]'),'Fractions uses the shared Standard / Custom challenge language');
+    assert(document.querySelector('[data-fw-challenge-type="identify-strip"]'),'Read-a-strip challenge is available');
+    document.querySelector('[data-fw-challenge-type="identify-strip"]').click();
+    document.getElementById('fw-generate').click();
+    assert(document.querySelector('.gd-challenge-banner'),'Generated Fractions challenge appears above the representation');
+    assert(document.getElementById('fw-strip-canvas'),'Read-a-strip challenge switches to the strip representation');
+    assert(document.querySelector('#fw-strip-canvas [data-gd-object] .gd-fr-strip-head strong').textContent.trim()==='?','Read-a-strip challenge hides the target fraction label');
+    assert(document.querySelector('[data-challenge-action="another"]'),'Fractions standard challenge exposes Another like this');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer:'),'Fractions challenge reveals its answer contextually');
+    assert(document.querySelector('#fw-strip-canvas [data-gd-object] .gd-fr-strip-head strong').textContent.trim()!=='?','Reveal restores the hidden strip fraction');
+    document.querySelector('[data-challenge-action="another"]').click();
+    assert(document.querySelector('#fw-strip-canvas [data-gd-object] .gd-fr-strip-head strong').textContent.trim()==='?','Another like this creates the next hidden strip challenge directly');
+
+    document.querySelector('[data-fw-workflow="challenge"]').click();
+    document.querySelector('[data-fw-challenge-cat="read"]').click();
+    const equivalentChallenge=document.querySelector('[data-fw-challenge-type="equivalent-strip"]');
+    assert(equivalentChallenge,'Equivalent-strip challenge is available');
+    equivalentChallenge.click();
+    document.getElementById('fw-generate').click();
+    assert(document.querySelectorAll('#fw-strip-canvas [data-gd-object]').length===2,'Equivalent challenge creates two aligned strips');
+    assert(document.querySelectorAll('#fw-strip-canvas [data-gd-object]')[1].querySelector('.gd-fr-strip-head strong').textContent.trim()==='?','Equivalent challenge hides the target equivalent fraction');
+
+    document.querySelector('[data-fw-workflow="challenge"]').click();
+    document.querySelector('[data-fw-challenge-tab="custom"]').click();
+    const fwSource=document.getElementById('fw-custom-answer-source');
+    assert(fwSource,'Fractions custom challenge exposes live answer sources');
+    assert([...fwSource.options].some(o=>o.value==='strip:1:fraction'),'Fractions custom answer can bind to a live strip fraction');
+    assert([...fwSource.options].some(o=>o.value==='strip:1:simplified'),'Fractions custom answer can bind to a simplified strip value');
+    assert([...fwSource.options].some(o=>o.value==='strip:1:mixed'),'Fractions custom answer can bind to a mixed-number value');
+    fwSource.value='strip:1:fraction';
+    fwSource.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.querySelector('#fw-strip-canvas [data-gd-object="1"] .gd-fr-strip-head strong').textContent.trim()==='?','Binding a custom answer hides that strip label');
+    const fwLiveBefore=document.getElementById('fw-custom-live-answer').textContent.trim();
+    const stripOnePieces=[...document.querySelectorAll('[data-fr-strip-piece^="1:"]')];
+    assert(stripOnePieces.length>=2,'Bound strip exposes editable fraction segments');
+    stripOnePieces[stripOnePieces.length-1].click();
+    const fwLiveAfter=document.getElementById('fw-custom-live-answer').textContent.trim();
+    assert(fwLiveAfter!==fwLiveBefore,'Editing a bound strip updates the custom answer immediately');
+
+    document.getElementById('fw-clear-challenge').click();
+    assert(document.querySelectorAll('[data-fw-row]').length===12,'Ending a Fractions challenge restores the teacher wall setup');
+    assert(document.querySelector('.gd-fr-equation').textContent.replace(/\s+/g,'').includes('7/4>2/3'),'Fractions challenge restoration recovers the previous comparison values');
+
+    document.querySelector('[data-fw-workflow="challenge"]').click();
+    document.querySelector('[data-fw-challenge-cat="compare"]').click();
+    assert(document.querySelector('[data-fw-challenge-type="compare-strips"]'),'Visual fraction comparison challenge is available');
+    document.querySelector('[data-fw-challenge-cat="convert"]').click();
+    assert(document.querySelector('[data-fw-challenge-type="simplify-strip"]'),'Simplify-fraction challenge is available');
+    assert(document.querySelector('[data-fw-challenge-type="mixed-improper"]'),'Improper-to-mixed challenge is available');
+    document.querySelector('[data-fw-challenge-cat="reason"]').click();
+    assert(document.querySelector('[data-fw-challenge-type="denominator-misconception"]'),'Denominator misconception challenge is available');
   }
   function testGeoboard(){
     TT99Goodies.interaction.clear();
