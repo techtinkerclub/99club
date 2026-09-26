@@ -991,7 +991,14 @@ function fractionWall(){
         challengeType=button.dataset.fwChallengeType;renderControls();
       });
       qa('[data-gd-rich-action]',controls).forEach(button=>button.onclick=e=>{
-        e.preventDefault();const editor=q('#fw-custom-prompt',controls);if(editor&&CK)CK.applyFormat(editor,button.dataset.gdRichAction);
+        e.preventDefault();
+        const editor=q('#fw-custom-prompt',controls);
+        if(editor&&CK&&challenge){
+          CK.applyFormat(editor,button.dataset.gdRichAction);
+          challenge.promptHtml=CK.sanitiseRichHtml(editor.innerHTML);
+          challenge.prompt=CK.plainText(challenge.promptHtml).slice(0,600);
+          renderRepresentation();
+        }
       });
       const generate=q('#fw-generate',controls);if(generate)generate.onclick=()=>generateChallenge(challengeType);
       const edit=q('#fw-edit-challenge',controls);if(edit)edit.onclick=enterCustomChallenge;
