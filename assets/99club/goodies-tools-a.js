@@ -6,7 +6,7 @@ function numberLine(){let s={min:-10,max:20,step:1,marker:5};function draw(){s.m
 setPanels(`${field('Minimum','<input class="gd-input" id="nl-min" type="number" value="-10">')}${field('Maximum','<input class="gd-input" id="nl-max" type="number" value="20">')}${field('Step','<input class="gd-input" id="nl-step" type="number" min="0.1" step="0.1" value="1">')}${field('Move marker','<input class="gd-input" id="nl-marker" type="range" value="5">')}<div class="gd-row">${btn('− step','nl-down')}${btn('+ step','nl-up')}</div><p class="gd-help">Change the range for negatives, decimals or larger-number work.</p>`,'');['nl-min','nl-max','nl-step','nl-marker'].forEach(id=>q('#'+id).addEventListener('input',draw));q('#nl-down').onclick=()=>{q('#nl-marker').value=clamp(num(q('#nl-marker').value)-s.step,s.min,s.max);draw()};q('#nl-up').onclick=()=>{q('#nl-marker').value=clamp(num(q('#nl-marker').value)+s.step,s.min,s.max);draw()};draw()}
 
 function placeValue(){
-  const I=G.interaction;
+  const I=G.interaction,CK=G.challengeKit;
   if(!I){q('#gd-stage').innerHTML='<p class="gd-empty">The interactive place-value board could not start.</p>';return;}
   const places=[
     {label:'10,000',name:'ten thousands',value:10000,color:'#c9dbf2'},
@@ -17,7 +17,20 @@ function placeValue(){
     {label:'0.1',name:'tenths',value:.1,color:'#cce6dc'},
     {label:'0.01',name:'hundredths',value:.01,color:'#cde2ee'}
   ];
+  const CHALLENGE_CATEGORIES=[
+    {id:'read',label:'Read & place value'},
+    {id:'build',label:'Build & regroup'},
+    {id:'reason',label:'Reasoning'}
+  ];
+  const CHALLENGE_TEMPLATES=[
+    {id:'read-number',category:'read',title:'Read the number',desc:'Work out the number represented by the counters.'},
+    {id:'digit-value',category:'read',title:'Value of a digit',desc:'Use the board to identify a digit\'s place value.'},
+    {id:'build-number',category:'build',title:'Build the number',desc:'Make a target number with place-value counters.'},
+    {id:'non-standard',category:'build',title:'Non-standard representation',desc:'Interpret a value before regrouping it.'},
+    {id:'zero-placeholder',category:'reason',title:'Zero placeholder',desc:'Diagnose a common place-value misconception.'}
+  ];
   let tokens=[],next=1,controller=null,resizeObserver=null,resizeFrame=0,lastStageWidth=0,notice='';
+  let controlTab='setup',challengeTab='standard',challengeCategory='read',challengeType='read-number',challenge=null,beforeChallenge=null;
 
   function clean(v){return Math.round((Number(v)||0)*100)/100}
   function format(v){return clean(v).toLocaleString('en-GB',{minimumFractionDigits:0,maximumFractionDigits:2})}
