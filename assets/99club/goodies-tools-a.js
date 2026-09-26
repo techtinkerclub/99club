@@ -54,6 +54,162 @@ function placeValue(){
     layoutTokens();
     return value;
   }
+  function challengeObject(type,prompt,answer,extra={}){
+    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===type);
+    const raw={mode:'standard',type,category:meta?.category||'',title:'',prompt,promptHtml:prompt,answer:String(answer??''),answerMode:'bound',answerSource:'',revealed:false,...extra};
+    return CK?CK.normalise(raw):raw;
+  }
+  function customAnswerSources(){
+    const sources=[
+      {id:'total',label:'Number represented'},
+      {id:'expanded',label:'Board representation'}
+    ];
+    places.forEach((place,index)=>{
+      sources.push({id:'count:'+index,label:'Number of '+place.name+' counters'});
+      sources.push({id:'value:'+index,label:'Value in the '+place.name+' column'});
+    });
+    return sources;
+  }
+  function resolveAnswerSource(source){
+    if(source==='total')return format(total());
+    if(source==='expanded')return expandedText();
+    const m=String(source||'').match(/^(count|value):(\d+)$/);
+    if(!m)return '';
+    const index=clamp(Math.round(num(m[2],0)),0,places.length-1),count=counts()[index]||0;
+    return m[1]==='count'?String(count):format(clean(count*places[index].value));
+  }
+  function summaryHidden(kind){
+    if(!challenge||challenge.revealed)return false;
+    if(Array.isArray(challenge.hiddenSummary)&&challenge.hiddenSummary.includes(kind))return true;
+    return challenge.answerMode==='bound'&&challenge.answerSource===kind;
+  }
+  function columnCountHidden(index){
+    if(!challenge||challenge.revealed)return false;
+    const source=challenge.answerMode==='bound'?challenge.answerSource:'';
+    return source==='count:'+index||source==='value:'+index;
+  }
+  function updateChallengeAnswer(){
+    if(!challenge||challenge.answerMode!=='bound'||!challenge.answerSource)return;
+    const nextAnswer=resolveAnswerSource(challenge.answerSource);
+    if(nextAnswer!=='')challenge.answer=nextAnswer;
+    const live=q('#pv-custom-live-answer');if(live)live.textContent=challenge.answer||'—';
+    if(challenge.revealed){
+      const shown=q('.gd-challenge-actions em',q('#gd-stage'));
+      if(shown)shown.textContent='Answer: '+challenge.answer;
+    }
+  }
+  function randomBoardValue({decimal=true,min=1,max=9999}={}){
+    const whole=min+Math.floor(Math.random()*Math.max(1,max-min+1));
+    if(!decimal||Math.random()<.45)return whole;
+    return clean(whole+(1+Math.floor(Math.random()*99))/100);
+  }
+  function restoreBeforeChallenge(){
+    if(beforeChallenge){restoreState(beforeChallenge);beforeChallenge=null}
+  }
+  function clearChallenge(){
+    restoreBeforeChallenge();
+    challenge=null;challengeTab='standard';controlTab='challenge';
+    renderControls();controller?.refresh();
+  }
+  function enterCustomChallenge(){
+    if(CK){
+      challenge=CK.makeCustom(challenge||{
+        type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''
+      });
+    }else if(!challenge){
+      challenge={mode:'custom',type:'custom',title:'Challenge',prompt:'Write your challenge here.',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:'',revealed:false};
+    }
+    challengeTab='custom';controlTab='challenge';renderControls();controller?.refresh();
+  }
+  function generateChallenge(type){
+    const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
+    if(!beforeChallenge)beforeChallenge=stateSnapshot();else restoreState(beforeChallenge);
+    notice='';
+    if(type==='read-number'){
+      const value=randomBoardValue({decimal:true,min:12,max:9999});
+      buildFromNumber(value);
+      challenge=challengeObject(type,'What number is represented by the place-value counters?',format(value),{hiddenSummary:['total','expanded']});
+    }else if(type==='build-number'){
+      const target=randomBoardValue({decimal:true,min:10,max:9999});
+      tokens=[];next=1;layoutTokens();
+      challenge=challengeObject(type,'Build '+format(target)+' using the place-value counters. Use the live total to check your work.',format(target));
+    }else if(type==='digit-value'){
+      const placeIndex=1+Math.floor(Math.random()*(places.length-1)),digit=2+Math.floor(Math.random()*7);
+      const digits=Array(places.length).fill(0);
+      digits[placeIndex]=digit;
+      const supportIndex=placeIndex===4?3:4;
+      digits[supportIndex]=digits[supportIndex]===digit?1:1+Math.floor(Math.random()*4);
+      const value=clean(digits.reduce((sum,d,i)=>sum+d*places[i].value,0));
+      buildFromNumber(value);
+      challenge=challengeObject(type,'What is the value of the digit '+digit+' in the '+places[placeIndex].name+' column?',format(digit*places[placeIndex].value),{hiddenSummary:['total','expanded']});
+    }else if(type==='non-standard'){
+      const value=randomBoardValue({decimal:false,min:120,max:8999});
+      buildFromNumber(value);
+      const cs=counts(),candidates=[];
+      for(let i=0;i<places.length-1;i++)if(cs[i]>0)candidates.push(i);
+      const exchange=candidates[Math.floor(Math.random()*candidates.length)]??3;
+      const tokenIndex=tokens.findIndex(t=>t.place===exchange);
+      if(tokenIndex>=0)tokens.splice(tokenIndex,1);
+      for(let n=0;n<10;n++)tokens.push({id:next++,place:exchange+1,x:0,y:0,locked:false});
+      layoutTokens();
+      challenge=challengeObject(type,'This is a non-standard representation. What number does it represent? Regroup it to check.',format(value),{hiddenSummary:['total','expanded']});
+    }else{
+      const examples=[
+        {value:4052,claim:'452',place:'hundreds'},
+        {value:7008,claim:'78',place:'hundreds and tens'},
+        {value:5060,claim:'560',place:'hundreds'},
+        {value:9015,claim:'915',place:'hundreds'}
+      ],pick=examples[Math.floor(Math.random()*examples.length)];
+      buildFromNumber(pick.value);
+      challenge=challengeObject(type,'A pupil says this board represents '+pick.claim+' because there are no counters in the '+pick.place+' place. Are they correct?','No. It represents '+format(pick.value)+'. Zero is acting as a placeholder.',{hiddenSummary:['total','expanded']});
+    }
+    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';
+    renderControls();controller?.select(null);controller?.refresh();
+  }
+  function setCustomAnswerSource(source){
+    if(!challenge||challenge.mode!=='custom')return;
+    if(source==='manual'){
+      challenge.answerMode='manual';challenge.answerSource='';
+    }else{
+      challenge.answerMode='bound';challenge.answerSource=source;
+      challenge.answer=resolveAnswerSource(source);
+    }
+    challenge.revealed=false;renderControls();controller?.refresh();
+  }
+  function challengeControlsHtml(){
+    if(!CK)return '<p class="gd-help">Challenge tools are unavailable.</p>';
+    const tabs=CK.tabsHtml?CK.tabsHtml('pv',challengeTab):'';
+    if(challengeTab==='custom'){
+      const custom=challenge&&challenge.mode==='custom'?challenge:CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual'});
+      return tabs+CK.editorHtml(custom,'pv',{answerSources:customAnswerSources(),generatedAnswerLabel:'Keep the generated answer'})+
+        '<div class="gd-row">'+(challenge&&challenge.answer?'<button class="gd-btn" id="pv-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
+        (challenge?'<button class="gd-btn" id="pv-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
+        '<p class="gd-help">Custom challenges sit on top of the current board. Choose a live board value as the answer when you want it to stay linked while counters move.</p>';
+    }
+    const picker=CK.pickerHtml(CHALLENGE_TEMPLATES,CHALLENGE_CATEGORIES,challengeCategory,challengeType,'pv');
+    const repeat=!!(challenge&&challenge.mode==='standard'&&challenge.type===challengeType);
+    return tabs+picker+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="pv-generate" type="button">'+(repeat?'Another like this':'Generate challenge')+'</button>'+
+      (challenge&&challenge.mode!=='custom'?'<button class="gd-btn" id="pv-edit-challenge" type="button">Edit challenge</button>':'')+
+      (challenge&&challenge.answer?'<button class="gd-btn" id="pv-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
+      (challenge?'<button class="gd-btn" id="pv-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>';
+  }
+  function setupControlsHtml(){
+    return field('Quick setup number','<div class="gd-row"><input class="gd-input" id="pv-value" type="number" min="0" max="99999.99" step="0.01" value="'+clean(total()).toFixed(total()%1?2:0)+'"><button class="gd-btn" id="pv-build" type="button">Build</button></div>','Use this to prepare a board quickly; after that, work directly with the counters.')+
+      '<div class="gd-row">'+btn('Random whole number','pv-random')+btn('Random decimal','pv-dec')+'</div>'+
+      btn('Regroup counters','pv-regroup')+btn('Clear board','pv-clear')+
+      '<p class="gd-help">Tap + at the top of a column to add one counter. Drag counters between columns; the represented number updates with their place value. Select a counter for duplicate, lock and delete. Left/right arrow keys move a selected counter one place.</p>';
+  }
+  function controlsHtml(){
+    return '<div class="gd-row pv-mode-tabs" role="tablist" aria-label="Place Value workflow">'+
+      '<button class="gd-btn'+(controlTab==='setup'?' gd-btn--primary':'')+'" type="button" data-pv-workflow="setup">Setup</button>'+
+      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-pv-workflow="challenge">Challenge'+(challenge?' •':'')+'</button></div>'+
+      (controlTab==='challenge'?challengeControlsHtml():setupControlsHtml());
+  }
+  function renderControls(){
+    setPanels(controlsHtml(),'');
+    bindControls();
+  }
+
   function boardWidth(){
     return Math.max(315,q('#pv-canvas')?.clientWidth||((q('#gd-stage')?.clientWidth||720)-4));
   }
