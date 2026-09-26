@@ -2754,6 +2754,13 @@ function moneyTool(){
   function bindControls(){
     qa('[data-mo-workflow]',q('#gd-controls')).forEach(button=>button.onclick=()=>{controlTab=button.dataset.moWorkflow;renderControls()});
     bindMoneyButtons();
+    if(controlTab==='export'){
+      qa('[data-mo-export-mode]',q('#gd-controls')).forEach(button=>button.onclick=()=>{exportMode=button.dataset.moExportMode;exportStatus='';renderControls()});
+      const lines=q('#mo-response-lines');if(lines)lines.onchange=()=>{responseLines=clamp(Math.round(num(lines.value,1)),1,4)};
+      const actions=[['mo-copy-image','copy'],['mo-png','png'],['mo-svg-download','svg'],['mo-print','print']];
+      actions.forEach(([id,kind])=>{const button=q('#'+id);if(button)button.onclick=()=>runExport(kind)});
+      return;
+    }
     if(controlTab==='explore'){
       const targetInput=q('#mo-target');if(targetInput)targetInput.oninput=()=>{
         target=Math.max(1,Math.round(Math.max(.01,num(targetInput.value,target/100))*100));controller.refresh();
