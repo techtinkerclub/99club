@@ -987,6 +987,19 @@ if(mode==='prepare'){
     assert(marker.getAttribute('aria-valuenow')==='16.5','Focused ruler marker moves by 1 mm with the arrow keys');
     const teacherValue=marker.getAttribute('aria-valuenow');
 
+    document.querySelector('[data-me-workflow="export"]').click();
+    assert(document.getElementById('me-copy-image')&&document.getElementById('me-png')&&document.getElementById('me-svg-download')&&document.getElementById('me-print'),'Measurement export exposes copy, PNG, SVG and Print/PDF actions');
+    let meCapturedSvg=null,meCapturedName='';
+    const meOldDownloadSvg=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg,name)=>{meCapturedSvg=svg.cloneNode(true);meCapturedName=name};
+    document.getElementById('me-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=meOldDownloadSvg;
+    assert(meCapturedSvg&&meCapturedSvg.dataset.meExport==='ruler','Measurement ruler-only export is a deterministic SVG ruler');
+    assert(meCapturedSvg.querySelector('[data-me-export-ruler]'),'Measurement SVG export preserves the ruler structure');
+    assert(meCapturedSvg.querySelector('[data-me-export-marker="main"]'),'Measurement board export preserves the current marker');
+    assert(meCapturedSvg.textContent.includes(teacherValue+' cm'),'Measurement board export includes the visible centimetre readout');
+    assert(meCapturedName.includes('measurement-ruler'),'Measurement ruler export has a reusable filename');
+
     document.querySelector('[data-me-workflow="challenge"]').click();
     assert(document.querySelector('[data-me-challenge-tab="standard"]')&&document.querySelector('[data-me-challenge-tab="custom"]'),'Measurement uses the shared Standard / Custom challenge tabs');
     for(const type of ['read-mark','place-mark','distance-between']){
@@ -1004,6 +1017,18 @@ if(mode==='prepare'){
     assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer:'),'Measurement challenge reveals its answer contextually');
     assert([...document.querySelectorAll('.gd-fdp-value strong')].some(x=>x.textContent.includes('cm')),'Reveal restores the live unit readouts');
 
+    document.querySelector('[data-me-workflow="export"]').click();
+    assert(document.querySelector('[data-me-export-mode="challenge"]'),'Active Measurement challenge offers Challenge card export');
+    let meChallengeSvg=null;
+    const meOldChallengeDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{meChallengeSvg=svg.cloneNode(true)};
+    document.getElementById('me-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=meOldChallengeDownload;
+    assert(meChallengeSvg&&meChallengeSvg.querySelector('[data-me-export-ruler]'),'Measurement challenge card embeds the vector ruler');
+    assert(!meChallengeSvg.textContent.includes('Answer:'),'Measurement pupil challenge export never includes a revealed answer label');
+    assert([...meChallengeSvg.querySelectorAll('text')].filter(x=>x.textContent.trim()==='?').length>=3,'Measurement pupil export re-hides equivalent unit readouts after teacher reveal');
+    assert(meChallengeSvg.textContent.includes('What length does the orange marker show?'),'Measurement challenge-card export includes the pupil prompt');
+
     document.querySelector('[data-me-workflow="challenge"]').click();
     document.querySelector('[data-me-challenge-cat="read"]').click();
     document.querySelector('[data-me-challenge-type="place-mark"]').click();
@@ -1017,6 +1042,15 @@ if(mode==='prepare'){
     pointer(targetPoint.ruler,'pointerup',targetPoint.x,targetPoint.y,83);
     assert(Number(document.getElementById('me-marker').getAttribute('aria-valuenow'))===targetValue,'Place-the-mark challenge keeps direct ruler interaction active');
     assert(document.querySelector('.gd-answer-live')?.textContent.includes('On target'),'Place-the-mark challenge confirms an exact direct placement');
+
+    document.querySelector('[data-me-workflow="export"]').click();
+    let mePlaceSvg=null;
+    const meOldPlaceDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{mePlaceSvg=svg.cloneNode(true)};
+    document.getElementById('me-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=meOldPlaceDownload;
+    assert(mePlaceSvg&&!mePlaceSvg.querySelector('[data-me-export-marker="main"]'),'Place-the-mark pupil card exports a blank ruler even after the teacher tests the target');
+    assert(mePlaceSvg.textContent.includes('Move the orange marker to '+targetValue+' cm.'),'Place-the-mark pupil card keeps the target instruction');
 
     document.querySelector('[data-me-workflow="challenge"]').click();
     document.querySelector('[data-me-challenge-type="distance-between"]').click();
