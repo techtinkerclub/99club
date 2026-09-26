@@ -6,7 +6,7 @@ function numberLine(){let s={min:-10,max:20,step:1,marker:5};function draw(){s.m
 setPanels(`${field('Minimum','<input class="gd-input" id="nl-min" type="number" value="-10">')}${field('Maximum','<input class="gd-input" id="nl-max" type="number" value="20">')}${field('Step','<input class="gd-input" id="nl-step" type="number" min="0.1" step="0.1" value="1">')}${field('Move marker','<input class="gd-input" id="nl-marker" type="range" value="5">')}<div class="gd-row">${btn('− step','nl-down')}${btn('+ step','nl-up')}</div><p class="gd-help">Change the range for negatives, decimals or larger-number work.</p>`,'');['nl-min','nl-max','nl-step','nl-marker'].forEach(id=>q('#'+id).addEventListener('input',draw));q('#nl-down').onclick=()=>{q('#nl-marker').value=clamp(num(q('#nl-marker').value)-s.step,s.min,s.max);draw()};q('#nl-up').onclick=()=>{q('#nl-marker').value=clamp(num(q('#nl-marker').value)+s.step,s.min,s.max);draw()};draw()}
 
 function placeValue(){
-  const I=G.interaction,CK=G.challengeKit;
+  const I=G.interaction,CK=G.challengeKit,X=G.exportTools;
   if(!I){q('#gd-stage').innerHTML='<p class="gd-empty">The interactive place-value board could not start.</p>';return;}
   const places=[
     {label:'10,000',name:'ten thousands',value:10000,color:'#c9dbf2'},
@@ -31,6 +31,7 @@ function placeValue(){
   ];
   let tokens=[],next=1,controller=null,resizeObserver=null,resizeFrame=0,lastStageWidth=0,notice='';
   let controlTab='setup',challengeTab='standard',challengeCategory='read',challengeType='read-number',challenge=null,beforeChallenge=null;
+  let exportMode='diagram',responseLines=1,exportStatus='';
 
   function clean(v){return Math.round((Number(v)||0)*100)/100}
   function format(v){return clean(v).toLocaleString('en-GB',{minimumFractionDigits:0,maximumFractionDigits:2})}
@@ -164,6 +165,7 @@ function placeValue(){
       challenge=challengeObject(type,'A pupil says this board represents '+pick.claim+' because there are no counters in the '+pick.place+' place. Are they correct?','No. It represents '+format(pick.value)+'. Zero is acting as a placeholder.',{hiddenSummary:['total','expanded']});
     }
     challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';
+    exportMode='challenge';responseLines=template.category==='reason'?3:1;exportStatus='';
     renderControls();controller?.select(null);controller?.refresh();
   }
   function setCustomAnswerSource(source){
@@ -199,11 +201,105 @@ function placeValue(){
       btn('Regroup counters','pv-regroup')+btn('Clear board','pv-clear')+
       '<p class="gd-help">Tap + at the top of a column to add one counter. Drag counters between columns; the represented number updates with their place value. Select a counter for duplicate, lock and delete. Left/right arrow keys move a selected counter one place.</p>';
   }
+  function exportControlsHtml(){
+    const canCard=!!challenge;
+    if(!canCard&&exportMode==='challenge')exportMode='diagram';
+    return '<div class="nl-panel-title"><div><strong>Use it elsewhere</strong><span>Export a clean vector board or a pupil-ready challenge card.</span></div></div>'+
+      (canCard?'<div class="nl-export-mode pv-export-mode" role="tablist" aria-label="Export content">'+
+        '<button type="button" class="'+(exportMode==='challenge'?'is-active':'')+'" data-pv-export-mode="challenge">Challenge card</button>'+
+        '<button type="button" class="'+(exportMode==='diagram'?'is-active':'')+'" data-pv-export-mode="diagram">Board only</button></div>':'')+
+      (canCard&&exportMode==='challenge'
+        ?'<label class="gd-field"><span>Answer space</span><select class="gd-select" id="pv-response-lines">'+
+          [1,2,3,4].map(n=>'<option value="'+n+'"'+(responseLines===n?' selected':'')+'>'+n+' line'+(n===1?'':'s')+'</option>').join('')+
+          '</select></label><p class="gd-help">The pupil card contains the question, the place-value board and blank answer space. Reveal answer is never copied into the pupil version.</p>'
+        :'<p class="gd-help">Board-only export contains the mathematical board, counters and visible readouts without the editing controls.</p>')+
+      '<div class="nl-export-grid pv-export-grid">'+
+        '<button class="gd-btn gd-btn--primary" id="pv-copy-image" type="button">Copy '+(canCard&&exportMode==='challenge'?'challenge':'image')+'</button>'+
+        '<button class="gd-btn" id="pv-png" type="button">PNG</button>'+
+        '<button class="gd-btn" id="pv-svg-download" type="button">SVG</button>'+
+        '<button class="gd-btn" id="pv-print" type="button">Print / PDF</button>'+
+      '</div><p class="gd-help" id="pv-export-status" role="status" aria-live="polite">'+exportStatus+'</p>';
+  }
+  function pvSvgEl(name,attrs={},text=''){
+    const el=document.createElementNS('http://www.w3.org/2000/svg',name);
+    Object.entries(attrs).forEach(([key,value])=>el.setAttribute(key,String(value)));
+    if(text!==''&&text!=null)el.textContent=String(text);
+    return el;
+  }
+  function boardExportSvg({pupil=false}={}){
+    const cs=counts(),width=1000,pad=34,boardX=pad,boardY=26,boardW=width-pad*2,colW=boardW/places.length;
+    const maxCount=Math.max(1,...cs),perRow=3,rows=Math.max(1,Math.ceil(maxCount/perRow)),headerH=80,counterStep=38;
+    const boardH=headerH+30+rows*counterStep,hideTotal=pupil&&summaryHidden('total'),hideExpanded=pupil&&summaryHidden('expanded');
+    const omitSummary=pupil&&challenge?.type==='build-number';
+    const summaryH=omitSummary?0:94,height=boardY+boardH+summaryH+42;
+    const svg=pvSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Place value board'});
+    svg.appendChild(pvSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
+    svg.appendChild(pvSvgEl('rect',{x:boardX,y:boardY,width:boardW,height:boardH,rx:16,fill:'#ffffff',stroke:'#aebfc2','stroke-width':2}));
+
+    places.forEach((place,index)=>{
+      const x=boardX+index*colW,isDecimal=index===5;
+      svg.appendChild(pvSvgEl('rect',{x,y:boardY,width:colW,height:headerH,fill:index%2?'#f8fafb':'#f3f7f7'}));
+      if(index>0)svg.appendChild(pvSvgEl('line',{x1:x,y1:boardY,x2:x,y2:boardY+boardH,stroke:isDecimal?'#657b82':'#d7e0e2','stroke-width':isDecimal?4:1.5}));
+      svg.appendChild(pvSvgEl('text',{x:x+colW/2,y:boardY+28,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':15,'font-weight':800,fill:'#2f474f'},place.label));
+      svg.appendChild(pvSvgEl('text',{x:x+colW/2,y:boardY+49,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':10,fill:'#697b80'},place.name));
+      const countLabel=pupil&&columnCountHidden(index)?'?':cs[index];
+      svg.appendChild(pvSvgEl('rect',{x:x+colW/2-18,y:boardY+57,width:36,height:18,rx:9,fill:'#edf3f4'}));
+      svg.appendChild(pvSvgEl('text',{x:x+colW/2,y:boardY+70,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':11,'font-weight':800,fill:'#52666d'},countLabel));
+
+      for(let n=0;n<cs[index];n++){
+        const row=Math.floor(n/perRow),slot=n%perRow,cx=x+colW/2+(slot-1)*32,cy=boardY+headerH+35+row*counterStep;
+        svg.appendChild(pvSvgEl('circle',{cx,cy,r:14,fill:place.color,stroke:'#708388','stroke-width':1.5}));
+        svg.appendChild(pvSvgEl('circle',{cx,cy,r:5,fill:'#ffffff','fill-opacity':.58}));
+      }
+    });
+
+    if(!omitSummary){
+      const sy=boardY+boardH+22,half=(boardW-14)/2;
+      svg.appendChild(pvSvgEl('rect',{x:boardX,y:sy,width:half,height:68,rx:12,fill:'#f6f9f9',stroke:'#d7e1e3'}));
+      svg.appendChild(pvSvgEl('rect',{x:boardX+half+14,y:sy,width:half,height:68,rx:12,fill:'#f6f9f9',stroke:'#d7e1e3'}));
+      svg.appendChild(pvSvgEl('text',{x:boardX+16,y:sy+22,'font-family':'Arial,sans-serif','font-size':11,'font-weight':700,fill:'#6d7e83'},'Number represented'));
+      svg.appendChild(pvSvgEl('text',{x:boardX+16,y:sy+50,'font-family':'Arial,sans-serif','font-size':22,'font-weight':800,fill:'#2e5e5a'},hideTotal?'?':format(total())));
+      svg.appendChild(pvSvgEl('text',{x:boardX+half+30,y:sy+22,'font-family':'Arial,sans-serif','font-size':11,'font-weight':700,fill:'#6d7e83'},'Board representation'));
+      let expanded=hideExpanded?'Hidden for challenge':expandedText();
+      if(expanded.length>64)expanded=expanded.slice(0,61)+'…';
+      svg.appendChild(pvSvgEl('text',{x:boardX+half+30,y:sy+49,'font-family':'Arial,sans-serif','font-size':14,'font-weight':700,fill:'#334a52'},expanded));
+    }
+    svg.appendChild(pvSvgEl('text',{x:width-pad,y:height-12,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':10,fill:'#87969a'},'99 Club Studio'));
+    return svg;
+  }
+  function exportTargetSvg(){
+    if(exportMode!=='challenge'||!challenge||!X?.composeChallengeCardSvg)return boardExportSvg({pupil:false});
+    const prompt=CK?CK.plainText(challenge.promptHtml||challenge.prompt||''):challenge.prompt||'';
+    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
+    return X.composeChallengeCardSvg(boardExportSvg({pupil:true}),{
+      title:challenge.title||meta?.title||'Place Value challenge',
+      prompt,
+      responseLabel:challenge.category==='reason'?'Explain your thinking':'Answer',
+      responseLines,
+      brand:'99 Club Studio'
+    });
+  }
+  function exportName(){
+    const meta=challenge&&CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
+    return exportMode==='challenge'&&challenge?(challenge.title||meta?.title||'place-value-challenge'):'place-value-board-'+String(total()).replace(/[^0-9.-]+/g,'-');
+  }
+  function exportMessage(text){exportStatus=text;const el=q('#pv-export-status');if(el)el.textContent=text}
+  async function exportAction(kind){
+    try{
+      if(!X)throw new Error('Export tools are not available.');
+      const target=exportTargetSvg(),isCard=exportMode==='challenge'&&!!challenge,name=exportName();
+      if(kind==='copy'){await X.copyPng(target);exportMessage(isCard?'Challenge copied — paste it into your worksheet, slide or document.':'Board image copied — paste it into your slide or document.')}
+      if(kind==='png'){await X.downloadPng(target,name,2);exportMessage(isCard?'Challenge PNG downloaded.':'Board PNG downloaded.')}
+      if(kind==='svg'){X.downloadSvg(target,name);exportMessage(isCard?'Challenge SVG downloaded.':'Board SVG downloaded.')}
+      if(kind==='print'){X.printSvg(target,{title:'',landscape:true});exportMessage('Print view opened. Choose “Save as PDF” in the print dialog.')}
+    }catch(err){exportMessage(err?.message||'That export did not work.')}
+  }
   function controlsHtml(){
     return '<div class="gd-row pv-mode-tabs" role="tablist" aria-label="Place Value workflow">'+
       '<button class="gd-btn'+(controlTab==='setup'?' gd-btn--primary':'')+'" type="button" data-pv-workflow="setup">Setup</button>'+
-      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-pv-workflow="challenge">Challenge'+(challenge?' •':'')+'</button></div>'+
-      (controlTab==='challenge'?challengeControlsHtml():setupControlsHtml());
+      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-pv-workflow="challenge">Challenge'+(challenge?' •':'')+'</button>'+
+      '<button class="gd-btn'+(controlTab==='export'?' gd-btn--primary':'')+'" type="button" data-pv-workflow="export">Export / reuse</button></div>'+
+      (controlTab==='challenge'?challengeControlsHtml():controlTab==='export'?exportControlsHtml():setupControlsHtml());
   }
   function renderControls(){
     const panel=q('#gd-controls');
