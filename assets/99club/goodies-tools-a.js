@@ -758,7 +758,7 @@ function fractionWall(){
     if(source==='manual'){
       challenge.answerMode='manual';challenge.answerSource='';clearBoundHiding();
     }else if(source==='generated'){
-      challenge.answerMode='bound';challenge.answerSource='';clearBoundHiding();
+      challenge.answerMode='bound';challenge.answerSource='';
     }else{
       challenge.answerMode='bound';challenge.answerSource=source;challenge.answer=resolveCustomAnswerSource(source);applyBoundHiding(source);
     }
@@ -1387,7 +1387,7 @@ function arrayBuilder(){
     if(source==='manual'){
       challenge.answerMode='manual';challenge.answerSource='';clearBoundHiding();
     }else if(source==='generated'){
-      challenge.answerMode='bound';challenge.answerSource='';
+      challenge.answerMode='bound';challenge.answerSource='';clearBoundHiding();
     }else{
       challenge.answerMode='bound';challenge.answerSource=source;challenge.answer=resolveAnswerSource(source);applyBoundHiding(source);
     }
