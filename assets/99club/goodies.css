@@ -578,3 +578,13 @@ html.nl-board-page-lock,body.nl-board-page-lock{overflow:hidden!important;oversc
   .nl-add-line-row{grid-template-columns:1fr}
   .nl-add-line-row>.gd-btn{width:100%}
 }
+
+
+/* Number Line live multi-line dependencies */
+.nl-zoom-follow{margin:1px 0}
+.nl-zoom-follow input:disabled{cursor:not-allowed}
+.nl-linked-marker-tag{display:inline-flex;align-items:center;min-height:26px;padding:4px 8px;border:1px solid #b9d6d2;border-radius:999px;background:#f0f8f7;color:#356f6a;font-size:.66rem;font-weight:850;line-height:1.1}
+.nl-linked-pair-guide{pointer-events:none}
+@media(max-width:390px){
+  .nl-linked-marker-tag{flex-basis:100%;width:max-content}
+}

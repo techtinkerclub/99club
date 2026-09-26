@@ -117,10 +117,10 @@ The richest existing Goodie and the **primary behavioural reference** for:
 Its extra lines have four distinct teaching purposes:
 - **Aligned** — the same numeric scale, so equal values sit directly above one another.
 - **Independent** — a separate min/max/tick scale using the full width with no implied numerical alignment.
-- **Zoomed** — the main line highlights a bounded interval and the extra line expands that interval to the full working width; main-line markers are a useful fast default for the zoom bounds.
-- **Double number line** — two proportional scales share horizontal positions while retaining their own numeric values. Keep correspondence guides restrained, and only display a multiplication factor when both scales have a meaningful zero origin.
+- **Zoomed** — the main line highlights a bounded interval and the extra line expands that interval to the full working width; main-line markers are a useful fast default for the zoom bounds. When a teacher chooses marker-following, moving either of the first two main markers should update the zoom bounds immediately. Manual zoom bounds should detach that live dependency.
+- **Double number line** — two proportional scales share horizontal positions while retaining their own numeric values. Keep correspondence guides restrained, and only display a multiplication factor when both scales have a meaningful zero origin. A teacher can add a **corresponding pair**: one marker on each line sharing the same proportional position. Dragging/editing either marker should move the pair together; paired labels/colours stay visually matched.
 
-Do not blur these modes together. The visual relationship must explain why the extra line exists.
+Do not blur these modes together. The visual relationship must explain why the extra line exists, and live dependencies should remove recalculation work rather than add configuration.
 
 The Number Line reference covers:
 - direct dragging;
