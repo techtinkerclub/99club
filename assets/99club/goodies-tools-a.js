@@ -718,7 +718,93 @@ function fractionWall(){
       '<div class="gd-row"><button class="gd-btn" id="fw-align" type="button">Align strips</button><button class="gd-btn" id="fw-clear-strips" type="button">Clear workbench</button></div>'+
       '<p class="gd-help">Drag strips directly. Select one for duplicate, split into twice as many equal pieces, simplify, lock or delete. Equivalent strips highlight automatically.</p>';
   }
-  function controlsHtml(){return mode==='workbench'?workbenchControlsHtml():wallControlsHtml()}
+  function workflowTabs(){
+    return '<div class="gd-row gd-fr-workflow-tabs" role="tablist" aria-label="Fractions workflow">'+
+      '<button class="gd-btn'+(controlTab==='explore'?' gd-btn--primary':'')+'" type="button" data-fw-workflow="explore">Explore</button>'+
+      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-fw-workflow="challenge">Challenge'+(challenge?' •':'')+'</button></div>';
+  }
+  function challengeControlsHtml(){
+    if(!CK)return '<p class="gd-help">Challenge tools are unavailable.</p>';
+    const tabs=CK.tabsHtml?CK.tabsHtml('fw',challengeTab):'';
+    if(challengeTab==='custom'){
+      const custom=challenge&&challenge.mode==='custom'?challenge:CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual'});
+      return tabs+CK.editorHtml(custom,'fw',{answerSources:customAnswerSources(),generatedAnswerLabel:'Keep the generated answer'})+
+        '<div class="gd-row">'+(challenge&&challenge.answer?'<button class="gd-btn" id="fw-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
+        (challenge?'<button class="gd-btn" id="fw-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
+        '<p class="gd-help">Custom challenges stay attached to the current fraction representation. Live answers update if the bound wall value or strip changes.</p>';
+    }
+    const picker=CK.pickerHtml(CHALLENGE_TEMPLATES,CHALLENGE_CATEGORIES,challengeCategory,challengeType,'fw');
+    const repeat=!!(challenge&&challenge.mode==='standard'&&challenge.type===challengeType);
+    return tabs+picker+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="fw-generate" type="button">'+(repeat?'Another like this':'Generate challenge')+'</button>'+
+      (challenge&&challenge.mode!=='custom'?'<button class="gd-btn" id="fw-edit-challenge" type="button">Edit challenge</button>':'')+
+      (challenge&&challenge.answer?'<button class="gd-btn" id="fw-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
+      (challenge?'<button class="gd-btn" id="fw-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>';
+  }
+  function enterCustomChallenge(){
+    if(CK)challenge=CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''});
+    challengeTab='custom';controlTab='challenge';renderControls();renderRepresentation();
+  }
+  function setCustomAnswerSource(source){
+    if(!challenge||challenge.mode!=='custom')return;
+    if(source==='manual'){
+      challenge.answerMode='manual';challenge.answerSource='';clearBoundHiding();
+    }else if(source==='generated'){
+      challenge.answerMode='bound';challenge.answerSource='';
+    }else{
+      challenge.answerMode='bound';challenge.answerSource=source;challenge.answer=resolveCustomAnswerSource(source);applyBoundHiding(source);
+    }
+    challenge.revealed=false;renderControls();renderRepresentation();
+  }
+  function clearChallenge(){
+    if(beforeChallenge){restoreTeachingSnapshot(beforeChallenge);beforeChallenge=null}
+    challenge=null;challengeTab='standard';controlTab='challenge';renderControls();renderRepresentation();
+  }
+  function randomProper(d){return{n:1+Math.floor(Math.random()*Math.max(1,d-1)),d}}
+  function generateChallenge(type){
+    const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
+    if(!beforeChallenge)beforeChallenge=teachingSnapshot();else restoreTeachingSnapshot(beforeChallenge);
+    const dens=[2,3,4,5,6,8];
+    if(type==='identify-strip'){
+      const d=dens[Math.floor(Math.random()*dens.length)],f=randomProper(d);
+      mode='workbench';strips=[{id:1,...f,x:24,y:24,locked:false,color:'#cbe7e2'}];nextStrip=2;
+      challenge=challengeObject(type,'What fraction is represented by the strip?',rawFractionText(f),{hiddenStripLabels:[1],hiddenStripHints:[1]});
+    }else if(type==='equivalent-strip'){
+      const d=[2,3,4,5,6][Math.floor(Math.random()*5)],f=randomProper(d),target={n:f.n*2,d:f.d*2};
+      mode='workbench';strips=[
+        {id:1,...f,x:24,y:24,locked:false,color:'#cbe7e2'},
+        {id:2,...target,x:24,y:130,locked:false,color:'#cfe0f6'}
+      ];nextStrip=3;
+      challenge=challengeObject(type,'The two strips represent the same amount. What fraction with denominator '+target.d+' is equivalent to '+rawFractionText(f)+'?',rawFractionText(target),{hiddenStripLabels:[2],hiddenStripHints:[2]});
+    }else if(type==='compare-strips'){
+      let a,b,guard=0;
+      do{a=randomProper(dens[Math.floor(Math.random()*dens.length)]);b=randomProper(dens[Math.floor(Math.random()*dens.length)]);guard++}while(equivalent(a,b)&&guard<30);
+      compareA=a;compareB=b;focus={...a};mode='wall';
+      const av=fractionValue(a),bv=fractionValue(b),sign=av>bv?'>':'<';
+      challenge=challengeObject(type,'Which symbol belongs between A and B: <, > or =?',sign,{hiddenCompareSign:true});
+    }else if(type==='simplify-strip'){
+      const base=[{n:1,d:2},{n:2,d:3},{n:3,d:4},{n:2,d:5}][Math.floor(Math.random()*4)],factor=2;
+      const f={n:base.n*factor,d:base.d*factor};
+      mode='workbench';strips=[{id:1,...f,x:24,y:24,locked:false,color:'#f6dfad'}];nextStrip=2;
+      challenge=challengeObject(type,'Simplify the fraction shown to its lowest terms.',rawFractionText(base),{hiddenStripHints:[1]});
+    }else if(type==='mixed-improper'){
+      const d=[2,3,4,5][Math.floor(Math.random()*4)],whole=1+Math.floor(Math.random()*2),rem=1+Math.floor(Math.random()*(d-1)),f={n:whole*d+rem,d};
+      mode='workbench';strips=[{id:1,...f,x:24,y:24,locked:false,color:'#e7d8f3'}];nextStrip=2;
+      challenge=challengeObject(type,'Write the improper fraction shown as a mixed number.',whole+' '+rem+'/'+d,{hiddenStripHints:[1]});
+    }else{
+      const small=[3,4,5,6][Math.floor(Math.random()*4)],large=Math.min(12,small*2),a={n:1,d:small},b={n:1,d:large};
+      mode='workbench';strips=[
+        {id:1,...a,x:24,y:24,locked:false,color:'#cbe7e2'},
+        {id:2,...b,x:24,y:130,locked:false,color:'#cfe0f6'}
+      ];nextStrip=3;
+      challenge=challengeObject(type,'A pupil says 1/'+large+' is greater than 1/'+small+' because '+large+' is the larger denominator. Are they correct?','No. For unit fractions, more equal parts make each part smaller, so 1/'+small+' > 1/'+large+'.',{hiddenStripHints:[1,2]});
+    }
+    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';
+    alignStrips();renderControls();renderRepresentation();
+  }
+  function controlsHtml(){
+    const body=controlTab==='challenge'?challengeControlsHtml():(mode==='workbench'?workbenchControlsHtml():wallControlsHtml());
+    return workflowTabs()+body;
+  }
   function renderControls(){const panel=q('#gd-controls');if(panel)panel.innerHTML=controlsHtml();bindControls()}
 
   function drawWall(){
