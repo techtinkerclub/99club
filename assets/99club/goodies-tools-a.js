@@ -1747,8 +1747,176 @@ function arrayBuilder(){
   draw();
 }
 
-function clockTool(){function draw(){const h=clamp(num(q('#cl-h').value,10),0,23),m=clamp(num(q('#cl-m').value,10),0,59),h12=h%12||12,ha=(h%12+m/60)*30,ma=m*6;const nums=Array.from({length:12},(_,i)=>{const n=i+1,a=(n*30-90)*Math.PI/180,x=150+112*Math.cos(a),y=150+112*Math.sin(a);return `<text class="gd-clock-num" x="${x}" y="${y}">${n}</text>`}).join('');const hand=(angle,len,cls)=>{const a=(angle-90)*Math.PI/180;return `<line class="${cls}" x1="150" y1="150" x2="${150+len*Math.cos(a)}" y2="${150+len*Math.sin(a)}"></line>`};q('#gd-stage').innerHTML=`<div class="gd-vis"><div class="gd-clock"><svg viewBox="0 0 300 300" role="img" aria-label="Analogue clock showing ${h12}:${String(m).padStart(2,'0')}"><circle class="gd-clock-face" cx="150" cy="150" r="135"></circle>${nums}${hand(ha,72,'gd-clock-hour')}${hand(ma,102,'gd-clock-minute')}<circle class="gd-clock-centre" cx="150" cy="150" r="7"></circle></svg></div><div class="gd-digital">${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')} <small>(${h12}:${String(m).padStart(2,'0')} ${h<12?'am':'pm'})</small></div></div>`}
-setPanels(`${field('Hour','<input class="gd-input" id="cl-h" type="range" min="0" max="23" value="10">')}${field('Minutes','<input class="gd-input" id="cl-m" type="range" min="0" max="59" step="1" value="10">')}<div class="gd-row">${btn('Random 5-minute time','cl-random')}${btn('Now','cl-now')}</div>`,'');['cl-h','cl-m'].forEach(id=>q('#'+id).oninput=draw);q('#cl-random').onclick=()=>{q('#cl-h').value=Math.floor(Math.random()*24);q('#cl-m').value=Math.floor(Math.random()*12)*5;draw()};q('#cl-now').onclick=()=>{const d=new Date();q('#cl-h').value=d.getHours();q('#cl-m').value=d.getMinutes();draw()};draw()}
+function clockTool(){
+  let hour=10,minute=10,snap=5,numerals='arabic',drag=null;
+  const roman=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
+
+  function mod(value,n){return((value%n)+n)%n}
+  function setTime(nextHour,nextMinute){
+    let total=Math.round(num(nextHour,hour))*60+Math.round(num(nextMinute,minute));
+    total=mod(total,24*60);
+    hour=Math.floor(total/60);minute=total%60;
+  }
+  function h12(){return hour%12||12}
+  function pad(value){return String(value).padStart(2,'0')}
+  function time24(){return pad(hour)+':'+pad(minute)}
+  function time12(){return h12()+':'+pad(minute)+' '+(hour<12?'am':'pm')}
+  function hourAngle(){return((hour%12)+minute/60)*30}
+  function minuteAngle(){return minute*6}
+  function handPoint(angle,len){
+    const a=(angle-90)*Math.PI/180;
+    return{x:150+len*Math.cos(a),y:150+len*Math.sin(a)};
+  }
+  function faceNumber(n){return numerals==='roman'?roman[n-1]:String(n)}
+  function tickMarkup(){
+    let out='';
+    for(let i=0;i<60;i++){
+      const a=(i*6-90)*Math.PI/180,major=i%5===0;
+      const r1=major?119:125,r2=132;
+      out+='<line class="gd-clock-tick'+(major?' is-hour':'')+'" x1="'+(150+r1*Math.cos(a))+'" y1="'+(150+r1*Math.sin(a))+'" x2="'+(150+r2*Math.cos(a))+'" y2="'+(150+r2*Math.sin(a))+'"></line>';
+    }
+    return out;
+  }
+  function numeralMarkup(){
+    return Array.from({length:12},(_,i)=>{
+      const n=i+1,a=(n*30-90)*Math.PI/180,x=150+102*Math.cos(a),y=150+102*Math.sin(a);
+      return '<text class="gd-clock-num" x="'+x+'" y="'+y+'">'+faceNumber(n)+'</text>';
+    }).join('');
+  }
+  function controlsHtml(){
+    return field('Hour (24-hour)','<input class="gd-input gd-small" id="cl-h" type="number" min="0" max="23" value="'+hour+'">')+
+      field('Minutes','<input class="gd-input gd-small" id="cl-m" type="number" min="0" max="59" value="'+minute+'">')+
+      field('Hand snapping','<select class="gd-select" id="cl-snap"><option value="5"'+(snap===5?' selected':'')+'>5 minutes</option><option value="1"'+(snap===1?' selected':'')+'>1 minute</option></select>','Controls direct minute-hand dragging and keyboard steps.')+
+      field('Clock face','<select class="gd-select" id="cl-numerals"><option value="arabic"'+(numerals==='arabic'?' selected':'')+'>1–12</option><option value="roman"'+(numerals==='roman'?' selected':'')+'>Roman numerals I–XII</option></select>')+
+      '<div class="gd-row"><button class="gd-btn gd-btn--primary" id="cl-toggle-period" type="button">Toggle am / pm</button><button class="gd-btn" id="cl-random" type="button">Random 5-minute time</button><button class="gd-btn" id="cl-now" type="button">Now</button></div>'+
+      '<p class="gd-help">Drag either clock hand directly. The minute hand carries the hour forward or back when it crosses 12. Focus a hand and use ← / → for precise adjustment.</p>';
+  }
+  function renderControls(){
+    const panel=q('#gd-controls');if(panel)panel.innerHTML=controlsHtml();bindControls();
+  }
+  function refreshControls(){
+    const h=q('#cl-h'),m=q('#cl-m');if(h)h.value=hour;if(m)m.value=minute;
+  }
+  function refreshClock(){
+    const hourPt=handPoint(hourAngle(),72),minutePt=handPoint(minuteAngle(),102);
+    const hourLine=q('#cl-hour-hand'),minuteLine=q('#cl-minute-hand'),hourHit=q('#cl-hour-hit'),minuteHit=q('#cl-minute-hit');
+    [hourLine,hourHit].forEach(el=>{if(el){el.setAttribute('x2',hourPt.x);el.setAttribute('y2',hourPt.y)}});
+    [minuteLine,minuteHit].forEach(el=>{if(el){el.setAttribute('x2',minutePt.x);el.setAttribute('y2',minutePt.y)}});
+    if(hourHit){
+      hourHit.setAttribute('aria-valuenow',hour);
+      hourHit.setAttribute('aria-valuetext','Hour hand, '+time12());
+    }
+    if(minuteHit){
+      minuteHit.setAttribute('aria-valuenow',minute);
+      minuteHit.setAttribute('aria-valuetext','Minute hand, '+minute+' minutes, '+time12());
+    }
+    const svg=q('#cl-face');
+    if(svg){svg.setAttribute('aria-label','Analogue clock showing '+time12());svg.dataset.clHour=String(hour);svg.dataset.clMinute=String(minute)}
+    const d24=q('[data-cl-readout="24"]'),d12=q('[data-cl-readout="12"]');
+    if(d24)d24.textContent=time24();if(d12)d12.textContent=time12();
+    refreshControls();
+  }
+  function angleFromPointer(clientX,clientY){
+    const svg=q('#cl-face');if(!svg)return 0;
+    const rect=svg.getBoundingClientRect(),cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
+    const deg=Math.atan2(clientY-cy,clientX-cx)*180/Math.PI+90;
+    return mod(deg,360);
+  }
+  function snappedMinute(angle){
+    const raw=angle/6;
+    return mod(Math.round(raw/snap)*snap,60);
+  }
+  function setHandFromPointer(kind,clientX,clientY,carryHour){
+    const angle=angleFromPointer(clientX,clientY);
+    if(kind==='minute'){
+      const next=snappedMinute(angle),previous=minute;
+      if(carryHour){
+        if(previous>=45&&next<=15)setTime(hour+1,next);
+        else if(previous<=15&&next>=45)setTime(hour-1,next);
+        else minute=next;
+      }else minute=next;
+    }else{
+      const faceHour=mod(Math.round(angle/30-minute/60),12);
+      const period=hour>=12?12:0;
+      hour=period+faceHour;
+    }
+    refreshClock();
+  }
+  function startDrag(kind,e){
+    if(e.button!=null&&e.button!==0)return;
+    e.preventDefault();
+    drag={kind,pointerId:e.pointerId};
+    setHandFromPointer(kind,e.clientX,e.clientY,false);
+    document.addEventListener('pointermove',dragMove);
+    document.addEventListener('pointerup',dragEnd,{once:true});
+    document.addEventListener('pointercancel',dragEnd,{once:true});
+  }
+  function dragMove(e){
+    if(!drag||e.pointerId!==drag.pointerId)return;
+    e.preventDefault();setHandFromPointer(drag.kind,e.clientX,e.clientY,true);
+  }
+  function dragEnd(e){
+    if(drag&&e.pointerId!=null&&e.pointerId!==drag.pointerId)return;
+    drag=null;
+    document.removeEventListener('pointermove',dragMove);
+    document.removeEventListener('pointerup',dragEnd);
+    document.removeEventListener('pointercancel',dragEnd);
+  }
+  function adjustHand(kind,delta){
+    if(kind==='minute')setTime(hour,minute+delta*snap);
+    else setTime(hour+delta,minute);
+    refreshClock();
+  }
+  function bindStage(){
+    const hourHit=q('#cl-hour-hit'),minuteHit=q('#cl-minute-hit');
+    if(hourHit){
+      hourHit.onpointerdown=e=>startDrag('hour',e);
+      hourHit.onkeydown=e=>{
+        if(e.key==='ArrowLeft'||e.key==='ArrowDown'){e.preventDefault();adjustHand('hour',-1)}
+        else if(e.key==='ArrowRight'||e.key==='ArrowUp'){e.preventDefault();adjustHand('hour',1)}
+      };
+    }
+    if(minuteHit){
+      minuteHit.onpointerdown=e=>startDrag('minute',e);
+      minuteHit.onkeydown=e=>{
+        if(e.key==='ArrowLeft'||e.key==='ArrowDown'){e.preventDefault();adjustHand('minute',-1)}
+        else if(e.key==='ArrowRight'||e.key==='ArrowUp'){e.preventDefault();adjustHand('minute',1)}
+      };
+    }
+  }
+  function bindControls(){
+    const controls=q('#gd-controls');if(!controls)return;
+    const h=q('#cl-h',controls),m=q('#cl-m',controls);
+    if(h)h.oninput=()=>{setTime(clamp(num(h.value,hour),0,23),minute);refreshClock()};
+    if(m)m.oninput=()=>{setTime(hour,clamp(num(m.value,minute),0,59));refreshClock()};
+    const snapSelect=q('#cl-snap',controls);if(snapSelect)snapSelect.onchange=()=>{snap=Number(snapSelect.value)===1?1:5};
+    const numeralSelect=q('#cl-numerals',controls);if(numeralSelect)numeralSelect.onchange=()=>{numerals=numeralSelect.value==='roman'?'roman':'arabic';draw()};
+    const toggle=q('#cl-toggle-period',controls);if(toggle)toggle.onclick=()=>{setTime(hour+(hour<12?12:-12),minute);refreshClock()};
+    const random=q('#cl-random',controls);if(random)random.onclick=()=>{hour=Math.floor(Math.random()*24);minute=Math.floor(Math.random()*12)*5;refreshClock()};
+    const now=q('#cl-now',controls);if(now)now.onclick=()=>{const d=new Date();hour=d.getHours();minute=d.getMinutes();refreshClock()};
+  }
+  function draw(){
+    const hp=handPoint(hourAngle(),72),mp=handPoint(minuteAngle(),102);
+    q('#gd-stage').innerHTML='<div class="gd-vis gd-clock-workbench">'+
+      '<div class="gd-clock"><svg id="cl-face" viewBox="0 0 300 300" role="img" aria-label="Analogue clock showing '+time12()+'" data-cl-hour="'+hour+'" data-cl-minute="'+minute+'">'+
+        '<circle class="gd-clock-face" cx="150" cy="150" r="135"></circle>'+tickMarkup()+numeralMarkup()+
+        '<line class="gd-clock-hour" id="cl-hour-hand" x1="150" y1="150" x2="'+hp.x+'" y2="'+hp.y+'"></line>'+
+        '<line class="gd-clock-minute" id="cl-minute-hand" x1="150" y1="150" x2="'+mp.x+'" y2="'+mp.y+'"></line>'+
+        '<line class="gd-clock-hand-hit gd-clock-hand-hit--hour" id="cl-hour-hit" data-cl-hand="hour" tabindex="0" role="slider" aria-label="Hour hand" aria-valuemin="0" aria-valuemax="23" aria-valuenow="'+hour+'" x1="150" y1="150" x2="'+hp.x+'" y2="'+hp.y+'"></line>'+
+        '<line class="gd-clock-hand-hit gd-clock-hand-hit--minute" id="cl-minute-hit" data-cl-hand="minute" tabindex="0" role="slider" aria-label="Minute hand" aria-valuemin="0" aria-valuemax="59" aria-valuenow="'+minute+'" x1="150" y1="150" x2="'+mp.x+'" y2="'+mp.y+'"></line>'+
+        '<circle class="gd-clock-centre" cx="150" cy="150" r="7"></circle>'+
+      '</svg></div>'+
+      '<div class="gd-clock-readouts">'+
+        '<div class="gd-readout"><span>24-hour</span><strong data-cl-readout="24">'+time24()+'</strong></div>'+
+        '<div class="gd-readout"><span>12-hour</span><strong data-cl-readout="12">'+time12()+'</strong></div>'+
+      '</div>'+
+    '</div>';
+    bindStage();refreshClock();
+  }
+  setPanels(controlsHtml(),'');
+  bindControls();
+  draw();
+}
 
 function moneyTool(){const denoms=[1,2,5,10,20,50,100,200,500,1000,2000,5000];let tray=[];function draw(){const total=tray.reduce((a,b)=>a+b,0),target=Math.max(1,num(q('#mo-target')?.value,375));q('#gd-stage').innerHTML=`<div class="gd-vis"><div class="gd-money-palette">${denoms.map(d=>`<button type="button" class="${d<500?'gd-coin':'gd-note-money'}" data-money="${d}">${money(d)}</button>`).join('')}</div><div class="gd-money-total">${money(total)}</div><div class="gd-money-tray">${tray.map((d,i)=>`<button type="button" class="gd-btn" data-remove="${i}" title="Remove">${money(d)} ×</button>`).join('')||'<span class="gd-help">Choose coins or notes above.</span>'}</div><div class="gd-readout" style="margin-top:12px;text-align:center">Target ${money(target)} · ${total===target?'Exactly right ✓':total<target?money(target-total)+' more needed':money(total-target)+' too much'}</div></div>`;qa('[data-money]',q('#gd-stage')).forEach(x=>x.onclick=()=>{tray.push(+x.dataset.money);draw()});qa('[data-remove]',q('#gd-stage')).forEach(x=>x.onclick=()=>{tray.splice(+x.dataset.remove,1);draw()})}
 setPanels(`${field('Target amount (pence)','<input class="gd-input" id="mo-target" type="number" min="1" max="10000" value="375">','375 = £3.75')}${btn('New random target','mo-random')}${btn('Clear tray','mo-clear')}<p class="gd-help">Click a coin or note to add it; click an item in the tray to remove it.</p>`,'');q('#mo-target').oninput=draw;q('#mo-random').onclick=()=>{q('#mo-target').value=(Math.floor(Math.random()*2000)+1);tray=[];draw()};q('#mo-clear').onclick=()=>{tray=[];draw()};draw()}

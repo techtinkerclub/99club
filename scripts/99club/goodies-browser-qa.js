@@ -1192,6 +1192,75 @@ if(mode==='prepare'){
     Math.random=abRealRandom;
   }
 
+  function testClockWorkbench(){
+    TT99Goodies.interaction.clear();
+    assert(TT99Goodies.clockTool,'Clock tool is registered');
+    TT99Goodies.clockTool();
+
+    function faceClient(x,y){
+      const svg=document.getElementById('cl-face'),r=svg.getBoundingClientRect();
+      return{x:r.left+x/300*r.width,y:r.top+y/300*r.height};
+    }
+    function pointFor(angle,radius){
+      const a=(angle-90)*Math.PI/180;
+      return faceClient(150+radius*Math.cos(a),150+radius*Math.sin(a));
+    }
+
+    let face=document.getElementById('cl-face');
+    assert(face&&face.dataset.clHour==='10'&&face.dataset.clMinute==='10','Clock workbench opens at 10:10');
+    assert(document.querySelector('[data-cl-readout="24"]').textContent.trim()==='10:10','Clock shows a live 24-hour readout');
+    assert(document.querySelector('[data-cl-readout="12"]').textContent.trim()==='10:10 am','Clock shows a live 12-hour readout');
+    assert(document.querySelectorAll('.gd-clock-tick').length===60,'Clock renders all 60 minute ticks');
+
+    let minuteHand=document.getElementById('cl-minute-hit');
+    const hourXBefore=Number(document.getElementById('cl-hour-hand').getAttribute('x2'));
+    minuteHand.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
+    face=document.getElementById('cl-face');
+    assert(face.dataset.clMinute==='15','Minute hand keyboard adjustment uses the default 5-minute step');
+    const hourXAfter=Number(document.getElementById('cl-hour-hand').getAttribute('x2'));
+    assert(hourXAfter!==hourXBefore,'Hour hand moves continuously when minutes change');
+
+    const snap=document.getElementById('cl-snap');
+    snap.value='1';snap.dispatchEvent(new Event('change',{bubbles:true}));
+    minuteHand=document.getElementById('cl-minute-hit');
+    minuteHand.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
+    assert(document.getElementById('cl-face').dataset.clMinute==='16','Clock supports 1-minute precision');
+
+    let hourHand=document.getElementById('cl-hour-hit');
+    hourHand.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
+    assert(document.getElementById('cl-face').dataset.clHour==='11','Hour hand keyboard adjustment changes one hour');
+
+    document.getElementById('cl-toggle-period').click();
+    assert(document.getElementById('cl-face').dataset.clHour==='23','Clock can switch the same analogue time from am to pm');
+    assert(document.querySelector('[data-cl-readout="12"]').textContent.includes('pm'),'Period toggle updates the 12-hour readout');
+
+    const numerals=document.getElementById('cl-numerals');
+    numerals.value='roman';numerals.dispatchEvent(new Event('change',{bubbles:true}));
+    assert([...document.querySelectorAll('.gd-clock-num')].some(x=>x.textContent.trim()==='XII'),'Clock face can use Roman numerals I–XII');
+
+    const minuteInput=document.getElementById('cl-m');
+    minuteInput.value='55';minuteInput.dispatchEvent(new Event('input',{bubbles:true}));
+    const hourBeforeCarry=Number(document.getElementById('cl-face').dataset.clHour);
+    minuteHand=document.getElementById('cl-minute-hit');
+    const currentMinuteTip=pointFor(55*6,102),afterTwelve=pointFor(5*6,102);
+    pointer(minuteHand,'pointerdown',currentMinuteTip.x,currentMinuteTip.y,121);
+    pointer(document,'pointermove',afterTwelve.x,afterTwelve.y,121);
+    pointer(document,'pointerup',afterTwelve.x,afterTwelve.y,121);
+    face=document.getElementById('cl-face');
+    assert(face.dataset.clMinute==='5','Dragging the minute hand snaps to the requested minute');
+    assert(Number(face.dataset.clHour)===((hourBeforeCarry+1)%24),'Dragging the minute hand clockwise across 12 carries the hour forward');
+
+    hourHand=document.getElementById('cl-hour-hit');
+    const currentHourAngle=(Number(face.dataset.clHour)%12+Number(face.dataset.clMinute)/60)*30;
+    const currentHourTip=pointFor(currentHourAngle,72),targetHourTip=pointFor((4+Number(face.dataset.clMinute)/60)*30,72);
+    pointer(hourHand,'pointerdown',currentHourTip.x,currentHourTip.y,122);
+    pointer(document,'pointermove',targetHourTip.x,targetHourTip.y,122);
+    pointer(document,'pointerup',targetHourTip.x,targetHourTip.y,122);
+    face=document.getElementById('cl-face');
+    assert(Number(face.dataset.clHour)%12===4,'Dragging the hour hand directly selects the intended hour while preserving minutes');
+    assert(face.dataset.clMinute==='5','Dragging the hour hand preserves the minute value');
+  }
+
   function testMeasurement(){
     TT99Goodies.interaction.clear();
     assert(TT99Goodies.measurementTool,'Measurement tool is registered');
@@ -1324,7 +1393,8 @@ if(mode==='prepare'){
         testCoordinates();
         testMeasurement();
         testArrayWorkbench();
-        result('pass','Number Line challenges, Maths Canvas, Place Value, Fraction Wall, Geoboard, Coordinates, Measurement and Array workbench interactions work');
+        testClockWorkbench();
+        result('pass','Number Line challenges, Maths Canvas, Place Value, Fraction Wall, Geoboard, Coordinates, Measurement, Array and Clock workbench interactions work');
       }catch(err){
         result('fail',err&&err.message?err.message:String(err));
       }
