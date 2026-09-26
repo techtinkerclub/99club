@@ -2308,8 +2308,173 @@ function clockTool(){
   draw();
 }
 
-function moneyTool(){const denoms=[1,2,5,10,20,50,100,200,500,1000,2000,5000];let tray=[];function draw(){const total=tray.reduce((a,b)=>a+b,0),target=Math.max(1,num(q('#mo-target')?.value,375));q('#gd-stage').innerHTML=`<div class="gd-vis"><div class="gd-money-palette">${denoms.map(d=>`<button type="button" class="${d<500?'gd-coin':'gd-note-money'}" data-money="${d}">${money(d)}</button>`).join('')}</div><div class="gd-money-total">${money(total)}</div><div class="gd-money-tray">${tray.map((d,i)=>`<button type="button" class="gd-btn" data-remove="${i}" title="Remove">${money(d)} ×</button>`).join('')||'<span class="gd-help">Choose coins or notes above.</span>'}</div><div class="gd-readout" style="margin-top:12px;text-align:center">Target ${money(target)} · ${total===target?'Exactly right ✓':total<target?money(target-total)+' more needed':money(total-target)+' too much'}</div></div>`;qa('[data-money]',q('#gd-stage')).forEach(x=>x.onclick=()=>{tray.push(+x.dataset.money);draw()});qa('[data-remove]',q('#gd-stage')).forEach(x=>x.onclick=()=>{tray.splice(+x.dataset.remove,1);draw()})}
-setPanels(`${field('Target amount (pence)','<input class="gd-input" id="mo-target" type="number" min="1" max="10000" value="375">','375 = £3.75')}${btn('New random target','mo-random')}${btn('Clear tray','mo-clear')}<p class="gd-help">Click a coin or note to add it; click an item in the tray to remove it.</p>`,'');q('#mo-target').oninput=draw;q('#mo-random').onclick=()=>{q('#mo-target').value=(Math.floor(Math.random()*2000)+1);tray=[];draw()};q('#mo-clear').onclick=()=>{tray=[];draw()};draw()}
+function moneyTool(){
+  const I=G.interaction;
+  if(!I){q('#gd-stage').innerHTML='<p class="gd-empty">The interactive money workbench could not start.</p>';return;}
+  const DENOMS=[
+    {value:1,label:'1p',kind:'coin',shape:'round',size:45,tone:'copper'},
+    {value:2,label:'2p',kind:'coin',shape:'round',size:54,tone:'copper'},
+    {value:5,label:'5p',kind:'coin',shape:'round',size:43,tone:'silver'},
+    {value:10,label:'10p',kind:'coin',shape:'round',size:50,tone:'silver'},
+    {value:20,label:'20p',kind:'coin',shape:'hept',size:49,tone:'silver'},
+    {value:50,label:'50p',kind:'coin',shape:'hept',size:58,tone:'silver'},
+    {value:100,label:'£1',kind:'coin',shape:'dodec',size:55,tone:'gold'},
+    {value:200,label:'£2',kind:'coin',shape:'round',size:61,tone:'bimetal'},
+    {value:500,label:'£5',kind:'note',shape:'note',width:102,height:48,tone:'blue'},
+    {value:1000,label:'£10',kind:'note',shape:'note',width:112,height:51,tone:'orange'},
+    {value:2000,label:'£20',kind:'note',shape:'note',width:122,height:54,tone:'purple'},
+    {value:5000,label:'£50',kind:'note',shape:'note',width:132,height:57,tone:'red'}
+  ];
+  let items=[],nextId=1,target=375,controller=null;
+
+  function metaFor(value){return DENOMS.find(d=>d.value===Number(value))||DENOMS[0]}
+  function total(){return items.reduce((sum,item)=>sum+Number(item.value||0),0)}
+  function canvasMetrics(count=items.length){
+    const stageWidth=q('#gd-stage')?.clientWidth||760;
+    const width=Math.max(280,stageWidth-38);
+    const cols=Math.max(2,Math.floor((width-28)/128));
+    const rows=Math.max(1,Math.ceil(Math.max(1,count)/cols));
+    return{width,cols,height:Math.max(390,44+rows*92)};
+  }
+  function slot(index){
+    const m=canvasMetrics(Math.max(items.length,index+1));
+    const col=index%m.cols,row=Math.floor(index/m.cols);
+    return{x:18+col*((m.width-36)/m.cols),y:24+row*92};
+  }
+  function seed(){
+    items=[];nextId=1;
+    [200,100,50,20,5].forEach((value,index)=>{
+      const p=slot(index);
+      items.push({id:nextId++,value,x:p.x,y:p.y,locked:false});
+    });
+  }
+  function snapshot(){return{items:items.map(x=>({...x})),nextId,target}}
+  function restore(state){
+    items=Array.isArray(state?.items)?state.items.map(x=>({...x})):[];
+    nextId=Math.max(Number(state?.nextId)||1,items.reduce((m,x)=>Math.max(m,Number(x.id)||0),0)+1);
+    target=Math.max(1,Math.round(Number(state?.target)||375));
+    const targetInput=q('#mo-target');if(targetInput)targetInput.value=(target/100).toFixed(2);
+  }
+  function addMoney(value){
+    const p=slot(items.length),item={id:nextId++,value:Number(value),x:p.x,y:p.y,locked:false};
+    items.push(item);return item;
+  }
+  function duplicateMoney(item){
+    const copy={...item,id:nextId++,locked:false,x:Number(item.x||0)+24,y:Number(item.y||0)+24};
+    items.push(copy);return copy;
+  }
+  function tidyMoney(){
+    const m=canvasMetrics(items.length);
+    items.forEach((item,index)=>{
+      const col=index%m.cols,row=Math.floor(index/m.cols);
+      item.x=18+col*((m.width-36)/m.cols);
+      item.y=24+row*92;
+    });
+  }
+  function statusText(){
+    const value=total(),delta=target-value;
+    if(delta===0)return'Exactly right ✓';
+    return delta>0?money(delta)+' more needed':money(Math.abs(delta))+' too much';
+  }
+  function moneyObject(item){
+    const d=metaFor(item.value);
+    const style=d.kind==='note'
+      ?'left:'+item.x+'px;top:'+item.y+'px;--mo-w:'+d.width+'px;--mo-h:'+d.height+'px'
+      :'left:'+item.x+'px;top:'+item.y+'px;--mo-size:'+d.size+'px';
+    const cls='gd-money-object gd-money-object--'+d.kind+' gd-money-object--'+d.shape+' gd-money-object--'+d.tone+(item.locked?' is-locked':'');
+    return '<button type="button" class="'+cls+'" data-gd-object="'+item.id+'" data-mo-value="'+d.value+'" style="'+style+'" aria-label="'+d.label+' '+(d.kind==='note'?'note':'coin')+'">'+
+      '<span class="gd-money-object__face"><strong>'+d.label+'</strong><small>'+(d.kind==='note'?'UK play note':'UK coin')+'</small></span>'+
+    '</button>';
+  }
+  function toolbarHtml(history,selected){
+    return '<div class="gd-money-boardbar">'+
+      '<div class="gd-object-toolbar gd-money-history">'+
+        I.toolButton('undo','undo','Undo','',!history.canUndo)+
+        I.toolButton('redo','redo','Redo','',!history.canRedo)+
+      '</div>'+
+      '<div class="gd-money-selection"><span data-mo-selection>'+(selected?money(selected.value)+(selected.locked?' · locked':''):'Select a coin or note to move it')+'</span>'+
+        '<div class="gd-object-toolbar gd-money-selected-actions">'+
+          I.toolButton('duplicate','duplicate','Duplicate selected','',!selected)+
+          I.toolButton('lock',selected&&selected.locked?'unlock':'lock',selected&&selected.locked?'Unlock selected':'Lock selected','',!selected)+
+          I.toolButton('delete','delete','Delete selected','gd-object-tool--danger',!selected||!!selected?.locked)+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }
+  function updateSelectionTools(item){
+    const label=q('[data-mo-selection]',q('#gd-stage'));
+    if(label)label.textContent=item?money(item.value)+(item.locked?' · locked':''):'Select a coin or note to move it';
+    qa('.gd-money-selected-actions [data-gd-action]',q('#gd-stage')).forEach(button=>{
+      const action=button.dataset.gdAction;
+      button.disabled=!item||(action==='delete'&&!!item.locked);
+    });
+  }
+  function renderMoney(selectedId,history={}){
+    const selected=items.find(x=>String(x.id)===String(selectedId))||null;
+    const m=canvasMetrics(items.length);
+    q('#gd-stage').innerHTML='<div class="gd-money-workbench">'+
+      toolbarHtml(history,selected)+
+      '<div class="gd-money-canvas" id="mo-canvas" data-gd-canvas-bg style="min-height:'+m.height+'px" aria-label="Money workbench">'+
+        (items.length?items.map(moneyObject).join(''):'<div class="gd-money-empty" data-gd-canvas-bg>Choose a denomination to start building an amount.</div>')+
+      '</div>'+
+      '<div class="gd-money-summary">'+
+        '<div><span>Total</span><strong data-mo-total>'+money(total())+'</strong></div>'+
+        '<div><span>Target</span><strong data-mo-target-readout>'+money(target)+'</strong></div>'+
+        '<div class="'+(total()===target?'is-match':'')+'"><span>Check</span><strong data-mo-status>'+statusText()+'</strong></div>'+
+      '</div>'+
+    '</div>';
+  }
+  function controlsHtml(){
+    return field('Target amount','<div class="gd-money-target-input"><span>£</span><input class="gd-input" id="mo-target" type="number" min="0.01" max="100" step="0.01" value="'+(target/100).toFixed(2)+'"></div>','Set any amount up to £100.')+
+      '<div class="gd-field"><span>Add money</span><div class="gd-money-palette">'+DENOMS.map(d=>'<button type="button" class="gd-money-pick gd-money-pick--'+d.kind+'" data-mo-add="'+d.value+'" aria-label="Add '+d.label+'">'+d.label+'</button>').join('')+'</div></div>'+
+      '<div class="gd-row">'+btn('Tidy money','mo-tidy')+btn('Clear all','mo-clear')+'</div>'+
+      btn('New random target','mo-random')+
+      '<p class="gd-help">Add coins or notes, then drag them around the workbench. Select one to duplicate, lock or delete it. Arrow keys nudge the selected item; Ctrl/Cmd+Z undoes changes.</p>';
+  }
+  function bindControls(){
+    qa('[data-mo-add]',q('#gd-controls')).forEach(button=>button.onclick=()=>{
+      let id=null;
+      controller.mutate(()=>{id=addMoney(button.dataset.moAdd)});
+      controller.select(id);
+    });
+    const targetInput=q('#mo-target');
+    targetInput.oninput=()=>{
+      target=Math.max(1,Math.round(Math.max(.01,num(targetInput.value,target/100))*100));
+      controller.refresh();
+    };
+    q('#mo-tidy').onclick=()=>controller.mutate(tidyMoney);
+    q('#mo-clear').onclick=()=>{
+      if(!items.length)return;
+      controller.mutate(()=>{items=[]});
+    };
+    q('#mo-random').onclick=()=>{
+      controller.mutate(()=>{
+        target=Math.floor(Math.random()*2000)+1;
+        items=[];
+      });
+      targetInput.value=(target/100).toFixed(2);
+    };
+  }
+
+  seed();
+  setPanels(controlsHtml(),'');
+  controller=I.mount({
+    getItems:()=>items,
+    getCanvas:()=>q('#mo-canvas'),
+    getActionRoot:()=>q('#gd-stage'),
+    getState:snapshot,
+    setState:restore,
+    render:renderMoney,
+    duplicate:duplicateMoney,
+    remove:item=>{const index=items.indexOf(item);if(index>=0)items.splice(index,1)},
+    toggleLock:item=>{item.locked=!item.locked},
+    snap:4,
+    nudgeStep:4,
+    onSelectionChange:updateSelectionTools
+  });
+  bindControls();
+  controller.refresh();
+}
 
 Object.assign(G,{numberLine,placeValue,fractionWall,barModel,hundredSquare,multiplicationGrid,arrayBuilder,clockTool,moneyTool});
 })(window.TT99Goodies);
