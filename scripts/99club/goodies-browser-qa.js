@@ -851,6 +851,83 @@ if(mode==='prepare'){
     four.dispatchEvent(new Event('change',{bubbles:true}));
     assert(document.querySelectorAll('[data-co-point]').length===3,'Negative point reappears when four quadrants return');
     assert(document.querySelector('[data-co-pos="-3,-2"]'),'Quadrant switching preserves the negative point data');
+
+    document.querySelector('[data-co-workflow="challenge"]').click();
+    assert(document.querySelector('[data-co-challenge-tab="standard"]')&&document.querySelector('[data-co-challenge-tab="custom"]'),'Coordinates uses the shared Standard / Custom challenge tabs');
+    assert(document.querySelector('[data-co-challenge-type="read-coordinate"]'),'Read-coordinate challenge is available');
+    assert(document.querySelector('[data-co-challenge-type="plot-coordinate"]'),'Plot-coordinate challenge is available');
+    assert(document.querySelector('[data-co-challenge-type="missing-coordinate"]'),'Missing-coordinate challenge is available');
+
+    document.querySelector('[data-co-challenge-type="read-coordinate"]').click();
+    document.getElementById('co-generate').click();
+    assert(document.querySelector('.gd-challenge-banner'),'Generated Coordinates challenge appears above the grid');
+    let coPoint=document.querySelector('[data-co-point="0"]');
+    assert(coPoint&&document.querySelector('[data-co-label="0"]').textContent.trim()==='A','Read-coordinate challenge hides the coordinate behind point A');
+    assert(!coPoint.getAttribute('aria-label').includes('('),'Hidden coordinate does not leak through the point accessibility label');
+    assert(document.getElementById('co-readout').textContent.trim()==='Points: A','Hidden coordinate does not leak through the grid readout');
+    const fixedBefore=coPoint.dataset.coPos,fixedParts=fixedBefore.split(',').map(Number);
+    const fixedTarget=coordClient(fixedParts[0]===10?9:fixedParts[0]+1,fixedParts[1]);
+    const fixedRect=coPoint.getBoundingClientRect();
+    pointer(coPoint,'pointerdown',fixedRect.left+fixedRect.width/2,fixedRect.top+fixedRect.height/2,61);
+    pointer(coPoint,'pointermove',fixedTarget.x,fixedTarget.y,61);
+    pointer(coPoint,'pointerup',fixedTarget.x,fixedTarget.y,61);
+    coPoint=document.querySelector('[data-co-point="0"]');
+    assert(coPoint.dataset.coPos===fixedBefore,'Given point stays fixed during a read-only Coordinates challenge');
+    assert(document.querySelector('[data-co-delete]').hidden,'Fixed challenge point does not expose delete');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer:'),'Coordinates challenge reveals its answer contextually');
+    assert(document.querySelector('[data-co-label="0"]').textContent.trim().includes('('),'Reveal restores the hidden coordinate label');
+
+    document.querySelector('[data-co-workflow="challenge"]').click();
+    document.querySelector('[data-co-challenge-cat="read"]').click();
+    document.querySelector('[data-co-challenge-type="missing-coordinate"]').click();
+    document.getElementById('co-generate').click();
+    assert(document.querySelector('[data-co-label="0"]').textContent.includes('?'),'Missing-coordinate challenge hides only the requested coordinate component');
+
+    document.querySelector('[data-co-workflow="challenge"]').click();
+    document.querySelector('[data-co-challenge-type="plot-coordinate"]').click();
+    document.getElementById('co-generate').click();
+    assert(document.querySelectorAll('[data-co-point]').length===0,'Plot-coordinate challenge starts with a blank grid');
+    clickCoord(3,4);
+    assert(document.querySelectorAll('[data-co-point]').length===1,'Plot-coordinate challenge lets the pupil place a point directly');
+    clickCoord(5,6);
+    assert(document.querySelectorAll('[data-co-point]').length===1&&document.querySelector('[data-co-pos="5,6"]'),'Plot-coordinate challenge keeps one movable pupil point rather than accumulating guesses');
+
+    document.querySelector('[data-co-workflow="challenge"]').click();
+    document.querySelector('[data-co-challenge-cat="transform"]').click();
+    assert(document.querySelector('[data-co-challenge-type="reflect-axis"]'),'Axis-reflection challenge is available');
+    assert(document.querySelector('[data-co-challenge-type="translate-point"]'),'Translation challenge is available');
+    document.querySelector('[data-co-challenge-cat="reason"]').click();
+    const quadrantChallenge=document.querySelector('[data-co-challenge-type="identify-quadrant"]');
+    assert(quadrantChallenge,'Quadrant-identification challenge is available');
+    quadrantChallenge.click();
+    document.getElementById('co-generate').click();
+    assert(Number(document.getElementById('co-svg').dataset.coMin)===-10,'Quadrant challenge automatically uses the four-quadrant grid');
+    assert(document.querySelector('[data-co-label="0"]').textContent.trim()==='A','Quadrant challenge hides the coordinate while leaving the point visible');
+
+    document.querySelector('[data-co-workflow="challenge"]').click();
+    document.querySelector('[data-co-challenge-tab="custom"]').click();
+    const coSource=document.getElementById('co-custom-answer-source');
+    assert(coSource,'Coordinates custom challenge exposes live point answer sources');
+    for(const source of ['point:0:coords','point:0:x','point:0:y','point:0:quadrant']){
+      assert([...coSource.options].some(o=>o.value===source),'Coordinates custom answer source '+source+' is available');
+    }
+    coSource.value='point:0:coords';
+    coSource.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.querySelector('[data-co-label="0"]').textContent.trim()==='A','Binding a custom coordinate answer hides the pupil-facing coordinate');
+    const coLiveBefore=document.getElementById('co-custom-live-answer').textContent.trim();
+    coPoint=document.querySelector('[data-co-point="0"]');
+    const current=coPoint.dataset.coPos.split(',').map(Number);
+    const nx=current[0]===10?9:current[0]+1,ny=current[1],coMove=coordClient(nx,ny),coRect=coPoint.getBoundingClientRect();
+    pointer(coPoint,'pointerdown',coRect.left+coRect.width/2,coRect.top+coRect.height/2,62);
+    pointer(coPoint,'pointermove',coMove.x,coMove.y,62);
+    pointer(coPoint,'pointerup',coMove.x,coMove.y,62);
+    assert(document.getElementById('co-custom-live-answer').textContent.trim()!==coLiveBefore,'Coordinates live custom answer updates when the bound point moves');
+
+    document.getElementById('co-clear-challenge').click();
+    assert(Number(document.getElementById('co-svg').dataset.coMin)===-10,'Ending a Coordinates challenge restores the teacher four-quadrant view');
+    assert(document.querySelectorAll('[data-co-point]').length===3,'Ending a Coordinates challenge restores the teacher point set');
+    assert(document.querySelector('[data-co-pos="-3,-2"]'),'Ending a Coordinates challenge restores the negative teacher point');
   }
   window.addEventListener('load',function(){
     setTimeout(function(){
