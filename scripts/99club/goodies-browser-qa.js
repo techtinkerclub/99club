@@ -701,6 +701,19 @@ if(mode==='prepare'){
     assert(document.querySelectorAll('[data-ge-vertex]').length===3,'Undo restores the deleted vertex');
     assert(document.getElementById('ge-readout').textContent.includes('Area = 4.50 square units'),'Undo restores the moved triangle geometry');
 
+    document.querySelector('[data-ge-workflow="export"]').click();
+    assert(document.getElementById('ge-copy-image')&&document.getElementById('ge-png')&&document.getElementById('ge-svg-download')&&document.getElementById('ge-print'),'Geoboard export exposes copy, PNG, SVG and Print/PDF actions');
+    let geCapturedSvg=null,geCapturedName='';
+    const geOldDownloadSvg=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg,name)=>{geCapturedSvg=svg.cloneNode(true);geCapturedName=name};
+    document.getElementById('ge-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=geOldDownloadSvg;
+    assert(geCapturedSvg&&geCapturedSvg.dataset.geExport==='board','Geoboard board-only export is a deterministic SVG board');
+    assert(geCapturedSvg.querySelectorAll('circle').length>=52,'Geoboard SVG export preserves the peg grid and vertices');
+    assert(geCapturedSvg.querySelector('[data-ge-export-shape]'),'Geoboard SVG export carries the drawn geometry');
+    assert(geCapturedSvg.textContent.includes('Area = 4.50 square units'),'Geoboard board-only export includes visible measurements');
+    assert(geCapturedName.includes('geoboard-shape'),'Geoboard board export has a reusable filename');
+
     document.querySelector('[data-ge-workflow="challenge"]').click();
     assert(document.querySelector('[data-ge-challenge-tab="standard"]')&&document.querySelector('[data-ge-challenge-tab="custom"]'),'Geoboard uses the shared Standard / Custom challenge tabs');
     assert(document.querySelector('[data-ge-challenge-type="find-length"]'),'Geoboard length challenge is available');
@@ -715,6 +728,18 @@ if(mode==='prepare'){
     document.querySelector('[data-board-action="reveal"]').click();
     assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer:'),'Geoboard challenge reveals its answer contextually');
     assert(!document.getElementById('ge-readout').textContent.includes('Length ≈ ?'),'Reveal restores the live length readout');
+
+    document.querySelector('[data-ge-workflow="export"]').click();
+    assert(document.querySelector('[data-ge-export-mode="challenge"]'),'Active Geoboard challenge offers Challenge card export');
+    let geChallengeSvg=null;
+    const geOldChallengeDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{geChallengeSvg=svg.cloneNode(true)};
+    document.getElementById('ge-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=geOldChallengeDownload;
+    assert(geChallengeSvg&&geChallengeSvg.querySelector('[data-ge-export-board]'),'Geoboard challenge card embeds the vector board');
+    assert(!geChallengeSvg.textContent.includes('Answer:'),'Geoboard pupil challenge export never includes a revealed answer label');
+    assert(geChallengeSvg.textContent.includes('Length ≈ ?'),'Geoboard pupil export re-hides the target length after teacher reveal');
+    assert(geChallengeSvg.textContent.includes('What is the length of segment AB?'),'Geoboard challenge-card export includes the pupil prompt');
 
     document.querySelector('[data-ge-workflow="challenge"]').click();
     document.querySelector('[data-ge-challenge-type="find-area"]').click();
