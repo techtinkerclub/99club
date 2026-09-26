@@ -810,8 +810,10 @@ function fractionWall(){
   function drawWall(){
     const a=readCompare('a'),b=readCompare('b'),av=a.n/a.d,bv=b.n/b.d,sign=Math.abs(av-bv)<1e-10?'=':(av>bv?'>':'<');
     const simpleFocus=simplify(focus.n,focus.d);
-    const focusText=simpleFocus.n===focus.n&&simpleFocus.d===focus.d?focus.n+'/'+focus.d:focus.n+'/'+focus.d+' = '+simpleFocus.n+'/'+simpleFocus.d;
-    q('#gd-stage').innerHTML='<div class="gd-vis gd-fractions-workspace">'+
+    const rawFocusText=simpleFocus.n===focus.n&&simpleFocus.d===focus.d?focus.n+'/'+focus.d:focus.n+'/'+focus.d+' = '+simpleFocus.n+'/'+simpleFocus.d;
+    const focusText=challengeActiveHidden('focus')?'?':rawFocusText,displaySign=challengeActiveHidden('compare')?'?':sign;
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Fractions challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
+    q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-fractions-workspace">'+
       '<section class="gd-fr-wall-card">'+
         '<div class="gd-fr-wall-heading"><div><strong>Fraction wall</strong><span>Tap an endpoint. Equivalent amounts highlight automatically.</span></div>'+
           '<div class="gd-fr-focus"><span>Selected</span><strong>'+focusText+'</strong><button type="button" data-fw-use="a">Use as A</button><button type="button" data-fw-use="b">Use as B</button><button type="button" data-fw-to-workbench>Add strip</button></div>'+
@@ -821,24 +823,25 @@ function fractionWall(){
         '<div class="gd-fr-compare-card"><div class="gd-fr-card-head"><strong>A</strong><span>'+fractionText(a)+'</span></div>'+directBar(a,'a')+'<p>Tap a segment to change the numerator.</p></div>'+
         '<div class="gd-fr-compare-card"><div class="gd-fr-card-head"><strong>B</strong><span>'+fractionText(b)+'</span></div>'+directBar(b,'b')+'<p>Tap a segment to change the numerator.</p></div>'+
       '</section>'+
-      '<div class="gd-equation gd-fr-equation"><span>'+a.n+'/'+a.d+'</span><strong>'+sign+'</strong><span>'+b.n+'/'+b.d+'</span></div></div>';
+      '<div class="gd-equation gd-fr-equation"><span>'+a.n+'/'+a.d+'</span><strong>'+displaySign+'</strong><span>'+b.n+'/'+b.d+'</span></div></div>';
 
     qa('[data-fw-wall]',q('#gd-stage')).forEach(cell=>cell.onclick=()=>{
-      const [d,i]=cell.dataset.fwWall.split(':').map(Number);focus={n:i+1,d};renderControls();drawWall();
+      const [d,i]=cell.dataset.fwWall.split(':').map(Number);focus={n:i+1,d};updateChallengeAnswer();renderControls();drawWall();
     });
     qa('[data-fw-use]',q('#gd-stage')).forEach(button=>button.onclick=()=>{
-      const value=normalFraction(focus);if(button.dataset.fwUse==='a')compareA=value;else compareB=value;renderControls();drawWall();
+      const value=normalFraction(focus);if(button.dataset.fwUse==='a')compareA=value;else compareB=value;updateChallengeAnswer();renderControls();drawWall();
     });
     qa('[data-fw-set]',q('#gd-stage')).forEach(piece=>piece.onclick=()=>{
       const [key,raw]=piece.dataset.fwSet.split(':'),current=key==='a'?compareA:compareB;
       const value={n:clamp(Math.round(num(raw,0)),0,current.d*3),d:current.d};
-      if(key==='a')compareA=value;else compareB=value;renderControls();drawWall();
+      if(key==='a')compareA=value;else compareB=value;updateChallengeAnswer();renderControls();drawWall();
     });
     const toWorkbench=q('[data-fw-to-workbench]',q('#gd-stage'));
     if(toWorkbench)toWorkbench.onclick=()=>{
       addStrip(focus);
       switchMode('workbench');
     };
+    bindChallengeStageActions();
   }
 
   function stateSnapshot(){return{strips:JSON.parse(JSON.stringify(strips)),nextStrip}}
@@ -857,10 +860,13 @@ function fractionWall(){
   function stripMarkup(strip,selectedId){
     const selected=String(strip.id)===String(selectedId),selectedObj=selectedStrip(selectedId),same=selectedObj&&String(selectedObj.id)!==String(strip.id)&&equivalent(strip,selectedObj);
     const simple=simplify(strip.n,strip.d),canSimplify=simple.n!==strip.n||simple.d!==strip.d;
-    return '<div class="gd-fr-strip-object'+(selected?' is-selected':'')+(same?' is-equivalent':'')+(strip.locked?' is-locked':'')+'" data-gd-object="'+strip.id+'" role="button" tabindex="0" aria-selected="'+(selected?'true':'false')+'" aria-label="Fraction strip '+strip.n+'/'+strip.d+(strip.locked?', locked':'')+'" style="left:'+strip.x+'px;top:'+strip.y+'px;--fr-strip:'+strip.color+'">'+
-      '<div class="gd-fr-strip-head"><strong>'+strip.n+'/'+strip.d+'</strong><span>'+fractionText(strip)+'</span>'+(same?'<em>same value</em>':'')+(strip.locked?'<b aria-hidden="true">⌑</b>':'')+'</div>'+
+    const hideLabel=challengeActiveHidden('strip-label',strip.id),hideHint=challengeActiveHidden('strip-hint',strip.id);
+    const label=hideLabel?'?':strip.n+'/'+strip.d,secondary=hideLabel?'':fractionText(strip);
+    const hint=hideHint?'Work it out':(canSimplify?'Can simplify to '+simple.n+'/'+simple.d:'Value '+Number(fractionValue(strip).toFixed(4)));
+    return '<div class="gd-fr-strip-object'+(selected?' is-selected':'')+(same?' is-equivalent':'')+(strip.locked?' is-locked':'')+'" data-gd-object="'+strip.id+'" role="button" tabindex="0" aria-selected="'+(selected?'true':'false')+'" aria-label="Fraction strip'+(hideLabel?' with hidden value':' '+strip.n+'/'+strip.d)+(strip.locked?', locked':'')+'" style="left:'+strip.x+'px;top:'+strip.y+'px;--fr-strip:'+strip.color+'">'+
+      '<div class="gd-fr-strip-head"><strong>'+label+'</strong><span>'+secondary+'</span>'+(same?'<em>same value</em>':'')+(strip.locked?'<b aria-hidden="true">⌑</b>':'')+'</div>'+
       '<div class="gd-fr-strip-bars">'+stripBars(strip)+'</div>'+
-      (canSimplify?'<small>Can simplify to '+simple.n+'/'+simple.d+'</small>':'<small>Value '+Number(fractionValue(strip).toFixed(4))+'</small>')+
+      '<small>'+hint+'</small>'+
     '</div>';
   }
   function workbenchRail(selected,meta){
@@ -879,11 +885,13 @@ function fractionWall(){
   function workbenchHeight(){return Math.max(500,40+strips.reduce((max,strip)=>Math.max(max,(Number(strip.y)||0)+stripHeight(strip)),0))}
   function drawWorkbench(selectedId,meta){
     const selected=selectedStrip(selectedId);
-    q('#gd-stage').innerHTML='<div class="gd-vis gd-fr-workbench"><div class="gd-fr-strip-canvas-wrap"><div class="gd-fr-strip-canvas" id="fw-strip-canvas" data-gd-canvas-bg style="min-height:'+workbenchHeight()+'px" tabindex="0" aria-label="Fraction strip workbench. Drag strips to compare them.">'+
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Fractions challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
+    q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-fr-workbench"><div class="gd-fr-strip-canvas-wrap"><div class="gd-fr-strip-canvas" id="fw-strip-canvas" data-gd-canvas-bg style="min-height:'+workbenchHeight()+'px" tabindex="0" aria-label="Fraction strip workbench. Drag strips to compare them.">'+
       strips.map(s=>stripMarkup(s,selectedId)).join('')+
       '</div>'+workbenchRail(selected,meta)+'</div>'+
       '<div class="gd-object-hint">'+(selected?(selected.locked?'Strip locked · unlock it to change or move it.':'Drag to compare · split keeps the same value with twice as many equal pieces.'):'Select a strip, drag it, or align all strips to compare their lengths.')+'</div></div>';
     bindStripSegments();
+    bindChallengeStageActions();
   }
   function constrainStrip(item,x,y,element,canvas){
     const el=element||canvas.querySelector('[data-gd-object="'+item.id+'"]'),w=el?.offsetWidth||290,h=el?.offsetHeight||90;
@@ -909,7 +917,7 @@ function fractionWall(){
     qa('[data-fr-strip-piece]',q('#gd-stage')).forEach(piece=>piece.onclick=e=>{
       e.stopPropagation();
       const [idRaw,nRaw]=piece.dataset.frStripPiece.split(':'),strip=selectedStrip(idRaw);if(!strip||strip.locked)return;
-      controller.mutate(()=>{strip.n=clamp(Math.round(num(nRaw,strip.n)),0,strip.d*3)});
+      controller.mutate(()=>{strip.n=clamp(Math.round(num(nRaw,strip.n)),0,strip.d*3);updateChallengeAnswer()});
       controller.select(strip.id);
     });
   }
@@ -930,8 +938,8 @@ function fractionWall(){
       toggleLock:item=>{item.locked=!item.locked},
       onAction:(action,api)=>{
         const selected=api.selected();
-        if(action==='split'&&selected&&!selected.locked&&selected.d*2<=12)api.mutate(()=>{selected.n*=2;selected.d*=2});
-        else if(action==='simplify'&&selected&&!selected.locked)api.mutate(()=>{const s=simplify(selected.n,selected.d);selected.n=s.n;selected.d=s.d});
+        if(action==='split'&&selected&&!selected.locked&&selected.d*2<=12)api.mutate(()=>{selected.n*=2;selected.d*=2;updateChallengeAnswer()});
+        else if(action==='simplify'&&selected&&!selected.locked)api.mutate(()=>{const s=simplify(selected.n,selected.d);selected.n=s.n;selected.d=s.d;updateChallengeAnswer()});
         else if(action==='align')api.mutate(alignStrips);
       }
     });
