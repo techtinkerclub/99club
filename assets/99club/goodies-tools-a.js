@@ -557,18 +557,31 @@ function placeValue(){
 }
 
 function fractionWall(){
-  let focus={n:1,d:2};
+  const I=G.interaction;
+  let focus={n:1,d:2},compareA={n:1,d:2},compareB={n:1,d:3},mode='wall';
+  let strips=[
+    {id:1,n:1,d:2,x:28,y:30,locked:false,color:'#cbe7e2'},
+    {id:2,n:1,d:3,x:28,y:150,locked:false,color:'#cfe0f6'}
+  ],nextStrip=3,controller=null;
 
   function gcd(a,b){a=Math.abs(Math.round(a));b=Math.abs(Math.round(b));while(b){const t=b;b=a%b;a=t}return a||1}
   function simplify(n,d){const g=gcd(n,d);return{n:n/g,d:d/g}}
-  function readFraction(prefix,defaultN,defaultD){
-    const d=clamp(Math.round(num(q('#fw-'+prefix+'d')?.value,defaultD)),1,12);
-    const n=clamp(Math.round(num(q('#fw-'+prefix+'n')?.value,defaultN)),0,12);
+  function normalFraction(f,defaultN=1,defaultD=2){
+    const d=clamp(Math.round(num(f?.d,defaultD)),1,12);
+    const n=clamp(Math.round(num(f?.n,defaultN)),0,d*3);
     return{n,d};
   }
   function fractionText(f){
-    const s=simplify(f.n,f.d);
-    return s.n===f.n&&s.d===f.d?f.n+'/'+f.d:f.n+'/'+f.d+' = '+s.n+'/'+s.d;
+    const value=normalFraction(f),s=simplify(value.n,value.d);
+    return s.n===value.n&&s.d===value.d?value.n+'/'+value.d:value.n+'/'+value.d+' = '+s.n+'/'+s.d;
+  }
+  function fractionValue(f){const v=normalFraction(f);return v.n/v.d}
+  function equivalent(a,b){return Math.abs(fractionValue(a)-fractionValue(b))<1e-10}
+  function readCompare(key){
+    const fallback=key==='a'?compareA:compareB;
+    const d=clamp(Math.round(num(q('#fw-'+key+'d')?.value,fallback.d)),1,12);
+    const n=clamp(Math.round(num(q('#fw-'+key+'n')?.value,fallback.n)),0,Math.min(36,d*3));
+    const value={n,d};if(key==='a')compareA=value;else compareB=value;return value;
   }
   function equivalentNumerator(d){
     const raw=focus.n*d/focus.d;
@@ -577,91 +590,215 @@ function fractionWall(){
   function wallRows(){
     const rows=[];
     for(let d=1;d<=12;d++){
-      const eqN=equivalentNumerator(d);
-      const rowFocus=d===focus.d;
+      const eqN=equivalentNumerator(d),rowFocus=d===focus.d;
       rows.push('<div class="gd-fr-row'+(rowFocus?' is-focus-row':'')+'" data-fw-row="'+d+'" aria-label="Fraction wall denominator '+d+'">'+
         '<span class="gd-fr-row-label">'+(d===1?'whole':'1/'+d)+'</span>'+
         '<div class="gd-fr-row-pieces">'+
           Array.from({length:d},(_,i)=>{
-            const equivalent=eqN!=null&&i<eqN;
-            const cls='gd-fr-cell'+(equivalent?(rowFocus?' is-on':' is-equivalent'):'')+(rowFocus&&i===focus.n-1?' is-end':'');
+            const equivalentCell=eqN!=null&&i<eqN;
+            const cls='gd-fr-cell'+(equivalentCell?(rowFocus?' is-on':' is-equivalent'):'')+(rowFocus&&i===focus.n-1?' is-end':'');
             return '<button type="button" class="'+cls+'" data-fw-wall="'+d+':'+i+'" aria-label="'+(i+1)+'/'+d+'"></button>';
           }).join('')+
-        '</div>'+
-      '</div>');
+        '</div></div>');
     }
     return rows.join('');
   }
   function directBar(f,key){
-    const groups=Math.max(1,Math.ceil(f.n/f.d));
-    return '<div class="gd-fr-direct" data-fw-direct="'+key+'">'+Array.from({length:groups},(_,g)=>{
-      return '<div class="gd-fr-bar">'+Array.from({length:f.d},(_,i)=>{
-        const absolute=g*f.d+i+1,fill=absolute<=f.n;
+    const value=normalFraction(f),groups=Math.max(1,Math.ceil(value.n/value.d));
+    return '<div class="gd-fr-direct" data-fw-direct="'+key+'">'+Array.from({length:groups},(_,g)=>
+      '<div class="gd-fr-bar">'+Array.from({length:value.d},(_,i)=>{
+        const absolute=g*value.d+i+1,fill=absolute<=value.n;
         return '<button type="button" class="gd-fr-piece'+(fill?' is-fill':'')+'" data-fw-set="'+key+':'+absolute+'" aria-label="Set '+key.toUpperCase()+' numerator to '+absolute+'"></button>';
-      }).join('')+'</div>';
-    }).join('')+'</div>';
+      }).join('')+'</div>'
+    ).join('')+'</div>';
   }
-  function syncFraction(key,f){
-    const n=q('#fw-'+key+'n'),d=q('#fw-'+key+'d');
-    if(n)n.value=f.n;
-    if(d)d.value=f.d;
+  function modeTabs(){
+    return '<div class="gd-row gd-fr-mode-tabs" role="tablist" aria-label="Fractions workspace">'+
+      '<button class="gd-btn'+(mode==='wall'?' gd-btn--primary':'')+'" type="button" data-fw-mode="wall">Fraction wall</button>'+
+      '<button class="gd-btn'+(mode==='workbench'?' gd-btn--primary':'')+'" type="button" data-fw-mode="workbench">Strip workbench</button></div>';
   }
-  function useFocus(key){
-    syncFraction(key,focus);
-    draw();
+  function wallControlsHtml(){
+    return modeTabs()+
+      '<p class="gd-section-title">Compare two fractions</p>'+
+      '<div class="gd-row">'+
+        field('A numerator','<input class="gd-input gd-small" id="fw-an" type="number" min="0" max="36" value="'+compareA.n+'">')+
+        field('A denominator','<input class="gd-input gd-small" id="fw-ad" type="number" min="1" max="12" value="'+compareA.d+'">')+
+      '</div><div class="gd-row">'+
+        field('B numerator','<input class="gd-input gd-small" id="fw-bn" type="number" min="0" max="36" value="'+compareB.n+'">')+
+        field('B denominator','<input class="gd-input gd-small" id="fw-bd" type="number" min="1" max="12" value="'+compareB.d+'">')+
+      '</div>'+
+      '<p class="gd-help">Tap the wall to explore equivalence. The comparison bars still support exact proper or improper fractions.</p>';
   }
-  function draw(){
-    const a=readFraction('a',1,2),b=readFraction('b',1,3);
-    syncFraction('a',a);syncFraction('b',b);
-    const av=a.n/a.d,bv=b.n/b.d,sign=Math.abs(av-bv)<1e-10?'=':(av>bv?'>':'<');
+  function workbenchControlsHtml(){
+    return modeTabs()+
+      '<p class="gd-section-title">Add a fraction strip</p>'+
+      '<div class="gd-row">'+
+        field('Numerator','<input class="gd-input gd-small" id="fw-add-n" type="number" min="0" max="36" value="'+focus.n+'">')+
+        field('Denominator','<input class="gd-input gd-small" id="fw-add-d" type="number" min="1" max="12" value="'+focus.d+'">')+
+      '</div>'+
+      '<div class="gd-row"><button class="gd-btn gd-btn--primary" id="fw-add-strip" type="button">Add strip</button><button class="gd-btn" id="fw-add-focus" type="button">Add selected wall fraction</button></div>'+
+      '<div class="gd-row"><button class="gd-btn" id="fw-align" type="button">Align strips</button><button class="gd-btn" id="fw-clear-strips" type="button">Clear workbench</button></div>'+
+      '<p class="gd-help">Drag strips directly. Select one for duplicate, split into twice as many equal pieces, simplify, lock or delete. Equivalent strips highlight automatically.</p>';
+  }
+  function controlsHtml(){return mode==='workbench'?workbenchControlsHtml():wallControlsHtml()}
+  function renderControls(){const panel=q('#gd-controls');if(panel)panel.innerHTML=controlsHtml();bindControls()}
+
+  function drawWall(){
+    const a=readCompare('a'),b=readCompare('b'),av=a.n/a.d,bv=b.n/b.d,sign=Math.abs(av-bv)<1e-10?'=':(av>bv?'>':'<');
     const simpleFocus=simplify(focus.n,focus.d);
-    const focusText=simpleFocus.n===focus.n&&simpleFocus.d===focus.d
-      ? focus.n+'/'+focus.d
-      : focus.n+'/'+focus.d+' = '+simpleFocus.n+'/'+simpleFocus.d;
+    const focusText=simpleFocus.n===focus.n&&simpleFocus.d===focus.d?focus.n+'/'+focus.d:focus.n+'/'+focus.d+' = '+simpleFocus.n+'/'+simpleFocus.d;
     q('#gd-stage').innerHTML='<div class="gd-vis gd-fractions-workspace">'+
       '<section class="gd-fr-wall-card">'+
         '<div class="gd-fr-wall-heading"><div><strong>Fraction wall</strong><span>Tap an endpoint. Equivalent amounts highlight automatically.</span></div>'+
-          '<div class="gd-fr-focus"><span>Selected</span><strong>'+focusText+'</strong><button type="button" data-fw-use="a">Use as A</button><button type="button" data-fw-use="b">Use as B</button></div>'+
-        '</div>'+
-        '<div class="gd-fraction-wall">'+wallRows()+'</div>'+
+          '<div class="gd-fr-focus"><span>Selected</span><strong>'+focusText+'</strong><button type="button" data-fw-use="a">Use as A</button><button type="button" data-fw-use="b">Use as B</button><button type="button" data-fw-to-workbench>Add strip</button></div>'+
+        '</div><div class="gd-fraction-wall">'+wallRows()+'</div>'+
       '</section>'+
       '<section class="gd-fr-compare gd-fr-compare-direct">'+
         '<div class="gd-fr-compare-card"><div class="gd-fr-card-head"><strong>A</strong><span>'+fractionText(a)+'</span></div>'+directBar(a,'a')+'<p>Tap a segment to change the numerator.</p></div>'+
         '<div class="gd-fr-compare-card"><div class="gd-fr-card-head"><strong>B</strong><span>'+fractionText(b)+'</span></div>'+directBar(b,'b')+'<p>Tap a segment to change the numerator.</p></div>'+
       '</section>'+
-      '<div class="gd-equation gd-fr-equation"><span>'+a.n+'/'+a.d+'</span><strong>'+sign+'</strong><span>'+b.n+'/'+b.d+'</span></div>'+
-    '</div>';
+      '<div class="gd-equation gd-fr-equation"><span>'+a.n+'/'+a.d+'</span><strong>'+sign+'</strong><span>'+b.n+'/'+b.d+'</span></div></div>';
 
     qa('[data-fw-wall]',q('#gd-stage')).forEach(cell=>cell.onclick=()=>{
-      const [d,i]=cell.dataset.fwWall.split(':').map(Number);
-      focus={n:i+1,d};
-      draw();
+      const [d,i]=cell.dataset.fwWall.split(':').map(Number);focus={n:i+1,d};renderControls();drawWall();
     });
-    qa('[data-fw-use]',q('#gd-stage')).forEach(button=>button.onclick=()=>useFocus(button.dataset.fwUse));
+    qa('[data-fw-use]',q('#gd-stage')).forEach(button=>button.onclick=()=>{
+      const value=normalFraction(focus);if(button.dataset.fwUse==='a')compareA=value;else compareB=value;renderControls();drawWall();
+    });
     qa('[data-fw-set]',q('#gd-stage')).forEach(piece=>piece.onclick=()=>{
-      const [key,raw]=piece.dataset.fwSet.split(':');
-      const n=clamp(Math.round(num(raw,0)),0,12);
-      const input=q('#fw-'+key+'n');
-      if(input)input.value=n;
-      draw();
+      const [key,raw]=piece.dataset.fwSet.split(':'),current=key==='a'?compareA:compareB;
+      const value={n:clamp(Math.round(num(raw,0)),0,current.d*3),d:current.d};
+      if(key==='a')compareA=value;else compareB=value;renderControls();drawWall();
     });
+    const toWorkbench=q('[data-fw-to-workbench]',q('#gd-stage'));
+    if(toWorkbench)toWorkbench.onclick=()=>{
+      addStrip(focus);
+      switchMode('workbench');
+    };
   }
 
-  setPanels(
-    '<p class="gd-section-title">Compare two fractions</p>'+
-    '<div class="gd-row">'+
-      field('A numerator','<input class="gd-input gd-small" id="fw-an" type="number" min="0" max="12" value="1">')+
-      field('A denominator','<input class="gd-input gd-small" id="fw-ad" type="number" min="1" max="12" value="2">')+
-    '</div>'+
-    '<div class="gd-row">'+
-      field('B numerator','<input class="gd-input gd-small" id="fw-bn" type="number" min="0" max="12" value="1">')+
-      field('B denominator','<input class="gd-input gd-small" id="fw-bd" type="number" min="1" max="12" value="3">')+
-    '</div>'+
-    '<p class="gd-help">The boxes are the quickest way to set an exact comparison, including improper fractions. On the board, tap the wall to explore equivalence or tap comparison segments to change a numerator directly.</p>',
-    ''
-  );
-  ['fw-an','fw-ad','fw-bn','fw-bd'].forEach(id=>q('#'+id).oninput=draw);
-  draw();
+  function stateSnapshot(){return{strips:JSON.parse(JSON.stringify(strips)),nextStrip}}
+  function restoreState(value){
+    strips=Array.isArray(value?.strips)?value.strips.map(s=>({...s,...normalFraction(s),x:num(s.x,28),y:num(s.y,30),locked:!!s.locked,color:s.color||'#cbe7e2'})):[];
+    nextStrip=Math.max(1,Math.round(num(value?.nextStrip,1)));
+  }
+  function selectedStrip(id){return strips.find(s=>String(s.id)===String(id))||null}
+  function stripBars(strip){
+    const groups=Math.max(1,Math.ceil(strip.n/strip.d));
+    return Array.from({length:groups},(_,g)=>'<div class="gd-fr-strip-whole">'+Array.from({length:strip.d},(_,i)=>{
+      const absolute=g*strip.d+i+1,fill=absolute<=strip.n;
+      return '<button type="button" class="gd-fr-strip-segment'+(fill?' is-fill':'')+'" data-fr-strip-piece="'+strip.id+':'+absolute+'" aria-label="Set numerator to '+absolute+'"></button>';
+    }).join('')+'</div>').join('');
+  }
+  function stripMarkup(strip,selectedId){
+    const selected=String(strip.id)===String(selectedId),selectedObj=selectedStrip(selectedId),same=selectedObj&&String(selectedObj.id)!==String(strip.id)&&equivalent(strip,selectedObj);
+    const simple=simplify(strip.n,strip.d),canSimplify=simple.n!==strip.n||simple.d!==strip.d;
+    return '<div class="gd-fr-strip-object'+(selected?' is-selected':'')+(same?' is-equivalent':'')+(strip.locked?' is-locked':'')+'" data-gd-object="'+strip.id+'" role="button" tabindex="0" aria-selected="'+(selected?'true':'false')+'" aria-label="Fraction strip '+strip.n+'/'+strip.d+(strip.locked?', locked':'')+'" style="left:'+strip.x+'px;top:'+strip.y+'px;--fr-strip:'+strip.color+'">'+
+      '<div class="gd-fr-strip-head"><strong>'+strip.n+'/'+strip.d+'</strong><span>'+fractionText(strip)+'</span>'+(same?'<em>same value</em>':'')+(strip.locked?'<b aria-hidden="true">⌑</b>':'')+'</div>'+
+      '<div class="gd-fr-strip-bars">'+stripBars(strip)+'</div>'+
+      (canSimplify?'<small>Can simplify to '+simple.n+'/'+simple.d+'</small>':'<small>Value '+Number(fractionValue(strip).toFixed(4))+'</small>')+
+    '</div>';
+  }
+  function workbenchRail(selected,meta){
+    const object=selected?
+      I.toolButton('duplicate','duplicate','Duplicate strip','',false)+
+      I.toolButton('split','grid','Split every piece in two','',selected.locked||selected.d*2>12)+
+      I.toolButton('simplify','clear','Simplify fraction','',selected.locked||gcd(selected.n,selected.d)===1)+
+      I.toolButton('lock',selected.locked?'unlock':'lock',selected.locked?'Unlock strip':'Lock strip',selected.locked?'is-active':'',false)+
+      I.toolButton('delete','delete','Delete strip','is-danger',selected.locked):'';
+    return '<div class="gd-object-ui"><div class="gd-object-rail'+(selected?' is-engaged':'')+'" aria-label="Fraction strip tools">'+
+      object+(object?'<span class="gd-object-separator"></span>':'')+
+      I.toolButton('undo','undo','Undo','',!meta?.canUndo)+I.toolButton('redo','redo','Redo','',!meta?.canRedo)+
+      I.toolButton('align','grid','Align strips','',strips.length<2)+'</div></div>';
+  }
+  function stripHeight(strip){return 58+Math.max(1,Math.ceil(strip.n/strip.d))*32}
+  function workbenchHeight(){return Math.max(500,40+strips.reduce((max,strip)=>Math.max(max,(Number(strip.y)||0)+stripHeight(strip)),0))}
+  function drawWorkbench(selectedId,meta){
+    const selected=selectedStrip(selectedId);
+    q('#gd-stage').innerHTML='<div class="gd-vis gd-fr-workbench"><div class="gd-fr-strip-canvas-wrap"><div class="gd-fr-strip-canvas" id="fw-strip-canvas" data-gd-canvas-bg style="min-height:'+workbenchHeight()+'px" tabindex="0" aria-label="Fraction strip workbench. Drag strips to compare them.">'+
+      strips.map(s=>stripMarkup(s,selectedId)).join('')+
+      '</div>'+workbenchRail(selected,meta)+'</div>'+
+      '<div class="gd-object-hint">'+(selected?(selected.locked?'Strip locked · unlock it to change or move it.':'Drag to compare · split keeps the same value with twice as many equal pieces.'):'Select a strip, drag it, or align all strips to compare their lengths.')+'</div></div>';
+    bindStripSegments();
+  }
+  function constrainStrip(item,x,y,element,canvas){
+    const el=element||canvas.querySelector('[data-gd-object="'+item.id+'"]'),w=el?.offsetWidth||290,h=el?.offsetHeight||90;
+    return{x:clamp(x,0,Math.max(0,canvas.clientWidth-w)),y:clamp(y,0,Math.max(0,canvas.clientHeight-h))};
+  }
+  function duplicateStrip(item){
+    const canvas=q('#fw-strip-canvas'),copy={...item,id:nextStrip++,locked:false};
+    const w=canvas?.clientWidth||720,h=canvas?.clientHeight||500;
+    copy.x=clamp((Number(item.x)||0)+42,0,Math.max(0,w-300));copy.y=clamp((Number(item.y)||0)+42,0,Math.max(0,h-100));
+    strips.push(copy);return copy;
+  }
+  function addStrip(raw){
+    const value=normalFraction(raw),id=nextStrip++,i=strips.length;
+    const bottom=strips.reduce((max,strip)=>Math.max(max,(Number(strip.y)||0)+stripHeight(strip)),6);
+    strips.push({id,n:value.n,d:value.d,x:24,y:bottom+18,locked:false,color:['#cbe7e2','#cfe0f6','#f6dfad','#e7d8f3','#d5ead2'][i%5]});
+    return id;
+  }
+  function alignStrips(){
+    let y=24;
+    strips.forEach(strip=>{strip.x=24;strip.y=y;y+=stripHeight(strip)+18});
+  }
+  function bindStripSegments(){
+    qa('[data-fr-strip-piece]',q('#gd-stage')).forEach(piece=>piece.onclick=e=>{
+      e.stopPropagation();
+      const [idRaw,nRaw]=piece.dataset.frStripPiece.split(':'),strip=selectedStrip(idRaw);if(!strip||strip.locked)return;
+      controller.mutate(()=>{strip.n=clamp(Math.round(num(nRaw,strip.n)),0,strip.d*3)});
+      controller.select(strip.id);
+    });
+  }
+  function mountWorkbench(){
+    if(!I){q('#gd-stage').innerHTML='<p class="gd-empty">The fraction strip workbench could not start.</p>';return}
+    controller=I.mount({
+      getItems:()=>strips,
+      getState:stateSnapshot,
+      setState:restoreState,
+      getCanvas:()=>q('#fw-strip-canvas'),
+      getActionRoot:()=>q('#gd-stage'),
+      render:drawWorkbench,
+      snap:10,
+      nudgeStep:10,
+      constrain:constrainStrip,
+      duplicate:duplicateStrip,
+      remove:item=>{strips=strips.filter(s=>s!==item)},
+      toggleLock:item=>{item.locked=!item.locked},
+      onAction:(action,api)=>{
+        const selected=api.selected();
+        if(action==='split'&&selected&&!selected.locked&&selected.d*2<=12)api.mutate(()=>{selected.n*=2;selected.d*=2});
+        else if(action==='simplify'&&selected&&!selected.locked)api.mutate(()=>{const s=simplify(selected.n,selected.d);selected.n=s.n;selected.d=s.d});
+        else if(action==='align')api.mutate(alignStrips);
+      }
+    });
+    controller.refresh();
+  }
+  function switchMode(next){
+    mode=next==='workbench'?'workbench':'wall';
+    if(mode==='wall'){I?.clear?.();controller=null;renderControls();drawWall()}
+    else{renderControls();mountWorkbench()}
+  }
+  function bindControls(){
+    qa('[data-fw-mode]',q('#gd-controls')).forEach(button=>button.onclick=()=>switchMode(button.dataset.fwMode));
+    if(mode==='wall'){
+      ['fw-an','fw-ad','fw-bn','fw-bd'].forEach(id=>{const el=q('#'+id);if(el)el.oninput=()=>{readCompare(id[3]);drawWall()}});
+      return;
+    }
+    const add=q('#fw-add-strip');if(add)add.onclick=()=>{
+      const raw={n:num(q('#fw-add-n')?.value,focus.n),d:num(q('#fw-add-d')?.value,focus.d)};
+      let id=null;controller.mutate(()=>{id=addStrip(raw)});controller.select(id);
+    };
+    const addFocus=q('#fw-add-focus');if(addFocus)addFocus.onclick=()=>{let id=null;controller.mutate(()=>{id=addStrip(focus)});controller.select(id)};
+    const align=q('#fw-align');if(align)align.onclick=()=>controller.mutate(alignStrips);
+    const clear=q('#fw-clear-strips');if(clear)clear.onclick=()=>{
+      if(!strips.length)return;if(!window.confirm('Clear all fraction strips from the workbench?'))return;
+      controller.mutate(()=>{strips=[]});
+    };
+  }
+
+  setPanels(controlsHtml(),'');
+  bindControls();
+  drawWall();
 }
 
 function barModel(){function parse(){return q('#bm-parts').value.split(',').map(x=>x.trim()).filter(Boolean).map(x=>x==='?'?'?':Math.max(0,num(x,0))).slice(0,8)}function draw(){const parts=parse(),known=parts.filter(x=>x!=='?'),sum=known.reduce((a,b)=>a+b,0),unknowns=parts.filter(x=>x==='?').length,totalRaw=q('#bm-total').value.trim(),total=totalRaw?num(totalRaw,0):null,unknownValue=total!=null&&unknowns===1?Math.max(0,total-sum):null;const numeric=parts.map(x=>x==='?'?(unknownValue||Math.max(1,sum/(known.length||1))):x),den=Math.max(1,numeric.reduce((a,b)=>a+b,0));q('#gd-stage').innerHTML=`<div class="gd-vis"><div class="gd-bars"><div class="gd-bar-wrap">${parts.map((p,i)=>`<div class="gd-bar-part${p==='?'?' is-unknown':''}" style="flex:${Math.max(.1,numeric[i]/den*10)}">${p==='?'?(unknownValue!=null?unknownValue:'?'):p}</div>`).join('')}</div><div class="gd-bar-total">Total: ${total!=null?total:(unknowns?'?':sum)}</div></div><div class="gd-equation">${parts.join(' + ')} = ${total!=null?total:(unknowns?'?':sum)}</div></div>`}
