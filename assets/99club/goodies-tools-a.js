@@ -557,7 +557,7 @@ function placeValue(){
 }
 
 function fractionWall(){
-  const I=G.interaction,CK=G.challengeKit;
+  const I=G.interaction,CK=G.challengeKit,X=G.exportTools;
   let focus={n:1,d:2},compareA={n:1,d:2},compareB={n:1,d:3},mode='wall';
   let strips=[
     {id:1,n:1,d:2,x:28,y:30,locked:false,color:'#cbe7e2'},
@@ -578,6 +578,7 @@ function fractionWall(){
     {id:'denominator-misconception',category:'reason',title:'Larger denominator?',desc:'Diagnose the common unit-fraction denominator misconception.'}
   ];
   let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='identify-strip',challenge=null,beforeChallenge=null;
+  let exportMode='diagram',responseLines=1,exportStatus='';
 
   function gcd(a,b){a=Math.abs(Math.round(a));b=Math.abs(Math.round(b));while(b){const t=b;b=a%b;a=t}return a||1}
   function simplify(n,d){const g=gcd(n,d);return{n:n/g,d:d/g}}
@@ -728,7 +729,8 @@ function fractionWall(){
   function workflowTabs(){
     return '<div class="gd-row gd-fr-workflow-tabs" role="tablist" aria-label="Fractions workflow">'+
       '<button class="gd-btn'+(controlTab==='explore'?' gd-btn--primary':'')+'" type="button" data-fw-workflow="explore">Explore</button>'+
-      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-fw-workflow="challenge">Challenge'+(challenge?' •':'')+'</button></div>';
+      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-fw-workflow="challenge">Challenge'+(challenge?' •':'')+'</button>'+
+      '<button class="gd-btn'+(controlTab==='export'?' gd-btn--primary':'')+'" type="button" data-fw-workflow="export">Export / reuse</button></div>';
   }
   function challengeControlsHtml(){
     if(!CK)return '<p class="gd-help">Challenge tools are unavailable.</p>';
@@ -749,7 +751,7 @@ function fractionWall(){
   }
   function enterCustomChallenge(){
     if(CK)challenge=CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''});
-    challengeTab='custom';controlTab='challenge';renderControls();renderRepresentation();
+    challengeTab='custom';controlTab='challenge';exportMode='challenge';exportStatus='';renderControls();renderRepresentation();
   }
   function setCustomAnswerSource(source){
     if(!challenge||challenge.mode!=='custom')return;
@@ -806,10 +808,149 @@ function fractionWall(){
       challenge=challengeObject(type,'A pupil says 1/'+large+' is greater than 1/'+small+' because '+large+' is the larger denominator. Are they correct?','No. For unit fractions, more equal parts make each part smaller, so 1/'+small+' > 1/'+large+'.',{hiddenStripHints:[1,2]});
     }
     challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';
+    exportMode='challenge';responseLines=template.category==='reason'?3:1;exportStatus='';
     alignStrips();renderControls();renderRepresentation();
   }
+
+  function exportControlsHtml(){
+    const canCard=!!challenge;
+    if(!canCard&&exportMode==='challenge')exportMode='diagram';
+    return '<div class="nl-panel-title"><div><strong>Use it elsewhere</strong><span>Export the fraction model as a clean vector diagram or a pupil-ready challenge card.</span></div></div>'+
+      (canCard?'<div class="nl-export-mode fw-export-mode" role="tablist" aria-label="Export content">'+
+        '<button type="button" class="'+(exportMode==='challenge'?'is-active':'')+'" data-fw-export-mode="challenge">Challenge card</button>'+
+        '<button type="button" class="'+(exportMode==='diagram'?'is-active':'')+'" data-fw-export-mode="diagram">Diagram only</button></div>':'')+
+      (canCard&&exportMode==='challenge'
+        ?'<label class="gd-field"><span>Answer space</span><select class="gd-select" id="fw-response-lines">'+
+          [1,2,3,4].map(n=>'<option value="'+n+'"'+(responseLines===n?' selected':'')+'>'+n+' line'+(n===1?'':'s')+'</option>').join('')+
+          '</select></label><p class="gd-help">The pupil card contains the question, the fraction model and blank answer space. Revealed answers are re-hidden automatically.</p>'
+        :'<p class="gd-help">Diagram-only export contains the current fraction wall or strip model without editing controls.</p>')+
+      '<div class="nl-export-grid fw-export-grid">'+
+        '<button class="gd-btn gd-btn--primary" id="fw-copy-image" type="button">Copy '+(canCard&&exportMode==='challenge'?'challenge':'image')+'</button>'+
+        '<button class="gd-btn" id="fw-png" type="button">PNG</button>'+
+        '<button class="gd-btn" id="fw-svg-download" type="button">SVG</button>'+
+        '<button class="gd-btn" id="fw-print" type="button">Print / PDF</button>'+
+      '</div><p class="gd-help" id="fw-export-status" role="status" aria-live="polite">'+exportStatus+'</p>';
+  }
+  function fwSvgEl(name,attrs={},text=''){
+    const el=document.createElementNS('http://www.w3.org/2000/svg',name);
+    Object.entries(attrs).forEach(([key,value])=>el.setAttribute(key,String(value)));
+    if(text!==''&&text!=null)el.textContent=String(text);
+    return el;
+  }
+  function exportHidden(key,id=null,pupil=false){
+    if(!challenge)return false;
+    if(!pupil)return challengeActiveHidden(key,id);
+    if(key==='focus')return !!challenge.hiddenFocusLabel;
+    if(key==='compare')return !!challenge.hiddenCompareSign;
+    const list=key==='strip-label'?challenge.hiddenStripLabels:challenge.hiddenStripHints;
+    return Array.isArray(list)&&list.map(String).includes(String(id));
+  }
+  function addSvgFractionBar(svg,f,x,y,width,label){
+    const value=normalFraction(f),groups=Math.max(1,Math.ceil(value.n/value.d)),rowH=22,rowGap=7;
+    if(label)svg.appendChild(fwSvgEl('text',{x,y:y-8,'font-family':'Arial,sans-serif','font-size':13,'font-weight':800,fill:'#40565d'},label));
+    for(let g=0;g<groups;g++){
+      const yy=y+g*(rowH+rowGap),segW=width/value.d;
+      for(let i=0;i<value.d;i++){
+        const absolute=g*value.d+i+1,fill=absolute<=value.n;
+        svg.appendChild(fwSvgEl('rect',{x:x+i*segW,y:yy,width:segW,height:rowH,fill:fill?'#bfe1dc':'#ffffff',stroke:'#71878c','stroke-width':1}));
+      }
+    }
+    return groups*(rowH+rowGap)-rowGap;
+  }
+  function wallExportSvg({pupil=false}={}){
+    const width=1000,pad=38,rowX=118,rowW=844,rowH=24,rowGap=6,startY=62,wallBottom=startY+12*(rowH+rowGap);
+    const compareY=wallBottom+48,height=compareY+154;
+    const svg=fwSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Fraction wall and comparison','data-fw-export':'wall'});
+    svg.appendChild(fwSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
+    svg.appendChild(fwSvgEl('text',{x:pad,y:34,'font-family':'Arial,sans-serif','font-size':20,'font-weight':800,fill:'#24343b'},'Fraction wall'));
+    const simpleFocus=simplify(focus.n,focus.d),focusRaw=rawFractionText(focus),focusShown=simpleFocus.n===focus.n&&simpleFocus.d===focus.d?focusRaw:focusRaw+' = '+simpleFocus.n+'/'+simpleFocus.d;
+    svg.appendChild(fwSvgEl('text',{x:width-pad,y:34,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':15,'font-weight':700,fill:'#52666d'},'Selected: '+(exportHidden('focus',null,pupil)?'?':focusShown)));
+    for(let d=1;d<=12;d++){
+      const y=startY+(d-1)*(rowH+rowGap),eqN=equivalentNumerator(d),rowFocus=d===focus.d,segW=rowW/d;
+      svg.appendChild(fwSvgEl('text',{x:rowX-14,y:y+17,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':12,'font-weight':700,fill:'#60757b'},d===1?'whole':'1/'+d));
+      for(let i=0;i<d;i++){
+        const on=eqN!=null&&i<eqN;
+        svg.appendChild(fwSvgEl('rect',{x:rowX+i*segW,y,width:segW,height:rowH,fill:on?(rowFocus?'#4faaa0':'#cae7e3'):'#ffffff',stroke:rowFocus?'#397f77':'#9aadb1','stroke-width':rowFocus?1.7:1}));
+      }
+    }
+    svg.appendChild(fwSvgEl('line',{x1:pad,y1:wallBottom+20,x2:width-pad,y2:wallBottom+20,stroke:'#d9e3e5','stroke-width':1.5}));
+    const cardW=390,leftX=pad,rightX=width-pad-cardW;
+    svg.appendChild(fwSvgEl('text',{x:leftX,y:compareY-12,'font-family':'Arial,sans-serif','font-size':15,'font-weight':800,fill:'#334a52'},'A  '+rawFractionText(compareA)));
+    svg.appendChild(fwSvgEl('text',{x:rightX,y:compareY-12,'font-family':'Arial,sans-serif','font-size':15,'font-weight':800,fill:'#334a52'},'B  '+rawFractionText(compareB)));
+    addSvgFractionBar(svg,compareA,leftX,compareY,cardW,'');
+    addSvgFractionBar(svg,compareB,rightX,compareY,cardW,'');
+    const av=fractionValue(compareA),bv=fractionValue(compareB),sign=Math.abs(av-bv)<1e-10?'=':(av>bv?'>':'<');
+    svg.appendChild(fwSvgEl('text',{x:width/2,y:height-31,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':26,'font-weight':800,fill:'#2f5f5a'},rawFractionText(compareA)+'  '+(exportHidden('compare',null,pupil)?'?':sign)+'  '+rawFractionText(compareB)));
+    svg.appendChild(fwSvgEl('text',{x:width-pad,y:height-10,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':10,fill:'#87969a'},'99 Club Studio'));
+    return svg;
+  }
+  function stripsExportSvg({pupil=false}={}){
+    const width=1000,pad=42,cardW=520,canvasW=Math.max(320,q('#fw-strip-canvas')?.clientWidth||720);
+    const ordered=[...strips].sort((a,b)=>(Number(a.y)||0)-(Number(b.y)||0)||Number(a.id)-Number(b.id));
+    const items=ordered.map(strip=>{
+      const groups=Math.max(1,Math.ceil(strip.n/strip.d)),h=62+groups*38+28;
+      return{strip,groups,h};
+    });
+    const height=Math.max(250,pad*2+items.reduce((sum,item)=>sum+item.h+18,0)-18);
+    const svg=fwSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Fraction strip workbench','data-fw-export':'strips'});
+    svg.appendChild(fwSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
+    let y=pad;
+    items.forEach(({strip,groups,h})=>{
+      const maxX=Math.max(0,width-pad*2-cardW),x=pad+clamp((Number(strip.x)||0)/Math.max(1,canvasW-cardW),0,1)*maxX;
+      const hideLabel=exportHidden('strip-label',strip.id,pupil),hideHint=exportHidden('strip-hint',strip.id,pupil);
+      const simple=simplify(strip.n,strip.d),canSimplify=simple.n!==strip.n||simple.d!==strip.d;
+      svg.appendChild(fwSvgEl('rect',{x,y,width:cardW,height:h,rx:14,fill:'#f8fbfb',stroke:'#b9c9cc','stroke-width':1.5,'data-fw-export-strip':strip.id}));
+      svg.appendChild(fwSvgEl('text',{x:x+18,y:y+28,'font-family':'Arial,sans-serif','font-size':18,'font-weight':800,fill:'#2e4a51'},hideLabel?'?':rawFractionText(strip)));
+      if(!hideLabel&&!hideHint&&canSimplify)svg.appendChild(fwSvgEl('text',{x:x+84,y:y+28,'font-family':'Arial,sans-serif','font-size':12,'font-weight':700,fill:'#697d82'},'= '+simple.n+'/'+simple.d));
+      const barX=x+18,barW=cardW-36,rowH=25,rowGap=8,barY=y+45;
+      for(let g=0;g<groups;g++){
+        const yy=barY+g*(rowH+rowGap),segW=barW/strip.d;
+        for(let i=0;i<strip.d;i++){
+          const absolute=g*strip.d+i+1,fill=absolute<=strip.n;
+          svg.appendChild(fwSvgEl('rect',{x:barX+i*segW,y:yy,width:segW,height:rowH,fill:fill?(strip.color||'#cbe7e2'):'#ffffff',stroke:'#70878c','stroke-width':1}));
+        }
+      }
+      const hint=hideHint?'Work it out from the strip.':canSimplify?'Can simplify to '+simple.n+'/'+simple.d:'Value '+Number(fractionValue(strip).toFixed(4));
+      svg.appendChild(fwSvgEl('text',{x:x+18,y:y+h-12,'font-family':'Arial,sans-serif','font-size':11,fill:'#73858a'},hint));
+      y+=h+18;
+    });
+    if(!items.length)svg.appendChild(fwSvgEl('text',{x:width/2,y:height/2,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':18,fill:'#718388'},'No fraction strips on the workbench.'));
+    svg.appendChild(fwSvgEl('text',{x:width-pad,y:height-10,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':10,fill:'#87969a'},'99 Club Studio'));
+    return svg;
+  }
+  function fractionExportSvg(options={}){
+    return mode==='workbench'?stripsExportSvg(options):wallExportSvg(options);
+  }
+  function exportTargetSvg(){
+    if(exportMode!=='challenge'||!challenge||!X?.composeChallengeCardSvg)return fractionExportSvg({pupil:false});
+    const prompt=CK?CK.plainText(challenge.promptHtml||challenge.prompt||''):challenge.prompt||'';
+    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
+    return X.composeChallengeCardSvg(fractionExportSvg({pupil:true}),{
+      title:challenge.title||meta?.title||'Fractions challenge',
+      prompt,
+      responseLabel:challenge.category==='reason'?'Explain your thinking':'Answer',
+      responseLines,
+      brand:'99 Club Studio'
+    });
+  }
+  function exportName(){
+    const meta=challenge&&CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
+    if(exportMode==='challenge'&&challenge)return challenge.title||meta?.title||'fractions-challenge';
+    return mode==='workbench'?'fraction-strips':'fraction-wall';
+  }
+  function exportMessage(text){exportStatus=text;const el=q('#fw-export-status');if(el)el.textContent=text}
+  async function exportAction(kind){
+    try{
+      if(!X)throw new Error('Export tools are not available.');
+      const target=exportTargetSvg(),isCard=exportMode==='challenge'&&!!challenge,name=exportName();
+      if(kind==='copy'){await X.copyPng(target);exportMessage(isCard?'Challenge copied — paste it into your worksheet, slide or document.':'Fraction image copied — paste it into your slide or document.')}
+      if(kind==='png'){await X.downloadPng(target,name,2);exportMessage(isCard?'Challenge PNG downloaded.':'Fraction PNG downloaded.')}
+      if(kind==='svg'){X.downloadSvg(target,name);exportMessage(isCard?'Challenge SVG downloaded.':'Fraction SVG downloaded.')}
+      if(kind==='print'){X.printSvg(target,{title:'',landscape:true});exportMessage('Print view opened. Choose “Save as PDF” in the print dialog.')}
+    }catch(err){exportMessage(err?.message||'That export did not work.')}
+  }
   function controlsHtml(){
-    const body=controlTab==='challenge'?challengeControlsHtml():(mode==='workbench'?workbenchControlsHtml():wallControlsHtml());
+    const body=controlTab==='challenge'?challengeControlsHtml():controlTab==='export'?exportControlsHtml():(mode==='workbench'?workbenchControlsHtml():wallControlsHtml());
     return workflowTabs()+body;
   }
   function renderControls(){const panel=q('#gd-controls');if(panel)panel.innerHTML=controlsHtml();bindControls()}
@@ -973,8 +1114,23 @@ function fractionWall(){
     const controls=q('#gd-controls');if(!controls)return;
 
     qa('[data-fw-workflow]',controls).forEach(button=>button.onclick=()=>{
-      controlTab=button.dataset.fwWorkflow==='challenge'?'challenge':'explore';renderControls();
+      const next=button.dataset.fwWorkflow;
+      controlTab=next==='challenge'?'challenge':next==='export'?'export':'explore';renderControls();
     });
+
+    if(controlTab==='export'){
+      qa('[data-fw-export-mode]',controls).forEach(button=>button.onclick=()=>{
+        exportMode=button.dataset.fwExportMode==='challenge'&&challenge?'challenge':'diagram';exportStatus='';renderControls();
+      });
+      const response=q('#fw-response-lines',controls);if(response)response.onchange=()=>{
+        responseLines=clamp(Math.round(num(response.value,1)),1,4);renderControls();
+      };
+      const copyImage=q('#fw-copy-image',controls);if(copyImage)copyImage.onclick=()=>exportAction('copy');
+      const png=q('#fw-png',controls);if(png)png.onclick=()=>exportAction('png');
+      const svgDownload=q('#fw-svg-download',controls);if(svgDownload)svgDownload.onclick=()=>exportAction('svg');
+      const print=q('#fw-print',controls);if(print)print.onclick=()=>exportAction('print');
+      return;
+    }
 
     if(controlTab==='challenge'){
       qa('[data-fw-challenge-tab]',controls).forEach(button=>button.onclick=()=>{
