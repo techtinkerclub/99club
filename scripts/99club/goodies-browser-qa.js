@@ -1192,6 +1192,66 @@ if(mode==='prepare'){
     Math.random=abRealRandom;
   }
 
+  function testMoneyWorkbench(){
+    TT99Goodies.interaction.clear();
+    assert(TT99Goodies.moneyTool,'UK Money tool is registered');
+    TT99Goodies.moneyTool();
+
+    let objects=[...document.querySelectorAll('#mo-canvas [data-gd-object]')];
+    assert(objects.length===5,'UK Money opens with a five-piece £3.75 example');
+    assert(document.querySelector('[data-mo-total]').textContent.trim()==='£3.75','UK Money totals the draggable pieces');
+    assert(document.querySelector('[data-mo-status]').textContent.includes('Exactly right'),'UK Money checks the starting amount against its target');
+    assert(document.querySelector('[data-mo-value="50"]').classList.contains('gd-money-object--hept'),'50p uses a recognisable heptagonal token');
+    assert(document.querySelector('[data-mo-value="100"]').classList.contains('gd-money-object--dodec'),'£1 uses a recognisable twelve-sided token');
+
+    document.querySelector('[data-mo-add="500"]').click();
+    objects=[...document.querySelectorAll('#mo-canvas [data-gd-object]')];
+    assert(objects.length===6&&document.querySelector('[data-mo-value="500"]').classList.contains('gd-money-object--note'),'A £5 note can be added directly to the workbench');
+    assert(document.querySelector('[data-mo-total]').textContent.trim()==='£8.75','Adding money updates the live total');
+
+    const target=document.getElementById('mo-target');
+    target.value='8.75';target.dispatchEvent(new Event('input',{bubbles:true}));
+    assert(document.querySelector('[data-mo-status]').textContent.includes('Exactly right'),'Target checking updates immediately');
+
+    let first=document.querySelector('#mo-canvas [data-gd-object]');
+    let rect=first.getBoundingClientRect();
+    pointer(first,'pointerdown',rect.left+rect.width/2,rect.top+rect.height/2,141);
+    pointer(first,'pointerup',rect.left+rect.width/2,rect.top+rect.height/2,141);
+    first=document.querySelector('#mo-canvas [data-gd-object].is-selected');
+    assert(first,'A coin can be selected directly');
+    const duplicate=document.querySelector('[data-gd-action="duplicate"]');
+    assert(duplicate&&!duplicate.disabled,'Selected money exposes duplicate without opening another menu');
+    duplicate.click();
+    assert(document.querySelectorAll('#mo-canvas [data-gd-object]').length===7,'Duplicate makes a second draggable copy');
+    assert(document.querySelector('[data-mo-total]').textContent.trim()==='£10.75','Duplicating a £2 coin updates the total');
+
+    let selected=document.querySelector('#mo-canvas [data-gd-object].is-selected');
+    const lock=document.querySelector('[data-gd-action="lock"]');
+    lock.click();
+    selected=document.querySelector('#mo-canvas [data-gd-object].is-selected');
+    assert(selected.classList.contains('is-locked'),'Selected money can be locked in place');
+    assert(document.querySelector('[data-gd-action="delete"]').disabled,'Locked money cannot be accidentally deleted');
+    document.querySelector('[data-gd-action="lock"]').click();
+    document.querySelector('[data-gd-action="delete"]').click();
+    assert(document.querySelectorAll('#mo-canvas [data-gd-object]').length===6,'Unlocked selected money can be deleted directly');
+    assert(document.querySelector('[data-mo-total]').textContent.trim()==='£8.75','Deleting the duplicate restores the correct total');
+
+    first=document.querySelector('#mo-canvas [data-gd-object]');
+    rect=first.getBoundingClientRect();
+    const oldLeft=parseFloat(first.style.left);
+    pointer(first,'pointerdown',rect.left+rect.width/2,rect.top+rect.height/2,142);
+    pointer(first,'pointermove',rect.left+rect.width/2+36,rect.top+rect.height/2+20,142);
+    pointer(first,'pointerup',rect.left+rect.width/2+36,rect.top+rect.height/2+20,142);
+    first=document.querySelector('#mo-canvas [data-gd-object].is-selected');
+    assert(parseFloat(first.style.left)>oldLeft,'Money can be dragged directly around the board');
+
+    document.getElementById('mo-clear').click();
+    assert(document.querySelectorAll('#mo-canvas [data-gd-object]').length===0,'Clear all empties the Money workbench');
+    document.querySelector('[data-gd-action="undo"]').click();
+    assert(document.querySelectorAll('#mo-canvas [data-gd-object]').length===6,'Undo restores a cleared Money workbench');
+    assert(getComputedStyle(document.getElementById('mo-canvas')).touchAction==='pan-y','Money workbench preserves page scrolling outside draggable pieces');
+  }
+
   function testClockWorkbench(){
     TT99Goodies.interaction.clear();
     assert(TT99Goodies.clockTool,'Clock tool is registered');
@@ -1574,8 +1634,9 @@ if(mode==='prepare'){
         testCoordinates();
         testMeasurement();
         testArrayWorkbench();
+        testMoneyWorkbench();
         testClockWorkbench();
-        result('pass','Number Line challenges, Maths Canvas, Place Value, Fraction Wall, Geoboard, Coordinates, Measurement, Array and Clock workbench interactions work');
+        result('pass','Number Line challenges, Maths Canvas, Place Value, Fraction Wall, Geoboard, Coordinates, Measurement, Array, UK Money and Clock workbench interactions work');
       }catch(err){
         result('fail',err&&err.message?err.message:String(err));
       }
