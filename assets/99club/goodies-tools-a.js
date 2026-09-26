@@ -308,6 +308,10 @@ function placeValue(){
     qa('[data-pv-add]',q('#gd-stage')).forEach(button=>button.onclick=e=>{
       e.stopPropagation();addCounter(+button.dataset.pvAdd);
     });
+    const reveal=q('[data-board-action="reveal"]',q('#gd-stage'));
+    if(reveal)reveal.onclick=e=>{e.stopPropagation();if(!challenge)return;challenge.revealed=!challenge.revealed;renderControls();controller?.refresh()};
+    const another=q('[data-challenge-action="another"]',q('#gd-stage'));
+    if(another)another.onclick=e=>{e.stopPropagation();if(challenge?.mode==='standard')generateChallenge(challenge.type)};
     updateLiveSummary();
   }
   function syncControls(){
@@ -316,45 +320,74 @@ function placeValue(){
     if(regroup)regroup.disabled=!nonStandard()||total()>99999.99;
   }
   function bindControls(){
-    q('#pv-build').onclick=()=>{
+    qa('[data-pv-workflow]').forEach(button=>button.onclick=()=>{
+      controlTab=button.dataset.pvWorkflow==='challenge'?'challenge':'setup';renderControls();
+    });
+    const build=q('#pv-build');if(build)build.onclick=()=>{
       const raw=q('#pv-value').value;
       controller.mutate(()=>{buildFromNumber(raw);notice='Board rebuilt from the entered number.'});
       controller.select(null);
     };
-    q('#pv-random').onclick=()=>{
+    const random=q('#pv-random');if(random)random.onclick=()=>{
       const value=Math.floor(Math.random()*99999)+1;
       q('#pv-value').value=value;
       controller.mutate(()=>{buildFromNumber(value);notice='Random whole number built.'});
       controller.select(null);
     };
-    q('#pv-dec').onclick=()=>{
+    const decimal=q('#pv-dec');if(decimal)decimal.onclick=()=>{
       const value=(Math.floor(Math.random()*9999999)/100).toFixed(2);
       q('#pv-value').value=value;
       controller.mutate(()=>{buildFromNumber(value);notice='Random decimal built.'});
       controller.select(null);
     };
-    q('#pv-regroup').onclick=()=>{
+    const regroup=q('#pv-regroup');if(regroup)regroup.onclick=()=>{
       const value=total();
       if(value>99999.99){notice='This value is above the current board range, so it cannot be regrouped here.';controller.refresh();return;}
       controller.mutate(()=>{buildFromNumber(value);notice='Regrouped into standard place-value digits without changing the total.'});
       controller.select(null);
     };
-    q('#pv-clear').onclick=()=>{
+    const clear=q('#pv-clear');if(clear)clear.onclick=()=>{
       if(!tokens.length)return;
       if(!window.confirm('Clear all counters from the place-value board?'))return;
       controller.mutate(()=>{tokens=[];notice='Board cleared.'});
       controller.select(null);
     };
+
+    qa('[data-pv-challenge-tab]').forEach(button=>button.onclick=()=>{
+      if(button.dataset.pvChallengeTab==='custom')enterCustomChallenge();
+      else{challengeTab='standard';renderControls()}
+    });
+    qa('[data-pv-challenge-cat]').forEach(button=>button.onclick=()=>{
+      challengeCategory=button.dataset.pvChallengeCat;renderControls();
+    });
+    qa('[data-pv-challenge-type]').forEach(button=>button.onclick=()=>{
+      challengeType=button.dataset.pvChallengeType;renderControls();
+    });
+    const generate=q('#pv-generate');if(generate)generate.onclick=()=>generateChallenge(challengeType);
+    const edit=q('#pv-edit-challenge');if(edit)edit.onclick=enterCustomChallenge;
+    const end=q('#pv-clear-challenge');if(end)end.onclick=clearChallenge;
+    const panelReveal=q('#pv-reveal');if(panelReveal)panelReveal.onclick=()=>{
+      if(!challenge)return;challenge.revealed=!challenge.revealed;renderControls();controller?.refresh();
+    };
+
+    qa('[data-gd-rich-action]').forEach(button=>button.onclick=()=>{
+      const editor=q('#pv-custom-prompt');if(editor&&CK)CK.applyFormat(editor,button.dataset.gdRichAction);
+    });
+    const title=q('#pv-custom-title');if(title)title.oninput=()=>{
+      if(!challenge)return;challenge.title=title.value.slice(0,100);controller?.refresh();
+    };
+    const prompt=q('#pv-custom-prompt');if(prompt)prompt.oninput=()=>{
+      if(!challenge||!CK)return;challenge.promptHtml=CK.sanitiseRichHtml(prompt.innerHTML);challenge.prompt=CK.plainText(challenge.promptHtml).slice(0,600);controller?.refresh();
+    };
+    const source=q('#pv-custom-answer-source');if(source)source.onchange=()=>setCustomAnswerSource(source.value);
+    const answer=q('#pv-custom-answer');if(answer)answer.oninput=()=>{
+      if(!challenge)return;challenge.answer=answer.value.slice(0,400);
+      if(challenge.revealed){const shown=q('.gd-challenge-actions em',q('#gd-stage'));if(shown)shown.textContent='Answer: '+challenge.answer}
+    };
+    syncControls();
   }
 
-  setPanels(
-    field('Quick setup number','<div class="gd-row"><input class="gd-input" id="pv-value" type="number" min="0" max="99999.99" step="0.01" value="1234.5"><button class="gd-btn" id="pv-build" type="button">Build</button></div>','Use this to prepare a board quickly; after that, work directly with the counters.')+
-    '<div class="gd-row">'+btn('Random whole number','pv-random')+btn('Random decimal','pv-dec')+'</div>'+
-    btn('Regroup counters','pv-regroup')+
-    btn('Clear board','pv-clear')+
-    '<p class="gd-help">Tap + at the top of a column to add one counter. Drag counters between columns; the represented number updates with their place value. Select a counter for duplicate, lock and delete. Left/right arrow keys move a selected counter one place.</p>',
-    ''
-  );
+  renderControls();
 
   buildFromNumber(1234.5);
   controller=I.mount({
