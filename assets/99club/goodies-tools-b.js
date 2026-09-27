@@ -954,8 +954,212 @@ function measurementTool(){
 function randomiser(){let result='';function draw(){const mode=q('#ra-mode').value;let controls='';if(mode==='dice')controls=field('Number of dice','<input class="gd-input" id="ra-count" type="number" min="1" max="8" value="2">')+field('Sides','<select class="gd-select" id="ra-sides"><option>6</option><option>4</option><option>8</option><option>10</option><option>12</option><option>20</option></select>');if(mode==='spinner')controls=field('Choices','<textarea class="gd-textarea" id="ra-choices" rows="5">Red\nBlue\nGreen\nYellow</textarea>');if(mode==='number')controls=field('Minimum','<input class="gd-input" id="ra-min" type="number" value="1">')+field('Maximum','<input class="gd-input" id="ra-max" type="number" value="100">');if(mode==='card')controls='<p class="gd-help">Draw from a standard 52-card deck.</p>';q('#ra-extra').innerHTML=controls;show(mode)}function show(mode=q('#ra-mode').value){if(mode==='spinner'){q('#gd-stage').innerHTML=`<div class="gd-vis"><div class="gd-spinner">?</div><div class="gd-spinner-result">${esc(result||'Press Spin')}</div></div>`}else q('#gd-stage').innerHTML=`<div class="gd-vis"><div class="gd-random-big">${esc(result||'—')}</div></div>`}function roll(){const mode=q('#ra-mode').value;if(mode==='dice'){const c=clamp(num(q('#ra-count').value,2),1,8),sides=clamp(num(q('#ra-sides').value,6),2,100),vals=Array.from({length:c},()=>1+Math.floor(Math.random()*sides));result=vals.join(' + ')+' = '+vals.reduce((a,b)=>a+b,0)}else if(mode==='number'){let a=num(q('#ra-min').value,1),b=num(q('#ra-max').value,100);if(a>b)[a,b]=[b,a];result=String(Math.floor(a+Math.random()*(b-a+1)))}else if(mode==='spinner'){const a=q('#ra-choices').value.split(/\n|,/).map(x=>x.trim()).filter(Boolean);result=a.length?a[Math.floor(Math.random()*a.length)]:'Add choices'}else{const ranks=['A','2','3','4','5','6','7','8','9','10','J','Q','K'],suits=['♠','♥','♦','♣'];result=ranks[Math.floor(Math.random()*ranks.length)]+suits[Math.floor(Math.random()*suits.length)]}show(mode)}
 setPanels(`${field('Tool','<select class="gd-select" id="ra-mode"><option value="dice">Dice</option><option value="spinner">Spinner</option><option value="number">Random number</option><option value="card">Playing card</option></select>')}<div id="ra-extra"></div>${btn('Generate','ra-go',true)}`,'');q('#ra-mode').onchange=()=>{result='';draw()};q('#ra-go').onclick=roll;draw()}
 
-function balanceTool(){function val(id){try{return Function('"use strict";return ('+q(id).value.replace(/[^0-9+\-*/(). ]/g,'')+')')()}catch(_){return NaN}}function draw(){const l=val('#ba-left'),r=val('#ba-right'),diff=Number.isFinite(l)&&Number.isFinite(r)?l-r:0,tilt=clamp(diff,-10,10)*1.7;const sign=!Number.isFinite(l)||!Number.isFinite(r)?'?':l===r?'=':l>r?'>':'<';q('#gd-stage').innerHTML=`<div class="gd-vis"><div class="gd-balance" style="--tilt:${tilt}deg"><div class="gd-balance-beam"></div><div class="gd-balance-post"></div><div class="gd-balance-base"></div><div class="gd-pan left">${Number.isFinite(l)?l:'?'}</div><div class="gd-pan right">${Number.isFinite(r)?r:'?'}</div></div><div class="gd-equation">${esc(q('#ba-left').value)} ${sign} ${esc(q('#ba-right').value)}</div></div>`}
-setPanels(`${field('Left expression','<input class="gd-input" id="ba-left" value="8 + 4">')}${field('Right expression','<input class="gd-input" id="ba-right" value="3 * 4">','Use * for multiplication, e.g. 3*4.')}${btn('Balanced example','ba-example')}<p class="gd-help">The beam tips toward the numerically larger side. Expressions are evaluated locally in your browser.</p>`,'');['ba-left','ba-right'].forEach(id=>q('#'+id).oninput=draw);q('#ba-example').onclick=()=>{const e=[['7+5','3*4'],['18-6','24/2'],['5*6','20+10'],['9+9','36/2']][Math.floor(Math.random()*4)];q('#ba-left').value=e[0];q('#ba-right').value=e[1];draw()};draw()}
+function balanceTool(){
+  let left=[
+    {id:1,value:8,hidden:false},
+    {id:2,value:4,hidden:false}
+  ];
+  let right=[{id:3,value:12,hidden:false}];
+  let nextId=4,selectedId=1,showTotals=true,drag=null;
+  const undoStack=[],redoStack=[];
+
+  function cloneSide(side){return side.map(item=>({...item}))}
+  function snapshot(){return{left:cloneSide(left),right:cloneSide(right),nextId,selectedId,showTotals}}
+  function restore(state){
+    left=cloneSide(state?.left||[]);
+    right=cloneSide(state?.right||[]);
+    nextId=Math.max(Number(state?.nextId)||1,[...left,...right].reduce((m,x)=>Math.max(m,Number(x.id)||0),0)+1);
+    selectedId=[...left,...right].some(x=>String(x.id)===String(state?.selectedId))?state.selectedId:([ ...left,...right][0]?.id??null);
+    showTotals=state?.showTotals!==false;
+  }
+  function remember(){
+    undoStack.push(snapshot());
+    if(undoStack.length>60)undoStack.shift();
+    redoStack.length=0;
+  }
+  function mutate(fn){
+    remember();fn();draw();renderControls();
+  }
+  function undo(){
+    if(!undoStack.length)return;
+    redoStack.push(snapshot());restore(undoStack.pop());draw();renderControls();
+  }
+  function redo(){
+    if(!redoStack.length)return;
+    undoStack.push(snapshot());restore(redoStack.pop());draw();renderControls();
+  }
+  function total(side){return side.reduce((sum,item)=>sum+Math.max(0,Number(item.value)||0),0)}
+  function leftTotal(){return total(left)}
+  function rightTotal(){return total(right)}
+  function difference(){return leftTotal()-rightTotal()}
+  function relation(){
+    const diff=difference();
+    if(Math.abs(diff)<1e-9)return'=';
+    return diff>0?'>':'<';
+  }
+  function selected(){
+    return [...left,...right].find(item=>String(item.id)===String(selectedId))||null;
+  }
+  function sideName(id){return left.some(x=>String(x.id)===String(id))?'left':right.some(x=>String(x.id)===String(id))?'right':null}
+  function sideFor(name){return name==='left'?left:right}
+  function displayValue(item){return item.hidden?'?':String(Math.round((Number(item.value)||0)*100)/100)}
+  function expression(side){
+    return side.length?side.map(displayValue).join(' + '):'0';
+  }
+  function addToken(sideNameValue,value,hidden=false){
+    const side=sideFor(sideNameValue),item={id:nextId++,value:Math.max(0,Number(value)||0),hidden:!!hidden};
+    side.push(item);selectedId=item.id;return item;
+  }
+  function deleteToken(item){
+    if(!item)return;
+    const name=sideName(item.id),side=sideFor(name),index=side.indexOf(item);
+    if(index>=0)side.splice(index,1);
+    selectedId=[...left,...right][0]?.id??null;
+  }
+  function duplicateToken(item){
+    if(!item)return;
+    const name=sideName(item.id),side=sideFor(name),index=side.indexOf(item),copy={...item,id:nextId++};
+    side.splice(index+1,0,copy);selectedId=copy.id;
+  }
+  function moveToken(item,target){
+    if(!item||!target)return;
+    const current=sideName(item.id);if(!current||current===target)return;
+    const from=sideFor(current),to=sideFor(target),index=from.indexOf(item);
+    if(index>=0)from.splice(index,1);
+    to.push(item);selectedId=item.id;
+  }
+  function setTokenValue(item,value){
+    if(!item)return;
+    item.value=Math.max(0,Math.round((Number(value)||0)*100)/100);
+  }
+  function tiltData(){
+    const diff=difference(),scaled=clamp(diff,-20,20),deg=scaled*0.65,lift=scaled*1.35;
+    return{deg,leftLift:lift,rightLift:-lift};
+  }
+  function tokenHtml(item){
+    const sel=String(item.id)===String(selectedId);
+    return '<button type="button" class="gd-eq-weight'+(sel?' is-selected':'')+(item.hidden?' is-hidden-value':'')+'" data-ba-token="'+item.id+'" aria-label="'+(item.hidden?'Hidden weight':displayValue(item)+' weight')+'">'+
+      '<strong>'+displayValue(item)+'</strong><span>'+(!item.hidden&&Number(item.value)===1?'unit':'')+'</span>'+
+    '</button>';
+  }
+  function selectedEditor(){
+    const item=selected();if(!item)return'';
+    const side=sideName(item.id),other=side==='left'?'right':'left';
+    return '<div class="gd-eq-selected" data-ba-selected="'+item.id+'">'+
+      '<div class="gd-eq-selected__head"><div><span>Selected weight</span><strong>'+displayValue(item)+'</strong><em>on '+side+'</em></div>'+
+        '<div class="gd-row"><button class="gd-btn" id="ba-move" type="button">Move '+other+'</button><button class="gd-btn" id="ba-duplicate" type="button">Duplicate</button><button class="gd-btn gd-btn--danger" id="ba-delete" type="button">Delete</button></div></div>'+
+      '<label class="gd-eq-hidden-toggle"><input type="checkbox" id="ba-hidden"'+(item.hidden?' checked':'')+'> <span>Hide this value (?)</span></label>'+
+      '<div class="gd-eq-value-editor"><button class="gd-btn" id="ba-minus" type="button" aria-label="Decrease selected weight">−</button>'+
+        '<input class="gd-input" id="ba-value" type="number" min="0" step="1" value="'+item.value+'" aria-label="Selected weight value">'+
+        '<button class="gd-btn" id="ba-plus" type="button" aria-label="Increase selected weight">+</button></div>'+
+    '</div>';
+  }
+  function draw(){
+    const td=tiltData(),balanced=relation()==='=';
+    q('#gd-stage').innerHTML='<div class="gd-vis gd-eq-balance-workbench">'+
+      '<div class="gd-eq-summary"><div><span>Equation balance</span><strong data-ba-equation>'+expression(left)+' '+relation()+' '+expression(right)+'</strong></div>'+
+        '<div class="gd-object-toolbar"><button class="gd-btn" id="ba-undo" type="button"'+(undoStack.length?'':' disabled')+'>Undo</button><button class="gd-btn" id="ba-redo" type="button"'+(redoStack.length?'':' disabled')+'>Redo</button></div></div>'+
+      '<div class="gd-eq-balance" style="--ba-tilt:'+td.deg+'deg;--ba-left-lift:'+td.leftLift+'px;--ba-right-lift:'+td.rightLift+'px">'+
+        '<div class="gd-eq-beam"></div><div class="gd-eq-pivot"></div><div class="gd-eq-base"></div>'+
+        '<div class="gd-eq-side gd-eq-side--left" data-ba-drop="left"><div class="gd-eq-cord"></div><div class="gd-eq-pan"><div class="gd-eq-pan-label">Left</div><div class="gd-eq-weights">'+(left.length?left.map(tokenHtml).join(''):'<span class="gd-eq-empty">Drop weights here</span>')+'</div><strong class="gd-eq-total">'+(showTotals?leftTotal():'')+'</strong></div></div>'+
+        '<div class="gd-eq-side gd-eq-side--right" data-ba-drop="right"><div class="gd-eq-cord"></div><div class="gd-eq-pan"><div class="gd-eq-pan-label">Right</div><div class="gd-eq-weights">'+(right.length?right.map(tokenHtml).join(''):'<span class="gd-eq-empty">Drop weights here</span>')+'</div><strong class="gd-eq-total">'+(showTotals?rightTotal():'')+'</strong></div></div>'+
+      '</div>'+
+      '<div class="gd-eq-verdict'+(balanced?' is-balanced':'')+'"><span>Relationship</span><strong data-ba-relation>'+leftTotal()+' '+relation()+' '+rightTotal()+(balanced?' · balanced ✓':'')+'</strong></div>'+
+      selectedEditor()+
+      '<p class="gd-help gd-eq-drag-hint">Drag a weight across the balance to move it to the other side, or select it for precise edits.</p>'+
+    '</div>';
+    bindStage();
+  }
+  function dragMove(e){
+    if(!drag||drag.pointerId!==e.pointerId)return;
+    const dx=e.clientX-drag.startX,dy=e.clientY-drag.startY;
+    drag.moved=drag.moved||Math.abs(dx)>4||Math.abs(dy)>4;
+    drag.el.style.transform='translate('+dx+'px,'+dy+'px)';
+    drag.el.style.zIndex='20';
+  }
+  function dragEnd(e){
+    if(!drag||drag.pointerId!==e.pointerId)return;
+    const state=drag;drag=null;
+    document.removeEventListener('pointermove',dragMove);
+    document.removeEventListener('pointerup',dragEnd);
+    document.removeEventListener('pointercancel',dragEnd);
+    state.el.style.transform='';state.el.style.zIndex='';
+    const item=[...left,...right].find(x=>String(x.id)===String(state.id));
+    if(!item){draw();return}
+    const stage=q('#gd-stage'),rect=stage.getBoundingClientRect(),target=e.clientX<rect.left+rect.width/2?'left':'right';
+    if(state.moved&&target!==sideName(item.id)){
+      remember();moveToken(item,target);draw();renderControls();
+    }else{
+      selectedId=item.id;draw();
+    }
+  }
+  function bindStage(){
+    qa('[data-ba-token]',q('#gd-stage')).forEach(button=>{
+      button.onclick=()=>{selectedId=Number(button.dataset.baToken);draw()};
+      button.onkeydown=e=>{
+        const item=[...left,...right].find(x=>String(x.id)===button.dataset.baToken);if(!item)return;
+        if(e.key==='ArrowUp'||e.key==='ArrowRight'){e.preventDefault();mutate(()=>setTokenValue(item,Number(item.value)+1))}
+        else if(e.key==='ArrowDown'||e.key==='ArrowLeft'){e.preventDefault();mutate(()=>setTokenValue(item,Math.max(0,Number(item.value)-1)))}
+        else if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();mutate(()=>deleteToken(item))}
+      };
+      button.onpointerdown=e=>{
+        if(e.button!=null&&e.button!==0)return;
+        e.preventDefault();selectedId=Number(button.dataset.baToken);
+        drag={id:button.dataset.baToken,pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,el:button,moved:false};
+        document.addEventListener('pointermove',dragMove);
+        document.addEventListener('pointerup',dragEnd,{once:true});
+        document.addEventListener('pointercancel',dragEnd,{once:true});
+      };
+    });
+    const undoBtn=q('#ba-undo');if(undoBtn)undoBtn.onclick=undo;
+    const redoBtn=q('#ba-redo');if(redoBtn)redoBtn.onclick=redo;
+    const move=q('#ba-move');if(move)move.onclick=()=>mutate(()=>moveToken(selected(),sideName(selected()?.id)==='left'?'right':'left'));
+    const duplicate=q('#ba-duplicate');if(duplicate)duplicate.onclick=()=>mutate(()=>duplicateToken(selected()));
+    const del=q('#ba-delete');if(del)del.onclick=()=>mutate(()=>deleteToken(selected()));
+    const hidden=q('#ba-hidden');if(hidden)hidden.onchange=()=>mutate(()=>{const item=selected();if(item)item.hidden=hidden.checked});
+    const value=q('#ba-value');if(value)value.onchange=()=>mutate(()=>setTokenValue(selected(),value.value));
+    const minus=q('#ba-minus');if(minus)minus.onclick=()=>mutate(()=>setTokenValue(selected(),Math.max(0,Number(selected()?.value||0)-1)));
+    const plus=q('#ba-plus');if(plus)plus.onclick=()=>mutate(()=>setTokenValue(selected(),Number(selected()?.value||0)+1));
+  }
+  function controlsHtml(){
+    return '<div class="gd-field"><span>Add a weight</span><div class="gd-eq-palette">'+[1,2,5,10,20].map(v=>'<button class="gd-btn" type="button" data-ba-add="'+v+'">+'+v+'</button>').join('')+'</div></div>'+
+      field('Custom value','<div class="gd-row"><input class="gd-input gd-small" id="ba-custom" type="number" min="0" step="1" value="3"><button class="gd-btn" id="ba-add-left" type="button">Add left</button><button class="gd-btn" id="ba-add-right" type="button">Add right</button></div>')+
+      field('Do the same to both sides','<div class="gd-row"><input class="gd-input gd-small" id="ba-both-value" type="number" min="0" step="1" value="1"><button class="gd-btn gd-btn--primary" id="ba-add-both" type="button">Add to both</button></div>','Adding the same amount to both sides preserves equality when the balance starts equal.')+
+      '<label class="gd-eq-show-totals"><input type="checkbox" id="ba-show-totals"'+(showTotals?' checked':'')+'> <span>Show pan totals</span></label>'+
+      '<div class="gd-row"><button class="gd-btn" id="ba-example" type="button">Balanced example</button><button class="gd-btn" id="ba-clear" type="button">Clear all</button></div>'+
+      '<p class="gd-help">Hide an individual weight to make a missing-number model. Drag weights between pans to explore what changes the balance.</p>';
+  }
+  function renderControls(){q('#gd-controls').innerHTML=controlsHtml();bindControls()}
+  function bindControls(){
+    qa('[data-ba-add]',q('#gd-controls')).forEach(button=>button.onclick=()=>mutate(()=>addToken('left',Number(button.dataset.baAdd))));
+    const custom=()=>Math.max(0,num(q('#ba-custom')?.value,0));
+    const leftAdd=q('#ba-add-left');if(leftAdd)leftAdd.onclick=()=>mutate(()=>addToken('left',custom()));
+    const rightAdd=q('#ba-add-right');if(rightAdd)rightAdd.onclick=()=>mutate(()=>addToken('right',custom()));
+    const both=q('#ba-add-both');if(both)both.onclick=()=>{
+      const value=Math.max(0,num(q('#ba-both-value')?.value,0));
+      mutate(()=>{addToken('left',value);addToken('right',value)});
+    };
+    const totals=q('#ba-show-totals');if(totals)totals.onchange=()=>{showTotals=totals.checked;draw()};
+    const clear=q('#ba-clear');if(clear)clear.onclick=()=>mutate(()=>{left=[];right=[];selectedId=null});
+    const example=q('#ba-example');if(example)example.onclick=()=>{
+      const examples=[
+        {left:[7,5],right:[3,4,5]},
+        {left:[18,6],right:[12,12]},
+        {left:[9,9],right:[6,6,6]},
+        {left:[15,5],right:[10,10]}
+      ],ex=examples[Math.floor(Math.random()*examples.length)];
+      mutate(()=>{
+        left=ex.left.map(value=>({id:nextId++,value,hidden:false}));
+        right=ex.right.map(value=>({id:nextId++,value,hidden:false}));
+        selectedId=left[0]?.id||right[0]?.id||null;
+      });
+    };
+  }
+
+  setPanels(controlsHtml(),'');
+  bindControls();
+  draw();
+}
 
 function timesTableVisual(){function draw(){const a=clamp(num(q('#tv-a').value,4),1,12),b=clamp(num(q('#tv-b').value,6),1,12),total=a*b;const groups=Array.from({length:a},()=>`<div class="gd-group">${Array.from({length:b},()=>'<span class="gd-mini-dot"></span>').join('')}</div>`).join(''),jumps=Array.from({length:a},(_,i)=>`<span class="gd-jump">${i*b} → ${(i+1)*b}</span>`).join('');q('#gd-stage').innerHTML=`<div class="gd-vis gd-fact-card"><div class="gd-fact-main">${a} × ${b} = ${total}</div><div class="gd-groups">${groups}</div><div class="gd-readout" style="text-align:center">${Array.from({length:a},()=>b).join(' + ')} = ${total}</div><div class="gd-jumps">${jumps}</div><div class="gd-readout" style="text-align:center">Related facts: ${b} × ${a} = ${total} · ${total} ÷ ${a} = ${b} · ${total} ÷ ${b} = ${a}</div></div>`}
 setPanels(`${field('Number of groups','<input class="gd-input" id="tv-a" type="range" min="1" max="12" value="4">')}${field('In each group','<input class="gd-input" id="tv-b" type="range" min="1" max="12" value="6">')}${btn('Random fact','tv-random')}`,'');['tv-a','tv-b'].forEach(id=>q('#'+id).oninput=draw);q('#tv-random').onclick=()=>{q('#tv-a').value=1+Math.floor(Math.random()*12);q('#tv-b').value=1+Math.floor(Math.random()*12);draw()};draw()}
