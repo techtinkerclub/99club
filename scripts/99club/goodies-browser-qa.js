@@ -1333,6 +1333,71 @@ if(mode==='prepare'){
     document.getElementById('mo-clear-challenge').click();
     assert(document.querySelector('[data-mo-total]').textContent.trim()==='£3.75','Ending UK Money challenges restores the teacher money setup');
     assert(document.querySelector('[data-mo-target-readout]').textContent.trim()==='£3.75','Ending UK Money challenges restores the teacher target');
+
+    document.querySelector('[data-mo-workflow="export"]').click();
+    assert(document.getElementById('mo-copy-image')&&document.getElementById('mo-png')&&document.getElementById('mo-svg-download')&&document.getElementById('mo-print'),'UK Money export exposes copy, PNG, SVG and Print/PDF actions');
+    let moBoardSvg=null,moBoardName='';
+    const moOldBoardDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg,name)=>{moBoardSvg=svg.cloneNode(true);moBoardName=name};
+    document.getElementById('mo-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=moOldBoardDownload;
+    assert(moBoardSvg&&moBoardSvg.dataset.moExport==='money','UK Money board export is a deterministic SVG model');
+    assert(moBoardSvg.querySelectorAll('[data-mo-export-piece]').length===5,'UK Money board SVG preserves every current coin/note');
+    assert(moBoardSvg.querySelector('[data-mo-export-summary="total"]').textContent.trim()==='£3.75','UK Money board SVG includes the live total');
+    assert(moBoardSvg.querySelector('[data-mo-export-summary="target"]').textContent.trim()==='£3.75','UK Money board SVG includes the live target');
+    assert(moBoardName.includes('uk-money-375p'),'UK Money board export has a reusable amount-based filename');
+
+    document.querySelector('[data-mo-workflow="challenge"]').click();
+    document.querySelector('[data-mo-challenge-cat="read"]').click();
+    document.querySelector('[data-mo-challenge-type="count-total"]').click();
+    document.getElementById('mo-generate').click();
+    document.querySelector('[data-board-action="reveal"]').click();
+    document.querySelector('[data-mo-workflow="export"]').click();
+    assert(document.querySelector('[data-mo-export-mode="challenge"]')?.classList.contains('is-active'),'Generated UK Money challenge defaults to Challenge card export');
+    let moCountCard=null;
+    const moOldCountDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{moCountCard=svg.cloneNode(true)};
+    document.getElementById('mo-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=moOldCountDownload;
+    assert(moCountCard&&moCountCard.querySelectorAll('[data-mo-export-piece]').length===4,'Count-money pupil card preserves the supplied money pieces');
+    assert(moCountCard.querySelector('[data-mo-export-summary="total"]').textContent.trim()==='?','Count-money pupil export re-hides total after teacher Reveal');
+    assert(moCountCard.querySelector('[data-mo-export-summary="target"]').textContent.trim()==='?','Count-money pupil export re-hides target after teacher Reveal');
+    assert(moCountCard.querySelector('[data-mo-export-summary="status"]').textContent.trim()==='?','Count-money pupil export re-hides status after teacher Reveal');
+    assert(!moCountCard.textContent.includes('Answer:'),'UK Money challenge-card export never contains the revealed answer label');
+    assert(moCountCard.textContent.includes('How much money is shown altogether?'),'UK Money challenge-card export includes the pupil prompt');
+
+    document.querySelector('[data-mo-workflow="challenge"]').click();
+    document.querySelector('[data-mo-challenge-cat="make"]').click();
+    document.querySelector('[data-mo-challenge-type="make-target"]').click();
+    document.getElementById('mo-generate').click();
+    document.querySelector('[data-mo-add="20"]').click();
+    document.querySelector('[data-mo-add="10"]').click();
+    document.querySelector('[data-mo-add="5"]').click();
+    assert(document.querySelectorAll('#mo-canvas [data-gd-object]').length===3,'Teacher can test a make-target solution before export');
+    document.querySelector('[data-mo-workflow="export"]').click();
+    let moMakeCard=null;
+    const moOldMakeDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{moMakeCard=svg.cloneNode(true)};
+    document.getElementById('mo-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=moOldMakeDownload;
+    assert(moMakeCard&&moMakeCard.querySelectorAll('[data-mo-export-piece]').length===0,'Make-target pupil card strips the teacher trial solution');
+    assert(moMakeCard.querySelector('[data-mo-export-summary="target"]').textContent.trim()==='35p','Make-target pupil card keeps the target amount');
+    assert(moMakeCard.querySelector('[data-mo-export-summary="total"]').textContent.trim()==='—','Make-target pupil card does not prefill the pupil total');
+
+    document.querySelector('[data-mo-workflow="challenge"]').click();
+    document.querySelector('[data-mo-challenge-cat="change"]').click();
+    document.getElementById('mo-generate').click();
+    document.querySelector('[data-board-action="reveal"]').click();
+    document.querySelector('[data-mo-workflow="export"]').click();
+    let moChangeCard=null;
+    const moOldChangeDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{moChangeCard=svg.cloneNode(true)};
+    document.getElementById('mo-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=moOldChangeDownload;
+    assert(moChangeCard.querySelector('[data-mo-export-summary="target"]').textContent.trim()==='?','Find-change pupil export re-hides the answer-bearing target after teacher Reveal');
+    assert(moChangeCard.querySelectorAll('[data-mo-export-piece]').length===0,'Find-change pupil card never includes a teacher-built change solution');
+    assert(!moChangeCard.textContent.includes('Answer:'),'Find-change pupil card does not leak the revealed answer');
+
     Math.random=realMoneyRandom;
   }
 
