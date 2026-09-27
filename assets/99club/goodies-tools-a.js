@@ -1750,7 +1750,7 @@ function barModel(){
     svg.appendChild(bmSvgEl('rect',{x:518,y:cardY,width:cardW,height:92,rx:12,fill:'#f5f8f8',stroke:'#d4dfe1','stroke-width':1.5}));
     svg.appendChild(bmSvgEl('text',{x:534,y:cardY+28,'font-family':'Arial,sans-serif','font-size':11,'font-weight':850,fill:'#708287'},'RELATIONSHIP'));
     svg.appendChild(bmSvgEl('text',{x:534,y:cardY+62,'font-family':'Arial,sans-serif','font-size':17,'font-weight':900,fill:'#304b52','data-bm-export-status':'1'},relation));
-    if(state.buildScaffold)svg.setAttribute('data-bm-export-build-scaffold','1');
+    if(state.buildScaffold)svg.appendChild(bmSvgEl('g',{'data-bm-export-build-scaffold':'1','aria-hidden':'true'}));
     svg.appendChild(bmSvgEl('text',{x:936,y:590,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':10,fill:'#87969a'},'99 Club Studio'));
     return svg;
   }
