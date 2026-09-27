@@ -955,6 +955,7 @@ function randomiser(){let result='';function draw(){const mode=q('#ra-mode').val
 setPanels(`${field('Tool','<select class="gd-select" id="ra-mode"><option value="dice">Dice</option><option value="spinner">Spinner</option><option value="number">Random number</option><option value="card">Playing card</option></select>')}<div id="ra-extra"></div>${btn('Generate','ra-go',true)}`,'');q('#ra-mode').onchange=()=>{result='';draw()};q('#ra-go').onclick=roll;draw()}
 
 function balanceTool(){
+  const CK=G.challengeKit;
   let left=[
     {id:1,value:8,hidden:false},
     {id:2,value:4,hidden:false}
@@ -962,6 +963,20 @@ function balanceTool(){
   let right=[{id:3,value:12,hidden:false}];
   let nextId=4,selectedId=1,showTotals=true,drag=null;
   const undoStack=[],redoStack=[];
+  const CHALLENGE_CATEGORIES=[
+    {id:'read',label:'Read & compare'},
+    {id:'build',label:'Balance it'},
+    {id:'reason',label:'Reasoning'}
+  ];
+  const CHALLENGE_TEMPLATES=[
+    {id:'missing-weight',category:'read',title:'Find the missing weight',desc:'Use equality to work out a hidden value.'},
+    {id:'choose-relation',category:'read',title:'Choose <, > or =',desc:'Compare the two pan totals and choose the correct relation.'},
+    {id:'find-difference',category:'read',title:'Find the difference',desc:'Work out how much heavier one side is.'},
+    {id:'make-balance',category:'build',title:'Make it balance',desc:'Edit or add weights until both sides are equal.'},
+    {id:'same-to-both',category:'build',title:'Do the same to both sides',desc:'Add the same amount to both sides and observe what happens.'},
+    {id:'spot-false-equality',category:'reason',title:'Spot the false equality',desc:'Decide whether a claimed equality is actually true.'}
+  ];
+  let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='missing-weight',challenge=null,beforeChallenge=null;
 
   function cloneSide(side){return side.map(item=>({...item}))}
   function snapshot(){return{left:cloneSide(left),right:cloneSide(right),nextId,selectedId,showTotals}}
@@ -969,7 +984,7 @@ function balanceTool(){
     left=cloneSide(state?.left||[]);
     right=cloneSide(state?.right||[]);
     nextId=Math.max(Number(state?.nextId)||1,[...left,...right].reduce((m,x)=>Math.max(m,Number(x.id)||0),0)+1);
-    selectedId=[...left,...right].some(x=>String(x.id)===String(state?.selectedId))?state.selectedId:([ ...left,...right][0]?.id??null);
+    selectedId=[...left,...right].some(x=>String(x.id)===String(state?.selectedId))?state.selectedId:([...left,...right][0]?.id??null);
     showTotals=state?.showTotals!==false;
   }
   function remember(){
@@ -977,38 +992,56 @@ function balanceTool(){
     if(undoStack.length>60)undoStack.shift();
     redoStack.length=0;
   }
+  function challengeFrozen(){return !!(challenge&&challenge.mode==='standard'&&challenge.freezeBoard)}
   function mutate(fn){
+    if(challengeFrozen())return;
     remember();fn();draw();renderControls();
   }
   function undo(){
-    if(!undoStack.length)return;
+    if(!undoStack.length||challengeFrozen())return;
     redoStack.push(snapshot());restore(undoStack.pop());draw();renderControls();
   }
   function redo(){
-    if(!redoStack.length)return;
+    if(!redoStack.length||challengeFrozen())return;
     undoStack.push(snapshot());restore(redoStack.pop());draw();renderControls();
   }
   function total(side){return side.reduce((sum,item)=>sum+Math.max(0,Number(item.value)||0),0)}
   function leftTotal(){return total(left)}
   function rightTotal(){return total(right)}
   function difference(){return leftTotal()-rightTotal()}
+  function absDifference(){return Math.abs(difference())}
   function relation(){
     const diff=difference();
     if(Math.abs(diff)<1e-9)return'=';
     return diff>0?'>':'<';
   }
-  function selected(){
-    return [...left,...right].find(item=>String(item.id)===String(selectedId))||null;
-  }
+  function selected(){return [...left,...right].find(item=>String(item.id)===String(selectedId))||null}
   function sideName(id){return left.some(x=>String(x.id)===String(id))?'left':right.some(x=>String(x.id)===String(id))?'right':null}
   function sideFor(name){return name==='left'?left:right}
-  function displayValue(item){return item.hidden?'?':String(Math.round((Number(item.value)||0)*100)/100)}
-  function expression(side){
-    return side.length?side.map(displayValue).join(' + '):'0';
+  function hiddenFlag(key){return !!(challenge&&!challenge.revealed&&challenge[key])}
+  function displayValue(item){return item.hidden&&!challenge?.revealed?'?':String(Math.round((Number(item.value)||0)*100)/100)}
+  function expression(side){return side.length?side.map(displayValue).join(' + '):'0'}
+  function visibleRelation(){return hiddenFlag('hiddenRelation')?'?':relation()}
+  function visibleEquation(){
+    if(hiddenFlag('hiddenEquation'))return'?';
+    return expression(left)+' '+visibleRelation()+' '+expression(right);
+  }
+  function visibleLeftTotal(){return showTotals&&!hiddenFlag('hiddenLeftTotal')?String(leftTotal()):''}
+  function visibleRightTotal(){return showTotals&&!hiddenFlag('hiddenRightTotal')?String(rightTotal()):''}
+  function relationReadout(){
+    if(hiddenFlag('hiddenVerdict'))return'?';
+    if(challenge?.type==='find-difference'&&!challenge.revealed)return'Difference = ?';
+    if(challenge?.type==='same-to-both'&&!challenge.revealed)return challengeProgress();
+    return leftTotal()+' '+relation()+' '+rightTotal()+(relation()==='='?' · balanced ✓':'');
   }
   function addToken(sideNameValue,value,hidden=false){
     const side=sideFor(sideNameValue),item={id:nextId++,value:Math.max(0,Number(value)||0),hidden:!!hidden};
     side.push(item);selectedId=item.id;return item;
+  }
+  function setSides(leftValues,rightValues,{hiddenLeft=[],hiddenRight=[]}={}){
+    left=leftValues.map((value,index)=>({id:nextId++,value:Number(value),hidden:hiddenLeft.includes(index)}));
+    right=rightValues.map((value,index)=>({id:nextId++,value:Number(value),hidden:hiddenRight.includes(index)}));
+    selectedId=left[0]?.id||right[0]?.id||null;
   }
   function deleteToken(item){
     if(!item)return;
@@ -1036,13 +1069,134 @@ function balanceTool(){
     const diff=difference(),scaled=clamp(diff,-20,20),deg=scaled*0.65,lift=scaled*1.35;
     return{deg,leftLift:lift,rightLift:-lift};
   }
+  function randomInt(min,max){return min+Math.floor(Math.random()*(max-min+1))}
+  function firstHiddenValue(){
+    const item=[...left,...right].find(x=>x.hidden);
+    return item?String(Math.round(Number(item.value)*100)/100):'';
+  }
+  function solvedEquation(){
+    const side=s=>s.length?s.map(item=>String(Math.round(Number(item.value)*100)/100)).join(' + '):'0';
+    return side(left)+' '+relation()+' '+side(right);
+  }
+  function challengeObject(type,prompt,answer,extra={}){
+    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===type);
+    const raw={mode:'standard',type,category:meta?.category||'',title:'',prompt,promptHtml:prompt,answer:String(answer??''),answerMode:'manual',answerSource:'',revealed:false,freezeBoard:true,hiddenRelation:false,hiddenVerdict:false,hiddenEquation:false,hiddenLeftTotal:false,hiddenRightTotal:false,targetLeft:null,targetRight:null,targetDelta:null,baselineLeft:null,baselineRight:null,...extra};
+    return CK?CK.normalise(raw):raw;
+  }
+  function challengeProgress(){
+    if(!challenge||challenge.mode!=='standard')return relationReadout();
+    if(challenge.type==='make-balance')return relation()==='='?'Balanced ✓':'Keep adjusting the balance';
+    if(challenge.type==='same-to-both'){
+      const leftAdded=leftTotal()-Number(challenge.baselineLeft||0),rightAdded=rightTotal()-Number(challenge.baselineRight||0),delta=Number(challenge.targetDelta||0);
+      if(Math.abs(leftAdded-delta)<1e-9&&Math.abs(rightAdded-delta)<1e-9&&relation()==='=')return'Added '+delta+' to both sides ✓';
+      return'Add '+delta+' to each side';
+    }
+    return relationReadout();
+  }
+  function resolveAnswerSource(source){
+    if(source==='left-total')return String(leftTotal());
+    if(source==='right-total')return String(rightTotal());
+    if(source==='difference')return String(absDifference());
+    if(source==='relation')return relation();
+    if(source==='equation')return solvedEquation();
+    if(source==='hidden-weight')return firstHiddenValue();
+    if(source==='selected-value')return selected()?String(selected().value):'';
+    return'';
+  }
+  function customAnswerSources(){
+    const sources=[
+      {id:'left-total',label:'Left total'},
+      {id:'right-total',label:'Right total'},
+      {id:'difference',label:'Difference between sides'},
+      {id:'relation',label:'Relation (<, > or =)'},
+      {id:'equation',label:'Complete equation'},
+      {id:'selected-value',label:'Selected weight value'}
+    ];
+    if(firstHiddenValue()!=='')sources.push({id:'hidden-weight',label:'Hidden weight value'});
+    return sources;
+  }
+  function clearBoundHiding(){
+    if(!challenge)return;
+    challenge.hiddenRelation=false;challenge.hiddenVerdict=false;challenge.hiddenEquation=false;challenge.hiddenLeftTotal=false;challenge.hiddenRightTotal=false;
+  }
+  function applyBoundHiding(source){
+    clearBoundHiding();if(!challenge)return;
+    if(source==='left-total')challenge.hiddenLeftTotal=true;
+    else if(source==='right-total')challenge.hiddenRightTotal=true;
+    else if(source==='difference')challenge.hiddenVerdict=true;
+    else if(source==='relation')challenge.hiddenRelation=true;
+    else if(source==='equation')challenge.hiddenEquation=true;
+    else if(source==='hidden-weight'){
+      const item=[...left,...right].find(x=>x.hidden);if(item)item.hidden=true;
+    }
+  }
+  function updateChallengeAnswer(){
+    if(!challenge||challenge.answerMode!=='bound'||!challenge.answerSource)return;
+    const answer=resolveAnswerSource(challenge.answerSource);if(answer!=='')challenge.answer=answer;
+    const live=q('#ba-custom-live-answer');if(live)live.textContent=challenge.answer||'—';
+    if(challenge.revealed){
+      const shown=q('.gd-challenge-actions em',q('#gd-stage'));if(shown)shown.textContent='Answer: '+challenge.answer;
+    }
+  }
+  function restoreBeforeChallenge(){if(beforeChallenge){restore(beforeChallenge);beforeChallenge=null}}
+  function clearChallenge(){
+    restoreBeforeChallenge();challenge=null;challengeTab='standard';controlTab='challenge';undoStack.length=0;redoStack.length=0;renderControls();draw();
+  }
+  function enterCustomChallenge(){
+    if(!beforeChallenge)beforeChallenge=snapshot();
+    const wasCustom=challenge?.mode==='custom';
+    if(CK)challenge=CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''});
+    if(!wasCustom)clearBoundHiding();
+    challenge.freezeBoard=false;challenge.revealed=false;
+    challengeTab='custom';controlTab='challenge';renderControls();draw();
+  }
+  function setCustomAnswerSource(source){
+    if(!challenge||challenge.mode!=='custom')return;
+    if(source==='manual'){challenge.answerMode='manual';challenge.answerSource='';clearBoundHiding()}
+    else if(source==='generated'){challenge.answerMode='bound';challenge.answerSource='';clearBoundHiding()}
+    else{challenge.answerMode='bound';challenge.answerSource=source;challenge.answer=resolveAnswerSource(source);applyBoundHiding(source)}
+    challenge.revealed=false;renderControls();draw();
+  }
+  function generateChallenge(type){
+    const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
+    if(!beforeChallenge)beforeChallenge=snapshot();else restore(beforeChallenge);
+    undoStack.length=0;redoStack.length=0;showTotals=true;
+    if(type==='missing-weight'){
+      const a=randomInt(4,12),b=randomInt(3,10),whole=a+b;
+      setSides([a,b],[whole],{hiddenLeft:[1]});
+      challenge=challengeObject(type,'The balance is equal. What value is hidden by the question mark?',b,{hiddenVerdict:true});
+    }else if(type==='choose-relation'){
+      const l=randomInt(8,18),r=l+randomInt(2,8);
+      setSides([l],[r]);
+      challenge=challengeObject(type,'Which symbol makes this comparison correct: <, > or = ?',relation(),{hiddenRelation:true,hiddenVerdict:true});
+    }else if(type==='find-difference'){
+      const smaller=randomInt(8,20),gap=randomInt(3,10),larger=smaller+gap;
+      setSides([larger],[smaller]);
+      challenge=challengeObject(type,'How much heavier is the left side than the right side?',gap,{hiddenVerdict:true});
+    }else if(type==='make-balance'){
+      const a=randomInt(5,12),b=randomInt(2,7),gap=randomInt(2,6);
+      setSides([a,b],[a+b-gap]);
+      challenge=challengeObject(type,'Make both sides equal. You may add, edit or move weights.',String(gap),{freezeBoard:false,answer:'Balanced'});
+    }else if(type==='same-to-both'){
+      const base=randomInt(5,12),delta=randomInt(2,6);
+      setSides([base],[base]);
+      challenge=challengeObject(type,'Add '+delta+' to both sides. What happens to the equality?','It stays balanced.',{freezeBoard:false,baselineLeft:base,baselineRight:base,targetDelta:delta,hiddenVerdict:false});
+    }else{
+      const a=randomInt(4,10),b=randomInt(3,8),wrong=a+b+randomInt(2,6);
+      setSides([a,b],[wrong]);
+      challenge=challengeObject(type,'A pupil says these two sides are equal. Are they correct? Explain.','No. '+(a+b)+' is not equal to '+wrong+'.',{hiddenRelation:true,hiddenVerdict:true});
+    }
+    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';renderControls();draw();
+  }
+
   function tokenHtml(item){
-    const sel=String(item.id)===String(selectedId);
-    return '<button type="button" class="gd-eq-weight'+(sel?' is-selected':'')+(item.hidden?' is-hidden-value':'')+'" data-ba-token="'+item.id+'" aria-label="'+(item.hidden?'Hidden weight':displayValue(item)+' weight')+'">'+
+    const sel=String(item.id)===String(selectedId),frozen=challengeFrozen();
+    return '<button type="button" class="gd-eq-weight'+(sel&&!frozen?' is-selected':'')+(item.hidden&&!challenge?.revealed?' is-hidden-value':'')+(frozen?' is-frozen':'')+'" data-ba-token="'+item.id+'" aria-label="'+(item.hidden&&!challenge?.revealed?'Hidden weight':displayValue(item)+' weight')+(frozen?' fixed for this challenge':'')+'"'+(frozen?' disabled':'')+'>'+
       '<strong>'+displayValue(item)+'</strong><span>'+(!item.hidden&&Number(item.value)===1?'unit':'')+'</span>'+
     '</button>';
   }
   function selectedEditor(){
+    if(challengeFrozen())return'';
     const item=selected();if(!item)return'';
     const side=sideName(item.id),other=side==='left'?'right':'left';
     return '<div class="gd-eq-selected" data-ba-selected="'+item.id+'">'+
@@ -1054,21 +1208,30 @@ function balanceTool(){
         '<button class="gd-btn" id="ba-plus" type="button" aria-label="Increase selected weight">+</button></div>'+
     '</div>';
   }
+  function bindChallengeStageActions(){
+    const stage=q('#gd-stage');if(!stage||!challenge)return;
+    const reveal=q('[data-board-action="reveal"]',stage);
+    if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();draw()};
+    const another=q('[data-challenge-action="another"]',stage);
+    if(another)another.onclick=e=>{e.stopPropagation();if(challenge?.mode==='standard')generateChallenge(challenge.type)};
+  }
   function draw(){
-    const td=tiltData(),balanced=relation()==='=';
-    q('#gd-stage').innerHTML='<div class="gd-vis gd-eq-balance-workbench">'+
-      '<div class="gd-eq-summary"><div><span>Equation balance</span><strong data-ba-equation>'+expression(left)+' '+relation()+' '+expression(right)+'</strong></div>'+
-        '<div class="gd-object-toolbar"><button class="gd-btn" id="ba-undo" type="button"'+(undoStack.length?'':' disabled')+'>Undo</button><button class="gd-btn" id="ba-redo" type="button"'+(redoStack.length?'':' disabled')+'>Redo</button></div></div>'+
+    updateChallengeAnswer();
+    const td=tiltData(),balanced=relation()==='=',banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Equation Balance challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
+    q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-eq-balance-workbench">'+
+      '<div class="gd-eq-summary"><div><span>Equation balance</span><strong data-ba-equation>'+visibleEquation()+'</strong></div>'+
+        '<div class="gd-object-toolbar"><button class="gd-btn" id="ba-undo" type="button"'+(undoStack.length&&!challengeFrozen()?'':' disabled')+'>Undo</button><button class="gd-btn" id="ba-redo" type="button"'+(redoStack.length&&!challengeFrozen()?'':' disabled')+'>Redo</button></div></div>'+
       '<div class="gd-eq-balance" style="--ba-tilt:'+td.deg+'deg;--ba-left-lift:'+td.leftLift+'px;--ba-right-lift:'+td.rightLift+'px">'+
         '<div class="gd-eq-beam"></div><div class="gd-eq-pivot"></div><div class="gd-eq-base"></div>'+
-        '<div class="gd-eq-side gd-eq-side--left" data-ba-drop="left"><div class="gd-eq-cord"></div><div class="gd-eq-pan"><div class="gd-eq-pan-label">Left</div><div class="gd-eq-weights">'+(left.length?left.map(tokenHtml).join(''):'<span class="gd-eq-empty">Drop weights here</span>')+'</div><strong class="gd-eq-total">'+(showTotals?leftTotal():'')+'</strong></div></div>'+
-        '<div class="gd-eq-side gd-eq-side--right" data-ba-drop="right"><div class="gd-eq-cord"></div><div class="gd-eq-pan"><div class="gd-eq-pan-label">Right</div><div class="gd-eq-weights">'+(right.length?right.map(tokenHtml).join(''):'<span class="gd-eq-empty">Drop weights here</span>')+'</div><strong class="gd-eq-total">'+(showTotals?rightTotal():'')+'</strong></div></div>'+
+        '<div class="gd-eq-side gd-eq-side--left" data-ba-drop="left"><div class="gd-eq-cord"></div><div class="gd-eq-pan"><div class="gd-eq-pan-label">Left</div><div class="gd-eq-weights">'+(left.length?left.map(tokenHtml).join(''):'<span class="gd-eq-empty">Drop weights here</span>')+'</div><strong class="gd-eq-total" data-ba-left-total>'+visibleLeftTotal()+'</strong></div></div>'+
+        '<div class="gd-eq-side gd-eq-side--right" data-ba-drop="right"><div class="gd-eq-cord"></div><div class="gd-eq-pan"><div class="gd-eq-pan-label">Right</div><div class="gd-eq-weights">'+(right.length?right.map(tokenHtml).join(''):'<span class="gd-eq-empty">Drop weights here</span>')+'</div><strong class="gd-eq-total" data-ba-right-total>'+visibleRightTotal()+'</strong></div></div>'+
       '</div>'+
-      '<div class="gd-eq-verdict'+(balanced?' is-balanced':'')+'"><span>Relationship</span><strong data-ba-relation>'+leftTotal()+' '+relation()+' '+rightTotal()+(balanced?' · balanced ✓':'')+'</strong></div>'+
+      '<div class="gd-eq-verdict'+(balanced?' is-balanced':'')+'"><span>Relationship</span><strong data-ba-relation>'+relationReadout()+'</strong></div>'+
+      (challenge&&!challengeFrozen()&&challenge.mode==='standard'?'<div class="gd-answer-live" data-ba-target-status>'+challengeProgress()+'</div>':'')+
       selectedEditor()+
-      '<p class="gd-help gd-eq-drag-hint">Drag a weight across the balance to move it to the other side, or select it for precise edits.</p>'+
+      (!challengeFrozen()?'<p class="gd-help gd-eq-drag-hint">Drag a weight across the balance to move it to the other side, or select it for precise edits.</p>':'')+
     '</div>';
-    bindStage();
+    bindStage();bindChallengeStageActions();
   }
   function dragMove(e){
     if(!drag||drag.pointerId!==e.pointerId)return;
@@ -1084,26 +1247,26 @@ function balanceTool(){
     document.removeEventListener('pointerup',dragEnd);
     document.removeEventListener('pointercancel',dragEnd);
     state.el.style.transform='';state.el.style.zIndex='';
+    if(challengeFrozen()){draw();return}
     const item=[...left,...right].find(x=>String(x.id)===String(state.id));
     if(!item){draw();return}
     const stage=q('#gd-stage'),rect=stage.getBoundingClientRect(),target=e.clientX<rect.left+rect.width/2?'left':'right';
     if(state.moved&&target!==sideName(item.id)){
       remember();moveToken(item,target);draw();renderControls();
-    }else{
-      selectedId=item.id;draw();
-    }
+    }else{selectedId=item.id;draw()}
   }
   function bindStage(){
     qa('[data-ba-token]',q('#gd-stage')).forEach(button=>{
-      button.onclick=()=>{selectedId=Number(button.dataset.baToken);draw()};
+      button.onclick=()=>{if(challengeFrozen())return;selectedId=Number(button.dataset.baToken);draw()};
       button.onkeydown=e=>{
+        if(challengeFrozen())return;
         const item=[...left,...right].find(x=>String(x.id)===button.dataset.baToken);if(!item)return;
         if(e.key==='ArrowUp'||e.key==='ArrowRight'){e.preventDefault();mutate(()=>setTokenValue(item,Number(item.value)+1))}
         else if(e.key==='ArrowDown'||e.key==='ArrowLeft'){e.preventDefault();mutate(()=>setTokenValue(item,Math.max(0,Number(item.value)-1)))}
         else if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();mutate(()=>deleteToken(item))}
       };
       button.onpointerdown=e=>{
-        if(e.button!=null&&e.button!==0)return;
+        if(challengeFrozen()||(e.button!=null&&e.button!==0))return;
         e.preventDefault();selectedId=Number(button.dataset.baToken);
         drag={id:button.dataset.baToken,pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,el:button,moved:false};
         document.addEventListener('pointermove',dragMove);
@@ -1121,16 +1284,44 @@ function balanceTool(){
     const minus=q('#ba-minus');if(minus)minus.onclick=()=>mutate(()=>setTokenValue(selected(),Math.max(0,Number(selected()?.value||0)-1)));
     const plus=q('#ba-plus');if(plus)plus.onclick=()=>mutate(()=>setTokenValue(selected(),Number(selected()?.value||0)+1));
   }
-  function controlsHtml(){
+
+  function workflowTabs(){
+    return '<div class="gd-row gd-ba-workflow-tabs" role="tablist" aria-label="Equation Balance workflow">'+
+      '<button class="gd-btn'+(controlTab==='explore'?' gd-btn--primary':'')+'" type="button" data-ba-workflow="explore">Explore</button>'+
+      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-ba-workflow="challenge">Challenge'+(challenge?' •':'')+'</button></div>';
+  }
+  function modelControlsHtml({showExample=false}={}){
     return '<div class="gd-field"><span>Add a weight</span><div class="gd-eq-palette">'+[1,2,5,10,20].map(v=>'<button class="gd-btn" type="button" data-ba-add="'+v+'">+'+v+'</button>').join('')+'</div></div>'+
       field('Custom value','<div class="gd-row"><input class="gd-input gd-small" id="ba-custom" type="number" min="0" step="1" value="3"><button class="gd-btn" id="ba-add-left" type="button">Add left</button><button class="gd-btn" id="ba-add-right" type="button">Add right</button></div>')+
-      field('Do the same to both sides','<div class="gd-row"><input class="gd-input gd-small" id="ba-both-value" type="number" min="0" step="1" value="1"><button class="gd-btn gd-btn--primary" id="ba-add-both" type="button">Add to both</button></div>','Adding the same amount to both sides preserves equality when the balance starts equal.')+
+      field('Do the same to both sides','<div class="gd-row"><input class="gd-input gd-small" id="ba-both-value" type="number" min="0" step="1" value="'+(challenge?.type==='same-to-both'?challenge.targetDelta||1:1)+'"><button class="gd-btn gd-btn--primary" id="ba-add-both" type="button">Add to both</button></div>','Adding the same amount to both sides preserves equality when the balance starts equal.')+
       '<label class="gd-eq-show-totals"><input type="checkbox" id="ba-show-totals"'+(showTotals?' checked':'')+'> <span>Show pan totals</span></label>'+
-      '<div class="gd-row"><button class="gd-btn" id="ba-example" type="button">Balanced example</button><button class="gd-btn" id="ba-clear" type="button">Clear all</button></div>'+
-      '<p class="gd-help">Hide an individual weight to make a missing-number model. Drag weights between pans to explore what changes the balance.</p>';
+      '<div class="gd-row">'+(showExample?'<button class="gd-btn" id="ba-example" type="button">Balanced example</button>':'')+'<button class="gd-btn" id="ba-clear" type="button">Clear all</button></div>';
   }
+  function exploreControlsHtml(){
+    return modelControlsHtml({showExample:true})+'<p class="gd-help">Hide an individual weight to make a missing-number model. Drag weights between pans to explore what changes the balance.</p>';
+  }
+  function challengeControlsHtml(){
+    if(!CK)return'<p class="gd-help">Challenge tools are unavailable.</p>';
+    const tabs=CK.tabsHtml?CK.tabsHtml('ba',challengeTab):'';
+    if(challengeTab==='custom'){
+      const custom=challenge&&challenge.mode==='custom'?challenge:CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual'});
+      return tabs+CK.editorHtml(custom,'ba',{answerSources:customAnswerSources(),generatedAnswerLabel:'Keep the generated answer'})+
+        modelControlsHtml()+
+        '<div class="gd-row">'+(challenge&&challenge.answer?'<button class="gd-btn" id="ba-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
+        (challenge?'<button class="gd-btn" id="ba-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
+        '<p class="gd-help">Custom challenges can bind their answer to either pan total, the difference, relation, complete equation or a hidden weight.</p>';
+    }
+    const picker=CK.pickerHtml(CHALLENGE_TEMPLATES,CHALLENGE_CATEGORIES,challengeCategory,challengeType,'ba');
+    const repeat=!!(challenge&&challenge.mode==='standard'&&challenge.type===challengeType);
+    return tabs+picker+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="ba-generate" type="button">'+(repeat?'Another like this':'Generate challenge')+'</button>'+
+      (challenge&&challenge.mode!=='custom'?'<button class="gd-btn" id="ba-edit-challenge" type="button">Edit challenge</button>':'')+
+      (challenge&&challenge.answer?'<button class="gd-btn" id="ba-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
+      (challenge?'<button class="gd-btn" id="ba-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
+      (challenge&&!challengeFrozen()?modelControlsHtml():'');
+  }
+  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():exploreControlsHtml())}
   function renderControls(){q('#gd-controls').innerHTML=controlsHtml();bindControls()}
-  function bindControls(){
+  function bindModelControls(){
     qa('[data-ba-add]',q('#gd-controls')).forEach(button=>button.onclick=()=>mutate(()=>addToken('left',Number(button.dataset.baAdd))));
     const custom=()=>Math.max(0,num(q('#ba-custom')?.value,0));
     const leftAdd=q('#ba-add-left');if(leftAdd)leftAdd.onclick=()=>mutate(()=>addToken('left',custom()));
@@ -1142,18 +1333,39 @@ function balanceTool(){
     const totals=q('#ba-show-totals');if(totals)totals.onchange=()=>{showTotals=totals.checked;draw()};
     const clear=q('#ba-clear');if(clear)clear.onclick=()=>mutate(()=>{left=[];right=[];selectedId=null});
     const example=q('#ba-example');if(example)example.onclick=()=>{
-      const examples=[
-        {left:[7,5],right:[3,4,5]},
-        {left:[18,6],right:[12,12]},
-        {left:[9,9],right:[6,6,6]},
-        {left:[15,5],right:[10,10]}
-      ],ex=examples[Math.floor(Math.random()*examples.length)];
+      const examples=[{left:[7,5],right:[3,4,5]},{left:[18,6],right:[12,12]},{left:[9,9],right:[6,6,6]},{left:[15,5],right:[10,10]}],ex=examples[Math.floor(Math.random()*examples.length)];
       mutate(()=>{
         left=ex.left.map(value=>({id:nextId++,value,hidden:false}));
         right=ex.right.map(value=>({id:nextId++,value,hidden:false}));
         selectedId=left[0]?.id||right[0]?.id||null;
       });
     };
+  }
+  function bindControls(){
+    qa('[data-ba-workflow]',q('#gd-controls')).forEach(button=>button.onclick=()=>{controlTab=button.dataset.baWorkflow;renderControls()});
+    bindModelControls();
+    if(controlTab!=='challenge')return;
+    qa('[data-ba-challenge-tab]',q('#gd-controls')).forEach(button=>button.onclick=()=>{
+      if(button.dataset.baChallengeTab==='custom')enterCustomChallenge();
+      else{challengeTab='standard';renderControls()}
+    });
+    qa('[data-ba-challenge-cat]',q('#gd-controls')).forEach(button=>button.onclick=()=>{
+      challengeCategory=button.dataset.baChallengeCat;
+      const first=CHALLENGE_TEMPLATES.find(t=>t.category===challengeCategory);if(first)challengeType=first.id;
+      renderControls();
+    });
+    qa('[data-ba-challenge-type]',q('#gd-controls')).forEach(button=>button.onclick=()=>{challengeType=button.dataset.baChallengeType;renderControls()});
+    const generate=q('#ba-generate');if(generate)generate.onclick=()=>generateChallenge(challengeType);
+    const edit=q('#ba-edit-challenge');if(edit)edit.onclick=enterCustomChallenge;
+    const reveal=q('#ba-reveal');if(reveal)reveal.onclick=()=>{if(challenge){challenge.revealed=!challenge.revealed;renderControls();draw()}};
+    const clearChallengeBtn=q('#ba-clear-challenge');if(clearChallengeBtn)clearChallengeBtn.onclick=clearChallenge;
+    if(challengeTab==='custom'&&challenge){
+      const title=q('#ba-custom-title');if(title)title.oninput=()=>{challenge.title=title.value.slice(0,100);draw()};
+      const prompt=q('#ba-custom-prompt');if(prompt)prompt.oninput=()=>{challenge.promptHtml=CK.sanitiseRichHtml(prompt.innerHTML);challenge.prompt=CK.plainText(challenge.promptHtml);draw()};
+      const source=q('#ba-custom-answer-source');if(source)source.onchange=()=>setCustomAnswerSource(source.value);
+      const answer=q('#ba-custom-answer');if(answer)answer.oninput=()=>{challenge.answer=answer.value.slice(0,400);challenge.answerMode='manual';challenge.answerSource='';draw()};
+      qa('[data-gd-rich-action]',q('#gd-controls')).forEach(button=>button.onclick=()=>{CK.applyFormat(prompt,button.dataset.gdRichAction);challenge.promptHtml=CK.sanitiseRichHtml(prompt.innerHTML);challenge.prompt=CK.plainText(challenge.promptHtml);draw()});
+    }
   }
 
   setPanels(controlsHtml(),'');
