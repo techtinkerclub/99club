@@ -1853,8 +1853,194 @@ function barModel(){
   draw();
 }
 
-function hundredSquare(){let clicked=new Set();function isPrime(n){if(n<2)return false;for(let i=2;i*i<=n;i++)if(n%i===0)return false;return true}function draw(){const mode=q('#hs-mode').value,k=Math.max(1,num(q('#hs-k').value,5));q('#gd-stage').innerHTML=`<div class="gd-vis"><div class="gd-square-grid">${Array.from({length:100},(_,i)=>{const n=i+1;let on=mode==='multiples'?n%k===0:mode==='factors'?k%n===0:mode==='prime'?isPrime(n):mode==='odd'?n%2===1:mode==='even'?n%2===0:false;return `<button type="button" class="gd-square-cell${on?' is-highlight':''}${clicked.has(n)?' is-selected':''}" data-n="${n}">${n}</button>`}).join('')}</div></div>`;qa('[data-n]',q('#gd-stage')).forEach(x=>x.onclick=()=>{const n=+x.dataset.n;clicked.has(n)?clicked.delete(n):clicked.add(n);draw()})}
-setPanels(`${field('Highlight','<select class="gd-select" id="hs-mode"><option value="multiples">Multiples of…</option><option value="factors">Factors of…</option><option value="prime">Prime numbers</option><option value="odd">Odd numbers</option><option value="even">Even numbers</option><option value="none">Nothing</option></select>')}${field('Number','<input class="gd-input" id="hs-k" type="number" min="1" max="100" value="5">')}${btn('Clear my marked squares','hs-clear')}<p class="gd-help">Pupils can also click individual squares to mark their own pattern.</p>`,'');q('#hs-mode').onchange=draw;q('#hs-k').oninput=draw;q('#hs-clear').onclick=()=>{clicked.clear();draw()};draw()}
+function hundredSquare(){
+  let startValue=1,selectedIndex=0,interactionMode='select',ruleMode='multiples',ruleNumber=5,paint=null;
+  let marked=new Set(),hidden=new Set();
+  const undoStack=[],redoStack=[];
+
+  function snapshot(){
+    return{startValue,selectedIndex,ruleMode,ruleNumber,marked:[...marked],hidden:[...hidden]};
+  }
+  function restore(state){
+    startValue=Math.round(Number(state?.startValue)||0);
+    selectedIndex=clamp(Math.round(Number(state?.selectedIndex)||0),0,99);
+    ruleMode=state?.ruleMode||'none';
+    ruleNumber=Math.max(1,Math.round(Number(state?.ruleNumber)||1));
+    marked=new Set(Array.isArray(state?.marked)?state.marked:[]);
+    hidden=new Set(Array.isArray(state?.hidden)?state.hidden:[]);
+  }
+  function remember(){
+    undoStack.push(snapshot());
+    if(undoStack.length>60)undoStack.shift();
+    redoStack.length=0;
+  }
+  function mutate(fn){
+    remember();fn();draw();renderControls();
+  }
+  function undo(){
+    if(!undoStack.length)return;
+    redoStack.push(snapshot());restore(undoStack.pop());draw();renderControls();
+  }
+  function redo(){
+    if(!redoStack.length)return;
+    undoStack.push(snapshot());restore(redoStack.pop());draw();renderControls();
+  }
+  function valueAt(index){return startValue+index}
+  function currentValue(){return valueAt(selectedIndex)}
+  function inGrid(value){return value>=startValue&&value<=startValue+99}
+  function isPrime(n){
+    if(n<2||!Number.isInteger(n))return false;
+    for(let i=2;i*i<=n;i++)if(n%i===0)return false;
+    return true;
+  }
+  function ruleMatches(n){
+    if(ruleMode==='multiples')return ruleNumber!==0&&n%ruleNumber===0;
+    if(ruleMode==='factors')return n!==0&&ruleNumber%n===0;
+    if(ruleMode==='prime')return isPrime(n);
+    if(ruleMode==='odd')return Math.abs(n%2)===1;
+    if(ruleMode==='even')return n%2===0;
+    return false;
+  }
+  function relatedValues(){
+    const n=currentValue(),vals=[n-1,n+1,n-10,n+10];
+    return new Set(vals.filter(inGrid));
+  }
+  function setStart(value){
+    startValue=clamp(Math.round(Number(value)||0),-9999,999999);
+    marked.clear();hidden.clear();selectedIndex=0;
+  }
+  function toggleMark(value,on=null){
+    const next=on==null?!marked.has(value):!!on;
+    if(next)marked.add(value);else marked.delete(value);
+  }
+  function toggleHidden(value,on=null){
+    const next=on==null?!hidden.has(value):!!on;
+    if(next)hidden.add(value);else hidden.delete(value);
+  }
+  function moveSelection(delta){
+    selectedIndex=clamp(selectedIndex+delta,0,99);draw();renderControls();
+  }
+  function relationItem(label,value){
+    const present=inGrid(value);
+    return '<div class="gd-hs-relation-item'+(present?'':' is-outside')+'"><span>'+label+'</span><strong>'+value+'</strong><small>'+(present?'on grid':'outside grid')+'</small></div>';
+  }
+  function selectedPanel(){
+    const n=currentValue(),isMarked=marked.has(n),isHidden=hidden.has(n);
+    return '<div class="gd-hs-selected" data-hs-selected="'+n+'">'+
+      '<div class="gd-hs-selected__head"><div><span>Selected number</span><strong>'+n+'</strong></div><div class="gd-row">'+
+        '<button class="gd-btn'+(isMarked?' gd-btn--primary':'')+'" id="hs-mark-selected" type="button">'+(isMarked?'Unmark':'Mark')+'</button>'+
+        '<button class="gd-btn" id="hs-hide-selected" type="button">'+(isHidden?'Reveal':'Hide number')+'</button>'+
+      '</div></div>'+
+      '<div class="gd-hs-relations">'+
+        relationItem('one less',n-1)+relationItem('one more',n+1)+relationItem('ten less',n-10)+relationItem('ten more',n+10)+
+      '</div>'+
+    '</div>';
+  }
+  function cellHtml(index,related){
+    const n=valueAt(index),isHidden=hidden.has(n),classes=[
+      'gd-square-cell','gd-hs-cell',
+      ruleMatches(n)?'is-rule':'',
+      marked.has(n)?'is-marked':'',
+      index===selectedIndex?'is-current':'',
+      related.has(n)&&index!==selectedIndex?'is-related':'',
+      isHidden?'is-hidden-number':'',
+      interactionMode!=='select'?'is-paintable':''
+    ].filter(Boolean).join(' ');
+    return '<button type="button" class="'+classes+'" data-hs-index="'+index+'" data-hs-value="'+n+'" aria-label="'+(isHidden?'Hidden number '+n:'Number '+n)+'" aria-pressed="'+(marked.has(n)?'true':'false')+'"><span>'+ (isHidden?'?':n) +'</span></button>';
+  }
+  function draw(){
+    const related=relatedValues();
+    q('#gd-stage').innerHTML='<div class="gd-vis gd-hs-workbench">'+
+      '<div class="gd-hs-summary"><div><span>Hundred square</span><strong>'+startValue+'–'+(startValue+99)+'</strong></div>'+
+        '<div class="gd-object-toolbar"><button class="gd-btn" id="hs-undo" type="button"'+(undoStack.length?'':' disabled')+'>Undo</button><button class="gd-btn" id="hs-redo" type="button"'+(redoStack.length?'':' disabled')+'>Redo</button></div></div>'+
+      '<div class="gd-square-grid gd-hs-grid" data-hs-grid-start="'+startValue+'">'+Array.from({length:100},(_,i)=>cellHtml(i,related)).join('')+'</div>'+
+      selectedPanel()+
+      '<div class="gd-hs-key"><span><i class="is-rule"></i> rule</span><span><i class="is-marked"></i> your mark</span><span><i class="is-related"></i> ±1 / ±10 relation</span><span><i class="is-hidden-number">?</i> hidden</span></div>'+
+    '</div>';
+    bindStage();
+  }
+  function paintAtPoint(x,y){
+    if(!paint)return;
+    const el=document.elementFromPoint(x,y)?.closest?.('[data-hs-index]');
+    if(!el)return;
+    const value=Number(el.dataset.hsValue),index=Number(el.dataset.hsIndex);
+    if(!Number.isFinite(value)||paint.visited.has(value))return;
+    paint.visited.add(value);selectedIndex=index;
+    if(interactionMode==='mark')toggleMark(value,paint.on);
+    else if(interactionMode==='hide')toggleHidden(value,paint.on);
+    draw();
+  }
+  function paintMove(e){
+    if(!paint||paint.pointerId!==e.pointerId)return;
+    e.preventDefault();paintAtPoint(e.clientX,e.clientY);
+  }
+  function paintEnd(e){
+    if(!paint||paint.pointerId!==e.pointerId)return;
+    paint=null;
+    document.removeEventListener('pointermove',paintMove);
+    document.removeEventListener('pointerup',paintEnd);
+    document.removeEventListener('pointercancel',paintEnd);
+    renderControls();
+  }
+  function bindStage(){
+    qa('[data-hs-index]',q('#gd-stage')).forEach(cell=>{
+      cell.onclick=()=>{
+        if(interactionMode!=='select')return;
+        selectedIndex=Number(cell.dataset.hsIndex);draw();renderControls();
+      };
+      cell.onkeydown=e=>{
+        if(e.key==='ArrowLeft'){e.preventDefault();moveSelection(-1)}
+        else if(e.key==='ArrowRight'){e.preventDefault();moveSelection(1)}
+        else if(e.key==='ArrowUp'){e.preventDefault();moveSelection(-10)}
+        else if(e.key==='ArrowDown'){e.preventDefault();moveSelection(10)}
+        else if(e.key===' '||e.key==='Enter'){e.preventDefault();mutate(()=>toggleMark(currentValue()))}
+        else if(e.key.toLowerCase()==='h'){e.preventDefault();mutate(()=>toggleHidden(currentValue()))}
+      };
+      cell.onpointerdown=e=>{
+        if(interactionMode==='select'||(e.button!=null&&e.button!==0))return;
+        e.preventDefault();
+        const value=Number(cell.dataset.hsValue);
+        remember();
+        paint={pointerId:e.pointerId,on:interactionMode==='mark'?!marked.has(value):!hidden.has(value),visited:new Set()};
+        document.addEventListener('pointermove',paintMove);
+        document.addEventListener('pointerup',paintEnd,{once:true});
+        document.addEventListener('pointercancel',paintEnd,{once:true});
+        paintAtPoint(e.clientX,e.clientY);
+      };
+    });
+    const undoBtn=q('#hs-undo');if(undoBtn)undoBtn.onclick=undo;
+    const redoBtn=q('#hs-redo');if(redoBtn)redoBtn.onclick=redo;
+    const markBtn=q('#hs-mark-selected');if(markBtn)markBtn.onclick=()=>mutate(()=>toggleMark(currentValue()));
+    const hideBtn=q('#hs-hide-selected');if(hideBtn)hideBtn.onclick=()=>mutate(()=>toggleHidden(currentValue()));
+  }
+  function controlsHtml(){
+    return '<div class="gd-field"><span>Grid range</span><div class="gd-row"><button class="gd-btn'+(startValue===1?' gd-btn--primary':'')+'" type="button" data-hs-preset="1">1–100</button><button class="gd-btn'+(startValue===0?' gd-btn--primary':'')+'" type="button" data-hs-preset="0">0–99</button></div></div>'+
+      field('Custom start','<div class="gd-row"><input class="gd-input gd-small" id="hs-start" type="number" step="1" value="'+startValue+'"><button class="gd-btn" id="hs-apply-start" type="button">Apply</button></div>','Build any consecutive 10 × 10 number grid, for example 101–200.')+
+      field('Pattern highlight','<select class="gd-select" id="hs-mode"><option value="multiples"'+(ruleMode==='multiples'?' selected':'')+'>Multiples of…</option><option value="factors"'+(ruleMode==='factors'?' selected':'')+'>Factors of…</option><option value="prime"'+(ruleMode==='prime'?' selected':'')+'>Prime numbers</option><option value="odd"'+(ruleMode==='odd'?' selected':'')+'>Odd numbers</option><option value="even"'+(ruleMode==='even'?' selected':'')+'>Even numbers</option><option value="none"'+(ruleMode==='none'?' selected':'')+'>Nothing</option></select>')+
+      field('Pattern number','<input class="gd-input" id="hs-k" type="number" min="1" step="1" value="'+ruleNumber+'">','Used for multiples and factors.')+
+      '<div class="gd-field"><span>Touch / mouse action</span><div class="gd-row">'+
+        '<button class="gd-btn'+(interactionMode==='select'?' gd-btn--primary':'')+'" type="button" data-hs-interaction="select">Select</button>'+
+        '<button class="gd-btn'+(interactionMode==='mark'?' gd-btn--primary':'')+'" type="button" data-hs-interaction="mark">Paint marks</button>'+
+        '<button class="gd-btn'+(interactionMode==='hide'?' gd-btn--primary':'')+'" type="button" data-hs-interaction="hide">Hide / reveal</button>'+
+      '</div></div>'+
+      '<div class="gd-row"><button class="gd-btn" id="hs-clear-marks" type="button">Clear marks</button><button class="gd-btn" id="hs-reveal-all" type="button">Reveal all</button></div>'+
+      '<p class="gd-help">Select a number to see ±1 and ±10 relationships. In paint modes, drag across cells to mark or hide several numbers quickly. Arrow keys move the selection; Space marks it; H hides/reveals it.</p>';
+  }
+  function renderControls(){q('#gd-controls').innerHTML=controlsHtml();bindControls()}
+  function bindControls(){
+    qa('[data-hs-preset]',q('#gd-controls')).forEach(button=>button.onclick=()=>mutate(()=>setStart(Number(button.dataset.hsPreset))));
+    const apply=q('#hs-apply-start');if(apply)apply.onclick=()=>mutate(()=>setStart(num(q('#hs-start')?.value,startValue)));
+    const mode=q('#hs-mode');if(mode)mode.onchange=()=>{ruleMode=mode.value;draw();renderControls()};
+    const k=q('#hs-k');if(k)k.onchange=()=>{ruleNumber=Math.max(1,Math.round(num(k.value,ruleNumber)));draw();renderControls()};
+    qa('[data-hs-interaction]',q('#gd-controls')).forEach(button=>button.onclick=()=>{interactionMode=button.dataset.hsInteraction;draw();renderControls()});
+    const clear=q('#hs-clear-marks');if(clear)clear.onclick=()=>{if(!marked.size)return;mutate(()=>marked.clear())};
+    const reveal=q('#hs-reveal-all');if(reveal)reveal.onclick=()=>{if(!hidden.size)return;mutate(()=>hidden.clear())};
+  }
+
+  setPanels(controlsHtml(),'');
+  bindControls();
+  draw();
+}
 
 function multiplicationGrid(){let hidden=new Set();function draw(){const size=clamp(num(q('#mg-size').value,12),5,15),focus=clamp(num(q('#mg-focus').value,6),1,size);let h='<table class="gd-times-grid"><tr><th>×</th>'+Array.from({length:size},(_,i)=>`<th>${i+1}</th>`).join('')+'</tr>';for(let r=1;r<=size;r++){h+=`<tr><th>${r}</th>`;for(let c=1;c<=size;c++){const k=r+'-'+c;h+=`<td class="${r===focus||c===focus?'is-highlight ':''}${hidden.has(k)?'is-hidden':''}" data-cell="${k}">${r*c}</td>`}h+='</tr>'}h+='</table>';q('#gd-stage').innerHTML='<div class="gd-vis">'+h+'</div>';qa('[data-cell]',q('#gd-stage')).forEach(x=>x.onclick=()=>{const k=x.dataset.cell;hidden.has(k)?hidden.delete(k):hidden.add(k);draw()})}
 setPanels(`${field('Grid size','<input class="gd-input" id="mg-size" type="number" min="5" max="15" value="12">')}${field('Highlight table','<input class="gd-input" id="mg-focus" type="number" min="1" max="15" value="6">')}<div class="gd-row">${btn('Hide 12 random products','mg-hide')}${btn('Show all','mg-show')}</div><p class="gd-help">Click any product to hide/reveal it and turn the grid into a quick retrieval activity.</p>`,'');q('#mg-size').oninput=draw;q('#mg-focus').oninput=draw;q('#mg-hide').onclick=()=>{hidden.clear();const size=clamp(num(q('#mg-size').value,12),5,15);while(hidden.size<Math.min(12,size*size))hidden.add((1+Math.floor(Math.random()*size))+'-'+(1+Math.floor(Math.random()*size)));draw()};q('#mg-show').onclick=()=>{hidden.clear();draw()};draw()}
