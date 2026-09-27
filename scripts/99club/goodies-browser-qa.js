@@ -1178,11 +1178,12 @@ if(mode==='prepare'){
     document.querySelector('[data-mg-interaction="select"]').click();
     assert(getComputedStyle(document.querySelector('[data-mg-cell]')).touchAction!=='none','Select mode preserves normal touch scrolling');
 
-    const sizeInput=document.getElementById('mg-size');
+    let sizeInput=document.getElementById('mg-size');
     sizeInput.value='5';sizeInput.dispatchEvent(new Event('change',{bubbles:true}));
     assert(document.querySelectorAll('[data-mg-cell]').length===25,'Grid size can be reduced directly to 5 × 5');
     assert(!document.querySelector('[data-mg-cell="6-3"]'),'Shrinking the grid removes out-of-range cells and stale hidden state safely');
 
+    sizeInput=document.getElementById('mg-size');
     sizeInput.value='12';sizeInput.dispatchEvent(new Event('change',{bubbles:true}));
     document.getElementById('mg-show').click();
     assert(document.querySelectorAll('.gd-mg-cell.is-hidden-product').length===0,'Show all reveals every hidden product');
