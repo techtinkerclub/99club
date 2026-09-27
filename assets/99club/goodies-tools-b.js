@@ -955,7 +955,7 @@ function randomiser(){let result='';function draw(){const mode=q('#ra-mode').val
 setPanels(`${field('Tool','<select class="gd-select" id="ra-mode"><option value="dice">Dice</option><option value="spinner">Spinner</option><option value="number">Random number</option><option value="card">Playing card</option></select>')}<div id="ra-extra"></div>${btn('Generate','ra-go',true)}`,'');q('#ra-mode').onchange=()=>{result='';draw()};q('#ra-go').onclick=roll;draw()}
 
 function balanceTool(){
-  const CK=G.challengeKit;
+  const CK=G.challengeKit,X=G.exportTools;
   let left=[
     {id:1,value:8,hidden:false},
     {id:2,value:4,hidden:false}
@@ -977,6 +977,7 @@ function balanceTool(){
     {id:'spot-false-equality',category:'reason',title:'Spot the false equality',desc:'Decide whether a claimed equality is actually true.'}
   ];
   let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='missing-weight',challenge=null,beforeChallenge=null;
+  let exportMode='diagram',responseLines=1,exportStatus='';
 
   function cloneSide(side){return side.map(item=>({...item}))}
   function snapshot(){return{left:cloneSide(left),right:cloneSide(right),nextId,selectedId,showTotals}}
@@ -1140,7 +1141,7 @@ function balanceTool(){
   }
   function restoreBeforeChallenge(){if(beforeChallenge){restore(beforeChallenge);beforeChallenge=null}}
   function clearChallenge(){
-    restoreBeforeChallenge();challenge=null;challengeTab='standard';controlTab='challenge';undoStack.length=0;redoStack.length=0;renderControls();draw();
+    restoreBeforeChallenge();challenge=null;challengeTab='standard';controlTab='challenge';exportMode='diagram';exportStatus='';undoStack.length=0;redoStack.length=0;renderControls();draw();
   }
   function enterCustomChallenge(){
     if(!beforeChallenge)beforeChallenge=snapshot();
@@ -1148,7 +1149,7 @@ function balanceTool(){
     if(CK)challenge=CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''});
     if(!wasCustom)clearBoundHiding();
     challenge.freezeBoard=false;challenge.revealed=false;
-    challengeTab='custom';controlTab='challenge';renderControls();draw();
+    challengeTab='custom';controlTab='challenge';exportMode='challenge';exportStatus='';renderControls();draw();
   }
   function setCustomAnswerSource(source){
     if(!challenge||challenge.mode!=='custom')return;
@@ -1186,7 +1187,8 @@ function balanceTool(){
       setSides([a,b],[wrong]);
       challenge=challengeObject(type,'A pupil says these two sides are equal. Are they correct? Explain.','No. '+(a+b)+' is not equal to '+wrong+'.',{hiddenRelation:true,hiddenVerdict:true});
     }
-    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';renderControls();draw();
+    challenge.initialState=snapshot();
+    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';exportMode='challenge';exportStatus='';renderControls();draw();
   }
 
   function tokenHtml(item){
@@ -1288,7 +1290,8 @@ function balanceTool(){
   function workflowTabs(){
     return '<div class="gd-row gd-ba-workflow-tabs" role="tablist" aria-label="Equation Balance workflow">'+
       '<button class="gd-btn'+(controlTab==='explore'?' gd-btn--primary':'')+'" type="button" data-ba-workflow="explore">Explore</button>'+
-      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-ba-workflow="challenge">Challenge'+(challenge?' •':'')+'</button></div>';
+      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-ba-workflow="challenge">Challenge'+(challenge?' •':'')+'</button>'+ 
+      '<button class="gd-btn'+(controlTab==='export'?' gd-btn--primary':'')+'" type="button" data-ba-workflow="export">Export / reuse</button></div>';
   }
   function modelControlsHtml({showExample=false}={}){
     return '<div class="gd-field"><span>Add a weight</span><div class="gd-eq-palette">'+[1,2,5,10,20].map(v=>'<button class="gd-btn" type="button" data-ba-add="'+v+'">+'+v+'</button>').join('')+'</div></div>'+
@@ -1319,7 +1322,7 @@ function balanceTool(){
       (challenge?'<button class="gd-btn" id="ba-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
       (challenge&&!challengeFrozen()?modelControlsHtml():'');
   }
-  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():exploreControlsHtml())}
+  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():controlTab==='export'?exportControlsHtml():exploreControlsHtml())}
   function renderControls(){q('#gd-controls').innerHTML=controlsHtml();bindControls()}
   function bindModelControls(){
     qa('[data-ba-add]',q('#gd-controls')).forEach(button=>button.onclick=()=>mutate(()=>addToken('left',Number(button.dataset.baAdd))));
