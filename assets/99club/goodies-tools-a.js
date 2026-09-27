@@ -1854,7 +1854,7 @@ function barModel(){
 }
 
 function hundredSquare(){
-  const CK=G.challengeKit;
+  const CK=G.challengeKit,X=G.exportTools;
   let startValue=1,selectedIndex=0,interactionMode='select',ruleMode='multiples',ruleNumber=5,paint=null;
   let marked=new Set(),hidden=new Set();
   const undoStack=[],redoStack=[];
@@ -1874,6 +1874,7 @@ function hundredSquare(){
     {id:'spot-wrong-mark',category:'reason',title:'Spot the wrong mark',desc:'Find the one marked number that does not fit the rule.'}
   ];
   let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='missing-number',challenge=null,beforeChallenge=null;
+  let exportMode='grid',responseLines=1,exportStatus='';
 
   function snapshot(){
     return{startValue,selectedIndex,interactionMode,ruleMode,ruleNumber,marked:[...marked],hidden:[...hidden]};
@@ -2082,7 +2083,8 @@ function hundredSquare(){
   function workflowTabs(){
     return '<div class="gd-row gd-hs-workflow-tabs" role="tablist" aria-label="Hundred Square workflow">'+
       '<button class="gd-btn'+(controlTab==='explore'?' gd-btn--primary':'')+'" type="button" data-hs-workflow="explore">Explore</button>'+
-      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-hs-workflow="challenge">Challenge'+(challenge?' •':'')+'</button></div>';
+      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-hs-workflow="challenge">Challenge'+(challenge?' •':'')+'</button>'+ 
+      '<button class="gd-btn'+(controlTab==='export'?' gd-btn--primary':'')+'" type="button" data-hs-workflow="export">Export / reuse</button></div>';
   }
   function rangePatternControlsHtml(){
     return '<div class="gd-field"><span>Grid range</span><div class="gd-row"><button class="gd-btn'+(startValue===1?' gd-btn--primary':'')+'" type="button" data-hs-preset="1">1–100</button><button class="gd-btn'+(startValue===0?' gd-btn--primary':'')+'" type="button" data-hs-preset="0">0–99</button></div></div>'+
@@ -2127,7 +2129,7 @@ function hundredSquare(){
       (challenge?'<button class="gd-btn" id="hs-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
       (challengeMarkOnly()?interactionControlsHtml({markOnly:true}):'');
   }
-  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():exploreControlsHtml())}
+  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():controlTab==='export'?exportControlsHtml():exploreControlsHtml())}
   function renderControls(){q('#gd-controls').innerHTML=controlsHtml();bindControls()}
 
   function challengeObject(type,prompt,answer,extra={}){
@@ -2169,11 +2171,12 @@ function hundredSquare(){
       marked=new Set([...target,wrong]);selectedIndex=9;
       challenge=challengeObject(type,'One marked number is not a multiple of 10. Which number is wrong?',wrong,{hideSelectedPanel:true,ruleLabel:'multiples of 10'});
     }
-    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';renderControls();draw();
+    challenge.initialState=snapshot();
+    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';exportMode='challenge';exportStatus='';renderControls();draw();
   }
   function restoreBeforeChallenge(){if(beforeChallenge){restore(beforeChallenge);beforeChallenge=null}}
   function clearChallenge(){
-    restoreBeforeChallenge();challenge=null;challengeTab='standard';controlTab='challenge';undoStack.length=0;redoStack.length=0;renderControls();draw();
+    restoreBeforeChallenge();challenge=null;challengeTab='standard';controlTab='challenge';exportMode='grid';exportStatus='';undoStack.length=0;redoStack.length=0;renderControls();draw();
   }
   function clearBoundHiding(){
     if(!challenge)return;
@@ -2221,7 +2224,7 @@ function hundredSquare(){
     if(CK)challenge=CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''});
     if(!wasCustom)clearBoundHiding();
     challenge.freezeGrid=false;challenge.markOnly=false;challenge.revealed=false;
-    challengeTab='custom';controlTab='challenge';renderControls();draw();
+    challengeTab='custom';controlTab='challenge';exportMode='challenge';exportStatus='';renderControls();draw();
   }
   function setCustomAnswerSource(source){
     if(!challenge||challenge.mode!=='custom')return;
@@ -2243,6 +2246,12 @@ function hundredSquare(){
   function bindControls(){
     qa('[data-hs-workflow]',q('#gd-controls')).forEach(button=>button.onclick=()=>{controlTab=button.dataset.hsWorkflow;renderControls()});
     bindExploreControls();
+    if(controlTab==='export'){
+      qa('[data-hs-export-mode]',q('#gd-controls')).forEach(button=>button.onclick=()=>{exportMode=button.dataset.hsExportMode;exportStatus='';renderControls()});
+      const lines=q('#hs-response-lines');if(lines)lines.onchange=()=>{responseLines=clamp(Math.round(num(lines.value,1)),1,4)};
+      [['hs-copy-image','copy'],['hs-png','png'],['hs-svg-download','svg'],['hs-print','print']].forEach(([id,kind])=>{const button=q('#'+id);if(button)button.onclick=()=>runExport(kind)});
+      return;
+    }
     if(controlTab!=='challenge')return;
     qa('[data-hs-challenge-tab]',q('#gd-controls')).forEach(button=>button.onclick=()=>{
       if(button.dataset.hsChallengeTab==='custom')enterCustomChallenge();
