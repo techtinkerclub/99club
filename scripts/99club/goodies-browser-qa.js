@@ -848,6 +848,76 @@ if(mode==='prepare'){
     Math.random=realBalanceRandom;
   }
 
+  function testHundredSquareWorkbench(){
+    TT99Goodies.interaction.clear();
+    assert(TT99Goodies.hundredSquare,'Hundred Square is registered');
+    TT99Goodies.hundredSquare();
+
+    let cells=[...document.querySelectorAll('[data-hs-index]')];
+    assert(cells.length===100,'Hundred Square renders exactly 100 cells');
+    assert(cells[0].textContent.trim()==='1'&&cells[99].textContent.trim()==='100','Hundred Square opens as 1–100');
+    assert(document.querySelectorAll('.gd-hs-cell.is-rule').length===20,'Default multiples-of-5 rule highlights 20 cells');
+
+    cells[41].click();
+    assert(document.querySelector('[data-hs-selected="42"]'),'Clicking a cell selects the number directly');
+    assert(document.querySelector('.gd-hs-selected__head strong').textContent.trim()==='42','Selected-number panel shows the chosen value');
+    const relationText=[...document.querySelectorAll('.gd-hs-relation-item strong')].map(x=>x.textContent.trim()).join('|');
+    assert(relationText==='41|43|32|52','Selected-number panel shows ±1 and ±10 relationships');
+
+    cells=[...document.querySelectorAll('[data-hs-index]')];
+    cells[41].dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
+    assert(document.querySelector('[data-hs-selected="43"]'),'Arrow keys move the Hundred Square selection');
+    const current=document.querySelector('[data-hs-index="42"]');
+    current.dispatchEvent(new KeyboardEvent('keydown',{key:' ',bubbles:true}));
+    assert(document.querySelector('[data-hs-index="42"]').classList.contains('is-marked'),'Space marks the selected number');
+    document.getElementById('hs-undo').click();
+    assert(!document.querySelector('[data-hs-index="42"]').classList.contains('is-marked'),'Undo removes a keyboard mark');
+    document.getElementById('hs-redo').click();
+    assert(document.querySelector('[data-hs-index="42"]').classList.contains('is-marked'),'Redo restores a keyboard mark');
+
+    document.querySelector('[data-hs-interaction="mark"]').click();
+    let c5=document.querySelector('[data-hs-value="5"]'),c6=document.querySelector('[data-hs-value="6"]');
+    let r5=c5.getBoundingClientRect(),r6=c6.getBoundingClientRect();
+    const x5=r5.left+r5.width/2,y5=r5.top+r5.height/2,x6=r6.left+r6.width/2,y6=r6.top+r6.height/2;
+    pointer(c5,'pointerdown',x5,y5,181);
+    pointer(document,'pointermove',x6,y6,181);
+    pointer(document,'pointerup',x6,y6,181);
+    assert(document.querySelector('[data-hs-value="5"]').classList.contains('is-marked')&&document.querySelector('[data-hs-value="6"]').classList.contains('is-marked'),'Paint mode can mark multiple cells in one drag');
+    assert(getComputedStyle(document.querySelector('[data-hs-value="5"]')).touchAction==='none','Hundred Square paint mode reserves pointer gestures for painting');
+
+    document.querySelector('[data-hs-interaction="hide"]').click();
+    let c20=document.querySelector('[data-hs-value="20"]'),r20=c20.getBoundingClientRect(),x20=r20.left+r20.width/2,y20=r20.top+r20.height/2;
+    pointer(c20,'pointerdown',x20,y20,182);
+    pointer(document,'pointerup',x20,y20,182);
+    c20=document.querySelector('[data-hs-value="20"]');
+    assert(c20.textContent.trim()==='?'&&c20.classList.contains('is-hidden-number'),'Hide mode replaces a number with a question mark');
+    assert(c20.getAttribute('aria-label')==='Hidden number','Hidden Hundred Square cell does not leak the number through its accessible label');
+    assert(document.querySelector('.gd-hs-selected__head strong').textContent.trim()==='?','Hidden selected value stays hidden in the selected-number panel');
+    assert(!document.querySelector('.gd-hs-relations'),'Hidden selected value does not leak through ±1 / ±10 relationships');
+    document.getElementById('hs-hide-selected').click();
+    assert(document.querySelector('[data-hs-value="20"]').textContent.trim()==='20','Selected hidden number can be revealed explicitly');
+
+    document.querySelector('[data-hs-preset="0"]').click();
+    cells=[...document.querySelectorAll('[data-hs-index]')];
+    assert(cells[0].textContent.trim()==='0'&&cells[99].textContent.trim()==='99','0–99 preset rebuilds the full square');
+    assert(document.querySelectorAll('.gd-hs-cell.is-marked').length===0&&document.querySelectorAll('.gd-hs-cell.is-hidden-number').length===0,'Changing the grid range clears stale manual marks and hidden values');
+
+    const start=document.getElementById('hs-start');
+    start.value='101';document.getElementById('hs-apply-start').click();
+    cells=[...document.querySelectorAll('[data-hs-index]')];
+    assert(cells[0].textContent.trim()==='101'&&cells[99].textContent.trim()==='200','Custom start supports a 101–200 square');
+
+    document.querySelector('[data-hs-preset="1"]').click();
+    const mode=document.getElementById('hs-mode');
+    mode.value='prime';mode.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.querySelectorAll('.gd-hs-cell.is-rule').length===25,'Prime-number rule highlights the 25 primes from 1 to 100');
+    mode.value='even';mode.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.querySelectorAll('.gd-hs-cell.is-rule').length===50,'Even-number rule highlights 50 cells');
+
+    document.querySelector('[data-hs-interaction="select"]').click();
+    assert(getComputedStyle(document.querySelector('[data-hs-index]')).touchAction==='pan-y','Select mode preserves vertical touch scrolling');
+  }
+
   function testPlaceValue(){
     TT99Goodies.interaction.clear();
     assert(TT99Goodies.placeValue,'Place Value is registered');
@@ -2231,6 +2301,7 @@ if(mode==='prepare'){
         testMathsCanvas();
         testBarModelWorkbench();
         testEquationBalanceWorkbench();
+        testHundredSquareWorkbench();
         testPlaceValue();
         testFractions();
         testGeoboard();
@@ -2239,7 +2310,7 @@ if(mode==='prepare'){
         testArrayWorkbench();
         testMoneyWorkbench();
         testClockWorkbench();
-        result('pass','Number Line challenges, Maths Canvas, Bar Model, Equation Balance, Place Value, Fraction Wall, Geoboard, Coordinates, Measurement, Array, UK Money and Clock workbench interactions work');
+        result('pass','Number Line challenges, Maths Canvas, Bar Model, Equation Balance, Hundred Square, Place Value, Fraction Wall, Geoboard, Coordinates, Measurement, Array, UK Money and Clock workbench interactions work');
       }catch(err){
         result('fail',err&&err.message?err.message:String(err));
       }
