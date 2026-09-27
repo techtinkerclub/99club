@@ -2149,7 +2149,7 @@ function hundredSquare(){
       marked=new Set(seq);hidden.add(answer);selectedIndex=first-1;
       challenge=challengeObject(type,'The marked numbers follow a +'+step+' pattern. What comes next?',answer,{hideSelectedPanel:true});
     }else if(type==='mark-rule'){
-      const modes=['multiples','prime','even','odd'],mode=modes[Math.floor(Math.random()*modes.length)],k=mode==='multiples'?[3,4,5,10][Math.floor(Math.random()*4)]:5;
+      const modes=['multiples','prime','even','odd'],mode=modes[Math.floor(Math.random()*modes.length)],k=mode==='multiples'?[10,5,4,3][Math.floor(Math.random()*4)]:5;
       const target=valuesForRule(mode,k),label=mode==='multiples'?'multiples of '+k:mode==='prime'?'prime numbers':mode+' numbers';
       interactionMode='mark';
       challenge=challengeObject(type,'Mark every '+label+' on the hundred square.','All matching numbers marked',{freezeGrid:false,markOnly:true,targetValues:target,ruleLabel:label});
