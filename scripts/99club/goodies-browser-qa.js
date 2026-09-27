@@ -1011,6 +1011,106 @@ if(mode==='prepare'){
     document.getElementById('hs-clear-challenge').click();
     assert(document.querySelector('[data-hs-value="1"]').textContent.trim()==='1'&&document.querySelector('[data-hs-value="100"]').textContent.trim()==='100','Ending Hundred Square challenges restores the teacher grid');
     assert(document.querySelectorAll('.gd-hs-cell.is-rule').length===20,'Ending Hundred Square challenges restores the teacher pattern highlight');
+
+    document.querySelector('[data-hs-workflow="export"]').click();
+    assert(document.getElementById('hs-copy-image')&&document.getElementById('hs-png')&&document.getElementById('hs-svg-download')&&document.getElementById('hs-print'),'Hundred Square export exposes copy, PNG, SVG and Print/PDF actions');
+    let hsBoardSvg=null,hsBoardName='';
+    const hsOldBoardDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg,name)=>{hsBoardSvg=svg.cloneNode(true);hsBoardName=name};
+    document.getElementById('hs-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=hsOldBoardDownload;
+    assert(hsBoardSvg&&hsBoardSvg.dataset.hsExport==='hundred-square','Hundred Square board export is a deterministic SVG grid');
+    assert(hsBoardSvg.querySelectorAll('[data-hs-export-cell]').length===100,'Hundred Square SVG preserves all 100 cells');
+    assert(hsBoardSvg.querySelector('[data-hs-export-cell-text="0"]').textContent.trim()==='1'&&hsBoardSvg.querySelector('[data-hs-export-cell-text="99"]').textContent.trim()==='100','Hundred Square board SVG preserves the full 1–100 range');
+    assert(hsBoardSvg.querySelectorAll('[data-hs-export-rule="1"]').length===20,'Hundred Square board SVG preserves the multiples-of-5 rule highlight');
+    assert(hsBoardName.includes('hundred-square-1-100'),'Hundred Square board export has a useful range-based filename');
+
+    document.querySelector('[data-hs-workflow="challenge"]').click();
+    document.querySelector('[data-hs-challenge-cat="read"]').click();
+    document.querySelector('[data-hs-challenge-type="missing-number"]').click();
+    document.getElementById('hs-generate').click();
+    document.querySelector('[data-board-action="reveal"]').click();
+    document.querySelector('[data-hs-workflow="export"]').click();
+    assert(document.querySelector('[data-hs-export-mode="challenge"]')?.classList.contains('is-active'),'Generated Hundred Square challenge defaults to Challenge card export');
+    let hsMissingCard=null;
+    const hsOldMissingDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{hsMissingCard=svg.cloneNode(true)};
+    document.getElementById('hs-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=hsOldMissingDownload;
+    assert(hsMissingCard&&hsMissingCard.querySelector('[data-hs-export-initial-state="1"]'),'Hundred Square pupil card is regenerated from the recorded Standard challenge start');
+    assert(hsMissingCard.querySelector('[data-hs-export-cell="11"]').getAttribute('data-hs-export-hidden')==='1','Missing-number pupil card preserves the hidden target state');
+    assert(hsMissingCard.querySelector('[data-hs-export-cell-text="11"]').textContent.trim()==='?','Missing-number pupil export re-hides the target after teacher Reveal');
+    assert(!hsMissingCard.querySelector('[data-hs-export-value]'),'Hundred Square SVG does not store hidden answers in per-cell value metadata');
+    assert(!hsMissingCard.textContent.includes('Answer: 12'),'Hundred Square pupil card never includes the revealed answer label');
+    assert(hsMissingCard.textContent.includes('What number is hidden on the hundred square?'),'Hundred Square challenge-card export includes the pupil prompt');
+
+    document.querySelector('[data-hs-workflow="challenge"]').click();
+    document.querySelector('[data-hs-challenge-cat="read"]').click();
+    document.querySelector('[data-hs-challenge-type="one-more"]').click();
+    document.getElementById('hs-generate').click();
+    document.querySelector('[data-board-action="reveal"]').click();
+    document.querySelector('[data-hs-workflow="export"]').click();
+    let hsRelationCard=null;
+    const hsOldRelationDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{hsRelationCard=svg.cloneNode(true)};
+    document.getElementById('hs-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=hsOldRelationDownload;
+    assert(hsRelationCard.querySelector('[data-hs-export-cell="10"]').getAttribute('data-hs-export-selected')==='1','Relationship pupil card preserves the anchor selection');
+    assert(hsRelationCard.querySelector('[data-hs-export-cell-text="11"]').textContent.trim()==='?','Relationship pupil export re-hides the answer cell after teacher Reveal');
+
+    document.querySelector('[data-hs-workflow="challenge"]').click();
+    document.querySelector('[data-hs-challenge-cat="patterns"]').click();
+    document.querySelector('[data-hs-challenge-type="mark-rule"]').click();
+    document.getElementById('hs-generate').click();
+    document.querySelector('[data-hs-interaction="select"]').click();
+    for(const v of [10,20]){
+      let cell=document.querySelector('[data-hs-value="'+v+'"]');
+      cell.click();
+      cell=document.querySelector('[data-hs-value="'+v+'"]');
+      cell.dispatchEvent(new KeyboardEvent('keydown',{key:' ',bubbles:true}));
+    }
+    assert(document.querySelectorAll('.gd-hs-cell.is-marked').length===2,'Teacher can trial marks before exporting an interactive Hundred Square challenge');
+    document.querySelector('[data-hs-workflow="export"]').click();
+    let hsMarkCard=null;
+    const hsOldMarkDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{hsMarkCard=svg.cloneNode(true)};
+    document.getElementById('hs-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=hsOldMarkDownload;
+    assert(hsMarkCard.querySelector('[data-hs-export-initial-state="1"]'),'Interactive Hundred Square challenge export uses the recorded starting state');
+    assert(hsMarkCard.querySelectorAll('[data-hs-export-marked="1"]').length===0,'Mark-rule pupil card strips the teacher trial solution marks');
+    assert(hsMarkCard.textContent.includes('Mark every multiples of 10'),'Mark-rule pupil card retains the task prompt');
+
+    document.querySelector('[data-hs-workflow="challenge"]').click();
+    document.querySelector('[data-hs-challenge-cat="reason"]').click();
+    document.querySelector('[data-hs-challenge-type="spot-wrong-mark"]').click();
+    document.getElementById('hs-generate').click();
+    document.querySelector('[data-board-action="reveal"]').click();
+    document.querySelector('[data-hs-workflow="export"]').click();
+    let hsReasonCard=null;
+    const hsOldReasonDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{hsReasonCard=svg.cloneNode(true)};
+    document.getElementById('hs-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=hsOldReasonDownload;
+    assert(hsReasonCard.querySelectorAll('[data-hs-export-marked="1"]').length===11,'Reasoning pupil card preserves the supplied ten correct marks plus one wrong mark');
+    assert(hsReasonCard.querySelector('[data-hs-export-cell-text="4"]').textContent.trim()==='5','Reasoning pupil card keeps the incorrect marked value visible as part of the problem');
+    assert(hsReasonCard.querySelector('[data-hs-export-cell="9"]').getAttribute('data-hs-export-selected')==='1','Reasoning export keeps the neutral selected cell rather than cueing the wrong mark');
+    assert(!hsReasonCard.textContent.includes('Answer: 5'),'Reasoning pupil export does not leak the revealed wrong-mark answer');
+
+    document.querySelector('[data-hs-workflow="challenge"]').click();
+    document.querySelector('[data-hs-challenge-tab="custom"]').click();
+    const hsExportSource=document.getElementById('hs-custom-answer-source');
+    hsExportSource.value='selected-value';hsExportSource.dispatchEvent(new Event('change',{bubbles:true}));
+    document.querySelector('[data-hs-value="20"]').click();
+    document.querySelector('[data-hs-workflow="export"]').click();
+    let hsCustomCard=null;
+    const hsOldCustomDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{hsCustomCard=svg.cloneNode(true)};
+    document.getElementById('hs-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=hsOldCustomDownload;
+    assert(!hsCustomCard.querySelector('[data-hs-export-initial-state="1"]'),'Custom Hundred Square card exports the current live grid rather than a Standard start snapshot');
+    assert(hsCustomCard.querySelector('[data-hs-export-cell-text="19"]').textContent.trim()==='?','Custom selected-value pupil export hides the bound answer cell');
+    assert(hsCustomCard.querySelector('[data-hs-export-cell="19"]').getAttribute('data-hs-export-hidden')==='1','Custom bound answer cell is explicitly hidden in the vector artifact');
+
     Math.random=realHundredRandom;
   }
 
