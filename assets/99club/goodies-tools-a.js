@@ -2129,6 +2129,115 @@ function hundredSquare(){
       (challenge?'<button class="gd-btn" id="hs-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
       (challengeMarkOnly()?interactionControlsHtml({markOnly:true}):'');
   }
+  function hsSvgEl(name,attrs={},text=''){
+    const el=document.createElementNS('http://www.w3.org/2000/svg',name);
+    Object.entries(attrs).forEach(([key,value])=>el.setAttribute(key,String(value)));
+    if(text!==''&&text!=null)el.textContent=String(text);
+    return el;
+  }
+  function exportState(pupil=false){
+    const fromInitial=!!(pupil&&challenge?.mode==='standard'&&challenge.initialState);
+    const raw=fromInitial?challenge.initialState:snapshot();
+    return{
+      startValue:Math.round(Number(raw?.startValue)||0),
+      selectedIndex:clamp(Math.round(Number(raw?.selectedIndex)||0),0,99),
+      ruleMode:raw?.ruleMode||'none',
+      ruleNumber:Math.max(1,Math.round(Number(raw?.ruleNumber)||1)),
+      marked:new Set(Array.isArray(raw?.marked)?raw.marked:[]),
+      hidden:new Set(Array.isArray(raw?.hidden)?raw.hidden:[]),
+      fromInitial
+    };
+  }
+  function exportBoundHiddenValue(state,pupil=false){
+    if(!challenge||challenge.mode!=='custom'||challenge.answerMode!=='bound'||(!pupil&&challenge.revealed))return null;
+    const n=state.startValue+state.selectedIndex;
+    if(challenge.answerSource==='selected-value')return n;
+    if(challenge.answerSource==='one-less')return n-1;
+    if(challenge.answerSource==='one-more')return n+1;
+    if(challenge.answerSource==='ten-less')return n-10;
+    if(challenge.answerSource==='ten-more')return n+10;
+    return null;
+  }
+  function exportValueHidden(state,value,pupil=false){
+    let teacherHidden=state.hidden.has(value);
+    if(!pupil&&challenge?.mode==='standard'&&challenge.revealed)teacherHidden=false;
+    return teacherHidden||exportBoundHiddenValue(state,pupil)===value;
+  }
+  function exportRelatedValues(state){
+    if(challenge?.hideSelectedPanel)return new Set();
+    const n=state.startValue+state.selectedIndex;
+    return new Set([n-1,n+1,n-10,n+10].filter(v=>v>=state.startValue&&v<=state.startValue+99));
+  }
+  function hundredSquareExportSvg({pupil=false}={}){
+    const state=exportState(pupil),width=900,height=880,cell=64,gridX=130,gridY=100,related=exportRelatedValues(state);
+    const svg=hsSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Hundred square','data-hs-export':'hundred-square'});
+    svg.appendChild(hsSvgEl('rect',{x:0,y:0,width,height,fill:'#fff'}));
+    svg.appendChild(hsSvgEl('text',{x:70,y:52,'font-family':'Arial,sans-serif','font-size':28,'font-weight':900,fill:'#24343b'},'Hundred square'));
+    svg.appendChild(hsSvgEl('text',{x:830,y:52,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':17,'font-weight':850,fill:'#52666d','data-hs-export-range':'1'},state.startValue+'–'+(state.startValue+99)));
+    for(let index=0;index<100;index++){
+      const row=Math.floor(index/10),col=index%10,value=state.startValue+index,x=gridX+col*cell,y=gridY+row*cell;
+      const hiddenValue=exportValueHidden(state,value,pupil),rule=matchesRule(value,state.ruleMode,state.ruleNumber),isMarked=state.marked.has(value),selected=index===state.selectedIndex,isRelated=related.has(value)&&!selected;
+      const fill=hiddenValue?'#f4f6f7':rule?'#fff2c8':isRelated?'#edf5f8':'#fff';
+      const stroke=selected?'#137d75':rule?'#d6b257':'#c9d4d7',strokeWidth=selected?4:1.4;
+      const group=hsSvgEl('g',{'data-hs-export-cell':String(index)});
+      if(hiddenValue)group.setAttribute('data-hs-export-hidden','1');
+      if(rule)group.setAttribute('data-hs-export-rule','1');
+      if(isMarked)group.setAttribute('data-hs-export-marked','1');
+      if(selected)group.setAttribute('data-hs-export-selected','1');
+      group.appendChild(hsSvgEl('rect',{x,y,width:cell-3,height:cell-3,rx:7,fill,stroke,'stroke-width':strokeWidth}));
+      if(isMarked)group.appendChild(hsSvgEl('circle',{cx:x+(cell-3)/2,cy:y+(cell-3)/2,r:20,fill:'none',stroke:'#137d75','stroke-width':3}));
+      group.appendChild(hsSvgEl('text',{x:x+(cell-3)/2,y:y+(cell-3)/2+1,'text-anchor':'middle','dominant-baseline':'middle','font-family':'Arial,sans-serif','font-size':16,'font-weight':850,fill:hiddenValue?'#6c7d82':'#304b52','data-hs-export-cell-text':String(index)},hiddenValue?'?':value));
+      svg.appendChild(group);
+    }
+    svg.appendChild(hsSvgEl('text',{x:450,y:775,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':12,fill:'#6e8085'},'Yellow = rule highlight   ·   Teal ring = manual mark   ·   ? = hidden number'));
+    if(state.fromInitial)svg.appendChild(hsSvgEl('g',{'data-hs-export-initial-state':'1','aria-hidden':'true'}));
+    svg.appendChild(hsSvgEl('text',{x:830,y:846,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':10,fill:'#87969a'},'99 Club Studio'));
+    return svg;
+  }
+  function exportTargetSvg(){
+    if(exportMode!=='challenge'||!challenge||!X?.composeChallengeCardSvg)return hundredSquareExportSvg({pupil:false});
+    const prompt=CK?CK.plainText(challenge.promptHtml||challenge.prompt||''):challenge.prompt||'';
+    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
+    return X.composeChallengeCardSvg(hundredSquareExportSvg({pupil:true}),{
+      title:challenge.title||meta?.title||'Hundred Square challenge',
+      prompt,
+      responseLabel:challenge.category==='reason'?'Explain your thinking':challenge.type==='mark-rule'?'Check / notes':'Answer',
+      responseLines
+    });
+  }
+  function exportFilename(){
+    if(exportMode==='challenge'&&challenge)return'hundred-square-'+(challenge.type||'challenge');
+    return'hundred-square-'+startValue+'-'+(startValue+99);
+  }
+  function exportMessage(message){exportStatus=message;const el=q('#hs-export-status');if(el)el.textContent=message}
+  async function runExport(kind){
+    if(!X){exportMessage('Export tools are unavailable.');return}
+    const targetSvg=exportTargetSvg(),name=exportFilename();
+    try{
+      if(kind==='copy'){await X.copyPng(targetSvg);exportMessage('Image copied.')}
+      else if(kind==='png'){await X.downloadPng(targetSvg,name);exportMessage('PNG downloaded.')}
+      else if(kind==='svg'){X.downloadSvg(targetSvg,name);exportMessage('SVG downloaded.')}
+      else if(kind==='print'){X.printSvg(targetSvg,{title:'',landscape:exportMode!=='challenge'});exportMessage('Print view opened. Choose “Save as PDF” in the print dialog.')}
+    }catch(err){exportMessage(err?.message||'Could not export this hundred square.')}
+  }
+  function exportControlsHtml(){
+    const canCard=!!challenge;
+    if(!canCard&&exportMode==='challenge')exportMode='grid';
+    return '<div class="nl-panel-title"><div><strong>Use it elsewhere</strong><span>Export a clean vector grid or a pupil-ready challenge card.</span></div></div>'+
+      (canCard?'<div class="nl-export-mode hs-export-mode" role="tablist" aria-label="Export content">'+
+        '<button type="button" class="'+(exportMode==='challenge'?'is-active':'')+'" data-hs-export-mode="challenge">Challenge card</button>'+
+        '<button type="button" class="'+(exportMode==='grid'?'is-active':'')+'" data-hs-export-mode="grid">Grid only</button></div>':'')+
+      (canCard&&exportMode==='challenge'
+        ?'<label class="gd-field"><span>Answer space</span><select class="gd-select" id="hs-response-lines">'+[1,2,3,4].map(n=>'<option value="'+n+'"'+(responseLines===n?' selected':'')+'>'+n+' line'+(n===1?'':'s')+'</option>').join('')+'</select></label><p class="gd-help">Pupil export re-hides hidden or bound answers. Interactive Standard challenges export the original starting grid, not the teacher\'s completed marks.</p>'
+        :'<p class="gd-help">Grid-only export preserves the current range, highlights, marks, hidden numbers and selected cell without editing controls.</p>')+
+      '<div class="nl-export-grid hs-export-grid">'+
+        '<button class="gd-btn gd-btn--primary" id="hs-copy-image" type="button">Copy '+(canCard&&exportMode==='challenge'?'challenge':'image')+'</button>'+
+        '<button class="gd-btn" id="hs-png" type="button">PNG</button>'+
+        '<button class="gd-btn" id="hs-svg-download" type="button">SVG</button>'+
+        '<button class="gd-btn" id="hs-print" type="button">Print / PDF</button>'+
+      '</div><p class="gd-help" id="hs-export-status" role="status" aria-live="polite">'+exportStatus+'</p>';
+  }
+
   function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():controlTab==='export'?exportControlsHtml():exploreControlsHtml())}
   function renderControls(){q('#gd-controls').innerHTML=controlsHtml();bindControls()}
 
