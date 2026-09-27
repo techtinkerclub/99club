@@ -1483,7 +1483,7 @@ function barModel(){
     }else if(type==='build-model'){
       const a=randomInt(10,35),b=randomInt(8,25),c=randomInt(5,20),whole=a+b+c;
       total=whole;setParts([10,10,10]);
-      challenge=challengeObject(type,'Build a bar model for '+a+' + ? + '+c+' = '+whole+'.',{freezeModel:false,targetParts:[{value:a,unknown:false},{value:10,unknown:true},{value:c,unknown:false}],targetTotal:whole,answer:String(b)});
+      challenge=challengeObject(type,'Build a bar model for '+a+' + ? + '+c+' = '+whole+'.',String(b),{freezeModel:false,targetParts:[{value:a,unknown:false},{value:10,unknown:true},{value:c,unknown:false}],targetTotal:whole});
     }else{
       const values=[randomInt(8,25),randomInt(8,25),randomInt(5,20)],sum=values.reduce((a,b)=>a+b,0),wrong=sum+randomInt(3,12);
       total=wrong;setParts(values);
