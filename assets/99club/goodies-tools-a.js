@@ -1197,8 +1197,249 @@ function fractionWall(){
   drawWall();
 }
 
-function barModel(){function parse(){return q('#bm-parts').value.split(',').map(x=>x.trim()).filter(Boolean).map(x=>x==='?'?'?':Math.max(0,num(x,0))).slice(0,8)}function draw(){const parts=parse(),known=parts.filter(x=>x!=='?'),sum=known.reduce((a,b)=>a+b,0),unknowns=parts.filter(x=>x==='?').length,totalRaw=q('#bm-total').value.trim(),total=totalRaw?num(totalRaw,0):null,unknownValue=total!=null&&unknowns===1?Math.max(0,total-sum):null;const numeric=parts.map(x=>x==='?'?(unknownValue||Math.max(1,sum/(known.length||1))):x),den=Math.max(1,numeric.reduce((a,b)=>a+b,0));q('#gd-stage').innerHTML=`<div class="gd-vis"><div class="gd-bars"><div class="gd-bar-wrap">${parts.map((p,i)=>`<div class="gd-bar-part${p==='?'?' is-unknown':''}" style="flex:${Math.max(.1,numeric[i]/den*10)}">${p==='?'?(unknownValue!=null?unknownValue:'?'):p}</div>`).join('')}</div><div class="gd-bar-total">Total: ${total!=null?total:(unknowns?'?':sum)}</div></div><div class="gd-equation">${parts.join(' + ')} = ${total!=null?total:(unknowns?'?':sum)}</div></div>`}
-setPanels(`${field('Parts','<input class="gd-input" id="bm-parts" value="30, 20, ?">','Comma-separated values. Use ? for one unknown part.')}${field('Total (optional)','<input class="gd-input" id="bm-total" type="number" min="0" value="80">','If one part is ?, the total calculates it.')}${btn('Example problem','bm-example')}<p class="gd-help">Useful for modelling the structure of a word problem before calculating.</p>`,'');q('#bm-parts').oninput=draw;q('#bm-total').oninput=draw;q('#bm-example').onclick=()=>{const examples=[['24, ?, 16','55'],['35, 35, ?','100'],['? , 18','47'],['12, 12, 12, ?','60']];const e=examples[Math.floor(Math.random()*examples.length)];q('#bm-parts').value=e[0];q('#bm-total').value=e[1];draw()};draw()}
+function barModel(){
+  let parts=[
+    {id:1,value:30,unknown:false},
+    {id:2,value:20,unknown:false},
+    {id:3,value:30,unknown:true}
+  ];
+  let nextId=4,total=80,selectedId=3,drag=null;
+  const undoStack=[],redoStack=[];
+
+  function cloneParts(value=parts){return value.map(p=>({...p}))}
+  function snapshot(){return{parts:cloneParts(),nextId,total,selectedId}}
+  function restore(state){
+    parts=cloneParts(Array.isArray(state?.parts)?state.parts:[]);
+    nextId=Math.max(Number(state?.nextId)||1,parts.reduce((m,p)=>Math.max(m,Number(p.id)||0),0)+1);
+    total=state?.total==null?null:Math.max(0,Number(state.total)||0);
+    selectedId=parts.some(p=>String(p.id)===String(state?.selectedId))?state.selectedId:(parts[0]?.id??null);
+    syncControlInputs();
+  }
+  function remember(){
+    undoStack.push(snapshot());
+    if(undoStack.length>50)undoStack.shift();
+    redoStack.length=0;
+  }
+  function mutate(fn){
+    remember();fn();draw();renderControls();
+  }
+  function undo(){
+    if(!undoStack.length)return;
+    redoStack.push(snapshot());restore(undoStack.pop());draw();renderControls();
+  }
+  function redo(){
+    if(!redoStack.length)return;
+    undoStack.push(snapshot());restore(redoStack.pop());draw();renderControls();
+  }
+  function selectedPart(){return parts.find(p=>String(p.id)===String(selectedId))||null}
+  function knownSum(){return parts.filter(p=>!p.unknown).reduce((s,p)=>s+Math.max(0,Number(p.value)||0),0)}
+  function unknownParts(){return parts.filter(p=>p.unknown)}
+  function inferredUnknown(){
+    const u=unknownParts();
+    if(total==null||u.length!==1)return null;
+    return Math.max(0,total-knownSum());
+  }
+  function effectiveValue(part){
+    if(!part.unknown)return Math.max(0,Number(part.value)||0);
+    const inferred=inferredUnknown();
+    if(inferred!=null)return inferred;
+    const known=parts.filter(p=>!p.unknown).map(p=>Math.max(0,Number(p.value)||0));
+    return known.length?Math.max(1,known.reduce((a,b)=>a+b,0)/known.length):10;
+  }
+  function visualTotal(){return Math.max(1,parts.reduce((s,p)=>s+effectiveValue(p),0))}
+  function totalText(){
+    if(total!=null)return String(total);
+    if(unknownParts().length)return'?';
+    return String(knownSum());
+  }
+  function partText(part){
+    if(part.unknown)return'?';
+    return String(Math.round((Number(part.value)||0)*100)/100);
+  }
+  function equationText(){
+    return parts.map(partText).join(' + ')+' = '+totalText();
+  }
+  function statusText(){
+    const unknowns=unknownParts();
+    const inferred=inferredUnknown();
+    if(unknowns.length===1&&inferred!=null)return'Unknown part = '+(Math.round(inferred*100)/100);
+    if(unknowns.length>1)return unknowns.length+' unknown parts · one total cannot determine them uniquely';
+    if(total==null)return'Total = '+knownSum();
+    const diff=total-knownSum();
+    if(Math.abs(diff)<1e-9)return'Parts match the total ✓';
+    return diff>0?(Math.round(diff*100)/100)+' still unallocated':(Math.round(Math.abs(diff)*100)/100)+' over the total';
+  }
+  function syncControlInputs(){
+    const input=q('#bm-total');
+    if(input)input.value=total==null?'':String(total);
+  }
+  function addPart(){
+    if(parts.length>=8)return;
+    const value=10,id=nextId++;
+    parts.push({id,value,unknown:false});selectedId=id;
+  }
+  function duplicatePart(part){
+    if(!part||parts.length>=8)return;
+    const copy={...part,id:nextId++};parts.splice(parts.indexOf(part)+1,0,copy);selectedId=copy.id;
+  }
+  function deletePart(part){
+    if(!part||parts.length<=1)return;
+    const index=parts.indexOf(part);if(index<0)return;
+    parts.splice(index,1);
+    selectedId=parts[Math.min(index,parts.length-1)]?.id??null;
+  }
+  function changeValue(part,delta){
+    if(!part||part.unknown)return;
+    part.value=Math.max(0,Math.round(((Number(part.value)||0)+delta)*100)/100);
+  }
+  function setValue(part,value){
+    if(!part)return;
+    part.unknown=false;
+    part.value=Math.max(0,Math.round((Number(value)||0)*100)/100);
+  }
+  function toggleUnknown(part,on){
+    if(!part)return;
+    part.unknown=!!on;
+    if(!part.unknown&&!Number.isFinite(Number(part.value)))part.value=10;
+  }
+  function labelFor(index){return String.fromCharCode(65+index)}
+  function handleEnabled(index){
+    const a=parts[index],b=parts[index+1];
+    return !!(a&&b&&!a.unknown&&!b.unknown&&(Number(a.value)||0)>0&&(Number(b.value)||0)>0);
+  }
+  function adjustBoundary(index,delta){
+    if(!handleEnabled(index))return false;
+    const left=parts[index],right=parts[index+1],sum=Number(left.value)+Number(right.value);
+    if(sum<=0)return false;
+    const nextLeft=clamp(Math.round((Number(left.value)+delta)*100)/100,.01,Math.max(.01,sum-.01));
+    left.value=nextLeft;right.value=Math.round((sum-nextLeft)*100)/100;
+    return true;
+  }
+  function segmentMarkup(part,index){
+    const value=effectiveValue(part),pct=value/visualTotal()*100,selected=String(part.id)===String(selectedId);
+    return '<button type="button" class="gd-bar-segment'+(part.unknown?' is-unknown':'')+(selected?' is-selected':'')+(index===parts.length-1?' is-last':'')+'" data-bm-part="'+part.id+'" style="--bm-pct:'+pct+'%" aria-label="Part '+labelFor(index)+': '+(part.unknown?'unknown':partText(part))+'">'+
+      '<span class="gd-bar-segment__label">'+labelFor(index)+'</span><strong>'+partText(part)+'</strong>'+
+    '</button>';
+  }
+  function handleMarkup(index,cumulative){
+    const enabled=handleEnabled(index);
+    return '<button type="button" class="gd-bar-boundary" data-bm-boundary="'+index+'" style="left:'+cumulative+'%" aria-label="Resize parts '+labelFor(index)+' and '+labelFor(index+1)+'"'+(enabled?' role="slider" aria-valuemin="1" aria-valuemax="99" aria-valuenow="'+Math.round(effectiveValue(parts[index])/Math.max(.01,effectiveValue(parts[index])+effectiveValue(parts[index+1]))*100)+'"':' disabled')+'><span></span></button>';
+  }
+  function selectedEditor(){
+    const part=selectedPart();if(!part)return'';
+    const index=parts.indexOf(part),canDelete=parts.length>1;
+    return '<div class="gd-bar-selected" data-bm-selected="'+part.id+'">'+
+      '<div class="gd-bar-selected__head"><div><span>Selected part</span><strong>'+labelFor(index)+'</strong></div><div class="gd-row">'+
+        '<button class="gd-btn" id="bm-duplicate" type="button">Duplicate</button>'+
+        '<button class="gd-btn gd-btn--danger" id="bm-delete" type="button"'+(canDelete?'':' disabled')+'>Delete</button>'+
+      '</div></div>'+
+      '<label class="gd-bar-unknown-toggle"><input type="checkbox" id="bm-unknown"'+(part.unknown?' checked':'')+'> <span>Unknown part (?)</span></label>'+
+      '<div class="gd-bar-value-editor">'+
+        '<button class="gd-btn" id="bm-minus" type="button" aria-label="Decrease selected part"'+(part.unknown?' disabled':'')+'>−</button>'+
+        '<input class="gd-input" id="bm-value" type="number" min="0" step="1" value="'+(part.unknown?'':partText(part))+'"'+(part.unknown?' disabled placeholder="?"':'')+' aria-label="Selected part value">'+
+        '<button class="gd-btn" id="bm-plus" type="button" aria-label="Increase selected part"'+(part.unknown?' disabled':'')+'>+</button>'+
+      '</div>'+
+      (part.unknown&&inferredUnknown()!=null?'<p class="gd-help">With one unknown and a fixed total, this part currently resolves to <strong>'+Math.round(inferredUnknown()*100)/100+'</strong>.</p>':'')+
+    '</div>';
+  }
+  function draw(){
+    let cumulative=0,handles='';
+    parts.slice(0,-1).forEach((part,index)=>{
+      cumulative+=effectiveValue(part)/visualTotal()*100;
+      handles+=handleMarkup(index,cumulative);
+    });
+    q('#gd-stage').innerHTML='<div class="gd-vis gd-bar-workbench">'+
+      '<div class="gd-bar-summary"><div><span>Part–whole model</span><strong>'+equationText()+'</strong></div><div class="gd-object-toolbar"><button type="button" class="gd-btn" id="bm-undo"'+(undoStack.length?'':' disabled')+'>Undo</button><button type="button" class="gd-btn" id="bm-redo"'+(redoStack.length?'':' disabled')+'>Redo</button></div></div>'+
+      '<div class="gd-bar-model">'+
+        '<div class="gd-bar-total-bracket"><span></span><strong>Total '+totalText()+'</strong></div>'+
+        '<div class="gd-bar-track" id="bm-track">'+parts.map(segmentMarkup).join('')+handles+'</div>'+
+      '</div>'+
+      selectedEditor()+
+      '<div class="gd-bar-readouts"><div class="gd-readout"><span>Equation</span><strong data-bm-equation>'+equationText()+'</strong></div><div class="gd-readout"><span>Relationship</span><strong data-bm-status>'+statusText()+'</strong></div></div>'+
+    '</div>';
+    bindStage();
+  }
+  function boundaryDragMove(e){
+    if(!drag||drag.pointerId!==e.pointerId)return;
+    const dx=e.clientX-drag.startX,delta=Math.round(dx/drag.rectWidth*drag.visual),state=drag.before;
+    parts=cloneParts(state.parts);nextId=state.nextId;total=state.total;selectedId=state.selectedId;
+    if(adjustBoundary(drag.index,delta)){drag.changed=delta!==0;draw()}
+  }
+  function boundaryDragEnd(e){
+    if(!drag||drag.pointerId!==e.pointerId)return;
+    const before=drag.before,changed=drag.changed;drag=null;
+    document.removeEventListener('pointermove',boundaryDragMove);
+    document.removeEventListener('pointerup',boundaryDragEnd);
+    document.removeEventListener('pointercancel',boundaryDragEnd);
+    if(changed){undoStack.push(before);if(undoStack.length>50)undoStack.shift();redoStack.length=0}
+    draw();renderControls();
+  }
+  function bindStage(){
+    qa('[data-bm-part]',q('#gd-stage')).forEach(button=>{
+      button.onclick=()=>{selectedId=Number(button.dataset.bmPart);draw()};
+      button.onkeydown=e=>{
+        const part=parts.find(p=>String(p.id)===button.dataset.bmPart);if(!part)return;
+        if(e.key==='ArrowLeft'||e.key==='ArrowDown'){e.preventDefault();mutate(()=>changeValue(part,-1))}
+        else if(e.key==='ArrowRight'||e.key==='ArrowUp'){e.preventDefault();mutate(()=>changeValue(part,1))}
+        else if((e.key==='Delete'||e.key==='Backspace')&&parts.length>1){e.preventDefault();mutate(()=>deletePart(part))}
+      };
+    });
+    const undoBtn=q('#bm-undo');if(undoBtn)undoBtn.onclick=undo;
+    const redoBtn=q('#bm-redo');if(redoBtn)redoBtn.onclick=redo;
+    const duplicate=q('#bm-duplicate');if(duplicate)duplicate.onclick=()=>mutate(()=>duplicatePart(selectedPart()));
+    const del=q('#bm-delete');if(del)del.onclick=()=>mutate(()=>deletePart(selectedPart()));
+    const unknown=q('#bm-unknown');if(unknown)unknown.onchange=()=>mutate(()=>toggleUnknown(selectedPart(),unknown.checked));
+    const value=q('#bm-value');if(value)value.onchange=()=>mutate(()=>setValue(selectedPart(),value.value));
+    const minus=q('#bm-minus');if(minus)minus.onclick=()=>mutate(()=>changeValue(selectedPart(),-1));
+    const plus=q('#bm-plus');if(plus)plus.onclick=()=>mutate(()=>changeValue(selectedPart(),1));
+    qa('[data-bm-boundary]',q('#gd-stage')).forEach(handle=>{
+      const index=Number(handle.dataset.bmBoundary);
+      handle.onkeydown=e=>{
+        if(e.key!=='ArrowLeft'&&e.key!=='ArrowRight')return;
+        e.preventDefault();mutate(()=>adjustBoundary(index,e.key==='ArrowLeft'?-1:1));
+      };
+      handle.onpointerdown=e=>{
+        if((e.button!=null&&e.button!==0)||!handleEnabled(index))return;
+        e.preventDefault();
+        const track=q('#bm-track'),rect=track.getBoundingClientRect();
+        drag={index,pointerId:e.pointerId,startX:e.clientX,rectWidth:Math.max(1,rect.width),visual:visualTotal(),before:snapshot(),changed:false};
+        document.addEventListener('pointermove',boundaryDragMove);
+        document.addEventListener('pointerup',boundaryDragEnd,{once:true});
+        document.addEventListener('pointercancel',boundaryDragEnd,{once:true});
+      };
+    });
+  }
+  function controlsHtml(){
+    return field('Whole / total','<input class="gd-input" id="bm-total" type="number" min="0" step="1" value="'+(total==null?'':total)+'" placeholder="Auto">','Leave blank to let the known parts define the total.')+
+      '<div class="gd-row"><button class="gd-btn gd-btn--primary" id="bm-add" type="button"'+(parts.length>=8?' disabled':'')+'>Add part</button>'+btn('Example problem','bm-example')+'</div>'+
+      '<p class="gd-help">Work directly on the model: select a part to edit, duplicate, delete or mark it unknown. Drag the dividers between two known parts to repartition their combined value while keeping that pair total unchanged. Arrow keys also adjust a selected part or divider.</p>';
+  }
+  function renderControls(){q('#gd-controls').innerHTML=controlsHtml();bindControls()}
+  function bindControls(){
+    const totalInput=q('#bm-total');if(totalInput)totalInput.onchange=()=>{
+      const raw=totalInput.value.trim(),before=snapshot();
+      total=raw===''?null:Math.max(0,num(raw,0));
+      undoStack.push(before);if(undoStack.length>50)undoStack.shift();redoStack.length=0;draw();renderControls();
+    };
+    const add=q('#bm-add');if(add)add.onclick=()=>mutate(addPart);
+    const example=q('#bm-example');if(example)example.onclick=()=>{
+      const examples=[
+        {parts:[24,null,16],total:55},
+        {parts:[35,35,null],total:100},
+        {parts:[null,18],total:47},
+        {parts:[12,12,12,null],total:60}
+      ],ex=examples[Math.floor(Math.random()*examples.length)];
+      mutate(()=>{
+        parts=ex.parts.map((value,index)=>({id:index+1,value:value==null?10:value,unknown:value==null}));
+        nextId=parts.length+1;total=ex.total;selectedId=parts.find(p=>p.unknown)?.id||parts[0]?.id||null;
+      });
+    };
+  }
+
+  setPanels(controlsHtml(),'');
+  bindControls();
+  draw();
+}
 
 function hundredSquare(){let clicked=new Set();function isPrime(n){if(n<2)return false;for(let i=2;i*i<=n;i++)if(n%i===0)return false;return true}function draw(){const mode=q('#hs-mode').value,k=Math.max(1,num(q('#hs-k').value,5));q('#gd-stage').innerHTML=`<div class="gd-vis"><div class="gd-square-grid">${Array.from({length:100},(_,i)=>{const n=i+1;let on=mode==='multiples'?n%k===0:mode==='factors'?k%n===0:mode==='prime'?isPrime(n):mode==='odd'?n%2===1:mode==='even'?n%2===0:false;return `<button type="button" class="gd-square-cell${on?' is-highlight':''}${clicked.has(n)?' is-selected':''}" data-n="${n}">${n}</button>`}).join('')}</div></div>`;qa('[data-n]',q('#gd-stage')).forEach(x=>x.onclick=()=>{const n=+x.dataset.n;clicked.has(n)?clicked.delete(n):clicked.add(n);draw()})}
 setPanels(`${field('Highlight','<select class="gd-select" id="hs-mode"><option value="multiples">Multiples of…</option><option value="factors">Factors of…</option><option value="prime">Prime numbers</option><option value="odd">Odd numbers</option><option value="even">Even numbers</option><option value="none">Nothing</option></select>')}${field('Number','<input class="gd-input" id="hs-k" type="number" min="1" max="100" value="5">')}${btn('Clear my marked squares','hs-clear')}<p class="gd-help">Pupils can also click individual squares to mark their own pattern.</p>`,'');q('#hs-mode').onchange=draw;q('#hs-k').oninput=draw;q('#hs-clear').onclick=()=>{clicked.clear();draw()};draw()}

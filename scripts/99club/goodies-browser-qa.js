@@ -396,6 +396,67 @@ if(mode==='prepare'){
     assert(canvas&&canvas.classList.contains('has-grid'),'Visible snap grid is enabled');
     assert(getComputedStyle(canvas).touchAction==='pan-y','Empty canvas preserves vertical touch scrolling');
   }
+  function testBarModelWorkbench(){
+    TT99Goodies.interaction.clear();
+    assert(TT99Goodies.barModel,'Bar Model is registered');
+    TT99Goodies.barModel();
+
+    let segments=[...document.querySelectorAll('[data-bm-part]')];
+    assert(segments.length===3,'Bar Model opens with three parts');
+    assert(document.querySelector('[data-bm-equation]').textContent.trim()==='30 + 20 + ? = 80','Bar Model opens with a clear part-whole equation');
+    assert(document.querySelector('[data-bm-status]').textContent.includes('Unknown part = 30'),'One unknown is inferred from the fixed whole');
+    assert(document.querySelectorAll('[data-bm-boundary]').length===2,'Bar Model exposes direct dividers between adjacent parts');
+
+    segments[0].click();
+    assert(document.querySelector('[data-bm-selected="1"]'),'A bar segment can be selected directly');
+    segments=document.querySelectorAll('[data-bm-part]');
+    segments[0].dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
+    assert(document.querySelector('[data-bm-equation]').textContent.trim()==='31 + 20 + ? = 80','Arrow keys change a selected known part');
+    assert(document.querySelector('[data-bm-status]').textContent.includes('Unknown part = 29'),'Unknown value updates live when another part changes');
+
+    let boundary=document.querySelector('[data-bm-boundary="0"]');
+    assert(boundary&&!boundary.disabled,'Divider between two known parts is directly adjustable');
+    boundary.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
+    segments=[...document.querySelectorAll('[data-bm-part]')];
+    assert(segments[0].querySelector('strong').textContent.trim()==='32'&&segments[1].querySelector('strong').textContent.trim()==='19','Divider keyboard adjustment repartitions adjacent parts');
+    assert(Number(segments[0].querySelector('strong').textContent)+Number(segments[1].querySelector('strong').textContent)===51,'Divider adjustment preserves the adjacent pair total');
+
+    boundary=document.querySelector('[data-bm-boundary="0"]');
+    const track=document.getElementById('bm-track'),br=boundary.getBoundingClientRect(),tr=track.getBoundingClientRect();
+    const beforeLeft=Number(document.querySelectorAll('[data-bm-part]')[0].querySelector('strong').textContent);
+    pointer(boundary,'pointerdown',br.left+br.width/2,br.top+br.height/2,161);
+    pointer(document,'pointermove',br.left+br.width/2+Math.max(25,tr.width*.06),br.top+br.height/2,161);
+    pointer(document,'pointerup',br.left+br.width/2+Math.max(25,tr.width*.06),br.top+br.height/2,161);
+    segments=[...document.querySelectorAll('[data-bm-part]')];
+    const afterLeft=Number(segments[0].querySelector('strong').textContent),afterRight=Number(segments[1].querySelector('strong').textContent);
+    assert(afterLeft>beforeLeft,'Dragging a divider changes the visual partition directly');
+    assert(afterLeft+afterRight===51,'Dragging a divider also preserves the adjacent pair total');
+
+    segments[2].click();
+    const unknown=document.getElementById('bm-unknown');
+    assert(unknown&&unknown.checked,'Unknown part is editable from the selected-part panel');
+    unknown.checked=false;unknown.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(!document.querySelector('[data-bm-selected] #bm-unknown').checked,'Unknown part can be converted back to a known value');
+    assert(!document.querySelector('[data-bm-equation]').textContent.includes('?'),'Converting the unknown reveals a fully numeric equation');
+
+    document.getElementById('bm-duplicate').click();
+    assert(document.querySelectorAll('[data-bm-part]').length===4,'Selected part can be duplicated without rebuilding the model');
+    assert(document.getElementById('bm-delete')&&!document.getElementById('bm-delete').disabled,'Duplicated part can be deleted directly');
+    document.getElementById('bm-delete').click();
+    assert(document.querySelectorAll('[data-bm-part]').length===3,'Delete removes only the selected duplicated part');
+
+    document.getElementById('bm-add').click();
+    assert(document.querySelectorAll('[data-bm-part]').length===4,'Add part extends the Bar Model directly');
+    document.getElementById('bm-undo').click();
+    assert(document.querySelectorAll('[data-bm-part]').length===3,'Undo restores the previous Bar Model state');
+    document.getElementById('bm-redo').click();
+    assert(document.querySelectorAll('[data-bm-part]').length===4,'Redo reapplies the Bar Model edit');
+
+    const last=document.querySelector('.gd-bar-segment.is-last');
+    assert(last,'Final Bar Model segment has an explicit final-segment state');
+    assert(getComputedStyle(document.querySelector('[data-bm-boundary]')).touchAction==='none','Bar Model divider reserves pointer gestures for direct horizontal resizing');
+  }
+
   function testPlaceValue(){
     TT99Goodies.interaction.clear();
     assert(TT99Goodies.placeValue,'Place Value is registered');
@@ -1777,6 +1838,7 @@ if(mode==='prepare'){
       try{
         testNumberLineChallenges();
         testMathsCanvas();
+        testBarModelWorkbench();
         testPlaceValue();
         testFractions();
         testGeoboard();
@@ -1785,7 +1847,7 @@ if(mode==='prepare'){
         testArrayWorkbench();
         testMoneyWorkbench();
         testClockWorkbench();
-        result('pass','Number Line challenges, Maths Canvas, Place Value, Fraction Wall, Geoboard, Coordinates, Measurement, Array, UK Money and Clock workbench interactions work');
+        result('pass','Number Line challenges, Maths Canvas, Bar Model, Place Value, Fraction Wall, Geoboard, Coordinates, Measurement, Array, UK Money and Clock workbench interactions work');
       }catch(err){
         result('fail',err&&err.message?err.message:String(err));
       }
