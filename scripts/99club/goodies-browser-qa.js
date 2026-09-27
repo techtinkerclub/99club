@@ -691,6 +691,86 @@ if(mode==='prepare'){
     document.getElementById('ba-undo').click();
     assert(document.querySelectorAll('[data-ba-token]').length===5,'Undo restores a cleared Equation Balance');
     assert(getComputedStyle(document.querySelector('[data-ba-token]')).touchAction==='none','Equation Balance weights reserve pointer gestures for direct dragging');
+
+    TT99Goodies.balanceTool();
+    const realBalanceRandom=Math.random;
+    Math.random=()=>0;
+    document.querySelector('[data-ba-workflow="challenge"]').click();
+    assert(document.querySelector('[data-ba-challenge-tab="standard"]')&&document.querySelector('[data-ba-challenge-tab="custom"]'),'Equation Balance uses the shared Standard / Custom challenge tabs');
+    for(const type of ['missing-weight','choose-relation','find-difference']){
+      assert(document.querySelector('[data-ba-challenge-type="'+type+'"]'),'Equation Balance read challenge '+type+' is available');
+    }
+    document.getElementById('ba-generate').click();
+    assert(document.querySelector('.gd-challenge-banner'),'Generated Equation Balance challenge appears above the workbench');
+    assert(document.querySelector('[data-ba-equation]').textContent.trim()==='4 + ? = 7','Missing-weight challenge shows the deterministic balanced equation with one hidden value');
+    assert(document.querySelector('[data-ba-relation]').textContent.trim()==='?','Missing-weight challenge hides the diagnostic relationship shortcut');
+    assert([...document.querySelectorAll('[data-ba-token]')].every(x=>x.disabled),'Read-only Equation Balance challenge freezes supplied weights');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: 3'),'Missing-weight challenge reveals the deterministic answer contextually');
+    assert(document.querySelector('[data-ba-equation]').textContent.trim()==='4 + 3 = 7','Reveal restores the hidden weight value');
+
+    document.querySelector('[data-ba-workflow="challenge"]').click();
+    document.querySelector('[data-ba-challenge-type="choose-relation"]').click();
+    document.getElementById('ba-generate').click();
+    assert(document.querySelector('[data-ba-equation]').textContent.trim()==='8 ? 10','Relation challenge hides the comparison symbol');
+    assert(document.querySelector('[data-ba-relation]').textContent.trim()==='?','Relation challenge also hides the verdict shortcut');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: <'),'Relation challenge reveals the deterministic less-than answer');
+
+    document.querySelector('[data-ba-workflow="challenge"]').click();
+    document.querySelector('[data-ba-challenge-type="find-difference"]').click();
+    document.getElementById('ba-generate').click();
+    assert(document.querySelector('[data-ba-equation]').textContent.trim()==='11 > 8','Difference challenge keeps the comparison model visible');
+    assert(document.querySelector('[data-ba-relation]').textContent.trim()==='?','Difference challenge hides the numerical shortcut before Reveal');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: 3'),'Difference challenge reveals the deterministic gap');
+
+    document.querySelector('[data-ba-workflow="challenge"]').click();
+    document.querySelector('[data-ba-challenge-cat="build"]').click();
+    assert(document.querySelector('[data-ba-challenge-type="make-balance"]')&&document.querySelector('[data-ba-challenge-type="same-to-both"]'),'Both interactive balance-building challenge types are available');
+    document.getElementById('ba-generate').click();
+    assert(document.querySelector('[data-ba-equation]').textContent.trim()==='5 + 2 > 5','Make-balance challenge starts deliberately unequal');
+    assert([...document.querySelectorAll('[data-ba-token]')].every(x=>!x.disabled),'Make-balance challenge keeps direct editing active');
+    const makeCustom=document.getElementById('ba-custom');
+    makeCustom.value='2';
+    document.getElementById('ba-add-right').click();
+    assert(document.querySelector('[data-ba-equation]').textContent.trim()==='5 + 2 = 5 + 2','Pupil can balance the model by adding the missing weight to the lighter side');
+    assert(document.querySelector('[data-ba-target-status]').textContent.includes('Balanced'),'Make-balance challenge confirms equality');
+
+    document.querySelector('[data-ba-workflow="challenge"]').click();
+    document.querySelector('[data-ba-challenge-cat="build"]').click();
+    document.querySelector('[data-ba-challenge-type="same-to-both"]').click();
+    document.getElementById('ba-generate').click();
+    assert(document.querySelector('[data-ba-equation]').textContent.trim()==='5 = 5','Same-to-both challenge starts balanced');
+    assert(document.getElementById('ba-both-value').value==='2','Same-to-both challenge preloads the requested operation');
+    document.getElementById('ba-add-both').click();
+    assert(document.querySelector('[data-ba-equation]').textContent.trim()==='5 + 2 = 5 + 2','Same-to-both action preserves the equality visually');
+    assert(document.querySelector('[data-ba-target-status]').textContent.includes('Added 2 to both sides'),'Same-to-both challenge validates the exact equal operation');
+
+    document.querySelector('[data-ba-workflow="challenge"]').click();
+    document.querySelector('[data-ba-challenge-cat="reason"]').click();
+    assert(document.querySelector('[data-ba-challenge-type="spot-false-equality"]'),'False-equality reasoning challenge is available');
+    document.getElementById('ba-generate').click();
+    assert(document.querySelector('[data-ba-equation]').textContent.trim()==='4 + 3 ? 9','False-equality challenge hides the actual comparison sign');
+    assert(document.querySelector('[data-ba-relation]').textContent.trim()==='?','False-equality challenge hides the relationship diagnostic');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('No. 7 is not equal to 9.'),'False-equality Reveal explains the inconsistency');
+
+    document.querySelector('[data-ba-workflow="challenge"]').click();
+    document.querySelector('[data-ba-challenge-tab="custom"]').click();
+    const baSource=document.getElementById('ba-custom-answer-source');
+    assert(baSource&&['left-total','right-total','difference','relation','equation','selected-value'].every(source=>[...baSource.options].some(o=>o.value===source)),'Equation Balance custom challenges expose live mathematical answer sources');
+    baSource.value='difference';baSource.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.querySelector('[data-ba-relation]').textContent.trim()==='?','Binding a custom answer to difference hides the direct verdict shortcut');
+    const baLiveBefore=document.getElementById('ba-custom-live-answer').textContent.trim();
+    document.querySelector('[data-ba-token]').click();
+    const baValue=document.getElementById('ba-value');
+    baValue.value='5';baValue.dispatchEvent(new Event('change',{bubbles:true}));
+    const baLiveAfter=document.getElementById('ba-custom-live-answer').textContent.trim();
+    assert(baLiveBefore==='2'&&baLiveAfter==='1','Equation Balance custom live answer follows direct weight edits');
+    document.getElementById('ba-clear-challenge').click();
+    assert(document.querySelector('[data-ba-equation]').textContent.trim()==='8 + 4 = 12','Ending Equation Balance challenges restores the teacher setup');
+    Math.random=realBalanceRandom;
   }
 
   function testPlaceValue(){
