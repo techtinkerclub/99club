@@ -916,6 +916,99 @@ if(mode==='prepare'){
 
     document.querySelector('[data-hs-interaction="select"]').click();
     assert(getComputedStyle(document.querySelector('[data-hs-index]')).touchAction==='pan-y','Select mode preserves vertical touch scrolling');
+
+    TT99Goodies.hundredSquare();
+    const realHundredRandom=Math.random;
+    Math.random=()=>0;
+    document.querySelector('[data-hs-workflow="challenge"]').click();
+    assert(document.querySelector('[data-hs-challenge-tab="standard"]')&&document.querySelector('[data-hs-challenge-tab="custom"]'),'Hundred Square uses the shared Standard / Custom challenge tabs');
+    for(const type of ['missing-number','one-more','one-less','ten-more','ten-less']){
+      assert(document.querySelector('[data-hs-challenge-type="'+type+'"]'),'Hundred Square read challenge '+type+' is available');
+    }
+    document.getElementById('hs-generate').click();
+    assert(document.querySelector('.gd-challenge-banner'),'Generated Hundred Square challenge appears above the grid');
+    assert(document.querySelector('[data-hs-value="12"]').textContent.trim()==='?','Missing-number challenge hides the deterministic target cell');
+    assert([...document.querySelectorAll('[data-hs-index]')].every(x=>x.disabled),'Read-only Hundred Square challenge freezes supplied cells');
+    assert(!document.querySelector('.gd-hs-selected'),'Missing-number challenge hides the selected-number relationship panel');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: 12'),'Missing-number challenge reveals the deterministic answer contextually');
+    assert(document.querySelector('[data-hs-value="12"]').textContent.trim()==='12','Reveal restores the hidden target number');
+
+    document.querySelector('[data-hs-workflow="challenge"]').click();
+    document.querySelector('[data-hs-challenge-type="one-more"]').click();
+    document.getElementById('hs-generate').click();
+    assert(document.querySelector('.gd-challenge-prompt').textContent.includes('one more than 11'),'One-more challenge states the deterministic anchor');
+    assert(document.querySelector('[data-hs-value="11"]').classList.contains('is-current'),'One-more challenge clearly identifies the anchor cell');
+    assert(document.querySelector('[data-hs-value="12"]').textContent.trim()==='?','One-more challenge hides the answer cell');
+    assert(!document.querySelector('.gd-hs-selected'),'One-more challenge does not leak the answer through the relationship panel');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: 12'),'One-more Reveal shows the deterministic answer');
+
+    document.querySelector('[data-hs-workflow="challenge"]').click();
+    document.querySelector('[data-hs-challenge-cat="patterns"]').click();
+    assert(document.querySelector('[data-hs-challenge-type="continue-pattern"]')&&document.querySelector('[data-hs-challenge-type="mark-rule"]'),'Hundred Square pattern challenge types are available');
+    document.getElementById('hs-generate').click();
+    assert(document.querySelector('.gd-challenge-prompt').textContent.includes('+2 pattern'),'Continue-pattern challenge uses the deterministic +2 step');
+    assert(['5','7','9'].every(v=>document.querySelector('[data-hs-value="'+v+'"]').classList.contains('is-marked')),'Continue-pattern challenge shows the three seed marks');
+    assert(document.querySelector('[data-hs-value="11"]').textContent.trim()==='?','Continue-pattern challenge hides the next term');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: 11'),'Continue-pattern Reveal gives the next term');
+
+    document.querySelector('[data-hs-workflow="challenge"]').click();
+    document.querySelector('[data-hs-challenge-cat="patterns"]').click();
+    document.querySelector('[data-hs-challenge-type="mark-rule"]').click();
+    document.getElementById('hs-generate').click();
+    assert(document.querySelector('.gd-challenge-prompt').textContent.includes('multiples of 10'),'Mark-rule challenge deterministically asks for multiples of 10');
+    assert([...document.querySelectorAll('[data-hs-index]')].every(x=>!x.disabled),'Mark-rule challenge keeps the grid directly interactive');
+    assert(document.querySelector('[data-hs-target-status]').textContent.includes('Keep looking'),'Mark-rule challenge starts without giving away target cells');
+    document.querySelector('[data-hs-interaction="select"]').click();
+    let wrongCell=document.querySelector('[data-hs-value="1"]');
+    wrongCell.click();
+    wrongCell=document.querySelector('[data-hs-value="1"]');
+    wrongCell.dispatchEvent(new KeyboardEvent('keydown',{key:' ',bubbles:true}));
+    assert(document.querySelector('[data-hs-target-status]').textContent.includes('do not fit'),'Mark-rule challenge detects an incorrect mark without revealing the correct cells');
+    document.getElementById('hs-undo').click();
+    assert(document.querySelector('[data-hs-target-status]').textContent.includes('Keep looking'),'Undo removes the incorrect mark in an interactive challenge');
+    for(const v of [10,20,30,40,50,60,70,80,90,100]){
+      let cell=document.querySelector('[data-hs-value="'+v+'"]');
+      cell.click();
+      cell=document.querySelector('[data-hs-value="'+v+'"]');
+      cell.dispatchEvent(new KeyboardEvent('keydown',{key:' ',bubbles:true}));
+    }
+    assert(document.querySelector('[data-hs-target-status]').textContent.includes('All matching numbers marked'),'Mark-rule challenge validates the exact completed pattern');
+
+    document.querySelector('[data-hs-workflow="challenge"]').click();
+    document.querySelector('[data-hs-challenge-cat="reason"]').click();
+    assert(document.querySelector('[data-hs-challenge-type="spot-wrong-mark"]'),'Hundred Square reasoning challenge is available');
+    document.getElementById('hs-generate').click();
+    assert(document.querySelector('[data-hs-value="5"]').classList.contains('is-marked'),'Spot-wrong-mark challenge includes the deterministic incorrect mark');
+    assert(!document.querySelector('[data-hs-value="5"]').classList.contains('is-current'),'Spot-wrong-mark challenge does not outline the answer cell');
+    assert(document.querySelector('[data-hs-value="10"]').classList.contains('is-current'),'Reasoning challenge keeps a neutral marked cell selected instead');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: 5'),'Spot-wrong-mark Reveal identifies the incorrect mark');
+
+    document.querySelector('[data-hs-workflow="challenge"]').click();
+    document.querySelector('[data-hs-challenge-tab="custom"]').click();
+    const hsSource=document.getElementById('hs-custom-answer-source');
+    assert(hsSource&&['selected-value','one-more','ten-more','marked-count','hidden-count'].every(source=>[...hsSource.options].some(o=>o.value===source)),'Hundred Square custom challenges expose useful live grid answer sources');
+    hsSource.value='selected-value';hsSource.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(!document.querySelector('.gd-hs-selected'),'Binding a custom answer to the selected number hides the selected-number panel');
+    assert(document.getElementById('hs-custom-live-answer').textContent.trim()==='10','Selected-value custom answer starts from the current neutral cell');
+    document.querySelector('[data-hs-value="20"]').click();
+    assert(document.getElementById('hs-custom-live-answer').textContent.trim()==='20','Selected-value custom answer follows direct cell selection');
+
+    hsSource.value='marked-count';hsSource.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.getElementById('hs-custom-live-answer').textContent.trim()==='11','Marked-count custom answer reflects the current marked set');
+    let extraCell=document.querySelector('[data-hs-value="1"]');
+    extraCell.click();
+    extraCell=document.querySelector('[data-hs-value="1"]');
+    extraCell.dispatchEvent(new KeyboardEvent('keydown',{key:' ',bubbles:true}));
+    assert(document.getElementById('hs-custom-live-answer').textContent.trim()==='12','Marked-count custom answer updates after a direct mark');
+
+    document.getElementById('hs-clear-challenge').click();
+    assert(document.querySelector('[data-hs-value="1"]').textContent.trim()==='1'&&document.querySelector('[data-hs-value="100"]').textContent.trim()==='100','Ending Hundred Square challenges restores the teacher grid');
+    assert(document.querySelectorAll('.gd-hs-cell.is-rule').length===20,'Ending Hundred Square challenges restores the teacher pattern highlight');
+    Math.random=realHundredRandom;
   }
 
   function testPlaceValue(){
