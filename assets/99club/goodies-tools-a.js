@@ -1818,6 +1818,12 @@ function barModel(){
   function bindControls(){
     qa('[data-bm-workflow]',q('#gd-controls')).forEach(button=>button.onclick=()=>{controlTab=button.dataset.bmWorkflow;renderControls()});
     bindModelControls();
+    if(controlTab==='export'){
+      qa('[data-bm-export-mode]',q('#gd-controls')).forEach(button=>button.onclick=()=>{exportMode=button.dataset.bmExportMode;exportStatus='';renderControls()});
+      const lines=q('#bm-response-lines');if(lines)lines.onchange=()=>{responseLines=clamp(Math.round(num(lines.value,1)),1,4)};
+      [['bm-copy-image','copy'],['bm-png','png'],['bm-svg-download','svg'],['bm-print','print']].forEach(([id,kind])=>{const button=q('#'+id);if(button)button.onclick=()=>runExport(kind)});
+      return;
+    }
     if(controlTab!=='challenge')return;
     qa('[data-bm-challenge-tab]',q('#gd-controls')).forEach(button=>button.onclick=()=>{
       if(button.dataset.bmChallengeTab==='custom')enterCustomChallenge();
