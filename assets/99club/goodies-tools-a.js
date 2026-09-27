@@ -1943,8 +1943,19 @@ function hundredSquare(){
     const next=on==null?!hidden.has(value):!!on;
     if(next)hidden.add(value);else hidden.delete(value);
   }
+  function boundHiddenValue(){
+    if(!challenge||challenge.mode!=='custom'||challenge.revealed||challenge.answerMode!=='bound')return null;
+    const n=currentValue();
+    if(challenge.answerSource==='selected-value')return n;
+    if(challenge.answerSource==='one-less')return n-1;
+    if(challenge.answerSource==='one-more')return n+1;
+    if(challenge.answerSource==='ten-less')return n-10;
+    if(challenge.answerSource==='ten-more')return n+10;
+    return null;
+  }
   function valueHidden(value){
-    return hidden.has(value)&&!(challenge?.mode==='standard'&&challenge.revealed);
+    const teacherHidden=hidden.has(value)&&!(challenge?.mode==='standard'&&challenge.revealed);
+    return teacherHidden||boundHiddenValue()===value;
   }
   function moveSelection(delta){
     if(challengeFrozen())return;
