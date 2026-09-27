@@ -624,6 +624,75 @@ if(mode==='prepare'){
     Math.random=realBarRandom;
   }
 
+  function testEquationBalanceWorkbench(){
+    TT99Goodies.interaction.clear();
+    assert(TT99Goodies.balanceTool,'Equation Balance is registered');
+    TT99Goodies.balanceTool();
+
+    let weights=[...document.querySelectorAll('[data-ba-token]')];
+    assert(weights.length===3,'Equation Balance opens with three direct weights');
+    assert(document.querySelector('[data-ba-equation]').textContent.trim()==='8 + 4 = 12','Equation Balance opens with a balanced 8 + 4 = 12 model');
+    assert(document.querySelector('[data-ba-relation]').textContent.includes('12 = 12')&&document.querySelector('[data-ba-relation]').textContent.includes('balanced'),'Equation Balance reports equality from underlying pan totals');
+    assert(document.querySelectorAll('[data-ba-drop]').length===2,'Equation Balance exposes both pans as direct drop areas');
+
+    weights[0].click();
+    assert(document.querySelector('[data-ba-selected="1"]'),'A weight can be selected directly');
+    weights=document.querySelectorAll('[data-ba-token]');
+    weights[0].dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
+    assert(document.querySelector('[data-ba-equation]').textContent.trim()==='9 + 4 > 12','Arrow keys edit a selected weight and update the relationship');
+    document.getElementById('ba-undo').click();
+    assert(document.querySelector('[data-ba-equation]').textContent.trim()==='8 + 4 = 12','Undo restores the previous balanced equation');
+    document.getElementById('ba-redo').click();
+    assert(document.querySelector('[data-ba-equation]').textContent.trim()==='9 + 4 > 12','Redo reapplies the direct weight edit');
+    document.getElementById('ba-undo').click();
+
+    const bothValue=document.getElementById('ba-both-value');
+    bothValue.value='1';
+    document.getElementById('ba-add-both').click();
+    assert(document.querySelector('[data-ba-equation]').textContent.trim()==='8 + 4 + 1 = 12 + 1','Adding the same value to both sides preserves the equation');
+    assert(document.querySelector('[data-ba-relation]').textContent.includes('13 = 13'),'Adding the same amount preserves equality numerically');
+
+    const hidden=document.getElementById('ba-hidden');
+    assert(hidden,'Newly added weight is selected for contextual editing');
+    hidden.checked=true;hidden.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.querySelector('[data-ba-equation]').textContent.trim()==='8 + 4 + 1 = 12 + ?','A selected weight can become a missing-number value without changing its underlying weight');
+    assert(document.querySelector('[data-ba-relation]').textContent.includes('13 = 13'),'Hiding a value does not change balance physics');
+
+    const totals=document.getElementById('ba-show-totals');
+    totals.checked=false;totals.dispatchEvent(new Event('change',{bubbles:true}));
+    assert([...document.querySelectorAll('.gd-eq-total')].every(x=>x.textContent.trim()===''),'Pan totals can be hidden for pupil-facing exploration');
+    totals.checked=true;totals.dispatchEvent(new Event('change',{bubbles:true}));
+
+    document.getElementById('ba-move').click();
+    assert(document.querySelector('[data-ba-equation]').textContent.trim()==='8 + 4 + 1 + ? > 12','Move-to-other-side acts on the selected weight directly');
+    assert(document.querySelector('[data-ba-relation]').textContent.includes('14 > 12'),'Moving a positive weight across the balance changes the relationship');
+    document.getElementById('ba-undo').click();
+    assert(document.querySelector('[data-ba-relation]').textContent.includes('13 = 13'),'Undo restores equality after moving a weight');
+
+    let first=document.querySelector('[data-ba-token="1"]');
+    const fr=first.getBoundingClientRect(),rightPan=document.querySelector('[data-ba-drop="right"]').getBoundingClientRect();
+    const sx=fr.left+fr.width/2,sy=fr.top+fr.height/2,tx=rightPan.left+rightPan.width/2,ty=rightPan.top+rightPan.height/2;
+    pointer(first,'pointerdown',sx,sy,171);
+    pointer(document,'pointermove',tx,ty,171);
+    pointer(document,'pointerup',tx,ty,171);
+    assert(document.querySelector('[data-ba-equation]').textContent.trim()==='4 + 1 < 12 + ? + 8','Dragging a weight across the centre moves it to the other pan');
+    assert(document.querySelector('[data-ba-relation]').textContent.includes('5 < 21'),'Drag-across-pan updates the physical balance totals');
+    document.getElementById('ba-undo').click();
+    assert(document.querySelector('[data-ba-relation]').textContent.includes('13 = 13'),'Undo restores a dragged weight to its original side');
+
+    const duplicate=document.getElementById('ba-duplicate');
+    duplicate.click();
+    assert(document.querySelectorAll('[data-ba-token]').length===6,'Selected weight can be duplicated directly');
+    document.getElementById('ba-delete').click();
+    assert(document.querySelectorAll('[data-ba-token]').length===5,'Delete removes only the selected duplicate');
+
+    document.getElementById('ba-clear').click();
+    assert(document.querySelectorAll('[data-ba-token]').length===0,'Clear all empties both Equation Balance pans');
+    document.getElementById('ba-undo').click();
+    assert(document.querySelectorAll('[data-ba-token]').length===5,'Undo restores a cleared Equation Balance');
+    assert(getComputedStyle(document.querySelector('[data-ba-token]')).touchAction==='none','Equation Balance weights reserve pointer gestures for direct dragging');
+  }
+
   function testPlaceValue(){
     TT99Goodies.interaction.clear();
     assert(TT99Goodies.placeValue,'Place Value is registered');
@@ -2006,6 +2075,7 @@ if(mode==='prepare'){
         testNumberLineChallenges();
         testMathsCanvas();
         testBarModelWorkbench();
+        testEquationBalanceWorkbench();
         testPlaceValue();
         testFractions();
         testGeoboard();
@@ -2014,7 +2084,7 @@ if(mode==='prepare'){
         testArrayWorkbench();
         testMoneyWorkbench();
         testClockWorkbench();
-        result('pass','Number Line challenges, Maths Canvas, Bar Model, Place Value, Fraction Wall, Geoboard, Coordinates, Measurement, Array, UK Money and Clock workbench interactions work');
+        result('pass','Number Line challenges, Maths Canvas, Bar Model, Equation Balance, Place Value, Fraction Wall, Geoboard, Coordinates, Measurement, Array, UK Money and Clock workbench interactions work');
       }catch(err){
         result('fail',err&&err.message?err.message:String(err));
       }
