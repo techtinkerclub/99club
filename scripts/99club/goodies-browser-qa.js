@@ -994,10 +994,13 @@ if(mode==='prepare'){
     hsSource.value='selected-value';hsSource.dispatchEvent(new Event('change',{bubbles:true}));
     assert(!document.querySelector('.gd-hs-selected'),'Binding a custom answer to the selected number hides the selected-number panel');
     assert(document.getElementById('hs-custom-live-answer').textContent.trim()==='10','Selected-value custom answer starts from the current neutral cell');
+    assert(document.querySelector('[data-hs-value="10"]').textContent.trim()==='?'&&document.querySelector('[data-hs-value="10"]').getAttribute('aria-label')==='Hidden number','Selected-value binding hides the answer cell itself without an accessibility leak');
     document.querySelector('[data-hs-value="20"]').click();
     assert(document.getElementById('hs-custom-live-answer').textContent.trim()==='20','Selected-value custom answer follows direct cell selection');
+    assert(document.querySelector('[data-hs-value="20"]').textContent.trim()==='?'&&document.querySelector('[data-hs-value="10"]').textContent.trim()==='10','Bound hidden cell follows the current selection dynamically');
 
     hsSource.value='marked-count';hsSource.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.querySelector('[data-hs-value="20"]').textContent.trim()==='20','Switching to a non-cell answer source restores the previously bound cell');
     assert(document.getElementById('hs-custom-live-answer').textContent.trim()==='11','Marked-count custom answer reflects the current marked set');
     let extraCell=document.querySelector('[data-hs-value="1"]');
     extraCell.click();
