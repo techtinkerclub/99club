@@ -1475,6 +1475,12 @@ function balanceTool(){
   function bindControls(){
     qa('[data-ba-workflow]',q('#gd-controls')).forEach(button=>button.onclick=()=>{controlTab=button.dataset.baWorkflow;renderControls()});
     bindModelControls();
+    if(controlTab==='export'){
+      qa('[data-ba-export-mode]',q('#gd-controls')).forEach(button=>button.onclick=()=>{exportMode=button.dataset.baExportMode;exportStatus='';renderControls()});
+      const lines=q('#ba-response-lines');if(lines)lines.onchange=()=>{responseLines=clamp(Math.round(num(lines.value,1)),1,4)};
+      [['ba-copy-image','copy'],['ba-png','png'],['ba-svg-download','svg'],['ba-print','print']].forEach(([id,kind])=>{const button=q('#'+id);if(button)button.onclick=()=>runExport(kind)});
+      return;
+    }
     if(controlTab!=='challenge')return;
     qa('[data-ba-challenge-tab]',q('#gd-controls')).forEach(button=>button.onclick=()=>{
       if(button.dataset.baChallengeTab==='custom')enterCustomChallenge();
