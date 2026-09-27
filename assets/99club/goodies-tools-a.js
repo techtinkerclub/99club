@@ -1198,6 +1198,7 @@ function fractionWall(){
 }
 
 function barModel(){
+  const CK=G.challengeKit;
   let parts=[
     {id:1,value:30,unknown:false},
     {id:2,value:20,unknown:false},
@@ -1205,6 +1206,24 @@ function barModel(){
   ];
   let nextId=4,total=80,selectedId=3,drag=null;
   const undoStack=[],redoStack=[];
+  const CHALLENGE_CATEGORIES=[
+    {id:'read',label:'Read & solve'},
+    {id:'compare',label:'Compare'},
+    {id:'groups',label:'Equal groups'},
+    {id:'build',label:'Build'},
+    {id:'reason',label:'Reasoning'}
+  ];
+  const CHALLENGE_TEMPLATES=[
+    {id:'missing-part',category:'read',title:'Find the missing part',desc:'Use the whole and known parts to find one missing part.'},
+    {id:'find-whole',category:'read',title:'Find the whole',desc:'Add the shown parts to find the whole.'},
+    {id:'write-equation',category:'read',title:'Write the equation',desc:'Write an equation that matches the shown model.'},
+    {id:'compare-difference',category:'compare',title:'Find the difference',desc:'Compare two aligned bars and find how much more one represents.'},
+    {id:'equal-groups-total',category:'groups',title:'Equal groups — whole',desc:'Use equal parts to find the whole.'},
+    {id:'equal-groups-part',category:'groups',title:'Equal groups — one part',desc:'Use the whole and number of equal parts to find one part.'},
+    {id:'build-model',category:'build',title:'Build the model',desc:'Edit the bar to match a given part–whole relationship.'},
+    {id:'spot-error',category:'reason',title:'Spot the error',desc:'Decide whether a shown part–whole model is mathematically consistent.'}
+  ];
+  let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='missing-part',challenge=null,beforeChallenge=null;
 
   function cloneParts(value=parts){return value.map(p=>({...p}))}
   function snapshot(){return{parts:cloneParts(),nextId,total,selectedId}}
@@ -1221,14 +1240,15 @@ function barModel(){
     redoStack.length=0;
   }
   function mutate(fn){
+    if(challengeFrozen())return;
     remember();fn();draw();renderControls();
   }
   function undo(){
-    if(!undoStack.length)return;
+    if(!undoStack.length||challengeFrozen())return;
     redoStack.push(snapshot());restore(undoStack.pop());draw();renderControls();
   }
   function redo(){
-    if(!redoStack.length)return;
+    if(!redoStack.length||challengeFrozen())return;
     undoStack.push(snapshot());restore(redoStack.pop());draw();renderControls();
   }
   function selectedPart(){return parts.find(p=>String(p.id)===String(selectedId))||null}
@@ -1239,29 +1259,49 @@ function barModel(){
     if(total==null||u.length!==1)return null;
     return Math.max(0,total-knownSum());
   }
-  function effectiveValue(part){
+  function solvedPartValue(part){
+    if(!part)return null;
     if(!part.unknown)return Math.max(0,Number(part.value)||0);
     const inferred=inferredUnknown();
-    if(inferred!=null)return inferred;
+    return inferred==null?null:inferred;
+  }
+  function effectiveValue(part){
+    const solved=solvedPartValue(part);
+    if(solved!=null)return solved;
     const known=parts.filter(p=>!p.unknown).map(p=>Math.max(0,Number(p.value)||0));
     return known.length?Math.max(1,known.reduce((a,b)=>a+b,0)/known.length):10;
   }
   function visualTotal(){return Math.max(1,parts.reduce((s,p)=>s+effectiveValue(p),0))}
-  function totalText(){
-    if(total!=null)return String(total);
-    if(unknownParts().length)return'?';
-    return String(knownSum());
+  function challengeHidden(key){
+    return !!(challenge&&!challenge.revealed&&challenge[key]);
   }
-  function partText(part){
+  function hiddenPart(index){
+    return !!(challenge&&!challenge.revealed&&Array.isArray(challenge.hiddenPartIndexes)&&challenge.hiddenPartIndexes.includes(index));
+  }
+  function totalText(raw=false){
+    if(!raw&&challengeHidden('hiddenTotal'))return'?';
+    if(total!=null)return String(Math.round(total*100)/100);
+    if(unknownParts().length)return'?';
+    return String(Math.round(knownSum()*100)/100);
+  }
+  function partText(part,index,raw=false){
+    if(!raw&&hiddenPart(index))return'?';
     if(part.unknown)return'?';
     return String(Math.round((Number(part.value)||0)*100)/100);
   }
-  function equationText(){
-    return parts.map(partText).join(' + ')+' = '+totalText();
+  function solvedPartText(part){
+    const value=solvedPartValue(part);
+    return value==null?'?':String(Math.round(value*100)/100);
   }
-  function statusText(){
-    const unknowns=unknownParts();
-    const inferred=inferredUnknown();
+  function solvedEquation(){
+    return parts.map(solvedPartText).join(' + ')+' = '+(total!=null?Math.round(total*100)/100:knownSum());
+  }
+  function equationText(){
+    if(challengeHidden('hiddenEquation'))return'?';
+    return parts.map((p,i)=>partText(p,i)).join(' + ')+' = '+totalText();
+  }
+  function rawStatusText(){
+    const unknowns=unknownParts(),inferred=inferredUnknown();
     if(unknowns.length===1&&inferred!=null)return'Unknown part = '+(Math.round(inferred*100)/100);
     if(unknowns.length>1)return unknowns.length+' unknown parts · one total cannot determine them uniquely';
     if(total==null)return'Total = '+knownSum();
@@ -1269,6 +1309,21 @@ function barModel(){
     if(Math.abs(diff)<1e-9)return'Parts match the total ✓';
     return diff>0?(Math.round(diff*100)/100)+' still unallocated':(Math.round(Math.abs(diff)*100)/100)+' over the total';
   }
+  function buildOnTarget(){
+    if(!challenge||challenge.type!=='build-model'||!Array.isArray(challenge.targetParts))return false;
+    if(Number(total)!==Number(challenge.targetTotal)||parts.length!==challenge.targetParts.length)return false;
+    return challenge.targetParts.every((target,index)=>{
+      const p=parts[index];if(!p)return false;
+      if(target.unknown!==!!p.unknown)return false;
+      return target.unknown||Math.abs(Number(p.value)-Number(target.value))<1e-9;
+    });
+  }
+  function statusText(){
+    if(challengeHidden('hiddenStatus'))return'?';
+    if(challenge?.type==='build-model')return buildOnTarget()?'On target ✓':'Keep editing the model';
+    return rawStatusText();
+  }
+  function challengeFrozen(){return !!(challenge&&challenge.mode==='standard'&&challenge.freezeModel)}
   function syncControlInputs(){
     const input=q('#bm-total');
     if(input)input.value=total==null?'':String(total);
@@ -1304,6 +1359,7 @@ function barModel(){
   }
   function labelFor(index){return String.fromCharCode(65+index)}
   function handleEnabled(index){
+    if(challengeFrozen())return false;
     const a=parts[index],b=parts[index+1];
     return !!(a&&b&&!a.unknown&&!b.unknown&&(Number(a.value)||0)>0&&(Number(b.value)||0)>0);
   }
@@ -1315,10 +1371,130 @@ function barModel(){
     left.value=nextLeft;right.value=Math.round((sum-nextLeft)*100)/100;
     return true;
   }
+  function resolveAnswerSource(source){
+    if(source==='total')return total==null?'':String(Math.round(total*100)/100);
+    if(source==='equation')return solvedEquation();
+    if(source==='parts-count')return String(parts.length);
+    if(source==='unknown'){
+      const inferred=inferredUnknown();return inferred==null?'':String(Math.round(inferred*100)/100);
+    }
+    if(source==='difference'&&challenge?.comparison)return String(Math.round(challenge.comparison.difference*100)/100);
+    if(source.startsWith('part:')){
+      const index=Number(source.split(':')[1]),part=parts[index],value=solvedPartValue(part);
+      return value==null?'':String(Math.round(value*100)/100);
+    }
+    return'';
+  }
+  function customAnswerSources(){
+    const sources=[
+      {id:'total',label:'Whole / total'},
+      {id:'equation',label:'Solved equation'},
+      {id:'parts-count',label:'Number of parts'}
+    ];
+    if(inferredUnknown()!=null)sources.push({id:'unknown',label:'Resolved unknown part'});
+    parts.forEach((part,index)=>sources.push({id:'part:'+index,label:'Part '+labelFor(index)+' value'}));
+    if(challenge?.comparison)sources.push({id:'difference',label:'Comparison difference'});
+    return sources;
+  }
+  function clearBoundHiding(){
+    if(!challenge)return;
+    challenge.hiddenTotal=false;challenge.hiddenEquation=false;challenge.hiddenStatus=false;challenge.hiddenPartIndexes=[];
+  }
+  function applyBoundHiding(source){
+    clearBoundHiding();if(!challenge)return;
+    if(source==='total')challenge.hiddenTotal=true;
+    else if(source==='equation')challenge.hiddenEquation=true;
+    else if(source==='unknown'){
+      const index=parts.findIndex(p=>p.unknown);if(index>=0)challenge.hiddenPartIndexes=[index];
+      challenge.hiddenStatus=true;
+    }else if(source.startsWith('part:')){
+      const index=Number(source.split(':')[1]);if(Number.isInteger(index))challenge.hiddenPartIndexes=[index];
+    }else if(source==='difference')challenge.hiddenStatus=true;
+  }
+  function updateChallengeAnswer(){
+    if(!challenge||challenge.answerMode!=='bound'||!challenge.answerSource)return;
+    const answer=resolveAnswerSource(challenge.answerSource);if(answer!=='')challenge.answer=answer;
+    const live=q('#bm-custom-live-answer');if(live)live.textContent=challenge.answer||'—';
+    if(challenge.revealed){
+      const shown=q('.gd-challenge-actions em',q('#gd-stage'));if(shown)shown.textContent='Answer: '+challenge.answer;
+    }
+  }
+  function challengeObject(type,prompt,answer,extra={}){
+    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===type);
+    const raw={mode:'standard',type,category:meta?.category||'',title:'',prompt,promptHtml:prompt,answer:String(answer??''),answerMode:'bound',answerSource:'',revealed:false,freezeModel:true,hiddenTotal:false,hiddenEquation:false,hiddenStatus:false,hiddenPartIndexes:[],comparison:null,targetParts:null,targetTotal:null,...extra};
+    return CK?CK.normalise(raw):raw;
+  }
+  function randomInt(min,max){return min+Math.floor(Math.random()*(max-min+1))}
+  function setParts(values){
+    parts=values.map((entry,index)=>{
+      const unknown=entry==null||entry==='?';
+      return{id:index+1,value:unknown?10:Number(entry),unknown};
+    });
+    nextId=parts.length+1;selectedId=parts.find(p=>p.unknown)?.id||parts[0]?.id||null;
+  }
+  function restoreBeforeChallenge(){if(beforeChallenge){restore(beforeChallenge);beforeChallenge=null}}
+  function clearChallenge(){
+    restoreBeforeChallenge();challenge=null;challengeTab='standard';controlTab='challenge';undoStack.length=0;redoStack.length=0;renderControls();draw();
+  }
+  function enterCustomChallenge(){
+    if(!beforeChallenge)beforeChallenge=snapshot();
+    const wasCustom=challenge?.mode==='custom';
+    if(CK)challenge=CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''});
+    if(!wasCustom)clearBoundHiding();
+    challenge.freezeModel=false;challenge.revealed=false;
+    challengeTab='custom';controlTab='challenge';renderControls();draw();
+  }
+  function setCustomAnswerSource(source){
+    if(!challenge||challenge.mode!=='custom')return;
+    if(source==='manual'){challenge.answerMode='manual';challenge.answerSource='';clearBoundHiding()}
+    else if(source==='generated'){challenge.answerMode='bound';challenge.answerSource='';clearBoundHiding()}
+    else{challenge.answerMode='bound';challenge.answerSource=source;challenge.answer=resolveAnswerSource(source);applyBoundHiding(source)}
+    challenge.revealed=false;renderControls();draw();
+  }
+  function generateChallenge(type){
+    const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
+    if(!beforeChallenge)beforeChallenge=snapshot();else restore(beforeChallenge);
+    undoStack.length=0;redoStack.length=0;
+    if(type==='missing-part'){
+      const a=randomInt(12,45),b=randomInt(8,30),c=randomInt(6,25);
+      total=a+b+c;setParts([a,null,c]);
+      challenge=challengeObject(type,'Find the missing part in this part–whole model.',b,{hiddenStatus:true,hiddenPartIndexes:[1]});
+    }else if(type==='find-whole'){
+      const values=[randomInt(8,30),randomInt(8,30),randomInt(5,25)];
+      total=values.reduce((a,b)=>a+b,0);setParts(values);
+      challenge=challengeObject(type,'What is the whole represented by these parts?',total,{hiddenTotal:true,hiddenStatus:true});
+    }else if(type==='write-equation'){
+      const values=[randomInt(5,25),randomInt(5,25),randomInt(5,25)];
+      total=values.reduce((a,b)=>a+b,0);setParts(values);
+      challenge=challengeObject(type,'Write an addition equation that matches this bar model.',values.join(' + ')+' = '+total,{hiddenEquation:true});
+    }else if(type==='compare-difference'){
+      const smaller=randomInt(20,60),difference=randomInt(5,30),larger=smaller+difference;
+      setParts([larger]);total=larger;
+      challenge=challengeObject(type,'The top bar represents '+larger+' and the lower bar represents '+smaller+'. What is the difference?',difference,{hiddenStatus:true,comparison:{larger,smaller,difference,topLabel:'A',bottomLabel:'B'}});
+    }else if(type==='equal-groups-total'){
+      const groups=randomInt(3,7),each=randomInt(3,12);
+      total=groups*each;setParts(Array.from({length:groups},()=>each));
+      challenge=challengeObject(type,'There are '+groups+' equal parts of '+each+'. What is the whole?',total,{hiddenTotal:true,hiddenStatus:true});
+    }else if(type==='equal-groups-part'){
+      const groups=randomInt(3,7),each=randomInt(3,12);
+      total=groups*each;setParts(Array.from({length:groups},()=>null));
+      challenge=challengeObject(type,'The whole is '+total+' and it is split into '+groups+' equal parts. What is one part worth?',each,{hiddenStatus:true});
+    }else if(type==='build-model'){
+      const a=randomInt(10,35),b=randomInt(8,25),c=randomInt(5,20),whole=a+b+c;
+      total=whole;setParts([10,10,10]);
+      challenge=challengeObject(type,'Build a bar model for '+a+' + ? + '+c+' = '+whole+'.',{freezeModel:false,targetParts:[{value:a,unknown:false},{value:10,unknown:true},{value:c,unknown:false}],targetTotal:whole,answer:String(b)});
+    }else{
+      const values=[randomInt(8,25),randomInt(8,25),randomInt(5,20)],sum=values.reduce((a,b)=>a+b,0),wrong=sum+randomInt(3,12);
+      total=wrong;setParts(values);
+      challenge=challengeObject(type,'A pupil says this part–whole model is correct. Are they right? Explain your answer.','No. The parts total '+sum+', not '+wrong+'.',{hiddenStatus:true});
+    }
+    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';renderControls();draw();
+  }
+
   function segmentMarkup(part,index){
-    const value=effectiveValue(part),pct=value/visualTotal()*100,selected=String(part.id)===String(selectedId);
-    return '<button type="button" class="gd-bar-segment'+(part.unknown?' is-unknown':'')+(selected?' is-selected':'')+(index===parts.length-1?' is-last':'')+'" data-bm-part="'+part.id+'" style="--bm-pct:'+pct+'%" aria-label="Part '+labelFor(index)+': '+(part.unknown?'unknown':partText(part))+'">'+
-      '<span class="gd-bar-segment__label">'+labelFor(index)+'</span><strong>'+partText(part)+'</strong>'+
+    const value=effectiveValue(part),pct=value/visualTotal()*100,selected=String(part.id)===String(selectedId),frozen=challengeFrozen();
+    return '<button type="button" class="gd-bar-segment'+(part.unknown?' is-unknown':'')+(selected&&!frozen?' is-selected':'')+(index===parts.length-1?' is-last':'')+(frozen?' is-frozen':'')+'" data-bm-part="'+part.id+'" style="--bm-pct:'+pct+'%" aria-label="Part '+labelFor(index)+': '+(partText(part,index)==='?'?'unknown':partText(part,index))+(frozen?' fixed for this challenge':'')+'"'+(frozen?' disabled':'')+'>'+
+      '<span class="gd-bar-segment__label">'+labelFor(index)+'</span><strong>'+partText(part,index)+'</strong>'+
     '</button>';
   }
   function handleMarkup(index,cumulative){
@@ -1326,38 +1502,56 @@ function barModel(){
     return '<button type="button" class="gd-bar-boundary" data-bm-boundary="'+index+'" style="left:'+cumulative+'%" aria-label="Resize parts '+labelFor(index)+' and '+labelFor(index+1)+'"'+(enabled?' role="slider" aria-valuemin="1" aria-valuemax="99" aria-valuenow="'+Math.round(effectiveValue(parts[index])/Math.max(.01,effectiveValue(parts[index])+effectiveValue(parts[index+1]))*100)+'"':' disabled')+'><span></span></button>';
   }
   function selectedEditor(){
+    if(challengeFrozen()||challenge?.comparison)return'';
     const part=selectedPart();if(!part)return'';
     const index=parts.indexOf(part),canDelete=parts.length>1;
     return '<div class="gd-bar-selected" data-bm-selected="'+part.id+'">'+
       '<div class="gd-bar-selected__head"><div><span>Selected part</span><strong>'+labelFor(index)+'</strong></div><div class="gd-row">'+
-        '<button class="gd-btn" id="bm-duplicate" type="button">Duplicate</button>'+
+        '<button class="gd-btn" id="bm-duplicate" type="button"'+(parts.length>=8?' disabled':'')+'>Duplicate</button>'+
         '<button class="gd-btn gd-btn--danger" id="bm-delete" type="button"'+(canDelete?'':' disabled')+'>Delete</button>'+
       '</div></div>'+
       '<label class="gd-bar-unknown-toggle"><input type="checkbox" id="bm-unknown"'+(part.unknown?' checked':'')+'> <span>Unknown part (?)</span></label>'+
       '<div class="gd-bar-value-editor">'+
         '<button class="gd-btn" id="bm-minus" type="button" aria-label="Decrease selected part"'+(part.unknown?' disabled':'')+'>−</button>'+
-        '<input class="gd-input" id="bm-value" type="number" min="0" step="1" value="'+(part.unknown?'':partText(part))+'"'+(part.unknown?' disabled placeholder="?"':'')+' aria-label="Selected part value">'+
+        '<input class="gd-input" id="bm-value" type="number" min="0" step="1" value="'+(part.unknown?'':partText(part,index,true))+'"'+(part.unknown?' disabled placeholder="?"':'')+' aria-label="Selected part value">'+
         '<button class="gd-btn" id="bm-plus" type="button" aria-label="Increase selected part"'+(part.unknown?' disabled':'')+'>+</button>'+
       '</div>'+
       (part.unknown&&inferredUnknown()!=null?'<p class="gd-help">With one unknown and a fixed total, this part currently resolves to <strong>'+Math.round(inferredUnknown()*100)/100+'</strong>.</p>':'')+
     '</div>';
   }
+  function comparisonMarkup(){
+    const c=challenge?.comparison;if(!c)return'';
+    const max=Math.max(c.larger,c.smaller,1),top=c.larger/max*100,bottom=c.smaller/max*100,diff=c.difference/max*100;
+    return '<div class="gd-bar-comparison" data-bm-comparison>'+
+      '<div class="gd-bar-compare-row"><span>'+c.topLabel+'</span><div class="gd-bar-compare-track"><strong style="width:'+top+'%">'+c.larger+'</strong></div></div>'+
+      '<div class="gd-bar-compare-row"><span>'+c.bottomLabel+'</span><div class="gd-bar-compare-track"><strong style="width:'+bottom+'%">'+c.smaller+'</strong><em style="left:'+bottom+'%;width:'+diff+'%">?</em></div></div>'+
+      '<div class="gd-bar-compare-note">Difference between the aligned bar ends</div>'+
+    '</div>';
+  }
+  function bindChallengeStageActions(){
+    const stage=q('#gd-stage');if(!stage||!challenge)return;
+    const reveal=q('[data-board-action="reveal"]',stage);
+    if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();draw()};
+    const another=q('[data-challenge-action="another"]',stage);
+    if(another)another.onclick=e=>{e.stopPropagation();if(challenge?.mode==='standard')generateChallenge(challenge.type)};
+  }
   function draw(){
+    updateChallengeAnswer();
     let cumulative=0,handles='';
-    parts.slice(0,-1).forEach((part,index)=>{
-      cumulative+=effectiveValue(part)/visualTotal()*100;
-      handles+=handleMarkup(index,cumulative);
-    });
-    q('#gd-stage').innerHTML='<div class="gd-vis gd-bar-workbench">'+
-      '<div class="gd-bar-summary"><div><span>Part–whole model</span><strong>'+equationText()+'</strong></div><div class="gd-object-toolbar"><button type="button" class="gd-btn" id="bm-undo"'+(undoStack.length?'':' disabled')+'>Undo</button><button type="button" class="gd-btn" id="bm-redo"'+(redoStack.length?'':' disabled')+'>Redo</button></div></div>'+
+    parts.slice(0,-1).forEach((part,index)=>{cumulative+=effectiveValue(part)/visualTotal()*100;handles+=handleMarkup(index,cumulative)});
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Bar Model challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
+    const model=challenge?.comparison?comparisonMarkup():
       '<div class="gd-bar-model">'+
         '<div class="gd-bar-total-bracket"><span></span><strong>Total '+totalText()+'</strong></div>'+
         '<div class="gd-bar-track" id="bm-track">'+parts.map(segmentMarkup).join('')+handles+'</div>'+
-      '</div>'+
-      selectedEditor()+
-      '<div class="gd-bar-readouts"><div class="gd-readout"><span>Equation</span><strong data-bm-equation>'+equationText()+'</strong></div><div class="gd-readout"><span>Relationship</span><strong data-bm-status>'+statusText()+'</strong></div></div>'+
+      '</div>';
+    q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-bar-workbench">'+
+      '<div class="gd-bar-summary"><div><span>'+(challenge?.comparison?'Comparison model':'Part–whole model')+'</span><strong>'+(challenge?.comparison?'Compare the aligned bars':equationText())+'</strong></div><div class="gd-object-toolbar"><button type="button" class="gd-btn" id="bm-undo"'+(undoStack.length&&!challengeFrozen()?'':' disabled')+'>Undo</button><button type="button" class="gd-btn" id="bm-redo"'+(redoStack.length&&!challengeFrozen()?'':' disabled')+'>Redo</button></div></div>'+
+      model+selectedEditor()+
+      '<div class="gd-bar-readouts"><div class="gd-readout"><span>Equation</span><strong data-bm-equation>'+(challenge?.comparison?'—':equationText())+'</strong></div><div class="gd-readout"><span>Relationship</span><strong data-bm-status>'+statusText()+'</strong></div></div>'+
+      (challenge?.type==='build-model'?'<div class="gd-answer-live" data-bm-target-status>'+(buildOnTarget()?'On target ✓':'')+'</div>':'')+
     '</div>';
-    bindStage();
+    bindStage();bindChallengeStageActions();
   }
   function boundaryDragMove(e){
     if(!drag||drag.pointerId!==e.pointerId)return;
@@ -1376,8 +1570,9 @@ function barModel(){
   }
   function bindStage(){
     qa('[data-bm-part]',q('#gd-stage')).forEach(button=>{
-      button.onclick=()=>{selectedId=Number(button.dataset.bmPart);draw()};
+      button.onclick=()=>{if(challengeFrozen())return;selectedId=Number(button.dataset.bmPart);draw()};
       button.onkeydown=e=>{
+        if(challengeFrozen())return;
         const part=parts.find(p=>String(p.id)===button.dataset.bmPart);if(!part)return;
         if(e.key==='ArrowLeft'||e.key==='ArrowDown'){e.preventDefault();mutate(()=>changeValue(part,-1))}
         else if(e.key==='ArrowRight'||e.key==='ArrowUp'){e.preventDefault();mutate(()=>changeValue(part,1))}
@@ -1409,14 +1604,44 @@ function barModel(){
       };
     });
   }
-  function controlsHtml(){
-    return field('Whole / total','<input class="gd-input" id="bm-total" type="number" min="0" step="1" value="'+(total==null?'':total)+'" placeholder="Auto">','Leave blank to let the known parts define the total.')+
-      '<div class="gd-row"><button class="gd-btn gd-btn--primary" id="bm-add" type="button"'+(parts.length>=8?' disabled':'')+'>Add part</button>'+btn('Example problem','bm-example')+'</div>'+
-      '<p class="gd-help">Work directly on the model: select a part to edit, duplicate, delete or mark it unknown. Drag the dividers between two known parts to repartition their combined value while keeping that pair total unchanged. Arrow keys also adjust a selected part or divider.</p>';
+
+  function workflowTabs(){
+    return '<div class="gd-row gd-bm-workflow-tabs" role="tablist" aria-label="Bar Model workflow">'+
+      '<button class="gd-btn'+(controlTab==='explore'?' gd-btn--primary':'')+'" type="button" data-bm-workflow="explore">Explore</button>'+
+      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-bm-workflow="challenge">Challenge'+(challenge?' •':'')+'</button></div>';
   }
+  function modelControlsHtml(){
+    if(challenge?.comparison)return'<p class="gd-help">This comparison model is fixed for the current challenge.</p>';
+    return field('Whole / total','<input class="gd-input" id="bm-total" type="number" min="0" step="1" value="'+(total==null?'':total)+'" placeholder="Auto">','Leave blank to let the known parts define the total.')+
+      '<div class="gd-row"><button class="gd-btn gd-btn--primary" id="bm-add" type="button"'+(parts.length>=8?' disabled':'')+'>Add part</button>'+(!challenge?btn('Example problem','bm-example'):'')+'</div>';
+  }
+  function exploreControlsHtml(){
+    return modelControlsHtml()+'<p class="gd-help">Work directly on the model: select a part to edit, duplicate, delete or mark it unknown. Drag dividers between two known parts to repartition their combined value while keeping that pair total unchanged.</p>';
+  }
+  function challengeControlsHtml(){
+    if(!CK)return'<p class="gd-help">Challenge tools are unavailable.</p>';
+    const tabs=CK.tabsHtml?CK.tabsHtml('bm',challengeTab):'';
+    if(challengeTab==='custom'){
+      const custom=challenge&&challenge.mode==='custom'?challenge:CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual'});
+      return tabs+CK.editorHtml(custom,'bm',{answerSources:customAnswerSources(),generatedAnswerLabel:'Keep the generated answer'})+
+        modelControlsHtml()+
+        '<div class="gd-row">'+(challenge&&challenge.answer?'<button class="gd-btn" id="bm-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
+        (challenge?'<button class="gd-btn" id="bm-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
+        '<p class="gd-help">Custom challenges stay attached to the live model. Link the answer to a part, the whole, the solved equation or the number of parts.</p>';
+    }
+    const picker=CK.pickerHtml(CHALLENGE_TEMPLATES,CHALLENGE_CATEGORIES,challengeCategory,challengeType,'bm');
+    const repeat=!!(challenge&&challenge.mode==='standard'&&challenge.type===challengeType);
+    return tabs+picker+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="bm-generate" type="button">'+(repeat?'Another like this':'Generate challenge')+'</button>'+
+      (challenge&&challenge.mode!=='custom'?'<button class="gd-btn" id="bm-edit-challenge" type="button">Edit challenge</button>':'')+
+      (challenge&&challenge.answer?'<button class="gd-btn" id="bm-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
+      (challenge?'<button class="gd-btn" id="bm-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
+      (challenge&&!challengeFrozen()&&!challenge.comparison?modelControlsHtml():'');
+  }
+  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():exploreControlsHtml())}
   function renderControls(){q('#gd-controls').innerHTML=controlsHtml();bindControls()}
-  function bindControls(){
+  function bindModelControls(){
     const totalInput=q('#bm-total');if(totalInput)totalInput.onchange=()=>{
+      if(challengeFrozen())return;
       const raw=totalInput.value.trim(),before=snapshot();
       total=raw===''?null:Math.max(0,num(raw,0));
       undoStack.push(before);if(undoStack.length>50)undoStack.shift();redoStack.length=0;draw();renderControls();
@@ -1424,16 +1649,36 @@ function barModel(){
     const add=q('#bm-add');if(add)add.onclick=()=>mutate(addPart);
     const example=q('#bm-example');if(example)example.onclick=()=>{
       const examples=[
-        {parts:[24,null,16],total:55},
-        {parts:[35,35,null],total:100},
-        {parts:[null,18],total:47},
-        {parts:[12,12,12,null],total:60}
+        {parts:[24,null,16],total:55},{parts:[35,35,null],total:100},{parts:[null,18],total:47},{parts:[12,12,12,null],total:60}
       ],ex=examples[Math.floor(Math.random()*examples.length)];
-      mutate(()=>{
-        parts=ex.parts.map((value,index)=>({id:index+1,value:value==null?10:value,unknown:value==null}));
-        nextId=parts.length+1;total=ex.total;selectedId=parts.find(p=>p.unknown)?.id||parts[0]?.id||null;
-      });
+      mutate(()=>{setParts(ex.parts);total=ex.total});
     };
+  }
+  function bindControls(){
+    qa('[data-bm-workflow]',q('#gd-controls')).forEach(button=>button.onclick=()=>{controlTab=button.dataset.bmWorkflow;renderControls()});
+    bindModelControls();
+    if(controlTab!=='challenge')return;
+    qa('[data-bm-challenge-tab]',q('#gd-controls')).forEach(button=>button.onclick=()=>{
+      if(button.dataset.bmChallengeTab==='custom')enterCustomChallenge();
+      else{challengeTab='standard';renderControls()}
+    });
+    qa('[data-bm-challenge-cat]',q('#gd-controls')).forEach(button=>button.onclick=()=>{
+      challengeCategory=button.dataset.bmChallengeCat;
+      const first=CHALLENGE_TEMPLATES.find(t=>t.category===challengeCategory);if(first)challengeType=first.id;
+      renderControls();
+    });
+    qa('[data-bm-challenge-type]',q('#gd-controls')).forEach(button=>button.onclick=()=>{challengeType=button.dataset.bmChallengeType;renderControls()});
+    const generate=q('#bm-generate');if(generate)generate.onclick=()=>generateChallenge(challengeType);
+    const edit=q('#bm-edit-challenge');if(edit)edit.onclick=enterCustomChallenge;
+    const reveal=q('#bm-reveal');if(reveal)reveal.onclick=()=>{if(challenge){challenge.revealed=!challenge.revealed;renderControls();draw()}};
+    const clear=q('#bm-clear-challenge');if(clear)clear.onclick=clearChallenge;
+    if(challengeTab==='custom'&&challenge){
+      const title=q('#bm-custom-title');if(title)title.oninput=()=>{challenge.title=title.value.slice(0,100);draw()};
+      const prompt=q('#bm-custom-prompt');if(prompt)prompt.oninput=()=>{challenge.promptHtml=CK.sanitiseRichHtml(prompt.innerHTML);challenge.prompt=CK.plainText(challenge.promptHtml);draw()};
+      const source=q('#bm-custom-answer-source');if(source)source.onchange=()=>setCustomAnswerSource(source.value);
+      const answer=q('#bm-custom-answer');if(answer)answer.oninput=()=>{challenge.answer=answer.value.slice(0,400);challenge.answerMode='manual';challenge.answerSource='';draw()};
+      qa('[data-gd-rich-action]',q('#gd-controls')).forEach(button=>button.onclick=()=>{CK.applyFormat(prompt,button.dataset.gdRichAction);challenge.promptHtml=CK.sanitiseRichHtml(prompt.innerHTML);challenge.prompt=CK.plainText(challenge.promptHtml);draw()});
+    }
   }
 
   setPanels(controlsHtml(),'');
