@@ -546,6 +546,81 @@ if(mode==='prepare'){
     assert(barLiveAfter!==barLiveBefore&&barLiveAfter==='9','Bar Model custom live answer follows direct part edits');
     document.getElementById('bm-clear-challenge').click();
     assert(document.querySelector('[data-bm-equation]').textContent.trim()==='30 + 20 + ? = 80','Ending Bar Model challenges restores the teacher model');
+
+    document.querySelector('[data-bm-workflow="export"]').click();
+    assert(document.getElementById('bm-copy-image')&&document.getElementById('bm-png')&&document.getElementById('bm-svg-download')&&document.getElementById('bm-print'),'Bar Model export exposes copy, PNG, SVG and Print/PDF actions');
+    let bmBoardSvg=null,bmBoardName='';
+    const bmOldBoardDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg,name)=>{bmBoardSvg=svg.cloneNode(true);bmBoardName=name};
+    document.getElementById('bm-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=bmOldBoardDownload;
+    assert(bmBoardSvg&&bmBoardSvg.dataset.bmExport==='bar-model','Bar Model board export is a deterministic SVG model');
+    assert(bmBoardSvg.querySelectorAll('[data-bm-export-part]').length===3,'Bar Model SVG preserves all current parts');
+    assert(bmBoardSvg.querySelector('[data-bm-export-equation]').textContent.trim()==='30 + 20 + ? = 80','Bar Model board SVG preserves the visible equation');
+    assert(bmBoardSvg.querySelector('[data-bm-export-total]').textContent.trim()==='Total 80','Bar Model board SVG preserves the whole');
+    assert(bmBoardName.includes('bar-model'),'Bar Model board export has a reusable filename');
+
+    document.querySelector('[data-bm-workflow="challenge"]').click();
+    document.querySelector('[data-bm-challenge-cat="read"]').click();
+    document.querySelector('[data-bm-challenge-type="missing-part"]').click();
+    document.getElementById('bm-generate').click();
+    document.querySelector('[data-board-action="reveal"]').click();
+    document.querySelector('[data-bm-workflow="export"]').click();
+    assert(document.querySelector('[data-bm-export-mode="challenge"]')?.classList.contains('is-active'),'Generated Bar Model challenge defaults to Challenge card export');
+    let bmMissingCard=null;
+    const bmOldMissingDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{bmMissingCard=svg.cloneNode(true)};
+    document.getElementById('bm-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=bmOldMissingDownload;
+    assert(bmMissingCard&&bmMissingCard.querySelectorAll('[data-bm-export-part]').length===3,'Missing-part pupil card embeds the vector bar model');
+    assert(bmMissingCard.querySelector('[data-bm-export-part-value="1"]').textContent.trim()==='?','Missing-part pupil export re-hides the target part after teacher Reveal');
+    assert(bmMissingCard.querySelector('[data-bm-export-status]').textContent.trim()==='?','Missing-part pupil export re-hides the relationship shortcut after Reveal');
+    assert(!bmMissingCard.textContent.includes('Answer:'),'Bar Model pupil challenge export never includes the revealed answer label');
+    assert(bmMissingCard.textContent.includes('Find the missing part in this part–whole model.'),'Bar Model challenge-card export includes the pupil prompt');
+
+    document.querySelector('[data-bm-workflow="challenge"]').click();
+    document.querySelector('[data-bm-challenge-cat="compare"]').click();
+    document.getElementById('bm-generate').click();
+    document.querySelector('[data-board-action="reveal"]').click();
+    document.querySelector('[data-bm-workflow="export"]').click();
+    let bmCompareCard=null;
+    const bmOldCompareDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{bmCompareCard=svg.cloneNode(true)};
+    document.getElementById('bm-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=bmOldCompareDownload;
+    assert(bmCompareCard&&bmCompareCard.querySelector('[data-bm-export-comparison="difference"]'),'Comparison pupil card preserves the aligned two-bar structure');
+    assert(bmCompareCard.querySelector('[data-bm-export-difference]').textContent.trim()==='?','Comparison pupil export re-hides the difference after teacher Reveal');
+    assert(bmCompareCard.querySelector('[data-bm-export-status]').textContent.trim()==='?','Comparison pupil export does not leak the difference through the relationship readout');
+
+    document.querySelector('[data-bm-workflow="challenge"]').click();
+    document.querySelector('[data-bm-challenge-cat="build"]').click();
+    document.getElementById('bm-generate').click();
+    let exportBuildParts=[...document.querySelectorAll('[data-bm-part]')];
+    exportBuildParts[0].click();
+    let exportBuildValue=document.getElementById('bm-value');
+    exportBuildValue.value='17';exportBuildValue.dispatchEvent(new Event('change',{bubbles:true}));
+    exportBuildParts=[...document.querySelectorAll('[data-bm-part]')];
+    exportBuildParts[1].click();
+    let exportBuildUnknown=document.getElementById('bm-unknown');
+    exportBuildUnknown.checked=true;exportBuildUnknown.dispatchEvent(new Event('change',{bubbles:true}));
+    exportBuildParts=[...document.querySelectorAll('[data-bm-part]')];
+    exportBuildParts[2].click();
+    exportBuildValue=document.getElementById('bm-value');
+    exportBuildValue.value='1';exportBuildValue.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.querySelector('[data-bm-equation]').textContent.trim()==='17 + ? + 1 = 23','Teacher can test a deliberately different build before exporting');
+    document.querySelector('[data-bm-workflow="export"]').click();
+    let bmBuildCard=null;
+    const bmOldBuildDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{bmBuildCard=svg.cloneNode(true)};
+    document.getElementById('bm-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=bmOldBuildDownload;
+    assert(bmBuildCard&&bmBuildCard.querySelector('[data-bm-export-build-scaffold="1"]'),'Build-model pupil card is explicitly exported from the target scaffold');
+    const bmBuildValues=[...bmBuildCard.querySelectorAll('[data-bm-export-part-value]')].map(x=>x.textContent.trim());
+    assert(bmBuildValues.join('|')==='10|?|5','Build-model pupil card uses the requested target structure, not the teacher trial solution');
+    assert(bmBuildCard.querySelector('[data-bm-export-equation]').textContent.trim()==='10 + ? + 5 = 23','Build-model pupil card keeps the target equation');
+    assert(!bmBuildCard.textContent.includes('17 + ? + 1'),'Build-model pupil export strips the teacher trial values');
+    assert(!bmBuildCard.textContent.includes('Answer: 8'),'Build-model pupil export does not reveal the inferred unknown');
+
     Math.random=realBarRandom;
   }
 
