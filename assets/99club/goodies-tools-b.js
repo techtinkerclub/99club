@@ -1020,7 +1020,10 @@ function balanceTool(){
   function sideName(id){return left.some(x=>String(x.id)===String(id))?'left':right.some(x=>String(x.id)===String(id))?'right':null}
   function sideFor(name){return name==='left'?left:right}
   function hiddenFlag(key){return !!(challenge&&!challenge.revealed&&challenge[key])}
-  function displayValue(item){return item.hidden&&!challenge?.revealed?'?':String(Math.round((Number(item.value)||0)*100)/100)}
+  function displayValue(item){
+    const selectedBound=!!(challenge&&!challenge.revealed&&challenge.hiddenSelectedValue&&String(item.id)===String(selectedId));
+    return item.hidden&&!challenge?.revealed||selectedBound?'?':String(Math.round((Number(item.value)||0)*100)/100);
+  }
   function expression(side){return side.length?side.map(displayValue).join(' + '):'0'}
   function visibleRelation(){return hiddenFlag('hiddenRelation')?'?':relation()}
   function visibleEquation(){
@@ -1081,7 +1084,7 @@ function balanceTool(){
   }
   function challengeObject(type,prompt,answer,extra={}){
     const meta=CHALLENGE_TEMPLATES.find(t=>t.id===type);
-    const raw={mode:'standard',type,category:meta?.category||'',title:'',prompt,promptHtml:prompt,answer:String(answer??''),answerMode:'manual',answerSource:'',revealed:false,freezeBoard:true,hiddenRelation:false,hiddenVerdict:false,hiddenEquation:false,hiddenLeftTotal:false,hiddenRightTotal:false,targetLeft:null,targetRight:null,targetDelta:null,baselineLeft:null,baselineRight:null,...extra};
+    const raw={mode:'standard',type,category:meta?.category||'',title:'',prompt,promptHtml:prompt,answer:String(answer??''),answerMode:'manual',answerSource:'',revealed:false,freezeBoard:true,hiddenRelation:false,hiddenVerdict:false,hiddenEquation:false,hiddenLeftTotal:false,hiddenRightTotal:false,hiddenSelectedValue:false,targetLeft:null,targetRight:null,targetDelta:null,baselineLeft:null,baselineRight:null,...extra};
     return CK?CK.normalise(raw):raw;
   }
   function challengeProgress(){
@@ -1118,7 +1121,7 @@ function balanceTool(){
   }
   function clearBoundHiding(){
     if(!challenge)return;
-    challenge.hiddenRelation=false;challenge.hiddenVerdict=false;challenge.hiddenEquation=false;challenge.hiddenLeftTotal=false;challenge.hiddenRightTotal=false;
+    challenge.hiddenRelation=false;challenge.hiddenVerdict=false;challenge.hiddenEquation=false;challenge.hiddenLeftTotal=false;challenge.hiddenRightTotal=false;challenge.hiddenSelectedValue=false;
   }
   function applyBoundHiding(source){
     clearBoundHiding();if(!challenge)return;
@@ -1127,6 +1130,7 @@ function balanceTool(){
     else if(source==='difference')challenge.hiddenVerdict=true;
     else if(source==='relation')challenge.hiddenRelation=true;
     else if(source==='equation')challenge.hiddenEquation=true;
+    else if(source==='selected-value')challenge.hiddenSelectedValue=true;
     else if(source==='hidden-weight'){
       const item=[...left,...right].find(x=>x.hidden);if(item)item.hidden=true;
     }
@@ -1345,7 +1349,8 @@ function balanceTool(){
     return Math.abs(diff)<1e-9?'=':diff>0?'>':'<';
   }
   function exportValue(item,pupil=false){
-    if(item.hidden&&(pupil||!challenge?.revealed))return'?';
+    const selectedBound=!!(challenge&&challenge.hiddenSelectedValue&&String(item.id)===String(selectedId)&&(pupil||!challenge.revealed));
+    if(item.hidden&&(pupil||!challenge?.revealed)||selectedBound)return'?';
     return String(Math.round((Number(item.value)||0)*100)/100);
   }
   function exportExpression(side,pupil=false){
