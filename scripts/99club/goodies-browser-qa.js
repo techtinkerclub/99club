@@ -455,6 +455,98 @@ if(mode==='prepare'){
     const last=document.querySelector('.gd-bar-segment.is-last');
     assert(last,'Final Bar Model segment has an explicit final-segment state');
     assert(getComputedStyle(document.querySelector('[data-bm-boundary]')).touchAction==='none','Bar Model divider reserves pointer gestures for direct horizontal resizing');
+
+    TT99Goodies.barModel();
+    const realBarRandom=Math.random;
+    Math.random=()=>0;
+    document.querySelector('[data-bm-workflow="challenge"]').click();
+    assert(document.querySelector('[data-bm-challenge-tab="standard"]')&&document.querySelector('[data-bm-challenge-tab="custom"]'),'Bar Model uses the shared Standard / Custom challenge tabs');
+    for(const type of ['missing-part','find-whole','write-equation']){
+      assert(document.querySelector('[data-bm-challenge-type="'+type+'"]'),'Bar Model read challenge '+type+' is available');
+    }
+    document.getElementById('bm-generate').click();
+    assert(document.querySelector('.gd-challenge-banner'),'Generated Bar Model challenge appears above the model');
+    assert(document.querySelectorAll('[data-bm-part]').length===3,'Missing-part challenge builds a three-part model');
+    assert(document.querySelectorAll('[data-bm-part]')[1].querySelector('strong').textContent.trim()==='?','Missing-part challenge hides the target part');
+    assert(document.querySelector('[data-bm-status]').textContent.trim()==='?','Missing-part challenge hides the relationship shortcut');
+    assert([...document.querySelectorAll('[data-bm-part]')].every(x=>x.disabled),'Read-only Bar Model challenge freezes supplied parts');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: 8'),'Missing-part challenge reveals the deterministic answer contextually');
+    assert(document.querySelector('[data-bm-status]').textContent.includes('Unknown part = 8'),'Reveal restores the mathematical relationship');
+
+    document.querySelector('[data-bm-workflow="challenge"]').click();
+    document.querySelector('[data-bm-challenge-type="find-whole"]').click();
+    document.getElementById('bm-generate').click();
+    assert(document.querySelector('.gd-bar-total-bracket strong').textContent.trim()==='Total ?','Find-whole challenge hides the whole on the bracket');
+    assert(document.querySelector('[data-bm-equation]').textContent.trim()==='8 + 8 + 5 = ?','Find-whole challenge keeps the visible parts but hides the result');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: 21'),'Find-whole challenge reveals the deterministic whole');
+
+    document.querySelector('[data-bm-workflow="challenge"]').click();
+    document.querySelector('[data-bm-challenge-cat="compare"]').click();
+    assert(document.querySelector('[data-bm-challenge-type="compare-difference"]'),'Comparison challenge is available');
+    document.getElementById('bm-generate').click();
+    assert(document.querySelector('[data-bm-comparison]'),'Comparison challenge renders two aligned bars');
+    assert(document.querySelector('.gd-challenge-prompt').textContent.includes('25')&&document.querySelector('.gd-challenge-prompt').textContent.includes('20'),'Deterministic comparison prompt matches the shown bar values');
+    assert(document.querySelector('[data-bm-status]').textContent.trim()==='?','Comparison challenge hides the difference before Reveal');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: 5'),'Comparison challenge reveals the deterministic difference');
+    assert(document.querySelector('[data-bm-status]').textContent.trim()==='Difference = 5','Comparison Reveal restores the difference relationship');
+
+    document.querySelector('[data-bm-workflow="challenge"]').click();
+    document.querySelector('[data-bm-challenge-cat="groups"]').click();
+    assert(document.querySelector('[data-bm-challenge-type="equal-groups-total"]')&&document.querySelector('[data-bm-challenge-type="equal-groups-part"]'),'Both equal-group challenge types are available');
+    document.getElementById('bm-generate').click();
+    assert(document.querySelectorAll('[data-bm-part]').length===3,'Equal-groups whole challenge builds the deterministic three groups');
+    assert([...document.querySelectorAll('[data-bm-part] strong')].every(x=>x.textContent.trim()==='3'),'Equal-groups whole challenge shows equal part values');
+    assert(document.querySelector('.gd-bar-total-bracket strong').textContent.trim()==='Total ?','Equal-groups whole challenge hides the whole');
+    document.querySelector('[data-bm-workflow="challenge"]').click();
+    document.querySelector('[data-bm-challenge-cat="groups"]').click();
+    document.querySelector('[data-bm-challenge-type="equal-groups-part"]').click();
+    document.getElementById('bm-generate').click();
+    assert(document.querySelector('.gd-bar-total-bracket strong').textContent.trim()==='Total 9','Equal-groups part challenge gives the whole');
+    assert([...document.querySelectorAll('[data-bm-part] strong')].every(x=>x.textContent.trim()==='?'),'Equal-groups part challenge hides each equal part');
+
+    document.querySelector('[data-bm-workflow="challenge"]').click();
+    document.querySelector('[data-bm-challenge-cat="build"]').click();
+    assert(document.querySelector('[data-bm-challenge-type="build-model"]'),'Interactive build-model challenge is available');
+    document.getElementById('bm-generate').click();
+    assert(document.querySelector('.gd-challenge-prompt').textContent.includes('10 + ? + 5 = 23'),'Deterministic build challenge states the target model');
+    assert([...document.querySelectorAll('[data-bm-part]')].every(x=>!x.disabled),'Build-model challenge keeps direct editing active');
+    let buildParts=[...document.querySelectorAll('[data-bm-part]')];
+    buildParts[1].click();
+    let buildUnknown=document.getElementById('bm-unknown');
+    buildUnknown.checked=true;buildUnknown.dispatchEvent(new Event('change',{bubbles:true}));
+    buildParts=[...document.querySelectorAll('[data-bm-part]')];
+    buildParts[2].click();
+    const buildValue=document.getElementById('bm-value');
+    buildValue.value='5';buildValue.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.querySelector('[data-bm-target-status]').textContent.includes('On target'),'Build-model challenge recognises a correct directly edited model');
+
+    document.querySelector('[data-bm-workflow="challenge"]').click();
+    document.querySelector('[data-bm-challenge-cat="reason"]').click();
+    assert(document.querySelector('[data-bm-challenge-type="spot-error"]'),'Bar Model reasoning challenge is available');
+    document.getElementById('bm-generate').click();
+    assert(document.querySelector('[data-bm-equation]').textContent.trim()==='8 + 8 + 5 = 24','Spot-error challenge presents a deliberately inconsistent model');
+    assert(document.querySelector('[data-bm-status]').textContent.trim()==='?','Spot-error challenge hides the diagnostic shortcut');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('The parts total 21, not 24'),'Reasoning Reveal explains the inconsistency');
+
+    document.querySelector('[data-bm-workflow="challenge"]').click();
+    document.querySelector('[data-bm-challenge-tab="custom"]').click();
+    const bmSource=document.getElementById('bm-custom-answer-source');
+    assert(bmSource&&['total','equation','parts-count','part:0'].every(source=>[...bmSource.options].some(o=>o.value===source)),'Bar Model custom challenges expose live model answer sources');
+    bmSource.value='part:0';bmSource.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.querySelectorAll('[data-bm-part]')[0].querySelector('strong').textContent.trim()==='?','Binding a custom answer to Part A hides that value on the live model');
+    const barLiveBefore=document.getElementById('bm-custom-live-answer').textContent;
+    document.querySelectorAll('[data-bm-part]')[0].click();
+    const customValue=document.getElementById('bm-value');
+    customValue.value='9';customValue.dispatchEvent(new Event('change',{bubbles:true}));
+    const barLiveAfter=document.getElementById('bm-custom-live-answer').textContent;
+    assert(barLiveAfter!==barLiveBefore&&barLiveAfter==='9','Bar Model custom live answer follows direct part edits');
+    document.getElementById('bm-clear-challenge').click();
+    assert(document.querySelector('[data-bm-equation]').textContent.trim()==='30 + 20 + ? = 80','Ending Bar Model challenges restores the teacher model');
+    Math.random=realBarRandom;
   }
 
   function testPlaceValue(){
