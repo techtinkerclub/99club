@@ -1078,7 +1078,7 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=hsOldMarkDownload;
     assert(hsMarkCard.querySelector('[data-hs-export-initial-state="1"]'),'Interactive Hundred Square challenge export uses the recorded starting state');
     assert(hsMarkCard.querySelectorAll('[data-hs-export-marked="1"]').length===0,'Mark-rule pupil card strips the teacher trial solution marks');
-    assert(hsMarkCard.textContent.includes('Mark every multiples of 10'),'Mark-rule pupil card retains the task prompt');
+    assert(hsMarkCard.textContent.includes('Mark all multiples of 10'),'Mark-rule pupil card retains the task prompt');
 
     document.querySelector('[data-hs-workflow="challenge"]').click();
     document.querySelector('[data-hs-challenge-cat="reason"]').click();
