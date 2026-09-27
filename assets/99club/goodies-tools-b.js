@@ -955,7 +955,7 @@ function randomiser(){let result='';function draw(){const mode=q('#ra-mode').val
 setPanels(`${field('Tool','<select class="gd-select" id="ra-mode"><option value="dice">Dice</option><option value="spinner">Spinner</option><option value="number">Random number</option><option value="card">Playing card</option></select>')}<div id="ra-extra"></div>${btn('Generate','ra-go',true)}`,'');q('#ra-mode').onchange=()=>{result='';draw()};q('#ra-go').onclick=roll;draw()}
 
 function balanceTool(){
-  const CK=G.challengeKit;
+  const CK=G.challengeKit,X=G.exportTools;
   let left=[
     {id:1,value:8,hidden:false},
     {id:2,value:4,hidden:false}
@@ -977,6 +977,7 @@ function balanceTool(){
     {id:'spot-false-equality',category:'reason',title:'Spot the false equality',desc:'Decide whether a claimed equality is actually true.'}
   ];
   let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='missing-weight',challenge=null,beforeChallenge=null;
+  let exportMode='diagram',responseLines=1,exportStatus='';
 
   function cloneSide(side){return side.map(item=>({...item}))}
   function snapshot(){return{left:cloneSide(left),right:cloneSide(right),nextId,selectedId,showTotals}}
@@ -1019,7 +1020,10 @@ function balanceTool(){
   function sideName(id){return left.some(x=>String(x.id)===String(id))?'left':right.some(x=>String(x.id)===String(id))?'right':null}
   function sideFor(name){return name==='left'?left:right}
   function hiddenFlag(key){return !!(challenge&&!challenge.revealed&&challenge[key])}
-  function displayValue(item){return item.hidden&&!challenge?.revealed?'?':String(Math.round((Number(item.value)||0)*100)/100)}
+  function displayValue(item){
+    const selectedBound=!!(challenge&&!challenge.revealed&&challenge.hiddenSelectedValue&&String(item.id)===String(selectedId));
+    return item.hidden&&!challenge?.revealed||selectedBound?'?':String(Math.round((Number(item.value)||0)*100)/100);
+  }
   function expression(side){return side.length?side.map(displayValue).join(' + '):'0'}
   function visibleRelation(){return hiddenFlag('hiddenRelation')?'?':relation()}
   function visibleEquation(){
@@ -1080,7 +1084,7 @@ function balanceTool(){
   }
   function challengeObject(type,prompt,answer,extra={}){
     const meta=CHALLENGE_TEMPLATES.find(t=>t.id===type);
-    const raw={mode:'standard',type,category:meta?.category||'',title:'',prompt,promptHtml:prompt,answer:String(answer??''),answerMode:'manual',answerSource:'',revealed:false,freezeBoard:true,hiddenRelation:false,hiddenVerdict:false,hiddenEquation:false,hiddenLeftTotal:false,hiddenRightTotal:false,targetLeft:null,targetRight:null,targetDelta:null,baselineLeft:null,baselineRight:null,...extra};
+    const raw={mode:'standard',type,category:meta?.category||'',title:'',prompt,promptHtml:prompt,answer:String(answer??''),answerMode:'manual',answerSource:'',revealed:false,freezeBoard:true,hiddenRelation:false,hiddenVerdict:false,hiddenEquation:false,hiddenLeftTotal:false,hiddenRightTotal:false,hiddenSelectedValue:false,targetLeft:null,targetRight:null,targetDelta:null,baselineLeft:null,baselineRight:null,...extra};
     return CK?CK.normalise(raw):raw;
   }
   function challengeProgress(){
@@ -1117,7 +1121,7 @@ function balanceTool(){
   }
   function clearBoundHiding(){
     if(!challenge)return;
-    challenge.hiddenRelation=false;challenge.hiddenVerdict=false;challenge.hiddenEquation=false;challenge.hiddenLeftTotal=false;challenge.hiddenRightTotal=false;
+    challenge.hiddenRelation=false;challenge.hiddenVerdict=false;challenge.hiddenEquation=false;challenge.hiddenLeftTotal=false;challenge.hiddenRightTotal=false;challenge.hiddenSelectedValue=false;
   }
   function applyBoundHiding(source){
     clearBoundHiding();if(!challenge)return;
@@ -1126,6 +1130,7 @@ function balanceTool(){
     else if(source==='difference')challenge.hiddenVerdict=true;
     else if(source==='relation')challenge.hiddenRelation=true;
     else if(source==='equation')challenge.hiddenEquation=true;
+    else if(source==='selected-value')challenge.hiddenSelectedValue=true;
     else if(source==='hidden-weight'){
       const item=[...left,...right].find(x=>x.hidden);if(item)item.hidden=true;
     }
@@ -1140,7 +1145,7 @@ function balanceTool(){
   }
   function restoreBeforeChallenge(){if(beforeChallenge){restore(beforeChallenge);beforeChallenge=null}}
   function clearChallenge(){
-    restoreBeforeChallenge();challenge=null;challengeTab='standard';controlTab='challenge';undoStack.length=0;redoStack.length=0;renderControls();draw();
+    restoreBeforeChallenge();challenge=null;challengeTab='standard';controlTab='challenge';exportMode='diagram';exportStatus='';undoStack.length=0;redoStack.length=0;renderControls();draw();
   }
   function enterCustomChallenge(){
     if(!beforeChallenge)beforeChallenge=snapshot();
@@ -1148,7 +1153,7 @@ function balanceTool(){
     if(CK)challenge=CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''});
     if(!wasCustom)clearBoundHiding();
     challenge.freezeBoard=false;challenge.revealed=false;
-    challengeTab='custom';controlTab='challenge';renderControls();draw();
+    challengeTab='custom';controlTab='challenge';exportMode='challenge';exportStatus='';renderControls();draw();
   }
   function setCustomAnswerSource(source){
     if(!challenge||challenge.mode!=='custom')return;
@@ -1186,7 +1191,8 @@ function balanceTool(){
       setSides([a,b],[wrong]);
       challenge=challengeObject(type,'A pupil says these two sides are equal. Are they correct? Explain.','No. '+(a+b)+' is not equal to '+wrong+'.',{hiddenRelation:true,hiddenVerdict:true});
     }
-    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';renderControls();draw();
+    challenge.initialState=snapshot();
+    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';exportMode='challenge';exportStatus='';renderControls();draw();
   }
 
   function tokenHtml(item){
@@ -1288,7 +1294,8 @@ function balanceTool(){
   function workflowTabs(){
     return '<div class="gd-row gd-ba-workflow-tabs" role="tablist" aria-label="Equation Balance workflow">'+
       '<button class="gd-btn'+(controlTab==='explore'?' gd-btn--primary':'')+'" type="button" data-ba-workflow="explore">Explore</button>'+
-      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-ba-workflow="challenge">Challenge'+(challenge?' •':'')+'</button></div>';
+      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-ba-workflow="challenge">Challenge'+(challenge?' •':'')+'</button>'+ 
+      '<button class="gd-btn'+(controlTab==='export'?' gd-btn--primary':'')+'" type="button" data-ba-workflow="export">Export / reuse</button></div>';
   }
   function modelControlsHtml({showExample=false}={}){
     return '<div class="gd-field"><span>Add a weight</span><div class="gd-eq-palette">'+[1,2,5,10,20].map(v=>'<button class="gd-btn" type="button" data-ba-add="'+v+'">+'+v+'</button>').join('')+'</div></div>'+
@@ -1319,7 +1326,136 @@ function balanceTool(){
       (challenge?'<button class="gd-btn" id="ba-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
       (challenge&&!challengeFrozen()?modelControlsHtml():'');
   }
-  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():exploreControlsHtml())}
+  function baSvgEl(name,attrs={},text=''){
+    const el=document.createElementNS('http://www.w3.org/2000/svg',name);
+    Object.entries(attrs).forEach(([key,value])=>el.setAttribute(key,String(value)));
+    if(text!==''&&text!=null)el.textContent=String(text);
+    return el;
+  }
+  function exportHidden(key,pupil=false){
+    if(!challenge)return false;
+    return pupil?!!challenge[key]:hiddenFlag(key);
+  }
+  function exportState(pupil=false){
+    if(pupil&&challenge?.mode==='standard'&&challenge.initialState){
+      const state=challenge.initialState;
+      return{left:cloneSide(state.left||[]),right:cloneSide(state.right||[]),showTotals:state.showTotals!==false,fromInitial:true};
+    }
+    return{left:cloneSide(left),right:cloneSide(right),showTotals,fromInitial:false};
+  }
+  function exportTotal(side){return side.reduce((sum,item)=>sum+Math.max(0,Number(item.value)||0),0)}
+  function exportRelation(state){
+    const diff=exportTotal(state.left)-exportTotal(state.right);
+    return Math.abs(diff)<1e-9?'=':diff>0?'>':'<';
+  }
+  function exportValue(item,pupil=false){
+    const selectedBound=!!(challenge&&challenge.hiddenSelectedValue&&String(item.id)===String(selectedId)&&(pupil||!challenge.revealed));
+    if(item.hidden&&(pupil||!challenge?.revealed)||selectedBound)return'?';
+    return String(Math.round((Number(item.value)||0)*100)/100);
+  }
+  function exportExpression(side,pupil=false){
+    return side.length?side.map(item=>exportValue(item,pupil)).join(' + '):'0';
+  }
+  function exportEquation(state,pupil=false){
+    if(exportHidden('hiddenEquation',pupil))return'?';
+    const rel=exportHidden('hiddenRelation',pupil)?'?':exportRelation(state);
+    return exportExpression(state.left,pupil)+' '+rel+' '+exportExpression(state.right,pupil);
+  }
+  function exportRelationText(state,pupil=false){
+    if(exportHidden('hiddenVerdict',pupil))return'?';
+    if(pupil&&challenge?.type==='find-difference')return'Difference = ?';
+    const lt=exportTotal(state.left),rt=exportTotal(state.right),rel=exportRelation(state);
+    return lt+' '+rel+' '+rt+(rel==='='?' · balanced':'');
+  }
+  function appendExportWeight(svg,item,{x,y,side,index,pupil=false}={}){
+    const label=exportValue(item,pupil),hidden=label==='?',w=58,h=48;
+    svg.appendChild(baSvgEl('rect',{x,y,width:w,height:h,rx:9,fill:hidden?'#fff4d7':'#eaf6f3',stroke:hidden?'#c8a85d':'#7fa9a3','stroke-width':2,'data-ba-export-weight':String(index),'data-ba-export-side':side}));
+    svg.appendChild(baSvgEl('text',{x:x+w/2,y:y+h/2+1,'text-anchor':'middle','dominant-baseline':'middle','font-family':'Arial,sans-serif','font-size':18,'font-weight':900,fill:hidden?'#765817':'#244e49','data-ba-export-weight-value':String(index)},label));
+  }
+  function appendExportPan(svg,state,side,{cx,top,pupil=false}={}){
+    const items=side==='left'?state.left:state.right,panW=310,panH=132,x=cx-panW/2,y=top+56;
+    svg.appendChild(baSvgEl('line',{x1:cx,y1:top,x2:cx,y2:y,stroke:'#71868c','stroke-width':2}));
+    svg.appendChild(baSvgEl('line',{x1:x+54,y1:y-22,x2:x+54,y2:y+2,stroke:'#71868c','stroke-width':2}));
+    svg.appendChild(baSvgEl('line',{x1:x+panW-54,y1:y-22,x2:x+panW-54,y2:y+2,stroke:'#71868c','stroke-width':2}));
+    svg.appendChild(baSvgEl('rect',{x,y,width:panW,height:panH,rx:30,fill:'#f8fbfb',stroke:'#8ca0a5','stroke-width':3,'data-ba-export-pan':side}));
+    svg.appendChild(baSvgEl('text',{x:x+12,y:y+18,'font-family':'Arial,sans-serif','font-size':10,'font-weight':900,fill:'#718288'},side.toUpperCase()));
+    items.forEach((item,index)=>{
+      const col=index%4,row=Math.floor(index/4),wx=x+25+col*68,wy=y+31+row*55;
+      appendExportWeight(svg,item,{x:wx,y:wy,side,index,pupil});
+    });
+    let totalText='';
+    if(state.showTotals){
+      const hidden=side==='left'?exportHidden('hiddenLeftTotal',pupil):exportHidden('hiddenRightTotal',pupil);
+      if(!hidden)totalText=String(exportTotal(items));
+    }
+    svg.appendChild(baSvgEl('text',{x:cx,y:y+panH-10,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':13,'font-weight':850,fill:'#50666c','data-ba-export-total':side},totalText));
+  }
+  function equationBalanceExportSvg({pupil=false}={}){
+    const width=1000,height=630,state=exportState(pupil),diff=exportTotal(state.left)-exportTotal(state.right),lift=clamp(diff,-20,20)*1.5;
+    const leftBeamY=156+lift,rightBeamY=156-lift;
+    const svg=baSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Equation balance','data-ba-export':'equation-balance'});
+    svg.appendChild(baSvgEl('rect',{x:0,y:0,width,height,fill:'#fff'}));
+    svg.appendChild(baSvgEl('text',{x:64,y:48,'font-family':'Arial,sans-serif','font-size':27,'font-weight':900,fill:'#24343b'},'Equation balance'));
+    svg.appendChild(baSvgEl('line',{x1:190,y1:leftBeamY,x2:810,y2:rightBeamY,stroke:'#43555c','stroke-width':10,'stroke-linecap':'round'}));
+    svg.appendChild(baSvgEl('path',{d:'M 500 160 L 462 352 L 538 352 Z',fill:'#697b81'}));
+    svg.appendChild(baSvgEl('rect',{x:372,y:350,width:256,height:14,rx:7,fill:'#697b81'}));
+    appendExportPan(svg,state,'left',{cx:250,top:leftBeamY,pupil});
+    appendExportPan(svg,state,'right',{cx:750,top:rightBeamY,pupil});
+    svg.appendChild(baSvgEl('rect',{x:78,y:465,width:408,height:92,rx:12,fill:'#f5f8f8',stroke:'#d4dfe1','stroke-width':1.5}));
+    svg.appendChild(baSvgEl('text',{x:94,y:493,'font-family':'Arial,sans-serif','font-size':11,'font-weight':850,fill:'#708287'},'EQUATION'));
+    svg.appendChild(baSvgEl('text',{x:94,y:529,'font-family':'Arial,sans-serif','font-size':18,'font-weight':900,fill:'#304b52','data-ba-export-equation':'1'},exportEquation(state,pupil)));
+    svg.appendChild(baSvgEl('rect',{x:514,y:465,width:408,height:92,rx:12,fill:'#f5f8f8',stroke:'#d4dfe1','stroke-width':1.5}));
+    svg.appendChild(baSvgEl('text',{x:530,y:493,'font-family':'Arial,sans-serif','font-size':11,'font-weight':850,fill:'#708287'},'RELATIONSHIP'));
+    svg.appendChild(baSvgEl('text',{x:530,y:529,'font-family':'Arial,sans-serif','font-size':17,'font-weight':900,fill:'#304b52','data-ba-export-relation':'1'},exportRelationText(state,pupil)));
+    if(state.fromInitial)svg.appendChild(baSvgEl('g',{'data-ba-export-initial-state':'1','aria-hidden':'true'}));
+    svg.appendChild(baSvgEl('text',{x:936,y:610,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':10,fill:'#87969a'},'99 Club Studio'));
+    return svg;
+  }
+  function exportTargetSvg(){
+    if(exportMode!=='challenge'||!challenge||!X?.composeChallengeCardSvg)return equationBalanceExportSvg({pupil:false});
+    const prompt=CK?CK.plainText(challenge.promptHtml||challenge.prompt||''):challenge.prompt||'';
+    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
+    return X.composeChallengeCardSvg(equationBalanceExportSvg({pupil:true}),{
+      title:challenge.title||meta?.title||'Equation Balance challenge',
+      prompt,
+      responseLabel:challenge.category==='reason'?'Explain your thinking':challenge.type==='make-balance'||challenge.type==='same-to-both'?'Working / answer':'Answer',
+      responseLines
+    });
+  }
+  function exportFilename(){
+    if(exportMode==='challenge'&&challenge)return'equation-balance-'+(challenge.type||'challenge');
+    return'equation-balance';
+  }
+  function exportMessage(message){exportStatus=message;const el=q('#ba-export-status');if(el)el.textContent=message}
+  async function runExport(kind){
+    if(!X){exportMessage('Export tools are unavailable.');return}
+    const targetSvg=exportTargetSvg(),name=exportFilename();
+    try{
+      if(kind==='copy'){await X.copyPng(targetSvg);exportMessage('Image copied.')}
+      else if(kind==='png'){await X.downloadPng(targetSvg,name);exportMessage('PNG downloaded.')}
+      else if(kind==='svg'){X.downloadSvg(targetSvg,name);exportMessage('SVG downloaded.')}
+      else if(kind==='print'){X.printSvg(targetSvg,{title:'',landscape:exportMode!=='challenge'});exportMessage('Print view opened. Choose “Save as PDF” in the print dialog.')}
+    }catch(err){exportMessage(err?.message||'Could not export this equation balance.')}
+  }
+  function exportControlsHtml(){
+    const canCard=!!challenge;
+    if(!canCard&&exportMode==='challenge')exportMode='diagram';
+    return '<div class="nl-panel-title"><div><strong>Use it elsewhere</strong><span>Export a clean vector balance or a pupil-ready challenge card.</span></div></div>'+
+      (canCard?'<div class="nl-export-mode ba-export-mode" role="tablist" aria-label="Export content">'+
+        '<button type="button" class="'+(exportMode==='challenge'?'is-active':'')+'" data-ba-export-mode="challenge">Challenge card</button>'+
+        '<button type="button" class="'+(exportMode==='diagram'?'is-active':'')+'" data-ba-export-mode="diagram">Balance only</button></div>':'')+
+      (canCard&&exportMode==='challenge'
+        ?'<label class="gd-field"><span>Answer space</span><select class="gd-select" id="ba-response-lines">'+[1,2,3,4].map(n=>'<option value="'+n+'"'+(responseLines===n?' selected':'')+'>'+n+' line'+(n===1?'':'s')+'</option>').join('')+'</select></label><p class="gd-help">Pupil export always re-hides challenge answers. Interactive challenges export their original starting balance, not the teacher\'s completed solution.</p>'
+        :'<p class="gd-help">Balance-only export contains the current vector weights, beam position and visible mathematical readouts without editing controls.</p>')+
+      '<div class="nl-export-grid ba-export-grid">'+
+        '<button class="gd-btn gd-btn--primary" id="ba-copy-image" type="button">Copy '+(canCard&&exportMode==='challenge'?'challenge':'image')+'</button>'+
+        '<button class="gd-btn" id="ba-png" type="button">PNG</button>'+
+        '<button class="gd-btn" id="ba-svg-download" type="button">SVG</button>'+
+        '<button class="gd-btn" id="ba-print" type="button">Print / PDF</button>'+
+      '</div><p class="gd-help" id="ba-export-status" role="status" aria-live="polite">'+exportStatus+'</p>';
+  }
+
+  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():controlTab==='export'?exportControlsHtml():exploreControlsHtml())}
   function renderControls(){q('#gd-controls').innerHTML=controlsHtml();bindControls()}
   function bindModelControls(){
     qa('[data-ba-add]',q('#gd-controls')).forEach(button=>button.onclick=()=>mutate(()=>addToken('left',Number(button.dataset.baAdd))));
@@ -1344,6 +1480,12 @@ function balanceTool(){
   function bindControls(){
     qa('[data-ba-workflow]',q('#gd-controls')).forEach(button=>button.onclick=()=>{controlTab=button.dataset.baWorkflow;renderControls()});
     bindModelControls();
+    if(controlTab==='export'){
+      qa('[data-ba-export-mode]',q('#gd-controls')).forEach(button=>button.onclick=()=>{exportMode=button.dataset.baExportMode;exportStatus='';renderControls()});
+      const lines=q('#ba-response-lines');if(lines)lines.onchange=()=>{responseLines=clamp(Math.round(num(lines.value,1)),1,4)};
+      [['ba-copy-image','copy'],['ba-png','png'],['ba-svg-download','svg'],['ba-print','print']].forEach(([id,kind])=>{const button=q('#'+id);if(button)button.onclick=()=>runExport(kind)});
+      return;
+    }
     if(controlTab!=='challenge')return;
     qa('[data-ba-challenge-tab]',q('#gd-controls')).forEach(button=>button.onclick=()=>{
       if(button.dataset.baChallengeTab==='custom')enterCustomChallenge();

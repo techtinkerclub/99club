@@ -768,8 +768,83 @@ if(mode==='prepare'){
     baValue.value='5';baValue.dispatchEvent(new Event('change',{bubbles:true}));
     const baLiveAfter=document.getElementById('ba-custom-live-answer').textContent.trim();
     assert(baLiveBefore==='2'&&baLiveAfter==='1','Equation Balance custom live answer follows direct weight edits');
+    baSource.value='selected-value';baSource.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.querySelector('[data-ba-token].is-selected strong').textContent.trim()==='?','Binding a custom answer to selected weight hides that live value');
+    document.querySelector('[data-ba-workflow="export"]').click();
+    let baCustomSelectedCard=null;
+    const baOldCustomSelectedDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{baCustomSelectedCard=svg.cloneNode(true)};
+    document.getElementById('ba-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=baOldCustomSelectedDownload;
+    assert([...baCustomSelectedCard.querySelectorAll('[data-ba-export-weight-value]')].some(x=>x.textContent.trim()==='?'),'Selected-weight bound answer stays hidden in the custom pupil export');
+    document.querySelector('[data-ba-workflow="challenge"]').click();
     document.getElementById('ba-clear-challenge').click();
     assert(document.querySelector('[data-ba-equation]').textContent.trim()==='8 + 4 = 12','Ending Equation Balance challenges restores the teacher setup');
+
+    document.querySelector('[data-ba-workflow="export"]').click();
+    assert(document.getElementById('ba-copy-image')&&document.getElementById('ba-png')&&document.getElementById('ba-svg-download')&&document.getElementById('ba-print'),'Equation Balance export exposes copy, PNG, SVG and Print/PDF actions');
+    let baBoardSvg=null,baBoardName='';
+    const baOldBoardDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg,name)=>{baBoardSvg=svg.cloneNode(true);baBoardName=name};
+    document.getElementById('ba-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=baOldBoardDownload;
+    assert(baBoardSvg&&baBoardSvg.dataset.baExport==='equation-balance','Equation Balance board export is a deterministic SVG model');
+    assert(baBoardSvg.querySelectorAll('[data-ba-export-weight]').length===3,'Equation Balance SVG preserves all current weights');
+    assert(baBoardSvg.querySelector('[data-ba-export-equation]').textContent.trim()==='8 + 4 = 12','Equation Balance board SVG preserves the visible equation');
+    assert(baBoardSvg.querySelector('[data-ba-export-relation]').textContent.includes('12 = 12'),'Equation Balance board SVG preserves the live relationship');
+    assert(baBoardName.includes('equation-balance'),'Equation Balance board export has a reusable filename');
+
+    document.querySelector('[data-ba-workflow="challenge"]').click();
+    document.querySelector('[data-ba-challenge-cat="read"]').click();
+    document.querySelector('[data-ba-challenge-type="missing-weight"]').click();
+    document.getElementById('ba-generate').click();
+    document.querySelector('[data-board-action="reveal"]').click();
+    document.querySelector('[data-ba-workflow="export"]').click();
+    assert(document.querySelector('[data-ba-export-mode="challenge"]')?.classList.contains('is-active'),'Generated Equation Balance challenge defaults to Challenge card export');
+    let baMissingCard=null;
+    const baOldMissingDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{baMissingCard=svg.cloneNode(true)};
+    document.getElementById('ba-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=baOldMissingDownload;
+    assert(baMissingCard&&baMissingCard.querySelector('[data-ba-export-initial-state="1"]'),'Equation Balance pupil card is regenerated from the recorded challenge start');
+    const baMissingValues=[...baMissingCard.querySelectorAll('[data-ba-export-weight-value]')].map(x=>x.textContent.trim());
+    assert(baMissingValues.join('|')==='4|?|7','Missing-weight pupil export re-hides the hidden value after teacher Reveal');
+    assert(baMissingCard.querySelector('[data-ba-export-relation]').textContent.trim()==='?','Missing-weight pupil export re-hides the relationship shortcut');
+    assert(!baMissingCard.textContent.includes('Answer: 3'),'Equation Balance challenge-card export never includes the revealed answer');
+    assert(baMissingCard.textContent.includes('What value is hidden by the question mark?'),'Equation Balance challenge-card export includes the pupil prompt');
+
+    document.querySelector('[data-ba-workflow="challenge"]').click();
+    document.querySelector('[data-ba-challenge-cat="read"]').click();
+    document.querySelector('[data-ba-challenge-type="choose-relation"]').click();
+    document.getElementById('ba-generate').click();
+    document.querySelector('[data-board-action="reveal"]').click();
+    document.querySelector('[data-ba-workflow="export"]').click();
+    let baRelationCard=null;
+    const baOldRelationDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{baRelationCard=svg.cloneNode(true)};
+    document.getElementById('ba-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=baOldRelationDownload;
+    assert(baRelationCard.querySelector('[data-ba-export-equation]').textContent.trim()==='8 ? 10','Relation pupil export re-hides the comparison symbol after teacher Reveal');
+    assert(baRelationCard.querySelector('[data-ba-export-relation]').textContent.trim()==='?','Relation pupil export also re-hides the verdict');
+
+    document.querySelector('[data-ba-workflow="challenge"]').click();
+    document.querySelector('[data-ba-challenge-cat="build"]').click();
+    document.querySelector('[data-ba-challenge-type="make-balance"]').click();
+    document.getElementById('ba-generate').click();
+    const baBuildCustom=document.getElementById('ba-custom');
+    baBuildCustom.value='2';
+    document.getElementById('ba-add-right').click();
+    assert(document.querySelector('[data-ba-equation]').textContent.trim()==='5 + 2 = 5 + 2','Teacher can complete a make-balance challenge before exporting');
+    document.querySelector('[data-ba-workflow="export"]').click();
+    let baBuildCard=null;
+    const baOldBuildDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{baBuildCard=svg.cloneNode(true)};
+    document.getElementById('ba-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=baOldBuildDownload;
+    assert(baBuildCard&&baBuildCard.querySelector('[data-ba-export-initial-state="1"]'),'Interactive Equation Balance card explicitly uses the challenge start state');
+    assert(baBuildCard.querySelector('[data-ba-export-equation]').textContent.trim()==='5 + 2 > 5','Make-balance pupil card restores the original unequal problem');
+    assert(!baBuildCard.textContent.includes('5 + 2 = 5 + 2'),'Make-balance pupil export strips the teacher completed solution');
+
     Math.random=realBalanceRandom;
   }
 
