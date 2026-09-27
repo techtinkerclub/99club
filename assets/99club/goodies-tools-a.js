@@ -1320,6 +1320,7 @@ function barModel(){
   }
   function statusText(){
     if(challengeHidden('hiddenStatus'))return'?';
+    if(challenge?.comparison)return'Difference = '+(Math.round(challenge.comparison.difference*100)/100);
     if(challenge?.type==='build-model')return buildOnTarget()?'On target ✓':'Keep editing the model';
     return rawStatusText();
   }
