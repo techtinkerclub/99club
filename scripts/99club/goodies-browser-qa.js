@@ -768,6 +768,16 @@ if(mode==='prepare'){
     baValue.value='5';baValue.dispatchEvent(new Event('change',{bubbles:true}));
     const baLiveAfter=document.getElementById('ba-custom-live-answer').textContent.trim();
     assert(baLiveBefore==='2'&&baLiveAfter==='1','Equation Balance custom live answer follows direct weight edits');
+    baSource.value='selected-value';baSource.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.querySelector('[data-ba-token].is-selected strong').textContent.trim()==='?','Binding a custom answer to selected weight hides that live value');
+    document.querySelector('[data-ba-workflow="export"]').click();
+    let baCustomSelectedCard=null;
+    const baOldCustomSelectedDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{baCustomSelectedCard=svg.cloneNode(true)};
+    document.getElementById('ba-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=baOldCustomSelectedDownload;
+    assert([...baCustomSelectedCard.querySelectorAll('[data-ba-export-weight-value]')].some(x=>x.textContent.trim()==='?'),'Selected-weight bound answer stays hidden in the custom pupil export');
+    document.querySelector('[data-ba-workflow="challenge"]').click();
     document.getElementById('ba-clear-challenge').click();
     assert(document.querySelector('[data-ba-equation]').textContent.trim()==='8 + 4 = 12','Ending Equation Balance challenges restores the teacher setup');
 
