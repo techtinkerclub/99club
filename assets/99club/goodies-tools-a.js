@@ -1854,16 +1854,34 @@ function barModel(){
 }
 
 function hundredSquare(){
+  const CK=G.challengeKit;
   let startValue=1,selectedIndex=0,interactionMode='select',ruleMode='multiples',ruleNumber=5,paint=null;
   let marked=new Set(),hidden=new Set();
   const undoStack=[],redoStack=[];
+  const CHALLENGE_CATEGORIES=[
+    {id:'read',label:'Read & locate'},
+    {id:'patterns',label:'Patterns'},
+    {id:'reason',label:'Reasoning'}
+  ];
+  const CHALLENGE_TEMPLATES=[
+    {id:'missing-number',category:'read',title:'Find the hidden number',desc:'Use the surrounding hundred-square pattern to identify a hidden cell.'},
+    {id:'one-more',category:'read',title:'One more',desc:'Find the number that is one more than the selected number.'},
+    {id:'one-less',category:'read',title:'One less',desc:'Find the number that is one less than the selected number.'},
+    {id:'ten-more',category:'read',title:'Ten more',desc:'Find the number that is ten more than the selected number.'},
+    {id:'ten-less',category:'read',title:'Ten less',desc:'Find the number that is ten less than the selected number.'},
+    {id:'continue-pattern',category:'patterns',title:'Continue the pattern',desc:'Use marked numbers to continue a step pattern.'},
+    {id:'mark-rule',category:'patterns',title:'Mark every match',desc:'Mark every number that matches a given rule.'},
+    {id:'spot-wrong-mark',category:'reason',title:'Spot the wrong mark',desc:'Find the one marked number that does not fit the rule.'}
+  ];
+  let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='missing-number',challenge=null,beforeChallenge=null;
 
   function snapshot(){
-    return{startValue,selectedIndex,ruleMode,ruleNumber,marked:[...marked],hidden:[...hidden]};
+    return{startValue,selectedIndex,interactionMode,ruleMode,ruleNumber,marked:[...marked],hidden:[...hidden]};
   }
   function restore(state){
     startValue=Math.round(Number(state?.startValue)||0);
     selectedIndex=clamp(Math.round(Number(state?.selectedIndex)||0),0,99);
+    interactionMode=state?.interactionMode||'select';
     ruleMode=state?.ruleMode||'none';
     ruleNumber=Math.max(1,Math.round(Number(state?.ruleNumber)||1));
     marked=new Set(Array.isArray(state?.marked)?state.marked:[]);
@@ -1874,15 +1892,18 @@ function hundredSquare(){
     if(undoStack.length>60)undoStack.shift();
     redoStack.length=0;
   }
+  function challengeFrozen(){return !!(challenge&&challenge.mode==='standard'&&challenge.freezeGrid)}
+  function challengeMarkOnly(){return !!(challenge&&challenge.mode==='standard'&&challenge.markOnly)}
   function mutate(fn){
+    if(challengeFrozen())return;
     remember();fn();draw();renderControls();
   }
   function undo(){
-    if(!undoStack.length)return;
+    if(!undoStack.length||challengeFrozen())return;
     redoStack.push(snapshot());restore(undoStack.pop());draw();renderControls();
   }
   function redo(){
-    if(!redoStack.length)return;
+    if(!redoStack.length||challengeFrozen())return;
     undoStack.push(snapshot());restore(redoStack.pop());draw();renderControls();
   }
   function valueAt(index){return startValue+index}
@@ -1893,13 +1914,17 @@ function hundredSquare(){
     for(let i=2;i*i<=n;i++)if(n%i===0)return false;
     return true;
   }
-  function ruleMatches(n){
-    if(ruleMode==='multiples')return ruleNumber!==0&&n%ruleNumber===0;
-    if(ruleMode==='factors')return n!==0&&ruleNumber%n===0;
-    if(ruleMode==='prime')return isPrime(n);
-    if(ruleMode==='odd')return Math.abs(n%2)===1;
-    if(ruleMode==='even')return n%2===0;
+  function matchesRule(n,mode=ruleMode,k=ruleNumber){
+    if(mode==='multiples')return k!==0&&n%k===0;
+    if(mode==='factors')return n!==0&&k%n===0;
+    if(mode==='prime')return isPrime(n);
+    if(mode==='odd')return Math.abs(n%2)===1;
+    if(mode==='even')return n%2===0;
     return false;
+  }
+  function ruleMatches(n){return matchesRule(n)}
+  function valuesForRule(mode,k){
+    return Array.from({length:100},(_,i)=>valueAt(i)).filter(n=>matchesRule(n,mode,k));
   }
   function relatedValues(){
     const n=currentValue(),vals=[n-1,n+1,n-10,n+10];
@@ -1914,10 +1939,26 @@ function hundredSquare(){
     if(next)marked.add(value);else marked.delete(value);
   }
   function toggleHidden(value,on=null){
+    if(challengeMarkOnly())return;
     const next=on==null?!hidden.has(value):!!on;
     if(next)hidden.add(value);else hidden.delete(value);
   }
+  function boundHiddenValue(){
+    if(!challenge||challenge.mode!=='custom'||challenge.revealed||challenge.answerMode!=='bound')return null;
+    const n=currentValue();
+    if(challenge.answerSource==='selected-value')return n;
+    if(challenge.answerSource==='one-less')return n-1;
+    if(challenge.answerSource==='one-more')return n+1;
+    if(challenge.answerSource==='ten-less')return n-10;
+    if(challenge.answerSource==='ten-more')return n+10;
+    return null;
+  }
+  function valueHidden(value){
+    const teacherHidden=hidden.has(value)&&!(challenge?.mode==='standard'&&challenge.revealed);
+    return teacherHidden||boundHiddenValue()===value;
+  }
   function moveSelection(delta){
+    if(challengeFrozen())return;
     selectedIndex=clamp(selectedIndex+delta,0,99);draw();renderControls();
     setTimeout(()=>q('[data-hs-index="'+selectedIndex+'"]')?.focus(),0);
   }
@@ -1926,11 +1967,12 @@ function hundredSquare(){
     return '<div class="gd-hs-relation-item'+(present?'':' is-outside')+'"><span>'+label+'</span><strong>'+value+'</strong><small>'+(present?'on grid':'outside grid')+'</small></div>';
   }
   function selectedPanel(){
-    const n=currentValue(),isMarked=marked.has(n),isHidden=hidden.has(n);
+    if(challenge&&!challenge.revealed&&challenge.hideSelectedPanel)return'';
+    const n=currentValue(),isMarked=marked.has(n),isHidden=valueHidden(n),markOnly=challengeMarkOnly();
     return '<div class="gd-hs-selected" data-hs-selected="'+n+'">'+
       '<div class="gd-hs-selected__head"><div><span>Selected number</span><strong>'+(isHidden?'?':n)+'</strong></div><div class="gd-row">'+
         '<button class="gd-btn'+(isMarked?' gd-btn--primary':'')+'" id="hs-mark-selected" type="button">'+(isMarked?'Unmark':'Mark')+'</button>'+
-        '<button class="gd-btn" id="hs-hide-selected" type="button">'+(isHidden?'Reveal':'Hide number')+'</button>'+
+        (markOnly?'':'<button class="gd-btn" id="hs-hide-selected" type="button">'+(isHidden?'Reveal':'Hide number')+'</button>')+
       '</div></div>'+
       (isHidden?'<p class="gd-help gd-hs-hidden-note">This number is hidden. Reveal it to inspect its ±1 and ±10 relationships.</p>':
       '<div class="gd-hs-relations">'+
@@ -1938,37 +1980,57 @@ function hundredSquare(){
       '</div>')+
     '</div>';
   }
+  function challengeProgress(){
+    if(!challenge||challenge.type!=='mark-rule'||!Array.isArray(challenge.targetValues))return'';
+    const target=new Set(challenge.targetValues),wrong=[...marked].some(v=>!target.has(v)),missing=[...target].some(v=>!marked.has(v));
+    if(!wrong&&!missing&&marked.size===target.size)return'All matching numbers marked ✓';
+    if(wrong)return'Some marks do not fit the rule';
+    return'Keep looking for matching numbers';
+  }
   function cellHtml(index,related){
-    const n=valueAt(index),isHidden=hidden.has(n),classes=[
+    const n=valueAt(index),isHidden=valueHidden(n),frozen=challengeFrozen(),classes=[
       'gd-square-cell','gd-hs-cell',
       ruleMatches(n)?'is-rule':'',
       marked.has(n)?'is-marked':'',
       index===selectedIndex?'is-current':'',
-      related.has(n)&&index!==selectedIndex?'is-related':'',
+      related.has(n)&&index!==selectedIndex&&!challenge?.hideSelectedPanel?'is-related':'',
       isHidden?'is-hidden-number':'',
-      interactionMode!=='select'?'is-paintable':''
+      !frozen&&interactionMode!=='select'?'is-paintable':'',
+      frozen?'is-frozen':''
     ].filter(Boolean).join(' ');
-    return '<button type="button" class="'+classes+'" data-hs-index="'+index+'" data-hs-value="'+n+'" aria-label="'+(isHidden?'Hidden number':'Number '+n)+'" aria-pressed="'+(marked.has(n)?'true':'false')+'"><span>'+ (isHidden?'?':n) +'</span></button>';
+    return '<button type="button" class="'+classes+'" data-hs-index="'+index+'" data-hs-value="'+n+'" aria-label="'+(isHidden?'Hidden number':'Number '+n)+'" aria-pressed="'+(marked.has(n)?'true':'false')+'"'+(frozen?' disabled':'')+'><span>'+(isHidden?'?':n)+'</span></button>';
+  }
+  function bindChallengeStageActions(){
+    const stage=q('#gd-stage');if(!stage||!challenge)return;
+    const reveal=q('[data-board-action="reveal"]',stage);
+    if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();draw()};
+    const another=q('[data-challenge-action="another"]',stage);
+    if(another)another.onclick=e=>{e.stopPropagation();if(challenge?.mode==='standard')generateChallenge(challenge.type)};
+  }
+  function rangeSummary(){
+    return challenge&&!challenge.revealed&&challenge.hiddenRangeSummary?'?':startValue+'–'+(startValue+99);
   }
   function draw(){
-    const related=relatedValues();
-    q('#gd-stage').innerHTML='<div class="gd-vis gd-hs-workbench">'+
-      '<div class="gd-hs-summary"><div><span>Hundred square</span><strong>'+startValue+'–'+(startValue+99)+'</strong></div>'+
-        '<div class="gd-object-toolbar"><button class="gd-btn" id="hs-undo" type="button"'+(undoStack.length?'':' disabled')+'>Undo</button><button class="gd-btn" id="hs-redo" type="button"'+(redoStack.length?'':' disabled')+'>Redo</button></div></div>'+
+    updateChallengeAnswer();
+    const related=relatedValues(),banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Hundred Square challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
+    q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-hs-workbench">'+
+      '<div class="gd-hs-summary"><div><span>Hundred square</span><strong>'+rangeSummary()+'</strong></div>'+
+        '<div class="gd-object-toolbar"><button class="gd-btn" id="hs-undo" type="button"'+(undoStack.length&&!challengeFrozen()?'':' disabled')+'>Undo</button><button class="gd-btn" id="hs-redo" type="button"'+(redoStack.length&&!challengeFrozen()?'':' disabled')+'>Redo</button></div></div>'+
       '<div class="gd-square-grid gd-hs-grid" data-hs-grid-start="'+startValue+'">'+Array.from({length:100},(_,i)=>cellHtml(i,related)).join('')+'</div>'+
       selectedPanel()+
+      (challenge?.type==='mark-rule'?'<div class="gd-answer-live" data-hs-target-status>'+challengeProgress()+'</div>':'')+
       '<div class="gd-hs-key"><span><i class="is-rule"></i> rule</span><span><i class="is-marked"></i> your mark</span><span><i class="is-related"></i> ±1 / ±10 relation</span><span><i class="is-hidden-number">?</i> hidden</span></div>'+
     '</div>';
-    bindStage();
+    bindStage();bindChallengeStageActions();
   }
   function paintAtPoint(x,y){
-    if(!paint)return;
+    if(!paint||challengeFrozen())return;
     const el=document.elementFromPoint(x,y)?.closest?.('[data-hs-index]');
     if(!el)return;
     const value=Number(el.dataset.hsValue),index=Number(el.dataset.hsIndex);
     if(!Number.isFinite(value)||paint.visited.has(value))return;
     paint.visited.add(value);selectedIndex=index;
-    if(interactionMode==='mark')toggleMark(value,paint.on);
+    if(interactionMode==='mark'||challengeMarkOnly())toggleMark(value,paint.on);
     else if(interactionMode==='hide')toggleHidden(value,paint.on);
     draw();
   }
@@ -1987,23 +2049,24 @@ function hundredSquare(){
   function bindStage(){
     qa('[data-hs-index]',q('#gd-stage')).forEach(cell=>{
       cell.onclick=()=>{
-        if(interactionMode!=='select')return;
+        if(challengeFrozen()||interactionMode!=='select')return;
         selectedIndex=Number(cell.dataset.hsIndex);draw();renderControls();
       };
       cell.onkeydown=e=>{
+        if(challengeFrozen())return;
         if(e.key==='ArrowLeft'){e.preventDefault();moveSelection(-1)}
         else if(e.key==='ArrowRight'){e.preventDefault();moveSelection(1)}
         else if(e.key==='ArrowUp'){e.preventDefault();moveSelection(-10)}
         else if(e.key==='ArrowDown'){e.preventDefault();moveSelection(10)}
         else if(e.key===' '||e.key==='Enter'){e.preventDefault();mutate(()=>toggleMark(currentValue()))}
-        else if(e.key.toLowerCase()==='h'){e.preventDefault();mutate(()=>toggleHidden(currentValue()))}
+        else if(e.key.toLowerCase()==='h'&&!challengeMarkOnly()){e.preventDefault();mutate(()=>toggleHidden(currentValue()))}
       };
       cell.onpointerdown=e=>{
-        if(interactionMode==='select'||(e.button!=null&&e.button!==0))return;
+        if(challengeFrozen()||interactionMode==='select'||(e.button!=null&&e.button!==0))return;
         e.preventDefault();
         const value=Number(cell.dataset.hsValue);
         remember();
-        paint={pointerId:e.pointerId,on:interactionMode==='mark'?!marked.has(value):!hidden.has(value),visited:new Set()};
+        paint={pointerId:e.pointerId,on:(interactionMode==='mark'||challengeMarkOnly())?!marked.has(value):!hidden.has(value),visited:new Set()};
         document.addEventListener('pointermove',paintMove);
         document.addEventListener('pointerup',paintEnd,{once:true});
         document.addEventListener('pointercancel',paintEnd,{once:true});
@@ -2015,21 +2078,160 @@ function hundredSquare(){
     const markBtn=q('#hs-mark-selected');if(markBtn)markBtn.onclick=()=>mutate(()=>toggleMark(currentValue()));
     const hideBtn=q('#hs-hide-selected');if(hideBtn)hideBtn.onclick=()=>mutate(()=>toggleHidden(currentValue()));
   }
-  function controlsHtml(){
+
+  function workflowTabs(){
+    return '<div class="gd-row gd-hs-workflow-tabs" role="tablist" aria-label="Hundred Square workflow">'+
+      '<button class="gd-btn'+(controlTab==='explore'?' gd-btn--primary':'')+'" type="button" data-hs-workflow="explore">Explore</button>'+
+      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-hs-workflow="challenge">Challenge'+(challenge?' •':'')+'</button></div>';
+  }
+  function rangePatternControlsHtml(){
     return '<div class="gd-field"><span>Grid range</span><div class="gd-row"><button class="gd-btn'+(startValue===1?' gd-btn--primary':'')+'" type="button" data-hs-preset="1">1–100</button><button class="gd-btn'+(startValue===0?' gd-btn--primary':'')+'" type="button" data-hs-preset="0">0–99</button></div></div>'+
       field('Custom start','<div class="gd-row"><input class="gd-input gd-small" id="hs-start" type="number" step="1" value="'+startValue+'"><button class="gd-btn" id="hs-apply-start" type="button">Apply</button></div>','Build any consecutive 10 × 10 number grid, for example 101–200.')+
       field('Pattern highlight','<select class="gd-select" id="hs-mode"><option value="multiples"'+(ruleMode==='multiples'?' selected':'')+'>Multiples of…</option><option value="factors"'+(ruleMode==='factors'?' selected':'')+'>Factors of…</option><option value="prime"'+(ruleMode==='prime'?' selected':'')+'>Prime numbers</option><option value="odd"'+(ruleMode==='odd'?' selected':'')+'>Odd numbers</option><option value="even"'+(ruleMode==='even'?' selected':'')+'>Even numbers</option><option value="none"'+(ruleMode==='none'?' selected':'')+'>Nothing</option></select>')+
-      field('Pattern number','<input class="gd-input" id="hs-k" type="number" min="1" step="1" value="'+ruleNumber+'">','Used for multiples and factors.')+
-      '<div class="gd-field"><span>Touch / mouse action</span><div class="gd-row">'+
+      field('Pattern number','<input class="gd-input" id="hs-k" type="number" min="1" step="1" value="'+ruleNumber+'">','Used for multiples and factors.');
+  }
+  function interactionControlsHtml({markOnly=false}={}){
+    if(markOnly){
+      return '<div class="gd-field"><span>Mark answers</span><div class="gd-row">'+
         '<button class="gd-btn'+(interactionMode==='select'?' gd-btn--primary':'')+'" type="button" data-hs-interaction="select">Select</button>'+
         '<button class="gd-btn'+(interactionMode==='mark'?' gd-btn--primary':'')+'" type="button" data-hs-interaction="mark">Paint marks</button>'+
-        '<button class="gd-btn'+(interactionMode==='hide'?' gd-btn--primary':'')+'" type="button" data-hs-interaction="hide">Hide / reveal</button>'+
-      '</div></div>'+
-      '<div class="gd-row"><button class="gd-btn" id="hs-clear-marks" type="button">Clear marks</button><button class="gd-btn" id="hs-reveal-all" type="button">Reveal all</button></div>'+
+      '</div></div><div class="gd-row"><button class="gd-btn" id="hs-clear-marks" type="button">Clear marks</button></div>';
+    }
+    return '<div class="gd-field"><span>Touch / mouse action</span><div class="gd-row">'+
+      '<button class="gd-btn'+(interactionMode==='select'?' gd-btn--primary':'')+'" type="button" data-hs-interaction="select">Select</button>'+
+      '<button class="gd-btn'+(interactionMode==='mark'?' gd-btn--primary':'')+'" type="button" data-hs-interaction="mark">Paint marks</button>'+
+      '<button class="gd-btn'+(interactionMode==='hide'?' gd-btn--primary':'')+'" type="button" data-hs-interaction="hide">Hide / reveal</button>'+
+    '</div></div>'+
+    '<div class="gd-row"><button class="gd-btn" id="hs-clear-marks" type="button">Clear marks</button><button class="gd-btn" id="hs-reveal-all" type="button">Reveal all</button></div>';
+  }
+  function exploreControlsHtml(){
+    return rangePatternControlsHtml()+interactionControlsHtml()+
       '<p class="gd-help">Select a number to see ±1 and ±10 relationships. In paint modes, drag across cells to mark or hide several numbers quickly. Arrow keys move the selection; Space marks it; H hides/reveals it.</p>';
   }
+  function challengeControlsHtml(){
+    if(!CK)return'<p class="gd-help">Challenge tools are unavailable.</p>';
+    const tabs=CK.tabsHtml?CK.tabsHtml('hs',challengeTab):'';
+    if(challengeTab==='custom'){
+      const custom=challenge&&challenge.mode==='custom'?challenge:CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual'});
+      return tabs+CK.editorHtml(custom,'hs',{answerSources:customAnswerSources(),generatedAnswerLabel:'Keep the generated answer'})+
+        rangePatternControlsHtml()+interactionControlsHtml()+
+        '<div class="gd-row">'+(challenge&&challenge.answer?'<button class="gd-btn" id="hs-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
+        (challenge?'<button class="gd-btn" id="hs-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
+        '<p class="gd-help">Custom answers can follow the selected number, ±1/±10 relationships, or the number of marked/hidden cells.</p>';
+    }
+    const picker=CK.pickerHtml(CHALLENGE_TEMPLATES,CHALLENGE_CATEGORIES,challengeCategory,challengeType,'hs');
+    const repeat=!!(challenge&&challenge.mode==='standard'&&challenge.type===challengeType);
+    return tabs+picker+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="hs-generate" type="button">'+(repeat?'Another like this':'Generate challenge')+'</button>'+
+      (challenge&&challenge.mode!=='custom'?'<button class="gd-btn" id="hs-edit-challenge" type="button">Edit challenge</button>':'')+
+      (challenge&&challenge.answer?'<button class="gd-btn" id="hs-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
+      (challenge?'<button class="gd-btn" id="hs-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
+      (challengeMarkOnly()?interactionControlsHtml({markOnly:true}):'');
+  }
+  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():exploreControlsHtml())}
   function renderControls(){q('#gd-controls').innerHTML=controlsHtml();bindControls()}
-  function bindControls(){
+
+  function challengeObject(type,prompt,answer,extra={}){
+    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===type);
+    const raw={mode:'standard',type,category:meta?.category||'',title:'',prompt,promptHtml:prompt,answer:String(answer??''),answerMode:'manual',answerSource:'',revealed:false,freezeGrid:true,markOnly:false,hideSelectedPanel:false,hiddenRangeSummary:false,targetValues:null,...extra};
+    return CK?CK.normalise(raw):raw;
+  }
+  function randomInt(min,max){return min+Math.floor(Math.random()*(max-min+1))}
+  function resetChallengeGrid(){
+    startValue=1;selectedIndex=0;interactionMode='select';ruleMode='none';ruleNumber=5;marked.clear();hidden.clear();
+  }
+  function relationshipChallenge(type,delta,label){
+    const min=delta<0?1-delta:1,max=delta>0?100-delta:100,anchor=randomInt(Math.max(11,min),Math.min(89,max)),target=anchor+delta;
+    selectedIndex=anchor-startValue;hidden.add(target);
+    return challengeObject(type,'What is '+label+' than '+anchor+'?',target,{hideSelectedPanel:true});
+  }
+  function generateChallenge(type){
+    const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
+    if(!beforeChallenge)beforeChallenge=snapshot();else restore(beforeChallenge);
+    undoStack.length=0;redoStack.length=0;resetChallengeGrid();
+    if(type==='missing-number'){
+      const target=randomInt(12,89);hidden.add(target);selectedIndex=target-1;
+      challenge=challengeObject(type,'What number is hidden on the hundred square?',target,{hideSelectedPanel:true});
+    }else if(type==='one-more')challenge=relationshipChallenge(type,1,'one more');
+    else if(type==='one-less')challenge=relationshipChallenge(type,-1,'one less');
+    else if(type==='ten-more')challenge=relationshipChallenge(type,10,'ten more');
+    else if(type==='ten-less')challenge=relationshipChallenge(type,-10,'ten less');
+    else if(type==='continue-pattern'){
+      const steps=[2,5,10],step=steps[Math.floor(Math.random()*steps.length)],first=randomInt(5,20),seq=[first,first+step,first+2*step],answer=first+3*step;
+      marked=new Set(seq);hidden.add(answer);selectedIndex=first-1;
+      challenge=challengeObject(type,'The marked numbers follow a +'+step+' pattern. What comes next?',answer,{hideSelectedPanel:true});
+    }else if(type==='mark-rule'){
+      const modes=['multiples','prime','even','odd'],mode=modes[Math.floor(Math.random()*modes.length)],k=mode==='multiples'?[10,5,4,3][Math.floor(Math.random()*4)]:5;
+      const target=valuesForRule(mode,k),label=mode==='multiples'?'multiples of '+k:mode==='prime'?'prime numbers':mode+' numbers';
+      interactionMode='mark';
+      challenge=challengeObject(type,'Mark all '+label+' on the hundred square.','All matching numbers marked',{freezeGrid:false,markOnly:true,targetValues:target,ruleLabel:label});
+    }else{
+      const k=10,target=valuesForRule('multiples',k),wrong=5;
+      marked=new Set([...target,wrong]);selectedIndex=9;
+      challenge=challengeObject(type,'One marked number is not a multiple of 10. Which number is wrong?',wrong,{hideSelectedPanel:true,ruleLabel:'multiples of 10'});
+    }
+    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';renderControls();draw();
+  }
+  function restoreBeforeChallenge(){if(beforeChallenge){restore(beforeChallenge);beforeChallenge=null}}
+  function clearChallenge(){
+    restoreBeforeChallenge();challenge=null;challengeTab='standard';controlTab='challenge';undoStack.length=0;redoStack.length=0;renderControls();draw();
+  }
+  function clearBoundHiding(){
+    if(!challenge)return;
+    challenge.hideSelectedPanel=false;challenge.hiddenRangeSummary=false;
+  }
+  function applyBoundHiding(source){
+    clearBoundHiding();if(!challenge)return;
+    if(['selected-value','one-less','one-more','ten-less','ten-more'].includes(source))challenge.hideSelectedPanel=true;
+    if(source==='grid-range')challenge.hiddenRangeSummary=true;
+  }
+  function resolveAnswerSource(source){
+    const n=currentValue();
+    if(source==='selected-value')return String(n);
+    if(source==='one-less')return String(n-1);
+    if(source==='one-more')return String(n+1);
+    if(source==='ten-less')return String(n-10);
+    if(source==='ten-more')return String(n+10);
+    if(source==='grid-range')return startValue+'–'+(startValue+99);
+    if(source==='marked-count')return String(marked.size);
+    if(source==='hidden-count')return String(hidden.size);
+    return'';
+  }
+  function customAnswerSources(){
+    return[
+      {id:'selected-value',label:'Selected number'},
+      {id:'one-less',label:'One less than selected'},
+      {id:'one-more',label:'One more than selected'},
+      {id:'ten-less',label:'Ten less than selected'},
+      {id:'ten-more',label:'Ten more than selected'},
+      {id:'marked-count',label:'Number of marked cells'},
+      {id:'hidden-count',label:'Number of hidden cells'}
+    ];
+  }
+  function updateChallengeAnswer(){
+    if(!challenge||challenge.answerMode!=='bound'||!challenge.answerSource)return;
+    const answer=resolveAnswerSource(challenge.answerSource);if(answer!=='')challenge.answer=answer;
+    const live=q('#hs-custom-live-answer');if(live)live.textContent=challenge.answer||'—';
+    if(challenge.revealed){
+      const shown=q('.gd-challenge-actions em',q('#gd-stage'));if(shown)shown.textContent='Answer: '+challenge.answer;
+    }
+  }
+  function enterCustomChallenge(){
+    if(!beforeChallenge)beforeChallenge=snapshot();
+    const wasCustom=challenge?.mode==='custom';
+    if(CK)challenge=CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''});
+    if(!wasCustom)clearBoundHiding();
+    challenge.freezeGrid=false;challenge.markOnly=false;challenge.revealed=false;
+    challengeTab='custom';controlTab='challenge';renderControls();draw();
+  }
+  function setCustomAnswerSource(source){
+    if(!challenge||challenge.mode!=='custom')return;
+    if(source==='manual'){challenge.answerMode='manual';challenge.answerSource='';clearBoundHiding()}
+    else if(source==='generated'){challenge.answerMode='bound';challenge.answerSource='';clearBoundHiding()}
+    else{challenge.answerMode='bound';challenge.answerSource=source;challenge.answer=resolveAnswerSource(source);applyBoundHiding(source)}
+    challenge.revealed=false;renderControls();draw();
+  }
+
+  function bindExploreControls(){
     qa('[data-hs-preset]',q('#gd-controls')).forEach(button=>button.onclick=()=>mutate(()=>setStart(Number(button.dataset.hsPreset))));
     const apply=q('#hs-apply-start');if(apply)apply.onclick=()=>mutate(()=>setStart(num(q('#hs-start')?.value,startValue)));
     const mode=q('#hs-mode');if(mode)mode.onchange=()=>{ruleMode=mode.value;draw();renderControls()};
@@ -2037,6 +2239,32 @@ function hundredSquare(){
     qa('[data-hs-interaction]',q('#gd-controls')).forEach(button=>button.onclick=()=>{interactionMode=button.dataset.hsInteraction;draw();renderControls()});
     const clear=q('#hs-clear-marks');if(clear)clear.onclick=()=>{if(!marked.size)return;mutate(()=>marked.clear())};
     const reveal=q('#hs-reveal-all');if(reveal)reveal.onclick=()=>{if(!hidden.size)return;mutate(()=>hidden.clear())};
+  }
+  function bindControls(){
+    qa('[data-hs-workflow]',q('#gd-controls')).forEach(button=>button.onclick=()=>{controlTab=button.dataset.hsWorkflow;renderControls()});
+    bindExploreControls();
+    if(controlTab!=='challenge')return;
+    qa('[data-hs-challenge-tab]',q('#gd-controls')).forEach(button=>button.onclick=()=>{
+      if(button.dataset.hsChallengeTab==='custom')enterCustomChallenge();
+      else{challengeTab='standard';renderControls()}
+    });
+    qa('[data-hs-challenge-cat]',q('#gd-controls')).forEach(button=>button.onclick=()=>{
+      challengeCategory=button.dataset.hsChallengeCat;
+      const first=CHALLENGE_TEMPLATES.find(t=>t.category===challengeCategory);if(first)challengeType=first.id;
+      renderControls();
+    });
+    qa('[data-hs-challenge-type]',q('#gd-controls')).forEach(button=>button.onclick=()=>{challengeType=button.dataset.hsChallengeType;renderControls()});
+    const generate=q('#hs-generate');if(generate)generate.onclick=()=>generateChallenge(challengeType);
+    const edit=q('#hs-edit-challenge');if(edit)edit.onclick=enterCustomChallenge;
+    const reveal=q('#hs-reveal');if(reveal)reveal.onclick=()=>{if(challenge){challenge.revealed=!challenge.revealed;renderControls();draw()}};
+    const clearChallengeBtn=q('#hs-clear-challenge');if(clearChallengeBtn)clearChallengeBtn.onclick=clearChallenge;
+    if(challengeTab==='custom'&&challenge){
+      const title=q('#hs-custom-title');if(title)title.oninput=()=>{challenge.title=title.value.slice(0,100);draw()};
+      const prompt=q('#hs-custom-prompt');if(prompt)prompt.oninput=()=>{challenge.promptHtml=CK.sanitiseRichHtml(prompt.innerHTML);challenge.prompt=CK.plainText(challenge.promptHtml);draw()};
+      const source=q('#hs-custom-answer-source');if(source)source.onchange=()=>setCustomAnswerSource(source.value);
+      const answer=q('#hs-custom-answer');if(answer)answer.oninput=()=>{challenge.answer=answer.value.slice(0,400);challenge.answerMode='manual';challenge.answerSource='';draw()};
+      qa('[data-gd-rich-action]',q('#gd-controls')).forEach(button=>button.onclick=()=>{CK.applyFormat(prompt,button.dataset.gdRichAction);challenge.promptHtml=CK.sanitiseRichHtml(prompt.innerHTML);challenge.prompt=CK.plainText(challenge.promptHtml);draw()});
+    }
   }
 
   setPanels(controlsHtml(),'');
