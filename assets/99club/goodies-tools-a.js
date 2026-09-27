@@ -1198,7 +1198,7 @@ function fractionWall(){
 }
 
 function barModel(){
-  const CK=G.challengeKit;
+  const CK=G.challengeKit,X=G.exportTools;
   let parts=[
     {id:1,value:30,unknown:false},
     {id:2,value:20,unknown:false},
@@ -1224,6 +1224,7 @@ function barModel(){
     {id:'spot-error',category:'reason',title:'Spot the error',desc:'Decide whether a shown part–whole model is mathematically consistent.'}
   ];
   let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='missing-part',challenge=null,beforeChallenge=null;
+  let exportMode='diagram',responseLines=1,exportStatus='';
 
   function cloneParts(value=parts){return value.map(p=>({...p}))}
   function snapshot(){return{parts:cloneParts(),nextId,total,selectedId}}
@@ -1435,7 +1436,7 @@ function barModel(){
   }
   function restoreBeforeChallenge(){if(beforeChallenge){restore(beforeChallenge);beforeChallenge=null}}
   function clearChallenge(){
-    restoreBeforeChallenge();challenge=null;challengeTab='standard';controlTab='challenge';undoStack.length=0;redoStack.length=0;renderControls();draw();
+    restoreBeforeChallenge();challenge=null;challengeTab='standard';controlTab='challenge';exportMode='diagram';exportStatus='';undoStack.length=0;redoStack.length=0;renderControls();draw();
   }
   function enterCustomChallenge(){
     if(!beforeChallenge)beforeChallenge=snapshot();
@@ -1443,7 +1444,7 @@ function barModel(){
     if(CK)challenge=CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''});
     if(!wasCustom)clearBoundHiding();
     challenge.freezeModel=false;challenge.revealed=false;
-    challengeTab='custom';controlTab='challenge';renderControls();draw();
+    challengeTab='custom';controlTab='challenge';exportMode='challenge';exportStatus='';renderControls();draw();
   }
   function setCustomAnswerSource(source){
     if(!challenge||challenge.mode!=='custom')return;
@@ -1489,7 +1490,7 @@ function barModel(){
       total=wrong;setParts(values);
       challenge=challengeObject(type,'A pupil says this part–whole model is correct. Are they right? Explain your answer.','No. The parts total '+sum+', not '+wrong+'.',{hiddenStatus:true});
     }
-    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';renderControls();draw();
+    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';exportMode='challenge';exportStatus='';renderControls();draw();
   }
 
   function segmentMarkup(part,index){
@@ -1609,7 +1610,8 @@ function barModel(){
   function workflowTabs(){
     return '<div class="gd-row gd-bm-workflow-tabs" role="tablist" aria-label="Bar Model workflow">'+
       '<button class="gd-btn'+(controlTab==='explore'?' gd-btn--primary':'')+'" type="button" data-bm-workflow="explore">Explore</button>'+
-      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-bm-workflow="challenge">Challenge'+(challenge?' •':'')+'</button></div>';
+      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-bm-workflow="challenge">Challenge'+(challenge?' •':'')+'</button>'+ 
+      '<button class="gd-btn'+(controlTab==='export'?' gd-btn--primary':'')+'" type="button" data-bm-workflow="export">Export / reuse</button></div>';
   }
   function modelControlsHtml(){
     if(challenge?.comparison)return'<p class="gd-help">This comparison model is fixed for the current challenge.</p>';
@@ -1638,7 +1640,7 @@ function barModel(){
       (challenge?'<button class="gd-btn" id="bm-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
       (challenge&&!challengeFrozen()&&!challenge.comparison?modelControlsHtml():'');
   }
-  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():exploreControlsHtml())}
+  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():controlTab==='export'?exportControlsHtml():exploreControlsHtml())}
   function renderControls(){q('#gd-controls').innerHTML=controlsHtml();bindControls()}
   function bindModelControls(){
     const totalInput=q('#bm-total');if(totalInput)totalInput.onchange=()=>{
