@@ -1250,6 +1250,90 @@ if(mode==='prepare'){
     document.querySelector('[data-gd-action="undo"]').click();
     assert(document.querySelectorAll('#mo-canvas [data-gd-object]').length===6,'Undo restores a cleared Money workbench');
     assert(getComputedStyle(document.getElementById('mo-canvas')).touchAction==='pan-y','Money workbench preserves page scrolling outside draggable pieces');
+
+    TT99Goodies.moneyTool();
+    const realMoneyRandom=Math.random;
+    Math.random=()=>0;
+    document.querySelector('[data-mo-workflow="challenge"]').click();
+    assert(document.querySelector('[data-mo-challenge-tab="standard"]')&&document.querySelector('[data-mo-challenge-tab="custom"]'),'UK Money uses the shared Standard / Custom challenge tabs');
+    for(const type of ['count-total','compare-amount','missing-to-target']){
+      assert(document.querySelector('[data-mo-challenge-type="'+type+'"]'),'UK Money read challenge '+type+' is available');
+    }
+    document.getElementById('mo-generate').click();
+    assert(document.querySelector('.gd-challenge-banner'),'Generated UK Money challenge appears above the workbench');
+    assert(document.querySelectorAll('#mo-canvas [data-gd-object]').length===4,'Deterministic count challenge shows four money pieces');
+    assert(document.querySelector('[data-mo-total]').textContent.trim()==='?'&&document.querySelector('[data-mo-target-readout]').textContent.trim()==='?','Count-money challenge hides both total and target shortcuts');
+    assert(document.querySelector('[data-mo-status]').textContent.trim()==='?','Count-money challenge hides the difference/status shortcut');
+    let frozenMoney=document.querySelector('#mo-canvas [data-gd-object]');
+    assert(frozenMoney.classList.contains('is-frozen'),'Read-money challenge visibly fixes the supplied pieces');
+    let frozenLeft=parseFloat(frozenMoney.style.left);
+    let frozenRect=frozenMoney.getBoundingClientRect();
+    pointer(frozenMoney,'pointerdown',frozenRect.left+frozenRect.width/2,frozenRect.top+frozenRect.height/2,151);
+    pointer(frozenMoney,'pointerup',frozenRect.left+frozenRect.width/2,frozenRect.top+frozenRect.height/2,151);
+    frozenMoney.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
+    frozenMoney=document.querySelector('#mo-canvas [data-gd-object].is-selected');
+    assert(parseFloat(frozenMoney.style.left)===frozenLeft,'Frozen money challenge ignores direct keyboard movement');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: 20p'),'Count-money challenge reveals the deterministic 20p answer contextually');
+    assert(document.querySelector('[data-mo-total]').textContent.trim()==='20p','Reveal restores the hidden total');
+
+    document.querySelector('[data-mo-workflow="challenge"]').click();
+    document.querySelector('[data-mo-challenge-cat="make"]').click();
+    for(const type of ['make-target','exact-pieces','fewest-pieces']){
+      assert(document.querySelector('[data-mo-challenge-type="'+type+'"]'),'UK Money make challenge '+type+' is available');
+    }
+    document.querySelector('[data-mo-challenge-type="make-target"]').click();
+    document.getElementById('mo-generate').click();
+    assert(document.querySelectorAll('#mo-canvas [data-gd-object]').length===0,'Make-target challenge starts with an empty money board');
+    assert(document.querySelector('[data-mo-target-readout]').textContent.trim()==='35p','Deterministic make-target challenge exposes the pupil target');
+    assert(document.querySelector('[data-mo-status]').textContent.trim()==='Keep building','Interactive money challenge does not leak the remaining difference');
+    document.querySelector('[data-mo-add="20"]').click();
+    document.querySelector('[data-mo-add="10"]').click();
+    document.querySelector('[data-mo-add="5"]').click();
+    assert(document.querySelector('[data-mo-total]').textContent.trim()==='35p','Pupil-built coins update the challenge total');
+    assert(document.querySelector('[data-mo-status]').textContent.includes('On target'),'Make-target challenge confirms the exact amount');
+
+    document.querySelector('[data-mo-workflow="challenge"]').click();
+    document.querySelector('[data-mo-challenge-cat="make"]').click();
+    document.querySelector('[data-mo-challenge-type="exact-pieces"]').click();
+    document.getElementById('mo-generate').click();
+    assert(document.querySelector('.gd-challenge-prompt').textContent.includes('exactly 3 money pieces'),'Exact-pieces challenge states the required piece count');
+    for(let i=0;i<3;i++)document.querySelector('[data-mo-add="5"]').click();
+    assert(document.querySelector('[data-mo-status]').textContent.includes('On target')&&document.querySelector('[data-mo-status]').textContent.includes('3 pieces'),'Exact-pieces challenge validates both amount and piece count');
+
+    document.querySelector('[data-mo-workflow="challenge"]').click();
+    document.querySelector('[data-mo-challenge-cat="make"]').click();
+    document.querySelector('[data-mo-challenge-type="fewest-pieces"]').click();
+    document.getElementById('mo-generate').click();
+    assert(document.querySelector('.gd-challenge-prompt').textContent.includes('fewest'),'Fewest-pieces challenge asks for an efficient representation');
+    document.querySelector('[data-mo-add="50"]').click();
+    document.querySelector('[data-mo-add="5"]').click();
+    assert(document.querySelector('[data-mo-status]').textContent.includes('minimum pieces'),'Fewest-pieces challenge recognises the deterministic two-piece optimum');
+
+    document.querySelector('[data-mo-workflow="challenge"]').click();
+    document.querySelector('[data-mo-challenge-cat="change"]').click();
+    assert(document.querySelector('[data-mo-challenge-type="find-change"]'),'Find-change challenge is available');
+    document.getElementById('mo-generate').click();
+    assert(document.querySelector('.gd-challenge-prompt').textContent.includes('£1.25')&&document.querySelector('.gd-challenge-prompt').textContent.includes('£5'),'Deterministic change challenge states price and payment');
+    assert(document.querySelector('[data-mo-target-readout]').textContent.trim()==='?','Change challenge hides the target amount because it is the answer');
+    assert(document.querySelector('[data-mo-status]').textContent.trim()==='Keep building','Change challenge gives progress without leaking the change');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: £3.75'),'Change challenge reveals the calculated change only on request');
+
+    document.querySelector('[data-mo-workflow="challenge"]').click();
+    document.querySelector('[data-mo-challenge-tab="custom"]').click();
+    const moSource=document.getElementById('mo-custom-answer-source');
+    assert(moSource&&['total','target','difference','pieces'].every(source=>[...moSource.options].some(o=>o.value===source)),'UK Money custom challenges expose all live answer sources');
+    moSource.value='total';moSource.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.querySelector('[data-mo-total]').textContent.trim()==='?','Binding a custom answer to total hides the direct total shortcut');
+    const moLiveBefore=document.getElementById('mo-custom-live-answer').textContent;
+    document.querySelector('[data-mo-add="100"]').click();
+    const moLiveAfter=document.getElementById('mo-custom-live-answer').textContent;
+    assert(moLiveAfter!==moLiveBefore,'UK Money custom live answer updates as money is added');
+    document.getElementById('mo-clear-challenge').click();
+    assert(document.querySelector('[data-mo-total]').textContent.trim()==='£3.75','Ending UK Money challenges restores the teacher money setup');
+    assert(document.querySelector('[data-mo-target-readout]').textContent.trim()==='£3.75','Ending UK Money challenges restores the teacher target');
+    Math.random=realMoneyRandom;
   }
 
   function testClockWorkbench(){

@@ -2309,7 +2309,7 @@ function clockTool(){
 }
 
 function moneyTool(){
-  const I=G.interaction;
+  const I=G.interaction,CK=G.challengeKit;
   if(!I){q('#gd-stage').innerHTML='<p class="gd-empty">The interactive money workbench could not start.</p>';return;}
   const DENOMS=[
     {value:1,label:'1p',kind:'coin',shape:'round',size:45,tone:'copper'},
@@ -2325,7 +2325,22 @@ function moneyTool(){
     {value:2000,label:'£20',kind:'note',shape:'note',width:122,height:54,tone:'purple'},
     {value:5000,label:'£50',kind:'note',shape:'note',width:132,height:57,tone:'red'}
   ];
+  const CHALLENGE_CATEGORIES=[
+    {id:'read',label:'Count & compare'},
+    {id:'make',label:'Make an amount'},
+    {id:'change',label:'Change & difference'}
+  ];
+  const CHALLENGE_TEMPLATES=[
+    {id:'count-total',category:'read',title:'How much is shown?',desc:'Add the shown coins and notes to find the total.'},
+    {id:'compare-amount',category:'read',title:'Compare the amount',desc:'Decide whether the shown money is less than, equal to or greater than a target.'},
+    {id:'missing-to-target',category:'read',title:'How much more?',desc:'Find the difference between the shown amount and a target.'},
+    {id:'make-target',category:'make',title:'Make the target',desc:'Build an exact amount in any valid way.'},
+    {id:'exact-pieces',category:'make',title:'Use exactly N pieces',desc:'Make a target using an exact number of coins or notes.'},
+    {id:'fewest-pieces',category:'make',title:'Fewest pieces',desc:'Make the target with the smallest possible number of pieces.'},
+    {id:'find-change',category:'change',title:'Find the change',desc:'Build the correct change from a larger payment.'}
+  ];
   let items=[],nextId=1,target=375,controller=null;
+  let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='count-total',challenge=null,beforeChallenge=null;
 
   function metaFor(value){return DENOMS.find(d=>d.value===Number(value))||DENOMS[0]}
   function total(){return items.reduce((sum,item)=>sum+Number(item.value||0),0)}
@@ -2355,6 +2370,10 @@ function moneyTool(){
     target=Math.max(1,Math.round(Number(state?.target)||375));
     const targetInput=q('#mo-target');if(targetInput)targetInput.value=(target/100).toFixed(2);
   }
+  function setValues(values){
+    items=[];nextId=1;
+    values.forEach((value,index)=>{const p=slot(index);items.push({id:nextId++,value:Number(value),x:p.x,y:p.y,locked:false})});
+  }
   function addMoney(value){
     const p=slot(items.length),item={id:nextId++,value:Number(value),x:p.x,y:p.y,locked:false};
     items.push(item);return item;
@@ -2371,89 +2390,277 @@ function moneyTool(){
       item.y=24+row*92;
     });
   }
+  function randomInt(min,max){return min+Math.floor(Math.random()*(max-min+1))}
+  function randomStep(min,max,step=5){return Math.max(step,Math.round(randomInt(min,max)/step)*step)}
+  function amountValues(amount){
+    let left=Math.max(0,Math.round(amount)),values=[];
+    const descending=DENOMS.map(d=>d.value).filter(v=>v<=left).sort((a,b)=>b-a);
+    for(const value of descending)while(left>=value){values.push(value);left-=value}
+    return values;
+  }
+  function minimumPieces(amount){return amountValues(amount).length}
+  function randomShownValues(){
+    const pool=[5,10,20,50,100,200,500],count=randomInt(4,7),values=[];
+    for(let i=0;i<count;i++)values.push(pool[randomInt(0,pool.length-1)]);
+    return values;
+  }
+  function challengeObject(type,prompt,answer,extra={}){
+    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===type);
+    const raw={mode:'standard',type,category:meta?.category||'',title:'',prompt,promptHtml:prompt,answer:String(answer??''),answerMode:'bound',answerSource:'',revealed:false,freezeMoney:true,hiddenTotal:false,hiddenTarget:false,hiddenStatus:false,targetPieces:null,minPieces:null,...extra};
+    return CK?CK.normalise(raw):raw;
+  }
+  function challengeFrozen(){return !!(challenge&&challenge.mode==='standard'&&challenge.freezeMoney)}
+  function hidden(key){return !!(challenge&&!challenge.revealed&&challenge[key])}
   function statusText(){
     const value=total(),delta=target-value;
     if(delta===0)return'Exactly right ✓';
     return delta>0?money(delta)+' more needed':money(Math.abs(delta))+' too much';
   }
+  function challengeProgress(){
+    if(!challenge||challenge.mode!=='standard')return statusText();
+    if(challenge.type==='make-target'||challenge.type==='find-change')return total()===target?'On target ✓':'Keep building';
+    if(challenge.type==='exact-pieces'){
+      const count=items.length,amountRight=total()===target,piecesRight=count===Number(challenge.targetPieces);
+      if(amountRight&&piecesRight)return'On target ✓ · '+count+' pieces';
+      return count+' / '+challenge.targetPieces+' pieces'+(amountRight?' · amount matched':'');
+    }
+    if(challenge.type==='fewest-pieces'){
+      if(total()!==target)return'Keep building';
+      if(items.length===Number(challenge.minPieces))return'On target ✓ · minimum pieces';
+      return'Amount right · can you use fewer pieces?';
+    }
+    return statusText();
+  }
+  function resolveAnswerSource(source){
+    if(source==='total')return money(total());
+    if(source==='target')return money(target);
+    if(source==='difference')return money(Math.abs(target-total()));
+    if(source==='pieces')return String(items.length);
+    return'';
+  }
+  function customAnswerSources(){
+    return[
+      {id:'total',label:'Current money total'},
+      {id:'target',label:'Target amount'},
+      {id:'difference',label:'Difference to target'},
+      {id:'pieces',label:'Number of money pieces'}
+    ];
+  }
+  function clearBoundHiding(){
+    if(!challenge)return;
+    challenge.hiddenTotal=false;challenge.hiddenTarget=false;challenge.hiddenStatus=false;
+  }
+  function applyBoundHiding(source){
+    clearBoundHiding();if(!challenge)return;
+    if(source==='total')challenge.hiddenTotal=true;
+    else if(source==='target')challenge.hiddenTarget=true;
+    else if(source==='difference')challenge.hiddenStatus=true;
+  }
+  function updateChallengeAnswer(){
+    if(!challenge||challenge.answerMode!=='bound'||!challenge.answerSource)return;
+    const answer=resolveAnswerSource(challenge.answerSource);if(answer!=='')challenge.answer=answer;
+    const live=q('#mo-custom-live-answer');if(live)live.textContent=challenge.answer||'—';
+    if(challenge.revealed){
+      const shown=q('.gd-challenge-actions em',q('#gd-stage'));
+      if(shown)shown.textContent='Answer: '+challenge.answer;
+    }
+  }
   function moneyObject(item){
-    const d=metaFor(item.value);
+    const d=metaFor(item.value),frozen=challengeFrozen();
     const style=d.kind==='note'
       ?'left:'+item.x+'px;top:'+item.y+'px;--mo-w:'+d.width+'px;--mo-h:'+d.height+'px'
       :'left:'+item.x+'px;top:'+item.y+'px;--mo-size:'+d.size+'px';
-    const cls='gd-money-object gd-money-object--'+d.kind+' gd-money-object--'+d.shape+' gd-money-object--'+d.tone+(item.locked?' is-locked':'');
-    return '<button type="button" class="'+cls+'" data-gd-object="'+item.id+'" data-mo-value="'+d.value+'" style="'+style+'" aria-label="'+d.label+' '+(d.kind==='note'?'note':'coin')+'">'+
+    const cls='gd-money-object gd-money-object--'+d.kind+' gd-money-object--'+d.shape+' gd-money-object--'+d.tone+(item.locked?' is-locked':'')+(frozen?' is-frozen':'');
+    return '<button type="button" class="'+cls+'" data-gd-object="'+item.id+'" data-mo-value="'+d.value+'" style="'+style+'" aria-label="'+d.label+' '+(d.kind==='note'?'note':'coin')+(frozen?' fixed for this challenge':'')+'">'+
       '<span class="gd-money-object__face"><strong>'+d.label+'</strong><small>'+(d.kind==='note'?'UK play note':'UK coin')+'</small></span>'+
     '</button>';
   }
   function toolbarHtml(history,selected){
+    const frozen=challengeFrozen(),unavailable=!selected||frozen,deleteDisabled=unavailable||!!selected?.locked;
     return '<div class="gd-money-boardbar">'+
       '<div class="gd-object-toolbar gd-money-history">'+
-        I.toolButton('undo','undo','Undo','',!history.canUndo)+
-        I.toolButton('redo','redo','Redo','',!history.canRedo)+
+        I.toolButton('undo','undo','Undo','',!history.canUndo||frozen)+
+        I.toolButton('redo','redo','Redo','',!history.canRedo||frozen)+
       '</div>'+
-      '<div class="gd-money-selection"><span data-mo-selection>'+(selected?money(selected.value)+(selected.locked?' · locked':''):'Select a coin or note to move it')+'</span>'+
+      '<div class="gd-money-selection"><span data-mo-selection>'+(frozen?'Money fixed for this challenge':selected?money(selected.value)+(selected.locked?' · locked':''):'Select a coin or note to move it')+'</span>'+
         '<div class="gd-object-toolbar gd-money-selected-actions">'+
-          I.toolButton('duplicate','duplicate','Duplicate selected','',!selected)+
-          I.toolButton('lock',selected&&selected.locked?'unlock':'lock',selected&&selected.locked?'Unlock selected':'Lock selected','',!selected)+
-          I.toolButton('delete','delete','Delete selected','gd-object-tool--danger',!selected||!!selected?.locked)+
+          I.toolButton('duplicate','duplicate','Duplicate selected','',unavailable)+
+          I.toolButton('lock',selected&&selected.locked?'unlock':'lock',selected&&selected.locked?'Unlock selected':'Lock selected','',unavailable)+
+          I.toolButton('delete','delete','Delete selected','gd-object-tool--danger',deleteDisabled)+
         '</div>'+
       '</div>'+
     '</div>';
   }
   function updateSelectionTools(item){
-    const label=q('[data-mo-selection]',q('#gd-stage'));
-    if(label)label.textContent=item?money(item.value)+(item.locked?' · locked':''):'Select a coin or note to move it';
+    const frozen=challengeFrozen(),label=q('[data-mo-selection]',q('#gd-stage'));
+    if(label)label.textContent=frozen?'Money fixed for this challenge':item?money(item.value)+(item.locked?' · locked':''):'Select a coin or note to move it';
     qa('.gd-money-selected-actions [data-gd-action]',q('#gd-stage')).forEach(button=>{
       const action=button.dataset.gdAction;
-      button.disabled=!item||(action==='delete'&&!!item.locked);
+      button.disabled=frozen||!item||(action==='delete'&&!!item.locked);
     });
   }
+  function bindChallengeStageActions(){
+    const stage=q('#gd-stage');if(!stage||!challenge)return;
+    const reveal=q('[data-board-action="reveal"]',stage);
+    if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();controller.refresh()};
+    const another=q('[data-challenge-action="another"]',stage);
+    if(another)another.onclick=e=>{e.stopPropagation();if(challenge?.mode==='standard')generateChallenge(challenge.type)};
+  }
   function renderMoney(selectedId,history={}){
-    const selected=items.find(x=>String(x.id)===String(selectedId))||null;
-    const m=canvasMetrics(items.length);
-    q('#gd-stage').innerHTML='<div class="gd-money-workbench">'+
+    updateChallengeAnswer();
+    const selected=items.find(x=>String(x.id)===String(selectedId))||null,m=canvasMetrics(items.length);
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Money challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
+    const totalText=hidden('hiddenTotal')?'?':money(total());
+    const targetText=hidden('hiddenTarget')?'?':money(target);
+    const status=hidden('hiddenStatus')?'?':challengeProgress();
+    const live=challenge&&challenge.mode==='standard'&&!challengeFrozen()
+      ?'<div class="gd-answer-live" data-mo-target-status>'+(status==='On target ✓'?'On target ✓':status)+'</div>'
+      :'';
+    q('#gd-stage').innerHTML=banner+'<div class="gd-money-workbench">'+
       toolbarHtml(history,selected)+
       '<div class="gd-money-canvas" id="mo-canvas" data-gd-canvas-bg style="min-height:'+m.height+'px" aria-label="Money workbench">'+
         (items.length?items.map(moneyObject).join(''):'<div class="gd-money-empty" data-gd-canvas-bg>Choose a denomination to start building an amount.</div>')+
       '</div>'+
       '<div class="gd-money-summary">'+
-        '<div><span>Total</span><strong data-mo-total>'+money(total())+'</strong></div>'+
-        '<div><span>Target</span><strong data-mo-target-readout>'+money(target)+'</strong></div>'+
-        '<div class="'+(total()===target?'is-match':'')+'"><span>Check</span><strong data-mo-status>'+statusText()+'</strong></div>'+
-      '</div>'+
+        '<div><span>Total</span><strong data-mo-total>'+totalText+'</strong></div>'+
+        '<div><span>Target</span><strong data-mo-target-readout>'+targetText+'</strong></div>'+
+        '<div class="'+(!hidden('hiddenStatus')&&total()===target?'is-match':'')+'"><span>Check</span><strong data-mo-status>'+status+'</strong></div>'+
+      '</div>'+live+
     '</div>';
+    bindChallengeStageActions();
   }
-  function controlsHtml(){
+  function workflowTabs(){
+    return '<div class="gd-row gd-money-workflow-tabs" role="tablist" aria-label="Money workflow">'+
+      '<button class="gd-btn'+(controlTab==='explore'?' gd-btn--primary':'')+'" type="button" data-mo-workflow="explore">Explore</button>'+
+      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-mo-workflow="challenge">Challenge'+(challenge?' •':'')+'</button></div>';
+  }
+  function moneyPaletteHtml(){
+    return '<div class="gd-field"><span>Add money</span><div class="gd-money-palette">'+DENOMS.map(d=>'<button type="button" class="gd-money-pick gd-money-pick--'+d.kind+'" data-mo-add="'+d.value+'" aria-label="Add '+d.label+'">'+d.label+'</button>').join('')+'</div></div>'+
+      '<div class="gd-row">'+btn('Tidy money','mo-tidy')+btn('Clear all','mo-clear')+'</div>';
+  }
+  function exploreControlsHtml(){
     return field('Target amount','<div class="gd-money-target-input"><span>£</span><input class="gd-input" id="mo-target" type="number" min="0.01" max="100" step="0.01" value="'+(target/100).toFixed(2)+'"></div>','Set any amount up to £100.')+
-      '<div class="gd-field"><span>Add money</span><div class="gd-money-palette">'+DENOMS.map(d=>'<button type="button" class="gd-money-pick gd-money-pick--'+d.kind+'" data-mo-add="'+d.value+'" aria-label="Add '+d.label+'">'+d.label+'</button>').join('')+'</div></div>'+
-      '<div class="gd-row">'+btn('Tidy money','mo-tidy')+btn('Clear all','mo-clear')+'</div>'+
-      btn('New random target','mo-random')+
+      moneyPaletteHtml()+btn('New random target','mo-random')+
       '<p class="gd-help">Add coins or notes, then drag them around the workbench. Select one to duplicate, lock or delete it. Arrow keys nudge the selected item; Ctrl/Cmd+Z undoes changes.</p>';
   }
-  function bindControls(){
+  function challengeControlsHtml(){
+    if(!CK)return '<p class="gd-help">Challenge tools are unavailable.</p>';
+    const tabs=CK.tabsHtml?CK.tabsHtml('mo',challengeTab):'';
+    if(challengeTab==='custom'){
+      const custom=challenge&&challenge.mode==='custom'?challenge:CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual'});
+      return tabs+CK.editorHtml(custom,'mo',{answerSources:customAnswerSources(),generatedAnswerLabel:'Keep the generated answer'})+
+        moneyPaletteHtml()+
+        '<div class="gd-row">'+(challenge&&challenge.answer?'<button class="gd-btn" id="mo-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
+        (challenge?'<button class="gd-btn" id="mo-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
+        '<p class="gd-help">Custom challenges stay attached to the live money board. Link the answer to the total, target, difference or number of pieces when useful.</p>';
+    }
+    const picker=CK.pickerHtml(CHALLENGE_TEMPLATES,CHALLENGE_CATEGORIES,challengeCategory,challengeType,'mo');
+    const repeat=!!(challenge&&challenge.mode==='standard'&&challenge.type===challengeType);
+    const manipulate=challenge&&!challengeFrozen()?moneyPaletteHtml():'';
+    return tabs+picker+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="mo-generate" type="button">'+(repeat?'Another like this':'Generate challenge')+'</button>'+
+      (challenge&&challenge.mode!=='custom'?'<button class="gd-btn" id="mo-edit-challenge" type="button">Edit challenge</button>':'')+
+      (challenge&&challenge.answer?'<button class="gd-btn" id="mo-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
+      (challenge?'<button class="gd-btn" id="mo-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+manipulate;
+  }
+  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():exploreControlsHtml())}
+  function renderControls(){const panel=q('#gd-controls');if(panel)panel.innerHTML=controlsHtml();bindControls()}
+  function restoreBeforeChallenge(){if(beforeChallenge){restore(beforeChallenge);beforeChallenge=null}}
+  function clearChallenge(){
+    restoreBeforeChallenge();challenge=null;challengeTab='standard';controlTab='challenge';renderControls();controller.refresh();
+  }
+  function enterCustomChallenge(){
+    if(!beforeChallenge)beforeChallenge=snapshot();
+    const wasCustom=challenge?.mode==='custom';
+    if(CK)challenge=CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''});
+    if(!wasCustom)clearBoundHiding();
+    challenge.freezeMoney=false;challenge.revealed=false;
+    challengeTab='custom';controlTab='challenge';renderControls();controller.refresh();
+  }
+  function setCustomAnswerSource(source){
+    if(!challenge||challenge.mode!=='custom')return;
+    if(source==='manual'){challenge.answerMode='manual';challenge.answerSource='';clearBoundHiding()}
+    else if(source==='generated'){challenge.answerMode='bound';challenge.answerSource='';clearBoundHiding()}
+    else{challenge.answerMode='bound';challenge.answerSource=source;challenge.answer=resolveAnswerSource(source);applyBoundHiding(source)}
+    challenge.revealed=false;renderControls();controller.refresh();
+  }
+  function generateChallenge(type){
+    const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
+    if(!beforeChallenge)beforeChallenge=snapshot();else restore(beforeChallenge);
+    let values=[],shown=0;
+    if(type==='count-total'){
+      values=randomShownValues();setValues(values);target=total();
+      challenge=challengeObject(type,'How much money is shown altogether?',money(total()),{hiddenTotal:true,hiddenTarget:true,hiddenStatus:true});
+    }else if(type==='compare-amount'){
+      values=randomShownValues();setValues(values);shown=total();
+      const delta=[-200,-100,-50,50,100,200][randomInt(0,5)];target=Math.max(5,shown+delta);
+      const relation=shown<target?'less than':shown>target?'greater than':'equal to';
+      challenge=challengeObject(type,'Is the money shown less than, equal to or greater than '+money(target)+'?',relation+' '+money(target),{hiddenTotal:true,hiddenStatus:true});
+    }else if(type==='missing-to-target'){
+      const gap=[10,20,50,100,200][randomInt(0,4)];target=randomStep(Math.max(100,gap+50),1000,10);
+      shown=Math.max(0,target-gap);setValues(amountValues(shown));
+      challenge=challengeObject(type,'The money shown needs to reach '+money(target)+'. How much more is needed?',money(gap),{hiddenStatus:true});
+    }else if(type==='make-target'){
+      target=randomStep(35,1500,5);items=[];nextId=1;
+      challenge=challengeObject(type,'Build exactly '+money(target)+' using any coins or notes.',money(target),{freezeMoney:false,hiddenStatus:false});
+    }else if(type==='exact-pieces'){
+      const pieces=randomInt(3,5),pool=[5,10,20,50,100,200],chosen=[];
+      for(let i=0;i<pieces;i++)chosen.push(pool[randomInt(0,pool.length-1)]);
+      target=chosen.reduce((a,b)=>a+b,0);items=[];nextId=1;
+      challenge=challengeObject(type,'Build '+money(target)+' using exactly '+pieces+' money pieces.',money(target)+' using '+pieces+' pieces',{freezeMoney:false,targetPieces:pieces});
+    }else if(type==='fewest-pieces'){
+      do{target=randomStep(55,1500,5)}while(minimumPieces(target)<2||minimumPieces(target)>6);
+      items=[];nextId=1;
+      challenge=challengeObject(type,'Build '+money(target)+' using the fewest coins or notes you can.',minimumPieces(target)+' pieces',{freezeMoney:false,minPieces:minimumPieces(target)});
+    }else{
+      const tender=[500,1000,2000][randomInt(0,2)];
+      const price=randomStep(Math.max(50,Math.round(tender*.25)),tender-25,5);
+      target=tender-price;items=[];nextId=1;
+      challenge=challengeObject(type,'An item costs '+money(price)+'. You pay with '+money(tender)+'. Build the correct change.',money(target),{freezeMoney:false,hiddenTarget:true,price,tender});
+    }
+    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';renderControls();controller.refresh();
+  }
+  function bindMoneyButtons(){
     qa('[data-mo-add]',q('#gd-controls')).forEach(button=>button.onclick=()=>{
-      let id=null;
-      controller.mutate(()=>{id=addMoney(button.dataset.moAdd)});
-      controller.select(id);
+      if(challengeFrozen())return;
+      let id=null;controller.mutate(()=>{id=addMoney(button.dataset.moAdd)});controller.select(id);
     });
-    const targetInput=q('#mo-target');
-    targetInput.oninput=()=>{
-      target=Math.max(1,Math.round(Math.max(.01,num(targetInput.value,target/100))*100));
-      controller.refresh();
-    };
-    q('#mo-tidy').onclick=()=>controller.mutate(tidyMoney);
-    q('#mo-clear').onclick=()=>{
-      if(!items.length)return;
-      controller.mutate(()=>{items=[]});
-    };
-    q('#mo-random').onclick=()=>{
-      controller.mutate(()=>{
-        target=Math.floor(Math.random()*2000)+1;
-        items=[];
-      });
-      targetInput.value=(target/100).toFixed(2);
-    };
+    const tidy=q('#mo-tidy');if(tidy)tidy.onclick=()=>{if(!challengeFrozen())controller.mutate(tidyMoney)};
+    const clear=q('#mo-clear');if(clear)clear.onclick=()=>{if(!items.length||challengeFrozen())return;controller.mutate(()=>{items=[]})};
+  }
+  function bindControls(){
+    qa('[data-mo-workflow]',q('#gd-controls')).forEach(button=>button.onclick=()=>{controlTab=button.dataset.moWorkflow;renderControls()});
+    bindMoneyButtons();
+    if(controlTab==='explore'){
+      const targetInput=q('#mo-target');if(targetInput)targetInput.oninput=()=>{
+        target=Math.max(1,Math.round(Math.max(.01,num(targetInput.value,target/100))*100));controller.refresh();
+      };
+      const random=q('#mo-random');if(random)random.onclick=()=>{
+        controller.mutate(()=>{target=Math.floor(Math.random()*2000)+1;items=[]});
+        const input=q('#mo-target');if(input)input.value=(target/100).toFixed(2);
+      };
+      return;
+    }
+    qa('[data-mo-challenge-tab]',q('#gd-controls')).forEach(button=>button.onclick=()=>{
+      if(button.dataset.moChallengeTab==='custom')enterCustomChallenge();
+      else{challengeTab='standard';renderControls()}
+    });
+    qa('[data-mo-challenge-cat]',q('#gd-controls')).forEach(button=>button.onclick=()=>{
+      challengeCategory=button.dataset.moChallengeCat;
+      const first=CHALLENGE_TEMPLATES.find(t=>t.category===challengeCategory);if(first)challengeType=first.id;
+      renderControls();
+    });
+    qa('[data-mo-challenge-type]',q('#gd-controls')).forEach(button=>button.onclick=()=>{challengeType=button.dataset.moChallengeType;renderControls()});
+    const generate=q('#mo-generate');if(generate)generate.onclick=()=>generateChallenge(challengeType);
+    const edit=q('#mo-edit-challenge');if(edit)edit.onclick=enterCustomChallenge;
+    const reveal=q('#mo-reveal');if(reveal)reveal.onclick=()=>{if(challenge){challenge.revealed=!challenge.revealed;renderControls();controller.refresh()}};
+    const clearChallengeBtn=q('#mo-clear-challenge');if(clearChallengeBtn)clearChallengeBtn.onclick=clearChallenge;
+    if(challengeTab==='custom'&&challenge){
+      const title=q('#mo-custom-title');if(title)title.oninput=()=>{challenge.title=title.value.slice(0,100);controller.refresh()};
+      const prompt=q('#mo-custom-prompt');if(prompt)prompt.oninput=()=>{challenge.promptHtml=CK.sanitiseRichHtml(prompt.innerHTML);challenge.prompt=CK.plainText(challenge.promptHtml);controller.refresh()};
+      const source=q('#mo-custom-answer-source');if(source)source.onchange=()=>setCustomAnswerSource(source.value);
+      const answer=q('#mo-custom-answer');if(answer)answer.oninput=()=>{challenge.answer=answer.value.slice(0,400);challenge.answerMode='manual';challenge.answerSource='';controller.refresh()};
+      qa('[data-gd-rich-action]',q('#gd-controls')).forEach(button=>button.onclick=()=>{CK.applyFormat(prompt,button.dataset.gdRichAction);challenge.promptHtml=CK.sanitiseRichHtml(prompt.innerHTML);challenge.prompt=CK.plainText(challenge.promptHtml);controller.refresh()});
+    }
   }
 
   seed();
@@ -2468,6 +2675,7 @@ function moneyTool(){
     duplicate:duplicateMoney,
     remove:item=>{const index=items.indexOf(item);if(index>=0)items.splice(index,1)},
     toggleLock:item=>{item.locked=!item.locked},
+    isLocked:item=>!!item.locked||challengeFrozen(),
     snap:4,
     nudgeStep:4,
     onSelectionChange:updateSelectionTools
