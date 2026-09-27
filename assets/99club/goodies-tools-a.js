@@ -2274,7 +2274,7 @@ function hundredSquare(){
       const modes=['multiples','prime','even','odd'],mode=modes[Math.floor(Math.random()*modes.length)],k=mode==='multiples'?[10,5,4,3][Math.floor(Math.random()*4)]:5;
       const target=valuesForRule(mode,k),label=mode==='multiples'?'multiples of '+k:mode==='prime'?'prime numbers':mode+' numbers';
       interactionMode='mark';
-      challenge=challengeObject(type,'Mark every '+label+' on the hundred square.','All matching numbers marked',{freezeGrid:false,markOnly:true,targetValues:target,ruleLabel:label});
+      challenge=challengeObject(type,'Mark all '+label+' on the hundred square.','All matching numbers marked',{freezeGrid:false,markOnly:true,targetValues:target,ruleLabel:label});
     }else{
       const k=10,target=valuesForRule('multiples',k),wrong=5;
       marked=new Set([...target,wrong]);selectedIndex=9;
