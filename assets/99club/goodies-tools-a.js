@@ -1358,6 +1358,21 @@ function barModel(){
     '</div>';
     bindStage();
   }
+  function boundaryDragMove(e){
+    if(!drag||drag.pointerId!==e.pointerId)return;
+    const dx=e.clientX-drag.startX,delta=Math.round(dx/drag.rectWidth*drag.visual),state=drag.before;
+    parts=cloneParts(state.parts);nextId=state.nextId;total=state.total;selectedId=state.selectedId;
+    if(adjustBoundary(drag.index,delta)){drag.changed=delta!==0;draw()}
+  }
+  function boundaryDragEnd(e){
+    if(!drag||drag.pointerId!==e.pointerId)return;
+    const before=drag.before,changed=drag.changed;drag=null;
+    document.removeEventListener('pointermove',boundaryDragMove);
+    document.removeEventListener('pointerup',boundaryDragEnd);
+    document.removeEventListener('pointercancel',boundaryDragEnd);
+    if(changed){undoStack.push(before);if(undoStack.length>50)undoStack.shift();redoStack.length=0}
+    draw();renderControls();
+  }
   function bindStage(){
     qa('[data-bm-part]',q('#gd-stage')).forEach(button=>{
       button.onclick=()=>{selectedId=Number(button.dataset.bmPart);draw()};
@@ -1383,26 +1398,14 @@ function barModel(){
         e.preventDefault();mutate(()=>adjustBoundary(index,e.key==='ArrowLeft'?-1:1));
       };
       handle.onpointerdown=e=>{
-        if(e.button!=null&&e.button!==0||!handleEnabled(index))return;
+        if((e.button!=null&&e.button!==0)||!handleEnabled(index))return;
         e.preventDefault();
         const track=q('#bm-track'),rect=track.getBoundingClientRect();
         drag={index,pointerId:e.pointerId,startX:e.clientX,rectWidth:Math.max(1,rect.width),visual:visualTotal(),before:snapshot(),changed:false};
-        try{handle.setPointerCapture(e.pointerId)}catch(_){}
+        document.addEventListener('pointermove',boundaryDragMove);
+        document.addEventListener('pointerup',boundaryDragEnd,{once:true});
+        document.addEventListener('pointercancel',boundaryDragEnd,{once:true});
       };
-      handle.onpointermove=e=>{
-        if(!drag||drag.pointerId!==e.pointerId||drag.index!==index)return;
-        const dx=e.clientX-drag.startX,delta=Math.round(dx/drag.rectWidth*drag.visual);
-        const state=drag.before;
-        parts=cloneParts(state.parts);nextId=state.nextId;total=state.total;selectedId=state.selectedId;
-        if(adjustBoundary(index,delta)){drag.changed=delta!==0;draw()}
-      };
-      const end=e=>{
-        if(!drag||drag.pointerId!==e.pointerId||drag.index!==index)return;
-        const before=drag.before,changed=drag.changed;drag=null;
-        if(changed){undoStack.push(before);if(undoStack.length>50)undoStack.shift();redoStack.length=0}
-        draw();renderControls();
-      };
-      handle.onpointerup=end;handle.onpointercancel=end;
     });
   }
   function controlsHtml(){
