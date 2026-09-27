@@ -1274,11 +1274,12 @@ function barModel(){
     if(input)input.value=total==null?'':String(total);
   }
   function addPart(){
+    if(parts.length>=8)return;
     const value=10,id=nextId++;
     parts.push({id,value,unknown:false});selectedId=id;
   }
   function duplicatePart(part){
-    if(!part)return;
+    if(!part||parts.length>=8)return;
     const copy={...part,id:nextId++};parts.splice(parts.indexOf(part)+1,0,copy);selectedId=copy.id;
   }
   function deletePart(part){
@@ -1316,7 +1317,7 @@ function barModel(){
   }
   function segmentMarkup(part,index){
     const value=effectiveValue(part),pct=value/visualTotal()*100,selected=String(part.id)===String(selectedId);
-    return '<button type="button" class="gd-bar-segment'+(part.unknown?' is-unknown':'')+(selected?' is-selected':'')+'" data-bm-part="'+part.id+'" style="--bm-pct:'+pct+'%" aria-label="Part '+labelFor(index)+': '+(part.unknown?'unknown':partText(part))+'">'+
+    return '<button type="button" class="gd-bar-segment'+(part.unknown?' is-unknown':'')+(selected?' is-selected':'')+(index===parts.length-1?' is-last':'')+'" data-bm-part="'+part.id+'" style="--bm-pct:'+pct+'%" aria-label="Part '+labelFor(index)+': '+(part.unknown?'unknown':partText(part))+'">'+
       '<span class="gd-bar-segment__label">'+labelFor(index)+'</span><strong>'+partText(part)+'</strong>'+
     '</button>';
   }
@@ -1410,7 +1411,7 @@ function barModel(){
   }
   function controlsHtml(){
     return field('Whole / total','<input class="gd-input" id="bm-total" type="number" min="0" step="1" value="'+(total==null?'':total)+'" placeholder="Auto">','Leave blank to let the known parts define the total.')+
-      '<div class="gd-row">'+btn('Add part','bm-add',true)+btn('Example problem','bm-example')+'</div>'+
+      '<div class="gd-row"><button class="gd-btn gd-btn--primary" id="bm-add" type="button"'+(parts.length>=8?' disabled':'')+'>Add part</button>'+btn('Example problem','bm-example')+'</div>'+
       '<p class="gd-help">Work directly on the model: select a part to edit, duplicate, delete or mark it unknown. Drag the dividers between two known parts to repartition their combined value while keeping that pair total unchanged. Arrow keys also adjust a selected part or divider.</p>';
   }
   function renderControls(){q('#gd-controls').innerHTML=controlsHtml();bindControls()}
