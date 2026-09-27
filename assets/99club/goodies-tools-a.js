@@ -2106,7 +2106,7 @@ function hundredSquare(){
         rangePatternControlsHtml()+interactionControlsHtml()+
         '<div class="gd-row">'+(challenge&&challenge.answer?'<button class="gd-btn" id="hs-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
         (challenge?'<button class="gd-btn" id="hs-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
-        '<p class="gd-help">Custom answers can follow the selected number, ±1/±10 relationships, the grid range, or the number of marked/hidden cells.</p>';
+        '<p class="gd-help">Custom answers can follow the selected number, ±1/±10 relationships, or the number of marked/hidden cells.</p>';
     }
     const picker=CK.pickerHtml(CHALLENGE_TEMPLATES,CHALLENGE_CATEGORIES,challengeCategory,challengeType,'hs');
     const repeat=!!(challenge&&challenge.mode==='standard'&&challenge.type===challengeType);
@@ -2155,7 +2155,7 @@ function hundredSquare(){
       challenge=challengeObject(type,'Mark every '+label+' on the hundred square.','All matching numbers marked',{freezeGrid:false,markOnly:true,targetValues:target,ruleLabel:label});
     }else{
       const k=10,target=valuesForRule('multiples',k),wrong=5;
-      marked=new Set([...target,wrong]);selectedIndex=wrong-1;
+      marked=new Set([...target,wrong]);selectedIndex=9;
       challenge=challengeObject(type,'One marked number is not a multiple of 10. Which number is wrong?',wrong,{hideSelectedPanel:true,ruleLabel:'multiples of 10'});
     }
     challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';renderControls();draw();
@@ -2171,7 +2171,7 @@ function hundredSquare(){
   function applyBoundHiding(source){
     clearBoundHiding();if(!challenge)return;
     if(['selected-value','one-less','one-more','ten-less','ten-more'].includes(source))challenge.hideSelectedPanel=true;
-    if(source==='grid-start'||source==='grid-end')challenge.hiddenRangeSummary=true;
+    if(source==='grid-range')challenge.hiddenRangeSummary=true;
   }
   function resolveAnswerSource(source){
     const n=currentValue();
@@ -2180,8 +2180,7 @@ function hundredSquare(){
     if(source==='one-more')return String(n+1);
     if(source==='ten-less')return String(n-10);
     if(source==='ten-more')return String(n+10);
-    if(source==='grid-start')return String(startValue);
-    if(source==='grid-end')return String(startValue+99);
+    if(source==='grid-range')return startValue+'–'+(startValue+99);
     if(source==='marked-count')return String(marked.size);
     if(source==='hidden-count')return String(hidden.size);
     return'';
@@ -2193,8 +2192,6 @@ function hundredSquare(){
       {id:'one-more',label:'One more than selected'},
       {id:'ten-less',label:'Ten less than selected'},
       {id:'ten-more',label:'Ten more than selected'},
-      {id:'grid-start',label:'Grid start'},
-      {id:'grid-end',label:'Grid end'},
       {id:'marked-count',label:'Number of marked cells'},
       {id:'hidden-count',label:'Number of hidden cells'}
     ];
