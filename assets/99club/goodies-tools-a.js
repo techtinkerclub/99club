@@ -1640,6 +1640,164 @@ function barModel(){
       (challenge?'<button class="gd-btn" id="bm-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
       (challenge&&!challengeFrozen()&&!challenge.comparison?modelControlsHtml():'');
   }
+  function bmSvgEl(name,attrs={},text=''){
+    const el=document.createElementNS('http://www.w3.org/2000/svg',name);
+    Object.entries(attrs).forEach(([key,value])=>el.setAttribute(key,String(value)));
+    if(text!==''&&text!=null)el.textContent=String(text);
+    return el;
+  }
+  function exportHidden(key,pupil=false){
+    if(!challenge)return false;
+    return pupil?!!challenge[key]:challengeHidden(key);
+  }
+  function exportHiddenPart(index,pupil=false){
+    if(!challenge||!Array.isArray(challenge.hiddenPartIndexes))return false;
+    return pupil?challenge.hiddenPartIndexes.includes(index):hiddenPart(index);
+  }
+  function exportState(pupil=false){
+    if(pupil&&challenge?.mode==='standard'&&challenge.type==='build-model'&&Array.isArray(challenge.targetParts)){
+      const targetParts=challenge.targetParts.map((part,index)=>({id:index+1,value:Number(part.value)||0,unknown:!!part.unknown}));
+      return{parts:targetParts,total:Number(challenge.targetTotal),buildScaffold:true};
+    }
+    return{parts:cloneParts(),total,buildScaffold:false};
+  }
+  function exportSolvedValue(list,whole,index){
+    const part=list[index];if(!part)return 0;
+    if(!part.unknown)return Math.max(0,Number(part.value)||0);
+    const unknowns=list.filter(p=>p.unknown);
+    if(whole!=null&&unknowns.length===1){
+      const known=list.filter(p=>!p.unknown).reduce((sum,p)=>sum+Math.max(0,Number(p.value)||0),0);
+      return Math.max(0,Number(whole)-known);
+    }
+    const known=list.filter(p=>!p.unknown).map(p=>Math.max(0,Number(p.value)||0));
+    return known.length?Math.max(1,known.reduce((a,b)=>a+b,0)/known.length):10;
+  }
+  function exportPartText(part,index,pupil=false){
+    if(exportHiddenPart(index,pupil)||part.unknown)return'?';
+    return String(Math.round((Number(part.value)||0)*100)/100);
+  }
+  function exportTotalText(state,pupil=false){
+    if(exportHidden('hiddenTotal',pupil))return'?';
+    if(state.total!=null)return String(Math.round(Number(state.total)*100)/100);
+    if(state.parts.some(p=>p.unknown))return'?';
+    return String(Math.round(state.parts.reduce((sum,p)=>sum+Number(p.value||0),0)*100)/100);
+  }
+  function exportEquationText(state,pupil=false){
+    if(exportHidden('hiddenEquation',pupil))return'?';
+    return state.parts.map((part,index)=>exportPartText(part,index,pupil)).join(' + ')+' = '+exportTotalText(state,pupil);
+  }
+  function exportStatusText(state,pupil=false){
+    if(exportHidden('hiddenStatus',pupil))return'?';
+    if(state.buildScaffold)return'Build the model';
+    if(challenge?.comparison)return'Difference = '+(pupil?'?':Math.round(challenge.comparison.difference*100)/100);
+    return pupil&&challenge?.mode==='standard'&&challenge.type==='build-model'?'Build the model':statusText();
+  }
+  function appendBarParts(svg,state,{x,y,width,height,pupil=false,prefix=''}={}){
+    const solved=state.parts.map((_,index)=>exportSolvedValue(state.parts,state.total,index));
+    const denominator=Math.max(1,solved.reduce((a,b)=>a+b,0));
+    let cursor=x;
+    state.parts.forEach((part,index)=>{
+      const w=index===state.parts.length-1?(x+width-cursor):Math.max(28,width*(solved[index]/denominator));
+      const last=index===state.parts.length-1;
+      svg.appendChild(bmSvgEl('rect',{
+        x:cursor,y,width:w,height,rx:last&&state.parts.length===1?11:0,
+        fill:part.unknown||exportHiddenPart(index,pupil)?'#fff6df':'#edf7f5',
+        stroke:'#698f8a','stroke-width':2,
+        'data-bm-export-part':String(index),
+        'data-bm-export-part-kind':part.unknown?'unknown':'known'
+      }));
+      svg.appendChild(bmSvgEl('text',{x:cursor+w/2,y:y+height*.32,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':13,'font-weight':850,fill:'#6c7f84'},labelFor(index)));
+      svg.appendChild(bmSvgEl('text',{x:cursor+w/2,y:y+height*.64,'text-anchor':'middle','dominant-baseline':'middle','font-family':'Arial,sans-serif','font-size':21,'font-weight':900,fill:'#304b52','data-bm-export-part-value':String(index)},exportPartText(part,index,pupil)));
+      cursor+=w;
+    });
+  }
+  function appendTotalBracket(svg,text,{x,y,width}={}){
+    svg.appendChild(bmSvgEl('path',{d:'M '+x+' '+(y+16)+' V '+y+' H '+(x+width)+' V '+(y+16),fill:'none',stroke:'#536c72','stroke-width':2}));
+    svg.appendChild(bmSvgEl('rect',{x:x+width/2-62,y:y-14,width:124,height:28,rx:8,fill:'#fff'}));
+    svg.appendChild(bmSvgEl('text',{x:x+width/2,y:y+5,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':13,'font-weight':850,fill:'#465e64','data-bm-export-total':'1'},'Total '+text));
+  }
+  function appendComparison(svg,pupil=false){
+    const c=challenge?.comparison;if(!c)return;
+    const x=110,width=780,rowH=78,max=Math.max(c.larger,c.smaller,1),topW=width*c.larger/max,bottomW=width*c.smaller/max,diffW=Math.max(28,width*c.difference/max);
+    svg.appendChild(bmSvgEl('text',{x:74,y:190,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':16,'font-weight':900,fill:'#52666d'},c.topLabel||'A'));
+    svg.appendChild(bmSvgEl('rect',{x,y:150,width:topW,height:rowH,rx:10,fill:'#edf7f5',stroke:'#698f8a','stroke-width':2}));
+    svg.appendChild(bmSvgEl('text',{x:x+topW/2,y:190,'text-anchor':'middle','dominant-baseline':'middle','font-family':'Arial,sans-serif','font-size':22,'font-weight':900,fill:'#304b52'},String(c.larger)));
+    svg.appendChild(bmSvgEl('text',{x:74,y:300,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':16,'font-weight':900,fill:'#52666d'},c.bottomLabel||'B'));
+    svg.appendChild(bmSvgEl('rect',{x,y:260,width:bottomW,height:rowH,rx:10,fill:'#edf7f5',stroke:'#698f8a','stroke-width':2}));
+    svg.appendChild(bmSvgEl('text',{x:x+bottomW/2,y:300,'text-anchor':'middle','dominant-baseline':'middle','font-family':'Arial,sans-serif','font-size':22,'font-weight':900,fill:'#304b52'},String(c.smaller)));
+    svg.appendChild(bmSvgEl('rect',{x:x+bottomW,y:267,width:diffW,height:rowH-14,rx:9,fill:'#fff7df',stroke:'#d4a441','stroke-width':2,'stroke-dasharray':'6 5','data-bm-export-comparison':'difference'}));
+    const diffText=pupil?'?':String(Math.round(c.difference*100)/100);
+    svg.appendChild(bmSvgEl('text',{x:x+bottomW+diffW/2,y:300,'text-anchor':'middle','dominant-baseline':'middle','font-family':'Arial,sans-serif','font-size':21,'font-weight':900,fill:'#765817','data-bm-export-difference':'1'},diffText));
+  }
+  function barModelExportSvg({pupil=false}={}){
+    const width=1000,height=610,state=exportState(pupil);
+    const svg=bmSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Bar model','data-bm-export':'bar-model'});
+    svg.appendChild(bmSvgEl('rect',{x:0,y:0,width,height,fill:'#fff'}));
+    svg.appendChild(bmSvgEl('text',{x:64,y:48,'font-family':'Arial,sans-serif','font-size':27,'font-weight':900,fill:'#24343b'},challenge?.comparison?'Comparison bar model':'Bar model'));
+    if(challenge?.comparison){
+      appendComparison(svg,pupil);
+    }else{
+      const x=80,y=178,w=840,h=112;
+      appendTotalBracket(svg,exportTotalText(state,pupil),{x,y:y-48,width:w});
+      appendBarParts(svg,state,{x,y,width:w,height:h,pupil});
+    }
+    const equation=challenge?.comparison?'—':exportEquationText(state,pupil);
+    const relation=exportStatusText(state,pupil);
+    const cardY=390,cardW=402;
+    svg.appendChild(bmSvgEl('rect',{x:80,y:cardY,width:cardW,height:92,rx:12,fill:'#f5f8f8',stroke:'#d4dfe1','stroke-width':1.5}));
+    svg.appendChild(bmSvgEl('text',{x:96,y:cardY+28,'font-family':'Arial,sans-serif','font-size':11,'font-weight':850,fill:'#708287'},'EQUATION'));
+    svg.appendChild(bmSvgEl('text',{x:96,y:cardY+62,'font-family':'Arial,sans-serif','font-size':18,'font-weight':900,fill:'#304b52','data-bm-export-equation':'1'},equation));
+    svg.appendChild(bmSvgEl('rect',{x:518,y:cardY,width:cardW,height:92,rx:12,fill:'#f5f8f8',stroke:'#d4dfe1','stroke-width':1.5}));
+    svg.appendChild(bmSvgEl('text',{x:534,y:cardY+28,'font-family':'Arial,sans-serif','font-size':11,'font-weight':850,fill:'#708287'},'RELATIONSHIP'));
+    svg.appendChild(bmSvgEl('text',{x:534,y:cardY+62,'font-family':'Arial,sans-serif','font-size':17,'font-weight':900,fill:'#304b52','data-bm-export-status':'1'},relation));
+    if(state.buildScaffold)svg.setAttribute('data-bm-export-build-scaffold','1');
+    svg.appendChild(bmSvgEl('text',{x:936,y:590,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':10,fill:'#87969a'},'99 Club Studio'));
+    return svg;
+  }
+  function exportTargetSvg(){
+    if(exportMode!=='challenge'||!challenge||!X?.composeChallengeCardSvg)return barModelExportSvg({pupil:false});
+    const prompt=CK?CK.plainText(challenge.promptHtml||challenge.prompt||''):challenge.prompt||'';
+    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
+    return X.composeChallengeCardSvg(barModelExportSvg({pupil:true}),{
+      title:challenge.title||meta?.title||'Bar Model challenge',
+      prompt,
+      responseLabel:challenge.category==='reason'?'Explain your thinking':challenge.type==='build-model'?'Working / answer':'Answer',
+      responseLines
+    });
+  }
+  function exportFilename(){
+    if(exportMode==='challenge'&&challenge)return'bar-model-'+(challenge.type||'challenge');
+    return'bar-model';
+  }
+  function exportMessage(message){exportStatus=message;const el=q('#bm-export-status');if(el)el.textContent=message}
+  async function runExport(kind){
+    if(!X){exportMessage('Export tools are unavailable.');return}
+    const targetSvg=exportTargetSvg(),name=exportFilename();
+    try{
+      if(kind==='copy'){await X.copyPng(targetSvg);exportMessage('Image copied.')}
+      else if(kind==='png'){await X.downloadPng(targetSvg,name);exportMessage('PNG downloaded.')}
+      else if(kind==='svg'){X.downloadSvg(targetSvg,name);exportMessage('SVG downloaded.')}
+      else if(kind==='print'){X.printSvg(targetSvg,{title:'',landscape:exportMode!=='challenge'});exportMessage('Print view opened. Choose “Save as PDF” in the print dialog.')}
+    }catch(err){exportMessage(err?.message||'Could not export this bar model.')}
+  }
+  function exportControlsHtml(){
+    const canCard=!!challenge;
+    if(!canCard&&exportMode==='challenge')exportMode='diagram';
+    return '<div class="nl-panel-title"><div><strong>Use it elsewhere</strong><span>Export a clean vector bar model or a pupil-ready challenge card.</span></div></div>'+
+      (canCard?'<div class="nl-export-mode bm-export-mode" role="tablist" aria-label="Export content">'+
+        '<button type="button" class="'+(exportMode==='challenge'?'is-active':'')+'" data-bm-export-mode="challenge">Challenge card</button>'+
+        '<button type="button" class="'+(exportMode==='diagram'?'is-active':'')+'" data-bm-export-mode="diagram">Bar model</button></div>':'')+
+      (canCard&&exportMode==='challenge'
+        ?'<label class="gd-field"><span>Answer space</span><select class="gd-select" id="bm-response-lines">'+[1,2,3,4].map(n=>'<option value="'+n+'"'+(responseLines===n?' selected':'')+'>'+n+' line'+(n===1?'':'s')+'</option>').join('')+'</select></label><p class="gd-help">Pupil challenge export re-hides answers even after Reveal. Build challenges export the target scaffold, not the teacher\'s trial solution.</p>'
+        :'<p class="gd-help">Bar-model export contains the current vector model and visible mathematical readouts without editing controls.</p>')+
+      '<div class="nl-export-grid bm-export-grid">'+
+        '<button class="gd-btn gd-btn--primary" id="bm-copy-image" type="button">Copy '+(canCard&&exportMode==='challenge'?'challenge':'image')+'</button>'+
+        '<button class="gd-btn" id="bm-png" type="button">PNG</button>'+
+        '<button class="gd-btn" id="bm-svg-download" type="button">SVG</button>'+
+        '<button class="gd-btn" id="bm-print" type="button">Print / PDF</button>'+
+      '</div><p class="gd-help" id="bm-export-status" role="status" aria-live="polite">'+exportStatus+'</p>';
+  }
+
   function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():controlTab==='export'?exportControlsHtml():exploreControlsHtml())}
   function renderControls(){q('#gd-controls').innerHTML=controlsHtml();bindControls()}
   function bindModelControls(){
