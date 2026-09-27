@@ -1919,6 +1919,7 @@ function hundredSquare(){
   }
   function moveSelection(delta){
     selectedIndex=clamp(selectedIndex+delta,0,99);draw();renderControls();
+    setTimeout(()=>q('[data-hs-index="'+selectedIndex+'"]')?.focus(),0);
   }
   function relationItem(label,value){
     const present=inGrid(value);
@@ -1927,13 +1928,14 @@ function hundredSquare(){
   function selectedPanel(){
     const n=currentValue(),isMarked=marked.has(n),isHidden=hidden.has(n);
     return '<div class="gd-hs-selected" data-hs-selected="'+n+'">'+
-      '<div class="gd-hs-selected__head"><div><span>Selected number</span><strong>'+n+'</strong></div><div class="gd-row">'+
+      '<div class="gd-hs-selected__head"><div><span>Selected number</span><strong>'+(isHidden?'?':n)+'</strong></div><div class="gd-row">'+
         '<button class="gd-btn'+(isMarked?' gd-btn--primary':'')+'" id="hs-mark-selected" type="button">'+(isMarked?'Unmark':'Mark')+'</button>'+
         '<button class="gd-btn" id="hs-hide-selected" type="button">'+(isHidden?'Reveal':'Hide number')+'</button>'+
       '</div></div>'+
+      (isHidden?'<p class="gd-help gd-hs-hidden-note">This number is hidden. Reveal it to inspect its ±1 and ±10 relationships.</p>':
       '<div class="gd-hs-relations">'+
         relationItem('one less',n-1)+relationItem('one more',n+1)+relationItem('ten less',n-10)+relationItem('ten more',n+10)+
-      '</div>'+
+      '</div>')+
     '</div>';
   }
   function cellHtml(index,related){
@@ -1946,7 +1948,7 @@ function hundredSquare(){
       isHidden?'is-hidden-number':'',
       interactionMode!=='select'?'is-paintable':''
     ].filter(Boolean).join(' ');
-    return '<button type="button" class="'+classes+'" data-hs-index="'+index+'" data-hs-value="'+n+'" aria-label="'+(isHidden?'Hidden number '+n:'Number '+n)+'" aria-pressed="'+(marked.has(n)?'true':'false')+'"><span>'+ (isHidden?'?':n) +'</span></button>';
+    return '<button type="button" class="'+classes+'" data-hs-index="'+index+'" data-hs-value="'+n+'" aria-label="'+(isHidden?'Hidden number':'Number '+n)+'" aria-pressed="'+(marked.has(n)?'true':'false')+'"><span>'+ (isHidden?'?':n) +'</span></button>';
   }
   function draw(){
     const related=relatedValues();
