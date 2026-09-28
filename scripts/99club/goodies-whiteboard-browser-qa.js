@@ -86,8 +86,11 @@ document.exitFullscreen=function(){
         const tools=document.getElementById('gd-whiteboard-tools');
         const exit=document.getElementById('gd-whiteboard-exit');
         assert(tools&&exit,'Whiteboard Tools and Exit controls exist for '+id);
+        assert(tools.getAttribute('aria-expanded')==='false','Whiteboard Tools starts collapsed for '+id);
         tools.click();
         assert(workspace.classList.contains('gd-whiteboard-tools-open'),'Whiteboard Tools drawer opens for '+id);
+        assert(tools.getAttribute('aria-expanded')==='true','Whiteboard Tools exposes expanded state for '+id);
+        assert(document.getElementById('gd-controls').getAttribute('aria-hidden')==='false','Whiteboard controls expose accessible visibility for '+id);
         assert(getComputedStyle(document.getElementById('gd-controls')).display!=='none','Existing '+id+' controls remain accessible in whiteboard mode');
         exit.click();
         await tick();
