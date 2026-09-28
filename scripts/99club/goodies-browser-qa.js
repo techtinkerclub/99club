@@ -1692,6 +1692,11 @@ if(mode==='prepare'){
     document.querySelector('[data-fe-challenge-tab="custom"]').click();
     let feSource=document.getElementById('fe-custom-answer-source');
     assert(feSource&&['classification-a','factors-a','prime-a','common-factors','hcf','lcm'].every(source=>[...feSource.options].some(o=>o.value===source)),'Factor Explorer custom challenge exposes live model answer sources');
+    feSource.value='factors-a';feSource.dispatchEvent(new Event('change',{bubbles:true}));
+    assert([...document.querySelectorAll('[data-fe-card="a"] [data-fe-pair]')].every(x=>x.textContent.includes('?')),'Custom all-factors binding hides factor-pair evidence');
+    assert(document.getElementById('fe-custom-live-answer').textContent.trim()==='1, 2, 3, 4, 6, 12','Custom all-factors answer binds to Number A factors');
+
+    feSource=document.getElementById('fe-custom-answer-source');
     feSource.value='hcf';feSource.dispatchEvent(new Event('change',{bubbles:true}));
     assert(document.getElementById('fe-custom-live-answer').textContent.trim()==='6','Custom HCF answer binds to current 12 and 18 model');
     assert(document.querySelector('[data-fe-hcf]').textContent.trim()==='?','Custom HCF binding hides the matching readout');
