@@ -232,6 +232,7 @@ function numberLineV2(){
 
   setPanels('<div id="nl-controls"></div>','<div id="nl-stage-inner"></div>');
   const controls=q('#nl-controls'),stage=q('#gd-stage');
+  function numberLineMounted(){return !!(controls?.isConnected&&stage?.isConnected&&q('#nl-controls')===controls)}
 
   function activeLine(){return state.lines.find(l=>l.id===state.activeLineId)||state.lines[0]}
   function scaleFor(line){
@@ -681,7 +682,7 @@ function numberLineV2(){
     return `${workflowTabsHtml()}${panel}<div class="nl-status" id="nl-status" role="status" aria-live="polite"></div>`;
   }
 
-  function renderControls(){controls.innerHTML=controlsHtml()}
+  function renderControls(){if(!numberLineMounted())return;controls.innerHTML=controlsHtml()}
 
   const X0=110,X1=940;
   function px(value,line=state.lines[0]){
@@ -929,6 +930,7 @@ function numberLineV2(){
     </div>`;
   }
   function renderStage(){
+    if(!numberLineMounted())return;
     const challengeActions=state.challenge?.mode==='standard'&&CHALLENGE_TEMPLATES.some(t=>t.id===state.challenge.type)
       ?[{action:'another',label:'Another like this'}]:[];
     const prompt=state.challenge?(CK?CK.bannerHtml(state.challenge,{actions:challengeActions}):`<div class="nl-challenge-banner"><span>Challenge</span><strong>${esc(state.challenge.prompt)}</strong></div>`):'';
@@ -1627,6 +1629,7 @@ function numberLineV2(){
     id=t.dataset.boardRelationColor;if(id){remember();const r=line.relations.find(x=>x.id===id);if(r)r.color=t.value;renderAll();return}
   });
   document.addEventListener('fullscreenchange',()=>{
+    if(!numberLineMounted())return;
     if(document.fullscreenElement===stage){
       boardFallback=false;
       stage.classList.remove('nl-board-fallback');
