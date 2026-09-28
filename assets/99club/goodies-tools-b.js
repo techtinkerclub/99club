@@ -1988,9 +1988,25 @@ function timesTableVisual(){
 }
 
 function factorExplorer(){
+  const CK=G.challengeKit;
   let a=36,b=24,compare=false,selectedSide='a',selectedPair=0;
   const undoStack=[],redoStack=[];
   const DIVISORS=[2,3,4,5,6,8,9,10];
+  const CHALLENGE_CATEGORIES=[
+    {id:'read',label:'Factors & primes'},
+    {id:'compare',label:'Compare numbers'},
+    {id:'reason',label:'Reasoning'}
+  ];
+  const CHALLENGE_TEMPLATES=[
+    {id:'prime-or-composite',category:'read',title:'Prime or composite?',desc:'Classify a number from its factors.'},
+    {id:'missing-factor',category:'read',title:'Missing factor',desc:'Complete a factor pair for the shown number.'},
+    {id:'divisible-by',category:'read',title:'Divisibility check',desc:'Decide whether a number is divisible by a given divisor.'},
+    {id:'common-factors',category:'compare',title:'Common factors',desc:'Find the factors shared by two numbers.'},
+    {id:'hcf',category:'compare',title:'Highest common factor',desc:'Find the HCF of two numbers.'},
+    {id:'lcm',category:'compare',title:'Lowest common multiple',desc:'Find the LCM of two numbers.'},
+    {id:'explain-prime',category:'reason',title:'Explain why it is prime',desc:'Use the factor evidence to justify a prime classification.'}
+  ];
+  let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='prime-or-composite',challenge=null,beforeChallenge=null;
 
   function norm(value,fallback=2){return clamp(Math.round(Number(value)||fallback),2,500)}
   function factors(n){const out=[];for(let i=1;i<=Math.sqrt(n);i++)if(n%i===0){out.push(i);if(i!==n/i)out.push(n/i)}return out.sort((x,y)=>x-y)}
@@ -2007,9 +2023,10 @@ function factorExplorer(){
     if(!compare&&selectedSide==='b')selectedSide='a';
   }
   function remember(){undoStack.push(snapshot());if(undoStack.length>60)undoStack.shift();redoStack.length=0}
-  function mutate(fn){remember();fn();clampPair();draw();renderControls()}
-  function undo(){if(!undoStack.length)return;redoStack.push(snapshot());restore(undoStack.pop());clampPair();draw();renderControls()}
-  function redo(){if(!redoStack.length)return;undoStack.push(snapshot());restore(redoStack.pop());clampPair();draw();renderControls()}
+  function challengeFrozen(){return !!(challenge&&challenge.mode==='standard')}
+  function mutate(fn){if(challengeFrozen())return;remember();fn();clampPair();draw();renderControls()}
+  function undo(){if(!undoStack.length||challengeFrozen())return;redoStack.push(snapshot());restore(undoStack.pop());clampPair();draw();renderControls()}
+  function redo(){if(!redoStack.length||challengeFrozen())return;undoStack.push(snapshot());restore(redoStack.pop());clampPair();draw();renderControls()}
   function currentNumber(){return selectedSide==='b'&&compare?b:a}
   function currentPairs(){return factorPairs(currentNumber())}
   function clampPair(){selectedPair=clamp(selectedPair,0,Math.max(0,currentPairs().length-1))}
@@ -2023,7 +2040,8 @@ function factorExplorer(){
   function divisibilityHtml(n,prefix){
     return '<div class="gd-fe-divisibility" data-fe-divisibility="'+prefix+'">'+DIVISORS.map(d=>{
       const r=n%d,yes=r===0;
-      return '<div class="gd-fe-divisor'+(yes?' is-divisible':'')+'" data-fe-divisor="'+prefix+'-'+d+'"><span>÷ '+d+'</span><strong>'+(yes?'Yes':'r '+r)+'</strong></div>';
+      const hidden=!!(challenge&&!challenge.revealed&&challenge.hiddenDivisor===d&&challenge.hiddenDivisorSide===prefix);
+      return '<div class="gd-fe-divisor'+(yes?' is-divisible':'')+'" data-fe-divisor="'+prefix+'-'+d+'"><span>÷ '+d+'</span><strong>'+(hidden?'?':(yes?'Yes':'r '+r))+'</strong></div>';
     }).join('')+'</div>';
   }
   function pairButtons(n,side){
@@ -2031,7 +2049,8 @@ function factorExplorer(){
     return factorPairs(n).map((pair,i)=>{
       const active=selectedSide===side&&selectedPair===i;
       const shared=compare&&(common.has(pair[0])||common.has(pair[1]));
-      return '<button type="button" class="gd-factor-pair gd-fe-pair'+(active?' is-selected':'')+(shared?' is-common':'')+'" data-fe-pair="'+side+'-'+i+'" data-fe-side="'+side+'" data-fe-index="'+i+'">'+pairLabel(pair)+'</button>';
+      const hidden=!!(challenge&&!challenge.revealed&&((challenge.hiddenPairSide===side&&challenge.hiddenPairIndex===i)||challenge.hiddenAllPairsSide===side));
+      return '<button type="button" class="gd-factor-pair gd-fe-pair'+(active?' is-selected':'')+(shared?' is-common':'')+'" data-fe-pair="'+side+'-'+i+'" data-fe-side="'+side+'" data-fe-index="'+i+'"'+(challengeFrozen()?' disabled':'')+'>'+(hidden?(pair[0]+' × ?'):pairLabel(pair))+'</button>';
     }).join('');
   }
   function multipleChips(n,side){
@@ -2042,13 +2061,13 @@ function factorExplorer(){
     }).join('');
   }
   function numberCard(n,side,label){
-    const fs=factors(n);
+    const fs=factors(n),hideClass=!!(challenge&&!challenge.revealed&&challenge.hiddenClassificationSide===side);
     return '<section class="gd-fe-number-card" data-fe-card="'+side+'">'+
-      '<div class="gd-fe-card-head"><div><span>'+label+'</span><strong>'+n+'</strong><em>'+(isPrime(n)?'Prime number':'Composite · '+fs.length+' factors')+'</em></div>'+
-        '<div class="gd-object-toolbar"><button class="gd-btn" type="button" data-fe-step="'+side+'--">−1</button><button class="gd-btn" type="button" data-fe-step="'+side+'-+">+1</button></div></div>'+
+      '<div class="gd-fe-card-head"><div><span>'+label+'</span><strong>'+n+'</strong><em>'+(hideClass?'?':(isPrime(n)?'Prime number':'Composite · '+fs.length+' factors'))+'</em></div>'+
+        (challengeFrozen()?'':'<div class="gd-object-toolbar"><button class="gd-btn" type="button" data-fe-step="'+side+'--">−1</button><button class="gd-btn" type="button" data-fe-step="'+side+'-+">+1</button></div>')+'</div>'+
       '<div><span class="gd-fe-label">Factor pairs</span><div class="gd-factor-pairs">'+pairButtons(n,side)+'</div></div>'+
       '<div><span class="gd-fe-label">First 12 multiples</span><div class="gd-multiples">'+multipleChips(n,side)+'</div></div>'+
-      '<div><span class="gd-fe-label">Prime factorisation</span><div class="gd-readout gd-fe-prime" data-fe-prime="'+side+'">'+factorisationText(n)+'</div></div>'+
+      '<div><span class="gd-fe-label">Prime factorisation</span><div class="gd-readout gd-fe-prime" data-fe-prime="'+side+'">'+((challenge&&!challenge.revealed&&challenge.hiddenPrimeSide===side)?'?':factorisationText(n))+'</div></div>'+
       '<div><span class="gd-fe-label">Divisibility checks</span>'+divisibilityHtml(n,side)+'</div>'+
     '</section>';
   }
@@ -2059,25 +2078,35 @@ function factorExplorer(){
     const vCount=Math.min(cols,24),hCount=Math.min(rows,16);
     for(let i=1;i<vCount;i++){const x=pad+gridW*i/vCount;lines+='<line x1="'+x+'" y1="'+pad+'" x2="'+x+'" y2="'+(pad+gridH)+'"></line>'}
     for(let i=1;i<hCount;i++){const y=pad+gridH*i/hCount;lines+='<line x1="'+pad+'" y1="'+y+'" x2="'+(pad+gridW)+'" y2="'+y+'"></line>'}
-    return '<div class="gd-fe-array-panel"><div class="gd-fe-array-head"><span>Selected factor rectangle</span><strong data-fe-selected-pair>'+rows+' × '+cols+' = '+n+'</strong></div>'+
-      '<svg class="gd-fe-array" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+rows+' rows by '+cols+' columns equals '+n+'">'+
+    const hideSelected=!!(challenge&&!challenge.revealed&&challenge.hiddenPairSide===selectedSide&&challenge.hiddenPairIndex===selectedPair);
+    const pairText=hideSelected?rows+' × ? = '+n:rows+' × '+cols+' = '+n;
+    const aria=hideSelected?rows+' rows by an unknown number of columns equals '+n:rows+' rows by '+cols+' columns equals '+n;
+    return '<div class="gd-fe-array-panel"><div class="gd-fe-array-head"><span>Selected factor rectangle</span><strong data-fe-selected-pair>'+pairText+'</strong></div>'+
+      '<svg class="gd-fe-array" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+aria+'">'+
         '<rect x="'+pad+'" y="'+pad+'" width="'+gridW+'" height="'+gridH+'"></rect><g>'+lines+'</g>'+
-        '<text x="'+(W/2)+'" y="28" text-anchor="middle">'+cols+' columns</text><text x="18" y="'+(H/2)+'" text-anchor="middle" transform="rotate(-90 18 '+(H/2)+')">'+rows+' rows</text>'+
+        '<text x="'+(W/2)+'" y="28" text-anchor="middle">'+(hideSelected?'? columns':cols+' columns')+'</text><text x="18" y="'+(H/2)+'" text-anchor="middle" transform="rotate(-90 18 '+(H/2)+')">'+rows+' rows</text>'+
       '</svg><p class="gd-help">'+(cols>24||rows>16?'Large arrays are simplified visually, but the factor pair is exact.':'Each grid division represents one row or column.')+'</p></div>';
   }
   function compareSummary(){
     if(!compare)return'';
-    const cf=commonFactors(),h=gcd2(a,b),l=lcm2(a,b);
-    return '<div class="gd-fe-common" data-fe-common-summary><div><span>Common factors</span><strong>'+cf.join(', ')+'</strong></div><div><span>Highest common factor</span><strong data-fe-hcf>'+h+'</strong></div><div><span>Lowest common multiple</span><strong data-fe-lcm>'+l+'</strong></div></div>';
+    const cf=commonFactors(),h=gcd2(a,b),l=lcm2(a,b),hide=challenge&&!challenge.revealed;
+    return '<div class="gd-fe-common" data-fe-common-summary><div><span>Common factors</span><strong>'+(hide&&challenge.hiddenCommonFactors?'?':cf.join(', '))+'</strong></div><div><span>Highest common factor</span><strong data-fe-hcf>'+(hide&&challenge.hiddenHcf?'?':h)+'</strong></div><div><span>Lowest common multiple</span><strong data-fe-lcm>'+(hide&&challenge.hiddenLcm?'?':l)+'</strong></div></div>';
+  }
+  function bindChallengeStageActions(){
+    const stage=q('#gd-stage');if(!stage||!challenge)return;
+    const reveal=q('[data-board-action="reveal"]',stage);if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();draw()};
+    const another=q('[data-challenge-action="another"]',stage);if(another)another.onclick=e=>{e.stopPropagation();if(challenge?.mode==='standard')generateChallenge(challenge.type)};
   }
   function draw(){
-    q('#gd-stage').innerHTML='<div class="gd-vis gd-fe-workbench">'+
+    updateChallengeAnswer();
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Factors & multiples challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
+    q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-fe-workbench">'+
       '<div class="gd-fe-summary"><div><span>Factors & multiples</span><strong>'+(compare?a+' and '+b:a)+'</strong></div><div class="gd-object-toolbar"><button class="gd-btn" id="fe-undo" type="button"'+(undoStack.length?'':' disabled')+'>Undo</button><button class="gd-btn" id="fe-redo" type="button"'+(redoStack.length?'':' disabled')+'>Redo</button></div></div>'+
       compareSummary()+
       '<div class="gd-fe-cards">'+numberCard(a,'a','Number A')+(compare?numberCard(b,'b','Number B'):'')+'</div>'+
       arrayDiagram()+
     '</div>';
-    bindStage();
+    bindStage();bindChallengeStageActions();
   }
   function bindStage(){
     qa('[data-fe-step]',q('#gd-stage')).forEach(button=>button.onclick=()=>{
@@ -2085,29 +2114,156 @@ function factorExplorer(){
       mutate(()=>{selectedSide=side;if(side==='a')setA(a+delta);else setB(b+delta)});
     });
     qa('[data-fe-pair]',q('#gd-stage')).forEach(button=>button.onclick=()=>{
-      selectedSide=button.dataset.feSide;selectedPair=Number(button.dataset.feIndex)||0;draw();renderControls();
+      if(challengeFrozen())return;selectedSide=button.dataset.feSide;selectedPair=Number(button.dataset.feIndex)||0;draw();renderControls();
     });
     const u=q('#fe-undo');if(u)u.onclick=undo;
     const r=q('#fe-redo');if(r)r.onclick=redo;
   }
-  function controlsHtml(){
+  function workflowTabs(){
+    return '<div class="gd-row gd-fe-workflow-tabs" role="tablist" aria-label="Factor Explorer workflow">'+
+      '<button class="gd-btn'+(controlTab==='explore'?' gd-btn--primary':'')+'" type="button" data-fe-workflow="explore">Explore</button>'+
+      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-fe-workflow="challenge">Challenge'+(challenge?' •':'')+'</button></div>';
+  }
+  function modelControlsHtml(){
     return field('Number A','<input class="gd-input" id="fe-a" type="number" min="2" max="500" value="'+a+'">','Use the model to inspect factor pairs, multiples, prime factors and divisibility.')+
       '<label class="gd-tv-check"><input type="checkbox" id="fe-compare"'+(compare?' checked':'')+'> <span>Compare with a second number</span></label>'+
-      (compare?field('Number B','<input class="gd-input" id="fe-b" type="number" min="2" max="500" value="'+b+'">','Common factors and the lowest common multiple are highlighted automatically.'):'')+
+      (compare?field('Number B','<input class="gd-input" id="fe-b" type="number" min="2" max="500" value="'+b+'">','Common factors and the lowest common multiple are highlighted automatically.'):'');
+  }
+  function exploreControlsHtml(){
+    return modelControlsHtml()+
       '<div class="gd-row"><button class="gd-btn" id="fe-random" type="button">Random number'+(compare?'s':'')+'</button><button class="gd-btn" id="fe-reset" type="button">Reset</button></div>'+
       '<p class="gd-help">Click any factor pair to inspect it as a rectangle. In compare mode, shared factors and common multiples are highlighted, with HCF and LCM shown above.</p>';
   }
+  function challengeObject(type,prompt,answer,extra={}){
+    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===type);
+    const raw={mode:'standard',type,category:meta?.category||'',title:'',prompt,promptHtml:prompt,answer:String(answer??''),answerMode:'manual',answerSource:'',revealed:false,hiddenClassificationSide:'',hiddenPairSide:'',hiddenPairIndex:null,hiddenAllPairsSide:'',hiddenDivisor:null,hiddenDivisorSide:'',hiddenPrimeSide:'',hiddenCommonFactors:false,hiddenHcf:false,hiddenLcm:false,...extra};
+    return CK?CK.normalise(raw):raw;
+  }
+  function resolveAnswerSource(source){
+    if(source==='classification-a')return isPrime(a)?'Prime':'Composite';
+    if(source==='factors-a')return factors(a).join(', ');
+    if(source==='prime-a')return factorisationText(a);
+    if(source==='common-factors'&&compare)return commonFactors().join(', ');
+    if(source==='hcf'&&compare)return String(gcd2(a,b));
+    if(source==='lcm'&&compare)return String(lcm2(a,b));
+    return'';
+  }
+  function customAnswerSources(){
+    const out=[
+      {id:'classification-a',label:'Number A: prime or composite'},
+      {id:'factors-a',label:'Number A: all factors'},
+      {id:'prime-a',label:'Number A: prime factorisation'}
+    ];
+    if(compare)out.push({id:'common-factors',label:'Common factors'},{id:'hcf',label:'Highest common factor'},{id:'lcm',label:'Lowest common multiple'});
+    return out;
+  }
+  function clearBoundHiding(){
+    if(!challenge)return;
+    challenge.hiddenClassificationSide='';challenge.hiddenPrimeSide='';challenge.hiddenAllPairsSide='';challenge.hiddenCommonFactors=false;challenge.hiddenHcf=false;challenge.hiddenLcm=false;
+  }
+  function applyBoundHiding(source){
+    clearBoundHiding();if(!challenge)return;
+    if(source==='classification-a')challenge.hiddenClassificationSide='a';
+    if(source==='factors-a')challenge.hiddenAllPairsSide='a';
+    if(source==='prime-a')challenge.hiddenPrimeSide='a';
+    if(source==='common-factors')challenge.hiddenCommonFactors=true;
+    if(source==='hcf')challenge.hiddenHcf=true;
+    if(source==='lcm')challenge.hiddenLcm=true;
+  }
+  function updateChallengeAnswer(){
+    if(!challenge||challenge.answerMode!=='bound'||!challenge.answerSource)return;
+    const answer=resolveAnswerSource(challenge.answerSource);if(answer!=='')challenge.answer=answer;
+    const live=q('#fe-custom-live-answer');if(live)live.textContent=challenge.answer||'—';
+    if(challenge.revealed){const shown=q('.gd-challenge-actions em',q('#gd-stage'));if(shown)shown.textContent='Answer: '+challenge.answer}
+  }
+  function generateChallenge(type){
+    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!meta)return;
+    if(!beforeChallenge)beforeChallenge=snapshot();else restore(beforeChallenge);
+    undoStack.length=0;redoStack.length=0;selectedSide='a';selectedPair=0;
+    if(type==='prime-or-composite'){
+      a=29;compare=false;challenge=challengeObject(type,'Is 29 prime or composite? Use the factor evidence to decide.','Prime',{hiddenClassificationSide:'a',hiddenPrimeSide:'a'});
+    }else if(type==='missing-factor'){
+      a=36;compare=false;selectedPair=3;challenge=challengeObject(type,'Complete the selected factor pair: 4 × ? = 36.','9',{hiddenPairSide:'a',hiddenPairIndex:3});
+    }else if(type==='divisible-by'){
+      a=42;compare=false;challenge=challengeObject(type,'Is 42 divisible by 6? Explain using the evidence shown.','Yes. 42 ÷ 6 = 7.',{hiddenDivisor:6,hiddenDivisorSide:'a'});
+    }else if(type==='common-factors'){
+      a=36;b=24;compare=true;challenge=challengeObject(type,'What are the common factors of 36 and 24?','1, 2, 3, 4, 6, 12',{hiddenCommonFactors:true});
+    }else if(type==='hcf'){
+      a=36;b=24;compare=true;challenge=challengeObject(type,'What is the highest common factor of 36 and 24?','12',{hiddenHcf:true});
+    }else if(type==='lcm'){
+      a=12;b=18;compare=true;challenge=challengeObject(type,'What is the lowest common multiple of 12 and 18?','36',{hiddenLcm:true});
+    }else{
+      a=31;compare=false;challenge=challengeObject(type,'Explain why 31 is prime using the factor information shown.','31 has exactly two factors: 1 and 31.',{hiddenClassificationSide:'a',hiddenPrimeSide:'a'});
+    }
+    challengeType=type;challengeCategory=meta.category;challengeTab='standard';controlTab='challenge';renderControls();draw();
+  }
+  function enterCustomChallenge(){
+    if(!beforeChallenge)beforeChallenge=snapshot();
+    if(CK)challenge=CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''});
+    challenge.mode='custom';challenge.revealed=false;challengeTab='custom';controlTab='challenge';renderControls();draw();
+  }
+  function clearChallenge(){
+    if(beforeChallenge){restore(beforeChallenge);beforeChallenge=null}
+    challenge=null;challengeTab='standard';controlTab='challenge';undoStack.length=0;redoStack.length=0;renderControls();draw();
+  }
+  function setCustomAnswerSource(source){
+    if(!challenge||challenge.mode!=='custom')return;
+    if(source==='manual'){challenge.answerMode='manual';challenge.answerSource='';clearBoundHiding()}
+    else if(source==='generated'){challenge.answerMode='bound';challenge.answerSource='';clearBoundHiding()}
+    else{challenge.answerMode='bound';challenge.answerSource=source;challenge.answer=resolveAnswerSource(source);applyBoundHiding(source)}
+    challenge.revealed=false;renderControls();draw();
+  }
+  function challengeControlsHtml(){
+    if(!CK)return'<p class="gd-help">Challenge tools are unavailable.</p>';
+    const tabs=CK.tabsHtml?CK.tabsHtml('fe',challengeTab):'';
+    if(challengeTab==='custom'){
+      const custom=challenge&&challenge.mode==='custom'?challenge:CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual'});
+      return tabs+CK.editorHtml(custom,'fe',{answerSources:customAnswerSources(),generatedAnswerLabel:'Keep the generated answer'})+
+        modelControlsHtml()+
+        '<div class="gd-row">'+(challenge&&challenge.answer?'<button class="gd-btn" id="fe-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
+        (challenge?'<button class="gd-btn" id="fe-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
+        '<p class="gd-help">Custom answers can follow the current classification, factor list, prime factorisation, common factors, HCF or LCM.</p>';
+    }
+    const picker=CK.pickerHtml(CHALLENGE_TEMPLATES,CHALLENGE_CATEGORIES,challengeCategory,challengeType,'fe');
+    const repeat=!!(challenge&&challenge.mode==='standard'&&challenge.type===challengeType);
+    return tabs+picker+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="fe-generate" type="button">'+(repeat?'Another like this':'Generate challenge')+'</button>'+
+      (challenge&&challenge.mode!=='custom'?'<button class="gd-btn" id="fe-edit-challenge" type="button">Edit challenge</button>':'')+
+      (challenge&&challenge.answer?'<button class="gd-btn" id="fe-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
+      (challenge?'<button class="gd-btn" id="fe-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>';
+  }
+  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():exploreControlsHtml())}
   function renderControls(){q('#gd-controls').innerHTML=controlsHtml();bindControls()}
   function bindControls(){
-    const ai=q('#fe-a');if(ai)ai.onchange=()=>mutate(()=>setA(ai.value));
-    const cmp=q('#fe-compare');if(cmp)cmp.onchange=()=>mutate(()=>setCompare(cmp.checked));
-    const bi=q('#fe-b');if(bi)bi.onchange=()=>mutate(()=>setB(bi.value));
-    const random=q('#fe-random');if(random)random.onclick=()=>mutate(()=>{
-      a=2+Math.floor(Math.random()*143);
-      if(compare)b=2+Math.floor(Math.random()*143);
-      selectedSide='a';selectedPair=0;
-    });
-    const reset=q('#fe-reset');if(reset)reset.onclick=()=>mutate(()=>{a=36;b=24;compare=false;selectedSide='a';selectedPair=0});
+    const controls=q('#gd-controls');if(!controls)return;
+    qa('[data-fe-workflow]',controls).forEach(button=>button.onclick=()=>{controlTab=button.dataset.feWorkflow;renderControls()});
+    if(controlTab==='explore'){
+      const ai=q('#fe-a');if(ai)ai.onchange=()=>mutate(()=>setA(ai.value));
+      const cmp=q('#fe-compare');if(cmp)cmp.onchange=()=>mutate(()=>setCompare(cmp.checked));
+      const bi=q('#fe-b');if(bi)bi.onchange=()=>mutate(()=>setB(bi.value));
+      const random=q('#fe-random');if(random)random.onclick=()=>mutate(()=>{a=2+Math.floor(Math.random()*143);if(compare)b=2+Math.floor(Math.random()*143);selectedSide='a';selectedPair=0});
+      const reset=q('#fe-reset');if(reset)reset.onclick=()=>mutate(()=>{a=36;b=24;compare=false;selectedSide='a';selectedPair=0});
+      return;
+    }
+    if(controlTab!=='challenge')return;
+    if(challengeTab==='custom'&&challenge){
+      const ai=q('#fe-a');if(ai)ai.onchange=()=>mutate(()=>setA(ai.value));
+      const cmp=q('#fe-compare');if(cmp)cmp.onchange=()=>mutate(()=>setCompare(cmp.checked));
+      const bi=q('#fe-b');if(bi)bi.onchange=()=>mutate(()=>setB(bi.value));
+    }
+    qa('[data-fe-challenge-tab]',controls).forEach(button=>button.onclick=()=>{if(button.dataset.feChallengeTab==='custom')enterCustomChallenge();else{challengeTab='standard';renderControls()}});
+    qa('[data-fe-challenge-cat]',controls).forEach(button=>button.onclick=()=>{challengeCategory=button.dataset.feChallengeCat;const first=CHALLENGE_TEMPLATES.find(t=>t.category===challengeCategory);if(first)challengeType=first.id;renderControls()});
+    qa('[data-fe-challenge-type]',controls).forEach(button=>button.onclick=()=>{challengeType=button.dataset.feChallengeType;renderControls()});
+    const gen=q('#fe-generate');if(gen)gen.onclick=()=>generateChallenge(challengeType);
+    const edit=q('#fe-edit-challenge');if(edit)edit.onclick=enterCustomChallenge;
+    const reveal=q('#fe-reveal');if(reveal)reveal.onclick=()=>{if(challenge){challenge.revealed=!challenge.revealed;renderControls();draw()}};
+    const clear=q('#fe-clear-challenge');if(clear)clear.onclick=clearChallenge;
+    if(challengeTab==='custom'&&challenge){
+      const title=q('#fe-custom-title');if(title)title.oninput=()=>{challenge.title=title.value.slice(0,100);draw()};
+      const prompt=q('#fe-custom-prompt');if(prompt)prompt.oninput=()=>{challenge.promptHtml=CK.sanitiseRichHtml(prompt.innerHTML);challenge.prompt=CK.plainText(challenge.promptHtml);draw()};
+      const source=q('#fe-custom-answer-source');if(source)source.onchange=()=>setCustomAnswerSource(source.value);
+      const answer=q('#fe-custom-answer');if(answer)answer.oninput=()=>{challenge.answer=answer.value.slice(0,400);challenge.answerMode='manual';challenge.answerSource='';draw()};
+      qa('[data-gd-rich-action]',controls).forEach(button=>button.onclick=()=>{CK.applyFormat(prompt,button.dataset.gdRichAction);challenge.promptHtml=CK.sanitiseRichHtml(prompt.innerHTML);challenge.prompt=CK.plainText(challenge.promptHtml);draw()});
+    }
   }
 
   setPanels(controlsHtml(),'');
