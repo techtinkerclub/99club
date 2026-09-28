@@ -2772,6 +2772,15 @@ if(mode==='prepare'){
     assert(document.querySelector('[data-mo-status]').textContent.includes('Exactly right'),'UK Money checks the starting amount against its target');
     assert(document.querySelector('[data-mo-value="50"]').classList.contains('gd-money-object--hept'),'50p uses a recognisable heptagonal token');
     assert(document.querySelector('[data-mo-value="100"]').classList.contains('gd-money-object--dodec'),'£1 uses a recognisable twelve-sided token');
+    const coinPicks=[...document.querySelectorAll('.gd-money-pick--coin')];
+    assert(coinPicks.length===8,'UK Money exposes all eight circulating coin denominations');
+    assert(coinPicks.every(p=>p.querySelector('img')?.src.includes('www.royalmint.com/')),'Every live coin palette choice uses official Royal Mint imagery');
+    assert(document.querySelectorAll('#mo-canvas .gd-money-object--coin .gd-money-object__face--official img').length===5,'Seeded live coins render official Royal Mint imagery');
+    const moneyCredits=[...document.querySelectorAll('.gd-money-credit')];
+    assert(moneyCredits.some(x=>x.closest('#gd-controls')&&x.textContent.includes('The Royal Mint, 2023')),'UK Money credits the official coin imagery in the teacher controls');
+    assert(moneyCredits.some(x=>x.classList.contains('gd-money-credit--stage')&&x.textContent.includes('The Royal Mint, 2023')),'UK Money credits Royal Mint photography directly below the live money board');
+    const notePicks=[...document.querySelectorAll('.gd-money-pick--note')];
+    assert(notePicks.length===4&&notePicks.every(p=>!p.querySelector('img')),'Banknotes remain clearly stylised classroom representations rather than realistic note images');
 
     document.querySelector('[data-mo-add="500"]').click();
     objects=[...document.querySelectorAll('#mo-canvas [data-gd-object]')];
@@ -2912,6 +2921,7 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=moOldBoardDownload;
     assert(moBoardSvg&&moBoardSvg.dataset.moExport==='money','UK Money board export is a deterministic SVG model');
     assert(moBoardSvg.querySelectorAll('[data-mo-export-piece]').length===5,'UK Money board SVG preserves every current coin/note');
+    assert(!moBoardSvg.querySelector('image'),'UK Money export stays self-contained vector artwork and never hot-links Royal Mint imagery');
     assert(moBoardSvg.querySelector('[data-mo-export-summary="total"]').textContent.trim()==='£3.75','UK Money board SVG includes the live total');
     assert(moBoardSvg.querySelector('[data-mo-export-summary="target"]').textContent.trim()==='£3.75','UK Money board SVG includes the live target');
     assert(moBoardName.includes('uk-money-375p'),'UK Money board export has a reusable amount-based filename');
