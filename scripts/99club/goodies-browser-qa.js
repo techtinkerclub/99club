@@ -1653,6 +1653,8 @@ if(mode==='prepare'){
     document.getElementById('fe-generate').click();
     const hiddenPair=[...document.querySelectorAll('[data-fe-pair]')].find(x=>x.textContent.includes('4 × ?'));
     assert(hiddenPair,'Missing-factor challenge hides the second factor in the selected pair');
+    assert(document.querySelector('[data-fe-selected-pair]').textContent.trim()==='4 × ? = 36','Missing-factor challenge also hides the answer in the selected factor rectangle label');
+    assert(document.querySelector('.gd-fe-array').getAttribute('aria-label').includes('unknown number of columns'),'Missing-factor rectangle accessibility text does not leak the answer');
     document.querySelector('[data-board-action="reveal"]').click();
     assert([...document.querySelectorAll('[data-fe-pair]')].some(x=>x.textContent.trim()==='4 × 9'),'Reveal restores the missing factor');
 
