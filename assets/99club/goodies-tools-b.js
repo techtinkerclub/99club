@@ -2437,7 +2437,9 @@ function fdpExplorer(){
     boxes.forEach(box=>{
       svg.appendChild(fdSvgEl('rect',{x:box.x,y:235,width:250,height:105,rx:16,fill:'#f5f8f8',stroke:'#d3dfe1','stroke-width':2}));
       svg.appendChild(fdSvgEl('text',{x:box.x+125,y:267,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':12,'font-weight':800,fill:'#718288'},box.label));
-      svg.appendChild(fdSvgEl('text',{x:box.x+125,y:310,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':25,'font-weight':800,fill:'#304b52','data-fd-export-'+box.key:'1'},box.value));
+      const valueAttrs={x:box.x+125,y:310,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':25,'font-weight':800,fill:'#304b52'};
+      valueAttrs['data-fd-export-'+box.key]='1';
+      svg.appendChild(fdSvgEl('text',valueAttrs,box.value));
     });
     svg.appendChild(fdSvgEl('text',{x:80,y:385,'font-family':'Arial,sans-serif','font-size':12,'font-weight':800,fill:'#718288'},'EQUIVALENT FRACTIONS'));
     const hideEq=exportHidden('hiddenEquivalentFamily',pupil);
