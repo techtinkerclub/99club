@@ -2391,7 +2391,7 @@ function hundredSquare(){
 }
 
 function multiplicationGrid(){
-  const CK=G.challengeKit;
+  const CK=G.challengeKit,X=G.exportTools;
   let size=12,focus=6,selectedRow=6,selectedCol=4,interactionMode='select',pairCommutative=true,paint=null;
   let hidden=new Set();
   const undoStack=[],redoStack=[];
@@ -2409,6 +2409,7 @@ function multiplicationGrid(){
     {id:'spot-error',category:'reason',title:'Spot the incorrect product',desc:'Find one incorrect product in a times-table row.'}
   ];
   let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='missing-product',challenge=null,beforeChallenge=null;
+  let exportMode='grid',responseLines=1,exportStatus='';
 
   function key(r,c){return r+'-'+c}
   function parseKey(k){const [r,c]=String(k).split('-').map(Number);return{r,c}}
@@ -2614,7 +2615,8 @@ function multiplicationGrid(){
   function workflowTabs(){
     return '<div class="gd-row gd-mg-workflow-tabs" role="tablist" aria-label="Multiplication Grid workflow">'+
       '<button class="gd-btn'+(controlTab==='explore'?' gd-btn--primary':'')+'" type="button" data-mg-workflow="explore">Explore</button>'+
-      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-mg-workflow="challenge">Challenge'+(challenge?' •':'')+'</button></div>';
+      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-mg-workflow="challenge">Challenge'+(challenge?' •':'')+'</button>'+ 
+      '<button class="gd-btn'+(controlTab==='export'?' gd-btn--primary':'')+'" type="button" data-mg-workflow="export">Export / reuse</button></div>';
   }
   function modelControlsHtml(){
     return field('Grid size','<input class="gd-input" id="mg-size" type="number" min="5" max="15" value="'+size+'">','Show tables from 1×1 up to '+size+'×'+size+'.')+
@@ -2664,11 +2666,11 @@ function multiplicationGrid(){
       challenge=challengeObject(type,'One entry in the '+a+' times-table row is wrong. Which fact should be corrected?',a+' × '+b+' = '+p,{hideFactsPanel:true,wrongCellKey:key(a,b),wrongDisplay});
     }
     challenge.initialState=snapshot();
-    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';renderControls();draw();
+    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';exportMode='challenge';exportStatus='';renderControls();draw();
   }
   function restoreBeforeChallenge(){if(beforeChallenge){restore(beforeChallenge);beforeChallenge=null}}
   function clearChallenge(){
-    restoreBeforeChallenge();challenge=null;challengeTab='standard';controlTab='challenge';undoStack.length=0;redoStack.length=0;renderControls();draw();
+    restoreBeforeChallenge();challenge=null;challengeTab='standard';controlTab='challenge';exportMode='grid';exportStatus='';undoStack.length=0;redoStack.length=0;renderControls();draw();
   }
   function clearBoundHiding(){if(challenge)challenge.hideFactsPanel=false}
   function applyBoundHiding(source){
@@ -2709,7 +2711,7 @@ function multiplicationGrid(){
     if(CK)challenge=CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''});
     if(!wasCustom)clearBoundHiding();
     challenge.freezeGrid=false;challenge.selectOnly=false;challenge.revealed=false;
-    challengeTab='custom';controlTab='challenge';renderControls();draw();
+    challengeTab='custom';controlTab='challenge';exportMode='challenge';exportStatus='';renderControls();draw();
   }
   function setCustomAnswerSource(source){
     if(!challenge||challenge.mode!=='custom')return;
@@ -2736,7 +2738,123 @@ function multiplicationGrid(){
       (challenge&&challenge.answer?'<button class="gd-btn" id="mg-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
       (challenge?'<button class="gd-btn" id="mg-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>';
   }
-  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():exploreControlsHtml())}
+  function mgSvgEl(name,attrs={},text=''){
+    const el=document.createElementNS('http://www.w3.org/2000/svg',name);
+    Object.entries(attrs).forEach(([k,v])=>el.setAttribute(k,String(v)));
+    if(text!==''&&text!=null)el.textContent=String(text);
+    return el;
+  }
+  function exportState(pupil=false){
+    const fromInitial=!!(pupil&&challenge?.mode==='standard'&&challenge.initialState);
+    const raw=fromInitial?challenge.initialState:snapshot();
+    const exportSize=clamp(Math.round(Number(raw?.size)||12),5,15);
+    return{
+      size:exportSize,
+      focus:clamp(Math.round(Number(raw?.focus)||1),1,exportSize),
+      selectedRow:clamp(Math.round(Number(raw?.selectedRow)||1),1,exportSize),
+      selectedCol:clamp(Math.round(Number(raw?.selectedCol)||1),1,exportSize),
+      pairCommutative:raw?.pairCommutative!==false,
+      hidden:new Set(Array.isArray(raw?.hidden)?raw.hidden:[]),
+      fromInitial
+    };
+  }
+  function exportBoundHiddenKey(state,pupil=false){
+    if(!challenge||challenge.mode!=='custom'||challenge.answerMode!=='bound'||(!pupil&&challenge.revealed))return null;
+    return challenge.answerSource==='selected-product'?key(state.selectedRow,state.selectedCol):null;
+  }
+  function exportProductHidden(state,r,c,pupil=false){
+    let isHidden=state.hidden.has(key(r,c));
+    if(!pupil&&challenge?.mode==='standard'&&challenge.revealed)isHidden=false;
+    return isHidden||exportBoundHiddenKey(state,pupil)===key(r,c);
+  }
+  function exportDisplayValue(state,r,c,pupil=false){
+    if(exportProductHidden(state,r,c,pupil))return'?';
+    if(challenge?.type==='spot-error'&&challenge.wrongCellKey===key(r,c)&&(pupil||!challenge.revealed))return String(challenge.wrongDisplay);
+    return String(r*c);
+  }
+  function multiplicationGridExportSvg({pupil=false}={}){
+    const state=exportState(pupil),width=1000,height=900,cell=Math.min(48,690/(state.size+1)),gridW=(state.size+1)*cell,gridX=(width-gridW)/2,gridY=105;
+    const svg=mgSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Multiplication grid','data-mg-export':'multiplication-grid'});
+    svg.appendChild(mgSvgEl('rect',{x:0,y:0,width,height,fill:'#fff'}));
+    svg.appendChild(mgSvgEl('text',{x:65,y:50,'font-family':'Arial,sans-serif','font-size':28,'font-weight':900,fill:'#24343b'},'Multiplication grid'));
+    svg.appendChild(mgSvgEl('text',{x:935,y:50,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':16,'font-weight':850,fill:'#52666d'},state.size+' × '+state.size+' · focus '+state.focus+' times table'));
+    for(let r=0;r<=state.size;r++){
+      for(let c=0;c<=state.size;c++){
+        const x=gridX+c*cell,y=gridY+r*cell;
+        if(r===0&&c===0){
+          svg.appendChild(mgSvgEl('rect',{x,y,width:cell-2,height:cell-2,rx:6,fill:'#e8f4f1',stroke:'#cbd6d8','stroke-width':1.2}));
+          svg.appendChild(mgSvgEl('text',{x:x+(cell-2)/2,y:y+(cell-2)/2+1,'text-anchor':'middle','dominant-baseline':'middle','font-family':'Arial,sans-serif','font-size':15,'font-weight':900,fill:'#315752'},'×'));
+          continue;
+        }
+        if(r===0||c===0){
+          const n=r===0?c:r,focused=n===state.focus;
+          svg.appendChild(mgSvgEl('rect',{x,y,width:cell-2,height:cell-2,rx:6,fill:focused?'#d5efe9':'#e8f4f1',stroke:focused?'#62a59b':'#cbd6d8','stroke-width':focused?2:1.2}));
+          svg.appendChild(mgSvgEl('text',{x:x+(cell-2)/2,y:y+(cell-2)/2+1,'text-anchor':'middle','dominant-baseline':'middle','font-family':'Arial,sans-serif','font-size':14,'font-weight':900,fill:'#315752'},n));
+          continue;
+        }
+        const k=key(r,c),selected=r===state.selectedRow&&c===state.selectedCol,mirror=r===state.selectedCol&&c===state.selectedRow&&!selected,focused=r===state.focus||c===state.focus,hiddenValue=exportProductHidden(state,r,c,pupil),display=exportDisplayValue(state,r,c,pupil);
+        const g=mgSvgEl('g',{'data-mg-export-cell':k});
+        if(hiddenValue)g.setAttribute('data-mg-export-hidden','1');
+        if(selected)g.setAttribute('data-mg-export-selected','1');
+        if(mirror)g.setAttribute('data-mg-export-commutative','1');
+        if(challenge?.type==='spot-error'&&challenge.wrongCellKey===k&&(pupil||!challenge.revealed))g.setAttribute('data-mg-export-override','1');
+        g.appendChild(mgSvgEl('rect',{x,y,width:cell-2,height:cell-2,rx:6,fill:hiddenValue?'#f3f6f7':focused?'#fff3ce':'#fff',stroke:selected?'#137d75':focused?'#d7b65f':'#cbd6d8','stroke-width':selected?3:1.2}));
+        if(mirror)g.appendChild(mgSvgEl('rect',{x:x+4,y:y+4,width:cell-10,height:cell-10,rx:4,fill:'none',stroke:'#7f9fb2','stroke-width':2.5}));
+        g.appendChild(mgSvgEl('text',{x:x+(cell-2)/2,y:y+(cell-2)/2+1,'text-anchor':'middle','dominant-baseline':'middle','font-family':'Arial,sans-serif','font-size':Math.max(11,cell*.31),'font-weight':850,fill:hiddenValue?'#687b80':'#304b52','data-mg-export-cell-text':k},display));
+        svg.appendChild(g);
+      }
+    }
+    const footerY=Math.min(835,gridY+(state.size+1)*cell+52);
+    svg.appendChild(mgSvgEl('text',{x:500,y:footerY,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':12,fill:'#6e8085'},'Yellow = focused table   ·   teal outline = selected fact   ·   blue inset = commutative partner   ·   ? = hidden product'));
+    if(state.fromInitial)svg.appendChild(mgSvgEl('g',{'data-mg-export-initial-state':'1','aria-hidden':'true'}));
+    svg.appendChild(mgSvgEl('text',{x:935,y:875,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':10,fill:'#87969a'},'99 Club Studio'));
+    return svg;
+  }
+  function exportTargetSvg(){
+    if(exportMode!=='challenge'||!challenge||!X?.composeChallengeCardSvg)return multiplicationGridExportSvg({pupil:false});
+    const prompt=CK?CK.plainText(challenge.promptHtml||challenge.prompt||''):challenge.prompt||'';
+    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
+    return X.composeChallengeCardSvg(multiplicationGridExportSvg({pupil:true}),{
+      title:challenge.title||meta?.title||'Multiplication Grid challenge',
+      prompt,
+      responseLabel:challenge.category==='reason'?'Explain your thinking':challenge.type==='select-fact'?'Selected fact / answer':'Answer',
+      responseLines
+    });
+  }
+  function exportFilename(){
+    if(exportMode==='challenge'&&challenge)return'multiplication-grid-'+(challenge.type||'challenge');
+    return'multiplication-grid-'+size+'x'+size;
+  }
+  function exportMessage(message){exportStatus=message;const el=q('#mg-export-status');if(el)el.textContent=message}
+  async function runExport(kind){
+    if(!X){exportMessage('Export tools are unavailable.');return}
+    const targetSvg=exportTargetSvg(),name=exportFilename();
+    try{
+      if(kind==='copy'){await X.copyPng(targetSvg);exportMessage('Image copied.')}
+      else if(kind==='png'){await X.downloadPng(targetSvg,name);exportMessage('PNG downloaded.')}
+      else if(kind==='svg'){X.downloadSvg(targetSvg,name);exportMessage('SVG downloaded.')}
+      else if(kind==='print'){X.printSvg(targetSvg,{title:'',landscape:exportMode!=='challenge'});exportMessage('Print view opened. Choose “Save as PDF” in the print dialog.')}
+    }catch(err){exportMessage(err?.message||'Could not export this multiplication grid.')}
+  }
+  function exportControlsHtml(){
+    const canCard=!!challenge;
+    if(!canCard&&exportMode==='challenge')exportMode='grid';
+    return '<div class="nl-panel-title"><div><strong>Use it elsewhere</strong><span>Export a clean vector grid or a pupil-ready challenge card.</span></div></div>'+
+      (canCard?'<div class="nl-export-mode mg-export-mode" role="tablist" aria-label="Export content">'+
+        '<button type="button" class="'+(exportMode==='challenge'?'is-active':'')+'" data-mg-export-mode="challenge">Challenge card</button>'+
+        '<button type="button" class="'+(exportMode==='grid'?'is-active':'')+'" data-mg-export-mode="grid">Grid only</button></div>':'')+
+      (canCard&&exportMode==='challenge'
+        ?'<label class="gd-field"><span>Answer space</span><select class="gd-select" id="mg-response-lines">'+[1,2,3,4].map(n=>'<option value="'+n+'"'+(responseLines===n?' selected':'')+'>'+n+' line'+(n===1?'':'s')+'</option>').join('')+'</select></label><p class="gd-help">Pupil export re-hides hidden or bound answers. Interactive Standard challenges export the original starting grid, not the teacher\'s tested selection.</p>'
+        :'<p class="gd-help">Grid-only export preserves the current size, focused table, selected fact and hidden products without editing controls.</p>')+
+      '<div class="nl-export-grid mg-export-grid">'+
+        '<button class="gd-btn gd-btn--primary" id="mg-copy-image" type="button">Copy '+(canCard&&exportMode==='challenge'?'challenge':'image')+'</button>'+
+        '<button class="gd-btn" id="mg-png" type="button">PNG</button>'+
+        '<button class="gd-btn" id="mg-svg-download" type="button">SVG</button>'+
+        '<button class="gd-btn" id="mg-print" type="button">Print / PDF</button>'+
+      '</div><p class="gd-help" id="mg-export-status" role="status" aria-live="polite">'+exportStatus+'</p>';
+  }
+
+  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():controlTab==='export'?exportControlsHtml():exploreControlsHtml())}
   function renderControls(){q('#gd-controls').innerHTML=controlsHtml();bindControls()}
   function bindModelControls(){
     const sizeInput=q('#mg-size');if(sizeInput)sizeInput.onchange=()=>mutate(()=>setSize(sizeInput.value));
@@ -2749,6 +2867,12 @@ function multiplicationGrid(){
   function bindControls(){
     qa('[data-mg-workflow]',q('#gd-controls')).forEach(button=>button.onclick=()=>{controlTab=button.dataset.mgWorkflow;renderControls()});
     bindModelControls();
+    if(controlTab==='export'){
+      qa('[data-mg-export-mode]',q('#gd-controls')).forEach(button=>button.onclick=()=>{exportMode=button.dataset.mgExportMode;exportStatus='';renderControls()});
+      const lines=q('#mg-response-lines');if(lines)lines.onchange=()=>{responseLines=clamp(Math.round(num(lines.value,1)),1,4)};
+      [['mg-copy-image','copy'],['mg-png','png'],['mg-svg-download','svg'],['mg-print','print']].forEach(([id,kind])=>{const button=q('#'+id);if(button)button.onclick=()=>runExport(kind)});
+      return;
+    }
     if(controlTab!=='challenge')return;
     qa('[data-mg-challenge-tab]',q('#gd-controls')).forEach(button=>button.onclick=()=>{
       if(button.dataset.mgChallengeTab==='custom')enterCustomChallenge();

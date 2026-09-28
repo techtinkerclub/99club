@@ -1284,6 +1284,84 @@ if(mode==='prepare'){
     document.getElementById('mg-clear-challenge').click();
     assert(document.querySelector('[data-mg-cell="6-4"]').classList.contains('is-current'),'Ending Multiplication Grid challenges restores the teacher-selected fact');
     assert(document.querySelectorAll('.gd-mg-cell.is-hidden-product').length===0,'Ending Multiplication Grid challenges restores the teacher hidden-product state');
+
+    document.querySelector('[data-mg-workflow="export"]').click();
+    assert(document.getElementById('mg-copy-image')&&document.getElementById('mg-png')&&document.getElementById('mg-svg-download')&&document.getElementById('mg-print'),'Multiplication Grid export exposes copy, PNG, SVG and Print/PDF actions');
+    let mgBoardSvg=null,mgBoardName='';
+    const mgOldBoardDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg,name)=>{mgBoardSvg=svg.cloneNode(true);mgBoardName=name};
+    document.getElementById('mg-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=mgOldBoardDownload;
+    assert(mgBoardSvg&&mgBoardSvg.dataset.mgExport==='multiplication-grid','Multiplication Grid board export is a deterministic SVG grid');
+    assert(mgBoardSvg.querySelectorAll('[data-mg-export-cell]').length===144,'Multiplication Grid SVG preserves every product cell');
+    assert(mgBoardSvg.querySelector('[data-mg-export-cell="6-4"]').getAttribute('data-mg-export-selected')==='1','Multiplication Grid SVG preserves the selected fact');
+    assert(mgBoardSvg.querySelector('[data-mg-export-cell="4-6"]').getAttribute('data-mg-export-commutative')==='1','Multiplication Grid SVG preserves the commutative partner');
+    assert(mgBoardSvg.querySelector('[data-mg-export-cell-text="6-4"]').textContent.trim()==='24','Multiplication Grid SVG preserves visible products');
+    assert(mgBoardName.includes('multiplication-grid-12x12'),'Multiplication Grid board export has a reusable size-specific filename');
+
+    document.querySelector('[data-mg-workflow="challenge"]').click();
+    document.querySelector('[data-mg-challenge-cat="read"]').click();
+    document.querySelector('[data-mg-challenge-type="missing-product"]').click();
+    document.getElementById('mg-generate').click();
+    document.querySelector('[data-board-action="reveal"]').click();
+    document.querySelector('[data-mg-workflow="export"]').click();
+    assert(document.querySelector('[data-mg-export-mode="challenge"]')?.classList.contains('is-active'),'Generated Multiplication Grid challenge defaults to Challenge card export');
+    let mgMissingCard=null;
+    const mgOldMissingDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{mgMissingCard=svg.cloneNode(true)};
+    document.getElementById('mg-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=mgOldMissingDownload;
+    assert(mgMissingCard&&mgMissingCard.querySelector('[data-mg-export-initial-state="1"]'),'Multiplication Grid pupil card is regenerated from the recorded challenge start');
+    assert(mgMissingCard.querySelector('[data-mg-export-cell-text="2-3"]').textContent.trim()==='?'&&mgMissingCard.querySelector('[data-mg-export-cell-text="3-2"]').textContent.trim()==='?','Missing-product pupil export re-hides both commutative products after teacher Reveal');
+    assert(!mgMissingCard.textContent.includes('Answer: 6'),'Multiplication Grid challenge-card export never includes the revealed answer');
+    assert(mgMissingCard.textContent.includes('What is 2 × 3?'),'Multiplication Grid challenge card includes the pupil prompt');
+
+    document.querySelector('[data-mg-workflow="challenge"]').click();
+    document.querySelector('[data-mg-challenge-cat="read"]').click();
+    document.querySelector('[data-mg-challenge-type="select-fact"]').click();
+    document.getElementById('mg-generate').click();
+    document.querySelector('[data-mg-cell="2-3"]').click();
+    assert(document.querySelector('[data-mg-target-status]').textContent.includes('Found 2 × 3 = 6'),'Teacher can test the interactive select-fact challenge before export');
+    document.querySelector('[data-mg-workflow="export"]').click();
+    let mgSelectCard=null;
+    const mgOldSelectDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{mgSelectCard=svg.cloneNode(true)};
+    document.getElementById('mg-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=mgOldSelectDownload;
+    const mgSelectedExport=mgSelectCard.querySelector('[data-mg-export-selected="1"]');
+    assert(mgSelectedExport&&mgSelectedExport.getAttribute('data-mg-export-cell')==='1-1','Select-fact pupil card restores the original neutral selection');
+    assert(!mgSelectCard.querySelector('[data-mg-export-cell="2-3"]').hasAttribute('data-mg-export-selected'),'Select-fact pupil export strips the teacher tested selection');
+    assert(mgSelectCard.textContent.includes('Select the cell for 2 × 3.'),'Select-fact pupil card keeps the target instruction');
+
+    document.querySelector('[data-mg-workflow="challenge"]').click();
+    document.querySelector('[data-mg-challenge-cat="reason"]').click();
+    document.querySelector('[data-mg-challenge-type="spot-error"]').click();
+    document.getElementById('mg-generate').click();
+    document.querySelector('[data-board-action="reveal"]').click();
+    document.querySelector('[data-mg-workflow="export"]').click();
+    let mgErrorCard=null;
+    const mgOldErrorDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{mgErrorCard=svg.cloneNode(true)};
+    document.getElementById('mg-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=mgOldErrorDownload;
+    assert(mgErrorCard.querySelector('[data-mg-export-cell="2-3"]').getAttribute('data-mg-export-override')==='1','Spot-error pupil export restores the deliberate incorrect product after teacher Reveal');
+    assert(mgErrorCard.querySelector('[data-mg-export-cell-text="2-3"]').textContent.trim()==='7','Spot-error pupil card keeps the incorrect displayed value');
+    assert(mgErrorCard.querySelector('[data-mg-export-cell-text="3-2"]').textContent.trim()==='6','Spot-error pupil card keeps the correct commutative comparison');
+    assert(!mgErrorCard.textContent.includes('Answer: 2 × 3 = 6'),'Spot-error pupil export does not include the revealed correction');
+
+    document.querySelector('[data-mg-workflow="challenge"]').click();
+    document.querySelector('[data-mg-challenge-tab="custom"]').click();
+    const mgExportSource=document.getElementById('mg-custom-answer-source');
+    mgExportSource.value='selected-product';mgExportSource.dispatchEvent(new Event('change',{bubbles:true}));
+    document.querySelector('[data-mg-workflow="export"]').click();
+    let mgCustomCard=null;
+    const mgOldCustomDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{mgCustomCard=svg.cloneNode(true)};
+    document.getElementById('mg-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=mgOldCustomDownload;
+    assert(mgCustomCard.querySelector('[data-mg-export-cell-text="1-1"]').textContent.trim()==='?','Custom selected-product pupil export keeps the bound product hidden');
+    assert(!mgCustomCard.textContent.includes('Answer: 1'),'Custom Multiplication Grid pupil export does not leak its bound answer');
+
     Math.random=realMgRandom;
   }
 
