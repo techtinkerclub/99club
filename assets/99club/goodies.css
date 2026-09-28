@@ -408,12 +408,16 @@ html.nl-board-page-lock,body.nl-board-page-lock{overflow:hidden!important;oversc
 .gd-ge-vertex.is-selected{stroke:#f2b84b;stroke-width:5}
 .gd-ge-label{font-size:13px;font-weight:900;fill:#344b53;pointer-events:none;user-select:none}
 .gd-ge-context{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:42px;padding:8px 10px;border-radius:12px;background:#f5f8f8;color:#607278;font-size:.78rem}
-.gd-ge-context button{border:1px solid #e1bcbc;border-radius:9px;background:#fff;color:#9b3f3f;padding:6px 9px;font:inherit;font-size:.72rem;font-weight:850;cursor:pointer;white-space:nowrap}
-.gd-ge-context button:hover,.gd-ge-context button:focus-visible{background:#fff1f1;outline:none}
+.gd-context-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}
+.gd-ge-context button,.gd-co-context button{border:1px solid #cbd9d9;border-radius:9px;background:#fff;color:#40615e;padding:6px 9px;font:inherit;font-size:.72rem;font-weight:850;cursor:pointer;white-space:nowrap}
+.gd-ge-context .gd-context-history:hover,.gd-ge-context .gd-context-history:focus-visible,.gd-co-context .gd-context-history:hover,.gd-co-context .gd-context-history:focus-visible{border-color:#9bcac4;background:var(--gd-mint);outline:none}
+.gd-ge-context .gd-context-delete,.gd-co-context .gd-context-delete{border-color:#e1bcbc;color:#9b3f3f}
+.gd-ge-context .gd-context-delete:hover,.gd-ge-context .gd-context-delete:focus-visible,.gd-co-context .gd-context-delete:hover,.gd-co-context .gd-context-delete:focus-visible{background:#fff1f1;outline:none}
+.gd-ge-context button:disabled,.gd-co-context button:disabled{opacity:.42;cursor:default}
 #ge-undo:disabled,#ge-redo:disabled,#ge-clear:disabled{opacity:.42;cursor:default}
 @media(max-width:520px){
   .gd-ge-context{align-items:flex-start;flex-direction:column}
-  .gd-ge-context button{align-self:flex-start}
+  .gd-context-actions{width:100%;justify-content:flex-start}
 }
 @media print{
   .gd-ge-context{display:none!important}
@@ -431,12 +435,9 @@ html.nl-board-page-lock,body.nl-board-page-lock{overflow:hidden!important;oversc
 .gd-co-point.is-selected{stroke:#f2b84b;stroke-width:5}
 .gd-co-point-label{font-size:12px;font-weight:850;fill:#344b53;pointer-events:none;user-select:none}
 .gd-co-context{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:42px;padding:8px 10px;border-radius:12px;background:#f5f8f8;color:#607278;font-size:.78rem}
-.gd-co-context button{border:1px solid #e1bcbc;border-radius:9px;background:#fff;color:#9b3f3f;padding:6px 9px;font:inherit;font-size:.72rem;font-weight:850;cursor:pointer;white-space:nowrap}
-.gd-co-context button:hover,.gd-co-context button:focus-visible{background:#fff1f1;outline:none}
 #co-undo:disabled,#co-redo:disabled,#co-clear:disabled{opacity:.42;cursor:default}
 @media(max-width:520px){
   .gd-co-context{align-items:flex-start;flex-direction:column}
-  .gd-co-context button{align-self:flex-start}
   .gd-co-point-label{font-size:11px}
 }
 @media print{
