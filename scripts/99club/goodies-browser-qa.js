@@ -3387,9 +3387,12 @@ if(mode==='prepare'){
     assert(document.querySelectorAll('.gd-die-cube').length===2,'Default Randomiser shows two physical six-sided dice');
     assert(document.querySelectorAll('.gd-die-cube .gd-die-face').length===12,'Each six-sided die renders all six physical faces');
     assert(document.querySelectorAll('.gd-die-face .gd-die-pips').length===12,'Six-sided dice use pip faces rather than text-only results');
-    go.click();
-    assert(go.disabled&&go.textContent.includes('Rolling'),'Dice action locks while the dice are tumbling');
-    assert(document.querySelectorAll('.gd-die-cube.is-rolling').length===2,'Six-sided dice visibly enter their tumble animation');
+    let stageGo=document.querySelector('[data-ra-stage-go]');
+    assert(stageGo&&stageGo.textContent.trim()==='Roll dice','Dice exposes Roll dice directly on the live stage');
+    stageGo.click();
+    stageGo=document.querySelector('[data-ra-stage-go]');
+    assert(stageGo.disabled&&stageGo.textContent.includes('Rolling'),'Stage Roll dice locks while the dice tumble');
+    assert(document.querySelectorAll('.gd-die-cube.is-rolling').length===2,'Stage Roll dice visibly tumbles the six-sided dice');
 
     mode.value='spinner';mode.dispatchEvent(new Event('change',{bubbles:true}));
     assert(go.textContent.trim()==='Spin wheel','Spinner uses a direct Spin wheel action');
@@ -3399,10 +3402,25 @@ if(mode==='prepare'){
     choices.value='Alpha\\nBeta\\nGamma';choices.dispatchEvent(new Event('input',{bubbles:true}));
     assert(document.querySelectorAll('.gd-spinner-label').length===3,'Spinner redraws to match edited classroom choices');
     assert([...document.querySelectorAll('.gd-spinner-label span')].map(x=>x.textContent.trim()).join('|')==='Alpha|Beta|Gamma','Spinner keeps the edited labels on the wheel itself');
-    go.click();
-    assert(go.disabled&&go.textContent.includes('Spinning'),'Spinner action locks while the wheel spins');
+    stageGo=document.querySelector('[data-ra-stage-go]');
+    assert(stageGo&&stageGo.textContent.trim()==='Spin wheel','Spinner exposes Spin wheel directly on the live stage');
+    stageGo.click();
+    stageGo=document.querySelector('[data-ra-stage-go]');
+    assert(stageGo.disabled&&stageGo.textContent.includes('Spinning'),'Stage Spin wheel locks while the wheel spins');
     assert(document.querySelector('[data-ra-result]').textContent.includes('Spinning'),'Spinner result panel shows the in-progress state');
     assert(document.getElementById('ra-wheel'),'Spinner wheel remains visible while spinning');
+
+    mode.value='number';mode.dispatchEvent(new Event('change',{bubbles:true}));
+    stageGo=document.querySelector('[data-ra-stage-go]');
+    assert(stageGo&&stageGo.textContent.trim()==='Pick number','Random number exposes its main action directly on stage');
+    stageGo.click();
+    assert(document.querySelector('.gd-random-number strong').textContent.trim()!=='—','Stage Pick number produces a result without opening teacher controls');
+
+    mode.value='card';mode.dispatchEvent(new Event('change',{bubbles:true}));
+    stageGo=document.querySelector('[data-ra-stage-go]');
+    assert(stageGo&&stageGo.textContent.trim()==='Draw card','Playing card exposes its main action directly on stage');
+    stageGo.click();
+    assert(document.querySelector('.gd-playing-card strong').textContent.trim()!=='—','Stage Draw card produces a result without opening teacher controls');
 
     mode.value='dice';mode.dispatchEvent(new Event('change',{bubbles:true}));
     const sides=document.getElementById('ra-sides'),count=document.getElementById('ra-count');
