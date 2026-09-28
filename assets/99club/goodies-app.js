@@ -40,6 +40,12 @@ root.innerHTML=`<div class="gd-shell">
 const shell=root.querySelector('.gd-shell'),grid=q('#gd-grid'),search=q('#gd-search'),workspace=q('#gd-workspace');
 let category='all',currentToolId='',whiteboardFallback=false,whiteboardToolsOpen=false;
 function genericWhiteboardActive(){return document.fullscreenElement===workspace||whiteboardFallback}
+function bespokeNumberLineActive(){
+  if(currentToolId!=='number-line')return false;
+  const stage=q('#gd-stage');
+  return document.fullscreenElement===stage||!!stage?.classList.contains('nl-board-fallback');
+}
+function whiteboardActive(){return genericWhiteboardActive()||bespokeNumberLineActive()}
 function setWhiteboardUi(active){
   workspace.classList.toggle('gd-whiteboard-active',!!active);
   workspace.classList.toggle('gd-whiteboard-tools-open',!!active&&whiteboardToolsOpen);
@@ -60,6 +66,11 @@ function enterGenericWhiteboard(){
   }else enterWhiteboardFallback();
 }
 function exitWhiteboard(){
+  if(bespokeNumberLineActive()){
+    const stage=q('#gd-stage');
+    if(document.fullscreenElement===stage&&document.exitFullscreen){document.exitFullscreen();return}
+    const exit=q('[data-board-action="exit"]',stage);if(exit){exit.click();return}
+  }
   if(document.fullscreenElement===workspace&&document.exitFullscreen)document.exitFullscreen().catch(()=>leaveGenericWhiteboard());
   else leaveGenericWhiteboard();
 }
@@ -80,7 +91,7 @@ document.addEventListener('fullscreenchange',()=>{
   if(document.fullscreenElement===workspace){whiteboardFallback=false;workspace.classList.remove('gd-whiteboard-fallback');setWhiteboardUi(true)}
   else if(workspace.classList.contains('gd-whiteboard-active')&&!whiteboardFallback)leaveGenericWhiteboard();
 });
-G.whiteboard={enter:enterWhiteboard,exit:exitWhiteboard,isActive:genericWhiteboardActive,tools:()=>tools.map(t=>t.id)};
+G.whiteboard={enter:enterWhiteboard,exit:exitWhiteboard,isActive:whiteboardActive,tools:()=>tools.map(t=>t.id)};
 q('#gd-back').addEventListener('click',closeTool);search.addEventListener('input',renderCards);qa('[data-cat]').forEach(b=>b.addEventListener('click',()=>{category=b.dataset.cat;qa('[data-cat]').forEach(x=>x.classList.toggle('is-active',x===b));renderCards()}));
 renderCards();
 const hash=location.hash.slice(1);if(tools.some(t=>t.id===hash))openTool(hash);
