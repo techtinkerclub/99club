@@ -1988,26 +1988,9 @@ function timesTableVisual(){
 }
 
 function factorExplorer(){
-  const CK=G.challengeKit,X=G.exportTools;
   let a=36,b=24,compare=false,selectedSide='a',selectedPair=0;
   const undoStack=[],redoStack=[];
   const DIVISORS=[2,3,4,5,6,8,9,10];
-  const CHALLENGE_CATEGORIES=[
-    {id:'read',label:'Factors & primes'},
-    {id:'compare',label:'Compare numbers'},
-    {id:'reason',label:'Reasoning'}
-  ];
-  const CHALLENGE_TEMPLATES=[
-    {id:'prime-or-composite',category:'read',title:'Prime or composite?',desc:'Classify a number from its factors.'},
-    {id:'missing-factor',category:'read',title:'Missing factor',desc:'Complete a factor pair for the shown number.'},
-    {id:'divisible-by',category:'read',title:'Divisibility check',desc:'Decide whether a number is divisible by a given divisor.'},
-    {id:'common-factors',category:'compare',title:'Common factors',desc:'Find the factors shared by two numbers.'},
-    {id:'hcf',category:'compare',title:'Highest common factor',desc:'Find the HCF of two numbers.'},
-    {id:'lcm',category:'compare',title:'Lowest common multiple',desc:'Find the LCM of two numbers.'},
-    {id:'explain-prime',category:'reason',title:'Explain why it is prime',desc:'Use the factor evidence to justify a prime classification.'}
-  ];
-  let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='prime-or-composite',challenge=null,beforeChallenge=null;
-  let exportMode='diagram',responseLines=1,exportStatus='';
 
   function norm(value,fallback=2){return clamp(Math.round(Number(value)||fallback),2,500)}
   function factors(n){const out=[];for(let i=1;i<=Math.sqrt(n);i++)if(n%i===0){out.push(i);if(i!==n/i)out.push(n/i)}return out.sort((x,y)=>x-y)}
@@ -2024,10 +2007,9 @@ function factorExplorer(){
     if(!compare&&selectedSide==='b')selectedSide='a';
   }
   function remember(){undoStack.push(snapshot());if(undoStack.length>60)undoStack.shift();redoStack.length=0}
-  function challengeFrozen(){return !!(challenge&&challenge.mode==='standard')}
-  function mutate(fn){if(challengeFrozen())return;remember();fn();clampPair();draw();renderControls()}
-  function undo(){if(!undoStack.length||challengeFrozen())return;redoStack.push(snapshot());restore(undoStack.pop());clampPair();draw();renderControls()}
-  function redo(){if(!redoStack.length||challengeFrozen())return;undoStack.push(snapshot());restore(redoStack.pop());clampPair();draw();renderControls()}
+  function mutate(fn){remember();fn();clampPair();draw();renderControls()}
+  function undo(){if(!undoStack.length)return;redoStack.push(snapshot());restore(undoStack.pop());clampPair();draw();renderControls()}
+  function redo(){if(!redoStack.length)return;undoStack.push(snapshot());restore(redoStack.pop());clampPair();draw();renderControls()}
   function currentNumber(){return selectedSide==='b'&&compare?b:a}
   function currentPairs(){return factorPairs(currentNumber())}
   function clampPair(){selectedPair=clamp(selectedPair,0,Math.max(0,currentPairs().length-1))}
@@ -2041,8 +2023,7 @@ function factorExplorer(){
   function divisibilityHtml(n,prefix){
     return '<div class="gd-fe-divisibility" data-fe-divisibility="'+prefix+'">'+DIVISORS.map(d=>{
       const r=n%d,yes=r===0;
-      const hidden=!!(challenge&&!challenge.revealed&&challenge.hiddenDivisor===d&&challenge.hiddenDivisorSide===prefix);
-      return '<div class="gd-fe-divisor'+(yes?' is-divisible':'')+'" data-fe-divisor="'+prefix+'-'+d+'"><span>÷ '+d+'</span><strong>'+(hidden?'?':(yes?'Yes':'r '+r))+'</strong></div>';
+      return '<div class="gd-fe-divisor'+(yes?' is-divisible':'')+'" data-fe-divisor="'+prefix+'-'+d+'"><span>÷ '+d+'</span><strong>'+(yes?'Yes':'r '+r)+'</strong></div>';
     }).join('')+'</div>';
   }
   function pairButtons(n,side){
@@ -2050,8 +2031,7 @@ function factorExplorer(){
     return factorPairs(n).map((pair,i)=>{
       const active=selectedSide===side&&selectedPair===i;
       const shared=compare&&(common.has(pair[0])||common.has(pair[1]));
-      const hidden=!!(challenge&&!challenge.revealed&&((challenge.hiddenPairSide===side&&challenge.hiddenPairIndex===i)||challenge.hiddenAllPairsSide===side));
-      return '<button type="button" class="gd-factor-pair gd-fe-pair'+(active?' is-selected':'')+(shared?' is-common':'')+'" data-fe-pair="'+side+'-'+i+'" data-fe-side="'+side+'" data-fe-index="'+i+'"'+(challengeFrozen()?' disabled':'')+'>'+(hidden?(pair[0]+' × ?'):pairLabel(pair))+'</button>';
+      return '<button type="button" class="gd-factor-pair gd-fe-pair'+(active?' is-selected':'')+(shared?' is-common':'')+'" data-fe-pair="'+side+'-'+i+'" data-fe-side="'+side+'" data-fe-index="'+i+'">'+pairLabel(pair)+'</button>';
     }).join('');
   }
   function multipleChips(n,side){
@@ -2062,13 +2042,13 @@ function factorExplorer(){
     }).join('');
   }
   function numberCard(n,side,label){
-    const fs=factors(n),hideClass=!!(challenge&&!challenge.revealed&&challenge.hiddenClassificationSide===side);
+    const fs=factors(n);
     return '<section class="gd-fe-number-card" data-fe-card="'+side+'">'+
-      '<div class="gd-fe-card-head"><div><span>'+label+'</span><strong>'+n+'</strong><em>'+(hideClass?'?':(isPrime(n)?'Prime number':'Composite · '+fs.length+' factors'))+'</em></div>'+
-        (challengeFrozen()?'':'<div class="gd-object-toolbar"><button class="gd-btn" type="button" data-fe-step="'+side+'--">−1</button><button class="gd-btn" type="button" data-fe-step="'+side+'-+">+1</button></div>')+'</div>'+
+      '<div class="gd-fe-card-head"><div><span>'+label+'</span><strong>'+n+'</strong><em>'+(isPrime(n)?'Prime number':'Composite · '+fs.length+' factors')+'</em></div>'+
+        '<div class="gd-object-toolbar"><button class="gd-btn" type="button" data-fe-step="'+side+'--">−1</button><button class="gd-btn" type="button" data-fe-step="'+side+'-+">+1</button></div></div>'+
       '<div><span class="gd-fe-label">Factor pairs</span><div class="gd-factor-pairs">'+pairButtons(n,side)+'</div></div>'+
       '<div><span class="gd-fe-label">First 12 multiples</span><div class="gd-multiples">'+multipleChips(n,side)+'</div></div>'+
-      '<div><span class="gd-fe-label">Prime factorisation</span><div class="gd-readout gd-fe-prime" data-fe-prime="'+side+'">'+((challenge&&!challenge.revealed&&challenge.hiddenPrimeSide===side)?'?':factorisationText(n))+'</div></div>'+
+      '<div><span class="gd-fe-label">Prime factorisation</span><div class="gd-readout gd-fe-prime" data-fe-prime="'+side+'">'+factorisationText(n)+'</div></div>'+
       '<div><span class="gd-fe-label">Divisibility checks</span>'+divisibilityHtml(n,side)+'</div>'+
     '</section>';
   }
@@ -2079,35 +2059,25 @@ function factorExplorer(){
     const vCount=Math.min(cols,24),hCount=Math.min(rows,16);
     for(let i=1;i<vCount;i++){const x=pad+gridW*i/vCount;lines+='<line x1="'+x+'" y1="'+pad+'" x2="'+x+'" y2="'+(pad+gridH)+'"></line>'}
     for(let i=1;i<hCount;i++){const y=pad+gridH*i/hCount;lines+='<line x1="'+pad+'" y1="'+y+'" x2="'+(pad+gridW)+'" y2="'+y+'"></line>'}
-    const hideSelected=!!(challenge&&!challenge.revealed&&challenge.hiddenPairSide===selectedSide&&challenge.hiddenPairIndex===selectedPair);
-    const pairText=hideSelected?rows+' × ? = '+n:rows+' × '+cols+' = '+n;
-    const aria=hideSelected?rows+' rows by an unknown number of columns equals '+n:rows+' rows by '+cols+' columns equals '+n;
-    return '<div class="gd-fe-array-panel"><div class="gd-fe-array-head"><span>Selected factor rectangle</span><strong data-fe-selected-pair>'+pairText+'</strong></div>'+
-      '<svg class="gd-fe-array" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+aria+'">'+
+    return '<div class="gd-fe-array-panel"><div class="gd-fe-array-head"><span>Selected factor rectangle</span><strong data-fe-selected-pair>'+rows+' × '+cols+' = '+n+'</strong></div>'+
+      '<svg class="gd-fe-array" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+rows+' rows by '+cols+' columns equals '+n+'">'+
         '<rect x="'+pad+'" y="'+pad+'" width="'+gridW+'" height="'+gridH+'"></rect><g>'+lines+'</g>'+
-        '<text x="'+(W/2)+'" y="28" text-anchor="middle">'+(hideSelected?'? columns':cols+' columns')+'</text><text x="18" y="'+(H/2)+'" text-anchor="middle" transform="rotate(-90 18 '+(H/2)+')">'+rows+' rows</text>'+
+        '<text x="'+(W/2)+'" y="28" text-anchor="middle">'+cols+' columns</text><text x="18" y="'+(H/2)+'" text-anchor="middle" transform="rotate(-90 18 '+(H/2)+')">'+rows+' rows</text>'+
       '</svg><p class="gd-help">'+(cols>24||rows>16?'Large arrays are simplified visually, but the factor pair is exact.':'Each grid division represents one row or column.')+'</p></div>';
   }
   function compareSummary(){
     if(!compare)return'';
-    const cf=commonFactors(),h=gcd2(a,b),l=lcm2(a,b),hide=challenge&&!challenge.revealed;
-    return '<div class="gd-fe-common" data-fe-common-summary><div><span>Common factors</span><strong>'+(hide&&challenge.hiddenCommonFactors?'?':cf.join(', '))+'</strong></div><div><span>Highest common factor</span><strong data-fe-hcf>'+(hide&&challenge.hiddenHcf?'?':h)+'</strong></div><div><span>Lowest common multiple</span><strong data-fe-lcm>'+(hide&&challenge.hiddenLcm?'?':l)+'</strong></div></div>';
-  }
-  function bindChallengeStageActions(){
-    const stage=q('#gd-stage');if(!stage||!challenge)return;
-    const reveal=q('[data-board-action="reveal"]',stage);if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();draw()};
-    const another=q('[data-challenge-action="another"]',stage);if(another)another.onclick=e=>{e.stopPropagation();if(challenge?.mode==='standard')generateChallenge(challenge.type)};
+    const cf=commonFactors(),h=gcd2(a,b),l=lcm2(a,b);
+    return '<div class="gd-fe-common" data-fe-common-summary><div><span>Common factors</span><strong>'+cf.join(', ')+'</strong></div><div><span>Highest common factor</span><strong data-fe-hcf>'+h+'</strong></div><div><span>Lowest common multiple</span><strong data-fe-lcm>'+l+'</strong></div></div>';
   }
   function draw(){
-    updateChallengeAnswer();
-    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Factors & multiples challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
-    q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-fe-workbench">'+
+    q('#gd-stage').innerHTML='<div class="gd-vis gd-fe-workbench">'+
       '<div class="gd-fe-summary"><div><span>Factors & multiples</span><strong>'+(compare?a+' and '+b:a)+'</strong></div><div class="gd-object-toolbar"><button class="gd-btn" id="fe-undo" type="button"'+(undoStack.length?'':' disabled')+'>Undo</button><button class="gd-btn" id="fe-redo" type="button"'+(redoStack.length?'':' disabled')+'>Redo</button></div></div>'+
       compareSummary()+
       '<div class="gd-fe-cards">'+numberCard(a,'a','Number A')+(compare?numberCard(b,'b','Number B'):'')+'</div>'+
       arrayDiagram()+
     '</div>';
-    bindStage();bindChallengeStageActions();
+    bindStage();
   }
   function bindStage(){
     qa('[data-fe-step]',q('#gd-stage')).forEach(button=>button.onclick=()=>{
@@ -2115,281 +2085,29 @@ function factorExplorer(){
       mutate(()=>{selectedSide=side;if(side==='a')setA(a+delta);else setB(b+delta)});
     });
     qa('[data-fe-pair]',q('#gd-stage')).forEach(button=>button.onclick=()=>{
-      if(challengeFrozen())return;selectedSide=button.dataset.feSide;selectedPair=Number(button.dataset.feIndex)||0;draw();renderControls();
+      selectedSide=button.dataset.feSide;selectedPair=Number(button.dataset.feIndex)||0;draw();renderControls();
     });
     const u=q('#fe-undo');if(u)u.onclick=undo;
     const r=q('#fe-redo');if(r)r.onclick=redo;
   }
-  function workflowTabs(){
-    return '<div class="gd-row gd-fe-workflow-tabs" role="tablist" aria-label="Factor Explorer workflow">'+
-      '<button class="gd-btn'+(controlTab==='explore'?' gd-btn--primary':'')+'" type="button" data-fe-workflow="explore">Explore</button>'+
-      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-fe-workflow="challenge">Challenge'+(challenge?' •':'')+'</button>'+
-      '<button class="gd-btn'+(controlTab==='export'?' gd-btn--primary':'')+'" type="button" data-fe-workflow="export">Export / reuse</button></div>';
-  }
-  function modelControlsHtml(){
+  function controlsHtml(){
     return field('Number A','<input class="gd-input" id="fe-a" type="number" min="2" max="500" value="'+a+'">','Use the model to inspect factor pairs, multiples, prime factors and divisibility.')+
       '<label class="gd-tv-check"><input type="checkbox" id="fe-compare"'+(compare?' checked':'')+'> <span>Compare with a second number</span></label>'+
-      (compare?field('Number B','<input class="gd-input" id="fe-b" type="number" min="2" max="500" value="'+b+'">','Common factors and the lowest common multiple are highlighted automatically.'):'');
-  }
-  function exploreControlsHtml(){
-    return modelControlsHtml()+
+      (compare?field('Number B','<input class="gd-input" id="fe-b" type="number" min="2" max="500" value="'+b+'">','Common factors and the lowest common multiple are highlighted automatically.'):'')+
       '<div class="gd-row"><button class="gd-btn" id="fe-random" type="button">Random number'+(compare?'s':'')+'</button><button class="gd-btn" id="fe-reset" type="button">Reset</button></div>'+
       '<p class="gd-help">Click any factor pair to inspect it as a rectangle. In compare mode, shared factors and common multiples are highlighted, with HCF and LCM shown above.</p>';
   }
-  function challengeObject(type,prompt,answer,extra={}){
-    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===type);
-    const raw={mode:'standard',type,category:meta?.category||'',title:'',prompt,promptHtml:prompt,answer:String(answer??''),answerMode:'manual',answerSource:'',revealed:false,hiddenClassificationSide:'',hiddenPairSide:'',hiddenPairIndex:null,hiddenAllPairsSide:'',hiddenDivisor:null,hiddenDivisorSide:'',hiddenPrimeSide:'',hiddenCommonFactors:false,hiddenHcf:false,hiddenLcm:false,...extra};
-    return CK?CK.normalise(raw):raw;
-  }
-  function resolveAnswerSource(source){
-    if(source==='classification-a')return isPrime(a)?'Prime':'Composite';
-    if(source==='factors-a')return factors(a).join(', ');
-    if(source==='prime-a')return factorisationText(a);
-    if(source==='common-factors'&&compare)return commonFactors().join(', ');
-    if(source==='hcf'&&compare)return String(gcd2(a,b));
-    if(source==='lcm'&&compare)return String(lcm2(a,b));
-    return'';
-  }
-  function customAnswerSources(){
-    const out=[
-      {id:'classification-a',label:'Number A: prime or composite'},
-      {id:'factors-a',label:'Number A: all factors'},
-      {id:'prime-a',label:'Number A: prime factorisation'}
-    ];
-    if(compare)out.push({id:'common-factors',label:'Common factors'},{id:'hcf',label:'Highest common factor'},{id:'lcm',label:'Lowest common multiple'});
-    return out;
-  }
-  function clearBoundHiding(){
-    if(!challenge)return;
-    challenge.hiddenClassificationSide='';challenge.hiddenPrimeSide='';challenge.hiddenAllPairsSide='';challenge.hiddenCommonFactors=false;challenge.hiddenHcf=false;challenge.hiddenLcm=false;
-  }
-  function applyBoundHiding(source){
-    clearBoundHiding();if(!challenge)return;
-    if(source==='classification-a')challenge.hiddenClassificationSide='a';
-    if(source==='factors-a')challenge.hiddenAllPairsSide='a';
-    if(source==='prime-a')challenge.hiddenPrimeSide='a';
-    if(source==='common-factors')challenge.hiddenCommonFactors=true;
-    if(source==='hcf')challenge.hiddenHcf=true;
-    if(source==='lcm')challenge.hiddenLcm=true;
-  }
-  function updateChallengeAnswer(){
-    if(!challenge||challenge.answerMode!=='bound'||!challenge.answerSource)return;
-    const answer=resolveAnswerSource(challenge.answerSource);if(answer!=='')challenge.answer=answer;
-    const live=q('#fe-custom-live-answer');if(live)live.textContent=challenge.answer||'—';
-    if(challenge.revealed){const shown=q('.gd-challenge-actions em',q('#gd-stage'));if(shown)shown.textContent='Answer: '+challenge.answer}
-  }
-  function generateChallenge(type){
-    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!meta)return;
-    if(!beforeChallenge)beforeChallenge=snapshot();else restore(beforeChallenge);
-    undoStack.length=0;redoStack.length=0;selectedSide='a';selectedPair=0;
-    if(type==='prime-or-composite'){
-      a=29;compare=false;challenge=challengeObject(type,'Is 29 prime or composite? Use the factor evidence to decide.','Prime',{hiddenClassificationSide:'a',hiddenPrimeSide:'a'});
-    }else if(type==='missing-factor'){
-      a=36;compare=false;selectedPair=3;challenge=challengeObject(type,'Complete the selected factor pair: 4 × ? = 36.','9',{hiddenPairSide:'a',hiddenPairIndex:3});
-    }else if(type==='divisible-by'){
-      a=42;compare=false;challenge=challengeObject(type,'Is 42 divisible by 6? Explain using the evidence shown.','Yes. 42 ÷ 6 = 7.',{hiddenDivisor:6,hiddenDivisorSide:'a'});
-    }else if(type==='common-factors'){
-      a=36;b=24;compare=true;challenge=challengeObject(type,'What are the common factors of 36 and 24?','1, 2, 3, 4, 6, 12',{hiddenCommonFactors:true});
-    }else if(type==='hcf'){
-      a=36;b=24;compare=true;challenge=challengeObject(type,'What is the highest common factor of 36 and 24?','12',{hiddenHcf:true});
-    }else if(type==='lcm'){
-      a=12;b=18;compare=true;challenge=challengeObject(type,'What is the lowest common multiple of 12 and 18?','36',{hiddenLcm:true});
-    }else{
-      a=31;compare=false;challenge=challengeObject(type,'Explain why 31 is prime using the factor information shown.','31 has exactly two factors: 1 and 31.',{hiddenClassificationSide:'a',hiddenPrimeSide:'a'});
-    }
-    challengeType=type;challengeCategory=meta.category;challengeTab='standard';controlTab='challenge';exportMode='challenge';responseLines=meta.category==='reason'?3:1;exportStatus='';renderControls();draw();
-  }
-  function enterCustomChallenge(){
-    if(!beforeChallenge)beforeChallenge=snapshot();
-    if(CK)challenge=CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''});
-    challenge.mode='custom';challenge.revealed=false;challengeTab='custom';controlTab='challenge';exportMode='challenge';exportStatus='';renderControls();draw();
-  }
-  function clearChallenge(){
-    if(beforeChallenge){restore(beforeChallenge);beforeChallenge=null}
-    challenge=null;challengeTab='standard';controlTab='challenge';undoStack.length=0;redoStack.length=0;renderControls();draw();
-  }
-  function setCustomAnswerSource(source){
-    if(!challenge||challenge.mode!=='custom')return;
-    if(source==='manual'){challenge.answerMode='manual';challenge.answerSource='';clearBoundHiding()}
-    else if(source==='generated'){challenge.answerMode='bound';challenge.answerSource='';clearBoundHiding()}
-    else{challenge.answerMode='bound';challenge.answerSource=source;challenge.answer=resolveAnswerSource(source);applyBoundHiding(source)}
-    challenge.revealed=false;renderControls();draw();
-  }
-  function challengeControlsHtml(){
-    if(!CK)return'<p class="gd-help">Challenge tools are unavailable.</p>';
-    const tabs=CK.tabsHtml?CK.tabsHtml('fe',challengeTab):'';
-    if(challengeTab==='custom'){
-      const custom=challenge&&challenge.mode==='custom'?challenge:CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual'});
-      return tabs+CK.editorHtml(custom,'fe',{answerSources:customAnswerSources(),generatedAnswerLabel:'Keep the generated answer'})+
-        modelControlsHtml()+
-        '<div class="gd-row">'+(challenge&&challenge.answer?'<button class="gd-btn" id="fe-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
-        (challenge?'<button class="gd-btn" id="fe-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
-        '<p class="gd-help">Custom answers can follow the current classification, factor list, prime factorisation, common factors, HCF or LCM.</p>';
-    }
-    const picker=CK.pickerHtml(CHALLENGE_TEMPLATES,CHALLENGE_CATEGORIES,challengeCategory,challengeType,'fe');
-    const repeat=!!(challenge&&challenge.mode==='standard'&&challenge.type===challengeType);
-    return tabs+picker+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="fe-generate" type="button">'+(repeat?'Another like this':'Generate challenge')+'</button>'+
-      (challenge&&challenge.mode!=='custom'?'<button class="gd-btn" id="fe-edit-challenge" type="button">Edit challenge</button>':'')+
-      (challenge&&challenge.answer?'<button class="gd-btn" id="fe-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
-      (challenge?'<button class="gd-btn" id="fe-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>';
-  }
-  function exportControlsHtml(){
-    const canCard=!!challenge;
-    if(!canCard&&exportMode==='challenge')exportMode='diagram';
-    return '<div class="nl-panel-title"><div><strong>Use it elsewhere</strong><span>Export a clean factors-and-multiples diagram or a pupil-ready challenge card.</span></div></div>'+
-      (canCard?'<div class="nl-export-mode fe-export-mode" role="tablist" aria-label="Export content">'+
-        '<button type="button" class="'+(exportMode==='challenge'?'is-active':'')+'" data-fe-export-mode="challenge">Challenge card</button>'+
-        '<button type="button" class="'+(exportMode==='diagram'?'is-active':'')+'" data-fe-export-mode="diagram">Diagram only</button></div>':'')+
-      (canCard&&exportMode==='challenge'
-        ?'<label class="gd-field"><span>Answer space</span><select class="gd-select" id="fe-response-lines">'+
-          [1,2,3,4].map(n=>'<option value="'+n+'"'+(responseLines===n?' selected':'')+'>'+n+' line'+(n===1?'':'s')+'</option>').join('')+
-          '</select></label><p class="gd-help">The pupil card preserves hidden factors, classifications, divisibility evidence, common factors, HCF and LCM even after Reveal answer.</p>'
-        :'<p class="gd-help">Diagram-only export contains the current number evidence, factor pairs, multiples and factor rectangle without editing controls.</p>')+
-      '<div class="nl-export-grid fe-export-grid">'+
-        '<button class="gd-btn gd-btn--primary" id="fe-copy-image" type="button">Copy '+(canCard&&exportMode==='challenge'?'challenge':'image')+'</button>'+
-        '<button class="gd-btn" id="fe-png" type="button">PNG</button>'+
-        '<button class="gd-btn" id="fe-svg-download" type="button">SVG</button>'+
-        '<button class="gd-btn" id="fe-print" type="button">Print / PDF</button>'+
-      '</div><p class="gd-help" id="fe-export-status" role="status" aria-live="polite">'+exportStatus+'</p>';
-  }
-  function feSvgEl(name,attrs={},text=''){
-    const el=document.createElementNS('http://www.w3.org/2000/svg',name);
-    Object.entries(attrs).forEach(([key,value])=>el.setAttribute(key,String(value)));
-    if(text!==''&&text!=null)el.textContent=String(text);
-    return el;
-  }
-  function exportHidden(key,pupil=false,side=''){
-    if(!challenge)return false;
-    if(key==='classification')return pupil?challenge.hiddenClassificationSide===side:challenge&&!challenge.revealed&&challenge.hiddenClassificationSide===side;
-    if(key==='prime')return pupil?challenge.hiddenPrimeSide===side:challenge&&!challenge.revealed&&challenge.hiddenPrimeSide===side;
-    if(key==='all-pairs')return pupil?challenge.hiddenAllPairsSide===side:challenge&&!challenge.revealed&&challenge.hiddenAllPairsSide===side;
-    return pupil?!!challenge[key]:challenge&&!challenge.revealed&&!!challenge[key];
-  }
-  function factorExplorerExportSvg({pupil=false}={}){
-    const width=920,cardGap=18,cardCount=compare?2:1,cardW=cardCount===2?410:650,cardX0=(width-(cardCount*cardW+(cardCount-1)*cardGap))/2;
-    const height=compare?790:720;
-    const svg=feSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Factors and multiples model','data-fe-export':'diagram'});
-    svg.appendChild(feSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
-    svg.appendChild(feSvgEl('text',{x:width/2,y:42,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':26,'font-weight':800,fill:'#304b52'},compare?'Factors & multiples: '+a+' and '+b:'Factors & multiples: '+a));
-    const sides=compare?[['a',a,'Number A'],['b',b,'Number B']]:[['a',a,'Number A']];
-    sides.forEach(([side,n,label],idx)=>{
-      const x=cardX0+idx*(cardW+cardGap),y=68;
-      svg.appendChild(feSvgEl('rect',{x,y,width:cardW,height:410,rx:18,fill:'#fbfdfd',stroke:'#cbd8da','stroke-width':2,'data-fe-export-card':side}));
-      svg.appendChild(feSvgEl('text',{x:x+22,y:y+30,'font-family':'Arial,sans-serif','font-size':12,'font-weight':800,fill:'#718288'},label.toUpperCase()));
-      svg.appendChild(feSvgEl('text',{x:x+22,y:y+62,'font-family':'Arial,sans-serif','font-size':28,'font-weight':800,fill:'#275e58'},n));
-      const classText=exportHidden('classification',pupil,side)?'?':(isPrime(n)?'Prime number':'Composite · '+factors(n).length+' factors');
-      svg.appendChild(feSvgEl('text',{x:x+22,y:y+86,'font-family':'Arial,sans-serif','font-size':13,'font-weight':700,fill:'#60757b'},classText));
-      svg.appendChild(feSvgEl('text',{x:x+22,y:y+116,'font-family':'Arial,sans-serif','font-size':11,'font-weight':800,fill:'#718288'},'FACTOR PAIRS'));
-      const pairs=factorPairs(n),hideAll=exportHidden('all-pairs',pupil,side);
-      pairs.forEach((pair,i)=>{
-        const col=i%3,row=Math.floor(i/3),px=x+22+col*((cardW-44)/3),py=y+144+row*34;
-        const oneHidden=pupil?challenge?.hiddenPairSide===side&&challenge?.hiddenPairIndex===i:challenge&&!challenge.revealed&&challenge.hiddenPairSide===side&&challenge.hiddenPairIndex===i;
-        svg.appendChild(feSvgEl('text',{x:px,y:py,'font-family':'Arial,sans-serif','font-size':15,'font-weight':800,fill:'#304b52','data-fe-export-pair':side+'-'+i},hideAll||oneHidden?pair[0]+' × ?':pairLabel(pair)));
-      });
-      const pairsRows=Math.max(1,Math.ceil(pairs.length/3)),mY=y+154+pairsRows*34;
-      svg.appendChild(feSvgEl('text',{x:x+22,y:mY,'font-family':'Arial,sans-serif','font-size':11,'font-weight':800,fill:'#718288'},'FIRST 12 MULTIPLES'));
-      const mult=multiples(n);
-      svg.appendChild(feSvgEl('text',{x:x+22,y:mY+25,'font-family':'Arial,sans-serif','font-size':13,'font-weight':700,fill:'#425b62'},mult.join(' · ')));
-      svg.appendChild(feSvgEl('text',{x:x+22,y:mY+58,'font-family':'Arial,sans-serif','font-size':11,'font-weight':800,fill:'#718288'},'PRIME FACTORISATION'));
-      svg.appendChild(feSvgEl('text',{x:x+22,y:mY+82,'font-family':'Arial,sans-serif','font-size':15,'font-weight':800,fill:'#304b52','data-fe-export-prime':side},exportHidden('prime',pupil,side)?'?':factorisationText(n)));
-      svg.appendChild(feSvgEl('text',{x:x+22,y:mY+115,'font-family':'Arial,sans-serif','font-size':11,'font-weight':800,fill:'#718288'},'DIVISIBILITY'));
-      DIVISORS.forEach((d,i)=>{
-        const dx=x+22+(i%4)*((cardW-44)/4),dy=mY+139+Math.floor(i/4)*27;
-        const hide=pupil?challenge?.hiddenDivisor===d&&challenge?.hiddenDivisorSide===side:challenge&&!challenge.revealed&&challenge.hiddenDivisor===d&&challenge.hiddenDivisorSide===side;
-        svg.appendChild(feSvgEl('text',{x:dx,y:dy,'font-family':'Arial,sans-serif','font-size':12,'font-weight':700,fill:'#4f666c','data-fe-export-divisor':side+'-'+d},'÷ '+d+': '+(hide?'?':(n%d===0?'Yes':'r '+(n%d)))));
-      });
-    });
-    let lowerY=compare?505:500;
-    if(compare){
-      const cf=commonFactors(),h=gcd2(a,b),l=lcm2(a,b);
-      svg.appendChild(feSvgEl('rect',{x:70,y:lowerY,width:780,height:96,rx:16,fill:'#fff8e8',stroke:'#ead9aa','stroke-width':2,'data-fe-export-common':'1'}));
-      svg.appendChild(feSvgEl('text',{x:92,y:lowerY+28,'font-family':'Arial,sans-serif','font-size':12,'font-weight':800,fill:'#78683a'},'COMMON FACTORS'));
-      svg.appendChild(feSvgEl('text',{x:92,y:lowerY+55,'font-family':'Arial,sans-serif','font-size':16,'font-weight':800,fill:'#554b30'},exportHidden('hiddenCommonFactors',pupil)?'?':cf.join(', ')));
-      svg.appendChild(feSvgEl('text',{x:430,y:lowerY+28,'font-family':'Arial,sans-serif','font-size':12,'font-weight':800,fill:'#78683a'},'HCF'));
-      svg.appendChild(feSvgEl('text',{x:430,y:lowerY+55,'font-family':'Arial,sans-serif','font-size':18,'font-weight':800,fill:'#554b30','data-fe-export-hcf':'1'},exportHidden('hiddenHcf',pupil)?'?':h));
-      svg.appendChild(feSvgEl('text',{x:635,y:lowerY+28,'font-family':'Arial,sans-serif','font-size':12,'font-weight':800,fill:'#78683a'},'LCM'));
-      svg.appendChild(feSvgEl('text',{x:635,y:lowerY+55,'font-family':'Arial,sans-serif','font-size':18,'font-weight':800,fill:'#554b30','data-fe-export-lcm':'1'},exportHidden('hiddenLcm',pupil)?'?':l));
-      lowerY+=122;
-    }
-    const n=currentNumber(),pairs=currentPairs(),pair=pairs[selectedPair]||pairs[0]||[1,n],rows=pair[0],cols=pair[1];
-    const ax=190,ay=lowerY+20,aw=540,ah=110;
-    const hideSelectedExport=!!(challenge&&(pupil||!challenge.revealed)&&challenge.hiddenPairSide===selectedSide&&challenge.hiddenPairIndex===selectedPair);
-    svg.appendChild(feSvgEl('text',{x:width/2,y:lowerY+2,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':13,'font-weight':800,fill:'#718288','data-fe-export-array-label':'1'},'SELECTED FACTOR RECTANGLE · '+rows+' × '+(hideSelectedExport?'?':cols)+' = '+n));
-    svg.appendChild(feSvgEl('rect',{x:ax,y:ay,width:aw,height:ah,fill:'#f4faf8',stroke:'#2f7d75','stroke-width':3,'data-fe-export-array':'1'}));
-    for(let i=1;i<Math.min(cols,24);i++){const x=ax+aw*i/Math.min(cols,24);svg.appendChild(feSvgEl('line',{x1:x,y1:ay,x2:x,y2:ay+ah,stroke:'#b8d2ce','stroke-width':1}))}
-    for(let i=1;i<Math.min(rows,12);i++){const y=ay+ah*i/Math.min(rows,12);svg.appendChild(feSvgEl('line',{x1:ax,y1:y,x2:ax+aw,y2:y,stroke:'#b8d2ce','stroke-width':1}))}
-    svg.appendChild(feSvgEl('text',{x:width-46,y:height-18,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':10,fill:'#87969a'},'99 Club Studio'));
-    return svg;
-  }
-  function exportTargetSvg(){
-    if(exportMode!=='challenge'||!challenge||!X?.composeChallengeCardSvg)return factorExplorerExportSvg({pupil:false});
-    const prompt=CK?CK.plainText(challenge.promptHtml||challenge.prompt||''):challenge.prompt||'';
-    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
-    return X.composeChallengeCardSvg(factorExplorerExportSvg({pupil:true}),{
-      title:challenge.title||meta?.title||'Factors & multiples challenge',
-      prompt,
-      responseLabel:challenge.category==='reason'?'Explain your thinking':'Answer',
-      responseLines,
-      brand:'99 Club Studio'
-    });
-  }
-  function exportName(){
-    const meta=challenge&&CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
-    return exportMode==='challenge'&&challenge?(challenge.title||meta?.title||'factors-multiples-challenge'):(compare?'factors-multiples-comparison':'factors-multiples');
-  }
-  function exportMessage(text){exportStatus=text;const el=q('#fe-export-status');if(el)el.textContent=text}
-  async function exportAction(kind){
-    try{
-      if(!X)throw new Error('Export tools are not available.');
-      const target=exportTargetSvg(),isCard=exportMode==='challenge'&&!!challenge,name=exportName();
-      if(kind==='copy'){await X.copyPng(target);exportMessage(isCard?'Challenge copied — paste it into your worksheet, slide or document.':'Factors diagram copied — paste it into your slide or document.')}
-      if(kind==='png'){await X.downloadPng(target,name,2);exportMessage(isCard?'Challenge PNG downloaded.':'Factors PNG downloaded.')}
-      if(kind==='svg'){X.downloadSvg(target,name);exportMessage(isCard?'Challenge SVG downloaded.':'Factors SVG downloaded.')}
-      if(kind==='print'){X.printSvg(target,{title:'',landscape:false});exportMessage('Print view opened. Choose “Save as PDF” in the print dialog.')}
-    }catch(err){exportMessage(err?.message||'That export did not work.')}
-  }
-  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():controlTab==='export'?exportControlsHtml():exploreControlsHtml())}
   function renderControls(){q('#gd-controls').innerHTML=controlsHtml();bindControls()}
   function bindControls(){
-    const controls=q('#gd-controls');if(!controls)return;
-    qa('[data-fe-workflow]',controls).forEach(button=>button.onclick=()=>{controlTab=button.dataset.feWorkflow;renderControls()});
-    if(controlTab==='export'){
-      qa('[data-fe-export-mode]',controls).forEach(button=>button.onclick=()=>{exportMode=button.dataset.feExportMode==='challenge'&&challenge?'challenge':'diagram';exportStatus='';renderControls()});
-      const response=q('#fe-response-lines',controls);if(response)response.onchange=()=>{responseLines=clamp(Math.round(num(response.value,1)),1,4);renderControls()};
-      const copyImage=q('#fe-copy-image',controls);if(copyImage)copyImage.onclick=()=>exportAction('copy');
-      const png=q('#fe-png',controls);if(png)png.onclick=()=>exportAction('png');
-      const svg=q('#fe-svg-download',controls);if(svg)svg.onclick=()=>exportAction('svg');
-      const print=q('#fe-print',controls);if(print)print.onclick=()=>exportAction('print');
-      return;
-    }
-    if(controlTab==='explore'){
-      const ai=q('#fe-a');if(ai)ai.onchange=()=>mutate(()=>setA(ai.value));
-      const cmp=q('#fe-compare');if(cmp)cmp.onchange=()=>mutate(()=>setCompare(cmp.checked));
-      const bi=q('#fe-b');if(bi)bi.onchange=()=>mutate(()=>setB(bi.value));
-      const random=q('#fe-random');if(random)random.onclick=()=>mutate(()=>{a=2+Math.floor(Math.random()*143);if(compare)b=2+Math.floor(Math.random()*143);selectedSide='a';selectedPair=0});
-      const reset=q('#fe-reset');if(reset)reset.onclick=()=>mutate(()=>{a=36;b=24;compare=false;selectedSide='a';selectedPair=0});
-      return;
-    }
-    if(controlTab!=='challenge')return;
-    if(challengeTab==='custom'&&challenge){
-      const ai=q('#fe-a');if(ai)ai.onchange=()=>mutate(()=>setA(ai.value));
-      const cmp=q('#fe-compare');if(cmp)cmp.onchange=()=>mutate(()=>setCompare(cmp.checked));
-      const bi=q('#fe-b');if(bi)bi.onchange=()=>mutate(()=>setB(bi.value));
-    }
-    qa('[data-fe-challenge-tab]',controls).forEach(button=>button.onclick=()=>{if(button.dataset.feChallengeTab==='custom')enterCustomChallenge();else{challengeTab='standard';renderControls()}});
-    qa('[data-fe-challenge-cat]',controls).forEach(button=>button.onclick=()=>{challengeCategory=button.dataset.feChallengeCat;const first=CHALLENGE_TEMPLATES.find(t=>t.category===challengeCategory);if(first)challengeType=first.id;renderControls()});
-    qa('[data-fe-challenge-type]',controls).forEach(button=>button.onclick=()=>{challengeType=button.dataset.feChallengeType;renderControls()});
-    const gen=q('#fe-generate');if(gen)gen.onclick=()=>generateChallenge(challengeType);
-    const edit=q('#fe-edit-challenge');if(edit)edit.onclick=enterCustomChallenge;
-    const reveal=q('#fe-reveal');if(reveal)reveal.onclick=()=>{if(challenge){challenge.revealed=!challenge.revealed;renderControls();draw()}};
-    const clear=q('#fe-clear-challenge');if(clear)clear.onclick=clearChallenge;
-    if(challengeTab==='custom'&&challenge){
-      const title=q('#fe-custom-title');if(title)title.oninput=()=>{challenge.title=title.value.slice(0,100);draw()};
-      const prompt=q('#fe-custom-prompt');if(prompt)prompt.oninput=()=>{challenge.promptHtml=CK.sanitiseRichHtml(prompt.innerHTML);challenge.prompt=CK.plainText(challenge.promptHtml);draw()};
-      const source=q('#fe-custom-answer-source');if(source)source.onchange=()=>setCustomAnswerSource(source.value);
-      const answer=q('#fe-custom-answer');if(answer)answer.oninput=()=>{challenge.answer=answer.value.slice(0,400);challenge.answerMode='manual';challenge.answerSource='';draw()};
-      qa('[data-gd-rich-action]',controls).forEach(button=>button.onclick=()=>{CK.applyFormat(prompt,button.dataset.gdRichAction);challenge.promptHtml=CK.sanitiseRichHtml(prompt.innerHTML);challenge.prompt=CK.plainText(challenge.promptHtml);draw()});
-    }
+    const ai=q('#fe-a');if(ai)ai.onchange=()=>mutate(()=>setA(ai.value));
+    const cmp=q('#fe-compare');if(cmp)cmp.onchange=()=>mutate(()=>setCompare(cmp.checked));
+    const bi=q('#fe-b');if(bi)bi.onchange=()=>mutate(()=>setB(bi.value));
+    const random=q('#fe-random');if(random)random.onclick=()=>mutate(()=>{
+      a=2+Math.floor(Math.random()*143);
+      if(compare)b=2+Math.floor(Math.random()*143);
+      selectedSide='a';selectedPair=0;
+    });
+    const reset=q('#fe-reset');if(reset)reset.onclick=()=>mutate(()=>{a=36;b=24;compare=false;selectedSide='a';selectedPair=0});
   }
 
   setPanels(controlsHtml(),'');
@@ -2397,8 +2115,147 @@ function factorExplorer(){
   draw();
 }
 
-function fdpExplorer(){function draw(){let d=clamp(Math.round(num(q('#fd-d').value,8)),1,20),n=clamp(Math.round(num(q('#fd-n').value,3)),0,d);q('#fd-n').max=d;if(n>+q('#fd-n').value)q('#fd-n').value=n;const g=gcd(n,d),sn=n/g,sd=d/g,v=n/d,pct=v*100;const bar=`<div class="gd-fdp-bar">${Array.from({length:d},(_,i)=>`<span class="gd-fdp-piece${i<n?' is-fill':''}"></span>`).join('')}</div>`;const fills=Math.round(v*100);q('#gd-stage').innerHTML=`<div class="gd-vis gd-fdp-main">${bar}<div class="gd-fdp-readout"><div class="gd-fdp-value"><span>fraction</span><strong>${sn}/${sd}</strong><small>${n}/${d}</small></div><div class="gd-fdp-value"><span>decimal</span><strong>${Number(v.toFixed(4))}</strong></div><div class="gd-fdp-value"><span>percentage</span><strong>${Number(pct.toFixed(2))}%</strong></div></div><div class="gd-hundred">${Array.from({length:100},(_,i)=>`<span class="${i<fills?'is-fill':''}"></span>`).join('')}</div></div>`}
-setPanels(`${field('Numerator','<input class="gd-input" id="fd-n" type="range" min="0" max="8" value="3">')}${field('Denominator','<input class="gd-input" id="fd-d" type="range" min="1" max="20" value="8">')}<p class="gd-help">The hundred square rounds to the nearest whole percent when the fraction does not map exactly to 100 cells.</p>`,'');q('#fd-n').oninput=draw;q('#fd-d').oninput=draw;draw()}
+function fdpExplorer(){
+  let numerator=3,denominator=8,equivScale=1;
+  const undoStack=[],redoStack=[];
+  const BENCHMARKS=[
+    {label:'0',n:0,d:1},{label:'¼',n:1,d:4},{label:'½',n:1,d:2},{label:'¾',n:3,d:4},{label:'1',n:1,d:1}
+  ];
+
+  function normalise(){
+    denominator=clamp(Math.round(Number(denominator)||1),1,20);
+    numerator=clamp(Math.round(Number(numerator)||0),0,denominator);
+    equivScale=clamp(Math.round(Number(equivScale)||1),1,6);
+  }
+  function snapshot(){return{numerator,denominator,equivScale}}
+  function restore(s){
+    numerator=Math.round(Number(s?.numerator)||0);
+    denominator=Math.round(Number(s?.denominator)||1);
+    equivScale=Math.round(Number(s?.equivScale)||1);
+    normalise();
+  }
+  function remember(){undoStack.push(snapshot());if(undoStack.length>60)undoStack.shift();redoStack.length=0}
+  function mutate(fn){remember();fn();normalise();draw();renderControls()}
+  function undo(){if(!undoStack.length)return;redoStack.push(snapshot());restore(undoStack.pop());draw();renderControls()}
+  function redo(){if(!redoStack.length)return;undoStack.push(snapshot());restore(redoStack.pop());draw();renderControls()}
+  function simplified(){
+    if(numerator===0)return{n:0,d:1};
+    const g=gcd(numerator,denominator);
+    return{n:numerator/g,d:denominator/g};
+  }
+  function value(){return numerator/denominator}
+  function decimalText(){
+    const v=value(),fixed=v.toFixed(4);
+    return String(Number(fixed));
+  }
+  function percentValue(){return value()*100}
+  function percentText(){
+    const p=percentValue();
+    return Number.isInteger(p)?String(p):String(Number(p.toFixed(2)));
+  }
+  function hundredFill(){return Math.round(percentValue())}
+  function hundredExact(){return Math.abs(hundredFill()-percentValue())<1e-9}
+  function equivalentFamily(){
+    const s=simplified(),out=[];
+    for(let k=1;k<=6;k++)out.push({n:s.n*k,d:s.d*k,k});
+    return out;
+  }
+  function setBenchmark(n,d){numerator=n;denominator=d;equivScale=1}
+  function setDenominator(next){
+    const oldValue=value();
+    denominator=clamp(Math.round(Number(next)||1),1,20);
+    numerator=clamp(Math.round(oldValue*denominator),0,denominator);
+    equivScale=1;
+  }
+  function setNumerator(next){numerator=clamp(Math.round(Number(next)||0),0,denominator);equivScale=1}
+  function setEquivalentScale(k){
+    equivScale=clamp(Math.round(Number(k)||1),1,6);
+    const s=simplified();
+    const nd=s.d*equivScale;
+    if(nd<=20){numerator=s.n*equivScale;denominator=nd}
+    else equivScale=1;
+  }
+  function barPieces(){
+    return Array.from({length:denominator},(_,i)=>{
+      const fill=i<numerator;
+      return '<button type="button" class="gd-fdp-piece'+(fill?' is-fill':'')+'" data-fd-piece="'+i+'" aria-label="Set numerator to '+(i+1)+' out of '+denominator+'" aria-pressed="'+(fill?'true':'false')+'"><span>'+(i+1)+'</span></button>';
+    }).join('');
+  }
+  function hundredCells(){
+    const fills=hundredFill();
+    return Array.from({length:100},(_,i)=>'<span class="'+(i<fills?'is-fill':'')+'" data-fd-cell="'+(i+1)+'"></span>').join('');
+  }
+  function benchmarkHtml(){
+    return '<div class="gd-fdp-benchmarks" aria-label="Benchmark fractions">'+BENCHMARKS.map(b=>
+      '<button type="button" class="gd-btn" data-fd-benchmark="'+b.n+'/'+b.d+'">'+b.label+'</button>'
+    ).join('')+'</div>';
+  }
+  function equivalentHtml(){
+    const current=numerator+'/'+denominator;
+    return '<div class="gd-fdp-equivalents">'+equivalentFamily().map(item=>{
+      const txt=item.n+'/'+item.d,selected=txt===current;
+      return '<button type="button" class="gd-fdp-equivalent'+(selected?' is-current':'')+'" data-fd-equiv="'+item.k+'"'+(item.d>20?' disabled':'')+'>'+txt+'</button>';
+    }).join('')+'</div>';
+  }
+  function draw(){
+    const s=simplified(),same=s.n===numerator&&s.d===denominator;
+    const rounded=hundredFill(),exact=hundredExact();
+    q('#gd-stage').innerHTML='<div class="gd-vis gd-fdp-main">'+
+      '<div class="gd-fdp-summary"><div><span>Fraction value</span><strong data-fd-source>'+numerator+'/'+denominator+'</strong></div>'+
+        '<div class="gd-object-toolbar"><button class="gd-btn" id="fd-undo" type="button"'+(undoStack.length?'':' disabled')+'>Undo</button><button class="gd-btn" id="fd-redo" type="button"'+(redoStack.length?'':' disabled')+'>Redo</button></div></div>'+
+      '<div class="gd-fdp-direct">'+
+        '<div class="gd-fdp-stepper"><span>Numerator</span><div><button class="gd-btn" id="fd-n-minus" type="button"'+(numerator<=0?' disabled':'')+'>−</button><strong data-fd-numerator>'+numerator+'</strong><button class="gd-btn" id="fd-n-plus" type="button"'+(numerator>=denominator?' disabled':'')+'>+</button></div></div>'+
+        '<div class="gd-fdp-stepper"><span>Denominator</span><div><button class="gd-btn" id="fd-d-minus" type="button"'+(denominator<=1?' disabled':'')+'>−</button><strong data-fd-denominator>'+denominator+'</strong><button class="gd-btn" id="fd-d-plus" type="button"'+(denominator>=20?' disabled':'')+'>+</button></div></div>'+
+      '</div>'+
+      '<div class="gd-fdp-section"><div class="gd-fdp-section-head"><div><span>Fraction bar</span><strong>'+numerator+' of '+denominator+' equal parts</strong></div><small>Tap a part to set the numerator.</small></div>'+
+        '<div class="gd-fdp-bar" style="--fd-denominator:'+denominator+'">'+barPieces()+'</div></div>'+
+      '<div class="gd-fdp-readout">'+
+        '<div class="gd-fdp-value"><span>fraction</span><strong data-fd-fraction>'+s.n+'/'+s.d+'</strong><small>'+(same?'already simplified':'simplified from '+numerator+'/'+denominator)+'</small></div>'+
+        '<div class="gd-fdp-value"><span>decimal</span><strong data-fd-decimal>'+decimalText()+'</strong><small>same value</small></div>'+
+        '<div class="gd-fdp-value"><span>percentage</span><strong data-fd-percent>'+percentText()+'%</strong><small>same value</small></div>'+
+      '</div>'+
+      '<div class="gd-fdp-section"><div class="gd-fdp-section-head"><div><span>Equivalent fractions</span><strong>Same amount, different-sized parts</strong></div></div>'+equivalentHtml()+'</div>'+
+      '<div class="gd-fdp-section"><div class="gd-fdp-section-head"><div><span>Hundred square</span><strong data-fd-hundred-label>'+rounded+' of 100 cells</strong></div><small>'+(exact?'Exact match':'Rounded from '+percentText()+'% to the nearest whole cell')+'</small></div>'+
+        '<div class="gd-hundred" data-fd-hundred-exact="'+(exact?'true':'false')+'">'+hundredCells()+'</div></div>'+
+    '</div>';
+    bindStage();
+  }
+  function bindStage(){
+    qa('[data-fd-piece]',q('#gd-stage')).forEach(button=>button.onclick=()=>mutate(()=>setNumerator(Number(button.dataset.fdPiece)+1)));
+    const nm=q('#fd-n-minus');if(nm)nm.onclick=()=>mutate(()=>setNumerator(numerator-1));
+    const np=q('#fd-n-plus');if(np)np.onclick=()=>mutate(()=>setNumerator(numerator+1));
+    const dm=q('#fd-d-minus');if(dm)dm.onclick=()=>mutate(()=>setDenominator(denominator-1));
+    const dp=q('#fd-d-plus');if(dp)dp.onclick=()=>mutate(()=>setDenominator(denominator+1));
+    qa('[data-fd-equiv]',q('#gd-stage')).forEach(button=>button.onclick=()=>{if(!button.disabled)mutate(()=>setEquivalentScale(Number(button.dataset.fdEquiv)))});
+    const u=q('#fd-undo');if(u)u.onclick=undo;
+    const r=q('#fd-redo');if(r)r.onclick=redo;
+  }
+  function controlsHtml(){
+    return field('Quick fraction','<div class="gd-row"><label class="gd-tv-quick"><span>Numerator</span><input class="gd-input gd-small" id="fd-n" type="number" min="0" max="'+denominator+'" value="'+numerator+'"></label><span>/</span><label class="gd-tv-quick"><span>Denominator</span><input class="gd-input gd-small" id="fd-d" type="number" min="1" max="20" value="'+denominator+'"></label></div>')+
+      field('Benchmarks',benchmarkHtml(),'Jump to useful reference values without losing the link between fraction, decimal and percentage.')+
+      '<div class="gd-row"><button class="gd-btn" id="fd-random" type="button">Random fraction</button><button class="gd-btn" id="fd-reset" type="button">Reset 3/8</button></div>'+
+      '<p class="gd-help">Change the fraction directly on the bar or with the steppers. Changing the denominator preserves the value as closely as that denominator allows; equivalent-fraction buttons preserve it exactly.</p>';
+  }
+  function renderControls(){q('#gd-controls').innerHTML=controlsHtml();bindControls()}
+  function bindControls(){
+    const n=q('#fd-n');if(n)n.onchange=()=>mutate(()=>setNumerator(n.value));
+    const d=q('#fd-d');if(d)d.onchange=()=>mutate(()=>{denominator=clamp(Math.round(Number(d.value)||1),1,20);numerator=clamp(numerator,0,denominator);equivScale=1});
+    qa('[data-fd-benchmark]',q('#gd-controls')).forEach(button=>button.onclick=()=>{
+      const [bn,bd]=button.dataset.fdBenchmark.split('/').map(Number);
+      mutate(()=>setBenchmark(bn,bd));
+    });
+    const random=q('#fd-random');if(random)random.onclick=()=>mutate(()=>{
+      denominator=2+Math.floor(Math.random()*11);
+      numerator=Math.floor(Math.random()*(denominator+1));
+      equivScale=1;
+    });
+    const reset=q('#fd-reset');if(reset)reset.onclick=()=>mutate(()=>{numerator=3;denominator=8;equivScale=1});
+  }
+
+  setPanels(controlsHtml(),'');
+  bindControls();
+  draw();
+}
 
 function geoboard(){
   const CK=G.challengeKit,X=G.exportTools;
