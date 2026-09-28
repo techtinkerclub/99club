@@ -2236,17 +2236,28 @@ if(mode==='prepare'){
     assert(readout.includes('Area = 4.50 square units'),'Moved triangle area updates immediately');
 
     const del=document.querySelector('[data-ge-delete]');
+    const stageUndoBefore=document.querySelector('[data-ge-undo-stage]'),stageRedoBefore=document.querySelector('[data-ge-redo-stage]');
+    assert(stageUndoBefore&&stageRedoBefore,'Geoboard exposes Undo and Redo directly beside the live board');
+    assert(!stageUndoBefore.disabled,'Geoboard on-stage Undo is available after vertex edits');
+    assert(stageRedoBefore.disabled,'Geoboard on-stage Redo starts disabled before an undo');
     assert(del&&!del.hidden,'Selected vertex exposes direct delete');
     del.click();
     assert(document.querySelectorAll('[data-ge-vertex]').length===2,'Delete removes the selected vertex only');
     readout=document.getElementById('ge-readout').textContent;
     assert(readout.includes('Length ≈ 5.00 units'),'Two remaining vertices report segment length rather than a fake perimeter');
 
-    const undo=document.getElementById('ge-undo');
-    assert(undo&&!undo.disabled,'Geoboard Undo is available after deletion');
-    undo.click();
-    assert(document.querySelectorAll('[data-ge-vertex]').length===3,'Undo restores the deleted vertex');
+    let stageUndo=document.querySelector('[data-ge-undo-stage]');
+    assert(stageUndo&&!stageUndo.disabled,'Geoboard on-stage Undo remains available after deletion');
+    stageUndo.click();
+    assert(document.querySelectorAll('[data-ge-vertex]').length===3,'Geoboard on-stage Undo restores the deleted vertex');
     assert(document.getElementById('ge-readout').textContent.includes('Area = 4.50 square units'),'Undo restores the moved triangle geometry');
+    let stageRedo=document.querySelector('[data-ge-redo-stage]');
+    assert(stageRedo&&!stageRedo.disabled,'Geoboard on-stage Redo becomes available after undo');
+    stageRedo.click();
+    assert(document.querySelectorAll('[data-ge-vertex]').length===2,'Geoboard on-stage Redo reapplies the deletion');
+    stageUndo=document.querySelector('[data-ge-undo-stage]');
+    stageUndo.click();
+    assert(document.querySelectorAll('[data-ge-vertex]').length===3,'Geoboard on-stage Undo can restore the vertex again after redo');
 
     document.querySelector('[data-ge-workflow="export"]').click();
     assert(document.getElementById('ge-copy-image')&&document.getElementById('ge-png')&&document.getElementById('ge-svg-download')&&document.getElementById('ge-print'),'Geoboard export exposes copy, PNG, SVG and Print/PDF actions');
@@ -2373,15 +2384,26 @@ if(mode==='prepare'){
     assert(document.getElementById('co-readout').textContent.includes('(4, 5)'),'Coordinate readout updates after drag');
 
     const del=document.querySelector('[data-co-delete]');
+    const stageUndoBefore=document.querySelector('[data-co-undo-stage]'),stageRedoBefore=document.querySelector('[data-co-redo-stage]');
+    assert(stageUndoBefore&&stageRedoBefore,'Coordinate grid exposes Undo and Redo directly beside the live grid');
+    assert(!stageUndoBefore.disabled,'Coordinate on-stage Undo is available after point edits');
+    assert(stageRedoBefore.disabled,'Coordinate on-stage Redo starts disabled before an undo');
     assert(del&&!del.hidden,'Selected coordinate point exposes direct delete');
     del.click();
     assert(document.querySelectorAll('[data-co-point]').length===1,'Delete removes only the selected coordinate point');
 
-    const undo=document.getElementById('co-undo');
-    assert(undo&&!undo.disabled,'Coordinate Undo is available after deletion');
-    undo.click();
-    assert(document.querySelectorAll('[data-co-point]').length===2,'Coordinate Undo restores the deleted point');
+    let stageUndo=document.querySelector('[data-co-undo-stage]');
+    assert(stageUndo&&!stageUndo.disabled,'Coordinate on-stage Undo remains available after deletion');
+    stageUndo.click();
+    assert(document.querySelectorAll('[data-co-point]').length===2,'Coordinate on-stage Undo restores the deleted point');
     assert(document.querySelector('[data-co-pos="4,5"]'),'Coordinate Undo restores the moved point position');
+    let stageRedo=document.querySelector('[data-co-redo-stage]');
+    assert(stageRedo&&!stageRedo.disabled,'Coordinate on-stage Redo becomes available after undo');
+    stageRedo.click();
+    assert(document.querySelectorAll('[data-co-point]').length===1,'Coordinate on-stage Redo reapplies the deletion');
+    stageUndo=document.querySelector('[data-co-undo-stage]');
+    stageUndo.click();
+    assert(document.querySelectorAll('[data-co-point]').length===2,'Coordinate on-stage Undo can restore the point again after redo');
 
     const four=document.getElementById('co-four');
     four.checked=true;

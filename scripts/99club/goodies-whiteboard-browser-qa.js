@@ -79,10 +79,32 @@ document.exitFullscreen=function(){
         assert(!TT99Goodies.whiteboard.isActive(),'Shared whiteboard controller exits bespoke Number Line mode cleanly');
       }else{
         assert(!sharedPresent.hidden,'Shared Present control is visible for '+id);
+        let stageHistory=null;
+        if(id==='coordinates'){
+          const undo=stage.querySelector('[data-co-undo-stage]'),redo=stage.querySelector('[data-co-redo-stage]');
+          assert(undo&&redo,'Coordinates renders on-stage Undo/Redo before whiteboard mode');
+          stageHistory={undo,redo};
+        }else if(id==='geoboard'){
+          const undo=stage.querySelector('[data-ge-undo-stage]'),redo=stage.querySelector('[data-ge-redo-stage]');
+          assert(undo&&redo,'Geoboard renders on-stage Undo/Redo before whiteboard mode');
+          stageHistory={undo,redo};
+        }
         sharedPresent.click();
         await tick();
+        assert(document.getElementById('gd-stage')===stage,'Shared whiteboard preserves the live stage element for '+id);
         assert(workspace.classList.contains('gd-whiteboard-active'),'Shared whiteboard mode activates for '+id);
         assert(document.fullscreenElement===workspace||workspace.classList.contains('gd-whiteboard-fallback'),'Shared whiteboard mode occupies the viewport for '+id);
+        if(stageHistory){
+          await tick();
+          const undoSelector=id==='coordinates'?'[data-co-undo-stage]':'[data-ge-undo-stage]';
+          const redoSelector=id==='coordinates'?'[data-co-redo-stage]':'[data-ge-redo-stage]';
+          const undo=stage.querySelector(undoSelector),redo=stage.querySelector(redoSelector);
+          const documentUndo=document.querySelectorAll(undoSelector).length,documentRedo=document.querySelectorAll(redoSelector).length;
+          const stageSummary=String(stage.textContent||'').replace(/\s+/g,' ').trim().slice(0,220);
+          const stageClasses=[...stage.querySelectorAll('[class]')].slice(0,12).map(el=>el.className&&el.className.baseVal!==undefined?el.className.baseVal:el.className).join(' | ').slice(0,320);
+          assert(undo&&redo,id+' redraw keeps fresh on-stage Undo/Redo in whiteboard mode (stage undo/redo '+(undo?1:0)+'/'+(redo?1:0)+', document '+documentUndo+'/'+documentRedo+', children '+stage.children.length+', text "'+stageSummary+'", classes "'+stageClasses+'")');
+          assert(getComputedStyle(undo).display!=='none'&&getComputedStyle(redo).display!=='none',id+' on-stage history controls remain visible in whiteboard mode');
+        }
         const tools=document.getElementById('gd-whiteboard-tools');
         const exit=document.getElementById('gd-whiteboard-exit');
         assert(tools&&exit,'Whiteboard Tools and Exit controls exist for '+id);

@@ -388,9 +388,13 @@ function coordinateTool(){
   }
   function syncControls(){
     const u=q('#co-undo'),r=q('#co-redo'),clear=q('#co-clear');
-    if(u)u.disabled=!undoStack.length;
-    if(r)r.disabled=!redoStack.length;
-    if(clear)clear.disabled=!points.length;
+    const stageUndo=q('[data-co-undo-stage]',q('#gd-stage')),stageRedo=q('[data-co-redo-stage]',q('#gd-stage'));
+    const frozen=challengeFrozen();
+    if(u)u.disabled=!undoStack.length||frozen;
+    if(r)r.disabled=!redoStack.length||frozen;
+    if(stageUndo)stageUndo.disabled=!undoStack.length||frozen;
+    if(stageRedo)stageRedo.disabled=!redoStack.length||frozen;
+    if(clear)clear.disabled=!points.length||frozen;
   }
   function addOrSelect(x,y){
     if(challengeFrozen())return;
@@ -454,8 +458,11 @@ function coordinateTool(){
         if(movePoint(index,x,y,true))draw();
       };
     });
+    const stageUndo=q('[data-co-undo-stage]'),stageRedo=q('[data-co-redo-stage]');
+    if(stageUndo)stageUndo.onclick=e=>{e.stopPropagation();undo()};
+    if(stageRedo)stageRedo.onclick=e=>{e.stopPropagation();redo()};
     const del=q('[data-co-delete]');
-    if(del)del.onclick=()=>deletePoint(selected);
+    if(del)del.onclick=e=>{e.stopPropagation();deletePoint(selected)};
   }
   function bindChallengeStageActions(){
     const stage=q('#gd-stage');if(!stage||!challenge)return;
@@ -552,7 +559,11 @@ function coordinateTool(){
         '<line class="gd-axis" x1="'+pad+'" y1="'+zeroY+'" x2="'+(W-pad)+'" y2="'+zeroY+'"></line>'+
         labels+plotted+
       '</svg>'+
-      '<div class="gd-co-context"><span id="co-context-text">'+(challengeFrozen()?'The given point'+(points.length===1?' is':'s are')+' fixed for this challenge.':selected>=0&&points[selected]?'Selected '+esc(pointLabel(selected,points[selected])):'Tap the grid to plot a point. Drag an existing point to move it.')+'</span><button type="button" data-co-delete'+(challengeFrozen()||!(selected>=0&&points[selected])?' hidden':'')+'>Delete point</button></div>'+
+      '<div class="gd-co-context"><span id="co-context-text">'+(challengeFrozen()?'The given point'+(points.length===1?' is':'s are')+' fixed for this challenge.':selected>=0&&points[selected]?'Selected '+esc(pointLabel(selected,points[selected])):'Tap the grid to plot a point. Drag an existing point to move it.')+'</span><div class="gd-context-actions">'+
+        '<button type="button" class="gd-context-history" data-co-undo-stage'+(!undoStack.length||challengeFrozen()?' disabled':'')+'>Undo</button>'+
+        '<button type="button" class="gd-context-history" data-co-redo-stage'+(!redoStack.length||challengeFrozen()?' disabled':'')+'>Redo</button>'+
+        '<button type="button" class="gd-context-delete" data-co-delete'+(challengeFrozen()||!(selected>=0&&points[selected])?' hidden':'')+'>Delete point</button>'+
+      '</div></div>'+
       '<div class="gd-readout" id="co-readout">'+esc(pointsText())+'</div>'+
     '</div>';
     bindStage();
@@ -3244,8 +3255,11 @@ function geoboard(){
   }
   function syncControls(){
     const u=q('#ge-undo'),r=q('#ge-redo'),clear=q('#ge-clear');
+    const stageUndo=q('[data-ge-undo-stage]',q('#gd-stage')),stageRedo=q('[data-ge-redo-stage]',q('#gd-stage'));
     if(u)u.disabled=!undoStack.length;
     if(r)r.disabled=!redoStack.length;
+    if(stageUndo)stageUndo.disabled=!undoStack.length;
+    if(stageRedo)stageRedo.disabled=!redoStack.length;
     if(clear)clear.disabled=!pts.length;
   }
   function bindStage(){
@@ -3300,8 +3314,11 @@ function geoboard(){
         if(moveVertex(index,x,y,true))draw();
       };
     });
+    const stageUndo=q('[data-ge-undo-stage]'),stageRedo=q('[data-ge-redo-stage]');
+    if(stageUndo)stageUndo.onclick=e=>{e.stopPropagation();undo()};
+    if(stageRedo)stageRedo.onclick=e=>{e.stopPropagation();redo()};
     const del=q('[data-ge-delete]');
-    if(del)del.onclick=()=>deleteVertex(selected);
+    if(del)del.onclick=e=>{e.stopPropagation();deleteVertex(selected)};
   }
   function draw(){
     updateChallengeAnswer();
@@ -3319,7 +3336,11 @@ function geoboard(){
     const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Geoboard challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-geo gd-geoboard-direct">'+
       '<svg id="ge-svg" viewBox="0 0 '+W+' '+W+'" role="img" aria-label="Interactive geoboard">'+grid+poly+vertices+'</svg>'+
-      '<div class="gd-ge-context"><span id="ge-context-text">'+(selected>=0&&pts[selected]?'Selected '+String.fromCharCode(65+selected)+' · ('+pts[selected].x+', '+pts[selected].y+')':'Tap a peg to add a vertex. Drag an existing vertex to reshape the polygon.')+'</span><button type="button" data-ge-delete'+(selected>=0&&pts[selected]?'':' hidden')+'>Delete vertex</button></div>'+
+      '<div class="gd-ge-context"><span id="ge-context-text">'+(selected>=0&&pts[selected]?'Selected '+String.fromCharCode(65+selected)+' · ('+pts[selected].x+', '+pts[selected].y+')':'Tap a peg to add a vertex. Drag an existing vertex to reshape the polygon.')+'</span><div class="gd-context-actions">'+
+        '<button type="button" class="gd-context-history" data-ge-undo-stage'+(!undoStack.length?' disabled':'')+'>Undo</button>'+
+        '<button type="button" class="gd-context-history" data-ge-redo-stage'+(!redoStack.length?' disabled':'')+'>Redo</button>'+
+        '<button type="button" class="gd-context-delete" data-ge-delete'+(selected>=0&&pts[selected]?'':' hidden')+'>Delete vertex</button>'+
+      '</div></div>'+
       '<div class="gd-readout" id="ge-readout">'+metricText()+'</div>'+
     '</div>';
     bindStage();

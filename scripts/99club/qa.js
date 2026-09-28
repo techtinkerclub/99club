@@ -944,6 +944,7 @@ try{
   for(const token of ['id="gd-present"','id="gd-workspace"','data-whiteboard-supported="true"','id="gd-whiteboard-tools"','aria-controls="gd-controls"','aria-expanded="false"','id="gd-whiteboard-exit"','function enterWhiteboard','function enterGenericWhiteboard','function enterWhiteboardFallback','function exitWhiteboard',"currentToolId==='number-line'","present.hidden=id==='number-line'",'G.whiteboard={'])if(!goodiesApp.includes(token))fail('goodies-whiteboard','Shared whiteboard contract missing: '+token);
   for(const token of ['.gd-workspace.gd-whiteboard-active','.gd-whiteboard-ui','.gd-whiteboard-tools-open','.gd-whiteboard-fallback','.gd-whiteboard-button','gd-whiteboard-page-lock'])if(!goodiesCss.includes(token))fail('goodies-whiteboard','Shared whiteboard styling missing: '+token);
   if(!numberLine.includes('id="nl-fullscreen"')||!numberLine.includes('function enterBoardFallback')||!numberLine.includes('function boardActive'))fail('goodies-whiteboard','Number Line bespoke whiteboard mode is no longer available');
+  if(!numberLine.includes('function numberLineMounted()')||!numberLine.includes("if(!numberLineMounted())return;"))fail('goodies-whiteboard','Number Line lifecycle guard is missing; stale fullscreen events could overwrite another manipulative');
   ok('goodies-whiteboard',whiteboardToolIds.length+' catalogue manipulatives are covered by shared/bespoke whiteboard mode contracts');
   if(!goodiesCss.includes('.gd-workspace>*{min-width:0}'))fail('goodies-layout','Shared workspace children can overflow their grid columns');
   if(!goodiesCss.includes('position:sticky;top:12px;max-height:calc(100dvh - 24px);overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable'))fail('goodies-layout','Desktop teacher controls lost their pinned viewport-bounded layout');
@@ -999,6 +1000,9 @@ try{
     }
   }
   ok('goodies-capabilities','All '+capabilitySpecs.length+' catalogue manipulatives have an explicit challenge/task/export policy; Randomiser is the sole utility exception');
+  for(const token of ['data-co-undo-stage','data-co-redo-stage','data-ge-undo-stage','data-ge-redo-stage'])if(!goodiesToolsB.includes(token))fail('goodies-stage-history','Coordinate/Geoboard on-stage recovery control missing: '+token);
+  if(!goodiesCss.includes('.gd-context-actions{'))fail('goodies-stage-history','Shared on-stage history action layout is missing');
+  ok('goodies-stage-history','Coordinates and Geoboard keep Undo/Redo beside the live diagram for whiteboard use');
   if(!/goodies-number-line-v6\.js\?v=\d+/.test(goodiesPage)||!/goodies-challenge\.js\?v=\d+/.test(goodiesPage)||!/goodies-tools-a\.js\?v=\d+/.test(goodiesPage)||!/goodies-tools-b\.js\?v=\d+/.test(goodiesPage)||!/goodies-export\.js\?v=\d+/.test(goodiesPage)||!/goodies\.css\?v=\d+/.test(goodiesPage))fail('goodies-number-line','Number Line / shared challenge/export assets are not cache-busted on /goodies/');
   if(goodiesPage.indexOf('goodies-challenge.js')>goodiesPage.indexOf('goodies-number-line-v6.js'))fail('goodies-number-line','Shared challenge framework must load before Number Line v6');
   for(const token of [
