@@ -2078,10 +2078,13 @@ function factorExplorer(){
     const vCount=Math.min(cols,24),hCount=Math.min(rows,16);
     for(let i=1;i<vCount;i++){const x=pad+gridW*i/vCount;lines+='<line x1="'+x+'" y1="'+pad+'" x2="'+x+'" y2="'+(pad+gridH)+'"></line>'}
     for(let i=1;i<hCount;i++){const y=pad+gridH*i/hCount;lines+='<line x1="'+pad+'" y1="'+y+'" x2="'+(pad+gridW)+'" y2="'+y+'"></line>'}
-    return '<div class="gd-fe-array-panel"><div class="gd-fe-array-head"><span>Selected factor rectangle</span><strong data-fe-selected-pair>'+rows+' × '+cols+' = '+n+'</strong></div>'+
-      '<svg class="gd-fe-array" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+rows+' rows by '+cols+' columns equals '+n+'">'+
+    const hideSelected=!!(challenge&&!challenge.revealed&&challenge.hiddenPairSide===selectedSide&&challenge.hiddenPairIndex===selectedPair);
+    const pairText=hideSelected?rows+' × ? = '+n:rows+' × '+cols+' = '+n;
+    const aria=hideSelected?rows+' rows by an unknown number of columns equals '+n:rows+' rows by '+cols+' columns equals '+n;
+    return '<div class="gd-fe-array-panel"><div class="gd-fe-array-head"><span>Selected factor rectangle</span><strong data-fe-selected-pair>'+pairText+'</strong></div>'+
+      '<svg class="gd-fe-array" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+aria+'">'+
         '<rect x="'+pad+'" y="'+pad+'" width="'+gridW+'" height="'+gridH+'"></rect><g>'+lines+'</g>'+
-        '<text x="'+(W/2)+'" y="28" text-anchor="middle">'+cols+' columns</text><text x="18" y="'+(H/2)+'" text-anchor="middle" transform="rotate(-90 18 '+(H/2)+')">'+rows+' rows</text>'+
+        '<text x="'+(W/2)+'" y="28" text-anchor="middle">'+(hideSelected?'? columns':cols+' columns')+'</text><text x="18" y="'+(H/2)+'" text-anchor="middle" transform="rotate(-90 18 '+(H/2)+')">'+rows+' rows</text>'+
       '</svg><p class="gd-help">'+(cols>24||rows>16?'Large arrays are simplified visually, but the factor pair is exact.':'Each grid division represents one row or column.')+'</p></div>';
   }
   function compareSummary(){
