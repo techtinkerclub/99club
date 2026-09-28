@@ -2313,7 +2313,8 @@ function factorExplorer(){
     }
     const n=currentNumber(),pairs=currentPairs(),pair=pairs[selectedPair]||pairs[0]||[1,n],rows=pair[0],cols=pair[1];
     const ax=190,ay=lowerY+20,aw=540,ah=110;
-    svg.appendChild(feSvgEl('text',{x:width/2,y:lowerY+2,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':13,'font-weight':800,fill:'#718288'},'SELECTED FACTOR RECTANGLE · '+rows+' × '+cols+' = '+n));
+    const hideSelectedExport=!!(challenge&&(pupil||!challenge.revealed)&&challenge.hiddenPairSide===selectedSide&&challenge.hiddenPairIndex===selectedPair);
+    svg.appendChild(feSvgEl('text',{x:width/2,y:lowerY+2,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':13,'font-weight':800,fill:'#718288','data-fe-export-array-label':'1'},'SELECTED FACTOR RECTANGLE · '+rows+' × '+(hideSelectedExport?'?':cols)+' = '+n));
     svg.appendChild(feSvgEl('rect',{x:ax,y:ay,width:aw,height:ah,fill:'#f4faf8',stroke:'#2f7d75','stroke-width':3,'data-fe-export-array':'1'}));
     for(let i=1;i<Math.min(cols,24);i++){const x=ax+aw*i/Math.min(cols,24);svg.appendChild(feSvgEl('line',{x1:x,y1:ay,x2:x,y2:ay+ah,stroke:'#b8d2ce','stroke-width':1}))}
     for(let i=1;i<Math.min(rows,12);i++){const y=ay+ah*i/Math.min(rows,12);svg.appendChild(feSvgEl('line',{x1:ax,y1:y,x2:ax+aw,y2:y,stroke:'#b8d2ce','stroke-width':1}))}
