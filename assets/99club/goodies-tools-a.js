@@ -2867,6 +2867,12 @@ function multiplicationGrid(){
   function bindControls(){
     qa('[data-mg-workflow]',q('#gd-controls')).forEach(button=>button.onclick=()=>{controlTab=button.dataset.mgWorkflow;renderControls()});
     bindModelControls();
+    if(controlTab==='export'){
+      qa('[data-mg-export-mode]',q('#gd-controls')).forEach(button=>button.onclick=()=>{exportMode=button.dataset.mgExportMode;exportStatus='';renderControls()});
+      const lines=q('#mg-response-lines');if(lines)lines.onchange=()=>{responseLines=clamp(Math.round(num(lines.value,1)),1,4)};
+      [['mg-copy-image','copy'],['mg-png','png'],['mg-svg-download','svg'],['mg-print','print']].forEach(([id,kind])=>{const button=q('#'+id);if(button)button.onclick=()=>runExport(kind)});
+      return;
+    }
     if(controlTab!=='challenge')return;
     qa('[data-mg-challenge-tab]',q('#gd-controls')).forEach(button=>button.onclick=()=>{
       if(button.dataset.mgChallengeTab==='custom')enterCustomChallenge();
