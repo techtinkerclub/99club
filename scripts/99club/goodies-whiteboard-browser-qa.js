@@ -95,8 +95,13 @@ document.exitFullscreen=function(){
         assert(workspace.classList.contains('gd-whiteboard-active'),'Shared whiteboard mode activates for '+id);
         assert(document.fullscreenElement===workspace||workspace.classList.contains('gd-whiteboard-fallback'),'Shared whiteboard mode occupies the viewport for '+id);
         if(stageHistory){
-          assert(stage.contains(stageHistory.undo)&&stage.contains(stageHistory.redo),id+' whiteboard transition preserves the existing on-stage Undo/Redo nodes');
-          assert(getComputedStyle(stageHistory.undo).display!=='none'&&getComputedStyle(stageHistory.redo).display!=='none',id+' on-stage history controls remain visible in whiteboard mode');
+          await tick();
+          const undoSelector=id==='coordinates'?'[data-co-undo-stage]':'[data-ge-undo-stage]';
+          const redoSelector=id==='coordinates'?'[data-co-redo-stage]':'[data-ge-redo-stage]';
+          const undo=stage.querySelector(undoSelector),redo=stage.querySelector(redoSelector);
+          const documentUndo=document.querySelectorAll(undoSelector).length,documentRedo=document.querySelectorAll(redoSelector).length;
+          assert(undo&&redo,id+' redraw keeps fresh on-stage Undo/Redo in whiteboard mode (stage undo/redo '+(undo?1:0)+'/'+(redo?1:0)+', document '+documentUndo+'/'+documentRedo+')');
+          assert(getComputedStyle(undo).display!=='none'&&getComputedStyle(redo).display!=='none',id+' on-stage history controls remain visible in whiteboard mode');
         }
         const tools=document.getElementById('gd-whiteboard-tools');
         const exit=document.getElementById('gd-whiteboard-exit');
