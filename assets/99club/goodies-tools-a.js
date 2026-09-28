@@ -2391,9 +2391,24 @@ function hundredSquare(){
 }
 
 function multiplicationGrid(){
+  const CK=G.challengeKit;
   let size=12,focus=6,selectedRow=6,selectedCol=4,interactionMode='select',pairCommutative=true,paint=null;
   let hidden=new Set();
   const undoStack=[],redoStack=[];
+  const CHALLENGE_CATEGORIES=[
+    {id:'read',label:'Read & locate'},
+    {id:'connections',label:'Fact families'},
+    {id:'reason',label:'Reasoning'}
+  ];
+  const CHALLENGE_TEMPLATES=[
+    {id:'missing-product',category:'read',title:'Find the product',desc:'Use the grid to find a hidden multiplication product.'},
+    {id:'select-fact',category:'read',title:'Find the fact',desc:'Select the cell for a requested multiplication fact.'},
+    {id:'missing-factor',category:'connections',title:'Find the missing factor',desc:'Use a row or column to complete a multiplication fact.'},
+    {id:'commutative-fact',category:'connections',title:'Commutative partner',desc:'Write the reversed multiplication fact.'},
+    {id:'related-division',category:'connections',title:'Related division',desc:'Use a multiplication fact to complete a related division fact.'},
+    {id:'spot-error',category:'reason',title:'Spot the incorrect product',desc:'Find one incorrect product in a times-table row.'}
+  ];
+  let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='missing-product',challenge=null,beforeChallenge=null;
 
   function key(r,c){return r+'-'+c}
   function parseKey(k){const [r,c]=String(k).split('-').map(Number);return{r,c}}
@@ -2414,25 +2429,37 @@ function multiplicationGrid(){
     if(undoStack.length>60)undoStack.shift();
     redoStack.length=0;
   }
+  function challengeFrozen(){return !!(challenge&&challenge.mode==='standard'&&challenge.freezeGrid)}
+  function challengeSelectOnly(){return !!(challenge&&challenge.mode==='standard'&&challenge.selectOnly)}
   function mutate(fn){
+    if(challengeFrozen())return;
     remember();fn();draw();renderControls();
   }
   function undo(){
-    if(!undoStack.length)return;
+    if(!undoStack.length||challengeFrozen())return;
     redoStack.push(snapshot());restore(undoStack.pop());draw();renderControls();
   }
   function redo(){
-    if(!redoStack.length)return;
+    if(!redoStack.length||challengeFrozen())return;
     undoStack.push(snapshot());restore(redoStack.pop());draw();renderControls();
   }
   function product(r=selectedRow,c=selectedCol){return r*c}
-  function selectedHidden(){return hidden.has(key(selectedRow,selectedCol))}
+  function boundHiddenKey(){
+    if(!challenge||challenge.mode!=='custom'||challenge.revealed||challenge.answerMode!=='bound')return null;
+    return challenge.answerSource==='selected-product'?key(selectedRow,selectedCol):null;
+  }
+  function productHidden(r,c){
+    const standardReveal=!!(challenge?.mode==='standard'&&challenge.revealed);
+    return (hidden.has(key(r,c))&&!standardReveal)||boundHiddenKey()===key(r,c);
+  }
+  function selectedHidden(){return productHidden(selectedRow,selectedCol)}
   function setHidden(r,c,on){
     const setOne=(rr,cc)=>{const k=key(rr,cc);if(on)hidden.add(k);else hidden.delete(k)};
     setOne(r,c);
     if(pairCommutative&&r!==c&&r<=size&&c<=size)setOne(c,r);
   }
   function toggleHidden(r,c,on=null){
+    if(challengeSelectOnly())return;
     const next=on==null?!hidden.has(key(r,c)):!!on;
     setHidden(r,c,next);
   }
@@ -2442,10 +2469,16 @@ function multiplicationGrid(){
     hidden=new Set([...hidden].filter(k=>{const {r,c}=parseKey(k);return r<=size&&c<=size}));
   }
   function setSelection(r,c){
+    if(challengeFrozen())return;
     selectedRow=clamp(r,1,size);selectedCol=clamp(c,1,size);draw();renderControls();
     setTimeout(()=>q('[data-mg-cell="'+key(selectedRow,selectedCol)+'"]')?.focus(),0);
   }
+  function challengeDisplayOverride(r,c){
+    if(!challenge||challenge.type!=='spot-error'||challenge.revealed)return null;
+    return challenge.wrongCellKey===key(r,c)?Number(challenge.wrongDisplay):null;
+  }
   function factsHtml(){
+    if(challenge&&!challenge.revealed&&challenge.hideFactsPanel)return'';
     const hiddenAnswer=selectedHidden(),a=selectedRow,b=selectedCol,p=product();
     const productText=hiddenAnswer?'?':p;
     const commutative=hiddenAnswer?b+' × '+a+' = ?':b+' × '+a+' = '+p;
@@ -2453,7 +2486,7 @@ function multiplicationGrid(){
     const divB=hiddenAnswer?'? ÷ '+b+' = '+a:p+' ÷ '+b+' = '+a;
     return '<div class="gd-mg-selected" data-mg-selected="'+key(a,b)+'">'+
       '<div class="gd-mg-selected__head"><div><span>Selected fact</span><strong>'+a+' × '+b+' = '+productText+'</strong></div>'+
-        '<div class="gd-row"><button class="gd-btn" id="mg-toggle-selected" type="button">'+(hiddenAnswer?'Reveal product':'Hide product')+'</button></div></div>'+
+        (!challengeFrozen()&&!challengeSelectOnly()?'<div class="gd-row"><button class="gd-btn" id="mg-toggle-selected" type="button">'+(hiddenAnswer?'Reveal product':'Hide product')+'</button></div>':'')+'</div>'+
       '<div class="gd-mg-facts">'+
         '<div><span>Commutative fact</span><strong>'+commutative+'</strong></div>'+
         '<div><span>Related division</span><strong>'+divA+'</strong></div>'+
@@ -2462,15 +2495,30 @@ function multiplicationGrid(){
       (hiddenAnswer?'<p class="gd-help">The commutative partner is hidden too while “hide pairs together” is on, so the grid does not give the product away.</p>':'')+
     '</div>';
   }
+  function challengeProgress(){
+    if(!challenge||challenge.type!=='select-fact')return'';
+    const found=selectedRow===Number(challenge.targetRow)&&selectedCol===Number(challenge.targetCol);
+    return found?'Found '+challenge.targetRow+' × '+challenge.targetCol+' = '+product()+' ✓':'Select the matching product cell';
+  }
   function headerButton(n,scope){
-    return '<button type="button" class="gd-mg-header-btn'+(focus===n?' is-focus':'')+'" data-mg-focus="'+n+'" aria-label="Focus '+n+' times table from '+scope+' header">'+n+'</button>';
+    const frozen=challengeFrozen();
+    return '<button type="button" class="gd-mg-header-btn'+(focus===n?' is-focus':'')+(frozen?' is-frozen':'')+'" data-mg-focus="'+n+'" aria-label="Focus '+n+' times table from '+scope+' header"'+(frozen?' disabled':'')+'>'+n+'</button>';
   }
   function cellButton(r,c){
-    const k=key(r,c),isHidden=hidden.has(k),selected=r===selectedRow&&c===selectedCol,mirror=r===selectedCol&&c===selectedRow&&!selected,rowcol=r===focus||c===focus;
-    const classes=['gd-mg-cell',rowcol?'is-focus':'',selected?'is-current':'',mirror?'is-commutative':'',isHidden?'is-hidden-product':'',interactionMode==='hide'?'is-paintable':''].filter(Boolean).join(' ');
-    return '<button type="button" class="'+classes+'" data-mg-cell="'+k+'" data-mg-row="'+r+'" data-mg-col="'+c+'" aria-label="'+(isHidden?'Hidden product for '+r+' times '+c:r+' times '+c+' equals '+(r*c))+'"><span>'+(isHidden?'?':r*c)+'</span></button>';
+    const k=key(r,c),isHidden=productHidden(r,c),selected=r===selectedRow&&c===selectedCol,mirror=r===selectedCol&&c===selectedRow&&!selected,rowcol=r===focus||c===focus,frozen=challengeFrozen();
+    const override=challengeDisplayOverride(r,c),shown=override==null?r*c:override;
+    const classes=['gd-mg-cell',rowcol?'is-focus':'',selected?'is-current':'',mirror?'is-commutative':'',isHidden?'is-hidden-product':'',!frozen&&interactionMode==='hide'?'is-paintable':'',frozen?'is-frozen':''].filter(Boolean).join(' ');
+    return '<button type="button" class="'+classes+'" data-mg-cell="'+k+'" data-mg-row="'+r+'" data-mg-col="'+c+'" aria-label="'+(isHidden?'Hidden product for '+r+' times '+c:r+' times '+c+' equals '+shown)+'"'+(override!=null?' data-mg-display-override="'+override+'"':'')+(frozen?' disabled':'')+'><span>'+(isHidden?'?':shown)+'</span></button>';
+  }
+  function bindChallengeStageActions(){
+    const stage=q('#gd-stage');if(!stage||!challenge)return;
+    const reveal=q('[data-board-action="reveal"]',stage);
+    if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();draw()};
+    const another=q('[data-challenge-action="another"]',stage);
+    if(another)another.onclick=e=>{e.stopPropagation();if(challenge?.mode==='standard')generateChallenge(challenge.type)};
   }
   function draw(){
+    updateChallengeAnswer();
     let table='<table class="gd-times-grid gd-mg-grid"><thead><tr><th aria-hidden="true">×</th>';
     for(let c=1;c<=size;c++)table+='<th scope="col">'+headerButton(c,'column')+'</th>';
     table+='</tr></thead><tbody>';
@@ -2480,17 +2528,19 @@ function multiplicationGrid(){
       table+='</tr>';
     }
     table+='</tbody></table>';
-    q('#gd-stage').innerHTML='<div class="gd-vis gd-mg-workbench">'+
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Multiplication Grid challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
+    q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-mg-workbench">'+
       '<div class="gd-mg-summary"><div><span>Multiplication grid</span><strong>'+size+' × '+size+' · focus '+focus+' times table</strong></div>'+
-        '<div class="gd-object-toolbar"><button class="gd-btn" id="mg-undo" type="button"'+(undoStack.length?'':' disabled')+'>Undo</button><button class="gd-btn" id="mg-redo" type="button"'+(redoStack.length?'':' disabled')+'>Redo</button></div></div>'+
+        '<div class="gd-object-toolbar"><button class="gd-btn" id="mg-undo" type="button"'+(undoStack.length&&!challengeFrozen()?'':' disabled')+'>Undo</button><button class="gd-btn" id="mg-redo" type="button"'+(redoStack.length&&!challengeFrozen()?'':' disabled')+'>Redo</button></div></div>'+
       '<div class="gd-mg-scroll">'+table+'</div>'+
       factsHtml()+
+      (challenge?.type==='select-fact'?'<div class="gd-answer-live" data-mg-target-status>'+challengeProgress()+'</div>':'')+
       '<div class="gd-mg-key"><span><i class="is-focus"></i> focused table</span><span><i class="is-current"></i> selected fact</span><span><i class="is-commutative"></i> commutative partner</span><span><i class="is-hidden-product">?</i> hidden product</span></div>'+
     '</div>';
-    bindStage();
+    bindStage();bindChallengeStageActions();
   }
   function paintAtPoint(x,y){
-    if(!paint)return;
+    if(!paint||challengeFrozen()||challengeSelectOnly())return;
     const el=document.elementFromPoint(x,y)?.closest?.('[data-mg-cell]');
     if(!el)return;
     const k=el.dataset.mgCell;
@@ -2513,23 +2563,25 @@ function multiplicationGrid(){
   }
   function bindStage(){
     qa('[data-mg-focus]',q('#gd-stage')).forEach(button=>button.onclick=()=>{
+      if(challengeFrozen())return;
       focus=clamp(Number(button.dataset.mgFocus),1,size);draw();renderControls();
     });
     qa('[data-mg-cell]',q('#gd-stage')).forEach(cell=>{
       cell.onclick=()=>{
-        if(interactionMode!=='select')return;
+        if(challengeFrozen()||interactionMode!=='select')return;
         selectedRow=Number(cell.dataset.mgRow);selectedCol=Number(cell.dataset.mgCol);draw();renderControls();
       };
       cell.onkeydown=e=>{
+        if(challengeFrozen())return;
         const r=Number(cell.dataset.mgRow),c=Number(cell.dataset.mgCol);
         if(e.key==='ArrowLeft'){e.preventDefault();setSelection(r,c-1)}
         else if(e.key==='ArrowRight'){e.preventDefault();setSelection(r,c+1)}
         else if(e.key==='ArrowUp'){e.preventDefault();setSelection(r-1,c)}
         else if(e.key==='ArrowDown'){e.preventDefault();setSelection(r+1,c)}
-        else if(e.key.toLowerCase()==='h'||e.key===' '||e.key==='Enter'){e.preventDefault();mutate(()=>toggleHidden(r,c))}
+        else if(!challengeSelectOnly()&&(e.key.toLowerCase()==='h'||e.key===' '||e.key==='Enter')){e.preventDefault();mutate(()=>toggleHidden(r,c))}
       };
       cell.onpointerdown=e=>{
-        if(interactionMode!=='hide'||(e.button!=null&&e.button!==0))return;
+        if(challengeFrozen()||challengeSelectOnly()||interactionMode!=='hide'||(e.button!=null&&e.button!==0))return;
         e.preventDefault();
         const r=Number(cell.dataset.mgRow),c=Number(cell.dataset.mgCol);
         remember();
@@ -2544,6 +2596,7 @@ function multiplicationGrid(){
     const redoBtn=q('#mg-redo');if(redoBtn)redoBtn.onclick=redo;
     const toggle=q('#mg-toggle-selected');if(toggle)toggle.onclick=()=>mutate(()=>toggleHidden(selectedRow,selectedCol));
   }
+
   function randomHide(){
     hidden.clear();
     const candidates=[];
@@ -2558,7 +2611,12 @@ function multiplicationGrid(){
       setHidden(r,c,true);products+=r===c||!pairCommutative?1:2;
     }
   }
-  function controlsHtml(){
+  function workflowTabs(){
+    return '<div class="gd-row gd-mg-workflow-tabs" role="tablist" aria-label="Multiplication Grid workflow">'+
+      '<button class="gd-btn'+(controlTab==='explore'?' gd-btn--primary':'')+'" type="button" data-mg-workflow="explore">Explore</button>'+
+      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-mg-workflow="challenge">Challenge'+(challenge?' •':'')+'</button></div>';
+  }
+  function modelControlsHtml(){
     return field('Grid size','<input class="gd-input" id="mg-size" type="number" min="5" max="15" value="'+size+'">','Show tables from 1×1 up to '+size+'×'+size+'.')+
       field('Focus times table','<input class="gd-input" id="mg-focus" type="number" min="1" max="'+size+'" value="'+focus+'">','You can also click any row or column header directly.')+
       '<div class="gd-field"><span>Touch / mouse action</span><div class="gd-row">'+
@@ -2566,17 +2624,153 @@ function multiplicationGrid(){
         '<button class="gd-btn'+(interactionMode==='hide'?' gd-btn--primary':'')+'" type="button" data-mg-interaction="hide">Paint hide / reveal</button>'+
       '</div></div>'+
       '<label class="gd-mg-pair-toggle"><input type="checkbox" id="mg-pair"'+(pairCommutative?' checked':'')+'> <span>Hide commutative pairs together</span></label>'+
-      '<div class="gd-row"><button class="gd-btn" id="mg-hide" type="button">Hide about 12 products</button><button class="gd-btn" id="mg-show" type="button">Show all</button></div>'+
-      '<p class="gd-help">Select a product to see its commutative and inverse division facts. Arrow keys move around the grid; Space, Enter or H hide/reveal the selected product.</p>';
+      '<div class="gd-row"><button class="gd-btn" id="mg-hide" type="button">Hide about 12 products</button><button class="gd-btn" id="mg-show" type="button">Show all</button></div>';
   }
+  function exploreControlsHtml(){
+    return modelControlsHtml()+'<p class="gd-help">Select a product to see its commutative and inverse division facts. Arrow keys move around the grid; Space, Enter or H hide/reveal the selected product.</p>';
+  }
+  function challengeObject(type,prompt,answer,extra={}){
+    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===type);
+    const raw={mode:'standard',type,category:meta?.category||'',title:'',prompt,promptHtml:prompt,answer:String(answer??''),answerMode:'manual',answerSource:'',revealed:false,freezeGrid:true,selectOnly:false,hideFactsPanel:false,targetRow:null,targetCol:null,wrongCellKey:'',wrongDisplay:null,...extra};
+    return CK?CK.normalise(raw):raw;
+  }
+  function randomInt(min,max){return min+Math.floor(Math.random()*(max-min+1))}
+  function resetChallengeGrid(){
+    size=12;focus=6;selectedRow=1;selectedCol=1;interactionMode='select';pairCommutative=true;hidden.clear();
+  }
+  function generateChallenge(type){
+    const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
+    if(!beforeChallenge)beforeChallenge=snapshot();else restore(beforeChallenge);
+    undoStack.length=0;redoStack.length=0;resetChallengeGrid();
+    const a=randomInt(2,10),b=randomInt(2,10),p=a*b;
+    if(type==='missing-product'){
+      selectedRow=a;selectedCol=b;focus=a;setHidden(a,b,true);
+      challenge=challengeObject(type,'What is '+a+' × '+b+'?',p,{hideFactsPanel:true});
+    }else if(type==='select-fact'){
+      focus=a;
+      challenge=challengeObject(type,'Select the cell for '+a+' × '+b+'.',p,{freezeGrid:false,selectOnly:true,targetRow:a,targetCol:b,hideFactsPanel:false});
+    }else if(type==='missing-factor'){
+      focus=a;selectedRow=a;selectedCol=1;
+      challenge=challengeObject(type,a+' × ? = '+p+'. What is the missing factor?',b,{hideFactsPanel:true});
+    }else if(type==='commutative-fact'){
+      focus=a;selectedRow=a;selectedCol=b;
+      challenge=challengeObject(type,'Write the commutative fact for '+a+' × '+b+' = '+p+'.',b+' × '+a+' = '+p,{hideFactsPanel:true});
+    }else if(type==='related-division'){
+      focus=a;selectedRow=a;selectedCol=b;
+      challenge=challengeObject(type,'Use '+a+' × '+b+' = '+p+' to complete '+p+' ÷ '+a+' = ?.',b,{hideFactsPanel:true});
+    }else{
+      focus=a;selectedRow=1;selectedCol=1;
+      const wrongDisplay=p+1;
+      challenge=challengeObject(type,'One entry in the '+a+' times-table row is wrong. Which fact should be corrected?',a+' × '+b+' = '+p,{hideFactsPanel:true,wrongCellKey:key(a,b),wrongDisplay});
+    }
+    challenge.initialState=snapshot();
+    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';renderControls();draw();
+  }
+  function restoreBeforeChallenge(){if(beforeChallenge){restore(beforeChallenge);beforeChallenge=null}}
+  function clearChallenge(){
+    restoreBeforeChallenge();challenge=null;challengeTab='standard';controlTab='challenge';undoStack.length=0;redoStack.length=0;renderControls();draw();
+  }
+  function clearBoundHiding(){if(challenge)challenge.hideFactsPanel=false}
+  function applyBoundHiding(source){
+    clearBoundHiding();if(!challenge)return;
+    if(['selected-product','selected-fact','commutative-fact','division-row','division-col'].includes(source))challenge.hideFactsPanel=true;
+  }
+  function resolveAnswerSource(source){
+    const a=selectedRow,b=selectedCol,p=product();
+    if(source==='selected-product')return String(p);
+    if(source==='selected-fact')return a+' × '+b+' = '+p;
+    if(source==='commutative-fact')return b+' × '+a+' = '+p;
+    if(source==='division-row')return p+' ÷ '+a+' = '+b;
+    if(source==='division-col')return p+' ÷ '+b+' = '+a;
+    if(source==='hidden-count')return String(hidden.size);
+    return'';
+  }
+  function customAnswerSources(){
+    return[
+      {id:'selected-product',label:'Selected product'},
+      {id:'selected-fact',label:'Selected multiplication fact'},
+      {id:'commutative-fact',label:'Commutative fact'},
+      {id:'division-row',label:'Related division by row factor'},
+      {id:'division-col',label:'Related division by column factor'},
+      {id:'hidden-count',label:'Number of hidden products'}
+    ];
+  }
+  function updateChallengeAnswer(){
+    if(!challenge||challenge.answerMode!=='bound'||!challenge.answerSource)return;
+    const answer=resolveAnswerSource(challenge.answerSource);if(answer!=='')challenge.answer=answer;
+    const live=q('#mg-custom-live-answer');if(live)live.textContent=challenge.answer||'—';
+    if(challenge.revealed){
+      const shown=q('.gd-challenge-actions em',q('#gd-stage'));if(shown)shown.textContent='Answer: '+challenge.answer;
+    }
+  }
+  function enterCustomChallenge(){
+    if(!beforeChallenge)beforeChallenge=snapshot();
+    const wasCustom=challenge?.mode==='custom';
+    if(CK)challenge=CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''});
+    if(!wasCustom)clearBoundHiding();
+    challenge.freezeGrid=false;challenge.selectOnly=false;challenge.revealed=false;
+    challengeTab='custom';controlTab='challenge';renderControls();draw();
+  }
+  function setCustomAnswerSource(source){
+    if(!challenge||challenge.mode!=='custom')return;
+    if(source==='manual'){challenge.answerMode='manual';challenge.answerSource='';clearBoundHiding()}
+    else if(source==='generated'){challenge.answerMode='bound';challenge.answerSource='';clearBoundHiding()}
+    else{challenge.answerMode='bound';challenge.answerSource=source;challenge.answer=resolveAnswerSource(source);applyBoundHiding(source)}
+    challenge.revealed=false;renderControls();draw();
+  }
+  function challengeControlsHtml(){
+    if(!CK)return'<p class="gd-help">Challenge tools are unavailable.</p>';
+    const tabs=CK.tabsHtml?CK.tabsHtml('mg',challengeTab):'';
+    if(challengeTab==='custom'){
+      const custom=challenge&&challenge.mode==='custom'?challenge:CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual'});
+      return tabs+CK.editorHtml(custom,'mg',{answerSources:customAnswerSources(),generatedAnswerLabel:'Keep the generated answer'})+
+        modelControlsHtml()+
+        '<div class="gd-row">'+(challenge&&challenge.answer?'<button class="gd-btn" id="mg-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
+        (challenge?'<button class="gd-btn" id="mg-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
+        '<p class="gd-help">Custom answers can follow the selected product, fact-family statements, or the number of hidden products.</p>';
+    }
+    const picker=CK.pickerHtml(CHALLENGE_TEMPLATES,CHALLENGE_CATEGORIES,challengeCategory,challengeType,'mg');
+    const repeat=!!(challenge&&challenge.mode==='standard'&&challenge.type===challengeType);
+    return tabs+picker+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="mg-generate" type="button">'+(repeat?'Another like this':'Generate challenge')+'</button>'+
+      (challenge&&challenge.mode!=='custom'?'<button class="gd-btn" id="mg-edit-challenge" type="button">Edit challenge</button>':'')+
+      (challenge&&challenge.answer?'<button class="gd-btn" id="mg-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
+      (challenge?'<button class="gd-btn" id="mg-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>';
+  }
+  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():exploreControlsHtml())}
   function renderControls(){q('#gd-controls').innerHTML=controlsHtml();bindControls()}
-  function bindControls(){
+  function bindModelControls(){
     const sizeInput=q('#mg-size');if(sizeInput)sizeInput.onchange=()=>mutate(()=>setSize(sizeInput.value));
     const focusInput=q('#mg-focus');if(focusInput)focusInput.onchange=()=>{focus=clamp(Math.round(num(focusInput.value,focus)),1,size);draw();renderControls()};
     qa('[data-mg-interaction]',q('#gd-controls')).forEach(button=>button.onclick=()=>{interactionMode=button.dataset.mgInteraction;draw();renderControls()});
     const pair=q('#mg-pair');if(pair)pair.onchange=()=>{pairCommutative=pair.checked;renderControls()};
     const hide=q('#mg-hide');if(hide)hide.onclick=()=>mutate(randomHide);
     const show=q('#mg-show');if(show)show.onclick=()=>{if(!hidden.size)return;mutate(()=>hidden.clear())};
+  }
+  function bindControls(){
+    qa('[data-mg-workflow]',q('#gd-controls')).forEach(button=>button.onclick=()=>{controlTab=button.dataset.mgWorkflow;renderControls()});
+    bindModelControls();
+    if(controlTab!=='challenge')return;
+    qa('[data-mg-challenge-tab]',q('#gd-controls')).forEach(button=>button.onclick=()=>{
+      if(button.dataset.mgChallengeTab==='custom')enterCustomChallenge();
+      else{challengeTab='standard';renderControls()}
+    });
+    qa('[data-mg-challenge-cat]',q('#gd-controls')).forEach(button=>button.onclick=()=>{
+      challengeCategory=button.dataset.mgChallengeCat;
+      const first=CHALLENGE_TEMPLATES.find(t=>t.category===challengeCategory);if(first)challengeType=first.id;
+      renderControls();
+    });
+    qa('[data-mg-challenge-type]',q('#gd-controls')).forEach(button=>button.onclick=()=>{challengeType=button.dataset.mgChallengeType;renderControls()});
+    const generate=q('#mg-generate');if(generate)generate.onclick=()=>generateChallenge(challengeType);
+    const edit=q('#mg-edit-challenge');if(edit)edit.onclick=enterCustomChallenge;
+    const reveal=q('#mg-reveal');if(reveal)reveal.onclick=()=>{if(challenge){challenge.revealed=!challenge.revealed;renderControls();draw()}};
+    const clearChallengeBtn=q('#mg-clear-challenge');if(clearChallengeBtn)clearChallengeBtn.onclick=clearChallenge;
+    if(challengeTab==='custom'&&challenge){
+      const title=q('#mg-custom-title');if(title)title.oninput=()=>{challenge.title=title.value.slice(0,100);draw()};
+      const prompt=q('#mg-custom-prompt');if(prompt)prompt.oninput=()=>{challenge.promptHtml=CK.sanitiseRichHtml(prompt.innerHTML);challenge.prompt=CK.plainText(challenge.promptHtml);draw()};
+      const source=q('#mg-custom-answer-source');if(source)source.onchange=()=>setCustomAnswerSource(source.value);
+      const answer=q('#mg-custom-answer');if(answer)answer.oninput=()=>{challenge.answer=answer.value.slice(0,400);challenge.answerMode='manual';challenge.answerSource='';draw()};
+      qa('[data-gd-rich-action]',q('#gd-controls')).forEach(button=>button.onclick=()=>{CK.applyFormat(prompt,button.dataset.gdRichAction);challenge.promptHtml=CK.sanitiseRichHtml(prompt.innerHTML);challenge.prompt=CK.plainText(challenge.promptHtml);draw()});
+    }
   }
 
   setPanels(controlsHtml(),'');
