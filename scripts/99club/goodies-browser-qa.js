@@ -1516,7 +1516,7 @@ if(mode==='prepare'){
 
     document.querySelector('[data-tv-workflow="challenge"]').click();
     document.querySelector('[data-tv-challenge-tab="custom"]').click();
-    const tvSource=document.getElementById('tv-custom-answer-source');
+    let tvSource=document.getElementById('tv-custom-answer-source');
     assert(tvSource&&['total','equation','repeated','commutative','division-a','division-b'].every(source=>[...tvSource.options].some(o=>o.value===source)),'Times-table custom challenges expose useful live linked-representation answer sources');
     tvSource.value='total';tvSource.dispatchEvent(new Event('change',{bubbles:true}));
     assert(document.querySelector('[data-tv-equation]').textContent.trim()==='3 × 4 = ?','Binding a Custom answer to total hides the equation total');
