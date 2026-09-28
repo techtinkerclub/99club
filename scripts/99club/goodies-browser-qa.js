@@ -1852,6 +1852,62 @@ if(mode==='prepare'){
     assert(document.querySelector('[data-fd-percent]').textContent.trim()==='?','Custom percentage binding hides percentage readout');
     assert(document.querySelector('[data-fd-decimal]').textContent.trim()==='?','Custom percentage binding hides decimal shortcut');
     assert(!document.querySelector('[data-fd-hundred-exact]'),'Custom percentage binding hides hundred-square shortcut');
+
+    document.getElementById('fd-clear-challenge').click();
+    document.querySelector('[data-fd-workflow="export"]').click();
+    assert(document.getElementById('fd-copy-image')&&document.getElementById('fd-png')&&document.getElementById('fd-svg-download')&&document.getElementById('fd-print'),'FDP export exposes copy, PNG, SVG and Print/PDF actions');
+    let fdSvg=null,fdName='';
+    const fdOldDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg,name)=>{fdSvg=svg.cloneNode(true);fdName=name};
+    document.getElementById('fd-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=fdOldDownload;
+    assert(fdSvg&&fdSvg.dataset.fdExport==='diagram','FDP diagram-only export is a deterministic SVG');
+    assert(fdSvg.querySelectorAll('[data-fd-export-piece]').length===8,'FDP model export preserves eight fraction-bar parts for 3/8');
+    assert(fdSvg.querySelector('[data-fd-export-decimal]').textContent.trim()==='0.375','FDP model export preserves linked decimal value');
+    assert(fdSvg.querySelector('[data-fd-export-percent]').textContent.trim()==='37.5%','FDP model export preserves linked percentage value');
+    assert(fdName.includes('fraction-decimal-percentage'),'FDP export uses a reusable filename');
+
+    document.querySelector('[data-fd-workflow="challenge"]').click();
+    document.querySelector('[data-fd-challenge-cat="convert"]').click();
+    document.querySelector('[data-fd-challenge-type="to-decimal"]').click();
+    document.getElementById('fd-generate').click();
+    document.querySelector('[data-board-action="reveal"]').click();
+    document.querySelector('[data-fd-workflow="export"]').click();
+    let fdChallengeSvg=null;
+    const fdOldChallengeDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{fdChallengeSvg=svg.cloneNode(true)};
+    document.getElementById('fd-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=fdOldChallengeDownload;
+    assert(fdChallengeSvg&&fdChallengeSvg.querySelector('[data-fd-export-decimal]').textContent.trim()==='?','Pupil fraction-to-decimal export re-hides decimal after teacher Reveal');
+    assert(fdChallengeSvg.querySelector('[data-fd-export-percent]').textContent.trim()==='?','Pupil fraction-to-decimal export keeps percentage shortcut hidden');
+    assert(fdChallengeSvg.querySelector('[data-fd-export-hundred-hidden]'),'Pupil fraction-to-decimal export keeps hundred square hidden');
+    assert(!fdChallengeSvg.textContent.includes('Answer: 0.375'),'Pupil FDP challenge export never includes teacher Reveal answer');
+
+    document.querySelector('[data-fd-workflow="challenge"]').click();
+    document.querySelector('[data-fd-challenge-cat="build"]').click();
+    document.querySelector('[data-fd-challenge-type="build-percentage"]').click();
+    document.getElementById('fd-generate').click();
+    fn=document.getElementById('fd-n');fn.value='3';fn.dispatchEvent(new Event('change',{bubbles:true}));
+    fd=document.getElementById('fd-d');fd.value='4';fd.dispatchEvent(new Event('change',{bubbles:true}));
+    document.querySelector('[data-fd-workflow="export"]').click();
+    let fdBuildSvg=null;
+    const fdOldBuildDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{fdBuildSvg=svg.cloneNode(true)};
+    document.getElementById('fd-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=fdOldBuildDownload;
+    assert(fdBuildSvg&&fdBuildSvg.querySelector('[data-fd-export-source]').textContent.trim()==='1/2','Pupil Build 75% export restores original neutral 1/2 model after teacher completion');
+
+    document.querySelector('[data-fd-workflow="challenge"]').click();
+    document.querySelector('[data-fd-challenge-tab="custom"]').click();
+    fdSource=document.getElementById('fd-custom-answer-source');
+    fdSource.value='source-fraction';fdSource.dispatchEvent(new Event('change',{bubbles:true}));
+    document.querySelector('[data-fd-workflow="export"]').click();
+    let fdCustomSvg=null;
+    const fdOldCustomDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{fdCustomSvg=svg.cloneNode(true)};
+    document.getElementById('fd-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=fdOldCustomDownload;
+    assert(fdCustomSvg&&fdCustomSvg.querySelector('[data-fd-export-source]').textContent.trim()==='?/?','Pupil Custom displayed-fraction export keeps the bound source fraction hidden');
   }
 
   function testPlaceValue(){
