@@ -1541,6 +1541,52 @@ if(mode==='prepare'){
     Math.random=realTvRandom;
   }
 
+  function testFactorExplorerWorkbench(){
+    TT99Goodies.interaction.clear();
+    assert(TT99Goodies.factorExplorer,'Factor Explorer is registered');
+    TT99Goodies.factorExplorer();
+
+    assert(document.querySelector('[data-fe-card="a"] .gd-fe-card-head strong').textContent.trim()==='36','Factor Explorer opens on 36');
+    assert(document.querySelectorAll('[data-fe-card="a"] [data-fe-pair]').length===5,'36 exposes all five factor pairs');
+    assert(document.querySelector('[data-fe-prime="a"]').textContent.trim()==='2 × 2 × 3 × 3','Prime factorisation of 36 is correct');
+    assert(document.querySelectorAll('[data-fe-card="a"] .gd-fe-multiple').length===12,'Factor Explorer shows the first 12 multiples');
+    assert(document.querySelector('[data-fe-divisor="a-3"]').classList.contains('is-divisible'),'Divisibility check identifies 36 as divisible by 3');
+    assert(!document.querySelector('[data-fe-divisor="a-5"]').classList.contains('is-divisible'),'Divisibility check identifies 36 as not divisible by 5');
+
+    const pairButtons=[...document.querySelectorAll('[data-fe-card="a"] [data-fe-pair]')];
+    const fourByNine=pairButtons.find(x=>x.textContent.trim()==='4 × 9');
+    assert(fourByNine,'4 × 9 factor pair is available for 36');
+    fourByNine.click();
+    assert(document.querySelector('[data-fe-selected-pair]').textContent.trim()==='4 × 9 = 36','Clicking a factor pair updates the visual rectangle');
+    assert(document.querySelector('.gd-fe-array').getAttribute('aria-label').includes('4 rows by 9 columns'),'Factor rectangle exposes its row/column meaning accessibly');
+
+    const compare=document.getElementById('fe-compare');
+    compare.checked=true;compare.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.querySelector('[data-fe-card="b"]'),'Compare mode adds a second number card');
+    assert(document.querySelector('[data-fe-common-summary]'),'Compare mode exposes shared-factor summary');
+    assert(document.querySelector('[data-fe-hcf]').textContent.trim()==='12','36 and 24 have HCF 12');
+    assert(document.querySelector('[data-fe-lcm]').textContent.trim()==='72','36 and 24 have LCM 72');
+    assert(document.querySelector('[data-fe-common-summary]').textContent.includes('1, 2, 3, 4, 6, 12'),'Compare mode lists all common factors');
+    assert(document.querySelectorAll('.gd-fe-pair.is-common').length>0,'Common factor pairs are visually highlighted');
+
+    let aInput=document.getElementById('fe-a');
+    aInput.value='37';aInput.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.querySelector('[data-fe-card="a"] .gd-fe-card-head em').textContent.includes('Prime number'),'Prime status updates when Number A becomes 37');
+    assert(document.querySelectorAll('[data-fe-card="a"] [data-fe-pair]').length===1,'Prime number 37 has only one factor pair');
+    assert(document.querySelector('[data-fe-prime="a"]').textContent.trim()==='37','Prime factorisation of a prime is itself');
+
+    document.getElementById('fe-undo').click();
+    assert(document.querySelector('[data-fe-card="a"] .gd-fe-card-head strong').textContent.trim()==='36','Undo restores the previous Number A');
+    document.getElementById('fe-redo').click();
+    assert(document.querySelector('[data-fe-card="a"] .gd-fe-card-head strong').textContent.trim()==='37','Redo reapplies the Number A edit');
+
+    document.querySelector('[data-fe-step="a--"]').click();
+    assert(document.querySelector('[data-fe-card="a"] .gd-fe-card-head strong').textContent.trim()==='36','Direct −1 control changes Number A on the model');
+    document.querySelector('[data-fe-step="b-+"]').click();
+    assert(document.querySelector('[data-fe-card="b"] .gd-fe-card-head strong').textContent.trim()==='25','Direct +1 control changes Number B on the model');
+    assert(document.querySelector('[data-fe-hcf]').textContent.trim()==='1','HCF updates immediately after direct comparison edit');
+  }
+
   function testPlaceValue(){
     TT99Goodies.interaction.clear();
     assert(TT99Goodies.placeValue,'Place Value is registered');
@@ -2927,6 +2973,7 @@ if(mode==='prepare'){
         testHundredSquareWorkbench();
         testMultiplicationGridWorkbench();
         testTimesTableVisualWorkbench();
+        testFactorExplorerWorkbench();
         testPlaceValue();
         testFractions();
         testGeoboard();
@@ -2935,7 +2982,7 @@ if(mode==='prepare'){
         testArrayWorkbench();
         testMoneyWorkbench();
         testClockWorkbench();
-        result('pass','Number Line challenges, Maths Canvas, Bar Model, Equation Balance, Hundred Square, Multiplication Grid, Times-table Visualiser, Place Value, Fraction Wall, Geoboard, Coordinates, Measurement, Array, UK Money and Clock workbench interactions work');
+        result('pass','Number Line challenges, Maths Canvas, Bar Model, Equation Balance, Hundred Square, Multiplication Grid, Times-table Visualiser, Factor Explorer, Place Value, Fraction Wall, Geoboard, Coordinates, Measurement, Array, UK Money and Clock workbench interactions work');
       }catch(err){
         result('fail',err&&err.message?err.message:String(err));
       }
