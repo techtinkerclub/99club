@@ -1987,8 +1987,133 @@ function timesTableVisual(){
   draw();
 }
 
-function factorExplorer(){function primeFactors(n){let x=n,out=[];for(let p=2;p*p<=x;p++)while(x%p===0){out.push(p);x/=p}if(x>1)out.push(x);return out}function draw(){const n=clamp(Math.round(num(q('#fe-n').value,36)),2,500),pairs=[];for(let i=1;i*i<=n;i++)if(n%i===0)pairs.push([i,n/i]);const multiples=Array.from({length:12},(_,i)=>n*(i+1));q('#gd-stage').innerHTML=`<div class="gd-vis"><h3>Factor pairs of ${n}</h3><div class="gd-factor-pairs">${pairs.map(p=>`<span class="gd-factor-pair">${p[0]} × ${p[1]}</span>`).join('')}</div><h3 style="margin-top:24px">First 12 multiples</h3><div class="gd-multiples">${multiples.map(x=>`<span class="gd-multiple">${x}</span>`).join('')}</div><div class="gd-readout" style="margin-top:18px;text-align:center">Prime factorisation: ${primeFactors(n).join(' × ')}</div></div>`}
-setPanels(`${field('Number','<input class="gd-input" id="fe-n" type="number" min="2" max="500" value="36">')}${btn('Random number','fe-random')}`,'');q('#fe-n').oninput=draw;q('#fe-random').onclick=()=>{q('#fe-n').value=2+Math.floor(Math.random()*143);draw()};draw()}
+function factorExplorer(){
+  let a=36,b=24,compare=false,selectedSide='a',selectedPair=0;
+  const undoStack=[],redoStack=[];
+  const DIVISORS=[2,3,4,5,6,8,9,10];
+
+  function norm(value,fallback=2){return clamp(Math.round(Number(value)||fallback),2,500)}
+  function factors(n){const out=[];for(let i=1;i<=Math.sqrt(n);i++)if(n%i===0){out.push(i);if(i!==n/i)out.push(n/i)}return out.sort((x,y)=>x-y)}
+  function factorPairs(n){const out=[];for(let i=1;i*i<=n;i++)if(n%i===0)out.push([i,n/i]);return out}
+  function primeFactors(n){let x=n,out=[];for(let p=2;p*p<=x;p++)while(x%p===0){out.push(p);x/=p}if(x>1)out.push(x);return out}
+  function isPrime(n){return factors(n).length===2}
+  function gcd2(x,y){while(y){const t=x%y;x=y;y=t}return Math.abs(x)}
+  function lcm2(x,y){return Math.abs(x*y)/gcd2(x,y)}
+  function snapshot(){return{a,b,compare,selectedSide,selectedPair}}
+  function restore(s){
+    a=norm(s?.a,36);b=norm(s?.b,24);compare=!!s?.compare;
+    selectedSide=s?.selectedSide==='b'?'b':'a';
+    selectedPair=Math.max(0,Math.round(Number(s?.selectedPair)||0));
+    if(!compare&&selectedSide==='b')selectedSide='a';
+  }
+  function remember(){undoStack.push(snapshot());if(undoStack.length>60)undoStack.shift();redoStack.length=0}
+  function mutate(fn){remember();fn();clampPair();draw();renderControls()}
+  function undo(){if(!undoStack.length)return;redoStack.push(snapshot());restore(undoStack.pop());clampPair();draw();renderControls()}
+  function redo(){if(!redoStack.length)return;undoStack.push(snapshot());restore(redoStack.pop());clampPair();draw();renderControls()}
+  function currentNumber(){return selectedSide==='b'&&compare?b:a}
+  function currentPairs(){return factorPairs(currentNumber())}
+  function clampPair(){selectedPair=clamp(selectedPair,0,Math.max(0,currentPairs().length-1))}
+  function setA(v){a=norm(v,a);if(selectedSide==='a')selectedPair=0}
+  function setB(v){b=norm(v,b);if(selectedSide==='b')selectedPair=0}
+  function setCompare(on){compare=!!on;if(!compare&&selectedSide==='b'){selectedSide='a';selectedPair=0}}
+  function pairLabel(pair){return pair[0]+' × '+pair[1]}
+  function factorisationText(n){return primeFactors(n).join(' × ')}
+  function multiples(n){return Array.from({length:12},(_,i)=>n*(i+1))}
+  function commonFactors(){if(!compare)return[];const fb=new Set(factors(b));return factors(a).filter(x=>fb.has(x))}
+  function divisibilityHtml(n,prefix){
+    return '<div class="gd-fe-divisibility" data-fe-divisibility="'+prefix+'">'+DIVISORS.map(d=>{
+      const r=n%d,yes=r===0;
+      return '<div class="gd-fe-divisor'+(yes?' is-divisible':'')+'" data-fe-divisor="'+prefix+'-'+d+'"><span>÷ '+d+'</span><strong>'+(yes?'Yes':'r '+r)+'</strong></div>';
+    }).join('')+'</div>';
+  }
+  function pairButtons(n,side){
+    const common=new Set(commonFactors());
+    return factorPairs(n).map((pair,i)=>{
+      const active=selectedSide===side&&selectedPair===i;
+      const shared=compare&&(common.has(pair[0])||common.has(pair[1]));
+      return '<button type="button" class="gd-factor-pair gd-fe-pair'+(active?' is-selected':'')+(shared?' is-common':'')+'" data-fe-pair="'+side+'-'+i+'" data-fe-side="'+side+'" data-fe-index="'+i+'">'+pairLabel(pair)+'</button>';
+    }).join('');
+  }
+  function multipleChips(n,side){
+    const other=side==='a'?b:a;
+    return multiples(n).map((x,i)=>{
+      const common=compare&&x%other===0;
+      return '<span class="gd-multiple gd-fe-multiple'+(common?' is-common':'')+'" data-fe-multiple="'+side+'-'+i+'" title="'+(common?'Common multiple':'Multiple '+(i+1))+'">'+x+'</span>';
+    }).join('');
+  }
+  function numberCard(n,side,label){
+    const fs=factors(n);
+    return '<section class="gd-fe-number-card" data-fe-card="'+side+'">'+
+      '<div class="gd-fe-card-head"><div><span>'+label+'</span><strong>'+n+'</strong><em>'+(isPrime(n)?'Prime number':'Composite · '+fs.length+' factors')+'</em></div>'+
+        '<div class="gd-object-toolbar"><button class="gd-btn" type="button" data-fe-step="'+side+'--">−1</button><button class="gd-btn" type="button" data-fe-step="'+side+'-+">+1</button></div></div>'+
+      '<div><span class="gd-fe-label">Factor pairs</span><div class="gd-factor-pairs">'+pairButtons(n,side)+'</div></div>'+
+      '<div><span class="gd-fe-label">First 12 multiples</span><div class="gd-multiples">'+multipleChips(n,side)+'</div></div>'+
+      '<div><span class="gd-fe-label">Prime factorisation</span><div class="gd-readout gd-fe-prime" data-fe-prime="'+side+'">'+factorisationText(n)+'</div></div>'+
+      '<div><span class="gd-fe-label">Divisibility checks</span>'+divisibilityHtml(n,side)+'</div>'+
+    '</section>';
+  }
+  function arrayDiagram(){
+    const n=currentNumber(),pairs=currentPairs(),pair=pairs[selectedPair]||pairs[0]||[1,n];
+    const rows=pair[0],cols=pair[1],W=520,H=250,pad=52,gridW=W-2*pad,gridH=H-2*pad;
+    let lines='';
+    const vCount=Math.min(cols,24),hCount=Math.min(rows,16);
+    for(let i=1;i<vCount;i++){const x=pad+gridW*i/vCount;lines+='<line x1="'+x+'" y1="'+pad+'" x2="'+x+'" y2="'+(pad+gridH)+'"></line>'}
+    for(let i=1;i<hCount;i++){const y=pad+gridH*i/hCount;lines+='<line x1="'+pad+'" y1="'+y+'" x2="'+(pad+gridW)+'" y2="'+y+'"></line>'}
+    return '<div class="gd-fe-array-panel"><div class="gd-fe-array-head"><span>Selected factor rectangle</span><strong data-fe-selected-pair>'+rows+' × '+cols+' = '+n+'</strong></div>'+
+      '<svg class="gd-fe-array" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+rows+' rows by '+cols+' columns equals '+n+'">'+
+        '<rect x="'+pad+'" y="'+pad+'" width="'+gridW+'" height="'+gridH+'"></rect><g>'+lines+'</g>'+
+        '<text x="'+(W/2)+'" y="28" text-anchor="middle">'+cols+' columns</text><text x="18" y="'+(H/2)+'" text-anchor="middle" transform="rotate(-90 18 '+(H/2)+')">'+rows+' rows</text>'+
+      '</svg><p class="gd-help">'+(cols>24||rows>16?'Large arrays are simplified visually, but the factor pair is exact.':'Each grid division represents one row or column.')+'</p></div>';
+  }
+  function compareSummary(){
+    if(!compare)return'';
+    const cf=commonFactors(),h=gcd2(a,b),l=lcm2(a,b);
+    return '<div class="gd-fe-common" data-fe-common-summary><div><span>Common factors</span><strong>'+cf.join(', ')+'</strong></div><div><span>Highest common factor</span><strong data-fe-hcf>'+h+'</strong></div><div><span>Lowest common multiple</span><strong data-fe-lcm>'+l+'</strong></div></div>';
+  }
+  function draw(){
+    q('#gd-stage').innerHTML='<div class="gd-vis gd-fe-workbench">'+
+      '<div class="gd-fe-summary"><div><span>Factors & multiples</span><strong>'+(compare?a+' and '+b:a)+'</strong></div><div class="gd-object-toolbar"><button class="gd-btn" id="fe-undo" type="button"'+(undoStack.length?'':' disabled')+'>Undo</button><button class="gd-btn" id="fe-redo" type="button"'+(redoStack.length?'':' disabled')+'>Redo</button></div></div>'+
+      compareSummary()+
+      '<div class="gd-fe-cards">'+numberCard(a,'a','Number A')+(compare?numberCard(b,'b','Number B'):'')+'</div>'+
+      arrayDiagram()+
+    '</div>';
+    bindStage();
+  }
+  function bindStage(){
+    qa('[data-fe-step]',q('#gd-stage')).forEach(button=>button.onclick=()=>{
+      const code=button.dataset.feStep,side=code[0],delta=code.endsWith('--')?-1:1;
+      mutate(()=>{selectedSide=side;if(side==='a')setA(a+delta);else setB(b+delta)});
+    });
+    qa('[data-fe-pair]',q('#gd-stage')).forEach(button=>button.onclick=()=>{
+      selectedSide=button.dataset.feSide;selectedPair=Number(button.dataset.feIndex)||0;draw();renderControls();
+    });
+    const u=q('#fe-undo');if(u)u.onclick=undo;
+    const r=q('#fe-redo');if(r)r.onclick=redo;
+  }
+  function controlsHtml(){
+    return field('Number A','<input class="gd-input" id="fe-a" type="number" min="2" max="500" value="'+a+'">','Use the model to inspect factor pairs, multiples, prime factors and divisibility.')+
+      '<label class="gd-tv-check"><input type="checkbox" id="fe-compare"'+(compare?' checked':'')+'> <span>Compare with a second number</span></label>'+
+      (compare?field('Number B','<input class="gd-input" id="fe-b" type="number" min="2" max="500" value="'+b+'">','Common factors and the lowest common multiple are highlighted automatically.'):'')+
+      '<div class="gd-row"><button class="gd-btn" id="fe-random" type="button">Random number'+(compare?'s':'')+'</button><button class="gd-btn" id="fe-reset" type="button">Reset</button></div>'+
+      '<p class="gd-help">Click any factor pair to inspect it as a rectangle. In compare mode, shared factors and common multiples are highlighted, with HCF and LCM shown above.</p>';
+  }
+  function renderControls(){q('#gd-controls').innerHTML=controlsHtml();bindControls()}
+  function bindControls(){
+    const ai=q('#fe-a');if(ai)ai.onchange=()=>mutate(()=>setA(ai.value));
+    const cmp=q('#fe-compare');if(cmp)cmp.onchange=()=>mutate(()=>setCompare(cmp.checked));
+    const bi=q('#fe-b');if(bi)bi.onchange=()=>mutate(()=>setB(bi.value));
+    const random=q('#fe-random');if(random)random.onclick=()=>mutate(()=>{
+      a=2+Math.floor(Math.random()*143);
+      if(compare)b=2+Math.floor(Math.random()*143);
+      selectedSide='a';selectedPair=0;
+    });
+    const reset=q('#fe-reset');if(reset)reset.onclick=()=>mutate(()=>{a=36;b=24;compare=false;selectedSide='a';selectedPair=0});
+  }
+
+  setPanels(controlsHtml(),'');
+  bindControls();
+  draw();
+}
 
 function fdpExplorer(){function draw(){let d=clamp(Math.round(num(q('#fd-d').value,8)),1,20),n=clamp(Math.round(num(q('#fd-n').value,3)),0,d);q('#fd-n').max=d;if(n>+q('#fd-n').value)q('#fd-n').value=n;const g=gcd(n,d),sn=n/g,sd=d/g,v=n/d,pct=v*100;const bar=`<div class="gd-fdp-bar">${Array.from({length:d},(_,i)=>`<span class="gd-fdp-piece${i<n?' is-fill':''}"></span>`).join('')}</div>`;const fills=Math.round(v*100);q('#gd-stage').innerHTML=`<div class="gd-vis gd-fdp-main">${bar}<div class="gd-fdp-readout"><div class="gd-fdp-value"><span>fraction</span><strong>${sn}/${sd}</strong><small>${n}/${d}</small></div><div class="gd-fdp-value"><span>decimal</span><strong>${Number(v.toFixed(4))}</strong></div><div class="gd-fdp-value"><span>percentage</span><strong>${Number(pct.toFixed(2))}%</strong></div></div><div class="gd-hundred">${Array.from({length:100},(_,i)=>`<span class="${i<fills?'is-fill':''}"></span>`).join('')}</div></div>`}
 setPanels(`${field('Numerator','<input class="gd-input" id="fd-n" type="range" min="0" max="8" value="3">')}${field('Denominator','<input class="gd-input" id="fd-d" type="range" min="1" max="20" value="8">')}<p class="gd-help">The hundred square rounds to the nearest whole percent when the fraction does not map exactly to 100 cells.</p>`,'');q('#fd-n').oninput=draw;q('#fd-d').oninput=draw;draw()}
