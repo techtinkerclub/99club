@@ -2049,7 +2049,7 @@ function factorExplorer(){
     return factorPairs(n).map((pair,i)=>{
       const active=selectedSide===side&&selectedPair===i;
       const shared=compare&&(common.has(pair[0])||common.has(pair[1]));
-      const hidden=!!(challenge&&!challenge.revealed&&challenge.hiddenPairSide===side&&challenge.hiddenPairIndex===i);
+      const hidden=!!(challenge&&!challenge.revealed&&((challenge.hiddenPairSide===side&&challenge.hiddenPairIndex===i)||challenge.hiddenAllPairsSide===side));
       return '<button type="button" class="gd-factor-pair gd-fe-pair'+(active?' is-selected':'')+(shared?' is-common':'')+'" data-fe-pair="'+side+'-'+i+'" data-fe-side="'+side+'" data-fe-index="'+i+'"'+(challengeFrozen()?' disabled':'')+'>'+(hidden?(pair[0]+' × ?'):pairLabel(pair))+'</button>';
     }).join('');
   }
@@ -2133,7 +2133,7 @@ function factorExplorer(){
   }
   function challengeObject(type,prompt,answer,extra={}){
     const meta=CHALLENGE_TEMPLATES.find(t=>t.id===type);
-    const raw={mode:'standard',type,category:meta?.category||'',title:'',prompt,promptHtml:prompt,answer:String(answer??''),answerMode:'manual',answerSource:'',revealed:false,hiddenClassificationSide:'',hiddenPairSide:'',hiddenPairIndex:null,hiddenDivisor:null,hiddenDivisorSide:'',hiddenPrimeSide:'',hiddenCommonFactors:false,hiddenHcf:false,hiddenLcm:false,...extra};
+    const raw={mode:'standard',type,category:meta?.category||'',title:'',prompt,promptHtml:prompt,answer:String(answer??''),answerMode:'manual',answerSource:'',revealed:false,hiddenClassificationSide:'',hiddenPairSide:'',hiddenPairIndex:null,hiddenAllPairsSide:'',hiddenDivisor:null,hiddenDivisorSide:'',hiddenPrimeSide:'',hiddenCommonFactors:false,hiddenHcf:false,hiddenLcm:false,...extra};
     return CK?CK.normalise(raw):raw;
   }
   function resolveAnswerSource(source){
@@ -2156,11 +2156,12 @@ function factorExplorer(){
   }
   function clearBoundHiding(){
     if(!challenge)return;
-    challenge.hiddenClassificationSide='';challenge.hiddenPrimeSide='';challenge.hiddenCommonFactors=false;challenge.hiddenHcf=false;challenge.hiddenLcm=false;
+    challenge.hiddenClassificationSide='';challenge.hiddenPrimeSide='';challenge.hiddenAllPairsSide='';challenge.hiddenCommonFactors=false;challenge.hiddenHcf=false;challenge.hiddenLcm=false;
   }
   function applyBoundHiding(source){
     clearBoundHiding();if(!challenge)return;
     if(source==='classification-a')challenge.hiddenClassificationSide='a';
+    if(source==='factors-a')challenge.hiddenAllPairsSide='a';
     if(source==='prime-a')challenge.hiddenPrimeSide='a';
     if(source==='common-factors')challenge.hiddenCommonFactors=true;
     if(source==='hcf')challenge.hiddenHcf=true;
