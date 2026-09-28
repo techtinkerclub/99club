@@ -2115,8 +2115,147 @@ function factorExplorer(){
   draw();
 }
 
-function fdpExplorer(){function draw(){let d=clamp(Math.round(num(q('#fd-d').value,8)),1,20),n=clamp(Math.round(num(q('#fd-n').value,3)),0,d);q('#fd-n').max=d;if(n>+q('#fd-n').value)q('#fd-n').value=n;const g=gcd(n,d),sn=n/g,sd=d/g,v=n/d,pct=v*100;const bar=`<div class="gd-fdp-bar">${Array.from({length:d},(_,i)=>`<span class="gd-fdp-piece${i<n?' is-fill':''}"></span>`).join('')}</div>`;const fills=Math.round(v*100);q('#gd-stage').innerHTML=`<div class="gd-vis gd-fdp-main">${bar}<div class="gd-fdp-readout"><div class="gd-fdp-value"><span>fraction</span><strong>${sn}/${sd}</strong><small>${n}/${d}</small></div><div class="gd-fdp-value"><span>decimal</span><strong>${Number(v.toFixed(4))}</strong></div><div class="gd-fdp-value"><span>percentage</span><strong>${Number(pct.toFixed(2))}%</strong></div></div><div class="gd-hundred">${Array.from({length:100},(_,i)=>`<span class="${i<fills?'is-fill':''}"></span>`).join('')}</div></div>`}
-setPanels(`${field('Numerator','<input class="gd-input" id="fd-n" type="range" min="0" max="8" value="3">')}${field('Denominator','<input class="gd-input" id="fd-d" type="range" min="1" max="20" value="8">')}<p class="gd-help">The hundred square rounds to the nearest whole percent when the fraction does not map exactly to 100 cells.</p>`,'');q('#fd-n').oninput=draw;q('#fd-d').oninput=draw;draw()}
+function fdpExplorer(){
+  let numerator=3,denominator=8,equivScale=1;
+  const undoStack=[],redoStack=[];
+  const BENCHMARKS=[
+    {label:'0',n:0,d:1},{label:'¼',n:1,d:4},{label:'½',n:1,d:2},{label:'¾',n:3,d:4},{label:'1',n:1,d:1}
+  ];
+
+  function normalise(){
+    denominator=clamp(Math.round(Number(denominator)||1),1,20);
+    numerator=clamp(Math.round(Number(numerator)||0),0,denominator);
+    equivScale=clamp(Math.round(Number(equivScale)||1),1,6);
+  }
+  function snapshot(){return{numerator,denominator,equivScale}}
+  function restore(s){
+    numerator=Math.round(Number(s?.numerator)||0);
+    denominator=Math.round(Number(s?.denominator)||1);
+    equivScale=Math.round(Number(s?.equivScale)||1);
+    normalise();
+  }
+  function remember(){undoStack.push(snapshot());if(undoStack.length>60)undoStack.shift();redoStack.length=0}
+  function mutate(fn){remember();fn();normalise();draw();renderControls()}
+  function undo(){if(!undoStack.length)return;redoStack.push(snapshot());restore(undoStack.pop());draw();renderControls()}
+  function redo(){if(!redoStack.length)return;undoStack.push(snapshot());restore(redoStack.pop());draw();renderControls()}
+  function simplified(){
+    if(numerator===0)return{n:0,d:1};
+    const g=gcd(numerator,denominator);
+    return{n:numerator/g,d:denominator/g};
+  }
+  function value(){return numerator/denominator}
+  function decimalText(){
+    const v=value(),fixed=v.toFixed(4);
+    return String(Number(fixed));
+  }
+  function percentValue(){return value()*100}
+  function percentText(){
+    const p=percentValue();
+    return Number.isInteger(p)?String(p):String(Number(p.toFixed(2)));
+  }
+  function hundredFill(){return Math.round(percentValue())}
+  function hundredExact(){return Math.abs(hundredFill()-percentValue())<1e-9}
+  function equivalentFamily(){
+    const s=simplified(),out=[];
+    for(let k=1;k<=6;k++)out.push({n:s.n*k,d:s.d*k,k});
+    return out;
+  }
+  function setBenchmark(n,d){numerator=n;denominator=d;equivScale=1}
+  function setDenominator(next){
+    const oldValue=value();
+    denominator=clamp(Math.round(Number(next)||1),1,20);
+    numerator=clamp(Math.round(oldValue*denominator),0,denominator);
+    equivScale=1;
+  }
+  function setNumerator(next){numerator=clamp(Math.round(Number(next)||0),0,denominator);equivScale=1}
+  function setEquivalentScale(k){
+    equivScale=clamp(Math.round(Number(k)||1),1,6);
+    const s=simplified();
+    const nd=s.d*equivScale;
+    if(nd<=20){numerator=s.n*equivScale;denominator=nd}
+    else equivScale=1;
+  }
+  function barPieces(){
+    return Array.from({length:denominator},(_,i)=>{
+      const fill=i<numerator;
+      return '<button type="button" class="gd-fdp-piece'+(fill?' is-fill':'')+'" data-fd-piece="'+i+'" aria-label="Set numerator to '+(i+1)+' out of '+denominator+'" aria-pressed="'+(fill?'true':'false')+'"><span>'+(i+1)+'</span></button>';
+    }).join('');
+  }
+  function hundredCells(){
+    const fills=hundredFill();
+    return Array.from({length:100},(_,i)=>'<span class="'+(i<fills?'is-fill':'')+'" data-fd-cell="'+(i+1)+'"></span>').join('');
+  }
+  function benchmarkHtml(){
+    return '<div class="gd-fdp-benchmarks" aria-label="Benchmark fractions">'+BENCHMARKS.map(b=>
+      '<button type="button" class="gd-btn" data-fd-benchmark="'+b.n+'/'+b.d+'">'+b.label+'</button>'
+    ).join('')+'</div>';
+  }
+  function equivalentHtml(){
+    const current=numerator+'/'+denominator;
+    return '<div class="gd-fdp-equivalents">'+equivalentFamily().map(item=>{
+      const txt=item.n+'/'+item.d,selected=txt===current;
+      return '<button type="button" class="gd-fdp-equivalent'+(selected?' is-current':'')+'" data-fd-equiv="'+item.k+'"'+(item.d>20?' disabled':'')+'>'+txt+'</button>';
+    }).join('')+'</div>';
+  }
+  function draw(){
+    const s=simplified(),same=s.n===numerator&&s.d===denominator;
+    const rounded=hundredFill(),exact=hundredExact();
+    q('#gd-stage').innerHTML='<div class="gd-vis gd-fdp-main">'+
+      '<div class="gd-fdp-summary"><div><span>Fraction value</span><strong data-fd-source>'+numerator+'/'+denominator+'</strong></div>'+
+        '<div class="gd-object-toolbar"><button class="gd-btn" id="fd-undo" type="button"'+(undoStack.length?'':' disabled')+'>Undo</button><button class="gd-btn" id="fd-redo" type="button"'+(redoStack.length?'':' disabled')+'>Redo</button></div></div>'+
+      '<div class="gd-fdp-direct">'+
+        '<div class="gd-fdp-stepper"><span>Numerator</span><div><button class="gd-btn" id="fd-n-minus" type="button"'+(numerator<=0?' disabled':'')+'>−</button><strong data-fd-numerator>'+numerator+'</strong><button class="gd-btn" id="fd-n-plus" type="button"'+(numerator>=denominator?' disabled':'')+'>+</button></div></div>'+
+        '<div class="gd-fdp-stepper"><span>Denominator</span><div><button class="gd-btn" id="fd-d-minus" type="button"'+(denominator<=1?' disabled':'')+'>−</button><strong data-fd-denominator>'+denominator+'</strong><button class="gd-btn" id="fd-d-plus" type="button"'+(denominator>=20?' disabled':'')+'>+</button></div></div>'+
+      '</div>'+
+      '<div class="gd-fdp-section"><div class="gd-fdp-section-head"><div><span>Fraction bar</span><strong>'+numerator+' of '+denominator+' equal parts</strong></div><small>Tap a part to set the numerator.</small></div>'+
+        '<div class="gd-fdp-bar" style="--fd-denominator:'+denominator+'">'+barPieces()+'</div></div>'+
+      '<div class="gd-fdp-readout">'+
+        '<div class="gd-fdp-value"><span>fraction</span><strong data-fd-fraction>'+s.n+'/'+s.d+'</strong><small>'+(same?'already simplified':'simplified from '+numerator+'/'+denominator)+'</small></div>'+
+        '<div class="gd-fdp-value"><span>decimal</span><strong data-fd-decimal>'+decimalText()+'</strong><small>same value</small></div>'+
+        '<div class="gd-fdp-value"><span>percentage</span><strong data-fd-percent>'+percentText()+'%</strong><small>same value</small></div>'+
+      '</div>'+
+      '<div class="gd-fdp-section"><div class="gd-fdp-section-head"><div><span>Equivalent fractions</span><strong>Same amount, different-sized parts</strong></div></div>'+equivalentHtml()+'</div>'+
+      '<div class="gd-fdp-section"><div class="gd-fdp-section-head"><div><span>Hundred square</span><strong data-fd-hundred-label>'+rounded+' of 100 cells</strong></div><small>'+(exact?'Exact match':'Rounded from '+percentText()+'% to the nearest whole cell')+'</small></div>'+
+        '<div class="gd-hundred" data-fd-hundred-exact="'+(exact?'true':'false')+'">'+hundredCells()+'</div></div>'+
+    '</div>';
+    bindStage();
+  }
+  function bindStage(){
+    qa('[data-fd-piece]',q('#gd-stage')).forEach(button=>button.onclick=()=>mutate(()=>setNumerator(Number(button.dataset.fdPiece)+1)));
+    const nm=q('#fd-n-minus');if(nm)nm.onclick=()=>mutate(()=>setNumerator(numerator-1));
+    const np=q('#fd-n-plus');if(np)np.onclick=()=>mutate(()=>setNumerator(numerator+1));
+    const dm=q('#fd-d-minus');if(dm)dm.onclick=()=>mutate(()=>setDenominator(denominator-1));
+    const dp=q('#fd-d-plus');if(dp)dp.onclick=()=>mutate(()=>setDenominator(denominator+1));
+    qa('[data-fd-equiv]',q('#gd-stage')).forEach(button=>button.onclick=()=>{if(!button.disabled)mutate(()=>setEquivalentScale(Number(button.dataset.fdEquiv)))});
+    const u=q('#fd-undo');if(u)u.onclick=undo;
+    const r=q('#fd-redo');if(r)r.onclick=redo;
+  }
+  function controlsHtml(){
+    return field('Quick fraction','<div class="gd-row"><label class="gd-tv-quick"><span>Numerator</span><input class="gd-input gd-small" id="fd-n" type="number" min="0" max="'+denominator+'" value="'+numerator+'"></label><span>/</span><label class="gd-tv-quick"><span>Denominator</span><input class="gd-input gd-small" id="fd-d" type="number" min="1" max="20" value="'+denominator+'"></label></div>')+
+      field('Benchmarks',benchmarkHtml(),'Jump to useful reference values without losing the link between fraction, decimal and percentage.')+
+      '<div class="gd-row"><button class="gd-btn" id="fd-random" type="button">Random fraction</button><button class="gd-btn" id="fd-reset" type="button">Reset 3/8</button></div>'+
+      '<p class="gd-help">Change the fraction directly on the bar or with the steppers. Changing the denominator preserves the value as closely as that denominator allows; equivalent-fraction buttons preserve it exactly.</p>';
+  }
+  function renderControls(){q('#gd-controls').innerHTML=controlsHtml();bindControls()}
+  function bindControls(){
+    const n=q('#fd-n');if(n)n.onchange=()=>mutate(()=>setNumerator(n.value));
+    const d=q('#fd-d');if(d)d.onchange=()=>mutate(()=>{denominator=clamp(Math.round(Number(d.value)||1),1,20);numerator=clamp(numerator,0,denominator);equivScale=1});
+    qa('[data-fd-benchmark]',q('#gd-controls')).forEach(button=>button.onclick=()=>{
+      const [bn,bd]=button.dataset.fdBenchmark.split('/').map(Number);
+      mutate(()=>setBenchmark(bn,bd));
+    });
+    const random=q('#fd-random');if(random)random.onclick=()=>mutate(()=>{
+      denominator=2+Math.floor(Math.random()*11);
+      numerator=Math.floor(Math.random()*(denominator+1));
+      equivScale=1;
+    });
+    const reset=q('#fd-reset');if(reset)reset.onclick=()=>mutate(()=>{numerator=3;denominator=8;equivScale=1});
+  }
+
+  setPanels(controlsHtml(),'');
+  bindControls();
+  draw();
+}
 
 function geoboard(){
   const CK=G.challengeKit,X=G.exportTools;
