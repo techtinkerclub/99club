@@ -100,7 +100,9 @@ document.exitFullscreen=function(){
           const redoSelector=id==='coordinates'?'[data-co-redo-stage]':'[data-ge-redo-stage]';
           const undo=stage.querySelector(undoSelector),redo=stage.querySelector(redoSelector);
           const documentUndo=document.querySelectorAll(undoSelector).length,documentRedo=document.querySelectorAll(redoSelector).length;
-          assert(undo&&redo,id+' redraw keeps fresh on-stage Undo/Redo in whiteboard mode (stage undo/redo '+(undo?1:0)+'/'+(redo?1:0)+', document '+documentUndo+'/'+documentRedo+')');
+          const stageSummary=String(stage.textContent||'').replace(/\s+/g,' ').trim().slice(0,220);
+          const stageClasses=[...stage.querySelectorAll('[class]')].slice(0,12).map(el=>el.className&&el.className.baseVal!==undefined?el.className.baseVal:el.className).join(' | ').slice(0,320);
+          assert(undo&&redo,id+' redraw keeps fresh on-stage Undo/Redo in whiteboard mode (stage undo/redo '+(undo?1:0)+'/'+(redo?1:0)+', document '+documentUndo+'/'+documentRedo+', children '+stage.children.length+', text "'+stageSummary+'", classes "'+stageClasses+'")');
           assert(getComputedStyle(undo).display!=='none'&&getComputedStyle(redo).display!=='none',id+' on-stage history controls remain visible in whiteboard mode');
         }
         const tools=document.getElementById('gd-whiteboard-tools');
