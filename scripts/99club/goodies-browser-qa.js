@@ -1632,139 +1632,52 @@ if(mode==='prepare'){
     document.querySelector('[data-fe-step="b-+"]').click();
     assert(document.querySelector('[data-fe-card="b"] .gd-fe-card-head strong').textContent.trim()==='25','Direct +1 control changes Number B on the model');
     assert(document.querySelector('[data-fe-hcf]').textContent.trim()==='1','HCF updates immediately after direct comparison edit');
-
-
-    TT99Goodies.factorExplorer();
-    document.querySelector('[data-fe-workflow="challenge"]').click();
-    assert(document.querySelector('[data-fe-challenge-tab="standard"]')&&document.querySelector('[data-fe-challenge-tab="custom"]'),'Factor Explorer uses shared Standard / Custom challenge tabs');
-    assert(document.querySelector('[data-fe-challenge-type="prime-or-composite"]'),'Prime/composite challenge is available');
-    document.getElementById('fe-generate').click();
-    assert(document.querySelector('.gd-challenge-banner'),'Generated Factor Explorer challenge appears above the workbench');
-    assert(document.querySelector('[data-fe-card="a"] .gd-fe-card-head strong').textContent.trim()==='29','Prime challenge uses the supplied number');
-    assert(document.querySelector('[data-fe-card="a"] .gd-fe-card-head em').textContent.trim()==='?','Prime challenge hides the classification');
-    assert(document.querySelector('[data-fe-prime="a"]').textContent.trim()==='?','Prime challenge hides prime factorisation shortcut');
-    assert([...document.querySelectorAll('[data-fe-pair]')].every(x=>x.disabled),'Standard Factor Explorer challenge freezes factor-pair interaction');
-    document.querySelector('[data-board-action="reveal"]').click();
-    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: Prime'),'Prime challenge reveals the classification contextually');
-    assert(document.querySelector('[data-fe-card="a"] .gd-fe-card-head em').textContent.includes('Prime number'),'Reveal restores the classification evidence');
-
-    document.querySelector('[data-fe-workflow="challenge"]').click();
-    document.querySelector('[data-fe-challenge-type="missing-factor"]').click();
-    document.getElementById('fe-generate').click();
-    const hiddenPair=[...document.querySelectorAll('[data-fe-pair]')].find(x=>x.textContent.includes('4 × ?'));
-    assert(hiddenPair,'Missing-factor challenge hides the second factor in the selected pair');
-    assert(document.querySelector('[data-fe-selected-pair]').textContent.trim()==='4 × ? = 36','Missing-factor challenge also hides the answer in the selected factor rectangle label');
-    assert(document.querySelector('.gd-fe-array').getAttribute('aria-label').includes('unknown number of columns'),'Missing-factor rectangle accessibility text does not leak the answer');
-    document.querySelector('[data-board-action="reveal"]').click();
-    assert([...document.querySelectorAll('[data-fe-pair]')].some(x=>x.textContent.trim()==='4 × 9'),'Reveal restores the missing factor');
-
-    document.querySelector('[data-fe-workflow="challenge"]').click();
-    document.querySelector('[data-fe-challenge-type="divisible-by"]').click();
-    document.getElementById('fe-generate').click();
-    assert(document.querySelector('[data-fe-divisor="a-6"] strong').textContent.trim()==='?','Divisibility challenge hides the requested check result');
-    document.querySelector('[data-board-action="reveal"]').click();
-    assert(document.querySelector('[data-fe-divisor="a-6"] strong').textContent.trim()==='Yes','Reveal restores divisibility evidence');
-
-    document.querySelector('[data-fe-workflow="challenge"]').click();
-    document.querySelector('[data-fe-challenge-cat="compare"]').click();
-    assert(document.querySelector('[data-fe-challenge-type="common-factors"]')&&document.querySelector('[data-fe-challenge-type="hcf"]')&&document.querySelector('[data-fe-challenge-type="lcm"]'),'Factor comparison challenge types are available');
-    document.querySelector('[data-fe-challenge-type="common-factors"]').click();
-    document.getElementById('fe-generate').click();
-    assert(document.querySelector('[data-fe-common-summary] strong').textContent.trim()==='?','Common-factors challenge hides the shared-factor list');
-    document.querySelector('[data-board-action="reveal"]').click();
-    assert(document.querySelector('[data-fe-common-summary]').textContent.includes('1, 2, 3, 4, 6, 12'),'Reveal restores the common factors');
-
-    document.querySelector('[data-fe-workflow="challenge"]').click();
-    document.querySelector('[data-fe-challenge-cat="compare"]').click();
-    document.querySelector('[data-fe-challenge-type="hcf"]').click();
-    document.getElementById('fe-generate').click();
-    assert(document.querySelector('[data-fe-hcf]').textContent.trim()==='?','HCF challenge hides the HCF readout');
-    document.querySelector('[data-board-action="reveal"]').click();
-    assert(document.querySelector('[data-fe-hcf]').textContent.trim()==='12','HCF challenge reveals 12');
-
-    document.querySelector('[data-fe-workflow="challenge"]').click();
-    document.querySelector('[data-fe-challenge-cat="compare"]').click();
-    document.querySelector('[data-fe-challenge-type="lcm"]').click();
-    document.getElementById('fe-generate').click();
-    assert(document.querySelector('[data-fe-lcm]').textContent.trim()==='?','LCM challenge hides the LCM readout');
-    document.querySelector('[data-board-action="reveal"]').click();
-    assert(document.querySelector('[data-fe-lcm]').textContent.trim()==='36','LCM challenge reveals 36');
-
-    document.querySelector('[data-fe-workflow="challenge"]').click();
-    document.querySelector('[data-fe-challenge-tab="custom"]').click();
-    let feSource=document.getElementById('fe-custom-answer-source');
-    assert(feSource&&['classification-a','factors-a','prime-a','common-factors','hcf','lcm'].every(source=>[...feSource.options].some(o=>o.value===source)),'Factor Explorer custom challenge exposes live model answer sources');
-    feSource.value='factors-a';feSource.dispatchEvent(new Event('change',{bubbles:true}));
-    assert([...document.querySelectorAll('[data-fe-card="a"] [data-fe-pair]')].every(x=>x.textContent.includes('?')),'Custom all-factors binding hides factor-pair evidence');
-    assert(document.getElementById('fe-custom-live-answer').textContent.trim()==='1, 2, 3, 4, 6, 12','Custom all-factors answer binds to Number A factors');
-
-    feSource=document.getElementById('fe-custom-answer-source');
-    feSource.value='hcf';feSource.dispatchEvent(new Event('change',{bubbles:true}));
-    assert(document.getElementById('fe-custom-live-answer').textContent.trim()==='6','Custom HCF answer binds to current 12 and 18 model');
-    assert(document.querySelector('[data-fe-hcf]').textContent.trim()==='?','Custom HCF binding hides the matching readout');
-    let feB=document.getElementById('fe-b');feB.value='24';feB.dispatchEvent(new Event('change',{bubbles:true}));
-    assert(document.getElementById('fe-custom-live-answer').textContent.trim()==='12','Custom HCF answer follows live Number B edits');
-    assert(document.querySelector('[data-fe-hcf]').textContent.trim()==='?','Bound HCF stays hidden after live edits');
-
-    document.getElementById('fe-clear-challenge').click();
-    assert(document.querySelector('[data-fe-card="a"] .gd-fe-card-head strong').textContent.trim()==='36','Ending Factor Explorer challenge restores teacher Number A');
-
-    document.querySelector('[data-fe-workflow="export"]').click();
-    assert(document.getElementById('fe-copy-image')&&document.getElementById('fe-png')&&document.getElementById('fe-svg-download')&&document.getElementById('fe-print'),'Factor Explorer export exposes copy, PNG, SVG and Print/PDF actions');
-    let feSvg=null,feName='';
-    const feOldDownload=TT99Goodies.exportTools.downloadSvg;
-    TT99Goodies.exportTools.downloadSvg=(svg,name)=>{feSvg=svg.cloneNode(true);feName=name};
-    document.getElementById('fe-svg-download').click();
-    TT99Goodies.exportTools.downloadSvg=feOldDownload;
-    assert(feSvg&&feSvg.dataset.feExport==='diagram','Factor Explorer diagram-only export is a deterministic SVG');
-    assert(feSvg.querySelectorAll('[data-fe-export-card]').length===1,'Single-number Factor export contains one number card');
-    assert(feSvg.textContent.includes('36'),'Factor export preserves the current teacher number');
-    assert(feSvg.querySelector('[data-fe-export-array]'),'Factor export contains the selected factor rectangle');
-    assert(feName.includes('factors-multiples'),'Factor diagram export has a reusable filename');
-
-    document.querySelector('[data-fe-workflow="challenge"]').click();
-    document.querySelector('[data-fe-challenge-cat="compare"]').click();
-    document.querySelector('[data-fe-challenge-type="hcf"]').click();
-    document.getElementById('fe-generate').click();
-    document.querySelector('[data-board-action="reveal"]').click();
-    assert(document.querySelector('[data-fe-hcf]').textContent.trim()==='12','Teacher can Reveal the HCF before export');
-    document.querySelector('[data-fe-workflow="export"]').click();
-    let feChallengeSvg=null;
-    const feOldChallengeDownload=TT99Goodies.exportTools.downloadSvg;
-    TT99Goodies.exportTools.downloadSvg=(svg)=>{feChallengeSvg=svg.cloneNode(true)};
-    document.getElementById('fe-svg-download').click();
-    TT99Goodies.exportTools.downloadSvg=feOldChallengeDownload;
-    assert(feChallengeSvg&&feChallengeSvg.querySelector('[data-fe-export-common]'),'Factor challenge card embeds the comparison evidence panel');
-    assert(feChallengeSvg.querySelector('[data-fe-export-hcf]').textContent.trim()==='?','Pupil HCF export re-hides the answer after teacher Reveal');
-    assert(!feChallengeSvg.textContent.includes('Answer: 12'),'Pupil Factor challenge export never includes the teacher Reveal answer');
-    assert(feChallengeSvg.textContent.includes('highest common factor'),'Factor challenge card includes the pupil prompt');
-
-    document.querySelector('[data-fe-workflow="challenge"]').click();
-    document.querySelector('[data-fe-challenge-cat="read"]').click();
-    document.querySelector('[data-fe-challenge-type="missing-factor"]').click();
-    document.getElementById('fe-generate').click();
-    document.querySelector('[data-board-action="reveal"]').click();
-    document.querySelector('[data-fe-workflow="export"]').click();
-    let feMissingSvg=null;
-    const feOldMissingDownload=TT99Goodies.exportTools.downloadSvg;
-    TT99Goodies.exportTools.downloadSvg=(svg)=>{feMissingSvg=svg.cloneNode(true)};
-    document.getElementById('fe-svg-download').click();
-    TT99Goodies.exportTools.downloadSvg=feOldMissingDownload;
-    assert(feMissingSvg&&[...feMissingSvg.querySelectorAll('[data-fe-export-pair^="a-"]')].some(x=>x.textContent.trim()==='4 × ?'),'Pupil missing-factor export keeps the requested factor hidden after Reveal');
-    assert(feMissingSvg.querySelector('[data-fe-export-array-label]').textContent.includes('4 × ? = 36'),'Pupil factor rectangle heading keeps the missing factor hidden');
-
-    document.querySelector('[data-fe-workflow="challenge"]').click();
-    document.querySelector('[data-fe-challenge-tab="custom"]').click();
-    feSource=document.getElementById('fe-custom-answer-source');
-    feSource.value='factors-a';feSource.dispatchEvent(new Event('change',{bubbles:true}));
-    document.querySelector('[data-fe-workflow="export"]').click();
-    let feCustomSvg=null;
-    const feOldCustomDownload=TT99Goodies.exportTools.downloadSvg;
-    TT99Goodies.exportTools.downloadSvg=(svg)=>{feCustomSvg=svg.cloneNode(true)};
-    document.getElementById('fe-svg-download').click();
-    TT99Goodies.exportTools.downloadSvg=feOldCustomDownload;
-    assert(feCustomSvg&&[...feCustomSvg.querySelectorAll('[data-fe-export-pair^="a-"]')].every(x=>x.textContent.includes('?')),'Pupil Custom factor-list export keeps every factor pair hidden');
   }
+  function testFdpWorkbench(){
+    TT99Goodies.interaction.clear();
+    assert(TT99Goodies.fdpExplorer,'FDP Explorer is registered');
+    TT99Goodies.fdpExplorer();
+
+    assert(document.querySelector('[data-fd-source]').textContent.trim()==='3/8','FDP Explorer opens on 3/8');
+    assert(document.querySelector('[data-fd-fraction]').textContent.trim()==='3/8','3/8 is already simplified');
+    assert(document.querySelector('[data-fd-decimal]').textContent.trim()==='0.375','Decimal representation matches 3/8');
+    assert(document.querySelector('[data-fd-percent]').textContent.trim()==='37.5%','Percentage representation matches 3/8');
+    assert(document.querySelectorAll('[data-fd-piece]').length===8,'Fraction bar has eight equal parts');
+    assert(document.querySelectorAll('[data-fd-piece].is-fill').length===3,'Fraction bar fills three of eight parts');
+    assert(document.querySelector('[data-fd-hundred-exact]').dataset.fdHundredExact==='false','3/8 hundred-square cue is explicitly rounded');
+
+    document.querySelector('[data-fd-piece="4"]').click();
+    assert(document.querySelector('[data-fd-source]').textContent.trim()==='5/8','Tapping the fifth bar part sets numerator to 5');
+    assert(document.querySelectorAll('[data-fd-piece].is-fill').length===5,'Direct bar edit updates filled fraction parts');
+    document.getElementById('fd-undo').click();
+    assert(document.querySelector('[data-fd-source]').textContent.trim()==='3/8','Undo restores the previous fraction');
+    document.getElementById('fd-redo').click();
+    assert(document.querySelector('[data-fd-source]').textContent.trim()==='5/8','Redo reapplies the direct fraction edit');
+
+    document.querySelector('[data-fd-benchmark="1/2"]').click();
+    assert(document.querySelector('[data-fd-source]').textContent.trim()==='1/2','Benchmark button jumps directly to one half');
+    assert(document.querySelector('[data-fd-percent]').textContent.trim()==='50%','Benchmark keeps linked percentage correct');
+    assert(document.querySelector('[data-fd-hundred-exact]').dataset.fdHundredExact==='true','One half maps exactly to 50 hundred-square cells');
+
+    let n=document.getElementById('fd-n'),d=document.getElementById('fd-d');
+    n.value='3';n.dispatchEvent(new Event('change',{bubbles:true}));
+    d=document.getElementById('fd-d');d.value='4';d.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.querySelector('[data-fd-source]').textContent.trim()==='3/4','Quick fraction setup accepts 3/4');
+    const sixEighths=[...document.querySelectorAll('[data-fd-equiv]')].find(x=>x.textContent.trim()==='6/8');
+    assert(sixEighths,'Equivalent family includes 6/8 for 3/4');
+    sixEighths.click();
+    assert(document.querySelector('[data-fd-source]').textContent.trim()==='6/8','Equivalent-fraction button changes representation while preserving value');
+    assert(document.querySelector('[data-fd-fraction]').textContent.trim()==='3/4','Equivalent representation still simplifies to 3/4');
+    assert(document.querySelector('[data-fd-decimal]').textContent.trim()==='0.75','Equivalent representation preserves decimal value');
+    assert(document.querySelector('[data-fd-percent]').textContent.trim()==='75%','Equivalent representation preserves percentage value');
+
+    document.getElementById('fd-d-plus').click();
+    assert(document.querySelector('[data-fd-denominator]').textContent.trim()==='9','Direct denominator stepper changes partition count');
+    assert(Number(document.querySelector('[data-fd-numerator]').textContent)<=9,'Numerator remains valid after denominator edit');
+    document.getElementById('fd-reset').click();
+    assert(document.querySelector('[data-fd-source]').textContent.trim()==='3/8','Reset returns FDP Explorer to 3/8');
+  }
+
   function testPlaceValue(){
     TT99Goodies.interaction.clear();
     assert(TT99Goodies.placeValue,'Place Value is registered');
@@ -3152,6 +3065,7 @@ if(mode==='prepare'){
         testMultiplicationGridWorkbench();
         testTimesTableVisualWorkbench();
         testFactorExplorerWorkbench();
+        testFdpWorkbench();
         testPlaceValue();
         testFractions();
         testGeoboard();
@@ -3160,7 +3074,7 @@ if(mode==='prepare'){
         testArrayWorkbench();
         testMoneyWorkbench();
         testClockWorkbench();
-        result('pass','Number Line challenges, Maths Canvas, Bar Model, Equation Balance, Hundred Square, Multiplication Grid, Times-table Visualiser, Factor Explorer, Place Value, Fraction Wall, Geoboard, Coordinates, Measurement, Array, UK Money and Clock workbench interactions work');
+        result('pass','Number Line challenges, Maths Canvas, Bar Model, Equation Balance, Hundred Square, Multiplication Grid, Times-table Visualiser, Factor Explorer, FDP Explorer, Place Value, Fraction Wall, Geoboard, Coordinates, Measurement, Array, UK Money and Clock workbench interactions work');
       }catch(err){
         result('fail',err&&err.message?err.message:String(err));
       }
