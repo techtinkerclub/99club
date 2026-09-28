@@ -949,7 +949,9 @@ try{
   if(!goodiesCss.includes('position:sticky;top:12px;max-height:calc(100dvh - 24px);overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable'))fail('goodies-layout','Desktop teacher controls lost their pinned viewport-bounded layout');
   if(!goodiesCss.includes('.gd-controls{position:static;max-height:none;overflow:visible;overscroll-behavior:auto;scrollbar-gutter:auto}'))fail('goodies-layout','Phone controls no longer return to normal document flow');
   if(!goodiesCss.includes('.gd-tool-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);width:100%;gap:8px}'))fail('goodies-layout','Phone tool actions lost their contained two-column layout');
-  ok('goodies-layout','Shared desktop/mobile containment and reduced-scroll layout contracts are present');
+  if(!goodiesCss.includes('.gd-controls>[role="tablist"][aria-label$="workflow"]{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))'))fail('goodies-layout','Shared three-destination workflow navigation contract is missing');
+  if(!goodiesCss.includes('@media(min-width:901px){.gd-controls>[role="tablist"][aria-label$="workflow"]{position:sticky'))fail('goodies-layout','Desktop workflow navigation is no longer pinned inside the teacher controls');
+  ok('goodies-layout','Shared desktop/mobile containment, reduced-scroll and workflow-navigation contracts are present');
   const capabilitySpecs=[
     {id:'number-line',source:numberLine,mode:'challenge'},
     {id:'place-value',source:goodiesToolsA,fn:'placeValue',mode:'challenge'},
