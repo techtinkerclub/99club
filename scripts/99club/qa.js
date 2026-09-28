@@ -1000,6 +1000,9 @@ try{
     }
   }
   ok('goodies-capabilities','All '+capabilitySpecs.length+' catalogue manipulatives have an explicit challenge/task/export policy; Randomiser is the sole utility exception');
+  if(!goodiesToolsB.includes('id="ra-stage-go"')||!goodiesToolsB.includes("mode==='dice'?'Roll dice'")||!goodiesToolsB.includes("mode==='spinner'?'Spin'"))fail('goodies-randomiser','Randomiser no longer exposes its repeat action directly on the live stage');
+  if(!goodiesCss.includes('.gd-random-stage-action{'))fail('goodies-randomiser','Randomiser stage action styling is missing');
+  ok('goodies-randomiser','Randomiser keeps its repeat action on-stage for whiteboard use while configuration remains in Tools');
   for(const token of ['data-co-undo-stage','data-co-redo-stage','data-ge-undo-stage','data-ge-redo-stage'])if(!goodiesToolsB.includes(token))fail('goodies-stage-history','Coordinate/Geoboard on-stage recovery control missing: '+token);
   if(!goodiesCss.includes('.gd-context-actions{'))fail('goodies-stage-history','Shared on-stage history action layout is missing');
   ok('goodies-stage-history','Coordinates and Geoboard keep Undo/Redo beside the live diagram for whiteboard use');
