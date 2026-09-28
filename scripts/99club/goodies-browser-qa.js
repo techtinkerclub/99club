@@ -1538,6 +1538,53 @@ if(mode==='prepare'){
     document.getElementById('tv-clear-challenge').click();
     assert(document.querySelector('[data-tv-equation]').textContent.trim()==='4 × 6 = 24','Ending Times-table challenges restores the teacher model');
     assert(document.querySelectorAll('[data-tv-group]').length===4,'Ending Times-table challenges restores the teacher group count');
+
+    document.querySelector('[data-tv-workflow="export"]').click();
+    assert(document.getElementById('tv-copy-image')&&document.getElementById('tv-png')&&document.getElementById('tv-svg-download')&&document.getElementById('tv-print'),'Times-table Visualiser export exposes copy, PNG, SVG and Print/PDF actions');
+    let tvCapturedSvg=null,tvCapturedName='';
+    const tvOldDownloadSvg=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg,name)=>{tvCapturedSvg=svg.cloneNode(true);tvCapturedName=name};
+    document.getElementById('tv-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=tvOldDownloadSvg;
+    assert(tvCapturedSvg&&tvCapturedSvg.dataset.tvExport==='model','Times-table model-only export is a deterministic SVG model');
+    assert(tvCapturedSvg.querySelectorAll('[data-tv-export-group]').length===4,'Model-only SVG preserves all equal groups');
+    assert(tvCapturedSvg.querySelector('[data-tv-export-equation]').textContent.trim()==='4 × 6 = 24','Model-only SVG includes the current equation');
+    assert(tvCapturedName.includes('times-table-equal-groups'),'Times-table model export has a reusable filename');
+
+    document.querySelector('[data-tv-workflow="challenge"]').click();
+    document.querySelector('[data-tv-challenge-cat="read"]').click();
+    document.querySelector('[data-tv-challenge-type="find-total"]').click();
+    document.getElementById('tv-generate').click();
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('[data-tv-equation]').textContent.trim()==='3 × 4 = 12','Teacher can reveal a standard challenge before export');
+    document.querySelector('[data-tv-workflow="export"]').click();
+    assert(document.querySelector('[data-tv-export-mode="challenge"]'),'Active Times-table challenge offers Challenge card export');
+    let tvChallengeSvg=null;
+    const tvOldChallengeDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{tvChallengeSvg=svg.cloneNode(true)};
+    document.getElementById('tv-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=tvOldChallengeDownload;
+    assert(tvChallengeSvg&&tvChallengeSvg.querySelector('[data-tv-export-model]'),'Times-table challenge card embeds the vector equal-groups model');
+    assert(!tvChallengeSvg.textContent.includes('Answer: 12'),'Pupil challenge export never includes the teacher Reveal answer');
+    assert(tvChallengeSvg.textContent.includes('3 × 4 = ?'),'Pupil find-total export re-hides the total after teacher Reveal');
+    assert(tvChallengeSvg.textContent.includes('How many items are there altogether'),'Challenge-card export includes the pupil prompt');
+
+    document.querySelector('[data-tv-workflow="challenge"]').click();
+    document.querySelector('[data-tv-challenge-cat="build"]').click();
+    document.querySelector('[data-tv-challenge-type="build-fact"]').click();
+    document.getElementById('tv-generate').click();
+    tvA=document.getElementById('tv-a');tvA.value='3';tvA.dispatchEvent(new Event('change',{bubbles:true}));
+    tvB=document.getElementById('tv-b');tvB.value='4';tvB.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.querySelector('[data-tv-equation]').textContent.trim()==='3 × 4 = 12','Teacher can test-complete the build challenge');
+    document.querySelector('[data-tv-workflow="export"]').click();
+    let tvBuildSvg=null;
+    const tvOldBuildDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{tvBuildSvg=svg.cloneNode(true)};
+    document.getElementById('tv-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=tvOldBuildDownload;
+    assert(tvBuildSvg&&tvBuildSvg.textContent.includes('2 × 2 = 4'),'Pupil build challenge export restores the original neutral model after teacher completion');
+    assert(tvBuildSvg.querySelectorAll('[data-tv-export-group]').length===2,'Pupil build export restores the original two equal groups');
+
     Math.random=realTvRandom;
   }
 
