@@ -2391,7 +2391,7 @@ function hundredSquare(){
 }
 
 function multiplicationGrid(){
-  const CK=G.challengeKit;
+  const CK=G.challengeKit,X=G.exportTools;
   let size=12,focus=6,selectedRow=6,selectedCol=4,interactionMode='select',pairCommutative=true,paint=null;
   let hidden=new Set();
   const undoStack=[],redoStack=[];
@@ -2409,6 +2409,7 @@ function multiplicationGrid(){
     {id:'spot-error',category:'reason',title:'Spot the incorrect product',desc:'Find one incorrect product in a times-table row.'}
   ];
   let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='missing-product',challenge=null,beforeChallenge=null;
+  let exportMode='grid',responseLines=1,exportStatus='';
 
   function key(r,c){return r+'-'+c}
   function parseKey(k){const [r,c]=String(k).split('-').map(Number);return{r,c}}
@@ -2614,7 +2615,8 @@ function multiplicationGrid(){
   function workflowTabs(){
     return '<div class="gd-row gd-mg-workflow-tabs" role="tablist" aria-label="Multiplication Grid workflow">'+
       '<button class="gd-btn'+(controlTab==='explore'?' gd-btn--primary':'')+'" type="button" data-mg-workflow="explore">Explore</button>'+
-      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-mg-workflow="challenge">Challenge'+(challenge?' •':'')+'</button></div>';
+      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-mg-workflow="challenge">Challenge'+(challenge?' •':'')+'</button>'+ 
+      '<button class="gd-btn'+(controlTab==='export'?' gd-btn--primary':'')+'" type="button" data-mg-workflow="export">Export / reuse</button></div>';
   }
   function modelControlsHtml(){
     return field('Grid size','<input class="gd-input" id="mg-size" type="number" min="5" max="15" value="'+size+'">','Show tables from 1×1 up to '+size+'×'+size+'.')+
@@ -2664,11 +2666,11 @@ function multiplicationGrid(){
       challenge=challengeObject(type,'One entry in the '+a+' times-table row is wrong. Which fact should be corrected?',a+' × '+b+' = '+p,{hideFactsPanel:true,wrongCellKey:key(a,b),wrongDisplay});
     }
     challenge.initialState=snapshot();
-    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';renderControls();draw();
+    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';exportMode='challenge';exportStatus='';renderControls();draw();
   }
   function restoreBeforeChallenge(){if(beforeChallenge){restore(beforeChallenge);beforeChallenge=null}}
   function clearChallenge(){
-    restoreBeforeChallenge();challenge=null;challengeTab='standard';controlTab='challenge';undoStack.length=0;redoStack.length=0;renderControls();draw();
+    restoreBeforeChallenge();challenge=null;challengeTab='standard';controlTab='challenge';exportMode='grid';exportStatus='';undoStack.length=0;redoStack.length=0;renderControls();draw();
   }
   function clearBoundHiding(){if(challenge)challenge.hideFactsPanel=false}
   function applyBoundHiding(source){
@@ -2709,7 +2711,7 @@ function multiplicationGrid(){
     if(CK)challenge=CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''});
     if(!wasCustom)clearBoundHiding();
     challenge.freezeGrid=false;challenge.selectOnly=false;challenge.revealed=false;
-    challengeTab='custom';controlTab='challenge';renderControls();draw();
+    challengeTab='custom';controlTab='challenge';exportMode='challenge';exportStatus='';renderControls();draw();
   }
   function setCustomAnswerSource(source){
     if(!challenge||challenge.mode!=='custom')return;
@@ -2736,7 +2738,7 @@ function multiplicationGrid(){
       (challenge&&challenge.answer?'<button class="gd-btn" id="mg-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
       (challenge?'<button class="gd-btn" id="mg-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>';
   }
-  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():exploreControlsHtml())}
+  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():controlTab==='export'?exportControlsHtml():exploreControlsHtml())}
   function renderControls(){q('#gd-controls').innerHTML=controlsHtml();bindControls()}
   function bindModelControls(){
     const sizeInput=q('#mg-size');if(sizeInput)sizeInput.onchange=()=>mutate(()=>setSize(sizeInput.value));
