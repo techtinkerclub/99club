@@ -73,6 +73,16 @@ window.scrollTo=function(){};
     assert(controls.scrollWidth<=controls.clientWidth+3,label+' controls need horizontal scrolling');
     checkControlsContainment(controls,label);
     checkButtonText(controls,label);
+    if(id!=='number-line'&&id!=='randomiser'){
+      const workflow=[...controls.children].find(el=>el.matches('[role="tablist"][aria-label$="workflow"]'));
+      assert(workflow,label+' exposes workflow navigation at the top of the teacher controls');
+      const workflowButtons=[...workflow.querySelectorAll('button')].filter(visible);
+      assert(workflowButtons.length===3,label+' workflow navigation keeps exactly three primary destinations');
+      assert(getComputedStyle(workflow).display==='grid',label+' workflow navigation uses the shared equal-width grid');
+      workflowButtons.forEach(button=>assert(button.scrollWidth<=button.clientWidth+4,label+' workflow label stays fully readable: '+button.textContent.trim()));
+      if(innerWidth>=901)assert(getComputedStyle(workflow).position==='sticky',label+' workflow navigation remains visible while desktop controls scroll');
+      else assert(getComputedStyle(workflow).position!=='sticky',label+' workflow navigation stays in normal flow on phone');
+    }
     if(innerWidth>=901){
       const style=getComputedStyle(controls);
       assert(style.position==='sticky',label+' desktop controls should remain pinned while the page moves');
