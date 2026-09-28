@@ -541,6 +541,11 @@ html.nl-board-page-lock,body.nl-board-page-lock{overflow:hidden!important;oversc
 .nl-export-frame text{paint-order:stroke;stroke:#fff;stroke-width:2px;stroke-linejoin:round}
 .nl-export-frame .nl-svg-marker text{stroke-width:2.5px}
 
+@media(max-width:1250px){
+  .nl-workflow-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .nl-workflow-tab{min-height:34px;white-space:normal;overflow:visible;text-overflow:clip}
+  .nl-present-btn{align-self:start}
+}
 @media(max-width:1050px){
   #nl-controls{position:static;max-height:none;overflow:visible;padding-right:0}
   .nl-workflow-head{position:sticky;top:4px}
