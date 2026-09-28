@@ -16,7 +16,7 @@ robots: "noindex,nofollow,noarchive"
   </article>
 </div>
 
-<link rel="stylesheet" href="/assets/99club/goodies.css?v=37">
+<link rel="stylesheet" href="/assets/99club/goodies.css?v=38">
 <script src="/assets/99club/goodies-core.js?v=1" defer></script>
 <script src="/assets/99club/goodies-interaction.js?v=2" defer></script>
 <script src="/assets/99club/goodies-challenge.js?v=5" defer></script>
@@ -24,4 +24,4 @@ robots: "noindex,nofollow,noarchive"
 <script src="/assets/99club/goodies-tools-a.js?v=26" defer></script>
 <script src="/assets/99club/goodies-number-line-v6.js?v=10" defer></script>
 <script src="/assets/99club/goodies-tools-b.js?v=21" defer></script>
-<script src="/assets/99club/goodies-app.js?v=2" defer></script>
+<script src="/assets/99club/goodies-app.js?v=3" defer></script>
