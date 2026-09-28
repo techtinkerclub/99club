@@ -1595,7 +1595,7 @@ function timesTableVisual(){
   function divisionBText(){return total()+' ÷ '+itemsPerGroup+' = '+groupsCount}
   function hiddenFlag(key){return !!(challenge&&!challenge.revealed&&challenge[key])}
   function equationText(){
-    if(challenge?.type==='spot-error'&&!challenge.revealed)return groupsCount+' × '+itemsPerGroup+' = '+challenge.wrongTotal;
+    if(challenge?.mode==='standard'&&challenge.type==='spot-error'&&!challenge.revealed)return groupsCount+' × '+itemsPerGroup+' = '+challenge.wrongTotal;
     if(hiddenFlag('hiddenEquation'))return groupsCount+' × '+itemsPerGroup+' = ?';
     return groupsCount+' × '+itemsPerGroup+' = '+total();
   }
