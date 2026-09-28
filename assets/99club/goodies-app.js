@@ -31,17 +31,69 @@ root.innerHTML=`<div class="gd-shell">
     <div class="gd-grid" id="gd-grid"></div>
   </section>
   <section class="gd-tool-view" aria-live="polite">
-    <div class="gd-tool-head"><div><span class="gd-eyebrow" id="gd-tool-cat"></span><h2 id="gd-tool-title"></h2><p id="gd-tool-desc"></p></div><button class="gd-back" id="gd-back" type="button">← All manipulatives</button></div>
-    <div class="gd-workspace"><aside class="gd-panel gd-controls" id="gd-controls"></aside><main class="gd-panel gd-stage" id="gd-stage"></main></div>
+    <div class="gd-tool-head"><div><span class="gd-eyebrow" id="gd-tool-cat"></span><h2 id="gd-tool-title"></h2><p id="gd-tool-desc"></p></div><div class="gd-tool-actions"><button class="gd-btn gd-present" id="gd-present" type="button">Present</button><button class="gd-back" id="gd-back" type="button">← All manipulatives</button></div></div>
+    <div class="gd-workspace" id="gd-workspace" data-whiteboard-supported="true"><aside class="gd-panel gd-controls" id="gd-controls"></aside><main class="gd-panel gd-stage" id="gd-stage"></main><div class="gd-whiteboard-ui" aria-hidden="true"><button class="gd-whiteboard-button gd-whiteboard-tools" id="gd-whiteboard-tools" type="button" aria-controls="gd-controls" aria-expanded="false">Tools</button><button class="gd-whiteboard-button gd-whiteboard-exit" id="gd-whiteboard-exit" type="button" aria-label="Exit whiteboard mode">Exit</button></div></div>
     <div class="gd-use" id="gd-use"></div>
   </section>
 </div>`;
 
-const shell=root.querySelector('.gd-shell'),grid=q('#gd-grid'),search=q('#gd-search');
-let category='all';
+const shell=root.querySelector('.gd-shell'),grid=q('#gd-grid'),search=q('#gd-search'),workspace=q('#gd-workspace');
+let category='all',currentToolId='',whiteboardFallback=false,whiteboardToolsOpen=false;
+function genericWhiteboardActive(){return document.fullscreenElement===workspace||whiteboardFallback}
+function bespokeNumberLineActive(){
+  if(currentToolId!=='number-line')return false;
+  const stage=q('#gd-stage');
+  return document.fullscreenElement===stage||!!stage?.classList.contains('nl-board-fallback');
+}
+function whiteboardActive(){return genericWhiteboardActive()||bespokeNumberLineActive()}
+function setWhiteboardUi(active){
+  workspace.classList.toggle('gd-whiteboard-active',!!active);
+  workspace.classList.toggle('gd-whiteboard-tools-open',!!active&&whiteboardToolsOpen);
+  const ui=q('.gd-whiteboard-ui',workspace);if(ui)ui.setAttribute('aria-hidden',active?'false':'true');
+  const toolsButton=q('#gd-whiteboard-tools');if(toolsButton)toolsButton.setAttribute('aria-expanded',active&&whiteboardToolsOpen?'true':'false');
+  const controls=q('#gd-controls');if(controls)controls.setAttribute('aria-hidden',active&&!whiteboardToolsOpen?'true':'false');
+  document.documentElement.classList.toggle('gd-whiteboard-page-lock',!!active);
+  document.body.classList.toggle('gd-whiteboard-page-lock',!!active);
+}
+function enterWhiteboardFallback(){
+  whiteboardFallback=true;whiteboardToolsOpen=false;workspace.classList.add('gd-whiteboard-fallback');setWhiteboardUi(true);
+}
+function leaveGenericWhiteboard(){
+  whiteboardFallback=false;whiteboardToolsOpen=false;workspace.classList.remove('gd-whiteboard-fallback');setWhiteboardUi(false);
+}
+function enterGenericWhiteboard(){
+  whiteboardToolsOpen=false;setWhiteboardUi(true);
+  if(workspace.requestFullscreen){
+    workspace.requestFullscreen().then(()=>setWhiteboardUi(true)).catch(()=>enterWhiteboardFallback());
+  }else enterWhiteboardFallback();
+}
+function exitWhiteboard(){
+  if(bespokeNumberLineActive()){
+    const stage=q('#gd-stage');
+    if(document.fullscreenElement===stage&&document.exitFullscreen){document.exitFullscreen();return}
+    const exit=q('[data-board-action="exit"]',stage);if(exit){exit.click();return}
+  }
+  if(document.fullscreenElement===workspace&&document.exitFullscreen)document.exitFullscreen().catch(()=>leaveGenericWhiteboard());
+  else leaveGenericWhiteboard();
+}
+function enterWhiteboard(){
+  if(currentToolId==='number-line'){
+    const bespoke=q('#nl-fullscreen');
+    if(bespoke){bespoke.click();return}
+  }
+  enterGenericWhiteboard();
+}
 function renderCards(){const term=search.value.trim().toLowerCase();const filtered=tools.filter(t=>(category==='all'||t.cat===category)&&(!term||`${t.title} ${t.desc} ${t.use}`.toLowerCase().includes(term)));grid.innerHTML=filtered.map(t=>`<button class="gd-tool-card" type="button" data-tool="${t.id}"><div class="gd-tool-card__top"><span class="gd-icon">${t.icon}</span><h2>${t.title}</h2></div><p>${t.desc}</p><span class="gd-tag">${CATS[t.cat]}</span></button>`).join('')||'<p class="gd-empty">No manipulatives match that search.</p>';qa('[data-tool]',grid).forEach(b=>b.addEventListener('click',()=>openTool(b.dataset.tool)))}
-function openTool(id){const t=tools.find(x=>x.id===id);if(!t)return;G.interaction?.clear();shell.classList.add('is-tool-open');q('#gd-tool-cat').textContent=CATS[t.cat];q('#gd-tool-title').textContent=t.title;q('#gd-tool-desc').textContent=t.desc;q('#gd-use').innerHTML=`<strong>Classroom use:</strong> ${t.use}`;t.build();history.replaceState(null,'','#'+id);window.scrollTo({top:root.getBoundingClientRect().top+scrollY-20,behavior:'smooth'})}
-function closeTool(){G.interaction?.clear();shell.classList.remove('is-tool-open');history.replaceState(null,'',location.pathname+location.search);q('#gd-controls').innerHTML='';q('#gd-stage').innerHTML=''}
+function openTool(id){const t=tools.find(x=>x.id===id);if(!t)return;if(genericWhiteboardActive())leaveGenericWhiteboard();G.interaction?.clear();currentToolId=id;shell.classList.add('is-tool-open');q('#gd-tool-cat').textContent=CATS[t.cat];q('#gd-tool-title').textContent=t.title;q('#gd-tool-desc').textContent=t.desc;q('#gd-use').innerHTML=`<strong>Classroom use:</strong> ${t.use}`;const present=q('#gd-present');if(present)present.hidden=id==='number-line';t.build();history.replaceState(null,'','#'+id);window.scrollTo({top:root.getBoundingClientRect().top+scrollY-20,behavior:'smooth'})}
+function closeTool(){if(genericWhiteboardActive())exitWhiteboard();G.interaction?.clear();currentToolId='';shell.classList.remove('is-tool-open');history.replaceState(null,'',location.pathname+location.search);q('#gd-controls').innerHTML='';q('#gd-stage').innerHTML=''}
+q('#gd-present').addEventListener('click',enterWhiteboard);
+q('#gd-whiteboard-tools').addEventListener('click',()=>{if(!genericWhiteboardActive())return;whiteboardToolsOpen=!whiteboardToolsOpen;setWhiteboardUi(true)});
+q('#gd-whiteboard-exit').addEventListener('click',exitWhiteboard);
+document.addEventListener('fullscreenchange',()=>{
+  if(document.fullscreenElement===workspace){whiteboardFallback=false;workspace.classList.remove('gd-whiteboard-fallback');setWhiteboardUi(true)}
+  else if(workspace.classList.contains('gd-whiteboard-active')&&!whiteboardFallback)leaveGenericWhiteboard();
+});
+G.whiteboard={enter:enterWhiteboard,exit:exitWhiteboard,isActive:whiteboardActive,tools:()=>tools.map(t=>t.id)};
 q('#gd-back').addEventListener('click',closeTool);search.addEventListener('input',renderCards);qa('[data-cat]').forEach(b=>b.addEventListener('click',()=>{category=b.dataset.cat;qa('[data-cat]').forEach(x=>x.classList.toggle('is-active',x===b));renderCards()}));
 renderCards();
 const hash=location.hash.slice(1);if(tools.some(t=>t.id===hash))openTool(hash);

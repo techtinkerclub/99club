@@ -923,18 +923,28 @@ try{
 /* ---------- hidden manipulatives / Number Line classroom contracts ---------- */
 try{
   const goodiesPage=read('_pages/99-club-goodies.md');
+  const goodiesApp=read('assets/99club/goodies-app.js');
   const numberLine=read('assets/99club/goodies-number-line-v6.js');
   const challengeKit=read('assets/99club/goodies-challenge.js');
   const goodiesToolsA=read('assets/99club/goodies-tools-a.js');
   const goodiesToolsB=read('assets/99club/goodies-tools-b.js');
   const goodiesExport=read('assets/99club/goodies-export.js');
   const goodiesCss=read('assets/99club/goodies.css');
+  new Function(goodiesApp);
   new Function(numberLine);
   new Function(challengeKit);
   new Function(goodiesToolsA);
   new Function(goodiesToolsB);
   new Function(goodiesExport);
   if(!goodiesPage.includes('permalink: /goodies/')||!goodiesPage.includes('sitemap: false')||!goodiesPage.includes('search: false')||!goodiesPage.includes('noindex,nofollow,noarchive'))fail('goodies-number-line','Hidden goodies route/indexing contract regressed');
+  const toolBlock=goodiesApp.slice(goodiesApp.indexOf('const tools=['),goodiesApp.indexOf('].map',goodiesApp.indexOf('const tools=[')));
+  const whiteboardToolIds=[...toolBlock.matchAll(/\['([^']+)'/g)].map(m=>m[1]);
+  if(whiteboardToolIds.length<18)fail('goodies-whiteboard','Catalogue extraction did not find every manipulative',String(whiteboardToolIds.length));
+  if(new Set(whiteboardToolIds).size!==whiteboardToolIds.length)fail('goodies-whiteboard','Catalogue contains duplicate manipulative ids');
+  for(const token of ['id="gd-present"','id="gd-workspace"','data-whiteboard-supported="true"','id="gd-whiteboard-tools"','aria-controls="gd-controls"','aria-expanded="false"','id="gd-whiteboard-exit"','function enterWhiteboard','function enterGenericWhiteboard','function enterWhiteboardFallback','function exitWhiteboard',"currentToolId==='number-line'","present.hidden=id==='number-line'",'G.whiteboard={'])if(!goodiesApp.includes(token))fail('goodies-whiteboard','Shared whiteboard contract missing: '+token);
+  for(const token of ['.gd-workspace.gd-whiteboard-active','.gd-whiteboard-ui','.gd-whiteboard-tools-open','.gd-whiteboard-fallback','.gd-whiteboard-button','gd-whiteboard-page-lock'])if(!goodiesCss.includes(token))fail('goodies-whiteboard','Shared whiteboard styling missing: '+token);
+  if(!numberLine.includes('id="nl-fullscreen"')||!numberLine.includes('function enterBoardFallback')||!numberLine.includes('function boardActive'))fail('goodies-whiteboard','Number Line bespoke whiteboard mode is no longer available');
+  ok('goodies-whiteboard',whiteboardToolIds.length+' catalogue manipulatives are covered by shared/bespoke whiteboard mode contracts');
   if(!/goodies-number-line-v6\.js\?v=\d+/.test(goodiesPage)||!/goodies-challenge\.js\?v=\d+/.test(goodiesPage)||!/goodies-tools-a\.js\?v=\d+/.test(goodiesPage)||!/goodies-tools-b\.js\?v=\d+/.test(goodiesPage)||!/goodies-export\.js\?v=\d+/.test(goodiesPage)||!/goodies\.css\?v=\d+/.test(goodiesPage))fail('goodies-number-line','Number Line / shared challenge/export assets are not cache-busted on /goodies/');
   if(goodiesPage.indexOf('goodies-challenge.js')>goodiesPage.indexOf('goodies-number-line-v6.js'))fail('goodies-number-line','Shared challenge framework must load before Number Line v6');
   for(const token of [
