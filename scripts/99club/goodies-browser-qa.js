@@ -1676,6 +1676,45 @@ if(mode==='prepare'){
     assert(Number(document.querySelector('[data-fd-numerator]').textContent)<=9,'Numerator remains valid after denominator edit');
     document.getElementById('fd-reset').click();
     assert(document.querySelector('[data-fd-source]').textContent.trim()==='3/8','Reset returns FDP Explorer to 3/8');
+
+
+    TT99Goodies.fdpExplorer();
+    document.querySelector('[data-fd-workflow="challenge"]').click();
+    assert(document.querySelector('[data-fd-challenge-tab="standard"]')&&document.querySelector('[data-fd-challenge-tab="custom"]'),'FDP Explorer uses shared Standard / Custom challenge tabs');
+    document.getElementById('fd-generate').click();
+    assert(document.querySelector('[data-fd-decimal]').textContent.trim()==='?','Fraction-to-decimal challenge hides the decimal answer');
+    assert(document.querySelector('[data-fd-percent]').textContent.trim()==='?','Fraction-to-decimal challenge hides the percentage shortcut');
+    assert(!document.querySelector('[data-fd-hundred-exact]'),'Fraction-to-decimal challenge hides the hundred-square shortcut');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: 0.375'),'Fraction-to-decimal challenge reveals the correct answer');
+
+    document.querySelector('[data-fd-workflow="challenge"]').click();
+    document.querySelector('[data-fd-challenge-cat="equivalent"]').click();
+    document.querySelector('[data-fd-challenge-type="simplify-fraction"]').click();
+    document.getElementById('fd-generate').click();
+    assert(document.querySelector('[data-fd-source]').textContent.trim()==='6/8','Simplify challenge keeps the source fraction visible');
+    assert(document.querySelector('[data-fd-fraction]').textContent.trim()==='?/?','Simplify challenge hides simplest form');
+    assert([...document.querySelectorAll('[data-fd-equiv]')].every(x=>x.textContent.trim()==='?/?'),'Simplify challenge hides equivalent-family shortcuts');
+
+    document.querySelector('[data-fd-workflow="challenge"]').click();
+    document.querySelector('[data-fd-challenge-cat="build"]').click();
+    document.querySelector('[data-fd-challenge-type="build-percentage"]').click();
+    document.getElementById('fd-generate').click();
+    assert(document.querySelector('[data-fd-source]').textContent.trim()==='1/2','Build-percentage challenge starts from a neutral 1/2 model');
+    assert(document.querySelector('[data-fd-target-status]').textContent.includes('Build 75%'),'Build-percentage challenge states its target');
+    let fn=document.getElementById('fd-n'),fd=document.getElementById('fd-d');
+    fn.value='3';fn.dispatchEvent(new Event('change',{bubbles:true}));
+    fd=document.getElementById('fd-d');fd.value='4';fd.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.querySelector('[data-fd-target-status]').textContent.includes('On target'),'Build-percentage challenge validates 3/4 as 75%');
+
+    document.querySelector('[data-fd-workflow="challenge"]').click();
+    document.querySelector('[data-fd-challenge-tab="custom"]').click();
+    let fdSource=document.getElementById('fd-custom-answer-source');
+    fdSource.value='percentage';fdSource.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.getElementById('fd-custom-live-answer').textContent.trim()==='75%','Custom percentage answer binds to the live model');
+    assert(document.querySelector('[data-fd-percent]').textContent.trim()==='?','Custom percentage binding hides percentage readout');
+    assert(document.querySelector('[data-fd-decimal]').textContent.trim()==='?','Custom percentage binding hides decimal shortcut');
+    assert(!document.querySelector('[data-fd-hundred-exact]'),'Custom percentage binding hides hundred-square shortcut');
   }
 
   function testPlaceValue(){
