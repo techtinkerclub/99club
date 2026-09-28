@@ -982,9 +982,10 @@ function randomiser(){
     return '<div class="gd-poly-die gd-poly-die--d'+sides+(rolling?' is-rolling':'')+'" style="--ra-delay:'+(index*45)+'ms" aria-label="D'+sides+' die '+(index+1)+': '+value+'"><strong>'+value+'</strong><small>d'+sides+'</small></div>';
   }
   function diceStage(rolling=false){
-    const count=clamp(num(q('#ra-count')?.value,2),1,8),sides=clamp(num(q('#ra-sides')?.value,6),2,100),vals=diceValues.length===count?diceValues:Array.from({length:count},()=>1),total=vals.reduce((a,b)=>a+b,0);
+    const count=clamp(num(q('#ra-count')?.value,2),1,8),sides=clamp(num(q('#ra-sides')?.value,6),2,100),hasResult=diceValues.length===count,vals=hasResult?diceValues:Array.from({length:count},()=>1),total=vals.reduce((a,b)=>a+b,0);
+    const resultText=hasResult?vals.join(' + ')+(vals.length>1?' = '+total:''):'Press Roll';
     return '<div class="gd-vis gd-randomiser-stage"><div class="gd-dice-table"><div class="gd-dice-set '+(count>4?'is-many':'')+'">'+vals.map((v,i)=>dieHtml(v,sides,i,rolling)).join('')+'</div>'+
-      '<div class="gd-random-result" aria-live="polite"><span>'+(rolling?'Rolling…':'Result')+'</span><strong data-ra-result>'+(rolling?'—':esc(vals.join(' + ')+(vals.length>1?' = '+total:'')))+'</strong></div></div></div>';
+      '<div class="gd-random-result" aria-live="polite"><span>'+(rolling?'Rolling…':'Result')+'</span><strong data-ra-result>'+(rolling?'—':esc(resultText))+'</strong></div></div></div>';
   }
   function wheelMarkup(list,rotation,label){
     const n=Math.max(1,list.length),step=360/n,stops=list.map((_,i)=>WHEEL_COLOURS[i%WHEEL_COLOURS.length]+' '+(i*step)+'deg '+((i+1)*step)+'deg').join(',');
