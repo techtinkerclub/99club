@@ -2116,11 +2116,27 @@ function factorExplorer(){
 }
 
 function fdpExplorer(){
+  const CK=G.challengeKit;
   let numerator=3,denominator=8,equivScale=1;
   const undoStack=[],redoStack=[];
   const BENCHMARKS=[
     {label:'0',n:0,d:1},{label:'¼',n:1,d:4},{label:'½',n:1,d:2},{label:'¾',n:3,d:4},{label:'1',n:1,d:1}
   ];
+  const CHALLENGE_CATEGORIES=[
+    {id:'convert',label:'Convert'},
+    {id:'equivalent',label:'Equivalent fractions'},
+    {id:'build',label:'Build'},
+    {id:'reason',label:'Reasoning'}
+  ];
+  const CHALLENGE_TEMPLATES=[
+    {id:'to-decimal',category:'convert',title:'Fraction to decimal',desc:'Convert the shown fraction to a decimal.'},
+    {id:'to-percentage',category:'convert',title:'Fraction to percentage',desc:'Convert the shown fraction to a percentage.'},
+    {id:'equivalent-fraction',category:'equivalent',title:'Complete an equivalent fraction',desc:'Find the missing numerator or denominator.'},
+    {id:'simplify-fraction',category:'equivalent',title:'Simplify the fraction',desc:'Write the shown fraction in its simplest form.'},
+    {id:'build-percentage',category:'build',title:'Build a percentage',desc:'Adjust the fraction until it represents the requested percentage.'},
+    {id:'spot-percent-error',category:'reason',title:'Spot the percentage error',desc:'Decide whether a displayed percentage matches the fraction.'}
+  ];
+  let controlTab='explore',challengeTab='standard',challengeCategory='convert',challengeType='to-decimal',challenge=null,beforeChallenge=null;
 
   function normalise(){
     denominator=clamp(Math.round(Number(denominator)||1),1,20);
@@ -2135,9 +2151,10 @@ function fdpExplorer(){
     normalise();
   }
   function remember(){undoStack.push(snapshot());if(undoStack.length>60)undoStack.shift();redoStack.length=0}
-  function mutate(fn){remember();fn();normalise();draw();renderControls()}
-  function undo(){if(!undoStack.length)return;redoStack.push(snapshot());restore(undoStack.pop());draw();renderControls()}
-  function redo(){if(!redoStack.length)return;undoStack.push(snapshot());restore(redoStack.pop());draw();renderControls()}
+  function challengeFrozen(){return !!(challenge&&challenge.mode==='standard'&&challenge.freezeModel)}
+  function mutate(fn){if(challengeFrozen())return;remember();fn();normalise();draw();renderControls()}
+  function undo(){if(!undoStack.length||challengeFrozen())return;redoStack.push(snapshot());restore(undoStack.pop());draw();renderControls()}
+  function redo(){if(!redoStack.length||challengeFrozen())return;undoStack.push(snapshot());restore(redoStack.pop());draw();renderControls()}
   function simplified(){
     if(numerator===0)return{n:0,d:1};
     const g=gcd(numerator,denominator);
@@ -2191,37 +2208,53 @@ function fdpExplorer(){
     ).join('')+'</div>';
   }
   function equivalentHtml(){
-    const current=numerator+'/'+denominator;
+    const current=numerator+'/'+denominator,hide=!!(challenge&&!challenge.revealed&&challenge.hiddenEquivalentFamily);
     return '<div class="gd-fdp-equivalents">'+equivalentFamily().map(item=>{
       const txt=item.n+'/'+item.d,selected=txt===current;
-      return '<button type="button" class="gd-fdp-equivalent'+(selected?' is-current':'')+'" data-fd-equiv="'+item.k+'"'+(item.d>20?' disabled':'')+'>'+txt+'</button>';
+      return '<button type="button" class="gd-fdp-equivalent'+(selected?' is-current':'')+'" data-fd-equiv="'+item.k+'"'+(item.d>20||challengeFrozen()?' disabled':'')+'>'+(hide?'?/?':txt)+'</button>';
     }).join('')+'</div>';
   }
+  function bindChallengeStageActions(){
+    const stage=q('#gd-stage');if(!stage||!challenge)return;
+    const reveal=q('[data-board-action="reveal"]',stage);if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();draw()};
+    const another=q('[data-challenge-action="another"]',stage);if(another)another.onclick=e=>{e.stopPropagation();if(challenge?.mode==='standard')generateChallenge(challenge.type)};
+  }
+  function challengeProgress(){
+    if(!challenge||challenge.type!=='build-percentage')return'';
+    const diff=Math.abs(percentValue()-Number(challenge.targetPercent));
+    return diff<1e-9?'On target · '+percentText()+'% ✓':'Build '+challenge.targetPercent+'%';
+  }
   function draw(){
+    updateChallengeAnswer();
     const s=simplified(),same=s.n===numerator&&s.d===denominator;
-    const rounded=hundredFill(),exact=hundredExact();
-    q('#gd-stage').innerHTML='<div class="gd-vis gd-fdp-main">'+
+    const rounded=hundredFill(),exact=hundredExact(),hidden=challenge&&!challenge.revealed;
+    const fractionDisplay=hidden&&challenge.hiddenFraction?'?/?':s.n+'/'+s.d;
+    const decimalDisplay=hidden&&challenge.hiddenDecimal?'?':decimalText();
+    const percentDisplay=challenge?.mode==='standard'&&challenge.type==='spot-percent-error'&&hidden?challenge.wrongPercent+'%':(hidden&&challenge.hiddenPercent?'?':percentText()+'%');
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Fraction–decimal–percentage challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
+    q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-fdp-main">'+
       '<div class="gd-fdp-summary"><div><span>Fraction value</span><strong data-fd-source>'+numerator+'/'+denominator+'</strong></div>'+
-        '<div class="gd-object-toolbar"><button class="gd-btn" id="fd-undo" type="button"'+(undoStack.length?'':' disabled')+'>Undo</button><button class="gd-btn" id="fd-redo" type="button"'+(redoStack.length?'':' disabled')+'>Redo</button></div></div>'+
-      '<div class="gd-fdp-direct">'+
+        '<div class="gd-object-toolbar"><button class="gd-btn" id="fd-undo" type="button"'+(undoStack.length&&!challengeFrozen()?'':' disabled')+'>Undo</button><button class="gd-btn" id="fd-redo" type="button"'+(redoStack.length&&!challengeFrozen()?'':' disabled')+'>Redo</button></div></div>'+
+      (!challengeFrozen()?'<div class="gd-fdp-direct">'+
         '<div class="gd-fdp-stepper"><span>Numerator</span><div><button class="gd-btn" id="fd-n-minus" type="button"'+(numerator<=0?' disabled':'')+'>−</button><strong data-fd-numerator>'+numerator+'</strong><button class="gd-btn" id="fd-n-plus" type="button"'+(numerator>=denominator?' disabled':'')+'>+</button></div></div>'+
         '<div class="gd-fdp-stepper"><span>Denominator</span><div><button class="gd-btn" id="fd-d-minus" type="button"'+(denominator<=1?' disabled':'')+'>−</button><strong data-fd-denominator>'+denominator+'</strong><button class="gd-btn" id="fd-d-plus" type="button"'+(denominator>=20?' disabled':'')+'>+</button></div></div>'+
-      '</div>'+
-      '<div class="gd-fdp-section"><div class="gd-fdp-section-head"><div><span>Fraction bar</span><strong>'+numerator+' of '+denominator+' equal parts</strong></div><small>Tap a part to set the numerator.</small></div>'+
+      '</div>':'')+
+      '<div class="gd-fdp-section"><div class="gd-fdp-section-head"><div><span>Fraction bar</span><strong>'+numerator+' of '+denominator+' equal parts</strong></div><small>'+(challengeFrozen()?'Use the model to reason about the value.':'Tap a part to set the numerator.')+'</small></div>'+
         '<div class="gd-fdp-bar" style="--fd-denominator:'+denominator+'">'+barPieces()+'</div></div>'+
       '<div class="gd-fdp-readout">'+
-        '<div class="gd-fdp-value"><span>fraction</span><strong data-fd-fraction>'+s.n+'/'+s.d+'</strong><small>'+(same?'already simplified':'simplified from '+numerator+'/'+denominator)+'</small></div>'+
-        '<div class="gd-fdp-value"><span>decimal</span><strong data-fd-decimal>'+decimalText()+'</strong><small>same value</small></div>'+
-        '<div class="gd-fdp-value"><span>percentage</span><strong data-fd-percent>'+percentText()+'%</strong><small>same value</small></div>'+
+        '<div class="gd-fdp-value"><span>fraction</span><strong data-fd-fraction>'+fractionDisplay+'</strong><small>'+(hidden&&challenge.hiddenFraction?'simplified form hidden':(same?'already simplified':'simplified from '+numerator+'/'+denominator))+'</small></div>'+
+        '<div class="gd-fdp-value"><span>decimal</span><strong data-fd-decimal>'+decimalDisplay+'</strong><small>same value</small></div>'+
+        '<div class="gd-fdp-value"><span>percentage</span><strong data-fd-percent>'+percentDisplay+'</strong><small>same value</small></div>'+
       '</div>'+
       '<div class="gd-fdp-section"><div class="gd-fdp-section-head"><div><span>Equivalent fractions</span><strong>Same amount, different-sized parts</strong></div></div>'+equivalentHtml()+'</div>'+
-      '<div class="gd-fdp-section"><div class="gd-fdp-section-head"><div><span>Hundred square</span><strong data-fd-hundred-label>'+rounded+' of 100 cells</strong></div><small>'+(exact?'Exact match':'Rounded from '+percentText()+'% to the nearest whole cell')+'</small></div>'+
-        '<div class="gd-hundred" data-fd-hundred-exact="'+(exact?'true':'false')+'">'+hundredCells()+'</div></div>'+
+      (hidden&&challenge.hiddenHundred?'':'<div class="gd-fdp-section"><div class="gd-fdp-section-head"><div><span>Hundred square</span><strong data-fd-hundred-label>'+rounded+' of 100 cells</strong></div><small>'+(exact?'Exact match':'Rounded from '+percentText()+'% to the nearest whole cell')+'</small></div>'+
+        '<div class="gd-hundred" data-fd-hundred-exact="'+(exact?'true':'false')+'">'+hundredCells()+'</div></div>')+
+      (challenge?.type==='build-percentage'?'<div class="gd-answer-live" data-fd-target-status>'+challengeProgress()+'</div>':'')+
     '</div>';
-    bindStage();
+    bindStage();bindChallengeStageActions();
   }
   function bindStage(){
-    qa('[data-fd-piece]',q('#gd-stage')).forEach(button=>button.onclick=()=>mutate(()=>setNumerator(Number(button.dataset.fdPiece)+1)));
+    qa('[data-fd-piece]',q('#gd-stage')).forEach(button=>button.onclick=()=>{if(!challengeFrozen())mutate(()=>setNumerator(Number(button.dataset.fdPiece)+1))});
     const nm=q('#fd-n-minus');if(nm)nm.onclick=()=>mutate(()=>setNumerator(numerator-1));
     const np=q('#fd-n-plus');if(np)np.onclick=()=>mutate(()=>setNumerator(numerator+1));
     const dm=q('#fd-d-minus');if(dm)dm.onclick=()=>mutate(()=>setDenominator(denominator-1));
@@ -2230,26 +2263,144 @@ function fdpExplorer(){
     const u=q('#fd-undo');if(u)u.onclick=undo;
     const r=q('#fd-redo');if(r)r.onclick=redo;
   }
-  function controlsHtml(){
+  function workflowTabs(){
+    return '<div class="gd-row gd-fdp-workflow-tabs" role="tablist" aria-label="FDP Explorer workflow">'+
+      '<button class="gd-btn'+(controlTab==='explore'?' gd-btn--primary':'')+'" type="button" data-fd-workflow="explore">Explore</button>'+
+      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-fd-workflow="challenge">Challenge'+(challenge?' •':'')+'</button></div>';
+  }
+  function modelControlsHtml(){
     return field('Quick fraction','<div class="gd-row"><label class="gd-tv-quick"><span>Numerator</span><input class="gd-input gd-small" id="fd-n" type="number" min="0" max="'+denominator+'" value="'+numerator+'"></label><span>/</span><label class="gd-tv-quick"><span>Denominator</span><input class="gd-input gd-small" id="fd-d" type="number" min="1" max="20" value="'+denominator+'"></label></div>')+
-      field('Benchmarks',benchmarkHtml(),'Jump to useful reference values without losing the link between fraction, decimal and percentage.')+
+      field('Benchmarks',benchmarkHtml(),'Jump to useful reference values without losing the link between fraction, decimal and percentage.');
+  }
+  function exploreControlsHtml(){
+    return modelControlsHtml()+
       '<div class="gd-row"><button class="gd-btn" id="fd-random" type="button">Random fraction</button><button class="gd-btn" id="fd-reset" type="button">Reset 3/8</button></div>'+
       '<p class="gd-help">Change the fraction directly on the bar or with the steppers. Changing the denominator preserves the value as closely as that denominator allows; equivalent-fraction buttons preserve it exactly.</p>';
   }
+  function challengeObject(type,prompt,answer,extra={}){
+    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===type);
+    const raw={mode:'standard',type,category:meta?.category||'',title:'',prompt,promptHtml:prompt,answer:String(answer??''),answerMode:'manual',answerSource:'',revealed:false,freezeModel:true,hiddenFraction:false,hiddenDecimal:false,hiddenPercent:false,hiddenHundred:false,hiddenEquivalentFamily:false,targetPercent:null,wrongPercent:null,...extra};
+    return CK?CK.normalise(raw):raw;
+  }
+  function resolveAnswerSource(source){
+    const s=simplified();
+    if(source==='fraction')return s.n+'/'+s.d;
+    if(source==='source-fraction')return numerator+'/'+denominator;
+    if(source==='decimal')return decimalText();
+    if(source==='percentage')return percentText()+'%';
+    return'';
+  }
+  function customAnswerSources(){
+    return[
+      {id:'fraction',label:'Simplified fraction'},
+      {id:'source-fraction',label:'Displayed fraction'},
+      {id:'decimal',label:'Decimal'},
+      {id:'percentage',label:'Percentage'}
+    ];
+  }
+  function clearBoundHiding(){
+    if(!challenge)return;
+    challenge.hiddenFraction=false;challenge.hiddenDecimal=false;challenge.hiddenPercent=false;challenge.hiddenHundred=false;challenge.hiddenEquivalentFamily=false;
+  }
+  function applyBoundHiding(source){
+    clearBoundHiding();if(!challenge)return;
+    if(source==='fraction'){challenge.hiddenFraction=true;challenge.hiddenEquivalentFamily=true}
+    if(source==='decimal'){challenge.hiddenDecimal=true;challenge.hiddenPercent=true;challenge.hiddenHundred=true}
+    if(source==='percentage'){challenge.hiddenPercent=true;challenge.hiddenDecimal=true;challenge.hiddenHundred=true}
+  }
+  function updateChallengeAnswer(){
+    if(!challenge||challenge.answerMode!=='bound'||!challenge.answerSource)return;
+    const answer=resolveAnswerSource(challenge.answerSource);if(answer!=='')challenge.answer=answer;
+    const live=q('#fd-custom-live-answer');if(live)live.textContent=challenge.answer||'—';
+    if(challenge.revealed){const shown=q('.gd-challenge-actions em',q('#gd-stage'));if(shown)shown.textContent='Answer: '+challenge.answer}
+  }
+  function generateChallenge(type){
+    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!meta)return;
+    if(!beforeChallenge)beforeChallenge=snapshot();else restore(beforeChallenge);
+    undoStack.length=0;redoStack.length=0;equivScale=1;
+    if(type==='to-decimal'){
+      numerator=3;denominator=8;challenge=challengeObject(type,'Write 3/8 as a decimal.','0.375',{hiddenDecimal:true,hiddenPercent:true,hiddenHundred:true});
+    }else if(type==='to-percentage'){
+      numerator=3;denominator=5;challenge=challengeObject(type,'Write 3/5 as a percentage.','60%',{hiddenDecimal:true,hiddenPercent:true,hiddenHundred:true});
+    }else if(type==='equivalent-fraction'){
+      numerator=3;denominator=4;challenge=challengeObject(type,'Complete the equivalent fraction: 3/4 = 6/?.','8',{hiddenEquivalentFamily:true});
+    }else if(type==='simplify-fraction'){
+      numerator=6;denominator=8;challenge=challengeObject(type,'Write 6/8 in its simplest form.','3/4',{hiddenFraction:true,hiddenEquivalentFamily:true});
+    }else if(type==='build-percentage'){
+      numerator=1;denominator=2;challenge=challengeObject(type,'Change the model until it represents 75%.','3/4 = 75%',{freezeModel:false,targetPercent:75});
+    }else{
+      numerator=2;denominator=5;challenge=challengeObject(type,'The percentage shown is 45%. Is that correct? Explain.','No. 2/5 = 40%, not 45%.',{wrongPercent:45,hiddenDecimal:true,hiddenHundred:true});
+    }
+    challengeType=type;challengeCategory=meta.category;challengeTab='standard';controlTab='challenge';renderControls();draw();
+  }
+  function enterCustomChallenge(){
+    if(!beforeChallenge)beforeChallenge=snapshot();
+    if(CK)challenge=CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''});
+    challenge.mode='custom';challenge.freezeModel=false;challenge.revealed=false;challengeTab='custom';controlTab='challenge';renderControls();draw();
+  }
+  function setCustomAnswerSource(source){
+    if(!challenge||challenge.mode!=='custom')return;
+    if(source==='manual'){challenge.answerMode='manual';challenge.answerSource='';clearBoundHiding()}
+    else if(source==='generated'){challenge.answerMode='bound';challenge.answerSource='';clearBoundHiding()}
+    else{challenge.answerMode='bound';challenge.answerSource=source;challenge.answer=resolveAnswerSource(source);applyBoundHiding(source)}
+    challenge.revealed=false;renderControls();draw();
+  }
+  function clearChallenge(){
+    if(beforeChallenge){restore(beforeChallenge);beforeChallenge=null}
+    challenge=null;challengeTab='standard';controlTab='challenge';undoStack.length=0;redoStack.length=0;renderControls();draw();
+  }
+  function challengeControlsHtml(){
+    if(!CK)return'<p class="gd-help">Challenge tools are unavailable.</p>';
+    const tabs=CK.tabsHtml?CK.tabsHtml('fd',challengeTab):'';
+    if(challengeTab==='custom'){
+      const custom=challenge&&challenge.mode==='custom'?challenge:CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual'});
+      return tabs+CK.editorHtml(custom,'fd',{answerSources:customAnswerSources(),generatedAnswerLabel:'Keep the generated answer'})+
+        modelControlsHtml()+
+        '<div class="gd-row">'+(challenge&&challenge.answer?'<button class="gd-btn" id="fd-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
+        (challenge?'<button class="gd-btn" id="fd-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
+        '<p class="gd-help">Custom answers can follow the simplified fraction, displayed fraction, decimal or percentage as the model changes.</p>';
+    }
+    const picker=CK.pickerHtml(CHALLENGE_TEMPLATES,CHALLENGE_CATEGORIES,challengeCategory,challengeType,'fd');
+    const repeat=!!(challenge&&challenge.mode==='standard'&&challenge.type===challengeType);
+    return tabs+picker+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="fd-generate" type="button">'+(repeat?'Another like this':'Generate challenge')+'</button>'+
+      (challenge&&challenge.mode!=='custom'?'<button class="gd-btn" id="fd-edit-challenge" type="button">Edit challenge</button>':'')+
+      (challenge&&challenge.answer?'<button class="gd-btn" id="fd-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
+      (challenge?'<button class="gd-btn" id="fd-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
+      (!challengeFrozen()&&challenge?.type==='build-percentage'?modelControlsHtml():'');
+  }
+  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():exploreControlsHtml())}
   function renderControls(){q('#gd-controls').innerHTML=controlsHtml();bindControls()}
   function bindControls(){
-    const n=q('#fd-n');if(n)n.onchange=()=>mutate(()=>setNumerator(n.value));
-    const d=q('#fd-d');if(d)d.onchange=()=>mutate(()=>{denominator=clamp(Math.round(Number(d.value)||1),1,20);numerator=clamp(numerator,0,denominator);equivScale=1});
-    qa('[data-fd-benchmark]',q('#gd-controls')).forEach(button=>button.onclick=()=>{
-      const [bn,bd]=button.dataset.fdBenchmark.split('/').map(Number);
-      mutate(()=>setBenchmark(bn,bd));
-    });
-    const random=q('#fd-random');if(random)random.onclick=()=>mutate(()=>{
-      denominator=2+Math.floor(Math.random()*11);
-      numerator=Math.floor(Math.random()*(denominator+1));
-      equivScale=1;
-    });
-    const reset=q('#fd-reset');if(reset)reset.onclick=()=>mutate(()=>{numerator=3;denominator=8;equivScale=1});
+    const controls=q('#gd-controls');if(!controls)return;
+    qa('[data-fd-workflow]',controls).forEach(button=>button.onclick=()=>{controlTab=button.dataset.fdWorkflow;renderControls()});
+    function bindModel(){
+      const n=q('#fd-n');if(n)n.onchange=()=>mutate(()=>setNumerator(n.value));
+      const d=q('#fd-d');if(d)d.onchange=()=>mutate(()=>{denominator=clamp(Math.round(Number(d.value)||1),1,20);numerator=clamp(numerator,0,denominator);equivScale=1});
+      qa('[data-fd-benchmark]',controls).forEach(button=>button.onclick=()=>{const [bn,bd]=button.dataset.fdBenchmark.split('/').map(Number);mutate(()=>setBenchmark(bn,bd))});
+    }
+    if(controlTab==='explore'){
+      bindModel();
+      const random=q('#fd-random');if(random)random.onclick=()=>mutate(()=>{denominator=2+Math.floor(Math.random()*11);numerator=Math.floor(Math.random()*(denominator+1));equivScale=1});
+      const reset=q('#fd-reset');if(reset)reset.onclick=()=>mutate(()=>{numerator=3;denominator=8;equivScale=1});
+      return;
+    }
+    if(controlTab!=='challenge')return;
+    if(challengeTab==='custom'&&challenge)bindModel();
+    if(challenge?.type==='build-percentage'&&!challengeFrozen())bindModel();
+    qa('[data-fd-challenge-tab]',controls).forEach(button=>button.onclick=()=>{if(button.dataset.fdChallengeTab==='custom')enterCustomChallenge();else{challengeTab='standard';renderControls()}});
+    qa('[data-fd-challenge-cat]',controls).forEach(button=>button.onclick=()=>{challengeCategory=button.dataset.fdChallengeCat;const first=CHALLENGE_TEMPLATES.find(t=>t.category===challengeCategory);if(first)challengeType=first.id;renderControls()});
+    qa('[data-fd-challenge-type]',controls).forEach(button=>button.onclick=()=>{challengeType=button.dataset.fdChallengeType;renderControls()});
+    const gen=q('#fd-generate');if(gen)gen.onclick=()=>generateChallenge(challengeType);
+    const edit=q('#fd-edit-challenge');if(edit)edit.onclick=enterCustomChallenge;
+    const reveal=q('#fd-reveal');if(reveal)reveal.onclick=()=>{if(challenge){challenge.revealed=!challenge.revealed;renderControls();draw()}};
+    const clear=q('#fd-clear-challenge');if(clear)clear.onclick=clearChallenge;
+    if(challengeTab==='custom'&&challenge){
+      const title=q('#fd-custom-title');if(title)title.oninput=()=>{challenge.title=title.value.slice(0,100);draw()};
+      const prompt=q('#fd-custom-prompt');if(prompt)prompt.oninput=()=>{challenge.promptHtml=CK.sanitiseRichHtml(prompt.innerHTML);challenge.prompt=CK.plainText(challenge.promptHtml);draw()};
+      const source=q('#fd-custom-answer-source');if(source)source.onchange=()=>setCustomAnswerSource(source.value);
+      const answer=q('#fd-custom-answer');if(answer)answer.oninput=()=>{challenge.answer=answer.value.slice(0,400);challenge.answerMode='manual';challenge.answerSource='';draw()};
+      qa('[data-gd-rich-action]',controls).forEach(button=>button.onclick=()=>{CK.applyFormat(prompt,button.dataset.gdRichAction);challenge.promptHtml=CK.sanitiseRichHtml(prompt.innerHTML);challenge.prompt=CK.plainText(challenge.promptHtml);draw()});
+    }
   }
 
   setPanels(controlsHtml(),'');
