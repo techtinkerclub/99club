@@ -1114,6 +1114,81 @@ if(mode==='prepare'){
     Math.random=realHundredRandom;
   }
 
+  function testMultiplicationGridWorkbench(){
+    TT99Goodies.interaction.clear();
+    assert(TT99Goodies.multiplicationGrid,'Multiplication Grid is registered');
+    TT99Goodies.multiplicationGrid();
+
+    let cells=[...document.querySelectorAll('[data-mg-cell]')];
+    assert(cells.length===144,'Multiplication Grid opens as a 12 × 12 product grid');
+    assert(document.querySelectorAll('.gd-mg-cell.is-focus').length===23,'Default 6-times-table focus highlights its row and column');
+    assert(document.querySelector('[data-mg-cell="6-4"]').classList.contains('is-current'),'Multiplication Grid opens with 6 × 4 selected');
+    assert(document.querySelector('[data-mg-cell="4-6"]').classList.contains('is-commutative'),'Selected fact highlights its commutative partner');
+    assert(document.querySelector('.gd-mg-selected__head strong').textContent.trim()==='6 × 4 = 24','Selected-product panel shows the multiplication fact');
+    const facts=[...document.querySelectorAll('.gd-mg-facts strong')].map(x=>x.textContent.trim()).join('|');
+    assert(facts==='4 × 6 = 24|24 ÷ 6 = 4|24 ÷ 4 = 6','Selected-product panel shows commutative and inverse division facts');
+
+    document.querySelector('[data-mg-focus="7"]').click();
+    assert(Number(document.getElementById('mg-focus').value)===7,'Clicking a row/column header changes the focused times table');
+    assert(document.querySelectorAll('.gd-mg-cell.is-focus').length===23,'Header focus continues to highlight one complete row and column');
+
+    document.querySelector('[data-mg-cell="3-5"]').click();
+    assert(document.querySelector('[data-mg-cell="3-5"]').classList.contains('is-current'),'Clicking a product selects it directly');
+    assert(document.querySelector('[data-mg-cell="5-3"]').classList.contains('is-commutative'),'Direct selection updates the mirrored commutative highlight');
+
+    let selected=document.querySelector('[data-mg-cell="3-5"]');
+    selected.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
+    assert(document.querySelector('[data-mg-cell="3-6"]').classList.contains('is-current'),'Arrow keys move the selected product around the grid');
+    selected=document.querySelector('[data-mg-cell="3-6"]');
+    selected.dispatchEvent(new KeyboardEvent('keydown',{key:' ',bubbles:true}));
+    assert(document.querySelector('[data-mg-cell="3-6"]').classList.contains('is-hidden-product'),'Space hides the selected product');
+    assert(document.querySelector('[data-mg-cell="6-3"]').classList.contains('is-hidden-product'),'Commutative partner hides together by default');
+    assert(document.querySelector('[data-mg-cell="3-6"]').textContent.trim()==='?'&&document.querySelector('[data-mg-cell="6-3"]').textContent.trim()==='?','Neither commutative cell reveals the hidden product');
+    assert(!document.querySelector('.gd-mg-selected').textContent.includes('18'),'Selected fact panel does not leak a hidden product through related facts');
+
+    document.getElementById('mg-undo').click();
+    assert(!document.querySelector('[data-mg-cell="3-6"]').classList.contains('is-hidden-product')&&!document.querySelector('[data-mg-cell="6-3"]').classList.contains('is-hidden-product'),'Undo restores both commutative products');
+    document.getElementById('mg-redo').click();
+    assert(document.querySelector('[data-mg-cell="3-6"]').classList.contains('is-hidden-product')&&document.querySelector('[data-mg-cell="6-3"]').classList.contains('is-hidden-product'),'Redo re-hides both commutative products');
+    document.getElementById('mg-toggle-selected').click();
+    assert(!document.querySelector('[data-mg-cell="3-6"]').classList.contains('is-hidden-product'),'Contextual Reveal restores the selected product');
+
+    const pair=document.getElementById('mg-pair');
+    pair.checked=false;pair.dispatchEvent(new Event('change',{bubbles:true}));
+    document.querySelector('[data-mg-cell="2-3"]').click();
+    let independent=document.querySelector('[data-mg-cell="2-3"]');
+    independent.dispatchEvent(new KeyboardEvent('keydown',{key:'h',bubbles:true}));
+    assert(document.querySelector('[data-mg-cell="2-3"]').classList.contains('is-hidden-product'),'Independent mode still hides the chosen product');
+    assert(!document.querySelector('[data-mg-cell="3-2"]').classList.contains('is-hidden-product'),'Turning pair mode off leaves the commutative partner visible');
+    document.getElementById('mg-undo').click();
+    const pairAgain=document.getElementById('mg-pair');
+    pairAgain.checked=true;pairAgain.dispatchEvent(new Event('change',{bubbles:true}));
+
+    document.querySelector('[data-mg-interaction="hide"]').click();
+    let c24=document.querySelector('[data-mg-cell="2-4"]'),c25=document.querySelector('[data-mg-cell="2-5"]');
+    const r24=c24.getBoundingClientRect(),r25=c25.getBoundingClientRect();
+    const x24=r24.left+r24.width/2,y24=r24.top+r24.height/2,x25=r25.left+r25.width/2,y25=r25.top+r25.height/2;
+    pointer(c24,'pointerdown',x24,y24,191);
+    pointer(document,'pointermove',x25,y25,191);
+    pointer(document,'pointerup',x25,y25,191);
+    assert(document.querySelector('[data-mg-cell="2-4"]').classList.contains('is-hidden-product')&&document.querySelector('[data-mg-cell="2-5"]').classList.contains('is-hidden-product'),'Paint mode hides multiple products in one drag');
+    assert(document.querySelector('[data-mg-cell="4-2"]').classList.contains('is-hidden-product')&&document.querySelector('[data-mg-cell="5-2"]').classList.contains('is-hidden-product'),'Paint mode also hides paired commutative products');
+    assert(getComputedStyle(document.querySelector('[data-mg-cell="2-4"]')).touchAction==='none','Paint mode reserves touch gestures for hide/reveal painting');
+
+    document.querySelector('[data-mg-interaction="select"]').click();
+    assert(getComputedStyle(document.querySelector('[data-mg-cell]')).touchAction!=='none','Select mode preserves normal touch scrolling');
+
+    let sizeInput=document.getElementById('mg-size');
+    sizeInput.value='5';sizeInput.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.querySelectorAll('[data-mg-cell]').length===25,'Grid size can be reduced directly to 5 × 5');
+    assert(!document.querySelector('[data-mg-cell="6-3"]'),'Shrinking the grid removes out-of-range cells and stale hidden state safely');
+
+    sizeInput=document.getElementById('mg-size');
+    sizeInput.value='12';sizeInput.dispatchEvent(new Event('change',{bubbles:true}));
+    document.getElementById('mg-show').click();
+    assert(document.querySelectorAll('.gd-mg-cell.is-hidden-product').length===0,'Show all reveals every hidden product');
+  }
+
   function testPlaceValue(){
     TT99Goodies.interaction.clear();
     assert(TT99Goodies.placeValue,'Place Value is registered');
@@ -2498,6 +2573,7 @@ if(mode==='prepare'){
         testBarModelWorkbench();
         testEquationBalanceWorkbench();
         testHundredSquareWorkbench();
+        testMultiplicationGridWorkbench();
         testPlaceValue();
         testFractions();
         testGeoboard();
@@ -2506,7 +2582,7 @@ if(mode==='prepare'){
         testArrayWorkbench();
         testMoneyWorkbench();
         testClockWorkbench();
-        result('pass','Number Line challenges, Maths Canvas, Bar Model, Equation Balance, Hundred Square, Place Value, Fraction Wall, Geoboard, Coordinates, Measurement, Array, UK Money and Clock workbench interactions work');
+        result('pass','Number Line challenges, Maths Canvas, Bar Model, Equation Balance, Hundred Square, Multiplication Grid, Place Value, Fraction Wall, Geoboard, Coordinates, Measurement, Array, UK Money and Clock workbench interactions work');
       }catch(err){
         result('fail',err&&err.message?err.message:String(err));
       }

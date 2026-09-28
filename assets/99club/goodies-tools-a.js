@@ -2390,8 +2390,199 @@ function hundredSquare(){
   draw();
 }
 
-function multiplicationGrid(){let hidden=new Set();function draw(){const size=clamp(num(q('#mg-size').value,12),5,15),focus=clamp(num(q('#mg-focus').value,6),1,size);let h='<table class="gd-times-grid"><tr><th>×</th>'+Array.from({length:size},(_,i)=>`<th>${i+1}</th>`).join('')+'</tr>';for(let r=1;r<=size;r++){h+=`<tr><th>${r}</th>`;for(let c=1;c<=size;c++){const k=r+'-'+c;h+=`<td class="${r===focus||c===focus?'is-highlight ':''}${hidden.has(k)?'is-hidden':''}" data-cell="${k}">${r*c}</td>`}h+='</tr>'}h+='</table>';q('#gd-stage').innerHTML='<div class="gd-vis">'+h+'</div>';qa('[data-cell]',q('#gd-stage')).forEach(x=>x.onclick=()=>{const k=x.dataset.cell;hidden.has(k)?hidden.delete(k):hidden.add(k);draw()})}
-setPanels(`${field('Grid size','<input class="gd-input" id="mg-size" type="number" min="5" max="15" value="12">')}${field('Highlight table','<input class="gd-input" id="mg-focus" type="number" min="1" max="15" value="6">')}<div class="gd-row">${btn('Hide 12 random products','mg-hide')}${btn('Show all','mg-show')}</div><p class="gd-help">Click any product to hide/reveal it and turn the grid into a quick retrieval activity.</p>`,'');q('#mg-size').oninput=draw;q('#mg-focus').oninput=draw;q('#mg-hide').onclick=()=>{hidden.clear();const size=clamp(num(q('#mg-size').value,12),5,15);while(hidden.size<Math.min(12,size*size))hidden.add((1+Math.floor(Math.random()*size))+'-'+(1+Math.floor(Math.random()*size)));draw()};q('#mg-show').onclick=()=>{hidden.clear();draw()};draw()}
+function multiplicationGrid(){
+  let size=12,focus=6,selectedRow=6,selectedCol=4,interactionMode='select',pairCommutative=true,paint=null;
+  let hidden=new Set();
+  const undoStack=[],redoStack=[];
+
+  function key(r,c){return r+'-'+c}
+  function parseKey(k){const [r,c]=String(k).split('-').map(Number);return{r,c}}
+  function snapshot(){return{size,focus,selectedRow,selectedCol,interactionMode,pairCommutative,hidden:[...hidden]}}
+  function restore(state){
+    size=clamp(Math.round(Number(state?.size)||12),5,15);
+    focus=clamp(Math.round(Number(state?.focus)||1),1,size);
+    selectedRow=clamp(Math.round(Number(state?.selectedRow)||1),1,size);
+    selectedCol=clamp(Math.round(Number(state?.selectedCol)||1),1,size);
+    interactionMode=state?.interactionMode||'select';
+    pairCommutative=state?.pairCommutative!==false;
+    hidden=new Set((Array.isArray(state?.hidden)?state.hidden:[]).filter(k=>{
+      const {r,c}=parseKey(k);return r>=1&&r<=size&&c>=1&&c<=size;
+    }));
+  }
+  function remember(){
+    undoStack.push(snapshot());
+    if(undoStack.length>60)undoStack.shift();
+    redoStack.length=0;
+  }
+  function mutate(fn){
+    remember();fn();draw();renderControls();
+  }
+  function undo(){
+    if(!undoStack.length)return;
+    redoStack.push(snapshot());restore(undoStack.pop());draw();renderControls();
+  }
+  function redo(){
+    if(!redoStack.length)return;
+    undoStack.push(snapshot());restore(redoStack.pop());draw();renderControls();
+  }
+  function product(r=selectedRow,c=selectedCol){return r*c}
+  function selectedHidden(){return hidden.has(key(selectedRow,selectedCol))}
+  function setHidden(r,c,on){
+    const setOne=(rr,cc)=>{const k=key(rr,cc);if(on)hidden.add(k);else hidden.delete(k)};
+    setOne(r,c);
+    if(pairCommutative&&r!==c&&r<=size&&c<=size)setOne(c,r);
+  }
+  function toggleHidden(r,c,on=null){
+    const next=on==null?!hidden.has(key(r,c)):!!on;
+    setHidden(r,c,next);
+  }
+  function setSize(value){
+    size=clamp(Math.round(Number(value)||12),5,15);
+    focus=clamp(focus,1,size);selectedRow=clamp(selectedRow,1,size);selectedCol=clamp(selectedCol,1,size);
+    hidden=new Set([...hidden].filter(k=>{const {r,c}=parseKey(k);return r<=size&&c<=size}));
+  }
+  function setSelection(r,c){
+    selectedRow=clamp(r,1,size);selectedCol=clamp(c,1,size);draw();renderControls();
+    setTimeout(()=>q('[data-mg-cell="'+key(selectedRow,selectedCol)+'"]')?.focus(),0);
+  }
+  function factsHtml(){
+    const hiddenAnswer=selectedHidden(),a=selectedRow,b=selectedCol,p=product();
+    const productText=hiddenAnswer?'?':p;
+    const commutative=hiddenAnswer?b+' × '+a+' = ?':b+' × '+a+' = '+p;
+    const divA=hiddenAnswer?'? ÷ '+a+' = '+b:p+' ÷ '+a+' = '+b;
+    const divB=hiddenAnswer?'? ÷ '+b+' = '+a:p+' ÷ '+b+' = '+a;
+    return '<div class="gd-mg-selected" data-mg-selected="'+key(a,b)+'">'+
+      '<div class="gd-mg-selected__head"><div><span>Selected fact</span><strong>'+a+' × '+b+' = '+productText+'</strong></div>'+
+        '<div class="gd-row"><button class="gd-btn" id="mg-toggle-selected" type="button">'+(hiddenAnswer?'Reveal product':'Hide product')+'</button></div></div>'+
+      '<div class="gd-mg-facts">'+
+        '<div><span>Commutative fact</span><strong>'+commutative+'</strong></div>'+
+        '<div><span>Related division</span><strong>'+divA+'</strong></div>'+
+        '<div><span>Related division</span><strong>'+divB+'</strong></div>'+
+      '</div>'+
+      (hiddenAnswer?'<p class="gd-help">The commutative partner is hidden too while “hide pairs together” is on, so the grid does not give the product away.</p>':'')+
+    '</div>';
+  }
+  function headerButton(n,scope){
+    return '<button type="button" class="gd-mg-header-btn'+(focus===n?' is-focus':'')+'" data-mg-focus="'+n+'" aria-label="Focus '+n+' times table from '+scope+' header">'+n+'</button>';
+  }
+  function cellButton(r,c){
+    const k=key(r,c),isHidden=hidden.has(k),selected=r===selectedRow&&c===selectedCol,mirror=r===selectedCol&&c===selectedRow&&!selected,rowcol=r===focus||c===focus;
+    const classes=['gd-mg-cell',rowcol?'is-focus':'',selected?'is-current':'',mirror?'is-commutative':'',isHidden?'is-hidden-product':'',interactionMode==='hide'?'is-paintable':''].filter(Boolean).join(' ');
+    return '<button type="button" class="'+classes+'" data-mg-cell="'+k+'" data-mg-row="'+r+'" data-mg-col="'+c+'" aria-label="'+(isHidden?'Hidden product for '+r+' times '+c:r+' times '+c+' equals '+(r*c))+'"><span>'+(isHidden?'?':r*c)+'</span></button>';
+  }
+  function draw(){
+    let table='<table class="gd-times-grid gd-mg-grid"><thead><tr><th aria-hidden="true">×</th>';
+    for(let c=1;c<=size;c++)table+='<th scope="col">'+headerButton(c,'column')+'</th>';
+    table+='</tr></thead><tbody>';
+    for(let r=1;r<=size;r++){
+      table+='<tr><th scope="row">'+headerButton(r,'row')+'</th>';
+      for(let c=1;c<=size;c++)table+='<td>'+cellButton(r,c)+'</td>';
+      table+='</tr>';
+    }
+    table+='</tbody></table>';
+    q('#gd-stage').innerHTML='<div class="gd-vis gd-mg-workbench">'+
+      '<div class="gd-mg-summary"><div><span>Multiplication grid</span><strong>'+size+' × '+size+' · focus '+focus+' times table</strong></div>'+
+        '<div class="gd-object-toolbar"><button class="gd-btn" id="mg-undo" type="button"'+(undoStack.length?'':' disabled')+'>Undo</button><button class="gd-btn" id="mg-redo" type="button"'+(redoStack.length?'':' disabled')+'>Redo</button></div></div>'+
+      '<div class="gd-mg-scroll">'+table+'</div>'+
+      factsHtml()+
+      '<div class="gd-mg-key"><span><i class="is-focus"></i> focused table</span><span><i class="is-current"></i> selected fact</span><span><i class="is-commutative"></i> commutative partner</span><span><i class="is-hidden-product">?</i> hidden product</span></div>'+
+    '</div>';
+    bindStage();
+  }
+  function paintAtPoint(x,y){
+    if(!paint)return;
+    const el=document.elementFromPoint(x,y)?.closest?.('[data-mg-cell]');
+    if(!el)return;
+    const k=el.dataset.mgCell;
+    if(paint.visited.has(k))return;
+    paint.visited.add(k);
+    const r=Number(el.dataset.mgRow),c=Number(el.dataset.mgCol);
+    selectedRow=r;selectedCol=c;setHidden(r,c,paint.on);draw();
+  }
+  function paintMove(e){
+    if(!paint||paint.pointerId!==e.pointerId)return;
+    e.preventDefault();paintAtPoint(e.clientX,e.clientY);
+  }
+  function paintEnd(e){
+    if(!paint||paint.pointerId!==e.pointerId)return;
+    paint=null;
+    document.removeEventListener('pointermove',paintMove);
+    document.removeEventListener('pointerup',paintEnd);
+    document.removeEventListener('pointercancel',paintEnd);
+    renderControls();
+  }
+  function bindStage(){
+    qa('[data-mg-focus]',q('#gd-stage')).forEach(button=>button.onclick=()=>{
+      focus=clamp(Number(button.dataset.mgFocus),1,size);draw();renderControls();
+    });
+    qa('[data-mg-cell]',q('#gd-stage')).forEach(cell=>{
+      cell.onclick=()=>{
+        if(interactionMode!=='select')return;
+        selectedRow=Number(cell.dataset.mgRow);selectedCol=Number(cell.dataset.mgCol);draw();renderControls();
+      };
+      cell.onkeydown=e=>{
+        const r=Number(cell.dataset.mgRow),c=Number(cell.dataset.mgCol);
+        if(e.key==='ArrowLeft'){e.preventDefault();setSelection(r,c-1)}
+        else if(e.key==='ArrowRight'){e.preventDefault();setSelection(r,c+1)}
+        else if(e.key==='ArrowUp'){e.preventDefault();setSelection(r-1,c)}
+        else if(e.key==='ArrowDown'){e.preventDefault();setSelection(r+1,c)}
+        else if(e.key.toLowerCase()==='h'||e.key===' '||e.key==='Enter'){e.preventDefault();mutate(()=>toggleHidden(r,c))}
+      };
+      cell.onpointerdown=e=>{
+        if(interactionMode!=='hide'||(e.button!=null&&e.button!==0))return;
+        e.preventDefault();
+        const r=Number(cell.dataset.mgRow),c=Number(cell.dataset.mgCol);
+        remember();
+        paint={pointerId:e.pointerId,on:!hidden.has(key(r,c)),visited:new Set()};
+        document.addEventListener('pointermove',paintMove);
+        document.addEventListener('pointerup',paintEnd,{once:true});
+        document.addEventListener('pointercancel',paintEnd,{once:true});
+        paintAtPoint(e.clientX,e.clientY);
+      };
+    });
+    const undoBtn=q('#mg-undo');if(undoBtn)undoBtn.onclick=undo;
+    const redoBtn=q('#mg-redo');if(redoBtn)redoBtn.onclick=redo;
+    const toggle=q('#mg-toggle-selected');if(toggle)toggle.onclick=()=>mutate(()=>toggleHidden(selectedRow,selectedCol));
+  }
+  function randomHide(){
+    hidden.clear();
+    const candidates=[];
+    for(let r=1;r<=size;r++)for(let c=r;c<=size;c++)candidates.push([r,c]);
+    for(let i=candidates.length-1;i>0;i--){
+      const j=Math.floor(Math.random()*(i+1));[candidates[i],candidates[j]]=[candidates[j],candidates[i]];
+    }
+    let products=0;
+    for(const [r,c] of candidates){
+      if(products>=12)break;
+      if(hidden.has(key(r,c)))continue;
+      setHidden(r,c,true);products+=r===c||!pairCommutative?1:2;
+    }
+  }
+  function controlsHtml(){
+    return field('Grid size','<input class="gd-input" id="mg-size" type="number" min="5" max="15" value="'+size+'">','Show tables from 1×1 up to '+size+'×'+size+'.')+
+      field('Focus times table','<input class="gd-input" id="mg-focus" type="number" min="1" max="'+size+'" value="'+focus+'">','You can also click any row or column header directly.')+
+      '<div class="gd-field"><span>Touch / mouse action</span><div class="gd-row">'+
+        '<button class="gd-btn'+(interactionMode==='select'?' gd-btn--primary':'')+'" type="button" data-mg-interaction="select">Select fact</button>'+
+        '<button class="gd-btn'+(interactionMode==='hide'?' gd-btn--primary':'')+'" type="button" data-mg-interaction="hide">Paint hide / reveal</button>'+
+      '</div></div>'+
+      '<label class="gd-mg-pair-toggle"><input type="checkbox" id="mg-pair"'+(pairCommutative?' checked':'')+'> <span>Hide commutative pairs together</span></label>'+
+      '<div class="gd-row"><button class="gd-btn" id="mg-hide" type="button">Hide about 12 products</button><button class="gd-btn" id="mg-show" type="button">Show all</button></div>'+
+      '<p class="gd-help">Select a product to see its commutative and inverse division facts. Arrow keys move around the grid; Space, Enter or H hide/reveal the selected product.</p>';
+  }
+  function renderControls(){q('#gd-controls').innerHTML=controlsHtml();bindControls()}
+  function bindControls(){
+    const sizeInput=q('#mg-size');if(sizeInput)sizeInput.onchange=()=>mutate(()=>setSize(sizeInput.value));
+    const focusInput=q('#mg-focus');if(focusInput)focusInput.onchange=()=>{focus=clamp(Math.round(num(focusInput.value,focus)),1,size);draw();renderControls()};
+    qa('[data-mg-interaction]',q('#gd-controls')).forEach(button=>button.onclick=()=>{interactionMode=button.dataset.mgInteraction;draw();renderControls()});
+    const pair=q('#mg-pair');if(pair)pair.onchange=()=>{pairCommutative=pair.checked;renderControls()};
+    const hide=q('#mg-hide');if(hide)hide.onclick=()=>mutate(randomHide);
+    const show=q('#mg-show');if(show)show.onclick=()=>{if(!hidden.size)return;mutate(()=>hidden.clear())};
+  }
+
+  setPanels(controlsHtml(),'');
+  bindControls();
+  draw();
+}
 
 function arrayBuilder(){
   const CK=G.challengeKit,X=G.exportTools;
