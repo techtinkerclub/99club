@@ -1516,9 +1516,25 @@ function balanceTool(){
 }
 
 function timesTableVisual(){
+  const CK=G.challengeKit;
   let groupsCount=4,itemsPerGroup=6,selectedGroup=0;
   let showRepeated=true,showJumps=true,showFactFamily=true;
   const undoStack=[],redoStack=[];
+  const CHALLENGE_CATEGORIES=[
+    {id:'read',label:'Read the model'},
+    {id:'connections',label:'Connect the facts'},
+    {id:'build',label:'Build'},
+    {id:'reason',label:'Reasoning'}
+  ];
+  const CHALLENGE_TEMPLATES=[
+    {id:'find-total',category:'read',title:'Find the total',desc:'Count equal groups and find how many items there are altogether.'},
+    {id:'write-repeated',category:'connections',title:'Write repeated addition',desc:'Write the repeated-addition statement shown by the equal groups.'},
+    {id:'commutative-fact',category:'connections',title:'Commutative fact',desc:'Write the multiplication fact with the factors reversed.'},
+    {id:'related-division',category:'connections',title:'Related division',desc:'Complete a division fact from the equal-groups model.'},
+    {id:'build-fact',category:'build',title:'Build the fact',desc:'Change the model until it shows the requested equal-groups fact.'},
+    {id:'spot-error',category:'reason',title:'Spot the incorrect equation',desc:'Use the equal groups to decide whether the shown equation is correct.'}
+  ];
+  let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='find-total',challenge=null,beforeChallenge=null;
 
   function snapshot(){return{groupsCount,itemsPerGroup,selectedGroup,showRepeated,showJumps,showFactFamily}}
   function restore(state){
@@ -1534,15 +1550,17 @@ function timesTableVisual(){
     if(undoStack.length>60)undoStack.shift();
     redoStack.length=0;
   }
+  function challengeFrozen(){return !!(challenge&&challenge.mode==='standard'&&challenge.freezeModel)}
   function mutate(fn){
+    if(challengeFrozen())return;
     remember();fn();draw();renderControls();
   }
   function undo(){
-    if(!undoStack.length)return;
+    if(!undoStack.length||challengeFrozen())return;
     redoStack.push(snapshot());restore(undoStack.pop());draw();renderControls();
   }
   function redo(){
-    if(!redoStack.length)return;
+    if(!redoStack.length||challengeFrozen())return;
     undoStack.push(snapshot());restore(redoStack.pop());draw();renderControls();
   }
   function total(){return groupsCount*itemsPerGroup}
@@ -1572,9 +1590,22 @@ function timesTableVisual(){
   function repeatedText(){
     return Array.from({length:groupsCount},()=>itemsPerGroup).join(' + ')+' = '+total();
   }
+  function commutativeText(){return itemsPerGroup+' × '+groupsCount+' = '+total()}
+  function divisionAText(){return total()+' ÷ '+groupsCount+' = '+itemsPerGroup}
+  function divisionBText(){return total()+' ÷ '+itemsPerGroup+' = '+groupsCount}
+  function hiddenFlag(key){return !!(challenge&&!challenge.revealed&&challenge[key])}
+  function equationText(){
+    if(challenge?.type==='spot-error'&&!challenge.revealed)return groupsCount+' × '+itemsPerGroup+' = '+challenge.wrongTotal;
+    if(hiddenFlag('hiddenEquation'))return groupsCount+' × '+itemsPerGroup+' = ?';
+    return groupsCount+' × '+itemsPerGroup+' = '+total();
+  }
+  function repeatedDisplay(){return hiddenFlag('hiddenRepeated')?'?':repeatedText()}
+  function commutativeDisplay(){return hiddenFlag('hiddenFactFamily')?'?':commutativeText()}
+  function divisionADisplay(){return hiddenFlag('hiddenFactFamily')?'?':divisionAText()}
+  function divisionBDisplay(){return hiddenFlag('hiddenFactFamily')?'?':divisionBText()}
   function groupHtml(index){
-    const selected=index===selectedGroup;
-    return '<button type="button" class="gd-tv-group'+(selected?' is-selected':'')+'" data-tv-group="'+index+'" aria-label="Group '+(index+1)+' with '+itemsPerGroup+' items">'+
+    const selected=index===selectedGroup,frozen=challengeFrozen();
+    return '<button type="button" class="gd-tv-group'+(selected&&!frozen?' is-selected':'')+(frozen?' is-frozen':'')+'" data-tv-group="'+index+'" aria-label="Group '+(index+1)+' with '+itemsPerGroup+' items"'+(frozen?' disabled':'')+'>'+
       '<span>Group '+(index+1)+'</span><div class="gd-tv-dots">'+Array.from({length:itemsPerGroup},()=>'<i></i>').join('')+'</div>'+
       '<strong>'+itemsPerGroup+'</strong>'+
     '</button>';
@@ -1584,39 +1615,57 @@ function timesTableVisual(){
     return '<div class="gd-tv-jump" data-tv-jump="'+index+'"><span>'+from+'</span><b>+'+itemsPerGroup+'</b><span>'+to+'</span></div>';
   }
   function selectedPanel(){
+    if(hiddenFlag('hiddenSelectedPanel'))return'';
+    const frozen=challengeFrozen();
     return '<div class="gd-tv-selected" data-tv-selected="'+selectedGroup+'">'+
       '<div><span>Selected group</span><strong>Group '+(selectedGroup+1)+' · '+itemsPerGroup+' items</strong></div>'+
-      '<div class="gd-row"><button class="gd-btn" id="tv-duplicate" type="button"'+(groupsCount>=12?' disabled':'')+'>Duplicate group</button>'+
-      '<button class="gd-btn gd-btn--danger" id="tv-delete" type="button"'+(groupsCount<=1?' disabled':'')+'>Delete group</button></div>'+
+      (!frozen?'<div class="gd-row"><button class="gd-btn" id="tv-duplicate" type="button"'+(groupsCount>=12?' disabled':'')+'>Duplicate group</button>'+
+      '<button class="gd-btn gd-btn--danger" id="tv-delete" type="button"'+(groupsCount<=1?' disabled':'')+'>Delete group</button></div>':'')+
     '</div>';
   }
+  function challengeProgress(){
+    if(!challenge||challenge.type!=='build-fact')return'';
+    return groupsCount===Number(challenge.targetGroups)&&itemsPerGroup===Number(challenge.targetItems)
+      ?'On target · '+groupsCount+' × '+itemsPerGroup+' = '+total()+' ✓'
+      :'Build '+challenge.targetGroups+' groups of '+challenge.targetItems;
+  }
+  function bindChallengeStageActions(){
+    const stage=q('#gd-stage');if(!stage||!challenge)return;
+    const reveal=q('[data-board-action="reveal"]',stage);
+    if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();draw()};
+    const another=q('[data-challenge-action="another"]',stage);
+    if(another)another.onclick=e=>{e.stopPropagation();if(challenge?.mode==='standard')generateChallenge(challenge.type)};
+  }
   function draw(){
-    const t=total();
-    q('#gd-stage').innerHTML='<div class="gd-vis gd-tv-workbench">'+
-      '<div class="gd-tv-summary"><div><span>Equal groups</span><strong data-tv-equation>'+groupsCount+' × '+itemsPerGroup+' = '+t+'</strong></div>'+
-        '<div class="gd-object-toolbar"><button class="gd-btn" id="tv-undo" type="button"'+(undoStack.length?'':' disabled')+'>Undo</button><button class="gd-btn" id="tv-redo" type="button"'+(redoStack.length?'':' disabled')+'>Redo</button></div></div>'+
-      '<div class="gd-tv-direct">'+
+    updateChallengeAnswer();
+    const t=total(),frozen=challengeFrozen(),banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Times-table challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
+    q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-tv-workbench">'+
+      '<div class="gd-tv-summary"><div><span>Equal groups</span><strong data-tv-equation>'+equationText()+'</strong></div>'+
+        '<div class="gd-object-toolbar"><button class="gd-btn" id="tv-undo" type="button"'+(undoStack.length&&!frozen?'':' disabled')+'>Undo</button><button class="gd-btn" id="tv-redo" type="button"'+(redoStack.length&&!frozen?'':' disabled')+'>Redo</button></div></div>'+
+      (!frozen?'<div class="gd-tv-direct">'+
         '<div class="gd-tv-stepper"><span>Groups</span><div><button class="gd-btn" id="tv-groups-minus" type="button"'+(groupsCount<=1?' disabled':'')+'>−</button><strong data-tv-groups>'+groupsCount+'</strong><button class="gd-btn" id="tv-groups-plus" type="button"'+(groupsCount>=12?' disabled':'')+'>+</button></div></div>'+
         '<button class="gd-btn gd-tv-swap" id="tv-swap" type="button">Swap factors ↔</button>'+
         '<div class="gd-tv-stepper"><span>In each group</span><div><button class="gd-btn" id="tv-items-minus" type="button"'+(itemsPerGroup<=1?' disabled':'')+'>−</button><strong data-tv-items>'+itemsPerGroup+'</strong><button class="gd-btn" id="tv-items-plus" type="button"'+(itemsPerGroup>=12?' disabled':'')+'>+</button></div></div>'+
-      '</div>'+
+      '</div>':'')+
       '<div class="gd-tv-groups" data-tv-group-count="'+groupsCount+'">'+Array.from({length:groupsCount},(_,i)=>groupHtml(i)).join('')+
-        (groupsCount<12?'<button class="gd-tv-add-group" id="tv-add-group" type="button"><strong>+</strong><span>Add group</span></button>':'')+'</div>'+
+        (!frozen&&groupsCount<12?'<button class="gd-tv-add-group" id="tv-add-group" type="button"><strong>+</strong><span>Add group</span></button>':'')+'</div>'+
       selectedPanel()+
-      (showRepeated?'<div class="gd-tv-readout"><span>Repeated addition</span><strong data-tv-repeated>'+repeatedText()+'</strong></div>':'')+
-      (showJumps?'<div class="gd-tv-jump-section"><span>Equal jumps</span><div class="gd-tv-jumps">'+Array.from({length:groupsCount},(_,i)=>jumpHtml(i)).join('')+'</div></div>':'')+
+      (showRepeated?'<div class="gd-tv-readout"><span>Repeated addition</span><strong data-tv-repeated>'+repeatedDisplay()+'</strong></div>':'')+
+      (showJumps&&!hiddenFlag('hiddenJumps')?'<div class="gd-tv-jump-section"><span>Equal jumps</span><div class="gd-tv-jumps">'+Array.from({length:groupsCount},(_,i)=>jumpHtml(i)).join('')+'</div></div>':'')+
       (showFactFamily?'<div class="gd-tv-fact-family"><span>Fact family</span><div>'+
-        '<strong data-tv-commutative>'+itemsPerGroup+' × '+groupsCount+' = '+t+'</strong>'+
-        '<strong data-tv-division-a>'+t+' ÷ '+groupsCount+' = '+itemsPerGroup+'</strong>'+
-        '<strong data-tv-division-b>'+t+' ÷ '+itemsPerGroup+' = '+groupsCount+'</strong>'+
+        '<strong data-tv-commutative>'+commutativeDisplay()+'</strong>'+
+        '<strong data-tv-division-a>'+divisionADisplay()+'</strong>'+
+        '<strong data-tv-division-b>'+divisionBDisplay()+'</strong>'+
       '</div></div>':'')+
+      (challenge?.type==='build-fact'?'<div class="gd-answer-live" data-tv-target-status>'+challengeProgress()+'</div>':'')+
     '</div>';
-    bindStage();
+    bindStage();bindChallengeStageActions();
   }
   function bindStage(){
     qa('[data-tv-group]',q('#gd-stage')).forEach(group=>{
-      group.onclick=()=>{selectedGroup=Number(group.dataset.tvGroup);draw()};
+      group.onclick=()=>{if(challengeFrozen())return;selectedGroup=Number(group.dataset.tvGroup);draw()};
       group.onkeydown=e=>{
+        if(challengeFrozen())return;
         const index=Number(group.dataset.tvGroup);
         if(e.key==='ArrowLeft'){e.preventDefault();selectedGroup=clamp(index-1,0,groupsCount-1);draw();setTimeout(()=>q('[data-tv-group="'+selectedGroup+'"]')?.focus(),0)}
         else if(e.key==='ArrowRight'){e.preventDefault();selectedGroup=clamp(index+1,0,groupsCount-1);draw();setTimeout(()=>q('[data-tv-group="'+selectedGroup+'"]')?.focus(),0)}
@@ -1635,29 +1684,176 @@ function timesTableVisual(){
     const duplicate=q('#tv-duplicate');if(duplicate)duplicate.onclick=()=>mutate(duplicateSelected);
     const del=q('#tv-delete');if(del)del.onclick=()=>mutate(deleteSelected);
   }
-  function controlsHtml(){
+
+  function workflowTabs(){
+    return '<div class="gd-row gd-tv-workflow-tabs" role="tablist" aria-label="Times-table Visualiser workflow">'+
+      '<button class="gd-btn'+(controlTab==='explore'?' gd-btn--primary':'')+'" type="button" data-tv-workflow="explore">Explore</button>'+
+      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-tv-workflow="challenge">Challenge'+(challenge?' •':'')+'</button></div>';
+  }
+  function modelControlsHtml(){
     return field('Quick setup','<div class="gd-row"><label class="gd-tv-quick"><span>Groups</span><input class="gd-input gd-small" id="tv-a" type="number" min="1" max="12" value="'+groupsCount+'"></label><span>×</span><label class="gd-tv-quick"><span>In each</span><input class="gd-input gd-small" id="tv-b" type="number" min="1" max="12" value="'+itemsPerGroup+'"></label></div>')+
       '<div class="gd-field"><span>Show connections</span>'+
         '<label class="gd-tv-check"><input type="checkbox" id="tv-show-repeated"'+(showRepeated?' checked':'')+'> <span>Repeated addition</span></label>'+
         '<label class="gd-tv-check"><input type="checkbox" id="tv-show-jumps"'+(showJumps?' checked':'')+'> <span>Equal jumps</span></label>'+
         '<label class="gd-tv-check"><input type="checkbox" id="tv-show-family"'+(showFactFamily?' checked':'')+'> <span>Fact family</span></label>'+
-      '</div>'+
+      '</div>';
+  }
+  function exploreControlsHtml(){
+    return modelControlsHtml()+
       '<div class="gd-row"><button class="gd-btn" id="tv-random" type="button">Random fact</button><button class="gd-btn" id="tv-reset" type="button">Reset 4 × 6</button></div>'+
       '<p class="gd-help">Use the controls on the model itself to add or remove equal groups, change every group together, or swap the factors. Select a group and press Delete to remove it or D to duplicate it.</p>';
   }
+  function challengeObject(type,prompt,answer,extra={}){
+    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===type);
+    const raw={mode:'standard',type,category:meta?.category||'',title:'',prompt,promptHtml:prompt,answer:String(answer??''),answerMode:'manual',answerSource:'',revealed:false,freezeModel:true,hiddenEquation:false,hiddenRepeated:false,hiddenFactFamily:false,hiddenJumps:false,hiddenSelectedPanel:false,targetGroups:null,targetItems:null,wrongTotal:null,...extra};
+    return CK?CK.normalise(raw):raw;
+  }
+  function randomInt(min,max){return min+Math.floor(Math.random()*(max-min+1))}
+  function resetChallengeModel(){
+    groupsCount=3;itemsPerGroup=4;selectedGroup=0;showRepeated=true;showJumps=true;showFactFamily=true;
+  }
+  function generateChallenge(type){
+    const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
+    if(!beforeChallenge)beforeChallenge=snapshot();else restore(beforeChallenge);
+    undoStack.length=0;redoStack.length=0;resetChallengeModel();
+    const a=randomInt(3,8),b=randomInt(4,9),t=a*b;
+    groupsCount=a;itemsPerGroup=b;selectedGroup=0;
+    if(type==='find-total'){
+      challenge=challengeObject(type,'How many items are there altogether in '+a+' equal groups of '+b+'?',t,{hiddenEquation:true,hiddenRepeated:true,hiddenFactFamily:true,hiddenJumps:true,hiddenSelectedPanel:true});
+    }else if(type==='write-repeated'){
+      challenge=challengeObject(type,'Write the repeated-addition statement shown by '+a+' groups of '+b+'.',Array.from({length:a},()=>b).join(' + ')+' = '+t,{hiddenRepeated:true,hiddenFactFamily:true,hiddenSelectedPanel:true});
+    }else if(type==='commutative-fact'){
+      challenge=challengeObject(type,'Write the commutative fact for '+a+' × '+b+' = '+t+'.',b+' × '+a+' = '+t,{hiddenFactFamily:true,hiddenSelectedPanel:true});
+    }else if(type==='related-division'){
+      challenge=challengeObject(type,'Use '+a+' × '+b+' = '+t+' to complete '+t+' ÷ '+a+' = ?.',b,{hiddenFactFamily:true,hiddenSelectedPanel:true});
+    }else if(type==='build-fact'){
+      const targetGroups=a,targetItems=b;
+      groupsCount=2;itemsPerGroup=2;selectedGroup=0;
+      challenge=challengeObject(type,'Build '+targetGroups+' equal groups with '+targetItems+' items in each group.',targetGroups+' × '+targetItems+' = '+(targetGroups*targetItems),{freezeModel:false,targetGroups,targetItems,hiddenFactFamily:false});
+    }else{
+      const wrong=t+1;
+      challenge=challengeObject(type,'The equation says '+a+' × '+b+' = '+wrong+'. Use the equal groups to decide whether it is correct.','No. '+a+' × '+b+' = '+t+', not '+wrong+'.',{wrongTotal:wrong,hiddenRepeated:true,hiddenFactFamily:true,hiddenJumps:true,hiddenSelectedPanel:true});
+    }
+    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';renderControls();draw();
+  }
+  function restoreBeforeChallenge(){if(beforeChallenge){restore(beforeChallenge);beforeChallenge=null}}
+  function clearChallenge(){
+    restoreBeforeChallenge();challenge=null;challengeTab='standard';controlTab='challenge';undoStack.length=0;redoStack.length=0;renderControls();draw();
+  }
+  function clearBoundHiding(){
+    if(!challenge)return;
+    challenge.hiddenEquation=false;challenge.hiddenRepeated=false;challenge.hiddenFactFamily=false;challenge.hiddenJumps=false;challenge.hiddenSelectedPanel=false;
+  }
+  function applyBoundHiding(source){
+    clearBoundHiding();if(!challenge)return;
+    if(source==='total'||source==='equation')challenge.hiddenEquation=true;
+    if(source==='repeated')challenge.hiddenRepeated=true;
+    if(['commutative','division-a','division-b'].includes(source))challenge.hiddenFactFamily=true;
+  }
+  function resolveAnswerSource(source){
+    if(source==='total')return String(total());
+    if(source==='equation')return groupsCount+' × '+itemsPerGroup+' = '+total();
+    if(source==='repeated')return repeatedText();
+    if(source==='commutative')return commutativeText();
+    if(source==='division-a')return divisionAText();
+    if(source==='division-b')return divisionBText();
+    if(source==='groups')return String(groupsCount);
+    if(source==='items')return String(itemsPerGroup);
+    return'';
+  }
+  function customAnswerSources(){
+    return[
+      {id:'total',label:'Total items'},
+      {id:'equation',label:'Multiplication equation'},
+      {id:'repeated',label:'Repeated addition'},
+      {id:'commutative',label:'Commutative fact'},
+      {id:'division-a',label:'Division by number of groups'},
+      {id:'division-b',label:'Division by items per group'},
+      {id:'groups',label:'Number of groups'},
+      {id:'items',label:'Items in each group'}
+    ];
+  }
+  function updateChallengeAnswer(){
+    if(!challenge||challenge.answerMode!=='bound'||!challenge.answerSource)return;
+    const answer=resolveAnswerSource(challenge.answerSource);if(answer!=='')challenge.answer=answer;
+    const live=q('#tv-custom-live-answer');if(live)live.textContent=challenge.answer||'—';
+    if(challenge.revealed){
+      const shown=q('.gd-challenge-actions em',q('#gd-stage'));if(shown)shown.textContent='Answer: '+challenge.answer;
+    }
+  }
+  function enterCustomChallenge(){
+    if(!beforeChallenge)beforeChallenge=snapshot();
+    const wasCustom=challenge?.mode==='custom';
+    if(CK)challenge=CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''});
+    if(!wasCustom)clearBoundHiding();
+    challenge.freezeModel=false;challenge.revealed=false;
+    challengeTab='custom';controlTab='challenge';renderControls();draw();
+  }
+  function setCustomAnswerSource(source){
+    if(!challenge||challenge.mode!=='custom')return;
+    if(source==='manual'){challenge.answerMode='manual';challenge.answerSource='';clearBoundHiding()}
+    else if(source==='generated'){challenge.answerMode='bound';challenge.answerSource='';clearBoundHiding()}
+    else{challenge.answerMode='bound';challenge.answerSource=source;challenge.answer=resolveAnswerSource(source);applyBoundHiding(source)}
+    challenge.revealed=false;renderControls();draw();
+  }
+  function challengeControlsHtml(){
+    if(!CK)return'<p class="gd-help">Challenge tools are unavailable.</p>';
+    const tabs=CK.tabsHtml?CK.tabsHtml('tv',challengeTab):'';
+    if(challengeTab==='custom'){
+      const custom=challenge&&challenge.mode==='custom'?challenge:CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual'});
+      return tabs+CK.editorHtml(custom,'tv',{answerSources:customAnswerSources(),generatedAnswerLabel:'Keep the generated answer'})+
+        modelControlsHtml()+
+        '<div class="gd-row">'+(challenge&&challenge.answer?'<button class="gd-btn" id="tv-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
+        (challenge?'<button class="gd-btn" id="tv-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
+        '<p class="gd-help">Custom answers can follow the total, equation, repeated addition, fact family, group count or items per group.</p>';
+    }
+    const picker=CK.pickerHtml(CHALLENGE_TEMPLATES,CHALLENGE_CATEGORIES,challengeCategory,challengeType,'tv');
+    const repeat=!!(challenge&&challenge.mode==='standard'&&challenge.type===challengeType);
+    return tabs+picker+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="tv-generate" type="button">'+(repeat?'Another like this':'Generate challenge')+'</button>'+
+      (challenge&&challenge.mode!=='custom'?'<button class="gd-btn" id="tv-edit-challenge" type="button">Edit challenge</button>':'')+
+      (challenge&&challenge.answer?'<button class="gd-btn" id="tv-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
+      (challenge?'<button class="gd-btn" id="tv-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
+      (!challengeFrozen()&&challenge?.type==='build-fact'?modelControlsHtml():'');
+  }
+  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():exploreControlsHtml())}
   function renderControls(){q('#gd-controls').innerHTML=controlsHtml();bindControls()}
-  function bindControls(){
+  function bindModelControls(){
     const a=q('#tv-a');if(a)a.onchange=()=>mutate(()=>setGroups(a.value));
     const b=q('#tv-b');if(b)b.onchange=()=>mutate(()=>setItems(b.value));
     const repeated=q('#tv-show-repeated');if(repeated)repeated.onchange=()=>{showRepeated=repeated.checked;draw()};
     const jumps=q('#tv-show-jumps');if(jumps)jumps.onchange=()=>{showJumps=jumps.checked;draw()};
     const family=q('#tv-show-family');if(family)family.onchange=()=>{showFactFamily=family.checked;draw()};
-    const random=q('#tv-random');if(random)random.onclick=()=>mutate(()=>{
-      groupsCount=1+Math.floor(Math.random()*12);
-      itemsPerGroup=1+Math.floor(Math.random()*12);
-      selectedGroup=0;
+  }
+  function bindControls(){
+    qa('[data-tv-workflow]',q('#gd-controls')).forEach(button=>button.onclick=()=>{controlTab=button.dataset.tvWorkflow;renderControls()});
+    bindModelControls();
+    if(controlTab==='explore'){
+      const random=q('#tv-random');if(random)random.onclick=()=>mutate(()=>{groupsCount=1+Math.floor(Math.random()*12);itemsPerGroup=1+Math.floor(Math.random()*12);selectedGroup=0});
+      const reset=q('#tv-reset');if(reset)reset.onclick=()=>mutate(()=>{groupsCount=4;itemsPerGroup=6;selectedGroup=0});
+      return;
+    }
+    if(controlTab!=='challenge')return;
+    qa('[data-tv-challenge-tab]',q('#gd-controls')).forEach(button=>button.onclick=()=>{
+      if(button.dataset.tvChallengeTab==='custom')enterCustomChallenge();
+      else{challengeTab='standard';renderControls()}
     });
-    const reset=q('#tv-reset');if(reset)reset.onclick=()=>mutate(()=>{groupsCount=4;itemsPerGroup=6;selectedGroup=0});
+    qa('[data-tv-challenge-cat]',q('#gd-controls')).forEach(button=>button.onclick=()=>{
+      challengeCategory=button.dataset.tvChallengeCat;
+      const first=CHALLENGE_TEMPLATES.find(t=>t.category===challengeCategory);if(first)challengeType=first.id;
+      renderControls();
+    });
+    qa('[data-tv-challenge-type]',q('#gd-controls')).forEach(button=>button.onclick=()=>{challengeType=button.dataset.tvChallengeType;renderControls()});
+    const generate=q('#tv-generate');if(generate)generate.onclick=()=>generateChallenge(challengeType);
+    const edit=q('#tv-edit-challenge');if(edit)edit.onclick=enterCustomChallenge;
+    const reveal=q('#tv-reveal');if(reveal)reveal.onclick=()=>{if(challenge){challenge.revealed=!challenge.revealed;renderControls();draw()}};
+    const clear=q('#tv-clear-challenge');if(clear)clear.onclick=clearChallenge;
+    if(challengeTab==='custom'&&challenge){
+      const title=q('#tv-custom-title');if(title)title.oninput=()=>{challenge.title=title.value.slice(0,100);draw()};
+      const prompt=q('#tv-custom-prompt');if(prompt)prompt.oninput=()=>{challenge.promptHtml=CK.sanitiseRichHtml(prompt.innerHTML);challenge.prompt=CK.plainText(challenge.promptHtml);draw()};
+      const source=q('#tv-custom-answer-source');if(source)source.onchange=()=>setCustomAnswerSource(source.value);
+      const answer=q('#tv-custom-answer');if(answer)answer.oninput=()=>{challenge.answer=answer.value.slice(0,400);challenge.answerMode='manual';challenge.answerSource='';draw()};
+      qa('[data-gd-rich-action]',q('#gd-controls')).forEach(button=>button.onclick=()=>{CK.applyFormat(prompt,button.dataset.gdRichAction);challenge.promptHtml=CK.sanitiseRichHtml(prompt.innerHTML);challenge.prompt=CK.plainText(challenge.promptHtml);draw()});
+    }
   }
 
   setPanels(controlsHtml(),'');
