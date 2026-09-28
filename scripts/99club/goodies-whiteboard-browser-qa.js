@@ -79,19 +79,24 @@ document.exitFullscreen=function(){
         assert(!TT99Goodies.whiteboard.isActive(),'Shared whiteboard controller exits bespoke Number Line mode cleanly');
       }else{
         assert(!sharedPresent.hidden,'Shared Present control is visible for '+id);
-        sharedPresent.click();
-        await tick();
-        assert(workspace.classList.contains('gd-whiteboard-active'),'Shared whiteboard mode activates for '+id);
-        assert(document.fullscreenElement===workspace||workspace.classList.contains('gd-whiteboard-fallback'),'Shared whiteboard mode occupies the viewport for '+id);
+        let stageHistory=null;
         if(id==='coordinates'){
           const undo=stage.querySelector('[data-co-undo-stage]'),redo=stage.querySelector('[data-co-redo-stage]');
-          assert(undo&&redo,'Coordinates keeps on-stage Undo/Redo in whiteboard mode');
-          assert(getComputedStyle(undo).display!=='none'&&getComputedStyle(redo).display!=='none','Coordinates on-stage history controls remain visible in whiteboard mode');
-        }
-        if(id==='geoboard'){
+          assert(undo&&redo,'Coordinates renders on-stage Undo/Redo before whiteboard mode');
+          stageHistory={undo,redo};
+        }else if(id==='geoboard'){
           const undo=stage.querySelector('[data-ge-undo-stage]'),redo=stage.querySelector('[data-ge-redo-stage]');
-          assert(undo&&redo,'Geoboard keeps on-stage Undo/Redo in whiteboard mode');
-          assert(getComputedStyle(undo).display!=='none'&&getComputedStyle(redo).display!=='none','Geoboard on-stage history controls remain visible in whiteboard mode');
+          assert(undo&&redo,'Geoboard renders on-stage Undo/Redo before whiteboard mode');
+          stageHistory={undo,redo};
+        }
+        sharedPresent.click();
+        await tick();
+        assert(document.getElementById('gd-stage')===stage,'Shared whiteboard preserves the live stage element for '+id);
+        assert(workspace.classList.contains('gd-whiteboard-active'),'Shared whiteboard mode activates for '+id);
+        assert(document.fullscreenElement===workspace||workspace.classList.contains('gd-whiteboard-fallback'),'Shared whiteboard mode occupies the viewport for '+id);
+        if(stageHistory){
+          assert(stage.contains(stageHistory.undo)&&stage.contains(stageHistory.redo),id+' whiteboard transition preserves the existing on-stage Undo/Redo nodes');
+          assert(getComputedStyle(stageHistory.undo).display!=='none'&&getComputedStyle(stageHistory.redo).display!=='none',id+' on-stage history controls remain visible in whiteboard mode');
         }
         const tools=document.getElementById('gd-whiteboard-tools');
         const exit=document.getElementById('gd-whiteboard-exit');
