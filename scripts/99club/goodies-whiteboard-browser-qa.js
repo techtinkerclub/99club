@@ -59,16 +59,18 @@ document.exitFullscreen=function(){
       const card=document.querySelector('[data-tool="'+id+'"]');
       assert(card,'Catalogue card exists for '+id);
       card.click();
-      const present=document.getElementById('gd-present');
+      const sharedPresent=document.getElementById('gd-present');
       const workspace=document.getElementById('gd-workspace');
       const stage=document.getElementById('gd-stage');
-      assert(present&&workspace&&stage,'Whiteboard shell exists for '+id);
+      assert(sharedPresent&&workspace&&stage,'Whiteboard shell exists for '+id);
       assert(workspace.dataset.whiteboardSupported==='true','Whiteboard support contract is present for '+id);
 
-      present.click();
-      await tick();
-
       if(id==='number-line'){
+        assert(sharedPresent.hidden,'Number Line does not duplicate its bespoke Present control in the shared header');
+        const present=document.getElementById('nl-fullscreen');
+        assert(present,'Number Line keeps its bespoke Present button');
+        present.click();
+        await tick();
         assert(document.fullscreenElement===stage||stage.classList.contains('nl-board-fallback'),'Number Line Present delegates to its bespoke whiteboard mode');
         assert(stage.classList.contains('is-board-active')||document.querySelector('.nl-board-ui'),'Number Line whiteboard UI remains available');
         assert(TT99Goodies.whiteboard.isActive(),'Shared whiteboard controller reports bespoke Number Line mode as active');
@@ -76,6 +78,9 @@ document.exitFullscreen=function(){
         await tick();
         assert(!TT99Goodies.whiteboard.isActive(),'Shared whiteboard controller exits bespoke Number Line mode cleanly');
       }else{
+        assert(!sharedPresent.hidden,'Shared Present control is visible for '+id);
+        sharedPresent.click();
+        await tick();
         assert(workspace.classList.contains('gd-whiteboard-active'),'Shared whiteboard mode activates for '+id);
         assert(document.fullscreenElement===workspace||workspace.classList.contains('gd-whiteboard-fallback'),'Shared whiteboard mode occupies the viewport for '+id);
         const tools=document.getElementById('gd-whiteboard-tools');
