@@ -4007,19 +4007,20 @@ function clockTool(){
 function moneyTool(){
   const I=G.interaction,CK=G.challengeKit,X=G.exportTools;
   if(!I){q('#gd-stage').innerHTML='<p class="gd-empty">The interactive money workbench could not start.</p>';return;}
+  const ROYAL_MINT_BASE='https://www.royalmint.com/globalassets/consumer/_campaigns/2023/definitives/articles/by-royal-approval/';
   const DENOMS=[
-    {value:1,label:'1p',kind:'coin',shape:'round',size:45,tone:'copper'},
-    {value:2,label:'2p',kind:'coin',shape:'round',size:54,tone:'copper'},
-    {value:5,label:'5p',kind:'coin',shape:'round',size:43,tone:'silver'},
-    {value:10,label:'10p',kind:'coin',shape:'round',size:50,tone:'silver'},
-    {value:20,label:'20p',kind:'coin',shape:'hept',size:49,tone:'silver'},
-    {value:50,label:'50p',kind:'coin',shape:'hept',size:58,tone:'silver'},
-    {value:100,label:'£1',kind:'coin',shape:'dodec',size:55,tone:'gold'},
-    {value:200,label:'£2',kind:'coin',shape:'round',size:61,tone:'bimetal'},
-    {value:500,label:'£5',kind:'note',shape:'note',width:102,height:48,tone:'blue'},
-    {value:1000,label:'£10',kind:'note',shape:'note',width:112,height:51,tone:'orange'},
-    {value:2000,label:'£20',kind:'note',shape:'note',width:122,height:54,tone:'purple'},
-    {value:5000,label:'£50',kind:'note',shape:'note',width:132,height:57,tone:'red'}
+    {value:1,label:'1p',kind:'coin',shape:'round',size:56,tone:'copper',image:ROYAL_MINT_BASE+'t9_articles_1200x600_content-11.jpg',design:'Hazel dormouse'},
+    {value:2,label:'2p',kind:'coin',shape:'round',size:71,tone:'copper',image:ROYAL_MINT_BASE+'t9_articles_1200x600_content-10.jpg',design:'Red squirrel'},
+    {value:5,label:'5p',kind:'coin',shape:'round',size:50,tone:'silver',image:ROYAL_MINT_BASE+'t9_articles_1200x600_content-9.jpg',design:'Oak leaf'},
+    {value:10,label:'10p',kind:'coin',shape:'round',size:67,tone:'silver',image:ROYAL_MINT_BASE+'t9_articles_1200x600_content-8.jpg',design:'Capercaillie'},
+    {value:20,label:'20p',kind:'coin',shape:'hept',size:59,tone:'silver',image:ROYAL_MINT_BASE+'t9_articles_1200x600_content-7.jpg',design:'Puffin'},
+    {value:50,label:'50p',kind:'coin',shape:'hept',size:75,tone:'silver',image:ROYAL_MINT_BASE+'t9_articles_1200x600_content-6.jpg',design:'Atlantic salmon'},
+    {value:100,label:'£1',kind:'coin',shape:'dodec',size:64,tone:'gold',image:ROYAL_MINT_BASE+'t9_articles_1200x600_content-5.jpg',design:'Bees'},
+    {value:200,label:'£2',kind:'coin',shape:'round',size:78,tone:'bimetal',image:ROYAL_MINT_BASE+'t9_articles_1200x600_content-4.jpg',design:'UK flora'},
+    {value:500,label:'£5',kind:'note',shape:'note',width:112,height:52,tone:'blue'},
+    {value:1000,label:'£10',kind:'note',shape:'note',width:122,height:55,tone:'orange'},
+    {value:2000,label:'£20',kind:'note',shape:'note',width:132,height:58,tone:'purple'},
+    {value:5000,label:'£50',kind:'note',shape:'note',width:142,height:61,tone:'red'}
   ];
   const CHALLENGE_CATEGORIES=[
     {id:'read',label:'Count & compare'},
@@ -4168,9 +4169,10 @@ function moneyTool(){
       ?'left:'+item.x+'px;top:'+item.y+'px;--mo-w:'+d.width+'px;--mo-h:'+d.height+'px'
       :'left:'+item.x+'px;top:'+item.y+'px;--mo-size:'+d.size+'px';
     const cls='gd-money-object gd-money-object--'+d.kind+' gd-money-object--'+d.shape+' gd-money-object--'+d.tone+(item.locked?' is-locked':'')+(frozen?' is-frozen':'');
-    return '<button type="button" class="'+cls+'" data-gd-object="'+item.id+'" data-mo-value="'+d.value+'" style="'+style+'" aria-label="'+d.label+' '+(d.kind==='note'?'note':'coin')+(frozen?' fixed for this challenge':'')+'">'+
-      '<span class="gd-money-object__face"><strong>'+d.label+'</strong><small>'+(d.kind==='note'?'UK play note':'UK coin')+'</small></span>'+
-    '</button>';
+    const face=d.kind==='coin'
+      ?'<span class="gd-money-object__face gd-money-object__face--official"><img src="'+d.image+'" alt="" draggable="false" loading="eager" decoding="async" referrerpolicy="no-referrer"><strong>'+d.label+'</strong><small>'+esc(d.design||'UK coin')+'</small></span>'
+      :'<span class="gd-money-object__face"><strong>'+d.label+'</strong><small>CLASSROOM NOTE</small></span>';
+    return '<button type="button" class="'+cls+'" data-gd-object="'+item.id+'" data-mo-value="'+d.value+'" style="'+style+'" aria-label="'+d.label+' '+(d.kind==='note'?'classroom note':(d.design||'UK coin'))+(frozen?' fixed for this challenge':'')+'">'+face+'</button>';
   }
   function toolbarHtml(history,selected){
     const frozen=challengeFrozen(),unavailable=!selected||frozen,deleteDisabled=unavailable||!!selected?.locked;
@@ -4233,7 +4235,14 @@ function moneyTool(){
       '<button class="gd-btn'+(controlTab==='export'?' gd-btn--primary':'')+'" type="button" data-mo-workflow="export">Export / reuse</button></div>';
   }
   function moneyPaletteHtml(){
-    return '<div class="gd-field"><span>Add money</span><div class="gd-money-palette">'+DENOMS.map(d=>'<button type="button" class="gd-money-pick gd-money-pick--'+d.kind+'" data-mo-add="'+d.value+'" aria-label="Add '+d.label+'">'+d.label+'</button>').join('')+'</div></div>'+
+    const picks=DENOMS.map(d=>{
+      const visual=d.kind==='coin'
+        ?'<span class="gd-money-pick__coin gd-money-pick__coin--'+d.shape+'"><img src="'+d.image+'" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>'
+        :'<span class="gd-money-pick__note gd-money-pick__note--'+d.tone+'">'+d.label+'</span>';
+      return '<button type="button" class="gd-money-pick gd-money-pick--'+d.kind+'" data-mo-add="'+d.value+'" aria-label="Add '+d.label+'">'+visual+'<span>'+d.label+'</span></button>';
+    }).join('');
+    return '<div class="gd-field"><span>Add money</span><div class="gd-money-palette">'+picks+'</div>'+
+      '<p class="gd-money-credit">Coin imagery: The Royal Mint, 2023. Notes are deliberately stylised classroom representations.</p></div>'+
       '<div class="gd-row">'+btn('Tidy money','mo-tidy')+btn('Clear all','mo-clear')+'</div>';
   }
   function exploreControlsHtml(){
