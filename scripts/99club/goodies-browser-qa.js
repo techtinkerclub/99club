@@ -3341,6 +3341,40 @@ if(mode==='prepare'){
     assert(document.getElementById('me-marker').getAttribute('aria-valuenow')===teacherValue,'Ending a Measurement challenge restores the teacher marker position');
   }
 
+  function testRandomiser(){
+    assert(TT99Goodies.randomiser,'Randomiser is registered');
+    TT99Goodies.randomiser();
+    const realRandom=Math.random;
+    Math.random=()=>0;
+
+    let action=document.getElementById('ra-stage-go');
+    assert(action&&action.textContent.trim()==='Roll dice','Randomiser puts Roll dice directly on the live stage');
+    action.click();
+    assert(document.querySelector('.gd-random-big').textContent.trim()==='1 + 1 = 2','On-stage dice action generates the configured dice result');
+    assert(document.getElementById('ra-stage-go')?.textContent.trim()==='Roll dice','Randomiser rebinds the on-stage action after each result');
+
+    const mode=document.getElementById('ra-mode');
+    mode.value='spinner';mode.dispatchEvent(new Event('change',{bubbles:true}));
+    action=document.getElementById('ra-stage-go');
+    assert(action&&action.textContent.trim()==='Spin','Spinner exposes Spin directly on the stage');
+    action.click();
+    assert(document.querySelector('.gd-spinner-result').textContent.trim()==='Red','On-stage spinner action uses the configured choices');
+
+    mode.value='number';mode.dispatchEvent(new Event('change',{bubbles:true}));
+    action=document.getElementById('ra-stage-go');
+    assert(action&&action.textContent.trim()==='Generate number','Random-number mode exposes Generate number on the stage');
+    action.click();
+    assert(document.querySelector('.gd-random-big').textContent.trim()==='1','On-stage number action uses the configured range');
+
+    mode.value='card';mode.dispatchEvent(new Event('change',{bubbles:true}));
+    action=document.getElementById('ra-stage-go');
+    assert(action&&action.textContent.trim()==='Draw card','Card mode exposes Draw card on the stage');
+    action.click();
+    assert(document.querySelector('.gd-random-big').textContent.trim()==='A♠','On-stage card action draws from the standard deck');
+
+    Math.random=realRandom;
+  }
+
   window.addEventListener('load',function(){
     setTimeout(function(){
       try{
@@ -3358,10 +3392,11 @@ if(mode==='prepare'){
         testGeoboard();
         testCoordinates();
         testMeasurement();
+        testRandomiser();
         testArrayWorkbench();
         testMoneyWorkbench();
         testClockWorkbench();
-        result('pass','Number Line challenges, Maths Canvas, Bar Model, Equation Balance, Hundred Square, Multiplication Grid, Times-table Visualiser, Factor Explorer, FDP Explorer, Place Value, Fraction Wall, Geoboard, Coordinates, Measurement, Array, UK Money and Clock workbench interactions work');
+        result('pass','Number Line challenges, Maths Canvas, Bar Model, Equation Balance, Hundred Square, Multiplication Grid, Times-table Visualiser, Factor Explorer, FDP Explorer, Place Value, Fraction Wall, Geoboard, Coordinates, Measurement, Randomiser, Array, UK Money and Clock workbench interactions work');
       }catch(err){
         result('fail',err&&err.message?err.message:String(err));
       }
