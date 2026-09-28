@@ -962,8 +962,54 @@ function measurementTool(){
   draw();
 }
 
-function randomiser(){let result='';function draw(){const mode=q('#ra-mode').value;let controls='';if(mode==='dice')controls=field('Number of dice','<input class="gd-input" id="ra-count" type="number" min="1" max="8" value="2">')+field('Sides','<select class="gd-select" id="ra-sides"><option>6</option><option>4</option><option>8</option><option>10</option><option>12</option><option>20</option></select>');if(mode==='spinner')controls=field('Choices','<textarea class="gd-textarea" id="ra-choices" rows="5">Red\nBlue\nGreen\nYellow</textarea>');if(mode==='number')controls=field('Minimum','<input class="gd-input" id="ra-min" type="number" value="1">')+field('Maximum','<input class="gd-input" id="ra-max" type="number" value="100">');if(mode==='card')controls='<p class="gd-help">Draw from a standard 52-card deck.</p>';q('#ra-extra').innerHTML=controls;show(mode)}function show(mode=q('#ra-mode').value){if(mode==='spinner'){q('#gd-stage').innerHTML=`<div class="gd-vis"><div class="gd-spinner">?</div><div class="gd-spinner-result">${esc(result||'Press Spin')}</div></div>`}else q('#gd-stage').innerHTML=`<div class="gd-vis"><div class="gd-random-big">${esc(result||'—')}</div></div>`}function roll(){const mode=q('#ra-mode').value;if(mode==='dice'){const c=clamp(num(q('#ra-count').value,2),1,8),sides=clamp(num(q('#ra-sides').value,6),2,100),vals=Array.from({length:c},()=>1+Math.floor(Math.random()*sides));result=vals.join(' + ')+' = '+vals.reduce((a,b)=>a+b,0)}else if(mode==='number'){let a=num(q('#ra-min').value,1),b=num(q('#ra-max').value,100);if(a>b)[a,b]=[b,a];result=String(Math.floor(a+Math.random()*(b-a+1)))}else if(mode==='spinner'){const a=q('#ra-choices').value.split(/\n|,/).map(x=>x.trim()).filter(Boolean);result=a.length?a[Math.floor(Math.random()*a.length)]:'Add choices'}else{const ranks=['A','2','3','4','5','6','7','8','9','10','J','Q','K'],suits=['♠','♥','♦','♣'];result=ranks[Math.floor(Math.random()*ranks.length)]+suits[Math.floor(Math.random()*suits.length)]}show(mode)}
-setPanels(`${field('Tool','<select class="gd-select" id="ra-mode"><option value="dice">Dice</option><option value="spinner">Spinner</option><option value="number">Random number</option><option value="card">Playing card</option></select>')}<div id="ra-extra"></div>${btn('Generate','ra-go',true)}`,'');q('#ra-mode').onchange=()=>{result='';draw()};q('#ra-go').onclick=roll;draw()}
+function randomiser(){
+  let result='';
+  function actionLabel(mode){
+    return mode==='dice'?'Roll dice':mode==='spinner'?'Spin':mode==='number'?'Generate number':'Draw card';
+  }
+  function draw(){
+    const mode=q('#ra-mode').value;
+    let controls='';
+    if(mode==='dice')controls=field('Number of dice','<input class="gd-input" id="ra-count" type="number" min="1" max="8" value="2">')+field('Sides','<select class="gd-select" id="ra-sides"><option>6</option><option>4</option><option>8</option><option>10</option><option>12</option><option>20</option></select>');
+    if(mode==='spinner')controls=field('Choices','<textarea class="gd-textarea" id="ra-choices" rows="5">Red\nBlue\nGreen\nYellow</textarea>');
+    if(mode==='number')controls=field('Minimum','<input class="gd-input" id="ra-min" type="number" value="1">')+field('Maximum','<input class="gd-input" id="ra-max" type="number" value="100">');
+    if(mode==='card')controls='<p class="gd-help">Draw from a standard 52-card deck.</p>';
+    q('#ra-extra').innerHTML=controls;
+    show(mode);
+  }
+  function show(mode=q('#ra-mode').value){
+    const action='<div class="gd-random-stage-actions"><button class="gd-btn gd-btn--primary gd-random-stage-action" id="ra-stage-go" type="button">'+actionLabel(mode)+'</button></div>';
+    if(mode==='spinner'){
+      q('#gd-stage').innerHTML='<div class="gd-vis gd-random-stage"><div class="gd-spinner">?</div><div class="gd-spinner-result">'+esc(result||'Press Spin')+'</div>'+action+'</div>';
+    }else{
+      q('#gd-stage').innerHTML='<div class="gd-vis gd-random-stage"><div class="gd-random-big">'+esc(result||'—')+'</div>'+action+'</div>';
+    }
+    const stageGo=q('#ra-stage-go');
+    if(stageGo)stageGo.onclick=roll;
+  }
+  function roll(){
+    const mode=q('#ra-mode').value;
+    if(mode==='dice'){
+      const count=clamp(num(q('#ra-count').value,2),1,8),sides=clamp(num(q('#ra-sides').value,6),2,100),vals=Array.from({length:count},()=>1+Math.floor(Math.random()*sides));
+      result=vals.join(' + ')+' = '+vals.reduce((a,b)=>a+b,0);
+    }else if(mode==='number'){
+      let a=num(q('#ra-min').value,1),b=num(q('#ra-max').value,100);
+      if(a>b)[a,b]=[b,a];
+      result=String(Math.floor(a+Math.random()*(b-a+1)));
+    }else if(mode==='spinner'){
+      const choices=q('#ra-choices').value.split(/\n|,/).map(x=>x.trim()).filter(Boolean);
+      result=choices.length?choices[Math.floor(Math.random()*choices.length)]:'Add choices';
+    }else{
+      const ranks=['A','2','3','4','5','6','7','8','9','10','J','Q','K'],suits=['♠','♥','♦','♣'];
+      result=ranks[Math.floor(Math.random()*ranks.length)]+suits[Math.floor(Math.random()*suits.length)];
+    }
+    show(mode);
+  }
+  setPanels(`${field('Tool','<select class="gd-select" id="ra-mode"><option value="dice">Dice</option><option value="spinner">Spinner</option><option value="number">Random number</option><option value="card">Playing card</option></select>')}<div id="ra-extra"></div>${btn('Generate','ra-go',true)}`,'');
+  q('#ra-mode').onchange=()=>{result='';draw()};
+  q('#ra-go').onclick=roll;
+  draw();
+}
 
 function balanceTool(){
   const CK=G.challengeKit,X=G.exportTools;
