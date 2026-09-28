@@ -1516,7 +1516,7 @@ function balanceTool(){
 }
 
 function timesTableVisual(){
-  const CK=G.challengeKit;
+  const CK=G.challengeKit,X=G.exportTools;
   let groupsCount=4,itemsPerGroup=6,selectedGroup=0;
   let showRepeated=true,showJumps=true,showFactFamily=true;
   const undoStack=[],redoStack=[];
@@ -1535,6 +1535,7 @@ function timesTableVisual(){
     {id:'spot-error',category:'reason',title:'Spot the incorrect equation',desc:'Use the equal groups to decide whether the shown equation is correct.'}
   ];
   let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='find-total',challenge=null,beforeChallenge=null;
+  let exportMode='diagram',responseLines=1,exportStatus='';
 
   function snapshot(){return{groupsCount,itemsPerGroup,selectedGroup,showRepeated,showJumps,showFactFamily}}
   function restore(state){
@@ -1688,7 +1689,8 @@ function timesTableVisual(){
   function workflowTabs(){
     return '<div class="gd-row gd-tv-workflow-tabs" role="tablist" aria-label="Times-table Visualiser workflow">'+
       '<button class="gd-btn'+(controlTab==='explore'?' gd-btn--primary':'')+'" type="button" data-tv-workflow="explore">Explore</button>'+
-      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-tv-workflow="challenge">Challenge'+(challenge?' •':'')+'</button></div>';
+      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-tv-workflow="challenge">Challenge'+(challenge?' •':'')+'</button>'+ 
+      '<button class="gd-btn'+(controlTab==='export'?' gd-btn--primary':'')+'" type="button" data-tv-workflow="export">Export / reuse</button></div>';
   }
   function modelControlsHtml(){
     return field('Quick setup','<div class="gd-row"><label class="gd-tv-quick"><span>Groups</span><input class="gd-input gd-small" id="tv-a" type="number" min="1" max="12" value="'+groupsCount+'"></label><span>×</span><label class="gd-tv-quick"><span>In each</span><input class="gd-input gd-small" id="tv-b" type="number" min="1" max="12" value="'+itemsPerGroup+'"></label></div>')+
@@ -1734,7 +1736,8 @@ function timesTableVisual(){
       const wrong=t+1;
       challenge=challengeObject(type,'The equation says '+a+' × '+b+' = '+wrong+'. Use the equal groups to decide whether it is correct.','No. '+a+' × '+b+' = '+t+', not '+wrong+'.',{wrongTotal:wrong,hiddenRepeated:true,hiddenFactFamily:true,hiddenJumps:true,hiddenSelectedPanel:true});
     }
-    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';renderControls();draw();
+    challenge.initialState=snapshot();
+    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';exportMode='challenge';responseLines=template.category==='reason'?3:1;exportStatus='';renderControls();draw();
   }
   function restoreBeforeChallenge(){if(beforeChallenge){restore(beforeChallenge);beforeChallenge=null}}
   function clearChallenge(){
@@ -1785,7 +1788,7 @@ function timesTableVisual(){
     if(CK)challenge=CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''});
     if(!wasCustom)clearBoundHiding();
     challenge.freezeModel=false;challenge.revealed=false;
-    challengeTab='custom';controlTab='challenge';renderControls();draw();
+    challengeTab='custom';controlTab='challenge';exportMode='challenge';exportStatus='';renderControls();draw();
   }
   function setCustomAnswerSource(source){
     if(!challenge||challenge.mode!=='custom')return;
@@ -1813,7 +1816,122 @@ function timesTableVisual(){
       (challenge?'<button class="gd-btn" id="tv-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
       (!challengeFrozen()&&challenge?.type==='build-fact'?modelControlsHtml():'');
   }
-  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():exploreControlsHtml())}
+  function exportControlsHtml(){
+    const canCard=!!challenge;
+    if(!canCard&&exportMode==='challenge')exportMode='diagram';
+    return '<div class="nl-panel-title"><div><strong>Use it elsewhere</strong><span>Export the equal-groups model as a clean vector diagram or a pupil-ready challenge card.</span></div></div>'+
+      (canCard?'<div class="nl-export-mode tv-export-mode" role="tablist" aria-label="Export content">'+
+        '<button type="button" class="'+(exportMode==='challenge'?'is-active':'')+'" data-tv-export-mode="challenge">Challenge card</button>'+
+        '<button type="button" class="'+(exportMode==='diagram'?'is-active':'')+'" data-tv-export-mode="diagram">Model only</button></div>':'')+
+      (canCard&&exportMode==='challenge'
+        ?'<label class="gd-field"><span>Answer space</span><select class="gd-select" id="tv-response-lines">'+
+          [1,2,3,4].map(n=>'<option value="'+n+'"'+(responseLines===n?' selected':'')+'>'+n+' line'+(n===1?'':'s')+'</option>').join('')+
+          '</select></label><p class="gd-help">The pupil card restores the original challenge state and hides any answer-bearing representation again, even after Reveal answer or teacher testing.</p>'
+        :'<p class="gd-help">Model-only export contains the current equal groups and the visible mathematical representations without editing controls.</p>')+
+      '<div class="nl-export-grid tv-export-grid">'+
+        '<button class="gd-btn gd-btn--primary" id="tv-copy-image" type="button">Copy '+(canCard&&exportMode==='challenge'?'challenge':'image')+'</button>'+
+        '<button class="gd-btn" id="tv-png" type="button">PNG</button>'+
+        '<button class="gd-btn" id="tv-svg-download" type="button">SVG</button>'+
+        '<button class="gd-btn" id="tv-print" type="button">Print / PDF</button>'+
+      '</div><p class="gd-help" id="tv-export-status" role="status" aria-live="polite">'+exportStatus+'</p>';
+  }
+  function tvSvgEl(name,attrs={},text=''){
+    const el=document.createElementNS('http://www.w3.org/2000/svg',name);
+    Object.entries(attrs).forEach(([key,value])=>el.setAttribute(key,String(value)));
+    if(text!==''&&text!=null)el.textContent=String(text);
+    return el;
+  }
+  function exportState(pupil=false){
+    if(pupil&&challenge?.mode==='standard'&&challenge.initialState)return{...challenge.initialState};
+    return snapshot();
+  }
+  function exportHidden(key,pupil=false){
+    if(!challenge)return false;
+    return pupil?!!challenge[key]:hiddenFlag(key);
+  }
+  function stateTotal(state){return Number(state.groupsCount)*Number(state.itemsPerGroup)}
+  function stateRepeated(state){return Array.from({length:Number(state.groupsCount)},()=>Number(state.itemsPerGroup)).join(' + ')+' = '+stateTotal(state)}
+  function stateEquation(state,pupil=false){
+    if(challenge?.mode==='standard'&&challenge.type==='spot-error'&&(pupil||!challenge.revealed))return state.groupsCount+' × '+state.itemsPerGroup+' = '+challenge.wrongTotal;
+    if(exportHidden('hiddenEquation',pupil))return state.groupsCount+' × '+state.itemsPerGroup+' = ?';
+    return state.groupsCount+' × '+state.itemsPerGroup+' = '+stateTotal(state);
+  }
+  function timesTableExportSvg({pupil=false}={}){
+    const state=exportState(pupil),groups=Number(state.groupsCount),items=Number(state.itemsPerGroup),width=900;
+    const cols=Math.min(groups,4),rows=Math.ceil(groups/cols),cardW=170,cardH=128,gap=18;
+    const groupsW=cols*cardW+(cols-1)*gap,groupsX=(width-groupsW)/2,groupsY=115;
+    const showRep=state.showRepeated!==false,showFamily=state.showFactFamily!==false;
+    const repHidden=exportHidden('hiddenRepeated',pupil),familyHidden=exportHidden('hiddenFactFamily',pupil),jumpsHidden=exportHidden('hiddenJumps',pupil);
+    let yAfter=groupsY+rows*cardH+(rows-1)*gap+42;
+    let extra=0;
+    if(showRep)extra+=66;
+    if(state.showJumps!==false&&!jumpsHidden)extra+=70;
+    if(showFamily)extra+=96;
+    const height=Math.max(500,yAfter+extra+70);
+    const svg=tvSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Equal groups multiplication model','data-tv-export':'model'});
+    svg.appendChild(tvSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
+    svg.appendChild(tvSvgEl('rect',{x:34,y:30,width:width-68,height:height-62,rx:20,fill:'#fbfcfc',stroke:'#c5d3d6','stroke-width':2,'data-tv-export-model':'1'}));
+    svg.appendChild(tvSvgEl('text',{x:width/2,y:78,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':30,'font-weight':800,fill:'#304b52','data-tv-export-equation':'1'},stateEquation(state,pupil)));
+    for(let g=0;g<groups;g++){
+      const col=g%cols,row=Math.floor(g/cols),x=groupsX+col*(cardW+gap),y=groupsY+row*(cardH+gap);
+      svg.appendChild(tvSvgEl('rect',{x,y,width:cardW,height:cardH,rx:16,fill:'#f7fbfa',stroke:'#8bb9b2','stroke-width':2,'data-tv-export-group':g}));
+      svg.appendChild(tvSvgEl('text',{x:x+cardW/2,y:y+24,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':13,'font-weight':800,fill:'#65787e'},'Group '+(g+1)));
+      const dotCols=Math.min(items,6),dotGap=18,dotRows=Math.ceil(items/dotCols),dotStartX=x+cardW/2-((dotCols-1)*dotGap)/2,dotStartY=y+48;
+      for(let i=0;i<items;i++){
+        const dc=i%dotCols,dr=Math.floor(i/dotCols);
+        svg.appendChild(tvSvgEl('circle',{cx:dotStartX+dc*dotGap,cy:dotStartY+dr*dotGap,r:6,fill:'#2f7d75'}));
+      }
+      svg.appendChild(tvSvgEl('text',{x:x+cardW/2,y:y+cardH-14,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':14,'font-weight':800,fill:'#425b62'},items+' in each'));
+    }
+    let y=yAfter;
+    if(showRep){
+      svg.appendChild(tvSvgEl('text',{x:70,y,'font-family':'Arial,sans-serif','font-size':13,'font-weight':800,fill:'#718288'},'REPEATED ADDITION'));
+      svg.appendChild(tvSvgEl('text',{x:70,y:y+27,'font-family':'Arial,sans-serif','font-size':19,'font-weight':800,fill:'#304b52','data-tv-export-repeated':'1'},repHidden?'?':stateRepeated(state)));
+      y+=66;
+    }
+    if(state.showJumps!==false&&!jumpsHidden){
+      svg.appendChild(tvSvgEl('text',{x:70,y,'font-family':'Arial,sans-serif','font-size':13,'font-weight':800,fill:'#718288'},'EQUAL JUMPS'));
+      const jumps=Array.from({length:groups},(_,i)=>(i*items)+' → '+((i+1)*items)).join('   ');
+      svg.appendChild(tvSvgEl('text',{x:70,y:y+27,'font-family':'Arial,sans-serif','font-size':16,'font-weight':700,fill:'#425b62','data-tv-export-jumps':'1'},jumps));
+      y+=70;
+    }
+    if(showFamily){
+      const t=stateTotal(state),family=familyHidden?['?','?','?']:[items+' × '+groups+' = '+t,t+' ÷ '+groups+' = '+items,t+' ÷ '+items+' = '+groups];
+      svg.appendChild(tvSvgEl('text',{x:70,y,'font-family':'Arial,sans-serif','font-size':13,'font-weight':800,fill:'#718288'},'FACT FAMILY'));
+      family.forEach((line,i)=>svg.appendChild(tvSvgEl('text',{x:70+i*260,y:y+29,'font-family':'Arial,sans-serif','font-size':17,'font-weight':800,fill:'#304b52','data-tv-export-family':i},line)));
+      y+=96;
+    }
+    svg.appendChild(tvSvgEl('text',{x:width-52,y:height-20,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':10,fill:'#87969a'},'99 Club Studio'));
+    return svg;
+  }
+  function exportTargetSvg(){
+    if(exportMode!=='challenge'||!challenge||!X?.composeChallengeCardSvg)return timesTableExportSvg({pupil:false});
+    const prompt=CK?CK.plainText(challenge.promptHtml||challenge.prompt||''):challenge.prompt||'';
+    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
+    return X.composeChallengeCardSvg(timesTableExportSvg({pupil:true}),{
+      title:challenge.title||meta?.title||'Times-table challenge',
+      prompt,
+      responseLabel:challenge.category==='reason'?'Explain your thinking':'Answer',
+      responseLines,
+      brand:'99 Club Studio'
+    });
+  }
+  function exportName(){
+    const meta=challenge&&CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
+    return exportMode==='challenge'&&challenge?(challenge.title||meta?.title||'times-table-challenge'):'times-table-equal-groups';
+  }
+  function exportMessage(text){exportStatus=text;const el=q('#tv-export-status');if(el)el.textContent=text}
+  async function exportAction(kind){
+    try{
+      if(!X)throw new Error('Export tools are not available.');
+      const target=exportTargetSvg(),isCard=exportMode==='challenge'&&!!challenge,name=exportName();
+      if(kind==='copy'){await X.copyPng(target);exportMessage(isCard?'Challenge copied — paste it into your worksheet, slide or document.':'Equal-groups model copied — paste it into your slide or document.')}
+      if(kind==='png'){await X.downloadPng(target,name,2);exportMessage(isCard?'Challenge PNG downloaded.':'Equal-groups PNG downloaded.')}
+      if(kind==='svg'){X.downloadSvg(target,name);exportMessage(isCard?'Challenge SVG downloaded.':'Equal-groups SVG downloaded.')}
+      if(kind==='print'){X.printSvg(target,{title:'',landscape:false});exportMessage('Print view opened. Choose “Save as PDF” in the print dialog.')}
+    }catch(err){exportMessage(err?.message||'That export did not work.')}
+  }
+  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():controlTab==='export'?exportControlsHtml():exploreControlsHtml())}
   function renderControls(){q('#gd-controls').innerHTML=controlsHtml();bindControls()}
   function bindModelControls(){
     const a=q('#tv-a');if(a)a.onchange=()=>mutate(()=>setGroups(a.value));
@@ -1823,7 +1941,17 @@ function timesTableVisual(){
     const family=q('#tv-show-family');if(family)family.onchange=()=>{showFactFamily=family.checked;draw()};
   }
   function bindControls(){
-    qa('[data-tv-workflow]',q('#gd-controls')).forEach(button=>button.onclick=()=>{controlTab=button.dataset.tvWorkflow;renderControls()});
+    const controls=q('#gd-controls');if(!controls)return;
+    qa('[data-tv-workflow]',controls).forEach(button=>button.onclick=()=>{controlTab=button.dataset.tvWorkflow;renderControls()});
+    if(controlTab==='export'){
+      qa('[data-tv-export-mode]',controls).forEach(button=>button.onclick=()=>{exportMode=button.dataset.tvExportMode==='challenge'&&challenge?'challenge':'diagram';exportStatus='';renderControls()});
+      const response=q('#tv-response-lines',controls);if(response)response.onchange=()=>{responseLines=clamp(Math.round(num(response.value,1)),1,4);renderControls()};
+      const copyImage=q('#tv-copy-image',controls);if(copyImage)copyImage.onclick=()=>exportAction('copy');
+      const png=q('#tv-png',controls);if(png)png.onclick=()=>exportAction('png');
+      const svgDownload=q('#tv-svg-download',controls);if(svgDownload)svgDownload.onclick=()=>exportAction('svg');
+      const print=q('#tv-print',controls);if(print)print.onclick=()=>exportAction('print');
+      return;
+    }
     bindModelControls();
     if(controlTab==='explore'){
       const random=q('#tv-random');if(random)random.onclick=()=>mutate(()=>{groupsCount=1+Math.floor(Math.random()*12);itemsPerGroup=1+Math.floor(Math.random()*12);selectedGroup=0});
