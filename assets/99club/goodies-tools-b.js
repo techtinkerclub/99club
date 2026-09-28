@@ -2233,7 +2233,7 @@ function fdpExplorer(){
     const percentDisplay=challenge?.mode==='standard'&&challenge.type==='spot-percent-error'&&hidden?challenge.wrongPercent+'%':(hidden&&challenge.hiddenPercent?'?':percentText()+'%');
     const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Fraction–decimal–percentage challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-fdp-main">'+
-      '<div class="gd-fdp-summary"><div><span>Fraction value</span><strong data-fd-source>'+numerator+'/'+denominator+'</strong></div>'+
+      '<div class="gd-fdp-summary"><div><span>Fraction value</span><strong data-fd-source>'+(hidden&&challenge.hiddenSource?'?/?':numerator+'/'+denominator)+'</strong></div>'+
         '<div class="gd-object-toolbar"><button class="gd-btn" id="fd-undo" type="button"'+(undoStack.length&&!challengeFrozen()?'':' disabled')+'>Undo</button><button class="gd-btn" id="fd-redo" type="button"'+(redoStack.length&&!challengeFrozen()?'':' disabled')+'>Redo</button></div></div>'+
       (!challengeFrozen()?'<div class="gd-fdp-direct">'+
         '<div class="gd-fdp-stepper"><span>Numerator</span><div><button class="gd-btn" id="fd-n-minus" type="button"'+(numerator<=0?' disabled':'')+'>−</button><strong data-fd-numerator>'+numerator+'</strong><button class="gd-btn" id="fd-n-plus" type="button"'+(numerator>=denominator?' disabled':'')+'>+</button></div></div>'+
@@ -2279,7 +2279,7 @@ function fdpExplorer(){
   }
   function challengeObject(type,prompt,answer,extra={}){
     const meta=CHALLENGE_TEMPLATES.find(t=>t.id===type);
-    const raw={mode:'standard',type,category:meta?.category||'',title:'',prompt,promptHtml:prompt,answer:String(answer??''),answerMode:'manual',answerSource:'',revealed:false,freezeModel:true,hiddenFraction:false,hiddenDecimal:false,hiddenPercent:false,hiddenHundred:false,hiddenEquivalentFamily:false,targetPercent:null,wrongPercent:null,...extra};
+    const raw={mode:'standard',type,category:meta?.category||'',title:'',prompt,promptHtml:prompt,answer:String(answer??''),answerMode:'manual',answerSource:'',revealed:false,freezeModel:true,hiddenSource:false,hiddenFraction:false,hiddenDecimal:false,hiddenPercent:false,hiddenHundred:false,hiddenEquivalentFamily:false,targetPercent:null,wrongPercent:null,...extra};
     return CK?CK.normalise(raw):raw;
   }
   function resolveAnswerSource(source){
@@ -2300,11 +2300,12 @@ function fdpExplorer(){
   }
   function clearBoundHiding(){
     if(!challenge)return;
-    challenge.hiddenFraction=false;challenge.hiddenDecimal=false;challenge.hiddenPercent=false;challenge.hiddenHundred=false;challenge.hiddenEquivalentFamily=false;
+    challenge.hiddenSource=false;challenge.hiddenFraction=false;challenge.hiddenDecimal=false;challenge.hiddenPercent=false;challenge.hiddenHundred=false;challenge.hiddenEquivalentFamily=false;
   }
   function applyBoundHiding(source){
     clearBoundHiding();if(!challenge)return;
-    if(source==='fraction'){challenge.hiddenFraction=true;challenge.hiddenEquivalentFamily=true}
+    if(source==='fraction'){challenge.hiddenFraction=true;challenge.hiddenEquivalentFamily=true;const s=simplified();if(s.n===numerator&&s.d===denominator)challenge.hiddenSource=true}
+    if(source==='source-fraction')challenge.hiddenSource=true
     if(source==='decimal'){challenge.hiddenDecimal=true;challenge.hiddenPercent=true;challenge.hiddenHundred=true}
     if(source==='percentage'){challenge.hiddenPercent=true;challenge.hiddenDecimal=true;challenge.hiddenHundred=true}
   }
