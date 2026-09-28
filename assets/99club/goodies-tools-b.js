@@ -981,27 +981,32 @@ function randomiser(){
     }
     return '<div class="gd-poly-die gd-poly-die--d'+sides+(rolling?' is-rolling':'')+'" style="--ra-delay:'+(index*45)+'ms" aria-label="D'+sides+' die '+(index+1)+': '+value+'"><strong>'+value+'</strong><small>d'+sides+'</small></div>';
   }
+  function stageAction(mode,working=false){
+    const label=working?(mode==='spinner'?'Spinning…':mode==='dice'?'Rolling…':actionLabel(mode)):actionLabel(mode);
+    return '<button class="gd-btn gd-btn--primary gd-random-stage-action" type="button" data-ra-stage-go'+(working?' disabled':'')+'>'+label+'</button>';
+  }
   function diceStage(rolling=false){
     const count=clamp(num(q('#ra-count')?.value,2),1,8),sides=clamp(num(q('#ra-sides')?.value,6),2,100),hasResult=diceValues.length===count,vals=hasResult?diceValues:Array.from({length:count},()=>1),total=vals.reduce((a,b)=>a+b,0);
     const resultText=hasResult?vals.join(' + ')+(vals.length>1?' = '+total:''):'Press Roll';
     return '<div class="gd-vis gd-randomiser-stage"><div class="gd-dice-table"><div class="gd-dice-set '+(count>4?'is-many':'')+'">'+vals.map((v,i)=>dieHtml(v,sides,i,rolling)).join('')+'</div>'+
-      '<div class="gd-random-result" aria-live="polite"><span>'+(rolling?'Rolling…':'Result')+'</span><strong data-ra-result>'+(rolling?'—':esc(resultText))+'</strong></div></div></div>';
+      '<div class="gd-random-result" aria-live="polite"><span>'+(rolling?'Rolling…':'Result')+'</span><strong data-ra-result>'+(rolling?'—':esc(resultText))+'</strong></div></div>'+stageAction('dice',rolling)+'</div>';
   }
-  function wheelMarkup(list,rotation,label){
+  function wheelMarkup(list,rotation,label,working=false){
     const n=Math.max(1,list.length),step=360/n,stops=list.map((_,i)=>WHEEL_COLOURS[i%WHEEL_COLOURS.length]+' '+(i*step)+'deg '+((i+1)*step)+'deg').join(',');
     const labels=list.map((choice,i)=>{const angle=(i+.5)*step,rad=angle*Math.PI/180,x=50+Math.sin(rad)*31,y=50-Math.cos(rad)*31;return '<span class="gd-spinner-label" style="left:'+x.toFixed(2)+'%;top:'+y.toFixed(2)+'%;--ra-label-angle:'+angle+'deg"><span>'+esc(choice)+'</span></span>'}).join('');
     return '<div class="gd-vis gd-randomiser-stage"><div class="gd-spinner-layout"><div class="gd-spinner-shell"><div class="gd-spinner-pointer" aria-hidden="true"></div>'+
       '<div class="gd-spinner-wheel" id="ra-wheel" style="--ra-wheel:'+stops+';transform:rotate('+rotation+'deg)">'+labels+'<span class="gd-spinner-hub" aria-hidden="true"></span></div></div>'+
-      '<div class="gd-spinner-choice"><span>Selected</span><strong data-ra-result aria-live="polite">'+esc(label||'Press Spin')+'</strong><small>'+n+' choice'+(n===1?'':'s')+'</small></div></div></div>';
+      '<div class="gd-spinner-choice"><span>Selected</span><strong data-ra-result aria-live="polite">'+esc(label||'Press Spin')+'</strong><small>'+n+' choice'+(n===1?'':'s')+'</small></div></div>'+stageAction('spinner',working)+'</div>';
   }
-  function cardStage(){const value=result||'—',red=/[♥♦]/.test(value);return '<div class="gd-vis gd-randomiser-stage"><div class="gd-playing-card'+(red?' is-red':'')+'" aria-live="polite"><span>'+esc(value)+'</span><strong>'+esc(value)+'</strong><span>'+esc(value)+'</span></div></div>'}
-  function numberStage(){return '<div class="gd-vis gd-randomiser-stage"><div class="gd-random-number"><span>Random number</span><strong aria-live="polite">'+esc(result||'—')+'</strong></div></div>'}
+  function cardStage(){const value=result||'—',red=/[♥♦]/.test(value);return '<div class="gd-vis gd-randomiser-stage"><div class="gd-playing-card'+(red?' is-red':'')+'" aria-live="polite"><span>'+esc(value)+'</span><strong>'+esc(value)+'</strong><span>'+esc(value)+'</span></div>'+stageAction('card')+'</div>'}
+  function numberStage(){return '<div class="gd-vis gd-randomiser-stage"><div class="gd-random-number"><span>Random number</span><strong aria-live="polite">'+esc(result||'—')+'</strong></div>'+stageAction('number')+'</div>'}
   function show(mode=q('#ra-mode').value,rolling=false){
     const stage=q('#gd-stage');if(!stage)return;
     if(mode==='dice')stage.innerHTML=diceStage(rolling);
-    else if(mode==='spinner'){const list=choices();stage.innerHTML=wheelMarkup(list.length?list:['Add choices'],spinnerRotation,rolling?'Spinning…':(result||'Press Spin'))}
+    else if(mode==='spinner'){const list=choices();stage.innerHTML=wheelMarkup(list.length?list:['Add choices'],spinnerRotation,rolling?'Spinning…':(result||'Press Spin'),rolling)}
     else if(mode==='card')stage.innerHTML=cardStage();
     else stage.innerHTML=numberStage();
+    const stageGo=q('[data-ra-stage-go]',stage);if(stageGo&&!stageGo.disabled)stageGo.onclick=generate;
   }
   function actionLabel(mode){return mode==='dice'?'Roll dice':mode==='spinner'?'Spin wheel':mode==='number'?'Pick number':'Draw card'}
   function draw(){
@@ -1025,8 +1030,9 @@ function randomiser(){
   function finish(label,mode){
     busy=false;result=label;
     const go=q('#ra-go');if(go){go.disabled=false;go.textContent=actionLabel(mode)}
-    const out=q('[data-ra-result]',q('#gd-stage'));if(out)out.textContent=label;
-    qa('.is-rolling',q('#gd-stage')).forEach(el=>el.classList.remove('is-rolling'));
+    const stage=q('#gd-stage'),out=q('[data-ra-result]',stage);if(out)out.textContent=label;
+    qa('.is-rolling',stage).forEach(el=>el.classList.remove('is-rolling'));
+    const stageGo=q('[data-ra-stage-go]',stage);if(stageGo){stageGo.disabled=false;stageGo.textContent=actionLabel(mode);stageGo.onclick=generate}
   }
   function rollDice(){
     const count=clamp(num(q('#ra-count').value,2),1,8),sides=clamp(num(q('#ra-sides').value,6),2,100);
@@ -1040,7 +1046,7 @@ function randomiser(){
     const selected=Math.floor(Math.random()*list.length),step=360/list.length,desired=(90-(selected+.5)*step+360)%360,current=((spinnerRotation%360)+360)%360,delta=(desired-current+360)%360,start=spinnerRotation;
     spinnerRotation=start+(4+Math.floor(Math.random()*3))*360+delta;
     const label=list[selected];
-    q('#gd-stage').innerHTML=wheelMarkup(list,start,'Spinning…');
+    q('#gd-stage').innerHTML=wheelMarkup(list,start,'Spinning…',true);
     requestAnimationFrame(()=>{const wheel=q('#ra-wheel');if(wheel){wheel.classList.add('is-spinning');wheel.style.transform='rotate('+spinnerRotation+'deg)'}});
     finishTimer=setTimeout(()=>finish(label,'spinner'),motionMs());
   }
