@@ -16,7 +16,7 @@ robots: "noindex,nofollow,noarchive"
   </article>
 </div>
 
-<link rel="stylesheet" href="/assets/99club/goodies.css?v=40">
+<link rel="stylesheet" href="/assets/99club/goodies.css?v=41">
 <script src="/assets/99club/goodies-core.js?v=1" defer></script>
 <script src="/assets/99club/goodies-interaction.js?v=2" defer></script>
 <script src="/assets/99club/goodies-challenge.js?v=5" defer></script>
