@@ -1765,6 +1765,50 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=feOldCustomDownload;
     assert(feCustomSvg&&[...feCustomSvg.querySelectorAll('[data-fe-export-pair^="a-"]')].every(x=>x.textContent.includes('?')),'Pupil Custom factor-list export keeps every factor pair hidden');
   }
+  function testFdpWorkbench(){
+    TT99Goodies.interaction.clear();
+    assert(TT99Goodies.fdpExplorer,'FDP Explorer is registered');
+    TT99Goodies.fdpExplorer();
+
+    assert(document.querySelector('[data-fd-source]').textContent.trim()==='3/8','FDP Explorer opens on 3/8');
+    assert(document.querySelector('[data-fd-fraction]').textContent.trim()==='3/8','3/8 is already simplified');
+    assert(document.querySelector('[data-fd-decimal]').textContent.trim()==='0.375','Decimal representation matches 3/8');
+    assert(document.querySelector('[data-fd-percent]').textContent.trim()==='37.5%','Percentage representation matches 3/8');
+    assert(document.querySelectorAll('[data-fd-piece]').length===8,'Fraction bar has eight equal parts');
+    assert(document.querySelectorAll('[data-fd-piece].is-fill').length===3,'Fraction bar fills three of eight parts');
+    assert(document.querySelector('[data-fd-hundred-exact]').dataset.fdHundredExact==='false','3/8 hundred-square cue is explicitly rounded');
+
+    document.querySelector('[data-fd-piece="4"]').click();
+    assert(document.querySelector('[data-fd-source]').textContent.trim()==='5/8','Tapping the fifth bar part sets numerator to 5');
+    assert(document.querySelectorAll('[data-fd-piece].is-fill').length===5,'Direct bar edit updates filled fraction parts');
+    document.getElementById('fd-undo').click();
+    assert(document.querySelector('[data-fd-source]').textContent.trim()==='3/8','Undo restores the previous fraction');
+    document.getElementById('fd-redo').click();
+    assert(document.querySelector('[data-fd-source]').textContent.trim()==='5/8','Redo reapplies the direct fraction edit');
+
+    document.querySelector('[data-fd-benchmark="1/2"]').click();
+    assert(document.querySelector('[data-fd-source]').textContent.trim()==='1/2','Benchmark button jumps directly to one half');
+    assert(document.querySelector('[data-fd-percent]').textContent.trim()==='50%','Benchmark keeps linked percentage correct');
+    assert(document.querySelector('[data-fd-hundred-exact]').dataset.fdHundredExact==='true','One half maps exactly to 50 hundred-square cells');
+
+    let n=document.getElementById('fd-n'),d=document.getElementById('fd-d');
+    n.value='3';n.dispatchEvent(new Event('change',{bubbles:true}));
+    d=document.getElementById('fd-d');d.value='4';d.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.querySelector('[data-fd-source]').textContent.trim()==='3/4','Quick fraction setup accepts 3/4');
+    const sixEighths=[...document.querySelectorAll('[data-fd-equiv]')].find(x=>x.textContent.trim()==='6/8');
+    assert(sixEighths,'Equivalent family includes 6/8 for 3/4');
+    sixEighths.click();
+    assert(document.querySelector('[data-fd-source]').textContent.trim()==='6/8','Equivalent-fraction button changes representation while preserving value');
+    assert(document.querySelector('[data-fd-fraction]').textContent.trim()==='3/4','Equivalent representation still simplifies to 3/4');
+    assert(document.querySelector('[data-fd-decimal]').textContent.trim()==='0.75','Equivalent representation preserves decimal value');
+    assert(document.querySelector('[data-fd-percent]').textContent.trim()==='75%','Equivalent representation preserves percentage value');
+
+    document.getElementById('fd-d-plus').click();
+    assert(document.querySelector('[data-fd-denominator]').textContent.trim()==='9','Direct denominator stepper changes partition count');
+    assert(Number(document.querySelector('[data-fd-numerator]').textContent)<=9,'Numerator remains valid after denominator edit');
+    document.getElementById('fd-reset').click();
+    assert(document.querySelector('[data-fd-source]').textContent.trim()==='3/8','Reset returns FDP Explorer to 3/8');
+  }
   function testPlaceValue(){
     TT99Goodies.interaction.clear();
     assert(TT99Goodies.placeValue,'Place Value is registered');
@@ -3152,6 +3196,7 @@ if(mode==='prepare'){
         testMultiplicationGridWorkbench();
         testTimesTableVisualWorkbench();
         testFactorExplorerWorkbench();
+        testFdpWorkbench();
         testPlaceValue();
         testFractions();
         testGeoboard();
@@ -3160,7 +3205,7 @@ if(mode==='prepare'){
         testArrayWorkbench();
         testMoneyWorkbench();
         testClockWorkbench();
-        result('pass','Number Line challenges, Maths Canvas, Bar Model, Equation Balance, Hundred Square, Multiplication Grid, Times-table Visualiser, Factor Explorer, Place Value, Fraction Wall, Geoboard, Coordinates, Measurement, Array, UK Money and Clock workbench interactions work');
+        result('pass','Number Line challenges, Maths Canvas, Bar Model, Equation Balance, Hundred Square, Multiplication Grid, Times-table Visualiser, Factor Explorer, FDP Explorer, Place Value, Fraction Wall, Geoboard, Coordinates, Measurement, Array, UK Money and Clock workbench interactions work');
       }catch(err){
         result('fail',err&&err.message?err.message:String(err));
       }
