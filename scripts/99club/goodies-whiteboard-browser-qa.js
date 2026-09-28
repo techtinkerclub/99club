@@ -79,15 +79,16 @@ document.exitFullscreen=function(){
         assert(!TT99Goodies.whiteboard.isActive(),'Shared whiteboard controller exits bespoke Number Line mode cleanly');
       }else{
         assert(!sharedPresent.hidden,'Shared Present control is visible for '+id);
+        const historySelectors={
+          coordinates:['[data-co-undo-stage]','[data-co-redo-stage]'],
+          geoboard:['[data-ge-undo-stage]','[data-ge-redo-stage]'],
+          'array-builder':['[data-ab-undo-stage]','[data-ab-redo-stage]']
+        };
         let stageHistory=null;
-        if(id==='coordinates'){
-          const undo=stage.querySelector('[data-co-undo-stage]'),redo=stage.querySelector('[data-co-redo-stage]');
-          assert(undo&&redo,'Coordinates renders on-stage Undo/Redo before whiteboard mode');
-          stageHistory={undo,redo};
-        }else if(id==='geoboard'){
-          const undo=stage.querySelector('[data-ge-undo-stage]'),redo=stage.querySelector('[data-ge-redo-stage]');
-          assert(undo&&redo,'Geoboard renders on-stage Undo/Redo before whiteboard mode');
-          stageHistory={undo,redo};
+        if(historySelectors[id]){
+          const selectors=historySelectors[id],undo=stage.querySelector(selectors[0]),redo=stage.querySelector(selectors[1]);
+          assert(undo&&redo,id+' renders on-stage Undo/Redo before whiteboard mode');
+          stageHistory={undo,redo,selectors};
         }
         sharedPresent.click();
         await tick();
@@ -96,8 +97,7 @@ document.exitFullscreen=function(){
         assert(document.fullscreenElement===workspace||workspace.classList.contains('gd-whiteboard-fallback'),'Shared whiteboard mode occupies the viewport for '+id);
         if(stageHistory){
           await tick();
-          const undoSelector=id==='coordinates'?'[data-co-undo-stage]':'[data-ge-undo-stage]';
-          const redoSelector=id==='coordinates'?'[data-co-redo-stage]':'[data-ge-redo-stage]';
+          const undoSelector=stageHistory.selectors[0],redoSelector=stageHistory.selectors[1];
           const undo=stage.querySelector(undoSelector),redo=stage.querySelector(redoSelector);
           const documentUndo=document.querySelectorAll(undoSelector).length,documentRedo=document.querySelectorAll(redoSelector).length;
           const stageSummary=String(stage.textContent||'').replace(/\s+/g,' ').trim().slice(0,220);
