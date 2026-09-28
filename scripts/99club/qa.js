@@ -999,6 +999,9 @@ try{
     }
   }
   ok('goodies-capabilities','All '+capabilitySpecs.length+' catalogue manipulatives have an explicit challenge/task/export policy; Randomiser is the sole utility exception');
+  for(const token of ['data-co-undo-stage','data-co-redo-stage','data-ge-undo-stage','data-ge-redo-stage'])if(!goodiesToolsB.includes(token))fail('goodies-stage-history','Coordinate/Geoboard on-stage recovery control missing: '+token);
+  if(!goodiesCss.includes('.gd-context-actions{'))fail('goodies-stage-history','Shared on-stage history action layout is missing');
+  ok('goodies-stage-history','Coordinates and Geoboard keep Undo/Redo beside the live diagram for whiteboard use');
   if(!/goodies-number-line-v6\.js\?v=\d+/.test(goodiesPage)||!/goodies-challenge\.js\?v=\d+/.test(goodiesPage)||!/goodies-tools-a\.js\?v=\d+/.test(goodiesPage)||!/goodies-tools-b\.js\?v=\d+/.test(goodiesPage)||!/goodies-export\.js\?v=\d+/.test(goodiesPage)||!/goodies\.css\?v=\d+/.test(goodiesPage))fail('goodies-number-line','Number Line / shared challenge/export assets are not cache-busted on /goodies/');
   if(goodiesPage.indexOf('goodies-challenge.js')>goodiesPage.indexOf('goodies-number-line-v6.js'))fail('goodies-number-line','Shared challenge framework must load before Number Line v6');
   for(const token of [
