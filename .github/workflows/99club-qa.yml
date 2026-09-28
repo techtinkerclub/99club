@@ -172,6 +172,29 @@ jobs:
             http://127.0.0.1:8771/99club-goodies-browser-qa.html > /tmp/99club-goodies-desktop.html
           node scripts/99club/goodies-browser-qa.js check /tmp/99club-goodies-desktop.html
 
+      - name: Exercise Goodies whiteboard mode across all manipulatives
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/99club/goodies-whiteboard-browser-qa.js prepare
+          python3 -m http.server 8772 --bind 127.0.0.1 > /tmp/99club-goodies-whiteboard-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          sleep 1
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then
+            echo 'No Chrome/Chromium executable is available on this runner.' >&2
+            exit 1
+          fi
+
+          "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --window-size=390,844 --virtual-time-budget=30000 --dump-dom http://127.0.0.1:8772/99club-goodies-whiteboard-qa.html > /tmp/99club-goodies-whiteboard-phone.html
+          node scripts/99club/goodies-whiteboard-browser-qa.js check /tmp/99club-goodies-whiteboard-phone.html
+          cp 99club-goodies-whiteboard-qa-report.json 99club-goodies-whiteboard-phone-report.json
+
+          "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --window-size=1200,900 --virtual-time-budget=30000 --dump-dom http://127.0.0.1:8772/99club-goodies-whiteboard-qa.html > /tmp/99club-goodies-whiteboard-desktop.html
+          node scripts/99club/goodies-whiteboard-browser-qa.js check /tmp/99club-goodies-whiteboard-desktop.html
+          cp 99club-goodies-whiteboard-qa-report.json 99club-goodies-whiteboard-desktop-report.json
+
       - name: Exercise parent practice download flow
         shell: bash
         run: |
@@ -225,6 +248,7 @@ jobs:
             99club-browser-qa-desktop-report.json
             99club-parent-practice-qa-report.json
             99club-puzzle-parent-practice-qa-report.json
+            99club-goodies-whiteboard-qa-report.json
           if-no-files-found: ignore
 
   printable-catalogue-qa:
