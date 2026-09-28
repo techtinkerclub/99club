@@ -1042,7 +1042,7 @@ function randomiser(){
     finishTimer=setTimeout(()=>finish(label,'dice'),motionMs());
   }
   function spinWheel(){
-    const list=choices();if(!list.length){busy=false;const go=q('#ra-go');if(go)go.disabled=false;result='Add choices';show('spinner');return}
+    const list=choices();if(!list.length){busy=false;const go=q('#ra-go');if(go){go.disabled=false;go.textContent=actionLabel('spinner')}result='Add choices';show('spinner');return}
     const selected=Math.floor(Math.random()*list.length),step=360/list.length,desired=(90-(selected+.5)*step+360)%360,current=((spinnerRotation%360)+360)%360,delta=(desired-current+360)%360,start=spinnerRotation;
     spinnerRotation=start+(4+Math.floor(Math.random()*3))*360+delta;
     const label=list[selected];
