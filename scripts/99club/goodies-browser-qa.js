@@ -1710,6 +1710,11 @@ if(mode==='prepare'){
     document.querySelector('[data-fd-workflow="challenge"]').click();
     document.querySelector('[data-fd-challenge-tab="custom"]').click();
     let fdSource=document.getElementById('fd-custom-answer-source');
+    fdSource.value='source-fraction';fdSource.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.getElementById('fd-custom-live-answer').textContent.trim()==='3/4','Custom displayed-fraction answer binds to the live model');
+    assert(document.querySelector('[data-fd-source]').textContent.trim()==='?/?','Custom displayed-fraction binding hides the exact source fraction');
+
+    fdSource=document.getElementById('fd-custom-answer-source');
     fdSource.value='percentage';fdSource.dispatchEvent(new Event('change',{bubbles:true}));
     assert(document.getElementById('fd-custom-live-answer').textContent.trim()==='75%','Custom percentage answer binds to the live model');
     assert(document.querySelector('[data-fd-percent]').textContent.trim()==='?','Custom percentage binding hides percentage readout');
