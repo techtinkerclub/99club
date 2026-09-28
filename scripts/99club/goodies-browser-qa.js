@@ -1437,7 +1437,9 @@ if(mode==='prepare'){
     assert(!document.querySelector('.gd-tv-fact-family'),'Fact-family view can be hidden independently');
 
     document.getElementById('tv-undo').click();
-    assert(document.querySelector('[data-tv-equation]').textContent.trim()==='5 × 6 = 30','Undo remains available after quick-setup/model edits');
+    assert(document.querySelector('[data-tv-equation]').textContent.trim()==='8 × 6 = 48','Undo steps back through the most recent quick-setup factor edit');
+    document.getElementById('tv-undo').click();
+    assert(document.querySelector('[data-tv-equation]').textContent.trim()==='5 × 6 = 30','A second Undo restores the model before quick setup');
   }
 
   function testPlaceValue(){
