@@ -4220,6 +4220,7 @@ function moneyTool(){
       '<div class="gd-money-canvas" id="mo-canvas" data-gd-canvas-bg style="min-height:'+m.height+'px" aria-label="Money workbench">'+
         (items.length?items.map(moneyObject).join(''):'<div class="gd-money-empty" data-gd-canvas-bg>Choose a denomination to start building an amount.</div>')+
       '</div>'+
+      '<p class="gd-money-credit gd-money-credit--stage">Coin imagery: The Royal Mint, 2023.</p>'+
       '<div class="gd-money-summary">'+
         '<div><span>Total</span><strong data-mo-total>'+totalText+'</strong></div>'+
         '<div><span>Target</span><strong data-mo-target-readout>'+targetText+'</strong></div>'+
