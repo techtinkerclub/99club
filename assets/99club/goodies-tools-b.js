@@ -2375,7 +2375,7 @@ function fdpExplorer(){
     const controls=q('#gd-controls');if(!controls)return;
     qa('[data-fd-workflow]',controls).forEach(button=>button.onclick=()=>{controlTab=button.dataset.fdWorkflow;renderControls()});
     function bindModel(){
-      const n=q('#fd-n');if(n)n.onchange=()=>mutate(()=>setNumerator(n.value));
+      const n=q('#fd-n');if(n)n.onchange=()=>mutate(()=>{const requested=clamp(Math.round(Number(n.value)||0),0,20);if(requested>denominator)denominator=requested;numerator=requested;equivScale=1});
       const d=q('#fd-d');if(d)d.onchange=()=>mutate(()=>{denominator=clamp(Math.round(Number(d.value)||1),1,20);numerator=clamp(numerator,0,denominator);equivScale=1});
       qa('[data-fd-benchmark]',controls).forEach(button=>button.onclick=()=>{const [bn,bd]=button.dataset.fdBenchmark.split('/').map(Number);mutate(()=>setBenchmark(bn,bd))});
     }
