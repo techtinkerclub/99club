@@ -32,7 +32,7 @@ root.innerHTML=`<div class="gd-shell">
   </section>
   <section class="gd-tool-view" aria-live="polite">
     <div class="gd-tool-head"><div><span class="gd-eyebrow" id="gd-tool-cat"></span><h2 id="gd-tool-title"></h2><p id="gd-tool-desc"></p></div><div class="gd-tool-actions"><button class="gd-btn gd-present" id="gd-present" type="button">Present</button><button class="gd-back" id="gd-back" type="button">← All manipulatives</button></div></div>
-    <div class="gd-workspace" id="gd-workspace" data-whiteboard-supported="true"><aside class="gd-panel gd-controls" id="gd-controls"></aside><main class="gd-panel gd-stage" id="gd-stage"></main><div class="gd-whiteboard-ui" aria-hidden="true"><button class="gd-whiteboard-button gd-whiteboard-tools" id="gd-whiteboard-tools" type="button">Tools</button><button class="gd-whiteboard-button gd-whiteboard-exit" id="gd-whiteboard-exit" type="button">Exit</button></div></div>
+    <div class="gd-workspace" id="gd-workspace" data-whiteboard-supported="true"><aside class="gd-panel gd-controls" id="gd-controls"></aside><main class="gd-panel gd-stage" id="gd-stage"></main><div class="gd-whiteboard-ui" aria-hidden="true"><button class="gd-whiteboard-button gd-whiteboard-tools" id="gd-whiteboard-tools" type="button" aria-controls="gd-controls" aria-expanded="false">Tools</button><button class="gd-whiteboard-button gd-whiteboard-exit" id="gd-whiteboard-exit" type="button" aria-label="Exit whiteboard mode">Exit</button></div></div>
     <div class="gd-use" id="gd-use"></div>
   </section>
 </div>`;
@@ -50,6 +50,8 @@ function setWhiteboardUi(active){
   workspace.classList.toggle('gd-whiteboard-active',!!active);
   workspace.classList.toggle('gd-whiteboard-tools-open',!!active&&whiteboardToolsOpen);
   const ui=q('.gd-whiteboard-ui',workspace);if(ui)ui.setAttribute('aria-hidden',active?'false':'true');
+  const toolsButton=q('#gd-whiteboard-tools');if(toolsButton)toolsButton.setAttribute('aria-expanded',active&&whiteboardToolsOpen?'true':'false');
+  const controls=q('#gd-controls');if(controls)controls.setAttribute('aria-hidden',active&&!whiteboardToolsOpen?'true':'false');
   document.documentElement.classList.toggle('gd-whiteboard-page-lock',!!active);
   document.body.classList.toggle('gd-whiteboard-page-lock',!!active);
 }
