@@ -395,6 +395,39 @@ if(mode==='prepare'){
     const canvas=document.getElementById('mc-canvas');
     assert(canvas&&canvas.classList.contains('has-grid'),'Visible snap grid is enabled');
     assert(getComputedStyle(canvas).touchAction==='pan-y','Empty canvas preserves vertical touch scrolling');
+
+    assert(document.querySelector('[data-mc-workflow="build"]')&&document.querySelector('[data-mc-workflow="task"]')&&document.querySelector('[data-mc-workflow="export"]'),'Maths Canvas exposes Build, Task and Export / reuse workflows');
+    document.querySelector('[data-mc-workflow="task"]').click();
+    const taskTitle=document.getElementById('mc-task-title'),taskPrompt=document.getElementById('mc-task-prompt');
+    assert(taskTitle&&taskPrompt,'Maths Canvas Task workflow exposes title and pupil instructions');
+    taskTitle.value='Make the equation true';taskTitle.dispatchEvent(new Event('input',{bubbles:true}));
+    taskPrompt.value='Move the tiles to make a correct number sentence.';taskPrompt.dispatchEvent(new Event('input',{bubbles:true}));
+    assert(document.querySelector('.gd-mc-task-preview').textContent.includes('Make the equation true'),'Task title previews above the live canvas');
+    assert(document.querySelector('.gd-mc-task-preview').textContent.includes('correct number sentence'),'Task instructions preview above the live canvas');
+    assert(document.querySelectorAll('[data-gd-object]').length===2,'Task workflow keeps the teacher canvas live and unchanged');
+
+    document.querySelector('[data-mc-workflow="export"]').click();
+    assert(document.getElementById('mc-copy-image')&&document.getElementById('mc-png')&&document.getElementById('mc-svg-download')&&document.getElementById('mc-print'),'Maths Canvas export exposes copy, PNG, SVG and Print/PDF actions');
+    let mcSvg=null,mcName='';
+    const mcOldDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg,name)=>{mcSvg=svg.cloneNode(true);mcName=name};
+    document.getElementById('mc-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=mcOldDownload;
+    assert(mcSvg&&mcSvg.dataset.mcExport==='canvas','Maths Canvas canvas-only export is a deterministic SVG');
+    assert(mcSvg.querySelectorAll('[data-mc-export-tile]').length===2,'Maths Canvas export preserves the current tile arrangement');
+    assert(mcSvg.textContent.includes('1'),'Maths Canvas export preserves tile labels');
+    assert(mcName==='maths-canvas','Canvas-only export uses a reusable filename');
+
+    document.querySelector('[data-mc-export-mode="task"]').click();
+    let mcTaskSvg=null,mcTaskName='';
+    const mcOldTaskDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg,name)=>{mcTaskSvg=svg.cloneNode(true);mcTaskName=name};
+    document.getElementById('mc-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=mcOldTaskDownload;
+    assert(mcTaskSvg&&mcTaskSvg.textContent.includes('Make the equation true'),'Maths Canvas task export includes the teacher title');
+    assert(mcTaskSvg.textContent.includes('Move the tiles to make a correct number sentence.'),'Maths Canvas task export includes pupil instructions');
+    assert(mcTaskSvg.querySelectorAll('[data-mc-export-tile]').length===2,'Maths Canvas task card embeds the starting tile layout');
+    assert(mcTaskName==='maths-canvas-task','Task-card export uses a reusable filename');
   }
   function testBarModelWorkbench(){
     TT99Goodies.interaction.clear();

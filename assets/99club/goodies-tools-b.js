@@ -3333,9 +3333,10 @@ function geoboard(){
 }
 
 function mathsCanvas(){
-const I=G.interaction;
+const I=G.interaction,CK=G.challengeKit,X=G.exportTools;
 if(!I){q('#gd-stage').innerHTML='<p class="gd-empty">The interactive canvas could not start.</p>';return;}
 let tiles=[],next=1,grid=true,colourOpen=false,controller=null;
+let workflow='build',taskTitle='Maths canvas task',taskPrompt='',exportMode='canvas',responseLines=2,exportStatus='';
 const colours=['#cbe7e2','#f6cf79','#cfe0f6','#efcfd9','#dbcff2','#d5ead2','#f3d7c4','#ffffff'];
 function textColour(hex){const h=String(hex||'').replace('#','');if(!/^[0-9a-f]{6}$/i.test(h))return '#24343b';const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);return (r*299+g*587+b*114)/1000>155?'#24343b':'#ffffff'}
 function stateSnapshot(){return{tiles:JSON.parse(JSON.stringify(tiles)),next,grid}}
@@ -3356,20 +3357,124 @@ I.toolButton('delete','delete','Delete tile','is-danger',selected.locked);
 const swatches=selected&&colourOpen&&!selected.locked?'<div class="gd-object-colours" role="group" aria-label="Tile colour">'+colours.map(col=>'<button type="button" data-gd-colour="'+col+'" aria-label="Use '+col+'" style="--swatch:'+col+'"></button>').join('')+'</div>':'';
 return '<div class="gd-object-ui"><div class="gd-object-rail'+(selected?' is-engaged':'')+'" aria-label="Canvas tools">'+object+(object?'<span class="gd-object-separator"></span>':'')+undo+redo+gridButton+'</div>'+swatches+'</div>'
 }
+function taskPreview(){
+if(workflow!=='task')return'';
+const title=String(taskTitle||'').trim(),prompt=String(taskPrompt||'').trim();
+if(!title&&!prompt)return'';
+return '<div class="gd-mc-task-preview">'+(title?'<strong>'+esc(title)+'</strong>':'')+(prompt?'<span>'+esc(prompt)+'</span>':'')+'</div>';
+}
 function draw(selectedId,meta){
 const selected=selectedTile(selectedId);
-q('#gd-stage').innerHTML='<div class="gd-vis gd-object-workspace"><div class="gd-object-canvas-wrap"><div class="gd-canvas gd-object-canvas'+(grid?' has-grid':'')+'" id="mc-canvas" data-gd-canvas-bg tabindex="0" aria-label="Maths canvas. Tap a tile to select it and drag to move it.">'+tiles.map(t=>tileMarkup(t,selectedId)).join('')+'</div>'+railMarkup(selected,meta)+'</div><div class="gd-object-hint">'+(selected?(selected.locked?'Tile locked · use the lock icon to move or edit it again.':'Drag to move · the side tools duplicate, colour, lock or delete it.'):'Tap a tile to select it. Drag tiles directly around the board.')+'</div></div>'
+q('#gd-stage').innerHTML=taskPreview()+'<div class="gd-vis gd-object-workspace"><div class="gd-object-canvas-wrap"><div class="gd-canvas gd-object-canvas'+(grid?' has-grid':'')+'" id="mc-canvas" data-gd-canvas-bg tabindex="0" aria-label="Maths canvas. Tap a tile to select it and drag to move it.">'+tiles.map(t=>tileMarkup(t,selectedId)).join('')+'</div>'+railMarkup(selected,meta)+'</div><div class="gd-object-hint">'+(selected?(selected.locked?'Tile locked · use the lock icon to move or edit it again.':'Drag to move · the side tools duplicate, colour, lock or delete it.'):'Tap a tile to select it. Drag tiles directly around the board.')+'</div></div>'
 }
 function constrainTile(item,x,y,element,canvas){const el=element||canvas.querySelector('[data-gd-object="'+item.id+'"]');const w=el?.offsetWidth||52,h=el?.offsetHeight||52;return{x:clamp(x,0,Math.max(0,canvas.clientWidth-w)),y:clamp(y,0,Math.max(0,canvas.clientHeight-h))}}
 function duplicateTile(item){const canvas=q('#mc-canvas'),copy={...item,id:next++,locked:false};const w=canvas?.clientWidth||700,h=canvas?.clientHeight||420;copy.x=clamp((Number(item.x)||0)+40,0,Math.max(0,w-70));copy.y=clamp((Number(item.y)||0)+40,0,Math.max(0,h-60));tiles.push(copy);return copy}
 function add(text,symbol=false){let id=null;controller.mutate(()=>{id=next++;const canvas=q('#mc-canvas'),width=canvas?.clientWidth||700,cols=Math.max(1,Math.floor(Math.max(80,width-40)/80)),i=tiles.length,x=20+(i%cols)*80,y=20+Math.floor(i/cols)*80;tiles.push({id,text,x,y,symbol,locked:false,color:symbol?'#f6cf79':'#cbe7e2'})});controller.select(id)}
-function bindPalette(){
-qa('[data-mc-add]',q('#gd-controls')).forEach(x=>x.onclick=()=>add(x.dataset.mcAdd,false));
-qa('[data-mc-sym]',q('#gd-controls')).forEach(x=>x.onclick=()=>add(x.dataset.mcSym,true));
-q('#mc-add').onclick=()=>{const v=q('#mc-custom').value.trim();if(v){add(v,false);q('#mc-custom').value=''}};
-q('#mc-clear').onclick=()=>{if(!tiles.length)return;if(!window.confirm('Clear all tiles from this canvas?'))return;controller.mutate(()=>{tiles=[];colourOpen=false})};
+function workflowTabs(){
+return '<div class="gd-row gd-mc-workflow-tabs" role="tablist" aria-label="Maths Canvas workflow">'+
+'<button class="gd-btn'+(workflow==='build'?' gd-btn--primary':'')+'" type="button" data-mc-workflow="build">Build</button>'+
+'<button class="gd-btn'+(workflow==='task'?' gd-btn--primary':'')+'" type="button" data-mc-workflow="task">Task</button>'+
+'<button class="gd-btn'+(workflow==='export'?' gd-btn--primary':'')+'" type="button" data-mc-workflow="export">Export / reuse</button></div>';
 }
-setPanels('<p class="gd-section-title">Add tiles</p><div class="gd-canvas-tools">'+['1','2','3','4','5','10','100'].map(x=>'<button class="gd-btn gd-palette-tile" type="button" data-mc-add="'+x+'">'+x+'</button>').join('')+'</div><div class="gd-canvas-tools">'+['+','−','×','÷','=','<','>','?'].map(x=>'<button class="gd-btn gd-palette-tile is-symbol" type="button" data-mc-sym="'+x+'">'+x+'</button>').join('')+'</div>'+field('Custom tile','<div class="gd-row"><input class="gd-input" id="mc-custom" placeholder="e.g. 24"><button class="gd-btn" type="button" id="mc-add">Add</button></div>')+btn('Clear canvas','mc-clear')+'<p class="gd-help">Tap to add a tile, then work directly on the board. Select a tile for duplicate, colour, lock and delete. On a keyboard: arrows nudge, Delete removes, Ctrl/Cmd+D duplicates, Ctrl/Cmd+Z undoes.</p>','');
+function buildControlsHtml(){
+return '<p class="gd-section-title">Add tiles</p><div class="gd-canvas-tools">'+['1','2','3','4','5','10','100'].map(x=>'<button class="gd-btn gd-palette-tile" type="button" data-mc-add="'+x+'">'+x+'</button>').join('')+'</div>'+
+'<div class="gd-canvas-tools">'+['+','−','×','÷','=','<','>','?'].map(x=>'<button class="gd-btn gd-palette-tile is-symbol" type="button" data-mc-sym="'+x+'">'+x+'</button>').join('')+'</div>'+
+field('Custom tile','<div class="gd-row"><input class="gd-input" id="mc-custom" placeholder="e.g. 24"><button class="gd-btn" type="button" id="mc-add">Add</button></div>')+
+btn('Clear canvas','mc-clear')+
+'<p class="gd-help">Tap to add a tile, then work directly on the board. Select a tile for duplicate, colour, lock and delete. On a keyboard: arrows nudge, Delete removes, Ctrl/Cmd+D duplicates, Ctrl/Cmd+Z undoes.</p>';
+}
+function taskControlsHtml(){
+return '<div class="nl-panel-title"><div><strong>Create a pupil task</strong><span>Use the current canvas arrangement as the starting model.</span></div></div>'+
+field('Task title','<input class="gd-input" id="mc-task-title" maxlength="100" value="'+esc(taskTitle)+'" placeholder="e.g. Make the equation true">')+
+field('Pupil instructions','<textarea class="gd-textarea gd-mc-task-prompt" id="mc-task-prompt" rows="5" maxlength="500" placeholder="What should pupils do with this starting layout?">'+esc(taskPrompt)+'</textarea>')+
+'<p class="gd-help">The canvas stays live while you write the task, so you can arrange, lock and colour the exact starting layout pupils should receive.</p>';
+}
+function mcSvgEl(name,attrs={},text=''){
+const el=document.createElementNS('http://www.w3.org/2000/svg',name);
+Object.entries(attrs).forEach(([key,value])=>el.setAttribute(key,String(value)));
+if(text!==''&&text!=null)el.textContent=String(text);
+return el;
+}
+function canvasExportSvg(){
+const W=960,H=560,pad=34,canvas=q('#mc-canvas'),sourceW=Math.max(1,canvas?.clientWidth||760),sourceH=Math.max(1,canvas?.clientHeight||420);
+const innerW=W-pad*2,innerH=H-pad*2,sx=innerW/sourceW,sy=innerH/sourceH,scale=Math.min(sx,sy);
+const svg=mcSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':'Maths canvas model','data-mc-export':'canvas'});
+svg.appendChild(mcSvgEl('rect',{x:0,y:0,width:W,height:H,fill:'#ffffff'}));
+svg.appendChild(mcSvgEl('rect',{x:pad,y:pad,width:innerW,height:innerH,rx:18,fill:'#fbfdfd',stroke:'#b9c9cc','stroke-width':2,'stroke-dasharray':'8 7'}));
+if(grid){
+  const step=Math.max(18,20*scale);
+  for(let x=pad+step;x<pad+innerW;x+=step)svg.appendChild(mcSvgEl('line',{x1:x,y1:pad,x2:x,y2:pad+innerH,stroke:'#e7eeee','stroke-width':1}));
+  for(let y=pad+step;y<pad+innerH;y+=step)svg.appendChild(mcSvgEl('line',{x1:pad,y1:y,x2:pad+innerW,y2:y,stroke:'#e7eeee','stroke-width':1}));
+}
+tiles.forEach(t=>{
+  const node=canvas?.querySelector('[data-gd-object="'+t.id+'"]');
+  const rawW=Math.max(52,node?.offsetWidth||Math.min(150,52+String(t.text||'').length*11)),rawH=Math.max(52,node?.offsetHeight||52);
+  const tw=Math.max(44,rawW*scale),th=Math.max(44,rawH*scale),x=pad+(Number(t.x)||0)*sx,y=pad+(Number(t.y)||0)*sy;
+  const stroke=t.symbol?'#bd9140':'#81aaa4';
+  svg.appendChild(mcSvgEl('rect',{x,y,width:tw,height:th,rx:Math.min(12*scale,12),fill:t.color||'#ffffff',stroke,'stroke-width':2,'data-mc-export-tile':t.id}));
+  svg.appendChild(mcSvgEl('text',{x:x+tw/2,y:y+th/2+7*scale,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':Math.max(16,20*scale),'font-weight':800,fill:textColour(t.color||'#ffffff')},t.text));
+});
+svg.appendChild(mcSvgEl('text',{x:W-36,y:H-14,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':10,fill:'#87969a'},'99 Club Studio'));
+return svg;
+}
+function exportTargetSvg(){
+if(exportMode!=='task'||!X?.composeChallengeCardSvg)return canvasExportSvg();
+return X.composeChallengeCardSvg(canvasExportSvg(),{
+title:String(taskTitle||'Maths canvas task').trim()||'Maths canvas task',
+prompt:String(taskPrompt||'').trim(),
+responseLabel:'Working / answer',
+responseLines,
+brand:'99 Club Studio'
+});
+}
+function exportMessage(text){exportStatus=text;const el=q('#mc-export-status');if(el)el.textContent=text}
+async function exportAction(kind){
+try{
+if(!X)throw new Error('Export tools are not available.');
+const target=exportTargetSvg(),name=exportMode==='task'?'maths-canvas-task':'maths-canvas';
+if(kind==='copy'){await X.copyPng(target);exportMessage(exportMode==='task'?'Task card copied — paste it into your worksheet, slide or document.':'Canvas copied — paste it into your slide or document.')}
+if(kind==='png'){await X.downloadPng(target,name,2);exportMessage(exportMode==='task'?'Task PNG downloaded.':'Canvas PNG downloaded.')}
+if(kind==='svg'){X.downloadSvg(target,name);exportMessage(exportMode==='task'?'Task SVG downloaded.':'Canvas SVG downloaded.')}
+if(kind==='print'){X.printSvg(target,{title:'',landscape:false});exportMessage('Print view opened. Choose “Save as PDF” in the print dialog.')}
+}catch(err){exportMessage(err?.message||'That export did not work.')}
+}
+function exportControlsHtml(){
+return '<div class="nl-panel-title"><div><strong>Use it elsewhere</strong><span>Export the clean canvas or turn it into a pupil-ready task card.</span></div></div>'+
+'<div class="nl-export-mode" role="tablist" aria-label="Maths Canvas export content">'+
+'<button type="button" class="'+(exportMode==='canvas'?'is-active':'')+'" data-mc-export-mode="canvas">Canvas only</button>'+
+'<button type="button" class="'+(exportMode==='task'?'is-active':'')+'" data-mc-export-mode="task">Task card</button></div>'+
+(exportMode==='task'
+?'<label class="gd-field"><span>Answer space</span><select class="gd-select" id="mc-response-lines">'+[1,2,3,4].map(n=>'<option value="'+n+'"'+(responseLines===n?' selected':'')+'>'+n+' line'+(n===1?'':'s')+'</option>').join('')+'</select></label><p class="gd-help">The card uses your current canvas arrangement, task title and pupil instructions.</p>'
+:'<p class="gd-help">Canvas-only export keeps the tile arrangement and colours without editor controls.</p>')+
+'<div class="nl-export-grid"><button class="gd-btn gd-btn--primary" id="mc-copy-image" type="button">Copy '+(exportMode==='task'?'task':'image')+'</button>'+
+'<button class="gd-btn" id="mc-png" type="button">PNG</button><button class="gd-btn" id="mc-svg-download" type="button">SVG</button><button class="gd-btn" id="mc-print" type="button">Print / PDF</button></div>'+
+'<p class="gd-help" id="mc-export-status" role="status" aria-live="polite">'+exportStatus+'</p>';
+}
+function controlsHtml(){return workflowTabs()+(workflow==='task'?taskControlsHtml():workflow==='export'?exportControlsHtml():buildControlsHtml())}
+function renderControls(){q('#gd-controls').innerHTML=controlsHtml();bindControls()}
+function bindControls(){
+const controls=q('#gd-controls');if(!controls)return;
+qa('[data-mc-workflow]',controls).forEach(button=>button.onclick=()=>{workflow=button.dataset.mcWorkflow;exportStatus='';renderControls();controller?.refresh()});
+if(workflow==='build'){
+qa('[data-mc-add]',controls).forEach(x=>x.onclick=()=>add(x.dataset.mcAdd,false));
+qa('[data-mc-sym]',controls).forEach(x=>x.onclick=()=>add(x.dataset.mcSym,true));
+const addButton=q('#mc-add');if(addButton)addButton.onclick=()=>{const input=q('#mc-custom'),v=input.value.trim();if(v){add(v,false);input.value=''}};
+const clear=q('#mc-clear');if(clear)clear.onclick=()=>{if(!tiles.length)return;if(!window.confirm('Clear all tiles from this canvas?'))return;controller.mutate(()=>{tiles=[];colourOpen=false})};
+return;
+}
+if(workflow==='task'){
+const title=q('#mc-task-title');if(title)title.oninput=()=>{taskTitle=title.value.slice(0,100);controller?.refresh()};
+const prompt=q('#mc-task-prompt');if(prompt)prompt.oninput=()=>{taskPrompt=prompt.value.slice(0,500);controller?.refresh()};
+return;
+}
+qa('[data-mc-export-mode]',controls).forEach(button=>button.onclick=()=>{exportMode=button.dataset.mcExportMode==='task'?'task':'canvas';exportStatus='';renderControls()});
+const response=q('#mc-response-lines');if(response)response.onchange=()=>{responseLines=clamp(Math.round(num(response.value,2)),1,4);renderControls()};
+const copy=q('#mc-copy-image');if(copy)copy.onclick=()=>exportAction('copy');
+const png=q('#mc-png');if(png)png.onclick=()=>exportAction('png');
+const svg=q('#mc-svg-download');if(svg)svg.onclick=()=>exportAction('svg');
+const print=q('#mc-print');if(print)print.onclick=()=>exportAction('print');
+}
+setPanels(controlsHtml(),'');
 controller=I.mount({
 getItems:()=>tiles,
 getState:stateSnapshot,
@@ -3390,7 +3495,7 @@ else if(action==='grid'){api.mutate(()=>{grid=!grid;colourOpen=false})}
 },
 onSelectionChange:item=>{if(!item)colourOpen=false}
 });
-bindPalette();
+bindControls();
 controller.refresh();
 }
 
