@@ -100,6 +100,37 @@ window.scrollTo=function(){};
     checkLayout(id,label);
     return true;
   }
+  async function exerciseChallenge(id){
+    const controls=document.getElementById('gd-controls');
+    const stage=document.getElementById('gd-stage');
+    const workflow=[...controls.querySelectorAll('button')].find(b=>datasetHasWorkflow(b)&&/challenge/i.test(b.textContent||''));
+    if(!workflow)return false;
+    workflow.click();await tick();await tick();
+    checkLayout(id,'challenge');
+    const generate=[...controls.querySelectorAll('button')].find(b=>/^(Generate challenge|Another like this)$/.test((b.textContent||'').trim()));
+    assert(generate,id+' challenge controls expose a direct generate action');
+    generate.click();await tick();await tick();
+    let banner=stage.querySelector('.gd-challenge-banner');
+    assert(visible(banner),id+' generated challenge appears contextually on the stage');
+    let another=banner.querySelector('[data-challenge-action="another"]');
+    assert(visible(another),id+' generated standard challenge exposes Another like this on the stage');
+    let reveal=banner.querySelector('[data-board-action="reveal"]');
+    assert(visible(reveal),id+' generated challenge exposes Reveal answer on the stage');
+    reveal.click();await tick();await tick();
+    banner=stage.querySelector('.gd-challenge-banner');
+    assert(/Answer:/.test(banner.textContent||''),id+' Reveal answer displays the answer in the stage banner');
+    const hide=banner.querySelector('[data-board-action="reveal"]');
+    assert(hide&&/Hide answer/i.test(hide.textContent||''),id+' reveal control changes to Hide answer');
+    another=banner.querySelector('[data-challenge-action="another"]');
+    assert(visible(another),id+' Another like this remains available after revealing');
+    another.click();await tick();await tick();
+    banner=stage.querySelector('.gd-challenge-banner');
+    assert(visible(banner),id+' Another like this leaves a fresh challenge on the stage');
+    reveal=banner.querySelector('[data-board-action="reveal"]');
+    assert(visible(reveal)&&/Reveal answer/i.test(reveal.textContent||''),id+' fresh challenge resets to a hidden answer');
+    checkLayout(id,'generated challenge');
+    return true;
+  }
   async function run(){
     assert(window.TT99Goodies&&TT99Goodies.whiteboard,'Goodies app is registered');
     const cards=[...document.querySelectorAll('[data-tool]')];
@@ -110,14 +141,14 @@ window.scrollTo=function(){};
       assert(card,'Catalogue card exists for '+id);
       card.click();await tick();await tick();
       checkLayout(id,'default');
-      await visitWorkflow(id,/challenge/i,'challenge');
+      await exerciseChallenge(id);
       await visitWorkflow(id,/task/i,'task');
       await visitWorkflow(id,/export/i,'export');
       checked.push(id);
       document.getElementById('gd-back').click();await tick();
       assert(document.documentElement.scrollWidth<=innerWidth+3,id+' leaves page overflow after closing');
     }
-    result('pass','Shared classroom layout stays contained across all '+checked.length+' manipulatives',checked.join(','));
+    result('pass','Shared classroom layout and contextual challenge actions work across all '+checked.length+' manipulatives',checked.join(','));
   }
   window.addEventListener('load',()=>setTimeout(()=>run().catch(err=>result('fail',err&&err.message?err.message:String(err),err&&err.stack?err.stack:'')),120));
 })();
