@@ -744,3 +744,62 @@ html.gd-whiteboard-page-lock,body.gd-whiteboard-page-lock{overflow:hidden!import
 @media(max-width:390px){
   .gd-money-palette{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+
+/* Shared Goodies classroom control scale
+   Teacher-facing UI stays comfortably readable/clickable without enlarging mathematical diagram labels. */
+#tt99-goodies-root .gd-btn,
+#tt99-goodies-root .gd-back{min-height:44px;padding:10px 13px;line-height:1.2}
+#tt99-goodies-root .gd-input,
+#tt99-goodies-root .gd-select{min-height:44px;padding:10px 11px}
+#tt99-goodies-root .gd-textarea{padding:10px 11px;line-height:1.4}
+#tt99-goodies-root .gd-field>span,
+#tt99-goodies-root .gd-label{font-size:.84rem;line-height:1.25}
+#tt99-goodies-root .gd-help{font-size:.84rem;line-height:1.42}
+
+#tt99-goodies-root .gd-challenge-tab{min-height:40px;padding:9px 11px}
+#tt99-goodies-root .gd-challenge-chip{min-height:36px;padding:8px 11px;font-size:.78rem;line-height:1.2}
+#tt99-goodies-root .gd-challenge-card{gap:5px;padding:11px 12px;min-height:72px}
+#tt99-goodies-root .gd-challenge-card strong{font-size:.84rem;line-height:1.25}
+#tt99-goodies-root .gd-challenge-card span{font-size:.75rem;line-height:1.38}
+#tt99-goodies-root .gd-challenge-card small{font-size:.71rem;line-height:1.3}
+#tt99-goodies-root .gd-rich-toolbar{gap:6px}
+#tt99-goodies-root .gd-rich-toolbar button{min-width:38px;height:38px;border-radius:9px}
+#tt99-goodies-root .gd-rich-divider{height:26px}
+#tt99-goodies-root .gd-answer-live>span{font-size:.74rem}
+#tt99-goodies-root .gd-answer-live>small{font-size:.72rem}
+#tt99-goodies-root .gd-challenge-action,
+#tt99-goodies-root .nl-challenge-reveal{min-height:36px;padding:8px 11px;font-size:.78rem;display:inline-flex;align-items:center}
+
+#tt99-goodies-root .nl-workflow-tab{min-height:42px;padding:8px 7px;font-size:.78rem;line-height:1.15}
+#tt99-goodies-root .nl-present-btn{min-height:42px}
+#tt99-goodies-root .nl-subtabs button,
+#tt99-goodies-root .nl-export-mode button{min-height:38px;padding:8px 9px;font-size:.78rem}
+#tt99-goodies-root .nl-panel-title span{font-size:.75rem}
+#tt99-goodies-root .nl-panel-title--compact span{font-size:.73rem}
+#tt99-goodies-root .nl-compact-field>span{font-size:.72rem;line-height:1.2}
+#tt99-goodies-root .nl-compact-field .gd-input,
+#tt99-goodies-root .nl-compact-field .gd-select{min-height:38px;padding:8px 9px;font-size:.8rem}
+#tt99-goodies-root .nl-icon-btn{width:38px;height:38px;min-width:38px;min-height:38px}
+#tt99-goodies-root .nl-object-card-main{grid-template-columns:38px minmax(0,1fr) minmax(0,1fr) 38px}
+#tt99-goodies-root .nl-relation-main{grid-template-columns:minmax(64px,.7fr) 18px minmax(64px,.7fr) minmax(92px,1fr) 38px}
+#tt99-goodies-root .nl-relation-main>.nl-icon-btn{min-width:38px}
+#tt99-goodies-root .nl-object-card-options .nl-check{min-height:38px;font-size:.78rem}
+
+@media(max-width:520px){
+  #tt99-goodies-root .gd-btn,
+  #tt99-goodies-root .gd-back,
+  #tt99-goodies-root .gd-input,
+  #tt99-goodies-root .gd-select{min-height:46px}
+  #tt99-goodies-root .gd-challenge-chip,
+  #tt99-goodies-root .gd-challenge-action,
+  #tt99-goodies-root .nl-challenge-reveal{min-height:40px}
+  #tt99-goodies-root .gd-rich-toolbar button{min-width:40px;height:40px}
+}
+@media(max-width:390px){
+  #tt99-goodies-root .nl-workflow-tab{font-size:.75rem;min-height:44px}
+  #tt99-goodies-root .nl-scale-mode button{font-size:.74rem;min-height:40px}
+  #tt99-goodies-root .nl-marker-card .nl-object-card-main{grid-template-columns:38px minmax(0,1fr) 38px}
+  #tt99-goodies-root .nl-marker-card .nl-icon-btn{grid-column:3;grid-row:1/3}
+  #tt99-goodies-root .nl-relation-main{grid-template-columns:minmax(0,1fr) 16px minmax(0,1fr) 38px}
+}
