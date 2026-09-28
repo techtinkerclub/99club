@@ -94,6 +94,12 @@ document.exitFullscreen=function(){
         assert(document.getElementById('gd-stage')===stage,'Shared whiteboard preserves the live stage element for '+id);
         assert(workspace.classList.contains('gd-whiteboard-active'),'Shared whiteboard mode activates for '+id);
         assert(document.fullscreenElement===workspace||workspace.classList.contains('gd-whiteboard-fallback'),'Shared whiteboard mode occupies the viewport for '+id);
+        if(id==='randomiser'){
+          const action=stage.querySelector('#ra-stage-go');
+          assert(action,'Randomiser keeps its repeat action directly on the stage in whiteboard mode');
+          assert(getComputedStyle(action).display!=='none'&&getComputedStyle(action).visibility!=='hidden','Randomiser stage action remains visible while the Tools drawer is closed');
+          assert(document.getElementById('gd-whiteboard-tools').getAttribute('aria-expanded')==='false','Randomiser stage action is usable without opening Tools');
+        }
         if(stageHistory){
           await tick();
           const undoSelector=id==='coordinates'?'[data-co-undo-stage]':'[data-ge-undo-stage]';
