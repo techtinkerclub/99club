@@ -3360,7 +3360,7 @@ if(mode==='prepare'){
     assert(document.querySelector('.gd-spinner-pointer'),'Spinner has a fixed Wheel-of-Fortune-style pointer');
     assert(document.querySelectorAll('.gd-spinner-label').length===4,'Default spinner labels all four wheel segments');
     const choices=document.getElementById('ra-choices');
-    choices.value='Alpha\nBeta\nGamma';choices.dispatchEvent(new Event('input',{bubbles:true}));
+    choices.value='Alpha\\nBeta\\nGamma';choices.dispatchEvent(new Event('input',{bubbles:true}));
     assert(document.querySelectorAll('.gd-spinner-label').length===3,'Spinner redraws to match edited classroom choices');
     assert([...document.querySelectorAll('.gd-spinner-label span')].map(x=>x.textContent.trim()).join('|')==='Alpha|Beta|Gamma','Spinner keeps the edited labels on the wheel itself');
     go.click();
