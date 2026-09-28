@@ -945,6 +945,11 @@ try{
   for(const token of ['.gd-workspace.gd-whiteboard-active','.gd-whiteboard-ui','.gd-whiteboard-tools-open','.gd-whiteboard-fallback','.gd-whiteboard-button','gd-whiteboard-page-lock'])if(!goodiesCss.includes(token))fail('goodies-whiteboard','Shared whiteboard styling missing: '+token);
   if(!numberLine.includes('id="nl-fullscreen"')||!numberLine.includes('function enterBoardFallback')||!numberLine.includes('function boardActive'))fail('goodies-whiteboard','Number Line bespoke whiteboard mode is no longer available');
   ok('goodies-whiteboard',whiteboardToolIds.length+' catalogue manipulatives are covered by shared/bespoke whiteboard mode contracts');
+  if(!goodiesCss.includes('.gd-workspace>*{min-width:0}'))fail('goodies-layout','Shared workspace children can overflow their grid columns');
+  if(!goodiesCss.includes('position:sticky;top:12px;max-height:calc(100dvh - 24px);overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable'))fail('goodies-layout','Desktop teacher controls lost their pinned viewport-bounded layout');
+  if(!goodiesCss.includes('.gd-controls{position:static;max-height:none;overflow:visible;overscroll-behavior:auto;scrollbar-gutter:auto}'))fail('goodies-layout','Phone controls no longer return to normal document flow');
+  if(!goodiesCss.includes('.gd-tool-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);width:100%;gap:8px}'))fail('goodies-layout','Phone tool actions lost their contained two-column layout');
+  ok('goodies-layout','Shared desktop/mobile containment and reduced-scroll layout contracts are present');
   const capabilitySpecs=[
     {id:'number-line',source:numberLine,mode:'challenge'},
     {id:'place-value',source:goodiesToolsA,fn:'placeValue',mode:'challenge'},
