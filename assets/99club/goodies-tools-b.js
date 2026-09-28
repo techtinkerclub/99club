@@ -1910,7 +1910,7 @@ function factorExplorer(){
     const other=side==='a'?b:a;
     return multiples(n).map((x,i)=>{
       const common=compare&&x%other===0;
-      return '<button type="button" class="gd-multiple gd-fe-multiple'+(common?' is-common':'')+'" data-fe-multiple="'+side+'-'+i+'" title="'+(common?'Common multiple':'Multiple '+(i+1))+'">'+x+'</button>';
+      return '<span class="gd-multiple gd-fe-multiple'+(common?' is-common':'')+'" data-fe-multiple="'+side+'-'+i+'" title="'+(common?'Common multiple':'Multiple '+(i+1))+'">'+x+'</span>';
     }).join('');
   }
   function numberCard(n,side,label){
