@@ -2776,7 +2776,9 @@ if(mode==='prepare'){
     assert(coinPicks.length===8,'UK Money exposes all eight circulating coin denominations');
     assert(coinPicks.every(p=>p.querySelector('img')?.src.includes('www.royalmint.com/')),'Every live coin palette choice uses official Royal Mint imagery');
     assert(document.querySelectorAll('#mo-canvas .gd-money-object--coin .gd-money-object__face--official img').length===5,'Seeded live coins render official Royal Mint imagery');
-    assert(document.querySelector('.gd-money-credit')?.textContent.includes('The Royal Mint, 2023'),'UK Money credits the official coin imagery in the teacher controls');
+    const moneyCredits=[...document.querySelectorAll('.gd-money-credit')];
+    assert(moneyCredits.some(x=>x.closest('#gd-controls')&&x.textContent.includes('The Royal Mint, 2023')),'UK Money credits the official coin imagery in the teacher controls');
+    assert(moneyCredits.some(x=>x.classList.contains('gd-money-credit--stage')&&x.textContent.includes('The Royal Mint, 2023')),'UK Money credits Royal Mint photography directly below the live money board');
     const notePicks=[...document.querySelectorAll('.gd-money-pick--note')];
     assert(notePicks.length===4&&notePicks.every(p=>!p.querySelector('img')),'Banknotes remain clearly stylised classroom representations rather than realistic note images');
 
