@@ -1365,6 +1365,83 @@ if(mode==='prepare'){
     Math.random=realMgRandom;
   }
 
+  function testTimesTableVisualWorkbench(){
+    TT99Goodies.interaction.clear();
+    assert(TT99Goodies.timesTableVisual,'Times-table Visualiser is registered');
+    TT99Goodies.timesTableVisual();
+
+    assert(document.querySelector('[data-tv-equation]').textContent.trim()==='4 × 6 = 24','Times-table Visualiser opens on 4 × 6 = 24');
+    assert(document.querySelectorAll('[data-tv-group]').length===4,'Default model contains four equal groups');
+    assert([...document.querySelectorAll('[data-tv-group]')].every(g=>g.querySelectorAll('.gd-tv-dots i').length===6),'Every default group contains six items');
+    assert(document.querySelector('[data-tv-repeated]').textContent.trim()==='6 + 6 + 6 + 6 = 24','Repeated addition is linked to the equal-groups model');
+    assert(document.querySelector('[data-tv-commutative]').textContent.trim()==='6 × 4 = 24','Commutative fact is linked to the model');
+    assert(document.querySelector('[data-tv-division-a]').textContent.trim()==='24 ÷ 4 = 6','First inverse division fact is linked to the model');
+    assert(document.querySelector('[data-tv-division-b]').textContent.trim()==='24 ÷ 6 = 4','Second inverse division fact is linked to the model');
+
+    document.querySelector('[data-tv-group="1"]').click();
+    assert(document.querySelector('[data-tv-selected="1"]'),'A group can be selected directly');
+    assert(document.querySelector('.gd-tv-selected strong').textContent.includes('Group 2 · 6 items'),'Selected-group panel identifies the chosen equal group');
+
+    document.getElementById('tv-duplicate').click();
+    assert(document.querySelector('[data-tv-equation]').textContent.trim()==='5 × 6 = 30','Duplicating a selected group increases the number of equal groups');
+    assert(document.querySelectorAll('[data-tv-group]').length===5,'Duplicating creates one additional group');
+    document.getElementById('tv-undo').click();
+    assert(document.querySelector('[data-tv-equation]').textContent.trim()==='4 × 6 = 24','Undo restores the previous equal-groups model');
+    document.getElementById('tv-redo').click();
+    assert(document.querySelector('[data-tv-equation]').textContent.trim()==='5 × 6 = 30','Redo reapplies the duplicated group');
+    document.getElementById('tv-delete').click();
+    assert(document.querySelector('[data-tv-equation]').textContent.trim()==='4 × 6 = 24','Deleting a selected group reduces the group count by one');
+
+    document.getElementById('tv-items-plus').click();
+    assert(document.querySelector('[data-tv-equation]').textContent.trim()==='4 × 7 = 28','Direct item stepper changes every equal group together');
+    assert([...document.querySelectorAll('[data-tv-group]')].every(g=>g.querySelectorAll('.gd-tv-dots i').length===7),'Changing items per group updates every group equally');
+    document.getElementById('tv-groups-minus').click();
+    assert(document.querySelector('[data-tv-equation]').textContent.trim()==='3 × 7 = 21','Direct group stepper changes the number of groups');
+
+    document.getElementById('tv-swap').click();
+    assert(document.querySelector('[data-tv-equation]').textContent.trim()==='7 × 3 = 21','Swap factors reverses the equal-groups interpretation');
+    assert(document.querySelectorAll('[data-tv-group]').length===7,'Swap factors turns the former group size into the group count');
+    assert([...document.querySelectorAll('[data-tv-group]')].every(g=>g.querySelectorAll('.gd-tv-dots i').length===3),'Swap factors turns the former group count into items per group');
+    assert(document.querySelector('[data-tv-commutative]').textContent.trim()==='3 × 7 = 21','Commutative readout reverses after factor swap while preserving the product');
+
+    document.getElementById('tv-reset').click();
+    let group=document.querySelector('[data-tv-group="0"]');
+    group.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
+    assert(document.querySelector('[data-tv-selected="1"]'),'Arrow keys move the selected equal group');
+    group=document.querySelector('[data-tv-group="1"]');
+    group.dispatchEvent(new KeyboardEvent('keydown',{key:'d',bubbles:true}));
+    assert(document.querySelectorAll('[data-tv-group]').length===5,'D duplicates the selected group from the keyboard');
+    group=document.querySelector('[data-tv-group="2"]');
+    group.dispatchEvent(new KeyboardEvent('keydown',{key:'Delete',bubbles:true}));
+    assert(document.querySelectorAll('[data-tv-group]').length===4,'Delete removes the selected group from the keyboard');
+
+    document.getElementById('tv-add-group').click();
+    assert(document.querySelectorAll('[data-tv-group]').length===5,'Add group tile extends the equal-groups model directly');
+    assert(document.querySelector('[data-tv-equation]').textContent.trim()==='5 × 6 = 30','Add group updates the multiplication equation');
+
+    let a=document.getElementById('tv-a'),b=document.getElementById('tv-b');
+    a.value='8';a.dispatchEvent(new Event('change',{bubbles:true}));
+    b=document.getElementById('tv-b');b.value='4';b.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.querySelector('[data-tv-equation]').textContent.trim()==='8 × 4 = 32','Quick setup can build an exact equal-groups fact');
+    assert(document.querySelectorAll('[data-tv-jump]').length===8,'Equal-jumps view follows the group count');
+    assert(document.querySelector('[data-tv-repeated]').textContent.trim()==='4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 = 32','Repeated addition follows quick setup');
+
+    const repeated=document.getElementById('tv-show-repeated');
+    repeated.checked=false;repeated.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(!document.querySelector('[data-tv-repeated]'),'Repeated-addition view can be hidden to reduce visual density');
+    const jumps=document.getElementById('tv-show-jumps');
+    jumps.checked=false;jumps.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(!document.querySelector('.gd-tv-jump-section'),'Equal-jumps view can be hidden independently');
+    const family=document.getElementById('tv-show-family');
+    family.checked=false;family.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(!document.querySelector('.gd-tv-fact-family'),'Fact-family view can be hidden independently');
+
+    document.getElementById('tv-undo').click();
+    assert(document.querySelector('[data-tv-equation]').textContent.trim()==='8 × 6 = 48','Undo steps back through the most recent quick-setup factor edit');
+    document.getElementById('tv-undo').click();
+    assert(document.querySelector('[data-tv-equation]').textContent.trim()==='5 × 6 = 30','A second Undo restores the model before quick setup');
+  }
+
   function testPlaceValue(){
     TT99Goodies.interaction.clear();
     assert(TT99Goodies.placeValue,'Place Value is registered');
@@ -2750,6 +2827,7 @@ if(mode==='prepare'){
         testEquationBalanceWorkbench();
         testHundredSquareWorkbench();
         testMultiplicationGridWorkbench();
+        testTimesTableVisualWorkbench();
         testPlaceValue();
         testFractions();
         testGeoboard();
@@ -2758,7 +2836,7 @@ if(mode==='prepare'){
         testArrayWorkbench();
         testMoneyWorkbench();
         testClockWorkbench();
-        result('pass','Number Line challenges, Maths Canvas, Bar Model, Equation Balance, Hundred Square, Multiplication Grid, Place Value, Fraction Wall, Geoboard, Coordinates, Measurement, Array, UK Money and Clock workbench interactions work');
+        result('pass','Number Line challenges, Maths Canvas, Bar Model, Equation Balance, Hundred Square, Multiplication Grid, Times-table Visualiser, Place Value, Fraction Wall, Geoboard, Coordinates, Measurement, Array, UK Money and Clock workbench interactions work');
       }catch(err){
         result('fail',err&&err.message?err.message:String(err));
       }

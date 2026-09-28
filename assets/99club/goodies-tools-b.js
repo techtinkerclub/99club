@@ -1515,8 +1515,155 @@ function balanceTool(){
   draw();
 }
 
-function timesTableVisual(){function draw(){const a=clamp(num(q('#tv-a').value,4),1,12),b=clamp(num(q('#tv-b').value,6),1,12),total=a*b;const groups=Array.from({length:a},()=>`<div class="gd-group">${Array.from({length:b},()=>'<span class="gd-mini-dot"></span>').join('')}</div>`).join(''),jumps=Array.from({length:a},(_,i)=>`<span class="gd-jump">${i*b} → ${(i+1)*b}</span>`).join('');q('#gd-stage').innerHTML=`<div class="gd-vis gd-fact-card"><div class="gd-fact-main">${a} × ${b} = ${total}</div><div class="gd-groups">${groups}</div><div class="gd-readout" style="text-align:center">${Array.from({length:a},()=>b).join(' + ')} = ${total}</div><div class="gd-jumps">${jumps}</div><div class="gd-readout" style="text-align:center">Related facts: ${b} × ${a} = ${total} · ${total} ÷ ${a} = ${b} · ${total} ÷ ${b} = ${a}</div></div>`}
-setPanels(`${field('Number of groups','<input class="gd-input" id="tv-a" type="range" min="1" max="12" value="4">')}${field('In each group','<input class="gd-input" id="tv-b" type="range" min="1" max="12" value="6">')}${btn('Random fact','tv-random')}`,'');['tv-a','tv-b'].forEach(id=>q('#'+id).oninput=draw);q('#tv-random').onclick=()=>{q('#tv-a').value=1+Math.floor(Math.random()*12);q('#tv-b').value=1+Math.floor(Math.random()*12);draw()};draw()}
+function timesTableVisual(){
+  let groupsCount=4,itemsPerGroup=6,selectedGroup=0;
+  let showRepeated=true,showJumps=true,showFactFamily=true;
+  const undoStack=[],redoStack=[];
+
+  function snapshot(){return{groupsCount,itemsPerGroup,selectedGroup,showRepeated,showJumps,showFactFamily}}
+  function restore(state){
+    groupsCount=clamp(Math.round(Number(state?.groupsCount)||4),1,12);
+    itemsPerGroup=clamp(Math.round(Number(state?.itemsPerGroup)||6),1,12);
+    selectedGroup=clamp(Math.round(Number(state?.selectedGroup)||0),0,groupsCount-1);
+    showRepeated=state?.showRepeated!==false;
+    showJumps=state?.showJumps!==false;
+    showFactFamily=state?.showFactFamily!==false;
+  }
+  function remember(){
+    undoStack.push(snapshot());
+    if(undoStack.length>60)undoStack.shift();
+    redoStack.length=0;
+  }
+  function mutate(fn){
+    remember();fn();draw();renderControls();
+  }
+  function undo(){
+    if(!undoStack.length)return;
+    redoStack.push(snapshot());restore(undoStack.pop());draw();renderControls();
+  }
+  function redo(){
+    if(!redoStack.length)return;
+    undoStack.push(snapshot());restore(redoStack.pop());draw();renderControls();
+  }
+  function total(){return groupsCount*itemsPerGroup}
+  function setGroups(value){
+    groupsCount=clamp(Math.round(Number(value)||1),1,12);
+    selectedGroup=clamp(selectedGroup,0,groupsCount-1);
+  }
+  function setItems(value){itemsPerGroup=clamp(Math.round(Number(value)||1),1,12)}
+  function addGroup(){
+    if(groupsCount>=12)return;
+    groupsCount+=1;selectedGroup=groupsCount-1;
+  }
+  function duplicateSelected(){
+    if(groupsCount>=12)return;
+    groupsCount+=1;selectedGroup=clamp(selectedGroup+1,0,groupsCount-1);
+  }
+  function deleteSelected(){
+    if(groupsCount<=1)return;
+    groupsCount-=1;selectedGroup=clamp(selectedGroup,0,groupsCount-1);
+  }
+  function swapFactors(){
+    const oldGroups=groupsCount;
+    groupsCount=itemsPerGroup;
+    itemsPerGroup=oldGroups;
+    selectedGroup=clamp(selectedGroup,0,groupsCount-1);
+  }
+  function repeatedText(){
+    return Array.from({length:groupsCount},()=>itemsPerGroup).join(' + ')+' = '+total();
+  }
+  function groupHtml(index){
+    const selected=index===selectedGroup;
+    return '<button type="button" class="gd-tv-group'+(selected?' is-selected':'')+'" data-tv-group="'+index+'" aria-label="Group '+(index+1)+' with '+itemsPerGroup+' items">'+
+      '<span>Group '+(index+1)+'</span><div class="gd-tv-dots">'+Array.from({length:itemsPerGroup},()=>'<i></i>').join('')+'</div>'+
+      '<strong>'+itemsPerGroup+'</strong>'+
+    '</button>';
+  }
+  function jumpHtml(index){
+    const from=index*itemsPerGroup,to=(index+1)*itemsPerGroup;
+    return '<div class="gd-tv-jump" data-tv-jump="'+index+'"><span>'+from+'</span><b>+'+itemsPerGroup+'</b><span>'+to+'</span></div>';
+  }
+  function selectedPanel(){
+    return '<div class="gd-tv-selected" data-tv-selected="'+selectedGroup+'">'+
+      '<div><span>Selected group</span><strong>Group '+(selectedGroup+1)+' · '+itemsPerGroup+' items</strong></div>'+
+      '<div class="gd-row"><button class="gd-btn" id="tv-duplicate" type="button"'+(groupsCount>=12?' disabled':'')+'>Duplicate group</button>'+
+      '<button class="gd-btn gd-btn--danger" id="tv-delete" type="button"'+(groupsCount<=1?' disabled':'')+'>Delete group</button></div>'+
+    '</div>';
+  }
+  function draw(){
+    const t=total();
+    q('#gd-stage').innerHTML='<div class="gd-vis gd-tv-workbench">'+
+      '<div class="gd-tv-summary"><div><span>Equal groups</span><strong data-tv-equation>'+groupsCount+' × '+itemsPerGroup+' = '+t+'</strong></div>'+
+        '<div class="gd-object-toolbar"><button class="gd-btn" id="tv-undo" type="button"'+(undoStack.length?'':' disabled')+'>Undo</button><button class="gd-btn" id="tv-redo" type="button"'+(redoStack.length?'':' disabled')+'>Redo</button></div></div>'+
+      '<div class="gd-tv-direct">'+
+        '<div class="gd-tv-stepper"><span>Groups</span><div><button class="gd-btn" id="tv-groups-minus" type="button"'+(groupsCount<=1?' disabled':'')+'>−</button><strong data-tv-groups>'+groupsCount+'</strong><button class="gd-btn" id="tv-groups-plus" type="button"'+(groupsCount>=12?' disabled':'')+'>+</button></div></div>'+
+        '<button class="gd-btn gd-tv-swap" id="tv-swap" type="button">Swap factors ↔</button>'+
+        '<div class="gd-tv-stepper"><span>In each group</span><div><button class="gd-btn" id="tv-items-minus" type="button"'+(itemsPerGroup<=1?' disabled':'')+'>−</button><strong data-tv-items>'+itemsPerGroup+'</strong><button class="gd-btn" id="tv-items-plus" type="button"'+(itemsPerGroup>=12?' disabled':'')+'>+</button></div></div>'+
+      '</div>'+
+      '<div class="gd-tv-groups" data-tv-group-count="'+groupsCount+'">'+Array.from({length:groupsCount},(_,i)=>groupHtml(i)).join('')+
+        (groupsCount<12?'<button class="gd-tv-add-group" id="tv-add-group" type="button"><strong>+</strong><span>Add group</span></button>':'')+'</div>'+
+      selectedPanel()+
+      (showRepeated?'<div class="gd-tv-readout"><span>Repeated addition</span><strong data-tv-repeated>'+repeatedText()+'</strong></div>':'')+
+      (showJumps?'<div class="gd-tv-jump-section"><span>Equal jumps</span><div class="gd-tv-jumps">'+Array.from({length:groupsCount},(_,i)=>jumpHtml(i)).join('')+'</div></div>':'')+
+      (showFactFamily?'<div class="gd-tv-fact-family"><span>Fact family</span><div>'+
+        '<strong data-tv-commutative>'+itemsPerGroup+' × '+groupsCount+' = '+t+'</strong>'+
+        '<strong data-tv-division-a>'+t+' ÷ '+groupsCount+' = '+itemsPerGroup+'</strong>'+
+        '<strong data-tv-division-b>'+t+' ÷ '+itemsPerGroup+' = '+groupsCount+'</strong>'+
+      '</div></div>':'')+
+    '</div>';
+    bindStage();
+  }
+  function bindStage(){
+    qa('[data-tv-group]',q('#gd-stage')).forEach(group=>{
+      group.onclick=()=>{selectedGroup=Number(group.dataset.tvGroup);draw()};
+      group.onkeydown=e=>{
+        const index=Number(group.dataset.tvGroup);
+        if(e.key==='ArrowLeft'){e.preventDefault();selectedGroup=clamp(index-1,0,groupsCount-1);draw();setTimeout(()=>q('[data-tv-group="'+selectedGroup+'"]')?.focus(),0)}
+        else if(e.key==='ArrowRight'){e.preventDefault();selectedGroup=clamp(index+1,0,groupsCount-1);draw();setTimeout(()=>q('[data-tv-group="'+selectedGroup+'"]')?.focus(),0)}
+        else if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();mutate(deleteSelected)}
+        else if(e.key.toLowerCase()==='d'){e.preventDefault();mutate(duplicateSelected)}
+      };
+    });
+    const undoBtn=q('#tv-undo');if(undoBtn)undoBtn.onclick=undo;
+    const redoBtn=q('#tv-redo');if(redoBtn)redoBtn.onclick=redo;
+    const gm=q('#tv-groups-minus');if(gm)gm.onclick=()=>mutate(()=>setGroups(groupsCount-1));
+    const gp=q('#tv-groups-plus');if(gp)gp.onclick=()=>mutate(()=>setGroups(groupsCount+1));
+    const im=q('#tv-items-minus');if(im)im.onclick=()=>mutate(()=>setItems(itemsPerGroup-1));
+    const ip=q('#tv-items-plus');if(ip)ip.onclick=()=>mutate(()=>setItems(itemsPerGroup+1));
+    const swap=q('#tv-swap');if(swap)swap.onclick=()=>mutate(swapFactors);
+    const add=q('#tv-add-group');if(add)add.onclick=()=>mutate(addGroup);
+    const duplicate=q('#tv-duplicate');if(duplicate)duplicate.onclick=()=>mutate(duplicateSelected);
+    const del=q('#tv-delete');if(del)del.onclick=()=>mutate(deleteSelected);
+  }
+  function controlsHtml(){
+    return field('Quick setup','<div class="gd-row"><label class="gd-tv-quick"><span>Groups</span><input class="gd-input gd-small" id="tv-a" type="number" min="1" max="12" value="'+groupsCount+'"></label><span>×</span><label class="gd-tv-quick"><span>In each</span><input class="gd-input gd-small" id="tv-b" type="number" min="1" max="12" value="'+itemsPerGroup+'"></label></div>')+
+      '<div class="gd-field"><span>Show connections</span>'+
+        '<label class="gd-tv-check"><input type="checkbox" id="tv-show-repeated"'+(showRepeated?' checked':'')+'> <span>Repeated addition</span></label>'+
+        '<label class="gd-tv-check"><input type="checkbox" id="tv-show-jumps"'+(showJumps?' checked':'')+'> <span>Equal jumps</span></label>'+
+        '<label class="gd-tv-check"><input type="checkbox" id="tv-show-family"'+(showFactFamily?' checked':'')+'> <span>Fact family</span></label>'+
+      '</div>'+
+      '<div class="gd-row"><button class="gd-btn" id="tv-random" type="button">Random fact</button><button class="gd-btn" id="tv-reset" type="button">Reset 4 × 6</button></div>'+
+      '<p class="gd-help">Use the controls on the model itself to add or remove equal groups, change every group together, or swap the factors. Select a group and press Delete to remove it or D to duplicate it.</p>';
+  }
+  function renderControls(){q('#gd-controls').innerHTML=controlsHtml();bindControls()}
+  function bindControls(){
+    const a=q('#tv-a');if(a)a.onchange=()=>mutate(()=>setGroups(a.value));
+    const b=q('#tv-b');if(b)b.onchange=()=>mutate(()=>setItems(b.value));
+    const repeated=q('#tv-show-repeated');if(repeated)repeated.onchange=()=>{showRepeated=repeated.checked;draw()};
+    const jumps=q('#tv-show-jumps');if(jumps)jumps.onchange=()=>{showJumps=jumps.checked;draw()};
+    const family=q('#tv-show-family');if(family)family.onchange=()=>{showFactFamily=family.checked;draw()};
+    const random=q('#tv-random');if(random)random.onclick=()=>mutate(()=>{
+      groupsCount=1+Math.floor(Math.random()*12);
+      itemsPerGroup=1+Math.floor(Math.random()*12);
+      selectedGroup=0;
+    });
+    const reset=q('#tv-reset');if(reset)reset.onclick=()=>mutate(()=>{groupsCount=4;itemsPerGroup=6;selectedGroup=0});
+  }
+
+  setPanels(controlsHtml(),'');
+  bindControls();
+  draw();
+}
 
 function factorExplorer(){function primeFactors(n){let x=n,out=[];for(let p=2;p*p<=x;p++)while(x%p===0){out.push(p);x/=p}if(x>1)out.push(x);return out}function draw(){const n=clamp(Math.round(num(q('#fe-n').value,36)),2,500),pairs=[];for(let i=1;i*i<=n;i++)if(n%i===0)pairs.push([i,n/i]);const multiples=Array.from({length:12},(_,i)=>n*(i+1));q('#gd-stage').innerHTML=`<div class="gd-vis"><h3>Factor pairs of ${n}</h3><div class="gd-factor-pairs">${pairs.map(p=>`<span class="gd-factor-pair">${p[0]} × ${p[1]}</span>`).join('')}</div><h3 style="margin-top:24px">First 12 multiples</h3><div class="gd-multiples">${multiples.map(x=>`<span class="gd-multiple">${x}</span>`).join('')}</div><div class="gd-readout" style="margin-top:18px;text-align:center">Prime factorisation: ${primeFactors(n).join(' × ')}</div></div>`}
 setPanels(`${field('Number','<input class="gd-input" id="fe-n" type="number" min="2" max="500" value="36">')}${btn('Random number','fe-random')}`,'');q('#fe-n').oninput=draw;q('#fe-random').onclick=()=>{q('#fe-n').value=2+Math.floor(Math.random()*143);draw()};draw()}
