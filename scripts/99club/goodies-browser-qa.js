@@ -1706,6 +1706,48 @@ if(mode==='prepare'){
 
     document.getElementById('fe-clear-challenge').click();
     assert(document.querySelector('[data-fe-card="a"] .gd-fe-card-head strong').textContent.trim()==='36','Ending Factor Explorer challenge restores teacher Number A');
+
+    document.querySelector('[data-fe-workflow="export"]').click();
+    assert(document.getElementById('fe-copy-image')&&document.getElementById('fe-png')&&document.getElementById('fe-svg-download')&&document.getElementById('fe-print'),'Factor Explorer export exposes copy, PNG, SVG and Print/PDF actions');
+    let feSvg=null,feName='';
+    const feOldDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg,name)=>{feSvg=svg.cloneNode(true);feName=name};
+    document.getElementById('fe-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=feOldDownload;
+    assert(feSvg&&feSvg.dataset.feExport==='diagram','Factor Explorer diagram-only export is a deterministic SVG');
+    assert(feSvg.querySelectorAll('[data-fe-export-card]').length===1,'Single-number Factor export contains one number card');
+    assert(feSvg.textContent.includes('36'),'Factor export preserves the current teacher number');
+    assert(feSvg.querySelector('[data-fe-export-array]'),'Factor export contains the selected factor rectangle');
+    assert(feName.includes('factors-multiples'),'Factor diagram export has a reusable filename');
+
+    document.querySelector('[data-fe-workflow="challenge"]').click();
+    document.querySelector('[data-fe-challenge-cat="compare"]').click();
+    document.querySelector('[data-fe-challenge-type="hcf"]').click();
+    document.getElementById('fe-generate').click();
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('[data-fe-hcf]').textContent.trim()==='12','Teacher can Reveal the HCF before export');
+    document.querySelector('[data-fe-workflow="export"]').click();
+    let feChallengeSvg=null;
+    const feOldChallengeDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{feChallengeSvg=svg.cloneNode(true)};
+    document.getElementById('fe-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=feOldChallengeDownload;
+    assert(feChallengeSvg&&feChallengeSvg.querySelector('[data-fe-export-common]'),'Factor challenge card embeds the comparison evidence panel');
+    assert(feChallengeSvg.querySelector('[data-fe-export-hcf]').textContent.trim()==='?','Pupil HCF export re-hides the answer after teacher Reveal');
+    assert(!feChallengeSvg.textContent.includes('Answer: 12'),'Pupil Factor challenge export never includes the teacher Reveal answer');
+    assert(feChallengeSvg.textContent.includes('highest common factor'),'Factor challenge card includes the pupil prompt');
+
+    document.querySelector('[data-fe-workflow="challenge"]').click();
+    document.querySelector('[data-fe-challenge-tab="custom"]').click();
+    feSource=document.getElementById('fe-custom-answer-source');
+    feSource.value='factors-a';feSource.dispatchEvent(new Event('change',{bubbles:true}));
+    document.querySelector('[data-fe-workflow="export"]').click();
+    let feCustomSvg=null;
+    const feOldCustomDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{feCustomSvg=svg.cloneNode(true)};
+    document.getElementById('fe-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=feOldCustomDownload;
+    assert(feCustomSvg&&[...feCustomSvg.querySelectorAll('[data-fe-export-pair^="a-"]')].every(x=>x.textContent.includes('?')),'Pupil Custom factor-list export keeps every factor pair hidden');
   }
   function testPlaceValue(){
     TT99Goodies.interaction.clear();
