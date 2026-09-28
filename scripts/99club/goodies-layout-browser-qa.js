@@ -58,6 +58,30 @@ window.scrollTo=function(){};
       assert(r.right<=cr.right+3,label+' control escapes right edge: '+(el.id||el.textContent.trim()));
     });
   }
+  function fontPx(el){return parseFloat(getComputedStyle(el).fontSize)||0}
+  function checkTeacherControlScale(controls,label){
+    [...controls.querySelectorAll('.gd-btn,.gd-input:not([type="range"]),.gd-select')].filter(visible).forEach(el=>{
+      const h=el.getBoundingClientRect().height;
+      const minimum=innerWidth<=520?44:42;
+      assert(h>=minimum,label+' teacher control is too small ('+Math.round(h)+'px): '+(el.id||el.textContent.trim()||el.getAttribute('aria-label')||el.tagName));
+    });
+    [...controls.querySelectorAll('.gd-challenge-card')].filter(visible).forEach(card=>{
+      const title=card.querySelector('strong'),desc=card.querySelector('span'),note=card.querySelector('small');
+      if(title)assert(fontPx(title)>=13,label+' challenge title is too small: '+title.textContent.trim());
+      if(desc)assert(fontPx(desc)>=12,label+' challenge description is too small: '+desc.textContent.trim());
+      if(note)assert(fontPx(note)>=11,label+' challenge note is too small: '+note.textContent.trim());
+    });
+    [...controls.querySelectorAll('.gd-rich-toolbar button')].filter(visible).forEach(button=>{
+      const r=button.getBoundingClientRect();
+      assert(r.width>=37&&r.height>=37,label+' rich-text toolbar target is too small: '+button.textContent.trim());
+    });
+    [...controls.querySelectorAll('.nl-workflow-tab')].filter(visible).forEach(button=>assert(button.getBoundingClientRect().height>=41,label+' Number Line workflow tab is too small: '+button.textContent.trim()));
+    [...controls.querySelectorAll('.nl-icon-btn')].filter(visible).forEach(button=>{
+      const r=button.getBoundingClientRect();
+      assert(r.width>=37&&r.height>=37,label+' Number Line edit/delete target is too small');
+    });
+    [...controls.querySelectorAll('.nl-compact-field>span')].filter(visible).forEach(span=>assert(fontPx(span)>=11.4,label+' compact teacher label is too small: '+span.textContent.trim()));
+  }
   function checkLayout(id,state){
     const label=id+' / '+state;
     const workspace=document.getElementById('gd-workspace');
@@ -73,6 +97,7 @@ window.scrollTo=function(){};
     assert(controls.scrollWidth<=controls.clientWidth+3,label+' controls need horizontal scrolling');
     checkControlsContainment(controls,label);
     checkButtonText(controls,label);
+    checkTeacherControlScale(controls,label);
     if(id!=='number-line'&&id!=='randomiser'){
       const workflow=[...controls.children].find(el=>el.matches('[role="tablist"][aria-label$="workflow"]'));
       assert(workflow,label+' exposes workflow navigation at the top of the teacher controls');
