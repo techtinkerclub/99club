@@ -1581,7 +1581,7 @@ function timesTableVisual(){
   }
   function jumpHtml(index){
     const from=index*itemsPerGroup,to=(index+1)*itemsPerGroup;
-    return '<div class="gd-tv-jump"><span>'+from+'</span><b>+'+itemsPerGroup+'</b><span>'+to+'</span></div>';
+    return '<div class="gd-tv-jump" data-tv-jump="'+index+'"><span>'+from+'</span><b>+'+itemsPerGroup+'</b><span>'+to+'</span></div>';
   }
   function selectedPanel(){
     return '<div class="gd-tv-selected" data-tv-selected="'+selectedGroup+'">'+
