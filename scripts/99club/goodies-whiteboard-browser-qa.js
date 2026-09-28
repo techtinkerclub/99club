@@ -83,6 +83,16 @@ document.exitFullscreen=function(){
         await tick();
         assert(workspace.classList.contains('gd-whiteboard-active'),'Shared whiteboard mode activates for '+id);
         assert(document.fullscreenElement===workspace||workspace.classList.contains('gd-whiteboard-fallback'),'Shared whiteboard mode occupies the viewport for '+id);
+        if(id==='coordinates'){
+          const undo=stage.querySelector('[data-co-undo-stage]'),redo=stage.querySelector('[data-co-redo-stage]');
+          assert(undo&&redo,'Coordinates keeps on-stage Undo/Redo in whiteboard mode');
+          assert(getComputedStyle(undo).display!=='none'&&getComputedStyle(redo).display!=='none','Coordinates on-stage history controls remain visible in whiteboard mode');
+        }
+        if(id==='geoboard'){
+          const undo=stage.querySelector('[data-ge-undo-stage]'),redo=stage.querySelector('[data-ge-redo-stage]');
+          assert(undo&&redo,'Geoboard keeps on-stage Undo/Redo in whiteboard mode');
+          assert(getComputedStyle(undo).display!=='none'&&getComputedStyle(redo).display!=='none','Geoboard on-stage history controls remain visible in whiteboard mode');
+        }
         const tools=document.getElementById('gd-whiteboard-tools');
         const exit=document.getElementById('gd-whiteboard-exit');
         assert(tools&&exit,'Whiteboard Tools and Exit controls exist for '+id);
