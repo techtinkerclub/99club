@@ -272,6 +272,9 @@ jobs:
             99club-parent-practice-qa-report.json
             99club-puzzle-parent-practice-qa-report.json
             99club-goodies-whiteboard-qa-report.json
+            99club-goodies-layout-qa-report.json
+            99club-goodies-layout-phone-report.json
+            99club-goodies-layout-desktop-report.json
           if-no-files-found: ignore
 
   printable-catalogue-qa:
