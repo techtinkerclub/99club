@@ -4170,7 +4170,7 @@ function moneyTool(){
       :'left:'+item.x+'px;top:'+item.y+'px;--mo-size:'+d.size+'px';
     const cls='gd-money-object gd-money-object--'+d.kind+' gd-money-object--'+d.shape+' gd-money-object--'+d.tone+(item.locked?' is-locked':'')+(frozen?' is-frozen':'');
     const face=d.kind==='coin'
-      ?'<span class="gd-money-object__face gd-money-object__face--official"><img src="'+d.image+'" alt="" draggable="false" loading="eager" decoding="async" referrerpolicy="no-referrer"><strong>'+d.label+'</strong><small>'+esc(d.design||'UK coin')+'</small></span>'
+      ?'<span class="gd-money-object__face gd-money-object__face--official"><img src="'+d.image+'" alt="" draggable="false" loading="eager" decoding="async" referrerpolicy="no-referrer"><strong>'+d.label+'</strong><small>'+(d.design||'UK coin')+'</small></span>'
       :'<span class="gd-money-object__face"><strong>'+d.label+'</strong><small>CLASSROOM NOTE</small></span>';
     return '<button type="button" class="'+cls+'" data-gd-object="'+item.id+'" data-mo-value="'+d.value+'" style="'+style+'" aria-label="'+d.label+' '+(d.kind==='note'?'classroom note':(d.design||'UK coin'))+(frozen?' fixed for this challenge':'')+'">'+face+'</button>';
   }
