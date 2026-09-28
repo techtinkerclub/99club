@@ -1740,6 +1740,20 @@ if(mode==='prepare'){
     assert(feChallengeSvg.textContent.includes('highest common factor'),'Factor challenge card includes the pupil prompt');
 
     document.querySelector('[data-fe-workflow="challenge"]').click();
+    document.querySelector('[data-fe-challenge-cat="read"]').click();
+    document.querySelector('[data-fe-challenge-type="missing-factor"]').click();
+    document.getElementById('fe-generate').click();
+    document.querySelector('[data-board-action="reveal"]').click();
+    document.querySelector('[data-fe-workflow="export"]').click();
+    let feMissingSvg=null;
+    const feOldMissingDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{feMissingSvg=svg.cloneNode(true)};
+    document.getElementById('fe-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=feOldMissingDownload;
+    assert(feMissingSvg&&[...feMissingSvg.querySelectorAll('[data-fe-export-pair^="a-"]')].some(x=>x.textContent.trim()==='4 × ?'),'Pupil missing-factor export keeps the requested factor hidden after Reveal');
+    assert(feMissingSvg.querySelector('[data-fe-export-array-label]').textContent.includes('4 × ? = 36'),'Pupil factor rectangle heading keeps the missing factor hidden');
+
+    document.querySelector('[data-fe-workflow="challenge"]').click();
     document.querySelector('[data-fe-challenge-tab="custom"]').click();
     feSource=document.getElementById('fe-custom-answer-source');
     feSource.value='factors-a';feSource.dispatchEvent(new Event('change',{bubbles:true}));
