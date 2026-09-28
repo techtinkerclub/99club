@@ -2970,8 +2970,9 @@ function arrayBuilder(){
     if(historyDisabled())return;
     const before=snapshot();
     fn();normaliseSplits();
-    if(!rememberSnapshot(before))return;
+    const changed=rememberSnapshot(before);
     renderControls();draw();
+    return changed;
   }
   function setDimensions(nextRows,nextCols){
     rows=clampDim(nextRows);cols=clampDim(nextCols);normaliseSplits();
