@@ -2398,7 +2398,7 @@ function factorExplorer(){
 }
 
 function fdpExplorer(){
-  const CK=G.challengeKit;
+  const CK=G.challengeKit,X=G.exportTools;
   let numerator=3,denominator=8,equivScale=1;
   const undoStack=[],redoStack=[];
   const BENCHMARKS=[
@@ -2419,6 +2419,7 @@ function fdpExplorer(){
     {id:'spot-percent-error',category:'reason',title:'Spot the percentage error',desc:'Decide whether a displayed percentage matches the fraction.'}
   ];
   let controlTab='explore',challengeTab='standard',challengeCategory='convert',challengeType='to-decimal',challenge=null,beforeChallenge=null;
+  let exportMode='diagram',responseLines=1,exportStatus='';
 
   function normalise(){
     denominator=clamp(Math.round(Number(denominator)||1),1,20);
@@ -2548,7 +2549,8 @@ function fdpExplorer(){
   function workflowTabs(){
     return '<div class="gd-row gd-fdp-workflow-tabs" role="tablist" aria-label="FDP Explorer workflow">'+
       '<button class="gd-btn'+(controlTab==='explore'?' gd-btn--primary':'')+'" type="button" data-fd-workflow="explore">Explore</button>'+
-      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-fd-workflow="challenge">Challenge'+(challenge?' •':'')+'</button></div>';
+      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-fd-workflow="challenge">Challenge'+(challenge?' •':'')+'</button>'+
+      '<button class="gd-btn'+(controlTab==='export'?' gd-btn--primary':'')+'" type="button" data-fd-workflow="export">Export / reuse</button></div>';
   }
   function modelControlsHtml(){
     return field('Quick fraction','<div class="gd-row"><label class="gd-tv-quick"><span>Numerator</span><input class="gd-input gd-small" id="fd-n" type="number" min="0" max="'+denominator+'" value="'+numerator+'"></label><span>/</span><label class="gd-tv-quick"><span>Denominator</span><input class="gd-input gd-small" id="fd-d" type="number" min="1" max="20" value="'+denominator+'"></label></div>')+
@@ -2614,12 +2616,13 @@ function fdpExplorer(){
     }else{
       numerator=2;denominator=5;challenge=challengeObject(type,'The percentage shown is 45%. Is that correct? Explain.','No. 2/5 = 40%, not 45%.',{wrongPercent:45,hiddenDecimal:true,hiddenHundred:true});
     }
-    challengeType=type;challengeCategory=meta.category;challengeTab='standard';controlTab='challenge';renderControls();draw();
+    challenge.initialState=snapshot();
+    challengeType=type;challengeCategory=meta.category;challengeTab='standard';controlTab='challenge';exportMode='challenge';responseLines=meta.category==='reason'?3:1;exportStatus='';renderControls();draw();
   }
   function enterCustomChallenge(){
     if(!beforeChallenge)beforeChallenge=snapshot();
     if(CK)challenge=CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''});
-    challenge.mode='custom';challenge.freezeModel=false;challenge.revealed=false;challengeTab='custom';controlTab='challenge';renderControls();draw();
+    challenge.mode='custom';challenge.freezeModel=false;challenge.revealed=false;challengeTab='custom';controlTab='challenge';exportMode='challenge';exportStatus='';renderControls();draw();
   }
   function setCustomAnswerSource(source){
     if(!challenge||challenge.mode!=='custom')return;
@@ -2651,11 +2654,135 @@ function fdpExplorer(){
       (challenge?'<button class="gd-btn" id="fd-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
       (!challengeFrozen()&&challenge?.type==='build-percentage'?modelControlsHtml():'');
   }
-  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():exploreControlsHtml())}
+  function exportControlsHtml(){
+    const canCard=!!challenge;
+    if(!canCard&&exportMode==='challenge')exportMode='diagram';
+    return '<div class="nl-panel-title"><div><strong>Use it elsewhere</strong><span>Export the linked fraction, decimal and percentage model or a pupil-ready challenge card.</span></div></div>'+
+      (canCard?'<div class="nl-export-mode fd-export-mode" role="tablist" aria-label="Export content">'+
+        '<button type="button" class="'+(exportMode==='challenge'?'is-active':'')+'" data-fd-export-mode="challenge">Challenge card</button>'+
+        '<button type="button" class="'+(exportMode==='diagram'?'is-active':'')+'" data-fd-export-mode="diagram">Diagram only</button></div>':'')+
+      (canCard&&exportMode==='challenge'
+        ?'<label class="gd-field"><span>Answer space</span><select class="gd-select" id="fd-response-lines">'+
+          [1,2,3,4].map(n=>'<option value="'+n+'"'+(responseLines===n?' selected':'')+'>'+n+' line'+(n===1?'':'s')+'</option>').join('')+
+          '</select></label><p class="gd-help">Pupil cards restore the original challenge state and keep hidden representations hidden even after Reveal answer or teacher testing.</p>'
+        :'<p class="gd-help">Diagram-only export contains the current fraction bar, equivalent values and hundred-square representation without editing controls.</p>')+
+      '<div class="nl-export-grid fd-export-grid">'+
+        '<button class="gd-btn gd-btn--primary" id="fd-copy-image" type="button">Copy '+(canCard&&exportMode==='challenge'?'challenge':'image')+'</button>'+
+        '<button class="gd-btn" id="fd-png" type="button">PNG</button>'+
+        '<button class="gd-btn" id="fd-svg-download" type="button">SVG</button>'+
+        '<button class="gd-btn" id="fd-print" type="button">Print / PDF</button>'+
+      '</div><p class="gd-help" id="fd-export-status" role="status" aria-live="polite">'+exportStatus+'</p>';
+  }
+  function fdSvgEl(name,attrs={},text=''){
+    const el=document.createElementNS('http://www.w3.org/2000/svg',name);
+    Object.entries(attrs).forEach(([key,value])=>el.setAttribute(key,String(value)));
+    if(text!==''&&text!=null)el.textContent=String(text);
+    return el;
+  }
+  function exportState(pupil=false){
+    return pupil&&challenge?.mode==='standard'&&challenge.initialState?{...challenge.initialState}:snapshot();
+  }
+  function exportHidden(key,pupil=false){
+    if(!challenge)return false;
+    return pupil?!!challenge[key]:challenge&&!challenge.revealed&&!!challenge[key];
+  }
+  function stateSimplified(state){
+    if(state.numerator===0)return{n:0,d:1};
+    const g=gcd(state.numerator,state.denominator);
+    return{n:state.numerator/g,d:state.denominator/g};
+  }
+  function stateValue(state){return state.numerator/state.denominator}
+  function stateDecimal(state){return String(Number(stateValue(state).toFixed(4)))}
+  function statePercent(state){
+    const p=stateValue(state)*100;
+    return Number.isInteger(p)?String(p):String(Number(p.toFixed(2)));
+  }
+  function stateHundredFill(state){return Math.round(stateValue(state)*100)}
+  function fdpExportSvg({pupil=false}={}){
+    const state=exportState(pupil),s=stateSimplified(state),v=stateValue(state),pct=statePercent(state),fill=stateHundredFill(state);
+    const width=920,height=760,pad=70,barY=115,barH=82,barW=width-2*pad;
+    const svg=fdSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Fraction decimal percentage model','data-fd-export':'diagram'});
+    svg.appendChild(fdSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
+    svg.appendChild(fdSvgEl('text',{x:width/2,y:48,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':26,'font-weight':800,fill:'#304b52'},'Fraction · Decimal · Percentage'));
+    const sourceHidden=exportHidden('hiddenSource',pupil);
+    svg.appendChild(fdSvgEl('text',{x:width/2,y:82,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':20,'font-weight':800,fill:'#2f625d','data-fd-export-source':'1'},sourceHidden?'?/?':state.numerator+'/'+state.denominator));
+    const pieceW=barW/state.denominator;
+    for(let i=0;i<state.denominator;i++){
+      svg.appendChild(fdSvgEl('rect',{x:pad+i*pieceW,y:barY,width:pieceW,height:barH,fill:i<state.numerator?'#f6cf79':'#ffffff',stroke:'#6d858a','stroke-width':1,'data-fd-export-piece':i}));
+    }
+    svg.appendChild(fdSvgEl('rect',{x:pad,y:barY,width:barW,height:barH,fill:'none',stroke:'#536c72','stroke-width':3}));
+    const boxes=[
+      {x:80,label:'FRACTION',value:exportHidden('hiddenFraction',pupil)?'?/?':s.n+'/'+s.d,key:'fraction'},
+      {x:335,label:'DECIMAL',value:exportHidden('hiddenDecimal',pupil)?'?':stateDecimal(state),key:'decimal'},
+      {x:590,label:'PERCENTAGE',value:(challenge?.mode==='standard'&&challenge.type==='spot-percent-error'&&(pupil||!challenge.revealed))?challenge.wrongPercent+'%':(exportHidden('hiddenPercent',pupil)?'?':pct+'%'),key:'percent'}
+    ];
+    boxes.forEach(box=>{
+      svg.appendChild(fdSvgEl('rect',{x:box.x,y:235,width:250,height:105,rx:16,fill:'#f5f8f8',stroke:'#d3dfe1','stroke-width':2}));
+      svg.appendChild(fdSvgEl('text',{x:box.x+125,y:267,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':12,'font-weight':800,fill:'#718288'},box.label));
+      const valueAttrs={x:box.x+125,y:310,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':25,'font-weight':800,fill:'#304b52'};
+      valueAttrs['data-fd-export-'+box.key]='1';
+      svg.appendChild(fdSvgEl('text',valueAttrs,box.value));
+    });
+    svg.appendChild(fdSvgEl('text',{x:80,y:385,'font-family':'Arial,sans-serif','font-size':12,'font-weight':800,fill:'#718288'},'EQUIVALENT FRACTIONS'));
+    const hideEq=exportHidden('hiddenEquivalentFamily',pupil);
+    const eq=[];
+    for(let k=1;k<=6;k++)if(s.d*k<=20)eq.push(hideEq?'?/?':(s.n*k)+'/'+(s.d*k));
+    svg.appendChild(fdSvgEl('text',{x:80,y:417,'font-family':'Arial,sans-serif','font-size':17,'font-weight':800,fill:'#405b64','data-fd-export-equivalents':'1'},eq.join('   ')));
+    const hideHundred=exportHidden('hiddenHundred',pupil);
+    if(!hideHundred){
+      const gridX=210,gridY=465,cell=25;
+      svg.appendChild(fdSvgEl('text',{x:width/2,y:450,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':12,'font-weight':800,fill:'#718288'},'HUNDRED SQUARE · '+fill+' OF 100 CELLS'));
+      for(let i=0;i<100;i++){
+        const col=i%10,row=Math.floor(i/10);
+        svg.appendChild(fdSvgEl('rect',{x:gridX+col*cell,y:gridY+row*cell,width:cell-2,height:cell-2,fill:i<fill?'#2f7d75':'#ffffff',stroke:'#d4dee0','stroke-width':1,'data-fd-export-cell':i+1}));
+      }
+    }else{
+      svg.appendChild(fdSvgEl('text',{x:width/2,y:520,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':16,'font-weight':800,fill:'#89989b','data-fd-export-hundred-hidden':'1'},'Hundred-square representation hidden'));
+    }
+    svg.appendChild(fdSvgEl('text',{x:width-46,y:height-18,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':10,fill:'#87969a'},'99 Club Studio'));
+    return svg;
+  }
+  function exportTargetSvg(){
+    if(exportMode!=='challenge'||!challenge||!X?.composeChallengeCardSvg)return fdpExportSvg({pupil:false});
+    const prompt=CK?CK.plainText(challenge.promptHtml||challenge.prompt||''):challenge.prompt||'';
+    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
+    return X.composeChallengeCardSvg(fdpExportSvg({pupil:true}),{
+      title:challenge.title||meta?.title||'Fraction–decimal–percentage challenge',
+      prompt,
+      responseLabel:challenge.category==='reason'?'Explain your thinking':'Answer',
+      responseLines,
+      brand:'99 Club Studio'
+    });
+  }
+  function exportName(){
+    const meta=challenge&&CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
+    return exportMode==='challenge'&&challenge?(challenge.title||meta?.title||'fdp-challenge'):'fraction-decimal-percentage';
+  }
+  function exportMessage(text){exportStatus=text;const el=q('#fd-export-status');if(el)el.textContent=text}
+  async function exportAction(kind){
+    try{
+      if(!X)throw new Error('Export tools are not available.');
+      const target=exportTargetSvg(),isCard=exportMode==='challenge'&&!!challenge,name=exportName();
+      if(kind==='copy'){await X.copyPng(target);exportMessage(isCard?'Challenge copied — paste it into your worksheet, slide or document.':'FDP model copied — paste it into your slide or document.')}
+      if(kind==='png'){await X.downloadPng(target,name,2);exportMessage(isCard?'Challenge PNG downloaded.':'FDP PNG downloaded.')}
+      if(kind==='svg'){X.downloadSvg(target,name);exportMessage(isCard?'Challenge SVG downloaded.':'FDP SVG downloaded.')}
+      if(kind==='print'){X.printSvg(target,{title:'',landscape:false});exportMessage('Print view opened. Choose “Save as PDF” in the print dialog.')}
+    }catch(err){exportMessage(err?.message||'That export did not work.')}
+  }
+  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():controlTab==='export'?exportControlsHtml():exploreControlsHtml())}
   function renderControls(){q('#gd-controls').innerHTML=controlsHtml();bindControls()}
   function bindControls(){
     const controls=q('#gd-controls');if(!controls)return;
     qa('[data-fd-workflow]',controls).forEach(button=>button.onclick=()=>{controlTab=button.dataset.fdWorkflow;renderControls()});
+    if(controlTab==='export'){
+      qa('[data-fd-export-mode]',controls).forEach(button=>button.onclick=()=>{exportMode=button.dataset.fdExportMode==='challenge'&&challenge?'challenge':'diagram';exportStatus='';renderControls()});
+      const response=q('#fd-response-lines',controls);if(response)response.onchange=()=>{responseLines=clamp(Math.round(num(response.value,1)),1,4);renderControls()};
+      const copy=q('#fd-copy-image',controls);if(copy)copy.onclick=()=>exportAction('copy');
+      const png=q('#fd-png',controls);if(png)png.onclick=()=>exportAction('png');
+      const svg=q('#fd-svg-download',controls);if(svg)svg.onclick=()=>exportAction('svg');
+      const print=q('#fd-print',controls);if(print)print.onclick=()=>exportAction('print');
+      return;
+    }
     function bindModel(){
       const n=q('#fd-n');if(n)n.onchange=()=>mutate(()=>{const requested=clamp(Math.round(Number(n.value)||0),0,20);if(requested>denominator)denominator=requested;numerator=requested;equivScale=1});
       const d=q('#fd-d');if(d)d.onchange=()=>mutate(()=>{denominator=clamp(Math.round(Number(d.value)||1),1,20);numerator=clamp(numerator,0,denominator);equivScale=1});
