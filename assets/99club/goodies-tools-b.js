@@ -2180,7 +2180,7 @@ function factorExplorer(){
     if(type==='prime-or-composite'){
       a=29;compare=false;challenge=challengeObject(type,'Is 29 prime or composite? Use the factor evidence to decide.','Prime',{hiddenClassificationSide:'a',hiddenPrimeSide:'a'});
     }else if(type==='missing-factor'){
-      a=36;compare=false;selectedPair=2;challenge=challengeObject(type,'Complete the selected factor pair: 4 × ? = 36.','9',{hiddenPairSide:'a',hiddenPairIndex:2});
+      a=36;compare=false;selectedPair=3;challenge=challengeObject(type,'Complete the selected factor pair: 4 × ? = 36.','9',{hiddenPairSide:'a',hiddenPairIndex:3});
     }else if(type==='divisible-by'){
       a=42;compare=false;challenge=challengeObject(type,'Is 42 divisible by 6? Explain using the evidence shown.','Yes. 42 ÷ 6 = 7.',{hiddenDivisor:6,hiddenDivisorSide:'a'});
     }else if(type==='common-factors'){
