@@ -1187,6 +1187,104 @@ if(mode==='prepare'){
     sizeInput.value='12';sizeInput.dispatchEvent(new Event('change',{bubbles:true}));
     document.getElementById('mg-show').click();
     assert(document.querySelectorAll('.gd-mg-cell.is-hidden-product').length===0,'Show all reveals every hidden product');
+
+    TT99Goodies.multiplicationGrid();
+    const realMgRandom=Math.random;
+    Math.random=()=>0;
+    document.querySelector('[data-mg-workflow="challenge"]').click();
+    assert(document.querySelector('[data-mg-challenge-tab="standard"]')&&document.querySelector('[data-mg-challenge-tab="custom"]'),'Multiplication Grid uses the shared Standard / Custom challenge tabs');
+    assert(document.querySelector('[data-mg-challenge-type="missing-product"]')&&document.querySelector('[data-mg-challenge-type="select-fact"]'),'Multiplication Grid read-and-locate challenges are available');
+    document.getElementById('mg-generate').click();
+    assert(document.querySelector('.gd-challenge-banner'),'Generated Multiplication Grid challenge appears above the grid');
+    assert(document.querySelector('[data-mg-cell="2-3"]').textContent.trim()==='?','Missing-product challenge hides the deterministic 2 × 3 product');
+    assert(document.querySelector('[data-mg-cell="3-2"]').textContent.trim()==='?','Missing-product challenge also hides its commutative partner');
+    assert([...document.querySelectorAll('[data-mg-cell]')].every(x=>x.disabled),'Read-only Multiplication Grid challenge freezes supplied product cells');
+    assert(!document.querySelector('.gd-mg-selected'),'Missing-product challenge hides the fact-family panel');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: 6'),'Missing-product challenge reveals the deterministic answer contextually');
+    assert(document.querySelector('[data-mg-cell="2-3"]').textContent.trim()==='6','Reveal restores the hidden product');
+
+    document.querySelector('[data-mg-workflow="challenge"]').click();
+    document.querySelector('[data-mg-challenge-type="select-fact"]').click();
+    document.getElementById('mg-generate').click();
+    assert(document.querySelector('.gd-challenge-prompt').textContent.includes('2 × 3'),'Select-fact challenge states the deterministic target fact');
+    assert([...document.querySelectorAll('[data-mg-cell]')].every(x=>!x.disabled),'Select-fact challenge keeps product cells interactive');
+    assert(document.querySelector('[data-mg-target-status]').textContent.includes('Select the matching'),'Select-fact challenge starts without identifying the target cell');
+    document.querySelector('[data-mg-cell="2-3"]').click();
+    assert(document.querySelector('[data-mg-cell="2-3"]').classList.contains('is-current'),'Pupil can select the requested fact directly');
+    assert(document.querySelector('[data-mg-target-status]').textContent.includes('Found 2 × 3 = 6'),'Select-fact challenge validates the exact requested cell');
+    let targetCell=document.querySelector('[data-mg-cell="2-3"]');
+    targetCell.dispatchEvent(new KeyboardEvent('keydown',{key:' ',bubbles:true}));
+    assert(!document.querySelector('[data-mg-cell="2-3"]').classList.contains('is-hidden-product'),'Select-only challenge does not let Space accidentally hide the answer');
+
+    document.querySelector('[data-mg-workflow="challenge"]').click();
+    document.querySelector('[data-mg-challenge-cat="connections"]').click();
+    assert(document.querySelector('[data-mg-challenge-type="missing-factor"]')&&document.querySelector('[data-mg-challenge-type="commutative-fact"]')&&document.querySelector('[data-mg-challenge-type="related-division"]'),'Multiplication Grid fact-family challenge types are available');
+    document.querySelector('[data-mg-challenge-type="missing-factor"]').click();
+    document.getElementById('mg-generate').click();
+    assert(document.querySelector('.gd-challenge-prompt').textContent.includes('2 × ? = 6'),'Missing-factor challenge states the deterministic fact');
+    assert(document.querySelector('[data-mg-cell="2-3"]').textContent.trim()==='6','Missing-factor challenge leaves the supporting product grid readable');
+    assert(!document.querySelector('.gd-mg-selected'),'Missing-factor challenge hides the selected fact panel');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: 3'),'Missing-factor Reveal gives the deterministic factor');
+
+    document.querySelector('[data-mg-workflow="challenge"]').click();
+    document.querySelector('[data-mg-challenge-cat="connections"]').click();
+    document.querySelector('[data-mg-challenge-type="commutative-fact"]').click();
+    document.getElementById('mg-generate').click();
+    assert(document.querySelector('[data-mg-cell="2-3"]').classList.contains('is-current')&&document.querySelector('[data-mg-cell="3-2"]').classList.contains('is-commutative'),'Commutative challenge visually pairs the two reversed facts');
+    assert(!document.querySelector('.gd-mg-selected'),'Commutative challenge hides the panel that would state the answer');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: 3 × 2 = 6'),'Commutative Reveal gives the reversed fact');
+
+    document.querySelector('[data-mg-workflow="challenge"]').click();
+    document.querySelector('[data-mg-challenge-cat="connections"]').click();
+    document.querySelector('[data-mg-challenge-type="related-division"]').click();
+    document.getElementById('mg-generate').click();
+    assert(document.querySelector('.gd-challenge-prompt').textContent.includes('6 ÷ 2 = ?'),'Related-division challenge uses the deterministic multiplication fact');
+    assert(!document.querySelector('.gd-mg-selected'),'Related-division challenge hides inverse facts from the selected panel');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: 3'),'Related-division Reveal gives the missing quotient');
+
+    document.querySelector('[data-mg-workflow="challenge"]').click();
+    document.querySelector('[data-mg-challenge-cat="reason"]').click();
+    assert(document.querySelector('[data-mg-challenge-type="spot-error"]'),'Multiplication Grid reasoning challenge is available');
+    document.getElementById('mg-generate').click();
+    assert(document.querySelector('[data-mg-cell="2-3"]').textContent.trim()==='7','Spot-error challenge deliberately shows the wrong product in the target row');
+    assert(document.querySelector('[data-mg-cell="3-2"]').textContent.trim()==='6','Commutative partner remains correct so pupils can use structure to diagnose the error');
+    assert(!document.querySelector('[data-mg-cell="2-3"]').classList.contains('is-current'),'Spot-error challenge does not outline the incorrect cell');
+    assert(document.querySelector('[data-mg-cell="2-3"]').getAttribute('aria-label').includes('equals 7'),'Incorrect display does not leak the true product through its accessibility label');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: 2 × 3 = 6'),'Spot-error Reveal states the corrected fact');
+    assert(document.querySelector('[data-mg-cell="2-3"]').textContent.trim()==='6','Spot-error Reveal restores the true product');
+
+    document.querySelector('[data-mg-workflow="challenge"]').click();
+    document.querySelector('[data-mg-challenge-tab="custom"]').click();
+    const mgSource=document.getElementById('mg-custom-answer-source');
+    assert(mgSource&&['selected-product','selected-fact','commutative-fact','division-row','division-col','hidden-count'].every(source=>[...mgSource.options].some(o=>o.value===source)),'Multiplication Grid custom challenges expose useful live fact-family answer sources');
+    mgSource.value='selected-product';mgSource.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.querySelector('[data-mg-cell="1-1"]').textContent.trim()==='?','Binding a custom answer to selected product hides that product on the grid');
+    assert(!document.querySelector('.gd-mg-selected'),'Selected-product binding hides the fact-family panel');
+    assert(document.getElementById('mg-custom-live-answer').textContent.trim()==='1','Selected-product custom answer starts from the current neutral cell');
+    document.querySelector('[data-mg-cell="4-5"]').click();
+    assert(document.getElementById('mg-custom-live-answer').textContent.trim()==='20','Selected-product custom answer follows direct grid selection');
+    assert(document.querySelector('[data-mg-cell="4-5"]').textContent.trim()==='?','Newly selected bound product is hidden live');
+
+    mgSource.value='commutative-fact';mgSource.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.getElementById('mg-custom-live-answer').textContent.trim()==='5 × 4 = 20','Commutative custom answer follows the selected fact');
+    assert(!document.querySelector('.gd-mg-selected'),'Commutative binding hides the fact-family shortcut');
+    assert(document.querySelector('[data-mg-cell="4-5"]').textContent.trim()==='20','Changing away from selected-product binding restores the visible product');
+
+    mgSource.value='hidden-count';mgSource.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.getElementById('mg-custom-live-answer').textContent.trim()==='0','Hidden-count custom answer starts from the current hidden set');
+    targetCell=document.querySelector('[data-mg-cell="4-5"]');
+    targetCell.dispatchEvent(new KeyboardEvent('keydown',{key:' ',bubbles:true}));
+    assert(document.getElementById('mg-custom-live-answer').textContent.trim()==='2','Hidden-count custom answer updates when a commutative pair is hidden');
+
+    document.getElementById('mg-clear-challenge').click();
+    assert(document.querySelector('[data-mg-cell="6-4"]').classList.contains('is-current'),'Ending Multiplication Grid challenges restores the teacher-selected fact');
+    assert(document.querySelectorAll('.gd-mg-cell.is-hidden-product').length===0,'Ending Multiplication Grid challenges restores the teacher hidden-product state');
+    Math.random=realMgRandom;
   }
 
   function testPlaceValue(){
