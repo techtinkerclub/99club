@@ -1440,6 +1440,105 @@ if(mode==='prepare'){
     assert(document.querySelector('[data-tv-equation]').textContent.trim()==='8 × 6 = 48','Undo steps back through the most recent quick-setup factor edit');
     document.getElementById('tv-undo').click();
     assert(document.querySelector('[data-tv-equation]').textContent.trim()==='5 × 6 = 30','A second Undo restores the model before quick setup');
+
+    TT99Goodies.timesTableVisual();
+    const realTvRandom=Math.random;
+    Math.random=()=>0;
+    document.querySelector('[data-tv-workflow="challenge"]').click();
+    assert(document.querySelector('[data-tv-challenge-tab="standard"]')&&document.querySelector('[data-tv-challenge-tab="custom"]'),'Times-table Visualiser uses the shared Standard / Custom challenge tabs');
+    assert(document.querySelector('[data-tv-challenge-type="find-total"]'),'Find-total challenge is available');
+    document.getElementById('tv-generate').click();
+    assert(document.querySelector('.gd-challenge-banner'),'Generated Times-table challenge appears above the equal-groups model');
+    assert(document.querySelectorAll('[data-tv-group]').length===3&&[...document.querySelectorAll('[data-tv-group]')].every(g=>g.querySelectorAll('.gd-tv-dots i').length===4),'Find-total challenge builds the deterministic 3 groups of 4 model');
+    assert(document.querySelector('[data-tv-equation]').textContent.trim()==='3 × 4 = ?','Find-total challenge hides the total in the multiplication equation');
+    assert(document.querySelector('[data-tv-repeated]').textContent.trim()==='?','Find-total challenge hides the repeated-addition total');
+    assert(document.querySelector('[data-tv-commutative]').textContent.trim()==='?'&&document.querySelector('[data-tv-division-a]').textContent.trim()==='?','Find-total challenge hides fact-family shortcuts');
+    assert(!document.querySelector('.gd-tv-jump-section'),'Find-total challenge hides equal-jump endpoint shortcuts');
+    assert([...document.querySelectorAll('[data-tv-group]')].every(g=>g.disabled),'Read-only equal-groups challenge freezes supplied groups');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: 12'),'Find-total challenge reveals the deterministic answer');
+    assert(document.querySelector('[data-tv-equation]').textContent.trim()==='3 × 4 = 12','Reveal restores the correct multiplication equation');
+
+    document.querySelector('[data-tv-workflow="challenge"]').click();
+    document.querySelector('[data-tv-challenge-cat="connections"]').click();
+    assert(document.querySelector('[data-tv-challenge-type="write-repeated"]')&&document.querySelector('[data-tv-challenge-type="commutative-fact"]')&&document.querySelector('[data-tv-challenge-type="related-division"]'),'Times-table fact-connection challenge types are available');
+    document.querySelector('[data-tv-challenge-type="write-repeated"]').click();
+    document.getElementById('tv-generate').click();
+    assert(document.querySelector('[data-tv-equation]').textContent.trim()==='3 × 4 = 12','Repeated-addition challenge keeps the multiplication model visible');
+    assert(document.querySelector('[data-tv-repeated]').textContent.trim()==='?','Repeated-addition challenge hides the exact target statement');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: 4 + 4 + 4 = 12'),'Repeated-addition Reveal gives the deterministic statement');
+    assert(document.querySelector('[data-tv-repeated]').textContent.trim()==='4 + 4 + 4 = 12','Reveal restores the linked repeated addition');
+
+    document.querySelector('[data-tv-workflow="challenge"]').click();
+    document.querySelector('[data-tv-challenge-cat="connections"]').click();
+    document.querySelector('[data-tv-challenge-type="commutative-fact"]').click();
+    document.getElementById('tv-generate').click();
+    assert(document.querySelector('[data-tv-equation]').textContent.trim()==='3 × 4 = 12','Commutative challenge keeps the original fact visible');
+    assert(document.querySelector('[data-tv-commutative]').textContent.trim()==='?','Commutative challenge hides its reversed fact shortcut');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: 4 × 3 = 12'),'Commutative Reveal gives the reversed fact');
+
+    document.querySelector('[data-tv-workflow="challenge"]').click();
+    document.querySelector('[data-tv-challenge-cat="connections"]').click();
+    document.querySelector('[data-tv-challenge-type="related-division"]').click();
+    document.getElementById('tv-generate').click();
+    assert(document.querySelector('.gd-challenge-prompt').textContent.includes('12 ÷ 3 = ?'),'Related-division challenge uses the deterministic 3 × 4 model');
+    assert(document.querySelector('[data-tv-division-a]').textContent.trim()==='?','Related-division challenge hides the inverse-fact shortcut');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: 4'),'Related-division Reveal gives the quotient');
+
+    document.querySelector('[data-tv-workflow="challenge"]').click();
+    document.querySelector('[data-tv-challenge-cat="build"]').click();
+    assert(document.querySelector('[data-tv-challenge-type="build-fact"]'),'Interactive build-fact challenge is available');
+    document.getElementById('tv-generate').click();
+    assert(document.querySelector('[data-tv-equation]').textContent.trim()==='2 × 2 = 4','Build-fact challenge starts from a neutral editable 2 × 2 model');
+    assert([...document.querySelectorAll('[data-tv-group]')].every(g=>!g.disabled),'Build-fact challenge keeps direct equal-group editing active');
+    assert(document.querySelector('[data-tv-target-status]').textContent.includes('Build 3 groups of 4'),'Build-fact challenge states the live target');
+    let tvA=document.getElementById('tv-a');
+    tvA.value='3';tvA.dispatchEvent(new Event('change',{bubbles:true}));
+    let tvB=document.getElementById('tv-b');
+    tvB.value='4';tvB.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.querySelector('[data-tv-equation]').textContent.trim()==='3 × 4 = 12','Build-fact challenge can be completed by directly changing the equal-groups model');
+    assert(document.querySelector('[data-tv-target-status]').textContent.includes('On target'),'Build-fact challenge validates the exact target model');
+
+    document.querySelector('[data-tv-workflow="challenge"]').click();
+    document.querySelector('[data-tv-challenge-cat="reason"]').click();
+    assert(document.querySelector('[data-tv-challenge-type="spot-error"]'),'Times-table reasoning challenge is available');
+    document.getElementById('tv-generate').click();
+    assert(document.querySelector('[data-tv-equation]').textContent.trim()==='3 × 4 = 13','Spot-error challenge presents the deterministic incorrect equation');
+    assert(document.querySelectorAll('[data-tv-group]').length===3&&[...document.querySelectorAll('[data-tv-group]')].every(g=>g.querySelectorAll('.gd-tv-dots i').length===4),'Spot-error challenge keeps the correct equal-groups model for diagnosis');
+    assert(!document.querySelector('[data-tv-repeated]')||document.querySelector('[data-tv-repeated]').textContent.trim()==='?','Spot-error challenge does not leak the correct total through repeated addition');
+    assert(!document.querySelector('.gd-tv-jump-section'),'Spot-error challenge hides jump endpoints that would give away the true total');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('No. 3 × 4 = 12, not 13.'),'Spot-error Reveal explains the incorrect equation');
+    assert(document.querySelector('[data-tv-equation]').textContent.trim()==='3 × 4 = 12','Spot-error Reveal restores the correct equation');
+
+    document.querySelector('[data-tv-workflow="challenge"]').click();
+    document.querySelector('[data-tv-challenge-tab="custom"]').click();
+    const tvSource=document.getElementById('tv-custom-answer-source');
+    assert(tvSource&&['total','equation','repeated','commutative','division-a','division-b'].every(source=>[...tvSource.options].some(o=>o.value===source)),'Times-table custom challenges expose useful live linked-representation answer sources');
+    tvSource.value='total';tvSource.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.querySelector('[data-tv-equation]').textContent.trim()==='3 × 4 = ?','Binding a Custom answer to total hides the equation total');
+    assert(document.querySelector('[data-tv-repeated]').textContent.trim()==='?','Total binding hides repeated-addition total');
+    assert(document.querySelector('[data-tv-commutative]').textContent.trim()==='?','Total binding hides fact-family totals');
+    assert(!document.querySelector('.gd-tv-jump-section'),'Total binding hides jump endpoint total');
+    assert(document.getElementById('tv-custom-live-answer').textContent.trim()==='12','Custom total answer starts from the live model');
+    tvB=document.getElementById('tv-b');
+    tvB.value='5';tvB.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.getElementById('tv-custom-live-answer').textContent.trim()==='15','Custom total answer follows direct equal-group edits');
+    assert(document.querySelector('[data-tv-equation]').textContent.trim()==='3 × 5 = ?','Bound total stays hidden after model edits');
+
+    tvSource=document.getElementById('tv-custom-answer-source');
+    tvSource.value='commutative';tvSource.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.getElementById('tv-custom-live-answer').textContent.trim()==='5 × 3 = 15','Custom commutative answer follows the edited equal-groups model');
+    assert(document.querySelector('[data-tv-commutative]').textContent.trim()==='?','Commutative binding hides the matching fact-family shortcut');
+    assert(document.querySelector('[data-tv-equation]').textContent.trim()==='3 × 5 = 15','Changing away from total binding restores the main multiplication equation');
+
+    document.getElementById('tv-clear-challenge').click();
+    assert(document.querySelector('[data-tv-equation]').textContent.trim()==='4 × 6 = 24','Ending Times-table challenges restores the teacher model');
+    assert(document.querySelectorAll('[data-tv-group]').length===4,'Ending Times-table challenges restores the teacher group count');
+    Math.random=realTvRandom;
   }
 
   function testPlaceValue(){
