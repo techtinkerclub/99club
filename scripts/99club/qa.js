@@ -1009,6 +1009,17 @@ try{
   if(!goodiesCss.includes('.gd-money-pick__coin')||!goodiesCss.includes('.gd-money-object__face--official img'))fail('goodies-money-imagery','UK Money official coin image styling is missing');
   if(/kind:'note'[^\n]*image:/.test(moneyBlock))fail('goodies-money-imagery','UK Money notes must remain stylised rather than using realistic banknote imagery');
   ok('goodies-money-imagery','UK Money uses credited Royal Mint coin imagery live while notes remain stylised classroom representations');
+  for(const token of [
+    '/* Shared Goodies classroom control scale',
+    '#tt99-goodies-root .gd-btn,',
+    '#tt99-goodies-root .gd-input,',
+    '#tt99-goodies-root .gd-challenge-card span{font-size:.75rem',
+    '#tt99-goodies-root .gd-rich-toolbar button{min-width:38px;height:38px',
+    '#tt99-goodies-root .nl-workflow-tab{min-height:42px',
+    '#tt99-goodies-root .nl-icon-btn{width:38px;height:38px',
+    '#tt99-goodies-root .nl-compact-field>span{font-size:.72rem'
+  ])if(!goodiesCss.includes(token))fail('goodies-ui-scale','Shared teacher UI scale missing '+token);
+  ok('goodies-ui-scale','Goodies keeps a shared readable teacher-control scale without enlarging diagram labels');
   for(const token of ['data-co-undo-stage','data-co-redo-stage','data-ge-undo-stage','data-ge-redo-stage'])if(!goodiesToolsB.includes(token))fail('goodies-stage-history','Coordinate/Geoboard on-stage recovery control missing: '+token);
   if(!goodiesCss.includes('.gd-context-actions{'))fail('goodies-stage-history','Shared on-stage history action layout is missing');
   ok('goodies-stage-history','Coordinates and Geoboard keep Undo/Redo beside the live diagram for whiteboard use');
