@@ -1746,7 +1746,9 @@ function timesTableVisual(){
   }
   function applyBoundHiding(source){
     clearBoundHiding();if(!challenge)return;
-    if(source==='total'||source==='equation')challenge.hiddenEquation=true;
+    if(source==='total'){
+      challenge.hiddenEquation=true;challenge.hiddenRepeated=true;challenge.hiddenFactFamily=true;challenge.hiddenJumps=true;
+    }else if(source==='equation')challenge.hiddenEquation=true;
     if(source==='repeated')challenge.hiddenRepeated=true;
     if(['commutative','division-a','division-b'].includes(source))challenge.hiddenFactFamily=true;
   }
@@ -1757,8 +1759,6 @@ function timesTableVisual(){
     if(source==='commutative')return commutativeText();
     if(source==='division-a')return divisionAText();
     if(source==='division-b')return divisionBText();
-    if(source==='groups')return String(groupsCount);
-    if(source==='items')return String(itemsPerGroup);
     return'';
   }
   function customAnswerSources(){
@@ -1768,9 +1768,7 @@ function timesTableVisual(){
       {id:'repeated',label:'Repeated addition'},
       {id:'commutative',label:'Commutative fact'},
       {id:'division-a',label:'Division by number of groups'},
-      {id:'division-b',label:'Division by items per group'},
-      {id:'groups',label:'Number of groups'},
-      {id:'items',label:'Items in each group'}
+      {id:'division-b',label:'Division by items per group'}
     ];
   }
   function updateChallengeAnswer(){
@@ -1805,7 +1803,7 @@ function timesTableVisual(){
         modelControlsHtml()+
         '<div class="gd-row">'+(challenge&&challenge.answer?'<button class="gd-btn" id="tv-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
         (challenge?'<button class="gd-btn" id="tv-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
-        '<p class="gd-help">Custom answers can follow the total, equation, repeated addition, fact family, group count or items per group.</p>';
+        '<p class="gd-help">Custom answers can follow the total, equation, repeated addition or one of the linked fact-family statements.</p>';
     }
     const picker=CK.pickerHtml(CHALLENGE_TEMPLATES,CHALLENGE_CATEGORIES,challengeCategory,challengeType,'tv');
     const repeat=!!(challenge&&challenge.mode==='standard'&&challenge.type===challengeType);
