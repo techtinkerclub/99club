@@ -2642,7 +2642,7 @@ function multiplicationGrid(){
     const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
     if(!beforeChallenge)beforeChallenge=snapshot();else restore(beforeChallenge);
     undoStack.length=0;redoStack.length=0;resetChallengeGrid();
-    const a=randomInt(2,10),b=randomInt(2,10),p=a*b;
+    const a=randomInt(2,10),bRaw=randomInt(2,10),b=bRaw===a?(a===10?9:a+1):bRaw,p=a*b;
     if(type==='missing-product'){
       selectedRow=a;selectedCol=b;focus=a;setHidden(a,b,true);
       challenge=challengeObject(type,'What is '+a+' × '+b+'?',p,{hideFactsPanel:true});
