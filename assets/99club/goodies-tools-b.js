@@ -1988,7 +1988,7 @@ function timesTableVisual(){
 }
 
 function factorExplorer(){
-  const CK=G.challengeKit;
+  const CK=G.challengeKit,X=G.exportTools;
   let a=36,b=24,compare=false,selectedSide='a',selectedPair=0;
   const undoStack=[],redoStack=[];
   const DIVISORS=[2,3,4,5,6,8,9,10];
@@ -2007,6 +2007,7 @@ function factorExplorer(){
     {id:'explain-prime',category:'reason',title:'Explain why it is prime',desc:'Use the factor evidence to justify a prime classification.'}
   ];
   let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='prime-or-composite',challenge=null,beforeChallenge=null;
+  let exportMode='diagram',responseLines=1,exportStatus='';
 
   function norm(value,fallback=2){return clamp(Math.round(Number(value)||fallback),2,500)}
   function factors(n){const out=[];for(let i=1;i<=Math.sqrt(n);i++)if(n%i===0){out.push(i);if(i!==n/i)out.push(n/i)}return out.sort((x,y)=>x-y)}
@@ -2122,7 +2123,8 @@ function factorExplorer(){
   function workflowTabs(){
     return '<div class="gd-row gd-fe-workflow-tabs" role="tablist" aria-label="Factor Explorer workflow">'+
       '<button class="gd-btn'+(controlTab==='explore'?' gd-btn--primary':'')+'" type="button" data-fe-workflow="explore">Explore</button>'+
-      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-fe-workflow="challenge">Challenge'+(challenge?' •':'')+'</button></div>';
+      '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-fe-workflow="challenge">Challenge'+(challenge?' •':'')+'</button>'+
+      '<button class="gd-btn'+(controlTab==='export'?' gd-btn--primary':'')+'" type="button" data-fe-workflow="export">Export / reuse</button></div>';
   }
   function modelControlsHtml(){
     return field('Number A','<input class="gd-input" id="fe-a" type="number" min="2" max="500" value="'+a+'">','Use the model to inspect factor pairs, multiples, prime factors and divisibility.')+
@@ -2195,12 +2197,12 @@ function factorExplorer(){
     }else{
       a=31;compare=false;challenge=challengeObject(type,'Explain why 31 is prime using the factor information shown.','31 has exactly two factors: 1 and 31.',{hiddenClassificationSide:'a',hiddenPrimeSide:'a'});
     }
-    challengeType=type;challengeCategory=meta.category;challengeTab='standard';controlTab='challenge';renderControls();draw();
+    challengeType=type;challengeCategory=meta.category;challengeTab='standard';controlTab='challenge';exportMode='challenge';responseLines=meta.category==='reason'?3:1;exportStatus='';renderControls();draw();
   }
   function enterCustomChallenge(){
     if(!beforeChallenge)beforeChallenge=snapshot();
     if(CK)challenge=CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''});
-    challenge.mode='custom';challenge.revealed=false;challengeTab='custom';controlTab='challenge';renderControls();draw();
+    challenge.mode='custom';challenge.revealed=false;challengeTab='custom';controlTab='challenge';exportMode='challenge';exportStatus='';renderControls();draw();
   }
   function clearChallenge(){
     if(beforeChallenge){restore(beforeChallenge);beforeChallenge=null}
@@ -2231,11 +2233,135 @@ function factorExplorer(){
       (challenge&&challenge.answer?'<button class="gd-btn" id="fe-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
       (challenge?'<button class="gd-btn" id="fe-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>';
   }
-  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():exploreControlsHtml())}
+  function exportControlsHtml(){
+    const canCard=!!challenge;
+    if(!canCard&&exportMode==='challenge')exportMode='diagram';
+    return '<div class="nl-panel-title"><div><strong>Use it elsewhere</strong><span>Export a clean factors-and-multiples diagram or a pupil-ready challenge card.</span></div></div>'+
+      (canCard?'<div class="nl-export-mode fe-export-mode" role="tablist" aria-label="Export content">'+
+        '<button type="button" class="'+(exportMode==='challenge'?'is-active':'')+'" data-fe-export-mode="challenge">Challenge card</button>'+
+        '<button type="button" class="'+(exportMode==='diagram'?'is-active':'')+'" data-fe-export-mode="diagram">Diagram only</button></div>':'')+
+      (canCard&&exportMode==='challenge'
+        ?'<label class="gd-field"><span>Answer space</span><select class="gd-select" id="fe-response-lines">'+
+          [1,2,3,4].map(n=>'<option value="'+n+'"'+(responseLines===n?' selected':'')+'>'+n+' line'+(n===1?'':'s')+'</option>').join('')+
+          '</select></label><p class="gd-help">The pupil card preserves hidden factors, classifications, divisibility evidence, common factors, HCF and LCM even after Reveal answer.</p>'
+        :'<p class="gd-help">Diagram-only export contains the current number evidence, factor pairs, multiples and factor rectangle without editing controls.</p>')+
+      '<div class="nl-export-grid fe-export-grid">'+
+        '<button class="gd-btn gd-btn--primary" id="fe-copy-image" type="button">Copy '+(canCard&&exportMode==='challenge'?'challenge':'image')+'</button>'+
+        '<button class="gd-btn" id="fe-png" type="button">PNG</button>'+
+        '<button class="gd-btn" id="fe-svg-download" type="button">SVG</button>'+
+        '<button class="gd-btn" id="fe-print" type="button">Print / PDF</button>'+
+      '</div><p class="gd-help" id="fe-export-status" role="status" aria-live="polite">'+exportStatus+'</p>';
+  }
+  function feSvgEl(name,attrs={},text=''){
+    const el=document.createElementNS('http://www.w3.org/2000/svg',name);
+    Object.entries(attrs).forEach(([key,value])=>el.setAttribute(key,String(value)));
+    if(text!==''&&text!=null)el.textContent=String(text);
+    return el;
+  }
+  function exportHidden(key,pupil=false,side=''){
+    if(!challenge)return false;
+    if(key==='classification')return pupil?challenge.hiddenClassificationSide===side:challenge&&!challenge.revealed&&challenge.hiddenClassificationSide===side;
+    if(key==='prime')return pupil?challenge.hiddenPrimeSide===side:challenge&&!challenge.revealed&&challenge.hiddenPrimeSide===side;
+    if(key==='all-pairs')return pupil?challenge.hiddenAllPairsSide===side:challenge&&!challenge.revealed&&challenge.hiddenAllPairsSide===side;
+    return pupil?!!challenge[key]:challenge&&!challenge.revealed&&!!challenge[key];
+  }
+  function factorExplorerExportSvg({pupil=false}={}){
+    const width=920,cardGap=18,cardCount=compare?2:1,cardW=cardCount===2?410:650,cardX0=(width-(cardCount*cardW+(cardCount-1)*cardGap))/2;
+    const height=compare?790:720;
+    const svg=feSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Factors and multiples model','data-fe-export':'diagram'});
+    svg.appendChild(feSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
+    svg.appendChild(feSvgEl('text',{x:width/2,y:42,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':26,'font-weight':800,fill:'#304b52'},compare?'Factors & multiples: '+a+' and '+b:'Factors & multiples: '+a));
+    const sides=compare?[['a',a,'Number A'],['b',b,'Number B']]:[['a',a,'Number A']];
+    sides.forEach(([side,n,label],idx)=>{
+      const x=cardX0+idx*(cardW+cardGap),y=68;
+      svg.appendChild(feSvgEl('rect',{x,y,width:cardW,height:410,rx:18,fill:'#fbfdfd',stroke:'#cbd8da','stroke-width':2,'data-fe-export-card':side}));
+      svg.appendChild(feSvgEl('text',{x:x+22,y:y+30,'font-family':'Arial,sans-serif','font-size':12,'font-weight':800,fill:'#718288'},label.toUpperCase()));
+      svg.appendChild(feSvgEl('text',{x:x+22,y:y+62,'font-family':'Arial,sans-serif','font-size':28,'font-weight':800,fill:'#275e58'},n));
+      const classText=exportHidden('classification',pupil,side)?'?':(isPrime(n)?'Prime number':'Composite · '+factors(n).length+' factors');
+      svg.appendChild(feSvgEl('text',{x:x+22,y:y+86,'font-family':'Arial,sans-serif','font-size':13,'font-weight':700,fill:'#60757b'},classText));
+      svg.appendChild(feSvgEl('text',{x:x+22,y:y+116,'font-family':'Arial,sans-serif','font-size':11,'font-weight':800,fill:'#718288'},'FACTOR PAIRS'));
+      const pairs=factorPairs(n),hideAll=exportHidden('all-pairs',pupil,side);
+      pairs.forEach((pair,i)=>{
+        const col=i%3,row=Math.floor(i/3),px=x+22+col*((cardW-44)/3),py=y+144+row*34;
+        const oneHidden=pupil?challenge?.hiddenPairSide===side&&challenge?.hiddenPairIndex===i:challenge&&!challenge.revealed&&challenge.hiddenPairSide===side&&challenge.hiddenPairIndex===i;
+        svg.appendChild(feSvgEl('text',{x:px,y:py,'font-family':'Arial,sans-serif','font-size':15,'font-weight':800,fill:'#304b52','data-fe-export-pair':side+'-'+i},hideAll||oneHidden?pair[0]+' × ?':pairLabel(pair)));
+      });
+      const pairsRows=Math.max(1,Math.ceil(pairs.length/3)),mY=y+154+pairsRows*34;
+      svg.appendChild(feSvgEl('text',{x:x+22,y:mY,'font-family':'Arial,sans-serif','font-size':11,'font-weight':800,fill:'#718288'},'FIRST 12 MULTIPLES'));
+      const mult=multiples(n);
+      svg.appendChild(feSvgEl('text',{x:x+22,y:mY+25,'font-family':'Arial,sans-serif','font-size':13,'font-weight':700,fill:'#425b62'},mult.join(' · ')));
+      svg.appendChild(feSvgEl('text',{x:x+22,y:mY+58,'font-family':'Arial,sans-serif','font-size':11,'font-weight':800,fill:'#718288'},'PRIME FACTORISATION'));
+      svg.appendChild(feSvgEl('text',{x:x+22,y:mY+82,'font-family':'Arial,sans-serif','font-size':15,'font-weight':800,fill:'#304b52','data-fe-export-prime':side},exportHidden('prime',pupil,side)?'?':factorisationText(n)));
+      svg.appendChild(feSvgEl('text',{x:x+22,y:mY+115,'font-family':'Arial,sans-serif','font-size':11,'font-weight':800,fill:'#718288'},'DIVISIBILITY'));
+      DIVISORS.forEach((d,i)=>{
+        const dx=x+22+(i%4)*((cardW-44)/4),dy=mY+139+Math.floor(i/4)*27;
+        const hide=pupil?challenge?.hiddenDivisor===d&&challenge?.hiddenDivisorSide===side:challenge&&!challenge.revealed&&challenge.hiddenDivisor===d&&challenge.hiddenDivisorSide===side;
+        svg.appendChild(feSvgEl('text',{x:dx,y:dy,'font-family':'Arial,sans-serif','font-size':12,'font-weight':700,fill:'#4f666c','data-fe-export-divisor':side+'-'+d},'÷ '+d+': '+(hide?'?':(n%d===0?'Yes':'r '+(n%d)))));
+      });
+    });
+    let lowerY=compare?505:500;
+    if(compare){
+      const cf=commonFactors(),h=gcd2(a,b),l=lcm2(a,b);
+      svg.appendChild(feSvgEl('rect',{x:70,y:lowerY,width:780,height:96,rx:16,fill:'#fff8e8',stroke:'#ead9aa','stroke-width':2,'data-fe-export-common':'1'}));
+      svg.appendChild(feSvgEl('text',{x:92,y:lowerY+28,'font-family':'Arial,sans-serif','font-size':12,'font-weight':800,fill:'#78683a'},'COMMON FACTORS'));
+      svg.appendChild(feSvgEl('text',{x:92,y:lowerY+55,'font-family':'Arial,sans-serif','font-size':16,'font-weight':800,fill:'#554b30'},exportHidden('hiddenCommonFactors',pupil)?'?':cf.join(', ')));
+      svg.appendChild(feSvgEl('text',{x:430,y:lowerY+28,'font-family':'Arial,sans-serif','font-size':12,'font-weight':800,fill:'#78683a'},'HCF'));
+      svg.appendChild(feSvgEl('text',{x:430,y:lowerY+55,'font-family':'Arial,sans-serif','font-size':18,'font-weight':800,fill:'#554b30','data-fe-export-hcf':'1'},exportHidden('hiddenHcf',pupil)?'?':h));
+      svg.appendChild(feSvgEl('text',{x:635,y:lowerY+28,'font-family':'Arial,sans-serif','font-size':12,'font-weight':800,fill:'#78683a'},'LCM'));
+      svg.appendChild(feSvgEl('text',{x:635,y:lowerY+55,'font-family':'Arial,sans-serif','font-size':18,'font-weight':800,fill:'#554b30','data-fe-export-lcm':'1'},exportHidden('hiddenLcm',pupil)?'?':l));
+      lowerY+=122;
+    }
+    const n=currentNumber(),pairs=currentPairs(),pair=pairs[selectedPair]||pairs[0]||[1,n],rows=pair[0],cols=pair[1];
+    const ax=190,ay=lowerY+20,aw=540,ah=110;
+    const hideSelectedExport=!!(challenge&&(pupil||!challenge.revealed)&&challenge.hiddenPairSide===selectedSide&&challenge.hiddenPairIndex===selectedPair);
+    svg.appendChild(feSvgEl('text',{x:width/2,y:lowerY+2,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':13,'font-weight':800,fill:'#718288','data-fe-export-array-label':'1'},'SELECTED FACTOR RECTANGLE · '+rows+' × '+(hideSelectedExport?'?':cols)+' = '+n));
+    svg.appendChild(feSvgEl('rect',{x:ax,y:ay,width:aw,height:ah,fill:'#f4faf8',stroke:'#2f7d75','stroke-width':3,'data-fe-export-array':'1'}));
+    for(let i=1;i<Math.min(cols,24);i++){const x=ax+aw*i/Math.min(cols,24);svg.appendChild(feSvgEl('line',{x1:x,y1:ay,x2:x,y2:ay+ah,stroke:'#b8d2ce','stroke-width':1}))}
+    for(let i=1;i<Math.min(rows,12);i++){const y=ay+ah*i/Math.min(rows,12);svg.appendChild(feSvgEl('line',{x1:ax,y1:y,x2:ax+aw,y2:y,stroke:'#b8d2ce','stroke-width':1}))}
+    svg.appendChild(feSvgEl('text',{x:width-46,y:height-18,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':10,fill:'#87969a'},'99 Club Studio'));
+    return svg;
+  }
+  function exportTargetSvg(){
+    if(exportMode!=='challenge'||!challenge||!X?.composeChallengeCardSvg)return factorExplorerExportSvg({pupil:false});
+    const prompt=CK?CK.plainText(challenge.promptHtml||challenge.prompt||''):challenge.prompt||'';
+    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
+    return X.composeChallengeCardSvg(factorExplorerExportSvg({pupil:true}),{
+      title:challenge.title||meta?.title||'Factors & multiples challenge',
+      prompt,
+      responseLabel:challenge.category==='reason'?'Explain your thinking':'Answer',
+      responseLines,
+      brand:'99 Club Studio'
+    });
+  }
+  function exportName(){
+    const meta=challenge&&CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
+    return exportMode==='challenge'&&challenge?(challenge.title||meta?.title||'factors-multiples-challenge'):(compare?'factors-multiples-comparison':'factors-multiples');
+  }
+  function exportMessage(text){exportStatus=text;const el=q('#fe-export-status');if(el)el.textContent=text}
+  async function exportAction(kind){
+    try{
+      if(!X)throw new Error('Export tools are not available.');
+      const target=exportTargetSvg(),isCard=exportMode==='challenge'&&!!challenge,name=exportName();
+      if(kind==='copy'){await X.copyPng(target);exportMessage(isCard?'Challenge copied — paste it into your worksheet, slide or document.':'Factors diagram copied — paste it into your slide or document.')}
+      if(kind==='png'){await X.downloadPng(target,name,2);exportMessage(isCard?'Challenge PNG downloaded.':'Factors PNG downloaded.')}
+      if(kind==='svg'){X.downloadSvg(target,name);exportMessage(isCard?'Challenge SVG downloaded.':'Factors SVG downloaded.')}
+      if(kind==='print'){X.printSvg(target,{title:'',landscape:false});exportMessage('Print view opened. Choose “Save as PDF” in the print dialog.')}
+    }catch(err){exportMessage(err?.message||'That export did not work.')}
+  }
+  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():controlTab==='export'?exportControlsHtml():exploreControlsHtml())}
   function renderControls(){q('#gd-controls').innerHTML=controlsHtml();bindControls()}
   function bindControls(){
     const controls=q('#gd-controls');if(!controls)return;
     qa('[data-fe-workflow]',controls).forEach(button=>button.onclick=()=>{controlTab=button.dataset.feWorkflow;renderControls()});
+    if(controlTab==='export'){
+      qa('[data-fe-export-mode]',controls).forEach(button=>button.onclick=()=>{exportMode=button.dataset.feExportMode==='challenge'&&challenge?'challenge':'diagram';exportStatus='';renderControls()});
+      const response=q('#fe-response-lines',controls);if(response)response.onchange=()=>{responseLines=clamp(Math.round(num(response.value,1)),1,4);renderControls()};
+      const copyImage=q('#fe-copy-image',controls);if(copyImage)copyImage.onclick=()=>exportAction('copy');
+      const png=q('#fe-png',controls);if(png)png.onclick=()=>exportAction('png');
+      const svg=q('#fe-svg-download',controls);if(svg)svg.onclick=()=>exportAction('svg');
+      const print=q('#fe-print',controls);if(print)print.onclick=()=>exportAction('print');
+      return;
+    }
     if(controlTab==='explore'){
       const ai=q('#fe-a');if(ai)ai.onchange=()=>mutate(()=>setA(ai.value));
       const cmp=q('#fe-compare');if(cmp)cmp.onchange=()=>mutate(()=>setCompare(cmp.checked));
