@@ -1555,18 +1555,25 @@ function barModel(){
     '</div>';
     bindStage();bindChallengeStageActions();
   }
+  function barModelMounted(){return !!q('#gd-controls [data-bm-workflow]')}
+  function clearBoundaryDrag(){
+    const state=drag;drag=null;
+    document.removeEventListener('pointermove',boundaryDragMove);
+    document.removeEventListener('pointerup',boundaryDragEnd);
+    document.removeEventListener('pointercancel',boundaryDragEnd);
+    return state;
+  }
   function boundaryDragMove(e){
     if(!drag||drag.pointerId!==e.pointerId)return;
+    if(!barModelMounted()){clearBoundaryDrag();return}
     const dx=e.clientX-drag.startX,delta=Math.round(dx/drag.rectWidth*drag.visual),state=drag.before;
     parts=cloneParts(state.parts);nextId=state.nextId;total=state.total;selectedId=state.selectedId;
     if(adjustBoundary(drag.index,delta)){drag.changed=delta!==0;draw()}
   }
   function boundaryDragEnd(e){
     if(!drag||drag.pointerId!==e.pointerId)return;
-    const before=drag.before,changed=drag.changed;drag=null;
-    document.removeEventListener('pointermove',boundaryDragMove);
-    document.removeEventListener('pointerup',boundaryDragEnd);
-    document.removeEventListener('pointercancel',boundaryDragEnd);
+    if(!barModelMounted()){clearBoundaryDrag();return}
+    const state=clearBoundaryDrag(),before=state.before,changed=state.changed;
     if(changed){undoStack.push(before);if(undoStack.length>50)undoStack.shift();redoStack.length=0}
     draw();renderControls();
   }
@@ -2035,17 +2042,22 @@ function hundredSquare(){
     else if(interactionMode==='hide')toggleHidden(value,paint.on);
     draw();
   }
-  function paintMove(e){
-    if(!paint||paint.pointerId!==e.pointerId)return;
-    e.preventDefault();paintAtPoint(e.clientX,e.clientY);
-  }
-  function paintEnd(e){
-    if(!paint||paint.pointerId!==e.pointerId)return;
+  function hundredSquareMounted(){return !!q('#gd-controls [data-hs-workflow]')}
+  function clearHundredPaint(){
     paint=null;
     document.removeEventListener('pointermove',paintMove);
     document.removeEventListener('pointerup',paintEnd);
     document.removeEventListener('pointercancel',paintEnd);
-    renderControls();
+  }
+  function paintMove(e){
+    if(!paint||paint.pointerId!==e.pointerId)return;
+    if(!hundredSquareMounted()){clearHundredPaint();return}
+    e.preventDefault();paintAtPoint(e.clientX,e.clientY);
+  }
+  function paintEnd(e){
+    if(!paint||paint.pointerId!==e.pointerId)return;
+    const mounted=hundredSquareMounted();clearHundredPaint();
+    if(mounted)renderControls();
   }
   function bindStage(){
     qa('[data-hs-index]',q('#gd-stage')).forEach(cell=>{
@@ -2550,17 +2562,22 @@ function multiplicationGrid(){
     const r=Number(el.dataset.mgRow),c=Number(el.dataset.mgCol);
     selectedRow=r;selectedCol=c;setHidden(r,c,paint.on);draw();
   }
-  function paintMove(e){
-    if(!paint||paint.pointerId!==e.pointerId)return;
-    e.preventDefault();paintAtPoint(e.clientX,e.clientY);
-  }
-  function paintEnd(e){
-    if(!paint||paint.pointerId!==e.pointerId)return;
+  function multiplicationGridMounted(){return !!q('#gd-controls [data-mg-workflow]')}
+  function clearMultiplicationPaint(){
     paint=null;
     document.removeEventListener('pointermove',paintMove);
     document.removeEventListener('pointerup',paintEnd);
     document.removeEventListener('pointercancel',paintEnd);
-    renderControls();
+  }
+  function paintMove(e){
+    if(!paint||paint.pointerId!==e.pointerId)return;
+    if(!multiplicationGridMounted()){clearMultiplicationPaint();return}
+    e.preventDefault();paintAtPoint(e.clientX,e.clientY);
+  }
+  function paintEnd(e){
+    if(!paint||paint.pointerId!==e.pointerId)return;
+    const mounted=multiplicationGridMounted();clearMultiplicationPaint();
+    if(mounted)renderControls();
   }
   function bindStage(){
     qa('[data-mg-focus]',q('#gd-stage')).forEach(button=>button.onclick=()=>{
@@ -3397,8 +3414,16 @@ function arrayBuilder(){
     document.addEventListener('pointerup',resizeEnd,{once:true});
     document.addEventListener('pointercancel',resizeEnd,{once:true});
   }
+  function arrayBuilderMounted(){return !!q('#gd-controls [data-ab-workflow]')}
+  function clearArrayResize(){
+    drag=null;
+    document.removeEventListener('pointermove',resizeMove);
+    document.removeEventListener('pointerup',resizeEnd);
+    document.removeEventListener('pointercancel',resizeEnd);
+  }
   function resizeMove(e){
     if(!drag||e.pointerId!==drag.pointerId)return;
+    if(!arrayBuilderMounted()){clearArrayResize();return}
     e.preventDefault();
     let nextRows=drag.startRows,nextCols=drag.startCols;
     if(drag.kind==='cols')nextCols=clampDim(drag.startCols+Math.round((e.clientX-drag.startX)/Math.max(1,drag.cellW)));
@@ -3410,10 +3435,7 @@ function arrayBuilder(){
   }
   function resizeEnd(e){
     if(drag&&e.pointerId!=null&&e.pointerId!==drag.pointerId)return;
-    drag=null;
-    document.removeEventListener('pointermove',resizeMove);
-    document.removeEventListener('pointerup',resizeEnd);
-    document.removeEventListener('pointercancel',resizeEnd);
+    clearArrayResize();
   }
   function bindStage(){
     const frozen=challengeFrozen(),colHandle=q('[data-ab-resize="cols"]'),rowHandle=q('[data-ab-resize="rows"]');
@@ -3917,16 +3939,21 @@ function clockTool(){
     document.addEventListener('pointerup',dragEnd,{once:true});
     document.addEventListener('pointercancel',dragEnd,{once:true});
   }
-  function dragMove(e){
-    if(!drag||e.pointerId!==drag.pointerId)return;
-    e.preventDefault();setHandFromPointer(drag.kind,e.clientX,e.clientY,true);
-  }
-  function dragEnd(e){
-    if(drag&&e.pointerId!=null&&e.pointerId!==drag.pointerId)return;
+  function clockMounted(){return !!q('#gd-controls [data-cl-workflow]')}
+  function clearClockDrag(){
     drag=null;
     document.removeEventListener('pointermove',dragMove);
     document.removeEventListener('pointerup',dragEnd);
     document.removeEventListener('pointercancel',dragEnd);
+  }
+  function dragMove(e){
+    if(!drag||drag.pointerId!==e.pointerId)return;
+    if(!clockMounted()){clearClockDrag();return}
+    e.preventDefault();setHandFromPointer(drag.kind,e.clientX,e.clientY,true);
+  }
+  function dragEnd(e){
+    if(drag&&e.pointerId!=null&&e.pointerId!==drag.pointerId)return;
+    clearClockDrag();
   }
   function adjustHand(kind,delta){
     if(handsFrozen())return;
