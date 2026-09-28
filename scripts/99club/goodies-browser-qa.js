@@ -3341,6 +3341,42 @@ if(mode==='prepare'){
     assert(document.getElementById('me-marker').getAttribute('aria-valuenow')===teacherValue,'Ending a Measurement challenge restores the teacher marker position');
   }
 
+  function testRandomiser(){
+    assert(window.TT99Goodies&&TT99Goodies.randomiser,'Randomiser is registered');
+    TT99Goodies.randomiser();
+    const mode=document.getElementById('ra-mode'),go=document.getElementById('ra-go');
+    assert(mode&&go,'Randomiser controls render');
+    assert(mode.value==='dice','Randomiser opens on Dice');
+    assert(go.textContent.trim()==='Roll dice','Dice uses a direct Roll dice action');
+    assert(document.querySelectorAll('.gd-die-cube').length===2,'Default Randomiser shows two physical six-sided dice');
+    assert(document.querySelectorAll('.gd-die-cube .gd-die-face').length===12,'Each six-sided die renders all six physical faces');
+    assert(document.querySelectorAll('.gd-die-face .gd-die-pips').length===12,'Six-sided dice use pip faces rather than text-only results');
+    go.click();
+    assert(go.disabled&&go.textContent.includes('Rolling'),'Dice action locks while the dice are tumbling');
+    assert(document.querySelectorAll('.gd-die-cube.is-rolling').length===2,'Six-sided dice visibly enter their tumble animation');
+
+    mode.value='spinner';mode.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(go.textContent.trim()==='Spin wheel','Spinner uses a direct Spin wheel action');
+    assert(document.querySelector('.gd-spinner-pointer'),'Spinner has a fixed Wheel-of-Fortune-style pointer');
+    assert(document.querySelectorAll('.gd-spinner-label').length===4,'Default spinner labels all four wheel segments');
+    const choices=document.getElementById('ra-choices');
+    choices.value='Alpha\nBeta\nGamma';choices.dispatchEvent(new Event('input',{bubbles:true}));
+    assert(document.querySelectorAll('.gd-spinner-label').length===3,'Spinner redraws to match edited classroom choices');
+    assert([...document.querySelectorAll('.gd-spinner-label span')].map(x=>x.textContent.trim()).join('|')==='Alpha|Beta|Gamma','Spinner keeps the edited labels on the wheel itself');
+    go.click();
+    assert(go.disabled&&go.textContent.includes('Spinning'),'Spinner action locks while the wheel spins');
+    assert(document.querySelector('[data-ra-result]').textContent.includes('Spinning'),'Spinner result panel shows the in-progress state');
+    assert(document.getElementById('ra-wheel'),'Spinner wheel remains visible while spinning');
+
+    mode.value='dice';mode.dispatchEvent(new Event('change',{bubbles:true}));
+    const sides=document.getElementById('ra-sides'),count=document.getElementById('ra-count');
+    sides.value='20';sides.dispatchEvent(new Event('change',{bubbles:true}));
+    count.value='3';count.dispatchEvent(new Event('input',{bubbles:true}));
+    go.click();
+    assert(document.querySelectorAll('.gd-poly-die.is-rolling').length===3,'Non-six-sided dice keep a visible polyhedral-style rolling result');
+    assert([...document.querySelectorAll('.gd-poly-die small')].every(x=>x.textContent.trim()==='d20'),'Polyhedral dice identify their side count clearly');
+  }
+
   window.addEventListener('load',function(){
     setTimeout(function(){
       try{
@@ -3358,10 +3394,11 @@ if(mode==='prepare'){
         testGeoboard();
         testCoordinates();
         testMeasurement();
+        testRandomiser();
         testArrayWorkbench();
         testMoneyWorkbench();
         testClockWorkbench();
-        result('pass','Number Line challenges, Maths Canvas, Bar Model, Equation Balance, Hundred Square, Multiplication Grid, Times-table Visualiser, Factor Explorer, FDP Explorer, Place Value, Fraction Wall, Geoboard, Coordinates, Measurement, Array, UK Money and Clock workbench interactions work');
+        result('pass','Number Line challenges, Maths Canvas, Bar Model, Equation Balance, Hundred Square, Multiplication Grid, Times-table Visualiser, Factor Explorer, FDP Explorer, Place Value, Fraction Wall, Geoboard, Coordinates, Measurement, Randomiser, Array, UK Money and Clock workbench interactions work');
       }catch(err){
         result('fail',err&&err.message?err.message:String(err));
       }
