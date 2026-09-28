@@ -1352,8 +1352,18 @@ function balanceTool(){
     '</div>';
     bindStage();bindChallengeStageActions();
   }
+  function balanceMounted(){return !!q('#gd-controls [data-ba-workflow]')}
+  function clearBalanceDrag(){
+    const state=drag;drag=null;
+    document.removeEventListener('pointermove',dragMove);
+    document.removeEventListener('pointerup',dragEnd);
+    document.removeEventListener('pointercancel',dragEnd);
+    if(state?.el){state.el.style.transform='';state.el.style.zIndex=''}
+    return state;
+  }
   function dragMove(e){
     if(!drag||drag.pointerId!==e.pointerId)return;
+    if(!balanceMounted()){clearBalanceDrag();return}
     const dx=e.clientX-drag.startX,dy=e.clientY-drag.startY;
     drag.moved=drag.moved||Math.abs(dx)>4||Math.abs(dy)>4;
     drag.el.style.transform='translate('+dx+'px,'+dy+'px)';
@@ -1361,11 +1371,8 @@ function balanceTool(){
   }
   function dragEnd(e){
     if(!drag||drag.pointerId!==e.pointerId)return;
-    const state=drag;drag=null;
-    document.removeEventListener('pointermove',dragMove);
-    document.removeEventListener('pointerup',dragEnd);
-    document.removeEventListener('pointercancel',dragEnd);
-    state.el.style.transform='';state.el.style.zIndex='';
+    if(!balanceMounted()){clearBalanceDrag();return}
+    const state=clearBalanceDrag();
     if(challengeFrozen()){draw();return}
     const item=[...left,...right].find(x=>String(x.id)===String(state.id));
     if(!item){draw();return}
