@@ -945,6 +945,53 @@ try{
   for(const token of ['.gd-workspace.gd-whiteboard-active','.gd-whiteboard-ui','.gd-whiteboard-tools-open','.gd-whiteboard-fallback','.gd-whiteboard-button','gd-whiteboard-page-lock'])if(!goodiesCss.includes(token))fail('goodies-whiteboard','Shared whiteboard styling missing: '+token);
   if(!numberLine.includes('id="nl-fullscreen"')||!numberLine.includes('function enterBoardFallback')||!numberLine.includes('function boardActive'))fail('goodies-whiteboard','Number Line bespoke whiteboard mode is no longer available');
   ok('goodies-whiteboard',whiteboardToolIds.length+' catalogue manipulatives are covered by shared/bespoke whiteboard mode contracts');
+  const capabilitySpecs=[
+    {id:'number-line',source:numberLine,mode:'challenge'},
+    {id:'place-value',source:goodiesToolsA,fn:'placeValue',mode:'challenge'},
+    {id:'fraction-wall',source:goodiesToolsA,fn:'fractionWall',mode:'challenge'},
+    {id:'bar-model',source:goodiesToolsA,fn:'barModel',mode:'challenge'},
+    {id:'hundred-square',source:goodiesToolsA,fn:'hundredSquare',mode:'challenge'},
+    {id:'multiplication-grid',source:goodiesToolsA,fn:'multiplicationGrid',mode:'challenge'},
+    {id:'array-builder',source:goodiesToolsA,fn:'arrayBuilder',mode:'challenge'},
+    {id:'clock',source:goodiesToolsA,fn:'clockTool',mode:'challenge'},
+    {id:'money',source:goodiesToolsA,fn:'moneyTool',mode:'challenge'},
+    {id:'coordinates',source:goodiesToolsB,fn:'coordinateTool',mode:'challenge'},
+    {id:'measurement',source:goodiesToolsB,fn:'measurementTool',mode:'challenge'},
+    {id:'randomiser',source:goodiesToolsB,fn:'randomiser',mode:'utility'},
+    {id:'balance',source:goodiesToolsB,fn:'balanceTool',mode:'challenge'},
+    {id:'times-table',source:goodiesToolsB,fn:'timesTableVisual',mode:'challenge'},
+    {id:'factors',source:goodiesToolsB,fn:'factorExplorer',mode:'challenge'},
+    {id:'fdp',source:goodiesToolsB,fn:'fdpExplorer',mode:'challenge'},
+    {id:'geoboard',source:goodiesToolsB,fn:'geoboard',mode:'challenge'},
+    {id:'maths-canvas',source:goodiesToolsB,fn:'mathsCanvas',mode:'task'}
+  ];
+  function goodiesFunctionBlock(source,name){
+    if(!name)return source;
+    const start=source.indexOf('function '+name+'(');if(start<0)return'';
+    const laterStarts=capabilitySpecs
+      .filter(spec=>spec.fn&&spec.source===source&&spec.fn!==name)
+      .map(spec=>source.indexOf('function '+spec.fn+'('))
+      .filter(index=>index>start);
+    const end=laterStarts.length?Math.min(...laterStarts):source.length;
+    return source.slice(start,end);
+  }
+  const capabilityIds=capabilitySpecs.map(x=>x.id);
+  for(const id of whiteboardToolIds)if(!capabilityIds.includes(id))fail('goodies-capabilities','Catalogue manipulative has no declared capability policy: '+id);
+  for(const spec of capabilitySpecs){
+    const block=goodiesFunctionBlock(spec.source,spec.fn);
+    if(!block)fail('goodies-capabilities','Could not locate implementation for '+spec.id);
+    if(spec.mode==='challenge'){
+      if(!/challengeKit|CHALLENGE_|challengeTab|data-[a-z]+-challenge/i.test(block))fail('goodies-capabilities',spec.id+' lost its teacher challenge workflow');
+      if(!/exportTools|exportTargetSvg|downloadSvg|data-[a-z]+-export/i.test(block))fail('goodies-capabilities',spec.id+' lost its export/reuse workflow');
+    }else if(spec.mode==='task'){
+      if(!/taskTitle|data-mc-workflow|mc-task-title/i.test(block))fail('goodies-capabilities',spec.id+' lost its teacher-created task workflow');
+      if(!/exportTools|canvasExportSvg|data-mc-export/i.test(block))fail('goodies-capabilities',spec.id+' lost its export/reuse workflow');
+    }else if(spec.mode==='utility'){
+      if(spec.id!=='randomiser')fail('goodies-capabilities','Unexpected utility exception: '+spec.id);
+      if(!/dice|spinner|Random number|Playing card/.test(block))fail('goodies-capabilities','Randomiser utility modes regressed');
+    }
+  }
+  ok('goodies-capabilities','All '+capabilitySpecs.length+' catalogue manipulatives have an explicit challenge/task/export policy; Randomiser is the sole utility exception');
   if(!/goodies-number-line-v6\.js\?v=\d+/.test(goodiesPage)||!/goodies-challenge\.js\?v=\d+/.test(goodiesPage)||!/goodies-tools-a\.js\?v=\d+/.test(goodiesPage)||!/goodies-tools-b\.js\?v=\d+/.test(goodiesPage)||!/goodies-export\.js\?v=\d+/.test(goodiesPage)||!/goodies\.css\?v=\d+/.test(goodiesPage))fail('goodies-number-line','Number Line / shared challenge/export assets are not cache-busted on /goodies/');
   if(goodiesPage.indexOf('goodies-challenge.js')>goodiesPage.indexOf('goodies-number-line-v6.js'))fail('goodies-number-line','Shared challenge framework must load before Number Line v6');
   for(const token of [
