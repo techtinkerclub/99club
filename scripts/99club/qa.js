@@ -968,9 +968,12 @@ try{
   function goodiesFunctionBlock(source,name){
     if(!name)return source;
     const start=source.indexOf('function '+name+'(');if(start<0)return'';
-    const tail=source.slice(start+('function '+name+'(').length);
-    const match=tail.match(/\nfunction [A-Za-z0-9_]+\(/);
-    return source.slice(start,match?start+('function '+name+'(').length+match.index:source.length);
+    const laterStarts=capabilitySpecs
+      .filter(spec=>spec.fn&&spec.source===source&&spec.fn!==name)
+      .map(spec=>source.indexOf('function '+spec.fn+'('))
+      .filter(index=>index>start);
+    const end=laterStarts.length?Math.min(...laterStarts):source.length;
+    return source.slice(start,end);
   }
   const capabilityIds=capabilitySpecs.map(x=>x.id);
   for(const id of whiteboardToolIds)if(!capabilityIds.includes(id))fail('goodies-capabilities','Catalogue manipulative has no declared capability policy: '+id);
