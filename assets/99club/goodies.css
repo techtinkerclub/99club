@@ -630,3 +630,28 @@ html.nl-board-page-lock,body.nl-board-page-lock{overflow:hidden!important;oversc
 @media(max-width:390px){
   .nl-linked-marker-tag{flex-basis:100%;width:max-content}
 }
+
+
+/* Shared whiteboard / presentation mode for all Goodies manipulatives */
+.gd-tool-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.gd-present{white-space:nowrap}
+.gd-whiteboard-ui{display:none}
+html.gd-whiteboard-page-lock,body.gd-whiteboard-page-lock{overflow:hidden!important;overscroll-behavior:none}
+.gd-workspace:fullscreen,.gd-workspace.gd-whiteboard-fallback{position:fixed!important;inset:0!important;z-index:10000!important;width:100vw!important;height:100dvh!important;max-width:none!important;max-height:none!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:#fff!important;overflow:hidden!important}
+.gd-workspace.gd-whiteboard-active{display:block!important;background:#fff!important}
+.gd-workspace.gd-whiteboard-active .gd-stage{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;min-height:100%!important;max-width:none!important;margin:0!important;border:0!important;border-radius:0!important;padding:clamp(14px,2.5vw,34px)!important;background:#fff!important;overflow:auto!important}
+.gd-workspace.gd-whiteboard-active .gd-controls{display:none;position:absolute!important;z-index:10002!important;right:max(18px,calc(env(safe-area-inset-right) + 12px));bottom:max(74px,calc(env(safe-area-inset-bottom) + 66px));width:min(390px,calc(100vw - 36px));max-height:min(78dvh,760px);overflow:auto;margin:0!important;border:1px solid #cddadd!important;border-radius:18px!important;padding:14px!important;background:rgba(255,255,255,.98)!important;box-shadow:0 18px 50px rgba(31,61,69,.22)!important;backdrop-filter:blur(10px)}
+.gd-workspace.gd-whiteboard-active.gd-whiteboard-tools-open .gd-controls{display:block}
+.gd-workspace.gd-whiteboard-active .gd-whiteboard-ui{display:flex;position:fixed;z-index:10003;right:max(18px,calc(env(safe-area-inset-right) + 12px));bottom:max(18px,calc(env(safe-area-inset-bottom) + 12px));gap:8px;pointer-events:none}
+.gd-whiteboard-button{pointer-events:auto;min-height:46px;border:1px solid #b8ceca;border-radius:999px;background:rgba(255,255,255,.96);box-shadow:0 9px 28px rgba(31,61,69,.18);padding:10px 15px;color:var(--gd-teal-dark);font:inherit;font-weight:850;cursor:pointer;backdrop-filter:blur(8px)}
+.gd-whiteboard-button:hover,.gd-whiteboard-button:focus-visible{background:#fff;border-color:#72aaa5;outline:none;box-shadow:0 0 0 3px rgba(20,125,117,.12),0 9px 28px rgba(31,61,69,.18)}
+.gd-whiteboard-exit{color:#7b4d4d;border-color:#dfcaca}
+.gd-workspace.gd-whiteboard-active .gd-stage>.gd-vis,.gd-workspace.gd-whiteboard-active .gd-stage>.gd-object-workspace{max-width:1500px;margin-left:auto;margin-right:auto}
+@media(max-width:700px){
+  .gd-tool-actions{width:100%;justify-content:flex-start}
+  .gd-workspace.gd-whiteboard-active .gd-stage{padding:10px!important}
+  .gd-workspace.gd-whiteboard-active .gd-controls{left:8px;right:8px;bottom:max(70px,calc(env(safe-area-inset-bottom) + 62px));width:auto;max-height:74dvh;padding:11px}
+  .gd-workspace.gd-whiteboard-active .gd-whiteboard-ui{right:max(10px,env(safe-area-inset-right));bottom:max(10px,env(safe-area-inset-bottom))}
+  .gd-whiteboard-button{min-height:48px;padding:10px 14px}
+}
+@media print{.gd-whiteboard-ui{display:none!important}}
