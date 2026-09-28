@@ -42,6 +42,7 @@ document.exitFullscreen=function(){
 (function(){
   function assert(value,message){if(!value)throw new Error(message)}
   function tick(){return new Promise(resolve=>setTimeout(resolve,0))}
+  function pointer(el,type,x,y,id){el.dispatchEvent(new PointerEvent(type,{bubbles:true,pointerId:id||1,button:0,clientX:x,clientY:y}))}
   function result(status,message,detail){
     const el=document.getElementById('gd-whiteboard-qa-result');
     el.dataset.status=status;el.dataset.message=message||'';el.dataset.detail=detail||'';
@@ -135,6 +136,60 @@ document.exitFullscreen=function(){
       checked.push(id);
     }
 
+    // A tool switch must cancel temporary document-level gestures without repainting the new tool.
+    const lifecycleErrors=[];
+    const captureLifecycleError=e=>{if(e.error||e.message)lifecycleErrors.push(String(e.error?.message||e.message))};
+    window.addEventListener('error',captureLifecycleError);
+    const measurementCard=document.querySelector('[data-tool="measurement"]');
+    assert(measurementCard,'Measurement card is available as the lifecycle isolation target');
+    async function abandonGesture(sourceId,pointerId,startGesture,label){
+      const sourceCard=document.querySelector('[data-tool="'+sourceId+'"]');
+      assert(sourceCard,'Lifecycle source card exists for '+sourceId);
+      sourceCard.click();await tick();await tick();
+      startGesture(pointerId);
+      measurementCard.click();await tick();await tick();
+      const errorCount=lifecycleErrors.length;
+      pointer(document,'pointermove',Math.max(40,innerWidth*.62),Math.max(80,innerHeight*.42),pointerId);
+      pointer(document,'pointerup',Math.max(45,innerWidth*.66),Math.max(85,innerHeight*.46),pointerId);
+      await tick();await tick();
+      assert(lifecycleErrors.length===errorCount,label+' abandoned gesture must not throw after switching tools: '+(lifecycleErrors.at(-1)||''));
+      assert(document.getElementById('me-ruler'),label+' abandoned gesture must not repaint the Measurement stage');
+      assert(document.querySelector('#gd-controls [data-me-workflow]'),label+' abandoned gesture must not replace Measurement controls');
+    }
+    await abandonGesture('bar-model',301,id=>{
+      const handle=document.querySelector('[data-bm-boundary="0"]'),r=handle?.getBoundingClientRect();
+      assert(handle&&r,'Bar Model lifecycle test finds a divider');
+      pointer(handle,'pointerdown',r.left+r.width/2,r.top+r.height/2,id);
+    },'Bar Model');
+    await abandonGesture('hundred-square',302,id=>{
+      document.querySelector('[data-hs-interaction="mark"]').click();
+      const cell=document.querySelector('[data-hs-index="0"]'),r=cell?.getBoundingClientRect();
+      assert(cell&&r,'Hundred Square lifecycle test finds a paintable cell');
+      pointer(cell,'pointerdown',r.left+r.width/2,r.top+r.height/2,id);
+    },'Hundred Square');
+    await abandonGesture('multiplication-grid',303,id=>{
+      document.querySelector('[data-mg-interaction="hide"]').click();
+      const cell=document.querySelector('[data-mg-cell="1-1"]'),r=cell?.getBoundingClientRect();
+      assert(cell&&r,'Multiplication Grid lifecycle test finds a paintable product');
+      pointer(cell,'pointerdown',r.left+r.width/2,r.top+r.height/2,id);
+    },'Multiplication Grid');
+    await abandonGesture('array-builder',304,id=>{
+      const handle=document.querySelector('[data-ab-resize="cols"]'),r=handle?.getBoundingClientRect();
+      assert(handle&&r,'Array lifecycle test finds the column resize handle');
+      pointer(handle,'pointerdown',r.left+r.width/2,r.top+r.height/2,id);
+    },'Array Builder');
+    await abandonGesture('clock',305,id=>{
+      const hand=document.getElementById('cl-minute-hit'),face=document.getElementById('cl-face'),r=face?.getBoundingClientRect();
+      assert(hand&&r,'Clock lifecycle test finds the minute hand');
+      pointer(hand,'pointerdown',r.left+r.width*.5,r.top+r.height*.16,id);
+    },'Clock');
+    await abandonGesture('balance',306,id=>{
+      const token=document.querySelector('[data-ba-token]'),r=token?.getBoundingClientRect();
+      assert(token&&r,'Balance lifecycle test finds a draggable weight');
+      pointer(token,'pointerdown',r.left+r.width/2,r.top+r.height/2,id);
+    },'Equation Balance');
+    window.removeEventListener('error',captureLifecycleError);
+
     // Fullscreen API fallback is important on embedded/mobile browsers.
     document.querySelector('[data-tool="maths-canvas"]').click();
     const workspace=document.getElementById('gd-workspace');
@@ -147,7 +202,7 @@ document.exitFullscreen=function(){
     assert(!workspace.classList.contains('gd-whiteboard-fallback'),'Fallback whiteboard mode exits cleanly');
     workspace.requestFullscreen=original;
 
-    result('pass','Whiteboard mode works across all '+checked.length+' manipulatives',checked.join(','));
+    result('pass','Whiteboard mode works across all '+checked.length+' manipulatives and stale gestures stay isolated after tool switches',checked.join(','));
   }
   window.addEventListener('load',()=>setTimeout(()=>run().catch(err=>result('fail',err&&err.message?err.message:String(err),err&&err.stack?err.stack:'')),100));
 })();
