@@ -71,8 +71,10 @@ document.exitFullscreen=function(){
       if(id==='number-line'){
         assert(document.fullscreenElement===stage||stage.classList.contains('nl-board-fallback'),'Number Line Present delegates to its bespoke whiteboard mode');
         assert(stage.classList.contains('is-board-active')||document.querySelector('.nl-board-ui'),'Number Line whiteboard UI remains available');
-        if(document.fullscreenElement)await document.exitFullscreen();
+        assert(TT99Goodies.whiteboard.isActive(),'Shared whiteboard controller reports bespoke Number Line mode as active');
+        TT99Goodies.whiteboard.exit();
         await tick();
+        assert(!TT99Goodies.whiteboard.isActive(),'Shared whiteboard controller exits bespoke Number Line mode cleanly');
       }else{
         assert(workspace.classList.contains('gd-whiteboard-active'),'Shared whiteboard mode activates for '+id);
         assert(document.fullscreenElement===workspace||workspace.classList.contains('gd-whiteboard-fallback'),'Shared whiteboard mode occupies the viewport for '+id);
