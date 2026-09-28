@@ -2542,11 +2542,21 @@ if(mode==='prepare'){
     assert(document.querySelector('[data-ab-equation]').textContent.trim()==='4 × 6 = 24','Array equation matches the model');
     assert(document.querySelector('.gd-array-maths').textContent.includes('6 + 6 + 6 + 6 = 24'),'Array shows repeated addition');
     assert(document.querySelector('.gd-array-maths').textContent.includes('24 ÷ 4 = 6'),'Array shows related division facts');
+    assert(document.getElementById('ab-undo')?.disabled&&document.getElementById('ab-redo')?.disabled,'Array history starts clean');
+    assert(document.querySelector('[data-ab-undo-stage]')?.disabled&&document.querySelector('[data-ab-redo-stage]')?.disabled,'Array stage exposes disabled Undo/Redo before the first edit');
 
     let colHandle=document.querySelector('[data-ab-resize="cols"]');
     colHandle.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
     board=document.getElementById('ab-board');
     assert(board.dataset.abCols==='7'&&document.querySelectorAll('[data-ab-cell]').length===28,'Column resize handle changes the array with the keyboard');
+    assert(!document.querySelector('[data-ab-undo-stage]').disabled,'Array stage Undo becomes available after a resize');
+    document.querySelector('[data-ab-undo-stage]').click();
+    board=document.getElementById('ab-board');
+    assert(board.dataset.abCols==='6','Array stage Undo restores the previous column count');
+    assert(!document.querySelector('[data-ab-redo-stage]').disabled,'Array stage Redo becomes available after Undo');
+    document.querySelector('[data-ab-redo-stage]').click();
+    board=document.getElementById('ab-board');
+    assert(board.dataset.abCols==='7','Array stage Redo reapplies the column resize');
     let rowHandle=document.querySelector('[data-ab-resize="rows"]');
     rowHandle.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true}));
     board=document.getElementById('ab-board');
@@ -2562,6 +2572,12 @@ if(mode==='prepare'){
     colSplit.value='3';colSplit.dispatchEvent(new Event('change',{bubbles:true}));
     board=document.getElementById('ab-board');
     assert(board.dataset.abRowSplit==='2'&&board.dataset.abColSplit==='3','Array stores row and column partitions explicitly');
+    document.querySelector('[data-ab-undo-stage]').click();
+    board=document.getElementById('ab-board');
+    assert(board.dataset.abRowSplit==='2'&&board.dataset.abColSplit==='0','Array Undo removes only the most recent partition change');
+    document.querySelector('[data-ab-redo-stage]').click();
+    board=document.getElementById('ab-board');
+    assert(board.dataset.abRowSplit==='2'&&board.dataset.abColSplit==='3','Array Redo restores the column partition');
     assert(document.querySelectorAll('.gd-array-cell.is-row-split').length===6,'Row partition crosses the full array width');
     assert(document.querySelectorAll('.gd-array-cell.is-col-split').length===4,'Column partition crosses the full array height');
     assert(document.querySelector('[data-ab-partial]').textContent.includes('2 × 3 + 2 × 3 + 2 × 3 + 2 × 3'),'Two partitions expose four partial products');
@@ -2571,6 +2587,12 @@ if(mode==='prepare'){
     assert(board.dataset.abRows==='6'&&board.dataset.abCols==='4','Rotate / swap transposes the array dimensions');
     assert(board.dataset.abRowSplit==='3'&&board.dataset.abColSplit==='2','Rotate / swap transposes the partition positions too');
     assert(document.querySelector('[data-ab-equation]').textContent.trim()==='6 × 4 = 24','Rotated array keeps the same product');
+    document.getElementById('ab-undo').click();
+    board=document.getElementById('ab-board');
+    assert(board.dataset.abRows==='4'&&board.dataset.abCols==='6'&&board.dataset.abRowSplit==='2'&&board.dataset.abColSplit==='3','Array panel Undo restores dimensions and partitions together');
+    document.getElementById('ab-redo').click();
+    board=document.getElementById('ab-board');
+    assert(board.dataset.abRows==='6'&&board.dataset.abCols==='4'&&board.dataset.abRowSplit==='3'&&board.dataset.abColSplit==='2','Array panel Redo restores the rotated model');
 
     document.getElementById('ab-clear-splits').click();
     board=document.getElementById('ab-board');
@@ -2585,6 +2607,9 @@ if(mode==='prepare'){
     pointer(document,'pointerup',hr.left+hr.width/2+cellW*1.2,hr.top+hr.height/2,91);
     board=document.getElementById('ab-board');
     assert(Number(board.dataset.abCols)>=7,'Dragging the right edge directly increases columns');
+    document.querySelector('[data-ab-undo-stage]').click();
+    board=document.getElementById('ab-board');
+    assert(board.dataset.abCols==='6','Array drag resize records one recoverable history step');
 
     setNumber('ab-r',4);setNumber('ab-c',6);
     board=document.getElementById('ab-board');
@@ -2627,6 +2652,7 @@ if(mode==='prepare'){
     board=document.getElementById('ab-board');
     assert(document.querySelector('.gd-challenge-banner'),'Generated Array challenge appears above the board');
     assert(board.dataset.abFrozen==='true','Read-the-array challenge freezes the given array');
+    assert(document.querySelector('[data-ab-undo-stage]').disabled&&document.querySelector('[data-ab-redo-stage]').disabled,'Frozen Array challenge disables stage history controls');
     assert(document.querySelector('[data-ab-equation]').textContent.includes('= ?'),'Count-the-array challenge hides the total in the equation');
     assert(document.querySelector('[data-ab-repeated]').textContent.trim()==='?'&&document.querySelector('[data-ab-inverse]').textContent.trim()==='?','Count-the-array challenge hides equivalent fact readouts');
     assert(document.querySelector('[data-ab-resize="cols"]').disabled&&document.querySelector('[data-ab-resize="rows"]').disabled,'Frozen Array challenge disables both resize handles');

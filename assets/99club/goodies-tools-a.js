@@ -2905,6 +2905,7 @@ function multiplicationGrid(){
 function arrayBuilder(){
   const CK=G.challengeKit,X=G.exportTools;
   let rows=4,cols=6,rowSplit=0,colSplit=0,drag=null;
+  let undoStack=[],redoStack=[];
   const MAX=12;
   const CHALLENGE_CATEGORIES=[
     {id:'read',label:'Read the array'},
@@ -2939,6 +2940,39 @@ function arrayBuilder(){
     rowSplit=clamp(Math.round(num(value.rowSplit,0)),0,Math.max(0,rows-1));
     colSplit=clamp(Math.round(num(value.colSplit,0)),0,Math.max(0,cols-1));
     normaliseSplits();drag=null;
+  }
+  function snapshotsEqual(a,b){
+    return !!a&&!!b&&a.rows===b.rows&&a.cols===b.cols&&a.rowSplit===b.rowSplit&&a.colSplit===b.colSplit;
+  }
+  function clearHistory(){undoStack=[];redoStack=[]}
+  function rememberSnapshot(before){
+    const prior=before||snapshot(),after=snapshot();
+    if(snapshotsEqual(prior,after))return false;
+    undoStack.push(prior);
+    if(undoStack.length>80)undoStack.shift();
+    redoStack=[];
+    return true;
+  }
+  function historyDisabled(){return challengeFrozen()}
+  function undoArray(){
+    if(historyDisabled()||!undoStack.length)return;
+    redoStack.push(snapshot());
+    restoreSnapshot(undoStack.pop());
+    renderControls();draw();
+  }
+  function redoArray(){
+    if(historyDisabled()||!redoStack.length)return;
+    undoStack.push(snapshot());
+    restoreSnapshot(redoStack.pop());
+    renderControls();draw();
+  }
+  function mutateBoard(fn){
+    if(historyDisabled())return;
+    const before=snapshot();
+    fn();normaliseSplits();
+    const changed=rememberSnapshot(before);
+    renderControls();draw();
+    return changed;
   }
   function setDimensions(nextRows,nextCols){
     rows=clampDim(nextRows);cols=clampDim(nextCols);normaliseSplits();
@@ -3036,7 +3070,8 @@ function arrayBuilder(){
       '<button class="gd-btn'+(controlTab==='export'?' gd-btn--primary':'')+'" type="button" data-ab-workflow="export">Export / reuse</button></div>';
   }
   function exploreControlsHtml(){
-    return field('Rows','<div class="gd-row"><button class="gd-btn" id="ab-row-down" type="button" aria-label="Remove one row">−</button><input class="gd-input gd-array-count" id="ab-r" type="number" min="1" max="'+MAX+'" value="'+rows+'"><button class="gd-btn" id="ab-row-up" type="button" aria-label="Add one row">+</button></div>')+
+    return '<div class="gd-row"><button class="gd-btn" id="ab-undo" type="button"'+(historyDisabled()||!undoStack.length?' disabled':'')+'>Undo</button><button class="gd-btn" id="ab-redo" type="button"'+(historyDisabled()||!redoStack.length?' disabled':'')+'>Redo</button></div>'+
+      field('Rows','<div class="gd-row"><button class="gd-btn" id="ab-row-down" type="button" aria-label="Remove one row">−</button><input class="gd-input gd-array-count" id="ab-r" type="number" min="1" max="'+MAX+'" value="'+rows+'"><button class="gd-btn" id="ab-row-up" type="button" aria-label="Add one row">+</button></div>')+
       field('Columns','<div class="gd-row"><button class="gd-btn" id="ab-col-down" type="button" aria-label="Remove one column">−</button><input class="gd-input gd-array-count" id="ab-c" type="number" min="1" max="'+MAX+'" value="'+cols+'"><button class="gd-btn" id="ab-col-up" type="button" aria-label="Add one column">+</button></div>')+
       '<div class="gd-row"><button class="gd-btn gd-btn--primary" id="ab-swap" type="button">Rotate / swap factors</button><button class="gd-btn" id="ab-random" type="button">Random array</button></div>'+
       field('Partition rows','<select class="gd-select" id="ab-row-split">'+splitOptions('row')+'</select>','Optional split for partial products.')+
@@ -3196,7 +3231,7 @@ function arrayBuilder(){
     if(beforeChallenge){restoreSnapshot(beforeChallenge);beforeChallenge=null}
   }
   function clearChallenge(){
-    restoreBeforeChallenge();
+    restoreBeforeChallenge();clearHistory();
     challenge=null;challengeTab='standard';controlTab='challenge';renderControls();draw();
   }
   function enterCustomChallenge(){
@@ -3204,7 +3239,7 @@ function arrayBuilder(){
     if(CK)challenge=CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''});
     if(!challenge.hiddenDimensions)challenge.hiddenDimensions=[];
     if(!wasCustom)clearBoundHiding();
-    challenge.freezeBoard=false;challenge.revealed=false;
+    challenge.freezeBoard=false;challenge.revealed=false;clearHistory();
     challengeTab='custom';controlTab='challenge';exportMode='challenge';exportStatus='';renderControls();draw();
   }
   function setCustomAnswerSource(source){
@@ -3273,12 +3308,12 @@ function arrayBuilder(){
       );
     }
     challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';
-    exportMode='challenge';responseLines=template.category==='reason'?3:type==='build-array'?2:1;exportStatus='';
+    exportMode='challenge';responseLines=template.category==='reason'?3:type==='build-array'?2:1;exportStatus='';clearHistory();
     renderControls();draw();
   }
   function mutateDimensions(nextRows,nextCols){
     if(challengeFrozen())return;
-    setDimensions(nextRows,nextCols);renderControls();draw();
+    mutateBoard(()=>setDimensions(nextRows,nextCols));
   }
   function bindControls(){
     const controls=q('#gd-controls');if(!controls)return;
@@ -3300,6 +3335,8 @@ function arrayBuilder(){
       return;
     }
     if(controlTab==='explore'){
+      const undo=q('#ab-undo',controls);if(undo)undo.onclick=undoArray;
+      const redo=q('#ab-redo',controls);if(redo)redo.onclick=redoArray;
       const r=q('#ab-r',controls),c=q('#ab-c',controls);
       if(r)r.oninput=()=>mutateDimensions(r.value,cols);
       if(c)c.oninput=()=>mutateDimensions(rows,c.value);
@@ -3307,16 +3344,16 @@ function arrayBuilder(){
       const rowUp=q('#ab-row-up',controls);if(rowUp)rowUp.onclick=()=>mutateDimensions(rows+1,cols);
       const colDown=q('#ab-col-down',controls);if(colDown)colDown.onclick=()=>mutateDimensions(rows,cols-1);
       const colUp=q('#ab-col-up',controls);if(colUp)colUp.onclick=()=>mutateDimensions(rows,cols+1);
-      const swap=q('#ab-swap',controls);if(swap)swap.onclick=()=>{
+      const swap=q('#ab-swap',controls);if(swap)swap.onclick=()=>mutateBoard(()=>{
         const oldRows=rows,oldRowSplit=rowSplit;
-        rows=cols;cols=oldRows;rowSplit=colSplit;colSplit=oldRowSplit;normaliseSplits();renderControls();draw();
-      };
-      const random=q('#ab-random',controls);if(random)random.onclick=()=>{
-        rows=1+Math.floor(Math.random()*MAX);cols=1+Math.floor(Math.random()*MAX);rowSplit=0;colSplit=0;renderControls();draw();
-      };
-      const rs=q('#ab-row-split',controls);if(rs)rs.onchange=()=>{rowSplit=clamp(Math.round(num(rs.value,0)),0,Math.max(0,rows-1));draw();renderControls()};
-      const cs=q('#ab-col-split',controls);if(cs)cs.onchange=()=>{colSplit=clamp(Math.round(num(cs.value,0)),0,Math.max(0,cols-1));draw();renderControls()};
-      const clear=q('#ab-clear-splits',controls);if(clear)clear.onclick=()=>{rowSplit=0;colSplit=0;draw();renderControls()};
+        rows=cols;cols=oldRows;rowSplit=colSplit;colSplit=oldRowSplit;
+      });
+      const random=q('#ab-random',controls);if(random)random.onclick=()=>mutateBoard(()=>{
+        rows=1+Math.floor(Math.random()*MAX);cols=1+Math.floor(Math.random()*MAX);rowSplit=0;colSplit=0;
+      });
+      const rs=q('#ab-row-split',controls);if(rs)rs.onchange=()=>mutateBoard(()=>{rowSplit=clamp(Math.round(num(rs.value,0)),0,Math.max(0,rows-1))});
+      const cs=q('#ab-col-split',controls);if(cs)cs.onchange=()=>mutateBoard(()=>{colSplit=clamp(Math.round(num(cs.value,0)),0,Math.max(0,cols-1))});
+      const clear=q('#ab-clear-splits',controls);if(clear)clear.onclick=()=>mutateBoard(()=>{rowSplit=0;colSplit=0});
       return;
     }
     qa('[data-ab-challenge-tab]',controls).forEach(button=>button.onclick=()=>{
@@ -3355,7 +3392,7 @@ function arrayBuilder(){
     e.preventDefault();
     const board=q('#ab-board');if(!board)return;
     const rect=board.getBoundingClientRect();
-    drag={kind,pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,startRows:rows,startCols:cols,cellW:rect.width/cols,cellH:rect.height/rows};
+    drag={kind,pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,startRows:rows,startCols:cols,cellW:rect.width/cols,cellH:rect.height/rows,before:snapshot(),remembered:false};
     document.addEventListener('pointermove',resizeMove);
     document.addEventListener('pointerup',resizeEnd,{once:true});
     document.addEventListener('pointercancel',resizeEnd,{once:true});
@@ -3367,7 +3404,9 @@ function arrayBuilder(){
     if(drag.kind==='cols')nextCols=clampDim(drag.startCols+Math.round((e.clientX-drag.startX)/Math.max(1,drag.cellW)));
     if(drag.kind==='rows')nextRows=clampDim(drag.startRows+Math.round((e.clientY-drag.startY)/Math.max(1,drag.cellH)));
     if(nextRows===rows&&nextCols===cols)return;
-    setDimensions(nextRows,nextCols);draw();renderControls();
+    setDimensions(nextRows,nextCols);
+    if(!drag.remembered){rememberSnapshot(drag.before);drag.remembered=true}
+    draw();renderControls();
   }
   function resizeEnd(e){
     if(drag&&e.pointerId!=null&&e.pointerId!==drag.pointerId)return;
@@ -3378,6 +3417,8 @@ function arrayBuilder(){
   }
   function bindStage(){
     const frozen=challengeFrozen(),colHandle=q('[data-ab-resize="cols"]'),rowHandle=q('[data-ab-resize="rows"]');
+    const undo=q('[data-ab-undo-stage]',q('#gd-stage'));if(undo)undo.onclick=e=>{e.stopPropagation();undoArray()};
+    const redo=q('[data-ab-redo-stage]',q('#gd-stage'));if(redo)redo.onclick=e=>{e.stopPropagation();redoArray()};
     if(colHandle&&!frozen){
       colHandle.onpointerdown=e=>startResize('cols',e);
       colHandle.onkeydown=e=>{
@@ -3425,6 +3466,7 @@ function arrayBuilder(){
       :'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-array-workbench">'+
       '<div class="gd-array-summary"><strong data-ab-equation>'+equationText()+'</strong><span>'+rowDisplay+' row'+(rowDisplay==='1'?'':'s')+' of '+colDisplay+'</span></div>'+
+      '<div class="gd-context-actions gd-array-history" aria-label="Array history"><button class="gd-btn" type="button" data-ab-undo-stage'+(historyDisabled()||!undoStack.length?' disabled':'')+'>Undo</button><button class="gd-btn" type="button" data-ab-redo-stage'+(historyDisabled()||!redoStack.length?' disabled':'')+'>Redo</button></div>'+
       '<div class="gd-array-shell">'+
         '<div class="gd-array-board" id="ab-board" data-ab-rows="'+rows+'" data-ab-cols="'+cols+'" data-ab-row-split="'+rowSplit+'" data-ab-col-split="'+colSplit+'" data-ab-frozen="'+(frozen?'true':'false')+'" data-ab-target-rows="'+(challenge?.type==='build-array'?challenge.targetRows:'')+'" data-ab-target-cols="'+(challenge?.type==='build-array'?challenge.targetCols:'')+'" style="grid-template-columns:repeat('+cols+',var(--ab-cell));grid-template-rows:repeat('+rows+',var(--ab-cell))">'+cells+'</div>'+
         '<button class="gd-array-resize gd-array-resize--cols'+(frozen?' is-frozen':'')+'" type="button" data-ab-resize="cols"'+(frozen?' disabled':'')+' aria-label="'+(hiddenDimension('cols')?'Columns hidden for this challenge.':'Columns: '+cols+(frozen?'. Fixed for this challenge.':'. Drag left or right, or use arrow keys.'))+'"'+(hiddenDimension('cols')?'':' role="slider" aria-valuemin="1" aria-valuemax="'+MAX+'" aria-valuenow="'+cols+'"')+'><span>'+colDisplay+'</span><small>columns ↔</small></button>'+
