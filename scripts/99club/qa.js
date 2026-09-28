@@ -1000,6 +1000,10 @@ try{
     }
   }
   ok('goodies-capabilities','All '+capabilitySpecs.length+' catalogue manipulatives have an explicit challenge/task/export policy; Randomiser is the sole utility exception');
+  const randomiserBlock=goodiesFunctionBlock(goodiesToolsB,'randomiser');
+  for(const token of ['gd-die-cube','gd-die-face','gd-spinner-wheel','gd-spinner-pointer','Spin wheel','Roll dice'])if(!randomiserBlock.includes(token))fail('goodies-randomiser','Animated Randomiser contract missing '+token);
+  for(const token of ['.gd-die-cube.is-rolling','.gd-spinner-wheel.is-spinning','@keyframes gd-die-tumble','.gd-spinner-pointer{'])if(!goodiesCss.includes(token))fail('goodies-randomiser','Randomiser presentation CSS missing '+token);
+  ok('goodies-randomiser','Randomiser keeps physical dice, labelled wheel, fixed pointer and motion states');
   for(const token of ['data-co-undo-stage','data-co-redo-stage','data-ge-undo-stage','data-ge-redo-stage'])if(!goodiesToolsB.includes(token))fail('goodies-stage-history','Coordinate/Geoboard on-stage recovery control missing: '+token);
   if(!goodiesCss.includes('.gd-context-actions{'))fail('goodies-stage-history','Shared on-stage history action layout is missing');
   ok('goodies-stage-history','Coordinates and Geoboard keep Undo/Redo beside the live diagram for whiteboard use');
