@@ -1469,7 +1469,7 @@ function numberLineV2(){
     if(t.id==='nl-custom-answer'&&state.challenge){state.challenge.answer=t.value.slice(0,400);state.challenge.answerMode='manual';state.challenge.answerSource='';state.challenge.revealed=false;renderStage();return}
     if(t.id==='nl-custom-prompt'&&state.challenge&&CK){state.challenge.promptHtml=CK.sanitiseRichHtml(t.innerHTML);state.challenge.prompt=CK.plainText(state.challenge.promptHtml).slice(0,600);renderStage();return}
     if(t.id==='nl-tick-labels'){state.showTickLabels=t.checked;renderStage();return}
-    if(t.id==='nl-line-label'){line.label=t.value.slice(0,30);const option=q('#nl-active-line')?.selectedOptions?.[0];if(option){const i=state.lines.findIndex(l=>l.id===line.id);option.textContent='Line '+(i+1)+(line.label?' · '+line.label:'')+(i>0?' · '+scaleModeLabel(line.scaleMode):'')}renderStage();return}
+    if(t.id==='nl-line-label'){line.label=t.value.slice(0,30);const option=q('[data-nl-active-line-top]')?.selectedOptions?.[0];if(option){const i=state.lines.findIndex(l=>l.id===line.id);option.textContent='Line '+(i+1)+(line.label?' · '+line.label:'')+(i>0?' · '+scaleModeLabel(line.scaleMode):'')}renderStage();return}
     if(t.id==='nl-line-labels'){line.showLabels=t.checked;renderStage();return}
     if(t.id==='nl-consecutive'){line.showConsecutiveDifferences=t.checked;renderStage();return}
     if(t.id==='nl-consecutive-side'){line.consecutiveSide=t.value==='below'?'below':'above';renderStage();return}
