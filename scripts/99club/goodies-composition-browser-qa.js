@@ -86,8 +86,11 @@ async function run(){
   const settings=money.querySelector('[data-board-settings]');
   settings.click();
   assert(money.classList.contains('has-settings'),'Context Settings opens the manipulative settings overlay');
+  assert(!money.classList.contains('has-context-menu'),'Settings closes the transient context menu');
   context.click();
-  assert(!money.classList.contains('has-context-menu'),'Context menu can close without affecting the object');
+  assert(money.classList.contains('has-context-menu'),'Context menu can be reopened while the object remains focused');
+  context.click();
+  assert(!money.classList.contains('has-context-menu'),'Context menu can be dismissed without affecting the object');
 
   const before=TT99Goodies.compositionBoard.objects().find(x=>x.toolId==='money');
   const move=money.querySelector('[data-board-move]');
@@ -100,6 +103,7 @@ async function run(){
 
   context.click();
   money.querySelector('[data-board-lock]').click();
+  assert(!money.classList.contains('has-context-menu'),'Lock action closes the transient context menu');
   const locked=TT99Goodies.compositionBoard.objects().find(x=>x.toolId==='money');
   const lockedX=locked.x,lockedY=locked.y;
   pointer(move,'pointerdown',100,100,42);
