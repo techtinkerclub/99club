@@ -871,10 +871,10 @@ html.gd-embed-page .page__content,body.gd-embed-page .page__content{width:100%!i
 .gd-board-global-button svg,.gd-board-context-trigger svg,.gd-board-delete-direct svg,.gd-board-context-menu svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 
 .gd-board-object{position:absolute;box-sizing:border-box;border:1px solid transparent;border-radius:8px;background:transparent;box-shadow:none;overflow:visible}
-.gd-board-object.is-selected{border-color:rgba(29,116,107,.62);box-shadow:0 0 0 1px rgba(29,116,107,.06)}
+.gd-board-object.is-selected{border-color:rgba(29,116,107,.28);box-shadow:none}
 .gd-board-object.is-locked{border-style:dotted}
 .gd-board-object-iframe{display:block;width:var(--gd-board-base-w);height:var(--gd-board-base-h);border:0;border-radius:0;background:transparent;transform:scale(var(--gd-board-scale));transform-origin:top left}
-.gd-board-object-cover{position:absolute;inset:0;z-index:5;width:100%;height:100%;padding:0;border:0;border-radius:8px;background:transparent;cursor:default}
+.gd-board-object-cover{position:absolute;inset:0;z-index:5;width:100%;height:100%;padding:0;border:0;border-radius:8px;background:transparent;cursor:default;outline:none!important}.gd-board-object-cover:focus,.gd-board-object-cover:focus-visible,.gd-board-object-iframe:focus,.gd-board-object-iframe:focus-visible{outline:none!important}
 .gd-board-object.is-selected>.gd-board-object-cover{pointer-events:none}
 .gd-board-move-handle,.gd-board-context-trigger,.gd-board-delete-direct,.gd-board-resize-handle{display:none;position:absolute;z-index:20;border:0;background:rgba(255,255,255,.94);color:#5b7076;box-shadow:0 2px 8px rgba(34,62,67,.08);cursor:pointer}
 .gd-board-object.is-selected>.gd-board-move-handle,.gd-board-object.is-selected>.gd-board-context-trigger,.gd-board-object.is-selected>.gd-board-delete-direct,.gd-board-object.is-selected>.gd-board-resize-handle{display:flex}
@@ -897,7 +897,7 @@ html.gd-embed-page .page__content,body.gd-embed-page .page__content{width:100%!i
 .gd-board-context-menu button{width:29px;height:29px;min-width:29px;min-height:29px;padding:0;border:0;border-radius:7px;background:transparent;color:#5f7379;display:grid;place-items:center;cursor:pointer}
 .gd-board-context-menu button:hover,.gd-board-context-menu button:focus-visible{background:#eef6f4;color:#216d66;outline:none}
 .gd-board-context-menu [data-board-delete]:hover,.gd-board-context-menu [data-board-delete]:focus-visible{background:#fbf0f0;color:#9b4b4b}
-.gd-board-object.has-settings{border-color:#26796f}
+.gd-board-object.has-settings{border-color:rgba(38,121,111,.42)}
 
 @media(max-width:620px){
   .gd-board-palette{left:5px;width:42px;padding:3px}
@@ -914,11 +914,11 @@ html.gd-embed-page,body.gd-embed-page{margin:0!important;width:100%!important;he
 .gd-embed-page .gd-hero,.gd-embed-page .gd-note,.gd-embed-page .gd-catalogue,.gd-embed-page .gd-tool-head,.gd-embed-page .gd-use{display:none!important}
 .gd-embed-page .gd-tool-view{display:block!important;width:100%;height:100%;margin:0!important;padding:0!important;background:transparent!important}
 .gd-embed-page .gd-workspace{display:block!important;position:relative!important;width:100%!important;height:100%!important;min-height:0!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}
-.gd-embed-page #gd-stage{position:absolute!important;inset:0!important;width:auto!important;height:auto!important;min-width:0!important;min-height:0!important;margin:0!important;padding:8px!important;border:0!important;border-radius:0!important;box-shadow:none!important;overflow:hidden!important;background:transparent!important;scrollbar-width:none!important}
+.gd-embed-page #gd-stage{position:absolute!important;inset:0!important;width:auto!important;height:auto!important;min-width:0!important;min-height:0!important;margin:0!important;padding:8px!important;border:0!important;border-radius:0!important;box-shadow:none!important;overflow:hidden!important;background:transparent!important;scrollbar-width:none!important;justify-content:flex-start!important}
 .gd-embed-page #gd-stage::-webkit-scrollbar,.gd-embed-page #gd-controls::-webkit-scrollbar{display:none!important}
 .gd-embed-page #gd-controls{display:none!important}
 .gd-embed-page .gd-shell.gd-embed-controls-open #gd-controls{display:block!important;position:absolute!important;z-index:60;left:10px;top:10px;bottom:auto!important;width:min(286px,44%);height:auto!important;max-height:calc(100% - 20px)!important;margin:0!important;padding:9px!important;overflow:auto!important;scrollbar-width:none!important;border:1px solid rgba(156,177,180,.48)!important;border-radius:10px!important;background:rgba(255,255,255,.94)!important;box-shadow:0 6px 20px rgba(31,61,69,.09)!important;backdrop-filter:blur(10px);font-size:.78rem!important}
-.gd-embed-page .gd-embed-workflow-hidden{display:none!important}
+.gd-embed-page .gd-embed-workflow-hidden{display:none!important}.gd-embed-page .gd-embed-workflow-compact{display:flex!important;flex-wrap:wrap!important;gap:4px!important;background:transparent!important;border:0!important;padding:0 0 5px!important;margin:0!important}.gd-embed-page .gd-embed-workflow-compact>button{flex:1 1 auto!important;min-width:74px!important}
 .gd-embed-page .gd-shell.gd-embed-controls-open #gd-controls .gd-btn,.gd-embed-page .gd-shell.gd-embed-controls-open #gd-controls .gd-input:not([type="range"]),.gd-embed-page .gd-shell.gd-embed-controls-open #gd-controls .gd-select{height:34px!important;min-height:34px!important;max-height:34px!important;padding:4px 7px!important;border-width:1px!important;border-radius:7px!important;font-size:.72rem!important;line-height:1.05!important}
 .gd-embed-page .gd-shell.gd-embed-controls-open #gd-controls [role="tablist"] .gd-btn{font-size:.69rem!important;white-space:normal!important;line-height:1.02!important}
 .gd-embed-page .gd-shell.gd-embed-controls-open #gd-controls .gd-field>span,.gd-embed-page .gd-shell.gd-embed-controls-open #gd-controls .gd-section-title{font-size:.7rem!important}
