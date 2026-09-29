@@ -2835,20 +2835,20 @@ if(mode==='prepare'){
     assert(document.querySelector('[data-mo-total]').textContent.trim()==='£3.75','UK Money totals the draggable pieces');
     assert(document.querySelector('[data-mo-status]').textContent.includes('Exactly right'),'UK Money checks the starting amount against its target');
     const fifty=document.querySelector('[data-mo-value="50"]'),pound=document.querySelector('[data-mo-value="100"]');
-    assert(fifty.classList.contains('gd-money-object--hept'),'50p uses its curved seven-sided coin silhouette');
-    assert(getComputedStyle(fifty.querySelector('.gd-money-object__face--official')).maskImage!=='none'||getComputedStyle(fifty.querySelector('.gd-money-object__face--official')).webkitMaskImage!=='none','50p/20p artwork uses a curved SVG mask rather than straight polygon sides');
+    assert(fifty.classList.contains('gd-money-object--hept'),'50p uses the curved seven-sided classroom coin silhouette');
+    assert(fifty.querySelector('.gd-money-coin-art--hept path'),'50p artwork is a self-contained curved SVG shape rather than a cropped photograph');
     assert(pound.classList.contains('gd-money-object--dodec'),'£1 uses a recognisable twelve-sided token');
-    assert(pound.classList.contains('gd-money-object--bimetal'),'£1 uses its real bimetallic material treatment');
-    assert(document.querySelectorAll('#mo-canvas .gd-money-object--coin .gd-money-object__coin-label').length===5,'Live coin denomination labels sit outside the coin artwork');
-    assert(!document.querySelector('#mo-canvas .gd-money-object__face--official strong'),'Coin denomination labels are never overlaid inside Royal Mint imagery');
+    assert(pound.classList.contains('gd-money-object--bimetal'),'£1 uses a bimetallic classroom treatment');
+    assert(document.querySelectorAll('#mo-canvas .gd-money-object--coin .gd-money-object__coin-label').length===5,'Live coin teaching labels sit outside the coin artwork');
+    assert(document.querySelectorAll('#mo-canvas .gd-money-object--coin .gd-money-coin-art').length===5,'Seeded live coins use clean scalable SVG artwork');
+    assert(!document.querySelector('#mo-canvas .gd-money-object--coin img'),'Live coins no longer depend on cropped or filtered photographic imagery');
     const coinPicks=[...document.querySelectorAll('.gd-money-pick--coin')];
     assert(coinPicks.length===8,'UK Money exposes all eight circulating coin denominations');
-    assert(coinPicks.every(p=>p.querySelector('img')?.src.includes('www.royalmint.com/')),'Every live coin palette choice uses official Royal Mint imagery');
-    assert(document.querySelectorAll('.gd-money-pick__coin--copper').length===2&&document.querySelectorAll('.gd-money-pick__coin--silver').length===4&&document.querySelectorAll('.gd-money-pick__coin--bimetal').length===2,'Coin palette restores copper, silver and bimetallic material colours');
-    assert(document.querySelectorAll('#mo-canvas .gd-money-object--coin .gd-money-object__face--official img').length===5,'Seeded live coins render official Royal Mint imagery');
+    assert(coinPicks.every(p=>p.querySelector('.gd-money-coin-art')),'Every live coin palette choice uses the shared SVG classroom coin artwork');
+    assert(document.querySelectorAll('.gd-money-pick__coin--copper').length===2&&document.querySelectorAll('.gd-money-pick__coin--silver').length===4&&document.querySelectorAll('.gd-money-pick__coin--bimetal').length===2,'Coin palette keeps copper, silver and bimetallic material families');
     const moneyCredits=[...document.querySelectorAll('.gd-money-credit')];
-    assert(moneyCredits.some(x=>x.closest('#gd-controls')&&x.textContent.includes('The Royal Mint, 2023')),'UK Money credits the official coin imagery in the teacher controls');
-    assert(moneyCredits.some(x=>x.classList.contains('gd-money-credit--stage')&&x.textContent.includes('The Royal Mint, 2023')),'UK Money credits Royal Mint photography directly below the live money board');
+    assert(moneyCredits.some(x=>x.closest('#gd-controls')&&x.textContent.includes('Stylised UK classroom')),'UK Money explains that the teacher palette uses stylised classroom representations');
+    assert(moneyCredits.some(x=>x.classList.contains('gd-money-credit--stage')&&x.textContent.includes('Stylised UK classroom')),'UK Money labels the live board artwork as stylised classroom coins');
     const notePicks=[...document.querySelectorAll('.gd-money-pick--note')];
     assert(notePicks.length===4&&notePicks.every(p=>!p.querySelector('img')),'Banknotes remain clearly stylised classroom representations rather than realistic note images');
 
@@ -2856,8 +2856,8 @@ if(mode==='prepare'){
     assert(stageMoneyAdd&&!stageMoneyAdd.disabled,'UK Money keeps a compact Add money action on the live board');
     stageMoneyAdd.click();
     assert(document.querySelectorAll('.gd-money-stage-palette [data-gd-action="add-money-piece"]').length===12,'Money stage palette exposes all 12 supported denominations');
-    assert(document.querySelectorAll('.gd-money-stage-palette .gd-money-pick__coin img').length===8,'Money stage palette uses the corrected artwork for all eight coins');
-    assert([...document.querySelectorAll('.gd-money-stage-palette .gd-money-pick__coin img')].every(img=>img.src.includes('www.royalmint.com/')),'Money stage palette keeps official Royal Mint imagery');
+    assert(document.querySelectorAll('.gd-money-stage-palette .gd-money-pick__coin .gd-money-coin-art').length===8,'Money stage palette uses the shared SVG artwork for all eight coins');
+    assert(!document.querySelector('.gd-money-stage-palette .gd-money-pick__coin img'),'Money stage palette contains no cropped coin photography');
     document.querySelector('.gd-money-stage-palette [data-mo-value="500"]').click();
     assert(!document.querySelector('.gd-money-stage-palette'),'Money stage palette closes as soon as a denomination is added');
     objects=[...document.querySelectorAll('#mo-canvas [data-gd-object]')];
@@ -3004,7 +3004,7 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=moOldBoardDownload;
     assert(moBoardSvg&&moBoardSvg.dataset.moExport==='money','UK Money board export is a deterministic SVG model');
     assert(moBoardSvg.querySelectorAll('[data-mo-export-piece]').length===5,'UK Money board SVG preserves every current coin/note');
-    assert(!moBoardSvg.querySelector('image'),'UK Money export stays self-contained vector artwork and never hot-links Royal Mint imagery');
+    assert(!moBoardSvg.querySelector('image'),'UK Money export stays self-contained vector artwork and never hot-links coin photography');
     assert(moBoardSvg.querySelector('[data-mo-export-summary="total"]').textContent.trim()==='£3.75','UK Money board SVG includes the live total');
     assert(moBoardSvg.querySelector('[data-mo-export-summary="target"]').textContent.trim()==='£3.75','UK Money board SVG includes the live target');
     assert(moBoardName.includes('uk-money-375p'),'UK Money board export has a reusable amount-based filename');
@@ -3486,7 +3486,8 @@ if(mode==='prepare'){
     assert(stageGo.disabled&&stageGo.textContent.includes('Rolling'),'Stage Roll dice locks while the dice tumble');
     assert(document.querySelectorAll('.gd-die-cube.is-rolling').length===2,'Stage Roll dice visibly tumbles the six-sided dice');
     assert(document.querySelectorAll('.gd-die-cube[data-ra-final-value="3"]').length===2,'Six-sided dice keep a visible physical cube even when the rolled face is not 1');
-    assert(document.querySelectorAll('.gd-die-face[data-ra-face-value="3"] .gd-die-pips i.is-on').length===6,'The rolled 3 faces contain three visible pips per die');
+    assert(document.querySelectorAll('.gd-die-cube[data-ra-final-value="3"] .gd-die-face--front[data-ra-face-value="3"]').length===2,'The rolled value is the actual front face of each settled D6');
+    assert(document.querySelectorAll('.gd-die-face--front[data-ra-face-value="3"] .gd-die-pips i.is-on').length===6,'The two visible rolled 3 faces contain three pips each');
 
     mode.value='spinner';mode.dispatchEvent(new Event('change',{bubbles:true}));
     assert(go.textContent.trim()==='Spin wheel','Spinner uses a direct Spin wheel action');
@@ -3506,7 +3507,10 @@ if(mode==='prepare'){
     choices.value='Alpha\\nBeta\\nGamma';choices.dispatchEvent(new Event('input',{bubbles:true}));
     assert(document.querySelectorAll('.gd-spinner-label').length===3,'Custom spinner redraws to match edited classroom choices');
     assert([...document.querySelectorAll('.gd-spinner-label span')].map(x=>x.textContent.trim()).join('|')==='Alpha|Beta|Gamma','Custom spinner keeps edited words or numbers on the wheel');
-    assert(!document.getElementById('ra-wheel').style.getPropertyValue('--ra-wheel').includes('#df4f4f'),'Custom spinner uses neutral decorative backgrounds rather than semantic colour-mode red');
+    const customWheel=document.getElementById('ra-wheel').style.getPropertyValue('--ra-wheel');
+    assert(customWheel.includes('#b9ded8')&&customWheel.includes('#f2cf78')&&customWheel.includes('#a9c8ec'),'Custom spinner uses clearly coloured non-semantic pastel segments');
+    assert([...document.querySelectorAll('.gd-spinner-label')].every(label=>!String(label.getAttribute('style')||'').includes('rotate(')),'Settled spinner labels stay upright rather than inheriting wheel rotation');
+    assert(document.querySelector('.gd-spinner-label-layer')&&!document.getElementById('ra-wheel').contains(document.querySelector('.gd-spinner-label-layer')),'Spinner labels live in a stationary layer separate from the rotating wheel');
     stageGo=document.querySelector('[data-ra-stage-go]');
     assert(stageGo&&stageGo.textContent.trim()==='Spin wheel','Spinner exposes Spin wheel directly on the live stage');
     stageGo.click();
