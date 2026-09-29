@@ -101,19 +101,29 @@ const boardLaunch=q('#gd-board-launch');if(boardLaunch)boardLaunch.addEventListe
 if(embedded){
   function simplifyEmbeddedControls(){
     const controls=q('#gd-controls');if(!controls)return;
+    const blocked=/^(challenge|export|present|task)(\b|\s|$)/i;
+    const keepPriority=/^(objects|build|explore|setup)$/i;
     const tablists=[...controls.querySelectorAll('[role="tablist"]')];
-    const workflow=tablists.find(tab=>[...tab.querySelectorAll('button')].some(button=>/challenge|export|present/i.test(button.textContent||'')));
-    if(!workflow)return;
-    const buttons=[...workflow.querySelectorAll('button')];
-    const preferred=buttons.find(button=>/^(explore|setup|build)$/i.test((button.textContent||'').trim()));
-    const active=buttons.find(button=>button.classList.contains('gd-btn--primary')||button.classList.contains('is-active')||button.getAttribute('aria-selected')==='true');
-    if(preferred&&active&&/challenge|export|present|task/i.test(active.textContent||'')&&!/^(explore|setup|build)$/i.test(active.textContent||'')){
-      preferred.click();
-      queueMicrotask(simplifyEmbeddedControls);
-      return;
-    }
-    workflow.classList.add('gd-embed-workflow-hidden');
+    tablists.forEach(tab=>{
+      const buttons=[...tab.querySelectorAll('button')];
+      if(!buttons.some(button=>blocked.test((button.textContent||'').trim())))return;
+      const active=buttons.find(button=>button.classList.contains('gd-btn--primary')||button.classList.contains('is-active')||button.getAttribute('aria-selected')==='true');
+      const allowed=buttons.filter(button=>!blocked.test((button.textContent||'').trim()));
+      buttons.forEach(button=>button.classList.toggle('gd-embed-workflow-hidden',blocked.test((button.textContent||'').trim())));
+      if(active&&blocked.test((active.textContent||'').trim())){
+        const preferred=allowed.find(button=>keepPriority.test((button.textContent||'').trim()))||allowed[0];
+        if(preferred){preferred.click();return}
+      }
+      tab.classList.toggle('gd-embed-workflow-hidden',allowed.length===0);
+      tab.classList.toggle('gd-embed-workflow-compact',allowed.length>0);
+    });
+    [...controls.querySelectorAll('button')].forEach(button=>{
+      const label=(button.textContent||'').trim();
+      if(button.id==='nl-fullscreen'||/^(present|export)(\b|\s|$)/i.test(label))button.classList.add('gd-embed-workflow-hidden');
+    });
   }
+  const embeddedControls=q('#gd-controls');
+  if(embeddedControls)new MutationObserver(()=>queueMicrotask(simplifyEmbeddedControls)).observe(embeddedControls,{childList:true,subtree:true});
   window.addEventListener('message',event=>{
     if(event.origin!==location.origin||!event.data||typeof event.data!=='object')return;
     if(event.data.type==='tt99-board-settings'){
