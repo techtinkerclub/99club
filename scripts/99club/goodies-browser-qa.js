@@ -51,7 +51,7 @@ if(mode==='prepare'){
     assert(document.querySelector('[data-nl-panel="setup"]'),'Number Line opens on Setup');
 
     document.getElementById('nl-add-line').click();
-    assert(document.getElementById('nl-active-line').value==='l2','New comparison line becomes active');
+    assert(document.querySelector('[data-nl-active-line-top]').value==='l2','New comparison line becomes active');
     const ownScale=document.querySelector('[data-nl-scale-mode="own"]');
     assert(ownScale&&!ownScale.disabled,'Extra line can switch to its own scale');
     ownScale.click();
@@ -97,14 +97,14 @@ if(mode==='prepare'){
     assert(Number(document.getElementById('nl-line-min').value)===3&&Number(document.getElementById('nl-line-max').value)===8,'Use current marker interval restores the teaching interval quickly');
     document.getElementById('nl-zoom-follow').checked=true;
     document.getElementById('nl-zoom-follow').dispatchEvent(new Event('change',{bubbles:true}));
-    const zoomLineSelect=document.getElementById('nl-active-line');
+    const zoomLineSelect=document.querySelector('[data-nl-active-line-top]');
     zoomLineSelect.value='l1';zoomLineSelect.dispatchEvent(new Event('change',{bubbles:true}));
     document.querySelector('[data-nl-workflow="objects"]').click();
     const mainA=document.querySelector('[data-marker-value="m1"]');
     mainA.value='4';mainA.dispatchEvent(new Event('input',{bubbles:true}));
     document.querySelector('[data-nl-workflow="setup"]').click();
     assert(!document.getElementById('nl-delete-line'),'The main reference line cannot be removed while dependent teaching lines exist');
-    const backToZoom=document.getElementById('nl-active-line');
+    const backToZoom=document.querySelector('[data-nl-active-line-top]');
     backToZoom.value='l2';backToZoom.dispatchEvent(new Event('change',{bubbles:true}));
     assert(Number(document.getElementById('nl-line-min').value)===4&&Number(document.getElementById('nl-line-max').value)===8,'Moving a followed main marker updates the zoom interval live');
 
