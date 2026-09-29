@@ -101,6 +101,12 @@ document.exitFullscreen=function(){
           const add=stage.querySelector('#bm-add-stage');
           assert(add&&!add.disabled,'Bar Model exposes + Part directly on stage before whiteboard mode');
         }
+        if(id==='fraction-wall'){
+          const workbench=document.querySelector('[data-fw-mode="workbench"]');
+          assert(workbench,'Fraction Wall exposes the Strip workbench mode');
+          workbench.click();
+          assert(stage.querySelector('[data-gd-action="add"]'),'Fraction Strip workbench exposes direct Add before whiteboard mode');
+        }
         sharedPresent.click();
         await tick();
         assert(document.getElementById('gd-stage')===stage,'Shared whiteboard preserves the live stage element for '+id);
@@ -143,6 +149,13 @@ document.exitFullscreen=function(){
           add.click();
           assert(stage.querySelectorAll('[data-bm-part]').length===before+1,'Bar Model can add a part directly in whiteboard mode');
           assert(tools.getAttribute('aria-expanded')==='false'&&!workspace.classList.contains('gd-whiteboard-tools-open'),'Using Bar Model + Part does not open the teacher Tools drawer');
+        }
+        if(id==='fraction-wall'){
+          const before=stage.querySelectorAll('#fw-strip-canvas [data-gd-object]').length,add=stage.querySelector('[data-gd-action="add"]');
+          assert(add&&getComputedStyle(add).display!=='none'&&add.getBoundingClientRect().height>0,'Fraction Strip Add remains visible while whiteboard Tools are collapsed');
+          add.click();
+          assert(stage.querySelectorAll('#fw-strip-canvas [data-gd-object]').length===before+1,'Fraction Strip workbench can add a strip directly in whiteboard mode');
+          assert(tools.getAttribute('aria-expanded')==='false'&&!workspace.classList.contains('gd-whiteboard-tools-open'),'Using Fraction Strip Add does not open the teacher Tools drawer');
         }
         tools.click();
         assert(workspace.classList.contains('gd-whiteboard-tools-open'),'Whiteboard Tools drawer opens for '+id);
