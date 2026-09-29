@@ -60,7 +60,10 @@ const QUICK_ACTIONS={
   ],
   balance:[
     {label:'+ Left',selector:'[data-ba-stage-add="left"]'},
-    {label:'+ Right',selector:'[data-ba-stage-add="right"]'}
+    {label:'+ Right',selector:'[data-ba-stage-add="right"]'},
+    {label:'Move',selector:'#ba-move',allowHidden:true,title:'Move selected weight to other pan'},
+    {label:'Duplicate',selector:'#ba-duplicate',allowHidden:true},
+    {label:'×',selector:'#ba-delete',allowHidden:true,title:'Delete selected weight',danger:true}
   ],
   'maths-canvas':[
     {label:'+ Tile',selector:'[data-gd-action="add"]'},
@@ -69,6 +72,10 @@ const QUICK_ACTIONS={
   ],
   'hundred-square':[
     {label:'Rule',selector:'#hs-mode',allowHidden:true,openSettings:true,title:'Set highlight rule'}
+  ],
+  measurement:[
+    {label:'+ Ruler',selector:'#me-add-ruler',allowHidden:true,title:'Add comparison ruler'},
+    {label:'Sync',selector:'#me-sync-rulers',allowHidden:true,title:'Sync rulers to the same physical length'}
   ],
   randomiser:[
     {label:'Go',selector:'[data-ra-stage-go]',dynamicLabel:true,allowHidden:true}
