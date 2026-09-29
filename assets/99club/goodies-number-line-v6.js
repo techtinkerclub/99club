@@ -540,6 +540,7 @@ function numberLineV2(){
   function controlsHtml(){
     const line=activeLine(),lineIndex=state.lines.indexOf(line),activeScale=scaleFor(line),lineHasLinkedMarkers=line.markers.some(m=>m.syncGroup),zoomCanFollow=!!mainMarkerZoomRange();
     const lineOptions=state.lines.map((l,i)=>'<option value="'+esc(l.id)+'"'+(l.id===state.activeLineId?' selected':'')+'>Line '+(i+1)+(l.label?' · '+esc(l.label):'')+(i>0?' · '+scaleModeLabel(l.scaleMode):'')+'</option>').join('');
+    const lineSwitcher='<label class="nl-active-line-switcher"><span>Editing</span><select class="gd-select" data-nl-active-line-top>'+lineOptions+'</select></label>';
     const lineModeHelp=line.scaleMode==='zoom'
       ?'The highlighted interval on the main line is enlarged across this line.'
       :line.scaleMode==='linked'
@@ -600,7 +601,6 @@ function numberLineV2(){
         <label class="nl-check"><input id="nl-tick-labels" type="checkbox"${state.showTickLabels?' checked':''}> Show number labels</label>
         <div class="nl-section-rule"></div>
         <div class="nl-panel-title nl-panel-title--compact"><div><strong>Lines</strong><span>${state.lines.length} of 4</span></div></div>
-        <label class="gd-field"><span>Editing</span><select class="gd-select" id="nl-active-line">${lineOptions}</select></label>
         <label class="gd-field"><span>Line label (optional)</span><input class="gd-input" id="nl-line-label" maxlength="30" value="${esc(line.label)}" placeholder="e.g. Fractions"></label>
         ${lineIndex>0?`<div class="nl-scale-mode nl-scale-mode--four" role="group" aria-label="Purpose of this line">
           <button type="button" class="${line.scaleMode==='shared'?'is-active':''}" data-nl-scale-mode="shared">Aligned</button>
@@ -679,7 +679,7 @@ function numberLineV2(){
       </section>`;
 
     const panel=controlTab==='objects'?objectsPanel:controlTab==='challenge'?challengePanel:controlTab==='export'?exportPanel:setupPanel;
-    return `${workflowTabsHtml()}${panel}<div class="nl-status" id="nl-status" role="status" aria-live="polite"></div>`;
+    return `${lineSwitcher}${workflowTabsHtml()}${panel}<div class="nl-status" id="nl-status" role="status" aria-live="polite"></div>`;
   }
 
   function renderControls(){if(!numberLineMounted())return;controls.innerHTML=controlsHtml()}
@@ -815,7 +815,7 @@ function numberLineV2(){
     line.markers.forEach((m,i)=>{
       const x=px(m.value,line),cy=markerCentre(layout,m),hidden=state.challenge&&!state.challenge.revealed&&(state.challenge.hiddenMarkerIds.includes(m.id)||state.challenge.hiddenMarkerIds.includes(line.id+':'+m.id)),showValue=m.showValue&&!hidden;
       const valueY=m.side==='above'?cy-28:cy+34;
-      markerLayer+=`<g class="nl-svg-marker" data-line-id="${esc(line.id)}" data-marker-hit="${esc(m.id)}"${m.positionGroup?` data-position-group="${esc(m.positionGroup)}"`:''} style="cursor:ew-resize;touch-action:none">${markerStem(layout,m)}<circle cx="${x}" cy="${cy}" r="16" fill="${esc(m.color)}" stroke="#fff" stroke-width="3"/><circle cx="${x}" cy="${cy}" r="22" fill="transparent"/><text x="${x}" y="${cy+5}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="800" fill="${contrast(m.color)}" pointer-events="none">${esc(m.label||String(i+1))}</text>${showValue?`<text x="${x}" y="${valueY}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#33474e" pointer-events="none">${esc(lineValueText(line,m.value))}</text>`:(hidden?answerBox(x,valueY-5,72,24):'')}</g>`;
+      markerLayer+=`<g class="nl-svg-marker" data-line-id="${esc(line.id)}" data-marker-hit="${esc(m.id)}"${m.positionGroup?` data-position-group="${esc(m.positionGroup)}"`:''} style="cursor:ew-resize;touch-action:none">${markerStem(layout,m)}<circle cx="${x}" cy="${cy}" r="16" fill="${esc(m.color)}" stroke="#fff" stroke-width="3"/><circle cx="${x}" cy="${cy}" r="22" fill="transparent"/><text x="${x}" y="${cy+5}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="${contrast(m.color)}" pointer-events="none">${esc(m.label||String(i+1))}</text>${showValue?`<text x="${x}" y="${valueY}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#33474e" pointer-events="none">${esc(lineValueText(line,m.value))}</text>`:(hidden?answerBox(x,valueY-5,72,24):'')}</g>`;
     });
 
     return intervalLayer+relationshipLayer+baseline+ticks+lineLabel+markerLayer;
@@ -1489,6 +1489,7 @@ function numberLineV2(){
 
   controls.addEventListener('change',e=>{
     const t=e.target,line=activeLine();
+    if(t.matches('[data-nl-active-line-top]')){state.activeLineId=t.value;renderControls();renderStage();return}
     if(['nl-min','nl-max','nl-step','nl-label-every','nl-line-min','nl-line-max','nl-line-step','nl-line-label-every'].includes(t.id)){state=normalise(state);renderAll();return}
     if(t.id==='nl-active-line'){state.activeLineId=t.value;renderControls();renderStage();return}
     if(t.id==='nl-zoom-follow'&&line.scaleMode==='zoom'){
