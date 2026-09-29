@@ -2831,6 +2831,15 @@ if(mode==='prepare'){
     assert(TT99Goodies.moneyTool,'UK Money tool is registered');
     TT99Goodies.moneyTool();
 
+    function addMoneyFromStage(value){
+      const add=document.querySelector('[data-gd-action="add-money"]');
+      assert(add&&!add.disabled,'UK Money exposes Add money directly on the live board');
+      add.click();
+      const pick=document.querySelector('.gd-money-stage-palette [data-gd-action="add-money-piece"][data-mo-value="'+value+'"]');
+      assert(pick,'UK Money stage palette contains denomination '+value+'p');
+      pick.click();
+    }
+
     let objects=[...document.querySelectorAll('#mo-canvas [data-gd-object]')];
     assert(objects.length===5,'UK Money opens with a five-piece £3.75 example');
     assert(document.querySelector('[data-mo-total]').textContent.trim()==='£3.75','UK Money totals the draggable pieces');
@@ -2847,9 +2856,17 @@ if(mode==='prepare'){
     const notePicks=[...document.querySelectorAll('.gd-money-pick--note')];
     assert(notePicks.length===4&&notePicks.every(p=>!p.querySelector('img')),'Banknotes remain clearly stylised classroom representations rather than realistic note images');
 
-    document.querySelector('[data-mo-add="500"]').click();
+    const stageMoneyAdd=document.querySelector('[data-gd-action="add-money"]');
+    assert(stageMoneyAdd&&!stageMoneyAdd.disabled,'UK Money keeps Add money on the live board bar');
+    stageMoneyAdd.click();
+    assert(document.querySelectorAll('.gd-money-stage-palette [data-gd-action="add-money-piece"]').length===12,'Money stage palette exposes all 12 supported denominations');
+    assert(document.querySelectorAll('.gd-money-stage-palette .gd-money-stage-pick--coin img').length===8,'Money stage palette keeps official imagery for all eight coins');
+    assert([...document.querySelectorAll('.gd-money-stage-palette .gd-money-stage-pick--coin img')].every(img=>img.src.includes('www.royalmint.com/')),'Money stage coin choices use Royal Mint imagery');
+    const stageFive=document.querySelector('.gd-money-stage-palette [data-mo-value="500"]');
+    stageFive.click();
+    assert(!document.querySelector('.gd-money-stage-palette'),'Money stage palette closes after a denomination is added');
     objects=[...document.querySelectorAll('#mo-canvas [data-gd-object]')];
-    assert(objects.length===6&&document.querySelector('[data-mo-value="500"]').classList.contains('gd-money-object--note'),'A £5 note can be added directly to the workbench');
+    assert(objects.length===6&&document.querySelector('#mo-canvas [data-mo-value="500"]').classList.contains('gd-money-object--note'),'A £5 note can be added directly from the live-stage palette');
     assert(document.querySelector('[data-mo-total]').textContent.trim()==='£8.75','Adding money updates the live total');
 
     const target=document.getElementById('mo-target');
@@ -2909,6 +2926,7 @@ if(mode==='prepare'){
     assert(document.querySelector('[data-mo-status]').textContent.trim()==='?','Count-money challenge hides the difference/status shortcut');
     let frozenMoney=document.querySelector('#mo-canvas [data-gd-object]');
     assert(frozenMoney.classList.contains('is-frozen'),'Read-money challenge visibly fixes the supplied pieces');
+    assert(document.querySelector('[data-gd-action="add-money"]')?.disabled,'Read-only money challenge disables the live Add money action');
     let frozenLeft=parseFloat(frozenMoney.style.left);
     let frozenRect=frozenMoney.getBoundingClientRect();
     pointer(frozenMoney,'pointerdown',frozenRect.left+frozenRect.width/2,frozenRect.top+frozenRect.height/2,151);
@@ -2930,9 +2948,10 @@ if(mode==='prepare'){
     assert(document.querySelectorAll('#mo-canvas [data-gd-object]').length===0,'Make-target challenge starts with an empty money board');
     assert(document.querySelector('[data-mo-target-readout]').textContent.trim()==='35p','Deterministic make-target challenge exposes the pupil target');
     assert(document.querySelector('[data-mo-status]').textContent.trim()==='Keep building','Interactive money challenge does not leak the remaining difference');
-    document.querySelector('[data-mo-add="20"]').click();
-    document.querySelector('[data-mo-add="10"]').click();
-    document.querySelector('[data-mo-add="5"]').click();
+    assert(!document.querySelector('[data-gd-action="add-money"]').disabled,'Editable make-target challenge keeps Add money available directly on stage');
+    addMoneyFromStage(20);
+    addMoneyFromStage(10);
+    addMoneyFromStage(5);
     assert(document.querySelector('[data-mo-total]').textContent.trim()==='35p','Pupil-built coins update the challenge total');
     assert(document.querySelector('[data-mo-status]').textContent.includes('On target'),'Make-target challenge confirms the exact amount');
 
