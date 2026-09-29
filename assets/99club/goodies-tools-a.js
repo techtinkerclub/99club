@@ -3487,7 +3487,8 @@ function arrayBuilder(){
 
 function clockTool(){
   const CK=G.challengeKit,X=G.exportTools;
-  let hour=10,minute=10,snap=5,numerals='arabic',drag=null;
+  let hour=10,minute=10,snap=5,numerals='arabic',drag=null,extraClocks=[],activeClock=0;
+  const MAX_CLOCKS=4,CLOCK_LABELS=['A','B','C','D'];
   const roman=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
   const CHALLENGE_CATEGORIES=[
     {id:'read',label:'Read the clock'},
@@ -3511,10 +3512,33 @@ function clockTool(){
   let exportMode='diagram',responseLines=1,exportStatus='';
 
   function mod(value,n){return((value%n)+n)%n}
-  function setTime(nextHour,nextMinute){
-    let total=Math.round(num(nextHour,hour))*60+Math.round(num(nextMinute,minute));
+  function normaliseClockTime(nextHour,nextMinute,fallbackHour=hour,fallbackMinute=minute){
+    let total=Math.round(num(nextHour,fallbackHour))*60+Math.round(num(nextMinute,fallbackMinute));
     total=mod(total,24*60);
-    hour=Math.floor(total/60);minute=total%60;
+    return{hour:Math.floor(total/60),minute:total%60};
+  }
+  function setTime(nextHour,nextMinute){
+    const next=normaliseClockTime(nextHour,nextMinute);
+    hour=next.hour;minute=next.minute;
+  }
+  function clockState(index=0){
+    return index===0?{hour,minute}:(extraClocks[index-1]||{hour,minute});
+  }
+  function clockStates(){return[{hour,minute},...extraClocks.map(c=>({hour:c.hour,minute:c.minute}))]}
+  function setClockTime(index,nextHour,nextMinute){
+    const current=clockState(index),next=normaliseClockTime(nextHour,nextMinute,current.hour,current.minute);
+    if(index===0){hour=next.hour;minute=next.minute}
+    else if(extraClocks[index-1])extraClocks[index-1]=next;
+  }
+  function clockLabel(index){return'Clock '+(CLOCK_LABELS[index]||String(index+1))}
+  function forwardDifferenceMinutes(from,to){
+    return mod((to.hour*60+to.minute)-(from.hour*60+from.minute),24*60);
+  }
+  function durationText(total){
+    const h=Math.floor(total/60),m=total%60;
+    if(!h)return m+' min';
+    if(!m)return h+' h';
+    return h+' h '+m+' min';
   }
   function h12(){return hour%12||12}
   function pad(value){return String(value).padStart(2,'0')}
@@ -3539,13 +3563,15 @@ function clockTool(){
     return{x:150+len*Math.cos(a),y:150+len*Math.sin(a)};
   }
   function faceNumber(n){return numerals==='roman'?roman[n-1]:String(n)}
-  function snapshot(){return{hour,minute,snap,numerals}}
+  function snapshot(){return{hour,minute,snap,numerals,extraClocks:extraClocks.map(c=>({hour:c.hour,minute:c.minute})),activeClock}}
   function restoreSnapshot(value){
     if(!value)return;
     hour=clamp(Math.round(num(value.hour,10)),0,23);
     minute=clamp(Math.round(num(value.minute,10)),0,59);
     snap=Number(value.snap)===1?1:5;
     numerals=value.numerals==='roman'?'roman':'arabic';
+    extraClocks=Array.isArray(value.extraClocks)?value.extraClocks.slice(0,MAX_CLOCKS-1).map(c=>normaliseClockTime(c?.hour,c?.minute,10,10)):[];
+    activeClock=clamp(Math.round(num(value.activeClock,0)),0,extraClocks.length);
     drag=null;
   }
   function tickMarkup(){
@@ -3664,6 +3690,7 @@ function clockTool(){
     return{hour:h,minute:m,blankHands,source};
   }
   function clockExportSvg({pupil=false}={}){
+    if(!pupil&&!challenge&&extraClocks.length)return multiClockExportSvg();
     const state=exportClockState(pupil),width=760,height=690,cx=380,cy=255,r=205;
     const svg=clSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Analogue clock','data-cl-export':'clock'});
     svg.appendChild(clSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
@@ -3715,6 +3742,45 @@ function clockTool(){
     svg.appendChild(clSvgEl('text',{x:width-42,y:height-18,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':10,fill:'#87969a'},'99 Club Studio'));
     return svg;
   }
+  function multiClockExportSvg(){
+    const states=clockStates(),width=1100,cols=2,cardW=500,cardH=400,gapX=40,gapY=20,rows=Math.ceil(states.length/cols);
+    const diffCount=Math.max(0,states.length-1),diffH=diffCount?90+Math.ceil(diffCount/3)*58:30,height=40+rows*(cardH+gapY)+diffH;
+    const svg=clSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Clock comparison','data-cl-export':'clock-comparison'});
+    svg.appendChild(clSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
+    states.forEach((state,index)=>{
+      const col=index%cols,row=Math.floor(index/cols),x0=30+col*(cardW+gapX),y0=25+row*(cardH+gapY),cx=x0+cardW/2,cy=y0+165,r=128;
+      svg.appendChild(clSvgEl('rect',{x:x0,y:y0,width:cardW,height:cardH,rx:18,fill:'#fbfcfc',stroke:'#d9e2e4','stroke-width':2,'data-cl-export-clock-index':index}));
+      svg.appendChild(clSvgEl('text',{x:x0+18,y:y0+28,'font-family':'Arial,sans-serif','font-size':16,'font-weight':850,fill:'#334a52'},clockLabel(index)));
+      svg.appendChild(clSvgEl('circle',{cx,cy,r,fill:'#ffffff',stroke:'#43555c','stroke-width':4}));
+      for(let i=0;i<60;i++){
+        const a=(i*6-90)*Math.PI/180,major=i%5===0,inner=r-(major?18:12),outer=r-6;
+        svg.appendChild(clSvgEl('line',{x1:cx+inner*Math.cos(a),y1:cy+inner*Math.sin(a),x2:cx+outer*Math.cos(a),y2:cy+outer*Math.sin(a),stroke:major?'#40545b':'#71868b','stroke-width':major?2.4:1.2}));
+      }
+      for(let i=0;i<12;i++){
+        const n=i+1,a=(n*30-90)*Math.PI/180,x=cx+(r-35)*Math.cos(a),y=cy+(r-35)*Math.sin(a);
+        svg.appendChild(clSvgEl('text',{x,y,'text-anchor':'middle','dominant-baseline':'middle','font-family':'Arial,sans-serif','font-size':15,'font-weight':800,fill:'#334a52'},numerals==='roman'?roman[i]:String(n)));
+      }
+      const ha=(((state.hour%12)+state.minute/60)*30-90)*Math.PI/180,ma=(state.minute*6-90)*Math.PI/180;
+      svg.appendChild(clSvgEl('line',{x1:cx,y1:cy,x2:cx+70*Math.cos(ha),y2:cy+70*Math.sin(ha),stroke:'#24343b','stroke-width':8,'stroke-linecap':'round'}));
+      svg.appendChild(clSvgEl('line',{x1:cx,y1:cy,x2:cx+96*Math.cos(ma),y2:cy+96*Math.sin(ma),stroke:'#147d75','stroke-width':6,'stroke-linecap':'round'}));
+      svg.appendChild(clSvgEl('circle',{cx,cy,r:7,fill:'#f2b84b',stroke:'#8b681f','stroke-width':1.5}));
+      svg.appendChild(clSvgEl('text',{x:x0+28,y:y0+360,'font-family':'Arial,sans-serif','font-size':13,'font-weight':750,fill:'#718288'},'24-hour'));
+      svg.appendChild(clSvgEl('text',{x:x0+150,y:y0+360,'font-family':'Arial,sans-serif','font-size':18,'font-weight':900,fill:'#304b52'},format24(state.hour,state.minute)));
+      svg.appendChild(clSvgEl('text',{x:x0+270,y:y0+360,'font-family':'Arial,sans-serif','font-size':13,'font-weight':750,fill:'#718288'},'12-hour'));
+      svg.appendChild(clSvgEl('text',{x:x0+375,y:y0+360,'font-family':'Arial,sans-serif','font-size':18,'font-weight':900,fill:'#304b52'},format12(state.hour,state.minute)));
+    });
+    if(diffCount){
+      const y=40+rows*(cardH+gapY)+22;
+      svg.appendChild(clSvgEl('text',{x:30,y,'font-family':'Arial,sans-serif','font-size':15,'font-weight':850,fill:'#334a52'},'Forward elapsed time from Clock A'));
+      states.slice(1).forEach((state,i)=>{
+        const index=i+1,col=i%3,row=Math.floor(i/3),x=30+col*340,yy=y+38+row*52;
+        svg.appendChild(clSvgEl('text',{x,y:yy,'font-family':'Arial,sans-serif','font-size':13,'font-weight':750,fill:'#718288'},'A → '+CLOCK_LABELS[index]));
+        svg.appendChild(clSvgEl('text',{x:x+82,y:yy,'font-family':'Arial,sans-serif','font-size':17,'font-weight':900,fill:'#304b52','data-cl-export-difference-to':index},durationText(forwardDifferenceMinutes(states[0],state))));
+      });
+    }
+    svg.appendChild(clSvgEl('text',{x:width-28,y:height-14,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':10,fill:'#87969a'},'99 Club Studio'));
+    return svg;
+  }
   function exportTargetSvg(){
     if(exportMode!=='challenge'||!challenge||!X?.composeChallengeCardSvg)return clockExportSvg({pupil:false});
     const prompt=CK?CK.plainText(challenge.promptHtml||challenge.prompt||''):challenge.prompt||'';
@@ -3730,7 +3796,7 @@ function clockTool(){
   }
   function exportName(){
     const meta=challenge&&CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
-    return exportMode==='challenge'&&challenge?(challenge.title||meta?.title||'clock-challenge'):'clock-'+format24(hour,minute).replace(':','-');
+    return exportMode==='challenge'&&challenge?(challenge.title||meta?.title||'clock-challenge'):(extraClocks.length?'clock-comparison':'clock-'+format24(hour,minute).replace(':','-'));
   }
   function exportMessage(text){exportStatus=text;const el=q('#cl-export-status');if(el)el.textContent=text}
   async function exportAction(kind){
@@ -3744,12 +3810,19 @@ function clockTool(){
     }catch(err){exportMessage(err?.message||'That export did not work.')}
   }
   function exploreControlsHtml(){
-    return field('Hour (24-hour)','<input class="gd-input gd-small" id="cl-h" type="number" min="0" max="23" value="'+hour+'">')+
-      field('Minutes','<input class="gd-input gd-small" id="cl-m" type="number" min="0" max="59" value="'+minute+'">')+
-      field('Hand snapping','<select class="gd-select" id="cl-snap"><option value="5"'+(snap===5?' selected':'')+'>5 minutes</option><option value="1"'+(snap===1?' selected':'')+'>1 minute</option></select>','Controls direct minute-hand dragging and keyboard steps.')+
+    const selected=clockState(activeClock);
+    const selector=clockStates().map((_,index)=>
+      '<button class="gd-btn'+(activeClock===index?' gd-btn--primary':'')+'" type="button" data-cl-select-clock="'+index+'">'+clockLabel(index)+'</button>'
+    ).join('');
+    return '<div class="gd-field"><span>Clocks</span><div class="gd-row gd-clock-selector">'+selector+'</div></div>'+
+      '<div class="gd-row"><button class="gd-btn" id="cl-add-clock" type="button"'+(extraClocks.length>=MAX_CLOCKS-1?' disabled':'')+'>Add clock</button>'+
+      '<button class="gd-btn" id="cl-remove-clock" type="button"'+(activeClock===0?' disabled':'')+'>Remove selected</button></div>'+
+      field('Selected clock hour (24-hour)','<input class="gd-input gd-small" id="cl-h" type="number" min="0" max="23" value="'+selected.hour+'">')+
+      field('Minutes','<input class="gd-input gd-small" id="cl-m" type="number" min="0" max="59" value="'+selected.minute+'">')+
+      field('Hand snapping','<select class="gd-select" id="cl-snap"><option value="5"'+(snap===5?' selected':'')+'>5 minutes</option><option value="1"'+(snap===1?' selected':'')+'>1 minute</option></select>','Controls direct minute-hand dragging and keyboard steps on every clock.')+
       field('Clock face','<select class="gd-select" id="cl-numerals"><option value="arabic"'+(numerals==='arabic'?' selected':'')+'>1–12</option><option value="roman"'+(numerals==='roman'?' selected':'')+'>Roman numerals I–XII</option></select>')+
       '<div class="gd-row"><button class="gd-btn gd-btn--primary" id="cl-toggle-period" type="button">Toggle am / pm</button><button class="gd-btn" id="cl-random" type="button">Random 5-minute time</button><button class="gd-btn" id="cl-now" type="button">Now</button></div>'+
-      '<p class="gd-help">Drag either clock hand directly. The minute hand carries the hour forward or back when it crosses 12. Focus a hand and use ← / → for precise adjustment.</p>';
+      '<p class="gd-help">Add up to four clocks. Drag the hands on any clock, or select it here for precise editing. With two or more clocks, the stage shows the forward elapsed time from Clock A to each other clock, including across midnight.</p>';
   }
   function challengeControlsHtml(){
     if(!CK)return'<p class="gd-help">Challenge tools are unavailable.</p>';
@@ -3772,7 +3845,8 @@ function clockTool(){
     const panel=q('#gd-controls');if(panel)panel.innerHTML=controlsHtml();bindControls();
   }
   function refreshControls(){
-    const h=q('#cl-h'),m=q('#cl-m');if(h)h.value=hour;if(m)m.value=minute;
+    const selected=clockState(activeClock),h=q('#cl-h'),m=q('#cl-m');
+    if(h)h.value=selected.hour;if(m)m.value=selected.minute;
   }
   function restoreBeforeChallenge(){
     if(beforeChallenge){restoreSnapshot(beforeChallenge);beforeChallenge=null}
@@ -3808,7 +3882,7 @@ function clockTool(){
   function generateChallenge(type){
     const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
     if(!beforeChallenge)beforeChallenge=snapshot();else restoreSnapshot(beforeChallenge);
-    numerals='arabic';snap=5;
+    activeClock=0;numerals='arabic';snap=5;
     if(type==='read-five'){
       hour=randomHour();minute=randomMinute(5);
       challenge=challengeObject(type,'What time is shown on the analogue clock?',time12());
@@ -3856,33 +3930,43 @@ function clockTool(){
   function faceNumber(n){return numerals==='roman'?roman[n-1]:String(n)}
   function refreshClock(){
     updateChallengeAnswer();
-    const hourPt=handPoint(hourAngle(),72),minutePt=handPoint(minuteAngle(),102);
-    const hourLine=q('#cl-hour-hand'),minuteLine=q('#cl-minute-hand'),hourHit=q('#cl-hour-hit'),minuteHit=q('#cl-minute-hit');
-    [hourLine,hourHit].forEach(el=>{if(el){el.setAttribute('x2',hourPt.x);el.setAttribute('y2',hourPt.y)}});
-    [minuteLine,minuteHit].forEach(el=>{if(el){el.setAttribute('x2',minutePt.x);el.setAttribute('y2',minutePt.y)}});
-    const frozen=handsFrozen(),hidden=anyTimeHidden();
-    if(hourHit){
-      if(hidden){hourHit.removeAttribute('aria-valuenow');hourHit.removeAttribute('aria-valuetext');hourHit.setAttribute('aria-label',frozen?'Hour hand fixed for this challenge':'Hour hand for challenge')}
-      else{hourHit.setAttribute('aria-valuenow',hour);hourHit.setAttribute('aria-label','Hour hand');hourHit.setAttribute('aria-valuetext','Hour hand, '+time12())}
-    }
-    if(minuteHit){
-      if(hidden){minuteHit.removeAttribute('aria-valuenow');minuteHit.removeAttribute('aria-valuetext');minuteHit.setAttribute('aria-label',frozen?'Minute hand fixed for this challenge':'Minute hand for challenge')}
-      else{minuteHit.setAttribute('aria-valuenow',minute);minuteHit.setAttribute('aria-label','Minute hand');minuteHit.setAttribute('aria-valuetext','Minute hand, '+minute+' minutes, '+time12())}
-    }
-    const svg=q('#cl-face');
-    if(svg){
-      svg.setAttribute('aria-label',hidden?'Analogue clock for challenge':'Analogue clock showing '+time12());
-      svg.dataset.clHour=String(hour);svg.dataset.clMinute=String(minute);
-    }
-    const d24=q('[data-cl-readout="24"]'),d12=q('[data-cl-readout="12"]');
-    if(d24)d24.textContent=hiddenReadout('24')?'?':time24();
-    if(d12)d12.textContent=hiddenReadout('12')?'?':time12();
+    const cards=qa('.gd-clock-card[data-cl-clock-index]',q('#gd-stage'));
+    cards.forEach(card=>{
+      const index=Math.round(num(card.dataset.clClockIndex,0)),state=clockState(index);
+      const hourAngle=((state.hour%12)+state.minute/60)*30,minuteAngle=state.minute*6;
+      const hourPt=handPoint(hourAngle,72),minutePt=handPoint(minuteAngle,102);
+      const hourLine=q('[data-cl-line="hour"]',card),minuteLine=q('[data-cl-line="minute"]',card);
+      const hourHit=q('[data-cl-hand="hour"]',card),minuteHit=q('[data-cl-hand="minute"]',card);
+      [hourLine,hourHit].forEach(el=>{if(el){el.setAttribute('x2',hourPt.x);el.setAttribute('y2',hourPt.y)}});
+      [minuteLine,minuteHit].forEach(el=>{if(el){el.setAttribute('x2',minutePt.x);el.setAttribute('y2',minutePt.y)}});
+      const frozen=index===0&&handsFrozen(),hidden=index===0&&anyTimeHidden();
+      if(hourHit){
+        if(hidden){hourHit.removeAttribute('aria-valuenow');hourHit.removeAttribute('aria-valuetext');hourHit.setAttribute('aria-label',frozen?'Hour hand fixed for this challenge':'Hour hand for challenge')}
+        else{hourHit.setAttribute('aria-valuenow',state.hour);hourHit.setAttribute('aria-label',clockLabel(index)+' hour hand');hourHit.setAttribute('aria-valuetext','Hour hand, '+format12(state.hour,state.minute))}
+      }
+      if(minuteHit){
+        if(hidden){minuteHit.removeAttribute('aria-valuenow');minuteHit.removeAttribute('aria-valuetext');minuteHit.setAttribute('aria-label',frozen?'Minute hand fixed for this challenge':'Minute hand for challenge')}
+        else{minuteHit.setAttribute('aria-valuenow',state.minute);minuteHit.setAttribute('aria-label',clockLabel(index)+' minute hand');minuteHit.setAttribute('aria-valuetext','Minute hand, '+state.minute+' minutes, '+format12(state.hour,state.minute))}
+      }
+      const svg=q('svg',card);
+      if(svg){
+        svg.setAttribute('aria-label',hidden?'Analogue clock for challenge':clockLabel(index)+' showing '+format12(state.hour,state.minute));
+        svg.dataset.clHour=String(state.hour);svg.dataset.clMinute=String(state.minute);
+      }
+      const d24=q('[data-cl-readout-kind="24"]',card),d12=q('[data-cl-readout-kind="12"]',card);
+      if(d24)d24.textContent=hiddenReadout('24')&&index===0?'?':format24(state.hour,state.minute);
+      if(d12)d12.textContent=hiddenReadout('12')&&index===0?'?':format12(state.hour,state.minute);
+    });
+    qa('[data-cl-difference-to]',q('#gd-stage')).forEach(el=>{
+      const index=Math.round(num(el.dataset.clDifferenceTo,1)),state=clockState(index);
+      el.textContent=durationText(forwardDifferenceMinutes(clockState(0),state));
+    });
     const status=q('[data-cl-target-status]');
     if(status)status.textContent=onTarget()?'On target ✓':'';
     refreshControls();
   }
-  function angleFromPointer(clientX,clientY){
-    const svg=q('#cl-face');if(!svg)return 0;
+  function angleFromPointer(clientX,clientY,svg){
+    if(!svg)return 0;
     const rect=svg.getBoundingClientRect(),cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
     const deg=Math.atan2(clientY-cy,clientX-cx)*180/Math.PI+90;
     return mod(deg,360);
@@ -3891,35 +3975,35 @@ function clockTool(){
     const raw=angle/6;
     return mod(Math.round(raw/snap)*snap,60);
   }
-  function setHandFromPointer(kind,clientX,clientY,carryHour){
-    if(handsFrozen())return;
-    const angle=angleFromPointer(clientX,clientY);
+  function setHandFromPointer(kind,clientX,clientY,carryHour,index,svg){
+    if(index===0&&handsFrozen())return;
+    const state=clockState(index),angle=angleFromPointer(clientX,clientY,svg);
     if(kind==='minute'){
-      const next=snappedMinute(angle),previous=minute;
+      const next=snappedMinute(angle),previous=state.minute;
       if(carryHour){
-        if(previous>=45&&next<=15)setTime(hour+1,next);
-        else if(previous<=15&&next>=45)setTime(hour-1,next);
-        else minute=next;
-      }else minute=next;
+        if(previous>=45&&next<=15)setClockTime(index,state.hour+1,next);
+        else if(previous<=15&&next>=45)setClockTime(index,state.hour-1,next);
+        else setClockTime(index,state.hour,next);
+      }else setClockTime(index,state.hour,next);
     }else{
-      const faceHour=mod(Math.round(angle/30-minute/60),12);
-      const period=hour>=12?12:0;
-      hour=period+faceHour;
+      const faceHour=mod(Math.round(angle/30-state.minute/60),12);
+      const period=state.hour>=12?12:0;
+      setClockTime(index,period+faceHour,state.minute);
     }
     refreshClock();
   }
-  function startDrag(kind,e){
-    if(handsFrozen()||(e.button!=null&&e.button!==0))return;
+  function startDrag(kind,index,e){
+    if((index===0&&handsFrozen())||(e.button!=null&&e.button!==0))return;
     e.preventDefault();
-    drag={kind,pointerId:e.pointerId};
-    setHandFromPointer(kind,e.clientX,e.clientY,false);
+    drag={kind,index,pointerId:e.pointerId,svg:e.currentTarget.closest('svg')};
+    setHandFromPointer(kind,e.clientX,e.clientY,false,index,drag.svg);
     document.addEventListener('pointermove',dragMove);
     document.addEventListener('pointerup',dragEnd,{once:true});
     document.addEventListener('pointercancel',dragEnd,{once:true});
   }
   function dragMove(e){
     if(!drag||e.pointerId!==drag.pointerId)return;
-    e.preventDefault();setHandFromPointer(drag.kind,e.clientX,e.clientY,true);
+    e.preventDefault();setHandFromPointer(drag.kind,e.clientX,e.clientY,true,drag.index,drag.svg);
   }
   function dragEnd(e){
     if(drag&&e.pointerId!=null&&e.pointerId!==drag.pointerId)return;
@@ -3928,28 +4012,28 @@ function clockTool(){
     document.removeEventListener('pointerup',dragEnd);
     document.removeEventListener('pointercancel',dragEnd);
   }
-  function adjustHand(kind,delta){
-    if(handsFrozen())return;
-    if(kind==='minute')setTime(hour,minute+delta*snap);
-    else setTime(hour+delta,minute);
+  function adjustHand(kind,delta,index=0){
+    if(index===0&&handsFrozen())return;
+    const state=clockState(index);
+    if(kind==='minute')setClockTime(index,state.hour,state.minute+delta*snap);
+    else setClockTime(index,state.hour+delta,state.minute);
     refreshClock();
   }
   function bindStage(){
-    const frozen=handsFrozen(),hourHit=q('#cl-hour-hit'),minuteHit=q('#cl-minute-hit');
-    if(hourHit&&!frozen){
-      hourHit.onpointerdown=e=>startDrag('hour',e);
-      hourHit.onkeydown=e=>{
-        if(e.key==='ArrowLeft'||e.key==='ArrowDown'){e.preventDefault();adjustHand('hour',-1)}
-        else if(e.key==='ArrowRight'||e.key==='ArrowUp'){e.preventDefault();adjustHand('hour',1)}
+    qa('.gd-clock-hand-hit',q('#gd-stage')).forEach(hit=>{
+      const index=Math.round(num(hit.dataset.clClockIndex,0)),kind=hit.dataset.clHand;
+      if(index===0&&handsFrozen())return;
+      hit.onpointerdown=e=>startDrag(kind,index,e);
+      hit.onkeydown=e=>{
+        if(e.key==='ArrowLeft'||e.key==='ArrowDown'){e.preventDefault();adjustHand(kind,-1,index)}
+        else if(e.key==='ArrowRight'||e.key==='ArrowUp'){e.preventDefault();adjustHand(kind,1,index)}
       };
-    }
-    if(minuteHit&&!frozen){
-      minuteHit.onpointerdown=e=>startDrag('minute',e);
-      minuteHit.onkeydown=e=>{
-        if(e.key==='ArrowLeft'||e.key==='ArrowDown'){e.preventDefault();adjustHand('minute',-1)}
-        else if(e.key==='ArrowRight'||e.key==='ArrowUp'){e.preventDefault();adjustHand('minute',1)}
-      };
-    }
+    });
+    qa('[data-cl-select-stage]',q('#gd-stage')).forEach(button=>button.onclick=()=>{
+      if(challenge)return;
+      activeClock=clamp(Math.round(num(button.dataset.clSelectStage,0)),0,extraClocks.length);
+      renderControls();draw();
+    });
   }
   function bindChallengeStageActions(){
     const stage=q('#gd-stage');if(!stage||!challenge)return;
@@ -3978,14 +4062,27 @@ function clockTool(){
       return;
     }
     if(controlTab==='explore'){
+      qa('[data-cl-select-clock]',controls).forEach(button=>button.onclick=()=>{
+        activeClock=clamp(Math.round(num(button.dataset.clSelectClock,0)),0,extraClocks.length);
+        renderControls();draw();
+      });
+      const add=q('#cl-add-clock',controls);if(add)add.onclick=()=>{
+        if(extraClocks.length>=MAX_CLOCKS-1)return;
+        const base=clockState(activeClock),next=normaliseClockTime(base.hour+1,base.minute,base.hour,base.minute);
+        extraClocks.push(next);activeClock=extraClocks.length;renderControls();draw();
+      };
+      const remove=q('#cl-remove-clock',controls);if(remove)remove.onclick=()=>{
+        if(activeClock===0)return;
+        extraClocks.splice(activeClock-1,1);activeClock=Math.min(activeClock-1,extraClocks.length);renderControls();draw();
+      };
       const h=q('#cl-h',controls),m=q('#cl-m',controls);
-      if(h)h.oninput=()=>{if(handsFrozen()){refreshControls();return}setTime(clamp(num(h.value,hour),0,23),minute);refreshClock()};
-      if(m)m.oninput=()=>{if(handsFrozen()){refreshControls();return}setTime(hour,clamp(num(m.value,minute),0,59));refreshClock()};
+      if(h)h.oninput=()=>{const current=clockState(activeClock);setClockTime(activeClock,clamp(num(h.value,current.hour),0,23),current.minute);refreshClock()};
+      if(m)m.oninput=()=>{const current=clockState(activeClock);setClockTime(activeClock,current.hour,clamp(num(m.value,current.minute),0,59));refreshClock()};
       const snapSelect=q('#cl-snap',controls);if(snapSelect)snapSelect.onchange=()=>{snap=Number(snapSelect.value)===1?1:5};
       const numeralSelect=q('#cl-numerals',controls);if(numeralSelect)numeralSelect.onchange=()=>{numerals=numeralSelect.value==='roman'?'roman':'arabic';draw()};
-      const toggle=q('#cl-toggle-period',controls);if(toggle)toggle.onclick=()=>{if(handsFrozen())return;setTime(hour+(hour<12?12:-12),minute);refreshClock()};
-      const random=q('#cl-random',controls);if(random)random.onclick=()=>{if(handsFrozen())return;hour=randomHour();minute=randomMinute(5);refreshClock()};
-      const now=q('#cl-now',controls);if(now)now.onclick=()=>{if(handsFrozen())return;const d=new Date();hour=d.getHours();minute=d.getMinutes();refreshClock()};
+      const toggle=q('#cl-toggle-period',controls);if(toggle)toggle.onclick=()=>{const current=clockState(activeClock);setClockTime(activeClock,current.hour+(current.hour<12?12:-12),current.minute);refreshClock()};
+      const random=q('#cl-random',controls);if(random)random.onclick=()=>{setClockTime(activeClock,randomHour(),randomMinute(5));refreshClock()};
+      const now=q('#cl-now',controls);if(now)now.onclick=()=>{const d=new Date();setClockTime(activeClock,d.getHours(),d.getMinutes());refreshClock()};
       return;
     }
     qa('[data-cl-challenge-tab]',controls).forEach(button=>button.onclick=()=>{
@@ -4019,24 +4116,43 @@ function clockTool(){
       if(challenge.revealed)draw();
     };
   }
+  function clockCardMarkup(index,state,frozen,hidden){
+    const label=clockLabel(index),hp=handPoint(((state.hour%12)+state.minute/60)*30,72),mp=handPoint(state.minute*6,102);
+    const primary=index===0,selected=!challenge&&activeClock===index;
+    const faceId=primary?'cl-face':'cl-face-'+index,hourId=primary?'cl-hour-hand':'cl-hour-hand-'+index,minuteId=primary?'cl-minute-hand':'cl-minute-hand-'+index;
+    const hourHitId=primary?'cl-hour-hit':'cl-hour-hit-'+index,minuteHitId=primary?'cl-minute-hit':'cl-minute-hit-'+index;
+    return '<section class="gd-clock-card'+(selected?' is-selected':'')+'" data-cl-clock-index="'+index+'">'+
+      '<div class="gd-clock-card-head">'+(challenge?'<strong>'+label+'</strong>':'<button type="button" class="gd-clock-select" data-cl-select-stage="'+index+'">'+label+(selected?' • selected':'')+'</button>')+'</div>'+
+      '<div class="gd-clock"><svg id="'+faceId+'" viewBox="0 0 300 300" role="img" aria-label="'+(hidden?'Analogue clock for challenge':label+' showing '+format12(state.hour,state.minute))+'" data-cl-clock-index="'+index+'" data-cl-hour="'+state.hour+'" data-cl-minute="'+state.minute+'" data-cl-frozen="'+(frozen?'true':'false')+'" data-cl-target-hour="'+(primary&&Number.isFinite(Number(challenge?.targetHour))?challenge.targetHour:'')+'" data-cl-target-minute="'+(primary&&Number.isFinite(Number(challenge?.targetMinute))?challenge.targetMinute:'')+'">'+
+        '<circle class="gd-clock-face" cx="150" cy="150" r="135"></circle>'+tickMarkup()+numeralMarkup()+
+        '<line class="gd-clock-hour" id="'+hourId+'" data-cl-line="hour" x1="150" y1="150" x2="'+hp.x+'" y2="'+hp.y+'"></line>'+
+        '<line class="gd-clock-minute" id="'+minuteId+'" data-cl-line="minute" x1="150" y1="150" x2="'+mp.x+'" y2="'+mp.y+'"></line>'+
+        '<line class="gd-clock-hand-hit gd-clock-hand-hit--hour'+(frozen?' is-frozen':'')+'" id="'+hourHitId+'" data-cl-clock-index="'+index+'" data-cl-hand="hour" tabindex="'+(frozen?'-1':'0')+'"'+(hidden?' aria-label="'+(frozen?'Hour hand fixed for this challenge':'Hour hand for challenge')+'"':' role="slider" aria-label="'+label+' hour hand" aria-valuemin="0" aria-valuemax="23" aria-valuenow="'+state.hour+'"')+' x1="150" y1="150" x2="'+hp.x+'" y2="'+hp.y+'"></line>'+
+        '<line class="gd-clock-hand-hit gd-clock-hand-hit--minute'+(frozen?' is-frozen':'')+'" id="'+minuteHitId+'" data-cl-clock-index="'+index+'" data-cl-hand="minute" tabindex="'+(frozen?'-1':'0')+'"'+(hidden?' aria-label="'+(frozen?'Minute hand fixed for this challenge':'Minute hand for challenge')+'"':' role="slider" aria-label="'+label+' minute hand" aria-valuemin="0" aria-valuemax="59" aria-valuenow="'+state.minute+'"')+' x1="150" y1="150" x2="'+mp.x+'" y2="'+mp.y+'"></line>'+
+        '<circle class="gd-clock-centre" cx="150" cy="150" r="7"></circle>'+
+      '</svg></div>'+
+      '<div class="gd-clock-readouts">'+
+        '<div class="gd-readout"><span>24-hour</span><strong data-cl-readout-kind="24"'+(primary?' data-cl-readout="24"':'')+'>'+(hiddenReadout('24')&&primary?'?':format24(state.hour,state.minute))+'</strong></div>'+
+        '<div class="gd-readout"><span>12-hour</span><strong data-cl-readout-kind="12"'+(primary?' data-cl-readout="12"':'')+'>'+(hiddenReadout('12')&&primary?'?':format12(state.hour,state.minute))+'</strong></div>'+
+      '</div>'+
+    '</section>';
+  }
+  function differenceMarkup(){
+    if(challenge||!extraClocks.length)return'';
+    const base=clockState(0);
+    return '<div class="gd-clock-differences" aria-label="Time differences from Clock A">'+clockStates().slice(1).map((state,i)=>{
+      const index=i+1;
+      return '<div class="gd-readout"><span>A → '+CLOCK_LABELS[index]+'</span><strong data-cl-difference-to="'+index+'">'+durationText(forwardDifferenceMinutes(base,state))+'</strong></div>';
+    }).join('')+'</div>';
+  }
   function draw(){
-    const hp=handPoint(hourAngle(),72),mp=handPoint(minuteAngle(),102),frozen=handsFrozen(),hidden=anyTimeHidden();
+    const states=challenge?[clockState(0)]:clockStates(),frozen=handsFrozen(),hidden=anyTimeHidden();
     const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Clock challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
     const targetStatus=challenge&&!challenge.freezeHands&&Number.isFinite(Number(challenge.targetHour))
       ?'<div class="gd-answer-live" data-cl-target-status>'+(onTarget()?'On target ✓':'')+'</div>':'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-clock-workbench">'+
-      '<div class="gd-clock"><svg id="cl-face" viewBox="0 0 300 300" role="img" aria-label="'+(hidden?'Analogue clock for challenge':'Analogue clock showing '+time12())+'" data-cl-hour="'+hour+'" data-cl-minute="'+minute+'" data-cl-frozen="'+(frozen?'true':'false')+'" data-cl-target-hour="'+(Number.isFinite(Number(challenge?.targetHour))?challenge.targetHour:'')+'" data-cl-target-minute="'+(Number.isFinite(Number(challenge?.targetMinute))?challenge.targetMinute:'')+'">'+
-        '<circle class="gd-clock-face" cx="150" cy="150" r="135"></circle>'+tickMarkup()+numeralMarkup()+
-        '<line class="gd-clock-hour" id="cl-hour-hand" x1="150" y1="150" x2="'+hp.x+'" y2="'+hp.y+'"></line>'+
-        '<line class="gd-clock-minute" id="cl-minute-hand" x1="150" y1="150" x2="'+mp.x+'" y2="'+mp.y+'"></line>'+
-        '<line class="gd-clock-hand-hit gd-clock-hand-hit--hour'+(frozen?' is-frozen':'')+'" id="cl-hour-hit" data-cl-hand="hour" tabindex="'+(frozen?'-1':'0')+'"'+(hidden?' aria-label="'+(frozen?'Hour hand fixed for this challenge':'Hour hand for challenge')+'"':' role="slider" aria-label="Hour hand" aria-valuemin="0" aria-valuemax="23" aria-valuenow="'+hour+'"')+' x1="150" y1="150" x2="'+hp.x+'" y2="'+hp.y+'"></line>'+
-        '<line class="gd-clock-hand-hit gd-clock-hand-hit--minute'+(frozen?' is-frozen':'')+'" id="cl-minute-hit" data-cl-hand="minute" tabindex="'+(frozen?'-1':'0')+'"'+(hidden?' aria-label="'+(frozen?'Minute hand fixed for this challenge':'Minute hand for challenge')+'"':' role="slider" aria-label="Minute hand" aria-valuemin="0" aria-valuemax="59" aria-valuenow="'+minute+'"')+' x1="150" y1="150" x2="'+mp.x+'" y2="'+mp.y+'"></line>'+
-        '<circle class="gd-clock-centre" cx="150" cy="150" r="7"></circle>'+
-      '</svg></div>'+
-      '<div class="gd-clock-readouts">'+
-        '<div class="gd-readout"><span>24-hour</span><strong data-cl-readout="24">'+(hiddenReadout('24')?'?':time24())+'</strong></div>'+
-        '<div class="gd-readout"><span>12-hour</span><strong data-cl-readout="12">'+(hiddenReadout('12')?'?':time12())+'</strong></div>'+
-      '</div>'+targetStatus+
+      '<div class="gd-clock-grid">'+states.map((state,index)=>clockCardMarkup(index,state,index===0&&frozen,index===0&&hidden)).join('')+'</div>'+
+      differenceMarkup()+targetStatus+
     '</div>';
     bindStage();bindChallengeStageActions();refreshClock();
   }

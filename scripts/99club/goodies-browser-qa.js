@@ -3026,6 +3026,17 @@ if(mode==='prepare'){
     assert(document.querySelector('[data-cl-readout="12"]').textContent.trim()==='10:10 am','Clock shows a live 12-hour readout');
     assert(document.querySelectorAll('.gd-clock-tick').length===60,'Clock renders all 60 minute ticks');
 
+    document.getElementById('cl-add-clock').click();
+    assert(document.querySelectorAll('.gd-clock-card').length===2,'Clock workbench can add a second clock');
+    assert(document.querySelector('[data-cl-difference-to="1"]').textContent.trim()==='1 h','New comparison clock starts one hour after the selected clock');
+    const secondHour=document.getElementById('cl-h');
+    secondHour.value='11';secondHour.dispatchEvent(new Event('input',{bubbles:true}));
+    const secondMinute=document.getElementById('cl-m');
+    secondMinute.value='25';secondMinute.dispatchEvent(new Event('input',{bubbles:true}));
+    assert(document.querySelector('[data-cl-difference-to="1"]').textContent.trim()==='1 h 15 min','Clock comparison updates forward elapsed time live');
+    document.getElementById('cl-remove-clock').click();
+    assert(document.querySelectorAll('.gd-clock-card').length===1,'Clock workbench can remove the selected comparison clock');
+
     let minuteHand=document.getElementById('cl-minute-hit');
     const hourXBefore=Number(document.getElementById('cl-hour-hand').getAttribute('x2'));
     minuteHand.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
