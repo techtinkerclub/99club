@@ -8,7 +8,7 @@ const root=G.root;
 const tools=Array.isArray(G.toolCatalogue)?G.toolCatalogue:[];
 const SNAP=10;
 const BOARD_W=2800,BOARD_H=1800;
-let nextId=1,selectedId=null,snapOn=true,zCounter=10,drag=null,resize=null;
+let nextId=1,selectedId=null,snapOn=true,zCounter=10,drag=null,resize=null,pan=null;
 
 const defaults={
   'number-line':[760,360],
@@ -206,6 +206,13 @@ function bindObject(obj){
 }
 
 document.addEventListener('pointermove',e=>{
+  if(pan&&pan.pointerId===e.pointerId){
+    e.preventDefault();
+    viewport.scrollLeft=pan.scrollLeft-(e.clientX-pan.startX);
+    viewport.scrollTop=pan.scrollTop-(e.clientY-pan.startY);
+    if(Math.abs(e.clientX-pan.startX)>3||Math.abs(e.clientY-pan.startY)>3)pan.moved=true;
+    return;
+  }
   if(drag&&drag.pointerId===e.pointerId){
     const obj=objectById(drag.id);if(!obj)return;
     obj.x=clamp(snapped(drag.x+e.clientX-drag.startX),0,BOARD_W-obj.w);
@@ -222,13 +229,25 @@ document.addEventListener('pointermove',e=>{
   }
 });
 function endPointer(e){
+  if(pan&&pan.pointerId===e.pointerId){
+    pan=null;board.classList.remove('is-panning');
+  }
   if(drag&&drag.pointerId===e.pointerId)drag=null;
   if(resize&&resize.pointerId===e.pointerId)resize=null;
 }
 document.addEventListener('pointerup',endPointer);
 document.addEventListener('pointercancel',endPointer);
 
-canvas.addEventListener('pointerdown',e=>{if(e.target===canvas)deselect()});
+canvas.addEventListener('pointerdown',e=>{
+  if(e.target!==canvas)return;
+  deselect();
+  if(e.pointerType==='touch')return;
+  if(e.button!==0)return;
+  e.preventDefault();
+  pan={pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,scrollLeft:viewport.scrollLeft,scrollTop:viewport.scrollTop,moved:false};
+  board.classList.add('is-panning');
+  try{canvas.setPointerCapture(e.pointerId)}catch(_){}
+});
 document.querySelectorAll('[data-board-add]').forEach(button=>button.addEventListener('click',()=>addObject(button.dataset.boardAdd)));
 
 document.getElementById('gd-board-back').onclick=()=>{location.href=location.pathname};
@@ -253,6 +272,7 @@ G.compositionBoard={
   select:selectObject,
   remove:removeObject,
   objects:()=>objects.map(({menuOpen,settingsOpen,...obj})=>({...obj})),
+  viewport:()=>({left:viewport.scrollLeft,top:viewport.scrollTop}),
   isMounted:()=>true
 };
 
