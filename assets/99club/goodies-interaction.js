@@ -25,6 +25,8 @@ function icon(name){
     delete:'<path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="m8 10 .5 8m7.5-8-.5 8"/><path d="M6 7l1 14h10l1-14"/>',
     grid:'<path d="M4 4h16v16H4zM4 10h16M4 16h16M10 4v16M16 4v16"/>',
     clear:'<path d="m4 15 7-9 9 7-6 8H8Z"/><path d="m11 6 9 7"/>',
+    combine:'<rect x="3" y="7" width="6" height="10" rx="2"/><rect x="15" y="7" width="6" height="10" rx="2"/><path d="M9 12h6"/><path d="m12 9 3 3-3 3"/>',
+    split:'<rect x="9" y="4" width="6" height="7" rx="2"/><path d="M12 11v3M12 14H6v3M12 14h6v3"/><rect x="3" y="17" width="6" height="4" rx="1"/><rect x="15" y="17" width="6" height="4" rx="1"/>',
     plus:'<path d="M12 5v14M5 12h14"/>'
   };
   return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">'+(paths[name]||paths.duplicate)+'</svg>';
