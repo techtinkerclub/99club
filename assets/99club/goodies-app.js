@@ -22,12 +22,15 @@ const tools=[
   ['geoboard','Shape & geoboard','◇','geometry','Plot vertices on a dot grid to make and inspect polygons.','Coordinates, perimeter, area, polygons and geometric reasoning.',geoboard],
   ['maths-canvas','Maths canvas','✎','canvas','Arrange draggable number and symbol tiles on a clean board.','Teacher modelling, number sentences, ordering, quick examples and pupil explanations.',mathsCanvas]
 ].map(([id,title,icon,cat,desc,use,build])=>({id,title,icon,cat,desc,use,build}));
+const params=new URLSearchParams(location.search),embedded=params.get('embed')==='1';
+G.toolCatalogue=tools.map(({id,title,icon,cat,desc,use})=>({id,title,icon,cat,desc,use}));
+if(embedded){document.documentElement.classList.add('gd-embed-page');document.body.classList.add('gd-embed-page')}
 
 root.innerHTML=`<div class="gd-shell">
   <header class="gd-hero"><div><span class="gd-eyebrow">99 Club Studio · experimental toolbox</span><h1>Primary maths manipulatives</h1><p>Interactive, no-login classroom tools for modelling maths on a board or exploring it directly with pupils. This area is deliberately hidden while the tools are developed.</p></div><div class="gd-lab-badge">/goodies/ lab</div></header>
   <div class="gd-note"><strong>Development area.</strong> Nothing here is linked from the public Studio navigation, indexed by search engines or included in the sitemap.</div>
   <section class="gd-catalogue">
-    <div class="gd-toolbar"><input class="gd-search" id="gd-search" type="search" placeholder="Find a manipulative…" aria-label="Find a manipulative"><button class="gd-chip is-active" data-cat="all">All</button>${Object.entries(CATS).map(([id,label])=>`<button class="gd-chip" data-cat="${id}">${label}</button>`).join('')}</div>
+    <div class="gd-toolbar"><button class="gd-chip gd-board-launch" id="gd-board-launch" type="button" aria-label="Open mixed maths whiteboard">Whiteboard</button><input class="gd-search" id="gd-search" type="search" placeholder="Find a manipulative…" aria-label="Find a manipulative"><button class="gd-chip is-active" data-cat="all">All</button>${Object.entries(CATS).map(([id,label])=>`<button class="gd-chip" data-cat="${id}">${label}</button>`).join('')}</div>
     <div class="gd-grid" id="gd-grid"></div>
   </section>
   <section class="gd-tool-view" aria-live="polite">
@@ -84,7 +87,7 @@ function enterWhiteboard(){
   enterGenericWhiteboard();
 }
 function renderCards(){const term=search.value.trim().toLowerCase();const filtered=tools.filter(t=>(category==='all'||t.cat===category)&&(!term||`${t.title} ${t.desc} ${t.use}`.toLowerCase().includes(term)));grid.innerHTML=filtered.map(t=>`<button class="gd-tool-card" type="button" data-tool="${t.id}"><div class="gd-tool-card__top"><span class="gd-icon">${t.icon}</span><h2>${t.title}</h2></div><p>${t.desc}</p><span class="gd-tag">${CATS[t.cat]}</span></button>`).join('')||'<p class="gd-empty">No manipulatives match that search.</p>';qa('[data-tool]',grid).forEach(b=>b.addEventListener('click',()=>openTool(b.dataset.tool)))}
-function openTool(id){const t=tools.find(x=>x.id===id);if(!t)return;if(genericWhiteboardActive())leaveGenericWhiteboard();G.interaction?.clear();currentToolId=id;shell.classList.add('is-tool-open');q('#gd-tool-cat').textContent=CATS[t.cat];q('#gd-tool-title').textContent=t.title;q('#gd-tool-desc').textContent=t.desc;q('#gd-use').innerHTML=`<strong>Classroom use:</strong> ${t.use}`;const present=q('#gd-present');if(present)present.hidden=id==='number-line';t.build();history.replaceState(null,'','#'+id);window.scrollTo({top:root.getBoundingClientRect().top+scrollY-20,behavior:'smooth'})}
+function openTool(id){const t=tools.find(x=>x.id===id);if(!t)return;if(genericWhiteboardActive())leaveGenericWhiteboard();G.interaction?.clear();currentToolId=id;shell.classList.add('is-tool-open');q('#gd-tool-cat').textContent=CATS[t.cat];q('#gd-tool-title').textContent=t.title;q('#gd-tool-desc').textContent=t.desc;q('#gd-use').innerHTML=`<strong>Classroom use:</strong> ${t.use}`;const present=q('#gd-present');if(present)present.hidden=id==='number-line';t.build();history.replaceState(null,'','#'+id);if(embedded&&window.parent!==window)window.parent.postMessage({type:'tt99-board-ready',tool:id},location.origin);window.scrollTo({top:root.getBoundingClientRect().top+scrollY-20,behavior:'smooth'})}
 function closeTool(){if(genericWhiteboardActive())exitWhiteboard();G.interaction?.clear();currentToolId='';shell.classList.remove('is-tool-open');history.replaceState(null,'',location.pathname+location.search);q('#gd-controls').innerHTML='';q('#gd-stage').innerHTML=''}
 q('#gd-present').addEventListener('click',enterWhiteboard);
 q('#gd-whiteboard-tools').addEventListener('click',()=>{if(!genericWhiteboardActive())return;whiteboardToolsOpen=!whiteboardToolsOpen;setWhiteboardUi(true)});
@@ -94,6 +97,13 @@ document.addEventListener('fullscreenchange',()=>{
   else if(workspace.classList.contains('gd-whiteboard-active')&&!whiteboardFallback)leaveGenericWhiteboard();
 });
 G.whiteboard={enter:enterWhiteboard,exit:exitWhiteboard,isActive:whiteboardActive,tools:()=>tools.map(t=>t.id)};
+const boardLaunch=q('#gd-board-launch');if(boardLaunch)boardLaunch.addEventListener('click',()=>{location.href=location.pathname+'?board=1'});
+if(embedded){
+  window.addEventListener('message',event=>{
+    if(event.origin!==location.origin||!event.data||typeof event.data!=='object')return;
+    if(event.data.type==='tt99-board-settings')shell.classList.toggle('gd-embed-controls-open',!!event.data.open);
+  });
+}
 q('#gd-back').addEventListener('click',closeTool);search.addEventListener('input',renderCards);qa('[data-cat]').forEach(b=>b.addEventListener('click',()=>{category=b.dataset.cat;qa('[data-cat]').forEach(x=>x.classList.toggle('is-active',x===b));renderCards()}));
 renderCards();
 const hash=location.hash.slice(1);if(tools.some(t=>t.id===hash))openTool(hash);

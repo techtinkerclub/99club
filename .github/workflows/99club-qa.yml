@@ -195,6 +195,33 @@ jobs:
           node scripts/99club/goodies-whiteboard-browser-qa.js check /tmp/99club-goodies-whiteboard-desktop.html
           cp 99club-goodies-whiteboard-qa-report.json 99club-goodies-whiteboard-desktop-report.json
 
+      - name: Exercise mixed Goodies whiteboard composition
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/99club/goodies-composition-browser-qa.js prepare
+          python3 -m http.server 8774 --bind 127.0.0.1 > /tmp/99club-goodies-composition-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          sleep 1
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then
+            echo 'No Chrome/Chromium executable is available on this runner.' >&2
+            exit 1
+          fi
+
+          "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --window-size=390,844 --virtual-time-budget=30000 --dump-dom http://127.0.0.1:8774/99club-goodies-composition-qa.html > /tmp/99club-goodies-composition-phone.html
+          node scripts/99club/goodies-composition-browser-qa.js check /tmp/99club-goodies-composition-phone.html
+          cp 99club-goodies-composition-qa-report.json 99club-goodies-composition-phone-report.json
+
+          "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --window-size=1200,900 --virtual-time-budget=30000 --dump-dom http://127.0.0.1:8774/99club-goodies-composition-qa.html > /tmp/99club-goodies-composition.html
+          node scripts/99club/goodies-composition-browser-qa.js check /tmp/99club-goodies-composition.html
+          cp 99club-goodies-composition-qa-report.json 99club-goodies-composition-board-report.json
+
+          "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --window-size=720,620 --virtual-time-budget=30000 --dump-dom http://127.0.0.1:8774/99club-goodies-embed-qa.html > /tmp/99club-goodies-embed.html
+          node scripts/99club/goodies-composition-browser-qa.js check /tmp/99club-goodies-embed.html
+          cp 99club-goodies-composition-qa-report.json 99club-goodies-composition-embed-report.json
+
       - name: Exercise Goodies shared layout across all manipulatives
         shell: bash
         run: |
@@ -275,6 +302,10 @@ jobs:
             99club-goodies-layout-qa-report.json
             99club-goodies-layout-phone-report.json
             99club-goodies-layout-desktop-report.json
+            99club-goodies-composition-qa-report.json
+            99club-goodies-composition-board-report.json
+            99club-goodies-composition-phone-report.json
+            99club-goodies-composition-embed-report.json
           if-no-files-found: ignore
 
   printable-catalogue-qa:

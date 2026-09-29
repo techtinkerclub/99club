@@ -173,6 +173,42 @@ It validates:
 5. **Mixed board composition**  
    Only after the individual manipulatives share stable primitives, consider allowing multiple compatible manipulative types on one board. Do not attempt this by copying every tool into one monolith.
 
+## Mixed whiteboard composition
+
+The shared whiteboard is now a first-class Goodies workflow rather than a future monolith. Its job is to compose existing manipulatives on one large classroom surface while leaving each manipulative's maths engine independent.
+
+### Whiteboard visual contract
+
+The board chrome must stay quieter than the mathematics:
+
+- use a fine, low-contrast dotted canvas with light snapping;
+- keep the manipulative palette as a narrow icon rail on the left;
+- do not use large permanent buttons, thick outlines, oversized menu text or heavy panel dividers;
+- unfocused objects show no editing chrome;
+- focusing an object may show only a thin selection edge, a tiny move/resize affordance and one compact contextual-menu trigger;
+- settings, lock and delete actions remain hidden until that contextual trigger is opened;
+- contextual settings overlay the object only when requested and use compact control sizing;
+- touch targets may be larger than their visible artwork, but the visible chrome should remain restrained.
+
+Whole-object movement must not steal the manipulative's own internal dragging. The first click/tap focuses an unfocused board object; once focused, interaction inside the object belongs to the manipulative. Moving the complete object uses the small external move handle.
+
+### Composition implementation
+
+The first composition layer isolates each existing Goodie as a live embedded board object. This avoids duplicate DOM IDs and singleton interaction-controller collisions while the individual tools are progressively adapted to reusable native board instances.
+
+The parent board owns:
+
+- x/y position and z-order;
+- 10 px snap;
+- object focus;
+- whole-object move/resize;
+- position lock;
+- contextual settings visibility;
+- deletion;
+- full-board presentation.
+
+The embedded Goodie continues to own its mathematical state and direct manipulation. A compact message bridge opens/closes its existing teacher controls contextually. Native board adapters can replace the isolation layer later without changing the teacher-facing interaction model.
+
 ## Regression rule
 
 A migration must not remove existing mathematical capability merely to achieve interaction consistency.
