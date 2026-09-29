@@ -3278,6 +3278,22 @@ if(mode==='prepare'){
     }
     let marker=document.getElementById('me-marker');
     assert(marker&&marker.getAttribute('aria-valuenow')==='12.3','Measurement ruler starts at the expected marker value');
+
+    document.getElementById('me-add-ruler').click();
+    assert(document.querySelectorAll('.gd-ruler-card').length===2,'Measurement workbench can add a second ruler');
+    const scale=document.getElementById('me-scale');
+    scale.value='imperial';scale.dispatchEvent(new Event('change',{bubbles:true}));
+    let imperialRuler=document.getElementById('me-ruler-1');
+    assert(imperialRuler&&imperialRuler.dataset.meScale==='imperial','Second ruler can use an independent imperial scale');
+    assert(imperialRuler.querySelectorAll('.gd-ruler-tick').length===193,'Imperial ruler renders 1/16-inch subdivisions across 12 inches');
+    const ir=imperialRuler.getBoundingClientRect(),ix=ir.left+ir.width/2,iy=ir.top+ir.height/2;
+    pointer(imperialRuler,'pointerdown',ix,iy,80);
+    pointer(imperialRuler,'pointerup',ix,iy,80);
+    const imperialMarker=document.getElementById('me-marker-1');
+    assert(imperialMarker&&imperialMarker.getAttribute('aria-valuetext')==='6 inches','Imperial ruler snaps direct interaction to the expected inch value');
+    document.getElementById('me-remove-ruler').click();
+    assert(document.querySelectorAll('.gd-ruler-card').length===1,'Measurement workbench can remove the selected second ruler');
+
     const p=rulerClient(15.7);
     pointer(p.ruler,'pointerdown',p.x,p.y,81);
     marker=document.getElementById('me-marker');
@@ -3304,6 +3320,12 @@ if(mode==='prepare'){
     assert(meCapturedSvg.querySelector('[data-me-export-marker="main"]'),'Measurement board export preserves the current marker');
     assert(meCapturedSvg.textContent.includes(teacherValue+' cm'),'Measurement board export includes the visible centimetre readout');
     assert(meCapturedName.includes('measurement-ruler'),'Measurement ruler export has a reusable filename');
+
+    document.querySelector('[data-me-workflow="explore"]').click();
+    document.getElementById('me-add-ruler').click();
+    const teacherSecondScale=document.getElementById('me-scale');
+    teacherSecondScale.value='imperial';teacherSecondScale.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.getElementById('me-ruler-1')?.dataset.meScale==='imperial','Teacher can keep a second imperial ruler ready before a challenge');
 
     document.querySelector('[data-me-workflow="challenge"]').click();
     assert(document.querySelector('[data-me-challenge-tab="standard"]')&&document.querySelector('[data-me-challenge-tab="custom"]'),'Measurement uses the shared Standard / Custom challenge tabs');
@@ -3375,7 +3397,7 @@ if(mode==='prepare'){
     document.querySelector('[data-me-challenge-tab="custom"]').click();
     const source=document.getElementById('me-custom-answer-source');
     assert(source,'Measurement custom challenge exposes live unit answer sources');
-    for(const id of ['cm','mm','m'])assert([...source.options].some(o=>o.value===id),'Measurement custom source '+id+' is available');
+    for(const id of ['cm','mm','m','in','in-decimal'])assert([...source.options].some(o=>o.value===id),'Measurement custom source '+id+' is available');
     source.value='mm';source.dispatchEvent(new Event('change',{bubbles:true}));
     assert([...document.querySelectorAll('.gd-fdp-value strong')].every(x=>x.textContent.trim()==='?'),'Bound custom measurement answer hides all equivalent readouts');
     const liveBefore=document.getElementById('me-custom-live-answer').textContent.trim();
@@ -3386,6 +3408,7 @@ if(mode==='prepare'){
 
     document.getElementById('me-clear-challenge').click();
     assert(document.getElementById('me-marker').getAttribute('aria-valuenow')===teacherValue,'Ending a Measurement challenge restores the teacher marker position');
+    assert(document.querySelectorAll('.gd-ruler-card').length===2&&document.getElementById('me-ruler-1')?.dataset.meScale==='imperial','Ending a Measurement challenge restores the teacher dual-ruler metric/imperial setup');
   }
 
   function testRandomiser(){
