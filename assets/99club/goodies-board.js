@@ -66,9 +66,11 @@ const QUICK_ACTIONS={
     {label:'×',selector:'#ba-delete',allowHidden:true,title:'Delete selected weight',danger:true}
   ],
   'maths-canvas':[
-    {label:'+ Tile',selector:'[data-gd-action="add"]'},
-    {label:'Duplicate',selector:'[data-gd-action="duplicate"]'},
-    {label:'×',selector:'[data-gd-action="delete"]',title:'Delete selected tile',danger:true}
+    {label:'+ Tile',selector:'[data-gd-action="add"]',allowHidden:true,title:'Add number or operation tile'},
+    {label:'Combine +',selector:'[data-gd-action="combine"]',allowHidden:true,title:'Combine selected number tile by addition'},
+    {label:'Split',selector:'[data-gd-action="split"]',allowHidden:true,title:'Split selected number into equal tiles'},
+    {label:'Duplicate',selector:'[data-gd-action="duplicate"]',allowHidden:true},
+    {label:'×',selector:'[data-gd-action="delete"]',allowHidden:true,title:'Delete selected tile',danger:true}
   ],
   'hundred-square':[
     {label:'Rule',selector:'#hs-mode',allowHidden:true,openSettings:true,title:'Set highlight rule'}
