@@ -99,9 +99,28 @@ document.addEventListener('fullscreenchange',()=>{
 G.whiteboard={enter:enterWhiteboard,exit:exitWhiteboard,isActive:whiteboardActive,tools:()=>tools.map(t=>t.id)};
 const boardLaunch=q('#gd-board-launch');if(boardLaunch)boardLaunch.addEventListener('click',()=>{location.href=location.pathname+'?board=1'});
 if(embedded){
+  function simplifyEmbeddedControls(){
+    const controls=q('#gd-controls');if(!controls)return;
+    const tablists=[...controls.querySelectorAll('[role="tablist"]')];
+    const workflow=tablists.find(tab=>[...tab.querySelectorAll('button')].some(button=>/challenge|export|present/i.test(button.textContent||'')));
+    if(!workflow)return;
+    const buttons=[...workflow.querySelectorAll('button')];
+    const preferred=buttons.find(button=>/^(explore|setup|build)$/i.test((button.textContent||'').trim()));
+    const active=buttons.find(button=>button.classList.contains('gd-btn--primary')||button.classList.contains('is-active')||button.getAttribute('aria-selected')==='true');
+    if(preferred&&active&&/challenge|export|present|task/i.test(active.textContent||'')&&!/^(explore|setup|build)$/i.test(active.textContent||'')){
+      preferred.click();
+      queueMicrotask(simplifyEmbeddedControls);
+      return;
+    }
+    workflow.classList.add('gd-embed-workflow-hidden');
+  }
   window.addEventListener('message',event=>{
     if(event.origin!==location.origin||!event.data||typeof event.data!=='object')return;
-    if(event.data.type==='tt99-board-settings')shell.classList.toggle('gd-embed-controls-open',!!event.data.open);
+    if(event.data.type==='tt99-board-settings'){
+      const open=!!event.data.open;
+      shell.classList.toggle('gd-embed-controls-open',open);
+      if(open)queueMicrotask(simplifyEmbeddedControls);
+    }
   });
 }
 q('#gd-back').addEventListener('click',closeTool);search.addEventListener('input',renderCards);qa('[data-cat]').forEach(b=>b.addEventListener('click',()=>{category=b.dataset.cat;qa('[data-cat]').forEach(x=>x.classList.toggle('is-active',x===b));renderCards()}));
