@@ -3375,7 +3375,9 @@ if(mode==='prepare'){
 
     document.getElementById('me-add-ruler').click();
     assert(document.querySelectorAll('.gd-ruler-card').length===2,'Measurement workbench can add a second ruler');
-    assert(document.getElementById('me-sync-rulers')?.checked,'A newly added comparison ruler starts linked to the same physical length');
+    const syncRulers=document.getElementById('me-sync-rulers');
+    assert(syncRulers&&!syncRulers.checked,'A newly added comparison ruler starts independent');
+    syncRulers.checked=true;syncRulers.dispatchEvent(new Event('change',{bubbles:true}));
     assert(document.querySelector('.gd-ruler-sync-readout')?.textContent.includes('↔'),'Linked rulers show the metric / imperial correspondence explicitly');
     const scale=document.getElementById('me-scale');
     scale.value='imperial';scale.dispatchEvent(new Event('change',{bubbles:true}));
