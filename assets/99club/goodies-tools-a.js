@@ -4250,7 +4250,7 @@ function moneyTool(){
     items.forEach((item,index)=>{
       const col=index%m.cols,row=Math.floor(index/m.cols);
       item.x=18+col*((m.width-36)/m.cols);
-      item.y=24+row*92;
+      item.y=24+row*108;
     });
   }
   function randomInt(min,max){return min+Math.floor(Math.random()*(max-min+1))}
