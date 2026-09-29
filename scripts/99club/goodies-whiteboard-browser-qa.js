@@ -107,6 +107,9 @@ document.exitFullscreen=function(){
           workbench.click();
           assert(stage.querySelector('[data-gd-action="add"]'),'Fraction Strip workbench exposes direct Add before whiteboard mode');
         }
+        if(id==='maths-canvas'){
+          assert(stage.querySelector('[data-gd-action="add"]'),'Maths Canvas exposes direct Add before whiteboard mode');
+        }
         sharedPresent.click();
         await tick();
         assert(document.getElementById('gd-stage')===stage,'Shared whiteboard preserves the live stage element for '+id);
@@ -156,6 +159,16 @@ document.exitFullscreen=function(){
           add.click();
           assert(stage.querySelectorAll('#fw-strip-canvas [data-gd-object]').length===before+1,'Fraction Strip workbench can add a strip directly in whiteboard mode');
           assert(tools.getAttribute('aria-expanded')==='false'&&!workspace.classList.contains('gd-whiteboard-tools-open'),'Using Fraction Strip Add does not open the teacher Tools drawer');
+        }
+        if(id==='maths-canvas'){
+          const before=stage.querySelectorAll('[data-gd-object]').length,add=stage.querySelector('[data-gd-action="add"]');
+          assert(add&&getComputedStyle(add).display!=='none'&&add.getBoundingClientRect().height>0,'Maths Canvas Add remains visible while whiteboard Tools are collapsed');
+          add.click();
+          const one=stage.querySelector('.gd-mc-stage-palette [data-gd-action="add-tile"][data-mc-value="1"]');
+          assert(one&&getComputedStyle(one).display!=='none','Maths Canvas compact tile palette opens on the whiteboard stage');
+          one.click();
+          assert(stage.querySelectorAll('[data-gd-object]').length===before+1,'Maths Canvas can add a tile directly in whiteboard mode');
+          assert(tools.getAttribute('aria-expanded')==='false'&&!workspace.classList.contains('gd-whiteboard-tools-open'),'Using the Maths Canvas stage palette does not open teacher Tools');
         }
         tools.click();
         assert(workspace.classList.contains('gd-whiteboard-tools-open'),'Whiteboard Tools drawer opens for '+id);
