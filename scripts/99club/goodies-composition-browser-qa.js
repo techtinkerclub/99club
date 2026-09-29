@@ -202,6 +202,8 @@ async function run(){
   await tick();
   const nlStage=nlFrame.querySelector('iframe').contentDocument.getElementById('gd-stage');
   assert(nlStage.classList.contains('is-add-marker-mode'),'Number Line Marker action immediately enters place-a-marker mode');
+  const hint=document.getElementById('gd-board-hint');
+  assert(visible(hint)&&/Tap the number line/i.test(hint.textContent),'Multi-step Number Line action explains what to do next');
   TT99Goodies.compositionBoard.remove(nlRecord.id);
 
   const clock=objects[0];
