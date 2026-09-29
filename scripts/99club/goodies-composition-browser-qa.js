@@ -215,7 +215,7 @@ async function run(){
   TT99Goodies.compositionBoard.remove(nlRecord.id);
 
   document.querySelector('[data-board-add="clock"]').click();await tick();
-  const extraClockRecord=TT99Goodies.compositionBoard.objects().find(x=>x.toolId==='clock'&&x.id!==objects[0]?.dataset?.boardObject);
+  const extraClockRecord=TT99Goodies.compositionBoard.objects().find(x=>x.toolId==='clock'&&String(x.id)!==String(objects[0]?.dataset?.boardObject));
   const extraClockFrame=extraClockRecord&&document.querySelector('[data-board-object="'+extraClockRecord.id+'"]');
   for(let attempt=0;attempt<40&&extraClockFrame&&!extraClockFrame.classList.contains('is-ready');attempt++)await tick(50);
   const clockQuick=[...extraClockFrame.querySelectorAll('[data-board-quick-actions] button')];
