@@ -110,6 +110,10 @@ document.exitFullscreen=function(){
         if(id==='maths-canvas'){
           assert(stage.querySelector('[data-gd-action="add"]'),'Maths Canvas exposes direct Add before whiteboard mode');
         }
+        if(id==='money'){
+          const add=stage.querySelector('[data-gd-action="add-money"]');
+          assert(add&&!add.disabled,'UK Money exposes direct Add money before whiteboard mode');
+        }
         sharedPresent.click();
         await tick();
         assert(document.getElementById('gd-stage')===stage,'Shared whiteboard preserves the live stage element for '+id);
@@ -169,6 +173,16 @@ document.exitFullscreen=function(){
           one.click();
           assert(stage.querySelectorAll('[data-gd-object]').length===before+1,'Maths Canvas can add a tile directly in whiteboard mode');
           assert(tools.getAttribute('aria-expanded')==='false'&&!workspace.classList.contains('gd-whiteboard-tools-open'),'Using the Maths Canvas stage palette does not open teacher Tools');
+        }
+        if(id==='money'){
+          const before=stage.querySelectorAll('#mo-canvas [data-gd-object]').length,add=stage.querySelector('[data-gd-action="add-money"]');
+          assert(add&&getComputedStyle(add).display!=='none'&&add.getBoundingClientRect().height>0,'UK Money Add remains visible while whiteboard Tools are collapsed');
+          add.click();
+          const penny=stage.querySelector('.gd-money-stage-palette [data-gd-action="add-money-piece"][data-mo-value="1"]');
+          assert(penny&&getComputedStyle(penny).display!=='none','UK Money denomination palette opens directly on the whiteboard stage');
+          penny.click();
+          assert(stage.querySelectorAll('#mo-canvas [data-gd-object]').length===before+1,'UK Money can add a coin directly in whiteboard mode');
+          assert(tools.getAttribute('aria-expanded')==='false'&&!workspace.classList.contains('gd-whiteboard-tools-open'),'Using the UK Money stage palette does not open teacher Tools');
         }
         tools.click();
         assert(workspace.classList.contains('gd-whiteboard-tools-open'),'Whiteboard Tools drawer opens for '+id);
