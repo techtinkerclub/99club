@@ -2106,6 +2106,13 @@ if(mode==='prepare'){
     assert(document.getElementById('fw-strip-canvas'),'Fractions exposes a direct strip workbench');
     assert(document.querySelectorAll('#fw-strip-canvas [data-gd-object]').length===2,'Fraction workbench starts with two comparison strips');
     assert(getComputedStyle(document.getElementById('fw-strip-canvas')).touchAction==='pan-y','Fraction workbench preserves vertical touch scrolling outside strips');
+    let stageAddStrip=document.querySelector('[data-gd-action="add"]');
+    assert(stageAddStrip&&stageAddStrip.getAttribute('aria-label').includes('3/4'),'Fraction workbench exposes the selected wall fraction as a direct stage add action');
+    stageAddStrip.click();
+    assert(document.querySelectorAll('#fw-strip-canvas [data-gd-object]').length===3,'Fraction workbench can add a strip without reopening teacher controls');
+    assert(document.querySelector('#fw-strip-canvas [data-gd-object].is-selected .gd-fr-strip-head strong').textContent.trim()==='3/4','New stage-added strip is selected for immediate manipulation');
+    document.querySelector('[data-gd-action="undo"]').click();
+    assert(document.querySelectorAll('#fw-strip-canvas [data-gd-object]').length===2,'Fraction workbench Undo reverses a stage add cleanly');
 
     let strip=document.querySelector('#fw-strip-canvas [data-gd-object]');
     let sr=strip.getBoundingClientRect();
@@ -2158,6 +2165,7 @@ if(mode==='prepare'){
     document.getElementById('fw-generate').click();
     assert(document.querySelector('.gd-challenge-banner'),'Generated Fractions challenge appears above the representation');
     assert(document.getElementById('fw-strip-canvas'),'Read-a-strip challenge switches to the strip representation');
+    assert(!document.querySelector('[data-gd-action="add"]'),'Read-only standard strip challenge does not expose the stage add action');
     assert(document.querySelector('#fw-strip-canvas [data-gd-object] .gd-fr-strip-head strong').textContent.trim()==='?','Read-a-strip challenge hides the target fraction label');
     assert(document.querySelector('[data-challenge-action="another"]'),'Fractions standard challenge exposes Another like this');
     document.querySelector('[data-board-action="reveal"]').click();
@@ -2191,6 +2199,7 @@ if(mode==='prepare'){
 
     document.querySelector('[data-fw-workflow="challenge"]').click();
     document.querySelector('[data-fw-challenge-tab="custom"]').click();
+    assert(document.querySelector('[data-gd-action="add"]'),'Custom strip challenge restores the live stage add action');
     const fwSource=document.getElementById('fw-custom-answer-source');
     assert(fwSource,'Fractions custom challenge exposes live answer sources');
     assert([...fwSource.options].some(o=>o.value==='strip:1:fraction'),'Fractions custom answer can bind to a live strip fraction');
