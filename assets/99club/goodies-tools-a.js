@@ -4507,15 +4507,17 @@ function moneyTool(){
     }else{
       const size=Math.min(w,h),cx=size/2,cy=size/2,r=size/2-2;
       const fills={copper:'#c98768',silver:'#d7ddde',gold:'#dfc46b'};
-      if(d.tone==='bimetal'){
-        g.appendChild(moSvgEl('circle',{cx,cy,r,fill:'#d6b452',stroke:'#7f6b35','stroke-width':2}));
-        g.appendChild(moSvgEl('circle',{cx,cy,r:r*.58,fill:'#e2e7e8',stroke:'#87979a','stroke-width':1.4}));
-      }else if(d.shape==='hept'||d.shape==='dodec'){
-        const sides=d.shape==='hept'?7:12;
-        g.appendChild(moSvgEl('polygon',{points:polygonPoints(sides,cx,cy,r,d.shape==='hept'?-90:-75),fill:fills[d.tone]||'#d7ddde',stroke:d.tone==='copper'?'#8f5b45':'#778b90','stroke-width':2}));
+      const stroke=d.tone==='copper'?'#8f5b45':d.tone==='bimetal'?'#8b6f2c':'#778b90';
+      let outer=null;
+      if(d.shape==='hept'){
+        outer=moSvgEl('path',{d:coinPath('hept'),transform:'translate(2 2) scale('+((size-4)/100).toFixed(4)+')',fill:d.tone==='bimetal'?'#d6b452':(fills[d.tone]||'#d7ddde'),stroke,'stroke-width':2,'vector-effect':'non-scaling-stroke','data-mo-export-coin-shape':'hept'});
+      }else if(d.shape==='dodec'){
+        outer=moSvgEl('polygon',{points:polygonPoints(12,cx,cy,r,-75),fill:d.tone==='bimetal'?'#d6b452':(fills[d.tone]||'#d7ddde'),stroke,'stroke-width':2,'data-mo-export-coin-shape':'dodec'});
       }else{
-        g.appendChild(moSvgEl('circle',{cx,cy,r,fill:fills[d.tone]||'#d7ddde',stroke:d.tone==='copper'?'#8f5b45':'#778b90','stroke-width':2}));
+        outer=moSvgEl('circle',{cx,cy,r,fill:d.tone==='bimetal'?'#d6b452':(fills[d.tone]||'#d7ddde'),stroke,'stroke-width':2,'data-mo-export-coin-shape':'round'});
       }
+      g.appendChild(outer);
+      if(d.tone==='bimetal')g.appendChild(moSvgEl('circle',{cx,cy,r:r*.58,fill:'#e2e7e8',stroke:'#87979a','stroke-width':1.4}));
       g.appendChild(moSvgEl('text',{x:cx,y:cy+1,'text-anchor':'middle','dominant-baseline':'middle','font-family':'Arial,sans-serif','font-size':Math.max(11,size*.25),'font-weight':900,fill:'#30474d'},d.label));
     }
     svg.appendChild(g);
