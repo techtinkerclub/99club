@@ -1548,7 +1548,7 @@ function barModel(){
         '<div class="gd-bar-track" id="bm-track">'+parts.map(segmentMarkup).join('')+handles+'</div>'+
       '</div>';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-bar-workbench">'+
-      '<div class="gd-bar-summary"><div><span>'+(challenge?.comparison?'Comparison model':'Part–whole model')+'</span><strong>'+(challenge?.comparison?'Compare the aligned bars':equationText())+'</strong></div><div class="gd-object-toolbar"><button type="button" class="gd-btn" id="bm-undo"'+(undoStack.length&&!challengeFrozen()?'':' disabled')+'>Undo</button><button type="button" class="gd-btn" id="bm-redo"'+(redoStack.length&&!challengeFrozen()?'':' disabled')+'>Redo</button></div></div>'+
+      '<div class="gd-bar-summary"><div><span>'+(challenge?.comparison?'Comparison model':'Part–whole model')+'</span><strong>'+(challenge?.comparison?'Compare the aligned bars':equationText())+'</strong></div><div class="gd-object-toolbar">'+(!challengeFrozen()&&!challenge?.comparison?'<button type="button" class="gd-btn" id="bm-add-stage"'+(parts.length>=8?' disabled':'')+'>+ Part</button>':'')+'<button type="button" class="gd-btn" id="bm-undo"'+(undoStack.length&&!challengeFrozen()?'':' disabled')+'>Undo</button><button type="button" class="gd-btn" id="bm-redo"'+(redoStack.length&&!challengeFrozen()?'':' disabled')+'>Redo</button></div></div>'+
       model+selectedEditor()+
       '<div class="gd-bar-readouts"><div class="gd-readout"><span>Equation</span><strong data-bm-equation>'+(challenge?.comparison?'—':equationText())+'</strong></div><div class="gd-readout"><span>Relationship</span><strong data-bm-status>'+statusText()+'</strong></div></div>'+
       (challenge?.type==='build-model'?'<div class="gd-answer-live" data-bm-target-status>'+(buildOnTarget()?'On target ✓':'')+'</div>':'')+
@@ -1581,6 +1581,7 @@ function barModel(){
         else if((e.key==='Delete'||e.key==='Backspace')&&parts.length>1){e.preventDefault();mutate(()=>deletePart(part))}
       };
     });
+    const addStage=q('#bm-add-stage');if(addStage)addStage.onclick=()=>{if(parts.length<8&&!challengeFrozen())mutate(addPart)};
     const undoBtn=q('#bm-undo');if(undoBtn)undoBtn.onclick=undo;
     const redoBtn=q('#bm-redo');if(redoBtn)redoBtn.onclick=redo;
     const duplicate=q('#bm-duplicate');if(duplicate)duplicate.onclick=()=>mutate(()=>duplicatePart(selectedPart()));
@@ -1619,7 +1620,7 @@ function barModel(){
       '<div class="gd-row"><button class="gd-btn gd-btn--primary" id="bm-add" type="button"'+(parts.length>=8?' disabled':'')+'>Add part</button>'+(!challenge?btn('Example problem','bm-example'):'')+'</div>';
   }
   function exploreControlsHtml(){
-    return modelControlsHtml()+'<p class="gd-help">Work directly on the model: select a part to edit, duplicate, delete or mark it unknown. Drag dividers between two known parts to repartition their combined value while keeping that pair total unchanged.</p>';
+    return modelControlsHtml()+'<p class="gd-help">Work directly on the model: use + Part on the stage, then select a part to edit, duplicate, delete or mark it unknown. Drag dividers between two known parts to repartition their combined value while keeping that pair total unchanged.</p>';
   }
   function challengeControlsHtml(){
     if(!CK)return'<p class="gd-help">Challenge tools are unavailable.</p>';
