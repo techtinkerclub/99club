@@ -578,7 +578,7 @@ function coordinateTool(){
 
 function measurementTool(){
   const CK=G.challengeKit,X=G.exportTools;
-  let cm=12.3,dragPointer=null,primaryScale='metric',secondRuler=null,activeRuler=0;
+  let cm=12.3,dragPointer=null,primaryScale='metric',secondRuler=null,activeRuler=0,syncRulers=false;
   const INCH_CM=2.54,IMPERIAL_MAX_CM=12*INCH_CM;
   const CHALLENGE_CATEGORIES=[
     {id:'read',label:'Read & place'},
@@ -605,13 +605,23 @@ function measurementTool(){
   }
   function rulerState(index=0){return index===0?{cm,scale:primaryScale}:(secondRuler||{cm,scale:primaryScale})}
   function setRulerCm(index,value){
-    const state=rulerState(index),next=snapCm(value,state.scale);
+    const state=rulerState(index),linkedMax=syncRulers&&secondRuler?Math.min(maxCm(primaryScale),maxCm(secondRuler.scale)):maxCm(state.scale);
+    const next=snapCm(clamp(Number(value)||0,0,linkedMax),state.scale);
     if(index===0)cm=next;else if(secondRuler)secondRuler={...secondRuler,cm:next};
+    if(syncRulers&&secondRuler){
+      const shared=clamp(next,0,Math.min(maxCm(primaryScale),maxCm(secondRuler.scale)));
+      if(index===0)secondRuler={...secondRuler,cm:shared};
+      else cm=shared;
+    }
   }
   function setRulerScale(index,scale){
-    const nextScale=scale==='imperial'?'imperial':'metric',state=rulerState(index),nextCm=snapCm(state.cm,nextScale);
-    if(index===0){primaryScale=nextScale;cm=nextCm}
-    else if(secondRuler)secondRuler={cm:nextCm,scale:nextScale};
+    const nextScale=scale==='imperial'?'imperial':'metric',state=rulerState(index),preserve=state.cm;
+    if(index===0){primaryScale=nextScale;cm=syncRulers&&secondRuler?clamp(preserve,0,Math.min(maxCm(nextScale),maxCm(secondRuler.scale))):snapCm(preserve,nextScale)}
+    else if(secondRuler){
+      const nextCm=syncRulers?clamp(preserve,0,Math.min(maxCm(primaryScale),maxCm(nextScale))):snapCm(preserve,nextScale);
+      secondRuler={...secondRuler,cm:nextCm,scale:nextScale};
+      if(syncRulers)cm=nextCm;
+    }
   }
   function setCm(value){cm=roundCm(value)}
   function mmValue(value=cm){return Math.round((Number(value)||0)*10)}
@@ -641,13 +651,15 @@ function measurementTool(){
       ['metres',mText(state.cm)+' m']
     ];
   }
-  function snapshot(){return{cm,primaryScale,secondRuler:secondRuler?{cm:secondRuler.cm,scale:secondRuler.scale}:null,activeRuler}}
+  function snapshot(){return{cm,primaryScale,secondRuler:secondRuler?{cm:secondRuler.cm,scale:secondRuler.scale}:null,activeRuler,syncRulers}}
   function restoreSnapshot(value){
     if(!value)return;
     primaryScale=value.primaryScale==='imperial'?'imperial':'metric';
     cm=snapCm(value.cm,primaryScale);
     secondRuler=value.secondRuler?{cm:snapCm(value.secondRuler.cm,value.secondRuler.scale==='imperial'?'imperial':'metric'),scale:value.secondRuler.scale==='imperial'?'imperial':'metric'}:null;
     activeRuler=secondRuler&&Number(value.activeRuler)===1?1:0;
+    syncRulers=!!value.syncRulers&&!!secondRuler;
+    if(syncRulers&&secondRuler){const shared=clamp(cm,0,Math.min(maxCm(primaryScale),maxCm(secondRuler.scale)));cm=shared;secondRuler.cm=shared}
     dragPointer=null;
   }
   function readoutHidden(){return !!(challenge&&!challenge.revealed&&challenge.hiddenReadout)}
@@ -696,10 +708,11 @@ function measurementTool(){
     return '<div class="gd-field"><span>Rulers</span><div class="gd-row">'+selector+'</div></div>'+
       '<div class="gd-row"><button class="gd-btn" id="me-add-ruler" type="button"'+(secondRuler?' disabled':'')+'>Add ruler</button>'+
       '<button class="gd-btn" id="me-remove-ruler" type="button"'+(activeRuler===0?' disabled':'')+'>Remove selected</button></div>'+
+      (secondRuler?'<label class="nl-check gd-ruler-sync-toggle"><input id="me-sync-rulers" type="checkbox"'+(syncRulers?' checked':'')+'> Sync rulers to the same physical length</label>':'')+
       field('Scale','<select class="gd-select" id="me-scale"><option value="metric"'+(!imperial?' selected':'')+'>Metric — 30 cm / 1 mm</option><option value="imperial"'+(imperial?' selected':'')+'>Imperial — 12 in / 1⁄16 in</option></select>')+
       field(imperial?'Measurement (inches)':'Measurement (cm)','<input class="gd-input" id="me-cm" type="range" min="0" max="'+(imperial?'12':'30')+'" step="'+(imperial?'0.0625':'0.1')+'" value="'+display+'">')+
       '<div class="gd-row">'+btn('Random mark','me-random')+'</div>'+
-      '<p class="gd-help">Use one or two rulers. Each ruler can be metric or imperial independently, so you can compare the same physical length across scales. Metric snaps to 1 mm; imperial snaps to 1⁄16 inch.</p>';
+      '<p class="gd-help">Use one or two rulers. Give them different scales, then sync them when you want both markers to represent the same physical length. Metric snaps to 1 mm; imperial snaps to 1⁄16 inch when moved directly.</p>';
   }
   function challengeControlsHtml(){
     if(!CK)return '<p class="gd-help">Challenge tools are unavailable.</p>';
@@ -997,10 +1010,15 @@ function measurementTool(){
       });
       const add=q('#me-add-ruler',controls);if(add)add.onclick=()=>{
         if(secondRuler)return;
-        const source=rulerState(0);secondRuler={cm:source.cm,scale:source.scale};activeRuler=1;renderControls();draw();
+        const source=rulerState(0),scale=source.scale==='metric'?'imperial':'metric';secondRuler={cm:clamp(source.cm,0,maxCm(scale)),scale};syncRulers=true;activeRuler=1;renderControls();draw();
       };
       const remove=q('#me-remove-ruler',controls);if(remove)remove.onclick=()=>{
-        if(activeRuler!==1)return;secondRuler=null;activeRuler=0;renderControls();draw();
+        if(activeRuler!==1)return;secondRuler=null;syncRulers=false;activeRuler=0;renderControls();draw();
+      };
+      const sync=q('#me-sync-rulers',controls);if(sync)sync.onchange=()=>{
+        syncRulers=!!sync.checked;
+        if(syncRulers&&secondRuler){const state=rulerState(activeRuler),shared=clamp(state.cm,0,Math.min(maxCm(primaryScale),maxCm(secondRuler.scale)));cm=shared;secondRuler={...secondRuler,cm:shared}}
+        renderControls();draw();
       };
       const scale=q('#me-scale',controls);if(scale)scale.onchange=()=>{setRulerScale(activeRuler,scale.value);renderControls();draw()};
       const slider=q('#me-cm',controls);if(slider)slider.oninput=()=>{
@@ -1086,9 +1104,11 @@ function measurementTool(){
       ?'<div class="gd-answer-live" id="me-target-status">'+(Math.abs(cm-Number(challenge.targetCm))<.05?'On target ✓':'')+'</div>'
       :'';
     const states=challenge?[rulerState(0)]:[rulerState(0),...(secondRuler?[rulerState(1)]:[])];
+    const syncReadout=!challenge&&secondRuler&&syncRulers
+      ?'<div class="gd-ruler-sync-readout"><span>Linked length</span><strong>'+cmText(cm)+' cm ↔ '+inchText(cm)+' in</strong></div>':'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-measurement-direct">'+
       '<div class="gd-ruler-stack">'+states.map((state,index)=>rulerCardMarkup(index,state)).join('')+'</div>'+
-      targetStatus+
+      syncReadout+targetStatus+
     '</div>';
     bindRulers();bindChallengeStageActions();
     const slider=q('#me-cm',q('#gd-controls'));if(slider)slider.value=selectedSliderValue();
