@@ -899,7 +899,7 @@ html.gd-embed-page .page__content,body.gd-embed-page .page__content{width:100%!i
 .gd-board-object.is-locked>.gd-board-move-handle,.gd-board-object.is-locked>.gd-board-resize-handle{opacity:.28;cursor:default}
 .gd-board-context-menu{display:none;position:absolute;z-index:25;right:25px;top:-9px;gap:2px;padding:3px;border:1px solid rgba(145,164,168,.38);border-radius:9px;background:rgba(255,255,255,.96);box-shadow:0 5px 18px rgba(31,61,69,.10);backdrop-filter:blur(8px)}
 .gd-board-object.has-context-menu>.gd-board-context-menu{display:flex}
-.gd-board-context-menu button{width:29px;height:29px;min-width:29px;min-height:29px;padding:0;border:0;border-radius:7px;background:transparent;color:#5f7379;display:grid;place-items:center;cursor:pointer}
+.gd-board-context-menu button{width:29px;height:29px;min-width:29px;min-height:29px;padding:0;border:0;border-radius:7px;background:transparent;color:#5f7379;display:grid;place-items:center;cursor:pointer}.gd-board-context-menu button[hidden]{display:none!important}
 .gd-board-context-menu button:hover,.gd-board-context-menu button:focus-visible{background:#eef6f4;color:#216d66;outline:none}
 .gd-board-context-menu [data-board-delete]:hover,.gd-board-context-menu [data-board-delete]:focus-visible{background:#fbf0f0;color:#9b4b4b}
 .gd-board-object.has-settings{border-color:rgba(38,121,111,.42)}
