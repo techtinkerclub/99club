@@ -4,6 +4,7 @@ const fs=require('fs');
 const mode=process.argv[2];
 const BOARD='99club-goodies-composition-qa.html';
 const EMBED='99club-goodies-embed-qa.html';
+const HOST='99club-goodies-embed-host.html';
 const REPORT='99club-goodies-composition-qa-report.json';
 
 function shell(url,bodyScript){
@@ -18,7 +19,7 @@ function shell(url,bodyScript){
 <body>
 <div id="tt99-goodies-root"></div>
 <div id="gd-composition-qa-result" data-status="pending" data-kind="">pending</div>
-<script>history.replaceState(null,'','${url}');window.scrollTo=function(){};</script>
+<script>history.replaceState(null,'','${url}');window.scrollTo=function(){};${url.includes('board=1')?`window.TT99_GOODIES_BOARD_EMBED_PATH='/${HOST}';`:''}</script>
 <script src="/assets/99club/goodies-core.js"></script>
 <script src="/assets/99club/goodies-interaction.js"></script>
 <script src="/assets/99club/goodies-challenge.js"></script>
@@ -31,6 +32,31 @@ function shell(url,bodyScript){
 <script>
 ${bodyScript}
 </script>
+</body>
+</html>`;
+}
+
+function embedHost(){
+  return `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="/assets/99club/goodies.css">
+<style>html{scroll-behavior:auto!important}body{margin:0}</style>
+</head>
+<body>
+<div id="tt99-goodies-root"></div>
+<script>window.scrollTo=function(){};</script>
+<script src="/assets/99club/goodies-core.js"></script>
+<script src="/assets/99club/goodies-interaction.js"></script>
+<script src="/assets/99club/goodies-challenge.js"></script>
+<script src="/assets/99club/goodies-export.js"></script>
+<script src="/assets/99club/goodies-tools-a.js"></script>
+<script src="/assets/99club/goodies-number-line-v6.js"></script>
+<script src="/assets/99club/goodies-tools-b.js"></script>
+<script src="/assets/99club/goodies-app.js"></script>
+<script src="/assets/99club/goodies-board.js"></script>
 </body>
 </html>`;
 }
@@ -118,6 +144,16 @@ async function run(){
   snap.click();
   assert(snap.getAttribute('aria-pressed')==='true','Snap can be restored');
 
+  const viewport=document.getElementById('gd-board-viewport');
+  viewport.scrollLeft=180;viewport.scrollTop=160;
+  const panBefore=TT99Goodies.compositionBoard.viewport();
+  pointer(canvas,'pointerdown',700,650,44);
+  pointer(document,'pointermove',620,580,44);
+  pointer(document,'pointerup',620,580,44);
+  const panAfter=TT99Goodies.compositionBoard.viewport();
+  assert(panAfter.left>panBefore.left&&panAfter.top>panBefore.top,'Dragging empty board space pans the large whiteboard naturally');
+  assert(!board.classList.contains('is-panning'),'Board leaves grab state when panning ends');
+
   context.click();
   money.querySelector('[data-board-delete]').click();
   objects=[...document.querySelectorAll('[data-board-object]')];
@@ -126,10 +162,34 @@ async function run(){
   const clock=objects[0];
   const boardRect=canvas.getBoundingClientRect();
   pointer(canvas,'pointerdown',boardRect.left+5,boardRect.top+5,43);
+  pointer(document,'pointerup',boardRect.left+5,boardRect.top+5,43);
   assert(!clock.classList.contains('is-selected'),'Touching blank canvas removes object focus');
   assert(getComputedStyle(clock.querySelector('[data-board-context]')).display==='none','Object chrome disappears completely when unfocused');
 
-  result('pass','board','Mixed whiteboard is clean, snapped and context-first','tools='+tools.length);
+  if(innerWidth>=900){
+    const firstRecord=TT99Goodies.compositionBoard.objects()[0];
+    if(firstRecord)TT99Goodies.compositionBoard.remove(firstRecord.id);
+    assert(document.querySelectorAll('[data-board-object]').length===0,'All initial test objects can be cleared before the catalogue smoke pass');
+    const mounted=[];
+    for(const toolButton of tools){
+      toolButton.click();
+      const record=TT99Goodies.compositionBoard.objects().slice(-1)[0];
+      assert(record,'Board creates a record for '+toolButton.getAttribute('aria-label'));
+      const frame=document.querySelector('[data-board-object="'+record.id+'"]');
+      let ready=false;
+      for(let attempt=0;attempt<40;attempt++){
+        if(frame?.classList.contains('is-ready')){ready=true;break}
+        await tick(50);
+      }
+      assert(ready,toolButton.getAttribute('aria-label')+' mounts successfully as an isolated live whiteboard object');
+      mounted.push(record.toolId);
+      TT99Goodies.compositionBoard.remove(record.id);
+      await tick();
+    }
+    assert(mounted.length===tools.length,'Every palette manipulative completed the embedded-object smoke pass');
+  }
+
+  result('pass','board','Mixed whiteboard is clean, pannable and all palette tools mount','tools='+tools.length);
 }
 window.addEventListener('load',()=>setTimeout(()=>run().catch(err=>result('fail','board',err&&err.message?err.message:String(err),err&&err.stack?err.stack:'')),180));
 })();`;
@@ -164,7 +224,8 @@ window.addEventListener('load',()=>setTimeout(()=>run().catch(err=>result('fail'
 
   fs.writeFileSync(BOARD,shell('/goodies/?board=1',boardScript));
   fs.writeFileSync(EMBED,shell('/goodies/?embed=1#clock',embedScript));
-  console.log(BOARD+'\n'+EMBED);
+  fs.writeFileSync(HOST,embedHost());
+  console.log(BOARD+'\n'+EMBED+'\n'+HOST);
   process.exit(0);
 }
 

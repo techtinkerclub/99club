@@ -847,7 +847,7 @@ html.gd-mixed-board-page,body.gd-mixed-board-page{overflow:hidden!important}
 .gd-mixed-board{position:absolute;inset:0;overflow:hidden;background:#fbfcfc;color:#31484f}
 .gd-board-viewport{position:absolute;inset:0;overflow:auto;overscroll-behavior:contain;scrollbar-width:none;touch-action:pan-x pan-y;background:#fbfcfc}
 .gd-board-viewport::-webkit-scrollbar{display:none}
-.gd-board-canvas{position:relative;min-width:100%;min-height:100%;background-color:#fbfcfc;background-image:radial-gradient(circle at 1px 1px,rgba(70,101,105,.18) 1px,transparent 1.15px);background-size:10px 10px}
+.gd-board-canvas{position:relative;min-width:100%;min-height:100%;background-color:#fbfcfc;background-image:radial-gradient(circle at 1px 1px,rgba(70,101,105,.18) 1px,transparent 1.15px);background-size:10px 10px;cursor:grab;user-select:none}.gd-mixed-board.is-panning .gd-board-canvas{cursor:grabbing}
 .gd-board-palette{position:absolute;z-index:1000;left:9px;top:50%;transform:translateY(-50%);width:44px;max-height:calc(100% - 24px);overflow-y:auto;display:grid;gap:2px;padding:4px;border:0;border-radius:12px;background:rgba(250,252,252,.62);box-shadow:0 3px 16px rgba(32,57,62,.06);backdrop-filter:blur(7px);scrollbar-width:none}
 .gd-board-palette::-webkit-scrollbar{display:none}
 .gd-board-tool{position:relative;width:36px;height:36px;min-width:36px;min-height:36px;padding:0;border:0;border-radius:9px;background:transparent;color:#50666c;font:inherit;display:grid;place-items:center;cursor:pointer;opacity:.52;transition:opacity .12s ease,background .12s ease,color .12s ease}
