@@ -33,9 +33,9 @@ const defaults={
 };
 const QUICK_ACTIONS={
   'number-line':[
-    {label:'+ Marker',selector:'[data-board-action="add-marker"]'},
-    {label:'+ Relation',selector:'[data-board-action="relation"]'},
-    {label:'+ Line',selector:'[data-board-action="add-line"]'}
+    {label:'+ Marker',selector:'[data-board-action="add-marker"]',title:'Add marker',notice:'Tap the number line where you want the marker.'},
+    {label:'+ Relation',selector:'[data-board-action="relation"]',title:'Add relationship',notice:'Tap the first marker, then the second marker.'},
+    {label:'+ Line',selector:'[data-board-action="add-line"]',title:'Add aligned comparison line'}
   ],
   'bar-model':[
     {label:'+ Part',selector:'#bm-add-stage'},
@@ -101,6 +101,7 @@ root.innerHTML='<div class="gd-mixed-board" id="gd-mixed-board">'+
   '<div class="gd-board-viewport" id="gd-board-viewport" tabindex="0" aria-label="Maths whiteboard">'+
     '<div class="gd-board-canvas" id="gd-board-canvas" style="width:'+BOARD_W+'px;height:'+BOARD_H+'px"></div>'+
   '</div>'+
+  '<div class="gd-board-hint" id="gd-board-hint" role="status" aria-live="polite"></div>'+
   '<div class="gd-board-global" aria-label="Whiteboard controls">'+
     '<button type="button" class="gd-board-global-button" id="gd-board-back" aria-label="Back to manipulatives" title="Back">'+iconSvg('back')+'</button>'+
     '<button type="button" class="gd-board-global-button is-active" id="gd-board-snap" aria-pressed="true" aria-label="Toggle snap to dots" title="Snap to dots">'+iconSvg('snap')+'</button>'+
@@ -111,6 +112,13 @@ root.innerHTML='<div class="gd-mixed-board" id="gd-mixed-board">'+
 const board=document.getElementById('gd-mixed-board');
 const viewport=document.getElementById('gd-board-viewport');
 const canvas=document.getElementById('gd-board-canvas');
+const hint=document.getElementById('gd-board-hint');
+let hintTimer=null;
+function boardHint(message){
+  if(!hint||!message)return;
+  clearTimeout(hintTimer);hint.textContent=message;hint.classList.add('is-visible');
+  hintTimer=setTimeout(()=>hint.classList.remove('is-visible'),2600);
+}
 
 function objectById(id){return objects.find(x=>String(x.id)===String(id))||null}
 function frameFor(id){return canvas.querySelector('[data-board-object="'+id+'"]')}
@@ -307,7 +315,7 @@ function bindObject(obj){
     e.preventDefault();e.stopPropagation();
     const action=(QUICK_ACTIONS[obj.toolId]||[])[Number(button.dataset.boardInnerAction)];
     const target=action&&innerTarget(obj,action.selector);
-    if(target){target.click();setTimeout(()=>syncQuickActions(obj),0)}
+    if(target){target.click();if(action.notice)boardHint(action.notice);setTimeout(()=>syncQuickActions(obj),0)}
   };
 
   const move=frame.querySelector('[data-board-move]');
