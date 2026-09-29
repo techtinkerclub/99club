@@ -140,7 +140,30 @@ async function run(){
   assert(!clock.classList.contains('is-selected'),'Touching blank canvas removes object focus');
   assert(getComputedStyle(clock.querySelector('[data-board-context]')).display==='none','Object chrome disappears completely when unfocused');
 
-  result('pass','board','Mixed whiteboard is clean, snapped and context-first','tools='+tools.length);
+  if(innerWidth>=900){
+    const firstRecord=TT99Goodies.compositionBoard.objects()[0];
+    if(firstRecord)TT99Goodies.compositionBoard.remove(firstRecord.id);
+    assert(document.querySelectorAll('[data-board-object]').length===0,'All initial test objects can be cleared before the catalogue smoke pass');
+    const mounted=[];
+    for(const toolButton of tools){
+      toolButton.click();
+      const record=TT99Goodies.compositionBoard.objects().slice(-1)[0];
+      assert(record,'Board creates a record for '+toolButton.getAttribute('aria-label'));
+      const frame=document.querySelector('[data-board-object="'+record.id+'"]');
+      let ready=false;
+      for(let attempt=0;attempt<40;attempt++){
+        if(frame?.classList.contains('is-ready')){ready=true;break}
+        await tick(50);
+      }
+      assert(ready,toolButton.getAttribute('aria-label')+' mounts successfully as an isolated live whiteboard object');
+      mounted.push(record.toolId);
+      TT99Goodies.compositionBoard.remove(record.id);
+      await tick();
+    }
+    assert(mounted.length===tools.length,'Every palette manipulative completed the embedded-object smoke pass');
+  }
+
+  result('pass','board','Mixed whiteboard is clean, pannable and all palette tools mount','tools='+tools.length);
 }
 window.addEventListener('load',()=>setTimeout(()=>run().catch(err=>result('fail','board',err&&err.message?err.message:String(err),err&&err.stack?err.stack:'')),180));
 })();`;
