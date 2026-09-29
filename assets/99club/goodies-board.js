@@ -20,18 +20,23 @@ const defaults={
   'multiplication-grid':[590,620],
   'array-builder':[660,560],
   'clock':[560,680],
-  'money':[760,500],
+  'money':[760,570],
   'coordinates':[680,610],
-  'measurement':[780,460],
+  'measurement':[780,650],
   'randomiser':[680,500],
   'balance':[760,580],
   'times-table':[700,580],
   'factors':[740,620],
-  'fdp':[700,620],
-  'geoboard':[650,680],
+  'fdp':[700,800],
+  'geoboard':[650,780],
   'maths-canvas':[760,560]
 };
 const QUICK_ACTIONS={
+  'number-line':[
+    {label:'+ Marker',selector:'[data-board-action="add-marker"]',title:'Add marker',notice:'Tap the number line where you want the marker.'},
+    {label:'+ Relation',selector:'[data-board-action="relation"]',title:'Add relationship',notice:'Tap the first marker, then the second marker.'},
+    {label:'+ Line',selector:'[data-board-action="add-line"]',title:'Add aligned comparison line'}
+  ],
   'bar-model':[
     {label:'+ Part',selector:'#bm-add-stage'},
     {label:'−',selector:'#bm-minus',title:'Decrease selected part'},
@@ -96,6 +101,7 @@ root.innerHTML='<div class="gd-mixed-board" id="gd-mixed-board">'+
   '<div class="gd-board-viewport" id="gd-board-viewport" tabindex="0" aria-label="Maths whiteboard">'+
     '<div class="gd-board-canvas" id="gd-board-canvas" style="width:'+BOARD_W+'px;height:'+BOARD_H+'px"></div>'+
   '</div>'+
+  '<div class="gd-board-hint" id="gd-board-hint" role="status" aria-live="polite"></div>'+
   '<div class="gd-board-global" aria-label="Whiteboard controls">'+
     '<button type="button" class="gd-board-global-button" id="gd-board-back" aria-label="Back to manipulatives" title="Back">'+iconSvg('back')+'</button>'+
     '<button type="button" class="gd-board-global-button is-active" id="gd-board-snap" aria-pressed="true" aria-label="Toggle snap to dots" title="Snap to dots">'+iconSvg('snap')+'</button>'+
@@ -106,6 +112,13 @@ root.innerHTML='<div class="gd-mixed-board" id="gd-mixed-board">'+
 const board=document.getElementById('gd-mixed-board');
 const viewport=document.getElementById('gd-board-viewport');
 const canvas=document.getElementById('gd-board-canvas');
+const hint=document.getElementById('gd-board-hint');
+let hintTimer=null;
+function boardHint(message){
+  if(!hint||!message)return;
+  clearTimeout(hintTimer);hint.textContent=message;hint.classList.add('is-visible');
+  hintTimer=setTimeout(()=>hint.classList.remove('is-visible'),2600);
+}
 
 function objectById(id){return objects.find(x=>String(x.id)===String(id))||null}
 function frameFor(id){return canvas.querySelector('[data-board-object="'+id+'"]')}
@@ -116,10 +129,31 @@ function innerDocument(obj){
 function innerTarget(obj,selector){
   const doc=innerDocument(obj);if(!doc||!selector)return null;
   const node=doc.querySelector(selector);
-  if(!node||node.disabled||node.hidden)return null;
+  if(!node||node.disabled||node.hidden||node.classList?.contains('is-disabled')||node.getAttribute?.('aria-disabled')==='true')return null;
   const style=doc.defaultView?.getComputedStyle(node);
   if(style&&(style.display==='none'||style.visibility==='hidden'))return null;
   return node;
+}
+function fitEmbeddedObject(obj,initial=false){
+  const frame=frameFor(obj?.id),doc=innerDocument(obj);if(!frame||!doc)return;
+  const stage=doc.getElementById('gd-stage');if(!stage)return;
+  const neededW=Math.ceil(Math.max(stage.clientWidth,stage.scrollWidth));
+  const neededH=Math.ceil(Math.max(stage.clientHeight,stage.scrollHeight));
+  const nextBaseW=clamp(Math.max(obj.baseW,neededW),220,1200);
+  const nextBaseH=clamp(Math.max(obj.baseH,neededH),180,1400);
+  if(nextBaseW<=obj.baseW+2&&nextBaseH<=obj.baseH+2)return;
+  obj.baseW=nextBaseW;obj.baseH=nextBaseH;
+  if(initial){
+    const narrow=viewport.clientWidth<620;
+    const availableW=Math.max(220,viewport.clientWidth-(narrow?72:110));
+    const availableH=Math.max(180,viewport.clientHeight-90);
+    const fitScale=clamp(Math.floor(Math.min(1,availableW/obj.baseW,availableH/obj.baseH)*20)/20,.35,1);
+    obj.scale=Math.min(obj.scale,fitScale);
+  }
+  const boardMaxScale=Math.min((BOARD_W-obj.x)/obj.baseW,(BOARD_H-obj.y)/obj.baseH,2);
+  obj.scale=clamp(Math.min(obj.scale,boardMaxScale),.35,2);
+  obj.w=Math.round(obj.baseW*obj.scale);obj.h=Math.round(obj.baseH*obj.scale);
+  positionObject(obj);
 }
 function syncQuickActions(obj){
   const frame=frameFor(obj?.id),rail=frame?.querySelector('[data-board-quick-actions]');if(!rail)return;
@@ -136,11 +170,16 @@ function connectInnerObject(obj){
   const connect=()=>{
     let doc=null;try{doc=iframe.contentDocument}catch(_){}
     if(!doc)return;
-    const refresh=()=>setTimeout(()=>syncQuickActions(obj),0);
+    const settleFit=(initial=false,pass=0)=>{
+      fitEmbeddedObject(obj,initial&&pass===0);
+      syncQuickActions(obj);
+      if(pass<3)setTimeout(()=>settleFit(false,pass+1),24);
+    };
+    const refresh=()=>setTimeout(()=>settleFit(false,0),0);
     doc.addEventListener('click',refresh,true);
     doc.addEventListener('change',refresh,true);
     doc.addEventListener('input',refresh,true);
-    syncQuickActions(obj);
+    requestAnimationFrame(()=>settleFit(true,0));
   };
   iframe.addEventListener('load',connect,{once:true});
   try{if(iframe.contentDocument?.readyState==='complete')connect()}catch(_){}
@@ -201,7 +240,6 @@ function objectMarkup(obj,tool){
     '<div class="gd-board-context-menu" role="menu" aria-label="'+esc(tool.title)+' controls">'+
       '<button type="button" data-board-settings="'+obj.id+'" role="menuitem" aria-label="Settings" title="Settings">'+iconSvg('settings')+'</button>'+
       '<button type="button" data-board-lock="'+obj.id+'" role="menuitem" aria-label="Lock position" title="Lock position">'+iconSvg('lock')+'</button>'+
-      '<button type="button" data-board-delete="'+obj.id+'" role="menuitem" aria-label="Delete" title="Delete">'+iconSvg('trash')+'</button>'+
     '</div>'+
     '<button type="button" class="gd-board-resize-handle" data-board-resize="'+obj.id+'" aria-label="Resize '+esc(tool.title)+'" title="Resize"></button>'+
   '</section>';
@@ -277,7 +315,7 @@ function bindObject(obj){
     e.preventDefault();e.stopPropagation();
     const action=(QUICK_ACTIONS[obj.toolId]||[])[Number(button.dataset.boardInnerAction)];
     const target=action&&innerTarget(obj,action.selector);
-    if(target){target.click();setTimeout(()=>syncQuickActions(obj),0)}
+    if(target){target.click();if(action.notice)boardHint(action.notice);setTimeout(()=>syncQuickActions(obj),0)}
   };
 
   const move=frame.querySelector('[data-board-move]');
@@ -355,6 +393,12 @@ document.getElementById('gd-board-full').onclick=()=>{
   board.requestFullscreen?.().catch(()=>{});
 };
 document.addEventListener('fullscreenchange',()=>board.classList.toggle('is-fullscreen',document.fullscreenElement===board));
+document.addEventListener('keydown',e=>{
+  const tag=(e.target?.tagName||'').toLowerCase();
+  const editing=tag==='input'||tag==='textarea'||tag==='select'||e.target?.isContentEditable;
+  if(e.key==='Escape'&&selectedId!=null){e.preventDefault();deselect();return}
+  if(!editing&&selectedId!=null&&(e.key==='Delete'||e.key==='Backspace')){e.preventDefault();removeObject(selectedId)}
+});
 
 window.addEventListener('message',event=>{
   if(event.origin!==location.origin||!event.data||event.data.type!=='tt99-board-ready')return;

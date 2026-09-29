@@ -16,7 +16,7 @@ robots: "noindex,nofollow,noarchive"
   </article>
 </div>
 
-<link rel="stylesheet" href="/assets/99club/goodies.css?v=53">
+<link rel="stylesheet" href="/assets/99club/goodies.css?v=54">
 <script>
 window.TT99_GOODIES_FORCE_BOARD = true;
 window.TT99_GOODIES_BOARD_EMBED_PATH = '/goodies/';
@@ -29,5 +29,5 @@ window.TT99_GOODIES_BOARD_HOME = '/goodies/';
 <script src="/assets/99club/goodies-tools-a.js?v=28" defer></script>
 <script src="/assets/99club/goodies-number-line-v6.js?v=11" defer></script>
 <script src="/assets/99club/goodies-tools-b.js?v=25" defer></script>
-<script src="/assets/99club/goodies-app.js?v=5" defer></script>
-<script src="/assets/99club/goodies-board.js?v=3" defer></script>
+<script src="/assets/99club/goodies-app.js?v=6" defer></script>
+<script src="/assets/99club/goodies-board.js?v=4" defer></script>

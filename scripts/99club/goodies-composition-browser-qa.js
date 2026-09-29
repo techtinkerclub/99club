@@ -112,15 +112,22 @@ async function run(){
   assert(visible(quick),'Focused Money object exposes whiteboard-owned quick actions');
   const addMoney=[...quick.querySelectorAll('button')].find(button=>/Money/.test(button.textContent));
   assert(addMoney&&addMoney.getBoundingClientRect().height<=27,'Money add action is compact and contextual');
+  const directDelete=money.querySelector('.gd-board-delete-direct');
+  assert(visible(directDelete)&&directDelete.getBoundingClientRect().width<=30,'Focused object keeps delete directly available');
+  const cover=money.querySelector('.gd-board-object-cover');cover.focus();
+  assert(getComputedStyle(cover).outlineStyle==='none','Selecting an object does not leave a browser focus rectangle');
   const context=money.querySelector('[data-board-context]');
-  assert(visible(context)&&context.getBoundingClientRect().width<=30,'Focused object exposes only a tiny contextual menu trigger');
+  assert(visible(context)&&context.getBoundingClientRect().width<=30,'Focused object exposes a tiny settings menu trigger');
   assert(getComputedStyle(money.querySelector('.gd-board-context-menu')).display==='none','Context actions stay hidden until requested');
   context.click();
   assert(visible(money.querySelector('.gd-board-context-menu')),'Context menu opens only after the focused-object button is pressed');
-  [...money.querySelectorAll('.gd-board-context-menu button')].forEach(button=>{
+  const contextButtons=[...money.querySelectorAll('.gd-board-context-menu button')];
+  contextButtons.forEach(button=>{
     const r=button.getBoundingClientRect();
     assert(r.width<=31&&r.height<=31,'Context action remains compact');
   });
+  assert(contextButtons.length===2,'Object overflow menu contains only Settings and Lock');
+  assert(!money.querySelector('.gd-board-context-menu [data-board-delete]'),'Delete is not duplicated inside the overflow menu');
 
   const settings=money.querySelector('[data-board-settings]');
   settings.click();
@@ -178,10 +185,26 @@ async function run(){
   assert(panAfter.left>panBefore.left&&panAfter.top>panBefore.top,'Dragging empty board space pans the large whiteboard naturally');
   assert(!board.classList.contains('is-panning'),'Board leaves grab state when panning ends');
 
-  context.click();
-  money.querySelector('[data-board-delete]').click();
+  directDelete.click();
   objects=[...document.querySelectorAll('[data-board-object]')];
-  assert(objects.length===1,'Delete removes only the focused manipulative');
+  assert(objects.length===1,'Direct Delete removes only the focused manipulative');
+
+  document.querySelector('[data-board-add="number-line"]').click();
+  await tick();
+  const nlRecord=TT99Goodies.compositionBoard.objects().find(x=>x.toolId==='number-line');
+  const nlFrame=nlRecord&&document.querySelector('[data-board-object="'+nlRecord.id+'"]');
+  for(let attempt=0;attempt<40&&nlFrame&&!nlFrame.classList.contains('is-ready');attempt++)await tick(50);
+  assert(nlFrame&&nlFrame.classList.contains('is-ready'),'Number Line reaches embedded ready state');
+  const nlQuick=[...nlFrame.querySelectorAll('[data-board-quick-actions] button')];
+  const nlLabels=nlQuick.map(button=>button.textContent.trim());
+  assert(nlLabels.includes('+ Marker')&&nlLabels.includes('+ Relation')&&nlLabels.includes('+ Line'),'Number Line exposes Marker, Relationship and Line construction actions directly');
+  nlQuick.find(button=>button.textContent.trim()==='+ Marker').click();
+  await tick();
+  const nlStage=nlFrame.querySelector('iframe').contentDocument.getElementById('gd-stage');
+  assert(nlStage.classList.contains('is-add-marker-mode'),'Number Line Marker action immediately enters place-a-marker mode');
+  const hint=document.getElementById('gd-board-hint');
+  assert(visible(hint)&&/Tap the number line/i.test(hint.textContent),'Multi-step Number Line action explains what to do next');
+  TT99Goodies.compositionBoard.remove(nlRecord.id);
 
   const clock=objects[0];
   const boardRect=canvas.getBoundingClientRect();
@@ -194,7 +217,7 @@ async function run(){
     const firstRecord=TT99Goodies.compositionBoard.objects()[0];
     if(firstRecord)TT99Goodies.compositionBoard.remove(firstRecord.id);
     assert(document.querySelectorAll('[data-board-object]').length===0,'All initial test objects can be cleared before the catalogue smoke pass');
-    const mounted=[];
+    const mounted=[],clipFailures=[];
     for(const toolButton of tools){
       toolButton.click();
       const record=TT99Goodies.compositionBoard.objects().slice(-1)[0];
@@ -206,11 +229,20 @@ async function run(){
         await tick(50);
       }
       assert(ready,toolButton.getAttribute('aria-label')+' mounts successfully as an isolated live whiteboard object');
+      await tick(80);
+      const innerStage=frame?.querySelector('iframe')?.contentDocument?.getElementById('gd-stage');
+      if(innerStage){
+        const label=toolButton.getAttribute('aria-label');
+        const vertical=innerStage.scrollHeight-innerStage.clientHeight;
+        const horizontal=innerStage.scrollWidth-innerStage.clientWidth;
+        if(vertical>3||horizontal>3)clipFailures.push(label+' (vertical +'+Math.max(0,vertical)+'px, horizontal +'+Math.max(0,horizontal)+'px)');
+      }
       mounted.push(record.toolId);
       TT99Goodies.compositionBoard.remove(record.id);
       await tick();
     }
     assert(mounted.length===tools.length,'Every palette manipulative completed the embedded-object smoke pass');
+    assert(clipFailures.length===0,'Whiteboard frame clipping: '+clipFailures.join('; '));
   }
 
   result('pass','board','Mixed whiteboard objects are frameless, scalable, contextual and all palette tools mount','tools='+tools.length);
@@ -233,8 +265,13 @@ async function run(){
   await tick();
   assert(shell.classList.contains('gd-embed-controls-open'),'Parent Settings message opens the compact contextual controls');
   assert(visible(controls),'Contextual controls become visible');
-  const workflow=controls.querySelector('.gd-embed-workflow-hidden');
-  assert(workflow&&getComputedStyle(workflow).display==='none','Embedded Settings hides Challenge / Export workflow chrome');
+  const workflowButtons=[...controls.querySelectorAll('[role="tablist"] button')];
+  const blockedButtons=workflowButtons.filter(button=>/^(challenge|export|present|task)(\b|\s|$)/i.test((button.textContent||'').trim()));
+  blockedButtons.forEach(button=>assert(getComputedStyle(button).display==='none','Embedded Settings hides '+button.textContent.trim()));
+  const usefulButtons=workflowButtons.filter(button=>/^(explore|setup|build|objects)$/i.test((button.textContent||'').trim()));
+  usefulButtons.forEach(button=>assert(getComputedStyle(button).display!=='none','Embedded Settings keeps useful '+button.textContent.trim()+' access'));
+  const presentButton=controls.querySelector('#nl-fullscreen,.nl-present-btn');
+  if(presentButton)assert(getComputedStyle(presentButton).display==='none','Embedded Settings hides Present');
   assert(getComputedStyle(document.body).backgroundColor==='rgba(0, 0, 0, 0)','Embedded page body is transparent');
   assert(getComputedStyle(stage).backgroundColor==='rgba(0, 0, 0, 0)','Embedded stage is transparent');
   assert(getComputedStyle(stage).overflow==='hidden','Embedded stage does not show an internal page scrollbar');
