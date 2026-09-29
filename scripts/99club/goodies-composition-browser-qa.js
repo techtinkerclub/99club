@@ -4,6 +4,7 @@ const fs=require('fs');
 const mode=process.argv[2];
 const BOARD='99club-goodies-composition-qa.html';
 const EMBED='99club-goodies-embed-qa.html';
+const HOST='99club-goodies-embed-host.html';
 const REPORT='99club-goodies-composition-qa-report.json';
 
 function shell(url,bodyScript){
@@ -18,7 +19,7 @@ function shell(url,bodyScript){
 <body>
 <div id="tt99-goodies-root"></div>
 <div id="gd-composition-qa-result" data-status="pending" data-kind="">pending</div>
-<script>history.replaceState(null,'','${url}');window.scrollTo=function(){};</script>
+<script>history.replaceState(null,'','${url}');window.scrollTo=function(){};${url.includes('board=1')?`window.TT99_GOODIES_BOARD_EMBED_PATH='/${HOST}';`:''}</script>
 <script src="/assets/99club/goodies-core.js"></script>
 <script src="/assets/99club/goodies-interaction.js"></script>
 <script src="/assets/99club/goodies-challenge.js"></script>
@@ -31,6 +32,31 @@ function shell(url,bodyScript){
 <script>
 ${bodyScript}
 </script>
+</body>
+</html>`;
+}
+
+function embedHost(){
+  return `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="/assets/99club/goodies.css">
+<style>html{scroll-behavior:auto!important}body{margin:0}</style>
+</head>
+<body>
+<div id="tt99-goodies-root"></div>
+<script>window.scrollTo=function(){};</script>
+<script src="/assets/99club/goodies-core.js"></script>
+<script src="/assets/99club/goodies-interaction.js"></script>
+<script src="/assets/99club/goodies-challenge.js"></script>
+<script src="/assets/99club/goodies-export.js"></script>
+<script src="/assets/99club/goodies-tools-a.js"></script>
+<script src="/assets/99club/goodies-number-line-v6.js"></script>
+<script src="/assets/99club/goodies-tools-b.js"></script>
+<script src="/assets/99club/goodies-app.js"></script>
+<script src="/assets/99club/goodies-board.js"></script>
 </body>
 </html>`;
 }
@@ -198,7 +224,8 @@ window.addEventListener('load',()=>setTimeout(()=>run().catch(err=>result('fail'
 
   fs.writeFileSync(BOARD,shell('/goodies/?board=1',boardScript));
   fs.writeFileSync(EMBED,shell('/goodies/?embed=1#clock',embedScript));
-  console.log(BOARD+'\n'+EMBED);
+  fs.writeFileSync(HOST,embedHost());
+  console.log(BOARD+'\n'+EMBED+'\n'+HOST);
   process.exit(0);
 }
 
