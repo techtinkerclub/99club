@@ -20,15 +20,15 @@ const defaults={
   'multiplication-grid':[590,620],
   'array-builder':[660,560],
   'clock':[560,680],
-  'money':[760,500],
+  'money':[760,570],
   'coordinates':[680,610],
   'measurement':[780,650],
   'randomiser':[680,500],
   'balance':[760,580],
   'times-table':[700,580],
   'factors':[740,620],
-  'fdp':[700,620],
-  'geoboard':[650,680],
+  'fdp':[700,800],
+  'geoboard':[650,780],
   'maths-canvas':[760,560]
 };
 const QUICK_ACTIONS={
@@ -140,7 +140,7 @@ function fitEmbeddedObject(obj,initial=false){
   const neededW=Math.ceil(Math.max(stage.clientWidth,stage.scrollWidth));
   const neededH=Math.ceil(Math.max(stage.clientHeight,stage.scrollHeight));
   const nextBaseW=clamp(Math.max(obj.baseW,neededW),220,1200);
-  const nextBaseH=clamp(Math.max(obj.baseH,neededH),180,1050);
+  const nextBaseH=clamp(Math.max(obj.baseH,neededH),180,1400);
   if(nextBaseW<=obj.baseW+2&&nextBaseH<=obj.baseH+2)return;
   obj.baseW=nextBaseW;obj.baseH=nextBaseH;
   if(initial){
