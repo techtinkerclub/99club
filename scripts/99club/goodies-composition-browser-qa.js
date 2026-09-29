@@ -207,7 +207,7 @@ async function run(){
   const nlStage=nlFrame.querySelector('iframe').contentDocument.getElementById('gd-stage');
   assert(nlStage.classList.contains('is-add-marker-mode'),'Number Line Marker action immediately enters place-a-marker mode');
   const hint=document.getElementById('gd-board-hint');
-  assert(visible(hint)&&/Tap the number line/i.test(hint.textContent),'Multi-step Number Line action explains what to do next');
+  assert(visible(hint)&&/Tap .*number line/i.test(hint.textContent),'Multi-step Number Line action explains what to do next');
   const nlSettings=nlFrame.querySelector('[data-board-settings]');nlSettings.click();await tick();
   const nlDoc=nlFrame.querySelector('iframe').contentDocument;
   assert(nlDoc.querySelector('[data-nl-active-line-top]'),'Expanded Number Line settings keep the active-line selector at the top');
