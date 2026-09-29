@@ -947,3 +947,16 @@ html.gd-embed-page,body.gd-embed-page{margin:0!important;width:100%!important;he
 .gd-embed-page .gd-money-canvas,
 .gd-embed-page .gd-fr-strip-canvas,
 .gd-embed-page .gd-canvas{box-shadow:none!important}
+
+
+/* Keep the FDP explorer complete on the mixed board, but use a denser object layout. */
+.gd-embed-page .gd-fdp-main{gap:9px!important}
+.gd-embed-page .gd-fdp-direct{gap:8px!important}
+.gd-embed-page .gd-fdp-stepper{padding:7px 10px!important}
+.gd-embed-page .gd-fdp-section{gap:7px!important;padding:9px!important}
+.gd-embed-page .gd-fdp-section-head{gap:7px!important}
+.gd-embed-page .gd-fdp-section-head small{font-size:.66rem!important;line-height:1.25!important}
+.gd-embed-page .gd-fdp-bar{height:52px!important}
+.gd-embed-page .gd-fdp-value{padding:8px!important}
+.gd-embed-page .gd-fdp-value strong{font-size:1.2rem!important}
+.gd-embed-page .gd-fdp-main .gd-hundred{max-width:300px!important}
