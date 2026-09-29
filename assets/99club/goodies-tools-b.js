@@ -578,7 +578,8 @@ function coordinateTool(){
 
 function measurementTool(){
   const CK=G.challengeKit,X=G.exportTools;
-  let cm=12.3,dragPointer=null;
+  let cm=12.3,dragPointer=null,primaryScale='metric',secondRuler=null,activeRuler=0;
+  const INCH_CM=2.54,IMPERIAL_MAX_CM=12*INCH_CM;
   const CHALLENGE_CATEGORIES=[
     {id:'read',label:'Read & place'},
     {id:'convert',label:'Convert units'},
@@ -597,26 +598,75 @@ function measurementTool(){
   let exportMode='diagram',responseLines=1,exportStatus='';
 
   function roundCm(value){return Math.round(clamp(Number(value)||0,0,30)*10)/10}
+  function maxCm(scale){return scale==='imperial'?IMPERIAL_MAX_CM:30}
+  function snapCm(value,scale='metric'){
+    const maximum=maxCm(scale),raw=clamp(Number(value)||0,0,maximum);
+    return scale==='imperial'?Math.round(raw/(INCH_CM/16))*(INCH_CM/16):Math.round(raw*10)/10;
+  }
+  function rulerState(index=0){return index===0?{cm,scale:primaryScale}:(secondRuler||{cm,scale:primaryScale})}
+  function setRulerCm(index,value){
+    const state=rulerState(index),next=snapCm(value,state.scale);
+    if(index===0)cm=next;else if(secondRuler)secondRuler={...secondRuler,cm:next};
+  }
+  function setRulerScale(index,scale){
+    const nextScale=scale==='imperial'?'imperial':'metric',state=rulerState(index),nextCm=snapCm(state.cm,nextScale);
+    if(index===0){primaryScale=nextScale;cm=nextCm}
+    else if(secondRuler)secondRuler={cm:nextCm,scale:nextScale};
+  }
   function setCm(value){cm=roundCm(value)}
-  function mmValue(){return Math.round(cm*10)}
-  function metresValue(){return Math.round((cm/100)*10000)/10000}
-  function cmText(value=cm){return Number(roundCm(value).toFixed(1)).toString()}
-  function mText(value=cm){return Number((roundCm(value)/100).toFixed(3)).toString()}
-  function snapshot(){return{cm}}
-  function restoreSnapshot(value){if(value)setCm(value.cm)}
+  function mmValue(value=cm){return Math.round((Number(value)||0)*10)}
+  function metresValue(value=cm){return Math.round(((Number(value)||0)/100)*10000)/10000}
+  function cmText(value=cm){return Number((Math.round((Number(value)||0)*10)/10).toFixed(1)).toString()}
+  function mText(value=cm){return Number(((Number(value)||0)/100).toFixed(3)).toString()}
+  function decimalInches(value=cm){return Number(((Number(value)||0)/INCH_CM).toFixed(3)).toString()}
+  function gcd(a,b){while(b){const t=b;b=a%b;a=t}return a||1}
+  function inchText(value=cm){
+    const total16=Math.round((Number(value)||0)/INCH_CM*16),whole=Math.floor(total16/16),fraction=total16%16;
+    if(!fraction)return String(whole);
+    const g=gcd(fraction,16),frac=(fraction/g)+'/'+(16/g);
+    return whole?whole+' '+frac:frac;
+  }
+  function imperialAria(value=cm){return inchText(value)+' inches'}
+  function readoutValues(state){
+    if(state.scale==='imperial'){
+      return[
+        ['inches',inchText(state.cm)+' in'],
+        ['decimal inches',decimalInches(state.cm)+' in'],
+        ['centimetres',Number((state.cm).toFixed(2)).toString()+' cm']
+      ];
+    }
+    return[
+      ['millimetres',mmValue(state.cm)+' mm'],
+      ['centimetres',cmText(state.cm)+' cm'],
+      ['metres',mText(state.cm)+' m']
+    ];
+  }
+  function snapshot(){return{cm,primaryScale,secondRuler:secondRuler?{cm:secondRuler.cm,scale:secondRuler.scale}:null,activeRuler}}
+  function restoreSnapshot(value){
+    if(!value)return;
+    primaryScale=value.primaryScale==='imperial'?'imperial':'metric';
+    cm=snapCm(value.cm,primaryScale);
+    secondRuler=value.secondRuler?{cm:snapCm(value.secondRuler.cm,value.secondRuler.scale==='imperial'?'imperial':'metric'),scale:value.secondRuler.scale==='imperial'?'imperial':'metric'}:null;
+    activeRuler=secondRuler&&Number(value.activeRuler)===1?1:0;
+    dragPointer=null;
+  }
   function readoutHidden(){return !!(challenge&&!challenge.revealed&&challenge.hiddenReadout)}
   function markerFrozen(){return !!(challenge&&challenge.mode==='standard'&&challenge.freezeMarker)}
   function liveAnswer(source){
     if(source==='cm')return cmText()+' cm';
     if(source==='mm')return mmValue()+' mm';
     if(source==='m')return mText()+' m';
+    if(source==='in')return inchText()+' in';
+    if(source==='in-decimal')return decimalInches()+' in';
     return'';
   }
   function customAnswerSources(){
     return[
       {id:'cm',label:'Current marker in centimetres'},
       {id:'mm',label:'Current marker in millimetres'},
-      {id:'m',label:'Current marker in metres'}
+      {id:'m',label:'Current marker in metres'},
+      {id:'in',label:'Current marker in inches — fraction'},
+      {id:'in-decimal',label:'Current marker in inches — decimal'}
     ];
   }
   function updateChallengeAnswer(){
@@ -640,9 +690,16 @@ function measurementTool(){
       '<button class="gd-btn'+(controlTab==='export'?' gd-btn--primary':'')+'" type="button" data-me-workflow="export">Export / reuse</button></div>';
   }
   function exploreControlsHtml(){
-    return field('Measurement (cm)','<input class="gd-input" id="me-cm" type="range" min="0" max="30" step="0.1" value="'+cm.toFixed(1)+'">')+
+    const state=rulerState(activeRuler),imperial=state.scale==='imperial',display=imperial?decimalInches(state.cm):cmText(state.cm);
+    const selector='<button class="gd-btn'+(activeRuler===0?' gd-btn--primary':'')+'" type="button" data-me-select-ruler="0">Ruler A</button>'+
+      (secondRuler?'<button class="gd-btn'+(activeRuler===1?' gd-btn--primary':'')+'" type="button" data-me-select-ruler="1">Ruler B</button>':'');
+    return '<div class="gd-field"><span>Rulers</span><div class="gd-row">'+selector+'</div></div>'+
+      '<div class="gd-row"><button class="gd-btn" id="me-add-ruler" type="button"'+(secondRuler?' disabled':'')+'>Add ruler</button>'+
+      '<button class="gd-btn" id="me-remove-ruler" type="button"'+(activeRuler===0?' disabled':'')+'>Remove selected</button></div>'+
+      field('Scale','<select class="gd-select" id="me-scale"><option value="metric"'+(!imperial?' selected':'')+'>Metric — 30 cm / 1 mm</option><option value="imperial"'+(imperial?' selected':'')+'>Imperial — 12 in / 1⁄16 in</option></select>')+
+      field(imperial?'Measurement (inches)':'Measurement (cm)','<input class="gd-input" id="me-cm" type="range" min="0" max="'+(imperial?'12':'30')+'" step="'+(imperial?'0.0625':'0.1')+'" value="'+display+'">')+
       '<div class="gd-row">'+btn('Random mark','me-random')+'</div>'+
-      '<p class="gd-help">Drag or tap directly on the 30 cm ruler. The marker snaps to the nearest millimetre. Arrow keys move a focused marker by 1 mm.</p>';
+      '<p class="gd-help">Use one or two rulers. Each ruler can be metric or imperial independently, so you can compare the same physical length across scales. Metric snaps to 1 mm; imperial snaps to 1⁄16 inch.</p>';
   }
   function challengeControlsHtml(){
     if(!CK)return '<p class="gd-help">Challenge tools are unavailable.</p>';
@@ -694,6 +751,7 @@ function measurementTool(){
     return !(pupil&&challenge?.mode==='standard'&&challenge.type==='place-mark');
   }
   function rulerExportSvg({pupil=false}={}){
+    if(!pupil&&!challenge&&(primaryScale==='imperial'||secondRuler))return exploreRulersExportSvg();
     const width=1100,height=340,left=50,right=50,rulerY=72,rulerH=145,rulerW=width-left-right,baseY=rulerY+rulerH;
     const svg=meSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'30 centimetre ruler','data-me-export':'ruler'});
     svg.appendChild(meSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
@@ -728,6 +786,36 @@ function measurementTool(){
     svg.appendChild(meSvgEl('text',{x:width-50,y:height-16,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':10,fill:'#87969a'},'99 Club Studio'));
     return svg;
   }
+  function exploreRulersExportSvg(){
+    const states=[rulerState(0),...(secondRuler?[rulerState(1)]:[])],width=1100,cardH=265,gap=24,height=32+states.length*(cardH+gap)+20;
+    const svg=meSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Ruler comparison','data-me-export':'ruler-comparison'});
+    svg.appendChild(meSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
+    states.forEach((state,index)=>{
+      const x0=45,y0=26+index*(cardH+gap),rulerY=y0+48,rulerH=118,rulerW=width-90,baseY=rulerY+rulerH,imperial=state.scale==='imperial';
+      svg.appendChild(meSvgEl('text',{x:x0,y:y0+20,'font-family':'Arial,sans-serif','font-size':16,'font-weight':850,fill:'#334a52','data-me-export-ruler-label':index},'Ruler '+(index===0?'A':'B')+' — '+(imperial?'Imperial':'Metric')));
+      svg.appendChild(meSvgEl('rect',{x:x0,y:rulerY,width:rulerW,height:rulerH,rx:8,fill:'#fbfcfc',stroke:'#9fb2b7','stroke-width':2,'data-me-export-ruler':index}));
+      const divisions=imperial?192:300;
+      for(let i=0;i<=divisions;i++){
+        const x=x0+i/divisions*rulerW;
+        let h,major;
+        if(imperial){major=i%16===0;h=major?56:i%8===0?45:i%4===0?36:i%2===0?28:20}
+        else{major=i%10===0;h=major?56:i%5===0?39:24}
+        svg.appendChild(meSvgEl('line',{x1:x,y1:baseY-h,x2:x,y2:baseY,stroke:'#344b52','stroke-width':major?1.8:1}));
+        if(major)svg.appendChild(meSvgEl('text',{x,y:rulerY+24,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':11,'font-weight':700,fill:'#566a70'},imperial?i/16:i/10));
+      }
+      const markerX=x0+state.cm/maxCm(state.scale)*rulerW;
+      svg.appendChild(meSvgEl('line',{x1:markerX,y1:rulerY-8,x2:markerX,y2:baseY+2,stroke:'#d98f24','stroke-width':4,'data-me-export-marker':index===0?'main':'second-ruler'}));
+      svg.appendChild(meSvgEl('path',{d:'M '+(markerX-8)+' '+(rulerY-8)+' L '+(markerX+8)+' '+(rulerY-8)+' L '+markerX+' '+(rulerY+5)+' Z',fill:'#d98f24'}));
+      const values=readoutValues(state);
+      values.forEach((item,j)=>{
+        const x=x0+j*335;
+        svg.appendChild(meSvgEl('text',{x,y:y0+220,'font-family':'Arial,sans-serif','font-size':10,'font-weight':700,fill:'#74868b'},item[0]));
+        svg.appendChild(meSvgEl('text',{x,y:y0+242,'font-family':'Arial,sans-serif','font-size':16,'font-weight':900,fill:'#334a52','data-me-export-readout':index+'-'+j},item[1]));
+      });
+    });
+    svg.appendChild(meSvgEl('text',{x:width-45,y:height-10,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':10,fill:'#87969a'},'99 Club Studio'));
+    return svg;
+  }
   function exportTargetSvg(){
     if(exportMode!=='challenge'||!challenge||!X?.composeChallengeCardSvg)return rulerExportSvg({pupil:false});
     const prompt=CK?CK.plainText(challenge.promptHtml||challenge.prompt||''):challenge.prompt||'';
@@ -742,7 +830,7 @@ function measurementTool(){
   }
   function exportName(){
     const meta=challenge&&CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
-    return exportMode==='challenge'&&challenge?(challenge.title||meta?.title||'measurement-challenge'):'measurement-ruler';
+    return exportMode==='challenge'&&challenge?(challenge.title||meta?.title||'measurement-challenge'):(primaryScale==='imperial'||secondRuler?'measurement-rulers':'measurement-ruler');
   }
   function exportMessage(text){exportStatus=text;const el=q('#me-export-status');if(el)el.textContent=text}
   async function exportAction(kind){
@@ -758,6 +846,9 @@ function measurementTool(){
   function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():controlTab==='export'?exportControlsHtml():exploreControlsHtml())}
   function renderControls(){const panel=q('#gd-controls');if(panel)panel.innerHTML=controlsHtml();bindControls()}
   function enterCustomChallenge(){
+    const wasCustom=challenge?.mode==='custom';
+    if(!wasCustom&&!beforeChallenge)beforeChallenge=snapshot();
+    if(!wasCustom){primaryScale='metric';activeRuler=0;cm=roundCm(cm)}
     if(CK)challenge=CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''});
     challenge.hiddenReadout=challenge.answerMode==='bound'&&!!challenge.answerSource;
     challenge.freezeMarker=false;challenge.secondaryCm=null;
@@ -782,6 +873,7 @@ function measurementTool(){
   function generateChallenge(type){
     const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
     if(!beforeChallenge)beforeChallenge=snapshot();else restoreSnapshot(beforeChallenge);
+    primaryScale='metric';activeRuler=0;cm=roundCm(cm);
     if(type==='read-mark'){
       setCm(randomTenth());
       challenge=challengeObject(type,'What length does the orange marker show?',cmText()+' cm');
@@ -811,55 +903,67 @@ function measurementTool(){
     challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';
     exportMode='challenge';responseLines=template.category==='reason'?3:1;exportStatus='';renderControls();draw();
   }
-  function rulerValueFromClientX(clientX,ruler){
-    const rect=ruler.getBoundingClientRect(),ratio=clamp((clientX-rect.left)/Math.max(1,rect.width),0,1);
-    return Math.round(ratio*300)/10;
+  function rulerValueFromClientX(clientX,ruler,index=0){
+    const rect=ruler.getBoundingClientRect(),ratio=clamp((clientX-rect.left)/Math.max(1,rect.width),0,1),state=rulerState(index);
+    return snapCm(ratio*maxCm(state.scale),state.scale);
+  }
+  function selectedSliderValue(){
+    const state=rulerState(activeRuler);
+    return state.scale==='imperial'?decimalInches(state.cm):cmText(state.cm);
   }
   function refreshLiveMeasurement(){
     updateChallengeAnswer();
-    const marker=q('#me-marker');
-    if(marker){
-      marker.style.left=(cm/30*100)+'%';
-      marker.setAttribute('aria-valuenow',cm.toFixed(1));
-      marker.setAttribute('aria-valuetext',cmText()+' centimetres');
-    }
-    const values=qa('.gd-fdp-value strong',q('#gd-stage'));
-    if(values.length>=3&&!readoutHidden()){
-      values[0].textContent=mmValue()+' mm';
-      values[1].textContent=cmText()+' cm';
-      values[2].textContent=mText()+' m';
-    }
+    qa('.gd-ruler-card[data-me-ruler-index]',q('#gd-stage')).forEach(card=>{
+      const index=Math.round(num(card.dataset.meRulerIndex,0)),state=rulerState(index),maximum=maxCm(state.scale),imperial=state.scale==='imperial';
+      const marker=q('.gd-ruler-marker.is-interactive',card);
+      if(marker){
+        marker.style.left=(state.cm/maximum*100)+'%';
+        marker.setAttribute('aria-valuenow',imperial?decimalInches(state.cm):cmText(state.cm));
+        marker.setAttribute('aria-valuemax',imperial?'12':'30');
+        marker.setAttribute('aria-valuetext',imperial?imperialAria(state.cm):cmText(state.cm)+' centimetres');
+      }
+      const values=readoutValues(state),hidden=index===0&&readoutHidden();
+      qa('[data-me-readout-value]',card).forEach((el,i)=>{if(values[i])el.textContent=hidden?'?':values[i][1]});
+    });
     const target=q('#me-target-status');
     if(target&&challenge?.mode==='standard'&&challenge.type==='place-mark'){
       target.textContent=Math.abs(cm-Number(challenge.targetCm))<.05?'On target ✓':'';
     }
-    const slider=q('#me-cm',q('#gd-controls'));if(slider)slider.value=cm.toFixed(1);
+    const slider=q('#me-cm',q('#gd-controls'));if(slider)slider.value=selectedSliderValue();
   }
-  function setFromPointer(clientX,ruler){
-    if(markerFrozen())return;
-    setCm(rulerValueFromClientX(clientX,ruler));refreshLiveMeasurement();
+  function setFromPointer(clientX,ruler,index){
+    if(index===0&&markerFrozen())return;
+    setRulerCm(index,rulerValueFromClientX(clientX,ruler,index));refreshLiveMeasurement();
   }
-  function bindRuler(){
-    const ruler=q('#me-ruler'),marker=q('#me-marker');if(!ruler||!marker)return;
-    ruler.onpointerdown=e=>{
-      if(markerFrozen()||(e.button!=null&&e.button!==0))return;
-      e.preventDefault();dragPointer=e.pointerId;
-      try{ruler.setPointerCapture(e.pointerId)}catch(_){}
-      setFromPointer(e.clientX,ruler);
-    };
-    ruler.onpointermove=e=>{
-      if(dragPointer!==e.pointerId)return;
-      e.preventDefault();setFromPointer(e.clientX,ruler);
-    };
-    const finish=e=>{if(dragPointer===e.pointerId)dragPointer=null};
-    ruler.onpointerup=finish;ruler.onpointercancel=finish;
-    marker.onkeydown=e=>{
-      if(markerFrozen())return;
-      if(e.key==='ArrowLeft'){e.preventDefault();setCm(cm-.1);refreshLiveMeasurement()}
-      else if(e.key==='ArrowRight'){e.preventDefault();setCm(cm+.1);refreshLiveMeasurement()}
-      else if(e.key==='Home'){e.preventDefault();setCm(0);refreshLiveMeasurement()}
-      else if(e.key==='End'){e.preventDefault();setCm(30);refreshLiveMeasurement()}
-    };
+  function bindRulers(){
+    qa('.gd-ruler[data-me-ruler-index]',q('#gd-stage')).forEach(ruler=>{
+      const index=Math.round(num(ruler.dataset.meRulerIndex,0)),marker=q('.gd-ruler-marker.is-interactive',ruler);
+      if(!marker)return;
+      ruler.onpointerdown=e=>{
+        if((index===0&&markerFrozen())||(e.button!=null&&e.button!==0))return;
+        e.preventDefault();dragPointer={pointerId:e.pointerId,index};
+        try{ruler.setPointerCapture(e.pointerId)}catch(_){}
+        setFromPointer(e.clientX,ruler,index);
+      };
+      ruler.onpointermove=e=>{
+        if(!dragPointer||dragPointer.pointerId!==e.pointerId||dragPointer.index!==index)return;
+        e.preventDefault();setFromPointer(e.clientX,ruler,index);
+      };
+      const finish=e=>{if(dragPointer&&dragPointer.pointerId===e.pointerId&&dragPointer.index===index)dragPointer=null};
+      ruler.onpointerup=finish;ruler.onpointercancel=finish;
+      marker.onkeydown=e=>{
+        if(index===0&&markerFrozen())return;
+        const state=rulerState(index),step=state.scale==='imperial'?INCH_CM/16:.1;
+        if(e.key==='ArrowLeft'){e.preventDefault();setRulerCm(index,state.cm-step);refreshLiveMeasurement()}
+        else if(e.key==='ArrowRight'){e.preventDefault();setRulerCm(index,state.cm+step);refreshLiveMeasurement()}
+        else if(e.key==='Home'){e.preventDefault();setRulerCm(index,0);refreshLiveMeasurement()}
+        else if(e.key==='End'){e.preventDefault();setRulerCm(index,maxCm(state.scale));refreshLiveMeasurement()}
+      };
+    });
+    qa('[data-me-select-stage]',q('#gd-stage')).forEach(button=>button.onclick=()=>{
+      if(challenge)return;
+      activeRuler=Number(button.dataset.meSelectStage)===1&&secondRuler?1:0;renderControls();draw();
+    });
   }
   function bindChallengeStageActions(){
     const stage=q('#gd-stage');if(!stage||!challenge)return;
@@ -888,8 +992,25 @@ function measurementTool(){
       return;
     }
     if(controlTab==='explore'){
-      const slider=q('#me-cm',controls);if(slider)slider.oninput=()=>{setCm(slider.value);refreshLiveMeasurement()};
-      const random=q('#me-random',controls);if(random)random.onclick=()=>{setCm(Math.floor(Math.random()*301)/10);refreshLiveMeasurement()};
+      qa('[data-me-select-ruler]',controls).forEach(button=>button.onclick=()=>{
+        activeRuler=Number(button.dataset.meSelectRuler)===1&&secondRuler?1:0;renderControls();draw();
+      });
+      const add=q('#me-add-ruler',controls);if(add)add.onclick=()=>{
+        if(secondRuler)return;
+        const source=rulerState(0);secondRuler={cm:source.cm,scale:source.scale};activeRuler=1;renderControls();draw();
+      };
+      const remove=q('#me-remove-ruler',controls);if(remove)remove.onclick=()=>{
+        if(activeRuler!==1)return;secondRuler=null;activeRuler=0;renderControls();draw();
+      };
+      const scale=q('#me-scale',controls);if(scale)scale.onchange=()=>{setRulerScale(activeRuler,scale.value);renderControls();draw()};
+      const slider=q('#me-cm',controls);if(slider)slider.oninput=()=>{
+        const state=rulerState(activeRuler),value=state.scale==='imperial'?Number(slider.value)*INCH_CM:Number(slider.value);
+        setRulerCm(activeRuler,value);refreshLiveMeasurement();
+      };
+      const random=q('#me-random',controls);if(random)random.onclick=()=>{
+        const state=rulerState(activeRuler),steps=state.scale==='imperial'?192:300,step=maxCm(state.scale)/steps;
+        setRulerCm(activeRuler,Math.floor(Math.random()*(steps+1))*step);refreshLiveMeasurement();
+      };
       return;
     }
     qa('[data-me-challenge-tab]',controls).forEach(button=>button.onclick=()=>{
@@ -923,38 +1044,54 @@ function measurementTool(){
       if(challenge.revealed)draw();
     };
   }
-  function draw(){
-    updateChallengeAnswer();
+  function ticksForScale(scale){
     let ticks='';
+    if(scale==='imperial'){
+      for(let i=0;i<=192;i++){
+        const p=i/192*100,h=i%16===0?55:i%8===0?45:i%4===0?35:i%2===0?28:21;
+        ticks+='<span class="gd-ruler-tick" style="left:'+p+'%;height:'+h+'px"></span>';
+        if(i%16===0)ticks+='<span class="gd-ruler-num" style="left:'+p+'%">'+(i/16)+'</span>';
+      }
+      return ticks;
+    }
     for(let i=0;i<=300;i++){
       const p=i/300*100,h=i%10===0?55:i%5===0?35:22;
       ticks+='<span class="gd-ruler-tick" style="left:'+p+'%;height:'+h+'px"></span>';
       if(i%10===0)ticks+='<span class="gd-ruler-num" style="left:'+p+'%">'+(i/10)+'</span>';
     }
-    const hidden=readoutHidden(),secondary=challenge&&Number.isFinite(Number(challenge.secondaryCm))?roundCm(challenge.secondaryCm):null;
+    return ticks;
+  }
+  function rulerCardMarkup(index,state){
+    const primary=index===0,imperial=state.scale==='imperial',maximum=maxCm(state.scale),hidden=primary&&readoutHidden(),frozen=primary&&markerFrozen();
+    const secondary=primary&&challenge&&Number.isFinite(Number(challenge.secondaryCm))?roundCm(challenge.secondaryCm):null;
     const secondaryMarker=secondary!=null
       ?'<span class="gd-ruler-marker gd-ruler-marker--secondary" style="left:'+(secondary/30*100)+'%"><span class="gd-ruler-marker-label">A</span></span>'
       :'';
-    const mainLabel=secondary!=null?'B':'';
+    const mainLabel=secondary!=null?'B':'',values=readoutValues(state),rulerId=primary?'me-ruler':'me-ruler-1',markerId=primary?'me-marker':'me-marker-1';
+    return '<section class="gd-ruler-card'+(!challenge&&activeRuler===index?' is-selected':'')+'" data-me-ruler-index="'+index+'">'+
+      '<div class="gd-ruler-card-head">'+(challenge?'<strong>Ruler A</strong>':'<button type="button" class="gd-ruler-select" data-me-select-stage="'+index+'">Ruler '+(index===0?'A':'B')+' — '+(imperial?'Imperial':'Metric')+(activeRuler===index?' • selected':'')+'</button>')+'</div>'+
+      '<div class="gd-ruler'+(frozen?' is-frozen':' is-interactive')+'" id="'+rulerId+'" data-me-ruler-index="'+index+'" data-me-scale="'+state.scale+'" data-me-target-cm="'+(primary&&challenge?.mode==='standard'&&challenge.type==='place-mark'?challenge.targetCm:'')+'" aria-label="'+(imperial?'12 inch':'30 centimetre')+' ruler">'+ticksForScale(state.scale)+
+        secondaryMarker+
+        '<span class="gd-ruler-marker is-interactive'+(frozen?' is-frozen':'')+'" id="'+markerId+'" role="slider" tabindex="0" aria-valuemin="0" aria-valuemax="'+(imperial?'12':'30')+'" aria-valuenow="'+(imperial?decimalInches(state.cm):cmText(state.cm))+'" aria-valuetext="'+(imperial?imperialAria(state.cm):cmText(state.cm)+' centimetres')+'" style="left:'+(state.cm/maximum*100)+'%">'+
+          (mainLabel?'<span class="gd-ruler-marker-label">'+mainLabel+'</span>':'')+
+        '</span>'+
+      '</div>'+
+      '<div class="gd-fdp-readout">'+values.map(item=>'<div class="gd-fdp-value"><span>'+item[0]+'</span><strong data-me-readout-value>'+(hidden?'?':item[1])+'</strong></div>').join('')+'</div>'+
+    '</section>';
+  }
+  function draw(){
+    updateChallengeAnswer();
     const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Measurement challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
     const targetStatus=challenge?.mode==='standard'&&challenge.type==='place-mark'
       ?'<div class="gd-answer-live" id="me-target-status">'+(Math.abs(cm-Number(challenge.targetCm))<.05?'On target ✓':'')+'</div>'
       :'';
+    const states=challenge?[rulerState(0)]:[rulerState(0),...(secondRuler?[rulerState(1)]:[])];
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-measurement-direct">'+
-      '<div class="gd-ruler'+(markerFrozen()?' is-frozen':' is-interactive')+'" id="me-ruler" data-me-target-cm="'+(challenge?.mode==='standard'&&challenge.type==='place-mark'?challenge.targetCm:'')+'" aria-label="30 centimetre ruler">'+ticks+
-        secondaryMarker+
-        '<span class="gd-ruler-marker is-interactive'+(markerFrozen()?' is-frozen':'')+'" id="me-marker" role="slider" tabindex="0" aria-valuemin="0" aria-valuemax="30" aria-valuenow="'+cm.toFixed(1)+'" aria-valuetext="'+cmText()+' centimetres" style="left:'+(cm/30*100)+'%">'+
-          (mainLabel?'<span class="gd-ruler-marker-label">'+mainLabel+'</span>':'')+
-        '</span>'+
-      '</div>'+
-      '<div class="gd-fdp-readout">'+
-        '<div class="gd-fdp-value"><span>millimetres</span><strong>'+(hidden?'?':mmValue()+' mm')+'</strong></div>'+
-        '<div class="gd-fdp-value"><span>centimetres</span><strong>'+(hidden?'?':cmText()+' cm')+'</strong></div>'+
-        '<div class="gd-fdp-value"><span>metres</span><strong>'+(hidden?'?':mText()+' m')+'</strong></div>'+
-      '</div>'+targetStatus+
+      '<div class="gd-ruler-stack">'+states.map((state,index)=>rulerCardMarkup(index,state)).join('')+'</div>'+
+      targetStatus+
     '</div>';
-    bindRuler();bindChallengeStageActions();
-    const slider=q('#me-cm',q('#gd-controls'));if(slider)slider.value=cm.toFixed(1);
+    bindRulers();bindChallengeStageActions();
+    const slider=q('#me-cm',q('#gd-controls'));if(slider)slider.value=selectedSliderValue();
   }
 
   setPanels(controlsHtml(),'');
