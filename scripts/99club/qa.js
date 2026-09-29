@@ -1001,9 +1001,9 @@ try{
   }
   ok('goodies-capabilities','All '+capabilitySpecs.length+' catalogue manipulatives have an explicit challenge/task/export policy; Randomiser is the sole utility exception');
   const randomiserBlock=goodiesFunctionBlock(goodiesToolsB,'randomiser');
-  for(const token of ['gd-die-cube','gd-die-face','gd-spinner-wheel','gd-spinner-pointer','Spin wheel','Roll dice'])if(!randomiserBlock.includes(token))fail('goodies-randomiser','Animated Randomiser contract missing '+token);
-  for(const token of ['.gd-die-cube.is-rolling','.gd-spinner-wheel.is-spinning','@keyframes gd-die-tumble','.gd-spinner-pointer{'])if(!goodiesCss.includes(token))fail('goodies-randomiser','Randomiser presentation CSS missing '+token);
-  ok('goodies-randomiser','Randomiser keeps physical dice, labelled wheel, fixed pointer and motion states');
+  for(const token of ['gd-die-cube','gd-die-face','gd-spinner-wheel','gd-spinner-pointer','Spin wheel','Roll dice','data-ra-stage-go','gd-random-stage-action'])if(!randomiserBlock.includes(token))fail('goodies-randomiser','Animated Randomiser contract missing '+token);
+  for(const token of ['.gd-die-cube.is-rolling','.gd-spinner-wheel.is-spinning','@keyframes gd-die-tumble','.gd-spinner-pointer{','.gd-random-stage-action{'])if(!goodiesCss.includes(token))fail('goodies-randomiser','Randomiser presentation CSS missing '+token);
+  ok('goodies-randomiser','Randomiser keeps physical dice, labelled wheel, fixed pointer, motion states and a direct stage action');
   const moneyBlock=goodiesFunctionBlock(goodiesToolsA,'moneyTool');
   for(const token of ['ROYAL_MINT_BASE','www.royalmint.com','gd-money-object__face--official','Coin imagery: The Royal Mint, 2023','CLASSROOM NOTE'])if(!moneyBlock.includes(token))fail('goodies-money-imagery','UK Money visual contract missing '+token);
   if(!goodiesCss.includes('.gd-money-pick__coin')||!goodiesCss.includes('.gd-money-object__face--official img'))fail('goodies-money-imagery','UK Money official coin image styling is missing');

@@ -90,6 +90,10 @@ document.exitFullscreen=function(){
           assert(undo&&redo,id+' renders on-stage Undo/Redo before whiteboard mode');
           stageHistory={undo,redo,selectors};
         }
+        if(id==='randomiser'){
+          const action=stage.querySelector('[data-ra-stage-go]');
+          assert(action&&action.textContent.trim()==='Roll dice','Randomiser exposes its main action directly on stage before whiteboard mode');
+        }
         sharedPresent.click();
         await tick();
         assert(document.getElementById('gd-stage')===stage,'Shared whiteboard preserves the live stage element for '+id);
@@ -109,6 +113,16 @@ document.exitFullscreen=function(){
         const exit=document.getElementById('gd-whiteboard-exit');
         assert(tools&&exit,'Whiteboard Tools and Exit controls exist for '+id);
         assert(tools.getAttribute('aria-expanded')==='false','Whiteboard Tools starts collapsed for '+id);
+        if(id==='randomiser'){
+          let action=stage.querySelector('[data-ra-stage-go]');
+          assert(action&&getComputedStyle(action).display!=='none'&&action.getBoundingClientRect().height>0,'Randomiser stage action stays visible while whiteboard Tools are collapsed');
+          assert(action.textContent.trim()==='Roll dice','Randomiser whiteboard opens with the direct Roll dice action');
+          action.click();
+          action=stage.querySelector('[data-ra-stage-go]');
+          assert(action&&action.disabled&&action.textContent.includes('Rolling'),'Randomiser can roll directly in whiteboard mode without opening Tools');
+          assert(stage.querySelectorAll('.gd-die-cube.is-rolling').length===2,'Randomiser whiteboard stage shows the dice tumble');
+          assert(tools.getAttribute('aria-expanded')==='false'&&!workspace.classList.contains('gd-whiteboard-tools-open'),'Using Randomiser stage action does not open the teacher Tools drawer');
+        }
         tools.click();
         assert(workspace.classList.contains('gd-whiteboard-tools-open'),'Whiteboard Tools drawer opens for '+id);
         assert(tools.getAttribute('aria-expanded')==='true','Whiteboard Tools exposes expanded state for '+id);
