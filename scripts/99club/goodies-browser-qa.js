@@ -2819,15 +2819,32 @@ if(mode==='prepare'){
     assert(TT99Goodies.moneyTool,'UK Money tool is registered');
     TT99Goodies.moneyTool();
 
+    function addMoneyFromStage(value){
+      const add=document.querySelector('[data-gd-action="add-money"]');
+      assert(add&&!add.disabled,'UK Money exposes Add money directly on the live board');
+      add.click();
+      const palette=document.querySelector('.gd-money-stage-palette');
+      assert(palette,'UK Money opens a temporary denomination palette on the board');
+      const pick=palette.querySelector('[data-gd-action="add-money-piece"][data-mo-value="'+value+'"]');
+      assert(pick,'UK Money stage palette contains denomination '+value+'p');
+      pick.click();
+    }
+
     let objects=[...document.querySelectorAll('#mo-canvas [data-gd-object]')];
     assert(objects.length===5,'UK Money opens with a five-piece £3.75 example');
     assert(document.querySelector('[data-mo-total]').textContent.trim()==='£3.75','UK Money totals the draggable pieces');
     assert(document.querySelector('[data-mo-status]').textContent.includes('Exactly right'),'UK Money checks the starting amount against its target');
-    assert(document.querySelector('[data-mo-value="50"]').classList.contains('gd-money-object--hept'),'50p uses a recognisable heptagonal token');
-    assert(document.querySelector('[data-mo-value="100"]').classList.contains('gd-money-object--dodec'),'£1 uses a recognisable twelve-sided token');
+    const fifty=document.querySelector('[data-mo-value="50"]'),pound=document.querySelector('[data-mo-value="100"]');
+    assert(fifty.classList.contains('gd-money-object--hept'),'50p uses its curved seven-sided coin silhouette');
+    assert(getComputedStyle(fifty.querySelector('.gd-money-object__face--official')).maskImage!=='none'||getComputedStyle(fifty.querySelector('.gd-money-object__face--official')).webkitMaskImage!=='none','50p/20p artwork uses a curved SVG mask rather than straight polygon sides');
+    assert(pound.classList.contains('gd-money-object--dodec'),'£1 uses a recognisable twelve-sided token');
+    assert(pound.classList.contains('gd-money-object--bimetal'),'£1 uses its real bimetallic material treatment');
+    assert(document.querySelectorAll('#mo-canvas .gd-money-object--coin .gd-money-object__coin-label').length===5,'Live coin denomination labels sit outside the coin artwork');
+    assert(!document.querySelector('#mo-canvas .gd-money-object__face--official strong'),'Coin denomination labels are never overlaid inside Royal Mint imagery');
     const coinPicks=[...document.querySelectorAll('.gd-money-pick--coin')];
     assert(coinPicks.length===8,'UK Money exposes all eight circulating coin denominations');
     assert(coinPicks.every(p=>p.querySelector('img')?.src.includes('www.royalmint.com/')),'Every live coin palette choice uses official Royal Mint imagery');
+    assert(document.querySelectorAll('.gd-money-pick__coin--copper').length===2&&document.querySelectorAll('.gd-money-pick__coin--silver').length===4&&document.querySelectorAll('.gd-money-pick__coin--bimetal').length===2,'Coin palette restores copper, silver and bimetallic material colours');
     assert(document.querySelectorAll('#mo-canvas .gd-money-object--coin .gd-money-object__face--official img').length===5,'Seeded live coins render official Royal Mint imagery');
     const moneyCredits=[...document.querySelectorAll('.gd-money-credit')];
     assert(moneyCredits.some(x=>x.closest('#gd-controls')&&x.textContent.includes('The Royal Mint, 2023')),'UK Money credits the official coin imagery in the teacher controls');
@@ -2835,9 +2852,16 @@ if(mode==='prepare'){
     const notePicks=[...document.querySelectorAll('.gd-money-pick--note')];
     assert(notePicks.length===4&&notePicks.every(p=>!p.querySelector('img')),'Banknotes remain clearly stylised classroom representations rather than realistic note images');
 
-    document.querySelector('[data-mo-add="500"]').click();
+    const stageMoneyAdd=document.querySelector('[data-gd-action="add-money"]');
+    assert(stageMoneyAdd&&!stageMoneyAdd.disabled,'UK Money keeps a compact Add money action on the live board');
+    stageMoneyAdd.click();
+    assert(document.querySelectorAll('.gd-money-stage-palette [data-gd-action="add-money-piece"]').length===12,'Money stage palette exposes all 12 supported denominations');
+    assert(document.querySelectorAll('.gd-money-stage-palette .gd-money-pick__coin img').length===8,'Money stage palette uses the corrected artwork for all eight coins');
+    assert([...document.querySelectorAll('.gd-money-stage-palette .gd-money-pick__coin img')].every(img=>img.src.includes('www.royalmint.com/')),'Money stage palette keeps official Royal Mint imagery');
+    document.querySelector('.gd-money-stage-palette [data-mo-value="500"]').click();
+    assert(!document.querySelector('.gd-money-stage-palette'),'Money stage palette closes as soon as a denomination is added');
     objects=[...document.querySelectorAll('#mo-canvas [data-gd-object]')];
-    assert(objects.length===6&&document.querySelector('[data-mo-value="500"]').classList.contains('gd-money-object--note'),'A £5 note can be added directly to the workbench');
+    assert(objects.length===6&&document.querySelector('#mo-canvas [data-mo-value="500"]').classList.contains('gd-money-object--note'),'A £5 note can be added directly from the live-stage palette');
     assert(document.querySelector('[data-mo-total]').textContent.trim()==='£8.75','Adding money updates the live total');
 
     const target=document.getElementById('mo-target');
@@ -2897,6 +2921,7 @@ if(mode==='prepare'){
     assert(document.querySelector('[data-mo-status]').textContent.trim()==='?','Count-money challenge hides the difference/status shortcut');
     let frozenMoney=document.querySelector('#mo-canvas [data-gd-object]');
     assert(frozenMoney.classList.contains('is-frozen'),'Read-money challenge visibly fixes the supplied pieces');
+    assert(document.querySelector('[data-gd-action="add-money"]')?.disabled,'Read-only money challenge disables the live Add money action');
     let frozenLeft=parseFloat(frozenMoney.style.left);
     let frozenRect=frozenMoney.getBoundingClientRect();
     pointer(frozenMoney,'pointerdown',frozenRect.left+frozenRect.width/2,frozenRect.top+frozenRect.height/2,151);
@@ -2918,9 +2943,10 @@ if(mode==='prepare'){
     assert(document.querySelectorAll('#mo-canvas [data-gd-object]').length===0,'Make-target challenge starts with an empty money board');
     assert(document.querySelector('[data-mo-target-readout]').textContent.trim()==='35p','Deterministic make-target challenge exposes the pupil target');
     assert(document.querySelector('[data-mo-status]').textContent.trim()==='Keep building','Interactive money challenge does not leak the remaining difference');
-    document.querySelector('[data-mo-add="20"]').click();
-    document.querySelector('[data-mo-add="10"]').click();
-    document.querySelector('[data-mo-add="5"]').click();
+    assert(!document.querySelector('[data-gd-action="add-money"]').disabled,'Editable make-target challenge keeps Add money available directly on stage');
+    addMoneyFromStage(20);
+    addMoneyFromStage(10);
+    addMoneyFromStage(5);
     assert(document.querySelector('[data-mo-total]').textContent.trim()==='35p','Pupil-built coins update the challenge total');
     assert(document.querySelector('[data-mo-status]').textContent.includes('On target'),'Make-target challenge confirms the exact amount');
 
