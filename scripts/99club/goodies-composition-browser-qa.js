@@ -118,6 +118,16 @@ async function run(){
   snap.click();
   assert(snap.getAttribute('aria-pressed')==='true','Snap can be restored');
 
+  const viewport=document.getElementById('gd-board-viewport');
+  viewport.scrollLeft=180;viewport.scrollTop=160;
+  const panBefore=TT99Goodies.compositionBoard.viewport();
+  pointer(canvas,'pointerdown',700,650,44);
+  pointer(document,'pointermove',620,580,44);
+  pointer(document,'pointerup',620,580,44);
+  const panAfter=TT99Goodies.compositionBoard.viewport();
+  assert(panAfter.left>panBefore.left&&panAfter.top>panBefore.top,'Dragging empty board space pans the large whiteboard naturally');
+  assert(!board.classList.contains('is-panning'),'Board leaves grab state when panning ends');
+
   context.click();
   money.querySelector('[data-board-delete]').click();
   objects=[...document.querySelectorAll('[data-board-object]')];
@@ -126,6 +136,7 @@ async function run(){
   const clock=objects[0];
   const boardRect=canvas.getBoundingClientRect();
   pointer(canvas,'pointerdown',boardRect.left+5,boardRect.top+5,43);
+  pointer(document,'pointerup',boardRect.left+5,boardRect.top+5,43);
   assert(!clock.classList.contains('is-selected'),'Touching blank canvas removes object focus');
   assert(getComputedStyle(clock.querySelector('[data-board-context]')).display==='none','Object chrome disappears completely when unfocused');
 
