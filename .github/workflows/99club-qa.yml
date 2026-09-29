@@ -210,6 +210,10 @@ jobs:
             exit 1
           fi
 
+          "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --window-size=390,844 --virtual-time-budget=30000 --dump-dom http://127.0.0.1:8774/99club-goodies-composition-qa.html > /tmp/99club-goodies-composition-phone.html
+          node scripts/99club/goodies-composition-browser-qa.js check /tmp/99club-goodies-composition-phone.html
+          cp 99club-goodies-composition-qa-report.json 99club-goodies-composition-phone-report.json
+
           "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --window-size=1200,900 --virtual-time-budget=30000 --dump-dom http://127.0.0.1:8774/99club-goodies-composition-qa.html > /tmp/99club-goodies-composition.html
           node scripts/99club/goodies-composition-browser-qa.js check /tmp/99club-goodies-composition.html
           cp 99club-goodies-composition-qa-report.json 99club-goodies-composition-board-report.json
@@ -300,6 +304,7 @@ jobs:
             99club-goodies-layout-desktop-report.json
             99club-goodies-composition-qa-report.json
             99club-goodies-composition-board-report.json
+            99club-goodies-composition-phone-report.json
             99club-goodies-composition-embed-report.json
           if-no-files-found: ignore
 
