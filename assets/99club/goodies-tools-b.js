@@ -1496,7 +1496,7 @@ function balanceTool(){
       (challenge&&!challengeFrozen()&&challenge.mode==='standard'?'<div class="gd-answer-live" data-ba-target-status>'+challengeProgress()+'</div>':'')+
       sameToBothStageAction()+
       selectedEditor()+
-      (!challengeFrozen()?'<p class="gd-help gd-eq-drag-hint">Drag a weight across the balance to move it to the other side, or select it for precise edits.</p>':'')+
+      (!challengeFrozen()?'<p class="gd-help gd-eq-drag-hint">Use +1 on either pan to build directly. Select a weight for precise edits, or drag it across the balance to move it.</p>':'')+
     '</div>';
     bindStage();bindChallengeStageActions();
   }
