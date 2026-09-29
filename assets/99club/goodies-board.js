@@ -129,11 +129,14 @@ function objectMarkup(obj,tool){
 }
 function addObject(toolId){
   const tool=tools.find(t=>t.id===toolId);if(!tool)return;
-  const [w,h]=defaults[tool.id]||[650,520];
+  const [defaultW,defaultH]=defaults[tool.id]||[650,520];
+  const narrow=viewport.clientWidth<620;
+  const w=Math.min(defaultW,Math.max(320,viewport.clientWidth-(narrow?70:90)));
+  const h=Math.min(defaultH,Math.max(300,viewport.clientHeight-90));
   const i=objects.length,obj={
     id:nextId++,toolId:tool.id,
-    x:snapped(90+(i%5)*40+viewport.scrollLeft),
-    y:snapped(80+(i%4)*40+viewport.scrollTop),
+    x:snapped((narrow?55:90)+(i%5)*40+viewport.scrollLeft),
+    y:snapped((narrow?45:80)+(i%4)*40+viewport.scrollTop),
     w,h,z:++zCounter,locked:false,menuOpen:false,settingsOpen:false
   };
   objects.push(obj);
