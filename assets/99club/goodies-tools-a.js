@@ -1024,7 +1024,9 @@ function fractionWall(){
       I.toolButton('simplify','clear','Simplify fraction','',selected.locked||gcd(selected.n,selected.d)===1)+
       I.toolButton('lock',selected.locked?'unlock':'lock',selected.locked?'Unlock strip':'Lock strip',selected.locked?'is-active':'',false)+
       I.toolButton('delete','delete','Delete strip','is-danger',selected.locked):'';
+    const add=challenge?.mode==='standard'?'':I.toolButton('add','plus','Add '+rawFractionText(focus)+' strip','',false);
     return '<div class="gd-object-ui"><div class="gd-object-rail'+(selected?' is-engaged':'')+'" aria-label="Fraction strip tools">'+
+      add+(add?'<span class="gd-object-separator"></span>':'')+
       object+(object?'<span class="gd-object-separator"></span>':'')+
       I.toolButton('undo','undo','Undo','',!meta?.canUndo)+I.toolButton('redo','redo','Redo','',!meta?.canRedo)+
       I.toolButton('align','grid','Align strips','',strips.length<2)+'</div></div>';
@@ -1037,7 +1039,7 @@ function fractionWall(){
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-fr-workbench"><div class="gd-fr-strip-canvas-wrap"><div class="gd-fr-strip-canvas" id="fw-strip-canvas" data-gd-canvas-bg style="min-height:'+workbenchHeight()+'px" tabindex="0" aria-label="Fraction strip workbench. Drag strips to compare them.">'+
       strips.map(s=>stripMarkup(s,selectedId)).join('')+
       '</div>'+workbenchRail(selected,meta)+'</div>'+
-      '<div class="gd-object-hint">'+(selected?(selected.locked?'Strip locked · unlock it to change or move it.':'Drag to compare · split keeps the same value with twice as many equal pieces.'):'Select a strip, drag it, or align all strips to compare their lengths.')+'</div></div>';
+      '<div class="gd-object-hint">'+(selected?(selected.locked?'Strip locked · unlock it to change or move it.':'Drag to compare · split keeps the same value with twice as many equal pieces.'):(challenge?.mode==='standard'?'Select a strip to inspect the supplied model.':'Use + to add the selected wall fraction, then drag or align strips to compare their lengths.'))+'</div></div>';
     bindStripSegments();
     bindChallengeStageActions();
   }
@@ -1086,7 +1088,10 @@ function fractionWall(){
       toggleLock:item=>{item.locked=!item.locked},
       onAction:(action,api)=>{
         const selected=api.selected();
-        if(action==='split'&&selected&&!selected.locked&&selected.d*2<=12)api.mutate(()=>{selected.n*=2;selected.d*=2;updateChallengeAnswer()});
+        if(action==='add'&&challenge?.mode!=='standard'){
+          let id=null;api.mutate(()=>{id=addStrip(focus);updateChallengeAnswer()});api.select(id);renderControls();
+        }
+        else if(action==='split'&&selected&&!selected.locked&&selected.d*2<=12)api.mutate(()=>{selected.n*=2;selected.d*=2;updateChallengeAnswer()});
         else if(action==='simplify'&&selected&&!selected.locked)api.mutate(()=>{const s=simplify(selected.n,selected.d);selected.n=s.n;selected.d=s.d;updateChallengeAnswer()});
         else if(action==='align')api.mutate(alignStrips);
       }
