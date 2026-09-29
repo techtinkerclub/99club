@@ -24,7 +24,8 @@ function icon(name){
     unlock:'<rect x="5" y="10" width="14" height="10" rx="2"/><path d="M16 10V7a4 4 0 0 0-7.5-2"/>',
     delete:'<path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="m8 10 .5 8m7.5-8-.5 8"/><path d="M6 7l1 14h10l1-14"/>',
     grid:'<path d="M4 4h16v16H4zM4 10h16M4 16h16M10 4v16M16 4v16"/>',
-    clear:'<path d="m4 15 7-9 9 7-6 8H8Z"/><path d="m11 6 9 7"/>'
+    clear:'<path d="m4 15 7-9 9 7-6 8H8Z"/><path d="m11 6 9 7"/>',
+    plus:'<path d="M12 5v14M5 12h14"/>'
   };
   return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">'+(paths[name]||paths.duplicate)+'</svg>';
 }
