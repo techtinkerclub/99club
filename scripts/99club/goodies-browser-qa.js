@@ -2900,6 +2900,10 @@ if(mode==='prepare'){
     first=document.querySelector('#mo-canvas [data-gd-object].is-selected');
     assert(parseFloat(first.style.left)>oldLeft,'Money can be dragged directly around the board');
 
+    document.getElementById('mo-tidy').click();
+    const tidyRows=[...new Set([...document.querySelectorAll('#mo-canvas [data-gd-object]')].map(el=>parseFloat(el.style.top)).sort((a,b)=>a-b))];
+    if(tidyRows.length>1)assert(tidyRows[1]-tidyRows[0]>=108,'Tidy money preserves clearance below external denomination labels');
+
     document.getElementById('mo-clear').click();
     assert(document.querySelectorAll('#mo-canvas [data-gd-object]').length===0,'Clear all empties the Money workbench');
     document.querySelector('[data-gd-action="undo"]').click();
