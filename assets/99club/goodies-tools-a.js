@@ -3512,8 +3512,9 @@ function arrayBuilder(){
 
 function clockTool(){
   const CK=G.challengeKit,X=G.exportTools;
-  let hour=10,minute=10,snap=5,numerals='arabic',drag=null,extraClocks=[],activeClock=0;
+  let hour=10,minute=10,second=0,snap=5,numerals='arabic',showDigital=true,showSeconds=false,drag=null,extraClocks=[],activeClock=0;
   const MAX_CLOCKS=4,CLOCK_LABELS=['A','B','C','D'];
+  let clockNames=CLOCK_LABELS.map(x=>'Clock '+x);
   const roman=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
   const CHALLENGE_CATEGORIES=[
     {id:'read',label:'Read the clock'},
@@ -3547,15 +3548,25 @@ function clockTool(){
     hour=next.hour;minute=next.minute;
   }
   function clockState(index=0){
-    return index===0?{hour,minute}:(extraClocks[index-1]||{hour,minute});
+    if(index===0)return{hour,minute,second};
+    const item=extraClocks[index-1]||{hour,minute,second};
+    return{hour:item.hour,minute:item.minute,second:clamp(Math.round(num(item.second,0)),0,59)};
   }
-  function clockStates(){return[{hour,minute},...extraClocks.map(c=>({hour:c.hour,minute:c.minute}))]}
+  function clockStates(){return[{hour,minute,second},...extraClocks.map(c=>({hour:c.hour,minute:c.minute,second:clamp(Math.round(num(c.second,0)),0,59)}))]}
   function setClockTime(index,nextHour,nextMinute){
     const current=clockState(index),next=normaliseClockTime(nextHour,nextMinute,current.hour,current.minute);
     if(index===0){hour=next.hour;minute=next.minute}
-    else if(extraClocks[index-1])extraClocks[index-1]=next;
+    else if(extraClocks[index-1])extraClocks[index-1]={...extraClocks[index-1],...next};
   }
-  function clockLabel(index){return'Clock '+(CLOCK_LABELS[index]||String(index+1))}
+  function setClockSecond(index,value){
+    const next=clamp(Math.round(num(value,0)),0,59);
+    if(index===0)second=next;
+    else if(extraClocks[index-1])extraClocks[index-1]={...extraClocks[index-1],second:next};
+  }
+  function clockLabel(index){
+    const fallback='Clock '+(CLOCK_LABELS[index]||String(index+1)),value=String(clockNames[index]||'').trim();
+    return value||fallback;
+  }
   function forwardDifferenceMinutes(from,to){
     return mod((to.hour*60+to.minute)-(from.hour*60+from.minute),24*60);
   }
@@ -3588,14 +3599,18 @@ function clockTool(){
     return{x:150+len*Math.cos(a),y:150+len*Math.sin(a)};
   }
   function faceNumber(n){return numerals==='roman'?roman[n-1]:String(n)}
-  function snapshot(){return{hour,minute,snap,numerals,extraClocks:extraClocks.map(c=>({hour:c.hour,minute:c.minute})),activeClock}}
+  function snapshot(){return{hour,minute,second,snap,numerals,showDigital,showSeconds,clockNames:clockNames.slice(),extraClocks:extraClocks.map(c=>({hour:c.hour,minute:c.minute,second:clamp(Math.round(num(c.second,0)),0,59)})),activeClock}}
   function restoreSnapshot(value){
     if(!value)return;
     hour=clamp(Math.round(num(value.hour,10)),0,23);
     minute=clamp(Math.round(num(value.minute,10)),0,59);
+    second=clamp(Math.round(num(value.second,0)),0,59);
     snap=Number(value.snap)===1?1:5;
     numerals=value.numerals==='roman'?'roman':'arabic';
-    extraClocks=Array.isArray(value.extraClocks)?value.extraClocks.slice(0,MAX_CLOCKS-1).map(c=>normaliseClockTime(c?.hour,c?.minute,10,10)):[];
+    showDigital=value.showDigital!==false;
+    showSeconds=!!value.showSeconds;
+    clockNames=CLOCK_LABELS.map((x,i)=>String(Array.isArray(value.clockNames)?value.clockNames[i]||'':'').trim()||('Clock '+x));
+    extraClocks=Array.isArray(value.extraClocks)?value.extraClocks.slice(0,MAX_CLOCKS-1).map(c=>({...normaliseClockTime(c?.hour,c?.minute,10,10),second:clamp(Math.round(num(c?.second,0)),0,59)})):[];
     activeClock=clamp(Math.round(num(value.activeClock,0)),0,extraClocks.length);
     drag=null;
   }
@@ -3837,13 +3852,16 @@ function clockTool(){
   function exploreControlsHtml(){
     const selected=clockState(activeClock);
     const selector=clockStates().map((_,index)=>
-      '<button class="gd-btn'+(activeClock===index?' gd-btn--primary':'')+'" type="button" data-cl-select-clock="'+index+'">'+clockLabel(index)+'</button>'
+      '<button class="gd-btn'+(activeClock===index?' gd-btn--primary':'')+'" type="button" data-cl-select-clock="'+index+'">'+esc(clockLabel(index))+'</button>'
     ).join('');
     return '<div class="gd-field"><span>Clocks</span><div class="gd-row gd-clock-selector">'+selector+'</div></div>'+
       '<div class="gd-row"><button class="gd-btn" id="cl-add-clock" type="button"'+(extraClocks.length>=MAX_CLOCKS-1?' disabled':'')+'>Add clock</button>'+
       '<button class="gd-btn" id="cl-remove-clock" type="button"'+(activeClock===0?' disabled':'')+'>Remove selected</button></div>'+
+      field('Clock label','<input class="gd-input" id="cl-label" maxlength="30" value="'+esc(clockLabel(activeClock))+'" placeholder="e.g. Start">','Use labels such as Start, End, Before or After when comparing clocks.')+
       field('Selected clock hour (24-hour)','<input class="gd-input gd-small" id="cl-h" type="number" min="0" max="23" value="'+selected.hour+'">')+
       field('Minutes','<input class="gd-input gd-small" id="cl-m" type="number" min="0" max="59" value="'+selected.minute+'">')+
+      field('Seconds','<input class="gd-input gd-small" id="cl-s" type="number" min="0" max="59" value="'+selected.second+'">')+
+      '<div class="gd-row gd-clock-display-options"><label class="nl-check"><input id="cl-show-digital" type="checkbox"'+(showDigital?' checked':'')+'> Show digital time</label><label class="nl-check"><input id="cl-show-seconds" type="checkbox"'+(showSeconds?' checked':'')+'> Show seconds hand</label></div>'+
       field('Hand snapping','<select class="gd-select" id="cl-snap"><option value="5"'+(snap===5?' selected':'')+'>5 minutes</option><option value="1"'+(snap===1?' selected':'')+'>1 minute</option></select>','Controls direct minute-hand dragging and keyboard steps on every clock.')+
       field('Clock face','<select class="gd-select" id="cl-numerals"><option value="arabic"'+(numerals==='arabic'?' selected':'')+'>1–12</option><option value="roman"'+(numerals==='roman'?' selected':'')+'>Roman numerals I–XII</option></select>')+
       '<div class="gd-row"><button class="gd-btn gd-btn--primary" id="cl-toggle-period" type="button">Toggle am / pm</button><button class="gd-btn" id="cl-random" type="button">Random 5-minute time</button><button class="gd-btn" id="cl-now" type="button">Now</button></div>'+
@@ -3870,8 +3888,9 @@ function clockTool(){
     const panel=q('#gd-controls');if(panel)panel.innerHTML=controlsHtml();bindControls();
   }
   function refreshControls(){
-    const selected=clockState(activeClock),h=q('#cl-h'),m=q('#cl-m');
-    if(h)h.value=selected.hour;if(m)m.value=selected.minute;
+    const selected=clockState(activeClock),h=q('#cl-h'),m=q('#cl-m'),sec=q('#cl-s'),label=q('#cl-label');
+    if(h)h.value=selected.hour;if(m)m.value=selected.minute;if(sec)sec.value=selected.second;
+    if(label&&document.activeElement!==label)label.value=clockLabel(activeClock);
   }
   function restoreBeforeChallenge(){
     if(beforeChallenge){restoreSnapshot(beforeChallenge);beforeChallenge=null}
@@ -3907,7 +3926,7 @@ function clockTool(){
   function generateChallenge(type){
     const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
     if(!beforeChallenge)beforeChallenge=snapshot();else restoreSnapshot(beforeChallenge);
-    activeClock=0;numerals='arabic';snap=5;
+    activeClock=0;numerals='arabic';snap=5;second=0;
     if(type==='read-five'){
       hour=randomHour();minute=randomMinute(5);
       challenge=challengeObject(type,'What time is shown on the analogue clock?',time12());
@@ -3958,12 +3977,13 @@ function clockTool(){
     const cards=qa('.gd-clock-card[data-cl-clock-index]',q('#gd-stage'));
     cards.forEach(card=>{
       const index=Math.round(num(card.dataset.clClockIndex,0)),state=clockState(index);
-      const hourAngle=((state.hour%12)+state.minute/60)*30,minuteAngle=state.minute*6;
-      const hourPt=handPoint(hourAngle,72),minutePt=handPoint(minuteAngle,102);
-      const hourLine=q('[data-cl-line="hour"]',card),minuteLine=q('[data-cl-line="minute"]',card);
+      const hourAngle=((state.hour%12)+state.minute/60)*30,minuteAngle=state.minute*6,secondAngle=state.second*6;
+      const hourPt=handPoint(hourAngle,72),minutePt=handPoint(minuteAngle,102),secondPt=handPoint(secondAngle,112);
+      const hourLine=q('[data-cl-line="hour"]',card),minuteLine=q('[data-cl-line="minute"]',card),secondLine=q('[data-cl-line="second"]',card);
       const hourHit=q('[data-cl-hand="hour"]',card),minuteHit=q('[data-cl-hand="minute"]',card);
       [hourLine,hourHit].forEach(el=>{if(el){el.setAttribute('x2',hourPt.x);el.setAttribute('y2',hourPt.y)}});
       [minuteLine,minuteHit].forEach(el=>{if(el){el.setAttribute('x2',minutePt.x);el.setAttribute('y2',minutePt.y)}});
+      if(secondLine){secondLine.setAttribute('x2',secondPt.x);secondLine.setAttribute('y2',secondPt.y)}
       const frozen=index===0&&handsFrozen(),hidden=index===0&&anyTimeHidden();
       if(hourHit){
         if(hidden){hourHit.removeAttribute('aria-valuenow');hourHit.removeAttribute('aria-valuetext');hourHit.setAttribute('aria-label',frozen?'Hour hand fixed for this challenge':'Hour hand for challenge')}
@@ -3978,9 +3998,10 @@ function clockTool(){
         svg.setAttribute('aria-label',hidden?'Analogue clock for challenge':clockLabel(index)+' showing '+format12(state.hour,state.minute));
         svg.dataset.clHour=String(state.hour);svg.dataset.clMinute=String(state.minute);
       }
-      const d24=q('[data-cl-readout-kind="24"]',card),d12=q('[data-cl-readout-kind="12"]',card);
+      const d24=q('[data-cl-readout-kind="24"]',card),d12=q('[data-cl-readout-kind="12"]',card),digital=q('[data-cl-digital]',card);
       if(d24)d24.textContent=hiddenReadout('24')&&index===0?'?':format24(state.hour,state.minute);
       if(d12)d12.textContent=hiddenReadout('12')&&index===0?'?':format12(state.hour,state.minute);
+      if(digital)digital.textContent=hiddenReadout('12')&&index===0?'?':format12(state.hour,state.minute)+(showSeconds?' : '+pad(state.second):'');
     });
     qa('[data-cl-difference-to]',q('#gd-stage')).forEach(el=>{
       const index=Math.round(num(el.dataset.clDifferenceTo,1)),state=clockState(index);
@@ -4094,15 +4115,19 @@ function clockTool(){
       const add=q('#cl-add-clock',controls);if(add)add.onclick=()=>{
         if(extraClocks.length>=MAX_CLOCKS-1)return;
         const base=clockState(activeClock),next=normaliseClockTime(base.hour+1,base.minute,base.hour,base.minute);
-        extraClocks.push(next);activeClock=extraClocks.length;renderControls();draw();
+        extraClocks.push({...next,second:base.second});activeClock=extraClocks.length;renderControls();draw();
       };
       const remove=q('#cl-remove-clock',controls);if(remove)remove.onclick=()=>{
         if(activeClock===0)return;
         extraClocks.splice(activeClock-1,1);activeClock=Math.min(activeClock-1,extraClocks.length);renderControls();draw();
       };
-      const h=q('#cl-h',controls),m=q('#cl-m',controls);
+      const h=q('#cl-h',controls),m=q('#cl-m',controls),sec=q('#cl-s',controls),label=q('#cl-label',controls);
       if(h)h.oninput=()=>{const current=clockState(activeClock);setClockTime(activeClock,clamp(num(h.value,current.hour),0,23),current.minute);refreshClock()};
       if(m)m.oninput=()=>{const current=clockState(activeClock);setClockTime(activeClock,current.hour,clamp(num(m.value,current.minute),0,59));refreshClock()};
+      if(sec)sec.oninput=()=>{setClockSecond(activeClock,sec.value);refreshClock()};
+      if(label)label.onchange=()=>{clockNames[activeClock]=String(label.value||'').trim().slice(0,30)||('Clock '+(CLOCK_LABELS[activeClock]||String(activeClock+1)));renderControls();draw()};
+      const digital=q('#cl-show-digital',controls);if(digital)digital.onchange=()=>{showDigital=!!digital.checked;draw()};
+      const secondsToggle=q('#cl-show-seconds',controls);if(secondsToggle)secondsToggle.onchange=()=>{showSeconds=!!secondsToggle.checked;draw()};
       const snapSelect=q('#cl-snap',controls);if(snapSelect)snapSelect.onchange=()=>{snap=Number(snapSelect.value)===1?1:5};
       const numeralSelect=q('#cl-numerals',controls);if(numeralSelect)numeralSelect.onchange=()=>{numerals=numeralSelect.value==='roman'?'roman':'arabic';draw()};
       const toggle=q('#cl-toggle-period',controls);if(toggle)toggle.onclick=()=>{const current=clockState(activeClock);setClockTime(activeClock,current.hour+(current.hour<12?12:-12),current.minute);refreshClock()};
@@ -4142,7 +4167,7 @@ function clockTool(){
     };
   }
   function clockCardMarkup(index,state,frozen,hidden){
-    const label=clockLabel(index),hp=handPoint(((state.hour%12)+state.minute/60)*30,72),mp=handPoint(state.minute*6,102);
+    const label=clockLabel(index),hp=handPoint(((state.hour%12)+state.minute/60)*30,72),mp=handPoint(state.minute*6,102),sp=handPoint(state.second*6,112);
     const primary=index===0,selected=!challenge&&activeClock===index;
     const faceId=primary?'cl-face':'cl-face-'+index,hourId=primary?'cl-hour-hand':'cl-hour-hand-'+index,minuteId=primary?'cl-minute-hand':'cl-minute-hand-'+index;
     const hourHitId=primary?'cl-hour-hit':'cl-hour-hit-'+index,minuteHitId=primary?'cl-minute-hit':'cl-minute-hit-'+index;
@@ -4152,10 +4177,12 @@ function clockTool(){
         '<circle class="gd-clock-face" cx="150" cy="150" r="135"></circle>'+tickMarkup()+numeralMarkup()+
         '<line class="gd-clock-hour" id="'+hourId+'" data-cl-line="hour" x1="150" y1="150" x2="'+hp.x+'" y2="'+hp.y+'"></line>'+
         '<line class="gd-clock-minute" id="'+minuteId+'" data-cl-line="minute" x1="150" y1="150" x2="'+mp.x+'" y2="'+mp.y+'"></line>'+
+        (showSeconds?'<line class="gd-clock-second" data-cl-line="second" x1="150" y1="150" x2="'+sp.x+'" y2="'+sp.y+'"></line>':'')+
         '<line class="gd-clock-hand-hit gd-clock-hand-hit--hour'+(frozen?' is-frozen':'')+'" id="'+hourHitId+'" data-cl-clock-index="'+index+'" data-cl-hand="hour" tabindex="'+(frozen?'-1':'0')+'"'+(hidden?' aria-label="'+(frozen?'Hour hand fixed for this challenge':'Hour hand for challenge')+'"':' role="slider" aria-label="'+label+' hour hand" aria-valuemin="0" aria-valuemax="23" aria-valuenow="'+state.hour+'"')+' x1="150" y1="150" x2="'+hp.x+'" y2="'+hp.y+'"></line>'+
         '<line class="gd-clock-hand-hit gd-clock-hand-hit--minute'+(frozen?' is-frozen':'')+'" id="'+minuteHitId+'" data-cl-clock-index="'+index+'" data-cl-hand="minute" tabindex="'+(frozen?'-1':'0')+'"'+(hidden?' aria-label="'+(frozen?'Minute hand fixed for this challenge':'Minute hand for challenge')+'"':' role="slider" aria-label="'+label+' minute hand" aria-valuemin="0" aria-valuemax="59" aria-valuenow="'+state.minute+'"')+' x1="150" y1="150" x2="'+mp.x+'" y2="'+mp.y+'"></line>'+
         '<circle class="gd-clock-centre" cx="150" cy="150" r="7"></circle>'+
       '</svg></div>'+
+      (showDigital?'<div class="gd-clock-digital" data-cl-digital>'+(hiddenReadout('12')&&primary?'?':format12(state.hour,state.minute)+(showSeconds?' : '+pad(state.second):''))+'</div>':'')+
       '<div class="gd-clock-readouts">'+
         '<div class="gd-readout"><span>24-hour</span><strong data-cl-readout-kind="24"'+(primary?' data-cl-readout="24"':'')+'>'+(hiddenReadout('24')&&primary?'?':format24(state.hour,state.minute))+'</strong></div>'+
         '<div class="gd-readout"><span>12-hour</span><strong data-cl-readout-kind="12"'+(primary?' data-cl-readout="12"':'')+'>'+(hiddenReadout('12')&&primary?'?':format12(state.hour,state.minute))+'</strong></div>'+
