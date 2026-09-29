@@ -101,8 +101,17 @@ async function run(){
   assert(objects[1].querySelector('iframe').getAttribute('src').includes('?embed=1#money'),'Money runs as an isolated live board object');
 
   const money=objects[1];
+  for(let attempt=0;attempt<40&&!money.classList.contains('is-ready');attempt++)await tick(50);
+  assert(money.classList.contains('is-ready'),'Money object reaches embedded ready state');
   assert(money.classList.contains('is-selected'),'Newest object is focused automatically');
   assert(parseFloat(getComputedStyle(money).borderTopWidth)<=1,'Focused object uses only a thin selection outline');
+  assert(getComputedStyle(money).backgroundColor==='rgba(0, 0, 0, 0)','Board object frame stays transparent');
+  const moneyFrame=money.querySelector('iframe');
+  assert(getComputedStyle(moneyFrame).backgroundColor==='rgba(0, 0, 0, 0)','Embedded iframe surface stays transparent');
+  const quick=money.querySelector('[data-board-quick-actions]');
+  assert(visible(quick),'Focused Money object exposes whiteboard-owned quick actions');
+  const addMoney=[...quick.querySelectorAll('button')].find(button=>/Money/.test(button.textContent));
+  assert(addMoney&&addMoney.getBoundingClientRect().height<=27,'Money add action is compact and contextual');
   const context=money.querySelector('[data-board-context]');
   assert(visible(context)&&context.getBoundingClientRect().width<=30,'Focused object exposes only a tiny contextual menu trigger');
   assert(getComputedStyle(money.querySelector('.gd-board-context-menu')).display==='none','Context actions stay hidden until requested');
@@ -121,6 +130,17 @@ async function run(){
   assert(money.classList.contains('has-context-menu'),'Context menu can be reopened while the object remains focused');
   context.click();
   assert(!money.classList.contains('has-context-menu'),'Context menu can be dismissed without affecting the object');
+
+  const beforeScale=TT99Goodies.compositionBoard.objects().find(x=>x.toolId==='money');
+  const size=money.querySelector('[data-board-resize]');
+  const sizeRect=size.getBoundingClientRect();
+  pointer(size,'pointerdown',sizeRect.left+4,sizeRect.top+4,40);
+  pointer(document,'pointermove',sizeRect.left-96,sizeRect.top-66,40);
+  pointer(document,'pointerup',sizeRect.left-96,sizeRect.top-66,40);
+  const scaled=TT99Goodies.compositionBoard.objects().find(x=>x.toolId==='money');
+  assert(scaled.scale<beforeScale.scale,'Corner handle scales the whole manipulative down instead of reflowing a tiny webpage');
+  assert(Math.abs((scaled.w/scaled.h)-(scaled.baseW/scaled.baseH))<0.02,'Whiteboard object scaling preserves the manipulative aspect ratio');
+  assert(parseFloat(getComputedStyle(moneyFrame).width)===scaled.baseW,'Embedded manipulative keeps a stable logical width while the board scales it');
 
   const before=TT99Goodies.compositionBoard.objects().find(x=>x.toolId==='money');
   const move=money.querySelector('[data-board-move]');
@@ -193,7 +213,7 @@ async function run(){
     assert(mounted.length===tools.length,'Every palette manipulative completed the embedded-object smoke pass');
   }
 
-  result('pass','board','Mixed whiteboard is clean, pannable and all palette tools mount','tools='+tools.length);
+  result('pass','board','Mixed whiteboard objects are frameless, scalable, contextual and all palette tools mount','tools='+tools.length);
 }
 window.addEventListener('load',()=>setTimeout(()=>run().catch(err=>result('fail','board',err&&err.message?err.message:String(err),err&&err.stack?err.stack:'')),180));
 })();`;
@@ -207,12 +227,17 @@ async function run(){
   assert(!window.TT99Goodies.compositionBoard,'Embedded object does not recursively mount the mixed board');
   const shell=document.querySelector('.gd-shell'),stage=document.getElementById('gd-stage'),controls=document.getElementById('gd-controls');
   assert(shell&&stage&&controls,'Embedded manipulative keeps its live stage and controls');
-  assert(visible(stage),'Embedded clock stage is visible');
+  assert(visible(stage),'Embedded manipulative stage is visible');
   assert(getComputedStyle(controls).display==='none','Embedded controls are hidden until contextual Settings is requested');
   window.postMessage({type:'tt99-board-settings',open:true},location.origin);
   await tick();
   assert(shell.classList.contains('gd-embed-controls-open'),'Parent Settings message opens the compact contextual controls');
   assert(visible(controls),'Contextual controls become visible');
+  const workflow=controls.querySelector('.gd-embed-workflow-hidden');
+  assert(workflow&&getComputedStyle(workflow).display==='none','Embedded Settings hides Challenge / Export workflow chrome');
+  assert(getComputedStyle(document.body).backgroundColor==='rgba(0, 0, 0, 0)','Embedded page body is transparent');
+  assert(getComputedStyle(stage).backgroundColor==='rgba(0, 0, 0, 0)','Embedded stage is transparent');
+  assert(getComputedStyle(stage).overflow==='hidden','Embedded stage does not show an internal page scrollbar');
   const cr=controls.getBoundingClientRect();
   assert(cr.width<=305,'Contextual settings panel stays narrow');
   [...controls.querySelectorAll('.gd-btn,.gd-input:not([type="range"]),.gd-select')].filter(visible).forEach(el=>{
@@ -229,7 +254,7 @@ window.addEventListener('load',()=>setTimeout(()=>run().catch(err=>result('fail'
 })();`;
 
   fs.writeFileSync(BOARD,shell('/goodies/?board=1',boardScript));
-  fs.writeFileSync(EMBED,shell('/goodies/?embed=1#clock',embedScript));
+  fs.writeFileSync(EMBED,shell('/goodies/?embed=1#fraction-wall',embedScript));
   fs.writeFileSync(HOST,embedHost());
   console.log(BOARD+'\n'+EMBED+'\n'+HOST);
   process.exit(0);
