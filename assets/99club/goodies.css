@@ -843,6 +843,16 @@ html.gd-whiteboard-page-lock,body.gd-whiteboard-page-lock{overflow:hidden!import
 
 /* Mixed manipulative whiteboard: mathematical objects stay visually dominant. */
 html.gd-mixed-board-page,body.gd-mixed-board-page{overflow:hidden!important}
+html.gd-mixed-board-page .masthead,body.gd-mixed-board-page .masthead,
+html.gd-mixed-board-page .page__footer,body.gd-mixed-board-page .page__footer,
+html.gd-embed-page .masthead,body.gd-embed-page .masthead,
+html.gd-embed-page .page__footer,body.gd-embed-page .page__footer{display:none!important}
+html.gd-mixed-board-page .initial-content,body.gd-mixed-board-page .initial-content,
+html.gd-embed-page .initial-content,body.gd-embed-page .initial-content{position:fixed!important;inset:0!important;width:100%!important;height:100%!important;margin:0!important;padding:0!important;overflow:hidden!important}
+html.gd-mixed-board-page #main,body.gd-mixed-board-page #main,
+html.gd-embed-page #main,body.gd-embed-page #main{position:absolute!important;inset:0!important;width:100%!important;max-width:none!important;height:100%!important;margin:0!important;padding:0!important}
+html.gd-mixed-board-page .page__content,body.gd-mixed-board-page .page__content,
+html.gd-embed-page .page__content,body.gd-embed-page .page__content{width:100%!important;height:100%!important;margin:0!important;padding:0!important}
 .gd-mixed-board-page #tt99-goodies-root{position:fixed;inset:0;z-index:2147482000;background:#fbfcfc}
 .gd-mixed-board{position:absolute;inset:0;overflow:hidden;background:#fbfcfc;color:#31484f}
 .gd-board-viewport{position:absolute;inset:0;overflow:auto;overscroll-behavior:contain;scrollbar-width:none;touch-action:pan-x pan-y;background:#fbfcfc}
