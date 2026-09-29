@@ -1100,20 +1100,30 @@ function measurementTool(){
 }
 
 function randomiser(){
-  let result='',diceValues=[],spinnerRotation=0,busy=false,finishTimer=null;
-  const WHEEL_COLOURS=['#d7efeb','#f7d98a','#d9e9f5','#efd7d7','#dce8c7','#e4dcf4','#f4dfc8','#cfe4df'];
+  let result='',diceValues=[],spinnerRotation=0,spinnerKind='colours',customSpinnerText='1\n2\n3\n4',busy=false,finishTimer=null;
+  const COLOUR_SPINNER=[
+    {label:'Red',colour:'#df4f4f',ink:'#ffffff'},
+    {label:'Blue',colour:'#3976d3',ink:'#ffffff'},
+    {label:'Green',colour:'#399b64',ink:'#ffffff'},
+    {label:'Yellow',colour:'#f4cc45',ink:'#273e44'}
+  ];
+  const CUSTOM_WHEEL_COLOURS=['#edf3f2','#f6f1e7','#eef1f6','#f5eeee','#eff3e9','#f0edf5','#f5f0e9','#eaf2f1'];
   const D6_ROTATIONS={1:[0,0],2:[-90,0],3:[0,-90],4:[0,90],5:[90,0],6:[0,180]};
   function motionMs(){return window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches?40:1250}
-  function choices(){return (q('#ra-choices')?.value||'').split(/\n|,/).map(x=>x.trim()).filter(Boolean).slice(0,16)}
+  function customChoices(){return String(customSpinnerText||'').split(/\n|,/).map(x=>x.trim()).filter(Boolean).slice(0,16)}
+  function wheelSegments(){
+    if(spinnerKind==='colours')return COLOUR_SPINNER.map(x=>({...x}));
+    return customChoices().map((label,i)=>({label,colour:CUSTOM_WHEEL_COLOURS[i%CUSTOM_WHEEL_COLOURS.length],ink:'#30484f'}));
+  }
   function pipFace(value){
     const maps={1:[5],2:[1,9],3:[1,5,9],4:[1,3,7,9],5:[1,3,5,7,9],6:[1,3,4,6,7,9]},on=new Set(maps[value]||[]);
-    return '<span class="gd-die-pips">'+Array.from({length:9},(_,i)=>'<i'+(on.has(i+1)?' class="is-on"':'')+'></i>').join('')+'</span>';
+    return '<span class="gd-die-pips" aria-hidden="true">'+Array.from({length:9},(_,i)=>'<i'+(on.has(i+1)?' class="is-on"':'')+'></i>').join('')+'</span>';
   }
-  function cubeFace(pos,value){return '<span class="gd-die-face gd-die-face--'+pos+'">'+pipFace(value)+'</span>'}
+  function cubeFace(pos,value){return '<span class="gd-die-face gd-die-face--'+pos+'" data-ra-face-value="'+value+'">'+pipFace(value)+'</span>'}
   function dieHtml(value,sides,index,rolling){
     if(sides===6){
       const rot=D6_ROTATIONS[value]||[0,0],rx=rot[0],ry=rot[1],extra=720+index*90,startX=rx+extra,startY=ry+extra+180;
-      return '<div class="gd-die-space" aria-label="Die '+(index+1)+': '+value+'"><div class="gd-die-cube'+(rolling?' is-rolling':'')+'" data-ra-die="'+index+'" data-ra-rx="'+rx+'" data-ra-ry="'+ry+'" style="--ra-start-x:'+startX+'deg;--ra-start-y:'+startY+'deg;--ra-end-x:'+rx+'deg;--ra-end-y:'+ry+'deg">'+
+      return '<div class="gd-die-space" aria-label="Die '+(index+1)+': '+value+'"><div class="gd-die-cube'+(rolling?' is-rolling':'')+'" data-ra-die="'+index+'" data-ra-final-value="'+value+'" data-ra-rx="'+rx+'" data-ra-ry="'+ry+'" style="--ra-start-x:'+startX+'deg;--ra-start-y:'+startY+'deg;--ra-end-x:'+rx+'deg;--ra-end-y:'+ry+'deg">'+
         cubeFace('front',1)+cubeFace('back',6)+cubeFace('right',3)+cubeFace('left',4)+cubeFace('top',2)+cubeFace('bottom',5)+'</div></div>';
     }
     return '<div class="gd-poly-die gd-poly-die--d'+sides+(rolling?' is-rolling':'')+'" style="--ra-delay:'+(index*45)+'ms" aria-label="D'+sides+' die '+(index+1)+': '+value+'"><strong>'+value+'</strong><small>d'+sides+'</small></div>';
@@ -1128,31 +1138,41 @@ function randomiser(){
     return '<div class="gd-vis gd-randomiser-stage"><div class="gd-dice-table"><div class="gd-dice-set '+(count>4?'is-many':'')+'">'+vals.map((v,i)=>dieHtml(v,sides,i,rolling)).join('')+'</div>'+
       '<div class="gd-random-result" aria-live="polite"><span>'+(rolling?'Rolling…':'Result')+'</span><strong data-ra-result>'+(rolling?'—':esc(resultText))+'</strong></div></div>'+stageAction('dice',rolling)+'</div>';
   }
-  function wheelMarkup(list,rotation,label,working=false){
-    const n=Math.max(1,list.length),step=360/n,stops=list.map((_,i)=>WHEEL_COLOURS[i%WHEEL_COLOURS.length]+' '+(i*step)+'deg '+((i+1)*step)+'deg').join(',');
-    const labels=list.map((choice,i)=>{const angle=(i+.5)*step,rad=angle*Math.PI/180,x=50+Math.sin(rad)*31,y=50-Math.cos(rad)*31;return '<span class="gd-spinner-label" style="left:'+x.toFixed(2)+'%;top:'+y.toFixed(2)+'%;--ra-label-angle:'+angle+'deg"><span>'+esc(choice)+'</span></span>'}).join('');
+  function wheelMarkup(segments,rotation,label,working=false){
+    const list=segments.length?segments:[{label:spinnerKind==='colours'?'Red':'Add choices',colour:'#edf3f2',ink:'#30484f'}],n=Math.max(1,list.length),step=360/n;
+    const stops=list.map((item,i)=>item.colour+' '+(i*step)+'deg '+((i+1)*step)+'deg').join(',');
+    const labels=list.map((item,i)=>{
+      const angle=(i+.5)*step,rad=angle*Math.PI/180,x=50+Math.sin(rad)*31,y=50-Math.cos(rad)*31;
+      return '<span class="gd-spinner-label" data-ra-segment-label="'+esc(item.label)+'" style="left:'+x.toFixed(2)+'%;top:'+y.toFixed(2)+'%;--ra-counter-rotation:'+(-rotation)+'deg;--ra-label-colour:'+item.ink+'"><span>'+esc(item.label)+'</span></span>';
+    }).join('');
+    const chosen=list.find(x=>x.label===label),swatch=spinnerKind==='colours'&&chosen?'<i class="gd-spinner-result-swatch" style="--ra-result-colour:'+chosen.colour+'" aria-hidden="true"></i>':'';
     return '<div class="gd-vis gd-randomiser-stage"><div class="gd-spinner-layout"><div class="gd-spinner-shell"><div class="gd-spinner-pointer" aria-hidden="true"></div>'+
-      '<div class="gd-spinner-wheel" id="ra-wheel" style="--ra-wheel:'+stops+';transform:rotate('+rotation+'deg)">'+labels+'<span class="gd-spinner-hub" aria-hidden="true"></span></div></div>'+
-      '<div class="gd-spinner-choice"><span>Selected</span><strong data-ra-result aria-live="polite">'+esc(label||'Press Spin')+'</strong><small>'+n+' choice'+(n===1?'':'s')+'</small></div></div>'+stageAction('spinner',working)+'</div>';
+      '<div class="gd-spinner-wheel gd-spinner-wheel--'+spinnerKind+'" id="ra-wheel" data-ra-spinner-kind="'+spinnerKind+'" style="--ra-wheel:'+stops+';transform:rotate('+rotation+'deg)">'+labels+'<span class="gd-spinner-hub" aria-hidden="true"></span></div></div>'+
+      '<div class="gd-spinner-choice"><span>Selected</span><div class="gd-spinner-result-line">'+swatch+'<strong data-ra-result aria-live="polite">'+esc(label||'Press Spin')+'</strong></div><small>'+n+' choice'+(n===1?'':'s')+'</small></div></div>'+stageAction('spinner',working)+'</div>';
   }
   function cardStage(){const value=result||'—',red=/[♥♦]/.test(value);return '<div class="gd-vis gd-randomiser-stage"><div class="gd-playing-card'+(red?' is-red':'')+'" aria-live="polite"><span>'+esc(value)+'</span><strong>'+esc(value)+'</strong><span>'+esc(value)+'</span></div>'+stageAction('card')+'</div>'}
   function numberStage(){return '<div class="gd-vis gd-randomiser-stage"><div class="gd-random-number"><span>Random number</span><strong aria-live="polite">'+esc(result||'—')+'</strong></div>'+stageAction('number')+'</div>'}
   function show(mode=q('#ra-mode').value,rolling=false){
     const stage=q('#gd-stage');if(!stage)return;
     if(mode==='dice')stage.innerHTML=diceStage(rolling);
-    else if(mode==='spinner'){const list=choices();stage.innerHTML=wheelMarkup(list.length?list:['Add choices'],spinnerRotation,rolling?'Spinning…':(result||'Press Spin'),rolling)}
+    else if(mode==='spinner')stage.innerHTML=wheelMarkup(wheelSegments(),spinnerRotation,rolling?'Spinning…':(result||'Press Spin'),rolling);
     else if(mode==='card')stage.innerHTML=cardStage();
     else stage.innerHTML=numberStage();
     const stageGo=q('[data-ra-stage-go]',stage);if(stageGo&&!stageGo.disabled)stageGo.onclick=generate;
   }
   function actionLabel(mode){return mode==='dice'?'Roll dice':mode==='spinner'?'Spin wheel':mode==='number'?'Pick number':'Draw card'}
+  function spinnerControls(){
+    const kind=field('Spinner mode','<select class="gd-select" id="ra-spinner-kind"><option value="colours"'+(spinnerKind==='colours'?' selected':'')+'>Colours</option><option value="custom"'+(spinnerKind==='custom'?' selected':'')+'>Custom words / numbers</option></select>');
+    if(spinnerKind==='colours')return kind+'<p class="gd-help">Colour mode uses four matching segments: red, blue, green and yellow. The result repeats the same colour and name.</p>';
+    return kind+field('Wheel choices','<textarea class="gd-textarea" id="ra-choices" rows="6" maxlength="320">'+esc(customSpinnerText)+'</textarea>','One choice per line or separated by commas. Up to 16 choices.')+
+      '<p class="gd-help">Custom choices use quiet neutral segment backgrounds so the colour never implies a different answer.</p>';
+  }
   function draw(){
     const mode=q('#ra-mode').value;busy=false;clearTimeout(finishTimer);finishTimer=null;let controls='';
     if(mode==='dice')controls=field('Number of dice','<input class="gd-input" id="ra-count" type="number" min="1" max="8" value="2">')+
       field('Sides','<select class="gd-select" id="ra-sides"><option value="6">6 · standard dice</option><option value="4">4</option><option value="8">8</option><option value="10">10</option><option value="12">12</option><option value="20">20</option></select>')+
-      '<p class="gd-help">Six-sided dice tumble as 3D dice with real pip faces. Other dice keep a clear polyhedral-style result.</p>';
-    if(mode==='spinner')controls=field('Wheel choices','<textarea class="gd-textarea" id="ra-choices" rows="6" maxlength="320">Red\nBlue\nGreen\nYellow</textarea>','One choice per line or separated by commas. Up to 16 choices.')+
-      '<p class="gd-help">The fixed pointer chooses the segment where the wheel stops.</p>';
+      '<p class="gd-help">Six-sided dice are full 3D cubes with six pip faces. They tumble, then settle with the rolled face clearly visible.</p>';
+    if(mode==='spinner')controls=spinnerControls();
     if(mode==='number')controls=field('Minimum','<input class="gd-input" id="ra-min" type="number" value="1">')+field('Maximum','<input class="gd-input" id="ra-max" type="number" value="100">');
     if(mode==='card')controls='<p class="gd-help">Draw from a standard 52-card deck.</p>';
     q('#ra-extra').innerHTML=controls;
@@ -1161,12 +1181,16 @@ function randomiser(){
       q('#ra-count').oninput=()=>{diceValues=[];result='';show('dice')};
       q('#ra-sides').onchange=()=>{diceValues=[];result='';show('dice')};
     }
-    if(mode==='spinner')q('#ra-choices').oninput=()=>{result='';spinnerRotation=0;show('spinner')};
+    if(mode==='spinner'){
+      const kind=q('#ra-spinner-kind');if(kind)kind.onchange=()=>{spinnerKind=kind.value==='custom'?'custom':'colours';result='';spinnerRotation=0;draw()};
+      const choices=q('#ra-choices');if(choices)choices.oninput=()=>{customSpinnerText=choices.value;result='';spinnerRotation=0;show('spinner')};
+    }
     show(mode);
   }
   function finish(label,mode){
     busy=false;result=label;
     const go=q('#ra-go');if(go){go.disabled=false;go.textContent=actionLabel(mode)}
+    if(mode==='dice'||mode==='spinner'){show(mode,false);return}
     const stage=q('#gd-stage'),out=q('[data-ra-result]',stage);if(out)out.textContent=label;
     qa('.is-rolling',stage).forEach(el=>el.classList.remove('is-rolling'));
     const stageGo=q('[data-ra-stage-go]',stage);if(stageGo){stageGo.disabled=false;stageGo.textContent=actionLabel(mode);stageGo.onclick=generate}
@@ -1179,11 +1203,11 @@ function randomiser(){
     finishTimer=setTimeout(()=>finish(label,'dice'),motionMs());
   }
   function spinWheel(){
-    const list=choices();if(!list.length){busy=false;const go=q('#ra-go');if(go){go.disabled=false;go.textContent=actionLabel('spinner')}result='Add choices';show('spinner');return}
-    const selected=Math.floor(Math.random()*list.length),step=360/list.length,desired=(90-(selected+.5)*step+360)%360,current=((spinnerRotation%360)+360)%360,delta=(desired-current+360)%360,start=spinnerRotation;
+    const segments=wheelSegments();if(!segments.length){busy=false;const go=q('#ra-go');if(go){go.disabled=false;go.textContent=actionLabel('spinner')}result='Add choices';show('spinner');return}
+    const selected=Math.floor(Math.random()*segments.length),step=360/segments.length,desired=(90-(selected+.5)*step+360)%360,current=((spinnerRotation%360)+360)%360,delta=(desired-current+360)%360,start=spinnerRotation;
     spinnerRotation=start+(4+Math.floor(Math.random()*3))*360+delta;
-    const label=list[selected];
-    q('#gd-stage').innerHTML=wheelMarkup(list,start,'Spinning…',true);
+    const label=segments[selected].label;
+    q('#gd-stage').innerHTML=wheelMarkup(segments,start,'Spinning…',true);
     requestAnimationFrame(()=>{const wheel=q('#ra-wheel');if(wheel){wheel.classList.add('is-spinning');wheel.style.transform='rotate('+spinnerRotation+'deg)'}});
     finishTimer=setTimeout(()=>finish(label,'spinner'),motionMs());
   }
