@@ -1464,6 +1464,16 @@ function balanceTool(){
         '<button class="gd-btn" id="ba-plus" type="button" aria-label="Increase selected weight">+</button></div>'+
     '</div>';
   }
+  function stagePanAdd(side){
+    if(challengeFrozen())return'';
+    const label=side==='left'?'left':'right';
+    return '<button type="button" class="gd-eq-pan-add" data-ba-stage-add="'+label+'" aria-label="Add 1 to '+label+' pan" title="Add 1 to '+label+' pan">+1</button>';
+  }
+  function sameToBothStageAction(){
+    if(challengeFrozen()||challenge?.mode!=='standard'||challenge.type!=='same-to-both')return'';
+    const delta=Math.max(0,Number(challenge.targetDelta)||0);
+    return '<button type="button" class="gd-btn gd-btn--primary gd-eq-both-stage" data-ba-add-both-stage="'+delta+'">Add '+delta+' to both sides</button>';
+  }
   function bindChallengeStageActions(){
     const stage=q('#gd-stage');if(!stage||!challenge)return;
     const reveal=q('[data-board-action="reveal"]',stage);
@@ -1479,11 +1489,12 @@ function balanceTool(){
         '<div class="gd-object-toolbar"><button class="gd-btn" id="ba-undo" type="button"'+(undoStack.length&&!challengeFrozen()?'':' disabled')+'>Undo</button><button class="gd-btn" id="ba-redo" type="button"'+(redoStack.length&&!challengeFrozen()?'':' disabled')+'>Redo</button></div></div>'+
       '<div class="gd-eq-balance" style="--ba-tilt:'+td.deg+'deg;--ba-left-lift:'+td.leftLift+'px;--ba-right-lift:'+td.rightLift+'px">'+
         '<div class="gd-eq-beam"></div><div class="gd-eq-pivot"></div><div class="gd-eq-base"></div>'+
-        '<div class="gd-eq-side gd-eq-side--left" data-ba-drop="left"><div class="gd-eq-cord"></div><div class="gd-eq-pan"><div class="gd-eq-pan-label">Left</div><div class="gd-eq-weights">'+(left.length?left.map(tokenHtml).join(''):'<span class="gd-eq-empty">Drop weights here</span>')+'</div><strong class="gd-eq-total" data-ba-left-total>'+visibleLeftTotal()+'</strong></div></div>'+
-        '<div class="gd-eq-side gd-eq-side--right" data-ba-drop="right"><div class="gd-eq-cord"></div><div class="gd-eq-pan"><div class="gd-eq-pan-label">Right</div><div class="gd-eq-weights">'+(right.length?right.map(tokenHtml).join(''):'<span class="gd-eq-empty">Drop weights here</span>')+'</div><strong class="gd-eq-total" data-ba-right-total>'+visibleRightTotal()+'</strong></div></div>'+
+        '<div class="gd-eq-side gd-eq-side--left" data-ba-drop="left"><div class="gd-eq-cord"></div><div class="gd-eq-pan"><div class="gd-eq-pan-label">Left</div>'+stagePanAdd('left')+'<div class="gd-eq-weights">'+(left.length?left.map(tokenHtml).join(''):'<span class="gd-eq-empty">Add a weight here</span>')+'</div><strong class="gd-eq-total" data-ba-left-total>'+visibleLeftTotal()+'</strong></div></div>'+
+        '<div class="gd-eq-side gd-eq-side--right" data-ba-drop="right"><div class="gd-eq-cord"></div><div class="gd-eq-pan"><div class="gd-eq-pan-label">Right</div>'+stagePanAdd('right')+'<div class="gd-eq-weights">'+(right.length?right.map(tokenHtml).join(''):'<span class="gd-eq-empty">Add a weight here</span>')+'</div><strong class="gd-eq-total" data-ba-right-total>'+visibleRightTotal()+'</strong></div></div>'+
       '</div>'+
       '<div class="gd-eq-verdict'+(balanced?' is-balanced':'')+'"><span>Relationship</span><strong data-ba-relation>'+relationReadout()+'</strong></div>'+
       (challenge&&!challengeFrozen()&&challenge.mode==='standard'?'<div class="gd-answer-live" data-ba-target-status>'+challengeProgress()+'</div>':'')+
+      sameToBothStageAction()+
       selectedEditor()+
       (!challengeFrozen()?'<p class="gd-help gd-eq-drag-hint">Drag a weight across the balance to move it to the other side, or select it for precise edits.</p>':'')+
     '</div>';
@@ -1530,6 +1541,16 @@ function balanceTool(){
         document.addEventListener('pointercancel',dragEnd,{once:true});
       };
     });
+    qa('[data-ba-stage-add]',q('#gd-stage')).forEach(button=>button.onclick=()=>{
+      if(challengeFrozen())return;
+      const side=button.dataset.baStageAdd==='right'?'right':'left';
+      mutate(()=>addToken(side,1));
+    });
+    const addBothStage=q('[data-ba-add-both-stage]',q('#gd-stage'));if(addBothStage)addBothStage.onclick=()=>{
+      if(challengeFrozen())return;
+      const value=Math.max(0,Number(addBothStage.dataset.baAddBothStage)||0);
+      mutate(()=>{addToken('left',value);addToken('right',value)});
+    };
     const undoBtn=q('#ba-undo');if(undoBtn)undoBtn.onclick=undo;
     const redoBtn=q('#ba-redo');if(redoBtn)redoBtn.onclick=redo;
     const move=q('#ba-move');if(move)move.onclick=()=>mutate(()=>moveToken(selected(),sideName(selected()?.id)==='left'?'right':'left'));
