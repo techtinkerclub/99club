@@ -3450,19 +3450,33 @@ if(mode==='prepare'){
     assert(document.querySelectorAll('.gd-die-face .gd-die-pips').length===12,'Six-sided dice use pip faces rather than text-only results');
     let stageGo=document.querySelector('[data-ra-stage-go]');
     assert(stageGo&&stageGo.textContent.trim()==='Roll dice','Dice exposes Roll dice directly on the live stage');
-    stageGo.click();
+    const savedRandom=Math.random;Math.random=()=>.49;
+    stageGo.click();Math.random=savedRandom;
     stageGo=document.querySelector('[data-ra-stage-go]');
     assert(stageGo.disabled&&stageGo.textContent.includes('Rolling'),'Stage Roll dice locks while the dice tumble');
     assert(document.querySelectorAll('.gd-die-cube.is-rolling').length===2,'Stage Roll dice visibly tumbles the six-sided dice');
+    assert(document.querySelectorAll('.gd-die-cube[data-ra-final-value="3"]').length===2,'Six-sided dice keep a visible physical cube even when the rolled face is not 1');
+    assert(document.querySelectorAll('.gd-die-face[data-ra-face-value="3"] .gd-die-pips i.is-on').length===6,'The rolled 3 faces contain three visible pips per die');
 
     mode.value='spinner';mode.dispatchEvent(new Event('change',{bubbles:true}));
     assert(go.textContent.trim()==='Spin wheel','Spinner uses a direct Spin wheel action');
     assert(document.querySelector('.gd-spinner-pointer'),'Spinner has a fixed Wheel-of-Fortune-style pointer');
-    assert(document.querySelectorAll('.gd-spinner-label').length===4,'Default spinner labels all four wheel segments');
+    assert(document.getElementById('ra-spinner-kind')?.value==='colours','Spinner opens in explicit colour mode');
+    assert(document.getElementById('ra-wheel')?.dataset.raSpinnerKind==='colours','Colour spinner identifies its semantic mode on the wheel');
+    assert([...document.querySelectorAll('.gd-spinner-label span')].map(x=>x.textContent.trim()).join('|')==='Red|Blue|Green|Yellow','Colour spinner labels match the four segment colours exactly');
+    assert(document.querySelectorAll('.gd-spinner-label').length===4,'Colour spinner has four clear wheel segments');
+    const colourWheel=document.getElementById('ra-wheel').style.getPropertyValue('--ra-wheel');
+    assert(colourWheel.includes('#df4f4f')&&colourWheel.includes('#3976d3')&&colourWheel.includes('#399b64')&&colourWheel.includes('#f4cc45'),'Colour spinner uses red, blue, green and yellow segment backgrounds');
+
+    const spinnerKind=document.getElementById('ra-spinner-kind');
+    spinnerKind.value='custom';spinnerKind.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.getElementById('ra-wheel')?.dataset.raSpinnerKind==='custom','Spinner can switch to a separate custom words / numbers mode');
     const choices=document.getElementById('ra-choices');
+    assert(choices,'Custom spinner exposes editable choices only in custom mode');
     choices.value='Alpha\\nBeta\\nGamma';choices.dispatchEvent(new Event('input',{bubbles:true}));
-    assert(document.querySelectorAll('.gd-spinner-label').length===3,'Spinner redraws to match edited classroom choices');
-    assert([...document.querySelectorAll('.gd-spinner-label span')].map(x=>x.textContent.trim()).join('|')==='Alpha|Beta|Gamma','Spinner keeps the edited labels on the wheel itself');
+    assert(document.querySelectorAll('.gd-spinner-label').length===3,'Custom spinner redraws to match edited classroom choices');
+    assert([...document.querySelectorAll('.gd-spinner-label span')].map(x=>x.textContent.trim()).join('|')==='Alpha|Beta|Gamma','Custom spinner keeps edited words or numbers on the wheel');
+    assert(!document.getElementById('ra-wheel').style.getPropertyValue('--ra-wheel').includes('#df4f4f'),'Custom spinner uses neutral decorative backgrounds rather than semantic colour-mode red');
     stageGo=document.querySelector('[data-ra-stage-go]');
     assert(stageGo&&stageGo.textContent.trim()==='Spin wheel','Spinner exposes Spin wheel directly on the live stage');
     stageGo.click();
