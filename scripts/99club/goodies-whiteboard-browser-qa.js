@@ -97,6 +97,10 @@ document.exitFullscreen=function(){
         if(id==='balance'){
           assert(stage.querySelectorAll('[data-ba-stage-add]').length===2,'Equation Balance exposes direct pan add actions before whiteboard mode');
         }
+        if(id==='bar-model'){
+          const add=stage.querySelector('#bm-add-stage');
+          assert(add&&!add.disabled,'Bar Model exposes + Part directly on stage before whiteboard mode');
+        }
         sharedPresent.click();
         await tick();
         assert(document.getElementById('gd-stage')===stage,'Shared whiteboard preserves the live stage element for '+id);
@@ -132,6 +136,13 @@ document.exitFullscreen=function(){
           add.click();
           assert(stage.querySelectorAll('[data-ba-token]').length===before+1,'Equation Balance can add a weight directly in whiteboard mode');
           assert(tools.getAttribute('aria-expanded')==='false'&&!workspace.classList.contains('gd-whiteboard-tools-open'),'Using Equation Balance pan add does not open the teacher Tools drawer');
+        }
+        if(id==='bar-model'){
+          const before=stage.querySelectorAll('[data-bm-part]').length,add=stage.querySelector('#bm-add-stage');
+          assert(add&&getComputedStyle(add).display!=='none'&&add.getBoundingClientRect().height>0,'Bar Model + Part remains visible while whiteboard Tools are collapsed');
+          add.click();
+          assert(stage.querySelectorAll('[data-bm-part]').length===before+1,'Bar Model can add a part directly in whiteboard mode');
+          assert(tools.getAttribute('aria-expanded')==='false'&&!workspace.classList.contains('gd-whiteboard-tools-open'),'Using Bar Model + Part does not open the teacher Tools drawer');
         }
         tools.click();
         assert(workspace.classList.contains('gd-whiteboard-tools-open'),'Whiteboard Tools drawer opens for '+id);

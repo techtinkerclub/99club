@@ -439,7 +439,15 @@ if(mode==='prepare'){
     assert(document.querySelector('[data-bm-equation]').textContent.trim()==='30 + 20 + ? = 80','Bar Model opens with a clear part-whole equation');
     assert(document.querySelector('[data-bm-status]').textContent.includes('Unknown part = 30'),'One unknown is inferred from the fixed whole');
     assert(document.querySelectorAll('[data-bm-boundary]').length===2,'Bar Model exposes direct dividers between adjacent parts');
+    const stageAdd=document.getElementById('bm-add-stage');
+    assert(stageAdd&&!stageAdd.disabled,'Bar Model exposes + Part directly on the live stage');
+    stageAdd.click();
+    assert(document.querySelectorAll('[data-bm-part]').length===4,'Bar Model can add a part without opening teacher controls');
+    assert(document.querySelector('[data-bm-selected]'),'A stage-added part becomes selected for immediate editing');
+    document.getElementById('bm-undo').click();
+    assert(document.querySelectorAll('[data-bm-part]').length===3,'Undo reverses a direct stage add cleanly');
 
+    segments=[...document.querySelectorAll('[data-bm-part]')];
     segments[0].click();
     assert(document.querySelector('[data-bm-selected="1"]'),'A bar segment can be selected directly');
     segments=document.querySelectorAll('[data-bm-part]');
@@ -478,8 +486,8 @@ if(mode==='prepare'){
     document.getElementById('bm-delete').click();
     assert(document.querySelectorAll('[data-bm-part]').length===3,'Delete removes only the selected duplicated part');
 
-    document.getElementById('bm-add').click();
-    assert(document.querySelectorAll('[data-bm-part]').length===4,'Add part extends the Bar Model directly');
+    document.getElementById('bm-add-stage').click();
+    assert(document.querySelectorAll('[data-bm-part]').length===4,'Stage + Part extends the Bar Model directly');
     document.getElementById('bm-undo').click();
     assert(document.querySelectorAll('[data-bm-part]').length===3,'Undo restores the previous Bar Model state');
     document.getElementById('bm-redo').click();
@@ -546,6 +554,7 @@ if(mode==='prepare'){
     document.getElementById('bm-generate').click();
     assert(document.querySelector('.gd-challenge-prompt').textContent.includes('10 + ? + 5 = 23'),'Deterministic build challenge states the target model');
     assert([...document.querySelectorAll('[data-bm-part]')].every(x=>!x.disabled),'Build-model challenge keeps direct editing active');
+    assert(document.getElementById('bm-add-stage'),'Interactive build-model challenge keeps + Part directly available on stage');
     let buildParts=[...document.querySelectorAll('[data-bm-part]')];
     buildParts[1].click();
     let buildUnknown=document.getElementById('bm-unknown');
