@@ -357,10 +357,17 @@ if(mode==='prepare'){
     assert(TT99Goodies.interaction&&TT99Goodies.interaction.mount,'Interaction controller is registered');
     TT99Goodies.mathsCanvas();
 
-    const add=document.querySelector('[data-mc-add="1"]');
-    assert(add,'Number tile palette exists');
-    add.click();
-    assert(document.querySelectorAll('[data-gd-object]').length===1,'Adding a tile creates one canvas object');
+    assert(document.querySelector('[data-mc-add="1"]'),'Teacher Tools still contains the full number tile palette');
+    let stageAdd=document.querySelector('[data-gd-action="add"]');
+    assert(stageAdd,'Maths Canvas exposes Add tile directly on the live-stage rail');
+    stageAdd.click();
+    assert(document.querySelectorAll('.gd-mc-stage-palette [data-gd-action="add-tile"]').length===15,'Stage Add opens a compact palette of common numbers and symbols');
+    const stageOne=document.querySelector('.gd-mc-stage-palette [data-gd-action="add-tile"][data-mc-value="1"]');
+    assert(stageOne,'Stage palette includes the 1 tile');
+    stageOne.click();
+    assert(document.querySelectorAll('[data-gd-object]').length===1,'Adding from the stage palette creates one canvas object');
+    assert(!document.querySelector('.gd-mc-stage-palette'),'Stage palette closes after adding a tile');
+    assert(document.querySelector('[data-gd-object].is-selected'),'Stage-added tile is selected immediately');
 
     let tile=document.querySelector('[data-gd-object]');
     const r=tile.getBoundingClientRect();
@@ -393,6 +400,11 @@ if(mode==='prepare'){
     assert(document.querySelectorAll('[data-gd-object]').length===2,'Undo restores deleted tile');
 
     const canvas=document.getElementById('mc-canvas');
+    stageAdd=document.querySelector('[data-gd-action="add"]');
+    stageAdd.click();
+    assert(document.querySelector('.gd-mc-stage-palette [data-mc-value="="][data-mc-symbol="true"]'),'Stage palette includes equation symbols as well as numbers');
+    stageAdd=document.querySelector('[data-gd-action="add"]');stageAdd.click();
+    assert(!document.querySelector('.gd-mc-stage-palette'),'Tapping Add again closes the compact stage palette');
     assert(canvas&&canvas.classList.contains('has-grid'),'Visible snap grid is enabled');
     assert(getComputedStyle(canvas).touchAction==='pan-y','Empty canvas preserves vertical touch scrolling');
 
