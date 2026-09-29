@@ -3005,6 +3005,8 @@ if(mode==='prepare'){
     assert(moBoardSvg&&moBoardSvg.dataset.moExport==='money','UK Money board export is a deterministic SVG model');
     assert(moBoardSvg.querySelectorAll('[data-mo-export-piece]').length===5,'UK Money board SVG preserves every current coin/note');
     assert(!moBoardSvg.querySelector('image'),'UK Money export stays self-contained vector artwork and never hot-links coin photography');
+    assert(moBoardSvg.querySelector('[data-mo-export-piece="50"] [data-mo-export-coin-shape="hept"]'),'50p keeps the curved seven-sided silhouette in exported SVG');
+    assert(moBoardSvg.querySelector('[data-mo-export-piece="100"] [data-mo-export-coin-shape="dodec"]'),'£1 keeps its twelve-sided silhouette in exported SVG');
     assert(moBoardSvg.querySelector('[data-mo-export-summary="total"]').textContent.trim()==='£3.75','UK Money board SVG includes the live total');
     assert(moBoardSvg.querySelector('[data-mo-export-summary="target"]').textContent.trim()==='£3.75','UK Money board SVG includes the live target');
     assert(moBoardName.includes('uk-money-375p'),'UK Money board export has a reusable amount-based filename');
