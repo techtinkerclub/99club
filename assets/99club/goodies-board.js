@@ -33,7 +33,8 @@ const defaults={
 };
 const QUICK_ACTIONS={
   'number-line':[
-    {label:'+ Marker',selector:'[data-board-action="add-marker"]',title:'Add marker',notice:'Tap the number line where you want the marker.'},
+    {label:'+ Marker',selector:'[data-board-action="add-marker"]',title:'Add marker',notice:'Tap an empty position on the active number line.'},
+    {label:'− Item',selector:'[data-board-action="delete"]',title:'Delete marker or comparison line',notice:'Tap the marker or comparison line you want to remove.'},
     {label:'+ Relation',selector:'[data-board-action="relation"]',title:'Add relationship',notice:'Tap the first marker, then the second marker.'},
     {label:'+ Line',selector:'[data-board-action="add-line"]',title:'Add aligned comparison line'}
   ],
@@ -48,6 +49,10 @@ const QUICK_ACTIONS={
     {label:'Duplicate',selector:'[data-gd-action="duplicate"]'},
     {label:'×',selector:'[data-gd-action="delete"]',title:'Delete selected strip',danger:true}
   ],
+  clock:[
+    {label:'+ Clock',selector:'#cl-add-clock',allowHidden:true,title:'Add another clock'},
+    {label:'− Clock',selector:'#cl-remove-clock',allowHidden:true,title:'Remove selected clock',danger:true}
+  ],
   money:[
     {label:'+ Money',selector:'[data-gd-action="add-money"]'},
     {label:'Duplicate',selector:'[data-gd-action="duplicate"]'},
@@ -55,15 +60,27 @@ const QUICK_ACTIONS={
   ],
   balance:[
     {label:'+ Left',selector:'[data-ba-stage-add="left"]'},
-    {label:'+ Right',selector:'[data-ba-stage-add="right"]'}
+    {label:'+ Right',selector:'[data-ba-stage-add="right"]'},
+    {label:'Move',selector:'#ba-move',allowHidden:true,title:'Move selected weight to other pan'},
+    {label:'Duplicate',selector:'#ba-duplicate',allowHidden:true},
+    {label:'×',selector:'#ba-delete',allowHidden:true,title:'Delete selected weight',danger:true}
   ],
   'maths-canvas':[
-    {label:'+ Tile',selector:'[data-gd-action="add"]'},
-    {label:'Duplicate',selector:'[data-gd-action="duplicate"]'},
-    {label:'×',selector:'[data-gd-action="delete"]',title:'Delete selected tile',danger:true}
+    {label:'+ Tile',selector:'[data-gd-action="add"]',allowHidden:true,title:'Add number or operation tile'},
+    {label:'Combine +',selector:'[data-gd-action="combine"]',allowHidden:true,title:'Combine selected number tile by addition'},
+    {label:'Split',selector:'[data-gd-action="split"]',allowHidden:true,title:'Split selected number into equal tiles'},
+    {label:'Duplicate',selector:'[data-gd-action="duplicate"]',allowHidden:true},
+    {label:'×',selector:'[data-gd-action="delete"]',allowHidden:true,title:'Delete selected tile',danger:true}
+  ],
+  'hundred-square':[
+    {label:'Rule',selector:'[data-hs-rule-toggle]',allowHidden:true,title:'Set highlight rule'}
+  ],
+  measurement:[
+    {label:'+ Ruler',selector:'#me-add-ruler',allowHidden:true,title:'Add comparison ruler'},
+    {label:'Sync',selector:'#me-sync-rulers',allowHidden:true,checkedLabel:'Unlink',uncheckedLabel:'Sync',title:'Link or unlink ruler movement'}
   ],
   randomiser:[
-    {label:'Go',selector:'[data-ra-stage-go]',dynamicLabel:true}
+    {label:'Go',selector:'[data-ra-stage-go]',dynamicLabel:true,allowHidden:true}
   ],
   coordinates:[
     {label:'× Point',selector:'[data-co-delete]',danger:true}
@@ -71,6 +88,10 @@ const QUICK_ACTIONS={
   geoboard:[
     {label:'× Vertex',selector:'[data-ge-delete]',danger:true}
   ]
+};
+const HISTORY_SELECTORS={
+  undo:'[data-gd-action="undo"],[data-board-action="undo"],[data-co-undo-stage],#hs-undo,#ab-undo,#ba-undo',
+  redo:'[data-gd-action="redo"],[data-board-action="redo"],[data-co-redo-stage],#hs-redo,#ab-redo,#ba-redo'
 };
 const objects=[];
 
@@ -86,6 +107,8 @@ function iconSvg(name){
     lock:'<rect x="6" y="10" width="12" height="10" rx="2"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/>',
     unlock:'<rect x="6" y="10" width="12" height="10" rx="2"/><path d="M15 10V7a3 3 0 0 0-5.7-1.3"/>',
     trash:'<path d="M5 7h14M9 7V4h6v3M8 10l1 9h6l1-9"/>',
+    undo:'<path d="M9 7 4 12l5 5"/><path d="M5 12h8a6 6 0 0 1 6 6"/>',
+    redo:'<path d="m15 7 5 5-5 5"/><path d="M19 12h-8a6 6 0 0 0-6 6"/>',
     more:'<circle cx="6" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="18" cy="12" r="1.4"/>'
   };
   return '<svg viewBox="0 0 24 24" aria-hidden="true">'+(paths[name]||'')+'</svg>';
@@ -101,6 +124,7 @@ root.innerHTML='<div class="gd-mixed-board" id="gd-mixed-board">'+
   '<div class="gd-board-viewport" id="gd-board-viewport" tabindex="0" aria-label="Maths whiteboard">'+
     '<div class="gd-board-canvas" id="gd-board-canvas" style="width:'+BOARD_W+'px;height:'+BOARD_H+'px"></div>'+
   '</div>'+
+  '<div class="gd-board-tooltip" id="gd-board-tooltip" role="tooltip"></div>'+
   '<div class="gd-board-hint" id="gd-board-hint" role="status" aria-live="polite"></div>'+
   '<div class="gd-board-global" aria-label="Whiteboard controls">'+
     '<button type="button" class="gd-board-global-button" id="gd-board-back" aria-label="Back to manipulatives" title="Back">'+iconSvg('back')+'</button>'+
@@ -113,7 +137,21 @@ const board=document.getElementById('gd-mixed-board');
 const viewport=document.getElementById('gd-board-viewport');
 const canvas=document.getElementById('gd-board-canvas');
 const hint=document.getElementById('gd-board-hint');
-let hintTimer=null;
+const tooltip=document.getElementById('gd-board-tooltip');
+let hintTimer=null,tooltipTimer=null;
+function showToolTip(button){
+  if(!tooltip||!button)return;
+  clearTimeout(tooltipTimer);
+  const label=button.dataset.label||button.getAttribute('aria-label')||'';
+  if(!label)return;
+  const r=button.getBoundingClientRect(),host=board.getBoundingClientRect();
+  tooltip.textContent=label;
+  tooltip.style.left=(r.right-host.left+9)+'px';
+  tooltip.style.top=(r.top-host.top+r.height/2)+'px';
+  tooltip.classList.add('is-visible');
+}
+function hideToolTip(){if(!tooltip)return;clearTimeout(tooltipTimer);tooltipTimer=setTimeout(()=>tooltip.classList.remove('is-visible'),80)}
+
 function boardHint(message){
   if(!hint||!message)return;
   clearTimeout(hintTimer);hint.textContent=message;hint.classList.add('is-visible');
@@ -126,12 +164,15 @@ function innerDocument(obj){
   const frame=frameFor(obj?.id),iframe=frame?.querySelector('iframe');
   try{return iframe?.contentDocument||null}catch(_){return null}
 }
-function innerTarget(obj,selector){
+function innerTarget(obj,selector,allowHidden=false){
   const doc=innerDocument(obj);if(!doc||!selector)return null;
   const node=doc.querySelector(selector);
-  if(!node||node.disabled||node.hidden||node.classList?.contains('is-disabled')||node.getAttribute?.('aria-disabled')==='true')return null;
-  const style=doc.defaultView?.getComputedStyle(node);
-  if(style&&(style.display==='none'||style.visibility==='hidden'))return null;
+  if(!node||node.disabled||node.classList?.contains('is-disabled')||node.getAttribute?.('aria-disabled')==='true')return null;
+  if(!allowHidden){
+    if(node.hidden)return null;
+    const style=doc.defaultView?.getComputedStyle(node);
+    if(style&&(style.display==='none'||style.visibility==='hidden'))return null;
+  }
   return node;
 }
 function fitEmbeddedObject(obj,initial=false){
@@ -158,12 +199,23 @@ function fitEmbeddedObject(obj,initial=false){
 function syncQuickActions(obj){
   const frame=frameFor(obj?.id),rail=frame?.querySelector('[data-board-quick-actions]');if(!rail)return;
   const actions=QUICK_ACTIONS[obj.toolId]||[];
-  const available=actions.map((action,index)=>({action,index,node:innerTarget(obj,action.selector)})).filter(x=>x.node);
+  const available=actions.map((action,index)=>({action,index,node:innerTarget(obj,action.selector,!!action.allowHidden)})).filter(x=>x.node);
   rail.innerHTML=available.map(({action,index,node})=>{
-    const label=action.dynamicLabel?(node.textContent||action.label).trim():action.label;
+    const label=action.checkedLabel&&'checked' in node?(node.checked?action.checkedLabel:(action.uncheckedLabel||action.label)):(action.dynamicLabel?(node.textContent||action.label).trim():action.label);
     return '<button type="button" data-board-inner-action="'+index+'"'+(action.danger?' class="is-danger"':'')+' aria-label="'+esc(action.title||label)+'" title="'+esc(action.title||label)+'">'+esc(label)+'</button>';
   }).join('');
   rail.classList.toggle('is-empty',available.length===0);
+  syncHistoryActions(obj);
+}
+function syncHistoryActions(obj){
+  const frame=frameFor(obj?.id);if(!frame)return;
+  ['undo','redo'].forEach(kind=>{
+    const button=frame.querySelector('[data-board-history="'+kind+'"]');
+    if(!button)return;
+    const target=innerTarget(obj,HISTORY_SELECTORS[kind],true);
+    button.hidden=!target;
+    button.disabled=!target;
+  });
 }
 function connectInnerObject(obj){
   const frame=frameFor(obj.id),iframe=frame?.querySelector('iframe');if(!iframe)return;
@@ -177,6 +229,7 @@ function connectInnerObject(obj){
     };
     const refresh=()=>setTimeout(()=>settleFit(false,0),0);
     doc.addEventListener('click',refresh,true);
+    doc.addEventListener('pointerup',refresh,true);
     doc.addEventListener('change',refresh,true);
     doc.addEventListener('input',refresh,true);
     requestAnimationFrame(()=>settleFit(true,0));
@@ -238,6 +291,8 @@ function objectMarkup(obj,tool){
     '<button type="button" class="gd-board-delete-direct" data-board-delete="'+obj.id+'" aria-label="Delete '+esc(tool.title)+'" title="Delete">'+iconSvg('trash')+'</button>'+
     '<div class="gd-board-quick-actions is-empty" data-board-quick-actions aria-label="'+esc(tool.title)+' quick actions"></div>'+
     '<div class="gd-board-context-menu" role="menu" aria-label="'+esc(tool.title)+' controls">'+
+      '<button type="button" data-board-history="undo" role="menuitem" aria-label="Undo" title="Undo" hidden>'+iconSvg('undo')+'</button>'+
+      '<button type="button" data-board-history="redo" role="menuitem" aria-label="Redo" title="Redo" hidden>'+iconSvg('redo')+'</button>'+
       '<button type="button" data-board-settings="'+obj.id+'" role="menuitem" aria-label="Settings" title="Settings">'+iconSvg('settings')+'</button>'+
       '<button type="button" data-board-lock="'+obj.id+'" role="menuitem" aria-label="Lock position" title="Lock position">'+iconSvg('lock')+'</button>'+
     '</div>'+
@@ -307,6 +362,11 @@ function bindObject(obj){
   if(settings)settings.onclick=e=>{e.stopPropagation();toggleSettings(obj.id)};
   const lock=frame.querySelector('[data-board-lock]');
   if(lock)lock.onclick=e=>{e.stopPropagation();toggleLock(obj.id)};
+  frame.querySelectorAll('[data-board-history]').forEach(button=>button.onclick=e=>{
+    e.stopPropagation();
+    const kind=button.dataset.boardHistory,target=innerTarget(obj,HISTORY_SELECTORS[kind],true);
+    if(target){target.click();setTimeout(()=>{syncQuickActions(obj);syncHistoryActions(obj)},0)}
+  });
   const del=frame.querySelector('[data-board-delete]');
   if(del)del.onclick=e=>{e.stopPropagation();removeObject(obj.id)};
   const quick=frame.querySelector('[data-board-quick-actions]');
@@ -314,8 +374,13 @@ function bindObject(obj){
     const button=e.target.closest('[data-board-inner-action]');if(!button)return;
     e.preventDefault();e.stopPropagation();
     const action=(QUICK_ACTIONS[obj.toolId]||[])[Number(button.dataset.boardInnerAction)];
-    const target=action&&innerTarget(obj,action.selector);
-    if(target){target.click();if(action.notice)boardHint(action.notice);setTimeout(()=>syncQuickActions(obj),0)}
+    const target=action&&innerTarget(obj,action.selector,!!action.allowHidden);
+    if(target){
+      if(action.openSettings){sendSettings(obj,true);setTimeout(()=>target.focus?.(),30)}
+      else target.click();
+      if(action.notice)boardHint(action.notice);
+      setTimeout(()=>syncQuickActions(obj),0)
+    }
   };
 
   const move=frame.querySelector('[data-board-move]');
@@ -381,7 +446,13 @@ canvas.addEventListener('pointerdown',e=>{
   board.classList.add('is-panning');
   try{canvas.setPointerCapture(e.pointerId)}catch(_){}
 });
-document.querySelectorAll('[data-board-add]').forEach(button=>button.addEventListener('click',()=>addObject(button.dataset.boardAdd)));
+document.querySelectorAll('[data-board-add]').forEach(button=>{
+  button.addEventListener('click',()=>addObject(button.dataset.boardAdd));
+  button.addEventListener('pointerenter',()=>showToolTip(button));
+  button.addEventListener('pointerleave',hideToolTip);
+  button.addEventListener('focus',()=>showToolTip(button));
+  button.addEventListener('blur',hideToolTip);
+});
 
 document.getElementById('gd-board-back').onclick=()=>{location.href=window.TT99_GOODIES_BOARD_HOME||location.pathname};
 document.getElementById('gd-board-snap').onclick=e=>{
@@ -397,6 +468,13 @@ document.addEventListener('keydown',e=>{
   const tag=(e.target?.tagName||'').toLowerCase();
   const editing=tag==='input'||tag==='textarea'||tag==='select'||e.target?.isContentEditable;
   if(e.key==='Escape'&&selectedId!=null){e.preventDefault();deselect();return}
+  if(!editing&&selectedId!=null&&e.code==='Space'){
+    const obj=objectById(selectedId);
+    if(obj?.toolId==='randomiser'){
+      const target=innerTarget(obj,'[data-ra-stage-go]',true);
+      if(target&&!target.disabled){e.preventDefault();target.click();boardHint((target.textContent||'Go').trim())}
+    }
+  }
   if(!editing&&selectedId!=null&&(e.key==='Delete'||e.key==='Backspace')){e.preventDefault();removeObject(selectedId)}
 });
 

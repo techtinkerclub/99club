@@ -1,7 +1,7 @@
 (function(G){
 'use strict';
 if(!G)return;
-const {q,qa,clamp,num,money,field,btn,setPanels}=G;
+const {q,qa,esc,clamp,num,money,field,btn,setPanels}=G;
 function numberLine(){let s={min:-10,max:20,step:1,marker:5};function draw(){s.min=num(q('#nl-min').value,s.min);s.max=num(q('#nl-max').value,s.max);if(s.max<=s.min)s.max=s.min+1;s.step=Math.max(.1,num(q('#nl-step').value,s.step));s.marker=clamp(num(q('#nl-marker').value,s.marker),s.min,s.max);q('#nl-marker').min=s.min;q('#nl-marker').max=s.max;q('#nl-marker').step=s.step;const range=s.max-s.min,n=Math.floor(range/s.step);const maxTicks=50,skip=Math.max(1,Math.ceil(n/maxTicks));let html='<div class="gd-vis"><div class="gd-numberline"><div class="gd-numberline__line"></div>';for(let i=0;i<=n;i+=skip){const v=s.min+i*s.step,p=(v-s.min)/range*100;html+=`<span class="gd-numberline__tick" style="left:${p}%"></span><span class="gd-numberline__label" style="left:${p}%">${Number(v.toFixed(4))}</span>`}const p=(s.marker-s.min)/range*100;html+=`<span class="gd-numberline__marker" style="left:${p}%">${Number(s.marker.toFixed(2))}</span></div><div class="gd-readout">Marker: ${Number(s.marker.toFixed(2))}</div></div>`;q('#gd-stage').innerHTML=html}
 setPanels(`${field('Minimum','<input class="gd-input" id="nl-min" type="number" value="-10">')}${field('Maximum','<input class="gd-input" id="nl-max" type="number" value="20">')}${field('Step','<input class="gd-input" id="nl-step" type="number" min="0.1" step="0.1" value="1">')}${field('Move marker','<input class="gd-input" id="nl-marker" type="range" value="5">')}<div class="gd-row">${btn('− step','nl-down')}${btn('+ step','nl-up')}</div><p class="gd-help">Change the range for negatives, decimals or larger-number work.</p>`,'');['nl-min','nl-max','nl-step','nl-marker'].forEach(id=>q('#'+id).addEventListener('input',draw));q('#nl-down').onclick=()=>{q('#nl-marker').value=clamp(num(q('#nl-marker').value)-s.step,s.min,s.max);draw()};q('#nl-up').onclick=()=>{q('#nl-marker').value=clamp(num(q('#nl-marker').value)+s.step,s.min,s.max);draw()};draw()}
 
@@ -350,9 +350,12 @@ function placeValue(){
       '</div></div>';
   }
   function columnMarkup(place,index,cs){
-    const countText=columnCountHidden(index)?'?':cs[index];
+    const countText=columnCountHidden(index)?'?':cs[index],canRemove=tokens.some(t=>t.place===index&&!t.locked);
     return '<div class="gd-pv-column'+(index===5?' is-decimal-start':'')+'" data-gd-canvas-bg data-pv-column="'+index+'">'+
-      '<div class="gd-pv-head"><strong>'+place.label+'</strong><small>'+place.name+'</small><span data-pv-count="'+index+'">'+countText+'</span><button type="button" data-pv-add="'+index+'" aria-label="Add one '+place.name+' counter">+</button></div>'+
+      '<div class="gd-pv-head"><strong>'+place.label+'</strong><small>'+place.name+'</small><span data-pv-count="'+index+'">'+countText+'</span><div class="gd-pv-column-actions" role="group" aria-label="'+place.name+' counters">'+
+        '<button type="button" data-pv-remove="'+index+'" aria-label="Remove one '+place.name+' counter"'+(canRemove?'':' disabled')+'>−</button>'+
+        '<button type="button" data-pv-add="'+index+'" aria-label="Add one '+place.name+' counter">+</button>'+
+      '</div></div>'+
       '</div>';
   }
   function render(selectedId,meta){
@@ -398,6 +401,19 @@ function placeValue(){
     });
     controller.select(id);
   }
+  function removeCounter(place){
+    const index=clamp(Math.round(Number(place)||0),0,places.length-1);
+    const candidates=tokens.filter(t=>t.place===index&&!t.locked);
+    const item=candidates[candidates.length-1];
+    if(!item)return;
+    const removingSelected=String(controller.getSelectedId?.())===String(item.id);
+    controller.mutate(()=>{
+      tokens=tokens.filter(t=>t!==item);
+      notice='';
+      layoutTokens();
+    });
+    if(removingSelected)controller.select(null);
+  }
   function duplicateCounter(item){
     if(tokens.length>=90){notice='This board is full. Delete or regroup some counters first.';return null;}
     const copy={...item,id:next++,locked:false,x:0,y:0};
@@ -406,6 +422,9 @@ function placeValue(){
   function bindStage(){
     qa('[data-pv-add]',q('#gd-stage')).forEach(button=>button.onclick=e=>{
       e.stopPropagation();addCounter(+button.dataset.pvAdd);
+    });
+    qa('[data-pv-remove]',q('#gd-stage')).forEach(button=>button.onclick=e=>{
+      e.stopPropagation();removeCounter(+button.dataset.pvRemove);
     });
     const reveal=q('[data-board-action="reveal"]',q('#gd-stage'));
     if(reveal)reveal.onclick=e=>{e.stopPropagation();if(!challenge)return;challenge.revealed=!challenge.revealed;renderControls();controller?.refresh()};
@@ -1861,7 +1880,7 @@ function barModel(){
 
 function hundredSquare(){
   const CK=G.challengeKit,X=G.exportTools;
-  let startValue=1,selectedIndex=0,interactionMode='select',ruleMode='multiples',ruleNumber=5,paint=null;
+  let startValue=1,selectedIndex=0,interactionMode='select',ruleMode='multiples',ruleNumber=5,paint=null,rulePanelOpen=false;
   let marked=new Set(),hidden=new Set();
   const undoStack=[],redoStack=[];
   const CHALLENGE_CATEGORIES=[
@@ -1887,7 +1906,7 @@ function hundredSquare(){
   }
   function restore(state){
     startValue=Math.round(Number(state?.startValue)||0);
-    selectedIndex=clamp(Math.round(Number(state?.selectedIndex)||0),0,99);
+    selectedIndex=clamp(Math.round(Number(state?.selectedIndex)||0),0,99);rulePanelOpen=false;
     interactionMode=state?.interactionMode||'select';
     ruleMode=state?.ruleMode||'none';
     ruleNumber=Math.max(1,Math.round(Number(state?.ruleNumber)||1));
@@ -2017,12 +2036,30 @@ function hundredSquare(){
   function rangeSummary(){
     return challenge&&!challenge.revealed&&challenge.hiddenRangeSummary?'?':startValue+'–'+(startValue+99);
   }
+  function ruleShortLabel(){
+    if(ruleMode==='multiples')return'×'+ruleNumber;
+    if(ruleMode==='factors')return'Factors of '+ruleNumber;
+    if(ruleMode==='prime')return'Prime';
+    if(ruleMode==='odd')return'Odd';
+    if(ruleMode==='even')return'Even';
+    return'No rule';
+  }
+  function rulePopoverHtml(){
+    if(challenge||!rulePanelOpen)return'';
+    const mode=(id,label)=>'<button type="button" data-hs-rule-mode="'+id+'"'+(ruleMode===id?' class="is-active"':'')+'>'+label+'</button>';
+    return '<div class="gd-hs-rule-popover" role="group" aria-label="Hundred square rule">'+
+      '<div class="gd-hs-rule-modes">'+mode('multiples','Multiples')+mode('factors','Factors')+mode('prime','Prime')+mode('odd','Odd')+mode('even','Even')+mode('none','None')+'</div>'+
+      ((ruleMode==='multiples'||ruleMode==='factors')?'<div class="gd-hs-rule-number"><button type="button" data-hs-rule-step="-1" aria-label="Decrease rule number">−</button><strong>'+ruleNumber+'</strong><button type="button" data-hs-rule-step="1" aria-label="Increase rule number">+</button></div>':'')+
+    '</div>';
+  }
   function draw(){
     updateChallengeAnswer();
     const related=relatedValues(),banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Hundred Square challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-hs-workbench">'+
       '<div class="gd-hs-summary"><div><span>Hundred square</span><strong>'+rangeSummary()+'</strong></div>'+
-        '<div class="gd-object-toolbar"><button class="gd-btn" id="hs-undo" type="button"'+(undoStack.length&&!challengeFrozen()?'':' disabled')+'>Undo</button><button class="gd-btn" id="hs-redo" type="button"'+(redoStack.length&&!challengeFrozen()?'':' disabled')+'>Redo</button></div></div>'+
+        '<div class="gd-hs-summary-actions">'+(!challenge?'<button class="gd-hs-rule-chip'+(rulePanelOpen?' is-active':'')+'" type="button" data-hs-rule-toggle aria-expanded="'+(rulePanelOpen?'true':'false')+'">Rule: '+ruleShortLabel()+'</button>':'')+
+        '<div class="gd-object-toolbar"><button class="gd-btn" id="hs-undo" type="button"'+(undoStack.length&&!challengeFrozen()?'':' disabled')+'>Undo</button><button class="gd-btn" id="hs-redo" type="button"'+(redoStack.length&&!challengeFrozen()?'':' disabled')+'>Redo</button></div></div></div>'+
+      rulePopoverHtml()+
       '<div class="gd-square-grid gd-hs-grid" data-hs-grid-start="'+startValue+'">'+Array.from({length:100},(_,i)=>cellHtml(i,related)).join('')+'</div>'+
       selectedPanel()+
       (challenge?.type==='mark-rule'?'<div class="gd-answer-live" data-hs-target-status>'+challengeProgress()+'</div>':'')+
@@ -2054,6 +2091,9 @@ function hundredSquare(){
     renderControls();
   }
   function bindStage(){
+    const ruleToggle=q('[data-hs-rule-toggle]',q('#gd-stage'));if(ruleToggle)ruleToggle.onclick=e=>{e.stopPropagation();rulePanelOpen=!rulePanelOpen;draw()};
+    qa('[data-hs-rule-mode]',q('#gd-stage')).forEach(button=>button.onclick=e=>{e.stopPropagation();ruleMode=button.dataset.hsRuleMode||'none';rulePanelOpen=true;draw();renderControls()});
+    qa('[data-hs-rule-step]',q('#gd-stage')).forEach(button=>button.onclick=e=>{e.stopPropagation();ruleNumber=Math.max(1,ruleNumber+Number(button.dataset.hsRuleStep||0));rulePanelOpen=true;draw();renderControls()});
     qa('[data-hs-index]',q('#gd-stage')).forEach(cell=>{
       cell.onclick=()=>{
         if(challengeFrozen()||interactionMode!=='select')return;
@@ -2352,8 +2392,8 @@ function hundredSquare(){
   function bindExploreControls(){
     qa('[data-hs-preset]',q('#gd-controls')).forEach(button=>button.onclick=()=>mutate(()=>setStart(Number(button.dataset.hsPreset))));
     const apply=q('#hs-apply-start');if(apply)apply.onclick=()=>mutate(()=>setStart(num(q('#hs-start')?.value,startValue)));
-    const mode=q('#hs-mode');if(mode)mode.onchange=()=>{ruleMode=mode.value;draw();renderControls()};
-    const k=q('#hs-k');if(k)k.onchange=()=>{ruleNumber=Math.max(1,Math.round(num(k.value,ruleNumber)));draw();renderControls()};
+    const mode=q('#hs-mode');if(mode)mode.onchange=()=>{ruleMode=mode.value;rulePanelOpen=false;draw();renderControls()};
+    const k=q('#hs-k');if(k)k.onchange=()=>{ruleNumber=Math.max(1,Math.round(num(k.value,ruleNumber)));rulePanelOpen=false;draw();renderControls()};
     qa('[data-hs-interaction]',q('#gd-controls')).forEach(button=>button.onclick=()=>{interactionMode=button.dataset.hsInteraction;draw();renderControls()});
     const clear=q('#hs-clear-marks');if(clear)clear.onclick=()=>{if(!marked.size)return;mutate(()=>marked.clear())};
     const reveal=q('#hs-reveal-all');if(reveal)reveal.onclick=()=>{if(!hidden.size)return;mutate(()=>hidden.clear())};
@@ -3493,8 +3533,9 @@ function arrayBuilder(){
 
 function clockTool(){
   const CK=G.challengeKit,X=G.exportTools;
-  let hour=10,minute=10,snap=5,numerals='arabic',drag=null,extraClocks=[],activeClock=0;
+  let hour=10,minute=10,second=0,snap=5,numerals='arabic',showDigital=true,showSeconds=false,drag=null,extraClocks=[],activeClock=0;
   const MAX_CLOCKS=4,CLOCK_LABELS=['A','B','C','D'];
+  let clockNames=CLOCK_LABELS.map(x=>'Clock '+x);
   const roman=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
   const CHALLENGE_CATEGORIES=[
     {id:'read',label:'Read the clock'},
@@ -3528,15 +3569,25 @@ function clockTool(){
     hour=next.hour;minute=next.minute;
   }
   function clockState(index=0){
-    return index===0?{hour,minute}:(extraClocks[index-1]||{hour,minute});
+    if(index===0)return{hour,minute,second};
+    const item=extraClocks[index-1]||{hour,minute,second};
+    return{hour:item.hour,minute:item.minute,second:clamp(Math.round(num(item.second,0)),0,59)};
   }
-  function clockStates(){return[{hour,minute},...extraClocks.map(c=>({hour:c.hour,minute:c.minute}))]}
+  function clockStates(){return[{hour,minute,second},...extraClocks.map(c=>({hour:c.hour,minute:c.minute,second:clamp(Math.round(num(c.second,0)),0,59)}))]}
   function setClockTime(index,nextHour,nextMinute){
     const current=clockState(index),next=normaliseClockTime(nextHour,nextMinute,current.hour,current.minute);
     if(index===0){hour=next.hour;minute=next.minute}
-    else if(extraClocks[index-1])extraClocks[index-1]=next;
+    else if(extraClocks[index-1])extraClocks[index-1]={...extraClocks[index-1],...next};
   }
-  function clockLabel(index){return'Clock '+(CLOCK_LABELS[index]||String(index+1))}
+  function setClockSecond(index,value){
+    const next=clamp(Math.round(num(value,0)),0,59);
+    if(index===0)second=next;
+    else if(extraClocks[index-1])extraClocks[index-1]={...extraClocks[index-1],second:next};
+  }
+  function clockLabel(index){
+    const fallback='Clock '+(CLOCK_LABELS[index]||String(index+1)),value=String(clockNames[index]||'').trim();
+    return value||fallback;
+  }
   function forwardDifferenceMinutes(from,to){
     return mod((to.hour*60+to.minute)-(from.hour*60+from.minute),24*60);
   }
@@ -3551,6 +3602,7 @@ function clockTool(){
   function format24(h,m){return pad(h)+':'+pad(m)}
   function time24(){return format24(hour,minute)}
   function format12(h,m){return(h%12||12)+':'+pad(m)+' '+(h<12?'am':'pm')}
+  function format12Digital(h,m,sec=0){return(h%12||12)+':'+pad(m)+(showSeconds?':'+pad(sec):'')+' '+(h<12?'am':'pm')}
   function time12(){return format12(hour,minute)}
   function nextH12(){return(hour+1)%12||12}
   function spokenTime(){
@@ -3569,14 +3621,18 @@ function clockTool(){
     return{x:150+len*Math.cos(a),y:150+len*Math.sin(a)};
   }
   function faceNumber(n){return numerals==='roman'?roman[n-1]:String(n)}
-  function snapshot(){return{hour,minute,snap,numerals,extraClocks:extraClocks.map(c=>({hour:c.hour,minute:c.minute})),activeClock}}
+  function snapshot(){return{hour,minute,second,snap,numerals,showDigital,showSeconds,clockNames:clockNames.slice(),extraClocks:extraClocks.map(c=>({hour:c.hour,minute:c.minute,second:clamp(Math.round(num(c.second,0)),0,59)})),activeClock}}
   function restoreSnapshot(value){
     if(!value)return;
     hour=clamp(Math.round(num(value.hour,10)),0,23);
     minute=clamp(Math.round(num(value.minute,10)),0,59);
+    second=clamp(Math.round(num(value.second,0)),0,59);
     snap=Number(value.snap)===1?1:5;
     numerals=value.numerals==='roman'?'roman':'arabic';
-    extraClocks=Array.isArray(value.extraClocks)?value.extraClocks.slice(0,MAX_CLOCKS-1).map(c=>normaliseClockTime(c?.hour,c?.minute,10,10)):[];
+    showDigital=value.showDigital!==false;
+    showSeconds=!!value.showSeconds;
+    clockNames=CLOCK_LABELS.map((x,i)=>String(Array.isArray(value.clockNames)?value.clockNames[i]||'':'').trim()||('Clock '+x));
+    extraClocks=Array.isArray(value.extraClocks)?value.extraClocks.slice(0,MAX_CLOCKS-1).map(c=>({...normaliseClockTime(c?.hour,c?.minute,10,10),second:clamp(Math.round(num(c?.second,0)),0,59)})):[];
     activeClock=clamp(Math.round(num(value.activeClock,0)),0,extraClocks.length);
     drag=null;
   }
@@ -3818,13 +3874,16 @@ function clockTool(){
   function exploreControlsHtml(){
     const selected=clockState(activeClock);
     const selector=clockStates().map((_,index)=>
-      '<button class="gd-btn'+(activeClock===index?' gd-btn--primary':'')+'" type="button" data-cl-select-clock="'+index+'">'+clockLabel(index)+'</button>'
+      '<button class="gd-btn'+(activeClock===index?' gd-btn--primary':'')+'" type="button" data-cl-select-clock="'+index+'">'+esc(clockLabel(index))+'</button>'
     ).join('');
     return '<div class="gd-field"><span>Clocks</span><div class="gd-row gd-clock-selector">'+selector+'</div></div>'+
       '<div class="gd-row"><button class="gd-btn" id="cl-add-clock" type="button"'+(extraClocks.length>=MAX_CLOCKS-1?' disabled':'')+'>Add clock</button>'+
       '<button class="gd-btn" id="cl-remove-clock" type="button"'+(activeClock===0?' disabled':'')+'>Remove selected</button></div>'+
+      field('Clock label','<input class="gd-input" id="cl-label" maxlength="30" value="'+esc(clockLabel(activeClock))+'" placeholder="e.g. Start">','Use labels such as Start, End, Before or After when comparing clocks.')+
       field('Selected clock hour (24-hour)','<input class="gd-input gd-small" id="cl-h" type="number" min="0" max="23" value="'+selected.hour+'">')+
       field('Minutes','<input class="gd-input gd-small" id="cl-m" type="number" min="0" max="59" value="'+selected.minute+'">')+
+      field('Seconds','<input class="gd-input gd-small" id="cl-s" type="number" min="0" max="59" value="'+selected.second+'">')+
+      '<div class="gd-row gd-clock-display-options"><label class="nl-check"><input id="cl-show-digital" type="checkbox"'+(showDigital?' checked':'')+'> Show digital time</label><label class="nl-check"><input id="cl-show-seconds" type="checkbox"'+(showSeconds?' checked':'')+'> Show seconds hand</label></div>'+
       field('Hand snapping','<select class="gd-select" id="cl-snap"><option value="5"'+(snap===5?' selected':'')+'>5 minutes</option><option value="1"'+(snap===1?' selected':'')+'>1 minute</option></select>','Controls direct minute-hand dragging and keyboard steps on every clock.')+
       field('Clock face','<select class="gd-select" id="cl-numerals"><option value="arabic"'+(numerals==='arabic'?' selected':'')+'>1–12</option><option value="roman"'+(numerals==='roman'?' selected':'')+'>Roman numerals I–XII</option></select>')+
       '<div class="gd-row"><button class="gd-btn gd-btn--primary" id="cl-toggle-period" type="button">Toggle am / pm</button><button class="gd-btn" id="cl-random" type="button">Random 5-minute time</button><button class="gd-btn" id="cl-now" type="button">Now</button></div>'+
@@ -3851,8 +3910,9 @@ function clockTool(){
     const panel=q('#gd-controls');if(panel)panel.innerHTML=controlsHtml();bindControls();
   }
   function refreshControls(){
-    const selected=clockState(activeClock),h=q('#cl-h'),m=q('#cl-m');
-    if(h)h.value=selected.hour;if(m)m.value=selected.minute;
+    const selected=clockState(activeClock),h=q('#cl-h'),m=q('#cl-m'),sec=q('#cl-s'),label=q('#cl-label');
+    if(h)h.value=selected.hour;if(m)m.value=selected.minute;if(sec)sec.value=selected.second;
+    if(label&&document.activeElement!==label)label.value=clockLabel(activeClock);
   }
   function restoreBeforeChallenge(){
     if(beforeChallenge){restoreSnapshot(beforeChallenge);beforeChallenge=null}
@@ -3888,7 +3948,7 @@ function clockTool(){
   function generateChallenge(type){
     const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
     if(!beforeChallenge)beforeChallenge=snapshot();else restoreSnapshot(beforeChallenge);
-    activeClock=0;numerals='arabic';snap=5;
+    activeClock=0;numerals='arabic';snap=5;second=0;
     if(type==='read-five'){
       hour=randomHour();minute=randomMinute(5);
       challenge=challengeObject(type,'What time is shown on the analogue clock?',time12());
@@ -3939,12 +3999,13 @@ function clockTool(){
     const cards=qa('.gd-clock-card[data-cl-clock-index]',q('#gd-stage'));
     cards.forEach(card=>{
       const index=Math.round(num(card.dataset.clClockIndex,0)),state=clockState(index);
-      const hourAngle=((state.hour%12)+state.minute/60)*30,minuteAngle=state.minute*6;
-      const hourPt=handPoint(hourAngle,72),minutePt=handPoint(minuteAngle,102);
-      const hourLine=q('[data-cl-line="hour"]',card),minuteLine=q('[data-cl-line="minute"]',card);
+      const hourAngle=((state.hour%12)+state.minute/60)*30,minuteAngle=state.minute*6,secondAngle=state.second*6;
+      const hourPt=handPoint(hourAngle,72),minutePt=handPoint(minuteAngle,102),secondPt=handPoint(secondAngle,112);
+      const hourLine=q('[data-cl-line="hour"]',card),minuteLine=q('[data-cl-line="minute"]',card),secondLine=q('[data-cl-line="second"]',card);
       const hourHit=q('[data-cl-hand="hour"]',card),minuteHit=q('[data-cl-hand="minute"]',card);
       [hourLine,hourHit].forEach(el=>{if(el){el.setAttribute('x2',hourPt.x);el.setAttribute('y2',hourPt.y)}});
       [minuteLine,minuteHit].forEach(el=>{if(el){el.setAttribute('x2',minutePt.x);el.setAttribute('y2',minutePt.y)}});
+      if(secondLine){secondLine.setAttribute('x2',secondPt.x);secondLine.setAttribute('y2',secondPt.y)}
       const frozen=index===0&&handsFrozen(),hidden=index===0&&anyTimeHidden();
       if(hourHit){
         if(hidden){hourHit.removeAttribute('aria-valuenow');hourHit.removeAttribute('aria-valuetext');hourHit.setAttribute('aria-label',frozen?'Hour hand fixed for this challenge':'Hour hand for challenge')}
@@ -3959,9 +4020,10 @@ function clockTool(){
         svg.setAttribute('aria-label',hidden?'Analogue clock for challenge':clockLabel(index)+' showing '+format12(state.hour,state.minute));
         svg.dataset.clHour=String(state.hour);svg.dataset.clMinute=String(state.minute);
       }
-      const d24=q('[data-cl-readout-kind="24"]',card),d12=q('[data-cl-readout-kind="12"]',card);
+      const d24=q('[data-cl-readout-kind="24"]',card),d12=q('[data-cl-readout-kind="12"]',card),digital=q('[data-cl-digital]',card);
       if(d24)d24.textContent=hiddenReadout('24')&&index===0?'?':format24(state.hour,state.minute);
       if(d12)d12.textContent=hiddenReadout('12')&&index===0?'?':format12(state.hour,state.minute);
+      if(digital)digital.textContent=hiddenReadout('12')&&index===0?'?':format12Digital(state.hour,state.minute,state.second);
     });
     qa('[data-cl-difference-to]',q('#gd-stage')).forEach(el=>{
       const index=Math.round(num(el.dataset.clDifferenceTo,1)),state=clockState(index);
@@ -4075,15 +4137,19 @@ function clockTool(){
       const add=q('#cl-add-clock',controls);if(add)add.onclick=()=>{
         if(extraClocks.length>=MAX_CLOCKS-1)return;
         const base=clockState(activeClock),next=normaliseClockTime(base.hour+1,base.minute,base.hour,base.minute);
-        extraClocks.push(next);activeClock=extraClocks.length;renderControls();draw();
+        extraClocks.push({...next,second:base.second});activeClock=extraClocks.length;renderControls();draw();
       };
       const remove=q('#cl-remove-clock',controls);if(remove)remove.onclick=()=>{
         if(activeClock===0)return;
         extraClocks.splice(activeClock-1,1);activeClock=Math.min(activeClock-1,extraClocks.length);renderControls();draw();
       };
-      const h=q('#cl-h',controls),m=q('#cl-m',controls);
+      const h=q('#cl-h',controls),m=q('#cl-m',controls),sec=q('#cl-s',controls),label=q('#cl-label',controls);
       if(h)h.oninput=()=>{const current=clockState(activeClock);setClockTime(activeClock,clamp(num(h.value,current.hour),0,23),current.minute);refreshClock()};
       if(m)m.oninput=()=>{const current=clockState(activeClock);setClockTime(activeClock,current.hour,clamp(num(m.value,current.minute),0,59));refreshClock()};
+      if(sec)sec.oninput=()=>{setClockSecond(activeClock,sec.value);refreshClock()};
+      if(label)label.onchange=()=>{clockNames[activeClock]=String(label.value||'').trim().slice(0,30)||('Clock '+(CLOCK_LABELS[activeClock]||String(activeClock+1)));renderControls();draw()};
+      const digital=q('#cl-show-digital',controls);if(digital)digital.onchange=()=>{showDigital=!!digital.checked;draw()};
+      const secondsToggle=q('#cl-show-seconds',controls);if(secondsToggle)secondsToggle.onchange=()=>{showSeconds=!!secondsToggle.checked;draw()};
       const snapSelect=q('#cl-snap',controls);if(snapSelect)snapSelect.onchange=()=>{snap=Number(snapSelect.value)===1?1:5};
       const numeralSelect=q('#cl-numerals',controls);if(numeralSelect)numeralSelect.onchange=()=>{numerals=numeralSelect.value==='roman'?'roman':'arabic';draw()};
       const toggle=q('#cl-toggle-period',controls);if(toggle)toggle.onclick=()=>{const current=clockState(activeClock);setClockTime(activeClock,current.hour+(current.hour<12?12:-12),current.minute);refreshClock()};
@@ -4123,20 +4189,22 @@ function clockTool(){
     };
   }
   function clockCardMarkup(index,state,frozen,hidden){
-    const label=clockLabel(index),hp=handPoint(((state.hour%12)+state.minute/60)*30,72),mp=handPoint(state.minute*6,102);
+    const label=clockLabel(index),hp=handPoint(((state.hour%12)+state.minute/60)*30,72),mp=handPoint(state.minute*6,102),sp=handPoint(state.second*6,112);
     const primary=index===0,selected=!challenge&&activeClock===index;
     const faceId=primary?'cl-face':'cl-face-'+index,hourId=primary?'cl-hour-hand':'cl-hour-hand-'+index,minuteId=primary?'cl-minute-hand':'cl-minute-hand-'+index;
     const hourHitId=primary?'cl-hour-hit':'cl-hour-hit-'+index,minuteHitId=primary?'cl-minute-hit':'cl-minute-hit-'+index;
     return '<section class="gd-clock-card'+(selected?' is-selected':'')+'" data-cl-clock-index="'+index+'">'+
-      '<div class="gd-clock-card-head">'+(challenge?'<strong>'+label+'</strong>':'<button type="button" class="gd-clock-select" data-cl-select-stage="'+index+'">'+label+(selected?' • selected':'')+'</button>')+'</div>'+
-      '<div class="gd-clock"><svg id="'+faceId+'" viewBox="0 0 300 300" role="img" aria-label="'+(hidden?'Analogue clock for challenge':label+' showing '+format12(state.hour,state.minute))+'" data-cl-clock-index="'+index+'" data-cl-hour="'+state.hour+'" data-cl-minute="'+state.minute+'" data-cl-frozen="'+(frozen?'true':'false')+'" data-cl-target-hour="'+(primary&&Number.isFinite(Number(challenge?.targetHour))?challenge.targetHour:'')+'" data-cl-target-minute="'+(primary&&Number.isFinite(Number(challenge?.targetMinute))?challenge.targetMinute:'')+'">'+
+      '<div class="gd-clock-card-head">'+(challenge?'<strong>'+esc(label)+'</strong>':'<button type="button" class="gd-clock-select" data-cl-select-stage="'+index+'">'+esc(label)+(selected?' • selected':'')+'</button>')+'</div>'+
+      '<div class="gd-clock"><svg id="'+faceId+'" viewBox="0 0 300 300" role="img" aria-label="'+esc(hidden?'Analogue clock for challenge':label+' showing '+format12(state.hour,state.minute))+'" data-cl-clock-index="'+index+'" data-cl-hour="'+state.hour+'" data-cl-minute="'+state.minute+'" data-cl-frozen="'+(frozen?'true':'false')+'" data-cl-target-hour="'+(primary&&Number.isFinite(Number(challenge?.targetHour))?challenge.targetHour:'')+'" data-cl-target-minute="'+(primary&&Number.isFinite(Number(challenge?.targetMinute))?challenge.targetMinute:'')+'">'+
         '<circle class="gd-clock-face" cx="150" cy="150" r="135"></circle>'+tickMarkup()+numeralMarkup()+
         '<line class="gd-clock-hour" id="'+hourId+'" data-cl-line="hour" x1="150" y1="150" x2="'+hp.x+'" y2="'+hp.y+'"></line>'+
         '<line class="gd-clock-minute" id="'+minuteId+'" data-cl-line="minute" x1="150" y1="150" x2="'+mp.x+'" y2="'+mp.y+'"></line>'+
-        '<line class="gd-clock-hand-hit gd-clock-hand-hit--hour'+(frozen?' is-frozen':'')+'" id="'+hourHitId+'" data-cl-clock-index="'+index+'" data-cl-hand="hour" tabindex="'+(frozen?'-1':'0')+'"'+(hidden?' aria-label="'+(frozen?'Hour hand fixed for this challenge':'Hour hand for challenge')+'"':' role="slider" aria-label="'+label+' hour hand" aria-valuemin="0" aria-valuemax="23" aria-valuenow="'+state.hour+'"')+' x1="150" y1="150" x2="'+hp.x+'" y2="'+hp.y+'"></line>'+
-        '<line class="gd-clock-hand-hit gd-clock-hand-hit--minute'+(frozen?' is-frozen':'')+'" id="'+minuteHitId+'" data-cl-clock-index="'+index+'" data-cl-hand="minute" tabindex="'+(frozen?'-1':'0')+'"'+(hidden?' aria-label="'+(frozen?'Minute hand fixed for this challenge':'Minute hand for challenge')+'"':' role="slider" aria-label="'+label+' minute hand" aria-valuemin="0" aria-valuemax="59" aria-valuenow="'+state.minute+'"')+' x1="150" y1="150" x2="'+mp.x+'" y2="'+mp.y+'"></line>'+
+        (showSeconds?'<line class="gd-clock-second" data-cl-line="second" x1="150" y1="150" x2="'+sp.x+'" y2="'+sp.y+'"></line>':'')+
+        '<line class="gd-clock-hand-hit gd-clock-hand-hit--hour'+(frozen?' is-frozen':'')+'" id="'+hourHitId+'" data-cl-clock-index="'+index+'" data-cl-hand="hour" tabindex="'+(frozen?'-1':'0')+'"'+(hidden?' aria-label="'+(frozen?'Hour hand fixed for this challenge':'Hour hand for challenge')+'"':' role="slider" aria-label="'+esc(label+' hour hand')+'" aria-valuemin="0" aria-valuemax="23" aria-valuenow="'+state.hour+'"')+' x1="150" y1="150" x2="'+hp.x+'" y2="'+hp.y+'"></line>'+
+        '<line class="gd-clock-hand-hit gd-clock-hand-hit--minute'+(frozen?' is-frozen':'')+'" id="'+minuteHitId+'" data-cl-clock-index="'+index+'" data-cl-hand="minute" tabindex="'+(frozen?'-1':'0')+'"'+(hidden?' aria-label="'+(frozen?'Minute hand fixed for this challenge':'Minute hand for challenge')+'"':' role="slider" aria-label="'+esc(label+' minute hand')+'" aria-valuemin="0" aria-valuemax="59" aria-valuenow="'+state.minute+'"')+' x1="150" y1="150" x2="'+mp.x+'" y2="'+mp.y+'"></line>'+
         '<circle class="gd-clock-centre" cx="150" cy="150" r="7"></circle>'+
       '</svg></div>'+
+      (showDigital?'<div class="gd-clock-digital" data-cl-digital>'+(hiddenReadout('12')&&primary?'?':format12Digital(state.hour,state.minute,state.second))+'</div>':'')+
       '<div class="gd-clock-readouts">'+
         '<div class="gd-readout"><span>24-hour</span><strong data-cl-readout-kind="24"'+(primary?' data-cl-readout="24"':'')+'>'+(hiddenReadout('24')&&primary?'?':format24(state.hour,state.minute))+'</strong></div>'+
         '<div class="gd-readout"><span>12-hour</span><strong data-cl-readout-kind="12"'+(primary?' data-cl-readout="12"':'')+'>'+(hiddenReadout('12')&&primary?'?':format12(state.hour,state.minute))+'</strong></div>'+

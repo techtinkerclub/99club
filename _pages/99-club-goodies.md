@@ -16,13 +16,13 @@ robots: "noindex,nofollow,noarchive"
   </article>
 </div>
 
-<link rel="stylesheet" href="/assets/99club/goodies.css?v=54">
+<link rel="stylesheet" href="/assets/99club/goodies.css?v=55">
 <script src="/assets/99club/goodies-core.js?v=1" defer></script>
-<script src="/assets/99club/goodies-interaction.js?v=2" defer></script>
+<script src="/assets/99club/goodies-interaction.js?v=3" defer></script>
 <script src="/assets/99club/goodies-challenge.js?v=5" defer></script>
 <script src="/assets/99club/goodies-export.js?v=2" defer></script>
-<script src="/assets/99club/goodies-tools-a.js?v=28" defer></script>
-<script src="/assets/99club/goodies-number-line-v6.js?v=11" defer></script>
-<script src="/assets/99club/goodies-tools-b.js?v=25" defer></script>
+<script src="/assets/99club/goodies-tools-a.js?v=29" defer></script>
+<script src="/assets/99club/goodies-number-line-v6.js?v=12" defer></script>
+<script src="/assets/99club/goodies-tools-b.js?v=26" defer></script>
 <script src="/assets/99club/goodies-app.js?v=6" defer></script>
-<script src="/assets/99club/goodies-board.js?v=4" defer></script>
+<script src="/assets/99club/goodies-board.js?v=5" defer></script>

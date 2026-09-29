@@ -90,6 +90,10 @@ async function run(){
     assert(r.width<=38&&r.height<=38,'Palette icon stays visually compact: '+button.getAttribute('aria-label'));
     assert(parseFloat(s.borderTopWidth)<=1,'Palette icon does not use a thick contour');
   });
+  const firstTool=tools[0],toolTip=document.getElementById('gd-board-tooltip');
+  firstTool.dispatchEvent(new PointerEvent('pointerenter',{bubbles:false,pointerType:'mouse'}));
+  assert(visible(toolTip)&&toolTip.textContent.trim().length>0,'Left manipulative rail exposes a readable hover tooltip');
+  firstTool.dispatchEvent(new PointerEvent('pointerleave',{bubbles:false,pointerType:'mouse'}));
 
   document.querySelector('[data-board-add="clock"]').click();
   document.querySelector('[data-board-add="money"]').click();
@@ -121,12 +125,12 @@ async function run(){
   assert(getComputedStyle(money.querySelector('.gd-board-context-menu')).display==='none','Context actions stay hidden until requested');
   context.click();
   assert(visible(money.querySelector('.gd-board-context-menu')),'Context menu opens only after the focused-object button is pressed');
-  const contextButtons=[...money.querySelectorAll('.gd-board-context-menu button')];
-  contextButtons.forEach(button=>{
+  const contextButtons=[...money.querySelectorAll('.gd-board-context-menu button')],visibleContextButtons=contextButtons.filter(visible);
+  visibleContextButtons.forEach(button=>{
     const r=button.getBoundingClientRect();
     assert(r.width<=31&&r.height<=31,'Context action remains compact');
   });
-  assert(contextButtons.length===2,'Object overflow menu contains only Settings and Lock');
+  assert(visibleContextButtons.length===2,'Object overflow menu starts with only Settings and Lock when no history is available');
   assert(!money.querySelector('.gd-board-context-menu [data-board-delete]'),'Delete is not duplicated inside the overflow menu');
 
   const settings=money.querySelector('[data-board-settings]');
@@ -197,14 +201,77 @@ async function run(){
   assert(nlFrame&&nlFrame.classList.contains('is-ready'),'Number Line reaches embedded ready state');
   const nlQuick=[...nlFrame.querySelectorAll('[data-board-quick-actions] button')];
   const nlLabels=nlQuick.map(button=>button.textContent.trim());
-  assert(nlLabels.includes('+ Marker')&&nlLabels.includes('+ Relation')&&nlLabels.includes('+ Line'),'Number Line exposes Marker, Relationship and Line construction actions directly');
+  assert(nlLabels.includes('+ Marker')&&nlLabels.includes('− Item')&&nlLabels.includes('+ Relation')&&nlLabels.includes('+ Line'),'Number Line exposes add/delete Marker, Relationship and Line construction actions directly');
   nlQuick.find(button=>button.textContent.trim()==='+ Marker').click();
   await tick();
   const nlStage=nlFrame.querySelector('iframe').contentDocument.getElementById('gd-stage');
   assert(nlStage.classList.contains('is-add-marker-mode'),'Number Line Marker action immediately enters place-a-marker mode');
   const hint=document.getElementById('gd-board-hint');
-  assert(visible(hint)&&/Tap the number line/i.test(hint.textContent),'Multi-step Number Line action explains what to do next');
+  assert(visible(hint)&&/Tap .*number line/i.test(hint.textContent),'Multi-step Number Line action explains what to do next');
+  const nlSettings=nlFrame.querySelector('[data-board-settings]');nlSettings.click();await tick();
+  const nlDoc=nlFrame.querySelector('iframe').contentDocument;
+  assert(nlDoc.querySelector('[data-nl-active-line-top]'),'Expanded Number Line settings keep the active-line selector at the top');
+  nlSettings.click();
   TT99Goodies.compositionBoard.remove(nlRecord.id);
+
+  document.querySelector('[data-board-add="clock"]').click();await tick();
+  const extraClockRecord=TT99Goodies.compositionBoard.objects().find(x=>x.toolId==='clock'&&String(x.id)!==String(objects[0]?.dataset?.boardObject));
+  const extraClockFrame=extraClockRecord&&document.querySelector('[data-board-object="'+extraClockRecord.id+'"]');
+  for(let attempt=0;attempt<40&&extraClockFrame&&!extraClockFrame.classList.contains('is-ready');attempt++)await tick(50);
+  const clockQuick=[...extraClockFrame.querySelectorAll('[data-board-quick-actions] button')];
+  const addClock=clockQuick.find(button=>button.textContent.trim()==='+ Clock');
+  assert(addClock,'Clock exposes Add Clock directly on its whiteboard frame');
+  addClock.click();await tick();
+  assert(extraClockFrame.querySelector('iframe').contentDocument.querySelectorAll('.gd-clock-card').length===2,'Frame Add Clock creates a comparison clock');
+  TT99Goodies.compositionBoard.remove(extraClockRecord.id);
+
+  document.querySelector('[data-board-add="randomiser"]').click();await tick();
+  const randomRecord=TT99Goodies.compositionBoard.objects().find(x=>x.toolId==='randomiser');
+  const randomFrame=randomRecord&&document.querySelector('[data-board-object="'+randomRecord.id+'"]');
+  for(let attempt=0;attempt<40&&randomFrame&&!randomFrame.classList.contains('is-ready');attempt++)await tick(50);
+  const go=[...randomFrame.querySelectorAll('[data-board-quick-actions] button')].find(button=>/Roll|Spin|Go/i.test(button.textContent));
+  assert(go,'Dice / Spinner exposes its primary Roll or Spin action directly on the frame');
+  TT99Goodies.compositionBoard.remove(randomRecord.id);
+
+  document.querySelector('[data-board-add="maths-canvas"]').click();await tick();
+  const mcRecord=TT99Goodies.compositionBoard.objects().find(x=>x.toolId==='maths-canvas');
+  const mcFrame=mcRecord&&document.querySelector('[data-board-object="'+mcRecord.id+'"]');
+  for(let attempt=0;attempt<40&&mcFrame&&!mcFrame.classList.contains('is-ready');attempt++)await tick(50);
+  const mcAdd=[...mcFrame.querySelectorAll('[data-board-quick-actions] button')].find(button=>button.textContent.trim()==='+ Tile');
+  assert(mcAdd,'Maths Canvas exposes Add Tile directly on the frame');
+  mcAdd.click();await tick();
+  const mcDoc=mcFrame.querySelector('iframe').contentDocument;
+  assert(visible(mcDoc.querySelector('.gd-mc-stage-palette')),'Frame Add Tile opens the number / operation palette inside Maths Canvas');
+  TT99Goodies.compositionBoard.remove(mcRecord.id);
+
+  document.querySelector('[data-board-add="measurement"]').click();await tick();
+  const meRecord=TT99Goodies.compositionBoard.objects().find(x=>x.toolId==='measurement');
+  const meFrame=meRecord&&document.querySelector('[data-board-object="'+meRecord.id+'"]');
+  for(let attempt=0;attempt<40&&meFrame&&!meFrame.classList.contains('is-ready');attempt++)await tick(50);
+  let meQuick=[...meFrame.querySelectorAll('[data-board-quick-actions] button')];
+  const addRuler=meQuick.find(button=>button.textContent.trim()==='+ Ruler');
+  assert(addRuler,'Measurement exposes Add Ruler directly on the frame');
+  addRuler.click();await tick();
+  meQuick=[...meFrame.querySelectorAll('[data-board-quick-actions] button')];
+  const syncRulers=meQuick.find(button=>button.textContent.trim()==='Sync');
+  assert(syncRulers,'Measurement exposes Sync after a comparison ruler exists');
+  syncRulers.click();await tick();
+  assert(meFrame.querySelector('iframe').contentDocument.querySelector('.gd-ruler-sync-readout'),'Synced rulers show the metric / imperial correspondence');
+  TT99Goodies.compositionBoard.remove(meRecord.id);
+
+  document.querySelector('[data-board-add="hundred-square"]').click();await tick();
+  const hsRecord=TT99Goodies.compositionBoard.objects().find(x=>x.toolId==='hundred-square');
+  const hsFrame=hsRecord&&document.querySelector('[data-board-object="'+hsRecord.id+'"]');
+  for(let attempt=0;attempt<40&&hsFrame&&!hsFrame.classList.contains('is-ready');attempt++)await tick(50);
+  const hsRule=[...hsFrame.querySelectorAll('[data-board-quick-actions] button')].find(button=>button.textContent.trim()==='Rule');
+  assert(hsRule,'Hundred Square exposes Rule directly on the frame');
+  hsRule.click();await tick();
+  const hsDoc=hsFrame.querySelector('iframe').contentDocument;
+  assert(visible(hsDoc.querySelector('.gd-hs-rule-popover')),'Frame Rule opens the compact rule picker without the full Settings panel');
+  const hsEven=hsDoc.querySelector('[data-hs-rule-mode="even"]');assert(hsEven,'Compact Hundred Square rule picker includes Even');
+  hsEven.click();await tick();
+  assert(hsDoc.querySelectorAll('.gd-hs-cell.is-rule').length===50,'Compact rule picker applies the selected rule immediately');
+  TT99Goodies.compositionBoard.remove(hsRecord.id);
 
   const clock=objects[0];
   const boardRect=canvas.getBoundingClientRect();

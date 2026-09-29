@@ -578,7 +578,7 @@ function coordinateTool(){
 
 function measurementTool(){
   const CK=G.challengeKit,X=G.exportTools;
-  let cm=12.3,dragPointer=null,primaryScale='metric',secondRuler=null,activeRuler=0;
+  let cm=12.3,dragPointer=null,primaryScale='metric',secondRuler=null,activeRuler=0,syncRulers=false;
   const INCH_CM=2.54,IMPERIAL_MAX_CM=12*INCH_CM;
   const CHALLENGE_CATEGORIES=[
     {id:'read',label:'Read & place'},
@@ -605,13 +605,23 @@ function measurementTool(){
   }
   function rulerState(index=0){return index===0?{cm,scale:primaryScale}:(secondRuler||{cm,scale:primaryScale})}
   function setRulerCm(index,value){
-    const state=rulerState(index),next=snapCm(value,state.scale);
+    const state=rulerState(index),linkedMax=syncRulers&&secondRuler?Math.min(maxCm(primaryScale),maxCm(secondRuler.scale)):maxCm(state.scale);
+    const next=snapCm(clamp(Number(value)||0,0,linkedMax),state.scale);
     if(index===0)cm=next;else if(secondRuler)secondRuler={...secondRuler,cm:next};
+    if(syncRulers&&secondRuler){
+      const shared=clamp(next,0,Math.min(maxCm(primaryScale),maxCm(secondRuler.scale)));
+      if(index===0)secondRuler={...secondRuler,cm:shared};
+      else cm=shared;
+    }
   }
   function setRulerScale(index,scale){
-    const nextScale=scale==='imperial'?'imperial':'metric',state=rulerState(index),nextCm=snapCm(state.cm,nextScale);
-    if(index===0){primaryScale=nextScale;cm=nextCm}
-    else if(secondRuler)secondRuler={cm:nextCm,scale:nextScale};
+    const nextScale=scale==='imperial'?'imperial':'metric',state=rulerState(index),preserve=state.cm;
+    if(index===0){primaryScale=nextScale;cm=syncRulers&&secondRuler?clamp(preserve,0,Math.min(maxCm(nextScale),maxCm(secondRuler.scale))):snapCm(preserve,nextScale)}
+    else if(secondRuler){
+      const nextCm=syncRulers?clamp(preserve,0,Math.min(maxCm(primaryScale),maxCm(nextScale))):snapCm(preserve,nextScale);
+      secondRuler={...secondRuler,cm:nextCm,scale:nextScale};
+      if(syncRulers)cm=nextCm;
+    }
   }
   function setCm(value){cm=roundCm(value)}
   function mmValue(value=cm){return Math.round((Number(value)||0)*10)}
@@ -641,13 +651,15 @@ function measurementTool(){
       ['metres',mText(state.cm)+' m']
     ];
   }
-  function snapshot(){return{cm,primaryScale,secondRuler:secondRuler?{cm:secondRuler.cm,scale:secondRuler.scale}:null,activeRuler}}
+  function snapshot(){return{cm,primaryScale,secondRuler:secondRuler?{cm:secondRuler.cm,scale:secondRuler.scale}:null,activeRuler,syncRulers}}
   function restoreSnapshot(value){
     if(!value)return;
     primaryScale=value.primaryScale==='imperial'?'imperial':'metric';
     cm=snapCm(value.cm,primaryScale);
     secondRuler=value.secondRuler?{cm:snapCm(value.secondRuler.cm,value.secondRuler.scale==='imperial'?'imperial':'metric'),scale:value.secondRuler.scale==='imperial'?'imperial':'metric'}:null;
     activeRuler=secondRuler&&Number(value.activeRuler)===1?1:0;
+    syncRulers=!!value.syncRulers&&!!secondRuler;
+    if(syncRulers&&secondRuler){const shared=clamp(cm,0,Math.min(maxCm(primaryScale),maxCm(secondRuler.scale)));cm=shared;secondRuler.cm=shared}
     dragPointer=null;
   }
   function readoutHidden(){return !!(challenge&&!challenge.revealed&&challenge.hiddenReadout)}
@@ -696,10 +708,11 @@ function measurementTool(){
     return '<div class="gd-field"><span>Rulers</span><div class="gd-row">'+selector+'</div></div>'+
       '<div class="gd-row"><button class="gd-btn" id="me-add-ruler" type="button"'+(secondRuler?' disabled':'')+'>Add ruler</button>'+
       '<button class="gd-btn" id="me-remove-ruler" type="button"'+(activeRuler===0?' disabled':'')+'>Remove selected</button></div>'+
+      (secondRuler?'<label class="nl-check gd-ruler-sync-toggle"><input id="me-sync-rulers" type="checkbox"'+(syncRulers?' checked':'')+'> Sync rulers to the same physical length</label>':'')+
       field('Scale','<select class="gd-select" id="me-scale"><option value="metric"'+(!imperial?' selected':'')+'>Metric — 30 cm / 1 mm</option><option value="imperial"'+(imperial?' selected':'')+'>Imperial — 12 in / 1⁄16 in</option></select>')+
       field(imperial?'Measurement (inches)':'Measurement (cm)','<input class="gd-input" id="me-cm" type="range" min="0" max="'+(imperial?'12':'30')+'" step="'+(imperial?'0.0625':'0.1')+'" value="'+display+'">')+
       '<div class="gd-row">'+btn('Random mark','me-random')+'</div>'+
-      '<p class="gd-help">Use one or two rulers. Each ruler can be metric or imperial independently, so you can compare the same physical length across scales. Metric snaps to 1 mm; imperial snaps to 1⁄16 inch.</p>';
+      '<p class="gd-help">Use one or two rulers. Give them different scales, then sync them when you want both markers to represent the same physical length. Metric snaps to 1 mm; imperial snaps to 1⁄16 inch when moved directly.</p>';
   }
   function challengeControlsHtml(){
     if(!CK)return '<p class="gd-help">Challenge tools are unavailable.</p>';
@@ -997,10 +1010,15 @@ function measurementTool(){
       });
       const add=q('#me-add-ruler',controls);if(add)add.onclick=()=>{
         if(secondRuler)return;
-        const source=rulerState(0);secondRuler={cm:source.cm,scale:source.scale};activeRuler=1;renderControls();draw();
+        const source=rulerState(0),scale=source.scale==='metric'?'imperial':'metric';secondRuler={cm:clamp(source.cm,0,maxCm(scale)),scale};syncRulers=false;activeRuler=1;renderControls();draw();
       };
       const remove=q('#me-remove-ruler',controls);if(remove)remove.onclick=()=>{
-        if(activeRuler!==1)return;secondRuler=null;activeRuler=0;renderControls();draw();
+        if(activeRuler!==1)return;secondRuler=null;syncRulers=false;activeRuler=0;renderControls();draw();
+      };
+      const sync=q('#me-sync-rulers',controls);if(sync)sync.onchange=()=>{
+        syncRulers=!!sync.checked;
+        if(syncRulers&&secondRuler){const state=rulerState(activeRuler),shared=clamp(state.cm,0,Math.min(maxCm(primaryScale),maxCm(secondRuler.scale)));cm=shared;secondRuler={...secondRuler,cm:shared}}
+        renderControls();draw();
       };
       const scale=q('#me-scale',controls);if(scale)scale.onchange=()=>{setRulerScale(activeRuler,scale.value);renderControls();draw()};
       const slider=q('#me-cm',controls);if(slider)slider.oninput=()=>{
@@ -1086,9 +1104,11 @@ function measurementTool(){
       ?'<div class="gd-answer-live" id="me-target-status">'+(Math.abs(cm-Number(challenge.targetCm))<.05?'On target ✓':'')+'</div>'
       :'';
     const states=challenge?[rulerState(0)]:[rulerState(0),...(secondRuler?[rulerState(1)]:[])];
+    const syncReadout=!challenge&&secondRuler&&syncRulers
+      ?'<div class="gd-ruler-sync-readout"><span>Linked length</span><strong>'+cmText(cm)+' cm ↔ '+inchText(cm)+' in</strong></div>':'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-measurement-direct">'+
       '<div class="gd-ruler-stack">'+states.map((state,index)=>rulerCardMarkup(index,state)).join('')+'</div>'+
-      targetStatus+
+      syncReadout+targetStatus+
     '</div>';
     bindRulers();bindChallengeStageActions();
     const slider=q('#me-cm',q('#gd-controls'));if(slider)slider.value=selectedSliderValue();
@@ -1351,7 +1371,9 @@ function balanceTool(){
     item.value=Math.max(0,Math.round((Number(value)||0)*100)/100);
   }
   function tiltData(){
-    const diff=difference(),scaled=clamp(diff,-20,20),deg=scaled*0.65,lift=scaled*1.35;
+    const l=leftTotal(),r=rightTotal(),diff=l-r,scale=Math.max(1,l,r);
+    const deg=clamp(diff/scale*9,-6,6);
+    const arm=300,lift=Math.sin(deg*Math.PI/180)*arm;
     return{deg,leftLift:lift,rightLift:-lift};
   }
   function randomInt(min,max){return min+Math.floor(Math.random()*(max-min+1))}
@@ -3647,13 +3669,16 @@ function geoboard(){
 function mathsCanvas(){
 const I=G.interaction,CK=G.challengeKit,X=G.exportTools;
 if(!I){q('#gd-stage').innerHTML='<p class="gd-empty">The interactive canvas could not start.</p>';return;}
-let tiles=[],next=1,grid=true,colourOpen=false,addOpen=false,controller=null;
+let tiles=[],next=1,grid=true,colourOpen=false,addOpen=false,combineOpen=false,splitOpen=false,controller=null;
 let workflow='build',taskTitle='Maths canvas task',taskPrompt='',exportMode='canvas',responseLines=2,exportStatus='';
 const colours=['#cbe7e2','#f6cf79','#cfe0f6','#efcfd9','#dbcff2','#d5ead2','#f3d7c4','#ffffff'];
 function textColour(hex){const h=String(hex||'').replace('#','');if(!/^[0-9a-f]{6}$/i.test(h))return '#24343b';const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);return (r*299+g*587+b*114)/1000>155?'#24343b':'#ffffff'}
 function stateSnapshot(){return{tiles:JSON.parse(JSON.stringify(tiles)),next,grid}}
-function restoreState(value){tiles=Array.isArray(value?.tiles)?value.tiles:[];next=Math.max(1,num(value?.next,1));grid=value?.grid!==false;colourOpen=false;addOpen=false}
+function restoreState(value){tiles=Array.isArray(value?.tiles)?value.tiles:[];next=Math.max(1,num(value?.next,1));grid=value?.grid!==false;colourOpen=false;addOpen=false;combineOpen=false;splitOpen=false}
 function selectedTile(id){return tiles.find(t=>String(t.id)===String(id))||null}
+function numericTile(item){if(!item||item.symbol)return null;const raw=String(item.text??'').trim();if(!/^-?\d+(?:\.\d+)?$/.test(raw))return null;const value=Number(raw);return Number.isFinite(value)?value:null}
+function niceNumber(value){const n=Math.round(Number(value)*1000)/1000;return String(n)}
+
 function tileMarkup(t,selectedId){const selected=String(t.id)===String(selectedId),locked=!!t.locked;return '<div class="gd-tile gd-object-tile'+(t.symbol?' symbol':'')+(selected?' is-selected':'')+(locked?' is-locked':'')+'" data-gd-object="'+t.id+'" role="button" tabindex="0" aria-selected="'+(selected?'true':'false')+'" aria-label="'+esc(t.text)+(locked?' locked':'')+'" style="left:'+t.x+'px;top:'+t.y+'px;--gd-tile-fill:'+t.color+';--gd-tile-ink:'+textColour(t.color)+'">'+esc(t.text)+(locked?'<span class="gd-tile-lock" aria-hidden="true">⌑</span>':'')+'</div>'}
 function railMarkup(selected,meta){
 const undo=I.toolButton('undo','undo','Undo','',!meta?.canUndo);
@@ -3662,7 +3687,10 @@ const gridButton=I.toolButton('grid','grid',grid?'Turn grid off':'Turn grid on',
 const addButton=I.toolButton('add','plus','Add tile',addOpen?'is-active':'',false);
 let object='';
 if(selected){
+const numeric=numericTile(selected)!=null;
 object=I.toolButton('duplicate','duplicate','Duplicate tile','',false)+
+(numeric?I.toolButton('combine','combine','Combine (+) with another number tile',combineOpen?'is-active':'',selected.locked):'')+
+(numeric?I.toolButton('split','split','Split into equal-value tiles',splitOpen?'is-active':'',selected.locked):'')+
 I.toolButton('colour','colour','Change tile colour',colourOpen?'is-active':'',selected.locked)+
 I.toolButton('lock',selected.locked?'unlock':'lock',selected.locked?'Unlock tile':'Lock tile',selected.locked?'is-active':'',false)+
 I.toolButton('delete','delete','Delete tile','is-danger',selected.locked);
@@ -3672,7 +3700,15 @@ const palette=addOpen?'<div class="gd-mc-stage-palette" role="group" aria-label=
   ['1','2','3','4','5','10','100'].map(x=>'<button type="button" data-gd-action="add-tile" data-mc-value="'+x+'">'+x+'</button>').join('')+
   ['+','−','×','÷','=','<','>','?'].map(x=>'<button type="button" class="is-symbol" data-gd-action="add-tile" data-mc-value="'+x+'" data-mc-symbol="true">'+x+'</button>').join('')+
   '</div>':'';
-return '<div class="gd-object-ui"><div class="gd-object-rail'+(selected?' is-engaged':'')+'" aria-label="Canvas tools">'+addButton+'<span class="gd-object-separator"></span>'+object+(object?'<span class="gd-object-separator"></span>':'')+undo+redo+gridButton+'</div>'+swatches+palette+'</div>'
+let transform='';
+if(selected&&combineOpen){
+  const others=tiles.filter(t=>t!==selected&&numericTile(t)!=null&&!t.locked);
+  transform='<div class="gd-mc-transform-palette" role="group" aria-label="Combine number tiles"><strong>Combine '+esc(selected.text)+' + …</strong>'+(others.length?others.map(t=>'<button type="button" data-gd-action="combine-with" data-mc-other="'+t.id+'">'+esc(t.text)+'</button>').join(''):'<small>Add another number tile first.</small>')+'</div>';
+}else if(selected&&splitOpen){
+  const value=numericTile(selected),parts=[2,3,4,5].filter(p=>Number.isInteger(value/p));
+  transform='<div class="gd-mc-transform-palette" role="group" aria-label="Split number tile"><strong>Split '+esc(selected.text)+' into</strong>'+(parts.length?parts.map(p=>'<button type="button" data-gd-action="split-into" data-mc-parts="'+p+'">'+p+' equal tiles</button>').join(''):'<small>No exact split into 2–5 equal whole-number tiles.</small>')+'</div>';
+}
+return '<div class="gd-object-ui"><div class="gd-object-rail'+(selected?' is-engaged':'')+'" aria-label="Canvas tools">'+addButton+'<span class="gd-object-separator"></span>'+object+(object?'<span class="gd-object-separator"></span>':'')+undo+redo+gridButton+'</div>'+swatches+palette+transform+'</div>'
 }
 function taskPreview(){
 if(workflow!=='task')return'';
@@ -3687,6 +3723,19 @@ q('#gd-stage').innerHTML=taskPreview()+'<div class="gd-vis gd-object-workspace">
 function constrainTile(item,x,y,element,canvas){const el=element||canvas.querySelector('[data-gd-object="'+item.id+'"]');const w=el?.offsetWidth||52,h=el?.offsetHeight||52;return{x:clamp(x,0,Math.max(0,canvas.clientWidth-w)),y:clamp(y,0,Math.max(0,canvas.clientHeight-h))}}
 function duplicateTile(item){const canvas=q('#mc-canvas'),copy={...item,id:next++,locked:false};const w=canvas?.clientWidth||700,h=canvas?.clientHeight||420;copy.x=clamp((Number(item.x)||0)+40,0,Math.max(0,w-70));copy.y=clamp((Number(item.y)||0)+40,0,Math.max(0,h-60));tiles.push(copy);return copy}
 function add(text,symbol=false){let id=null;addOpen=false;colourOpen=false;controller.mutate(()=>{id=next++;const canvas=q('#mc-canvas'),width=canvas?.clientWidth||700,cols=Math.max(1,Math.floor(Math.max(80,width-40)/80)),i=tiles.length,x=20+(i%cols)*80,y=20+Math.floor(i/cols)*80;tiles.push({id,text,x,y,symbol,locked:false,color:symbol?'#f6cf79':'#cbe7e2'})});controller.select(id)}
+function combineTiles(source,other){
+if(!source||!other||source===other||source.locked||other.locked)return;
+const a=numericTile(source),b=numericTile(other);if(a==null||b==null)return;
+const keep=source.id;controller.mutate(()=>{source.text=niceNumber(a+b);source.symbol=false;source.x=Math.min(Number(source.x)||0,Number(other.x)||0);source.y=Math.min(Number(source.y)||0,Number(other.y)||0);tiles=tiles.filter(t=>t!==other);combineOpen=false;splitOpen=false;colourOpen=false;addOpen=false});controller.select(keep)
+}
+function splitTile(item,parts){
+const value=numericTile(item),count=clamp(Math.round(num(parts,2)),2,5);if(value==null||item.locked||!Number.isInteger(value/count))return;
+const piece=value/count,keep=item.id,canvas=q('#mc-canvas'),width=canvas?.clientWidth||700,height=canvas?.clientHeight||420;
+controller.mutate(()=>{
+  item.text=niceNumber(piece);combineOpen=false;splitOpen=false;colourOpen=false;addOpen=false;
+  for(let i=1;i<count;i++)tiles.push({...item,id:next++,locked:false,x:clamp((Number(item.x)||0)+i*62,0,Math.max(0,width-60)),y:clamp((Number(item.y)||0)+(i%2)*62,0,Math.max(0,height-60))});
+});controller.select(keep)
+}
 function workflowTabs(){
 return '<div class="gd-row gd-mc-workflow-tabs" role="tablist" aria-label="Maths Canvas workflow">'+
 '<button class="gd-btn'+(workflow==='build'?' gd-btn--primary':'')+'" type="button" data-mc-workflow="build">Build</button>'+
@@ -3803,17 +3852,21 @@ snap:()=>grid?20:1,
 nudgeStep:()=>grid?20:1,
 constrain:constrainTile,
 duplicate:duplicateTile,
-remove:item=>{tiles=tiles.filter(t=>t!==item);colourOpen=false},
+remove:item=>{tiles=tiles.filter(t=>t!==item);colourOpen=false;combineOpen=false;splitOpen=false},
 setColour:(item,colour)=>{item.color=colour;colourOpen=false},
-toggleLock:item=>{item.locked=!item.locked;colourOpen=false},
+toggleLock:item=>{item.locked=!item.locked;colourOpen=false;combineOpen=false;splitOpen=false},
 onAction:(action,api,button)=>{
-if(action==='add'){addOpen=!addOpen;colourOpen=false;api.refresh()}
+if(action==='add'){addOpen=!addOpen;colourOpen=false;combineOpen=false;splitOpen=false;api.refresh()}
 else if(action==='add-tile'){add(button?.dataset?.mcValue||'',button?.dataset?.mcSymbol==='true')}
-else if(action==='colour'){colourOpen=!colourOpen;addOpen=false;api.refresh()}
-else if(action==='grid'){api.mutate(()=>{grid=!grid;colourOpen=false;addOpen=false})}
+else if(action==='combine'){combineOpen=!combineOpen;splitOpen=false;colourOpen=false;addOpen=false;api.refresh()}
+else if(action==='split'){splitOpen=!splitOpen;combineOpen=false;colourOpen=false;addOpen=false;api.refresh()}
+else if(action==='combine-with'){combineTiles(api.selected(),selectedTile(button?.dataset?.mcOther))}
+else if(action==='split-into'){splitTile(api.selected(),button?.dataset?.mcParts)}
+else if(action==='colour'){colourOpen=!colourOpen;addOpen=false;combineOpen=false;splitOpen=false;api.refresh()}
+else if(action==='grid'){api.mutate(()=>{grid=!grid;colourOpen=false;addOpen=false;combineOpen=false;splitOpen=false})}
 },
 onSelectionChange:item=>{
-  if(!item){colourOpen=false;return}
+  if(!item){colourOpen=false;combineOpen=false;splitOpen=false;return}
   if(addOpen){addOpen=false;queueMicrotask(()=>controller?.refresh())}
 }
 });
