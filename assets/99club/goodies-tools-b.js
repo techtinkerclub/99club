@@ -1010,7 +1010,7 @@ function measurementTool(){
       });
       const add=q('#me-add-ruler',controls);if(add)add.onclick=()=>{
         if(secondRuler)return;
-        const source=rulerState(0),scale=source.scale==='metric'?'imperial':'metric';secondRuler={cm:clamp(source.cm,0,maxCm(scale)),scale};syncRulers=true;activeRuler=1;renderControls();draw();
+        const source=rulerState(0),scale=source.scale==='metric'?'imperial':'metric';secondRuler={cm:clamp(source.cm,0,maxCm(scale)),scale};syncRulers=false;activeRuler=1;renderControls();draw();
       };
       const remove=q('#me-remove-ruler',controls);if(remove)remove.onclick=()=>{
         if(activeRuler!==1)return;secondRuler=null;syncRulers=false;activeRuler=0;renderControls();draw();
