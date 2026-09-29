@@ -1880,7 +1880,7 @@ function barModel(){
 
 function hundredSquare(){
   const CK=G.challengeKit,X=G.exportTools;
-  let startValue=1,selectedIndex=0,interactionMode='select',ruleMode='multiples',ruleNumber=5,paint=null;
+  let startValue=1,selectedIndex=0,interactionMode='select',ruleMode='multiples',ruleNumber=5,paint=null,rulePanelOpen=false;
   let marked=new Set(),hidden=new Set();
   const undoStack=[],redoStack=[];
   const CHALLENGE_CATEGORIES=[
@@ -1906,7 +1906,7 @@ function hundredSquare(){
   }
   function restore(state){
     startValue=Math.round(Number(state?.startValue)||0);
-    selectedIndex=clamp(Math.round(Number(state?.selectedIndex)||0),0,99);
+    selectedIndex=clamp(Math.round(Number(state?.selectedIndex)||0),0,99);rulePanelOpen=false;
     interactionMode=state?.interactionMode||'select';
     ruleMode=state?.ruleMode||'none';
     ruleNumber=Math.max(1,Math.round(Number(state?.ruleNumber)||1));
@@ -2036,12 +2036,30 @@ function hundredSquare(){
   function rangeSummary(){
     return challenge&&!challenge.revealed&&challenge.hiddenRangeSummary?'?':startValue+'–'+(startValue+99);
   }
+  function ruleShortLabel(){
+    if(ruleMode==='multiples')return'×'+ruleNumber;
+    if(ruleMode==='factors')return'Factors of '+ruleNumber;
+    if(ruleMode==='prime')return'Prime';
+    if(ruleMode==='odd')return'Odd';
+    if(ruleMode==='even')return'Even';
+    return'No rule';
+  }
+  function rulePopoverHtml(){
+    if(challenge||!rulePanelOpen)return'';
+    const mode=(id,label)=>'<button type="button" data-hs-rule-mode="'+id+'"'+(ruleMode===id?' class="is-active"':'')+'>'+label+'</button>';
+    return '<div class="gd-hs-rule-popover" role="group" aria-label="Hundred square rule">'+
+      '<div class="gd-hs-rule-modes">'+mode('multiples','Multiples')+mode('factors','Factors')+mode('prime','Prime')+mode('odd','Odd')+mode('even','Even')+mode('none','None')+'</div>'+
+      ((ruleMode==='multiples'||ruleMode==='factors')?'<div class="gd-hs-rule-number"><button type="button" data-hs-rule-step="-1" aria-label="Decrease rule number">−</button><strong>'+ruleNumber+'</strong><button type="button" data-hs-rule-step="1" aria-label="Increase rule number">+</button></div>':'')+
+    '</div>';
+  }
   function draw(){
     updateChallengeAnswer();
     const related=relatedValues(),banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Hundred Square challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-hs-workbench">'+
       '<div class="gd-hs-summary"><div><span>Hundred square</span><strong>'+rangeSummary()+'</strong></div>'+
-        '<div class="gd-object-toolbar"><button class="gd-btn" id="hs-undo" type="button"'+(undoStack.length&&!challengeFrozen()?'':' disabled')+'>Undo</button><button class="gd-btn" id="hs-redo" type="button"'+(redoStack.length&&!challengeFrozen()?'':' disabled')+'>Redo</button></div></div>'+
+        '<div class="gd-hs-summary-actions">'+(!challenge?'<button class="gd-hs-rule-chip'+(rulePanelOpen?' is-active':'')+'" type="button" data-hs-rule-toggle aria-expanded="'+(rulePanelOpen?'true':'false')+'">Rule: '+ruleShortLabel()+'</button>':'')+
+        '<div class="gd-object-toolbar"><button class="gd-btn" id="hs-undo" type="button"'+(undoStack.length&&!challengeFrozen()?'':' disabled')+'>Undo</button><button class="gd-btn" id="hs-redo" type="button"'+(redoStack.length&&!challengeFrozen()?'':' disabled')+'>Redo</button></div></div></div>'+
+      rulePopoverHtml()+
       '<div class="gd-square-grid gd-hs-grid" data-hs-grid-start="'+startValue+'">'+Array.from({length:100},(_,i)=>cellHtml(i,related)).join('')+'</div>'+
       selectedPanel()+
       (challenge?.type==='mark-rule'?'<div class="gd-answer-live" data-hs-target-status>'+challengeProgress()+'</div>':'')+
@@ -2073,6 +2091,9 @@ function hundredSquare(){
     renderControls();
   }
   function bindStage(){
+    const ruleToggle=q('[data-hs-rule-toggle]',q('#gd-stage'));if(ruleToggle)ruleToggle.onclick=e=>{e.stopPropagation();rulePanelOpen=!rulePanelOpen;draw()};
+    qa('[data-hs-rule-mode]',q('#gd-stage')).forEach(button=>button.onclick=e=>{e.stopPropagation();ruleMode=button.dataset.hsRuleMode||'none';rulePanelOpen=true;draw();renderControls()});
+    qa('[data-hs-rule-step]',q('#gd-stage')).forEach(button=>button.onclick=e=>{e.stopPropagation();ruleNumber=Math.max(1,ruleNumber+Number(button.dataset.hsRuleStep||0));rulePanelOpen=true;draw();renderControls()});
     qa('[data-hs-index]',q('#gd-stage')).forEach(cell=>{
       cell.onclick=()=>{
         if(challengeFrozen()||interactionMode!=='select')return;
@@ -2371,8 +2392,8 @@ function hundredSquare(){
   function bindExploreControls(){
     qa('[data-hs-preset]',q('#gd-controls')).forEach(button=>button.onclick=()=>mutate(()=>setStart(Number(button.dataset.hsPreset))));
     const apply=q('#hs-apply-start');if(apply)apply.onclick=()=>mutate(()=>setStart(num(q('#hs-start')?.value,startValue)));
-    const mode=q('#hs-mode');if(mode)mode.onchange=()=>{ruleMode=mode.value;draw();renderControls()};
-    const k=q('#hs-k');if(k)k.onchange=()=>{ruleNumber=Math.max(1,Math.round(num(k.value,ruleNumber)));draw();renderControls()};
+    const mode=q('#hs-mode');if(mode)mode.onchange=()=>{ruleMode=mode.value;rulePanelOpen=false;draw();renderControls()};
+    const k=q('#hs-k');if(k)k.onchange=()=>{ruleNumber=Math.max(1,Math.round(num(k.value,ruleNumber)));rulePanelOpen=false;draw();renderControls()};
     qa('[data-hs-interaction]',q('#gd-controls')).forEach(button=>button.onclick=()=>{interactionMode=button.dataset.hsInteraction;draw();renderControls()});
     const clear=q('#hs-clear-marks');if(clear)clear.onclick=()=>{if(!marked.size)return;mutate(()=>marked.clear())};
     const reveal=q('#hs-reveal-all');if(reveal)reveal.onclick=()=>{if(!hidden.size)return;mutate(()=>hidden.clear())};
