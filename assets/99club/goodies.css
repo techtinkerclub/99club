@@ -280,7 +280,7 @@ html.nl-board-page-lock,body.nl-board-page-lock{overflow:hidden!important;oversc
 .gd-object-separator{height:1px;background:rgba(111,137,143,.28);margin:2px 7px}
 .gd-object-colours{position:absolute;right:62px;top:50%;transform:translateY(-50%);display:grid;grid-template-columns:repeat(4,32px);gap:7px;padding:9px;border:1px solid rgba(188,204,207,.9);border-radius:14px;background:rgba(255,255,255,.95);box-shadow:0 12px 32px rgba(31,61,69,.14);backdrop-filter:blur(10px);pointer-events:auto}
 .gd-object-colours button{width:32px;height:32px;border-radius:10px;border:2px solid rgba(56,76,82,.18);background:var(--swatch);cursor:pointer;box-shadow:inset 0 0 0 1px rgba(255,255,255,.65)}
-.gd-object-colours button:hover,.gd-object-colours button:focus-visible{outline:3px solid rgba(20,125,117,.2);outline-offset:1px}
+.gd-object-colours button:hover,.gd-object-colours button:focus-visible{outline:3px solid rgba(20,125,117,.2);outline-offset:1px}.gd-mc-stage-palette{position:absolute;right:62px;top:50%;transform:translateY(-50%);display:grid;grid-template-columns:repeat(5,38px);gap:6px;padding:9px;border:1px solid rgba(188,204,207,.9);border-radius:14px;background:rgba(255,255,255,.96);box-shadow:0 12px 32px rgba(31,61,69,.14);backdrop-filter:blur(10px);pointer-events:auto}.gd-mc-stage-palette button{width:38px;height:36px;padding:0;border:1px solid #cbd8da;border-radius:9px;background:#fff;color:#304b52;font:inherit;font-size:.78rem;font-weight:900;cursor:pointer}.gd-mc-stage-palette button.is-symbol{background:#fff8e6;border-color:#ddc786}.gd-mc-stage-palette button:hover,.gd-mc-stage-palette button:focus-visible{outline:3px solid rgba(20,125,117,.2);outline-offset:1px}
 .gd-palette-tile{min-width:46px;min-height:42px;padding:7px 10px}
 .gd-palette-tile.is-symbol{background:#fff8e6;border-color:#ddc786}
 @media(hover:none),(pointer:coarse){
@@ -293,6 +293,7 @@ html.nl-board-page-lock,body.nl-board-page-lock{overflow:hidden!important;oversc
   .gd-object-rail{right:6px;gap:4px}
   .gd-object-tool{width:42px;height:42px;min-width:42px;min-height:42px;border-radius:12px}
   .gd-object-colours{right:55px;grid-template-columns:repeat(2,34px)}
+  .gd-mc-stage-palette{right:55px;grid-template-columns:repeat(3,36px);max-height:245px;overflow-y:auto}
   .gd-object-colours button{width:34px;height:34px}
 }
 @media(orientation:landscape) and (max-height:560px){
