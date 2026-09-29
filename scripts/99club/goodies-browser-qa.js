@@ -399,14 +399,15 @@ if(mode==='prepare'){
     undo.click();
     assert(document.querySelectorAll('[data-gd-object]').length===2,'Undo restores deleted tile');
 
-    const canvas=document.getElementById('mc-canvas');
+    let canvas=document.getElementById('mc-canvas');
     stageAdd=document.querySelector('[data-gd-action="add"]');
     stageAdd.click();
     assert(document.querySelector('.gd-mc-stage-palette [data-mc-value="="][data-mc-symbol="true"]'),'Stage palette includes equation symbols as well as numbers');
     stageAdd=document.querySelector('[data-gd-action="add"]');stageAdd.click();
     assert(!document.querySelector('.gd-mc-stage-palette'),'Tapping Add again closes the compact stage palette');
+    canvas=document.getElementById('mc-canvas');
     assert(canvas&&canvas.classList.contains('has-grid'),'Visible snap grid is enabled');
-    assert(getComputedStyle(canvas).touchAction==='pan-y','Empty canvas preserves vertical touch scrolling');
+    assert(getComputedStyle(canvas).touchAction==='pan-y','Canvas preserves vertical touch scrolling outside draggable tiles');
 
     assert(document.querySelector('[data-mc-workflow="build"]')&&document.querySelector('[data-mc-workflow="task"]')&&document.querySelector('[data-mc-workflow="export"]'),'Maths Canvas exposes Build, Task and Export / reuse workflows');
     document.querySelector('[data-mc-workflow="task"]').click();
