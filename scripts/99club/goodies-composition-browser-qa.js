@@ -17,7 +17,9 @@ function shell(url,bodyScript){
 <style>html{scroll-behavior:auto!important}body{margin:0}</style>
 </head>
 <body>
+<header class="masthead" id="gd-qa-theme-header">Theme header</header>
 <div id="tt99-goodies-root"></div>
+<footer class="page__footer" id="gd-qa-theme-footer">Theme footer</footer>
 <div id="gd-composition-qa-result" data-status="pending" data-kind="">pending</div>
 <script>history.replaceState(null,'','${url}');window.scrollTo=function(){};${url.includes('board=1')?`window.TT99_GOODIES_BOARD_EMBED_PATH='/${HOST}';`:''}</script>
 <script src="/assets/99club/goodies-core.js"></script>
@@ -76,6 +78,8 @@ async function run(){
   assert(window.TT99Goodies&&TT99Goodies.compositionBoard,'Mixed whiteboard mounts from ?board=1');
   const board=document.getElementById('gd-mixed-board'),palette=document.querySelector('.gd-board-palette'),canvas=document.getElementById('gd-board-canvas');
   assert(board&&palette&&canvas,'Whiteboard shell, palette and canvas exist');
+  assert(getComputedStyle(document.getElementById('gd-qa-theme-header')).display==='none','Mixed whiteboard hides the site masthead');
+  assert(getComputedStyle(document.getElementById('gd-qa-theme-footer')).display==='none','Mixed whiteboard hides the site footer');
   const tools=[...document.querySelectorAll('[data-board-add]')];
   assert(tools.length===18,'All 18 manipulatives are available as compact palette icons');
   assert(palette.getBoundingClientRect().width<=50,'Left manipulative rail stays narrow');
@@ -198,6 +202,8 @@ window.addEventListener('load',()=>setTimeout(()=>run().catch(err=>result('fail'
 ${common}
 async function run(){
   assert(document.documentElement.classList.contains('gd-embed-page'),'Embedded manipulative mode is active');
+  assert(getComputedStyle(document.getElementById('gd-qa-theme-header')).display==='none','Embedded manipulative hides the site masthead');
+  assert(getComputedStyle(document.getElementById('gd-qa-theme-footer')).display==='none','Embedded manipulative hides the site footer');
   assert(!window.TT99Goodies.compositionBoard,'Embedded object does not recursively mount the mixed board');
   const shell=document.querySelector('.gd-shell'),stage=document.getElementById('gd-stage'),controls=document.getElementById('gd-controls');
   assert(shell&&stage&&controls,'Embedded manipulative keeps its live stage and controls');
