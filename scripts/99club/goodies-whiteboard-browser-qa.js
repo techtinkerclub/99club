@@ -94,6 +94,9 @@ document.exitFullscreen=function(){
           const action=stage.querySelector('[data-ra-stage-go]');
           assert(action&&action.textContent.trim()==='Roll dice','Randomiser exposes its main action directly on stage before whiteboard mode');
         }
+        if(id==='balance'){
+          assert(stage.querySelectorAll('[data-ba-stage-add]').length===2,'Equation Balance exposes direct pan add actions before whiteboard mode');
+        }
         sharedPresent.click();
         await tick();
         assert(document.getElementById('gd-stage')===stage,'Shared whiteboard preserves the live stage element for '+id);
@@ -122,6 +125,13 @@ document.exitFullscreen=function(){
           assert(action&&action.disabled&&action.textContent.includes('Rolling'),'Randomiser can roll directly in whiteboard mode without opening Tools');
           assert(stage.querySelectorAll('.gd-die-cube.is-rolling').length===2,'Randomiser whiteboard stage shows the dice tumble');
           assert(tools.getAttribute('aria-expanded')==='false'&&!workspace.classList.contains('gd-whiteboard-tools-open'),'Using Randomiser stage action does not open the teacher Tools drawer');
+        }
+        if(id==='balance'){
+          const before=stage.querySelectorAll('[data-ba-token]').length,add=stage.querySelector('[data-ba-stage-add="right"]');
+          assert(add&&getComputedStyle(add).display!=='none'&&add.getBoundingClientRect().height>0,'Equation Balance pan add remains visible while whiteboard Tools are collapsed');
+          add.click();
+          assert(stage.querySelectorAll('[data-ba-token]').length===before+1,'Equation Balance can add a weight directly in whiteboard mode');
+          assert(tools.getAttribute('aria-expanded')==='false'&&!workspace.classList.contains('gd-whiteboard-tools-open'),'Using Equation Balance pan add does not open the teacher Tools drawer');
         }
         tools.click();
         assert(workspace.classList.contains('gd-whiteboard-tools-open'),'Whiteboard Tools drawer opens for '+id);

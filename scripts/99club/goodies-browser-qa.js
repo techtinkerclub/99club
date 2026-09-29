@@ -667,7 +667,14 @@ if(mode==='prepare'){
     assert(document.querySelector('[data-ba-equation]').textContent.trim()==='8 + 4 = 12','Equation Balance opens with a balanced 8 + 4 = 12 model');
     assert(document.querySelector('[data-ba-relation]').textContent.includes('12 = 12')&&document.querySelector('[data-ba-relation]').textContent.includes('balanced'),'Equation Balance reports equality from underlying pan totals');
     assert(document.querySelectorAll('[data-ba-drop]').length===2,'Equation Balance exposes both pans as direct drop areas');
+    assert(document.querySelectorAll('[data-ba-stage-add]').length===2,'Equation Balance keeps a compact add action directly on each pan');
+    document.querySelector('[data-ba-stage-add="right"]').click();
+    assert(document.querySelector('[data-ba-equation]').textContent.trim()==='8 + 4 < 12 + 1','Right-pan +1 builds the balance directly on stage');
+    assert(document.querySelector('[data-ba-selected]')?.textContent.includes('1'),'A directly added weight becomes selected for immediate stage editing');
+    document.getElementById('ba-undo').click();
+    assert(document.querySelector('[data-ba-equation]').textContent.trim()==='8 + 4 = 12','Undo cleanly reverses a direct on-stage add');
 
+    weights=[...document.querySelectorAll('[data-ba-token]')];
     weights[0].click();
     assert(document.querySelector('[data-ba-selected="1"]'),'A weight can be selected directly');
     weights=document.querySelectorAll('[data-ba-token]');
@@ -776,8 +783,10 @@ if(mode==='prepare'){
     document.getElementById('ba-generate').click();
     assert(document.querySelector('[data-ba-equation]').textContent.trim()==='5 = 5','Same-to-both challenge starts balanced');
     assert(document.getElementById('ba-both-value').value==='2','Same-to-both challenge preloads the requested operation');
-    document.getElementById('ba-add-both').click();
-    assert(document.querySelector('[data-ba-equation]').textContent.trim()==='5 + 2 = 5 + 2','Same-to-both action preserves the equality visually');
+    const stageBoth=document.querySelector('[data-ba-add-both-stage="2"]');
+    assert(stageBoth&&stageBoth.textContent.trim()==='Add 2 to both sides','Same-to-both challenge exposes its exact operation directly on stage');
+    stageBoth.click();
+    assert(document.querySelector('[data-ba-equation]').textContent.trim()==='5 + 2 = 5 + 2','Same-to-both stage action preserves the equality visually');
     assert(document.querySelector('[data-ba-target-status]').textContent.includes('Added 2 to both sides'),'Same-to-both challenge validates the exact equal operation');
 
     document.querySelector('[data-ba-workflow="challenge"]').click();
