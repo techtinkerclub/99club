@@ -227,7 +227,6 @@ function objectMarkup(obj,tool){
     '<div class="gd-board-context-menu" role="menu" aria-label="'+esc(tool.title)+' controls">'+
       '<button type="button" data-board-settings="'+obj.id+'" role="menuitem" aria-label="Settings" title="Settings">'+iconSvg('settings')+'</button>'+
       '<button type="button" data-board-lock="'+obj.id+'" role="menuitem" aria-label="Lock position" title="Lock position">'+iconSvg('lock')+'</button>'+
-      '<button type="button" data-board-delete="'+obj.id+'" role="menuitem" aria-label="Delete" title="Delete">'+iconSvg('trash')+'</button>'+
     '</div>'+
     '<button type="button" class="gd-board-resize-handle" data-board-resize="'+obj.id+'" aria-label="Resize '+esc(tool.title)+'" title="Resize"></button>'+
   '</section>';
