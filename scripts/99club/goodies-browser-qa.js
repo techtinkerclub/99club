@@ -392,6 +392,25 @@ if(mode==='prepare'){
     undo.click();
     assert(document.querySelectorAll('[data-gd-object]').length===2,'Undo restores deleted tile');
 
+    tile=document.querySelector('[data-gd-object]');
+    let tileRect=tile.getBoundingClientRect();
+    pointer(tile,'pointerdown',tileRect.left+10,tileRect.top+10,4);
+    pointer(tile,'pointerup',tileRect.left+10,tileRect.top+10,4);
+    const combine=document.querySelector('[data-gd-action="combine"]');
+    assert(combine&&!combine.disabled,'Selected number tile exposes Combine (+)');
+    combine.click();
+    const combineChoice=document.querySelector('[data-gd-action="combine-with"]');
+    assert(combineChoice,'Combine (+) offers another number tile as a target');
+    combineChoice.click();
+    assert(document.querySelectorAll('[data-gd-object]').length===1&&document.querySelector('[data-gd-object]').textContent.trim().startsWith('2'),'Combining two 1 tiles produces one 2 tile');
+    const split=document.querySelector('[data-gd-action="split"]');
+    assert(split&&!split.disabled,'Combined number tile exposes Split');
+    split.click();
+    const splitTwo=document.querySelector('[data-gd-action="split-into"][data-mc-parts="2"]');
+    assert(splitTwo,'A 2 tile can be split into two equal tiles');
+    splitTwo.click();
+    assert(document.querySelectorAll('[data-gd-object]').length===2&&[...document.querySelectorAll('[data-gd-object]')].every(x=>x.textContent.trim().startsWith('1')),'Split restores two equal 1 tiles');
+
     const canvas=document.getElementById('mc-canvas');
     assert(canvas&&canvas.classList.contains('has-grid'),'Visible snap grid is enabled');
     assert(getComputedStyle(canvas).touchAction==='pan-y','Empty canvas preserves vertical touch scrolling');
@@ -1974,6 +1993,12 @@ if(mode==='prepare'){
     assert(addOne,'Ones column has direct add control');
     addOne.click();
     assert(numberText('#pv-total')===1235.5,'Adding one ones-counter increases total by 1');
+    const removeOne=document.querySelector('[data-pv-remove="4"]');
+    assert(removeOne&&!removeOne.disabled,'Ones column has a direct remove control whenever a removable counter exists');
+    removeOne.click();
+    assert(numberText('#pv-total')===1234.5,'Removing one ones-counter decreases total by 1');
+    document.querySelector('[data-pv-add="4"]').click();
+    assert(numberText('#pv-total')===1235.5,'Place Value can add again immediately after a direct remove');
 
     let token=document.querySelector('[data-gd-object].is-selected');
     assert(token&&token.dataset.pvPlace==='4','New counter is selected in ones column');
@@ -3083,11 +3108,21 @@ if(mode==='prepare'){
     assert(face&&face.dataset.clHour==='10'&&face.dataset.clMinute==='10','Clock workbench opens at 10:10');
     assert(document.querySelector('[data-cl-readout="24"]').textContent.trim()==='10:10','Clock shows a live 24-hour readout');
     assert(document.querySelector('[data-cl-readout="12"]').textContent.trim()==='10:10 am','Clock shows a live 12-hour readout');
+    assert(document.querySelector('[data-cl-digital]').textContent.trim()==='10:10 am','Clock shows a prominent digital am/pm comparison');
     assert(document.querySelectorAll('.gd-clock-tick').length===60,'Clock renders all 60 minute ticks');
 
     document.getElementById('cl-add-clock').click();
     assert(document.querySelectorAll('.gd-clock-card').length===2,'Clock workbench can add a second clock');
     assert(document.querySelector('[data-cl-difference-to="1"]').textContent.trim()==='1 h','New comparison clock starts one hour after the selected clock');
+    const clockLabel=document.getElementById('cl-label');
+    clockLabel.value='End';clockLabel.dispatchEvent(new Event('change',{bubbles:true}));
+    assert([...document.querySelectorAll('.gd-clock-select')].some(x=>x.textContent.includes('End')),'Comparison clocks accept teacher-defined labels');
+    const secondsToggle=document.getElementById('cl-show-seconds');
+    secondsToggle.checked=true;secondsToggle.dispatchEvent(new Event('change',{bubbles:true}));
+    const secondsInput=document.getElementById('cl-s');
+    secondsInput.value='30';secondsInput.dispatchEvent(new Event('input',{bubbles:true}));
+    assert(document.querySelectorAll('.gd-clock-second').length===2,'Optional seconds hands appear on all comparison clocks');
+    assert([...document.querySelectorAll('[data-cl-digital]')].some(x=>x.textContent.includes(':30 ')),'Digital comparison includes seconds when seconds are enabled');
     const secondHour=document.getElementById('cl-h');
     secondHour.value='11';secondHour.dispatchEvent(new Event('input',{bubbles:true}));
     const secondMinute=document.getElementById('cl-m');
@@ -3340,6 +3375,8 @@ if(mode==='prepare'){
 
     document.getElementById('me-add-ruler').click();
     assert(document.querySelectorAll('.gd-ruler-card').length===2,'Measurement workbench can add a second ruler');
+    assert(document.getElementById('me-sync-rulers')?.checked,'A newly added comparison ruler starts linked to the same physical length');
+    assert(document.querySelector('.gd-ruler-sync-readout')?.textContent.includes('↔'),'Linked rulers show the metric / imperial correspondence explicitly');
     const scale=document.getElementById('me-scale');
     scale.value='imperial';scale.dispatchEvent(new Event('change',{bubbles:true}));
     let imperialRuler=document.getElementById('me-ruler-1');
