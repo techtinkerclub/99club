@@ -113,7 +113,8 @@ function positionObject(obj){
   frame.style.zIndex=String(obj.z);
 }
 function objectMarkup(obj,tool){
-  const src=location.pathname+'?embed=1#'+encodeURIComponent(tool.id);
+  const embedPath=window.TT99_GOODIES_BOARD_EMBED_PATH||location.pathname;
+  const src=embedPath+'?embed=1#'+encodeURIComponent(tool.id);
   return '<section class="gd-board-object is-selected" data-board-object="'+obj.id+'" data-tool-id="'+esc(tool.id)+'" aria-label="'+esc(tool.title)+'" aria-selected="true">'+
     '<iframe class="gd-board-object-iframe" src="'+src+'" title="'+esc(tool.title)+'"></iframe>'+
     '<button type="button" class="gd-board-object-cover" data-board-select="'+obj.id+'" aria-label="Select '+esc(tool.title)+'"></button>'+
