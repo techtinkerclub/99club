@@ -4200,7 +4200,7 @@ function moneyTool(){
     {id:'fewest-pieces',category:'make',title:'Fewest pieces',desc:'Make the target with the smallest possible number of pieces.'},
     {id:'find-change',category:'change',title:'Find the change',desc:'Build the correct change from a larger payment.'}
   ];
-  let items=[],nextId=1,target=375,controller=null;
+  let items=[],nextId=1,target=375,controller=null,addOpen=false;
   let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='count-total',challenge=null,beforeChallenge=null;
   let exportMode='board',responseLines=1,exportStatus='';
 
@@ -4230,6 +4230,7 @@ function moneyTool(){
     items=Array.isArray(state?.items)?state.items.map(x=>({...x})):[];
     nextId=Math.max(Number(state?.nextId)||1,items.reduce((m,x)=>Math.max(m,Number(x.id)||0),0)+1);
     target=Math.max(1,Math.round(Number(state?.target)||375));
+    addOpen=false;
     const targetInput=q('#mo-target');if(targetInput)targetInput.value=(target/100).toFixed(2);
   }
   function setValues(values){
@@ -4342,6 +4343,7 @@ function moneyTool(){
     const frozen=challengeFrozen(),unavailable=!selected||frozen,deleteDisabled=unavailable||!!selected?.locked;
     return '<div class="gd-money-boardbar">'+
       '<div class="gd-object-toolbar gd-money-history">'+
+        I.toolButton('add-money','plus','Add money',addOpen?'is-active':'',frozen)+
         I.toolButton('undo','undo','Undo','',!history.canUndo||frozen)+
         I.toolButton('redo','redo','Redo','',!history.canRedo||frozen)+
       '</div>'+
@@ -4353,6 +4355,16 @@ function moneyTool(){
         '</div>'+
       '</div>'+
     '</div>';
+  }
+  function moneyStagePaletteHtml(){
+    if(!addOpen||challengeFrozen())return'';
+    const picks=DENOMS.map(d=>{
+      const visual=d.kind==='coin'
+        ?'<span class="gd-money-stage-pick__coin gd-money-pick__coin--'+d.shape+'"><img src="'+d.image+'" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer"></span>'
+        :'<span class="gd-money-stage-pick__note gd-money-pick__note--'+d.tone+'">'+d.label+'</span>';
+      return '<button type="button" class="gd-money-stage-pick gd-money-stage-pick--'+d.kind+'" data-gd-action="add-money-piece" data-mo-value="'+d.value+'" aria-label="Add '+d.label+'">'+visual+'<span>'+d.label+'</span></button>';
+    }).join('');
+    return '<div class="gd-money-stage-palette" role="group" aria-label="Add money">'+picks+'</div>';
   }
   function updateSelectionTools(item){
     const frozen=challengeFrozen(),label=q('[data-mo-selection]',q('#gd-stage'));
@@ -4380,7 +4392,7 @@ function moneyTool(){
       ?'<div class="gd-answer-live" data-mo-target-status>'+(status==='On target ✓'?'On target ✓':status)+'</div>'
       :'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-money-workbench">'+
-      toolbarHtml(history,selected)+
+      toolbarHtml(history,selected)+moneyStagePaletteHtml()+
       '<div class="gd-money-canvas" id="mo-canvas" data-gd-canvas-bg style="min-height:'+m.height+'px" aria-label="Money workbench">'+
         (items.length?items.map(moneyObject).join(''):'<div class="gd-money-empty" data-gd-canvas-bg>Choose a denomination to start building an amount.</div>')+
       '</div>'+
@@ -4560,7 +4572,7 @@ function moneyTool(){
   function renderControls(){const panel=q('#gd-controls');if(panel)panel.innerHTML=controlsHtml();bindControls()}
   function restoreBeforeChallenge(){if(beforeChallenge){restore(beforeChallenge);beforeChallenge=null}}
   function clearChallenge(){
-    restoreBeforeChallenge();challenge=null;challengeTab='standard';controlTab='challenge';exportMode='board';exportStatus='';renderControls();controller.refresh();
+    restoreBeforeChallenge();addOpen=false;challenge=null;challengeTab='standard';controlTab='challenge';exportMode='board';exportStatus='';renderControls();controller.refresh();
   }
   function enterCustomChallenge(){
     if(!beforeChallenge)beforeChallenge=snapshot();
@@ -4679,7 +4691,16 @@ function moneyTool(){
     isLocked:item=>!!item.locked||challengeFrozen(),
     snap:4,
     nudgeStep:4,
-    onSelectionChange:updateSelectionTools
+    onAction:(action,api,button)=>{
+      if(action==='add-money'){if(challengeFrozen())return;addOpen=!addOpen;api.refresh()}
+      else if(action==='add-money-piece'&&!challengeFrozen()){
+        let id=null;addOpen=false;api.mutate(()=>{id=addMoney(button?.dataset?.moValue)});api.select(id);
+      }
+    },
+    onSelectionChange:item=>{
+      updateSelectionTools(item);
+      if(item&&addOpen){addOpen=false;queueMicrotask(()=>controller?.refresh())}
+    }
   });
   bindControls();
   controller.refresh();
