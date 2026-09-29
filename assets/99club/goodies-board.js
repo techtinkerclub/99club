@@ -13,22 +13,58 @@ let nextId=1,selectedId=null,snapOn=true,zCounter=10,drag=null,resize=null,pan=n
 const defaults={
   'number-line':[760,360],
   'place-value':[650,500],
-  'fraction-wall':[680,540],
-  'bar-model':[720,520],
+  'fraction-wall':[720,660],
+  'bar-model':[760,440],
   'hundred-square':[590,620],
   'multiplication-grid':[590,620],
-  'array-builder':[640,540],
-  'clock':[540,650],
-  'money':[740,560],
-  'coordinates':[680,570],
-  'measurement':[760,440],
-  'randomiser':[650,520],
-  'balance':[740,580],
+  'array-builder':[660,560],
+  'clock':[560,680],
+  'money':[760,500],
+  'coordinates':[680,610],
+  'measurement':[780,460],
+  'randomiser':[680,500],
+  'balance':[760,580],
   'times-table':[700,580],
   'factors':[740,620],
   'fdp':[700,620],
   'geoboard':[650,680],
-  'maths-canvas':[740,560]
+  'maths-canvas':[760,560]
+};
+const QUICK_ACTIONS={
+  'bar-model':[
+    {label:'+ Part',selector:'#bm-add-stage'},
+    {label:'−',selector:'#bm-minus',title:'Decrease selected part'},
+    {label:'+',selector:'#bm-plus',title:'Increase selected part'},
+    {label:'×',selector:'#bm-delete',title:'Delete selected part',danger:true}
+  ],
+  'fraction-wall':[
+    {label:'+ Strip',selector:'[data-gd-action="add"],[data-fw-to-workbench]'},
+    {label:'Duplicate',selector:'[data-gd-action="duplicate"]'},
+    {label:'×',selector:'[data-gd-action="delete"]',title:'Delete selected strip',danger:true}
+  ],
+  money:[
+    {label:'+ Money',selector:'[data-gd-action="add-money"]'},
+    {label:'Duplicate',selector:'[data-gd-action="duplicate"]'},
+    {label:'×',selector:'[data-gd-action="delete"]',title:'Delete selected money',danger:true}
+  ],
+  balance:[
+    {label:'+ Left',selector:'[data-ba-stage-add="left"]'},
+    {label:'+ Right',selector:'[data-ba-stage-add="right"]'}
+  ],
+  'maths-canvas':[
+    {label:'+ Tile',selector:'[data-gd-action="add"]'},
+    {label:'Duplicate',selector:'[data-gd-action="duplicate"]'},
+    {label:'×',selector:'[data-gd-action="delete"]',title:'Delete selected tile',danger:true}
+  ],
+  randomiser:[
+    {label:'Go',selector:'[data-ra-stage-go]',dynamicLabel:true}
+  ],
+  coordinates:[
+    {label:'× Point',selector:'[data-co-delete]',danger:true}
+  ],
+  geoboard:[
+    {label:'× Vertex',selector:'[data-ge-delete]',danger:true}
+  ]
 };
 const objects=[];
 
@@ -72,6 +108,42 @@ const canvas=document.getElementById('gd-board-canvas');
 
 function objectById(id){return objects.find(x=>String(x.id)===String(id))||null}
 function frameFor(id){return canvas.querySelector('[data-board-object="'+id+'"]')}
+function innerDocument(obj){
+  const frame=frameFor(obj?.id),iframe=frame?.querySelector('iframe');
+  try{return iframe?.contentDocument||null}catch(_){return null}
+}
+function innerTarget(obj,selector){
+  const doc=innerDocument(obj);if(!doc||!selector)return null;
+  const node=doc.querySelector(selector);
+  if(!node||node.disabled||node.hidden)return null;
+  const style=doc.defaultView?.getComputedStyle(node);
+  if(style&&(style.display==='none'||style.visibility==='hidden'))return null;
+  return node;
+}
+function syncQuickActions(obj){
+  const frame=frameFor(obj?.id),rail=frame?.querySelector('[data-board-quick-actions]');if(!rail)return;
+  const actions=QUICK_ACTIONS[obj.toolId]||[];
+  const available=actions.map((action,index)=>({action,index,node:innerTarget(obj,action.selector)})).filter(x=>x.node);
+  rail.innerHTML=available.map(({action,index,node})=>{
+    const label=action.dynamicLabel?(node.textContent||action.label).trim():action.label;
+    return '<button type="button" data-board-inner-action="'+index+'"'+(action.danger?' class="is-danger"':'')+' aria-label="'+esc(action.title||label)+'" title="'+esc(action.title||label)+'">'+esc(label)+'</button>';
+  }).join('');
+  rail.classList.toggle('is-empty',available.length===0);
+}
+function connectInnerObject(obj){
+  const frame=frameFor(obj.id),iframe=frame?.querySelector('iframe');if(!iframe)return;
+  const connect=()=>{
+    let doc=null;try{doc=iframe.contentDocument}catch(_){}
+    if(!doc)return;
+    const refresh=()=>setTimeout(()=>syncQuickActions(obj),0);
+    doc.addEventListener('click',refresh,true);
+    doc.addEventListener('change',refresh,true);
+    doc.addEventListener('input',refresh,true);
+    syncQuickActions(obj);
+  };
+  iframe.addEventListener('load',connect,{once:true});
+  try{if(iframe.contentDocument?.readyState==='complete')connect()}catch(_){}
+}
 function sendSettings(obj,open){
   obj.settingsOpen=!!open;
   const frame=frameFor(obj.id),iframe=frame?.querySelector('iframe');
@@ -111,6 +183,9 @@ function positionObject(obj){
   frame.style.left=obj.x+'px';frame.style.top=obj.y+'px';
   frame.style.width=obj.w+'px';frame.style.height=obj.h+'px';
   frame.style.zIndex=String(obj.z);
+  frame.style.setProperty('--gd-board-base-w',obj.baseW+'px');
+  frame.style.setProperty('--gd-board-base-h',obj.baseH+'px');
+  frame.style.setProperty('--gd-board-scale',String(obj.scale));
 }
 function objectMarkup(obj,tool){
   const embedPath=window.TT99_GOODIES_BOARD_EMBED_PATH||location.pathname;
@@ -120,6 +195,7 @@ function objectMarkup(obj,tool){
     '<button type="button" class="gd-board-object-cover" data-board-select="'+obj.id+'" aria-label="Select '+esc(tool.title)+'"></button>'+
     '<button type="button" class="gd-board-move-handle" data-board-move="'+obj.id+'" aria-label="Move '+esc(tool.title)+'" title="Move"><span></span><span></span><span></span></button>'+
     '<button type="button" class="gd-board-context-trigger" data-board-context="'+obj.id+'" aria-label="Object menu" title="Object menu">'+iconSvg('more')+'</button>'+
+    '<div class="gd-board-quick-actions is-empty" data-board-quick-actions aria-label="'+esc(tool.title)+' quick actions"></div>'+
     '<div class="gd-board-context-menu" role="menu" aria-label="'+esc(tool.title)+' controls">'+
       '<button type="button" data-board-settings="'+obj.id+'" role="menuitem" aria-label="Settings" title="Settings">'+iconSvg('settings')+'</button>'+
       '<button type="button" data-board-lock="'+obj.id+'" role="menuitem" aria-label="Lock position" title="Lock position">'+iconSvg('lock')+'</button>'+
@@ -130,12 +206,15 @@ function objectMarkup(obj,tool){
 }
 function addObject(toolId){
   const tool=tools.find(t=>t.id===toolId);if(!tool)return;
-  const [defaultW,defaultH]=defaults[tool.id]||[650,520];
+  const [baseW,baseH]=defaults[tool.id]||[650,520];
   const narrow=viewport.clientWidth<620;
-  const w=Math.min(defaultW,Math.max(320,viewport.clientWidth-(narrow?70:90)));
-  const h=Math.min(defaultH,Math.max(300,viewport.clientHeight-90));
+  const availableW=Math.max(220,viewport.clientWidth-(narrow?72:110));
+  const availableH=Math.max(180,viewport.clientHeight-90);
+  let scale=Math.min(1,availableW/baseW,availableH/baseH);
+  scale=clamp(Math.round(scale*20)/20,.4,1);
+  const w=Math.round(baseW*scale),h=Math.round(baseH*scale);
   const i=objects.length,obj={
-    id:nextId++,toolId:tool.id,
+    id:nextId++,toolId:tool.id,baseW,baseH,scale,
     x:snapped((narrow?55:90)+(i%5)*40+viewport.scrollLeft),
     y:snapped((narrow?45:80)+(i%4)*40+viewport.scrollTop),
     w,h,z:++zCounter,locked:false,menuOpen:false,settingsOpen:false
@@ -146,6 +225,7 @@ function addObject(toolId){
   positionObject(obj);
   selectObject(obj.id);
   bindObject(obj);
+  connectInnerObject(obj);
 }
 function removeObject(id){
   const obj=objectById(id);if(!obj)return;
@@ -189,6 +269,14 @@ function bindObject(obj){
   if(lock)lock.onclick=e=>{e.stopPropagation();toggleLock(obj.id)};
   const del=frame.querySelector('[data-board-delete]');
   if(del)del.onclick=e=>{e.stopPropagation();removeObject(obj.id)};
+  const quick=frame.querySelector('[data-board-quick-actions]');
+  if(quick)quick.onclick=e=>{
+    const button=e.target.closest('[data-board-inner-action]');if(!button)return;
+    e.preventDefault();e.stopPropagation();
+    const action=(QUICK_ACTIONS[obj.toolId]||[])[Number(button.dataset.boardInnerAction)];
+    const target=action&&innerTarget(obj,action.selector);
+    if(target){target.click();setTimeout(()=>syncQuickActions(obj),0)}
+  };
 
   const move=frame.querySelector('[data-board-move]');
   if(move)move.onpointerdown=e=>{
@@ -201,7 +289,7 @@ function bindObject(obj){
   if(size)size.onpointerdown=e=>{
     if(obj.locked||e.button!==0)return;
     e.preventDefault();e.stopPropagation();selectObject(obj.id);
-    resize={id:obj.id,pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,w:obj.w,h:obj.h};
+    resize={id:obj.id,pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,w:obj.w,h:obj.h,scale:obj.scale,baseW:obj.baseW,baseH:obj.baseH};
     try{size.setPointerCapture(e.pointerId)}catch(_){}
   };
 }
@@ -222,10 +310,14 @@ document.addEventListener('pointermove',e=>{
   }
   if(resize&&resize.pointerId===e.pointerId){
     const obj=objectById(resize.id);if(!obj)return;
-    obj.w=clamp(snapped(resize.w+e.clientX-resize.startX),320,1100);
-    obj.h=clamp(snapped(resize.h+e.clientY-resize.startY),240,900);
-    if(obj.x+obj.w>BOARD_W)obj.w=BOARD_W-obj.x;
-    if(obj.y+obj.h>BOARD_H)obj.h=BOARD_H-obj.y;
+    const dx=e.clientX-resize.startX,dy=e.clientY-resize.startY;
+    const sx=(resize.w+dx)/resize.baseW,sy=(resize.h+dy)/resize.baseH;
+    let nextScale=Math.abs(dx/resize.baseW)>=Math.abs(dy/resize.baseH)?sx:sy;
+    nextScale=clamp(nextScale,.35,2);
+    if(snapOn)nextScale=Math.round(nextScale*20)/20;
+    const maxScale=Math.min((BOARD_W-obj.x)/obj.baseW,(BOARD_H-obj.y)/obj.baseH,2);
+    obj.scale=clamp(nextScale,.35,maxScale);
+    obj.w=Math.round(obj.baseW*obj.scale);obj.h=Math.round(obj.baseH*obj.scale);
     positionObject(obj);
   }
 });
@@ -265,7 +357,10 @@ document.addEventListener('fullscreenchange',()=>board.classList.toggle('is-full
 window.addEventListener('message',event=>{
   if(event.origin!==location.origin||!event.data||event.data.type!=='tt99-board-ready')return;
   const frame=[...canvas.querySelectorAll('iframe')].find(x=>x.contentWindow===event.source);
-  if(frame)frame.closest('.gd-board-object')?.classList.add('is-ready');
+  if(frame){
+    const host=frame.closest('.gd-board-object');host?.classList.add('is-ready');
+    const obj=host&&objectById(host.dataset.boardObject);if(obj)syncQuickActions(obj);
+  }
 });
 
 G.compositionBoard={
