@@ -162,11 +162,16 @@ function connectInnerObject(obj){
   const connect=()=>{
     let doc=null;try{doc=iframe.contentDocument}catch(_){}
     if(!doc)return;
-    const refresh=()=>setTimeout(()=>{fitEmbeddedObject(obj,false);syncQuickActions(obj)},0);
+    const settleFit=(initial=false,pass=0)=>{
+      fitEmbeddedObject(obj,initial&&pass===0);
+      syncQuickActions(obj);
+      if(pass<3)setTimeout(()=>settleFit(false,pass+1),24);
+    };
+    const refresh=()=>setTimeout(()=>settleFit(false,0),0);
     doc.addEventListener('click',refresh,true);
     doc.addEventListener('change',refresh,true);
     doc.addEventListener('input',refresh,true);
-    requestAnimationFrame(()=>{fitEmbeddedObject(obj,true);syncQuickActions(obj)});
+    requestAnimationFrame(()=>settleFit(true,0));
   };
   iframe.addEventListener('load',connect,{once:true});
   try{if(iframe.contentDocument?.readyState==='complete')connect()}catch(_){}
