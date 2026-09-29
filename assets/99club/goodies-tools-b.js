@@ -1371,7 +1371,9 @@ function balanceTool(){
     item.value=Math.max(0,Math.round((Number(value)||0)*100)/100);
   }
   function tiltData(){
-    const diff=difference(),scaled=clamp(diff,-20,20),deg=scaled*0.65,lift=scaled*1.35;
+    const l=leftTotal(),r=rightTotal(),diff=l-r,scale=Math.max(1,l,r);
+    const deg=clamp(diff/scale*9,-6,6);
+    const arm=300,lift=Math.sin(deg*Math.PI/180)*arm;
     return{deg,leftLift:lift,rightLift:-lift};
   }
   function randomInt(min,max){return min+Math.floor(Math.random()*(max-min+1))}
