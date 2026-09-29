@@ -152,8 +152,8 @@ function removeObject(id){
 }
 function toggleLock(id){
   const obj=objectById(id);if(!obj)return;
-  obj.locked=!obj.locked;
-  const frame=frameFor(id);frame?.classList.toggle('is-locked',obj.locked);
+  obj.locked=!obj.locked;obj.menuOpen=false;
+  const frame=frameFor(id);frame?.classList.toggle('is-locked',obj.locked);frame?.classList.remove('has-context-menu');
   const button=frame?.querySelector('[data-board-lock]');
   if(button){
     button.innerHTML=iconSvg(obj.locked?'unlock':'lock');
