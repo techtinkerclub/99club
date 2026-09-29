@@ -73,7 +73,7 @@ const QUICK_ACTIONS={
     {label:'×',selector:'[data-gd-action="delete"]',allowHidden:true,title:'Delete selected tile',danger:true}
   ],
   'hundred-square':[
-    {label:'Rule',selector:'#hs-mode',allowHidden:true,openSettings:true,title:'Set highlight rule'}
+    {label:'Rule',selector:'[data-hs-rule-toggle]',allowHidden:true,title:'Set highlight rule'}
   ],
   measurement:[
     {label:'+ Ruler',selector:'#me-add-ruler',allowHidden:true,title:'Add comparison ruler'},
