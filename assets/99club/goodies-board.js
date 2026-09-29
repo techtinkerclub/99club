@@ -77,7 +77,7 @@ const QUICK_ACTIONS={
   ],
   measurement:[
     {label:'+ Ruler',selector:'#me-add-ruler',allowHidden:true,title:'Add comparison ruler'},
-    {label:'Sync',selector:'#me-sync-rulers',allowHidden:true,title:'Sync rulers to the same physical length'}
+    {label:'Sync',selector:'#me-sync-rulers',allowHidden:true,checkedLabel:'Unlink',uncheckedLabel:'Sync',title:'Link or unlink ruler movement'}
   ],
   randomiser:[
     {label:'Go',selector:'[data-ra-stage-go]',dynamicLabel:true,allowHidden:true}
@@ -201,7 +201,7 @@ function syncQuickActions(obj){
   const actions=QUICK_ACTIONS[obj.toolId]||[];
   const available=actions.map((action,index)=>({action,index,node:innerTarget(obj,action.selector,!!action.allowHidden)})).filter(x=>x.node);
   rail.innerHTML=available.map(({action,index,node})=>{
-    const label=action.dynamicLabel?(node.textContent||action.label).trim():action.label;
+    const label=action.checkedLabel&&'checked' in node?(node.checked?action.checkedLabel:(action.uncheckedLabel||action.label)):(action.dynamicLabel?(node.textContent||action.label).trim():action.label);
     return '<button type="button" data-board-inner-action="'+index+'"'+(action.danger?' class="is-danger"':'')+' aria-label="'+esc(action.title||label)+'" title="'+esc(action.title||label)+'">'+esc(label)+'</button>';
   }).join('');
   rail.classList.toggle('is-empty',available.length===0);
