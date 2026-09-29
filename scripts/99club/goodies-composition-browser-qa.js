@@ -259,6 +259,20 @@ async function run(){
   assert(meFrame.querySelector('iframe').contentDocument.querySelector('.gd-ruler-sync-readout'),'Synced rulers show the metric / imperial correspondence');
   TT99Goodies.compositionBoard.remove(meRecord.id);
 
+  document.querySelector('[data-board-add="hundred-square"]').click();await tick();
+  const hsRecord=TT99Goodies.compositionBoard.objects().find(x=>x.toolId==='hundred-square');
+  const hsFrame=hsRecord&&document.querySelector('[data-board-object="'+hsRecord.id+'"]');
+  for(let attempt=0;attempt<40&&hsFrame&&!hsFrame.classList.contains('is-ready');attempt++)await tick(50);
+  const hsRule=[...hsFrame.querySelectorAll('[data-board-quick-actions] button')].find(button=>button.textContent.trim()==='Rule');
+  assert(hsRule,'Hundred Square exposes Rule directly on the frame');
+  hsRule.click();await tick();
+  const hsDoc=hsFrame.querySelector('iframe').contentDocument;
+  assert(visible(hsDoc.querySelector('.gd-hs-rule-popover')),'Frame Rule opens the compact rule picker without the full Settings panel');
+  const hsEven=hsDoc.querySelector('[data-hs-rule-mode="even"]');assert(hsEven,'Compact Hundred Square rule picker includes Even');
+  hsEven.click();await tick();
+  assert(hsDoc.querySelectorAll('.gd-hs-cell.is-rule').length===50,'Compact rule picker applies the selected rule immediately');
+  TT99Goodies.compositionBoard.remove(hsRecord.id);
+
   const clock=objects[0];
   const boardRect=canvas.getBoundingClientRect();
   pointer(canvas,'pointerdown',boardRect.left+5,boardRect.top+5,43);
