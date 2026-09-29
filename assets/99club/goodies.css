@@ -821,3 +821,15 @@ html.gd-whiteboard-page-lock,body.gd-whiteboard-page-lock{overflow:hidden!import
 .gd-clock-selector{margin-top:5px}
 @media(max-width:700px){.gd-clock-grid{grid-template-columns:1fr}.gd-clock-card{padding:10px}.gd-clock-differences{grid-template-columns:1fr 1fr}}
 @media(max-width:430px){.gd-clock-differences{grid-template-columns:1fr}}
+
+
+/* Dual metric / imperial ruler workbench */
+.gd-ruler-stack{display:grid;gap:14px;width:100%}
+.gd-ruler-card{min-width:0;padding:12px 10px 10px;border:1px solid #d9e2e4;border-radius:16px;background:#fff}
+.gd-ruler-card.is-selected{border-color:#4b9b94;box-shadow:0 0 0 3px rgba(20,125,117,.10)}
+.gd-ruler-card-head{display:flex;justify-content:center;align-items:center;min-height:34px}
+.gd-ruler-select{min-height:34px;padding:5px 11px;border:1px solid #cbd7d9;border-radius:999px;background:#fff;color:#304b52;font:inherit;font-size:.78rem;font-weight:850;cursor:pointer}
+.gd-ruler-card.is-selected .gd-ruler-select{border-color:#4b9b94;background:#eff8f6}
+.gd-ruler-card .gd-ruler{margin:24px 16px 18px}
+.gd-ruler-card .gd-fdp-readout{margin-top:8px}
+@media(max-width:620px){.gd-ruler-card{padding:10px 4px 8px}.gd-ruler-card .gd-ruler{margin:24px 8px 16px}.gd-ruler-card .gd-fdp-readout{grid-template-columns:1fr 1fr}.gd-ruler-card .gd-fdp-value:last-child{grid-column:1/-1}}
