@@ -215,7 +215,7 @@ async function run(){
     const firstRecord=TT99Goodies.compositionBoard.objects()[0];
     if(firstRecord)TT99Goodies.compositionBoard.remove(firstRecord.id);
     assert(document.querySelectorAll('[data-board-object]').length===0,'All initial test objects can be cleared before the catalogue smoke pass');
-    const mounted=[];
+    const mounted=[],clipFailures=[];
     for(const toolButton of tools){
       toolButton.click();
       const record=TT99Goodies.compositionBoard.objects().slice(-1)[0];
@@ -230,14 +230,17 @@ async function run(){
       await tick(80);
       const innerStage=frame?.querySelector('iframe')?.contentDocument?.getElementById('gd-stage');
       if(innerStage){
-        assert(innerStage.scrollHeight<=innerStage.clientHeight+3,toolButton.getAttribute('aria-label')+' stage fits its whiteboard frame vertically');
-        assert(innerStage.scrollWidth<=innerStage.clientWidth+3,toolButton.getAttribute('aria-label')+' stage fits its whiteboard frame horizontally');
+        const label=toolButton.getAttribute('aria-label');
+        const vertical=innerStage.scrollHeight-innerStage.clientHeight;
+        const horizontal=innerStage.scrollWidth-innerStage.clientWidth;
+        if(vertical>3||horizontal>3)clipFailures.push(label+' (vertical +'+Math.max(0,vertical)+'px, horizontal +'+Math.max(0,horizontal)+'px)');
       }
       mounted.push(record.toolId);
       TT99Goodies.compositionBoard.remove(record.id);
       await tick();
     }
     assert(mounted.length===tools.length,'Every palette manipulative completed the embedded-object smoke pass');
+    assert(clipFailures.length===0,'Whiteboard frame clipping: '+clipFailures.join('; '));
   }
 
   result('pass','board','Mixed whiteboard objects are frameless, scalable, contextual and all palette tools mount','tools='+tools.length);
