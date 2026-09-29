@@ -2,7 +2,8 @@
 'use strict';
 if(!G)return;
 const params=new URLSearchParams(location.search);
-if(params.get('board')!=='1')return;
+const forcedBoard=!!window.TT99_GOODIES_FORCE_BOARD&&params.get('embed')!=='1';
+if(params.get('board')!=='1'&&!forcedBoard)return;
 
 const root=G.root;
 const tools=Array.isArray(G.toolCatalogue)?G.toolCatalogue:[];
@@ -195,6 +196,7 @@ function objectMarkup(obj,tool){
     '<button type="button" class="gd-board-object-cover" data-board-select="'+obj.id+'" aria-label="Select '+esc(tool.title)+'"></button>'+
     '<button type="button" class="gd-board-move-handle" data-board-move="'+obj.id+'" aria-label="Move '+esc(tool.title)+'" title="Move"><span></span><span></span><span></span></button>'+
     '<button type="button" class="gd-board-context-trigger" data-board-context="'+obj.id+'" aria-label="Object menu" title="Object menu">'+iconSvg('more')+'</button>'+
+    '<button type="button" class="gd-board-delete-direct" data-board-delete="'+obj.id+'" aria-label="Delete '+esc(tool.title)+'" title="Delete">'+iconSvg('trash')+'</button>'+
     '<div class="gd-board-quick-actions is-empty" data-board-quick-actions aria-label="'+esc(tool.title)+' quick actions"></div>'+
     '<div class="gd-board-context-menu" role="menu" aria-label="'+esc(tool.title)+' controls">'+
       '<button type="button" data-board-settings="'+obj.id+'" role="menuitem" aria-label="Settings" title="Settings">'+iconSvg('settings')+'</button>'+
@@ -343,7 +345,7 @@ canvas.addEventListener('pointerdown',e=>{
 });
 document.querySelectorAll('[data-board-add]').forEach(button=>button.addEventListener('click',()=>addObject(button.dataset.boardAdd)));
 
-document.getElementById('gd-board-back').onclick=()=>{location.href=location.pathname};
+document.getElementById('gd-board-back').onclick=()=>{location.href=window.TT99_GOODIES_BOARD_HOME||location.pathname};
 document.getElementById('gd-board-snap').onclick=e=>{
   snapOn=!snapOn;e.currentTarget.classList.toggle('is-active',snapOn);e.currentTarget.setAttribute('aria-pressed',snapOn?'true':'false');
   board.classList.toggle('is-snap-off',!snapOn);
