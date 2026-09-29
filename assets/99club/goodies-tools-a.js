@@ -3581,6 +3581,7 @@ function clockTool(){
   function format24(h,m){return pad(h)+':'+pad(m)}
   function time24(){return format24(hour,minute)}
   function format12(h,m){return(h%12||12)+':'+pad(m)+' '+(h<12?'am':'pm')}
+  function format12Digital(h,m,sec=0){return(h%12||12)+':'+pad(m)+(showSeconds?':'+pad(sec):'')+' '+(h<12?'am':'pm')}
   function time12(){return format12(hour,minute)}
   function nextH12(){return(hour+1)%12||12}
   function spokenTime(){
@@ -4001,7 +4002,7 @@ function clockTool(){
       const d24=q('[data-cl-readout-kind="24"]',card),d12=q('[data-cl-readout-kind="12"]',card),digital=q('[data-cl-digital]',card);
       if(d24)d24.textContent=hiddenReadout('24')&&index===0?'?':format24(state.hour,state.minute);
       if(d12)d12.textContent=hiddenReadout('12')&&index===0?'?':format12(state.hour,state.minute);
-      if(digital)digital.textContent=hiddenReadout('12')&&index===0?'?':format12(state.hour,state.minute)+(showSeconds?' : '+pad(state.second):'');
+      if(digital)digital.textContent=hiddenReadout('12')&&index===0?'?':format12Digital(state.hour,state.minute,state.second);
     });
     qa('[data-cl-difference-to]',q('#gd-stage')).forEach(el=>{
       const index=Math.round(num(el.dataset.clDifferenceTo,1)),state=clockState(index);
@@ -4172,7 +4173,7 @@ function clockTool(){
     const faceId=primary?'cl-face':'cl-face-'+index,hourId=primary?'cl-hour-hand':'cl-hour-hand-'+index,minuteId=primary?'cl-minute-hand':'cl-minute-hand-'+index;
     const hourHitId=primary?'cl-hour-hit':'cl-hour-hit-'+index,minuteHitId=primary?'cl-minute-hit':'cl-minute-hit-'+index;
     return '<section class="gd-clock-card'+(selected?' is-selected':'')+'" data-cl-clock-index="'+index+'">'+
-      '<div class="gd-clock-card-head">'+(challenge?'<strong>'+label+'</strong>':'<button type="button" class="gd-clock-select" data-cl-select-stage="'+index+'">'+label+(selected?' • selected':'')+'</button>')+'</div>'+
+      '<div class="gd-clock-card-head">'+(challenge?'<strong>'+esc(label)+'</strong>':'<button type="button" class="gd-clock-select" data-cl-select-stage="'+index+'">'+esc(label)+(selected?' • selected':'')+'</button>')+'</div>'+
       '<div class="gd-clock"><svg id="'+faceId+'" viewBox="0 0 300 300" role="img" aria-label="'+(hidden?'Analogue clock for challenge':label+' showing '+format12(state.hour,state.minute))+'" data-cl-clock-index="'+index+'" data-cl-hour="'+state.hour+'" data-cl-minute="'+state.minute+'" data-cl-frozen="'+(frozen?'true':'false')+'" data-cl-target-hour="'+(primary&&Number.isFinite(Number(challenge?.targetHour))?challenge.targetHour:'')+'" data-cl-target-minute="'+(primary&&Number.isFinite(Number(challenge?.targetMinute))?challenge.targetMinute:'')+'">'+
         '<circle class="gd-clock-face" cx="150" cy="150" r="135"></circle>'+tickMarkup()+numeralMarkup()+
         '<line class="gd-clock-hour" id="'+hourId+'" data-cl-line="hour" x1="150" y1="150" x2="'+hp.x+'" y2="'+hp.y+'"></line>'+
@@ -4182,7 +4183,7 @@ function clockTool(){
         '<line class="gd-clock-hand-hit gd-clock-hand-hit--minute'+(frozen?' is-frozen':'')+'" id="'+minuteHitId+'" data-cl-clock-index="'+index+'" data-cl-hand="minute" tabindex="'+(frozen?'-1':'0')+'"'+(hidden?' aria-label="'+(frozen?'Minute hand fixed for this challenge':'Minute hand for challenge')+'"':' role="slider" aria-label="'+label+' minute hand" aria-valuemin="0" aria-valuemax="59" aria-valuenow="'+state.minute+'"')+' x1="150" y1="150" x2="'+mp.x+'" y2="'+mp.y+'"></line>'+
         '<circle class="gd-clock-centre" cx="150" cy="150" r="7"></circle>'+
       '</svg></div>'+
-      (showDigital?'<div class="gd-clock-digital" data-cl-digital>'+(hiddenReadout('12')&&primary?'?':format12(state.hour,state.minute)+(showSeconds?' : '+pad(state.second):''))+'</div>':'')+
+      (showDigital?'<div class="gd-clock-digital" data-cl-digital>'+(hiddenReadout('12')&&primary?'?':format12Digital(state.hour,state.minute,state.second))+'</div>':'')+
       '<div class="gd-clock-readouts">'+
         '<div class="gd-readout"><span>24-hour</span><strong data-cl-readout-kind="24"'+(primary?' data-cl-readout="24"':'')+'>'+(hiddenReadout('24')&&primary?'?':format24(state.hour,state.minute))+'</strong></div>'+
         '<div class="gd-readout"><span>12-hour</span><strong data-cl-readout-kind="12"'+(primary?' data-cl-readout="12"':'')+'>'+(hiddenReadout('12')&&primary?'?':format12(state.hour,state.minute))+'</strong></div>'+
