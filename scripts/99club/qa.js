@@ -1005,10 +1005,11 @@ try{
   for(const token of ['.gd-die-cube.is-rolling','.gd-spinner-wheel.is-spinning','@keyframes gd-die-tumble','.gd-spinner-pointer{','.gd-random-stage-action{'])if(!goodiesCss.includes(token))fail('goodies-randomiser','Randomiser presentation CSS missing '+token);
   ok('goodies-randomiser','Randomiser keeps physical dice, labelled wheel, fixed pointer, motion states and a direct stage action');
   const moneyBlock=goodiesFunctionBlock(goodiesToolsA,'moneyTool');
-  for(const token of ['ROYAL_MINT_BASE','www.royalmint.com','gd-money-object__face--official','Coin imagery: The Royal Mint, 2023','CLASSROOM NOTE'])if(!moneyBlock.includes(token))fail('goodies-money-imagery','UK Money visual contract missing '+token);
-  if(!goodiesCss.includes('.gd-money-pick__coin')||!goodiesCss.includes('.gd-money-object__face--official img'))fail('goodies-money-imagery','UK Money official coin image styling is missing');
+  for(const token of ['function coinArt','gd-money-coin-art','shape:\'hept\'','shape:\'dodec\'','tone:\'copper\'','tone:\'silver\'','tone:\'bimetal\'','Stylised UK classroom','CLASSROOM NOTE'])if(!moneyBlock.includes(token)&&!goodiesCss.includes(token))fail('goodies-money-imagery','UK Money visual contract missing '+token);
+  if(/ROYAL_MINT_BASE|www\.royalmint\.com|face--official/.test(moneyBlock+goodiesCss))fail('goodies-money-imagery','UK Money must not depend on cropped or filtered Royal Mint photography');
+  if(!goodiesCss.includes('.gd-money-coin-art'))fail('goodies-money-imagery','UK Money scalable SVG coin styling is missing');
   if(/kind:'note'[^\n]*image:/.test(moneyBlock))fail('goodies-money-imagery','UK Money notes must remain stylised rather than using realistic banknote imagery');
-  ok('goodies-money-imagery','UK Money uses credited Royal Mint coin imagery live while notes remain stylised classroom representations');
+  ok('goodies-money-imagery','UK Money uses self-contained stylised SVG coins with UK material families and classroom notes');
   for(const token of [
     '/* Shared Goodies classroom control scale',
     '#tt99-goodies-root .gd-btn,',

@@ -1107,8 +1107,8 @@ function randomiser(){
     {label:'Green',colour:'#399b64',ink:'#ffffff'},
     {label:'Yellow',colour:'#f4cc45',ink:'#273e44'}
   ];
-  const CUSTOM_WHEEL_COLOURS=['#edf3f2','#f6f1e7','#eef1f6','#f5eeee','#eff3e9','#f0edf5','#f5f0e9','#eaf2f1'];
-  const D6_ROTATIONS={1:[0,0],2:[-90,0],3:[0,-90],4:[0,90],5:[90,0],6:[0,180]};
+  const CUSTOM_WHEEL_COLOURS=['#b9ded8','#f2cf78','#a9c8ec','#efb0a7','#c9b7e8','#b9ddb3','#efc18e','#e7b5cf'];
+  const OPPOSITE={1:6,6:1,2:5,5:2,3:4,4:3};
   function motionMs(){return window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches?40:1250}
   function customChoices(){return String(customSpinnerText||'').split(/\n|,/).map(x=>x.trim()).filter(Boolean).slice(0,16)}
   function wheelSegments(){
@@ -1120,11 +1120,17 @@ function randomiser(){
     return '<span class="gd-die-pips" aria-hidden="true">'+Array.from({length:9},(_,i)=>'<i'+(on.has(i+1)?' class="is-on"':'')+'></i>').join('')+'</span>';
   }
   function cubeFace(pos,value){return '<span class="gd-die-face gd-die-face--'+pos+'" data-ra-face-value="'+value+'">'+pipFace(value)+'</span>'}
+  function d6Faces(value){
+    const front=clamp(Math.round(Number(value)||1),1,6),back=OPPOSITE[front];
+    const remaining=[1,2,3,4,5,6].filter(v=>v!==front&&v!==back);
+    const top=remaining[0],bottom=OPPOSITE[top],right=remaining.find(v=>v!==bottom),left=OPPOSITE[right];
+    return{front,back,right,left,top,bottom};
+  }
   function dieHtml(value,sides,index,rolling){
     if(sides===6){
-      const rot=D6_ROTATIONS[value]||[0,0],rx=rot[0],ry=rot[1],extra=720+index*90,startX=rx+extra,startY=ry+extra+180;
-      return '<div class="gd-die-space" aria-label="Die '+(index+1)+': '+value+'"><div class="gd-die-cube'+(rolling?' is-rolling':'')+'" data-ra-die="'+index+'" data-ra-final-value="'+value+'" data-ra-rx="'+rx+'" data-ra-ry="'+ry+'" style="--ra-start-x:'+startX+'deg;--ra-start-y:'+startY+'deg;--ra-end-x:'+rx+'deg;--ra-end-y:'+ry+'deg">'+
-        cubeFace('front',1)+cubeFace('back',6)+cubeFace('right',3)+cubeFace('left',4)+cubeFace('top',2)+cubeFace('bottom',5)+'</div></div>';
+      const faces=d6Faces(value),turns=720+index*90;
+      return '<div class="gd-die-space" aria-label="Die '+(index+1)+': '+value+'"><div class="gd-die-cube'+(rolling?' is-rolling':'')+'" data-ra-die="'+index+'" data-ra-final-value="'+value+'" style="--ra-start-x:'+(turns+140)+'deg;--ra-start-y:'+(turns+230)+'deg">'+
+        cubeFace('front',faces.front)+cubeFace('back',faces.back)+cubeFace('right',faces.right)+cubeFace('left',faces.left)+cubeFace('top',faces.top)+cubeFace('bottom',faces.bottom)+'</div></div>';
     }
     return '<div class="gd-poly-die gd-poly-die--d'+sides+(rolling?' is-rolling':'')+'" style="--ra-delay:'+(index*45)+'ms" aria-label="D'+sides+' die '+(index+1)+': '+value+'"><strong>'+value+'</strong><small>d'+sides+'</small></div>';
   }
@@ -1139,15 +1145,16 @@ function randomiser(){
       '<div class="gd-random-result" aria-live="polite"><span>'+(rolling?'Rolling…':'Result')+'</span><strong data-ra-result>'+(rolling?'—':esc(resultText))+'</strong></div></div>'+stageAction('dice',rolling)+'</div>';
   }
   function wheelMarkup(segments,rotation,label,working=false){
-    const list=segments.length?segments:[{label:spinnerKind==='colours'?'Red':'Add choices',colour:'#edf3f2',ink:'#30484f'}],n=Math.max(1,list.length),step=360/n;
+    const list=segments.length?segments:[{label:spinnerKind==='colours'?'Red':'Add choices',colour:'#c9ded9',ink:'#30484f'}],n=Math.max(1,list.length),step=360/n;
     const stops=list.map((item,i)=>item.colour+' '+(i*step)+'deg '+((i+1)*step)+'deg').join(',');
-    const labels=list.map((item,i)=>{
-      const angle=(i+.5)*step,rad=angle*Math.PI/180,x=50+Math.sin(rad)*31,y=50-Math.cos(rad)*31;
-      return '<span class="gd-spinner-label" data-ra-segment-label="'+esc(item.label)+'" style="left:'+x.toFixed(2)+'%;top:'+y.toFixed(2)+'%;--ra-counter-rotation:'+(-rotation)+'deg;--ra-label-colour:'+item.ink+'"><span>'+esc(item.label)+'</span></span>';
+    const settled=((rotation%360)+360)%360;
+    const labels=working?'':list.map((item,i)=>{
+      const angle=((i+.5)*step+settled)%360,rad=angle*Math.PI/180,x=50+Math.sin(rad)*31,y=50-Math.cos(rad)*31;
+      return '<span class="gd-spinner-label" data-ra-segment-label="'+esc(item.label)+'" style="left:'+x.toFixed(2)+'%;top:'+y.toFixed(2)+'%;--ra-label-colour:'+item.ink+'"><span>'+esc(item.label)+'</span></span>';
     }).join('');
     const chosen=list.find(x=>x.label===label),swatch=spinnerKind==='colours'&&chosen?'<i class="gd-spinner-result-swatch" style="--ra-result-colour:'+chosen.colour+'" aria-hidden="true"></i>':'';
     return '<div class="gd-vis gd-randomiser-stage"><div class="gd-spinner-layout"><div class="gd-spinner-shell"><div class="gd-spinner-pointer" aria-hidden="true"></div>'+
-      '<div class="gd-spinner-wheel gd-spinner-wheel--'+spinnerKind+'" id="ra-wheel" data-ra-spinner-kind="'+spinnerKind+'" style="--ra-wheel:'+stops+';transform:rotate('+rotation+'deg)">'+labels+'<span class="gd-spinner-hub" aria-hidden="true"></span></div></div>'+
+      '<div class="gd-spinner-wheel gd-spinner-wheel--'+spinnerKind+'" id="ra-wheel" data-ra-spinner-kind="'+spinnerKind+'" style="--ra-wheel:'+stops+';transform:rotate('+rotation+'deg)"><span class="gd-spinner-hub" aria-hidden="true"></span></div><div class="gd-spinner-label-layer" aria-hidden="'+(working?'true':'false')+'">'+labels+'</div></div>'+
       '<div class="gd-spinner-choice"><span>Selected</span><div class="gd-spinner-result-line">'+swatch+'<strong data-ra-result aria-live="polite">'+esc(label||'Press Spin')+'</strong></div><small>'+n+' choice'+(n===1?'':'s')+'</small></div></div>'+stageAction('spinner',working)+'</div>';
   }
   function cardStage(){const value=result||'—',red=/[♥♦]/.test(value);return '<div class="gd-vis gd-randomiser-stage"><div class="gd-playing-card'+(red?' is-red':'')+'" aria-live="polite"><span>'+esc(value)+'</span><strong>'+esc(value)+'</strong><span>'+esc(value)+'</span></div>'+stageAction('card')+'</div>'}
@@ -1165,7 +1172,7 @@ function randomiser(){
     const kind=field('Spinner mode','<select class="gd-select" id="ra-spinner-kind"><option value="colours"'+(spinnerKind==='colours'?' selected':'')+'>Colours</option><option value="custom"'+(spinnerKind==='custom'?' selected':'')+'>Custom words / numbers</option></select>');
     if(spinnerKind==='colours')return kind+'<p class="gd-help">Colour mode uses four matching segments: red, blue, green and yellow. The result repeats the same colour and name.</p>';
     return kind+field('Wheel choices','<textarea class="gd-textarea" id="ra-choices" rows="6" maxlength="320">'+esc(customSpinnerText)+'</textarea>','One choice per line or separated by commas. Up to 16 choices.')+
-      '<p class="gd-help">Custom choices use quiet neutral segment backgrounds so the colour never implies a different answer.</p>';
+      '<p class="gd-help">Custom choices use colourful non-semantic segments: colour helps separate choices but does not name the answer.</p>';
   }
   function draw(){
     const mode=q('#ra-mode').value;busy=false;clearTimeout(finishTimer);finishTimer=null;let controls='';

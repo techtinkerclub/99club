@@ -4171,16 +4171,15 @@ function clockTool(){
 function moneyTool(){
   const I=G.interaction,CK=G.challengeKit,X=G.exportTools;
   if(!I){q('#gd-stage').innerHTML='<p class="gd-empty">The interactive money workbench could not start.</p>';return;}
-  const ROYAL_MINT_BASE='https://www.royalmint.com/globalassets/consumer/_campaigns/2023/definitives/articles/by-royal-approval/';
   const DENOMS=[
-    {value:1,label:'1p',kind:'coin',shape:'round',size:56,tone:'copper',image:ROYAL_MINT_BASE+'t9_articles_1200x600_content-11.jpg',design:'Hazel dormouse'},
-    {value:2,label:'2p',kind:'coin',shape:'round',size:71,tone:'copper',image:ROYAL_MINT_BASE+'t9_articles_1200x600_content-10.jpg',design:'Red squirrel'},
-    {value:5,label:'5p',kind:'coin',shape:'round',size:50,tone:'silver',image:ROYAL_MINT_BASE+'t9_articles_1200x600_content-9.jpg',design:'Oak leaf'},
-    {value:10,label:'10p',kind:'coin',shape:'round',size:67,tone:'silver',image:ROYAL_MINT_BASE+'t9_articles_1200x600_content-8.jpg',design:'Capercaillie'},
-    {value:20,label:'20p',kind:'coin',shape:'hept',size:59,tone:'silver',image:ROYAL_MINT_BASE+'t9_articles_1200x600_content-7.jpg',design:'Puffin'},
-    {value:50,label:'50p',kind:'coin',shape:'hept',size:75,tone:'silver',image:ROYAL_MINT_BASE+'t9_articles_1200x600_content-6.jpg',design:'Atlantic salmon'},
-    {value:100,label:'£1',kind:'coin',shape:'dodec',size:64,tone:'bimetal',image:ROYAL_MINT_BASE+'t9_articles_1200x600_content-5.jpg',design:'Bees'},
-    {value:200,label:'£2',kind:'coin',shape:'round',size:78,tone:'bimetal',image:ROYAL_MINT_BASE+'t9_articles_1200x600_content-4.jpg',design:'UK flora'},
+    {value:1,label:'1p',kind:'coin',shape:'round',size:56,tone:'copper'},
+    {value:2,label:'2p',kind:'coin',shape:'round',size:71,tone:'copper'},
+    {value:5,label:'5p',kind:'coin',shape:'round',size:50,tone:'silver'},
+    {value:10,label:'10p',kind:'coin',shape:'round',size:67,tone:'silver'},
+    {value:20,label:'20p',kind:'coin',shape:'hept',size:59,tone:'silver'},
+    {value:50,label:'50p',kind:'coin',shape:'hept',size:75,tone:'silver'},
+    {value:100,label:'£1',kind:'coin',shape:'dodec',size:64,tone:'bimetal'},
+    {value:200,label:'£2',kind:'coin',shape:'round',size:78,tone:'bimetal'},
     {value:500,label:'£5',kind:'note',shape:'note',width:112,height:52,tone:'blue'},
     {value:1000,label:'£10',kind:'note',shape:'note',width:122,height:55,tone:'orange'},
     {value:2000,label:'£20',kind:'note',shape:'note',width:132,height:58,tone:'purple'},
@@ -4205,6 +4204,31 @@ function moneyTool(){
   let exportMode='board',responseLines=1,exportStatus='';
 
   function metaFor(value){return DENOMS.find(d=>d.value===Number(value))||DENOMS[0]}
+  function coinPath(shape){
+    if(shape==='hept')return 'M50 4 Q65 3 78 13 Q91 23 96 38 Q101 52 96 67 Q91 82 78 92 Q65 102 50 96 Q35 102 22 92 Q9 82 4 67 Q-1 52 4 38 Q9 23 22 13 Q35 3 50 4Z';
+    if(shape==='dodec')return 'M37 3H63L86 16L98 38V62L86 84L63 97H37L14 84L2 62V38L14 16Z';
+    return '';
+  }
+  function coinArt(d){
+    const id='mo-'+d.value,shape=d.shape,metal=d.tone;
+    const outer=shape==='round'?'<circle cx="50" cy="50" r="46"/>':'<path d="'+coinPath(shape)+'"/>';
+    const edgeFill=metal==='bimetal'?'url(#'+id+'-gold)':metal==='copper'?'url(#'+id+'-copper)':'url(#'+id+'-silver)';
+    const inner=metal==='bimetal'?'<circle cx="50" cy="50" r="31" fill="url(#'+id+'-silver)" stroke="rgba(63,78,82,.32)" stroke-width="1.3"/>':'';
+    const labelSize=d.label.length>=3?21:25;
+    return '<svg class="gd-money-coin-art gd-money-coin-art--'+shape+' gd-money-coin-art--'+metal+'" viewBox="0 0 100 100" aria-hidden="true" focusable="false">'+
+      '<defs>'+
+        '<radialGradient id="'+id+'-silver" cx="32%" cy="25%" r="78%"><stop offset="0" stop-color="#ffffff"/><stop offset=".42" stop-color="#e4e9e9"/><stop offset=".76" stop-color="#bbc6c8"/><stop offset="1" stop-color="#8e9da0"/></radialGradient>'+
+        '<radialGradient id="'+id+'-copper" cx="32%" cy="25%" r="78%"><stop offset="0" stop-color="#f3c3a6"/><stop offset=".42" stop-color="#cf8867"/><stop offset=".78" stop-color="#a55f45"/><stop offset="1" stop-color="#7b4332"/></radialGradient>'+
+        '<radialGradient id="'+id+'-gold" cx="30%" cy="24%" r="80%"><stop offset="0" stop-color="#f8e8a0"/><stop offset=".42" stop-color="#d7b64e"/><stop offset=".8" stop-color="#aa812a"/><stop offset="1" stop-color="#7e5d1f"/></radialGradient>'+
+      '</defs>'+
+      '<g fill="'+edgeFill+'" stroke="rgba(54,70,74,.42)" stroke-width="1.7">'+outer+'</g>'+inner+
+      '<circle cx="50" cy="50" r="'+(metal==='bimetal'?24:35)+'" fill="none" stroke="rgba(255,255,255,.42)" stroke-width="1"/>'+
+      '<path d="M31 58 Q50 37 69 58 M35 64 Q50 48 65 64" fill="none" stroke="rgba(48,66,70,.20)" stroke-width="2.2" stroke-linecap="round"/>'+
+      '<circle cx="50" cy="28" r="2.4" fill="rgba(48,66,70,.24)"/>'+
+      '<text x="50" y="54" text-anchor="middle" dominant-baseline="middle" font-family="Arial,sans-serif" font-size="'+labelSize+'" font-weight="900" fill="#263d43">'+d.label+'</text>'+
+      '<text x="50" y="76" text-anchor="middle" font-family="Arial,sans-serif" font-size="6.4" font-weight="800" letter-spacing=".8" fill="rgba(38,61,67,.66)">UK</text>'+
+    '</svg>';
+  }
   function total(){return items.reduce((sum,item)=>sum+Number(item.value||0),0)}
   function canvasMetrics(count=items.length){
     const stageWidth=q('#gd-stage')?.clientWidth||760;
@@ -4335,9 +4359,9 @@ function moneyTool(){
       :'left:'+item.x+'px;top:'+item.y+'px;--mo-size:'+d.size+'px';
     const cls='gd-money-object gd-money-object--'+d.kind+' gd-money-object--'+d.shape+' gd-money-object--'+d.tone+(item.locked?' is-locked':'')+(frozen?' is-frozen':'');
     const face=d.kind==='coin'
-      ?'<span class="gd-money-object__face gd-money-object__face--official"><img src="'+d.image+'" alt="" draggable="false" loading="eager" decoding="async" referrerpolicy="no-referrer"><small>'+(d.design||'UK coin')+'</small></span><span class="gd-money-object__coin-label">'+d.label+'</span>'
+      ?'<span class="gd-money-object__face gd-money-object__face--stylised">'+coinArt(d)+'</span><span class="gd-money-object__coin-label">'+d.label+'</span>'
       :'<span class="gd-money-object__face"><strong>'+d.label+'</strong><small>CLASSROOM NOTE</small></span>';
-    return '<button type="button" class="'+cls+'" data-gd-object="'+item.id+'" data-mo-value="'+d.value+'" style="'+style+'" aria-label="'+d.label+' '+(d.kind==='note'?'classroom note':(d.design||'UK coin'))+(frozen?' fixed for this challenge':'')+'">'+face+'</button>';
+    return '<button type="button" class="'+cls+'" data-gd-object="'+item.id+'" data-mo-value="'+d.value+'" style="'+style+'" aria-label="'+d.label+' stylised UK classroom '+(d.kind==='note'?'note':'coin')+(frozen?' fixed for this challenge':'')+'">'+face+'</button>';
   }
   function toolbarHtml(history,selected){
     const frozen=challengeFrozen(),unavailable=!selected||frozen,deleteDisabled=unavailable||!!selected?.locked;
@@ -4360,7 +4384,7 @@ function moneyTool(){
     if(!addOpen||challengeFrozen())return'';
     const picks=DENOMS.map(d=>{
       const visual=d.kind==='coin'
-        ?'<span class="gd-money-pick__coin gd-money-pick__coin--'+d.shape+' gd-money-pick__coin--'+d.tone+'"><img src="'+d.image+'" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer"></span>'
+        ?'<span class="gd-money-pick__coin gd-money-pick__coin--'+d.shape+' gd-money-pick__coin--'+d.tone+'">'+coinArt(d)+'</span>'
         :'<span class="gd-money-pick__note gd-money-pick__note--'+d.tone+'">'+d.label+'</span>';
       return '<button type="button" class="gd-money-stage-pick gd-money-stage-pick--'+d.kind+'" data-gd-action="add-money-piece" data-mo-value="'+d.value+'" aria-label="Add '+d.label+'">'+visual+'<span>'+d.label+'</span></button>';
     }).join('');
@@ -4396,7 +4420,7 @@ function moneyTool(){
       '<div class="gd-money-canvas" id="mo-canvas" data-gd-canvas-bg style="min-height:'+m.height+'px" aria-label="Money workbench">'+
         (items.length?items.map(moneyObject).join(''):'<div class="gd-money-empty" data-gd-canvas-bg>Choose a denomination to start building an amount.</div>')+
       '</div>'+
-      '<p class="gd-money-credit gd-money-credit--stage">Coin imagery: The Royal Mint, 2023.</p>'+
+      '<p class="gd-money-credit gd-money-credit--stage">Stylised UK classroom coins · relative sizes shown approximately.</p>'+
       '<div class="gd-money-summary">'+
         '<div><span>Total</span><strong data-mo-total>'+totalText+'</strong></div>'+
         '<div><span>Target</span><strong data-mo-target-readout>'+targetText+'</strong></div>'+
@@ -4414,12 +4438,12 @@ function moneyTool(){
   function moneyPaletteHtml(){
     const picks=DENOMS.map(d=>{
       const visual=d.kind==='coin'
-        ?'<span class="gd-money-pick__coin gd-money-pick__coin--'+d.shape+' gd-money-pick__coin--'+d.tone+'"><img src="'+d.image+'" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>'
+        ?'<span class="gd-money-pick__coin gd-money-pick__coin--'+d.shape+' gd-money-pick__coin--'+d.tone+'">'+coinArt(d)+'</span>'
         :'<span class="gd-money-pick__note gd-money-pick__note--'+d.tone+'">'+d.label+'</span>';
       return '<button type="button" class="gd-money-pick gd-money-pick--'+d.kind+'" data-mo-add="'+d.value+'" aria-label="Add '+d.label+'">'+visual+'<span>'+d.label+'</span></button>';
     }).join('');
     return '<div class="gd-field"><span>Add money</span><div class="gd-money-palette">'+picks+'</div>'+
-      '<p class="gd-money-credit">Coin imagery: The Royal Mint, 2023. Notes are deliberately stylised classroom representations.</p></div>'+
+      '<p class="gd-money-credit">Stylised UK classroom representations. Coin silhouettes and relative sizes are approximate; notes are not replicas.</p></div>'+
       '<div class="gd-row">'+btn('Tidy money','mo-tidy')+btn('Clear all','mo-clear')+'</div>';
   }
   function exploreControlsHtml(){
@@ -4483,15 +4507,17 @@ function moneyTool(){
     }else{
       const size=Math.min(w,h),cx=size/2,cy=size/2,r=size/2-2;
       const fills={copper:'#c98768',silver:'#d7ddde',gold:'#dfc46b'};
-      if(d.tone==='bimetal'){
-        g.appendChild(moSvgEl('circle',{cx,cy,r,fill:'#d6b452',stroke:'#7f6b35','stroke-width':2}));
-        g.appendChild(moSvgEl('circle',{cx,cy,r:r*.58,fill:'#e2e7e8',stroke:'#87979a','stroke-width':1.4}));
-      }else if(d.shape==='hept'||d.shape==='dodec'){
-        const sides=d.shape==='hept'?7:12;
-        g.appendChild(moSvgEl('polygon',{points:polygonPoints(sides,cx,cy,r,d.shape==='hept'?-90:-75),fill:fills[d.tone]||'#d7ddde',stroke:d.tone==='copper'?'#8f5b45':'#778b90','stroke-width':2}));
+      const stroke=d.tone==='copper'?'#8f5b45':d.tone==='bimetal'?'#8b6f2c':'#778b90';
+      let outer=null;
+      if(d.shape==='hept'){
+        outer=moSvgEl('path',{d:coinPath('hept'),transform:'translate(2 2) scale('+((size-4)/100).toFixed(4)+')',fill:d.tone==='bimetal'?'#d6b452':(fills[d.tone]||'#d7ddde'),stroke,'stroke-width':2,'vector-effect':'non-scaling-stroke','data-mo-export-coin-shape':'hept'});
+      }else if(d.shape==='dodec'){
+        outer=moSvgEl('polygon',{points:polygonPoints(12,cx,cy,r,-75),fill:d.tone==='bimetal'?'#d6b452':(fills[d.tone]||'#d7ddde'),stroke,'stroke-width':2,'data-mo-export-coin-shape':'dodec'});
       }else{
-        g.appendChild(moSvgEl('circle',{cx,cy,r,fill:fills[d.tone]||'#d7ddde',stroke:d.tone==='copper'?'#8f5b45':'#778b90','stroke-width':2}));
+        outer=moSvgEl('circle',{cx,cy,r,fill:d.tone==='bimetal'?'#d6b452':(fills[d.tone]||'#d7ddde'),stroke,'stroke-width':2,'data-mo-export-coin-shape':'round'});
       }
+      g.appendChild(outer);
+      if(d.tone==='bimetal')g.appendChild(moSvgEl('circle',{cx,cy,r:r*.58,fill:'#e2e7e8',stroke:'#87979a','stroke-width':1.4}));
       g.appendChild(moSvgEl('text',{x:cx,y:cy+1,'text-anchor':'middle','dominant-baseline':'middle','font-family':'Arial,sans-serif','font-size':Math.max(11,size*.25),'font-weight':900,fill:'#30474d'},d.label));
     }
     svg.appendChild(g);
