@@ -979,3 +979,23 @@ html.gd-embed-page,body.gd-embed-page{margin:0!important;width:100%!important;he
 .gd-btn[aria-label^="Add one"],.gd-btn[aria-label^="Remove one"],.gd-btn[aria-label^="Increase"],.gd-btn[aria-label^="Decrease"]{line-height:1}
 
 @media(max-width:620px){.gd-pv-column-actions{right:3px;bottom:4px;gap:2px}.gd-pv-head .gd-pv-column-actions button{width:23px;height:23px;min-width:23px;min-height:23px;font-size:16px;border-radius:7px}.gd-pv-head .gd-pv-column-actions button[data-pv-remove]{font-size:18px;padding-bottom:1px}}
+
+
+/* Equation Balance: hanging-mobile geometry with level pans and restrained physics. */
+.gd-eq-balance-workbench .gd-eq-balance{height:305px;overflow:visible}
+.gd-eq-balance-workbench .gd-eq-beam{left:15%;right:15%;top:88px;height:7px;background:#536b70;transform:rotate(var(--ba-tilt));transition:transform .28s cubic-bezier(.22,.78,.28,1.08)}
+.gd-eq-balance-workbench .gd-eq-pivot{left:50%;top:14px;width:2px;height:75px;transform:translateX(-50%);border:0;background:#71878b}
+.gd-eq-balance-workbench .gd-eq-pivot:before{content:"";position:absolute;left:50%;top:70px;transform:translate(-50%,-50%);width:12px;height:12px;border:3px solid #60777b;border-radius:50%;background:#fff}
+.gd-eq-balance-workbench .gd-eq-base{display:none}
+.gd-eq-balance-workbench .gd-eq-side{top:94px;width:37%;transition:transform .28s cubic-bezier(.22,.78,.28,1.08)}
+.gd-eq-balance-workbench .gd-eq-side--left{left:4%;transform:translateY(var(--ba-left-lift))}
+.gd-eq-balance-workbench .gd-eq-side--right{right:4%;transform:translateY(var(--ba-right-lift))}
+.gd-eq-balance-workbench .gd-eq-cord{height:62px;width:2px;background:#809397}
+.gd-eq-balance-workbench .gd-eq-pan{min-height:105px;padding:18px 10px 10px;border:1px solid #b9cacc;border-bottom:5px solid #769596;border-top:0;border-radius:0 0 18px 18px;background:rgba(250,252,252,.94);box-shadow:0 5px 14px rgba(42,70,77,.05)}
+.gd-eq-balance-workbench .gd-eq-pan:before,.gd-eq-balance-workbench .gd-eq-pan:after{top:-19px;height:22px;background:#809397}
+.gd-eq-balance-workbench .gd-eq-pan-label{top:4px;color:#73878b}
+.gd-eq-balance-workbench .gd-eq-weight{min-width:48px;min-height:44px;border-width:1px;border-radius:9px;background:#eef8f5;box-shadow:0 3px 8px rgba(39,71,76,.07);transition:transform .16s ease,box-shadow .16s ease}
+.gd-eq-balance-workbench .gd-eq-weight.is-selected{outline:3px solid rgba(20,125,117,.24);outline-offset:2px}
+.gd-eq-balance-workbench .gd-eq-verdict{margin-top:-2px}
+.gd-embed-page .gd-eq-selected,.gd-embed-page .gd-eq-drag-hint{display:none!important}
+@media(max-width:620px){.gd-eq-balance-workbench .gd-eq-balance{height:325px}.gd-eq-balance-workbench .gd-eq-side{width:44%}.gd-eq-balance-workbench .gd-eq-side--left{left:0}.gd-eq-balance-workbench .gd-eq-side--right{right:0}}
