@@ -350,9 +350,12 @@ function placeValue(){
       '</div></div>';
   }
   function columnMarkup(place,index,cs){
-    const countText=columnCountHidden(index)?'?':cs[index];
+    const countText=columnCountHidden(index)?'?':cs[index],canRemove=tokens.some(t=>t.place===index&&!t.locked);
     return '<div class="gd-pv-column'+(index===5?' is-decimal-start':'')+'" data-gd-canvas-bg data-pv-column="'+index+'">'+
-      '<div class="gd-pv-head"><strong>'+place.label+'</strong><small>'+place.name+'</small><span data-pv-count="'+index+'">'+countText+'</span><button type="button" data-pv-add="'+index+'" aria-label="Add one '+place.name+' counter">+</button></div>'+
+      '<div class="gd-pv-head"><strong>'+place.label+'</strong><small>'+place.name+'</small><span data-pv-count="'+index+'">'+countText+'</span><div class="gd-pv-column-actions" role="group" aria-label="'+place.name+' counters">'+
+        '<button type="button" data-pv-remove="'+index+'" aria-label="Remove one '+place.name+' counter"'+(canRemove?'':' disabled')+'>−</button>'+
+        '<button type="button" data-pv-add="'+index+'" aria-label="Add one '+place.name+' counter">+</button>'+
+      '</div></div>'+
       '</div>';
   }
   function render(selectedId,meta){
@@ -398,6 +401,19 @@ function placeValue(){
     });
     controller.select(id);
   }
+  function removeCounter(place){
+    const index=clamp(Math.round(Number(place)||0),0,places.length-1);
+    const candidates=tokens.filter(t=>t.place===index&&!t.locked);
+    const item=candidates[candidates.length-1];
+    if(!item)return;
+    const removingSelected=String(controller.getSelectedId?.())===String(item.id);
+    controller.mutate(()=>{
+      tokens=tokens.filter(t=>t!==item);
+      notice='';
+      layoutTokens();
+    });
+    if(removingSelected)controller.select(null);
+  }
   function duplicateCounter(item){
     if(tokens.length>=90){notice='This board is full. Delete or regroup some counters first.';return null;}
     const copy={...item,id:next++,locked:false,x:0,y:0};
@@ -406,6 +422,9 @@ function placeValue(){
   function bindStage(){
     qa('[data-pv-add]',q('#gd-stage')).forEach(button=>button.onclick=e=>{
       e.stopPropagation();addCounter(+button.dataset.pvAdd);
+    });
+    qa('[data-pv-remove]',q('#gd-stage')).forEach(button=>button.onclick=e=>{
+      e.stopPropagation();removeCounter(+button.dataset.pvRemove);
     });
     const reveal=q('[data-board-action="reveal"]',q('#gd-stage'));
     if(reveal)reveal.onclick=e=>{e.stopPropagation();if(!challenge)return;challenge.revealed=!challenge.revealed;renderControls();controller?.refresh()};
