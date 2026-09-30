@@ -1,0 +1,311 @@
+/* 99 Club Studio · Number Mobile Balance v3
+ * Classroom-first adapter over the established balance engine.
+ * Keeps challenge/export/undo logic underneath while presenting an editable
+ * recursive number mobile with obvious edit, branch and delete actions.
+ */
+(function(G){
+'use strict';
+if(!G||typeof G.balanceTool!=='function')return;
+const originalBalanceTool=G.balanceTool;
+let observers=[],cleanups=[],lastVisual={angle:0,left:0,right:0};
+let blankIds=new Set(),roots={left:[],right:[]},nextBranch=1;
+let selectedBranchId=null,focusedTileId=null,editingId=null,editBuffer='',pendingAdd=null,adapting=false,adaptQueued=false;
+
+let catalogueValue=G.toolCatalogue;
+try{
+  Object.defineProperty(G,'toolCatalogue',{
+    configurable:true,
+    get(){return catalogueValue},
+    set(value){
+      catalogueValue=Array.isArray(value)?value.map(item=>item?.id==='balance'?{
+        ...item,
+        title:'Number mobile balance',
+        desc:'Build, branch and balance hanging number boxes on a maths mobile.',
+        use:'Equality, missing-number equations, decomposition and comparing expressions.'
+      }:item):value;
+    }
+  });
+}catch(_err){}
+
+function disconnect(){observers.forEach(o=>o.disconnect());observers=[];cleanups.forEach(fn=>{try{fn()}catch(_err){}});cleanups=[]}
+function exactText(root,from,to){if(!root)return;root.querySelectorAll('*').forEach(el=>{if(el.children.length===0&&String(el.textContent||'').trim()===from)el.textContent=to})}
+function numberVar(el,name){return Number.parseFloat(el?.style?.getPropertyValue(name))||0}
+function tileNode(id){return{kind:'tile',id:String(id)}}
+function branchNode(left=[],right=[]){return{kind:'branch',id:'b'+(nextBranch++),left,right}}
+function walk(nodes,fn,parent=null,slot=null){for(let i=0;i<nodes.length;i++){const node=nodes[i];if(fn(node,nodes,i,parent,slot)===false)return false;if(node.kind==='branch'){if(walk(node.left,fn,node,'left')===false)return false;if(walk(node.right,fn,node,'right')===false)return false}}return true}
+function findNode(id){let found=null;walk([...roots.left,...roots.right],(node,list,index,parent,slot)=>{if(String(node.id)===String(id)){found={node,list,index,parent,slot};return false}});return found}
+function branchById(id){const loc=findNode(id);return loc?.node?.kind==='branch'?loc.node:null}
+function descendantIds(node){const out=[];walk([node],n=>{if(n.kind==='tile')out.push(String(n.id))});return out}
+function rootSideForNodeId(id){let result=null;for(const side of ['left','right'])walk(roots[side],node=>{if(String(node.id)===String(id)){result=side;return false}});return result}
+function sideForToken(id){for(const side of ['left','right']){let found=false;walk(roots[side],node=>{if(node.kind==='tile'&&String(node.id)===String(id)){found=true;return false}});if(found)return side}return null}
+function flattenLabels(nodes,labels){const out=[];walk(nodes,node=>{if(node.kind==='tile')out.push(labels.get(String(node.id))??'0')});return out}
+function numericValue(label){if(label==='□'||label==='?'||label==='')return 0;const n=Number(label);return Number.isFinite(n)?Math.max(0,n):0}
+function treeValue(nodes,labels){return flattenLabels(nodes,labels).reduce((sum,label)=>sum+numericValue(label),0)}
+function treeSignature(){return JSON.stringify({roots,blank:[...blankIds].sort(),selectedBranchId})}
+function stage(){return document.getElementById('gd-stage')}
+function workbench(){return stage()?.querySelector('.gd-eq-balance-workbench')||null}
+function scheduleAdapt(){if(adaptQueued)return;adaptQueued=true;setTimeout(()=>{adaptQueued=false;adaptStage(stage())},0)}
+
+function animateMobile(work){
+  const apparatus=work.querySelector('.gd-eq-balance');if(!apparatus||apparatus.dataset.nmbAnimated==='1')return;
+  apparatus.dataset.nmbAnimated='1';
+  const beam=work.querySelector('.gd-eq-beam'),left=work.querySelector('.gd-eq-side--left'),right=work.querySelector('.gd-eq-side--right');
+  const legacyAngle=numberVar(apparatus,'--ba-tilt');
+  const target={angle:-legacyAngle,left:numberVar(apparatus,'--ba-left-lift'),right:numberVar(apparatus,'--ba-right-lift')};
+  const transition='.28s cubic-bezier(.22,.78,.28,1.08)';
+  if(beam){beam.style.transition='none';beam.style.transform='rotate('+lastVisual.angle+'deg)'}
+  if(left){left.style.transition='none';left.style.transform='translateY('+lastVisual.left+'px)'}
+  if(right){right.style.transition='none';right.style.transform='translateY('+lastVisual.right+'px)'}
+  void apparatus.offsetWidth;
+  requestAnimationFrame(()=>{
+    if(beam){beam.style.transition='transform '+transition;beam.style.transform='rotate('+target.angle+'deg)'}
+    if(left){left.style.transition='transform '+transition;left.style.transform='translateY('+target.left+'px)'}
+    if(right){right.style.transition='transform '+transition;right.style.transform='translateY('+target.right+'px)'}
+  });
+  lastVisual=target;
+}
+
+function currentTokenInfo(work){
+  const map=new Map();
+  work.querySelectorAll('[data-ba-token]').forEach(tile=>{
+    const id=String(tile.dataset.baToken),strong=tile.querySelector('strong'),raw=String(strong?.textContent||'').trim();
+    const side=tile.closest('.gd-eq-side--right')?'right':'left';
+    map.set(id,{id,tile,strong,raw,side});
+  });
+  return map;
+}
+function selectedTokenId(work){return String(work.querySelector('[data-ba-token].is-selected')?.dataset?.baToken||'')||null}
+function pruneTreeToTokens(tokens){
+  function prune(nodes,side){
+    for(let i=nodes.length-1;i>=0;i--){
+      const node=nodes[i];
+      if(node.kind==='tile'){
+        const info=tokens.get(String(node.id));if(!info||info.side!==side)nodes.splice(i,1);
+      }else{
+        prune(node.left,side);prune(node.right,side);
+        if(!node.left.length&&!node.right.length)nodes.splice(i,1);
+      }
+    }
+  }
+  prune(roots.left,'left');prune(roots.right,'right');
+  const tracked=new Set();walk([...roots.left,...roots.right],n=>{if(n.kind==='tile')tracked.add(String(n.id))});
+  tokens.forEach(info=>{if(!tracked.has(info.id))roots[info.side].push(tileNode(info.id))});
+}
+function labelMap(tokens){const labels=new Map();tokens.forEach(info=>labels.set(info.id,blankIds.has(info.id)?'□':info.raw));return labels}
+
+function engineSelect(id,after){
+  const work=workbench();if(!work)return;
+  const tile=work.querySelector('[data-ba-token="'+CSS.escape(String(id))+'"]');if(!tile)return;
+  if(!tile.classList.contains('is-selected'))tile.click();
+  setTimeout(()=>{if(typeof after==='function')after()},0);
+}
+function setEngineValue(id,value){
+  engineSelect(id,()=>{
+    const input=document.getElementById('ba-value');if(!input)return;
+    input.value=String(value);input.dispatchEvent(new Event('change',{bubbles:true}));
+  });
+}
+function deleteTile(id){
+  focusedTileId=null;editingId=null;
+  engineSelect(id,()=>{const del=document.getElementById('ba-delete');if(del)del.click()});
+}
+function duplicateTile(id){
+  const loc=findNode(id),dup=document.getElementById('ba-duplicate');if(!loc||!dup)return;
+  pendingAdd={side:sideForToken(id)||'left',blank:false,placement:loc.parent?{branchId:loc.parent.id,slot:loc.slot}:null};
+  engineSelect(id,()=>dup.click());
+}
+function nativeAdd(side,placement=null){
+  const work=workbench();if(!work)return;
+  const button=work.querySelector('[data-ba-stage-add="'+side+'"]');if(!button)return;
+  pendingAdd={side,blank:true,placement};focusedTileId=null;editingId=null;
+  const fn=button._nmbNativeAdd||button.onclick;if(typeof fn==='function')fn.call(button,new MouseEvent('click',{bubbles:true}));
+}
+function finalizePending(work,tokens){
+  if(!pendingAdd)return false;
+  const request=pendingAdd,selected=selectedTokenId(work);if(!selected||!tokens.has(selected))return false;
+  const info=tokens.get(selected);if(info.side!==request.side)return false;
+  const wantsBlank=request.blank!==false;
+  if(wantsBlank){blankIds.add(selected);focusedTileId=selected;editingId=selected;editBuffer=''}else{blankIds.delete(selected);focusedTileId=selected;editingId=null}
+  const loc=findNode(selected);if(loc)loc.list.splice(loc.index,1);
+  const place=request.placement;
+  if(place?.branchId){const branch=branchById(place.branchId);if(branch)branch[place.slot==='right'?'right':'left'].push(tileNode(selected));else roots[request.side].push(tileNode(selected))}
+  else roots[request.side].push(tileNode(selected));
+  pendingAdd=null;
+  if(wantsBlank&&numericValue(info.raw)!==0){setEngineValue(selected,0);return true}
+  return false;
+}
+function reconcile(work,tokens){
+  pruneTreeToTokens(tokens);
+  if(finalizePending(work,tokens))return false;
+  blankIds.forEach(id=>{if(!tokens.has(String(id)))blankIds.delete(id)});
+  if(focusedTileId&&!tokens.has(String(focusedTileId)))focusedTileId=null;
+  if(editingId&&!tokens.has(String(editingId)))editingId=null;
+  return true;
+}
+
+function branchSelected(id){
+  const loc=findNode(id);if(!loc||loc.node.kind!=='tile')return;
+  const side=sideForToken(id)||'left';
+  const branch=branchNode([loc.node],[]);loc.list.splice(loc.index,1,branch);
+  selectedBranchId=branch.id;focusedTileId=null;editingId=null;
+  adaptStage(stage());
+  nativeAdd(side,{branchId:branch.id,slot:'right'});
+}
+function deleteTokenSequence(ids){
+  const queue=[...ids];
+  function next(){const id=queue.shift();if(!id)return;engineSelect(id,()=>{const del=document.getElementById('ba-delete');if(del)del.click();setTimeout(next,0)})}
+  next();
+}
+function branchToolbar(node){
+  const bar=document.createElement('div');bar.className='nmb-branch-toolbar';
+  const add=(label,slot,title)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.title=title;b.onclick=e=>{e.stopPropagation();nativeAdd(rootSideForNodeId(node.id)||'left',{branchId:node.id,slot})};return b};
+  bar.appendChild(add('+ Left','left','Add empty box to left side of this branch'));
+  bar.appendChild(add('+ Right','right','Add empty box to right side of this branch'));
+  const unbranch=document.createElement('button');unbranch.type='button';unbranch.textContent='Unbranch';unbranch.title='Remove this small balance bar but keep its boxes';unbranch.onclick=e=>{e.stopPropagation();const loc=findNode(node.id);if(!loc)return;loc.list.splice(loc.index,1,...node.left,...node.right);selectedBranchId=null;adaptStage(stage())};bar.appendChild(unbranch);
+  const del=document.createElement('button');del.type='button';del.className='is-danger';del.textContent='Delete branch';del.title='Delete this branch and all boxes hanging from it';del.onclick=e=>{e.stopPropagation();const ids=descendantIds(node);selectedBranchId=null;deleteTokenSequence(ids)};bar.appendChild(del);
+  return bar;
+}
+function makeBranchElement(node,tokens,depth){
+  const labels=labelMap(tokens),l=treeValue(node.left,labels),r=treeValue(node.right,labels),scale=Math.max(1,l,r),angle=Math.max(-10,Math.min(10,(l-r)/scale*-10));
+  const lift=Math.sin(angle*Math.PI/180)*62;
+  const wrap=document.createElement('div');wrap.className='nmb-branch'+(String(node.id)===String(selectedBranchId)?' is-selected':'');wrap.dataset.nmbBranch=node.id;wrap.dataset.nmbDepth=String(depth);
+  wrap.style.setProperty('--nmb-branch-angle',angle+'deg');wrap.style.setProperty('--nmb-branch-left',(-lift)+'px');wrap.style.setProperty('--nmb-branch-right',lift+'px');
+  const suspension=document.createElement('span');suspension.className='nmb-branch-suspension';wrap.appendChild(suspension);
+  const select=document.createElement('button');select.type='button';select.className='nmb-branch-bar';select.title='Select this small balance';select.setAttribute('aria-label','Select branch balance');select.onclick=e=>{e.stopPropagation();selectedBranchId=node.id;focusedTileId=null;editingId=null;adaptStage(stage())};wrap.appendChild(select);
+  const sides=document.createElement('div');sides.className='nmb-branch-sides';
+  ['left','right'].forEach(slot=>{
+    const side=document.createElement('div');side.className='nmb-branch-side nmb-branch-side--'+slot;
+    const cord=document.createElement('span');cord.className='nmb-branch-cord';side.appendChild(cord);
+    const children=document.createElement('div');children.className='nmb-branch-children';
+    node[slot].forEach(child=>children.appendChild(makeNodeElement(child,tokens,depth+1)));
+    if(!node[slot].length){const placeholder=document.createElement('button');placeholder.type='button';placeholder.className='nmb-branch-empty';placeholder.textContent='+';placeholder.title='Add empty box here';placeholder.onclick=e=>{e.stopPropagation();nativeAdd(rootSideForNodeId(node.id)||'left',{branchId:node.id,slot})};children.appendChild(placeholder)}
+    else{const add=document.createElement('button');add.type='button';add.className='nmb-branch-add';add.textContent='+';add.title='Add another empty box here';add.onclick=e=>{e.stopPropagation();nativeAdd(rootSideForNodeId(node.id)||'left',{branchId:node.id,slot})};children.appendChild(add)}
+    side.appendChild(children);sides.appendChild(side);
+  });
+  wrap.appendChild(sides);
+  if(String(node.id)===String(selectedBranchId))wrap.appendChild(branchToolbar(node));
+  return wrap;
+}
+function makeNodeElement(node,tokens,depth=0){
+  if(node.kind==='branch')return makeBranchElement(node,tokens,depth);
+  const info=tokens.get(String(node.id));if(!info)return document.createElement('span');
+  const tile=info.tile,id=String(node.id);
+  tile.dataset.nmbDepth=String(depth);
+  tile.classList.toggle('is-blank-box',blankIds.has(id));
+  tile.classList.toggle('is-nmb-focused',String(focusedTileId)===id);
+  if(blankIds.has(id)){if(info.strong)info.strong.textContent='';tile.setAttribute('aria-label','Empty number box');tile.title='Tap to enter a number'}
+  else{tile.setAttribute('aria-label','Number '+(info.raw||''));tile.title='Tap to edit this number'}
+  return tile;
+}
+function renderTrees(work,tokens){
+  const signature=treeSignature();if(work.dataset.nmbTreeSignature===signature)return;
+  work.dataset.nmbTreeSignature=signature;
+  ['left','right'].forEach(side=>{
+    const box=work.querySelector('.gd-eq-side--'+side+' .gd-eq-weights');if(!box)return;
+    box.textContent='';roots[side].forEach(node=>box.appendChild(makeNodeElement(node,tokens,0)));
+    if(!roots[side].length){const empty=document.createElement('span');empty.className='gd-eq-empty';empty.textContent='Add a box here';box.appendChild(empty)}
+  });
+}
+
+function openEditor(id,tokens){
+  const info=tokens.get(String(id));if(!info||info.tile.disabled)return;
+  focusedTileId=String(id);selectedBranchId=null;editingId=String(id);
+  const current=blankIds.has(String(id))?'':String(info.tile.querySelector('strong')?.textContent||info.raw||'').replace(/[^0-9.\-]/g,'');
+  editBuffer=current==='?'?'':current;scheduleAdapt();
+}
+function bindTileClicks(work){
+  if(work.dataset.nmbTileClickBound)return;work.dataset.nmbTileClickBound='1';
+  work.addEventListener('click',e=>{
+    const tile=e.target.closest?.('[data-ba-token]');if(!tile||tile.disabled)return;
+    const id=String(tile.dataset.baToken);setTimeout(()=>{const fresh=workbench();if(!fresh)return;const tokens=currentTokenInfo(fresh);openEditor(id,tokens)},0);
+  });
+}
+function applyBuffer(id,buffer){
+  editingId=String(id);focusedTileId=String(id);editBuffer=buffer;
+  if(buffer===''||buffer==='-'){blankIds.add(String(id));setEngineValue(id,0);return}
+  const value=Number(buffer);if(!Number.isFinite(value))return;blankIds.delete(String(id));setEngineValue(id,Math.max(0,value));
+}
+function positionPopup(popup,tile,work,pw,ph){
+  const wr=work.getBoundingClientRect(),tr=tile.getBoundingClientRect();let left=tr.right-wr.left+10,top=tr.top-wr.top-16;
+  if(left+pw>wr.width)left=Math.max(8,tr.left-wr.left-pw-10);if(top+ph>wr.height)top=Math.max(8,wr.height-ph-8);popup.style.left=left+'px';popup.style.top=top+'px';
+}
+function tileToolbar(work,tokens){
+  if(!focusedTileId||!tokens.has(String(focusedTileId)))return;
+  const id=String(focusedTileId),tile=work.querySelector('[data-ba-token="'+CSS.escape(id)+'"]');if(!tile||tile.disabled)return;
+  tile.classList.add('is-nmb-focused');
+  const bar=document.createElement('div');bar.className='nmb-tile-toolbar';bar.dataset.nmbTileToolbar=id;
+  const button=(label,title,cls='')=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.title=title;if(cls)b.className=cls;return b};
+  const edit=button('Edit','Edit this number');edit.onclick=e=>{e.stopPropagation();openEditor(id,currentTokenInfo(workbench()))};bar.appendChild(edit);
+  const branch=button('Branch','Hang a smaller balance from this position');branch.onclick=e=>{e.stopPropagation();branchSelected(id)};bar.appendChild(branch);
+  const dup=button('Duplicate','Duplicate this number box');dup.onclick=e=>{e.stopPropagation();duplicateTile(id)};bar.appendChild(dup);
+  const del=button('Delete','Delete this number box','is-danger');del.onclick=e=>{e.stopPropagation();deleteTile(id)};bar.appendChild(del);
+  work.appendChild(bar);positionPopup(bar,tile,work,248,38);
+}
+function keypad(work,tokens){
+  if(!editingId||!tokens.has(String(editingId)))return;
+  const id=String(editingId),tile=work.querySelector('[data-ba-token="'+CSS.escape(id)+'"]');if(!tile||tile.disabled)return;
+  const pad=document.createElement('div');pad.className='nmb-keypad';pad.dataset.nmbKeypad=id;
+  pad.innerHTML='<div class="nmb-keypad-head"><strong>'+(blankIds.has(id)?'Empty box':'Edit number')+'</strong><button type="button" data-nmb-close aria-label="Close keypad">×</button></div><div class="nmb-keypad-display">'+(editBuffer||'□')+'</div><div class="nmb-keypad-grid">'+['7','8','9','4','5','6','1','2','3','0','.','⌫'].map(k=>'<button type="button" data-nmb-key="'+k+'">'+k+'</button>').join('')+'</div><div class="nmb-keypad-actions"><button type="button" data-nmb-blank>Blank</button><button type="button" data-nmb-branch>Branch</button><button type="button" data-nmb-duplicate>Duplicate</button><button type="button" class="is-danger" data-nmb-delete>Delete</button><button type="button" class="is-primary" data-nmb-done>Done</button></div>';
+  work.appendChild(pad);positionPopup(pad,tile,work,230,310);
+  const close=()=>{editingId=null;adaptStage(stage())};
+  pad.querySelector('[data-nmb-close]').onclick=close;
+  pad.querySelectorAll('[data-nmb-key]').forEach(b=>b.onclick=e=>{e.stopPropagation();const key=b.dataset.nmbKey;if(key==='⌫')editBuffer=editBuffer.slice(0,-1);else if(key==='.'&&!editBuffer.includes('.'))editBuffer=(editBuffer||'0')+'.';else if(key!=='.')editBuffer=(editBuffer+key).replace(/^0(?=\d)/,'');applyBuffer(id,editBuffer)});
+  pad.querySelector('[data-nmb-blank]').onclick=e=>{e.stopPropagation();editBuffer='';applyBuffer(id,'')};
+  pad.querySelector('[data-nmb-branch]').onclick=e=>{e.stopPropagation();branchSelected(id)};
+  pad.querySelector('[data-nmb-duplicate]').onclick=e=>{e.stopPropagation();duplicateTile(id)};
+  pad.querySelector('[data-nmb-delete]').onclick=e=>{e.stopPropagation();deleteTile(id)};
+  pad.querySelector('[data-nmb-done]').onclick=e=>{e.stopPropagation();close()};
+}
+
+function equationOverride(work,tokens){
+  if(work.querySelector('.gd-challenge-banner'))return;
+  const labels=labelMap(tokens),leftLabels=flattenLabels(roots.left,labels),rightLabels=flattenLabels(roots.right,labels),lt=treeValue(roots.left,labels),rt=treeValue(roots.right,labels),rel=Math.abs(lt-rt)<1e-9?'=':lt>rt?'>':'<';
+  const desired=(leftLabels.length?leftLabels.join(' + '):'0')+' '+rel+' '+(rightLabels.length?rightLabels.join(' + '):'0'),eq=work.querySelector('[data-ba-equation]');if(eq&&eq.textContent!==desired)eq.textContent=desired;
+}
+function wrapStageAdd(work){
+  work.querySelectorAll('[data-ba-stage-add]').forEach(button=>{
+    if(button.dataset.nmbWrapped)return;button.dataset.nmbWrapped='1';button._nmbNativeAdd=button.onclick;
+    const side=button.dataset.baStageAdd==='right'?'right':'left';button.textContent='+';button.setAttribute('aria-label','Add empty number box to '+side+' side');button.title='Add empty number box';
+    button.onclick=e=>{pendingAdd={side,blank:true,placement:null};focusedTileId=null;editingId=null;if(typeof button._nmbNativeAdd==='function')button._nmbNativeAdd.call(button,e)};
+  });
+}
+function adaptStage(root){
+  if(!root||adapting)return;const work=root.querySelector('.gd-eq-balance-workbench');if(!work){disconnect();return}
+  adapting=true;
+  try{
+    work.classList.add('gd-number-mobile-workbench');animateMobile(work);bindTileClicks(work);wrapStageAdd(work);
+    const summary=work.querySelector('.gd-eq-summary span');if(summary&&/equation balance/i.test(summary.textContent||''))summary.textContent='Number mobile';
+    const selected=work.querySelector('.gd-eq-selected__head span');if(selected&&/selected weight/i.test(selected.textContent||''))selected.textContent='Selected number';
+    const helpText='Tap any box to edit it again. Selected boxes keep Edit, Branch, Duplicate and Delete beside them. Branch creates a smaller hanging balance.';
+    const help=work.querySelector('.gd-eq-drag-hint');if(help&&help.textContent!==helpText)help.textContent=helpText;
+    const tokens=currentTokenInfo(work);if(!reconcile(work,tokens))return;
+    renderTrees(work,tokens);equationOverride(work,tokens);
+    work.querySelectorAll('.nmb-keypad,.nmb-tile-toolbar').forEach(el=>el.remove());
+    tileToolbar(work,currentTokenInfo(work));keypad(work,currentTokenInfo(work));
+  }finally{adapting=false}
+}
+function adaptControls(controls){
+  if(!controls||!workbench())return;
+  exactText(controls,'Add a weight','Add a number box');exactText(controls,'Show pan totals','Show side totals');exactText(controls,'Selected weight value','Selected number value');
+  controls.querySelectorAll('.gd-help').forEach(el=>{const text=String(el.textContent||'');if(/Drag weights between pans/i.test(text))el.textContent='Tap a number box to edit it, branch it, duplicate it or delete it. Drag a box between the two main sides.'});
+  controls.querySelectorAll('button').forEach(button=>{if(button.textContent.trim()==='Balanced example')button.textContent='Balanced mobile example'});
+}
+function adaptToolHeader(){const title=document.getElementById('gd-tool-title'),desc=document.getElementById('gd-tool-desc');if(title)title.textContent='Number mobile balance';if(desc)desc.textContent='Build, branch and balance hanging number boxes on a maths mobile.'}
+function adaptCatalogueCard(){const card=document.querySelector('[data-tool="balance"]');if(!card)return;const title=card.querySelector('h2'),desc=card.querySelector('p');if(title)title.textContent='Number mobile balance';if(desc)desc.textContent='Build, branch and balance hanging number boxes on a maths mobile.'}
+function observe(root,fn){if(!root)return;let queued=false;const run=()=>{queued=false;fn(root)};const obs=new MutationObserver(()=>{if(queued||adapting)return;queued=true;queueMicrotask(run)});obs.observe(root,{childList:true});observers.push(obs);run()}
+function keyboardHandler(e){
+  if(!editingId||e.ctrlKey||e.metaKey||e.altKey)return;const tag=String(e.target?.tagName||'').toLowerCase();if(tag==='input'||tag==='textarea'||tag==='select')return;
+  if(/^\d$/.test(e.key)){e.preventDefault();editBuffer=(editBuffer+e.key).replace(/^0(?=\d)/,'');applyBuffer(editingId,editBuffer)}
+  else if(e.key==='.'&&!editBuffer.includes('.')){e.preventDefault();editBuffer=(editBuffer||'0')+'.';applyBuffer(editingId,editBuffer)}
+  else if(e.key==='Backspace'){e.preventDefault();editBuffer=editBuffer.slice(0,-1);applyBuffer(editingId,editBuffer)}
+  else if(e.key==='Delete'){e.preventDefault();const id=editingId;editingId=null;deleteTile(id)}
+  else if(e.key==='Enter'||e.key==='Escape'){e.preventDefault();editingId=null;adaptStage(stage())}
+}
+G.balanceTool=function numberMobileBalanceToolV3(){
+  disconnect();lastVisual={angle:0,left:0,right:0};blankIds=new Set();roots={left:[],right:[]};nextBranch=1;selectedBranchId=null;focusedTileId=null;editingId=null;editBuffer='';pendingAdd=null;
+  originalBalanceTool();adaptToolHeader();document.addEventListener('keydown',keyboardHandler);cleanups.push(()=>document.removeEventListener('keydown',keyboardHandler));
+  observe(document.getElementById('gd-stage'),adaptStage);observe(document.getElementById('gd-controls'),adaptControls);
+};
+G.numberMobileBalanceVersion='3.0';
+document.addEventListener('DOMContentLoaded',()=>queueMicrotask(adaptCatalogueCard),{once:true});
+})(window.TT99Goodies);
