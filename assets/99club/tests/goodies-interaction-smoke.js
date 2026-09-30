@@ -27,11 +27,13 @@ const toolsB=read('assets/99club/goodies-tools-b.js');
 const app=read('assets/99club/goodies-app.js');
 const css=read('assets/99club/goodies.css');
 const numberLine=read('assets/99club/goodies-number-line-v6.js');
+const numberMobile=read('assets/99club/goodies-number-mobile-balance.js');
 
 syntax('goodies-interaction.js',interaction);
 syntax('goodies-challenge.js',challenge);
 syntax('goodies-export.js',exporter);
 syntax('goodies-number-line-v6.js',numberLine);
+syntax('goodies-number-mobile-balance.js',numberMobile);
 syntax('goodies-tools-a.js',toolsA);
 syntax('goodies-tools-b.js',toolsB);
 syntax('goodies-app.js',app);
@@ -40,9 +42,13 @@ requireOrder(page,'goodies-interaction.js','goodies-challenge.js','Goodies chall
 requireOrder(page,'goodies-challenge.js','goodies-number-line-v6.js','Goodies challenge layer loads before Number Line');
 requireOrder(page,'goodies-export.js','goodies-number-line-v6.js','Goodies export layer loads before Number Line');
 requireOrder(page,'goodies-interaction.js','goodies-tools-b.js','Goodies interaction layer');
+requireOrder(page,'goodies-tools-b.js','goodies-number-mobile-balance.js','Number Mobile adapter follows the base balance engine');
+requireOrder(page,'goodies-number-mobile-balance.js','goodies-app.js','Number Mobile adapter loads before the Goodies app');
 requireText(page,'goodies-number-line-v6.js','Number Line v6 remains the active Number Line');
+requireText(page,'goodies-number-mobile-balance.js','Number Mobile adapter remains active');
 requireMatch(page,/goodies-challenge\.js\?v=\d+/,'Goodies challenge cache-bust');
 requireMatch(page,/goodies-number-line-v6\.js\?v=\d+/,'Goodies Number Line cache-bust');
+requireMatch(page,/goodies-number-mobile-balance\.js\?v=\d+/,'Goodies Number Mobile cache-bust');
 requireMatch(page,/goodies-export\.js\?v=\d+/,'Goodies export cache-bust');
 requireMatch(page,/goodies-interaction\.js\?v=\d+/,'Goodies interaction cache-bust');
 requireMatch(page,/goodies-tools-a\.js\?v=\d+/,'Goodies tools A cache-bust');
@@ -195,5 +201,12 @@ requireText(css,'.nl-linked-marker-tag','Number Line paired marker styling');
 requireText(css,'.nl-zoom-follow','Number Line live zoom control styling');
 requireText(exporter,'function composeChallengeCardSvg','shared challenge card export composer');
 requireText(exporter,"responseLabel='Answer'",'shared exported response box');
+
+requireText(numberMobile,'function observe(root,fn)','Number Mobile redraw observer exists');
+requireText(numberMobile,"obs.observe(root,{childList:true})",'Number Mobile observer watches only engine root replacement');
+if(/obs\.observe\(root,\{[^}]*subtree\s*:\s*true/.test(numberMobile))throw new Error('Number Mobile observer must not watch its own subtree; doing so can freeze the whiteboard');
+requireText(numberMobile,"const desiredHelp=",'Number Mobile avoids rewriting identical help text');
+requireText(numberMobile,"eq&&eq.textContent!==desired",'Number Mobile avoids rewriting an unchanged equation');
+requireText(numberMobile,"G.numberMobileBalanceVersion='2.2'",'Number Mobile freeze hotfix version');
 
 console.log('Goodies interaction regression checks passed.');
