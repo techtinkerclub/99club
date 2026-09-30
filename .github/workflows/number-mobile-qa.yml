@@ -1,0 +1,61 @@
+name: Number Mobile QA
+
+on:
+  pull_request:
+    paths:
+      - 'assets/99club/goodies-number-mobile-balance-v3.js'
+      - 'assets/99club/goodies-number-mobile-balance-v3.css'
+      - '_pages/99-club-goodies.md'
+      - '_pages/whiteboard.md'
+      - 'scripts/99club/number-mobile-browser-qa.js'
+      - '.github/workflows/number-mobile-qa.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'assets/99club/goodies-number-mobile-balance-v3.js'
+      - 'assets/99club/goodies-number-mobile-balance-v3.css'
+      - '_pages/99-club-goodies.md'
+      - '_pages/whiteboard.md'
+      - 'scripts/99club/number-mobile-browser-qa.js'
+      - '.github/workflows/number-mobile-qa.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  number-mobile-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check Number Mobile v3
+        run: node --check assets/99club/goodies-number-mobile-balance-v3.js
+      - name: Prepare Number Mobile browser harness
+        run: node scripts/99club/number-mobile-browser-qa.js prepare
+      - name: Exercise edit, reopen, branch and delete
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8781 --bind 127.0.0.1 > /tmp/99club-number-mobile-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          sleep 1
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then
+            echo 'No Chrome/Chromium executable is available on this runner.' >&2
+            exit 1
+          fi
+          timeout 45s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --window-size=1200,900 --virtual-time-budget=12000 --dump-dom \
+            http://127.0.0.1:8781/99club-number-mobile-qa.html > /tmp/99club-number-mobile.html
+          node scripts/99club/number-mobile-browser-qa.js check /tmp/99club-number-mobile.html
+      - name: Upload Number Mobile QA report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: number-mobile-qa-report
+          path: 99club-number-mobile-qa-report.json
+          if-no-files-found: ignore
