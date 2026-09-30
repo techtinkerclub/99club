@@ -33,10 +33,17 @@ function numberVar(el,name){return Number.parseFloat(el?.style?.getPropertyValue
 function tileNode(id){return{kind:'tile',id:String(id)}}
 function branchNode(left=[],right=[]){return{kind:'branch',id:'b'+(nextBranch++),left,right}}
 function walk(nodes,fn,parent=null,slot=null){for(let i=0;i<nodes.length;i++){const node=nodes[i];if(fn(node,nodes,i,parent,slot)===false)return false;if(node.kind==='branch'){if(walk(node.left,fn,node,'left')===false)return false;if(walk(node.right,fn,node,'right')===false)return false}}return true}
-function findNode(id){let found=null;walk([...roots.left,...roots.right],(node,list,index,parent,slot)=>{if(String(node.id)===String(id)){found={node,list,index,parent,slot};return false}});return found}
+function findNode(id){
+  let found=null;
+  for(const side of ['left','right']){
+    walk(roots[side],(node,list,index,parent,slot)=>{if(String(node.id)===String(id)){found={node,list,index,parent,slot,rootSide:side};return false}});
+    if(found)break;
+  }
+  return found;
+}
 function branchById(id){const loc=findNode(id);return loc?.node?.kind==='branch'?loc.node:null}
 function descendantIds(node){const out=[];walk([node],n=>{if(n.kind==='tile')out.push(String(n.id))});return out}
-function rootSideForNodeId(id){let result=null;for(const side of ['left','right'])walk(roots[side],node=>{if(String(node.id)===String(id)){result=side;return false}});return result}
+function rootSideForNodeId(id){let result=null;for(const side of ['left','right']){walk(roots[side],node=>{if(String(node.id)===String(id)){result=side;return false}});if(result)break}return result}
 function sideForToken(id){for(const side of ['left','right']){let found=false;walk(roots[side],node=>{if(node.kind==='tile'&&String(node.id)===String(id)){found=true;return false}});if(found)return side}return null}
 function flattenLabels(nodes,labels){const out=[];walk(nodes,node=>{if(node.kind==='tile')out.push(labels.get(String(node.id))??'0')});return out}
 function numericValue(label){if(label==='□'||label==='?'||label==='')return 0;const n=Number(label);return Number.isFinite(n)?Math.max(0,n):0}
@@ -145,7 +152,7 @@ function reconcile(work,tokens){
 
 function branchSelected(id){
   const loc=findNode(id);if(!loc||loc.node.kind!=='tile')return;
-  const side=sideForToken(id)||'left';
+  const side=sideForToken(id)||loc.rootSide||'left';
   const branch=branchNode([loc.node],[]);loc.list.splice(loc.index,1,branch);
   selectedBranchId=branch.id;focusedTileId=null;editingId=null;
   adaptStage(stage());
@@ -307,6 +314,6 @@ G.balanceTool=function numberMobileBalanceToolV3(){
   originalBalanceTool();adaptToolHeader();document.addEventListener('keydown',keyboardHandler);cleanups.push(()=>document.removeEventListener('keydown',keyboardHandler));
   observe(document.getElementById('gd-stage'),adaptStage);observe(document.getElementById('gd-controls'),adaptControls);
 };
-G.numberMobileBalanceVersion='3.0';
+G.numberMobileBalanceVersion='3.0.1';
 document.addEventListener('DOMContentLoaded',()=>queueMicrotask(adaptCatalogueCard),{once:true});
 })(window.TT99Goodies);
