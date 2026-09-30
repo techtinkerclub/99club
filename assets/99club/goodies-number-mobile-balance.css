@@ -1,0 +1,315 @@
+/* 99 Club Studio · Number Mobile Balance
+ * Visual override for the Equation Balance Goodie.
+ * Keeps the established maths/challenge model, but presents it as the same
+ * centred, equal-arm hanging mobile used by the Mobile Balance game.
+ */
+
+.gd-eq-balance-workbench{
+  --nmb-ink:#3d565c;
+  --nmb-string:#71888d;
+  --nmb-tile:#f7fbfa;
+  --nmb-tile-border:#82aaa5;
+  --nmb-selected:#147d75;
+}
+
+.gd-eq-balance-workbench .gd-eq-summary{
+  margin-bottom:8px;
+}
+
+/* The apparatus is a hanging mobile, not a set of weighing pans. */
+.gd-eq-balance-workbench .gd-eq-balance{
+  position:relative;
+  width:min(880px,100%);
+  height:410px;
+  margin:0 auto;
+  overflow:visible;
+  isolation:isolate;
+}
+
+.gd-eq-balance-workbench .gd-eq-beam{
+  position:absolute;
+  z-index:4;
+  left:18%;
+  right:18%;
+  top:104px;
+  height:8px;
+  border-radius:999px;
+  background:var(--nmb-ink);
+  transform:rotate(calc(var(--ba-tilt) * -1));
+  transform-origin:50% 50%;
+  transition:transform .28s cubic-bezier(.22,.78,.28,1.08);
+  box-shadow:none;
+}
+
+/* Fixed suspension string + ring, matching the Mobile Balance game. */
+.gd-eq-balance-workbench .gd-eq-pivot{
+  position:absolute;
+  z-index:7;
+  left:50%;
+  top:18px;
+  width:2px;
+  height:88px;
+  border:0;
+  background:var(--nmb-string);
+  transform:translateX(-50%);
+}
+.gd-eq-balance-workbench .gd-eq-pivot::before{
+  content:"";
+  position:absolute;
+  left:50%;
+  bottom:-9px;
+  width:18px;
+  height:18px;
+  border:4px solid var(--nmb-string);
+  border-radius:50%;
+  background:#fff;
+  transform:translateX(-50%);
+  box-sizing:border-box;
+}
+.gd-eq-balance-workbench .gd-eq-pivot::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:-9px;
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:var(--nmb-string);
+  transform:translateX(-50%);
+}
+.gd-eq-balance-workbench .gd-eq-base{display:none!important}
+
+/* Each endpoint travels with the bar, while its hanging string stays vertical. */
+.gd-eq-balance-workbench .gd-eq-side{
+  position:absolute;
+  z-index:3;
+  top:108px;
+  width:30%;
+  min-width:150px;
+  height:280px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  pointer-events:none;
+  transition:transform .28s cubic-bezier(.22,.78,.28,1.08);
+}
+.gd-eq-balance-workbench .gd-eq-side--left{
+  left:3%;
+  transform:translateY(var(--ba-left-lift));
+}
+.gd-eq-balance-workbench .gd-eq-side--right{
+  right:3%;
+  transform:translateY(var(--ba-right-lift));
+}
+.gd-eq-balance-workbench .gd-eq-cord{
+  position:relative;
+  display:block;
+  width:2px;
+  height:72px;
+  min-height:72px;
+  margin:0 auto;
+  background:var(--nmb-string);
+  pointer-events:none;
+}
+.gd-eq-balance-workbench .gd-eq-cord::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  bottom:-4px;
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:var(--nmb-string);
+  transform:translateX(-50%);
+}
+
+/* Strip away the old tray entirely. The number tiles ARE the hanging weights. */
+.gd-eq-balance-workbench .gd-eq-pan{
+  position:relative!important;
+  width:auto!important;
+  min-width:0!important;
+  min-height:0!important;
+  padding:0!important;
+  margin:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  overflow:visible!important;
+  pointer-events:auto;
+}
+.gd-eq-balance-workbench .gd-eq-pan::before,
+.gd-eq-balance-workbench .gd-eq-pan::after,
+.gd-eq-balance-workbench .gd-eq-pan-label{display:none!important}
+
+.gd-eq-balance-workbench .gd-eq-weights{
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-start;
+  gap:13px;
+  min-width:84px;
+  min-height:54px;
+  padding:14px 8px 4px;
+}
+.gd-eq-balance-workbench .gd-eq-empty{
+  min-width:112px;
+  padding:9px 11px;
+  border:1px dashed #beced0;
+  border-radius:10px;
+  background:rgba(255,255,255,.8);
+  color:#7c8d91;
+  font-size:.7rem;
+  font-weight:750;
+  text-align:center;
+}
+
+.gd-eq-balance-workbench .gd-eq-weight{
+  position:relative;
+  z-index:5;
+  display:grid;
+  place-items:center;
+  width:72px;
+  min-width:72px;
+  height:52px;
+  min-height:52px;
+  padding:0 8px;
+  border:2px solid var(--nmb-tile-border);
+  border-radius:11px;
+  background:var(--nmb-tile);
+  color:#294c51;
+  box-shadow:0 4px 10px rgba(39,68,74,.08);
+  cursor:grab;
+  touch-action:none;
+  transition:box-shadow .14s ease,transform .14s ease,border-color .14s ease,background .14s ease;
+}
+.gd-eq-balance-workbench .gd-eq-weight::before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:-15px;
+  width:2px;
+  height:13px;
+  background:var(--nmb-string);
+  transform:translateX(-50%);
+  pointer-events:none;
+}
+.gd-eq-balance-workbench .gd-eq-weight:first-child::before{top:-17px;height:15px}
+.gd-eq-balance-workbench .gd-eq-weight strong{
+  font-size:1.08rem;
+  line-height:1;
+  font-weight:900;
+  color:inherit;
+}
+.gd-eq-balance-workbench .gd-eq-weight span{display:none!important}
+.gd-eq-balance-workbench .gd-eq-weight:hover:not(:disabled){
+  border-color:#5e9790;
+  box-shadow:0 6px 14px rgba(39,68,74,.12);
+}
+.gd-eq-balance-workbench .gd-eq-weight.is-selected{
+  border-color:var(--nmb-selected);
+  background:#eaf7f3;
+  outline:3px solid rgba(20,125,117,.2);
+  outline-offset:3px;
+  box-shadow:0 5px 14px rgba(20,125,117,.14);
+}
+.gd-eq-balance-workbench .gd-eq-weight.is-hidden-value{
+  background:#fff7df;
+  border-color:#c9a44a;
+  color:#6d561a;
+}
+.gd-eq-balance-workbench .gd-eq-weight.is-frozen{cursor:default}
+
+/* Add is a tiny endpoint action, not a tray control. */
+.gd-eq-balance-workbench .gd-eq-pan-add{
+  position:absolute!important;
+  z-index:8;
+  right:-34px!important;
+  top:18px!important;
+  width:30px!important;
+  min-width:30px!important;
+  height:30px!important;
+  min-height:30px!important;
+  padding:0!important;
+  display:grid!important;
+  place-items:center;
+  border:1px solid #a8c5c2!important;
+  border-radius:50%!important;
+  background:#fff!important;
+  color:#166e67!important;
+  font-size:.68rem!important;
+  font-weight:900!important;
+  line-height:1!important;
+  box-shadow:0 3px 9px rgba(40,67,72,.08)!important;
+}
+.gd-eq-balance-workbench .gd-eq-pan-add:hover,
+.gd-eq-balance-workbench .gd-eq-pan-add:focus-visible{background:#eaf7f3!important;outline:none}
+
+.gd-eq-balance-workbench .gd-eq-total{
+  display:block;
+  width:max-content;
+  min-width:34px;
+  margin:7px auto 0;
+  padding:3px 8px;
+  border-radius:999px;
+  background:#eef3f3;
+  color:#63777c;
+  font-size:.68rem;
+  line-height:1.25;
+  font-weight:850;
+  text-align:center;
+}
+.gd-eq-balance-workbench .gd-eq-total:empty{display:none}
+
+.gd-eq-balance-workbench .gd-eq-verdict{
+  width:max-content;
+  max-width:calc(100% - 24px);
+  margin:-8px auto 12px;
+  padding:8px 14px;
+  border:1px solid #d7e1e2;
+  border-radius:999px;
+  background:#f7faf9;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+}
+.gd-eq-balance-workbench .gd-eq-verdict.is-balanced{
+  border-color:#b8d8ce;
+  background:#edf8f3;
+}
+.gd-eq-balance-workbench .gd-eq-verdict span{
+  font-size:.62rem;
+  font-weight:900;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+  color:#73868a;
+}
+.gd-eq-balance-workbench .gd-eq-verdict strong{font-size:.85rem;color:#34565b}
+
+.gd-eq-balance-workbench .gd-eq-selected{
+  margin-top:10px;
+}
+.gd-eq-balance-workbench .gd-eq-drag-hint{
+  text-align:center;
+}
+
+/* The embedded whiteboard version should be almost entirely the mobile itself. */
+.gd-embed-page .gd-eq-balance-workbench .gd-eq-summary{padding:0 2px!important}
+.gd-embed-page .gd-eq-balance-workbench .gd-eq-balance{height:365px}
+.gd-embed-page .gd-eq-balance-workbench .gd-eq-verdict{margin-top:-13px}
+.gd-embed-page .gd-eq-balance-workbench .gd-eq-selected,
+.gd-embed-page .gd-eq-balance-workbench .gd-eq-drag-hint{display:none!important}
+
+@media(max-width:700px){
+  .gd-eq-balance-workbench .gd-eq-balance{height:390px}
+  .gd-eq-balance-workbench .gd-eq-beam{left:13%;right:13%;top:100px}
+  .gd-eq-balance-workbench .gd-eq-side{top:104px;width:37%;min-width:120px}
+  .gd-eq-balance-workbench .gd-eq-side--left{left:0}
+  .gd-eq-balance-workbench .gd-eq-side--right{right:0}
+  .gd-eq-balance-workbench .gd-eq-cord{height:64px;min-height:64px}
+  .gd-eq-balance-workbench .gd-eq-weight{width:62px;min-width:62px;height:46px;min-height:46px}
+  .gd-eq-balance-workbench .gd-eq-weight strong{font-size:.98rem}
+  .gd-eq-balance-workbench .gd-eq-pan-add{right:-26px!important;width:27px!important;min-width:27px!important;height:27px!important;min-height:27px!important}
+}
