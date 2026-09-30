@@ -8,6 +8,7 @@
 if(!G||typeof G.balanceTool!=='function')return;
 const originalBalanceTool=G.balanceTool;
 let observers=[];
+let lastVisual={angle:0,left:0,right:0};
 
 /* goodies-app publishes its catalogue after this file runs. Intercept that one
  * assignment so the whiteboard rail also uses the classroom-facing name. */
@@ -34,21 +35,33 @@ function exactText(root,from,to){
     if(el.children.length===0&&String(el.textContent||'').trim()===from)el.textContent=to;
   });
 }
+function numberVar(el,name){return Number.parseFloat(el?.style?.getPropertyValue(name))||0}
+function animateMobile(work){
+  const apparatus=work.querySelector('.gd-eq-balance');
+  if(!apparatus||apparatus.dataset.numberMobileAnimated==='1')return;
+  apparatus.dataset.numberMobileAnimated='1';
+  const beam=work.querySelector('.gd-eq-beam'),left=work.querySelector('.gd-eq-side--left'),right=work.querySelector('.gd-eq-side--right');
+  const legacyAngle=numberVar(apparatus,'--ba-tilt');
+  const target={angle:-legacyAngle,left:numberVar(apparatus,'--ba-left-lift'),right:numberVar(apparatus,'--ba-right-lift')};
+  const transition='.28s cubic-bezier(.22,.78,.28,1.08)';
+  if(beam){beam.style.transition='none';beam.style.transform='rotate('+lastVisual.angle+'deg)'}
+  if(left){left.style.transition='none';left.style.transform='translateY('+lastVisual.left+'px)'}
+  if(right){right.style.transition='none';right.style.transform='translateY('+lastVisual.right+'px)'}
+  /* Force the start pose to be committed before applying the new endpoint pose. */
+  void apparatus.offsetWidth;
+  requestAnimationFrame(()=>{
+    if(beam){beam.style.transition='transform '+transition;beam.style.transform='rotate('+target.angle+'deg)'}
+    if(left){left.style.transition='transform '+transition;left.style.transform='translateY('+target.left+'px)'}
+    if(right){right.style.transition='transform '+transition;right.style.transform='translateY('+target.right+'px)'}
+  });
+  lastVisual=target;
+}
 function adaptStage(stage){
   if(!stage)return;
   const work=stage.querySelector('.gd-eq-balance-workbench');
   if(!work){disconnect();return}
   work.classList.add('gd-number-mobile-workbench');
-
-  /* The legacy balance stored its angle using the old seesaw sign convention.
-   * The endpoint lifts already use the physically correct direction, so invert
-   * only the visible bar: the heavier hanging side now always sits lower. */
-  const apparatus=work.querySelector('.gd-eq-balance'),beam=work.querySelector('.gd-eq-beam');
-  if(apparatus&&beam){
-    const raw=apparatus.style.getPropertyValue('--ba-tilt');
-    const deg=Number.parseFloat(raw)||0;
-    beam.style.transform='rotate('+(-deg)+'deg)';
-  }
+  animateMobile(work);
 
   const summary=work.querySelector('.gd-eq-summary span');
   if(summary&&/equation balance/i.test(summary.textContent||''))summary.textContent='Number mobile';
@@ -106,11 +119,12 @@ function observe(root,fn){
 }
 G.balanceTool=function numberMobileBalanceTool(){
   disconnect();
+  lastVisual={angle:0,left:0,right:0};
   originalBalanceTool();
   adaptToolHeader();
   observe(document.getElementById('gd-stage'),adaptStage);
   observe(document.getElementById('gd-controls'),adaptControls);
 };
-G.numberMobileBalanceVersion='1.3';
+G.numberMobileBalanceVersion='1.4';
 document.addEventListener('DOMContentLoaded',()=>queueMicrotask(adaptCatalogueCard),{once:true});
 })(window.TT99Goodies);
