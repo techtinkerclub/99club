@@ -39,6 +39,17 @@ function adaptStage(stage){
   const work=stage.querySelector('.gd-eq-balance-workbench');
   if(!work)return;
   work.classList.add('gd-number-mobile-workbench');
+
+  /* The legacy balance stored its angle using the old seesaw sign convention.
+   * The endpoint lifts already use the physically correct direction, so invert
+   * only the visible bar: the heavier hanging side now always sits lower. */
+  const apparatus=work.querySelector('.gd-eq-balance'),beam=work.querySelector('.gd-eq-beam');
+  if(apparatus&&beam){
+    const raw=apparatus.style.getPropertyValue('--ba-tilt');
+    const deg=Number.parseFloat(raw)||0;
+    beam.style.transform='rotate('+(-deg)+'deg)';
+  }
+
   const summary=work.querySelector('.gd-eq-summary span');
   if(summary&&/equation balance/i.test(summary.textContent||''))summary.textContent='Number mobile';
   const selected=work.querySelector('.gd-eq-selected__head span');
@@ -100,6 +111,6 @@ G.balanceTool=function numberMobileBalanceTool(){
   observe(document.getElementById('gd-stage'),adaptStage);
   observe(document.getElementById('gd-controls'),adaptControls);
 };
-G.numberMobileBalanceVersion='1.1';
+G.numberMobileBalanceVersion='1.2';
 document.addEventListener('DOMContentLoaded',()=>queueMicrotask(adaptCatalogueCard),{once:true});
 })(window.TT99Goodies);
