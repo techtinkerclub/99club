@@ -30,7 +30,7 @@ if(mode==='prepare'){
   function work(){return document.getElementById('gd-stage')?.querySelector('.gd-number-mobile-workbench')||null}
   function tile(id){return work()?.querySelector('[data-ba-token="'+CSS.escape(String(id))+'"]')||null}
   async function run(){
-    assert(window.TT99Goodies&&TT99Goodies.numberMobileBalanceVersion==='3.0','Number Mobile v3 adapter is active');
+    assert(window.TT99Goodies&&String(TT99Goodies.numberMobileBalanceVersion||'').startsWith('3.0'),'Number Mobile v3 adapter is active');
     const card=document.querySelector('[data-tool="balance"]');assert(card,'Number Mobile catalogue card exists');card.click();await tick();await tick();
     assert(work(),'Number Mobile workbench renders');
     let tiles=[...work().querySelectorAll('[data-ba-token]')];assert(tiles.length>=3,'Number Mobile starts with editable number boxes');
