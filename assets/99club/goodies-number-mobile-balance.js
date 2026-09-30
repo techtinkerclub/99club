@@ -217,7 +217,7 @@ function keypad(work,tokens){
 function equationOverride(work,tokens){
   if(work.querySelector('.gd-challenge-banner'))return;
   const labels=labelMap(tokens),leftLabels=flattenLabels(roots.left,labels),rightLabels=flattenLabels(roots.right,labels),lt=treeValue(roots.left,labels),rt=treeValue(roots.right,labels),rel=Math.abs(lt-rt)<1e-9?'=':lt>rt?'>':'<';
-  const eq=work.querySelector('[data-ba-equation]');if(eq)eq.textContent=(leftLabels.length?leftLabels.join(' + '):'0')+' '+rel+' '+(rightLabels.length?rightLabels.join(' + '):'0');
+  const eq=work.querySelector('[data-ba-equation]'),desired=(leftLabels.length?leftLabels.join(' + '):'0')+' '+rel+' '+(rightLabels.length?rightLabels.join(' + '):'0');if(eq&&eq.textContent!==desired)eq.textContent=desired;
 }
 function wrapStageAdd(work){
   work.querySelectorAll('[data-ba-stage-add]').forEach(button=>{
@@ -233,7 +233,8 @@ function adaptStage(stage){
     work.classList.add('gd-number-mobile-workbench');animateMobile(work);
     const summary=work.querySelector('.gd-eq-summary span');if(summary&&/equation balance/i.test(summary.textContent||''))summary.textContent='Number mobile';
     const selected=work.querySelector('.gd-eq-selected__head span');if(selected&&/selected weight/i.test(selected.textContent||''))selected.textContent='Selected number';
-    const help=work.querySelector('.gd-eq-drag-hint');if(help)help.textContent='Select a box to type a number, make it blank, branch it, duplicate it or delete it. Drag a number box across the mobile to move it.';
+    const desiredHelp='Select a box to type a number, make it blank, branch it, duplicate it or delete it. Drag a number box across the mobile to move it.';
+    const help=work.querySelector('.gd-eq-drag-hint');if(help&&help.textContent!==desiredHelp)help.textContent=desiredHelp;
     wrapStageAdd(work);
     const tokens=currentTokenInfo(work);if(!reconcile(work,tokens))return;
     renderTrees(work,tokens);equationOverride(work,tokens);
@@ -249,7 +250,10 @@ function adaptControls(controls){
 }
 function adaptToolHeader(){const title=document.getElementById('gd-tool-title'),desc=document.getElementById('gd-tool-desc');if(title)title.textContent='Number mobile balance';if(desc)desc.textContent='Build, branch and balance hanging number boxes on a maths mobile.'}
 function adaptCatalogueCard(){const card=document.querySelector('[data-tool="balance"]');if(!card)return;const title=card.querySelector('h2'),desc=card.querySelector('p');if(title)title.textContent='Number mobile balance';if(desc)desc.textContent='Build, branch and balance hanging number boxes on a maths mobile.'}
-function observe(root,fn){if(!root)return;let queued=false;const run=()=>{queued=false;fn(root)};const obs=new MutationObserver(()=>{if(queued||adapting)return;queued=true;queueMicrotask(run)});obs.observe(root,{childList:true,subtree:true,characterData:true});observers.push(obs);run()}
+/* The balance engine redraws stage/controls by replacing their direct children.
+ * Watching the full subtree also observes this adapter's own keypad/tree edits,
+ * which can feed the observer indefinitely and freeze the whole whiteboard. */
+function observe(root,fn){if(!root)return;let queued=false;const run=()=>{queued=false;fn(root)};const obs=new MutationObserver(()=>{if(queued||adapting)return;queued=true;queueMicrotask(run)});obs.observe(root,{childList:true});observers.push(obs);run()}
 function keyboardHandler(e){
   if(!editingId||e.ctrlKey||e.metaKey||e.altKey)return;
   const tag=String(e.target?.tagName||'').toLowerCase();if(tag==='input'||tag==='textarea'||tag==='select')return;
@@ -265,6 +269,6 @@ G.balanceTool=function numberMobileBalanceTool(){
   document.addEventListener('keydown',keyboardHandler);cleanups.push(()=>document.removeEventListener('keydown',keyboardHandler));
   observe(document.getElementById('gd-stage'),adaptStage);observe(document.getElementById('gd-controls'),adaptControls);
 };
-G.numberMobileBalanceVersion='2.1';
+G.numberMobileBalanceVersion='2.2';
 document.addEventListener('DOMContentLoaded',()=>queueMicrotask(adaptCatalogueCard),{once:true});
 })(window.TT99Goodies);

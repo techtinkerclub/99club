@@ -30,6 +30,6 @@ window.TT99_GOODIES_BOARD_HOME = '/goodies/';
 <script src="/assets/99club/goodies-tools-a.js?v=29" defer></script>
 <script src="/assets/99club/goodies-number-line-v6.js?v=12" defer></script>
 <script src="/assets/99club/goodies-tools-b.js?v=26" defer></script>
-<script src="/assets/99club/goodies-number-mobile-balance.js?v=4" defer></script>
+<script src="/assets/99club/goodies-number-mobile-balance.js?v=5" defer></script>
 <script src="/assets/99club/goodies-app.js?v=6" defer></script>
 <script src="/assets/99club/goodies-board.js?v=5" defer></script>
