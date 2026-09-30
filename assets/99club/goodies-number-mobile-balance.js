@@ -31,13 +31,9 @@ function exactText(root,from,to){if(!root)return;root.querySelectorAll('*').forE
 function numberVar(el,name){return Number.parseFloat(el?.style?.getPropertyValue(name))||0}
 function tileNode(id){return{kind:'tile',id:String(id)}}
 function branchNode(left=[],right=[]){return{kind:'branch',id:'b'+(nextBranch++),left,right}}
-function cloneTree(nodes){return nodes.map(node=>node.kind==='branch'?{kind:'branch',id:node.id,left:cloneTree(node.left),right:cloneTree(node.right)}:{kind:'tile',id:String(node.id)})}
 function walk(nodes,fn,parent=null,slot=null){for(let i=0;i<nodes.length;i++){const node=nodes[i];if(fn(node,nodes,i,parent,slot)===false)return false;if(node.kind==='branch'){if(walk(node.left,fn,node,'left')===false)return false;if(walk(node.right,fn,node,'right')===false)return false}}return true}
 function findNode(id){let found=null;walk([...roots.left,...roots.right],(node,list,index,parent,slot)=>{if(String(node.id)===String(id)){found={node,list,index,parent,slot};return false}});return found}
-function containsToken(node,id){if(node.kind==='tile')return String(node.id)===String(id);return node.left.some(n=>containsToken(n,id))||node.right.some(n=>containsToken(n,id))}
 function descendantIds(node){const out=[];walk([node],n=>{if(n.kind==='tile')out.push(String(n.id))});return out}
-function removeTokenRef(id){walk([roots.left,roots.right],()=>{});function prune(nodes){for(let i=nodes.length-1;i>=0;i--){const n=nodes[i];if(n.kind==='tile'&&String(n.id)===String(id)){nodes.splice(i,1);continue}if(n.kind==='branch'){prune(n.left);prune(n.right);if(!n.left.length&&!n.right.length)nodes.splice(i,1)}}}prune(roots.left);prune(roots.right)}
-function removeNodeById(id){const loc=findNode(id);if(!loc)return null;return loc.list.splice(loc.index,1)[0]||null}
 function rootSideForNodeId(id){let result=null;for(const side of ['left','right'])walk(roots[side],node=>{if(String(node.id)===String(id)){result=side;return false}});return result}
 function sideForToken(id){for(const side of ['left','right']){let yes=false;walk(roots[side],node=>{if(node.kind==='tile'&&String(node.id)===String(id)){yes=true;return false}});if(yes)return side}return null}
 function branchById(id){const loc=findNode(id);return loc?.node?.kind==='branch'?loc.node:null}
@@ -109,15 +105,16 @@ function nativeAdd(side,placement=null){
 }
 function finalizePending(work,tokens){
   if(!pendingAdd)return false;
-  const selected=selectedTokenId(work);if(!selected||!tokens.has(selected))return false;
-  const info=tokens.get(selected);if(info.side!==pendingAdd.side)return false;
-  blankIds.add(selected);editingId=selected;editBuffer='';
+  const request=pendingAdd,selected=selectedTokenId(work);if(!selected||!tokens.has(selected))return false;
+  const info=tokens.get(selected);if(info.side!==request.side)return false;
+  const wantsBlank=request.blank!==false;
+  if(wantsBlank){blankIds.add(selected);editingId=selected;editBuffer=''}else{blankIds.delete(selected);editingId=null}
   const loc=findNode(selected);if(loc)loc.list.splice(loc.index,1);
-  const place=pendingAdd.placement;
-  if(place?.branchId){const branch=branchById(place.branchId);if(branch)branch[place.slot==='right'?'right':'left'].push(tileNode(selected));else roots[pendingAdd.side].push(tileNode(selected))}
-  else roots[pendingAdd.side].push(tileNode(selected));
+  const place=request.placement;
+  if(place?.branchId){const branch=branchById(place.branchId);if(branch)branch[place.slot==='right'?'right':'left'].push(tileNode(selected));else roots[request.side].push(tileNode(selected))}
+  else roots[request.side].push(tileNode(selected));
   pendingAdd=null;
-  const raw=numericValue(info.raw);if(raw!==0){setEngineValue(selected,0);return true}
+  const raw=numericValue(info.raw);if(wantsBlank&&raw!==0){setEngineValue(selected,0);return true}
   return false;
 }
 function reconcile(work,tokens){
@@ -129,8 +126,8 @@ function reconcile(work,tokens){
 }
 
 function makeBranchElement(node,tokens,depth){
-  const wrap=document.createElement('div');wrap.className='nmb-branch'+(String(node.id)===String(selectedBranchId)?' is-selected':'');wrap.dataset.nmbBranch=node.id;wrap.style.setProperty('--nmb-depth',String(depth));
-  const l=treeValue(node.left,labelMap(tokens)),r=treeValue(node.right,labelMap(tokens)),scale=Math.max(1,l,r),angle=Math.max(-10,Math.min(10,(l-r)/scale*-10)),lift=Math.sin(angle*Math.PI/180)*70;
+  const wrap=document.createElement('div');wrap.className='nmb-branch'+(String(node.id)===String(selectedBranchId)?' is-selected':'');wrap.dataset.nmbBranch=node.id;wrap.dataset.nmbDepth=String(depth);
+  const labels=labelMap(tokens),l=treeValue(node.left,labels),r=treeValue(node.right,labels),scale=Math.max(1,l,r),angle=Math.max(-10,Math.min(10,(l-r)/scale*-10)),lift=Math.sin(angle*Math.PI/180)*70;
   wrap.style.setProperty('--nmb-branch-angle',angle+'deg');wrap.style.setProperty('--nmb-branch-left',(-lift)+'px');wrap.style.setProperty('--nmb-branch-right',lift+'px');
   const select=document.createElement('button');select.type='button';select.className='nmb-branch-bar';select.title='Select this branch';select.setAttribute('aria-label','Select branch');select.onclick=e=>{e.stopPropagation();selectedBranchId=node.id;editingId=null;adaptStage(document.getElementById('gd-stage'))};wrap.appendChild(select);
   const sides=document.createElement('div');sides.className='nmb-branch-sides';
@@ -268,6 +265,6 @@ G.balanceTool=function numberMobileBalanceTool(){
   document.addEventListener('keydown',keyboardHandler);cleanups.push(()=>document.removeEventListener('keydown',keyboardHandler));
   observe(document.getElementById('gd-stage'),adaptStage);observe(document.getElementById('gd-controls'),adaptControls);
 };
-G.numberMobileBalanceVersion='2.0';
+G.numberMobileBalanceVersion='2.1';
 document.addEventListener('DOMContentLoaded',()=>queueMicrotask(adaptCatalogueCard),{once:true});
 })(window.TT99Goodies);
