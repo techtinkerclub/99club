@@ -1,7 +1,6 @@
 /* 99 Club Studio · Number Mobile Balance
- * Visual override for the Equation Balance Goodie.
- * Keeps the established maths/challenge model, but presents it as the same
- * centred, equal-arm hanging mobile used by the Mobile Balance game.
+ * The established maths engine remains underneath, while this layer presents
+ * number boxes as an editable, recursively branching classroom mobile.
  */
 
 .gd-eq-balance-workbench{
@@ -10,306 +9,125 @@
   --nmb-tile:#f7fbfa;
   --nmb-tile-border:#82aaa5;
   --nmb-selected:#147d75;
-}
-
-.gd-eq-balance-workbench .gd-eq-summary{
-  margin-bottom:8px;
-}
-
-/* The apparatus is a hanging mobile, not a set of weighing pans. */
-.gd-eq-balance-workbench .gd-eq-balance{
   position:relative;
-  width:min(880px,100%);
-  height:410px;
-  margin:0 auto;
-  overflow:visible;
-  isolation:isolate;
 }
+.gd-eq-balance-workbench .gd-eq-summary{margin-bottom:8px}
 
+.gd-eq-balance-workbench .gd-eq-balance{
+  position:relative;width:min(940px,100%);height:470px;margin:0 auto;overflow:visible;isolation:isolate;
+}
 .gd-eq-balance-workbench .gd-eq-beam{
-  position:absolute;
-  z-index:4;
-  left:18%;
-  right:18%;
-  top:104px;
-  height:8px;
-  border-radius:999px;
-  background:var(--nmb-ink);
-  transform:rotate(calc(var(--ba-tilt) * -1));
-  transform-origin:50% 50%;
-  transition:transform .28s cubic-bezier(.22,.78,.28,1.08);
-  box-shadow:none;
+  position:absolute;z-index:4;left:18%;right:18%;top:104px;height:8px;border-radius:999px;background:var(--nmb-ink);
+  transform:rotate(calc(var(--ba-tilt) * -1));transform-origin:50% 50%;transition:transform .28s cubic-bezier(.22,.78,.28,1.08);box-shadow:none;
 }
-
-/* Fixed suspension string + ring, matching the Mobile Balance game. */
 .gd-eq-balance-workbench .gd-eq-pivot{
-  position:absolute;
-  z-index:7;
-  left:50%;
-  top:18px;
-  width:2px;
-  height:88px;
-  border:0;
-  background:var(--nmb-string);
-  transform:translateX(-50%);
+  position:absolute;z-index:7;left:50%;top:18px;width:2px;height:88px;border:0;background:var(--nmb-string);transform:translateX(-50%);
 }
 .gd-eq-balance-workbench .gd-eq-pivot::before{
-  content:"";
-  position:absolute;
-  left:50%;
-  bottom:-9px;
-  width:18px;
-  height:18px;
-  border:4px solid var(--nmb-string);
-  border-radius:50%;
-  background:#fff;
-  transform:translateX(-50%);
-  box-sizing:border-box;
+  content:"";position:absolute;left:50%;bottom:-9px;width:18px;height:18px;border:4px solid var(--nmb-string);border-radius:50%;background:#fff;transform:translateX(-50%);box-sizing:border-box;
 }
 .gd-eq-balance-workbench .gd-eq-pivot::after{
-  content:"";
-  position:absolute;
-  left:50%;
-  top:-9px;
-  width:7px;
-  height:7px;
-  border-radius:50%;
-  background:var(--nmb-string);
-  transform:translateX(-50%);
+  content:"";position:absolute;left:50%;top:-9px;width:7px;height:7px;border-radius:50%;background:var(--nmb-string);transform:translateX(-50%);
 }
 .gd-eq-balance-workbench .gd-eq-base{display:none!important}
 
-/* Each endpoint travels with the bar, while its hanging string stays vertical. */
 .gd-eq-balance-workbench .gd-eq-side{
-  position:absolute;
-  z-index:3;
-  top:108px;
-  width:30%;
-  min-width:150px;
-  height:280px;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  pointer-events:none;
+  position:absolute;z-index:3;top:108px;width:34%;min-width:170px;height:340px;display:flex;flex-direction:column;align-items:center;pointer-events:none;
   transition:transform .28s cubic-bezier(.22,.78,.28,1.08);
 }
-.gd-eq-balance-workbench .gd-eq-side--left{
-  left:3%;
-  transform:translateY(var(--ba-left-lift));
-}
-.gd-eq-balance-workbench .gd-eq-side--right{
-  right:3%;
-  transform:translateY(var(--ba-right-lift));
-}
+.gd-eq-balance-workbench .gd-eq-side--left{left:0;transform:translateY(var(--ba-left-lift))}
+.gd-eq-balance-workbench .gd-eq-side--right{right:0;transform:translateY(var(--ba-right-lift))}
 .gd-eq-balance-workbench .gd-eq-cord{
-  position:relative;
-  display:block;
-  width:2px;
-  height:72px;
-  min-height:72px;
-  margin:0 auto;
-  background:var(--nmb-string);
-  pointer-events:none;
+  position:relative;display:block;width:2px;height:62px;min-height:62px;margin:0 auto;background:var(--nmb-string);pointer-events:none;
 }
 .gd-eq-balance-workbench .gd-eq-cord::after{
-  content:"";
-  position:absolute;
-  left:50%;
-  bottom:-4px;
-  width:7px;
-  height:7px;
-  border-radius:50%;
-  background:var(--nmb-string);
-  transform:translateX(-50%);
+  content:"";position:absolute;left:50%;bottom:-4px;width:7px;height:7px;border-radius:50%;background:var(--nmb-string);transform:translateX(-50%);
 }
 
-/* Strip away the old tray entirely. The number tiles ARE the hanging weights. */
 .gd-eq-balance-workbench .gd-eq-pan{
-  position:relative!important;
-  width:auto!important;
-  min-width:0!important;
-  min-height:0!important;
-  padding:0!important;
-  margin:0!important;
-  border:0!important;
-  border-radius:0!important;
-  background:transparent!important;
-  box-shadow:none!important;
-  overflow:visible!important;
-  pointer-events:auto;
+  position:relative!important;width:auto!important;min-width:0!important;min-height:0!important;padding:0!important;margin:0!important;border:0!important;border-radius:0!important;
+  background:transparent!important;box-shadow:none!important;overflow:visible!important;pointer-events:auto;
 }
-.gd-eq-balance-workbench .gd-eq-pan::before,
-.gd-eq-balance-workbench .gd-eq-pan::after,
-.gd-eq-balance-workbench .gd-eq-pan-label{display:none!important}
-
+.gd-eq-balance-workbench .gd-eq-pan::before,.gd-eq-balance-workbench .gd-eq-pan::after,.gd-eq-balance-workbench .gd-eq-pan-label{display:none!important}
 .gd-eq-balance-workbench .gd-eq-weights{
-  position:relative;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:flex-start;
-  gap:13px;
-  min-width:84px;
-  min-height:54px;
-  padding:14px 8px 4px;
+  position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:13px;min-width:90px;min-height:54px;padding:14px 8px 4px;overflow:visible;
 }
 .gd-eq-balance-workbench .gd-eq-empty{
-  min-width:112px;
-  padding:9px 11px;
-  border:1px dashed #beced0;
-  border-radius:10px;
-  background:rgba(255,255,255,.8);
-  color:#7c8d91;
-  font-size:.7rem;
-  font-weight:750;
-  text-align:center;
+  min-width:112px;padding:9px 11px;border:1px dashed #beced0;border-radius:10px;background:rgba(255,255,255,.8);color:#7c8d91;font-size:.7rem;font-weight:750;text-align:center;
 }
 
 .gd-eq-balance-workbench .gd-eq-weight{
-  position:relative;
-  z-index:5;
-  display:grid;
-  place-items:center;
-  width:72px;
-  min-width:72px;
-  height:52px;
-  min-height:52px;
-  padding:0 8px;
-  border:2px solid var(--nmb-tile-border);
-  border-radius:11px;
-  background:var(--nmb-tile);
-  color:#294c51;
-  box-shadow:0 4px 10px rgba(39,68,74,.08);
-  cursor:grab;
-  touch-action:none;
+  position:relative;z-index:5;display:grid;place-items:center;width:72px;min-width:72px;height:52px;min-height:52px;padding:0 8px;border:2px solid var(--nmb-tile-border);
+  border-radius:11px;background:var(--nmb-tile);color:#294c51;box-shadow:0 4px 10px rgba(39,68,74,.08);cursor:grab;touch-action:none;
   transition:box-shadow .14s ease,transform .14s ease,border-color .14s ease,background .14s ease;
 }
 .gd-eq-balance-workbench .gd-eq-weight::before{
-  content:"";
-  position:absolute;
-  left:50%;
-  top:-15px;
-  width:2px;
-  height:13px;
-  background:var(--nmb-string);
-  transform:translateX(-50%);
-  pointer-events:none;
+  content:"";position:absolute;left:50%;top:-15px;width:2px;height:13px;background:var(--nmb-string);transform:translateX(-50%);pointer-events:none;
 }
 .gd-eq-balance-workbench .gd-eq-weight:first-child::before{top:-17px;height:15px}
-.gd-eq-balance-workbench .gd-eq-weight strong{
-  font-size:1.08rem;
-  line-height:1;
-  font-weight:900;
-  color:inherit;
-}
+.gd-eq-balance-workbench .gd-eq-weight strong{font-size:1.08rem;line-height:1;font-weight:900;color:inherit}
 .gd-eq-balance-workbench .gd-eq-weight span{display:none!important}
-.gd-eq-balance-workbench .gd-eq-weight:hover:not(:disabled){
-  border-color:#5e9790;
-  box-shadow:0 6px 14px rgba(39,68,74,.12);
-}
-.gd-eq-balance-workbench .gd-eq-weight.is-selected{
-  border-color:var(--nmb-selected);
-  background:#eaf7f3;
-  outline:3px solid rgba(20,125,117,.2);
-  outline-offset:3px;
-  box-shadow:0 5px 14px rgba(20,125,117,.14);
-}
-.gd-eq-balance-workbench .gd-eq-weight.is-hidden-value{
-  background:#fff7df;
-  border-color:#c9a44a;
-  color:#6d561a;
-}
+.gd-eq-balance-workbench .gd-eq-weight:hover:not(:disabled){border-color:#5e9790;box-shadow:0 6px 14px rgba(39,68,74,.12)}
+.gd-eq-balance-workbench .gd-eq-weight.is-selected{border-color:var(--nmb-selected);background:#eaf7f3;outline:3px solid rgba(20,125,117,.2);outline-offset:3px;box-shadow:0 5px 14px rgba(20,125,117,.14)}
+.gd-eq-balance-workbench .gd-eq-weight.is-hidden-value{background:#fff7df;border-color:#c9a44a;color:#6d561a}
 .gd-eq-balance-workbench .gd-eq-weight.is-frozen{cursor:default}
+.gd-eq-balance-workbench .gd-eq-weight.is-blank-box{background:#fff;border-style:dashed;color:#809397}
+.gd-eq-balance-workbench .gd-eq-weight.is-blank-box::after{content:"";width:24px;height:3px;border-radius:2px;background:#d4dfe0}
 
-/* Add is a tiny endpoint action, not a tray control. */
+/* Endpoint + now means add an empty number box; the keypad decides its value. */
 .gd-eq-balance-workbench .gd-eq-pan-add{
-  position:absolute!important;
-  z-index:8;
-  right:-34px!important;
-  top:18px!important;
-  width:30px!important;
-  min-width:30px!important;
-  height:30px!important;
-  min-height:30px!important;
-  padding:0!important;
-  display:grid!important;
-  place-items:center;
-  border:1px solid #a8c5c2!important;
-  border-radius:50%!important;
-  background:#fff!important;
-  color:#166e67!important;
-  font-size:.68rem!important;
-  font-weight:900!important;
-  line-height:1!important;
+  position:absolute!important;z-index:8;right:-32px!important;top:18px!important;width:30px!important;min-width:30px!important;height:30px!important;min-height:30px!important;padding:0!important;
+  display:grid!important;place-items:center;border:1px solid #a8c5c2!important;border-radius:50%!important;background:#fff!important;color:#166e67!important;font-size:1rem!important;font-weight:900!important;line-height:1!important;
   box-shadow:0 3px 9px rgba(40,67,72,.08)!important;
 }
-.gd-eq-balance-workbench .gd-eq-pan-add:hover,
-.gd-eq-balance-workbench .gd-eq-pan-add:focus-visible{background:#eaf7f3!important;outline:none}
-
-.gd-eq-balance-workbench .gd-eq-total{
-  display:block;
-  width:max-content;
-  min-width:34px;
-  margin:7px auto 0;
-  padding:3px 8px;
-  border-radius:999px;
-  background:#eef3f3;
-  color:#63777c;
-  font-size:.68rem;
-  line-height:1.25;
-  font-weight:850;
-  text-align:center;
-}
+.gd-eq-balance-workbench .gd-eq-pan-add:hover,.gd-eq-balance-workbench .gd-eq-pan-add:focus-visible{background:#eaf7f3!important;outline:none}
+.gd-eq-balance-workbench .gd-eq-total{display:block;width:max-content;min-width:34px;margin:7px auto 0;padding:3px 8px;border-radius:999px;background:#eef3f3;color:#63777c;font-size:.68rem;line-height:1.25;font-weight:850;text-align:center}
 .gd-eq-balance-workbench .gd-eq-total:empty{display:none}
 
-.gd-eq-balance-workbench .gd-eq-verdict{
-  width:max-content;
-  max-width:calc(100% - 24px);
-  margin:-8px auto 12px;
-  padding:8px 14px;
-  border:1px solid #d7e1e2;
-  border-radius:999px;
-  background:#f7faf9;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:8px;
+/* Recursive sub-mobile. A branch is itself a hanging two-arm mobile. */
+.nmb-branch{
+  --nmb-branch-width:220px;position:relative;z-index:6;width:var(--nmb-branch-width);min-height:145px;padding-top:42px;box-sizing:border-box;pointer-events:auto;
 }
-.gd-eq-balance-workbench .gd-eq-verdict.is-balanced{
-  border-color:#b8d8ce;
-  background:#edf8f3;
+.nmb-branch[data-nmb-depth="1"],.nmb-branch[data-nmb-depth="2"]{--nmb-branch-width:190px}
+.nmb-branch::before{content:"";position:absolute;left:50%;top:-15px;width:2px;height:22px;background:var(--nmb-string);transform:translateX(-50%)}
+.nmb-branch-bar{
+  position:absolute;z-index:4;left:12%;right:12%;top:22px;height:6px;padding:0;border:0;border-radius:999px;background:#536b70;cursor:pointer;transform:rotate(var(--nmb-branch-angle));transform-origin:50% 50%;transition:transform .24s cubic-bezier(.22,.78,.28,1.08);
 }
-.gd-eq-balance-workbench .gd-eq-verdict span{
-  font-size:.62rem;
-  font-weight:900;
-  letter-spacing:.05em;
-  text-transform:uppercase;
-  color:#73868a;
+.nmb-branch-bar::after{content:"";position:absolute;left:50%;top:50%;width:11px;height:11px;border:3px solid var(--nmb-string);border-radius:50%;background:#fff;transform:translate(-50%,-50%)}
+.nmb-branch.is-selected>.nmb-branch-bar{background:#147d75;box-shadow:0 0 0 4px rgba(20,125,117,.13)}
+.nmb-branch-sides{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
+.nmb-branch-side{position:relative;display:flex;flex-direction:column;align-items:center;min-width:0;transition:transform .24s cubic-bezier(.22,.78,.28,1.08)}
+.nmb-branch-side--left{transform:translateY(var(--nmb-branch-left))}.nmb-branch-side--right{transform:translateY(var(--nmb-branch-right))}
+.nmb-branch-cord{display:block;width:2px;height:34px;background:var(--nmb-string)}
+.nmb-branch-children{display:flex;flex-direction:column;align-items:center;gap:12px;min-width:76px;overflow:visible}
+.nmb-branch .gd-eq-weight{width:62px;min-width:62px;height:46px;min-height:46px}
+.nmb-branch .nmb-branch{transform:scale(.9);transform-origin:top center;margin-bottom:-12px}
+.nmb-branch-add{
+  width:26px;height:26px;min-width:26px;padding:0;border:1px solid #a8c5c2;border-radius:50%;background:#fff;color:#176f68;font:inherit;font-size:.9rem;font-weight:900;line-height:1;cursor:pointer;box-shadow:0 2px 6px rgba(40,67,72,.06)
 }
-.gd-eq-balance-workbench .gd-eq-verdict strong{font-size:.85rem;color:#34565b}
+.nmb-branch-add:hover,.nmb-branch-add:focus-visible{background:#eaf7f3;outline:none}
+.nmb-branch-toolbar{
+  position:absolute;z-index:20;left:50%;top:-20px;transform:translate(-50%,-100%);display:flex;gap:4px;align-items:center;padding:5px;border:1px solid #c8d6d8;border-radius:10px;background:rgba(255,255,255,.97);box-shadow:0 8px 20px rgba(38,66,72,.12);white-space:nowrap
+}
+.nmb-branch-toolbar button{min-height:28px;padding:3px 7px;border:1px solid #c7d7d8;border-radius:7px;background:#fff;color:#36565b;font:inherit;font-size:.62rem;font-weight:850;cursor:pointer}
+.nmb-branch-toolbar button:hover,.nmb-branch-toolbar button:focus-visible{background:#edf7f4;outline:none}.nmb-branch-toolbar button.is-danger{color:#a84d45;border-color:#e4bbb7}
 
-.gd-eq-balance-workbench .gd-eq-selected{
-  margin-top:10px;
+/* Small game-style keypad beside the selected number box. */
+.nmb-keypad{
+  position:absolute;z-index:80;width:218px;padding:9px;border:1px solid #bfd0d2;border-radius:15px;background:rgba(255,255,255,.98);box-shadow:0 16px 38px rgba(30,57,64,.18);backdrop-filter:blur(12px);pointer-events:auto
 }
-.gd-eq-balance-workbench .gd-eq-drag-hint{
-  text-align:center;
-}
+.nmb-keypad-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}.nmb-keypad-head strong{font-size:.72rem;color:#486168}.nmb-keypad-head button{width:26px;height:26px;padding:0;border:0;border-radius:7px;background:#f1f5f5;color:#60777c;font-size:1rem;cursor:pointer}
+.nmb-keypad-display{min-height:36px;margin-bottom:7px;padding:7px 9px;border:1px solid #d4dfe0;border-radius:9px;background:#f8fbfa;color:#264b50;font-size:1rem;font-weight:900;text-align:right;font-variant-numeric:tabular-nums}
+.nmb-keypad-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}.nmb-keypad-grid button{height:34px;padding:0;border:1px solid #c9d7d9;border-radius:8px;background:#fff;color:#314e54;font:inherit;font-size:.83rem;font-weight:850;cursor:pointer}.nmb-keypad-grid button:hover,.nmb-keypad-grid button:focus-visible{background:#ebf7f3;border-color:#8dbab5;outline:none}
+.nmb-keypad-actions{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}.nmb-keypad-actions button{min-height:29px;padding:4px 7px;border:1px solid #c9d7d9;border-radius:8px;background:#fff;color:#36565b;font:inherit;font-size:.62rem;font-weight:850;cursor:pointer}.nmb-keypad-actions button:hover,.nmb-keypad-actions button:focus-visible{background:#edf7f4;outline:none}.nmb-keypad-actions button.is-danger{color:#a84d45;border-color:#e4bbb7}.nmb-keypad-actions button.is-primary{margin-left:auto;background:#147d75;border-color:#147d75;color:#fff}
 
-/* The embedded whiteboard version should be almost entirely the mobile itself. */
-.gd-embed-page .gd-eq-balance-workbench .gd-eq-summary{padding:0 2px!important}
-.gd-embed-page .gd-eq-balance-workbench .gd-eq-balance{height:365px}
-.gd-embed-page .gd-eq-balance-workbench .gd-eq-verdict{margin-top:-13px}
-.gd-embed-page .gd-eq-balance-workbench .gd-eq-selected,
-.gd-embed-page .gd-eq-balance-workbench .gd-eq-drag-hint{display:none!important}
+.gd-eq-balance-workbench .gd-eq-verdict{width:max-content;max-width:calc(100% - 24px);margin:-4px auto 12px;padding:8px 14px;border:1px solid #d7e1e2;border-radius:999px;background:#f7faf9;display:flex;align-items:center;justify-content:center;gap:8px}
+.gd-eq-balance-workbench .gd-eq-verdict.is-balanced{border-color:#b8d8ce;background:#edf8f3}.gd-eq-balance-workbench .gd-eq-verdict span{font-size:.62rem;font-weight:900;letter-spacing:.05em;text-transform:uppercase;color:#73868a}.gd-eq-balance-workbench .gd-eq-verdict strong{font-size:.85rem;color:#34565b}
+.gd-eq-balance-workbench .gd-eq-selected{margin-top:10px}.gd-eq-balance-workbench .gd-eq-drag-hint{text-align:center}
+
+.gd-embed-page .gd-eq-balance-workbench .gd-eq-summary{padding:0 2px!important}.gd-embed-page .gd-eq-balance-workbench .gd-eq-balance{height:430px}.gd-embed-page .gd-eq-balance-workbench .gd-eq-verdict{margin-top:-5px}.gd-embed-page .gd-eq-balance-workbench .gd-eq-selected,.gd-embed-page .gd-eq-balance-workbench .gd-eq-drag-hint{display:none!important}
 
 @media(max-width:700px){
-  .gd-eq-balance-workbench .gd-eq-balance{height:390px}
-  .gd-eq-balance-workbench .gd-eq-beam{left:13%;right:13%;top:100px}
-  .gd-eq-balance-workbench .gd-eq-side{top:104px;width:37%;min-width:120px}
-  .gd-eq-balance-workbench .gd-eq-side--left{left:0}
-  .gd-eq-balance-workbench .gd-eq-side--right{right:0}
-  .gd-eq-balance-workbench .gd-eq-cord{height:64px;min-height:64px}
-  .gd-eq-balance-workbench .gd-eq-weight{width:62px;min-width:62px;height:46px;min-height:46px}
-  .gd-eq-balance-workbench .gd-eq-weight strong{font-size:.98rem}
-  .gd-eq-balance-workbench .gd-eq-pan-add{right:-26px!important;width:27px!important;min-width:27px!important;height:27px!important;min-height:27px!important}
+  .gd-eq-balance-workbench .gd-eq-balance{height:430px}.gd-eq-balance-workbench .gd-eq-beam{left:12%;right:12%;top:100px}.gd-eq-balance-workbench .gd-eq-side{top:104px;width:40%;min-width:130px}.gd-eq-balance-workbench .gd-eq-side--left{left:-1%}.gd-eq-balance-workbench .gd-eq-side--right{right:-1%}.gd-eq-balance-workbench .gd-eq-cord{height:56px;min-height:56px}.gd-eq-balance-workbench .gd-eq-weight{width:62px;min-width:62px;height:46px;min-height:46px}.gd-eq-balance-workbench .gd-eq-weight strong{font-size:.98rem}.gd-eq-balance-workbench .gd-eq-pan-add{right:-25px!important;width:27px!important;min-width:27px!important;height:27px!important;min-height:27px!important}
+  .nmb-branch{--nmb-branch-width:180px}.nmb-branch[data-nmb-depth="1"],.nmb-branch[data-nmb-depth="2"]{--nmb-branch-width:155px}.nmb-branch-sides{gap:12px}.nmb-branch .gd-eq-weight{width:54px;min-width:54px;height:42px;min-height:42px}.nmb-keypad{width:202px}.nmb-branch-toolbar{max-width:210px;white-space:normal;flex-wrap:wrap;justify-content:center}
 }
