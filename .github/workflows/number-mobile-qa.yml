@@ -10,7 +10,7 @@ on:
       - 'scripts/99club/number-mobile-browser-qa.js'
       - '.github/workflows/number-mobile-qa.yml'
   push:
-    branches: [main]
+    branches: [main, refine-number-mobile-edit-branch-delete-20260930]
     paths:
       - 'assets/99club/goodies-number-mobile-balance-v3.js'
       - 'assets/99club/goodies-number-mobile-balance-v3.css'
