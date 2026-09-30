@@ -218,7 +218,7 @@ function bindTileClicks(work){
   work.addEventListener('click',e=>{
     const tile=e.target.closest?.('[data-ba-token]');if(!tile||tile.disabled)return;
     const id=String(tile.dataset.baToken);setTimeout(()=>{const fresh=workbench();if(!fresh)return;const tokens=currentTokenInfo(fresh);openEditor(id,tokens)},0);
-  });
+  },true);
 }
 function applyBuffer(id,buffer){
   editingId=String(id);focusedTileId=String(id);editBuffer=buffer;
@@ -230,6 +230,7 @@ function positionPopup(popup,tile,work,pw,ph){
   if(left+pw>wr.width)left=Math.max(8,tr.left-wr.left-pw-10);if(top+ph>wr.height)top=Math.max(8,wr.height-ph-8);popup.style.left=left+'px';popup.style.top=top+'px';
 }
 function tileToolbar(work,tokens){
+  work.querySelectorAll('.is-nmb-focused').forEach(tile=>tile.classList.remove('is-nmb-focused'));
   if(!focusedTileId||!tokens.has(String(focusedTileId)))return;
   const id=String(focusedTileId),tile=work.querySelector('[data-ba-token="'+CSS.escape(id)+'"]');if(!tile||tile.disabled)return;
   tile.classList.add('is-nmb-focused');
