@@ -37,7 +37,7 @@ function exactText(root,from,to){
 function adaptStage(stage){
   if(!stage)return;
   const work=stage.querySelector('.gd-eq-balance-workbench');
-  if(!work)return;
+  if(!work){disconnect();return}
   work.classList.add('gd-number-mobile-workbench');
 
   /* The legacy balance stored its angle using the old seesaw sign convention.
@@ -70,7 +70,7 @@ function adaptStage(stage){
   });
 }
 function adaptControls(controls){
-  if(!controls)return;
+  if(!controls||!document.querySelector('.gd-eq-balance-workbench'))return;
   exactText(controls,'Add a weight','Add a number tile');
   exactText(controls,'Show pan totals','Show side totals');
   exactText(controls,'Selected weight value','Selected number value');
@@ -111,6 +111,6 @@ G.balanceTool=function numberMobileBalanceTool(){
   observe(document.getElementById('gd-stage'),adaptStage);
   observe(document.getElementById('gd-controls'),adaptControls);
 };
-G.numberMobileBalanceVersion='1.2';
+G.numberMobileBalanceVersion='1.3';
 document.addEventListener('DOMContentLoaded',()=>queueMicrotask(adaptCatalogueCard),{once:true});
 })(window.TT99Goodies);
