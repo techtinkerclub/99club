@@ -27,34 +27,36 @@ if(mode==='prepare'){
   function assert(v,m){if(!v)throw new Error(m)}
   function tick(ms=0){return new Promise(r=>setTimeout(r,ms))}
   function result(status,message,detail=''){const el=document.getElementById('nmb-qa-result');el.dataset.status=status;el.dataset.message=message||'';el.dataset.detail=detail||'';el.textContent=status+': '+message}
+  function work(){return document.getElementById('gd-stage')?.querySelector('.gd-number-mobile-workbench')||null}
+  function tile(id){return work()?.querySelector('[data-ba-token="'+CSS.escape(String(id))+'"]')||null}
   async function run(){
     assert(window.TT99Goodies&&TT99Goodies.numberMobileBalanceVersion==='3.0','Number Mobile v3 adapter is active');
     const card=document.querySelector('[data-tool="balance"]');assert(card,'Number Mobile catalogue card exists');card.click();await tick();await tick();
-    const stage=document.getElementById('gd-stage'),work=stage&&stage.querySelector('.gd-number-mobile-workbench');assert(work,'Number Mobile workbench renders');
-    let tiles=[...work.querySelectorAll('[data-ba-token]')];assert(tiles.length>=3,'Number Mobile starts with editable number boxes');
+    assert(work(),'Number Mobile workbench renders');
+    let tiles=[...work().querySelectorAll('[data-ba-token]')];assert(tiles.length>=3,'Number Mobile starts with editable number boxes');
 
-    const first=tiles[0];first.click();await tick(20);
-    assert(work.querySelector('.nmb-keypad'),'Tapping a box opens the number keypad');
-    assert(work.querySelector('.nmb-tile-toolbar'),'Selected box exposes persistent direct actions');
-    work.querySelector('[data-nmb-close]').click();await tick();
-    assert(!work.querySelector('.nmb-keypad'),'Closing keypad hides only the keypad');
-    assert(work.querySelector('.nmb-tile-toolbar'),'Edit/delete actions remain after keypad closes');
+    const firstId=String(tiles[0].dataset.baToken);tile(firstId).click();await tick(30);
+    assert(work().querySelector('.nmb-keypad'),'Tapping a box opens the number keypad');
+    assert(work().querySelector('.nmb-tile-toolbar'),'Selected box exposes persistent direct actions');
+    work().querySelector('[data-nmb-close]').click();await tick(20);
+    assert(!work().querySelector('.nmb-keypad'),'Closing keypad hides only the keypad');
+    assert(work().querySelector('.nmb-tile-toolbar'),'Edit/delete actions remain after keypad closes');
 
-    first.click();await tick(20);assert(work.querySelector('.nmb-keypad'),'Tapping the selected box reopens editing');
-    const branchButton=work.querySelector('[data-nmb-branch]');assert(branchButton,'Keypad exposes Branch directly');branchButton.click();await tick(40);await tick(40);
-    const branch=work.querySelector('.nmb-branch');assert(branch,'Branch creates a visible child mobile');
+    tile(firstId).click();await tick(30);assert(work().querySelector('.nmb-keypad'),'Tapping the selected box reopens editing');
+    const branchButton=work().querySelector('[data-nmb-branch]');assert(branchButton,'Keypad exposes Branch directly');branchButton.click();await tick(60);await tick(60);
+    let branch=work().querySelector('.nmb-branch');assert(branch,'Branch creates a visible child mobile');
     assert(branch.querySelector('.nmb-branch-bar'),'Child mobile has its own balance bar');
     assert(branch.querySelectorAll('.nmb-branch-side').length===2,'Child mobile has two hanging sides');
     assert(branch.querySelectorAll('.nmb-branch-cord').length===2,'Child mobile has two visible suspension cords');
 
-    const branchTile=branch.querySelector('[data-ba-token]');assert(branchTile,'Original number box moves onto the child mobile');branchTile.click();await tick(20);
-    let toolbar=work.querySelector('.nmb-tile-toolbar');assert(toolbar,'Branched box can still be selected');
+    const branchTile=branch.querySelector('[data-ba-token]');assert(branchTile,'Original number box moves onto the child mobile');const branchTileId=String(branchTile.dataset.baToken);tile(branchTileId).click();await tick(30);
+    let toolbar=work().querySelector('.nmb-tile-toolbar');assert(toolbar,'Branched box can still be selected');
     const deleteButton=[...toolbar.querySelectorAll('button')].find(b=>b.textContent.trim()==='Delete');assert(deleteButton,'Selected box exposes direct Delete');
-    const before=work.querySelectorAll('[data-ba-token]').length;deleteButton.click();await tick(40);await tick();
-    const after=document.getElementById('gd-stage').querySelectorAll('[data-ba-token]').length;assert(after===before-1,'Direct Delete removes the selected box');
+    const before=work().querySelectorAll('[data-ba-token]').length;deleteButton.click();await tick(60);await tick(20);
+    const after=work().querySelectorAll('[data-ba-token]').length;assert(after===before-1,'Direct Delete removes the selected box');
 
-    const freshWork=document.getElementById('gd-stage').querySelector('.gd-number-mobile-workbench');const editable=freshWork.querySelector('[data-ba-token]');assert(editable,'Another box remains editable');editable.click();await tick(20);
-    assert(freshWork.querySelector('.nmb-keypad'),'Editing still works after branch/delete redraws');
+    const editable=work().querySelector('[data-ba-token]');assert(editable,'Another box remains editable');const editableId=String(editable.dataset.baToken);tile(editableId).click();await tick(30);
+    assert(work().querySelector('.nmb-keypad'),'Editing still works after branch/delete redraws');
     result('pass','Number Mobile edit, reopen, branch and delete interactions work without a render loop');
   }
   window.addEventListener('load',()=>setTimeout(()=>run().catch(e=>result('fail',e&&e.message?e.message:String(e),e&&e.stack?e.stack:'')),100));
