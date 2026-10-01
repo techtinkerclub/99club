@@ -23,7 +23,7 @@ const CHALLENGES=[
 function stage(){return document.getElementById(STAGE_ID)}
 function work(){return stage()?.querySelector('.gd-number-mobile-workbench')||null}
 function controls(){return document.getElementById('gd-controls')}
-function isChallenge(){return !!work()?.querySelector('.gd-challenge-banner')}
+function isChallenge(){return !!stage()?.querySelector('.gd-challenge-banner')}
 function dismissContext(){
   const w=work();if(!w)return;
   w.classList.add('nmb-context-dismissed');challengeOpen=false;
@@ -94,7 +94,6 @@ function pointerCapture(e){
   const w=work();if(!w)return;
   if(insideInteractive(e.target)){
     revealContext();
-    /* Base balance handlers may redraw synchronously later in this same event. */
     setTimeout(adaptStage,0);
     return;
   }
