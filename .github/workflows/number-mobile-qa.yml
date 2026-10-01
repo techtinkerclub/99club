@@ -68,11 +68,14 @@ jobs:
           timeout 50s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
             --window-size=1200,900 --virtual-time-budget=24000 --dump-dom \
             http://127.0.0.1:8781/99club-number-mobile-qa.html > /tmp/99club-number-mobile.html
+          cp /tmp/99club-number-mobile.html 99club-number-mobile-debug.html
           node scripts/99club/number-mobile-browser-qa.js check /tmp/99club-number-mobile.html
       - name: Upload Number Mobile QA report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: number-mobile-qa-report
-          path: 99club-number-mobile-qa-report.json
+          path: |
+            99club-number-mobile-qa-report.json
+            99club-number-mobile-debug.html
           if-no-files-found: ignore
