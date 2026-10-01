@@ -16,7 +16,7 @@ on:
       - '_pages/99-club-goodies.md'
       - '_pages/whiteboard.md'
       - 'scripts/99club/number-mobile-browser-qa.js'
-      - 'scripts/99club/number-mobile-challenge-ux-browser-qa.js'
+      - 'scripts/99club/goodies-number-mobile-challenge-ux-browser-qa.js'
       - '.github/workflows/number-mobile-qa.yml'
   push:
     branches: [main]
@@ -34,7 +34,7 @@ on:
       - '_pages/99-club-goodies.md'
       - '_pages/whiteboard.md'
       - 'scripts/99club/number-mobile-browser-qa.js'
-      - 'scripts/99club/number-mobile-challenge-ux-browser-qa.js'
+      - 'scripts/99club/goodies-number-mobile-challenge-ux-browser-qa.js'
       - '.github/workflows/number-mobile-qa.yml'
 
 permissions:
@@ -57,11 +57,11 @@ jobs:
           node --check assets/99club/goodies-number-mobile-balance-v6-blank-bridge.js
           node --check assets/99club/goodies-number-mobile-balance-v7.js
           node --check assets/99club/goodies-number-mobile-balance-v5-embed.js
-          node --check scripts/99club/number-mobile-challenge-ux-browser-qa.js
+          node --check scripts/99club/goodies-number-mobile-challenge-ux-browser-qa.js
       - name: Prepare Number Mobile browser harnesses
         run: |
           node scripts/99club/number-mobile-browser-qa.js prepare
-          node scripts/99club/number-mobile-challenge-ux-browser-qa.js prepare
+          node scripts/99club/goodies-number-mobile-challenge-ux-browser-qa.js prepare
       - name: Exercise Number Mobile challenges and mixed-whiteboard actions
         shell: bash
         run: |
@@ -91,7 +91,7 @@ jobs:
             --window-size=1200,900 --virtual-time-budget=26000 --dump-dom \
             http://127.0.0.1:8781/99club-number-mobile-challenge-ux-qa.html > /tmp/99club-number-mobile-challenge-ux.html
           cp /tmp/99club-number-mobile-challenge-ux.html 99club-number-mobile-challenge-ux-debug.html
-          node scripts/99club/number-mobile-challenge-ux-browser-qa.js check /tmp/99club-number-mobile-challenge-ux.html
+          node scripts/99club/goodies-number-mobile-challenge-ux-browser-qa.js check /tmp/99club-number-mobile-challenge-ux.html
       - name: Upload Number Mobile QA reports
         if: always()
         uses: actions/upload-artifact@v4
