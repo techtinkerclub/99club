@@ -23,6 +23,7 @@ robots: "noindex,nofollow,noarchive"
 <link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v7.css?v=1">
 <link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v8.css?v=2">
 <link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v9.css?v=1">
+<link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v11.css?v=1">
 <script>
 window.TT99_GOODIES_FORCE_BOARD = true;
 window.TT99_GOODIES_BOARD_EMBED_PATH = '/goodies/';
@@ -44,5 +45,6 @@ window.TT99_GOODIES_BOARD_HOME = '/goodies/';
 <script src="/assets/99club/goodies-number-mobile-balance-v8.js?v=2" defer></script>
 <script src="/assets/99club/goodies-number-mobile-balance-v9.js?v=3" defer></script>
 <script src="/assets/99club/goodies-number-mobile-balance-v10.js?v=1" defer></script>
+<script src="/assets/99club/goodies-number-mobile-balance-v11.js?v=1" defer></script>
 <script src="/assets/99club/goodies-app.js?v=6" defer></script>
 <script src="/assets/99club/goodies-board.js?v=5" defer></script>

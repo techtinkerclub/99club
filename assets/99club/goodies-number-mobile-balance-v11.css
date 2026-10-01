@@ -1,0 +1,17 @@
+/* Number Mobile Balance v11 · first-render challenge chrome guard */
+.nmb-v8-pupil-challenge .gd-challenge-banner .gd-challenge-actions{
+  position:static!important;
+  inset:auto!important;
+  top:auto!important;
+  right:auto!important;
+  bottom:auto!important;
+  left:auto!important;
+  transform:none!important;
+  width:auto!important;
+  max-width:100%!important;
+  align-self:center!important;
+  z-index:1!important;
+}
+.nmb-v8-pupil-challenge .gd-challenge-banner{
+  overflow:visible!important;
+}
