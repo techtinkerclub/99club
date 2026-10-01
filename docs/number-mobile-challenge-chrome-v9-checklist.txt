@@ -1,0 +1,9 @@
+Number Mobile challenge chrome v9
+
+Visual checks:
+- no duplicate task/equation line between the challenge banner and mobile;
+- prompt stays inside the banner;
+- compact Change / Another / Reveal / Exit controls stay inside the banner;
+- missing-number helper is a slim status strip;
+- Change opens the existing challenge picker;
+- challenge generation and answer logic remain unchanged.
