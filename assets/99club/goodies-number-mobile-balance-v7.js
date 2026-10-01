@@ -33,7 +33,15 @@ function finalChallengeReady(){
   if(originBanner&&b===originBanner)return false;
   const level=String(G.numberMobileChallengeDifficulty||'easy').toUpperCase();
   const kicker=String(q('.gd-challenge-kicker',b)?.textContent||'').toUpperCase();
-  return kicker.includes(level);
+  if(!kicker.includes(level))return false;
+  const prompt=String(q('.gd-challenge-prompt',b)?.textContent||'').trim();
+  if(!prompt||/write your challenge here/i.test(prompt))return false;
+  /* Medium/Hard complex puzzles are assembled through the custom editor. The
+   * temporary custom banner exists long before branches/unknowns are ready, so
+   * do not drop the curtain until v6 publishes the completed challenge spec. */
+  const customEditor=!!q('#ba-custom-title',controls());
+  if(customEditor&&!G.numberMobileChallengeSpec)return false;
+  return true;
 }
 function checkBuild(seq){
   if(!building||seq!==buildSeq)return;
@@ -54,12 +62,26 @@ function noteMutation(){
   else ensureExit();
 }
 
+async function clearThroughNumberMobile(){
+  if(!banner()||!G.numberMobileChallengeSpec)return false;
+  const trigger=q('[data-nmb-challenge-toggle]',work());if(!trigger)return false;
+  trigger.click();
+  const popClear=await waitFor(()=>q('[data-nmb-v6-clear]',work()),{tries:24,delay:25});
+  if(!popClear)return false;
+  popClear.click();
+  await waitFor(()=>!banner(),{tries:44,delay:25});
+  return !banner();
+}
 async function exitChallenge(){
   if(exiting)return;exiting=true;
   try{
     if(building)finishBuild(buildSeq);
+    /* Complex Medium/Hard challenges keep Number Mobile-specific state in v6.
+     * Clear through that layer first so its read-only spec is released before
+     * the shared challenge banner disappears. */
+    if(await clearThroughNumberMobile())return;
     const challengeTab=q('[data-ba-workflow="challenge"]',controls());if(challengeTab)challengeTab.click();
-    let clear=await waitFor(()=>q('#ba-clear-challenge',controls()),{tries:30,delay:25});
+    const clear=await waitFor(()=>q('#ba-clear-challenge',controls()),{tries:30,delay:25});
     if(clear){clear.click();await waitFor(()=>!banner(),{tries:36,delay:25})}
     if(banner()){
       const trigger=q('[data-nmb-challenge-toggle]',work());if(trigger)trigger.click();
@@ -90,6 +112,6 @@ function install(){
   installObserver();ensureExit();
 }
 
-G.numberMobileChallengeUxVersion='7.1';
+G.numberMobileChallengeUxVersion='7.3';
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else queueMicrotask(install);
 })(window.TT99Goodies);

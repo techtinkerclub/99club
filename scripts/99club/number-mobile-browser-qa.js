@@ -55,7 +55,7 @@ if(mode==='prepare'){
   async function run(){
     assert(window.TT99Goodies,'Goodies runtime loads');
     assert(String(TT99Goodies.numberMobileBalanceVersion||'').startsWith('3.0'),'Number Mobile tree adapter is active');
-    assert(TT99Goodies.numberMobileBalanceEnhancementVersion==='6.0','Number Mobile difficulty layer is active');
+    assert(/^6\./.test(String(TT99Goodies.numberMobileBalanceEnhancementVersion||'')),'Number Mobile difficulty layer is active');
 
     const card=document.querySelector('[data-tool="balance"]');assert(card,'Number Mobile catalogue card exists');card.click();
     const w=await waitFor(()=>work());assert(w,'Number Mobile workbench renders');

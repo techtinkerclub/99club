@@ -42,6 +42,7 @@ function token(id){return q('[data-ba-token="'+CSS.escape(String(id))+'"]',work(
 function tokenIds(root=work()){return new Set(qa('[data-ba-token]',root).map(el=>String(el.dataset.baToken)))}
 function activeChallenge(){return !!banner()}
 function titleFor(type){return TYPE_LABEL[type]||'Challenge'}
+function exposeSpec(spec){complexSpec=spec||null;G.numberMobileChallengeSpec=complexSpec}
 
 function closePopover(){
   popoverOpen=false;qa('.nmb-v5-challenge-popover',work()).forEach(el=>el.remove());
@@ -100,10 +101,10 @@ async function selectWorkflow(name){const button=q('[data-ba-workflow="'+name+'"
 async function clearExisting(){
   if(!activeChallenge())return;
   await selectWorkflow('challenge');const clear=await waitFor(()=>q('#ba-clear-challenge',controls()));
-  if(clear){complexSpec=null;clear.click();await wait(70)}
+  if(clear){exposeSpec(null);clear.click();await wait(70)}
 }
 async function standardChallenge(type){
-  busy=true;closePopover();complexSpec=null;
+  busy=true;closePopover();exposeSpec(null);
   try{
     if(type==='random')type=TYPES[Math.floor(Math.random()*TYPES.length)];
     await clearExisting();if(!await selectWorkflow('challenge'))return;
@@ -124,7 +125,17 @@ async function addNumber(side,value){
   const added=await waitFor(()=>qa('[data-ba-token]',work()).find(el=>!before.has(String(el.dataset.baToken))),{tries:42,delay:25});
   if(!added)throw new Error('Number Mobile did not add a number box');await wait(30);adapt();return String(added.dataset.baToken);
 }
-async function selectToken(id){const el=await waitFor(()=>token(id));if(!el)throw new Error('Number Mobile box not found');if(el.disabled)el.disabled=false;el.click();await wait(40);adapt();return el}
+async function selectToken(id){
+  const sid=String(id);
+  for(let attempt=0;attempt<4;attempt++){
+    const el=await waitFor(()=>token(sid));if(!el)throw new Error('Number Mobile box not found');if(el.disabled){el.disabled=false;el.removeAttribute('disabled');el.removeAttribute('aria-disabled')}
+    el.click();
+    const selected=await waitFor(()=>q('[data-ba-selected="'+CSS.escape(sid)+'"]',work()),{tries:10,delay:12});
+    if(selected){await wait(18);adapt();return token(sid)||el}
+    await wait(20);
+  }
+  throw new Error('Number Mobile could not focus the requested box');
+}
 async function setTokenValue(id,value){
   await selectToken(id);const input=await waitFor(()=>document.getElementById('ba-value'));if(!input)throw new Error('Number Mobile value editor unavailable');input.value=String(value);input.dispatchEvent(new Event('change',{bubbles:true}));await wait(55);adapt();
 }
@@ -156,11 +167,11 @@ async function buildMissing(level){
   const S=randint(level==='hard'?9:8,level==='hard'?15:13);
   if(level==='medium'){
     const known=randint(2,S-2),missing=S-known,root=await addNumber('left',missing),branch=await branchToken(root,S,[{slot:'left',value:known}]);await addNumber('right',2*S);await hideToken(root);
-    return{type:'missing-weight',difficulty:level,readOnly:true,balancedBranchIds:[branch.branchId],prompt:'Every bar is balanced. Work out the missing number in the smaller hanging balance.',answer:String(missing)};
+    return{type:'missing-weight',difficulty:level,readOnly:true,balancedBranchIds:[branch.branchId],prompt:'Every bar is balanced. Work out the missing number in the smaller hanging balance.',answer:String(missing),answerByToken:{[String(root)]:missing}};
   }
   const p1=randint(2,S-2),m1=S-p1,p2=randint(2,S-2),m2=S-p2,leftRoot=await addNumber('left',m1),left=await branchToken(leftRoot,S,[{slot:'left',value:p1}]),rightRoot=await addNumber('right',S),right=await branchToken(rightRoot,m2,[{slot:'right',value:p2}]);
   await hideToken(leftRoot);await hideToken(right.ids.right[0]);
-  return{type:'missing-weight',difficulty:level,readOnly:true,balancedBranchIds:[left.branchId,right.branchId],prompt:'Every bar is balanced. Find both missing numbers. Use the two smaller balances before checking the main bar.',answer:m1+' and '+m2};
+  return{type:'missing-weight',difficulty:level,readOnly:true,balancedBranchIds:[left.branchId,right.branchId],prompt:'Every bar is balanced. Find both missing numbers. Use the two smaller balances before checking the main bar.',answer:m1+' and '+m2,answerByToken:{[String(leftRoot)]:m1,[String(right.ids.right[0])]:m2}};
 }
 async function buildCompare(level){
   if(level==='medium'){const S=randint(7,13),branch=await balancedBranch('left',S),delta=randint(2,7);await addNumber('right',2*S+delta);return{type:'choose-relation',difficulty:level,readOnly:true,balancedBranchIds:[branch.branchId],prompt:'Which main side is heavier? Work out the value of the hanging branch before you compare the two sides.',answer:'Right side'}}
@@ -183,19 +194,19 @@ async function buildBalance(level){
   return{type:'make-balance',difficulty:level,readOnly:false,balancedBranchIds:[],prompt:'Make the entire mobile balance. Both smaller bars must balance internally and the main bar must balance too.',answer:'Any arrangement where both smaller bars and the main bar are balanced.'};
 }
 async function complexChallenge(type,level){
-  busy=true;closePopover();complexSpec=null;
+  busy=true;closePopover();exposeSpec(null);
   try{
     if(type==='random'){const pool=[...COMPLEX];type=pool[Math.floor(Math.random()*pool.length)]}
     if(!COMPLEX.has(type)){await standardChallenge(type);return}
     if(!await enterCustomShell())throw new Error('Could not open Number Mobile custom challenge mode');
     let spec;if(type==='missing-weight')spec=await buildMissing(level);else if(type==='choose-relation')spec=await buildCompare(level);else if(type==='find-difference')spec=await buildDifference(level);else if(type==='spot-false-equality')spec=await buildSpot(level);else spec=await buildBalance(level);
-    complexSpec=spec;await setCustomCopy(spec);adapt();
-  }catch(err){console.error('Number Mobile complex challenge:',err);complexSpec=null}
+    exposeSpec(spec);await setCustomCopy(spec);adapt();
+  }catch(err){console.error('Number Mobile complex challenge:',err);exposeSpec(null)}
   finally{busy=false;adapt()}
 }
 function generate(type){G.numberMobileChallengeDifficulty=difficulty;return difficulty==='easy'?standardChallenge(type):complexChallenge(type,difficulty)}
 async function clearChallenge(){
-  busy=true;closePopover();try{await selectWorkflow('challenge');const clear=await waitFor(()=>q('#ba-clear-challenge',controls()));complexSpec=null;if(clear){clear.click();await wait(75)}}finally{busy=false;adapt()}
+  busy=true;closePopover();try{await selectWorkflow('challenge');const clear=await waitFor(()=>q('#ba-clear-challenge',controls()));exposeSpec(null);if(clear){clear.click();await wait(75)}}finally{busy=false;adapt()}
 }
 
 function numericText(el){const value=Number(String(el?.textContent||'').trim());return Number.isFinite(value)?value:0}
@@ -251,7 +262,7 @@ function adapt(){
   if(popoverOpen&&!q('.nmb-v5-challenge-popover',w)){w.appendChild(challengePopover());q('[data-nmb-challenge-toggle]',w)?.setAttribute('aria-expanded','true')}
 }
 function install(){
-  if(installed)return;installed=true;G.numberMobileChallengeDifficulty=difficulty;
+  if(installed)return;installed=true;G.numberMobileChallengeDifficulty=difficulty;G.numberMobileChallengeSpec=null;
   document.addEventListener('click',e=>{
     if(popoverOpen&&!e.target.closest?.('.nmb-v5-challenge-popover,[data-nmb-challenge-toggle]'))closePopover();
     scheduleAdapt(0);scheduleAdapt(70);
@@ -259,7 +270,7 @@ function install(){
   document.addEventListener('change',()=>scheduleAdapt(40),true);document.addEventListener('input',()=>scheduleAdapt(40),true);document.addEventListener('pointerup',()=>scheduleAdapt(60),true);
   adapt();
 }
-G.balanceTool=function numberMobileBalanceToolV6(){const result=balanceToolV4.apply(this,arguments);complexSpec=null;popoverOpen=false;setTimeout(adapt,30);setTimeout(adapt,130);return result};
-G.numberMobileBalanceEnhancementVersion='6.0';
+G.balanceTool=function numberMobileBalanceToolV6(){const result=balanceToolV4.apply(this,arguments);exposeSpec(null);popoverOpen=false;setTimeout(adapt,30);setTimeout(adapt,130);return result};
+G.numberMobileBalanceEnhancementVersion='6.1';
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else queueMicrotask(install);
 })(window.TT99Goodies);
