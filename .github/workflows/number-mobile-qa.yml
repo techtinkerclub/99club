@@ -10,6 +10,7 @@ on:
       - 'assets/99club/goodies-number-mobile-balance-v5.css'
       - 'assets/99club/goodies-number-mobile-balance-v5-embed.js'
       - 'assets/99club/goodies-number-mobile-balance-v6.js'
+      - 'assets/99club/goodies-number-mobile-balance-v6-blank-bridge.js'
       - '_pages/99-club-goodies.md'
       - '_pages/whiteboard.md'
       - 'scripts/99club/number-mobile-browser-qa.js'
@@ -24,6 +25,7 @@ on:
       - 'assets/99club/goodies-number-mobile-balance-v5.css'
       - 'assets/99club/goodies-number-mobile-balance-v5-embed.js'
       - 'assets/99club/goodies-number-mobile-balance-v6.js'
+      - 'assets/99club/goodies-number-mobile-balance-v6-blank-bridge.js'
       - '_pages/99-club-goodies.md'
       - '_pages/whiteboard.md'
       - 'scripts/99club/number-mobile-browser-qa.js'
@@ -46,6 +48,7 @@ jobs:
           node --check assets/99club/goodies-number-mobile-balance-v3.js
           node --check assets/99club/goodies-number-mobile-balance-v4.js
           node --check assets/99club/goodies-number-mobile-balance-v6.js
+          node --check assets/99club/goodies-number-mobile-balance-v6-blank-bridge.js
           node --check assets/99club/goodies-number-mobile-balance-v5-embed.js
       - name: Prepare Number Mobile browser harness
         run: node scripts/99club/number-mobile-browser-qa.js prepare
