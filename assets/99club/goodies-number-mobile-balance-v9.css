@@ -1,0 +1,126 @@
+/* Number Mobile Balance v9 · tidy pupil challenge presentation */
+
+/* In pupil challenge mode the banner is the instruction area. The old
+   teacher-facing equation/task summary repeats the same wording and was
+   colliding with the banner when the manipulative is scaled on the board. */
+.nmb-v8-pupil-challenge .gd-number-mobile-workbench .gd-eq-summary{
+  display:none!important;
+}
+
+.nmb-v8-pupil-challenge .gd-challenge-banner{
+  display:grid!important;
+  grid-template-columns:max-content minmax(0,1fr)!important;
+  grid-template-areas:"kicker copy" "actions actions"!important;
+  align-items:center!important;
+  gap:4px 12px!important;
+  min-height:0!important;
+  margin:6px 10px 4px!important;
+  padding:8px 12px!important;
+  border:1px solid #ead8a7!important;
+  border-radius:14px!important;
+  background:rgba(255,250,238,.98)!important;
+  box-shadow:none!important;
+}
+.nmb-v8-pupil-challenge .gd-challenge-kicker{
+  grid-area:kicker!important;
+  align-self:center!important;
+  margin:0!important;
+  white-space:nowrap!important;
+  font-size:.68rem!important;
+  line-height:1.15!important;
+  letter-spacing:.04em!important;
+}
+.nmb-v8-pupil-challenge .gd-challenge-copy{
+  grid-area:copy!important;
+  min-width:0!important;
+  margin:0!important;
+  display:block!important;
+}
+.nmb-v8-pupil-challenge .gd-challenge-copy h3{
+  display:none!important;
+}
+.nmb-v8-pupil-challenge .gd-challenge-prompt{
+  margin:0!important;
+  font-size:.84rem!important;
+  line-height:1.28!important;
+  font-weight:800!important;
+  color:#29464d!important;
+}
+.nmb-v8-pupil-challenge .gd-challenge-actions{
+  grid-area:actions!important;
+  display:flex!important;
+  flex-wrap:wrap!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:5px!important;
+  min-width:0!important;
+  margin:0!important;
+}
+.nmb-v8-pupil-challenge .gd-challenge-actions .gd-challenge-action{
+  min-height:30px!important;
+  padding:4px 9px!important;
+  border-radius:999px!important;
+  font-size:.68rem!important;
+  line-height:1.05!important;
+  white-space:nowrap!important;
+}
+.nmb-v8-pupil-challenge .gd-challenge-actions em{
+  flex-basis:100%!important;
+  margin:1px 0 0!important;
+  text-align:right!important;
+  font-size:.67rem!important;
+}
+
+/* The response row should read as a small answer/status strip, not a second
+   large instruction card. */
+.nmb-v8-pupil-challenge .nmb-v8-response-panel{
+  min-height:38px!important;
+  margin:5px 12px 2px!important;
+  padding:5px 10px!important;
+  gap:9px!important;
+  justify-content:flex-start!important;
+  border-radius:11px!important;
+  box-shadow:none!important;
+}
+.nmb-v8-pupil-challenge .nmb-v8-response-panel.is-missing{
+  justify-content:flex-start!important;
+}
+.nmb-v8-pupil-challenge .nmb-v8-response-label{
+  font-size:.76rem!important;
+  line-height:1.2!important;
+}
+.nmb-v8-pupil-challenge .nmb-v8-feedback{
+  margin-left:auto!important;
+  min-width:0!important;
+  font-size:.73rem!important;
+}
+
+@media(max-width:820px){
+  .nmb-v8-pupil-challenge .gd-challenge-banner{
+    grid-template-columns:1fr!important;
+    grid-template-areas:"kicker" "copy" "actions"!important;
+    gap:4px!important;
+    padding:8px 10px!important;
+  }
+  .nmb-v8-pupil-challenge .gd-challenge-actions{
+    justify-content:flex-start!important;
+  }
+  .nmb-v8-pupil-challenge .gd-challenge-actions em{
+    text-align:left!important;
+  }
+}
+
+@media(max-width:620px){
+  .nmb-v8-pupil-challenge .gd-challenge-actions .gd-challenge-action{
+    min-height:29px!important;
+    padding:4px 8px!important;
+    font-size:.65rem!important;
+  }
+  .nmb-v8-pupil-challenge .nmb-v8-response-panel{
+    align-items:flex-start!important;
+    flex-direction:column!important;
+  }
+  .nmb-v8-pupil-challenge .nmb-v8-feedback{
+    margin-left:0!important;
+  }
+}
