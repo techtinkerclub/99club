@@ -7,6 +7,10 @@ on:
       - 'assets/99club/goodies-number-mobile-balance-v3.css'
       - 'assets/99club/goodies-number-mobile-balance-v4.js'
       - 'assets/99club/goodies-number-mobile-balance-v4.css'
+      - 'assets/99club/goodies-number-mobile-balance-v5.css'
+      - 'assets/99club/goodies-number-mobile-balance-v5-embed.js'
+      - 'assets/99club/goodies-number-mobile-balance-v6.js'
+      - 'assets/99club/goodies-number-mobile-balance-v6-blank-bridge.js'
       - '_pages/99-club-goodies.md'
       - '_pages/whiteboard.md'
       - 'scripts/99club/number-mobile-browser-qa.js'
@@ -18,6 +22,10 @@ on:
       - 'assets/99club/goodies-number-mobile-balance-v3.css'
       - 'assets/99club/goodies-number-mobile-balance-v4.js'
       - 'assets/99club/goodies-number-mobile-balance-v4.css'
+      - 'assets/99club/goodies-number-mobile-balance-v5.css'
+      - 'assets/99club/goodies-number-mobile-balance-v5-embed.js'
+      - 'assets/99club/goodies-number-mobile-balance-v6.js'
+      - 'assets/99club/goodies-number-mobile-balance-v6-blank-bridge.js'
       - '_pages/99-club-goodies.md'
       - '_pages/whiteboard.md'
       - 'scripts/99club/number-mobile-browser-qa.js'
@@ -29,7 +37,7 @@ permissions:
 jobs:
   number-mobile-browser:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 6
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -39,9 +47,12 @@ jobs:
         run: |
           node --check assets/99club/goodies-number-mobile-balance-v3.js
           node --check assets/99club/goodies-number-mobile-balance-v4.js
-      - name: Prepare Number Mobile browser harness
+          node --check assets/99club/goodies-number-mobile-balance-v6.js
+          node --check assets/99club/goodies-number-mobile-balance-v6-blank-bridge.js
+          node --check assets/99club/goodies-number-mobile-balance-v5-embed.js
+      - name: Prepare Number Mobile browser harnesses
         run: node scripts/99club/number-mobile-browser-qa.js prepare
-      - name: Exercise contextual editing, branching, deletion and challenges
+      - name: Exercise Number Mobile challenges and mixed-whiteboard actions
         shell: bash
         run: |
           set -euo pipefail
@@ -54,14 +65,25 @@ jobs:
             echo 'No Chrome/Chromium executable is available on this runner.' >&2
             exit 1
           fi
-          timeout 45s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
-            --window-size=1200,900 --virtual-time-budget=14000 --dump-dom \
+          timeout 50s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --window-size=1200,900 --virtual-time-budget=24000 --dump-dom \
             http://127.0.0.1:8781/99club-number-mobile-qa.html > /tmp/99club-number-mobile.html
-          node scripts/99club/number-mobile-browser-qa.js check /tmp/99club-number-mobile.html
-      - name: Upload Number Mobile QA report
+          cp /tmp/99club-number-mobile.html 99club-number-mobile-debug.html
+          node scripts/99club/number-mobile-browser-qa.js check /tmp/99club-number-mobile.html standalone
+
+          timeout 40s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --window-size=1400,1000 --virtual-time-budget=18000 --dump-dom \
+            http://127.0.0.1:8781/99club-number-mobile-board-qa.html > /tmp/99club-number-mobile-board.html
+          cp /tmp/99club-number-mobile-board.html 99club-number-mobile-board-debug.html
+          node scripts/99club/number-mobile-browser-qa.js check /tmp/99club-number-mobile-board.html board
+      - name: Upload Number Mobile QA reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: number-mobile-qa-report
-          path: 99club-number-mobile-qa-report.json
+          path: |
+            99club-number-mobile-qa-report.json
+            99club-number-mobile-board-qa-report.json
+            99club-number-mobile-debug.html
+            99club-number-mobile-board-debug.html
           if-no-files-found: ignore
