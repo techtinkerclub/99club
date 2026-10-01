@@ -29,7 +29,8 @@ if(mode==='prepare'){
   function assert(v,m){if(!v)throw new Error(m)}
   function tick(ms=0){return new Promise(r=>setTimeout(r,ms))}
   function result(status,message,detail=''){const el=document.getElementById('nmb-qa-result');el.dataset.status=status;el.dataset.message=message||'';el.dataset.detail=detail||'';el.textContent=status+': '+message}
-  function work(){return document.getElementById('gd-stage')?.querySelector('.gd-number-mobile-workbench')||null}
+  function stage(){return document.getElementById('gd-stage')}
+  function work(){return stage()?.querySelector('.gd-number-mobile-workbench')||null}
   function tile(id){return work()?.querySelector('[data-ba-token="'+CSS.escape(String(id))+'"]')||null}
   async function run(){
     assert(window.TT99Goodies&&String(TT99Goodies.numberMobileBalanceVersion||'').startsWith('3.0'),'Number Mobile v3 adapter is active');
@@ -69,12 +70,12 @@ if(mode==='prepare'){
 
     const challenge=work().querySelector('[data-nmb-challenge-toggle]');assert(challenge,'Challenge launcher remains available after editing');challenge.click();await tick(20);
     const missing=work().querySelector('[data-nmb-challenge="missing-weight"]');assert(missing,'Challenge picker includes Missing number');missing.click();await tick(80);
-    assert(work().querySelector('.gd-challenge-banner'),'Direct Number Mobile challenge action uses the shared challenge engine');
+    assert(stage().querySelector('.gd-challenge-banner'),'Direct Number Mobile challenge action uses the shared challenge engine');
     assert([...work().querySelectorAll('[data-ba-token]')].some(t=>t.disabled),'Generated fixed challenge boxes remain protected');
 
     work().querySelector('[data-nmb-challenge-toggle]')?.click();await tick(20);
     const clear=[...work().querySelectorAll('.nmb-challenge-popover button')].find(b=>b.textContent.trim()==='Clear challenge');assert(clear,'Active challenge can be cleared directly');clear.click();await tick(60);
-    assert(!work().querySelector('.gd-challenge-banner'),'Clear challenge returns to normal Number Mobile mode');
+    assert(!stage().querySelector('.gd-challenge-banner'),'Clear challenge returns to normal Number Mobile mode');
     assert([...work().querySelectorAll('[data-ba-token]')].every(t=>!t.disabled),'Starter boxes are editable again after challenge mode');
 
     result('pass','Number Mobile contextual edit, branch, delete and challenge interactions work without a render loop');
