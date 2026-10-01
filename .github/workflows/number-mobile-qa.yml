@@ -15,10 +15,14 @@ on:
       - 'assets/99club/goodies-number-mobile-balance-v7.css'
       - 'assets/99club/goodies-number-mobile-balance-v8.js'
       - 'assets/99club/goodies-number-mobile-balance-v8.css'
+      - 'assets/99club/goodies-number-mobile-balance-v9.js'
+      - 'assets/99club/goodies-number-mobile-balance-v9.css'
+      - 'assets/99club/goodies-number-mobile-balance-v10.js'
       - '_pages/99-club-goodies.md'
       - '_pages/whiteboard.md'
       - 'scripts/99club/number-mobile-browser-qa.js'
       - 'scripts/99club/goodies-number-mobile-challenge-ux-browser-qa.js'
+      - 'scripts/99club/number-mobile-pupil-state-browser-qa.js'
       - '.github/workflows/number-mobile-qa.yml'
   push:
     branches: [main]
@@ -35,10 +39,14 @@ on:
       - 'assets/99club/goodies-number-mobile-balance-v7.css'
       - 'assets/99club/goodies-number-mobile-balance-v8.js'
       - 'assets/99club/goodies-number-mobile-balance-v8.css'
+      - 'assets/99club/goodies-number-mobile-balance-v9.js'
+      - 'assets/99club/goodies-number-mobile-balance-v9.css'
+      - 'assets/99club/goodies-number-mobile-balance-v10.js'
       - '_pages/99-club-goodies.md'
       - '_pages/whiteboard.md'
       - 'scripts/99club/number-mobile-browser-qa.js'
       - 'scripts/99club/goodies-number-mobile-challenge-ux-browser-qa.js'
+      - 'scripts/99club/number-mobile-pupil-state-browser-qa.js'
       - '.github/workflows/number-mobile-qa.yml'
 
 permissions:
@@ -47,7 +55,7 @@ permissions:
 jobs:
   number-mobile-browser:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 7
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -61,12 +69,16 @@ jobs:
           node --check assets/99club/goodies-number-mobile-balance-v6-blank-bridge.js
           node --check assets/99club/goodies-number-mobile-balance-v7.js
           node --check assets/99club/goodies-number-mobile-balance-v8.js
+          node --check assets/99club/goodies-number-mobile-balance-v9.js
+          node --check assets/99club/goodies-number-mobile-balance-v10.js
           node --check assets/99club/goodies-number-mobile-balance-v5-embed.js
           node --check scripts/99club/goodies-number-mobile-challenge-ux-browser-qa.js
+          node --check scripts/99club/number-mobile-pupil-state-browser-qa.js
       - name: Prepare Number Mobile browser harnesses
         run: |
           node scripts/99club/number-mobile-browser-qa.js prepare
           node scripts/99club/goodies-number-mobile-challenge-ux-browser-qa.js prepare
+          node scripts/99club/number-mobile-pupil-state-browser-qa.js prepare
       - name: Exercise Number Mobile challenges and mixed-whiteboard actions
         shell: bash
         run: |
@@ -97,6 +109,12 @@ jobs:
             http://127.0.0.1:8781/99club-number-mobile-challenge-ux-qa.html > /tmp/99club-number-mobile-challenge-ux.html
           cp /tmp/99club-number-mobile-challenge-ux.html 99club-number-mobile-challenge-ux-debug.html
           node scripts/99club/goodies-number-mobile-challenge-ux-browser-qa.js check /tmp/99club-number-mobile-challenge-ux.html
+
+          timeout 55s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --window-size=1200,900 --virtual-time-budget=36000 --dump-dom \
+            http://127.0.0.1:8781/99club-number-mobile-pupil-state-qa.html > /tmp/99club-number-mobile-pupil-state.html
+          cp /tmp/99club-number-mobile-pupil-state.html 99club-number-mobile-pupil-state-debug.html
+          node scripts/99club/number-mobile-pupil-state-browser-qa.js check /tmp/99club-number-mobile-pupil-state.html
       - name: Upload Number Mobile QA reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -106,7 +124,9 @@ jobs:
             99club-number-mobile-qa-report.json
             99club-number-mobile-board-qa-report.json
             99club-number-mobile-challenge-ux-qa-report.json
+            99club-number-mobile-pupil-state-qa-report.json
             99club-number-mobile-debug.html
             99club-number-mobile-board-debug.html
             99club-number-mobile-challenge-ux-debug.html
+            99club-number-mobile-pupil-state-debug.html
           if-no-files-found: ignore
