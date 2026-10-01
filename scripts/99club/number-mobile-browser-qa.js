@@ -36,8 +36,9 @@ if(mode==='prepare'){
   function stage(){return document.getElementById('gd-stage')}
   function work(){return stage()?.querySelector('.gd-number-mobile-workbench')||null}
   function tile(id){return work()?.querySelector('[data-ba-token="'+CSS.escape(String(id))+'"]')||null}
+  function missingCount(){return [...(work()?.querySelectorAll('[data-ba-token] strong')||[])].filter(el=>el.textContent.trim()==='?').length}
   async function openChallenge(){const trigger=work()?.querySelector('[data-nmb-challenge-toggle]');assert(trigger,'Number Mobile exposes a direct Challenge action');trigger.click();return await waitFor(()=>work()?.querySelector('.nmb-v5-challenge-popover'))}
-  async function clearChallenge(){let pop=await openChallenge();const clear=pop?.querySelector('[data-nmb-v6-clear]');assert(clear,'Active challenge can be cleared directly');clear.click();await tick(120);assert(!stage().querySelector('.gd-challenge-banner'),'Clear challenge returns to normal Number Mobile mode')}
+  async function clearChallenge(){let pop=await openChallenge();const clear=pop?.querySelector('[data-nmb-v6-clear]');assert(clear,'Active challenge can be cleared directly');clear.click();await waitFor(()=>!stage().querySelector('.gd-challenge-banner'));assert(!stage().querySelector('.gd-challenge-banner'),'Clear challenge returns to normal Number Mobile mode')}
   async function run(){
     assert(window.TT99Goodies&&String(TT99Goodies.numberMobileBalanceVersion||'').startsWith('3.0'),'Number Mobile v3 adapter is active');
     assert(TT99Goodies.numberMobileBalanceEnhancementVersion==='6.0','Number Mobile v6 challenge enhancement is active');
@@ -84,18 +85,21 @@ if(mode==='prepare'){
     pop=work().querySelector('.nmb-v5-challenge-popover');assert(pop.querySelector('[data-nmb-v6-difficulty="hard"].is-active'),'Hard selection remains active');
     pop.querySelector('[data-nmb-v6-type="missing-weight"]').click();
     const hardBanner=await waitFor(()=>stage().querySelector('.gd-challenge-banner'),120,45);assert(hardBanner,'Hard missing-number challenge renders');
-    await waitFor(()=>work()?.querySelectorAll('.nmb-branch').length>=2,120,45);await tick(170);
+    await waitFor(()=>work()?.querySelectorAll('.nmb-branch').length>=2,120,45);
     assert(work().querySelectorAll('.nmb-branch').length>=2,'Hard challenge uses two hanging branches');
-    assert([...work().querySelectorAll('[data-ba-token] strong')].filter(el=>el.textContent.trim()==='?').length>=2,'Hard challenge contains multiple missing numbers');
+    await waitFor(()=>missingCount()>=2,120,35);
+    assert(missingCount()>=2,'Hard challenge contains multiple missing numbers');
     assert([...work().querySelectorAll('.gd-eq-total')].every(el=>getComputedStyle(el).display==='none'),'Hard challenge never shows side totals');
     assert(/HARD/.test(stage().querySelector('.gd-challenge-kicker')?.textContent||''),'Challenge banner identifies Hard difficulty');
     assert(stage().querySelector('[data-nmb-v6-another]'),'Hard challenge keeps Another like this on the banner');
     assert([...work().querySelectorAll('[data-ba-token]')].every(el=>el.disabled),'Read-only hard puzzle protects its given boxes');
 
-    const reveal=stage().querySelector('[data-board-action="reveal"]');assert(reveal,'Hard challenge has Reveal answer');reveal.click();await tick(170);
-    assert([...work().querySelectorAll('[data-ba-token] strong')].filter(el=>el.textContent.trim()==='?').length===0,'Reveal answer restores both hidden values');
+    const reveal=stage().querySelector('[data-board-action="reveal"]');assert(reveal,'Hard challenge has Reveal answer');reveal.click();
+    await waitFor(()=>missingCount()===0,100,35);
+    assert(missingCount()===0,'Reveal answer restores both hidden values');
 
     await clearChallenge();
+    await waitFor(()=>[...work().querySelectorAll('[data-ba-token]')].every(t=>!t.disabled));
     assert([...work().querySelectorAll('[data-ba-token]')].every(t=>!t.disabled),'Original setup is editable again after challenge mode');
 
     result('pass','Number Mobile contextual editing plus Easy/Medium/Hard challenge interactions work without leaking totals');
