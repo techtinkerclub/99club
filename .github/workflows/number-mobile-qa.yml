@@ -50,9 +50,9 @@ jobs:
           node --check assets/99club/goodies-number-mobile-balance-v6.js
           node --check assets/99club/goodies-number-mobile-balance-v6-blank-bridge.js
           node --check assets/99club/goodies-number-mobile-balance-v5-embed.js
-      - name: Prepare Number Mobile browser harness
+      - name: Prepare Number Mobile browser harnesses
         run: node scripts/99club/number-mobile-browser-qa.js prepare
-      - name: Exercise contextual editing and difficulty challenges
+      - name: Exercise Number Mobile challenges and mixed-whiteboard actions
         shell: bash
         run: |
           set -euo pipefail
@@ -69,13 +69,21 @@ jobs:
             --window-size=1200,900 --virtual-time-budget=24000 --dump-dom \
             http://127.0.0.1:8781/99club-number-mobile-qa.html > /tmp/99club-number-mobile.html
           cp /tmp/99club-number-mobile.html 99club-number-mobile-debug.html
-          node scripts/99club/number-mobile-browser-qa.js check /tmp/99club-number-mobile.html
-      - name: Upload Number Mobile QA report
+          node scripts/99club/number-mobile-browser-qa.js check /tmp/99club-number-mobile.html standalone
+
+          timeout 40s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --window-size=1400,1000 --virtual-time-budget=18000 --dump-dom \
+            http://127.0.0.1:8781/99club-number-mobile-board-qa.html > /tmp/99club-number-mobile-board.html
+          cp /tmp/99club-number-mobile-board.html 99club-number-mobile-board-debug.html
+          node scripts/99club/number-mobile-browser-qa.js check /tmp/99club-number-mobile-board.html board
+      - name: Upload Number Mobile QA reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: number-mobile-qa-report
           path: |
             99club-number-mobile-qa-report.json
+            99club-number-mobile-board-qa-report.json
             99club-number-mobile-debug.html
+            99club-number-mobile-board-debug.html
           if-no-files-found: ignore
