@@ -1,0 +1,35 @@
+/* Number Mobile Balance v4 classroom refinements */
+.gd-number-mobile-workbench.nmb-context-dismissed .nmb-keypad,
+.gd-number-mobile-workbench.nmb-context-dismissed .nmb-tile-toolbar,
+.gd-number-mobile-workbench.nmb-context-dismissed .nmb-branch-toolbar{display:none!important}
+
+/* Make child mobiles read as one continuous physical hanging system. */
+.gd-number-mobile-workbench .nmb-branch{padding-top:30px;min-height:156px}
+.gd-number-mobile-workbench .nmb-branch-suspension{top:-16px;height:43px}
+.gd-number-mobile-workbench .nmb-branch-bar{top:24px}
+.gd-number-mobile-workbench .nmb-branch-sides{margin-top:0}
+.gd-number-mobile-workbench .nmb-branch-side::before{top:-5px}
+.gd-number-mobile-workbench .nmb-branch-cord{height:42px;margin-top:0}
+.gd-number-mobile-workbench .nmb-branch-toolbar{top:4px;transform:translate(-50%,-112%)}
+.gd-number-mobile-workbench .nmb-branch-bar::before{content:"";position:absolute;left:0;right:0;top:50%;height:6px;transform:translateY(-50%);border-radius:999px;background:inherit}
+.gd-number-mobile-workbench .nmb-branch-side--left::after,
+.gd-number-mobile-workbench .nmb-branch-side--right::after{content:"";position:absolute;top:-6px;width:7px;height:7px;border-radius:50%;background:var(--nmb-string)}
+.gd-number-mobile-workbench .nmb-branch-side--left::after{left:50%;transform:translateX(-50%)}
+.gd-number-mobile-workbench .nmb-branch-side--right::after{left:50%;transform:translateX(-50%)}
+
+/* Compact teacher-facing challenge launcher. */
+.gd-number-mobile-workbench .gd-eq-summary{position:relative;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.nmb-challenge-launcher{position:relative;margin-left:auto;pointer-events:auto}
+.nmb-challenge-trigger{min-height:30px;padding:4px 10px;border:1px solid #a8c8c4;border-radius:999px;background:#fff;color:#176f68;font:inherit;font-size:.68rem;font-weight:900;cursor:pointer}
+.nmb-challenge-trigger:hover,.nmb-challenge-trigger:focus-visible,.nmb-challenge-trigger[aria-expanded="true"]{background:#eaf7f3;outline:none;box-shadow:0 0 0 3px rgba(20,125,117,.10)}
+.nmb-challenge-popover{position:absolute;z-index:90;right:0;top:calc(100% + 7px);display:grid;grid-template-columns:repeat(2,minmax(112px,1fr));gap:5px;width:262px;padding:9px;border:1px solid #bfd0d2;border-radius:13px;background:rgba(255,255,255,.99);box-shadow:0 14px 34px rgba(30,57,64,.17)}
+.nmb-challenge-popover>strong{grid-column:1/-1;font-size:.7rem;color:#526b70}
+.nmb-challenge-popover button{min-height:32px;padding:5px 7px;border:1px solid #c9d7d9;border-radius:8px;background:#fff;color:#36565b;font:inherit;font-size:.64rem;font-weight:850;cursor:pointer;text-align:left}
+.nmb-challenge-popover button:hover,.nmb-challenge-popover button:focus-visible{background:#edf7f4;outline:none;border-color:#94bdb8}
+.nmb-challenge-popover button:first-of-type{grid-column:1/-1;background:#147d75;border-color:#147d75;color:#fff;text-align:center}
+.nmb-challenge-popover button.is-danger{grid-column:1/-1;color:#a84d45;border-color:#e4bbb7;text-align:center}
+
+@media(max-width:700px){
+  .nmb-challenge-popover{right:auto;left:0;width:min(260px,calc(100vw - 38px))}
+  .gd-number-mobile-workbench .nmb-branch-toolbar{top:1px}
+}

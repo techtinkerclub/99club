@@ -1,0 +1,79 @@
+name: Goodies Fast QA
+
+on:
+  pull_request:
+    paths:
+      - 'assets/99club/goodies*'
+      - 'scripts/99club/goodies-*'
+      - 'scripts/99club/number-mobile-browser-qa.js'
+      - '_pages/99-club-goodies.md'
+      - '_pages/whiteboard.md'
+      - '.github/workflows/goodies-fast-qa.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'assets/99club/goodies*'
+      - 'scripts/99club/goodies-*'
+      - 'scripts/99club/number-mobile-browser-qa.js'
+      - '_pages/99-club-goodies.md'
+      - '_pages/whiteboard.md'
+      - '.github/workflows/goodies-fast-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: goodies-fast-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  goodies-fast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Goodies contracts
+        run: node assets/99club/tests/goodies-interaction-smoke.js
+      - name: Prepare Goodies browser harnesses
+        run: |
+          node scripts/99club/goodies-browser-qa.js prepare
+          node scripts/99club/goodies-whiteboard-browser-qa.js prepare
+          node scripts/99club/goodies-composition-browser-qa.js prepare
+          node scripts/99club/goodies-layout-browser-qa.js prepare
+      - name: Exercise Goodies and mixed whiteboard
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8790 --bind 127.0.0.1 > /tmp/goodies-fast-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          sleep 1
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then echo 'No Chrome/Chromium executable is available.' >&2; exit 1; fi
+
+          timeout 40s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --window-size=1200,900 --virtual-time-budget=16000 --dump-dom http://127.0.0.1:8790/99club-goodies-browser-qa.html > /tmp/goodies.html
+          node scripts/99club/goodies-browser-qa.js check /tmp/goodies.html
+
+          timeout 50s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --window-size=1200,900 --virtual-time-budget=30000 --dump-dom http://127.0.0.1:8790/99club-goodies-whiteboard-qa.html > /tmp/whiteboard.html
+          node scripts/99club/goodies-whiteboard-browser-qa.js check /tmp/whiteboard.html
+
+          timeout 55s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --window-size=1200,900 --virtual-time-budget=30000 --dump-dom http://127.0.0.1:8790/99club-goodies-composition-qa.html > /tmp/composition.html
+          node scripts/99club/goodies-composition-browser-qa.js check /tmp/composition.html
+
+          timeout 55s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --window-size=1200,900 --virtual-time-budget=30000 --dump-dom http://127.0.0.1:8790/99club-goodies-layout-qa.html > /tmp/layout.html
+          node scripts/99club/goodies-layout-browser-qa.js check /tmp/layout.html
+      - name: Upload focused reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: goodies-fast-qa-report
+          path: |
+            99club-goodies-browser-qa-report.json
+            99club-goodies-whiteboard-qa-report.json
+            99club-goodies-composition-qa-report.json
+            99club-goodies-layout-qa-report.json
+          if-no-files-found: ignore
