@@ -5,14 +5,20 @@
 (function(){
 'use strict';
 
+function replayChallengeClick(attempt=0){
+  const fresh=document.querySelector('#gd-stage .gd-number-mobile-workbench [data-nmb-challenge-toggle]');
+  if(fresh?.dataset.nmbV6Bound){fresh.click();return}
+  if(attempt<8)setTimeout(()=>replayChallengeClick(attempt+1),16);
+}
+
 /* A redraw replaces the v4 Challenge button. If it is clicked before v6 has
- * rebound that fresh node, hold the click and replay it after v6's scheduled
- * adapt has attached the difficulty-aware handler. */
+ * rebound that fresh node, hold the click and replay it against the current
+ * button after v6's scheduled adapt has attached the difficulty-aware handler. */
 document.addEventListener('click',event=>{
   const trigger=event.target?.closest?.('[data-nmb-challenge-toggle]');
   if(!trigger||trigger.dataset.nmbV6Bound)return;
   event.preventDefault();event.stopPropagation();
-  setTimeout(()=>trigger.isConnected&&trigger.click(),16);
+  setTimeout(()=>replayChallengeClick(),16);
 },true);
 
 /* Branch-created boxes are deliberately born as Number Mobile blanks. When the
