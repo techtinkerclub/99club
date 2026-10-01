@@ -29,6 +29,13 @@ on:
       - 'index.md'
       - 'scripts/99club/**'
       - '.github/workflows/99club-qa.yml'
+      # Goodies/whiteboard changes use the much smaller Goodies Fast QA workflow.
+      # A mixed change still matches any other positive path above and gets this full suite.
+      - '!assets/99club/goodies*'
+      - '!scripts/99club/goodies-*'
+      - '!scripts/99club/number-mobile-browser-qa.js'
+      - '!_pages/99-club-goodies.md'
+      - '!_pages/whiteboard.md'
   pull_request:
     paths:
       - 'assets/99club/**'
@@ -56,6 +63,11 @@ on:
       - 'index.md'
       - 'scripts/99club/**'
       - '.github/workflows/99club-qa.yml'
+      - '!assets/99club/goodies*'
+      - '!scripts/99club/goodies-*'
+      - '!scripts/99club/number-mobile-browser-qa.js'
+      - '!_pages/99-club-goodies.md'
+      - '!_pages/whiteboard.md'
   schedule:
     - cron: '17 3 * * 1'
   workflow_dispatch:
@@ -350,7 +362,6 @@ jobs:
             99club-preview-qa-report.json
             99club-preview-qa-batch-${{ matrix.batch }}-report.json
           if-no-files-found: ignore
-
 
   custom-visual-qa:
     runs-on: ubuntu-latest
