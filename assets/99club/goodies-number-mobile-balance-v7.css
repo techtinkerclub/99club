@@ -1,0 +1,43 @@
+/* Number Mobile Balance v7 · atomic challenge presentation */
+
+html.nmb-v7-challenge-building,
+body.nmb-v7-challenge-building{cursor:progress}
+
+body.nmb-v7-challenge-building #gd-stage{
+  position:relative;
+  min-height:420px;
+  overflow:hidden;
+}
+body.nmb-v7-challenge-building #gd-stage>*{
+  visibility:hidden!important;
+}
+body.nmb-v7-challenge-building #gd-stage::after{
+  content:'Preparing challenge…';
+  position:absolute;
+  inset:0;
+  z-index:500;
+  display:grid;
+  place-items:center;
+  visibility:visible!important;
+  background:rgba(248,252,251,.985);
+  color:#31555a;
+  font:800 .82rem/1.2 system-ui,-apple-system,"Segoe UI",sans-serif;
+  letter-spacing:.01em;
+  pointer-events:auto;
+}
+
+.nmb-v7-exit-challenge{
+  color:#8f4a43!important;
+  border-color:#dfb4af!important;
+  background:#fff!important;
+}
+.nmb-v7-exit-challenge:hover,
+.nmb-v7-exit-challenge:focus-visible{
+  background:#fff4f2!important;
+  border-color:#c98f88!important;
+}
+
+@media(max-width:700px){
+  body.nmb-v7-challenge-building #gd-stage{min-height:360px}
+  body.nmb-v7-challenge-building #gd-stage::after{font-size:.76rem}
+}
