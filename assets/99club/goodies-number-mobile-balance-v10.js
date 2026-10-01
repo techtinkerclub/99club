@@ -60,12 +60,17 @@ async function anotherClean(type,difficulty){
     const next=q('[data-nmb-v6-type="'+CSS.escape(String(type))+'"]',pop);if(next)next.click();
   }finally{regenerating=false}
 }
-function captureClick(e){
+function captureWindowClick(e){
   const another=e.target?.closest?.('[data-nmb-v6-another]');
-  if(another){const s=spec();if(s?.type){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();anotherClean(s.type,s.difficulty||G.numberMobileChallengeDifficulty||'easy');return}}
+  if(!another)return;
+  const s=spec();if(!s?.type)return;
+  e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+  anotherClean(s.type,s.difficulty||G.numberMobileChallengeDifficulty||'easy');
+}
+function captureCheck(e){
   const check=e.target?.closest?.('[data-nmb-v8-check]');
   if(check&&multiMissing()){
-    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();checkAllMissing();return;
+    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();checkAllMissing();
   }
 }
 function bubbleClick(e){
@@ -76,10 +81,11 @@ function captureKeydown(e){
   e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();checkAllMissing();
 }
 function install(){
-  document.addEventListener('click',captureClick,true);
+  window.addEventListener('click',captureWindowClick,true);
+  document.addEventListener('click',captureCheck,true);
   document.addEventListener('click',bubbleClick,false);
   window.addEventListener('keydown',captureKeydown,true);
 }
-G.numberMobilePupilStateVersion='10.1';
+G.numberMobilePupilStateVersion='10.2';
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })(window.TT99Goodies);
