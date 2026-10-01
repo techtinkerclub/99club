@@ -90,9 +90,9 @@ if(mode==='prepare'){
     assert(await waitFor(()=>work()?.querySelectorAll('.nmb-branch').length>=2),'Hard missing-number challenge uses two hanging branches');
     assert(await waitFor(()=>missingCount()>=2),'Hard missing-number challenge exposes at least two unknowns');
     assert([...work().querySelectorAll('.gd-eq-total')].every(el=>getComputedStyle(el).display==='none'),'Hard challenge keeps all side totals hidden');
-    assert(/HARD/.test(stage().querySelector('.gd-challenge-kicker')?.textContent||''),'Challenge banner identifies Hard difficulty');
-    assert(stage().querySelector('[data-nmb-v6-another]'),'Hard challenge keeps Another like this');
-    assert([...work().querySelectorAll('[data-ba-token]')].every(el=>el.disabled),'Hard reasoning puzzle protects its given boxes');
+    assert(await waitFor(()=>/HARD/.test(stage()?.querySelector('.gd-challenge-kicker')?.textContent||'')),'Challenge banner identifies Hard difficulty');
+    assert(await waitFor(()=>stage()?.querySelector('[data-nmb-v6-another]')),'Hard challenge keeps Another like this');
+    assert(await waitFor(()=>work()&&[...work().querySelectorAll('[data-ba-token]')].every(el=>el.disabled)),'Hard reasoning puzzle protects its given boxes');
 
     const reveal=stage().querySelector('[data-board-action="reveal"]');assert(reveal,'Hard challenge exposes Reveal answer');reveal.click();
     await waitFor(()=>missingCount()===0);assert(missingCount()===0,'Reveal restores all hidden values');
