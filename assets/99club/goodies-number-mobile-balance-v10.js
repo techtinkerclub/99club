@@ -11,7 +11,7 @@ function work(){return q('.gd-number-mobile-workbench',stage())}
 function banner(){return q('.gd-challenge-banner',stage())}
 function spec(){return G.numberMobileChallengeSpec||null}
 function wait(ms=30){return new Promise(resolve=>setTimeout(resolve,ms))}
-async function waitFor(fn,{tries=50,delay=30}={}){for(let i=0;i<tries;i++){const value=fn();if(value)return value;await wait(delay)}return null}
+async function waitFor(fn,{tries=70,delay=30}={}){for(let i=0;i<tries;i++){const value=fn();if(value)return value;await wait(delay)}return null}
 function expectedEntries(){const map=spec()?.answerByToken;if(!map||typeof map!=='object')return[];return Object.entries(map).map(([id,value])=>[String(id),Number(value)]).filter(([,value])=>Number.isFinite(value))}
 function tileFor(id){return q('[data-ba-token="'+CSS.escape(String(id))+'"]',work())}
 function tileNumber(tile){const raw=String(q('strong',tile)?.textContent||'').trim();if(!raw||raw==='?')return null;const value=Number(raw);return Number.isFinite(value)?value:null}
@@ -40,13 +40,23 @@ function checkAllMissing(){
 async function anotherClean(type,difficulty){
   if(regenerating)return;regenerating=true;
   try{
-    let w=work(),trigger=q('[data-nmb-challenge-toggle]',w);if(!trigger)return;
+    let trigger=await waitFor(()=>q('[data-nmb-challenge-toggle]',work()));if(!trigger)return;
     trigger.click();
     let pop=await waitFor(()=>q('.nmb-v5-challenge-popover',work()));if(!pop)return;
-    const clear=q('[data-nmb-v6-clear]',pop);if(clear){clear.click();await waitFor(()=>!banner());await waitFor(()=>!document.body.classList.contains('nmb-v8-pupil-challenge'));await wait(70)}
-    w=work();trigger=q('[data-nmb-challenge-toggle]',w);if(!trigger)return;trigger.click();
+    const clear=q('[data-nmb-v6-clear]',pop);if(clear){
+      clear.click();
+      await waitFor(()=>!banner());
+      await waitFor(()=>!document.body.classList.contains('nmb-v8-pupil-challenge'));
+    }
+    trigger=await waitFor(()=>q('[data-nmb-challenge-toggle]',work()));if(!trigger)return;
+    await wait(40);trigger.click();
     pop=await waitFor(()=>q('.nmb-v5-challenge-popover',work()));if(!pop)return;
-    const diff=q('[data-nmb-v6-difficulty="'+CSS.escape(String(difficulty||'easy'))+'"]',pop);if(diff){diff.click();pop=await waitFor(()=>q('.nmb-v5-challenge-popover',work()));if(!pop)return}
+    let diff=q('[data-nmb-v6-difficulty="'+CSS.escape(String(difficulty||'easy'))+'"]',pop);
+    if(diff&&!diff.classList.contains('is-active')){
+      diff.click();
+      pop=await waitFor(()=>q('.nmb-v5-challenge-popover [data-nmb-v6-difficulty="'+CSS.escape(String(difficulty||'easy'))+'"].is-active')?.closest('.nmb-v5-challenge-popover'));
+      if(!pop)return;
+    }
     const next=q('[data-nmb-v6-type="'+CSS.escape(String(type))+'"]',pop);if(next)next.click();
   }finally{regenerating=false}
 }
@@ -70,6 +80,6 @@ function install(){
   document.addEventListener('click',bubbleClick,false);
   window.addEventListener('keydown',captureKeydown,true);
 }
-G.numberMobilePupilStateVersion='10.0';
+G.numberMobilePupilStateVersion='10.1';
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })(window.TT99Goodies);
