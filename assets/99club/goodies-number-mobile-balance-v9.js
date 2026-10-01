@@ -34,6 +34,8 @@ function adapt(){
 }
 function install(){
   const root=document.getElementById('tt99-goodies-root');
+  /* Deliberately observe structural replacement only. Watching attributes or
+     character data here can make the adapter react to its own UI updates. */
   if(root){observer=new MutationObserver(function(){setTimeout(adapt,0)});observer.observe(root,{childList:true,subtree:true})}
   document.addEventListener('click',function(){setTimeout(adapt,0)},true);
   adapt();
