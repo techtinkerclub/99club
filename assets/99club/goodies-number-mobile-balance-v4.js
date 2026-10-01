@@ -5,7 +5,7 @@
 (function(G){
 'use strict';
 if(!G)return;
-const STAGE_ID='gd-stage';
+const STAGE_ID='gd-stage',balanceToolV3=G.balanceTool;
 let stageObserver=null,controlsObserver=null,challengeOpen=false,installed=false;
 const TYPE_CATEGORY={
   'missing-weight':'read','choose-relation':'read','find-difference':'read',
@@ -53,12 +53,12 @@ function generateChallenge(type){
   const cat=c?.querySelector('[data-ba-challenge-cat="'+category+'"]');if(cat)cat.click();
   c=controls();
   const typeButton=c?.querySelector('[data-ba-challenge-type="'+type+'"]');if(typeButton)typeButton.click();
-  c=controls();const generate=c?.querySelector('#ba-generate');if(generate){generate.click();challengeOpen=false;return true}
+  c=controls();const generate=c?.querySelector('#ba-generate');if(generate){generate.click();challengeOpen=false;setTimeout(adaptStage,0);return true}
   return false;
 }
 function clearChallenge(){
   if(!selectWorkflowChallenge())return;
-  const clear=controls()?.querySelector('#ba-clear-challenge');if(clear)clear.click();challengeOpen=false;
+  const clear=controls()?.querySelector('#ba-clear-challenge');if(clear){clear.click();challengeOpen=false;setTimeout(adaptStage,0)}
 }
 function challengePopover(){
   const pop=document.createElement('div');pop.className='nmb-challenge-popover';pop.setAttribute('role','menu');pop.setAttribute('aria-label','Number Mobile challenges');
@@ -92,7 +92,12 @@ function adaptStage(){
 function insideInteractive(target){return !!target.closest?.('[data-ba-token],.nmb-keypad,.nmb-tile-toolbar,.nmb-branch-bar,.nmb-branch-toolbar,.nmb-branch-add,.nmb-branch-empty,.nmb-challenge-launcher,[data-ba-stage-add]')}
 function pointerCapture(e){
   const w=work();if(!w)return;
-  if(insideInteractive(e.target)){revealContext();return}
+  if(insideInteractive(e.target)){
+    revealContext();
+    /* Base balance handlers may redraw synchronously later in this same event. */
+    setTimeout(adaptStage,0);
+    return;
+  }
   if(w.contains(e.target)||stage()?.contains(e.target))dismissContext();
 }
 function installObservers(){
@@ -108,6 +113,13 @@ function install(){
   window.addEventListener('blur',dismissContext);
   installObservers();
   const root=document.getElementById('tt99-goodies-root');if(root){const obs=new MutationObserver(()=>{if(document.getElementById(STAGE_ID))installObservers()});obs.observe(root,{childList:true,subtree:false})}
+}
+if(typeof balanceToolV3==='function'){
+  G.balanceTool=function numberMobileBalanceToolV4(){
+    const result=balanceToolV3.apply(this,arguments);
+    setTimeout(installObservers,0);
+    return result;
+  };
 }
 G.numberMobileBalanceEnhancementVersion='4.0';
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else queueMicrotask(install);
