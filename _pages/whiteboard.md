@@ -43,5 +43,6 @@ window.TT99_GOODIES_BOARD_HOME = '/goodies/';
 <script src="/assets/99club/goodies-number-mobile-balance-v5-embed.js?v=2" defer></script>
 <script src="/assets/99club/goodies-number-mobile-balance-v8.js?v=2" defer></script>
 <script src="/assets/99club/goodies-number-mobile-balance-v9.js?v=3" defer></script>
+<script src="/assets/99club/goodies-number-mobile-balance-v10.js?v=1" defer></script>
 <script src="/assets/99club/goodies-app.js?v=6" defer></script>
 <script src="/assets/99club/goodies-board.js?v=5" defer></script>
