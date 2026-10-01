@@ -7,6 +7,8 @@ on:
       - 'assets/99club/goodies-number-mobile-balance-v3.css'
       - 'assets/99club/goodies-number-mobile-balance-v4.js'
       - 'assets/99club/goodies-number-mobile-balance-v4.css'
+      - 'assets/99club/goodies-number-mobile-balance-v5.js'
+      - 'assets/99club/goodies-number-mobile-balance-v5.css'
       - '_pages/99-club-goodies.md'
       - '_pages/whiteboard.md'
       - 'scripts/99club/number-mobile-browser-qa.js'
@@ -18,6 +20,8 @@ on:
       - 'assets/99club/goodies-number-mobile-balance-v3.css'
       - 'assets/99club/goodies-number-mobile-balance-v4.js'
       - 'assets/99club/goodies-number-mobile-balance-v4.css'
+      - 'assets/99club/goodies-number-mobile-balance-v5.js'
+      - 'assets/99club/goodies-number-mobile-balance-v5.css'
       - '_pages/99-club-goodies.md'
       - '_pages/whiteboard.md'
       - 'scripts/99club/number-mobile-browser-qa.js'
@@ -29,7 +33,7 @@ permissions:
 jobs:
   number-mobile-browser:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 6
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -39,9 +43,10 @@ jobs:
         run: |
           node --check assets/99club/goodies-number-mobile-balance-v3.js
           node --check assets/99club/goodies-number-mobile-balance-v4.js
+          node --check assets/99club/goodies-number-mobile-balance-v5.js
       - name: Prepare Number Mobile browser harness
         run: node scripts/99club/number-mobile-browser-qa.js prepare
-      - name: Exercise contextual editing, branching, deletion and challenges
+      - name: Exercise contextual editing and difficulty challenges
         shell: bash
         run: |
           set -euo pipefail
@@ -54,8 +59,8 @@ jobs:
             echo 'No Chrome/Chromium executable is available on this runner.' >&2
             exit 1
           fi
-          timeout 45s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
-            --window-size=1200,900 --virtual-time-budget=14000 --dump-dom \
+          timeout 65s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --window-size=1200,900 --virtual-time-budget=32000 --dump-dom \
             http://127.0.0.1:8781/99club-number-mobile-qa.html > /tmp/99club-number-mobile.html
           node scripts/99club/number-mobile-browser-qa.js check /tmp/99club-number-mobile.html
       - name: Upload Number Mobile QA report
