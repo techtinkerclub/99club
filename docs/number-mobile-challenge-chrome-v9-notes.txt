@@ -1,0 +1,1 @@
+This patch only changes pupil challenge presentation and access to the existing challenge picker. It does not change challenge generation or answer checking.

@@ -1,0 +1,8 @@
+Number Mobile challenge chrome v9 checklist
+
+- Hide the duplicated teacher equation/task summary during pupil challenge mode.
+- Keep challenge kicker and prompt contained in one compact banner.
+- Keep challenge actions in a compact row: Change, Another, Reveal, Exit.
+- Keep the missing-number answer helper as a slim status strip.
+- Use the existing v6 challenge picker when Change is pressed.
+- Do not alter challenge generation, answer calculation, or reveal logic.
