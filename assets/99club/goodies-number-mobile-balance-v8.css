@@ -2,13 +2,14 @@
 /* nmb-v5-challenge-active is the stable challenge lifecycle flag. Use it for
  * visual locking so no transient adapter redraw can flash teacher controls. */
 .nmb-v5-challenge-active .nmb-keypad,.nmb-v5-challenge-active .nmb-tile-toolbar,.nmb-v5-challenge-active .nmb-branch-toolbar,.nmb-v5-challenge-active .nmb-branch-add,.nmb-v5-challenge-active .nmb-branch-empty,.nmb-v5-challenge-active [data-ba-stage-add]{display:none!important}
-.nmb-v5-challenge-active .gd-challenge-banner{display:grid;grid-template-columns:max-content minmax(0,1fr) auto;grid-template-areas:"kicker copy actions";align-items:center;gap:16px;min-height:0;padding:14px 18px;border-radius:16px}
+.nmb-v5-challenge-active .gd-challenge-banner{display:grid;grid-template-columns:max-content minmax(0,1fr);grid-template-areas:"kicker copy" "actions actions";align-items:center;gap:8px 16px;min-height:0;padding:10px 14px;border-radius:16px}
 .nmb-v5-challenge-active .gd-challenge-kicker{grid-area:kicker;align-self:center;white-space:nowrap}
 .nmb-v5-challenge-active .gd-challenge-copy{grid-area:copy;min-width:0;display:block}
 .nmb-v5-challenge-active .gd-challenge-copy h3{display:none!important}
-.nmb-v5-challenge-active .gd-challenge-prompt{margin:0;font-size:1rem;font-weight:780;line-height:1.35;color:#263f46}
+.nmb-v5-challenge-active .gd-challenge-prompt{margin:0;font-size:.94rem;font-weight:780;line-height:1.3;color:#263f46}
 .nmb-v5-challenge-active .gd-challenge-prompt p,.nmb-v5-challenge-active .gd-challenge-prompt div{margin:0}
-.nmb-v5-challenge-active .gd-challenge-actions{grid-area:actions;display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:8px;min-width:max-content}
+.nmb-v5-challenge-active .gd-challenge-actions{grid-area:actions;display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:7px;min-width:0}
+.nmb-v5-challenge-active .gd-challenge-actions .gd-challenge-action{min-height:36px;padding:6px 11px;font-size:.78rem;line-height:1.1}
 .nmb-v5-challenge-active .gd-challenge-actions em{flex-basis:100%;text-align:right}
 .nmb-v8-pupil-challenge [data-ba-token]:not(.nmb-v8-answer-box){cursor:default!important;pointer-events:auto}
 .nmb-v8-answer-box{cursor:pointer!important;border-color:#c5a24f!important;background:#fff7dd!important;box-shadow:0 0 0 4px rgba(210,174,72,.14)!important}
@@ -23,5 +24,5 @@
 .nmb-v8-feedback{min-width:90px;font-size:.8rem;font-weight:900}.nmb-v8-feedback.is-correct{color:#23735b}.nmb-v8-feedback.is-wrong{color:#a34d45}
 .nmb-v8-answer-pad{position:absolute;z-index:70;width:225px;padding:9px;border:1px solid #b7cbcc;border-radius:15px;background:rgba(255,255,255,.98);box-shadow:0 14px 36px rgba(33,60,67,.18);backdrop-filter:blur(10px)}
 .nmb-v8-answer-pad__head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}.nmb-v8-answer-pad__head strong{font-size:.76rem;color:#405e63}.nmb-v8-answer-pad__head button{width:28px;height:28px;padding:0;border:0;border-radius:8px;background:#f1f5f5;color:#5a7075;font:inherit;font-weight:900;cursor:pointer}.nmb-v8-answer-display{display:grid;place-items:center;height:42px;margin-bottom:7px;border:1px solid #b9cecb;border-radius:9px;background:#f8fbfa;color:#294e4b;font-size:1.05rem;font-weight:900;font-variant-numeric:tabular-nums}.nmb-v8-answer-digits{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}.nmb-v8-answer-digits button{height:36px;border:1px solid #c8d6d7;border-radius:8px;background:#fff;color:#304e54;font:inherit;font-size:.82rem;font-weight:900;cursor:pointer}.nmb-v8-answer-pad .nmb-v8-check{width:100%;margin-top:7px}
-@media(max-width:900px){.nmb-v5-challenge-active .gd-challenge-banner{grid-template-columns:auto 1fr;grid-template-areas:"kicker copy" "actions actions";gap:8px 12px}.nmb-v5-challenge-active .gd-challenge-actions{justify-content:flex-start;min-width:0}.nmb-v8-response-panel{align-items:flex-start;flex-direction:column}.nmb-v8-number-response{flex-wrap:wrap}.nmb-v8-response-keys{flex-wrap:wrap}}
-@media(max-width:620px){.nmb-v5-challenge-active .gd-challenge-banner{display:flex;flex-direction:column;align-items:stretch;padding:10px 12px}.nmb-v5-challenge-active .gd-challenge-kicker{white-space:normal}.nmb-v5-challenge-active .gd-challenge-actions{justify-content:flex-start}.nmb-v8-choice-row{flex-wrap:wrap}.nmb-v8-response-keys{display:grid;grid-template-columns:repeat(6,34px)}}
+@media(max-width:900px){.nmb-v5-challenge-active .gd-challenge-banner{gap:7px 12px;padding:9px 12px}.nmb-v5-challenge-active .gd-challenge-actions{justify-content:flex-start}.nmb-v8-response-panel{align-items:flex-start;flex-direction:column}.nmb-v8-number-response{flex-wrap:wrap}.nmb-v8-response-keys{flex-wrap:wrap}}
+@media(max-width:620px){.nmb-v5-challenge-active .gd-challenge-banner{display:flex;flex-direction:column;align-items:stretch;padding:9px 11px}.nmb-v5-challenge-active .gd-challenge-kicker{white-space:normal}.nmb-v5-challenge-active .gd-challenge-actions{justify-content:flex-start}.nmb-v8-choice-row{flex-wrap:wrap}.nmb-v8-response-keys{display:grid;grid-template-columns:repeat(6,34px)}}
