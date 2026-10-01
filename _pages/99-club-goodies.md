@@ -31,5 +31,6 @@ robots: "noindex,nofollow,noarchive"
 <script src="/assets/99club/goodies-number-mobile-balance-v3.js?v=1" defer></script>
 <script src="/assets/99club/goodies-number-mobile-balance-v4.js?v=1" defer></script>
 <script src="/assets/99club/goodies-number-mobile-balance-v5.js?v=1" defer></script>
+<script src="/assets/99club/goodies-number-mobile-balance-v5-embed.js?v=1" defer></script>
 <script src="/assets/99club/goodies-app.js?v=6" defer></script>
 <script src="/assets/99club/goodies-board.js?v=5" defer></script>
