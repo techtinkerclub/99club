@@ -11,6 +11,18 @@ function replayChallengeClick(attempt=0){
   if(attempt<8)setTimeout(()=>replayChallengeClick(attempt+1),16);
 }
 
+/* v6 needs to know when the base balance editor has really selected a token.
+ * The base engine expresses that state with .is-selected, so mirror that true
+ * state into the lightweight data marker used by the async challenge builder. */
+function mirrorSelectedToken(){
+  const work=document.querySelector('#gd-stage .gd-number-mobile-workbench');if(!work)return;
+  work.querySelectorAll('[data-ba-selected]').forEach(el=>el.removeAttribute('data-ba-selected'));
+  const selected=work.querySelector('[data-ba-token].is-selected');
+  if(selected)selected.dataset.baSelected=String(selected.dataset.baToken||'');
+}
+document.addEventListener('click',()=>{queueMicrotask(mirrorSelectedToken);setTimeout(mirrorSelectedToken,0)},true);
+document.addEventListener('change',()=>queueMicrotask(mirrorSelectedToken),true);
+
 /* A redraw replaces the v4 Challenge button. If it is clicked before v6 has
  * rebound that fresh node, hold the click and replay it against the current
  * button after v6's scheduled adapt has attached the difficulty-aware handler. */
