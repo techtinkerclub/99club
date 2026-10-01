@@ -1,0 +1,60 @@
+/* Number Mobile Balance v5 challenge refinements */
+
+/* Totals are useful for exploration, but revealing them defeats the challenge. */
+.gd-challenge-banner + .gd-number-mobile-workbench .gd-eq-total{display:none!important}
+.nmb-v5-challenge-active .gd-eq-show-totals{display:none!important}
+
+/* The v4 trigger remains the relay for the mixed-whiteboard action, but is not
+   shown as a second floating button inside an embedded Number Mobile. */
+.gd-embed-page .gd-number-mobile-workbench .nmb-challenge-launcher{
+  position:absolute;right:4px;top:2px;width:1px;height:1px;margin:0;overflow:visible
+}
+.gd-embed-page .gd-number-mobile-workbench .nmb-challenge-trigger{
+  position:absolute!important;width:1px!important;min-width:1px!important;height:1px!important;min-height:1px!important;
+  padding:0!important;margin:0!important;border:0!important;opacity:0!important;pointer-events:none!important;overflow:hidden!important
+}
+
+.nmb-v5-challenge-popover{
+  position:absolute;z-index:125;right:8px;top:42px;width:min(330px,calc(100% - 18px));padding:11px;
+  border:1px solid #bfd0d2;border-radius:14px;background:rgba(255,255,255,.995);
+  box-shadow:0 16px 38px rgba(30,57,64,.18);pointer-events:auto
+}
+.nmb-v5-popover-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:8px}
+.nmb-v5-popover-head strong{font-size:.76rem;color:#36565b}
+.nmb-v5-popover-head span{font-size:.58rem;color:#7b8d91;text-align:right}
+.nmb-v5-difficulty-row{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+.nmb-v5-difficulty{
+  min-height:31px;padding:4px 7px;border:1px solid #c7d7d8;border-radius:9px;background:#fff;color:#36565b;
+  font:inherit;font-size:.64rem;font-weight:900;cursor:pointer
+}
+.nmb-v5-difficulty:hover,.nmb-v5-difficulty:focus-visible{background:#edf7f4;outline:none;border-color:#95bbb7}
+.nmb-v5-difficulty.is-active{background:#147d75;border-color:#147d75;color:#fff}
+.nmb-v5-difficulty-help{min-height:30px;margin:6px 1px 8px;color:#6f8286;font-size:.59rem;line-height:1.35}
+.nmb-v5-challenge-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+.nmb-v5-challenge-grid button,.nmb-v5-clear{
+  min-height:34px;padding:5px 8px;border:1px solid #c9d7d9;border-radius:9px;background:#fff;color:#36565b;
+  font:inherit;font-size:.63rem;font-weight:850;cursor:pointer;text-align:left
+}
+.nmb-v5-challenge-grid button:hover,.nmb-v5-challenge-grid button:focus-visible,.nmb-v5-clear:hover,.nmb-v5-clear:focus-visible{background:#edf7f4;outline:none;border-color:#94bdb8}
+.nmb-v5-challenge-grid button.is-surprise{grid-column:1/-1;background:#147d75;border-color:#147d75;color:#fff;text-align:center}
+.nmb-v5-clear{width:100%;margin-top:7px;color:#a84d45;border-color:#e4bbb7;text-align:center}
+
+/* Read-only reasoning puzzles keep the mobile itself quiet while Reveal/Another
+   remain available in the challenge banner. */
+.nmb-v5-readonly [data-ba-token]{cursor:default!important}
+.nmb-v5-readonly .gd-eq-pan-add,
+.nmb-v5-readonly .nmb-branch-add,
+.nmb-v5-readonly .nmb-branch-empty,
+.nmb-v5-readonly .nmb-tile-toolbar,
+.nmb-v5-readonly .nmb-keypad,
+.nmb-v5-readonly .nmb-branch-toolbar{display:none!important}
+.nmb-v5-readonly [data-ba-token]:hover{box-shadow:0 3px 8px rgba(39,68,74,.07)!important;border-color:var(--nmb-border)!important}
+
+/* Challenge status is deliberately descriptive rather than another numeric total. */
+.nmb-v5-challenge-active .gd-eq-verdict{min-width:190px;max-width:min(92%,560px);white-space:normal;text-align:center}
+.nmb-v5-challenge-active .gd-eq-verdict strong{line-height:1.25}
+
+@media(max-width:700px){
+  .nmb-v5-challenge-popover{right:4px;top:38px;width:min(300px,calc(100% - 8px));padding:9px}
+  .nmb-v5-challenge-grid button,.nmb-v5-clear,.nmb-v5-difficulty{font-size:.6rem}
+}
