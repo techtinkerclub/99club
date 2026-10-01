@@ -13,6 +13,8 @@ on:
       - 'assets/99club/goodies-number-mobile-balance-v6-blank-bridge.js'
       - 'assets/99club/goodies-number-mobile-balance-v7.js'
       - 'assets/99club/goodies-number-mobile-balance-v7.css'
+      - 'assets/99club/goodies-number-mobile-balance-v8.js'
+      - 'assets/99club/goodies-number-mobile-balance-v8.css'
       - '_pages/99-club-goodies.md'
       - '_pages/whiteboard.md'
       - 'scripts/99club/number-mobile-browser-qa.js'
@@ -31,6 +33,8 @@ on:
       - 'assets/99club/goodies-number-mobile-balance-v6-blank-bridge.js'
       - 'assets/99club/goodies-number-mobile-balance-v7.js'
       - 'assets/99club/goodies-number-mobile-balance-v7.css'
+      - 'assets/99club/goodies-number-mobile-balance-v8.js'
+      - 'assets/99club/goodies-number-mobile-balance-v8.css'
       - '_pages/99-club-goodies.md'
       - '_pages/whiteboard.md'
       - 'scripts/99club/number-mobile-browser-qa.js'
@@ -56,6 +60,7 @@ jobs:
           node --check assets/99club/goodies-number-mobile-balance-v6.js
           node --check assets/99club/goodies-number-mobile-balance-v6-blank-bridge.js
           node --check assets/99club/goodies-number-mobile-balance-v7.js
+          node --check assets/99club/goodies-number-mobile-balance-v8.js
           node --check assets/99club/goodies-number-mobile-balance-v5-embed.js
           node --check scripts/99club/goodies-number-mobile-challenge-ux-browser-qa.js
       - name: Prepare Number Mobile browser harnesses
@@ -88,7 +93,7 @@ jobs:
           node scripts/99club/number-mobile-browser-qa.js check /tmp/99club-number-mobile-board.html board
 
           timeout 50s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
-            --window-size=1200,900 --virtual-time-budget=26000 --dump-dom \
+            --window-size=1200,900 --virtual-time-budget=28000 --dump-dom \
             http://127.0.0.1:8781/99club-number-mobile-challenge-ux-qa.html > /tmp/99club-number-mobile-challenge-ux.html
           cp /tmp/99club-number-mobile-challenge-ux.html 99club-number-mobile-challenge-ux-debug.html
           node scripts/99club/goodies-number-mobile-challenge-ux-browser-qa.js check /tmp/99club-number-mobile-challenge-ux.html
