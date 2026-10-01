@@ -24,7 +24,7 @@ if(mode==='prepare'){
   function stage(){return document.getElementById('gd-stage')}
   function work(){return stage()?.querySelector('.gd-number-mobile-workbench')||null}
   async function run(){
-    assert(TT99Goodies.numberMobileChallengeUxVersion==='7.0','Number Mobile v7 challenge UX is active');
+    assert(TT99Goodies.numberMobileChallengeUxVersion==='7.1','Number Mobile v7 challenge UX is active');
     const card=document.querySelector('[data-tool="balance"]');assert(card,'Number Mobile catalogue card exists');card.click();
     assert(await waitFor(()=>work()),'Number Mobile renders');
     const trigger=await waitFor(()=>work()?.querySelector('[data-nmb-challenge-toggle]'));assert(trigger,'Challenge trigger exists');trigger.click();
