@@ -1,0 +1,63 @@
+name: Number Mobile V11 QA
+
+on:
+  pull_request:
+    paths:
+      - 'assets/99club/goodies-number-mobile-balance-v11.js'
+      - 'assets/99club/goodies-number-mobile-balance-v11.css'
+      - '_pages/99-club-goodies.md'
+      - '_pages/whiteboard.md'
+      - 'scripts/99club/number-mobile-v11-browser-qa.js'
+      - '.github/workflows/number-mobile-v11-qa.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'assets/99club/goodies-number-mobile-balance-v11.js'
+      - 'assets/99club/goodies-number-mobile-balance-v11.css'
+      - '_pages/99-club-goodies.md'
+      - '_pages/whiteboard.md'
+      - 'scripts/99club/number-mobile-v11-browser-qa.js'
+      - '.github/workflows/number-mobile-v11-qa.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  number-mobile-v11:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check v11
+        run: |
+          node --check assets/99club/goodies-number-mobile-balance-v11.js
+          node --check scripts/99club/number-mobile-v11-browser-qa.js
+      - name: Prepare v11 browser harness
+        run: node scripts/99club/number-mobile-v11-browser-qa.js prepare
+      - name: Exercise initial chrome and hard challenge variety
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8785 --bind 127.0.0.1 > /tmp/99club-number-mobile-v11-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          sleep 1
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then echo 'No Chrome/Chromium executable is available.' >&2; exit 1; fi
+          timeout 60s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --window-size=1400,1100 --virtual-time-budget=36000 --dump-dom \
+            http://127.0.0.1:8785/99club-number-mobile-v11-qa.html > /tmp/99club-number-mobile-v11.html
+          cp /tmp/99club-number-mobile-v11.html 99club-number-mobile-v11-debug.html
+          node scripts/99club/number-mobile-v11-browser-qa.js check /tmp/99club-number-mobile-v11.html
+      - name: Upload v11 QA report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: number-mobile-v11-qa-report
+          path: |
+            99club-number-mobile-v11-qa-report.json
+            99club-number-mobile-v11-debug.html
+          if-no-files-found: ignore
