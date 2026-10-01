@@ -5,9 +5,13 @@
 (function(){
 'use strict';
 
-let builderTargetId=null,applying=false;
+let builderTargetId=null,applying=false,builderActive=false,builderTimer=null;
 
-function building(){return document.body.classList.contains('nmb-v7-challenge-building')||document.documentElement.classList.contains('nmb-v7-challenge-building')}
+function markBuilderActive(){
+  builderActive=true;builderTargetId=null;clearTimeout(builderTimer);
+  builderTimer=setTimeout(()=>{builderActive=false;builderTargetId=null},4000);
+}
+function building(){return builderActive||document.body.classList.contains('nmb-v7-challenge-building')||document.documentElement.classList.contains('nmb-v7-challenge-building')}
 function work(){return document.querySelector('#gd-stage .gd-number-mobile-workbench')}
 function token(id){return work()?.querySelector('[data-ba-token="'+CSS.escape(String(id))+'"]')||null}
 function wait(ms=12){return new Promise(resolve=>setTimeout(resolve,ms))}
@@ -37,8 +41,8 @@ async function applyValue(id,value){
     const sid=String(id),text=String(value??'').trim();if(!/^\d+(?:\.\d+)?$/.test(text))return;
     if(!await focusTarget(sid))return;
     /* The v3 keypad redraws after every keypress. Reacquire the live keypad
-       each time so challenge construction follows the exact same state path as
-       a real user editing that Number Mobile box. */
+       each time so generated boxes leave the blank state through the same path
+       as a normal Number Mobile edit. */
     let pad=await freshPad(sid);
     if(pad){
       const blank=pad.querySelector('[data-nmb-blank]');if(blank){blank.click();await wait(18)}
@@ -64,6 +68,13 @@ async function applyHidden(id,checked){
   }finally{applying=false}
 }
 
+/* v6 can run with or without v7's visual construction curtain. Treat the v6
+ * challenge action itself as the canonical start of a builder transaction so
+ * the state bridge is active in both production and the standalone generator QA. */
+document.addEventListener('click',event=>{
+  if(event.target?.closest?.('[data-nmb-v6-type],[data-nmb-v6-another]'))markBuilderActive();
+},true);
+
 /* Capture the exact token the async challenge builder is operating on before
  * any adapter redraw can move focus elsewhere. */
 document.addEventListener('click',event=>{
@@ -82,7 +93,7 @@ document.addEventListener('click',event=>{
 
 /* During challenge construction, do not allow a stale base selection to receive
  * a value or hidden-state change. Re-apply that edit to the token that v6
- * actually selected. Outside construction this bridge is completely inert. */
+ * actually selected. Outside construction this bridge is inert. */
 document.addEventListener('change',event=>{
   if(!building()||applying||!builderTargetId)return;
   const input=event.target;if(!input)return;
