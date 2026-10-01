@@ -33,7 +33,15 @@ function finalChallengeReady(){
   if(originBanner&&b===originBanner)return false;
   const level=String(G.numberMobileChallengeDifficulty||'easy').toUpperCase();
   const kicker=String(q('.gd-challenge-kicker',b)?.textContent||'').toUpperCase();
-  return kicker.includes(level);
+  if(!kicker.includes(level))return false;
+  const prompt=String(q('.gd-challenge-prompt',b)?.textContent||'').trim();
+  if(!prompt||/write your challenge here/i.test(prompt))return false;
+  /* Medium/Hard complex puzzles are assembled through the custom editor. The
+   * temporary custom banner exists long before branches/unknowns are ready, so
+   * do not drop the curtain until v6 publishes the completed challenge spec. */
+  const customEditor=!!q('#ba-custom-title',controls());
+  if(customEditor&&!G.numberMobileChallengeSpec)return false;
+  return true;
 }
 function checkBuild(seq){
   if(!building||seq!==buildSeq)return;
@@ -90,6 +98,6 @@ function install(){
   installObserver();ensureExit();
 }
 
-G.numberMobileChallengeUxVersion='7.1';
+G.numberMobileChallengeUxVersion='7.2';
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else queueMicrotask(install);
 })(window.TT99Goodies);
