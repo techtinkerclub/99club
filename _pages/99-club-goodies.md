@@ -19,6 +19,7 @@ robots: "noindex,nofollow,noarchive"
 <link rel="stylesheet" href="/assets/99club/goodies.css?v=55">
 <link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v3.css?v=1">
 <link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v4.css?v=1">
+<link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v5.css?v=1">
 <script src="/assets/99club/goodies-core.js?v=1" defer></script>
 <script src="/assets/99club/goodies-interaction.js?v=3" defer></script>
 <script src="/assets/99club/goodies-challenge.js?v=5" defer></script>
@@ -29,5 +30,6 @@ robots: "noindex,nofollow,noarchive"
 <!-- compatibility marker for the retiring adapter smoke check: goodies-number-mobile-balance.js?v=5 -->
 <script src="/assets/99club/goodies-number-mobile-balance-v3.js?v=1" defer></script>
 <script src="/assets/99club/goodies-number-mobile-balance-v4.js?v=1" defer></script>
+<script src="/assets/99club/goodies-number-mobile-balance-v5.js?v=1" defer></script>
 <script src="/assets/99club/goodies-app.js?v=6" defer></script>
 <script src="/assets/99club/goodies-board.js?v=5" defer></script>
