@@ -10,6 +10,7 @@ if(mode==='prepare'){
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="stylesheet" href="/assets/99club/goodies.css">
 <link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v3.css">
+<link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v4.css">
 <style>body{margin:0}</style></head><body>
 <div id="tt99-goodies-root"></div><div id="nmb-qa-result" data-status="pending">pending</div>
 <script>window.scrollTo=function(){};</script>
@@ -21,6 +22,7 @@ if(mode==='prepare'){
 <script src="/assets/99club/goodies-number-line-v6.js"></script>
 <script src="/assets/99club/goodies-tools-b.js"></script>
 <script src="/assets/99club/goodies-number-mobile-balance-v3.js"></script>
+<script src="/assets/99club/goodies-number-mobile-balance-v4.js"></script>
 <script src="/assets/99club/goodies-app.js"></script>
 <script>
 (function(){
@@ -31,18 +33,24 @@ if(mode==='prepare'){
   function tile(id){return work()?.querySelector('[data-ba-token="'+CSS.escape(String(id))+'"]')||null}
   async function run(){
     assert(window.TT99Goodies&&String(TT99Goodies.numberMobileBalanceVersion||'').startsWith('3.0'),'Number Mobile v3 adapter is active');
-    const card=document.querySelector('[data-tool="balance"]');assert(card,'Number Mobile catalogue card exists');card.click();await tick();await tick();
+    assert(TT99Goodies.numberMobileBalanceEnhancementVersion==='4.0','Number Mobile v4 classroom enhancement is active');
+    const card=document.querySelector('[data-tool="balance"]');assert(card,'Number Mobile catalogue card exists');card.click();await tick();await tick(30);
     assert(work(),'Number Mobile workbench renders');
     let tiles=[...work().querySelectorAll('[data-ba-token]')];assert(tiles.length>=3,'Number Mobile starts with editable number boxes');
+    assert(tiles.every(t=>!t.disabled),'Normal starter number boxes are editable');
+    assert(work().querySelector('[data-nmb-challenge-toggle]'),'Number Mobile exposes a direct Challenge action');
 
     const firstId=String(tiles[0].dataset.baToken);tile(firstId).click();await tick(30);
-    assert(work().querySelector('.nmb-keypad'),'Tapping a box opens the number keypad');
-    assert(work().querySelector('.nmb-tile-toolbar'),'Selected box exposes persistent direct actions');
+    assert(work().querySelector('.nmb-keypad'),'Tapping a starter box opens the number keypad');
+    assert(work().querySelector('.nmb-tile-toolbar'),'Selected box exposes direct actions');
     work().querySelector('[data-nmb-close]').click();await tick(20);
     assert(!work().querySelector('.nmb-keypad'),'Closing keypad hides only the keypad');
-    assert(work().querySelector('.nmb-tile-toolbar'),'Edit/delete actions remain after keypad closes');
+    assert(work().querySelector('.nmb-tile-toolbar'),'Selected box keeps direct actions until selection is dismissed');
 
-    tile(firstId).click();await tick(30);assert(work().querySelector('.nmb-keypad'),'Tapping the selected box reopens editing');
+    work().dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerType:'mouse'}));await tick(20);
+    assert(!work().querySelector('.nmb-tile-toolbar'),'Clicking blank mobile space dismisses the selected-box menu');
+    tile(firstId).click();await tick(30);assert(work().querySelector('.nmb-keypad'),'Tapping the same box reopens editing after dismissal');
+
     const branchButton=work().querySelector('[data-nmb-branch]');assert(branchButton,'Keypad exposes Branch directly');branchButton.click();await tick(60);await tick(60);
     let branch=work().querySelector('.nmb-branch');assert(branch,'Branch creates a visible child mobile');
     assert(branch.querySelector('.nmb-branch-bar'),'Child mobile has its own balance bar');
@@ -57,9 +65,21 @@ if(mode==='prepare'){
 
     const editable=work().querySelector('[data-ba-token]');assert(editable,'Another box remains editable');const editableId=String(editable.dataset.baToken);tile(editableId).click();await tick(30);
     assert(work().querySelector('.nmb-keypad'),'Editing still works after branch/delete redraws');
-    result('pass','Number Mobile edit, reopen, branch and delete interactions work without a render loop');
+    work().querySelector('[data-nmb-close]')?.click();await tick(20);
+
+    const challenge=work().querySelector('[data-nmb-challenge-toggle]');assert(challenge,'Challenge launcher remains available after editing');challenge.click();await tick(20);
+    const missing=work().querySelector('[data-nmb-challenge="missing-weight"]');assert(missing,'Challenge picker includes Missing number');missing.click();await tick(80);
+    assert(work().querySelector('.gd-challenge-banner'),'Direct Number Mobile challenge action uses the shared challenge engine');
+    assert([...work().querySelectorAll('[data-ba-token]')].some(t=>t.disabled),'Generated fixed challenge boxes remain protected');
+
+    work().querySelector('[data-nmb-challenge-toggle]')?.click();await tick(20);
+    const clear=[...work().querySelectorAll('.nmb-challenge-popover button')].find(b=>b.textContent.trim()==='Clear challenge');assert(clear,'Active challenge can be cleared directly');clear.click();await tick(60);
+    assert(!work().querySelector('.gd-challenge-banner'),'Clear challenge returns to normal Number Mobile mode');
+    assert([...work().querySelectorAll('[data-ba-token]')].every(t=>!t.disabled),'Starter boxes are editable again after challenge mode');
+
+    result('pass','Number Mobile contextual edit, branch, delete and challenge interactions work without a render loop');
   }
-  window.addEventListener('load',()=>setTimeout(()=>run().catch(e=>result('fail',e&&e.message?e.message:String(e),e&&e.stack?e.stack:'')),100));
+  window.addEventListener('load',()=>setTimeout(()=>run().catch(e=>result('fail',e&&e.message?e.message:String(e),e&&e.stack?e.stack:'')),120));
 })();
 </script></body></html>`;
   fs.writeFileSync(HARNESS,html);console.log(HARNESS);process.exit(0);
