@@ -25,7 +25,9 @@ function text(el){return String(el?.textContent||'').trim()}
 function numeric(str){const n=Number(String(str??'').trim());return Number.isFinite(n)?n:null}
 function scheduleAdapt(){if(adaptQueued)return;adaptQueued=true;queueMicrotask(()=>{adaptQueued=false;adapt()})}
 function challengeKey(){const b=banner(),ids=qa('[data-ba-token]',work()).map(el=>el.dataset.baToken).join(',');return b?text(q('.gd-challenge-kicker',b))+'|'+text(q('.gd-challenge-prompt',b))+'|'+ids:''}
-function unknownTiles(){return qa('[data-ba-token]',work()).filter(tile=>text(q('strong',tile))==='?'||answers.has(String(tile.dataset.baToken)))}
+function intendedAnswers(){const map=G.numberMobileChallengeSpec?.answerByToken;return map&&typeof map==='object'?map:null}
+function isIntendedAnswerTile(tile){const map=intendedAnswers(),id=String(tile?.dataset?.baToken||'');return map?Object.prototype.hasOwnProperty.call(map,id):(text(q('strong',tile))==='?'||answers.has(id))}
+function unknownTiles(){const map=intendedAnswers();if(map)return Object.keys(map).map(id=>q('[data-ba-token="'+CSS.escape(String(id))+'"]',work())).filter(Boolean);return qa('[data-ba-token]',work()).filter(tile=>text(q('strong',tile))==='?'||answers.has(String(tile.dataset.baToken)))}
 function visibleNumber(tile){return numeric(text(q('strong',tile)))}
 function sumTokens(root,except=null){return qa('[data-ba-token]',root).reduce((sum,tile)=>{if(except&&tile===except)return sum;const n=visibleNumber(tile);return sum+(n==null?0:n)},0)}
 function mainSide(side){return q('.gd-eq-side--'+side+' .gd-eq-weights',work())}
@@ -45,15 +47,15 @@ function branchExpected(tile){
   const branch=tile.closest('.nmb-branch');if(!branch)return null;
   const side=tile.closest('.nmb-branch-side--right')?'right':'left',other=side==='left'?'right':'left';
   const same=q(':scope > .nmb-branch-sides > .nmb-branch-side--'+side+' > .nmb-branch-children',branch),opposite=q(':scope > .nmb-branch-sides > .nmb-branch-side--'+other+' > .nmb-branch-children',branch);if(!same||!opposite)return null;
-  const unresolved=qa('[data-ba-token]',same).filter(el=>el!==tile&&text(q('strong',el))==='?');if(unresolved.length)return null;
+  const unresolved=qa('[data-ba-token]',same).filter(el=>el!==tile&&isIntendedAnswerTile(el));if(unresolved.length)return null;
   return sumTokens(opposite)-sumTokens(same,tile);
 }
 function mainExpected(tile){
   const side=tile.closest('.gd-eq-side--right')?'right':'left',other=side==='left'?'right':'left',same=mainSide(side),opposite=mainSide(other);if(!same||!opposite)return null;
-  const unresolved=qa('[data-ba-token]',same).filter(el=>el!==tile&&text(q('strong',el))==='?');if(unresolved.length)return null;
+  const unresolved=qa('[data-ba-token]',same).filter(el=>el!==tile&&isIntendedAnswerTile(el));if(unresolved.length)return null;
   return sumTokens(opposite)-sumTokens(same,tile);
 }
-function expectedForTile(tile){const branch=branchExpected(tile);return branch==null?mainExpected(tile):branch}
+function expectedForTile(tile){const map=intendedAnswers(),id=String(tile?.dataset?.baToken||'');if(map&&Object.prototype.hasOwnProperty.call(map,id)){const expected=Number(map[id]);return Number.isFinite(expected)?expected:null}const branch=branchExpected(tile);return branch==null?mainExpected(tile):branch}
 function normalise(value){return String(value??'').trim().toLowerCase().replace(/\s+/g,' ')}
 function setFeedback(message,kind=''){feedback=message;feedbackKind=kind;renderFeedback()}
 function renderFeedback(){const el=q('[data-nmb-v8-feedback]',stage());if(!el)return;el.textContent=feedback||'';el.className='nmb-v8-feedback'+(feedbackKind?' is-'+feedbackKind:'');el.setAttribute('aria-live','polite')}
@@ -62,7 +64,7 @@ function renderTileAnswer(tile){const state=answers.get(String(tile.dataset.baTo
 function closePad(){activeTileId=null;q('.nmb-v8-answer-pad',stage())?.remove()}
 function checkTile(tile){
   const state=answerState(String(tile.dataset.baToken)),expected=expectedForTile(tile),given=numeric(state.buffer);
-  if(expected==null||!Number.isFinite(expected)){state.wrong=true;renderTileAnswer(tile);setFeedback('Try the other missing box first.','wrong');return}
+  if(expected==null||!Number.isFinite(expected)){state.wrong=true;renderTileAnswer(tile);setFeedback('Not quite — try again.','wrong');return}
   if(given!=null&&Math.abs(given-expected)<1e-9){state.correct=true;state.wrong=false;renderTileAnswer(tile);setFeedback('Correct ✓','correct');closePad()}
   else{state.correct=false;state.wrong=true;renderTileAnswer(tile);setFeedback('Not quite — try again.','wrong')}
 }
@@ -108,7 +110,7 @@ function adapt(){
   const unknowns=prepareUnknownTiles();if(unknowns.length)missingPanel();else responsePanel(type);
 }
 function intercept(e){
-  if(!pupilActive()||revealed())return;const target=e.target?.closest?.('[data-ba-token],.nmb-branch-bar,.nmb-branch-add,.nmb-branch-empty,[data-ba-stage-add],.nmb-tile-toolbar,.nmb-branch-toolbar,.nmb-keypad');if(!target)return;const tile=target.closest?.('[data-ba-token]');e.preventDefault();e.stopImmediatePropagation();if(tile&&(text(q('strong',tile))==='?'||answers.has(String(tile.dataset.baToken)))){const state=answerState(String(tile.dataset.baToken));if(!state.correct)answerPad(tile)}
+  if(!pupilActive()||revealed())return;const target=e.target?.closest?.('[data-ba-token],.nmb-branch-bar,.nmb-branch-add,.nmb-branch-empty,[data-ba-stage-add],.nmb-tile-toolbar,.nmb-branch-toolbar,.nmb-keypad');if(!target)return;const tile=target.closest?.('[data-ba-token]');e.preventDefault();e.stopImmediatePropagation();if(tile&&isIntendedAnswerTile(tile)){const state=answerState(String(tile.dataset.baToken));if(!state.correct)answerPad(tile)}
 }
 function blankClick(e){if(!pupilActive())return;if(e.target.closest?.('.nmb-v8-answer-pad,.nmb-v8-response-panel,.gd-challenge-banner,[data-ba-token]'))return;closePad()}
 function keyboard(e){
@@ -121,6 +123,6 @@ function install(){
   if(installed)return;installed=true;document.addEventListener('pointerdown',intercept,true);document.addEventListener('click',intercept,true);document.addEventListener('click',blankClick,true);document.addEventListener('keydown',keyboard,true);document.addEventListener('click',()=>setTimeout(scheduleAdapt,0),true);document.addEventListener('change',scheduleAdapt,true);
   observe();const root=document.getElementById('tt99-goodies-root');if(root){const rootObserver=new MutationObserver(()=>{observe();scheduleAdapt()});rootObserver.observe(root,{childList:true})}scheduleAdapt();
 }
-G.numberMobilePupilChallengeVersion='8.2';
+G.numberMobilePupilChallengeVersion='8.3';
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else queueMicrotask(install);
 })(window.TT99Goodies);
