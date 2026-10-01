@@ -7,7 +7,7 @@
 if(!G)return;
 
 const BUILD_CLASS='nmb-v7-challenge-building';
-let installed=false,building=false,buildSeq=0,buildStarted=0,settleTimer=null,failSafeTimer=null,observer=null,exiting=false;
+let installed=false,building=false,buildSeq=0,buildStarted=0,checkTimer=null,failSafeTimer=null,observer=null,exiting=false,originBanner=null;
 
 function q(sel,root=document){return root?.querySelector?.(sel)||null}
 function stage(){return document.getElementById('gd-stage')}
@@ -25,27 +25,33 @@ function setBuilding(on){
 }
 function finishBuild(seq){
   if(seq!==buildSeq)return;
-  clearTimeout(settleTimer);clearTimeout(failSafeTimer);settleTimer=failSafeTimer=null;
+  clearTimeout(checkTimer);clearTimeout(failSafeTimer);checkTimer=failSafeTimer=null;originBanner=null;
   setBuilding(false);ensureExit();
 }
-function armSettle(seq){
+function finalChallengeReady(){
+  const b=banner(),w=work();if(!b||!w||q('.nmb-v5-challenge-popover',w))return false;
+  if(originBanner&&b===originBanner)return false;
+  const level=String(G.numberMobileChallengeDifficulty||'easy').toUpperCase();
+  const kicker=String(q('.gd-challenge-kicker',b)?.textContent||'').toUpperCase();
+  return kicker.includes(level);
+}
+function checkBuild(seq){
   if(!building||seq!==buildSeq)return;
-  clearTimeout(settleTimer);
-  settleTimer=setTimeout(()=>{
+  clearTimeout(checkTimer);
+  checkTimer=setTimeout(()=>{
     if(!building||seq!==buildSeq)return;
-    const oldEnough=Date.now()-buildStarted>=430;
-    const ready=!!banner()&&!!work()&&!q('.nmb-v5-challenge-popover',work());
-    if(!oldEnough||!ready){armSettle(seq);return}
+    const oldEnough=Date.now()-buildStarted>=180;
+    if(!oldEnough||!finalChallengeReady()){checkBuild(seq);return}
     requestAnimationFrame(()=>requestAnimationFrame(()=>finishBuild(seq)));
-  },180);
+  },45);
 }
 function beginBuild(){
-  const seq=++buildSeq;buildStarted=Date.now();setBuilding(true);armSettle(seq);
+  const seq=++buildSeq;buildStarted=Date.now();originBanner=banner();setBuilding(true);checkBuild(seq);
   clearTimeout(failSafeTimer);failSafeTimer=setTimeout(()=>finishBuild(seq),5000);
 }
 function noteMutation(){
-  if(building)armSettle(buildSeq);
-  if(!building)ensureExit();
+  if(building)checkBuild(buildSeq);
+  else ensureExit();
 }
 
 async function exitChallenge(){
@@ -84,6 +90,6 @@ function install(){
   installObserver();ensureExit();
 }
 
-G.numberMobileChallengeUxVersion='7.0';
+G.numberMobileChallengeUxVersion='7.1';
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else queueMicrotask(install);
 })(window.TT99Goodies);
