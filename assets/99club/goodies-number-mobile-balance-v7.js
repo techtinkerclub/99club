@@ -62,12 +62,26 @@ function noteMutation(){
   else ensureExit();
 }
 
+async function clearThroughNumberMobile(){
+  if(!banner()||!G.numberMobileChallengeSpec)return false;
+  const trigger=q('[data-nmb-challenge-toggle]',work());if(!trigger)return false;
+  trigger.click();
+  const popClear=await waitFor(()=>q('[data-nmb-v6-clear]',work()),{tries:24,delay:25});
+  if(!popClear)return false;
+  popClear.click();
+  await waitFor(()=>!banner(),{tries:44,delay:25});
+  return !banner();
+}
 async function exitChallenge(){
   if(exiting)return;exiting=true;
   try{
     if(building)finishBuild(buildSeq);
+    /* Complex Medium/Hard challenges keep Number Mobile-specific state in v6.
+     * Clear through that layer first so its read-only spec is released before
+     * the shared challenge banner disappears. */
+    if(await clearThroughNumberMobile())return;
     const challengeTab=q('[data-ba-workflow="challenge"]',controls());if(challengeTab)challengeTab.click();
-    let clear=await waitFor(()=>q('#ba-clear-challenge',controls()),{tries:30,delay:25});
+    const clear=await waitFor(()=>q('#ba-clear-challenge',controls()),{tries:30,delay:25});
     if(clear){clear.click();await waitFor(()=>!banner(),{tries:36,delay:25})}
     if(banner()){
       const trigger=q('[data-nmb-challenge-toggle]',work());if(trigger)trigger.click();
@@ -98,6 +112,6 @@ function install(){
   installObserver();ensureExit();
 }
 
-G.numberMobileChallengeUxVersion='7.2';
+G.numberMobileChallengeUxVersion='7.3';
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else queueMicrotask(install);
 })(window.TT99Goodies);
