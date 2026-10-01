@@ -25,6 +25,7 @@ if(mode==='prepare'){
 <script src="/assets/99club/goodies-number-mobile-balance-v3.js"></script>
 <script src="/assets/99club/goodies-number-mobile-balance-v4.js"></script>
 <script src="/assets/99club/goodies-number-mobile-balance-v6.js"></script>
+<script src="/assets/99club/goodies-number-mobile-balance-v6-blank-bridge.js"></script>
 <script src="/assets/99club/goodies-app.js"></script>
 <script>
 (function(){
@@ -83,7 +84,7 @@ if(mode==='prepare'){
     pop=work().querySelector('.nmb-v5-challenge-popover');assert(pop.querySelector('[data-nmb-v6-difficulty="hard"].is-active'),'Hard selection remains active');
     pop.querySelector('[data-nmb-v6-type="missing-weight"]').click();
     const hardBanner=await waitFor(()=>stage().querySelector('.gd-challenge-banner'),120,45);assert(hardBanner,'Hard missing-number challenge renders');
-    await waitFor(()=>work()?.querySelectorAll('.nmb-branch').length>=2,120,45);await tick(150);
+    await waitFor(()=>work()?.querySelectorAll('.nmb-branch').length>=2,120,45);await tick(170);
     assert(work().querySelectorAll('.nmb-branch').length>=2,'Hard challenge uses two hanging branches');
     assert([...work().querySelectorAll('[data-ba-token] strong')].filter(el=>el.textContent.trim()==='?').length>=2,'Hard challenge contains multiple missing numbers');
     assert([...work().querySelectorAll('.gd-eq-total')].every(el=>getComputedStyle(el).display==='none'),'Hard challenge never shows side totals');
@@ -91,7 +92,7 @@ if(mode==='prepare'){
     assert(stage().querySelector('[data-nmb-v6-another]'),'Hard challenge keeps Another like this on the banner');
     assert([...work().querySelectorAll('[data-ba-token]')].every(el=>el.disabled),'Read-only hard puzzle protects its given boxes');
 
-    const reveal=stage().querySelector('[data-board-action="reveal"]');assert(reveal,'Hard challenge has Reveal answer');reveal.click();await tick(150);
+    const reveal=stage().querySelector('[data-board-action="reveal"]');assert(reveal,'Hard challenge has Reveal answer');reveal.click();await tick(170);
     assert([...work().querySelectorAll('[data-ba-token] strong')].filter(el=>el.textContent.trim()==='?').length===0,'Reveal answer restores both hidden values');
 
     await clearChallenge();
