@@ -5,6 +5,8 @@
 (function(){
 'use strict';
 
+let stabilisingSelection=false;
+
 function replayChallengeClick(attempt=0){
   const fresh=document.querySelector('#gd-stage .gd-number-mobile-workbench [data-nmb-challenge-toggle]');
   if(fresh?.dataset.nmbV6Bound){fresh.click();return}
@@ -19,6 +21,26 @@ document.addEventListener('click',event=>{
   if(!trigger||trigger.dataset.nmbV6Bound)return;
   event.preventDefault();event.stopPropagation();
   setTimeout(()=>replayChallengeClick(),16);
+},true);
+
+/* During generated Medium/Hard challenges, v6 drives the normal editor by
+ * clicking boxes. The mobile can redraw between that click and the following
+ * value/hide edit, leaving the base balance editor focused on a different box.
+ * Re-select the fresh instance of the intended box before v6 continues. */
+document.addEventListener('click',event=>{
+  if(stabilisingSelection)return;
+  if(!document.body.classList.contains('nmb-v7-challenge-building')&&!document.documentElement.classList.contains('nmb-v7-challenge-building'))return;
+  const tile=event.target?.closest?.('#gd-stage .gd-number-mobile-workbench [data-ba-token]');
+  if(!tile)return;
+  const id=String(tile.dataset.baToken||'');if(!id)return;
+  setTimeout(()=>{
+    const work=document.querySelector('#gd-stage .gd-number-mobile-workbench');if(!work)return;
+    if(work.querySelector('[data-ba-selected="'+CSS.escape(id)+'"]'))return;
+    const fresh=work.querySelector('[data-ba-token="'+CSS.escape(id)+'"]');if(!fresh)return;
+    if(fresh.disabled){fresh.disabled=false;fresh.removeAttribute('disabled');fresh.removeAttribute('aria-disabled')}
+    stabilisingSelection=true;
+    try{fresh.click()}finally{setTimeout(()=>{stabilisingSelection=false},0)}
+  },0);
 },true);
 
 /* Branch-created boxes are deliberately born as Number Mobile blanks. When the
