@@ -11,7 +11,7 @@ function building(){return document.body.classList.contains('nmb-v7-challenge-bu
 function work(){return document.querySelector('#gd-stage .gd-number-mobile-workbench')}
 function token(id){return work()?.querySelector('[data-ba-token="'+CSS.escape(String(id))+'"]')||null}
 function wait(ms=12){return new Promise(resolve=>setTimeout(resolve,ms))}
-async function waitFor(fn,tries=30){for(let i=0;i<tries;i++){const value=fn();if(value)return value;await wait()}return null}
+async function waitFor(fn,tries=36){for(let i=0;i<tries;i++){const value=fn();if(value)return value;await wait()}return null}
 
 function replayChallengeClick(attempt=0){
   const fresh=document.querySelector('#gd-stage .gd-number-mobile-workbench [data-nmb-challenge-toggle]');
@@ -26,27 +26,32 @@ async function focusTarget(id){
   return !!(await waitFor(()=>document.querySelector('#gd-stage .gd-number-mobile-workbench .gd-eq-selected[data-ba-selected="'+CSS.escape(sid)+'"]')));
 }
 
+async function freshPad(id){
+  const sid=String(id);
+  return waitFor(()=>work()?.querySelector('.nmb-keypad[data-nmb-keypad="'+CSS.escape(sid)+'"]'));
+}
+
 async function applyValue(id,value){
   if(applying)return;applying=true;
   try{
     const sid=String(id),text=String(value??'').trim();if(!/^\d+(?:\.\d+)?$/.test(text))return;
     if(!await focusTarget(sid))return;
-    /* Prefer the Number Mobile keypad because it updates both the engine value
-       and v3's own blank-box state. Crucially, require the keypad to belong to
-       the exact token the builder asked to edit. */
-    const pad=await waitFor(()=>work()?.querySelector('.nmb-keypad[data-nmb-keypad="'+CSS.escape(sid)+'"]'));
+    /* The v3 keypad redraws after every keypress. Reacquire the live keypad
+       each time so challenge construction follows the exact same state path as
+       a real user editing that Number Mobile box. */
+    let pad=await freshPad(sid);
     if(pad){
-      const back=pad.querySelector('[data-nmb-key="⌫"]');
-      for(let i=0;i<18&&back;i++)back.click();
+      const blank=pad.querySelector('[data-nmb-blank]');if(blank){blank.click();await wait(18)}
       for(const key of text){
+        pad=await freshPad(sid);if(!pad)break;
         const button=[...pad.querySelectorAll('[data-nmb-key]')].find(el=>el.dataset.nmbKey===key);
-        if(button)button.click();
+        if(!button)break;button.click();await wait(18);
       }
-      pad.querySelector('[data-nmb-done]')?.click();
-      await wait(24);return;
+      pad=await freshPad(sid);pad?.querySelector('[data-nmb-done]')?.click();
+      await wait(28);return;
     }
     const input=document.getElementById('ba-value');if(!input)return;
-    input.value=text;input.dispatchEvent(new Event('change',{bubbles:true}));await wait(24);
+    input.value=text;input.dispatchEvent(new Event('change',{bubbles:true}));await wait(28);
   }finally{applying=false}
 }
 
@@ -55,7 +60,7 @@ async function applyHidden(id,checked){
   try{
     const sid=String(id);if(!await focusTarget(sid))return;
     const hidden=await waitFor(()=>document.getElementById('ba-hidden'));if(!hidden)return;
-    hidden.checked=!!checked;hidden.dispatchEvent(new Event('change',{bubbles:true}));await wait(24);
+    hidden.checked=!!checked;hidden.dispatchEvent(new Event('change',{bubbles:true}));await wait(28);
   }finally{applying=false}
 }
 
