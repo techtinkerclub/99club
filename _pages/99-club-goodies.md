@@ -24,7 +24,7 @@ robots: "noindex,nofollow,noarchive"
 <link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v8.css?v=2">
 <link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v9.css?v=1">
 <link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v11.css?v=1">
-<link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v12.css?v=1">
+<link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v12.css?v=2">
 <script src="/assets/99club/goodies-core.js?v=1" defer></script>
 <script src="/assets/99club/goodies-interaction.js?v=3" defer></script>
 <script src="/assets/99club/goodies-challenge.js?v=5" defer></script>

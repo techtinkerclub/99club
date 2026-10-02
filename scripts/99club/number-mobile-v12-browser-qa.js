@@ -12,11 +12,12 @@ async function tidyGeometry(){
   const ready=await W(()=>{
     const b=S()?.querySelector('.gd-challenge-banner'),actions=b?.querySelector('.gd-challenge-actions');if(!b||!actions)return null;
     const l=labels(actions);if(!(l.includes('Change')&&l.includes('Another')&&l.includes('Reveal')&&l.includes('Exit')))return null;
-    const br=b.getBoundingClientRect(),ar=actions.getBoundingClientRect();if(ar.bottom>br.bottom+2)return null;
-    const panel=S()?.querySelector('.nmb-v8-response-panel'),pr=panel?.getBoundingClientRect();if(!panel||pr.top<br.bottom-2)return null;
+    const bs=getComputedStyle(b),as=getComputedStyle(actions);if(bs.display!=='flex'||bs.flexDirection!=='column'||as.position!=='static')return null;
+    const prompt=b.querySelector('.gd-challenge-prompt'),rr=prompt?.getBoundingClientRect(),br=b.getBoundingClientRect(),ar=actions.getBoundingClientRect();if(!rr||ar.top<rr.bottom-1||ar.bottom>br.bottom+2)return null;
+    const panel=S()?.querySelector('.nmb-v8-response-panel'),pr=panel?.getBoundingClientRect();if(!panel||pr.top<br.bottom+2)return null;
     return{b,actions,panel};
   },160,25);
-  A(ready,'Current challenge settles to tidy contained Change / Another / Reveal / Exit before pupil interaction');
+  A(ready,'Current challenge uses a vertical contained header with Change / Another / Reveal / Exit before pupil interaction');
   return ready;
 }
 async function run(){
@@ -42,7 +43,7 @@ async function run(){
  p=await W(()=>M()?.querySelector('.nmb-v5-challenge-popover'));A(p,'Challenge picker reopens');const same=p.querySelector('[data-nmb-v6-type="same-to-both"]');A(same,'Same-to-both challenge is available');same.click();
  A(await W(()=>/both sides|equality/i.test(S()?.querySelector('.gd-challenge-prompt')?.textContent||'')),'Standard challenge replaces Hard Missing');
  await tidyGeometry();
- R('pass','First real embed challenge is visible and challenge chrome is stable for complex and standard paths');
+ R('pass','First real embed challenge is visible and challenge header remains vertically contained for complex and standard paths');
 }
 window.addEventListener('load',()=>setTimeout(()=>run().catch(e=>R('fail',e?.message||String(e),e?.stack||'')),200));})();</script></body></html>`;fs.writeFileSync(HTML,html);console.log(HTML);process.exit(0)}
 if(mode==='check'){const file=process.argv[3];if(!file)throw new Error('Usage: node number-mobile-v12-browser-qa.js check <dumped-html>');const html=fs.readFileSync(file,'utf8'),m=html.match(/<div id="nmb-v12-result"[^>]*data-status="([^"]+)"[^>]*data-message="([^"]*)"[^>]*data-detail="([^"]*)"/),status=m?m[1]:'missing',message=m?m[2]:'Result element missing',detail=m?m[3]:'';fs.writeFileSync(REPORT,JSON.stringify({status,message,detail,checkedAt:new Date().toISOString()},null,2));if(status!=='pass')throw new Error('Number Mobile v12 QA failed: '+(message||status));console.log(message);process.exit(0)}

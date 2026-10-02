@@ -1,24 +1,73 @@
-/* Number Mobile Balance v12 · first-run pupil chrome geometry */
+/* Number Mobile Balance v12 · first-run pupil chrome geometry
+ * Keep the challenge header and pupil response as two unambiguous vertical
+ * blocks. A simple flex column is more robust than the old two-column grid
+ * when a board object is resized and the prompt wraps onto extra lines.
+ */
 .nmb-v8-pupil-challenge .gd-challenge-banner{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:stretch!important;
+  justify-content:flex-start!important;
+  gap:5px!important;
+  width:auto!important;
   height:auto!important;
   max-height:none!important;
   min-height:0!important;
-  grid-auto-rows:auto!important;
-  align-content:start!important;
+  flex:0 0 auto!important;
+  margin:6px 10px 4px!important;
+  padding:9px 12px 10px!important;
   overflow:visible!important;
-  padding-bottom:10px!important;
+}
+.nmb-v8-pupil-challenge .gd-challenge-kicker{
+  order:1!important;
+  display:block!important;
+  align-self:flex-start!important;
+  margin:0!important;
+  white-space:nowrap!important;
+}
+.nmb-v8-pupil-challenge .gd-challenge-copy{
+  order:2!important;
+  display:block!important;
+  width:100%!important;
+  min-width:0!important;
+  margin:0!important;
+}
+.nmb-v8-pupil-challenge .gd-challenge-prompt{
+  display:block!important;
+  width:100%!important;
+  margin:0!important;
 }
 .nmb-v8-pupil-challenge .gd-challenge-banner .gd-challenge-actions{
+  order:3!important;
   position:static!important;
   inset:auto!important;
+  top:auto!important;
+  right:auto!important;
+  bottom:auto!important;
+  left:auto!important;
   transform:none!important;
-  width:auto!important;
+  display:flex!important;
+  flex-wrap:wrap!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  align-self:stretch!important;
+  width:100%!important;
   max-width:100%!important;
+  min-height:32px!important;
   margin:2px 0 0!important;
-  align-self:auto!important;
+  padding:0!important;
+  gap:5px!important;
+  z-index:1!important;
+}
+.nmb-v8-pupil-challenge .gd-challenge-banner .gd-challenge-actions em{
+  flex-basis:100%!important;
+  margin:1px 0 0!important;
+  text-align:left!important;
 }
 .nmb-v8-pupil-challenge .nmb-v8-response-panel{
   position:relative!important;
   z-index:0!important;
-  margin-top:6px!important;
+  flex:0 0 auto!important;
+  clear:both!important;
+  margin:7px 12px 2px!important;
 }
