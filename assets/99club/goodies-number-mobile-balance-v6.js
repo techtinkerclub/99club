@@ -157,6 +157,42 @@ async function branchToken(id,rightValue,extras=[]){
   return{branchId,ids};
 }
 async function balancedBranch(side,sum){const part=randint(2,sum-2),other=sum-part,root=await addNumber(side,part),branch=await branchToken(root,sum,[{slot:'left',value:other}]);return{...branch,sum}}
+function splitSum(total,count,min=2){
+  const parts=[];let remaining=total;
+  for(let i=0;i<count-1;i++){
+    const slots=count-i-1,max=remaining-min*slots,value=randint(min,max);
+    parts.push(value);remaining-=value;
+  }
+  parts.push(remaining);
+  for(let i=parts.length-1;i>0;i--){const j=randint(0,i),tmp=parts[i];parts[i]=parts[j];parts[j]=tmp}
+  return parts;
+}
+function missingPlan(sum,avoid=''){
+  for(let attempt=0;attempt<16;attempt++){
+    const hiddenSide=Math.random()<.5?'left':'right';
+    const hiddenKnownCount=Math.random()<.45?2:1;
+    const oppositeCount=Math.random()<.22?3:(Math.random()<.55?2:1);
+    const maxAnswer=sum-2*hiddenKnownCount,minAnswer=Math.max(5,Math.floor(sum*.32));
+    if(maxAnswer<2)continue;
+    const answer=randint(Math.min(minAnswer,maxAnswer),maxAnswer);
+    const known=splitSum(sum-answer,hiddenKnownCount,2),opposite=splitSum(sum,oppositeCount,2);
+    const signature=[hiddenSide,hiddenKnownCount,oppositeCount].join('-');
+    if(signature!==avoid||attempt===15)return{hiddenSide,answer,known,opposite,signature};
+  }
+}
+async function plannedMissingBranch(mainSide,sum,plan){
+  let rootValue,rightValue,extras=[];
+  if(plan.hiddenSide==='left'){
+    rootValue=plan.answer;rightValue=plan.opposite[0];
+    extras=plan.known.map(value=>({slot:'left',value})).concat(plan.opposite.slice(1).map(value=>({slot:'right',value})));
+  }else{
+    rootValue=plan.opposite[0];rightValue=plan.answer;
+    extras=plan.opposite.slice(1).map(value=>({slot:'left',value})).concat(plan.known.map(value=>({slot:'right',value})));
+  }
+  const root=await addNumber(mainSide,rootValue),branch=await branchToken(root,rightValue,extras);
+  const hiddenId=plan.hiddenSide==='left'?root:branch.ids.right[0];await hideToken(hiddenId);
+  return{branchId:branch.branchId,hiddenId,answer:plan.answer,signature:plan.signature};
+}
 async function setCustomCopy(spec){
   const title=await waitFor(()=>q('#ba-custom-title',controls()));if(title){title.value=spec.difficulty[0].toUpperCase()+spec.difficulty.slice(1)+' · '+titleFor(spec.type);title.dispatchEvent(new Event('input',{bubbles:true}));await wait(20)}
   const prompt=await waitFor(()=>q('#ba-custom-prompt',controls()));if(prompt){prompt.textContent=spec.prompt;prompt.dispatchEvent(new Event('input',{bubbles:true}));await wait(20)}
@@ -164,14 +200,13 @@ async function setCustomCopy(spec){
 }
 
 async function buildMissing(level){
-  const S=randint(level==='hard'?9:8,level==='hard'?15:13);
   if(level==='medium'){
-    const known=randint(2,S-2),missing=S-known,root=await addNumber('left',missing),branch=await branchToken(root,S,[{slot:'left',value:known}]);await addNumber('right',2*S);await hideToken(root);
+    const S=randint(8,13),known=randint(2,S-2),missing=S-known,root=await addNumber('left',missing),branch=await branchToken(root,S,[{slot:'left',value:known}]);await addNumber('right',2*S);await hideToken(root);
     return{type:'missing-weight',difficulty:level,readOnly:true,balancedBranchIds:[branch.branchId],prompt:'Every bar is balanced. Work out the missing number in the smaller hanging balance.',answer:String(missing),answerByToken:{[String(root)]:missing}};
   }
-  const p1=randint(2,S-2),m1=S-p1,p2=randint(2,S-2),m2=S-p2,leftRoot=await addNumber('left',m1),left=await branchToken(leftRoot,S,[{slot:'left',value:p1}]),rightRoot=await addNumber('right',S),right=await branchToken(rightRoot,m2,[{slot:'right',value:p2}]);
-  await hideToken(leftRoot);await hideToken(right.ids.right[0]);
-  return{type:'missing-weight',difficulty:level,readOnly:true,balancedBranchIds:[left.branchId,right.branchId],prompt:'Every bar is balanced. Find both missing numbers. Use the two smaller balances before checking the main bar.',answer:m1+' and '+m2,answerByToken:{[String(leftRoot)]:m1,[String(right.ids.right[0])]:m2}};
+  const S=randint(14,24),leftPlan=missingPlan(S),rightPlan=missingPlan(S,leftPlan?.signature||'');
+  const left=await plannedMissingBranch('left',S,leftPlan),right=await plannedMissingBranch('right',S,rightPlan);
+  return{type:'missing-weight',difficulty:level,readOnly:true,balancedBranchIds:[left.branchId,right.branchId],branchSum:S,layoutSignatures:[left.signature,right.signature],prompt:'Every bar is balanced. Find both missing numbers. Use the two smaller balances before checking the main bar.',answer:left.answer+' and '+right.answer,answerByToken:{[String(left.hiddenId)]:left.answer,[String(right.hiddenId)]:right.answer}};
 }
 async function buildCompare(level){
   if(level==='medium'){const S=randint(7,13),branch=await balancedBranch('left',S),delta=randint(2,7);await addNumber('right',2*S+delta);return{type:'choose-relation',difficulty:level,readOnly:true,balancedBranchIds:[branch.branchId],prompt:'Which main side is heavier? Work out the value of the hanging branch before you compare the two sides.',answer:'Right side'}}
@@ -271,6 +306,6 @@ function install(){
   adapt();
 }
 G.balanceTool=function numberMobileBalanceToolV6(){const result=balanceToolV4.apply(this,arguments);exposeSpec(null);popoverOpen=false;setTimeout(adapt,30);setTimeout(adapt,130);return result};
-G.numberMobileBalanceEnhancementVersion='6.1';
+G.numberMobileBalanceEnhancementVersion='6.2';
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else queueMicrotask(install);
 })(window.TT99Goodies);
