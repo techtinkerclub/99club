@@ -71,9 +71,13 @@ function enhanceCurrent(){
   return enhancePanel(panel);
 }
 async function stabilise(){
-  const token=++runToken;
+  const token=++runToken,initial=q('.nmb-v8-response-panel',stage()),initialReady=initial?.dataset?.nmbV13Numeric==='1';
   for(let i=0;i<160&&token===runToken;i++){
-    if(enhanceCurrent())return;
+    const panel=q('.nmb-v8-response-panel',stage());
+    if(!panel){if(activePanel)closePad(activePanel);await new Promise(r=>setTimeout(r,40));continue}
+    const transitioned=!initial||panel!==initial||!initial.isConnected;
+    const ready=enhancePanel(panel);
+    if(ready&&(transitioned||!initialReady))return;
     await new Promise(r=>setTimeout(r,40));
   }
 }
@@ -84,6 +88,6 @@ function install(){
   document.addEventListener('click',e=>{if(activePanel&&!e.target.closest('.nmb-v13-number-response'))closePad(activePanel)},false);
   setTimeout(stabilise,100);
 }
-G.numberMobileNumericInputVersion='13.1';
+G.numberMobileNumericInputVersion='13.2';
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })(window.TT99Goodies);
