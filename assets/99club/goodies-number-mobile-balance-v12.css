@@ -76,11 +76,14 @@
  * away which side is heavier before the pupil answers. Keep only the main bar
  * neutral; the smaller hanging balances remain visible and mathematically
  * meaningful. A correct response or Reveal removes this class and exposes the
- * real beam angle again. */
-.nmb-v8-pupil-challenge .gd-number-mobile-workbench.nmb-v12-conceal-main-balance .gd-eq-beam{
+ * real beam angle again. Disable the old beam transition while concealed so
+ * there is no brief tilt animation that flashes the answer first. */
+body.nmb-v8-pupil-challenge .gd-number-mobile-workbench.nmb-v12-conceal-main-balance .gd-eq-beam{
   transform:rotate(0deg)!important;
+  transition:none!important;
 }
-.nmb-v8-pupil-challenge .gd-number-mobile-workbench.nmb-v12-conceal-main-balance .gd-eq-side--left,
-.nmb-v8-pupil-challenge .gd-number-mobile-workbench.nmb-v12-conceal-main-balance .gd-eq-side--right{
+body.nmb-v8-pupil-challenge .gd-number-mobile-workbench.nmb-v12-conceal-main-balance .gd-eq-side--left,
+body.nmb-v8-pupil-challenge .gd-number-mobile-workbench.nmb-v12-conceal-main-balance .gd-eq-side--right{
   transform:translateY(0)!important;
+  transition:none!important;
 }
