@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - 'assets/99club/goodies-number-mobile-balance-v5-embed.js'
+      - 'assets/99club/goodies-number-mobile-balance-v6.js'
+      - 'assets/99club/goodies-number-mobile-balance-v11.js'
       - 'assets/99club/goodies-number-mobile-balance-v12.js'
       - 'assets/99club/goodies-number-mobile-balance-v12.css'
       - '_pages/99-club-goodies.md'
@@ -14,6 +16,8 @@ on:
     branches: [main]
     paths:
       - 'assets/99club/goodies-number-mobile-balance-v5-embed.js'
+      - 'assets/99club/goodies-number-mobile-balance-v6.js'
+      - 'assets/99club/goodies-number-mobile-balance-v11.js'
       - 'assets/99club/goodies-number-mobile-balance-v12.js'
       - 'assets/99club/goodies-number-mobile-balance-v12.css'
       - '_pages/99-club-goodies.md'
@@ -36,11 +40,13 @@ jobs:
       - name: Syntax check first-run adapters
         run: |
           node --check assets/99club/goodies-number-mobile-balance-v5-embed.js
+          node --check assets/99club/goodies-number-mobile-balance-v6.js
+          node --check assets/99club/goodies-number-mobile-balance-v11.js
           node --check assets/99club/goodies-number-mobile-balance-v12.js
           node --check scripts/99club/number-mobile-v12-browser-qa.js
       - name: Prepare first-run browser harness
         run: node scripts/99club/number-mobile-v12-browser-qa.js prepare
-      - name: Exercise first intercepted embed challenge and initial chrome
+      - name: Exercise first real embed challenge and initial chrome
         shell: bash
         run: |
           set -euo pipefail
@@ -52,7 +58,7 @@ jobs:
           if [ -z "$CHROME" ]; then echo 'No Chrome/Chromium executable is available.' >&2; exit 1; fi
           timeout 60s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
             --window-size=1500,1100 --virtual-time-budget=42000 --dump-dom \
-            http://127.0.0.1:8786/99club-number-mobile-v12-qa.html > /tmp/99club-number-mobile-v12.html
+            'http://127.0.0.1:8786/99club-number-mobile-v12-qa.html?embed=1' > /tmp/99club-number-mobile-v12.html
           cp /tmp/99club-number-mobile-v12.html 99club-number-mobile-v12-debug.html
           node scripts/99club/number-mobile-v12-browser-qa.js check /tmp/99club-number-mobile-v12.html
       - name: Upload v12 QA report
