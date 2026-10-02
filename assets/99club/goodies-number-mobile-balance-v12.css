@@ -71,3 +71,16 @@
   clear:both!important;
   margin:7px 12px 2px!important;
 }
+
+/* Compare is a calculation question, so the physical main beam must not give
+ * away which side is heavier before the pupil answers. Keep only the main bar
+ * neutral; the smaller hanging balances remain visible and mathematically
+ * meaningful. A correct response or Reveal removes this class and exposes the
+ * real beam angle again. */
+.nmb-v8-pupil-challenge .gd-number-mobile-workbench.nmb-v12-conceal-main-balance .gd-eq-beam{
+  transform:rotate(0deg)!important;
+}
+.nmb-v8-pupil-challenge .gd-number-mobile-workbench.nmb-v12-conceal-main-balance .gd-eq-side--left,
+.nmb-v8-pupil-challenge .gd-number-mobile-workbench.nmb-v12-conceal-main-balance .gd-eq-side--right{
+  transform:translateY(0)!important;
+}
