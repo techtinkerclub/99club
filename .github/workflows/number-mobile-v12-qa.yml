@@ -1,0 +1,66 @@
+name: Number Mobile V12 QA
+
+on:
+  pull_request:
+    paths:
+      - 'assets/99club/goodies-number-mobile-balance-v5-embed.js'
+      - 'assets/99club/goodies-number-mobile-balance-v12.js'
+      - 'assets/99club/goodies-number-mobile-balance-v12.css'
+      - '_pages/99-club-goodies.md'
+      - '_pages/whiteboard.md'
+      - 'scripts/99club/number-mobile-v12-browser-qa.js'
+      - '.github/workflows/number-mobile-v12-qa.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'assets/99club/goodies-number-mobile-balance-v5-embed.js'
+      - 'assets/99club/goodies-number-mobile-balance-v12.js'
+      - 'assets/99club/goodies-number-mobile-balance-v12.css'
+      - '_pages/99-club-goodies.md'
+      - '_pages/whiteboard.md'
+      - 'scripts/99club/number-mobile-v12-browser-qa.js'
+      - '.github/workflows/number-mobile-v12-qa.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  number-mobile-v12:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check first-run adapters
+        run: |
+          node --check assets/99club/goodies-number-mobile-balance-v5-embed.js
+          node --check assets/99club/goodies-number-mobile-balance-v12.js
+          node --check scripts/99club/number-mobile-v12-browser-qa.js
+      - name: Prepare first-run browser harness
+        run: node scripts/99club/number-mobile-v12-browser-qa.js prepare
+      - name: Exercise first intercepted embed challenge and initial chrome
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8786 --bind 127.0.0.1 > /tmp/99club-number-mobile-v12-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          sleep 1
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then echo 'No Chrome/Chromium executable is available.' >&2; exit 1; fi
+          timeout 60s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --window-size=1500,1100 --virtual-time-budget=42000 --dump-dom \
+            http://127.0.0.1:8786/99club-number-mobile-v12-qa.html > /tmp/99club-number-mobile-v12.html
+          cp /tmp/99club-number-mobile-v12.html 99club-number-mobile-v12-debug.html
+          node scripts/99club/number-mobile-v12-browser-qa.js check /tmp/99club-number-mobile-v12.html
+      - name: Upload v12 QA report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: number-mobile-v12-qa-report
+          path: |
+            99club-number-mobile-v12-qa-report.json
+            99club-number-mobile-v12-debug.html
+          if-no-files-found: ignore
