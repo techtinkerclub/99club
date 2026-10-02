@@ -24,7 +24,7 @@ robots: "noindex,nofollow,noarchive"
 <link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v8.css?v=2">
 <link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v9.css?v=1">
 <link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v11.css?v=1">
-<link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v12.css?v=1">
+<link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v12.css?v=2">
 <script>
 window.TT99_GOODIES_FORCE_BOARD = true;
 window.TT99_GOODIES_BOARD_EMBED_PATH = '/goodies/';
