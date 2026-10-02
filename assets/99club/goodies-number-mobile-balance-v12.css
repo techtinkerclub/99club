@@ -1,0 +1,24 @@
+/* Number Mobile Balance v12 · first-run pupil chrome geometry */
+.nmb-v8-pupil-challenge .gd-challenge-banner{
+  height:auto!important;
+  max-height:none!important;
+  min-height:0!important;
+  grid-auto-rows:auto!important;
+  align-content:start!important;
+  overflow:visible!important;
+  padding-bottom:10px!important;
+}
+.nmb-v8-pupil-challenge .gd-challenge-banner .gd-challenge-actions{
+  position:static!important;
+  inset:auto!important;
+  transform:none!important;
+  width:auto!important;
+  max-width:100%!important;
+  margin:2px 0 0!important;
+  align-self:auto!important;
+}
+.nmb-v8-pupil-challenge .nmb-v8-response-panel{
+  position:relative!important;
+  z-index:0!important;
+  margin-top:6px!important;
+}
