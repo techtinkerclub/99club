@@ -1,0 +1,63 @@
+name: Number Mobile V13 QA
+
+on:
+  pull_request:
+    paths:
+      - 'assets/99club/goodies-number-mobile-balance-v13.js'
+      - 'assets/99club/goodies-number-mobile-balance-v13.css'
+      - '_pages/99-club-goodies.md'
+      - '_pages/whiteboard.md'
+      - 'scripts/99club/number-mobile-v13-browser-qa.js'
+      - '.github/workflows/number-mobile-v13-qa.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'assets/99club/goodies-number-mobile-balance-v13.js'
+      - 'assets/99club/goodies-number-mobile-balance-v13.css'
+      - '_pages/99-club-goodies.md'
+      - '_pages/whiteboard.md'
+      - 'scripts/99club/number-mobile-v13-browser-qa.js'
+      - '.github/workflows/number-mobile-v13-qa.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  number-mobile-v13:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check numeric input layer
+        run: |
+          node --check assets/99club/goodies-number-mobile-balance-v13.js
+          node --check scripts/99club/number-mobile-v13-browser-qa.js
+      - name: Prepare numeric input browser harness
+        run: node scripts/99club/number-mobile-v13-browser-qa.js prepare
+      - name: Exercise numeric answer boxes and popup keypads
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8787 --bind 127.0.0.1 > /tmp/99club-number-mobile-v13-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          sleep 1
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then echo 'No Chrome/Chromium executable is available.' >&2; exit 1; fi
+          timeout 60s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --window-size=1500,1100 --virtual-time-budget=42000 --dump-dom \
+            'http://127.0.0.1:8787/99club-number-mobile-v13-qa.html?embed=1' > /tmp/99club-number-mobile-v13.html
+          cp /tmp/99club-number-mobile-v13.html 99club-number-mobile-v13-debug.html
+          node scripts/99club/number-mobile-v13-browser-qa.js check /tmp/99club-number-mobile-v13.html
+      - name: Upload v13 QA report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: number-mobile-v13-qa-report
+          path: |
+            99club-number-mobile-v13-qa-report.json
+            99club-number-mobile-v13-debug.html
+          if-no-files-found: ignore
