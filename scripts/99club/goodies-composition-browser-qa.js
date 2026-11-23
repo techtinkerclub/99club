@@ -410,9 +410,9 @@ async function run(){
   assert(visibleAbWorkflows.includes('Setup')&&visibleAbWorkflows.includes('Teach / play')&&!visibleAbWorkflows.includes('Challenge')&&!visibleAbWorkflows.includes('Export'),'Embedded Abacus keeps Setup / Teach controls and removes duplicate Challenge / Export tabs');
   abSettings.click();await tick();
 
-  let abQuick=[...abFrame.querySelectorAll('[data-board-quick-actions] button')];
   abDoc.querySelector('[data-ab-bead="4:unit:0"]').click();await tick();
   assert(Number(abDoc.querySelector('[data-ab-total]').textContent)===1,'Whiteboard Western abacus moves its ones bead into the counted group');
+  let abQuick=[...abFrame.querySelectorAll('[data-board-quick-actions] button')];
   const abClear=abQuick.find(button=>button.textContent.trim()==='Clear');
   assert(abClear,'Whiteboard Abacus exposes a contextual Clear frame action');
   abClear.click();await tick();
