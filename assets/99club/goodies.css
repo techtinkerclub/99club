@@ -930,7 +930,7 @@ html.gd-embed-page .page__content,body.gd-embed-page .page__content{width:100%!i
 .gd-board-object{position:absolute;box-sizing:border-box;border:1px solid transparent;border-radius:8px;background:transparent;box-shadow:none;overflow:visible}
 .gd-board-object.is-selected{border-color:rgba(29,116,107,.28);box-shadow:none}
 .gd-board-object.is-locked{border-style:dotted}
-.gd-board-object-iframe{display:block;width:var(--gd-board-base-w);height:var(--gd-board-base-h);border:0;border-radius:0;background:transparent;transform:scale(var(--gd-board-scale));transform-origin:top left}
+.gd-board-object-iframe{display:block;width:var(--gd-board-base-w);height:var(--gd-board-base-h);border:0;border-radius:8px;background:transparent;transform:scale(var(--gd-board-scale));transform-origin:top left}
 .gd-board-object-cover{position:absolute;inset:0;z-index:5;width:100%;height:100%;padding:0;border:0;border-radius:8px;background:transparent;cursor:default;outline:none!important}.gd-board-object-cover:focus,.gd-board-object-cover:focus-visible,.gd-board-object-iframe:focus,.gd-board-object-iframe:focus-visible{outline:none!important}
 .gd-board-object.is-selected>.gd-board-object-cover{pointer-events:none}
 .gd-board-move-handle,.gd-board-context-trigger,.gd-board-export-direct,.gd-board-delete-direct,.gd-board-resize-handle{display:none;position:absolute;z-index:20;border:0;background:rgba(255,255,255,.94);color:#5b7076;box-shadow:0 2px 8px rgba(34,62,67,.08);cursor:pointer}
