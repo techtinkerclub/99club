@@ -318,7 +318,7 @@ function placeValue(){
       '</div>'+
       field('Quick setup number','<div class="gd-row"><input class="gd-input" id="pv-value" type="number" min="0" max="'+rangeMax()+'" step="'+valueStep()+'" value="'+total()+'"><button class="gd-btn" id="pv-build" type="button">Build</button></div>')+
       '<div class="gd-row">'+btn('Random whole','pv-random')+(decimalAvailable?btn('Random decimal','pv-dec'):'')+'</div>'+
-      '<div class="gd-row">'+btn('Regroup','pv-regroup')+btn('Clear','pv-clear')+'</div>'+
+      '<div class="gd-row">'+btn('Regroup counters','pv-regroup')+btn('Clear board','pv-clear')+'</div>'+
       '<p class="gd-help">Choose exactly the places you need — for example 1,000 to 1 for whole-number work. Up to seven adjacent places are shown at once.</p>';
   }
   function exportControlsHtml(){
