@@ -39,6 +39,7 @@ const QUICK_ACTIONS={
     {label:'+ Line',selector:'[data-board-action="add-line"]',title:'Add aligned comparison line'}
   ],
   'place-value':[
+    {label:'Challenge',selector:'[data-pv-workflow="challenge"]',allowHidden:true,dynamicLabel:true,panelMode:'challenge',title:'Create or edit a Place Value challenge'},
     {label:'Reveal answer',selector:'[data-board-action="reveal"]',dynamicLabel:true,title:'Reveal or hide the challenge answer'},
     {label:'Exchange 10→1',selector:'[data-gd-action="exchange-up"]',allowHidden:true,title:'Exchange ten selected-place counters for one of the next larger place'},
     {label:'Split 1→10',selector:'[data-gd-action="split-down"]',allowHidden:true,title:'Split the selected counter into ten of the next smaller place'}
@@ -154,7 +155,7 @@ const tooltip=document.getElementById('gd-board-tooltip');
 const floatingControls=document.getElementById('gd-board-floating-controls');
 const floatingControlsBody=document.getElementById('gd-board-floating-controls-body');
 const floatingControlsTitle=document.getElementById('gd-board-floating-controls-title');
-let floatingControlObjectId=null,floatingControlDrag=null,floatingControlX=86,floatingControlY=76,floatingControlMoved=false;
+let floatingControlObjectId=null,floatingControlDrag=null,floatingControlX=86,floatingControlY=76,floatingControlMoved=false,floatingPanelMode='settings';
 let hintTimer=null,tooltipTimer=null;
 function showToolTip(button){
   if(!tooltip||!button)return;
@@ -223,10 +224,27 @@ function sourceControls(obj){return innerDocument(obj)?.getElementById('gd-contr
 function renderFloatingControls(obj){
   if(!floatingControls||!floatingControlsBody||!obj||!obj.settingsOpen||floatingControlObjectId!==obj.id)return;
   const source=sourceControls(obj);if(!source)return;
+  const sourceInputs=[...source.querySelectorAll(CONTROL_SELECTOR)];
   const clone=source.cloneNode(true);
   clone.removeAttribute('id');clone.removeAttribute('aria-hidden');clone.classList.add('gd-board-controls-proxy');
-  const sourceInputs=[...source.querySelectorAll(CONTROL_SELECTOR)],cloneInputs=[...clone.querySelectorAll(CONTROL_SELECTOR)];
-  cloneInputs.forEach((node,index)=>{
+  if(obj.toolId==='place-value'){
+    const tablist=clone.querySelector('.pv-mode-tabs');
+    if(floatingPanelMode==='challenge'){
+      tablist?.remove();
+    }else{
+      clone.querySelector('[data-pv-workflow="challenge"]')?.remove();
+      clone.querySelector('[data-pv-workflow="export"]')?.remove();
+    }
+  }
+  const cloneInputs=[...clone.querySelectorAll(CONTROL_SELECTOR)];
+  cloneInputs.forEach(node=>{
+    const originalIndex=[...sourceInputs].findIndex(original=>{
+      if(node.id&&original.id===node.id)return true;
+      const pvWorkflow=node.dataset?.pvWorkflow;if(pvWorkflow&&original.dataset?.pvWorkflow===pvWorkflow)return true;
+      const pvActivity=node.dataset?.pvActivityMode;if(pvActivity&&original.dataset?.pvActivityMode===pvActivity)return true;
+      return false;
+    });
+    const index=originalIndex>=0?originalIndex:cloneInputs.indexOf(node);
     node.dataset.boardControlIndex=String(index);
     const original=sourceInputs[index];if(!original)return;
     if('value' in original)node.value=original.value;
@@ -235,7 +253,7 @@ function renderFloatingControls(obj){
   });
   floatingControlsBody.replaceChildren(clone);
   const tool=tools.find(t=>t.id===obj.toolId);
-  if(floatingControlsTitle)floatingControlsTitle.textContent=(tool?.title||'Manipulative')+' settings';
+  if(floatingControlsTitle)floatingControlsTitle.textContent=obj.toolId==='place-value'&&floatingPanelMode==='challenge'?'Place value challenge':(tool?.title||'Manipulative')+' settings';
   floatingControls.hidden=false;
   requestAnimationFrame(positionFloatingControls);
 }
@@ -243,15 +261,20 @@ function refreshFloatingControls(obj,delay=0){
   if(!obj||!obj.settingsOpen||floatingControlObjectId!==obj.id)return;
   setTimeout(()=>renderFloatingControls(obj),delay);
 }
-function openFloatingControls(obj){
+function openFloatingControls(obj,mode='settings'){
   if(!obj)return;
+  floatingPanelMode=mode==='challenge'?'challenge':'settings';
+  if(obj.toolId==='place-value'&&floatingPanelMode==='settings'){
+    const source=sourceControls(obj),active=source?.querySelector('[data-pv-workflow].gd-btn--primary')?.dataset?.pvWorkflow;
+    if(active==='challenge'||active==='export')source?.querySelector('[data-pv-workflow="setup"]')?.click();
+  }
   if(floatingControlObjectId!=null&&String(floatingControlObjectId)!==String(obj.id)){
     const previous=objectById(floatingControlObjectId);if(previous)previous.settingsOpen=false;
   }
   floatingControlObjectId=obj.id;obj.settingsOpen=true;
   const frame=frameFor(obj.id);frame?.classList.add('has-settings');
   const tool=tools.find(t=>t.id===obj.toolId);
-  if(floatingControlsTitle)floatingControlsTitle.textContent=(tool?.title||'Manipulative')+' settings';
+  if(floatingControlsTitle)floatingControlsTitle.textContent=obj.toolId==='place-value'&&floatingPanelMode==='challenge'?'Place value challenge':(tool?.title||'Manipulative')+' settings';
   if(floatingControls)floatingControls.hidden=false;
   const rect=frame?.getBoundingClientRect(),host=board.getBoundingClientRect();
   if(rect&&!floatingControlMoved){
@@ -338,10 +361,10 @@ function connectInnerObject(obj){
   iframe.addEventListener('load',connect,{once:true});
   try{if(iframe.contentDocument?.readyState==='complete')connect()}catch(_){}
 }
-function sendSettings(obj,open){
+function sendSettings(obj,open,mode='settings'){
   if(!obj)return;
   const frame=frameFor(obj.id),iframe=frame?.querySelector('iframe');
-  if(open)openFloatingControls(obj);else closeFloatingControls(obj.id);
+  if(open)openFloatingControls(obj,mode);else closeFloatingControls(obj.id);
   if(iframe?.contentWindow)iframe.contentWindow.postMessage({type:'tt99-board-settings',open:false},location.origin);
 }
 function closeContext(obj){
@@ -541,8 +564,12 @@ function bindObject(obj){
     const action=(QUICK_ACTIONS[obj.toolId]||[])[Number(button.dataset.boardInnerAction)];
     const target=action&&innerTarget(obj,action.selector,!!action.allowHidden);
     if(target){
-      if(action.openSettings){sendSettings(obj,true);setTimeout(()=>target.focus?.(),30)}
-      else target.click();
+      if(action.panelMode){
+        target.click();
+        setTimeout(()=>{sendSettings(obj,true,action.panelMode);syncQuickActions(obj)},0);
+      }else if(action.openSettings){
+        sendSettings(obj,true);setTimeout(()=>target.focus?.(),30)
+      }else target.click();
       if(action.notice)boardHint(action.notice);
       setTimeout(()=>syncQuickActions(obj),0)
     }
