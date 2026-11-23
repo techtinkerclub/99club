@@ -27,8 +27,8 @@ function placeValue(){
     {id:'standard',label:'10,000 → 0.01',start:3},
     {id:'decimals',label:'1,000 → 0.001',start:4}
   ];
-  let placeRange='standard';
-  let places=PLACE_CATALOG.slice(3,10);
+  let placeRange='standard',rangeStart=3,rangeEnd=9;
+  let places=PLACE_CATALOG.slice(rangeStart,rangeEnd+1);
   const CHALLENGE_CATEGORIES=[
     {id:'read',label:'Read & place value'},
     {id:'build',label:'Build & regroup'},
@@ -47,8 +47,16 @@ function placeValue(){
   let exportMode='diagram',responseLines=1,exportStatus='';
 
   function rangeFor(id=placeRange){return PLACE_RANGES.find(r=>r.id===id)||PLACE_RANGES.find(r=>r.id==='standard')}
+  function applyPlaceWindow(start,end,id='custom'){
+    let a=clamp(Math.round(num(start,3)),0,PLACE_CATALOG.length-2),b=clamp(Math.round(num(end,9)),a+1,PLACE_CATALOG.length-1);
+    if(b-a>6)b=a+6;
+    rangeStart=a;rangeEnd=b;placeRange=id;places=PLACE_CATALOG.slice(rangeStart,rangeEnd+1);
+  }
   function setPlaceRange(id){
-    const range=rangeFor(id);placeRange=range.id;places=PLACE_CATALOG.slice(range.start,range.start+7);
+    const range=rangeFor(id);applyPlaceWindow(range.start,range.start+6,range.id);
+  }
+  function setCustomPlaceRange(start,end){
+    applyPlaceWindow(start,end,'custom');
   }
   function fractionDigits(){return Math.max(0,-Math.min(...places.map(p=>p.power)))}
   function valueStep(){return places[places.length-1]?.value||1}
@@ -60,10 +68,11 @@ function placeValue(){
   function counts(){const out=Array(places.length).fill(0);tokens.forEach(t=>{if(out[t.place]!=null)out[t.place]++});return out}
   function total(){return clean(tokens.reduce((sum,t)=>sum+(places[t.place]?.value||0),0))}
   function nonStandard(){return counts().some(n=>n>9)}
-  function stateSnapshot(){return{tokens:JSON.parse(JSON.stringify(tokens)),next,placeRange}}
+  function stateSnapshot(){return{tokens:JSON.parse(JSON.stringify(tokens)),next,placeRange,rangeStart,rangeEnd}}
   function restoreState(value){
-    setPlaceRange(value?.placeRange||'standard');
-    tokens=Array.isArray(value?.tokens)?value.tokens.map(t=>({...t,place:clamp(Math.round(num(t.place,4)),0,places.length-1)})):[];
+    if(Number.isInteger(value?.rangeStart)&&Number.isInteger(value?.rangeEnd))applyPlaceWindow(value.rangeStart,value.rangeEnd,value.placeRange||'custom');
+    else setPlaceRange(value?.placeRange||'standard');
+    tokens=Array.isArray(value?.tokens)?value.tokens.map(t=>({...t,place:clamp(Math.round(num(t.place,Math.min(4,places.length-1))),0,places.length-1)})):[];
     next=Math.max(1,Math.round(num(value?.next,1)));
     notice='';
   }
@@ -297,13 +306,19 @@ function placeValue(){
       (challenge?'<button class="gd-btn" id="pv-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>';
   }
   function setupControlsHtml(){
-    const rangeOptions=PLACE_RANGES.map(r=>'<option value="'+r.id+'"'+(r.id===placeRange?' selected':'')+'>'+r.label+'</option>').join('');
+    const presetOptions='<option value="custom"'+(placeRange==='custom'?' selected':'')+'>Custom range</option>'+PLACE_RANGES.map(r=>'<option value="'+r.id+'"'+(r.id===placeRange?' selected':'')+'>'+r.label+'</option>').join('');
+    const highestOptions=PLACE_CATALOG.slice(0,-1).map((p,i)=>'<option value="'+i+'"'+(i===rangeStart?' selected':'')+'>'+p.label+' · '+p.name+'</option>').join('');
+    const lowestOptions=PLACE_CATALOG.map((p,i)=>'<option value="'+i+'"'+(i===rangeEnd?' selected':'')+(i<=rangeStart?' disabled':'')+'>'+p.label+' · '+p.name+'</option>').join('');
     const decimalAvailable=fractionDigits()>0;
-    return field('Visible place range','<select class="gd-select" id="pv-range">'+rangeOptions+'</select>','Keep seven useful columns visible at once. Changing range preserves the current value where possible.')+
-      field('Quick setup number','<div class="gd-row"><input class="gd-input" id="pv-value" type="number" min="0" max="'+rangeMax()+'" step="'+valueStep()+'" value="'+total()+'"><button class="gd-btn" id="pv-build" type="button">Build</button></div>','Use this to prepare a board quickly; after that, work directly with the counters.')+
-      '<div class="gd-row">'+btn('Random whole number','pv-random')+(decimalAvailable?btn('Random decimal','pv-dec'):'')+'</div>'+
-      btn('Regroup counters','pv-regroup')+btn('Clear board','pv-clear')+
-      '<p class="gd-help">Tap + at the top of a column to add one counter. Drag counters between columns to change their place value. Select a counter to split it into ten of the next smaller place; when a column contains ten counters you can exchange ten for one of the next larger place.</p>';
+    return field('Quick range','<select class="gd-select" id="pv-range">'+presetOptions+'</select>')+
+      '<div class="gd-row gd-pv-range-pair">'+
+        field('Highest','<select class="gd-select" id="pv-range-high">'+highestOptions+'</select>')+
+        field('Lowest','<select class="gd-select" id="pv-range-low">'+lowestOptions+'</select>')+
+      '</div>'+
+      field('Quick setup number','<div class="gd-row"><input class="gd-input" id="pv-value" type="number" min="0" max="'+rangeMax()+'" step="'+valueStep()+'" value="'+total()+'"><button class="gd-btn" id="pv-build" type="button">Build</button></div>')+
+      '<div class="gd-row">'+btn('Random whole','pv-random')+(decimalAvailable?btn('Random decimal','pv-dec'):'')+'</div>'+
+      '<div class="gd-row">'+btn('Regroup','pv-regroup')+btn('Clear','pv-clear')+'</div>'+
+      '<p class="gd-help">Choose exactly the places you need — for example 1,000 to 1 for whole-number work. Up to seven adjacent places are shown at once.</p>';
   }
   function exportControlsHtml(){
     const canCard=!!challenge;
