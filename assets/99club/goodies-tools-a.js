@@ -43,7 +43,7 @@ function placeValue(){
   ];
   let tokens=[],next=1,controller=null,resizeObserver=null,resizeFrame=0,lastStageWidth=0,notice='';
   let controlTab='setup',challengeTab='standard',challengeCategory='read',challengeType='read-number',challenge=null,beforeChallenge=null;
-  let activityMode='powers',activityTarget=null,activityBudget=5,activityStatus='',powerMessage='';
+  let activityMode='powers',activityTarget=null,activityBudget=5,activityStatus='',powerMessage='',activityActive=false;
   let exportMode='diagram',responseLines=1,exportStatus='';
 
   function rangeFor(id=placeRange){return PLACE_RANGES.find(r=>r.id===id)||PLACE_RANGES.find(r=>r.id==='standard')}
@@ -233,7 +233,7 @@ function placeValue(){
     return normaliseValue(countsByPlace.reduce((sum,count,index)=>sum+count*places[index].value,0));
   }
   function startActivity(mode=activityMode){
-    activityMode=['powers','build','exact'].includes(mode)?mode:'powers';activityStatus='';powerMessage='';
+    activityMode=['powers','build','exact'].includes(mode)?mode:'powers';activityActive=true;activityStatus='';powerMessage='';
     if(activityMode==='powers'){
       const value=total();controller?.mutate(()=>{buildFromNumber(value);notice=''});controller?.select(null);
     }else{
@@ -354,7 +354,7 @@ function placeValue(){
     const omitSummary=pupil&&challenge?.type==='build-number';
     const summaryH=omitSummary?0:94,height=boardY+boardH+summaryH+42;
     const svg=pvSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Place value board','data-pv-export':'board'});
-    svg.appendChild(pvSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
+    svg.appendChild(pvSvgEl('rect',{x:0,y:0,width,height,fill:'none'}));
     svg.appendChild(pvSvgEl('rect',{x:boardX,y:boardY,width:boardW,height:boardH,rx:16,fill:'#ffffff',stroke:'#aebfc2','stroke-width':2,'data-pv-export-board':'1'}));
 
     places.forEach((place,index)=>{
@@ -389,29 +389,50 @@ function placeValue(){
     return svg;
   }
   function exportTargetSvg(){
-    if(exportMode!=='challenge'||!challenge||!X?.composeChallengeCardSvg)return boardExportSvg({pupil:false});
-    const prompt=CK?CK.plainText(challenge.promptHtml||challenge.prompt||''):challenge.prompt||'';
-    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
-    return X.composeChallengeCardSvg(boardExportSvg({pupil:true}),{
-      title:challenge.title||meta?.title||'Place Value challenge',
-      prompt,
-      responseLabel:challenge.category==='reason'?'Explain your thinking':'Answer',
-      responseLines,
-      brand:'99 Club Studio'
-    });
+    if(exportMode==='challenge'&&challenge&&X?.composeWorksheetCardSvg){
+      const prompt=CK?CK.plainText(challenge.promptHtml||challenge.prompt||''):challenge.prompt||'';
+      const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
+      return X.composeWorksheetCardSvg(boardExportSvg({pupil:true}),{
+        title:challenge.title||meta?.title||'Place Value challenge',
+        prompt,
+        responseLabel:challenge.category==='reason'?'Explain your thinking':'Answer',
+        responseLines:Math.min(2,responseLines),
+        brand:'99 Club Studio'
+      });
+    }
+    if(activityActive&&X?.composeWorksheetCardSvg){
+      let title='Place Value example',prompt='',lines=0;
+      if(activityMode==='powers'){
+        title='Powers of ten';
+        prompt=powerMessage||'Use the place-value chart to explain what happens when the number is multiplied or divided by a power of ten.';
+        lines=1;
+      }else if(activityMode==='exact'){
+        title='Exact-counter challenge';
+        prompt='Make '+format(activityTarget)+' using exactly '+activityBudget+' counters.';
+        lines=1;
+      }else{
+        title='Build the target';
+        prompt='Build '+format(activityTarget)+' using the place-value chart.';
+        lines=1;
+      }
+      return X.composeWorksheetCardSvg(boardExportSvg({pupil:false}),{title,prompt,responseLabel:'Working / answer',responseLines:lines,brand:'99 Club Studio'});
+    }
+    return boardExportSvg({pupil:false});
   }
   function exportName(){
     const meta=challenge&&CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
-    return exportMode==='challenge'&&challenge?(challenge.title||meta?.title||'place-value-challenge'):'place-value-board-'+String(total()).replace(/[^0-9.-]+/g,'-');
+    if(exportMode==='challenge'&&challenge)return challenge.title||meta?.title||'place-value-challenge';
+    if(activityActive)return 'place-value-'+activityMode;
+    return 'place-value-board-'+String(total()).replace(/[^0-9.-]+/g,'-');
   }
   function exportMessage(text){exportStatus=text;const el=q('#pv-export-status');if(el)el.textContent=text}
   async function exportAction(kind){
     try{
       if(!X)throw new Error('Export tools are not available.');
-      const target=exportTargetSvg(),isCard=exportMode==='challenge'&&!!challenge,name=exportName();
-      if(kind==='copy'){await X.copyPng(target);exportMessage(isCard?'Challenge copied — paste it into your worksheet, slide or document.':'Board image copied — paste it into your slide or document.')}
-      if(kind==='png'){await X.downloadPng(target,name,2);exportMessage(isCard?'Challenge PNG downloaded.':'Board PNG downloaded.')}
-      if(kind==='svg'){X.downloadSvg(target,name);exportMessage(isCard?'Challenge SVG downloaded.':'Board SVG downloaded.')}
+      const target=exportTargetSvg(),isCard=(exportMode==='challenge'&&!!challenge)||activityActive,name=exportName(),transparent=!isCard;
+      if(kind==='copy'){await X.copyPng(target,{transparent});exportMessage(isCard?'Worksheet-ready item copied.':'Board image copied with a transparent outer background.')}
+      if(kind==='png'){await X.downloadPng(target,name,2,{transparent});exportMessage(isCard?'Worksheet-ready PNG downloaded.':'Transparent PNG downloaded.')}
+      if(kind==='svg'){X.downloadSvg(target,name);exportMessage(isCard?'Worksheet-ready SVG downloaded.':'SVG downloaded.')}
       if(kind==='print'){X.printSvg(target,{title:'',landscape:true});exportMessage('Print view opened. Choose “Save as PDF” in the print dialog.')}
     }catch(err){exportMessage(err?.message||'That export did not work.')}
   }
