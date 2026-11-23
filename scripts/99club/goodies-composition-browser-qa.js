@@ -295,6 +295,9 @@ async function run(){
   assert(!visible(pvFloating),'Frame Challenge starts a pupil task directly instead of opening another settings/picker palette');
   const pvGame=pvDoc.querySelector('.gd-pv-activity--game');
   assert(pvGame,'Frame Challenge immediately creates an active Place Value pupil task');
+  const pvBoardWrap=pvDoc.querySelector('.gd-pv-board-wrap');
+  const pvChallengeGap=Math.round(pvBoardWrap.getBoundingClientRect().top-pvGame.getBoundingClientRect().bottom);
+  assert(pvChallengeGap>=6&&pvChallengeGap<=16,'Place Value challenge card keeps a small fixed gap before the table: '+pvChallengeGap+'px');
   const pvChallengeKinds=['build','exact','regroup','same','read','hidden','digit'];
   assert(pvChallengeKinds.includes(pvGame.dataset.pvActivityKind),'Random frame Challenge chooses from the full pupil-task set');
   assert(pvDoc.querySelector('[data-pv-activity-check]')&&pvDoc.querySelector('[data-pv-activity-another]'),'Generated pupil challenge exposes Check and Another directly on the board');
