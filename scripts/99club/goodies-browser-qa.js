@@ -2135,6 +2135,7 @@ if(mode==='prepare'){
     document.querySelector('[data-pv-workflow="activity"]').click();
     const pvActivityModes=['powers','build','exact','regroup','same','read','hidden','digit'];
     assert(pvActivityModes.every(mode=>document.querySelector('[data-pv-activity-mode="'+mode+'"]')),'Teach / play exposes the full powers, build, exact, regroup, same-value, read, hidden-place and digit-value activity set');
+    document.querySelector('[data-pv-activity-mode="powers"]').click();
     assert(document.querySelectorAll('.gd-pv-digit-row .gd-pv-digit-cell').length===7,'Powers-of-ten demo aligns one digit card with every visible place');
     assert(document.querySelectorAll('.gd-pv-digit-row .is-decimal-start').length===1,'Powers-of-ten demo keeps one fixed decimal boundary');
     const timesTen=document.querySelector('[data-pv-power="1"]');
