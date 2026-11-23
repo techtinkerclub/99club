@@ -163,7 +163,7 @@ function composeWorksheetCardSvg(diagram,{title='Challenge',prompt='',responseLa
   const answerY=diagramY+diagramH+24;
   const height=Math.max(560,answerY+answerH+42);
 
-  const out=svgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:`0 0 ${width} ${height}`,role:'img','aria-label':title||'Worksheet item'});
+  const out=svgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:`0 0 ${width} ${height}`,role:'img','aria-label':title||'Worksheet item','data-worksheet-card':'1','data-worksheet-answer':showAnswer?'teacher':'pupil'});
   out.appendChild(svgEl('rect',{x:1,y:1,width:width-2,height:height-2,rx:14,fill:'#ffffff',stroke:'#bccacd','stroke-width':2}));
 
   let y=pad+27;
