@@ -363,10 +363,20 @@ function placeValue(){
     return '<button type="button" class="gd-pv-counter'+(selected?' is-selected':'')+(t.locked?' is-locked':'')+'" data-gd-object="'+t.id+'" data-pv-place="'+t.place+'" aria-selected="'+(selected?'true':'false')+'" aria-label="One '+p.name+' counter'+(t.locked?', locked':'')+'" style="left:'+t.x+'px;top:'+t.y+'px;--pv-counter:'+p.color+'"><span aria-hidden="true"></span>'+(t.locked?'<b class="gd-pv-lock" aria-hidden="true">⌑</b>':'')+'</button>';
   }
   function railMarkup(selected,meta){
-    const object=selected?
-      I.toolButton('duplicate','duplicate','Duplicate counter','',false)+
-      I.toolButton('lock',selected.locked?'unlock':'lock',selected.locked?'Unlock counter':'Lock counter',selected.locked?'is-active':'',false)+
-      I.toolButton('delete','delete','Delete counter','is-danger',selected.locked):'';
+    let object='';
+    if(selected){
+      const source=clamp(Math.round(num(selected.place,0)),0,places.length-1);
+      const canExchange=source>0&&tokens.filter(t=>t.place===source&&!t.locked).length>=10;
+      const canSplit=!selected.locked&&source<places.length-1&&tokens.length+9<=90;
+      object=
+        I.toolButton('exchange-up','combine','Exchange 10 '+places[source].name+' for 1 '+(source>0?singularPlaceName(places[source-1]):'larger place'),'',
+          !canExchange)+
+        I.toolButton('split-down','split','Split 1 '+singularPlaceName(places[source])+' into 10 '+(source<places.length-1?places[source+1].name:'smaller places'),'',
+          !canSplit)+
+        I.toolButton('duplicate','duplicate','Duplicate counter','',false)+
+        I.toolButton('lock',selected.locked?'unlock':'lock',selected.locked?'Unlock counter':'Lock counter',selected.locked?'is-active':'',false)+
+        I.toolButton('delete','delete','Delete counter','is-danger',selected.locked);
+    }
     const divider=object?'<span class="gd-object-separator"></span>':'';
     return '<div class="gd-object-ui"><div class="gd-object-rail'+(selected?' is-engaged':'')+'" aria-label="Place-value board tools">'+object+divider+
       I.toolButton('undo','undo','Undo','',!meta?.canUndo)+
@@ -443,6 +453,30 @@ function placeValue(){
     if(tokens.length>=90){notice='This board is full. Delete or regroup some counters first.';return null;}
     const copy={...item,id:next++,locked:false,x:0,y:0};
     tokens.push(copy);notice='';layoutTokens();return copy;
+  }
+  function singularPlaceName(place){return String(place?.name||'place').replace(/s$/,'')}
+  function exchangeUp(item){
+    const source=clamp(Math.round(num(item?.place,-1)),0,places.length-1);
+    if(source<=0)return null;
+    const available=tokens.filter(t=>t.place===source&&!t.locked);
+    if(available.length<10)return null;
+    const removeIds=new Set(available.slice(0,10).map(t=>t.id));
+    tokens=tokens.filter(t=>!removeIds.has(t.id));
+    const created={id:next++,place:source-1,x:0,y:0,locked:false};
+    tokens.push(created);
+    notice='Exchanged 10 '+places[source].name+' for 1 '+singularPlaceName(places[source-1])+'.';
+    layoutTokens();
+    return created;
+  }
+  function splitDown(item){
+    const source=clamp(Math.round(num(item?.place,-1)),0,places.length-1);
+    if(!item||item.locked||source>=places.length-1||tokens.length+9>90)return null;
+    tokens=tokens.filter(t=>t!==item);
+    const created=[];
+    for(let n=0;n<10;n++){const nextItem={id:next++,place:source+1,x:0,y:0,locked:false};tokens.push(nextItem);created.push(nextItem)}
+    notice='Split 1 '+singularPlaceName(places[source])+' into 10 '+places[source+1].name+'.';
+    layoutTokens();
+    return created[0]||null;
   }
   function bindStage(){
     qa('[data-pv-add]',q('#gd-stage')).forEach(button=>button.onclick=e=>{
@@ -578,6 +612,16 @@ function placeValue(){
       const nextPlace=clamp(item.place+(dx<0?-1:1),0,places.length-1);
       if(nextPlace===item.place)return false;
       item.place=nextPlace;notice='';layoutTokens();return true;
+    },
+    onAction:(action,api)=>{
+      const selected=api.selected();
+      if(action==='exchange-up'){
+        let created=null;api.mutate(()=>{created=exchangeUp(selected)});
+        if(created)api.select(created.id);
+      }else if(action==='split-down'){
+        let created=null;api.mutate(()=>{created=splitDown(selected)});
+        if(created)api.select(created.id);
+      }
     },
     afterRender:()=>{bindStage();syncControls()},
     onDestroy:()=>{
