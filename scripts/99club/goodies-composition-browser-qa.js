@@ -273,6 +273,16 @@ async function run(){
   const pvRange=pvFloating.querySelector('#pv-range');
   assert(visible(pvFloating)&&pvRange,'Place Value exposes Visible place range through the floating whiteboard settings palette');
   assert(!pvFloating.querySelector('[data-pv-workflow="challenge"]')&&!pvFloating.querySelector('[data-pv-workflow="export"]'),'Place Value settings palette contains Setup / Teach only; Challenge and Export are not duplicated there');
+  const pvTabs=[...pvFloating.querySelectorAll('.pv-mode-tabs>.gd-btn')];
+  assert(pvTabs.length===2&&pvTabs.every(button=>getComputedStyle(button).whiteSpace==='nowrap'),'Place Value Setup and Teach/play stay on one compact row without wrapping');
+  const pvQuickInput=pvFloating.querySelector('#pv-value');
+  assert(pvQuickInput,'Floating Place Value settings exposes Quick setup number');
+  pvQuickInput.focus();
+  const pvInputNode=pvQuickInput;
+  pvQuickInput.value='12';pvQuickInput.dispatchEvent(new Event('input',{bubbles:true}));await tick();
+  pvQuickInput.value='123';pvQuickInput.dispatchEvent(new Event('input',{bubbles:true}));await tick();
+  assert(document.activeElement===pvInputNode&&pvFloating.querySelector('#pv-value')===pvInputNode,'Quick setup number keeps the same focused input node across multiple keystrokes');
+  assert(pvDoc.getElementById('pv-value').value==='123','Floating quick-number typing is forwarded to the live Place Value input without rebuilding the panel');
   pvRange.value='thousands';pvRange.dispatchEvent(new Event('change',{bubbles:true}));await tick();
   assert(pvDoc.getElementById('pv-range').value==='thousands','Changing place range in the floating palette updates the live Place Value widget');
   assert(pvDoc.querySelectorAll('.gd-pv-column').length===4,'Whiteboard Place Value can show a compact 1,000 → 1 four-column board');
