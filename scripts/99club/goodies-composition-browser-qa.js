@@ -300,7 +300,7 @@ async function run(){
   assert(pvChallengeGap>=6&&pvChallengeGap<=16,'Place Value challenge card keeps a small fixed gap before the table: '+pvChallengeGap+'px');
   const pvBaseBeforeProbe=pvRecord.baseH;
   const pvFitProbe=pvDoc.createElement('div');
-  pvFitProbe.style.height='220px';pvFitProbe.style.width='10px';
+  pvFitProbe.style.height='220px';pvFitProbe.style.minHeight='220px';pvFitProbe.style.flex='0 0 220px';pvFitProbe.style.width='10px';
   pvDoc.getElementById('gd-stage').appendChild(pvFitProbe);
   pvFitProbe.dispatchEvent(new MouseEvent('click',{bubbles:true}));
   await tick(180);
