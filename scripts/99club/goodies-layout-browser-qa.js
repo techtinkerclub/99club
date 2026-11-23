@@ -133,6 +133,22 @@ window.scrollTo=function(){};
     if(!workflow)return false;
     workflow.click();await tick();await tick();
     checkLayout(id,'challenge');
+    if(id==='place-value'){
+      const modes=[...controls.querySelectorAll('[data-pv-challenge-mode]')];
+      assert(modes.length===7,'place-value challenge controls expose all seven unified task types');
+      const random=controls.querySelector('#pv-challenge-random');
+      assert(visible(random),'place-value challenge controls expose a direct Random challenge action');
+      random.click();await tick();await tick();
+      let game=stage.querySelector('.gd-pv-activity--game');
+      assert(visible(game),'place-value random challenge appears contextually on the stage');
+      assert(visible(game.querySelector('[data-pv-activity-check]'))&&visible(game.querySelector('[data-pv-activity-another]')),'place-value unified challenge exposes Check and Another on the stage');
+      const kind=game.dataset.pvActivityKind;
+      game.querySelector('[data-pv-activity-another]').click();await tick();await tick();
+      game=stage.querySelector('.gd-pv-activity--game');
+      assert(visible(game)&&game.dataset.pvActivityKind===kind,'place-value Another keeps the chosen challenge type and creates a fresh task');
+      checkLayout(id,'generated challenge');
+      return true;
+    }
     const generate=[...controls.querySelectorAll('button')].find(b=>/^(Generate challenge|Another like this)$/.test((b.textContent||'').trim()));
     assert(generate,id+' challenge controls expose a direct generate action');
     generate.click();await tick();await tick();
