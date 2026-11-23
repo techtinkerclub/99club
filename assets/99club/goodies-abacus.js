@@ -367,7 +367,7 @@ function abacusTool(){
     const width=900,height=540,left=80,right=820,top=118,rodH=324;
     const svg=svgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':kind==='western'?'Western base-ten abacus':'Japanese soroban'});
     svg.appendChild(svgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
-    svg.appendChild(svgEl('rect',{x:40,y:36,width:820,height:457,rx:18,fill:'#d9b389',stroke:'#986b41','stroke-width':14}));
+    svg.appendChild(svgEl('rect',{x:40,y:36,width:820,height:457,rx:18,fill:'#d9b389',stroke:'#986b41','stroke-width':14,'data-ab-export-frame':'1'}));
     svg.appendChild(svgEl('rect',{x:62,y:60,width:776,height:414,rx:8,fill:'#f7f0e6'}));
     if(kind==='western'){
       for(let row=0;row<rows;row++){
