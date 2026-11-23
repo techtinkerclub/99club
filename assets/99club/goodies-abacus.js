@@ -42,8 +42,8 @@ function abacusTool(){
   function abBeadY(i,part,j){
     const d=counts[i]||0;
     if(kind==='western')return j<d?6+j*8.4:92-(8-j)*8.4;
-    if(part==='upper')return d>=5?30:12;
-    return j<d%5?47+j*8.5:67+j*8.5;
+    if(part==='upper')return d>=5?36:12;
+    return j<d%5?44+j*8.5:67+j*8.5;
   }
   function abBeadActive(i,part,j){
     const d=counts[i]||0;
@@ -364,26 +364,32 @@ function abacusTool(){
     return el;
   }
   function frameSvg({blank=false}={}){
-    const width=1000,pad=54,rowH=72,top=42,bottom=42,height=top+rows*rowH+bottom;
-    const svg=svgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Counting frame abacus','data-ab-export':'frame'});
-    svg.appendChild(svgEl('rect',{x:0,y:0,width,height,fill:'#fff'}));
-    svg.appendChild(svgEl('rect',{x:pad,y:18,width:width-pad*2,height:height-36,rx:24,fill:'#c9965c',stroke:'#75502e','stroke-width':7,'data-ab-export-frame':'1'}));
-    svg.appendChild(svgEl('rect',{x:pad+18,y:34,width:width-pad*2-36,height:height-68,rx:14,fill:'#f6ead7'}));
-    for(let r=0;r<rows;r++){
-      const y=top+r*rowH+rowH/2,left=pad+42,right=width-pad-42;
-      svg.appendChild(svgEl('line',{x1:left,y1:y,x2:right,y2:y,stroke:'#80654b','stroke-width':6,'stroke-linecap':'round'}));
-      const count=blank?0:(counts[r]||0);
-      for(let i=0;i<10;i++){
-        const active=i<count;
-        const x=left+(right-left)*(beadX(i,count)/100);
-        const fill=fiveSplit&&i>=5?'#e2a33a':'#4f9a93';
-        svg.appendChild(svgEl('ellipse',{cx:x,cy:y,rx:22,ry:17,fill:active?fill:'#d9e2e1',stroke:active?'#496765':'#a8b5b4','stroke-width':2}));
-        svg.appendChild(svgEl('ellipse',{cx:x-5,cy:y-5,rx:6,ry:3,fill:'#fff','fill-opacity':.48}));
+    const width=900,height=540,left=80,right=820,top=118,rodH=324;
+    const svg=svgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':kind==='western'?'Western base-ten abacus':'Japanese soroban'});
+    svg.appendChild(svgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
+    svg.appendChild(svgEl('rect',{x:40,y:36,width:820,height:457,rx:18,fill:'#d9b389',stroke:'#986b41','stroke-width':14}));
+    svg.appendChild(svgEl('rect',{x:62,y:60,width:776,height:414,rx:8,fill:'#f7f0e6'}));
+    if(kind==='soroban')svg.appendChild(svgEl('rect',{x:62,y:top+rodH*.40-5,width:776,height:10,rx:3,fill:'#90633a'}));
+    for(let col=0;col<rows;col++){
+      const x=left+(right-left)*(col+.5)/rows;
+      svg.appendChild(svgEl('line',{x1:x,y1:top-10,x2:x,y2:top+rodH+10,stroke:'#977c5e','stroke-width':5,'stroke-linecap':'round'}));
+      if(showRowLabels)svg.appendChild(svgEl('text',{x,y:94,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':rows>=5?16:19,'font-weight':700,fill:'#60482e'},placeShort(col)));
+      const digit=blank?0:counts[col]||0;
+      const beadCount=kind==='western'?9:5;
+      for(let j=0;j<beadCount;j++){
+        const part=kind==='western'?'unit':j===0?'upper':'lower';
+        const k=part==='lower'?j-1:j;
+        let y,active;
+        if(kind==='western'){active=k<digit;y=active?6+k*8.4:92-(8-k)*8.4}
+        else if(part==='upper'){active=digit>=5;y=active?36:12}
+        else{active=k<(digit%5);y=active?44+k*8.5:67+k*8.5}
+        const cy=top+rodH*y/100;
+        svg.appendChild(svgEl('ellipse',{cx:x,cy,rx:rows>=6?22:27,ry:13,fill:active?'#4b9a8d':'#dc9b52',stroke:active?'#32786e':'#a56d37','stroke-width':2}));
+        svg.appendChild(svgEl('ellipse',{cx:x-7,cy:cy-4,rx:8,ry:3,fill:'#ffffff','fill-opacity':.43}));
       }
-      if(showRowCounts&&!blank)svg.appendChild(svgEl('text',{x:width-pad-12,y:y+6,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':16,'font-weight':800,fill:'#43575c'},String(count)));
-      if(showRowLabels)svg.appendChild(svgEl('text',{x:pad+12,y:y+6,'font-family':'Arial,sans-serif','font-size':14,'font-weight':750,fill:'#6b543d'},'Row '+(r+1)));
+      if(showRowCounts&&!blank)svg.appendChild(svgEl('text',{x,y:462,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':20,'font-weight':700,fill:'#295c56'},String(digit)));
     }
-    if(showTotal&&!blank&&!task)svg.appendChild(svgEl('text',{x:width/2,y:height-8,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':17,'font-weight':800,fill:'#38565a'},'Beads moved: '+total()));
+    if(showTotal&&!blank&&!task)svg.appendChild(svgEl('text',{x:width/2,y:527,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':19,'font-weight':700,fill:'#2a5953'},'Number shown: '+total().toLocaleString('en-GB')));
     return svg;
   }
   function exportSvg(){
