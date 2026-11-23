@@ -22,10 +22,11 @@ function placeValue(){
     {power:-3,label:'0.001',name:'thousandths',value:.001,color:'#c9ddec'}
   ];
   const PLACE_RANGES=[
-    {id:'millions',label:'10,000,000 → 10',start:0},
-    {id:'whole',label:'1,000,000 → 1',start:1},
-    {id:'standard',label:'10,000 → 0.01',start:3},
-    {id:'decimals',label:'1,000 → 0.001',start:4}
+    {id:'millions',label:'10,000,000 → 10',start:0,end:6},
+    {id:'whole',label:'1,000,000 → 1',start:1,end:7},
+    {id:'thousands',label:'1,000 → 1',start:4,end:7},
+    {id:'standard',label:'10,000 → 0.01',start:3,end:9},
+    {id:'decimals',label:'1,000 → 0.001',start:4,end:10}
   ];
   let placeRange='standard',rangeStart=3,rangeEnd=9;
   let places=PLACE_CATALOG.slice(rangeStart,rangeEnd+1);
@@ -53,7 +54,7 @@ function placeValue(){
     rangeStart=a;rangeEnd=b;placeRange=id;places=PLACE_CATALOG.slice(rangeStart,rangeEnd+1);
   }
   function setPlaceRange(id){
-    const range=rangeFor(id);applyPlaceWindow(range.start,range.start+6,range.id);
+    const range=rangeFor(id);applyPlaceWindow(range.start,range.end??range.start+6,range.id);
   }
   function setCustomPlaceRange(start,end){
     applyPlaceWindow(start,end,'custom');
@@ -658,7 +659,7 @@ function placeValue(){
     };
     const range=q('#pv-range');if(range)range.onchange=()=>{
       if(range.value==='custom'){placeRange='custom';renderControls();return}
-      const preset=rangeFor(range.value);applyRangeChange(preset.start,preset.start+6,preset.id);
+      const preset=rangeFor(range.value);applyRangeChange(preset.start,preset.end??preset.start+6,preset.id);
     };
     const rangeHigh=q('#pv-range-high');if(rangeHigh)rangeHigh.onchange=()=>{
       let start=clamp(Math.round(num(rangeHigh.value,rangeStart)),0,PLACE_CATALOG.length-2),end=rangeEnd;
