@@ -2046,6 +2046,10 @@ if(mode==='prepare'){
     document.getElementById('pv-svg-download').click();
     assert(pvCapturedSvg&&pvCapturedSvg.dataset.pvExport==='board','Place Value board-only export is a deterministic SVG board');
     assert(pvCapturedSvg.firstElementChild?.getAttribute('fill')==='#ffffff','Place Value chart export uses a white paper background instead of transparent/dark rendering');
+    const pvClip=pvCapturedSvg.querySelector('#pv-board-clip');
+    const pvHeaders=[...pvCapturedSvg.querySelectorAll('[data-pv-export-header="1"]')];
+    assert(pvClip&&pvHeaders.length>=4&&pvHeaders.every(el=>el.getAttribute('clip-path')==='url(#pv-board-clip)'),'Place Value export clips header fills to the rounded chart boundary so PNG/SVG corners stay clean');
+    assert(pvCapturedSvg.querySelector('[data-pv-export-outline="1"]'),'Place Value export redraws the rounded outline above clipped header fills');
     assert(!pvCapturedSvg.textContent.includes('Number represented')&&!pvCapturedSvg.textContent.includes('Board representation'),'Place Value chart export contains the chart only, without dashboard summary cards');
     assert(pvCapturedSvg.querySelectorAll('text').length>=8,'Place Value SVG export carries semantic place headings');
     assert(pvCapturedName.includes('place-value-board'),'Place Value board export has a reusable filename');
