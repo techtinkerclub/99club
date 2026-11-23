@@ -271,10 +271,19 @@ async function run(){
   const pvFloating=document.getElementById('gd-board-floating-controls');
   const pvRange=pvFloating.querySelector('#pv-range');
   assert(visible(pvFloating)&&pvRange,'Place Value exposes Visible place range through the floating whiteboard settings palette');
+  assert(!pvFloating.querySelector('[data-pv-workflow="challenge"]')&&!pvFloating.querySelector('[data-pv-workflow="export"]'),'Place Value settings palette contains Setup / Teach only; Challenge and Export are not duplicated there');
   pvRange.value='thousands';pvRange.dispatchEvent(new Event('change',{bubbles:true}));await tick();
   assert(pvDoc.getElementById('pv-range').value==='thousands','Changing place range in the floating palette updates the live Place Value widget');
   assert(pvDoc.querySelectorAll('.gd-pv-column').length===4,'Whiteboard Place Value can show a compact 1,000 → 1 four-column board');
   pvSettings.click();await tick();
+
+  let pvQuick=[...pvFrame.querySelectorAll('[data-board-quick-actions] button')];
+  const challengePV=pvQuick.find(button=>/^Challenge/.test(button.textContent.trim()));
+  assert(challengePV,'Place Value exposes Challenge as a direct whiteboard frame action');
+  challengePV.click();await tick();
+  assert(visible(pvFloating)&&/Place value challenge/i.test(document.getElementById('gd-board-floating-controls-title').textContent),'Frame Challenge opens a dedicated challenge palette');
+  assert(!pvFloating.querySelector('.pv-mode-tabs'),'Dedicated Place Value challenge palette does not repeat the Setup / Teach / Challenge / Export workflow tabs');
+  pvFloating.querySelector('[data-board-controls-close]').click();await tick();
 
   let pvExportSvg=null,pvExportName='';
   const pvOldSvg=pvWin.TT99Goodies.exportTools.downloadSvg;
@@ -292,7 +301,7 @@ async function run(){
   const pvr=pvTens.getBoundingClientRect();
   pointer(pvTens,'pointerdown',pvr.left+pvr.width/2,pvr.top+pvr.height/2,55);
   pointer(pvTens,'pointerup',pvr.left+pvr.width/2,pvr.top+pvr.height/2,55);await tick();
-  let pvQuick=[...pvFrame.querySelectorAll('[data-board-quick-actions] button')];
+  pvQuick=[...pvFrame.querySelectorAll('[data-board-quick-actions] button')];
   const splitPV=pvQuick.find(button=>button.textContent.includes('Split 1→10'));
   assert(splitPV,'Place Value exposes Split 1→10 directly on the selected whiteboard widget');
   const pvBefore=Number((pvDoc.getElementById('pv-total').textContent||'').replace(/,/g,''));

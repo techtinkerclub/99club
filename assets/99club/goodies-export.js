@@ -145,85 +145,67 @@ function composeChallengeCardSvg(diagram,{title='Challenge',prompt='',responseLa
   out.appendChild(svgEl('text',{x:width-pad,y:height-20,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':12,fill:'#87969a'},brand));
   return out;
 }
-function composeWorksheetCardSvg(diagram,{title='Challenge',prompt='',responseLabel='Answer',responseLines=1,brand='99 Club Studio',answer='',showAnswer=false}={}){
+function composeWorksheetCardSvg(diagram,{title='Challenge',prompt='',responseLabel='Answer',responseLines=1,responseMode='auto',paperStyle='card',brand='99 Club Studio',answer='',showAnswer=false}={}){
   if(!diagram)throw new Error('A diagram is required.');
   const source=diagram.cloneNode(true);
   source.removeAttribute('id');
   const vb=diagram.viewBox&&diagram.viewBox.baseVal;
   const sourceW=Math.max(1,vb?.width||1000),sourceH=Math.max(1,vb?.height||420);
-  const width=1120,pad=48,contentW=width-pad*2;
-  const titleLines=wrapSvgText(title,72,1),promptLines=wrapSvgText(prompt,88,4);
-  const titleH=titleLines.length?34:0,promptH=promptLines.length?promptLines.length*34+12:0;
+  const plain=paperStyle==='plain';
+  const width=1120,pad=plain?38:48,contentW=width-pad*2;
+  const titleLines=wrapSvgText(title,plain?88:72,1),promptLines=wrapSvgText(prompt,plain?92:88,4);
+  const titleH=titleLines.length?(plain?24:34):0,promptStep=plain?31:34,promptH=promptLines.length?promptLines.length*promptStep+8:0;
   const naturalDiagramH=sourceH*(contentW/sourceW);
-  const diagramH=Math.max(300,Math.min(525,naturalDiagramH));
-  const diagramY=pad+titleH+promptH+12;
+  const diagramH=Math.max(plain?260:300,Math.min(plain?500:525,naturalDiagramH));
+  const diagramY=pad+titleH+promptH+(plain?12:18);
+  const resolvedMode=responseMode==='auto'?(responseLines>1?'lines':'box'):responseMode;
   const answerRows=Math.max(1,Math.min(4,Math.round(Number(responseLines)||1)));
-  const answerLines=showAnswer?wrapSvgText(answer,88,5):[];
-  const answerH=showAnswer?Math.max(86,42+answerLines.length*28):(answerRows===1?96:56+answerRows*34);
-  const answerY=diagramY+diagramH+24;
-  const height=Math.max(560,answerY+answerH+42);
+  const answerLines=showAnswer&&answer?wrapSvgText(answer,92,5):[];
+  const responseVisible=showAnswer?!!answer:resolvedMode!=='none';
+  const responseH=!responseVisible?0:showAnswer?Math.max(54,26+answerLines.length*27):(resolvedMode==='lines'?32+answerRows*32:76);
+  const answerY=diagramY+diagramH+(responseVisible?20:0);
+  const height=Math.max(plain?diagramY+diagramH+30:560,answerY+responseH+(plain?26:42));
 
-  const out=svgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:`0 0 ${width} ${height}`,role:'img','aria-label':title||'Worksheet item','data-worksheet-card':'1','data-worksheet-answer':showAnswer?'teacher':'pupil'});
-  out.appendChild(svgEl('rect',{x:1,y:1,width:width-2,height:height-2,rx:14,fill:'#ffffff',stroke:'#bccacd','stroke-width':2}));
+  const out=svgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:`0 0 ${width} ${height}`,role:'img','aria-label':title||'Worksheet item','data-worksheet-card':'1','data-worksheet-answer':showAnswer?'teacher':'pupil','data-paper-style':plain?'plain':'card'});
+  if(plain){
+    out.appendChild(svgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
+  }else{
+    out.appendChild(svgEl('rect',{x:1,y:1,width:width-2,height:height-2,rx:14,fill:'#ffffff',stroke:'#bccacd','stroke-width':2}));
+  }
 
-  let y=pad+27;
+  let y=pad+(plain?17:27);
   titleLines.forEach(line=>out.appendChild(svgEl('text',{
     x:pad,y,
-    'font-family':'Arial,sans-serif','font-size':22,'font-weight':800,fill:'#66787e'
+    'font-family':'Arial,sans-serif','font-size':plain?15:22,'font-weight':800,fill:plain?'#66777c':'#66787e'
   },line)));
-
-  y=pad+titleH+28;
+  y=pad+titleH+(plain?22:28);
   promptLines.forEach((line,i)=>out.appendChild(svgEl('text',{
-    x:pad,y:y+i*34,
-    'font-family':'Arial,sans-serif','font-size':26,'font-weight':700,fill:'#263f47'
+    x:pad,y:y+i*promptStep,
+    'font-family':'Arial,sans-serif','font-size':plain?24:26,'font-weight':700,fill:'#263f47'
   },line)));
 
-  const nested=svgEl('svg',{
-    x:pad,y:diagramY,width:contentW,height:diagramH,
-    viewBox:`0 0 ${sourceW} ${sourceH}`,
-    preserveAspectRatio:'xMidYMid meet'
-  });
+  const nested=svgEl('svg',{x:pad,y:diagramY,width:contentW,height:diagramH,viewBox:`0 0 ${sourceW} ${sourceH}`,preserveAspectRatio:'xMidYMid meet'});
   [...source.childNodes].forEach(node=>nested.appendChild(node.cloneNode(true)));
   out.appendChild(nested);
 
-  if(showAnswer){
-    out.appendChild(svgEl('rect',{
-      x:pad,y:answerY,width:contentW,height:answerH-8,rx:12,
-      fill:'#f0f8f6',stroke:'#90bcb6','stroke-width':2
-    }));
-    out.appendChild(svgEl('text',{
-      x:pad+20,y:answerY+27,
-      'font-family':'Arial,sans-serif','font-size':15,'font-weight':850,fill:'#54716f'
-    },responseLabel||'Answer'));
-    answerLines.forEach((line,i)=>out.appendChild(svgEl('text',{
-      x:pad+20,y:answerY+57+i*28,
-      'font-family':'Arial,sans-serif','font-size':21,'font-weight':750,fill:'#245f5a'
-    },line)));
-  }else{
-    out.appendChild(svgEl('text',{
-      x:pad,y:answerY+18,
-      'font-family':'Arial,sans-serif','font-size':15,'font-weight':850,fill:'#64777d'
-    },responseLabel));
-    if(answerRows===1){
-      out.appendChild(svgEl('rect',{
-        x:pad,y:answerY+30,width:contentW,height:54,rx:8,
-        fill:'#ffffff',stroke:'#aebdc1','stroke-width':2
-      }));
-    }else{
+  if(responseVisible){
+    if(showAnswer){
+      out.appendChild(svgEl('line',{x1:pad,y1:answerY,x2:width-pad,y2:answerY,stroke:'#c8d4d6','stroke-width':1.4}));
+      out.appendChild(svgEl('text',{x:pad,y:answerY+29,'font-family':'Arial,sans-serif','font-size':16,'font-weight':850,fill:'#526a70'},(responseLabel||'Answer')+':'));
+      answerLines.forEach((line,i)=>out.appendChild(svgEl('text',{x:pad+88,y:answerY+29+i*27,'font-family':'Arial,sans-serif','font-size':20,'font-weight':750,fill:'#284b50'},line)));
+    }else if(resolvedMode==='lines'){
+      out.appendChild(svgEl('text',{x:pad,y:answerY+18,'font-family':'Arial,sans-serif','font-size':15,'font-weight':850,fill:'#64777d'},responseLabel));
       for(let i=0;i<answerRows;i++){
-        const lineY=answerY+42+i*34;
-        out.appendChild(svgEl('line',{
-          x1:pad,y1:lineY,x2:width-pad,y2:lineY,
-          stroke:'#bfcdd0','stroke-width':1.6
-        }));
+        const lineY=answerY+37+i*32;
+        out.appendChild(svgEl('line',{x1:pad,y1:lineY,x2:width-pad,y2:lineY,stroke:'#aebdc1','stroke-width':1.5}));
       }
+    }else if(resolvedMode==='box'){
+      out.appendChild(svgEl('text',{x:pad,y:answerY+18,'font-family':'Arial,sans-serif','font-size':15,'font-weight':850,fill:'#64777d'},responseLabel));
+      out.appendChild(svgEl('rect',{x:pad+78,y:answerY-4,width:250,height:42,rx:4,fill:'#ffffff',stroke:'#9fafb3','stroke-width':1.8}));
     }
   }
 
-  out.appendChild(svgEl('text',{
-    x:width-pad,y:height-16,'text-anchor':'end',
-    'font-family':'Arial,sans-serif','font-size':9,fill:'#94a1a5'
-  },brand));
+  out.appendChild(svgEl('text',{x:width-pad,y:height-10,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':8,fill:'#a0abad'},brand));
   return out;
 }
 
