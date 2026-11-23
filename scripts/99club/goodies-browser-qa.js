@@ -2154,7 +2154,8 @@ if(mode==='prepare'){
     assert(numberText('#pv-total')===10&&document.querySelector('[data-pv-count="3"]').textContent==='1'&&document.querySelector('[data-pv-count="4"]').textContent==='0','Exchanging ten ones creates one ten without changing value');
 
     document.querySelector('[data-pv-workflow="activity"]').click();
-    assert(document.querySelector('[data-pv-activity-mode="powers"]')&&document.querySelector('[data-pv-activity-mode="build"]')&&document.querySelector('[data-pv-activity-mode="exact"]'),'Teach / play exposes powers demo, build target and exact-counter activities');
+    const pvActivityModes=['powers','build','exact','regroup','same','read','hidden','digit'];
+    assert(pvActivityModes.every(mode=>document.querySelector('[data-pv-activity-mode="'+mode+'"]')),'Teach / play exposes the full powers, build, exact, regroup, same-value, read, hidden-place and digit-value activity set');
     assert(document.querySelectorAll('.gd-pv-digit-row .gd-pv-digit-cell').length===7,'Powers-of-ten demo aligns one digit card with every visible place');
     assert(document.querySelectorAll('.gd-pv-digit-row .is-decimal-start').length===1,'Powers-of-ten demo keeps one fixed decimal boundary');
     const timesTen=document.querySelector('[data-pv-power="1"]');
@@ -2179,6 +2180,28 @@ if(mode==='prepare'){
     document.querySelector('[data-pv-activity-mode="exact"]').click();
     assert(document.getElementById('pv-activity-budget'),'Exact-counter game lets the teacher choose the counter budget');
     assert(/exactly 5 counters/i.test(document.querySelector('.gd-pv-activity--game').textContent),'Exact-counter game shows the counter constraint on the board');
+
+    document.querySelector('[data-pv-activity-mode="regroup"]').click();
+    assert(document.querySelector('.gd-pv-activity--game[data-pv-activity-kind="regroup"]'),'Regroup activity uses the live Place Value board');
+    assert([...document.querySelectorAll('[data-pv-count]')].some(el=>Number(el.textContent)>9),'Regroup activity starts from a genuinely non-standard representation');
+
+    document.querySelector('[data-pv-activity-mode="same"]').click();
+    const sameGame=document.querySelector('.gd-pv-activity--game[data-pv-activity-kind="same"]');
+    assert(sameGame&&/different way/i.test(sameGame.textContent),'Same-value activity explicitly asks for a different equivalent representation');
+    assert(document.querySelectorAll('[data-gd-object]').length>0,'Same-value activity starts from a visible representation that the pupil can transform');
+
+    document.querySelector('[data-pv-activity-mode="read"]').click();
+    assert(document.querySelector('.gd-pv-activity--game[data-pv-activity-kind="read"] [data-pv-activity-answer]'),'Read-number activity provides a direct pupil answer box');
+    assert(document.getElementById('pv-total').textContent.trim()==='?'&&/Hidden for task/.test(document.getElementById('pv-expanded').textContent),'Read-number activity hides the dashboard answer');
+    assert([...document.querySelectorAll('[data-pv-add]')].every(button=>button.disabled),'Read-number interpretation locks board editing while the pupil answers');
+
+    document.querySelector('[data-pv-activity-mode="hidden"]').click();
+    assert(document.querySelector('.gd-pv-activity--game[data-pv-activity-kind="hidden"] [data-pv-activity-answer]'),'Hidden-place activity provides a pupil answer box');
+    assert(document.querySelectorAll('.gd-pv-counter.is-activity-hidden').length>0,'Hidden-place activity genuinely hides one place-value column of counters');
+
+    document.querySelector('[data-pv-activity-mode="digit"]').click();
+    const digitGame=document.querySelector('.gd-pv-activity--game[data-pv-activity-kind="digit"]');
+    assert(digitGame&&/value of the digit/i.test(digitGame.textContent)&&digitGame.querySelector('[data-pv-activity-answer]'),'Digit-value activity asks for the value of a digit and accepts a direct answer');
 
     const canvas=document.getElementById('pv-canvas');
     assert(canvas&&getComputedStyle(canvas).touchAction==='pan-y','Place Value empty board preserves vertical touch scrolling');
