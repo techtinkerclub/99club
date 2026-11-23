@@ -145,37 +145,85 @@ function composeChallengeCardSvg(diagram,{title='Challenge',prompt='',responseLa
   out.appendChild(svgEl('text',{x:width-pad,y:height-20,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':12,fill:'#87969a'},brand));
   return out;
 }
-function composeWorksheetCardSvg(diagram,{title='Challenge',prompt='',responseLabel='Answer',responseLines=1,brand='99 Club Studio'}={}){
+function composeWorksheetCardSvg(diagram,{title='Challenge',prompt='',responseLabel='Answer',responseLines=1,brand='99 Club Studio',answer='',showAnswer=false}={}){
   if(!diagram)throw new Error('A diagram is required.');
   const source=diagram.cloneNode(true);
   source.removeAttribute('id');
   const vb=diagram.viewBox&&diagram.viewBox.baseVal;
   const sourceW=Math.max(1,vb?.width||1000),sourceH=Math.max(1,vb?.height||420);
-  const width=1000,pad=34,contentW=width-pad*2;
-  const titleLines=wrapSvgText(title,70,1),promptLines=wrapSvgText(prompt,100,3);
-  const titleH=titleLines.length?30:0,promptH=promptLines.length?promptLines.length*24+8:0;
-  const maxDiagramH=430,diagramH=Math.max(170,Math.min(maxDiagramH,sourceH*(contentW/sourceW)));
-  const answerRows=Math.max(0,Math.min(3,Math.round(Number(responseLines)||0)));
-  const answerH=answerRows?44+answerRows*24:0;
-  const diagramY=pad+titleH+promptH+8,answerY=diagramY+diagramH+16;
-  const height=Math.max(360,answerY+answerH+30);
+  const width=1120,pad=48,contentW=width-pad*2;
+  const titleLines=wrapSvgText(title,72,1),promptLines=wrapSvgText(prompt,88,4);
+  const titleH=titleLines.length?34:0,promptH=promptLines.length?promptLines.length*34+12:0;
+  const naturalDiagramH=sourceH*(contentW/sourceW);
+  const diagramH=Math.max(300,Math.min(525,naturalDiagramH));
+  const diagramY=pad+titleH+promptH+12;
+  const answerRows=Math.max(1,Math.min(4,Math.round(Number(responseLines)||1)));
+  const answerLines=showAnswer?wrapSvgText(answer,88,5):[];
+  const answerH=showAnswer?Math.max(86,42+answerLines.length*28):(answerRows===1?96:56+answerRows*34);
+  const answerY=diagramY+diagramH+24;
+  const height=Math.max(560,answerY+answerH+42);
+
   const out=svgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:`0 0 ${width} ${height}`,role:'img','aria-label':title||'Worksheet item'});
-  out.appendChild(svgEl('rect',{x:0,y:0,width,height,rx:18,fill:'#ffffff',stroke:'#d5dfe1','stroke-width':2}));
-  let y=pad+24;
-  titleLines.forEach(line=>out.appendChild(svgEl('text',{x:pad,y,'font-family':'Arial,sans-serif','font-size':23,'font-weight':800,fill:'#24343b'},line)));
-  y=pad+titleH+20;
-  promptLines.forEach((line,i)=>out.appendChild(svgEl('text',{x:pad,y:y+i*24,'font-family':'Arial,sans-serif','font-size':18,'font-weight':650,fill:'#334a52'},line)));
-  const nested=svgEl('svg',{x:pad,y:diagramY,width:contentW,height:diagramH,viewBox:`0 0 ${sourceW} ${sourceH}`,preserveAspectRatio:'xMidYMid meet'});
+  out.appendChild(svgEl('rect',{x:1,y:1,width:width-2,height:height-2,rx:14,fill:'#ffffff',stroke:'#bccacd','stroke-width':2}));
+
+  let y=pad+27;
+  titleLines.forEach(line=>out.appendChild(svgEl('text',{
+    x:pad,y,
+    'font-family':'Arial,sans-serif','font-size':22,'font-weight':800,fill:'#66787e'
+  },line)));
+
+  y=pad+titleH+28;
+  promptLines.forEach((line,i)=>out.appendChild(svgEl('text',{
+    x:pad,y:y+i*34,
+    'font-family':'Arial,sans-serif','font-size':26,'font-weight':700,fill:'#263f47'
+  },line)));
+
+  const nested=svgEl('svg',{
+    x:pad,y:diagramY,width:contentW,height:diagramH,
+    viewBox:`0 0 ${sourceW} ${sourceH}`,
+    preserveAspectRatio:'xMidYMid meet'
+  });
   [...source.childNodes].forEach(node=>nested.appendChild(node.cloneNode(true)));
   out.appendChild(nested);
-  if(answerRows){
-    out.appendChild(svgEl('text',{x:pad,y:answerY+18,'font-family':'Arial,sans-serif','font-size':14,'font-weight':800,fill:'#64767b'},responseLabel));
-    for(let i=0;i<answerRows;i++){
-      const lineY=answerY+36+i*24;
-      out.appendChild(svgEl('line',{x1:pad,y1:lineY,x2:width-pad,y2:lineY,stroke:'#cfdadd','stroke-width':1.5}));
+
+  if(showAnswer){
+    out.appendChild(svgEl('rect',{
+      x:pad,y:answerY,width:contentW,height:answerH-8,rx:12,
+      fill:'#f0f8f6',stroke:'#90bcb6','stroke-width':2
+    }));
+    out.appendChild(svgEl('text',{
+      x:pad+20,y:answerY+27,
+      'font-family':'Arial,sans-serif','font-size':15,'font-weight':850,fill:'#54716f'
+    },responseLabel||'Answer'));
+    answerLines.forEach((line,i)=>out.appendChild(svgEl('text',{
+      x:pad+20,y:answerY+57+i*28,
+      'font-family':'Arial,sans-serif','font-size':21,'font-weight':750,fill:'#245f5a'
+    },line)));
+  }else{
+    out.appendChild(svgEl('text',{
+      x:pad,y:answerY+18,
+      'font-family':'Arial,sans-serif','font-size':15,'font-weight':850,fill:'#64777d'
+    },responseLabel));
+    if(answerRows===1){
+      out.appendChild(svgEl('rect',{
+        x:pad,y:answerY+30,width:contentW,height:54,rx:8,
+        fill:'#ffffff',stroke:'#aebdc1','stroke-width':2
+      }));
+    }else{
+      for(let i=0;i<answerRows;i++){
+        const lineY=answerY+42+i*34;
+        out.appendChild(svgEl('line',{
+          x1:pad,y1:lineY,x2:width-pad,y2:lineY,
+          stroke:'#bfcdd0','stroke-width':1.6
+        }));
+      }
     }
   }
-  out.appendChild(svgEl('text',{x:width-pad,y:height-12,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':9,fill:'#95a1a5'},brand));
+
+  out.appendChild(svgEl('text',{
+    x:width-pad,y:height-16,'text-anchor':'end',
+    'font-family':'Arial,sans-serif','font-size':9,fill:'#94a1a5'
+  },brand));
   return out;
 }
 
