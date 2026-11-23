@@ -130,6 +130,13 @@ root.innerHTML='<div class="gd-mixed-board" id="gd-mixed-board">'+
   '</div>'+
   '<div class="gd-board-tooltip" id="gd-board-tooltip" role="tooltip"></div>'+
   '<div class="gd-board-hint" id="gd-board-hint" role="status" aria-live="polite"></div>'+
+  '<aside class="gd-board-floating-controls" id="gd-board-floating-controls" hidden aria-label="Manipulative settings">'+
+    '<div class="gd-board-floating-controls-head" data-board-controls-drag>'+
+      '<strong id="gd-board-floating-controls-title">Settings</strong>'+
+      '<button type="button" data-board-controls-close aria-label="Close settings" title="Close">×</button>'+
+    '</div>'+
+    '<div class="gd-board-floating-controls-body" id="gd-board-floating-controls-body"></div>'+
+  '</aside>'+
   '<div class="gd-board-global" aria-label="Whiteboard controls">'+
     '<button type="button" class="gd-board-global-button" id="gd-board-back" aria-label="Back to manipulatives" title="Back">'+iconSvg('back')+'</button>'+
     '<button type="button" class="gd-board-global-button is-active" id="gd-board-snap" aria-pressed="true" aria-label="Toggle snap to dots" title="Snap to dots">'+iconSvg('snap')+'</button>'+
@@ -142,6 +149,10 @@ const viewport=document.getElementById('gd-board-viewport');
 const canvas=document.getElementById('gd-board-canvas');
 const hint=document.getElementById('gd-board-hint');
 const tooltip=document.getElementById('gd-board-tooltip');
+const floatingControls=document.getElementById('gd-board-floating-controls');
+const floatingControlsBody=document.getElementById('gd-board-floating-controls-body');
+const floatingControlsTitle=document.getElementById('gd-board-floating-controls-title');
+let floatingControlObjectId=null,floatingControlDrag=null,floatingControlX=86,floatingControlY=76;
 let hintTimer=null,tooltipTimer=null;
 function showToolTip(button){
   if(!tooltip||!button)return;
