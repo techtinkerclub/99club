@@ -295,9 +295,11 @@ async function run(){
   assert(!visible(pvFloating),'Frame Challenge starts a pupil task directly instead of opening another settings/picker palette');
   const pvGame=pvDoc.querySelector('.gd-pv-activity--game');
   assert(pvGame,'Frame Challenge immediately creates an active Place Value pupil task');
-  assert(/BUILD THE TARGET|EXACT-COUNTER CHALLENGE/.test(pvGame.textContent),'Random frame Challenge chooses Build target or Exact counters');
+  const pvChallengeKinds=['build','exact','regroup','same','read','hidden','digit'];
+  assert(pvChallengeKinds.includes(pvGame.dataset.pvActivityKind),'Random frame Challenge chooses from the full pupil-task set');
   assert(pvDoc.querySelector('[data-pv-activity-check]')&&pvDoc.querySelector('[data-pv-activity-another]'),'Generated pupil challenge exposes Check and Another directly on the board');
-  assert(pvDoc.querySelectorAll('[data-gd-object]').length===0,'Generated Build/Exact challenge starts with an empty pupil board');
+  if(['build','exact'].includes(pvGame.dataset.pvActivityKind))assert(pvDoc.querySelectorAll('[data-gd-object]').length===0,'Build/Exact random challenges start with an empty pupil board');
+  else assert(pvDoc.querySelectorAll('[data-gd-object]').length>0,'Interpret/regroup/same-value random challenges start with a meaningful board representation');
 
   pvDoc.querySelector('[data-pv-workflow="setup"]').click();await tick();
   const pvSetupValue=pvDoc.getElementById('pv-value');

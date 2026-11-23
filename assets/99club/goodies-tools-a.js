@@ -45,6 +45,7 @@ function placeValue(){
   let tokens=[],next=1,controller=null,resizeObserver=null,resizeFrame=0,lastStageWidth=0,notice='';
   let controlTab='setup',challengeTab='standard',challengeCategory='read',challengeType='read-number',challenge=null,beforeChallenge=null;
   let activityMode='powers',activityTarget=null,activityBudget=5,activityStatus='',powerMessage='',activityActive=false;
+  let activityInput='',activityAnswer=null,activityHiddenIndex=-1,activityDigit=0,activityStartCounts=[],activityPrompt='';
   let exportMode='diagram',responseLines=1,exportStatus='';
 
   function rangeFor(id=placeRange){return PLACE_RANGES.find(r=>r.id===id)||PLACE_RANGES.find(r=>r.id==='standard')}
@@ -111,12 +112,18 @@ function placeValue(){
     const index=clamp(Math.round(num(m[2],0)),0,places.length-1),count=counts()[index]||0;
     return m[1]==='count'?String(count):format(clean(count*places[index].value));
   }
+  function activityAnswerMode(){return activityActive&&['read','hidden','digit'].includes(activityMode)}
+  function activityReadOnly(){return activityAnswerMode()}
+  function activityTokenHidden(item){return activityActive&&activityMode==='hidden'&&Number(item?.place)===activityHiddenIndex}
+  function hiddenSummaryText(){return activityAnswerMode()?'Hidden for task':'Hidden for challenge'}
   function summaryHidden(kind){
+    if(activityAnswerMode())return true;
     if(!challenge||challenge.revealed)return false;
     if(Array.isArray(challenge.hiddenSummary)&&challenge.hiddenSummary.includes(kind))return true;
     return challenge.answerMode==='bound'&&challenge.answerSource===kind;
   }
   function columnCountHidden(index){
+    if(activityAnswerMode())return true;
     if(!challenge||challenge.revealed)return false;
     const source=challenge.answerMode==='bound'?challenge.answerSource:'';
     return source==='count:'+index||source==='value:'+index;
@@ -233,19 +240,85 @@ function placeValue(){
     }
     return normaliseValue(countsByPlace.reduce((sum,count,index)=>sum+count*places[index].value,0));
   }
+  function activityRandomTarget(){
+    return randomBoardValue({decimal:fractionDigits()>0,min:Math.max(valueStep(),10*valueStep()),max:Math.min(rangeMax(),places[0].value*3)});
+  }
+  function splittableActivityTarget(){
+    let target=activityRandomTarget(),candidate=-1;
+    for(let attempt=0;attempt<24;attempt++){
+      buildFromNumber(target);
+      const cs=counts(),options=[];
+      for(let i=0;i<places.length-1;i++)if(cs[i]>0)options.push(i);
+      if(options.length){candidate=options[Math.floor(Math.random()*options.length)];break}
+      target=activityRandomTarget();
+    }
+    return{target,candidate};
+  }
+  function makeNonStandardActivity(target){
+    buildFromNumber(target);
+    const cs=counts(),options=[];
+    for(let i=0;i<places.length-1;i++)if(cs[i]>0&&tokens.length+9<=90)options.push(i);
+    const source=options[Math.floor(Math.random()*options.length)]??-1;
+    if(source<0)return false;
+    const item=tokens.find(t=>t.place===source);
+    if(!item)return false;
+    tokens=tokens.filter(t=>t!==item);
+    for(let n=0;n<10;n++)tokens.push({id:next++,place:source+1,x:0,y:0,locked:false});
+    layoutTokens();return true;
+  }
+  function activityDescriptor(){
+    if(activityMode==='build')return{title:'Build the target',prompt:'Build '+format(activityTarget)+' with the place-value counters.'};
+    if(activityMode==='exact')return{title:'Exact counters',prompt:'Make '+format(activityTarget)+' using exactly '+activityBudget+' counters.'};
+    if(activityMode==='regroup')return{title:'Regroup',prompt:'Regroup this non-standard representation into standard place-value digits without changing its value.'};
+    if(activityMode==='same')return{title:'Same value, different way',prompt:'Show '+format(activityTarget)+' in a different way. Keep the value exactly the same.'};
+    if(activityMode==='read')return{title:'Read the number',prompt:'What number is represented by the counters?'};
+    if(activityMode==='hidden')return{title:'Hidden place',prompt:'This chart represents '+format(activityTarget)+'. How many '+(places[activityHiddenIndex]?.name||'place-value')+' counters are hidden?'};
+    if(activityMode==='digit')return{title:'Digit value',prompt:'What is the value of the digit '+activityDigit+' in the '+(places[activityHiddenIndex]?.name||'selected')+' column?'};
+    return{title:'Place value',prompt:''};
+  }
   function startActivity(mode=activityMode){
-    activityMode=['powers','build','exact'].includes(mode)?mode:'powers';activityActive=true;activityStatus='';powerMessage='';
+    const modes=['powers','build','exact','regroup','same','read','hidden','digit'];
+    activityMode=modes.includes(mode)?mode:'powers';activityActive=true;activityStatus='';powerMessage='';activityInput='';activityAnswer=null;activityHiddenIndex=-1;activityDigit=0;activityStartCounts=[];activityPrompt='';
     if(activityMode==='powers'){
       const value=total();controller?.mutate(()=>{buildFromNumber(value);notice=''});controller?.select(null);
-    }else{
-      activityTarget=activityMode==='exact'?exactCounterTarget(activityBudget):randomBoardValue({decimal:fractionDigits()>0,min:Math.max(valueStep(),10*valueStep()),max:Math.min(rangeMax(),places[0].value*3)});
+    }else if(activityMode==='exact'){
+      activityTarget=exactCounterTarget(activityBudget);
       controller?.mutate(()=>{tokens=[];next=1;notice='';layoutTokens()});controller?.select(null);
+    }else if(activityMode==='build'){
+      activityTarget=activityRandomTarget();
+      controller?.mutate(()=>{tokens=[];next=1;notice='';layoutTokens()});controller?.select(null);
+    }else if(activityMode==='regroup'){
+      activityTarget=activityRandomTarget();
+      controller?.mutate(()=>{
+        let guard=0;
+        while(!makeNonStandardActivity(activityTarget)&&guard++<20)activityTarget=activityRandomTarget();
+        notice='Regroup the counters without changing the represented value.';
+      });
+      controller?.select(null);
+    }else if(activityMode==='same'){
+      controller?.mutate(()=>{
+        const seeded=splittableActivityTarget();activityTarget=seeded.target;
+        activityStartCounts=counts().slice();
+        notice='Change the representation while keeping the total unchanged.';
+      });
+      controller?.select(null);
+    }else{
+      activityTarget=activityRandomTarget();
+      controller?.mutate(()=>{buildFromNumber(activityTarget);notice=''});controller?.select(null);
+      const cs=counts(),nonZero=cs.map((count,index)=>({count,index})).filter(x=>x.count>0);
+      const chosen=nonZero[Math.floor(Math.random()*nonZero.length)]||{count:cs[places.length-1]||0,index:places.length-1};
+      activityHiddenIndex=chosen.index;activityDigit=chosen.count;
+      if(activityMode==='read')activityAnswer=activityTarget;
+      else if(activityMode==='hidden')activityAnswer=chosen.count;
+      else activityAnswer=clean(chosen.count*places[chosen.index].value);
     }
+    activityPrompt=activityDescriptor().prompt;
     controller?.refresh();renderControls();
   }
   function startRandomActivityChallenge(){
     if(challenge){restoreBeforeChallenge();challenge=null}
-    const mode=Math.random()<.5?'build':'exact';
+    const modes=['build','exact','regroup','same','read','hidden','digit'];
+    const mode=modes[Math.floor(Math.random()*modes.length)];
     if(mode==='exact')activityBudget=3+Math.floor(Math.random()*7);
     controlTab='activity';
     startActivity(mode);
@@ -256,22 +329,36 @@ function placeValue(){
     if(activityMode==='exact'){
       const rightCount=tokens.length===activityBudget;
       activityStatus=same&&rightCount?'Correct ✓':same?'Right value — now use exactly '+activityBudget+' counters.':rightCount?'You used '+activityBudget+' counters, but the value is not '+format(target)+' yet.':'Keep going — match both the target and the counter limit.';
+    }else if(activityMode==='regroup'){
+      activityStatus=same&&!nonStandard()?'Correct ✓ — same value, standard form.':!same?'The value has changed. Keep it at '+format(target)+'.':'Keep regrouping until every column has 0–9 counters.';
+    }else if(activityMode==='same'){
+      const cs=counts(),changed=cs.some((count,index)=>count!==activityStartCounts[index]);
+      activityStatus=same&&changed?'Correct ✓ — same value, different representation.':!same?'The representation changed the value. Bring it back to '+format(target)+'.':'The value is right, but the representation is still the same. Try splitting or exchanging.';
+    }else if(activityAnswerMode()){
+      const raw=String(activityInput||'').replace(/,/g,'').trim(),entered=raw===''?NaN:Number(raw);
+      const tolerance=activityMode==='hidden'?1e-9:valueStep()/2+1e-9;
+      if(!Number.isFinite(entered))activityStatus='Enter an answer first.';
+      else activityStatus=Math.abs(entered-Number(activityAnswer))<=tolerance?'Correct ✓':'Not yet — have another look at the place-value columns.';
     }else activityStatus=same?'Correct ✓':'Not yet — your board shows '+format(value)+'.';
     controller?.refresh();
   }
   function activityControlsHtml(){
     const modeButtons=[
-      ['powers','×10 / ÷10 demo'],
-      ['build','Build target'],
-      ['exact','Exact counters']
+      ['powers','×/÷ 10'],
+      ['build','Build'],
+      ['exact','Exact'],
+      ['regroup','Regroup'],
+      ['same','Same value'],
+      ['read','Read'],
+      ['hidden','Hidden place'],
+      ['digit','Digit value']
     ].map(([id,label])=>'<button class="gd-btn'+(activityMode===id?' gd-btn--primary':'')+'" type="button" data-pv-activity-mode="'+id+'">'+label+'</button>').join('');
-    return '<div class="gd-row pv-activity-tabs" role="tablist" aria-label="Place Value teaching and games">'+modeButtons+'</div>'+
-      (activityMode==='powers'
-        ?'<p class="gd-help">Use the controls on the board to show that digits move through place-value columns while the decimal point stays fixed.</p>'
-        :activityMode==='exact'
-          ?field('Counters to use','<select class="gd-select" id="pv-activity-budget">'+[3,4,5,6,7,8,9].map(n=>'<option value="'+n+'"'+(activityBudget===n?' selected':'')+'>'+n+'</option>').join('')+'</select>')+
-            '<button class="gd-btn" id="pv-activity-new" type="button">New target</button><p class="gd-help">Build the target using exactly the chosen number of counters.</p>'
-          :'<button class="gd-btn" id="pv-activity-new" type="button">New target</button><p class="gd-help">Build the target number directly on the board, then check it.</p>');
+    let extras='';
+    if(activityMode==='powers')extras='<p class="gd-help">Show how digits move through place-value columns while the decimal point stays fixed.</p>';
+    else if(activityMode==='exact')extras=field('Counters to use','<select class="gd-select" id="pv-activity-budget">'+[3,4,5,6,7,8,9].map(n=>'<option value="'+n+'"'+(activityBudget===n?' selected':'')+'>'+n+'</option>').join('')+'</select>')+
+      '<button class="gd-btn" id="pv-activity-new" type="button">New task</button><p class="gd-help">Build the target using exactly the chosen number of counters.</p>';
+    else extras='<button class="gd-btn" id="pv-activity-new" type="button">New task</button>';
+    return '<div class="gd-row pv-activity-tabs" role="tablist" aria-label="Place Value teaching and games">'+modeButtons+'</div>'+extras;
   }
   function activityBannerHtml(){
     if(controlTab!=='activity')return '';
@@ -289,11 +376,11 @@ function placeValue(){
         '<div class="gd-pv-activity-head"><div><span>TEACH · POWERS OF TEN</span><strong>'+format(total())+'</strong></div><em>'+esc(powerMessage||'Choose an operation. The digits move; the decimal point does not.')+'</em></div>'+
         '<div class="gd-pv-digit-row" style="--pv-cols:'+places.length+'">'+cells+'</div><div class="gd-pv-activity-actions">'+buttons+'</div></section>';
     }
-    const title=activityMode==='exact'?'Exact-counter challenge':'Build the target';
-    const prompt=activityMode==='exact'?'Make '+format(activityTarget)+' using exactly '+activityBudget+' counters.':'Build '+format(activityTarget)+' with the place-value counters.';
-    return '<section class="gd-pv-activity gd-pv-activity--game" aria-label="'+esc(title)+'">'+
-      '<div class="gd-pv-activity-head"><div><span>PLAY · '+esc(title.toUpperCase())+'</span><strong>'+esc(prompt)+'</strong></div><em>'+esc(activityStatus||'')+'</em></div>'+
-      '<div class="gd-pv-activity-actions"><button type="button" data-pv-activity-check>Check</button><button type="button" data-pv-activity-another>Another</button></div></section>';
+    const descriptor=activityDescriptor();
+    const answer=activityAnswerMode()?'<div class="gd-pv-activity-response"><label>Answer <input type="text" inputmode="decimal" autocomplete="off" data-pv-activity-answer value="'+esc(activityInput)+'"></label></div>':'';
+    return '<section class="gd-pv-activity gd-pv-activity--game" data-pv-activity-kind="'+activityMode+'" aria-label="'+esc(descriptor.title)+'">'+
+      '<div class="gd-pv-activity-head"><div><span>PLAY · '+esc(descriptor.title.toUpperCase())+'</span><strong>'+esc(descriptor.prompt)+'</strong></div><em>'+esc(activityStatus||'')+'</em></div>'+
+      answer+'<div class="gd-pv-activity-actions"><button type="button" data-pv-activity-check>Check</button><button type="button" data-pv-activity-another>Another</button></div></section>';
   }
 
   function challengeControlsHtml(){
@@ -363,8 +450,9 @@ function placeValue(){
   }
   function boardExportSvg({pupil=false}={}){
     const cs=counts(),width=1000,pad=18,boardX=pad,boardY=12,boardW=width-pad*2,colW=boardW/places.length;
-    const maxCount=Math.max(1,...cs),perRow=colW>=190?3:2,rows=Math.max(1,Math.ceil(maxCount/perRow));
-    const headerH=92,counterStep=52,bodyH=Math.max(230,Math.min(340,54+rows*counterStep)),boardH=headerH+bodyH,height=boardY+boardH+12;
+    const exportCounts=cs.map((count,index)=>activityActive&&activityMode==='hidden'&&index===activityHiddenIndex?0:count);
+    const maxCount=Math.max(1,...exportCounts),perRow=colW>=190?3:2,rows=Math.max(1,Math.ceil(maxCount/perRow));
+    const headerH=92,counterStep=52,bodyH=Math.max(250,Math.min(340,54+rows*counterStep)),boardH=headerH+bodyH,height=boardY+boardH+12;
     const pupilColumnHidden=index=>!!(challenge&&challenge.answerMode==='bound'&&(challenge.answerSource==='count:'+index||challenge.answerSource==='value:'+index));
     const svg=pvSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Place value chart','data-pv-export':'board'});
     svg.appendChild(pvSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
@@ -379,7 +467,7 @@ function placeValue(){
       svg.appendChild(pvSvgEl('line',{x1:x,y1:boardY+headerH,x2:x+colW,y2:boardY+headerH,stroke:'#aebdc1','stroke-width':1.7}));
       svg.appendChild(pvSvgEl('text',{x:x+colW/2,y:boardY+36,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':22,'font-weight':850,fill:'#2d454d'},place.label));
       svg.appendChild(pvSvgEl('text',{x:x+colW/2,y:boardY+64,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':13,'font-weight':600,fill:'#61767c'},place.name));
-      const visibleCount=pupil&&pupilColumnHidden(index)?0:cs[index];
+      const visibleCount=(activityActive&&activityMode==='hidden'&&index===activityHiddenIndex)||(pupil&&pupilColumnHidden(index))?0:cs[index];
       for(let n=0;n<visibleCount;n++){
         const row=Math.floor(n/perRow),slot=n%perRow,slotGap=Math.min(52,colW/(perRow+0.7));
         const cx=x+colW/2+(slot-(perRow-1)/2)*slotGap,cy=boardY+headerH+40+row*counterStep;
@@ -419,20 +507,17 @@ function placeValue(){
       });
     }
     if(activityActive&&X?.composeWorksheetCardSvg){
-      let title='Place Value',prompt='',mode='none';
+      let title='Place Value',prompt='',mode='none',responseLabel='Answer',responseLines=1;
       if(activityMode==='powers'){
         title='Powers of ten';
         prompt=powerMessage||'Explain what happens to the digits when the number is multiplied or divided by a power of ten.';
-        mode='lines';
-      }else if(activityMode==='exact'){
-        title='Exact-counter challenge';
-        prompt='Make '+format(activityTarget)+' using exactly '+activityBudget+' counters.';
+        mode='lines';responseLabel='Explain your thinking';responseLines=2;
       }else{
-        title='Build the target';
-        prompt='Build '+format(activityTarget)+' using the place-value chart.';
+        const descriptor=activityDescriptor();title=descriptor.title;prompt=descriptor.prompt;
+        if(activityAnswerMode())mode='box';
       }
       return X.composeWorksheetCardSvg(worksheetBoardSvg({pupil:false}),{
-        title,prompt,responseLabel:'Explain your thinking',responseLines:2,responseMode:mode,paperStyle:'plain',brand:'99 Club Studio'
+        title,prompt,responseLabel,responseLines,responseMode:mode,paperStyle:'plain',brand:'99 Club Studio'
       });
     }
     return boardExportSvg({pupil:false});
@@ -496,12 +581,12 @@ function placeValue(){
     return nonStandard()?'This is a non-standard representation. Regroup to show the same value using standard digits.':'Drag a counter into another column to change its place value.';
   }
   function tokenMarkup(t,selectedId){
-    const p=places[t.place],selected=String(t.id)===String(selectedId);
-    return '<button type="button" class="gd-pv-counter'+(selected?' is-selected':'')+(t.locked?' is-locked':'')+'" data-gd-object="'+t.id+'" data-pv-place="'+t.place+'" aria-selected="'+(selected?'true':'false')+'" aria-label="One '+p.name+' counter'+(t.locked?', locked':'')+'" style="left:'+t.x+'px;top:'+t.y+'px;--pv-counter:'+p.color+'"><span aria-hidden="true"></span>'+(t.locked?'<b class="gd-pv-lock" aria-hidden="true">⌑</b>':'')+'</button>';
+    const p=places[t.place],selected=String(t.id)===String(selectedId),activityHidden=activityTokenHidden(t);
+    return '<button type="button" class="gd-pv-counter'+(selected?' is-selected':'')+(t.locked?' is-locked':'')+(activityHidden?' is-activity-hidden':'')+'" data-gd-object="'+t.id+'" data-pv-place="'+t.place+'" aria-selected="'+(selected?'true':'false')+'"'+(activityHidden?' aria-hidden="true" tabindex="-1"':'')+' aria-label="One '+p.name+' counter'+(t.locked?', locked':'')+'" style="left:'+t.x+'px;top:'+t.y+'px;--pv-counter:'+p.color+'"><span aria-hidden="true"></span>'+(t.locked?'<b class="gd-pv-lock" aria-hidden="true">⌑</b>':'')+'</button>';
   }
   function railMarkup(selected,meta){
     let object='';
-    if(selected){
+    if(selected&&!activityReadOnly()){
       const source=clamp(Math.round(num(selected.place,0)),0,places.length-1);
       const canExchange=source>0&&tokens.filter(t=>t.place===source&&!t.locked).length>=10;
       const canSplit=!selected.locked&&source<places.length-1&&tokens.length+9<=90;
@@ -521,13 +606,13 @@ function placeValue(){
       '</div></div>';
   }
   function columnMarkup(place,index,cs){
-    const countText=columnCountHidden(index)?'?':cs[index],canRemove=tokens.some(t=>t.place===index&&!t.locked);
+    const readOnly=activityReadOnly(),countText=columnCountHidden(index)?'?':cs[index],canRemove=!readOnly&&tokens.some(t=>t.place===index&&!t.locked);
     const decimalStart=place.value<1&&(index===0||places[index-1].value>=1);
     return '<div class="gd-pv-column'+(decimalStart?' is-decimal-start':'')+'" data-gd-canvas-bg data-pv-column="'+index+'">'+
       '<div class="gd-pv-head"><strong>'+place.label+'</strong><small>'+place.name+'</small><div class="gd-pv-column-actions" role="group" aria-label="'+place.name+' counters">'+
         '<button type="button" data-pv-remove="'+index+'" aria-label="Remove one '+place.name+' counter"'+(canRemove?'':' disabled')+'>−</button>'+
         '<span data-pv-count="'+index+'" aria-label="'+countText+' '+place.name+' counters">'+countText+'</span>'+
-        '<button type="button" data-pv-add="'+index+'" aria-label="Add one '+place.name+' counter">+</button>'+
+        '<button type="button" data-pv-add="'+index+'" aria-label="Add one '+place.name+' counter"'+(readOnly?' disabled':'')+'>+</button>'+
       '</div></div>'+
       '</div>';
   }
@@ -545,7 +630,7 @@ function placeValue(){
       '</div>'+
       '<div class="gd-pv-summary">'+
         '<div><span>Number represented</span><strong id="pv-total"'+(summaryHidden('total')?' class="gd-pv-answer-hidden"':'')+'>'+(summaryHidden('total')?'?':format(total()))+'</strong></div>'+
-        '<div><span>Board representation</span><strong id="pv-expanded"'+(summaryHidden('expanded')?' class="gd-pv-answer-hidden"':'')+'>'+(summaryHidden('expanded')?'Hidden for challenge':expandedText())+'</strong></div>'+
+        '<div><span>Board representation</span><strong id="pv-expanded"'+(summaryHidden('expanded')?' class="gd-pv-answer-hidden"':'')+'>'+(summaryHidden('expanded')?hiddenSummaryText():expandedText())+'</strong></div>'+
       '</div>'+
       '<p class="gd-object-hint" id="pv-hint">'+stageNotice()+'</p>'+
     '</div>';
@@ -554,7 +639,7 @@ function placeValue(){
     updateChallengeAnswer();
     const totalEl=q('#pv-total'),expandedEl=q('#pv-expanded'),hint=q('#pv-hint'),input=q('#pv-value');
     if(totalEl)totalEl.textContent=summaryHidden('total')?'?':format(total());
-    if(expandedEl)expandedEl.textContent=summaryHidden('expanded')?'Hidden for challenge':expandedText();
+    if(expandedEl)expandedEl.textContent=summaryHidden('expanded')?hiddenSummaryText():expandedText();
     if(hint)hint.textContent=stageNotice();
     if(input&&document.activeElement!==input)input.value=clean(total()).toFixed(total()%1?2:0);
     const cs=counts();
@@ -565,6 +650,7 @@ function placeValue(){
     return clamp(Math.floor(centre/(width/places.length)),0,places.length-1);
   }
   function addCounter(place){
+    if(activityReadOnly())return;
     if(tokens.length>=90){notice='This board is full. Delete or regroup some counters first.';controller.refresh();return;}
     let id=null;
     controller.mutate(()=>{
@@ -576,6 +662,7 @@ function placeValue(){
     controller.select(id);
   }
   function removeCounter(place){
+    if(activityReadOnly())return;
     const index=clamp(Math.round(Number(place)||0),0,places.length-1);
     const candidates=tokens.filter(t=>t.place===index&&!t.locked);
     const item=candidates[candidates.length-1];
@@ -631,6 +718,11 @@ function placeValue(){
     qa('[data-pv-power]',q('#gd-stage')).forEach(button=>button.onclick=e=>{
       e.stopPropagation();applyPowerShift(Math.round(num(button.dataset.pvPower,0)));
     });
+    const activityAnswerInput=q('[data-pv-activity-answer]',q('#gd-stage'));
+    if(activityAnswerInput){
+      activityAnswerInput.oninput=e=>{activityInput=e.target.value};
+      activityAnswerInput.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();checkActivity()}};
+    }
     const activityCheck=q('[data-pv-activity-check]',q('#gd-stage'));
     if(activityCheck)activityCheck.onclick=e=>{e.stopPropagation();checkActivity()};
     const activityAnother=q('[data-pv-activity-another]',q('#gd-stage'));
@@ -788,6 +880,7 @@ function placeValue(){
     getCanvas:()=>q('#pv-canvas'),
     getActionRoot:()=>q('#gd-stage'),
     render,
+    isLocked:item=>!!item.locked||activityReadOnly(),
     snap:1,
     nudgeStep:1,
     duplicate:duplicateCounter,
