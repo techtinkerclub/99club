@@ -7,6 +7,7 @@
 .gd-ab-check{align-items:center!important;justify-content:flex-start!important;font-size:.74rem;font-weight:750;color:#52676d}
 .gd-ab-workspace{width:100%;display:grid;gap:10px;margin:0 auto}
 .gd-ab-frame{width:100%;padding:15px;border:1px solid #b9c6c6;border-radius:20px;background:linear-gradient(180deg,#f8f1e7,#efe0c9);box-shadow:0 8px 22px rgba(43,62,63,.09),inset 0 0 0 4px rgba(255,255,255,.42)}
+.gd-ab-side-guide{display:flex;justify-content:space-between;align-items:center;padding:0 20px 5px;color:#7a6248;font-size:.55rem;font-weight:900;letter-spacing:.09em}
 .gd-ab-frame-inner{display:grid;gap:7px;padding:15px 13px;border:8px solid #9a6d3d;border-radius:16px;background:linear-gradient(180deg,#d4a56f,#bd8650);box-shadow:inset 0 0 0 2px rgba(255,255,255,.25),inset 0 7px 14px rgba(88,53,24,.14)}
 .gd-ab-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px;min-height:54px}
 .gd-ab-row-label{min-width:42px;color:#60482f;font-size:.64rem;font-weight:850;text-align:right;white-space:nowrap}
