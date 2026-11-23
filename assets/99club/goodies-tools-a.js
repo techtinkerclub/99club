@@ -115,6 +115,7 @@ function placeValue(){
   function activityAnswerMode(){return activityActive&&['read','hidden','digit'].includes(activityMode)}
   function activityReadOnly(){return activityAnswerMode()}
   function activityTokenHidden(item){return activityActive&&activityMode==='hidden'&&Number(item?.place)===activityHiddenIndex}
+  function hiddenSummaryText(){return activityAnswerMode()?'Hidden for task':'Hidden for challenge'}
   function summaryHidden(kind){
     if(activityAnswerMode())return true;
     if(!challenge||challenge.revealed)return false;
@@ -295,9 +296,11 @@ function placeValue(){
       });
       controller?.select(null);
     }else if(activityMode==='same'){
-      const seeded=splittableActivityTarget();activityTarget=seeded.target;
-      activityStartCounts=counts().slice();
-      notice='Change the representation while keeping the total unchanged.';
+      controller?.mutate(()=>{
+        const seeded=splittableActivityTarget();activityTarget=seeded.target;
+        activityStartCounts=counts().slice();
+        notice='Change the representation while keeping the total unchanged.';
+      });
       controller?.select(null);
     }else{
       activityTarget=activityRandomTarget();
@@ -583,7 +586,7 @@ function placeValue(){
   }
   function railMarkup(selected,meta){
     let object='';
-    if(selected){
+    if(selected&&!activityReadOnly()){
       const source=clamp(Math.round(num(selected.place,0)),0,places.length-1);
       const canExchange=source>0&&tokens.filter(t=>t.place===source&&!t.locked).length>=10;
       const canSplit=!selected.locked&&source<places.length-1&&tokens.length+9<=90;
@@ -627,7 +630,7 @@ function placeValue(){
       '</div>'+
       '<div class="gd-pv-summary">'+
         '<div><span>Number represented</span><strong id="pv-total"'+(summaryHidden('total')?' class="gd-pv-answer-hidden"':'')+'>'+(summaryHidden('total')?'?':format(total()))+'</strong></div>'+
-        '<div><span>Board representation</span><strong id="pv-expanded"'+(summaryHidden('expanded')?' class="gd-pv-answer-hidden"':'')+'>'+(summaryHidden('expanded')?'Hidden for challenge':expandedText())+'</strong></div>'+
+        '<div><span>Board representation</span><strong id="pv-expanded"'+(summaryHidden('expanded')?' class="gd-pv-answer-hidden"':'')+'>'+(summaryHidden('expanded')?hiddenSummaryText():expandedText())+'</strong></div>'+
       '</div>'+
       '<p class="gd-object-hint" id="pv-hint">'+stageNotice()+'</p>'+
     '</div>';
@@ -636,7 +639,7 @@ function placeValue(){
     updateChallengeAnswer();
     const totalEl=q('#pv-total'),expandedEl=q('#pv-expanded'),hint=q('#pv-hint'),input=q('#pv-value');
     if(totalEl)totalEl.textContent=summaryHidden('total')?'?':format(total());
-    if(expandedEl)expandedEl.textContent=summaryHidden('expanded')?'Hidden for challenge':expandedText();
+    if(expandedEl)expandedEl.textContent=summaryHidden('expanded')?hiddenSummaryText():expandedText();
     if(hint)hint.textContent=stageNotice();
     if(input&&document.activeElement!==input)input.value=clean(total()).toFixed(total()%1?2:0);
     const cs=counts();
@@ -647,6 +650,7 @@ function placeValue(){
     return clamp(Math.floor(centre/(width/places.length)),0,places.length-1);
   }
   function addCounter(place){
+    if(activityReadOnly())return;
     if(tokens.length>=90){notice='This board is full. Delete or regroup some counters first.';controller.refresh();return;}
     let id=null;
     controller.mutate(()=>{
@@ -658,6 +662,7 @@ function placeValue(){
     controller.select(id);
   }
   function removeCounter(place){
+    if(activityReadOnly())return;
     const index=clamp(Math.round(Number(place)||0),0,places.length-1);
     const candidates=tokens.filter(t=>t.place===index&&!t.locked);
     const item=candidates[candidates.length-1];
