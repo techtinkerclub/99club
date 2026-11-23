@@ -338,6 +338,36 @@ html.nl-board-page-lock,body.nl-board-page-lock{overflow:hidden!important;oversc
 .gd-pv-summary strong{display:block;color:#2e454d;font-size:1rem;line-height:1.28;overflow-wrap:anywhere}
 .gd-pv-summary>div:first-child strong{font-size:1.65rem;color:var(--gd-teal-dark)}
 #pv-regroup:disabled{opacity:.45;cursor:default}
+.pv-mode-tabs{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px!important}
+.pv-mode-tabs>.gd-btn{width:100%;min-width:0}
+.pv-activity-tabs{display:grid!important;grid-template-columns:1fr;gap:5px!important}
+.gd-pv-activity{width:100%;max-width:980px;margin:0 auto 10px;padding:12px;border:1px solid #c9d9d9;border-radius:15px;background:rgba(250,253,252,.98);box-shadow:0 5px 16px rgba(36,71,74,.06)}
+.gd-pv-activity-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:10px}
+.gd-pv-activity-head>div{display:grid;gap:2px;min-width:0}
+.gd-pv-activity-head span{font-size:.66rem;font-weight:900;letter-spacing:.07em;color:#6b7c81}
+.gd-pv-activity-head strong{font-size:1.05rem;line-height:1.2;color:#29464d}
+.gd-pv-activity-head em{max-width:54%;font-size:.72rem;line-height:1.35;font-style:normal;font-weight:750;color:#61767c;text-align:right}
+.gd-pv-digit-row{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border:1px solid #d5e0e1;border-radius:12px;overflow:hidden;background:#fff}
+.gd-pv-digit-cell{min-width:0;padding:7px 3px 8px;display:grid;gap:4px;justify-items:center;border-right:1px solid #e0e7e8}
+.gd-pv-digit-cell:last-child{border-right:0}
+.gd-pv-digit-cell.is-decimal-start{border-left:3px solid #657b82}
+.gd-pv-digit-cell small{font-size:.57rem;font-weight:800;color:#819095;white-space:nowrap}
+.gd-pv-digit-cell strong{width:34px;height:38px;display:grid;place-items:center;border:1px solid #b8ceca;border-radius:8px;background:#fff8d8;color:#30484f;font-size:1.1rem;box-shadow:0 2px 6px rgba(31,61,69,.07)}
+.gd-pv-activity-actions{display:flex;justify-content:center;gap:5px;flex-wrap:wrap;margin-top:9px}
+.gd-pv-activity-actions button{min-height:32px;padding:5px 10px;border:1px solid #a9c9c5;border-radius:9px;background:#fff;color:#126f68;font:inherit;font-size:.74rem;font-weight:850;cursor:pointer}
+.gd-pv-activity-actions button:hover,.gd-pv-activity-actions button:focus-visible{background:#edf7f4;outline:none}
+.gd-pv-activity-actions button:disabled{opacity:.3;cursor:default}
+.gd-pv-activity--game .gd-pv-activity-head strong{font-size:1rem}
+.gd-pv-activity--game .gd-pv-activity-head em{color:#39776f;font-weight:850}
+@media(max-width:620px){
+  .gd-pv-activity{padding:9px;border-radius:12px}
+  .gd-pv-activity-head{display:grid;gap:5px}
+  .gd-pv-activity-head em{max-width:none;text-align:left}
+  .gd-pv-digit-cell small{display:none}
+  .gd-pv-digit-cell strong{width:27px;height:31px;font-size:.88rem}
+  .gd-pv-activity-actions{gap:3px}
+  .gd-pv-activity-actions button{padding:4px 7px;font-size:.66rem}
+}
 @media(max-width:700px){
   .gd-pv-canvas{border-radius:14px}
   .gd-pv-head{min-height:80px;padding:8px 2px 7px;gap:2px}
