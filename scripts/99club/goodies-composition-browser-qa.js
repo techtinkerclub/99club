@@ -306,9 +306,15 @@ async function run(){
   const pvAfterExchange=Number((pvDoc.getElementById('pv-total').textContent||'').replace(/,/g,''));
   assert(Math.abs(pvAfterExchange-pvBefore)<0.00001,'Whiteboard Exchange 10→1 restores the grouped representation without changing value');
 
-  pvDoc.querySelector('[data-pv-workflow="challenge"]').click();await tick();
-  pvDoc.querySelector('[data-pv-challenge-type="read-number"]').click();await tick();
-  pvDoc.getElementById('pv-generate').click();await tick();
+  const pvChallengeWorkflow=pvDoc.querySelector('[data-pv-workflow="challenge"]');
+  assert(pvChallengeWorkflow,'Place Value challenge workflow remains available after direct frame export and counter actions');
+  pvChallengeWorkflow.click();await tick();
+  const pvReadChallenge=pvDoc.querySelector('[data-pv-challenge-type="read-number"]');
+  assert(pvReadChallenge,'Place Value read-number challenge is available in the embedded whiteboard widget');
+  pvReadChallenge.click();await tick();
+  const pvGenerateChallenge=pvDoc.getElementById('pv-generate');
+  assert(pvGenerateChallenge,'Place Value embedded challenge exposes Generate challenge');
+  pvGenerateChallenge.click();await tick();await tick();
   pvQuick=[...pvFrame.querySelectorAll('[data-board-quick-actions] button')];
   const revealPV=pvQuick.find(button=>/Reveal answer/i.test(button.textContent));
   assert(revealPV,'Active Place Value challenge exposes Reveal answer directly on the whiteboard frame');
