@@ -22,13 +22,14 @@ function placeValue(){
     {power:-3,label:'0.001',name:'thousandths',value:.001,color:'#c9ddec'}
   ];
   const PLACE_RANGES=[
-    {id:'millions',label:'10,000,000 → 10',start:0},
-    {id:'whole',label:'1,000,000 → 1',start:1},
-    {id:'standard',label:'10,000 → 0.01',start:3},
-    {id:'decimals',label:'1,000 → 0.001',start:4}
+    {id:'millions',label:'10,000,000 → 10',start:0,end:6},
+    {id:'whole',label:'1,000,000 → 1',start:1,end:7},
+    {id:'thousands',label:'1,000 → 1',start:4,end:7},
+    {id:'standard',label:'10,000 → 0.01',start:3,end:9},
+    {id:'decimals',label:'1,000 → 0.001',start:4,end:10}
   ];
-  let placeRange='standard';
-  let places=PLACE_CATALOG.slice(3,10);
+  let placeRange='standard',rangeStart=3,rangeEnd=9;
+  let places=PLACE_CATALOG.slice(rangeStart,rangeEnd+1);
   const CHALLENGE_CATEGORIES=[
     {id:'read',label:'Read & place value'},
     {id:'build',label:'Build & regroup'},
@@ -43,12 +44,20 @@ function placeValue(){
   ];
   let tokens=[],next=1,controller=null,resizeObserver=null,resizeFrame=0,lastStageWidth=0,notice='';
   let controlTab='setup',challengeTab='standard',challengeCategory='read',challengeType='read-number',challenge=null,beforeChallenge=null;
-  let activityMode='powers',activityTarget=null,activityBudget=5,activityStatus='',powerMessage='';
+  let activityMode='powers',activityTarget=null,activityBudget=5,activityStatus='',powerMessage='',activityActive=false;
   let exportMode='diagram',responseLines=1,exportStatus='';
 
   function rangeFor(id=placeRange){return PLACE_RANGES.find(r=>r.id===id)||PLACE_RANGES.find(r=>r.id==='standard')}
+  function applyPlaceWindow(start,end,id='custom'){
+    let a=clamp(Math.round(num(start,3)),0,PLACE_CATALOG.length-2),b=clamp(Math.round(num(end,9)),a+1,PLACE_CATALOG.length-1);
+    if(b-a>6)b=a+6;
+    rangeStart=a;rangeEnd=b;placeRange=id;places=PLACE_CATALOG.slice(rangeStart,rangeEnd+1);
+  }
   function setPlaceRange(id){
-    const range=rangeFor(id);placeRange=range.id;places=PLACE_CATALOG.slice(range.start,range.start+7);
+    const range=rangeFor(id);applyPlaceWindow(range.start,range.end??range.start+6,range.id);
+  }
+  function setCustomPlaceRange(start,end){
+    applyPlaceWindow(start,end,'custom');
   }
   function fractionDigits(){return Math.max(0,-Math.min(...places.map(p=>p.power)))}
   function valueStep(){return places[places.length-1]?.value||1}
@@ -60,10 +69,11 @@ function placeValue(){
   function counts(){const out=Array(places.length).fill(0);tokens.forEach(t=>{if(out[t.place]!=null)out[t.place]++});return out}
   function total(){return clean(tokens.reduce((sum,t)=>sum+(places[t.place]?.value||0),0))}
   function nonStandard(){return counts().some(n=>n>9)}
-  function stateSnapshot(){return{tokens:JSON.parse(JSON.stringify(tokens)),next,placeRange}}
+  function stateSnapshot(){return{tokens:JSON.parse(JSON.stringify(tokens)),next,placeRange,rangeStart,rangeEnd}}
   function restoreState(value){
-    setPlaceRange(value?.placeRange||'standard');
-    tokens=Array.isArray(value?.tokens)?value.tokens.map(t=>({...t,place:clamp(Math.round(num(t.place,4)),0,places.length-1)})):[];
+    if(Number.isInteger(value?.rangeStart)&&Number.isInteger(value?.rangeEnd))applyPlaceWindow(value.rangeStart,value.rangeEnd,value.placeRange||'custom');
+    else setPlaceRange(value?.placeRange||'standard');
+    tokens=Array.isArray(value?.tokens)?value.tokens.map(t=>({...t,place:clamp(Math.round(num(t.place,Math.min(4,places.length-1))),0,places.length-1)})):[];
     next=Math.max(1,Math.round(num(value?.next,1)));
     notice='';
   }
@@ -185,7 +195,7 @@ function placeValue(){
       buildFromNumber(value);
       challenge=challengeObject(type,'A pupil says the empty '+places[zeroIndex].name+' column does not matter when reading this number. Are they correct?','No. It represents '+format(value)+'. Zero is acting as a placeholder in the '+places[zeroIndex].name+' place.',{hiddenSummary:['total','expanded']});
     }
-    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';
+    activityActive=false;challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';
     exportMode='challenge';responseLines=template.category==='reason'?3:1;exportStatus='';
     renderControls();controller?.select(null);controller?.refresh();
   }
@@ -224,7 +234,7 @@ function placeValue(){
     return normaliseValue(countsByPlace.reduce((sum,count,index)=>sum+count*places[index].value,0));
   }
   function startActivity(mode=activityMode){
-    activityMode=['powers','build','exact'].includes(mode)?mode:'powers';activityStatus='';powerMessage='';
+    activityMode=['powers','build','exact'].includes(mode)?mode:'powers';activityActive=true;activityStatus='';powerMessage='';
     if(activityMode==='powers'){
       const value=total();controller?.mutate(()=>{buildFromNumber(value);notice=''});controller?.select(null);
     }else{
@@ -270,7 +280,7 @@ function placeValue(){
       }).join('');
       return '<section class="gd-pv-activity gd-pv-activity--powers" aria-label="Powers of ten demonstration">'+
         '<div class="gd-pv-activity-head"><div><span>TEACH · POWERS OF TEN</span><strong>'+format(total())+'</strong></div><em>'+esc(powerMessage||'Choose an operation. The digits move; the decimal point does not.')+'</em></div>'+
-        '<div class="gd-pv-digit-row">'+cells+'</div><div class="gd-pv-activity-actions">'+buttons+'</div></section>';
+        '<div class="gd-pv-digit-row" style="--pv-cols:'+places.length+'">'+cells+'</div><div class="gd-pv-activity-actions">'+buttons+'</div></section>';
     }
     const title=activityMode==='exact'?'Exact-counter challenge':'Build the target';
     const prompt=activityMode==='exact'?'Make '+format(activityTarget)+' using exactly '+activityBudget+' counters.':'Build '+format(activityTarget)+' with the place-value counters.';
@@ -297,13 +307,19 @@ function placeValue(){
       (challenge?'<button class="gd-btn" id="pv-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>';
   }
   function setupControlsHtml(){
-    const rangeOptions=PLACE_RANGES.map(r=>'<option value="'+r.id+'"'+(r.id===placeRange?' selected':'')+'>'+r.label+'</option>').join('');
+    const presetOptions='<option value="custom"'+(placeRange==='custom'?' selected':'')+'>Custom range</option>'+PLACE_RANGES.map(r=>'<option value="'+r.id+'"'+(r.id===placeRange?' selected':'')+'>'+r.label+'</option>').join('');
+    const highestOptions=PLACE_CATALOG.slice(0,-1).map((p,i)=>'<option value="'+i+'"'+(i===rangeStart?' selected':'')+'>'+p.label+' · '+p.name+'</option>').join('');
+    const lowestOptions=PLACE_CATALOG.map((p,i)=>'<option value="'+i+'"'+(i===rangeEnd?' selected':'')+(i<=rangeStart?' disabled':'')+'>'+p.label+' · '+p.name+'</option>').join('');
     const decimalAvailable=fractionDigits()>0;
-    return field('Visible place range','<select class="gd-select" id="pv-range">'+rangeOptions+'</select>','Keep seven useful columns visible at once. Changing range preserves the current value where possible.')+
-      field('Quick setup number','<div class="gd-row"><input class="gd-input" id="pv-value" type="number" min="0" max="'+rangeMax()+'" step="'+valueStep()+'" value="'+total()+'"><button class="gd-btn" id="pv-build" type="button">Build</button></div>','Use this to prepare a board quickly; after that, work directly with the counters.')+
-      '<div class="gd-row">'+btn('Random whole number','pv-random')+(decimalAvailable?btn('Random decimal','pv-dec'):'')+'</div>'+
-      btn('Regroup counters','pv-regroup')+btn('Clear board','pv-clear')+
-      '<p class="gd-help">Tap + at the top of a column to add one counter. Drag counters between columns to change their place value. Select a counter to split it into ten of the next smaller place; when a column contains ten counters you can exchange ten for one of the next larger place.</p>';
+    return field('Quick range','<select class="gd-select" id="pv-range">'+presetOptions+'</select>')+
+      '<div class="gd-row gd-pv-range-pair">'+
+        field('Highest','<select class="gd-select" id="pv-range-high">'+highestOptions+'</select>')+
+        field('Lowest','<select class="gd-select" id="pv-range-low">'+lowestOptions+'</select>')+
+      '</div>'+
+      field('Quick setup number','<div class="gd-row"><input class="gd-input" id="pv-value" type="number" min="0" max="'+rangeMax()+'" step="'+valueStep()+'" value="'+total()+'"><button class="gd-btn" id="pv-build" type="button">Build</button></div>')+
+      '<div class="gd-row">'+btn('Random whole','pv-random')+(decimalAvailable?btn('Random decimal','pv-dec'):'')+'</div>'+
+      '<div class="gd-row">'+btn('Regroup counters','pv-regroup')+btn('Clear board','pv-clear')+'</div>'+
+      '<p class="gd-help">Choose exactly the places you need — for example 1,000 to 1 for whole-number work. Up to seven adjacent places are shown at once.</p>';
   }
   function exportControlsHtml(){
     const canCard=!!challenge;
@@ -339,7 +355,7 @@ function placeValue(){
     const omitSummary=pupil&&challenge?.type==='build-number';
     const summaryH=omitSummary?0:94,height=boardY+boardH+summaryH+42;
     const svg=pvSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Place value board','data-pv-export':'board'});
-    svg.appendChild(pvSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
+    svg.appendChild(pvSvgEl('rect',{x:0,y:0,width,height,fill:'none'}));
     svg.appendChild(pvSvgEl('rect',{x:boardX,y:boardY,width:boardW,height:boardH,rx:16,fill:'#ffffff',stroke:'#aebfc2','stroke-width':2,'data-pv-export-board':'1'}));
 
     places.forEach((place,index)=>{
@@ -374,29 +390,50 @@ function placeValue(){
     return svg;
   }
   function exportTargetSvg(){
-    if(exportMode!=='challenge'||!challenge||!X?.composeChallengeCardSvg)return boardExportSvg({pupil:false});
-    const prompt=CK?CK.plainText(challenge.promptHtml||challenge.prompt||''):challenge.prompt||'';
-    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
-    return X.composeChallengeCardSvg(boardExportSvg({pupil:true}),{
-      title:challenge.title||meta?.title||'Place Value challenge',
-      prompt,
-      responseLabel:challenge.category==='reason'?'Explain your thinking':'Answer',
-      responseLines,
-      brand:'99 Club Studio'
-    });
+    if(exportMode==='challenge'&&challenge&&X?.composeWorksheetCardSvg){
+      const prompt=CK?CK.plainText(challenge.promptHtml||challenge.prompt||''):challenge.prompt||'';
+      const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
+      return X.composeWorksheetCardSvg(boardExportSvg({pupil:true}),{
+        title:challenge.title||meta?.title||'Place Value challenge',
+        prompt,
+        responseLabel:challenge.category==='reason'?'Explain your thinking':'Answer',
+        responseLines:Math.min(2,responseLines),
+        brand:'99 Club Studio'
+      });
+    }
+    if(activityActive&&X?.composeWorksheetCardSvg){
+      let title='Place Value example',prompt='',lines=0;
+      if(activityMode==='powers'){
+        title='Powers of ten';
+        prompt=powerMessage||'Use the place-value chart to explain what happens when the number is multiplied or divided by a power of ten.';
+        lines=1;
+      }else if(activityMode==='exact'){
+        title='Exact-counter challenge';
+        prompt='Make '+format(activityTarget)+' using exactly '+activityBudget+' counters.';
+        lines=1;
+      }else{
+        title='Build the target';
+        prompt='Build '+format(activityTarget)+' using the place-value chart.';
+        lines=1;
+      }
+      return X.composeWorksheetCardSvg(boardExportSvg({pupil:false}),{title,prompt,responseLabel:'Working / answer',responseLines:lines,brand:'99 Club Studio'});
+    }
+    return boardExportSvg({pupil:false});
   }
   function exportName(){
     const meta=challenge&&CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
-    return exportMode==='challenge'&&challenge?(challenge.title||meta?.title||'place-value-challenge'):'place-value-board-'+String(total()).replace(/[^0-9.-]+/g,'-');
+    if(exportMode==='challenge'&&challenge)return challenge.title||meta?.title||'place-value-challenge';
+    if(activityActive)return 'place-value-'+activityMode;
+    return 'place-value-board-'+String(total()).replace(/[^0-9.-]+/g,'-');
   }
   function exportMessage(text){exportStatus=text;const el=q('#pv-export-status');if(el)el.textContent=text}
   async function exportAction(kind){
     try{
       if(!X)throw new Error('Export tools are not available.');
-      const target=exportTargetSvg(),isCard=exportMode==='challenge'&&!!challenge,name=exportName();
-      if(kind==='copy'){await X.copyPng(target);exportMessage(isCard?'Challenge copied — paste it into your worksheet, slide or document.':'Board image copied — paste it into your slide or document.')}
-      if(kind==='png'){await X.downloadPng(target,name,2);exportMessage(isCard?'Challenge PNG downloaded.':'Board PNG downloaded.')}
-      if(kind==='svg'){X.downloadSvg(target,name);exportMessage(isCard?'Challenge SVG downloaded.':'Board SVG downloaded.')}
+      const target=exportTargetSvg(),isCard=(exportMode==='challenge'&&!!challenge)||activityActive,name=exportName(),transparent=!isCard;
+      if(kind==='copy'){await X.copyPng(target,{transparent});exportMessage(isCard?'Worksheet-ready item copied.':'Board image copied with a transparent outer background.')}
+      if(kind==='png'){await X.downloadPng(target,name,2,{transparent});exportMessage(isCard?'Worksheet-ready PNG downloaded.':'Transparent PNG downloaded.')}
+      if(kind==='svg'){X.downloadSvg(target,name);exportMessage(isCard?'Worksheet-ready SVG downloaded.':'SVG downloaded.')}
       if(kind==='print'){X.printSvg(target,{title:'',landscape:true});exportMessage('Print view opened. Choose “Save as PDF” in the print dialog.')}
     }catch(err){exportMessage(err?.message||'That export did not work.')}
   }
@@ -481,7 +518,7 @@ function placeValue(){
     const activity=activityBannerHtml();
     q('#gd-stage').innerHTML=banner+activity+'<div class="gd-vis gd-pv-workspace">'+
       '<div class="gd-pv-board-wrap">'+
-        '<div class="gd-pv-canvas" id="pv-canvas" data-gd-canvas-bg style="min-height:'+height+'px">'+
+        '<div class="gd-pv-canvas" id="pv-canvas" data-gd-canvas-bg style="min-height:'+height+'px;--pv-cols:'+places.length+'">'+
           '<div class="gd-pv-columns">'+places.map((p,i)=>columnMarkup(p,i,cs)).join('')+'</div>'+
           tokens.map(t=>tokenMarkup(t,selectedId)).join('')+
         '</div>'+
@@ -582,12 +619,14 @@ function placeValue(){
     updateLiveSummary();
   }
   function syncControls(){
-    const input=q('#pv-value'),regroup=q('#pv-regroup'),range=q('#pv-range');
+    const input=q('#pv-value'),regroup=q('#pv-regroup'),range=q('#pv-range'),high=q('#pv-range-high'),low=q('#pv-range-low');
     if(input){
       input.max=String(rangeMax());input.step=String(valueStep());
       if(document.activeElement!==input)input.value=String(total());
     }
-    if(range&&document.activeElement!==range)range.value=placeRange;
+    if(range&&document.activeElement!==range)range.value=PLACE_RANGES.some(r=>r.id===placeRange)?placeRange:'custom';
+    if(high&&document.activeElement!==high)high.value=String(rangeStart);
+    if(low&&document.activeElement!==low)low.value=String(rangeEnd);
     if(regroup)regroup.disabled=!nonStandard()||total()>rangeMax();
   }
   function bindControls(){
@@ -597,6 +636,7 @@ function placeValue(){
         if(challenge){restoreBeforeChallenge();challenge=null}
         controlTab='activity';startActivity(activityMode);return;
       }
+      if(nextTab==='setup'||nextTab==='challenge')activityActive=false;
       controlTab=nextTab==='challenge'?'challenge':nextTab==='export'?'export':'setup';
       renderControls();controller?.refresh();
     });
@@ -608,14 +648,30 @@ function placeValue(){
       startActivity('exact');
     };
     const activityNew=q('#pv-activity-new');if(activityNew)activityNew.onclick=()=>startActivity(activityMode);
-    const range=q('#pv-range');if(range)range.onchange=()=>{
-      const previous=total(),requested=range.value;
+    const applyRangeChange=(start,end,id='custom')=>{
+      const previous=total();
       controller.mutate(()=>{
-        setPlaceRange(requested);
+        if(id!=='custom')setPlaceRange(id);else setCustomPlaceRange(start,end);
         const rebuilt=buildFromNumber(previous);
-        notice=rebuilt===previous?'Visible place range changed without changing the represented number.':'Visible place range changed; the previous value was outside this range and has been adjusted.';
+        notice=Math.abs(rebuilt-previous)<(valueStep()/2+1e-9)?'Visible place range changed without changing the represented number.':'Visible place range changed; the previous value was outside this range and has been adjusted.';
       });
       controller.select(null);renderControls();
+    };
+    const range=q('#pv-range');if(range)range.onchange=()=>{
+      if(range.value==='custom'){placeRange='custom';renderControls();return}
+      const preset=rangeFor(range.value);applyRangeChange(preset.start,preset.end??preset.start+6,preset.id);
+    };
+    const rangeHigh=q('#pv-range-high');if(rangeHigh)rangeHigh.onchange=()=>{
+      let start=clamp(Math.round(num(rangeHigh.value,rangeStart)),0,PLACE_CATALOG.length-2),end=rangeEnd;
+      if(end<=start)end=start+1;
+      if(end-start>6)end=start+6;
+      applyRangeChange(start,end,'custom');
+    };
+    const rangeLow=q('#pv-range-low');if(rangeLow)rangeLow.onchange=()=>{
+      let end=clamp(Math.round(num(rangeLow.value,rangeEnd)),1,PLACE_CATALOG.length-1),start=rangeStart;
+      if(end<=start)start=Math.max(0,end-1);
+      if(end-start>6)start=end-6;
+      applyRangeChange(start,end,'custom');
     };
     const build=q('#pv-build');if(build)build.onclick=()=>{
       const raw=q('#pv-value').value;

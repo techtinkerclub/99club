@@ -13,7 +13,7 @@ let nextId=1,selectedId=null,snapOn=true,zCounter=10,drag=null,resize=null,pan=n
 
 const defaults={
   'number-line':[760,360],
-  'place-value':[650,500],
+  'place-value':[820,520],
   'fraction-wall':[720,660],
   'bar-model':[760,440],
   'hundred-square':[590,620],
@@ -113,7 +113,8 @@ function iconSvg(name){
     trash:'<path d="M5 7h14M9 7V4h6v3M8 10l1 9h6l1-9"/>',
     undo:'<path d="M9 7 4 12l5 5"/><path d="M5 12h8a6 6 0 0 1 6 6"/>',
     redo:'<path d="m15 7 5 5-5 5"/><path d="M19 12h-8a6 6 0 0 0-6 6"/>',
-    more:'<circle cx="6" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="18" cy="12" r="1.4"/>'
+    more:'<circle cx="6" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="18" cy="12" r="1.4"/>',
+    export:'<path d="M12 4v10M8 8l4-4 4 4"/><path d="M5 13v6h14v-6"/>'
   };
   return '<svg viewBox="0 0 24 24" aria-hidden="true">'+(paths[name]||'')+'</svg>';
 }
@@ -368,7 +369,7 @@ function deselect(){
     if(current){sendSettings(current,false);closeContext(current)}
   }
   selectedId=null;
-  canvas.querySelectorAll('.gd-board-object').forEach(el=>{el.classList.remove('is-selected','has-context-menu','has-settings');el.setAttribute('aria-selected','false')});
+  canvas.querySelectorAll('.gd-board-object').forEach(el=>{el.classList.remove('is-selected','has-context-menu','has-settings','has-export-menu');el.setAttribute('aria-selected','false')});
 }
 function positionObject(obj){
   const frame=frameFor(obj.id);if(!frame)return;
@@ -392,7 +393,14 @@ function objectMarkup(obj,tool){
     '<button type="button" class="gd-board-object-cover" data-board-select="'+obj.id+'" aria-label="Select '+esc(tool.title)+'"></button>'+
     '<button type="button" class="gd-board-move-handle" data-board-move="'+obj.id+'" aria-label="Move '+esc(tool.title)+'" title="Move"><span></span><span></span><span></span></button>'+
     '<button type="button" class="gd-board-context-trigger" data-board-context="'+obj.id+'" aria-label="Object menu" title="Object menu">'+iconSvg('more')+'</button>'+
+    '<button type="button" class="gd-board-export-direct" data-board-export="'+obj.id+'" aria-label="Export '+esc(tool.title)+'" title="Export for worksheet or print">'+iconSvg('export')+'</button>'+
     '<button type="button" class="gd-board-delete-direct" data-board-delete="'+obj.id+'" aria-label="Delete '+esc(tool.title)+'" title="Delete">'+iconSvg('trash')+'</button>'+
+    '<div class="gd-board-export-menu" data-board-export-menu role="menu" aria-label="Export '+esc(tool.title)+'">'+
+      '<button type="button" data-board-export-kind="copy" role="menuitem">Copy</button>'+
+      '<button type="button" data-board-export-kind="png" role="menuitem">PNG</button>'+
+      '<button type="button" data-board-export-kind="svg" role="menuitem">SVG</button>'+
+      '<button type="button" data-board-export-kind="print" role="menuitem">Print</button>'+
+    '</div>'+
     '<div class="gd-board-quick-actions is-empty" data-board-quick-actions aria-label="'+esc(tool.title)+' quick actions"></div>'+
     '<div class="gd-board-context-menu" role="menu" aria-label="'+esc(tool.title)+' controls">'+
       '<button type="button" data-board-history="undo" role="menuitem" aria-label="Undo" title="Undo" hidden>'+iconSvg('undo')+'</button>'+
@@ -451,6 +459,48 @@ function toggleContext(id){
   obj.menuOpen=!obj.menuOpen;
   frameFor(id)?.classList.toggle('has-context-menu',obj.menuOpen);
 }
+function workflowExportButton(doc){
+  const buttons=[...doc.querySelectorAll('#gd-controls button')];
+  return buttons.find(button=>[...button.attributes].some(attr=>/-workflow$/.test(attr.name)&&attr.value==='export'))||
+    buttons.find(button=>/^export(?:\s|\/|$)/i.test(button.textContent.trim()));
+}
+function currentWorkflowButton(doc){
+  const buttons=[...doc.querySelectorAll('#gd-controls [role="tablist"][aria-label$="workflow"] button')];
+  return buttons.find(button=>button.classList.contains('gd-btn--primary'))||null;
+}
+function exportActionButton(doc,kind){
+  const buttons=[...doc.querySelectorAll('#gd-controls button')].filter(button=>!button.disabled);
+  const match={
+    copy:/^copy\b/i,
+    png:/^png$/i,
+    svg:/^svg$/i,
+    print:/^print/i
+  }[kind];
+  return buttons.find(button=>match?.test(button.textContent.trim()))||null;
+}
+function runPaperExport(obj,kind){
+  const doc=innerDocument(obj);if(!doc){boardHint('This manipulative is still loading.');return false}
+  const previous=currentWorkflowButton(doc),exportTab=workflowExportButton(doc);
+  if(exportTab&&exportTab!==previous)exportTab.click();
+  const action=exportActionButton(doc,kind);
+  if(!action){
+    if(previous&&exportTab&&previous!==exportTab)previous.click();
+    boardHint('Paper export is not available for this manipulative yet.');
+    return false;
+  }
+  action.click();
+  if(previous&&exportTab&&previous!==exportTab)setTimeout(()=>previous.click(),0);
+  return true;
+}
+function toggleExportMenu(id){
+  const obj=objectById(id);if(!obj)return;
+  selectObject(id);
+  const frame=frameFor(id),open=!frame?.classList.contains('has-export-menu');
+  canvas.querySelectorAll('.gd-board-object.has-export-menu').forEach(el=>el.classList.remove('has-export-menu'));
+  frame?.classList.toggle('has-export-menu',open);
+  frame?.classList.remove('has-context-menu');
+  obj.menuOpen=false;
+}
 function toggleSettings(id){
   const obj=objectById(id);if(!obj)return;
   selectObject(id);
@@ -465,6 +515,15 @@ function bindObject(obj){
   if(context)context.onclick=e=>{e.stopPropagation();toggleContext(obj.id)};
   const settings=frame.querySelector('[data-board-settings]');
   if(settings)settings.onclick=e=>{e.stopPropagation();toggleSettings(obj.id)};
+  const exportButton=frame.querySelector('[data-board-export]');
+  if(exportButton)exportButton.onclick=e=>{e.stopPropagation();toggleExportMenu(obj.id)};
+  const exportMenu=frame.querySelector('[data-board-export-menu]');
+  if(exportMenu)exportMenu.onclick=e=>{
+    const button=e.target.closest('[data-board-export-kind]');if(!button)return;
+    e.preventDefault();e.stopPropagation();
+    runPaperExport(obj,button.dataset.boardExportKind);
+    frame.classList.remove('has-export-menu');
+  };
   const lock=frame.querySelector('[data-board-lock]');
   if(lock)lock.onclick=e=>{e.stopPropagation();toggleLock(obj.id)};
   frame.querySelectorAll('[data-board-history]').forEach(button=>button.onclick=e=>{
