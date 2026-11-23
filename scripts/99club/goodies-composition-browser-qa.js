@@ -214,15 +214,33 @@ async function run(){
   nlSettings.click();
   TT99Goodies.compositionBoard.remove(nlRecord.id);
 
+  const firstClockRecord=TT99Goodies.compositionBoard.objects().find(x=>x.toolId==='clock');
+  const firstClockFrame=firstClockRecord&&document.querySelector('[data-board-object="'+firstClockRecord.id+'"]');
+  for(let attempt=0;attempt<40&&firstClockFrame&&!firstClockFrame.classList.contains('is-ready');attempt++)await tick(50);
+  assert(firstClockFrame&&firstClockFrame.classList.contains('is-ready'),'First Clock reaches embedded ready state');
+  TT99Goodies.compositionBoard.select(firstClockRecord.id);await tick();
+  const firstClockDoc=firstClockFrame.querySelector('iframe').contentDocument;
+  assert(firstClockDoc.querySelector('[data-cl-select-stage="0"]').textContent.includes('Clock A'),'First board clock starts as Clock A');
+  const firstClockQuick=[...firstClockFrame.querySelectorAll('[data-board-quick-actions] button')];
+  const addClockInsideFirst=firstClockQuick.find(button=>button.textContent.trim()==='+ Clock');
+  assert(addClockInsideFirst,'Clock exposes Add Clock directly on its whiteboard frame');
+  addClockInsideFirst.click();await tick();
+  assert(firstClockDoc.querySelectorAll('.gd-clock-card').length===2,'Frame Add Clock creates a comparison clock in the same widget');
+  assert(firstClockDoc.querySelector('[data-cl-select-stage="1"]').textContent.includes('Clock B'),'Internal Add Clock allocates Clock B');
+
   document.querySelector('[data-board-add="clock"]').click();await tick();
-  const extraClockRecord=TT99Goodies.compositionBoard.objects().find(x=>x.toolId==='clock'&&String(x.id)!==String(objects[0]?.dataset?.boardObject));
+  const extraClockRecord=TT99Goodies.compositionBoard.objects().find(x=>x.toolId==='clock'&&String(x.id)!==String(firstClockRecord.id));
   const extraClockFrame=extraClockRecord&&document.querySelector('[data-board-object="'+extraClockRecord.id+'"]');
   for(let attempt=0;attempt<40&&extraClockFrame&&!extraClockFrame.classList.contains('is-ready');attempt++)await tick(50);
+  assert(extraClockFrame&&extraClockFrame.classList.contains('is-ready'),'Palette-added Clock reaches embedded ready state');
+  const extraClockDoc=extraClockFrame.querySelector('iframe').contentDocument;
+  assert(extraClockDoc.querySelector('[data-cl-select-stage="0"]').textContent.includes('Clock C'),'Separate palette Clock uses the next board-wide label, Clock C');
   const clockQuick=[...extraClockFrame.querySelectorAll('[data-board-quick-actions] button')];
   const addClock=clockQuick.find(button=>button.textContent.trim()==='+ Clock');
-  assert(addClock,'Clock exposes Add Clock directly on its whiteboard frame');
+  assert(addClock,'Separate Clock keeps Add Clock available inside its own widget');
   addClock.click();await tick();
-  assert(extraClockFrame.querySelector('iframe').contentDocument.querySelectorAll('.gd-clock-card').length===2,'Frame Add Clock creates a comparison clock');
+  assert(extraClockDoc.querySelectorAll('.gd-clock-card').length===2,'Separate widget can still add a comparison clock internally');
+  assert(extraClockDoc.querySelector('[data-cl-select-stage="1"]').textContent.includes('Clock D'),'Internal Add Clock continues the board-wide sequence with Clock D');
   TT99Goodies.compositionBoard.remove(extraClockRecord.id);
 
   document.querySelector('[data-board-add="randomiser"]').click();await tick();
