@@ -12,11 +12,16 @@ robots: "noindex,nofollow,noarchive"
   <article class="splash">
     <section class="page__content">
       <div id="tt99-goodies-root"><noscript>This maths whiteboard needs JavaScript enabled.</noscript></div>
+      {% if site.github.build_revision %}
+      <div class="gd-board-build-badge" title="Deployed Git revision {{ site.github.build_revision }} · built {{ site.time | date: "%Y-%m-%d %H:%M UTC" }}">Build {{ site.github.build_revision | slice: 0, 7 }} · {{ site.time | date: "%d %b %H:%M" }}</div>
+      {% else %}
+      <div class="gd-board-build-badge" title="Page built {{ site.time | date: "%Y-%m-%d %H:%M UTC" }}">Build {{ site.time | date: "%Y%m%d-%H%M" }}</div>
+      {% endif %}
     </section>
   </article>
 </div>
 
-<link rel="stylesheet" href="/assets/99club/goodies.css?v=65">
+<link rel="stylesheet" href="/assets/99club/goodies.css?v=66">
 <link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v3.css?v=1">
 <link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v4.css?v=1">
 <link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v5.css?v=1">
