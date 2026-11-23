@@ -371,7 +371,7 @@ function placeValue(){
     const defs=pvSvgEl('defs'),clip=pvSvgEl('clipPath',{id:'pv-board-clip'});
     clip.appendChild(pvSvgEl('rect',{x:boardX,y:boardY,width:boardW,height:boardH,rx:8,ry:8}));
     defs.appendChild(clip);svg.appendChild(defs);
-    svg.appendChild(pvSvgEl('rect',{x:boardX,y:boardY,width:boardW,height:boardH,rx:8,fill:'#ffffff',stroke:'#8fa5aa','stroke-width':2.2,'data-pv-export-board':'1'}));
+    svg.appendChild(pvSvgEl('rect',{x:boardX,y:boardY,width:boardW,height:boardH,rx:8,ry:8,fill:'#ffffff','data-pv-export-board':'1'}));
     places.forEach((place,index)=>{
       const x=boardX+index*colW,isDecimal=place.value<1&&(index===0||places[index-1].value>=1);
       svg.appendChild(pvSvgEl('rect',{x,y:boardY,width:colW,height:headerH,fill:index%2?'#fafcfc':'#f3f7f7','clip-path':'url(#pv-board-clip)','data-pv-export-header':'1'}));
@@ -388,6 +388,7 @@ function placeValue(){
         svg.appendChild(pvSvgEl('circle',{cx,cy,r:Math.max(5,radius*.34),fill:'#ffffff','fill-opacity':.62}));
       }
     });
+    svg.appendChild(pvSvgEl('rect',{x:boardX,y:boardY,width:boardW,height:boardH,rx:8,ry:8,fill:'none',stroke:'#8fa5aa','stroke-width':2.2,'data-pv-export-outline':'1'}));
     return svg;
   }
   function worksheetBoardSvg({pupil=false}={}){
