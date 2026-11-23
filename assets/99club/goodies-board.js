@@ -38,6 +38,10 @@ const QUICK_ACTIONS={
     {label:'+ Relation',selector:'[data-board-action="relation"]',title:'Add relationship',notice:'Tap the first marker, then the second marker.'},
     {label:'+ Line',selector:'[data-board-action="add-line"]',title:'Add aligned comparison line'}
   ],
+  'place-value':[
+    {label:'Exchange 10→1',selector:'[data-gd-action="exchange-up"]',allowHidden:true,title:'Exchange ten selected-place counters for one of the next larger place'},
+    {label:'Split 1→10',selector:'[data-gd-action="split-down"]',allowHidden:true,title:'Split the selected counter into ten of the next smaller place'}
+  ],
   'bar-model':[
     {label:'+ Part',selector:'#bm-add-stage'},
     {label:'−',selector:'#bm-minus',title:'Decrease selected part'},
