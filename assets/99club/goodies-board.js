@@ -9,6 +9,7 @@ const root=G.root;
 const tools=Array.isArray(G.toolCatalogue)?G.toolCatalogue:[];
 const SNAP=10;
 const BOARD_W=2800,BOARD_H=1800;
+const AUTO_SHRINK_HEIGHT_TOOLS=new Set(['place-value']);
 let nextId=1,selectedId=null,snapOn=true,zCounter=10,drag=null,resize=null,pan=null;
 
 const defaults={
@@ -299,14 +300,30 @@ function floatingOriginal(index){
   if(!source)return{obj:null,node:null};
   return{obj,node:[...source.querySelectorAll(CONTROL_SELECTOR)][Number(index)]||null};
 }
+function measuredStageContentHeight(stage){
+  const rect=stage.getBoundingClientRect(),style=getComputedStyle(stage);
+  const padBottom=parseFloat(style.paddingBottom)||0;
+  let bottom=0;
+  [...stage.children].forEach(child=>{
+    const childStyle=getComputedStyle(child);
+    if(childStyle.display==='none'||childStyle.visibility==='hidden')return;
+    const childRect=child.getBoundingClientRect();
+    if(childRect.width<=0&&childRect.height<=0)return;
+    bottom=Math.max(bottom,childRect.bottom-rect.top);
+  });
+  return Math.ceil(bottom+padBottom);
+}
 function fitEmbeddedObject(obj,initial=false){
   const frame=frameFor(obj?.id),doc=innerDocument(obj);if(!frame||!doc)return;
   const stage=doc.getElementById('gd-stage');if(!stage)return;
   const neededW=Math.ceil(Math.max(stage.clientWidth,stage.scrollWidth));
-  const neededH=Math.ceil(Math.max(stage.clientHeight,stage.scrollHeight));
+  const naturalH=AUTO_SHRINK_HEIGHT_TOOLS.has(obj.toolId)?measuredStageContentHeight(stage):Math.max(stage.clientHeight,stage.scrollHeight);
+  const neededH=Math.ceil(Math.max(180,naturalH));
   const nextBaseW=clamp(Math.max(obj.baseW,neededW),220,1200);
-  const nextBaseH=clamp(Math.max(obj.baseH,neededH),180,1400);
-  if(nextBaseW<=obj.baseW+2&&nextBaseH<=obj.baseH+2)return;
+  const nextBaseH=clamp(AUTO_SHRINK_HEIGHT_TOOLS.has(obj.toolId)?neededH:Math.max(obj.baseH,neededH),180,1400);
+  const widthChanged=nextBaseW>obj.baseW+2;
+  const heightChanged=AUTO_SHRINK_HEIGHT_TOOLS.has(obj.toolId)?Math.abs(nextBaseH-obj.baseH)>2:nextBaseH>obj.baseH+2;
+  if(!widthChanged&&!heightChanged)return;
   obj.baseW=nextBaseW;obj.baseH=nextBaseH;
   if(initial){
     const narrow=viewport.clientWidth<620;
