@@ -44,7 +44,7 @@ function placeValue(){
   ];
   let tokens=[],next=1,controller=null,resizeObserver=null,resizeFrame=0,lastStageWidth=0,notice='';
   let controlTab='setup',challengeTab='standard',challengeCategory='read',challengeType='read-number',challenge=null,beforeChallenge=null;
-  let activityMode='powers',activityTarget=null,activityBudget=5,activityStatus='',powerMessage='',activityActive=false;
+  let activityMode='powers',activityTarget=null,activityBudget=5,activityStatus='',powerMessage='',activityActive=false,activityContext='teach';
   let activityInput='',activityAnswer=null,activityHiddenIndex=-1,activityDigit=0,activityStartCounts=[],activityPrompt='';
   let exportMode='diagram',responseLines=1,exportStatus='';
 
@@ -153,6 +153,7 @@ function placeValue(){
     renderControls();controller?.refresh();
   }
   function enterCustomChallenge(){
+    activityActive=false;activityContext='challenge';
     if(CK){
       challenge=CK.makeCustom(challenge||{
         type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''
@@ -276,9 +277,9 @@ function placeValue(){
     if(activityMode==='digit')return{title:'Digit value',prompt:'What is the value of the digit '+activityDigit+' in the '+(places[activityHiddenIndex]?.name||'selected')+' column?'};
     return{title:'Place value',prompt:''};
   }
-  function startActivity(mode=activityMode){
+  function startActivity(mode=activityMode,context=activityContext){
     const modes=['powers','build','exact','regroup','same','read','hidden','digit'];
-    activityMode=modes.includes(mode)?mode:'powers';activityActive=true;activityStatus='';powerMessage='';activityInput='';activityAnswer=null;activityHiddenIndex=-1;activityDigit=0;activityStartCounts=[];activityPrompt='';
+    activityMode=modes.includes(mode)?mode:'powers';activityContext=context==='challenge'?'challenge':'teach';activityActive=true;activityStatus='';powerMessage='';activityInput='';activityAnswer=null;activityHiddenIndex=-1;activityDigit=0;activityStartCounts=[];activityPrompt='';
     if(activityMode==='powers'){
       const value=total();controller?.mutate(()=>{buildFromNumber(value);notice=''});controller?.select(null);
     }else if(activityMode==='exact'){
@@ -315,13 +316,17 @@ function placeValue(){
     activityPrompt=activityDescriptor().prompt;
     controller?.refresh();renderControls();
   }
-  function startRandomActivityChallenge(){
-    if(challenge){restoreBeforeChallenge();challenge=null}
+  function randomActivityChallengeMode(){
     const modes=['build','exact','regroup','same','read','hidden','digit'];
-    const mode=modes[Math.floor(Math.random()*modes.length)];
+    return modes[Math.floor(Math.random()*modes.length)];
+  }
+  function startRandomActivityChallenge(surface='activity'){
+    if(challenge){restoreBeforeChallenge();challenge=null}
+    const mode=randomActivityChallengeMode();
     if(mode==='exact')activityBudget=3+Math.floor(Math.random()*7);
-    controlTab='activity';
-    startActivity(mode);
+    activityContext='challenge';
+    controlTab=surface==='challenge'?'challenge':'activity';
+    startActivity(mode,'challenge');
   }
   function checkActivity(){
     if(activityMode==='powers')return;
@@ -361,7 +366,7 @@ function placeValue(){
     return '<div class="gd-row pv-activity-tabs" role="tablist" aria-label="Place Value teaching and games">'+modeButtons+'</div>'+extras;
   }
   function activityBannerHtml(){
-    if(controlTab!=='activity')return '';
+    if(!activityActive)return '';
     if(activityMode==='powers'){
       const ds=standardDigits();
       const cells=places.map((place,index)=>{
@@ -378,8 +383,9 @@ function placeValue(){
     }
     const descriptor=activityDescriptor();
     const answer=activityAnswerMode()?'<div class="gd-pv-activity-response"><label>Answer <input type="text" inputmode="decimal" autocomplete="off" data-pv-activity-answer value="'+esc(activityInput)+'"></label></div>':'';
+    const activityLabel=activityContext==='challenge'?'CHALLENGE':'PLAY';
     return '<section class="gd-pv-activity gd-pv-activity--game" data-pv-activity-kind="'+activityMode+'" aria-label="'+esc(descriptor.title)+'">'+
-      '<div class="gd-pv-activity-head"><div><span>PLAY · '+esc(descriptor.title.toUpperCase())+'</span><strong>'+esc(descriptor.prompt)+'</strong></div><em>'+esc(activityStatus||'')+'</em></div>'+
+      '<div class="gd-pv-activity-head"><div><span>'+activityLabel+' · '+esc(descriptor.title.toUpperCase())+'</span><strong>'+esc(descriptor.prompt)+'</strong></div><em>'+esc(activityStatus||'')+'</em></div>'+
       answer+'<div class="gd-pv-activity-actions"><button type="button" data-pv-activity-check>Check</button><button type="button" data-pv-activity-another>Another</button></div></section>';
   }
 
@@ -393,12 +399,19 @@ function placeValue(){
         (challenge?'<button class="gd-btn" id="pv-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
         '<p class="gd-help">Custom challenges sit on top of the current board. Choose a live board value as the answer when you want it to stay linked while counters move.</p>';
     }
-    const picker=CK.pickerHtml(CHALLENGE_TEMPLATES,CHALLENGE_CATEGORIES,challengeCategory,challengeType,'pv');
-    const repeat=!!(challenge&&challenge.mode==='standard'&&challenge.type===challengeType);
-    return tabs+picker+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="pv-generate" type="button">'+(repeat?'Another like this':'Generate challenge')+'</button>'+
-      (challenge&&challenge.mode!=='custom'?'<button class="gd-btn" id="pv-edit-challenge" type="button">Edit challenge</button>':'')+
-      (challenge&&challenge.answer?'<button class="gd-btn" id="pv-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
-      (challenge?'<button class="gd-btn" id="pv-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>';
+    const tasks=[
+      ['build','Build target'],
+      ['exact','Exact counters'],
+      ['regroup','Regroup'],
+      ['same','Same value'],
+      ['read','Read number'],
+      ['hidden','Hidden place'],
+      ['digit','Digit value']
+    ].map(([id,label])=>'<button class="gd-btn'+(activityActive&&activityContext==='challenge'&&activityMode===id?' gd-btn--primary':'')+'" type="button" data-pv-challenge-mode="'+id+'">'+label+'</button>').join('');
+    return tabs+
+      '<div class="pv-challenge-task-grid" role="group" aria-label="Place Value challenge types">'+tasks+'</div>'+
+      '<div class="gd-row"><button class="gd-btn gd-btn--primary" id="pv-challenge-random" type="button">Random challenge</button></div>'+
+      '<p class="gd-help">Choose a challenge type, or let 99 Club choose one at random. Check and Another appear directly on the board.</p>';
   }
   function setupControlsHtml(){
     const presetOptions='<option value="custom"'+(placeRange==='custom'?' selected':'')+'>Custom range</option>'+PLACE_RANGES.map(r=>'<option value="'+r.id+'"'+(r.id===placeRange?' selected':'')+'>'+r.label+'</option>').join('');
@@ -726,7 +739,7 @@ function placeValue(){
     const activityCheck=q('[data-pv-activity-check]',q('#gd-stage'));
     if(activityCheck)activityCheck.onclick=e=>{e.stopPropagation();checkActivity()};
     const activityAnother=q('[data-pv-activity-another]',q('#gd-stage'));
-    if(activityAnother)activityAnother.onclick=e=>{e.stopPropagation();startActivity(activityMode)};
+    if(activityAnother)activityAnother.onclick=e=>{e.stopPropagation();startActivity(activityMode,activityContext)};
     updateLiveSummary();
   }
   function syncControls(){
@@ -742,25 +755,33 @@ function placeValue(){
   }
   function bindControls(){
     const randomActivityChallenge=q('[data-pv-random-challenge]');
-    if(randomActivityChallenge)randomActivityChallenge.onclick=startRandomActivityChallenge;
+    if(randomActivityChallenge)randomActivityChallenge.onclick=()=>startRandomActivityChallenge('activity');
     qa('[data-pv-workflow]').forEach(button=>button.onclick=()=>{
       const nextTab=button.dataset.pvWorkflow;
       if(nextTab==='activity'){
         if(challenge){restoreBeforeChallenge();challenge=null}
-        controlTab='activity';startActivity(activityMode);return;
+        controlTab='activity';startActivity(activityMode,'teach');return;
       }
-      if(nextTab==='setup'||nextTab==='challenge')activityActive=false;
+      if(nextTab==='setup')activityActive=false;
+      if(nextTab==='challenge'&&activityContext!=='challenge')activityActive=false;
       controlTab=nextTab==='challenge'?'challenge':nextTab==='export'?'export':'setup';
       renderControls();controller?.refresh();
     });
     qa('[data-pv-activity-mode]').forEach(button=>button.onclick=()=>{
-      controlTab='activity';startActivity(button.dataset.pvActivityMode);
+      controlTab='activity';startActivity(button.dataset.pvActivityMode,'teach');
     });
+    qa('[data-pv-challenge-mode]').forEach(button=>button.onclick=()=>{
+      if(challenge){restoreBeforeChallenge();challenge=null}
+      const mode=button.dataset.pvChallengeMode;
+      if(mode==='exact')activityBudget=3+Math.floor(Math.random()*7);
+      controlTab='challenge';startActivity(mode,'challenge');
+    });
+    const randomChallenge=q('#pv-challenge-random');if(randomChallenge)randomChallenge.onclick=()=>startRandomActivityChallenge('challenge');
     const activityBudgetSelect=q('#pv-activity-budget');if(activityBudgetSelect)activityBudgetSelect.onchange=()=>{
       activityBudget=clamp(Math.round(num(activityBudgetSelect.value,5)),3,9);
-      startActivity('exact');
+      startActivity('exact',activityContext);
     };
-    const activityNew=q('#pv-activity-new');if(activityNew)activityNew.onclick=()=>startActivity(activityMode);
+    const activityNew=q('#pv-activity-new');if(activityNew)activityNew.onclick=()=>startActivity(activityMode,activityContext);
     const applyRangeChange=(start,end,id='custom')=>{
       const previous=total();
       controller.mutate(()=>{
