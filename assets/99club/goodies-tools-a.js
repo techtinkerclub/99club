@@ -262,7 +262,7 @@ function placeValue(){
     svg.appendChild(pvSvgEl('rect',{x:boardX,y:boardY,width:boardW,height:boardH,rx:16,fill:'#ffffff',stroke:'#aebfc2','stroke-width':2,'data-pv-export-board':'1'}));
 
     places.forEach((place,index)=>{
-      const x=boardX+index*colW,isDecimal=index===5;
+      const x=boardX+index*colW,isDecimal=place.value<1&&(index===0||places[index-1].value>=1);
       svg.appendChild(pvSvgEl('rect',{x,y:boardY,width:colW,height:headerH,fill:index%2?'#f8fafb':'#f3f7f7'}));
       if(index>0)svg.appendChild(pvSvgEl('line',{x1:x,y1:boardY,x2:x,y2:boardY+boardH,stroke:isDecimal?'#657b82':'#d7e0e2','stroke-width':isDecimal?4:1.5}));
       svg.appendChild(pvSvgEl('text',{x:x+colW/2,y:boardY+28,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':15,'font-weight':800,fill:'#2f474f'},place.label));
@@ -384,7 +384,8 @@ function placeValue(){
   }
   function columnMarkup(place,index,cs){
     const countText=columnCountHidden(index)?'?':cs[index],canRemove=tokens.some(t=>t.place===index&&!t.locked);
-    return '<div class="gd-pv-column'+(index===5?' is-decimal-start':'')+'" data-gd-canvas-bg data-pv-column="'+index+'">'+
+    const decimalStart=place.value<1&&(index===0||places[index-1].value>=1);
+    return '<div class="gd-pv-column'+(decimalStart?' is-decimal-start':'')+'" data-gd-canvas-bg data-pv-column="'+index+'">'+
       '<div class="gd-pv-head"><strong>'+place.label+'</strong><small>'+place.name+'</small><div class="gd-pv-column-actions" role="group" aria-label="'+place.name+' counters">'+
         '<button type="button" data-pv-remove="'+index+'" aria-label="Remove one '+place.name+' counter"'+(canRemove?'':' disabled')+'>−</button>'+
         '<span data-pv-count="'+index+'" aria-label="'+countText+' '+place.name+' counters">'+countText+'</span>'+
@@ -491,9 +492,13 @@ function placeValue(){
     updateLiveSummary();
   }
   function syncControls(){
-    const input=q('#pv-value'),regroup=q('#pv-regroup');
-    if(input&&document.activeElement!==input)input.value=clean(total()).toFixed(total()%1?2:0);
-    if(regroup)regroup.disabled=!nonStandard()||total()>99999.99;
+    const input=q('#pv-value'),regroup=q('#pv-regroup'),range=q('#pv-range');
+    if(input){
+      input.max=String(rangeMax());input.step=String(valueStep());
+      if(document.activeElement!==input)input.value=String(total());
+    }
+    if(range&&document.activeElement!==range)range.value=placeRange;
+    if(regroup)regroup.disabled=!nonStandard()||total()>rangeMax();
   }
   function bindControls(){
     qa('[data-pv-workflow]').forEach(button=>button.onclick=()=>{
@@ -501,26 +506,35 @@ function placeValue(){
       controlTab=nextTab==='challenge'?'challenge':nextTab==='export'?'export':'setup';
       renderControls();
     });
+    const range=q('#pv-range');if(range)range.onchange=()=>{
+      const previous=total(),requested=range.value;
+      controller.mutate(()=>{
+        setPlaceRange(requested);
+        const rebuilt=buildFromNumber(previous);
+        notice=rebuilt===previous?'Visible place range changed without changing the represented number.':'Visible place range changed; the previous value was outside this range and has been adjusted.';
+      });
+      controller.select(null);renderControls();
+    };
     const build=q('#pv-build');if(build)build.onclick=()=>{
       const raw=q('#pv-value').value;
       controller.mutate(()=>{buildFromNumber(raw);notice='Board rebuilt from the entered number.'});
       controller.select(null);
     };
     const random=q('#pv-random');if(random)random.onclick=()=>{
-      const value=Math.floor(Math.random()*99999)+1;
+      const value=randomBoardValue({decimal:false,min:valueStep(),max:rangeMax()});
       q('#pv-value').value=value;
-      controller.mutate(()=>{buildFromNumber(value);notice='Random whole number built.'});
+      controller.mutate(()=>{buildFromNumber(value);notice='Random whole-number value built for this place range.'});
       controller.select(null);
     };
     const decimal=q('#pv-dec');if(decimal)decimal.onclick=()=>{
-      const value=(Math.floor(Math.random()*9999999)/100).toFixed(2);
+      const value=randomBoardValue({decimal:true,min:valueStep(),max:rangeMax()});
       q('#pv-value').value=value;
-      controller.mutate(()=>{buildFromNumber(value);notice='Random decimal built.'});
+      controller.mutate(()=>{buildFromNumber(value);notice='Random decimal built for this place range.'});
       controller.select(null);
     };
     const regroup=q('#pv-regroup');if(regroup)regroup.onclick=()=>{
       const value=total();
-      if(value>99999.99){notice='This value is above the current board range, so it cannot be regrouped here.';controller.refresh();return;}
+      if(value>rangeMax()){notice='This value is above the current visible range, so it cannot be regrouped here.';controller.refresh();return;}
       controller.mutate(()=>{buildFromNumber(value);notice='Regrouped into standard place-value digits without changing the total.'});
       controller.select(null);
     };
@@ -593,7 +607,7 @@ function placeValue(){
     toggleLock:item=>{item.locked=!item.locked;notice=''},
     constrain:(item,x,y,element,canvas)=>({
       x:clamp(x,0,Math.max(0,canvas.clientWidth-(element?.offsetWidth||36))),
-      y:clamp(y,70,Math.max(70,canvas.clientHeight-(element?.offsetHeight||36)))
+      y:clamp(y,boardWidth()<560?82:96,Math.max(boardWidth()<560?82:96,canvas.clientHeight-(element?.offsetHeight||36)))
     }),
     onMove:item=>{
       const newPlace=placeFromX(item.x);
