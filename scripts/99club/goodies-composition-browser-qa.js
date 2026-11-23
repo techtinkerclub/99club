@@ -305,6 +305,25 @@ async function run(){
   exchangePV.click();await tick();
   const pvAfterExchange=Number((pvDoc.getElementById('pv-total').textContent||'').replace(/,/g,''));
   assert(Math.abs(pvAfterExchange-pvBefore)<0.00001,'Whiteboard Exchange 10→1 restores the grouped representation without changing value');
+
+  pvDoc.querySelector('[data-pv-workflow="challenge"]').click();await tick();
+  pvDoc.querySelector('[data-pv-challenge-type="read-number"]').click();await tick();
+  pvDoc.getElementById('pv-generate').click();await tick();
+  pvQuick=[...pvFrame.querySelectorAll('[data-board-quick-actions] button')];
+  const revealPV=pvQuick.find(button=>/Reveal answer/i.test(button.textContent));
+  assert(revealPV,'Active Place Value challenge exposes Reveal answer directly on the whiteboard frame');
+  revealPV.click();await tick();
+  assert(/Answer:/.test(pvDoc.querySelector('.gd-challenge-banner')?.textContent||''),'Whiteboard Reveal answer shows the live challenge answer');
+  pvQuick=[...pvFrame.querySelectorAll('[data-board-quick-actions] button')];
+  assert(pvQuick.some(button=>/Hide answer/i.test(button.textContent)),'Whiteboard challenge action changes to Hide answer after reveal');
+
+  let pvTeacherExport=null;
+  const pvOldTeacherSvg=pvWin.TT99Goodies.exportTools.downloadSvg;
+  pvWin.TT99Goodies.exportTools.downloadSvg=(svg)=>{pvTeacherExport=svg.cloneNode(true)};
+  pvExportButton.click();await tick();
+  pvFrame.querySelector('[data-board-export-menu] [data-board-export-kind="svg"]').click();await tick();
+  assert(pvTeacherExport&&pvTeacherExport.dataset.worksheetAnswer==='teacher','Frame export respects the revealed answer and produces a teacher worksheet card');
+  pvWin.TT99Goodies.exportTools.downloadSvg=pvOldTeacherSvg;
   TT99Goodies.compositionBoard.remove(pvRecord.id);
 
   document.querySelector('[data-board-add="randomiser"]').click();await tick();
