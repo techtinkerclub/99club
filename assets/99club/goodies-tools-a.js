@@ -217,10 +217,13 @@ function placeValue(){
       (challenge?'<button class="gd-btn" id="pv-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>';
   }
   function setupControlsHtml(){
-    return field('Quick setup number','<div class="gd-row"><input class="gd-input" id="pv-value" type="number" min="0" max="99999.99" step="0.01" value="'+clean(total()).toFixed(total()%1?2:0)+'"><button class="gd-btn" id="pv-build" type="button">Build</button></div>','Use this to prepare a board quickly; after that, work directly with the counters.')+
-      '<div class="gd-row">'+btn('Random whole number','pv-random')+btn('Random decimal','pv-dec')+'</div>'+
+    const rangeOptions=PLACE_RANGES.map(r=>'<option value="'+r.id+'"'+(r.id===placeRange?' selected':'')+'>'+r.label+'</option>').join('');
+    const decimalAvailable=fractionDigits()>0;
+    return field('Visible place range','<select class="gd-select" id="pv-range">'+rangeOptions+'</select>','Keep seven useful columns visible at once. Changing range preserves the current value where possible.')+
+      field('Quick setup number','<div class="gd-row"><input class="gd-input" id="pv-value" type="number" min="0" max="'+rangeMax()+'" step="'+valueStep()+'" value="'+total()+'"><button class="gd-btn" id="pv-build" type="button">Build</button></div>','Use this to prepare a board quickly; after that, work directly with the counters.')+
+      '<div class="gd-row">'+btn('Random whole number','pv-random')+(decimalAvailable?btn('Random decimal','pv-dec'):'')+'</div>'+
       btn('Regroup counters','pv-regroup')+btn('Clear board','pv-clear')+
-      '<p class="gd-help">Tap + at the top of a column to add one counter. Drag counters between columns; the represented number updates with their place value. Select a counter for duplicate, lock and delete. Left/right arrow keys move a selected counter one place.</p>';
+      '<p class="gd-help">Tap + at the top of a column to add one counter. Drag counters between columns to change their place value. Select a counter to split it into ten of the next smaller place; when a column contains ten counters you can exchange ten for one of the next larger place.</p>';
   }
   function exportControlsHtml(){
     const canCard=!!challenge;
