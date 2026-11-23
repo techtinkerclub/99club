@@ -505,6 +505,8 @@ function exportActionButton(doc,kind){
 }
 function runPaperExport(obj,kind){
   const doc=innerDocument(obj);if(!doc){boardHint('This manipulative is still loading.');return false}
+  const direct=doc.querySelector('[data-gd-direct-export="'+kind+'"]');
+  if(direct&&!direct.disabled){direct.click();return true}
   const previous=currentWorkflowButton(doc),exportTab=workflowExportButton(doc);
   if(exportTab&&exportTab!==previous)exportTab.click();
   const action=exportActionButton(doc,kind);
