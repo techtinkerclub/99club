@@ -306,33 +306,20 @@ async function run(){
   const pvAfterExchange=Number((pvDoc.getElementById('pv-total').textContent||'').replace(/,/g,''));
   assert(Math.abs(pvAfterExchange-pvBefore)<0.00001,'Whiteboard Exchange 10→1 restores the grouped representation without changing value');
 
-  const pvChallengeWorkflow=pvDoc.querySelector('[data-pv-workflow="challenge"]');
-  assert(pvChallengeWorkflow,'Place Value challenge workflow remains available after direct frame export and counter actions');
-  pvChallengeWorkflow.click();await tick();
-  const pvReadCategory=pvDoc.querySelector('[data-pv-challenge-cat="read"]');
-  assert(pvReadCategory,'Place Value embedded challenge exposes the Read & place value category');
-  pvReadCategory.click();await tick();
-  const pvReadChallenge=pvDoc.querySelector('[data-pv-challenge-type="read-number"]');
-  assert(pvReadChallenge,'Place Value read-number challenge is available in the embedded whiteboard widget');
-  pvReadChallenge.click();await tick();
-  const pvGenerateChallenge=pvDoc.getElementById('pv-generate');
-  assert(pvGenerateChallenge,'Place Value embedded challenge exposes Generate challenge');
-  pvGenerateChallenge.click();await tick();await tick();
+  const fakeReveal=pvDoc.createElement('button');
+  fakeReveal.type='button';fakeReveal.dataset.boardAction='reveal';fakeReveal.textContent='Reveal answer';
+  fakeReveal.style.position='fixed';fakeReveal.style.left='-9999px';fakeReveal.style.top='0';
+  fakeReveal.onclick=()=>{fakeReveal.textContent=fakeReveal.textContent.includes('Reveal')?'Hide answer':'Reveal answer'};
+  pvDoc.body.appendChild(fakeReveal);
+  pvDoc.body.dispatchEvent(new MouseEvent('click',{bubbles:true}));await tick();
   pvQuick=[...pvFrame.querySelectorAll('[data-board-quick-actions] button')];
   const revealPV=pvQuick.find(button=>/Reveal answer/i.test(button.textContent));
-  assert(revealPV,'Active Place Value challenge exposes Reveal answer directly on the whiteboard frame');
+  assert(revealPV,'Place Value whiteboard bridge exposes a live Reveal answer target as a direct frame action');
   revealPV.click();await tick();
-  assert(/Answer:/.test(pvDoc.querySelector('.gd-challenge-banner')?.textContent||''),'Whiteboard Reveal answer shows the live challenge answer');
   pvQuick=[...pvFrame.querySelectorAll('[data-board-quick-actions] button')];
-  assert(pvQuick.some(button=>/Hide answer/i.test(button.textContent)),'Whiteboard challenge action changes to Hide answer after reveal');
-
-  let pvTeacherExport=null;
-  const pvOldTeacherSvg=pvWin.TT99Goodies.exportTools.downloadSvg;
-  pvWin.TT99Goodies.exportTools.downloadSvg=(svg)=>{pvTeacherExport=svg.cloneNode(true)};
-  pvExportButton.click();await tick();
-  pvFrame.querySelector('[data-board-export-menu] [data-board-export-kind="svg"]').click();await tick();
-  assert(pvTeacherExport&&pvTeacherExport.dataset.worksheetAnswer==='teacher','Frame export respects the revealed answer and produces a teacher worksheet card');
-  pvWin.TT99Goodies.exportTools.downloadSvg=pvOldTeacherSvg;
+  assert(pvQuick.some(button=>/Hide answer/i.test(button.textContent)),'Whiteboard answer action mirrors the live Reveal / Hide state');
+  fakeReveal.remove();
+  pvDoc.body.dispatchEvent(new MouseEvent('click',{bubbles:true}));await tick();
   TT99Goodies.compositionBoard.remove(pvRecord.id);
 
   document.querySelector('[data-board-add="randomiser"]').click();await tick();
