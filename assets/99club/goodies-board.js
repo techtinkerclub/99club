@@ -39,7 +39,7 @@ const QUICK_ACTIONS={
     {label:'+ Line',selector:'[data-board-action="add-line"]',title:'Add aligned comparison line'}
   ],
   'place-value':[
-    {label:'Challenge',selector:'[data-pv-workflow="challenge"]',allowHidden:true,dynamicLabel:true,panelMode:'challenge',title:'Create or edit a Place Value challenge'},
+    {label:'Challenge',selector:'[data-pv-random-challenge]',allowHidden:true,title:'Give a random Build target or Exact counters challenge'},
     {label:'Reveal answer',selector:'[data-board-action="reveal"]',dynamicLabel:true,title:'Reveal or hide the challenge answer'},
     {label:'Exchange 10→1',selector:'[data-gd-action="exchange-up"]',allowHidden:true,title:'Exchange ten selected-place counters for one of the next larger place'},
     {label:'Split 1→10',selector:'[data-gd-action="split-down"]',allowHidden:true,title:'Split the selected counter into ten of the next smaller place'}

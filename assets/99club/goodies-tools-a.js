@@ -243,6 +243,13 @@ function placeValue(){
     }
     controller?.refresh();renderControls();
   }
+  function startRandomActivityChallenge(){
+    if(challenge){restoreBeforeChallenge();challenge=null}
+    const mode=Math.random()<.5?'build':'exact';
+    if(mode==='exact')activityBudget=3+Math.floor(Math.random()*7);
+    controlTab='activity';
+    startActivity(mode);
+  }
   function checkActivity(){
     if(activityMode==='powers')return;
     const target=clean(activityTarget),value=total(),same=Math.abs(value-target)<(valueStep()/2+1e-9);
@@ -317,7 +324,7 @@ function placeValue(){
         field('Lowest','<select class="gd-select" id="pv-range-low">'+lowestOptions+'</select>')+
       '</div>'+
       field('Quick setup number','<div class="gd-row"><input class="gd-input" id="pv-value" type="number" min="0" max="'+rangeMax()+'" step="'+valueStep()+'" value="'+total()+'"><button class="gd-btn" id="pv-build" type="button">Build</button></div>')+
-      '<div class="gd-row">'+btn('Random whole','pv-random')+(decimalAvailable?btn('Random decimal','pv-dec'):'')+'</div>'+
+      '<div class="gd-row">'+btn('Build random whole','pv-random')+(decimalAvailable?btn('Build random decimal','pv-dec'):'')+'</div>'+
       '<div class="gd-row">'+btn('Regroup counters','pv-regroup')+btn('Clear board','pv-clear')+'</div>'+
       '<p class="gd-help">Choose exactly the places you need — for example 1,000 to 1 for whole-number work. Up to seven adjacent places are shown at once.</p>';
   }
@@ -445,7 +452,8 @@ function placeValue(){
     }catch(err){exportMessage(err?.message||'That export did not work.')}
   }
   function controlsHtml(){
-    return '<div class="gd-row pv-mode-tabs" role="tablist" aria-label="Place Value workflow">'+
+    return '<button type="button" data-pv-random-challenge hidden aria-hidden="true" tabindex="-1">Challenge</button>'+
+      '<div class="gd-row pv-mode-tabs" role="tablist" aria-label="Place Value workflow">'+
       '<button class="gd-btn'+(controlTab==='setup'?' gd-btn--primary':'')+'" type="button" data-pv-workflow="setup">Setup</button>'+
       '<button class="gd-btn'+(controlTab==='activity'?' gd-btn--primary':'')+'" type="button" data-pv-workflow="activity">Teach / play</button>'+
       '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-pv-workflow="challenge">Challenge'+(challenge?' •':'')+'</button>'+
@@ -637,6 +645,8 @@ function placeValue(){
     if(regroup)regroup.disabled=!nonStandard()||total()>rangeMax();
   }
   function bindControls(){
+    const randomActivityChallenge=q('[data-pv-random-challenge]');
+    if(randomActivityChallenge)randomActivityChallenge.onclick=startRandomActivityChallenge;
     qa('[data-pv-workflow]').forEach(button=>button.onclick=()=>{
       const nextTab=button.dataset.pvWorkflow;
       if(nextTab==='activity'){
