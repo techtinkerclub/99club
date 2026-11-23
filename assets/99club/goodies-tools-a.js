@@ -304,10 +304,18 @@ function placeValue(){
       });
       controller?.select(null);
     }else{
-      activityTarget=activityRandomTarget();
-      controller?.mutate(()=>{buildFromNumber(activityTarget);notice=''});controller?.select(null);
-      const cs=counts(),nonZero=cs.map((count,index)=>({count,index})).filter(x=>x.count>0);
-      const chosen=nonZero[Math.floor(Math.random()*nonZero.length)]||{count:cs[places.length-1]||0,index:places.length-1};
+      let nonZero=[],digitChoices=[];
+      for(let attempt=0;attempt<12;attempt++){
+        activityTarget=activityRandomTarget();
+        controller?.mutate(()=>{buildFromNumber(activityTarget);notice=''});controller?.select(null);
+        const cs=counts();
+        nonZero=cs.map((count,index)=>({count,index})).filter(x=>x.count>0);
+        digitChoices=nonZero.filter(x=>Math.abs((places[x.index]?.value||0)-1)>1e-12);
+        if(activityMode!=='digit'||digitChoices.length)break;
+      }
+      const pool=activityMode==='digit'&&digitChoices.length?digitChoices:nonZero;
+      const fallbackCounts=counts();
+      const chosen=pool[Math.floor(Math.random()*pool.length)]||{count:fallbackCounts[places.length-1]||0,index:places.length-1};
       activityHiddenIndex=chosen.index;activityDigit=chosen.count;
       if(activityMode==='read')activityAnswer=activityTarget;
       else if(activityMode==='hidden')activityAnswer=chosen.count;
@@ -475,7 +483,8 @@ function placeValue(){
     svg.appendChild(pvSvgEl('rect',{x:boardX,y:boardY,width:boardW,height:boardH,rx:8,ry:8,fill:'#ffffff','data-pv-export-board':'1'}));
     places.forEach((place,index)=>{
       const x=boardX+index*colW,isDecimal=place.value<1&&(index===0||places[index-1].value>=1);
-      svg.appendChild(pvSvgEl('rect',{x,y:boardY,width:colW,height:headerH,fill:index%2?'#fafcfc':'#f3f7f7','clip-path':'url(#pv-board-clip)','data-pv-export-header':'1'}));
+      const targetDigit=activityActive&&activityMode==='digit'&&index===activityHiddenIndex;
+      svg.appendChild(pvSvgEl('rect',{x,y:boardY,width:colW,height:headerH,fill:targetDigit?'#fff6cf':(index%2?'#fafcfc':'#f3f7f7'),'clip-path':'url(#pv-board-clip)','data-pv-export-header':'1',...(targetDigit?{'data-pv-export-target':'1'}:{})}));
       if(index>0)svg.appendChild(pvSvgEl('line',{x1:x,y1:boardY,x2:x,y2:boardY+boardH,stroke:isDecimal?'#627b82':'#c5d2d5','stroke-width':isDecimal?4:1.7}));
       svg.appendChild(pvSvgEl('line',{x1:x,y1:boardY+headerH,x2:x+colW,y2:boardY+headerH,stroke:'#aebdc1','stroke-width':1.7}));
       svg.appendChild(pvSvgEl('text',{x:x+colW/2,y:boardY+36,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':22,'font-weight':850,fill:'#2d454d'},place.label));
@@ -621,7 +630,8 @@ function placeValue(){
   function columnMarkup(place,index,cs){
     const readOnly=activityReadOnly(),countText=columnCountHidden(index)?'?':cs[index],canRemove=!readOnly&&tokens.some(t=>t.place===index&&!t.locked);
     const decimalStart=place.value<1&&(index===0||places[index-1].value>=1);
-    return '<div class="gd-pv-column'+(decimalStart?' is-decimal-start':'')+'" data-gd-canvas-bg data-pv-column="'+index+'">'+
+    const targetDigit=activityActive&&activityMode==='digit'&&index===activityHiddenIndex;
+    return '<div class="gd-pv-column'+(decimalStart?' is-decimal-start':'')+(targetDigit?' is-activity-target':'')+'" data-gd-canvas-bg data-pv-column="'+index+'">'+
       '<div class="gd-pv-head"><strong>'+place.label+'</strong><small>'+place.name+'</small><div class="gd-pv-column-actions" role="group" aria-label="'+place.name+' counters">'+
         '<button type="button" data-pv-remove="'+index+'" aria-label="Remove one '+place.name+' counter"'+(canRemove?'':' disabled')+'>−</button>'+
         '<span data-pv-count="'+index+'" aria-label="'+countText+' '+place.name+' counters">'+countText+'</span>'+
@@ -633,7 +643,8 @@ function placeValue(){
     const height=layoutTokens(),cs=counts(),selected=tokens.find(t=>String(t.id)===String(selectedId))||null;
     const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Place Value challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
     const activity=activityBannerHtml();
-    q('#gd-stage').innerHTML=banner+activity+'<div class="gd-vis gd-pv-workspace">'+
+    const directExports='<div hidden aria-hidden="true">'+['copy','png','svg','print'].map(kind=>'<button type="button" data-gd-direct-export="'+kind+'">'+kind+'</button>').join('')+'</div>';
+    q('#gd-stage').innerHTML=banner+activity+directExports+'<div class="gd-vis gd-pv-workspace">'+
       '<div class="gd-pv-board-wrap">'+
         '<div class="gd-pv-canvas" id="pv-canvas" data-gd-canvas-bg style="min-height:'+height+'px;--pv-cols:'+places.length+'">'+
           '<div class="gd-pv-columns">'+places.map((p,i)=>columnMarkup(p,i,cs)).join('')+'</div>'+
@@ -730,6 +741,9 @@ function placeValue(){
     if(another)another.onclick=e=>{e.stopPropagation();if(challenge?.mode==='standard')generateChallenge(challenge.type)};
     qa('[data-pv-power]',q('#gd-stage')).forEach(button=>button.onclick=e=>{
       e.stopPropagation();applyPowerShift(Math.round(num(button.dataset.pvPower,0)));
+    });
+    qa('[data-gd-direct-export]',q('#gd-stage')).forEach(button=>button.onclick=e=>{
+      e.stopPropagation();exportAction(button.dataset.gdDirectExport);
     });
     const activityAnswerInput=q('[data-pv-activity-answer]',q('#gd-stage'));
     if(activityAnswerInput){
