@@ -2101,6 +2101,33 @@ if(mode==='prepare'){
     assert(document.querySelector('[data-pv-challenge-type="zero-placeholder"]'),'Zero-placeholder diagnostic challenge is available');
 
     document.querySelector('[data-pv-workflow="setup"]').click();
+
+    const rangeSelect=document.getElementById('pv-range');
+    assert(rangeSelect&&[...rangeSelect.options].some(o=>o.value==='millions')&&[...rangeSelect.options].some(o=>o.value==='decimals'),'Place Value exposes reusable whole-number and decimal place windows');
+    const rangeInput=document.getElementById('pv-value');
+    rangeInput.value='1234';document.getElementById('pv-build').click();
+    rangeSelect.value='whole';rangeSelect.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(numberText('#pv-total')===1234,'Changing to the whole-number place window preserves a representable value');
+    let headings=[...document.querySelectorAll('.gd-pv-head strong')].map(x=>x.textContent.trim());
+    assert(headings[0]==='1,000,000'&&headings[headings.length-1]==='1','Whole-number place window spans millions to ones without adding extra columns');
+    document.getElementById('pv-range').value='decimals';document.getElementById('pv-range').dispatchEvent(new Event('change',{bubbles:true}));
+    assert(numberText('#pv-total')===1234,'Changing to the decimal place window preserves the same value');
+    headings=[...document.querySelectorAll('.gd-pv-head strong')].map(x=>x.textContent.trim());
+    assert(headings[0]==='1,000'&&headings[headings.length-1]==='0.001','Decimal place window reaches thousandths');
+    document.getElementById('pv-range').value='standard';document.getElementById('pv-range').dispatchEvent(new Event('change',{bubbles:true}));
+
+    document.getElementById('pv-value').value='0';document.getElementById('pv-build').click();
+    document.querySelector('[data-pv-add="3"]').click();
+    assert(numberText('#pv-total')===10,'A selected tens counter starts the exchange test at value 10');
+    let split=document.querySelector('[data-gd-action="split-down"]');
+    assert(split&&!split.disabled,'Selected ten can split into ten ones');
+    split.click();
+    assert(numberText('#pv-total')===10&&document.querySelector('[data-pv-count="4"]').textContent==='10','Splitting one ten creates ten ones without changing value');
+    let exchange=document.querySelector('[data-gd-action="exchange-up"]');
+    assert(exchange&&!exchange.disabled,'Ten selected-place counters can exchange upward');
+    exchange.click();
+    assert(numberText('#pv-total')===10&&document.querySelector('[data-pv-count="3"]').textContent==='1'&&document.querySelector('[data-pv-count="4"]').textContent==='0','Exchanging ten ones creates one ten without changing value');
+
     const canvas=document.getElementById('pv-canvas');
     assert(canvas&&getComputedStyle(canvas).touchAction==='pan-y','Place Value empty board preserves vertical touch scrolling');
   }
