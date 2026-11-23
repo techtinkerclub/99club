@@ -2045,6 +2045,7 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=(svg,name)=>{pvCapturedSvg=svg.cloneNode(true);pvCapturedName=name};
     document.getElementById('pv-svg-download').click();
     assert(pvCapturedSvg&&pvCapturedSvg.dataset.pvExport==='board','Place Value board-only export is a deterministic SVG board');
+    assert(pvCapturedSvg.firstElementChild?.getAttribute('fill')==='none','Place Value board-only SVG keeps its outer background transparent for worksheet placement');
     assert(pvCapturedSvg.querySelectorAll('text').length>=16,'Place Value SVG export carries semantic column/readout text');
     assert(pvCapturedName.includes('place-value-board'),'Place Value board export has a reusable filename');
     TT99Goodies.exportTools.downloadSvg=pvOldDownloadSvg;
@@ -2075,6 +2076,7 @@ if(mode==='prepare'){
     const pvNumberLabel=pvBoardTexts.indexOf('Number represented');
     assert(pvNumberLabel>=0&&pvBoardTexts[pvNumberLabel+1]==='?','Place Value pupil export re-hides the represented total after teacher reveal');
     assert(pvChallengeSvg.textContent.includes('What number is represented'),'Place Value challenge-card export includes the pupil prompt');
+    assert(pvChallengeSvg.viewBox.baseVal.width>=pvChallengeSvg.viewBox.baseVal.height,'Place Value worksheet challenge exports as a compact card rather than a tall webpage');
 
     document.querySelector('[data-pv-workflow="challenge"]').click();
     document.querySelector('[data-pv-challenge-tab="custom"]').click();
@@ -2103,17 +2105,21 @@ if(mode==='prepare'){
     document.querySelector('[data-pv-workflow="setup"]').click();
 
     const rangeSelect=document.getElementById('pv-range');
-    assert(rangeSelect&&[...rangeSelect.options].some(o=>o.value==='millions')&&[...rangeSelect.options].some(o=>o.value==='decimals'),'Place Value exposes reusable whole-number and decimal place windows');
+    assert(rangeSelect&&[...rangeSelect.options].some(o=>o.value==='thousands')&&[...rangeSelect.options].some(o=>o.value==='decimals'),'Place Value exposes compact whole-number and decimal place presets');
     const rangeInput=document.getElementById('pv-value');
-    rangeInput.value='1234';document.getElementById('pv-build').click();
-    rangeSelect.value='whole';rangeSelect.dispatchEvent(new Event('change',{bubbles:true}));
-    assert(numberText('#pv-total')===1234,'Changing to the whole-number place window preserves a representable value');
+    rangeInput.value='734';document.getElementById('pv-build').click();
+    rangeSelect.value='thousands';rangeSelect.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(numberText('#pv-total')===734,'Changing to the 1,000 → 1 place window preserves a representable whole number');
     let headings=[...document.querySelectorAll('.gd-pv-head strong')].map(x=>x.textContent.trim());
-    assert(headings[0]==='1,000,000'&&headings[headings.length-1]==='1','Whole-number place window spans millions to ones without adding extra columns');
-    document.getElementById('pv-range').value='decimals';document.getElementById('pv-range').dispatchEvent(new Event('change',{bubbles:true}));
-    assert(numberText('#pv-total')===1234,'Changing to the decimal place window preserves the same value');
+    assert(headings.length===4&&headings[0]==='1,000'&&headings[3]==='1','Thousands preset renders only the four required whole-number columns');
+    const high=document.getElementById('pv-range-high'),low=document.getElementById('pv-range-low');
+    high.value='5';high.dispatchEvent(new Event('change',{bubbles:true}));
+    document.getElementById('pv-range-low').value='8';document.getElementById('pv-range-low').dispatchEvent(new Event('change',{bubbles:true}));
     headings=[...document.querySelectorAll('.gd-pv-head strong')].map(x=>x.textContent.trim());
-    assert(headings[0]==='1,000'&&headings[headings.length-1]==='0.001','Decimal place window reaches thousandths');
+    assert(headings.join('|')==='100|10|1|0.1','Custom Highest/Lowest selectors can create a four-column mixed whole/decimal board');
+    document.getElementById('pv-range').value='decimals';document.getElementById('pv-range').dispatchEvent(new Event('change',{bubbles:true}));
+    headings=[...document.querySelectorAll('.gd-pv-head strong')].map(x=>x.textContent.trim());
+    assert(headings[0]==='1,000'&&headings[headings.length-1]==='0.001','Decimal preset reaches thousandths');
     document.getElementById('pv-range').value='standard';document.getElementById('pv-range').dispatchEvent(new Event('change',{bubbles:true}));
 
     document.getElementById('pv-value').value='0';document.getElementById('pv-build').click();
