@@ -159,6 +159,26 @@ function boardHint(message){
 }
 
 function objectById(id){return objects.find(x=>String(x.id)===String(id))||null}
+function usedClockSlots(){
+  const used=new Set();
+  objects.filter(obj=>obj.toolId==='clock').forEach(obj=>(Array.isArray(obj.clockSlots)?obj.clockSlots:[]).forEach(slot=>{
+    const value=Math.round(Number(slot));if(Number.isInteger(value)&&value>=0)used.add(value);
+  }));
+  return used;
+}
+function nextClockSlot(){
+  const used=usedClockSlots();let slot=0;while(used.has(slot))slot++;return slot;
+}
+function allocateClockSlot(id){
+  const obj=objectById(id);if(!obj||obj.toolId!=='clock')return null;
+  if(!Array.isArray(obj.clockSlots))obj.clockSlots=[];
+  const slot=nextClockSlot();obj.clockSlots.push(slot);return slot;
+}
+function releaseClockSlot(id,slot){
+  const obj=objectById(id);if(!obj||obj.toolId!=='clock'||!Array.isArray(obj.clockSlots))return false;
+  const value=Math.round(Number(slot)),index=obj.clockSlots.indexOf(value);
+  if(index<0)return false;obj.clockSlots.splice(index,1);return true;
+}
 function frameFor(id){return canvas.querySelector('[data-board-object="'+id+'"]')}
 function innerDocument(obj){
   const frame=frameFor(obj?.id),iframe=frame?.querySelector('iframe');
@@ -282,7 +302,12 @@ function positionObject(obj){
 }
 function objectMarkup(obj,tool){
   const embedPath=window.TT99_GOODIES_BOARD_EMBED_PATH||location.pathname;
-  const src=embedPath+'?embed=1#'+encodeURIComponent(tool.id);
+  const query=new URLSearchParams({embed:'1'});
+  if(tool.id==='clock'){
+    query.set('clockStart',String(Array.isArray(obj.clockSlots)&&obj.clockSlots.length?obj.clockSlots[0]:0));
+    query.set('boardObject',String(obj.id));
+  }
+  const src=embedPath+'?'+query.toString()+'#'+encodeURIComponent(tool.id);
   return '<section class="gd-board-object is-selected" data-board-object="'+obj.id+'" data-tool-id="'+esc(tool.id)+'" aria-label="'+esc(tool.title)+'" aria-selected="true">'+
     '<iframe class="gd-board-object-iframe" src="'+src+'" title="'+esc(tool.title)+'"></iframe>'+
     '<button type="button" class="gd-board-object-cover" data-board-select="'+obj.id+'" aria-label="Select '+esc(tool.title)+'"></button>'+
@@ -314,6 +339,7 @@ function addObject(toolId){
     y:snapped((narrow?45:80)+(i%4)*40+viewport.scrollTop),
     w,h,z:++zCounter,locked:false,menuOpen:false,settingsOpen:false
   };
+  if(tool.id==='clock')obj.clockSlots=[nextClockSlot()];
   objects.push(obj);
   if(selectedId!=null)deselect();
   canvas.insertAdjacentHTML('beforeend',objectMarkup(obj,tool));
@@ -491,6 +517,8 @@ G.compositionBoard={
   add:addObject,
   select:selectObject,
   remove:removeObject,
+  allocateClockSlot,
+  releaseClockSlot,
   objects:()=>objects.map(({menuOpen,settingsOpen,...obj})=>({...obj})),
   viewport:()=>({left:viewport.scrollLeft,top:viewport.scrollTop}),
   isMounted:()=>true
