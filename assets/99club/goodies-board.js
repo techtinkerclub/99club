@@ -321,7 +321,7 @@ function connectInnerObject(obj){
       syncQuickActions(obj);
       if(pass<3)setTimeout(()=>settleFit(false,pass+1),24);
     };
-    const refresh=()=>setTimeout(()=>settleFit(false,0),0);
+    const refresh=()=>setTimeout(()=>{settleFit(false,0);if(obj.settingsOpen)renderFloatingControls(obj)},0);
     doc.addEventListener('click',refresh,true);
     doc.addEventListener('pointerup',refresh,true);
     doc.addEventListener('change',refresh,true);
@@ -332,10 +332,10 @@ function connectInnerObject(obj){
   try{if(iframe.contentDocument?.readyState==='complete')connect()}catch(_){}
 }
 function sendSettings(obj,open){
-  obj.settingsOpen=!!open;
+  if(!obj)return;
   const frame=frameFor(obj.id),iframe=frame?.querySelector('iframe');
-  if(iframe?.contentWindow)iframe.contentWindow.postMessage({type:'tt99-board-settings',open:obj.settingsOpen},location.origin);
-  frame?.classList.toggle('has-settings',obj.settingsOpen);
+  if(open)openFloatingControls(obj);else closeFloatingControls(obj.id);
+  if(iframe?.contentWindow)iframe.contentWindow.postMessage({type:'tt99-board-settings',open:false},location.origin);
 }
 function closeContext(obj){
   obj.menuOpen=false;
