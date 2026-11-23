@@ -5,7 +5,7 @@ const {q,qa,esc,clamp,num,field,btn}=G;
 
 function abacusTool(){
   const X=G.exportTools;
-  let rows=5,counts=Array(5).fill(0),showTotal=true,showRowCounts=false,showRowLabels=false,fiveSplit=true;
+  let rows=5,counts=Array(5).fill(0),kind='western',showTotal=true,showRowCounts=false,showRowLabels=true;
   let workflow='setup',playMode='free',task=null,taskContext='play',status='',answerInput='',revealed=false,exportStatus='';
   let drag=null;
 
@@ -23,19 +23,31 @@ function abacusTool(){
   ];
   const CHALLENGE_MODES=MODES.filter(([id])=>id!=='free');
 
-  function capacity(){return rows*10}
-  function total(){return counts.reduce((a,b)=>a+b,0)}
+  // The right-hand column is ones. Each column is a decimal digit (0–9).
+  function capacity(){return Math.pow(10,rows)-1}
+  function total(){return counts.reduce((sum,digit,i)=>sum+digit*Math.pow(10,rows-i-1),0)}
   function normal(v){return clamp(Math.round(num(v,0)),0,capacity())}
   function setRows(next){
-    const previous=total(),resolved=[1,2,5,10].includes(Number(next))?Number(next):5;
-    rows=resolved;
+    const previous=total();
+    rows=[3,4,5,6].includes(Number(next))?Number(next):5;
     counts=Array(rows).fill(0);
-    setTotal(Math.min(previous,capacity()),false);
+    setTotal(previous,false);
   }
   function setTotal(value,render=true){
-    let left=normal(value);
-    counts=Array(rows).fill(0).map(()=>{const n=Math.min(10,left);left-=n;return n});
+    counts=Array.from(String(normal(value)).padStart(rows,'0'),digit=>Number(digit));
     if(render)renderStage();
+  }
+  function placeLabel(i){return ['Ones','Tens','Hundreds','Thousands','Ten thousands','Hundred thousands'][rows-i-1]}
+  function placeShort(i){return ['1s','10s','100s','1k','10k','100k'][rows-i-1]}
+  function abBeadY(i,part,j){
+    const d=counts[i]||0;
+    if(kind==='western')return j<d?6+j*8.4:92-(8-j)*8.4;
+    if(part==='upper')return d>=5?30:12;
+    return j<d%5?47+j*8.5:67+j*8.5;
+  }
+  function abBeadActive(i,part,j){
+    const d=counts[i]||0;
+    return kind==='western'?j<d:part==='upper'?d>=5:j<d%5;
   }
   function randomInt(min,max){return Math.floor(Math.random()*(max-min+1))+min}
   function beadX(index,count){return index<count?4+index*4.5:55+index*4.5}
@@ -52,7 +64,7 @@ function abacusTool(){
     })[mode]||'Abacus';
   }
   function generatedTask(mode){
-    const cap=capacity();
+    const cap=Math.min(capacity(),rows===3?999:9999);
     if(mode==='show'){
       const target=randomInt(1,cap);
       return{mode,start:0,target,prompt:'Show '+target+' on the abacus.',requiresAnswer:false};
@@ -130,22 +142,20 @@ function abacusTool(){
     status='Answer shown';
     renderStage();
   }
-  function setRowCount(row,value){
-    if(!Number.isInteger(row)||row<0||row>=rows)return;
-    counts[row]=clamp(Math.round(num(value,0)),0,10);
-    status='';revealed=false;
-    syncStage();
+  function setRowCount(i,value){
+    if(!Number.isInteger(i)||i<0||i>=rows)return;
+    counts[i]=clamp(Math.round(num(value,0)),0,9);
+    status='';revealed=false;syncStage();
   }
-  function clickBead(row,index){
-    const count=counts[row]||0;
-    setRowCount(row,index<count?index:index+1);
+  function clickBead(i,part,j){
+    const digit=counts[i]||0;
+    if(kind==='western')return setRowCount(i,j<digit?j:j+1);
+    if(part==='upper')return setRowCount(i,digit>=5?digit-5:digit+5);
+    const low=digit%5;
+    setRowCount(i,(digit>=5?5:0)+(j<low?j:j+1));
   }
   function frameControls(){
-    return '<div class="gd-row gd-ab-stage-actions">'+
-      '<button class="gd-btn" type="button" data-ab-stage="-1">−1</button>'+
-      '<button class="gd-btn" type="button" data-ab-stage="1">+1</button>'+
-      '<button class="gd-btn" type="button" data-ab-stage="clear">Clear</button>'+
-    '</div>';
+    return '<div class="gd-row gd-ab-stage-actions"><button class="gd-btn" type="button" data-ab-stage="clear">Clear beads</button></div>';
   }
   function taskBanner(){
     if(!task)return '';
@@ -207,14 +217,14 @@ function abacusTool(){
     const input=q('[data-ab-answer]');if(input&&document.activeElement!==input)input.value=answerInput;
   }
   function setupControls(){
-    return field('Rows','<select class="gd-select" id="ab-rows">'+[1,2,5,10].map(n=>'<option value="'+n+'"'+(rows===n?' selected':'')+'>'+n+' row'+(n===1?'':'s')+'</option>').join('')+'</select>')+
+    return field('Abacus type','<select class="gd-select" id="ab-kind"><option value="western"'+(kind==='western'?' selected':'')+'>Western (9 beads per rod)</option><option value="soroban"'+(kind==='soroban'?' selected':'')+'>Japanese soroban (5 beads per rod)</option></select>')+
+      field('Place-value columns','<select class="gd-select" id="ab-rows">'+[3,4,5,6].map(n=>'<option value="'+n+'"'+(rows===n?' selected':'')+'>'+n+' columns</option>').join('')+'</select>')+
       field('Set number','<div class="gd-row"><input class="gd-input" id="ab-set-number" type="number" min="0" max="'+capacity()+'" value="'+total()+'"><button class="gd-btn gd-btn--primary" id="ab-set" type="button">Set</button></div>')+
       '<div class="gd-row">'+btn('Random','ab-random')+btn('Clear','ab-clear')+'</div>'+
-      '<label class="gd-row gd-ab-check"><input id="ab-five-split" type="checkbox"'+(fiveSplit?' checked':'')+'> Colour groups of 5</label>'+
-      '<label class="gd-row gd-ab-check"><input id="ab-show-total" type="checkbox"'+(showTotal?' checked':'')+'> Show total</label>'+
-      '<label class="gd-row gd-ab-check"><input id="ab-row-counts" type="checkbox"'+(showRowCounts?' checked':'')+'> Show row counts</label>'+
-      '<label class="gd-row gd-ab-check"><input id="ab-row-labels" type="checkbox"'+(showRowLabels?' checked':'')+'> Show row labels</label>'+
-      '<p class="gd-help">Each row has 10 sliding beads. Move beads to the left to count them.</p>';
+      '<label class="gd-row gd-ab-check"><input id="ab-show-total" type="checkbox"'+(showTotal?' checked':'')+'> Show number</label>'+
+      '<label class="gd-row gd-ab-check"><input id="ab-row-counts" type="checkbox"'+(showRowCounts?' checked':'')+'> Show column digits</label>'+
+      '<label class="gd-row gd-ab-check"><input id="ab-row-labels" type="checkbox"'+(showRowLabels?' checked':'')+'> Show place values</label>'+
+      '<p class="gd-help">'+(kind==='western'?'Nine beads per vertical place-value column. Slide them upwards to count.':'Soroban: upper bead is 5; four lower beads are 1 each. Beads count when moved towards the middle bar.')+'</p>';
   }
   function modeButtons(attr){
     return '<div class="gd-ab-mode-grid">'+MODES.map(([id,label])=>'<button class="gd-btn'+(playMode===id?' gd-btn--primary':'')+'" type="button" '+attr+'="'+id+'">'+label+'</button>').join('')+'</div>';
@@ -308,11 +318,11 @@ function abacusTool(){
       else if(next==='setup'){taskContext='play'}
       renderAll();
     });
+    const kindEl=q('#ab-kind');if(kindEl)kindEl.onchange=()=>{kind=kindEl.value==='soroban'?'soroban':'western';task=null;renderAll()};
     const rowsEl=q('#ab-rows');if(rowsEl)rowsEl.onchange=()=>{setRows(rowsEl.value);task=null;renderAll()};
     const set=q('#ab-set');if(set)set.onclick=()=>{setTotal(q('#ab-set-number')?.value);task=null;renderControls()};
     const random=q('#ab-random');if(random)random.onclick=()=>{setTotal(randomInt(0,capacity()));task=null;renderControls()};
     const clear=q('#ab-clear');if(clear)clear.onclick=()=>{setTotal(0);task=null;renderControls()};
-    const five=q('#ab-five-split');if(five)five.onchange=()=>{fiveSplit=five.checked;renderStage()};
     const totalToggle=q('#ab-show-total');if(totalToggle)totalToggle.onchange=()=>{showTotal=totalToggle.checked;renderStage()};
     const rowCounts=q('#ab-row-counts');if(rowCounts)rowCounts.onchange=()=>{showRowCounts=rowCounts.checked;renderStage()};
     const rowLabels=q('#ab-row-labels');if(rowLabels)rowLabels.onchange=()=>{showRowLabels=rowLabels.checked;renderStage()};
