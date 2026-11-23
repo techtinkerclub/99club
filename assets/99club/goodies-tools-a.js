@@ -331,9 +331,10 @@ function placeValue(){
       const newValue=normaliseValue(total()+digit*places[index].value);
       buildFromNumber(newValue);
       const exchanged=before+digit>=10&&index>0;
-      notice='Added '+digit+' '+places[index].name+'.'+(exchanged?' 10 '+places[index].name+' exchanged for 1 '+singularPlaceName(places[index-1])+'.':'');
+      const explanation='Added '+digit+' '+places[index].name+'.'+(exchanged?' Exchanged 10 '+places[index].name+' for 1 '+singularPlaceName(places[index-1])+'.':'');
       additionStep++;
-      activityStatus=additionProgressText();
+      notice=explanation;
+      activityStatus=explanation+' '+additionProgressText();
     });
     controller?.select(null);
   }
