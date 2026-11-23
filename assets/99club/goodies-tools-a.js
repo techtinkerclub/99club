@@ -368,10 +368,13 @@ function placeValue(){
     const pupilColumnHidden=index=>!!(challenge&&challenge.answerMode==='bound'&&(challenge.answerSource==='count:'+index||challenge.answerSource==='value:'+index));
     const svg=pvSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Place value chart','data-pv-export':'board'});
     svg.appendChild(pvSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
-    svg.appendChild(pvSvgEl('rect',{x:boardX,y:boardY,width:boardW,height:boardH,rx:8,fill:'#ffffff',stroke:'#8fa5aa','stroke-width':2.2,'data-pv-export-board':'1'}));
+    const defs=pvSvgEl('defs'),clip=pvSvgEl('clipPath',{id:'pv-board-clip'});
+    clip.appendChild(pvSvgEl('rect',{x:boardX,y:boardY,width:boardW,height:boardH,rx:8,ry:8}));
+    defs.appendChild(clip);svg.appendChild(defs);
+    svg.appendChild(pvSvgEl('rect',{x:boardX,y:boardY,width:boardW,height:boardH,rx:8,ry:8,fill:'#ffffff','data-pv-export-board':'1'}));
     places.forEach((place,index)=>{
       const x=boardX+index*colW,isDecimal=place.value<1&&(index===0||places[index-1].value>=1);
-      svg.appendChild(pvSvgEl('rect',{x,y:boardY,width:colW,height:headerH,fill:index%2?'#fafcfc':'#f3f7f7'}));
+      svg.appendChild(pvSvgEl('rect',{x,y:boardY,width:colW,height:headerH,fill:index%2?'#fafcfc':'#f3f7f7','clip-path':'url(#pv-board-clip)','data-pv-export-header':'1'}));
       if(index>0)svg.appendChild(pvSvgEl('line',{x1:x,y1:boardY,x2:x,y2:boardY+boardH,stroke:isDecimal?'#627b82':'#c5d2d5','stroke-width':isDecimal?4:1.7}));
       svg.appendChild(pvSvgEl('line',{x1:x,y1:boardY+headerH,x2:x+colW,y2:boardY+headerH,stroke:'#aebdc1','stroke-width':1.7}));
       svg.appendChild(pvSvgEl('text',{x:x+colW/2,y:boardY+36,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':22,'font-weight':850,fill:'#2d454d'},place.label));
@@ -385,6 +388,7 @@ function placeValue(){
         svg.appendChild(pvSvgEl('circle',{cx,cy,r:Math.max(5,radius*.34),fill:'#ffffff','fill-opacity':.62}));
       }
     });
+    svg.appendChild(pvSvgEl('rect',{x:boardX,y:boardY,width:boardW,height:boardH,rx:8,ry:8,fill:'none',stroke:'#8fa5aa','stroke-width':2.2,'data-pv-export-outline':'1'}));
     return svg;
   }
   function worksheetBoardSvg({pupil=false}={}){
@@ -690,10 +694,17 @@ function placeValue(){
       if(end-start>6)start=end-6;
       applyRangeChange(start,end,'custom');
     };
-    const build=q('#pv-build');if(build)build.onclick=()=>{
-      const raw=q('#pv-value').value;
+    const build=q('#pv-build');
+    const quickValue=q('#pv-value');
+    const applyQuickValue=()=>{
+      if(!quickValue)return;
+      const raw=quickValue.value;
       controller.mutate(()=>{buildFromNumber(raw);notice='Board rebuilt from the entered number.'});
       controller.select(null);
+    };
+    if(build)build.onclick=applyQuickValue;
+    if(quickValue)quickValue.onkeydown=e=>{
+      if(e.key==='Enter'){e.preventDefault();applyQuickValue()}
     };
     const random=q('#pv-random');if(random)random.onclick=()=>{
       const value=randomBoardValue({decimal:false,min:valueStep(),max:rangeMax()});
