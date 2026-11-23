@@ -331,7 +331,7 @@ function placeValue(){
       (canCard&&exportMode==='challenge'
         ?'<label class="gd-field"><span>Answer space</span><select class="gd-select" id="pv-response-lines">'+
           [1,2,3,4].map(n=>'<option value="'+n+'"'+(responseLines===n?' selected':'')+'>'+n+' line'+(n===1?'':'s')+'</option>').join('')+
-          '</select></label><p class="gd-help">The pupil card contains the question, the place-value board and blank answer space. Reveal answer is never copied into the pupil version.</p>'
+          '</select></label><div class="gd-row"><button class="gd-btn" id="pv-export-reveal" type="button">'+(challenge?.revealed?'Hide answer':'Reveal answer')+'</button></div><p class="gd-help">Hidden answer = pupil worksheet. Reveal it before exporting when you want a teacher copy with the answer included.</p>'
         :'<p class="gd-help">Board-only export contains the mathematical board, counters and visible readouts without the editing controls.</p>')+
       '<div class="nl-export-grid pv-export-grid">'+
         '<button class="gd-btn gd-btn--primary" id="pv-copy-image" type="button">Copy '+(canCard&&exportMode==='challenge'?'challenge':'image')+'</button>'+
@@ -389,15 +389,41 @@ function placeValue(){
     svg.appendChild(pvSvgEl('text',{x:width-pad,y:height-12,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':10,fill:'#87969a'},'99 Club Studio'));
     return svg;
   }
+  function worksheetBoardSvg(){
+    const cs=counts(),width=1000,pad=18,boardX=pad,boardY=12,boardW=width-pad*2,colW=boardW/places.length;
+    const maxCount=Math.max(1,...cs),perRow=colW>=190?3:2,rows=Math.max(1,Math.ceil(maxCount/perRow));
+    const headerH=94,counterStep=58,bodyH=Math.max(250,Math.min(360,60+rows*counterStep)),boardH=headerH+bodyH,height=boardY+boardH+12;
+    const svg=pvSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Printable place value table','data-pv-export':'worksheet-board'});
+    svg.appendChild(pvSvgEl('rect',{x:boardX,y:boardY,width:boardW,height:boardH,rx:8,fill:'#ffffff',stroke:'#8fa5aa','stroke-width':2.2,'data-pv-export-board':'1'}));
+    places.forEach((place,index)=>{
+      const x=boardX+index*colW,isDecimal=place.value<1&&(index===0||places[index-1].value>=1);
+      svg.appendChild(pvSvgEl('rect',{x,y:boardY,width:colW,height:headerH,fill:index%2?'#f8fbfb':'#f1f6f6'}));
+      if(index>0)svg.appendChild(pvSvgEl('line',{x1:x,y1:boardY,x2:x,y2:boardY+boardH,stroke:isDecimal?'#627b82':'#c5d2d5','stroke-width':isDecimal?4:1.7}));
+      svg.appendChild(pvSvgEl('line',{x1:x,y1:boardY+headerH,x2:x+colW,y2:boardY+headerH,stroke:'#aebdc1','stroke-width':1.7}));
+      svg.appendChild(pvSvgEl('text',{x:x+colW/2,y:boardY+38,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':22,'font-weight':850,fill:'#2d454d'},place.label));
+      svg.appendChild(pvSvgEl('text',{x:x+colW/2,y:boardY+65,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':13,'font-weight':600,fill:'#61767c'},place.name));
+      for(let n=0;n<cs[index];n++){
+        const row=Math.floor(n/perRow),slot=n%perRow,slotGap=Math.min(54,colW/(perRow+0.6));
+        const cx=x+colW/2+(slot-(perRow-1)/2)*slotGap,cy=boardY+headerH+42+row*counterStep;
+        const radius=Math.min(20,colW/(perRow*3.2));
+        svg.appendChild(pvSvgEl('circle',{cx,cy,r:radius,fill:place.color,stroke:'#6d8288','stroke-width':1.8}));
+        svg.appendChild(pvSvgEl('circle',{cx,cy,r:Math.max(5,radius*.34),fill:'#ffffff','fill-opacity':.62}));
+      }
+    });
+    return svg;
+  }
+
   function exportTargetSvg(){
     if(exportMode==='challenge'&&challenge&&X?.composeWorksheetCardSvg){
       const prompt=CK?CK.plainText(challenge.promptHtml||challenge.prompt||''):challenge.prompt||'';
       const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
-      return X.composeWorksheetCardSvg(boardExportSvg({pupil:true}),{
+      return X.composeWorksheetCardSvg(worksheetBoardSvg(),{
         title:challenge.title||meta?.title||'Place Value challenge',
         prompt,
         responseLabel:challenge.category==='reason'?'Explain your thinking':'Answer',
-        responseLines:Math.min(2,responseLines),
+        responseLines:challenge.category==='reason'?Math.max(2,Math.min(4,responseLines)):Math.max(1,Math.min(2,responseLines)),
+        answer:challenge.answer||'',
+        showAnswer:!!challenge.revealed,
         brand:'99 Club Studio'
       });
     }
@@ -716,9 +742,11 @@ function placeValue(){
     const generate=q('#pv-generate');if(generate)generate.onclick=()=>generateChallenge(challengeType);
     const edit=q('#pv-edit-challenge');if(edit)edit.onclick=enterCustomChallenge;
     const end=q('#pv-clear-challenge');if(end)end.onclick=clearChallenge;
-    const panelReveal=q('#pv-reveal');if(panelReveal)panelReveal.onclick=()=>{
+    const toggleChallengeAnswer=()=>{
       if(!challenge)return;challenge.revealed=!challenge.revealed;renderControls();controller?.refresh();
     };
+    const panelReveal=q('#pv-reveal');if(panelReveal)panelReveal.onclick=toggleChallengeAnswer;
+    const exportReveal=q('#pv-export-reveal');if(exportReveal)exportReveal.onclick=toggleChallengeAnswer;
 
     qa('[data-gd-rich-action]').forEach(button=>button.onclick=()=>{
       const editor=q('#pv-custom-prompt');if(editor&&CK)CK.applyFormat(editor,button.dataset.gdRichAction);
