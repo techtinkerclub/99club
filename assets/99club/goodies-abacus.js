@@ -27,10 +27,10 @@ function abacusTool(){
   function total(){return counts.reduce((a,b)=>a+b,0)}
   function normal(v){return clamp(Math.round(num(v,0)),0,capacity())}
   function setRows(next){
-    const value=Math.min(total(),Number(next)||5);
-    rows=[1,2,5,10].includes(Number(next))?Number(next):5;
+    const previous=total(),resolved=[1,2,5,10].includes(Number(next))?Number(next):5;
+    rows=resolved;
     counts=Array(rows).fill(0);
-    setTotal(Math.min(value,capacity()),false);
+    setTotal(Math.min(previous,capacity()),false);
   }
   function setTotal(value,render=true){
     let left=normal(value);
@@ -179,7 +179,7 @@ function abacusTool(){
           '<div class="gd-ab-frame-inner">'+Array.from({length:rows},(_,r)=>rowMarkup(r)).join('')+'</div>'+
         '</div>'+
         frameControls()+
-        '<div class="gd-ab-summary"><span>Beads moved</span><strong data-ab-total>'+(hideTotal?'?':total())+'</strong></div>'+
+        '<div class="gd-ab-summary"'+(showTotal?'':' hidden')+'><span>Beads moved</span><strong data-ab-total>'+(hideTotal?'?':total())+'</strong></div>'+
         '<p class="gd-object-hint" data-ab-hint>'+(task?'Move the beads, then check your answer.':'Move beads from right to left. Tap a bead to move that bead and the group before it.')+'</p>'+
       '</div>';
     bindStage();
@@ -245,6 +245,7 @@ function abacusTool(){
     qa('[data-ab-bead]').forEach(bead=>{
       bead.onclick=e=>{
         e.stopPropagation();
+        if(bead.dataset.abDragged==='1'){bead.dataset.abDragged='';return}
         const [row,index]=String(bead.dataset.abBead).split(':').map(Number);
         clickBead(row,index);
       };
@@ -265,7 +266,7 @@ function abacusTool(){
       bead.onpointerup=e=>{
         if(!drag)return;
         const d=drag;drag=null;
-        if(!d.moved)clickBead(d.row,d.index);
+        if(d.moved)bead.dataset.abDragged='1';
       };
       bead.onpointercancel=()=>{drag=null};
     });
@@ -383,7 +384,7 @@ function abacusTool(){
       if(kind==='copy'){await X.copyPng(svg);exportStatus='Image copied.'}
       else if(kind==='png'){await X.downloadPng(svg,filename,2);exportStatus='PNG downloaded.'}
       else if(kind==='svg'){X.downloadSvg(svg,filename);exportStatus='SVG downloaded.'}
-      else if(kind==='print'){X.printSvg(svg,{title:task?taskTitle(task.mode):'Abacus',prompt:task?.prompt||'',answer:task?.requiresAnswer?String(task.answer):String(task?.target??''),showAnswer:revealed});exportStatus='Print view opened.'}
+      else if(kind==='print'){X.printSvg(svg,{title:task?'Abacus worksheet':'Abacus'});exportStatus='Print view opened.'}
     }catch(err){exportStatus=err?.message||'Export failed.'}
     const out=q('#ab-export-status');if(out)out.textContent=exportStatus;
   }
