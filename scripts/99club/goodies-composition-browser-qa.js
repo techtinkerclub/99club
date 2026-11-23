@@ -309,6 +309,9 @@ async function run(){
   const pvChallengeWorkflow=pvDoc.querySelector('[data-pv-workflow="challenge"]');
   assert(pvChallengeWorkflow,'Place Value challenge workflow remains available after direct frame export and counter actions');
   pvChallengeWorkflow.click();await tick();
+  const pvReadCategory=pvDoc.querySelector('[data-pv-challenge-cat="read"]');
+  assert(pvReadCategory,'Place Value embedded challenge exposes the Read & place value category');
+  pvReadCategory.click();await tick();
   const pvReadChallenge=pvDoc.querySelector('[data-pv-challenge-type="read-number"]');
   assert(pvReadChallenge,'Place Value read-number challenge is available in the embedded whiteboard widget');
   pvReadChallenge.click();await tick();
