@@ -44,8 +44,10 @@ function placeValue(){
   ];
   let tokens=[],next=1,controller=null,resizeObserver=null,resizeFrame=0,lastStageWidth=0,notice='';
   let controlTab='setup',challengeTab='standard',challengeCategory='read',challengeType='read-number',challenge=null,beforeChallenge=null;
+  let representationMode='counters';
   let activityMode='powers',activityTarget=null,activityBudget=5,activityStatus='',powerMessage='',activityActive=false,activityContext='teach';
   let activityInput='',activityAnswer=null,activityHiddenIndex=-1,activityDigit=0,activityStartCounts=[],activityPrompt='';
+  let additionA=247,additionB=185,additionStep=0,additionDifficulty='mixed';
   let exportMode='diagram',responseLines=1,exportStatus='';
 
   function rangeFor(id=placeRange){return PLACE_RANGES.find(r=>r.id===id)||PLACE_RANGES.find(r=>r.id==='standard')}
@@ -70,12 +72,13 @@ function placeValue(){
   function counts(){const out=Array(places.length).fill(0);tokens.forEach(t=>{if(out[t.place]!=null)out[t.place]++});return out}
   function total(){return clean(tokens.reduce((sum,t)=>sum+(places[t.place]?.value||0),0))}
   function nonStandard(){return counts().some(n=>n>9)}
-  function stateSnapshot(){return{tokens:JSON.parse(JSON.stringify(tokens)),next,placeRange,rangeStart,rangeEnd}}
+  function stateSnapshot(){return{tokens:JSON.parse(JSON.stringify(tokens)),next,placeRange,rangeStart,rangeEnd,representationMode}}
   function restoreState(value){
     if(Number.isInteger(value?.rangeStart)&&Number.isInteger(value?.rangeEnd))applyPlaceWindow(value.rangeStart,value.rangeEnd,value.placeRange||'custom');
     else setPlaceRange(value?.placeRange||'standard');
     tokens=Array.isArray(value?.tokens)?value.tokens.map(t=>({...t,place:clamp(Math.round(num(t.place,Math.min(4,places.length-1))),0,places.length-1)})):[];
     next=Math.max(1,Math.round(num(value?.next,1)));
+    representationMode=['counters','abacus','both'].includes(value?.representationMode)?value.representationMode:representationMode;
     notice='';
   }
   function buildFromNumber(raw){
@@ -267,20 +270,128 @@ function placeValue(){
     for(let n=0;n<10;n++)tokens.push({id:next++,place:source+1,x:0,y:0,locked:false});
     layoutTokens();return true;
   }
+  function digitsForValue(value){
+    const scale=valueScale(),units=Math.round(normaliseValue(value)*scale);
+    return places.map(place=>{
+      const unitValue=Math.max(1,Math.round(place.value*scale));
+      return Math.floor(units/unitValue)%10;
+    });
+  }
+  function valueFromDigits(digits){
+    return normaliseValue((digits||[]).reduce((sum,digit,index)=>sum+(Number(digit)||0)*(places[index]?.value||0),0));
+  }
+  function additionNeedsRegroup(a,b){
+    const ad=digitsForValue(a),bd=digitsForValue(b);
+    return ad.some((digit,index)=>digit+(bd[index]||0)>=10);
+  }
+  function randomAdditionProblem(){
+    const wholeIndexes=places.map((place,index)=>({place,index})).filter(x=>x.place.value>=1).map(x=>x.index);
+    const eligible=(wholeIndexes.length?wholeIndexes:places.map((_,index)=>index)).slice(-4);
+    for(let attempt=0;attempt<160;attempt++){
+      const ad=Array(places.length).fill(0),bd=Array(places.length).fill(0);
+      for(const i of eligible){
+        ad[i]=Math.floor(Math.random()*8);
+        bd[i]=Math.floor(Math.random()*7);
+        if(additionDifficulty==='no-regroup'&&ad[i]+bd[i]>9)bd[i]=Math.max(0,9-ad[i]);
+      }
+      if(!ad.some(Boolean))ad[places.length-1]=2+Math.floor(Math.random()*5);
+      if(!bd.some(Boolean))bd[places.length-1]=1+Math.floor(Math.random()*5);
+      const a=valueFromDigits(ad),b=valueFromDigits(bd),sum=normaliseValue(a+b),regroup=additionNeedsRegroup(a,b);
+      if(a<=0||b<=0||sum>rangeMax())continue;
+      if(additionDifficulty==='regroup'&&!regroup)continue;
+      if(additionDifficulty==='no-regroup'&&regroup)continue;
+      return{a,b,sum};
+    }
+    const step=Math.max(valueStep(),1),a=normaliseValue(Math.min(rangeMax()/3,247*step)),b=normaliseValue(Math.min(rangeMax()-a,185*step));
+    return{a,b,sum:normaliseValue(a+b)};
+  }
+  function additionPlaces(){
+    const digits=digitsForValue(additionB),order=[];
+    for(let i=places.length-1;i>=0;i--)if(digits[i]>0)order.push(i);
+    return order;
+  }
+  function additionProgressText(){
+    const order=additionPlaces();
+    if(additionStep>=order.length)return 'All of '+format(additionB)+' has been added. Check the total.';
+    const index=order[additionStep],digit=digitsForValue(additionB)[index]||0;
+    return 'Next: add '+digit+' '+places[index].name+'.';
+  }
+  function startAdditionProblem(a=null,b=null){
+    const problem=a==null||b==null?randomAdditionProblem():{a:normaliseValue(a),b:normaliseValue(b)};
+    const safeA=clamp(problem.a,0,rangeMax()),safeB=clamp(problem.b,0,Math.max(0,rangeMax()-safeA));
+    additionA=safeA;additionB=safeB;activityTarget=normaliseValue(safeA+safeB);additionStep=0;activityStatus='';
+    if(representationMode==='counters')representationMode='abacus';
+    controller?.mutate(()=>{buildFromNumber(additionA);notice='Start at '+format(additionA)+'. '+additionProgressText()});controller?.select(null);
+  }
+  function applyAdditionStep(){
+    if(activityMode!=='add'||activityContext!=='teach')return;
+    const order=additionPlaces();
+    if(additionStep>=order.length){activityStatus='All parts added — check the result.';controller?.refresh();return}
+    const index=order[additionStep],digit=digitsForValue(additionB)[index]||0,before=counts()[index]||0;
+    controller?.mutate(()=>{
+      const newValue=normaliseValue(total()+digit*places[index].value);
+      buildFromNumber(newValue);
+      const exchanged=before+digit>=10&&index>0;
+      const explanation='Added '+digit+' '+places[index].name+'.'+(exchanged?' Exchanged 10 '+places[index].name+' for 1 '+singularPlaceName(places[index-1])+'.':'');
+      additionStep++;
+      notice=explanation;
+      activityStatus=explanation+' '+additionProgressText();
+    });
+    controller?.select(null);
+  }
+  function resetAddition(){
+    additionStep=0;activityStatus='';
+    controller?.mutate(()=>{buildFromNumber(additionA);notice='Back to '+format(additionA)+'. '+additionProgressText()});controller?.select(null);
+  }
+  function setAbacusDigit(index,digit){
+    if(activityReadOnly())return;
+    index=clamp(Math.round(num(index,0)),0,places.length-1);digit=clamp(Math.round(num(digit,0)),0,9);
+    const cs=counts(),current=cs[index]||0;
+    const nextValue=normaliseValue(total()+(digit-current)*places[index].value);
+    if(nextValue<0||nextValue>rangeMax())return;
+    controller?.mutate(()=>{
+      tokens=tokens.filter(t=>t.place!==index);
+      for(let n=0;n<digit;n++)tokens.push({id:next++,place:index,x:0,y:0,locked:false});
+      notice='';layoutTokens();
+    });
+    controller?.select(null);
+  }
+  function nudgeAbacusDigit(index,delta){
+    if(activityReadOnly())return;
+    index=clamp(Math.round(num(index,0)),0,places.length-1);
+    const current=counts()[index]||0;
+    if(delta<0){if(current>0)setAbacusDigit(index,current-1);return}
+    if(current<9){setAbacusDigit(index,current+1);return}
+    if(index<=0||total()+places[index].value>rangeMax()){notice='That would go beyond the visible place-value range.';controller?.refresh();return}
+    controller?.mutate(()=>{
+      const nextValue=normaliseValue(total()+places[index].value);
+      buildFromNumber(nextValue);
+      notice='Exchanged 10 '+places[index].name+' for 1 '+singularPlaceName(places[index-1])+'.';
+    });
+    controller?.select(null);
+  }
+
+  function representationNoun(){
+    return representationMode==='abacus'?'abacus':representationMode==='both'?'linked counter chart and abacus':'place-value counters';
+  }
   function activityDescriptor(){
-    if(activityMode==='build')return{title:'Build the target',prompt:'Build '+format(activityTarget)+' with the place-value counters.'};
+    if(activityMode==='build')return{title:'Build the target',prompt:'Build '+format(activityTarget)+' with the '+representationNoun()+'.'};
     if(activityMode==='exact')return{title:'Exact counters',prompt:'Make '+format(activityTarget)+' using exactly '+activityBudget+' counters.'};
     if(activityMode==='regroup')return{title:'Regroup',prompt:'Regroup this non-standard representation into standard place-value digits without changing its value.'};
     if(activityMode==='same')return{title:'Same value, different way',prompt:'Show '+format(activityTarget)+' in a different way. Keep the value exactly the same.'};
-    if(activityMode==='read')return{title:'Read the number',prompt:'What number is represented by the counters?'};
-    if(activityMode==='hidden')return{title:'Hidden place',prompt:'This chart represents '+format(activityTarget)+'. How many '+(places[activityHiddenIndex]?.name||'place-value')+' counters are hidden?'};
+    if(activityMode==='read')return{title:'Read the number',prompt:'What number is represented by the '+representationNoun()+'?'};
+    if(activityMode==='hidden')return{title:'Hidden place',prompt:'This representation shows '+format(activityTarget)+'. How many '+(places[activityHiddenIndex]?.name||'place-value')+' units are hidden?'};
     if(activityMode==='digit')return{title:'Digit value',prompt:'What is the value of the digit '+activityDigit+' in the '+(places[activityHiddenIndex]?.name||'selected')+' column?'};
+    if(activityMode==='add')return{title:'Addition',prompt:'Start with '+format(additionA)+'. Add '+format(additionB)+'.'};
     return{title:'Place value',prompt:''};
   }
   function startActivity(mode=activityMode,context=activityContext){
-    const modes=['powers','build','exact','regroup','same','read','hidden','digit'];
+    const modes=['powers','build','exact','regroup','same','read','hidden','digit','add'];
     activityMode=modes.includes(mode)?mode:'powers';activityContext=context==='challenge'?'challenge':'teach';activityActive=true;activityStatus='';powerMessage='';activityInput='';activityAnswer=null;activityHiddenIndex=-1;activityDigit=0;activityStartCounts=[];activityPrompt='';
-    if(activityMode==='powers'){
+    if(['exact','regroup','same'].includes(activityMode)&&representationMode!=='counters')representationMode='counters';
+    if(activityMode==='add'){
+      startAdditionProblem();
+    }else if(activityMode==='powers'){
       const value=total();controller?.mutate(()=>{buildFromNumber(value);notice=''});controller?.select(null);
     }else if(activityMode==='exact'){
       activityTarget=exactCounterTarget(activityBudget);
@@ -325,7 +436,7 @@ function placeValue(){
     controller?.refresh();renderControls();
   }
   function randomActivityChallengeMode(){
-    const modes=['build','exact','regroup','same','read','hidden','digit'];
+    const modes=['build','exact','regroup','same','read','hidden','digit','add'];
     return modes[Math.floor(Math.random()*modes.length)];
   }
   function startRandomActivityChallenge(surface='activity'){
@@ -339,7 +450,9 @@ function placeValue(){
   function checkActivity(){
     if(activityMode==='powers')return;
     const target=clean(activityTarget),value=total(),same=Math.abs(value-target)<(valueStep()/2+1e-9);
-    if(activityMode==='exact'){
+    if(activityMode==='add'){
+      activityStatus=same?'Correct ✓ — '+format(additionA)+' + '+format(additionB)+' = '+format(target)+'.':'Not yet — the abacus currently shows '+format(value)+'.';
+    }else if(activityMode==='exact'){
       const rightCount=tokens.length===activityBudget;
       activityStatus=same&&rightCount?'Correct ✓':same?'Right value — now use exactly '+activityBudget+' counters.':rightCount?'You used '+activityBudget+' counters, but the value is not '+format(target)+' yet.':'Keep going — match both the target and the counter limit.';
     }else if(activityMode==='regroup'){
@@ -364,10 +477,23 @@ function placeValue(){
       ['same','Same value'],
       ['read','Read'],
       ['hidden','Hidden place'],
-      ['digit','Digit value']
+      ['digit','Digit value'],
+      ['add','Addition']
     ].map(([id,label])=>'<button class="gd-btn'+(activityMode===id?' gd-btn--primary':'')+'" type="button" data-pv-activity-mode="'+id+'">'+label+'</button>').join('');
     let extras='';
     if(activityMode==='powers')extras='<p class="gd-help">Show how digits move through place-value columns while the decimal point stays fixed.</p>';
+    else if(activityMode==='add')extras=
+      '<div class="gd-row gd-pv-addition-inputs">'+
+        field('Start','<input class="gd-input" id="pv-add-a" type="number" min="0" max="'+rangeMax()+'" step="'+valueStep()+'" value="'+additionA+'">')+
+        field('Add','<input class="gd-input" id="pv-add-b" type="number" min="0" max="'+rangeMax()+'" step="'+valueStep()+'" value="'+additionB+'">')+
+      '</div>'+
+      field('Problems','<select class="gd-select" id="pv-add-difficulty">'+
+        '<option value="mixed"'+(additionDifficulty==='mixed'?' selected':'')+'>Mixed</option>'+
+        '<option value="no-regroup"'+(additionDifficulty==='no-regroup'?' selected':'')+'>No regrouping</option>'+
+        '<option value="regroup"'+(additionDifficulty==='regroup'?' selected':'')+'>Needs regrouping</option>'+
+      '</select>')+
+      '<div class="gd-row"><button class="gd-btn gd-btn--primary" id="pv-add-set" type="button">Set addition</button><button class="gd-btn" id="pv-activity-new" type="button">New problem</button></div>'+
+      '<p class="gd-help">Use the abacus to add by place value. In Teach mode, Next place demonstrates each part and carries automatically.</p>';
     else if(activityMode==='exact')extras=field('Counters to use','<select class="gd-select" id="pv-activity-budget">'+[3,4,5,6,7,8,9].map(n=>'<option value="'+n+'"'+(activityBudget===n?' selected':'')+'>'+n+'</option>').join('')+'</select>')+
       '<button class="gd-btn" id="pv-activity-new" type="button">New task</button><p class="gd-help">Build the target using exactly the chosen number of counters.</p>';
     else extras='<button class="gd-btn" id="pv-activity-new" type="button">New task</button>';
@@ -392,9 +518,12 @@ function placeValue(){
     const descriptor=activityDescriptor();
     const answer=activityAnswerMode()?'<div class="gd-pv-activity-response"><label>Answer <input type="text" inputmode="decimal" autocomplete="off" data-pv-activity-answer value="'+esc(activityInput)+'"></label></div>':'';
     const activityLabel=activityContext==='challenge'?'CHALLENGE':'PLAY';
+    const additionGuide=activityMode==='add'&&activityContext==='teach'
+      ?'<div class="gd-pv-addition-guide"><span>'+esc(additionProgressText())+'</span><div><button type="button" data-pv-add-next'+(additionStep>=additionPlaces().length?' disabled':'')+'>Next place</button><button type="button" data-pv-add-reset>Reset</button></div></div>'
+      :'';
     return '<section class="gd-pv-activity gd-pv-activity--game" data-pv-activity-kind="'+activityMode+'" aria-label="'+esc(descriptor.title)+'">'+
       '<div class="gd-pv-activity-head"><div><span>'+activityLabel+' · '+esc(descriptor.title.toUpperCase())+'</span><strong>'+esc(descriptor.prompt)+'</strong></div><em>'+esc(activityStatus||'')+'</em></div>'+
-      answer+'<div class="gd-pv-activity-actions"><button type="button" data-pv-activity-check>Check</button><button type="button" data-pv-activity-another>Another</button></div></section>';
+      answer+additionGuide+'<div class="gd-pv-activity-actions"><button type="button" data-pv-activity-check>Check</button><button type="button" data-pv-activity-another>Another</button></div></section>';
   }
 
   function challengeControlsHtml(){
@@ -414,7 +543,8 @@ function placeValue(){
       ['same','Same value'],
       ['read','Read number'],
       ['hidden','Hidden place'],
-      ['digit','Digit value']
+      ['digit','Digit value'],
+      ['add','Addition']
     ].map(([id,label])=>'<button class="gd-btn'+(activityActive&&activityContext==='challenge'&&activityMode===id?' gd-btn--primary':'')+'" type="button" data-pv-challenge-mode="'+id+'">'+label+'</button>').join('');
     return tabs+
       '<div class="pv-challenge-task-grid" role="group" aria-label="Place Value challenge types">'+tasks+'</div>'+
@@ -501,7 +631,52 @@ function placeValue(){
     svg.appendChild(pvSvgEl('rect',{x:boardX,y:boardY,width:boardW,height:boardH,rx:8,ry:8,fill:'none',stroke:'#8fa5aa','stroke-width':2.2,'data-pv-export-outline':'1'}));
     return svg;
   }
+  function abacusExportSvg({pupil=false}={}){
+    const cs=counts(),width=1000,pad=18,boardX=pad,boardY=12,boardW=width-pad*2,colW=boardW/places.length;
+    const headerH=72,bodyH=280,footerH=34,boardH=headerH+bodyH+footerH,height=boardY+boardH+12;
+    const svg=pvSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Place value abacus','data-pv-export':'abacus'});
+    svg.appendChild(pvSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
+    svg.appendChild(pvSvgEl('rect',{x:boardX,y:boardY,width:boardW,height:boardH,rx:9,fill:'#ead9bd',stroke:'#65777b','stroke-width':3,'data-pv-export-abacus':'1'}));
+    places.forEach((place,index)=>{
+      const x=boardX+index*colW,cx=x+colW/2,isDecimal=place.value<1&&(index===0||places[index-1].value>=1);
+      const target=activityActive&&activityMode==='digit'&&index===activityHiddenIndex;
+      const hidden=activityActive&&activityMode==='hidden'&&index===activityHiddenIndex;
+      if(index>0)svg.appendChild(pvSvgEl('line',{x1:x,y1:boardY,x2:x,y2:boardY+boardH,stroke:isDecimal?'#536c72':'#b5a58d','stroke-width':isDecimal?4:1.5}));
+      svg.appendChild(pvSvgEl('rect',{x,y:boardY,width:colW,height:headerH,fill:target?'#fff1b8':'rgba(255,255,255,.62)'}));
+      svg.appendChild(pvSvgEl('text',{x:cx,y:boardY+29,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':20,'font-weight':850,fill:'#2d454d'},place.label));
+      svg.appendChild(pvSvgEl('text',{x:cx,y:boardY+52,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':12,'font-weight':600,fill:'#61767c'},place.name));
+      svg.appendChild(pvSvgEl('line',{x1:cx,y1:boardY+headerH+8,x2:cx,y2:boardY+headerH+bodyH-8,stroke:'#6f5d48','stroke-width':5,'stroke-linecap':'round'}));
+      if(hidden){
+        svg.appendChild(pvSvgEl('circle',{cx,cy:boardY+headerH+bodyH/2,r:25,fill:'#ffffff',stroke:'#b6c1c2','stroke-width':1.5}));
+        svg.appendChild(pvSvgEl('text',{x:cx,y:boardY+headerH+bodyH/2+8,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':27,'font-weight':850,fill:'#6f7d80'},'?'));
+      }else{
+        const count=clamp(cs[index]||0,0,9),gap=(bodyH-28)/8;
+        for(let value=9;value>=1;value--){
+          const row=9-value,cy=boardY+headerH+14+row*gap,active=value<=count;
+          const bw=Math.min(54,colW*.58),bh=16;
+          svg.appendChild(pvSvgEl('rect',{x:cx-bw/2,y:cy-bh/2,width:bw,height:bh,rx:8,fill:active?place.color:'#edf1f1',stroke:active?'#788b8e':'#c5cecf','stroke-width':1.2}));
+        }
+      }
+      if(!pupil&&!activityAnswerMode()){
+        svg.appendChild(pvSvgEl('text',{x:cx,y:boardY+headerH+bodyH+23,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':14,'font-weight':800,fill:'#42575e'},String(cs[index]||0)));
+      }
+    });
+    return svg;
+  }
+  function combinedRepresentationExportSvg({pupil=false}={}){
+    const counter=boardExportSvg({pupil}),abacus=abacusExportSvg({pupil});
+    const counterH=Number((counter.getAttribute('viewBox')||'0 0 1000 450').split(/\s+/)[3])||450;
+    const abacusH=Number((abacus.getAttribute('viewBox')||'0 0 1000 410').split(/\s+/)[3])||410;
+    const gap=16,height=counterH+abacusH+gap;
+    const svg=pvSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 1000 '+height,role:'img','aria-label':'Linked place value chart and abacus','data-pv-export':'both'});
+    svg.appendChild(pvSvgEl('rect',{x:0,y:0,width:1000,height,fill:'#ffffff'}));
+    const g1=pvSvgEl('g');[...counter.childNodes].forEach(node=>g1.appendChild(node.cloneNode(true)));svg.appendChild(g1);
+    const g2=pvSvgEl('g',{transform:'translate(0 '+(counterH+gap)+')'});[...abacus.childNodes].forEach(node=>g2.appendChild(node.cloneNode(true)));svg.appendChild(g2);
+    return svg;
+  }
   function worksheetBoardSvg({pupil=false}={}){
+    if(representationMode==='abacus')return abacusExportSvg({pupil});
+    if(representationMode==='both')return combinedRepresentationExportSvg({pupil});
     return boardExportSvg({pupil});
   }
 
@@ -542,7 +717,7 @@ function placeValue(){
         title,prompt,responseLabel,responseLines,responseMode:mode,paperStyle:'plain',brand:'99 Club Studio'
       });
     }
-    return boardExportSvg({pupil:false});
+    return worksheetBoardSvg({pupil:false});
   }
   function exportName(){
     const meta=challenge&&CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
@@ -562,8 +737,14 @@ function placeValue(){
       if(kind==='print'){X.printSvg(target,{title:'',landscape:true});exportMessage('Print view opened. Choose “Save as PDF” in the print dialog.')}
     }catch(err){exportMessage(err?.message||'That export did not work.')}
   }
+  function representationControlsHtml(){
+    return '<div class="pv-representation-tabs" role="tablist" aria-label="Place Value representation">'+
+      ['counters','abacus','both'].map(mode=>'<button type="button" class="'+(representationMode===mode?'is-active':'')+'" data-pv-representation="'+mode+'">'+(mode==='counters'?'Counters':mode==='abacus'?'Abacus':'Both')+'</button>').join('')+
+      '</div>';
+  }
   function controlsHtml(){
     return '<button type="button" data-pv-random-challenge hidden aria-hidden="true" tabindex="-1">Challenge</button>'+
+      representationControlsHtml()+
       '<div class="gd-row pv-mode-tabs" role="tablist" aria-label="Place Value workflow">'+
       '<button class="gd-btn'+(controlTab==='setup'?' gd-btn--primary':'')+'" type="button" data-pv-workflow="setup">Setup</button>'+
       '<button class="gd-btn'+(controlTab==='activity'?' gd-btn--primary':'')+'" type="button" data-pv-workflow="activity">Teach / play</button>'+
@@ -600,6 +781,9 @@ function placeValue(){
   }
   function stageNotice(){
     if(notice)return notice;
+    if(activityMode==='add'&&activityActive)return activityContext==='teach'?additionProgressText():'Use the abacus or counters to add '+format(additionB)+' to '+format(additionA)+'.';
+    if(representationMode==='abacus')return 'Tap a bead or use + / − on a rod. Adding a tenth bead exchanges automatically into the next place.';
+    if(representationMode==='both')return 'The counter chart and abacus are linked: change either representation and the number updates in both.';
     return nonStandard()?'This is a non-standard representation. Regroup to show the same value using standard digits.':'Drag a counter into another column to change its place value.';
   }
   function tokenMarkup(t,selectedId){
@@ -639,19 +823,54 @@ function placeValue(){
       '</div></div>'+
       '</div>';
   }
+  function abacusRodMarkup(place,index,cs){
+    const hidden=activityActive&&activityMode==='hidden'&&index===activityHiddenIndex;
+    const target=activityActive&&activityMode==='digit'&&index===activityHiddenIndex;
+    const readOnly=activityReadOnly(),count=clamp(cs[index]||0,0,9),countText=columnCountHidden(index)?'?':count;
+    const beads=[];
+    for(let value=9;value>=1;value--){
+      const active=!hidden&&value<=count;
+      beads.push('<button type="button" class="gd-pv-abacus-bead'+(active?' is-active':'')+'" data-pv-abacus-nudge="'+index+':'+(active?-1:1)+'" aria-label="'+(active?'Remove one ':'Add one ')+place.name+' bead"'+(readOnly||hidden?' disabled':'')+' style="--pv-bead:'+place.color+'"><span></span></button>');
+    }
+    const decimalStart=place.value<1&&(index===0||places[index-1].value>=1);
+    return '<div class="gd-pv-abacus-rod'+(decimalStart?' is-decimal-start':'')+(target?' is-activity-target':'')+(hidden?' is-hidden-place':'')+'" data-pv-abacus-rod="'+index+'">'+
+      '<div class="gd-pv-abacus-label"><strong>'+place.label+'</strong><small>'+place.name+'</small></div>'+
+      '<div class="gd-pv-abacus-track" aria-label="'+place.name+' abacus rod">'+
+        '<span class="gd-pv-abacus-stick" aria-hidden="true"></span>'+
+        '<div class="gd-pv-abacus-beads">'+beads.join('')+'</div>'+
+        (hidden?'<b class="gd-pv-abacus-hidden">?</b>':'')+
+      '</div>'+
+      '<div class="gd-pv-abacus-controls">'+
+        '<button type="button" data-pv-abacus-nudge="'+index+':-1" aria-label="Remove one '+place.name+' bead"'+(readOnly||hidden||count<=0?' disabled':'')+'>−</button>'+
+        '<span data-pv-abacus-count="'+index+'">'+(hidden?'?':countText)+'</span>'+
+        '<button type="button" data-pv-abacus-nudge="'+index+':1" aria-label="Add one '+place.name+' bead"'+(readOnly||hidden||(count>=9&&(index===0||total()+place.value>rangeMax()))?' disabled':'')+'>+</button>'+
+      '</div>'+
+    '</div>';
+  }
+  function abacusMarkup(cs){
+    return '<div class="gd-pv-abacus" id="pv-abacus" style="--pv-cols:'+places.length+'" aria-label="Place value abacus">'+
+      '<div class="gd-pv-abacus-frame">'+places.map((place,index)=>abacusRodMarkup(place,index,cs)).join('')+'</div>'+
+    '</div>';
+  }
+  function counterBoardMarkup(height,cs,selectedId,selected,meta){
+    return '<div class="gd-pv-board-wrap" data-pv-representation-view="counters">'+
+      '<div class="gd-pv-canvas" id="pv-canvas" data-gd-canvas-bg style="min-height:'+height+'px;--pv-cols:'+places.length+'">'+
+        '<div class="gd-pv-columns">'+places.map((p,i)=>columnMarkup(p,i,cs)).join('')+'</div>'+
+        tokens.map(t=>tokenMarkup(t,selectedId)).join('')+
+      '</div>'+
+      railMarkup(selected,meta)+
+    '</div>';
+  }
+
   function render(selectedId,meta){
     const height=layoutTokens(),cs=counts(),selected=tokens.find(t=>String(t.id)===String(selectedId))||null;
     const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Place Value challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
     const activity=activityBannerHtml();
     const directExports='<div hidden aria-hidden="true">'+['copy','png','svg','print'].map(kind=>'<button type="button" data-gd-direct-export="'+kind+'">'+kind+'</button>').join('')+'</div>';
-    q('#gd-stage').innerHTML=banner+activity+directExports+'<div class="gd-vis gd-pv-workspace">'+
-      '<div class="gd-pv-board-wrap">'+
-        '<div class="gd-pv-canvas" id="pv-canvas" data-gd-canvas-bg style="min-height:'+height+'px;--pv-cols:'+places.length+'">'+
-          '<div class="gd-pv-columns">'+places.map((p,i)=>columnMarkup(p,i,cs)).join('')+'</div>'+
-          tokens.map(t=>tokenMarkup(t,selectedId)).join('')+
-        '</div>'+
-        railMarkup(selected,meta)+
-      '</div>'+
+    const counterView=representationMode!=='abacus'?counterBoardMarkup(height,cs,selectedId,selected,meta):'';
+    const abacusView=representationMode!=='counters'?abacusMarkup(cs):'';
+    q('#gd-stage').innerHTML=banner+activity+directExports+'<div class="gd-vis gd-pv-workspace is-'+representationMode+'">'+
+      counterView+abacusView+
       '<div class="gd-pv-summary">'+
         '<div><span>Number represented</span><strong id="pv-total"'+(summaryHidden('total')?' class="gd-pv-answer-hidden"':'')+'>'+(summaryHidden('total')?'?':format(total()))+'</strong></div>'+
         '<div><span>Board representation</span><strong id="pv-expanded"'+(summaryHidden('expanded')?' class="gd-pv-answer-hidden"':'')+'>'+(summaryHidden('expanded')?hiddenSummaryText():expandedText())+'</strong></div>'+
@@ -735,6 +954,20 @@ function placeValue(){
     qa('[data-pv-remove]',q('#gd-stage')).forEach(button=>button.onclick=e=>{
       e.stopPropagation();removeCounter(+button.dataset.pvRemove);
     });
+    qa('[data-pv-abacus-set]',q('#gd-stage')).forEach(button=>button.onclick=e=>{
+      e.stopPropagation();
+      const [index,value]=String(button.dataset.pvAbacusSet||'').split(':').map(Number);
+      setAbacusDigit(index,value);
+    });
+    qa('[data-pv-abacus-nudge]',q('#gd-stage')).forEach(button=>button.onclick=e=>{
+      e.stopPropagation();
+      const [index,delta]=String(button.dataset.pvAbacusNudge||'').split(':').map(Number);
+      nudgeAbacusDigit(index,delta);
+    });
+    const addNext=q('[data-pv-add-next]',q('#gd-stage'));
+    if(addNext)addNext.onclick=e=>{e.stopPropagation();applyAdditionStep()};
+    const addReset=q('[data-pv-add-reset]',q('#gd-stage'));
+    if(addReset)addReset.onclick=e=>{e.stopPropagation();resetAddition()};
     const reveal=q('[data-board-action="reveal"]',q('#gd-stage'));
     if(reveal)reveal.onclick=e=>{e.stopPropagation();if(!challenge)return;challenge.revealed=!challenge.revealed;renderControls();controller?.refresh()};
     const another=q('[data-challenge-action="another"]',q('#gd-stage'));
@@ -768,6 +1001,18 @@ function placeValue(){
     if(regroup)regroup.disabled=!nonStandard()||total()>rangeMax();
   }
   function bindControls(){
+    qa('[data-pv-representation]').forEach(button=>button.onclick=()=>{
+      const mode=button.dataset.pvRepresentation;
+      if(!['counters','abacus','both'].includes(mode))return;
+      controller?.mutate(()=>{
+        representationMode=mode;
+        if(mode!=='counters'&&nonStandard()&&total()<=rangeMax()){
+          const value=total();buildFromNumber(value);
+          notice='The abacus uses standard digits, so the same value was regrouped first.';
+        }
+      });
+      controller?.select(null);renderControls();
+    });
     const randomActivityChallenge=q('[data-pv-random-challenge]');
     if(randomActivityChallenge)randomActivityChallenge.onclick=()=>startRandomActivityChallenge('activity');
     qa('[data-pv-workflow]').forEach(button=>button.onclick=()=>{
@@ -795,6 +1040,14 @@ function placeValue(){
     const activityBudgetSelect=q('#pv-activity-budget');if(activityBudgetSelect)activityBudgetSelect.onchange=()=>{
       activityBudget=clamp(Math.round(num(activityBudgetSelect.value,5)),3,9);
       startActivity('exact',activityContext);
+    };
+    const additionDifficultySelect=q('#pv-add-difficulty');if(additionDifficultySelect)additionDifficultySelect.onchange=()=>{
+      additionDifficulty=['mixed','no-regroup','regroup'].includes(additionDifficultySelect.value)?additionDifficultySelect.value:'mixed';
+    };
+    const additionSet=q('#pv-add-set');if(additionSet)additionSet.onclick=()=>{
+      const a=normaliseValue(num(q('#pv-add-a')?.value,additionA)),b=normaliseValue(num(q('#pv-add-b')?.value,additionB));
+      if(a<0||b<0||a+b>rangeMax()){activityStatus='Choose two numbers whose sum fits the visible place range.';controller?.refresh();return}
+      startAdditionProblem(a,b);renderControls();
     };
     const activityNew=q('#pv-activity-new');if(activityNew)activityNew.onclick=()=>startActivity(activityMode,activityContext);
     const applyRangeChange=(start,end,id='custom')=>{
@@ -913,7 +1166,7 @@ function placeValue(){
     getItems:()=>tokens,
     getState:stateSnapshot,
     setState:restoreState,
-    getCanvas:()=>q('#pv-canvas'),
+    getCanvas:()=>q('#pv-canvas')||q('#pv-abacus'),
     getActionRoot:()=>q('#gd-stage'),
     render,
     isLocked:item=>!!item.locked||activityReadOnly(),

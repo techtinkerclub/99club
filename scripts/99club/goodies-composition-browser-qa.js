@@ -295,8 +295,8 @@ async function run(){
   assert(!visible(pvFloating),'Frame Challenge starts a pupil task directly instead of opening another settings/picker palette');
   const pvGame=pvDoc.querySelector('.gd-pv-activity--game');
   assert(pvGame,'Frame Challenge immediately creates an active Place Value pupil task');
-  const pvBoardWrap=pvDoc.querySelector('.gd-pv-board-wrap');
-  const pvChallengeGap=Math.round(pvBoardWrap.getBoundingClientRect().top-pvGame.getBoundingClientRect().bottom);
+  const pvRepresentationView=pvDoc.querySelector('.gd-pv-board-wrap,.gd-pv-abacus');
+  const pvChallengeGap=Math.round(pvRepresentationView.getBoundingClientRect().top-pvGame.getBoundingClientRect().bottom);
   assert(pvChallengeGap>=6&&pvChallengeGap<=16,'Place Value challenge card keeps a small fixed gap before the table: '+pvChallengeGap+'px');
   const livePvRecord=()=>TT99Goodies.compositionBoard.objects().find(x=>String(x.id)===String(pvRecord.id));
   const pvBaseBeforeProbe=livePvRecord().baseH;
@@ -311,10 +311,11 @@ async function run(){
   pvDoc.getElementById('gd-stage').dispatchEvent(new MouseEvent('click',{bubbles:true}));
   await tick(180);
   assert(livePvRecord().baseH<pvBaseWithProbe-150,'Place Value auto-fit shrinks again after tall content is removed');
-  const pvChallengeKinds=['build','exact','regroup','same','read','hidden','digit'];
+  const pvChallengeKinds=['build','exact','regroup','same','read','hidden','digit','add'];
   assert(pvChallengeKinds.includes(pvGame.dataset.pvActivityKind),'Random frame Challenge chooses from the full pupil-task set');
   assert(pvDoc.querySelector('[data-pv-activity-check]')&&pvDoc.querySelector('[data-pv-activity-another]'),'Generated pupil challenge exposes Check and Another directly on the board');
   if(['build','exact'].includes(pvGame.dataset.pvActivityKind))assert(pvDoc.querySelectorAll('[data-gd-object]').length===0,'Build/Exact random challenges start with an empty pupil board');
+  else if(pvGame.dataset.pvActivityKind==='add')assert(pvDoc.querySelector('.gd-pv-abacus')&&Number((pvDoc.getElementById('pv-total').textContent||'').replace(/,/g,''))>0,'Random Addition challenge starts from the first addend on an abacus');
   else assert(pvDoc.querySelectorAll('[data-gd-object]').length>0,'Interpret/regroup/same-value random challenges start with a meaningful board representation');
 
   const challengeKindBefore=pvGame.dataset.pvActivityKind;
@@ -334,6 +335,13 @@ async function run(){
   pvWin.TT99Goodies.exportTools.downloadSvg=pvOldChallengeSvg;
 
   pvDoc.querySelector('[data-pv-workflow="setup"]').click();await tick();
+  const repControls=[...pvDoc.querySelectorAll('[data-pv-representation]')];
+  assert(repControls.length===3,'Whiteboard Place Value settings exposes Counters / Abacus / Both');
+  pvDoc.querySelector('[data-pv-representation="abacus"]').click();await tick();
+  assert(pvDoc.querySelector('.gd-pv-abacus')&&!pvDoc.querySelector('.gd-pv-board-wrap'),'Whiteboard can switch the live Place Value widget into Abacus mode');
+  pvDoc.querySelector('[data-pv-representation="both"]').click();await tick();
+  assert(pvDoc.querySelector('.gd-pv-abacus')&&pvDoc.querySelector('.gd-pv-board-wrap'),'Whiteboard Both mode renders linked counters and abacus together');
+  pvDoc.querySelector('[data-pv-representation="counters"]').click();await tick();
   const pvSetupValue=pvDoc.getElementById('pv-value');
   pvSetupValue.value='20';
   pvDoc.getElementById('pv-build').click();await tick();

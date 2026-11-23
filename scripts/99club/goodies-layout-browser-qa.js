@@ -135,7 +135,7 @@ window.scrollTo=function(){};
     checkLayout(id,'challenge');
     if(id==='place-value'){
       const modes=[...controls.querySelectorAll('[data-pv-challenge-mode]')];
-      assert(modes.length===7,'place-value challenge controls expose all seven unified task types');
+      assert(modes.length===8,'place-value challenge controls expose all eight unified task types, including Addition');
       const random=controls.querySelector('#pv-challenge-random');
       assert(visible(random),'place-value challenge controls expose a direct Random challenge action');
       random.click();await tick();await tick();
