@@ -8,15 +8,27 @@ setPanels(`${field('Minimum','<input class="gd-input" id="nl-min" type="number" 
 function placeValue(){
   const I=G.interaction,CK=G.challengeKit,X=G.exportTools;
   if(!I){q('#gd-stage').innerHTML='<p class="gd-empty">The interactive place-value board could not start.</p>';return;}
-  const places=[
-    {label:'10,000',name:'ten thousands',value:10000,color:'#c9dbf2'},
-    {label:'1,000',name:'thousands',value:1000,color:'#d7cef0'},
-    {label:'100',name:'hundreds',value:100,color:'#f0cfda'},
-    {label:'10',name:'tens',value:10,color:'#f2d9bf'},
-    {label:'1',name:'ones',value:1,color:'#f3df86'},
-    {label:'0.1',name:'tenths',value:.1,color:'#cce6dc'},
-    {label:'0.01',name:'hundredths',value:.01,color:'#cde2ee'}
+  const PLACE_CATALOG=[
+    {power:7,label:'10,000,000',name:'ten millions',value:10000000,color:'#cbd9ef'},
+    {power:6,label:'1,000,000',name:'millions',value:1000000,color:'#ceddf2'},
+    {power:5,label:'100,000',name:'hundred thousands',value:100000,color:'#c9dbf2'},
+    {power:4,label:'10,000',name:'ten thousands',value:10000,color:'#c9dbf2'},
+    {power:3,label:'1,000',name:'thousands',value:1000,color:'#d7cef0'},
+    {power:2,label:'100',name:'hundreds',value:100,color:'#f0cfda'},
+    {power:1,label:'10',name:'tens',value:10,color:'#f2d9bf'},
+    {power:0,label:'1',name:'ones',value:1,color:'#f3df86'},
+    {power:-1,label:'0.1',name:'tenths',value:.1,color:'#cce6dc'},
+    {power:-2,label:'0.01',name:'hundredths',value:.01,color:'#cde2ee'},
+    {power:-3,label:'0.001',name:'thousandths',value:.001,color:'#c9ddec'}
   ];
+  const PLACE_RANGES=[
+    {id:'millions',label:'10,000,000 → 10',start:0},
+    {id:'whole',label:'1,000,000 → 1',start:1},
+    {id:'standard',label:'10,000 → 0.01',start:3},
+    {id:'decimals',label:'1,000 → 0.001',start:4}
+  ];
+  let placeRange='standard';
+  let places=PLACE_CATALOG.slice(3,10);
   const CHALLENGE_CATEGORIES=[
     {id:'read',label:'Read & place value'},
     {id:'build',label:'Build & regroup'},
