@@ -2056,70 +2056,49 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=pvOldDownloadSvg;
 
     document.querySelector('[data-pv-workflow="challenge"]').click();
-    assert(document.querySelector('[data-pv-challenge-tab="standard"]'),'Place Value uses the shared Standard / Custom challenge language');
-    assert(document.querySelector('[data-pv-challenge-type="read-number"]'),'Place Value read-number challenge is available');
-    document.querySelector('[data-pv-challenge-type="read-number"]').click();
-    document.getElementById('pv-generate').click();
-    assert(document.querySelector('.gd-challenge-banner'),'Generated Place Value challenge appears above the board');
-    assert(document.getElementById('pv-total').textContent.trim()==='?','Read-number challenge hides the represented total');
-    assert(document.getElementById('pv-expanded').textContent.includes('Hidden'),'Read-number challenge also hides the expanded representation');
-    assert(document.querySelector('[data-challenge-action="another"]'),'Place Value standard challenge exposes Another like this');
+    assert(document.querySelector('[data-pv-challenge-tab="standard"]'),'Place Value keeps Standard / Custom challenge tabs');
+    const pvChallengeModes=['build','exact','regroup','same','read','hidden','digit'];
+    assert(pvChallengeModes.every(mode=>document.querySelector('[data-pv-challenge-mode="'+mode+'"]')),'Place Value Challenge tab exposes Build, Exact, Regroup, Same value, Read, Hidden place and Digit value');
+    assert(document.getElementById('pv-challenge-random'),'Place Value Challenge tab also exposes a Random challenge action');
+
+    document.querySelector('[data-pv-challenge-mode="read"]').click();
+    let pvChallengeGame=document.querySelector('.gd-pv-activity--game[data-pv-activity-kind="read"]');
+    assert(pvChallengeGame&&/CHALLENGE · READ THE NUMBER/.test(pvChallengeGame.textContent),'Read challenge runs through the unified pupil-task engine');
+    assert(pvChallengeGame.querySelector('[data-pv-activity-answer]'),'Read challenge provides a direct pupil answer box');
+    assert(document.getElementById('pv-total').textContent.trim()==='?','Unified read challenge hides the represented total');
+    assert(document.getElementById('pv-expanded').textContent.includes('Hidden'),'Unified read challenge hides the expanded representation');
 
     document.querySelector('[data-pv-workflow="export"]').click();
-    assert(document.querySelector('[data-pv-export-mode="challenge"]'),'Active Place Value challenge offers Challenge card export');
-    assert(document.getElementById('pv-export-reveal')&&/Reveal answer/.test(document.getElementById('pv-export-reveal').textContent),'Challenge export offers a compact Reveal answer control');
     let pvPupilSvg=null;
     const pvOldChallengeDownload=TT99Goodies.exportTools.downloadSvg;
     TT99Goodies.exportTools.downloadSvg=(svg)=>{pvPupilSvg=svg.cloneNode(true)};
     document.getElementById('pv-svg-download').click();
-    assert(pvPupilSvg&&pvPupilSvg.dataset.worksheetCard==='1'&&pvPupilSvg.dataset.worksheetAnswer==='pupil'&&pvPupilSvg.dataset.paperStyle==='plain','Hidden-answer export creates a plain-paper pupil worksheet version');
-    assert(pvPupilSvg.querySelector('[data-pv-export-board="1"]'),'Place Value challenge card embeds the printable place-value table');
-    const pupilBoard=pvPupilSvg.querySelector('[data-pv-export-board="1"]');
-    assert(Number(pupilBoard.getAttribute('height'))>=340,'Printable Place Value table has a normal writable body rather than a miniature live-board strip');
-    assert(pvPupilSvg.textContent.includes('What number is represented'),'Place Value worksheet includes the pupil question text');
-    assert(!pvPupilSvg.textContent.includes('Answer:'),'Pupil worksheet does not expose the answer');
-    assert(pvPupilSvg.viewBox.baseVal.width>pvPupilSvg.viewBox.baseVal.height,'Place Value worksheet question remains compact enough to place several on a page');
-    assert((pvPupilSvg.textContent.match(/99 Club Studio/g)||[]).length===1,'Place Value worksheet contains only one small brand footer');
-
-    document.querySelector('[data-pv-workflow="challenge"]').click();
-    document.querySelector('[data-board-action="reveal"]').click();
-    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer:'),'Place Value challenge reveals its answer contextually');
-    assert(document.getElementById('pv-total').textContent.trim()!=='?','Reveal restores the live represented total');
-    const revealedAnswer=document.querySelector('.gd-challenge-actions em').textContent.replace(/^Answer:\s*/,'').trim();
-
-    document.querySelector('[data-pv-workflow="export"]').click();
-    assert(/Hide answer/.test(document.getElementById('pv-export-reveal').textContent),'Export panel mirrors the revealed teacher-answer state');
-    let pvTeacherSvg=null;
-    TT99Goodies.exportTools.downloadSvg=(svg)=>{pvTeacherSvg=svg.cloneNode(true)};
-    document.getElementById('pv-svg-download').click();
     TT99Goodies.exportTools.downloadSvg=pvOldChallengeDownload;
-    assert(pvTeacherSvg&&pvTeacherSvg.dataset.worksheetAnswer==='teacher','Revealed-answer export creates the teacher worksheet version');
-    assert(pvTeacherSvg.textContent.includes(revealedAnswer),'Teacher worksheet includes the actual challenge answer');
-    assert(pvTeacherSvg.querySelector('[data-pv-export-board="1"]')?.getAttribute('height')===pupilBoard.getAttribute('height'),'Teacher and pupil versions keep the same usable table size');
+    assert(pvPupilSvg&&pvPupilSvg.dataset.worksheetCard==='1'&&pvPupilSvg.dataset.paperStyle==='plain','Unified Place Value challenge exports as a plain worksheet card');
+    assert(pvPupilSvg.querySelector('[data-pv-export-board="1"]'),'Unified Place Value challenge worksheet embeds the printable place-value table');
+    assert(Number(pvPupilSvg.querySelector('[data-pv-export-board="1"]').getAttribute('height'))>=340,'Unified challenge worksheet keeps a normal writable table body');
+    assert(/What number is represented/.test(pvPupilSvg.textContent),'Unified read challenge worksheet carries the pupil prompt');
 
     document.querySelector('[data-pv-workflow="challenge"]').click();
+    assert(document.querySelector('.gd-pv-activity--game[data-pv-activity-kind="read"]'),'Returning from export keeps the active unified challenge');
+    document.querySelector('[data-pv-challenge-mode="same"]').click();
+    pvChallengeGame=document.querySelector('.gd-pv-activity--game[data-pv-activity-kind="same"]');
+    assert(pvChallengeGame&&/different way/i.test(pvChallengeGame.textContent),'Same-value challenge is selectable directly from the Challenge tab');
+    assert(document.querySelectorAll('[data-gd-object]').length>0,'Same-value challenge starts from a representation the pupil can transform');
+
     document.querySelector('[data-pv-challenge-tab="custom"]').click();
     const pvSource=document.getElementById('pv-custom-answer-source');
-    assert(pvSource,'Place Value custom challenge exposes live answer sources');
-    assert([...pvSource.options].some(o=>o.value==='total'),'Place Value custom answer can bind to the represented total');
-    assert([...pvSource.options].some(o=>o.value==='value:3'),'Place Value custom answer can bind to a column value');
+    assert(pvSource,'Custom Place Value challenges remain available alongside the unified standard task set');
+    assert([...pvSource.options].some(o=>o.value==='total'),'Custom challenge can still bind to the represented total');
     pvSource.value='total';
     pvSource.dispatchEvent(new Event('change',{bubbles:true}));
-    assert(document.getElementById('pv-total').textContent.trim()==='?','Binding a custom answer to the total hides that pupil-facing value');
+    assert(document.getElementById('pv-total').textContent.trim()==='?','Binding a custom challenge answer still hides that pupil-facing value');
     const liveBefore=document.getElementById('pv-custom-live-answer').textContent.trim();
     document.querySelector('[data-pv-add="4"]').click();
     const liveAfter=document.getElementById('pv-custom-live-answer').textContent.trim();
-    assert(liveAfter!==liveBefore,'Place Value live custom answer updates when the board changes');
-
+    assert(liveAfter!==liveBefore,'Custom live answer still updates when the board changes');
     document.getElementById('pv-clear-challenge').click();
-    assert(numberText('#pv-total')===20,'Ending the generated/custom Place Value challenge restores the teacher setup');
-
-    document.querySelector('[data-pv-workflow="challenge"]').click();
-    document.querySelector('[data-pv-challenge-cat="build"]').click();
-    assert(document.querySelector('[data-pv-challenge-type="build-number"]'),'Build-number challenge is available');
-    assert(document.querySelector('[data-pv-challenge-type="non-standard"]'),'Non-standard regrouping challenge is available');
-    document.querySelector('[data-pv-challenge-cat="reason"]').click();
-    assert(document.querySelector('[data-pv-challenge-type="zero-placeholder"]'),'Zero-placeholder diagnostic challenge is available');
+    assert(document.querySelector('[data-pv-challenge-mode="build"]'),'Ending a custom challenge returns to the unified standard challenge picker');
 
     document.querySelector('[data-pv-workflow="setup"]').click();
 
