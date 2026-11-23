@@ -372,7 +372,7 @@ function placeValue(){
   }
 
   function representationNoun(){
-    return representationMode==='abacus'?'abacus':representationMode==='both'?'linked counter chart and abacus':'place-value counters';
+    return representationMode==='abacus'?'place-value bead frame':representationMode==='both'?'linked counter chart and place-value frame':'place-value counters';
   }
   function activityDescriptor(){
     if(activityMode==='build')return{title:'Build the target',prompt:'Build '+format(activityTarget)+' with the '+representationNoun()+'.'};
@@ -451,7 +451,7 @@ function placeValue(){
     if(activityMode==='powers')return;
     const target=clean(activityTarget),value=total(),same=Math.abs(value-target)<(valueStep()/2+1e-9);
     if(activityMode==='add'){
-      activityStatus=same?'Correct ✓ — '+format(additionA)+' + '+format(additionB)+' = '+format(target)+'.':'Not yet — the abacus currently shows '+format(value)+'.';
+      activityStatus=same?'Correct ✓ — '+format(additionA)+' + '+format(additionB)+' = '+format(target)+'.':'Not yet — the place-value frame currently shows '+format(value)+'.';
     }else if(activityMode==='exact'){
       const rightCount=tokens.length===activityBudget;
       activityStatus=same&&rightCount?'Correct ✓':same?'Right value — now use exactly '+activityBudget+' counters.':rightCount?'You used '+activityBudget+' counters, but the value is not '+format(target)+' yet.':'Keep going — match both the target and the counter limit.';
@@ -493,7 +493,7 @@ function placeValue(){
         '<option value="regroup"'+(additionDifficulty==='regroup'?' selected':'')+'>Needs regrouping</option>'+
       '</select>')+
       '<div class="gd-row"><button class="gd-btn gd-btn--primary" id="pv-add-set" type="button">Set addition</button><button class="gd-btn" id="pv-activity-new" type="button">New problem</button></div>'+
-      '<p class="gd-help">Use the abacus to add by place value. In Teach mode, Next place demonstrates each part and carries automatically.</p>';
+      '<p class="gd-help">Use the place-value frame to add by place value. In Teach mode, Next place demonstrates each part and carries automatically.</p>';
     else if(activityMode==='exact')extras=field('Counters to use','<select class="gd-select" id="pv-activity-budget">'+[3,4,5,6,7,8,9].map(n=>'<option value="'+n+'"'+(activityBudget===n?' selected':'')+'>'+n+'</option>').join('')+'</select>')+
       '<button class="gd-btn" id="pv-activity-new" type="button">New task</button><p class="gd-help">Build the target using exactly the chosen number of counters.</p>';
     else extras='<button class="gd-btn" id="pv-activity-new" type="button">New task</button>';
@@ -634,7 +634,7 @@ function placeValue(){
   function abacusExportSvg({pupil=false}={}){
     const cs=counts(),width=1000,pad=18,boardX=pad,boardY=12,boardW=width-pad*2,colW=boardW/places.length;
     const headerH=72,bodyH=280,footerH=34,boardH=headerH+bodyH+footerH,height=boardY+boardH+12;
-    const svg=pvSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Place value abacus','data-pv-export':'abacus'});
+    const svg=pvSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Place value bead frame','data-pv-export':'abacus'});
     svg.appendChild(pvSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
     svg.appendChild(pvSvgEl('rect',{x:boardX,y:boardY,width:boardW,height:boardH,rx:9,fill:'#ead9bd',stroke:'#65777b','stroke-width':3,'data-pv-export-abacus':'1'}));
     places.forEach((place,index)=>{
@@ -668,7 +668,7 @@ function placeValue(){
     const counterH=Number((counter.getAttribute('viewBox')||'0 0 1000 450').split(/\s+/)[3])||450;
     const abacusH=Number((abacus.getAttribute('viewBox')||'0 0 1000 410').split(/\s+/)[3])||410;
     const gap=16,height=counterH+abacusH+gap;
-    const svg=pvSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 1000 '+height,role:'img','aria-label':'Linked place value chart and abacus','data-pv-export':'both'});
+    const svg=pvSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 1000 '+height,role:'img','aria-label':'Linked place value chart and bead frame','data-pv-export':'both'});
     svg.appendChild(pvSvgEl('rect',{x:0,y:0,width:1000,height,fill:'#ffffff'}));
     const g1=pvSvgEl('g');[...counter.childNodes].forEach(node=>g1.appendChild(node.cloneNode(true)));svg.appendChild(g1);
     const g2=pvSvgEl('g',{transform:'translate(0 '+(counterH+gap)+')'});[...abacus.childNodes].forEach(node=>g2.appendChild(node.cloneNode(true)));svg.appendChild(g2);
@@ -739,7 +739,7 @@ function placeValue(){
   }
   function representationControlsHtml(){
     return '<div class="pv-representation-tabs" role="tablist" aria-label="Place Value representation">'+
-      ['counters','abacus','both'].map(mode=>'<button type="button" class="'+(representationMode===mode?'is-active':'')+'" data-pv-representation="'+mode+'">'+(mode==='counters'?'Counters':mode==='abacus'?'Abacus':'Both')+'</button>').join('')+
+      ['counters','abacus','both'].map(mode=>'<button type="button" class="'+(representationMode===mode?'is-active':'')+'" data-pv-representation="'+mode+'">'+(mode==='counters'?'Counters':mode==='abacus'?'Place-value frame':'Both')+'</button>').join('')+
       '</div>';
   }
   function controlsHtml(){
@@ -781,9 +781,9 @@ function placeValue(){
   }
   function stageNotice(){
     if(notice)return notice;
-    if(activityMode==='add'&&activityActive)return activityContext==='teach'?additionProgressText():'Use the abacus or counters to add '+format(additionB)+' to '+format(additionA)+'.';
-    if(representationMode==='abacus')return 'Tap a bead or use + / − on a rod. Adding a tenth bead exchanges automatically into the next place.';
-    if(representationMode==='both')return 'The counter chart and abacus are linked: change either representation and the number updates in both.';
+    if(activityMode==='add'&&activityActive)return activityContext==='teach'?additionProgressText():'Use the place-value frame or counters to add '+format(additionB)+' to '+format(additionA)+'.';
+    if(representationMode==='abacus')return 'Tap a bead or use + / − on a place-value rod. Adding a tenth bead exchanges automatically into the next place.';
+    if(representationMode==='both')return 'The counter chart and place-value frame are linked: change either representation and the number updates in both.';
     return nonStandard()?'This is a non-standard representation. Regroup to show the same value using standard digits.':'Drag a counter into another column to change its place value.';
   }
   function tokenMarkup(t,selectedId){
@@ -835,7 +835,7 @@ function placeValue(){
     const decimalStart=place.value<1&&(index===0||places[index-1].value>=1);
     return '<div class="gd-pv-abacus-rod'+(decimalStart?' is-decimal-start':'')+(target?' is-activity-target':'')+(hidden?' is-hidden-place':'')+'" data-pv-abacus-rod="'+index+'">'+
       '<div class="gd-pv-abacus-label"><strong>'+place.label+'</strong><small>'+place.name+'</small></div>'+
-      '<div class="gd-pv-abacus-track" aria-label="'+place.name+' abacus rod">'+
+      '<div class="gd-pv-abacus-track" aria-label="'+place.name+' place-value rod">'+
         '<span class="gd-pv-abacus-stick" aria-hidden="true"></span>'+
         '<div class="gd-pv-abacus-beads">'+beads.join('')+'</div>'+
         (hidden?'<b class="gd-pv-abacus-hidden">?</b>':'')+

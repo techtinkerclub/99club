@@ -11,7 +11,7 @@ if(mode==='prepare'){
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="stylesheet" href="/assets/99club/goodies.css">
+<link rel="stylesheet" href="/assets/99club/goodies.css">\n<link rel="stylesheet" href="/assets/99club/goodies-abacus.css">
 </head>
 <body>
 <div id="tt99-goodies-root"></div>
@@ -35,6 +35,7 @@ document.exitFullscreen=function(){
 <script src="/assets/99club/goodies-challenge.js"></script>
 <script src="/assets/99club/goodies-export.js"></script>
 <script src="/assets/99club/goodies-tools-a.js"></script>
+<script src="/assets/99club/goodies-abacus.js"></script>
 <script src="/assets/99club/goodies-number-line-v6.js"></script>
 <script src="/assets/99club/goodies-tools-b.js"></script>
 <script src="/assets/99club/goodies-app.js"></script>
@@ -49,7 +50,7 @@ document.exitFullscreen=function(){
   }
   async function run(){
     const cards=[...document.querySelectorAll('[data-tool]')];
-    assert(cards.length>=18,'Expected the full Goodies manipulative catalogue');
+    assert(cards.length>=19,'Expected the full Goodies manipulative catalogue including Abacus');
     const ids=cards.map(x=>x.dataset.tool);
     assert(new Set(ids).size===ids.length,'Goodies catalogue tool ids must be unique');
     assert(window.TT99Goodies&&TT99Goodies.whiteboard,'Shared whiteboard controller is registered');

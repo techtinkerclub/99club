@@ -11,7 +11,7 @@ if(mode==='prepare'){
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="stylesheet" href="/assets/99club/goodies.css">
+<link rel="stylesheet" href="/assets/99club/goodies.css">\n<link rel="stylesheet" href="/assets/99club/goodies-abacus.css">
 <style>html{scroll-behavior:auto!important}</style>
 </head>
 <body>
@@ -25,6 +25,7 @@ window.scrollTo=function(){};
 <script src="/assets/99club/goodies-challenge.js"></script>
 <script src="/assets/99club/goodies-export.js"></script>
 <script src="/assets/99club/goodies-tools-a.js"></script>
+<script src="/assets/99club/goodies-abacus.js"></script>
 <script src="/assets/99club/goodies-number-line-v6.js"></script>
 <script src="/assets/99club/goodies-tools-b.js"></script>
 <script src="/assets/99club/goodies-app.js"></script>
@@ -102,7 +103,7 @@ window.scrollTo=function(){};
       const workflow=[...controls.children].find(el=>el.matches('[role="tablist"][aria-label$="workflow"]'));
       assert(workflow,label+' exposes workflow navigation at the top of the teacher controls');
       const workflowButtons=[...workflow.querySelectorAll('button')].filter(visible);
-      const expectedWorkflowCount=id==='place-value'?4:3;
+      const expectedWorkflowCount=(id==='place-value'||id==='abacus')?4:3;
       assert(workflowButtons.length===expectedWorkflowCount,label+' workflow navigation keeps the expected '+expectedWorkflowCount+' primary destinations');
       assert(getComputedStyle(workflow).display==='grid',label+' workflow navigation uses the shared equal-width grid');
       workflowButtons.forEach(button=>assert(button.scrollWidth<=button.clientWidth+4,label+' workflow label stays fully readable: '+button.textContent.trim()));
@@ -133,6 +134,26 @@ window.scrollTo=function(){};
     if(!workflow)return false;
     workflow.click();await tick();await tick();
     checkLayout(id,'challenge');
+    if(id==='abacus'){
+      const modes=[...controls.querySelectorAll('[data-ab-challenge-mode]')];
+      assert(modes.length===9,'abacus challenge controls expose all nine arithmetic and number-sense task types');
+      const random=controls.querySelector('#ab-random-challenge');
+      assert(visible(random),'abacus challenge controls expose a direct Random challenge action');
+      assert(!stage.querySelector('.gd-ab-task'),'opening the Abacus Challenge tab shows the picker without silently replacing the teacher setup');
+      random.click();await tick();await tick();
+      let game=stage.querySelector('.gd-ab-task');
+      assert(visible(game),'abacus Random challenge creates a pupil task on the stage');
+      assert(visible(game.querySelector('[data-ab-check]'))&&visible(game.querySelector('[data-ab-another]'))&&visible(game.querySelector('[data-ab-reveal]')),'abacus challenge exposes Check, Reveal and Another on the stage');
+      const kind=game.dataset.abTask;
+      game.querySelector('[data-ab-another]').click();await tick();await tick();
+      game=stage.querySelector('.gd-ab-task');
+      assert(visible(game)&&game.dataset.abTask===kind,'abacus Another keeps the chosen challenge type and creates a fresh task');
+      assert(stage.querySelector('[data-ab-total]').textContent.trim()==='?','abacus challenge keeps the total hidden before reveal');
+      game.querySelector('[data-ab-reveal]').click();await tick();await tick();
+      assert(stage.querySelector('[data-ab-total]').textContent.trim()!=='?','abacus Reveal shows the completed frame value');
+      checkLayout(id,'generated challenge');
+      return true;
+    }
     if(id==='place-value'){
       const modes=[...controls.querySelectorAll('[data-pv-challenge-mode]')];
       assert(modes.length===8,'place-value challenge controls expose all eight unified task types, including Addition');
@@ -176,7 +197,7 @@ window.scrollTo=function(){};
   async function run(){
     assert(window.TT99Goodies&&TT99Goodies.whiteboard,'Goodies app is registered');
     const cards=[...document.querySelectorAll('[data-tool]')];
-    assert(cards.length>=18,'Expected the full Goodies catalogue');
+    assert(cards.length>=19,'Expected the full Goodies catalogue including Abacus');
     const ids=cards.map(x=>x.dataset.tool),checked=[];
     for(const id of ids){
       const card=document.querySelector('[data-tool="'+id+'"]');

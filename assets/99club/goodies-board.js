@@ -9,12 +9,13 @@ const root=G.root;
 const tools=Array.isArray(G.toolCatalogue)?G.toolCatalogue:[];
 const SNAP=10;
 const BOARD_W=2800,BOARD_H=1800;
-const AUTO_SHRINK_HEIGHT_TOOLS=new Set(['place-value']);
+const AUTO_SHRINK_HEIGHT_TOOLS=new Set(['place-value','abacus']);
 let nextId=1,selectedId=null,snapOn=true,zCounter=10,drag=null,resize=null,pan=null;
 
 const defaults={
   'number-line':[760,360],
   'place-value':[820,520],
+  'abacus':[760,520],
   'fraction-wall':[720,660],
   'bar-model':[760,440],
   'hundred-square':[590,620],
@@ -40,10 +41,16 @@ const QUICK_ACTIONS={
     {label:'+ Line',selector:'[data-board-action="add-line"]',title:'Add aligned comparison line'}
   ],
   'place-value':[
-    {label:'Challenge',selector:'[data-pv-random-challenge]',allowHidden:true,title:'Give a random Place Value challenge, including abacus addition'},
+    {label:'Challenge',selector:'[data-pv-random-challenge]',allowHidden:true,title:'Give a random Place Value challenge'},
     {label:'Reveal answer',selector:'[data-board-action="reveal"]',dynamicLabel:true,title:'Reveal or hide the challenge answer'},
     {label:'Exchange 10→1',selector:'[data-gd-action="exchange-up"]',allowHidden:true,title:'Exchange ten selected-place counters for one of the next larger place'},
     {label:'Split 1→10',selector:'[data-gd-action="split-down"]',allowHidden:true,title:'Split the selected counter into ten of the next smaller place'}
+  ],
+  abacus:[
+    {label:'Challenge',selector:'[data-ab-random-challenge]',allowHidden:true,title:'Give a random Abacus challenge'},
+    {label:'−1',selector:'[data-ab-stage="-1"]',title:'Move one counted bead back'},
+    {label:'+1',selector:'[data-ab-stage="1"]',title:'Count one more bead'},
+    {label:'Clear',selector:'[data-ab-stage="clear"]',title:'Move all beads back',danger:true}
   ],
   'bar-model':[
     {label:'+ Part',selector:'#bm-add-stage'},
@@ -237,6 +244,10 @@ function renderFloatingControls(obj){
       clone.querySelector('[data-pv-workflow="export"]')?.remove();
     }
   }
+  if(obj.toolId==='abacus'&&floatingPanelMode!=='challenge'){
+    clone.querySelector('[data-ab-workflow="challenge"]')?.remove();
+    clone.querySelector('[data-ab-workflow="export"]')?.remove();
+  }
   const cloneInputs=[...clone.querySelectorAll(CONTROL_SELECTOR)];
   cloneInputs.forEach(node=>{
     const originalIndex=[...sourceInputs].findIndex(original=>{
@@ -268,6 +279,10 @@ function openFloatingControls(obj,mode='settings'){
   if(obj.toolId==='place-value'&&floatingPanelMode==='settings'){
     const source=sourceControls(obj),active=source?.querySelector('[data-pv-workflow].gd-btn--primary')?.dataset?.pvWorkflow;
     if(active==='challenge'||active==='export')source?.querySelector('[data-pv-workflow="setup"]')?.click();
+  }
+  if(obj.toolId==='abacus'&&floatingPanelMode==='settings'){
+    const source=sourceControls(obj),active=source?.querySelector('[data-ab-workflow].gd-btn--primary')?.dataset?.abWorkflow;
+    if(active==='challenge'||active==='export')source?.querySelector('[data-ab-workflow="setup"]')?.click();
   }
   if(floatingControlObjectId!=null&&String(floatingControlObjectId)!==String(obj.id)){
     const previous=objectById(floatingControlObjectId);if(previous)previous.settingsOpen=false;
