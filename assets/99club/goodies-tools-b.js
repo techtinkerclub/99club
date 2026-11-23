@@ -1120,6 +1120,7 @@ function measurementTool(){
 }
 
 function randomiser(){
+  const X=G.exportTools;
   let result='',diceValues=[],spinnerRotation=0,spinnerKind='colours',customSpinnerText='1\n2\n3\n4',busy=false,finishTimer=null;
   const COLOUR_SPINNER=[
     {label:'Red',colour:'#df4f4f',ink:'#ffffff'},
@@ -1249,9 +1250,68 @@ function randomiser(){
     busy=false;if(go)go.disabled=false;
     if(mode==='number')pickNumber();else drawCard();
   }
-  setPanels(field('Tool','<select class="gd-select" id="ra-mode"><option value="dice">Dice</option><option value="spinner">Spinner wheel</option><option value="number">Random number</option><option value="card">Playing card</option></select>')+'<div id="ra-extra"></div>'+btn('Roll dice','ra-go',true),'');
+  function raSvgEl(name,attrs={},text=''){
+    const el=document.createElementNS('http://www.w3.org/2000/svg',name);
+    Object.entries(attrs).forEach(([key,value])=>el.setAttribute(key,String(value)));
+    if(text!==''&&text!=null)el.textContent=String(text);
+    return el;
+  }
+  function paperSvg(){
+    const mode=q('#ra-mode')?.value||'dice',width=760,height=320;
+    const svg=raSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Randomiser result'});
+    const title=mode==='dice'?'Dice result':mode==='spinner'?'Spinner result':mode==='number'?'Random number':'Playing card';
+    svg.appendChild(raSvgEl('text',{x:32,y:38,'font-family':'Arial,sans-serif','font-size':20,'font-weight':850,fill:'#334a52'},title));
+    if(mode==='dice'){
+      const count=clamp(num(q('#ra-count')?.value,2),1,8),vals=diceValues.length===count?diceValues:Array.from({length:count},()=>null);
+      const gap=14,size=Math.min(86,(width-64-gap*(count-1))/count),totalW=count*size+(count-1)*gap,start=(width-totalW)/2,y=90;
+      vals.forEach((value,i)=>{
+        const x=start+i*(size+gap);
+        svg.appendChild(raSvgEl('rect',{x,y,width:size,height:size,rx:14,fill:'#ffffff',stroke:'#758a90','stroke-width':2}));
+        svg.appendChild(raSvgEl('text',{x:x+size/2,y:y+size/2+10,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':30,'font-weight':850,fill:'#30484f'},value==null?'?':String(value)));
+      });
+      if(diceValues.length===count){
+        const total=diceValues.reduce((a,b)=>a+b,0);
+        svg.appendChild(raSvgEl('text',{x:width/2,y:245,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':22,'font-weight':800,fill:'#176c65'},diceValues.join(' + ')+(count>1?' = '+total:'')));
+      }
+    }else if(mode==='spinner'){
+      const segments=wheelSegments(),cx=235,cy=168,r=100,n=Math.max(1,segments.length),step=Math.PI*2/n;
+      svg.appendChild(raSvgEl('circle',{cx,cy,r,fill:'#ffffff',stroke:'#74898f','stroke-width':2}));
+      segments.forEach((segment,i)=>{
+        const angle=-Math.PI/2+(i+.5)*step,x2=cx+Math.cos(-Math.PI/2+i*step)*r,y2=cy+Math.sin(-Math.PI/2+i*step)*r;
+        svg.appendChild(raSvgEl('line',{x1:cx,y1:cy,x2,y2,stroke:'#9caeb2','stroke-width':1.5}));
+        const tx=cx+Math.cos(angle)*66,ty=cy+Math.sin(angle)*66;
+        svg.appendChild(raSvgEl('text',{x:tx,y:ty+4,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':12,'font-weight':750,fill:'#40565d'},segment.label.slice(0,14)));
+      });
+      svg.appendChild(raSvgEl('text',{x:430,y:135,'font-family':'Arial,sans-serif','font-size':14,'font-weight':700,fill:'#73858a'},'Selected'));
+      svg.appendChild(raSvgEl('text',{x:430,y:175,'font-family':'Arial,sans-serif','font-size':30,'font-weight':850,fill:'#176c65'},result||'—'));
+    }else if(mode==='card'){
+      svg.appendChild(raSvgEl('rect',{x:290,y:70,width:180,height:210,rx:18,fill:'#ffffff',stroke:'#758a90','stroke-width':2}));
+      svg.appendChild(raSvgEl('text',{x:380,y:192,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':48,'font-weight':850,fill:/[♥♦]/.test(result)?'#b24c4c':'#30484f'},result||'—'));
+    }else{
+      svg.appendChild(raSvgEl('rect',{x:180,y:95,width:400,height:130,rx:22,fill:'#f5f9f8',stroke:'#b8cdca','stroke-width':2}));
+      svg.appendChild(raSvgEl('text',{x:380,y:178,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':52,'font-weight':850,fill:'#176c65'},result||'—'));
+    }
+    svg.appendChild(raSvgEl('text',{x:width-28,y:height-14,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':9,fill:'#96a4a8'},'99 Club Studio'));
+    return svg;
+  }
+  async function exportAction(kind){
+    if(!X)return;
+    const mode=q('#ra-mode')?.value||'random',svg=paperSvg(),name='randomiser-'+mode;
+    if(kind==='copy')await X.copyPng(svg,{transparent:true});
+    if(kind==='png')await X.downloadPng(svg,name,2,{transparent:true});
+    if(kind==='svg')X.downloadSvg(svg,name);
+    if(kind==='print')X.printSvg(svg,{title:'',landscape:true});
+  }
+
+  setPanels(field('Tool','<select class="gd-select" id="ra-mode"><option value="dice">Dice</option><option value="spinner">Spinner wheel</option><option value="number">Random number</option><option value="card">Playing card</option></select>')+'<div id="ra-extra"></div>'+btn('Roll dice','ra-go',true)+
+    '<div hidden><button id="ra-paper-export" type="button">Export</button><button id="ra-copy" type="button">Copy</button><button id="ra-png" type="button">PNG</button><button id="ra-svg" type="button">SVG</button><button id="ra-print" type="button">Print</button></div>','');
   q('#ra-mode').onchange=()=>{result='';diceValues=[];spinnerRotation=0;draw()};
   q('#ra-go').onclick=generate;
+  q('#ra-paper-export').onclick=()=>{};
+  q('#ra-copy').onclick=()=>exportAction('copy');
+  q('#ra-png').onclick=()=>exportAction('png');
+  q('#ra-svg').onclick=()=>exportAction('svg');
+  q('#ra-print').onclick=()=>exportAction('print');
   draw();
 }
 
