@@ -336,8 +336,8 @@ function placeValue(){
         :'Pupil copy has one answer box. Reveal the answer to export the teacher version.';
     return '<div class="nl-panel-title"><div><strong>Paper export</strong><span>Clean worksheet content only.</span></div></div>'+
       (canCard?'<div class="nl-export-mode pv-export-mode" role="tablist" aria-label="Export content">'+
-        '<button type="button" class="'+(exportMode==='challenge'?'is-active':'')+'" data-pv-export-mode="challenge">Worksheet question</button>'+
-        '<button type="button" class="'+(exportMode==='diagram'?'is-active':'')+'" data-pv-export-mode="diagram">Chart only</button></div>':'')+
+        '<button type="button" class="'+(exportMode==='challenge'?'is-active':'')+'" data-pv-export-mode="challenge">Worksheet</button>'+
+        '<button type="button" class="'+(exportMode==='diagram'?'is-active':'')+'" data-pv-export-mode="diagram">Chart</button></div>':'')+
       (canCard&&exportMode==='challenge'
         ?responseControl+'<div class="gd-row"><button class="gd-btn" id="pv-export-reveal" type="button">'+(challenge?.revealed?'Hide answer':'Reveal answer')+'</button></div><p class="gd-help">'+challengeHelp+'</p>'
         :'<p class="gd-help">Chart-only export contains the place-value chart and counters on a white paper background.</p>')+
