@@ -279,7 +279,7 @@ function placeValue(){
       }).join('');
       return '<section class="gd-pv-activity gd-pv-activity--powers" aria-label="Powers of ten demonstration">'+
         '<div class="gd-pv-activity-head"><div><span>TEACH · POWERS OF TEN</span><strong>'+format(total())+'</strong></div><em>'+esc(powerMessage||'Choose an operation. The digits move; the decimal point does not.')+'</em></div>'+
-        '<div class="gd-pv-digit-row">'+cells+'</div><div class="gd-pv-activity-actions">'+buttons+'</div></section>';
+        '<div class="gd-pv-digit-row" style="--pv-cols:'+places.length+'">'+cells+'</div><div class="gd-pv-activity-actions">'+buttons+'</div></section>';
     }
     const title=activityMode==='exact'?'Exact-counter challenge':'Build the target';
     const prompt=activityMode==='exact'?'Make '+format(activityTarget)+' using exactly '+activityBudget+' counters.':'Build '+format(activityTarget)+' with the place-value counters.';
@@ -496,7 +496,7 @@ function placeValue(){
     const activity=activityBannerHtml();
     q('#gd-stage').innerHTML=banner+activity+'<div class="gd-vis gd-pv-workspace">'+
       '<div class="gd-pv-board-wrap">'+
-        '<div class="gd-pv-canvas" id="pv-canvas" data-gd-canvas-bg style="min-height:'+height+'px">'+
+        '<div class="gd-pv-canvas" id="pv-canvas" data-gd-canvas-bg style="min-height:'+height+'px;--pv-cols:'+places.length+'">'+
           '<div class="gd-pv-columns">'+places.map((p,i)=>columnMarkup(p,i,cs)).join('')+'</div>'+
           tokens.map(t=>tokenMarkup(t,selectedId)).join('')+
         '</div>'+
@@ -597,12 +597,14 @@ function placeValue(){
     updateLiveSummary();
   }
   function syncControls(){
-    const input=q('#pv-value'),regroup=q('#pv-regroup'),range=q('#pv-range');
+    const input=q('#pv-value'),regroup=q('#pv-regroup'),range=q('#pv-range'),high=q('#pv-range-high'),low=q('#pv-range-low');
     if(input){
       input.max=String(rangeMax());input.step=String(valueStep());
       if(document.activeElement!==input)input.value=String(total());
     }
-    if(range&&document.activeElement!==range)range.value=placeRange;
+    if(range&&document.activeElement!==range)range.value=PLACE_RANGES.some(r=>r.id===placeRange)?placeRange:'custom';
+    if(high&&document.activeElement!==high)high.value=String(rangeStart);
+    if(low&&document.activeElement!==low)low.value=String(rangeEnd);
     if(regroup)regroup.disabled=!nonStandard()||total()>rangeMax();
   }
   function bindControls(){
@@ -623,14 +625,30 @@ function placeValue(){
       startActivity('exact');
     };
     const activityNew=q('#pv-activity-new');if(activityNew)activityNew.onclick=()=>startActivity(activityMode);
-    const range=q('#pv-range');if(range)range.onchange=()=>{
-      const previous=total(),requested=range.value;
+    const applyRangeChange=(start,end,id='custom')=>{
+      const previous=total();
       controller.mutate(()=>{
-        setPlaceRange(requested);
+        if(id!=='custom')setPlaceRange(id);else setCustomPlaceRange(start,end);
         const rebuilt=buildFromNumber(previous);
-        notice=rebuilt===previous?'Visible place range changed without changing the represented number.':'Visible place range changed; the previous value was outside this range and has been adjusted.';
+        notice=Math.abs(rebuilt-previous)<(valueStep()/2+1e-9)?'Visible place range changed without changing the represented number.':'Visible place range changed; the previous value was outside this range and has been adjusted.';
       });
       controller.select(null);renderControls();
+    };
+    const range=q('#pv-range');if(range)range.onchange=()=>{
+      if(range.value==='custom'){placeRange='custom';renderControls();return}
+      const preset=rangeFor(range.value);applyRangeChange(preset.start,preset.start+6,preset.id);
+    };
+    const rangeHigh=q('#pv-range-high');if(rangeHigh)rangeHigh.onchange=()=>{
+      let start=clamp(Math.round(num(rangeHigh.value,rangeStart)),0,PLACE_CATALOG.length-2),end=rangeEnd;
+      if(end<=start)end=start+1;
+      if(end-start>6)end=start+6;
+      applyRangeChange(start,end,'custom');
+    };
+    const rangeLow=q('#pv-range-low');if(rangeLow)rangeLow.onchange=()=>{
+      let end=clamp(Math.round(num(rangeLow.value,rangeEnd)),1,PLACE_CATALOG.length-1),start=rangeStart;
+      if(end<=start)start=Math.max(0,end-1);
+      if(end-start>6)start=end-6;
+      applyRangeChange(start,end,'custom');
     };
     const build=q('#pv-build');if(build)build.onclick=()=>{
       const raw=q('#pv-value').value;
