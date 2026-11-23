@@ -176,6 +176,7 @@ function abacusTool(){
       '<div hidden aria-hidden="true">'+['copy','png','svg','print'].map(kind=>'<button type="button" data-gd-direct-export="'+kind+'">'+kind+'</button>').join('')+'</div>'+
       '<div class="gd-ab-workspace">'+
         '<div class="gd-ab-frame '+(fiveSplit?'has-five-split':'')+'" data-ab-frame style="--ab-rows:'+rows+'">'+
+          '<div class="gd-ab-side-guide" aria-hidden="true"><span>COUNTED</span><span>READY</span></div>'+
           '<div class="gd-ab-frame-inner">'+Array.from({length:rows},(_,r)=>rowMarkup(r)).join('')+'</div>'+
         '</div>'+
         frameControls()+
@@ -295,9 +296,12 @@ function abacusTool(){
   }
   function bindControls(){
     qa('[data-ab-workflow]').forEach(button=>button.onclick=()=>{
-      workflow=button.dataset.abWorkflow;
-      if(workflow==='challenge'&&!task)randomChallenge();
-      else{renderControls();renderStage()}
+      const next=button.dataset.abWorkflow,previous=workflow;
+      workflow=next;
+      status='';revealed=false;
+      if(next==='challenge'){task=null;answerInput=''}
+      else if(next==='play'&&previous==='challenge'){task=null;answerInput='';playMode='free'}
+      renderAll();
     });
     const rowsEl=q('#ab-rows');if(rowsEl)rowsEl.onchange=()=>{setRows(rowsEl.value);task=null;renderAll()};
     const set=q('#ab-set');if(set)set.onclick=()=>{setTotal(q('#ab-set-number')?.value);task=null;renderControls()};
