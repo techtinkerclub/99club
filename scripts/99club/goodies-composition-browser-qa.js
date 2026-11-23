@@ -277,7 +277,7 @@ async function run(){
   assert(pvDoc.querySelectorAll('.gd-pv-column').length===4,'Whiteboard Place Value can show a compact 1,000 → 1 four-column board');
   pvSettings.click();await tick();
 
-  pvQuick=[...pvFrame.querySelectorAll('[data-board-quick-actions] button')];
+  let pvQuick=[...pvFrame.querySelectorAll('[data-board-quick-actions] button')];
   const challengePV=pvQuick.find(button=>/^Challenge/.test(button.textContent.trim()));
   assert(challengePV,'Place Value exposes Challenge as a direct whiteboard frame action');
   challengePV.click();await tick();
@@ -301,7 +301,7 @@ async function run(){
   const pvr=pvTens.getBoundingClientRect();
   pointer(pvTens,'pointerdown',pvr.left+pvr.width/2,pvr.top+pvr.height/2,55);
   pointer(pvTens,'pointerup',pvr.left+pvr.width/2,pvr.top+pvr.height/2,55);await tick();
-  let pvQuick=[...pvFrame.querySelectorAll('[data-board-quick-actions] button')];
+  pvQuick=[...pvFrame.querySelectorAll('[data-board-quick-actions] button')];
   const splitPV=pvQuick.find(button=>button.textContent.includes('Split 1→10'));
   assert(splitPV,'Place Value exposes Split 1→10 directly on the selected whiteboard widget');
   const pvBefore=Number((pvDoc.getElementById('pv-total').textContent||'').replace(/,/g,''));
