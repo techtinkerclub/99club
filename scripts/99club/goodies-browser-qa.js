@@ -1986,6 +1986,16 @@ if(mode==='prepare'){
     TT99Goodies.placeValue();
 
     assert(document.querySelectorAll('.gd-pv-column').length===7,'Place Value has seven semantic columns');
+    [...document.querySelectorAll('.gd-pv-head')].forEach((head,index)=>{
+      const label=head.querySelector('strong'),name=head.querySelector('small'),actions=head.querySelector('.gd-pv-column-actions');
+      assert(label&&name&&actions,'Place Value column '+index+' has a label, place name and control row');
+      const labelRect=label.getBoundingClientRect(),nameRect=name.getBoundingClientRect(),actionRect=actions.getBoundingClientRect();
+      assert(actionRect.top>=Math.max(labelRect.bottom,nameRect.bottom)-1,'Place Value column '+index+' controls sit below the heading instead of overlapping it');
+      const minus=actions.querySelector('[data-pv-remove]'),count=actions.querySelector('[data-pv-count]'),plus=actions.querySelector('[data-pv-add]');
+      assert(minus&&count&&plus,'Place Value column '+index+' control row contains minus, count and plus');
+      const mr=minus.getBoundingClientRect(),cr=count.getBoundingClientRect(),pr=plus.getBoundingClientRect();
+      assert(mr.right<=cr.left+1&&cr.right<=pr.left+1,'Place Value column '+index+' minus/count/plus controls do not overlap');
+    });
     assert(numberText('#pv-total')===1234.5,'Default counters represent 1,234.5');
     assert(document.querySelectorAll('[data-gd-object]').length===15,'Default number is decomposed into 15 counters');
 

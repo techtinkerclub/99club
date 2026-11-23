@@ -313,7 +313,7 @@ function placeValue(){
     return Math.max(315,q('#pv-canvas')?.clientWidth||((q('#gd-stage')?.clientWidth||720)-4));
   }
   function layoutTokens(width=boardWidth()){
-    const compact=width<560,tokenSize=compact?30:36,header=compact?68:78,rowGap=compact?35:42,colWidth=width/places.length;
+    const compact=width<560,tokenSize=compact?30:36,header=compact?82:96,rowGap=compact?35:42,colWidth=width/places.length;
     const used=Array(places.length).fill(0);
     tokens.forEach(t=>{
       t.place=clamp(Math.round(num(t.place,4)),0,places.length-1);
@@ -352,8 +352,9 @@ function placeValue(){
   function columnMarkup(place,index,cs){
     const countText=columnCountHidden(index)?'?':cs[index],canRemove=tokens.some(t=>t.place===index&&!t.locked);
     return '<div class="gd-pv-column'+(index===5?' is-decimal-start':'')+'" data-gd-canvas-bg data-pv-column="'+index+'">'+
-      '<div class="gd-pv-head"><strong>'+place.label+'</strong><small>'+place.name+'</small><span data-pv-count="'+index+'">'+countText+'</span><div class="gd-pv-column-actions" role="group" aria-label="'+place.name+' counters">'+
+      '<div class="gd-pv-head"><strong>'+place.label+'</strong><small>'+place.name+'</small><div class="gd-pv-column-actions" role="group" aria-label="'+place.name+' counters">'+
         '<button type="button" data-pv-remove="'+index+'" aria-label="Remove one '+place.name+' counter"'+(canRemove?'':' disabled')+'>−</button>'+
+        '<span data-pv-count="'+index+'" aria-label="'+countText+' '+place.name+' counters">'+countText+'</span>'+
         '<button type="button" data-pv-add="'+index+'" aria-label="Add one '+place.name+' counter">+</button>'+
       '</div></div>'+
       '</div>';
