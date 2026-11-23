@@ -871,6 +871,17 @@ html.gd-embed-page .page__content,body.gd-embed-page .page__content{width:100%!i
 .gd-board-tooltip{position:absolute;z-index:1100;transform:translateY(-50%) translateX(-3px);padding:6px 9px;border-radius:8px;background:rgba(41,57,62,.94);color:#fff;font-size:11px;font-weight:780;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .1s ease,transform .1s ease;box-shadow:0 4px 12px rgba(25,44,48,.12)}
 .gd-board-tooltip.is-visible{opacity:1;transform:translateY(-50%) translateX(0)}
 .gd-board-hint{position:absolute;z-index:1001;left:50%;top:12px;transform:translate(-50%,-6px);max-width:min(520px,calc(100% - 150px));padding:7px 11px;border:1px solid rgba(151,175,177,.35);border-radius:9px;background:rgba(255,255,255,.92);box-shadow:0 4px 14px rgba(31,61,69,.08);color:#40585f;font-size:.76rem;font-weight:780;line-height:1.25;opacity:0;pointer-events:none;transition:opacity .12s ease,transform .12s ease;backdrop-filter:blur(8px)}.gd-board-hint.is-visible{opacity:1;transform:translate(-50%,0)}
+.gd-board-floating-controls[hidden]{display:none!important}
+.gd-board-floating-controls{position:absolute;z-index:1250;width:min(342px,calc(100% - 16px));max-height:min(78vh,760px);display:flex;flex-direction:column;border:1px solid rgba(142,169,170,.58);border-radius:14px;background:rgba(255,255,255,.97);box-shadow:0 16px 44px rgba(31,61,69,.18);backdrop-filter:blur(12px);overflow:hidden;color:#31484f}
+.gd-board-floating-controls.is-dragging{box-shadow:0 20px 52px rgba(31,61,69,.24)}
+.gd-board-floating-controls-head{min-height:38px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 8px 7px 12px;border-bottom:1px solid #e1e9ea;background:rgba(246,250,249,.96);cursor:grab;touch-action:none;user-select:none}
+.gd-board-floating-controls.is-dragging .gd-board-floating-controls-head{cursor:grabbing}
+.gd-board-floating-controls-head strong{min-width:0;font-size:.78rem;color:#405860;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gd-board-floating-controls-head button{width:28px;height:28px;min-width:28px;padding:0;border:0;border-radius:8px;background:transparent;color:#6c7f84;font:inherit;font-size:1.15rem;font-weight:800;line-height:1;cursor:pointer}
+.gd-board-floating-controls-head button:hover,.gd-board-floating-controls-head button:focus-visible{background:#eef5f4;color:#1f7068;outline:none}
+.gd-board-floating-controls-body{min-height:0;overflow:auto;padding:9px;overscroll-behavior:contain;scrollbar-width:thin}
+.gd-board-floating-controls .gd-board-controls-proxy{display:flex!important;position:static!important;top:auto!important;width:100%!important;max-height:none!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;overflow:visible!important;scrollbar-gutter:auto!important;gap:11px}
+.gd-board-floating-controls .gd-board-controls-proxy>[role="tablist"][aria-label$="workflow"]{position:static!important;margin:0!important;padding:0 0 7px!important;background:transparent!important;backdrop-filter:none!important}
 .gd-board-global{position:absolute;z-index:1000;right:10px;top:10px;display:flex;gap:3px;padding:3px;border-radius:10px;background:rgba(250,252,252,.62);backdrop-filter:blur(7px)}
 .gd-board-global-button{width:30px;height:30px;min-width:30px;min-height:30px;padding:0;border:0;border-radius:8px;background:transparent;color:#60747a;display:grid;place-items:center;cursor:pointer;opacity:.6}
 .gd-board-global-button:hover,.gd-board-global-button:focus-visible,.gd-board-global-button.is-active{opacity:1;background:rgba(255,255,255,.92);color:#226e67;outline:none}
@@ -910,6 +921,8 @@ html.gd-embed-page .page__content,body.gd-embed-page .page__content{width:100%!i
   .gd-board-tool{width:34px;height:34px;min-width:34px;min-height:34px}
   .gd-board-tool:after{display:none}
   .gd-board-global{right:6px;top:6px}
+  .gd-board-floating-controls{width:min(318px,calc(100% - 16px));max-height:72vh}
+  .gd-board-floating-controls-head{min-height:36px}
 }
 
 /* Embedded manipulative objects used inside the mixed board.

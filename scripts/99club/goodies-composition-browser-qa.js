@@ -135,9 +135,19 @@ async function run(){
   assert(!money.querySelector('.gd-board-context-menu [data-board-delete]'),'Delete is not duplicated inside the overflow menu');
 
   const settings=money.querySelector('[data-board-settings]');
-  settings.click();
-  assert(money.classList.contains('has-settings'),'Context Settings opens the manipulative settings overlay');
+  settings.click();await tick();
+  const floatingSettings=document.getElementById('gd-board-floating-controls');
+  assert(money.classList.contains('has-settings'),'Context Settings marks the manipulative as having active settings');
+  assert(visible(floatingSettings)&&/UK money settings/i.test(floatingSettings.textContent),'Context Settings opens a whiteboard-level floating palette outside the widget');
   assert(!money.classList.contains('has-context-menu'),'Settings closes the transient context menu');
+  const floatingHead=floatingSettings.querySelector('[data-board-controls-drag]'),floatingBefore=floatingSettings.getBoundingClientRect();
+  pointer(floatingHead,'pointerdown',floatingBefore.left+30,floatingBefore.top+15,39);
+  pointer(document,'pointermove',floatingBefore.left+120,floatingBefore.top+85,39);
+  pointer(document,'pointerup',floatingBefore.left+120,floatingBefore.top+85,39);
+  const floatingAfter=floatingSettings.getBoundingClientRect();
+  assert(Math.abs(floatingAfter.left-floatingBefore.left)>40||Math.abs(floatingAfter.top-floatingBefore.top)>30,'Floating settings palette can be dragged away from the manipulative');
+  floatingSettings.querySelector('[data-board-controls-close]').click();await tick();
+  assert(!visible(floatingSettings)&&!money.classList.contains('has-settings'),'Floating settings palette closes independently without removing the widget');
   context.click();
   assert(money.classList.contains('has-context-menu'),'Context menu can be reopened while the object remains focused');
   context.click();
@@ -212,7 +222,9 @@ async function run(){
   const nlSettings=nlFrame.querySelector('[data-board-settings]');nlSettings.click();await tick();
   const nlDoc=nlFrame.querySelector('iframe').contentDocument;
   assert(nlDoc.querySelector('[data-nl-active-line-top]'),'Expanded Number Line settings keep the active-line selector at the top');
-  nlSettings.click();
+  const nlFloating=document.getElementById('gd-board-floating-controls');
+  assert(visible(nlFloating)&&nlFloating.querySelector('[data-nl-active-line-top]'),'Number Line settings are proxied into the floating whiteboard palette');
+  nlSettings.click();await tick();
   TT99Goodies.compositionBoard.remove(nlRecord.id);
 
   const firstClockRecord=TT99Goodies.compositionBoard.objects().find(x=>x.toolId==='clock');
@@ -243,6 +255,39 @@ async function run(){
   assert(extraClockDoc.querySelectorAll('.gd-clock-card').length===2,'Separate widget can still add a comparison clock internally');
   assert(extraClockDoc.querySelector('[data-cl-select-stage="1"]').textContent.includes('Clock D'),'Internal Add Clock continues the board-wide sequence with Clock D');
   TT99Goodies.compositionBoard.remove(extraClockRecord.id);
+
+  document.querySelector('[data-board-add="place-value"]').click();await tick();
+  const pvRecord=TT99Goodies.compositionBoard.objects().find(x=>x.toolId==='place-value');
+  const pvFrame=pvRecord&&document.querySelector('[data-board-object="'+pvRecord.id+'"]');
+  for(let attempt=0;attempt<40&&pvFrame&&!pvFrame.classList.contains('is-ready');attempt++)await tick(50);
+  assert(pvFrame&&pvFrame.classList.contains('is-ready'),'Place Value reaches embedded ready state');
+  const pvDoc=pvFrame.querySelector('iframe').contentDocument;
+  const pvSettings=pvFrame.querySelector('[data-board-settings]');pvSettings.click();await tick();
+  const pvFloating=document.getElementById('gd-board-floating-controls');
+  const pvRange=pvFloating.querySelector('#pv-range');
+  assert(visible(pvFloating)&&pvRange,'Place Value exposes Visible place range through the floating whiteboard settings palette');
+  pvRange.value='decimals';pvRange.dispatchEvent(new Event('change',{bubbles:true}));await tick();
+  assert(pvDoc.getElementById('pv-range').value==='decimals','Changing place range in the floating palette updates the live Place Value widget');
+  pvSettings.click();await tick();
+
+  const pvOnes=[...pvDoc.querySelectorAll('[data-gd-object][data-pv-place="3"]')][0]||[...pvDoc.querySelectorAll('[data-gd-object]')][0];
+  const pvr=pvOnes.getBoundingClientRect();
+  pointer(pvOnes,'pointerdown',pvr.left+pvr.width/2,pvr.top+pvr.height/2,55);
+  pointer(pvOnes,'pointerup',pvr.left+pvr.width/2,pvr.top+pvr.height/2,55);await tick();
+  let pvQuick=[...pvFrame.querySelectorAll('[data-board-quick-actions] button')];
+  const splitPV=pvQuick.find(button=>button.textContent.includes('Split 1→10'));
+  assert(splitPV,'Place Value exposes Split 1→10 directly on the selected whiteboard widget');
+  const pvBefore=Number((pvDoc.getElementById('pv-total').textContent||'').replace(/,/g,''));
+  splitPV.click();await tick();
+  const pvAfterSplit=Number((pvDoc.getElementById('pv-total').textContent||'').replace(/,/g,''));
+  assert(Math.abs(pvAfterSplit-pvBefore)<0.00001,'Whiteboard Split 1→10 preserves represented value');
+  pvQuick=[...pvFrame.querySelectorAll('[data-board-quick-actions] button')];
+  const exchangePV=pvQuick.find(button=>button.textContent.includes('Exchange 10→1'));
+  assert(exchangePV,'After splitting, Place Value exposes Exchange 10→1 directly on the frame');
+  exchangePV.click();await tick();
+  const pvAfterExchange=Number((pvDoc.getElementById('pv-total').textContent||'').replace(/,/g,''));
+  assert(Math.abs(pvAfterExchange-pvBefore)<0.00001,'Whiteboard Exchange 10→1 restores the grouped representation without changing value');
+  TT99Goodies.compositionBoard.remove(pvRecord.id);
 
   document.querySelector('[data-board-add="randomiser"]').click();await tick();
   const randomRecord=TT99Goodies.compositionBoard.objects().find(x=>x.toolId==='randomiser');

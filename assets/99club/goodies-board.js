@@ -38,6 +38,10 @@ const QUICK_ACTIONS={
     {label:'+ Relation',selector:'[data-board-action="relation"]',title:'Add relationship',notice:'Tap the first marker, then the second marker.'},
     {label:'+ Line',selector:'[data-board-action="add-line"]',title:'Add aligned comparison line'}
   ],
+  'place-value':[
+    {label:'Exchange 10→1',selector:'[data-gd-action="exchange-up"]',allowHidden:true,title:'Exchange ten selected-place counters for one of the next larger place'},
+    {label:'Split 1→10',selector:'[data-gd-action="split-down"]',allowHidden:true,title:'Split the selected counter into ten of the next smaller place'}
+  ],
   'bar-model':[
     {label:'+ Part',selector:'#bm-add-stage'},
     {label:'−',selector:'#bm-minus',title:'Decrease selected part'},
@@ -126,6 +130,13 @@ root.innerHTML='<div class="gd-mixed-board" id="gd-mixed-board">'+
   '</div>'+
   '<div class="gd-board-tooltip" id="gd-board-tooltip" role="tooltip"></div>'+
   '<div class="gd-board-hint" id="gd-board-hint" role="status" aria-live="polite"></div>'+
+  '<aside class="gd-board-floating-controls" id="gd-board-floating-controls" hidden aria-label="Manipulative settings">'+
+    '<div class="gd-board-floating-controls-head" data-board-controls-drag>'+
+      '<strong id="gd-board-floating-controls-title">Settings</strong>'+
+      '<button type="button" data-board-controls-close aria-label="Close settings" title="Close">×</button>'+
+    '</div>'+
+    '<div class="gd-board-floating-controls-body" id="gd-board-floating-controls-body"></div>'+
+  '</aside>'+
   '<div class="gd-board-global" aria-label="Whiteboard controls">'+
     '<button type="button" class="gd-board-global-button" id="gd-board-back" aria-label="Back to manipulatives" title="Back">'+iconSvg('back')+'</button>'+
     '<button type="button" class="gd-board-global-button is-active" id="gd-board-snap" aria-pressed="true" aria-label="Toggle snap to dots" title="Snap to dots">'+iconSvg('snap')+'</button>'+
@@ -138,6 +149,10 @@ const viewport=document.getElementById('gd-board-viewport');
 const canvas=document.getElementById('gd-board-canvas');
 const hint=document.getElementById('gd-board-hint');
 const tooltip=document.getElementById('gd-board-tooltip');
+const floatingControls=document.getElementById('gd-board-floating-controls');
+const floatingControlsBody=document.getElementById('gd-board-floating-controls-body');
+const floatingControlsTitle=document.getElementById('gd-board-floating-controls-title');
+let floatingControlObjectId=null,floatingControlDrag=null,floatingControlX=86,floatingControlY=76,floatingControlMoved=false;
 let hintTimer=null,tooltipTimer=null;
 function showToolTip(button){
   if(!tooltip||!button)return;
@@ -195,6 +210,70 @@ function innerTarget(obj,selector,allowHidden=false){
   }
   return node;
 }
+const CONTROL_SELECTOR='button,input,select,textarea,[contenteditable="true"]';
+function positionFloatingControls(){
+  if(!floatingControls)return;
+  const margin=8,maxX=Math.max(margin,board.clientWidth-floatingControls.offsetWidth-margin),maxY=Math.max(margin,board.clientHeight-floatingControls.offsetHeight-margin);
+  floatingControlX=clamp(floatingControlX,margin,maxX);floatingControlY=clamp(floatingControlY,margin,maxY);
+  floatingControls.style.left=floatingControlX+'px';floatingControls.style.top=floatingControlY+'px';
+}
+function sourceControls(obj){return innerDocument(obj)?.getElementById('gd-controls')||null}
+function renderFloatingControls(obj){
+  if(!floatingControls||!floatingControlsBody||!obj||!obj.settingsOpen||floatingControlObjectId!==obj.id)return;
+  const source=sourceControls(obj);if(!source)return;
+  const clone=source.cloneNode(true);
+  clone.removeAttribute('id');clone.removeAttribute('aria-hidden');clone.classList.add('gd-board-controls-proxy');
+  const sourceInputs=[...source.querySelectorAll(CONTROL_SELECTOR)],cloneInputs=[...clone.querySelectorAll(CONTROL_SELECTOR)];
+  cloneInputs.forEach((node,index)=>{
+    node.dataset.boardControlIndex=String(index);
+    const original=sourceInputs[index];if(!original)return;
+    if('value' in original)node.value=original.value;
+    if('checked' in original)node.checked=original.checked;
+    if(original.isContentEditable)node.innerHTML=original.innerHTML;
+  });
+  floatingControlsBody.replaceChildren(clone);
+  const tool=tools.find(t=>t.id===obj.toolId);
+  if(floatingControlsTitle)floatingControlsTitle.textContent=(tool?.title||'Manipulative')+' settings';
+  floatingControls.hidden=false;
+  requestAnimationFrame(positionFloatingControls);
+}
+function refreshFloatingControls(obj,delay=0){
+  if(!obj||!obj.settingsOpen||floatingControlObjectId!==obj.id)return;
+  setTimeout(()=>renderFloatingControls(obj),delay);
+}
+function openFloatingControls(obj){
+  if(!obj)return;
+  if(floatingControlObjectId!=null&&String(floatingControlObjectId)!==String(obj.id)){
+    const previous=objectById(floatingControlObjectId);if(previous)previous.settingsOpen=false;
+  }
+  floatingControlObjectId=obj.id;obj.settingsOpen=true;
+  const frame=frameFor(obj.id);frame?.classList.add('has-settings');
+  const tool=tools.find(t=>t.id===obj.toolId);
+  if(floatingControlsTitle)floatingControlsTitle.textContent=(tool?.title||'Manipulative')+' settings';
+  if(floatingControls)floatingControls.hidden=false;
+  const rect=frame?.getBoundingClientRect(),host=board.getBoundingClientRect();
+  if(rect&&!floatingControlMoved){
+    const preferredX=Math.min(board.clientWidth-330,Math.max(58,rect.right-host.left+14));
+    const preferredY=Math.max(12,Math.min(board.clientHeight-280,rect.top-host.top));
+    floatingControlX=preferredX;floatingControlY=preferredY;
+  }
+  positionFloatingControls();
+  renderFloatingControls(obj);
+  [0,30,90].forEach(delay=>refreshFloatingControls(obj,delay));
+}
+function closeFloatingControls(id=null){
+  const target=id==null?objectById(floatingControlObjectId):objectById(id);
+  if(target){target.settingsOpen=false;frameFor(target.id)?.classList.remove('has-settings')}
+  if(id==null||String(floatingControlObjectId)===String(id)){
+    floatingControlObjectId=null;
+    if(floatingControls){floatingControls.hidden=true;floatingControlsBody?.replaceChildren()}
+  }
+}
+function floatingOriginal(index){
+  const obj=objectById(floatingControlObjectId),source=obj&&sourceControls(obj);
+  if(!source)return{obj:null,node:null};
+  return{obj,node:[...source.querySelectorAll(CONTROL_SELECTOR)][Number(index)]||null};
+}
 function fitEmbeddedObject(obj,initial=false){
   const frame=frameFor(obj?.id),doc=innerDocument(obj);if(!frame||!doc)return;
   const stage=doc.getElementById('gd-stage');if(!stage)return;
@@ -247,7 +326,7 @@ function connectInnerObject(obj){
       syncQuickActions(obj);
       if(pass<3)setTimeout(()=>settleFit(false,pass+1),24);
     };
-    const refresh=()=>setTimeout(()=>settleFit(false,0),0);
+    const refresh=()=>setTimeout(()=>{settleFit(false,0);if(obj.settingsOpen)renderFloatingControls(obj)},0);
     doc.addEventListener('click',refresh,true);
     doc.addEventListener('pointerup',refresh,true);
     doc.addEventListener('change',refresh,true);
@@ -258,10 +337,10 @@ function connectInnerObject(obj){
   try{if(iframe.contentDocument?.readyState==='complete')connect()}catch(_){}
 }
 function sendSettings(obj,open){
-  obj.settingsOpen=!!open;
+  if(!obj)return;
   const frame=frameFor(obj.id),iframe=frame?.querySelector('iframe');
-  if(iframe?.contentWindow)iframe.contentWindow.postMessage({type:'tt99-board-settings',open:obj.settingsOpen},location.origin);
-  frame?.classList.toggle('has-settings',obj.settingsOpen);
+  if(open)openFloatingControls(obj);else closeFloatingControls(obj.id);
+  if(iframe?.contentWindow)iframe.contentWindow.postMessage({type:'tt99-board-settings',open:false},location.origin);
 }
 function closeContext(obj){
   obj.menuOpen=false;
@@ -425,7 +504,45 @@ function bindObject(obj){
   };
 }
 
+if(floatingControlsBody){
+  floatingControlsBody.addEventListener('click',e=>{
+    const control=e.target.closest('[data-board-control-index]');if(!control)return;
+    if(control.tagName!=='BUTTON'&&!(control.tagName==='INPUT'&&/^(button|submit|reset)$/i.test(control.type||'')))return;
+    e.preventDefault();e.stopPropagation();
+    const {obj,node}=floatingOriginal(control.dataset.boardControlIndex);if(!obj||!node)return;
+    node.click();
+    setTimeout(()=>{syncQuickActions(obj);refreshFloatingControls(obj)},0);
+  });
+  const forwardValue=e=>{
+    const control=e.target.closest('[data-board-control-index]');if(!control)return;
+    const {obj,node}=floatingOriginal(control.dataset.boardControlIndex);if(!obj||!node)return;
+    if('value' in node&&'value' in control)node.value=control.value;
+    if('checked' in node&&'checked' in control)node.checked=control.checked;
+    if(node.isContentEditable)node.innerHTML=control.innerHTML;
+    node.dispatchEvent(new Event(e.type,{bubbles:true}));
+    if(e.type==='change')setTimeout(()=>{syncQuickActions(obj);refreshFloatingControls(obj)},0);
+  };
+  floatingControlsBody.addEventListener('input',forwardValue);
+  floatingControlsBody.addEventListener('change',forwardValue);
+}
+const floatingClose=floatingControls?.querySelector('[data-board-controls-close]');
+if(floatingClose)floatingClose.onclick=e=>{e.preventDefault();e.stopPropagation();closeFloatingControls()};
+const floatingHead=floatingControls?.querySelector('[data-board-controls-drag]');
+if(floatingHead)floatingHead.onpointerdown=e=>{
+  if(e.button!==0||e.target.closest('button'))return;
+  e.preventDefault();e.stopPropagation();
+  floatingControlDrag={pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,x:floatingControlX,y:floatingControlY};
+  floatingControlMoved=true;floatingControls.classList.add('is-dragging');
+  try{floatingHead.setPointerCapture(e.pointerId)}catch(_){}
+};
+
 document.addEventListener('pointermove',e=>{
+  if(floatingControlDrag&&floatingControlDrag.pointerId===e.pointerId){
+    e.preventDefault();
+    floatingControlX=floatingControlDrag.x+(e.clientX-floatingControlDrag.startX);
+    floatingControlY=floatingControlDrag.y+(e.clientY-floatingControlDrag.startY);
+    positionFloatingControls();return;
+  }
   if(pan&&pan.pointerId===e.pointerId){
     e.preventDefault();
     viewport.scrollLeft=pan.scrollLeft-(e.clientX-pan.startX);
@@ -453,6 +570,9 @@ document.addEventListener('pointermove',e=>{
   }
 });
 function endPointer(e){
+  if(floatingControlDrag&&floatingControlDrag.pointerId===e.pointerId){
+    floatingControlDrag=null;floatingControls?.classList.remove('is-dragging');
+  }
   if(pan&&pan.pointerId===e.pointerId){
     pan=null;board.classList.remove('is-panning');
   }
