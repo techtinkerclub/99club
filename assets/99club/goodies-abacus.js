@@ -224,7 +224,7 @@ function abacusTool(){
   }
   function setupControls(){
     return field('Abacus type','<select class="gd-select" id="ab-kind"><option value="western"'+(kind==='western'?' selected':'')+'>Western (9 beads per rod)</option><option value="soroban"'+(kind==='soroban'?' selected':'')+'>Japanese soroban (5 beads per rod)</option></select>')+
-      field('Place-value columns','<select class="gd-select" id="ab-rows">'+[3,4,5,6].map(n=>'<option value="'+n+'"'+(rows===n?' selected':'')+'>'+n+' columns</option>').join('')+'</select>')+
+      field('Place values','<select class="gd-select" id="ab-rows">'+[3,4,5,6].map(n=>'<option value="'+n+'"'+(rows===n?' selected':'')+'>'+n+' places</option>').join('')+'</select>')+
       field('Set number','<div class="gd-row"><input class="gd-input" id="ab-set-number" type="number" min="0" max="'+capacity()+'" value="'+total()+'"><button class="gd-btn gd-btn--primary" id="ab-set" type="button">Set</button></div>')+
       '<div class="gd-row">'+btn('Random','ab-random')+btn('Clear','ab-clear')+'</div>'+
       '<label class="gd-row gd-ab-check"><input id="ab-show-total" type="checkbox"'+(showTotal?' checked':'')+'> Show number</label>'+
