@@ -452,7 +452,7 @@ function placeValue(){
     const cs=counts(),width=1000,pad=18,boardX=pad,boardY=12,boardW=width-pad*2,colW=boardW/places.length;
     const exportCounts=cs.map((count,index)=>activityActive&&activityMode==='hidden'&&index===activityHiddenIndex?0:count);
     const maxCount=Math.max(1,...exportCounts),perRow=colW>=190?3:2,rows=Math.max(1,Math.ceil(maxCount/perRow));
-    const headerH=92,counterStep=52,bodyH=Math.max(230,Math.min(340,54+rows*counterStep)),boardH=headerH+bodyH,height=boardY+boardH+12;
+    const headerH=92,counterStep=52,bodyH=Math.max(250,Math.min(340,54+rows*counterStep)),boardH=headerH+bodyH,height=boardY+boardH+12;
     const pupilColumnHidden=index=>!!(challenge&&challenge.answerMode==='bound'&&(challenge.answerSource==='count:'+index||challenge.answerSource==='value:'+index));
     const svg=pvSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Place value chart','data-pv-export':'board'});
     svg.appendChild(pvSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
