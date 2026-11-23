@@ -2219,7 +2219,7 @@ if(mode==='prepare'){
     assert(nextPlace&&!nextPlace.disabled,'Teach addition exposes a guided Next place action');
     nextPlace.click();
     assert(numberText('#pv-total')===252,'First guided addition step adds the ones');
-    assert(/Exchanged 10 ones for 1 ten/i.test(document.getElementById('pv-hint').textContent),'Guided addition visibly explains the ones carry');
+    assert(/Exchanged 10 ones for 1 ten/i.test(document.querySelector('.gd-pv-activity-head em').textContent),'Guided addition visibly explains the ones carry in the activity card');
     document.querySelector('[data-pv-add-next]').click();
     assert(numberText('#pv-total')===332,'Second guided addition step adds the tens with regrouping');
     document.querySelector('[data-pv-add-next]').click();
