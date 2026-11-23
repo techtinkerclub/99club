@@ -13,7 +13,7 @@ function shell(url,bodyScript){
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="stylesheet" href="/assets/99club/goodies.css">
+<link rel="stylesheet" href="/assets/99club/goodies.css">\n<link rel="stylesheet" href="/assets/99club/goodies-abacus.css">
 <style>html{scroll-behavior:auto!important}body{margin:0}</style>
 </head>
 <body>
@@ -44,7 +44,7 @@ function embedHost(){
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="stylesheet" href="/assets/99club/goodies.css">
+<link rel="stylesheet" href="/assets/99club/goodies.css">\n<link rel="stylesheet" href="/assets/99club/goodies-abacus.css">
 <style>html{scroll-behavior:auto!important}body{margin:0}</style>
 </head>
 <body>
