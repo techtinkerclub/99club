@@ -29,7 +29,7 @@ function downloadSvg(svg,filename){
   const text=serialiseSvg(svg);
   triggerDownload(new Blob([text],{type:'image/svg+xml;charset=utf-8'}),safeFilename(filename)+'.svg');
 }
-function svgToPngBlob(svg,scale=2){
+function svgToPngBlob(svg,scale=2,{transparent=false}={}){
   return new Promise((resolve,reject)=>{
     const viewBox=svg.viewBox&&svg.viewBox.baseVal;
     const width=Math.max(1,Math.round((viewBox?.width||svg.clientWidth||1000)*scale));
@@ -42,8 +42,7 @@ function svgToPngBlob(svg,scale=2){
         const canvas=document.createElement('canvas');
         canvas.width=width;canvas.height=height;
         const ctx=canvas.getContext('2d');
-        ctx.fillStyle='#ffffff';
-        ctx.fillRect(0,0,width,height);
+        if(!transparent){ctx.fillStyle='#ffffff';ctx.fillRect(0,0,width,height)}
         ctx.drawImage(img,0,0,width,height);
         URL.revokeObjectURL(url);
         canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('Could not create PNG.')),'image/png');
@@ -53,12 +52,12 @@ function svgToPngBlob(svg,scale=2){
     img.src=url;
   });
 }
-async function downloadPng(svg,filename,scale=2){
-  const blob=await svgToPngBlob(svg,scale);
+async function downloadPng(svg,filename,scale=2,options={}){
+  const blob=await svgToPngBlob(svg,scale,options);
   triggerDownload(blob,safeFilename(filename)+'.png');
 }
-async function copyPng(svg){
-  const blob=await svgToPngBlob(svg,2);
+async function copyPng(svg,options={}){
+  const blob=await svgToPngBlob(svg,2,options);
   if(!navigator.clipboard||typeof ClipboardItem==='undefined'||!navigator.clipboard.write){
     throw new Error('Image copying is not available in this browser.');
   }
@@ -146,9 +145,43 @@ function composeChallengeCardSvg(diagram,{title='Challenge',prompt='',responseLa
   out.appendChild(svgEl('text',{x:width-pad,y:height-20,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':12,fill:'#87969a'},brand));
   return out;
 }
+function composeWorksheetCardSvg(diagram,{title='Challenge',prompt='',responseLabel='Answer',responseLines=1,brand='99 Club Studio'}={}){
+  if(!diagram)throw new Error('A diagram is required.');
+  const source=diagram.cloneNode(true);
+  source.removeAttribute('id');
+  const vb=diagram.viewBox&&diagram.viewBox.baseVal;
+  const sourceW=Math.max(1,vb?.width||1000),sourceH=Math.max(1,vb?.height||420);
+  const width=1000,pad=34,contentW=width-pad*2;
+  const titleLines=wrapSvgText(title,70,1),promptLines=wrapSvgText(prompt,100,3);
+  const titleH=titleLines.length?30:0,promptH=promptLines.length?promptLines.length*24+8:0;
+  const maxDiagramH=430,diagramH=Math.max(170,Math.min(maxDiagramH,sourceH*(contentW/sourceW)));
+  const answerRows=Math.max(0,Math.min(3,Math.round(Number(responseLines)||0)));
+  const answerH=answerRows?44+answerRows*24:0;
+  const diagramY=pad+titleH+promptH+8,answerY=diagramY+diagramH+16;
+  const height=Math.max(360,answerY+answerH+30);
+  const out=svgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:`0 0 ${width} ${height}`,role:'img','aria-label':title||'Worksheet item'});
+  out.appendChild(svgEl('rect',{x:0,y:0,width,height,rx:18,fill:'#ffffff',stroke:'#d5dfe1','stroke-width':2}));
+  let y=pad+24;
+  titleLines.forEach(line=>out.appendChild(svgEl('text',{x:pad,y,'font-family':'Arial,sans-serif','font-size':23,'font-weight':800,fill:'#24343b'},line)));
+  y=pad+titleH+20;
+  promptLines.forEach((line,i)=>out.appendChild(svgEl('text',{x:pad,y:y+i*24,'font-family':'Arial,sans-serif','font-size':18,'font-weight':650,fill:'#334a52'},line)));
+  const nested=svgEl('svg',{x:pad,y:diagramY,width:contentW,height:diagramH,viewBox:`0 0 ${sourceW} ${sourceH}`,preserveAspectRatio:'xMidYMid meet'});
+  [...source.childNodes].forEach(node=>nested.appendChild(node.cloneNode(true)));
+  out.appendChild(nested);
+  if(answerRows){
+    out.appendChild(svgEl('text',{x:pad,y:answerY+18,'font-family':'Arial,sans-serif','font-size':14,'font-weight':800,fill:'#64767b'},responseLabel));
+    for(let i=0;i<answerRows;i++){
+      const lineY=answerY+36+i*24;
+      out.appendChild(svgEl('line',{x1:pad,y1:lineY,x2:width-pad,y2:lineY,stroke:'#cfdadd','stroke-width':1.5}));
+    }
+  }
+  out.appendChild(svgEl('text',{x:width-pad,y:height-12,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':9,fill:'#95a1a5'},brand));
+  return out;
+}
+
 function copyText(text){
   if(navigator.clipboard?.writeText)return navigator.clipboard.writeText(text);
   return Promise.reject(new Error('Clipboard access is not available in this browser.'));
 }
-G.exportTools={safeFilename,downloadSvg,downloadPng,copyPng,printSvg,copyText,serialiseSvg,composeChallengeCardSvg};
+G.exportTools={safeFilename,downloadSvg,downloadPng,copyPng,printSvg,copyText,serialiseSvg,composeChallengeCardSvg,composeWorksheetCardSvg};
 })(window.TT99Goodies);
