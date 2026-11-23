@@ -760,7 +760,8 @@ function placeValue(){
       const nextTab=button.dataset.pvWorkflow;
       if(nextTab==='activity'){
         if(challenge){restoreBeforeChallenge();challenge=null}
-        controlTab='activity';startActivity(activityMode,'teach');return;
+        const teachMode=activityContext==='challenge'?'powers':activityMode;
+        controlTab='activity';startActivity(teachMode,'teach');return;
       }
       if(nextTab==='setup')activityActive=false;
       if(nextTab==='challenge'&&activityContext!=='challenge')activityActive=false;
