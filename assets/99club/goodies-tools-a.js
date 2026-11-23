@@ -44,8 +44,10 @@ function placeValue(){
   ];
   let tokens=[],next=1,controller=null,resizeObserver=null,resizeFrame=0,lastStageWidth=0,notice='';
   let controlTab='setup',challengeTab='standard',challengeCategory='read',challengeType='read-number',challenge=null,beforeChallenge=null;
+  let representationMode='counters';
   let activityMode='powers',activityTarget=null,activityBudget=5,activityStatus='',powerMessage='',activityActive=false,activityContext='teach';
   let activityInput='',activityAnswer=null,activityHiddenIndex=-1,activityDigit=0,activityStartCounts=[],activityPrompt='';
+  let additionA=247,additionB=185,additionStep=0,additionDifficulty='mixed';
   let exportMode='diagram',responseLines=1,exportStatus='';
 
   function rangeFor(id=placeRange){return PLACE_RANGES.find(r=>r.id===id)||PLACE_RANGES.find(r=>r.id==='standard')}
@@ -70,12 +72,13 @@ function placeValue(){
   function counts(){const out=Array(places.length).fill(0);tokens.forEach(t=>{if(out[t.place]!=null)out[t.place]++});return out}
   function total(){return clean(tokens.reduce((sum,t)=>sum+(places[t.place]?.value||0),0))}
   function nonStandard(){return counts().some(n=>n>9)}
-  function stateSnapshot(){return{tokens:JSON.parse(JSON.stringify(tokens)),next,placeRange,rangeStart,rangeEnd}}
+  function stateSnapshot(){return{tokens:JSON.parse(JSON.stringify(tokens)),next,placeRange,rangeStart,rangeEnd,representationMode}}
   function restoreState(value){
     if(Number.isInteger(value?.rangeStart)&&Number.isInteger(value?.rangeEnd))applyPlaceWindow(value.rangeStart,value.rangeEnd,value.placeRange||'custom');
     else setPlaceRange(value?.placeRange||'standard');
     tokens=Array.isArray(value?.tokens)?value.tokens.map(t=>({...t,place:clamp(Math.round(num(t.place,Math.min(4,places.length-1))),0,places.length-1)})):[];
     next=Math.max(1,Math.round(num(value?.next,1)));
+    representationMode=['counters','abacus','both'].includes(value?.representationMode)?value.representationMode:representationMode;
     notice='';
   }
   function buildFromNumber(raw){
