@@ -194,7 +194,7 @@ function placeValue(){
       buildFromNumber(value);
       challenge=challengeObject(type,'A pupil says the empty '+places[zeroIndex].name+' column does not matter when reading this number. Are they correct?','No. It represents '+format(value)+'. Zero is acting as a placeholder in the '+places[zeroIndex].name+' place.',{hiddenSummary:['total','expanded']});
     }
-    challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';
+    activityActive=false;challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';
     exportMode='challenge';responseLines=template.category==='reason'?3:1;exportStatus='';
     renderControls();controller?.select(null);controller?.refresh();
   }
@@ -635,6 +635,7 @@ function placeValue(){
         if(challenge){restoreBeforeChallenge();challenge=null}
         controlTab='activity';startActivity(activityMode);return;
       }
+      if(nextTab==='setup'||nextTab==='challenge')activityActive=false;
       controlTab=nextTab==='challenge'?'challenge':nextTab==='export'?'export':'setup';
       renderControls();controller?.refresh();
     });
