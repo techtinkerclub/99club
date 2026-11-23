@@ -81,7 +81,7 @@ async function run(){
   assert(getComputedStyle(document.getElementById('gd-qa-theme-header')).display==='none','Mixed whiteboard hides the site masthead');
   assert(getComputedStyle(document.getElementById('gd-qa-theme-footer')).display==='none','Mixed whiteboard hides the site footer');
   const tools=[...document.querySelectorAll('[data-board-add]')];
-  assert(tools.length===18,'All 18 manipulatives are available as compact palette icons');
+  assert(tools.length===19,'All 19 manipulatives are available as compact palette icons');
   assert(palette.getBoundingClientRect().width<=50,'Left manipulative rail stays narrow');
   assert(getComputedStyle(canvas).backgroundImage.includes('radial-gradient'),'Whiteboard uses a fine dotted canvas');
   assert(getComputedStyle(canvas).backgroundSize==='10px 10px','Whiteboard dot spacing matches the 10px snap grid');
@@ -391,6 +391,46 @@ async function run(){
   fakeReveal.remove();
   pvDoc.body.dispatchEvent(new MouseEvent('click',{bubbles:true}));await tick();
   TT99Goodies.compositionBoard.remove(pvRecord.id);
+
+  document.querySelector('[data-board-add="abacus"]').click();await tick();
+  const abRecord=TT99Goodies.compositionBoard.objects().find(x=>x.toolId==='abacus');
+  const abFrame=abRecord&&document.querySelector('[data-board-object="'+abRecord.id+'"]');
+  for(let attempt=0;attempt<40&&abFrame&&!abFrame.classList.contains('is-ready');attempt++)await tick(50);
+  assert(abFrame&&abFrame.classList.contains('is-ready'),'Classical Abacus reaches embedded ready state');
+  assert(abRecord.baseW>=740,'Abacus receives a wide enough logical frame for ten sliding beads');
+  const abIframe=abFrame.querySelector('iframe'),abDoc=abIframe.contentDocument,abWin=abIframe.contentWindow;
+  assert(abDoc.querySelectorAll('[data-ab-row]').length===5&&abDoc.querySelectorAll('[data-ab-bead]').length===50,'Whiteboard Abacus renders five rows of ten physical beads');
+
+  const abSettings=abFrame.querySelector('[data-board-settings]');abSettings.click();await tick();
+  const abFloating=document.getElementById('gd-board-floating-controls');
+  assert(visible(abFloating)&&abFloating.querySelector('#ab-rows'),'Abacus exposes row configuration in the floating whiteboard settings');
+  const visibleAbWorkflows=[...abFloating.querySelectorAll('[data-ab-workflow]')].filter(visible).map(b=>b.textContent.trim());
+  assert(visibleAbWorkflows.includes('Setup')&&visibleAbWorkflows.includes('Teach / play')&&!visibleAbWorkflows.includes('Challenge')&&!visibleAbWorkflows.includes('Export'),'Embedded Abacus keeps Setup / Teach controls and removes duplicate Challenge / Export tabs');
+  abSettings.click();await tick();
+
+  let abQuick=[...abFrame.querySelectorAll('[data-board-quick-actions] button')];
+  const plusOne=abQuick.find(button=>button.textContent.trim()==='+1');
+  assert(plusOne,'Abacus exposes +1 directly on the whiteboard frame');
+  plusOne.click();await tick();
+  assert(Number(abDoc.querySelector('[data-ab-total]').textContent)===1,'Whiteboard +1 moves one Abacus bead into the counted group');
+  const challengeAb=abQuick.find(button=>/^Challenge/.test(button.textContent.trim()));
+  assert(challengeAb,'Abacus exposes a direct random Challenge frame action');
+  challengeAb.click();await tick();
+  assert(abDoc.querySelector('.gd-ab-task'),'Frame Challenge immediately starts an Abacus pupil task');
+  assert(abDoc.querySelector('[data-ab-total]').textContent.trim()==='?','Abacus pupil challenge hides the live total');
+
+  let abExportSvg=null,abExportName='';
+  const abOldSvg=abWin.TT99Goodies.exportTools.downloadSvg;
+  abWin.TT99Goodies.exportTools.downloadSvg=(svg,name)=>{abExportSvg=svg.cloneNode(true);abExportName=name};
+  const abExportButton=abFrame.querySelector('[data-board-export]');
+  assert(abExportButton,'Abacus uses the universal whiteboard export control');
+  abExportButton.click();await tick();
+  const abExportMenu=abFrame.querySelector('[data-board-export-menu]');
+  abExportMenu.querySelector('[data-board-export-kind="svg"]').click();await tick();
+  assert(abExportSvg&&abExportSvg.dataset.worksheetCard==='1'&&abExportSvg.querySelector('[data-ab-export-frame="1"]'),'Abacus frame export produces a clean worksheet containing the counting frame');
+  assert(/^abacus-/.test(abExportName),'Abacus whiteboard export has a reusable filename');
+  abWin.TT99Goodies.exportTools.downloadSvg=abOldSvg;
+  TT99Goodies.compositionBoard.remove(abRecord.id);
 
   document.querySelector('[data-board-add="randomiser"]').click();await tick();
   const randomRecord=TT99Goodies.compositionBoard.objects().find(x=>x.toolId==='randomiser');
