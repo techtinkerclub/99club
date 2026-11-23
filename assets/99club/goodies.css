@@ -312,7 +312,7 @@ html.nl-board-page-lock,body.nl-board-page-lock{overflow:hidden!important;oversc
 
 
 /* Goodies Place Value: direct-manipulation counter board */
-.gd-pv-workspace{display:grid;gap:12px;width:100%}
+.gd-pv-workspace{display:grid;gap:12px;width:100%;margin:0 auto}
 .gd-pv-board-wrap{position:relative;width:100%}
 .gd-pv-canvas{position:relative;width:100%;border:1px solid #bdcdd0;border-radius:18px;background:#fff;overflow:hidden;touch-action:pan-y;box-shadow:inset 0 0 0 1px rgba(255,255,255,.7)}
 .gd-pv-columns{position:absolute;inset:0;display:grid;grid-template-columns:repeat(var(--pv-cols,7),minmax(0,1fr));pointer-events:none}
