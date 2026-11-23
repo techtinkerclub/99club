@@ -49,7 +49,7 @@ document.exitFullscreen=function(){
   }
   async function run(){
     const cards=[...document.querySelectorAll('[data-tool]')];
-    assert(cards.length>=18,'Expected the full Goodies manipulative catalogue');
+    assert(cards.length>=19,'Expected the full Goodies manipulative catalogue including Abacus');
     const ids=cards.map(x=>x.dataset.tool);
     assert(new Set(ids).size===ids.length,'Goodies catalogue tool ids must be unique');
     assert(window.TT99Goodies&&TT99Goodies.whiteboard,'Shared whiteboard controller is registered');
