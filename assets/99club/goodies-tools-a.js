@@ -2,8 +2,90 @@
 'use strict';
 if(!G)return;
 const {q,qa,esc,clamp,num,money,field,btn,setPanels}=G;
-function numberLine(){let s={min:-10,max:20,step:1,marker:5};function draw(){s.min=num(q('#nl-min').value,s.min);s.max=num(q('#nl-max').value,s.max);if(s.max<=s.min)s.max=s.min+1;s.step=Math.max(.1,num(q('#nl-step').value,s.step));s.marker=clamp(num(q('#nl-marker').value,s.marker),s.min,s.max);q('#nl-marker').min=s.min;q('#nl-marker').max=s.max;q('#nl-marker').step=s.step;const range=s.max-s.min,n=Math.floor(range/s.step);const maxTicks=50,skip=Math.max(1,Math.ceil(n/maxTicks));let html='<div class="gd-vis"><div class="gd-numberline"><div class="gd-numberline__line"></div>';for(let i=0;i<=n;i+=skip){const v=s.min+i*s.step,p=(v-s.min)/range*100;html+=`<span class="gd-numberline__tick" style="left:${p}%"></span><span class="gd-numberline__label" style="left:${p}%">${Number(v.toFixed(4))}</span>`}const p=(s.marker-s.min)/range*100;html+=`<span class="gd-numberline__marker" style="left:${p}%">${Number(s.marker.toFixed(2))}</span></div><div class="gd-readout">Marker: ${Number(s.marker.toFixed(2))}</div></div>`;q('#gd-stage').innerHTML=html}
-setPanels(`${field('Minimum','<input class="gd-input" id="nl-min" type="number" value="-10">')}${field('Maximum','<input class="gd-input" id="nl-max" type="number" value="20">')}${field('Step','<input class="gd-input" id="nl-step" type="number" min="0.1" step="0.1" value="1">')}${field('Move marker','<input class="gd-input" id="nl-marker" type="range" value="5">')}<div class="gd-row">${btn('− step','nl-down')}${btn('+ step','nl-up')}</div><p class="gd-help">Change the range for negatives, decimals or larger-number work.</p>`,'');['nl-min','nl-max','nl-step','nl-marker'].forEach(id=>q('#'+id).addEventListener('input',draw));q('#nl-down').onclick=()=>{q('#nl-marker').value=clamp(num(q('#nl-marker').value)-s.step,s.min,s.max);draw()};q('#nl-up').onclick=()=>{q('#nl-marker').value=clamp(num(q('#nl-marker').value)+s.step,s.min,s.max);draw()};draw()}
+function numberLine(){
+  const X=G.exportTools;
+  let s={min:-10,max:20,step:1,marker:5};
+
+  function state(){
+    s.min=num(q('#nl-min')?.value,s.min);
+    s.max=num(q('#nl-max')?.value,s.max);
+    if(s.max<=s.min)s.max=s.min+1;
+    s.step=Math.max(.1,num(q('#nl-step')?.value,s.step));
+    s.marker=clamp(num(q('#nl-marker')?.value,s.marker),s.min,s.max);
+    const marker=q('#nl-marker');
+    if(marker){marker.min=s.min;marker.max=s.max;marker.step=s.step}
+    return s;
+  }
+  function ticks(){
+    state();
+    const range=s.max-s.min,n=Math.floor(range/s.step),skip=Math.max(1,Math.ceil(n/50)),out=[];
+    for(let i=0;i<=n;i+=skip)out.push(Number((s.min+i*s.step).toFixed(4)));
+    if(out[out.length-1]!==s.max)out.push(Number(s.max.toFixed(4)));
+    return out;
+  }
+  function draw(){
+    state();
+    const range=s.max-s.min,values=ticks();
+    let html='<div class="gd-vis"><div class="gd-numberline"><div class="gd-numberline__line"></div>';
+    values.forEach(v=>{
+      const p=(v-s.min)/range*100;
+      html+='<span class="gd-numberline__tick" style="left:'+p+'%"></span><span class="gd-numberline__label" style="left:'+p+'%">'+v+'</span>';
+    });
+    const p=(s.marker-s.min)/range*100;
+    html+='<span class="gd-numberline__marker" style="left:'+p+'%">'+Number(s.marker.toFixed(2))+'</span></div><div class="gd-readout">Marker: '+Number(s.marker.toFixed(2))+'</div></div>';
+    q('#gd-stage').innerHTML=html;
+  }
+  function svgEl(name,attrs={},text=''){
+    const el=document.createElementNS('http://www.w3.org/2000/svg',name);
+    Object.entries(attrs).forEach(([key,value])=>el.setAttribute(key,String(value)));
+    if(text!==''&&text!=null)el.textContent=String(text);
+    return el;
+  }
+  function paperSvg(){
+    state();
+    const width=900,height=230,left=58,right=842,y=118,range=s.max-s.min,values=ticks();
+    const svg=svgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Number line'});
+    svg.appendChild(svgEl('line',{x1:left,y1:y,x2:right,y2:y,stroke:'#334a52','stroke-width':4,'stroke-linecap':'round'}));
+    values.forEach(v=>{
+      const x=left+(v-s.min)/range*(right-left);
+      svg.appendChild(svgEl('line',{x1:x,y1:y-10,x2:x,y2:y+10,stroke:'#61767c','stroke-width':2}));
+      svg.appendChild(svgEl('text',{x,y:y+35,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':16,'font-weight':700,fill:'#43585f'},String(v)));
+    });
+    const mx=left+(s.marker-s.min)/range*(right-left);
+    svg.appendChild(svgEl('circle',{cx:mx,cy:y,r:11,fill:'#1d8b82',stroke:'#ffffff','stroke-width':3}));
+    svg.appendChild(svgEl('text',{x:mx,y:y-24,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':20,'font-weight':850,fill:'#176b65'},String(Number(s.marker.toFixed(4)))));
+    svg.appendChild(svgEl('text',{x:right,y:height-15,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':9,fill:'#96a4a8'},'99 Club Studio'));
+    return svg;
+  }
+  async function exportAction(kind){
+    if(!X)return;
+    const svg=paperSvg(),name='number-line-'+String(s.marker).replace(/[^0-9.-]+/g,'-');
+    if(kind==='copy')await X.copyPng(svg,{transparent:true});
+    if(kind==='png')await X.downloadPng(svg,name,2,{transparent:true});
+    if(kind==='svg')X.downloadSvg(svg,name);
+    if(kind==='print')X.printSvg(svg,{title:'',landscape:true});
+  }
+
+  setPanels(
+    field('Minimum','<input class="gd-input" id="nl-min" type="number" value="-10">')+
+    field('Maximum','<input class="gd-input" id="nl-max" type="number" value="20">')+
+    field('Step','<input class="gd-input" id="nl-step" type="number" min="0.1" step="0.1" value="1">')+
+    field('Move marker','<input class="gd-input" id="nl-marker" type="range" value="5">')+
+    '<div class="gd-row">'+btn('− step','nl-down')+btn('+ step','nl-up')+'</div>'+
+    '<p class="gd-help">Change the range for negatives, decimals or larger-number work.</p>'+
+    '<div hidden><button id="nl-paper-export" type="button">Export</button><button id="nl-copy" type="button">Copy</button><button id="nl-png" type="button">PNG</button><button id="nl-svg" type="button">SVG</button><button id="nl-print" type="button">Print</button></div>',
+    ''
+  );
+  ['nl-min','nl-max','nl-step','nl-marker'].forEach(id=>q('#'+id).addEventListener('input',draw));
+  q('#nl-down').onclick=()=>{q('#nl-marker').value=clamp(num(q('#nl-marker').value)-s.step,s.min,s.max);draw()};
+  q('#nl-up').onclick=()=>{q('#nl-marker').value=clamp(num(q('#nl-marker').value)+s.step,s.min,s.max);draw()};
+  q('#nl-paper-export').onclick=()=>{};
+  q('#nl-copy').onclick=()=>exportAction('copy');
+  q('#nl-png').onclick=()=>exportAction('png');
+  q('#nl-svg').onclick=()=>exportAction('svg');
+  q('#nl-print').onclick=()=>exportAction('print');
+  draw();
+}
 
 function placeValue(){
   const I=G.interaction,CK=G.challengeKit,X=G.exportTools;
