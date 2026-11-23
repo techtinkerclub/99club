@@ -2045,8 +2045,9 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=(svg,name)=>{pvCapturedSvg=svg.cloneNode(true);pvCapturedName=name};
     document.getElementById('pv-svg-download').click();
     assert(pvCapturedSvg&&pvCapturedSvg.dataset.pvExport==='board','Place Value board-only export is a deterministic SVG board');
-    assert(pvCapturedSvg.firstElementChild?.getAttribute('fill')==='none','Place Value board-only SVG keeps its outer background transparent for worksheet placement');
-    assert(pvCapturedSvg.querySelectorAll('text').length>=16,'Place Value SVG export carries semantic column/readout text');
+    assert(pvCapturedSvg.firstElementChild?.getAttribute('fill')==='#ffffff','Place Value chart export uses a white paper background instead of transparent/dark rendering');
+    assert(!pvCapturedSvg.textContent.includes('Number represented')&&!pvCapturedSvg.textContent.includes('Board representation'),'Place Value chart export contains the chart only, without dashboard summary cards');
+    assert(pvCapturedSvg.querySelectorAll('text').length>=8,'Place Value SVG export carries semantic place headings');
     assert(pvCapturedName.includes('place-value-board'),'Place Value board export has a reusable filename');
     TT99Goodies.exportTools.downloadSvg=pvOldDownloadSvg;
 
@@ -2067,13 +2068,14 @@ if(mode==='prepare'){
     const pvOldChallengeDownload=TT99Goodies.exportTools.downloadSvg;
     TT99Goodies.exportTools.downloadSvg=(svg)=>{pvPupilSvg=svg.cloneNode(true)};
     document.getElementById('pv-svg-download').click();
-    assert(pvPupilSvg&&pvPupilSvg.dataset.worksheetCard==='1'&&pvPupilSvg.dataset.worksheetAnswer==='pupil','Hidden-answer export creates the pupil worksheet version');
+    assert(pvPupilSvg&&pvPupilSvg.dataset.worksheetCard==='1'&&pvPupilSvg.dataset.worksheetAnswer==='pupil'&&pvPupilSvg.dataset.paperStyle==='plain','Hidden-answer export creates a plain-paper pupil worksheet version');
     assert(pvPupilSvg.querySelector('[data-pv-export-board="1"]'),'Place Value challenge card embeds the printable place-value table');
     const pupilBoard=pvPupilSvg.querySelector('[data-pv-export-board="1"]');
     assert(Number(pupilBoard.getAttribute('height'))>=340,'Printable Place Value table has a normal writable body rather than a miniature live-board strip');
     assert(pvPupilSvg.textContent.includes('What number is represented'),'Place Value worksheet includes the pupil question text');
     assert(!pvPupilSvg.textContent.includes('Answer:'),'Pupil worksheet does not expose the answer');
-    assert(pvPupilSvg.viewBox.baseVal.width>pvPupilSvg.viewBox.baseVal.height,'Place Value worksheet card remains compact enough to place several on a page');
+    assert(pvPupilSvg.viewBox.baseVal.width>pvPupilSvg.viewBox.baseVal.height,'Place Value worksheet question remains compact enough to place several on a page');
+    assert((pvPupilSvg.textContent.match(/99 Club Studio/g)||[]).length===1,'Place Value worksheet contains only one small brand footer');
 
     document.querySelector('[data-pv-workflow="challenge"]').click();
     document.querySelector('[data-board-action="reveal"]').click();
@@ -2160,6 +2162,15 @@ if(mode==='prepare'){
     document.querySelector('[data-pv-activity-mode="build"]').click();
     assert(document.querySelector('.gd-pv-activity--game [data-pv-activity-check]')&&document.querySelector('[data-pv-activity-another]'),'Build-target game puts Check and Another directly on the widget');
     assert(document.querySelectorAll('[data-gd-object]').length===0,'Build-target game starts with a clean board for the pupil');
+    document.querySelector('[data-pv-workflow="export"]').click();
+    let pvBuildSvg=null;
+    const pvOldBuildDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{pvBuildSvg=svg.cloneNode(true)};
+    document.getElementById('pv-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=pvOldBuildDownload;
+    assert(pvBuildSvg&&pvBuildSvg.dataset.paperStyle==='plain','Build-target paper export uses the plain worksheet layout');
+    assert(!pvBuildSvg.textContent.includes('Working / answer')&&!pvBuildSvg.textContent.includes('Number represented')&&!pvBuildSvg.textContent.includes('Board representation'),'Build-target paper export uses the chart itself as the response area and contains no dashboard leftovers');
+    document.querySelector('[data-pv-workflow="activity"]').click();
 
     document.querySelector('[data-pv-activity-mode="exact"]').click();
     assert(document.getElementById('pv-activity-budget'),'Exact-counter game lets the teacher choose the counter budget');
