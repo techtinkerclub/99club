@@ -285,10 +285,11 @@ function placeValue(){
     return ad.some((digit,index)=>digit+(bd[index]||0)>=10);
   }
   function randomAdditionProblem(){
-    const start=Math.max(0,places.length-Math.min(4,places.length));
+    const wholeIndexes=places.map((place,index)=>({place,index})).filter(x=>x.place.value>=1).map(x=>x.index);
+    const eligible=(wholeIndexes.length?wholeIndexes:places.map((_,index)=>index)).slice(-4);
     for(let attempt=0;attempt<160;attempt++){
       const ad=Array(places.length).fill(0),bd=Array(places.length).fill(0);
-      for(let i=start;i<places.length;i++){
+      for(const i of eligible){
         ad[i]=Math.floor(Math.random()*8);
         bd[i]=Math.floor(Math.random()*7);
         if(additionDifficulty==='no-regroup'&&ad[i]+bd[i]>9)bd[i]=Math.max(0,9-ad[i]);
