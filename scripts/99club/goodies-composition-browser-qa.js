@@ -415,6 +415,7 @@ async function run(){
   assert(plusOne,'Abacus exposes +1 directly on the whiteboard frame');
   plusOne.click();await tick();
   assert(Number(abDoc.querySelector('[data-ab-total]').textContent)===1,'Whiteboard +1 moves one Abacus bead into the counted group');
+  abQuick=[...abFrame.querySelectorAll('[data-board-quick-actions] button')];
   const challengeAb=abQuick.find(button=>/^Challenge/.test(button.textContent.trim()));
   assert(challengeAb,'Abacus exposes a direct random Challenge frame action');
   challengeAb.click();await tick();
