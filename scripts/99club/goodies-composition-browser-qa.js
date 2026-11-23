@@ -301,6 +301,22 @@ async function run(){
   if(['build','exact'].includes(pvGame.dataset.pvActivityKind))assert(pvDoc.querySelectorAll('[data-gd-object]').length===0,'Build/Exact random challenges start with an empty pupil board');
   else assert(pvDoc.querySelectorAll('[data-gd-object]').length>0,'Interpret/regroup/same-value random challenges start with a meaningful board representation');
 
+  const challengeKindBefore=pvGame.dataset.pvActivityKind;
+  const challengePromptBefore=pvGame.querySelector('.gd-pv-activity-head strong')?.textContent||'';
+  const challengeObjectsBefore=pvDoc.querySelectorAll('[data-gd-object]').length;
+  let pvChallengeExportSvg=null;
+  const pvOldChallengeSvg=pvWin.TT99Goodies.exportTools.downloadSvg;
+  pvWin.TT99Goodies.exportTools.downloadSvg=(svg)=>{pvChallengeExportSvg=svg.cloneNode(true)};
+  const pvChallengeExportButton=pvFrame.querySelector('[data-board-export]');
+  pvChallengeExportButton.click();await tick();
+  pvFrame.querySelector('[data-board-export-menu] [data-board-export-kind="svg"]').click();await tick();
+  const challengeGameAfterExport=pvDoc.querySelector('.gd-pv-activity--game');
+  assert(pvChallengeExportSvg&&pvChallengeExportSvg.dataset.worksheetCard==='1','Frame share export produces a worksheet for the current active Place Value challenge');
+  assert(challengeGameAfterExport&&challengeGameAfterExport.dataset.pvActivityKind===challengeKindBefore,'Frame share export does not replace the current Place Value challenge');
+  assert((challengeGameAfterExport.querySelector('.gd-pv-activity-head strong')?.textContent||'')===challengePromptBefore,'Frame share export preserves the exact current challenge prompt');
+  assert(pvDoc.querySelectorAll('[data-gd-object]').length===challengeObjectsBefore,'Frame share export preserves the current challenge representation');
+  pvWin.TT99Goodies.exportTools.downloadSvg=pvOldChallengeSvg;
+
   pvDoc.querySelector('[data-pv-workflow="setup"]').click();await tick();
   const pvSetupValue=pvDoc.getElementById('pv-value');
   pvSetupValue.value='20';
