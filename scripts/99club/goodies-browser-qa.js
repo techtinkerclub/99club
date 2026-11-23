@@ -2057,8 +2057,8 @@ if(mode==='prepare'){
 
     document.querySelector('[data-pv-workflow="challenge"]').click();
     assert(document.querySelector('[data-pv-challenge-tab="standard"]'),'Place Value keeps Standard / Custom challenge tabs');
-    const pvChallengeModes=['build','exact','regroup','same','read','hidden','digit'];
-    assert(pvChallengeModes.every(mode=>document.querySelector('[data-pv-challenge-mode="'+mode+'"]')),'Place Value Challenge tab exposes Build, Exact, Regroup, Same value, Read, Hidden place and Digit value');
+    const pvChallengeModes=['build','exact','regroup','same','read','hidden','digit','add'];
+    assert(pvChallengeModes.every(mode=>document.querySelector('[data-pv-challenge-mode="'+mode+'"]')),'Place Value Challenge tab exposes Build, Exact, Regroup, Same value, Read, Hidden place, Digit value and Addition');
     assert(document.getElementById('pv-challenge-random'),'Place Value Challenge tab also exposes a Random challenge action');
 
     document.querySelector('[data-pv-challenge-mode="read"]').click();
@@ -2133,8 +2133,8 @@ if(mode==='prepare'){
     assert(numberText('#pv-total')===10&&document.querySelector('[data-pv-count="3"]').textContent==='1'&&document.querySelector('[data-pv-count="4"]').textContent==='0','Exchanging ten ones creates one ten without changing value');
 
     document.querySelector('[data-pv-workflow="activity"]').click();
-    const pvActivityModes=['powers','build','exact','regroup','same','read','hidden','digit'];
-    assert(pvActivityModes.every(mode=>document.querySelector('[data-pv-activity-mode="'+mode+'"]')),'Teach / play exposes the full powers, build, exact, regroup, same-value, read, hidden-place and digit-value activity set');
+    const pvActivityModes=['powers','build','exact','regroup','same','read','hidden','digit','add'];
+    assert(pvActivityModes.every(mode=>document.querySelector('[data-pv-activity-mode="'+mode+'"]')),'Teach / play exposes powers, build, exact, regroup, same-value, read, hidden-place, digit-value and addition activities');
     document.querySelector('[data-pv-activity-mode="powers"]').click();
     assert(document.querySelectorAll('.gd-pv-digit-row .gd-pv-digit-cell').length===7,'Powers-of-ten demo aligns one digit card with every visible place');
     assert(document.querySelectorAll('.gd-pv-digit-row .is-decimal-start').length===1,'Powers-of-ten demo keeps one fixed decimal boundary');
@@ -2187,6 +2187,60 @@ if(mode==='prepare'){
     const digitPlace=Number(digitTarget.querySelector('.gd-pv-head strong').textContent.replace(/,/g,''));
     assert(Math.abs(digitPlace-1)>1e-12,'Digit-value activity prefers a place where digit and digit value are meaningfully different');
 
+    document.querySelector('[data-pv-workflow="setup"]').click();
+    const repButtons=[...document.querySelectorAll('[data-pv-representation]')];
+    assert(repButtons.length===3&&repButtons.map(b=>b.dataset.pvRepresentation).join('|')==='counters|abacus|both','Place Value exposes Counters, Abacus and Both representations');
+    document.getElementById('pv-value').value='99';document.getElementById('pv-build').click();
+    document.querySelector('[data-pv-representation="abacus"]').click();
+    assert(document.querySelector('.gd-pv-abacus')&&!document.querySelector('.gd-pv-board-wrap'),'Abacus mode replaces the counter chart with a place-value abacus');
+    let onesRod=[...document.querySelectorAll('[data-pv-abacus-rod]')].find(rod=>rod.querySelector('.gd-pv-abacus-label strong')?.textContent.trim()==='1');
+    assert(onesRod,'Abacus exposes an ones rod');
+    assert(onesRod.querySelector('[data-pv-abacus-count]').textContent.trim()==='9','Abacus mirrors the existing number 99');
+    onesRod.querySelector('[data-pv-abacus-nudge$=":1"]').click();
+    assert(numberText('#pv-total')===100,'Adding the tenth ones bead automatically carries to the next place');
+    assert(/Exchanged 10 ones for 1 ten/i.test(document.getElementById('pv-hint').textContent),'Abacus carry is explained as a 10-to-1 exchange');
+
+    document.querySelector('[data-pv-representation="both"]').click();
+    assert(document.querySelector('.gd-pv-abacus')&&document.querySelector('.gd-pv-board-wrap'),'Both mode shows linked counter and abacus representations together');
+    const beforeLinked=numberText('#pv-total');
+    onesRod=[...document.querySelectorAll('[data-pv-abacus-rod]')].find(rod=>rod.querySelector('.gd-pv-abacus-label strong')?.textContent.trim()==='1');
+    onesRod.querySelector('[data-pv-abacus-nudge$=":1"]').click();
+    assert(numberText('#pv-total')===beforeLinked+1,'Changing the abacus in Both mode updates the shared place-value number');
+    assert(document.querySelectorAll('[data-gd-object][data-pv-place]').length>0,'Linked counter representation updates from the same shared number model');
+
+    document.querySelector('[data-pv-workflow="activity"]').click();
+    document.querySelector('[data-pv-activity-mode="add"]').click();
+    assert(document.querySelector('.gd-pv-abacus'),'Starting Addition from Counters switches to the abacus representation');
+    const addA=document.getElementById('pv-add-a'),addB=document.getElementById('pv-add-b');
+    addA.value='247';addB.value='185';document.getElementById('pv-add-set').click();
+    assert(numberText('#pv-total')===247,'Addition starts with the first addend already represented');
+    assert(/Start with 247\. Add 185/.test(document.querySelector('.gd-pv-activity-head strong').textContent),'Addition gives explicit start-and-add wording');
+    let nextPlace=document.querySelector('[data-pv-add-next]');
+    assert(nextPlace&&!nextPlace.disabled,'Teach addition exposes a guided Next place action');
+    nextPlace.click();
+    assert(numberText('#pv-total')===252,'First guided addition step adds the ones');
+    assert(/Exchanged 10 ones for 1 ten/i.test(document.getElementById('pv-hint').textContent),'Guided addition visibly explains the ones carry');
+    document.querySelector('[data-pv-add-next]').click();
+    assert(numberText('#pv-total')===332,'Second guided addition step adds the tens with regrouping');
+    document.querySelector('[data-pv-add-next]').click();
+    assert(numberText('#pv-total')===432,'Final guided addition step reaches the correct sum');
+    document.querySelector('[data-pv-activity-check]').click();
+    assert(/Correct/.test(document.querySelector('.gd-pv-activity-head em').textContent),'Addition Check confirms the completed abacus sum');
+
+    document.querySelector('[data-pv-workflow="export"]').click();
+    let pvAbacusSvg=null;
+    const pvOldAbacusDownload=TT99Goodies.exportTools.downloadSvg;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{pvAbacusSvg=svg.cloneNode(true)};
+    document.getElementById('pv-svg-download').click();
+    TT99Goodies.exportTools.downloadSvg=pvOldAbacusDownload;
+    assert(pvAbacusSvg&&pvAbacusSvg.querySelector('[data-pv-export-abacus="1"]'),'Addition worksheet export preserves the abacus representation');
+
+    document.querySelector('[data-pv-workflow="challenge"]').click();
+    document.querySelector('[data-pv-challenge-mode="add"]').click();
+    assert(document.querySelector('.gd-pv-activity--game[data-pv-activity-kind="add"]')&&document.querySelector('.gd-pv-abacus'),'Addition is available as a direct pupil challenge on the abacus');
+
+    document.querySelector('[data-pv-workflow="setup"]').click();
+    document.querySelector('[data-pv-representation="counters"]').click();
     const canvas=document.getElementById('pv-canvas');
     assert(canvas&&getComputedStyle(canvas).touchAction==='pan-y','Place Value empty board preserves vertical touch scrolling');
   }
