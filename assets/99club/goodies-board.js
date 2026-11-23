@@ -152,7 +152,7 @@ const tooltip=document.getElementById('gd-board-tooltip');
 const floatingControls=document.getElementById('gd-board-floating-controls');
 const floatingControlsBody=document.getElementById('gd-board-floating-controls-body');
 const floatingControlsTitle=document.getElementById('gd-board-floating-controls-title');
-let floatingControlObjectId=null,floatingControlDrag=null,floatingControlX=86,floatingControlY=76;
+let floatingControlObjectId=null,floatingControlDrag=null,floatingControlX=86,floatingControlY=76,floatingControlMoved=false;
 let hintTimer=null,tooltipTimer=null;
 function showToolTip(button){
   if(!tooltip||!button)return;
@@ -249,7 +249,7 @@ function openFloatingControls(obj){
   floatingControlObjectId=obj.id;obj.settingsOpen=true;
   const frame=frameFor(obj.id);frame?.classList.add('has-settings');
   const rect=frame?.getBoundingClientRect(),host=board.getBoundingClientRect();
-  if(rect){
+  if(rect&&!floatingControlMoved){
     const preferredX=Math.min(board.clientWidth-330,Math.max(58,rect.right-host.left+14));
     const preferredY=Math.max(12,Math.min(board.clientHeight-280,rect.top-host.top));
     floatingControlX=preferredX;floatingControlY=preferredY;
@@ -499,7 +499,45 @@ function bindObject(obj){
   };
 }
 
+if(floatingControlsBody){
+  floatingControlsBody.addEventListener('click',e=>{
+    const control=e.target.closest('[data-board-control-index]');if(!control)return;
+    if(control.tagName!=='BUTTON'&&!(control.tagName==='INPUT'&&/^(button|submit|reset)$/i.test(control.type||'')))return;
+    e.preventDefault();e.stopPropagation();
+    const {obj,node}=floatingOriginal(control.dataset.boardControlIndex);if(!obj||!node)return;
+    node.click();
+    setTimeout(()=>{syncQuickActions(obj);refreshFloatingControls(obj)},0);
+  });
+  const forwardValue=e=>{
+    const control=e.target.closest('[data-board-control-index]');if(!control)return;
+    const {obj,node}=floatingOriginal(control.dataset.boardControlIndex);if(!obj||!node)return;
+    if('value' in node&&'value' in control)node.value=control.value;
+    if('checked' in node&&'checked' in control)node.checked=control.checked;
+    if(node.isContentEditable)node.innerHTML=control.innerHTML;
+    node.dispatchEvent(new Event(e.type,{bubbles:true}));
+    if(e.type==='change')setTimeout(()=>{syncQuickActions(obj);refreshFloatingControls(obj)},0);
+  };
+  floatingControlsBody.addEventListener('input',forwardValue);
+  floatingControlsBody.addEventListener('change',forwardValue);
+}
+const floatingClose=floatingControls?.querySelector('[data-board-controls-close]');
+if(floatingClose)floatingClose.onclick=e=>{e.preventDefault();e.stopPropagation();closeFloatingControls()};
+const floatingHead=floatingControls?.querySelector('[data-board-controls-drag]');
+if(floatingHead)floatingHead.onpointerdown=e=>{
+  if(e.button!==0||e.target.closest('button'))return;
+  e.preventDefault();e.stopPropagation();
+  floatingControlDrag={pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,x:floatingControlX,y:floatingControlY};
+  floatingControlMoved=true;floatingControls.classList.add('is-dragging');
+  try{floatingHead.setPointerCapture(e.pointerId)}catch(_){}
+};
+
 document.addEventListener('pointermove',e=>{
+  if(floatingControlDrag&&floatingControlDrag.pointerId===e.pointerId){
+    e.preventDefault();
+    floatingControlX=floatingControlDrag.x+(e.clientX-floatingControlDrag.startX);
+    floatingControlY=floatingControlDrag.y+(e.clientY-floatingControlDrag.startY);
+    positionFloatingControls();return;
+  }
   if(pan&&pan.pointerId===e.pointerId){
     e.preventDefault();
     viewport.scrollLeft=pan.scrollLeft-(e.clientX-pan.startX);
@@ -527,6 +565,9 @@ document.addEventListener('pointermove',e=>{
   }
 });
 function endPointer(e){
+  if(floatingControlDrag&&floatingControlDrag.pointerId===e.pointerId){
+    floatingControlDrag=null;floatingControls?.classList.remove('is-dragging');
+  }
   if(pan&&pan.pointerId===e.pointerId){
     pan=null;board.classList.remove('is-panning');
   }
