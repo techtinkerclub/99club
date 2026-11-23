@@ -270,6 +270,105 @@ function placeValue(){
     for(let n=0;n<10;n++)tokens.push({id:next++,place:source+1,x:0,y:0,locked:false});
     layoutTokens();return true;
   }
+  function digitsForValue(value){
+    const scale=valueScale(),units=Math.round(normaliseValue(value)*scale);
+    return places.map(place=>{
+      const unitValue=Math.max(1,Math.round(place.value*scale));
+      return Math.floor(units/unitValue)%10;
+    });
+  }
+  function valueFromDigits(digits){
+    return normaliseValue((digits||[]).reduce((sum,digit,index)=>sum+(Number(digit)||0)*(places[index]?.value||0),0));
+  }
+  function additionNeedsRegroup(a,b){
+    const ad=digitsForValue(a),bd=digitsForValue(b);
+    return ad.some((digit,index)=>digit+(bd[index]||0)>=10);
+  }
+  function randomAdditionProblem(){
+    const start=Math.max(0,places.length-Math.min(4,places.length));
+    for(let attempt=0;attempt<160;attempt++){
+      const ad=Array(places.length).fill(0),bd=Array(places.length).fill(0);
+      for(let i=start;i<places.length;i++){
+        ad[i]=Math.floor(Math.random()*8);
+        bd[i]=Math.floor(Math.random()*7);
+        if(additionDifficulty==='no-regroup'&&ad[i]+bd[i]>9)bd[i]=Math.max(0,9-ad[i]);
+      }
+      if(!ad.some(Boolean))ad[places.length-1]=2+Math.floor(Math.random()*5);
+      if(!bd.some(Boolean))bd[places.length-1]=1+Math.floor(Math.random()*5);
+      const a=valueFromDigits(ad),b=valueFromDigits(bd),sum=normaliseValue(a+b),regroup=additionNeedsRegroup(a,b);
+      if(a<=0||b<=0||sum>rangeMax())continue;
+      if(additionDifficulty==='regroup'&&!regroup)continue;
+      if(additionDifficulty==='no-regroup'&&regroup)continue;
+      return{a,b,sum};
+    }
+    const step=Math.max(valueStep(),1),a=normaliseValue(Math.min(rangeMax()/3,247*step)),b=normaliseValue(Math.min(rangeMax()-a,185*step));
+    return{a,b,sum:normaliseValue(a+b)};
+  }
+  function additionPlaces(){
+    const digits=digitsForValue(additionB),order=[];
+    for(let i=places.length-1;i>=0;i--)if(digits[i]>0)order.push(i);
+    return order;
+  }
+  function additionProgressText(){
+    const order=additionPlaces();
+    if(additionStep>=order.length)return 'All of '+format(additionB)+' has been added. Check the total.';
+    const index=order[additionStep],digit=digitsForValue(additionB)[index]||0;
+    return 'Next: add '+digit+' '+places[index].name+'.';
+  }
+  function startAdditionProblem(a=null,b=null){
+    const problem=a==null||b==null?randomAdditionProblem():{a:normaliseValue(a),b:normaliseValue(b)};
+    const safeA=clamp(problem.a,0,rangeMax()),safeB=clamp(problem.b,0,Math.max(0,rangeMax()-safeA));
+    additionA=safeA;additionB=safeB;activityTarget=normaliseValue(safeA+safeB);additionStep=0;
+    if(representationMode==='counters')representationMode='abacus';
+    controller?.mutate(()=>{buildFromNumber(additionA);notice='Start at '+format(additionA)+'. '+additionProgressText()});controller?.select(null);
+  }
+  function applyAdditionStep(){
+    if(activityMode!=='add'||activityContext!=='teach')return;
+    const order=additionPlaces();
+    if(additionStep>=order.length){activityStatus='All parts added — check the result.';controller?.refresh();return}
+    const index=order[additionStep],digit=digitsForValue(additionB)[index]||0,before=counts()[index]||0;
+    controller?.mutate(()=>{
+      const newValue=normaliseValue(total()+digit*places[index].value);
+      buildFromNumber(newValue);
+      const exchanged=before+digit>=10&&index>0;
+      notice='Added '+digit+' '+places[index].name+'.'+(exchanged?' 10 '+places[index].name+' exchanged for 1 '+singularPlaceName(places[index-1])+'.':'');
+      additionStep++;
+      activityStatus=additionProgressText();
+    });
+    controller?.select(null);
+  }
+  function resetAddition(){
+    additionStep=0;activityStatus='';
+    controller?.mutate(()=>{buildFromNumber(additionA);notice='Back to '+format(additionA)+'. '+additionProgressText()});controller?.select(null);
+  }
+  function setAbacusDigit(index,digit){
+    if(activityReadOnly())return;
+    index=clamp(Math.round(num(index,0)),0,places.length-1);digit=clamp(Math.round(num(digit,0)),0,9);
+    const cs=counts(),current=cs[index]||0;
+    const nextValue=normaliseValue(total()+(digit-current)*places[index].value);
+    if(nextValue<0||nextValue>rangeMax())return;
+    controller?.mutate(()=>{
+      tokens=tokens.filter(t=>t.place!==index);
+      for(let n=0;n<digit;n++)tokens.push({id:next++,place:index,x:0,y:0,locked:false});
+      notice='';layoutTokens();
+    });
+    controller?.select(null);
+  }
+  function nudgeAbacusDigit(index,delta){
+    if(activityReadOnly())return;
+    index=clamp(Math.round(num(index,0)),0,places.length-1);
+    const current=counts()[index]||0;
+    if(delta<0){if(current>0)setAbacusDigit(index,current-1);return}
+    if(current<9){setAbacusDigit(index,current+1);return}
+    if(index<=0||total()+places[index].value>rangeMax()){notice='That would go beyond the visible place-value range.';controller?.refresh();return}
+    controller?.mutate(()=>{
+      const nextValue=normaliseValue(total()+places[index].value);
+      buildFromNumber(nextValue);
+      notice='Exchanged 10 '+places[index].name+' for 1 '+singularPlaceName(places[index-1])+'.';
+    });
+    controller?.select(null);
+  }
+
   function activityDescriptor(){
     if(activityMode==='build')return{title:'Build the target',prompt:'Build '+format(activityTarget)+' with the place-value counters.'};
     if(activityMode==='exact')return{title:'Exact counters',prompt:'Make '+format(activityTarget)+' using exactly '+activityBudget+' counters.'};
@@ -278,12 +377,16 @@ function placeValue(){
     if(activityMode==='read')return{title:'Read the number',prompt:'What number is represented by the counters?'};
     if(activityMode==='hidden')return{title:'Hidden place',prompt:'This chart represents '+format(activityTarget)+'. How many '+(places[activityHiddenIndex]?.name||'place-value')+' counters are hidden?'};
     if(activityMode==='digit')return{title:'Digit value',prompt:'What is the value of the digit '+activityDigit+' in the '+(places[activityHiddenIndex]?.name||'selected')+' column?'};
+    if(activityMode==='add')return{title:'Addition',prompt:'Start with '+format(additionA)+'. Add '+format(additionB)+'.'};
     return{title:'Place value',prompt:''};
   }
   function startActivity(mode=activityMode,context=activityContext){
-    const modes=['powers','build','exact','regroup','same','read','hidden','digit'];
+    const modes=['powers','build','exact','regroup','same','read','hidden','digit','add'];
     activityMode=modes.includes(mode)?mode:'powers';activityContext=context==='challenge'?'challenge':'teach';activityActive=true;activityStatus='';powerMessage='';activityInput='';activityAnswer=null;activityHiddenIndex=-1;activityDigit=0;activityStartCounts=[];activityPrompt='';
-    if(activityMode==='powers'){
+    if(['exact','regroup','same'].includes(activityMode)&&representationMode==='abacus')representationMode='counters';
+    if(activityMode==='add'){
+      startAdditionProblem();
+    }else if(activityMode==='powers'){
       const value=total();controller?.mutate(()=>{buildFromNumber(value);notice=''});controller?.select(null);
     }else if(activityMode==='exact'){
       activityTarget=exactCounterTarget(activityBudget);
@@ -328,7 +431,7 @@ function placeValue(){
     controller?.refresh();renderControls();
   }
   function randomActivityChallengeMode(){
-    const modes=['build','exact','regroup','same','read','hidden','digit'];
+    const modes=['build','exact','regroup','same','read','hidden','digit','add'];
     return modes[Math.floor(Math.random()*modes.length)];
   }
   function startRandomActivityChallenge(surface='activity'){
@@ -342,7 +445,9 @@ function placeValue(){
   function checkActivity(){
     if(activityMode==='powers')return;
     const target=clean(activityTarget),value=total(),same=Math.abs(value-target)<(valueStep()/2+1e-9);
-    if(activityMode==='exact'){
+    if(activityMode==='add'){
+      activityStatus=same?'Correct ✓ — '+format(additionA)+' + '+format(additionB)+' = '+format(target)+'.':'Not yet — the abacus currently shows '+format(value)+'.';
+    }else if(activityMode==='exact'){
       const rightCount=tokens.length===activityBudget;
       activityStatus=same&&rightCount?'Correct ✓':same?'Right value — now use exactly '+activityBudget+' counters.':rightCount?'You used '+activityBudget+' counters, but the value is not '+format(target)+' yet.':'Keep going — match both the target and the counter limit.';
     }else if(activityMode==='regroup'){
@@ -367,10 +472,23 @@ function placeValue(){
       ['same','Same value'],
       ['read','Read'],
       ['hidden','Hidden place'],
-      ['digit','Digit value']
+      ['digit','Digit value'],
+      ['add','Addition']
     ].map(([id,label])=>'<button class="gd-btn'+(activityMode===id?' gd-btn--primary':'')+'" type="button" data-pv-activity-mode="'+id+'">'+label+'</button>').join('');
     let extras='';
     if(activityMode==='powers')extras='<p class="gd-help">Show how digits move through place-value columns while the decimal point stays fixed.</p>';
+    else if(activityMode==='add')extras=
+      '<div class="gd-row gd-pv-addition-inputs">'+
+        field('Start','<input class="gd-input" id="pv-add-a" type="number" min="0" max="'+rangeMax()+'" step="'+valueStep()+'" value="'+additionA+'">')+
+        field('Add','<input class="gd-input" id="pv-add-b" type="number" min="0" max="'+rangeMax()+'" step="'+valueStep()+'" value="'+additionB+'">')+
+      '</div>'+
+      field('Problems','<select class="gd-select" id="pv-add-difficulty">'+
+        '<option value="mixed"'+(additionDifficulty==='mixed'?' selected':'')+'>Mixed</option>'+
+        '<option value="no-regroup"'+(additionDifficulty==='no-regroup'?' selected':'')+'>No regrouping</option>'+
+        '<option value="regroup"'+(additionDifficulty==='regroup'?' selected':'')+'>Needs regrouping</option>'+
+      '</select>')+
+      '<div class="gd-row"><button class="gd-btn gd-btn--primary" id="pv-add-set" type="button">Set addition</button><button class="gd-btn" id="pv-activity-new" type="button">New problem</button></div>'+
+      '<p class="gd-help">Use the abacus to add by place value. In Teach mode, Next place demonstrates each part and carries automatically.</p>';
     else if(activityMode==='exact')extras=field('Counters to use','<select class="gd-select" id="pv-activity-budget">'+[3,4,5,6,7,8,9].map(n=>'<option value="'+n+'"'+(activityBudget===n?' selected':'')+'>'+n+'</option>').join('')+'</select>')+
       '<button class="gd-btn" id="pv-activity-new" type="button">New task</button><p class="gd-help">Build the target using exactly the chosen number of counters.</p>';
     else extras='<button class="gd-btn" id="pv-activity-new" type="button">New task</button>';
