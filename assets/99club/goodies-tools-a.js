@@ -572,6 +572,13 @@ function placeValue(){
     if(reveal)reveal.onclick=e=>{e.stopPropagation();if(!challenge)return;challenge.revealed=!challenge.revealed;renderControls();controller?.refresh()};
     const another=q('[data-challenge-action="another"]',q('#gd-stage'));
     if(another)another.onclick=e=>{e.stopPropagation();if(challenge?.mode==='standard')generateChallenge(challenge.type)};
+    qa('[data-pv-power]',q('#gd-stage')).forEach(button=>button.onclick=e=>{
+      e.stopPropagation();applyPowerShift(Math.round(num(button.dataset.pvPower,0)));
+    });
+    const activityCheck=q('[data-pv-activity-check]',q('#gd-stage'));
+    if(activityCheck)activityCheck.onclick=e=>{e.stopPropagation();checkActivity()};
+    const activityAnother=q('[data-pv-activity-another]',q('#gd-stage'));
+    if(activityAnother)activityAnother.onclick=e=>{e.stopPropagation();startActivity(activityMode)};
     updateLiveSummary();
   }
   function syncControls(){
@@ -586,9 +593,21 @@ function placeValue(){
   function bindControls(){
     qa('[data-pv-workflow]').forEach(button=>button.onclick=()=>{
       const nextTab=button.dataset.pvWorkflow;
+      if(nextTab==='activity'){
+        if(challenge){restoreBeforeChallenge();challenge=null}
+        controlTab='activity';startActivity(activityMode);return;
+      }
       controlTab=nextTab==='challenge'?'challenge':nextTab==='export'?'export':'setup';
-      renderControls();
+      renderControls();controller?.refresh();
     });
+    qa('[data-pv-activity-mode]').forEach(button=>button.onclick=()=>{
+      controlTab='activity';startActivity(button.dataset.pvActivityMode);
+    });
+    const activityBudgetSelect=q('#pv-activity-budget');if(activityBudgetSelect)activityBudgetSelect.onchange=()=>{
+      activityBudget=clamp(Math.round(num(activityBudgetSelect.value,5)),3,9);
+      startActivity('exact');
+    };
+    const activityNew=q('#pv-activity-new');if(activityNew)activityNew.onclick=()=>startActivity(activityMode);
     const range=q('#pv-range');if(range)range.onchange=()=>{
       const previous=total(),requested=range.value;
       controller.mutate(()=>{
