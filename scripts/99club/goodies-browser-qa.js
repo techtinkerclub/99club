@@ -3662,47 +3662,61 @@ if(mode==='prepare'){
   }
 
   function testAbacus(){
-    assert(window.TT99Goodies&&TT99Goodies.abacusTool,'Classical Abacus is registered');
+    assert(window.TT99Goodies&&TT99Goodies.abacusTool,'Dual-type Abacus is registered');
     TT99Goodies.abacusTool();
-    assert(document.querySelectorAll('[data-ab-row]').length===5,'Abacus opens as a five-row counting frame');
-    assert(document.querySelectorAll('[data-ab-bead]').length===50,'Each Abacus row has ten physical beads');
-    assert(document.querySelectorAll('.gd-ab-bead.is-five-b').length===25,'Abacus visually distinguishes the second group of five beads');
+    assert(document.querySelector('.gd-ab-frame--western'),'Western place-value abacus opens by default');
+    assert(document.querySelectorAll('[data-ab-col]').length===5,'Western abacus opens with five place-value rows');
+    assert(document.querySelectorAll('[data-ab-bead]').length===45,'Western abacus has nine beads per horizontal row');
+    assert(document.querySelectorAll('.gd-ab-rod').length===5,'Western frame has five horizontal rods');
 
-    const setValue=document.getElementById('ab-set-number');
+    let setValue=document.getElementById('ab-set-number');
     setValue.value='7';document.getElementById('ab-set').click();
-    assert(numberText('[data-ab-total]')===7,'Set number builds a direct bead representation');
-    assert(document.querySelectorAll('[data-ab-row="0"] .gd-ab-bead.is-active').length===7,'Seven is represented by seven beads moved left');
-    document.querySelector('[data-ab-bead="0:7"]').click();
-    assert(numberText('[data-ab-total]')===8,'Tapping the next bead slides it into the counted group');
+    assert(numberText('[data-ab-total]')===7,'Western Set number builds a decimal bead representation');
+    assert(document.querySelectorAll('[data-ab-col="4"] .gd-ab-bead.is-active').length===7,'Seven moves seven ones beads');
+    document.querySelector('[data-ab-bead="4:unit:7"]').click();
+    assert(numberText('[data-ab-total]')===8,'Western tap moves the next ones bead');
 
-    const rows=document.getElementById('ab-rows');
-    rows.value='2';rows.dispatchEvent(new Event('change',{bubbles:true}));
+    const columns=document.getElementById('ab-rows');
+    columns.value='3';columns.dispatchEvent(new Event('change',{bubbles:true}));
     document.getElementById('ab-set-number').value='12';document.getElementById('ab-set').click();
-    assert(document.querySelectorAll('[data-ab-row="0"] .gd-ab-bead.is-active').length===10&&document.querySelectorAll('[data-ab-row="1"] .gd-ab-bead.is-active').length===2,'Twelve rolls naturally across a full row of ten and two beads on the next row');
+    assert(document.querySelectorAll('[data-ab-col="1"] .gd-ab-bead.is-active').length===1 &&
+      document.querySelectorAll('[data-ab-col="2"] .gd-ab-bead.is-active').length===2,'Western 12 uses one tens bead and two ones beads');
+
+    let kind=document.getElementById('ab-kind');
+    kind.value='soroban';kind.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.querySelector('.gd-ab-frame--soroban'),'Type selector switches to Japanese soroban');
+    assert(document.querySelectorAll('[data-ab-bead]').length===15,'Soroban has five beads per vertical rod');
+    assert(document.querySelectorAll('.gd-ab-divider').length===3,'Soroban has a reckoning bar between upper and lower beads');
+    document.getElementById('ab-set-number').value='7';document.getElementById('ab-set').click();
+    assert(document.querySelector('[data-ab-bead="2:upper:0"]').classList.contains('is-active'),'Soroban upper five-bead is active for seven');
+    assert(document.querySelectorAll('[data-ab-col="2"] .gd-ab-bead.is-active').length===3,'Soroban seven uses one five-bead and two lower one-beads');
+    document.querySelector('[data-ab-bead="2:upper:0"]').click();
+    assert(numberText('[data-ab-total]')===2,'Tapping upper soroban bead removes five');
+    document.querySelector('[data-ab-bead="2:upper:0"]').click();
+    assert(numberText('[data-ab-total]')===7,'Tapping upper soroban bead restores five');
 
     document.querySelector('[data-ab-workflow="play"]').click();
     const modes=['free','show','add','subtract','make10','bond','double','near','missing','skip'];
-    assert(modes.every(mode=>document.querySelector('[data-ab-play-mode="'+mode+'"]')),'Teach / play exposes free play, number building, arithmetic and number-sense modes');
+    assert(modes.every(mode=>document.querySelector('[data-ab-play-mode="'+mode+'"]')),'Teach / play retains the maths modes');
     document.querySelector('[data-ab-play-mode="add"]').click();
     document.getElementById('ab-a').value='7';document.getElementById('ab-b').value='5';document.getElementById('ab-custom-add').click();
-    assert(numberText('[data-ab-total]')===7&&/Start at 7\. Add 5/.test(document.querySelector('.gd-ab-task-head strong').textContent),'Addition starts from the first addend on the physical frame');
-    document.querySelector('[data-ab-bead="0:9"]').click();
-    document.querySelector('[data-ab-bead="1:1"]').click();
-    assert(numberText('[data-ab-total]')===12,'Pupil can complete 7 + 5 by physically moving beads across the ten boundary');
+    assert(numberText('[data-ab-total]')===7 && /Start at 7\. Add 5/.test(document.querySelector('.gd-ab-task-head strong').textContent),'Addition begins at seven');
+    document.querySelector('[data-ab-bead="2:upper:0"]').click();
+    document.querySelector('[data-ab-bead="1:lower:0"]').click();
+    assert(numberText('[data-ab-total]')===12,'Soroban models 7 + 5 using one ten and two ones');
     document.querySelector('[data-ab-check]').click();
-    assert(/Correct/.test(document.querySelector('[data-ab-status]').textContent),'Addition Check validates the bead calculation');
+    assert(/Correct/.test(document.querySelector('[data-ab-status]').textContent),'Addition Check validates the represented result');
 
     document.querySelector('[data-ab-play-mode="skip"]').click();
-    assert(document.querySelector('[data-ab-skip-next]'),'Skip-counting Teach mode has a direct next-step action');
-
+    assert(document.querySelector('[data-ab-skip-next]'),'Skip-counting retains its next-step action');
     document.querySelector('[data-ab-workflow="challenge"]').click();
     const challengeModes=['show','add','subtract','make10','bond','double','near','missing','skip'];
-    assert(challengeModes.every(mode=>document.querySelector('[data-ab-challenge-mode="'+mode+'"]')),'Abacus Challenge exposes the full arithmetic and number-sense task set');
+    assert(challengeModes.every(mode=>document.querySelector('[data-ab-challenge-mode="'+mode+'"]')),'Challenge retains the maths modes');
     document.querySelector('[data-ab-challenge-mode="show"]').click();
-    assert(document.querySelector('[data-ab-total]').textContent.trim()==='?','Pupil challenge hides the live total');
-    assert(document.querySelector('[data-ab-reveal]'),'Challenge provides a contextual Reveal action');
+    assert(document.querySelector('[data-ab-total]').textContent.trim()==='?','Challenge hides the value until checked or revealed');
+    assert(document.querySelector('[data-ab-reveal]'),'Challenge offers contextual Reveal');
     document.querySelector('[data-ab-reveal]').click();
-    assert(document.querySelector('[data-ab-total]').textContent.trim()!=='?','Reveal shows the completed abacus value');
+    assert(document.querySelector('[data-ab-total]').textContent.trim()!=='?','Reveal shows the abacus value');
 
     document.querySelector('[data-ab-workflow="export"]').click();
     let captured=null,name='';
@@ -3710,14 +3724,14 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=(svg,filename)=>{captured=svg.cloneNode(true);name=filename};
     document.getElementById('ab-svg').click();
     TT99Goodies.exportTools.downloadSvg=old;
-    assert(captured&&captured.dataset.worksheetCard==='1','Active Abacus challenge exports as a clean worksheet card');
-    assert(captured.querySelector('[data-ab-export-frame="1"]'),'Abacus worksheet contains the classical counting frame');
-    assert(/abacus-/.test(name),'Abacus export gets a reusable filename');
+    assert(captured&&captured.dataset.worksheetCard==='1','Active challenge exports as a worksheet card');
+    assert(captured.querySelector('[data-ab-export-frame="1"]'),'Export includes the actual abacus frame');
+    assert(/abacus-/.test(name),'Export has a reusable filename');
 
     TT99Goodies.abacusTool();
     const showTotal=document.getElementById('ab-show-total');
     showTotal.checked=false;showTotal.dispatchEvent(new Event('change',{bubbles:true}));
-    assert(document.querySelector('.gd-ab-summary').hidden,'Teacher can hide the total readout for open questioning');
+    assert(document.querySelector('.gd-ab-summary').hidden,'Teacher can hide the numeric readout');
   }
 
   function testRandomiser(){

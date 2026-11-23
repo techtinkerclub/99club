@@ -5,7 +5,7 @@ const {q,qa,esc,clamp,num,field,btn}=G;
 
 function abacusTool(){
   const X=G.exportTools;
-  let rows=5,counts=Array(5).fill(0),showTotal=true,showRowCounts=false,showRowLabels=false,fiveSplit=true;
+  let rows=5,counts=Array(5).fill(0),kind='western',showTotal=true,showRowCounts=false,showRowLabels=true;
   let workflow='setup',playMode='free',task=null,taskContext='play',status='',answerInput='',revealed=false,exportStatus='';
   let drag=null;
 
@@ -23,19 +23,31 @@ function abacusTool(){
   ];
   const CHALLENGE_MODES=MODES.filter(([id])=>id!=='free');
 
-  function capacity(){return rows*10}
-  function total(){return counts.reduce((a,b)=>a+b,0)}
+  // The right-hand column is ones. Each column is a decimal digit (0–9).
+  function capacity(){return Math.pow(10,rows)-1}
+  function total(){return counts.reduce((sum,digit,i)=>sum+digit*Math.pow(10,rows-i-1),0)}
   function normal(v){return clamp(Math.round(num(v,0)),0,capacity())}
   function setRows(next){
-    const previous=total(),resolved=[1,2,5,10].includes(Number(next))?Number(next):5;
-    rows=resolved;
+    const previous=total();
+    rows=[3,4,5,6].includes(Number(next))?Number(next):5;
     counts=Array(rows).fill(0);
-    setTotal(Math.min(previous,capacity()),false);
+    setTotal(previous,false);
   }
   function setTotal(value,render=true){
-    let left=normal(value);
-    counts=Array(rows).fill(0).map(()=>{const n=Math.min(10,left);left-=n;return n});
+    counts=Array.from(String(normal(value)).padStart(rows,'0'),digit=>Number(digit));
     if(render)renderStage();
+  }
+  function placeLabel(i){return ['Ones','Tens','Hundreds','Thousands','Ten thousands','Hundred thousands'][rows-i-1]}
+  function placeShort(i){return ['1s','10s','100s','1k','10k','100k'][rows-i-1]}
+  function abBeadY(i,part,j){
+    const d=counts[i]||0;
+    if(kind==='western')return j<d?6+j*8.4:92-(8-j)*8.4;
+    if(part==='upper')return d>=5?36:12;
+    return j<d%5?44+j*8.5:67+j*8.5;
+  }
+  function abBeadActive(i,part,j){
+    const d=counts[i]||0;
+    return kind==='western'?j<d:part==='upper'?d>=5:j<d%5;
   }
   function randomInt(min,max){return Math.floor(Math.random()*(max-min+1))+min}
   function beadX(index,count){return index<count?4+index*4.5:55+index*4.5}
@@ -52,7 +64,7 @@ function abacusTool(){
     })[mode]||'Abacus';
   }
   function generatedTask(mode){
-    const cap=capacity();
+    const cap=Math.min(capacity(),rows===3?999:9999);
     if(mode==='show'){
       const target=randomInt(1,cap);
       return{mode,start:0,target,prompt:'Show '+target+' on the abacus.',requiresAnswer:false};
@@ -130,22 +142,20 @@ function abacusTool(){
     status='Answer shown';
     renderStage();
   }
-  function setRowCount(row,value){
-    if(!Number.isInteger(row)||row<0||row>=rows)return;
-    counts[row]=clamp(Math.round(num(value,0)),0,10);
-    status='';revealed=false;
-    syncStage();
+  function setRowCount(i,value){
+    if(!Number.isInteger(i)||i<0||i>=rows)return;
+    counts[i]=clamp(Math.round(num(value,0)),0,9);
+    status='';revealed=false;syncStage();
   }
-  function clickBead(row,index){
-    const count=counts[row]||0;
-    setRowCount(row,index<count?index:index+1);
+  function clickBead(i,part,j){
+    const digit=counts[i]||0;
+    if(kind==='western')return setRowCount(i,j<digit?j:j+1);
+    if(part==='upper')return setRowCount(i,digit>=5?digit-5:digit+5);
+    const low=digit%5;
+    setRowCount(i,(digit>=5?5:0)+(j<low?j:j+1));
   }
   function frameControls(){
-    return '<div class="gd-row gd-ab-stage-actions">'+
-      '<button class="gd-btn" type="button" data-ab-stage="-1">−1</button>'+
-      '<button class="gd-btn" type="button" data-ab-stage="1">+1</button>'+
-      '<button class="gd-btn" type="button" data-ab-stage="clear">Clear</button>'+
-    '</div>';
+    return '<div class="gd-row gd-ab-stage-actions"><button class="gd-btn" type="button" data-ab-stage="clear">Clear beads</button></div>';
   }
   function taskBanner(){
     if(!task)return '';
@@ -159,62 +169,68 @@ function abacusTool(){
       '<div class="gd-ab-task-actions"><button type="button" data-ab-check>Check</button>'+skipNext+reveal+'<button type="button" data-ab-another>Another</button></div>'+
     '</section>';
   }
-  function beadMarkup(row,index,count){
-    const active=index<count,groupB=index>=5;
-    return '<button type="button" class="gd-ab-bead'+(active?' is-active':'')+(groupB?' is-five-b':'')+'" data-ab-bead="'+row+':'+index+'" aria-label="'+(active?'Move bead back to the right':'Move bead to the left')+'" aria-pressed="'+(active?'true':'false')+'" style="--ab-x:'+beadX(index,count)+'"><span aria-hidden="true"></span></button>';
+  function beadMarkup(i,part,j){
+    const active=abBeadActive(i,part,j);
+    const label=(part==='upper'?'Five bead ':part==='lower'?'One bead ':'Bead ')+(j+1);
+    return '<button type="button" class="gd-ab-bead'+(active?' is-active':'')+'" data-ab-bead="'+i+':'+part+':'+j+'" style="--ab-'+(kind==='western'?'x':'y')+':'+abBeadY(i,part,j)+'" aria-pressed="'+active+'" aria-label="'+esc(placeLabel(i)+' · '+label+(active?' active':' inactive'))+'"><span aria-hidden="true"></span></button>';
   }
-  function rowMarkup(row){
-    const count=counts[row]||0;
-    return '<div class="gd-ab-row" data-ab-row="'+row+'">'+
-      (showRowLabels?'<span class="gd-ab-row-label">Row '+(row+1)+'</span>':'')+
-      '<div class="gd-ab-rod" aria-label="Abacus row '+(row+1)+', '+count+' beads moved">'+
-        '<span class="gd-ab-rail" aria-hidden="true"></span>'+
-        Array.from({length:10},(_,i)=>beadMarkup(row,i,count)).join('')+
-      '</div>'+
-      (showRowCounts?'<strong class="gd-ab-row-count" data-ab-row-count="'+row+'">'+count+'</strong>':'')+
+  function columnMarkup(i){
+    const digit=counts[i]||0;
+    const beads=kind==='western'
+      ?Array.from({length:9},(_,j)=>beadMarkup(i,'unit',j)).join('')
+      :beadMarkup(i,'upper',0)+Array.from({length:4},(_,j)=>beadMarkup(i,'lower',j)).join('');
+    return '<div class="gd-ab-col" data-ab-col="'+i+'">'+
+      '<div class="gd-ab-col-label'+(showRowLabels?'':' is-hidden')+'"><span>'+esc(placeLabel(i))+'</span><abbr title="'+esc(placeLabel(i))+'">'+esc(placeShort(i))+'</abbr></div>'+
+      '<div class="gd-ab-rod" aria-label="'+esc(placeLabel(i)+', digit '+digit)+'">'+
+      '<span class="gd-ab-rail" aria-hidden="true"></span>'+
+      (kind==='soroban'?'<span class="gd-ab-divider" aria-hidden="true"></span>':'')+
+      beads+'</div>'+
+      '<div class="gd-ab-digit"'+(showRowCounts?'':' hidden')+' data-ab-col-count="'+i+'">'+digit+'</div>'+
     '</div>';
   }
   function renderStage(){
     const hideTotal=!!task&&taskContext==='challenge'&&!revealed&&status!=='Correct ✓';
     q('#gd-stage').innerHTML=taskBanner()+
-      '<div hidden aria-hidden="true">'+['copy','png','svg','print'].map(kind=>'<button type="button" data-gd-direct-export="'+kind+'">'+kind+'</button>').join('')+'</div>'+
+      '<div hidden aria-hidden="true">'+['copy','png','svg','print'].map(type=>'<button type="button" data-gd-direct-export="'+type+'">'+type+'</button>').join('')+'</div>'+
       '<div class="gd-ab-workspace">'+
-        '<div class="gd-ab-frame '+(fiveSplit?'has-five-split':'')+'" data-ab-frame style="--ab-rows:'+rows+'">'+
-          '<div class="gd-ab-side-guide" aria-hidden="true"><span>COUNTED</span><span>READY</span></div>'+
-          '<div class="gd-ab-frame-inner">'+Array.from({length:rows},(_,r)=>rowMarkup(r)).join('')+'</div>'+
+        '<div class="gd-ab-frame gd-ab-frame--'+kind+'" data-ab-frame>'+
+          '<div class="gd-ab-type-label">'+(kind==='western'?'WESTERN · BASE TEN':'JAPANESE · SOROBAN')+'</div>'+
+          '<div class="gd-ab-columns" style="--ab-cols:'+rows+'">'+Array.from({length:rows},(_,i)=>columnMarkup(i)).join('')+'</div>'+
         '</div>'+
         frameControls()+
-        '<div class="gd-ab-summary"'+(showTotal?'':' hidden')+'><span>Beads moved</span><strong data-ab-total>'+(hideTotal?'?':total())+'</strong></div>'+
-        '<p class="gd-object-hint" data-ab-hint>'+(task?'Move the beads, then check your answer.':'Move beads from right to left. Tap a bead to move that bead and the group before it.')+'</p>'+
+        '<div class="gd-ab-summary"'+(showTotal?'':' hidden')+'><span>Number shown</span><strong data-ab-total>'+(hideTotal?'?':total().toLocaleString('en-GB'))+'</strong></div>'+
+        '<p class="gd-object-hint" data-ab-hint>'+(task?'Move the beads, then check your answer.':kind==='soroban'?'Move beads towards the middle bar to count them.':'Move beads left to count them. Each horizontal row has a place value.')+'</p>'+
       '</div>';
     bindStage();
   }
   function syncStage(){
-    qa('[data-ab-row]').forEach(rowEl=>{
-      const row=Number(rowEl.dataset.abRow),count=counts[row]||0;
-      qa('[data-ab-bead]',rowEl).forEach(bead=>{
-        const index=Number(String(bead.dataset.abBead).split(':')[1]),active=index<count;
+    qa('[data-ab-col]').forEach(colEl=>{
+      const i=Number(colEl.dataset.abCol),digit=counts[i]||0;
+      qa('[data-ab-bead]',colEl).forEach(bead=>{
+        const [,part,jText]=String(bead.dataset.abBead).split(':'),j=Number(jText),active=abBeadActive(i,part,j);
         bead.classList.toggle('is-active',active);
-        bead.setAttribute('aria-pressed',active?'true':'false');
-        bead.style.setProperty('--ab-x',String(beadX(index,count)));
+        bead.setAttribute('aria-pressed',String(active));
+        bead.style.setProperty(kind==='western'?'--ab-x':'--ab-y',String(abBeadY(i,part,j)));
       });
-      const countEl=q('[data-ab-row-count="'+row+'"]',rowEl);if(countEl)countEl.textContent=String(count);
-      const rod=q('.gd-ab-rod',rowEl);if(rod)rod.setAttribute('aria-label','Abacus row '+(row+1)+', '+count+' beads moved');
+      const count=q('[data-ab-col-count="'+i+'"]',colEl);if(count)count.textContent=String(digit);
+      const rod=q('.gd-ab-rod',colEl);if(rod)rod.setAttribute('aria-label',placeLabel(i)+', digit '+digit);
     });
     const hideTotal=!!task&&taskContext==='challenge'&&!revealed&&status!=='Correct ✓';
-    const totalEl=q('[data-ab-total]');if(totalEl)totalEl.textContent=hideTotal?'?':String(total());
+    const totalEl=q('[data-ab-total]');if(totalEl)totalEl.textContent=hideTotal?'?':total().toLocaleString('en-GB');
     const statusEl=q('[data-ab-status]');if(statusEl)statusEl.textContent=status;
     const input=q('[data-ab-answer]');if(input&&document.activeElement!==input)input.value=answerInput;
+    const reveal=q('[data-ab-reveal]');if(reveal)reveal.hidden=!!revealed||status==='Correct ✓';
+    const check=q('[data-ab-check]');if(check)check.disabled=status==='Correct ✓';
   }
   function setupControls(){
-    return field('Rows','<select class="gd-select" id="ab-rows">'+[1,2,5,10].map(n=>'<option value="'+n+'"'+(rows===n?' selected':'')+'>'+n+' row'+(n===1?'':'s')+'</option>').join('')+'</select>')+
+    return field('Abacus type','<select class="gd-select" id="ab-kind"><option value="western"'+(kind==='western'?' selected':'')+'>Western (9 beads per rod)</option><option value="soroban"'+(kind==='soroban'?' selected':'')+'>Japanese soroban (5 beads per rod)</option></select>')+
+      field('Place values','<select class="gd-select" id="ab-rows">'+[3,4,5,6].map(n=>'<option value="'+n+'"'+(rows===n?' selected':'')+'>'+n+' places</option>').join('')+'</select>')+
       field('Set number','<div class="gd-row"><input class="gd-input" id="ab-set-number" type="number" min="0" max="'+capacity()+'" value="'+total()+'"><button class="gd-btn gd-btn--primary" id="ab-set" type="button">Set</button></div>')+
       '<div class="gd-row">'+btn('Random','ab-random')+btn('Clear','ab-clear')+'</div>'+
-      '<label class="gd-row gd-ab-check"><input id="ab-five-split" type="checkbox"'+(fiveSplit?' checked':'')+'> Colour groups of 5</label>'+
-      '<label class="gd-row gd-ab-check"><input id="ab-show-total" type="checkbox"'+(showTotal?' checked':'')+'> Show total</label>'+
-      '<label class="gd-row gd-ab-check"><input id="ab-row-counts" type="checkbox"'+(showRowCounts?' checked':'')+'> Show row counts</label>'+
-      '<label class="gd-row gd-ab-check"><input id="ab-row-labels" type="checkbox"'+(showRowLabels?' checked':'')+'> Show row labels</label>'+
-      '<p class="gd-help">Each row has 10 sliding beads. Move beads to the left to count them.</p>';
+      '<label class="gd-row gd-ab-check"><input id="ab-show-total" type="checkbox"'+(showTotal?' checked':'')+'> Show number</label>'+
+      '<label class="gd-row gd-ab-check"><input id="ab-row-counts" type="checkbox"'+(showRowCounts?' checked':'')+'> Show column digits</label>'+
+      '<label class="gd-row gd-ab-check"><input id="ab-row-labels" type="checkbox"'+(showRowLabels?' checked':'')+'> Show place values</label>'+
+      '<p class="gd-help">'+(kind==='western'?'Nine beads per horizontal place-value row. Slide them left to count.':'Soroban: upper bead is 5; four lower beads are 1 each. Beads count when moved towards the middle bar.')+'</p>';
   }
   function modeButtons(attr){
     return '<div class="gd-ab-mode-grid">'+MODES.map(([id,label])=>'<button class="gd-btn'+(playMode===id?' gd-btn--primary':'')+'" type="button" '+attr+'="'+id+'">'+label+'</button>').join('')+'</div>';
@@ -251,49 +267,50 @@ function abacusTool(){
       bead.onclick=e=>{
         e.stopPropagation();
         if(bead.dataset.abDragged==='1'){bead.dataset.abDragged='';return}
-        const [row,index]=String(bead.dataset.abBead).split(':').map(Number);
-        clickBead(row,index);
+        const [i,part,j]=String(bead.dataset.abBead).split(':');
+        clickBead(Number(i),part,Number(j));
       };
       bead.onpointerdown=e=>{
         if(e.button!==0)return;
-        const [row,index]=String(bead.dataset.abBead).split(':').map(Number);
-        drag={row,index,startX:e.clientX,initial:counts[row]||0,moved:false};
+        const [i,part,j]=String(bead.dataset.abBead).split(':'),col=Number(i);
+        drag={col,part,index:Number(j),startY:e.clientY,startX:e.clientX,initial:counts[col]||0,moved:false};
         try{bead.setPointerCapture(e.pointerId)}catch(_){}
       };
       bead.onpointermove=e=>{
         if(!drag)return;
-        const dx=e.clientX-drag.startX;
-        if(Math.abs(dx)<12)return;
+        const delta=kind==='western'?e.clientX-drag.startX:e.clientY-drag.startY;
+        if(Math.abs(delta)<10)return;
         drag.moved=true;
-        const approx=clamp(drag.initial-Math.round(dx/30),0,10);
-        counts[drag.row]=approx;status='';revealed=false;syncStage();
+        const d=drag;
+        if(kind==='western')setRowCount(d.col,d.initial-Math.round(delta/23));
+        else if(d.part==='upper')setRowCount(d.col,d.initial%5+(delta>0?5:0));
+        else setRowCount(d.col,(d.initial>=5?5:0)+clamp(d.initial%5-Math.round(delta/23),0,4));
       };
-      bead.onpointerup=e=>{
+      bead.onpointerup=()=>{
         if(!drag)return;
-        const d=drag;drag=null;
-        if(d.moved)bead.dataset.abDragged='1';
+        const moved=drag.moved;drag=null;
+        if(moved)bead.dataset.abDragged='1';
       };
       bead.onpointercancel=()=>{drag=null};
     });
     qa('[data-ab-stage]').forEach(button=>button.onclick=e=>{
       e.stopPropagation();
-      const action=button.dataset.abStage;
-      if(action==='clear'){setTotal(0);return}
-      setTotal(total()+Number(action||0));
+      if(button.dataset.abStage==='clear')setTotal(0);
     });
     const answer=q('[data-ab-answer]');if(answer){
-      answer.oninput=e=>{answerInput=e.target.value;status='';const s=q('[data-ab-status]');if(s)s.textContent=''};
+      answer.oninput=e=>{answerInput=e.target.value;status='';const st=q('[data-ab-status]');if(st)st.textContent=''};
       answer.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();checkTask()}};
     }
     const check=q('[data-ab-check]');if(check)check.onclick=checkTask;
     const another=q('[data-ab-another]');if(another)another.onclick=()=>newTask(task?.mode||playMode,taskContext);
-    const reveal=q('[data-ab-reveal]');if(reveal)reveal.onclick=revealTask;
+    const reveal=q('[data-ab-reveal]');if(reveal)reveal.onclick=()=>{if(!taskSolved())revealTask()};
     const skip=q('[data-ab-skip-next]');if(skip)skip.onclick=()=>{
       if(!task||task.mode!=='skip')return;
       setTotal(task.target,false);
       const nextStart=task.target,nextTarget=Math.min(capacity(),nextStart+task.step);
       status=nextTarget===nextStart?'Reached the end of this frame.':'Next: '+nextStart+' → '+nextTarget;
-      task.start=nextStart;task.target=nextTarget;task.answer=nextTarget;task.prompt='Keep counting in '+task.step+'s. What comes after '+nextStart+'?';
+      task.start=nextStart;task.target=nextTarget;task.answer=nextTarget;
+      task.prompt='Keep counting in '+task.step+'s. What comes after '+nextStart+'?';
       renderStage();
     };
     qa('[data-gd-direct-export]').forEach(button=>button.onclick=e=>{e.stopPropagation();exportAction(button.dataset.gdDirectExport)});
@@ -308,11 +325,11 @@ function abacusTool(){
       else if(next==='setup'){taskContext='play'}
       renderAll();
     });
+    const kindEl=q('#ab-kind');if(kindEl)kindEl.onchange=()=>{kind=kindEl.value==='soroban'?'soroban':'western';task=null;renderAll()};
     const rowsEl=q('#ab-rows');if(rowsEl)rowsEl.onchange=()=>{setRows(rowsEl.value);task=null;renderAll()};
     const set=q('#ab-set');if(set)set.onclick=()=>{setTotal(q('#ab-set-number')?.value);task=null;renderControls()};
     const random=q('#ab-random');if(random)random.onclick=()=>{setTotal(randomInt(0,capacity()));task=null;renderControls()};
     const clear=q('#ab-clear');if(clear)clear.onclick=()=>{setTotal(0);task=null;renderControls()};
-    const five=q('#ab-five-split');if(five)five.onchange=()=>{fiveSplit=five.checked;renderStage()};
     const totalToggle=q('#ab-show-total');if(totalToggle)totalToggle.onchange=()=>{showTotal=totalToggle.checked;renderStage()};
     const rowCounts=q('#ab-row-counts');if(rowCounts)rowCounts.onchange=()=>{showRowCounts=rowCounts.checked;renderStage()};
     const rowLabels=q('#ab-row-labels');if(rowLabels)rowLabels.onchange=()=>{showRowLabels=rowLabels.checked;renderStage()};
@@ -347,26 +364,44 @@ function abacusTool(){
     return el;
   }
   function frameSvg({blank=false}={}){
-    const width=1000,pad=54,rowH=72,top=42,bottom=42,height=top+rows*rowH+bottom;
-    const svg=svgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Counting frame abacus','data-ab-export':'frame'});
-    svg.appendChild(svgEl('rect',{x:0,y:0,width,height,fill:'#fff'}));
-    svg.appendChild(svgEl('rect',{x:pad,y:18,width:width-pad*2,height:height-36,rx:24,fill:'#c9965c',stroke:'#75502e','stroke-width':7,'data-ab-export-frame':'1'}));
-    svg.appendChild(svgEl('rect',{x:pad+18,y:34,width:width-pad*2-36,height:height-68,rx:14,fill:'#f6ead7'}));
-    for(let r=0;r<rows;r++){
-      const y=top+r*rowH+rowH/2,left=pad+42,right=width-pad-42;
-      svg.appendChild(svgEl('line',{x1:left,y1:y,x2:right,y2:y,stroke:'#80654b','stroke-width':6,'stroke-linecap':'round'}));
-      const count=blank?0:(counts[r]||0);
-      for(let i=0;i<10;i++){
-        const active=i<count;
-        const x=left+(right-left)*(beadX(i,count)/100);
-        const fill=fiveSplit&&i>=5?'#e2a33a':'#4f9a93';
-        svg.appendChild(svgEl('ellipse',{cx:x,cy:y,rx:22,ry:17,fill:active?fill:'#d9e2e1',stroke:active?'#496765':'#a8b5b4','stroke-width':2}));
-        svg.appendChild(svgEl('ellipse',{cx:x-5,cy:y-5,rx:6,ry:3,fill:'#fff','fill-opacity':.48}));
+    const width=900,height=540,left=80,right=820,top=118,rodH=324;
+    const svg=svgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':kind==='western'?'Western base-ten abacus':'Japanese soroban'});
+    svg.appendChild(svgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
+    svg.appendChild(svgEl('rect',{x:40,y:36,width:820,height:457,rx:18,fill:'#d9b389',stroke:'#986b41','stroke-width':14,'data-ab-export-frame':'1'}));
+    svg.appendChild(svgEl('rect',{x:62,y:60,width:776,height:414,rx:8,fill:'#f7f0e6'}));
+    if(kind==='western'){
+      for(let row=0;row<rows;row++){
+        const y=112+(row+.5)*348/rows;
+        svg.appendChild(svgEl('line',{x1:152,y1:y,x2:752,y2:y,stroke:'#977c5e','stroke-width':5,'stroke-linecap':'round'}));
+        if(showRowLabels)svg.appendChild(svgEl('text',{x:130,y:y+6,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':18,'font-weight':700,fill:'#60482e'},placeShort(row)));
+        const digit=blank?0:counts[row]||0;
+        for(let j=0;j<9;j++){
+          const active=j<digit;
+          const bx=152+600*(active?6+j*8.4:92-(8-j)*8.4)/100;
+          svg.appendChild(svgEl('ellipse',{cx:bx,cy:y,rx:17,ry:14,fill:active?'#4b9a8d':'#dc9b52',stroke:active?'#32786e':'#a56d37','stroke-width':2}));
+          svg.appendChild(svgEl('ellipse',{cx:bx-5,cy:y-4,rx:5,ry:3,fill:'#ffffff','fill-opacity':.43}));
+        }
+        if(showRowCounts&&!blank)svg.appendChild(svgEl('text',{x:772,y:y+6,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':20,'font-weight':700,fill:'#295c56'},String(digit)));
       }
-      if(showRowCounts&&!blank)svg.appendChild(svgEl('text',{x:width-pad-12,y:y+6,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':16,'font-weight':800,fill:'#43575c'},String(count)));
-      if(showRowLabels)svg.appendChild(svgEl('text',{x:pad+12,y:y+6,'font-family':'Arial,sans-serif','font-size':14,'font-weight':750,fill:'#6b543d'},'Row '+(r+1)));
+    }else{
+      svg.appendChild(svgEl('rect',{x:62,y:top+rodH*.40-5,width:776,height:10,rx:3,fill:'#90633a'}));
+      for(let col=0;col<rows;col++){
+        const x=left+(right-left)*(col+.5)/rows;
+        svg.appendChild(svgEl('line',{x1:x,y1:top-10,x2:x,y2:top+rodH+10,stroke:'#977c5e','stroke-width':5,'stroke-linecap':'round'}));
+        if(showRowLabels)svg.appendChild(svgEl('text',{x,y:94,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':rows>=5?16:19,'font-weight':700,fill:'#60482e'},placeShort(col)));
+        const digit=blank?0:counts[col]||0;
+        for(let j=0;j<5;j++){
+          const part=j===0?'upper':'lower',k=part==='lower'?j-1:j;
+          const active=part==='upper'?digit>=5:k<(digit%5);
+          const y=part==='upper'?(active?36:12):(active?44+k*8.5:67+k*8.5);
+          const cy=top+rodH*y/100;
+          svg.appendChild(svgEl('ellipse',{cx:x,cy,rx:rows>=6?22:27,ry:13,fill:active?'#4b9a8d':'#dc9b52',stroke:active?'#32786e':'#a56d37','stroke-width':2}));
+          svg.appendChild(svgEl('ellipse',{cx:x-7,cy:cy-4,rx:8,ry:3,fill:'#ffffff','fill-opacity':.43}));
+        }
+        if(showRowCounts&&!blank)svg.appendChild(svgEl('text',{x,y:462,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':20,'font-weight':700,fill:'#295c56'},String(digit)));
+      }
     }
-    if(showTotal&&!blank&&!task)svg.appendChild(svgEl('text',{x:width/2,y:height-8,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':17,'font-weight':800,fill:'#38565a'},'Beads moved: '+total()));
+    if(showTotal&&!blank&&!task)svg.appendChild(svgEl('text',{x:width/2,y:527,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':19,'font-weight':700,fill:'#2a5953'},'Number shown: '+total().toLocaleString('en-GB')));
     return svg;
   }
   function exportSvg(){

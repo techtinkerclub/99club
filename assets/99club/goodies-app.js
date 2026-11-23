@@ -5,7 +5,7 @@ const {root,CATS,q,qa,numberLine,placeValue,abacusTool,fractionWall,barModel,hun
 const tools=[
   ['number-line','Number line','↔','number','Explore integers, decimals and jumps on a configurable line.','Mental arithmetic, rounding, negative numbers, fractions/decimals and explaining calculation strategies.',numberLine],
   ['place-value','Place value board','123','number','Build numbers with counters and a linked place-value bead frame.','Reading, composing and decomposing whole numbers and decimals; useful on an interactive whiteboard.',placeValue],
-  ['abacus','Abacus','●','number','Slide beads on a classical counting frame to represent numbers and calculate.','Counting, number bonds, addition, subtraction, doubles, near doubles, missing numbers and skip counting.',abacusTool],
+  ['abacus','Abacus','●','number','Explore place value using a Western abacus or Japanese soroban.','Base-ten place value, reading numbers, arithmetic, number bonds and skip counting.',abacusTool],
   ['fraction-wall','Fraction wall','½','fractions','Compare and explore equivalent fractions visually.','Equivalent fractions, comparison, ordering and links between common denominators.',fractionWall],
   ['bar-model','Bar model builder','▰','operations','Create part–whole models with known and unknown values.','Word problems, additive reasoning, multiplication/division and explaining unknown quantities.',barModel],
   ['hundred-square','Hundred square','▦','number','Highlight patterns, multiples, factors, primes and parity.','Counting patterns, times tables, prime numbers, place value and mental calculation.',hundredSquare],

@@ -64,3 +64,69 @@
   .gd-ab-stage-actions,.gd-ab-workspace .gd-object-hint{display:none!important}
   .gd-ab-frame{box-shadow:none}
 }
+
+
+/* Western base-ten + Japanese soroban: shared vertical frame. */
+.gd-ab-frame{max-width:880px;margin:0 auto;padding:14px 18px 18px!important;border:1px solid #c6ac88!important;border-radius:17px!important;background:linear-gradient(135deg,#f8eddc,#eed6b4)!important;box-shadow:0 5px 18px rgba(74,49,24,.11),inset 0 0 0 4px rgba(255,255,255,.34)!important}
+.gd-ab-type-label{margin-bottom:8px;text-align:center;font-size:.66rem;font-weight:900;letter-spacing:.095em;color:#745333}
+.gd-ab-columns{display:grid;grid-template-columns:repeat(var(--ab-cols),minmax(0,1fr));gap:0;width:100%;padding:10px 8px 9px;border:8px solid #a87747;border-radius:12px;background:#f3e7d3;box-shadow:inset 0 2px 12px rgba(87,57,25,.12)}
+.gd-ab-col{min-width:0;position:relative;display:grid;grid-template-rows:25px minmax(0,1fr) 24px;text-align:center}
+.gd-ab-col-label{height:25px;font-size:.7rem;font-weight:900;line-height:22px;color:#67492d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gd-ab-col-label.is-hidden{visibility:hidden}
+.gd-ab-col-label span{display:none}
+.gd-ab-col-label abbr{display:inline;text-decoration:none;cursor:help}
+.gd-ab-frame .gd-ab-rod{position:relative;min-height:260px;height:clamp(270px,33vw,345px)!important;touch-action:pan-y;user-select:none}
+.gd-ab-frame .gd-ab-rail{position:absolute;z-index:0;left:50%;right:auto;top:1%;bottom:1%;height:auto;width:5px;transform:translateX(-50%);border-radius:5px;background:linear-gradient(90deg,#947860,#6e543a,#b29a7e);box-shadow:inset 0 0 2px #ead4b8}
+.gd-ab-frame .gd-ab-divider{position:absolute;z-index:1;top:40%;left:0;right:0;height:9px;transform:translateY(-50%);border-top:1px solid #6c4529;border-bottom:1px solid #6c4529;background:#956435;box-shadow:0 2px 3px rgba(64,42,19,.2)}
+.gd-ab-frame .gd-ab-bead{position:absolute;z-index:2;top:calc(var(--ab-y)*1%);left:50%;width:clamp(25px,4vw,34px);height:clamp(19px,2.8vw,26px);max-width:calc(100% - 4px);min-height:18px;transform:translate(-50%,-50%);border:2px solid #b27c40;border-radius:45%;background:linear-gradient(145deg,#f3c986,#d79a4c);box-shadow:0 2px 3px rgba(65,38,18,.24),inset -3px -3px 4px rgba(105,60,26,.18),inset 3px 3px 4px rgba(255,255,255,.38);touch-action:none;cursor:grab;transition:top .13s ease-out,background .13s,border-color .13s}
+.gd-ab-frame .gd-ab-bead:active{cursor:grabbing}
+.gd-ab-frame .gd-ab-bead.is-active{border-color:#2a726e;background:linear-gradient(145deg,#82c4b6,#3e9487);box-shadow:0 2px 4px rgba(23,68,62,.25),inset 3px 3px 4px rgba(255,255,255,.25)}
+.gd-ab-frame .gd-ab-bead>span{left:20%;right:20%;top:17%;height:22%}
+.gd-ab-frame--soroban .gd-ab-bead{border-radius:42%;background:linear-gradient(145deg,#f1b46b,#bc7b34)}
+.gd-ab-frame--soroban .gd-ab-bead.is-active{background:linear-gradient(145deg,#8bbfcb,#397b90);border-color:#326a7a}
+.gd-ab-digit{font-size:1rem;font-weight:900;line-height:24px;color:#226f68}
+.gd-ab-digit[hidden]{display:block;visibility:hidden}
+.gd-ab-stage-actions{margin:0!important}
+.gd-ab-stage-actions .gd-btn{min-width:0}
+.gd-ab-summary{padding:6px 11px}
+.gd-ab-summary strong{font-variant-numeric:tabular-nums}
+.gd-ab-task-actions button[hidden],.gd-ab-task-actions button:disabled{display:none!important}
+@media(max-width:700px){
+  .gd-ab-frame{padding:8px!important;border-radius:12px!important}
+  .gd-ab-columns{padding:6px 2px;border-width:5px}
+  .gd-ab-col-label{font-size:.6rem}
+  .gd-ab-frame .gd-ab-rod{height:260px!important;min-height:260px}
+  .gd-ab-frame .gd-ab-bead{width:clamp(19px,5.8vw,28px);height:21px}
+  .gd-ab-type-label{font-size:.57rem}
+  .gd-ab-digit{font-size:.78rem}
+}
+@media(max-width:390px){
+  .gd-ab-frame .gd-ab-bead{width:19px;height:19px;border-width:1px}
+  .gd-ab-frame .gd-ab-rod{height:240px!important;min-height:240px}
+  .gd-ab-col-label{font-size:.54rem}
+  .gd-ab-columns{padding:6px 1px}
+}
+@media print{
+  .gd-ab-frame,.gd-ab-frame .gd-ab-columns{box-shadow:none!important}
+}
+
+
+/* Western-style place-value rows run horizontally, as on a school counting frame. */
+.gd-ab-frame--western .gd-ab-columns{display:grid;grid-template-columns:1fr;gap:3px;padding:9px 10px}
+.gd-ab-frame--western .gd-ab-col{display:grid;grid-template-columns:minmax(30px,78px) minmax(0,1fr) 28px;grid-template-rows:none;align-items:center;min-height:49px}
+.gd-ab-frame--western .gd-ab-col-label{height:auto;line-height:1.1;text-align:center}
+.gd-ab-frame--western .gd-ab-rod{height:44px!important;min-height:44px!important;touch-action:pan-y}
+.gd-ab-frame--western .gd-ab-rail{left:1%;right:1%;top:50%;bottom:auto;width:auto;height:5px;transform:translateY(-50%);background:linear-gradient(180deg,#ac9274,#735439,#c0a387)}
+.gd-ab-frame--western .gd-ab-bead{top:50%;left:calc(var(--ab-x)*1%);width:clamp(20px,3vw,30px);height:clamp(23px,2.7vw,29px);border-radius:50%;transition:left .14s ease-out,background .13s,border-color .13s}
+.gd-ab-frame--western .gd-ab-digit{line-height:1}
+@media(max-width:700px){
+  .gd-ab-frame--western .gd-ab-columns{padding:6px 4px;gap:2px}
+  .gd-ab-frame--western .gd-ab-col{grid-template-columns:30px minmax(0,1fr) 22px;min-height:43px}
+  .gd-ab-frame--western .gd-ab-rod{height:40px!important;min-height:40px!important}
+  .gd-ab-frame--western .gd-ab-bead{width:clamp(17px,4.6vw,24px);height:23px}
+}
+@media(max-width:390px){
+  .gd-ab-frame--western .gd-ab-col{grid-template-columns:26px minmax(0,1fr) 18px;min-height:40px}
+  .gd-ab-frame--western .gd-ab-rod{height:37px!important;min-height:37px!important}
+  .gd-ab-frame--western .gd-ab-bead{width:18px;height:21px}
+}

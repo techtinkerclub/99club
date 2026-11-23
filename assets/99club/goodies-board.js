@@ -48,9 +48,7 @@ const QUICK_ACTIONS={
   ],
   abacus:[
     {label:'Challenge',selector:'[data-ab-random-challenge]',allowHidden:true,title:'Give a random Abacus challenge'},
-    {label:'−1',selector:'[data-ab-stage="-1"]',title:'Move one counted bead back'},
-    {label:'+1',selector:'[data-ab-stage="1"]',title:'Count one more bead'},
-    {label:'Clear',selector:'[data-ab-stage="clear"]',title:'Move all beads back',danger:true}
+    {label:'Clear',selector:'[data-ab-stage="clear"]',title:'Reset every place-value rod to zero',danger:true}
   ],
   'bar-model':[
     {label:'+ Part',selector:'#bm-add-stage'},
