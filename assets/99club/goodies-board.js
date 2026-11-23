@@ -352,10 +352,11 @@ function connectInnerObject(obj){
       if(pass<3)setTimeout(()=>settleFit(false,pass+1),24);
     };
     const refresh=()=>setTimeout(()=>{settleFit(false,0);if(obj.settingsOpen)renderFloatingControls(obj)},0);
+    const refreshLayoutOnly=()=>setTimeout(()=>settleFit(false,0),0);
     doc.addEventListener('click',refresh,true);
     doc.addEventListener('pointerup',refresh,true);
     doc.addEventListener('change',refresh,true);
-    doc.addEventListener('input',refresh,true);
+    doc.addEventListener('input',refreshLayoutOnly,true);
     requestAnimationFrame(()=>settleFit(true,0));
   };
   iframe.addEventListener('load',connect,{once:true});
