@@ -244,6 +244,10 @@ function renderFloatingControls(obj){
       clone.querySelector('[data-pv-workflow="export"]')?.remove();
     }
   }
+  if(obj.toolId==='abacus'&&floatingPanelMode!=='challenge'){
+    clone.querySelector('[data-ab-workflow="challenge"]')?.remove();
+    clone.querySelector('[data-ab-workflow="export"]')?.remove();
+  }
   const cloneInputs=[...clone.querySelectorAll(CONTROL_SELECTOR)];
   cloneInputs.forEach(node=>{
     const originalIndex=[...sourceInputs].findIndex(original=>{
@@ -275,6 +279,10 @@ function openFloatingControls(obj,mode='settings'){
   if(obj.toolId==='place-value'&&floatingPanelMode==='settings'){
     const source=sourceControls(obj),active=source?.querySelector('[data-pv-workflow].gd-btn--primary')?.dataset?.pvWorkflow;
     if(active==='challenge'||active==='export')source?.querySelector('[data-pv-workflow="setup"]')?.click();
+  }
+  if(obj.toolId==='abacus'&&floatingPanelMode==='settings'){
+    const source=sourceControls(obj),active=source?.querySelector('[data-ab-workflow].gd-btn--primary')?.dataset?.abWorkflow;
+    if(active==='challenge'||active==='export')source?.querySelector('[data-ab-workflow="setup"]')?.click();
   }
   if(floatingControlObjectId!=null&&String(floatingControlObjectId)!==String(obj.id)){
     const previous=objectById(floatingControlObjectId);if(previous)previous.settingsOpen=false;
