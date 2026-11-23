@@ -202,7 +202,7 @@ function placeValue(){
   function standardDigits(){return counts().map(n=>Math.max(0,Math.min(9,Math.round(n||0))))}
   function powerFactor(steps){return Math.pow(10,Math.abs(steps))}
   function canPowerShift(steps){
-    const current=total(),raw=clean(current*Math.pow(10,steps)),normal=normaliseValue(raw);
+    const current=total(),raw=current*Math.pow(10,steps),normal=normaliseValue(raw);
     return raw>=0&&raw<=rangeMax()&&Math.abs(raw-normal)<(valueStep()/1000+1e-9);
   }
   function applyPowerShift(steps){
