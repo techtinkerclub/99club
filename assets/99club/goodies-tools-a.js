@@ -513,9 +513,12 @@ function placeValue(){
     const descriptor=activityDescriptor();
     const answer=activityAnswerMode()?'<div class="gd-pv-activity-response"><label>Answer <input type="text" inputmode="decimal" autocomplete="off" data-pv-activity-answer value="'+esc(activityInput)+'"></label></div>':'';
     const activityLabel=activityContext==='challenge'?'CHALLENGE':'PLAY';
+    const additionGuide=activityMode==='add'&&activityContext==='teach'
+      ?'<div class="gd-pv-addition-guide"><span>'+esc(additionProgressText())+'</span><div><button type="button" data-pv-add-next'+(additionStep>=additionPlaces().length?' disabled':'')+'>Next place</button><button type="button" data-pv-add-reset>Reset</button></div></div>'
+      :'';
     return '<section class="gd-pv-activity gd-pv-activity--game" data-pv-activity-kind="'+activityMode+'" aria-label="'+esc(descriptor.title)+'">'+
       '<div class="gd-pv-activity-head"><div><span>'+activityLabel+' · '+esc(descriptor.title.toUpperCase())+'</span><strong>'+esc(descriptor.prompt)+'</strong></div><em>'+esc(activityStatus||'')+'</em></div>'+
-      answer+'<div class="gd-pv-activity-actions"><button type="button" data-pv-activity-check>Check</button><button type="button" data-pv-activity-another>Another</button></div></section>';
+      answer+additionGuide+'<div class="gd-pv-activity-actions"><button type="button" data-pv-activity-check>Check</button><button type="button" data-pv-activity-another>Another</button></div></section>';
   }
 
   function challengeControlsHtml(){
@@ -535,7 +538,8 @@ function placeValue(){
       ['same','Same value'],
       ['read','Read number'],
       ['hidden','Hidden place'],
-      ['digit','Digit value']
+      ['digit','Digit value'],
+      ['add','Addition']
     ].map(([id,label])=>'<button class="gd-btn'+(activityActive&&activityContext==='challenge'&&activityMode===id?' gd-btn--primary':'')+'" type="button" data-pv-challenge-mode="'+id+'">'+label+'</button>').join('');
     return tabs+
       '<div class="pv-challenge-task-grid" role="group" aria-label="Place Value challenge types">'+tasks+'</div>'+
@@ -683,8 +687,14 @@ function placeValue(){
       if(kind==='print'){X.printSvg(target,{title:'',landscape:true});exportMessage('Print view opened. Choose “Save as PDF” in the print dialog.')}
     }catch(err){exportMessage(err?.message||'That export did not work.')}
   }
+  function representationControlsHtml(){
+    return '<div class="pv-representation-tabs" role="tablist" aria-label="Place Value representation">'+
+      ['counters','abacus','both'].map(mode=>'<button type="button" class="'+(representationMode===mode?'is-active':'')+'" data-pv-representation="'+mode+'">'+(mode==='counters'?'Counters':mode==='abacus'?'Abacus':'Both')+'</button>').join('')+
+      '</div>';
+  }
   function controlsHtml(){
     return '<button type="button" data-pv-random-challenge hidden aria-hidden="true" tabindex="-1">Challenge</button>'+
+      representationControlsHtml()+
       '<div class="gd-row pv-mode-tabs" role="tablist" aria-label="Place Value workflow">'+
       '<button class="gd-btn'+(controlTab==='setup'?' gd-btn--primary':'')+'" type="button" data-pv-workflow="setup">Setup</button>'+
       '<button class="gd-btn'+(controlTab==='activity'?' gd-btn--primary':'')+'" type="button" data-pv-workflow="activity">Teach / play</button>'+
