@@ -448,7 +448,7 @@ function placeValue(){
   }
   function exportName(){
     const meta=challenge&&CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
-    if(exportMode==='challenge'&&challenge)return challenge.title||meta?.title||'place-value-challenge';
+    if(exportMode==='challenge'&&challenge)return (challenge.title||meta?.title||'place-value-challenge')+(challenge.revealed?'-teacher':'-pupil');
     if(activityActive)return 'place-value-'+activityMode;
     return 'place-value-board-'+String(total()).replace(/[^0-9.-]+/g,'-');
   }
@@ -457,9 +457,10 @@ function placeValue(){
     try{
       if(!X)throw new Error('Export tools are not available.');
       const target=exportTargetSvg(),isCard=(exportMode==='challenge'&&!!challenge)||activityActive,name=exportName(),transparent=!isCard;
-      if(kind==='copy'){await X.copyPng(target,{transparent});exportMessage(isCard?'Worksheet-ready item copied.':'Board image copied with a transparent outer background.')}
-      if(kind==='png'){await X.downloadPng(target,name,2,{transparent});exportMessage(isCard?'Worksheet-ready PNG downloaded.':'Transparent PNG downloaded.')}
-      if(kind==='svg'){X.downloadSvg(target,name);exportMessage(isCard?'Worksheet-ready SVG downloaded.':'SVG downloaded.')}
+      const worksheetKind=exportMode==='challenge'&&challenge?(challenge.revealed?'Teacher worksheet':'Pupil worksheet'):'Worksheet-ready item';
+      if(kind==='copy'){await X.copyPng(target,{transparent});exportMessage(isCard?worksheetKind+' copied.':'Board image copied with a transparent outer background.')}
+      if(kind==='png'){await X.downloadPng(target,name,2,{transparent});exportMessage(isCard?worksheetKind+' PNG downloaded.':'Transparent PNG downloaded.')}
+      if(kind==='svg'){X.downloadSvg(target,name);exportMessage(isCard?worksheetKind+' SVG downloaded.':'SVG downloaded.')}
       if(kind==='print'){X.printSvg(target,{title:'',landscape:true});exportMessage('Print view opened. Choose “Save as PDF” in the print dialog.')}
     }catch(err){exportMessage(err?.message||'That export did not work.')}
   }
