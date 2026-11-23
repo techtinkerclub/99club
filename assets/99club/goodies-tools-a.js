@@ -120,10 +120,11 @@ function placeValue(){
       if(shown)shown.textContent='Answer: '+challenge.answer;
     }
   }
-  function randomBoardValue({decimal=true,min=1,max=9999}={}){
-    const whole=min+Math.floor(Math.random()*Math.max(1,max-min+1));
-    if(!decimal||Math.random()<.45)return whole;
-    return clean(whole+(1+Math.floor(Math.random()*99))/100);
+  function randomBoardValue({decimal=true,min=valueStep(),max=rangeMax()}={}){
+    const step=decimal?valueStep():Math.max(1,valueStep()),low=Math.max(0,normaliseValue(min)),high=Math.min(rangeMax(),normaliseValue(max));
+    if(high<=low)return low;
+    const first=Math.ceil(low/step),last=Math.floor(high/step),pick=first+Math.floor(Math.random()*Math.max(1,last-first+1));
+    return normaliseValue(pick*step);
   }
   function restoreBeforeChallenge(){
     if(beforeChallenge){restoreState(beforeChallenge);beforeChallenge=null}
@@ -176,14 +177,12 @@ function placeValue(){
       layoutTokens();
       challenge=challengeObject(type,'This is a non-standard representation. What number does it represent? Regroup it to check.',format(value),{hiddenSummary:['total','expanded']});
     }else{
-      const examples=[
-        {value:4052,claim:'452',place:'hundreds'},
-        {value:7008,claim:'78',place:'hundreds and tens'},
-        {value:5060,claim:'560',place:'hundreds'},
-        {value:9015,claim:'915',place:'hundreds'}
-      ],pick=examples[Math.floor(Math.random()*examples.length)];
-      buildFromNumber(pick.value);
-      challenge=challengeObject(type,'A pupil says this board represents '+pick.claim+' because there are no counters in the '+pick.place+' place. Are they correct?','No. It represents '+format(pick.value)+'. Zero is acting as a placeholder.',{hiddenSummary:['total','expanded']});
+      const digits=Array(places.length).fill(0).map(()=>1+Math.floor(Math.random()*8));
+      const zeroIndex=1+Math.floor(Math.random()*Math.max(1,places.length-2));
+      digits[zeroIndex]=0;
+      const value=normaliseValue(digits.reduce((sum,d,i)=>sum+d*places[i].value,0));
+      buildFromNumber(value);
+      challenge=challengeObject(type,'A pupil says the empty '+places[zeroIndex].name+' column does not matter when reading this number. Are they correct?','No. It represents '+format(value)+'. Zero is acting as a placeholder in the '+places[zeroIndex].name+' place.',{hiddenSummary:['total','expanded']});
     }
     challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';
     exportMode='challenge';responseLines=template.category==='reason'?3:1;exportStatus='';
