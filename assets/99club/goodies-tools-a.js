@@ -318,7 +318,7 @@ function placeValue(){
   function startAdditionProblem(a=null,b=null){
     const problem=a==null||b==null?randomAdditionProblem():{a:normaliseValue(a),b:normaliseValue(b)};
     const safeA=clamp(problem.a,0,rangeMax()),safeB=clamp(problem.b,0,Math.max(0,rangeMax()-safeA));
-    additionA=safeA;additionB=safeB;activityTarget=normaliseValue(safeA+safeB);additionStep=0;
+    additionA=safeA;additionB=safeB;activityTarget=normaliseValue(safeA+safeB);additionStep=0;activityStatus='';
     if(representationMode==='counters')representationMode='abacus';
     controller?.mutate(()=>{buildFromNumber(additionA);notice='Start at '+format(additionA)+'. '+additionProgressText()});controller?.select(null);
   }
@@ -828,8 +828,7 @@ function placeValue(){
     const beads=[];
     for(let value=9;value>=1;value--){
       const active=!hidden&&value<=count;
-      const nextValue=active?value-1:value;
-      beads.push('<button type="button" class="gd-pv-abacus-bead'+(active?' is-active':'')+'" data-pv-abacus-set="'+index+':'+nextValue+'" aria-label="'+(active?'Move one '+place.name+' bead away':'Move '+place.name+' beads to '+value)+'"'+(readOnly||hidden?' disabled':'')+' style="--pv-bead:'+place.color+'"><span></span></button>');
+      beads.push('<button type="button" class="gd-pv-abacus-bead'+(active?' is-active':'')+'" data-pv-abacus-nudge="'+index+':'+(active?-1:1)+'" aria-label="'+(active?'Remove one ':'Add one ')+place.name+' bead"'+(readOnly||hidden?' disabled':'')+' style="--pv-bead:'+place.color+'"><span></span></button>');
     }
     const decimalStart=place.value<1&&(index===0||places[index-1].value>=1);
     return '<div class="gd-pv-abacus-rod'+(decimalStart?' is-decimal-start':'')+(target?' is-activity-target':'')+(hidden?' is-hidden-place':'')+'" data-pv-abacus-rod="'+index+'">'+
