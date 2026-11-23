@@ -8,15 +8,27 @@ setPanels(`${field('Minimum','<input class="gd-input" id="nl-min" type="number" 
 function placeValue(){
   const I=G.interaction,CK=G.challengeKit,X=G.exportTools;
   if(!I){q('#gd-stage').innerHTML='<p class="gd-empty">The interactive place-value board could not start.</p>';return;}
-  const places=[
-    {label:'10,000',name:'ten thousands',value:10000,color:'#c9dbf2'},
-    {label:'1,000',name:'thousands',value:1000,color:'#d7cef0'},
-    {label:'100',name:'hundreds',value:100,color:'#f0cfda'},
-    {label:'10',name:'tens',value:10,color:'#f2d9bf'},
-    {label:'1',name:'ones',value:1,color:'#f3df86'},
-    {label:'0.1',name:'tenths',value:.1,color:'#cce6dc'},
-    {label:'0.01',name:'hundredths',value:.01,color:'#cde2ee'}
+  const PLACE_CATALOG=[
+    {power:7,label:'10,000,000',name:'ten millions',value:10000000,color:'#cbd9ef'},
+    {power:6,label:'1,000,000',name:'millions',value:1000000,color:'#ceddf2'},
+    {power:5,label:'100,000',name:'hundred thousands',value:100000,color:'#c9dbf2'},
+    {power:4,label:'10,000',name:'ten thousands',value:10000,color:'#c9dbf2'},
+    {power:3,label:'1,000',name:'thousands',value:1000,color:'#d7cef0'},
+    {power:2,label:'100',name:'hundreds',value:100,color:'#f0cfda'},
+    {power:1,label:'10',name:'tens',value:10,color:'#f2d9bf'},
+    {power:0,label:'1',name:'ones',value:1,color:'#f3df86'},
+    {power:-1,label:'0.1',name:'tenths',value:.1,color:'#cce6dc'},
+    {power:-2,label:'0.01',name:'hundredths',value:.01,color:'#cde2ee'},
+    {power:-3,label:'0.001',name:'thousandths',value:.001,color:'#c9ddec'}
   ];
+  const PLACE_RANGES=[
+    {id:'millions',label:'10,000,000 → 10',start:0},
+    {id:'whole',label:'1,000,000 → 1',start:1},
+    {id:'standard',label:'10,000 → 0.01',start:3},
+    {id:'decimals',label:'1,000 → 0.001',start:4}
+  ];
+  let placeRange='standard';
+  let places=PLACE_CATALOG.slice(3,10);
   const CHALLENGE_CATEGORIES=[
     {id:'read',label:'Read & place value'},
     {id:'build',label:'Build & regroup'},
@@ -33,23 +45,32 @@ function placeValue(){
   let controlTab='setup',challengeTab='standard',challengeCategory='read',challengeType='read-number',challenge=null,beforeChallenge=null;
   let exportMode='diagram',responseLines=1,exportStatus='';
 
-  function clean(v){return Math.round((Number(v)||0)*100)/100}
-  function format(v){return clean(v).toLocaleString('en-GB',{minimumFractionDigits:0,maximumFractionDigits:2})}
+  function rangeFor(id=placeRange){return PLACE_RANGES.find(r=>r.id===id)||PLACE_RANGES.find(r=>r.id==='standard')}
+  function setPlaceRange(id){
+    const range=rangeFor(id);placeRange=range.id;places=PLACE_CATALOG.slice(range.start,range.start+7);
+  }
+  function fractionDigits(){return Math.max(0,-Math.min(...places.map(p=>p.power)))}
+  function valueStep(){return places[places.length-1]?.value||1}
+  function valueScale(){return 10**fractionDigits()}
+  function rangeMax(){return Math.max(0,places[0].value*10-valueStep())}
+  function clean(v){const scale=valueScale();return Math.round((Number(v)||0)*scale)/scale}
+  function normaliseValue(v){const step=valueStep();return clean(Math.round((Number(v)||0)/step)*step)}
+  function format(v){return clean(v).toLocaleString('en-GB',{minimumFractionDigits:0,maximumFractionDigits:fractionDigits()})}
   function counts(){const out=Array(places.length).fill(0);tokens.forEach(t=>{if(out[t.place]!=null)out[t.place]++});return out}
   function total(){return clean(tokens.reduce((sum,t)=>sum+(places[t.place]?.value||0),0))}
   function nonStandard(){return counts().some(n=>n>9)}
-  function stateSnapshot(){return{tokens:JSON.parse(JSON.stringify(tokens)),next}}
+  function stateSnapshot(){return{tokens:JSON.parse(JSON.stringify(tokens)),next,placeRange}}
   function restoreState(value){
+    setPlaceRange(value?.placeRange||'standard');
     tokens=Array.isArray(value?.tokens)?value.tokens.map(t=>({...t,place:clamp(Math.round(num(t.place,4)),0,places.length-1)})):[];
     next=Math.max(1,Math.round(num(value?.next,1)));
     notice='';
   }
   function buildFromNumber(raw){
-    const value=clamp(clean(num(raw,0)),0,99999.99);
-    const fixed=value.toFixed(2).split('.');
-    const digits=(fixed[0].padStart(5,'0')+fixed[1]).split('').map(Number);
+    const value=clamp(normaliseValue(num(raw,0)),0,rangeMax()),scale=valueScale(),units=Math.round(value*scale);
     tokens=[];next=1;
-    digits.forEach((digit,place)=>{
+    places.forEach((placeMeta,place)=>{
+      const unitValue=Math.max(1,Math.round(placeMeta.value*scale)),digit=Math.floor(units/unitValue)%10;
       for(let n=0;n<digit;n++)tokens.push({id:next++,place,x:0,y:0,locked:false});
     });
     layoutTokens();
@@ -99,10 +120,11 @@ function placeValue(){
       if(shown)shown.textContent='Answer: '+challenge.answer;
     }
   }
-  function randomBoardValue({decimal=true,min=1,max=9999}={}){
-    const whole=min+Math.floor(Math.random()*Math.max(1,max-min+1));
-    if(!decimal||Math.random()<.45)return whole;
-    return clean(whole+(1+Math.floor(Math.random()*99))/100);
+  function randomBoardValue({decimal=true,min=valueStep(),max=rangeMax()}={}){
+    const step=decimal?valueStep():Math.max(1,valueStep()),low=Math.max(0,normaliseValue(min)),high=Math.min(rangeMax(),normaliseValue(max));
+    if(high<=low)return low;
+    const first=Math.ceil(low/step),last=Math.floor(high/step),pick=first+Math.floor(Math.random()*Math.max(1,last-first+1));
+    return normaliseValue(pick*step);
   }
   function restoreBeforeChallenge(){
     if(beforeChallenge){restoreState(beforeChallenge);beforeChallenge=null}
@@ -155,14 +177,12 @@ function placeValue(){
       layoutTokens();
       challenge=challengeObject(type,'This is a non-standard representation. What number does it represent? Regroup it to check.',format(value),{hiddenSummary:['total','expanded']});
     }else{
-      const examples=[
-        {value:4052,claim:'452',place:'hundreds'},
-        {value:7008,claim:'78',place:'hundreds and tens'},
-        {value:5060,claim:'560',place:'hundreds'},
-        {value:9015,claim:'915',place:'hundreds'}
-      ],pick=examples[Math.floor(Math.random()*examples.length)];
-      buildFromNumber(pick.value);
-      challenge=challengeObject(type,'A pupil says this board represents '+pick.claim+' because there are no counters in the '+pick.place+' place. Are they correct?','No. It represents '+format(pick.value)+'. Zero is acting as a placeholder.',{hiddenSummary:['total','expanded']});
+      const digits=Array(places.length).fill(0).map(()=>1+Math.floor(Math.random()*8));
+      const zeroIndex=1+Math.floor(Math.random()*Math.max(1,places.length-2));
+      digits[zeroIndex]=0;
+      const value=normaliseValue(digits.reduce((sum,d,i)=>sum+d*places[i].value,0));
+      buildFromNumber(value);
+      challenge=challengeObject(type,'A pupil says the empty '+places[zeroIndex].name+' column does not matter when reading this number. Are they correct?','No. It represents '+format(value)+'. Zero is acting as a placeholder in the '+places[zeroIndex].name+' place.',{hiddenSummary:['total','expanded']});
     }
     challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';
     exportMode='challenge';responseLines=template.category==='reason'?3:1;exportStatus='';
@@ -196,10 +216,13 @@ function placeValue(){
       (challenge?'<button class="gd-btn" id="pv-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>';
   }
   function setupControlsHtml(){
-    return field('Quick setup number','<div class="gd-row"><input class="gd-input" id="pv-value" type="number" min="0" max="99999.99" step="0.01" value="'+clean(total()).toFixed(total()%1?2:0)+'"><button class="gd-btn" id="pv-build" type="button">Build</button></div>','Use this to prepare a board quickly; after that, work directly with the counters.')+
-      '<div class="gd-row">'+btn('Random whole number','pv-random')+btn('Random decimal','pv-dec')+'</div>'+
+    const rangeOptions=PLACE_RANGES.map(r=>'<option value="'+r.id+'"'+(r.id===placeRange?' selected':'')+'>'+r.label+'</option>').join('');
+    const decimalAvailable=fractionDigits()>0;
+    return field('Visible place range','<select class="gd-select" id="pv-range">'+rangeOptions+'</select>','Keep seven useful columns visible at once. Changing range preserves the current value where possible.')+
+      field('Quick setup number','<div class="gd-row"><input class="gd-input" id="pv-value" type="number" min="0" max="'+rangeMax()+'" step="'+valueStep()+'" value="'+total()+'"><button class="gd-btn" id="pv-build" type="button">Build</button></div>','Use this to prepare a board quickly; after that, work directly with the counters.')+
+      '<div class="gd-row">'+btn('Random whole number','pv-random')+(decimalAvailable?btn('Random decimal','pv-dec'):'')+'</div>'+
       btn('Regroup counters','pv-regroup')+btn('Clear board','pv-clear')+
-      '<p class="gd-help">Tap + at the top of a column to add one counter. Drag counters between columns; the represented number updates with their place value. Select a counter for duplicate, lock and delete. Left/right arrow keys move a selected counter one place.</p>';
+      '<p class="gd-help">Tap + at the top of a column to add one counter. Drag counters between columns to change their place value. Select a counter to split it into ten of the next smaller place; when a column contains ten counters you can exchange ten for one of the next larger place.</p>';
   }
   function exportControlsHtml(){
     const canCard=!!challenge;
@@ -239,7 +262,7 @@ function placeValue(){
     svg.appendChild(pvSvgEl('rect',{x:boardX,y:boardY,width:boardW,height:boardH,rx:16,fill:'#ffffff',stroke:'#aebfc2','stroke-width':2,'data-pv-export-board':'1'}));
 
     places.forEach((place,index)=>{
-      const x=boardX+index*colW,isDecimal=index===5;
+      const x=boardX+index*colW,isDecimal=place.value<1&&(index===0||places[index-1].value>=1);
       svg.appendChild(pvSvgEl('rect',{x,y:boardY,width:colW,height:headerH,fill:index%2?'#f8fafb':'#f3f7f7'}));
       if(index>0)svg.appendChild(pvSvgEl('line',{x1:x,y1:boardY,x2:x,y2:boardY+boardH,stroke:isDecimal?'#657b82':'#d7e0e2','stroke-width':isDecimal?4:1.5}));
       svg.appendChild(pvSvgEl('text',{x:x+colW/2,y:boardY+28,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':15,'font-weight':800,fill:'#2f474f'},place.label));
@@ -339,10 +362,20 @@ function placeValue(){
     return '<button type="button" class="gd-pv-counter'+(selected?' is-selected':'')+(t.locked?' is-locked':'')+'" data-gd-object="'+t.id+'" data-pv-place="'+t.place+'" aria-selected="'+(selected?'true':'false')+'" aria-label="One '+p.name+' counter'+(t.locked?', locked':'')+'" style="left:'+t.x+'px;top:'+t.y+'px;--pv-counter:'+p.color+'"><span aria-hidden="true"></span>'+(t.locked?'<b class="gd-pv-lock" aria-hidden="true">⌑</b>':'')+'</button>';
   }
   function railMarkup(selected,meta){
-    const object=selected?
-      I.toolButton('duplicate','duplicate','Duplicate counter','',false)+
-      I.toolButton('lock',selected.locked?'unlock':'lock',selected.locked?'Unlock counter':'Lock counter',selected.locked?'is-active':'',false)+
-      I.toolButton('delete','delete','Delete counter','is-danger',selected.locked):'';
+    let object='';
+    if(selected){
+      const source=clamp(Math.round(num(selected.place,0)),0,places.length-1);
+      const canExchange=source>0&&tokens.filter(t=>t.place===source&&!t.locked).length>=10;
+      const canSplit=!selected.locked&&source<places.length-1&&tokens.length+9<=90;
+      object=
+        I.toolButton('exchange-up','combine','Exchange 10 '+places[source].name+' for 1 '+(source>0?singularPlaceName(places[source-1]):'larger place'),'',
+          !canExchange)+
+        I.toolButton('split-down','split','Split 1 '+singularPlaceName(places[source])+' into 10 '+(source<places.length-1?places[source+1].name:'smaller places'),'',
+          !canSplit)+
+        I.toolButton('duplicate','duplicate','Duplicate counter','',false)+
+        I.toolButton('lock',selected.locked?'unlock':'lock',selected.locked?'Unlock counter':'Lock counter',selected.locked?'is-active':'',false)+
+        I.toolButton('delete','delete','Delete counter','is-danger',selected.locked);
+    }
     const divider=object?'<span class="gd-object-separator"></span>':'';
     return '<div class="gd-object-ui"><div class="gd-object-rail'+(selected?' is-engaged':'')+'" aria-label="Place-value board tools">'+object+divider+
       I.toolButton('undo','undo','Undo','',!meta?.canUndo)+
@@ -351,7 +384,8 @@ function placeValue(){
   }
   function columnMarkup(place,index,cs){
     const countText=columnCountHidden(index)?'?':cs[index],canRemove=tokens.some(t=>t.place===index&&!t.locked);
-    return '<div class="gd-pv-column'+(index===5?' is-decimal-start':'')+'" data-gd-canvas-bg data-pv-column="'+index+'">'+
+    const decimalStart=place.value<1&&(index===0||places[index-1].value>=1);
+    return '<div class="gd-pv-column'+(decimalStart?' is-decimal-start':'')+'" data-gd-canvas-bg data-pv-column="'+index+'">'+
       '<div class="gd-pv-head"><strong>'+place.label+'</strong><small>'+place.name+'</small><div class="gd-pv-column-actions" role="group" aria-label="'+place.name+' counters">'+
         '<button type="button" data-pv-remove="'+index+'" aria-label="Remove one '+place.name+' counter"'+(canRemove?'':' disabled')+'>−</button>'+
         '<span data-pv-count="'+index+'" aria-label="'+countText+' '+place.name+' counters">'+countText+'</span>'+
@@ -420,6 +454,30 @@ function placeValue(){
     const copy={...item,id:next++,locked:false,x:0,y:0};
     tokens.push(copy);notice='';layoutTokens();return copy;
   }
+  function singularPlaceName(place){return String(place?.name||'place').replace(/s$/,'')}
+  function exchangeUp(item){
+    const source=clamp(Math.round(num(item?.place,-1)),0,places.length-1);
+    if(source<=0)return null;
+    const available=tokens.filter(t=>t.place===source&&!t.locked);
+    if(available.length<10)return null;
+    const removeIds=new Set(available.slice(0,10).map(t=>t.id));
+    tokens=tokens.filter(t=>!removeIds.has(t.id));
+    const created={id:next++,place:source-1,x:0,y:0,locked:false};
+    tokens.push(created);
+    notice='Exchanged 10 '+places[source].name+' for 1 '+singularPlaceName(places[source-1])+'.';
+    layoutTokens();
+    return created;
+  }
+  function splitDown(item){
+    const source=clamp(Math.round(num(item?.place,-1)),0,places.length-1);
+    if(!item||item.locked||source>=places.length-1||tokens.length+9>90)return null;
+    tokens=tokens.filter(t=>t!==item);
+    const created=[];
+    for(let n=0;n<10;n++){const nextItem={id:next++,place:source+1,x:0,y:0,locked:false};tokens.push(nextItem);created.push(nextItem)}
+    notice='Split 1 '+singularPlaceName(places[source])+' into 10 '+places[source+1].name+'.';
+    layoutTokens();
+    return created[0]||null;
+  }
   function bindStage(){
     qa('[data-pv-add]',q('#gd-stage')).forEach(button=>button.onclick=e=>{
       e.stopPropagation();addCounter(+button.dataset.pvAdd);
@@ -434,9 +492,13 @@ function placeValue(){
     updateLiveSummary();
   }
   function syncControls(){
-    const input=q('#pv-value'),regroup=q('#pv-regroup');
-    if(input&&document.activeElement!==input)input.value=clean(total()).toFixed(total()%1?2:0);
-    if(regroup)regroup.disabled=!nonStandard()||total()>99999.99;
+    const input=q('#pv-value'),regroup=q('#pv-regroup'),range=q('#pv-range');
+    if(input){
+      input.max=String(rangeMax());input.step=String(valueStep());
+      if(document.activeElement!==input)input.value=String(total());
+    }
+    if(range&&document.activeElement!==range)range.value=placeRange;
+    if(regroup)regroup.disabled=!nonStandard()||total()>rangeMax();
   }
   function bindControls(){
     qa('[data-pv-workflow]').forEach(button=>button.onclick=()=>{
@@ -444,26 +506,35 @@ function placeValue(){
       controlTab=nextTab==='challenge'?'challenge':nextTab==='export'?'export':'setup';
       renderControls();
     });
+    const range=q('#pv-range');if(range)range.onchange=()=>{
+      const previous=total(),requested=range.value;
+      controller.mutate(()=>{
+        setPlaceRange(requested);
+        const rebuilt=buildFromNumber(previous);
+        notice=rebuilt===previous?'Visible place range changed without changing the represented number.':'Visible place range changed; the previous value was outside this range and has been adjusted.';
+      });
+      controller.select(null);renderControls();
+    };
     const build=q('#pv-build');if(build)build.onclick=()=>{
       const raw=q('#pv-value').value;
       controller.mutate(()=>{buildFromNumber(raw);notice='Board rebuilt from the entered number.'});
       controller.select(null);
     };
     const random=q('#pv-random');if(random)random.onclick=()=>{
-      const value=Math.floor(Math.random()*99999)+1;
+      const value=randomBoardValue({decimal:false,min:valueStep(),max:rangeMax()});
       q('#pv-value').value=value;
-      controller.mutate(()=>{buildFromNumber(value);notice='Random whole number built.'});
+      controller.mutate(()=>{buildFromNumber(value);notice='Random whole-number value built for this place range.'});
       controller.select(null);
     };
     const decimal=q('#pv-dec');if(decimal)decimal.onclick=()=>{
-      const value=(Math.floor(Math.random()*9999999)/100).toFixed(2);
+      const value=randomBoardValue({decimal:true,min:valueStep(),max:rangeMax()});
       q('#pv-value').value=value;
-      controller.mutate(()=>{buildFromNumber(value);notice='Random decimal built.'});
+      controller.mutate(()=>{buildFromNumber(value);notice='Random decimal built for this place range.'});
       controller.select(null);
     };
     const regroup=q('#pv-regroup');if(regroup)regroup.onclick=()=>{
       const value=total();
-      if(value>99999.99){notice='This value is above the current board range, so it cannot be regrouped here.';controller.refresh();return;}
+      if(value>rangeMax()){notice='This value is above the current visible range, so it cannot be regrouped here.';controller.refresh();return;}
       controller.mutate(()=>{buildFromNumber(value);notice='Regrouped into standard place-value digits without changing the total.'});
       controller.select(null);
     };
@@ -536,7 +607,7 @@ function placeValue(){
     toggleLock:item=>{item.locked=!item.locked;notice=''},
     constrain:(item,x,y,element,canvas)=>({
       x:clamp(x,0,Math.max(0,canvas.clientWidth-(element?.offsetWidth||36))),
-      y:clamp(y,70,Math.max(70,canvas.clientHeight-(element?.offsetHeight||36)))
+      y:clamp(y,boardWidth()<560?82:96,Math.max(boardWidth()<560?82:96,canvas.clientHeight-(element?.offsetHeight||36)))
     }),
     onMove:item=>{
       const newPlace=placeFromX(item.x);
@@ -554,6 +625,16 @@ function placeValue(){
       const nextPlace=clamp(item.place+(dx<0?-1:1),0,places.length-1);
       if(nextPlace===item.place)return false;
       item.place=nextPlace;notice='';layoutTokens();return true;
+    },
+    onAction:(action,api)=>{
+      const selected=api.selected();
+      if(action==='exchange-up'){
+        let created=null;api.mutate(()=>{created=exchangeUp(selected)});
+        if(created)api.select(created.id);
+      }else if(action==='split-down'){
+        let created=null;api.mutate(()=>{created=splitDown(selected)});
+        if(created)api.select(created.id);
+      }
     },
     afterRender:()=>{bindStage();syncControls()},
     onDestroy:()=>{
