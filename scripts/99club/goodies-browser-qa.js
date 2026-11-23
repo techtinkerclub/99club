@@ -2059,24 +2059,37 @@ if(mode==='prepare'){
     assert(document.getElementById('pv-total').textContent.trim()==='?','Read-number challenge hides the represented total');
     assert(document.getElementById('pv-expanded').textContent.includes('Hidden'),'Read-number challenge also hides the expanded representation');
     assert(document.querySelector('[data-challenge-action="another"]'),'Place Value standard challenge exposes Another like this');
-    document.querySelector('[data-board-action="reveal"]').click();
-    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer:'),'Place Value challenge reveals its answer contextually');
-    assert(document.getElementById('pv-total').textContent.trim()!=='?','Reveal restores the live represented total');
 
     document.querySelector('[data-pv-workflow="export"]').click();
     assert(document.querySelector('[data-pv-export-mode="challenge"]'),'Active Place Value challenge offers Challenge card export');
-    let pvChallengeSvg=null;
+    assert(document.getElementById('pv-export-reveal')&&/Reveal answer/.test(document.getElementById('pv-export-reveal').textContent),'Challenge export offers a compact Reveal answer control');
+    let pvPupilSvg=null;
     const pvOldChallengeDownload=TT99Goodies.exportTools.downloadSvg;
-    TT99Goodies.exportTools.downloadSvg=(svg)=>{pvChallengeSvg=svg.cloneNode(true)};
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{pvPupilSvg=svg.cloneNode(true)};
+    document.getElementById('pv-svg-download').click();
+    assert(pvPupilSvg&&pvPupilSvg.dataset.worksheetCard==='1'&&pvPupilSvg.dataset.worksheetAnswer==='pupil','Hidden-answer export creates the pupil worksheet version');
+    assert(pvPupilSvg.querySelector('[data-pv-export-board="1"]'),'Place Value challenge card embeds the printable place-value table');
+    const pupilBoard=pvPupilSvg.querySelector('[data-pv-export-board="1"]');
+    assert(Number(pupilBoard.getAttribute('height'))>=340,'Printable Place Value table has a normal writable body rather than a miniature live-board strip');
+    assert(pvPupilSvg.textContent.includes('What number is represented'),'Place Value worksheet includes the pupil question text');
+    assert(!pvPupilSvg.textContent.includes('Answer:'),'Pupil worksheet does not expose the answer');
+    assert(pvPupilSvg.viewBox.baseVal.width>pvPupilSvg.viewBox.baseVal.height,'Place Value worksheet card remains compact enough to place several on a page');
+
+    document.querySelector('[data-pv-workflow="challenge"]').click();
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer:'),'Place Value challenge reveals its answer contextually');
+    assert(document.getElementById('pv-total').textContent.trim()!=='?','Reveal restores the live represented total');
+    const revealedAnswer=document.querySelector('.gd-challenge-actions em').textContent.replace(/^Answer:\s*/,'').trim();
+
+    document.querySelector('[data-pv-workflow="export"]').click();
+    assert(/Hide answer/.test(document.getElementById('pv-export-reveal').textContent),'Export panel mirrors the revealed teacher-answer state');
+    let pvTeacherSvg=null;
+    TT99Goodies.exportTools.downloadSvg=(svg)=>{pvTeacherSvg=svg.cloneNode(true)};
     document.getElementById('pv-svg-download').click();
     TT99Goodies.exportTools.downloadSvg=pvOldChallengeDownload;
-    assert(pvChallengeSvg&&pvChallengeSvg.querySelector('[data-pv-export-board="1"]'),'Place Value challenge card embeds the vector board');
-    assert(!pvChallengeSvg.textContent.includes('Answer:'),'Place Value pupil challenge export never includes a revealed answer label');
-    const pvBoardTexts=[...pvChallengeSvg.querySelectorAll('text')].map(x=>x.textContent.trim());
-    const pvNumberLabel=pvBoardTexts.indexOf('Number represented');
-    assert(pvNumberLabel>=0&&pvBoardTexts[pvNumberLabel+1]==='?','Place Value pupil export re-hides the represented total after teacher reveal');
-    assert(pvChallengeSvg.textContent.includes('What number is represented'),'Place Value challenge-card export includes the pupil prompt');
-    assert(pvChallengeSvg.viewBox.baseVal.width>=pvChallengeSvg.viewBox.baseVal.height,'Place Value worksheet challenge exports as a compact card rather than a tall webpage');
+    assert(pvTeacherSvg&&pvTeacherSvg.dataset.worksheetAnswer==='teacher','Revealed-answer export creates the teacher worksheet version');
+    assert(pvTeacherSvg.textContent.includes(revealedAnswer),'Teacher worksheet includes the actual challenge answer');
+    assert(pvTeacherSvg.querySelector('[data-pv-export-board="1"]')?.getAttribute('height')===pupilBoard.getAttribute('height'),'Teacher and pupil versions keep the same usable table size');
 
     document.querySelector('[data-pv-workflow="challenge"]').click();
     document.querySelector('[data-pv-challenge-tab="custom"]').click();

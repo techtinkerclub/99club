@@ -39,6 +39,7 @@ const QUICK_ACTIONS={
     {label:'+ Line',selector:'[data-board-action="add-line"]',title:'Add aligned comparison line'}
   ],
   'place-value':[
+    {label:'Reveal answer',selector:'[data-board-action="reveal"]',dynamicLabel:true,title:'Reveal or hide the challenge answer'},
     {label:'Exchange 10→1',selector:'[data-gd-action="exchange-up"]',allowHidden:true,title:'Exchange ten selected-place counters for one of the next larger place'},
     {label:'Split 1→10',selector:'[data-gd-action="split-down"]',allowHidden:true,title:'Split the selected counter into ten of the next smaller place'}
   ],

@@ -305,6 +305,21 @@ async function run(){
   exchangePV.click();await tick();
   const pvAfterExchange=Number((pvDoc.getElementById('pv-total').textContent||'').replace(/,/g,''));
   assert(Math.abs(pvAfterExchange-pvBefore)<0.00001,'Whiteboard Exchange 10→1 restores the grouped representation without changing value');
+
+  const fakeReveal=pvDoc.createElement('button');
+  fakeReveal.type='button';fakeReveal.dataset.boardAction='reveal';fakeReveal.textContent='Reveal answer';
+  fakeReveal.style.position='fixed';fakeReveal.style.left='-9999px';fakeReveal.style.top='0';
+  fakeReveal.onclick=()=>{fakeReveal.textContent=fakeReveal.textContent.includes('Reveal')?'Hide answer':'Reveal answer'};
+  pvDoc.body.appendChild(fakeReveal);
+  pvDoc.body.dispatchEvent(new MouseEvent('click',{bubbles:true}));await tick();
+  pvQuick=[...pvFrame.querySelectorAll('[data-board-quick-actions] button')];
+  const revealPV=pvQuick.find(button=>/Reveal answer/i.test(button.textContent));
+  assert(revealPV,'Place Value whiteboard bridge exposes a live Reveal answer target as a direct frame action');
+  revealPV.click();await tick();
+  pvQuick=[...pvFrame.querySelectorAll('[data-board-quick-actions] button')];
+  assert(pvQuick.some(button=>/Hide answer/i.test(button.textContent)),'Whiteboard answer action mirrors the live Reveal / Hide state');
+  fakeReveal.remove();
+  pvDoc.body.dispatchEvent(new MouseEvent('click',{bubbles:true}));await tick();
   TT99Goodies.compositionBoard.remove(pvRecord.id);
 
   document.querySelector('[data-board-add="randomiser"]').click();await tick();
