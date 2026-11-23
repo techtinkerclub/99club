@@ -581,8 +581,8 @@ function placeValue(){
     return nonStandard()?'This is a non-standard representation. Regroup to show the same value using standard digits.':'Drag a counter into another column to change its place value.';
   }
   function tokenMarkup(t,selectedId){
-    const p=places[t.place],selected=String(t.id)===String(selectedId);
-    return '<button type="button" class="gd-pv-counter'+(selected?' is-selected':'')+(t.locked?' is-locked':'')+'" data-gd-object="'+t.id+'" data-pv-place="'+t.place+'" aria-selected="'+(selected?'true':'false')+'" aria-label="One '+p.name+' counter'+(t.locked?', locked':'')+'" style="left:'+t.x+'px;top:'+t.y+'px;--pv-counter:'+p.color+'"><span aria-hidden="true"></span>'+(t.locked?'<b class="gd-pv-lock" aria-hidden="true">⌑</b>':'')+'</button>';
+    const p=places[t.place],selected=String(t.id)===String(selectedId),activityHidden=activityTokenHidden(t);
+    return '<button type="button" class="gd-pv-counter'+(selected?' is-selected':'')+(t.locked?' is-locked':'')+(activityHidden?' is-activity-hidden':'')+'" data-gd-object="'+t.id+'" data-pv-place="'+t.place+'" aria-selected="'+(selected?'true':'false')+'"'+(activityHidden?' aria-hidden="true" tabindex="-1"':'')+' aria-label="One '+p.name+' counter'+(t.locked?', locked':'')+'" style="left:'+t.x+'px;top:'+t.y+'px;--pv-counter:'+p.color+'"><span aria-hidden="true"></span>'+(t.locked?'<b class="gd-pv-lock" aria-hidden="true">⌑</b>':'')+'</button>';
   }
   function railMarkup(selected,meta){
     let object='';
@@ -624,7 +624,7 @@ function placeValue(){
       '<div class="gd-pv-board-wrap">'+
         '<div class="gd-pv-canvas" id="pv-canvas" data-gd-canvas-bg style="min-height:'+height+'px;--pv-cols:'+places.length+'">'+
           '<div class="gd-pv-columns">'+places.map((p,i)=>columnMarkup(p,i,cs)).join('')+'</div>'+
-          tokens.filter(t=>!activityTokenHidden(t)).map(t=>tokenMarkup(t,selectedId)).join('')+
+          tokens.map(t=>tokenMarkup(t,selectedId)).join('')+
         '</div>'+
         railMarkup(selected,meta)+
       '</div>'+
