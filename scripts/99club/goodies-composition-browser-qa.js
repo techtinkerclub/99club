@@ -113,6 +113,7 @@ async function run(){
   assert(getComputedStyle(money).backgroundColor==='rgba(0, 0, 0, 0)','Board object frame stays transparent');
   const moneyFrame=money.querySelector('iframe');
   assert(getComputedStyle(moneyFrame).backgroundColor==='rgba(0, 0, 0, 0)','Embedded iframe surface stays transparent');
+  assert(parseFloat(getComputedStyle(moneyFrame).borderTopLeftRadius)>=6,'Embedded manipulative surface keeps the same rounded corner treatment as its whiteboard frame');
   const quick=money.querySelector('[data-board-quick-actions]');
   assert(visible(quick),'Focused Money object exposes whiteboard-owned quick actions');
   const addMoney=[...quick.querySelectorAll('button')].find(button=>/Money/.test(button.textContent));
@@ -281,9 +282,17 @@ async function run(){
   const challengePV=pvQuick.find(button=>/^Challenge/.test(button.textContent.trim()));
   assert(challengePV,'Place Value exposes Challenge as a direct whiteboard frame action');
   challengePV.click();await tick();
-  assert(visible(pvFloating)&&/Place value challenge/i.test(document.getElementById('gd-board-floating-controls-title').textContent),'Frame Challenge opens a dedicated challenge palette');
-  assert(!pvFloating.querySelector('.pv-mode-tabs'),'Dedicated Place Value challenge palette does not repeat the Setup / Teach / Challenge / Export workflow tabs');
-  pvFloating.querySelector('[data-board-controls-close]').click();await tick();
+  assert(!visible(pvFloating),'Frame Challenge starts a pupil task directly instead of opening another settings/picker palette');
+  const pvGame=pvDoc.querySelector('.gd-pv-activity--game');
+  assert(pvGame,'Frame Challenge immediately creates an active Place Value pupil task');
+  assert(/BUILD THE TARGET|EXACT-COUNTER CHALLENGE/.test(pvGame.textContent),'Random frame Challenge chooses Build target or Exact counters');
+  assert(pvDoc.querySelector('[data-pv-activity-check]')&&pvDoc.querySelector('[data-pv-activity-another]'),'Generated pupil challenge exposes Check and Another directly on the board');
+  assert(pvDoc.querySelectorAll('[data-gd-object]').length===0,'Generated Build/Exact challenge starts with an empty pupil board');
+
+  pvDoc.querySelector('[data-pv-workflow="setup"]').click();await tick();
+  const pvSetupValue=pvDoc.getElementById('pv-value');
+  pvSetupValue.value='20';
+  pvDoc.getElementById('pv-build').click();await tick();
 
   let pvExportSvg=null,pvExportName='';
   const pvOldSvg=pvWin.TT99Goodies.exportTools.downloadSvg;
