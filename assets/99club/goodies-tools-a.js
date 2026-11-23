@@ -383,7 +383,7 @@ function placeValue(){
   function startActivity(mode=activityMode,context=activityContext){
     const modes=['powers','build','exact','regroup','same','read','hidden','digit','add'];
     activityMode=modes.includes(mode)?mode:'powers';activityContext=context==='challenge'?'challenge':'teach';activityActive=true;activityStatus='';powerMessage='';activityInput='';activityAnswer=null;activityHiddenIndex=-1;activityDigit=0;activityStartCounts=[];activityPrompt='';
-    if(['exact','regroup','same'].includes(activityMode)&&representationMode==='abacus')representationMode='counters';
+    if(['exact','regroup','same'].includes(activityMode)&&representationMode!=='counters')representationMode='counters';
     if(activityMode==='add'){
       startAdditionProblem();
     }else if(activityMode==='powers'){
@@ -905,6 +905,20 @@ function placeValue(){
     qa('[data-pv-remove]',q('#gd-stage')).forEach(button=>button.onclick=e=>{
       e.stopPropagation();removeCounter(+button.dataset.pvRemove);
     });
+    qa('[data-pv-abacus-set]',q('#gd-stage')).forEach(button=>button.onclick=e=>{
+      e.stopPropagation();
+      const [index,value]=String(button.dataset.pvAbacusSet||'').split(':').map(Number);
+      setAbacusDigit(index,value);
+    });
+    qa('[data-pv-abacus-nudge]',q('#gd-stage')).forEach(button=>button.onclick=e=>{
+      e.stopPropagation();
+      const [index,delta]=String(button.dataset.pvAbacusNudge||'').split(':').map(Number);
+      nudgeAbacusDigit(index,delta);
+    });
+    const addNext=q('[data-pv-add-next]',q('#gd-stage'));
+    if(addNext)addNext.onclick=e=>{e.stopPropagation();applyAdditionStep()};
+    const addReset=q('[data-pv-add-reset]',q('#gd-stage'));
+    if(addReset)addReset.onclick=e=>{e.stopPropagation();resetAddition()};
     const reveal=q('[data-board-action="reveal"]',q('#gd-stage'));
     if(reveal)reveal.onclick=e=>{e.stopPropagation();if(!challenge)return;challenge.revealed=!challenge.revealed;renderControls();controller?.refresh()};
     const another=q('[data-challenge-action="another"]',q('#gd-stage'));
@@ -938,6 +952,18 @@ function placeValue(){
     if(regroup)regroup.disabled=!nonStandard()||total()>rangeMax();
   }
   function bindControls(){
+    qa('[data-pv-representation]').forEach(button=>button.onclick=()=>{
+      const mode=button.dataset.pvRepresentation;
+      if(!['counters','abacus','both'].includes(mode))return;
+      controller?.mutate(()=>{
+        representationMode=mode;
+        if(mode!=='counters'&&nonStandard()&&total()<=rangeMax()){
+          const value=total();buildFromNumber(value);
+          notice='The abacus uses standard digits, so the same value was regrouped first.';
+        }
+      });
+      controller?.select(null);renderControls();
+    });
     const randomActivityChallenge=q('[data-pv-random-challenge]');
     if(randomActivityChallenge)randomActivityChallenge.onclick=()=>startRandomActivityChallenge('activity');
     qa('[data-pv-workflow]').forEach(button=>button.onclick=()=>{
@@ -965,6 +991,14 @@ function placeValue(){
     const activityBudgetSelect=q('#pv-activity-budget');if(activityBudgetSelect)activityBudgetSelect.onchange=()=>{
       activityBudget=clamp(Math.round(num(activityBudgetSelect.value,5)),3,9);
       startActivity('exact',activityContext);
+    };
+    const additionDifficultySelect=q('#pv-add-difficulty');if(additionDifficultySelect)additionDifficultySelect.onchange=()=>{
+      additionDifficulty=['mixed','no-regroup','regroup'].includes(additionDifficultySelect.value)?additionDifficultySelect.value:'mixed';
+    };
+    const additionSet=q('#pv-add-set');if(additionSet)additionSet.onclick=()=>{
+      const a=normaliseValue(num(q('#pv-add-a')?.value,additionA)),b=normaliseValue(num(q('#pv-add-b')?.value,additionB));
+      if(a<0||b<0||a+b>rangeMax()){activityStatus='Choose two numbers whose sum fits the visible place range.';controller?.refresh();return}
+      startAdditionProblem(a,b);renderControls();
     };
     const activityNew=q('#pv-activity-new');if(activityNew)activityNew.onclick=()=>startActivity(activityMode,activityContext);
     const applyRangeChange=(start,end,id='custom')=>{
@@ -1083,7 +1117,7 @@ function placeValue(){
     getItems:()=>tokens,
     getState:stateSnapshot,
     setState:restoreState,
-    getCanvas:()=>q('#pv-canvas'),
+    getCanvas:()=>q('#pv-canvas')||q('#pv-abacus'),
     getActionRoot:()=>q('#gd-stage'),
     render,
     isLocked:item=>!!item.locked||activityReadOnly(),
