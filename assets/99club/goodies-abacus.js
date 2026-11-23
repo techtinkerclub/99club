@@ -169,52 +169,58 @@ function abacusTool(){
       '<div class="gd-ab-task-actions"><button type="button" data-ab-check>Check</button>'+skipNext+reveal+'<button type="button" data-ab-another>Another</button></div>'+
     '</section>';
   }
-  function beadMarkup(row,index,count){
-    const active=index<count,groupB=index>=5;
-    return '<button type="button" class="gd-ab-bead'+(active?' is-active':'')+(groupB?' is-five-b':'')+'" data-ab-bead="'+row+':'+index+'" aria-label="'+(active?'Move bead back to the right':'Move bead to the left')+'" aria-pressed="'+(active?'true':'false')+'" style="--ab-x:'+beadX(index,count)+'"><span aria-hidden="true"></span></button>';
+  function beadMarkup(i,part,j){
+    const active=abBeadActive(i,part,j);
+    const label=(part==='upper'?'Five bead ':part==='lower'?'One bead ':'Bead ')+(j+1);
+    return '<button type="button" class="gd-ab-bead'+(active?' is-active':'')+'" data-ab-bead="'+i+':'+part+':'+j+'" style="--ab-y:'+abBeadY(i,part,j)+'" aria-pressed="'+active+'" aria-label="'+esc(placeLabel(i)+' · '+label+(active?' active':' inactive'))+'"><span aria-hidden="true"></span></button>';
   }
-  function rowMarkup(row){
-    const count=counts[row]||0;
-    return '<div class="gd-ab-row" data-ab-row="'+row+'">'+
-      (showRowLabels?'<span class="gd-ab-row-label">Row '+(row+1)+'</span>':'')+
-      '<div class="gd-ab-rod" aria-label="Abacus row '+(row+1)+', '+count+' beads moved">'+
-        '<span class="gd-ab-rail" aria-hidden="true"></span>'+
-        Array.from({length:10},(_,i)=>beadMarkup(row,i,count)).join('')+
-      '</div>'+
-      (showRowCounts?'<strong class="gd-ab-row-count" data-ab-row-count="'+row+'">'+count+'</strong>':'')+
+  function columnMarkup(i){
+    const digit=counts[i]||0;
+    const beads=kind==='western'
+      ?Array.from({length:9},(_,j)=>beadMarkup(i,'unit',j)).join('')
+      :beadMarkup(i,'upper',0)+Array.from({length:4},(_,j)=>beadMarkup(i,'lower',j)).join('');
+    return '<div class="gd-ab-col" data-ab-col="'+i+'">'+
+      '<div class="gd-ab-col-label'+(showRowLabels?'':' is-hidden')+'"><span>'+esc(placeLabel(i))+'</span><abbr title="'+esc(placeLabel(i))+'">'+esc(placeShort(i))+'</abbr></div>'+
+      '<div class="gd-ab-rod" aria-label="'+esc(placeLabel(i)+', digit '+digit)+'">'+
+      '<span class="gd-ab-rail" aria-hidden="true"></span>'+
+      (kind==='soroban'?'<span class="gd-ab-divider" aria-hidden="true"></span>':'')+
+      beads+'</div>'+
+      '<div class="gd-ab-digit"'+(showRowCounts?'':' hidden')+' data-ab-col-count="'+i+'">'+digit+'</div>'+
     '</div>';
   }
   function renderStage(){
     const hideTotal=!!task&&taskContext==='challenge'&&!revealed&&status!=='Correct ✓';
     q('#gd-stage').innerHTML=taskBanner()+
-      '<div hidden aria-hidden="true">'+['copy','png','svg','print'].map(kind=>'<button type="button" data-gd-direct-export="'+kind+'">'+kind+'</button>').join('')+'</div>'+
+      '<div hidden aria-hidden="true">'+['copy','png','svg','print'].map(type=>'<button type="button" data-gd-direct-export="'+type+'">'+type+'</button>').join('')+'</div>'+
       '<div class="gd-ab-workspace">'+
-        '<div class="gd-ab-frame '+(fiveSplit?'has-five-split':'')+'" data-ab-frame style="--ab-rows:'+rows+'">'+
-          '<div class="gd-ab-side-guide" aria-hidden="true"><span>COUNTED</span><span>READY</span></div>'+
-          '<div class="gd-ab-frame-inner">'+Array.from({length:rows},(_,r)=>rowMarkup(r)).join('')+'</div>'+
+        '<div class="gd-ab-frame gd-ab-frame--'+kind+'" data-ab-frame>'+
+          '<div class="gd-ab-type-label">'+(kind==='western'?'WESTERN · BASE TEN':'JAPANESE · SOROBAN')+'</div>'+
+          '<div class="gd-ab-columns" style="--ab-cols:'+rows+'">'+Array.from({length:rows},(_,i)=>columnMarkup(i)).join('')+'</div>'+
         '</div>'+
         frameControls()+
-        '<div class="gd-ab-summary"'+(showTotal?'':' hidden')+'><span>Beads moved</span><strong data-ab-total>'+(hideTotal?'?':total())+'</strong></div>'+
-        '<p class="gd-object-hint" data-ab-hint>'+(task?'Move the beads, then check your answer.':'Move beads from right to left. Tap a bead to move that bead and the group before it.')+'</p>'+
+        '<div class="gd-ab-summary"'+(showTotal?'':' hidden')+'><span>Number shown</span><strong data-ab-total>'+(hideTotal?'?':total().toLocaleString('en-GB'))+'</strong></div>'+
+        '<p class="gd-object-hint" data-ab-hint>'+(task?'Move the beads, then check your answer.':kind==='soroban'?'Move beads towards the middle bar to count them.':'Move beads upwards to count them. Each rod has a place value.')+'</p>'+
       '</div>';
     bindStage();
   }
   function syncStage(){
-    qa('[data-ab-row]').forEach(rowEl=>{
-      const row=Number(rowEl.dataset.abRow),count=counts[row]||0;
-      qa('[data-ab-bead]',rowEl).forEach(bead=>{
-        const index=Number(String(bead.dataset.abBead).split(':')[1]),active=index<count;
+    qa('[data-ab-col]').forEach(colEl=>{
+      const i=Number(colEl.dataset.abCol),digit=counts[i]||0;
+      qa('[data-ab-bead]',colEl).forEach(bead=>{
+        const [,part,jText]=String(bead.dataset.abBead).split(':'),j=Number(jText),active=abBeadActive(i,part,j);
         bead.classList.toggle('is-active',active);
-        bead.setAttribute('aria-pressed',active?'true':'false');
-        bead.style.setProperty('--ab-x',String(beadX(index,count)));
+        bead.setAttribute('aria-pressed',String(active));
+        bead.style.setProperty('--ab-y',String(abBeadY(i,part,j)));
       });
-      const countEl=q('[data-ab-row-count="'+row+'"]',rowEl);if(countEl)countEl.textContent=String(count);
-      const rod=q('.gd-ab-rod',rowEl);if(rod)rod.setAttribute('aria-label','Abacus row '+(row+1)+', '+count+' beads moved');
+      const count=q('[data-ab-col-count="'+i+'"]',colEl);if(count)count.textContent=String(digit);
+      const rod=q('.gd-ab-rod',colEl);if(rod)rod.setAttribute('aria-label',placeLabel(i)+', digit '+digit);
     });
     const hideTotal=!!task&&taskContext==='challenge'&&!revealed&&status!=='Correct ✓';
-    const totalEl=q('[data-ab-total]');if(totalEl)totalEl.textContent=hideTotal?'?':String(total());
+    const totalEl=q('[data-ab-total]');if(totalEl)totalEl.textContent=hideTotal?'?':total().toLocaleString('en-GB');
     const statusEl=q('[data-ab-status]');if(statusEl)statusEl.textContent=status;
     const input=q('[data-ab-answer]');if(input&&document.activeElement!==input)input.value=answerInput;
+    const reveal=q('[data-ab-reveal]');if(reveal)reveal.hidden=!!revealed||status==='Correct ✓';
+    const check=q('[data-ab-check]');if(check)check.disabled=status==='Correct ✓';
   }
   function setupControls(){
     return field('Abacus type','<select class="gd-select" id="ab-kind"><option value="western"'+(kind==='western'?' selected':'')+'>Western (9 beads per rod)</option><option value="soroban"'+(kind==='soroban'?' selected':'')+'>Japanese soroban (5 beads per rod)</option></select>')+
@@ -261,49 +267,50 @@ function abacusTool(){
       bead.onclick=e=>{
         e.stopPropagation();
         if(bead.dataset.abDragged==='1'){bead.dataset.abDragged='';return}
-        const [row,index]=String(bead.dataset.abBead).split(':').map(Number);
-        clickBead(row,index);
+        const [i,part,j]=String(bead.dataset.abBead).split(':');
+        clickBead(Number(i),part,Number(j));
       };
       bead.onpointerdown=e=>{
         if(e.button!==0)return;
-        const [row,index]=String(bead.dataset.abBead).split(':').map(Number);
-        drag={row,index,startX:e.clientX,initial:counts[row]||0,moved:false};
+        const [i,part,j]=String(bead.dataset.abBead).split(':'),col=Number(i);
+        drag={col,part,index:Number(j),startY:e.clientY,initial:counts[col]||0,moved:false};
         try{bead.setPointerCapture(e.pointerId)}catch(_){}
       };
       bead.onpointermove=e=>{
         if(!drag)return;
-        const dx=e.clientX-drag.startX;
-        if(Math.abs(dx)<12)return;
+        const delta=e.clientY-drag.startY;
+        if(Math.abs(delta)<10)return;
         drag.moved=true;
-        const approx=clamp(drag.initial-Math.round(dx/30),0,10);
-        counts[drag.row]=approx;status='';revealed=false;syncStage();
+        const d=drag;
+        if(kind==='western')setRowCount(d.col,d.initial-Math.round(delta/23));
+        else if(d.part==='upper')setRowCount(d.col,d.initial%5+(delta>0?5:0));
+        else setRowCount(d.col,(d.initial>=5?5:0)+clamp(d.initial%5-Math.round(delta/23),0,4));
       };
-      bead.onpointerup=e=>{
+      bead.onpointerup=()=>{
         if(!drag)return;
-        const d=drag;drag=null;
-        if(d.moved)bead.dataset.abDragged='1';
+        const moved=drag.moved;drag=null;
+        if(moved)bead.dataset.abDragged='1';
       };
       bead.onpointercancel=()=>{drag=null};
     });
     qa('[data-ab-stage]').forEach(button=>button.onclick=e=>{
       e.stopPropagation();
-      const action=button.dataset.abStage;
-      if(action==='clear'){setTotal(0);return}
-      setTotal(total()+Number(action||0));
+      if(button.dataset.abStage==='clear')setTotal(0);
     });
     const answer=q('[data-ab-answer]');if(answer){
-      answer.oninput=e=>{answerInput=e.target.value;status='';const s=q('[data-ab-status]');if(s)s.textContent=''};
+      answer.oninput=e=>{answerInput=e.target.value;status='';const st=q('[data-ab-status]');if(st)st.textContent=''};
       answer.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();checkTask()}};
     }
     const check=q('[data-ab-check]');if(check)check.onclick=checkTask;
     const another=q('[data-ab-another]');if(another)another.onclick=()=>newTask(task?.mode||playMode,taskContext);
-    const reveal=q('[data-ab-reveal]');if(reveal)reveal.onclick=revealTask;
+    const reveal=q('[data-ab-reveal]');if(reveal)reveal.onclick=()=>{if(!taskSolved())revealTask()};
     const skip=q('[data-ab-skip-next]');if(skip)skip.onclick=()=>{
       if(!task||task.mode!=='skip')return;
       setTotal(task.target,false);
       const nextStart=task.target,nextTarget=Math.min(capacity(),nextStart+task.step);
       status=nextTarget===nextStart?'Reached the end of this frame.':'Next: '+nextStart+' → '+nextTarget;
-      task.start=nextStart;task.target=nextTarget;task.answer=nextTarget;task.prompt='Keep counting in '+task.step+'s. What comes after '+nextStart+'?';
+      task.start=nextStart;task.target=nextTarget;task.answer=nextTarget;
+      task.prompt='Keep counting in '+task.step+'s. What comes after '+nextStart+'?';
       renderStage();
     };
     qa('[data-gd-direct-export]').forEach(button=>button.onclick=e=>{e.stopPropagation();exportAction(button.dataset.gdDirectExport)});
