@@ -210,6 +210,65 @@ function innerTarget(obj,selector,allowHidden=false){
   }
   return node;
 }
+const CONTROL_SELECTOR='button,input,select,textarea,[contenteditable="true"]';
+function positionFloatingControls(){
+  if(!floatingControls)return;
+  const margin=8,maxX=Math.max(margin,board.clientWidth-floatingControls.offsetWidth-margin),maxY=Math.max(margin,board.clientHeight-floatingControls.offsetHeight-margin);
+  floatingControlX=clamp(floatingControlX,margin,maxX);floatingControlY=clamp(floatingControlY,margin,maxY);
+  floatingControls.style.left=floatingControlX+'px';floatingControls.style.top=floatingControlY+'px';
+}
+function sourceControls(obj){return innerDocument(obj)?.getElementById('gd-controls')||null}
+function renderFloatingControls(obj){
+  if(!floatingControls||!floatingControlsBody||!obj||!obj.settingsOpen||floatingControlObjectId!==obj.id)return;
+  const source=sourceControls(obj);if(!source)return;
+  const clone=source.cloneNode(true);
+  clone.removeAttribute('id');clone.removeAttribute('aria-hidden');clone.classList.add('gd-board-controls-proxy');
+  const sourceInputs=[...source.querySelectorAll(CONTROL_SELECTOR)],cloneInputs=[...clone.querySelectorAll(CONTROL_SELECTOR)];
+  cloneInputs.forEach((node,index)=>{
+    node.dataset.boardControlIndex=String(index);
+    const original=sourceInputs[index];if(!original)return;
+    if('value' in original)node.value=original.value;
+    if('checked' in original)node.checked=original.checked;
+    if(original.isContentEditable)node.innerHTML=original.innerHTML;
+  });
+  floatingControlsBody.replaceChildren(clone);
+  const tool=tools.find(t=>t.id===obj.toolId);
+  if(floatingControlsTitle)floatingControlsTitle.textContent=(tool?.title||'Manipulative')+' settings';
+  floatingControls.hidden=false;
+  requestAnimationFrame(positionFloatingControls);
+}
+function refreshFloatingControls(obj,delay=0){
+  if(!obj||!obj.settingsOpen||floatingControlObjectId!==obj.id)return;
+  setTimeout(()=>renderFloatingControls(obj),delay);
+}
+function openFloatingControls(obj){
+  if(!obj)return;
+  if(floatingControlObjectId!=null&&String(floatingControlObjectId)!==String(obj.id)){
+    const previous=objectById(floatingControlObjectId);if(previous)previous.settingsOpen=false;
+  }
+  floatingControlObjectId=obj.id;obj.settingsOpen=true;
+  const frame=frameFor(obj.id);frame?.classList.add('has-settings');
+  const rect=frame?.getBoundingClientRect(),host=board.getBoundingClientRect();
+  if(rect){
+    const preferredX=Math.min(board.clientWidth-330,Math.max(58,rect.right-host.left+14));
+    const preferredY=Math.max(12,Math.min(board.clientHeight-280,rect.top-host.top));
+    floatingControlX=preferredX;floatingControlY=preferredY;
+  }
+  renderFloatingControls(obj);
+}
+function closeFloatingControls(id=null){
+  const target=id==null?objectById(floatingControlObjectId):objectById(id);
+  if(target){target.settingsOpen=false;frameFor(target.id)?.classList.remove('has-settings')}
+  if(id==null||String(floatingControlObjectId)===String(id)){
+    floatingControlObjectId=null;
+    if(floatingControls){floatingControls.hidden=true;floatingControlsBody?.replaceChildren()}
+  }
+}
+function floatingOriginal(index){
+  const obj=objectById(floatingControlObjectId),source=obj&&sourceControls(obj);
+  if(!source)return{obj:null,node:null};
+  return{obj,node:[...source.querySelectorAll(CONTROL_SELECTOR)][Number(index)]||null};
+}
 function fitEmbeddedObject(obj,initial=false){
   const frame=frameFor(obj?.id),doc=innerDocument(obj);if(!frame||!doc)return;
   const stage=doc.getElementById('gd-stage');if(!stage)return;
