@@ -248,13 +248,18 @@ function openFloatingControls(obj){
   }
   floatingControlObjectId=obj.id;obj.settingsOpen=true;
   const frame=frameFor(obj.id);frame?.classList.add('has-settings');
+  const tool=tools.find(t=>t.id===obj.toolId);
+  if(floatingControlsTitle)floatingControlsTitle.textContent=(tool?.title||'Manipulative')+' settings';
+  if(floatingControls)floatingControls.hidden=false;
   const rect=frame?.getBoundingClientRect(),host=board.getBoundingClientRect();
   if(rect&&!floatingControlMoved){
     const preferredX=Math.min(board.clientWidth-330,Math.max(58,rect.right-host.left+14));
     const preferredY=Math.max(12,Math.min(board.clientHeight-280,rect.top-host.top));
     floatingControlX=preferredX;floatingControlY=preferredY;
   }
+  positionFloatingControls();
   renderFloatingControls(obj);
+  [0,30,90].forEach(delay=>refreshFloatingControls(obj,delay));
 }
 function closeFloatingControls(id=null){
   const target=id==null?objectById(floatingControlObjectId):objectById(id);
