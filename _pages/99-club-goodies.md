@@ -48,4 +48,4 @@ robots: "noindex,nofollow,noarchive"
 <script src="/assets/99club/goodies-number-mobile-balance-v12.js?v=2" defer></script>
 <script src="/assets/99club/goodies-number-mobile-balance-v13.js?v=1" defer></script>
 <script src="/assets/99club/goodies-app.js?v=7" defer></script>
-<script src="/assets/99club/goodies-board.js?v=16" defer></script>
+<script src="/assets/99club/goodies-board.js?v=17" defer></script>
