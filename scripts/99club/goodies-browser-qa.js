@@ -2182,6 +2182,10 @@ if(mode==='prepare'){
     document.querySelector('[data-pv-activity-mode="digit"]').click();
     const digitGame=document.querySelector('.gd-pv-activity--game[data-pv-activity-kind="digit"]');
     assert(digitGame&&/value of the digit/i.test(digitGame.textContent)&&digitGame.querySelector('[data-pv-activity-answer]'),'Digit-value activity asks for the value of a digit and accepts a direct answer');
+    const digitTarget=document.querySelector('.gd-pv-column.is-activity-target');
+    assert(digitTarget,'Digit-value activity visibly marks the place-value column being asked about');
+    const digitPlace=Number(digitTarget.querySelector('.gd-pv-head strong').textContent.replace(/,/g,''));
+    assert(Math.abs(digitPlace-1)>1e-12,'Digit-value activity prefers a place where digit and digit value are meaningfully different');
 
     const canvas=document.getElementById('pv-canvas');
     assert(canvas&&getComputedStyle(canvas).touchAction==='pan-y','Place Value empty board preserves vertical touch scrolling');
