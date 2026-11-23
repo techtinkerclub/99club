@@ -6,7 +6,7 @@ const {q,qa,esc,clamp,num,field,btn}=G;
 function abacusTool(){
   const X=G.exportTools;
   let rows=5,counts=Array(5).fill(0),showTotal=true,showRowCounts=false,showRowLabels=false,fiveSplit=true;
-  let workflow='setup',playMode='free',task=null,status='',answerInput='',revealed=false,exportStatus='';
+  let workflow='setup',playMode='free',task=null,taskContext='play',status='',answerInput='',revealed=false,exportStatus='';
   let drag=null;
 
   const MODES=[
@@ -100,17 +100,21 @@ function abacusTool(){
     return null;
   }
   function newTask(mode=playMode,context=workflow==='challenge'?'challenge':'play',custom=null){
-    playMode=mode;status='';answerInput='';revealed=false;
-    if(mode==='free'){task=null;renderAll();return}
+    playMode=mode;taskContext=context==='challenge'?'challenge':'play';status='';answerInput='';revealed=false;
+    if(mode==='free'){task=null;taskContext='play';renderAll();return}
     task=custom||generatedTask(mode);
     if(task.mode==='missing')task.target=task.finalTarget;
     setTotal(task.start,false);
-    workflow=context==='challenge'?'challenge':'play';
+    workflow=taskContext==='challenge'?'challenge':'play';
     renderAll();
   }
-  function randomChallenge(){
+  function randomChallenge(surface='panel'){
     const [mode]=CHALLENGE_MODES[randomInt(0,CHALLENGE_MODES.length-1)];
     newTask(mode,'challenge');
+    if(surface==='frame'){
+      workflow='play';
+      renderAll();
+    }
   }
   function checkTask(){
     if(!task)return;
@@ -145,9 +149,9 @@ function abacusTool(){
   }
   function taskBanner(){
     if(!task)return '';
-    const context=workflow==='challenge'?'CHALLENGE':'PLAY';
+    const context=taskContext==='challenge'?'CHALLENGE':'PLAY';
     const answer=task.requiresAnswer?'<label class="gd-ab-answer">Answer <input type="number" inputmode="numeric" data-ab-answer value="'+esc(answerInput)+'"></label>':'';
-    const reveal=workflow==='challenge'?'<button type="button" data-ab-reveal>Reveal</button>':'';
+    const reveal=taskContext==='challenge'?'<button type="button" data-ab-reveal>Reveal</button>':'';
     const skipNext=task.mode==='skip'&&workflow==='play'?'<button type="button" data-ab-skip-next>Next '+task.step+'</button>':'';
     return '<section class="gd-ab-task" data-ab-task="'+task.mode+'">'+
       '<div class="gd-ab-task-head"><div><span>'+context+' · '+esc(taskTitle(task.mode).toUpperCase())+'</span><strong>'+esc(task.prompt)+'</strong></div><em data-ab-status>'+esc(status)+'</em></div>'+
@@ -171,7 +175,7 @@ function abacusTool(){
     '</div>';
   }
   function renderStage(){
-    const hideTotal=!!task&&workflow==='challenge'&&!revealed&&status!=='Correct ✓';
+    const hideTotal=!!task&&taskContext==='challenge'&&!revealed&&status!=='Correct ✓';
     q('#gd-stage').innerHTML=taskBanner()+
       '<div hidden aria-hidden="true">'+['copy','png','svg','print'].map(kind=>'<button type="button" data-gd-direct-export="'+kind+'">'+kind+'</button>').join('')+'</div>'+
       '<div class="gd-ab-workspace">'+
@@ -197,7 +201,7 @@ function abacusTool(){
       const countEl=q('[data-ab-row-count="'+row+'"]',rowEl);if(countEl)countEl.textContent=String(count);
       const rod=q('.gd-ab-rod',rowEl);if(rod)rod.setAttribute('aria-label','Abacus row '+(row+1)+', '+count+' beads moved');
     });
-    const hideTotal=!!task&&workflow==='challenge'&&!revealed&&status!=='Correct ✓';
+    const hideTotal=!!task&&taskContext==='challenge'&&!revealed&&status!=='Correct ✓';
     const totalEl=q('[data-ab-total]');if(totalEl)totalEl.textContent=hideTotal?'?':String(total());
     const statusEl=q('[data-ab-status]');if(statusEl)statusEl.textContent=status;
     const input=q('[data-ab-answer]');if(input&&document.activeElement!==input)input.value=answerInput;
@@ -282,7 +286,7 @@ function abacusTool(){
       answer.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();checkTask()}};
     }
     const check=q('[data-ab-check]');if(check)check.onclick=checkTask;
-    const another=q('[data-ab-another]');if(another)another.onclick=()=>newTask(task?.mode||playMode,workflow==='challenge'?'challenge':'play');
+    const another=q('[data-ab-another]');if(another)another.onclick=()=>newTask(task?.mode||playMode,taskContext);
     const reveal=q('[data-ab-reveal]');if(reveal)reveal.onclick=revealTask;
     const skip=q('[data-ab-skip-next]');if(skip)skip.onclick=()=>{
       if(!task||task.mode!=='skip')return;
@@ -299,8 +303,9 @@ function abacusTool(){
       const next=button.dataset.abWorkflow,previous=workflow;
       workflow=next;
       status='';revealed=false;
-      if(next==='challenge'){task=null;answerInput=''}
-      else if(next==='play'&&previous==='challenge'){task=null;answerInput='';playMode='free'}
+      if(next==='challenge'){task=null;taskContext='challenge';answerInput=''}
+      else if(next==='play'&&previous==='challenge'){task=null;taskContext='play';answerInput='';playMode='free'}
+      else if(next==='setup'){taskContext='play'}
       renderAll();
     });
     const rowsEl=q('#ab-rows');if(rowsEl)rowsEl.onchange=()=>{setRows(rowsEl.value);task=null;renderAll()};
@@ -314,7 +319,7 @@ function abacusTool(){
     qa('[data-ab-play-mode]').forEach(button=>button.onclick=()=>{workflow='play';newTask(button.dataset.abPlayMode,'play')});
     qa('[data-ab-challenge-mode]').forEach(button=>button.onclick=()=>newTask(button.dataset.abChallengeMode,'challenge'));
     const randomChallengeButton=q('#ab-random-challenge');if(randomChallengeButton)randomChallengeButton.onclick=randomChallenge;
-    const hiddenRandom=q('[data-ab-random-challenge]');if(hiddenRandom)hiddenRandom.onclick=randomChallenge;
+    const hiddenRandom=q('[data-ab-random-challenge]');if(hiddenRandom)hiddenRandom.onclick=()=>randomChallenge('frame');
     const fresh=q('#ab-new-task');if(fresh)fresh.onclick=()=>newTask(playMode,'play');
     const customShow=q('#ab-custom-show');if(customShow)customShow.onclick=()=>{
       const target=normal(q('#ab-custom-target')?.value);
