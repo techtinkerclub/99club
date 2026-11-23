@@ -731,6 +731,9 @@ function placeValue(){
   }
   function stageNotice(){
     if(notice)return notice;
+    if(activityMode==='add'&&activityActive)return activityContext==='teach'?additionProgressText():'Use the abacus or counters to add '+format(additionB)+' to '+format(additionA)+'.';
+    if(representationMode==='abacus')return 'Tap a bead or use + / − on a rod. Adding a tenth bead exchanges automatically into the next place.';
+    if(representationMode==='both')return 'The counter chart and abacus are linked: change either representation and the number updates in both.';
     return nonStandard()?'This is a non-standard representation. Regroup to show the same value using standard digits.':'Drag a counter into another column to change its place value.';
   }
   function tokenMarkup(t,selectedId){
@@ -770,19 +773,55 @@ function placeValue(){
       '</div></div>'+
       '</div>';
   }
+  function abacusRodMarkup(place,index,cs){
+    const hidden=activityActive&&activityMode==='hidden'&&index===activityHiddenIndex;
+    const target=activityActive&&activityMode==='digit'&&index===activityHiddenIndex;
+    const readOnly=activityReadOnly(),count=clamp(cs[index]||0,0,9);
+    const beads=[];
+    for(let value=9;value>=1;value--){
+      const active=!hidden&&value<=count;
+      const nextValue=active?value-1:value;
+      beads.push('<button type="button" class="gd-pv-abacus-bead'+(active?' is-active':'')+'" data-pv-abacus-set="'+index+':'+nextValue+'" aria-label="'+(active?'Move one '+place.name+' bead away':'Move '+place.name+' beads to '+value)+'"'+(readOnly||hidden?' disabled':'')+' style="--pv-bead:'+place.color+'"><span></span></button>');
+    }
+    const decimalStart=place.value<1&&(index===0||places[index-1].value>=1);
+    return '<div class="gd-pv-abacus-rod'+(decimalStart?' is-decimal-start':'')+(target?' is-activity-target':'')+(hidden?' is-hidden-place':'')+'" data-pv-abacus-rod="'+index+'">'+
+      '<div class="gd-pv-abacus-label"><strong>'+place.label+'</strong><small>'+place.name+'</small></div>'+
+      '<div class="gd-pv-abacus-track" aria-label="'+place.name+' abacus rod">'+
+        '<span class="gd-pv-abacus-stick" aria-hidden="true"></span>'+
+        '<div class="gd-pv-abacus-beads">'+beads.join('')+'</div>'+
+        (hidden?'<b class="gd-pv-abacus-hidden">?</b>':'')+
+      '</div>'+
+      '<div class="gd-pv-abacus-controls">'+
+        '<button type="button" data-pv-abacus-nudge="'+index+':-1" aria-label="Remove one '+place.name+' bead"'+(readOnly||hidden||count<=0?' disabled':'')+'>−</button>'+
+        '<span data-pv-abacus-count="'+index+'">'+(hidden?'?':count)+'</span>'+
+        '<button type="button" data-pv-abacus-nudge="'+index+':1" aria-label="Add one '+place.name+' bead"'+(readOnly||hidden?' disabled':'')+'>+</button>'+
+      '</div>'+
+    '</div>';
+  }
+  function abacusMarkup(cs){
+    return '<div class="gd-pv-abacus" id="pv-abacus" style="--pv-cols:'+places.length+'" aria-label="Place value abacus">'+
+      '<div class="gd-pv-abacus-frame">'+places.map((place,index)=>abacusRodMarkup(place,index,cs)).join('')+'</div>'+
+    '</div>';
+  }
+  function counterBoardMarkup(height,cs,selectedId,selected,meta){
+    return '<div class="gd-pv-board-wrap" data-pv-representation-view="counters">'+
+      '<div class="gd-pv-canvas" id="pv-canvas" data-gd-canvas-bg style="min-height:'+height+'px;--pv-cols:'+places.length+'">'+
+        '<div class="gd-pv-columns">'+places.map((p,i)=>columnMarkup(p,i,cs)).join('')+'</div>'+
+        tokens.map(t=>tokenMarkup(t,selectedId)).join('')+
+      '</div>'+
+      railMarkup(selected,meta)+
+    '</div>';
+  }
+
   function render(selectedId,meta){
     const height=layoutTokens(),cs=counts(),selected=tokens.find(t=>String(t.id)===String(selectedId))||null;
     const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Place Value challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
     const activity=activityBannerHtml();
     const directExports='<div hidden aria-hidden="true">'+['copy','png','svg','print'].map(kind=>'<button type="button" data-gd-direct-export="'+kind+'">'+kind+'</button>').join('')+'</div>';
-    q('#gd-stage').innerHTML=banner+activity+directExports+'<div class="gd-vis gd-pv-workspace">'+
-      '<div class="gd-pv-board-wrap">'+
-        '<div class="gd-pv-canvas" id="pv-canvas" data-gd-canvas-bg style="min-height:'+height+'px;--pv-cols:'+places.length+'">'+
-          '<div class="gd-pv-columns">'+places.map((p,i)=>columnMarkup(p,i,cs)).join('')+'</div>'+
-          tokens.map(t=>tokenMarkup(t,selectedId)).join('')+
-        '</div>'+
-        railMarkup(selected,meta)+
-      '</div>'+
+    const counterView=representationMode!=='abacus'?counterBoardMarkup(height,cs,selectedId,selected,meta):'';
+    const abacusView=representationMode!=='counters'?abacusMarkup(cs):'';
+    q('#gd-stage').innerHTML=banner+activity+directExports+'<div class="gd-vis gd-pv-workspace is-'+representationMode+'">'+
+      counterView+abacusView+
       '<div class="gd-pv-summary">'+
         '<div><span>Number represented</span><strong id="pv-total"'+(summaryHidden('total')?' class="gd-pv-answer-hidden"':'')+'>'+(summaryHidden('total')?'?':format(total()))+'</strong></div>'+
         '<div><span>Board representation</span><strong id="pv-expanded"'+(summaryHidden('expanded')?' class="gd-pv-answer-hidden"':'')+'>'+(summaryHidden('expanded')?hiddenSummaryText():expandedText())+'</strong></div>'+
