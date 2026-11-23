@@ -342,7 +342,12 @@ html.nl-board-page-lock,body.nl-board-page-lock{overflow:hidden!important;oversc
 #pv-regroup:disabled{opacity:.45;cursor:default}
 .pv-mode-tabs{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px!important}
 .pv-mode-tabs>.gd-btn{width:100%;min-width:0}
-.pv-activity-tabs{display:grid!important;grid-template-columns:1fr;gap:5px!important}
+.pv-activity-tabs{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px!important}
+.pv-activity-tabs>.gd-btn{width:100%;min-width:0;white-space:nowrap}
+.gd-pv-activity-response{display:flex;justify-content:center;margin:7px 0 2px}
+.gd-pv-activity-response label{display:flex;align-items:center;gap:7px;color:#526970;font-size:.72rem;font-weight:850}
+.gd-pv-activity-response input{width:132px;min-height:34px;padding:5px 9px;border:1px solid #b8cdca;border-radius:9px;background:#fff;color:#2c444b;font:inherit;font-size:.82rem;font-weight:800;box-shadow:0 2px 6px rgba(31,61,69,.04)}
+.gd-pv-activity-response input:focus{outline:2px solid rgba(19,116,107,.18);border-color:#4a958e}
 .gd-pv-activity{width:100%;max-width:980px;margin:0 auto 10px;padding:12px;border:1px solid #c9d9d9;border-radius:15px;background:rgba(250,253,252,.98);box-shadow:0 5px 16px rgba(36,71,74,.06)}
 .gd-pv-activity-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:10px}
 .gd-pv-activity-head>div{display:grid;gap:2px;min-width:0}
@@ -928,6 +933,8 @@ html.gd-embed-page .page__content,body.gd-embed-page .page__content{width:100%!i
 .gd-board-floating-controls .gd-board-controls-proxy .pv-mode-tabs>.gd-btn.gd-btn--primary{background:var(--gd-teal)!important;color:#fff!important}
 .gd-board-floating-controls .gd-board-controls-proxy .gd-pv-range-pair{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;align-items:end!important}
 .gd-board-floating-controls .gd-board-controls-proxy #pv-value{font-variant-numeric:tabular-nums!important}
+.gd-board-floating-controls .gd-board-controls-proxy .pv-activity-tabs{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:4px!important}
+.gd-board-floating-controls .gd-board-controls-proxy .pv-activity-tabs>.gd-btn{min-height:30px!important;padding:5px 4px!important;white-space:nowrap!important;font-size:.65rem!important}
 .gd-board-global{position:absolute;z-index:1000;right:10px;top:10px;display:flex;gap:3px;padding:3px;border-radius:10px;background:rgba(250,252,252,.62);backdrop-filter:blur(7px)}
 .gd-board-global-button{width:30px;height:30px;min-width:30px;min-height:30px;padding:0;border:0;border-radius:8px;background:transparent;color:#60747a;display:grid;place-items:center;cursor:pointer;opacity:.6}
 .gd-board-global-button:hover,.gd-board-global-button:focus-visible,.gd-board-global-button.is-active{opacity:1;background:rgba(255,255,255,.92);color:#226e67;outline:none}
