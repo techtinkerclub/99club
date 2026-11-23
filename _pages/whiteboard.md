@@ -12,8 +12,11 @@ robots: "noindex,nofollow,noarchive"
   <article class="splash">
     <section class="page__content">
       <div id="tt99-goodies-root"><noscript>This maths whiteboard needs JavaScript enabled.</noscript></div>
-      {% assign tt99_build_revision = site.github.build_revision | default: "dev" %}
-      <div class="gd-board-build-badge" title="Deployed Git revision {{ tt99_build_revision }}">Build {{ tt99_build_revision | slice: 0, 7 }}</div>
+      {% if site.github.build_revision %}
+      <div class="gd-board-build-badge" title="Deployed Git revision {{ site.github.build_revision }} · built {{ site.time | date: "%Y-%m-%d %H:%M UTC" }}">Build {{ site.github.build_revision | slice: 0, 7 }} · {{ site.time | date: "%d %b %H:%M" }}</div>
+      {% else %}
+      <div class="gd-board-build-badge" title="Page built {{ site.time | date: "%Y-%m-%d %H:%M UTC" }}">Build {{ site.time | date: "%Y%m%d-%H%M" }}</div>
+      {% endif %}
     </section>
   </article>
 </div>
