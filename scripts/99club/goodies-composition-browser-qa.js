@@ -139,6 +139,10 @@ async function run(){
   const floatingSettings=document.getElementById('gd-board-floating-controls');
   assert(money.classList.contains('has-settings'),'Context Settings marks the manipulative as having active settings');
   assert(visible(floatingSettings)&&/UK money settings/i.test(floatingSettings.textContent),'Context Settings opens a whiteboard-level floating palette outside the widget');
+  const floatingRect=floatingSettings.getBoundingClientRect();
+  assert(floatingRect.width<=300&&floatingRect.height<=innerHeight*.7,'Floating settings palette stays compact enough to sit beside the maths');
+  const floatingHelp=floatingSettings.querySelector('.gd-help:not([role="status"])');
+  if(floatingHelp)assert(getComputedStyle(floatingHelp).display==='none','Long instructional help is hidden in the compact whiteboard palette');
   assert(!money.classList.contains('has-context-menu'),'Settings closes the transient context menu');
   const floatingHead=floatingSettings.querySelector('[data-board-controls-drag]'),floatingBefore=floatingSettings.getBoundingClientRect();
   pointer(floatingHead,'pointerdown',floatingBefore.left+30,floatingBefore.top+15,39);

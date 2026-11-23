@@ -43,6 +43,7 @@ function placeValue(){
   ];
   let tokens=[],next=1,controller=null,resizeObserver=null,resizeFrame=0,lastStageWidth=0,notice='';
   let controlTab='setup',challengeTab='standard',challengeCategory='read',challengeType='read-number',challenge=null,beforeChallenge=null;
+  let activityMode='powers',activityTarget=null,activityBudget=5,activityStatus='',powerMessage='';
   let exportMode='diagram',responseLines=1,exportStatus='';
 
   function rangeFor(id=placeRange){return PLACE_RANGES.find(r=>r.id===id)||PLACE_RANGES.find(r=>r.id==='standard')}
@@ -198,6 +199,86 @@ function placeValue(){
     }
     challenge.revealed=false;renderControls();controller?.refresh();
   }
+  function standardDigits(){return counts().map(n=>Math.max(0,Math.min(9,Math.round(n||0))))}
+  function powerFactor(steps){return Math.pow(10,Math.abs(steps))}
+  function canPowerShift(steps){
+    const current=total(),raw=current*Math.pow(10,steps),normal=normaliseValue(raw);
+    return raw>=0&&raw<=rangeMax()&&Math.abs(raw-normal)<(valueStep()/1000+1e-9);
+  }
+  function applyPowerShift(steps){
+    if(!canPowerShift(steps))return;
+    const before=total(),after=normaliseValue(before*Math.pow(10,steps));
+    controller.mutate(()=>{buildFromNumber(after);notice=''});
+    controller.select(null);
+    const factor=powerFactor(steps),direction=steps>0?'left':'right',verb=steps>0?'multiply':'divide';
+    powerMessage=format(before)+' '+(steps>0?'×':'÷')+' '+factor+' = '+format(after)+'. Digits moved '+Math.abs(steps)+' place'+(Math.abs(steps)===1?'':'s')+' '+direction+'; the decimal point stayed fixed.';
+    controller.refresh();renderControls();
+  }
+  function exactCounterTarget(budget){
+    const countsByPlace=Array(places.length).fill(0),limit=clamp(Math.round(num(budget,5)),2,9);
+    for(let n=0;n<limit;n++){
+      let index=Math.floor(Math.random()*places.length),guard=0;
+      while(countsByPlace[index]>=9&&guard++<30)index=Math.floor(Math.random()*places.length);
+      countsByPlace[index]++;
+    }
+    return normaliseValue(countsByPlace.reduce((sum,count,index)=>sum+count*places[index].value,0));
+  }
+  function startActivity(mode=activityMode){
+    activityMode=['powers','build','exact'].includes(mode)?mode:'powers';activityStatus='';powerMessage='';
+    if(activityMode==='powers'){
+      const value=total();controller?.mutate(()=>{buildFromNumber(value);notice=''});controller?.select(null);
+    }else{
+      activityTarget=activityMode==='exact'?exactCounterTarget(activityBudget):randomBoardValue({decimal:fractionDigits()>0,min:Math.max(valueStep(),10*valueStep()),max:Math.min(rangeMax(),places[0].value*3)});
+      controller?.mutate(()=>{tokens=[];next=1;notice='';layoutTokens()});controller?.select(null);
+    }
+    controller?.refresh();renderControls();
+  }
+  function checkActivity(){
+    if(activityMode==='powers')return;
+    const target=clean(activityTarget),value=total(),same=Math.abs(value-target)<(valueStep()/2+1e-9);
+    if(activityMode==='exact'){
+      const rightCount=tokens.length===activityBudget;
+      activityStatus=same&&rightCount?'Correct ✓':same?'Right value — now use exactly '+activityBudget+' counters.':rightCount?'You used '+activityBudget+' counters, but the value is not '+format(target)+' yet.':'Keep going — match both the target and the counter limit.';
+    }else activityStatus=same?'Correct ✓':'Not yet — your board shows '+format(value)+'.';
+    controller?.refresh();
+  }
+  function activityControlsHtml(){
+    const modeButtons=[
+      ['powers','×10 / ÷10 demo'],
+      ['build','Build target'],
+      ['exact','Exact counters']
+    ].map(([id,label])=>'<button class="gd-btn'+(activityMode===id?' gd-btn--primary':'')+'" type="button" data-pv-activity-mode="'+id+'">'+label+'</button>').join('');
+    return '<div class="gd-row pv-activity-tabs" role="tablist" aria-label="Place Value teaching and games">'+modeButtons+'</div>'+
+      (activityMode==='powers'
+        ?'<p class="gd-help">Use the controls on the board to show that digits move through place-value columns while the decimal point stays fixed.</p>'
+        :activityMode==='exact'
+          ?field('Counters to use','<select class="gd-select" id="pv-activity-budget">'+[3,4,5,6,7,8,9].map(n=>'<option value="'+n+'"'+(activityBudget===n?' selected':'')+'>'+n+'</option>').join('')+'</select>')+
+            '<button class="gd-btn" id="pv-activity-new" type="button">New target</button><p class="gd-help">Build the target using exactly the chosen number of counters.</p>'
+          :'<button class="gd-btn" id="pv-activity-new" type="button">New target</button><p class="gd-help">Build the target number directly on the board, then check it.</p>');
+  }
+  function activityBannerHtml(){
+    if(controlTab!=='activity')return '';
+    if(activityMode==='powers'){
+      const ds=standardDigits();
+      const cells=places.map((place,index)=>{
+        const decimalStart=place.value<1&&(index===0||places[index-1].value>=1);
+        return '<div class="gd-pv-digit-cell'+(decimalStart?' is-decimal-start':'')+'"><small>'+place.label+'</small><strong>'+ds[index]+'</strong></div>';
+      }).join('');
+      const buttons=[-3,-2,-1,1,2,3].map(steps=>{
+        const label=(steps<0?'÷':'×')+powerFactor(steps);
+        return '<button type="button" data-pv-power="'+steps+'"'+(canPowerShift(steps)?'':' disabled')+'>'+label+'</button>';
+      }).join('');
+      return '<section class="gd-pv-activity gd-pv-activity--powers" aria-label="Powers of ten demonstration">'+
+        '<div class="gd-pv-activity-head"><div><span>TEACH · POWERS OF TEN</span><strong>'+format(total())+'</strong></div><em>'+esc(powerMessage||'Choose an operation. The digits move; the decimal point does not.')+'</em></div>'+
+        '<div class="gd-pv-digit-row">'+cells+'</div><div class="gd-pv-activity-actions">'+buttons+'</div></section>';
+    }
+    const title=activityMode==='exact'?'Exact-counter challenge':'Build the target';
+    const prompt=activityMode==='exact'?'Make '+format(activityTarget)+' using exactly '+activityBudget+' counters.':'Build '+format(activityTarget)+' with the place-value counters.';
+    return '<section class="gd-pv-activity gd-pv-activity--game" aria-label="'+esc(title)+'">'+
+      '<div class="gd-pv-activity-head"><div><span>PLAY · '+esc(title.toUpperCase())+'</span><strong>'+esc(prompt)+'</strong></div><em>'+esc(activityStatus||'')+'</em></div>'+
+      '<div class="gd-pv-activity-actions"><button type="button" data-pv-activity-check>Check</button><button type="button" data-pv-activity-another>Another</button></div></section>';
+  }
+
   function challengeControlsHtml(){
     if(!CK)return '<p class="gd-help">Challenge tools are unavailable.</p>';
     const tabs=CK.tabsHtml?CK.tabsHtml('pv',challengeTab):'';
@@ -322,9 +403,10 @@ function placeValue(){
   function controlsHtml(){
     return '<div class="gd-row pv-mode-tabs" role="tablist" aria-label="Place Value workflow">'+
       '<button class="gd-btn'+(controlTab==='setup'?' gd-btn--primary':'')+'" type="button" data-pv-workflow="setup">Setup</button>'+
+      '<button class="gd-btn'+(controlTab==='activity'?' gd-btn--primary':'')+'" type="button" data-pv-workflow="activity">Teach / play</button>'+
       '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-pv-workflow="challenge">Challenge'+(challenge?' •':'')+'</button>'+
-      '<button class="gd-btn'+(controlTab==='export'?' gd-btn--primary':'')+'" type="button" data-pv-workflow="export">Export / reuse</button></div>'+
-      (controlTab==='challenge'?challengeControlsHtml():controlTab==='export'?exportControlsHtml():setupControlsHtml());
+      '<button class="gd-btn'+(controlTab==='export'?' gd-btn--primary':'')+'" type="button" data-pv-workflow="export">Export</button></div>'+
+      (controlTab==='activity'?activityControlsHtml():controlTab==='challenge'?challengeControlsHtml():controlTab==='export'?exportControlsHtml():setupControlsHtml());
   }
   function renderControls(){
     const panel=q('#gd-controls');
@@ -396,7 +478,8 @@ function placeValue(){
   function render(selectedId,meta){
     const height=layoutTokens(),cs=counts(),selected=tokens.find(t=>String(t.id)===String(selectedId))||null;
     const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Place Value challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
-    q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-pv-workspace">'+
+    const activity=activityBannerHtml();
+    q('#gd-stage').innerHTML=banner+activity+'<div class="gd-vis gd-pv-workspace">'+
       '<div class="gd-pv-board-wrap">'+
         '<div class="gd-pv-canvas" id="pv-canvas" data-gd-canvas-bg style="min-height:'+height+'px">'+
           '<div class="gd-pv-columns">'+places.map((p,i)=>columnMarkup(p,i,cs)).join('')+'</div>'+
@@ -489,6 +572,13 @@ function placeValue(){
     if(reveal)reveal.onclick=e=>{e.stopPropagation();if(!challenge)return;challenge.revealed=!challenge.revealed;renderControls();controller?.refresh()};
     const another=q('[data-challenge-action="another"]',q('#gd-stage'));
     if(another)another.onclick=e=>{e.stopPropagation();if(challenge?.mode==='standard')generateChallenge(challenge.type)};
+    qa('[data-pv-power]',q('#gd-stage')).forEach(button=>button.onclick=e=>{
+      e.stopPropagation();applyPowerShift(Math.round(num(button.dataset.pvPower,0)));
+    });
+    const activityCheck=q('[data-pv-activity-check]',q('#gd-stage'));
+    if(activityCheck)activityCheck.onclick=e=>{e.stopPropagation();checkActivity()};
+    const activityAnother=q('[data-pv-activity-another]',q('#gd-stage'));
+    if(activityAnother)activityAnother.onclick=e=>{e.stopPropagation();startActivity(activityMode)};
     updateLiveSummary();
   }
   function syncControls(){
@@ -503,9 +593,21 @@ function placeValue(){
   function bindControls(){
     qa('[data-pv-workflow]').forEach(button=>button.onclick=()=>{
       const nextTab=button.dataset.pvWorkflow;
+      if(nextTab==='activity'){
+        if(challenge){restoreBeforeChallenge();challenge=null}
+        controlTab='activity';startActivity(activityMode);return;
+      }
       controlTab=nextTab==='challenge'?'challenge':nextTab==='export'?'export':'setup';
-      renderControls();
+      renderControls();controller?.refresh();
     });
+    qa('[data-pv-activity-mode]').forEach(button=>button.onclick=()=>{
+      controlTab='activity';startActivity(button.dataset.pvActivityMode);
+    });
+    const activityBudgetSelect=q('#pv-activity-budget');if(activityBudgetSelect)activityBudgetSelect.onchange=()=>{
+      activityBudget=clamp(Math.round(num(activityBudgetSelect.value,5)),3,9);
+      startActivity('exact');
+    };
+    const activityNew=q('#pv-activity-new');if(activityNew)activityNew.onclick=()=>startActivity(activityMode);
     const range=q('#pv-range');if(range)range.onchange=()=>{
       const previous=total(),requested=range.value;
       controller.mutate(()=>{

@@ -2128,6 +2128,24 @@ if(mode==='prepare'){
     exchange.click();
     assert(numberText('#pv-total')===10&&document.querySelector('[data-pv-count="3"]').textContent==='1'&&document.querySelector('[data-pv-count="4"]').textContent==='0','Exchanging ten ones creates one ten without changing value');
 
+    document.querySelector('[data-pv-workflow="activity"]').click();
+    assert(document.querySelector('[data-pv-activity-mode="powers"]')&&document.querySelector('[data-pv-activity-mode="build"]')&&document.querySelector('[data-pv-activity-mode="exact"]'),'Teach / play exposes powers demo, build target and exact-counter activities');
+    assert(document.querySelectorAll('.gd-pv-digit-row .gd-pv-digit-cell').length===7,'Powers-of-ten demo aligns one digit card with every visible place');
+    assert(document.querySelectorAll('.gd-pv-digit-row .is-decimal-start').length===1,'Powers-of-ten demo keeps one fixed decimal boundary');
+    const timesTen=document.querySelector('[data-pv-power="1"]');
+    assert(timesTen&&!timesTen.disabled,'Powers-of-ten demo exposes ×10 when the result fits the active place range');
+    timesTen.click();
+    assert(numberText('#pv-total')===100,'×10 demo moves the represented value from 10 to 100');
+    assert(document.querySelector('.gd-pv-activity-head em').textContent.includes('Digits moved 1 place left'),'×10 demo explicitly explains digit movement instead of moving the decimal point');
+
+    document.querySelector('[data-pv-activity-mode="build"]').click();
+    assert(document.querySelector('.gd-pv-activity--game [data-pv-activity-check]')&&document.querySelector('[data-pv-activity-another]'),'Build-target game puts Check and Another directly on the widget');
+    assert(document.querySelectorAll('[data-gd-object]').length===0,'Build-target game starts with a clean board for the pupil');
+
+    document.querySelector('[data-pv-activity-mode="exact"]').click();
+    assert(document.getElementById('pv-activity-budget'),'Exact-counter game lets the teacher choose the counter budget');
+    assert(/exactly 5 counters/i.test(document.querySelector('.gd-pv-activity--game').textContent),'Exact-counter game shows the counter constraint on the board');
+
     const canvas=document.getElementById('pv-canvas');
     assert(canvas&&getComputedStyle(canvas).touchAction==='pan-y','Place Value empty board preserves vertical touch scrolling');
   }
