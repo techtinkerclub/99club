@@ -45,23 +45,32 @@ function placeValue(){
   let controlTab='setup',challengeTab='standard',challengeCategory='read',challengeType='read-number',challenge=null,beforeChallenge=null;
   let exportMode='diagram',responseLines=1,exportStatus='';
 
-  function clean(v){return Math.round((Number(v)||0)*100)/100}
-  function format(v){return clean(v).toLocaleString('en-GB',{minimumFractionDigits:0,maximumFractionDigits:2})}
+  function rangeFor(id=placeRange){return PLACE_RANGES.find(r=>r.id===id)||PLACE_RANGES.find(r=>r.id==='standard')}
+  function setPlaceRange(id){
+    const range=rangeFor(id);placeRange=range.id;places=PLACE_CATALOG.slice(range.start,range.start+7);
+  }
+  function fractionDigits(){return Math.max(0,-Math.min(...places.map(p=>p.power)))}
+  function valueStep(){return places[places.length-1]?.value||1}
+  function valueScale(){return 10**fractionDigits()}
+  function rangeMax(){return Math.max(0,places[0].value*10-valueStep())}
+  function clean(v){const scale=valueScale();return Math.round((Number(v)||0)*scale)/scale}
+  function normaliseValue(v){const step=valueStep();return clean(Math.round((Number(v)||0)/step)*step)}
+  function format(v){return clean(v).toLocaleString('en-GB',{minimumFractionDigits:0,maximumFractionDigits:fractionDigits()})}
   function counts(){const out=Array(places.length).fill(0);tokens.forEach(t=>{if(out[t.place]!=null)out[t.place]++});return out}
   function total(){return clean(tokens.reduce((sum,t)=>sum+(places[t.place]?.value||0),0))}
   function nonStandard(){return counts().some(n=>n>9)}
-  function stateSnapshot(){return{tokens:JSON.parse(JSON.stringify(tokens)),next}}
+  function stateSnapshot(){return{tokens:JSON.parse(JSON.stringify(tokens)),next,placeRange}}
   function restoreState(value){
+    setPlaceRange(value?.placeRange||'standard');
     tokens=Array.isArray(value?.tokens)?value.tokens.map(t=>({...t,place:clamp(Math.round(num(t.place,4)),0,places.length-1)})):[];
     next=Math.max(1,Math.round(num(value?.next,1)));
     notice='';
   }
   function buildFromNumber(raw){
-    const value=clamp(clean(num(raw,0)),0,99999.99);
-    const fixed=value.toFixed(2).split('.');
-    const digits=(fixed[0].padStart(5,'0')+fixed[1]).split('').map(Number);
+    const value=clamp(normaliseValue(num(raw,0)),0,rangeMax()),scale=valueScale(),units=Math.round(value*scale);
     tokens=[];next=1;
-    digits.forEach((digit,place)=>{
+    places.forEach((placeMeta,place)=>{
+      const unitValue=Math.max(1,Math.round(placeMeta.value*scale)),digit=Math.floor(units/unitValue)%10;
       for(let n=0;n<digit;n++)tokens.push({id:next++,place,x:0,y:0,locked:false});
     });
     layoutTokens();
