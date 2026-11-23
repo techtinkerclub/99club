@@ -313,6 +313,17 @@ async function run(){
   for(let attempt=0;attempt<40&&randomFrame&&!randomFrame.classList.contains('is-ready');attempt++)await tick(50);
   const go=[...randomFrame.querySelectorAll('[data-board-quick-actions] button')].find(button=>/Roll|Spin|Go/i.test(button.textContent));
   assert(go,'Dice / Spinner exposes its primary Roll or Spin action directly on the frame');
+  const randomIframe=randomFrame.querySelector('iframe'),randomWin=randomIframe.contentWindow;
+  let randomExportSvg=null,randomExportName='';
+  const randomOldSvg=randomWin.TT99Goodies.exportTools.downloadSvg;
+  randomWin.TT99Goodies.exportTools.downloadSvg=(svg,name)=>{randomExportSvg=svg.cloneNode(true);randomExportName=name};
+  const randomExportButton=randomFrame.querySelector('[data-board-export]');
+  assert(randomExportButton,'Randomiser uses the universal frame export control');
+  randomExportButton.click();await tick();
+  const randomExportMenu=randomFrame.querySelector('[data-board-export-menu]');
+  randomExportMenu.querySelector('[data-board-export-kind="svg"]').click();await tick();
+  assert(randomExportSvg&&/randomiser-dice/.test(randomExportName),'Randomiser frame export produces a clean vector paper result');
+  randomWin.TT99Goodies.exportTools.downloadSvg=randomOldSvg;
   TT99Goodies.compositionBoard.remove(randomRecord.id);
 
   document.querySelector('[data-board-add="maths-canvas"]').click();await tick();
