@@ -322,19 +322,27 @@ function placeValue(){
       '<p class="gd-help">Choose exactly the places you need — for example 1,000 to 1 for whole-number work. Up to seven adjacent places are shown at once.</p>';
   }
   function exportControlsHtml(){
-    const canCard=!!challenge;
+    const canCard=!!challenge,buildTask=challenge?.type==='build-number',reasonTask=challenge?.category==='reason';
     if(!canCard&&exportMode==='challenge')exportMode='diagram';
-    return '<div class="nl-panel-title"><div><strong>Use it elsewhere</strong><span>Export a clean vector board or a pupil-ready challenge card.</span></div></div>'+
+    const responseControl=canCard&&exportMode==='challenge'&&reasonTask
+      ?'<label class="gd-field"><span>Writing lines</span><select class="gd-select" id="pv-response-lines">'+
+        [2,3,4].map(n=>'<option value="'+n+'"'+(responseLines===n?' selected':'')+'>'+n+' lines</option>').join('')+
+        '</select></label>'
+      :'';
+    const challengeHelp=buildTask
+      ?'The chart itself is the pupil response area. Reveal the answer to export a teacher copy with the completed chart.'
+      :reasonTask
+        ?'Pupil copy has writing lines. Reveal the answer to export the teacher version.'
+        :'Pupil copy has one answer box. Reveal the answer to export the teacher version.';
+    return '<div class="nl-panel-title"><div><strong>Paper export</strong><span>Clean worksheet content only.</span></div></div>'+
       (canCard?'<div class="nl-export-mode pv-export-mode" role="tablist" aria-label="Export content">'+
-        '<button type="button" class="'+(exportMode==='challenge'?'is-active':'')+'" data-pv-export-mode="challenge">Challenge card</button>'+
-        '<button type="button" class="'+(exportMode==='diagram'?'is-active':'')+'" data-pv-export-mode="diagram">Board only</button></div>':'')+
+        '<button type="button" class="'+(exportMode==='challenge'?'is-active':'')+'" data-pv-export-mode="challenge">Worksheet question</button>'+
+        '<button type="button" class="'+(exportMode==='diagram'?'is-active':'')+'" data-pv-export-mode="diagram">Chart only</button></div>':'')+
       (canCard&&exportMode==='challenge'
-        ?'<label class="gd-field"><span>Answer space</span><select class="gd-select" id="pv-response-lines">'+
-          [1,2,3,4].map(n=>'<option value="'+n+'"'+(responseLines===n?' selected':'')+'>'+n+' line'+(n===1?'':'s')+'</option>').join('')+
-          '</select></label><div class="gd-row"><button class="gd-btn" id="pv-export-reveal" type="button">'+(challenge?.revealed?'Hide answer':'Reveal answer')+'</button></div><p class="gd-help">Hidden answer = pupil worksheet. Reveal it before exporting when you want a teacher copy with the answer included.</p>'
-        :'<p class="gd-help">Board-only export contains the mathematical board, counters and visible readouts without the editing controls.</p>')+
+        ?responseControl+'<div class="gd-row"><button class="gd-btn" id="pv-export-reveal" type="button">'+(challenge?.revealed?'Hide answer':'Reveal answer')+'</button></div><p class="gd-help">'+challengeHelp+'</p>'
+        :'<p class="gd-help">Chart-only export contains the place-value chart and counters on a white paper background.</p>')+
       '<div class="nl-export-grid pv-export-grid">'+
-        '<button class="gd-btn gd-btn--primary" id="pv-copy-image" type="button">Copy '+(canCard&&exportMode==='challenge'?'challenge':'image')+'</button>'+
+        '<button class="gd-btn gd-btn--primary" id="pv-copy-image" type="button">Copy '+(canCard&&exportMode==='challenge'?'question':'chart')+'</button>'+
         '<button class="gd-btn" id="pv-png" type="button">PNG</button>'+
         '<button class="gd-btn" id="pv-svg-download" type="button">SVG</button>'+
         '<button class="gd-btn" id="pv-print" type="button">Print / PDF</button>'+
@@ -347,102 +355,74 @@ function placeValue(){
     return el;
   }
   function boardExportSvg({pupil=false}={}){
-    const cs=counts(),width=1000,pad=34,boardX=pad,boardY=26,boardW=width-pad*2,colW=boardW/places.length;
-    const maxCount=Math.max(1,...cs),perRow=3,rows=Math.max(1,Math.ceil(maxCount/perRow)),headerH=80,counterStep=38;
-    const pupilSummaryHidden=kind=>!!(challenge&&(Array.isArray(challenge.hiddenSummary)&&challenge.hiddenSummary.includes(kind)||challenge.answerMode==='bound'&&challenge.answerSource===kind));
-    const pupilColumnHidden=index=>!!(challenge&&challenge.answerMode==='bound'&&(challenge.answerSource==='count:'+index||challenge.answerSource==='value:'+index));
-    const boardH=headerH+30+rows*counterStep,hideTotal=pupil?pupilSummaryHidden('total'):summaryHidden('total'),hideExpanded=pupil?pupilSummaryHidden('expanded'):summaryHidden('expanded');
-    const omitSummary=pupil&&challenge?.type==='build-number';
-    const summaryH=omitSummary?0:94,height=boardY+boardH+summaryH+42;
-    const svg=pvSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Place value board','data-pv-export':'board'});
-    svg.appendChild(pvSvgEl('rect',{x:0,y:0,width,height,fill:'none'}));
-    svg.appendChild(pvSvgEl('rect',{x:boardX,y:boardY,width:boardW,height:boardH,rx:16,fill:'#ffffff',stroke:'#aebfc2','stroke-width':2,'data-pv-export-board':'1'}));
-
-    places.forEach((place,index)=>{
-      const x=boardX+index*colW,isDecimal=place.value<1&&(index===0||places[index-1].value>=1);
-      svg.appendChild(pvSvgEl('rect',{x,y:boardY,width:colW,height:headerH,fill:index%2?'#f8fafb':'#f3f7f7'}));
-      if(index>0)svg.appendChild(pvSvgEl('line',{x1:x,y1:boardY,x2:x,y2:boardY+boardH,stroke:isDecimal?'#657b82':'#d7e0e2','stroke-width':isDecimal?4:1.5}));
-      svg.appendChild(pvSvgEl('text',{x:x+colW/2,y:boardY+28,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':15,'font-weight':800,fill:'#2f474f'},place.label));
-      svg.appendChild(pvSvgEl('text',{x:x+colW/2,y:boardY+49,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':10,fill:'#697b80'},place.name));
-      const countLabel=(pupil?pupilColumnHidden(index):columnCountHidden(index))?'?':cs[index];
-      svg.appendChild(pvSvgEl('rect',{x:x+colW/2-18,y:boardY+57,width:36,height:18,rx:9,fill:'#edf3f4'}));
-      svg.appendChild(pvSvgEl('text',{x:x+colW/2,y:boardY+70,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':11,'font-weight':800,fill:'#52666d'},countLabel));
-
-      for(let n=0;n<cs[index];n++){
-        const row=Math.floor(n/perRow),slot=n%perRow,cx=x+colW/2+(slot-1)*32,cy=boardY+headerH+35+row*counterStep;
-        svg.appendChild(pvSvgEl('circle',{cx,cy,r:14,fill:place.color,stroke:'#708388','stroke-width':1.5}));
-        svg.appendChild(pvSvgEl('circle',{cx,cy,r:5,fill:'#ffffff','fill-opacity':.58}));
-      }
-    });
-
-    if(!omitSummary){
-      const sy=boardY+boardH+22,half=(boardW-14)/2;
-      svg.appendChild(pvSvgEl('rect',{x:boardX,y:sy,width:half,height:68,rx:12,fill:'#f6f9f9',stroke:'#d7e1e3'}));
-      svg.appendChild(pvSvgEl('rect',{x:boardX+half+14,y:sy,width:half,height:68,rx:12,fill:'#f6f9f9',stroke:'#d7e1e3'}));
-      svg.appendChild(pvSvgEl('text',{x:boardX+16,y:sy+22,'font-family':'Arial,sans-serif','font-size':11,'font-weight':700,fill:'#6d7e83'},'Number represented'));
-      svg.appendChild(pvSvgEl('text',{x:boardX+16,y:sy+50,'font-family':'Arial,sans-serif','font-size':22,'font-weight':800,fill:'#2e5e5a'},hideTotal?'?':format(total())));
-      svg.appendChild(pvSvgEl('text',{x:boardX+half+30,y:sy+22,'font-family':'Arial,sans-serif','font-size':11,'font-weight':700,fill:'#6d7e83'},'Board representation'));
-      let expanded=hideExpanded?'Hidden for challenge':expandedText();
-      if(expanded.length>64)expanded=expanded.slice(0,61)+'…';
-      svg.appendChild(pvSvgEl('text',{x:boardX+half+30,y:sy+49,'font-family':'Arial,sans-serif','font-size':14,'font-weight':700,fill:'#334a52'},expanded));
-    }
-    svg.appendChild(pvSvgEl('text',{x:width-pad,y:height-12,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':10,fill:'#87969a'},'99 Club Studio'));
-    return svg;
-  }
-  function worksheetBoardSvg(){
     const cs=counts(),width=1000,pad=18,boardX=pad,boardY=12,boardW=width-pad*2,colW=boardW/places.length;
     const maxCount=Math.max(1,...cs),perRow=colW>=190?3:2,rows=Math.max(1,Math.ceil(maxCount/perRow));
-    const headerH=94,counterStep=58,bodyH=Math.max(250,Math.min(360,60+rows*counterStep)),boardH=headerH+bodyH,height=boardY+boardH+12;
-    const svg=pvSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Printable place value table','data-pv-export':'worksheet-board'});
+    const headerH=92,counterStep=52,bodyH=Math.max(230,Math.min(340,54+rows*counterStep)),boardH=headerH+bodyH,height=boardY+boardH+12;
+    const pupilColumnHidden=index=>!!(challenge&&challenge.answerMode==='bound'&&(challenge.answerSource==='count:'+index||challenge.answerSource==='value:'+index));
+    const svg=pvSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Place value chart','data-pv-export':'board'});
+    svg.appendChild(pvSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
     svg.appendChild(pvSvgEl('rect',{x:boardX,y:boardY,width:boardW,height:boardH,rx:8,fill:'#ffffff',stroke:'#8fa5aa','stroke-width':2.2,'data-pv-export-board':'1'}));
     places.forEach((place,index)=>{
       const x=boardX+index*colW,isDecimal=place.value<1&&(index===0||places[index-1].value>=1);
-      svg.appendChild(pvSvgEl('rect',{x,y:boardY,width:colW,height:headerH,fill:index%2?'#f8fbfb':'#f1f6f6'}));
+      svg.appendChild(pvSvgEl('rect',{x,y:boardY,width:colW,height:headerH,fill:index%2?'#fafcfc':'#f3f7f7'}));
       if(index>0)svg.appendChild(pvSvgEl('line',{x1:x,y1:boardY,x2:x,y2:boardY+boardH,stroke:isDecimal?'#627b82':'#c5d2d5','stroke-width':isDecimal?4:1.7}));
       svg.appendChild(pvSvgEl('line',{x1:x,y1:boardY+headerH,x2:x+colW,y2:boardY+headerH,stroke:'#aebdc1','stroke-width':1.7}));
-      svg.appendChild(pvSvgEl('text',{x:x+colW/2,y:boardY+38,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':22,'font-weight':850,fill:'#2d454d'},place.label));
-      svg.appendChild(pvSvgEl('text',{x:x+colW/2,y:boardY+65,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':13,'font-weight':600,fill:'#61767c'},place.name));
-      for(let n=0;n<cs[index];n++){
-        const row=Math.floor(n/perRow),slot=n%perRow,slotGap=Math.min(54,colW/(perRow+0.6));
-        const cx=x+colW/2+(slot-(perRow-1)/2)*slotGap,cy=boardY+headerH+42+row*counterStep;
-        const radius=Math.min(20,colW/(perRow*3.2));
-        svg.appendChild(pvSvgEl('circle',{cx,cy,r:radius,fill:place.color,stroke:'#6d8288','stroke-width':1.8}));
+      svg.appendChild(pvSvgEl('text',{x:x+colW/2,y:boardY+36,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':22,'font-weight':850,fill:'#2d454d'},place.label));
+      svg.appendChild(pvSvgEl('text',{x:x+colW/2,y:boardY+64,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':13,'font-weight':600,fill:'#61767c'},place.name));
+      const visibleCount=pupil&&pupilColumnHidden(index)?0:cs[index];
+      for(let n=0;n<visibleCount;n++){
+        const row=Math.floor(n/perRow),slot=n%perRow,slotGap=Math.min(52,colW/(perRow+0.7));
+        const cx=x+colW/2+(slot-(perRow-1)/2)*slotGap,cy=boardY+headerH+40+row*counterStep;
+        const radius=Math.min(19,colW/(perRow*3.3));
+        svg.appendChild(pvSvgEl('circle',{cx,cy,r:radius,fill:place.color,stroke:'#6d8288','stroke-width':1.7}));
         svg.appendChild(pvSvgEl('circle',{cx,cy,r:Math.max(5,radius*.34),fill:'#ffffff','fill-opacity':.62}));
       }
     });
     return svg;
   }
+  function worksheetBoardSvg({pupil=false}={}){
+    return boardExportSvg({pupil});
+  }
 
+  function challengeResponseMode(){
+    if(!challenge)return'none';
+    if(challenge.type==='build-number')return'none';
+    if(challenge.category==='reason')return'lines';
+    return'box';
+  }
   function exportTargetSvg(){
     if(exportMode==='challenge'&&challenge&&X?.composeWorksheetCardSvg){
       const prompt=CK?CK.plainText(challenge.promptHtml||challenge.prompt||''):challenge.prompt||'';
       const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
-      return X.composeWorksheetCardSvg(worksheetBoardSvg(),{
+      const mode=challengeResponseMode(),showAnswer=!!challenge.revealed;
+      return X.composeWorksheetCardSvg(worksheetBoardSvg({pupil:!showAnswer}),{
         title:challenge.title||meta?.title||'Place Value challenge',
         prompt,
         responseLabel:challenge.category==='reason'?'Explain your thinking':'Answer',
-        responseLines:challenge.category==='reason'?Math.max(2,Math.min(4,responseLines)):Math.max(1,Math.min(2,responseLines)),
+        responseLines:challenge.category==='reason'?Math.max(2,Math.min(4,responseLines)):1,
+        responseMode:mode,
+        paperStyle:'plain',
         answer:challenge.answer||'',
-        showAnswer:!!challenge.revealed,
+        showAnswer,
         brand:'99 Club Studio'
       });
     }
     if(activityActive&&X?.composeWorksheetCardSvg){
-      let title='Place Value example',prompt='',lines=0;
+      let title='Place Value',prompt='',mode='none';
       if(activityMode==='powers'){
         title='Powers of ten';
-        prompt=powerMessage||'Use the place-value chart to explain what happens when the number is multiplied or divided by a power of ten.';
-        lines=1;
+        prompt=powerMessage||'Explain what happens to the digits when the number is multiplied or divided by a power of ten.';
+        mode='lines';
       }else if(activityMode==='exact'){
         title='Exact-counter challenge';
         prompt='Make '+format(activityTarget)+' using exactly '+activityBudget+' counters.';
-        lines=1;
       }else{
         title='Build the target';
         prompt='Build '+format(activityTarget)+' using the place-value chart.';
-        lines=1;
       }
-      return X.composeWorksheetCardSvg(boardExportSvg({pupil:false}),{title,prompt,responseLabel:'Working / answer',responseLines:lines,brand:'99 Club Studio'});
+      return X.composeWorksheetCardSvg(worksheetBoardSvg({pupil:false}),{
+        title,prompt,responseLabel:'Explain your thinking',responseLines:2,responseMode:mode,paperStyle:'plain',brand:'99 Club Studio'
+      });
     }
     return boardExportSvg({pupil:false});
   }
@@ -456,10 +436,10 @@ function placeValue(){
   async function exportAction(kind){
     try{
       if(!X)throw new Error('Export tools are not available.');
-      const target=exportTargetSvg(),isCard=(exportMode==='challenge'&&!!challenge)||activityActive,name=exportName(),transparent=!isCard;
+      const target=exportTargetSvg(),isCard=(exportMode==='challenge'&&!!challenge)||activityActive,name=exportName(),transparent=false;
       const worksheetKind=exportMode==='challenge'&&challenge?(challenge.revealed?'Teacher worksheet':'Pupil worksheet'):'Worksheet-ready item';
-      if(kind==='copy'){await X.copyPng(target,{transparent});exportMessage(isCard?worksheetKind+' copied.':'Board image copied with a transparent outer background.')}
-      if(kind==='png'){await X.downloadPng(target,name,2,{transparent});exportMessage(isCard?worksheetKind+' PNG downloaded.':'Transparent PNG downloaded.')}
+      if(kind==='copy'){await X.copyPng(target,{transparent});exportMessage(isCard?worksheetKind+' copied.':'Chart copied on a white paper background.')}
+      if(kind==='png'){await X.downloadPng(target,name,2,{transparent});exportMessage(isCard?worksheetKind+' PNG downloaded.':'Chart PNG downloaded.')}
       if(kind==='svg'){X.downloadSvg(target,name);exportMessage(isCard?worksheetKind+' SVG downloaded.':'SVG downloaded.')}
       if(kind==='print'){X.printSvg(target,{title:'',landscape:true});exportMessage('Print view opened. Choose “Save as PDF” in the print dialog.')}
     }catch(err){exportMessage(err?.message||'That export did not work.')}
