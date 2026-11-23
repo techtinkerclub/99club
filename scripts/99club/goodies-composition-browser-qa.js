@@ -101,7 +101,8 @@ async function run(){
   let objects=[...document.querySelectorAll('[data-board-object]')];
   assert(objects.length===2,'Different manipulatives can coexist on one board');
   assert(TT99Goodies.compositionBoard.objects().length===2,'Board keeps independent object records');
-  assert(objects[0].querySelector('iframe').getAttribute('src').includes('?embed=1#clock'),'Clock runs as an isolated live board object');
+  const clockSrc=objects[0].querySelector('iframe').getAttribute('src');
+  assert(clockSrc.includes('?embed=1')&&clockSrc.endsWith('#clock'),'Clock runs as an isolated live board object');
   assert(objects[1].querySelector('iframe').getAttribute('src').includes('?embed=1#money'),'Money runs as an isolated live board object');
 
   const money=objects[1];
