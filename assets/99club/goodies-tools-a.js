@@ -369,13 +369,16 @@ function placeValue(){
     controller?.select(null);
   }
 
+  function representationNoun(){
+    return representationMode==='abacus'?'abacus':representationMode==='both'?'linked counter chart and abacus':'place-value counters';
+  }
   function activityDescriptor(){
-    if(activityMode==='build')return{title:'Build the target',prompt:'Build '+format(activityTarget)+' with the place-value counters.'};
+    if(activityMode==='build')return{title:'Build the target',prompt:'Build '+format(activityTarget)+' with the '+representationNoun()+'.'};
     if(activityMode==='exact')return{title:'Exact counters',prompt:'Make '+format(activityTarget)+' using exactly '+activityBudget+' counters.'};
     if(activityMode==='regroup')return{title:'Regroup',prompt:'Regroup this non-standard representation into standard place-value digits without changing its value.'};
     if(activityMode==='same')return{title:'Same value, different way',prompt:'Show '+format(activityTarget)+' in a different way. Keep the value exactly the same.'};
-    if(activityMode==='read')return{title:'Read the number',prompt:'What number is represented by the counters?'};
-    if(activityMode==='hidden')return{title:'Hidden place',prompt:'This chart represents '+format(activityTarget)+'. How many '+(places[activityHiddenIndex]?.name||'place-value')+' counters are hidden?'};
+    if(activityMode==='read')return{title:'Read the number',prompt:'What number is represented by the '+representationNoun()+'?'};
+    if(activityMode==='hidden')return{title:'Hidden place',prompt:'This representation shows '+format(activityTarget)+'. How many '+(places[activityHiddenIndex]?.name||'place-value')+' units are hidden?'};
     if(activityMode==='digit')return{title:'Digit value',prompt:'What is the value of the digit '+activityDigit+' in the '+(places[activityHiddenIndex]?.name||'selected')+' column?'};
     if(activityMode==='add')return{title:'Addition',prompt:'Start with '+format(additionA)+'. Add '+format(additionB)+'.'};
     return{title:'Place value',prompt:''};
@@ -626,7 +629,52 @@ function placeValue(){
     svg.appendChild(pvSvgEl('rect',{x:boardX,y:boardY,width:boardW,height:boardH,rx:8,ry:8,fill:'none',stroke:'#8fa5aa','stroke-width':2.2,'data-pv-export-outline':'1'}));
     return svg;
   }
+  function abacusExportSvg({pupil=false}={}){
+    const cs=counts(),width=1000,pad=18,boardX=pad,boardY=12,boardW=width-pad*2,colW=boardW/places.length;
+    const headerH=72,bodyH=280,footerH=34,boardH=headerH+bodyH+footerH,height=boardY+boardH+12;
+    const svg=pvSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Place value abacus','data-pv-export':'abacus'});
+    svg.appendChild(pvSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
+    svg.appendChild(pvSvgEl('rect',{x:boardX,y:boardY,width:boardW,height:boardH,rx:9,fill:'#ead9bd',stroke:'#65777b','stroke-width':3,'data-pv-export-abacus':'1'}));
+    places.forEach((place,index)=>{
+      const x=boardX+index*colW,cx=x+colW/2,isDecimal=place.value<1&&(index===0||places[index-1].value>=1);
+      const target=activityActive&&activityMode==='digit'&&index===activityHiddenIndex;
+      const hidden=activityActive&&activityMode==='hidden'&&index===activityHiddenIndex;
+      if(index>0)svg.appendChild(pvSvgEl('line',{x1:x,y1:boardY,x2:x,y2:boardY+boardH,stroke:isDecimal?'#536c72':'#b5a58d','stroke-width':isDecimal?4:1.5}));
+      svg.appendChild(pvSvgEl('rect',{x,y:boardY,width:colW,height:headerH,fill:target?'#fff1b8':'rgba(255,255,255,.62)'}));
+      svg.appendChild(pvSvgEl('text',{x:cx,y:boardY+29,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':20,'font-weight':850,fill:'#2d454d'},place.label));
+      svg.appendChild(pvSvgEl('text',{x:cx,y:boardY+52,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':12,'font-weight':600,fill:'#61767c'},place.name));
+      svg.appendChild(pvSvgEl('line',{x1:cx,y1:boardY+headerH+8,x2:cx,y2:boardY+headerH+bodyH-8,stroke:'#6f5d48','stroke-width':5,'stroke-linecap':'round'}));
+      if(hidden){
+        svg.appendChild(pvSvgEl('circle',{cx,cy:boardY+headerH+bodyH/2,r:25,fill:'#ffffff',stroke:'#b6c1c2','stroke-width':1.5}));
+        svg.appendChild(pvSvgEl('text',{x:cx,y:boardY+headerH+bodyH/2+8,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':27,'font-weight':850,fill:'#6f7d80'},'?'));
+      }else{
+        const count=clamp(cs[index]||0,0,9),gap=(bodyH-28)/8;
+        for(let value=9;value>=1;value--){
+          const row=9-value,cy=boardY+headerH+14+row*gap,active=value<=count;
+          const bw=Math.min(54,colW*.58),bh=16;
+          svg.appendChild(pvSvgEl('rect',{x:cx-bw/2,y:cy-bh/2,width:bw,height:bh,rx:8,fill:active?place.color:'#edf1f1',stroke:active?'#788b8e':'#c5cecf','stroke-width':1.2}));
+        }
+      }
+      if(!pupil&&!activityAnswerMode()){
+        svg.appendChild(pvSvgEl('text',{x:cx,y:boardY+headerH+bodyH+23,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':14,'font-weight':800,fill:'#42575e'},String(cs[index]||0)));
+      }
+    });
+    return svg;
+  }
+  function combinedRepresentationExportSvg({pupil=false}={}){
+    const counter=boardExportSvg({pupil}),abacus=abacusExportSvg({pupil});
+    const counterH=Number((counter.getAttribute('viewBox')||'0 0 1000 450').split(/\s+/)[3])||450;
+    const abacusH=Number((abacus.getAttribute('viewBox')||'0 0 1000 410').split(/\s+/)[3])||410;
+    const gap=16,height=counterH+abacusH+gap;
+    const svg=pvSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 1000 '+height,role:'img','aria-label':'Linked place value chart and abacus','data-pv-export':'both'});
+    svg.appendChild(pvSvgEl('rect',{x:0,y:0,width:1000,height,fill:'#ffffff'}));
+    const g1=pvSvgEl('g');[...counter.childNodes].forEach(node=>g1.appendChild(node.cloneNode(true)));svg.appendChild(g1);
+    const g2=pvSvgEl('g',{transform:'translate(0 '+(counterH+gap)+')'});[...abacus.childNodes].forEach(node=>g2.appendChild(node.cloneNode(true)));svg.appendChild(g2);
+    return svg;
+  }
   function worksheetBoardSvg({pupil=false}={}){
+    if(representationMode==='abacus')return abacusExportSvg({pupil});
+    if(representationMode==='both')return combinedRepresentationExportSvg({pupil});
     return boardExportSvg({pupil});
   }
 
@@ -667,7 +715,7 @@ function placeValue(){
         title,prompt,responseLabel,responseLines,responseMode:mode,paperStyle:'plain',brand:'99 Club Studio'
       });
     }
-    return boardExportSvg({pupil:false});
+    return worksheetBoardSvg({pupil:false});
   }
   function exportName(){
     const meta=challenge&&CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
@@ -776,7 +824,7 @@ function placeValue(){
   function abacusRodMarkup(place,index,cs){
     const hidden=activityActive&&activityMode==='hidden'&&index===activityHiddenIndex;
     const target=activityActive&&activityMode==='digit'&&index===activityHiddenIndex;
-    const readOnly=activityReadOnly(),count=clamp(cs[index]||0,0,9);
+    const readOnly=activityReadOnly(),count=clamp(cs[index]||0,0,9),countText=columnCountHidden(index)?'?':count;
     const beads=[];
     for(let value=9;value>=1;value--){
       const active=!hidden&&value<=count;
@@ -793,7 +841,7 @@ function placeValue(){
       '</div>'+
       '<div class="gd-pv-abacus-controls">'+
         '<button type="button" data-pv-abacus-nudge="'+index+':-1" aria-label="Remove one '+place.name+' bead"'+(readOnly||hidden||count<=0?' disabled':'')+'>−</button>'+
-        '<span data-pv-abacus-count="'+index+'">'+(hidden?'?':count)+'</span>'+
+        '<span data-pv-abacus-count="'+index+'">'+(hidden?'?':countText)+'</span>'+
         '<button type="button" data-pv-abacus-nudge="'+index+':1" aria-label="Add one '+place.name+' bead"'+(readOnly||hidden?' disabled':'')+'>+</button>'+
       '</div>'+
     '</div>';
