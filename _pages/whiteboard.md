@@ -12,11 +12,13 @@ robots: "noindex,nofollow,noarchive"
   <article class="splash">
     <section class="page__content">
       <div id="tt99-goodies-root"><noscript>This maths whiteboard needs JavaScript enabled.</noscript></div>
+      {% assign tt99_build_revision = site.github.build_revision | default: "dev" %}
+      <div class="gd-board-build-badge" title="Deployed Git revision {{ tt99_build_revision }}">Build {{ tt99_build_revision | slice: 0, 7 }}</div>
     </section>
   </article>
 </div>
 
-<link rel="stylesheet" href="/assets/99club/goodies.css?v=65">
+<link rel="stylesheet" href="/assets/99club/goodies.css?v=66">
 <link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v3.css?v=1">
 <link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v4.css?v=1">
 <link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v5.css?v=1">
