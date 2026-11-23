@@ -288,10 +288,10 @@ async function run(){
   assert(pvExportSvg&&pvExportSvg.dataset.pvExport==='board'&&/place-value/.test(pvExportName),'Frame SVG export delegates to the live clean Place Value export rather than capturing whiteboard chrome');
   pvWin.TT99Goodies.exportTools.downloadSvg=pvOldSvg;
 
-  const pvOnes=[...pvDoc.querySelectorAll('[data-gd-object][data-pv-place="3"]')][0]||[...pvDoc.querySelectorAll('[data-gd-object]')][0];
-  const pvr=pvOnes.getBoundingClientRect();
-  pointer(pvOnes,'pointerdown',pvr.left+pvr.width/2,pvr.top+pvr.height/2,55);
-  pointer(pvOnes,'pointerup',pvr.left+pvr.width/2,pvr.top+pvr.height/2,55);await tick();
+  const pvTens=[...pvDoc.querySelectorAll('[data-gd-object][data-pv-place="2"]')][0]||[...pvDoc.querySelectorAll('[data-gd-object]')].find(el=>Number(el.dataset.pvPlace)<pvDoc.querySelectorAll('.gd-pv-column').length-1);
+  const pvr=pvTens.getBoundingClientRect();
+  pointer(pvTens,'pointerdown',pvr.left+pvr.width/2,pvr.top+pvr.height/2,55);
+  pointer(pvTens,'pointerup',pvr.left+pvr.width/2,pvr.top+pvr.height/2,55);await tick();
   let pvQuick=[...pvFrame.querySelectorAll('[data-board-quick-actions] button')];
   const splitPV=pvQuick.find(button=>button.textContent.includes('Split 1→10'));
   assert(splitPV,'Place Value exposes Split 1→10 directly on the selected whiteboard widget');
