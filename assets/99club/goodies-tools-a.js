@@ -841,7 +841,7 @@ function placeValue(){
       '<div class="gd-pv-abacus-controls">'+
         '<button type="button" data-pv-abacus-nudge="'+index+':-1" aria-label="Remove one '+place.name+' bead"'+(readOnly||hidden||count<=0?' disabled':'')+'>−</button>'+
         '<span data-pv-abacus-count="'+index+'">'+(hidden?'?':countText)+'</span>'+
-        '<button type="button" data-pv-abacus-nudge="'+index+':1" aria-label="Add one '+place.name+' bead"'+(readOnly||hidden?' disabled':'')+'>+</button>'+
+        '<button type="button" data-pv-abacus-nudge="'+index+':1" aria-label="Add one '+place.name+' bead"'+(readOnly||hidden||(count>=9&&(index===0||total()+place.value>rangeMax()))?' disabled':'')+'>+</button>'+
       '</div>'+
     '</div>';
   }
