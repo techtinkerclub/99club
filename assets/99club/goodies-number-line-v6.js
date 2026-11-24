@@ -799,7 +799,7 @@ function numberLineV2(){
         if(d.show&&(d.label||d.hidden)){const labelCy=r.side==='above'?y-25:y+25;if(d.hidden)relationshipLayer+=answerBox(mid,labelCy,58,24);else relationshipLayer+=`<rect x="${mid-31}" y="${labelCy-12}" width="62" height="22" rx="10" fill="#fff"/><text x="${mid}" y="${labelCy+4}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="${esc(r.color)}">${esc(d.label)}</text>`}
       }else{
         const y1=markerCentre(layout,d.a),y2=markerCentre(layout,d.b);
-        const controlY=r.side==='above'?Math.min(y1,y2,baseY)-64-lane*30:Math.max(y1,y2,baseY)+64+lane*30;
+        const controlY=r.side==='above'?Math.min(y1,y2,baseY)-92-lane*30:Math.max(y1,y2,baseY)+92+lane*30;
         const startY=y1,endY=y2;
         relationshipLayer+=`<path d="M${x1} ${startY} Q${mid} ${controlY} ${x2} ${endY}" fill="none" stroke="${esc(r.color)}" stroke-width="3" stroke-linecap="round" marker-end="url(#nl-arrow-${esc(line.id)}-${esc(r.id)})"/>`;
         if(d.show&&(d.label||d.hidden)){const labelCy=r.side==='above'?controlY-19:controlY+19;if(d.hidden)relationshipLayer+=answerBox(mid,labelCy,58,24);else relationshipLayer+=`<rect x="${mid-31}" y="${labelCy-12}" width="62" height="22" rx="10" fill="#fff"/><text x="${mid}" y="${labelCy+4}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="${esc(r.color)}">${esc(d.label)}</text>`}
@@ -860,7 +860,8 @@ function numberLineV2(){
     const plan=layout();
     const title=state.title?`<text x="500" y="30" text-anchor="middle" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#24343b">${esc(state.title)}</text>`:'';
     const connections=teachingConnections(plan);
-    return `<svg id="nl-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 ${plan.height}" role="img" aria-label="Interactive number line workspace with ${state.lines.length} line${state.lines.length===1?'':'s'}"><defs>${state.lines.map(line=>line.relations.filter(r=>r.type==='jump').map(r=>`<marker id="nl-arrow-${esc(line.id)}-${esc(r.id)}" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,4 L0,8 z" fill="${esc(r.color)}"/></marker>`).join('')).join('')}</defs><rect x="0" y="0" width="1000" height="${plan.height}" rx="18" fill="#ffffff"/>${title}${connections}${plan.lines.map(buildLine).join('')}<text x="500" y="${plan.height-6}" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#87969a">99 Club Studio</text></svg>`;
+    const liveBrand=embedded?'':`<text x="500" y="${plan.height-6}" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#87969a">99 Club Studio</text>`;
+    return `<svg id="nl-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 ${plan.height}" role="img" aria-label="Interactive number line workspace with ${state.lines.length} line${state.lines.length===1?'':'s'}"><defs>${state.lines.map(line=>line.relations.filter(r=>r.type==='jump').map(r=>`<marker id="nl-arrow-${esc(line.id)}-${esc(r.id)}" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,4 L0,8 z" fill="${esc(r.color)}"/></marker>`).join('')).join('')}</defs><rect x="0" y="0" width="1000" height="${plan.height}" rx="18" fill="#ffffff"/>${title}${connections}${plan.lines.map(buildLine).join('')}${liveBrand}</svg>`;
   }
   function boardMarkerRows(){
     const line=activeLine(),scale=scaleFor(line);
