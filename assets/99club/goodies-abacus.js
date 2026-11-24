@@ -4,7 +4,7 @@ if(!G)return;
 const {q,qa,esc,clamp,num,field,btn}=G;
 
 function abacusTool(){
-  const X=G.exportTools;
+  const X=G.exportTools,embedded=new URLSearchParams(location.search).get('embed')==='1';
   let rows=5,counts=Array(5).fill(0),kind='western',showTotal=true,showRowCounts=false,showRowLabels=true;
   let workflow='setup',playMode='free',task=null,taskContext='play',status='',answerInput='',revealed=false,exportStatus='';
   let drag=null;
@@ -207,6 +207,14 @@ function abacusTool(){
   function helpButton(){
     return '<button class="gd-history-help-btn" type="button" data-ab-help-open aria-label="How to use this device">? <span>How to use</span></button>';
   }
+  function openDeviceHelp(){
+    const h=deviceHelp();
+    if(embedded&&window.parent!==window){
+      window.parent.postMessage({type:'tt99-board-help',help:{title:h.title,intro:h.intro,steps:h.steps,example:h.example,history:h.history||''}},location.origin);
+      return;
+    }
+    historyHelpOpen=true;renderStage();
+  }
   function helpOverlay(){
     if(!historyHelpOpen)return '';
     const h=deviceHelp();
@@ -325,7 +333,7 @@ function abacusTool(){
     const reveal=q('[data-ab-history-reveal]');if(reveal)reveal.onclick=revealHistoricalChallenge;
     const end=q('[data-ab-history-end]');if(end)end.onclick=()=>{historyChallenge=null;historyAnswer='';historyStatus='';historyRevealed=false;renderAll()};
     const stageKind=q('[data-ab-stage-kind]');if(stageKind)stageKind.onchange=()=>{changeDevice(stageKind.value)};
-    const open=q('[data-ab-help-open]');if(open)open.onclick=()=>{historyHelpOpen=true;renderHistoricalStage()};
+    const open=q('[data-ab-help-open]');if(open)open.onclick=openDeviceHelp;
     const close=q('[data-ab-help-close]');if(close)close.onclick=()=>{historyHelpOpen=false;renderHistoricalStage()};
     qa('[data-ab-rb-add]').forEach(b=>b.onclick=()=>{reckoning[+b.dataset.abRbAdd]++;renderHistoricalStage()});
     qa('[data-ab-rb-remove]').forEach(b=>{
@@ -677,7 +685,7 @@ function abacusTool(){
   function bindStage(){
     qa('[data-ab-stage-theme]').forEach(stageTheme=>stageTheme.onclick=()=>{const next=stageTheme.dataset.abStageTheme;colourScheme=COLOUR_SCHEMES.some(([id])=>id===next)?next:'classic';renderAll()});
     const stageKind=q('[data-ab-stage-kind]');if(stageKind)stageKind.onchange=()=>{changeDevice(stageKind.value)};
-    const helpOpen=q('[data-ab-help-open]');if(helpOpen)helpOpen.onclick=()=>{historyHelpOpen=true;renderStage()};
+    const helpOpen=q('[data-ab-help-open]');if(helpOpen)helpOpen.onclick=openDeviceHelp;
     const helpClose=q('[data-ab-help-close]');if(helpClose)helpClose.onclick=()=>{historyHelpOpen=false;renderStage()};
     qa('[data-ab-bead]').forEach(bead=>{
       bead.onclick=e=>{
