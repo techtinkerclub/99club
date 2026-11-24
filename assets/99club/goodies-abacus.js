@@ -41,7 +41,7 @@ function abacusTool(){
   let colourScheme='classic';
   let historyChallenge=null,historyAnswer='',historyStatus='',historyRevealed=false;
   let historyDrag=null;
-  const COLOUR_SCHEMES=[['classic','Classic wood'],['sea','Sea glass'],['berry','Berry & brass'],['forest','Forest']];
+  const COLOUR_SCHEMES=[['classic','Classic wood'],['place','Place-value colours'],['sea','Sea glass'],['berry','Berry & brass'],['forest','Forest']];
 
   function historicalValue(){
     if(kind==='reckoning')return reckoning.reduce((sum,n,i)=>sum+n*[1000,100,10,1][i],0);
@@ -107,8 +107,8 @@ function abacusTool(){
     const data={
       western:{
         title:'Western abacus',
-        intro:'A base-ten bead frame. Each horizontal row is a place value and beads count when moved to the left.',
-        steps:['Move beads left to count them.','Read the rows as thousands, hundreds, tens and ones.','For addition, move more beads left. When you reach 10 in a place, regroup it as 1 in the next place.','For subtraction, move beads back and exchange 1 higher-place bead for 10 lower-place beads when needed.'],
+        intro:'A base-ten counting frame. Each horizontal row has ten beads and represents a place value; beads count when moved to the left.',
+        steps:['Move beads left to count them.','Read the rows as thousands, hundreds, tens and ones.','For addition, move more beads left. Ten beads in one row can be exchanged for one bead in the next place-value row.','For subtraction, move beads back and exchange 1 higher-place bead for 10 lower-place beads when needed.'],
         example:'Example: show 247, then add 36. Add 3 tens, then 6 ones. Regroup 10 ones as 1 ten. The result is 283.'
       },
       soroban:{
@@ -126,7 +126,7 @@ function abacusTool(){
       rods:{
         title:'Chinese counting rods',
         intro:'Counting rods represented decimal place value with small rods. Adjacent places alternate orientation so digits stay distinct.',
-        steps:['Each box is a decimal place.','Use + and − to change a digit from 0 to 9.','Read the four places together as one number.','For arithmetic, work column by column and regroup 10 into 1 of the next place.'],
+        steps:['Each box is a decimal place. An empty box represents zero.','Use + and − to change a digit from 0 to 9.','Read the four places together as one number.','For arithmetic, work column by column and regroup 10 into 1 of the next place.'],
         example:'Example: 372 + 48. Ones make 10, so write 0 and carry 1 ten. Tens then make 12, so carry 1 hundred. Result: 420.'
       },
       napier:{
@@ -143,8 +143,8 @@ function abacusTool(){
       },
       pascaline:{
         title:'Pascaline',
-        intro:'A mechanical calculator with linked decimal wheels. When a wheel rolls from 9 to 0 it carries into the wheel on its left.',
-        steps:['Each wheel is one decimal place.','Turn a wheel forward to add its place value.','Carry happens automatically when 9 rolls to 0.','Turn backwards to subtract; borrowing happens automatically.'],
+        intro:'A simplified model of Pascal’s mechanical calculator, using linked decimal wheels. When a wheel rolls from 9 to 0 it carries into the wheel on its left.',
+        steps:['Each wheel is one decimal place.','Turn a wheel forward to add its place value.','Carry happens automatically when 9 rolls to 0.','This classroom model also lets you turn backwards to explore subtraction. Pascal’s original machines used complement-based methods for subtraction.'],
         example:'Example: show 28. Add 10 by turning the tens wheel once, then add 5 by turning the ones wheel five times. The wheels finish at 43.'
       }
     }[kind];
@@ -166,7 +166,7 @@ function abacusTool(){
   }
   function rodDigitSvg(d,vertical){
     d=clamp(Math.round(d),0,9);
-    if(!d)return '<span class="gd-rod-zero">○</span>';
+    if(!d)return '<span class="gd-rod-zero" aria-label="Empty place"></span>';
     const five=d>=5,ones=d%5,parts=[];
     const line=(x1,y1,x2,y2)=>'<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" />';
     if(vertical){
@@ -180,7 +180,7 @@ function abacusTool(){
   }
   function napierCell(d,row){
     const p=d*row,t=Math.floor(p/10),o=p%10;
-    return '<div class="gd-napier-cell"><span>'+t+'</span><i></i><b>'+o+'</b></div>';
+    return '<div class="gd-napier-cell'+(row===napierMultiplier?' is-selected':'')+'"><span>'+t+'</span><i></i><b>'+o+'</b></div>';
   }
   function napierBone(d){
     return '<div class="gd-napier-bone"><div class="gd-napier-head">'+d+'</div>'+Array.from({length:9},(_,i)=>napierCell(+d,i+1)).join('')+'</div>';
@@ -293,7 +293,7 @@ function abacusTool(){
   function placeShort(i){return ['1s','10s','100s','1k','10k','100k'][rows-i-1]}
   function abBeadY(i,part,j){
     const d=counts[i]||0;
-    if(kind==='western')return j<d?6+j*8.4:92-(8-j)*8.4;
+    if(kind==='western')return beadX(j,d);
     if(part==='upper')return d>=5?36:12;
     return j<d%5?44+j*8.5:67+j*8.5;
   }
@@ -396,7 +396,7 @@ function abacusTool(){
   }
   function setRowCount(i,value){
     if(!Number.isInteger(i)||i<0||i>=rows)return;
-    counts[i]=clamp(Math.round(num(value,0)),0,9);
+    counts[i]=clamp(Math.round(num(value,0)),0,kind==='western'?10:9);
     status='';revealed=false;syncStage();
   }
   function clickBead(i,part,j){
@@ -429,7 +429,7 @@ function abacusTool(){
   function columnMarkup(i){
     const digit=counts[i]||0;
     const beads=kind==='western'
-      ?Array.from({length:9},(_,j)=>beadMarkup(i,'unit',j)).join('')
+      ?Array.from({length:10},(_,j)=>beadMarkup(i,'unit',j)).join('')
       :beadMarkup(i,'upper',0)+Array.from({length:4},(_,j)=>beadMarkup(i,'lower',j)).join('');
     return '<div class="gd-ab-col" data-ab-col="'+i+'">'+
       '<div class="gd-ab-col-label'+(showRowLabels?'':' is-hidden')+'"><span>'+esc(placeLabel(i))+'</span><abbr title="'+esc(placeLabel(i))+'">'+esc(placeShort(i))+'</abbr></div>'+
@@ -486,7 +486,7 @@ function abacusTool(){
       '<label class="gd-row gd-ab-check"><input id="ab-show-total" type="checkbox"'+(showTotal?' checked':'')+'> Show number</label>'+
       '<label class="gd-row gd-ab-check"><input id="ab-row-counts" type="checkbox"'+(showRowCounts?' checked':'')+'> Show column digits</label>'+
       '<label class="gd-row gd-ab-check"><input id="ab-row-labels" type="checkbox"'+(showRowLabels?' checked':'')+'> Show place values</label>'+
-      '<p class="gd-help">'+(kind==='western'?'Nine beads per horizontal place-value row. Slide them left to count.':'Soroban: upper bead is 5; four lower beads are 1 each. Beads count when moved towards the middle bar.')+'</p>';
+      '<p class="gd-help">'+(kind==='western'?'Ten beads per horizontal place-value row. Slide them left to count; ten can be regrouped as one in the next place.':'Soroban: upper bead is 5; four lower beads are 1 each. Beads count when moved towards the middle bar.')+'</p>';
   }
   function modeButtons(attr){
     return '<div class="gd-ab-mode-grid">'+MODES.map(([id,label])=>'<button class="gd-btn'+(playMode===id?' gd-btn--primary':'')+'" type="button" '+attr+'="'+id+'">'+label+'</button>').join('')+'</div>';
@@ -661,9 +661,9 @@ function abacusTool(){
         svg.appendChild(svgEl('line',{x1:152,y1:y,x2:752,y2:y,stroke:'#977c5e','stroke-width':5,'stroke-linecap':'round'}));
         if(showRowLabels)svg.appendChild(svgEl('text',{x:130,y:y+6,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':18,'font-weight':700,fill:'#60482e'},placeShort(row)));
         const digit=blank?0:counts[row]||0;
-        for(let j=0;j<9;j++){
+        for(let j=0;j<10;j++){
           const active=j<digit;
-          const bx=152+600*(active?6+j*8.4:92-(8-j)*8.4)/100;
+          const bx=152+600*beadX(j,digit)/100;
           svg.appendChild(svgEl('ellipse',{cx:bx,cy:y,rx:17,ry:14,fill:active?'#4b9a8d':'#dc9b52',stroke:active?'#32786e':'#a56d37','stroke-width':2}));
           svg.appendChild(svgEl('ellipse',{cx:bx-5,cy:y-4,rx:5,ry:3,fill:'#ffffff','fill-opacity':.43}));
         }
