@@ -74,9 +74,11 @@ function abacusTool(){
       historyChallenge={target:(+napierNumber)*napierMultiplier,answer:(+napierNumber)*napierMultiplier,requiresAnswer:true,prompt:'Use row '+napierMultiplier+' of the rods to work out '+napierNumber+' × '+napierMultiplier+'. Enter the product.'};
     }else if(kind==='slide'){
       const pairs=[[2,2],[2,3],[2,4],[2.5,2],[3,2],[3,3],[4,2],[1.5,4],[1.2,5],[2.4,3],[4,3],[6,2],[7,2]];
-      const [a,b]=pairs[randomInt(0,pairs.length-1)],target=Math.round(a*b*100)/100;
+      const [a,b]=pairs[randomInt(0,pairs.length-1)],target=Math.round(a*b*100)/100,useRight=target>10;
       slideA=1;slideB=1;slideIndex='left';
-      historyChallenge={a,b,target,answer:target,requiresAnswer:true,requiresInstrument:true,prompt:'Use the slide rule to work out '+a+' × '+b+'. First align the C scale, then move the cursor to '+b+' on C. Enter the value you read on D.'};
+      historyChallenge={a,b,target,answer:target,index:useRight?'right':'left',requiresAnswer:true,requiresInstrument:true,prompt:useRight
+        ?'Work out '+a+' × '+b+'. Because the product is beyond 10, use the right-hand C=10 index: slide C=10 above D='+a+', move the cursor to C='+b+', then enter the value represented on D.'
+        :'Work out '+a+' × '+b+'. Use the left-hand C=1 index: slide C=1 above D='+a+', move the cursor to C='+b+', then enter the value you read on D.'};
     }else if(kind==='pascaline'){
       const start=randomInt(12,75),add=randomInt(6,24),target=start+add;
       setHistoricalNumber(start);
@@ -88,9 +90,9 @@ function abacusTool(){
     if(!historyChallenge)return;
     const answerOk=!historyChallenge.requiresAnswer||String(historyAnswer).trim()!==''&&Math.abs(Number(historyAnswer)-Number(historyChallenge.answer))<0.011;
     const deviceOk=historyChallenge.requiresInstrument&&kind==='slide'
-      ?Math.abs(slideA-historyChallenge.a)<=0.11&&Math.abs(slideB-historyChallenge.b)<=0.11
+      ?Math.abs(slideA-historyChallenge.a)<=0.11&&Math.abs(slideB-historyChallenge.b)<=0.11&&slideIndex===(historyChallenge.index||((historyChallenge.a*historyChallenge.b)>10?'right':'left'))
       :historyChallenge.requiresAnswer?true:historicalValue()===historyChallenge.target;
-    historyStatus=deviceOk&&answerOk?'Correct ✓':historyChallenge.requiresInstrument&&!deviceOk?'Not yet — align the slide and cursor to the requested values first.':historyChallenge.requiresAnswer?'Not quite — check the instrument and your entered answer.':'Not yet — keep working on the device.';
+    historyStatus=deviceOk&&answerOk?'Correct ✓':historyChallenge.requiresInstrument&&!deviceOk?'Not yet — check which C index (1 or 10) you need, then align the slide and cursor.':historyChallenge.requiresAnswer?'Not quite — check the instrument and your entered answer.':'Not yet — keep working on the device.';
     if(deviceOk&&answerOk)historyRevealed=true;
     renderStage();
   }
@@ -98,7 +100,7 @@ function abacusTool(){
     if(!historyChallenge)return;
     historyRevealed=true;historyStatus='Answer shown';
     if(historyChallenge.requiresAnswer)historyAnswer=String(historyChallenge.answer);
-    if(kind==='slide'&&historyChallenge.a){slideA=historyChallenge.a;slideB=historyChallenge.b;slideIndex=slideA*slideB<=10?'left':'right';}
+    if(kind==='slide'&&historyChallenge.a){slideA=historyChallenge.a;slideB=historyChallenge.b;slideIndex=historyChallenge.index||((slideA*slideB)<=10?'left':'right');}
     else if(!historyChallenge.requiresAnswer)setHistoricalNumber(historyChallenge.target);
     renderStage();
   }
@@ -171,7 +173,7 @@ function abacusTool(){
         history:'The slide rule grew from 17th-century logarithmic scales associated with Edmund Gunter and William Oughtred, and became a standard calculating instrument for nearly three centuries.',
         intro:'A slide rule multiplies and divides by adding or subtracting logarithmic distances.',
         steps:['To multiply a × b, align C=1 above D=a.','Find b on the C scale and move the glass cursor to it.','Read the significant digits directly below on D.','If the answer runs off the right end, use the C=10 index instead. Estimate the decimal place mentally.'],
-        example:'Example: align C=1 above D=2. Under C=3, D reads 6, so 2 × 3 = 6.'
+        example:'Example 1: for 2 × 3, align C=1 with D=2, then read D=6 under C=3. Example 2: for 7 × 2, the answer runs past 10, so align the right-hand C=10 with D=7; under C=2, D reads 1.4, which means 14.'
       },
       pascaline:{
         title:'Pascaline',
@@ -255,8 +257,8 @@ function abacusTool(){
       const product=(+napierNumber||0)*napierMultiplier;
       body='<div class="gd-napier"><div class="gd-napier-row-index"><span>×</span>'+Array.from({length:9},(_,i)=>'<button type="button" data-ab-napier-row="'+(i+1)+'"'+(historyChallenge?' disabled':'')+' class="'+(napierMultiplier===i+1?'is-selected':'')+'">'+(i+1)+'</button>').join('')+'</div><div class="gd-napier-bones">'+napierNumber.split('').map((d,i)=>'<div class="gd-napier-bone-wrap">'+napierBone(d)+(!historyChallenge?'<button type="button" class="gd-napier-remove" data-ab-napier-remove="'+i+'" aria-label="Remove rod '+d+'">×</button>':'')+'</div>').join('')+'</div>'+(historyChallenge?'':'<div class="gd-napier-tray" aria-label="Choose a rod">'+Array.from({length:10},(_,i)=>'<button type="button" data-ab-napier-add="'+i+'">'+i+'</button>').join('')+'<button type="button" data-ab-napier-clear>Clear</button></div>')+'<div class="gd-napier-highlight">Use row <strong>'+napierMultiplier+'</strong></div><div class="gd-history-readout">'+esc(napierNumber)+' × '+napierMultiplier+' = <strong>'+(historyChallenge&&!historyRevealed?'?':product.toLocaleString('en-GB'))+'</strong></div></div>';
     }else if(kind==='slide'){
-      const shift=slideOffset(),cursor=slideCursorPos(),targetA=historyChallenge?.a??slideA,targetB=historyChallenge?.b??slideB,targetProduct=Math.round(targetA*targetB*1000)/1000,targetIndex=targetA*targetB<=10?'1':'10';
-      body='<div class="gd-slide-rule"><div class="gd-slide-shell"><div class="gd-slide-brand"><strong>TEACHING SLIDE RULE</strong><span>C / D logarithmic scales</span></div><div class="gd-slide-body"><div class="gd-slide-stock"><div class="gd-slide-stock-edge"></div><span class="gd-slide-row-tag gd-slide-row-tag--c">C</span><div class="gd-slide-channel"><div class="gd-slide-scale gd-slide-c" data-ab-slide-c style="transform:translateX('+shift+'%)">'+slideTicks()+'</div></div><span class="gd-slide-row-tag gd-slide-row-tag--d">D</span><div class="gd-slide-scale gd-slide-d">'+slideTicks()+'</div></div><div class="gd-slide-cursor" data-ab-slide-cursor style="left:'+cursor+'%"><span class="gd-slide-glass"></span><i></i><b></b></div></div></div><div class="gd-slide-steps"><span>1 · Align C='+targetIndex+' with D='+targetA+'</span><span>2 · Find C='+targetB+'</span><span>3 · Move the cursor and read D</span></div><div class="gd-history-readout">'+targetA+' × '+targetB+' ≈ <strong>'+(historyChallenge&&!historyRevealed?'?':targetProduct.toLocaleString('en-GB',{maximumFractionDigits:3}))+'</strong></div></div>';
+      const shift=slideOffset(),cursor=slideCursorPos(),targetA=historyChallenge?.a??slideA,targetB=historyChallenge?.b??slideB,targetProduct=Math.round(targetA*targetB*1000)/1000,targetIndex=(historyChallenge?.index??(targetA*targetB<=10?'left':'right')),targetIndexLabel=targetIndex==='right'?'10':'1',targetD=slidePos(targetA);
+      body='<div class="gd-slide-rule"><div class="gd-slide-shell"><div class="gd-slide-brand"><strong>TEACHING SLIDE RULE</strong><span>C / D logarithmic scales</span></div><div class="gd-slide-body"><div class="gd-slide-stock"><div class="gd-slide-stock-edge"></div><span class="gd-slide-row-tag gd-slide-row-tag--c">C</span><div class="gd-slide-channel"><div class="gd-slide-scale gd-slide-c" data-ab-slide-c style="transform:translateX('+shift+'%)"><span class="gd-slide-index gd-slide-index--left'+(historyChallenge&&targetIndex==='left'?' is-target':'')+'">1</span><span class="gd-slide-index gd-slide-index--right'+(historyChallenge&&targetIndex==='right'?' is-target':'')+'">10</span>'+slideTicks()+'</div></div><span class="gd-slide-row-tag gd-slide-row-tag--d">D</span><div class="gd-slide-scale gd-slide-d">'+slideTicks()+'</div>'+(historyChallenge?'<span class="gd-slide-target" style="left:'+targetD+'%" aria-hidden="true"><i></i><b>'+targetA+'</b></span>':'')+'</div><div class="gd-slide-cursor" data-ab-slide-cursor style="left:'+cursor+'%"><span class="gd-slide-glass"></span><i></i><b></b></div></div></div><div class="gd-slide-steps"><span>1 · Align the highlighted C='+targetIndexLabel+' end with D='+targetA+'</span><span>2 · Find C='+targetB+'</span><span>3 · Move the cursor there and read D</span></div><div class="gd-history-readout">'+targetA+' × '+targetB+' ≈ <strong>'+(historyChallenge&&!historyRevealed?'?':targetProduct.toLocaleString('en-GB',{maximumFractionDigits:3}))+'</strong></div></div>';
     }else if(kind==='pascaline'){
       const places=['Thousands','Hundreds','Tens','Ones'];
       const wheels=pascalDigits.map((d,i)=>'<div class="gd-pascaline-wheel-wrap"><span>'+places[i]+'</span><div class="gd-pascaline-wheel" data-ab-pa-wheel="'+i+'"><small>'+((d+9)%10)+'</small><strong>'+d+'</strong><small>'+((d+1)%10)+'</small></div><div class="gd-pascaline-wheel-buttons"><button type="button" data-ab-pa-sub="'+i+'">−</button><button type="button" data-ab-pa-add="'+i+'">+</button></div></div>').join('');
