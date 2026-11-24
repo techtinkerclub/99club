@@ -233,6 +233,7 @@ function renderFloatingControls(obj){
   if(floatingPanelMode==='help')return;
   if(!floatingControls||!floatingControlsBody||!obj||!obj.settingsOpen||floatingControlObjectId!==obj.id)return;
   const source=sourceControls(obj);if(!source)return;
+  if(floatingControls)floatingControls.dataset.tool=obj.toolId||'';
   const sourceInputs=[...source.querySelectorAll(CONTROL_SELECTOR)];
   const clone=source.cloneNode(true);
   clone.removeAttribute('id');clone.removeAttribute('aria-hidden');clone.classList.add('gd-board-controls-proxy');
@@ -249,11 +250,15 @@ function renderFloatingControls(obj){
     clone.querySelector('[data-ab-workflow="challenge"]')?.remove();
     clone.querySelector('[data-ab-workflow="export"]')?.remove();
   }
+  if(obj.toolId==='number-line'){
+    clone.querySelector('#nl-fullscreen')?.remove();
+  }
   const cloneInputs=[...clone.querySelectorAll(CONTROL_SELECTOR)];
   cloneInputs.forEach(node=>{
     const originalIndex=[...sourceInputs].findIndex(original=>{
       if(node.id&&original.id===node.id)return true;
       const pvWorkflow=node.dataset?.pvWorkflow;if(pvWorkflow&&original.dataset?.pvWorkflow===pvWorkflow)return true;
+      const nlWorkflow=node.dataset?.nlWorkflow;if(nlWorkflow&&original.dataset?.nlWorkflow===nlWorkflow)return true;
       const pvActivity=node.dataset?.pvActivityMode;if(pvActivity&&original.dataset?.pvActivityMode===pvActivity)return true;
       return false;
     });
@@ -273,6 +278,7 @@ function renderFloatingControls(obj){
 function renderFloatingHelp(obj,data){
   if(!floatingControls||!floatingControlsBody||!obj||!data)return;
   floatingPanelMode='help';floatingHelpData=data;
+  if(floatingControls)floatingControls.dataset.tool=obj.toolId||'';
   floatingControls.classList.add('is-help');
   floatingControlsBody.replaceChildren();
   const wrap=document.createElement('div');wrap.className='gd-board-help-panel';
@@ -353,7 +359,7 @@ function closeFloatingControls(id=null){
   if(target){target.settingsOpen=false;frameFor(target.id)?.classList.remove('has-settings')}
   if(id==null||String(floatingControlObjectId)===String(id)){
     floatingControlObjectId=null;floatingHelpData=null;floatingPanelMode='settings';
-    if(floatingControls){floatingControls.classList.remove('is-help');floatingControls.hidden=true;floatingControlsBody?.replaceChildren()}
+    if(floatingControls){floatingControls.classList.remove('is-help');delete floatingControls.dataset.tool;floatingControls.hidden=true;floatingControlsBody?.replaceChildren()}
   }
 }
 function floatingOriginal(index){
