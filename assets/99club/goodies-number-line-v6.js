@@ -211,7 +211,8 @@ function normalise(input){
 }
 
 function numberLineV2(){
-  const supplied=decodeState(new URLSearchParams(location.search).get('nl')||'');
+  const queryParams=new URLSearchParams(location.search),embedded=queryParams.get('embed')==='1';
+  const supplied=decodeState(queryParams.get('nl')||'');
   let state=normalise(supplied||DEFAULT_STATE);
   let beforeChallenge=null;
   let drag=null;
@@ -1619,6 +1620,14 @@ function numberLineV2(){
     if(action==='add-marker'){if(boardLocked)return;boardMode=boardMode==='add-marker'?null:'add-marker';boardFirstMarker=null;boardMenuOpen=false;boardMoreOpen=false;boardChallengeOpen=false;if(boardMode)boardMessage('Tap the number line where you want the new marker.');else renderStage();return}
     if(action==='relation'){
       if(boardLocked||line.markers.length<2)return;
+      if(embedded){
+        boardRelationType='difference';
+        boardMode=boardMode==='relation'?null:'relation';
+        boardFirstMarker=null;boardMenuOpen=false;boardChallengeOpen=false;boardMoreOpen=false;
+        if(boardMode)boardMessage('Difference: tap the first marker, then the second marker.');
+        else renderStage();
+        return;
+      }
       if(boardMode==='relation'){
         if(boardMenuOpen){boardMode=null;boardMenuOpen=false;boardFirstMarker=null}
         else boardMenuOpen=true;
