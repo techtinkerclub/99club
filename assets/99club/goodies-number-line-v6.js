@@ -1262,9 +1262,9 @@ function numberLineV2(){
     const kind=challengeResponseKind(ch),status=ch.responseStatus||'',correct=!!ch.correct;
     let input='';
     if(kind==='yesno'){
-      input='<div class="nl-challenge-choice" role="group" aria-label="Choose an answer"><button type="button" data-challenge-response-choice="Yes"'+(ch.userResponse==='Yes'?' class="is-selected"':'')+'>Yes</button><button type="button" data-challenge-response-choice="No"'+(ch.userResponse==='No'?' class="is-selected"':'')+'>No</button></div>';
+      input='<div class="nl-challenge-choice" role="group" aria-label="Choose an answer"><button type="button" data-challenge-response-choice="Yes"'+(ch.userResponse==='Yes'?' class="is-selected"':'')+(correct?' disabled':'')+'>Yes</button><button type="button" data-challenge-response-choice="No"'+(ch.userResponse==='No'?' class="is-selected"':'')+(correct?' disabled':'')+'>No</button></div>';
     }else if(kind==='symbol'){
-      input='<div class="nl-challenge-choice nl-challenge-choice--symbol" role="group" aria-label="Choose comparison symbol">'+['<','>','='].map(v=>'<button type="button" data-challenge-response-choice="'+esc(v)+'"'+(ch.userResponse===v?' class="is-selected"':'')+'>'+esc(v)+'</button>').join('')+'</div>';
+      input='<div class="nl-challenge-choice nl-challenge-choice--symbol" role="group" aria-label="Choose comparison symbol">'+['<','>','='].map(v=>'<button type="button" data-challenge-response-choice="'+esc(v)+'"'+(ch.userResponse===v?' class="is-selected"':'')+(correct?' disabled':'')+'>'+esc(v)+'</button>').join('')+'</div>';
     }else{
       const placeholder=kind==='list'?'e.g. 4, 8, 12':'Type your answer';
       input='<label class="nl-challenge-response"><span>Answer</span><input type="text" inputmode="text" autocomplete="off" data-challenge-response value="'+esc(ch.userResponse||'')+'" placeholder="'+placeholder+'"'+(correct?' disabled':'')+'></label>';
@@ -1414,7 +1414,7 @@ function numberLineV2(){
       let target=randomInteriorTick(),guard=0;
       while(Math.abs(target/unit-Math.round(target/unit))<1e-8&&guard++<40)target=randomInteriorTick();
       line.markers=[{id:'m1',label:'A',value:target,color:'#147d75',showValue:true,side:'above'}];
-      state.challenge=challengeObject(type,'Round the value at A to the nearest '+fmt(unit)+'.',fmt(cleanNumber(Math.round(target/unit)*unit)),{hiddenMarkerIds:['m1'],roundingUnit:unit});
+      state.challenge=challengeObject(type,'Round the value at A to the nearest '+fmt(unit)+'.',fmt(cleanNumber(Math.round(target/unit)*unit)),{hiddenMarkerIds:['m1'],hiddenTickRefs:[tickRef('l1',target)],roundingUnit:unit});
 
     }else if(type==='mixed-number'){
       const d=[2,4,5,8][Math.floor(Math.random()*4)];
