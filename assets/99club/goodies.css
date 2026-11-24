@@ -1442,3 +1442,125 @@ html.gd-embed-page,body.gd-embed-page{margin:0!important;width:100%!important;he
     grid-template-columns:repeat(2,minmax(0,1fr))!important;
   }
 }
+
+
+/* Number Line challenge solving: compact, direct, classroom-readable. */
+.nl-challenge-solve{
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  gap:8px;
+  flex-wrap:wrap;
+  margin:-2px 0 2px;
+  padding:8px 10px;
+  border:1px solid #dce6e4;
+  border-radius:12px;
+  background:#f8fbfa;
+}
+.nl-challenge-response{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  min-width:min(340px,100%);
+}
+.nl-challenge-response>span{
+  color:#51686d;
+  font-size:.7rem;
+  font-weight:900;
+  white-space:nowrap;
+}
+.nl-challenge-response input{
+  width:min(250px,100%);
+  min-height:36px;
+  border:1px solid #c7d7d4;
+  border-radius:9px;
+  background:#fff;
+  padding:6px 9px;
+  color:#29434a;
+  font:inherit;
+  font-size:.8rem;
+  font-weight:750;
+  box-shadow:inset 0 1px 2px rgba(45,68,66,.05);
+}
+.nl-challenge-response input:focus{
+  outline:2px solid rgba(20,125,117,.16);
+  border-color:#73a9a3;
+}
+.nl-challenge-choice{
+  display:flex;
+  gap:5px;
+}
+.nl-challenge-choice button{
+  min-width:58px;
+  min-height:36px;
+  border:1px solid #cbdad7;
+  border-radius:9px;
+  background:#fff;
+  color:#39565a;
+  font:inherit;
+  font-size:.78rem;
+  font-weight:900;
+  cursor:pointer;
+}
+.nl-challenge-choice--symbol button{
+  min-width:46px;
+  font-size:1rem;
+}
+.nl-challenge-choice button.is-selected{
+  border-color:#5c9992;
+  background:#eaf5f3;
+  color:#0c625b;
+  box-shadow:inset 0 0 0 1px rgba(20,125,117,.08);
+}
+.nl-challenge-choice button:disabled{
+  cursor:default;
+}
+.nl-challenge-solve>[data-challenge-check]{
+  min-height:36px!important;
+  padding:6px 13px!important;
+}
+.nl-challenge-feedback{
+  min-height:28px;
+  display:inline-flex;
+  align-items:center;
+  padding:4px 8px;
+  border-radius:8px;
+  font-size:.72rem;
+  font-weight:900;
+}
+.nl-challenge-feedback.is-correct{
+  background:#e8f6ee;
+  color:#216a48;
+}
+.nl-challenge-feedback.is-wrong{
+  background:#fff1ed;
+  color:#9a4c3b;
+}
+
+/* In the whiteboard the challenge prompt + response should read as one compact task. */
+.gd-embed-page .nl-stage-wrap>.nl-challenge-solve{
+  margin-top:-3px;
+  padding:7px 9px;
+}
+.gd-embed-page .nl-stage-wrap>.nl-challenge-banner{
+  margin-bottom:0!important;
+}
+.gd-embed-page .nl-challenge-response input{
+  min-height:34px;
+}
+.gd-embed-page .nl-challenge-choice button,
+.gd-embed-page .nl-challenge-solve>[data-challenge-check]{
+  min-height:34px!important;
+}
+@media(max-width:620px){
+  .nl-challenge-solve{
+    align-items:stretch;
+  }
+  .nl-challenge-response{
+    width:100%;
+    min-width:0;
+  }
+  .nl-challenge-response input{
+    width:100%;
+  }
+}
