@@ -1498,3 +1498,16 @@
   background:#f6f8f7!important;
   border:1px solid #e1e8e6;
 }
+
+
+/* v19: slide-rule graduations use one consistent engraved ink colour. */
+.gd-slide-tick i,
+.gd-slide-tick.is-major i,
+.gd-slide-tick.is-mid i,
+.gd-slide-tick:not(.is-major):not(.is-mid) i{
+  background:#403a32!important;
+  opacity:1!important;
+}
+.gd-slide-tick b{
+  color:#403a32!important;
+}
