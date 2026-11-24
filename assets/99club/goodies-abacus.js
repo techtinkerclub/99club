@@ -73,7 +73,7 @@ function abacusTool(){
       napierNumber=String(randomInt(12,987));napierMultiplier=randomInt(2,9);
       historyChallenge={target:(+napierNumber)*napierMultiplier,answer:(+napierNumber)*napierMultiplier,requiresAnswer:true,prompt:'Use row '+napierMultiplier+' of the rods to work out '+napierNumber+' × '+napierMultiplier+'. Enter the product.'};
     }else if(kind==='slide'){
-      const pairs=[[2,2],[2,3],[2,4],[2.5,2],[3,2],[3,3],[4,2],[1.5,4],[1.2,5],[2.4,3]];
+      const pairs=[[2,2],[2,3],[2,4],[2.5,2],[3,2],[3,3],[4,2],[1.5,4],[1.2,5],[2.4,3],[4,3],[6,2],[7,2]];
       [slideA,slideB]=pairs[randomInt(0,pairs.length-1)];slideIndex=slideA*slideB<=10?'left':'right';
       historyChallenge={target:Math.round(slideA*slideB*100)/100,answer:Math.round(slideA*slideB*100)/100,requiresAnswer:true,prompt:'Use the C and D scales to estimate '+slideA+' × '+slideB+'. Move the slide and cursor, then enter the result.'};
     }else if(kind==='pascaline'){
@@ -362,10 +362,10 @@ function abacusTool(){
     })[mode]||'Abacus';
   }
   function generatedTask(mode){
-    const cap=Math.min(capacity(),rows===3?999:9999);
+    const cap=Math.min(capacity(),rows===3?999:9999),instrument=kind==='suanpan'?'suanpan':kind==='soroban'?'soroban':'abacus';
     if(mode==='show'){
       const target=randomInt(1,cap);
-      return{mode,start:0,target,prompt:'Build '+target+' on the abacus by moving the beads. When you are happy with it, press Check.',requiresAnswer:false};
+      return{mode,start:0,target,prompt:'Build '+target+' on the '+instrument+' by moving the beads. When you are happy with it, press Check.',requiresAnswer:false};
     }
     if(mode==='add'){
       let a=randomInt(1,Math.max(1,cap-1)),b=randomInt(1,Math.max(1,cap-a));
@@ -373,15 +373,15 @@ function abacusTool(){
         const low=Math.max(1,10-(a%10));
         if(low<=cap-a)b=randomInt(low,Math.max(low,cap-a));
       }
-      return{mode,start:a,target:a+b,a,b,prompt:'The abacus starts at '+a+'. Add '+b+' by moving the beads. Stop when it shows the answer, then press Check.',requiresAnswer:false};
+      return{mode,start:a,target:a+b,a,b,prompt:'The '+instrument+' starts at '+a+'. Add '+b+' by moving the beads. Stop when it shows the answer, then press Check.',requiresAnswer:false};
     }
     if(mode==='subtract'){
       const a=randomInt(2,cap),b=randomInt(1,a);
-      return{mode,start:a,target:a-b,a,b,prompt:'The abacus starts at '+a+'. Subtract '+b+' by moving the beads. Stop when it shows the answer, then press Check.',requiresAnswer:false};
+      return{mode,start:a,target:a-b,a,b,prompt:'The '+instrument+' starts at '+a+'. Subtract '+b+' by moving the beads. Stop when it shows the answer, then press Check.',requiresAnswer:false};
     }
     if(mode==='make10'){
       const a=randomInt(1,9),answer=10-a;
-      return{mode,start:a,target:10,a,answer,requiresAnswer:true,prompt:'The abacus starts at '+a+'. How many more are needed to make 10? Move the beads to 10 and enter the missing number.'};
+      return{mode,start:a,target:10,a,answer,requiresAnswer:true,prompt:'The '+instrument+' starts at '+a+'. How many more are needed to make 10? Move the beads to 10 and enter the missing number.'};
     }
     if(mode==='bond'){
       const bondTotal=cap>=20&&Math.random()<.5?20:10;
@@ -390,13 +390,13 @@ function abacusTool(){
     }
     if(mode==='double'){
       const a=randomInt(1,Math.max(1,Math.floor(cap/2)));
-      return{mode,start:a,target:a*2,a,prompt:'The abacus starts at '+a+'. Double it by adding another '+a+' with the beads, then press Check.',requiresAnswer:false};
+      return{mode,start:a,target:a*2,a,prompt:'The '+instrument+' starts at '+a+'. Double it by adding another '+a+' with the beads, then press Check.',requiresAnswer:false};
     }
     if(mode==='near'){
       let a=randomInt(2,Math.max(2,Math.floor(cap/2))),b=a+(Math.random()<.5?-1:1);
       b=Math.max(1,b);
       while(a+b>cap&&a>2){a--;b=Math.max(1,a-1)}
-      return{mode,start:a,target:a+b,a,b,prompt:'Use a near-double strategy to work out '+a+' + '+b+'. Show the final answer on the abacus, then press Check.',requiresAnswer:false};
+      return{mode,start:a,target:a+b,a,b,prompt:'Use a near-double strategy to work out '+a+' + '+b+'. Show the final answer on the '+instrument+', then press Check.',requiresAnswer:false};
     }
     if(mode==='missing'){
       const target=randomInt(5,cap),a=randomInt(0,target-1),answer=target-a;
@@ -405,7 +405,7 @@ function abacusTool(){
     if(mode==='skip'){
       const possible=[2,5,10].filter(s=>s<=cap),step=possible[randomInt(0,possible.length-1)];
       const maxStart=Math.max(0,cap-step),start=Math.floor(randomInt(0,maxStart)/step)*step,target=start+step;
-      return{mode,start,target,step,answer:target,requiresAnswer:true,prompt:'Count on in '+step+'s from '+start+'. Enter the next number and show it on the abacus.'};
+      return{mode,start,target,step,answer:target,requiresAnswer:true,prompt:'Count on in '+step+'s from '+start+'. Enter the next number and show it on the '+instrument+'.'};
     }
     return null;
   }
@@ -579,8 +579,8 @@ function abacusTool(){
   function renderAll(){renderControls();renderStage()}
 
   function bindStage(){
-    const stageTheme=q('[data-ab-stage-theme]');if(stageTheme)stageTheme.onchange=()=>{colourScheme=COLOUR_SCHEMES.some(([id])=>id===stageTheme.value)?stageTheme.value:'classic';renderAll()};
-    const stageKind=q('[data-ab-stage-kind]');if(stageKind)stageKind.onchange=()=>{kind=DEVICE_OPTIONS.some(([id])=>id===stageKind.value)?stageKind.value:'western';task=null;workflow='setup';historyHelpOpen=false;renderAll()};
+    qa('[data-ab-stage-theme]').forEach(stageTheme=>stageTheme.onclick=()=>{const next=stageTheme.dataset.abStageTheme;colourScheme=COLOUR_SCHEMES.some(([id])=>id===next)?next:'classic';renderAll()});
+    const stageKind=q('[data-ab-stage-kind]');if(stageKind)stageKind.onchange=()=>{changeDevice(stageKind.value)};
     const helpOpen=q('[data-ab-help-open]');if(helpOpen)helpOpen.onclick=()=>{historyHelpOpen=true;renderStage()};
     const helpClose=q('[data-ab-help-close]');if(helpClose)helpClose.onclick=()=>{historyHelpOpen=false;renderStage()};
     qa('[data-ab-bead]').forEach(bead=>{
@@ -689,7 +689,7 @@ function abacusTool(){
     const fresh=q('#ab-new-task');if(fresh)fresh.onclick=()=>newTask(playMode,'play');
     const customShow=q('#ab-custom-show');if(customShow)customShow.onclick=()=>{
       const target=normal(q('#ab-custom-target')?.value);
-      newTask('show','play',{mode:'show',start:0,target,prompt:'Show '+target+' on the abacus.',requiresAnswer:false});
+      newTask('show','play',{mode:'show',start:0,target,prompt:'Show '+target+' on the '+instrument+'.',requiresAnswer:false});
     };
     const customAdd=q('#ab-custom-add');if(customAdd)customAdd.onclick=()=>{
       const a=normal(q('#ab-a')?.value),b=Math.max(0,Math.round(num(q('#ab-b')?.value,0)));
