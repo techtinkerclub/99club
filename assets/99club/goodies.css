@@ -1131,3 +1131,64 @@ html.gd-embed-page,body.gd-embed-page{margin:0!important;width:100%!important;he
 
 .gd-hs-summary-actions{display:flex;align-items:center;gap:8px}.gd-hs-rule-chip{min-height:32px;padding:5px 10px;border:1px solid #a8cbc7;border-radius:999px;background:#f5fbf9;color:#176c65;font:inherit;font-size:.72rem;font-weight:900;cursor:pointer}.gd-hs-rule-chip:hover,.gd-hs-rule-chip:focus-visible,.gd-hs-rule-chip.is-active{background:#e3f4ef;outline:none;box-shadow:0 0 0 3px rgba(20,125,117,.10)}.gd-hs-rule-popover{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;margin:-2px 0 9px;padding:8px;border:1px solid #c8dcda;border-radius:12px;background:rgba(255,255,255,.96);box-shadow:0 8px 22px rgba(33,63,69,.08)}.gd-hs-rule-modes{display:flex;flex-wrap:wrap;gap:5px}.gd-hs-rule-popover button{min-height:31px;padding:4px 8px;border:1px solid #c9d8d9;border-radius:8px;background:#fff;color:#37555b;font:inherit;font-size:.68rem;font-weight:850;cursor:pointer}.gd-hs-rule-popover button:hover,.gd-hs-rule-popover button:focus-visible,.gd-hs-rule-popover button.is-active{background:#e9f6f2;border-color:#8cbcb6;outline:none}.gd-hs-rule-number{display:flex;align-items:center;gap:5px}.gd-hs-rule-number button{width:31px;min-width:31px;padding:0;display:grid;place-items:center;font-family:Arial,sans-serif;font-size:18px;line-height:1}.gd-hs-rule-number strong{min-width:28px;text-align:center;font-size:.82rem}.gd-embed-page .gd-hs-rule-chip{min-height:28px;padding:3px 8px;font-size:.66rem}.gd-embed-page .gd-hs-rule-popover{margin:0 0 6px;padding:6px;gap:6px}.gd-embed-page .gd-hs-rule-popover button{min-height:27px;padding:3px 6px;font-size:.62rem}
 @media(max-width:620px){.gd-hs-rule-popover{grid-template-columns:1fr}.gd-hs-rule-number{justify-content:flex-end}.gd-hs-summary-actions{gap:5px}}
+
+
+/* Floating whiteboard help: same movable panel shell as Settings, dedicated reading layout. */
+.gd-board-floating-controls.is-help{
+  width:min(360px,calc(100% - 16px));
+  max-height:min(78vh,720px);
+}
+.gd-board-floating-controls.is-help .gd-board-floating-controls-body{
+  padding:10px 11px 12px;
+}
+.gd-board-help-panel{
+  color:#3c5257;
+  font-size:.76rem;
+  line-height:1.42;
+}
+.gd-board-help-intro{
+  margin:0 0 9px;
+  color:#40575c;
+  font-weight:650;
+}
+.gd-board-help-steps{
+  margin:0 0 10px;
+  padding-left:1.3rem;
+}
+.gd-board-help-steps li{
+  margin:.36rem 0;
+}
+.gd-board-help-example{
+  margin:9px 0;
+  padding:9px 10px;
+  border-left:4px solid #b6863e;
+  border-radius:9px;
+  background:#f6ead5;
+  color:#4d452f;
+}
+.gd-board-help-example strong{
+  display:block;
+  margin-bottom:3px;
+  color:#5c4829;
+  font-size:.72rem;
+}
+.gd-board-help-example p{
+  margin:0;
+}
+.gd-board-help-history{
+  margin-top:8px;
+  border-top:1px solid #e2e9e8;
+  padding-top:7px;
+}
+.gd-board-help-history summary{
+  cursor:pointer;
+  color:#62777b;
+  font-weight:850;
+  font-size:.7rem;
+}
+.gd-board-help-history p{
+  margin:6px 0 0;
+  color:#5d7074;
+  font-size:.71rem;
+  line-height:1.4;
+}
