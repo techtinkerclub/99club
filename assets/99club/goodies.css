@@ -1202,3 +1202,78 @@ html.gd-embed-page,body.gd-embed-page{margin:0!important;width:100%!important;he
 .gd-embed-page #gd-stage{
   align-content:flex-start!important;
 }
+
+
+/* Number Line v7 review: current whiteboard/challenge conventions. */
+.nl-preset-row{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+}
+.nl-stage-wrap{
+  align-content:start;
+}
+.nl-export-frame{
+  box-shadow:none;
+}
+.nl-svg-marker{
+  -webkit-tap-highlight-color:transparent;
+}
+.nl-svg-marker:focus,
+.nl-svg-marker:focus-visible{
+  outline:none;
+}
+.nl-challenge-banner .gd-challenge-actions{
+  gap:5px;
+}
+.nl-challenge-banner .gd-challenge-action,
+.nl-challenge-banner .gd-challenge-reveal{
+  min-height:32px;
+  padding:5px 9px;
+  white-space:nowrap;
+}
+
+/* The mixed whiteboard owns menus/actions; never expose the legacy Number Line board UI inside an iframe. */
+.gd-embed-page .nl-board-ui{
+  display:none!important;
+}
+.gd-embed-page .nl-stage-wrap{
+  gap:8px!important;
+}
+.gd-embed-page .nl-export-frame{
+  border-radius:12px!important;
+  overflow:visible!important;
+}
+.gd-embed-page .nl-challenge-banner{
+  margin:0!important;
+  padding:8px 10px!important;
+  gap:6px 9px!important;
+  border-radius:12px!important;
+}
+.gd-embed-page .nl-challenge-banner .gd-challenge-kicker{
+  font-size:.6rem!important;
+}
+.gd-embed-page .nl-challenge-banner .gd-challenge-prompt{
+  line-height:1.3!important;
+}
+.gd-embed-page .nl-challenge-banner .gd-challenge-actions{
+  gap:4px!important;
+}
+.gd-embed-page .nl-challenge-banner .gd-challenge-action,
+.gd-embed-page .nl-challenge-banner .gd-challenge-reveal{
+  min-height:30px!important;
+  padding:4px 8px!important;
+  font-size:.66rem!important;
+}
+
+/* Clear mode feedback without visually overpowering the mathematics. */
+.gd-embed-page #gd-stage.is-add-marker-mode .nl-baseline{
+  stroke:#147d75!important;
+  stroke-width:5!important;
+}
+.gd-embed-page #gd-stage.is-delete-mode .nl-baseline{
+  stroke:#a95757!important;
+  stroke-width:5!important;
+}
+
+@media(max-width:620px){
+  .nl-preset-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
