@@ -1031,3 +1031,59 @@
   background:#fbfdfc!important;
   border-color:#dce5e3!important;
 }
+
+
+/* v14: Napier tray fits the instrument; slide rule stays readable in whiteboard mode. */
+.gd-history-device{
+  justify-content:center!important;
+  overflow:visible!important;
+}
+.gd-history-device > .gd-napier{
+  width:fit-content!important;
+  min-width:0!important;
+  max-width:min(470px,96%)!important;
+  margin:0 auto!important;
+}
+.gd-napier-title{
+  min-height:20px;
+}
+.gd-napier-working{
+  width:max-content;
+  max-width:100%;
+  margin:0 auto;
+}
+.gd-napier-bones{
+  flex-wrap:nowrap!important;
+}
+.gd-napier-tray{
+  display:grid!important;
+  grid-template-columns:repeat(6,minmax(32px,1fr))!important;
+  width:min(100%,410px)!important;
+  margin:0 auto!important;
+}
+.gd-napier-tray button{
+  width:100%!important;
+}
+.gd-napier-footer{
+  flex-wrap:wrap;
+  justify-content:center!important;
+  gap:6px 14px!important;
+}
+.gd-napier-footer .gd-history-readout{
+  width:auto!important;
+  text-align:center!important;
+}
+
+/* Keep the movable C scale legible: prefer factor orientation with modest travel. */
+.gd-slide-channel{
+  overflow:hidden!important;
+}
+.gd-slide-c{
+  will-change:transform;
+}
+.gd-slide-c.is-dragging{
+  box-shadow:0 2px 7px rgba(55,39,19,.2)!important;
+}
+.gd-slide-scale{
+  min-width:100%!important;
+}
