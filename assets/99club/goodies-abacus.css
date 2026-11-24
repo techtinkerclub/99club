@@ -1837,3 +1837,65 @@
     transform:translate(-50%,-50%) rotate(var(--pa-angle)) translateY(-34px) scale(.92);
   }
 }
+
+
+/* v21: Pascaline ADD / SUBTRACT operating modes. */
+.gd-pascaline-mode{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  width:min(320px,100%);
+  margin:4px auto 8px;
+  padding:3px;
+  border:1px solid color-mix(in srgb,var(--dev-frame,#7b6238),transparent 48%);
+  border-radius:11px;
+  background:rgba(255,255,255,.28);
+  box-shadow:inset 0 1px 3px rgba(74,48,18,.1);
+}
+.gd-pascaline-mode button{
+  min-height:36px;
+  padding:6px 10px;
+  border:0;
+  border-radius:8px;
+  background:transparent;
+  color:var(--dev-ink,#553b20);
+  font:inherit;
+  font-size:.7rem;
+  font-weight:900;
+  letter-spacing:.025em;
+  cursor:pointer;
+}
+.gd-pascaline-mode button.is-active{
+  background:#fff8e8;
+  box-shadow:0 2px 6px rgba(66,43,15,.14),inset 0 0 0 1px rgba(111,78,32,.2);
+}
+.gd-pascaline--add .gd-pascaline-mode [data-ab-pa-mode="add"].is-active{
+  color:#37665e;
+}
+.gd-pascaline--subtract .gd-pascaline-mode [data-ab-pa-mode="subtract"].is-active{
+  color:#8a4e3d;
+  background:#fff1eb;
+}
+.gd-pascaline-mode button:disabled{
+  cursor:default;
+  opacity:.58;
+}
+.gd-pascaline-mode button.is-active:disabled{
+  opacity:1;
+}
+.gd-pascaline--subtract .gd-pascaline-rule span{
+  background:rgba(255,238,230,.72);
+  color:#784838;
+}
+.gd-pascaline--subtract .gd-pascaline-hub b{
+  color:#8a4938;
+}
+.gd-pascaline-wheel-wrap.is-borrow .gd-pascaline-window{
+  background:#ffe0d3!important;
+  box-shadow:0 0 0 5px rgba(190,89,59,.2),inset 0 2px 5px rgba(65,46,22,.15)!important;
+  transform:translateY(-1px);
+}
+.gd-pascaline-wheel-wrap.is-borrow .gd-pascaline-place:after{
+  content:" · BORROW";
+  color:#9a4935;
+  font-size:.5rem;
+}
