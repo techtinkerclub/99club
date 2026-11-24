@@ -772,6 +772,15 @@ function numberLineV2(){
   function shortLineLabel(label){
     const text=String(label||'');return text.length>14?text.slice(0,13)+'…':text;
   }
+  function isJumpChallenge(){
+    return !!(state.challenge?.mode==='standard'&&['jump','missing-start','repeated-jumps','fraction-jump','fraction-sequence'].includes(state.challenge.type));
+  }
+  function hiddenChallengeMarker(line,marker){
+    return !!(state.challenge&&!state.challenge.revealed&&(state.challenge.hiddenMarkerIds.includes(marker.id)||state.challenge.hiddenMarkerIds.includes(line.id+':'+marker.id)));
+  }
+  function jumpMarkerAtValue(line,value){
+    return (line.markers||[]).find(m=>Math.abs(m.value-value)<Math.max(1e-9,scaleFor(line).step/1000));
+  }
   function buildLine(layout){
     const {line,baseY,above,below,index}=layout,scale=scaleFor(line),showLabels=labelsVisible(line,index);
     const range=scale.max-scale.min,rawCount=Math.floor(range/scale.step+1e-8),safetyStride=Math.max(1,Math.ceil(rawCount/160)),renderStep=scale.step*safetyStride*line.tickStride,tickCount=Math.floor(range/renderStep+1e-8);
@@ -789,8 +798,10 @@ function numberLineV2(){
       if(showLabels&&major){
         const hidden=hiddenTick(v,line),majorIndex=Math.round(i/Math.max(1,scale.labelEvery));
         const showLabel=hidden||i===0||i===tickCount||majorIndex%labelSkip===0;
-        if(hidden)ticks+=answerBox(x,baseY+30,50,24);
-        else if(showLabel)ticks+=`<text x="${x}" y="${baseY+35}" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" fill="#33474e">${esc(lineValueText(line,v))}</text>`;
+        if(hidden){
+          const jumpEndpoint=isJumpChallenge()&&!!jumpMarkerAtValue(line,v);
+          if(!jumpEndpoint)ticks+=answerBox(x,baseY+30,50,24);
+        }else if(showLabel)ticks+=`<text x="${x}" y="${baseY+35}" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" fill="#33474e">${esc(lineValueText(line,v))}</text>`;
       }
     }
     const baseline=`<line class="nl-baseline" data-line-id="${esc(line.id)}" data-nl-line-mode="${esc(line.scaleMode)}" x1="${X0}" y1="${baseY}" x2="${X1}" y2="${baseY}" stroke="#24343b" stroke-width="4" stroke-linecap="round"/><rect data-line-hit="${esc(line.id)}" x="${X0}" y="${baseY-16}" width="${X1-X0}" height="32" fill="transparent" style="cursor:crosshair"/>`;
@@ -808,11 +819,17 @@ function numberLineV2(){
         relationshipLayer+=`<path d="M${left} ${y+drop} V${y} H${right} V${y+drop}" fill="none" stroke="${esc(r.color)}" stroke-width="2.4" stroke-linecap="round"/>`;
         if(d.show&&(d.label||d.hidden)){const labelCy=r.side==='above'?y-25:y+25;if(d.hidden)relationshipLayer+=answerBox(mid,labelCy,58,24);else relationshipLayer+=`<rect x="${mid-31}" y="${labelCy-12}" width="62" height="22" rx="10" fill="#fff"/><text x="${mid}" y="${labelCy+4}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="${esc(r.color)}">${esc(d.label)}</text>`}
       }else{
-        const y1=markerCentre(layout,d.a),y2=markerCentre(layout,d.b);
-        const controlY=r.side==='above'?baseY-92-lane*30:baseY+(showLabels?132:108)+lane*30;
-        const startY=y1,endY=y2;
-        relationshipLayer+=`<path d="M${x1} ${startY} Q${mid} ${controlY} ${x2} ${endY}" fill="none" stroke="${esc(r.color)}" stroke-width="3" stroke-linecap="round" marker-end="url(#nl-arrow-${esc(line.id)}-${esc(r.id)})"/>`;
-        if(d.show&&(d.label||d.hidden)){const labelCy=r.side==='above'?controlY-19:controlY+19;if(d.hidden)relationshipLayer+=answerBox(mid,labelCy,58,24);else relationshipLayer+=`<rect x="${mid-31}" y="${labelCy-12}" width="62" height="22" rx="10" fill="#fff"/><text x="${mid}" y="${labelCy+4}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="${esc(r.color)}">${esc(d.label)}</text>`}
+        const challengeJump=isJumpChallenge();
+        const y1=challengeJump?baseY-5:markerCentre(layout,d.a),y2=challengeJump?baseY-5:markerCentre(layout,d.b);
+        const controlY=challengeJump
+          ? baseY-62-lane*26
+          : (r.side==='above'?baseY-92-lane*30:baseY+(showLabels?132:108)+lane*30);
+        relationshipLayer+=`<path class="${challengeJump?'nl-challenge-jump':'nl-jump'}" d="M${x1} ${y1} Q${mid} ${controlY} ${x2} ${y2}" fill="none" stroke="${esc(r.color)}" stroke-width="${challengeJump?2.6:3}" stroke-linecap="round" marker-end="url(#nl-arrow-${esc(line.id)}-${esc(r.id)})"/>`;
+        if(d.show&&(d.label||d.hidden)){
+          const labelCy=challengeJump?controlY-12:(r.side==='above'?controlY-19:controlY+19);
+          if(d.hidden)relationshipLayer+=answerBox(mid,labelCy,58,24);
+          else relationshipLayer+=`<rect x="${mid-30}" y="${labelCy-11}" width="60" height="21" rx="10" fill="#fff"/><text x="${mid}" y="${labelCy+4}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12.5" font-weight="700" fill="${esc(r.color)}">${esc(d.label)}</text>`;
+        }
       }
     });
 
@@ -825,9 +842,15 @@ function numberLineV2(){
     }
 
     line.markers.forEach((m,i)=>{
-      const x=px(m.value,line),cy=markerCentre(layout,m),hidden=state.challenge&&!state.challenge.revealed&&(state.challenge.hiddenMarkerIds.includes(m.id)||state.challenge.hiddenMarkerIds.includes(line.id+':'+m.id)),showValue=m.showValue&&!hidden;
+      const x=px(m.value,line),cy=markerCentre(layout,m),hidden=hiddenChallengeMarker(line,m),showValue=m.showValue&&!hidden;
       const valueY=m.side==='above'?cy-28:cy+34;
-      markerLayer+=`<g class="nl-svg-marker" data-line-id="${esc(line.id)}" data-marker-hit="${esc(m.id)}"${m.positionGroup?` data-position-group="${esc(m.positionGroup)}"`:''} style="cursor:ew-resize;touch-action:none">${markerStem(layout,m)}<circle cx="${x}" cy="${layout.baseY}" r="4.2" fill="${esc(m.color)}" stroke="#fff" stroke-width="1.6"/><circle cx="${x}" cy="${cy}" r="24" fill="transparent"/><text x="${x}" y="${cy+5}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="760" fill="#263b42" stroke="#fff" stroke-width="4" paint-order="stroke" pointer-events="none">${esc(m.label||String(i+1))}</text><line x1="${x-8}" y1="${cy+10}" x2="${x+8}" y2="${cy+10}" stroke="${esc(m.color)}" stroke-width="3" stroke-linecap="round" pointer-events="none"/>${showValue?`<text x="${x}" y="${valueY}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12.5" font-weight="680" fill="#33474e" stroke="#fff" stroke-width="3" paint-order="stroke" pointer-events="none">${esc(lineValueText(line,m.value))}</text>`:(hidden?answerBox(x,valueY-5,72,24):'')}</g>`;
+      if(isJumpChallenge()){
+        const label=String(m.label||'').trim();
+        const knownLabel=label&&label!=='?'?label:'';
+        markerLayer+=`<g class="nl-svg-marker nl-svg-marker--challenge-jump" data-line-id="${esc(line.id)}" data-marker-hit="${esc(m.id)}"><circle cx="${x}" cy="${baseY}" r="${hidden?6:5}" fill="${hidden?'#fff':esc(m.color)}" stroke="${esc(m.color)}" stroke-width="${hidden?2.4:2}"/>${hidden?`<text x="${x}" y="${baseY-17}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="850" fill="#33474e">?</text>`:(knownLabel?`<text x="${x}" y="${baseY-18}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12.5" font-weight="800" fill="#33474e" stroke="#fff" stroke-width="3" paint-order="stroke">${esc(knownLabel)}</text>`:'')}${showValue&&knownLabel?`<text x="${x}" y="${baseY+34}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#33474e">${esc(lineValueText(line,m.value))}</text>`:''}</g>`;
+      }else{
+        markerLayer+=`<g class="nl-svg-marker" data-line-id="${esc(line.id)}" data-marker-hit="${esc(m.id)}"${m.positionGroup?` data-position-group="${esc(m.positionGroup)}"`:''} style="cursor:ew-resize;touch-action:none">${markerStem(layout,m)}<circle cx="${x}" cy="${layout.baseY}" r="4.2" fill="${esc(m.color)}" stroke="#fff" stroke-width="1.6"/><circle cx="${x}" cy="${cy}" r="24" fill="transparent"/><text x="${x}" y="${cy+5}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="760" fill="#263b42" stroke="#fff" stroke-width="4" paint-order="stroke" pointer-events="none">${esc(m.label||String(i+1))}</text><line x1="${x-8}" y1="${cy+10}" x2="${x+8}" y2="${cy+10}" stroke="${esc(m.color)}" stroke-width="3" stroke-linecap="round" pointer-events="none"/>${showValue?`<text x="${x}" y="${valueY}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12.5" font-weight="680" fill="#33474e" stroke="#fff" stroke-width="3" paint-order="stroke" pointer-events="none">${esc(lineValueText(line,m.value))}</text>`:(hidden?answerBox(x,valueY-5,72,24):'')}</g>`;
+      }
     });
 
     return intervalLayer+relationshipLayer+baseline+ticks+lineLabel+markerLayer;
