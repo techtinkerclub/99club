@@ -562,3 +562,58 @@
   .gd-slide-row-tag--c{top:72px}
   .gd-slide-row-tag--d{top:163px}
 }
+
+
+/* v12: make slide-rule index methods explicit and touch-teachable. */
+.gd-slide-index{
+  position:absolute;
+  z-index:6;
+  top:5px;
+  min-width:30px;
+  height:24px;
+  display:grid;
+  place-items:center;
+  border-radius:7px;
+  background:#fffaf0;
+  border:1px solid #a99374;
+  color:#4b3b29;
+  font:900 .68rem Georgia,serif;
+  box-shadow:0 1px 3px rgba(70,50,27,.12);
+  pointer-events:none;
+}
+.gd-slide-index--left{left:4px}
+.gd-slide-index--right{right:4px}
+.gd-slide-index.is-target{
+  background:#fff0b8;
+  border-color:#ba7e20;
+  color:#68430e;
+  box-shadow:0 0 0 3px rgba(207,155,56,.2);
+}
+.gd-slide-target{
+  position:absolute;
+  z-index:5;
+  top:145px;
+  height:80px;
+  transform:translateX(-50%);
+  pointer-events:none;
+}
+.gd-slide-target i{
+  position:absolute;
+  left:50%;
+  top:0;
+  bottom:23px;
+  width:2px;
+  transform:translateX(-50%);
+  background:rgba(191,90,58,.72);
+}
+.gd-slide-target b{
+  position:absolute;
+  left:50%;
+  bottom:0;
+  transform:translateX(-50%);
+  padding:2px 5px;
+  border-radius:6px;
+  background:#fff0e8;
+  color:#8c422e;
+  font-size:.62rem;
+}
