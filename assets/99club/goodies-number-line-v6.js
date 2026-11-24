@@ -949,7 +949,7 @@ function numberLineV2(){
         ...(state.challenge.mode==='standard'&&CHALLENGE_TEMPLATES.some(t=>t.id===state.challenge.type)?[{action:'another',label:'Another'}]:[]),
         {action:'end',label:beforeChallenge?'Back to setup':'End challenge'}
       ]:[];
-    const prompt=state.challenge?(CK?CK.bannerHtml(state.challenge,{actions:challengeActions}):`<div class="nl-challenge-banner"><span>Challenge</span><strong>${esc(state.challenge.prompt)}</strong></div>`):'';
+    const prompt=state.challenge?(CK?CK.bannerHtml(state.challenge,{actions:challengeActions,hideReveal:!!state.challenge.correct}):`<div class="nl-challenge-banner"><span>Challenge</span><strong>${esc(state.challenge.prompt)}</strong></div>`):'';
     const solve=state.challenge?challengeResponseHtml(state.challenge):'';
     q('#gd-stage').innerHTML=`<button type="button" hidden data-nl-random-challenge aria-hidden="true"></button><div class="nl-stage-wrap">${prompt}${solve}<div class="nl-export-frame">${buildSvg()}</div><p class="nl-drag-help">Drag markers directly. Values snap to the chosen tick step and relationships move with them.</p></div>${boardUiHtml()}`;
     stage.classList.toggle('is-board-active',boardActive());
@@ -1245,7 +1245,7 @@ function numberLineV2(){
       return raw===expected;
     }
     if(ch.type==='missing-labels'){
-      const got=raw.split(/[;,]+/).map(x=>normaliseChallengeResponse(x)).filter(Boolean).sort();
+      const got=raw.split(/[;,\s]+/).map(x=>normaliseChallengeResponse(x)).filter(Boolean).sort();
       const exp=String(ch.answer).split(',').map(x=>normaliseChallengeResponse(x)).filter(Boolean).sort();
       return got.length===exp.length&&got.every((x,i)=>x===exp[i]);
     }
