@@ -224,12 +224,10 @@ function abacusTool(){
     return '<div class="gd-napier-bone"><div class="gd-napier-head"><strong>'+d+'</strong>'+(!historyChallenge?'<button type="button" class="gd-napier-remove" data-ab-napier-remove="'+index+'" aria-label="Remove rod '+d+'">×</button>':'')+'</div>'+Array.from({length:9},(_,i)=>napierCell(+d,i+1)).join('')+'</div>';
   }
   function slidePos(v){return Math.log10(v)*100}
-  function optimiseSlideOrientation(){
-    if(historyChallenge)return;
-    const product=slideA*slideB;
-    if(product<=10&&slideA>slideB)[slideA,slideB]=[slideB,slideA];
-    if(product>10&&slideA<slideB)[slideA,slideB]=[slideB,slideA];
-    slideIndex=product>10?'right':'left';
+  function setSlideFromFactors(a,b){
+    slideA=clamp(Number(a)||1,1,9.9);
+    slideB=clamp(Number(b)||1,1,9.9);
+    slideIndex=slideA*slideB>10?'right':'left';
   }
   function slideOffset(){return slidePos(slideA)-(slideIndex==='right'?100:0)}
   function slideCursorPos(){return clamp(slideOffset()+slidePos(slideB),0,100)}
@@ -264,9 +262,8 @@ function abacusTool(){
       const product=(+napierNumber||0)*napierMultiplier;
       body='<div class="gd-napier"><div class="gd-napier-title"><strong>NAPIER\'S BONES</strong><span>Multiplication rods</span></div><div class="gd-napier-working"><div class="gd-napier-row-index"><span>×</span>'+Array.from({length:9},(_,i)=>'<button type="button" data-ab-napier-row="'+(i+1)+'"'+(historyChallenge?' disabled':'')+' class="'+(napierMultiplier===i+1?'is-selected':'')+'">'+(i+1)+'</button>').join('')+'</div><div class="gd-napier-bones">'+napierNumber.split('').map((d,i)=>napierBone(d,i)).join('')+'</div></div>'+(historyChallenge?'':'<div class="gd-napier-tray" aria-label="Choose a rod">'+Array.from({length:10},(_,i)=>'<button type="button" data-ab-napier-add="'+i+'">'+i+'</button>').join('')+'<button type="button" data-ab-napier-clear>Clear</button></div>')+'<div class="gd-napier-footer"><span class="gd-napier-highlight">Use row <strong>'+napierMultiplier+'</strong></span><span class="gd-history-readout">'+esc(napierNumber)+' × '+napierMultiplier+' = <strong>'+(historyChallenge&&!historyRevealed?'?':product.toLocaleString('en-GB'))+'</strong></span></div></div>';
     }else if(kind==='slide'){
-      optimiseSlideOrientation();
       const shift=slideOffset(),cursor=slideCursorPos(),targetA=historyChallenge?.a??slideA,targetB=historyChallenge?.b??slideB,targetProduct=Math.round(targetA*targetB*1000)/1000,targetIndex=(historyChallenge?.index??(targetA*targetB<=10?'left':'right')),targetIndexLabel=targetIndex==='right'?'10':'1',targetD=slidePos(targetA);
-      body='<div class="gd-slide-rule"><div class="gd-slide-shell"><div class="gd-slide-brand"><strong>TEACHING SLIDE RULE</strong><span>C / D logarithmic scales</span></div><div class="gd-slide-body"><div class="gd-slide-stock"><div class="gd-slide-stock-edge"></div><span class="gd-slide-row-tag gd-slide-row-tag--c">C</span><div class="gd-slide-channel"><div class="gd-slide-scale gd-slide-c" data-ab-slide-c style="transform:translateX('+shift+'%)"><span class="gd-slide-index gd-slide-index--left'+(historyChallenge&&targetIndex==='left'?' is-target':'')+'">1</span><span class="gd-slide-index gd-slide-index--right'+(historyChallenge&&targetIndex==='right'?' is-target':'')+'">10</span>'+slideTicks()+'</div></div><span class="gd-slide-row-tag gd-slide-row-tag--d">D</span><div class="gd-slide-scale gd-slide-d">'+slideTicks()+'</div>'+(historyChallenge?'<span class="gd-slide-target" style="left:'+targetD+'%" aria-hidden="true"><i></i><b>'+targetA+'</b></span>':'')+'</div><div class="gd-slide-cursor" data-ab-slide-cursor style="left:'+cursor+'%"><span class="gd-slide-glass"></span><i></i><b></b></div></div></div><div class="gd-slide-steps"><span>1 · Align the highlighted C='+targetIndexLabel+' end with D='+targetA+'</span><span>2 · Find C='+targetB+'</span><span>3 · Move the cursor there and read D</span></div><div class="gd-history-readout">'+targetA+' × '+targetB+' ≈ <strong>'+(historyChallenge&&!historyRevealed?'?':targetProduct.toLocaleString('en-GB',{maximumFractionDigits:3}))+'</strong></div></div>';
+      body='<div class="gd-slide-rule"><div class="gd-slide-shell"><div class="gd-slide-brand"><strong>TEACHING SLIDE RULE</strong><span>C / D logarithmic scales</span></div><div class="gd-slide-body"><div class="gd-slide-stock"><div class="gd-slide-stock-edge"></div><span class="gd-slide-row-tag gd-slide-row-tag--c">C</span><div class="gd-slide-channel" data-ab-slide-track aria-label="Drag the C scale"><div class="gd-slide-scale gd-slide-c" data-ab-slide-c style="transform:translateX('+shift+'%)"><span class="gd-slide-index gd-slide-index--left'+(historyChallenge&&targetIndex==='left'?' is-target':'')+'">1</span><span class="gd-slide-index gd-slide-index--right'+(historyChallenge&&targetIndex==='right'?' is-target':'')+'">10</span>'+slideTicks()+'</div></div><span class="gd-slide-row-tag gd-slide-row-tag--d">D</span><div class="gd-slide-scale gd-slide-d">'+slideTicks()+'</div>'+(historyChallenge?'<span class="gd-slide-target" style="left:'+targetD+'%" aria-hidden="true"><i></i><b>'+targetA+'</b></span>':'')+'</div><div class="gd-slide-cursor" data-ab-slide-cursor style="left:'+cursor+'%"><span class="gd-slide-glass"></span><i></i><b></b></div></div></div><div class="gd-slide-steps"><span>1 · Align the highlighted C='+targetIndexLabel+' end with D='+targetA+'</span><span>2 · Find C='+targetB+'</span><span>3 · Move the cursor there and read D</span><button type="button" class="gd-slide-reset" data-ab-slide-reset>Reset</button></div><div class="gd-history-readout">'+targetA+' × '+targetB+' ≈ <strong>'+(historyChallenge&&!historyRevealed?'?':targetProduct.toLocaleString('en-GB',{maximumFractionDigits:3}))+'</strong></div></div>';
     }else if(kind==='pascaline'){
       const places=['Thousands','Hundreds','Tens','Ones'];
       const wheels=pascalDigits.map((d,i)=>'<div class="gd-pascaline-wheel-wrap"><span>'+places[i]+'</span><div class="gd-pascaline-wheel" data-ab-pa-wheel="'+i+'"><small>'+((d+9)%10)+'</small><strong>'+d+'</strong><small>'+((d+1)%10)+'</small></div><div class="gd-pascaline-wheel-buttons"><button type="button" data-ab-pa-sub="'+i+'">−</button><button type="button" data-ab-pa-add="'+i+'">+</button></div></div>').join('');
@@ -314,18 +311,57 @@ function abacusTool(){
       w.onpointerup=e=>{if(!historyDrag||historyDrag.type!=='wheel'||historyDrag.index!==+w.dataset.abPaWheel)return;const dy=e.clientY-historyDrag.startY,idx=historyDrag.index;historyDrag=null;if(Math.abs(dy)>18){pascalStep(idx,dy<0?1:-1);renderHistoricalStage()}};
       w.onpointercancel=()=>{historyDrag=null};
     });
-    const slide=q('[data-ab-slide-c]');if(slide){
-      slide.onpointerdown=e=>{if(e.button!==0)return;const body=slide.closest('.gd-slide-body'),rect=body.getBoundingClientRect();historyDrag={type:'slide',pointerId:e.pointerId,startX:e.clientX,startShift:slideOffset(),width:rect.width,el:slide};slide.classList.add('is-dragging');try{slide.setPointerCapture(e.pointerId)}catch(_){}};
-      slide.onpointermove=e=>{if(!historyDrag||historyDrag.el!==slide)return;const shift=clamp(historyDrag.startShift+(e.clientX-historyDrag.startX)/Math.max(1,historyDrag.width)*100,-95,95);slide.style.transform='translateX('+shift+'%)'};
-      slide.onpointerup=e=>{if(!historyDrag||historyDrag.el!==slide)return;const shift=clamp(historyDrag.startShift+(e.clientX-historyDrag.startX)/Math.max(1,historyDrag.width)*100,-95,95);slideIndex=shift<0?'right':'left';slideA=Math.round(Math.pow(10,(shift+(slideIndex==='right'?100:0))/100)*10)/10;historyDrag=null;renderAll()};
-      slide.onpointercancel=()=>{historyDrag=null;renderAll()};
+    const slide=q('[data-ab-slide-c]'),slideTrack=q('[data-ab-slide-track]');
+    if(slide&&slideTrack){
+      const commitSlide=()=>{
+        if(!historyDrag||historyDrag.type!=='slide')return;
+        const shift=clamp(historyDrag.currentShift??historyDrag.startShift,-95,95);
+        slideIndex=shift<0?'right':'left';
+        slideA=Math.round(Math.pow(10,(shift+(slideIndex==='right'?100:0))/100)*10)/10;
+        historyDrag=null;renderAll();
+      };
+      slideTrack.onpointerdown=e=>{
+        if(e.button!==0)return;
+        const body=slide.closest('.gd-slide-body'),rect=body.getBoundingClientRect();
+        historyDrag={type:'slide',pointerId:e.pointerId,startX:e.clientX,startShift:slideOffset(),currentShift:slideOffset(),width:rect.width,el:slideTrack};
+        slide.classList.add('is-dragging');
+        try{slideTrack.setPointerCapture(e.pointerId)}catch(_){}
+        e.preventDefault();
+      };
+      slideTrack.onpointermove=e=>{
+        if(!historyDrag||historyDrag.type!=='slide'||historyDrag.el!==slideTrack)return;
+        const shift=clamp(historyDrag.startShift+(e.clientX-historyDrag.startX)/Math.max(1,historyDrag.width)*100,-95,95);
+        historyDrag.currentShift=shift;
+        slide.style.transform='translateX('+shift+'%)';
+        e.preventDefault();
+      };
+      slideTrack.onpointerup=e=>{if(historyDrag?.type==='slide')commitSlide()};
+      slideTrack.onpointercancel=()=>{if(historyDrag?.type==='slide')commitSlide()};
     }
     const cursor=q('[data-ab-slide-cursor]');if(cursor){
-      cursor.onpointerdown=e=>{if(e.button!==0)return;const body=cursor.closest('.gd-slide-body'),rect=body.getBoundingClientRect();historyDrag={type:'cursor',pointerId:e.pointerId,left:rect.left,width:rect.width,el:cursor};cursor.classList.add('is-dragging');try{cursor.setPointerCapture(e.pointerId)}catch(_){}};
-      cursor.onpointermove=e=>{if(!historyDrag||historyDrag.el!==cursor)return;const pct=clamp((e.clientX-historyDrag.left)/Math.max(1,historyDrag.width)*100,0,100);cursor.style.left=pct+'%'};
-      cursor.onpointerup=e=>{if(!historyDrag||historyDrag.el!==cursor)return;const pct=clamp((e.clientX-historyDrag.left)/Math.max(1,historyDrag.width)*100,0,100),relative=clamp(pct-slideOffset(),0,100);slideB=Math.round(Math.pow(10,relative/100)*10)/10;historyDrag=null;renderAll()};
-      cursor.onpointercancel=()=>{historyDrag=null;renderAll()};
+      const commitCursor=()=>{
+        if(!historyDrag||historyDrag.type!=='cursor')return;
+        const pct=clamp(historyDrag.currentPct??historyDrag.startPct,0,100),relative=clamp(pct-slideOffset(),0,100);
+        slideB=Math.round(Math.pow(10,relative/100)*10)/10;
+        historyDrag=null;renderAll();
+      };
+      cursor.onpointerdown=e=>{
+        if(e.button!==0)return;
+        const body=cursor.closest('.gd-slide-body'),rect=body.getBoundingClientRect(),startPct=slideCursorPos();
+        historyDrag={type:'cursor',pointerId:e.pointerId,left:rect.left,width:rect.width,startPct,currentPct:startPct,el:cursor};
+        cursor.classList.add('is-dragging');
+        try{cursor.setPointerCapture(e.pointerId)}catch(_){}
+        e.preventDefault();e.stopPropagation();
+      };
+      cursor.onpointermove=e=>{
+        if(!historyDrag||historyDrag.type!=='cursor'||historyDrag.el!==cursor)return;
+        const pct=clamp((e.clientX-historyDrag.left)/Math.max(1,historyDrag.width)*100,0,100);
+        historyDrag.currentPct=pct;cursor.style.left=pct+'%';e.preventDefault();
+      };
+      cursor.onpointerup=()=>{if(historyDrag?.type==='cursor')commitCursor()};
+      cursor.onpointercancel=()=>{if(historyDrag?.type==='cursor')commitCursor()};
     }
+    const resetSlide=q('[data-ab-slide-reset]');if(resetSlide)resetSlide.onclick=()=>{slideA=1;slideB=1;slideIndex='left';renderAll()};
   }
 
   // The right-hand column is ones. Each column is a decimal digit (0–9).
@@ -684,8 +720,8 @@ function abacusTool(){
       const regroup=q('#ab-h-regroup');if(regroup)regroup.onclick=()=>{for(let i=3;i>0;i--){const carry=Math.floor(reckoning[i]/10);reckoning[i]%=10;reckoning[i-1]+=carry}renderAll()};
       const nn=q('#ab-napier-number');if(nn)nn.oninput=()=>{napierNumber=(nn.value.replace(/\D/g,'').slice(0,5)||'0');nn.value=napierNumber;renderStage()};
       const nm=q('#ab-napier-mult');if(nm)nm.onchange=()=>{napierMultiplier=clamp(Math.round(num(nm.value,3)),1,9);renderStage()};
-      const sa=q('#ab-slide-a');if(sa)sa.oninput=()=>{slideA=Number(sa.value);optimiseSlideOrientation();renderAll()};
-      const sb=q('#ab-slide-b');if(sb)sb.oninput=()=>{slideB=Number(sb.value);optimiseSlideOrientation();renderAll()};
+      const sa=q('#ab-slide-a');if(sa)sa.oninput=()=>{setSlideFromFactors(sa.value,slideB);renderAll()};
+      const sb=q('#ab-slide-b');if(sb)sb.oninput=()=>{setSlideFromFactors(slideA,sb.value);renderAll()};
       return;
     }
     const theme=q('#ab-theme');if(theme)theme.onchange=()=>{colourScheme=COLOUR_SCHEMES.some(([id])=>id===theme.value)?theme.value:'classic';renderAll()};
