@@ -1087,3 +1087,110 @@
 .gd-slide-scale{
   min-width:100%!important;
 }
+
+
+/* v15: slide rule behaves like a physical object on a touch whiteboard. */
+.gd-slide-channel{
+  touch-action:none!important;
+  cursor:ew-resize!important;
+}
+.gd-slide-channel:active{cursor:grabbing!important}
+.gd-slide-channel::after{
+  content:"drag C scale";
+  position:absolute;
+  right:8px;
+  bottom:4px;
+  z-index:10;
+  padding:2px 6px;
+  border-radius:999px;
+  background:rgba(255,255,255,.76);
+  color:#766a5b;
+  font-size:.56rem;
+  font-weight:800;
+  pointer-events:none;
+}
+.gd-slide-c{pointer-events:none!important}
+.gd-slide-cursor{touch-action:none!important}
+.gd-slide-reset{
+  min-height:30px;
+  padding:4px 9px;
+  border:1px solid #cbd8d5;
+  border-radius:999px;
+  background:#fff;
+  color:#51666a;
+  font:inherit;
+  font-size:.68rem;
+  font-weight:850;
+  cursor:pointer;
+}
+.gd-slide-reset:hover,.gd-slide-reset:focus-visible{
+  background:#eef5f3;
+  outline:2px solid rgba(56,117,108,.12);
+}
+
+/* Napier's Bones must fit inside an embedded whiteboard object without cropping. */
+.gd-embed-page .gd-history-device>.gd-napier{
+  max-width:min(450px,94%)!important;
+  padding:8px 10px!important;
+  gap:5px!important;
+  border-width:8px!important;
+}
+.gd-embed-page .gd-napier-title{
+  min-height:17px!important;
+  padding-bottom:1px!important;
+}
+.gd-embed-page .gd-napier-title strong{font-size:.7rem!important}
+.gd-embed-page .gd-napier-title span{font-size:.56rem!important}
+.gd-embed-page .gd-napier-working{
+  grid-template-columns:30px auto!important;
+  gap:4px!important;
+}
+.gd-embed-page .gd-napier-row-index{
+  width:30px!important;
+  grid-template-rows:26px repeat(9,26px)!important;
+}
+.gd-embed-page .gd-napier-row-index span,
+.gd-embed-page .gd-napier-row-index button{
+  min-height:26px!important;
+  height:26px!important;
+  font-size:.7rem!important;
+}
+.gd-embed-page .gd-napier-bone{width:52px!important}
+.gd-embed-page .gd-napier-head{
+  height:26px!important;
+  min-height:26px!important;
+  grid-template-columns:1fr 19px!important;
+  padding-left:5px!important;
+}
+.gd-embed-page .gd-napier-head strong{font-size:.9rem!important}
+.gd-embed-page .gd-napier-remove{
+  width:18px!important;
+  height:18px!important;
+  min-width:18px!important;
+  min-height:18px!important;
+  font-size:.7rem!important;
+}
+.gd-embed-page .gd-napier-cell{height:25px!important}
+.gd-embed-page .gd-napier-cell span{font-size:.62rem!important;left:5px!important}
+.gd-embed-page .gd-napier-cell b{font-size:.69rem!important;right:5px!important}
+.gd-embed-page .gd-napier-tray{
+  display:grid!important;
+  grid-template-columns:repeat(11,minmax(28px,1fr))!important;
+  width:min(100%,420px)!important;
+  gap:3px!important;
+  padding-top:1px!important;
+}
+.gd-embed-page .gd-napier-tray button{
+  min-width:0!important;
+  min-height:31px!important;
+  height:31px!important;
+  padding:2px!important;
+  font-size:.72rem!important;
+}
+.gd-embed-page .gd-napier-footer{
+  min-height:22px!important;
+  gap:4px 10px!important;
+}
+.gd-embed-page .gd-napier-highlight{font-size:.7rem!important}
+.gd-embed-page .gd-napier-footer .gd-history-readout{font-size:.76rem!important}
+.gd-embed-page .gd-napier-footer .gd-history-readout strong{font-size:.9rem!important}
