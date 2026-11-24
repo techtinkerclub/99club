@@ -1194,3 +1194,16 @@
 .gd-embed-page .gd-napier-highlight{font-size:.7rem!important}
 .gd-embed-page .gd-napier-footer .gd-history-readout{font-size:.76rem!important}
 .gd-embed-page .gd-napier-footer .gd-history-readout strong{font-size:.9rem!important}
+
+
+.gd-slide-reading{
+  margin-top:8px;
+  text-align:center;
+  color:#5b6668;
+  font-size:.72rem;
+  font-weight:800;
+}
+.gd-slide-reading strong{
+  color:#304f53;
+  font-size:.9rem;
+}
