@@ -799,7 +799,7 @@ function numberLineV2(){
         if(d.show&&(d.label||d.hidden)){const labelCy=r.side==='above'?y-25:y+25;if(d.hidden)relationshipLayer+=answerBox(mid,labelCy,58,24);else relationshipLayer+=`<rect x="${mid-31}" y="${labelCy-12}" width="62" height="22" rx="10" fill="#fff"/><text x="${mid}" y="${labelCy+4}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="${esc(r.color)}">${esc(d.label)}</text>`}
       }else{
         const y1=markerCentre(layout,d.a),y2=markerCentre(layout,d.b);
-        const controlY=r.side==='above'?Math.min(y1,y2,baseY)-92-lane*30:Math.max(y1,y2,baseY)+92+lane*30;
+        const controlY=r.side==='above'?baseY-92-lane*30:baseY+(showLabels?132:108)+lane*30;
         const startY=y1,endY=y2;
         relationshipLayer+=`<path d="M${x1} ${startY} Q${mid} ${controlY} ${x2} ${endY}" fill="none" stroke="${esc(r.color)}" stroke-width="3" stroke-linecap="round" marker-end="url(#nl-arrow-${esc(line.id)}-${esc(r.id)})"/>`;
         if(d.show&&(d.label||d.hidden)){const labelCy=r.side==='above'?controlY-19:controlY+19;if(d.hidden)relationshipLayer+=answerBox(mid,labelCy,58,24);else relationshipLayer+=`<rect x="${mid-31}" y="${labelCy-12}" width="62" height="22" rx="10" fill="#fff"/><text x="${mid}" y="${labelCy+4}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="${esc(r.color)}">${esc(d.label)}</text>`}
