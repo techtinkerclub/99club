@@ -200,7 +200,7 @@ function abacusTool(){
   function helpOverlay(){
     if(!historyHelpOpen)return '';
     const h=deviceHelp();
-    return '<div class="gd-history-help" data-ab-help-overlay><div class="gd-history-help__card"><button class="gd-history-help__close" type="button" data-ab-help-close aria-label="Close instructions">×</button><h3>'+esc(h.title)+'</h3><p>'+esc(h.intro)+'</p><div class="gd-history-context"><strong>History</strong><p>'+esc(h.history||'')+'</p></div><ol>'+h.steps.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ol><div class="gd-history-example"><strong>Worked example</strong><p>'+esc(h.example)+'</p></div></div></div>';
+    return '<aside class="gd-history-guide" data-ab-help-overlay aria-label="'+esc(h.title)+' instructions"><div class="gd-history-guide__head"><div><span>How to use</span><h3>'+esc(h.title)+'</h3></div><button class="gd-history-help__close" type="button" data-ab-help-close aria-label="Close instructions">×</button></div><p class="gd-history-guide__intro">'+esc(h.intro)+'</p><ol>'+h.steps.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ol><div class="gd-history-example"><strong>Worked example</strong><p>'+esc(h.example)+'</p></div><details class="gd-history-context"><summary>History</summary><p>'+esc(h.history||'')+'</p></details></aside>';
   }
   function rodDigitSvg(d,vertical){
     d=clamp(Math.round(d),0,9);
@@ -269,7 +269,7 @@ function abacusTool(){
       const wheels=pascalDigits.map((d,i)=>'<div class="gd-pascaline-wheel-wrap"><span>'+places[i]+'</span><div class="gd-pascaline-wheel" data-ab-pa-wheel="'+i+'"><small>'+((d+9)%10)+'</small><strong>'+d+'</strong><small>'+((d+1)%10)+'</small></div><div class="gd-pascaline-wheel-buttons"><button type="button" data-ab-pa-sub="'+i+'">−</button><button type="button" data-ab-pa-add="'+i+'">+</button></div></div>').join('');
       body='<div class="gd-pascaline"><div class="gd-pascaline-plate"><div class="gd-pascaline-name">PASCALINE</div><div class="gd-pascaline-wheels">'+wheels+'</div><div class="gd-pascaline-gears">'+Array.from({length:7},(_,i)=>'<i style="--i:'+i+'">✺</i>').join('')+'</div></div><div class="gd-history-readout">Value <strong>'+Number(pascalDigits.join('')).toLocaleString('en-GB')+'</strong></div></div>';
     }
-    q('#gd-stage').innerHTML=historyChallengeBanner()+'<div class="gd-history-stage gd-history-theme--'+colourScheme+'">'+deviceToolbar()+'<div class="gd-history-device">'+body+'</div>'+helpOverlay()+'</div>';
+    q('#gd-stage').innerHTML=historyChallengeBanner()+'<div class="gd-history-stage gd-history-theme--'+colourScheme+'">'+deviceToolbar()+'<div class="gd-history-main"><div class="gd-history-device">'+body+'</div>'+helpOverlay()+'</div></div>';
     bindHistoricalStage();
   }
   function pascalStep(index,delta){
@@ -555,13 +555,15 @@ function abacusTool(){
     q('#gd-stage').innerHTML=taskBanner()+
       '<div hidden aria-hidden="true">'+['copy','png','svg','print'].map(type=>'<button type="button" data-gd-direct-export="'+type+'">'+type+'</button>').join('')+'</div>'+
       '<div class="gd-ab-workspace gd-history-theme--'+colourScheme+'">'+deviceToolbar()+
-        '<div class="gd-ab-frame gd-ab-frame--'+kind+'" data-ab-frame>'+
-          '<div class="gd-ab-type-label">'+(kind==='western'?'WESTERN · BASE TEN':kind==='suanpan'?'CHINESE · SUANPAN · 2+5':'JAPANESE · SOROBAN · 1+4')+'</div>'+
-          '<div class="gd-ab-columns" style="--ab-cols:'+rows+'">'+Array.from({length:rows},(_,i)=>columnMarkup(i)).join('')+'</div>'+
-        '</div>'+
-        frameControls()+
-        '<div class="gd-ab-summary"'+(showTotal?'':' hidden')+'><span>Number shown</span><strong data-ab-total>'+(hideTotal?'?':total().toLocaleString('en-GB'))+'</strong></div>'+
-        '<p class="gd-object-hint" data-ab-hint>'+(task?'Move the beads, then check your answer.':kind==='soroban'?'Move beads towards the middle bar to count them.':kind==='suanpan'?'Move the 5-beads and 1-beads towards the middle beam. Regroup at ten for decimal work.':'Move beads left to count them. Each horizontal row has a place value.')+'</p>'+helpOverlay()+
+        '<div class="gd-ab-main"><div class="gd-ab-device-column">'+
+          '<div class="gd-ab-frame gd-ab-frame--'+kind+'" data-ab-frame>'+
+            '<div class="gd-ab-type-label">'+(kind==='western'?'WESTERN · BASE TEN':kind==='suanpan'?'CHINESE · SUANPAN · 2+5':'JAPANESE · SOROBAN · 1+4')+'</div>'+
+            '<div class="gd-ab-columns" style="--ab-cols:'+rows+'">'+Array.from({length:rows},(_,i)=>columnMarkup(i)).join('')+'</div>'+
+          '</div>'+
+          frameControls()+
+          '<div class="gd-ab-summary"'+(showTotal?'':' hidden')+'><span>Number shown</span><strong data-ab-total>'+(hideTotal?'?':total().toLocaleString('en-GB'))+'</strong></div>'+
+          '<p class="gd-object-hint" data-ab-hint>'+(task?'Move the beads, then check your answer.':kind==='soroban'?'Move beads towards the middle bar to count them.':kind==='suanpan'?'Move the 5-beads and 1-beads towards the middle beam. Regroup at ten for decimal work.':'Move beads left to count them. Each horizontal row has a place value.')+'</p>'+
+        '</div>'+helpOverlay()+'</div>'+
       '</div>';
     bindStage();
   }
