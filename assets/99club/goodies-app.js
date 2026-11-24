@@ -1,7 +1,7 @@
 (function(G){
 'use strict';
 if(!G)return;
-const {root,CATS,q,qa,numberLine,placeValue,abacusTool,fractionWall,barModel,hundredSquare,multiplicationGrid,arrayBuilder,clockTool,moneyTool,coordinateTool,measurementTool,randomiser,balanceTool,timesTableVisual,factorExplorer,fdpExplorer,geoboard,mathsCanvas}=G;
+const {root,CATS,q,qa,numberLine,placeValue,abacusTool,fractionWall,barModel,hundredSquare,multiplicationGrid,arrayBuilder,clockTool,moneyTool,coordinateTool,measurementTool,randomiser,balanceTool,timesTableVisual,factorExplorer,fdpExplorer,geoboard,mathsCanvas,westernAbacus,sorobanHistory,reckoningBoard,countingRods,napierBones,slideRule}=G;
 const tools=[
   ['number-line','Number line','↔','number','Explore integers, decimals and jumps on a configurable line.','Mental arithmetic, rounding, negative numbers, fractions/decimals and explaining calculation strategies.',numberLine],
   ['place-value','Place value board','123','number','Build numbers with counters and a linked place-value bead frame.','Reading, composing and decomposing whole numbers and decimals; useful on an interactive whiteboard.',placeValue],
@@ -21,7 +21,13 @@ const tools=[
   ['factors','Factors & multiples','÷','number','Find factor pairs, multiples and prime factors.','Factors, multiples, primes, common factors and divisibility.',factorExplorer],
   ['fdp','Fraction–decimal–percentage','%','fractions','See the same quantity as a fraction, decimal and percentage.','Making equivalence visible with fraction bars and a hundred square.',fdpExplorer],
   ['geoboard','Shape & geoboard','◇','geometry','Plot vertices on a dot grid to make and inspect polygons.','Coordinates, perimeter, area, polygons and geometric reasoning.',geoboard],
-  ['maths-canvas','Maths canvas','✎','canvas','Arrange draggable number and symbol tiles on a clean board.','Teacher modelling, number sentences, ordering, quick examples and pupil explanations.',mathsCanvas]
+  ['maths-canvas','Maths canvas','✎','canvas','Arrange draggable number and symbol tiles on a clean board.','Teacher modelling, number sentences, ordering, quick examples and pupil explanations.',mathsCanvas],
+  ['western-abacus','Western abacus','●','history','Use a physical bead frame for counting, place value and arithmetic.','Explore carrying, exchanging and calculation on a Western-style counting frame.',westernAbacus],
+  ['soroban-history','Japanese soroban','算','history','Calculate with a physical Japanese soroban and its central reckoning beam.','Read place value and practise addition and regrouping with heaven and earth beads.',sorobanHistory],
+  ['reckoning-board','Reckoning board','◉','history','Move loose counters on a historical place-value counting table.','Connect modern place value with historical counter-based calculation and regrouping.',reckoningBoard],
+  ['counting-rods','Chinese counting rods','𝍠','history','Arrange counting-rod numerals on a place-value grid.','Explore decimal place value, alternating rod orientation and regrouping.',countingRods],
+  ['napiers-bones',"Napier's Bones",'▥','history','Use engraved calculating rods to turn multiplication into diagonal addition.','Explore multiplication through partial products and diagonal carrying.',napierBones],
+  ['slide-rule','Slide rule','↦','history','Multiply using sliding logarithmic scales and a cursor.','See how multiplication can be represented by adding logarithmic distances.',slideRule]
 ].map(([id,title,icon,cat,desc,use,build])=>({id,title,icon,cat,desc,use,build}));
 const params=new URLSearchParams(location.search),embedded=params.get('embed')==='1';
 G.toolCatalogue=tools.map(({id,title,icon,cat,desc,use})=>({id,title,icon,cat,desc,use}));
