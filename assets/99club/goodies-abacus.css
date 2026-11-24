@@ -464,3 +464,101 @@
 @media(min-width:621px) and (max-width:760px){
   .gd-ab-palette{order:0!important}
 }
+
+
+/* v11: whiteboard-first reckoning layout and clearer slide-rule scale. */
+.gd-reckoning{width:min(760px,96%)!important;padding:16px!important;border-width:10px!important}
+.gd-reckoning-title{margin-bottom:8px!important;font-size:.8rem}
+.gd-reckoning-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+.gd-reckoning-col{min-height:245px!important}
+.gd-reckoning-heading{padding:5px!important}
+.gd-reckoning-heading b{font-size:1.22rem!important}
+.gd-reckoning-space{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(38px,44px))!important;
+  justify-content:center!important;
+  align-content:start!important;
+  gap:7px!important;
+  padding:9px 7px!important;
+}
+.gd-reckoning-counter{
+  width:40px!important;
+  height:40px!important;
+  justify-self:center;
+}
+.gd-reckoning-add{
+  grid-column:1 / -1!important;
+  width:100%!important;
+  min-height:38px!important;
+  margin-top:2px!important;
+  padding:5px!important;
+  font-size:.72rem!important;
+}
+.gd-reckoning .gd-history-readout{margin-top:10px!important}
+
+/* Slide-rule labels: readable whole-number scale, fixed C/D row markers. */
+.gd-slide-tick.is-mid i{height:22px!important}
+.gd-slide-tick:not(.is-major):not(.is-mid) i{height:12px!important;opacity:.75}
+.gd-slide-row-tag{
+  position:absolute;
+  z-index:7;
+  left:7px;
+  width:27px;
+  height:27px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:#65492d;
+  color:#fff;
+  font:900 .72rem Georgia,serif;
+  box-shadow:0 2px 4px rgba(55,40,24,.18)
+}
+.gd-slide-row-tag--c{top:78px}
+.gd-slide-row-tag--d{top:176px}
+.gd-slide-scale .gd-slide-label{display:none!important}
+.gd-slide-tick b{
+  top:31px!important;
+  font-size:.72rem!important;
+  font-weight:800!important;
+}
+.gd-slide-steps span{font-size:.7rem!important}
+
+/* Keep colour choices on one compact whiteboard row whenever practical. */
+@media(max-width:760px){
+  .gd-ab-device-toolbar{
+    grid-template-columns:minmax(170px,220px) minmax(150px,1fr) auto!important;
+  }
+  .gd-ab-palette{
+    grid-column:auto!important;
+    width:auto!important;
+    justify-content:flex-start!important;
+  }
+  .gd-ab-palette-title{display:none!important}
+  .gd-ab-palette-choice{
+    min-width:30px!important;
+    min-height:34px!important;
+    padding:3px 4px!important;
+  }
+  .gd-ab-palette-dot{
+    width:18px!important;
+    height:18px!important;
+    flex-basis:18px!important;
+  }
+  .gd-ab-device-toolbar .gd-history-help-btn{
+    min-height:34px!important;
+    padding:4px 8px!important;
+    font-size:.72rem!important;
+  }
+}
+@media(max-width:500px){
+  .gd-ab-device-toolbar{
+    grid-template-columns:minmax(150px,1fr) auto!important;
+  }
+  .gd-ab-palette{
+    grid-column:1 / -1!important;
+    justify-content:center!important;
+  }
+  .gd-slide-brand span{display:none}
+  .gd-slide-row-tag--c{top:72px}
+  .gd-slide-row-tag--d{top:163px}
+}
