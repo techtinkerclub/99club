@@ -1207,3 +1207,120 @@
   color:#304f53;
   font-size:.9rem;
 }
+
+
+/* v17: instructional guide stays beside the manipulative so examples remain usable. */
+.gd-history-main,
+.gd-ab-main{
+  width:100%;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(245px,310px);
+  gap:12px;
+  align-items:start;
+}
+.gd-history-device,
+.gd-ab-device-column{
+  min-width:0;
+}
+.gd-history-guide{
+  position:static!important;
+  inset:auto!important;
+  width:auto!important;
+  max-width:none!important;
+  max-height:none!important;
+  overflow:visible!important;
+  display:block!important;
+  padding:14px!important;
+  border:1px solid #d5dfdc;
+  border-radius:14px;
+  background:#fbfdfc!important;
+  box-shadow:0 5px 16px rgba(48,70,68,.08);
+  color:#354c50;
+  text-align:left;
+}
+.gd-history-guide__head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:7px;
+}
+.gd-history-guide__head span{
+  display:block;
+  margin-bottom:2px;
+  color:#698083;
+  font-size:.62rem;
+  font-weight:900;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.gd-history-guide__head h3{
+  margin:0;
+  font-size:1rem;
+  color:#2e4a4d;
+}
+.gd-history-guide__intro{
+  margin:.25rem 0 .65rem;
+  font-size:.78rem;
+  line-height:1.4;
+}
+.gd-history-guide ol{
+  margin:.45rem 0 .7rem;
+  padding-left:1.25rem;
+}
+.gd-history-guide li{
+  margin:.3rem 0;
+  font-size:.76rem;
+  line-height:1.35;
+}
+.gd-history-guide .gd-history-example{
+  margin-top:.6rem;
+  padding:9px 10px;
+  border-left:4px solid #b6873f;
+  border-radius:9px;
+  background:#f5ead6;
+  font-size:.76rem;
+}
+.gd-history-guide .gd-history-example p{
+  margin:.25rem 0 0;
+  line-height:1.4;
+}
+.gd-history-guide .gd-history-context{
+  margin-top:.65rem;
+  padding:0;
+  border:0;
+  background:transparent;
+}
+.gd-history-guide .gd-history-context summary{
+  cursor:pointer;
+  color:#5d7275;
+  font-size:.7rem;
+  font-weight:850;
+}
+.gd-history-guide .gd-history-context p{
+  margin:.35rem 0 0;
+  font-size:.72rem;
+  line-height:1.35;
+}
+.gd-history-guide .gd-history-help__close{
+  position:static!important;
+  flex:0 0 auto;
+  width:32px;
+  height:32px;
+  border-radius:9px;
+  background:#f2f6f5;
+  font-size:1.25rem;
+  line-height:1;
+}
+.gd-history-help{display:none!important}
+
+@media(max-width:760px){
+  .gd-history-main,
+  .gd-ab-main{
+    grid-template-columns:1fr;
+  }
+  .gd-history-guide{
+    order:2;
+    width:auto!important;
+  }
+}
