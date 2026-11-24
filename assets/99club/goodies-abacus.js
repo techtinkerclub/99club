@@ -319,7 +319,7 @@ function abacusTool(){
     const cap=Math.min(capacity(),rows===3?999:9999);
     if(mode==='show'){
       const target=randomInt(1,cap);
-      return{mode,start:0,target,prompt:'Show '+target+' on the abacus.',requiresAnswer:false};
+      return{mode,start:0,target,prompt:'Build '+target+' on the abacus by moving the beads. When you are happy with it, press Check.',requiresAnswer:false};
     }
     if(mode==='add'){
       let a=randomInt(1,Math.max(1,cap-1)),b=randomInt(1,Math.max(1,cap-a));
@@ -327,39 +327,39 @@ function abacusTool(){
         const low=Math.max(1,10-(a%10));
         if(low<=cap-a)b=randomInt(low,Math.max(low,cap-a));
       }
-      return{mode,start:a,target:a+b,a,b,prompt:'Start at '+a+'. Add '+b+'.',requiresAnswer:false};
+      return{mode,start:a,target:a+b,a,b,prompt:'The abacus starts at '+a+'. Add '+b+' by moving the beads. Stop when it shows the answer, then press Check.',requiresAnswer:false};
     }
     if(mode==='subtract'){
       const a=randomInt(2,cap),b=randomInt(1,a);
-      return{mode,start:a,target:a-b,a,b,prompt:'Start at '+a+'. Subtract '+b+'.',requiresAnswer:false};
+      return{mode,start:a,target:a-b,a,b,prompt:'The abacus starts at '+a+'. Subtract '+b+' by moving the beads. Stop when it shows the answer, then press Check.',requiresAnswer:false};
     }
     if(mode==='make10'){
       const a=randomInt(1,9),answer=10-a;
-      return{mode,start:a,target:10,a,answer,requiresAnswer:true,prompt:'Start at '+a+'. How many more make 10?'};
+      return{mode,start:a,target:10,a,answer,requiresAnswer:true,prompt:'The abacus starts at '+a+'. How many more are needed to make 10? Move the beads to 10 and enter the missing number.'};
     }
     if(mode==='bond'){
       const bondTotal=cap>=20&&Math.random()<.5?20:10;
       const a=randomInt(1,bondTotal-1),answer=bondTotal-a;
-      return{mode,start:a,target:bondTotal,a,answer,requiresAnswer:true,prompt:'Complete the number bond: '+a+' + ? = '+bondTotal+'.'};
+      return{mode,start:a,target:bondTotal,a,answer,requiresAnswer:true,prompt:'Complete the number bond '+a+' + ? = '+bondTotal+'. Move the abacus to '+bondTotal+' and enter the missing number.'};
     }
     if(mode==='double'){
       const a=randomInt(1,Math.max(1,Math.floor(cap/2)));
-      return{mode,start:a,target:a*2,a,prompt:'Double '+a+'. Start at '+a+' and add another '+a+'.',requiresAnswer:false};
+      return{mode,start:a,target:a*2,a,prompt:'The abacus starts at '+a+'. Double it by adding another '+a+' with the beads, then press Check.',requiresAnswer:false};
     }
     if(mode==='near'){
       let a=randomInt(2,Math.max(2,Math.floor(cap/2))),b=a+(Math.random()<.5?-1:1);
       b=Math.max(1,b);
       while(a+b>cap&&a>2){a--;b=Math.max(1,a-1)}
-      return{mode,start:a,target:a+b,a,b,prompt:'Use a near double to work out '+a+' + '+b+'.',requiresAnswer:false};
+      return{mode,start:a,target:a+b,a,b,prompt:'Use a near-double strategy to work out '+a+' + '+b+'. Show the final answer on the abacus, then press Check.',requiresAnswer:false};
     }
     if(mode==='missing'){
       const target=randomInt(5,cap),a=randomInt(0,target-1),answer=target-a;
-      return{mode,start:a,target,a,answer,requiresAnswer:true,finalTarget:target,prompt:a+' + ? = '+target+'. Find the missing number, then show '+target+'.'};
+      return{mode,start:a,target,a,answer,requiresAnswer:true,finalTarget:target,prompt:'Solve '+a+' + ? = '+target+'. Enter the missing number and move the abacus from '+a+' to '+target+'.'};
     }
     if(mode==='skip'){
       const possible=[2,5,10].filter(s=>s<=cap),step=possible[randomInt(0,possible.length-1)];
       const maxStart=Math.max(0,cap-step),start=Math.floor(randomInt(0,maxStart)/step)*step,target=start+step;
-      return{mode,start,target,step,answer:target,requiresAnswer:true,prompt:'Count in '+step+'s. What comes after '+start+'? Show it on the abacus.'};
+      return{mode,start,target,step,answer:target,requiresAnswer:true,prompt:'Count on in '+step+'s from '+start+'. Enter the next number and show it on the abacus.'};
     }
     return null;
   }
