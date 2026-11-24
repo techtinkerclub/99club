@@ -136,7 +136,7 @@ function bannerHtml(challenge,opts={}){
   if(!challenge)return '';
   const ch=normalise(challenge);
   const label=opts.label||'Challenge';
-  const answerButton=ch.answer
+  const answerButton=ch.answer&&!opts.hideReveal
     ?`<button class="nl-challenge-reveal gd-challenge-reveal" type="button" data-board-action="reveal">${ch.revealed?'Hide answer':'Reveal answer'}</button>`
     :'';
   const extraActions=Array.isArray(opts.actions)?opts.actions:[];
