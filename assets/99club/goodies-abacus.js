@@ -25,6 +25,7 @@ function abacusTool(){
 
   const DEVICE_OPTIONS=[
     ['western','Western abacus'],
+    ['suanpan','Chinese suanpan'],
     ['soroban','Japanese soroban'],
     ['reckoning','Reckoning board'],
     ['rods','Chinese counting rods'],
@@ -36,12 +37,13 @@ function abacusTool(){
   let reckoning=[0,1,2,6];
   let rodDigits=[0,3,7,2];
   let napierNumber='467',napierMultiplier=3;
-  let slideA=2,slideB=3;
+  let slideA=2,slideB=3,slideIndex='left';
   let pascalDigits=[0,0,2,8];
+  let suanUpper=Array(5).fill(0),suanLower=Array(5).fill(0);
   let colourScheme='classic';
   let historyChallenge=null,historyAnswer='',historyStatus='',historyRevealed=false;
   let historyDrag=null;
-  const COLOUR_SCHEMES=[['classic','Classic wood'],['place','Place-value colours'],['sea','Sea glass'],['berry','Berry & brass'],['forest','Forest']];
+  const COLOUR_SCHEMES=[['classic','Honey wood'],['place','Pastel places'],['sea','Ocean'],['berry','Berry'],['forest','Meadow']];
 
   function historicalValue(){
     if(kind==='reckoning')return reckoning.reduce((sum,n,i)=>sum+n*[1000,100,10,1][i],0);
@@ -72,7 +74,7 @@ function abacusTool(){
       historyChallenge={target:(+napierNumber)*napierMultiplier,answer:(+napierNumber)*napierMultiplier,requiresAnswer:true,prompt:'Use row '+napierMultiplier+' of the rods to work out '+napierNumber+' × '+napierMultiplier+'. Enter the product.'};
     }else if(kind==='slide'){
       const pairs=[[2,2],[2,3],[2,4],[2.5,2],[3,2],[3,3],[4,2],[1.5,4],[1.2,5],[2.4,3]];
-      [slideA,slideB]=pairs[randomInt(0,pairs.length-1)];
+      [slideA,slideB]=pairs[randomInt(0,pairs.length-1)];slideIndex=slideA*slideB<=10?'left':'right';
       historyChallenge={target:Math.round(slideA*slideB*100)/100,answer:Math.round(slideA*slideB*100)/100,requiresAnswer:true,prompt:'Use the C and D scales to estimate '+slideA+' × '+slideB+'. Move the slide and cursor, then enter the result.'};
     }else if(kind==='pascaline'){
       const start=randomInt(12,75),add=randomInt(6,24),target=start+add;
@@ -102,7 +104,20 @@ function abacusTool(){
     return '<section class="gd-ab-task gd-history-task"><div class="gd-ab-task-head"><div><span>CHALLENGE · '+esc(deviceHelp().title.toUpperCase())+'</span><strong>'+esc(historyChallenge.prompt)+'</strong></div><em>'+esc(historyStatus)+'</em></div>'+input+'<div class="gd-ab-task-actions"><button type="button" data-ab-history-check>Check</button><button type="button" data-ab-history-another>Another</button>'+(historyRevealed?'':'<button type="button" data-ab-history-reveal>Reveal</button>')+'<button type="button" data-ab-history-end>End challenge</button></div></section>';
   }
 
-  function isAbacusKind(){return kind==='western'||kind==='soroban'}
+  function isAbacusKind(){return kind==='western'||kind==='suanpan'||kind==='soroban'}
+  function suanRodValue(i){return (suanUpper[i]||0)*5+(suanLower[i]||0)}
+  function syncSuanFromCounts(){
+    suanUpper=Array.from({length:rows},(_,i)=>Math.floor((counts[i]||0)/5));
+    suanLower=Array.from({length:rows},(_,i)=>(counts[i]||0)%5);
+  }
+  function changeDevice(next){
+    const previousValue=total();
+    kind=DEVICE_OPTIONS.some(([id])=>id===next)?next:'western';
+    task=null;historyChallenge=null;workflow='setup';historyHelpOpen=false;
+    counts=Array(rows).fill(0);
+    setTotal(Math.min(previousValue,capacity()),false);
+    renderAll();
+  }
   function deviceHelp(){
     const data={
       western:{
@@ -111,6 +126,13 @@ function abacusTool(){
         intro:'A base-ten counting frame. Each horizontal row has ten beads and represents a place value; beads count when moved to the left.',
         steps:['Move beads left to count them.','Read the rows as thousands, hundreds, tens and ones.','For addition, move more beads left. Ten beads in one row can be exchanged for one bead in the next place-value row.','For subtraction, move beads back and exchange 1 higher-place bead for 10 lower-place beads when needed.'],
         example:'Example: show 247, then add 36. Add 3 tens, then 6 ones. Regroup 10 ones as 1 ten. The result is 283.'
+      },
+      suanpan:{
+        title:'Chinese suanpan',
+        history:'The Chinese suanpan uses more beads on each rod than the modern Japanese soroban. A common traditional form has two upper beads and five lower beads, giving extra working capacity on each rod.',
+        intro:'Each vertical rod is one place value. Each upper bead touching the beam is worth 5 and each lower bead touching the beam is worth 1.',
+        steps:['Only beads moved towards the central beam count.','There are two 5-beads above the beam and five 1-beads below it.','For ordinary decimal work, regroup when a rod reaches 10 even though the physical rod can hold more.','The extra beads make some historical calculation methods possible and show why the later soroban could be simplified.'],
+        example:'Example: to show 8, move one upper bead to the beam for 5 and three lower beads to the beam for 3 more. To show 13 on one rod in free play, use two upper beads and three lower beads.'
       },
       soroban:{
         title:'Japanese soroban',
@@ -144,7 +166,7 @@ function abacusTool(){
         title:'Slide rule',
         history:'The slide rule grew from 17th-century logarithmic scales associated with Edmund Gunter and William Oughtred, and became a standard calculating instrument for nearly three centuries.',
         intro:'A slide rule multiplies and divides by adding or subtracting logarithmic distances.',
-        steps:['To multiply a × b, align C=1 above D=a.','Find b on the C scale.','Read the answer directly below it on the D scale.','Use estimation to decide the correct power of ten.'],
+        steps:['To multiply a × b, align C=1 above D=a.','Find b on the C scale and move the glass cursor to it.','Read the significant digits directly below on D.','If the answer runs off the right end, use the C=10 index instead. Estimate the decimal place mentally.'],
         example:'Example: align C=1 above D=2. Under C=3, D reads 6, so 2 × 3 = 6.'
       },
       pascaline:{
@@ -158,10 +180,13 @@ function abacusTool(){
     return data||data.western;
   }
   function themeSwitcher(){
-    return '<label class="gd-ab-theme-switcher"><span>Colour</span><select data-ab-stage-theme aria-label="Choose colour scheme">'+COLOUR_SCHEMES.map(([id,label])=>'<option value="'+id+'"'+(colourScheme===id?' selected':'')+'>'+esc(label)+'</option>').join('')+'</select></label>';
+    return '<div class="gd-ab-palette" role="group" aria-label="Colour scheme">'+COLOUR_SCHEMES.map(([id,label])=>'<button type="button" class="gd-ab-palette-choice gd-ab-palette-choice--'+id+(colourScheme===id?' is-active':'')+'" data-ab-stage-theme="'+id+'" aria-pressed="'+(colourScheme===id)+'" title="'+esc(label)+'"><span class="gd-ab-palette-dot" aria-hidden="true"></span><span class="gd-ab-palette-label">'+esc(label)+'</span></button>').join('')+'</div>';
   }
   function deviceSwitcher(){
     return '<label class="gd-ab-device-switcher"><span>Device</span><select data-ab-stage-kind aria-label="Choose calculating device">'+DEVICE_OPTIONS.map(([id,label])=>'<option value="'+id+'"'+(kind===id?' selected':'')+'>'+esc(label)+'</option>').join('')+'</select></label>';
+  }
+  function deviceToolbar(){
+    return '<div class="gd-ab-device-toolbar">'+deviceSwitcher()+themeSwitcher()+helpButton()+'</div>';
   }
   function helpButton(){
     return '<button class="gd-history-help-btn" type="button" data-ab-help-open aria-label="How to use this device">? <span>How to use</span></button>';
@@ -193,6 +218,8 @@ function abacusTool(){
     return '<div class="gd-napier-bone"><div class="gd-napier-head">'+d+'</div>'+Array.from({length:9},(_,i)=>napierCell(+d,i+1)).join('')+'</div>';
   }
   function slidePos(v){return Math.log10(v)*100}
+  function slideOffset(){return slidePos(slideA)-(slideIndex==='right'?100:0)}
+  function slideCursorPos(){return clamp(slideOffset()+slidePos(slideB),0,100)}
   function slideTicks(){
     let out='';
     for(let n=10;n<=100;n++){
@@ -224,14 +251,14 @@ function abacusTool(){
       const product=(+napierNumber||0)*napierMultiplier;
       body='<div class="gd-napier"><div class="gd-napier-row-index"><span>×</span>'+Array.from({length:9},(_,i)=>'<button type="button" data-ab-napier-row="'+(i+1)+'"'+(historyChallenge?' disabled':'')+' class="'+(napierMultiplier===i+1?'is-selected':'')+'">'+(i+1)+'</button>').join('')+'</div><div class="gd-napier-bones">'+napierNumber.split('').map((d,i)=>'<div class="gd-napier-bone-wrap">'+napierBone(d)+(!historyChallenge?'<button type="button" class="gd-napier-remove" data-ab-napier-remove="'+i+'" aria-label="Remove rod '+d+'">×</button>':'')+'</div>').join('')+'</div>'+(historyChallenge?'':'<div class="gd-napier-tray" aria-label="Choose a rod">'+Array.from({length:10},(_,i)=>'<button type="button" data-ab-napier-add="'+i+'">'+i+'</button>').join('')+'<button type="button" data-ab-napier-clear>Clear</button></div>')+'<div class="gd-napier-highlight">Use row <strong>'+napierMultiplier+'</strong></div><div class="gd-history-readout">'+esc(napierNumber)+' × '+napierMultiplier+' = <strong>'+(historyChallenge&&!historyRevealed?'?':product.toLocaleString('en-GB'))+'</strong></div></div>';
     }else if(kind==='slide'){
-      const shift=slidePos(slideA),cursor=(shift+slidePos(slideB))%100;
-      body='<div class="gd-slide-rule"><div class="gd-slide-body"><div class="gd-slide-scale gd-slide-d"><span class="gd-slide-label">D</span>'+slideTicks()+'</div><div class="gd-slide-scale gd-slide-c" data-ab-slide-c style="transform:translateX('+shift+'%)"><span class="gd-slide-label">C</span>'+slideTicks()+'</div><div class="gd-slide-cursor" data-ab-slide-cursor style="left:'+cursor+'%"></div></div><div class="gd-history-readout">'+slideA+' × '+slideB+' = <strong>'+(historyChallenge&&!historyRevealed?'?':(slideA*slideB).toLocaleString('en-GB',{maximumFractionDigits:3}))+'</strong></div></div>';
+      const shift=slideOffset(),cursor=slideCursorPos();
+      body='<div class="gd-slide-rule"><div class="gd-slide-shell"><div class="gd-slide-brand"><strong>TEACHING SLIDE RULE</strong><span>C / D logarithmic scales</span></div><div class="gd-slide-body"><div class="gd-slide-stock"><div class="gd-slide-stock-edge"></div><div class="gd-slide-channel"><div class="gd-slide-scale gd-slide-c" data-ab-slide-c style="transform:translateX('+shift+'%)"><span class="gd-slide-label">C</span>'+slideTicks()+'</div></div><div class="gd-slide-scale gd-slide-d"><span class="gd-slide-label">D</span>'+slideTicks()+'</div></div><div class="gd-slide-cursor" data-ab-slide-cursor style="left:'+cursor+'%"><span class="gd-slide-glass"></span><i></i><b></b></div></div></div><div class="gd-slide-steps"><span>1 · Slide C so '+(slideIndex==='right'?'10':'1')+' lines up with '+slideA+' on D</span><span>2 · Find '+slideB+' on C</span><span>3 · Move the cursor and read D</span></div><div class="gd-history-readout">'+slideA+' × '+slideB+' = <strong>'+(historyChallenge&&!historyRevealed?'?':(slideA*slideB).toLocaleString('en-GB',{maximumFractionDigits:3}))+'</strong></div></div>';
     }else if(kind==='pascaline'){
       const places=['Thousands','Hundreds','Tens','Ones'];
       const wheels=pascalDigits.map((d,i)=>'<div class="gd-pascaline-wheel-wrap"><span>'+places[i]+'</span><div class="gd-pascaline-wheel" data-ab-pa-wheel="'+i+'"><small>'+((d+9)%10)+'</small><strong>'+d+'</strong><small>'+((d+1)%10)+'</small></div><div class="gd-pascaline-wheel-buttons"><button type="button" data-ab-pa-sub="'+i+'">−</button><button type="button" data-ab-pa-add="'+i+'">+</button></div></div>').join('');
       body='<div class="gd-pascaline"><div class="gd-pascaline-plate"><div class="gd-pascaline-name">PASCALINE</div><div class="gd-pascaline-wheels">'+wheels+'</div><div class="gd-pascaline-gears">'+Array.from({length:7},(_,i)=>'<i style="--i:'+i+'">✺</i>').join('')+'</div></div><div class="gd-history-readout">Value <strong>'+Number(pascalDigits.join('')).toLocaleString('en-GB')+'</strong></div></div>';
     }
-    q('#gd-stage').innerHTML=historyChallengeBanner()+'<div class="gd-history-stage gd-history-theme--'+colourScheme+'">'+deviceSwitcher()+themeSwitcher()+helpButton()+body+helpOverlay()+'</div>';
+    q('#gd-stage').innerHTML=historyChallengeBanner()+'<div class="gd-history-stage gd-history-theme--'+colourScheme+'">'+deviceToolbar()+'<div class="gd-history-device">'+body+'</div>'+helpOverlay()+'</div>';
     bindHistoricalStage();
   }
   function pascalStep(index,delta){
@@ -242,13 +269,13 @@ function abacusTool(){
     }
   }
   function bindHistoricalStage(){
-    const stageTheme=q('[data-ab-stage-theme]');if(stageTheme)stageTheme.onchange=()=>{colourScheme=COLOUR_SCHEMES.some(([id])=>id===stageTheme.value)?stageTheme.value:'classic';renderAll()};
+    qa('[data-ab-stage-theme]').forEach(stageTheme=>stageTheme.onclick=()=>{const next=stageTheme.dataset.abStageTheme;colourScheme=COLOUR_SCHEMES.some(([id])=>id===next)?next:'classic';renderAll()});
     const answer=q('[data-ab-history-answer]');if(answer)answer.oninput=()=>{historyAnswer=answer.value;historyStatus=''};
     const check=q('[data-ab-history-check]');if(check)check.onclick=checkHistoricalChallenge;
     const another=q('[data-ab-history-another]');if(another)another.onclick=newHistoricalChallenge;
     const reveal=q('[data-ab-history-reveal]');if(reveal)reveal.onclick=revealHistoricalChallenge;
     const end=q('[data-ab-history-end]');if(end)end.onclick=()=>{historyChallenge=null;historyAnswer='';historyStatus='';historyRevealed=false;renderAll()};
-    const stageKind=q('[data-ab-stage-kind]');if(stageKind)stageKind.onchange=()=>{kind=DEVICE_OPTIONS.some(([id])=>id===stageKind.value)?stageKind.value:'western';task=null;historyChallenge=null;workflow='setup';historyHelpOpen=false;renderAll()};
+    const stageKind=q('[data-ab-stage-kind]');if(stageKind)stageKind.onchange=()=>{changeDevice(stageKind.value)};
     const open=q('[data-ab-help-open]');if(open)open.onclick=()=>{historyHelpOpen=true;renderHistoricalStage()};
     const close=q('[data-ab-help-close]');if(close)close.onclick=()=>{historyHelpOpen=false;renderHistoricalStage()};
     qa('[data-ab-rb-add]').forEach(b=>b.onclick=()=>{reckoning[+b.dataset.abRbAdd]++;renderHistoricalStage()});
@@ -274,31 +301,32 @@ function abacusTool(){
       w.onpointercancel=()=>{historyDrag=null};
     });
     const slide=q('[data-ab-slide-c]');if(slide){
-      slide.onpointerdown=e=>{if(e.button!==0)return;const body=slide.closest('.gd-slide-body'),rect=body.getBoundingClientRect();historyDrag={type:'slide',pointerId:e.pointerId,startX:e.clientX,startShift:slidePos(slideA),width:rect.width*.9,el:slide};slide.classList.add('is-dragging');try{slide.setPointerCapture(e.pointerId)}catch(_){}};
-      slide.onpointermove=e=>{if(!historyDrag||historyDrag.el!==slide)return;const shift=clamp(historyDrag.startShift+(e.clientX-historyDrag.startX)/Math.max(1,historyDrag.width)*100,0,99.5);slide.style.transform='translateX('+shift+'%)'};
-      slide.onpointerup=e=>{if(!historyDrag||historyDrag.el!==slide)return;const shift=clamp(historyDrag.startShift+(e.clientX-historyDrag.startX)/Math.max(1,historyDrag.width)*100,0,99.5);slideA=Math.round(Math.pow(10,shift/100)*10)/10;historyDrag=null;renderAll()};
+      slide.onpointerdown=e=>{if(e.button!==0)return;const body=slide.closest('.gd-slide-body'),rect=body.getBoundingClientRect();historyDrag={type:'slide',pointerId:e.pointerId,startX:e.clientX,startShift:slideOffset(),width:rect.width,el:slide};slide.classList.add('is-dragging');try{slide.setPointerCapture(e.pointerId)}catch(_){}};
+      slide.onpointermove=e=>{if(!historyDrag||historyDrag.el!==slide)return;const shift=clamp(historyDrag.startShift+(e.clientX-historyDrag.startX)/Math.max(1,historyDrag.width)*100,-95,95);slide.style.transform='translateX('+shift+'%)'};
+      slide.onpointerup=e=>{if(!historyDrag||historyDrag.el!==slide)return;const shift=clamp(historyDrag.startShift+(e.clientX-historyDrag.startX)/Math.max(1,historyDrag.width)*100,-95,95);slideIndex=shift<0?'right':'left';slideA=Math.round(Math.pow(10,(shift+(slideIndex==='right'?100:0))/100)*100)/100;historyDrag=null;renderAll()};
       slide.onpointercancel=()=>{historyDrag=null;renderAll()};
     }
     const cursor=q('[data-ab-slide-cursor]');if(cursor){
       cursor.onpointerdown=e=>{if(e.button!==0)return;const body=cursor.closest('.gd-slide-body'),rect=body.getBoundingClientRect();historyDrag={type:'cursor',pointerId:e.pointerId,left:rect.left,width:rect.width,el:cursor};cursor.classList.add('is-dragging');try{cursor.setPointerCapture(e.pointerId)}catch(_){}};
       cursor.onpointermove=e=>{if(!historyDrag||historyDrag.el!==cursor)return;const pct=clamp((e.clientX-historyDrag.left)/Math.max(1,historyDrag.width)*100,0,100);cursor.style.left=pct+'%'};
-      cursor.onpointerup=e=>{if(!historyDrag||historyDrag.el!==cursor)return;const pct=clamp((e.clientX-historyDrag.left)/Math.max(1,historyDrag.width)*100,0,100),relative=(pct-slidePos(slideA)+100)%100;slideB=Math.round(Math.pow(10,relative/100)*10)/10;historyDrag=null;renderAll()};
+      cursor.onpointerup=e=>{if(!historyDrag||historyDrag.el!==cursor)return;const pct=clamp((e.clientX-historyDrag.left)/Math.max(1,historyDrag.width)*100,0,100),relative=clamp(pct-slideOffset(),0,100);slideB=Math.round(Math.pow(10,relative/100)*100)/100;historyDrag=null;renderAll()};
       cursor.onpointercancel=()=>{historyDrag=null;renderAll()};
     }
   }
 
   // The right-hand column is ones. Each column is a decimal digit (0–9).
   function capacity(){return Math.pow(10,rows)-1}
-  function total(){return counts.reduce((sum,digit,i)=>sum+digit*Math.pow(10,rows-i-1),0)}
+  function total(){return kind==='suanpan'?Array.from({length:rows},(_,i)=>suanRodValue(i)*Math.pow(10,rows-i-1)).reduce((a,b)=>a+b,0):counts.reduce((sum,digit,i)=>sum+digit*Math.pow(10,rows-i-1),0)}
   function normal(v){return clamp(Math.round(num(v,0)),0,capacity())}
   function setRows(next){
     const previous=total();
     rows=[3,4,5,6].includes(Number(next))?Number(next):5;
-    counts=Array(rows).fill(0);
+    counts=Array(rows).fill(0);suanUpper=Array(rows).fill(0);suanLower=Array(rows).fill(0);
     setTotal(previous,false);
   }
   function setTotal(value,render=true){
     counts=Array.from(String(normal(value)).padStart(rows,'0'),digit=>Number(digit));
+    if(kind==='suanpan')syncSuanFromCounts();
     if(render)renderStage();
   }
   function placeLabel(i){return ['Ones','Tens','Hundreds','Thousands','Ten thousands','Hundred thousands'][rows-i-1]}
@@ -306,12 +334,18 @@ function abacusTool(){
   function abBeadY(i,part,j){
     const d=counts[i]||0;
     if(kind==='western')return beadX(j,d);
+    if(kind==='suanpan'){
+      if(part==='upper')return j<(suanUpper[i]||0)?35-j*11:9+j*11;
+      return j<(suanLower[i]||0)?46+j*8:60+j*8;
+    }
     if(part==='upper')return d>=5?36:12;
     return j<d%5?44+j*8.5:67+j*8.5;
   }
   function abBeadActive(i,part,j){
     const d=counts[i]||0;
-    return kind==='western'?j<d:part==='upper'?d>=5:j<d%5;
+    if(kind==='western')return j<d;
+    if(kind==='suanpan')return part==='upper'?j<(suanUpper[i]||0):j<(suanLower[i]||0);
+    return part==='upper'?d>=5:j<d%5;
   }
   function randomInt(min,max){return Math.floor(Math.random()*(max-min+1))+min}
   function beadX(index,count){return index<count?4+index*4.5:55+index*4.5}
@@ -411,9 +445,20 @@ function abacusTool(){
     counts[i]=clamp(Math.round(num(value,0)),0,kind==='western'?10:9);
     status='';revealed=false;syncStage();
   }
+  function setSuanPart(i,part,value,render=true){
+    if(part==='upper')suanUpper[i]=clamp(Math.round(value),0,2);
+    else suanLower[i]=clamp(Math.round(value),0,5);
+    status='';revealed=false;
+    counts[i]=Math.min(9,suanRodValue(i));
+    if(render)syncStage();
+  }
   function clickBead(i,part,j){
     const digit=counts[i]||0;
     if(kind==='western')return setRowCount(i,j<digit?j:j+1);
+    if(kind==='suanpan'){
+      const current=part==='upper'?(suanUpper[i]||0):(suanLower[i]||0);
+      return setSuanPart(i,part,j<current?j:j+1);
+    }
     if(part==='upper')return setRowCount(i,digit>=5?digit-5:digit+5);
     const low=digit%5;
     setRowCount(i,(digit>=5?5:0)+(j<low?j:j+1));
@@ -442,12 +487,14 @@ function abacusTool(){
     const digit=counts[i]||0;
     const beads=kind==='western'
       ?Array.from({length:10},(_,j)=>beadMarkup(i,'unit',j)).join('')
-      :beadMarkup(i,'upper',0)+Array.from({length:4},(_,j)=>beadMarkup(i,'lower',j)).join('');
+      :kind==='suanpan'
+        ?Array.from({length:2},(_,j)=>beadMarkup(i,'upper',j)).join('')+Array.from({length:5},(_,j)=>beadMarkup(i,'lower',j)).join('')
+        :beadMarkup(i,'upper',0)+Array.from({length:4},(_,j)=>beadMarkup(i,'lower',j)).join('');
     return '<div class="gd-ab-col" data-ab-col="'+i+'">'+
       '<div class="gd-ab-col-label'+(showRowLabels?'':' is-hidden')+'"><span>'+esc(placeLabel(i))+'</span><abbr title="'+esc(placeLabel(i))+'">'+esc(placeShort(i))+'</abbr></div>'+
       '<div class="gd-ab-rod" aria-label="'+esc(placeLabel(i)+', digit '+digit)+'">'+
       '<span class="gd-ab-rail" aria-hidden="true"></span>'+
-      (kind==='soroban'?'<span class="gd-ab-divider" aria-hidden="true"></span>':'')+
+      ((kind==='soroban'||kind==='suanpan')?'<span class="gd-ab-divider" aria-hidden="true"></span>':'')+
       beads+'</div>'+
       '<div class="gd-ab-digit"'+(showRowCounts?'':' hidden')+' data-ab-col-count="'+i+'">'+digit+'</div>'+
     '</div>';
@@ -457,20 +504,20 @@ function abacusTool(){
     const hideTotal=!!task&&taskContext==='challenge'&&!revealed&&status!=='Correct ✓';
     q('#gd-stage').innerHTML=taskBanner()+
       '<div hidden aria-hidden="true">'+['copy','png','svg','print'].map(type=>'<button type="button" data-gd-direct-export="'+type+'">'+type+'</button>').join('')+'</div>'+
-      '<div class="gd-ab-workspace gd-history-theme--'+colourScheme+'" style="position:relative">'+deviceSwitcher()+themeSwitcher()+helpButton()+
+      '<div class="gd-ab-workspace gd-history-theme--'+colourScheme+'">'+deviceToolbar()+
         '<div class="gd-ab-frame gd-ab-frame--'+kind+'" data-ab-frame>'+
-          '<div class="gd-ab-type-label">'+(kind==='western'?'WESTERN · BASE TEN':'JAPANESE · SOROBAN')+'</div>'+
+          '<div class="gd-ab-type-label">'+(kind==='western'?'WESTERN · BASE TEN':kind==='suanpan'?'CHINESE · SUANPAN · 2+5':'JAPANESE · SOROBAN · 1+4')+'</div>'+
           '<div class="gd-ab-columns" style="--ab-cols:'+rows+'">'+Array.from({length:rows},(_,i)=>columnMarkup(i)).join('')+'</div>'+
         '</div>'+
         frameControls()+
         '<div class="gd-ab-summary"'+(showTotal?'':' hidden')+'><span>Number shown</span><strong data-ab-total>'+(hideTotal?'?':total().toLocaleString('en-GB'))+'</strong></div>'+
-        '<p class="gd-object-hint" data-ab-hint>'+(task?'Move the beads, then check your answer.':kind==='soroban'?'Move beads towards the middle bar to count them.':'Move beads left to count them. Each horizontal row has a place value.')+'</p>'+helpOverlay()+
+        '<p class="gd-object-hint" data-ab-hint>'+(task?'Move the beads, then check your answer.':kind==='soroban'?'Move beads towards the middle bar to count them.':kind==='suanpan'?'Move the 5-beads and 1-beads towards the middle beam. Regroup at ten for decimal work.':'Move beads left to count them. Each horizontal row has a place value.')+'</p>'+helpOverlay()+
       '</div>';
     bindStage();
   }
   function syncStage(){
     qa('[data-ab-col]').forEach(colEl=>{
-      const i=Number(colEl.dataset.abCol),digit=counts[i]||0;
+      const i=Number(colEl.dataset.abCol),digit=kind==='suanpan'?suanRodValue(i):(counts[i]||0);
       qa('[data-ab-bead]',colEl).forEach(bead=>{
         const [,part,jText]=String(bead.dataset.abBead).split(':'),j=Number(jText),active=abBeadActive(i,part,j);
         bead.classList.toggle('is-active',active);
@@ -498,7 +545,7 @@ function abacusTool(){
       '<label class="gd-row gd-ab-check"><input id="ab-show-total" type="checkbox"'+(showTotal?' checked':'')+'> Show number</label>'+
       '<label class="gd-row gd-ab-check"><input id="ab-row-counts" type="checkbox"'+(showRowCounts?' checked':'')+'> Show column digits</label>'+
       '<label class="gd-row gd-ab-check"><input id="ab-row-labels" type="checkbox"'+(showRowLabels?' checked':'')+'> Show place values</label>'+
-      '<p class="gd-help">'+(kind==='western'?'Ten beads per horizontal place-value row. Slide them left to count; ten can be regrouped as one in the next place.':'Soroban: upper bead is 5; four lower beads are 1 each. Beads count when moved towards the middle bar.')+'</p>';
+      '<p class="gd-help">'+(kind==='western'?'Ten beads per horizontal place-value row. Slide them left to count; ten can be regrouped as one in the next place.':kind==='suanpan'?'Suanpan: two upper 5-beads and five lower 1-beads per rod. Beads count when moved towards the beam.':'Soroban: upper bead is 5; four lower beads are 1 each. Beads count when moved towards the middle bar.')+'</p>';
   }
   function modeButtons(attr){
     return '<div class="gd-ab-mode-grid">'+MODES.map(([id,label])=>'<button class="gd-btn'+(playMode===id?' gd-btn--primary':'')+'" type="button" '+attr+'="'+id+'">'+label+'</button>').join('')+'</div>';
@@ -546,7 +593,7 @@ function abacusTool(){
       bead.onpointerdown=e=>{
         if(e.button!==0)return;
         const [i,part,j]=String(bead.dataset.abBead).split(':'),col=Number(i);
-        drag={col,part,index:Number(j),startY:e.clientY,startX:e.clientX,initial:counts[col]||0,moved:false};
+        drag={col,part,index:Number(j),startY:e.clientY,startX:e.clientX,initial:counts[col]||0,initialUpper:suanUpper[col]||0,initialLower:suanLower[col]||0,moved:false};
         try{bead.setPointerCapture(e.pointerId)}catch(_){}
       };
       bead.onpointermove=e=>{
@@ -556,6 +603,10 @@ function abacusTool(){
         drag.moved=true;
         const d=drag;
         if(kind==='western')setRowCount(d.col,d.initial-Math.round(delta/23));
+        else if(kind==='suanpan'){
+          if(d.part==='upper')setSuanPart(d.col,'upper',d.initialUpper+Math.round(delta/24));
+          else setSuanPart(d.col,'lower',d.initialLower-Math.round(delta/24));
+        }
         else if(d.part==='upper')setRowCount(d.col,d.initial%5+(delta>0?5:0));
         else setRowCount(d.col,(d.initial>=5?5:0)+clamp(d.initial%5-Math.round(delta/23),0,4));
       };
@@ -598,7 +649,7 @@ function abacusTool(){
       else if(next==='setup'){taskContext='play'}
       renderAll();
     });
-    const kindEl=q('#ab-kind');if(kindEl)kindEl.onchange=()=>{kind=DEVICE_OPTIONS.some(([id])=>id===kindEl.value)?kindEl.value:'western';task=null;historyChallenge=null;workflow='setup';historyHelpOpen=false;renderAll()};
+    const kindEl=q('#ab-kind');if(kindEl)kindEl.onchange=()=>{changeDevice(kindEl.value)};
     if(!isAbacusKind()){
       const theme=q('#ab-theme');if(theme)theme.onchange=()=>{colourScheme=COLOUR_SCHEMES.some(([id])=>id===theme.value)?theme.value:'classic';renderAll()};
       const challengeButton=q('#ab-history-challenge');if(challengeButton)challengeButton.onclick=newHistoricalChallenge;
@@ -619,8 +670,8 @@ function abacusTool(){
       const regroup=q('#ab-h-regroup');if(regroup)regroup.onclick=()=>{for(let i=3;i>0;i--){const carry=Math.floor(reckoning[i]/10);reckoning[i]%=10;reckoning[i-1]+=carry}renderAll()};
       const nn=q('#ab-napier-number');if(nn)nn.oninput=()=>{napierNumber=(nn.value.replace(/\D/g,'').slice(0,5)||'0');nn.value=napierNumber;renderStage()};
       const nm=q('#ab-napier-mult');if(nm)nm.onchange=()=>{napierMultiplier=clamp(Math.round(num(nm.value,3)),1,9);renderStage()};
-      const sa=q('#ab-slide-a');if(sa)sa.oninput=()=>{slideA=Number(sa.value);renderStage()};
-      const sb=q('#ab-slide-b');if(sb)sb.oninput=()=>{slideB=Number(sb.value);renderStage()};
+      const sa=q('#ab-slide-a');if(sa)sa.oninput=()=>{slideA=Number(sa.value);slideIndex=slideA*slideB<=10?'left':'right';renderStage()};
+      const sb=q('#ab-slide-b');if(sb)sb.oninput=()=>{slideB=Number(sb.value);slideIndex=slideA*slideB<=10?'left':'right';renderStage()};
       return;
     }
     const theme=q('#ab-theme');if(theme)theme.onchange=()=>{colourScheme=COLOUR_SCHEMES.some(([id])=>id===theme.value)?theme.value:'classic';renderAll()};
@@ -663,7 +714,7 @@ function abacusTool(){
   }
   function frameSvg({blank=false}={}){
     const width=900,height=540,left=80,right=820,top=118,rodH=324;
-    const svg=svgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':kind==='western'?'Western base-ten abacus':'Japanese soroban'});
+    const svg=svgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':kind==='western'?'Western base-ten abacus':kind==='suanpan'?'Chinese suanpan':'Japanese soroban'});
     svg.appendChild(svgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
     svg.appendChild(svgEl('rect',{x:40,y:36,width:820,height:457,rx:18,fill:'#d9b389',stroke:'#986b41','stroke-width':14,'data-ab-export-frame':'1'}));
     svg.appendChild(svgEl('rect',{x:62,y:60,width:776,height:414,rx:8,fill:'#f7f0e6'}));
@@ -687,15 +738,23 @@ function abacusTool(){
         const x=left+(right-left)*(col+.5)/rows;
         svg.appendChild(svgEl('line',{x1:x,y1:top-10,x2:x,y2:top+rodH+10,stroke:'#977c5e','stroke-width':5,'stroke-linecap':'round'}));
         if(showRowLabels)svg.appendChild(svgEl('text',{x,y:94,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':rows>=5?16:19,'font-weight':700,fill:'#60482e'},placeShort(col)));
-        const digit=blank?0:counts[col]||0;
-        for(let j=0;j<5;j++){
-          const part=j===0?'upper':'lower',k=part==='lower'?j-1:j;
-          const active=part==='upper'?digit>=5:k<(digit%5);
-          const y=part==='upper'?(active?36:12):(active?44+k*8.5:67+k*8.5);
+        const digit=blank?0:(kind==='suanpan'?suanRodValue(col):(counts[col]||0));
+        const beadSpecs=kind==='suanpan'
+          ?[...Array.from({length:2},(_,j)=>({part:'upper',j})),...Array.from({length:5},(_,j)=>({part:'lower',j}))]
+          :[{part:'upper',j:0},...Array.from({length:4},(_,j)=>({part:'lower',j}))];
+        beadSpecs.forEach(({part,j})=>{
+          let active,y;
+          if(kind==='suanpan'){
+            active=part==='upper'?j<(suanUpper[col]||0):j<(suanLower[col]||0);
+            y=part==='upper'?(active?35-j*11:9+j*11):(active?46+j*8:60+j*8);
+          }else{
+            active=part==='upper'?digit>=5:j<(digit%5);
+            y=part==='upper'?(active?36:12):(active?44+j*8.5:67+j*8.5);
+          }
           const cy=top+rodH*y/100;
           svg.appendChild(svgEl('ellipse',{cx:x,cy,rx:rows>=6?22:27,ry:13,fill:active?'#4b9a8d':'#dc9b52',stroke:active?'#32786e':'#a56d37','stroke-width':2}));
           svg.appendChild(svgEl('ellipse',{cx:x-7,cy:cy-4,rx:8,ry:3,fill:'#ffffff','fill-opacity':.43}));
-        }
+        });
         if(showRowCounts&&!blank)svg.appendChild(svgEl('text',{x,y:462,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':20,'font-weight':700,fill:'#295c56'},String(digit)));
       }
     }
