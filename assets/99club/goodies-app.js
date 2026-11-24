@@ -1,7 +1,7 @@
 (function(G){
 'use strict';
 if(!G)return;
-const {root,CATS,q,qa,numberLine,placeValue,abacusTool,fractionWall,barModel,hundredSquare,multiplicationGrid,arrayBuilder,clockTool,moneyTool,coordinateTool,measurementTool,randomiser,balanceTool,timesTableVisual,factorExplorer,fdpExplorer,geoboard,mathsCanvas,westernAbacus,sorobanHistory,reckoningBoard,countingRods,napierBones,slideRule}=G;
+const {root,CATS,q,qa,numberLine,placeValue,abacusTool,fractionWall,barModel,hundredSquare,multiplicationGrid,arrayBuilder,clockTool,moneyTool,coordinateTool,measurementTool,randomiser,balanceTool,timesTableVisual,factorExplorer,fdpExplorer,geoboard,mathsCanvas,westernAbacus,sorobanHistory,reckoningBoard,countingRods,napierBones,slideRule,pascalineTool}=G;
 const tools=[
   ['number-line','Number line','↔','number','Explore integers, decimals and jumps on a configurable line.','Mental arithmetic, rounding, negative numbers, fractions/decimals and explaining calculation strategies.',numberLine],
   ['place-value','Place value board','123','number','Build numbers with counters and a linked place-value bead frame.','Reading, composing and decomposing whole numbers and decimals; useful on an interactive whiteboard.',placeValue],
