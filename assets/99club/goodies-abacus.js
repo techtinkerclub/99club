@@ -23,6 +23,157 @@ function abacusTool(){
   ];
   const CHALLENGE_MODES=MODES.filter(([id])=>id!=='free');
 
+  const DEVICE_OPTIONS=[
+    ['western','Western abacus'],
+    ['soroban','Japanese soroban'],
+    ['reckoning','Reckoning board'],
+    ['rods','Chinese counting rods'],
+    ['napier',"Napier's Bones"],
+    ['slide','Slide rule'],
+    ['pascaline','Pascaline']
+  ];
+  let historyHelpOpen=false;
+  let reckoning=[0,1,2,6];
+  let rodDigits=[0,3,7,2];
+  let napierNumber='467',napierMultiplier=3;
+  let slideA=2,slideB=3;
+  let pascalDigits=[0,0,2,8];
+
+  function isAbacusKind(){return kind==='western'||kind==='soroban'}
+  function deviceHelp(){
+    const data={
+      western:{
+        title:'Western abacus',
+        intro:'A base-ten bead frame. Each horizontal row is a place value and beads count when moved to the left.',
+        steps:['Move beads left to count them.','Read the rows as thousands, hundreds, tens and ones.','For addition, move more beads left. When you reach 10 in a place, regroup it as 1 in the next place.','For subtraction, move beads back and exchange 1 higher-place bead for 10 lower-place beads when needed.'],
+        example:'Example: show 247, then add 36. Add 3 tens, then 6 ones. Regroup 10 ones as 1 ten. The result is 283.'
+      },
+      soroban:{
+        title:'Japanese soroban',
+        intro:'Each vertical rod is a place value. The upper bead is worth 5 and each lower bead is worth 1 when touching the middle beam.',
+        steps:['Only beads touching the beam count.','Use the lower beads for 1–4 and the upper bead plus lower beads for 5–9.','Read rods from left to right by place value.','When a column passes 9, clear it and carry 1 to the rod on the left.'],
+        example:'Example: 347 uses 3 lower beads in hundreds, 4 lower beads in tens, and the 5-bead plus 2 lower beads in ones.'
+      },
+      reckoning:{
+        title:'Reckoning board',
+        intro:'A reckoning board uses loose counters on place-value columns. It is a physical ancestor of modern place-value boards.',
+        steps:['Place counters in M, C, X and I for thousands, hundreds, tens and ones.','Each counter is worth the value of its column.','Exchange 10 counters in one column for 1 counter in the column to its left.','Reverse the exchange when subtracting.'],
+        example:'Example: 126 is 1 hundred, 2 tens and 6 ones. Add 85, regroup the ones and tens, and the result is 211.'
+      },
+      rods:{
+        title:'Chinese counting rods',
+        intro:'Counting rods represented decimal place value with small rods. Adjacent places alternate orientation so digits stay distinct.',
+        steps:['Each box is a decimal place.','Use + and − to change a digit from 0 to 9.','Read the four places together as one number.','For arithmetic, work column by column and regroup 10 into 1 of the next place.'],
+        example:'Example: 372 + 48. Ones make 10, so write 0 and carry 1 ten. Tens then make 12, so carry 1 hundred. Result: 420.'
+      },
+      napier:{
+        title:"Napier's Bones",
+        intro:'Napier’s rods turn multiplication into reading small products and adding along diagonals.',
+        steps:['Choose the rods for the digits of the number.','Choose a multiplier row from 1 to 9.','Read the two-digit products in that row.','Add the diagonals from right to left, carrying when needed.'],
+        example:'Example: 467 × 3 uses the row 12 | 18 | 21. Adding along the diagonals gives 1401.'
+      },
+      slide:{
+        title:'Slide rule',
+        intro:'A slide rule multiplies and divides by adding or subtracting logarithmic distances.',
+        steps:['To multiply a × b, align C=1 above D=a.','Find b on the C scale.','Read the answer directly below it on the D scale.','Use estimation to decide the correct power of ten.'],
+        example:'Example: align C=1 above D=2. Under C=3, D reads 6, so 2 × 3 = 6.'
+      },
+      pascaline:{
+        title:'Pascaline',
+        intro:'A mechanical calculator with linked decimal wheels. When a wheel rolls from 9 to 0 it carries into the wheel on its left.',
+        steps:['Each wheel is one decimal place.','Turn a wheel forward to add its place value.','Carry happens automatically when 9 rolls to 0.','Turn backwards to subtract; borrowing happens automatically.'],
+        example:'Example: show 28. Add 10 by turning the tens wheel once, then add 5 by turning the ones wheel five times. The wheels finish at 43.'
+      }
+    }[kind];
+    return data||data.western;
+  }
+  function helpButton(){
+    return '<button class="gd-history-help-btn" type="button" data-ab-help-open aria-label="How to use this device">? <span>How to use</span></button>';
+  }
+  function helpOverlay(){
+    if(!historyHelpOpen)return '';
+    const h=deviceHelp();
+    return '<div class="gd-history-help" data-ab-help-overlay><div class="gd-history-help__card"><button class="gd-history-help__close" type="button" data-ab-help-close aria-label="Close instructions">×</button><h3>'+esc(h.title)+'</h3><p>'+esc(h.intro)+'</p><ol>'+h.steps.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ol><div class="gd-history-example"><strong>Worked example</strong><p>'+esc(h.example)+'</p></div></div></div>';
+  }
+  function rodDigitSvg(d,vertical){
+    d=clamp(Math.round(d),0,9);
+    if(!d)return '<span class="gd-rod-zero">○</span>';
+    const five=d>=5,ones=d%5,parts=[];
+    const line=(x1,y1,x2,y2)=>'<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" />';
+    if(vertical){
+      if(five)parts.push(line(8,6,46,6));
+      for(let i=0;i<ones;i++){const x=12+i*8;parts.push(line(x,five?14:7,x,49))}
+    }else{
+      if(five)parts.push(line(6,8,6,46));
+      for(let i=0;i<ones;i++){const y=12+i*8;parts.push(line(five?14:7,y,49,y))}
+    }
+    return '<svg viewBox="0 0 56 56" aria-hidden="true">'+parts.join('')+'</svg>';
+  }
+  function napierCell(d,row){
+    const p=d*row,t=Math.floor(p/10),o=p%10;
+    return '<div class="gd-napier-cell"><span>'+t+'</span><i></i><b>'+o+'</b></div>';
+  }
+  function napierBone(d){
+    return '<div class="gd-napier-bone"><div class="gd-napier-head">'+d+'</div>'+Array.from({length:9},(_,i)=>napierCell(+d,i+1)).join('')+'</div>';
+  }
+  function slidePos(v){return Math.log10(v)*100}
+  function slideTicks(){
+    let out='';
+    for(let n=10;n<=100;n++){
+      const v=n/10;if(v>10)break;
+      const p=slidePos(v),major=n%10===0||n%5===0;
+      out+='<span class="gd-slide-tick'+(major?' is-major':'')+'" style="left:'+p+'%"><i></i>'+(major?'<b>'+v.toFixed(v%1?1:0)+'</b>':'')+'</span>';
+    }
+    return out;
+  }
+  function historicalControls(){
+    if(kind==='reckoning')return '<div class="gd-row"><button class="gd-btn gd-btn--primary" id="ab-h-example" type="button">Show 126</button><button class="gd-btn" id="ab-h-regroup" type="button">Regroup 10 → 1</button><button class="gd-btn" id="ab-h-clear" type="button">Clear</button></div><p class="gd-help">Add and remove counters directly on the board.</p>';
+    if(kind==='rods')return '<div class="gd-row"><button class="gd-btn gd-btn--primary" id="ab-h-example" type="button">Show 372</button><button class="gd-btn" id="ab-h-clear" type="button">Clear</button></div><p class="gd-help">Use + and − under each place to change the rod numeral.</p>';
+    if(kind==='napier')return field('Number','<input class="gd-input" id="ab-napier-number" inputmode="numeric" maxlength="5" value="'+esc(napierNumber)+'">')+field('Multiply by','<select class="gd-select" id="ab-napier-mult">'+Array.from({length:9},(_,i)=>'<option value="'+(i+1)+'"'+(i+1===napierMultiplier?' selected':'')+'>'+(i+1)+'</option>').join('')+'</select>')+'<p class="gd-help">Choose a number and multiplier, then read the selected row and add its diagonals.</p>';
+    if(kind==='slide')return field('First factor','<input id="ab-slide-a" type="range" min="1" max="9.9" step="0.1" value="'+slideA+'"><strong id="ab-slide-a-v">'+slideA+'</strong>')+field('Second factor','<input id="ab-slide-b" type="range" min="1" max="9.9" step="0.1" value="'+slideB+'"><strong id="ab-slide-b-v">'+slideB+'</strong>')+'<p class="gd-help">Move the factors and watch the C scale slide under the cursor.</p>';
+    if(kind==='pascaline')return '<div class="gd-row"><button class="gd-btn gd-btn--primary" id="ab-h-example" type="button">Show 28</button><button class="gd-btn" id="ab-h-clear" type="button">Reset wheels</button></div><p class="gd-help">Turn the numbered wheels with + and −. Carry and borrowing happen automatically.</p>';
+    return '';
+  }
+  function renderHistoricalStage(){
+    let body='';
+    if(kind==='reckoning'){
+      const cols=[['M','Thousands',1000],['C','Hundreds',100],['X','Tens',10],['I','Ones',1]];
+      const value=reckoning.reduce((s,n,i)=>s+n*cols[i][2],0);
+      body='<div class="gd-reckoning"><div class="gd-reckoning-title">RECKONING TABLE</div><div class="gd-reckoning-grid">'+cols.map((c,i)=>'<div class="gd-reckoning-col"><div class="gd-reckoning-heading"><b>'+c[0]+'</b><span>'+c[1]+'</span></div><div class="gd-reckoning-space">'+Array.from({length:reckoning[i]},(_,j)=>'<button type="button" class="gd-reckoning-counter" data-ab-rb-remove="'+i+'" aria-label="Remove '+c[1]+' counter"></button>').join('')+'<button type="button" class="gd-reckoning-add" data-ab-rb-add="'+i+'">+ counter</button></div></div>').join('')+'</div><div class="gd-history-readout">Value <strong>'+value.toLocaleString('en-GB')+'</strong></div></div>';
+    }else if(kind==='rods'){
+      body='<div class="gd-counting-rods"><div class="gd-rods-grid">'+rodDigits.map((d,i)=>'<div class="gd-rods-cell"><span>'+['Thousands','Hundreds','Tens','Ones'][i]+'</span><div class="gd-rods-mat">'+rodDigitSvg(d,i%2===0)+'</div><div class="gd-rods-stepper"><button type="button" data-ab-rod-dec="'+i+'">−</button><b>'+d+'</b><button type="button" data-ab-rod-inc="'+i+'">+</button></div></div>').join('')+'</div><div class="gd-history-readout">Number <strong>'+Number(rodDigits.join('')).toLocaleString('en-GB')+'</strong></div></div>';
+    }else if(kind==='napier'){
+      const product=(+napierNumber||0)*napierMultiplier;
+      body='<div class="gd-napier"><div class="gd-napier-row-index">'+Array.from({length:10},(_,i)=>'<span>'+(i||'×')+'</span>').join('')+'</div><div class="gd-napier-bones">'+napierNumber.split('').map(napierBone).join('')+'</div><div class="gd-napier-highlight">Use row <strong>'+napierMultiplier+'</strong></div><div class="gd-history-readout">'+esc(napierNumber)+' × '+napierMultiplier+' = <strong>'+product.toLocaleString('en-GB')+'</strong></div></div>';
+    }else if(kind==='slide'){
+      const shift=slidePos(slideA),cursor=(shift+slidePos(slideB))%100;
+      body='<div class="gd-slide-rule"><div class="gd-slide-body"><div class="gd-slide-scale gd-slide-d"><span class="gd-slide-label">D</span>'+slideTicks()+'</div><div class="gd-slide-scale gd-slide-c" style="transform:translateX('+shift+'%)"><span class="gd-slide-label">C</span>'+slideTicks()+'</div><div class="gd-slide-cursor" style="left:'+cursor+'%"></div></div><div class="gd-history-readout">'+slideA+' × '+slideB+' = <strong>'+(slideA*slideB).toLocaleString('en-GB',{maximumFractionDigits:3})+'</strong></div></div>';
+    }else if(kind==='pascaline'){
+      const places=['Thousands','Hundreds','Tens','Ones'];
+      const wheels=pascalDigits.map((d,i)=>'<div class="gd-pascaline-wheel-wrap"><span>'+places[i]+'</span><div class="gd-pascaline-wheel"><small>'+((d+9)%10)+'</small><strong>'+d+'</strong><small>'+((d+1)%10)+'</small></div><div class="gd-pascaline-wheel-buttons"><button type="button" data-ab-pa-sub="'+i+'">−</button><button type="button" data-ab-pa-add="'+i+'">+</button></div></div>').join('');
+      body='<div class="gd-pascaline"><div class="gd-pascaline-plate"><div class="gd-pascaline-name">PASCALINE</div><div class="gd-pascaline-wheels">'+wheels+'</div><div class="gd-pascaline-gears">'+Array.from({length:7},(_,i)=>'<i style="--i:'+i+'">✺</i>').join('')+'</div></div><div class="gd-history-readout">Value <strong>'+Number(pascalDigits.join('')).toLocaleString('en-GB')+'</strong></div></div>';
+    }
+    q('#gd-stage').innerHTML='<div class="gd-history-stage">'+helpButton()+body+helpOverlay()+'</div>';
+    bindHistoricalStage();
+  }
+  function pascalStep(index,delta){
+    for(let i=index;i>=0;i--){
+      pascalDigits[i]+=delta;
+      if(pascalDigits[i]>=0&&pascalDigits[i]<=9)break;
+      if(pascalDigits[i]>9){pascalDigits[i]=0;delta=1}else{pascalDigits[i]=9;delta=-1}
+    }
+  }
+  function bindHistoricalStage(){
+    const open=q('[data-ab-help-open]');if(open)open.onclick=()=>{historyHelpOpen=true;renderHistoricalStage()};
+    const close=q('[data-ab-help-close]');if(close)close.onclick=()=>{historyHelpOpen=false;renderHistoricalStage()};
+    qa('[data-ab-rb-add]').forEach(b=>b.onclick=()=>{reckoning[+b.dataset.abRbAdd]++;renderHistoricalStage()});
+    qa('[data-ab-rb-remove]').forEach(b=>b.onclick=()=>{const i=+b.dataset.abRbRemove;reckoning[i]=Math.max(0,reckoning[i]-1);renderHistoricalStage()});
+    qa('[data-ab-rod-dec]').forEach(b=>b.onclick=()=>{const i=+b.dataset.abRodDec;rodDigits[i]=(rodDigits[i]+9)%10;renderHistoricalStage()});
+    qa('[data-ab-rod-inc]').forEach(b=>b.onclick=()=>{const i=+b.dataset.abRodInc;rodDigits[i]=(rodDigits[i]+1)%10;renderHistoricalStage()});
+    qa('[data-ab-pa-add]').forEach(b=>b.onclick=()=>{pascalStep(+b.dataset.abPaAdd,1);renderHistoricalStage()});
+    qa('[data-ab-pa-sub]').forEach(b=>b.onclick=()=>{pascalStep(+b.dataset.abPaSub,-1);renderHistoricalStage()});
+  }
+
   // The right-hand column is ones. Each column is a decimal digit (0–9).
   function capacity(){return Math.pow(10,rows)-1}
   function total(){return counts.reduce((sum,digit,i)=>sum+digit*Math.pow(10,rows-i-1),0)}
@@ -189,17 +340,18 @@ function abacusTool(){
     '</div>';
   }
   function renderStage(){
+    if(!isAbacusKind()){renderHistoricalStage();return}
     const hideTotal=!!task&&taskContext==='challenge'&&!revealed&&status!=='Correct ✓';
     q('#gd-stage').innerHTML=taskBanner()+
       '<div hidden aria-hidden="true">'+['copy','png','svg','print'].map(type=>'<button type="button" data-gd-direct-export="'+type+'">'+type+'</button>').join('')+'</div>'+
-      '<div class="gd-ab-workspace">'+
+      '<div class="gd-ab-workspace" style="position:relative">'+helpButton()+
         '<div class="gd-ab-frame gd-ab-frame--'+kind+'" data-ab-frame>'+
           '<div class="gd-ab-type-label">'+(kind==='western'?'WESTERN · BASE TEN':'JAPANESE · SOROBAN')+'</div>'+
           '<div class="gd-ab-columns" style="--ab-cols:'+rows+'">'+Array.from({length:rows},(_,i)=>columnMarkup(i)).join('')+'</div>'+
         '</div>'+
         frameControls()+
         '<div class="gd-ab-summary"'+(showTotal?'':' hidden')+'><span>Number shown</span><strong data-ab-total>'+(hideTotal?'?':total().toLocaleString('en-GB'))+'</strong></div>'+
-        '<p class="gd-object-hint" data-ab-hint>'+(task?'Move the beads, then check your answer.':kind==='soroban'?'Move beads towards the middle bar to count them.':'Move beads left to count them. Each horizontal row has a place value.')+'</p>'+
+        '<p class="gd-object-hint" data-ab-hint>'+(task?'Move the beads, then check your answer.':kind==='soroban'?'Move beads towards the middle bar to count them.':'Move beads left to count them. Each horizontal row has a place value.')+'</p>'+helpOverlay()+
       '</div>';
     bindStage();
   }
@@ -223,7 +375,9 @@ function abacusTool(){
     const check=q('[data-ab-check]');if(check)check.disabled=status==='Correct ✓';
   }
   function setupControls(){
-    return field('Abacus type','<select class="gd-select" id="ab-kind"><option value="western"'+(kind==='western'?' selected':'')+'>Western (9 beads per rod)</option><option value="soroban"'+(kind==='soroban'?' selected':'')+'>Japanese soroban (5 beads per rod)</option></select>')+
+    const selector=field('Device','<select class="gd-select" id="ab-kind">'+DEVICE_OPTIONS.map(([id,label])=>'<option value="'+id+'"'+(kind===id?' selected':'')+'>'+label+'</option>').join('')+'</select>');
+    if(!isAbacusKind())return selector+historicalControls()+'<p class="gd-help">Use the ? How to use button on the device for calculation instructions and a worked example.</p>';
+    return selector+
       field('Place values','<select class="gd-select" id="ab-rows">'+[3,4,5,6].map(n=>'<option value="'+n+'"'+(rows===n?' selected':'')+'>'+n+' places</option>').join('')+'</select>')+
       field('Set number','<div class="gd-row"><input class="gd-input" id="ab-set-number" type="number" min="0" max="'+capacity()+'" value="'+total()+'"><button class="gd-btn gd-btn--primary" id="ab-set" type="button">Set</button></div>')+
       '<div class="gd-row">'+btn('Random','ab-random')+btn('Clear','ab-clear')+'</div>'+
@@ -253,6 +407,7 @@ function abacusTool(){
       '<p class="gd-help" id="ab-export-status" role="status">'+esc(exportStatus)+'</p>';
   }
   function controlsHtml(){
+    if(!isAbacusKind())return setupControls();
     return '<button type="button" data-ab-random-challenge hidden aria-hidden="true" tabindex="-1">Challenge</button>'+
       '<div class="gd-row gd-ab-workflow" role="tablist" aria-label="Abacus workflow">'+
         [['setup','Setup'],['play','Teach / play'],['challenge','Challenge'],['export','Export']].map(([id,label])=>'<button class="gd-btn'+(workflow===id?' gd-btn--primary':'')+'" type="button" data-ab-workflow="'+id+'">'+label+'</button>').join('')+
@@ -263,6 +418,8 @@ function abacusTool(){
   function renderAll(){renderControls();renderStage()}
 
   function bindStage(){
+    const helpOpen=q('[data-ab-help-open]');if(helpOpen)helpOpen.onclick=()=>{historyHelpOpen=true;renderStage()};
+    const helpClose=q('[data-ab-help-close]');if(helpClose)helpClose.onclick=()=>{historyHelpOpen=false;renderStage()};
     qa('[data-ab-bead]').forEach(bead=>{
       bead.onclick=e=>{
         e.stopPropagation();
@@ -325,7 +482,27 @@ function abacusTool(){
       else if(next==='setup'){taskContext='play'}
       renderAll();
     });
-    const kindEl=q('#ab-kind');if(kindEl)kindEl.onchange=()=>{kind=kindEl.value==='soroban'?'soroban':'western';task=null;renderAll()};
+    const kindEl=q('#ab-kind');if(kindEl)kindEl.onchange=()=>{kind=DEVICE_OPTIONS.some(([id])=>id===kindEl.value)?kindEl.value:'western';task=null;workflow='setup';historyHelpOpen=false;renderAll()};
+    if(!isAbacusKind()){
+      const ex=q('#ab-h-example');if(ex)ex.onclick=()=>{
+        if(kind==='reckoning')reckoning=[0,1,2,6];
+        if(kind==='rods')rodDigits=[0,3,7,2];
+        if(kind==='pascaline')pascalDigits=[0,0,2,8];
+        renderAll();
+      };
+      const clearH=q('#ab-h-clear');if(clearH)clearH.onclick=()=>{
+        if(kind==='reckoning')reckoning=[0,0,0,0];
+        if(kind==='rods')rodDigits=[0,0,0,0];
+        if(kind==='pascaline')pascalDigits=[0,0,0,0];
+        renderAll();
+      };
+      const regroup=q('#ab-h-regroup');if(regroup)regroup.onclick=()=>{for(let i=3;i>0;i--){const carry=Math.floor(reckoning[i]/10);reckoning[i]%=10;reckoning[i-1]+=carry}renderAll()};
+      const nn=q('#ab-napier-number');if(nn)nn.oninput=()=>{napierNumber=(nn.value.replace(/\D/g,'').slice(0,5)||'0');nn.value=napierNumber;renderStage()};
+      const nm=q('#ab-napier-mult');if(nm)nm.onchange=()=>{napierMultiplier=clamp(Math.round(num(nm.value,3)),1,9);renderStage()};
+      const sa=q('#ab-slide-a');if(sa)sa.oninput=()=>{slideA=Number(sa.value);renderStage()};
+      const sb=q('#ab-slide-b');if(sb)sb.oninput=()=>{slideB=Number(sb.value);renderStage()};
+      return;
+    }
     const rowsEl=q('#ab-rows');if(rowsEl)rowsEl.onchange=()=>{setRows(rowsEl.value);task=null;renderAll()};
     const set=q('#ab-set');if(set)set.onclick=()=>{setTotal(q('#ab-set-number')?.value);task=null;renderControls()};
     const random=q('#ab-random');if(random)random.onclick=()=>{setTotal(randomInt(0,capacity()));task=null;renderControls()};
