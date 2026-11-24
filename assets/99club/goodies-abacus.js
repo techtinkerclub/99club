@@ -38,7 +38,7 @@ function abacusTool(){
   let rodDigits=[0,3,7,2];
   let napierNumber='467',napierMultiplier=3;
   let slideA=2,slideB=3,slideIndex='left';
-  let pascalDigits=[0,0,2,8],pascalMessage='Ready · tap a numbered dial hole to add that amount.',pascalCarryFlash=[];
+  let pascalDigits=[0,0,2,8],pascalOperation='add',pascalMessage='ADD mode · tap a numbered dial hole to add that amount.',pascalCarryFlash=[];
   let suanUpper=Array(5).fill(0),suanLower=Array(5).fill(0);
   let colourScheme='classic';
   let historyChallenge=null,historyAnswer='',historyStatus='',historyRevealed=false;
@@ -80,19 +80,34 @@ function abacusTool(){
         ?'Work out '+a+' × '+b+'. Because the product is beyond 10, use the right-hand C=10 index: slide C=10 above D='+a+', move the cursor to C='+b+', then enter the value represented on D.'
         :'Work out '+a+' × '+b+'. FIRST MOVE: use the LEFT end of C. Put C=1 directly over D='+a+'. THEN move the cursor to C='+b+'. Read D and enter the product.'};
     }else if(kind==='pascaline'){
-      let start,add;
-      if(Math.random()<.72){
-        const tens=randomInt(1,6),ones=randomInt(6,9);
-        start=tens*10+ones;
-        add=randomInt(10,20)+randomInt(Math.max(1,10-ones),9);
+      const operation=Math.random()<.5?'add':'subtract';
+      let start,amount,target;
+      if(operation==='add'){
+        if(Math.random()<.72){
+          const tens=randomInt(1,6),ones=randomInt(6,9);
+          start=tens*10+ones;
+          amount=randomInt(1,2)*10+randomInt(Math.max(1,10-ones),9);
+        }else{
+          start=randomInt(12,75);amount=randomInt(6,24);
+        }
+        target=start+amount;
       }else{
-        start=randomInt(12,75);add=randomInt(6,24);
+        if(Math.random()<.72){
+          const tens=randomInt(2,9),ones=randomInt(0,5);
+          start=tens*10+ones;
+          const subTens=randomInt(0,Math.max(0,tens-1)),subOnes=randomInt(ones+1,9);
+          amount=subTens*10+subOnes;
+          if(amount===0||amount>=start)amount=Math.min(start-1,10+subOnes);
+        }else{
+          start=randomInt(25,95);amount=randomInt(5,Math.min(24,start-1));
+        }
+        target=start-amount;
       }
-      const target=start+add;
+      pascalOperation=operation;
       setHistoricalNumber(start);
-      pascalMessage='Challenge loaded · add '+add+' using the input dials.';
+      pascalMessage='Challenge loaded · '+(operation==='add'?'add ':'subtract ')+amount+' using the input dials.';
       pascalCarryFlash=[];
-      historyChallenge={start,add,target,answer:target,requiresAnswer:false,prompt:'The Pascaline starts at '+start+'. Add '+add+' using the numbered input dials. Enter each place value, watch for carrying, then press Check when the result windows show your answer.'};
+      historyChallenge={start,amount,operation,target,answer:target,requiresAnswer:false,prompt:'The Pascaline starts at '+start+'. '+(operation==='add'?'Add ':'Subtract ')+amount+' using the numbered input dials. Enter each place value, watch for '+(operation==='add'?'carrying':'borrowing')+', then press Check when the result windows show your answer.'};
     }
     renderAll();
   }
@@ -187,10 +202,10 @@ function abacusTool(){
       },
       pascaline:{
         title:'Pascaline',
-        history:'Blaise Pascal built mechanical adding machines in France from the 1640s. A number was entered with a stylus in a toothed input wheel. The wheels turned in one direction and an internal mechanism carried automatically into the next place. Historical Pascalines handled subtraction using complementary-number methods rather than simply turning the wheels backwards.',
-        intro:'This classroom model focuses on the Pascaline’s most important idea: enter an amount on a place-value dial and let the machine perform the carrying mechanically.',
-        steps:['Read the result in the four windows: Thousands, Hundreds, Tens and Ones.','To add, tap a numbered hole on a dial. For example, tapping 5 on the Ones dial adds 5; tapping 3 on the Tens dial adds 30.','When a digit passes from 9 to 0, the next window automatically advances by 1. The machine highlights that carry.','For a multi-digit number, enter each place separately. You can do the places in either order and the final total is the same.'],
-        example:'Try 28 + 15. Press “Start 28”. Tap 1 on the Tens dial to add 10. Then tap 5 on the Ones dial. The Ones window passes 9, carries 1 into Tens, and the result becomes 43.'
+        history:'Blaise Pascal built mechanical adding machines in France from the 1640s. A number was entered with a stylus in a toothed input wheel and the mechanism carried automatically between places. Historical Pascalines performed subtraction using complementary-number methods. Our SUBTRACT mode turns the classroom model backwards so pupils can see borrowing directly; it is a teaching aid rather than a literal reconstruction of Pascal’s subtraction procedure.',
+        intro:'Use ADD or SUBTRACT, then tap numbered holes on the place-value dials. The result windows update automatically and show carrying or borrowing between places.',
+        steps:['Choose ADD or SUBTRACT on the machine.','Read the result in the four windows: Thousands, Hundreds, Tens and Ones.','Tap a numbered hole on a dial. In ADD mode, 5 on Ones adds 5 and 3 on Tens adds 30. In SUBTRACT mode, the same inputs subtract those amounts.','When a place crosses 9→0 in ADD mode the next place carries. When subtraction needs a value from the next place, the machine shows a borrow.','For a multi-digit amount, enter each place separately.'],
+        example:'Addition: start at 28, ADD 15 by tapping 1 on Tens then 5 on Ones; the result is 43. Subtraction: start at 42, choose SUBTRACT, tap 1 on Tens then 5 on Ones; the Ones place borrows and the result is 27.'
       }
     }[kind];
     return data||data.western;
@@ -265,7 +280,7 @@ function abacusTool(){
     if(kind==='rods')return common+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="ab-h-example" type="button">Show 372</button><button class="gd-btn" id="ab-h-clear" type="button">Clear</button></div><p class="gd-help">Use + and − under each place to change the rod numeral.</p>';
     if(kind==='napier')return common+field('Number','<input class="gd-input" id="ab-napier-number" inputmode="numeric" maxlength="5" value="'+esc(napierNumber)+'"'+(historyChallenge?' disabled':'')+'>')+field('Multiply by','<select class="gd-select" id="ab-napier-mult"'+(historyChallenge?' disabled':'')+'>'+Array.from({length:9},(_,i)=>'<option value="'+(i+1)+'"'+(i+1===napierMultiplier?' selected':'')+'>'+(i+1)+'</option>').join('')+'</select>')+'<p class="gd-help">Choose a number and multiplier, then read the selected row and add its diagonals.</p>';
     if(kind==='slide')return common+field('First factor','<input id="ab-slide-a" type="range" min="1" max="9.9" step="0.1" value="'+slideA+'"><strong id="ab-slide-a-v">'+slideA+'</strong>')+field('Second factor','<input id="ab-slide-b" type="range" min="1" max="9.9" step="0.1" value="'+slideB+'"><strong id="ab-slide-b-v">'+slideB+'</strong>')+'<p class="gd-help">Drag the C scale and glass cursor directly. Because multiplication can be reversed, the rule automatically uses the factor order that keeps more of the scale visible.</p>';
-    if(kind==='pascaline')return common+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="ab-h-example" type="button">Start 28</button><button class="gd-btn" id="ab-h-clear" type="button">Reset machine</button></div><p class="gd-help">Tap a numbered hole on a place-value dial to add that amount. The result windows carry automatically.</p>';
+    if(kind==='pascaline')return common+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="ab-h-example" type="button">Worked start</button><button class="gd-btn" id="ab-h-clear" type="button">Reset machine</button></div><p class="gd-help">Choose ADD or SUBTRACT on the machine, then use the numbered place-value dials. Carrying and borrowing happen automatically.</p>';
     return '';
   }
   function renderHistoricalStage(){
@@ -284,31 +299,41 @@ function abacusTool(){
       body='<div class="gd-slide-rule">'+(historyChallenge?'<div class="gd-slide-coach '+(targetIndex==='right'?'is-right':'is-left')+'"><span>FIRST MOVE</span><strong>'+(targetIndex==='right'?'RIGHT end · C=10 → D='+targetA:'LEFT end · C=1 → D='+targetA)+'</strong><small>Then move the cursor to C='+targetB+'</small></div>':'')+'<div class="gd-slide-shell"><div class="gd-slide-brand"><strong>TEACHING SLIDE RULE</strong><span>C / D logarithmic scales</span></div><div class="gd-slide-body"><div class="gd-slide-stock"><div class="gd-slide-stock-edge"></div><span class="gd-slide-row-tag gd-slide-row-tag--c">C</span><div class="gd-slide-channel" data-ab-slide-track aria-label="Drag the C scale"><div class="gd-slide-scale gd-slide-c" data-ab-slide-c style="transform:translateX('+shift+'%)"><span class="gd-slide-index gd-slide-index--left'+(historyChallenge&&targetIndex==='left'?' is-target':'')+'"><small>LEFT</small><b>1</b></span><span class="gd-slide-index gd-slide-index--right'+(historyChallenge&&targetIndex==='right'?' is-target':'')+'"><small>RIGHT</small><b>10</b></span>'+slideTicks()+'</div></div><span class="gd-slide-row-tag gd-slide-row-tag--d">D</span><div class="gd-slide-scale gd-slide-d">'+slideTicks()+'</div>'+(historyChallenge?'<span class="gd-slide-target" style="left:'+targetD+'%" aria-hidden="true"><em>ALIGN</em><i></i><b>'+targetA+'</b></span>':'')+'</div><div class="gd-slide-cursor" data-ab-slide-cursor style="left:'+cursor+'%"><span class="gd-slide-glass"></span><i></i><b></b></div></div></div><div class="gd-slide-steps"><span>1 · Move '+(targetIndex==='right'?'RIGHT C=10':'LEFT C=1')+' to D='+targetA+'</span><span>2 · Find C='+targetB+'</span><span>3 · Read D, then place the decimal by estimation</span><button type="button" class="gd-slide-reset" data-ab-slide-reset>Reset</button></div><div class="gd-slide-reading">D under cursor ≈ <strong>'+scaleReading.toLocaleString('en-GB',{maximumFractionDigits:2})+'</strong></div><div class="gd-history-readout">'+targetA+' × '+targetB+' ≈ <strong>'+(historyChallenge&&!historyRevealed?'?':targetProduct.toLocaleString('en-GB',{maximumFractionDigits:3}))+'</strong></div></div>';
     }else if(kind==='pascaline'){
       const value=Number(pascalDigits.join('')),wheels=pascalDigits.map((d,i)=>pascalDial(i,d)).join('');
-      body='<div class="gd-pascaline"><div class="gd-pascaline-plate"><div class="gd-pascaline-head"><div><strong>PASCALINE</strong><span>Mechanical adding machine · classroom model</span></div><div class="gd-pascaline-result"><small>RESULT</small><b>'+pascalDigits.join('')+'</b></div></div><div class="gd-pascaline-rule"><span>Touch a number on a dial to add that many of its place value</span></div><div class="gd-pascaline-wheels">'+wheels+'</div><div class="gd-pascaline-status" role="status">'+esc(pascalMessage)+'</div><div class="gd-pascaline-actions">'+(historyChallenge?'<button type="button" data-ab-pa-restart>Restart '+historyChallenge.start+'</button>':'<button type="button" data-ab-pa-example>Start 28</button>')+'<button type="button" data-ab-pa-reset>Reset to 0</button></div><div class="gd-pascaline-gears" aria-hidden="true">'+Array.from({length:7},(_,i)=>'<i style="--i:'+i+'">✺</i>').join('')+'</div></div><div class="gd-history-readout">Value <strong>'+value.toLocaleString('en-GB')+'</strong></div></div>';
+      body='<div class="gd-pascaline gd-pascaline--'+pascalOperation+'"><div class="gd-pascaline-plate"><div class="gd-pascaline-head"><div><strong>PASCALINE</strong><span>Mechanical calculator · classroom model</span></div><div class="gd-pascaline-result"><small>RESULT</small><b>'+pascalDigits.join('')+'</b></div></div><div class="gd-pascaline-mode" role="group" aria-label="Pascaline operation"><button type="button" data-ab-pa-mode="add" class="'+(pascalOperation==='add'?'is-active':'')+'"'+(historyChallenge?' disabled':'')+'>+ ADD</button><button type="button" data-ab-pa-mode="subtract" class="'+(pascalOperation==='subtract'?'is-active':'')+'"'+(historyChallenge?' disabled':'')+'>− SUBTRACT</button></div><div class="gd-pascaline-rule"><span>Touch a number on a dial to '+(pascalOperation==='add'?'add':'subtract')+' that many of its place value</span></div><div class="gd-pascaline-wheels">'+wheels+'</div><div class="gd-pascaline-status" role="status">'+esc(pascalMessage)+'</div><div class="gd-pascaline-actions">'+(historyChallenge?'<button type="button" data-ab-pa-restart>Restart '+historyChallenge.start+'</button>':'<button type="button" data-ab-pa-example>Start '+(pascalOperation==='add'?'28':'42')+'</button>')+'<button type="button" data-ab-pa-reset>Reset to 0</button></div><div class="gd-pascaline-gears" aria-hidden="true">'+Array.from({length:7},(_,i)=>'<i style="--i:'+i+'">✺</i>').join('')+'</div></div><div class="gd-history-readout">Value <strong>'+value.toLocaleString('en-GB')+'</strong></div></div>';
     }
     q('#gd-stage').innerHTML=historyChallengeBanner()+'<div class="gd-history-stage gd-history-theme--'+colourScheme+'">'+deviceToolbar()+'<div class="gd-history-main"><div class="gd-history-device">'+body+'</div>'+helpOverlay()+'</div></div>';
     bindHistoricalStage();
   }
   function pascalPlaceValue(index){return [1000,100,10,1][index]||1}
   function pascalPlaceName(index){return ['Thousands','Hundreds','Tens','Ones'][index]||'place'}
-  function pascalAdd(index,amount){
+  function pascalApply(index,amount){
     amount=clamp(Math.round(Number(amount)||0),0,9);
-    if(amount===0){pascalMessage='0 adds nothing · choose 1–9 on a dial.';pascalCarryFlash=[];renderHistoricalStage();return}
-    const before=Number(pascalDigits.join('')),carried=[];
-    for(let step=0;step<amount;step++){
-      const c=pascalStep(index,1);
-      c.forEach(x=>{if(x>=0&&!carried.includes(x))carried.push(x)});
+    const placeValue=pascalPlaceValue(index),change=amount*placeValue,before=Number(pascalDigits.join(''));
+    if(amount===0){pascalMessage='0 changes nothing · choose 1–9 on a dial.';pascalCarryFlash=[];renderHistoricalStage();return}
+    if(pascalOperation==='subtract'&&change>before){
+      pascalCarryFlash=[];
+      pascalMessage='Cannot subtract '+change.toLocaleString('en-GB')+' from '+before.toLocaleString('en-GB')+' without going below 0.';
+      renderHistoricalStage();return;
     }
-    const placeValue=pascalPlaceValue(index),added=amount*placeValue,after=Number(pascalDigits.join(''));
-    pascalCarryFlash=carried;
-    pascalMessage='Added '+added.toLocaleString('en-GB')+' ('+amount+' × '+placeValue.toLocaleString('en-GB')+') · '+before.toLocaleString('en-GB')+' → '+after.toLocaleString('en-GB')+(carried.length?' · carry to '+carried.map(pascalPlaceName).join(', '):'');
+    const delta=pascalOperation==='add'?1:-1,transfers=[];
+    for(let step=0;step<amount;step++){
+      const moved=pascalStep(index,delta);
+      moved.forEach(x=>{if(x>=0&&!transfers.includes(x))transfers.push(x)});
+    }
+    const after=Number(pascalDigits.join(''));
+    pascalCarryFlash=transfers;
+    if(pascalOperation==='add'){
+      pascalMessage='Added '+change.toLocaleString('en-GB')+' ('+amount+' × '+placeValue.toLocaleString('en-GB')+') · '+before.toLocaleString('en-GB')+' → '+after.toLocaleString('en-GB')+(transfers.length?' · CARRY to '+transfers.map(pascalPlaceName).join(', '):'');
+    }else{
+      pascalMessage='Subtracted '+change.toLocaleString('en-GB')+' ('+amount+' × '+placeValue.toLocaleString('en-GB')+') · '+before.toLocaleString('en-GB')+' → '+after.toLocaleString('en-GB')+(transfers.length?' · BORROW from '+transfers.map(pascalPlaceName).join(', '):'');
+    }
   }
   function pascalDial(index,digit){
     const placeValue=pascalPlaceValue(index),holes=Array.from({length:10},(_,n)=>{
       const angle=n*36;
-      return '<button type="button" class="gd-pascaline-hole gd-pascaline-hole--'+n+'" data-ab-pa-input="'+index+':'+n+'" style="--pa-angle:'+angle+'deg;--pa-counter:'+(-angle)+'deg" aria-label="Add '+(n*placeValue).toLocaleString('en-GB')+' using the '+pascalPlaceName(index)+' dial"><span>'+n+'</span></button>';
+      return '<button type="button" class="gd-pascaline-hole gd-pascaline-hole--'+n+'" data-ab-pa-input="'+index+':'+n+'" style="--pa-angle:'+angle+'deg;--pa-counter:'+(-angle)+'deg" aria-label="'+(pascalOperation==='add'?'Add ':'Subtract ')+(n*placeValue).toLocaleString('en-GB')+' using the '+pascalPlaceName(index)+' dial"><span>'+n+'</span></button>';
     }).join('');
-    return '<div class="gd-pascaline-wheel-wrap'+(pascalCarryFlash.includes(index)?' is-carry':'')+'"><span class="gd-pascaline-place">'+pascalPlaceName(index)+'</span><div class="gd-pascaline-window" aria-label="'+pascalPlaceName(index)+' result digit">'+digit+'</div><div class="gd-pascaline-dial" data-ab-pa-wheel="'+index+'" aria-label="'+pascalPlaceName(index)+' input dial">'+holes+'<span class="gd-pascaline-hub"><i></i><b>+</b></span></div></div>';
+    return '<div class="gd-pascaline-wheel-wrap'+(pascalCarryFlash.includes(index)?(pascalOperation==='add'?' is-carry':' is-borrow'):'')+'"><span class="gd-pascaline-place">'+pascalPlaceName(index)+'</span><div class="gd-pascaline-window" aria-label="'+pascalPlaceName(index)+' result digit">'+digit+'</div><div class="gd-pascaline-dial" data-ab-pa-wheel="'+index+'" aria-label="'+pascalPlaceName(index)+' input dial">'+holes+'<span class="gd-pascaline-hub"><i></i><b>'+(pascalOperation==='add'?'+':'−')+'</b></span></div></div>';
   }
   function pascalStep(index,delta){
     const carried=[];
@@ -353,14 +378,28 @@ function abacusTool(){
     qa('[data-ab-pa-input]').forEach(b=>b.onclick=e=>{
       e.stopPropagation();
       const [idx,amount]=String(b.dataset.abPaInput).split(':').map(Number);
-      pascalAdd(idx,amount);renderHistoricalStage();
+      pascalApply(idx,amount);renderHistoricalStage();
     });
-    const paExample=q('[data-ab-pa-example]');if(paExample)paExample.onclick=()=>{pascalDigits=[0,0,2,8];pascalCarryFlash=[];pascalMessage='Start at 28 · now tap 1 on Tens, then 5 on Ones.';renderHistoricalStage()};
-    const paRestart=q('[data-ab-pa-restart]');if(paRestart)paRestart.onclick=()=>{setHistoricalNumber(historyChallenge?.start||0);pascalCarryFlash=[];pascalMessage='Challenge restarted at '+(historyChallenge?.start||0)+'.';renderHistoricalStage()};
+    qa('[data-ab-pa-mode]').forEach(b=>b.onclick=()=>{
+      if(historyChallenge)return;
+      pascalOperation=b.dataset.abPaMode==='subtract'?'subtract':'add';
+      pascalCarryFlash=[];
+      pascalMessage=(pascalOperation==='add'?'ADD':'SUBTRACT')+' mode · tap a numbered dial hole to '+pascalOperation+' that amount.';
+      renderHistoricalStage();
+    });
+    const paExample=q('[data-ab-pa-example]');if(paExample)paExample.onclick=()=>{
+      if(pascalOperation==='add'){
+        pascalDigits=[0,0,2,8];pascalMessage='Start at 28 · ADD 15: tap 1 on Tens, then 5 on Ones.';
+      }else{
+        pascalDigits=[0,0,4,2];pascalMessage='Start at 42 · SUBTRACT 15: tap 1 on Tens, then 5 on Ones.';
+      }
+      pascalCarryFlash=[];renderHistoricalStage();
+    };
+    const paRestart=q('[data-ab-pa-restart]');if(paRestart)paRestart.onclick=()=>{setHistoricalNumber(historyChallenge?.start||0);pascalOperation=historyChallenge?.operation||pascalOperation;pascalCarryFlash=[];pascalMessage='Challenge restarted at '+(historyChallenge?.start||0)+' · '+(pascalOperation==='add'?'ADD':'SUBTRACT')+' '+(historyChallenge?.amount||'')+'.';renderHistoricalStage()};
     const paReset=q('[data-ab-pa-reset]');if(paReset)paReset.onclick=()=>{pascalDigits=[0,0,0,0];pascalCarryFlash=[];pascalMessage='Reset to 0.';renderHistoricalStage()};
     qa('[data-ab-pa-wheel]').forEach(w=>{
       w.onpointerdown=e=>{if(e.button!==0||e.target.closest('[data-ab-pa-input]'))return;historyDrag={type:'wheel',index:+w.dataset.abPaWheel,pointerId:e.pointerId,startY:e.clientY};try{w.setPointerCapture(e.pointerId)}catch(_){}};
-      w.onpointerup=e=>{if(!historyDrag||historyDrag.type!=='wheel'||historyDrag.index!==+w.dataset.abPaWheel)return;const dy=e.clientY-historyDrag.startY,idx=historyDrag.index;historyDrag=null;if(dy<-18){pascalAdd(idx,1);renderHistoricalStage()}};
+      w.onpointerup=e=>{if(!historyDrag||historyDrag.type!=='wheel'||historyDrag.index!==+w.dataset.abPaWheel)return;const dy=e.clientY-historyDrag.startY,idx=historyDrag.index;historyDrag=null;if(dy<-18){pascalApply(idx,1);renderHistoricalStage()}};
       w.onpointercancel=()=>{historyDrag=null};
     });
     const slide=q('[data-ab-slide-c]'),slideTrack=q('[data-ab-slide-track]');
@@ -762,7 +801,7 @@ function abacusTool(){
       const ex=q('#ab-h-example');if(ex)ex.onclick=()=>{
         if(kind==='reckoning')reckoning=[0,1,2,6];
         if(kind==='rods')rodDigits=[0,3,7,2];
-        if(kind==='pascaline'){pascalDigits=[0,0,2,8];pascalCarryFlash=[];pascalMessage='Start at 28 · tap 1 on Tens, then 5 on Ones to make 43.';}
+        if(kind==='pascaline'){pascalDigits=pascalOperation==='add'?[0,0,2,8]:[0,0,4,2];pascalCarryFlash=[];pascalMessage=pascalOperation==='add'?'Start at 28 · ADD 15: tap 1 on Tens, then 5 on Ones.':'Start at 42 · SUBTRACT 15: tap 1 on Tens, then 5 on Ones.';}
         renderAll();
       };
       const clearH=q('#ab-h-clear');if(clearH)clearH.onclick=()=>{
