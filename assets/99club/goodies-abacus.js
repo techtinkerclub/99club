@@ -87,6 +87,9 @@ function abacusTool(){
     }[kind];
     return data||data.western;
   }
+  function deviceSwitcher(){
+    return '<label class="gd-ab-device-switcher"><span>Device</span><select data-ab-stage-kind aria-label="Choose calculating device">'+DEVICE_OPTIONS.map(([id,label])=>'<option value="'+id+'"'+(kind===id?' selected':'')+'>'+esc(label)+'</option>').join('')+'</select></label>';
+  }
   function helpButton(){
     return '<button class="gd-history-help-btn" type="button" data-ab-help-open aria-label="How to use this device">? <span>How to use</span></button>';
   }
@@ -153,7 +156,7 @@ function abacusTool(){
       const wheels=pascalDigits.map((d,i)=>'<div class="gd-pascaline-wheel-wrap"><span>'+places[i]+'</span><div class="gd-pascaline-wheel"><small>'+((d+9)%10)+'</small><strong>'+d+'</strong><small>'+((d+1)%10)+'</small></div><div class="gd-pascaline-wheel-buttons"><button type="button" data-ab-pa-sub="'+i+'">−</button><button type="button" data-ab-pa-add="'+i+'">+</button></div></div>').join('');
       body='<div class="gd-pascaline"><div class="gd-pascaline-plate"><div class="gd-pascaline-name">PASCALINE</div><div class="gd-pascaline-wheels">'+wheels+'</div><div class="gd-pascaline-gears">'+Array.from({length:7},(_,i)=>'<i style="--i:'+i+'">✺</i>').join('')+'</div></div><div class="gd-history-readout">Value <strong>'+Number(pascalDigits.join('')).toLocaleString('en-GB')+'</strong></div></div>';
     }
-    q('#gd-stage').innerHTML='<div class="gd-history-stage">'+helpButton()+body+helpOverlay()+'</div>';
+    q('#gd-stage').innerHTML='<div class="gd-history-stage">'+deviceSwitcher()+helpButton()+body+helpOverlay()+'</div>';
     bindHistoricalStage();
   }
   function pascalStep(index,delta){
@@ -164,6 +167,7 @@ function abacusTool(){
     }
   }
   function bindHistoricalStage(){
+    const stageKind=q('[data-ab-stage-kind]');if(stageKind)stageKind.onchange=()=>{kind=DEVICE_OPTIONS.some(([id])=>id===stageKind.value)?stageKind.value:'western';task=null;workflow='setup';historyHelpOpen=false;renderAll()};
     const open=q('[data-ab-help-open]');if(open)open.onclick=()=>{historyHelpOpen=true;renderHistoricalStage()};
     const close=q('[data-ab-help-close]');if(close)close.onclick=()=>{historyHelpOpen=false;renderHistoricalStage()};
     qa('[data-ab-rb-add]').forEach(b=>b.onclick=()=>{reckoning[+b.dataset.abRbAdd]++;renderHistoricalStage()});
@@ -344,7 +348,7 @@ function abacusTool(){
     const hideTotal=!!task&&taskContext==='challenge'&&!revealed&&status!=='Correct ✓';
     q('#gd-stage').innerHTML=taskBanner()+
       '<div hidden aria-hidden="true">'+['copy','png','svg','print'].map(type=>'<button type="button" data-gd-direct-export="'+type+'">'+type+'</button>').join('')+'</div>'+
-      '<div class="gd-ab-workspace" style="position:relative">'+helpButton()+
+      '<div class="gd-ab-workspace" style="position:relative">'+deviceSwitcher()+helpButton()+
         '<div class="gd-ab-frame gd-ab-frame--'+kind+'" data-ab-frame>'+
           '<div class="gd-ab-type-label">'+(kind==='western'?'WESTERN · BASE TEN':'JAPANESE · SOROBAN')+'</div>'+
           '<div class="gd-ab-columns" style="--ab-cols:'+rows+'">'+Array.from({length:rows},(_,i)=>columnMarkup(i)).join('')+'</div>'+
@@ -418,6 +422,7 @@ function abacusTool(){
   function renderAll(){renderControls();renderStage()}
 
   function bindStage(){
+    const stageKind=q('[data-ab-stage-kind]');if(stageKind)stageKind.onchange=()=>{kind=DEVICE_OPTIONS.some(([id])=>id===stageKind.value)?stageKind.value:'western';task=null;workflow='setup';historyHelpOpen=false;renderAll()};
     const helpOpen=q('[data-ab-help-open]');if(helpOpen)helpOpen.onclick=()=>{historyHelpOpen=true;renderStage()};
     const helpClose=q('[data-ab-help-close]');if(helpClose)helpClose.onclick=()=>{historyHelpOpen=false;renderStage()};
     qa('[data-ab-bead]').forEach(bead=>{
