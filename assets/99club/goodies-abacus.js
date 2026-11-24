@@ -180,7 +180,7 @@ function abacusTool(){
     return data||data.western;
   }
   function themeSwitcher(){
-    return '<div class="gd-ab-palette" role="group" aria-label="Colour scheme">'+COLOUR_SCHEMES.map(([id,label])=>'<button type="button" class="gd-ab-palette-choice gd-ab-palette-choice--'+id+(colourScheme===id?' is-active':'')+'" data-ab-stage-theme="'+id+'" aria-label="Colour scheme: '+esc(label)+'" aria-pressed="'+(colourScheme===id)+'" title="'+esc(label)+'"><span class="gd-ab-palette-dot" aria-hidden="true"></span><span class="gd-ab-palette-label">'+esc(label)+'</span></button>').join('')+'</div>';
+    return '<div class="gd-ab-palette" role="group" aria-label="Colour scheme"><span class="gd-ab-palette-title">Colour</span>'+COLOUR_SCHEMES.map(([id,label])=>'<button type="button" class="gd-ab-palette-choice gd-ab-palette-choice--'+id+(colourScheme===id?' is-active':'')+'" data-ab-stage-theme="'+id+'" aria-label="Colour scheme: '+esc(label)+'" aria-pressed="'+(colourScheme===id)+'" title="'+esc(label)+'"><span class="gd-ab-palette-dot" aria-hidden="true"></span><span class="gd-ab-palette-label">'+esc(label)+'</span></button>').join('')+'</div>';
   }
   function deviceSwitcher(){
     return '<label class="gd-ab-device-switcher"><span>Device</span><select data-ab-stage-kind aria-label="Choose calculating device">'+DEVICE_OPTIONS.map(([id,label])=>'<option value="'+id+'"'+(kind===id?' selected':'')+'>'+esc(label)+'</option>').join('')+'</select></label>';
