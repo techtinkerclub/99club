@@ -422,18 +422,52 @@ function connectInnerObject(obj){
   const connect=()=>{
     let doc=null;try{doc=iframe.contentDocument}catch(_){}
     if(!doc)return;
+    let fitQueued=false;
     const settleFit=(initial=false,pass=0)=>{
       fitEmbeddedObject(obj,initial&&pass===0);
       syncQuickActions(obj);
-      if(pass<3)setTimeout(()=>settleFit(false,pass+1),24);
+      if(pass<4)setTimeout(()=>settleFit(false,pass+1),28);
     };
-    const refresh=()=>setTimeout(()=>{settleFit(false,0);if(obj.settingsOpen){if(floatingPanelMode==='help'&&floatingHelpData)renderFloatingHelp(obj,floatingHelpData);else renderFloatingControls(obj)}},0);
-    const refreshLayoutOnly=()=>setTimeout(()=>settleFit(false,0),0);
+    const scheduleFit=(initial=false)=>{
+      if(fitQueued)return;
+      fitQueued=true;
+      requestAnimationFrame(()=>{
+        fitQueued=false;
+        settleFit(initial,0);
+        if(obj.settingsOpen){
+          if(floatingPanelMode==='help'&&floatingHelpData)renderFloatingHelp(obj,floatingHelpData);
+          else renderFloatingControls(obj);
+        }
+      });
+    };
+    const refresh=()=>scheduleFit(false);
+    const refreshLayoutOnly=()=>scheduleFit(false);
     doc.addEventListener('click',refresh,true);
     doc.addEventListener('pointerup',refresh,true);
     doc.addEventListener('change',refresh,true);
     doc.addEventListener('input',refreshLayoutOnly,true);
-    requestAnimationFrame(()=>settleFit(true,0));
+
+    const stage=doc.getElementById('gd-stage');
+    if(stage){
+      const observeChildren=()=>{
+        if(!('ResizeObserver' in window))return;
+        if(stage._tt99ResizeObserver)stage._tt99ResizeObserver.disconnect();
+        const ro=new ResizeObserver(()=>scheduleFit(false));
+        ro.observe(stage);
+        [...stage.children].forEach(child=>ro.observe(child));
+        stage._tt99ResizeObserver=ro;
+      };
+      observeChildren();
+      if('MutationObserver' in window){
+        const mo=new MutationObserver(mutations=>{
+          if(mutations.some(m=>m.type==='childList'))observeChildren();
+          scheduleFit(false);
+        });
+        mo.observe(stage,{childList:true,subtree:true,characterData:true});
+        stage._tt99MutationObserver=mo;
+      }
+    }
+    scheduleFit(true);
   };
   iframe.addEventListener('load',connect,{once:true});
   try{if(iframe.contentDocument?.readyState==='complete')connect()}catch(_){}
@@ -650,7 +684,7 @@ function bindObject(obj){
         sendSettings(obj,true);setTimeout(()=>target.focus?.(),30)
       }else target.click();
       if(action.notice)boardHint(action.notice);
-      setTimeout(()=>syncQuickActions(obj),0)
+      setTimeout(()=>{syncQuickActions(obj);fitEmbeddedObject(obj,false)},0)
     }
   };
 
