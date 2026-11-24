@@ -27,7 +27,8 @@ const tools=[
   ['reckoning-board','Reckoning board','◉','history','Move loose counters on a historical place-value counting table.','Connect modern place value with historical counter-based calculation and regrouping.',reckoningBoard],
   ['counting-rods','Chinese counting rods','𝍠','history','Arrange counting-rod numerals on a place-value grid.','Explore decimal place value, alternating rod orientation and regrouping.',countingRods],
   ['napiers-bones',"Napier's Bones",'▥','history','Use engraved calculating rods to turn multiplication into diagonal addition.','Explore multiplication through partial products and diagonal carrying.',napierBones],
-  ['slide-rule','Slide rule','↦','history','Multiply using sliding logarithmic scales and a cursor.','See how multiplication can be represented by adding logarithmic distances.',slideRule]
+  ['slide-rule','Slide rule','↦','history','Multiply using sliding logarithmic scales and a cursor.','See how multiplication can be represented by adding logarithmic distances.',slideRule],
+  ['pascaline','Pascaline','⚙','history','Turn linked decimal wheels on a mechanical adding machine.','Explore addition, subtraction, carrying and borrowing with a seventeenth-century mechanical calculator.',pascalineTool]
 ].map(([id,title,icon,cat,desc,use,build])=>({id,title,icon,cat,desc,use,build}));
 const params=new URLSearchParams(location.search),embedded=params.get('embed')==='1';
 G.toolCatalogue=tools.map(({id,title,icon,cat,desc,use})=>({id,title,icon,cat,desc,use}));
