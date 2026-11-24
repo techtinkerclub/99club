@@ -9,7 +9,7 @@ const root=G.root;
 const tools=Array.isArray(G.toolCatalogue)?G.toolCatalogue:[];
 const SNAP=10;
 const BOARD_W=2800,BOARD_H=1800;
-const AUTO_SHRINK_HEIGHT_TOOLS=new Set(['place-value','abacus']);
+const AUTO_SHRINK_HEIGHT_TOOLS=new Set(['number-line','place-value','abacus']);
 let nextId=1,selectedId=null,snapOn=true,zCounter=10,drag=null,resize=null,pan=null;
 
 const defaults={
@@ -35,9 +35,11 @@ const defaults={
 };
 const QUICK_ACTIONS={
   'number-line':[
-    {label:'+ Marker',selector:'[data-board-action="add-marker"]',title:'Add marker',notice:'Tap an empty position on the active number line.'},
+    {label:'Challenge',selector:'[data-nl-random-challenge]',allowHidden:true,title:'Give a random Number Line challenge'},
+    {label:'Reveal answer',selector:'[data-board-action="reveal"]',allowHidden:true,dynamicLabel:true,title:'Reveal or hide the current challenge answer'},
+    {label:'+ Marker',selector:'[data-board-action="add-marker"]',title:'Add marker',notice:'Tap the number line where you want the marker.'},
     {label:'− Item',selector:'[data-board-action="delete"]',title:'Delete marker or comparison line',notice:'Tap the marker or comparison line you want to remove.'},
-    {label:'+ Relation',selector:'[data-board-action="relation"]',title:'Add relationship',notice:'Tap the first marker, then the second marker.'},
+    {label:'+ Relation',selector:'[data-board-action="relation"]',title:'Add relationship',notice:'Choose the relationship type, then tap two markers.'},
     {label:'+ Line',selector:'[data-board-action="add-line"]',title:'Add aligned comparison line'}
   ],
   'place-value':[
