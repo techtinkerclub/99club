@@ -107,42 +107,49 @@ function abacusTool(){
     const data={
       western:{
         title:'Western abacus',
+        history:'Counting boards and bead frames have very old roots across several cultures. This is a modern Western school-style base-ten counting frame rather than a reconstruction of one single ancient object.',
         intro:'A base-ten counting frame. Each horizontal row has ten beads and represents a place value; beads count when moved to the left.',
         steps:['Move beads left to count them.','Read the rows as thousands, hundreds, tens and ones.','For addition, move more beads left. Ten beads in one row can be exchanged for one bead in the next place-value row.','For subtraction, move beads back and exchange 1 higher-place bead for 10 lower-place beads when needed.'],
         example:'Example: show 247, then add 36. Add 3 tens, then 6 ones. Regroup 10 ones as 1 ten. The result is 283.'
       },
       soroban:{
         title:'Japanese soroban',
+        history:'The soroban developed in Japan from earlier East Asian abaci. The one-upper-bead and four-lower-bead form shown here is the familiar modern Japanese arrangement.',
         intro:'Each vertical rod is a place value. The upper bead is worth 5 and each lower bead is worth 1 when touching the middle beam.',
         steps:['Only beads touching the beam count.','Use the lower beads for 1–4 and the upper bead plus lower beads for 5–9.','Read rods from left to right by place value.','When a column passes 9, clear it and carry 1 to the rod on the left.'],
         example:'Example: 347 uses 3 lower beads in hundreds, 4 lower beads in tens, and the 5-bead plus 2 lower beads in ones.'
       },
       reckoning:{
         title:'Reckoning board',
+        history:'Counter boards and reckoning tables were used in Europe for trade and arithmetic for centuries. Our M–C–X–I layout makes the place values explicit for pupils.',
         intro:'A reckoning board uses loose counters on place-value columns. It is a physical ancestor of modern place-value boards.',
         steps:['Place counters in M, C, X and I for thousands, hundreds, tens and ones.','Each counter is worth the value of its column.','Exchange 10 counters in one column for 1 counter in the column to its left.','Reverse the exchange when subtracting.'],
         example:'Example: 126 is 1 hundred, 2 tens and 6 ones. Add 85, regroup the ones and tens, and the result is 211.'
       },
       rods:{
         title:'Chinese counting rods',
+        history:'Counting-board arithmetic with rods was used in ancient China, and surviving mathematical texts describe using rods for arithmetic, multiplication, division and other calculations.',
         intro:'Counting rods represented decimal place value with small rods. Adjacent places alternate orientation so digits stay distinct.',
         steps:['Each box is a decimal place. An empty box represents zero.','Use + and − to change a digit from 0 to 9.','Read the four places together as one number.','For arithmetic, work column by column and regroup 10 into 1 of the next place.'],
         example:'Example: 372 + 48. Ones make 10, so write 0 and carry 1 ten. Tens then make 12, so carry 1 hundred. Result: 420.'
       },
       napier:{
         title:"Napier's Bones",
+        history:'Scottish mathematician John Napier published his calculating rods in Rabdology in 1617. They became a widely used aid for multiplication and later a teaching tool.',
         intro:'Napier’s rods turn multiplication into reading small products and adding along diagonals.',
         steps:['Choose the rods for the digits of the number.','Choose a multiplier row from 1 to 9.','Read the two-digit products in that row.','Add the diagonals from right to left, carrying when needed.'],
         example:'Example: 467 × 3 uses the row 12 | 18 | 21. Adding along the diagonals gives 1401.'
       },
       slide:{
         title:'Slide rule',
+        history:'The slide rule grew from 17th-century logarithmic scales associated with Edmund Gunter and William Oughtred, and became a standard calculating instrument for nearly three centuries.',
         intro:'A slide rule multiplies and divides by adding or subtracting logarithmic distances.',
         steps:['To multiply a × b, align C=1 above D=a.','Find b on the C scale.','Read the answer directly below it on the D scale.','Use estimation to decide the correct power of ten.'],
         example:'Example: align C=1 above D=2. Under C=3, D reads 6, so 2 × 3 = 6.'
       },
       pascaline:{
         title:'Pascaline',
+        history:'Blaise Pascal produced working geared adding machines in France from the 1640s. Their carry mechanism was an important step toward later mechanical calculators.',
         intro:'A simplified model of Pascal’s mechanical calculator, using linked decimal wheels. When a wheel rolls from 9 to 0 it carries into the wheel on its left.',
         steps:['Each wheel is one decimal place.','Turn a wheel forward to add its place value.','Carry happens automatically when 9 rolls to 0.','This classroom model also lets you turn backwards to explore subtraction. Pascal’s original machines used complement-based methods for subtraction.'],
         example:'Example: show 28. Add 10 by turning the tens wheel once, then add 5 by turning the ones wheel five times. The wheels finish at 43.'
@@ -162,7 +169,7 @@ function abacusTool(){
   function helpOverlay(){
     if(!historyHelpOpen)return '';
     const h=deviceHelp();
-    return '<div class="gd-history-help" data-ab-help-overlay><div class="gd-history-help__card"><button class="gd-history-help__close" type="button" data-ab-help-close aria-label="Close instructions">×</button><h3>'+esc(h.title)+'</h3><p>'+esc(h.intro)+'</p><ol>'+h.steps.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ol><div class="gd-history-example"><strong>Worked example</strong><p>'+esc(h.example)+'</p></div></div></div>';
+    return '<div class="gd-history-help" data-ab-help-overlay><div class="gd-history-help__card"><button class="gd-history-help__close" type="button" data-ab-help-close aria-label="Close instructions">×</button><h3>'+esc(h.title)+'</h3><p>'+esc(h.intro)+'</p><div class="gd-history-context"><strong>History</strong><p>'+esc(h.history||'')+'</p></div><ol>'+h.steps.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ol><div class="gd-history-example"><strong>Worked example</strong><p>'+esc(h.example)+'</p></div></div></div>';
   }
   function rodDigitSvg(d,vertical){
     d=clamp(Math.round(d),0,9);
