@@ -298,7 +298,7 @@ function abacusTool(){
   function pascalDial(index,digit){
     const placeValue=pascalPlaceValue(index),holes=Array.from({length:10},(_,n)=>{
       const angle=n*36;
-      return '<button type="button" class="gd-pascaline-hole gd-pascaline-hole--'+n+'" data-ab-pa-input="'+index+':'+n+'" style="--pa-angle:'+angle+'deg" aria-label="Add '+(n*placeValue).toLocaleString('en-GB')+' using the '+pascalPlaceName(index)+' dial"><span>'+n+'</span></button>';
+      return '<button type="button" class="gd-pascaline-hole gd-pascaline-hole--'+n+'" data-ab-pa-input="'+index+':'+n+'" style="--pa-angle:'+angle+'deg;--pa-counter:'+(-angle)+'deg" aria-label="Add '+(n*placeValue).toLocaleString('en-GB')+' using the '+pascalPlaceName(index)+' dial"><span>'+n+'</span></button>';
     }).join('');
     return '<div class="gd-pascaline-wheel-wrap'+(pascalCarryFlash.includes(index)?' is-carry':'')+'"><span class="gd-pascaline-place">'+pascalPlaceName(index)+'</span><div class="gd-pascaline-window" aria-label="'+pascalPlaceName(index)+' result digit">'+digit+'</div><div class="gd-pascaline-dial" data-ab-pa-wheel="'+index+'" aria-label="'+pascalPlaceName(index)+' input dial">'+holes+'<span class="gd-pascaline-hub"><i></i><b>+</b></span></div></div>';
   }
