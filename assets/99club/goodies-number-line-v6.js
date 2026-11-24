@@ -594,6 +594,7 @@ function numberLineV2(){
         <div class="nl-preset-row">
           <button class="gd-btn" type="button" data-nl-preset="0-20">0–20</button>
           <button class="gd-btn" type="button" data-nl-preset="0-100">0–100</button>
+          <button class="gd-btn" type="button" data-nl-preset="0-1000">0–1000</button>
           <button class="gd-btn" type="button" data-nl-preset="negative">−10–10</button>
           <button class="gd-btn" type="button" data-nl-preset="decimal">0–1 decimals</button>
         </div>
@@ -931,10 +932,13 @@ function numberLineV2(){
   }
   function renderStage(){
     if(!numberLineMounted())return;
-    const challengeActions=state.challenge?.mode==='standard'&&CHALLENGE_TEMPLATES.some(t=>t.id===state.challenge.type)
-      ?[{action:'another',label:'Another like this'}]:[];
+    const challengeActions=state.challenge
+      ?[
+        ...(state.challenge.mode==='standard'&&CHALLENGE_TEMPLATES.some(t=>t.id===state.challenge.type)?[{action:'another',label:'Another'}]:[]),
+        {action:'end',label:beforeChallenge?'Back to setup':'End challenge'}
+      ]:[];
     const prompt=state.challenge?(CK?CK.bannerHtml(state.challenge,{actions:challengeActions}):`<div class="nl-challenge-banner"><span>Challenge</span><strong>${esc(state.challenge.prompt)}</strong></div>`):'';
-    q('#gd-stage').innerHTML=`<div class="nl-stage-wrap">${prompt}<div class="nl-export-frame">${buildSvg()}</div><p class="nl-drag-help">Drag a marker along its line to move it. Values snap to the chosen tick step.</p></div>${boardUiHtml()}`;
+    q('#gd-stage').innerHTML=`<button type="button" hidden data-nl-random-challenge aria-hidden="true"></button><div class="nl-stage-wrap">${prompt}<div class="nl-export-frame">${buildSvg()}</div><p class="nl-drag-help">Drag markers directly. Values snap to the chosen tick step and relationships move with them.</p></div>${boardUiHtml()}`;
     stage.classList.toggle('is-board-active',boardActive());
     stage.classList.toggle('is-delete-mode',boardMode==='delete');
     stage.classList.toggle('is-add-marker-mode',boardMode==='add-marker');
@@ -988,22 +992,39 @@ function numberLineV2(){
       drag={lineId,id};e.preventDefault();
     }));
   }
+  let dragRenderFrame=0;
   function moveDrag(e){
     if(!drag)return;
     const line=state.lines.find(l=>l.id===drag.lineId),m=line?.markers.find(x=>x.id===drag.id);if(!m)return;
     setMarkerValue(m,valueFromClientX(e.clientX,line),line);
     updateChallengeAnswer();
     const input=controls.querySelector('[data-marker-value="'+CSS.escape(m.id)+'"]');if(input&&line.id===state.activeLineId)input.value=fmt(m.value);
-    renderStage();
+    if(!dragRenderFrame)dragRenderFrame=requestAnimationFrame(()=>{dragRenderFrame=0;renderStage()});
   }
-  function endDrag(){drag=null}
+  function endDrag(){
+    drag=null;
+    if(dragRenderFrame){cancelAnimationFrame(dragRenderFrame);dragRenderFrame=0;renderStage()}
+  }
   window.addEventListener('pointermove',moveDrag);window.addEventListener('pointerup',endDrag);window.addEventListener('pointercancel',endDrag);
 
+  function nextMarkerLabel(line){
+    const used=new Set((line?.markers||[]).map(m=>String(m.label||'').trim().toUpperCase()).filter(Boolean));
+    for(let i=0;i<26;i++){const label=String.fromCharCode(65+i);if(!used.has(label))return label}
+    let n=1;while(used.has('M'+n))n++;return 'M'+n;
+  }
+  function preferredMarkerSide(line,value){
+    const scale=scaleFor(line),range=Math.max(.0001,scale.max-scale.min),near=(line?.markers||[]).filter(m=>Math.abs(m.value-value)/range<.13);
+    const above=near.filter(m=>m.side!=='below').length,below=near.filter(m=>m.side==='below').length;
+    if(above!==below)return above<below?'above':'below';
+    const totalAbove=(line?.markers||[]).filter(m=>m.side!=='below').length,totalBelow=(line?.markers||[]).filter(m=>m.side==='below').length;
+    return totalAbove<=totalBelow?'above':'below';
+  }
   function addMarker(value,lineId=state.activeLineId){
     const line=state.lines.find(l=>l.id===lineId)||activeLine(),scale=scaleFor(line),id=nextId('m',line.markers),index=line.markers.length;
+    const markerValue=snapOnLine(value==null?(scale.min+scale.max)/2:value,line);
     remember();
     state.activeLineId=line.id;
-    line.markers.push({id,label:String.fromCharCode(65+(index%26)),value:snapOnLine(value==null?(scale.min+scale.max)/2:value,line),color:COLOURS[index%COLOURS.length],showValue:true,side:'above',positionGroup:''});
+    line.markers.push({id,label:nextMarkerLabel(line),value:markerValue,color:COLOURS[index%COLOURS.length],showValue:true,side:preferredMarkerSide(line,markerValue),positionGroup:''});
     renderAll();
   }
   function nextPositionGroup(){
@@ -1021,7 +1042,7 @@ function numberLineV2(){
     const mainValue=snapToScale(mainScale.min+t*(mainScale.max-mainScale.min),mainScale);
     const actualT=(mainValue-mainScale.min)/(mainScale.max-mainScale.min);
     const linkedValue=snapToScale(linkedScale.min+actualT*(linkedScale.max-linkedScale.min),linkedScale);
-    const group=nextPositionGroup(),label=String.fromCharCode(65+(main.markers.length%26)),color=COLOURS[main.markers.length%COLOURS.length];
+    const group=nextPositionGroup(),label=nextMarkerLabel(main),color=COLOURS[main.markers.length%COLOURS.length];
     main.markers.push({id:nextId('m',main.markers),label,value:mainValue,color,showValue:true,side:'below',positionGroup:group});
     line.markers.push({id:nextId('m',line.markers),label,value:linkedValue,color,showValue:true,side:'above',positionGroup:group});
     state.activeLineId=line.id;renderAll();
@@ -1414,6 +1435,7 @@ function numberLineV2(){
     beforeChallenge=null;state.challenge=null;
     if(name==='0-20'){state.min=0;state.max=20;state.step=1;state.labelEvery=1}
     if(name==='0-100'){state.min=0;state.max=100;state.step=10;state.labelEvery=1}
+    if(name==='0-1000'){state.min=0;state.max=1000;state.step=100;state.labelEvery=1}
     if(name==='negative'){state.min=-10;state.max=10;state.step=1;state.labelEvery=1}
     if(name==='decimal'){state.min=0;state.max=1;state.step=.1;state.labelEvery=1}
     state.lines.filter(line=>line.scaleMode==='shared').forEach(line=>line.markers.forEach(m=>m.value=snapOnLine(m.value,line)));resyncPositionGroups();syncZoomFollowers();renderAll();
@@ -1558,11 +1580,17 @@ function numberLineV2(){
   });
 
   stage.addEventListener('click',e=>{
-    const b=e.target.closest('[data-challenge-action],[data-board-action],[data-board-relation-type],[data-board-challenge],[data-board-marker-delete],[data-board-marker-show],[data-board-marker-side],[data-board-relation-delete],[data-board-relation-side]');
+    const b=e.target.closest('[data-nl-random-challenge],[data-challenge-action],[data-board-action],[data-board-relation-type],[data-board-challenge],[data-board-marker-delete],[data-board-marker-show],[data-board-marker-side],[data-board-relation-delete],[data-board-relation-side]');
     if(!b)return;
+    if(b.hasAttribute('data-nl-random-challenge')){
+      const available=challengeTemplateList().filter(t=>!t.disabled);
+      const pick=available[Math.floor(Math.random()*available.length)];
+      if(pick)generateChallenge(pick.id);return;
+    }
     if(b.dataset.challengeAction==='another'&&state.challenge?.mode==='standard'){
       generateChallenge(state.challenge.type);return;
     }
+    if(b.dataset.challengeAction==='end'&&state.challenge){clearChallenge();return;}
     if(b.dataset.boardRelationType){
       if(boardLocked)return;
       boardRelationType=b.dataset.boardRelationType;boardMode='relation';boardFirstMarker=null;boardMenuOpen=false;
