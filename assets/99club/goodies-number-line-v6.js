@@ -559,7 +559,7 @@ function numberLineV2(){
           <button class="nl-icon-btn" type="button" data-marker-delete="${esc(m.id)}" aria-label="Delete marker">×</button>
         </div>
         <div class="nl-object-card-options">
-          <label class="gd-field nl-compact-field"><span>Position</span><select class="gd-select nl-side" data-marker-side="${esc(m.id)}"><option value="above"${m.side==='above'?' selected':''}>Above</option><option value="below"${m.side==='below'?' selected':''}>Below</option></select></label>
+          <label class="gd-field nl-compact-field"><span>Position</span><select class="gd-select nl-side" data-marker-side="${esc(m.id)}"><option value="auto"${!m.sideLocked?' selected':''}>Auto</option><option value="above"${m.sideLocked&&m.side==='above'?' selected':''}>Above</option><option value="below"${m.sideLocked&&m.side==='below'?' selected':''}>Below</option></select></label>
           <label class="nl-check"><input type="checkbox" data-marker-show="${esc(m.id)}"${m.showValue?' checked':''}> Show value</label>
           ${m.positionGroup?'<span class="nl-linked-marker-tag">Corresponding pair</span>':''}
         </div>
@@ -598,7 +598,7 @@ function numberLineV2(){
           <button class="gd-btn" type="button" data-nl-preset="0-100">0–100</button>
           <button class="gd-btn" type="button" data-nl-preset="0-1000">0–1000</button>
           <button class="gd-btn" type="button" data-nl-preset="negative">−10–10</button>
-          <button class="gd-btn" type="button" data-nl-preset="decimal">0–1 decimals</button>
+          <button class="gd-btn" type="button" data-nl-preset="decimal">0–1</button>
         </div>
         <label class="gd-field"><span>Illustration title (optional)</span><input class="gd-input" id="nl-title" maxlength="90" value="${esc(state.title)}" placeholder="e.g. Finding the difference"></label>
         <label class="nl-check"><input id="nl-tick-labels" type="checkbox"${state.showTickLabels?' checked':''}> Show number labels</label>
@@ -737,6 +737,7 @@ function numberLineV2(){
   function layout(){
     const layouts=[];let cursor=state.title?54:28;
     state.lines.forEach((line,index)=>{
+      autoLayoutMarkerSides(line);
       const above=assignLanes(line,'above'),below=assignLanes(line,'below');
       const hasAboveMarker=line.markers.some(m=>m.side==='above');
       const hasBelowMarker=line.markers.some(m=>m.side==='below');
@@ -764,7 +765,7 @@ function numberLineV2(){
     const text=String(label||'');return text.length>14?text.slice(0,13)+'…':text;
   }
   function buildLine(layout){
-    const {line,baseY,above,below,index}=layout;autoLayoutMarkerSides(line);const scale=scaleFor(line),showLabels=labelsVisible(line,index);
+    const {line,baseY,above,below,index}=layout,scale=scaleFor(line),showLabels=labelsVisible(line,index);
     const range=scale.max-scale.min,rawCount=Math.floor(range/scale.step+1e-8),safetyStride=Math.max(1,Math.ceil(rawCount/160)),renderStep=scale.step*safetyStride*line.tickStride,tickCount=Math.floor(range/renderStep+1e-8);
     const pxPerTick=(X1-X0)/Math.max(1,tickCount),majorSpacing=pxPerTick*Math.max(1,scale.labelEvery),labelSkip=Math.max(1,Math.ceil(54/majorSpacing));
     let intervalLayer='',ticks='',relationshipLayer='',markerLayer='';
@@ -1523,7 +1524,7 @@ function numberLineV2(){
     let id=t.dataset.markerLabel;if(id){const m=line.markers.find(x=>x.id===id);if(m){setPairAppearance(m,'label',t.value.slice(0,12));renderStage()}return}
     id=t.dataset.markerValue;if(id){const m=line.markers.find(x=>x.id===id);if(m){setMarkerValue(m,num(t.value,m.value),line);updateChallengeAnswer();renderStage()}return}
     id=t.dataset.markerColor;if(id){const m=line.markers.find(x=>x.id===id);if(m){setPairAppearance(m,'color',t.value);renderStage()}return}
-    id=t.dataset.markerSide;if(id){const m=line.markers.find(x=>x.id===id);if(m){m.side=t.value==='below'?'below':'above';m.sideLocked=true;renderStage()}return}
+    id=t.dataset.markerSide;if(id){const m=line.markers.find(x=>x.id===id);if(m){if(t.value==='auto'){m.sideLocked=false;autoLayoutMarkerSides(line)}else{m.side=t.value==='below'?'below':'above';m.sideLocked=true}renderStage()}return}
     id=t.dataset.markerShow;if(id){const m=line.markers.find(x=>x.id===id);if(m){m.showValue=t.checked;renderStage()}return}
     id=t.dataset.relationFrom;if(id){const r=line.relations.find(x=>x.id===id);if(r){r.from=t.value;if(r.from===r.to){const other=line.markers.find(m=>m.id!==r.from);if(other){r.to=other.id;const otherSelect=controls.querySelector('[data-relation-to="'+CSS.escape(id)+'"]');if(otherSelect)otherSelect.value=r.to}}updateChallengeAnswer();renderStage()}return}
     id=t.dataset.relationTo;if(id){const r=line.relations.find(x=>x.id===id);if(r){r.to=t.value;if(r.from===r.to){const other=line.markers.find(m=>m.id!==r.to);if(other){r.from=other.id;const otherSelect=controls.querySelector('[data-relation-from="'+CSS.escape(id)+'"]');if(otherSelect)otherSelect.value=r.from}}updateChallengeAnswer();renderStage()}return}
