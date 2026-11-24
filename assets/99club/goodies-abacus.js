@@ -38,6 +38,69 @@ function abacusTool(){
   let napierNumber='467',napierMultiplier=3;
   let slideA=2,slideB=3;
   let pascalDigits=[0,0,2,8];
+  let colourScheme='classic';
+  let historyChallenge=null,historyAnswer='',historyStatus='',historyRevealed=false;
+  let historyDrag=null;
+  const COLOUR_SCHEMES=[['classic','Classic wood'],['sea','Sea glass'],['berry','Berry & brass'],['forest','Forest']];
+
+  function historicalValue(){
+    if(kind==='reckoning')return reckoning.reduce((sum,n,i)=>sum+n*[1000,100,10,1][i],0);
+    if(kind==='rods')return Number(rodDigits.join(''));
+    if(kind==='napier')return (+napierNumber||0)*napierMultiplier;
+    if(kind==='slide')return Math.round(slideA*slideB*100)/100;
+    if(kind==='pascaline')return Number(pascalDigits.join(''));
+    return total();
+  }
+  function setHistoricalNumber(value){
+    const digits=String(Math.max(0,Math.round(value))).padStart(4,'0').slice(-4).split('').map(Number);
+    if(kind==='reckoning')reckoning=digits.slice();
+    if(kind==='rods')rodDigits=digits.slice();
+    if(kind==='pascaline')pascalDigits=digits.slice();
+  }
+  function newHistoricalChallenge(){
+    historyAnswer='';historyStatus='';historyRevealed=false;
+    if(kind==='reckoning'){
+      const target=randomInt(24,879);
+      reckoning=[0,0,0,0];
+      historyChallenge={target,answer:target,requiresAnswer:false,prompt:'Build '+target+' on the reckoning board. Put counters in the correct place-value columns, then press Check.'};
+    }else if(kind==='rods'){
+      const target=randomInt(102,9876);
+      rodDigits=[0,0,0,0];
+      historyChallenge={target,answer:target,requiresAnswer:false,prompt:'Show '+target+' with Chinese counting rods. Set each place-value column, then press Check.'};
+    }else if(kind==='napier'){
+      napierNumber=String(randomInt(12,987));napierMultiplier=randomInt(2,9);
+      historyChallenge={target:(+napierNumber)*napierMultiplier,answer:(+napierNumber)*napierMultiplier,requiresAnswer:true,prompt:'Use row '+napierMultiplier+' of the rods to work out '+napierNumber+' × '+napierMultiplier+'. Enter the product.'};
+    }else if(kind==='slide'){
+      const pairs=[[2,2],[2,3],[2,4],[2.5,2],[3,2],[3,3],[4,2],[1.5,4],[1.2,5],[2.4,3]];
+      [slideA,slideB]=pairs[randomInt(0,pairs.length-1)];
+      historyChallenge={target:Math.round(slideA*slideB*100)/100,answer:Math.round(slideA*slideB*100)/100,requiresAnswer:true,prompt:'Use the C and D scales to estimate '+slideA+' × '+slideB+'. Move the slide and cursor, then enter the result.'};
+    }else if(kind==='pascaline'){
+      const start=randomInt(12,75),add=randomInt(6,24),target=start+add;
+      setHistoricalNumber(start);
+      historyChallenge={target,answer:target,requiresAnswer:false,prompt:'The Pascaline starts at '+start+'. Add '+add+' by turning the wheels. Stop when the machine shows the result, then press Check.'};
+    }
+    renderAll();
+  }
+  function checkHistoricalChallenge(){
+    if(!historyChallenge)return;
+    const answerOk=!historyChallenge.requiresAnswer||String(historyAnswer).trim()!==''&&Math.abs(Number(historyAnswer)-Number(historyChallenge.answer))<0.011;
+    const deviceOk=historyChallenge.requiresAnswer?true:historicalValue()===historyChallenge.target;
+    historyStatus=deviceOk&&answerOk?'Correct ✓':historyChallenge.requiresAnswer?'Not quite — check the instrument and your entered answer.':'Not yet — keep working on the device.';
+    if(deviceOk&&answerOk)historyRevealed=true;
+    renderStage();
+  }
+  function revealHistoricalChallenge(){
+    if(!historyChallenge)return;
+    historyRevealed=true;historyStatus='Answer shown';
+    if(historyChallenge.requiresAnswer)historyAnswer=String(historyChallenge.answer);
+    else setHistoricalNumber(historyChallenge.target);
+    renderStage();
+  }
+  function historyChallengeBanner(){
+    if(!historyChallenge)return '';
+    const input=historyChallenge.requiresAnswer?'<label class="gd-ab-answer">Answer <input type="number" step="0.01" inputmode="decimal" data-ab-history-answer value="'+esc(historyAnswer)+'"></label>':'';
+    return '<section class="gd-ab-task gd-history-task"><div class="gd-ab-task-head"><div><span>CHALLENGE · '+esc(deviceHelp().title.toUpperCase())+'</span><strong>'+esc(historyChallenge.prompt)+'</strong></div><em>'+esc(historyStatus)+'</em></div>'+input+'<div class="gd-ab-task-actions"><button type="button" data-ab-history-check>Check</button><button type="button" data-ab-history-another>Another</button>'+(historyRevealed?'':'<button type="button" data-ab-history-reveal>Reveal</button>')+'<button type="button" data-ab-history-end>End challenge</button></div></section>';
+  }
 
   function isAbacusKind(){return kind==='western'||kind==='soroban'}
   function deviceHelp(){
@@ -87,6 +150,9 @@ function abacusTool(){
     }[kind];
     return data||data.western;
   }
+  function themeSwitcher(){
+    return '<label class="gd-ab-theme-switcher"><span>Colour</span><select data-ab-stage-theme aria-label="Choose colour scheme">'+COLOUR_SCHEMES.map(([id,label])=>'<option value="'+id+'"'+(colourScheme===id?' selected':'')+'>'+esc(label)+'</option>').join('')+'</select></label>';
+  }
   function deviceSwitcher(){
     return '<label class="gd-ab-device-switcher"><span>Device</span><select data-ab-stage-kind aria-label="Choose calculating device">'+DEVICE_OPTIONS.map(([id,label])=>'<option value="'+id+'"'+(kind===id?' selected':'')+'>'+esc(label)+'</option>').join('')+'</select></label>';
   }
@@ -130,11 +196,13 @@ function abacusTool(){
     return out;
   }
   function historicalControls(){
-    if(kind==='reckoning')return '<div class="gd-row"><button class="gd-btn gd-btn--primary" id="ab-h-example" type="button">Show 126</button><button class="gd-btn" id="ab-h-regroup" type="button">Regroup 10 → 1</button><button class="gd-btn" id="ab-h-clear" type="button">Clear</button></div><p class="gd-help">Add and remove counters directly on the board.</p>';
-    if(kind==='rods')return '<div class="gd-row"><button class="gd-btn gd-btn--primary" id="ab-h-example" type="button">Show 372</button><button class="gd-btn" id="ab-h-clear" type="button">Clear</button></div><p class="gd-help">Use + and − under each place to change the rod numeral.</p>';
-    if(kind==='napier')return field('Number','<input class="gd-input" id="ab-napier-number" inputmode="numeric" maxlength="5" value="'+esc(napierNumber)+'">')+field('Multiply by','<select class="gd-select" id="ab-napier-mult">'+Array.from({length:9},(_,i)=>'<option value="'+(i+1)+'"'+(i+1===napierMultiplier?' selected':'')+'>'+(i+1)+'</option>').join('')+'</select>')+'<p class="gd-help">Choose a number and multiplier, then read the selected row and add its diagonals.</p>';
-    if(kind==='slide')return field('First factor','<input id="ab-slide-a" type="range" min="1" max="9.9" step="0.1" value="'+slideA+'"><strong id="ab-slide-a-v">'+slideA+'</strong>')+field('Second factor','<input id="ab-slide-b" type="range" min="1" max="9.9" step="0.1" value="'+slideB+'"><strong id="ab-slide-b-v">'+slideB+'</strong>')+'<p class="gd-help">Move the factors and watch the C scale slide under the cursor.</p>';
-    if(kind==='pascaline')return '<div class="gd-row"><button class="gd-btn gd-btn--primary" id="ab-h-example" type="button">Show 28</button><button class="gd-btn" id="ab-h-clear" type="button">Reset wheels</button></div><p class="gd-help">Turn the numbered wheels with + and −. Carry and borrowing happen automatically.</p>';
+    const common=field('Colour scheme','<select class="gd-select" id="ab-theme">'+COLOUR_SCHEMES.map(([id,label])=>'<option value="'+id+'"'+(colourScheme===id?' selected':'')+'>'+label+'</option>').join('')+'</select>')+
+      '<div class="gd-row"><button class="gd-btn gd-btn--primary" id="ab-history-challenge" type="button">New challenge</button>'+(historyChallenge?'<button class="gd-btn" id="ab-history-end-control" type="button">End challenge</button>':'')+'</div>';
+    if(kind==='reckoning')return common+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="ab-h-example" type="button">Show 126</button><button class="gd-btn" id="ab-h-regroup" type="button">Regroup 10 → 1</button><button class="gd-btn" id="ab-h-clear" type="button">Clear</button></div><p class="gd-help">Add and remove counters directly on the board.</p>';
+    if(kind==='rods')return common+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="ab-h-example" type="button">Show 372</button><button class="gd-btn" id="ab-h-clear" type="button">Clear</button></div><p class="gd-help">Use + and − under each place to change the rod numeral.</p>';
+    if(kind==='napier')return common+field('Number','<input class="gd-input" id="ab-napier-number" inputmode="numeric" maxlength="5" value="'+esc(napierNumber)+'">')+field('Multiply by','<select class="gd-select" id="ab-napier-mult">'+Array.from({length:9},(_,i)=>'<option value="'+(i+1)+'"'+(i+1===napierMultiplier?' selected':'')+'>'+(i+1)+'</option>').join('')+'</select>')+'<p class="gd-help">Choose a number and multiplier, then read the selected row and add its diagonals.</p>';
+    if(kind==='slide')return common+field('First factor','<input id="ab-slide-a" type="range" min="1" max="9.9" step="0.1" value="'+slideA+'"><strong id="ab-slide-a-v">'+slideA+'</strong>')+field('Second factor','<input id="ab-slide-b" type="range" min="1" max="9.9" step="0.1" value="'+slideB+'"><strong id="ab-slide-b-v">'+slideB+'</strong>')+'<p class="gd-help">Move the factors and watch the C scale slide under the cursor.</p>';
+    if(kind==='pascaline')return common+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="ab-h-example" type="button">Show 28</button><button class="gd-btn" id="ab-h-clear" type="button">Reset wheels</button></div><p class="gd-help">Turn the numbered wheels with + and −. Carry and borrowing happen automatically.</p>';
     return '';
   }
   function renderHistoricalStage(){
@@ -142,21 +210,21 @@ function abacusTool(){
     if(kind==='reckoning'){
       const cols=[['M','Thousands',1000],['C','Hundreds',100],['X','Tens',10],['I','Ones',1]];
       const value=reckoning.reduce((s,n,i)=>s+n*cols[i][2],0);
-      body='<div class="gd-reckoning"><div class="gd-reckoning-title">RECKONING TABLE</div><div class="gd-reckoning-grid">'+cols.map((c,i)=>'<div class="gd-reckoning-col"><div class="gd-reckoning-heading"><b>'+c[0]+'</b><span>'+c[1]+'</span></div><div class="gd-reckoning-space">'+Array.from({length:reckoning[i]},(_,j)=>'<button type="button" class="gd-reckoning-counter" data-ab-rb-remove="'+i+'" aria-label="Remove '+c[1]+' counter"></button>').join('')+'<button type="button" class="gd-reckoning-add" data-ab-rb-add="'+i+'">+ counter</button></div></div>').join('')+'</div><div class="gd-history-readout">Value <strong>'+value.toLocaleString('en-GB')+'</strong></div></div>';
+      body='<div class="gd-reckoning"><div class="gd-reckoning-title">RECKONING TABLE</div><div class="gd-reckoning-grid">'+cols.map((c,i)=>'<div class="gd-reckoning-col" data-ab-rb-col="'+i+'"><div class="gd-reckoning-heading"><b>'+c[0]+'</b><span>'+c[1]+'</span></div><div class="gd-reckoning-space">'+Array.from({length:reckoning[i]},(_,j)=>'<button type="button" class="gd-reckoning-counter" data-ab-rb-remove="'+i+'" aria-label="Remove '+c[1]+' counter"></button>').join('')+'<button type="button" class="gd-reckoning-add" data-ab-rb-add="'+i+'">+ counter</button></div></div>').join('')+'</div><div class="gd-history-readout">Value <strong>'+(historyChallenge&&!historyRevealed?'?':value.toLocaleString('en-GB'))+'</strong></div></div>';
     }else if(kind==='rods'){
-      body='<div class="gd-counting-rods"><div class="gd-rods-grid">'+rodDigits.map((d,i)=>'<div class="gd-rods-cell"><span>'+['Thousands','Hundreds','Tens','Ones'][i]+'</span><div class="gd-rods-mat">'+rodDigitSvg(d,i%2===0)+'</div><div class="gd-rods-stepper"><button type="button" data-ab-rod-dec="'+i+'">−</button><b>'+d+'</b><button type="button" data-ab-rod-inc="'+i+'">+</button></div></div>').join('')+'</div><div class="gd-history-readout">Number <strong>'+Number(rodDigits.join('')).toLocaleString('en-GB')+'</strong></div></div>';
+      body='<div class="gd-counting-rods"><div class="gd-rods-grid">'+rodDigits.map((d,i)=>'<div class="gd-rods-cell"><span>'+['Thousands','Hundreds','Tens','Ones'][i]+'</span><div class="gd-rods-mat">'+rodDigitSvg(d,i%2===0)+'</div><div class="gd-rods-stepper"><button type="button" data-ab-rod-dec="'+i+'">−</button><b>'+d+'</b><button type="button" data-ab-rod-inc="'+i+'">+</button></div></div>').join('')+'</div><div class="gd-history-readout">Number <strong>'+(historyChallenge&&!historyRevealed?'?':Number(rodDigits.join('')).toLocaleString('en-GB'))+'</strong></div></div>';
     }else if(kind==='napier'){
       const product=(+napierNumber||0)*napierMultiplier;
-      body='<div class="gd-napier"><div class="gd-napier-row-index">'+Array.from({length:10},(_,i)=>'<span>'+(i||'×')+'</span>').join('')+'</div><div class="gd-napier-bones">'+napierNumber.split('').map(napierBone).join('')+'</div><div class="gd-napier-highlight">Use row <strong>'+napierMultiplier+'</strong></div><div class="gd-history-readout">'+esc(napierNumber)+' × '+napierMultiplier+' = <strong>'+product.toLocaleString('en-GB')+'</strong></div></div>';
+      body='<div class="gd-napier"><div class="gd-napier-row-index">'+Array.from({length:10},(_,i)=>'<span>'+(i||'×')+'</span>').join('')+'</div><div class="gd-napier-bones">'+napierNumber.split('').map(napierBone).join('')+'</div><div class="gd-napier-highlight">Use row <strong>'+napierMultiplier+'</strong></div><div class="gd-history-readout">'+esc(napierNumber)+' × '+napierMultiplier+' = <strong>'+(historyChallenge&&!historyRevealed?'?':product.toLocaleString('en-GB'))+'</strong></div></div>';
     }else if(kind==='slide'){
       const shift=slidePos(slideA),cursor=(shift+slidePos(slideB))%100;
-      body='<div class="gd-slide-rule"><div class="gd-slide-body"><div class="gd-slide-scale gd-slide-d"><span class="gd-slide-label">D</span>'+slideTicks()+'</div><div class="gd-slide-scale gd-slide-c" style="transform:translateX('+shift+'%)"><span class="gd-slide-label">C</span>'+slideTicks()+'</div><div class="gd-slide-cursor" style="left:'+cursor+'%"></div></div><div class="gd-history-readout">'+slideA+' × '+slideB+' = <strong>'+(slideA*slideB).toLocaleString('en-GB',{maximumFractionDigits:3})+'</strong></div></div>';
+      body='<div class="gd-slide-rule"><div class="gd-slide-body"><div class="gd-slide-scale gd-slide-d"><span class="gd-slide-label">D</span>'+slideTicks()+'</div><div class="gd-slide-scale gd-slide-c" data-ab-slide-c style="transform:translateX('+shift+'%)"><span class="gd-slide-label">C</span>'+slideTicks()+'</div><div class="gd-slide-cursor" data-ab-slide-cursor style="left:'+cursor+'%"></div></div><div class="gd-history-readout">'+slideA+' × '+slideB+' = <strong>'+(historyChallenge&&!historyRevealed?'?':(slideA*slideB).toLocaleString('en-GB',{maximumFractionDigits:3}))+'</strong></div></div>';
     }else if(kind==='pascaline'){
       const places=['Thousands','Hundreds','Tens','Ones'];
-      const wheels=pascalDigits.map((d,i)=>'<div class="gd-pascaline-wheel-wrap"><span>'+places[i]+'</span><div class="gd-pascaline-wheel"><small>'+((d+9)%10)+'</small><strong>'+d+'</strong><small>'+((d+1)%10)+'</small></div><div class="gd-pascaline-wheel-buttons"><button type="button" data-ab-pa-sub="'+i+'">−</button><button type="button" data-ab-pa-add="'+i+'">+</button></div></div>').join('');
+      const wheels=pascalDigits.map((d,i)=>'<div class="gd-pascaline-wheel-wrap"><span>'+places[i]+'</span><div class="gd-pascaline-wheel" data-ab-pa-wheel="'+i+'"><small>'+((d+9)%10)+'</small><strong>'+d+'</strong><small>'+((d+1)%10)+'</small></div><div class="gd-pascaline-wheel-buttons"><button type="button" data-ab-pa-sub="'+i+'">−</button><button type="button" data-ab-pa-add="'+i+'">+</button></div></div>').join('');
       body='<div class="gd-pascaline"><div class="gd-pascaline-plate"><div class="gd-pascaline-name">PASCALINE</div><div class="gd-pascaline-wheels">'+wheels+'</div><div class="gd-pascaline-gears">'+Array.from({length:7},(_,i)=>'<i style="--i:'+i+'">✺</i>').join('')+'</div></div><div class="gd-history-readout">Value <strong>'+Number(pascalDigits.join('')).toLocaleString('en-GB')+'</strong></div></div>';
     }
-    q('#gd-stage').innerHTML='<div class="gd-history-stage">'+deviceSwitcher()+helpButton()+body+helpOverlay()+'</div>';
+    q('#gd-stage').innerHTML=historyChallengeBanner()+'<div class="gd-history-stage gd-history-theme--'+colourScheme+'">'+deviceSwitcher()+themeSwitcher()+helpButton()+body+helpOverlay()+'</div>';
     bindHistoricalStage();
   }
   function pascalStep(index,delta){
@@ -167,15 +235,44 @@ function abacusTool(){
     }
   }
   function bindHistoricalStage(){
-    const stageKind=q('[data-ab-stage-kind]');if(stageKind)stageKind.onchange=()=>{kind=DEVICE_OPTIONS.some(([id])=>id===stageKind.value)?stageKind.value:'western';task=null;workflow='setup';historyHelpOpen=false;renderAll()};
+    const stageTheme=q('[data-ab-stage-theme]');if(stageTheme)stageTheme.onchange=()=>{colourScheme=COLOUR_SCHEMES.some(([id])=>id===stageTheme.value)?stageTheme.value:'classic';renderAll()};
+    const answer=q('[data-ab-history-answer]');if(answer)answer.oninput=()=>{historyAnswer=answer.value;historyStatus=''};
+    const check=q('[data-ab-history-check]');if(check)check.onclick=checkHistoricalChallenge;
+    const another=q('[data-ab-history-another]');if(another)another.onclick=newHistoricalChallenge;
+    const reveal=q('[data-ab-history-reveal]');if(reveal)reveal.onclick=revealHistoricalChallenge;
+    const end=q('[data-ab-history-end]');if(end)end.onclick=()=>{historyChallenge=null;historyAnswer='';historyStatus='';historyRevealed=false;renderAll()};
+    const stageKind=q('[data-ab-stage-kind]');if(stageKind)stageKind.onchange=()=>{kind=DEVICE_OPTIONS.some(([id])=>id===stageKind.value)?stageKind.value:'western';task=null;historyChallenge=null;workflow='setup';historyHelpOpen=false;renderAll()};
     const open=q('[data-ab-help-open]');if(open)open.onclick=()=>{historyHelpOpen=true;renderHistoricalStage()};
     const close=q('[data-ab-help-close]');if(close)close.onclick=()=>{historyHelpOpen=false;renderHistoricalStage()};
     qa('[data-ab-rb-add]').forEach(b=>b.onclick=()=>{reckoning[+b.dataset.abRbAdd]++;renderHistoricalStage()});
-    qa('[data-ab-rb-remove]').forEach(b=>b.onclick=()=>{const i=+b.dataset.abRbRemove;reckoning[i]=Math.max(0,reckoning[i]-1);renderHistoricalStage()});
+    qa('[data-ab-rb-remove]').forEach(b=>{
+      b.onclick=()=>{if(b.dataset.abDragged==='1'){b.dataset.abDragged='';return}const i=+b.dataset.abRbRemove;reckoning[i]=Math.max(0,reckoning[i]-1);renderHistoricalStage()};
+      b.onpointerdown=e=>{if(e.button!==0)return;historyDrag={type:'counter',source:+b.dataset.abRbRemove,pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,moved:false,el:b};b.classList.add('is-dragging');try{b.setPointerCapture(e.pointerId)}catch(_){}};
+      b.onpointermove=e=>{if(!historyDrag||historyDrag.el!==b)return;const dx=e.clientX-historyDrag.startX,dy=e.clientY-historyDrag.startY;if(Math.hypot(dx,dy)>6)historyDrag.moved=true;b.style.transform='translate('+dx+'px,'+dy+'px) scale(1.08)'};
+      b.onpointerup=e=>{if(!historyDrag||historyDrag.el!==b)return;const d=historyDrag;historyDrag=null;b.classList.remove('is-dragging');b.style.transform='';if(d.moved){b.dataset.abDragged='1';const hit=document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-ab-rb-col]');if(hit){const dest=+hit.dataset.abRbCol;if(dest!==d.source){reckoning[d.source]=Math.max(0,reckoning[d.source]-1);reckoning[dest]++;renderHistoricalStage();}}}};
+      b.onpointercancel=()=>{historyDrag=null;b.classList.remove('is-dragging');b.style.transform=''};
+    });
     qa('[data-ab-rod-dec]').forEach(b=>b.onclick=()=>{const i=+b.dataset.abRodDec;rodDigits[i]=(rodDigits[i]+9)%10;renderHistoricalStage()});
     qa('[data-ab-rod-inc]').forEach(b=>b.onclick=()=>{const i=+b.dataset.abRodInc;rodDigits[i]=(rodDigits[i]+1)%10;renderHistoricalStage()});
     qa('[data-ab-pa-add]').forEach(b=>b.onclick=()=>{pascalStep(+b.dataset.abPaAdd,1);renderHistoricalStage()});
     qa('[data-ab-pa-sub]').forEach(b=>b.onclick=()=>{pascalStep(+b.dataset.abPaSub,-1);renderHistoricalStage()});
+    qa('[data-ab-pa-wheel]').forEach(w=>{
+      w.onpointerdown=e=>{if(e.button!==0)return;historyDrag={type:'wheel',index:+w.dataset.abPaWheel,pointerId:e.pointerId,startY:e.clientY};try{w.setPointerCapture(e.pointerId)}catch(_){}};
+      w.onpointerup=e=>{if(!historyDrag||historyDrag.type!=='wheel'||historyDrag.index!==+w.dataset.abPaWheel)return;const dy=e.clientY-historyDrag.startY,idx=historyDrag.index;historyDrag=null;if(Math.abs(dy)>18){pascalStep(idx,dy<0?1:-1);renderHistoricalStage()}};
+      w.onpointercancel=()=>{historyDrag=null};
+    });
+    const slide=q('[data-ab-slide-c]');if(slide){
+      slide.onpointerdown=e=>{if(e.button!==0)return;const body=slide.closest('.gd-slide-body'),rect=body.getBoundingClientRect();historyDrag={type:'slide',pointerId:e.pointerId,startX:e.clientX,startShift:slidePos(slideA),width:rect.width*.9,el:slide};slide.classList.add('is-dragging');try{slide.setPointerCapture(e.pointerId)}catch(_){}};
+      slide.onpointermove=e=>{if(!historyDrag||historyDrag.el!==slide)return;const shift=clamp(historyDrag.startShift+(e.clientX-historyDrag.startX)/Math.max(1,historyDrag.width)*100,0,99.5);slide.style.transform='translateX('+shift+'%)'};
+      slide.onpointerup=e=>{if(!historyDrag||historyDrag.el!==slide)return;const shift=clamp(historyDrag.startShift+(e.clientX-historyDrag.startX)/Math.max(1,historyDrag.width)*100,0,99.5);slideA=Math.round(Math.pow(10,shift/100)*10)/10;historyDrag=null;renderAll()};
+      slide.onpointercancel=()=>{historyDrag=null;renderAll()};
+    }
+    const cursor=q('[data-ab-slide-cursor]');if(cursor){
+      cursor.onpointerdown=e=>{if(e.button!==0)return;const body=cursor.closest('.gd-slide-body'),rect=body.getBoundingClientRect();historyDrag={type:'cursor',pointerId:e.pointerId,left:rect.left,width:rect.width,el:cursor};cursor.classList.add('is-dragging');try{cursor.setPointerCapture(e.pointerId)}catch(_){}};
+      cursor.onpointermove=e=>{if(!historyDrag||historyDrag.el!==cursor)return;const pct=clamp((e.clientX-historyDrag.left)/Math.max(1,historyDrag.width)*100,0,100);cursor.style.left=pct+'%'};
+      cursor.onpointerup=e=>{if(!historyDrag||historyDrag.el!==cursor)return;const pct=clamp((e.clientX-historyDrag.left)/Math.max(1,historyDrag.width)*100,0,100),relative=(pct-slidePos(slideA)+100)%100;slideB=Math.round(Math.pow(10,relative/100)*10)/10;historyDrag=null;renderAll()};
+      cursor.onpointercancel=()=>{historyDrag=null;renderAll()};
+    }
   }
 
   // The right-hand column is ones. Each column is a decimal digit (0–9).
@@ -348,7 +445,7 @@ function abacusTool(){
     const hideTotal=!!task&&taskContext==='challenge'&&!revealed&&status!=='Correct ✓';
     q('#gd-stage').innerHTML=taskBanner()+
       '<div hidden aria-hidden="true">'+['copy','png','svg','print'].map(type=>'<button type="button" data-gd-direct-export="'+type+'">'+type+'</button>').join('')+'</div>'+
-      '<div class="gd-ab-workspace" style="position:relative">'+deviceSwitcher()+helpButton()+
+      '<div class="gd-ab-workspace gd-history-theme--'+colourScheme+'" style="position:relative">'+deviceSwitcher()+themeSwitcher()+helpButton()+
         '<div class="gd-ab-frame gd-ab-frame--'+kind+'" data-ab-frame>'+
           '<div class="gd-ab-type-label">'+(kind==='western'?'WESTERN · BASE TEN':'JAPANESE · SOROBAN')+'</div>'+
           '<div class="gd-ab-columns" style="--ab-cols:'+rows+'">'+Array.from({length:rows},(_,i)=>columnMarkup(i)).join('')+'</div>'+
@@ -382,6 +479,7 @@ function abacusTool(){
     const selector=field('Device','<select class="gd-select" id="ab-kind">'+DEVICE_OPTIONS.map(([id,label])=>'<option value="'+id+'"'+(kind===id?' selected':'')+'>'+label+'</option>').join('')+'</select>');
     if(!isAbacusKind())return selector+historicalControls()+'<p class="gd-help">Use the ? How to use button on the device for calculation instructions and a worked example.</p>';
     return selector+
+      field('Colour scheme','<select class="gd-select" id="ab-theme">'+COLOUR_SCHEMES.map(([id,label])=>'<option value="'+id+'"'+(colourScheme===id?' selected':'')+'>'+label+'</option>').join('')+'</select>')+
       field('Place values','<select class="gd-select" id="ab-rows">'+[3,4,5,6].map(n=>'<option value="'+n+'"'+(rows===n?' selected':'')+'>'+n+' places</option>').join('')+'</select>')+
       field('Set number','<div class="gd-row"><input class="gd-input" id="ab-set-number" type="number" min="0" max="'+capacity()+'" value="'+total()+'"><button class="gd-btn gd-btn--primary" id="ab-set" type="button">Set</button></div>')+
       '<div class="gd-row">'+btn('Random','ab-random')+btn('Clear','ab-clear')+'</div>'+
@@ -411,7 +509,7 @@ function abacusTool(){
       '<p class="gd-help" id="ab-export-status" role="status">'+esc(exportStatus)+'</p>';
   }
   function controlsHtml(){
-    if(!isAbacusKind())return setupControls();
+    if(!isAbacusKind())return '<button type="button" data-ab-random-challenge hidden aria-hidden="true" tabindex="-1">Challenge</button>'+setupControls();
     return '<button type="button" data-ab-random-challenge hidden aria-hidden="true" tabindex="-1">Challenge</button>'+
       '<div class="gd-row gd-ab-workflow" role="tablist" aria-label="Abacus workflow">'+
         [['setup','Setup'],['play','Teach / play'],['challenge','Challenge'],['export','Export']].map(([id,label])=>'<button class="gd-btn'+(workflow===id?' gd-btn--primary':'')+'" type="button" data-ab-workflow="'+id+'">'+label+'</button>').join('')+
@@ -422,6 +520,7 @@ function abacusTool(){
   function renderAll(){renderControls();renderStage()}
 
   function bindStage(){
+    const stageTheme=q('[data-ab-stage-theme]');if(stageTheme)stageTheme.onchange=()=>{colourScheme=COLOUR_SCHEMES.some(([id])=>id===stageTheme.value)?stageTheme.value:'classic';renderAll()};
     const stageKind=q('[data-ab-stage-kind]');if(stageKind)stageKind.onchange=()=>{kind=DEVICE_OPTIONS.some(([id])=>id===stageKind.value)?stageKind.value:'western';task=null;workflow='setup';historyHelpOpen=false;renderAll()};
     const helpOpen=q('[data-ab-help-open]');if(helpOpen)helpOpen.onclick=()=>{historyHelpOpen=true;renderStage()};
     const helpClose=q('[data-ab-help-close]');if(helpClose)helpClose.onclick=()=>{historyHelpOpen=false;renderStage()};
@@ -487,8 +586,12 @@ function abacusTool(){
       else if(next==='setup'){taskContext='play'}
       renderAll();
     });
-    const kindEl=q('#ab-kind');if(kindEl)kindEl.onchange=()=>{kind=DEVICE_OPTIONS.some(([id])=>id===kindEl.value)?kindEl.value:'western';task=null;workflow='setup';historyHelpOpen=false;renderAll()};
+    const kindEl=q('#ab-kind');if(kindEl)kindEl.onchange=()=>{kind=DEVICE_OPTIONS.some(([id])=>id===kindEl.value)?kindEl.value:'western';task=null;historyChallenge=null;workflow='setup';historyHelpOpen=false;renderAll()};
     if(!isAbacusKind()){
+      const theme=q('#ab-theme');if(theme)theme.onchange=()=>{colourScheme=COLOUR_SCHEMES.some(([id])=>id===theme.value)?theme.value:'classic';renderAll()};
+      const challengeButton=q('#ab-history-challenge');if(challengeButton)challengeButton.onclick=newHistoricalChallenge;
+      const endControl=q('#ab-history-end-control');if(endControl)endControl.onclick=()=>{historyChallenge=null;historyAnswer='';historyStatus='';historyRevealed=false;renderAll()};
+      const hiddenChallenge=q('[data-ab-random-challenge]');if(hiddenChallenge)hiddenChallenge.onclick=newHistoricalChallenge;
       const ex=q('#ab-h-example');if(ex)ex.onclick=()=>{
         if(kind==='reckoning')reckoning=[0,1,2,6];
         if(kind==='rods')rodDigits=[0,3,7,2];
@@ -508,6 +611,7 @@ function abacusTool(){
       const sb=q('#ab-slide-b');if(sb)sb.oninput=()=>{slideB=Number(sb.value);renderStage()};
       return;
     }
+    const theme=q('#ab-theme');if(theme)theme.onchange=()=>{colourScheme=COLOUR_SCHEMES.some(([id])=>id===theme.value)?theme.value:'classic';renderAll()};
     const rowsEl=q('#ab-rows');if(rowsEl)rowsEl.onchange=()=>{setRows(rowsEl.value);task=null;renderAll()};
     const set=q('#ab-set');if(set)set.onclick=()=>{setTotal(q('#ab-set-number')?.value);task=null;renderControls()};
     const random=q('#ab-random');if(random)random.onclick=()=>{setTotal(randomInt(0,capacity()));task=null;renderControls()};
