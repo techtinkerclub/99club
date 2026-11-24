@@ -74,8 +74,9 @@ function abacusTool(){
       historyChallenge={target:(+napierNumber)*napierMultiplier,answer:(+napierNumber)*napierMultiplier,requiresAnswer:true,prompt:'Use row '+napierMultiplier+' of the rods to work out '+napierNumber+' × '+napierMultiplier+'. Enter the product.'};
     }else if(kind==='slide'){
       const pairs=[[2,2],[2,3],[2,4],[2.5,2],[3,2],[3,3],[4,2],[1.5,4],[1.2,5],[2.4,3],[4,3],[6,2],[7,2]];
-      [slideA,slideB]=pairs[randomInt(0,pairs.length-1)];slideIndex=slideA*slideB<=10?'left':'right';
-      historyChallenge={target:Math.round(slideA*slideB*100)/100,answer:Math.round(slideA*slideB*100)/100,requiresAnswer:true,prompt:'Use the C and D scales to estimate '+slideA+' × '+slideB+'. Move the slide and cursor, then enter the result.'};
+      const [a,b]=pairs[randomInt(0,pairs.length-1)],target=Math.round(a*b*100)/100;
+      slideA=1;slideB=1;slideIndex='left';
+      historyChallenge={a,b,target,answer:target,requiresAnswer:true,requiresInstrument:true,prompt:'Use the slide rule to work out '+a+' × '+b+'. First align the C scale, then move the cursor to '+b+' on C. Enter the value you read on D.'};
     }else if(kind==='pascaline'){
       const start=randomInt(12,75),add=randomInt(6,24),target=start+add;
       setHistoricalNumber(start);
@@ -86,8 +87,10 @@ function abacusTool(){
   function checkHistoricalChallenge(){
     if(!historyChallenge)return;
     const answerOk=!historyChallenge.requiresAnswer||String(historyAnswer).trim()!==''&&Math.abs(Number(historyAnswer)-Number(historyChallenge.answer))<0.011;
-    const deviceOk=historyChallenge.requiresAnswer?true:historicalValue()===historyChallenge.target;
-    historyStatus=deviceOk&&answerOk?'Correct ✓':historyChallenge.requiresAnswer?'Not quite — check the instrument and your entered answer.':'Not yet — keep working on the device.';
+    const deviceOk=historyChallenge.requiresInstrument&&kind==='slide'
+      ?Math.abs(slideA-historyChallenge.a)<=0.11&&Math.abs(slideB-historyChallenge.b)<=0.11
+      :historyChallenge.requiresAnswer?true:historicalValue()===historyChallenge.target;
+    historyStatus=deviceOk&&answerOk?'Correct ✓':historyChallenge.requiresInstrument&&!deviceOk?'Not yet — align the slide and cursor to the requested values first.':historyChallenge.requiresAnswer?'Not quite — check the instrument and your entered answer.':'Not yet — keep working on the device.';
     if(deviceOk&&answerOk)historyRevealed=true;
     renderStage();
   }
@@ -95,7 +98,8 @@ function abacusTool(){
     if(!historyChallenge)return;
     historyRevealed=true;historyStatus='Answer shown';
     if(historyChallenge.requiresAnswer)historyAnswer=String(historyChallenge.answer);
-    else setHistoricalNumber(historyChallenge.target);
+    if(kind==='slide'&&historyChallenge.a){slideA=historyChallenge.a;slideB=historyChallenge.b;slideIndex=slideA*slideB<=10?'left':'right';}
+    else if(!historyChallenge.requiresAnswer)setHistoricalNumber(historyChallenge.target);
     renderStage();
   }
   function historyChallengeBanner(){
@@ -224,8 +228,8 @@ function abacusTool(){
     let out='';
     for(let n=10;n<=100;n++){
       const v=n/10;if(v>10)break;
-      const p=slidePos(v),major=n%10===0||n%5===0;
-      out+='<span class="gd-slide-tick'+(major?' is-major':'')+'" style="left:'+p+'%"><i></i>'+(major?'<b>'+v.toFixed(v%1?1:0)+'</b>':'')+'</span>';
+      const p=slidePos(v),major=n%10===0,mid=!major&&n%5===0;
+      out+='<span class="gd-slide-tick'+(major?' is-major':mid?' is-mid':'')+'" style="left:'+p+'%"><i></i>'+(major?'<b>'+Math.round(v)+'</b>':'')+'</span>';
     }
     return out;
   }
@@ -251,8 +255,8 @@ function abacusTool(){
       const product=(+napierNumber||0)*napierMultiplier;
       body='<div class="gd-napier"><div class="gd-napier-row-index"><span>×</span>'+Array.from({length:9},(_,i)=>'<button type="button" data-ab-napier-row="'+(i+1)+'"'+(historyChallenge?' disabled':'')+' class="'+(napierMultiplier===i+1?'is-selected':'')+'">'+(i+1)+'</button>').join('')+'</div><div class="gd-napier-bones">'+napierNumber.split('').map((d,i)=>'<div class="gd-napier-bone-wrap">'+napierBone(d)+(!historyChallenge?'<button type="button" class="gd-napier-remove" data-ab-napier-remove="'+i+'" aria-label="Remove rod '+d+'">×</button>':'')+'</div>').join('')+'</div>'+(historyChallenge?'':'<div class="gd-napier-tray" aria-label="Choose a rod">'+Array.from({length:10},(_,i)=>'<button type="button" data-ab-napier-add="'+i+'">'+i+'</button>').join('')+'<button type="button" data-ab-napier-clear>Clear</button></div>')+'<div class="gd-napier-highlight">Use row <strong>'+napierMultiplier+'</strong></div><div class="gd-history-readout">'+esc(napierNumber)+' × '+napierMultiplier+' = <strong>'+(historyChallenge&&!historyRevealed?'?':product.toLocaleString('en-GB'))+'</strong></div></div>';
     }else if(kind==='slide'){
-      const shift=slideOffset(),cursor=slideCursorPos();
-      body='<div class="gd-slide-rule"><div class="gd-slide-shell"><div class="gd-slide-brand"><strong>TEACHING SLIDE RULE</strong><span>C / D logarithmic scales</span></div><div class="gd-slide-body"><div class="gd-slide-stock"><div class="gd-slide-stock-edge"></div><div class="gd-slide-channel"><div class="gd-slide-scale gd-slide-c" data-ab-slide-c style="transform:translateX('+shift+'%)"><span class="gd-slide-label">C</span>'+slideTicks()+'</div></div><div class="gd-slide-scale gd-slide-d"><span class="gd-slide-label">D</span>'+slideTicks()+'</div></div><div class="gd-slide-cursor" data-ab-slide-cursor style="left:'+cursor+'%"><span class="gd-slide-glass"></span><i></i><b></b></div></div></div><div class="gd-slide-steps"><span>1 · Slide C so '+(slideIndex==='right'?'10':'1')+' lines up with '+slideA+' on D</span><span>2 · Find '+slideB+' on C</span><span>3 · Move the cursor and read D</span></div><div class="gd-history-readout">'+slideA+' × '+slideB+' = <strong>'+(historyChallenge&&!historyRevealed?'?':(slideA*slideB).toLocaleString('en-GB',{maximumFractionDigits:3}))+'</strong></div></div>';
+      const shift=slideOffset(),cursor=slideCursorPos(),targetA=historyChallenge?.a??slideA,targetB=historyChallenge?.b??slideB,targetProduct=Math.round(targetA*targetB*1000)/1000,targetIndex=targetA*targetB<=10?'1':'10';
+      body='<div class="gd-slide-rule"><div class="gd-slide-shell"><div class="gd-slide-brand"><strong>TEACHING SLIDE RULE</strong><span>C / D logarithmic scales</span></div><div class="gd-slide-body"><div class="gd-slide-stock"><div class="gd-slide-stock-edge"></div><span class="gd-slide-row-tag gd-slide-row-tag--c">C</span><div class="gd-slide-channel"><div class="gd-slide-scale gd-slide-c" data-ab-slide-c style="transform:translateX('+shift+'%)">'+slideTicks()+'</div></div><span class="gd-slide-row-tag gd-slide-row-tag--d">D</span><div class="gd-slide-scale gd-slide-d">'+slideTicks()+'</div></div><div class="gd-slide-cursor" data-ab-slide-cursor style="left:'+cursor+'%"><span class="gd-slide-glass"></span><i></i><b></b></div></div></div><div class="gd-slide-steps"><span>1 · Align C='+targetIndex+' with D='+targetA+'</span><span>2 · Find C='+targetB+'</span><span>3 · Move the cursor and read D</span></div><div class="gd-history-readout">'+targetA+' × '+targetB+' ≈ <strong>'+(historyChallenge&&!historyRevealed?'?':targetProduct.toLocaleString('en-GB',{maximumFractionDigits:3}))+'</strong></div></div>';
     }else if(kind==='pascaline'){
       const places=['Thousands','Hundreds','Tens','Ones'];
       const wheels=pascalDigits.map((d,i)=>'<div class="gd-pascaline-wheel-wrap"><span>'+places[i]+'</span><div class="gd-pascaline-wheel" data-ab-pa-wheel="'+i+'"><small>'+((d+9)%10)+'</small><strong>'+d+'</strong><small>'+((d+1)%10)+'</small></div><div class="gd-pascaline-wheel-buttons"><button type="button" data-ab-pa-sub="'+i+'">−</button><button type="button" data-ab-pa-add="'+i+'">+</button></div></div>').join('');
@@ -303,13 +307,13 @@ function abacusTool(){
     const slide=q('[data-ab-slide-c]');if(slide){
       slide.onpointerdown=e=>{if(e.button!==0)return;const body=slide.closest('.gd-slide-body'),rect=body.getBoundingClientRect();historyDrag={type:'slide',pointerId:e.pointerId,startX:e.clientX,startShift:slideOffset(),width:rect.width,el:slide};slide.classList.add('is-dragging');try{slide.setPointerCapture(e.pointerId)}catch(_){}};
       slide.onpointermove=e=>{if(!historyDrag||historyDrag.el!==slide)return;const shift=clamp(historyDrag.startShift+(e.clientX-historyDrag.startX)/Math.max(1,historyDrag.width)*100,-95,95);slide.style.transform='translateX('+shift+'%)'};
-      slide.onpointerup=e=>{if(!historyDrag||historyDrag.el!==slide)return;const shift=clamp(historyDrag.startShift+(e.clientX-historyDrag.startX)/Math.max(1,historyDrag.width)*100,-95,95);slideIndex=shift<0?'right':'left';slideA=Math.round(Math.pow(10,(shift+(slideIndex==='right'?100:0))/100)*100)/100;historyDrag=null;renderAll()};
+      slide.onpointerup=e=>{if(!historyDrag||historyDrag.el!==slide)return;const shift=clamp(historyDrag.startShift+(e.clientX-historyDrag.startX)/Math.max(1,historyDrag.width)*100,-95,95);slideIndex=shift<0?'right':'left';slideA=Math.round(Math.pow(10,(shift+(slideIndex==='right'?100:0))/100)*10)/10;historyDrag=null;renderAll()};
       slide.onpointercancel=()=>{historyDrag=null;renderAll()};
     }
     const cursor=q('[data-ab-slide-cursor]');if(cursor){
       cursor.onpointerdown=e=>{if(e.button!==0)return;const body=cursor.closest('.gd-slide-body'),rect=body.getBoundingClientRect();historyDrag={type:'cursor',pointerId:e.pointerId,left:rect.left,width:rect.width,el:cursor};cursor.classList.add('is-dragging');try{cursor.setPointerCapture(e.pointerId)}catch(_){}};
       cursor.onpointermove=e=>{if(!historyDrag||historyDrag.el!==cursor)return;const pct=clamp((e.clientX-historyDrag.left)/Math.max(1,historyDrag.width)*100,0,100);cursor.style.left=pct+'%'};
-      cursor.onpointerup=e=>{if(!historyDrag||historyDrag.el!==cursor)return;const pct=clamp((e.clientX-historyDrag.left)/Math.max(1,historyDrag.width)*100,0,100),relative=clamp(pct-slideOffset(),0,100);slideB=Math.round(Math.pow(10,relative/100)*100)/100;historyDrag=null;renderAll()};
+      cursor.onpointerup=e=>{if(!historyDrag||historyDrag.el!==cursor)return;const pct=clamp((e.clientX-historyDrag.left)/Math.max(1,historyDrag.width)*100,0,100),relative=clamp(pct-slideOffset(),0,100);slideB=Math.round(Math.pow(10,relative/100)*10)/10;historyDrag=null;renderAll()};
       cursor.onpointercancel=()=>{historyDrag=null;renderAll()};
     }
   }
