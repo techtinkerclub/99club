@@ -754,10 +754,10 @@ function numberLineV2(){
   }
   function markerStem(layout,m){
     const line=layout.line,x=px(m.value,line),cy=markerCentre(layout,m),base=layout.baseY;
-    if(m.side==='above')return `<line x1="${x}" y1="${base-3}" x2="${x}" y2="${cy+17}" stroke="${esc(m.color)}" stroke-width="2.5"/>`;
-    if(!labelsVisible(line,layout.index))return `<line x1="${x}" y1="${base+3}" x2="${x}" y2="${cy-17}" stroke="${esc(m.color)}" stroke-width="2.5"/>`;
+    if(m.side==='above')return `<line x1="${x}" y1="${base-3}" x2="${x}" y2="${cy+15.5}" stroke="${esc(m.color)}" stroke-width="2.5"/>`;
+    if(!labelsVisible(line,layout.index))return `<line x1="${x}" y1="${base+3}" x2="${x}" y2="${cy-15.5}" stroke="${esc(m.color)}" stroke-width="2.5"/>`;
     const labelTop=base+20,labelBottom=base+43;
-    return `<line x1="${x}" y1="${base+3}" x2="${x}" y2="${labelTop-4}" stroke="${esc(m.color)}" stroke-width="2.5"/><line x1="${x}" y1="${labelBottom+4}" x2="${x}" y2="${cy-17}" stroke="${esc(m.color)}" stroke-width="2.5"/>`;
+    return `<line x1="${x}" y1="${base+3}" x2="${x}" y2="${labelTop-4}" stroke="${esc(m.color)}" stroke-width="2.5"/><line x1="${x}" y1="${labelBottom+4}" x2="${x}" y2="${cy-15.5}" stroke="${esc(m.color)}" stroke-width="2.5"/>`;
   }
   function shortLineLabel(label){
     const text=String(label||'');return text.length>14?text.slice(0,13)+'…':text;
@@ -817,7 +817,7 @@ function numberLineV2(){
     line.markers.forEach((m,i)=>{
       const x=px(m.value,line),cy=markerCentre(layout,m),hidden=state.challenge&&!state.challenge.revealed&&(state.challenge.hiddenMarkerIds.includes(m.id)||state.challenge.hiddenMarkerIds.includes(line.id+':'+m.id)),showValue=m.showValue&&!hidden;
       const valueY=m.side==='above'?cy-28:cy+34;
-      markerLayer+=`<g class="nl-svg-marker" data-line-id="${esc(line.id)}" data-marker-hit="${esc(m.id)}"${m.positionGroup?` data-position-group="${esc(m.positionGroup)}"`:''} style="cursor:ew-resize;touch-action:none">${markerStem(layout,m)}<circle cx="${x}" cy="${cy}" r="16" fill="${esc(m.color)}" stroke="#fff" stroke-width="3"/><circle cx="${x}" cy="${cy}" r="22" fill="transparent"/><text x="${x}" y="${cy+5}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="${contrast(m.color)}" pointer-events="none">${esc(m.label||String(i+1))}</text>${showValue?`<text x="${x}" y="${valueY}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#33474e" pointer-events="none">${esc(lineValueText(line,m.value))}</text>`:(hidden?answerBox(x,valueY-5,72,24):'')}</g>`;
+      markerLayer+=`<g class="nl-svg-marker" data-line-id="${esc(line.id)}" data-marker-hit="${esc(m.id)}"${m.positionGroup?` data-position-group="${esc(m.positionGroup)}"`:''} style="cursor:ew-resize;touch-action:none">${markerStem(layout,m)}<circle cx="${x}" cy="${cy}" r="14.5" fill="${esc(m.color)}" stroke="#fff" stroke-width="2.4"/><circle cx="${x}" cy="${cy}" r="23" fill="transparent"/><text x="${x}" y="${cy+4}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="11.5" font-weight="650" letter-spacing=".1" fill="${contrast(m.color)}" pointer-events="none">${esc(m.label||String(i+1))}</text>${showValue?`<text x="${x}" y="${valueY}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="650" fill="#33474e" pointer-events="none">${esc(lineValueText(line,m.value))}</text>`:(hidden?answerBox(x,valueY-5,72,24):'')}</g>`;
     });
 
     return intervalLayer+relationshipLayer+baseline+ticks+lineLabel+markerLayer;
@@ -1015,11 +1015,17 @@ function numberLineV2(){
     let n=1;while(used.has('M'+n))n++;return 'M'+n;
   }
   function preferredMarkerSide(line,value){
-    const scale=scaleFor(line),range=Math.max(.0001,scale.max-scale.min),near=(line?.markers||[]).filter(m=>Math.abs(m.value-value)/range<.13);
-    const above=near.filter(m=>m.side!=='below').length,below=near.filter(m=>m.side==='below').length;
-    if(above!==below)return above<below?'above':'below';
-    const totalAbove=(line?.markers||[]).filter(m=>m.side!=='below').length,totalBelow=(line?.markers||[]).filter(m=>m.side==='below').length;
-    return totalAbove<=totalBelow?'above':'below';
+    const scale=scaleFor(line),range=Math.max(.0001,scale.max-scale.min);
+    const valueText=lineValueText(line,value),ownWidth=Math.max(34,18+String(valueText).length*7);
+    const collides=(marker,side)=>{
+      if((marker.side==='below'?'below':'above')!==side)return false;
+      const markerText=lineValueText(line,marker.value),otherWidth=Math.max(34,18+String(markerText).length*7);
+      const dx=Math.abs(marker.value-value)/range*(X1-X0);
+      return dx<(ownWidth+otherWidth)/2+18;
+    };
+    if(!(line?.markers||[]).some(m=>collides(m,'above')))return 'above';
+    if(!(line?.markers||[]).some(m=>collides(m,'below')))return 'below';
+    return 'above';
   }
   function addMarker(value,lineId=state.activeLineId){
     const line=state.lines.find(l=>l.id===lineId)||activeLine(),scale=scaleFor(line),id=nextId('m',line.markers),index=line.markers.length;
