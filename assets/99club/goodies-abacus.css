@@ -617,3 +617,417 @@
   color:#8c422e;
   font-size:.62rem;
 }
+
+
+/* v13: colour schemes belong to the physical device, never the surrounding whiteboard. */
+.gd-history-stage,
+.gd-ab-workspace,
+.gd-history-theme--classic,
+.gd-history-theme--place,
+.gd-history-theme--sea,
+.gd-history-theme--berry,
+.gd-history-theme--forest{
+  background:transparent!important;
+}
+
+.gd-history-theme--classic{
+  --dev-frame:#8b5b30;
+  --dev-frame-2:#b98249;
+  --dev-board:#f0d7ad;
+  --dev-board-2:#e7bf87;
+  --dev-rail:#725039;
+  --dev-bead:#d88a51;
+  --dev-bead-2:#f0b46f;
+  --dev-active:#3e9487;
+  --dev-active-2:#83c7bb;
+  --dev-paper:#f3e5c7;
+  --dev-ink:#4b3826;
+  --dev-counter:#d6a43d;
+  --dev-counter-2:#f1cf71;
+}
+.gd-history-theme--place{
+  --dev-frame:#65728e;
+  --dev-frame-2:#8b98b0;
+  --dev-board:#f3e6c9;
+  --dev-board-2:#ead7b6;
+  --dev-rail:#6d6a73;
+  --dev-bead:#c9928c;
+  --dev-bead-2:#e2b0a8;
+  --dev-active:#6e98b8;
+  --dev-active-2:#a8c7df;
+  --dev-paper:#f4ead6;
+  --dev-ink:#41495a;
+  --dev-counter:#8eb39a;
+  --dev-counter-2:#bed7c4;
+}
+.gd-history-theme--sea{
+  --dev-frame:#446f7c;
+  --dev-frame-2:#6f9eaa;
+  --dev-board:#dceeed;
+  --dev-board-2:#bfdcda;
+  --dev-rail:#4e6b71;
+  --dev-bead:#d7a27a;
+  --dev-bead-2:#efc39f;
+  --dev-active:#3f8796;
+  --dev-active-2:#8fc9cf;
+  --dev-paper:#edf7f5;
+  --dev-ink:#314f58;
+  --dev-counter:#5ca7aa;
+  --dev-counter-2:#a7d6d4;
+}
+.gd-history-theme--berry{
+  --dev-frame:#765266;
+  --dev-frame-2:#9e7289;
+  --dev-board:#f0dfe3;
+  --dev-board-2:#e7cbd2;
+  --dev-rail:#694b59;
+  --dev-bead:#d59a6f;
+  --dev-bead-2:#ebc29d;
+  --dev-active:#955d76;
+  --dev-active-2:#d3a0af;
+  --dev-paper:#f8ecef;
+  --dev-ink:#5d4050;
+  --dev-counter:#b56e83;
+  --dev-counter-2:#e0a9b8;
+}
+.gd-history-theme--forest{
+  --dev-frame:#58705b;
+  --dev-frame-2:#7f987e;
+  --dev-board:#e4ecd8;
+  --dev-board-2:#d1dfc2;
+  --dev-rail:#5e6650;
+  --dev-bead:#d79661;
+  --dev-bead-2:#edbd91;
+  --dev-active:#63866b;
+  --dev-active-2:#a7c49a;
+  --dev-paper:#f0f5e7;
+  --dev-ink:#465644;
+  --dev-counter:#88a76d;
+  --dev-counter-2:#c1d6aa;
+}
+
+/* Abacus / suanpan / soroban materials. */
+.gd-history-theme--classic .gd-ab-frame,
+.gd-history-theme--place .gd-ab-frame,
+.gd-history-theme--sea .gd-ab-frame,
+.gd-history-theme--berry .gd-ab-frame,
+.gd-history-theme--forest .gd-ab-frame{
+  border-color:var(--dev-frame)!important;
+  background:linear-gradient(145deg,var(--dev-board),var(--dev-board-2))!important;
+  box-shadow:0 9px 22px rgba(46,42,34,.12),inset 0 0 0 4px rgba(255,255,255,.28)!important;
+}
+.gd-history-theme--classic .gd-ab-columns,
+.gd-history-theme--place .gd-ab-columns,
+.gd-history-theme--sea .gd-ab-columns,
+.gd-history-theme--berry .gd-ab-columns,
+.gd-history-theme--forest .gd-ab-columns{
+  border-color:var(--dev-frame)!important;
+  background:var(--dev-board)!important;
+}
+.gd-history-theme--classic .gd-ab-frame .gd-ab-rail,
+.gd-history-theme--place .gd-ab-frame .gd-ab-rail,
+.gd-history-theme--sea .gd-ab-frame .gd-ab-rail,
+.gd-history-theme--berry .gd-ab-frame .gd-ab-rail,
+.gd-history-theme--forest .gd-ab-frame .gd-ab-rail{
+  background:linear-gradient(90deg,var(--dev-rail),color-mix(in srgb,var(--dev-rail),#fff 25%),var(--dev-rail))!important;
+}
+.gd-history-theme--classic .gd-ab-divider,
+.gd-history-theme--place .gd-ab-divider,
+.gd-history-theme--sea .gd-ab-divider,
+.gd-history-theme--berry .gd-ab-divider,
+.gd-history-theme--forest .gd-ab-divider{
+  background:linear-gradient(var(--dev-frame-2),var(--dev-frame))!important;
+  border-color:var(--dev-frame)!important;
+}
+.gd-history-theme--classic .gd-ab-frame .gd-ab-bead,
+.gd-history-theme--place .gd-ab-frame .gd-ab-bead,
+.gd-history-theme--sea .gd-ab-frame .gd-ab-bead,
+.gd-history-theme--berry .gd-ab-frame .gd-ab-bead,
+.gd-history-theme--forest .gd-ab-frame .gd-ab-bead{
+  background:linear-gradient(145deg,var(--dev-bead-2),var(--dev-bead))!important;
+  border-color:color-mix(in srgb,var(--dev-bead),#4c321f 35%)!important;
+}
+.gd-history-theme--classic .gd-ab-frame .gd-ab-bead.is-active,
+.gd-history-theme--place .gd-ab-frame .gd-ab-bead.is-active,
+.gd-history-theme--sea .gd-ab-frame .gd-ab-bead.is-active,
+.gd-history-theme--berry .gd-ab-frame .gd-ab-bead.is-active,
+.gd-history-theme--forest .gd-ab-frame .gd-ab-bead.is-active{
+  background:linear-gradient(145deg,var(--dev-active-2),var(--dev-active))!important;
+  border-color:var(--dev-active)!important;
+}
+
+/* Reckoning board is recoloured as a physical board, not via the page behind it. */
+.gd-history-theme--classic .gd-reckoning,
+.gd-history-theme--place .gd-reckoning,
+.gd-history-theme--sea .gd-reckoning,
+.gd-history-theme--berry .gd-reckoning,
+.gd-history-theme--forest .gd-reckoning{
+  border-color:var(--dev-frame)!important;
+  background:linear-gradient(8deg,var(--dev-board-2),var(--dev-board))!important;
+}
+.gd-history-theme--classic .gd-reckoning-grid,
+.gd-history-theme--place .gd-reckoning-grid,
+.gd-history-theme--sea .gd-reckoning-grid,
+.gd-history-theme--berry .gd-reckoning-grid,
+.gd-history-theme--forest .gd-reckoning-grid,
+.gd-history-theme--classic .gd-reckoning-col,
+.gd-history-theme--place .gd-reckoning-col,
+.gd-history-theme--sea .gd-reckoning-col,
+.gd-history-theme--berry .gd-reckoning-col,
+.gd-history-theme--forest .gd-reckoning-col,
+.gd-history-theme--classic .gd-reckoning-heading,
+.gd-history-theme--place .gd-reckoning-heading,
+.gd-history-theme--sea .gd-reckoning-heading,
+.gd-history-theme--berry .gd-reckoning-heading,
+.gd-history-theme--forest .gd-reckoning-heading{
+  border-color:color-mix(in srgb,var(--dev-frame),transparent 35%)!important;
+}
+.gd-history-theme--classic .gd-reckoning-counter,
+.gd-history-theme--place .gd-reckoning-counter,
+.gd-history-theme--sea .gd-reckoning-counter,
+.gd-history-theme--berry .gd-reckoning-counter,
+.gd-history-theme--forest .gd-reckoning-counter{
+  background:radial-gradient(circle at 34% 28%,var(--dev-counter-2),var(--dev-counter) 68%,color-mix(in srgb,var(--dev-counter),#4e381e 38%))!important;
+  border-color:color-mix(in srgb,var(--dev-counter),#4e381e 42%)!important;
+}
+.gd-history-theme--classic .gd-reckoning-add,
+.gd-history-theme--place .gd-reckoning-add,
+.gd-history-theme--sea .gd-reckoning-add,
+.gd-history-theme--berry .gd-reckoning-add,
+.gd-history-theme--forest .gd-reckoning-add{
+  background:color-mix(in srgb,var(--dev-paper),transparent 12%)!important;
+  color:var(--dev-ink)!important;
+}
+
+/* Counting rods: mat, border and rods themselves change. */
+.gd-history-theme--classic .gd-rods-grid,
+.gd-history-theme--place .gd-rods-grid,
+.gd-history-theme--sea .gd-rods-grid,
+.gd-history-theme--berry .gd-rods-grid,
+.gd-history-theme--forest .gd-rods-grid{
+  border-color:var(--dev-frame)!important;
+  background:var(--dev-board-2)!important;
+}
+.gd-history-theme--classic .gd-rods-mat,
+.gd-history-theme--place .gd-rods-mat,
+.gd-history-theme--sea .gd-rods-mat,
+.gd-history-theme--berry .gd-rods-mat,
+.gd-history-theme--forest .gd-rods-mat{
+  background-color:var(--dev-paper)!important;
+}
+.gd-history-theme--classic .gd-rods-mat line,
+.gd-history-theme--place .gd-rods-mat line,
+.gd-history-theme--sea .gd-rods-mat line,
+.gd-history-theme--berry .gd-rods-mat line,
+.gd-history-theme--forest .gd-rods-mat line{
+  stroke:var(--dev-active)!important;
+}
+
+/* Napier's Bones: compact instrument; every scheme changes the actual board and bones. */
+.gd-napier{
+  display:flex!important;
+  flex-direction:column!important;
+  width:max-content!important;
+  max-width:100%!important;
+  padding:10px 12px!important;
+  gap:7px!important;
+  border-width:9px!important;
+  border-radius:12px!important;
+  box-sizing:border-box!important;
+}
+.gd-napier-title{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:24px;
+  padding:0 2px 3px;
+  font-family:Georgia,serif;
+  color:var(--dev-ink,#5c4427);
+}
+.gd-napier-title strong{font-size:.76rem;letter-spacing:.12em}
+.gd-napier-title span{font-size:.62rem;opacity:.72}
+.gd-napier-working{
+  display:grid;
+  grid-template-columns:34px auto;
+  gap:5px;
+  justify-content:center;
+  align-items:start;
+}
+.gd-napier-row-index{
+  grid-template-rows:32px repeat(9,31px)!important;
+  width:34px;
+}
+.gd-napier-row-index span,
+.gd-napier-row-index button{
+  min-height:31px!important;
+  height:31px!important;
+}
+.gd-napier-bones{gap:3px!important}
+.gd-napier-bone{
+  width:55px!important;
+  box-sizing:border-box;
+}
+.gd-napier-head{
+  position:relative;
+  height:31px!important;
+  min-height:31px;
+  display:grid!important;
+  grid-template-columns:1fr 22px;
+  align-items:center;
+  padding-left:7px;
+}
+.gd-napier-head strong{
+  justify-self:center;
+  font:700 1rem Georgia,serif;
+}
+.gd-napier-remove{
+  position:static!important;
+  width:21px!important;
+  height:21px!important;
+  min-width:21px!important;
+  min-height:21px!important;
+  margin:0 2px 0 0;
+  padding:0!important;
+  border-radius:6px!important;
+  display:grid;
+  place-items:center;
+  font-size:.8rem!important;
+  line-height:1!important;
+}
+.gd-napier-cell{height:30px!important}
+.gd-napier-cell span{left:6px!important;top:2px!important;font-size:.68rem!important}
+.gd-napier-cell b{right:6px!important;bottom:2px!important;font-size:.76rem!important}
+.gd-napier-tray{
+  grid-column:auto!important;
+  padding-top:2px!important;
+  gap:4px!important;
+  justify-content:center!important;
+}
+.gd-napier-tray button{
+  min-width:34px!important;
+  min-height:32px!important;
+  height:32px!important;
+  padding:2px 6px!important;
+}
+.gd-napier-footer{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:16px;
+  min-height:28px;
+}
+.gd-napier-highlight{
+  grid-column:auto!important;
+  margin:0!important;
+}
+.gd-napier-footer .gd-history-readout{
+  margin:0!important;
+  font-size:.85rem!important;
+}
+.gd-napier-footer .gd-history-readout strong{font-size:1rem!important}
+
+.gd-history-theme--classic .gd-napier,
+.gd-history-theme--place .gd-napier,
+.gd-history-theme--sea .gd-napier,
+.gd-history-theme--berry .gd-napier,
+.gd-history-theme--forest .gd-napier{
+  border-color:var(--dev-frame)!important;
+  background:var(--dev-board)!important;
+}
+.gd-history-theme--classic .gd-napier-bone,
+.gd-history-theme--place .gd-napier-bone,
+.gd-history-theme--sea .gd-napier-bone,
+.gd-history-theme--berry .gd-napier-bone,
+.gd-history-theme--forest .gd-napier-bone{
+  background:var(--dev-paper)!important;
+  border-color:var(--dev-frame)!important;
+}
+.gd-history-theme--classic .gd-napier-head,
+.gd-history-theme--place .gd-napier-head,
+.gd-history-theme--sea .gd-napier-head,
+.gd-history-theme--berry .gd-napier-head,
+.gd-history-theme--forest .gd-napier-head,
+.gd-history-theme--classic .gd-napier-cell,
+.gd-history-theme--place .gd-napier-cell,
+.gd-history-theme--sea .gd-napier-cell,
+.gd-history-theme--berry .gd-napier-cell,
+.gd-history-theme--forest .gd-napier-cell{
+  border-color:color-mix(in srgb,var(--dev-frame),transparent 25%)!important;
+  color:var(--dev-ink)!important;
+}
+.gd-history-theme--classic .gd-napier-cell i,
+.gd-history-theme--place .gd-napier-cell i,
+.gd-history-theme--sea .gd-napier-cell i,
+.gd-history-theme--berry .gd-napier-cell i,
+.gd-history-theme--forest .gd-napier-cell i{
+  background:linear-gradient(to bottom right,transparent 49%,color-mix(in srgb,var(--dev-frame),transparent 25%) 50%,color-mix(in srgb,var(--dev-frame),transparent 25%) 51%,transparent 52%)!important;
+}
+.gd-history-theme--classic .gd-napier-cell.is-selected,
+.gd-history-theme--place .gd-napier-cell.is-selected,
+.gd-history-theme--sea .gd-napier-cell.is-selected,
+.gd-history-theme--berry .gd-napier-cell.is-selected,
+.gd-history-theme--forest .gd-napier-cell.is-selected{
+  background:color-mix(in srgb,var(--dev-active-2),#fff 58%)!important;
+  box-shadow:inset 3px 0 var(--dev-active),inset -3px 0 var(--dev-active)!important;
+}
+
+/* Slide rule: recolour stock, scale bed, cursor; whiteboard around it remains untouched. */
+.gd-history-theme--classic .gd-slide-shell,
+.gd-history-theme--place .gd-slide-shell,
+.gd-history-theme--sea .gd-slide-shell,
+.gd-history-theme--berry .gd-slide-shell,
+.gd-history-theme--forest .gd-slide-shell{
+  border-color:var(--dev-frame)!important;
+  background:linear-gradient(135deg,var(--dev-frame),var(--dev-frame-2) 48%,var(--dev-frame))!important;
+}
+.gd-history-theme--classic .gd-slide-body,
+.gd-history-theme--place .gd-slide-body,
+.gd-history-theme--sea .gd-slide-body,
+.gd-history-theme--berry .gd-slide-body,
+.gd-history-theme--forest .gd-slide-body,
+.gd-history-theme--classic .gd-slide-scale,
+.gd-history-theme--place .gd-slide-scale,
+.gd-history-theme--sea .gd-slide-scale,
+.gd-history-theme--berry .gd-slide-scale,
+.gd-history-theme--forest .gd-slide-scale{
+  background:linear-gradient(#fff,var(--dev-paper))!important;
+}
+.gd-history-theme--classic .gd-slide-channel,
+.gd-history-theme--place .gd-slide-channel,
+.gd-history-theme--sea .gd-slide-channel,
+.gd-history-theme--berry .gd-slide-channel,
+.gd-history-theme--forest .gd-slide-channel{
+  background:var(--dev-board-2)!important;
+  border-color:var(--dev-frame)!important;
+}
+.gd-history-theme--classic .gd-slide-cursor i,
+.gd-history-theme--place .gd-slide-cursor i,
+.gd-history-theme--sea .gd-slide-cursor i,
+.gd-history-theme--berry .gd-slide-cursor i,
+.gd-history-theme--forest .gd-slide-cursor i{
+  background:var(--dev-active)!important;
+}
+
+/* Pascaline: plate and wheels use the palette. */
+.gd-history-theme--classic .gd-pascaline-plate,
+.gd-history-theme--place .gd-pascaline-plate,
+.gd-history-theme--sea .gd-pascaline-plate,
+.gd-history-theme--berry .gd-pascaline-plate,
+.gd-history-theme--forest .gd-pascaline-plate{
+  border-color:var(--dev-frame)!important;
+  background:linear-gradient(135deg,var(--dev-frame-2),var(--dev-board) 46%,var(--dev-frame))!important;
+}
+.gd-history-theme--classic .gd-pascaline-wheel,
+.gd-history-theme--place .gd-pascaline-wheel,
+.gd-history-theme--sea .gd-pascaline-wheel,
+.gd-history-theme--berry .gd-pascaline-wheel,
+.gd-history-theme--forest .gd-pascaline-wheel{
+  border-color:var(--dev-frame)!important;
+  background:radial-gradient(circle,var(--dev-paper) 0 43%,var(--dev-active-2) 44% 58%,var(--dev-frame) 59%)!important;
+}
+
+/* The toolbar itself remains neutral regardless of selected device palette. */
+.gd-ab-device-toolbar{
+  background:#fbfdfc!important;
+  border-color:#dce5e3!important;
+}
