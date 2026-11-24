@@ -18,7 +18,7 @@ const CHALLENGE_TEMPLATES=[
   {id:'identify',category:'read',title:'What number is marked?',desc:'Read the value of a marked point.'},
   {id:'interval-value',category:'read',title:'Find the interval',desc:'Work out what each equal interval is worth.'},
   {id:'missing-labels',category:'read',title:'Missing labels',desc:'Fill several missing scale labels.'},
-  {id:'estimate-position',category:'place',title:'Estimate the position',desc:'Use sparse anchors to identify a marked value.'},
+  {id:'estimate-position',category:'place',title:'Read from sparse labels',desc:'Use the labelled endpoints and equal intervals to work out a marked value.'},
   {id:'midpoint',category:'place',title:'Find the midpoint',desc:'Find the value exactly halfway between two points.'},
   {id:'nearest-endpoint',category:'place',title:'Nearest endpoint',desc:'Decide which labelled endpoint a point is closer to.'},
   {id:'order-markers',category:'compare',title:'Order the markers',desc:'Use position to put three marked points in order.'},
@@ -35,7 +35,7 @@ const CHALLENGE_TEMPLATES=[
   {id:'fdp-equivalence',category:'fractions',title:'Fraction · decimal · percent',desc:'Match the same position across three representations.'},
   {id:'fraction-sequence',category:'fractions',title:'Count in fractions',desc:'Follow equal fractional steps and continue the sequence.'},
   {id:'fraction-jump',category:'fractions',title:'Fraction jump',desc:'Add or subtract a fraction on a number line.'},
-  {id:'compare-fractions',category:'fractions',title:'Compare fractions',desc:'Compare fractions using aligned scales.'},
+  {id:'compare-fractions',category:'fractions',title:'Compare fractions',desc:'Use aligned fraction scales to write a correct <, > or = comparison.'},
   {id:'zoom-read',category:'read',title:'Read a zoomed interval',desc:'Use a magnified interval to read an exact value.'},
   {id:'double-line-value',category:'calculate',title:'Double number line',desc:'Find a missing corresponding value on proportional scales.'},
   {id:'error-scale',category:'reason',title:'Spot the scale error',desc:'Decide whether a pupil has read the interval correctly.'},
@@ -202,6 +202,7 @@ function normalise(input){
     src.challenge={
       ...base,
       hiddenTicks:Array.isArray(src.challenge.hiddenTicks)?src.challenge.hiddenTicks.map(Number).filter(Number.isFinite):[],
+      hiddenTickRefs:Array.isArray(src.challenge.hiddenTickRefs)?src.challenge.hiddenTickRefs.map(String).slice(0,24):[],
       hiddenMarkerIds:Array.isArray(src.challenge.hiddenMarkerIds)?src.challenge.hiddenMarkerIds.map(String):[],
       hiddenRelationIds:Array.isArray(src.challenge.hiddenRelationIds)?src.challenge.hiddenRelationIds.map(String):[],
       roundingUnit:Number.isFinite(Number(src.challenge.roundingUnit))?Number(src.challenge.roundingUnit):null,
@@ -400,7 +401,7 @@ function numberLineV2(){
     const resolved=resolveCustomAnswerSource(source);
     if(!resolved)return false;
     ch.answerMode='bound';ch.answerSource=source;ch.answer=resolved.answer;ch.revealed=false;
-    ch.hiddenTicks=[];ch.hiddenMarkerIds=[];ch.hiddenRelationIds=[];
+    ch.hiddenTicks=[];ch.hiddenTickRefs=[];ch.hiddenMarkerIds=[];ch.hiddenRelationIds=[];
     if(resolved.kind==='marker')ch.hiddenMarkerIds=[resolved.line.id+':'+resolved.object.id];
     else ch.hiddenRelationIds=[resolved.line.id+':'+resolved.object.id];
     return true;
@@ -698,9 +699,12 @@ function numberLineV2(){
     const raw=scale.min+(clamp(svgX,X0,X1)-X0)/(X1-X0)*(scale.max-scale.min);
     return snapToScale(raw,scale);
   }
+  function tickRef(lineId,value){return String(lineId)+':'+fmt(value)}
   function hiddenTick(v,line){
-    const scale=scaleFor(line);
-    return !!(state.challenge&&!state.challenge.revealed&&state.challenge.hiddenTicks.some(x=>Math.abs(x-v)<scale.step/1000));
+    const scale=scaleFor(line),ch=state.challenge;
+    if(!ch||ch.revealed)return false;
+    if(ch.hiddenTicks.some(x=>Math.abs(x-v)<scale.step/1000))return true;
+    return (ch.hiddenTickRefs||[]).includes(tickRef(line.id,v));
   }
   function answerBox(cx,cy,w=54,h=24){
     return `<rect class="nl-answer-box" x="${cx-w/2}" y="${cy-h/2}" width="${w}" height="${h}" rx="5" fill="#fff" stroke="#52666d" stroke-width="1.8" stroke-dasharray="5 3"/>`;
@@ -1196,7 +1200,7 @@ function numberLineV2(){
     const base={
       mode:'standard',type,category:meta?.category||'',title:'',
       prompt,promptHtml:esc(prompt),answer:String(answer??''),answerMode:'bound',revealed:false,
-      hiddenTicks:[],hiddenMarkerIds:[],hiddenRelationIds:[],...extra
+      hiddenTicks:[],hiddenTickRefs:[],hiddenMarkerIds:[],hiddenRelationIds:[],...extra
     };
     return CK?CK.normalise(base):base;
   }
@@ -1211,10 +1215,10 @@ function numberLineV2(){
     if(CK){
       state.challenge=CK.makeCustom(state.challenge||{
         type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',
-        hiddenTicks:[],hiddenMarkerIds:[],hiddenRelationIds:[]
+        hiddenTicks:[],hiddenTickRefs:[],hiddenMarkerIds:[],hiddenRelationIds:[]
       });
     }else if(!state.challenge){
-      state.challenge={mode:'custom',type:'custom',title:'Challenge',prompt:'Write your challenge here.',answer:'',answerMode:'manual',revealed:false,hiddenTicks:[],hiddenMarkerIds:[],hiddenRelationIds:[]};
+      state.challenge={mode:'custom',type:'custom',title:'Challenge',prompt:'Write your challenge here.',answer:'',answerMode:'manual',revealed:false,hiddenTicks:[],hiddenTickRefs:[],hiddenMarkerIds:[],hiddenRelationIds:[]};
     }
     challengeTab='custom';controlTab='challenge';exportMode='challenge';openGroups.add('challenge');renderAll();
   }
@@ -1234,7 +1238,7 @@ function numberLineV2(){
 
     if(type==='identify'){
       line.markers=[{id:'m1',label:'A',value:a,color:'#147d75',showValue:true,side:'above'}];
-      state.challenge=challengeObject(type,'What number is marker A pointing to?',fmt(a),{hiddenMarkerIds:['m1']});
+      state.challenge=challengeObject(type,'What number is marker A pointing to?',fmt(a),{hiddenMarkerIds:['m1'],hiddenTickRefs:[tickRef('l1',a)]});
 
     }else if(type==='interval-value'){
       endpointLabelsOnly();
@@ -1244,7 +1248,7 @@ function numberLineV2(){
       endpointLabelsOnly();
       const target=randomInteriorTick();
       line.markers=[{id:'m1',label:'A',value:target,color:'#147d75',showValue:true,side:'above'}];
-      state.challenge=challengeObject(type,'Use the labelled anchors to work out the value of A.',fmt(target),{hiddenMarkerIds:['m1']});
+      state.challenge=challengeObject(type,'Use the labelled endpoints and equal intervals to work out the value of A.',fmt(target),{hiddenMarkerIds:['m1'],hiddenTickRefs:[tickRef('l1',target)]});
 
     }else if(type==='midpoint'){
       let x=a,y=b,guard=0;
@@ -1281,7 +1285,7 @@ function numberLineV2(){
       let start=a,end=b;if(Math.abs(end-start)<state.step/1000)end=snap(start+state.step,state);const delta=cleanNumber(end-start);
       line.markers=[{id:'m1',label:'Start',value:start,color:'#147d75',showValue:true,side:'above'},{id:'m2',label:'?',value:end,color:'#d65a4a',showValue:true,side:'above'}];
       line.relations=[{id:'r1',from:'m1',to:'m2',type:'jump',color:'#4169a8',label:(delta>=0?'+':'')+fmt(delta),showLabel:true,side:'above'}];
-      state.challenge=challengeObject(type,'Start at '+fmt(start)+' and make the shown jump. Where do you land?',fmt(end),{hiddenMarkerIds:['m2']});
+      state.challenge=challengeObject(type,'Start at '+fmt(start)+' and follow the shown '+(delta>=0?'positive':'negative')+' jump. Where do you land?',fmt(end),{hiddenMarkerIds:['m2'],hiddenTickRefs:[tickRef('l1',end)]});
 
     }else if(type==='missing-jump'){
       const delta=cleanNumber(b-a);
@@ -1293,7 +1297,7 @@ function numberLineV2(){
       const delta=cleanNumber(b-a);
       line.markers=[{id:'m1',label:'Start',value:a,color:'#147d75',showValue:true,side:'above'},{id:'m2',label:'End',value:b,color:'#d65a4a',showValue:true,side:'above'}];
       line.relations=[{id:'r1',from:'m1',to:'m2',type:'jump',color:'#4169a8',label:(delta>=0?'+':'')+fmt(delta),showLabel:true,side:'above'}];
-      state.challenge=challengeObject(type,'The jump lands at '+fmt(b)+'. What number did it start from?',fmt(a),{hiddenMarkerIds:['m1']});
+      state.challenge=challengeObject(type,'The shown jump lands at '+fmt(b)+'. What number did it start from?',fmt(a),{hiddenMarkerIds:['m1'],hiddenTickRefs:[tickRef('l1',a)]});
 
     }else if(type==='repeated-jumps'){
       const intervals=Math.max(3,Math.floor((state.max-state.min)/state.step+1e-8));
@@ -1304,7 +1308,7 @@ function numberLineV2(){
       const vals=[0,1,2,3].map(i=>cleanNumber(state.min+(startIndex+direction*jumpTicks*i)*state.step));
       line.markers=vals.map((v,i)=>({id:'m'+(i+1),label:i===0?'Start':(i===3?'?':''),value:v,color:i===0?'#147d75':'#4169a8',showValue:i===0||i===3,side:'above'}));
       for(let i=0;i<3;i++)line.relations.push({id:'r'+(i+1),from:'m'+(i+1),to:'m'+(i+2),type:'jump',color:'#4169a8',label:(direction>0?'+':'')+fmt(cleanNumber(direction*jumpTicks*state.step)),showLabel:true,side:'above'});
-      state.challenge=challengeObject(type,'Follow the three equal jumps. Where do you finish?',fmt(vals[3]),{hiddenMarkerIds:['m4']});
+      state.challenge=challengeObject(type,'Follow the three equal jumps. What is the final value?',fmt(vals[3]),{hiddenMarkerIds:['m4'],hiddenTickRefs:[tickRef('l1',vals[3])]});
 
     }else if(type==='complement'){
       const target=randomInteriorTick(),end=state.max;
@@ -1391,7 +1395,7 @@ function numberLineV2(){
       Object.assign(line,{label:'Fraction jump',valueFormat:'fraction',denominator:d,tickStride:1,showLabels:true});
       line.markers=[{id:'m1',label:'S',value:start,color:'#147d75',showValue:true,side:'above'},{id:'m2',label:'?',value:end,color:'#d65a4a',showValue:true,side:'above'}];
       line.relations=[{id:'r1',from:'m1',to:'m2',type:'jump',color:'#4169a8',label:(delta>=0?'+':'−')+fractionText(Math.abs(delta),d),showLabel:true,side:'above'}];
-      state.challenge=challengeObject(type,'Start at '+fractionText(start,d)+' and make the shown fraction jump. Where do you land?',fractionText(end,d),{hiddenMarkerIds:['m2']});
+      state.challenge=challengeObject(type,'Start at '+fractionText(start,d)+' and follow the shown fraction jump. Where do you land?',fractionText(end,d),{hiddenMarkerIds:['m2'],hiddenTickRefs:[tickRef('l1',end)]});
 
     }else if(type==='compare-fractions'){
       const d1=[2,3,4,5,6][Math.floor(Math.random()*5)],d2=d1*2;
@@ -1405,7 +1409,7 @@ function numberLineV2(){
       bottom.markers=[{id:'mCmpB',label:'B',value:v2,color:'#d65a4a',showValue:true,side:'above'}];
       state.lines=[top,bottom];state.activeLineId='l1';
       const left=fractionText(v1,d1),right=fractionText(v2,d2),symbol=v1<v2?'<':v1>v2?'>':'=';
-      state.challenge=challengeObject(type,'Compare A and B. Which fraction is greater? Use <, > or =.',left+' '+symbol+' '+right,{hiddenMarkerIds:['l1:mCmpA','l2:mCmpB']});
+      state.challenge=challengeObject(type,'Compare the two marked fractions. Write the comparison using <, > or =.',left+' '+symbol+' '+right,{hiddenMarkerIds:['l1:mCmpA','l2:mCmpB']});
 
     }else if(type==='zoom-read'){
       const decade=2+Math.floor(Math.random()*6),zoomMin=decade*10,zoomMax=zoomMin+10,target=zoomMin+1+Math.floor(Math.random()*9);
@@ -1414,13 +1418,13 @@ function numberLineV2(){
       Object.assign(zoom,{scaleMode:'zoom',zoomFollowMarkers:false,min:zoomMin,max:zoomMax,step:1,labelEvery:1,valueFormat:'number',tickStride:1,showLabels:true});
       zoom.markers=[{id:'mZoom',label:'A',value:target,color:'#147d75',showValue:true,side:'above'}];
       state.lines=[main,zoom];state.activeLineId='l2';
-      state.challenge=challengeObject(type,'The lower line zooms into '+zoomMin+' to '+zoomMax+'. What exact value is A?',fmt(target),{hiddenMarkerIds:['l2:mZoom']});
+      state.challenge=challengeObject(type,'Use the lower zoomed line to read A exactly.',fmt(target),{hiddenMarkerIds:['l2:mZoom'],hiddenTickRefs:[tickRef('l2',target)]});
 
     }else if(type==='double-line-value'){
       const factor=[2,5][Math.floor(Math.random()*2)],targets=[4,6,8,12,14,16,18],target=targets[Math.floor(Math.random()*targets.length)],known=10;
       state.min=0;state.max=20;state.step=2;state.labelEvery=1;state.showTickLabels=true;
       const main=makeLine('l1','Top scale'),linked=makeLine('l2','Linked scale');
-      Object.assign(linked,{scaleMode:'linked',min:0,max:20*factor,step:2*factor,labelEvery:1,valueFormat:'number',tickStride:1,showLabels:true});
+      Object.assign(linked,{scaleMode:'linked',min:0,max:20*factor,step:2*factor,labelEvery:1,valueFormat:'number',tickStride:1,showLabels:false});
       main.markers=[
         {id:'mKnownTop',label:'A',value:known,color:'#147d75',showValue:true,side:'above',positionGroup:'p1'},
         {id:'mTargetTop',label:'B',value:target,color:'#4169a8',showValue:true,side:'above',positionGroup:'p2'}
