@@ -180,7 +180,7 @@ function abacusTool(){
     return data||data.western;
   }
   function themeSwitcher(){
-    return '<div class="gd-ab-palette" role="group" aria-label="Colour scheme">'+COLOUR_SCHEMES.map(([id,label])=>'<button type="button" class="gd-ab-palette-choice gd-ab-palette-choice--'+id+(colourScheme===id?' is-active':'')+'" data-ab-stage-theme="'+id+'" aria-pressed="'+(colourScheme===id)+'" title="'+esc(label)+'"><span class="gd-ab-palette-dot" aria-hidden="true"></span><span class="gd-ab-palette-label">'+esc(label)+'</span></button>').join('')+'</div>';
+    return '<div class="gd-ab-palette" role="group" aria-label="Colour scheme">'+COLOUR_SCHEMES.map(([id,label])=>'<button type="button" class="gd-ab-palette-choice gd-ab-palette-choice--'+id+(colourScheme===id?' is-active':'')+'" data-ab-stage-theme="'+id+'" aria-label="Colour scheme: '+esc(label)+'" aria-pressed="'+(colourScheme===id)+'" title="'+esc(label)+'"><span class="gd-ab-palette-dot" aria-hidden="true"></span><span class="gd-ab-palette-label">'+esc(label)+'</span></button>').join('')+'</div>';
   }
   function deviceSwitcher(){
     return '<label class="gd-ab-device-switcher"><span>Device</span><select data-ab-stage-kind aria-label="Choose calculating device">'+DEVICE_OPTIONS.map(([id,label])=>'<option value="'+id+'"'+(kind===id?' selected':'')+'>'+esc(label)+'</option>').join('')+'</select></label>';
@@ -386,7 +386,7 @@ function abacusTool(){
     if(mode==='bond'){
       const bondTotal=cap>=20&&Math.random()<.5?20:10;
       const a=randomInt(1,bondTotal-1),answer=bondTotal-a;
-      return{mode,start:a,target:bondTotal,a,answer,requiresAnswer:true,prompt:'Complete the number bond '+a+' + ? = '+bondTotal+'. Move the abacus to '+bondTotal+' and enter the missing number.'};
+      return{mode,start:a,target:bondTotal,a,answer,requiresAnswer:true,prompt:'Complete the number bond '+a+' + ? = '+bondTotal+'. Move the '+instrument+' to '+bondTotal+' and enter the missing number.'};
     }
     if(mode==='double'){
       const a=randomInt(1,Math.max(1,Math.floor(cap/2)));
@@ -400,7 +400,7 @@ function abacusTool(){
     }
     if(mode==='missing'){
       const target=randomInt(5,cap),a=randomInt(0,target-1),answer=target-a;
-      return{mode,start:a,target,a,answer,requiresAnswer:true,finalTarget:target,prompt:'Solve '+a+' + ? = '+target+'. Enter the missing number and move the abacus from '+a+' to '+target+'.'};
+      return{mode,start:a,target,a,answer,requiresAnswer:true,finalTarget:target,prompt:'Solve '+a+' + ? = '+target+'. Enter the missing number and move the '+instrument+' from '+a+' to '+target+'.'};
     }
     if(mode==='skip'){
       const possible=[2,5,10].filter(s=>s<=cap),step=possible[randomInt(0,possible.length-1)];
@@ -429,7 +429,7 @@ function abacusTool(){
   function checkTask(){
     if(!task)return;
     if(taskSolved())status='Correct ✓';
-    else if(total()!==task.target)status='Not yet — the abacus shows '+total()+'.';
+    else if(total()!==task.target)status='Not yet — the '+(kind==='suanpan'?'suanpan':kind==='soroban'?'soroban':'abacus')+' shows '+total()+'.';
     else status='The beads are right. Enter the missing number too.';
     syncStage();
   }
