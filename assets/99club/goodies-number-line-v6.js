@@ -1484,9 +1484,9 @@ function numberLineV2(){
       state.min=0;state.max=2;state.step=1/d;state.labelEvery=d;state.showTickLabels=true;
       Object.assign(line,{label:'Count in '+fractionFamilyName(d).toLowerCase(),valueFormat:'fraction',denominator:d,tickStride:1,showLabels:true});
       const startN=Math.floor(Math.random()*Math.max(1,2*d-2)),nums=[startN,startN+1,startN+2,startN+3],values=nums.map(n=>cleanNumber(n/d));
-      line.markers=values.map((value,i)=>({id:'m'+(i+1),label:i===0?'S':(i===3?'?':String(i)),value,color:i===0?'#147d75':'#4169a8',showValue:true,side:'above'}));
+      line.markers=values.map((value,i)=>({id:'m'+(i+1),label:i===3?'?':'',value,color:i===0?'#147d75':'#4169a8',showValue:i===0||i===3,side:'above'}));
       for(let i=0;i<3;i++)line.relations.push({id:'r'+(i+1),from:'m'+(i+1),to:'m'+(i+2),type:'jump',color:'#4169a8',label:'+'+fractionText(1/d,d),showLabel:true,side:'above'});
-      state.challenge=challengeObject(type,'Count on in '+fractionFamilyName(d).toLowerCase()+'. What is the missing final value?',fractionText(values[3],d),{hiddenMarkerIds:['m4']});
+      state.challenge=challengeObject(type,'Count on in '+fractionFamilyName(d).toLowerCase()+'. What is the missing final value?',fractionText(values[3],d),{hiddenMarkerIds:['m4'],hiddenTickRefs:[tickRef('l1',values[3])]});
 
     }else if(type==='fraction-jump'){
       const d=[2,3,4,5,8][Math.floor(Math.random()*5)],deltaUnits=1+Math.floor(Math.random()*Math.min(3,d)),direction=Math.random()<.5?-1:1,total=2*d;
