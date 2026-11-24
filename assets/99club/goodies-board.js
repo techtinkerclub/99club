@@ -161,7 +161,7 @@ const tooltip=document.getElementById('gd-board-tooltip');
 const floatingControls=document.getElementById('gd-board-floating-controls');
 const floatingControlsBody=document.getElementById('gd-board-floating-controls-body');
 const floatingControlsTitle=document.getElementById('gd-board-floating-controls-title');
-let floatingControlObjectId=null,floatingControlDrag=null,floatingControlX=86,floatingControlY=76,floatingControlMoved=false,floatingPanelMode='settings';
+let floatingControlObjectId=null,floatingControlDrag=null,floatingControlX=86,floatingControlY=76,floatingControlMoved=false,floatingPanelMode='settings',floatingHelpData=null;
 let hintTimer=null,tooltipTimer=null;
 function showToolTip(button){
   if(!tooltip||!button)return;
@@ -228,6 +228,7 @@ function positionFloatingControls(){
 }
 function sourceControls(obj){return innerDocument(obj)?.getElementById('gd-controls')||null}
 function renderFloatingControls(obj){
+  if(floatingPanelMode==='help')return;
   if(!floatingControls||!floatingControlsBody||!obj||!obj.settingsOpen||floatingControlObjectId!==obj.id)return;
   const source=sourceControls(obj);if(!source)return;
   const sourceInputs=[...source.querySelectorAll(CONTROL_SELECTOR)];
@@ -267,12 +268,57 @@ function renderFloatingControls(obj){
   floatingControls.hidden=false;
   requestAnimationFrame(positionFloatingControls);
 }
+function renderFloatingHelp(obj,data){
+  if(!floatingControls||!floatingControlsBody||!obj||!data)return;
+  floatingPanelMode='help';floatingHelpData=data;
+  floatingControls.classList.add('is-help');
+  floatingControlsBody.replaceChildren();
+  const wrap=document.createElement('div');wrap.className='gd-board-help-panel';
+  const intro=document.createElement('p');intro.className='gd-board-help-intro';intro.textContent=String(data.intro||'');wrap.appendChild(intro);
+  if(Array.isArray(data.steps)&&data.steps.length){
+    const ol=document.createElement('ol');ol.className='gd-board-help-steps';
+    data.steps.forEach(step=>{const li=document.createElement('li');li.textContent=String(step);ol.appendChild(li)});
+    wrap.appendChild(ol);
+  }
+  if(data.example){
+    const box=document.createElement('div');box.className='gd-board-help-example';
+    const strong=document.createElement('strong');strong.textContent='Worked example';
+    const p=document.createElement('p');p.textContent=String(data.example);
+    box.append(strong,p);wrap.appendChild(box);
+  }
+  if(data.history){
+    const details=document.createElement('details');details.className='gd-board-help-history';
+    const summary=document.createElement('summary');summary.textContent='History';
+    const p=document.createElement('p');p.textContent=String(data.history);
+    details.append(summary,p);wrap.appendChild(details);
+  }
+  floatingControlsBody.appendChild(wrap);
+  if(floatingControlsTitle)floatingControlsTitle.textContent=(data.title||'Manipulative')+' · How to use';
+  floatingControls.hidden=false;
+  requestAnimationFrame(positionFloatingControls);
+}
+function openFloatingHelp(obj,data){
+  if(!obj||!data)return;
+  if(floatingControlObjectId!=null&&String(floatingControlObjectId)!==String(obj.id)){
+    const previous=objectById(floatingControlObjectId);if(previous)previous.settingsOpen=false;
+  }
+  floatingControlObjectId=obj.id;obj.settingsOpen=true;floatingPanelMode='help';floatingHelpData=data;
+  const frame=frameFor(obj.id);frame?.classList.add('has-settings');
+  floatingControls?.classList.add('is-help');
+  const rect=frame?.getBoundingClientRect(),host=board.getBoundingClientRect();
+  if(rect&&!floatingControlMoved){
+    floatingControlX=Math.min(board.clientWidth-350,Math.max(58,rect.right-host.left+14));
+    floatingControlY=Math.max(12,Math.min(board.clientHeight-360,rect.top-host.top));
+  }
+  positionFloatingControls();renderFloatingHelp(obj,data);
+}
 function refreshFloatingControls(obj,delay=0){
   if(!obj||!obj.settingsOpen||floatingControlObjectId!==obj.id)return;
   setTimeout(()=>renderFloatingControls(obj),delay);
 }
 function openFloatingControls(obj,mode='settings'){
   if(!obj)return;
+  floatingHelpData=null;floatingControls?.classList.remove('is-help');
   floatingPanelMode=mode==='challenge'?'challenge':'settings';
   if(obj.toolId==='place-value'&&floatingPanelMode==='settings'){
     const source=sourceControls(obj),active=source?.querySelector('[data-pv-workflow].gd-btn--primary')?.dataset?.pvWorkflow;
@@ -304,8 +350,8 @@ function closeFloatingControls(id=null){
   const target=id==null?objectById(floatingControlObjectId):objectById(id);
   if(target){target.settingsOpen=false;frameFor(target.id)?.classList.remove('has-settings')}
   if(id==null||String(floatingControlObjectId)===String(id)){
-    floatingControlObjectId=null;
-    if(floatingControls){floatingControls.hidden=true;floatingControlsBody?.replaceChildren()}
+    floatingControlObjectId=null;floatingHelpData=null;floatingPanelMode='settings';
+    if(floatingControls){floatingControls.classList.remove('is-help');floatingControls.hidden=true;floatingControlsBody?.replaceChildren()}
   }
 }
 function floatingOriginal(index){
@@ -381,7 +427,7 @@ function connectInnerObject(obj){
       syncQuickActions(obj);
       if(pass<3)setTimeout(()=>settleFit(false,pass+1),24);
     };
-    const refresh=()=>setTimeout(()=>{settleFit(false,0);if(obj.settingsOpen)renderFloatingControls(obj)},0);
+    const refresh=()=>setTimeout(()=>{settleFit(false,0);if(obj.settingsOpen){if(floatingPanelMode==='help'&&floatingHelpData)renderFloatingHelp(obj,floatingHelpData);else renderFloatingControls(obj)}},0);
     const refreshLayoutOnly=()=>setTimeout(()=>settleFit(false,0),0);
     doc.addEventListener('click',refresh,true);
     doc.addEventListener('pointerup',refresh,true);
@@ -745,11 +791,15 @@ document.addEventListener('keydown',e=>{
 });
 
 window.addEventListener('message',event=>{
-  if(event.origin!==location.origin||!event.data||event.data.type!=='tt99-board-ready')return;
+  if(event.origin!==location.origin||!event.data||typeof event.data!=='object')return;
   const frame=[...canvas.querySelectorAll('iframe')].find(x=>x.contentWindow===event.source);
-  if(frame){
-    const host=frame.closest('.gd-board-object');host?.classList.add('is-ready');
-    const obj=host&&objectById(host.dataset.boardObject);if(obj)syncQuickActions(obj);
+  if(!frame)return;
+  const host=frame.closest('.gd-board-object'),obj=host&&objectById(host.dataset.boardObject);
+  if(event.data.type==='tt99-board-ready'){
+    host?.classList.add('is-ready');if(obj)syncQuickActions(obj);return;
+  }
+  if(event.data.type==='tt99-board-help'&&obj&&event.data.help){
+    selectObject(obj.id);openFloatingHelp(obj,event.data.help);return;
   }
 });
 
