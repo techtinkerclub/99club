@@ -459,3 +459,8 @@
 @media(min-width:621px){
   .gd-ab-palette-label{display:none!important}
 }
+
+.gd-ab-palette-title{font-size:.66rem;font-weight:900;color:#52676d;margin-right:2px;white-space:nowrap}
+@media(min-width:621px) and (max-width:760px){
+  .gd-ab-palette{order:0!important}
+}
