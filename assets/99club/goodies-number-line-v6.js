@@ -912,7 +912,11 @@ function numberLineV2(){
   function boardUiHtml(){
     const ch=state.challenge,line=activeLine();
     const lineOptions=state.lines.map((l,i)=>`<option value="${esc(l.id)}"${l.id===state.activeLineId?' selected':''}>Line ${i+1}${l.label?' · '+esc(l.label):''}${i>0?' · '+esc(scaleModeLabel(l.scaleMode)):''}</option>`).join('');
-    const rail=[
+    const challengeLocked=state.challenge?.mode==='standard';
+    const rail=(challengeLocked?[
+      boardTool('challenge','challenge','Challenge',boardChallengeOpen?'is-active':''),
+      boardTool('exit','exit','Exit board','')
+    ]:[
       boardTool('add-marker','marker','Add marker',boardLocked?'is-disabled':(boardMode==='add-marker'?'is-active':'')),
       boardTool('relation','relation','Add relationship',boardLocked||line.markers.length<2?'is-disabled':(boardMode==='relation'?'is-active':'')),
       boardTool('add-line','line','Add comparison line',boardLocked||state.lines.length>=4?'is-disabled':''),
@@ -923,7 +927,7 @@ function numberLineV2(){
       boardTool('lock','lock',boardLocked?'Unlock board':'Lock board',boardLocked?'is-active':''),
       boardTool('more','more','Quick edit',boardMoreOpen?'is-active':''),
       boardTool('exit','exit','Exit board','')
-    ].join('');
+    ]).join('');
     const panelOpen=boardMenuOpen&&(boardMode==='relation'||boardChallengeOpen||boardMoreOpen);
     return `<div class="nl-board-ui">
       ${boardNotice?`<div class="nl-board-notice">${esc(boardNotice)}</div>`:''}
@@ -957,7 +961,7 @@ function numberLineV2(){
     stage.classList.toggle('is-add-marker-mode',boardMode==='add-marker');
     bindMarkerDragging();
     qa('[data-line-hit]',stage).forEach(el=>el.addEventListener('click',e=>{
-      if(boardLocked)return;
+      if(boardLocked||state.challenge?.mode==='standard')return;
       const lineId=el.getAttribute('data-line-hit');
       if(boardMode==='add-marker'){
         state.activeLineId=lineId;
@@ -981,7 +985,7 @@ function numberLineV2(){
     qa('[data-marker-hit]',stage).forEach(el=>el.addEventListener('pointerdown',e=>{
       const lineId=el.getAttribute('data-line-id'),id=el.getAttribute('data-marker-hit');
       const line=state.lines.find(l=>l.id===lineId);if(!line||!line.markers.some(m=>m.id===id))return;
-      if(boardLocked){e.preventDefault();return}
+      if(boardLocked||state.challenge?.mode==='standard'){e.preventDefault();return}
       if(boardMode==='delete'){
         e.preventDefault();remember();removeMarker(line,id);
         boardMode=null;boardMenuOpen=false;
