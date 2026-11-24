@@ -950,7 +950,8 @@ function numberLineV2(){
         {action:'end',label:beforeChallenge?'Back to setup':'End challenge'}
       ]:[];
     const prompt=state.challenge?(CK?CK.bannerHtml(state.challenge,{actions:challengeActions}):`<div class="nl-challenge-banner"><span>Challenge</span><strong>${esc(state.challenge.prompt)}</strong></div>`):'';
-    q('#gd-stage').innerHTML=`<button type="button" hidden data-nl-random-challenge aria-hidden="true"></button><div class="nl-stage-wrap">${prompt}<div class="nl-export-frame">${buildSvg()}</div><p class="nl-drag-help">Drag markers directly. Values snap to the chosen tick step and relationships move with them.</p></div>${boardUiHtml()}`;
+    const solve=state.challenge?challengeResponseHtml(state.challenge):'';
+    q('#gd-stage').innerHTML=`<button type="button" hidden data-nl-random-challenge aria-hidden="true"></button><div class="nl-stage-wrap">${prompt}${solve}<div class="nl-export-frame">${buildSvg()}</div><p class="nl-drag-help">Drag markers directly. Values snap to the chosen tick step and relationships move with them.</p></div>${boardUiHtml()}`;
     stage.classList.toggle('is-board-active',boardActive());
     stage.classList.toggle('is-delete-mode',boardMode==='delete');
     stage.classList.toggle('is-add-marker-mode',boardMode==='add-marker');
@@ -1204,9 +1205,80 @@ function numberLineV2(){
     const base={
       mode:'standard',type,category:meta?.category||'',title:'',
       prompt,promptHtml:esc(prompt),answer:String(answer??''),answerMode:'bound',revealed:false,
-      hiddenTicks:[],hiddenTickRefs:[],hiddenMarkerIds:[],hiddenRelationIds:[],...extra
+      hiddenTicks:[],hiddenTickRefs:[],hiddenMarkerIds:[],hiddenRelationIds:[],userResponse:'',responseStatus:'',correct:false,...extra
     };
     return CK?CK.normalise(base):base;
+  }
+  function normaliseChallengeResponse(value){
+    return String(value??'').trim().toLowerCase()
+      .replace(/[×x]/g,'*').replace(/[−–—]/g,'-')
+      .replace(/\s+/g,' ').replace(/\s*([<>=,+\/-])\s*/g,'$1');
+  }
+  function numericEquivalent(a,b){
+    const na=Number(String(a).replace(/%$/,'')),nb=Number(String(b).replace(/%$/,''));
+    return Number.isFinite(na)&&Number.isFinite(nb)&&Math.abs(na-nb)<1e-8;
+  }
+  function fractionEquivalent(a,b){
+    const parse=v=>{
+      const t=String(v).trim().replace(/−/g,'-');
+      const mixed=t.match(/^(-?\d+)\s+(\d+)\/(\d+)$/);
+      if(mixed){const w=Number(mixed[1]),n=Number(mixed[2]),d=Number(mixed[3]);return (w<0?-1:1)*(Math.abs(w)+n/d)}
+      const frac=t.match(/^(-?\d+)\/(\d+)$/);
+      if(frac)return Number(frac[1])/Number(frac[2]);
+      const n=Number(t);return Number.isFinite(n)?n:NaN;
+    };
+    const x=parse(a),y=parse(b);return Number.isFinite(x)&&Number.isFinite(y)&&Math.abs(x-y)<1e-8;
+  }
+  function challengeResponseKind(ch){
+    if(!ch)return 'text';
+    if(['error-scale','marks-vs-spaces'].includes(ch.type))return 'yesno';
+    if(ch.type==='compare-fractions')return 'symbol';
+    if(ch.type==='missing-labels')return 'list';
+    return 'text';
+  }
+  function challengeResponseCorrect(ch,response){
+    if(!ch)return false;
+    const raw=String(response??'').trim();if(!raw)return false;
+    if(challengeResponseKind(ch)==='yesno')return normaliseChallengeResponse(raw)==='no';
+    if(challengeResponseKind(ch)==='symbol'){
+      const expected=(String(ch.answer).match(/[<>=]/)||[])[0]||'';
+      return raw===expected;
+    }
+    if(ch.type==='missing-labels'){
+      const got=raw.split(/[;,]+/).map(x=>normaliseChallengeResponse(x)).filter(Boolean).sort();
+      const exp=String(ch.answer).split(',').map(x=>normaliseChallengeResponse(x)).filter(Boolean).sort();
+      return got.length===exp.length&&got.every((x,i)=>x===exp[i]);
+    }
+    const expected=String(ch.answer??'').trim();
+    if(numericEquivalent(raw,expected))return true;
+    if(fractionEquivalent(raw.replace(/%$/,''),expected.replace(/%$/,''))){
+      const pctA=/%$/.test(raw),pctB=/%$/.test(expected);
+      if(pctA===pctB||(!pctA&&!pctB))return true;
+    }
+    return normaliseChallengeResponse(raw)===normaliseChallengeResponse(expected);
+  }
+  function challengeResponseHtml(ch){
+    if(!ch||ch.mode!=='standard')return '';
+    const kind=challengeResponseKind(ch),status=ch.responseStatus||'',correct=!!ch.correct;
+    let input='';
+    if(kind==='yesno'){
+      input='<div class="nl-challenge-choice" role="group" aria-label="Choose an answer"><button type="button" data-challenge-response-choice="Yes"'+(ch.userResponse==='Yes'?' class="is-selected"':'')+'>Yes</button><button type="button" data-challenge-response-choice="No"'+(ch.userResponse==='No'?' class="is-selected"':'')+'>No</button></div>';
+    }else if(kind==='symbol'){
+      input='<div class="nl-challenge-choice nl-challenge-choice--symbol" role="group" aria-label="Choose comparison symbol">'+['<','>','='].map(v=>'<button type="button" data-challenge-response-choice="'+esc(v)+'"'+(ch.userResponse===v?' class="is-selected"':'')+'>'+esc(v)+'</button>').join('')+'</div>';
+    }else{
+      const placeholder=kind==='list'?'e.g. 4, 8, 12':'Type your answer';
+      input='<label class="nl-challenge-response"><span>Answer</span><input type="text" inputmode="text" autocomplete="off" data-challenge-response value="'+esc(ch.userResponse||'')+'" placeholder="'+placeholder+'"'+(correct?' disabled':'')+'></label>';
+    }
+    return '<div class="nl-challenge-solve">'+input+'<button type="button" class="gd-btn gd-btn--primary" data-challenge-check'+(correct?' disabled':'')+'>Check</button>'+(status?'<span class="nl-challenge-feedback '+(correct?'is-correct':'is-wrong')+'">'+esc(status)+'</span>':'')+'</div>';
+  }
+  function checkChallengeResponse(){
+    const ch=state.challenge;if(!ch||ch.mode!=='standard')return;
+    const response=String(ch.userResponse||'').trim();
+    if(!response){ch.responseStatus='Enter an answer first.';ch.correct=false;renderStage();return}
+    const ok=challengeResponseCorrect(ch,response);
+    ch.correct=ok;ch.responseStatus=ok?'Correct ✓':'Not quite — try again.';
+    if(ok)ch.revealed=false;
+    renderStage();
   }
   function clearChallenge(){
     if(beforeChallenge){state=normalise(copy(beforeChallenge));beforeChallenge=null}
@@ -1614,8 +1686,10 @@ function numberLineV2(){
   });
 
   stage.addEventListener('click',e=>{
-    const b=e.target.closest('[data-nl-random-challenge],[data-challenge-action],[data-board-action],[data-board-relation-type],[data-board-challenge],[data-board-marker-delete],[data-board-marker-show],[data-board-marker-side],[data-board-relation-delete],[data-board-relation-side]');
+    const b=e.target.closest('[data-nl-random-challenge],[data-challenge-check],[data-challenge-response-choice],[data-challenge-action],[data-board-action],[data-board-relation-type],[data-board-challenge],[data-board-marker-delete],[data-board-marker-show],[data-board-marker-side],[data-board-relation-delete],[data-board-relation-side]');
     if(!b)return;
+    if(b.hasAttribute('data-challenge-check')){checkChallengeResponse();return}
+    if(b.dataset.challengeResponseChoice!=null&&state.challenge){state.challenge.userResponse=b.dataset.challengeResponseChoice;state.challenge.responseStatus='';state.challenge.correct=false;renderStage();return}
     if(b.hasAttribute('data-nl-random-challenge')){
       const available=challengeTemplateList().filter(t=>!t.disabled);
       const pick=available[Math.floor(Math.random()*available.length)];
@@ -1672,13 +1746,22 @@ function numberLineV2(){
     if(action==='add-line'){if(boardLocked||state.lines.length>=4)return;addLine('shared');boardMessage('Aligned comparison line added.');return}
     if(action==='challenge'){boardChallengeOpen=!boardChallengeOpen;boardMoreOpen=false;boardMode=null;boardFirstMarker=null;boardMenuOpen=boardChallengeOpen;renderStage();return}
     if(action==='delete'){if(boardLocked)return;boardMode=boardMode==='delete'?null:'delete';boardFirstMarker=null;boardChallengeOpen=false;boardMoreOpen=false;boardMenuOpen=false;if(boardMode)boardMessage('Tap a marker or number line to delete it.');else renderStage();return}
-    if(action==='reveal'&&state.challenge){state.challenge.revealed=!state.challenge.revealed;renderAll();return}
+    if(action==='reveal'&&state.challenge){if(state.challenge.correct)return;state.challenge.revealed=!state.challenge.revealed;renderAll();return}
     if(action==='undo'){if(undoStack.length)undo();return}
     if(action==='redo'){if(redoStack.length)redo();return}
     if(action==='lock'){boardLocked=!boardLocked;boardMode=null;boardFirstMarker=null;boardMenuOpen=false;boardMoreOpen=false;boardChallengeOpen=false;renderStage();return}
     if(action==='more'){boardMoreOpen=!boardMoreOpen;boardChallengeOpen=false;boardMode=null;boardFirstMarker=null;boardMenuOpen=boardMoreOpen;renderStage();return}
     if(action==='delete-line'&&state.lines.indexOf(line)>0&&!boardLocked){remember();clearPositionGroupsForLine(line);state.lines=state.lines.filter(l=>l.id!==state.activeLineId);state.activeLineId=state.lines[0].id;renderAll();return}
     if(action==='exit'){leaveBoard();return}
+  });
+  stage.addEventListener('input',e=>{
+    const input=e.target.closest('[data-challenge-response]');
+    if(!input||!state.challenge)return;
+    state.challenge.userResponse=input.value;state.challenge.responseStatus='';state.challenge.correct=false;
+  });
+  stage.addEventListener('keydown',e=>{
+    const input=e.target.closest('[data-challenge-response]');
+    if(input&&e.key==='Enter'){e.preventDefault();state.challenge.userResponse=input.value;checkChallengeResponse()}
   });
   stage.addEventListener('pointerdown',e=>{
     if(!boardActive()||!boardMenuOpen)return;
