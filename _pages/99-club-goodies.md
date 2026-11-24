@@ -16,7 +16,7 @@ robots: "noindex,nofollow,noarchive"
   </article>
 </div>
 
-<link rel="stylesheet" href="/assets/99club/goodies.css?v=67">
+<link rel="stylesheet" href="/assets/99club/goodies.css?v=68">
 <link rel="stylesheet" href="/assets/99club/goodies-abacus.css?v=20">
 <link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v3.css?v=1">
 <link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v4.css?v=1">
@@ -49,4 +49,4 @@ robots: "noindex,nofollow,noarchive"
 <script src="/assets/99club/goodies-number-mobile-balance-v12.js?v=2" defer></script>
 <script src="/assets/99club/goodies-number-mobile-balance-v13.js?v=1" defer></script>
 <script src="/assets/99club/goodies-app.js?v=8" defer></script>
-<script src="/assets/99club/goodies-board.js?v=19" defer></script>
+<script src="/assets/99club/goodies-board.js?v=20" defer></script>
