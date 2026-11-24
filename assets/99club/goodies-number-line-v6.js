@@ -828,7 +828,7 @@ function numberLineV2(){
         if(d.show&&(d.label||d.hidden)){
           const labelCy=challengeJump?controlY-12:(r.side==='above'?controlY-19:controlY+19);
           if(d.hidden)relationshipLayer+=answerBox(mid,labelCy,58,24);
-          else relationshipLayer+=`<rect x="${mid-30}" y="${labelCy-11}" width="60" height="21" rx="10" fill="#fff"/><text x="${mid}" y="${labelCy+4}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12.5" font-weight="700" fill="${esc(r.color)}">${esc(d.label)}</text>`;
+          else relationshipLayer+=`<rect x="${mid-32}" y="${labelCy-12}" width="64" height="23" rx="11.5" fill="#fff" stroke="#dbe5e3"/><text x="${mid}" y="${labelCy+4}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12.5" font-weight="800" fill="${esc(r.color)}">${esc(d.label)}</text>`;
         }
       }
     });
@@ -1409,7 +1409,7 @@ function numberLineV2(){
       const span=jumpTicks*3;
       const startIndex=direction>0?Math.floor(Math.random()*(intervals-span+1)):span+Math.floor(Math.random()*(intervals-span+1));
       const vals=[0,1,2,3].map(i=>cleanNumber(state.min+(startIndex+direction*jumpTicks*i)*state.step));
-      line.markers=vals.map((v,i)=>({id:'m'+(i+1),label:i===0?'Start':(i===3?'?':''),value:v,color:i===0?'#147d75':'#4169a8',showValue:i===0||i===3,side:'above'}));
+      line.markers=vals.map((v,i)=>({id:'m'+(i+1),label:i===0?'Start':(i===3?'?':''),value:v,color:i===0?'#147d75':'#4169a8',showValue:false,side:'above'}));
       for(let i=0;i<3;i++)line.relations.push({id:'r'+(i+1),from:'m'+(i+1),to:'m'+(i+2),type:'jump',color:'#4169a8',label:(direction>0?'+':'')+fmt(cleanNumber(direction*jumpTicks*state.step)),showLabel:true,side:'above'});
       state.challenge=challengeObject(type,'Follow the three equal jumps. What is the final value?',fmt(vals[3]),{hiddenMarkerIds:['m4'],hiddenTickRefs:[tickRef('l1',vals[3])]});
 
@@ -1482,9 +1482,9 @@ function numberLineV2(){
     }else if(type==='fraction-sequence'){
       const d=[2,3,4,5,8][Math.floor(Math.random()*5)];
       state.min=0;state.max=2;state.step=1/d;state.labelEvery=d;state.showTickLabels=true;
-      Object.assign(line,{label:'Count in '+fractionFamilyName(d).toLowerCase(),valueFormat:'fraction',denominator:d,tickStride:1,showLabels:true});
+      Object.assign(line,{label:'',valueFormat:'fraction',denominator:d,tickStride:1,showLabels:true});
       const startN=Math.floor(Math.random()*Math.max(1,2*d-2)),nums=[startN,startN+1,startN+2,startN+3],values=nums.map(n=>cleanNumber(n/d));
-      line.markers=values.map((value,i)=>({id:'m'+(i+1),label:i===3?'?':'',value,color:i===0?'#147d75':'#4169a8',showValue:i===0||i===3,side:'above'}));
+      line.markers=values.map((value,i)=>({id:'m'+(i+1),label:i===0?'Start':(i===3?'?':''),value,color:i===0?'#147d75':'#4169a8',showValue:false,side:'above'}));
       for(let i=0;i<3;i++)line.relations.push({id:'r'+(i+1),from:'m'+(i+1),to:'m'+(i+2),type:'jump',color:'#4169a8',label:'+'+fractionText(1/d,d),showLabel:true,side:'above'});
       state.challenge=challengeObject(type,'Count on in '+fractionFamilyName(d).toLowerCase()+'. What is the missing final value?',fractionText(values[3],d),{hiddenMarkerIds:['m4'],hiddenTickRefs:[tickRef('l1',values[3])]});
 
@@ -1495,8 +1495,8 @@ function numberLineV2(){
       else startN=deltaUnits+Math.floor(Math.random()*(total-deltaUnits+1));
       const endN=startN+direction*deltaUnits,start=cleanNumber(startN/d),end=cleanNumber(endN/d),delta=cleanNumber(direction*deltaUnits/d);
       state.min=0;state.max=2;state.step=1/d;state.labelEvery=d;state.showTickLabels=true;
-      Object.assign(line,{label:'Fraction jump',valueFormat:'fraction',denominator:d,tickStride:1,showLabels:true});
-      line.markers=[{id:'m1',label:'S',value:start,color:'#147d75',showValue:true,side:'above'},{id:'m2',label:'?',value:end,color:'#d65a4a',showValue:true,side:'above'}];
+      Object.assign(line,{label:'',valueFormat:'fraction',denominator:d,tickStride:1,showLabels:true});
+      line.markers=[{id:'m1',label:'Start',value:start,color:'#147d75',showValue:false,side:'above'},{id:'m2',label:'?',value:end,color:'#d65a4a',showValue:false,side:'above'}];
       line.relations=[{id:'r1',from:'m1',to:'m2',type:'jump',color:'#4169a8',label:(delta>=0?'+':'−')+fractionText(Math.abs(delta),d),showLabel:true,side:'above'}];
       state.challenge=challengeObject(type,'Start at '+fractionText(start,d)+' and follow the shown fraction jump. Where do you land?',fractionText(end,d),{hiddenMarkerIds:['m2'],hiddenTickRefs:[tickRef('l1',end)]});
 
