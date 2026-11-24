@@ -402,8 +402,10 @@ function numberLineV2(){
     if(!resolved)return false;
     ch.answerMode='bound';ch.answerSource=source;ch.answer=resolved.answer;ch.revealed=false;
     ch.hiddenTicks=[];ch.hiddenTickRefs=[];ch.hiddenMarkerIds=[];ch.hiddenRelationIds=[];
-    if(resolved.kind==='marker')ch.hiddenMarkerIds=[resolved.line.id+':'+resolved.object.id];
-    else ch.hiddenRelationIds=[resolved.line.id+':'+resolved.object.id];
+    if(resolved.kind==='marker'){
+      ch.hiddenMarkerIds=[resolved.line.id+':'+resolved.object.id];
+      ch.hiddenTickRefs=[tickRef(resolved.line.id,resolved.object.value)];
+    }else ch.hiddenRelationIds=[resolved.line.id+':'+resolved.object.id];
     return true;
   }
   function refreshCustomAnswerReadout(){
@@ -414,8 +416,10 @@ function numberLineV2(){
     const ch=state.challenge;if(!ch||ch.answerMode==='manual')return;
     if(ch.answerSource){
       const resolved=resolveCustomAnswerSource(ch.answerSource);
-      if(resolved)ch.answer=resolved.answer;
-      else{ch.answerMode='manual';ch.answerSource=''}
+      if(resolved){
+        ch.answer=resolved.answer;
+        if(resolved.kind==='marker')ch.hiddenTickRefs=[tickRef(resolved.line.id,resolved.object.value)];
+      }else{ch.answerMode='manual';ch.answerSource=''}
       if(CK&&ch.promptHtml!=null)ch.prompt=CK.plainText(ch.promptHtml).slice(0,600);
       refreshCustomAnswerReadout();
       return;
