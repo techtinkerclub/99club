@@ -540,7 +540,7 @@ function numberLineV2(){
 
   function controlsHtml(){
     const line=activeLine(),lineIndex=state.lines.indexOf(line),activeScale=scaleFor(line),lineHasLinkedMarkers=line.markers.some(m=>m.syncGroup),zoomCanFollow=!!mainMarkerZoomRange();
-    const lineOptions=state.lines.map((l,i)=>'<option value="'+esc(l.id)+'"'+(l.id===state.activeLineId?' selected':'')+'>Line '+(i+1)+(l.label?' · '+esc(l.label):'')+(i>0?' · '+scaleModeLabel(l.scaleMode):'')+'</option>').join('');
+    const lineOptions=state.lines.map((l,i)=>{const defaultLabel='Line '+(i+1),customLabel=String(l.label||'').trim()&&String(l.label||'').trim()!==defaultLabel?' · '+esc(l.label):'';return '<option value="'+esc(l.id)+'"'+(l.id===state.activeLineId?' selected':'')+'>'+defaultLabel+customLabel+(i>0?' · '+scaleModeLabel(l.scaleMode):'')+'</option>'}).join('');
     const lineSwitcher='<label class="nl-active-line-switcher"><span>Editing</span><select class="gd-select" data-nl-active-line-top>'+lineOptions+'</select></label>';
     const lineModeHelp=line.scaleMode==='zoom'
       ?'The highlighted interval on the main line is enlarged across this line.'
