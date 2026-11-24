@@ -18,7 +18,7 @@ robots: "noindex,nofollow,noarchive"
 
 <link rel="stylesheet" href="/assets/99club/goodies.css?v=66">
 <link rel="stylesheet" href="/assets/99club/goodies-abacus.css?v=4">
-<link rel="stylesheet" href="/assets/99club/goodies-history.css?v=1">
+<link rel="stylesheet" href="/assets/99club/goodies-history.css?v=1">\n<link rel="stylesheet" href="/assets/99club/goodies-pascaline.css?v=1">
 <link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v3.css?v=1">
 <link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v4.css?v=1">
 <link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v5.css?v=1">
@@ -34,7 +34,7 @@ robots: "noindex,nofollow,noarchive"
 <script src="/assets/99club/goodies-export.js?v=5" defer></script>
 <script src="/assets/99club/goodies-tools-a.js?v=43" defer></script>
 <script src="/assets/99club/goodies-abacus.js?v=3" defer></script>
-<script src="/assets/99club/goodies-history.js?v=1" defer></script>
+<script src="/assets/99club/goodies-history.js?v=1" defer></script>\n<script src="/assets/99club/goodies-pascaline.js?v=1" defer></script>
 <script src="/assets/99club/goodies-number-line-v6.js?v=12" defer></script>
 <script src="/assets/99club/goodies-tools-b.js?v=27" defer></script>
 <!-- compatibility marker for the retiring adapter smoke check: goodies-number-mobile-balance.js?v=5 -->
