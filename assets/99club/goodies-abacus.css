@@ -230,3 +230,12 @@
 .gd-history-theme--place .gd-pascaline-wheel-wrap:nth-child(3) .gd-pascaline-wheel{border-color:#916c7e}
 .gd-history-theme--place .gd-pascaline-wheel-wrap:nth-child(4) .gd-pascaline-wheel{border-color:#9f7d4a}
 .gd-napier-cell.is-selected{background:rgba(240,207,132,.36);box-shadow:inset 3px 0 #b6873f,inset -3px 0 #b6873f}
+
+.gd-history-context{margin:.8rem 0 1rem;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.55);border:1px solid rgba(105,82,48,.16)}
+.gd-history-context p{margin:.25rem 0 0}
+.gd-rods-stepper button{min-width:42px!important;height:42px!important;font-size:1.08rem}
+.gd-pascaline-wheel-buttons button{width:44px!important;height:42px!important;font-size:1.05rem}
+.gd-reckoning-counter{width:42px!important;height:42px!important}
+.gd-reckoning-add{min-height:42px}
+.gd-history-help-btn{min-height:44px}
+.gd-ab-device-switcher,.gd-ab-theme-switcher{min-height:44px}
