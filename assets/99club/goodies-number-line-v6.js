@@ -1481,12 +1481,12 @@ function numberLineV2(){
 
     }else if(type==='fraction-sequence'){
       const d=[2,3,4,5,8][Math.floor(Math.random()*5)];
-      state.min=0;state.max=2;state.step=1/d;state.labelEvery=d;state.showTickLabels=true;
+      state.min=0;state.max=2;state.step=1/d;state.labelEvery=1;state.showTickLabels=true;
       Object.assign(line,{label:'',valueFormat:'fraction',denominator:d,tickStride:1,showLabels:true});
       const startN=Math.floor(Math.random()*Math.max(1,2*d-2)),nums=[startN,startN+1,startN+2,startN+3],values=nums.map(n=>cleanNumber(n/d));
       line.markers=values.map((value,i)=>({id:'m'+(i+1),label:i===0?'Start':(i===3?'?':''),value,color:i===0?'#147d75':'#4169a8',showValue:false,side:'above'}));
       for(let i=0;i<3;i++)line.relations.push({id:'r'+(i+1),from:'m'+(i+1),to:'m'+(i+2),type:'jump',color:'#4169a8',label:'+'+fractionText(1/d,d),showLabel:true,side:'above'});
-      state.challenge=challengeObject(type,'Count on in '+fractionFamilyName(d).toLowerCase()+'. What is the missing final value?',fractionText(values[3],d),{hiddenMarkerIds:['m4'],hiddenTickRefs:[tickRef('l1',values[3])]});
+      state.challenge=challengeObject(type,'Start at '+fractionText(values[0],d)+'. Make three jumps of '+fractionText(1/d,d)+'. What is the final value?',fractionText(values[3],d),{hiddenMarkerIds:['m4'],hiddenTickRefs:[tickRef('l1',values[3])]});
 
     }else if(type==='fraction-jump'){
       const d=[2,3,4,5,8][Math.floor(Math.random()*5)],deltaUnits=1+Math.floor(Math.random()*Math.min(3,d)),direction=Math.random()<.5?-1:1,total=2*d;
@@ -1494,11 +1494,11 @@ function numberLineV2(){
       if(direction>0)startN=Math.floor(Math.random()*(total-deltaUnits+1));
       else startN=deltaUnits+Math.floor(Math.random()*(total-deltaUnits+1));
       const endN=startN+direction*deltaUnits,start=cleanNumber(startN/d),end=cleanNumber(endN/d),delta=cleanNumber(direction*deltaUnits/d);
-      state.min=0;state.max=2;state.step=1/d;state.labelEvery=d;state.showTickLabels=true;
+      state.min=0;state.max=2;state.step=1/d;state.labelEvery=1;state.showTickLabels=true;
       Object.assign(line,{label:'',valueFormat:'fraction',denominator:d,tickStride:1,showLabels:true});
       line.markers=[{id:'m1',label:'Start',value:start,color:'#147d75',showValue:false,side:'above'},{id:'m2',label:'?',value:end,color:'#d65a4a',showValue:false,side:'above'}];
       line.relations=[{id:'r1',from:'m1',to:'m2',type:'jump',color:'#4169a8',label:(delta>=0?'+':'−')+fractionText(Math.abs(delta),d),showLabel:true,side:'above'}];
-      state.challenge=challengeObject(type,'Start at '+fractionText(start,d)+' and follow the shown fraction jump. Where do you land?',fractionText(end,d),{hiddenMarkerIds:['m2'],hiddenTickRefs:[tickRef('l1',end)]});
+      state.challenge=challengeObject(type,'Start at '+fractionText(start,d)+'. Jump '+(delta>=0?'+':'−')+fractionText(Math.abs(delta),d)+'. Where do you land?',fractionText(end,d),{hiddenMarkerIds:['m2'],hiddenTickRefs:[tickRef('l1',end)]});
 
     }else if(type==='compare-fractions'){
       const d1=[2,3,4,5,6][Math.floor(Math.random()*5)],d2=d1*2;
