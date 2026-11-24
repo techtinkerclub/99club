@@ -1670,7 +1670,7 @@
   transform:
     translate(-50%,-50%)
     rotate(var(--pa-angle))
-    translateY(calc(-1 * var(--r)));
+    translateY(-43px);
   border:2px solid #6d522e;
   border-radius:50%;
   background:radial-gradient(circle at 36% 30%,#fff5d8 0 22%,#d8b974 24% 53%,#81602e 55% 100%);
@@ -1681,7 +1681,7 @@
 }
 .gd-pascaline-hole span{
   display:block;
-  transform:rotate(calc(-1 * var(--pa-angle)));
+  transform:rotate(var(--pa-counter));
   font:900 .62rem Georgia,serif;
 }
 .gd-pascaline-hole:hover,
@@ -1693,7 +1693,7 @@
   transform:
     translate(-50%,-50%)
     rotate(var(--pa-angle))
-    translateY(calc(-1 * var(--r)))
+    translateY(-43px)
     scale(.92);
 }
 .gd-pascaline-hub{
@@ -1822,7 +1822,7 @@
     height:92px;
     border-width:5px;
   }
-  .gd-pascaline-hole{--r:34px;width:22px;height:22px;min-width:22px;min-height:22px}
+  .gd-pascaline-hole{width:22px;height:22px;min-width:22px;min-height:22px;transform:translate(-50%,-50%) rotate(var(--pa-angle)) translateY(-34px)}
   .gd-pascaline-hole span{font-size:.55rem}
   .gd-pascaline-hub{width:34px;height:34px;border-width:3px}
   .gd-pascaline-window{width:46px;height:30px;font-size:1.15rem}
@@ -1830,4 +1830,10 @@
 @media(max-width:560px){
   .gd-pascaline-wheels{grid-template-columns:repeat(2,minmax(0,1fr))!important;row-gap:13px!important}
   .gd-pascaline-head{align-items:flex-start}
+}
+
+@media(max-width:760px){
+  .gd-pascaline-hole:active{
+    transform:translate(-50%,-50%) rotate(var(--pa-angle)) translateY(-34px) scale(.92);
+  }
 }
