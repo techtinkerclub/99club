@@ -175,7 +175,7 @@ function rodDigitSvg(d,vertical){
   const line=(x1,y1,x2,y2)=>'<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" />';
   if(vertical){
     if(five)parts.push(line(8,6,46,6));
-    for(let i=0;i<(five?ones+1:ones);i++){const x=12+i*8;parts.push(line(x,five?14:7,x,49))}
+    for(let i=0;i<ones;i++{const x=12+i*8;parts.push(line(x,five?14:7,x,49))}
   }else{
     if(five)parts.push(line(6,8,6,46));
     for(let i=0;i<(five?ones+1:ones);i++){const y=12+i*8;parts.push(line(five?14:7,y,49,y))}
