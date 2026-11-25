@@ -82,7 +82,7 @@ const QUICK_ACTIONS={
   sequences:[{label:'Challenge',selector:'[data-seq-workflow="challenge"]',allowHidden:true,panelMode:'challenge',title:'Choose a challenge'},{label:'Reveal answer',selector:'[data-board-action="reveal"]',dynamicLabel:true,title:'Reveal or hide the challenge answer'}],
   'maths-canvas':[
     {label:'+ Tile',selector:'[data-gd-action="add"]',allowHidden:true,panelMode:'tile-palette',title:'Add number or operation tile'},
-    {label:'Challenge',selector:'[data-mc-workflow="challenge"]',allowHidden:true,panelMode:'challenge',title:'Choose a number challenge'},
+    {label:'Challenge',selector:'[data-mc-workflow="challenge"]',allowHidden:true,panelMode:'challenge',title:'Choose a challenge'},
     {label:'Combine +',selector:'[data-gd-action="combine"]',allowHidden:true,title:'Combine selected number tile by addition'},
     {label:'Split',selector:'[data-gd-action="split"]',allowHidden:true,title:'Split selected number into equal tiles'},
     {label:'Duplicate',selector:'[data-gd-action="duplicate"]',allowHidden:true},

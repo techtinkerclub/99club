@@ -976,7 +976,7 @@ async function run(){
     fixture.frame.querySelector('[data-board-settings]').click();await tick();
     assert(panel.dataset.panelMode==='settings'&&panel.querySelector('.gd-board-controls-proxy'),'Specialist teaching settings open: '+id);
     panel.querySelector('[data-board-controls-close]').click();await tick();
-    fixture.frame.querySelector('[data-board-quick-actions] button[aria-label="Choose a challenge"]').click();await tick();
+    const challengeButton=fixture.frame.querySelector('[data-board-quick-actions] button[aria-label="Choose a challenge"]');assert(challengeButton,'Frame Challenge action exists for '+id);challengeButton.click();await tick();
     assert(panel.querySelector('[data-gd-native-random="all"]'),'Specialist quick launcher: '+id);
     panel.querySelector('[data-board-launcher-settings]').click();await tick();
     assert(panel.querySelector('.gd-panel-native-random')&&panel.querySelector('[data-board-launcher-back]'),'Specialist full challenge settings: '+id);
@@ -1214,7 +1214,7 @@ if(mode==='check'){
   const status=match?match[1]:'missing',kind=match?match[2]:'',message=match?match[3]:'Result element missing',detail=match?match[4]:'';
   const report={status,kind,message,detail,checkedAt:new Date().toISOString()};
   fs.writeFileSync(REPORT,JSON.stringify(report,null,2));
-  if(status!=='pass')throw new Error('Goodies composition QA failed: '+(message||status));
+  if(status!=='pass')throw new Error('Goodies composition QA failed: '+(message||status)+'\n'+detail);
   console.log(message);
   process.exit(0);
 }
