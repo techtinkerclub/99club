@@ -213,7 +213,7 @@ function pupilAnswerCorrect(spec,values,expected){
     }
     case 'clock-face':{
       const x=timeAnswer(a),y=timeAnswer(b);
-      return !!x&&!!y&&x.h%12===y.h%12&&x.m===y.m&&(!x.period||x.h===y.h);
+      return !!x&&!!y&&x.h%12===y.h%12&&x.m===y.m;
     }
     case 'clock-24':{
       const x=timeAnswer(a),y=timeAnswer(b);
