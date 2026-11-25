@@ -711,6 +711,13 @@ async function run(){
   clockDoc.querySelector('[data-cl-period-stage="12"]').click();
   assert(Number(clockDoc.getElementById('cl-face').dataset.clHour)>=12,'PM selector actually changes the clock period');
   assert(!clockDoc.querySelector('[data-cl-target-status]'),'Clock setting does not reveal success before Check');
+  assert(!clockDoc.querySelector('.gd-clock-readouts,.gd-clock-digital'),'Clock challenge omits concealed readout panels');
+  const clockApi=clockDoc.defaultView.TT99Goodies.lessonState,clockAttempt=clockApi.capture('clock').model;
+  clockDoc.querySelector('[data-board-action="reveal"]').click();await tick();
+  const clockSolution=clockApi.capture('clock').model;
+  assert(clockSolution.diagram.hour===clockSolution.challenge.targetHour&&clockSolution.diagram.minute===clockSolution.challenge.targetMinute,'Reveal moves the clock to the requested time');
+  clockDoc.querySelector('[data-board-action="reveal"]').click();await tick();
+  assert(clockApi.capture('clock').model.diagram.hour===clockAttempt.diagram.hour&&clockApi.capture('clock').model.diagram.minute===clockAttempt.diagram.minute,'Hide answer restores clock attempt');
   api.remove(qaClock.record.id);
   const qaRuler=await addForSave('measurement'),rulerDoc=qaRuler.doc;
   rulerDoc.querySelector('[data-me-workflow="challenge"]').click();
@@ -718,6 +725,14 @@ async function run(){
   rulerDoc.querySelector('[data-me-challenge-type="read-mark"]').click();
   rulerDoc.getElementById('me-generate').click();await tick();
   assert(rulerDoc.querySelectorAll('.gd-ruler-marker--secondary').length===0,'Single marker task does not invent a marker at zero');
+  assert(!rulerDoc.querySelector('.gd-ruler-card .gd-fdp-readout'),'Ruler challenge omits concealed measurement panels');
+  rulerDoc.querySelector('[data-me-challenge-type="place-mark"]').click();rulerDoc.getElementById('me-generate').click();await tick();
+  const rulerApi=rulerDoc.defaultView.TT99Goodies.lessonState,rulerAttempt=rulerApi.capture('measurement').model;
+  rulerDoc.querySelector('[data-board-action="reveal"]').click();await tick();
+  const rulerSolution=rulerApi.capture('measurement').model;
+  assert(rulerSolution.diagram.cm===rulerSolution.challenge.targetCm,'Reveal moves the marker to the correct length');
+  rulerDoc.querySelector('[data-board-action="reveal"]').click();await tick();
+  assert(rulerApi.capture('measurement').model.diagram.cm===rulerAttempt.diagram.cm,'Hide answer restores previous marker');
   api.remove(qaRuler.record.id);
   const qaGeo=await addForSave('geoboard'),geoDoc=qaGeo.doc;
   geoDoc.querySelector('[data-ge-workflow="challenge"]').click();
