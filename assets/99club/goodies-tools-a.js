@@ -53,9 +53,11 @@ function pvModel(settings,rng=Math.random){
  function makeNonStandardActivity(v){buildFromNumber(v);const candidates=cs.map((n,i)=>n>0&&i<cs.length-1?i:-1).filter(i=>i>=0);if(!candidates.length)return false;const i=candidates[Math.floor(rng()*candidates.length)];cs[i]--;cs[i+1]+=10;return true}
  function challengeObject(type,prompt,answer,extra={}){return{mode:'standard',type,category:PV_TEMPLATES.find(t=>t.id===type)?.category||'',title:'',prompt,promptHtml:prompt,answer:String(answer??''),answerMode:'bound',answerSource:'',revealed:false,...extra}}
    function randomBoardValue({decimal=true,min=valueStep(),max=rangeMax()}={}){
-    const step=decimal||rangeMax()<1?valueStep():Math.max(1,valueStep()),high=Math.max(0,Math.min(rangeMax(),normaliseValue(Math.max(max,20*step)))),low=Math.min(high,Math.max(step,normaliseValue(min)));
-    if(high<=low||Math.ceil(low/step)>Math.floor(high/step))return high;
-    const first=Math.ceil(low/step),last=Math.floor(high/step),pick=first+Math.floor(rng()*Math.max(1,last-first+1));
+    const step=decimal||rangeMax()<1?valueStep():Math.max(1,valueStep());
+    const last=Math.max(1,Math.floor(Math.min(rangeMax(),Math.max(max,20*step))/step+1e-8));
+    let first=Math.max(1,Math.ceil(min/step-1e-8));
+    if(first>=last)first=Math.max(1,Math.floor(last/4));
+    const pick=first+Math.floor(rng()*(last-first+1));
     return normaliseValue(pick*step);
   }
 
@@ -114,8 +116,9 @@ function pvModel(settings,rng=Math.random){
       buildFromNumber(value);
       challenge=challengeObject(type,'What is the value of the digit '+digit+' in the '+places[placeIndex].name+' column?',format(digit*places[placeIndex].value),{hiddenSummary:['total','expanded']});
     }else if(type==='non-standard'){
-      let value=randomBoardValue({decimal:false,min:120,max:8999});
-      if(!makeNonStandardActivity(value)){value=places[places.length-2].value;makeNonStandardActivity(value)}
+      let value=randomBoardValue({decimal:false,min:Math.max(120,10*valueStep()),max:8999});
+      for(let attempt=0;attempt<24;attempt++){if(makeNonStandardActivity(value))break;value=randomBoardValue({decimal:true,min:10*valueStep(),max:Math.max(20*valueStep(),8999)})}
+      if(!cs.some(v=>v>9)){value=places[places.length-2].value;makeNonStandardActivity(value)}
       challenge=challengeObject(type,'This is a non-standard representation. What number does it represent? Regroup it to check.',format(value),{hiddenSummary:['total','expanded']});
     }else{
       const digits=Array(places.length).fill(0).map(()=>1+Math.floor(rng()*8));
