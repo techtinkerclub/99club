@@ -239,6 +239,7 @@ function defaults(tool){
  if(tool==='maths-canvas')return {difficulty:'medium',curriculumProfile:'custom',numberSettings:G.numberChallenges.settings({},'medium'),workingLines:0};
  if(tool==='sequences')return {settings:{family:'all',difficulty:'medium'}};
  if(tool==='abacus')return {kind:'western',rows:5,colourScheme:'classic',showRowLabels:true};
+ if(tool==='hundred-square')return {startValue:1,responseLines:1};
  if(tool==='bar-model')return {responseLines:1};
  if(tool==='coordinates')return {scope:'mixed',responseLines:1};
  if(tool==='money')return {responseLines:1};
@@ -267,6 +268,7 @@ function openEditor(draft,{mode='review'}={}){
    }
    if(t==='sequences')return '<div class="gd-pub-fields">'+select('Rule family','settings.family',[['all','All families'],['constant','Constant difference'],['increasing','Changing difference'],['geometric','Multiplication'],['alternating','Alternating']],m.settings.family)+select('Difficulty','settings.difficulty',levels,m.settings.difficulty)+'</div>';
    if(t==='abacus')return '<div class="gd-pub-fields">'+select('Instrument','kind',[['western','Western abacus'],['soroban','Soroban'],['suanpan','Suanpan']],m.kind)+select('Places','rows',[3,4,5,6],m.rows)+select('Colours','colourScheme',['classic','place','sea','berry','forest'],m.colourScheme)+'</div>';
+   if(t==='hundred-square')return '<div class="gd-pub-fields">'+select('Number range','startValue',[0,1,101,201,901].map(n=>[n,n+' to '+(n+99)]),m.startValue)+select('Answer space','responseLines',[[1,'Answer box'],[2,'2 lines'],[3,'3 lines'],[4,'4 lines']],m.responseLines)+'</div><p class="gd-help">Missing-number and neighbour tasks use complete row extracts; marking and pattern tasks use the whole square.</p>';
    if(t==='bar-model')return '<div class="gd-pub-fields">'+select('Answer space','responseLines',[[1,'Answer box'],[2,'2 lines'],[3,'3 lines'],[4,'4 lines']],m.responseLines)+'</div><p class="gd-help">Build tasks reserve a blank drawing area; reasoning questions include space to explain.</p>';
    if(t==='coordinates')return '<div class="gd-pub-fields">'+select('Grid','scope',[['mixed','Mixed / suitable grid'],['first','First quadrant only'],['four','Four quadrants']],m.scope)+select('Answer space','responseLines',[[1,'Answer box'],[2,'2 lines'],[3,'3 lines'],[4,'4 lines']],m.responseLines)+'</div><p class="gd-help">Plotting tasks use the grid itself as the answer area. Reflection and quadrant questions require four quadrants.</p>';
    if(t==='money')return '<div class="gd-pub-fields">'+select('Answer space','responseLines',[[1,'Answer box'],[2,'2 lines'],[3,'3 lines'],[4,'4 lines']],m.responseLines)+'</div><p class="gd-help">Construction questions retain drawing space. Teacher solutions include a valid combination of UK classroom coins and notes.</p>';
