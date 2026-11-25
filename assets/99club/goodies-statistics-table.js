@@ -5,11 +5,12 @@ if(!G||!G.statistics)return;
 const M=G.statistics,{q,qa,esc,field,btn,setPanels}=G;
 const ID='statistics-table', TYPES=[['read','Read a value'],['total','Find the total'],['difference','Compare two values'],['range','Largest minus smallest'],['mean','Find the mean']];
 const examples=['Apples','Pears','Bananas','Oranges'];
+const CONTEXTS=[{title:'Favourite fruit',unit:'votes',labels:['Apples','Pears','Bananas','Oranges','Grapes','Plums']},{title:'Travel to school',unit:'pupils',labels:['Walk','Car','Bus','Cycle','Scooter','Train']},{title:'Library loans',unit:'books',labels:['Adventure','Mystery','History','Science','Poetry','Comics']},{title:'School fair stalls',unit:'visitors',labels:['Games','Crafts','Cakes','Books','Plants','Toys']},{title:'Favourite colours',unit:'votes',labels:['Red','Blue','Green','Yellow','Purple','Orange']}];
 const initial=()=>M.dataset(examples.map((label,i)=>({label,value:[7,4,12,9][i]})),{title:'Favourite fruit',unit:'votes'});
 function randomData(max=20,count=4,mean=false,rng=Math.random){
- const rows=['Red','Blue','Green','Yellow','Purple','Orange'].slice(0,count).map(label=>({label,value:Math.floor(rng()*(max+1))}));
+ const context=CONTEXTS[Math.floor(rng()*CONTEXTS.length)],rows=context.labels.slice(0,count).map(label=>({label,value:Math.floor(rng()*(max+1))}));
  if(mean){const total=rows.reduce((s,r)=>s+r.value,0),rem=total%count; if(rem){const last=rows.find(r=>r.value>=rem);if(last)last.value-=rem;else {const r=rows.find(r=>r.value+count-rem<=max);if(r)r.value+=count-rem;else rows.forEach(r=>r.value=0)}}}
- return M.dataset(rows,{title:'Favourite colours',unit:'votes'});
+ return M.dataset(rows,context);
 }
 function svgTable(data,view='table',missing=-1){
  const tally=view==='tally',W=720,H=94+data.rows.length*72,ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');
@@ -37,7 +38,10 @@ function svgTable(data,view='table',missing=-1){
 }
 const VIEWS=[['table','Frequency table'],['tally','Tally chart'],['pictogram','Pictogram'],['bar','Bar chart'],['line','Line graph'],['pie','Pie chart']];
 const EXTRA={bar:[['read-scale','Read the axis interval']],line:[['read-scale','Read the axis interval'],['change','Find the change between consecutive days']],pie:[['angle','Find a sector angle'],['percent','Find a sector percentage']],pictogram:[['symbols','Count full symbols']]};
-const questionTypes=view=>view==='pie'?EXTRA.pie:[...TYPES,...(EXTRA[view]||[]),...(['table','tally','pictogram','bar','line'].includes(view)?[['complete','Complete the missing entry']]:[])];
+const PROFILES=[['custom','All / custom'],['2','Year 2'],['3','Year 3'],['4','Year 4'],['5','Year 5'],['6','Year 6']];
+const profile=v=>PROFILES.some(p=>p[0]===String(v))?String(v):'custom';
+function viewsFor(year){year=profile(year);return VIEWS.filter(([v])=>year==='custom'||year==='6'||(v!=='pie'&&(v!=='line'||+year>=4)&&(v!=='bar'||+year>=3)));}
+const questionTypes=(view,year='custom')=>{year=profile(year);const all=view==='pie'?EXTRA.pie:[...TYPES,...(EXTRA[view]||[]),['combined','Two-step sum and comparison'],['complete','Complete the missing entry']];return all.filter(([id])=>year==='custom'||(+year>=6||!['mean','angle','percent','range'].includes(id))&&(+year>=3||!['combined','read-scale'].includes(id)));};
 const viewName=view=>VIEWS.find(v=>v[0]===view)?.[1]||'Frequency table';
 const validView=view=>VIEWS.some(v=>v[0]===view)?view:'table';
 const COLOURS=['#39887e','#537eaa','#c68a48','#9275ac','#c66c75','#718b48'];
@@ -61,7 +65,7 @@ function svgChart(data,view,key=2,missing=-1,axisOverride=null){
   if(!total){text(cx,cy,'No data to display',24,{'text-anchor':'middle'});return svg}
   const point=a=>[cx+r*Math.sin(a*Math.PI/180),cy-r*Math.cos(a*Math.PI/180)];
   M.pie(data).forEach((s,i)=>{const col=COLOURS[i%COLOURS.length];if(s.angle>=359.999999)add('circle',{cx,cy,r,fill:col,stroke:'#fff','stroke-width':2});else if(s.angle>0){const a=point(s.start),b=point(s.end);add('path',{d:'M '+cx+' '+cy+' L '+a.join(' ')+' A '+r+' '+r+' 0 '+(s.angle>180?1:0)+' 1 '+b.join(' ')+' Z',fill:col,stroke:'#fff','stroke-width':2})}
-   add('rect',{x:460,y:100+i*52,width:23,height:23,rx:3,fill:col});text(495,119+i*52,s.label,Math.min(24,245/Math.max(1,s.label.length*.6)));
+   add('rect',{x:460,y:100+i*52,width:23,height:23,rx:3,fill:col});const label=s.label+' ('+s.value+')';text(495,119+i*52,label,Math.min(24,245/Math.max(1,label.length*.6)));
   });text(460,440,'Total: '+total+' '+(data.unit||'items'),23);return svg;
  }
  const left=84,right=730,top=80,bottom=380,axis=axisOverride||M.axis(data),n=data.rows.length,slot=(right-left)/n;
@@ -77,10 +81,11 @@ function svgChart(data,view,key=2,missing=-1,axisOverride=null){
  return svg;
 }
 function recipe(model={},type='all'){
- return {type,view:validView(model.view),key:[1,2,5,10].includes(+model.key)?+model.key:2,max:[10,20,30,40].includes(+model.max)?+model.max:20,count:[3,4,5,6].includes(+model.count)?+model.count:4};
+ const year=profile(model.year),view=viewsFor(year).some(v=>v[0]===model.view)?model.view:'table';
+ return {type,year,view,key:year==='2'?1:[1,2,5,10].includes(+model.key)?+model.key:2,max:year==='2'?10:[10,20,30,40].includes(+model.max)?+model.max:20,count:year==='2'?Math.min(4,+model.count||4):[3,4,5,6].includes(+model.count)?+model.count:4};
 }
 function generate(r,rng=Math.random){
- const available=questionTypes(r.view),type=r.type==='all'?available[Math.floor(rng()*available.length)][0]:r.type;
+ const available=questionTypes(r.view,r.year),type=r.type==='all'?available[Math.floor(rng()*available.length)][0]:r.type;
  if(!available.some(t=>t[0]===type))throw Error('Choose a question compatible with this graph.');
  let data=randomData(r.max,r.count,type==='mean',rng);
  if(r.view==='line')data=M.dataset(data.rows.map((row,i)=>({...row,label:['Mon','Tue','Wed','Thu','Fri','Sat'][i]})),{title:'Daily visitors',unit:'visitors',ordered:true});
@@ -92,6 +97,7 @@ function generate(r,rng=Math.random){
  else if(type==='read-scale')question={type,prompt:'How many '+data.unit+' does one labelled vertical axis interval represent?',answer:M.axis(data).step};
  else if(type==='symbols')question={type,prompt:'How many full symbols represent '+data.rows[a].label+'?',answer:data.rows[a].value/r.key};
  else if(type==='change'){const i=Math.floor(rng()*(data.rows.length-1)),x=data.rows[i],y=data.rows[i+1];question={type,prompt:'By how many visitors did the number change from '+x.label+' to '+y.label+'?',answer:Math.abs(y.value-x.value)};}
+ else if(type==='combined'){const c=(b+1)%data.rows.length===a?(b+2)%data.rows.length:(b+1)%data.rows.length;const x=data.rows[a],y=data.rows[b],z=data.rows[c];question={type,prompt:'Add the values for '+x.label+' and '+y.label+'. What is the difference between this sum and the value for '+z.label+'?',answer:Math.abs(x.value+y.value-z.value)};}
  else if(type==='complete'){const row=data.rows[a];question={type,missing:a,prompt:'Complete the missing '+(r.view==='bar'?'bar':r.view==='line'?'point and connecting lines':r.view==='pictogram'?'symbols':r.view==='tally'?'tally marks':'frequency')+' for '+row.label+'. Its frequency is '+row.value+'.',answer:row.value};}
  else question=M.question(data,type,a,b);
  return {...question,data,view:r.view,key:r.key};
@@ -103,7 +109,7 @@ function paper(item,teacher){
 }
 if(G.publishing)G.publishing.register(ID,{
  label:'Data & graphs',
- types:model=>questionTypes(validView(model?.view)).map(([id,label])=>({id,label})),
+ types:model=>questionTypes(recipe(model||{}).view,model?.year).map(([id,label])=>({id,label})),
  title:item=>viewName(item.data.view),
  signature:d=>JSON.stringify([d.view,d.type,d.prompt,d.data.rows]),
  recipe,generate,
@@ -115,25 +121,25 @@ if(G.publishing)G.publishing.register(ID,{
  render:paper,
  answerSummary:item=>String(item.data.answer),
  answerGraphic:item=>svgChart(item.data.data,item.data.view,item.data.key),
- answerNote:item=>item.data.type==='complete'?'Complete the missing entry to represent the stated frequency. Check its position, height, or symbol count against the completed diagram.':item.data.type==='angle'?'Divide the category frequency by the total and multiply by 360 degrees.':item.data.type==='percent'?'Divide the category frequency by the total and multiply by 100.':item.data.type==='read-scale'?'Subtract consecutive labelled axis values.':item.data.type==='symbols'?'Count the full symbols in the named row.':item.data.type==='change'?'Subtract the smaller of the two consecutive daily values from the larger.':item.data.type==='mean'?'Add all frequencies and divide by the number of categories.':item.data.type==='total'?'Add all frequencies.':item.data.type==='range'?'Subtract the smallest frequency from the largest.':item.data.type==='difference'?'Subtract the smaller named frequency from the larger.':'Read the frequency for the named category. Accept equivalent numerical working.'
+ answerNote:item=>item.data.type==='combined'?'Add the first two named values, then find the absolute difference between that sum and the third value.':item.data.type==='complete'?'Complete the missing entry to represent the stated frequency. Check its position, height, or symbol count against the completed diagram.':item.data.type==='angle'?'Divide the category frequency by the total and multiply by 360 degrees.':item.data.type==='percent'?'Divide the category frequency by the total and multiply by 100.':item.data.type==='read-scale'?'Subtract consecutive labelled axis values.':item.data.type==='symbols'?'Count the full symbols in the named row.':item.data.type==='change'?'Subtract the smaller of the two consecutive daily values from the larger.':item.data.type==='mean'?'Add all frequencies and divide by the number of categories.':item.data.type==='total'?'Add all frequencies.':item.data.type==='range'?'Subtract the smallest frequency from the largest.':item.data.type==='difference'?'Subtract the smaller named frequency from the larger.':'Read the frequency for the named category. Accept equivalent numerical working.'
 });
-G.statisticsTable={svgTable,svgChart,randomData,recipe,generate};
+G.statisticsTable={svgTable,svgChart,randomData,recipe,generate,profiles:PROFILES,viewsFor,questionTypes};
 G.statisticsTableTool=function(){
- const CK=G.challengeKit;let data=initial(),view='table',workflow='build',task=null,setup=null,max=20,count=4,key=2,status='',attempt=null;
- const types=()=>questionTypes(view);
+ const CK=G.challengeKit;let data=initial(),view='table',workflow='build',task=null,setup=null,max=20,count=4,key=2,year='custom',status='',attempt=null;
+ const types=()=>questionTypes(view,year);
  function message(s){status=s;const el=q('#st-status');if(el)el.textContent=s}
  function change(i,delta){const rows=data.rows.map((r,j)=>({...r,value:j===i?Math.max(0,Math.min(40,r.value+delta)):r.value}));data=M.dataset(rows,data);render()}
  function launch(type){
   if(!task)setup=data;
   attempt=null;
-  const allowed=types();const chosenType=type==='all'?allowed[Math.floor(Math.random()*allowed.length)][0]:type;const question=generate(recipe({view,max,count,key},chosenType));data=question.data;const chosen=question.type;
+  const allowed=types();const chosenType=type==='all'?allowed[Math.floor(Math.random()*allowed.length)][0]:type;const question=generate(recipe({view,max,count,key,year},chosenType));data=question.data;const chosen=question.type;
   task=CK.normalise({mode:'standard',type:chosen,title:viewName(view),prompt:question.prompt,answer:String(question.answer),answerMode:'manual',revealed:false});if(chosen==='complete')task.missing=question.missing;workflow='challenge';render();
  }
  function exit(){if(setup)data=setup;setup=null;task=null;attempt=null;workflow='build';render()}
  function controls(){
   const tabs='<div class="gd-row" role="tablist" aria-label="Data workflow">'+[['build','Explore'],['challenge','Challenge']].map(([v,l])=>'<button class="gd-btn'+(workflow===v?' gd-btn--primary':'')+'" type="button" data-st-workflow="'+v+'">'+l+'</button>').join('')+'</div>';
   const select=(id,options,current)=>'<select class="gd-select" id="'+id+'">'+options.map(([v,l])=>'<option value="'+v+'"'+(String(v)===String(current)?' selected':'')+'>'+l+'</option>').join('')+'</select>';
-  const representation=field('Representation',select('st-view',VIEWS,view));
+  const representation=field('Curriculum',''+select('st-year',PROFILES,year))+field('Representation',select('st-view',viewsFor(year),view));
   const settings=(view==='pictogram'?field('Symbol value',select('st-key',[[1,'1'],[2,'2'],[5,'5'],[10,'10']],key)):'')+field('Maximum frequency',select('st-max',[[10,'10'],[20,'20'],[30,'30'],[40,'40']],max))+field('Categories',select('st-count',[[3,'3'],[4,'4'],[5,'5'],[6,'6']],count));
   if(workflow==='challenge')return tabs+representation+settings+CK.nativeRandomHtml('st',[{id:'data',label:'Data questions',ids:types().map(t=>t[0])}])+types().map(([id,l])=>'<button class="gd-btn" type="button" data-st-challenge-mode="'+id+'">'+l+'</button>').join('');
   return tabs+representation+settings+field('Chart title','<input class="gd-input" id="st-title" maxlength="40" value="'+esc(data.title)+'">')+data.rows.map((r,i)=>'<div class="gd-row"><input class="gd-input" style="min-width:0;flex:1" maxlength="18" aria-label="Category '+(i+1)+'" data-st-label="'+i+'" value="'+esc(r.label)+'"><button type="button" class="gd-btn" data-st-change="'+i+',-1" aria-label="Decrease '+esc(r.label)+'">−</button><span>'+r.value+'</span><button type="button" class="gd-btn" data-st-change="'+i+',1" aria-label="Increase '+esc(r.label)+'">+</button></div>').join('')+'<div class="gd-row">'+btn('Apply labels','st-apply')+btn('Random data','st-new')+'</div><p class="gd-help" id="st-status" role="status">'+esc(status)+'</p>';
@@ -174,6 +180,7 @@ G.statisticsTableTool=function(){
  function renderControls(){
   const host=q('#gd-controls');host.innerHTML=controls();
   qa('[data-st-workflow]',host).forEach(el=>el.onclick=()=>{workflow=el.dataset.stWorkflow;if(workflow==='build'&&task)exit();else renderControls()});
+  q('#st-year',host).onchange=e=>{if(task){if(setup)data=setup;task=null;setup=null;attempt=null}year=profile(e.target.value);const settings=recipe({view,max,count,key,year});({view,max,count,key}=settings);render()};
   q('#st-view',host).onchange=e=>{const next=validView(e.target.value);if(task){if(setup)data=setup;task=null;setup=null;}attempt=null;view=next;render()};
   const keyInput=q('#st-key',host);if(keyInput)keyInput.onchange=e=>{if(task){if(setup)data=setup;task=null;setup=null;attempt=null;}key=Number(e.target.value);render()};
   q('#st-max',host).onchange=e=>{max=Number(e.target.value)};
@@ -185,8 +192,8 @@ G.statisticsTableTool=function(){
  }
  function render(){renderControls();renderStage()}
  setPanels('','');render();
- G.lessonState.register(ID,()=>({data,view,workflow,task,setup,max,count,key,attempt,pupil:CK.capturePupil(task)}),saved=>{
-  data=M.dataset(saved.data.rows,saved.data);view=validView(saved.view);workflow=saved.workflow==='challenge'?'challenge':'build';max=[10,20,30,40].includes(saved.max)?saved.max:20;count=[3,4,5,6].includes(saved.count)?saved.count:4;
+ G.lessonState.register(ID,()=>({data,view,workflow,task,setup,max,count,key,year,attempt,pupil:CK.capturePupil(task)}),saved=>{
+  data=M.dataset(saved.data.rows,saved.data);view=validView(saved.view);year=profile(saved.year);workflow=saved.workflow==='challenge'?'challenge':'build';max=[10,20,30,40].includes(saved.max)?saved.max:20;count=[3,4,5,6].includes(saved.count)?saved.count:4;
   key=[1,2,5,10].includes(saved.key)?saved.key:2;setup=saved.setup?M.dataset(saved.setup.rows,saved.setup):null;task=saved.task?CK.normalise(saved.task):null;if(task&&saved.task.type==='complete')task.missing=saved.task.missing;attempt=task?.type==='complete'&&Number.isInteger(saved.attempt)&&saved.attempt>=0&&saved.attempt<=40?saved.attempt:null;CK.restorePupil(task,saved.pupil);render();
  });
 };
