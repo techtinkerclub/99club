@@ -318,10 +318,12 @@ function keypadKind(field){
   return 'number';
 }
 function keypadSymbols(kind){
-  if(['fraction','fraction-form','mixed','number-line'].includes(kind))return ['−','/','Space','%'];
+  if(kind==='number-line')return ['−','/','Space','%'];
+  if(['fraction','fraction-form','mixed'].includes(kind))return ['−','/','Space'];
   if(kind==='money')return ['£','p'];
   if(kind.startsWith('clock-'))return kind==='clock-12'?[':','Space','am','pm']:[':'];
   if(kind==='set')return [',','Space'];
+  if(kind==='spoken')return ['quarter','half','past','to',"o'clock",'minutes','Space'];
   if(['addition-equation','equation','expression','fact','fact-family','multiplication'].includes(kind))return ['+','−','×','÷','=','(',')','Space'];
   return ['−'];
 }
@@ -355,7 +357,7 @@ function keypadCheck(){
 function openKeypad(field){
   if(!field||field.disabled||field.readOnly)return;
   if(keypadField===field&&keypad)return;
-  closeKeypad();keypadField=field;keypadSelectAll=!!field.value;
+  closeKeypad();keypadField=field;keypadSelectAll=false;
   field.setAttribute('inputmode','none');field.setAttribute('aria-expanded','true');
   const panel=document.createElement('div');panel.className='gd-touch-keypad';panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Enter your answer');
   const label=field.getAttribute('aria-label')||field.closest('label')?.querySelector('span')?.textContent||'Enter your answer';
@@ -402,7 +404,7 @@ function pupilResponseHtml(challenge,spec){
   }else{
     const defs=pupilFields(spec);
     s.values=defs.map((_,i)=>s.values[i]||'');
-    fields=defs.map((f,i)=>'<label class="gd-pupil-field"><span>'+esc(f.label)+'</span><input type="text" '+(['number','unit','coordinate','metrics','partials','money','fraction','fraction-form','mixed','clock-face','clock-24','clock-12','set','addition-equation','equation','expression','fact','fact-family','multiplication'].includes(spec.kind)?'data-gd-keypad="'+esc(spec.kind)+'" inputmode="none"':'inputmode="text"')+' autocomplete="off" maxlength="240" data-gd-pupil-field="'+i+'" value="'+esc(s.values[i])+'" placeholder="'+esc(f.hint||'')+'"'+(s.correct||challenge.revealed?' disabled':'')+'>'+(f.unit?'<span>'+esc(f.unit)+'</span>':'')+'</label>').join('');
+    fields=defs.map((f,i)=>'<label class="gd-pupil-field"><span>'+esc(f.label)+'</span><input type="text" '+(['number','unit','coordinate','metrics','partials','money','fraction','fraction-form','mixed','clock-face','clock-24','clock-12','spoken','set','addition-equation','equation','expression','fact','fact-family','multiplication'].includes(spec.kind)?'data-gd-keypad="'+esc(spec.kind)+'" inputmode="none"':'inputmode="text"')+' autocomplete="off" maxlength="240" data-gd-pupil-field="'+i+'" value="'+esc(s.values[i])+'" placeholder="'+esc(f.hint||'')+'"'+(s.correct||challenge.revealed?' disabled':'')+'>'+(f.unit?'<span>'+esc(f.unit)+'</span>':'')+'</label>').join('');
   }
   return '<div class="gd-pupil-response">'+fields+'<button type="button" class="gd-btn gd-btn--primary" data-gd-pupil-check'+(!pupilReady(s)||s.correct||challenge.revealed?' disabled':'')+'>Check</button><span role="status" aria-live="polite" class="gd-pupil-feedback'+(s.correct?' is-correct':s.status&&s.status!=='Answer shown'?' is-wrong':'')+'">'+esc(s.status)+'</span></div>';
 }
