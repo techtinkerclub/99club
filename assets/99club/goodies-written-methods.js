@@ -68,9 +68,70 @@ function calculate(method,a,b){
  }
  m.answerText=String(m.answer)+(m.remainder?' r '+m.remainder:'');return m;
 }
+/* A decimal calculation uses scaled integer place-value columns. Preserve
+ * original operand precision separately so a renderer can show padding
+ * zeros explicitly, without ever adding binary floating-point decimals. */
+function decimalOperand(raw){
+ const s=String(raw).trim(),match=s.match(/^(\d{1,7})(?:\.(\d{1,3}))?$/);
+ if(!match)throw Error('Use a non-negative number with up to three decimal places.');
+ const whole=match[1].replace(/^0+(?=\d)/,''),fraction=match[2]||'';
+ if(whole.length+fraction.length>7)throw Error('Use at most seven digits, including decimal places.');
+ return {whole,fraction,text:whole+(fraction?'.'+fraction:'')};
+}
+function decimalPlace(column,precision){
+ const i=column-precision;return i>=0?place(i):['tenths','hundredths','thousandths'][-i-1];
+}
+function decimalText(units,precision){
+ const s=String(units).padStart(precision+1,'0');
+ return precision?s.slice(0,-precision)+'.'+s.slice(-precision):s;
+}
+function calculateDecimal(method,a,b,minimumPrecision=0){
+ if(!['addition','subtraction'].includes(method))throw Error('Decimal column methods support addition and subtraction.');
+ const A=decimalOperand(a),B=decimalOperand(b);
+ if(!Number.isInteger(minimumPrecision)||minimumPrecision<0||minimumPrecision>3)throw Error('Invalid decimal precision.');
+ const precision=Math.max(A.fraction.length,B.fraction.length,minimumPrecision);
+ const units=v=>Number(v.whole+v.fraction.padEnd(precision,'0'));
+ const x=units(A),y=units(B),base=calculate(method,x,y),width=Math.max(precision+1,base.width);
+ const steps=base.steps.map(s=>{
+   const next={...s};
+   if(s.type==='exchange')next.explanation='Exchange one unit in the '+decimalPlace(s.from,precision)+' column for ten in the '+decimalPlace(s.to,precision)+' column.';
+   else if(s.type==='final-carry')next.explanation='Write the remaining '+s.digit+' in the '+decimalPlace(s.column,precision)+' column.';
+   else if(s.type==='add-column')next.explanation=s.x+' + '+s.y+(s.incoming?' + '+s.incoming:'')+' = '+s.total+' in the '+decimalPlace(s.column,precision)+' column. Write '+s.digit+(s.carry?'; exchange ten for one in the next place.':'.');
+   else if(s.type==='subtract-column')next.explanation=s.x+' − '+s.y+' = '+s.digit+' in the '+decimalPlace(s.column,precision)+' column.';
+   return next;
+ });
+ // If both values are less than one, the integer engine can omit zero
+ // columns at the left. Explicitly complete those place columns.
+ const result=base.result.slice();
+ for(let i=base.width;i<width;i++){
+   if(result[i]!==undefined)continue;
+   result[i]=0;
+   const partial=result.slice(0,i+1);
+   steps.push({type:method==='addition'?'add-column':'subtract-column',column:i,x:0,y:0,digit:0,result:partial,...(method==='addition'?{incoming:0,total:0,carry:0,carries:base.carries.slice()}:{top:base.exchanged.slice()}),explanation:'Write 0 in the '+decimalPlace(i,precision)+' column.'});
+ }
+ const answerText=decimalText(base.answer,precision);
+ return {...base,decimal:true,precision,width,steps,result,aText:A.text,bText:B.text,aUnits:x,bUnits:y,answerUnits:base.answer,answer:Number(answerText),answerText,operandA:decimalText(x,precision),operandB:decimalText(y,precision)};
+}
+function generateDecimal(method,raw={},rng=Math.random){
+ const s=settings(raw),precision=[1,2,3].includes(+raw.precision)?+raw.precision:2;
+ const wholeDigits=Math.min(4,Math.max(1,Number(raw.wholeDigits)||2));
+ const min=10**(wholeDigits+precision-1),max=10**(wholeDigits+precision)-1;
+ const rand=(lo,hi)=>lo+Math.min(hi-lo,Math.floor(rng()*(hi-lo+1)));
+ for(let attempt=0;attempt<2000;attempt++){
+   let a=rand(min,max),b=rand(1,max);
+   if(method==='subtraction'&&b>a)[a,b]=[b,a];
+   if(s.exchange==='without'){b=value(digits(a).map(n=>rand(0,method==='addition'?9-n:n)));if(!b)continue}
+   if(s.exchange==='across-zero'){if(method!=='subtraction')throw Error('Across-zero exchange applies to subtraction.');a=rand(1,Math.floor(max/100))*100+rand(0,8);b=rand(1,9);if(b<=a%10)continue}
+   const fmt=n=>decimalText(n,precision),m=calculateDecimal(method,fmt(a),fmt(b),precision);
+   const ex=m.steps.filter(x=>x.type==='exchange'||x.type==='add-column'&&x.carry);
+   if(s.exchange==='with'&&!ex.length||s.exchange==='without'&&ex.length||s.exchange==='across-zero'&&ex.length<2)continue;
+   return m;
+ }
+ throw Error('No decimal question matches these settings.');
+}
 function settings(raw={}){
  const year=[3,4,5,6].includes(+raw.year)?+raw.year:5;
- return {year,exchange:['any','with','without','across-zero'].includes(raw.exchange)?raw.exchange:'any',remainders:['any','exact','with'].includes(raw.remainders)?raw.remainders:year<5?'exact':'any'};
+ return {year,precision:[0,1,2,3].includes(+raw.precision)?+raw.precision:0,exchange:['any','with','without','across-zero'].includes(raw.exchange)?raw.exchange:'any',remainders:['any','exact','with'].includes(raw.remainders)?raw.remainders:year<5?'exact':'any'};
 }
 function available(raw){return METHODS.filter(m=>Object.hasOwn(PROFILES[settings(raw).year],m))}
 function generate(method,raw={},rng=Math.random){
@@ -100,5 +161,5 @@ function generate(method,raw={},rng=Math.random){
  }
  throw Error('No question matches these settings. Try another exchange or remainder option.');
 }
-G.writtenMethods={METHODS,PROFILES,settings,available,calculate,generate,place};
+G.writtenMethods={METHODS,PROFILES,settings,available,calculate,generate,place,calculateDecimal,generateDecimal,decimalPlace,decimalText};
 })(typeof window==='undefined'?globalThis:window.TT99Goodies);

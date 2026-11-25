@@ -123,6 +123,18 @@ if(process.argv[2]==='prepare'){
      const first=slots.find(s=>!s.optional);assert(!W.practiceCorrect(m,{...values,[first.id]:String(first.expected+1)}),'Wrong working cell fails: '+method);
      assert(new Set(slots.map(s=>s.id)).size===slots.length,'Distinct working cells: '+method);
    }
+   for(const [method,a,b] of [['addition','12.35','4.7'],['subtraction','1.000','0.001'],['addition','0.009','0.001'],['subtraction','0.020','0.019']]){
+     const m=G.writtenMethods.calculateDecimal(method,a,b),W=G.columnMethods,blank=W.diagram(m,{step:0,work:true}),solved=W.diagram(m,{step:m.steps.length}),dots=[...blank.querySelectorAll('[data-wm-decimal-point]')];
+     assert(dots.length===3&&dots.every(n=>n.getAttribute('x')===dots[0].getAttribute('x')),'Decimal points share one fixed column');
+     assert(!blank.querySelector('[data-wm-result],[data-wm-exchange],[data-wm-carry]'),'Decimal pupil diagram hides answers');
+     const slots=W.practiceCells(m),values=Object.fromEntries(slots.filter(s=>!s.optional).map(s=>[s.id,String(s.expected)]));
+     assert(W.practiceCorrect(m,values),'Exact decimal working is accepted');
+     assert(solved.querySelectorAll('[data-wm-result]').length>=m.precision+1,'Decimal worked key retains fractional zero positions');
+     const draft=P.createDocument(),tool=method==='addition'?'column-addition':'column-subtraction';
+     draft.generate(tool,{year:5,precision:m.precision},1,'any',rng);
+     const item=draft.list()[0];assert(item.data.decimal&&item.data.precision===m.precision,'Decimal generation retained in publication');
+     assert(P.renderItem(item,false).querySelector('[data-wm-decimal-point]'),'Decimal worksheet has aligned points');
+   }
    const markingCases=[['fraction-wall','identify-strip','actual number of shaded parts'],['fraction-wall','denominator-misconception','equal-sized wholes'],['array-builder','multiplication-fact','rows × columns'],['clock','elapsed-forward','Both hands'],['clock','twentyfour-to-twelve','am or pm'],['number-line','missing-labels','respective boxes'],['fdp','equivalent-fraction','preserve the value'],['sequences','rule','stated rule family'],['measurement','distance-between','larger minus smaller']];
    for(const [tool,type,expected] of markingCases){const draft=P.createDocument();draft.generate(tool,P.defaultSettings(tool),1,type,rng);const item=draft.list()[0];assert(P.answerNote(item).includes(expected),'Explicit marking criteria: '+tool+'/'+type)}
    const sample='A very long marking explanation. '+('Accept all equivalent mathematical explanations using the required units and exact values. '.repeat(15))+'End of marking explanation.';

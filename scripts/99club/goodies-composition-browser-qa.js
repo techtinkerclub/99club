@@ -1024,6 +1024,19 @@ async function run(){
     assert(!P.renderItem(draft.list()[0],false).querySelector('[data-wm-result],[data-wm-partial],[data-wm-quotient]'),id+' pupil publication never includes entered working');
     api.remove(fixture.record.id);
   }
+  {
+    const fixture=await addForSave('column-addition'),doc=fixture.doc,live=doc.defaultView.TT99Goodies;
+    for(const [id,value] of [['wm-a','12.35'],['wm-b','4.7']])doc.getElementById(id).value=value;
+    doc.getElementById('wm-apply').click();await tick();
+    const saved=live.lessonState.capture('column-addition').model;
+    assert(saved.decimal&&saved.aText==='12.35'&&saved.bText==='4.7','Exact decimal operands survive teaching capture');
+    doc.querySelector('[data-wm-step="all"]').click();await tick();
+    const stage=doc.getElementById('gd-stage');
+    assert(stage.querySelectorAll('[data-wm-decimal-point]').length===3&&stage.querySelectorAll('[data-wm-result]').length===4,'Decimal teaching shows aligned points and four answer digits');
+    const draft=TT99Goodies.publishing.createDocument();draft.addCurrent('column-addition',live.lessonState.capture('column-addition').model);
+    assert(TT99Goodies.publishing.renderItem(draft.list()[0],false).querySelector('[data-wm-decimal-point]'),'Current decimal illustration publishes with decimal points');
+    api.remove(fixture.record.id);
+  }
   // Specialist native engines must work through the same full and quick panels.
   for(const id of ['place-value','abacus','maths-canvas','sequences']){
     const fixture=await addForSave(id),panel=document.getElementById('gd-board-floating-controls');

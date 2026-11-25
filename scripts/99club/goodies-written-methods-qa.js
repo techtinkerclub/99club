@@ -34,4 +34,26 @@ for(const remainders of ['exact','with'])for(let i=0;i<100;i++){
 for(const method of ['addition','subtraction'])for(let i=0;i<100;i++){
  const m=M.generate(method,{year:6,exchange:'without'},rng);assert(!m.steps.some(s=>s.type==='exchange'||s.type==='add-column'&&s.carry));check(m);
 }
-console.log('Written methods: '+count+' generated calculations verified.');
+const D=M.calculateDecimal;
+assert.equal(D('addition','12.35','4.7').answerText,'17.05');
+assert.equal(D('addition','0.1','0.2').answerText,'0.3');
+assert.equal(D('addition','0.99','0.01').answerText,'1.00');
+assert.equal(D('subtraction','1.000','0.001').answerText,'0.999');
+assert.equal(D('subtraction','0.020','0.019').answerText,'0.001');
+assert.equal(D('subtraction','0.005','0.005').answerText,'0.000');
+assert.equal(D('addition','0.001','0.002').result.length,4);
+assert.equal(D('addition','7','2.50').operandA,'7.00');
+assert.throws(()=>D('subtraction','0.2','0.3'));
+assert.throws(()=>D('addition','1.0001','2'));
+assert.throws(()=>D('addition','1e3','2'));
+for(const method of ['addition','subtraction'])for(const precision of [1,2,3])for(const exchange of ['any','with','without',...(method==='subtraction'?['across-zero']:[])])for(let i=0;i<100;i++){
+ const m=M.generateDecimal(method,{year:5,precision,wholeDigits:2,exchange},rng);
+ assert.equal(m.answerUnits,method==='addition'?m.aUnits+m.bUnits:m.aUnits-m.bUnits);
+ assert.equal(m.answerText,M.decimalText(m.answerUnits,precision));
+ assert.equal(m.result.reduce((n,d,i)=>n+d*10**i,0),m.answerUnits);
+ assert(m.result.length>=precision+1&&m.steps.every(s=>s.explanation));
+ const ex=m.steps.filter(s=>s.type==='exchange'||s.type==='add-column'&&s.carry);
+ assert(exchange==='any'||(exchange==='without'?ex.length===0:exchange==='across-zero'?ex.length>=2:ex.length>0));
+ count++;
+}
+console.log('Written methods: '+count+' generated calculations verified (including exact decimal columns).');
