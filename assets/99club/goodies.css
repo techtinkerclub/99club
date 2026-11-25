@@ -2106,3 +2106,58 @@ html:not(.gd-embed-page) #tt99-goodies-root #gd-controls .gd-mc-five{min-height:
 .gd-pub-preview.is-large .gd-pub-sheet{width:930px;max-width:none}
 .gd-pub-preview.is-large .gd-pub-sheet.is-annex{width:930px;max-width:none}
 @media(max-width:680px){.gd-pub-review-title,.gd-pub-review-tools{padding:8px;gap:6px}.gd-pub-review-title .gd-pub-title{flex:1 1 100%;max-width:none}.gd-pub-review-count{margin-left:0;flex:1}.gd-pub-pagination{padding:6px 8px}.gd-pub-pagination [data-pub-print-caption]{flex-basis:100%}.gd-pub-preview{max-height:calc(100dvh - 300px)}.gd-pub-sheet.is-annex{grid-template-columns:minmax(0,1fr);padding-right:41px}.gd-pub-preview.is-large .gd-pub-sheet{width:820px;grid-template-columns:minmax(0,1fr) 36px}.gd-pub-preview.is-large .gd-pub-sheet.is-annex{width:820px;grid-template-columns:minmax(0,1fr)}}
+
+/* One whiteboard inspector language for teaching, challenge and paper settings. */
+#tt99-goodies-root .gd-board-floating-controls:not(.is-help):not(.is-money-palette){font-family:Arial,sans-serif;border-radius:11px;background:#fff;box-shadow:0 10px 30px #23434a20}
+#tt99-goodies-root .gd-board-floating-controls-head strong{font:600 14px/1.3 Arial,sans-serif}
+#tt99-goodies-root .gd-board-floating-controls:not(.is-help):not(.is-money-palette) .gd-board-floating-controls-body{padding:9px 10px;scrollbar-width:thin}
+#tt99-goodies-root .gd-board-floating-controls:not(.is-help):not(.is-money-palette) .gd-board-controls-proxy{font:13px/1.35 Arial,sans-serif!important;gap:8px!important}
+#tt99-goodies-root .gd-board-controls-proxy :is(.gd-btn,.gd-select,.gd-input:not([type=range])){font:500 13px/1.2 Arial,sans-serif!important;min-height:34px!important;box-shadow:none!important;letter-spacing:normal}
+#tt99-goodies-root .gd-board-controls-proxy :is(.gd-btn--primary,.gd-challenge-tab.is-active){font-weight:600!important}
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-field{display:grid;gap:4px!important;margin:0!important;min-width:0}
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-field>span,#tt99-goodies-root .gd-board-controls-proxy .gd-label{font:600 12px/1.3 Arial,sans-serif!important}
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-field :is(select,input:not([type=checkbox]):not([type=range])){width:100%;min-width:0;box-sizing:border-box}
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-workflow{display:flex!important;align-items:stretch;gap:3px!important;padding:3px!important;background:#f1f5f4!important;border:1px solid #dce6e3!important;border-radius:8px!important;margin:0 0 3px!important}
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-workflow>button{flex:1 1 0;min-width:0!important;width:auto!important;min-height:33px!important;padding:5px 4px!important;font:600 12px/1.2 Arial,sans-serif!important;border-radius:6px!important;white-space:normal!important}
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-workflow>button:not(.gd-btn--primary):not(.is-active):not([aria-selected=true]){background:transparent!important;border-color:transparent!important;color:#496168}
+#tt99-goodies-root .gd-board-controls-proxy .gd-challenge-tabs{gap:3px;padding:3px;border-radius:8px}
+#tt99-goodies-root .gd-board-controls-proxy .gd-challenge-tab{font:600 12px/1.2 Arial,sans-serif!important;min-height:32px;padding:6px 8px}
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-challenge-picker{display:grid;gap:7px;padding:8px 0;border-block:1px solid #e0e9e6}
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-challenge-picker .gd-challenge-chips{gap:4px;padding:0}
+#tt99-goodies-root .gd-board-controls-proxy .gd-challenge-chip{font:600 12px/1.2 Arial,sans-serif!important;min-height:32px;padding:5px 8px;border-radius:6px}
+#tt99-goodies-root .gd-board-controls-proxy .gd-challenge-random-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;margin:0}
+#tt99-goodies-root .gd-board-controls-proxy .gd-challenge-random-row button{min-width:0;white-space:normal!important;padding:6px 4px!important;font-size:12px!important}
+#tt99-goodies-root .gd-board-controls-proxy .gd-challenge-cards{grid-template-columns:1fr;gap:4px}
+#tt99-goodies-root .gd-board-controls-proxy .gd-challenge-card{min-height:34px;padding:7px 9px;border-radius:7px;gap:2px;box-shadow:none}
+#tt99-goodies-root .gd-board-controls-proxy .gd-challenge-card strong{font:600 13px/1.25 Arial,sans-serif!important}
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-card-description{display:none}
+#tt99-goodies-root .gd-board-controls-proxy .gd-challenge-card small{font-size:11px}
+#tt99-goodies-root .gd-board-controls-proxy .gd-challenge-card.is-selected{border-color:#80b9b0;background:#eef7f4}
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-back{background:#f0f6f4;border:1px solid #dce6e3;text-align:left;color:#315f5b}
+#tt99-goodies-root .gd-board-controls-proxy .gd-row{gap:5px!important;align-items:center}
+#tt99-goodies-root .gd-board-controls-proxy .gd-help[role=status]{font-size:12px!important;line-height:1.35;margin:0;padding:0;color:#60777b}
+#tt99-goodies-root .gd-board-controls-proxy button:disabled{opacity:.48;cursor:default}
+#tt99-goodies-root .gd-board-controls-proxy :is(button,select,input):focus-visible{outline:2px solid #2d9288!important;outline-offset:1px}
+#tt99-goodies-root .gd-board-challenge-launcher{font-family:Arial,sans-serif;gap:6px}
+#tt99-goodies-root .gd-board-challenge-launcher button{font-weight:600!important}
+
+/* Preserve the narrow two-tab teaching layouts; full inspectors share one
+   compact catalogue but must not override established widget-specific sizing. */
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-workflow.pv-mode-tabs>button,
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-workflow.gd-ab-workflow>button{white-space:nowrap!important;font-size:12px!important;line-height:1.1!important}
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-workflow{flex-wrap:nowrap!important}
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-workflow>button{overflow-wrap:anywhere}
+#tt99-goodies-root .gd-board-controls-proxy .gd-challenge-card:focus-visible{outline-offset:1px}
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-challenge-picker .gd-challenge-random-row{position:relative}
+
+/* Native challenge families use the same compact grouping as standard cards. */
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-native-random{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;margin:0}
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-native-random [data-gd-native-random=all]{grid-column:1/-1;min-height:38px!important}
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-native-types{display:grid;gap:8px;padding:8px 0;border-top:1px solid #e0e9e6}
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-native-types>strong{font-size:12px;font-weight:600;color:#38575b}
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-native-group{display:grid;gap:4px}
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-native-group>span{font-size:11px;font-weight:600;color:#62787c}
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-native-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-native-grid>button{min-width:0;width:100%;white-space:normal!important;text-align:left;font-size:12px!important}
+#tt99-goodies-root .gd-board-controls-proxy .gd-seq-settings{display:grid;gap:8px}
+#tt99-goodies-root .gd-board-controls-proxy .gd-mc-set-controls{margin:0}

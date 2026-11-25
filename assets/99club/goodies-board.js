@@ -82,7 +82,7 @@ const QUICK_ACTIONS={
   sequences:[{label:'Challenge',selector:'[data-seq-workflow="challenge"]',allowHidden:true,panelMode:'challenge',title:'Choose a challenge'},{label:'Reveal answer',selector:'[data-board-action="reveal"]',dynamicLabel:true,title:'Reveal or hide the challenge answer'}],
   'maths-canvas':[
     {label:'+ Tile',selector:'[data-gd-action="add"]',allowHidden:true,panelMode:'tile-palette',title:'Add number or operation tile'},
-    {label:'Challenge',selector:'[data-mc-workflow="challenge"]',allowHidden:true,panelMode:'challenge',title:'Choose a number challenge'},
+    {label:'Challenge',selector:'[data-mc-workflow="challenge"]',allowHidden:true,panelMode:'challenge',title:'Choose a challenge'},
     {label:'Combine +',selector:'[data-gd-action="combine"]',allowHidden:true,title:'Combine selected number tile by addition'},
     {label:'Split',selector:'[data-gd-action="split"]',allowHidden:true,title:'Split selected number into equal tiles'},
     {label:'Duplicate',selector:'[data-gd-action="duplicate"]',allowHidden:true},
@@ -257,7 +257,7 @@ function compactChallengeControls(clone,obj){
   const picker=clone.querySelector('.gd-challenge-picker');
   const native=clone.querySelector('[data-gd-native-prefix]');
   const label=(text)=>{const node=doc.createElement('div');node.className='gd-launch-label';node.textContent=text;return node};
-  function addButton(button,cls){if(!button)return;button.classList.add(cls);wrap.appendChild(button)}
+  function addButton(button,cls){if(!button)return;button.classList.add(cls);if(cls==='gd-launch-all'&&button.matches('[data-gd-random-scope],[data-gd-native-random]'))button.textContent='Random challenge';wrap.appendChild(button)}
   if(picker){
     const all=picker.querySelector('[data-gd-random-scope="all"]');
     const category=picker.querySelector('[data-gd-random-scope]:not([data-gd-random-scope="all"])');
@@ -327,8 +327,56 @@ function renderFloatingControls(obj){
   if(obj.toolId==='abacus'&&floatingPanelMode!=='challenge')clone.querySelectorAll('[data-ab-workflow="challenge"],[data-ab-workflow="export"]').forEach(n=>n.remove());
   clone.querySelectorAll('#nl-fullscreen,.gd-embed-workflow-hidden[id$="-fullscreen"]').forEach(node=>node.remove());
   const compact=floatingPanelMode==='challenge';
+  floatingControls.dataset.panelMode=floatingPanelMode;
   floatingControls.classList.toggle('is-challenge-launcher',compact);
   if(compact)clone=compactChallengeControls(clone,obj);
+  else if(!isObjectPalette()){
+    // Preserve the native controls and their proxy identities, but give the
+    // three panel modes a common presentation and compact challenge catalogue.
+    const picker=clone.querySelector('.gd-challenge-picker');
+    if(picker){
+      picker.classList.add('gd-panel-challenge-picker');
+      const chips=picker.querySelector('.gd-challenge-chips'),random=picker.querySelector('.gd-challenge-random-row');
+      if(chips&&random)picker.insertBefore(chips,random);
+      for(const card of picker.querySelectorAll('.gd-challenge-card')){
+        const desc=card.querySelector('span');
+        if(desc){card.title=desc.textContent;desc.classList.add('gd-panel-card-description')}
+      }
+    }
+    // Native challenge engines use the same catalogue rhythm as the
+    // standard pickers, without replacing their own generation handlers.
+    const native=clone.querySelector('[data-gd-native-prefix]');
+    if(native){
+      native.classList.add('gd-panel-native-random');
+      const all=native.querySelector('[data-gd-native-random="all"]');
+      if(all)all.textContent='Random challenge';
+      const types=[...clone.querySelectorAll('[data-'+native.dataset.gdNativePrefix+'-challenge-mode]')];
+      if(types.length&&obj.toolId!=='maths-canvas'){
+        const section=clone.ownerDocument.createElement('div');section.className='gd-panel-native-types';
+        const heading=clone.ownerDocument.createElement('strong');heading.textContent='Specific question';section.appendChild(heading);
+        const groups=JSON.parse(native.dataset.gdNativeGroups||'[]');
+        for(const group of groups){
+          const row=clone.ownerDocument.createElement('div');row.className='gd-panel-native-group';
+          const title=clone.ownerDocument.createElement('span');title.textContent=group.label;row.appendChild(title);
+          const buttons=clone.ownerDocument.createElement('div');buttons.className='gd-panel-native-grid';
+          types.filter(btn=>group.ids.includes(btn.getAttribute('data-'+native.dataset.gdNativePrefix+'-challenge-mode'))).forEach(btn=>buttons.appendChild(btn));
+          if(buttons.children.length){row.appendChild(buttons);section.appendChild(row)}
+        }
+        const ungrouped=types.filter(btn=>!section.contains(btn));
+        if(ungrouped.length){const row=clone.ownerDocument.createElement('div');row.className='gd-panel-native-grid';ungrouped.forEach(btn=>row.appendChild(btn));section.appendChild(row)}
+        native.after(section);
+        clone.querySelectorAll('.gd-ab-mode-grid,.pv-challenge-task-grid').forEach(el=>{if(!el.children.length)el.remove()});
+      }
+    }
+    const workflows=clone.querySelectorAll('[role="tablist"][aria-label$="workflow"],.nl-workflow-tabs,.gd-mc-workflow-tabs');
+    workflows.forEach(row=>row.classList.add('gd-panel-workflow'));
+    const fields=clone.querySelectorAll('.gd-field');
+    fields.forEach(field=>field.classList.add('gd-panel-field'));
+    if(floatingPanelMode==='challenge-settings'){
+      const back=document.createElement('button');back.type='button';back.className='gd-panel-back gd-btn';back.dataset.boardLauncherBack='1';back.textContent='‹ Quick challenge';
+      clone.prepend(back);
+    }
+  }
   // Preserve locally opened sections on proxy refresh; controls still dispatch to the original.
   if(!compact&&obj.toolId==='maths-canvas'&&floatingControlsBody.firstElementChild?.dataset.mcProxyObject===String(obj.id)){
     const open=new Set([...floatingControlsBody.querySelectorAll('details[data-mc-section][open]')].map(el=>el.dataset.mcSection));
@@ -409,13 +457,27 @@ function openFloatingControls(obj,mode='settings'){
   floatingPanelMode=['challenge','challenge-settings','money-palette','tile-palette','paper'].includes(mode)?mode:'settings';
   floatingControls?.classList.toggle('is-money-palette',isObjectPalette());
   floatingControls?.classList.toggle('is-challenge-launcher',floatingPanelMode==='challenge');
+  if(floatingPanelMode==='settings'&&!['place-value','abacus','balance'].includes(obj.toolId)){
+    const doc=innerDocument(obj),source=sourceControls(obj);
+    const current=[...source?.querySelectorAll('button')||[]].find(n=>(n.classList.contains('gd-btn--primary')||n.classList.contains('is-active')||n.getAttribute('aria-selected')==='true')&&[...n.attributes].some(a=>/^data-[a-z]+-workflow$/.test(a.name)&&['challenge','export'].includes(a.value)));
+    if(current){
+      const active=!!doc?.querySelector('#gd-stage .gd-challenge-banner,#gd-stage .gd-native-challenge');
+      if(active)floatingPanelMode='challenge-settings';
+      else{
+        const teaching=[...source.querySelectorAll('button')].find(n=>[...n.attributes].some(a=>/^data-[a-z]+-workflow$/.test(a.name)&&['explore','build','setup','model'].includes(a.value)));
+        teaching?.click();
+      }
+    }
+  }
   if(obj.toolId==='place-value'&&floatingPanelMode==='settings'){
     const source=sourceControls(obj),active=source?.querySelector('[data-pv-workflow].gd-btn--primary')?.dataset?.pvWorkflow;
-    if(active==='challenge'||active==='export')source?.querySelector('[data-pv-workflow="setup"]')?.click();
+    if(active==='challenge'&&innerDocument(obj)?.querySelector('#gd-stage .gd-native-challenge'))floatingPanelMode='challenge-settings';
+    else if(active==='challenge'||active==='export')source?.querySelector('[data-pv-workflow="setup"]')?.click();
   }
   if(obj.toolId==='abacus'&&floatingPanelMode==='settings'){
     const source=sourceControls(obj),active=source?.querySelector('[data-ab-workflow].gd-btn--primary')?.dataset?.abWorkflow;
-    if(active==='challenge'||active==='export')source?.querySelector('[data-ab-workflow="setup"]')?.click();
+    if(active==='challenge'&&innerDocument(obj)?.querySelector('#gd-stage .gd-native-challenge,#gd-stage .gd-ab-task'))floatingPanelMode='challenge-settings';
+    else if(active==='challenge'||active==='export')source?.querySelector('[data-ab-workflow="setup"]')?.click();
   }
   if(floatingControlObjectId!=null&&String(floatingControlObjectId)!==String(obj.id)){
     const previous=objectById(floatingControlObjectId);if(previous)previous.settingsOpen=false;
@@ -445,13 +507,24 @@ function closeFloatingControls(id=null){
   if(target){target.settingsOpen=false;frameFor(target.id)?.classList.remove('has-settings')}
   if(id==null||String(floatingControlObjectId)===String(id)){
     floatingControlObjectId=null;floatingHelpData=null;floatingPanelMode='settings';floatingControlSources=[];floatingControlSignature='';floatingControlStructure='';
-    if(floatingControls){floatingControls.classList.remove('is-help','is-challenge-launcher','is-money-palette');delete floatingControls.dataset.tool;floatingControls.hidden=true;floatingControlsBody?.replaceChildren()}
+    if(floatingControls){floatingControls.classList.remove('is-help','is-challenge-launcher','is-money-palette');delete floatingControls.dataset.tool;delete floatingControls.dataset.panelMode;floatingControls.hidden=true;floatingControlsBody?.replaceChildren()}
   }
 }
 function floatingOriginal(index){
   const obj=objectById(floatingControlObjectId),source=obj&&sourceControls(obj);
   if(!source)return{obj:null,node:null};
-  const node=isObjectPalette()?source.querySelectorAll(CONTROL_SELECTOR)[Number(index)]:floatingControlSources[Number(index)];
+  let node=isObjectPalette()?source.querySelectorAll(CONTROL_SELECTOR)[Number(index)]:floatingControlSources[Number(index)];
+  // Controls are rebuilt synchronously by several engines. If a proxy is
+  // clicked between that rebuild and the observer refresh, match its native
+  // identity rather than forwarding to a detached element or a shifted index.
+  if(node&&!source.contains(node)){
+    const candidates=[...source.querySelectorAll(CONTROL_SELECTOR)];
+    if(node.id)node=candidates.find(n=>n.id===node.id);
+    else{
+      const old=node,attrs=[...old.attributes].filter(a=>a.name.startsWith('data-'));
+      node=attrs.length?candidates.find(n=>n.tagName===old.tagName&&attrs.every(a=>n.getAttribute(a.name)===a.value)):null;
+    }
+  }
   return{obj,node:node&&source.contains(node)?node:null};
 }
 function measuredStageContentHeight(stage){
@@ -921,16 +994,24 @@ function bindObject(obj){
 
 if(floatingControlsBody){
   floatingControlsBody.addEventListener('click',e=>{
-    const launcherAction=e.target.closest('[data-board-launcher-settings],[data-board-launcher-category]');
-    if(launcherAction){e.preventDefault();e.stopPropagation();const obj=objectById(floatingControlObjectId);if(!obj)return;if(launcherAction.hasAttribute('data-board-launcher-settings'))openFloatingControls(obj,'challenge-settings');else{obj.launcherCategory=Number(launcherAction.dataset.boardLauncherCategory);renderFloatingControls(obj)}return}
+    const launcherAction=e.target.closest('[data-board-launcher-settings],[data-board-launcher-category],[data-board-launcher-back]');
+    if(launcherAction){e.preventDefault();e.stopPropagation();const obj=objectById(floatingControlObjectId);if(!obj)return;if(launcherAction.hasAttribute('data-board-launcher-settings'))openFloatingControls(obj,'challenge-settings');else if(launcherAction.hasAttribute('data-board-launcher-back'))openFloatingControls(obj,'challenge');else{obj.launcherCategory=Number(launcherAction.dataset.boardLauncherCategory);renderFloatingControls(obj)}return}
     const control=e.target.closest('[data-board-control-index]');if(!control)return;
     if(control.tagName!=='BUTTON'&&!(control.tagName==='INPUT'&&/^(button|submit|reset)$/i.test(control.type||'')))return;
     e.preventDefault();e.stopPropagation();
-    const {obj,node}=floatingOriginal(control.dataset.boardControlIndex);if(!obj||!node)return;
+    const {obj,node}=floatingOriginal(control.dataset.boardControlIndex);if(!obj||!node||node.disabled)return;
     const launch=node.matches('[data-gd-random-scope],[data-gd-native-random],[data-pv-challenge-mode],[data-ab-challenge-mode],[data-mc-challenge-mode],[data-seq-challenge-mode],[data-ab-history-operation],#ab-history-challenge,[id$="-generate"]');
     const specific=floatingPanelMode==='challenge'&&[...node.attributes].find(a=>/^-?data-[a-z0-9-]+-challenge-type$/.test(a.name));
     if(specific){const prefix=specific.name.match(/^data-([a-z0-9-]+)-challenge-type$/)[1];node.click();const generate=sourceControls(obj)?.querySelector('#'+prefix+'-generate');if(generate&&!generate.disabled){generate.click();closeFloatingControls(obj.id)}}
-    else{node.click();if(launch&&floatingPanelMode==='challenge')closeFloatingControls(obj.id);else if(isObjectPalette())renderFloatingControls(obj)}
+    else{
+      const workflow=[...node.attributes].find(a=>/^data-[a-z]+-workflow$/.test(a.name));
+      node.click();
+      if(launch&&floatingPanelMode==='challenge')closeFloatingControls(obj.id);
+      else if(workflow&&!isObjectPalette()){
+        const mode=workflow.value==='challenge'?'challenge-settings':workflow.value==='export'?'paper':'settings';
+        if(mode!==floatingPanelMode){floatingPanelMode=mode;floatingControlSignature='';floatingControlsBody.scrollTop=0;renderFloatingControls(obj)}
+      }else if(isObjectPalette())renderFloatingControls(obj);
+    }
     setTimeout(()=>{syncQuickActions(obj);refreshFloatingControls(obj)},0);
   });
   const forwardValue=e=>{
