@@ -662,14 +662,31 @@ async function run(){
   let failed=false;try{await api.restore(broken)}catch(_){failed=true}
   assert(failed&&api.objects().length===2,'Failed restore keeps original lesson intact');
   const saveBalance=await addForSave('balance');
+  const mobileApi=saveBalance.doc.defaultView.TT99Goodies.lessonState;
+  const mobileSnapshot=mobileApi.capture('balance');
+  // Restore an actual recursive model containing a branch and a blank box.
+  mobileSnapshot.model.diagram.left=[{id:1,value:8,hidden:false},{id:2,value:0,hidden:false}];
+  mobileSnapshot.model.topology={roots:{left:[{kind:'branch',id:'b1',left:[{kind:'tile',id:'1'}],right:[{kind:'tile',id:'2'}]}],right:[{kind:'tile',id:'3'}]},blankIds:['2'],nextBranch:2};
+  mobileApi.restore('balance',mobileSnapshot);await tick(100);
+  assert(saveBalance.doc.querySelectorAll('.nmb-branch').length===1,'Saved mobile restores its hanging branch');
+  assert(saveBalance.doc.querySelector('[data-ba-token="2"]').classList.contains('is-blank-box'),'Saved mobile restores the blank number box');
+  const mixedMobile=api.capture();
+  await api.restore(mixedMobile);await tick(100);
+  const reopened=api.capture();
+  assert(reopened.objects.length===3,'Mixed board including Number Mobile Balance opens');
+  assert(JSON.stringify(reopened.objects.find(o=>o.toolId==='balance').state.model.topology)===JSON.stringify(mobileSnapshot.model.topology),'Number Mobile topology round-trips through board library');
+  const mobileRecord=api.objects().find(o=>o.toolId==='balance');
+  const mobileDoc=document.querySelector('[data-board-object="'+mobileRecord.id+'"] iframe').contentDocument;
+  mobileDoc.querySelector('[data-ba-workflow="challenge"]').click();
+  mobileDoc.getElementById('ba-generate').click();await tick(100);
   document.getElementById('gd-board-saved').click();
-  assert(/Number Mobile Balance.*cannot be saved/i.test(document.getElementById('gd-board-library-status').textContent),'Saved-board library warns about unsupported Number Mobile Balance before saving');
+  assert(/Exit active Number Mobile Balance challenges/i.test(document.getElementById('gd-board-library-status').textContent),'Active mobile challenges warn before saving');
   document.getElementById('gd-board-save-name').value='Unsupported lesson';
   document.getElementById('gd-board-save-current').click();
-  assert(!JSON.parse(localStorage.getItem('tt99-whiteboard-lessons-v1')).some(e=>e.name==='Unsupported lesson'),'Unsupported save does not write a partial board');
+  assert(!JSON.parse(localStorage.getItem('tt99-whiteboard-lessons-v1')).some(e=>e.name==='Unsupported lesson'),'Unsupported active challenge does not write a partial board');
   assert(api.objects().length===3,'Unsupported save leaves all current objects intact');
   document.querySelector('[data-board-library-close]').click();
-  api.remove(saveBalance.record.id);
+  api.remove(mobileRecord.id);
   localStorage.removeItem('tt99-whiteboard-lessons-v1');
   result('pass','board','Mixed whiteboard objects are frameless, scalable, contextual, all palette tools mount and editable lessons restore','tools='+tools.length);
 }
