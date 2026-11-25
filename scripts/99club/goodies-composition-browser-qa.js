@@ -383,7 +383,11 @@ async function run(){
   assert(pvDoc.querySelectorAll('[data-gd-object]').length===challengeObjectsBefore,'Frame share export preserves the current challenge representation');
   pvWin.TT99Goodies.exportTools.downloadSvg=pvOldChallengeSvg;
 
-  pvDoc.querySelector('[data-pv-workflow="setup"]').click();await tick();
+  pvDoc.querySelector('[data-pv-activity-exit]').click();await tick();
+  const restoredPV=pvDoc.defaultView.TT99Goodies.lessonState.capture('place-value').model.diagram;
+  const initialPV=JSON.parse(pvOriginal);
+  const pvCounts=d=>d.tokens.reduce((out,t)=>(out[t.place]=(out[t.place]||0)+1,out),{});
+  assert(JSON.stringify(pvCounts(restoredPV))===JSON.stringify(pvCounts(initialPV))&&restoredPV.representationMode===initialPV.representationMode,'Exit challenge restores original Place Value representation and counts');
   const repControls=[...pvDoc.querySelectorAll('[data-pv-representation]')];
   assert(repControls.length===3,'Whiteboard Place Value settings exposes Counters / Abacus / Both');
   pvDoc.querySelector('[data-pv-representation="abacus"]').click();await tick();
@@ -467,10 +471,12 @@ async function run(){
   abQuick=[...abFrame.querySelectorAll('[data-board-quick-actions] button')];
   const challengeAb=abQuick.find(button=>/^Challenge/.test(button.textContent.trim()));
   assert(challengeAb,'Abacus exposes a direct random Challenge frame action');
+  abDoc.querySelector('[data-ab-bead="4:unit:2"]').click();await tick();
+  const originalAb=abWin.TT99Goodies.lessonState.capture('abacus').model.counts;
   challengeAb.click();await tick();
   const abPicker=document.getElementById('gd-board-floating-controls')||document.querySelector('.gd-board-floating-controls');
   assert(abDoc.querySelector('[data-gd-native-random="all"]'),'Frame Challenge opens Abacus random and category options');
-  abDoc.querySelector('[data-gd-native-random="all"]').click();await tick();
+  abPicker.querySelector('[data-gd-native-random="all"]').click();await tick();
   assert(abDoc.querySelector('.gd-ab-task'),'Random-all starts an Abacus pupil task');
   assert(abDoc.querySelector('[data-ab-total]').textContent.trim()==='?','Abacus pupil challenge hides the live total');
 
@@ -485,6 +491,21 @@ async function run(){
   assert(abExportSvg&&abExportSvg.dataset.worksheetCard==='1'&&abExportSvg.querySelector('[data-ab-export-frame="1"]'),'Abacus frame export produces a clean worksheet containing the new place-value frame');
   assert(/^abacus-/.test(abExportName),'Abacus whiteboard export has a reusable filename');
   abWin.TT99Goodies.exportTools.downloadSvg=abOldSvg;
+  abDoc.querySelector('[data-ab-exit]').click();await tick();
+  assert(JSON.stringify(abWin.TT99Goodies.lessonState.capture('abacus').model.counts)===JSON.stringify(originalAb),'Exiting Abacus challenge restores original bead arrangement');
+  const deviceSelector=abDoc.getElementById('ab-kind');deviceSelector.value='pascaline';deviceSelector.dispatchEvent(new abWin.Event('change',{bubbles:true}));await tick();
+  const pascalOriginal=abWin.TT99Goodies.lessonState.capture('abacus').model;
+  abDoc.querySelector('[data-ab-history-operation="subtract"]').click();await tick();
+  let pascalTask=abWin.TT99Goodies.lessonState.capture('abacus').model.historyChallenge;
+  assert(pascalTask.operation==='subtract'&&pascalTask.start-pascalTask.amount===pascalTask.target,'Pascaline subtraction launcher produces valid subtraction');
+  abDoc.querySelector('[data-ab-history-another]').click();await tick();
+  pascalTask=abWin.TT99Goodies.lessonState.capture('abacus').model.historyChallenge;
+  assert(pascalTask.operation==='subtract','Another retains subtraction scope');
+  abDoc.querySelector('[data-ab-history-reveal]').click();await tick();
+  assert(abDoc.querySelector('[data-ab-history-check]').disabled&&!abDoc.querySelector('[data-ab-history-reveal]'),'Revealed historical challenge does not offer redundant checking');
+  abDoc.querySelector('[data-ab-history-end]').click();await tick();
+  const restoredPascal=abWin.TT99Goodies.lessonState.capture('abacus').model;
+  assert(JSON.stringify(restoredPascal.pascalDigits)===JSON.stringify(pascalOriginal.pascalDigits)&&restoredPascal.pascalOperation===pascalOriginal.pascalOperation,'Exit restores original Pascaline state');
   TT99Goodies.compositionBoard.remove(abRecord.id);
 
   document.querySelector('[data-board-add="randomiser"]').click();await tick();
