@@ -3286,8 +3286,7 @@ function multiplicationGrid(){
   }
   function challengeProgress(){
     if(!challenge||challenge.type!=='select-fact')return'';
-    const found=selectedRow===Number(challenge.targetRow)&&selectedCol===Number(challenge.targetCol);
-    return found?'Found '+challenge.targetRow+' × '+challenge.targetCol+' = '+product()+' ✓':'Select the matching product cell';
+    return 'Select the matching product cell, then press Check.';
   }
   function headerButton(n,scope){
     const frozen=challengeFrozen();
@@ -3433,7 +3432,7 @@ function multiplicationGrid(){
     const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
     if(!beforeChallenge)beforeChallenge=snapshot();else restore(beforeChallenge);
     undoStack.length=0;redoStack.length=0;resetChallengeGrid();
-    const a=randomInt(2,10),bRaw=randomInt(2,10),b=bRaw===a?(a===10?9:a+1):bRaw,p=a*b;
+    const a=randomInt(2,12),b=randomInt(2,12),p=a*b;
     if(type==='missing-product'){
       selectedRow=a;selectedCol=b;focus=a;setHidden(a,b,true);
       challenge=challengeObject(type,'What is '+a+' × '+b+'?',p,{hideFactsPanel:true});
@@ -3441,7 +3440,7 @@ function multiplicationGrid(){
       focus=a;
       challenge=challengeObject(type,'Select the cell for '+a+' × '+b+'.',p,{freezeGrid:false,selectOnly:true,targetRow:a,targetCol:b,hideFactsPanel:false});
     }else if(type==='missing-factor'){
-      focus=a;selectedRow=a;selectedCol=1;
+      focus=a;selectedRow=a;selectedCol=1;setHidden(a,b,true);
       challenge=challengeObject(type,a+' × ? = '+p+'. What is the missing factor?',b,{hideFactsPanel:true});
     }else if(type==='commutative-fact'){
       focus=a;selectedRow=a;selectedCol=b;
@@ -3451,8 +3450,8 @@ function multiplicationGrid(){
       challenge=challengeObject(type,'Use '+a+' × '+b+' = '+p+' to complete '+p+' ÷ '+a+' = ?.',b,{hideFactsPanel:true});
     }else{
       focus=a;selectedRow=1;selectedCol=1;
-      const wrongDisplay=p+1;
-      challenge=challengeObject(type,'One entry in the '+a+' times-table row is wrong. Which fact should be corrected?',a+' × '+b+' = '+p,{hideFactsPanel:true,wrongCellKey:key(a,b),wrongDisplay});
+      const wrongDisplay=p+(Math.random()<.5?-1:1)*randomInt(1,3);
+      challenge=challengeObject(type,'One entry in the '+a+' times-table row is wrong. Write the corrected multiplication equation.',a+' × '+b+' = '+p,{hideFactsPanel:true,wrongCellKey:key(a,b),wrongDisplay});
     }
     challenge.initialState=snapshot();
     challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';exportMode='challenge';exportStatus='';renderControls();draw();
@@ -4217,6 +4216,7 @@ function arrayBuilder(){
   }
   function bindStage(){
     const frozen=challengeFrozen(),colHandle=q('[data-ab-resize="cols"]'),rowHandle=q('[data-ab-resize="rows"]');
+    qa('[data-array-step]',q('#gd-stage')).forEach(button=>button.onclick=()=>{const [axis,delta]=button.dataset.arrayStep.split(':');mutateDimensions(rows+(axis==='rows'?Number(delta):0),cols+(axis==='cols'?Number(delta):0))});
     const undo=q('[data-ab-undo-stage]',q('#gd-stage'));if(undo)undo.onclick=e=>{e.stopPropagation();undoArray()};
     const redo=q('[data-ab-redo-stage]',q('#gd-stage'));if(redo)redo.onclick=e=>{e.stopPropagation();redoArray()};
     if(colHandle&&!frozen){
@@ -4261,13 +4261,12 @@ function arrayBuilder(){
     const inverse=hiddenFlag('hiddenInverse')?'?':inverseFacts();
     const partial=partitionMath(),partialText=hiddenFlag('hiddenPartial')?'?':partial;
     const rowDisplay=displayDimension('rows'),colDisplay=displayDimension('cols'),frozen=challengeFrozen();
-    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Array challenge',pupil:(challenge.type==='build-array'?CK.pupilSpec('model',{check:()=>rows===challenge.targetRows&&cols===challenge.targetCols}):challenge.type==='partial-products'?CK.pupilSpec('partials',{products:partitionParts().map(p=>p.value),total:total()}):CK.pupilSpec(['multiplication-fact','commutative-fact'].includes(challenge.type)?'equation':'number')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
-    const targetStatus=challenge?.mode==='standard'&&challenge.type==='build-array'
-      ?'<div class="gd-answer-live" data-ab-target-status>'+(buildOnTarget()?'On target ✓':'')+'</div>'
-      :'';
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Array challenge',pupil:(challenge.type==='build-array'?CK.pupilSpec('model',{check:()=>rows===challenge.targetRows&&cols===challenge.targetCols}):challenge.type==='partial-products'?CK.pupilSpec('partials',{products:partitionParts().map(p=>p.value),total:total()}):CK.pupilSpec(challenge.type==='multiplication-fact'?'multiplication-equation':challenge.type==='commutative-fact'?'equation':'number')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
+    const targetStatus='';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-array-workbench">'+
       '<div class="gd-array-summary"><strong data-ab-equation>'+equationText()+'</strong><span>'+rowDisplay+' row'+(rowDisplay==='1'?'':'s')+' of '+colDisplay+'</span></div>'+
       '<div class="gd-context-actions gd-array-history" aria-label="Array history"><button class="gd-btn" type="button" data-ab-undo-stage'+(historyDisabled()||!undoStack.length?' disabled':'')+'>Undo</button><button class="gd-btn" type="button" data-ab-redo-stage'+(historyDisabled()||!redoStack.length?' disabled':'')+'>Redo</button></div>'+
+      (!frozen?'<div class="gd-array-touch-steps" role="group" aria-label="Change array size">'+['rows','cols'].map(axis=>'<div><button type="button" class="gd-btn" data-array-step="'+axis+':-1" aria-label="Fewer '+(axis==='rows'?'rows':'columns')+'"'+((axis==='rows'?rows:cols)<=1?' disabled':'')+'>−</button><span>'+(axis==='rows'?rows+' rows':cols+' columns')+'</span><button type="button" class="gd-btn" data-array-step="'+axis+':1" aria-label="More '+(axis==='rows'?'rows':'columns')+'"'+((axis==='rows'?rows:cols)>=MAX?' disabled':'')+'>+</button></div>').join('')+'</div>':'')+
       '<div class="gd-array-shell">'+
         '<div class="gd-array-board" id="ab-board" data-ab-rows="'+rows+'" data-ab-cols="'+cols+'" data-ab-row-split="'+rowSplit+'" data-ab-col-split="'+colSplit+'" data-ab-frozen="'+(frozen?'true':'false')+'" data-ab-target-rows="'+(challenge?.type==='build-array'?challenge.targetRows:'')+'" data-ab-target-cols="'+(challenge?.type==='build-array'?challenge.targetCols:'')+'" style="grid-template-columns:repeat('+cols+',var(--ab-cell));grid-template-rows:repeat('+rows+',var(--ab-cell))">'+cells+'</div>'+
         '<button class="gd-array-resize gd-array-resize--cols'+(frozen?' is-frozen':'')+'" type="button" data-ab-resize="cols"'+(frozen?' disabled':'')+' aria-label="'+(hiddenDimension('cols')?'Columns hidden for this challenge.':'Columns: '+cols+(frozen?'. Fixed for this challenge.':'. Drag left or right, or use arrow keys.'))+'"'+(hiddenDimension('cols')?'':' role="slider" aria-valuemin="1" aria-valuemax="'+MAX+'" aria-valuenow="'+cols+'"')+'><span>'+colDisplay+'</span><small>columns ↔</small></button>'+
