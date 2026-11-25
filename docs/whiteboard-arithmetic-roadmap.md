@@ -191,6 +191,12 @@ Three levels: (1) publish the current challenge or non-challenge representation 
 - Checks: 2,400 mathematical generator checks; 800 individual pupil/solution diagram checks, 400 marking notes; 30 mixed documents, 203 pupil pages, 124 annex pages, 390 answer entries, 30 replacements and 30 captures. Mock SVG DOM, not real-browser acceptance. Custom tasks remain individual-export only. Live model checking retains its existing ordered target; paper marking allows mathematically equivalent arrangements.
 - Eleven of 20 existing entries integrated. Next: Hundred Square, then Multiplication Grid. Formal written methods remain queued after existing rollout.
 
+
+### Hundred Square shared publishing
+- Twelfth adapter: all eight existing challenge types, shared native generator, manual capture, automatic source, same-type replacement and solved graphical annex. Live and automatic settings offer five number ranges (0–99, 1–100, 101–200, 201–300, 901–1000). Short relationship/missing-number questions use complete-row extracts; pattern and marking questions use the full square. Solutions highlight the correct number or mark all rule matches. Captured solved tasks reset to original pupil state.
+- Checks: 6,000 generation checks, 1,600 pupil/solution checks, 1,000 extracts, 200 rule-marking checks, 30 mixed documents, 245 pupil pages, 153 annex pages, 390 answer entries, 30 replacements and 30 solved captures. Mock SVG DOM only; actual browser/touch/print QA remains open. Custom authored tasks remain individual-export only.
+- Twelve of 20 existing entries integrated. Next: Multiplication Grid, then Ruler & Measures. Formal written methods remain queued after the original catalogue. Confirm both entry-point asset versions match before proceeding.
+
 ## Next priorities
 1. Visual/touch feedback: validate the practice-set launcher, whiteboard layout, inline answer boxes, responsive columns and paper outputs; refine density and font sizes after classroom feedback.
 2. Worksheet-oriented improvements: separate arithmetic answer key implemented; five-a-day shortcut implemented; optional arithmetic working space and row-based A4 pagination implemented; shared pupil/teacher export policies across the remaining widgets still need work.
