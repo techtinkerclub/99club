@@ -2171,3 +2171,9 @@ html:not(.gd-embed-page) #tt99-goodies-root #gd-controls .gd-mc-five{min-height:
 #tt99-goodies-root .gd-wm-actions button{min-height:42px}
 #tt99-goodies-root .gd-wm-progress{font:600 13px Arial,sans-serif;color:#52666d;padding:4px}
 #tt99-goodies-root .gd-wm-toggle{display:flex;align-items:center;gap:8px;padding:5px 0}
+
+/* Editable working cells use the existing touch keypad, not a separate UI. */
+#tt99-goodies-root .gd-wm-practice{position:relative;width:100%;margin:auto;container-type:inline-size}
+#tt99-goodies-root .gd-wm-practice svg{max-height:none;height:auto;width:100%}
+#tt99-goodies-root .gd-wm-cell{position:absolute;box-sizing:border-box;min-width:0;min-height:0;margin:0;padding:0;border:1.5px solid #9dbcb5;border-radius:4px;background:#f9fcfb;color:#224c45;text-align:center;font:600 clamp(12px,5.2cqw,34px)/1 Arial,sans-serif;touch-action:manipulation}
+#tt99-goodies-root .gd-wm-cell:focus{outline:2px solid #168778;outline-offset:1px;background:#fff}

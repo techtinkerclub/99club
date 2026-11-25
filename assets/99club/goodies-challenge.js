@@ -394,7 +394,7 @@ function pupilFields(spec){
   if(spec.kind==='partials')return spec.products.map((_,i)=>({label:'Part '+(i+1),hint:'Product'})).concat({label:'Total',hint:'Total'});
   return [{label:'Answer',hint:spec.hint||({number:'Number',money:'e.g. £2.50',fraction:'e.g. 2/3','fraction-form':'e.g. 2/3',mixed:'e.g. 1 2/3','clock-face':'e.g. 3:25','clock-24':'e.g. 15:25','clock-12':'e.g. 3:25 pm',set:'e.g. 1, 2, 4'}[spec.kind]||'Type your answer'),unit:spec.unit}];
 }
-function pupilReady(s){return s.spec.kind==='model'||s.values.length>0&&s.values.every(v=>String(v).trim()!=='')}
+function pupilReady(s){return s.spec.kind==='model'?(!s.spec.ready||!!s.spec.ready()):s.values.length>0&&s.values.every(v=>String(v).trim()!=='')}
 function pupilResponseHtml(challenge,spec){
   if(!spec||challenge.mode!=='standard')return '';
   if(spec.kind==='discuss')return '<div class="gd-pupil-discuss">Discuss your reasoning, then reveal the model answer.</div>';
@@ -430,8 +430,9 @@ function updatePupilUi(panel,s){
 }
 function refreshModelPupil(challenge){
   const s=challenge&&pupilStates.get(challenge);
-  if(!s?.correct||s.spec?.kind!=='model'||s.spec.check?.())return;
-  s.correct=false;s.status='';
+  if(!s||s.spec?.kind!=='model')return;
+  if(s.correct&&!s.spec.check?.()){s.correct=false;s.status=''}
+  else if(!s.correct&&s.spec.ready&&!s.challenge.revealed)s.status='';
   if(typeof document!=='undefined'){const panel=document.querySelector('#gd-stage .gd-pupil-response');if(panel)updatePupilUi(panel,s)}
 }
 function checkPupil(panel,s){

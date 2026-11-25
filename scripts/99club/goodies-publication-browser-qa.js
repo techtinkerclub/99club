@@ -116,6 +116,13 @@ if(process.argv[2]==='prepare'){
      assert(G.challengeKit.pupilAnswerCorrect(spec,[String(m.answer),String(m.remainder)],m.answerText),'Both division answers accepted');
      assert(!G.challengeKit.pupilAnswerCorrect(spec,[String(m.answer),String(m.remainder+1)],m.answerText),'Correct quotient alone is insufficient');
    }
+   for(const [method,a,b] of [['addition',999,1],['subtraction',1000,1],['short-multiplication',247,6],['long-multiplication',247,36],['short-division',1005,5],['long-division',875,24]]){
+     const m=G.writtenMethods.calculate(method,a,b),W=G.columnMethods,slots=W.practiceCells(m),values=Object.fromEntries(slots.filter(s=>!s.optional).map(s=>[s.id,String(s.expected)]));
+     assert(!W.practiceReady(m,{})&&!W.practiceCorrect(m,{}),'Empty working cannot pass: '+method);
+     assert(W.practiceReady(m,values)&&W.practiceCorrect(m,values),'Correct working including blank unused cells: '+method);
+     const first=slots.find(s=>!s.optional);assert(!W.practiceCorrect(m,{...values,[first.id]:String(first.expected+1)}),'Wrong working cell fails: '+method);
+     assert(new Set(slots.map(s=>s.id)).size===slots.length,'Distinct working cells: '+method);
+   }
    const markingCases=[['fraction-wall','identify-strip','actual number of shaded parts'],['fraction-wall','denominator-misconception','equal-sized wholes'],['array-builder','multiplication-fact','rows × columns'],['clock','elapsed-forward','Both hands'],['clock','twentyfour-to-twelve','am or pm'],['number-line','missing-labels','respective boxes'],['fdp','equivalent-fraction','preserve the value'],['sequences','rule','stated rule family'],['measurement','distance-between','larger minus smaller']];
    for(const [tool,type,expected] of markingCases){const draft=P.createDocument();draft.generate(tool,P.defaultSettings(tool),1,type,rng);const item=draft.list()[0];assert(P.answerNote(item).includes(expected),'Explicit marking criteria: '+tool+'/'+type)}
    const sample='A very long marking explanation. '+('Accept all equivalent mathematical explanations using the required units and exact values. '.repeat(15))+'End of marking explanation.';

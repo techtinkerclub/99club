@@ -987,6 +987,25 @@ async function run(){
     assert(rejected&&draft.list().length===2,'Incomplete custom tasks cannot silently create answerless documents');
     api.remove(fixture.record.id);
   }
+  // Work directly in actual embedded written-method grids with the shared keypad.
+  for(const id of ['column-addition','column-subtraction','written-multiplication','written-division']){
+    const fixture=await addForSave(id),doc=fixture.doc,live=doc.defaultView.TT99Goodies,frame=fixture.frame;
+    const choose=doc.querySelector('[data-wm-workflow="challenge"]');choose.click();await tick();
+    doc.querySelector('[data-wm-challenge-mode]').click();await tick();
+    const model=live.lessonState.capture(id).model,M=live.writtenMethods.calculate(model.method,model.a,model.b),slots=live.columnMethods.practiceCells(M);
+    const stage=doc.querySelector('#gd-stage'),check=stage.querySelector('[data-gd-pupil-check]');
+    assert(check.disabled&&stage.querySelectorAll('[data-wm-cell]').length===slots.length,id+' complete working starts blank and Check disabled');
+    const first=stage.querySelector('[data-wm-cell]');first.click();await tick();
+    assert(doc.querySelector('.gd-touch-keypad'),id+' working cell opens shared touch keypad');
+    doc.querySelector('[data-gd-touch-close]').click();
+    for(const slot of slots.filter(s=>!s.optional)){const input=stage.querySelector('[data-wm-cell="'+slot.id+'"]');input.value=String(slot.expected);input.dispatchEvent(new doc.defaultView.Event('input',{bubbles:true}))}
+    assert(!check.disabled,id+' enables Check only after all required working');
+    check.click();await tick();
+    assert(stage.querySelector('.gd-pupil-feedback').classList.contains('is-correct'),id+' correct working accepted');
+    const P=TT99Goodies.publishing,draft=P.createDocument();draft.addCurrent(id,live.lessonState.capture(id).model);
+    assert(!P.renderItem(draft.list()[0],false).querySelector('[data-wm-result],[data-wm-partial],[data-wm-quotient]'),id+' pupil publication never includes entered working');
+    api.remove(fixture.record.id);
+  }
   // Specialist native engines must work through the same full and quick panels.
   for(const id of ['place-value','abacus','maths-canvas','sequences']){
     const fixture=await addForSave(id),panel=document.getElementById('gd-board-floating-controls');

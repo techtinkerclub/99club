@@ -45,7 +45,7 @@ function multiplicationDiagram(model,{step=0,grid=true,labels=true,work=false}={
  return svg;
 }
 function divisionDiagram(model,{step=0,grid=true,labels=true,work=false}={}){
- const {a,b,method,steps}=model,long=method==='long-division',A=String(a).split(''),cols=A.length,cell=82,left=170,W=Math.max(580,left+cols*cell+150),H=long?240+cols*132:340;
+ const {a,b,method,steps}=model,long=method==='long-division',A=String(a).split(''),cols=A.length,cell=82,left=170,W=Math.max(580,left+cols*cell+150),H=long?220+cols*132:340;
  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
  const attrs=(n,a)=>{Object.entries(a).forEach(([k,v])=>n.setAttribute(k,String(v)));return n};
  attrs(svg,{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':LABEL[method]+' working'});
@@ -74,13 +74,13 @@ function divisionDiagram(model,{step=0,grid=true,labels=true,work=false}={}){
    let row=0;
    for(const s of seen){
      if(s.index<(first<0?cols-1:first))continue;
-     const y=220+row*132;
-     const number=(n,yy,attr)=>String(n).split('').reverse().forEach((v,i)=>text(x(s.index-i),yy,v,36,{[attr]:s.index}));
-     number(s.dividend,y,'data-wm-partial-dividend');
-     number(s.product,y+48,'data-wm-div-product');
-     text(left-38,y+48,'−',30);
-     line(Math.max(left,x(s.index-String(s.dividend).length+1)-cell/2),y+58,x(s.index)+cell/2,y+58,true);
-     number(s.remainder,y+96,'data-wm-div-remainder');
+     const y=230+row*132;
+     const number=(n,yy,attr)=>String(n).split('').reverse().forEach((v,i)=>text(x(s.index-i),yy,v,36,{[attr]:s.index,'data-wm-column':s.index-i}));
+     if(row)number(s.dividend,y-64,'data-wm-partial-dividend');
+     number(s.product,y,'data-wm-div-product');
+     text(left-38,y,'−',30);
+     line(Math.max(left,x(s.index-String(s.dividend).length+1)-cell/2),y+12,x(s.index)+cell/2,y+12,true);
+     if(s===current)number(s.remainder,y+60,'data-wm-div-remainder');
      row++;
    }
  }
@@ -142,31 +142,102 @@ for(const method of Object.keys(IDS)){
   answerNote:item=>method==='division'?'Require the correct quotient and remainder (zero for exact division). Check the place-value alignment and each regrouping or subtraction; the remainder must be smaller than the divisor. Accept equivalent valid written working.':method==='multiplication'?(item.data.method==='long-multiplication'?'Check both partial products, including the tens-place shift, and their sum. Accept equivalent valid written methods.':'Check each digit product, carries and final product. Accept equivalent valid working.'):method==='addition'?'Check place-value alignment, correct exchanges and the final sum. Equivalent valid written working is acceptable.':'Check place-value alignment, exchanges (including through zero if needed) and the final difference. Equivalent valid written working is acceptable.'
  });
 }
-G.columnMethods={diagram,paper};
+
+/* A practice plan uses the same diagram coordinates as the teacher key.
+   Slot positions depend only on operands and the chosen method. Expected
+   values stay in JS; pupil SVG and HTML contain no solution attributes. */
+function practiceCells(model){
+ const {a,b,method,width,steps}=model,slots=[],A=digits(a),B=digits(b);
+ const add=(id,x,y,w,h,label,expected,optional=false)=>slots.push({id,x,y,w,h,label,expected,optional});
+ const short=method==='short-division',longDiv=method==='long-division';
+ if(short||longDiv){
+   const cols=A.length,cell=82,left=170,W=Math.max(580,left+cols*cell+150),x=i=>left+(i+.5)*cell;
+   let first=0,prefix=0;const input=String(a).split('').map(Number);
+   while(first<cols-1){prefix=prefix*10+input[first];if(prefix>=b)break;first++}
+   for(const s of steps)add('q'+s.index,x(s.index),78,64,49,'Quotient digit '+(s.index+1),s.digit,s.index<first);
+   if(short){
+     for(const s of steps.slice(1))add('carry'+s.index,x(s.index)-25,126,36,30,'Carried remainder '+(s.index+1),s.incoming,s.incoming===0);
+   }else{
+     for(let i=first;i<cols;i++){
+       const s=steps[i],row=i-first,y=230+row*132,available=Math.min(i+1,String(b).length+1);
+       if(row){
+         const ds=digits(s.dividend);
+         for(let j=0;j<available;j++)add('dividend'+i+'-'+j,x(i-j),y-78,65,43,'Partial dividend, row '+(row+1)+', digit '+(j+1),ds[j]??0,j>=ds.length);
+       }
+       const ds=digits(s.product);
+       for(let j=0;j<available;j++)add('product'+i+'-'+j,x(i-j),y-14,65,43,'Subtraction row '+(row+1)+', digit '+(j+1),ds[j]??0,j>=ds.length);
+     }
+     const last=steps.at(-1),ds=digits(last.remainder),row=cols-1-first,y=230+row*132+60;
+     for(let j=0;j<Math.min(cols,String(b).length);j++)add('last-remainder'+j,x(cols-1-j),y-14,65,43,'Final remainder digit '+(j+1),ds[j]??0,j>=ds.length);
+   }
+   add('remainder',W-27,76,40,50,'Remainder',model.remainder);
+   return slots;
+ }
+ const mult=method.endsWith('multiplication'),long=method==='long-multiplication',cols=mult?A.length+B.length:width+(method==='addition'?1:0),cell=90,W=Math.max(480,(cols+1)*cell+52),left=W-30-cols*cell,x=i=>left+(cols-i-.5)*cell;
+ const expected=digits(model.answer);
+ for(let i=0;i<cols;i++)add('result'+i,x(i),long?450:278,72,54,'Result '+M.place(i),expected[i]??0,i>=expected.length);
+ if(method==='addition'){
+   for(let i=1;i<cols;i++){const n=model.carries[i]||0;add('carry'+i,x(i),79,58,43,'Carry into '+M.place(i),n,!n)}
+ }else if(method==='subtraction'){
+   for(let i=0;i<A.length;i++){const n=model.exchanged[i];add('exchange'+i,x(i),79,58,43,'Regrouped '+M.place(i),n,n===A[i])}
+ }else if(mult){
+   if(long){
+     for(let r=0;r<2;r++){
+       const ds=digits(model.partialProducts[r]);
+       for(let i=0;i<cols;i++)add('partial'+r+'-'+i,x(i),280+r*65,72,50,'Partial product '+(r+1)+', '+M.place(i),ds[i]??0,i>=ds.length);
+     }
+     const s=steps.filter(s=>s.type==='sum-products').at(-1)?.sumStep;
+     for(let i=1;i<cols;i++){const n=s?.carries?.[i]||0;add('sum-carry'+i,x(i),394,58,32,'Addition carry into '+M.place(i),n,!n)}
+   }else{
+     const s=steps.filter(s=>s.carries).at(-1);
+     for(let i=1;i<cols;i++){const n=s?.carries?.[i]||0;add('carry'+i,x(i),79,58,43,'Carry into '+M.place(i),n,!n)}
+   }
+ }
+ return slots;
+}
+function practiceReady(model,entries){return practiceCells(model).every(s=>s.optional||String(entries[s.id]??'').trim()!=='')}
+function practiceCorrect(model,entries){return practiceCells(model).every(s=>{const v=String(entries[s.id]??'').trim();return !v?s.optional:/^\d+$/.test(v)&&Number(v)===s.expected})}
+function mountPractice(host,model,entries,onEdit,grid,labels){
+ const svg=diagram(model,{grid,labels}),[, ,W,H]=svg.getAttribute('viewBox').split(' ').map(Number);
+ const wrap=document.createElement('div');wrap.className='gd-wm-practice';wrap.style.maxWidth='min(100%, '+(W/H*65).toFixed(1)+'vh)';
+ wrap.appendChild(svg);host.appendChild(wrap);
+ for(const slot of practiceCells(model)){
+   const el=document.createElement('input');el.className='gd-wm-cell';el.type='text';el.inputMode='none';el.autocomplete='off';el.maxLength=2;
+   el.dataset.gdKeypad='number';el.dataset.wmCell=slot.id;el.setAttribute('aria-label',slot.label);el.value=String(entries[slot.id]??'');
+   Object.assign(el.style,{left:((slot.x-slot.w/2)/W*100)+'%',top:((slot.y-slot.h/2)/H*100)+'%',width:(slot.w/W*100)+'%',height:(slot.h/H*100)+'%'});
+   el.addEventListener('input',()=>{el.value=el.value.replace(/[^0-9]/g,'').slice(0,2);entries[slot.id]=el.value;onEdit()});wrap.appendChild(el);
+ }
+}
+
+G.columnMethods={diagram,paper,practiceCells,practiceReady,practiceCorrect};
 G.columnMethodTool=function(method){
  const id=IDS[method],CK=G.challengeKit,X=G.exportTools;
  const multiply=method==='multiplication',divide=method==='division',multi=multiply||divide;
- let model=divide?M.calculate('long-division',875,24):multiply?M.calculate('long-multiplication',247,36):M.calculate(method,method==='addition'?368:1002,method==='addition'?457:586),shown=0,grid=true,labels=true,workflow='build',settings=M.settings({year:divide?6:multiply?5:4}),task=null,status='',setup=null;
+ let model=divide?M.calculate('long-division',875,24):multiply?M.calculate('long-multiplication',247,36):M.calculate(method,method==='addition'?368:1002,method==='addition'?457:586),shown=0,grid=true,labels=true,workflow='build',settings=M.settings({year:divide?6:multiply?5:4}),task=null,status='',setup=null,practiceMode='working',entries={};
  const option=(v,label,current)=>'<option value="'+esc(v)+'"'+(String(v)===String(current)?' selected':'')+'>'+esc(label)+'</option>';
  const select=(name,values,current)=>'<select class="gd-select" data-wm-setting="'+name+'">'+values.map(([v,l])=>option(v,l,current)).join('')+'</select>';
  const remainderOptions=[['any','Mixed'],['exact','Exact division'],['with','With remainders']];
  function controls(){
   const tabs='<div class="gd-row gd-wm-tabs" role="tablist" aria-label="Written calculation workflow">'+[['build','Explore'],['challenge','Challenge'],['export','Export']].map(([v,l])=>'<button type="button" class="gd-btn'+(workflow===v?' gd-btn--primary':'')+'" data-wm-workflow="'+v+'">'+l+'</button>').join('')+'</div>';
   if(workflow==='export')return tabs+'<div class="gd-row">'+btn('Copy image','wm-copy')+btn('PNG','wm-png')+btn('SVG','wm-svg')+btn('Print / PDF','wm-print')+'</div>'+(task?'<div class="gd-row">'+btn('Print answer key','wm-key-print')+'</div>':'')+'<p class="gd-help" id="wm-status">'+esc(status)+'</p>';
-  if(workflow==='challenge')return tabs+field('Year group',select('year',[[3,'Year 3'],[4,'Year 4'],[5,'Year 5'],[6,'Year 6']],settings.year))+(divide?field('Remainders',select('remainders',remainderOptions,settings.remainders)):'')+CK.nativeRandomHtml('wm',[{id:'practice',label:'Practice',ids:generationTypes(method,settings).map(t=>t.id)}])+generationTypes(method,settings).map(t=>'<button type="button" class="gd-btn" data-wm-challenge-mode="'+t.id+'">'+esc(t.label)+'</button>').join('')+'<p class="gd-help">Choose a question type. Pupils can enter their answer using the on-screen keypad.</p>';
+  if(workflow==='challenge')return tabs+field('Year group',select('year',[[3,'Year 3'],[4,'Year 4'],[5,'Year 5'],[6,'Year 6']],settings.year))+field('Practice',select('practiceMode',[['working','Complete working'],['answer','Final answer only']],practiceMode))+(divide?field('Remainders',select('remainders',remainderOptions,settings.remainders)):'')+CK.nativeRandomHtml('wm',[{id:'practice',label:'Practice',ids:generationTypes(method,settings).map(t=>t.id)}])+generationTypes(method,settings).map(t=>'<button type="button" class="gd-btn" data-wm-challenge-mode="'+t.id+'">'+esc(t.label)+'</button>').join('')+'<p class="gd-help">Use the on-screen keypad. Complete working checks the written method as well as the answer.</p>';
   return tabs+(multi?field('Method',select('method',divide?[['short-division','Short division'],['long-division','Long division']]:[['short-multiplication','Short multiplication'],['long-multiplication','Long multiplication']],model.method)):'')+field(divide?'Dividend':'First number','<input class="gd-input" type="number" min="0" max="9999999" inputmode="numeric" id="wm-a" value="'+model.a+'">')+field(divide?'Divisor':'Second number','<input class="gd-input" type="number" min="0" max="9999999" inputmode="numeric" id="wm-b" value="'+model.b+'">')+'<div class="gd-row">'+btn('Apply numbers','wm-apply')+btn('New example','wm-new')+'</div>'+field('Year group',select('year',[[3,'Year 3'],[4,'Year 4'],[5,'Year 5'],[6,'Year 6']],settings.year))+ (divide?field('Remainders',select('remainders',remainderOptions,settings.remainders)):multiply?'':field('Exchanges',select('exchange',EXCHANGES.filter(([v])=>v!=='across-zero'||method==='subtraction'),settings.exchange)))+'<label class="gd-wm-toggle"><input type="checkbox" data-wm-display="grid"'+(grid?' checked':'')+'> Place-value grid</label><label class="gd-wm-toggle"><input type="checkbox" data-wm-display="labels"'+(labels?' checked':'')+'> Column headings</label><p class="gd-help" id="wm-status" role="status">'+esc(status)+'</p>';
  }
  function launch(type){
   if(!task)setup={a:model.a,b:model.b,method:model.method,shown};
   const before=model.a+':'+model.b;for(let i=0;i<12;i++){model=generate(method,settings,type);if(model.a+':'+model.b!==before)break}
-  task=CK.normalise({mode:'standard',type:model.type,title:LABEL[model.method],prompt:'Calculate using '+(multi?LABEL[model.method].toLowerCase():'the column method')+(divide?' Give the quotient and remainder (0 if exact).':'')+'.',answer:divide?model.answer+' r '+model.remainder:String(model.answer),answerMode:'manual',revealed:false});shown=0;workflow='challenge';renderControls();renderStage();
+  entries={};task=CK.normalise({mode:'standard',type:model.type,title:LABEL[model.method],prompt:'Calculate using '+(multi?LABEL[model.method].toLowerCase():'the column method')+(divide?' Give the quotient and remainder (0 if exact).':'')+'.',answer:divide?model.answer+' r '+model.remainder:String(model.answer),answerMode:'manual',revealed:false});shown=0;workflow='challenge';renderControls();renderStage();
  }
- function exit(){if(setup){model=M.calculate(multi?setup.method:method,setup.a,setup.b);shown=setup.shown}task=null;setup=null;workflow='build';renderControls();renderStage()}
+ function exit(){if(setup){model=M.calculate(multi?setup.method:method,setup.a,setup.b);shown=setup.shown}task=null;entries={};setup=null;workflow='build';renderControls();renderStage()}
  function renderStage(){
   const stage=q('#gd-stage');
   if(task){
-   stage.innerHTML=CK.bannerHtml(task,{pupil:divide?CK.pupilSpec('quotient-remainder',{quotient:model.answer,remainder:model.remainder}):CK.pupilSpec('number'),actions:[{action:'another',label:'Another'},{action:'end',label:'Exit challenge'}]})+'<div class="gd-wm-diagram"></div>';
-   q('.gd-wm-diagram',stage).appendChild(diagram(model,{step:task.revealed?model.steps.length:0,grid,labels}));
+   const working=practiceMode==='working';
+   const pupil=working?CK.pupilSpec('model',{hint:'Fill the working cells. Leave unused exchanges and leading places blank, then check.',ready:()=>practiceReady(model,entries),check:()=>practiceCorrect(model,entries)}):divide?CK.pupilSpec('quotient-remainder',{quotient:model.answer,remainder:model.remainder}):CK.pupilSpec('number');
+   stage.innerHTML=CK.bannerHtml(task,{pupil,actions:[{action:'another',label:'Another'},{action:'end',label:'Exit challenge'}]})+'<div class="gd-wm-diagram"></div>';
+   const host=q('.gd-wm-diagram',stage);
+   if(working&&!task.revealed)mountPractice(host,model,entries,()=>CK.refreshModelPupil(task),grid,labels);
+   else host.appendChild(diagram(model,{step:task.revealed?model.steps.length:0,grid,labels}));
    q('[data-challenge-action="another"]',stage).onclick=()=>launch(generationTypes(method,settings).some(t=>t.id===task.type)?task.type:'all');
    q('[data-challenge-action="end"]',stage).onclick=exit;
    const reveal=q('[data-board-action="reveal"]',stage);if(reveal)reveal.onclick=()=>{task.revealed=!task.revealed;renderStage()};
@@ -182,7 +253,7 @@ G.columnMethodTool=function(method){
  function renderControls(){
   const root=q('#gd-controls');root.innerHTML=controls();
   qa('[data-wm-workflow]',root).forEach(el=>el.onclick=()=>{workflow=el.dataset.wmWorkflow;if(workflow==='build'&&task){exit();return}renderControls()});
-  qa('[data-wm-setting]',root).forEach(el=>el.onchange=()=>{if(el.dataset.wmSetting==='method'){const target=el.value;model=M.calculate(target,Math.min(model.a,9999),target.startsWith('short-')?Math.max(divide?1:0,Math.min(9,model.b)):Math.max(10,Math.min(99,model.b)));shown=0;renderStage()}else settings=M.settings({...settings,[el.dataset.wmSetting]:el.value});renderControls()});
+  qa('[data-wm-setting]',root).forEach(el=>el.onchange=()=>{if(el.dataset.wmSetting==='practiceMode'){practiceMode=el.value;if(task){const saved={...task,revealed:false};task=CK.normalise(saved);renderStage()}}else if(el.dataset.wmSetting==='method'){const target=el.value;model=M.calculate(target,Math.min(model.a,9999),target.startsWith('short-')?Math.max(divide?1:0,Math.min(9,model.b)):Math.max(10,Math.min(99,model.b)));shown=0;renderStage()}else settings=M.settings({...settings,[el.dataset.wmSetting]:el.value});renderControls()});
   qa('[data-wm-display]',root).forEach(el=>el.onchange=()=>{if(el.dataset.wmDisplay==='grid')grid=el.checked;else labels=el.checked;renderStage()});
   qa('[data-wm-challenge-mode]',root).forEach(el=>el.onclick=()=>launch(el.dataset.wmChallengeMode));
   const apply=q('#wm-apply',root);if(apply)apply.onclick=()=>{try{const a=q('#wm-a').value,b=q('#wm-b').value;if(a===''||b==='')throw Error('Enter both numbers.');model=M.calculate(model.method,Number(a),Number(b));shown=0;status='';renderControls();renderStage()}catch(e){message(e.message)}};
@@ -190,6 +261,6 @@ G.columnMethodTool=function(method){
   for(const kind of ['copy','png','svg','print',...(task?['key-print']:[])]){let el=q('#wm-'+kind,root);if(!el){el=document.createElement('button');el.type='button';el.hidden=true;root.appendChild(el)}el.setAttribute('data-gd-direct-export',kind);el.onclick=()=>exportAction(kind)}
  }
  setPanels('','');renderControls();renderStage();
- G.lessonState.register(id,()=>({a:model.a,b:model.b,method:model.method,shown,grid,labels,workflow,settings,task,setup,pupil:CK.capturePupil(task)}),saved=>{model=M.calculate(multi?saved.method:method,saved.a,saved.b);shown=Math.max(0,Math.min(model.steps.length,Number(saved.shown)||0));grid=saved.grid!==false;labels=saved.labels!==false;workflow=['build','challenge','export'].includes(saved.workflow)?saved.workflow:'build';settings=M.settings(saved.settings);task=saved.task?CK.normalise({...saved.task,answer:divide?model.answer+' r '+model.remainder:String(model.answer)}):null;setup=saved.setup||null;CK.restorePupil(task,saved.pupil);renderControls();renderStage()});
+ G.lessonState.register(id,()=>({a:model.a,b:model.b,method:model.method,shown,grid,labels,workflow,settings,task,setup,practiceMode,entries:{...entries},pupil:CK.capturePupil(task)}),saved=>{model=M.calculate(multi?saved.method:method,saved.a,saved.b);shown=Math.max(0,Math.min(model.steps.length,Number(saved.shown)||0));grid=saved.grid!==false;labels=saved.labels!==false;workflow=['build','challenge','export'].includes(saved.workflow)?saved.workflow:'build';settings=M.settings(saved.settings);task=saved.task?CK.normalise({...saved.task,answer:divide?model.answer+' r '+model.remainder:String(model.answer)}):null;setup=saved.setup||null;practiceMode=saved.practiceMode==='answer'?'answer':'working';entries=Object.fromEntries(Object.entries(saved.entries||{}).filter(([id,v])=>practiceCells(model).some(s=>s.id===id)&&/^\d{0,2}$/.test(String(v))));CK.restorePupil(task,saved.pupil);renderControls();renderStage()});
 };
 })(window.TT99Goodies);
