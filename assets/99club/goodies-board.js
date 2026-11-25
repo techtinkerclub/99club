@@ -80,6 +80,7 @@ const QUICK_ACTIONS={
   ],
   'maths-canvas':[
     {label:'+ Tile',selector:'[data-gd-action="add"]',allowHidden:true,panelMode:'tile-palette',title:'Add number or operation tile'},
+    {label:'Challenge',selector:'[data-mc-workflow="challenge"]',allowHidden:true,panelMode:'challenge',title:'Choose a number challenge'},
     {label:'Combine +',selector:'[data-gd-action="combine"]',allowHidden:true,title:'Combine selected number tile by addition'},
     {label:'Split',selector:'[data-gd-action="split"]',allowHidden:true,title:'Split selected number into equal tiles'},
     {label:'Duplicate',selector:'[data-gd-action="duplicate"]',allowHidden:true},
@@ -882,7 +883,7 @@ if(floatingControlsBody){
     if(control.tagName!=='BUTTON'&&!(control.tagName==='INPUT'&&/^(button|submit|reset)$/i.test(control.type||'')))return;
     e.preventDefault();e.stopPropagation();
     const {obj,node}=floatingOriginal(control.dataset.boardControlIndex);if(!obj||!node)return;
-    const launch=node.matches('[data-gd-random-scope],[data-gd-native-random],[data-pv-challenge-mode],[data-ab-challenge-mode],[data-ab-history-operation],#ab-history-challenge,[id$="-generate"]');
+    const launch=node.matches('[data-gd-random-scope],[data-gd-native-random],[data-pv-challenge-mode],[data-ab-challenge-mode],[data-mc-challenge-mode],[data-ab-history-operation],#ab-history-challenge,[id$="-generate"]');
     const specific=floatingPanelMode==='challenge'&&[...node.attributes].find(a=>/^-?data-[a-z0-9-]+-challenge-type$/.test(a.name));
     if(specific){const prefix=specific.name.match(/^data-([a-z0-9-]+)-challenge-type$/)[1];node.click();const generate=sourceControls(obj)?.querySelector('#'+prefix+'-generate');if(generate&&!generate.disabled){generate.click();closeFloatingControls(obj.id)}}
     else{node.click();if(launch&&floatingPanelMode==='challenge')closeFloatingControls(obj.id);else if(isObjectPalette())renderFloatingControls(obj)}
