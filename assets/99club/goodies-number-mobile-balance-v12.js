@@ -38,8 +38,8 @@ function tidy(){
   buttons=[...actions.querySelectorAll('button')];
   setLabel(change,'Change','Choose a different Number Mobile challenge');
   setLabel(another||buttons.find(btn=>/^another(?: like this)?$/i.test(btn.textContent.trim())),'Another','Generate another challenge of this type');
-  setLabel(q('[data-board-action="reveal"]',actions),'Reveal','Reveal the answer');
-  setLabel(q('[data-nmb-v7-exit]',actions),'Exit','Exit challenge mode');
+  setLabel(q('[data-board-action="reveal"]',actions),revealed()?'Hide answer':'Reveal answer','Show or hide the answer');
+  setLabel(q('[data-nmb-v7-exit]',actions),'Exit challenge','Exit challenge mode');
   syncCompareConceal();
   if(watchedActions!==actions){
     actionsObserver?.disconnect();watchedActions=actions;
