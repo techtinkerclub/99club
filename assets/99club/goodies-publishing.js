@@ -24,6 +24,22 @@ function createDocument(){
     for(let i=0;i<n;i++)records.push(uniqueQuestion(tool,recipe,items.concat(records),rng));
     return append(records);
   },
+  generateBlocks(blocks,rng=Math.random){
+    const records=[];
+    for(const block of blocks){
+      const a=adapterFor(block.tool),n=Math.round(Number(block.count)),allowed=types(block.tool,block.settings).map(t=>t.id),selected=block.types===null?allowed:block.types;
+      if(!Number.isInteger(n)||n<1||n>20)throw Error('Choose 1–20 questions per source.');
+      if(!selected?.length||selected.some(id=>!allowed.includes(id)))throw Error('Choose compatible question types for '+a.label+'.');
+      if(items.length+records.length+n>80)throw Error('A document can contain up to 80 items.');
+      const queue=[];
+      for(let i=0;i<n;i++){
+        if(!queue.length){queue.push(...selected);for(let j=queue.length-1;j>0;j--){const k=Math.floor(rng()*(j+1));[queue[j],queue[k]]=[queue[k],queue[j]]}}
+        const recipe=a.recipe(copy(block.settings),queue.shift());
+        try{records.push(uniqueQuestion(block.tool,recipe,items.concat(records),rng))}catch(e){throw Error(a.label+': '+e.message)}
+      }
+    }
+    return append(records);
+  },
   replace(id,rng=Math.random){const i=items.findIndex(x=>x.id===id);if(i<0||!items[i].recipe)throw Error('Only generated challenges can be replaced.');
     const old=items[i],item=uniqueQuestion(old.tool,old.recipe,items,rng);items[i]={...item,id:old.id};return copy(items[i])},
   remove(id){items=items.filter(x=>x.id!==id)},
@@ -78,27 +94,97 @@ function pages(items,{title='Maths practice',teacher=false}={}){
    return out;
  });
 }
-function openEditor(draft){
+// Automatic and live capture share the same document and immutable recipes.
+const BUILDER_CATALOG=[
+ ['maths-canvas','Arithmetic'],['sequences','Sequences & rules'],['abacus','Abacus'],['place-value','Place value'],
+ ['number-line','Number line'],['fraction-wall','Fraction wall'],['bar-model','Bar model'],['hundred-square','Hundred square'],['multiplication-grid','Multiplication grid'],['array-builder','Array builder'],['clock','Clock & time'],['money','UK money'],['coordinates','Coordinate grid'],['measurement','Ruler & measures'],['randomiser','Dice, spinner & randomiser'],['balance','Equation balance'],['times-table','Times-table visualiser'],['factors','Factors & multiples'],['fdp','Fraction–decimal–percentage'],['geoboard','Shape & geoboard']
+];
+function defaults(tool){
+ if(tool==='maths-canvas')return {difficulty:'medium',curriculumProfile:'custom',numberSettings:G.numberChallenges.settings({},'medium'),workingLines:0};
+ if(tool==='sequences')return {settings:{family:'all',difficulty:'medium'}};
+ if(tool==='abacus')return {kind:'western',rows:5,colourScheme:'classic',showRowLabels:true};
+ if(tool==='place-value')return {rangeStart:3,rangeEnd:9,activityBudget:5,additionDifficulty:'mixed',responseLines:3};
+ return {};
+}
+function openEditor(draft,{mode='review'}={}){
  let dlg=document.getElementById('gd-publishing-editor');
  if(!dlg){dlg=document.createElement('dialog');dlg.id='gd-publishing-editor';dlg.className='gd-publishing-editor';document.body.appendChild(dlg)}
- let title=dlg.dataset.title||'Maths practice',teacher=false,status='';
- function render(){
-   const items=draft.list(),esc=G.esc;
-   dlg.innerHTML='<div class="gd-pub-head"><strong>Worksheet document · pilot</strong><button type="button" class="gd-btn" data-pub-close>Close</button></div><div class="gd-pub-toolbar"><label>Title <input type="text" class="gd-input" data-pub-title maxlength="80" value="'+esc(title)+'"></label><button class="gd-btn" data-pub-group>Group by widget</button><button class="gd-btn" data-pub-shuffle>Mix questions</button><button class="gd-btn" data-pub-pupil'+(!teacher?' aria-pressed="true"':'')+'>Pupil</button><button class="gd-btn" data-pub-teacher'+(teacher?' aria-pressed="true"':'')+'>Teacher key</button><button class="gd-btn gd-btn--primary" data-pub-print'+(!items.length?' disabled':'')+'>Print / PDF</button></div><p class="gd-help">Add more content from the whiteboard frame Export menu. Replace one challenge without changing the others. Draft stays in this open whiteboard session.</p><p role="status" class="gd-pub-status">'+esc(status)+'</p><div class="gd-pub-body"><div class="gd-pub-list">'+items.map((item,i)=>'<div class="gd-pub-item"><strong>'+(i+1)+'. '+esc(adapterFor(item.tool).label)+' · '+esc(adapterFor(item.tool).title(item))+'</strong><div><button class="gd-btn" data-pub-up="'+item.id+'"'+(i===0?' disabled':'')+'>↑</button><button class="gd-btn" data-pub-down="'+item.id+'"'+(i===items.length-1?' disabled':'')+'>↓</button>'+(item.recipe?'<button class="gd-btn" data-pub-replace="'+item.id+'">Replace</button>':'')+'<button class="gd-btn" data-pub-remove="'+item.id+'">Remove</button></div></div>').join('')+'</div><div class="gd-pub-preview"></div></div>';
-   const preview=dlg.querySelector('.gd-pub-preview');
-   if(!items.length)preview.textContent='Your document is empty.';
-   else for(const page of pages(items,{title,teacher}))preview.appendChild(G.exportTools.preparePaperSvg(page));
+ let title=dlg.dataset.title||'Maths practice',teacher=false,status='',view=mode,blocks=dlg._pubBlocks||[],nextBlock=Math.max(0,...blocks.map(b=>b.id))+1,mix=false;
+ const esc=G.esc;
+ const option=(value,label,current)=>'<option value="'+esc(value)+'"'+(String(value)===String(current)?' selected':'')+'>'+esc(label)+'</option>';
+ const select=(label,key,values,current)=>'<label class="gd-pub-field"><span>'+esc(label)+'</span><select data-pub-setting="'+esc(key)+'">'+values.map(v=>Array.isArray(v)?option(v[0],v[1],current):option(v,v,current)).join('')+'</select></label>';
+ const levels=['easy','medium','hard'];
+ function checks(label,key,values,selected){return '<div class="gd-pub-check-row"><span>'+esc(label)+'</span>'+values.map(v=>'<label><input type="checkbox" data-pub-array="'+key+'" value="'+esc(v)+'"'+(selected.includes(v)?' checked':'')+'>'+esc(v)+'</label>').join('')+'</div>'}
+ function blockSettings(block){
+   const m=block.settings,t=block.tool;
+   if(t==='maths-canvas'){
+     const n=m.numberSettings,N=G.numberChallenges;
+     return '<div class="gd-pub-fields">'+select('Curriculum','curriculumProfile',N.curriculumProfiles.map(x=>[x.id,x.label]),m.curriculumProfile)+select('Difficulty','difficulty',levels,m.difficulty)+select('Minimum','numberSettings.min',[-100,-20,-10,0,1,2,5,10,20,50,100,200,500,1000].filter(x=>x<n.max),n.min)+select('Maximum','numberSettings.max',[10,20,50,100,200,500,1000,10000].filter(x=>x>n.min),n.max)+select('Precision','numberSettings.precision',[[0,'Whole numbers'],[1,'1 decimal place'],[2,'2 decimal places']],n.precision)+select('Working space','workingLines',[[0,'None'],[2,'2 lines'],[4,'4 lines']],m.workingLines)+select('Left terms','numberSettings.left',[[0,'Automatic'],1,2,3,4],n.left)+select('Right terms','numberSettings.right',[[0,'Automatic'],1,2,3,4],n.right)+select('Max denominator','numberSettings.denominator',[4,6,8,10,12,20],n.denominator)+'</div>'+checks('Operations','ops',N.OPS,n.ops)+checks('Comparisons','relations',['=','<','>'],n.relations)+checks('Extensions','extras',['Brackets','Powers','Remainders'],n.extras)+
+     '<details class="gd-pub-details"'+(block.topicsOpen?' open':'')+' data-pub-topics><summary>Optional arithmetic topics ('+n.topics.length+')</summary><div class="gd-pub-check-grid">'+N.topics.map(o=>'<label><input type="checkbox" data-pub-array="topics" value="'+esc(o.id)+'"'+(n.topics.includes(o.id)?' checked':'')+'>'+esc(o.label)+'</label>').join('')+'</div></details>';
+   }
+   if(t==='sequences')return '<div class="gd-pub-fields">'+select('Rule family','settings.family',[['all','All families'],['constant','Constant difference'],['increasing','Changing difference'],['geometric','Multiplication'],['alternating','Alternating']],m.settings.family)+select('Difficulty','settings.difficulty',levels,m.settings.difficulty)+'</div>';
+   if(t==='abacus')return '<div class="gd-pub-fields">'+select('Instrument','kind',[['western','Western abacus'],['soroban','Soroban'],['suanpan','Suanpan']],m.kind)+select('Places','rows',[3,4,5,6],m.rows)+select('Colours','colourScheme',['classic','place','sea','berry','forest'],m.colourScheme)+'</div>';
+   if(t==='place-value'){
+     const labels=['10,000,000','1,000,000','100,000','10,000','1,000','100','10','1','0.1','0.01','0.001'];
+     return '<div class="gd-pub-fields">'+select('Highest place','rangeStart',labels.slice(0,10).map((v,i)=>[i,v]),m.rangeStart)+select('Lowest place','rangeEnd',labels.map((v,i)=>[i,v]).filter(v=>v[0]>m.rangeStart&&v[0]<=m.rangeStart+6),m.rangeEnd)+select('Exact counter budget','activityBudget',[3,4,5,6,7,8,9],m.activityBudget)+select('Addition','additionDifficulty',[['mixed','Mixed'],['regroup','Needs regrouping'],['no-regroup','No regrouping']],m.additionDifficulty)+'</div>';
+   }
+   return '';
  }
- dlg.onclick=e=>{const btn=e.target.closest('button');if(!btn)return;const d=btn.dataset;
+ function blockHtml(block,i){
+   const available=types(block.tool,block.settings),selected=block.types===null?available.map(t=>t.id):block.types;
+   return '<section class="gd-pub-source" data-pub-block="'+block.id+'"><header><div><small>Source '+(i+1)+'</small><strong>'+esc(adapterFor(block.tool).label)+'</strong></div><label class="gd-pub-count">Questions <select data-pub-count>'+Array.from({length:20},(_,j)=>option(j+1,j+1,block.count)).join('')+'</select></label><button type="button" class="gd-btn gd-pub-icon" data-pub-delete-block="'+block.id+'" aria-label="Remove source">×</button></header>'+blockSettings(block)+'<details class="gd-pub-details"'+(block.open?' open':'')+' data-pub-type-details><summary>Challenge types · '+selected.length+' of '+available.length+'</summary><div class="gd-pub-check-row"><button type="button" class="gd-btn" data-pub-all-types>All</button><button type="button" class="gd-btn" data-pub-no-types>None</button></div><div class="gd-pub-check-grid">'+available.map(t=>'<label><input type="checkbox" data-pub-type value="'+esc(t.id)+'"'+(selected.includes(t.id)?' checked':'')+'>'+esc(t.label)+'</label>').join('')+'</div></details></section>';
+ }
+ function renderBuilder(){
+   const n=blocks.reduce((sum,x)=>sum+x.count,0);
+   return '<div class="gd-pub-builder"><aside class="gd-pub-catalog"><h3>Widgets</h3><p>Choose a widget. Add it again for different settings.</p>'+BUILDER_CATALOG.map(([id,label])=>'<button type="button" class="gd-pub-catalog-item" data-pub-add-source="'+id+'"'+(!supports(id)?' disabled':'')+'><span>'+esc(label)+'</span><small>'+(supports(id)?'+ Add':'Pending')+'</small></button>').join('')+'</aside><main class="gd-pub-sources"><div class="gd-pub-section-head"><h3>Configure worksheet</h3><span>'+n+' questions</span></div>'+(blocks.length?blocks.map(blockHtml).join(''):'<div class="gd-pub-empty"><strong>Choose a widget to start</strong><p>Set quantities and question types independently for each source.</p></div>')+'</main></div><footer class="gd-pub-footer"><label><input type="checkbox" data-pub-mix'+(mix?' checked':'')+'> Mix questions after generation</label><span class="gd-pub-spacer"></span><button type="button" class="gd-btn gd-btn--primary" data-pub-generate'+(!n||n+draft.list().length>80?' disabled':'')+'>Add '+n+' questions to draft</button></footer>';
+ }
+ function renderReview(){
+   const items=draft.list(),disabled=items.length?'':' disabled';
+   return '<div class="gd-pub-toolbar"><label class="gd-pub-title"><span>Document title</span><input type="text" data-pub-title maxlength="80" value="'+esc(title)+'"></label><div class="gd-pub-segment" aria-label="Preview version"><button type="button" class="gd-btn" data-pub-pupil aria-pressed="'+!teacher+'"'+disabled+'>Pupil</button><button type="button" class="gd-btn" data-pub-teacher aria-pressed="'+teacher+'"'+disabled+'>Teacher key</button></div><button type="button" class="gd-btn gd-btn--primary" data-pub-print'+disabled+'>Print / PDF</button></div>'+
+   (items.length?'<div class="gd-pub-body"><aside class="gd-pub-list"><div class="gd-pub-section-head"><h3>Content <small>'+items.length+'</small></h3></div><div class="gd-pub-list-tools"><button type="button" class="gd-btn" data-pub-group>Group</button><button type="button" class="gd-btn" data-pub-shuffle>Mix</button></div>'+items.map((item,i)=>'<div class="gd-pub-item"><small>'+esc(adapterFor(item.tool).label)+'</small><strong>'+(i+1)+'. '+esc(adapterFor(item.tool).title(item))+'</strong><div><button type="button" class="gd-btn gd-pub-icon" data-pub-up="'+item.id+'" aria-label="Move up"'+(i===0?' disabled':'')+'>↑</button><button type="button" class="gd-btn gd-pub-icon" data-pub-down="'+item.id+'" aria-label="Move down"'+(i===items.length-1?' disabled':'')+'>↓</button>'+(item.recipe?'<button type="button" class="gd-btn" data-pub-replace="'+item.id+'">Replace</button>':'')+'<button type="button" class="gd-btn" data-pub-remove="'+item.id+'">Remove</button></div></div>').join('')+'</aside><div class="gd-pub-preview"></div></div>':'<div class="gd-pub-empty"><strong>Start a worksheet</strong><p>Generate questions here, or add a diagram or challenge from a widget’s Export menu.</p><div><button type="button" class="gd-btn gd-btn--primary" data-pub-builder>Build automatically</button><button type="button" class="gd-btn" data-pub-close>Back to whiteboard</button></div></div>');
+ }
+ function paintPreview(){const preview=dlg.querySelector('.gd-pub-preview');if(preview)preview.replaceChildren(...pages(draft.list(),{title,teacher}).map(G.exportTools.preparePaperSvg))}
+ function render(){
+   const scroll=dlg.querySelector('.gd-pub-sources')?.scrollTop||0;
+   dlg._pubBlocks=blocks;
+   dlg.classList.toggle('is-builder',view==='builder');
+   dlg.innerHTML='<header class="gd-pub-head"><div><small>99 Club Studio</small><strong>Worksheet publisher</strong></div><button type="button" class="gd-btn gd-pub-icon" data-pub-close aria-label="Close">×</button></header><nav class="gd-pub-nav"><button type="button" class="gd-btn" data-pub-builder aria-pressed="'+(view==='builder')+'">Automatic builder</button><button type="button" class="gd-btn" data-pub-back aria-pressed="'+(view==='review')+'">Review document <small>'+draft.list().length+'</small></button><span class="gd-pub-spacer"></span><button type="button" class="gd-btn" data-pub-close>Back to whiteboard</button></nav><p role="status" class="gd-pub-status"'+(!status?' hidden':'')+'>'+esc(status)+'</p>'+(view==='builder'?renderBuilder():renderReview());
+   const source=dlg.querySelector('.gd-pub-sources');if(source)source.scrollTop=scroll;
+   if(view==='review')try{paintPreview()}catch(e){const p=dlg.querySelector('.gd-pub-preview');if(p)p.textContent=e.message}
+ }
+ function getBlock(el){return blocks.find(b=>String(b.id)===el.closest('[data-pub-block]')?.dataset.pubBlock)}
+ dlg.onclick=e=>{const btn=e.target.closest('button');if(!btn||btn.disabled)return;const d=btn.dataset;
    try{
-     if('pubClose'in d){dlg.close();return}
-     if('pubPrint'in d){G.exportTools.printSvg(pages(draft.list(),{title,teacher}),{title:'',landscape:false,maxHeightMm:242});return}
-     if('pubGroup'in d)draft.group();else if('pubShuffle'in d)draft.shuffle();else if('pubPupil'in d)teacher=false;else if('pubTeacher'in d)teacher=true;else if('pubReplace'in d)draft.replace(+d.pubReplace);else if('pubRemove'in d)draft.remove(+d.pubRemove);else if('pubUp'in d)draft.move(+d.pubUp,-1);else if('pubDown'in d)draft.move(+d.pubDown,1);
      status='';
+     if('pubClose'in d){dlg.close();return}
+     if('pubBuilder'in d)view='builder';else if('pubBack'in d)view='review';
+     else if('pubAddSource'in d){blocks.push({id:nextBlock++,tool:d.pubAddSource,count:5,settings:defaults(d.pubAddSource),types:null,open:false})}
+     else if('pubDeleteBlock'in d)blocks=blocks.filter(b=>b.id!==+d.pubDeleteBlock);
+     else if('pubAllTypes'in d||'pubNoTypes'in d){const b=getBlock(btn);b.types='pubAllTypes'in d?null:[];b.open=true}
+     else if('pubGenerate'in d){draft.generateBlocks(blocks);if(mix)draft.shuffle();blocks=[];view='review';teacher=false}
+     else if('pubPrint'in d){G.exportTools.printSvg(pages(draft.list(),{title,teacher}),{title:'',landscape:false,maxHeightMm:242});return}
+     else if('pubGroup'in d)draft.group();else if('pubShuffle'in d)draft.shuffle();else if('pubPupil'in d)teacher=false;else if('pubTeacher'in d)teacher=true;else if('pubReplace'in d)draft.replace(+d.pubReplace);else if('pubRemove'in d)draft.remove(+d.pubRemove);else if('pubUp'in d)draft.move(+d.pubUp,-1);else if('pubDown'in d)draft.move(+d.pubDown,1);
    }catch(err){status=err.message}
    render();
  };
- dlg.oninput=e=>{if(e.target.hasAttribute('data-pub-title')){title=e.target.value.trim()||'Maths practice';dlg.dataset.title=title;const preview=dlg.querySelector('.gd-pub-preview');if(draft.list().length)preview.replaceChildren(...pages(draft.list(),{title,teacher}).map(G.exportTools.preparePaperSvg))}};
+ dlg.onchange=e=>{
+   const el=e.target,b=getBlock(el);
+   if(el.hasAttribute('data-pub-title')){title=el.value.trim()||'Maths practice';dlg.dataset.title=title;paintPreview();return}
+   if(el.hasAttribute('data-pub-mix')){mix=el.checked;return}
+   if(!b)return;
+   const section=el.closest('[data-pub-block]');b.open=!!section.querySelector('[data-pub-type-details]')?.open;b.topicsOpen=!!section.querySelector('[data-pub-topics]')?.open;
+   if(el.hasAttribute('data-pub-count'))b.count=+el.value;
+   else if(el.hasAttribute('data-pub-type')){b.types=[...section.querySelectorAll('[data-pub-type]:checked')].map(n=>n.value);b.open=true}
+   else if(el.hasAttribute('data-pub-array')){const key=el.dataset.pubArray;b.settings.numberSettings[key]=[...section.querySelectorAll('[data-pub-array="'+key+'"]:checked')].map(n=>n.value)}
+   else if(el.hasAttribute('data-pub-setting')){
+     const key=el.dataset.pubSetting,parts=key.split('.'),obj=parts.length===2?b.settings[parts[0]]:b.settings,k=parts.at(-1);
+     obj[k]=typeof obj[k]==='number'?+el.value:el.value;
+     if(b.tool==='maths-canvas'&&(key==='curriculumProfile'||key==='difficulty'))b.settings.numberSettings=G.numberChallenges.curriculumSettings(b.settings.curriculumProfile,b.settings.difficulty);
+     if(b.tool==='place-value'&&key==='rangeStart')b.settings.rangeEnd=Math.max(b.settings.rangeStart+1,Math.min(b.settings.rangeStart+6,b.settings.rangeEnd));
+   }
+   if(b.types!==null){const ids=types(b.tool,b.settings).map(t=>t.id);b.types=b.types.filter(id=>ids.includes(id))}
+   status='';render();
+ };
  render();if(!dlg.open)dlg.showModal();
 }
 G.publishing={register,supports,types,record,signature,createDocument,renderItem,pages,openEditor,isolateSvgIds};
