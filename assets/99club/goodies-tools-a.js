@@ -143,8 +143,8 @@ function placeValue(){
     }
   }
   function randomBoardValue({decimal=true,min=valueStep(),max=rangeMax()}={}){
-    const step=decimal?valueStep():Math.max(1,valueStep()),low=Math.max(0,normaliseValue(min)),high=Math.min(rangeMax(),normaliseValue(max));
-    if(high<=low)return low;
+    const step=decimal?valueStep():Math.max(1,valueStep()),high=Math.max(0,Math.min(rangeMax(),normaliseValue(max))),low=Math.min(high,Math.max(0,normaliseValue(min)));
+    if(high<=low||Math.ceil(low/step)>Math.floor(high/step))return high;
     const first=Math.ceil(low/step),last=Math.floor(high/step),pick=first+Math.floor(Math.random()*Math.max(1,last-first+1));
     return normaliseValue(pick*step);
   }
@@ -749,7 +749,7 @@ function placeValue(){
     }else{
       charts=[paperChart(counts())];prompt=powerMessage||'Explain what happens to the digits when the number is multiplied or divided by a power of ten.';responseMode='lines';responseLabel='Explain your thinking';
     }
-    return X.composeWorksheetCardSvg(stackPaperCharts(charts),{title:descriptor.title+(teacher?' · Teacher key':''),prompt,responseLabel,responseMode,responseLines:2,paperStyle:'plain',answer,showAnswer:teacher&&!!answer,diagramMaxHeight:charts.length>1?850:500});
+    return X.composeWorksheetCardSvg(stackPaperCharts(charts),{title:descriptor.title+(teacher?' · Teacher key':''),prompt,responseLabel,responseMode,responseLines:2,paperStyle:'plain',answer,showAnswer:teacher,diagramMaxHeight:charts.length>1?850:500});
   }
   function exportTargetSvg(teacher=false){
     if(exportMode==='challenge'&&challenge&&X?.composeWorksheetCardSvg||teacher&&challenge&&X?.composeWorksheetCardSvg){
@@ -765,7 +765,7 @@ function placeValue(){
         const target=Number(String(challenge.answer).replace(/,/g,''));
         charts=[paperChart(initial,{label:'Starting representation'}),paperChart(teacher?digitsForValue(target):Array(places.length).fill(0),{label:teacher?'Regrouped chart':'Your regrouped chart',blank:!teacher})];
       }else charts=[type==='custom'?worksheetBoardSvg({pupil:!teacher}):paperChart(initial)];
-      return X.composeWorksheetCardSvg(stackPaperCharts(charts),{title:(challenge.title||meta?.title||'Place Value challenge')+(teacher?' · Teacher key':''),prompt,responseLabel:challenge.category==='reason'?'Explain your thinking':'Answer',responseLines:challenge.category==='reason'?Math.max(2,Math.min(4,responseLines)):1,responseMode:mode,paperStyle:'plain',answer:type==='build-number'?'':challenge.answer||'',showAnswer:teacher&&type!=='build-number',diagramMaxHeight:charts.length>1?850:500});
+      return X.composeWorksheetCardSvg(stackPaperCharts(charts),{title:(challenge.title||meta?.title||'Place Value challenge')+(teacher?' · Teacher key':''),prompt,responseLabel:challenge.category==='reason'?'Explain your thinking':'Answer',responseLines:challenge.category==='reason'?Math.max(2,Math.min(4,responseLines)):1,responseMode:mode,paperStyle:'plain',answer:type==='build-number'?'':challenge.answer||'',showAnswer:teacher,diagramMaxHeight:charts.length>1?850:500});
     }
     if(activityActive&&X?.composeWorksheetCardSvg)return activityPaper(teacher);
     return worksheetBoardSvg({pupil:false});
