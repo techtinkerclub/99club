@@ -636,7 +636,7 @@ function objectMarkup(obj,tool){
       '<button type="button" data-board-export-kind="png" role="menuitem">PNG</button>'+
       '<button type="button" data-board-export-kind="svg" role="menuitem">SVG</button>'+
       '<button type="button" data-board-export-kind="print" role="menuitem">Print</button>'+
-      (tool.id==='maths-canvas'?'<button type="button" data-board-export-kind="key-print" role="menuitem" hidden>Answer key · print</button><button type="button" data-board-export-kind="key-copy" role="menuitem" hidden>Answer key · copy</button>':'')+
+      (['maths-canvas','abacus'].includes(tool.id)?'<button type="button" data-board-export-kind="key-print" role="menuitem" hidden>Answer key · print</button><button type="button" data-board-export-kind="key-copy" role="menuitem" hidden>Answer key · copy</button>':'')+
     '</div>'+
     '<div class="gd-board-quick-actions is-empty" data-board-quick-actions aria-label="'+esc(tool.title)+' quick actions"></div>'+
     '<div class="gd-board-context-menu" role="menu" aria-label="'+esc(tool.title)+' controls">'+
@@ -811,8 +811,8 @@ function toggleExportMenu(id){
   selectObject(id);
   const frame=frameFor(id),open=!frame?.classList.contains('has-export-menu');
   canvas.querySelectorAll('.gd-board-object.has-export-menu').forEach(el=>el.classList.remove('has-export-menu'));
-  if(open&&obj.toolId==='maths-canvas'){
-    const active=!!innerDocument(obj)?.querySelector('#gd-stage .gd-challenge-banner');
+  if(open&&['maths-canvas','abacus'].includes(obj.toolId)){
+    const doc=innerDocument(obj),active=obj.toolId==='abacus'?!!doc?.querySelector('[data-gd-direct-export="key-print"]'):!!doc?.querySelector('#gd-stage .gd-challenge-banner');
     frame?.querySelectorAll('[data-board-export-kind^="key-"]').forEach(button=>{button.hidden=!active});
   }
   frame?.classList.toggle('has-export-menu',open);
