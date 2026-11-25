@@ -245,6 +245,12 @@ async function run(){
     assert(stage.querySelectorAll('[data-challenge-action="end"],[data-nmb-v7-exit]').length===1,'Exactly one challenge exit: '+type);
     const model=nlDoc.defaultView.TT99Goodies.lessonState.capture('number-line').model.state;
     const input=stage.querySelector('[data-challenge-response]');
+    input.click();await tick();
+    const pad=nlDoc.querySelector('.gd-touch-keypad');
+    assert(pad,'Numeric Number Line answer opens the touch keypad');
+    pad.querySelector('[data-gd-touch-key="7"]').click();
+    assert(input.value==='7','Touch keypad feeds the native answer field');
+    pad.querySelector('[data-gd-touch-close]').click();
     input.value=model.challenge.answer;input.dispatchEvent(new nlDoc.defaultView.Event('input',{bubbles:true}));
     stage.querySelector('[data-challenge-check]').click();await tick(100);
     assert(stage.querySelectorAll('.nl-challenge-jump').length>0,'Correct answer shows the worked jump: '+type);
@@ -315,9 +321,12 @@ async function run(){
   const challengePV=pvQuick.find(button=>/^Challenge/.test(button.textContent.trim()));
   assert(challengePV,'Place Value exposes Challenge as a direct whiteboard frame action');
   challengePV.click();await tick();
-  assert(!visible(pvFloating),'Frame Challenge starts a pupil task directly instead of opening another settings/picker palette');
+  assert(visible(pvFloating),'Frame Challenge opens the common challenge picker');
+  assert(!pvDoc.querySelector('.gd-pv-activity--game'),'Opening Challenge does not replace the teaching board');
+  pvFloating.querySelector('[data-gd-native-random="all"]').click();await tick();
+  assert(!visible(pvFloating),'Generating a challenge closes the picker');
   const pvGame=pvDoc.querySelector('.gd-pv-activity--game');
-  assert(pvGame,'Frame Challenge immediately creates an active Place Value pupil task');
+  assert(pvGame,'Random-all generates an active Place Value pupil task');
   assert(pvGame.classList.contains('gd-native-challenge'),'Place Value uses the shared challenge presentation');
   assert(pvGame.querySelector('.gd-pv-activity-head span').textContent.trim()==='CHALLENGE','Place Value uses the common challenge heading');
   assert(pvGame.querySelector('[data-pv-activity-exit]'),'Place Value has a direct challenge exit');
@@ -445,7 +454,10 @@ async function run(){
   const challengeAb=abQuick.find(button=>/^Challenge/.test(button.textContent.trim()));
   assert(challengeAb,'Abacus exposes a direct random Challenge frame action');
   challengeAb.click();await tick();
-  assert(abDoc.querySelector('.gd-ab-task'),'Frame Challenge immediately starts an Abacus pupil task');
+  const abPicker=document.getElementById('gd-board-floating-controls')||document.querySelector('.gd-board-floating-controls');
+  assert(abDoc.querySelector('[data-gd-native-random="all"]'),'Frame Challenge opens Abacus random and category options');
+  abDoc.querySelector('[data-gd-native-random="all"]').click();await tick();
+  assert(abDoc.querySelector('.gd-ab-task'),'Random-all starts an Abacus pupil task');
   assert(abDoc.querySelector('[data-ab-total]').textContent.trim()==='?','Abacus pupil challenge hides the live total');
 
   let abExportSvg=null,abExportName='';
@@ -519,6 +531,10 @@ async function run(){
   hsEven.click();await tick();
   assert(hsDoc.querySelectorAll('.gd-hs-cell.is-rule').length===50,'Compact rule picker applies the selected rule immediately');
   hsDoc.querySelector('[data-hs-workflow="challenge"]').click();
+  const hsPicker=hsDoc.querySelector('.gd-challenge-picker');
+  assert(hsPicker.querySelector('[data-gd-random-scope="all"]'),'Standard picker offers random across all challenge types');
+  hsPicker.querySelector('[data-gd-random-scope]:not([data-gd-random-scope="all"])').click();await tick();
+  assert(hsDoc.querySelector('.gd-challenge-banner'),'Random category generates a challenge');
   hsDoc.querySelector('[data-hs-challenge-cat="patterns"]').click();
   hsDoc.querySelector('[data-hs-challenge-type="continue-pattern"]').click();
   hsDoc.getElementById('hs-generate').click();await tick(50);
