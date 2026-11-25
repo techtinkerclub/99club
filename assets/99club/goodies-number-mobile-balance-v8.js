@@ -112,6 +112,7 @@ function prepareUnknownTiles(){const unknowns=unknownTiles();unknowns.forEach(ti
 function compactPrompt(type){const p=q('.gd-challenge-prompt',banner());if(p&&type==='balance'&&p.textContent!=='How much must be added to the lighter main side to balance the main bar?')p.textContent='How much must be added to the lighter main side to balance the main bar?'}
 function resetChallengeState(){answers.clear();activeTileId=null;responseBuffer='';feedback='';feedbackKind='';choiceValue='';closePad();q('.nmb-v8-response-panel',stage())?.remove()}
 function adapt(){
+  if(!work()){if(lastKey){resetChallengeState();lastKey=null;restoreBoardRail()}document.body.classList.remove(ACTIVE_CLASS);document.documentElement.classList.remove(ACTIVE_CLASS);return}
   if(challengeBuilding()){document.body.classList.remove(ACTIVE_CLASS);document.documentElement.classList.remove(ACTIVE_CLASS);setTimeout(scheduleAdapt,80);return}
   const active=challengeActive();document.body.classList.toggle(ACTIVE_CLASS,active);document.documentElement.classList.toggle(ACTIVE_CLASS,active);
   if(!active){if(lastKey){resetChallengeState();lastKey=null}hideTeacherControls(false);restoreBoardRail();return}
