@@ -89,7 +89,7 @@ if(process.argv[2]==='prepare'){
      for(const family of S.questionTypes(view,year))for(let i=0;i<30;i++){
        const item=S.generate(S.recipe(settings,family[0]),rng);
        assert(Number.isInteger(item.answer),'Integer primary statistics answer: '+year+'/'+view+'/'+family[0]);
-       if(year==='2')assert(item.key===1&&item.data.rows.every(r=>r.value<=10),'Year 2 one-to-one bounded data');
+       if(year==='2')assert([1,2,5,10].includes(item.key)&&item.data.rows.every(r=>r.value<=10),'Year 2 simple scaled pictogram data');
      }
    }
    // Dense cards should use available page height, while standalone output remains unchanged.
