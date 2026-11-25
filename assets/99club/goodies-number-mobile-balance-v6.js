@@ -224,9 +224,12 @@ async function buildSpot(level){
   return{type:'spot-false-equality',difficulty:level,readOnly:true,balancedBranchIds:[left.branchId,right.branchId],prompt:'A pupil says the whole mobile is balanced because both smaller bars are balanced. Are they correct? Explain.',answer:'No. The left branch totals '+(2*s1)+' and the right branch totals '+(2*s2)+'.'};
 }
 async function buildBalance(level){
-  if(level==='medium'){const root=await addNumber('left',5);await branchToken(root,7,[{slot:'left',value:3}]);await addNumber('right',14);return{type:'make-balance',difficulty:level,readOnly:false,balancedBranchIds:[],prompt:'Make every bar balance. You may edit, add, move or delete number boxes. The smaller bar and the main bar must both finish level.',answer:'Any arrangement where the smaller bar and the main bar are both balanced.'}}
-  const leftRoot=await addNumber('left',4);await branchToken(leftRoot,6,[{slot:'left',value:3}]);const rightRoot=await addNumber('right',8);await branchToken(rightRoot,4,[{slot:'right',value:2}]);
-  return{type:'make-balance',difficulty:level,readOnly:false,balancedBranchIds:[],prompt:'Make the entire mobile balance. Both smaller bars must balance internally and the main bar must balance too.',answer:'Any arrangement where both smaller bars and the main bar are balanced.'};
+  const side=Math.random()<.5?'left':'right',other=side==='left'?'right':'left';
+  const sum=randint(9,15),gap=randint(2,6),branch=await balancedBranch(side,sum);
+  let branches=[branch.branchId],answer=gap;
+  if(level==='medium')await addNumber(other,2*sum+gap);
+  else{const second=await balancedBranch(other,sum+gap);branches.push(second.branchId);answer=2*gap}
+  return{type:'make-balance',difficulty:level,readOnly:true,balancedBranchIds:branches,prompt:'How much must be added to the lighter main side to balance the main bar?',answer:String(answer)};
 }
 async function complexChallenge(type,level){
   busy=true;closePopover();exposeSpec(null);
@@ -257,13 +260,13 @@ function maskChallengeReadouts(){
   const kicker=q('.gd-challenge-kicker',b);setText(kicker,'Challenge');
   const verdict=q('.gd-eq-verdict strong',w),verdictLabel=q('.gd-eq-verdict span',w),eq=q('[data-ba-equation]',w);let task='Challenge';
   if(complexSpec){
-    if(complexSpec.type==='make-balance')task=mobileBalanced()?'Balanced ✓':'Keep adjusting the mobile';
+    if(complexSpec.type==='make-balance')task='Work out the missing amount';
     else if(complexSpec.type==='missing-weight')task=complexSpec.difficulty==='hard'?'Find both missing numbers':'Find the missing number';
     else if(complexSpec.type==='choose-relation')task='Compare the two main sides';
     else if(complexSpec.type==='find-difference')task='Find the difference';
     else if(complexSpec.type==='spot-false-equality')task='Check the pupil’s claim';
     if(eq){
-      if(complexSpec.type==='make-balance')setText(eq,'Make every bar balance');
+      if(complexSpec.type==='make-balance')setText(eq,'Find the amount needed to balance the main bar');
       else if(complexSpec.type==='missing-weight')setText(eq,'Use the hanging balance'+(complexSpec.difficulty==='hard'?'s':'')+' to solve the missing number'+(complexSpec.difficulty==='hard'?'s':''));
       else if(complexSpec.type==='choose-relation')setText(eq,'Compare the two main sides');
       else if(complexSpec.type==='find-difference')setText(eq,'Find the difference between the main sides');
