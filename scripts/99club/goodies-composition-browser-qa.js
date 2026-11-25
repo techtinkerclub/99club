@@ -551,6 +551,34 @@ async function run(){
   publisher.querySelector('[data-pub-remove]').click();await tick();
   publisher.querySelector('[data-pub-close]').click();
   TT99Goodies.compositionBoard.remove(randomRecord.id);
+  // Factor evidence and frozen solutions use the same question generator as the widget.
+  {
+    const P=TT99Goodies.publishing,F=TT99Goodies.factorPaperModel;
+    assert(P.canGenerate('factors')&&F.types().length===7,'Factors publishes every existing challenge family');
+    const draft=P.createDocument();
+    for(const {id} of F.types())draft.generate('factors',{responseLines:2},1,id,()=>0.1);
+    const items=draft.list();
+    assert(items.length===7&&items.every(item=>P.answerSummary(item)),'Factors questions have frozen answers');
+    const missing=items.find(item=>item.data.type==='missing-factor');
+    const pupil=P.renderItem(missing,false),teacher=P.answerGraphic(missing);
+    assert(pupil.querySelector('[data-fe-paper-equation]').textContent.includes('?')&&!teacher.querySelector('[data-fe-paper-equation]').textContent.includes('?'),'Factor rectangle pupil question hides the missing factor and teacher graphic solves it');
+    assert(teacher.querySelectorAll('[data-fe-paper-cell]').length===missing.data.diagram.a,'Factor rectangle has the exact number of cells');
+    assert(P.pages(items,{teacher:true}).some(page=>page.getAttribute('data-worksheet-answer')==='annex'),'Factors worksheet has graphical marking annex');
+    const captured=P.createDocument();captured.addCurrent('factors',{...missing.data,challenge:{...missing.data.challenge,revealed:true}});
+    assert(P.signature(captured.list()[0])===P.signature(missing),'Revealed factor challenge captures the original question');
+    for(const {id} of F.types())for(let i=0;i<20;i++){
+      const d=F.generate(id,{},()=>i/20),{a,b}=d.diagram,c=d.challenge;
+      const factors=n=>Array.from({length:n},(_,j)=>j+1).filter(v=>n%v===0);
+      if(id==='missing-factor')assert(Number(c.answer)*Number(c.prompt.match(/(\d+) ×/)[1])===a,'Factor pair product is exact');
+      if(id==='common-factors')assert(c.answer===factors(a).filter(v=>b%v===0).join(', '),'Common factors are complete');
+      if(id==='hcf')assert(Number(c.answer)===Math.max(...factors(a).filter(v=>b%v===0)),'Highest common factor is exact');
+      if(id==='lcm'){const n=Number(c.answer);assert(n%a===0&&n%b===0&&!Array.from({length:n/a-1},(_,j)=>a*(j+1)).some(v=>v%b===0),'Lowest common multiple is minimal');}
+      if(id==='prime-or-composite')assert(c.answer===(factors(a).length===2?'Prime':'Composite'),'Classification is correct');
+      if(id==='explain-prime')assert(factors(a).length===2,'Prime reasoning uses a prime number');
+      if(id==='divisible-by')assert(c.answer.startsWith(a%c.hiddenDivisor===0?'Yes':'No'),'Divisibility answer is exact');
+    }
+  }
+
   // The FDP publication model is shared with the live widget.
   {
     const P=TT99Goodies.publishing,F=TT99Goodies.fdpPaperModel;

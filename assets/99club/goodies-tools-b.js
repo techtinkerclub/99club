@@ -3074,6 +3074,120 @@ function timesTableVisual(){
 
 }
 
+const FE_TEMPLATES=[
+    {id:'prime-or-composite',category:'read',title:'Prime or composite?',desc:'Classify a number from its factors.'},
+    {id:'missing-factor',category:'read',title:'Missing factor',desc:'Complete a factor pair for the shown number.'},
+    {id:'divisible-by',category:'read',title:'Divisibility check',desc:'Decide whether a number is divisible by a given divisor.'},
+    {id:'common-factors',category:'compare',title:'Common factors',desc:'Find the factors shared by two numbers.'},
+    {id:'hcf',category:'compare',title:'Highest common factor',desc:'Find the HCF of two numbers.'},
+    {id:'lcm',category:'compare',title:'Lowest common multiple',desc:'Find the LCM of two numbers.'},
+    {id:'explain-prime',category:'reason',title:'Explain why it is prime',desc:'Use the factor evidence to justify a prime classification.'}
+  ];
+function fe_factors(n){const out=[];for(let i=1;i<=Math.sqrt(n);i++)if(n%i===0){out.push(i);if(i!==n/i)out.push(n/i)}return out.sort((x,y)=>x-y)}
+function fe_factorPairs(n){const out=[];for(let i=1;i*i<=n;i++)if(n%i===0)out.push([i,n/i]);return out}
+function fe_primeFactors(n){let x=n,out=[];for(let p=2;p*p<=x;p++)while(x%p===0){out.push(p);x/=p}if(x>1)out.push(x);return out}
+function fe_isPrime(n){return fe_factors(n).length===2}
+function fe_gcd2(x,y){while(y){const t=x%y;x=y;y=t}return Math.abs(x)}
+function fe_lcm2(x,y){return Math.abs(x*y)/fe_gcd2(x,y)}
+
+function feSettings(model={}){return {responseLines:clamp(Math.round(Number(model.responseLines??model.settings?.responseLines)||1),1,4)}}
+function feTypes(){return FE_TEMPLATES.map(t=>({id:t.id,label:t.title}))}
+function feGenerate(type,settings={},rng=Math.random,previous=''){
+ const meta=FE_TEMPLATES.find(t=>t.id===type);if(!meta)throw Error('Unknown factors challenge.');
+ let a=36,b=24,compare=false,selectedSide='a',selectedPair=0,challenge,variantKey='';
+ const pick=list=>{const pool=list.filter(v=>JSON.stringify(v)!==previous),v=pool[Math.floor(rng()*pool.length)];variantKey=JSON.stringify(v);return v};
+ const challengeObject=(type,prompt,answer,extra={})=>({mode:'standard',type,category:meta.category,title:'',prompt,promptHtml:prompt,answer:String(answer),answerMode:'manual',answerSource:'',revealed:false,hiddenClassificationSide:'',hiddenPairSide:'',hiddenPairIndex:null,hiddenAllPairsSide:'',hiddenDivisor:null,hiddenDivisorSide:'',hiddenPrimeSide:'',hiddenCommonFactors:false,hiddenHcf:false,hiddenLcm:false,...extra});
+    if(type==='prime-or-composite'){
+      a=pick([29,21,37,49,23,51,41,57,31,27]);compare=false;
+      challenge=challengeObject(type,'Is '+a+' prime or composite? Use the factor evidence to decide.',fe_isPrime(a)?'Prime':'Composite',{hiddenClassificationSide:'a',hiddenPrimeSide:'a'});
+    }else if(type==='missing-factor'){
+      const item=pick([[36,4],[24,3],[42,6],[48,4],[56,7],[63,7],[72,8],[45,5]]);
+      a=item[0];compare=false;selectedPair=fe_factorPairs(a).findIndex(p=>p[0]===item[1]);
+      challenge=challengeObject(type,'Complete the selected factor pair: '+item[1]+' × ? = '+a+'.',String(a/item[1]),{hiddenPairSide:'a',hiddenPairIndex:selectedPair});
+    }else if(type==='divisible-by'){
+      const item=pick([[42,6],[45,6],[36,4],[35,4],[54,9],[56,9],[75,5],[72,5]]);
+      a=item[0];compare=false;const divisor=item[1],yes=a%divisor===0;
+      challenge=challengeObject(type,'Is '+a+' divisible by '+divisor+'? Explain using the evidence shown.',yes?'Yes. '+a+' ÷ '+divisor+' = '+a/divisor+'.':'No. '+a+' is not a multiple of '+divisor+'.',{hiddenDivisor:divisor,hiddenDivisorSide:'a'});
+    }else if(type==='common-fe_factors'||type==='hcf'){
+      [a,b]=pick([[36,24],[18,30],[48,60],[42,28],[32,40],[45,60]]);compare=true;
+      const list=fe_factors(a).filter(n=>b%n===0);
+      challenge=type==='common-fe_factors'?challengeObject(type,'What are the common fe_factors of '+a+' and '+b+'?',list.join(', '),{hiddenCommonFactors:true}):challengeObject(type,'What is the highest common factor of '+a+' and '+b+'?',String(fe_gcd2(a,b)),{hiddenHcf:true});
+    }else if(type==='lcm'){
+      [a,b]=pick([[12,18],[4,6],[8,12],[6,15],[9,12],[10,15],[14,21]]);compare=true;
+      challenge=challengeObject(type,'What is the lowest common multiple of '+a+' and '+b+'?',String(fe_lcm2(a,b)),{hiddenLcm:true});
+    }else{
+      a=pick([31,17,19,23,29,37,41,43]);compare=false;
+      challenge=challengeObject(type,'Explain why '+a+' is prime using the factor information shown.',a+' has exactly two fe_factors: 1 and '+a+'.',{hiddenClassificationSide:'a',hiddenPrimeSide:'a'});
+    }
+
+ challenge.variantKey=variantKey;
+ const diagram={a,b,compare,selectedSide,selectedPair};
+ return {type,settings:feSettings(settings),diagram,challenge};
+}
+function fePublicationData(model){
+ const c=model.challenge?JSON.parse(JSON.stringify(model.challenge)):null;
+ if(c?.mode==='custom')throw Error('Use individual export for custom factor tasks.');
+ if(c)c.revealed=false;
+ return {type:c?.type,settings:feSettings(model),diagram:JSON.parse(JSON.stringify(model.diagram||model)),challenge:c};
+}
+function fePaper(data,teacher=false,graphicOnly=false){
+ const d=data.diagram,c=data.challenge,type=c?.type,numbers=d.compare?[d.a,d.b]:[d.a];
+ const W=800,rowsMax=Math.max(...numbers.map(n=>Math.ceil(fe_factorPairs(n).length/3)));
+ const H=type==='missing-factor'?210:type==='divisible-by'?100:type==='lcm'?220:!c?330+rowsMax*30:80+rowsMax*30+(teacher?40:0);
+ const el=(name,attrs={},value)=>{const n=document.createElementNS('http://www.w3.org/2000/svg',name);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,String(v));if(value!==undefined)n.textContent=String(value);return n};
+ const svg=el('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':'Factor and multiple evidence'});
+ const add=(name,attrs,value)=>svg.appendChild(el(name,attrs,value));
+ const text=(x,y,value,attrs={})=>add('text',{x,y,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':22,'font-weight':600,fill:'#304b52',...attrs},value);
+ add('rect',{width:W,height:H,fill:'#fff'});
+ if(type==='missing-factor'){
+   const [r,k]=fe_factorPairs(d.a)[d.selectedPair];
+   text(W/2,32,r+' × '+(teacher?k:'?')+' = '+d.a,{'data-fe-paper-equation':'1'});
+   const cell=Math.min(32,600/k,146/r),x=(W-k*cell)/2,y=52;
+   for(let i=0;i<r;i++)for(let j=0;j<k;j++)add('rect',{x:x+j*cell,y:y+i*cell,width:cell,height:cell,fill:'#e8f4f1',stroke:'#77918e','stroke-width':1,'data-fe-paper-cell':'1'});
+ }else if(type==='divisible-by'){
+   text(W/2,56,d.a+' ÷ '+c.hiddenDivisor+' = '+(teacher?Math.floor(d.a/c.hiddenDivisor)+(d.a%c.hiddenDivisor?' r '+d.a%c.hiddenDivisor:''):'?'),{'data-fe-paper-equation':'1'});
+ }else{
+   const common=d.compare?fe_factors(d.a).filter(n=>d.b%n===0):[],lcm=d.compare?fe_lcm2(d.a,d.b):0;
+   numbers.forEach((n,i)=>{
+     const cw=W/numbers.length,cx=cw*(i+.5),left=i*cw;
+     text(cx,29,n,{'font-size':26,'font-weight':800});
+     text(cx,57,type==='lcm'?'First 12 multiples':'Factor pairs',{'font-size':16,fill:'#52666d'});
+     const values=type==='lcm'?Array.from({length:12},(_,j)=>n*(j+1)):fe_factorPairs(n);
+     values.forEach((v,j)=>{
+       const x=left+cw*(j%3+.5)/3,y=86+Math.floor(j/3)*30;
+       const highlighted=teacher&&(type==='lcm'?v===lcm:type==='hcf'||type==='common-factors'?v.some(f=>common.includes(f)):false);
+       if(highlighted)add('rect',{x:x-cw/6+8,y:y-23,width:cw/3-16,height:29,rx:5,fill:'#d9eee9','data-fe-paper-highlight':'1'});
+       text(x,y,Array.isArray(v)?v.join(' × '):v,{'font-size':20});
+     });
+     if(!c){
+       const y=90+rowsMax*30;
+       text(cx,y,fe_isPrime(n)?'Prime number':'Composite number',{'font-size':17});
+       text(cx,y+29,'Prime factors: '+fe_primeFactors(n).join(' × '),{'font-size':17});
+       text(cx,y+61,'First 12 multiples',{'font-size':16});
+       Array.from({length:12},(_,j)=>n*(j+1)).forEach((v,j)=>text(left+cw*(j%3+.5)/3,y+91+Math.floor(j/3)*24,v,{'font-size':16}));
+     }
+   });
+   if(d.compare)add('line',{x1:W/2,y1:12,x2:W/2,y2:H-12,stroke:'#d6e0e0'});
+   if(!c&&d.compare){text(W/2,H-12,'HCF: '+fe_gcd2(d.a,d.b)+' · LCM: '+lcm,{'font-size':17,stroke:'#fff','stroke-width':4,'paint-order':'stroke'})}
+ }
+ if(!c||graphicOnly)return svg;
+ const lines=Math.max(data.settings.responseLines,['explain-prime','divisible-by','common-factors'].includes(type)?2:1);
+ return G.exportTools.composeWorksheetCardSvg(svg,{title:FE_TEMPLATES.find(t=>t.id===type)?.title||'Factors challenge',prompt:c.prompt,responseMode:lines>1?'lines':'box',responseLabel:['explain-prime','divisible-by'].includes(type)?'Explain your thinking':'Answer',responseLines:lines,paperStyle:'plain',answer:c.answer,showAnswer:teacher,diagramMaxHeight:300});
+}
+G.factorPaperModel={settings:feSettings,types:feTypes,generate:feGenerate,render:fePaper};
+if(G.publishing)G.publishing.register('factors',{
+ label:'Factors & multiples',types:feTypes,
+ title:item=>item.kind==='diagram'?'Factors & multiples illustration':FE_TEMPLATES.find(t=>t.id===item.data.type)?.title||'Factors challenge',
+ signature:d=>JSON.stringify([d.type,d.challenge.prompt]),
+ recipe:(model,type)=>({type,settings:feSettings(model)}),
+ generate(recipe,rng){const ids=feTypes().map(t=>t.id);return feGenerate(recipe.type==='all'?ids[Math.floor(rng()*ids.length)]:recipe.type,recipe.settings,rng)},
+ capture(model){const d=fePublicationData(model);return [G.publishing.record('factors',d.challenge?'challenge':'diagram',d,d.challenge?{type:d.type,settings:d.settings}:null)]},
+ answerSummary:item=>item.data.challenge.answer,
+ answerGraphic:item=>fePaper(item.data,true,true),
+ answerNote:item=>{const type=item.data.type;if(type==='common-factors')return 'Accept the complete set in any order, without additional numbers.';if(type==='explain-prime')return 'Accept equivalent reasoning that identifies exactly two positive factors, 1 and the number itself.';if(type==='divisible-by')return 'Accept an equivalent correct divisibility rule, multiplication fact or division with remainder.';if(type==='hcf')return 'The answer must be the greatest factor of both numbers.';if(type==='lcm')return 'The answer must be the smallest positive multiple shared by both numbers.';return ''},
+ render(item,teacher){return fePaper(item.data,teacher)}
+});
+
 function factorExplorer(){
   const CK=G.challengeKit,X=G.exportTools;
   let a=36,b=24,compare=false,selectedSide='a',selectedPair=0;
@@ -3084,15 +3198,7 @@ function factorExplorer(){
     {id:'compare',label:'Compare numbers'},
     {id:'reason',label:'Reasoning'}
   ];
-  const CHALLENGE_TEMPLATES=[
-    {id:'prime-or-composite',category:'read',title:'Prime or composite?',desc:'Classify a number from its factors.'},
-    {id:'missing-factor',category:'read',title:'Missing factor',desc:'Complete a factor pair for the shown number.'},
-    {id:'divisible-by',category:'read',title:'Divisibility check',desc:'Decide whether a number is divisible by a given divisor.'},
-    {id:'common-factors',category:'compare',title:'Common factors',desc:'Find the factors shared by two numbers.'},
-    {id:'hcf',category:'compare',title:'Highest common factor',desc:'Find the HCF of two numbers.'},
-    {id:'lcm',category:'compare',title:'Lowest common multiple',desc:'Find the LCM of two numbers.'},
-    {id:'explain-prime',category:'reason',title:'Explain why it is prime',desc:'Use the factor evidence to justify a prime classification.'}
-  ];
+  const CHALLENGE_TEMPLATES=FE_TEMPLATES;
   let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='prime-or-composite',challenge=null,beforeChallenge=null;
   let exportMode='diagram',responseLines=1,exportStatus='';
 
@@ -3297,32 +3403,10 @@ function factorExplorer(){
   function generateChallenge(type){
     const meta=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!meta)return;
     if(!beforeChallenge)beforeChallenge=snapshot();else restore(beforeChallenge);
-    undoStack.length=0;redoStack.length=0;selectedSide='a';selectedPair=0;
-    let variantKey='';
-    const pick=list=>{const v=CK.pickVariant(list,challenge?.type===type?challenge.variantKey:'');variantKey=JSON.stringify(v);return v};
-    if(type==='prime-or-composite'){
-      a=pick([29,21,37,49,23,51,41,57,31,27]);compare=false;
-      challenge=challengeObject(type,'Is '+a+' prime or composite? Use the factor evidence to decide.',isPrime(a)?'Prime':'Composite',{hiddenClassificationSide:'a',hiddenPrimeSide:'a'});
-    }else if(type==='missing-factor'){
-      const item=pick([[36,4],[24,3],[42,6],[48,4],[56,7],[63,7],[72,8],[45,5]]);
-      a=item[0];compare=false;selectedPair=factorPairs(a).findIndex(p=>p[0]===item[1]);
-      challenge=challengeObject(type,'Complete the selected factor pair: '+item[1]+' × ? = '+a+'.',String(a/item[1]),{hiddenPairSide:'a',hiddenPairIndex:selectedPair});
-    }else if(type==='divisible-by'){
-      const item=pick([[42,6],[45,6],[36,4],[35,4],[54,9],[56,9],[75,5],[72,5]]);
-      a=item[0];compare=false;const divisor=item[1],yes=a%divisor===0;
-      challenge=challengeObject(type,'Is '+a+' divisible by '+divisor+'? Explain using the evidence shown.',yes?'Yes. '+a+' ÷ '+divisor+' = '+a/divisor+'.':'No. '+a+' is not a multiple of '+divisor+'.',{hiddenDivisor:divisor,hiddenDivisorSide:'a'});
-    }else if(type==='common-factors'||type==='hcf'){
-      [a,b]=pick([[36,24],[18,30],[48,60],[42,28],[32,40],[45,60]]);compare=true;
-      const list=commonFactors();
-      challenge=type==='common-factors'?challengeObject(type,'What are the common factors of '+a+' and '+b+'?',list.join(', '),{hiddenCommonFactors:true}):challengeObject(type,'What is the highest common factor of '+a+' and '+b+'?',String(gcd2(a,b)),{hiddenHcf:true});
-    }else if(type==='lcm'){
-      [a,b]=pick([[12,18],[4,6],[8,12],[6,15],[9,12],[10,15],[14,21]]);compare=true;
-      challenge=challengeObject(type,'What is the lowest common multiple of '+a+' and '+b+'?',String(lcm2(a,b)),{hiddenLcm:true});
-    }else{
-      a=pick([31,17,19,23,29,37,41,43]);compare=false;
-      challenge=challengeObject(type,'Explain why '+a+' is prime using the factor information shown.',a+' has exactly two factors: 1 and '+a+'.',{hiddenClassificationSide:'a',hiddenPrimeSide:'a'});
-    }
-    challenge.variantKey=variantKey;
+    undoStack.length=0;redoStack.length=0;
+    const generated=feGenerate(type,{responseLines},Math.random,challenge?.type===type?challenge.variantKey:'');
+    restore(generated.diagram);
+    challenge=CK?CK.normalise(generated.challenge):generated.challenge;
     challengeType=type;challengeCategory=meta.category;challengeTab='standard';controlTab='challenge';exportMode='challenge';responseLines=meta.category==='reason'?3:1;exportStatus='';renderControls();draw();
   }
   function enterCustomChallenge(){
