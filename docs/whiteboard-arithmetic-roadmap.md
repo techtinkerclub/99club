@@ -38,6 +38,10 @@ Updated 25 November 2026.
 - Generator checks: 8,400 individual questions and 120 ten-question sets, six denominator caps, operation filters and default-off regression checks passed.
 - Remaining: fraction ordering, fraction/decimal/percentage conversions, mixed-number multiplication, signed fractions, higher powers and root approximations (optional KS3), full curriculum presets and browser/print QA.
 
+## Settings refinement (25 November)
+- Maths Canvas settings now use progressive disclosure: quantity/layout and preset visible, operations/comparisons, range/terms, optional topics and specific questions expandable. Preserve opened sections during selections and board proxy refresh; wider floating panel, compact workflow tabs and no horizontal scrollbar.
+- Continue reviewing other widgets individually where crowded; do not impose additional panels on simple widgets. Browser verification pending.
+
 ## Next priorities
 1. Visual/touch feedback: validate the practice-set launcher, whiteboard layout, inline answer boxes, responsive columns and paper outputs; refine density and font sizes after classroom feedback.
 2. Worksheet-oriented improvements: separate arithmetic answer key implemented; dedicated five-a-day shortcut, optional space for working, shared pupil/teacher export policies across all widgets, and print pagination remain.
