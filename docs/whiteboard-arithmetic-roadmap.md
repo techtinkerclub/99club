@@ -57,6 +57,7 @@ Updated 25 November 2026.
 - Browser interaction and live print verification pending.
 
 ## Worksheet response and conversion pass (25 November)
+- Abacus number bonds distinguish the missing addend from the final total explicitly; paper prompts include place-value exchange and specify one step for skip counting.
 - Shared worksheet composer now puts the response label on a separate line above boxes, writing lines and teacher answers, with height reserved for wrapped labels. Fixes the abacus “Missing number” overlap and applies to all widgets using the composer.
 - Six opt-in exact fraction/decimal/percentage conversion directions and fraction comparisons; Year 5+ starting presets include them. Fractions use the selected denominator cap, conversions use values strictly between zero and one with at most two decimal places, comparison symbols respect the enabled relation filter. Simplest-form fraction answers required where indicated.
 - Existing distinct-question policy retained. Very small denominator caps can have fewer unique conversions than the requested set; show a clear error rather than repeat questions.
