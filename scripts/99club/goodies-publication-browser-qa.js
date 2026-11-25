@@ -9,7 +9,7 @@ if(process.argv[2]==='prepare'){
   function assert(v,m){if(!v)throw Error(m)}
   function run(){
    const G=window.TT99Goodies,P=G.publishing,X=G.exportTools,host=document.getElementById('publication-samples');
-   const results=[],warnings=[],issues=[];
+   const results=[],warnings=[],issues=[],clipping=[];
    let seed=42137;const rng=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
    const catalog=P.catalogue();
    assert(catalog.length===20&&catalog.every(x=>P.supports(x.id)),'All 20 widgets must have publishing adapters');
@@ -17,13 +17,24 @@ if(process.argv[2]==='prepare'){
    function checkPage(svg,tool,kind){
      const [x,y,w,h]=vb(svg);
      assert(Math.abs(h/w-265/182)<.002,'Page printable area ratio');
-     for(const node of svg.querySelectorAll(':scope > text,:scope > svg')){
-       const b=node.getBBox();
-       if(b.x<x-1||b.y<y-1||b.x+b.width>x+w+1||b.y+b.height>y+h+1)issues.push(tool+' '+kind+' page content outside page: '+node.textContent.slice(0,80));
+     // A nested SVG's getBBox is in its own user coordinate system, not
+     // the parent sheet coordinates. Compare its allocated viewport to
+     // the sheet; independently transform actual text bounds to the sheet.
+     const outside=b=>b.x<x-1||b.y<y-1||b.x+b.width>x+w+1||b.y+b.height>y+h+1;
+     for(const node of svg.querySelectorAll(':scope > svg')){
+       const b={x:node.x.baseVal.value,y:node.y.baseVal.value,width:node.width.baseVal.value,height:node.height.baseVal.value};
+       if(outside(b))issues.push(tool+' '+kind+' item viewport outside page: '+JSON.stringify(b));
+     }
+     for(const node of svg.querySelectorAll(':scope > text')){
+       if(outside(node.getBBox()))issues.push(tool+' '+kind+' page text outside page: '+node.textContent.slice(0,80));
      }
      for(const text of svg.querySelectorAll('text')){
        const mat=text.getScreenCTM(),root=svg.getScreenCTM();
        if(!mat||!root)continue;
+       const b=text.getBBox(),m=root.inverse().multiply(mat);
+       const corners=[[b.x,b.y],[b.x+b.width,b.y],[b.x,b.y+b.height],[b.x+b.width,b.y+b.height]].map(([x,y])=>new DOMPoint(x,y).matrixTransform(m));
+       const left=Math.min(...corners.map(p=>p.x)),right=Math.max(...corners.map(p=>p.x)),top=Math.min(...corners.map(p=>p.y)),bottom=Math.max(...corners.map(p=>p.y));
+       if(text.ownerSVGElement!==svg&&outside({x:left,y:top,width:right-left,height:bottom-top}))clipping.push({tool,kind,text:text.textContent.slice(0,100)});
        const scale=Math.hypot(mat.a,mat.b)/Math.hypot(root.a,root.b);
        const size=parseFloat(getComputedStyle(text).fontSize)*scale*182/w*72/25.4;
        if(text.textContent.trim()&&size<7&&!text.hasAttribute('data-gd-paper-brand'))warnings.push({tool,kind,pointSize:Math.round(size*10)/10,text:text.textContent.slice(0,70)});
@@ -64,7 +75,7 @@ if(process.argv[2]==='prepare'){
    const sample='A very long marking explanation. '+('Accept all equivalent mathematical explanations using the required units and exact values. '.repeat(15))+'End of marking explanation.';
    const wrapped=X.wrapPaperText(sample,430,20,600);
    assert(wrapped.join(' ')===sample.replace(/\s+/g,' ').trim(),'Measured wrapping preserves complete text');
-   const report={widgets:results,issues,smallText:warnings.slice(0,250),smallTextCount:warnings.length};
+   const report={widgets:results,issues,clipping,smallText:warnings.slice(0,250),smallTextCount:warnings.length,smallTextByWidget:Object.fromEntries(catalog.map(({id})=>[id,warnings.filter(w=>w.tool===id).length]))};
    document.getElementById('publication-report').textContent=JSON.stringify(report);
    document.getElementById('publication-status').textContent=issues.length?'FAIL':'PASS';
    document.getElementById('publication-summary').textContent=results.length+' widgets · '+results.reduce((n,r)=>n+(r.generated||0),0)+' challenge families · '+issues.length+' structural issues · '+warnings.length+' small text observations';
@@ -79,6 +90,6 @@ if(process.argv[2]==='prepare'){
  const result=JSON.parse(raw.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&'));
  fs.writeFileSync(report,JSON.stringify(result,null,2));
  console.log('Publication audit:',status, result.widgets?.length||0,'widgets;',result.smallTextCount||0,'small text observations');
- console.log(JSON.stringify(result.widgets||[],null,2));
- if(status!=='PASS'){console.error(result.issues||['Browser audit did not complete']);process.exitCode=1}
+ console.log(JSON.stringify({widgets:result.widgets||[],smallTextByWidget:result.smallTextByWidget,clipping:result.clipping},null,2));
+ if(status!=='PASS'){console.error(JSON.stringify(result.issues||['Browser audit did not complete'],null,2));process.exitCode=1}
 }else throw Error('Use prepare or check');
