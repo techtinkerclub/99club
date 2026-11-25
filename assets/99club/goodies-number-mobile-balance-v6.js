@@ -254,7 +254,7 @@ function promptText(){return String(q('.gd-challenge-prompt',banner())?.textCont
 function maskChallengeReadouts(){
   const w=work(),b=banner();if(!w)return;const active=!!b;document.body.classList.toggle('nmb-v5-challenge-active',active);w.classList.toggle('nmb-v5-challenge-active',active);w.classList.toggle('nmb-v5-readonly',!!complexSpec?.readOnly);
   const totalsToggle=q('#ba-show-totals',controls())?.closest('label');if(totalsToggle)totalsToggle.style.display=active?'none':'';if(!active)return;
-  const kicker=q('.gd-challenge-kicker',b);setText(kicker,'NUMBER MOBILE · '+difficulty.toUpperCase());
+  const kicker=q('.gd-challenge-kicker',b);setText(kicker,'Challenge');
   const verdict=q('.gd-eq-verdict strong',w),verdictLabel=q('.gd-eq-verdict span',w),eq=q('[data-ba-equation]',w);let task='Challenge';
   if(complexSpec){
     if(complexSpec.type==='make-balance')task=mobileBalanced()?'Balanced ✓':'Keep adjusting the mobile';
@@ -289,7 +289,7 @@ function freezeReadonly(){
 }
 function ensureAnother(){
   const b=banner();if(!b||!complexSpec)return;const actions=q('.gd-challenge-actions',b);if(!actions||q('[data-nmb-v6-another]',actions))return;
-  const button=document.createElement('button');button.type='button';button.className='gd-challenge-action';button.dataset.nmbV6Another='1';button.textContent='Another like this';button.onclick=e=>{e.stopPropagation();complexChallenge(complexSpec.type,complexSpec.difficulty)};
+  const button=document.createElement('button');button.type='button';button.className='gd-challenge-action';button.dataset.nmbV6Another='1';button.textContent='Another';button.onclick=e=>{e.stopPropagation();complexChallenge(complexSpec.type,complexSpec.difficulty)};
   actions.insertBefore(button,q('[data-board-action="reveal"]',actions)||null);
 }
 function adapt(){
