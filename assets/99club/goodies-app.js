@@ -5,7 +5,7 @@ const {root,CATS,q,qa,numberLine,placeValue,abacusTool,fractionWall,barModel,hun
 const tools=[
   ['number-line','Number line','↔','number','Explore integers, decimals and jumps on a configurable line.','Mental arithmetic, rounding, negative numbers, fractions/decimals and explaining calculation strategies.',numberLine],
   ['place-value','Place value board','123','number','Build numbers with counters and a linked place-value bead frame.','Reading, composing and decomposing whole numbers and decimals; useful on an interactive whiteboard.',placeValue],
-  ['abacus','Abacus & historical calculators','●','number','Explore Western and Japanese abacuses alongside historical calculating devices.','Place value, arithmetic and the history of calculation using physical-style interactive devices.',abacusTool],
+  ['abacus','Abacus & historical calculators','●','number','Explore Western, Chinese and Japanese abacuses alongside historical calculating devices.','Place value, arithmetic and the history of calculation using physical-style interactive devices.',abacusTool],
   ['fraction-wall','Fraction wall','½','fractions','Compare and explore equivalent fractions visually.','Equivalent fractions, comparison, ordering and links between common denominators.',fractionWall],
   ['bar-model','Bar model builder','▰','operations','Create part–whole models with known and unknown values.','Word problems, additive reasoning, multiplication/division and explaining unknown quantities.',barModel],
   ['hundred-square','Hundred square','▦','number','Highlight patterns, multiples, factors, primes and parity.','Counting patterns, times tables, prime numbers, place value and mental calculation.',hundredSquare],
@@ -103,18 +103,15 @@ if(embedded){
   function simplifyEmbeddedControls(){
     const controls=q('#gd-controls');if(!controls)return;
     const blocked=/^(challenge|export|present|task)(\b|\s|$)/i;
-    const keepPriority=/^(objects|build|explore|setup)$/i;
     const tablists=[...controls.querySelectorAll('[role="tablist"]')];
     tablists.forEach(tab=>{
       const buttons=[...tab.querySelectorAll('button')];
       if(!buttons.some(button=>blocked.test((button.textContent||'').trim())))return;
-      const active=buttons.find(button=>button.classList.contains('gd-btn--primary')||button.classList.contains('is-active')||button.getAttribute('aria-selected')==='true');
       const allowed=buttons.filter(button=>!blocked.test((button.textContent||'').trim()));
       buttons.forEach(button=>button.classList.toggle('gd-embed-workflow-hidden',blocked.test((button.textContent||'').trim())));
-      if(active&&blocked.test((active.textContent||'').trim())){
-        const preferred=allowed.find(button=>keepPriority.test((button.textContent||'').trim()))||allowed[0];
-        if(preferred){preferred.click();return}
-      }
+      // Embedded controls are visually hidden and mirrored into the parent.
+      // Never change a widget's active workflow here: it invalidates challenge
+      // configuration and can cancel a requested export during a render.
       tab.classList.toggle('gd-embed-workflow-hidden',allowed.length===0);
       tab.classList.toggle('gd-embed-workflow-compact',allowed.length>0);
     });
