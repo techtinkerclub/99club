@@ -1806,3 +1806,16 @@ html.gd-embed-page,body.gd-embed-page{margin:0!important;width:100%!important;he
 .gd-clock-layout-toolbar{display:flex;justify-content:flex-end;margin-bottom:6px}
 .gd-clock-layout-cycle{min-width:36px;min-height:36px;padding:3px 9px;font-size:1.15rem;line-height:1}
 .gd-embed-page .gd-clock-layout-toolbar{display:none!important}
+
+
+/* Keep clock readouts compact and legible even in narrow comparison cards. */
+.gd-clock-grid[data-cl-layout] .gd-clock-card{container-type:inline-size}
+.gd-clock-grid[data-cl-layout] .gd-clock-readouts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:8px auto 0;width:100%}
+.gd-clock-grid[data-cl-layout] .gd-clock-readouts .gd-readout{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;padding:7px 4px;border-radius:9px;text-align:center;overflow-wrap:normal}
+.gd-clock-grid[data-cl-layout] .gd-clock-readouts .gd-readout span{font-size:.68rem;line-height:1.2;white-space:nowrap}
+.gd-clock-grid[data-cl-layout] .gd-clock-readouts .gd-readout strong{font-size:clamp(.72rem,5.4cqi,1.05rem);line-height:1.25;white-space:nowrap;word-break:normal;overflow-wrap:normal;text-align:center;font-variant-numeric:tabular-nums}
+@container (max-width:190px){.gd-clock-grid[data-cl-layout] .gd-clock-readouts{grid-template-columns:minmax(0,1fr);gap:4px}.gd-clock-grid[data-cl-layout] .gd-clock-readouts .gd-readout{padding:4px;gap:2px}.gd-clock-grid[data-cl-layout] .gd-clock-readouts .gd-readout strong{font-size:clamp(.64rem,9cqi,.95rem)}}
+.gd-clock-differences[data-cl-difference-count="1"]{grid-template-columns:minmax(0,1fr);margin-top:0}
+.gd-clock-differences .gd-readout{grid-template-columns:minmax(0,1fr) max-content;gap:8px;align-items:center}
+.gd-clock-differences .gd-readout strong{white-space:nowrap;font-variant-numeric:tabular-nums}
+.gd-clock-differences .gd-readout span{min-width:0;overflow-wrap:anywhere}
