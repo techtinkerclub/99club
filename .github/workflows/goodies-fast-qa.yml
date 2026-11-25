@@ -55,17 +55,24 @@ jobs:
           CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
           if [ -z "$CHROME" ]; then echo 'No Chrome/Chromium executable is available.' >&2; exit 1; fi
 
-          timeout 40s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --window-size=1200,900 --virtual-time-budget=16000 --dump-dom http://127.0.0.1:8790/99club-goodies-browser-qa.html > /tmp/goodies.html
-          node scripts/99club/goodies-browser-qa.js check /tmp/goodies.html
-
-          timeout 50s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --window-size=1200,900 --virtual-time-budget=30000 --dump-dom http://127.0.0.1:8790/99club-goodies-whiteboard-qa.html > /tmp/whiteboard.html
-          node scripts/99club/goodies-whiteboard-browser-qa.js check /tmp/whiteboard.html
-
-          timeout 55s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --window-size=1200,900 --virtual-time-budget=30000 --dump-dom http://127.0.0.1:8790/99club-goodies-composition-qa.html > /tmp/composition.html
-          node scripts/99club/goodies-composition-browser-qa.js check /tmp/composition.html
-
-          timeout 55s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --window-size=1200,900 --virtual-time-budget=30000 --dump-dom http://127.0.0.1:8790/99club-goodies-layout-qa.html > /tmp/layout.html
-          node scripts/99club/goodies-layout-browser-qa.js check /tmp/layout.html
+          failures=0
+          run_suite() {
+            local suite="$1" page="$2" seconds="$3" budget="$4"
+            echo "::group::${suite} browser QA"
+            if timeout "${seconds}s" "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --window-size=1200,900 --virtual-time-budget="$budget" --dump-dom "http://127.0.0.1:8790/99club-goodies-${page}.html" > "/tmp/${suite}.html" && node "scripts/99club/goodies-${suite}-qa.js" check "/tmp/${suite}.html"; then
+              echo "PASS: ${suite}"
+            else
+              echo "::error::FAIL: ${suite}"
+              failures=$((failures+1))
+            fi
+            echo "::endgroup::"
+          }
+          run_suite browser browser-qa 40 16000
+          run_suite whiteboard-browser whiteboard-qa 50 30000
+          run_suite composition-browser composition-qa 55 30000
+          run_suite layout-browser layout-qa 55 30000
+          echo "Failed browser suites: $failures / 4"
+          test "$failures" -eq 0
       - name: Upload focused reports
         if: always()
         uses: actions/upload-artifact@v4
