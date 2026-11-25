@@ -4255,7 +4255,7 @@ function arrayPaper(data,teacher=false){
  const lines=Math.max(data.settings?.responseLines||1,c.type==='partial-products'?2:1);
  return G.exportTools.composeWorksheetCardSvg(svg,{title:ARRAY_TEMPLATES.find(t=>t.id===c.type)?.title||'Array challenge',prompt,responseLabel:c.type==='partial-products'?'Partial products and total':'Answer',responseMode:build?'none':lines>1?'lines':'box',responseLines:lines,paperStyle:'plain',answer:c.answer,showAnswer:teacher,diagramMaxHeight:build?550:450});
 }
-function arrayData(model){if(model.challenge?.mode==='custom')throw Error('Use individual export for custom array tasks.');return {type:model.challenge?.type,settings:arraySettings(model),diagram:model.diagram,challenge:model.challenge?{...model.challenge,revealed:false}:null}}
+function arrayData(model){if(model.challenge?.mode==='custom')throw Error('Use individual export for custom array tasks.');return {type:model.challenge?.type,settings:arraySettings({...model,generationSettings:model.challenge?.generationSettings||model.generationSettings}),diagram:model.diagram,challenge:model.challenge?{...model.challenge,revealed:false}:null}}
 G.arrayPaperModel={generate:arrayGenerate,render:arrayPaper,types:arrayTypes,settings:arraySettings};
 if(G.publishing)G.publishing.register('array-builder',{
  label:'Array builder',types:arrayTypes,title:item=>item.kind==='diagram'?'Array illustration':ARRAY_TEMPLATES.find(t=>t.id===item.data.type)?.title||'Array challenge',
@@ -4278,7 +4278,7 @@ function arrayBuilder(){
   ];
   const CHALLENGE_TEMPLATES=ARRAY_TEMPLATES;
   let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='count-total',challenge=null,beforeChallenge=null;
-  let exportMode='diagram',responseLines=1,exportStatus='';
+  let exportMode='diagram',responseLines=1,exportStatus='',generationSettings={min:2,max:10};
 
   function clampDim(value){return clamp(Math.round(num(value,1)),1,MAX)}
   function normaliseSplits(){
@@ -4447,7 +4447,9 @@ function arrayBuilder(){
     }
     const picker=CK.pickerHtml(CHALLENGE_TEMPLATES,CHALLENGE_CATEGORIES,challengeCategory,challengeType,'ab');
     const repeat=!!(challenge&&challenge.mode==='standard'&&challenge.type===challengeType);
-    return tabs+picker+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="ab-generate" type="button">'+(repeat?'Another like this':'Generate challenge')+'</button>'+
+    const options=(from,to,current)=>Array.from({length:to-from+1},(_,i)=>'<option value="'+(from+i)+'"'+(from+i===current?' selected':'')+'>'+(from+i)+'</option>').join('');
+    const range='<div class="gd-row">'+field('Smallest factor','<select id="ab-gen-min" class="gd-select">'+options(2,11,generationSettings.min)+'</select>')+field('Largest factor','<select id="ab-gen-max" class="gd-select">'+options(generationSettings.min+1,12,generationSettings.max)+'</select>')+'</div>';
+    return tabs+range+picker+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="ab-generate" type="button">'+(repeat?'Another like this':'Generate challenge')+'</button>'+
       (challenge&&challenge.mode!=='custom'?'<button class="gd-btn" id="ab-edit-challenge" type="button">Edit challenge</button>':'')+
       (challenge&&challenge.answer?'<button class="gd-btn" id="ab-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
       (challenge?'<button class="gd-btn" id="ab-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>';
@@ -4616,7 +4618,8 @@ function arrayBuilder(){
   function generateChallenge(type){
     const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
     if(!beforeChallenge)beforeChallenge=snapshot();else restoreSnapshot(beforeChallenge);
-    const data=arrayGenerate(type,{responseLines});
+    const data=arrayGenerate(type,{generationSettings,responseLines});
+    data.challenge.generationSettings={...generationSettings};
     restoreSnapshot(data.diagram);challenge=CK?CK.normalise(data.challenge):data.challenge;
     challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';
     exportMode='challenge';responseLines=template.category==='reason'?3:type==='build-array'?2:1;exportStatus='';clearHistory();
@@ -4677,7 +4680,10 @@ function arrayBuilder(){
       renderControls();
     });
     qa('[data-ab-challenge-type]',controls).forEach(button=>button.onclick=()=>{challengeType=button.dataset.abChallengeType;renderControls()});
-    const generate=q('#ab-generate',controls);if(generate)generate.onclick=()=>generateChallenge(challengeType);
+    const min=q('#ab-gen-min',controls),max=q('#ab-gen-max',controls);
+      if(min)min.onchange=()=>{generationSettings={min:+min.value,max:Math.max(+min.value+1,generationSettings.max)};renderControls()};
+      if(max)max.onchange=()=>{generationSettings={...generationSettings,max:+max.value};renderControls()};
+      const generate=q('#ab-generate',controls);if(generate)generate.onclick=()=>generateChallenge(challengeType);
     const edit=q('#ab-edit-challenge',controls);if(edit)edit.onclick=enterCustomChallenge;
     const end=q('#ab-clear-challenge',controls);if(end)end.onclick=clearChallenge;
     const reveal=q('#ab-reveal',controls);if(reveal)reveal.onclick=toggleModelReveal;
@@ -4803,8 +4809,8 @@ function arrayBuilder(){
   setPanels(controlsHtml(),'');
   bindControls();
   draw();
-  G.lessonState?.register('array-builder',()=>({diagram:snapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
-    restoreSnapshot(saved.diagram);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
+  G.lessonState?.register('array-builder',()=>({diagram:snapshot(),challenge,beforeChallenge,generationSettings:{...generationSettings},pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
+    restoreSnapshot(saved.diagram);const cfg=arraySettings(saved);generationSettings={min:cfg.min,max:cfg.max};challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
     if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
     if(Object.prototype.hasOwnProperty.call(saved,'challengeTab'))challengeTab=saved.challengeTab;
     if(Object.prototype.hasOwnProperty.call(saved,'challengeCategory'))challengeCategory=saved.challengeCategory;
