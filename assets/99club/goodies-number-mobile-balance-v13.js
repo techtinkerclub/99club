@@ -71,8 +71,9 @@ function enhanceCurrent(){
   return enhancePanel(panel);
 }
 async function stabilise(){
+  if(!work())return;
   const token=++runToken,initial=q('.nmb-v8-response-panel',stage()),initialReady=initial?.dataset?.nmbV13Numeric==='1';
-  for(let i=0;i<160&&token===runToken;i++){
+  for(let i=0;i<160&&token===runToken&&work();i++){
     const panel=q('.nmb-v8-response-panel',stage());
     if(!panel){if(activePanel)closePad(activePanel);await new Promise(r=>setTimeout(r,40));continue}
     const transitioned=!initial||panel!==initial||!initial.isConnected;
@@ -81,7 +82,7 @@ async function stabilise(){
     await new Promise(r=>setTimeout(r,40));
   }
 }
-function relevant(target){return !!target?.closest?.('.nmb-v5-challenge-popover,[data-nmb-v6-type],[data-nmb-v6-another],[data-nmb-v9-change],[data-nmb-challenge-toggle],[data-board-action="reveal"],[data-nmb-v7-exit]')}
+function relevant(target){return !!work()&&!!target?.closest?.('.nmb-v5-challenge-popover,[data-nmb-v6-type],[data-nmb-v6-another],[data-nmb-v9-change],[data-nmb-challenge-toggle],[data-board-action="reveal"],[data-nmb-v7-exit]')}
 function install(){
   window.addEventListener('click',e=>{if(relevant(e.target))setTimeout(stabilise,0)},true);
   document.addEventListener('click',e=>{if(relevant(e.target))setTimeout(stabilise,0)},false);
