@@ -120,7 +120,8 @@ Three levels: (1) publish the current challenge or non-challenge representation 
 ## Place Value shared publishing (25 November)
 - Fourth document adapter: five standard challenges plus eight counter activities (build, exact, regroup, same value, read, hidden place, digit value, addition). Shared generator now drives live standard challenges and random counter activities as well as document generation; paper renderer is shared with direct pupil/teacher exports. Captures range, counter budget, addition regroup preference and original representation independently.
 - Current free/teaching diagrams captured using existing static renderer, including legacy linked views; long counter stacks no longer clip due to capped export height. Custom authored tasks remain direct-export only until safe frozen custom response semantics are reviewed. Powers-of-ten demonstrations can be captured as diagrams, not randomly generated puzzles.
-- Full browser, touch and actual print certification remains open.
+- Fixed narrow custom ranges that produced insufficient variation, and changed zero-placeholder prompts to avoid assuming that trailing decimal zeros change numeric value. Shared document composer isolates local SVG IDs and references per question to avoid repeated clip-path collisions.
+- Automated checks: 45 column ranges × 3 addition settings, 14,040 generated tasks, 28,080 pupil/teacher diagrams, 135 mixed drafts, 135 isolated replacements and captures, 1,655 page checks. Full browser, touch and actual print certification remains open.
 
 ## Next priorities
 1. Visual/touch feedback: validate the practice-set launcher, whiteboard layout, inline answer boxes, responsive columns and paper outputs; refine density and font sizes after classroom feedback.
