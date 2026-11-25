@@ -3,6 +3,8 @@ name: Number Mobile QA
 on:
   pull_request:
     paths:
+      - 'assets/99club/goodies-number-mobile.js'
+      - 'assets/99club/goodies-number-mobile.css'
       - 'assets/99club/goodies-number-mobile-balance-v3.js'
       - 'assets/99club/goodies-number-mobile-balance-v3.css'
       - 'assets/99club/goodies-number-mobile-balance-v4.js'
@@ -27,6 +29,8 @@ on:
   push:
     branches: [main]
     paths:
+      - 'assets/99club/goodies-number-mobile.js'
+      - 'assets/99club/goodies-number-mobile.css'
       - 'assets/99club/goodies-number-mobile-balance-v3.js'
       - 'assets/99club/goodies-number-mobile-balance-v3.css'
       - 'assets/99club/goodies-number-mobile-balance-v4.js'

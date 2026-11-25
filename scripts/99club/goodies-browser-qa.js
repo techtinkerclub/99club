@@ -613,7 +613,9 @@ if(mode==='prepare'){
     buildParts[2].click();
     const buildValue=document.getElementById('bm-value');
     buildValue.value='5';buildValue.dispatchEvent(new Event('change',{bubbles:true}));
-    assert(document.querySelector('[data-bm-target-status]').textContent.includes('On target'),'Build-model challenge recognises a correct directly edited model');
+    assert(!document.querySelector('[data-bm-target-status]'),'Build-model does not disclose correctness before Check');
+    document.querySelector('[data-gd-pupil-check]').click();
+    assert(document.querySelector('.gd-pupil-feedback.is-correct'),'Build-model challenge recognises a correct directly edited model after Check');
 
     document.querySelector('[data-bm-workflow="challenge"]').click();
     document.querySelector('[data-bm-challenge-cat="reason"]').click();
@@ -1937,11 +1939,13 @@ if(mode==='prepare'){
     document.querySelector('[data-fd-challenge-type="build-percentage"]').click();
     document.getElementById('fd-generate').click();
     assert(document.querySelector('[data-fd-source]').textContent.trim()==='1/2','Build-percentage challenge starts from a neutral 1/2 model');
-    assert(document.querySelector('[data-fd-target-status]').textContent.includes('Build 75%'),'Build-percentage challenge states its target');
+    assert(document.querySelector('.gd-challenge-prompt').textContent.includes('75%'),'Build-percentage challenge states its target');
     let fn=document.getElementById('fd-n'),fd=document.getElementById('fd-d');
     fn.value='3';fn.dispatchEvent(new Event('change',{bubbles:true}));
     fd=document.getElementById('fd-d');fd.value='4';fd.dispatchEvent(new Event('change',{bubbles:true}));
-    assert(document.querySelector('[data-fd-target-status]').textContent.includes('On target'),'Build-percentage challenge validates 3/4 as 75%');
+    assert(!document.querySelector('[data-fd-target-status]'),'Build-percentage does not disclose correctness before Check');
+    document.querySelector('[data-gd-pupil-check]').click();
+    assert(document.querySelector('.gd-pupil-feedback.is-correct'),'Build-percentage challenge validates 3/4 as 75% after Check');
 
     document.querySelector('[data-fd-workflow="challenge"]').click();
     document.querySelector('[data-fd-challenge-tab="custom"]').click();
@@ -3889,7 +3893,7 @@ if(mode==='prepare'){
         testClockWorkbench();
         result('pass','Number Line challenges, Maths Canvas, Bar Model, Equation Balance, Hundred Square, Multiplication Grid, Times-table Visualiser, Factor Explorer, FDP Explorer, Place Value, Abacus, Fraction Wall, Geoboard, Coordinates, Measurement, Randomiser, Array, UK Money and Clock workbench interactions work');
       }catch(err){
-        result('fail',err&&err.message?err.message:String(err));
+        result('fail',err&&err.stack?err.stack.split(String.fromCharCode(10)).join(' | '):String(err));
       }
     },100);
   });
