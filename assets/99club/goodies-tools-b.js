@@ -1,42 +1,122 @@
-/* Pure, paper-first arithmetic generators. No DOM or executable expression parsing. */
+/* Configurable paper-first arithmetic generator. Exact fixed-point arithmetic, no eval. */
 (function(G){
 'use strict';
+if(!G)return;
+const OPS=['+','−','×','÷'],REL=['<','=','>'];
 const groups=[
  {id:'arithmetic',label:'Arithmetic',ids:['missing-result','missing-number','missing-operation','number-bond']},
  {id:'equivalence',label:'Equality & comparison',ids:['equal-expressions','compare-values','true-false']},
  {id:'reasoning',label:'Reasoning',ids:['order-of-operations','inverse-operation']}
 ];
-const titles={'missing-result':'Calculate the result','missing-number':'Find the missing number','missing-operation':'Find the operator','number-bond':'Number bonds','equal-expressions':'Balance the equation','compare-values':'Compare numbers','true-false':'True or false','order-of-operations':'Order of operations','inverse-operation':'Use the inverse'};
-function generate(type,level='medium',rng=Math.random){
- const int=(a,b)=>a+Math.min(b-a,Math.floor(rng()*(b-a+1))),pick=a=>a[int(0,a.length-1)];
- const max=level==='easy'?10:level==='hard'?100:30,table=level==='easy'?5:12;
- const op=pick(['+','−','×','÷']);
- const calc=(a,o,b)=>o==='+'?a+b:o==='−'?a-b:o==='×'?a*b:b?a/b:NaN;
- function operands(o){let a=int(1,max),b=int(1,max);if(o==='−'&&a<b)[a,b]=[b,a];if(o==='×'){a=int(2,table);b=int(2,table)}if(o==='÷'){b=int(2,table);a=b*int(2,table)}return[a,b]}
- const [a,b]=operands(op),c=calc(a,op,b);
- let tiles,prompt,answer,kind='number',choices,solutionExplanation;
- const eq=(x,o,y,z)=>[x,o,y,'=',z].map(String);
- switch(type){
- case 'missing-result':tiles=eq(a,op,b,'?');prompt='Calculate the missing result.';answer=c;break;
- case 'missing-number':{const left=int(0,1)===0;tiles=eq(left?'?':a,op,left?b:'?',c);prompt='Find the missing number.';answer=left?a:b;break}
- case 'missing-operation':{
-   // Distinct positive operands chosen so exactly one operation gives the result.
-   let x,y,o,z,valid;
-   for(let i=0;i<100;i++){o=pick(['+','−','×','÷']);[x,y]=operands(o);z=calc(x,o,y);valid=['+','−','×','÷'].filter(v=>calc(x,v,y)===z);if(valid.length===1)break}
-   if(valid.length!==1){x=8;y=4;o='×';z=32}
-   tiles=eq(x,'?',y,z);prompt='Which operation makes the equation true?';answer=o;kind='choice';choices=['+','−','×','÷'];break}
- case 'number-bond':{const target=pick(level==='easy'?[10,20]:level==='hard'?[100,200,1000]:[20,50,100]),n=int(1,target-1);tiles=eq(n,'+','?',target);prompt='Complete the number bond.';answer=target-n;break}
- case 'equal-expressions':{const x=int(1,c||1),total=c||2;tiles=[String(a),op,String(b),'=',String(x),'+','?'];if(c===0){tiles=['0','=','?','+','0'];answer=0}else answer=total-x;prompt='Make both sides of the equation equal.';break}
- case 'compare-values':{const scale=level==='hard'?10:1,x=int(0,max*scale)/scale,y=pick([x,int(0,max*scale)/scale]);tiles=[String(x),'?',String(y)];prompt='Choose the correct comparison symbol.';answer=x<y?'<':x>y?'>':'=';kind='choice';choices=['<','=','>'];break}
- case 'true-false':{const shown=pick([c,c+int(1,5),Math.max(0,c-int(1,5))]);tiles=eq(a,op,b,shown);prompt='Is this equation true or false?';answer=shown===c?'True':'False';kind='choice';choices=['True','False'];solutionExplanation=a+' '+op+' '+b+' = '+c;break}
- case 'order-of-operations':{const x=int(2,table),y=int(2,table),z=int(2,table);tiles=[String(x),'+',String(y),'×',String(z),'=','?'];prompt='Calculate the result. Multiply before adding.';answer=x+y*z;solutionExplanation=y+' × '+z+' = '+y*z+'; '+x+' + '+y*z+' = '+answer;break}
- case 'inverse-operation':{const x=int(2,table),y=int(2,table),z=x*y;tiles=[String(x),'×',String(y),'=',String(z),' ; ',String(z),'÷','?','=',String(x)];prompt='Use the multiplication fact to find the missing number in the division fact.';answer=y;break}
- default:throw Error('Unknown number tile challenge: '+type)
- }
- const category=groups.find(g=>g.ids.includes(type)).id;
- return {mode:'standard',type,category,title:'',prompt,answer:String(answer),answerMode:'manual',revealed:false,tiles,kind,choices,solutionExplanation:solutionExplanation||tiles.map(v=>v==='?'?String(answer):v).join(' '),level};
+const titles={'missing-result':'Calculate the result','missing-number':'Find the missing number','missing-operation':'Find the operator','number-bond':'Number bonds','equal-expressions':'Balance the equation','compare-values':'Compare expressions','true-false':'True or false','order-of-operations':'Order of operations','inverse-operation':'Use the inverse'};
+const presets={
+ easy:{min:0,max:20,ops:['+','−'],relations:REL,left:2,right:1,precision:0},
+ medium:{min:0,max:100,ops:OPS,relations:REL,left:2,right:0,precision:0},
+ hard:{min:-20,max:1000,ops:OPS,relations:REL,left:0,right:0,precision:0}
+};
+function settings(raw={},level='medium'){
+ const base=presets[level]||presets.medium;
+ const valid=(v,options,def)=>options.includes(Number(v))?Number(v):def;
+ const select=(v,allowed,def)=>Array.isArray(v)?allowed.filter(x=>v.includes(x)):def.slice();
+ return {min:valid(raw.min,[-100,-20,-10,0,1],base.min),max:valid(raw.max,[10,20,50,100,200,500,1000,10000],base.max),
+ ops:select(raw.ops,OPS,base.ops),relations:select(raw.relations,REL,base.relations),left:valid(raw.left,[0,1,2,3,4],base.left),right:valid(raw.right,[0,1,2,3,4],base.right),precision:valid(raw.precision,[0,1,2],base.precision)};
 }
-G.numberChallenges={groups,titles,generate};
+function available(raw,level='medium'){
+ const s=settings(raw,level),has=n=>s.ops.includes(n),left=n=>s.left===0?n>=2&&n<=4:s.left===n,right=n=>s.right===0?n>=1&&n<=2:s.right===n;
+ const expression=(s.left!==1||s.right!==1),canExpressions=!expression||s.ops.length>0;
+ const valid={
+ 'missing-result':s.ops.length>0&&[2,3,4].some(left)&&right(1),
+ 'missing-number':canExpressions&&expression,
+ 'missing-operation':canExpressions&&expression&&s.ops.length>=2,
+ 'number-bond':has('+')&&left(2)&&right(1),
+ 'equal-expressions':canExpressions&&expression&&right(2)||canExpressions&&expression&&(s.right===3||s.right===4),
+ 'compare-values':canExpressions&&s.relations.length>0,
+ 'true-false':canExpressions,
+ 'order-of-operations':left(3)&&right(1)&&(has('+')||has('−'))&&(has('×')||has('÷')),
+ 'inverse-operation':left(2)&&right(1)&&has('×')&&has('÷')
+ };
+ return groups.map(g=>({...g,ids:g.ids.filter(id=>valid[id])})).filter(g=>g.ids.length);
+}
+function generate(type,level='medium',rng=Math.random,raw={}){
+ const s=settings(raw,level),scale=10**s.precision,lo=s.min*scale,hi=s.max*scale;
+ if(!available(s,level).some(g=>g.ids.includes(type)))throw Error('This question type is not available with the selected settings.');
+ const int=(a,b)=>a+Math.min(b-a,Math.floor(rng()*(b-a+1))),pick=a=>a[int(0,a.length-1)];
+ const inRange=v=>Number.isSafeInteger(v)&&v>=lo&&v<=hi,fmt=v=>String(v/scale).replace(/^-/, '−');
+ const calc=(a,o,b)=>{let v=o==='+'?a+b:o==='−'?a-b:o==='×'?a*b/scale:b!==0?a*scale/b:NaN;return Number.isSafeInteger(v)?v:NaN};
+ const evaluate=(e)=>{let v=e.n[0];for(let i=0;i<e.o.length;i++)v=calc(v,e.o[i],e.n[i+1]);return v};
+ function samples(){const a=[lo,hi,0,scale,2*scale,3*scale,5*scale,10*scale,-scale,1,-1];for(let i=0;i<32;i++)a.push(i%2?int(lo,hi):int(Math.ceil(lo/scale),Math.floor(hi/scale))*scale);return [...new Set(a.filter(inRange))].sort(()=>rng()-.5)}
+ function build(target,count,depth=0){
+   if(!inRange(target))return null;
+   if(count===1)return {n:[target],o:[]};
+   const candidates=[];for(const b of samples())for(const o of s.ops){let prev=o==='+'?target-b:o==='−'?target+b:o==='×'?(b?target*scale/b:NaN):target*b/scale;
+     if(o==='÷'&&b===0||!inRange(prev)||calc(prev,o,b)!==target)continue;
+     candidates.push({prev,b,o})}
+   // Prefer meaningful calculations, but allow identities when constraints are narrow.
+   const score=c=>(c.b===0||c.b===scale&&(c.o==='×'||c.o==='÷')?1:0);
+   candidates.sort((a,b)=>score(a)-score(b));
+   for(const c of candidates.slice(0,24)){const e=build(c.prev,count-1,depth+1);if(e)return{n:[...e.n,c.b],o:[...e.o,c.o]}}
+   return null;
+ }
+ const count=(v,side)=>v||int(side==='left'?2:1,side==='left'?4:2);
+ const relation=(a,b)=>a<b?'<':a>b?'>':'=';
+ function tokens(e,hole=null){
+   let out=[hole?.n===0?'?':fmt(e.n[0])];
+   for(let i=0;i<e.o.length;i++){if(i>0)out=['(',...out,')'];out.push(hole?.o===i?'?':e.o[i],hole?.n===i+1?'?':fmt(e.n[i+1]));}
+   return out;
+ }
+ function uniqueOperand(e,index){
+   // Inverse of each step exists uniquely; avoid multiplying by zero or zero numerator
+   // when the unknown is a divisor. Known divisions are exact and nonzero.
+   let v=e.n[0];for(let i=0;i<e.o.length;i++){const b=e.n[i+1],o=e.o[i];if(i+1>=index&&o==='×'&&((i+1===index&&v===0)||(i+1>index&&b===0)))return false;if(i+1===index&&o==='÷'&&v===0)return false;v=calc(v,o,b)}return true;
+ }
+ function equation(a,b,hA,hB,sign='='){return [...tokens(a,hA),sign,...tokens(b,hB)]}
+ function result(tiles,prompt,answer,kind='number',choices,solutionExplanation){
+   return {mode:'standard',type,category:groups.find(g=>g.ids.includes(type)).id,title:'',prompt,answer:String(answer),answerMode:'manual',revealed:false,tiles,kind,choices,solutionExplanation:solutionExplanation||tiles.map(v=>v==='?'?String(answer):v).join(' '),level,settings:s};
+ }
+ const targetSample=()=>rng()<.6?int(Math.ceil(lo/scale),Math.floor(hi/scale))*scale:int(lo,hi);
+ for(let attempt=0;attempt<150;attempt++){
+   let L=count(s.left,'left'),R=count(s.right,'right'),target=targetSample(),a,b;
+   if(type==='missing-result'||type==='number-bond'||type==='order-of-operations'||type==='inverse-operation')R=1;
+   if(type==='equal-expressions'&&s.right===0)R=2;
+   if(type==='number-bond'){
+     const x=targetSample(),y=target-x;if(!inRange(x)||!inRange(y))continue;
+     return result([fmt(x),'+','?','=',fmt(target)],'Complete the number bond.',fmt(y));
+   }
+   if(type==='inverse-operation'){
+     const x=pick(samples().filter(v=>v>0)),y=pick(samples().filter(v=>v>0)),z=calc(x,'×',y);
+     if(!inRange(z)||!inRange(x)||!inRange(y))continue;
+     return result([fmt(x),'×',fmt(y),'=',fmt(z),' ; ',fmt(z),'÷','?','=',fmt(x)],'Use the multiplication fact to find the missing number in the division fact.',fmt(y));
+   }
+   if(type==='order-of-operations'){
+     const x=targetSample(),y=targetSample(),z=pick(samples().filter(v=>v!==0)),o=pick(s.ops.filter(v=>v==='+'||v==='−')),p=pick(s.ops.filter(v=>v==='×'||v==='÷'));
+     const product=calc(y,p,z),v=calc(x,o,product);if(!inRange(v)||!Number.isSafeInteger(product))continue;
+     return result([fmt(x),o,fmt(y),p,fmt(z),'=','?'],'Calculate the result using the correct order of operations.',fmt(v),'number',undefined,fmt(y)+' '+p+' '+fmt(z)+' = '+fmt(product)+'; '+fmt(x)+' '+o+' '+fmt(product)+' = '+fmt(v));
+   }
+   if(type==='compare-values'||type==='true-false'){
+     const desired=type==='compare-values'?pick(s.relations):pick(['=','<','>']);
+     let other=desired==='='?target:target+(desired==='<'?1:-1)*int(1,Math.max(1,Math.floor((hi-lo)/3)));
+     if(!inRange(other))continue;
+     a=build(target,L);b=build(other,R);if(!a||!b)continue;
+     if(type==='compare-values')return result(equation(a,b,null,null,'?'),'Choose the comparison symbol that makes the statement true.',desired,'choice',s.relations.slice(),fmt(target)+' '+desired+' '+fmt(other));
+     return result(equation(a,b),'Is this equation true or false?',desired==='='?'True':'False','choice',['True','False'],fmt(target)+' '+relation(target,other)+' '+fmt(other));
+   }
+   a=build(target,L);b=build(target,R);if(!a||!b)continue;
+   if(type==='missing-result')return result(equation(a,b,null,{n:0}),'Calculate the missing result.',fmt(target));
+   if(type==='missing-operation'){
+     const sides=[a,b].filter(e=>e.o.length);if(!sides.length)continue;const e=pick(sides),index=int(0,e.o.length-1),good=e.o[index];
+     const alternatives=s.ops.filter(o=>evaluate({...e,o:e.o.map((v,i)=>i===index?o:v)})===target);
+     if(alternatives.length!==1)continue;
+     return result(equation(a,b,e===a?{o:index}:null,e===b?{o:index}:null),'Which operation makes the equation true?',good,'choice',s.ops.slice());
+   }
+   if(type==='missing-number'||type==='equal-expressions'){
+     const e=type==='equal-expressions'?b:pick([a,b].filter(e=>e.n.length>1)),i=int(0,e.n.length-1);
+     if(!uniqueOperand(e,i))continue;
+     return result(equation(a,b,e===a?{n:i}:null,e===b?{n:i}:null),type==='equal-expressions'?'Make both sides of the equation equal.':'Find the missing number.',fmt(e.n[i]));
+   }
+ }
+ throw Error('No suitable question found. Try a wider number range, fewer terms, or more operations.');
+}
+G.numberChallenges={groups,titles,generate,settings,presets,available,OPS,REL};
 })(window.TT99Goodies);
 ;
 (function(G){
