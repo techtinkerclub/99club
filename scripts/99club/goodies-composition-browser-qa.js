@@ -551,6 +551,32 @@ async function run(){
   publisher.querySelector('[data-pub-remove]').click();await tick();
   publisher.querySelector('[data-pub-close]').click();
   TT99Goodies.compositionBoard.remove(randomRecord.id);
+  // Equal-groups worksheets must not expose solutions on the pupil page.
+  {
+    const P=TT99Goodies.publishing,T=TT99Goodies.timesTablePaperModel;
+    assert(P.canGenerate('times-table')&&T.types().length===6,'Times-table publishing covers every challenge family');
+    const draft=P.createDocument();
+    for(const {id} of T.types())draft.generate('times-table',{responseLines:2},1,id,()=>0.1);
+    const items=draft.list(),build=items.find(item=>item.data.type==='build-fact'),c=build.data.challenge;
+    const pupil=P.renderItem(build,false),teacher=P.answerGraphic(build);
+    assert(pupil.querySelector('[data-tv-paper-working]')&&!pupil.querySelector('[data-tv-paper-dot]'),'Build-fact pupil page supplies blank drawing space');
+    assert(teacher.querySelectorAll('[data-tv-paper-group]').length===c.targetGroups&&teacher.querySelectorAll('[data-tv-paper-dot]').length===c.targetGroups*c.targetItems,'Teacher diagram has the exact target groups and dot count');
+    assert(P.answerNote(build).includes('exactly'),'Equal groups annex states the marking criteria');
+    assert(P.pages(items,{teacher:true}).some(page=>page.getAttribute('data-worksheet-answer')==='annex'),'Times-table worksheet includes teacher annex');
+    const captured=P.createDocument();captured.addCurrent('times-table',{...build.data,diagram:{groupsCount:1,itemsPerGroup:1},challenge:{...c,revealed:true}});
+    assert(P.signature(captured.list()[0])===P.signature(build),'Times-table capture preserves the original question after manipulation');
+    for(const {id} of T.types())for(let i=0;i<30;i++){
+      let seed=i+1;const rng=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
+      const d=T.generate(id,{},rng),{groupsCount:g,itemsPerGroup:n}=d.diagram,q=d.challenge;
+      if(id==='find-total')assert(Number(q.answer)===g*n,'Equal group total is exact');
+      if(id==='related-division')assert(Number(q.answer)===n,'Related division is exact');
+      if(id==='commutative-fact')assert(g!==n&&q.answer===n+' × '+g+' = '+g*n,'Reversed multiplication fact is correct');
+      if(id==='spot-error')assert(q.answer.startsWith(q.wrongTotal===g*n?'Yes':'No'),'Error classification is correct');
+      if(id==='build-fact')assert(q.answer===q.targetGroups+' × '+q.targetItems+' = '+q.targetGroups*q.targetItems,'Construction target is exact');
+      if(id==='write-repeated')assert(q.answer===Array.from({length:g},()=>n).join(' + ')+' = '+g*n,'Repeated addition is correct');
+    }
+  }
+
   // Factor evidence and frozen solutions use the same question generator as the widget.
   {
     const P=TT99Goodies.publishing,F=TT99Goodies.factorPaperModel;
@@ -569,7 +595,7 @@ async function run(){
     for(const {id} of F.types())for(let i=0;i<20;i++){
       const d=F.generate(id,{},()=>i/20),{a,b}=d.diagram,c=d.challenge;
       const factors=n=>Array.from({length:n},(_,j)=>j+1).filter(v=>n%v===0);
-      if(id==='missing-factor')assert(Number(c.answer)*Number(c.prompt.match(/(\d+) ×/)[1])===a,'Factor pair product is exact');
+      if(id==='missing-factor')assert(Number(c.answer)*Number(c.prompt.split(' ×')[0].split(' ').pop())===a,'Factor pair product is exact');
       if(id==='common-factors')assert(c.answer===factors(a).filter(v=>b%v===0).join(', '),'Common factors are complete');
       if(id==='hcf')assert(Number(c.answer)===Math.max(...factors(a).filter(v=>b%v===0)),'Highest common factor is exact');
       if(id==='lcm'){const n=Number(c.answer);assert(n%a===0&&n%b===0&&!Array.from({length:n/a-1},(_,j)=>a*(j+1)).some(v=>v%b===0),'Lowest common multiple is minimal');}

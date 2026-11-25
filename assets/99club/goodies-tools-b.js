@@ -2579,6 +2579,90 @@ function balanceTool(){
   };
 }
 
+const TV_TEMPLATES=[
+    {id:'find-total',category:'read',title:'Find the total',desc:'Count equal groups and find how many items there are altogether.'},
+    {id:'write-repeated',category:'connections',title:'Write repeated addition',desc:'Write the repeated-addition statement shown by the equal groups.'},
+    {id:'commutative-fact',category:'connections',title:'Commutative fact',desc:'Write the multiplication fact with the factors reversed.'},
+    {id:'related-division',category:'connections',title:'Related division',desc:'Complete a division fact from the equal-groups model.'},
+    {id:'build-fact',category:'build',title:'Build the fact',desc:'Change the model until it shows the requested equal-groups fact.'},
+    {id:'spot-error',category:'reason',title:'Spot the incorrect equation',desc:'Use the equal groups to decide whether the shown equation is correct.'}
+  ];
+
+function tvSettings(model={}){return {responseLines:clamp(Math.round(Number(model.responseLines??model.settings?.responseLines)||1),1,4)}}
+function tvTypes(){return TV_TEMPLATES.map(t=>({id:t.id,label:t.title}))}
+function tvGenerate(type,settings={},rng=Math.random){
+ const meta=TV_TEMPLATES.find(t=>t.id===type);if(!meta)throw Error('Unknown times-table challenge.');
+ let groupsCount=3,itemsPerGroup=4,selectedGroup=0,challenge;
+ const randomInt=(min,max)=>min+Math.floor(rng()*(max-min+1));
+ const challengeObject=(type,prompt,answer,extra={})=>({mode:'standard',type,category:meta.category,title:'',prompt,promptHtml:prompt,answer:String(answer),answerMode:'manual',answerSource:'',revealed:false,freezeModel:true,hiddenEquation:false,hiddenRepeated:false,hiddenFactFamily:false,hiddenJumps:false,hiddenSelectedPanel:false,targetGroups:null,targetItems:null,wrongTotal:null,...extra});
+    const a=randomInt(3,8);let b=randomInt(4,9);if(type==='commutative-fact'&&a===b)b=a+1;const t=a*b;
+    groupsCount=a;itemsPerGroup=b;selectedGroup=0;
+    if(type==='find-total'){
+      challenge=challengeObject(type,'How many items are there altogether in '+a+' equal groups of '+b+'?',t,{hiddenEquation:true,hiddenRepeated:true,hiddenFactFamily:true,hiddenJumps:true,hiddenSelectedPanel:true});
+    }else if(type==='write-repeated'){
+      challenge=challengeObject(type,'Write the repeated-addition statement shown by '+a+' groups of '+b+'.',Array.from({length:a},()=>b).join(' + ')+' = '+t,{hiddenRepeated:true,hiddenFactFamily:true,hiddenSelectedPanel:true});
+    }else if(type==='commutative-fact'){
+      challenge=challengeObject(type,'Write the commutative fact for '+a+' × '+b+' = '+t+'.',b+' × '+a+' = '+t,{hiddenFactFamily:true,hiddenSelectedPanel:true});
+    }else if(type==='related-division'){
+      challenge=challengeObject(type,'Use '+a+' × '+b+' = '+t+' to complete '+t+' ÷ '+a+' = ?.',b,{hiddenFactFamily:true,hiddenSelectedPanel:true});
+    }else if(type==='build-fact'){
+      const targetGroups=a,targetItems=b;
+      groupsCount=2;itemsPerGroup=2;selectedGroup=0;
+      challenge=challengeObject(type,'Build '+targetGroups+' equal groups with '+targetItems+' items in each group.',targetGroups+' × '+targetItems+' = '+(targetGroups*targetItems),{freezeModel:false,targetGroups,targetItems,hiddenFactFamily:false});
+    }else{
+      const valid=rng()<.5,shown=valid?t:t+(rng()<.5?-1:1)*randomInt(1,3);
+      challenge=challengeObject(type,'The equation says '+a+' × '+b+' = '+shown+'. Use the equal groups to decide whether it is correct.',valid?'Yes. '+a+' × '+b+' = '+t+'.':'No. '+a+' × '+b+' = '+t+', not '+shown+'.',{wrongTotal:shown,hiddenRepeated:true,hiddenFactFamily:true,hiddenJumps:true,hiddenSelectedPanel:true});
+    }
+
+ const diagram={groupsCount,itemsPerGroup,selectedGroup,showRepeated:true,showJumps:true,showFactFamily:true};
+ challenge.initialState={...diagram};
+ return {type,settings:tvSettings(settings),diagram,challenge};
+}
+function tvPublicationData(model){
+ const c=model.challenge?JSON.parse(JSON.stringify(model.challenge)):null;
+ if(c?.mode==='custom')throw Error('Use individual export for custom equal-groups tasks.');
+ if(c){c.revealed=false;delete c.modelBeforeReveal}
+ return {type:c?.type,settings:tvSettings(model),diagram:JSON.parse(JSON.stringify(c?.initialState||model.diagram||model)),challenge:c};
+}
+function tvPaper(data,teacher=false,graphicOnly=false){
+ const c=data.challenge,build=c?.type==='build-fact',d=data.diagram;
+ const groups=build?c.targetGroups:d.groupsCount,items=build?c.targetItems:d.itemsPerGroup,total=groups*items;
+ const cols=Math.min(groups,4),rows=Math.ceil(groups/cols),cardW=170,cardH=88,gap=12,W=800,top=12;
+ const blank=build&&!teacher,H=blank?320:top+rows*(cardH+gap)+(teacher||!c?55:0);
+ const el=(name,attrs={},value)=>{const n=document.createElementNS('http://www.w3.org/2000/svg',name);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,String(v));if(value!==undefined)n.textContent=String(value);return n};
+ const svg=el('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':blank?'Space to draw equal groups':'Equal groups'});
+ const add=(name,attrs,value)=>svg.appendChild(el(name,attrs,value));
+ const text=(x,y,value,attrs={})=>add('text',{x,y,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':19,'font-weight':700,fill:'#304b52',...attrs},value);
+ add('rect',{width:W,height:H,fill:'#fff'});
+ if(blank){add('rect',{x:16,y:10,width:W-32,height:H-20,rx:8,fill:'#fff',stroke:'#9fb4b8','stroke-width':1.5,'data-tv-paper-working':'1'})}
+ else{
+   const left=(W-cols*cardW-(cols-1)*gap)/2;
+   for(let g=0;g<groups;g++){
+     const x=left+(g%cols)*(cardW+gap),y=top+Math.floor(g/cols)*(cardH+gap);
+     add('rect',{x,y,width:cardW,height:cardH,rx:10,fill:'#f7fbfa',stroke:'#80aaa4','stroke-width':1.6,'data-tv-paper-group':g});
+     const dc=Math.min(items,6),dr=Math.ceil(items/dc);
+     for(let i=0;i<items;i++)add('circle',{cx:x+cardW/2+(i%dc-(dc-1)/2)*20,cy:y+cardH/2+(Math.floor(i/dc)-(dr-1)/2)*24,r:7,fill:'#27786f','data-tv-paper-dot':'1'});
+   }
+   if(teacher||!c)text(W/2,H-23,groups+' × '+items+' = '+total,{'data-tv-paper-equation':'1','font-size':24});
+ }
+ if(!c||graphicOnly)return svg;
+ const lines=Math.max(data.settings.responseLines,c.category==='reason'?3:1);
+ return G.exportTools.composeWorksheetCardSvg(svg,{title:TV_TEMPLATES.find(t=>t.id===c.type)?.title||'Equal groups challenge',prompt:build?'Draw '+groups+' equal groups with '+items+' items in each group.':c.prompt,responseMode:build?'none':lines>1?'lines':'box',responseLabel:c.category==='reason'?'Explain your thinking':'Answer',responseLines:lines,paperStyle:'plain',answer:c.answer,showAnswer:teacher,diagramMaxHeight:360});
+}
+G.timesTablePaperModel={settings:tvSettings,types:tvTypes,generate:tvGenerate,render:tvPaper};
+if(G.publishing)G.publishing.register('times-table',{
+ label:'Times-table visualiser',types:tvTypes,
+ title:item=>item.kind==='diagram'?'Equal groups illustration':TV_TEMPLATES.find(t=>t.id===item.data.type)?.title||'Times-table challenge',
+ signature:d=>JSON.stringify([d.type,d.challenge.prompt]),
+ recipe:(model,type)=>({type,settings:tvSettings(model)}),
+ generate(recipe,rng){const ids=tvTypes().map(t=>t.id);return tvGenerate(recipe.type==='all'?ids[Math.floor(rng()*ids.length)]:recipe.type,recipe.settings,rng)},
+ capture(model){const d=tvPublicationData(model);return [G.publishing.record('times-table',d.challenge?'challenge':'diagram',d,d.challenge?{type:d.type,settings:d.settings}:null)]},
+ answerSummary:item=>item.data.challenge.answer,
+ answerGraphic:item=>tvPaper(item.data,true,true),
+ answerNote:item=>{const c=item.data.challenge;if(c.type==='build-fact')return 'Accept any drawing with exactly '+c.targetGroups+' equal groups and '+c.targetItems+' items in each. The groups may be arranged in any order or position.';if(c.type==='write-repeated')return 'Accept equivalent notation with the correct number of identical addends and correct total.';if(c.type==='commutative-fact')return 'The two factors must be reversed, with the product unchanged.';if(c.type==='spot-error')return 'Accept equivalent reasoning that counts the equal groups or calculates the correct product.';return ''},
+ render(item,teacher){return tvPaper(item.data,teacher)}
+});
+
 function timesTableVisual(){
   const CK=G.challengeKit,X=G.exportTools;
   let groupsCount=4,itemsPerGroup=6,selectedGroup=0;
@@ -2590,14 +2674,7 @@ function timesTableVisual(){
     {id:'build',label:'Build'},
     {id:'reason',label:'Reasoning'}
   ];
-  const CHALLENGE_TEMPLATES=[
-    {id:'find-total',category:'read',title:'Find the total',desc:'Count equal groups and find how many items there are altogether.'},
-    {id:'write-repeated',category:'connections',title:'Write repeated addition',desc:'Write the repeated-addition statement shown by the equal groups.'},
-    {id:'commutative-fact',category:'connections',title:'Commutative fact',desc:'Write the multiplication fact with the factors reversed.'},
-    {id:'related-division',category:'connections',title:'Related division',desc:'Complete a division fact from the equal-groups model.'},
-    {id:'build-fact',category:'build',title:'Build the fact',desc:'Change the model until it shows the requested equal-groups fact.'},
-    {id:'spot-error',category:'reason',title:'Spot the incorrect equation',desc:'Use the equal groups to decide whether the shown equation is correct.'}
-  ];
+  const CHALLENGE_TEMPLATES=TV_TEMPLATES;
   let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='find-total',challenge=null,beforeChallenge=null;
   let exportMode='diagram',responseLines=1,exportStatus='';
 
@@ -2789,26 +2866,11 @@ function timesTableVisual(){
   function generateChallenge(type){
     const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
     if(!beforeChallenge)beforeChallenge=snapshot();else restore(beforeChallenge);
-    undoStack.length=0;redoStack.length=0;resetChallengeModel();
-    const a=randomInt(3,8);let b=randomInt(4,9);if(type==='commutative-fact'&&a===b)b=a+1;const t=a*b;
-    groupsCount=a;itemsPerGroup=b;selectedGroup=0;
-    if(type==='find-total'){
-      challenge=challengeObject(type,'How many items are there altogether in '+a+' equal groups of '+b+'?',t,{hiddenEquation:true,hiddenRepeated:true,hiddenFactFamily:true,hiddenJumps:true,hiddenSelectedPanel:true});
-    }else if(type==='write-repeated'){
-      challenge=challengeObject(type,'Write the repeated-addition statement shown by '+a+' groups of '+b+'.',Array.from({length:a},()=>b).join(' + ')+' = '+t,{hiddenRepeated:true,hiddenFactFamily:true,hiddenSelectedPanel:true});
-    }else if(type==='commutative-fact'){
-      challenge=challengeObject(type,'Write the commutative fact for '+a+' × '+b+' = '+t+'.',b+' × '+a+' = '+t,{hiddenFactFamily:true,hiddenSelectedPanel:true});
-    }else if(type==='related-division'){
-      challenge=challengeObject(type,'Use '+a+' × '+b+' = '+t+' to complete '+t+' ÷ '+a+' = ?.',b,{hiddenFactFamily:true,hiddenSelectedPanel:true});
-    }else if(type==='build-fact'){
-      const targetGroups=a,targetItems=b;
-      groupsCount=2;itemsPerGroup=2;selectedGroup=0;
-      challenge=challengeObject(type,'Build '+targetGroups+' equal groups with '+targetItems+' items in each group.',targetGroups+' × '+targetItems+' = '+(targetGroups*targetItems),{freezeModel:false,targetGroups,targetItems,hiddenFactFamily:false});
-    }else{
-      const valid=Math.random()<.5,shown=valid?t:t+(Math.random()<.5?-1:1)*randomInt(1,3);
-      challenge=challengeObject(type,'The equation says '+a+' × '+b+' = '+shown+'. Use the equal groups to decide whether it is correct.',valid?'Yes. '+a+' × '+b+' = '+t+'.':'No. '+a+' × '+b+' = '+t+', not '+shown+'.',{wrongTotal:shown,hiddenRepeated:true,hiddenFactFamily:true,hiddenJumps:true,hiddenSelectedPanel:true});
-    }
-    challenge.initialState=snapshot();
+    undoStack.length=0;redoStack.length=0;
+    let generated=tvGenerate(type,{responseLines});
+    for(let i=0;i<20&&challenge?.type===type&&challenge.prompt===generated.challenge.prompt;i++)generated=tvGenerate(type,{responseLines});
+    restore(generated.diagram);
+    challenge=CK?CK.normalise(generated.challenge):generated.challenge;
     challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';exportMode='challenge';responseLines=template.category==='reason'?3:1;exportStatus='';renderControls();draw();
   }
   function restoreBeforeChallenge(){if(beforeChallenge){restore(beforeChallenge);beforeChallenge=null}}
