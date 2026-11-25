@@ -36,6 +36,7 @@ function relation(){const t=mainTotals();return Math.abs(t.left-t.right)<1e-9?'=
 function challengeType(){
   if(unknownTiles().length)return'missing';
   const b=banner(),copy=(text(q('.gd-challenge-prompt',b))+' '+text(q('.gd-challenge-copy h3',b))+' '+text(q('[data-ba-equation]',work()))).toLowerCase();
+  if(G.numberMobileChallengeSpec?.type==='make-balance'||/how much.*(?:add|added).*lighter.*balance/.test(copy))return'balance';
   if(/difference|how much heavier/.test(copy))return'difference';
   if(/which symbol|compare|which .*side.*heavier|which main side/.test(copy))return'compare';
   if(/pupil says|are they correct|claim|spot .*mistake|false equal/.test(copy))return'spot';
@@ -82,7 +83,7 @@ function responseChoice(type){
   if(type==='same')return{options:['Stays equal','Does not stay equal'],correct:'Stays equal'};
   return null;
 }
-function responseInstructions(type){if(type==='difference')return'Enter the difference between the two main sides.';if(type==='balance')return'How much must be added to the lighter main side to balance the main bar?';if(type==='compare')return'Choose your answer.';if(type==='spot')return'Is the pupil correct?';if(type==='same')return'What happens to the equality?';return'Enter your answer.'}
+function responseInstructions(type){if(type==='difference')return'Enter the difference between the two main sides.';if(type==='balance')return'Enter the amount needed to balance the main bar.';if(type==='compare')return'Choose your answer.';if(type==='spot')return'Is the pupil correct?';if(type==='same')return'What happens to the equality?';return'Enter your answer.'}
 function checkNumericResponse(type,panel){const expected=numericResponseExpected(type),given=numeric(responseBuffer);setFeedback(given!=null&&expected!=null&&Math.abs(given-expected)<1e-9?'Correct ✓':'Not quite — try again.',given!=null&&expected!=null&&Math.abs(given-expected)<1e-9?'correct':'wrong');q('.nmb-v8-response-display',panel)?.focus?.()}
 function insertResponsePanel(panel){const w=work();if(!w)return;const summary=q('.gd-eq-summary',w);if(summary)summary.insertAdjacentElement('afterend',panel);else w.prepend(panel)}
 function responsePanel(type){
