@@ -9,7 +9,7 @@ const root=G.root;
 const tools=Array.isArray(G.toolCatalogue)?G.toolCatalogue:[];
 const SNAP=10;
 const BOARD_W=2800,BOARD_H=1800;
-const AUTO_SHRINK_HEIGHT_TOOLS=new Set(['number-line','place-value','abacus']);
+const AUTO_SHRINK_HEIGHT_TOOLS=new Set(['number-line','place-value','abacus','array-builder']);
 let nextId=1,selectedId=null,snapOn=true,zCounter=10,drag=null,resize=null,pan=null;
 
 const defaults={
@@ -538,18 +538,18 @@ function connectInnerObject(obj){
     }
     function queueFit(){
       if(!valid()||pending)return;
-      pending=1;queueMicrotask(()=>{
+      pending=requestAnimationFrame(()=>{
         pending=0;if(!valid())return;measure();
-        // One trailing pass catches async font/layout changes without a perpetual
-        // five-pass timer chain for every pointer/input or observer notification.
-        clearTimeout(settleTimer);settleTimer=setTimeout(measure,80);
+        // ResizeObserver catches subsequent layout and font changes. Only use
+        // a fallback trailing measurement when that API is unavailable.
+        if(!ro){clearTimeout(settleTimer);settleTimer=setTimeout(measure,80)}
       });
     }
     function dispose(){
-      disposed=true;clearTimeout(settleTimer);
+      disposed=true;clearTimeout(settleTimer);if(pending)cancelAnimationFrame(pending);
       ro?.disconnect();mo?.disconnect();events.forEach(type=>doc.removeEventListener(type,queueFit,true));
     }
-    const events=['click','pointerup','change','input'];
+    const events=['click','pointerup','change'];
     innerConnections.set(obj.id,{doc,dispose});
     events.forEach(type=>doc.addEventListener(type,queueFit,true));
     observeChildren();
