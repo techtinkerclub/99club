@@ -1631,7 +1631,7 @@ function fractionWall(){
     const simpleFocus=simplify(focus.n,focus.d);
     const rawFocusText=simpleFocus.n===focus.n&&simpleFocus.d===focus.d?focus.n+'/'+focus.d:focus.n+'/'+focus.d+' = '+simpleFocus.n+'/'+simpleFocus.d;
     const focusText=challengeActiveHidden('focus')?'?':rawFocusText,displaySign=challengeActiveHidden('compare')?'?':sign;
-    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Fractions challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Fractions challenge',pupil:({ 'identify-strip':CK.pupilSpec('fraction-form'), 'equivalent-strip':CK.pupilSpec('fraction-form'), 'compare-strips':CK.pupilSpec('choice',{choices:['<','>','=']}), 'simplify-strip':CK.pupilSpec('fraction-form'), 'mixed-improper':CK.pupilSpec('mixed'), 'denominator-misconception':CK.pupilSpec('choice',{choices:['Yes','No'],expected:'No',explain:true}) }[challenge.type]),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-fractions-workspace">'+
       '<section class="gd-fr-wall-card">'+
         '<div class="gd-fr-wall-heading"><div><strong>Fraction wall</strong><span>Tap an endpoint. Equivalent amounts highlight automatically.</span></div>'+
@@ -1706,7 +1706,7 @@ function fractionWall(){
   function workbenchHeight(){return Math.max(500,40+strips.reduce((max,strip)=>Math.max(max,(Number(strip.y)||0)+stripHeight(strip)),0))}
   function drawWorkbench(selectedId,meta){
     const selected=selectedStrip(selectedId);
-    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Fractions challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Fractions challenge',pupil:({ 'identify-strip':CK.pupilSpec('fraction-form'), 'equivalent-strip':CK.pupilSpec('fraction-form'), 'compare-strips':CK.pupilSpec('choice',{choices:['<','>','=']}), 'simplify-strip':CK.pupilSpec('fraction-form'), 'mixed-improper':CK.pupilSpec('mixed'), 'denominator-misconception':CK.pupilSpec('choice',{choices:['Yes','No'],expected:'No',explain:true}) }[challenge.type]),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-fr-workbench"><div class="gd-fr-strip-canvas-wrap"><div class="gd-fr-strip-canvas" id="fw-strip-canvas" data-gd-canvas-bg style="min-height:'+workbenchHeight()+'px" tabindex="0" aria-label="Fraction strip workbench. Drag strips to compare them.">'+
       strips.map(s=>stripMarkup(s,selectedId)).join('')+
       '</div>'+workbenchRail(selected,meta)+'</div>'+
@@ -1770,6 +1770,7 @@ function fractionWall(){
     controller.refresh();
   }
   function bindChallengeStageActions(){
+    const endChallenge=q('[data-challenge-action="end"]',q('#gd-stage'));if(endChallenge)endChallenge.onclick=e=>{e.stopPropagation();clearChallenge()};
     const stage=q('#gd-stage');if(!stage||!challenge)return;
     const reveal=q('[data-board-action="reveal"]',stage);
     if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();renderRepresentation()};
@@ -2207,6 +2208,7 @@ function barModel(){
     '</div>';
   }
   function bindChallengeStageActions(){
+    const endChallenge=q('[data-challenge-action="end"]',q('#gd-stage'));if(endChallenge)endChallenge.onclick=e=>{e.stopPropagation();clearChallenge()};
     const stage=q('#gd-stage');if(!stage||!challenge)return;
     const reveal=q('[data-board-action="reveal"]',stage);
     if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();draw()};
@@ -2217,7 +2219,7 @@ function barModel(){
     updateChallengeAnswer();
     let cumulative=0,handles='';
     parts.slice(0,-1).forEach((part,index)=>{cumulative+=effectiveValue(part)/visualTotal()*100;handles+=handleMarkup(index,cumulative)});
-    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Bar Model challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Bar Model challenge',pupil:(challenge.type==='build-model'?CK.pupilSpec('model',{check:()=>parts.length===3&&total===challenge.targetTotal&&parts.every((p,i)=>p.unknown===challenge.targetParts[i].unknown&&(p.unknown||Number(p.value)===challenge.targetParts[i].value))}):challenge.type==='spot-error'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:'No',explain:true}):CK.pupilSpec(challenge.type==='write-equation'?'text':'number')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     const model=challenge?.comparison?comparisonMarkup():
       '<div class="gd-bar-model">'+
         '<div class="gd-bar-total-bracket"><span></span><strong>Total '+totalText()+'</strong></div>'+
@@ -2679,6 +2681,7 @@ function hundredSquare(){
     return '<button type="button" class="'+classes+'" data-hs-index="'+index+'" data-hs-value="'+n+'" aria-label="'+(isHidden?'Hidden number':'Number '+n)+'" aria-pressed="'+(marked.has(n)?'true':'false')+'"'+(frozen?' disabled':'')+'><span>'+(isHidden?'?':n)+'</span></button>';
   }
   function bindChallengeStageActions(){
+    const endChallenge=q('[data-challenge-action="end"]',q('#gd-stage'));if(endChallenge)endChallenge.onclick=e=>{e.stopPropagation();clearChallenge()};
     const stage=q('#gd-stage');if(!stage||!challenge)return;
     const reveal=q('[data-board-action="reveal"]',stage);
     if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();draw()};
@@ -2706,7 +2709,7 @@ function hundredSquare(){
   }
   function draw(){
     updateChallengeAnswer();
-    const related=relatedValues(),banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Hundred Square challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
+    const related=relatedValues(),banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Hundred Square challenge',pupil:(challenge.type==='mark-rule'?CK.pupilSpec('model',{check:()=>marked.size===challenge.targetValues.length&&challenge.targetValues.every(v=>marked.has(v))}):CK.pupilSpec('number')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-hs-workbench">'+
       '<div class="gd-hs-summary"><div><span>Hundred square</span><strong>'+rangeSummary()+'</strong></div>'+
         '<div class="gd-hs-summary-actions">'+(!challenge?'<button class="gd-hs-rule-chip'+(rulePanelOpen?' is-active':'')+'" type="button" data-hs-rule-toggle aria-expanded="'+(rulePanelOpen?'true':'false')+'">Rule: '+ruleShortLabel()+'</button>':'')+
@@ -3210,6 +3213,7 @@ function multiplicationGrid(){
     return '<button type="button" class="'+classes+'" data-mg-cell="'+k+'" data-mg-row="'+r+'" data-mg-col="'+c+'" aria-label="'+(isHidden?'Hidden product for '+r+' times '+c:r+' times '+c+' equals '+shown)+'"'+(override!=null?' data-mg-display-override="'+override+'"':'')+(frozen?' disabled':'')+'><span>'+(isHidden?'?':shown)+'</span></button>';
   }
   function bindChallengeStageActions(){
+    const endChallenge=q('[data-challenge-action="end"]',q('#gd-stage'));if(endChallenge)endChallenge.onclick=e=>{e.stopPropagation();clearChallenge()};
     const stage=q('#gd-stage');if(!stage||!challenge)return;
     const reveal=q('[data-board-action="reveal"]',stage);
     if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();draw()};
@@ -3227,7 +3231,7 @@ function multiplicationGrid(){
       table+='</tr>';
     }
     table+='</tbody></table>';
-    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Multiplication Grid challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Multiplication Grid challenge',pupil:(challenge.type==='select-fact'?CK.pupilSpec('model',{check:()=>selectedRow===Number(challenge.targetRow)&&selectedCol===Number(challenge.targetCol)}):CK.pupilSpec(['commutative-fact','spot-error'].includes(challenge.type)?'text':'number')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-mg-workbench">'+
       '<div class="gd-mg-summary"><div><span>Multiplication grid</span><strong>'+size+' × '+size+' · focus '+focus+' times table</strong></div>'+
         '<div class="gd-object-toolbar"><button class="gd-btn" id="mg-undo" type="button"'+(undoStack.length&&!challengeFrozen()?'':' disabled')+'>Undo</button><button class="gd-btn" id="mg-redo" type="button"'+(redoStack.length&&!challengeFrozen()?'':' disabled')+'>Redo</button></div></div>'+
@@ -4133,6 +4137,7 @@ function arrayBuilder(){
     }
   }
   function bindChallengeStageActions(){
+    const endChallenge=q('[data-challenge-action="end"]',q('#gd-stage'));if(endChallenge)endChallenge.onclick=e=>{e.stopPropagation();clearChallenge()};
     const stage=q('#gd-stage');if(!stage||!challenge)return;
     const reveal=q('[data-board-action="reveal"]',stage);
     if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();draw()};
@@ -4158,7 +4163,7 @@ function arrayBuilder(){
     const inverse=hiddenFlag('hiddenInverse')?'?':inverseFacts();
     const partial=partitionMath(),partialText=hiddenFlag('hiddenPartial')?'?':partial;
     const rowDisplay=displayDimension('rows'),colDisplay=displayDimension('cols'),frozen=challengeFrozen();
-    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Array challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Array challenge',pupil:(challenge.type==='build-array'?CK.pupilSpec('model',{check:()=>rows===challenge.targetRows&&cols===challenge.targetCols}):challenge.type==='partial-products'?CK.pupilSpec('discuss'):CK.pupilSpec(['multiplication-fact','commutative-fact'].includes(challenge.type)?'text':'number')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     const targetStatus=challenge?.mode==='standard'&&challenge.type==='build-array'
       ?'<div class="gd-answer-live" data-ab-target-status>'+(buildOnTarget()?'On target ✓':'')+'</div>'
       :'';
@@ -4786,6 +4791,7 @@ function clockTool(){
     });
   }
   function bindChallengeStageActions(){
+    const endChallenge=q('[data-challenge-action="end"]',q('#gd-stage'));if(endChallenge)endChallenge.onclick=e=>{e.stopPropagation();clearChallenge()};
     const stage=q('#gd-stage');if(!stage||!challenge)return;
     const reveal=q('[data-board-action="reveal"]',stage);
     if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();draw()};
@@ -4905,7 +4911,7 @@ function clockTool(){
   }
   function draw(){
     const states=challenge?[clockState(0)]:clockStates(),frozen=handsFrozen(),hidden=anyTimeHidden();
-    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Clock challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Clock challenge',pupil:(challenge.freezeHands===false?CK.pupilSpec('model',{check:onTarget}):challenge.type==='hour-hand-misconception'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:'No',explain:true}):challenge.type==='time-language'?CK.pupilSpec('discuss'):CK.pupilSpec(challenge.type==='twelve-to-twentyfour'?'clock-24':challenge.type==='twentyfour-to-twelve'?'clock-12':'clock-face')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     const targetStatus=challenge&&!challenge.freezeHands&&Number.isFinite(Number(challenge.targetHour))
       ?'<div class="gd-answer-live" data-cl-target-status>'+(onTarget()?'On target ✓':'')+'</div>':'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-clock-workbench">'+
@@ -5151,6 +5157,7 @@ function moneyTool(){
     });
   }
   function bindChallengeStageActions(){
+    const endChallenge=q('[data-challenge-action="end"]',q('#gd-stage'));if(endChallenge)endChallenge.onclick=e=>{e.stopPropagation();clearChallenge()};
     const stage=q('#gd-stage');if(!stage||!challenge)return;
     const reveal=q('[data-board-action="reveal"]',stage);
     if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();controller.refresh()};
@@ -5160,7 +5167,7 @@ function moneyTool(){
   function renderMoney(selectedId,history={}){
     updateChallengeAnswer();
     const selected=items.find(x=>String(x.id)===String(selectedId))||null,m=canvasMetrics(items.length);
-    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Money challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Money challenge',pupil:(challenge.freezeMoney===false?CK.pupilSpec('model',{check:()=>total()===target&&(challenge.type!=='exact-pieces'||items.length===challenge.targetPieces)&&(challenge.type!=='fewest-pieces'||items.length===challenge.minPieces)}):challenge.type==='compare-amount'?CK.pupilSpec('choice',{choices:['Less than','Equal to','Greater than'],expected:total()<target?'Less than':total()>target?'Greater than':'Equal to'}):CK.pupilSpec('money')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     const totalText=hidden('hiddenTotal')?'?':money(total());
     const targetText=hidden('hiddenTarget')?'?':money(target);
     const status=hidden('hiddenStatus')?'?':challengeProgress();

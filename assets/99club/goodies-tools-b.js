@@ -314,7 +314,7 @@ function coordinateTool(){
       challenge=challengeObject(type,'What are the coordinates of point A?',rawCoordinate(point),{hiddenPointLabels:[0],pointLabelOverrides:{0:'A'},freezePoints:true});
     }else if(type==='plot-coordinate'){
       setGeneratedPoints([],false);
-      challenge=challengeObject(type,'Plot point A at '+rawCoordinate(point)+'.','Point A should be at '+rawCoordinate(point)+'.',{freezePoints:false});
+      challenge=challengeObject(type,'Plot point A at '+rawCoordinate(point)+'.','Point A should be at '+rawCoordinate(point)+'.',{freezePoints:false,targetCoordinate:rawCoordinate(point)});
     }else if(type==='missing-coordinate'){
       setGeneratedPoints([point],false);
       const hideX=Math.random()<.5,shown=hideX?'(?, '+point.y+')':'('+point.x+', ?)';
@@ -465,6 +465,7 @@ function coordinateTool(){
     if(del)del.onclick=e=>{e.stopPropagation();deletePoint(selected)};
   }
   function bindChallengeStageActions(){
+    const endChallenge=q('[data-challenge-action="end"]',q('#gd-stage'));if(endChallenge)endChallenge.onclick=e=>{e.stopPropagation();clearChallenge()};
     const stage=q('#gd-stage');if(!stage||!challenge)return;
     const reveal=q('[data-board-action="reveal"]',stage);
     if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();draw()};
@@ -551,7 +552,7 @@ function coordinateTool(){
       return '<circle class="gd-point gd-co-point'+(i===selected?' is-selected':'')+'" data-co-point="'+i+'" data-co-pos="'+p.x+','+p.y+'" tabindex="0" role="button" aria-label="'+esc(pointAria(i,p)+(challengeFrozen()?' Fixed for this challenge.':' Drag to move.'))+'" cx="'+v.x+'" cy="'+v.y+'" r="9"></circle>'+
         '<text class="gd-co-point-label" data-co-label="'+i+'" x="'+(v.x+10)+'" y="'+(v.y-10)+'">'+esc(display)+'</text>';
     }).join('');
-    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Coordinates challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Coordinates challenge',pupil:(challenge.type==='plot-coordinate'?CK.pupilSpec('model',{check:()=>points.length===1&&rawCoordinate(points[0])===challenge.targetCoordinate}):challenge.type==='identify-quadrant'?CK.pupilSpec('choice',{choices:['Quadrant I','Quadrant II','Quadrant III','Quadrant IV']}):CK.pupilSpec(challenge.type==='missing-coordinate'?'number':'coordinate')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-coord gd-coordinate-direct">'+
       '<svg id="co-svg" data-co-min="'+view.min+'" data-co-max="'+view.max+'" viewBox="0 0 '+W+' '+W+'" aria-label="Interactive coordinate grid">'+
         lines+
@@ -979,6 +980,7 @@ function measurementTool(){
     });
   }
   function bindChallengeStageActions(){
+    const endChallenge=q('[data-challenge-action="end"]',q('#gd-stage'));if(endChallenge)endChallenge.onclick=e=>{e.stopPropagation();clearChallenge()};
     const stage=q('#gd-stage');if(!stage||!challenge)return;
     const reveal=q('[data-board-action="reveal"]',stage);
     if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();draw()};
@@ -1099,7 +1101,7 @@ function measurementTool(){
   }
   function draw(){
     updateChallengeAnswer();
-    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Measurement challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Measurement challenge',pupil:(challenge.type==='place-mark'?CK.pupilSpec('model',{check:()=>Math.abs(cm-challenge.targetCm)<1e-8}):challenge.type==='unit-misconception'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:'No',explain:true}):CK.pupilSpec('unit',{unit:challenge.type==='cm-to-mm'?'mm':challenge.type==='cm-to-m'?'m':'cm'})),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     const targetStatus=challenge?.mode==='standard'&&challenge.type==='place-mark'
       ?'<div class="gd-answer-live" id="me-target-status">'+(Math.abs(cm-Number(challenge.targetCm))<.05?'On target ✓':'')+'</div>'
       :'';
@@ -2015,6 +2017,7 @@ function timesTableVisual(){
       :'Build '+challenge.targetGroups+' groups of '+challenge.targetItems;
   }
   function bindChallengeStageActions(){
+    const endChallenge=q('[data-challenge-action="end"]',q('#gd-stage'));if(endChallenge)endChallenge.onclick=e=>{e.stopPropagation();clearChallenge()};
     const stage=q('#gd-stage');if(!stage||!challenge)return;
     const reveal=q('[data-board-action="reveal"]',stage);
     if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();draw()};
@@ -2023,7 +2026,7 @@ function timesTableVisual(){
   }
   function draw(){
     updateChallengeAnswer();
-    const t=total(),frozen=challengeFrozen(),banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Times-table challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
+    const t=total(),frozen=challengeFrozen(),banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Times-table challenge',pupil:(challenge.type==='build-fact'?CK.pupilSpec('model',{check:()=>groupsCount===challenge.targetGroups&&itemsPerGroup===challenge.targetItems}):challenge.type==='spot-error'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:'No',explain:true}):CK.pupilSpec(['write-repeated','commutative-fact'].includes(challenge.type)?'text':'number')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-tv-workbench">'+
       '<div class="gd-tv-summary"><div><span>Equal groups</span><strong data-tv-equation>'+equationText()+'</strong></div>'+
         '<div class="gd-object-toolbar"><button class="gd-btn" id="tv-undo" type="button"'+(undoStack.length&&!frozen?'':' disabled')+'>Undo</button><button class="gd-btn" id="tv-redo" type="button"'+(redoStack.length&&!frozen?'':' disabled')+'>Redo</button></div></div>'+
@@ -2478,13 +2481,14 @@ function factorExplorer(){
     return '<div class="gd-fe-common" data-fe-common-summary><div><span>Common factors</span><strong>'+(hide&&challenge.hiddenCommonFactors?'?':cf.join(', '))+'</strong></div><div><span>Highest common factor</span><strong data-fe-hcf>'+(hide&&challenge.hiddenHcf?'?':h)+'</strong></div><div><span>Lowest common multiple</span><strong data-fe-lcm>'+(hide&&challenge.hiddenLcm?'?':l)+'</strong></div></div>';
   }
   function bindChallengeStageActions(){
+    const endChallenge=q('[data-challenge-action="end"]',q('#gd-stage'));if(endChallenge)endChallenge.onclick=e=>{e.stopPropagation();clearChallenge()};
     const stage=q('#gd-stage');if(!stage||!challenge)return;
     const reveal=q('[data-board-action="reveal"]',stage);if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();draw()};
     const another=q('[data-challenge-action="another"]',stage);if(another)another.onclick=e=>{e.stopPropagation();if(challenge?.mode==='standard')generateChallenge(challenge.type)};
   }
   function draw(){
     updateChallengeAnswer();
-    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Factors & multiples challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Factors & multiples challenge',pupil:(challenge.type==='prime-or-composite'?CK.pupilSpec('choice',{choices:['Prime','Composite']}):challenge.type==='divisible-by'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:/^yes/i.test(challenge.answer)?'Yes':'No',explain:true}):challenge.type==='explain-prime'?CK.pupilSpec('discuss'):CK.pupilSpec(challenge.type==='common-factors'?'set':'number')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-fe-workbench">'+
       '<div class="gd-fe-summary"><div><span>Factors & multiples</span><strong>'+(compare?a+' and '+b:a)+'</strong></div><div class="gd-object-toolbar"><button class="gd-btn" id="fe-undo" type="button"'+(undoStack.length?'':' disabled')+'>Undo</button><button class="gd-btn" id="fe-redo" type="button"'+(redoStack.length?'':' disabled')+'>Redo</button></div></div>'+
       compareSummary()+
@@ -2882,6 +2886,7 @@ function fdpExplorer(){
     }).join('')+'</div>';
   }
   function bindChallengeStageActions(){
+    const endChallenge=q('[data-challenge-action="end"]',q('#gd-stage'));if(endChallenge)endChallenge.onclick=e=>{e.stopPropagation();clearChallenge()};
     const stage=q('#gd-stage');if(!stage||!challenge)return;
     const reveal=q('[data-board-action="reveal"]',stage);if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();draw()};
     const another=q('[data-challenge-action="another"]',stage);if(another)another.onclick=e=>{e.stopPropagation();if(challenge?.mode==='standard')generateChallenge(challenge.type)};
@@ -2898,7 +2903,7 @@ function fdpExplorer(){
     const fractionDisplay=hidden&&challenge.hiddenFraction?'?/?':s.n+'/'+s.d;
     const decimalDisplay=hidden&&challenge.hiddenDecimal?'?':decimalText();
     const percentDisplay=challenge?.mode==='standard'&&challenge.type==='spot-percent-error'&&hidden?challenge.wrongPercent+'%':(hidden&&challenge.hiddenPercent?'?':percentText()+'%');
-    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Fraction–decimal–percentage challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Fraction–decimal–percentage challenge',pupil:(challenge.type==='build-percentage'?CK.pupilSpec('model',{check:()=>Math.abs(percentValue()-challenge.targetPercent)<1e-8}):challenge.type==='spot-percent-error'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:'No',explain:true}):challenge.type==='to-percentage'?CK.pupilSpec('unit',{unit:'%'}):CK.pupilSpec(challenge.type==='simplify-fraction'?'fraction-form':'number')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-fdp-main">'+
       '<div class="gd-fdp-summary"><div><span>Fraction value</span><strong data-fd-source>'+(hidden&&challenge.hiddenSource?'?/?':numerator+'/'+denominator)+'</strong></div>'+
         '<div class="gd-object-toolbar"><button class="gd-btn" id="fd-undo" type="button"'+(undoStack.length&&!challengeFrozen()?'':' disabled')+'>Undo</button><button class="gd-btn" id="fd-redo" type="button"'+(redoStack.length&&!challengeFrozen()?'':' disabled')+'>Redo</button></div></div>'+
@@ -3497,6 +3502,7 @@ function geoboard(){
     exportMode='challenge';responseLines=template.category==='reason'?3:1;exportStatus='';renderControls();draw();
   }
   function bindChallengeStageActions(){
+    const endChallenge=q('[data-challenge-action="end"]',q('#gd-stage'));if(endChallenge)endChallenge.onclick=e=>{e.stopPropagation();clearChallenge()};
     const stage=q('#gd-stage');if(!stage||!challenge)return;
     const reveal=q('[data-board-action="reveal"]',stage);
     if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();draw()};
@@ -3706,7 +3712,7 @@ function geoboard(){
       return '<circle class="gd-point gd-ge-vertex'+(i===selected?' is-selected':'')+'" data-ge-vertex="'+i+'" data-ge-pos="'+p.x+','+p.y+'" tabindex="0" role="button" aria-label="Vertex '+label+' at '+p.x+', '+p.y+'. Drag to move." cx="'+v.x+'" cy="'+v.y+'" r="10"></circle>'+
         '<text class="gd-ge-label" data-ge-label="'+i+'" x="'+(v.x+11)+'" y="'+(v.y-11)+'">'+label+'</text>';
     }).join('');
-    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Geoboard challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Geoboard challenge',pupil:(challenge.type==='build-area'?CK.pupilSpec('discuss'):challenge.type==='area-perimeter-units'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:'No',explain:true}):challenge.type==='perimeter-area'?CK.pupilSpec('metrics'):CK.pupilSpec('unit',{unit:challenge.type==='find-area'?'square units':'units'})),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-geo gd-geoboard-direct">'+
       '<svg id="ge-svg" viewBox="0 0 '+W+' '+W+'" role="img" aria-label="Interactive geoboard">'+grid+poly+vertices+'</svg>'+
       '<div class="gd-ge-context"><span id="ge-context-text">'+(selected>=0&&pts[selected]?'Selected '+String.fromCharCode(65+selected)+' · ('+pts[selected].x+', '+pts[selected].y+')':'Tap a peg to add a vertex. Drag an existing vertex to reshape the polygon.')+'</span><div class="gd-context-actions">'+

@@ -132,12 +132,152 @@ function pickerHtml(templates,categories,activeCategory,selectedId,prefix){
   </div>`;
 }
 
+
+const pupilStates=new WeakMap();
+let pupilCurrent=null;
+function pupilSpec(kind='text',extra={}){return {kind,...extra}}
+function cleanAnswer(v){return String(v??'').trim().toLowerCase().replace(/[−–—]/g,'-').replace(/[×·]/g,'*').replace(/÷/g,'/').replace(/[’‘]/g,"'").replace(/\s+/g,' ')}
+function numericAnswer(v){
+  const t=cleanAnswer(v);
+  if(!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(t))return NaN;
+  return Number(t);
+}
+function fractionAnswer(v){
+  const t=cleanAnswer(v);
+  const mixed=t.match(/^(\d+)\s+(\d+)\s*\/\s*(\d+)$/),f=t.match(/^([+-]?\d+)\s*\/\s*(\d+)$/);
+  if(mixed&&+mixed[3]>0&&+mixed[2]<+mixed[3])return +mixed[1]+(+mixed[2]/+mixed[3]);
+  if(f&&+f[2]>0)return +f[1]/+f[2];
+  return numericAnswer(t);
+}
+function moneyAnswer(v){
+  let t=cleanAnswer(v).replace(/\s/g,'');
+  if(t.endsWith('p'))return numericAnswer(t.slice(0,-1))/100;
+  return numericAnswer(t.replace(/^£/,''));
+}
+function timeAnswer(v,periodRequired=false){
+  const m=cleanAnswer(v).replace(/\./g,'').match(/^(\d{1,2}):(\d{2})\s*(am|pm)?$/);
+  if(!m||+m[2]>59||+m[1]>23||m[3]&&(+m[1]<1||+m[1]>12)||periodRequired&&!m[3])return null;
+  return {h:m[3]?(+m[1]%12)+(m[3]==='pm'?12:0):+m[1],m:+m[2],period:m[3]};
+}
+function pupilAnswerCorrect(spec,values,expected){
+  const a=String(values[0]??'').trim(),b=String(expected??'').trim();
+  if(spec.kind==='model')return !!spec.check?.();
+  if(spec.kind==='discuss'||!a||!b)return false;
+  const equal=(x,y)=>Number.isFinite(x)&&Number.isFinite(y)&&Math.abs(x-y)<1e-8;
+  const compact=v=>cleanAnswer(v).replace(/\s/g,'').replace(/x/g,'*');
+  switch(spec.kind){
+    case 'choice':return cleanAnswer(a)===cleanAnswer(spec.expected??b);
+    case 'number':return equal(numericAnswer(a),numericAnswer(b));
+    case 'unit':{
+      const suffix=String(spec.unit||'');
+      const strip=v=>{v=cleanAnswer(v);return suffix&&v.endsWith(suffix)?v.slice(0,-suffix.length).trim():v};
+      return equal(numericAnswer(strip(a)),numericAnswer(strip(b)));
+    }
+    case 'money':return equal(moneyAnswer(a),moneyAnswer(b));
+    case 'fraction':return equal(fractionAnswer(a),fractionAnswer(b));
+    case 'fraction-form':return /^\d+\s*\/\s*[1-9]\d*$/.test(a)&&compact(a)===compact(b);
+    case 'mixed':return /^\d+\s+\d+\s*\/\s*[1-9]\d*$/.test(a)&&equal(fractionAnswer(a),fractionAnswer(b));
+    case 'coordinate':{
+      const m=b.match(/^\(\s*(-?\d+)\s*,\s*(-?\d+)\s*\)$/);
+      return !!m&&equal(numericAnswer(a),+m[1])&&equal(numericAnswer(values[1]),+m[2]);
+    }
+    case 'metrics':{
+      const m=b.match(/Perimeter\s+([\d.]+)\s+units;\s*area\s+([\d.]+)\s+square units/i);
+      return !!m&&equal(numericAnswer(a),+m[1])&&equal(numericAnswer(values[1]),+m[2]);
+    }
+    case 'set':{
+      const parse=v=>cleanAnswer(v).split(/[,;\s]+/).filter(Boolean).map(numericAnswer).sort((x,y)=>x-y);
+      const x=parse(a),y=parse(b);
+      return x.length===y.length&&x.every((v,i)=>equal(v,y[i]));
+    }
+    case 'clock-face':{
+      const x=timeAnswer(a),y=timeAnswer(b);
+      return !!x&&!!y&&x.h%12===y.h%12&&x.m===y.m&&(!x.period||x.h===y.h);
+    }
+    case 'clock-24':{
+      const x=timeAnswer(a),y=timeAnswer(b);
+      return !!x&&!!y&&!x.period&&x.h===y.h&&x.m===y.m;
+    }
+    case 'clock-12':{
+      const x=timeAnswer(a,true),y=timeAnswer(b,true);
+      return !!x&&!!y&&x.h===y.h&&x.m===y.m;
+    }
+    default:return compact(a)===compact(b);
+  }
+}
+function pupilFields(spec){
+  if(spec.kind==='coordinate')return [{label:'x',hint:'x'},{label:'y',hint:'y'}];
+  if(spec.kind==='metrics')return [{label:'Perimeter',hint:'units'},{label:'Area',hint:'square units'}];
+  return [{label:'Answer',hint:spec.hint||({number:'Number',money:'e.g. £2.50',fraction:'e.g. 2/3','fraction-form':'e.g. 2/3',mixed:'e.g. 1 2/3','clock-face':'e.g. 3:25','clock-24':'e.g. 15:25','clock-12':'e.g. 3:25 pm',set:'e.g. 1, 2, 4'}[spec.kind]||'Type your answer'),unit:spec.unit}];
+}
+function pupilReady(s){return s.spec.kind==='model'||s.values.length>0&&s.values.every(v=>String(v).trim()!=='')}
+function pupilResponseHtml(challenge,spec){
+  if(!spec||challenge.mode!=='standard')return '';
+  if(spec.kind==='discuss')return '<div class="gd-pupil-discuss">Discuss your reasoning, then reveal the model answer.</div>';
+  let s=pupilStates.get(challenge);
+  if(!s){s={values:[],status:'',correct:false,spec,challenge};pupilStates.set(challenge,s)}
+  s.spec=spec;
+  if(challenge.revealed){s.correct=false;s.status='Answer shown';}
+  else if(s.status==='Answer shown'){s.status='';s.values=[]}
+  if(s.correct&&spec.kind==='model'&&!pupilAnswerCorrect(spec,[],challenge.answer)){s.correct=false;s.status=''}
+  pupilCurrent=s;
+  let fields='';
+  if(spec.kind==='choice'){
+    fields='<div class="gd-pupil-choices" role="group" aria-label="Choose an answer">'+spec.choices.map(v=>'<button type="button" class="gd-btn" data-gd-pupil-choice="'+esc(v)+'" aria-pressed="'+(s.values[0]===v?'true':'false')+'"'+(s.correct||challenge.revealed?' disabled':'')+'>'+esc(v)+'</button>').join('')+'</div>';
+  }else if(spec.kind==='model'){
+    fields='<span class="gd-pupil-instruction">'+esc(spec.hint||'Change the model, then check your work.')+'</span>';
+  }else{
+    const defs=pupilFields(spec);
+    s.values=defs.map((_,i)=>s.values[i]||'');
+    fields=defs.map((f,i)=>'<label class="gd-pupil-field"><span>'+esc(f.label)+'</span><input type="text" inputmode="'+(['number','unit','coordinate','metrics'].includes(spec.kind)?'decimal':'text')+'" autocomplete="off" maxlength="240" data-gd-pupil-field="'+i+'" value="'+esc(s.values[i])+'" placeholder="'+esc(f.hint||'')+'"'+(s.correct||challenge.revealed?' disabled':'')+'>'+(f.unit?'<span>'+esc(f.unit)+'</span>':'')+'</label>').join('');
+  }
+  return '<div class="gd-pupil-response">'+fields+'<button type="button" class="gd-btn gd-btn--primary" data-gd-pupil-check'+(!pupilReady(s)||s.correct||challenge.revealed?' disabled':'')+'>Check</button><span role="status" aria-live="polite" class="gd-pupil-feedback'+(s.correct?' is-correct':s.status&&s.status!=='Answer shown'?' is-wrong':'')+'">'+esc(s.status)+'</span></div>';
+}
+function updatePupilUi(panel,s){
+  const check=panel.querySelector('[data-gd-pupil-check]'),feedback=panel.querySelector('.gd-pupil-feedback');
+  if(check)check.disabled=!pupilReady(s)||s.correct||s.challenge.revealed;
+  if(feedback){feedback.textContent=s.status;feedback.classList.toggle('is-correct',s.correct);feedback.classList.toggle('is-wrong',!!s.status&&!s.correct&&s.status!=='Answer shown')}
+  panel.querySelectorAll('[data-gd-pupil-field],[data-gd-pupil-choice]').forEach(el=>{
+    el.disabled=s.correct||s.challenge.revealed;
+    if(el.hasAttribute('data-gd-pupil-choice'))el.setAttribute('aria-pressed',String(el.dataset.gdPupilChoice===s.values[0]));
+  });
+  const reveal=panel.closest('.gd-challenge-banner')?.querySelector('[data-board-action="reveal"]');
+  if(reveal)reveal.hidden=s.correct;
+}
+function checkPupil(panel,s){
+  if(!pupilReady(s)||s.correct||s.challenge.revealed)return;
+  const ok=pupilAnswerCorrect(s.spec,s.values,s.challenge.answer);
+  s.correct=ok;
+  s.status=ok?(s.spec.explain?'Correct choice. Explain why: '+s.challenge.answer:'Correct ✓'):'Not quite — try again.';
+  updatePupilUi(panel,s);
+}
+function pupilEvent(e){
+  const panel=e.target?.closest?.('.gd-pupil-response'),s=pupilCurrent;
+  if(!panel||!s||!panel.isConnected)return;
+  const field=e.target.closest('[data-gd-pupil-field]'),choice=e.target.closest('[data-gd-pupil-choice]'),check=e.target.closest('[data-gd-pupil-check]');
+  if(e.type==='input'&&field){s.values[Number(field.dataset.gdPupilField)]=field.value;s.status='';updatePupilUi(panel,s)}
+  if(e.type==='click'&&choice&&!choice.disabled){e.preventDefault();e.stopPropagation();s.values=[choice.dataset.gdPupilChoice];s.status='';updatePupilUi(panel,s)}
+  if((e.type==='click'&&check&&!check.disabled)||(e.type==='keydown'&&field&&e.key==='Enter')){e.preventDefault();e.stopPropagation();checkPupil(panel,s)}
+}
+if(typeof document!=='undefined'){
+  ['input','click','keydown'].forEach(type=>document.addEventListener(type,pupilEvent,true));
+  // Model tasks may remain editable. A new manipulation invalidates a previous
+  // success rather than leaving a stale green status on a changed diagram.
+  document.addEventListener('pointerdown',e=>{
+    const s=pupilCurrent;if(!s?.correct||s.spec.kind!=='model'||e.target?.closest?.('.gd-challenge-banner'))return;
+    const panel=document.querySelector('#gd-stage .gd-pupil-response');if(!panel)return;
+    s.correct=false;s.status='';updatePupilUi(panel,s);
+  },true);
+}
+
 function bannerHtml(challenge,opts={}){
   if(!challenge)return '';
   const ch=normalise(challenge);
   const label=opts.label||'Challenge';
+  const pupil=pupilResponseHtml(challenge,opts.pupil);
+  const pupilCorrect=!!(opts.pupil&&pupilStates.get(challenge)?.correct);
   const answerButton=ch.answer&&!opts.hideReveal
-    ?`<button class="nl-challenge-reveal gd-challenge-reveal" type="button" data-board-action="reveal">${ch.revealed?'Hide answer':'Reveal answer'}</button>`
+    ?`<button class="nl-challenge-reveal gd-challenge-reveal" type="button" data-board-action="reveal"${pupilCorrect?' hidden':''}>${ch.revealed?'Hide answer':'Reveal answer'}</button>`
     :'';
   const extraActions=Array.isArray(opts.actions)?opts.actions:[];
   const actionButtons=extraActions
@@ -156,6 +296,7 @@ function bannerHtml(challenge,opts={}){
       ${actionButtons}
       ${answerButton}
     </div>
+    ${pupil}
   </div>`;
 }
 
@@ -169,5 +310,5 @@ function applyFormat(editor,action){
   else if(action==='size-large')document.execCommand('fontSize',false,'5');
 }
 
-G.challengeKit={normalise,makeCustom,sanitiseRichHtml,plainText,toolbarHtml,tabsHtml,editorHtml,pickerHtml,bannerHtml,applyFormat};
+G.challengeKit={pupilSpec,pupilAnswerCorrect,normalise,makeCustom,sanitiseRichHtml,plainText,toolbarHtml,tabsHtml,editorHtml,pickerHtml,bannerHtml,applyFormat};
 })(window.TT99Goodies);

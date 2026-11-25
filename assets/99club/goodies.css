@@ -1564,3 +1564,22 @@ html.gd-embed-page,body.gd-embed-page{margin:0!important;width:100%!important;he
     width:100%;
   }
 }
+
+/* Shared pupil response surface: intentionally independent of the diagram. */
+.gd-pupil-response,.gd-pupil-discuss{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 0 0;border-top:1px solid rgba(100,126,127,.2);min-width:0}
+.gd-pupil-field{display:flex;align-items:center;gap:6px;min-width:0;font-size:.78rem;font-weight:650;color:#30494e}
+.gd-pupil-field input{width:clamp(88px,24vw,220px);max-width:100%;min-height:38px;border:1px solid #b8cecc;border-radius:7px;background:#fff;padding:6px 8px;font:inherit;color:#20383d;box-sizing:border-box}
+.gd-pupil-field input:focus-visible,.gd-pupil-response button:focus-visible{outline:2px solid #147d75;outline-offset:2px}
+.gd-pupil-choices{display:flex;flex-wrap:wrap;gap:5px;min-width:0}
+.gd-pupil-choices button[aria-pressed="true"]{background:#dcefeb;border-color:#147d75;color:#124e49}
+.gd-pupil-response button{min-height:38px!important;padding:6px 10px!important}
+.gd-pupil-feedback,.gd-pupil-discuss,.gd-pupil-instruction{font-size:.75rem;line-height:1.35;overflow-wrap:anywhere}
+.gd-pupil-feedback.is-correct{color:#216a48;font-weight:700}
+.gd-pupil-feedback.is-wrong{color:#9a4c3b;font-weight:650}
+.gd-challenge-reveal[hidden]{display:none!important}
+.gd-challenge-banner:has(.gd-pupil-response),.gd-challenge-banner:has(.gd-pupil-discuss){grid-template-columns:auto minmax(0,1fr)!important}
+.gd-challenge-banner:has(.gd-pupil-response) .gd-challenge-actions,.gd-challenge-banner:has(.gd-pupil-discuss) .gd-challenge-actions{grid-column:1/-1;grid-row:auto;justify-content:flex-start}
+.gd-challenge-banner:has(.gd-pupil-response) .gd-challenge-copy,.gd-challenge-banner:has(.gd-pupil-discuss) .gd-challenge-copy{grid-row:auto}
+.gd-board-floating-controls .gd-board-controls-proxy{max-height:none!important;overflow:visible!important;scrollbar-gutter:auto!important;min-width:0}
+.gd-board-floating-controls .gd-board-controls-proxy [role="tablist"]{min-width:0;flex-wrap:wrap}
+@media(max-width:520px){.gd-pupil-field{flex:1 1 145px}.gd-pupil-field input{min-width:0;width:100%}.gd-pupil-response button{min-height:40px!important}}

@@ -233,7 +233,9 @@ if(mode==='prepare'){
 
     const liveMarker=document.querySelector('[data-marker-hit="m1"]');
     const liveSvg=document.getElementById('nl-svg'),liveSvgRect=liveSvg.getBoundingClientRect(),liveMarkerRect=liveMarker.getBoundingClientRect();
-    const targetSvgX=110+((6-(-10))/(20-(-10)))*(940-110);
+    const liveAxis=liveSvg.querySelector('.nl-baseline[data-line-id="l1"]');
+    const axisLeft=Number(liveAxis.getAttribute('x1')),axisRight=Number(liveAxis.getAttribute('x2'));
+    const targetSvgX=axisLeft+((6-(-10))/(20-(-10)))*(axisRight-axisLeft);
     const targetClientX=liveSvgRect.left+(targetSvgX/1000)*liveSvgRect.width;
     pointer(liveMarker,'pointerdown',liveMarkerRect.left+liveMarkerRect.width/2,liveMarkerRect.top+liveMarkerRect.height/2,41);
     pointer(liveMarker,'pointermove',targetClientX,liveMarkerRect.top+liveMarkerRect.height/2,41);

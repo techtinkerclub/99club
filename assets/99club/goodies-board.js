@@ -103,6 +103,10 @@ const QUICK_ACTIONS={
     {label:'× Vertex',selector:'[data-ge-delete]',danger:true}
   ]
 };
+// Standard challenge pickers are reachable without opening the overflow menu.
+for(const [tool,prefix] of Object.entries({"fraction-wall":"fw","bar-model":"bm","hundred-square":"hs","multiplication-grid":"mg","array-builder":"ab","clock":"cl","money":"mo","coordinates":"co","measurement":"me","times-table":"tv","factors":"fe","fdp":"fd","geoboard":"ge"})){
+  (QUICK_ACTIONS[tool]||=[]).push({label:'Challenge',selector:'[data-'+prefix+'-workflow="challenge"]',allowHidden:true,panelMode:'challenge',title:'Choose a challenge'});
+}
 const HISTORY_SELECTORS={
   undo:'[data-gd-action="undo"],[data-board-action="undo"],[data-co-undo-stage],#hs-undo,#ab-undo,#ba-undo',
   redo:'[data-gd-action="redo"],[data-board-action="redo"],[data-co-redo-stage],#hs-redo,#ab-redo,#ba-redo'
