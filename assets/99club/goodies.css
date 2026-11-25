@@ -1699,3 +1699,12 @@ html.gd-embed-page,body.gd-embed-page{margin:0!important;width:100%!important;he
 #tt99-goodies-root .gd-board-challenge-launcher .gd-launch-settings{border:0;border-top:1px solid #e0e9e8;border-radius:0!important;background:transparent;color:#526c70;text-align:left;margin-top:2px;font-size:12px!important;min-height:34px!important}
 #tt99-goodies-root .gd-board-challenge-launcher .gd-launch-settings:before{content:'⚙';margin-right:7px}
 #tt99-goodies-root .gd-board-challenge-launcher button:not(:disabled):hover{border-color:#78b6ad;filter:brightness(.98)}
+
+
+/* Fixed question diagrams are still fully legible; disabled means read-only,
+   not an unavailable mathematical value. */
+#gd-stage :is(.gd-fr-cell,.gd-fr-piece,.gd-fr-strip-segment):disabled{opacity:1;cursor:default;box-shadow:none}
+#gd-stage .gd-fr-cell.is-on:disabled{background:#f6cf79}
+#gd-stage .gd-fr-strip-segment.is-fill:disabled{background:var(--fr-strip,#cbe7e2)}
+#gd-stage .gd-fr-strip-segment:not(.is-fill):disabled{background:#fff}
+#gd-stage .gd-fr-piece.is-fill:disabled{background:#cbe7e2}
