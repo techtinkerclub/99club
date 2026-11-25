@@ -5170,7 +5170,10 @@ function moneyTool(){
     if(!group.length||group.some(x=>x.locked||!items.includes(x))||values.some(v=>!DENOMS.some(d=>d.value===v)))return false;
     if(group.reduce((n,x)=>n+x.value,0)!==values.reduce((n,v)=>n+v,0))return false;
     const ids=new Set(group.map(x=>x.id));items=items.filter(x=>!ids.has(x.id));
-    values.forEach(addMoney);tidyMoney();return true;
+    values.forEach(v=>{const added=addMoney(v),m=canvasMetrics(items.length);const d=metaFor(v),w=d.kind==='note'?d.width:d.size,h=d.kind==='note'?d.height:d.size+19;
+      const free=(p)=>items.every(other=>{if(other===added)return true;const o=metaFor(other.value),ow=o.kind==='note'?o.width:o.size,oh=o.kind==='note'?o.height:o.size+19;return p.x+w+8<=other.x||other.x+ow+8<=p.x||p.y+h+8<=other.y||other.y+oh+8<=p.y});
+      for(let i=0;i<Math.max(items.length+8,24);i++){const p=slot(i);if(p.x+w<=m.width&&free(p)){added.x=p.x;added.y=p.y;break}}
+    });return true;
   }
   function exchangeCheck(){
     if(total()!==target)return false;
@@ -5184,7 +5187,8 @@ function moneyTool(){
     const width=Math.max(280,stageWidth-38);
     const cols=Math.max(2,Math.floor((width-28)/128));
     const rows=Math.max(1,Math.ceil(Math.max(1,count)/cols));
-    return{width,cols,height:Math.max(challenge?.mode==='standard'&&challengeFrozen()?160:390,44+rows*108)};
+    const occupiedHeight=items.reduce((max,item)=>{const d=metaFor(item.value);return Math.max(max,(Number(item.y)||0)+(d.kind==='note'?d.height:d.size+19)+20)},0);
+    return{width,cols,height:Math.max(challenge?.mode==='standard'&&challengeFrozen()?160:390,44+rows*108,occupiedHeight)};
   }
   function slot(index){
     const m=canvasMetrics(Math.max(items.length,index+1));
@@ -5327,7 +5331,7 @@ function moneyTool(){
     return '<button type="button" class="'+cls+'" data-gd-object="'+item.id+'" data-mo-value="'+d.value+'" style="'+style+'" aria-label="'+d.label+' stylised UK classroom '+(d.kind==='note'?'note':'coin')+(frozen?' fixed for this challenge':'')+'">'+face+'</button>';
   }
   function toolbarHtml(history,selected){
-    const frozen=challengeFrozen(),unavailable=!selected||frozen,deleteDisabled=unavailable||!!selected?.locked;
+    const frozen=challengeFrozen();
     return '<div class="gd-money-boardbar">'+
       '<div class="gd-object-toolbar gd-money-history">'+
         I.toolButton('add-money','plus','Add money',addOpen?'is-active':'',!freeMoneyEdit())+
@@ -5361,8 +5365,8 @@ function moneyTool(){
     if(contextItemId!==item.id){contextMode='';contextItemId=item.id}
     const splits=splitOptions(item),combines=combineOptions(item);
     const actions=(freeMoneyEdit()?I.toolButton('mo-copy','duplicate','Duplicate '+metaFor(item.value).label,'',false)+I.toolButton('mo-delete','delete','Delete '+metaFor(item.value).label,'gd-object-tool--danger',item.locked)+I.toolButton('mo-lock',item.locked?'unlock':'lock',item.locked?'Unlock':'Lock','',false):'')+
-      (!item.locked&&splits.length?I.toolButton('mo-split','split','Split into change',contextMode==='split'?'is-active':'',false):'')+
-      (!item.locked&&combines.length?I.toolButton('mo-combine','combine','Exchange for a larger denomination',contextMode==='combine'?'is-active':'',false):'');
+      (!item.locked&&splits.length?'<button type="button" class="gd-money-exchange-action'+(contextMode==='split'?' is-active':'')+'" data-gd-action="mo-split" aria-label="Split into change">'+I.icon('split')+'<span>Split</span></button>':'')+
+      (!item.locked&&combines.length?'<button type="button" class="gd-money-exchange-action'+(contextMode==='combine'?' is-active':'')+'" data-gd-action="mo-combine" aria-label="Exchange for a larger denomination">'+I.icon('combine')+'<span>Exchange</span></button>':'');
     if(!actions){panel.hidden=true;return}
     const options=contextMode==='split'?splits.map((v,i)=>({label:piecesText(v),i})):contextMode==='combine'?combines.map((v,i)=>({label:piecesText(v.group.map(x=>x.value))+' → '+metaFor(v.value).label,i})):[];
     panel.innerHTML='<div class="gd-money-context-actions">'+actions+'</div>'+
@@ -5586,6 +5590,7 @@ function moneyTool(){
   }
   function enterCustomChallenge(){
     if(!beforeChallenge)beforeChallenge=snapshot();
+    controller?.resetHistory?.();contextMode='';contextItemId=null;
     const wasCustom=challenge?.mode==='custom';
     if(CK)challenge=CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''});
     if(!wasCustom)clearBoundHiding();
