@@ -12,7 +12,7 @@ if(process.argv[2]==='prepare'){
    const results=[],warnings=[],issues=[],clipping=[];
    let seed=42137;const rng=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
    const catalog=P.catalogue();
-   assert(catalog.length===26&&catalog.every(x=>P.supports(x.id)),'All 26 widgets must have publishing adapters');
+   assert(catalog.length===27&&catalog.every(x=>P.supports(x.id)),'All 27 widgets must have publishing adapters');
    const vb=svg=>svg.getAttribute('viewBox').split(/\s+/).map(Number);
    function checkPage(svg,tool,kind){
      const [x,y,w,h]=vb(svg);
