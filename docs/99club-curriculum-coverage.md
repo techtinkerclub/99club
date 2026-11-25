@@ -47,3 +47,20 @@ Eight representations are implemented in one workspace with advisory year guidan
 Source: https://www.gov.uk/government/publications/national-curriculum-in-england-mathematics-programmes-of-study/national-curriculum-in-england-mathematics-programmes-of-study
 
 Implementation uses one shared generator, screen and SVG paper rendering, existing touchscreen response framework, lesson-state capture and automatic builder. The initial generator uses whole-number exact arithmetic; fractional and decimal challenge generation, contextual formulae beyond the initial linear family, and deeper algebraic notation remain later extensions. The model was sampled over 5,400 seeded challenge cases during implementation; integrated CI, graphical print and classroom acceptance are still required.
+
+
+## Phase 5B: Angles & geometry
+
+| Curriculum requirement | Teaching and challenge coverage |
+|---|---|
+| Year 1: describe position, direction and movement, including whole, half, quarter and three-quarter turns | turn and direction diagrams |
+| Year 2: rotation, right angles for quarter/half/three-quarter turns, clockwise and anticlockwise | turn, direction, right-turns |
+| Year 3: identify right angles, recognise two right angles as a half turn, three as three-quarters and four as a complete turn; compare angles with right angles; horizontal, vertical, perpendicular and parallel lines | right-count, right, right-turns, line-orientation, line-pair |
+| Year 4: identify acute and obtuse angles, compare and order angles up to two right angles; compare/classify triangles and quadrilaterals | classify, compare, order, triangle-type, quad-type |
+| Year 5: know angles are measured in degrees, estimate/compare acute, obtuse and reflex angles; draw and measure angles; angles at a point, on a straight line and other multiples of 90 degrees; use properties of rectangles and distinguish regular and irregular polygons | estimate, estimate-reflex, compare-reflex, measure, draw, reflex, draw-reflex, straight, point, rectangle, regularity |
+| Year 6: draw 2-D shapes using given dimensions and angles; compare/classify shapes and find unknown angles in triangles, quadrilaterals and regular polygons; recognise angles at a point, on a straight line and vertically opposite | shape-build, triangle, quadrilateral, regular, point, straight, opposite |
+| Optional enrichment | exterior, parallel, polygon-sum |
+
+Core and enrichment remain distinct. Construction uses a digital grid and angular controls; its physical-paper scaling and classroom usability need verification. Year suggestions do not restrict access. This is an angle-focused initial implementation, not a claim of complete primary geometry coverage (symmetry, coordinates, transformations and 3-D geometry remain separately tracked). Current capture, batches, mixed publishing and teacher keys share the same mathematical model. Verify all browser, print, and live deployment evidence before recording acceptance.
+
+Source: https://www.gov.uk/government/publications/national-curriculum-in-england-mathematics-programmes-of-study/national-curriculum-in-england-mathematics-programmes-of-study
