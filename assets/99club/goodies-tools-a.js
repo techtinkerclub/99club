@@ -521,9 +521,9 @@ function placeValue(){
     const additionGuide=activityMode==='add'&&activityContext==='teach'
       ?'<div class="gd-pv-addition-guide"><span>'+esc(additionProgressText())+'</span><div><button type="button" data-pv-add-next'+(additionStep>=additionPlaces().length?' disabled':'')+'>Next place</button><button type="button" data-pv-add-reset>Reset</button></div></div>'
       :'';
-    return '<section class="gd-pv-activity gd-pv-activity--game" data-pv-activity-kind="'+activityMode+'" aria-label="'+esc(descriptor.title)+'">'+
-      '<div class="gd-pv-activity-head"><div><span>'+activityLabel+' · '+esc(descriptor.title.toUpperCase())+'</span><strong>'+esc(descriptor.prompt)+'</strong></div><em>'+esc(activityStatus||'')+'</em></div>'+
-      answer+additionGuide+'<div class="gd-pv-activity-actions"><button type="button" data-pv-activity-check>Check</button><button type="button" data-pv-activity-another>Another</button></div></section>';
+    return '<section class="gd-pv-activity gd-pv-activity--game'+(activityContext==='challenge'?' gd-native-challenge':'')+'" data-pv-activity-kind="'+activityMode+'" aria-label="'+esc(descriptor.title)+'">'+
+      '<div class="gd-pv-activity-head"><div><span>'+activityLabel+'</span><strong>'+esc(descriptor.prompt)+'</strong></div><em>'+esc(activityStatus||'')+'</em></div>'+
+      answer+additionGuide+'<div class="gd-pv-activity-actions"><button type="button" data-pv-activity-check>Check</button><button type="button" data-pv-activity-another>Another</button>'+(activityContext==='challenge'?'<button type="button" data-pv-activity-exit>Exit challenge</button>':'')+'</div></section>';
   }
 
   function challengeControlsHtml(){
@@ -987,6 +987,8 @@ function placeValue(){
     if(activityCheck)activityCheck.onclick=e=>{e.stopPropagation();checkActivity()};
     const activityAnother=q('[data-pv-activity-another]',q('#gd-stage'));
     if(activityAnother)activityAnother.onclick=e=>{e.stopPropagation();startActivity(activityMode,activityContext)};
+    const activityExit=q('[data-pv-activity-exit]',q('#gd-stage'));
+    if(activityExit)activityExit.onclick=e=>{e.stopPropagation();activityActive=false;activityStatus='';controlTab='setup';renderControls();controller?.refresh()};
     updateLiveSummary();
   }
   function syncControls(){
