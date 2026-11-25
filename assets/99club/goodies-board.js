@@ -324,6 +324,12 @@ function renderFloatingControls(obj){
   const compact=floatingPanelMode==='challenge';
   floatingControls.classList.toggle('is-challenge-launcher',compact);
   if(compact)clone=compactChallengeControls(clone,obj);
+  // Preserve locally opened sections on proxy refresh; controls still dispatch to the original.
+  if(!compact&&obj.toolId==='maths-canvas'&&floatingControlsBody.firstElementChild?.dataset.mcProxyObject===String(obj.id)){
+    const open=new Set([...floatingControlsBody.querySelectorAll('details[data-mc-section][open]')].map(el=>el.dataset.mcSection));
+    clone.querySelectorAll('details[data-mc-section]').forEach(el=>el.open=open.has(el.dataset.mcSection));
+  }
+  if(!compact&&obj.toolId==='maths-canvas')clone.dataset.mcProxyObject=String(obj.id);
   // Use a signature that includes property values (not just innerHTML).
   const signature=JSON.stringify([obj.id,floatingPanelMode,isObjectPalette()?'object-palette':clone.innerHTML,sourceInputs.map(n=>[n.value,n.checked,n.disabled,n.isContentEditable?n.innerHTML:null])]);
   const structure=JSON.stringify(sourceInputs.map(n=>[n.tagName,n.id,n.type,n.name,{...n.dataset},n.tagName==='BUTTON'?n.textContent:null]));
