@@ -662,7 +662,7 @@ function renderLibrary(){
     row.append(copy,open,del);list.append(row);
   }
 }
-document.getElementById('gd-board-saved').onclick=()=>{libraryMessage(objects.some(o=>o.toolId==='balance'&&innerDocument(o)?.querySelector('.gd-challenge-banner'))?'Exit active Number Mobile Balance challenges before saving. Editable teaching mobiles can be saved.':'');renderLibrary();if(!libraryDialog.open)libraryDialog.showModal()};
+document.getElementById('gd-board-saved').onclick=()=>{libraryMessage('');renderLibrary();if(!libraryDialog.open)libraryDialog.showModal()};
 libraryDialog.addEventListener('cancel',e=>{if(libraryBusy)e.preventDefault()});
 libraryDialog.querySelector('[data-board-library-close]').onclick=()=>{if(!libraryBusy)libraryDialog.close()};
 document.getElementById('gd-board-save-current').onclick=()=>{
