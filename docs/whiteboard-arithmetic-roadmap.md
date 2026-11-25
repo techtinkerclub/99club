@@ -82,19 +82,20 @@ Updated 25 November 2026.
 - Optional Reach the target topic (Year 4+ teaching starting profile), with three positive integer tiles used exactly once; teacher operation filters and bracket toggle are respected. Disabled for decimal settings or incompatible ranges/operations.
 - Constructive generation with a verified witness. Exact bounded integer expression parser (no eval) accepts valid arrangements, ordinary precedence and permitted brackets; rejects invented/reused/omitted operands, disallowed operations, non-exact division and malformed expressions. Canonical set deduplication ignores tile order.
 - Shared expression touch keypad, wider response box, explicit rules on whiteboard and paper, separate teacher key marked as one possible solution.
-- Initial three-tile whole-number scope; optional four/five tiles, fractional intermediates and more detailed difficulty controls remain future extensions.
+- Retain the initial three-tile scope as a short teacher-led activity. Do not expand into a standalone target-number game or larger puzzle engine without first reviewing the existing Studio Games & Puzzles catalogue and establishing a distinct teaching need.
 - Automated checks: 2,100 puzzle generation/validation checks, 70 initial five-question sets, 120 ten-question SVG/markup/key sets and 1,200 shared-checker validations passed. Browser/print visual QA remains pending.
 
 ## Next priorities
 1. Visual/touch feedback: validate the practice-set launcher, whiteboard layout, inline answer boxes, responsive columns and paper outputs; refine density and font sizes after classroom feedback.
 2. Worksheet-oriented improvements: separate arithmetic answer key implemented; five-a-day shortcut implemented; optional space for working, shared pupil/teacher export policies across all widgets, and print pagination remain.
 3. Extend the implemented fraction/roots topics to remaining curriculum content and complete visual QA, and refine the curriculum presets.
-4. Extend target-number puzzles beyond three whole-number tiles and error-spotting to reasoning explanations. Initial fraction/expression ordering and result correction implemented.
+4. Consolidate the existing arithmetic teaching challenges and fix usability issues. Larger target-number puzzles and game-like extensions are deferred to avoid duplication with Studio Games & Puzzles.
 5. Refine curriculum presets with narrower year-specific objectives, including multiplication-table and early fraction constraints.
-6. Dedicated sequences and rules widget: number sequences, missing terms, next terms and rule reasoning. Keep separate from arithmetic generator but reuse challenge interaction and export patterns.
+6. Dedicated sequences and rules teaching manipulative: editable number sequences, visible differences/ratios and rule demonstrations, input/output tables and function machines where appropriate. Allow short contextual missing-term/rule checks only where they support the teaching model. Review the existing Games & Puzzles catalogue before adding challenge types; reuse shared engines when appropriate.
 7. Performance and accessibility audit of whiteboard, all manipulatives and mobile/touch behaviour.
 
 ## Principles
+- Product boundary: Whiteboard/Goodies is for teacher-led demonstrations, exploration, configurable representations, short contextual checks and printable resources. Studio Games & Puzzles is for independent practice, dedicated puzzle collections, progression and extended problem-solving. Do not duplicate game engines or build game variants inside manipulatives merely to increase challenge counts. Review existing functionality before introducing new puzzle-like features.
 - No reliance on a physical keyboard.
 - Challenge launcher offers quantity and layout without deep menus; existing random all/category/specific paths remain.
 - A new set is generated without carrying forward previous responses. Layout changes preserve questions and responses.
