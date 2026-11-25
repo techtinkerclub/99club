@@ -16,7 +16,7 @@ robots: "noindex,nofollow,noarchive"
   </article>
 </div>
 
-<link rel="stylesheet" href="/assets/99club/goodies.css?v=83">
+<link rel="stylesheet" href="/assets/99club/goodies.css?v=84">
 <link rel="stylesheet" href="/assets/99club/goodies-abacus.css?v=21">
 <link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v3.css?v=1">
 <link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v4.css?v=1">
@@ -31,7 +31,7 @@ robots: "noindex,nofollow,noarchive"
 <script src="/assets/99club/goodies-interaction.js?v=3" defer></script>
 <script src="/assets/99club/goodies-challenge.js?v=15" defer></script>
 <script src="/assets/99club/goodies-export.js?v=5" defer></script>
-<script src="/assets/99club/goodies-tools-a.js?v=53" defer></script>
+<script src="/assets/99club/goodies-tools-a.js?v=54" defer></script>
 <script src="/assets/99club/goodies-abacus.js?v=23" defer></script>
 <script src="/assets/99club/goodies-number-line-v6.js?v=25" defer></script>
 <script src="/assets/99club/goodies-tools-b.js?v=36" defer></script>
@@ -40,11 +40,11 @@ robots: "noindex,nofollow,noarchive"
 <script src="/assets/99club/goodies-number-mobile-balance-v4.js?v=1" defer></script>
 <script src="/assets/99club/goodies-number-mobile-balance-v6.js?v=7" defer></script>
 <script src="/assets/99club/goodies-number-mobile-balance-v6-blank-bridge.js?v=3" defer></script>
-<script src="/assets/99club/goodies-number-mobile-balance-v7.js?v=4" defer></script>
+<script src="/assets/99club/goodies-number-mobile-balance-v7.js?v=5" defer></script>
 <script src="/assets/99club/goodies-number-mobile-balance-v5-embed.js?v=3" defer></script>
-<script src="/assets/99club/goodies-number-mobile-balance-v8.js?v=6" defer></script>
+<script src="/assets/99club/goodies-number-mobile-balance-v8.js?v=7" defer></script>
 <script src="/assets/99club/goodies-number-mobile-balance-v10.js?v=2" defer></script>
-<script src="/assets/99club/goodies-number-mobile-balance-v12.js?v=4" defer></script>
-<script src="/assets/99club/goodies-number-mobile-balance-v13.js?v=4" defer></script>
+<script src="/assets/99club/goodies-number-mobile-balance-v12.js?v=5" defer></script>
+<script src="/assets/99club/goodies-number-mobile-balance-v13.js?v=5" defer></script>
 <script src="/assets/99club/goodies-app.js?v=10" defer></script>
-<script src="/assets/99club/goodies-board.js?v=33" defer></script>
+<script src="/assets/99club/goodies-board.js?v=34" defer></script>
