@@ -9,7 +9,7 @@ const root=G.root;
 const tools=Array.isArray(G.toolCatalogue)?G.toolCatalogue:[];
 const SNAP=10;
 const BOARD_W=2800,BOARD_H=1800;
-const AUTO_SHRINK_HEIGHT_TOOLS=new Set(['number-line','place-value','abacus','array-builder','factors','fdp','clock','money','measurement']);
+const AUTO_SHRINK_HEIGHT_TOOLS=new Set(['number-line','place-value','abacus','array-builder','factors','fdp','clock','money','measurement','sequences']);
 let nextId=1,selectedId=null,snapOn=true,zCounter=10,drag=null,resize=null,pan=null;
 
 const defaults={
@@ -79,6 +79,7 @@ const QUICK_ACTIONS={
     {label:'Duplicate',selector:'#ba-duplicate',allowHidden:true},
     {label:'×',selector:'#ba-delete',allowHidden:true,title:'Delete selected weight',danger:true}
   ],
+  sequences:[{label:'Challenge',selector:'[data-seq-workflow="challenge"]',allowHidden:true,panelMode:'challenge',title:'Choose a challenge'},{label:'Reveal answer',selector:'[data-board-action="reveal"]',dynamicLabel:true,title:'Reveal or hide the challenge answer'}],
   'maths-canvas':[
     {label:'+ Tile',selector:'[data-gd-action="add"]',allowHidden:true,panelMode:'tile-palette',title:'Add number or operation tile'},
     {label:'Challenge',selector:'[data-mc-workflow="challenge"]',allowHidden:true,panelMode:'challenge',title:'Choose a number challenge'},
@@ -638,7 +639,7 @@ function objectMarkup(obj,tool){
       '<button type="button" data-board-export-kind="svg" role="menuitem">SVG</button>'+
       '<button type="button" data-board-export-kind="print" role="menuitem">Print</button>'+
       (tool.id==='maths-canvas'?'<button type="button" data-board-export-kind="paper-settings" role="menuitem">Paper settings</button>':'')+
-      (['maths-canvas','abacus','place-value'].includes(tool.id)?'<button type="button" data-board-export-kind="key-print" role="menuitem" hidden>Answer key · print</button><button type="button" data-board-export-kind="key-copy" role="menuitem" hidden>Answer key · copy</button>':'')+
+      (['maths-canvas','abacus','place-value','sequences'].includes(tool.id)?'<button type="button" data-board-export-kind="key-print" role="menuitem" hidden>Answer key · print</button><button type="button" data-board-export-kind="key-copy" role="menuitem" hidden>Answer key · copy</button>':'')+
     '</div>'+
     '<div class="gd-board-quick-actions is-empty" data-board-quick-actions aria-label="'+esc(tool.title)+' quick actions"></div>'+
     '<div class="gd-board-context-menu" role="menu" aria-label="'+esc(tool.title)+' controls">'+
@@ -813,7 +814,7 @@ function toggleExportMenu(id){
   selectObject(id);
   const frame=frameFor(id),open=!frame?.classList.contains('has-export-menu');
   canvas.querySelectorAll('.gd-board-object.has-export-menu').forEach(el=>el.classList.remove('has-export-menu'));
-  if(open&&['maths-canvas','abacus','place-value'].includes(obj.toolId)){
+  if(open&&['maths-canvas','abacus','place-value','sequences'].includes(obj.toolId)){
     const doc=innerDocument(obj),active=obj.toolId!=='maths-canvas'?!!doc?.querySelector('[data-gd-direct-export="key-print"]'):!!doc?.querySelector('#gd-stage .gd-challenge-banner');
     frame?.querySelectorAll('[data-board-export-kind^="key-"]').forEach(button=>{button.hidden=!active});
   }
@@ -902,7 +903,7 @@ if(floatingControlsBody){
     if(control.tagName!=='BUTTON'&&!(control.tagName==='INPUT'&&/^(button|submit|reset)$/i.test(control.type||'')))return;
     e.preventDefault();e.stopPropagation();
     const {obj,node}=floatingOriginal(control.dataset.boardControlIndex);if(!obj||!node)return;
-    const launch=node.matches('[data-gd-random-scope],[data-gd-native-random],[data-pv-challenge-mode],[data-ab-challenge-mode],[data-mc-challenge-mode],[data-ab-history-operation],#ab-history-challenge,[id$="-generate"]');
+    const launch=node.matches('[data-gd-random-scope],[data-gd-native-random],[data-pv-challenge-mode],[data-ab-challenge-mode],[data-mc-challenge-mode],[data-seq-challenge-mode],[data-ab-history-operation],#ab-history-challenge,[id$="-generate"]');
     const specific=floatingPanelMode==='challenge'&&[...node.attributes].find(a=>/^-?data-[a-z0-9-]+-challenge-type$/.test(a.name));
     if(specific){const prefix=specific.name.match(/^data-([a-z0-9-]+)-challenge-type$/)[1];node.click();const generate=sourceControls(obj)?.querySelector('#'+prefix+'-generate');if(generate&&!generate.disabled){generate.click();closeFloatingControls(obj.id)}}
     else{node.click();if(launch&&floatingPanelMode==='challenge')closeFloatingControls(obj.id);else if(isObjectPalette())renderFloatingControls(obj)}
