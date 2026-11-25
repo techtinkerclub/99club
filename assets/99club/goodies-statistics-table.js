@@ -38,10 +38,10 @@ function svgTable(data,view='table',missing=-1){
 }
 const VIEWS=[['table','Frequency table'],['tally','Tally chart'],['pictogram','Pictogram'],['bar','Bar chart'],['line','Line graph'],['pie','Pie chart']];
 const EXTRA={bar:[['read-scale','Read the axis interval']],line:[['read-scale','Read the axis interval'],['change','Find the change between consecutive days']],pie:[['angle','Find a sector angle'],['percent','Find a sector percentage']],pictogram:[['symbols','Count full symbols']]};
-const PROFILES=[['custom','All / custom'],['2','Year 2'],['3','Year 3'],['4','Year 4'],['5','Year 5'],['6','Year 6']];
+const PROFILES=[['custom','All / custom'],['2','Year 2 suggestions'],['3','Year 3 suggestions'],['4','Year 4 suggestions'],['5','Year 5 suggestions'],['6','Year 6 suggestions']];
 const profile=v=>PROFILES.some(p=>p[0]===String(v))?String(v):'custom';
 function viewsFor(year){year=profile(year);return VIEWS.filter(([v])=>year==='custom'||year==='6'||(v!=='pie'&&(v!=='line'||+year>=4)&&(v!=='bar'||+year>=3)));}
-const questionTypes=(view,year='custom')=>{year=profile(year);const all=view==='pie'?EXTRA.pie:[...TYPES,...(EXTRA[view]||[]),['combined','Two-step sum and comparison'],['complete','Complete the missing entry']];return all.filter(([id])=>year==='custom'||(+year>=6||!['mean','angle','percent','range'].includes(id))&&(+year>=3||!['combined','read-scale'].includes(id)));};
+const questionTypes=(view,year='custom')=>{year=profile(year);const all=view==='pie'?EXTRA.pie:[...TYPES,...(EXTRA[view]||[]),['combined','Two-step sum and comparison'],['complete','Complete the missing entry']];return all.filter(([id])=>year==='custom'||(+year>=6||!['mean','angle','percent'].includes(id))&&(+year>=3||!['combined','read-scale'].includes(id)));};
 const viewName=view=>VIEWS.find(v=>v[0]===view)?.[1]||'Frequency table';
 const validView=view=>VIEWS.some(v=>v[0]===view)?view:'table';
 const COLOURS=['#39887e','#537eaa','#c68a48','#9275ac','#c66c75','#718b48'];
@@ -82,13 +82,14 @@ function svgChart(data,view,key=2,missing=-1,axisOverride=null){
 }
 function recipe(model={},type='all'){
  const year=profile(model.year),view=viewsFor(year).some(v=>v[0]===model.view)?model.view:'table';
- return {type,year,view,key:year==='2'?1:[1,2,5,10].includes(+model.key)?+model.key:2,max:year==='2'?10:[10,20,30,40].includes(+model.max)?+model.max:20,count:year==='2'?Math.min(4,+model.count||4):[3,4,5,6].includes(+model.count)?+model.count:4};
+ return {type,year,view,key:[1,2,5,10].includes(+model.key)?+model.key:2,max:year==='2'?10:[10,20,30,40].includes(+model.max)?+model.max:20,count:year==='2'?Math.min(4,+model.count||4):[3,4,5,6].includes(+model.count)?+model.count:4};
 }
 function generate(r,rng=Math.random){
  const available=questionTypes(r.view,r.year),type=r.type==='all'?available[Math.floor(rng()*available.length)][0]:r.type;
  if(!available.some(t=>t[0]===type))throw Error('Choose a question compatible with this graph.');
  let data=randomData(r.max,r.count,type==='mean',rng);
- if(r.view==='line')data=M.dataset(data.rows.map((row,i)=>({...row,label:['Mon','Tue','Wed','Thu','Fri','Sat'][i]})),{title:'Daily visitors',unit:'visitors',ordered:true});
+ if(r.view==='line'){const continuous=rng()<.65||type==='mean';data=M.dataset(data.rows.map((row,i)=>({...row,label:continuous?String(9+i)+':00':['Mon','Tue','Wed','Thu','Fri','Sat'][i]})),{title:continuous?'Temperature during the day':'Daily visitors',unit:continuous?'°C':'visitors',ordered:true});}
+ if(type==='mean'&&r.view!=='line')data=M.dataset(data.rows.map((row,i)=>({...row,label:'Day '+(i+1)})),{title:'Rainfall over several days',unit:'mm',ordered:true});
  if(r.view==='pie'){const total=type==='percent'?20:12;const values=Array(r.count).fill(1);for(let i=r.count;i<total;i++)values[Math.floor(rng()*r.count)]++;data=M.dataset(data.rows.map((row,i)=>({...row,value:values[i]})),data);}
  if(r.view==='pictogram'){let values=data.rows.map(row=>Math.floor(row.value/r.key));if(type==='mean'){const remainder=values.reduce((a,b)=>a+b,0)%r.count;for(let i=0,left=remainder;i<values.length&&left;i++){const take=Math.min(left,values[i]);values[i]-=take;left-=take}}data=M.dataset(data.rows.map((row,i)=>({...row,value:values[i]*r.key})),data);}
  const a=Math.floor(rng()*data.rows.length),b=(a+1+Math.floor(rng()*(data.rows.length-1)))%data.rows.length;
@@ -96,7 +97,7 @@ function generate(r,rng=Math.random){
  if(type==='angle'||type==='percent'){const row=data.rows[a],total=M.summary(data).total;question={type,prompt:(type==='angle'?'What is the angle in degrees of the sector for ':'What percentage of the total is represented by ')+row.label+'?',answer:row.value*(type==='angle'?360:100)/total};}
  else if(type==='read-scale')question={type,prompt:'How many '+data.unit+' does one labelled vertical axis interval represent?',answer:M.axis(data).step};
  else if(type==='symbols')question={type,prompt:'How many full symbols represent '+data.rows[a].label+'?',answer:data.rows[a].value/r.key};
- else if(type==='change'){const i=Math.floor(rng()*(data.rows.length-1)),x=data.rows[i],y=data.rows[i+1];question={type,prompt:'By how many visitors did the number change from '+x.label+' to '+y.label+'?',answer:Math.abs(y.value-x.value)};}
+ else if(type==='change'){const i=Math.floor(rng()*(data.rows.length-1)),x=data.rows[i],y=data.rows[i+1];question={type,prompt:'By how much did the value change from '+x.label+' to '+y.label+'? Give your answer in '+data.unit+'.',answer:Math.abs(y.value-x.value)};}
  else if(type==='combined'){const c=(b+1)%data.rows.length===a?(b+2)%data.rows.length:(b+1)%data.rows.length;const x=data.rows[a],y=data.rows[b],z=data.rows[c];question={type,prompt:'Add the values for '+x.label+' and '+y.label+'. What is the difference between this sum and the value for '+z.label+'?',answer:Math.abs(x.value+y.value-z.value)};}
  else if(type==='complete'){const row=data.rows[a];question={type,missing:a,prompt:'Complete the missing '+(r.view==='bar'?'bar':r.view==='line'?'point and connecting lines':r.view==='pictogram'?'symbols':r.view==='tally'?'tally marks':'frequency')+' for '+row.label+'. Its frequency is '+row.value+'.',answer:row.value};}
  else question=M.question(data,type,a,b);
@@ -139,7 +140,7 @@ G.statisticsTableTool=function(){
  function controls(){
   const tabs='<div class="gd-row" role="tablist" aria-label="Data workflow">'+[['build','Explore'],['challenge','Challenge']].map(([v,l])=>'<button class="gd-btn'+(workflow===v?' gd-btn--primary':'')+'" type="button" data-st-workflow="'+v+'">'+l+'</button>').join('')+'</div>';
   const select=(id,options,current)=>'<select class="gd-select" id="'+id+'">'+options.map(([v,l])=>'<option value="'+v+'"'+(String(v)===String(current)?' selected':'')+'>'+l+'</option>').join('')+'</select>';
-  const representation=field('Curriculum',''+select('st-year',PROFILES,year))+field('Representation',select('st-view',viewsFor(year),view));
+  const representation=field('Curriculum suggestions',''+select('st-year',PROFILES,year))+field('Representation',select('st-view',viewsFor(year),view));
   const settings=(view==='pictogram'?field('Symbol value',select('st-key',[[1,'1'],[2,'2'],[5,'5'],[10,'10']],key)):'')+field('Maximum frequency',select('st-max',[[10,'10'],[20,'20'],[30,'30'],[40,'40']],max))+field('Categories',select('st-count',[[3,'3'],[4,'4'],[5,'5'],[6,'6']],count));
   if(workflow==='challenge')return tabs+representation+settings+CK.nativeRandomHtml('st',[{id:'data',label:'Data questions',ids:types().map(t=>t[0])}])+types().map(([id,l])=>'<button class="gd-btn" type="button" data-st-challenge-mode="'+id+'">'+l+'</button>').join('');
   return tabs+representation+settings+field('Chart title','<input class="gd-input" id="st-title" maxlength="40" value="'+esc(data.title)+'">')+data.rows.map((r,i)=>'<div class="gd-row"><input class="gd-input" style="min-width:0;flex:1" maxlength="18" aria-label="Category '+(i+1)+'" data-st-label="'+i+'" value="'+esc(r.label)+'"><button type="button" class="gd-btn" data-st-change="'+i+',-1" aria-label="Decrease '+esc(r.label)+'">−</button><span>'+r.value+'</span><button type="button" class="gd-btn" data-st-change="'+i+',1" aria-label="Increase '+esc(r.label)+'">+</button></div>').join('')+'<div class="gd-row">'+btn('Apply labels','st-apply')+btn('Random data','st-new')+'</div><p class="gd-help" id="st-status" role="status">'+esc(status)+'</p>';
