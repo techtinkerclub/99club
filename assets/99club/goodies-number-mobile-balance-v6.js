@@ -24,7 +24,7 @@ const DIFFICULTY_COPY={
   hard:'Two hanging balances, multiple constraints and sometimes more than one missing number.'
 };
 
-let difficulty='easy',complexSpec=null,busy=false,popoverOpen=false,installed=false;
+let difficulty='easy',complexSpec=null,busy=false,popoverOpen=false,installed=false,randomScope=null,lastRandomType=null;
 let railObserver=null,railNode=null,boardSyncing=false,adaptTimer=null;
 
 function q(sel,root=document){return root?.querySelector?.(sel)||null}
@@ -245,10 +245,12 @@ async function complexChallenge(type,level){
 function generate(type){
   if(busy)return;
   if(type==='random'||type.startsWith('random-')){
+    randomScope=type;
     const category=type==='random'?'':type.slice(7);
     const pool=TYPES.filter(t=>!category||TYPE_CATEGORY[t]===category);
-    type=pool[Math.floor(Math.random()*pool.length)]||'missing-weight';
-  }
+    const choices=pool.length>1?pool.filter(t=>t!==lastRandomType):pool;
+    type=choices[Math.floor(Math.random()*choices.length)]||'missing-weight';lastRandomType=type;
+  }else{randomScope=null;lastRandomType=null}
   G.numberMobileChallengeDifficulty=difficulty;
   return difficulty==='easy'?standardChallenge(type):complexChallenge(type,difficulty)
 }
@@ -309,7 +311,13 @@ function adapt(){
   if(popoverOpen&&!q('.nmb-v5-challenge-popover',w)){w.appendChild(challengePopover());q('[data-nmb-challenge-toggle]',w)?.setAttribute('aria-expanded','true')}
 }
 function install(){
-  if(installed)return;installed=true;G.numberMobileChallengeDifficulty=difficulty;G.numberMobileChallengeSpec=null;
+  if(installed)return;
+  window.addEventListener('click',e=>{
+    const another=e.target?.closest?.('[data-nmb-v6-another],[data-challenge-action="another"]');
+    if(!another||!randomScope||!work()||!banner()||busy)return;
+    e.preventDefault();e.stopImmediatePropagation();
+    const scope=randomScope;closePopover();togglePopover();q('[data-nmb-v6-type="'+scope+'"]',work())?.click();
+  },true);installed=true;G.numberMobileChallengeDifficulty=difficulty;G.numberMobileChallengeSpec=null;
   document.addEventListener('click',e=>{
     if(popoverOpen&&!e.target.closest?.('.nmb-v5-challenge-popover,[data-nmb-challenge-toggle]'))closePopover();
     scheduleAdapt(0);scheduleAdapt(70);
@@ -317,13 +325,15 @@ function install(){
   document.addEventListener('change',()=>scheduleAdapt(40),true);document.addEventListener('input',()=>scheduleAdapt(40),true);document.addEventListener('pointerup',()=>scheduleAdapt(60),true);
   adapt();
 }
-G.balanceTool=function numberMobileBalanceToolV6(){const result=balanceToolV4.apply(this,arguments);exposeSpec(null);popoverOpen=false;setTimeout(adapt,30);setTimeout(adapt,130);return result};
+G.balanceTool=function numberMobileBalanceToolV6(){const result=balanceToolV4.apply(this,arguments);exposeSpec(null);popoverOpen=false;randomScope=null;lastRandomType=null;setTimeout(adapt,30);setTimeout(adapt,130);return result};
 G.numberMobileChallengeSession={
-  capture(){if(busy)throw new Error('Wait for the Number Mobile challenge to finish generating.');return {difficulty,spec:complexSpec}},
+  capture(){if(busy)throw new Error('Wait for the Number Mobile challenge to finish generating.');return {difficulty,spec:complexSpec,randomScope,lastRandomType}},
   restore(saved){
     difficulty=['easy','medium','hard'].includes(saved?.difficulty)?saved.difficulty:'easy';
     G.numberMobileChallengeDifficulty=difficulty;
     exposeSpec(saved?.spec||null);popoverOpen=false;
+    randomScope=['random','random-read','random-build','random-reason'].includes(saved?.randomScope)?saved.randomScope:null;
+    lastRandomType=TYPES.includes(saved?.lastRandomType)?saved.lastRandomType:null;
   },
   refresh(){adapt()}
 };
