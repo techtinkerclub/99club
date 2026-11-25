@@ -4,6 +4,9 @@ if(!G)return;
 const adapters=new Map(),copy=v=>JSON.parse(JSON.stringify(v));
 // Match the A4 printable area used by printSvg: 182 mm wide × 265 mm high.
 const PAGE_W=960,PAGE_H=Math.round(PAGE_W*265/182);
+// These diagrams contain labels pupils must actually read, not decorative
+// detail. Prefer a larger diagram and an extra page to unreadable print.
+const DENSE_DIAGRAMS=new Set(['sequences','abacus','place-value','number-line','hundred-square','multiplication-grid','array-builder','money','coordinates','measurement','geoboard']);
 function register(tool,adapter){adapters.set(tool,adapter)}
 function supports(tool){return adapters.has(tool)}
 function canGenerate(tool){return supports(tool)&&typeof adapters.get(tool).generate==='function'}
@@ -77,7 +80,7 @@ function isolateSvgIds(svg,prefix){
 function pupilPages(items,title){
  const W=PAGE_W,H=PAGE_H,pad=28,top=92,bottom=H-40,gap=14,layouts=[];let entries=[],y=top;
  for(const [index,item] of items.entries()){
-   const svg=G.exportTools.withDocumentCardLayout(()=>renderItem(item,false)),v=dimensions(svg),width=W-2*pad-32,scale=Math.min(width/v.w,(bottom-top-gap)/v.h),h=v.h*scale;
+   const svg=G.exportTools.withDocumentCardLayout(()=>renderItem(item,false),{denseDiagram:DENSE_DIAGRAMS.has(item.tool)}),v=dimensions(svg),width=W-2*pad-32,scale=Math.min(width/v.w,(bottom-top-gap)/v.h),h=v.h*scale;
    if(entries.length&&y+h>bottom){layouts.push(entries);entries=[];y=top}
    entries.push({svg,v,scale,h,y,index});y+=h+gap;
  }
@@ -191,9 +194,12 @@ function answerPages(items,title){
    if(value===undefined||!String(value).trim())throw Error('Answer not available for question '+(index+1)+'.');
    const graphic=answerGraphic(item),v=graphic?dimensions(graphic):null,note=answerNote(item);
    // Compact models sit beside marking text; wide labelled charts remain full-width.
-   const beside=!!v&&(item.tool==='abacus'||item.tool==='array-builder'||item.tool==='clock'&&v.w<=310);
-   const widthLimit=beside?(item.tool==='clock'?270:425):item.tool==='fraction-wall'?760:850;
-   const scale=v?Math.min(widthLimit/v.w,(beside?285:340)/v.h):0,gh=v?v.h*scale:0,gw=v?v.w*scale:0;
+   const dense=DENSE_DIAGRAMS.has(item.tool);
+   // Small clock faces can sit beside the text. Label-rich boards get a
+   // full-width answer graphic, with enough height to maintain legibility.
+   const beside=!!v&&!dense&&item.tool==='clock'&&v.w<=310;
+   const widthLimit=beside?270:item.tool==='fraction-wall'?760:W-2*pad-48;
+   const scale=v?Math.min(widthLimit/v.w,(beside?285:dense?760:340)/v.h):0,gh=v?v.h*scale:0,gw=v?v.w*scale:0;
    const textWidth=beside?W-2*pad-48-gw-20:W-2*pad-48;
    const lines=wrapAnnex(value,textWidth,20,600),notes=note?wrapAnnex(note,textWidth,18,400):[];
    const textH=lines.length*step,notesH=notes.length?notes.length*23+8:0;

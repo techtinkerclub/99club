@@ -7,7 +7,7 @@ Update it with evidence and release revisions as the work progresses.
 - [x] Initial per-widget functional QA for the 20 existing tools.
 - [x] Common challenge presentation and touchscreen numeric responses; initial regression tests.
 - [x] Geoboard adjustable 5×5–13×13 pin grids.
-- [ ] Finish the current three-panel UI/UX review (PR #213): normal teaching settings, quick challenge launcher, full challenge settings. Preserve native mathematical controls.
+- [x] Shared three-panel UI/UX refinements and actual floating-panel interaction tests (PR #213, merged as 4ad14a2). Normal teaching settings, quick launcher and full challenge settings; native controls retained.
 - [ ] Inspect every widget's actual panel layout, touch targets, scrolling, disabled states, and action forwarding. Remove duplicated actions where safe.
 - [ ] Verify specialist engines, custom challenges, historical abacus modes, and active-question preservation. Release tested improvements to main; verify deployed revision.
 
@@ -15,7 +15,7 @@ Update it with evidence and release revisions as the work progresses.
 - [x] Initial adapters for all 20 existing widgets (Randomiser illustration-only).
 - [x] Manual current-item publication, widget batches, automatic mixed-widget builder, document review, teacher annex.
 - [x] Initial shared A4 renderer and publication audit. Released in b0c9a82 (PR #212).
-- [ ] Resume the deferred individual worksheet quality audit after panel consistency: every question family, print font size, diagrams, working space, pagination, no leaked answers.
+- [ ] Individual worksheet quality audit: every question family, print font size, diagrams, working space, pagination, no leaked answers. Baseline audit passed structure with 2,111 sub-7pt text observations and no reported page clipping. Dense-diagram scaling pass in progress.
 - [ ] Verify graphical answers and explicit acceptance criteria for all valid alternatives; no teacher guesswork.
 - [ ] Audit exact current illustrations and authored custom challenges, generation coverage and variety, and mixed documents. Do not equate an adapter with complete support for every live state.
 - [ ] Final mathematical, browser, layout, print and release QA.
