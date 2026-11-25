@@ -72,6 +72,7 @@ function install(){
   document.addEventListener('click',e=>{if(relevant(e.target)){setTimeout(syncCompareConceal,0);setTimeout(stabilise,0)}},false);
   setTimeout(stabilise,80);
 }
-G.numberMobileChromeVersion='12.2';
+G.numberMobileChallengeChrome={refresh:tidy};
+G.numberMobileChromeVersion='12.3';
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })(window.TT99Goodies);
