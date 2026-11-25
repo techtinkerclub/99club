@@ -5329,7 +5329,7 @@ function moneyTool(){
     const embedded=document.documentElement.classList.contains('gd-embed-page');
     q('#gd-stage').innerHTML=banner+'<div class="gd-money-workbench'+(challengeFrozen()&&challenge?.mode==='standard'?' gd-money-workbench--fixed':'')+'">'+
       (challengeFrozen()&&challenge?.mode==='standard'?'':toolbarHtml(history,selected)+(embedded?moneyStagePaletteHtml(true):moneyStagePaletteHtml()))+
-      '<div class="gd-money-canvas" id="mo-canvas" data-gd-canvas-bg style="min-height:'+m.height+'px" aria-label="Money workbench">'+
+      '<div class="gd-money-canvas" id="mo-canvas" data-gd-canvas-bg style="min-height:'+m.height+'px;--mo-fixed-height:'+m.height+'px" aria-label="Money workbench">'+
         (items.length?items.map(moneyObject).join(''):'<div class="gd-money-empty" data-gd-canvas-bg>Choose a denomination to start building an amount.</div>')+
       '</div>'+
       (!challenge?'<div class="gd-money-summary'+(targetActive?'':' gd-money-summary--total')+'">'+
