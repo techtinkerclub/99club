@@ -46,6 +46,7 @@ function placeValue(){
   let controlTab='setup',challengeTab='standard',challengeCategory='read',challengeType='read-number',challenge=null,beforeChallenge=null;
   let representationMode='counters';
   let activityMode='powers',activityTarget=null,activityBudget=5,activityStatus='',powerMessage='',activityActive=false,activityContext='teach';
+  let activityBefore=null;
   let activityInput='',activityAnswer=null,activityHiddenIndex=-1,activityDigit=0,activityStartCounts=[],activityPrompt='';
   let additionA=247,additionB=185,additionStep=0,additionDifficulty='mixed';
   let exportMode='diagram',responseLines=1,exportStatus='';
@@ -387,6 +388,7 @@ function placeValue(){
   }
   function startActivity(mode=activityMode,context=activityContext){
     const modes=['powers','build','exact','regroup','same','read','hidden','digit','add'];
+    if(context==='challenge'&&!activityBefore)activityBefore=stateSnapshot();
     activityMode=modes.includes(mode)?mode:'powers';activityContext=context==='challenge'?'challenge':'teach';activityActive=true;activityStatus='';powerMessage='';activityInput='';activityAnswer=null;activityHiddenIndex=-1;activityDigit=0;activityStartCounts=[];activityPrompt='';
     if(['exact','regroup','same'].includes(activityMode)&&representationMode!=='counters')representationMode='counters';
     if(activityMode==='add'){
@@ -447,8 +449,12 @@ function placeValue(){
     controlTab=surface==='challenge'?'challenge':'activity';
     startActivity(mode,'challenge');
   }
+  function exitActivityChallenge(){
+    if(activityBefore){restoreState(activityBefore);activityBefore=null;controller?.select(null)}
+    activityActive=false;activityStatus='';activityInput='';activityContext='teach';controlTab='setup';renderControls();controller?.refresh();
+  }
   function checkActivity(){
-    if(activityMode==='powers')return;
+    if(activityMode==='powers'||(activityAnswerMode()&&activityStatus.startsWith('Correct')))return;
     const target=clean(activityTarget),value=total(),same=Math.abs(value-target)<(valueStep()/2+1e-9);
     if(activityMode==='add'){
       activityStatus=same?'Correct ✓ — '+format(additionA)+' + '+format(additionB)+' = '+format(target)+'.':'Not yet — the place-value frame currently shows '+format(value)+'.';
@@ -516,14 +522,14 @@ function placeValue(){
         '<div class="gd-pv-digit-row" style="--pv-cols:'+places.length+'">'+cells+'</div><div class="gd-pv-activity-actions">'+buttons+'</div></section>';
     }
     const descriptor=activityDescriptor();
-    const answer=activityAnswerMode()?'<div class="gd-pv-activity-response"><label>Answer <input type="text" inputmode="decimal" autocomplete="off" data-pv-activity-answer value="'+esc(activityInput)+'"></label></div>':'';
+    const answer=activityAnswerMode()?'<div class="gd-pv-activity-response"><label>Answer <input type="text" inputmode="decimal" autocomplete="off" data-pv-activity-answer value="'+esc(activityInput)+'"'+(activityStatus.startsWith('Correct')?' disabled':'')+'></label></div>':'';
     const activityLabel=activityContext==='challenge'?'CHALLENGE':'PLAY';
     const additionGuide=activityMode==='add'&&activityContext==='teach'
       ?'<div class="gd-pv-addition-guide"><span>'+esc(additionProgressText())+'</span><div><button type="button" data-pv-add-next'+(additionStep>=additionPlaces().length?' disabled':'')+'>Next place</button><button type="button" data-pv-add-reset>Reset</button></div></div>'
       :'';
     return '<section class="gd-pv-activity gd-pv-activity--game'+(activityContext==='challenge'?' gd-native-challenge':'')+'" data-pv-activity-kind="'+activityMode+'" aria-label="'+esc(descriptor.title)+'">'+
       '<div class="gd-pv-activity-head"><div><span>'+activityLabel+'</span><strong>'+esc(descriptor.prompt)+'</strong></div><em>'+esc(activityStatus||'')+'</em></div>'+
-      answer+additionGuide+'<div class="gd-pv-activity-actions"><button type="button" data-pv-activity-check>Check</button><button type="button" data-pv-activity-another>Another</button>'+(activityContext==='challenge'?'<button type="button" data-pv-activity-exit>Exit challenge</button>':'')+'</div></section>';
+      answer+additionGuide+'<div class="gd-pv-activity-actions"><button type="button" data-pv-activity-check'+(activityAnswerMode()&&activityStatus.startsWith('Correct')?' disabled':'')+'>Check</button><button type="button" data-pv-activity-another>Another</button>'+(activityContext==='challenge'?'<button type="button" data-pv-activity-exit>Exit challenge</button>':'')+'</div></section>';
   }
 
   function challengeControlsHtml(){
@@ -980,7 +986,7 @@ function placeValue(){
     });
     const activityAnswerInput=q('[data-pv-activity-answer]',q('#gd-stage'));
     if(activityAnswerInput){
-      activityAnswerInput.oninput=e=>{activityInput=e.target.value};
+      activityAnswerInput.oninput=e=>{activityInput=e.target.value;activityStatus='';const status=q('.gd-pv-activity-head em',q('#gd-stage'));if(status)status.textContent=''};
       activityAnswerInput.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();checkActivity()}};
     }
     const activityCheck=q('[data-pv-activity-check]',q('#gd-stage'));
@@ -988,7 +994,7 @@ function placeValue(){
     const activityAnother=q('[data-pv-activity-another]',q('#gd-stage'));
     if(activityAnother)activityAnother.onclick=e=>{e.stopPropagation();startActivity(activityMode,activityContext)};
     const activityExit=q('[data-pv-activity-exit]',q('#gd-stage'));
-    if(activityExit)activityExit.onclick=e=>{e.stopPropagation();activityActive=false;activityStatus='';controlTab='setup';renderControls();controller?.refresh()};
+    if(activityExit)activityExit.onclick=e=>{e.stopPropagation();exitActivityChallenge()};
     updateLiveSummary();
   }
   function syncControls(){
@@ -1024,6 +1030,7 @@ function placeValue(){
         const teachMode=activityContext==='challenge'?'powers':activityMode;
         controlTab='activity';startActivity(teachMode,'teach');return;
       }
+      if(nextTab==='setup'&&activityBefore){exitActivityChallenge();return}
       if(nextTab==='setup')activityActive=false;
       if(nextTab==='challenge'&&activityContext!=='challenge')activityActive=false;
       controlTab=nextTab==='challenge'?'challenge':nextTab==='export'?'export':'setup';
@@ -1227,7 +1234,7 @@ function placeValue(){
     });
     resizeObserver.observe(q('#gd-stage'));
   }
-  G.lessonState?.register('place-value',()=>({diagram:stateSnapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines,activityMode,activityTarget,activityBudget,activityStatus,powerMessage,activityActive,activityContext,activityInput,activityAnswer,activityHiddenIndex,activityDigit,activityStartCounts,activityPrompt,additionA,additionB,additionStep,additionDifficulty}),saved=>{
+  G.lessonState?.register('place-value',()=>({diagram:stateSnapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines,activityMode,activityTarget,activityBudget,activityStatus,powerMessage,activityActive,activityContext,activityBefore,activityInput,activityAnswer,activityHiddenIndex,activityDigit,activityStartCounts,activityPrompt,additionA,additionB,additionStep,additionDifficulty}),saved=>{
     restoreState(saved.diagram);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
     if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
     if(Object.prototype.hasOwnProperty.call(saved,'challengeTab'))challengeTab=saved.challengeTab;
@@ -1242,6 +1249,7 @@ function placeValue(){
     if(Object.prototype.hasOwnProperty.call(saved,'powerMessage'))powerMessage=saved.powerMessage;
     if(Object.prototype.hasOwnProperty.call(saved,'activityActive'))activityActive=saved.activityActive;
     if(Object.prototype.hasOwnProperty.call(saved,'activityContext'))activityContext=saved.activityContext;
+    activityBefore=saved.activityBefore||null;
     if(Object.prototype.hasOwnProperty.call(saved,'activityInput'))activityInput=saved.activityInput;
     if(Object.prototype.hasOwnProperty.call(saved,'activityAnswer'))activityAnswer=saved.activityAnswer;
     if(Object.prototype.hasOwnProperty.call(saved,'activityHiddenIndex'))activityHiddenIndex=saved.activityHiddenIndex;
