@@ -4345,17 +4345,7 @@ function fdpExplorer(){
 
 }
 
-function geoboard(){
-  const CK=G.challengeKit,X=G.exportTools;
-  let pts=[],selected=-1,drag=null;
-  const undoStack=[],redoStack=[];
-  const N=7,W=560,pad=55,step=(W-2*pad)/(N-1);
-  const CHALLENGE_CATEGORIES=[
-    {id:'measure',label:'Measure'},
-    {id:'construct',label:'Build'},
-    {id:'reason',label:'Reasoning'}
-  ];
-  const CHALLENGE_TEMPLATES=[
+const GE_TEMPLATES=[
     {id:'find-length',category:'measure',title:'Find the length',desc:'Measure the distance between two pegs.'},
     {id:'find-perimeter',category:'measure',title:'Find the perimeter',desc:'Work out the perimeter of the shown shape.'},
     {id:'find-area',category:'measure',title:'Find the area',desc:'Work out the area enclosed by the shown shape.'},
@@ -4363,6 +4353,111 @@ function geoboard(){
     {id:'build-area',category:'construct',title:'Build a target area',desc:'Create any polygon with the requested area.'},
     {id:'area-perimeter-units',category:'reason',title:'Same number, same measure?',desc:'Reason about area and perimeter when their numerical values match.'}
   ];
+const GE_GRID_SIZES=[5,7,9,11,13];
+function geGridSize(value){const n=Number(value);return GE_GRID_SIZES.includes(n)?n:7}
+function geSettings(model={}){
+ return {gridSize:geGridSize(model.generationGrid??model.gridSize??model.settings?.gridSize??model.diagram?.gridSize),responseLines:clamp(Math.round(Number(model.responseLines??model.settings?.responseLines)||1),1,4)};
+}
+function geTypes(){return GE_TEMPLATES.map(t=>({id:t.id,label:t.title}))}
+function geArea(pts){return pts.length<3?0:Math.abs(pts.reduce((sum,a,i)=>{const b=pts[(i+1)%pts.length];return sum+a.x*b.y-b.x*a.y},0))/2}
+function gePerimeter(pts){return pts.length<3?0:pts.reduce((sum,a,i)=>{const b=pts[(i+1)%pts.length];return sum+Math.hypot(a.x-b.x,a.y-b.y)},0)}
+function geLength(pts){return pts.length===2?Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y):0}
+function geMetric(v){return String(Number(v.toFixed(2)))}
+function geGenerate(type,settings={},rng=Math.random){
+ const cfg=geSettings(settings),N=cfg.gridSize,max=N-1,meta=GE_TEMPLATES.find(t=>t.id===type);
+ if(!meta)throw Error('Unknown Geoboard challenge.');
+ const r=(a,b)=>a+Math.floor(rng()*(b-a+1)),pick=a=>a[Math.floor(rng()*a.length)];
+ const dimensions=[];for(let w=2;w<=max;w++)for(let h=1;h<=max;h++)if(w*h>=4)dimensions.push([w,h]);
+ const rectangle=(w,h,triangle=false)=>{const x=r(0,max-w),y=r(0,max-h);return triangle?[{x,y},{x:x+w,y},{x,y:y+h}]:[{x,y},{x:x+w,y},{x:x+w,y:y+h},{x,y:y+h}]};
+ let pts=[],prompt='',answer='',extra={};
+ if(type==='find-length'){
+   const length=r(2,max),vertical=rng()<.5,x=r(0,vertical?max:max-length),y=r(0,vertical?max-length:max);
+   pts=[{x,y},{x:x+(vertical?0:length),y:y+(vertical?length:0)}];prompt='What is the length of segment AB?';answer=geMetric(geLength(pts))+' units';extra={hiddenMetrics:['length']};
+ }else if(type==='find-perimeter'){
+   if(rng()<.35){const k=r(1,Math.floor(max/4));pts=rectangle(4*k,3*k,true)}else{const [w,h]=pick(dimensions);pts=rectangle(w,h)}
+   prompt='What is the perimeter of this shape?';answer=geMetric(gePerimeter(pts))+' units';extra={hiddenMetrics:['perimeter']};
+ }else if(type==='find-area'){
+   const [w,h]=pick(dimensions);pts=rectangle(w,h,rng()<.45);
+   prompt='What is the area enclosed by this shape?';answer=geMetric(geArea(pts))+' square units';extra={hiddenMetrics:['area']};
+ }else if(type==='perimeter-area'){
+   const [w,h]=pick(dimensions);pts=rectangle(w,h);
+   prompt='Find both the perimeter and the area of this shape.';answer='Perimeter '+geMetric(gePerimeter(pts))+' units; area '+geMetric(geArea(pts))+' square units';extra={hiddenMetrics:['perimeter','area']};
+ }else if(type==='build-area'){
+   // Every generated target has an integer-sided rectangle that fits the chosen grid.
+   const [w,h]=pick(dimensions.filter(([w,h])=>h>=2));const area=w*h;
+   prompt='Show a polygon with an area of '+area+' square units.';answer='For example, a '+w+' × '+h+' rectangle.';extra={targetArea:area,solutionSize:[w,h],hiddenMetrics:['area']};
+ }else{
+   pts=rectangle(4,4);prompt='This square has perimeter 16 units and area 16 square units. A pupil says the two measurements are the same because both numbers are 16. Are they correct?';
+   answer='No. Perimeter measures distance around the shape in units; area measures the surface inside it in square units.';
+ }
+ const diagram={gridSize:N,pts,selected:-1};
+ const challenge={mode:'standard',type,category:meta.category,title:'',prompt,promptHtml:prompt,answer,answerMode:'manual',answerSource:'',revealed:false,hiddenMetrics:[],...extra,initialState:JSON.parse(JSON.stringify(diagram))};
+ return {type,settings:cfg,diagram,challenge};
+}
+function gePublicationData(model){
+ const c=model.challenge?JSON.parse(JSON.stringify(model.challenge)):null;
+ if(c?.mode==='custom')throw Error('Use individual export for custom Geoboard tasks.');
+ const source=c?.initialState||model.diagram||model;
+ const diagram={gridSize:geGridSize(source.gridSize),pts:JSON.parse(JSON.stringify(source.pts||[])),selected:-1};
+ if(c){c.revealed=false;delete c.preRevealShape;if(c.type==='build-area')diagram.pts=[]}
+ return {type:c?.type,settings:{...geSettings(model),gridSize:diagram.gridSize},diagram,challenge:c};
+}
+function geSolution(data){
+ if(data.type!=='build-area')return data.diagram.pts;
+ const [w,h]=data.challenge.solutionSize,N=data.diagram.gridSize,x=w<N-1?1:0,y=h<N-1?1:0;
+ return [{x,y},{x:x+w,y},{x:x+w,y:y+h},{x,y:y+h}];
+}
+function gePaper(data,teacher=false,graphicOnly=false){
+ const N=data.diagram.gridSize,c=data.challenge,build=c?.type==='build-area',pts=build?(teacher?geSolution(data):[]):data.diagram.pts;
+ const W=520,gridPad=32,step=(W-2*gridPad)/(N-1),H=W+(teacher||!c?54:0);
+ const el=(name,attrs={},value)=>{const n=document.createElementNS('http://www.w3.org/2000/svg',name);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,String(v));if(value!==undefined)n.textContent=String(value);return n};
+ const svg=el('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':N+' by '+N+' Geoboard'});
+ const add=(name,attrs,value)=>svg.appendChild(el(name,attrs,value));
+ const xy=p=>({x:gridPad+p.x*step,y:gridPad+(N-1-p.y)*step});
+ const text=(x,y,value,attrs={})=>add('text',{x,y,'font-family':'Arial,sans-serif','font-size':16,'font-weight':700,fill:'#304b52',...attrs},value);
+ add('rect',{width:W,height:H,fill:'#fff'});
+ for(let i=0;i<N;i++){const a=gridPad+i*step;add('line',{x1:a,y1:gridPad,x2:a,y2:W-gridPad,stroke:'#e1e8e8','stroke-width':1});add('line',{x1:gridPad,y1:a,x2:W-gridPad,y2:a,stroke:'#e1e8e8','stroke-width':1})}
+ if(pts.length>1)add(pts.length>2?'polygon':'polyline',{points:pts.map(p=>{const v=xy(p);return v.x+','+v.y}).join(' '),fill:pts.length>2?'#d8ede9':'none','fill-opacity':.65,stroke:'#287b72','stroke-width':3,'stroke-linejoin':'round','data-ge-paper-shape':'1'});
+ for(let y=0;y<N;y++)for(let x=0;x<N;x++){const v=xy({x,y});add('circle',{cx:v.x,cy:v.y,r:Math.min(3.7,step*.09),fill:'#849a9e','data-ge-paper-pin':x+','+y})}
+ pts.forEach((p,i)=>{const v=xy(p);add('circle',{cx:v.x,cy:v.y,r:Math.min(6,step*.15),fill:'#fff',stroke:'#287b72','stroke-width':2,'data-ge-paper-vertex':i});text(v.x+8,v.y-8,String.fromCharCode(65+i),{'font-size':Math.min(16,step*.38),stroke:'#fff','stroke-width':3,'paint-order':'stroke'})});
+ if(teacher||!c){
+   let summary=N+' × '+N+' pins · 1 unit between adjacent pins';
+   text(W/2,W+13,summary,{'text-anchor':'middle','font-size':13,fill:'#52666d'});
+   let metrics='';
+   if(pts.length===2)metrics='Length: '+geMetric(geLength(pts))+' units';
+   else if(pts.length>2)metrics=G.challengeKit?.simplePolygon&&!G.challengeKit.simplePolygon(pts)?'Crossing polygon — measurements not shown':'Perimeter: '+geMetric(gePerimeter(pts))+' units · Area: '+geMetric(geArea(pts))+' square units';
+   if(metrics)text(W/2,W+36,metrics,{'text-anchor':'middle','font-size':14,'data-ge-paper-metrics':'1'});
+ }
+ if(!c||graphicOnly)return svg;
+ const lines=Math.max(data.settings.responseLines,c.category==='reason'?3:c.type==='perimeter-area'?2:1);
+ const prompt=(build?'Draw a non-crossing polygon with an area of '+c.targetArea+' square units on the peg grid.':c.prompt)+' Adjacent pins are 1 unit apart.';
+ return G.exportTools.composeWorksheetCardSvg(svg,{title:GE_TEMPLATES.find(t=>t.id===c.type)?.title||'Geoboard challenge',prompt,responseMode:build?'none':lines>1?'lines':'box',responseLabel:c.category==='reason'?'Explain your thinking':'Answer',responseLines:lines,paperStyle:'plain',answer:c.answer,showAnswer:teacher,diagramMaxHeight:470});
+}
+G.geoboardPaperModel={settings:geSettings,types:geTypes,generate:geGenerate,render:gePaper,solution:geSolution,area:geArea,perimeter:gePerimeter,length:geLength};
+if(G.publishing)G.publishing.register('geoboard',{
+ label:'Shape & geoboard',types:geTypes,
+ title:item=>item.kind==='diagram'?'Geoboard illustration':GE_TEMPLATES.find(t=>t.id===item.data.type)?.title||'Geoboard challenge',
+ signature:d=>JSON.stringify([d.type,d.diagram.gridSize,d.challenge.prompt,d.diagram.pts]),
+ recipe:(model,type)=>({type,settings:geSettings(model)}),
+ generate(recipe,rng){const ids=geTypes().map(t=>t.id);return geGenerate(recipe.type==='all'?ids[Math.floor(rng()*ids.length)]:recipe.type,recipe.settings,rng)},
+ capture(model){const d=gePublicationData(model);return [G.publishing.record('geoboard',d.challenge?'challenge':'diagram',d,d.challenge?{type:d.type,settings:d.settings}:null)]},
+ answerSummary:item=>item.data.challenge.answer,
+ answerGraphic:item=>gePaper(item.data,true,true),
+ answerNote:item=>{const c=item.data.challenge;if(c.type==='build-area')return 'Accept any non-crossing polygon on the chosen peg grid with area exactly '+c.targetArea+' square units. The illustrated rectangle is only one example.';if(c.type==='area-perimeter-units')return 'Accept an equivalent explanation distinguishing the distance around a shape from its enclosed surface, with the correct units.';if(c.type==='perimeter-area')return 'Both measurements and their respective units must be correct.';return c.type==='find-area'?'Accept equivalent numerical notation in square units.':'Accept equivalent numerical notation in units.'},
+ render(item,teacher){return gePaper(item.data,teacher)}
+});
+
+function geoboard(){
+  const CK=G.challengeKit,X=G.exportTools;
+  let pts=[],selected=-1,drag=null;
+  const undoStack=[],redoStack=[];
+  let N=7,generationGrid=7;const W=560,pad=55;let step=(W-2*pad)/(N-1);
+  const CHALLENGE_CATEGORIES=[
+    {id:'measure',label:'Measure'},
+    {id:'construct',label:'Build'},
+    {id:'reason',label:'Reasoning'}
+  ];
+  const CHALLENGE_TEMPLATES=GE_TEMPLATES;
   let controlTab='explore',challengeTab='standard',challengeCategory='measure',challengeType='find-length',challenge=null,beforeChallenge=null;
   let exportMode='diagram',responseLines=1,exportStatus='';
 
@@ -4409,9 +4504,10 @@ function geoboard(){
     return p;
   }
   function cleanMetric(v){const n=Math.round((Number(v)||0)*100)/100;return Math.abs(n-Math.round(n))<1e-9?String(Math.round(n)):n.toFixed(2)}
-  function teachingSnapshot(){return{pts:copyPts(),selected}}
+  function teachingSnapshot(){return{pts:copyPts(),selected,gridSize:N}}
   function restoreTeachingSnapshot(value){
     if(!value)return;
+    N=geGridSize(value.gridSize);step=(W-2*pad)/(N-1);
     pts=copyPts(Array.isArray(value.pts)?value.pts:[]);
     selected=Number.isInteger(value.selected)&&value.selected>=0&&value.selected<pts.length?value.selected:-1;
     undoStack.length=0;redoStack.length=0;
@@ -4462,8 +4558,9 @@ function geoboard(){
       '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-ge-workflow="challenge">Challenge'+(challenge?' •':'')+'</button>'+
       '<button class="gd-btn'+(controlTab==='export'?' gd-btn--primary':'')+'" type="button" data-ge-workflow="export">Export / reuse</button></div>';
   }
+  function gridControl(forChallenge=false){const value=forChallenge?generationGrid:N;return '<label class="gd-field"><span>'+ (forChallenge?'Grid for next challenge':'Pin grid')+'</span><select class="gd-select" id="ge-grid-size"'+(!forChallenge&&challenge?.mode==='standard'?' disabled':'')+'>'+GE_GRID_SIZES.map(n=>'<option value="'+n+'"'+(n===value?' selected':'')+'>'+n+' × '+n+' pins ('+(n*n)+')</option>').join('')+'</select></label><p class="gd-help" id="ge-grid-status" role="status">Adjacent pins are 1 unit apart.</p>'}
   function exploreControlsHtml(){
-    return '<div class="gd-row">'+btn('Undo','ge-undo')+btn('Redo','ge-redo')+btn('Clear shape','ge-clear')+'</div>'+
+    return gridControl()+'<div class="gd-row">'+btn('Undo','ge-undo')+btn('Redo','ge-redo')+btn('Clear shape','ge-clear')+'</div>'+
       '<p class="gd-help">Tap pegs in order to make a shape. Then drag any vertex to another peg instead of rebuilding the polygon. With two vertices the tool shows segment length; with three or more it shows perimeter and area.</p>';
   }
   function challengeControlsHtml(){
@@ -4471,7 +4568,7 @@ function geoboard(){
     const tabs=CK.tabsHtml?CK.tabsHtml('ge',challengeTab):'';
     if(challengeTab==='custom'){
       const custom=challenge&&challenge.mode==='custom'?challenge:CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual'});
-      return tabs+CK.editorHtml(custom,'ge',{answerSources:customAnswerSources(),generatedAnswerLabel:'Keep the generated answer'})+
+      return tabs+gridControl()+CK.editorHtml(custom,'ge',{answerSources:customAnswerSources(),generatedAnswerLabel:'Keep the generated answer'})+
         '<div class="gd-row">'+(challenge&&challenge.answer?'<button class="gd-btn" id="ge-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
         (challenge?'<button class="gd-btn" id="ge-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
         '<div class="gd-row">'+btn('Undo','ge-undo')+btn('Redo','ge-redo')+'</div>'+
@@ -4479,7 +4576,7 @@ function geoboard(){
     }
     const picker=CK.pickerHtml(CHALLENGE_TEMPLATES,CHALLENGE_CATEGORIES,challengeCategory,challengeType,'ge');
     const repeat=!!(challenge&&challenge.mode==='standard'&&challenge.type===challengeType);
-    return tabs+picker+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="ge-generate" type="button">'+(repeat?'Another like this':'Generate challenge')+'</button>'+
+    return tabs+gridControl(true)+picker+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="ge-generate" type="button">'+(repeat?'Another like this':'Generate challenge')+'</button>'+
       (challenge&&challenge.mode!=='custom'?'<button class="gd-btn" id="ge-edit-challenge" type="button">Edit challenge</button>':'')+
       (challenge&&challenge.answer?'<button class="gd-btn" id="ge-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
       (challenge?'<button class="gd-btn" id="ge-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
@@ -4607,38 +4704,10 @@ function geoboard(){
   function generateChallenge(type){
     const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
     if(!beforeChallenge)beforeChallenge=teachingSnapshot();else restoreTeachingSnapshot(beforeChallenge);
-    const pick=a=>a[Math.floor(Math.random()*a.length)];
-    if(type==='find-length'){
-      const length=2+Math.floor(Math.random()*5),vertical=Math.random()<.5;
-      const x=Math.floor(Math.random()*(vertical?N:N-length)),y=Math.floor(Math.random()*(vertical?N-length:N));
-      setGeneratedShape([{x,y},{x:x+(vertical?0:length),y:y+(vertical?length:0)}]);
-      challenge=challengeObject(type,'What is the length of segment AB?',resolveAnswerSource('length'),{answerSource:'length',hiddenMetrics:['length']});
-    }else if(type==='find-perimeter'){
-      if(Math.random()<.35){
-        setGeneratedShape([{x:1,y:1},{x:5,y:1},{x:1,y:4}]);
-      }else{
-        const [w,h]=pick([[2,3],[3,4],[4,2],[5,1]]);setGeneratedShape(randomRect(w,h));
-      }
-      challenge=challengeObject(type,'What is the perimeter of this shape?',resolveAnswerSource('perimeter'),{answerSource:'perimeter',hiddenMetrics:['perimeter']});
-    }else if(type==='find-area'){
-      if(Math.random()<.45){
-        const [w,h]=pick([[4,3],[4,2],[6,2],[3,2],[5,3],[3,3]]),x=Math.floor(Math.random()*(N-w)),y=Math.floor(Math.random()*(N-h));
-        setGeneratedShape([{x,y},{x:x+w,y},{x,y:y+h}]);
-      }else{
-        const [w,h]=pick([[2,3],[3,4],[4,2],[5,2]]);setGeneratedShape(randomRect(w,h));
-      }
-      challenge=challengeObject(type,'What is the area enclosed by this shape?',resolveAnswerSource('area'),{answerSource:'area',hiddenMetrics:['area']});
-    }else if(type==='perimeter-area'){
-      const [w,h]=pick([[2,3],[3,4],[4,2],[5,2]]);setGeneratedShape(randomRect(w,h));
-      challenge=challengeObject(type,'Find both the perimeter and the area of this shape.',resolveAnswerSource('perimeter-area'),{answerSource:'perimeter-area',hiddenMetrics:['perimeter','area']});
-    }else if(type==='build-area'){
-      const option=pick([{area:4,w:2,h:2},{area:6,w:3,h:2},{area:8,w:4,h:2},{area:9,w:3,h:3},{area:10,w:5,h:2},{area:12,w:4,h:3}]);
-      setGeneratedShape([]);
-      challenge=challengeObject(type,'Show a polygon with an area of '+option.area+' square units.','For example, a '+option.w+' × '+option.h+' rectangle.',{answerMode:'manual',targetArea:option.area,solutionSize:[option.w,option.h],hiddenMetrics:['area']});
-    }else{
-      setGeneratedShape([{x:1,y:1},{x:5,y:1},{x:5,y:5},{x:1,y:5}]);
-      challenge=challengeObject(type,'This square has perimeter 16 units and area 16 square units. A pupil says the two measurements are the same because both numbers are 16. Are they correct?','No. Perimeter measures distance around the shape in units; area measures the surface inside it in square units.',{answerMode:'manual'});
-    }
+    let generated=geGenerate(type,{gridSize:generationGrid,responseLines});
+    for(let i=0;i<20&&challenge?.type===type&&challenge.prompt===generated.challenge.prompt&&JSON.stringify(challenge.initialState?.pts)===JSON.stringify(generated.diagram.pts);i++)generated=geGenerate(type,{gridSize:generationGrid,responseLines});
+    N=generated.diagram.gridSize;step=(W-2*pad)/(N-1);setGeneratedShape(generated.diagram.pts);
+    challenge=CK?CK.normalise(generated.challenge):generated.challenge;
     challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';
     exportMode='challenge';responseLines=template.category==='reason'?3:1;exportStatus='';renderControls();draw();
   }
@@ -4679,6 +4748,7 @@ function geoboard(){
       const print=q('#ge-print',controls);if(print)print.onclick=()=>exportAction('print');
       return;
     }
+    const grid=q('#ge-grid-size',controls);if(grid)grid.onchange=()=>{const n=geGridSize(grid.value);if(controlTab==='challenge'&&challengeTab==='standard'){generationGrid=n;return}if(challenge?.mode==='standard')return;if(pts.some(p=>p.x>=n||p.y>=n)){grid.value=String(N);q('#ge-grid-status',controls).textContent='Shape does not fit. Move or clear the outlying vertices first.';return}N=n;generationGrid=n;step=(W-2*pad)/(N-1);undoStack.length=0;redoStack.length=0;drag=null;renderControls();draw()};
     const u=q('#ge-undo',controls);if(u)u.onclick=undo;
     const r=q('#ge-redo',controls);if(r)r.onclick=redo;
     const clear=q('#ge-clear',controls);if(clear)clear.onclick=()=>{if(shapeFrozen()||!pts.length)return;remember();pts=[];selected=-1;draw()};
@@ -4858,9 +4928,9 @@ function geoboard(){
     let grid='';
     for(let y=0;y<N;y++)for(let x=0;x<N;x++){
       const v=pointPx({x,y});
-      grid+='<circle class="gd-ge-peg" cx="'+v.x+'" cy="'+v.y+'" r="5" pointer-events="none"></circle>';
+      grid+='<circle class="gd-ge-peg" cx="'+v.x+'" cy="'+v.y+'" r="'+Math.min(5,step*.12)+'" pointer-events="none"></circle>';
     }
-    const hitGrid=Array.from({length:N*N},(_,i)=>{const x=i%N,y=Math.floor(i/N),v=pointPx({x,y});return '<circle class="gd-ge-peg-hit" cx="'+v.x+'" cy="'+v.y+'" r="16" fill="transparent" data-gp="'+x+','+y+'"></circle>'}).join('');
+    const hitGrid=Array.from({length:N*N},(_,i)=>{const x=i%N,y=Math.floor(i/N),v=pointPx({x,y});return '<circle class="gd-ge-peg-hit" cx="'+v.x+'" cy="'+v.y+'" r="'+Math.min(16,step*.45)+'" fill="transparent" data-gp="'+x+','+y+'"></circle>'}).join('');
     const poly='<polyline class="gd-poly" data-ge-poly'+(pts.length<3?' style="fill:none"':'')+' points="'+polyPoints()+'"></polyline>';
     const vertices=pts.map((p,i)=>{
       const v=pointPx(p),label=String.fromCharCode(65+i);
@@ -4869,7 +4939,7 @@ function geoboard(){
     }).join('');
     const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Geoboard challenge',pupil:(challenge.type==='build-area'?CK.pupilSpec('model',{check:()=>CK.simplePolygon(pts)&&Math.abs(area()-challenge.targetArea)<1e-8}):challenge.type==='area-perimeter-units'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:'No',explain:true}):challenge.type==='perimeter-area'?CK.pupilSpec('metrics'):CK.pupilSpec('unit',{unit:challenge.type==='find-area'?'square units':'units'})),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-geo gd-geoboard-direct">'+
-      '<svg id="ge-svg" viewBox="0 0 '+W+' '+W+'" role="img" aria-label="Interactive geoboard">'+grid+poly+hitGrid+vertices+'</svg>'+
+      '<svg id="ge-svg" viewBox="0 0 '+W+' '+W+'" role="img" aria-label="Interactive geoboard '+N+' by '+N+' pins">'+grid+poly+hitGrid+vertices+'</svg>'+
       (shapeFrozen()?'':'<div class="gd-ge-context"><span id="ge-context-text">'+(selected>=0&&pts[selected]?'Selected '+String.fromCharCode(65+selected)+' · ('+pts[selected].x+', '+pts[selected].y+')':(shapeFrozen()?'The given shape is fixed for this challenge.':'Tap a peg to add a vertex. Drag an existing vertex to reshape the polygon.'))+'</span><div class="gd-context-actions">'+
         '<button type="button" class="gd-context-history" data-ge-undo-stage'+(!undoStack.length?' disabled':'')+'>Undo</button>'+
         '<button type="button" class="gd-context-history" data-ge-redo-stage'+(!redoStack.length?' disabled':'')+'>Redo</button>'+
@@ -4885,8 +4955,8 @@ function geoboard(){
   setPanels(controlsHtml(),'');
   bindControls();
   draw();
-  G.lessonState?.register('geoboard',()=>({diagram:teachingSnapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
-    restoreTeachingSnapshot(saved.diagram);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
+  G.lessonState?.register('geoboard',()=>({diagram:teachingSnapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines,generationGrid}),saved=>{
+    restoreTeachingSnapshot(saved.diagram);generationGrid=geGridSize(saved.generationGrid??saved.diagram?.gridSize);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
     if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
     if(Object.prototype.hasOwnProperty.call(saved,'challengeTab'))challengeTab=saved.challengeTab;
     if(Object.prototype.hasOwnProperty.call(saved,'challengeCategory'))challengeCategory=saved.challengeCategory;

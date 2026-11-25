@@ -551,6 +551,32 @@ async function run(){
   publisher.querySelector('[data-pub-remove]').click();await tick();
   publisher.querySelector('[data-pub-close]').click();
   TT99Goodies.compositionBoard.remove(randomRecord.id);
+  // Geoboard paper generation uses exactly the selected pin count.
+  {
+    const P=TT99Goodies.publishing,G=TT99Goodies.geoboardPaperModel;
+    assert(P.canGenerate('geoboard')&&G.types().length===6,'Geoboard supports all six publication families');
+    const draft=P.createDocument();
+    for(const {id} of G.types())draft.generate('geoboard',{gridSize:11,responseLines:2},1,id,()=>0.15);
+    const items=draft.list(),build=items.find(item=>item.data.type==='build-area');
+    const pupil=P.renderItem(build,false),teacher=P.answerGraphic(build);
+    assert(pupil.querySelectorAll('[data-ge-paper-pin]').length===121&&teacher.querySelectorAll('[data-ge-paper-pin]').length===121,'11 by 11 grid renders exactly 121 pins');
+    assert(!pupil.querySelector('[data-ge-paper-shape]')&&teacher.querySelector('[data-ge-paper-shape]'),'Construction pupil grid is blank and teacher diagram is solved');
+    assert(G.area(G.solution(build.data))===build.data.challenge.targetArea,'Teacher example has the target area');
+    assert(P.answerNote(build).includes('only one example'),'Geoboard marking accepts other correct polygons');
+    assert(P.pages(items,{teacher:true}).some(page=>page.getAttribute('data-worksheet-answer')==='annex'),'Geoboard worksheet includes graphical teacher annex');
+    const captured=P.createDocument();captured.addCurrent('geoboard',{diagram:{gridSize:11,pts:G.solution(build.data)},challenge:{...build.data.challenge,revealed:true}});
+    assert(P.signature(captured.list()[0])===P.signature(build),'Captured construction task remains blank after reveal');
+    for(const gridSize of [5,7,9,11,13])for(const {id} of G.types())for(let i=0;i<20;i++){
+      let seed=i+10;const rng=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
+      const d=G.generate(id,{gridSize},rng),pts=G.solution(d);
+      assert(pts.every(v=>Number.isInteger(v.x)&&Number.isInteger(v.y)&&v.x>=0&&v.y>=0&&v.x<gridSize&&v.y<gridSize),'Generated geometry fits chosen pins');
+      if(id==='build-area')assert(G.area(pts)===d.challenge.targetArea,'Every target area has a valid example');
+      if(id==='find-length')assert(parseFloat(d.challenge.answer)===G.length(pts),'Segment length is exact');
+      if(id==='find-area')assert(parseFloat(d.challenge.answer)===G.area(pts),'Area is exact');
+      if(id==='find-perimeter')assert(parseFloat(d.challenge.answer)===G.perimeter(pts),'Perimeter uses integer side lengths');
+    }
+  }
+
   // Number Mobile paper models retain the recursive topology and freeze all answers.
   {
     const P=TT99Goodies.publishing,N=TT99Goodies.numberMobilePaperModel;
@@ -875,11 +901,25 @@ async function run(){
   assert(rulerApi.capture('measurement').model.diagram.cm===rulerAttempt.diagram.cm,'Hide answer restores previous marker');
   api.remove(qaRuler.record.id);
   const qaGeo=await addForSave('geoboard'),geoDoc=qaGeo.doc;
+  const geoGrid=geoDoc.getElementById('ge-grid-size');
+  assert(geoGrid&&geoDoc.querySelectorAll('[data-gp]').length===49,'Geoboard defaults to 7 by 7 pins');
+  geoDoc.querySelector('[data-gp="2,2"]').dispatchEvent(new geoDoc.defaultView.MouseEvent('click',{bubbles:true}));await tick();
+  function changeGeoGrid(n){const select=geoDoc.getElementById('ge-grid-size');select.value=String(n);select.dispatchEvent(new geoDoc.defaultView.Event('change',{bubbles:true}))}
+  changeGeoGrid(13);await tick();
+  assert(geoDoc.querySelectorAll('[data-gp]').length===169&&geoDoc.querySelector('[data-ge-pos="2,2"]'),'Increasing pins preserves the existing vertex');
+  geoDoc.querySelector('[data-gp="12,12"]').dispatchEvent(new geoDoc.defaultView.MouseEvent('click',{bubbles:true}));await tick();
+  changeGeoGrid(5);await tick();
+  assert(geoDoc.querySelectorAll('[data-gp]').length===169&&geoDoc.getElementById('ge-grid-status').textContent.includes('does not fit'),'Shrinking cannot silently delete an outlying vertex');
+  geoDoc.getElementById('ge-clear').click();await tick();changeGeoGrid(5);await tick();
+  assert(geoDoc.querySelectorAll('[data-gp]').length===25,'Cleared board can shrink to 5 by 5');
+
   geoDoc.querySelector('[data-ge-workflow="challenge"]').click();
   geoDoc.querySelector('[data-ge-challenge-cat="measure"]').click();
   geoDoc.querySelector('[data-ge-challenge-type="find-area"]').click();
+  changeGeoGrid(11);await tick();
   geoDoc.getElementById('ge-generate').click();await tick();
   const geoState=geoDoc.defaultView.TT99Goodies.lessonState;
+  assert(geoState.capture('geoboard').model.diagram.gridSize===11&&geoDoc.querySelectorAll('[data-gp]').length===121,'Live challenge uses its selected generation grid');
   const given=JSON.stringify(geoState.capture('geoboard').model.diagram.pts);
   geoDoc.querySelector('[data-gp]').dispatchEvent(new geoDoc.defaultView.MouseEvent('click',{bubbles:true}));
   assert(JSON.stringify(geoState.capture('geoboard').model.diagram.pts)===given,'Given geometry cannot be altered during a calculation question');
