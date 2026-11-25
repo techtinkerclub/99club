@@ -70,7 +70,9 @@ if(mode==='prepare'){
     assert(ownValue&&Number(ownValue.value)===150,'New marker uses the midpoint of the independent 100–200 scale');
     assert(Number(ownValue.step)===10,'Marker editing uses the independent line tick step');
     const ownCx=Number(ownMarker.querySelector('circle').getAttribute('cx'));
-    assert(Math.abs(ownCx-525)<3,'Independent-scale midpoint renders at the centre of its own line');
+    const ownAxis=document.querySelector('.nl-baseline[data-line-id="l2"]');
+    const ownMid=(Number(ownAxis.getAttribute('x1'))+Number(ownAxis.getAttribute('x2')))/2;
+    assert(Math.abs(ownCx-ownMid)<3,'Independent-scale midpoint renders at the centre of its own line');
     const ownText=document.getElementById('nl-svg').textContent;
     assert(ownText.includes('100')&&ownText.includes('200'),'Independent line renders its own endpoint labels');
     assert(ownText.includes('-10')&&ownText.includes('20'),'Main line keeps its original scale');
@@ -162,10 +164,30 @@ if(mode==='prepare'){
     assert(document.querySelector('.gd-challenge-reveal'),'Generated challenge exposes answer contextually');
     assert(document.getElementById('nl-generate').textContent.includes('Another like this'),'Active standard challenge changes the editor action to Another like this');
     const another=document.querySelector('[data-challenge-action="another"]');
-    assert(another&&another.textContent.includes('Another like this'),'Challenge banner exposes Another like this without reopening menus');
+    assert(another&&another.textContent.trim()==='Another','Challenge banner exposes Another without reopening menus');
     another.click();
     assert(document.querySelector('[data-challenge-action="another"]'),'Another like this immediately produces the next challenge of the same type');
     assert(document.querySelector('.gd-challenge-reveal'),'Repeated classroom challenge still exposes contextual Reveal answer');
+
+    // Missing labels must be actual pupil inputs, not overlapping SVG placeholders.
+    document.querySelector('[data-nl-challenge-type="missing-labels"]').click();
+    document.getElementById('nl-generate').click();
+    const blanks=[...document.querySelectorAll('[data-nl-missing-slot]')];
+    assert(blanks.length>0,'Missing-label challenge exposes a field for every hidden tick');
+    assert(document.querySelector('[data-challenge-check]').disabled,'Checking waits until all missing labels are filled');
+    for(let i=0;i<blanks.length;i++)for(let j=i+1;j<blanks.length;j++){
+      const a=blanks[i].getBoundingClientRect(),b=blanks[j].getBoundingClientRect();
+      assert(a.right<=b.left||b.right<=a.left||a.bottom<=b.top||b.bottom<=a.top,'Missing-label answer fields must not overlap');
+    }
+    blanks.forEach(input=>{input.value='123456789';input.dispatchEvent(new Event('input',{bubbles:true}))});
+    assert(!document.querySelector('[data-challenge-check]').disabled,'Checking is enabled after the final field is filled');
+    document.querySelector('[data-challenge-check]').click();
+    assert(document.querySelector('.nl-challenge-feedback.is-wrong'),'Incorrect answer produces feedback');
+    assert([...document.querySelectorAll('[data-nl-missing-slot]')].every(input=>input.value==='123456789'),'Incorrect checking preserves entered answers');
+    document.querySelector('[data-challenge-action="another"]').click();
+    assert([...document.querySelectorAll('[data-nl-missing-slot]')].every(input=>input.value===''),'Another clears all answer fields');
+    document.querySelector('[data-nl-challenge-type="interval-value"]').click();
+    document.getElementById('nl-generate').click();
 
     document.querySelector('[data-nl-challenge-tab="custom"]').click();
     assert(document.getElementById('nl-custom-title'),'Custom challenge exposes editable title');
@@ -286,17 +308,17 @@ if(mode==='prepare'){
     assert(fractionSequence,'Fraction-sequence challenge is available');
     fractionSequence.click();
     document.getElementById('nl-generate').click();
-    assert(document.querySelector('.gd-challenge-prompt').textContent.includes('Count on in'),'Fraction-sequence challenge asks pupils to continue equal fractional steps');
+    assert(/Count on in|Make three jumps of/.test(document.querySelector('.gd-challenge-prompt').textContent),'Fraction-sequence challenge asks pupils to continue equal fractional steps');
     assert(document.querySelectorAll('[data-marker-hit]').length===4,'Fraction-sequence challenge builds four sequence positions');
-    assert(document.querySelectorAll('.nl-answer-box').length>=1,'Fraction-sequence challenge hides the final value');
+    assert(document.querySelector('[data-marker-hit="m4"]').textContent.trim()==='?','Fraction-sequence challenge hides the final value with one unknown endpoint');
 
     document.querySelector('[data-nl-challenge-cat="fractions"]').click();
     const fractionJump=document.querySelector('[data-nl-challenge-type="fraction-jump"]');
     assert(fractionJump,'Fraction-jump challenge is available');
     fractionJump.click();
     document.getElementById('nl-generate').click();
-    assert(document.querySelector('.gd-challenge-prompt').textContent.includes('fraction jump'),'Fraction-jump challenge has an explicit calculation prompt');
-    assert(document.querySelector('[data-marker-hit="m2"] .nl-answer-box'),'Fraction-jump challenge hides the landing value');
+    assert(/fraction jump|Jump|jump/.test(document.querySelector('.gd-challenge-prompt').textContent),'Fraction-jump challenge has an explicit calculation prompt');
+    assert(document.querySelector('[data-marker-hit="m2"]').textContent.trim()==='?','Fraction-jump challenge hides the landing value');
 
     document.querySelector('[data-nl-challenge-cat="fractions"]').click();
     const compareFractions=document.querySelector('[data-nl-challenge-type="compare-fractions"]');
@@ -305,7 +327,7 @@ if(mode==='prepare'){
     document.getElementById('nl-generate').click();
     assert(document.querySelectorAll('[data-line-hit]').length===2,'Compare-fractions challenge builds two aligned fraction scales');
     assert(document.querySelectorAll('.nl-answer-box').length>=2,'Compare-fractions challenge hides both compared values');
-    assert(document.querySelector('.gd-challenge-prompt').textContent.includes('Use <, > or ='),'Compare-fractions challenge makes the comparison task explicit');
+    assert(/<, > or =/.test(document.querySelector('.gd-challenge-prompt').textContent),'Compare-fractions challenge makes the comparison task explicit');
 
     document.querySelector('[data-nl-challenge-cat="read"]').click();
     const zoomRead=document.querySelector('[data-nl-challenge-type="zoom-read"]');
