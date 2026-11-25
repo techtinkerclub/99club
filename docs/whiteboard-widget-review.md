@@ -68,3 +68,9 @@ Continue the catalogue review one widget at a time, with defects and regressions
 - Array Builder: 4,200 individual generation/render checks, 100 two-source documents, 1,400 generated questions, 200 captures, 100 replacements, 1,679 page checks and 3,000 baseline alignments. Saved factor range shared by native and automatic generation; captured build tasks retain original target and recipe. Browser/touch/print QA remains open.
 - Both entry points must load identical shared asset versions.
 - No real browser visual, touchscreen or physical A4 acceptance run was performed in this batch. No widget is signed off as finished.
+
+### Compact worksheet layout and teacher annex (25 November)
+- Shared document cards now remove excess vertical space; equation-only items use compact intrinsic geometry and reduced equation type, without applying that reduction to diagrams. Written boxes and line spacing are larger for handwriting. Standalone exports retain their original layout.
+- Pupil mode prints questions only; With answers appends a numbered, text-only answer annex from frozen mathematical records. Pupil pages are identical between modes. Diagrams without questions have no annex entry; numbering follows the actual document order. Construction/alternative answers use concise expected results or example solutions. Standalone widget teacher exports remain unchanged.
+- Verified 80 mixed seven-widget documents, 2,800 annex entries, 1,161 pupil pages and 160 annex pages; exact pupil-page structural parity, answer order and single branding checked. A ten-question missing-result document uses two pages in the SVG layout. No actual browser or physical print validation. Browser print headers/footers still require disabling in print settings if shown.
+- Next planned widget: Number Line; seven of 20 adapters integrated.
