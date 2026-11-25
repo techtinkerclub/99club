@@ -309,10 +309,56 @@ function keyboardHandler(e){
   else if(e.key==='Delete'){e.preventDefault();const id=editingId;editingId=null;deleteTile(id)}
   else if(e.key==='Enter'||e.key==='Escape'){e.preventDefault();editingId=null;adaptStage(stage())}
 }
+// Versioned snapshot combines the numeric model with the recursive tree.
+function validateMobile(saved){
+  const invalid=()=>{throw new Error('Invalid saved Number Mobile Balance.')};
+  const d=saved?.diagram,t=saved?.topology;
+  if(!d||!t||!Array.isArray(d.left)||!Array.isArray(d.right)||!Array.isArray(t.blankIds)||!t.roots||!Number.isSafeInteger(t.nextBranch)||t.nextBranch<1)invalid();
+  const all=new Map(),branchIds=new Set(),seen=new Set();
+  let nodeCount=0,maxBranch=0;
+  for(const side of ['left','right']){
+    if(!Array.isArray(t.roots[side]))invalid();
+    for(const item of d[side]){
+      if(!item||!Number.isSafeInteger(item.id)||item.id<1||!Number.isFinite(item.value)||item.value<0||typeof item.hidden!=='boolean'||all.has(String(item.id)))invalid();
+      all.set(String(item.id),{side,value:item.value});
+    }
+    function visit(nodes,depth){
+      if(!Array.isArray(nodes)||depth>40)invalid();
+      for(const n of nodes){
+        if(!n||++nodeCount>1000)invalid();
+        if(n.kind==='tile'){
+          const id=String(n.id);
+          if(seen.has(id)||all.get(id)?.side!==side)invalid();
+          seen.add(id);
+        }else if(n.kind==='branch'){
+          const id=String(n.id);
+          if(!/^b[1-9][0-9]*$/.test(id)||branchIds.has(id))invalid();
+          branchIds.add(id);maxBranch=Math.max(maxBranch,Number(id.slice(1)));
+          visit(n.left,depth+1);visit(n.right,depth+1);
+        }else invalid();
+      }
+    }
+    visit(t.roots[side],0);
+  }
+  if(seen.size!==all.size||t.nextBranch<=maxBranch||new Set(t.blankIds).size!==t.blankIds.length||t.blankIds.some(id=>!all.has(String(id))||all.get(String(id)).value!==0))invalid();
+}
+function captureMobile(){
+  if(pendingAdd||adapting||editingId)throw new Error('Finish editing the Number Mobile Balance before saving.');
+  const saved={diagram:G.numberMobileEngineState.capture(),topology:{roots,blankIds:[...blankIds],nextBranch}};
+  validateMobile(saved);return saved;
+}
+function restoreMobile(saved){
+  validateMobile(saved);
+  roots=saved.topology.roots;blankIds=new Set(saved.topology.blankIds.map(String));nextBranch=saved.topology.nextBranch;
+  selectedBranchId=null;focusedTileId=null;editingId=null;editBuffer='';pendingAdd=null;
+  G.numberMobileEngineState.restore(saved.diagram);
+  adaptStage(stage());adaptControls(document.getElementById('gd-controls'));
+}
 G.balanceTool=function numberMobileBalanceToolV3(){
   disconnect();lastVisual={angle:0,left:0,right:0};blankIds=new Set();roots={left:[],right:[]};nextBranch=1;selectedBranchId=null;focusedTileId=null;editingId=null;editBuffer='';pendingAdd=null;
   originalBalanceTool();adaptToolHeader();document.addEventListener('keydown',keyboardHandler);cleanups.push(()=>document.removeEventListener('keydown',keyboardHandler));
   observe(document.getElementById('gd-stage'),adaptStage);observe(document.getElementById('gd-controls'),adaptControls);
+  G.lessonState?.register('balance',captureMobile,restoreMobile);
 };
 G.numberMobileBalanceVersion='3.0.1';
 document.addEventListener('DOMContentLoaded',()=>queueMicrotask(adaptCatalogueCard),{once:true});
