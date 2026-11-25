@@ -308,6 +308,75 @@ function spokenAnswer(v){
   const nums={one:'1',two:'2',three:'3',four:'4',five:'5',six:'6',seven:'7',eight:'8',nine:'9',ten:'10',eleven:'11',twelve:'12',fifteen:'15',twenty:'20','twenty-five':'25','twenty five':'25',thirty:'30'};
   return cleanAnswer(v).replace(/\btwenty[- ]five\b/g,'25').replace(/\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty)\b/g,m=>nums[m]).replace(/\bminutes?\b/g,'').replace(/\b15\s+(past|to)\b/g,'quarter $1').replace(/\b30\s+past\b/g,'half past').replace(/\bo\s*'?\s*clock\b/g,"o'clock").replace(/\s+/g,' ').trim();
 }
+// A single touch keypad for all numeric challenge fields. The native input
+// remains the source of truth: existing input events and checkers still work.
+const keypadFields='[data-gd-keypad],[data-challenge-response],[data-nl-missing-slot],[data-pv-activity-answer],[data-ab-answer],[data-ab-history-answer]';
+let keypad=null,keypadField=null,keypadSelectAll=false;
+function keypadKind(field){
+  if(field.dataset.gdKeypad)return field.dataset.gdKeypad;
+  if(field.matches('[data-challenge-response],[data-nl-missing-slot]'))return 'number-line';
+  return 'number';
+}
+function keypadSymbols(kind){
+  if(['fraction','fraction-form','mixed','number-line'].includes(kind))return ['−','/','Space','%'];
+  if(kind==='money')return ['£','p'];
+  if(kind.startsWith('clock-'))return kind==='clock-12'?[':','Space','am','pm']:[':'];
+  if(kind==='set')return [',','Space'];
+  if(['addition-equation','equation','expression','fact','fact-family','multiplication'].includes(kind))return ['+','−','×','÷','=','(',')','Space'];
+  return ['−'];
+}
+function closeKeypad(){keypad?.remove();keypad=null;if(keypadField)keypadField.removeAttribute('aria-expanded');keypadField=null;keypadSelectAll=false}
+function positionKeypad(){
+  if(!keypad||!keypadField?.isConnected){closeKeypad();return}
+  const r=keypadField.getBoundingClientRect(),w=keypad.offsetWidth,h=keypad.offsetHeight;
+  const vw=document.documentElement.clientWidth,vh=document.documentElement.clientHeight;
+  let x=r.right+10;if(x+w>vw-8)x=r.left-w-10;if(x<8)x=Math.max(8,Math.min(vw-w-8,r.left));
+  let y=r.top;if(x<r.right&&x+w>r.left)y=r.bottom+8;
+  if(y+h>vh-8)y=Math.max(8,Math.min(vh-h-8,r.top-h-8));
+  keypad.style.left=Math.max(8,Math.min(vw-w-8,x))+'px';keypad.style.top=Math.max(8,y)+'px';
+}
+function keypadUpdateDisplay(){if(keypad&&keypadField)keypad.querySelector('.gd-touch-display').textContent=keypadField.value||'?'}
+function keypadWrite(key){
+  const field=keypadField;if(!field?.isConnected||field.disabled){closeKeypad();return}
+  let value=field.value;
+  if(key==='Clear')value='';
+  else if(key==='⌫')value=keypadSelectAll?'':value.slice(0,-1);
+  else{const mapped=key==='Space'?' ':key==='−'?'-':key;value=(keypadSelectAll?'':value)+mapped}
+  keypadSelectAll=false;
+  field.value=value.slice(0,Math.min(field.maxLength>0?field.maxLength:64,240));
+  field.dispatchEvent(new Event('input',{bubbles:true}));keypadUpdateDisplay();
+}
+function keypadCheck(){
+  const field=keypadField;if(!field)return;
+  const root=field.closest('.gd-pupil-response,.nl-challenge-solve,.gd-pv-activity,.gd-ab-task')||document.getElementById('gd-stage');
+  const check=root?.querySelector('[data-gd-pupil-check],[data-challenge-check],[data-pv-activity-check],[data-ab-check],[data-ab-history-check]');
+  closeKeypad();if(check&&!check.disabled)check.click();
+}
+function openKeypad(field){
+  if(!field||field.disabled||field.readOnly)return;
+  if(keypadField===field&&keypad)return;
+  closeKeypad();keypadField=field;keypadSelectAll=!!field.value;
+  field.setAttribute('inputmode','none');field.setAttribute('aria-expanded','true');
+  const panel=document.createElement('div');panel.className='gd-touch-keypad';panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Enter your answer');
+  const label=field.getAttribute('aria-label')||field.closest('label')?.querySelector('span')?.textContent||'Enter your answer';
+  const keyButton=k=>'<button type="button" data-gd-touch-key="'+esc(k)+'" aria-label="'+esc(k==='⌫'?'Backspace':k)+'">'+esc(k)+'</button>';
+  panel.innerHTML='<div class="gd-touch-head"><strong>'+esc(label==='Answer'?'Enter your answer':label)+'</strong><button type="button" data-gd-touch-close aria-label="Close keypad">×</button></div><div class="gd-touch-display" aria-live="polite"></div><div class="gd-touch-grid">'+['7','8','9','4','5','6','1','2','3','0','.','⌫'].map(keyButton).join('')+'</div><div class="gd-touch-symbols">'+keypadSymbols(keypadKind(field)).map(keyButton).join('')+'</div><div class="gd-touch-actions"><button type="button" data-gd-touch-key="Clear">Clear</button><button type="button" data-gd-touch-close>Done</button><button type="button" data-gd-touch-check>Check</button></div>';
+  keypad=panel;document.body.appendChild(panel);keypadUpdateDisplay();positionKeypad();
+  panel.addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault()});
+  panel.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();const button=e.target.closest('button');if(!button)return;if(button.hasAttribute('data-gd-touch-close'))closeKeypad();else if(button.hasAttribute('data-gd-touch-check'))keypadCheck();else if(button.hasAttribute('data-gd-touch-key'))keypadWrite(button.dataset.gdTouchKey)});
+}
+if(typeof document!=='undefined'){
+  document.addEventListener('pointerdown',e=>{
+    const field=e.target?.closest?.(keypadFields);if(field){field.setAttribute('inputmode','none');return}
+    if(keypad&&!e.target.closest('.gd-touch-keypad'))closeKeypad();
+  },true);
+  document.addEventListener('click',e=>{const field=e.target?.closest?.(keypadFields);if(field&&!field.disabled)openKeypad(field)},true);
+  document.addEventListener('input',e=>{if(e.target===keypadField)keypadUpdateDisplay()},true);
+  document.addEventListener('keydown',e=>{if(keypad&&e.key==='Escape'){e.preventDefault();e.stopPropagation();closeKeypad()}},true);
+  window.addEventListener('resize',positionKeypad);
+  const root=document.getElementById('tt99-goodies-root');
+  if(root&&typeof MutationObserver==='function')new MutationObserver(()=>{if(keypad&&!keypadField?.isConnected)closeKeypad()}).observe(root,{childList:true,subtree:true});
+}
 function pupilFields(spec){
   if(spec.kind==='coordinate')return [{label:'x',hint:'x'},{label:'y',hint:'y'}];
   if(spec.kind==='metrics')return [{label:'Perimeter',hint:'units'},{label:'Area',hint:'square units'}];
@@ -333,7 +402,7 @@ function pupilResponseHtml(challenge,spec){
   }else{
     const defs=pupilFields(spec);
     s.values=defs.map((_,i)=>s.values[i]||'');
-    fields=defs.map((f,i)=>'<label class="gd-pupil-field"><span>'+esc(f.label)+'</span><input type="text" inputmode="'+(['number','unit','coordinate','metrics','partials'].includes(spec.kind)?'decimal':'text')+'" autocomplete="off" maxlength="240" data-gd-pupil-field="'+i+'" value="'+esc(s.values[i])+'" placeholder="'+esc(f.hint||'')+'"'+(s.correct||challenge.revealed?' disabled':'')+'>'+(f.unit?'<span>'+esc(f.unit)+'</span>':'')+'</label>').join('');
+    fields=defs.map((f,i)=>'<label class="gd-pupil-field"><span>'+esc(f.label)+'</span><input type="text" '+(['number','unit','coordinate','metrics','partials','money','fraction','fraction-form','mixed','clock-face','clock-24','clock-12','set','addition-equation','equation','expression','fact','fact-family','multiplication'].includes(spec.kind)?'data-gd-keypad="'+esc(spec.kind)+'" inputmode="none"':'inputmode="text"')+' autocomplete="off" maxlength="240" data-gd-pupil-field="'+i+'" value="'+esc(s.values[i])+'" placeholder="'+esc(f.hint||'')+'"'+(s.correct||challenge.revealed?' disabled':'')+'>'+(f.unit?'<span>'+esc(f.unit)+'</span>':'')+'</label>').join('');
   }
   return '<div class="gd-pupil-response">'+fields+'<button type="button" class="gd-btn gd-btn--primary" data-gd-pupil-check'+(!pupilReady(s)||s.correct||challenge.revealed?' disabled':'')+'>Check</button><span role="status" aria-live="polite" class="gd-pupil-feedback'+(s.correct?' is-correct':s.status&&s.status!=='Answer shown'?' is-wrong':'')+'">'+esc(s.status)+'</span></div>';
 }
