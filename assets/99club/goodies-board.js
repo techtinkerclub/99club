@@ -26,6 +26,7 @@ const defaults={
   'coordinates':[680,610],
   'measurement':[780,650],
   'randomiser':[680,500],
+  'angles':[840,650],
   'function-machine':[840,480],
   'statistics-table':[760,620],
   'balance':[760,580],
@@ -85,6 +86,7 @@ const QUICK_ACTIONS={
     {label:'Duplicate',selector:'#ba-duplicate',allowHidden:true},
     {label:'×',selector:'#ba-delete',allowHidden:true,title:'Delete selected weight',danger:true}
   ],
+  'angles':[{label:'Challenge',selector:'[data-ag-workflow="challenge"]',allowHidden:true,panelMode:'challenge',title:'Choose a challenge'},{label:'Reveal answer',selector:'[data-board-action="reveal"]',dynamicLabel:true,title:'Reveal or hide the challenge answer'}],
   'function-machine':[{label:'Challenge',selector:'[data-fm-workflow="challenge"]',allowHidden:true,panelMode:'challenge',title:'Choose a challenge'},{label:'Reveal answer',selector:'[data-board-action="reveal"]',dynamicLabel:true,title:'Reveal or hide the challenge answer'}],
   'statistics-table':[{label:'Challenge',selector:'[data-st-workflow="challenge"]',allowHidden:true,panelMode:'challenge',title:'Choose a challenge'},{label:'Reveal answer',selector:'[data-board-action="reveal"]',dynamicLabel:true,title:'Reveal or hide the challenge answer'}],
   'written-division':[{label:'Challenge',selector:'[data-wm-workflow="challenge"]',allowHidden:true,panelMode:'challenge',title:'Choose a challenge'},{label:'Reveal answer',selector:'[data-board-action="reveal"]',dynamicLabel:true,title:'Reveal or hide the challenge answer'}],
@@ -158,7 +160,7 @@ const paletteGroups=[
  {id:'fractions',label:'Fractions',title:'Fractions, decimals & percentages',icon:'½',ids:['fraction-wall','fdp']},
  {id:'models',label:'Models',title:'Number & equation models',icon:'⚖',ids:['bar-model','balance']},
  {id:'measure',label:'Measure',title:'Measurement, time & money',icon:'◷',ids:['clock','money','measurement']},
- {id:'shape',label:'Shape',title:'Geometry & coordinates',icon:'◇',ids:['coordinates','geoboard']},
+ {id:'shape',label:'Shape',title:'Geometry & coordinates',icon:'◇',ids:['coordinates','geoboard','angles']},
  {id:'data',label:'Data',title:'Data & chance',icon:'⚄',ids:['randomiser','statistics-table']}
 ];
 const hub=tools.find(t=>t.id==='maths-canvas');
@@ -189,6 +191,7 @@ function paletteIcon(id){
  money:'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM16 7c-1-2-6-2-6 2v7m-3 1h10M8 12h6',
  measurement:ruler,coordinates:'M3 12h18M12 3v18M5 9v6m14-6v6M9 5h6M9 19h6M17 6v2',
  geoboard:'M5 5h14l-7 14zM4 4h2v2H4zM18 4h2v2h-2zM11 18h2v2h-2z',
+ angles:'M3 20h18M3 20L17 5M9 20a6 6 0 0 0-2-5',
  'function-machine':'M2 12h5m10 0h5M7 6h10v12H7zM9 10h6m-3-3v6',
  'statistics-table':'M3 3h18v18H3zM3 9h18M3 15h18M11 3v18',
  randomiser:'M3 3h18v18H3zM7 7v.1m10-.1v.1m-5 4.9v.1M7 17v.1m10-.1v.1'
@@ -827,7 +830,7 @@ function objectMarkup(obj,tool){
       '<button type="button" data-board-export-kind="svg" role="menuitem">SVG</button>'+
       '<button type="button" data-board-export-kind="print" role="menuitem">Print</button></div></div>'+
       (tool.id==='maths-canvas'?'<div class="gd-pub-menu-section"><button type="button" data-board-export-kind="paper-settings" role="menuitem"><span>Paper settings…</span><small>›</small></button></div>':'')+
-      (['maths-canvas','abacus','place-value','sequences','column-addition','column-subtraction','written-multiplication','written-division','function-machine'].includes(tool.id)?'<div class="gd-pub-menu-section" data-pub-key-group hidden><span>Teacher key</span><div class="gd-pub-menu-formats"><button type="button" data-board-export-kind="key-print" role="menuitem" hidden>Print</button><button type="button" data-board-export-kind="key-copy" role="menuitem" hidden>Copy</button></div></div>':'')+
+      (['maths-canvas','abacus','place-value','sequences','column-addition','column-subtraction','written-multiplication','written-division','function-machine','angles'].includes(tool.id)?'<div class="gd-pub-menu-section" data-pub-key-group hidden><span>Teacher key</span><div class="gd-pub-menu-formats"><button type="button" data-board-export-kind="key-print" role="menuitem" hidden>Print</button><button type="button" data-board-export-kind="key-copy" role="menuitem" hidden>Copy</button></div></div>':'')+
     '</div>'+
     '<div class="gd-board-quick-actions is-empty" data-board-quick-actions aria-label="'+esc(tool.title)+' quick actions"></div>'+
     '<div class="gd-board-context-menu" role="menu" aria-label="'+esc(tool.title)+' controls">'+
@@ -1007,7 +1010,7 @@ function toggleExportMenu(id){
     let supported=false;try{const model=frame.querySelector('iframe')?.contentWindow?.TT99Goodies?.lessonState.capture('abacus').model;supported=['western','suanpan','soroban'].includes(model?.kind)}catch(_){}
     frame.querySelectorAll('[data-board-export-kind$="document"]').forEach(button=>button.hidden=!supported);const group=frame.querySelector('[data-pub-document-group]');if(group)group.hidden=!supported;
   }
-  if(open&&['maths-canvas','abacus','place-value','sequences','column-addition','column-subtraction','written-multiplication','written-division','function-machine'].includes(obj.toolId)){
+  if(open&&['maths-canvas','abacus','place-value','sequences','column-addition','column-subtraction','written-multiplication','written-division','function-machine','angles'].includes(obj.toolId)){
     const doc=innerDocument(obj),active=obj.toolId!=='maths-canvas'?!!doc?.querySelector('[data-gd-direct-export="key-print"]'):!!doc?.querySelector('#gd-stage .gd-challenge-banner');
     frame?.querySelectorAll('[data-board-export-kind^="key-"]').forEach(button=>{button.hidden=!active});const group=frame?.querySelector('[data-pub-key-group]');if(group)group.hidden=!active;
   }
