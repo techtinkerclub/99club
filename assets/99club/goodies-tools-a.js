@@ -4567,6 +4567,176 @@ function arrayBuilder(){
 
 }
 
+  const CLOCK_TEMPLATES=[
+    {id:'read-five',category:'read',title:'Read to 5 minutes',desc:'Read an analogue time shown to a 5-minute interval.'},
+    {id:'read-minute',category:'read',title:'Read to 1 minute',desc:'Read an analogue time to the nearest minute.'},
+    {id:'roman-read',category:'read',title:'Roman numeral clock',desc:'Read a time from a clock labelled I–XII.'},
+    {id:'set-five',category:'set',title:'Set a 5-minute time',desc:'Move the hands to a requested 5-minute time.'},
+    {id:'set-minute',category:'set',title:'Set an exact minute',desc:'Move the hands to an exact minute time.'},
+    {id:'elapsed-forward',category:'set',title:'Move time forward',desc:'Advance the analogue clock by a stated duration.'},
+    {id:'twelve-to-twentyfour',category:'convert',title:'12-hour to 24-hour',desc:'Convert a shown am/pm time to 24-hour notation.'},
+    {id:'twentyfour-to-twelve',category:'convert',title:'24-hour to 12-hour',desc:'Convert a 24-hour time to 12-hour am/pm notation.'},
+    {id:'time-language',category:'reason',title:'Say the time',desc:'Write an analogue time using past/to language.'},
+    {id:'hour-hand-misconception',category:'reason',title:'Where should the hour hand be?',desc:'Diagnose the common idea that the hour hand stays on the hour number.'},
+    {id:'two-elapsed',category:'two-clocks',title:'Elapsed time',desc:'Calculate minutes between a start and a finish.'},
+    {id:'two-order',category:'two-clocks',title:'Which is earlier?',desc:'Compare two analogue times with AM/PM evidence.'},
+    {id:'two-duration-reason',category:'two-clocks',title:'Check a duration',desc:'Decide whether a stated duration is correct.'},
+    {id:'two-midnight',category:'two-clocks',title:'Across midnight',desc:'Calculate elapsed time across two labelled days.'}
+  ];
+
+const CLOCK_ROMAN=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
+function clockPublicationSettings(model={}){
+ const d=model.diagram||model;
+ const count=Number(model.clockCount)||1+(Array.isArray(d.extraClocks)?d.extraClocks.length:0);
+ return {clockCount:Math.max(1,Math.min(4,Math.round(count))),clockLayout:(model.clockLayout||d.clockLayout)==='vertical'?'vertical':'horizontal',responseLines:Math.max(1,Math.min(4,Math.round(Number(model.responseLines)||1)))};
+}
+function clockPublicationTypes(model){const m=clockPublicationSettings(model);return CLOCK_TEMPLATES.filter(t=>t.category!=='two-clocks'||m.clockCount>=2).map(t=>({id:t.id,label:t.title}))}
+function clockGenerate(type,settings={},rng=Math.random){
+ const template=CLOCK_TEMPLATES.find(t=>t.id===type);if(!template)throw Error('Unknown clock challenge.');
+ const cfg=clockPublicationSettings(settings);
+ if(template.category==='two-clocks'&&cfg.clockCount<2)throw Error('Add a second clock to enable comparison tasks.');
+ let hour=10,minute=10,second=0,snap=5,numerals='arabic',challenge=null;
+ const extraClocks=Array.from({length:cfg.clockCount-1},()=>({hour:10,minute:10,second:0})),previousLayout=cfg.clockLayout;
+ function mod(v,n){return ((v%n)+n)%n}
+ function normaliseClockTime(h,m){const t=mod(h*60+m,1440);return {hour:Math.floor(t/60),minute:t%60}}
+ function durationText(total){const h=Math.floor(total/60),m=total%60;return !h?m+' min':!m?h+' h':h+' h '+m+' min'}
+ function challengeObject(type,prompt,answer,extra={}){return {mode:'standard',type,category:template.category,title:'',prompt,promptHtml:prompt,answer:String(answer),answerMode:'manual',answerSource:'',revealed:false,freezeHands:true,hiddenReadouts:['24','12'],targetHour:null,targetMinute:null,startHour:null,startMinute:null,...extra}}
+  function h12(){return hour%12||12}
+  function pad(value){return String(value).padStart(2,'0')}
+  function format24(h,m){return pad(h)+':'+pad(m)}
+  function time24(){return format24(hour,minute)}
+  function format12(h,m){return(h%12||12)+':'+pad(m)+' '+(h<12?'am':'pm')}
+      function time12(){return format12(hour,minute)}
+  function nextH12(){return(hour+1)%12||12}
+  function spokenTime(){
+    if(minute===0)return h12()+" o'clock";
+    if(minute===15)return'quarter past '+h12();
+    if(minute===30)return'half past '+h12();
+    if(minute===45)return'quarter to '+nextH12();
+    if(minute<30)return minute+' minute'+(minute===1?'':'s')+' past '+h12();
+    const left=60-minute;
+    return left+' minute'+(left===1?'':'s')+' to '+nextH12();
+  }
+  function randomHour(){return Math.floor(rng()*24)}
+  function randomMinute(step=5){return Math.floor(rng()*(60/step))*step}
+  function differentStart(targetHour,targetMinute,step){
+    const delta=[15,20,25,30,35,40,45,50,55,60][Math.floor(rng()*10)];
+    const startTotal=mod(targetHour*60+targetMinute-delta,24*60);
+    return{hour:Math.floor(startTotal/60),minute:Math.floor(startTotal%60/step)*step};
+  }
+    numerals='arabic';snap=5;second=0;
+    if(template.category==='two-clocks'){
+      
+      const pick=arr=>arr[Math.floor(rng()*arr.length)];
+      let start=pick([8,9,10,11,13,14,15,16,17])*60+randomMinute(5);
+      let elapsed=pick([15,20,25,35,40,45,50,55,65,75,85,90,105,120,135,150]);
+      if(type==='two-midnight'){start=23*60+pick([15,20,25,30,35,40,45,50,55]);elapsed=pick([60,65,75,90,105,120,135])}
+      const finish=start+elapsed,asState=(t,label)=>({...normaliseClockTime(0,t),second:0,label});
+      let evidence=[asState(start,type==='two-midnight'?'Start · Day 1':'Start'),asState(finish,type==='two-midnight'?'Finish · Day 2':'Finish')];
+      let prompt='How many minutes elapse from Start to Finish?',answer=String(elapsed);
+      let explanation=format24(evidence[0].hour,evidence[0].minute)+' → '+format24(evidence[1].hour,evidence[1].minute)+' = '+durationText(elapsed)+' ('+elapsed+' minutes).';
+      if(type==='two-midnight'){prompt='The journey starts on Day 1 and finishes on Day 2. How many minutes does it take?';explanation=(1440-start)+' minutes to midnight + '+(finish-1440)+' minutes after midnight = '+elapsed+' minutes.'}
+      if(type==='two-order'){
+        if(rng()<.5)evidence.reverse();
+        evidence=evidence.map((v,i)=>({...v,label:'Clock '+(i===0?'A':'B')}));
+        const earlier=evidence[0].hour*60+evidence[0].minute<evidence[1].hour*60+evidence[1].minute?0:1;
+        prompt='Which clock shows the earlier time on the same day?';answer=evidence[earlier].label;
+        explanation=format12(evidence[earlier].hour,evidence[earlier].minute)+' is earlier than '+format12(evidence[1-earlier].hour,evidence[1-earlier].minute)+'.';
+      }else if(type==='two-duration-reason'){
+        const claim=rng()<.5?elapsed:elapsed+pick([-10,-5,5,10,15]);
+        prompt='A pupil says that '+claim+' minutes elapse from Start to Finish. Are they correct?';
+        answer=claim===elapsed?'Yes':'No';explanation='The actual elapsed time is '+durationText(elapsed)+' ('+elapsed+' minutes).';
+      }
+      hour=evidence[0].hour;minute=evidence[0].minute;extraClocks[0]={hour:evidence[1].hour,minute:evidence[1].minute,second:0};
+      challenge=challengeObject(type,prompt,answer,{clockEvidence:evidence,clockLayout:previousLayout||'horizontal',solutionExplanation:explanation});
+    }else if(type==='read-five'){
+      hour=randomHour();minute=randomMinute(5);
+      challenge=challengeObject(type,'What time is shown on the analogue clock? (No AM or PM needed.)',time12());
+    }else if(type==='read-minute'){
+      hour=randomHour();minute=randomMinute(1);snap=1;
+      challenge=challengeObject(type,'Read the analogue clock to the nearest minute. (No AM or PM needed.)',time12());
+    }else if(type==='roman-read'){
+      hour=randomHour();minute=randomMinute(5);numerals='roman';
+      challenge=challengeObject(type,'What time is shown on the Roman-numeral clock? (No AM or PM needed.)',time12());
+    }else if(type==='set-five'||type==='set-minute'){
+      const step=type==='set-minute'?1:5,targetHour=randomHour(),targetMinute=randomMinute(step),start=differentStart(targetHour,targetMinute,step);
+      hour=start.hour;minute=start.minute;snap=step;
+      const targetText=format12(targetHour,targetMinute);
+      challenge=challengeObject(type,'Move the hands to '+targetText+'.',targetText,{
+        freezeHands:false,targetHour,targetMinute,hiddenReadouts:['24','12']
+      });
+    }else if(type==='elapsed-forward'){
+      hour=randomHour();minute=randomMinute(5);snap=5;
+      const startHour=hour,startMinute=minute,start24=time24(),durations=[15,20,25,30,35,40,45,50,60,75,90],duration=durations[Math.floor(rng()*durations.length)];
+      const targetTotal=mod(hour*60+minute+duration,24*60),targetHour=Math.floor(targetTotal/60),targetMinute=targetTotal%60;
+      challenge=challengeObject(type,'The clock starts at '+start24+'. Move it forward by '+duration+' minutes.',pad(targetHour)+':'+pad(targetMinute),{
+        freezeHands:false,targetHour,targetMinute,startHour,startMinute,hiddenReadouts:['24','12']
+      });
+    }else if(type==='twelve-to-twentyfour'){
+      hour=randomHour();minute=randomMinute(5);
+      challenge=challengeObject(type,'Write '+time12()+' in 24-hour notation.',time24(),{hiddenReadouts:['24']});
+    }else if(type==='twentyfour-to-twelve'){
+      hour=randomHour();minute=randomMinute(5);
+      challenge=challengeObject(type,'Write '+time24()+' in 12-hour am/pm notation.',time12(),{hiddenReadouts:['12']});
+    }else if(type==='time-language'){
+      hour=randomHour();minute=[0,5,10,15,20,25,30,35,40,45,50,55][Math.floor(rng()*12)];
+      challenge=challengeObject(type,'Write the time using past / to language.',spokenTime());
+    }else{
+      hour=1+Math.floor(rng()*12);minute=30;const valid=rng()<.5;
+      challenge=challengeObject(type,'A pupil says that at half past '+h12()+' the hour hand should point '+(valid?'halfway between '+h12()+' and '+nextH12():'exactly at '+h12())+'. Are they correct?',(valid?'Yes. ':'No. ')+'At half past '+h12()+', the hour hand is halfway between '+h12()+' and '+nextH12()+'.');
+    }
+
+ return {type,settings:cfg,diagram:{hour,minute,second,snap,numerals,extraClocks},challenge};
+}
+function clockPaper(data,teacher=false){
+ const d=data.diagram||{},c=data.challenge,task=!!c,comparison=Array.isArray(c?.clockEvidence),drawTask=c?.type==='set-five'||c?.type==='set-minute',elapsed=c?.type==='elapsed-forward';
+ const states=comparison?c.clockEvidence:task?[elapsed?{hour:c.startHour,minute:c.startMinute,second:0}:drawTask&&teacher?{hour:c.targetHour,minute:c.targetMinute,second:0}:d]:[d,...(d.extraClocks||[])];
+ const count=states.length,cols=count===1?1:(comparison?c.clockLayout:d.clockLayout)==='vertical'?1:(d.clockLayout==='horizontal'&&!comparison?count:2),rows=Math.ceil(count/cols),cell=310,W=cols*cell,H=rows*(task?304:354);
+ function el(name,attrs={},text){const n=document.createElementNS('http://www.w3.org/2000/svg',name);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,String(v));if(text!==undefined)n.textContent=String(text);return n}
+ const svg=el('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':task?'Clock task diagram':'Clock illustration'});
+ const add=(name,attrs,text)=>svg.appendChild(el(name,attrs,text));
+ const pad=v=>String(v).padStart(2,'0'),time24=(h,m)=>pad(h)+':'+pad(m),time12=(h,m)=>(h%12||12)+':'+pad(m)+' '+(h<12?'am':'pm');
+ function text(x,y,value,size=15,weight=700){add('text',{x,y,'font-family':'Arial,sans-serif','text-anchor':'middle','font-size':size,'font-weight':weight,fill:'#334a52'},value)}
+ add('rect',{width:W,height:H,fill:'#fff'});
+ states.forEach((v,i)=>{
+   const x=i%cols*cell+cell/2,y=Math.floor(i/cols)*(task?304:354),cx=x,cy=y+147,r=120,blank=drawTask&&!teacher;
+   const label=comparison?v.label:!task&&count>1?(d.clockNames?.[i]||'Clock '+String.fromCharCode(65+i)):'';
+   if(label)text(cx,y+15,label,14);
+   add('circle',{cx,cy,r,fill:'#fff',stroke:'#43555c','stroke-width':3});
+   for(let j=0;j<60;j++){const a=(j*6-90)*Math.PI/180,inner=r-(j%5?9:17),outer=r-4;add('line',{x1:cx+inner*Math.cos(a),y1:cy+inner*Math.sin(a),x2:cx+outer*Math.cos(a),y2:cy+outer*Math.sin(a),stroke:'#43555c','stroke-width':j%5?1:2.2})}
+   for(let j=1;j<=12;j++){const a=(j*30-90)*Math.PI/180;add('text',{x:cx+(r-33)*Math.cos(a),y:cy+(r-33)*Math.sin(a),'text-anchor':'middle','dominant-baseline':'middle','font-family':'Arial,sans-serif','font-size':16,'font-weight':750,fill:'#334a52'},d.numerals==='roman'?CLOCK_ROMAN[j-1]:j)}
+   if(!blank){const hands=[[(v.hour%12+v.minute/60)*30,61,7,'#24343b'],[v.minute*6,86,5,'#147d75']];if(!task&&d.showSeconds)hands.push([(v.second||0)*6,93,2,'#b45b41']);for(const [angle,len,width,stroke] of hands){const a=(angle-90)*Math.PI/180;add('line',{x1:cx,y1:cy,x2:cx+len*Math.cos(a),y2:cy+len*Math.sin(a),stroke,'stroke-width':width,'stroke-linecap':'round'})}}
+   add('circle',{cx,cy,r:4,fill:blank?'#fff':'#43555c',stroke:'#43555c'});
+   if(comparison)text(cx,y+288,v.hour<12?'AM':'PM',18);
+   else if(!task&&d.showDigital!==false){const sec=d.showSeconds?':'+pad(v.second||0):'';text(cx,y+288,time24(v.hour,v.minute)+sec,20);text(cx,y+311,(v.hour%12||12)+':'+pad(v.minute)+sec+' '+(v.hour<12?'am':'pm'),16)}
+   if(!task&&i>0){const minutes=((v.hour*60+v.minute-d.hour*60-d.minute)%1440+1440)%1440;text(cx,y+335,'Forward from first: '+Math.floor(minutes/60)+' h '+minutes%60+' min',12)}
+ });
+ if(!task)return svg;
+ const meta=CLOCK_TEMPLATES.find(t=>t.id===c.type);
+ const readFace=['read-five','read-minute','roman-read'].includes(c.type);
+ const prompt=drawTask?'Draw the clock hands to show '+c.answer+'.':elapsed?c.prompt.replace('Move it forward by','What time will it show after').replace(/ minutes\.$/,' minutes?'):c.prompt;
+ const answer=(readFace?c.answer.replace(/ (am|pm)$/i,''):c.answer)+(c.solutionExplanation?' — '+c.solutionExplanation:'');
+ return G.exportTools.composeWorksheetCardSvg(svg,{title:meta?.title||'Clock challenge',prompt,responseMode:drawTask?'none':c.category==='reason'||c.type==='two-duration-reason'?'lines':'box',responseLabel:drawTask?'Correct hands':c.category==='reason'||c.type==='two-duration-reason'?'Answer and explain':'Answer',responseLines:Math.max(1,data.settings?.responseLines||1,c.category==='reason'?3:1),paperStyle:'plain',answer,showAnswer:teacher,diagramMaxHeight:comparison&&cols===1?800:420});
+}
+function clockPublicationData(model){
+ const settings=clockPublicationSettings(model),diagram=JSON.parse(JSON.stringify(model.diagram||model)),c=model.challenge;
+ if(c?.mode==='custom')throw Error('Use individual export for custom clock tasks.');
+ if(!c)return {settings,diagram};
+ return {type:c.type,settings,diagram,challenge:{...c,revealed:false}};
+}
+function clockSignature(d){
+ const c=d.challenge,v=d.diagram,face=['read-five','read-minute','roman-read','time-language'].includes(c.type);
+ return JSON.stringify([c.type,c.prompt,face?[v.hour%12,v.minute]:c.clockEvidence||[c.startHour,c.startMinute,c.targetHour,c.targetMinute],face?null:c.answer]);
+}
+G.clockPaperModel={generate:clockGenerate,render:clockPaper,types:clockPublicationTypes,settings:clockPublicationSettings};
+if(G.publishing)G.publishing.register('clock',{
+ label:'Clock & time',types:clockPublicationTypes,title:item=>item.kind==='diagram'?'Clock illustration':CLOCK_TEMPLATES.find(t=>t.id===item.data.type)?.title||'Clock challenge',
+ signature:clockSignature,recipe:(model,type)=>({type,settings:clockPublicationSettings(model)}),
+ generate(recipe,rng){const ids=clockPublicationTypes(recipe.settings).map(t=>t.id),type=recipe.type==='all'?ids[Math.floor(rng()*ids.length)]:recipe.type;return clockGenerate(type,recipe.settings,rng)},
+ capture(model){const data=clockPublicationData(model);if(!data.challenge)return [G.publishing.record('clock','diagram',data)];return [G.publishing.record('clock','challenge',data,{type:data.type,settings:data.settings})]},
+ render(item,teacher){return clockPaper(item.data,teacher)}
+});
+
 function clockTool(){
   const CK=G.challengeKit,X=G.exportTools;
   const clockParams=new URLSearchParams(location.search),boardObjectId=clockParams.get('boardObject');
@@ -4588,22 +4758,7 @@ function clockTool(){
     {id:'reason',label:'Reasoning'},
     {id:'two-clocks',label:'Compare two clocks'}
   ];
-  const CHALLENGE_TEMPLATES=[
-    {id:'read-five',category:'read',title:'Read to 5 minutes',desc:'Read an analogue time shown to a 5-minute interval.'},
-    {id:'read-minute',category:'read',title:'Read to 1 minute',desc:'Read an analogue time to the nearest minute.'},
-    {id:'roman-read',category:'read',title:'Roman numeral clock',desc:'Read a time from a clock labelled I–XII.'},
-    {id:'set-five',category:'set',title:'Set a 5-minute time',desc:'Move the hands to a requested 5-minute time.'},
-    {id:'set-minute',category:'set',title:'Set an exact minute',desc:'Move the hands to an exact minute time.'},
-    {id:'elapsed-forward',category:'set',title:'Move time forward',desc:'Advance the analogue clock by a stated duration.'},
-    {id:'twelve-to-twentyfour',category:'convert',title:'12-hour to 24-hour',desc:'Convert a shown am/pm time to 24-hour notation.'},
-    {id:'twentyfour-to-twelve',category:'convert',title:'24-hour to 12-hour',desc:'Convert a 24-hour time to 12-hour am/pm notation.'},
-    {id:'time-language',category:'reason',title:'Say the time',desc:'Write an analogue time using past/to language.'},
-    {id:'hour-hand-misconception',category:'reason',title:'Where should the hour hand be?',desc:'Diagnose the common idea that the hour hand stays on the hour number.'},
-    {id:'two-elapsed',category:'two-clocks',title:'Elapsed time',desc:'Calculate minutes between a start and a finish.'},
-    {id:'two-order',category:'two-clocks',title:'Which is earlier?',desc:'Compare two analogue times with AM/PM evidence.'},
-    {id:'two-duration-reason',category:'two-clocks',title:'Check a duration',desc:'Decide whether a stated duration is correct.'},
-    {id:'two-midnight',category:'two-clocks',title:'Across midnight',desc:'Calculate elapsed time across two labelled days.'}
-  ];
+  const CHALLENGE_TEMPLATES=CLOCK_TEMPLATES;
   let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='read-five',challenge=null,beforeChallenge=null;
   let exportMode='diagram',responseLines=1,exportStatus='';
 
@@ -4831,7 +4986,7 @@ function clockTool(){
         '<button class="gd-btn" id="cl-png" type="button">PNG</button>'+
         '<button class="gd-btn" id="cl-svg-download" type="button">SVG</button>'+
         '<button class="gd-btn" id="cl-print" type="button">Print / PDF</button>'+
-      '</div><p class="gd-help" id="cl-export-status" role="status" aria-live="polite">'+exportStatus+'</p>';
+      '</div>'+(challenge?.mode==='standard'&&exportMode==='challenge'?'<div class="nl-export-grid cl-export-grid"><button class="gd-btn" id="cl-copy-key" type="button">Copy teacher key</button><button class="gd-btn" id="cl-print-key" type="button">Print teacher key</button></div>':'')+'<p class="gd-help" id="cl-export-status" role="status" aria-live="polite">'+exportStatus+'</p>';
   }
   function clSvgEl(name,attrs={},text=''){
     const el=document.createElementNS('http://www.w3.org/2000/svg',name);
@@ -4947,7 +5102,9 @@ function clockTool(){
     svg.appendChild(clSvgEl('text',{x:width-28,y:height-14,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':10,fill:'#87969a'},'99 Club Studio'));
     return svg;
   }
-  function exportTargetSvg(){
+  function exportTargetSvg(teacher=false){
+    if(challenge?.mode==='standard'&&exportMode==='challenge')return clockPaper(clockPublicationData({diagram:snapshot(),challenge,responseLines}),teacher);
+    if(!challenge)return clockPaper(clockPublicationData({diagram:snapshot(),responseLines}));
     if(exportMode!=='challenge'||!challenge||!X?.composeChallengeCardSvg)return clockExportSvg({pupil:false});
     const prompt=CK?CK.plainText(challenge.promptHtml||challenge.prompt||''):challenge.prompt||'';
     const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
@@ -4965,10 +5122,10 @@ function clockTool(){
     return exportMode==='challenge'&&challenge?(challenge.title||meta?.title||'clock-challenge'):(extraClocks.length?'clock-comparison':'clock-'+format24(hour,minute).replace(':','-'));
   }
   function exportMessage(text){exportStatus=text;const el=q('#cl-export-status');if(el)el.textContent=text}
-  async function exportAction(kind){
+  async function exportAction(kind,teacher=false){
     try{
       if(!X)throw new Error('Export tools are not available.');
-      const target=exportTargetSvg(),isCard=exportMode==='challenge'&&!!challenge,name=exportName();
+      const target=exportTargetSvg(teacher),isCard=exportMode==='challenge'&&!!challenge,name=exportName()+(teacher?'-teacher-key':'');
       if(kind==='copy'){await X.copyPng(target);exportMessage(isCard?'Challenge copied — paste it into your worksheet, slide or document.':'Clock image copied — paste it into your slide or document.')}
       if(kind==='png'){await X.downloadPng(target,name,2);exportMessage(isCard?'Challenge PNG downloaded.':'Clock PNG downloaded.')}
       if(kind==='svg'){X.downloadSvg(target,name);exportMessage(isCard?'Challenge SVG downloaded.':'Clock SVG downloaded.')}
@@ -5045,78 +5202,15 @@ function clockTool(){
     }
     challenge.revealed=false;renderControls();draw();
   }
-  function randomHour(){return Math.floor(Math.random()*24)}
-  function randomMinute(step=5){return Math.floor(Math.random()*(60/step))*step}
-  function differentStart(targetHour,targetMinute,step){
-    const delta=[15,20,25,30,35,40,45,50,55,60][Math.floor(Math.random()*10)];
-    const startTotal=mod(targetHour*60+targetMinute-delta,24*60);
-    return{hour:Math.floor(startTotal/60),minute:Math.floor(startTotal%60/step)*step};
-  }
   function generateChallenge(type){
     const template=availableClockTemplates().find(t=>t.id===type);if(!template)return;
     const previousLayout=twoClockTask()?challenge.clockLayout:null;
     if(!beforeChallenge)beforeChallenge=snapshot();else restoreSnapshot(beforeChallenge);
-    activeClock=0;numerals='arabic';snap=5;second=0;
-    if(template.category==='two-clocks'){
-      showSeconds=false;
-      const pick=arr=>arr[Math.floor(Math.random()*arr.length)];
-      let start=pick([8,9,10,11,13,14,15,16,17])*60+randomMinute(5);
-      let elapsed=pick([15,20,25,35,40,45,50,55,65,75,85,90,105,120,135,150]);
-      if(type==='two-midnight'){start=23*60+pick([15,20,25,30,35,40,45,50,55]);elapsed=pick([60,65,75,90,105,120,135])}
-      const finish=start+elapsed,asState=(t,label)=>({...normaliseClockTime(0,t),second:0,label});
-      let evidence=[asState(start,type==='two-midnight'?'Start · Day 1':'Start'),asState(finish,type==='two-midnight'?'Finish · Day 2':'Finish')];
-      let prompt='How many minutes elapse from Start to Finish?',answer=String(elapsed);
-      let explanation=format24(evidence[0].hour,evidence[0].minute)+' → '+format24(evidence[1].hour,evidence[1].minute)+' = '+durationText(elapsed)+' ('+elapsed+' minutes).';
-      if(type==='two-midnight'){prompt='The journey starts on Day 1 and finishes on Day 2. How many minutes does it take?';explanation=(1440-start)+' minutes to midnight + '+(finish-1440)+' minutes after midnight = '+elapsed+' minutes.'}
-      if(type==='two-order'){
-        if(Math.random()<.5)evidence.reverse();
-        evidence=evidence.map((v,i)=>({...v,label:'Clock '+(i===0?'A':'B')}));
-        const earlier=evidence[0].hour*60+evidence[0].minute<evidence[1].hour*60+evidence[1].minute?0:1;
-        prompt='Which clock shows the earlier time on the same day?';answer=evidence[earlier].label;
-        explanation=format12(evidence[earlier].hour,evidence[earlier].minute)+' is earlier than '+format12(evidence[1-earlier].hour,evidence[1-earlier].minute)+'.';
-      }else if(type==='two-duration-reason'){
-        const claim=Math.random()<.5?elapsed:elapsed+pick([-10,-5,5,10,15]);
-        prompt='A pupil says that '+claim+' minutes elapse from Start to Finish. Are they correct?';
-        answer=claim===elapsed?'Yes':'No';explanation='The actual elapsed time is '+durationText(elapsed)+' ('+elapsed+' minutes).';
-      }
-      setClockTime(0,evidence[0].hour,evidence[0].minute);setClockTime(1,evidence[1].hour,evidence[1].minute);setClockSecond(1,0);
-      challenge=challengeObject(type,prompt,answer,{clockEvidence:evidence,clockLayout:previousLayout||'horizontal',solutionExplanation:explanation});
-    }else if(type==='read-five'){
-      hour=randomHour();minute=randomMinute(5);
-      challenge=challengeObject(type,'What time is shown on the analogue clock? (No AM or PM needed.)',time12());
-    }else if(type==='read-minute'){
-      hour=randomHour();minute=randomMinute(1);snap=1;
-      challenge=challengeObject(type,'Read the analogue clock to the nearest minute. (No AM or PM needed.)',time12());
-    }else if(type==='roman-read'){
-      hour=randomHour();minute=randomMinute(5);numerals='roman';
-      challenge=challengeObject(type,'What time is shown on the Roman-numeral clock? (No AM or PM needed.)',time12());
-    }else if(type==='set-five'||type==='set-minute'){
-      const step=type==='set-minute'?1:5,targetHour=randomHour(),targetMinute=randomMinute(step),start=differentStart(targetHour,targetMinute,step);
-      hour=start.hour;minute=start.minute;snap=step;
-      const targetText=format12(targetHour,targetMinute);
-      challenge=challengeObject(type,'Move the hands to '+targetText+'.',targetText,{
-        freezeHands:false,targetHour,targetMinute,hiddenReadouts:['24','12']
-      });
-    }else if(type==='elapsed-forward'){
-      hour=randomHour();minute=randomMinute(5);snap=5;
-      const startHour=hour,startMinute=minute,start24=time24(),durations=[15,20,25,30,35,40,45,50,60,75,90],duration=durations[Math.floor(Math.random()*durations.length)];
-      const targetTotal=mod(hour*60+minute+duration,24*60),targetHour=Math.floor(targetTotal/60),targetMinute=targetTotal%60;
-      challenge=challengeObject(type,'The clock starts at '+start24+'. Move it forward by '+duration+' minutes.',pad(targetHour)+':'+pad(targetMinute),{
-        freezeHands:false,targetHour,targetMinute,startHour,startMinute,hiddenReadouts:['24','12']
-      });
-    }else if(type==='twelve-to-twentyfour'){
-      hour=randomHour();minute=randomMinute(5);
-      challenge=challengeObject(type,'Write '+time12()+' in 24-hour notation.',time24(),{hiddenReadouts:['24']});
-    }else if(type==='twentyfour-to-twelve'){
-      hour=randomHour();minute=randomMinute(5);
-      challenge=challengeObject(type,'Write '+time24()+' in 12-hour am/pm notation.',time12(),{hiddenReadouts:['12']});
-    }else if(type==='time-language'){
-      hour=randomHour();minute=[0,5,10,15,20,25,30,35,40,45,50,55][Math.floor(Math.random()*12)];
-      challenge=challengeObject(type,'Write the time using past / to language.',spokenTime());
-    }else{
-      hour=1+Math.floor(Math.random()*12);minute=30;const valid=Math.random()<.5;
-      challenge=challengeObject(type,'A pupil says that at half past '+h12()+' the hour hand should point '+(valid?'halfway between '+h12()+' and '+nextH12():'exactly at '+h12())+'. Are they correct?',(valid?'Yes. ':'No. ')+'At half past '+h12()+', the hour hand is halfway between '+h12()+' and '+nextH12()+'.');
-    }
+    const data=clockGenerate(type,{clockCount:1+extraClocks.length,clockLayout:previousLayout||'horizontal'});
+    const generated=data.diagram;
+    activeClock=0;hour=generated.hour;minute=generated.minute;second=generated.second;snap=generated.snap;numerals=generated.numerals;
+    if(data.challenge.category==='two-clocks'){showSeconds=false;extraClocks[0]=generated.extraClocks[0]}
+    challenge=CK?CK.normalise(data.challenge):data.challenge;
     challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';
     exportMode='challenge';responseLines=template.category==='reason'?3:(type==='set-five'||type==='set-minute'?2:1);exportStatus='';
     renderControls();draw();
@@ -5262,6 +5356,7 @@ function clockTool(){
       const png=q('#cl-png',controls);if(png)png.onclick=()=>exportAction('png');
       const svgDownload=q('#cl-svg-download',controls);if(svgDownload)svgDownload.onclick=()=>exportAction('svg');
       const print=q('#cl-print',controls);if(print)print.onclick=()=>exportAction('print');
+      const keyCopy=q('#cl-copy-key',controls),keyPrint=q('#cl-print-key',controls);if(keyCopy)keyCopy.onclick=()=>exportAction('copy',true);if(keyPrint)keyPrint.onclick=()=>exportAction('print',true);
       return;
     }
     if(controlTab==='explore'){
