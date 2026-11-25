@@ -55,7 +55,7 @@ function challengePopover(){
     '<div class="nmb-v5-difficulty-row" role="group" aria-label="Challenge difficulty">'+
       ['easy','medium','hard'].map(level=>'<button type="button" class="nmb-v5-difficulty'+(difficulty===level?' is-active':'')+'" data-nmb-v6-difficulty="'+level+'">'+level[0].toUpperCase()+level.slice(1)+'</button>').join('')+
     '</div><p class="nmb-v5-difficulty-help">'+DIFFICULTY_COPY[difficulty]+'</p>'+ 
-    '<div class="nmb-v5-challenge-grid"><button type="button" class="is-surprise" data-nmb-v6-type="random">Surprise me</button>'+ 
+    '<div class="nmb-v5-challenge-grid"><button type="button" class="is-surprise" data-nmb-v6-type="random">Random · all types</button><button type="button" data-nmb-v6-type="random-read">Random · read &amp; compare</button><button type="button" data-nmb-v6-type="random-build">Random · balance</button><button type="button" data-nmb-v6-type="random-reason">Random · reasoning</button>'+ 
       TYPES.map(type=>'<button type="button" data-nmb-v6-type="'+type+'">'+titleFor(type)+'</button>').join('')+'</div>'+ 
     (activeChallenge()?'<button type="button" class="nmb-v5-clear is-danger" data-nmb-v6-clear>Clear challenge</button>':'');
   qa('[data-nmb-v6-difficulty]',pop).forEach(button=>button.onclick=e=>{
@@ -242,7 +242,16 @@ async function complexChallenge(type,level){
   }catch(err){console.error('Number Mobile complex challenge:',err);exposeSpec(null)}
   finally{busy=false;adapt()}
 }
-function generate(type){if(busy)return;G.numberMobileChallengeDifficulty=difficulty;return difficulty==='easy'?standardChallenge(type):complexChallenge(type,difficulty)}
+function generate(type){
+  if(busy)return;
+  if(type==='random'||type.startsWith('random-')){
+    const category=type==='random'?'':type.slice(7);
+    const pool=TYPES.filter(t=>!category||TYPE_CATEGORY[t]===category);
+    type=pool[Math.floor(Math.random()*pool.length)]||'missing-weight';
+  }
+  G.numberMobileChallengeDifficulty=difficulty;
+  return difficulty==='easy'?standardChallenge(type):complexChallenge(type,difficulty)
+}
 async function clearChallenge(){
   busy=true;closePopover();try{await selectWorkflow('challenge');const clear=await waitFor(()=>q('#ba-clear-challenge',controls()));exposeSpec(null);if(clear){clear.click();await wait(75)}}finally{busy=false;adapt()}
 }
