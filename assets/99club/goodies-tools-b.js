@@ -1760,6 +1760,16 @@ function measurementTool(){
 
 }
 
+// The Randomiser is an illustration source, not a question generator.
+if(G.publishing)G.publishing.register('randomiser',{
+ label:'Dice, spinner & randomiser',types:()=>[],
+ title:item=>({dice:'Dice result',spinner:'Spinner result',number:'Random number',card:'Playing card'})[item.data.mode]||'Randomiser illustration',
+ capture(model,svg){
+   if(!svg)throw Error('The randomiser illustration is not ready.');
+   return [G.publishing.record('randomiser','diagram',{mode:model.mode,svg})];
+ },
+ render(item){return new DOMParser().parseFromString(item.data.svg,'image/svg+xml').documentElement}
+});
 function randomiser(){
   const X=G.exportTools;
   let result='',diceValues=[],spinnerRotation=0,spinnerKind='colours',customSpinnerText='1\n2\n3\n4',busy=false,finishTimer=null;
@@ -1954,6 +1964,10 @@ function randomiser(){
   q('#ra-svg').onclick=()=>exportAction('svg');
   q('#ra-print').onclick=()=>exportAction('print');
   draw();
+  G.publishingCurrent=()=>{
+    if(busy)throw Error('Finish rolling or spinning before publishing.');
+    return new XMLSerializer().serializeToString(paperSvg());
+  };
   G.lessonState?.register('randomiser',()=>{
     if(busy)throw new Error('Finish rolling or spinning before saving.');
     return {mode:q('#ra-mode').value,count:q('#ra-count')?.value,sides:q('#ra-sides')?.value,min:q('#ra-min')?.value,max:q('#ra-max')?.value,result,diceValues,spinnerRotation,spinnerKind,customSpinnerText};
@@ -1964,6 +1978,159 @@ function randomiser(){
     for(const key of ['count','sides','min','max']){const el=q('#ra-'+key);if(el&&saved[key]!=null)el.value=saved[key]}show(q('#ra-mode').value);
   });
 }
+
+
+const NM_PAPER_TYPES=[
+ {id:'missing-weight',label:'Missing number'},{id:'choose-relation',label:'Compare'},
+ {id:'find-difference',label:'Difference'},{id:'make-balance',label:'Make it balance'},
+ {id:'same-to-both',label:'Same to both'},{id:'spot-false-equality',label:'Spot the mistake'}
+];
+function nmPaperSettings(model={}){
+ const raw=model.session?.generator?.difficulty||model.difficulty||model.settings?.difficulty;
+ return {difficulty:['easy','medium','hard'].includes(raw)?raw:'easy',responseLines:clamp(Math.round(Number(model.responseLines??model.session?.engine?.responseLines??model.settings?.responseLines)||1),1,4)};
+}
+function nmFlatTopology(diagram){return {roots:{left:(diagram.left||[]).map(x=>({kind:'tile',id:String(x.id)})),right:(diagram.right||[]).map(x=>({kind:'tile',id:String(x.id)}))},blankIds:[],nextBranch:1}}
+function nmPaperGenerate(type,settings={},rng=Math.random){
+ const config=nmPaperSettings(settings);
+ if(!NM_PAPER_TYPES.some(t=>t.id===type))throw Error('Unknown Number Mobile challenge.');
+ // The live same-to-both activity is the direct equality task at every level.
+ const level=type==='same-to-both'?'easy':config.difficulty;
+ const diagram={left:[],right:[],showTotals:true,nextId:1,selectedId:null},topology={roots:{left:[],right:[]},blankIds:[],nextBranch:1};
+ const r=(lo,hi)=>lo+Math.floor(rng()*(hi-lo+1)),coin=()=>rng()<.5;
+ const tile=(side,value,hidden=false)=>{const id=diagram.nextId++;diagram[side].push({id,value,hidden});return {kind:'tile',id:String(id)}};
+ const put=(side,value,hidden=false)=>{const node=tile(side,value,hidden);topology.roots[side].push(node);return node};
+ const split=(sum,count)=>{const out=[];for(let i=1;i<count;i++){const v=r(2,sum-2*(count-i));out.push(v);sum-=v}out.push(sum);return out};
+ const branch=(side,L,R,hideSide='',hideIndex=-1)=>{
+   const n={kind:'branch',id:'b'+topology.nextBranch++,left:L.map((v,i)=>tile(side,v,hideSide==='left'&&i===hideIndex)),right:R.map((v,i)=>tile(side,v,hideSide==='right'&&i===hideIndex))};
+   topology.roots[side].push(n);return n;
+ };
+ const balanced=(side,sum)=>branch(side,split(sum,2),[sum]);
+ const hiddenBranch=(side,sum,hard=false)=>{
+   const hiddenSide=hard&&coin()?'right':'left',knownCount=hard?r(1,2):1,otherCount=hard?r(1,3):1;
+   const missing=r(Math.min(5,sum-2*knownCount),sum-2*knownCount),hidden=[missing,...split(sum-missing,knownCount)],other=split(sum,otherCount);
+   return hiddenSide==='left'?branch(side,hidden,other,'left',0):branch(side,other,hidden,'right',0);
+ };
+ let prompt='',answer='',delta=null;
+ if(level==='easy'){
+   if(type==='missing-weight'){const a=r(4,12),b=r(3,10);put('left',a);put('left',b,true);put('right',a+b);prompt='The balance is equal. What value is hidden by the question mark?';answer=String(b)}
+   else if(type==='choose-relation'){const l=r(8,18),right=l+r(-1,1)*r(2,8);put('left',l);put('right',right);prompt='Which symbol makes this comparison correct: <, > or = ?';answer=l===right?'=':l>right?'>':'<'}
+   else if(type==='find-difference'){const small=r(8,20),gap=r(3,10),heavy=coin()?'left':'right';put(heavy,small+gap);put(heavy==='left'?'right':'left',small);prompt='What is the difference between the two sides?';answer=String(gap)}
+   else if(type==='make-balance'){const a=r(5,12),b=r(2,7),gap=r(2,6);put('left',a);put('left',b);put('right',a+b-gap);prompt='How much must be added to the lighter main side to balance the main bar?';answer=String(gap)}
+   else if(type==='same-to-both'){const base=r(5,12);delta=r(2,6);put('left',base);put('right',base);prompt='Add '+delta+' to both sides. What happens to the equality?';answer='It stays balanced.'}
+   else {const a=r(4,10),b=r(3,8),wrong=a+b+r(2,6);put('left',a);put('left',b);put('right',wrong);prompt='A pupil says these two sides are equal. Are they correct? Explain.';answer='No. '+(a+b)+' is not equal to '+wrong+'.'}
+ }else if(type==='missing-weight'){
+   const sum=level==='hard'?r(14,24):r(8,13);hiddenBranch('left',sum,level==='hard');
+   if(level==='hard')hiddenBranch('right',sum,true);else put('right',2*sum);
+   prompt=level==='hard'?'Every bar is balanced. Find both missing numbers. Use the two smaller balances before checking the main bar.':'Every bar is balanced. Work out the missing number in the smaller hanging balance.';
+   answer=[...diagram.left,...diagram.right].filter(x=>x.hidden).map(x=>x.value).join(' and ');
+ }else{
+   const side=type==='make-balance'&&coin()?'right':'left',other=side==='left'?'right':'left';
+   const sum=r(9,13),gap=r(2,5);
+   balanced(side,sum);
+   if(level==='hard')balanced(other,type==='find-difference'?sum-gap:sum+gap);
+   else put(other,2*sum+(type==='find-difference'?-gap:gap));
+   const L=diagram.left.reduce((a,x)=>a+x.value,0),R=diagram.right.reduce((a,x)=>a+x.value,0);
+   if(type==='choose-relation'){prompt='Compare the two main sides. Use the hanging balance'+(level==='hard'?'s':'')+' to decide which side is heavier.';answer=L>R?'Left side':'Right side'}
+   else if(type==='find-difference'){prompt='Find the difference between the two main sides. Work through the hanging balance'+(level==='hard'?'s':'')+' first.';answer=String(Math.abs(L-R))}
+   else if(type==='make-balance'){prompt='How much must be added to the lighter main side to balance the main bar?';answer=String(Math.abs(L-R))}
+   else {prompt='A pupil says the whole mobile is balanced. Are they correct? Explain.';answer='No. The left side totals '+L+' and the right side totals '+R+'.'}
+ }
+ const challenge={type,prompt,answer,targetDelta:delta};
+ return {type,settings:config,difficulty:level,diagram,topology,challenge};
+}
+function nmPaperCapture(model){
+ const session=model.session,engine=session?.engine?.challenge,spec=session?.generator?.spec;
+ if(engine?.mode==='custom'&&!spec)throw Error('Finish or exit the custom Number Mobile challenge before publishing.');
+ const settings=nmPaperSettings(model);
+ const initial=engine?.mode==='standard'&&engine.initialState;
+ const diagram=JSON.parse(JSON.stringify(initial||model.diagram)),topology=JSON.parse(JSON.stringify(initial?nmFlatTopology(diagram):model.topology||nmFlatTopology(diagram)));
+ const challenge=engine?{type:spec?.type||engine.type,prompt:spec?.prompt||engine.prompt,answer:spec?.answer||engine.answer,targetDelta:engine.targetDelta??null}:null;
+ if(spec?.answerByToken)for(const token of [...diagram.left,...diagram.right])if(Object.prototype.hasOwnProperty.call(spec.answerByToken,String(token.id))){token.hidden=true;token.value=spec.answerByToken[String(token.id)]}
+ return {type:challenge?.type,settings,difficulty:spec?.difficulty||(engine?'easy':settings.difficulty),diagram,topology,challenge};
+}
+function nmPaperUnknowns(data){
+ const tokens=new Map([...data.diagram.left,...data.diagram.right].map(x=>[String(x.id),x])),out=[];
+ const visit=nodes=>{for(const n of nodes){if(n.kind==='branch'){visit(n.left);visit(n.right)}else if(tokens.get(String(n.id))?.hidden)out.push(tokens.get(String(n.id)))}};
+ visit(data.topology.roots.left);visit(data.topology.roots.right);return out;
+}
+function nmPaperSummary(data){
+ const unknowns=nmPaperUnknowns(data);
+ if(data.type==='missing-weight'&&unknowns.length>1)return unknowns.map((x,i)=>String.fromCharCode(65+i)+' = '+x.value).join('; ');
+ if(data.type==='same-to-both'&&Number.isFinite(data.challenge.targetDelta)){
+   const l=data.diagram.left.reduce((a,x)=>a+x.value,0),v=data.challenge.targetDelta;
+   return l+' + '+v+' = '+(l+v)+' on both sides. It stays balanced.';
+ }
+ return data.challenge.answer;
+}
+function nmPaperRender(data,teacher=false,graphicOnly=false){
+ const c=data.challenge,model=data.diagram,roots=JSON.parse(JSON.stringify(data.topology.roots)),tokens=new Map([...model.left,...model.right].map(x=>[String(x.id),x]));
+ if(teacher&&c?.type==='same-to-both'&&Number.isFinite(c.targetDelta)){
+   for(const side of ['left','right']){const id='added-'+side;tokens.set(id,{id,value:c.targetDelta,hidden:false});roots[side].push({kind:'tile',id})}
+ }
+ const unknowns=nmPaperUnknowns(data),labels=new Map(unknowns.map((x,i)=>[String(x.id),String.fromCharCode(65+i)])),blankIds=new Set(data.topology.blankIds||[]);
+ const tileW=86,tileH=54,gap=16,branchGap=32,hang=34;
+ const sum=nodes=>nodes.reduce((a,n)=>a+(n.kind==='branch'?sum(n.left)+sum(n.right):Number(tokens.get(String(n.id))?.value)||0),0);
+ const listW=nodes=>Math.max(tileW,nodes.reduce((a,n)=>a+nodeW(n),0)+Math.max(0,nodes.length-1)*gap);
+ const sideW=(L,R)=>Math.max(listW(L),listW(R));
+ const nodeW=n=>n.kind==='branch'?2*sideW(n.left,n.right)+branchGap:tileW;
+ const listH=nodes=>Math.max(tileH,...nodes.map(n=>n.kind==='branch'?hang+listH([...n.left,...n.right])+12:tileH));
+ const rootW=2*sideW(roots.left,roots.right)+branchGap,W=Math.max(400,rootW+48),contentH=hang+listH([...roots.left,...roots.right])+32,H=contentH+(teacher||!c?58:36);
+ const el=(name,attrs={},value)=>{const n=document.createElementNS('http://www.w3.org/2000/svg',name);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,String(v));if(value!==undefined)n.textContent=String(value);return n};
+ const svg=el('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':'Number Mobile with hanging balances'});
+ const add=(name,attrs,value)=>svg.appendChild(el(name,attrs,value));
+ const line=(x1,y1,x2,y2,w=2)=>add('line',{x1,y1,x2,y2,stroke:'#52666d','stroke-width':w,'stroke-linecap':'round'});
+ const text=(x,y,value,attrs={})=>add('text',{x,y,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':21,'font-weight':700,fill:'#304b52',...attrs},value);
+ add('rect',{width:W,height:H,fill:'#fff'});
+ function drawList(nodes,cx,y){
+   let x=cx-listW(nodes)/2;
+   for(const n of nodes){const w=nodeW(n),center=x+w/2;drawNode(n,center,y);x+=w+gap}
+ }
+ function drawNode(n,x,y){
+   if(n.kind==='branch'){drawBar(n.left,n.right,x,y,n.id);return}
+   const token=tokens.get(String(n.id));if(!token)return;
+   const hidden=token.hidden,tag=labels.get(String(n.id)),value=blankIds.has(String(n.id))?'□':hidden&&!teacher?'?':String(token.value);
+   add('rect',{x:x-tileW/2,y,width:tileW,height:tileH,rx:7,fill:hidden?'#fff4d7':'#edf6f4',stroke:hidden?'#b49a54':'#85aaa4','stroke-width':1.5,'data-nm-paper-tile':n.id});
+   text(x,y+33,value,{'data-nm-paper-value':n.id});
+   if(hidden&&unknowns.length>1)text(x-tileW/2+11,y+14,tag,{'font-size':12,'text-anchor':'start','data-nm-paper-label':tag});
+ }
+ function drawBar(L,R,x,y,id){
+   const sw=sideW(L,R),dx=(sw+branchGap)/2,lc=x-dx,rc=x+dx;
+   // Use a level schematic on pupil papers: do not encode a comparison answer in the tilt.
+   line(x,y,x,y+8,2);line(lc,y+8,rc,y+8,5);
+   add('circle',{cx:x,cy:y+8,r:4,fill:'#52666d','data-nm-paper-bar':id});
+   line(lc,y+8,lc,y+hang,2);line(rc,y+8,rc,y+hang,2);
+   // The horizontal distributor makes every sibling visibly attached to the bar.
+   for(const [nodes,center] of [[L,lc],[R,rc]]){
+     if(nodes.length>1){let pos=center-listW(nodes)/2,centers=[];for(const n of nodes){const w=nodeW(n);centers.push(pos+w/2);pos+=w+gap}line(centers[0],y+hang-8,centers[centers.length-1],y+hang-8,2);for(const a of centers)line(a,y+hang-8,a,y+hang,2)}
+     drawList(nodes,center,y+hang);
+   }
+ }
+ drawBar(roots.left,roots.right,W/2,12,'main');
+ if(teacher||!c){
+   const L=sum(roots.left),R=sum(roots.right),rel=L===R?'=':L>R?'>':'<';
+   if(teacher||!unknowns.length){
+     text(W/2,H-31,L+' '+rel+' '+R,{'data-nm-paper-solved':'1'});
+     if(c?.type==='same-to-both'&&teacher)text(W/2,H-10,'After adding to both sides',{'font-size':14,fill:'#52666d'});
+     else text(W/2,H-10,'Schematic: bars drawn level',{'font-size':14,fill:'#52666d'});
+   }else text(W/2,H-15,'Schematic: bars drawn level',{'font-size':14,fill:'#52666d'});
+ }else text(W/2,H-15,'Schematic: bars drawn level for calculation',{'font-size':14,fill:'#52666d'});
+ if(!c||graphicOnly)return svg;
+ const build=c.type==='same-to-both',reason=c.type==='spot-false-equality',lines=Math.max(data.settings.responseLines,reason||build?3:1);
+ return G.exportTools.composeWorksheetCardSvg(svg,{title:NM_PAPER_TYPES.find(t=>t.id===c.type)?.label||'Number Mobile',prompt:c.prompt,responseMode:c.type==='missing-weight'?'none':lines>1?'lines':'box',responseLabel:reason?'Explain your thinking':'Answer',responseLines:lines,paperStyle:'plain',answer:nmPaperSummary(data),showAnswer:teacher,diagramMaxHeight:420});
+}
+G.numberMobilePaperModel={settings:nmPaperSettings,types:()=>NM_PAPER_TYPES,generate:nmPaperGenerate,capture:nmPaperCapture,render:nmPaperRender};
+if(G.publishing)G.publishing.register('balance',{
+ label:'Number mobile balance',types:()=>NM_PAPER_TYPES,
+ title:item=>item.kind==='diagram'?'Number Mobile illustration':NM_PAPER_TYPES.find(t=>t.id===item.data.type)?.label||'Number Mobile',
+ signature:d=>{const tokens=new Map([...d.diagram.left,...d.diagram.right].map(x=>[String(x.id),x]));const shape=nodes=>nodes.map(n=>n.kind==='branch'?[shape(n.left),shape(n.right)]:tokens.get(String(n.id))?.hidden?'?':tokens.get(String(n.id))?.value);return JSON.stringify([d.type,d.challenge.prompt,shape(d.topology.roots.left),shape(d.topology.roots.right)])},
+ recipe:(model,type)=>({type,settings:nmPaperSettings(model)}),
+ generate(recipe,rng){const ids=NM_PAPER_TYPES.map(t=>t.id);return nmPaperGenerate(recipe.type==='all'?ids[Math.floor(rng()*ids.length)]:recipe.type,recipe.settings,rng)},
+ capture(model){const d=nmPaperCapture(model);return [G.publishing.record('balance',d.challenge?'challenge':'diagram',d,d.challenge?{type:d.type,settings:d.settings}:null)]},
+ answerSummary:item=>nmPaperSummary(item.data),
+ answerGraphic:item=>nmPaperRender(item.data,true,true),
+ answerNote:item=>{const d=item.data;if(d.type==='missing-weight')return 'Each missing box must have its own correct value. Each smaller bar balances independently before checking the main bar.';if(d.type==='same-to-both')return 'Accept equivalent explanations that adding the same amount to equal sides preserves equality.';if(d.type==='spot-false-equality')return 'Accept equivalent reasoning comparing the total weights of the main sides, including the whole contribution of each hanging branch.';if(d.type==='make-balance')return 'Add the stated amount to the lighter main side without disturbing the smaller balances.';return ''},
+ render(item,teacher){return nmPaperRender(item.data,teacher)}
+});
 
 function balanceTool(){
   const CK=G.challengeKit,X=G.exportTools;
@@ -2565,6 +2732,90 @@ function balanceTool(){
   };
 }
 
+const TV_TEMPLATES=[
+    {id:'find-total',category:'read',title:'Find the total',desc:'Count equal groups and find how many items there are altogether.'},
+    {id:'write-repeated',category:'connections',title:'Write repeated addition',desc:'Write the repeated-addition statement shown by the equal groups.'},
+    {id:'commutative-fact',category:'connections',title:'Commutative fact',desc:'Write the multiplication fact with the factors reversed.'},
+    {id:'related-division',category:'connections',title:'Related division',desc:'Complete a division fact from the equal-groups model.'},
+    {id:'build-fact',category:'build',title:'Build the fact',desc:'Change the model until it shows the requested equal-groups fact.'},
+    {id:'spot-error',category:'reason',title:'Spot the incorrect equation',desc:'Use the equal groups to decide whether the shown equation is correct.'}
+  ];
+
+function tvSettings(model={}){return {responseLines:clamp(Math.round(Number(model.responseLines??model.settings?.responseLines)||1),1,4)}}
+function tvTypes(){return TV_TEMPLATES.map(t=>({id:t.id,label:t.title}))}
+function tvGenerate(type,settings={},rng=Math.random){
+ const meta=TV_TEMPLATES.find(t=>t.id===type);if(!meta)throw Error('Unknown times-table challenge.');
+ let groupsCount=3,itemsPerGroup=4,selectedGroup=0,challenge;
+ const randomInt=(min,max)=>min+Math.floor(rng()*(max-min+1));
+ const challengeObject=(type,prompt,answer,extra={})=>({mode:'standard',type,category:meta.category,title:'',prompt,promptHtml:prompt,answer:String(answer),answerMode:'manual',answerSource:'',revealed:false,freezeModel:true,hiddenEquation:false,hiddenRepeated:false,hiddenFactFamily:false,hiddenJumps:false,hiddenSelectedPanel:false,targetGroups:null,targetItems:null,wrongTotal:null,...extra});
+    const a=randomInt(3,8);let b=randomInt(4,9);if(type==='commutative-fact'&&a===b)b=a+1;const t=a*b;
+    groupsCount=a;itemsPerGroup=b;selectedGroup=0;
+    if(type==='find-total'){
+      challenge=challengeObject(type,'How many items are there altogether in '+a+' equal groups of '+b+'?',t,{hiddenEquation:true,hiddenRepeated:true,hiddenFactFamily:true,hiddenJumps:true,hiddenSelectedPanel:true});
+    }else if(type==='write-repeated'){
+      challenge=challengeObject(type,'Write the repeated-addition statement shown by '+a+' groups of '+b+'.',Array.from({length:a},()=>b).join(' + ')+' = '+t,{hiddenRepeated:true,hiddenFactFamily:true,hiddenSelectedPanel:true});
+    }else if(type==='commutative-fact'){
+      challenge=challengeObject(type,'Write the commutative fact for '+a+' × '+b+' = '+t+'.',b+' × '+a+' = '+t,{hiddenFactFamily:true,hiddenSelectedPanel:true});
+    }else if(type==='related-division'){
+      challenge=challengeObject(type,'Use '+a+' × '+b+' = '+t+' to complete '+t+' ÷ '+a+' = ?.',b,{hiddenFactFamily:true,hiddenSelectedPanel:true});
+    }else if(type==='build-fact'){
+      const targetGroups=a,targetItems=b;
+      groupsCount=2;itemsPerGroup=2;selectedGroup=0;
+      challenge=challengeObject(type,'Build '+targetGroups+' equal groups with '+targetItems+' items in each group.',targetGroups+' × '+targetItems+' = '+(targetGroups*targetItems),{freezeModel:false,targetGroups,targetItems,hiddenFactFamily:false});
+    }else{
+      const valid=rng()<.5,shown=valid?t:t+(rng()<.5?-1:1)*randomInt(1,3);
+      challenge=challengeObject(type,'The equation says '+a+' × '+b+' = '+shown+'. Use the equal groups to decide whether it is correct.',valid?'Yes. '+a+' × '+b+' = '+t+'.':'No. '+a+' × '+b+' = '+t+', not '+shown+'.',{wrongTotal:shown,hiddenRepeated:true,hiddenFactFamily:true,hiddenJumps:true,hiddenSelectedPanel:true});
+    }
+
+ const diagram={groupsCount,itemsPerGroup,selectedGroup,showRepeated:true,showJumps:true,showFactFamily:true};
+ challenge.initialState={...diagram};
+ return {type,settings:tvSettings(settings),diagram,challenge};
+}
+function tvPublicationData(model){
+ const c=model.challenge?JSON.parse(JSON.stringify(model.challenge)):null;
+ if(c?.mode==='custom')throw Error('Use individual export for custom equal-groups tasks.');
+ if(c){c.revealed=false;delete c.modelBeforeReveal}
+ return {type:c?.type,settings:tvSettings(model),diagram:JSON.parse(JSON.stringify(c?.initialState||model.diagram||model)),challenge:c};
+}
+function tvPaper(data,teacher=false,graphicOnly=false){
+ const c=data.challenge,build=c?.type==='build-fact',d=data.diagram;
+ const groups=build?c.targetGroups:d.groupsCount,items=build?c.targetItems:d.itemsPerGroup,total=groups*items;
+ const cols=Math.min(groups,4),rows=Math.ceil(groups/cols),cardW=170,cardH=88,gap=12,W=800,top=12;
+ const blank=build&&!teacher,H=blank?320:top+rows*(cardH+gap)+(teacher||!c?55:0);
+ const el=(name,attrs={},value)=>{const n=document.createElementNS('http://www.w3.org/2000/svg',name);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,String(v));if(value!==undefined)n.textContent=String(value);return n};
+ const svg=el('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':blank?'Space to draw equal groups':'Equal groups'});
+ const add=(name,attrs,value)=>svg.appendChild(el(name,attrs,value));
+ const text=(x,y,value,attrs={})=>add('text',{x,y,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':19,'font-weight':700,fill:'#304b52',...attrs},value);
+ add('rect',{width:W,height:H,fill:'#fff'});
+ if(blank){add('rect',{x:16,y:10,width:W-32,height:H-20,rx:8,fill:'#fff',stroke:'#9fb4b8','stroke-width':1.5,'data-tv-paper-working':'1'})}
+ else{
+   const left=(W-cols*cardW-(cols-1)*gap)/2;
+   for(let g=0;g<groups;g++){
+     const x=left+(g%cols)*(cardW+gap),y=top+Math.floor(g/cols)*(cardH+gap);
+     add('rect',{x,y,width:cardW,height:cardH,rx:10,fill:'#f7fbfa',stroke:'#80aaa4','stroke-width':1.6,'data-tv-paper-group':g});
+     const dc=Math.min(items,6),dr=Math.ceil(items/dc);
+     for(let i=0;i<items;i++)add('circle',{cx:x+cardW/2+(i%dc-(dc-1)/2)*20,cy:y+cardH/2+(Math.floor(i/dc)-(dr-1)/2)*24,r:7,fill:'#27786f','data-tv-paper-dot':'1'});
+   }
+   if(teacher||!c)text(W/2,H-23,groups+' × '+items+' = '+total,{'data-tv-paper-equation':'1','font-size':24});
+ }
+ if(!c||graphicOnly)return svg;
+ const lines=Math.max(data.settings.responseLines,c.category==='reason'?3:1);
+ return G.exportTools.composeWorksheetCardSvg(svg,{title:TV_TEMPLATES.find(t=>t.id===c.type)?.title||'Equal groups challenge',prompt:build?'Draw '+groups+' equal groups with '+items+' items in each group.':c.prompt,responseMode:build?'none':lines>1?'lines':'box',responseLabel:c.category==='reason'?'Explain your thinking':'Answer',responseLines:lines,paperStyle:'plain',answer:c.answer,showAnswer:teacher,diagramMaxHeight:360});
+}
+G.timesTablePaperModel={settings:tvSettings,types:tvTypes,generate:tvGenerate,render:tvPaper};
+if(G.publishing)G.publishing.register('times-table',{
+ label:'Times-table visualiser',types:tvTypes,
+ title:item=>item.kind==='diagram'?'Equal groups illustration':TV_TEMPLATES.find(t=>t.id===item.data.type)?.title||'Times-table challenge',
+ signature:d=>JSON.stringify([d.type,d.challenge.prompt]),
+ recipe:(model,type)=>({type,settings:tvSettings(model)}),
+ generate(recipe,rng){const ids=tvTypes().map(t=>t.id);return tvGenerate(recipe.type==='all'?ids[Math.floor(rng()*ids.length)]:recipe.type,recipe.settings,rng)},
+ capture(model){const d=tvPublicationData(model);return [G.publishing.record('times-table',d.challenge?'challenge':'diagram',d,d.challenge?{type:d.type,settings:d.settings}:null)]},
+ answerSummary:item=>item.data.challenge.answer,
+ answerGraphic:item=>tvPaper(item.data,true,true),
+ answerNote:item=>{const c=item.data.challenge;if(c.type==='build-fact')return 'Accept any drawing with exactly '+c.targetGroups+' equal groups and '+c.targetItems+' items in each. The groups may be arranged in any order or position.';if(c.type==='write-repeated')return 'Accept equivalent notation with the correct number of identical addends and correct total.';if(c.type==='commutative-fact')return 'The two factors must be reversed, with the product unchanged.';if(c.type==='spot-error')return 'Accept equivalent reasoning that counts the equal groups or calculates the correct product.';return ''},
+ render(item,teacher){return tvPaper(item.data,teacher)}
+});
+
 function timesTableVisual(){
   const CK=G.challengeKit,X=G.exportTools;
   let groupsCount=4,itemsPerGroup=6,selectedGroup=0;
@@ -2576,14 +2827,7 @@ function timesTableVisual(){
     {id:'build',label:'Build'},
     {id:'reason',label:'Reasoning'}
   ];
-  const CHALLENGE_TEMPLATES=[
-    {id:'find-total',category:'read',title:'Find the total',desc:'Count equal groups and find how many items there are altogether.'},
-    {id:'write-repeated',category:'connections',title:'Write repeated addition',desc:'Write the repeated-addition statement shown by the equal groups.'},
-    {id:'commutative-fact',category:'connections',title:'Commutative fact',desc:'Write the multiplication fact with the factors reversed.'},
-    {id:'related-division',category:'connections',title:'Related division',desc:'Complete a division fact from the equal-groups model.'},
-    {id:'build-fact',category:'build',title:'Build the fact',desc:'Change the model until it shows the requested equal-groups fact.'},
-    {id:'spot-error',category:'reason',title:'Spot the incorrect equation',desc:'Use the equal groups to decide whether the shown equation is correct.'}
-  ];
+  const CHALLENGE_TEMPLATES=TV_TEMPLATES;
   let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='find-total',challenge=null,beforeChallenge=null;
   let exportMode='diagram',responseLines=1,exportStatus='';
 
@@ -2775,26 +3019,11 @@ function timesTableVisual(){
   function generateChallenge(type){
     const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
     if(!beforeChallenge)beforeChallenge=snapshot();else restore(beforeChallenge);
-    undoStack.length=0;redoStack.length=0;resetChallengeModel();
-    const a=randomInt(3,8);let b=randomInt(4,9);if(type==='commutative-fact'&&a===b)b=a+1;const t=a*b;
-    groupsCount=a;itemsPerGroup=b;selectedGroup=0;
-    if(type==='find-total'){
-      challenge=challengeObject(type,'How many items are there altogether in '+a+' equal groups of '+b+'?',t,{hiddenEquation:true,hiddenRepeated:true,hiddenFactFamily:true,hiddenJumps:true,hiddenSelectedPanel:true});
-    }else if(type==='write-repeated'){
-      challenge=challengeObject(type,'Write the repeated-addition statement shown by '+a+' groups of '+b+'.',Array.from({length:a},()=>b).join(' + ')+' = '+t,{hiddenRepeated:true,hiddenFactFamily:true,hiddenSelectedPanel:true});
-    }else if(type==='commutative-fact'){
-      challenge=challengeObject(type,'Write the commutative fact for '+a+' × '+b+' = '+t+'.',b+' × '+a+' = '+t,{hiddenFactFamily:true,hiddenSelectedPanel:true});
-    }else if(type==='related-division'){
-      challenge=challengeObject(type,'Use '+a+' × '+b+' = '+t+' to complete '+t+' ÷ '+a+' = ?.',b,{hiddenFactFamily:true,hiddenSelectedPanel:true});
-    }else if(type==='build-fact'){
-      const targetGroups=a,targetItems=b;
-      groupsCount=2;itemsPerGroup=2;selectedGroup=0;
-      challenge=challengeObject(type,'Build '+targetGroups+' equal groups with '+targetItems+' items in each group.',targetGroups+' × '+targetItems+' = '+(targetGroups*targetItems),{freezeModel:false,targetGroups,targetItems,hiddenFactFamily:false});
-    }else{
-      const valid=Math.random()<.5,shown=valid?t:t+(Math.random()<.5?-1:1)*randomInt(1,3);
-      challenge=challengeObject(type,'The equation says '+a+' × '+b+' = '+shown+'. Use the equal groups to decide whether it is correct.',valid?'Yes. '+a+' × '+b+' = '+t+'.':'No. '+a+' × '+b+' = '+t+', not '+shown+'.',{wrongTotal:shown,hiddenRepeated:true,hiddenFactFamily:true,hiddenJumps:true,hiddenSelectedPanel:true});
-    }
-    challenge.initialState=snapshot();
+    undoStack.length=0;redoStack.length=0;
+    let generated=tvGenerate(type,{responseLines});
+    for(let i=0;i<20&&challenge?.type===type&&challenge.prompt===generated.challenge.prompt;i++)generated=tvGenerate(type,{responseLines});
+    restore(generated.diagram);
+    challenge=CK?CK.normalise(generated.challenge):generated.challenge;
     challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';exportMode='challenge';responseLines=template.category==='reason'?3:1;exportStatus='';renderControls();draw();
   }
   function restoreBeforeChallenge(){if(beforeChallenge){restore(beforeChallenge);beforeChallenge=null}}
@@ -3060,6 +3289,121 @@ function timesTableVisual(){
 
 }
 
+const FE_TEMPLATES=[
+    {id:'prime-or-composite',category:'read',title:'Prime or composite?',desc:'Classify a number from its factors.'},
+    {id:'missing-factor',category:'read',title:'Missing factor',desc:'Complete a factor pair for the shown number.'},
+    {id:'divisible-by',category:'read',title:'Divisibility check',desc:'Decide whether a number is divisible by a given divisor.'},
+    {id:'common-factors',category:'compare',title:'Common factors',desc:'Find the factors shared by two numbers.'},
+    {id:'hcf',category:'compare',title:'Highest common factor',desc:'Find the HCF of two numbers.'},
+    {id:'lcm',category:'compare',title:'Lowest common multiple',desc:'Find the LCM of two numbers.'},
+    {id:'explain-prime',category:'reason',title:'Explain why it is prime',desc:'Use the factor evidence to justify a prime classification.'}
+  ];
+function fe_factors(n){const out=[];for(let i=1;i<=Math.sqrt(n);i++)if(n%i===0){out.push(i);if(i!==n/i)out.push(n/i)}return out.sort((x,y)=>x-y)}
+function fe_factorPairs(n){const out=[];for(let i=1;i*i<=n;i++)if(n%i===0)out.push([i,n/i]);return out}
+function fe_primeFactors(n){let x=n,out=[];for(let p=2;p*p<=x;p++)while(x%p===0){out.push(p);x/=p}if(x>1)out.push(x);return out}
+function fe_isPrime(n){return fe_factors(n).length===2}
+function fe_gcd2(x,y){while(y){const t=x%y;x=y;y=t}return Math.abs(x)}
+function fe_lcm2(x,y){return Math.abs(x*y)/fe_gcd2(x,y)}
+
+function feSettings(model={}){return {responseLines:clamp(Math.round(Number(model.responseLines??model.settings?.responseLines)||1),1,4)}}
+function feTypes(){return FE_TEMPLATES.map(t=>({id:t.id,label:t.title}))}
+function feGenerate(type,settings={},rng=Math.random,previous=''){
+ const meta=FE_TEMPLATES.find(t=>t.id===type);if(!meta)throw Error('Unknown factors challenge.');
+ let a=36,b=24,compare=false,selectedSide='a',selectedPair=0,challenge,variantKey='';
+ const pick=list=>{const pool=list.filter(v=>JSON.stringify(v)!==previous),v=pool[Math.floor(rng()*pool.length)];variantKey=JSON.stringify(v);return v};
+ const challengeObject=(type,prompt,answer,extra={})=>({mode:'standard',type,category:meta.category,title:'',prompt,promptHtml:prompt,answer:String(answer),answerMode:'manual',answerSource:'',revealed:false,hiddenClassificationSide:'',hiddenPairSide:'',hiddenPairIndex:null,hiddenAllPairsSide:'',hiddenDivisor:null,hiddenDivisorSide:'',hiddenPrimeSide:'',hiddenCommonFactors:false,hiddenHcf:false,hiddenLcm:false,...extra});
+    if(type==='prime-or-composite'){
+      a=pick([29,21,37,49,23,51,41,57,31,27]);compare=false;
+      challenge=challengeObject(type,'Is '+a+' prime or composite? Use the factor evidence to decide.',fe_isPrime(a)?'Prime':'Composite',{hiddenClassificationSide:'a',hiddenPrimeSide:'a'});
+    }else if(type==='missing-factor'){
+      const item=pick([[36,4],[24,3],[42,6],[48,4],[56,7],[63,7],[72,8],[45,5]]);
+      a=item[0];compare=false;selectedPair=fe_factorPairs(a).findIndex(p=>p[0]===item[1]);
+      challenge=challengeObject(type,'Complete the selected factor pair: '+item[1]+' × ? = '+a+'.',String(a/item[1]),{hiddenPairSide:'a',hiddenPairIndex:selectedPair});
+    }else if(type==='divisible-by'){
+      const item=pick([[42,6],[45,6],[36,4],[35,4],[54,9],[56,9],[75,5],[72,5]]);
+      a=item[0];compare=false;const divisor=item[1],yes=a%divisor===0;
+      challenge=challengeObject(type,'Is '+a+' divisible by '+divisor+'? Explain using the evidence shown.',yes?'Yes. '+a+' ÷ '+divisor+' = '+a/divisor+'.':'No. '+a+' is not a multiple of '+divisor+'.',{hiddenDivisor:divisor,hiddenDivisorSide:'a'});
+    }else if(type==='common-factors'||type==='hcf'){
+      [a,b]=pick([[36,24],[18,30],[48,60],[42,28],[32,40],[45,60]]);compare=true;
+      const list=fe_factors(a).filter(n=>b%n===0);
+      challenge=type==='common-factors'?challengeObject(type,'What are the common factors of '+a+' and '+b+'?',list.join(', '),{hiddenCommonFactors:true}):challengeObject(type,'What is the highest common factor of '+a+' and '+b+'?',String(fe_gcd2(a,b)),{hiddenHcf:true});
+    }else if(type==='lcm'){
+      [a,b]=pick([[12,18],[4,6],[8,12],[6,15],[9,12],[10,15],[14,21]]);compare=true;
+      challenge=challengeObject(type,'What is the lowest common multiple of '+a+' and '+b+'?',String(fe_lcm2(a,b)),{hiddenLcm:true});
+    }else{
+      a=pick([31,17,19,23,29,37,41,43]);compare=false;
+      challenge=challengeObject(type,'Explain why '+a+' is prime using the factor information shown.',a+' has exactly two factors: 1 and '+a+'.',{hiddenClassificationSide:'a',hiddenPrimeSide:'a'});
+    }
+
+ challenge.variantKey=variantKey;
+ const diagram={a,b,compare,selectedSide,selectedPair};
+ return {type,settings:feSettings(settings),diagram,challenge};
+}
+function fePublicationData(model){
+ const c=model.challenge?JSON.parse(JSON.stringify(model.challenge)):null;
+ if(c?.mode==='custom')throw Error('Use individual export for custom factor tasks.');
+ if(c)c.revealed=false;
+ return {type:c?.type,settings:feSettings(model),diagram:JSON.parse(JSON.stringify(model.diagram||model)),challenge:c};
+}
+function fePaper(data,teacher=false,graphicOnly=false){
+ const d=data.diagram,c=data.challenge,type=c?.type,numbers=d.compare?[d.a,d.b]:[d.a];
+ const W=800,rowsMax=Math.max(...numbers.map(n=>Math.ceil(fe_factorPairs(n).length/3)));
+ const H=type==='missing-factor'?210:type==='divisible-by'?100:type==='lcm'?220:!c?330+rowsMax*30:80+rowsMax*30+(teacher?40:0);
+ const el=(name,attrs={},value)=>{const n=document.createElementNS('http://www.w3.org/2000/svg',name);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,String(v));if(value!==undefined)n.textContent=String(value);return n};
+ const svg=el('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':'Factor and multiple evidence'});
+ const add=(name,attrs,value)=>svg.appendChild(el(name,attrs,value));
+ const text=(x,y,value,attrs={})=>add('text',{x,y,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':22,'font-weight':600,fill:'#304b52',...attrs},value);
+ add('rect',{width:W,height:H,fill:'#fff'});
+ if(type==='missing-factor'){
+   const [r,k]=fe_factorPairs(d.a)[d.selectedPair];
+   text(W/2,32,r+' × '+(teacher?k:'?')+' = '+d.a,{'data-fe-paper-equation':'1'});
+   const cell=Math.min(32,600/k,146/r),x=(W-k*cell)/2,y=52;
+   for(let i=0;i<r;i++)for(let j=0;j<k;j++)add('rect',{x:x+j*cell,y:y+i*cell,width:cell,height:cell,fill:'#e8f4f1',stroke:'#77918e','stroke-width':1,'data-fe-paper-cell':'1'});
+ }else if(type==='divisible-by'){
+   text(W/2,56,d.a+' ÷ '+c.hiddenDivisor+' = '+(teacher?Math.floor(d.a/c.hiddenDivisor)+(d.a%c.hiddenDivisor?' r '+d.a%c.hiddenDivisor:''):'?'),{'data-fe-paper-equation':'1'});
+ }else{
+   const common=d.compare?fe_factors(d.a).filter(n=>d.b%n===0):[],lcm=d.compare?fe_lcm2(d.a,d.b):0;
+   numbers.forEach((n,i)=>{
+     const cw=W/numbers.length,cx=cw*(i+.5),left=i*cw;
+     text(cx,29,n,{'font-size':26,'font-weight':800});
+     text(cx,57,type==='lcm'?'First 12 multiples':'Factor pairs',{'font-size':16,fill:'#52666d'});
+     const values=type==='lcm'?Array.from({length:12},(_,j)=>n*(j+1)):fe_factorPairs(n);
+     values.forEach((v,j)=>{
+       const x=left+cw*(j%3+.5)/3,y=86+Math.floor(j/3)*30;
+       const highlighted=teacher&&type==='lcm'&&v===lcm;
+       if(highlighted)add('rect',{x:x-cw/6+8,y:y-23,width:cw/3-16,height:29,rx:5,fill:'#d9eee9','data-fe-paper-highlight':'1'});
+       text(x,y,Array.isArray(v)?v.join(' × '):v,{'font-size':20});
+     });
+     if(!c){
+       const y=90+rowsMax*30;
+       text(cx,y,fe_isPrime(n)?'Prime number':'Composite number',{'font-size':17});
+       text(cx,y+29,'Prime factors: '+fe_primeFactors(n).join(' × '),{'font-size':17});
+       text(cx,y+61,'First 12 multiples',{'font-size':16});
+       Array.from({length:12},(_,j)=>n*(j+1)).forEach((v,j)=>text(left+cw*(j%3+.5)/3,y+91+Math.floor(j/3)*24,v,{'font-size':16}));
+     }
+   });
+   if(d.compare)add('line',{x1:W/2,y1:12,x2:W/2,y2:teacher&&['common-factors','hcf'].includes(type)?H-44:H-12,stroke:'#d6e0e0'});
+   if(teacher&&['common-factors','hcf'].includes(type))text(W/2,H-12,'Common factors: '+common.join(', '),{'font-size':19,'data-fe-paper-common':'1'});
+   if(!c&&d.compare){text(W/2,H-12,'HCF: '+fe_gcd2(d.a,d.b)+' · LCM: '+lcm,{'font-size':17,stroke:'#fff','stroke-width':4,'paint-order':'stroke'})}
+ }
+ if(!c||graphicOnly)return svg;
+ const lines=Math.max(data.settings.responseLines,['explain-prime','divisible-by','common-factors'].includes(type)?2:1);
+ return G.exportTools.composeWorksheetCardSvg(svg,{title:FE_TEMPLATES.find(t=>t.id===type)?.title||'Factors challenge',prompt:c.prompt,responseMode:lines>1?'lines':'box',responseLabel:['explain-prime','divisible-by'].includes(type)?'Explain your thinking':'Answer',responseLines:lines,paperStyle:'plain',answer:c.answer,showAnswer:teacher,diagramMaxHeight:300});
+}
+G.factorPaperModel={settings:feSettings,types:feTypes,generate:feGenerate,render:fePaper};
+if(G.publishing)G.publishing.register('factors',{
+ label:'Factors & multiples',types:feTypes,
+ title:item=>item.kind==='diagram'?'Factors & multiples illustration':FE_TEMPLATES.find(t=>t.id===item.data.type)?.title||'Factors challenge',
+ signature:d=>JSON.stringify([d.type,d.challenge.prompt]),
+ recipe:(model,type)=>({type,settings:feSettings(model)}),
+ generate(recipe,rng){const ids=feTypes().map(t=>t.id);return feGenerate(recipe.type==='all'?ids[Math.floor(rng()*ids.length)]:recipe.type,recipe.settings,rng)},
+ capture(model){const d=fePublicationData(model);return [G.publishing.record('factors',d.challenge?'challenge':'diagram',d,d.challenge?{type:d.type,settings:d.settings}:null)]},
+ answerSummary:item=>item.data.challenge.answer,
+ answerGraphic:item=>fePaper(item.data,true,true),
+ answerNote:item=>{const type=item.data.type;if(type==='common-factors')return 'Accept the complete set in any order, without additional numbers.';if(type==='explain-prime')return 'Accept equivalent reasoning that identifies exactly two positive factors, 1 and the number itself.';if(type==='divisible-by')return 'Accept an equivalent correct divisibility rule, multiplication fact or division with remainder.';if(type==='hcf')return 'The answer must be the greatest factor of both numbers.';if(type==='lcm')return 'The answer must be the smallest positive multiple shared by both numbers.';return ''},
+ render(item,teacher){return fePaper(item.data,teacher)}
+});
+
 function factorExplorer(){
   const CK=G.challengeKit,X=G.exportTools;
   let a=36,b=24,compare=false,selectedSide='a',selectedPair=0;
@@ -3070,15 +3414,7 @@ function factorExplorer(){
     {id:'compare',label:'Compare numbers'},
     {id:'reason',label:'Reasoning'}
   ];
-  const CHALLENGE_TEMPLATES=[
-    {id:'prime-or-composite',category:'read',title:'Prime or composite?',desc:'Classify a number from its factors.'},
-    {id:'missing-factor',category:'read',title:'Missing factor',desc:'Complete a factor pair for the shown number.'},
-    {id:'divisible-by',category:'read',title:'Divisibility check',desc:'Decide whether a number is divisible by a given divisor.'},
-    {id:'common-factors',category:'compare',title:'Common factors',desc:'Find the factors shared by two numbers.'},
-    {id:'hcf',category:'compare',title:'Highest common factor',desc:'Find the HCF of two numbers.'},
-    {id:'lcm',category:'compare',title:'Lowest common multiple',desc:'Find the LCM of two numbers.'},
-    {id:'explain-prime',category:'reason',title:'Explain why it is prime',desc:'Use the factor evidence to justify a prime classification.'}
-  ];
+  const CHALLENGE_TEMPLATES=FE_TEMPLATES;
   let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='prime-or-composite',challenge=null,beforeChallenge=null;
   let exportMode='diagram',responseLines=1,exportStatus='';
 
@@ -3283,32 +3619,10 @@ function factorExplorer(){
   function generateChallenge(type){
     const meta=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!meta)return;
     if(!beforeChallenge)beforeChallenge=snapshot();else restore(beforeChallenge);
-    undoStack.length=0;redoStack.length=0;selectedSide='a';selectedPair=0;
-    let variantKey='';
-    const pick=list=>{const v=CK.pickVariant(list,challenge?.type===type?challenge.variantKey:'');variantKey=JSON.stringify(v);return v};
-    if(type==='prime-or-composite'){
-      a=pick([29,21,37,49,23,51,41,57,31,27]);compare=false;
-      challenge=challengeObject(type,'Is '+a+' prime or composite? Use the factor evidence to decide.',isPrime(a)?'Prime':'Composite',{hiddenClassificationSide:'a',hiddenPrimeSide:'a'});
-    }else if(type==='missing-factor'){
-      const item=pick([[36,4],[24,3],[42,6],[48,4],[56,7],[63,7],[72,8],[45,5]]);
-      a=item[0];compare=false;selectedPair=factorPairs(a).findIndex(p=>p[0]===item[1]);
-      challenge=challengeObject(type,'Complete the selected factor pair: '+item[1]+' × ? = '+a+'.',String(a/item[1]),{hiddenPairSide:'a',hiddenPairIndex:selectedPair});
-    }else if(type==='divisible-by'){
-      const item=pick([[42,6],[45,6],[36,4],[35,4],[54,9],[56,9],[75,5],[72,5]]);
-      a=item[0];compare=false;const divisor=item[1],yes=a%divisor===0;
-      challenge=challengeObject(type,'Is '+a+' divisible by '+divisor+'? Explain using the evidence shown.',yes?'Yes. '+a+' ÷ '+divisor+' = '+a/divisor+'.':'No. '+a+' is not a multiple of '+divisor+'.',{hiddenDivisor:divisor,hiddenDivisorSide:'a'});
-    }else if(type==='common-factors'||type==='hcf'){
-      [a,b]=pick([[36,24],[18,30],[48,60],[42,28],[32,40],[45,60]]);compare=true;
-      const list=commonFactors();
-      challenge=type==='common-factors'?challengeObject(type,'What are the common factors of '+a+' and '+b+'?',list.join(', '),{hiddenCommonFactors:true}):challengeObject(type,'What is the highest common factor of '+a+' and '+b+'?',String(gcd2(a,b)),{hiddenHcf:true});
-    }else if(type==='lcm'){
-      [a,b]=pick([[12,18],[4,6],[8,12],[6,15],[9,12],[10,15],[14,21]]);compare=true;
-      challenge=challengeObject(type,'What is the lowest common multiple of '+a+' and '+b+'?',String(lcm2(a,b)),{hiddenLcm:true});
-    }else{
-      a=pick([31,17,19,23,29,37,41,43]);compare=false;
-      challenge=challengeObject(type,'Explain why '+a+' is prime using the factor information shown.',a+' has exactly two factors: 1 and '+a+'.',{hiddenClassificationSide:'a',hiddenPrimeSide:'a'});
-    }
-    challenge.variantKey=variantKey;
+    undoStack.length=0;redoStack.length=0;
+    const generated=feGenerate(type,{responseLines},Math.random,challenge?.type===type?challenge.variantKey:'');
+    restore(generated.diagram);
+    challenge=CK?CK.normalise(generated.challenge):generated.challenge;
     challengeType=type;challengeCategory=meta.category;challengeTab='standard';controlTab='challenge';exportMode='challenge';responseLines=meta.category==='reason'?3:1;exportStatus='';renderControls();draw();
   }
   function enterCustomChallenge(){
@@ -3521,6 +3835,85 @@ function factorExplorer(){
 
 }
 
+const FDP_TEMPLATES=[
+    {id:'to-decimal',category:'convert',title:'Fraction to decimal',desc:'Convert the shown fraction to a decimal.'},
+    {id:'to-percentage',category:'convert',title:'Fraction to percentage',desc:'Convert the shown fraction to a percentage.'},
+    {id:'equivalent-fraction',category:'equivalent',title:'Complete an equivalent fraction',desc:'Find the missing numerator or denominator.'},
+    {id:'simplify-fraction',category:'equivalent',title:'Simplify the fraction',desc:'Write the shown fraction in its simplest form.'},
+    {id:'build-percentage',category:'build',title:'Build a percentage',desc:'Adjust the fraction until it represents the requested percentage.'},
+    {id:'spot-percent-error',category:'reason',title:'Spot the percentage error',desc:'Decide whether a displayed percentage matches the fraction.'}
+  ];
+function fdpSettings(model={}){return {responseLines:clamp(Math.round(Number(model.responseLines??model.settings?.responseLines)||1),1,4)}}
+function fdpTypes(){return FDP_TEMPLATES.map(t=>({id:t.id,label:t.title}))}
+function fdpGenerate(type,settings={},rng=Math.random,previous=''){
+ const meta=FDP_TEMPLATES.find(t=>t.id===type);if(!meta)throw Error('Unknown FDP challenge.');
+ let numerator=1,denominator=2,variantKey='';
+ const pick=list=>{const choices=list.filter(v=>JSON.stringify(v)!==previous),v=choices[Math.floor(rng()*choices.length)];variantKey=JSON.stringify(v);return v};
+ const decimal=()=>String(Number((numerator/denominator).toFixed(4))),percent=()=>String(Number((numerator/denominator*100).toFixed(2)));
+ let prompt,answer,extra={};
+ if(type==='to-decimal'){
+  [numerator,denominator]=pick([[3,8],[1,4],[3,5],[7,10],[5,8],[9,20],[1,8],[3,4]]);
+  prompt='Write '+numerator+'/'+denominator+' as a decimal.';answer=decimal();extra={hiddenDecimal:true,hiddenPercent:true,hiddenHundred:true};
+ }else if(type==='to-percentage'){
+  [numerator,denominator]=pick([[3,5],[1,4],[7,10],[3,8],[4,5],[9,20],[5,8]]);
+  prompt='Write '+numerator+'/'+denominator+' as a percentage.';answer=percent()+'%';extra={hiddenDecimal:true,hiddenPercent:true,hiddenHundred:true};
+ }else if(type==='equivalent-fraction'){
+  const [n,d,k]=pick([[3,4,2],[2,3,3],[1,5,4],[3,5,2],[2,7,2],[5,6,3]]);numerator=n;denominator=d;
+  prompt='Complete the equivalent fraction: '+n+'/'+d+' = '+n*k+'/?.';answer=String(d*k);extra={hiddenEquivalentFamily:true};
+ }else if(type==='simplify-fraction'){
+  [numerator,denominator]=pick([[6,8],[4,6],[8,12],[10,15],[6,10],[9,12],[12,16],[15,20]]);
+  const g=gcd(numerator,denominator);prompt='Write '+numerator+'/'+denominator+' in its simplest form.';answer=numerator/g+'/'+denominator/g;extra={hiddenFraction:true,hiddenEquivalentFamily:true};
+ }else if(type==='build-percentage'){
+  const [n,d]=pick([[3,4],[1,4],[2,5],[4,5],[3,5],[1,5],[7,10],[3,8]]);
+  const targetPercent=n/d*100;prompt='Change the model until it represents '+targetPercent+'%.';answer=n+'/'+d+' = '+targetPercent+'%';extra={freezeModel:false,targetPercent,targetNumerator:n,targetDenominator:d};
+ }else{
+  const [n,d,wrong]=pick([[2,5,45],[1,4,20],[3,4,70],[3,5,65],[1,5,25],[7,10,75]]);numerator=n;denominator=d;
+  const valid=rng()<.5,shown=valid?Number(percent()):wrong;
+  prompt='The percentage shown is '+shown+'%. Is that correct? Explain.';answer=valid?'Yes. '+n+'/'+d+' = '+percent()+'%.':'No. '+n+'/'+d+' = '+percent()+'%, not '+shown+'%.';extra={wrongPercent:shown,hiddenDecimal:true,hiddenHundred:true};
+ }
+ const diagram={numerator,denominator,equivScale:1};
+ const raw={mode:'standard',type,category:meta.category,title:'',prompt,promptHtml:prompt,answer,answerMode:'manual',answerSource:'',revealed:false,freezeModel:true,hiddenSource:false,hiddenFraction:false,hiddenDecimal:false,hiddenPercent:false,hiddenHundred:false,hiddenEquivalentFamily:false,targetPercent:null,wrongPercent:null,...extra,variantKey,initialState:{...diagram}};
+ return {type,settings:fdpSettings(settings),diagram,challenge:raw};
+}
+function fdpPublicationData(model){
+ const c=model.challenge?JSON.parse(JSON.stringify(model.challenge)):null;
+ if(c?.mode==='custom')throw Error('Use individual export for custom FDP tasks.');
+ const diagram=JSON.parse(JSON.stringify(c?.initialState||model.diagram||model));
+ if(c){c.revealed=false;delete c.modelBeforeReveal}
+ return {type:c?.type,settings:fdpSettings(model),diagram,challenge:c};
+}
+function fdpPaper(data,teacher=false,graphicOnly=false){
+ const c=data.challenge,build=c?.type==='build-percentage',state=data.diagram;
+ let n=state.numerator,d=state.denominator;
+ if(build){n=c.targetNumerator;d=c.targetDenominator}
+ const W=720,H=c?.type==='spot-percent-error'&&!teacher?160:130;
+ const node=(name,attrs={},value)=>{const el=document.createElementNS('http://www.w3.org/2000/svg',name);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,String(v));if(value!==undefined)el.textContent=String(value);return el};
+ const svg=node('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':build&&!teacher?'Blank fraction bar':'Fraction bar'});
+ const add=(name,attrs,value)=>svg.appendChild(node(name,attrs,value));
+ const text=(x,y,value)=>add('text',{x,y,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':22,fill:'#304b52','font-weight':700},value);
+ add('rect',{width:W,height:H,fill:'#fff'});
+ if(!build||teacher)text(W/2,26,n+'/'+d);
+ for(let i=0;i<d;i++)add('rect',{x:30+i*660/d,y:40,width:660/d,height:64,fill:(!build||teacher)&&i<n?'#f6cf79':'#fff',stroke:'#526b70','stroke-width':1.5,'data-fdp-paper-part':i,'data-fdp-shaded':(!build||teacher)&&i<n?'1':'0'});
+ if(c?.type==='spot-percent-error'&&!teacher)text(W/2,143,c.wrongPercent+'%');
+ if(!c){const pct=String(Number((n/d*100).toFixed(2))),decimal=String(Number((n/d).toFixed(4)));text(W/2,126,decimal+' = '+pct+'%');return svg}
+ if(graphicOnly)return svg;
+ const lines=Math.max(data.settings.responseLines,c.category==='reason'?3:1);
+ return G.exportTools.composeWorksheetCardSvg(svg,{title:FDP_TEMPLATES.find(t=>t.id===c.type)?.title||'FDP challenge',prompt:build?'Shade '+c.targetPercent+'% of the bar.':c.prompt,responseMode:build?'none':lines>1?'lines':'box',responseLabel:c.category==='reason'?'Explain your thinking':'Answer',responseLines:lines,paperStyle:'plain',answer:c.answer,showAnswer:teacher,diagramMaxHeight:230});
+}
+G.fdpPaperModel={settings:fdpSettings,types:fdpTypes,generate:fdpGenerate,render:fdpPaper};
+if(G.publishing)G.publishing.register('fdp',{
+ label:'Fraction–decimal–percentage',types:fdpTypes,
+ title:item=>item.kind==='diagram'?'Fraction–decimal–percentage illustration':FDP_TEMPLATES.find(t=>t.id===item.data.type)?.title||'FDP challenge',
+ signature:d=>JSON.stringify([d.type,d.challenge.prompt]),
+ recipe:(model,type)=>({type,settings:fdpSettings(model)}),
+ generate(recipe,rng){const ids=fdpTypes().map(t=>t.id);return fdpGenerate(recipe.type==='all'?ids[Math.floor(rng()*ids.length)]:recipe.type,recipe.settings,rng)},
+ capture(model){const d=fdpPublicationData(model);return [G.publishing.record('fdp',d.challenge?'challenge':'diagram',d,d.challenge?{type:d.type,settings:d.settings}:null)]},
+ answerSummary:item=>item.data.challenge.answer,
+ answerGraphic:item=>fdpPaper(item.data,true,true),
+ answerNote:item=>{const c=item.data.challenge;if(c.type==='build-percentage')return 'Accept any valid shading representing exactly '+c.targetPercent+'% of the whole.';if(c.type==='simplify-fraction')return 'The numerator and denominator must have no common factor greater than 1.';if(c.type==='spot-percent-error')return 'Accept equivalent explanations that calculate the correct percentage and compare it with the displayed value.';if(c.type==='to-decimal'||c.type==='to-percentage')return 'Accept equivalent notation, including trailing decimal zeros.';return 'The missing denominator must preserve the value of the original fraction.'},
+ render(item,teacher){return fdpPaper(item.data,teacher)}
+});
+
 function fdpExplorer(){
   const CK=G.challengeKit,X=G.exportTools;
   let numerator=3,denominator=8,equivScale=1;
@@ -3534,14 +3927,7 @@ function fdpExplorer(){
     {id:'build',label:'Build'},
     {id:'reason',label:'Reasoning'}
   ];
-  const CHALLENGE_TEMPLATES=[
-    {id:'to-decimal',category:'convert',title:'Fraction to decimal',desc:'Convert the shown fraction to a decimal.'},
-    {id:'to-percentage',category:'convert',title:'Fraction to percentage',desc:'Convert the shown fraction to a percentage.'},
-    {id:'equivalent-fraction',category:'equivalent',title:'Complete an equivalent fraction',desc:'Find the missing numerator or denominator.'},
-    {id:'simplify-fraction',category:'equivalent',title:'Simplify the fraction',desc:'Write the shown fraction in its simplest form.'},
-    {id:'build-percentage',category:'build',title:'Build a percentage',desc:'Adjust the fraction until it represents the requested percentage.'},
-    {id:'spot-percent-error',category:'reason',title:'Spot the percentage error',desc:'Decide whether a displayed percentage matches the fraction.'}
-  ];
+  const CHALLENGE_TEMPLATES=FDP_TEMPLATES;
   let controlTab='explore',challengeTab='standard',challengeCategory='convert',challengeType='to-decimal',challenge=null,beforeChallenge=null;
   let exportMode='diagram',responseLines=1,exportStatus='';
 
@@ -3734,33 +4120,10 @@ function fdpExplorer(){
   function generateChallenge(type){
     const meta=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!meta)return;
     if(!beforeChallenge)beforeChallenge=snapshot();else restore(beforeChallenge);
-    undoStack.length=0;redoStack.length=0;equivScale=1;
-    let variantKey='';
-    const pick=list=>{const v=CK.pickVariant(list,challenge?.type===type?challenge.variantKey:'');variantKey=JSON.stringify(v);return v};
-    if(type==='to-decimal'){
-      [numerator,denominator]=pick([[3,8],[1,4],[3,5],[7,10],[5,8],[9,20],[1,8],[3,4]]);
-      challenge=challengeObject(type,'Write '+numerator+'/'+denominator+' as a decimal.',decimalText(),{hiddenDecimal:true,hiddenPercent:true,hiddenHundred:true});
-    }else if(type==='to-percentage'){
-      [numerator,denominator]=pick([[3,5],[1,4],[7,10],[3,8],[4,5],[9,20],[5,8]]);
-      challenge=challengeObject(type,'Write '+numerator+'/'+denominator+' as a percentage.',percentText()+'%',{hiddenDecimal:true,hiddenPercent:true,hiddenHundred:true});
-    }else if(type==='equivalent-fraction'){
-      const [n,d,k]=pick([[3,4,2],[2,3,3],[1,5,4],[3,5,2],[2,7,2],[5,6,3]]);
-      numerator=n;denominator=d;
-      challenge=challengeObject(type,'Complete the equivalent fraction: '+n+'/'+d+' = '+n*k+'/?.',String(d*k),{hiddenEquivalentFamily:true});
-    }else if(type==='simplify-fraction'){
-      [numerator,denominator]=pick([[6,8],[4,6],[8,12],[10,15],[6,10],[9,12],[12,16],[15,20]]);
-      const f=simplified();challenge=challengeObject(type,'Write '+numerator+'/'+denominator+' in its simplest form.',f.n+'/'+f.d,{hiddenFraction:true,hiddenEquivalentFamily:true});
-    }else if(type==='build-percentage'){
-      const [n,d]=pick([[3,4],[1,4],[2,5],[4,5],[3,5],[1,5],[7,10],[3,8]]);
-      const targetPercent=n/d*100;numerator=1;denominator=2;
-      challenge=challengeObject(type,'Change the model until it represents '+targetPercent+'%.',n+'/'+d+' = '+targetPercent+'%',{freezeModel:false,targetPercent,targetNumerator:n,targetDenominator:d});
-    }else{
-      const [n,d,wrong]=pick([[2,5,45],[1,4,20],[3,4,70],[3,5,65],[1,5,25],[7,10,75]]);
-      numerator=n;denominator=d;const valid=Math.random()<.5,shown=valid?percentValue():wrong;
-      challenge=challengeObject(type,'The percentage shown is '+shown+'%. Is that correct? Explain.',valid?'Yes. '+n+'/'+d+' = '+percentText()+'%.':'No. '+n+'/'+d+' = '+percentText()+'%, not '+shown+'%.',{wrongPercent:shown,hiddenDecimal:true,hiddenHundred:true});
-    }
-    challenge.variantKey=variantKey;
-    challenge.initialState=snapshot();
+    undoStack.length=0;redoStack.length=0;
+    const generated=fdpGenerate(type,{responseLines},Math.random,challenge?.type===type?challenge.variantKey:'');
+    restore(generated.diagram);
+    challenge=CK?CK.normalise(generated.challenge):generated.challenge;
     challengeType=type;challengeCategory=meta.category;challengeTab='standard';controlTab='challenge';exportMode='challenge';responseLines=meta.category==='reason'?3:1;exportStatus='';renderControls();draw();
   }
   function enterCustomChallenge(){
@@ -3982,17 +4345,7 @@ function fdpExplorer(){
 
 }
 
-function geoboard(){
-  const CK=G.challengeKit,X=G.exportTools;
-  let pts=[],selected=-1,drag=null;
-  const undoStack=[],redoStack=[];
-  const N=7,W=560,pad=55,step=(W-2*pad)/(N-1);
-  const CHALLENGE_CATEGORIES=[
-    {id:'measure',label:'Measure'},
-    {id:'construct',label:'Build'},
-    {id:'reason',label:'Reasoning'}
-  ];
-  const CHALLENGE_TEMPLATES=[
+const GE_TEMPLATES=[
     {id:'find-length',category:'measure',title:'Find the length',desc:'Measure the distance between two pegs.'},
     {id:'find-perimeter',category:'measure',title:'Find the perimeter',desc:'Work out the perimeter of the shown shape.'},
     {id:'find-area',category:'measure',title:'Find the area',desc:'Work out the area enclosed by the shown shape.'},
@@ -4000,6 +4353,111 @@ function geoboard(){
     {id:'build-area',category:'construct',title:'Build a target area',desc:'Create any polygon with the requested area.'},
     {id:'area-perimeter-units',category:'reason',title:'Same number, same measure?',desc:'Reason about area and perimeter when their numerical values match.'}
   ];
+const GE_GRID_SIZES=[5,7,9,11,13];
+function geGridSize(value){const n=Number(value);return GE_GRID_SIZES.includes(n)?n:7}
+function geSettings(model={}){
+ return {gridSize:geGridSize(model.generationGrid??model.gridSize??model.settings?.gridSize??model.diagram?.gridSize),responseLines:clamp(Math.round(Number(model.responseLines??model.settings?.responseLines)||1),1,4)};
+}
+function geTypes(){return GE_TEMPLATES.map(t=>({id:t.id,label:t.title}))}
+function geArea(pts){return pts.length<3?0:Math.abs(pts.reduce((sum,a,i)=>{const b=pts[(i+1)%pts.length];return sum+a.x*b.y-b.x*a.y},0))/2}
+function gePerimeter(pts){return pts.length<3?0:pts.reduce((sum,a,i)=>{const b=pts[(i+1)%pts.length];return sum+Math.hypot(a.x-b.x,a.y-b.y)},0)}
+function geLength(pts){return pts.length===2?Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y):0}
+function geMetric(v){return String(Number(v.toFixed(2)))}
+function geGenerate(type,settings={},rng=Math.random){
+ const cfg=geSettings(settings),N=cfg.gridSize,max=N-1,meta=GE_TEMPLATES.find(t=>t.id===type);
+ if(!meta)throw Error('Unknown Geoboard challenge.');
+ const r=(a,b)=>a+Math.floor(rng()*(b-a+1)),pick=a=>a[Math.floor(rng()*a.length)];
+ const dimensions=[];for(let w=2;w<=max;w++)for(let h=1;h<=max;h++)if(w*h>=4)dimensions.push([w,h]);
+ const rectangle=(w,h,triangle=false)=>{const x=r(0,max-w),y=r(0,max-h);return triangle?[{x,y},{x:x+w,y},{x,y:y+h}]:[{x,y},{x:x+w,y},{x:x+w,y:y+h},{x,y:y+h}]};
+ let pts=[],prompt='',answer='',extra={};
+ if(type==='find-length'){
+   const length=r(2,max),vertical=rng()<.5,x=r(0,vertical?max:max-length),y=r(0,vertical?max-length:max);
+   pts=[{x,y},{x:x+(vertical?0:length),y:y+(vertical?length:0)}];prompt='What is the length of segment AB?';answer=geMetric(geLength(pts))+' units';extra={hiddenMetrics:['length']};
+ }else if(type==='find-perimeter'){
+   if(rng()<.35){const k=r(1,Math.floor(max/4));pts=rectangle(4*k,3*k,true)}else{const [w,h]=pick(dimensions);pts=rectangle(w,h)}
+   prompt='What is the perimeter of this shape?';answer=geMetric(gePerimeter(pts))+' units';extra={hiddenMetrics:['perimeter']};
+ }else if(type==='find-area'){
+   const [w,h]=pick(dimensions);pts=rectangle(w,h,rng()<.45);
+   prompt='What is the area enclosed by this shape?';answer=geMetric(geArea(pts))+' square units';extra={hiddenMetrics:['area']};
+ }else if(type==='perimeter-area'){
+   const [w,h]=pick(dimensions);pts=rectangle(w,h);
+   prompt='Find both the perimeter and the area of this shape.';answer='Perimeter '+geMetric(gePerimeter(pts))+' units; area '+geMetric(geArea(pts))+' square units';extra={hiddenMetrics:['perimeter','area']};
+ }else if(type==='build-area'){
+   // Every generated target has an integer-sided rectangle that fits the chosen grid.
+   const [w,h]=pick(dimensions.filter(([w,h])=>h>=2));const area=w*h;
+   prompt='Show a polygon with an area of '+area+' square units.';answer='For example, a '+w+' × '+h+' rectangle.';extra={targetArea:area,solutionSize:[w,h],hiddenMetrics:['area']};
+ }else{
+   pts=rectangle(4,4);prompt='This square has perimeter 16 units and area 16 square units. A pupil says the two measurements are the same because both numbers are 16. Are they correct?';
+   answer='No. Perimeter measures distance around the shape in units; area measures the surface inside it in square units.';
+ }
+ const diagram={gridSize:N,pts,selected:-1};
+ const challenge={mode:'standard',type,category:meta.category,title:'',prompt,promptHtml:prompt,answer,answerMode:'manual',answerSource:'',revealed:false,hiddenMetrics:[],...extra,initialState:JSON.parse(JSON.stringify(diagram))};
+ return {type,settings:cfg,diagram,challenge};
+}
+function gePublicationData(model){
+ const c=model.challenge?JSON.parse(JSON.stringify(model.challenge)):null;
+ if(c?.mode==='custom')throw Error('Use individual export for custom Geoboard tasks.');
+ const source=c?.initialState||model.diagram||model;
+ const diagram={gridSize:geGridSize(source.gridSize),pts:JSON.parse(JSON.stringify(source.pts||[])),selected:-1};
+ if(c){c.revealed=false;delete c.preRevealShape;if(c.type==='build-area')diagram.pts=[]}
+ return {type:c?.type,settings:{...geSettings(model),gridSize:diagram.gridSize},diagram,challenge:c};
+}
+function geSolution(data){
+ if(data.type!=='build-area')return data.diagram.pts;
+ const [w,h]=data.challenge.solutionSize,N=data.diagram.gridSize,x=w<N-1?1:0,y=h<N-1?1:0;
+ return [{x,y},{x:x+w,y},{x:x+w,y:y+h},{x,y:y+h}];
+}
+function gePaper(data,teacher=false,graphicOnly=false){
+ const N=data.diagram.gridSize,c=data.challenge,build=c?.type==='build-area',pts=build?(teacher?geSolution(data):[]):data.diagram.pts;
+ const W=520,gridPad=32,step=(W-2*gridPad)/(N-1),H=W+(teacher||!c?54:0);
+ const el=(name,attrs={},value)=>{const n=document.createElementNS('http://www.w3.org/2000/svg',name);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,String(v));if(value!==undefined)n.textContent=String(value);return n};
+ const svg=el('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':N+' by '+N+' Geoboard'});
+ const add=(name,attrs,value)=>svg.appendChild(el(name,attrs,value));
+ const xy=p=>({x:gridPad+p.x*step,y:gridPad+(N-1-p.y)*step});
+ const text=(x,y,value,attrs={})=>add('text',{x,y,'font-family':'Arial,sans-serif','font-size':16,'font-weight':700,fill:'#304b52',...attrs},value);
+ add('rect',{width:W,height:H,fill:'#fff'});
+ for(let i=0;i<N;i++){const a=gridPad+i*step;add('line',{x1:a,y1:gridPad,x2:a,y2:W-gridPad,stroke:'#e1e8e8','stroke-width':1});add('line',{x1:gridPad,y1:a,x2:W-gridPad,y2:a,stroke:'#e1e8e8','stroke-width':1})}
+ if(pts.length>1)add(pts.length>2?'polygon':'polyline',{points:pts.map(p=>{const v=xy(p);return v.x+','+v.y}).join(' '),fill:pts.length>2?'#d8ede9':'none','fill-opacity':.65,stroke:'#287b72','stroke-width':3,'stroke-linejoin':'round','data-ge-paper-shape':'1'});
+ for(let y=0;y<N;y++)for(let x=0;x<N;x++){const v=xy({x,y});add('circle',{cx:v.x,cy:v.y,r:Math.min(3.7,step*.09),fill:'#849a9e','data-ge-paper-pin':x+','+y})}
+ pts.forEach((p,i)=>{const v=xy(p);add('circle',{cx:v.x,cy:v.y,r:Math.min(6,step*.15),fill:'#fff',stroke:'#287b72','stroke-width':2,'data-ge-paper-vertex':i});text(v.x+8,v.y-8,String.fromCharCode(65+i),{'font-size':Math.min(16,step*.38),stroke:'#fff','stroke-width':3,'paint-order':'stroke'})});
+ if(teacher||!c){
+   let summary=N+' × '+N+' pins · 1 unit between adjacent pins';
+   text(W/2,W+13,summary,{'text-anchor':'middle','font-size':13,fill:'#52666d'});
+   let metrics='';
+   if(pts.length===2)metrics='Length: '+geMetric(geLength(pts))+' units';
+   else if(pts.length>2)metrics=G.challengeKit?.simplePolygon&&!G.challengeKit.simplePolygon(pts)?'Crossing polygon — measurements not shown':'Perimeter: '+geMetric(gePerimeter(pts))+' units · Area: '+geMetric(geArea(pts))+' square units';
+   if(metrics)text(W/2,W+36,metrics,{'text-anchor':'middle','font-size':14,'data-ge-paper-metrics':'1'});
+ }
+ if(!c||graphicOnly)return svg;
+ const lines=Math.max(data.settings.responseLines,c.category==='reason'?3:c.type==='perimeter-area'?2:1);
+ const prompt=(build?'Draw a non-crossing polygon with an area of '+c.targetArea+' square units on the peg grid.':c.prompt)+' Adjacent pins are 1 unit apart.';
+ return G.exportTools.composeWorksheetCardSvg(svg,{title:GE_TEMPLATES.find(t=>t.id===c.type)?.title||'Geoboard challenge',prompt,responseMode:build?'none':lines>1?'lines':'box',responseLabel:c.category==='reason'?'Explain your thinking':'Answer',responseLines:lines,paperStyle:'plain',answer:c.answer,showAnswer:teacher,diagramMaxHeight:470});
+}
+G.geoboardPaperModel={settings:geSettings,types:geTypes,generate:geGenerate,render:gePaper,solution:geSolution,area:geArea,perimeter:gePerimeter,length:geLength};
+if(G.publishing)G.publishing.register('geoboard',{
+ label:'Shape & geoboard',types:geTypes,
+ title:item=>item.kind==='diagram'?'Geoboard illustration':GE_TEMPLATES.find(t=>t.id===item.data.type)?.title||'Geoboard challenge',
+ signature:d=>JSON.stringify([d.type,d.diagram.gridSize,d.challenge.prompt,d.diagram.pts]),
+ recipe:(model,type)=>({type,settings:geSettings(model)}),
+ generate(recipe,rng){const ids=geTypes().map(t=>t.id);return geGenerate(recipe.type==='all'?ids[Math.floor(rng()*ids.length)]:recipe.type,recipe.settings,rng)},
+ capture(model){const d=gePublicationData(model);return [G.publishing.record('geoboard',d.challenge?'challenge':'diagram',d,d.challenge?{type:d.type,settings:d.settings}:null)]},
+ answerSummary:item=>item.data.challenge.answer,
+ answerGraphic:item=>gePaper(item.data,true,true),
+ answerNote:item=>{const c=item.data.challenge;if(c.type==='build-area')return 'Accept any non-crossing polygon on the chosen peg grid with area exactly '+c.targetArea+' square units. The illustrated rectangle is only one example.';if(c.type==='area-perimeter-units')return 'Accept an equivalent explanation distinguishing the distance around a shape from its enclosed surface, with the correct units.';if(c.type==='perimeter-area')return 'Both measurements and their respective units must be correct.';return c.type==='find-area'?'Accept equivalent numerical notation in square units.':'Accept equivalent numerical notation in units.'},
+ render(item,teacher){return gePaper(item.data,teacher)}
+});
+
+function geoboard(){
+  const CK=G.challengeKit,X=G.exportTools;
+  let pts=[],selected=-1,drag=null;
+  const undoStack=[],redoStack=[];
+  let N=7,generationGrid=7;const W=560,pad=55;let step=(W-2*pad)/(N-1);
+  const CHALLENGE_CATEGORIES=[
+    {id:'measure',label:'Measure'},
+    {id:'construct',label:'Build'},
+    {id:'reason',label:'Reasoning'}
+  ];
+  const CHALLENGE_TEMPLATES=GE_TEMPLATES;
   let controlTab='explore',challengeTab='standard',challengeCategory='measure',challengeType='find-length',challenge=null,beforeChallenge=null;
   let exportMode='diagram',responseLines=1,exportStatus='';
 
@@ -4046,9 +4504,10 @@ function geoboard(){
     return p;
   }
   function cleanMetric(v){const n=Math.round((Number(v)||0)*100)/100;return Math.abs(n-Math.round(n))<1e-9?String(Math.round(n)):n.toFixed(2)}
-  function teachingSnapshot(){return{pts:copyPts(),selected}}
+  function teachingSnapshot(){return{pts:copyPts(),selected,gridSize:N}}
   function restoreTeachingSnapshot(value){
     if(!value)return;
+    N=geGridSize(value.gridSize);step=(W-2*pad)/(N-1);
     pts=copyPts(Array.isArray(value.pts)?value.pts:[]);
     selected=Number.isInteger(value.selected)&&value.selected>=0&&value.selected<pts.length?value.selected:-1;
     undoStack.length=0;redoStack.length=0;
@@ -4099,8 +4558,9 @@ function geoboard(){
       '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-ge-workflow="challenge">Challenge'+(challenge?' •':'')+'</button>'+
       '<button class="gd-btn'+(controlTab==='export'?' gd-btn--primary':'')+'" type="button" data-ge-workflow="export">Export / reuse</button></div>';
   }
+  function gridControl(forChallenge=false){const value=forChallenge?generationGrid:N;return '<label class="gd-field"><span>'+ (forChallenge?'Grid for next challenge':'Pin grid')+'</span><select class="gd-select" id="ge-grid-size"'+(!forChallenge&&challenge?.mode==='standard'?' disabled':'')+'>'+GE_GRID_SIZES.map(n=>'<option value="'+n+'"'+(n===value?' selected':'')+'>'+n+' × '+n+' pins ('+(n*n)+')</option>').join('')+'</select></label><p class="gd-help" id="ge-grid-status" role="status">Adjacent pins are 1 unit apart.</p>'}
   function exploreControlsHtml(){
-    return '<div class="gd-row">'+btn('Undo','ge-undo')+btn('Redo','ge-redo')+btn('Clear shape','ge-clear')+'</div>'+
+    return gridControl()+'<div class="gd-row">'+btn('Undo','ge-undo')+btn('Redo','ge-redo')+btn('Clear shape','ge-clear')+'</div>'+
       '<p class="gd-help">Tap pegs in order to make a shape. Then drag any vertex to another peg instead of rebuilding the polygon. With two vertices the tool shows segment length; with three or more it shows perimeter and area.</p>';
   }
   function challengeControlsHtml(){
@@ -4108,7 +4568,7 @@ function geoboard(){
     const tabs=CK.tabsHtml?CK.tabsHtml('ge',challengeTab):'';
     if(challengeTab==='custom'){
       const custom=challenge&&challenge.mode==='custom'?challenge:CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual'});
-      return tabs+CK.editorHtml(custom,'ge',{answerSources:customAnswerSources(),generatedAnswerLabel:'Keep the generated answer'})+
+      return tabs+gridControl()+CK.editorHtml(custom,'ge',{answerSources:customAnswerSources(),generatedAnswerLabel:'Keep the generated answer'})+
         '<div class="gd-row">'+(challenge&&challenge.answer?'<button class="gd-btn" id="ge-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
         (challenge?'<button class="gd-btn" id="ge-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
         '<div class="gd-row">'+btn('Undo','ge-undo')+btn('Redo','ge-redo')+'</div>'+
@@ -4116,7 +4576,7 @@ function geoboard(){
     }
     const picker=CK.pickerHtml(CHALLENGE_TEMPLATES,CHALLENGE_CATEGORIES,challengeCategory,challengeType,'ge');
     const repeat=!!(challenge&&challenge.mode==='standard'&&challenge.type===challengeType);
-    return tabs+picker+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="ge-generate" type="button">'+(repeat?'Another like this':'Generate challenge')+'</button>'+
+    return tabs+gridControl(true)+picker+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="ge-generate" type="button">'+(repeat?'Another like this':'Generate challenge')+'</button>'+
       (challenge&&challenge.mode!=='custom'?'<button class="gd-btn" id="ge-edit-challenge" type="button">Edit challenge</button>':'')+
       (challenge&&challenge.answer?'<button class="gd-btn" id="ge-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
       (challenge?'<button class="gd-btn" id="ge-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
@@ -4244,38 +4704,10 @@ function geoboard(){
   function generateChallenge(type){
     const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
     if(!beforeChallenge)beforeChallenge=teachingSnapshot();else restoreTeachingSnapshot(beforeChallenge);
-    const pick=a=>a[Math.floor(Math.random()*a.length)];
-    if(type==='find-length'){
-      const length=2+Math.floor(Math.random()*5),vertical=Math.random()<.5;
-      const x=Math.floor(Math.random()*(vertical?N:N-length)),y=Math.floor(Math.random()*(vertical?N-length:N));
-      setGeneratedShape([{x,y},{x:x+(vertical?0:length),y:y+(vertical?length:0)}]);
-      challenge=challengeObject(type,'What is the length of segment AB?',resolveAnswerSource('length'),{answerSource:'length',hiddenMetrics:['length']});
-    }else if(type==='find-perimeter'){
-      if(Math.random()<.35){
-        setGeneratedShape([{x:1,y:1},{x:5,y:1},{x:1,y:4}]);
-      }else{
-        const [w,h]=pick([[2,3],[3,4],[4,2],[5,1]]);setGeneratedShape(randomRect(w,h));
-      }
-      challenge=challengeObject(type,'What is the perimeter of this shape?',resolveAnswerSource('perimeter'),{answerSource:'perimeter',hiddenMetrics:['perimeter']});
-    }else if(type==='find-area'){
-      if(Math.random()<.45){
-        const [w,h]=pick([[4,3],[4,2],[6,2],[3,2],[5,3],[3,3]]),x=Math.floor(Math.random()*(N-w)),y=Math.floor(Math.random()*(N-h));
-        setGeneratedShape([{x,y},{x:x+w,y},{x,y:y+h}]);
-      }else{
-        const [w,h]=pick([[2,3],[3,4],[4,2],[5,2]]);setGeneratedShape(randomRect(w,h));
-      }
-      challenge=challengeObject(type,'What is the area enclosed by this shape?',resolveAnswerSource('area'),{answerSource:'area',hiddenMetrics:['area']});
-    }else if(type==='perimeter-area'){
-      const [w,h]=pick([[2,3],[3,4],[4,2],[5,2]]);setGeneratedShape(randomRect(w,h));
-      challenge=challengeObject(type,'Find both the perimeter and the area of this shape.',resolveAnswerSource('perimeter-area'),{answerSource:'perimeter-area',hiddenMetrics:['perimeter','area']});
-    }else if(type==='build-area'){
-      const option=pick([{area:4,w:2,h:2},{area:6,w:3,h:2},{area:8,w:4,h:2},{area:9,w:3,h:3},{area:10,w:5,h:2},{area:12,w:4,h:3}]);
-      setGeneratedShape([]);
-      challenge=challengeObject(type,'Show a polygon with an area of '+option.area+' square units.','For example, a '+option.w+' × '+option.h+' rectangle.',{answerMode:'manual',targetArea:option.area,solutionSize:[option.w,option.h],hiddenMetrics:['area']});
-    }else{
-      setGeneratedShape([{x:1,y:1},{x:5,y:1},{x:5,y:5},{x:1,y:5}]);
-      challenge=challengeObject(type,'This square has perimeter 16 units and area 16 square units. A pupil says the two measurements are the same because both numbers are 16. Are they correct?','No. Perimeter measures distance around the shape in units; area measures the surface inside it in square units.',{answerMode:'manual'});
-    }
+    let generated=geGenerate(type,{gridSize:generationGrid,responseLines});
+    for(let i=0;i<20&&challenge?.type===type&&challenge.prompt===generated.challenge.prompt&&JSON.stringify(challenge.initialState?.pts)===JSON.stringify(generated.diagram.pts);i++)generated=geGenerate(type,{gridSize:generationGrid,responseLines});
+    N=generated.diagram.gridSize;step=(W-2*pad)/(N-1);setGeneratedShape(generated.diagram.pts);
+    challenge=CK?CK.normalise(generated.challenge):generated.challenge;
     challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';
     exportMode='challenge';responseLines=template.category==='reason'?3:1;exportStatus='';renderControls();draw();
   }
@@ -4316,6 +4748,7 @@ function geoboard(){
       const print=q('#ge-print',controls);if(print)print.onclick=()=>exportAction('print');
       return;
     }
+    const grid=q('#ge-grid-size',controls);if(grid)grid.onchange=()=>{const n=geGridSize(grid.value);if(controlTab==='challenge'&&challengeTab==='standard'){generationGrid=n;return}if(challenge?.mode==='standard')return;if(pts.some(p=>p.x>=n||p.y>=n)){grid.value=String(N);q('#ge-grid-status',controls).textContent='Shape does not fit. Move or clear the outlying vertices first.';return}N=n;generationGrid=n;step=(W-2*pad)/(N-1);undoStack.length=0;redoStack.length=0;drag=null;renderControls();draw()};
     const u=q('#ge-undo',controls);if(u)u.onclick=undo;
     const r=q('#ge-redo',controls);if(r)r.onclick=redo;
     const clear=q('#ge-clear',controls);if(clear)clear.onclick=()=>{if(shapeFrozen()||!pts.length)return;remember();pts=[];selected=-1;draw()};
@@ -4495,9 +4928,9 @@ function geoboard(){
     let grid='';
     for(let y=0;y<N;y++)for(let x=0;x<N;x++){
       const v=pointPx({x,y});
-      grid+='<circle class="gd-ge-peg" cx="'+v.x+'" cy="'+v.y+'" r="5" pointer-events="none"></circle>';
+      grid+='<circle class="gd-ge-peg" cx="'+v.x+'" cy="'+v.y+'" r="'+Math.min(5,step*.12)+'" pointer-events="none"></circle>';
     }
-    const hitGrid=Array.from({length:N*N},(_,i)=>{const x=i%N,y=Math.floor(i/N),v=pointPx({x,y});return '<circle class="gd-ge-peg-hit" cx="'+v.x+'" cy="'+v.y+'" r="16" fill="transparent" data-gp="'+x+','+y+'"></circle>'}).join('');
+    const hitGrid=Array.from({length:N*N},(_,i)=>{const x=i%N,y=Math.floor(i/N),v=pointPx({x,y});return '<circle class="gd-ge-peg-hit" cx="'+v.x+'" cy="'+v.y+'" r="'+Math.min(16,step*.45)+'" fill="transparent" data-gp="'+x+','+y+'"></circle>'}).join('');
     const poly='<polyline class="gd-poly" data-ge-poly'+(pts.length<3?' style="fill:none"':'')+' points="'+polyPoints()+'"></polyline>';
     const vertices=pts.map((p,i)=>{
       const v=pointPx(p),label=String.fromCharCode(65+i);
@@ -4506,7 +4939,7 @@ function geoboard(){
     }).join('');
     const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Geoboard challenge',pupil:(challenge.type==='build-area'?CK.pupilSpec('model',{check:()=>CK.simplePolygon(pts)&&Math.abs(area()-challenge.targetArea)<1e-8}):challenge.type==='area-perimeter-units'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:'No',explain:true}):challenge.type==='perimeter-area'?CK.pupilSpec('metrics'):CK.pupilSpec('unit',{unit:challenge.type==='find-area'?'square units':'units'})),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-geo gd-geoboard-direct">'+
-      '<svg id="ge-svg" viewBox="0 0 '+W+' '+W+'" role="img" aria-label="Interactive geoboard">'+grid+poly+hitGrid+vertices+'</svg>'+
+      '<svg id="ge-svg" viewBox="0 0 '+W+' '+W+'" role="img" aria-label="Interactive geoboard '+N+' by '+N+' pins">'+grid+poly+hitGrid+vertices+'</svg>'+
       (shapeFrozen()?'':'<div class="gd-ge-context"><span id="ge-context-text">'+(selected>=0&&pts[selected]?'Selected '+String.fromCharCode(65+selected)+' · ('+pts[selected].x+', '+pts[selected].y+')':(shapeFrozen()?'The given shape is fixed for this challenge.':'Tap a peg to add a vertex. Drag an existing vertex to reshape the polygon.'))+'</span><div class="gd-context-actions">'+
         '<button type="button" class="gd-context-history" data-ge-undo-stage'+(!undoStack.length?' disabled':'')+'>Undo</button>'+
         '<button type="button" class="gd-context-history" data-ge-redo-stage'+(!redoStack.length?' disabled':'')+'>Redo</button>'+
@@ -4522,8 +4955,8 @@ function geoboard(){
   setPanels(controlsHtml(),'');
   bindControls();
   draw();
-  G.lessonState?.register('geoboard',()=>({diagram:teachingSnapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
-    restoreTeachingSnapshot(saved.diagram);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
+  G.lessonState?.register('geoboard',()=>({diagram:teachingSnapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines,generationGrid}),saved=>{
+    restoreTeachingSnapshot(saved.diagram);generationGrid=geGridSize(saved.generationGrid??saved.diagram?.gridSize);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
     if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
     if(Object.prototype.hasOwnProperty.call(saved,'challengeTab'))challengeTab=saved.challengeTab;
     if(Object.prototype.hasOwnProperty.call(saved,'challengeCategory'))challengeCategory=saved.challengeCategory;

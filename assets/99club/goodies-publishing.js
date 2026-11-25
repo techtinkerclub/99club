@@ -2,8 +2,11 @@
 'use strict';
 if(!G)return;
 const adapters=new Map(),copy=v=>JSON.parse(JSON.stringify(v));
+// Match the A4 printable area used by printSvg: 182 mm wide × 265 mm high.
+const PAGE_W=960,PAGE_H=Math.round(PAGE_W*265/182);
 function register(tool,adapter){adapters.set(tool,adapter)}
 function supports(tool){return adapters.has(tool)}
+function canGenerate(tool){return supports(tool)&&typeof adapters.get(tool).generate==='function'}
 function types(tool,model){return adapterFor(tool).types?.(model)||[]}
 function adapterFor(tool){const a=adapters.get(tool);if(!a)throw Error('Publishing is not yet supported for this widget.');return a}
 function record(tool,kind,data,recipe=null){return {tool,kind,data:copy(data),recipe:recipe?copy(recipe):null}}
@@ -20,6 +23,7 @@ function createDocument(){
   list:()=>copy(items),
   addCurrent(tool,snapshot,staticSvg){return append(adapterFor(tool).capture(copy(snapshot),staticSvg))},
   generate(tool,snapshot,count,type='all',rng=Math.random){
+    if(!canGenerate(tool))throw Error('This widget supports current illustrations only.');
     const a=adapterFor(tool),recipe=a.recipe(copy(snapshot),type),n=Math.max(1,Math.min(20,Math.round(Number(count)||1))),records=[];
     for(let i=0;i<n;i++)records.push(uniqueQuestion(tool,recipe,items.concat(records),rng));
     return append(records);
@@ -27,6 +31,7 @@ function createDocument(){
   generateBlocks(blocks,rng=Math.random){
     const records=[];
     for(const block of blocks){
+      if(!canGenerate(block.tool))throw Error('This widget supports current illustrations only.');
       const a=adapterFor(block.tool),n=Math.round(Number(block.count)),allowed=types(block.tool,block.settings).map(t=>t.id),selected=block.types===null?allowed:block.types;
       if(!Number.isInteger(n)||n<1||n>20)throw Error('Choose 1–20 questions per source.');
       if(!selected?.length||selected.some(id=>!allowed.includes(id)))throw Error('Choose compatible question types for '+a.label+'.');
@@ -70,7 +75,7 @@ function isolateSvgIds(svg,prefix){
  return svg;
 }
 function pupilPages(items,title){
- const W=960,H=1250,pad=28,top=85,bottom=H-32,gap=8,layouts=[];let entries=[],y=top;
+ const W=PAGE_W,H=PAGE_H,pad=28,top=92,bottom=H-40,gap=14,layouts=[];let entries=[],y=top;
  for(const [index,item] of items.entries()){
    const svg=G.exportTools.withDocumentCardLayout(()=>renderItem(item,false)),v=dimensions(svg),width=W-2*pad-32,scale=Math.min(width/v.w,(bottom-top-gap)/v.h),h=v.h*scale;
    if(entries.length&&y+h>bottom){layouts.push(entries);entries=[];y=top}
@@ -89,7 +94,7 @@ function pupilPages(items,title){
      const baseline=Number(svg.getAttribute('data-worksheet-prompt-baseline')),promptSize=Number(svg.getAttribute('data-worksheet-prompt-size')),hasPrompt=baseline>0&&promptSize>0;
      const numberY=hasPrompt?y+(baseline-v.y)*scale:y+Math.min(24,h/2);
      add('text',{x:pad,y:numberY,'font-family':'Arial,sans-serif','font-size':hasPrompt?promptSize*scale:18,'font-weight':700,fill:'#24343b','data-pub-number':index+1},(index+1)+'.');
-     const nested=svgElement('svg',{x:pad+32,y,width:v.w*scale,height:h,viewBox:[v.x,v.y,v.w,v.h].join(' ')});
+     const nested=svgElement('svg',{x:pad+32,y,width:v.w*scale,height:h,viewBox:[v.x,v.y,v.w,v.h].join(' '),'data-pub-item':index+1});
      const source=isolateSvgIds(svg.cloneNode(true),'pub-'+(page+1)+'-'+(index+1)+'-');source.querySelectorAll('[data-gd-paper-brand]').forEach(n=>n.remove());
      [...source.childNodes].forEach(n=>nested.appendChild(n.cloneNode(true)));out.appendChild(nested);
    }
@@ -129,14 +134,8 @@ function answerSummary(item){
  if(item.tool==='maths-canvas'&&d.targetRule)return 'One possible solution: '+d.answer+'. Accept other valid expressions.';
  return c?.answer??d.answer;
 }
-function wrapAnnex(text,max=68){
- const out=[];let line='';
- for(const word of String(text).trim().split(/\s+/)){
-   // Hard-break exceptional unspaced strings; never silently truncate an answer.
-   const chunks=word.length>max?word.match(new RegExp('.{1,'+max+'}','gu')):[word];
-   for(const chunk of chunks){if(line&&line.length+chunk.length+1>max){out.push(line);line=''}line+=(line?' ':'')+chunk}
- }
- if(line)out.push(line);return out;
+function wrapAnnex(text,width,size,weight=400){
+ return G.exportTools.wrapPaperText(text,width,size,weight);
 }
 // Marking guidance describes the actual constraints, not just a generic
 // "other answers possible" message.
@@ -184,7 +183,7 @@ function answerGraphic(item){
  return G.exportTools.withAnswerDiagram(()=>renderItem(item,true));
 }
 function answerPages(items,title){
- const W=960,H=1250,pad=28,top=98,bottom=H-48,step=26,gap=14,layouts=[];
+ const W=PAGE_W,H=PAGE_H,pad=28,top=98,bottom=H-48,step=27,gap=18,layouts=[];
  let entries=[],y=top;
  const flush=()=>{if(entries.length)layouts.push(entries);entries=[];y=top};
  for(const [index,item] of items.entries()){
@@ -195,8 +194,9 @@ function answerPages(items,title){
    const beside=!!v&&(item.tool==='abacus'||item.tool==='array-builder'||item.tool==='clock'&&v.w<=310);
    const widthLimit=beside?(item.tool==='clock'?270:425):item.tool==='fraction-wall'?760:850;
    const scale=v?Math.min(widthLimit/v.w,(beside?285:340)/v.h):0,gh=v?v.h*scale:0,gw=v?v.w*scale:0;
-   const lines=wrapAnnex(value,beside?36:68),notes=note?wrapAnnex(note,beside?42:82):[];
-   const textH=lines.length*step,notesH=notes.length?notes.length*22+6:0;
+   const textWidth=beside?W-2*pad-48-gw-20:W-2*pad-48;
+   const lines=wrapAnnex(value,textWidth,20,600),notes=note?wrapAnnex(note,textWidth,18,400):[];
+   const textH=lines.length*step,notesH=notes.length?notes.length*23+8:0;
    const h=(beside?Math.max(textH+notesH,gh):textH+notesH+(graphic?gh+8:0))+gap;
    if(entries.length&&y+h>bottom)flush();
    if(h>bottom-top)throw Error('Answer for question '+(index+1)+' is too large for the annex.');
@@ -214,7 +214,7 @@ function answerPages(items,title){
    for(const e of entries){
      text(pad,e.y+18,20,(e.index+1)+'.',{'font-weight':700,'data-pub-answer-number':e.index+1});
      e.lines.forEach((line,i)=>text(pad+48,e.y+18+i*step,20,line,{'font-weight':600}));
-     e.notes.forEach((line,i)=>text(pad+48,e.y+e.textH+15+i*22,17,line,{fill:'#52666d','data-pub-answer-note':e.index+1}));
+     e.notes.forEach((line,i)=>text(pad+48,e.y+e.textH+16+i*23,18,line,{fill:'#52666d','data-pub-answer-note':e.index+1}));
      if(e.graphic){
        const nested=svgElement('svg',{x:e.beside?W-pad-e.gw:pad+48,y:e.beside?e.y:e.y+e.textH+e.notesH+4,width:e.gw,height:e.gh,viewBox:[e.v.x,e.v.y,e.v.w,e.v.h].join(' '),'data-pub-answer-graphic':e.index+1});
        const source=isolateSvgIds(e.graphic.cloneNode(true),'annex-'+(page+1)+'-'+(e.index+1)+'-');
@@ -235,6 +235,13 @@ const BUILDER_CATALOG=[
  ['maths-canvas','Arithmetic'],['sequences','Sequences & rules'],['abacus','Abacus'],['place-value','Place value'],
  ['number-line','Number line'],['fraction-wall','Fraction wall'],['bar-model','Bar model'],['hundred-square','Hundred square'],['multiplication-grid','Multiplication grid'],['array-builder','Array builder'],['clock','Clock & time'],['money','UK money'],['coordinates','Coordinate grid'],['measurement','Ruler & measures'],['randomiser','Dice, spinner & randomiser'],['balance','Equation balance'],['times-table','Times-table visualiser'],['factors','Factors & multiples'],['fdp','Fraction–decimal–percentage'],['geoboard','Shape & geoboard']
 ];
+const BUILDER_GROUPS=[
+ ['Number & calculation',['maths-canvas','sequences','abacus','place-value','number-line','hundred-square','balance']],
+ ['Multiplication & division',['multiplication-grid','array-builder','times-table','factors']],
+ ['Fractions & proportions',['fraction-wall','bar-model','fdp']],
+ ['Geometry & measurement',['geoboard','coordinates','measurement','clock','money']],
+ ['Other classroom tools',['randomiser']]
+];
 function defaults(tool){
  if(tool==='maths-canvas')return {difficulty:'medium',curriculumProfile:'custom',numberSettings:G.numberChallenges.settings({},'medium'),workingLines:0};
  if(tool==='sequences')return {settings:{family:'all',difficulty:'medium'}};
@@ -243,6 +250,9 @@ function defaults(tool){
  if(tool==='multiplication-grid')return {size:12,responseLines:1};
  if(tool==='hundred-square')return {startValue:1,responseLines:1};
  if(tool==='bar-model')return {responseLines:1};
+ if(tool==='factors'||tool==='fdp'||tool==='times-table')return {responseLines:1};
+ if(tool==='balance')return {difficulty:'easy',responseLines:1};
+ if(tool==='geoboard')return {gridSize:7,responseLines:1};
  if(tool==='coordinates')return {scope:'mixed',responseLines:1};
  if(tool==='money')return {responseLines:1};
  if(tool==='number-line')return {preset:'negative',responseLines:1};
@@ -252,10 +262,38 @@ function defaults(tool){
  if(tool==='place-value')return {rangeStart:3,rangeEnd:9,activityBudget:5,additionDifficulty:'mixed',responseLines:3};
  return {};
 }
+function openQuickGenerate(draft,tool,snapshot){
+ if(!canGenerate(tool))throw Error('This widget supports current illustrations only.');
+ const available=types(tool,snapshot),room=80-draft.list().length;
+ if(!available.length)throw Error('No question types are available with these settings.');
+ if(room<1)throw Error('This draft already contains 80 items.');
+ const esc=G.esc,dlg=document.createElement('dialog');
+ dlg.className='gd-publishing-editor gd-publishing-generate';
+ dlg.setAttribute('aria-label','Generate worksheet questions');
+ const count=Math.min(5,room),current=snapshot.challenge?.type||snapshot.task?.type||snapshot.session?.generator?.spec?.type||snapshot.session?.engine?.challenge?.type;
+ dlg.innerHTML='<form class="gd-pub-quick"><header class="gd-pub-head"><div><small>Worksheet · '+esc(adapterFor(tool).label)+'</small><strong>Generate questions</strong></div><button type="button" class="gd-btn gd-pub-icon" data-pub-quick-cancel aria-label="Close">×</button></header>'+
+ '<div class="gd-pub-quick-body"><div class="gd-pub-quick-count"><label class="gd-pub-field"><span>Number of questions</span><select name="count">'+Array.from({length:Math.min(20,room)},(_,i)=>'<option'+(i+1===count?' selected':'')+'>'+(i+1)+'</option>').join('')+'</select></label><p>Uses the widget’s current generation settings.</p></div>'+
+ '<div class="gd-pub-quick-types"><div class="gd-pub-section-head"><h3>Question types</h3><small data-pub-quick-selected></small></div><div class="gd-pub-quick-actions"><button class="gd-btn" type="button" data-pub-quick-all>All</button><button class="gd-btn" type="button" data-pub-quick-none>None</button>'+
+ (available.some(t=>t.id===current)?'<button class="gd-btn" type="button" data-pub-quick-current>Current type</button>':'')+'</div>'+
+ '<div class="gd-pub-check-grid">'+available.map(t=>'<label><input type="checkbox" data-pub-quick-type value="'+esc(t.id)+'" checked><span>'+esc(t.label)+'</span></label>').join('')+'</div></div><p class="gd-pub-quick-error" role="status" hidden></p></div>'+
+ '<footer class="gd-pub-footer"><button class="gd-btn" type="button" data-pub-quick-cancel>Cancel</button><button class="gd-btn gd-btn--primary" type="submit" data-pub-quick-add>Add questions</button></footer></form>';
+ document.body.appendChild(dlg);
+ const boxes=[...dlg.querySelectorAll('[data-pub-quick-type]')],number=dlg.querySelector('[name=count]'),submit=dlg.querySelector('[data-pub-quick-add]'),error=dlg.querySelector('.gd-pub-quick-error');
+ const selected=()=>boxes.filter(x=>x.checked).map(x=>x.value);
+ const sync=()=>{const n=selected().length;dlg.querySelector('[data-pub-quick-selected]').textContent=n+' of '+boxes.length+' selected';submit.disabled=!n;submit.textContent='Add '+number.value+' question'+(number.value==='1'?'':'s');error.hidden=true};
+ dlg.querySelectorAll('[data-pub-quick-cancel]').forEach(btn=>btn.onclick=()=>dlg.close());
+ for(const [key,test] of [['all',()=>true],['none',()=>false],['current',x=>x.value===current]]){
+   const btn=dlg.querySelector('[data-pub-quick-'+key+']');if(btn)btn.onclick=()=>{boxes.forEach(x=>x.checked=test(x));sync()};
+ }
+ dlg.onchange=sync;
+ dlg.querySelector('form').onsubmit=e=>{e.preventDefault();try{draft.generateBlocks([{tool,settings:snapshot,count:+number.value,types:selected()}]);dlg.close();openEditor(draft)}catch(err){error.textContent=err.message;error.hidden=false}};
+ dlg.addEventListener('close',()=>dlg.remove(),{once:true});
+ sync();dlg.showModal();
+}
 function openEditor(draft,{mode='review'}={}){
  let dlg=document.getElementById('gd-publishing-editor');
  if(!dlg){dlg=document.createElement('dialog');dlg.id='gd-publishing-editor';dlg.className='gd-publishing-editor';document.body.appendChild(dlg)}
- let title=dlg.dataset.title||'Maths practice',teacher=false,status='',view=mode,blocks=dlg._pubBlocks||[],nextBlock=Math.max(0,...blocks.map(b=>b.id))+1,mix=false;
+ let title=dlg.dataset.title||'Maths practice',teacher=false,status='',view=mode,blocks=dlg._pubBlocks||[],nextBlock=Math.max(0,...blocks.map(b=>b.id))+1,mix=!!dlg._pubMix,catalogQuery=dlg._pubCatalogQuery||'',focusSource=null,previewZoom=dlg._pubPreviewZoom||'fit',jumpPage=null,previewPage=1;
  const esc=G.esc;
  const option=(value,label,current)=>'<option value="'+esc(value)+'"'+(String(value)===String(current)?' selected':'')+'>'+esc(label)+'</option>';
  const select=(label,key,values,current)=>'<label class="gd-pub-field"><span>'+esc(label)+'</span><select data-pub-setting="'+esc(key)+'">'+values.map(v=>Array.isArray(v)?option(v[0],v[1],current):option(v,v,current)).join('')+'</select></label>';
@@ -278,6 +316,9 @@ function openEditor(draft,{mode='review'}={}){
    if(t==='money')return '<div class="gd-pub-fields">'+select('Answer space','responseLines',[[1,'Answer box'],[2,'2 lines'],[3,'3 lines'],[4,'4 lines']],m.responseLines)+'</div><p class="gd-help">Construction questions retain drawing space. Teacher solutions include a valid combination of UK classroom coins and notes.</p>';
    if(t==='number-line')return '<div class="gd-pub-fields">'+select('Number line scale','preset',[['0-20','0 to 20 · ones'],['0-100','0 to 100 · tens'],['0-1000','0 to 1,000 · hundreds'],['negative','−10 to 10 · ones'],['decimal','0 to 1 · tenths']],m.preset)+select('Answer space','responseLines',[[1,'Answer box'],[2,'2 lines'],[3,'3 lines'],[4,'4 lines']],m.responseLines)+'</div><p class="gd-help">Fraction, zoom and proportional questions use their own compatible scales. Crossing zero requires the negative-number preset.</p>';
    if(t==='array-builder')return '<div class="gd-pub-fields">'+select('Smallest factor','min',Array.from({length:10},(_,i)=>i+2),m.min)+select('Largest factor','max',Array.from({length:12-m.min},(_,i)=>m.min+1+i),m.max)+select('Answer space','responseLines',[[1,'Answer box'],[2,'2 lines'],[3,'3 lines'],[4,'4 lines']],m.responseLines)+'</div>';
+   if(t==='geoboard')return '<div class="gd-pub-fields">'+select('Pin grid','gridSize',[5,7,9,11,13].map(n=>[n,n+' × '+n+' pins']),m.gridSize)+select('Answer space','responseLines',[[1,'Answer box'],[2,'2 lines'],[3,'3 lines'],[4,'4 lines']],m.responseLines)+'</div><p class="gd-help">Larger grids support larger shapes. Construction tasks use the grid as their working space.</p>';
+   if(t==='balance')return '<div class="gd-pub-fields">'+select('Difficulty','difficulty',levels,m.difficulty)+select('Answer space','responseLines',[[1,'Answer box'],[2,'2 lines'],[3,'3 lines'],[4,'4 lines']],m.responseLines)+'</div><p class="gd-help">Medium includes one hanging balance; hard includes two. Same-to-both remains a direct equality task.</p>';
+   if(t==='factors'||t==='fdp'||t==='times-table')return '<div class="gd-pub-fields">'+select('Answer space','responseLines',[[1,'Answer box'],[2,'2 lines'],[3,'3 lines'],[4,'4 lines']],m.responseLines)+'</div><p class="gd-help">Reasoning tasks include explanation space; graphical solutions appear in the teacher annex.</p>';
    if(t==='fraction-wall')return '<div class="gd-pub-fields">'+select('Answer space','responseLines',[[1,'Answer box'],[2,'2 lines'],[3,'3 lines'],[4,'4 lines']],m.responseLines)+'</div>';
    if(t==='clock')return '<div class="gd-pub-fields">'+select('Clock faces','clockCount',[[1,'One clock'],[2,'Two clocks (comparison enabled)']],m.clockCount)+select('Comparison layout','clockLayout',[['horizontal','Side by side'],['vertical','Stacked']],m.clockLayout)+select('Answer space','responseLines',[[1,'Answer box'],[2,'2 lines'],[3,'3 lines'],[4,'4 lines']],m.responseLines)+'</div>';
    if(t==='place-value'){
@@ -288,16 +329,33 @@ function openEditor(draft,{mode='review'}={}){
  }
  function blockHtml(block,i){
    const available=types(block.tool,block.settings),selected=block.types===null?available.map(t=>t.id):block.types;
-   return '<section class="gd-pub-source" data-pub-block="'+block.id+'"><header><div><small>Source '+(i+1)+'</small><strong>'+esc(adapterFor(block.tool).label)+'</strong></div><label class="gd-pub-count">Questions <select data-pub-count>'+Array.from({length:20},(_,j)=>option(j+1,j+1,block.count)).join('')+'</select></label><button type="button" class="gd-btn gd-pub-icon" data-pub-delete-block="'+block.id+'" aria-label="Remove source">×</button></header>'+blockSettings(block)+'<details class="gd-pub-details"'+(block.open?' open':'')+' data-pub-type-details><summary>Challenge types · '+selected.length+' of '+available.length+'</summary><div class="gd-pub-check-row"><button type="button" class="gd-btn" data-pub-all-types>All</button><button type="button" class="gd-btn" data-pub-no-types>None</button></div><div class="gd-pub-check-grid">'+available.map(t=>'<label><input type="checkbox" data-pub-type value="'+esc(t.id)+'"'+(selected.includes(t.id)?' checked':'')+'>'+esc(t.label)+'</label>').join('')+'</div></details></section>';
+   const settings=blockSettings(block),invalid=!selected.length;
+   return '<section class="gd-pub-source'+(invalid?' is-invalid':'')+'" data-pub-block="'+block.id+'"><header><button type="button" class="gd-pub-source-toggle" data-pub-toggle-block aria-expanded="'+!block.collapsed+'"><span class="gd-pub-source-chevron">'+(block.collapsed?'›':'⌄')+'</span><span><small>Set '+(i+1)+'</small><strong>'+esc(adapterFor(block.tool).label)+'</strong><small class="gd-pub-source-meta">'+(invalid?'Choose question types':selected.length+' of '+available.length+' types')+'</small></span></button><label class="gd-pub-count"><span>Questions</span><select data-pub-count aria-label="Number of questions in set '+(i+1)+'">'+Array.from({length:20},(_,j)=>option(j+1,j+1,block.count)).join('')+'</select></label><button type="button" class="gd-btn gd-pub-icon" data-pub-delete-block="'+block.id+'" aria-label="Remove set '+(i+1)+'" title="Remove set">×</button></header>'+
+     '<div class="gd-pub-source-content"'+(block.collapsed?' hidden':'')+'>'+(settings?'<div class="gd-pub-source-settings">'+settings+'</div>':'')+
+     '<details class="gd-pub-details"'+(block.open?' open':'')+' data-pub-type-details><summary>Question types <small>'+selected.length+' / '+available.length+'</small></summary><div class="gd-pub-check-row"><button type="button" class="gd-btn" data-pub-all-types>All</button><button type="button" class="gd-btn" data-pub-no-types>None</button></div><div class="gd-pub-check-grid">'+available.map(t=>'<label><input type="checkbox" data-pub-type value="'+esc(t.id)+'"'+(selected.includes(t.id)?' checked':'')+'><span>'+esc(t.label)+'</span></label>').join('')+'</div></details></div></section>';
+ }
+ function catalogHtml(){
+   const lookup=new Map(BUILDER_CATALOG),query=catalogQuery.trim().toLowerCase(),out=[];
+   for(const [group,ids] of BUILDER_GROUPS){
+     const matches=ids.filter(id=>!query||(lookup.get(id)+' '+group+' '+id+' '+(supports(id)?adapterFor(id).label:'')).toLowerCase().includes(query));
+     if(!matches.length)continue;
+     out.push('<section class="gd-pub-catalog-group"><h4>'+esc(group)+'</h4>'+matches.map(id=>{
+       const count=blocks.filter(b=>b.tool===id).length,enabled=canGenerate(id);
+       return '<button type="button" class="gd-pub-catalog-item'+(count?' is-selected':'')+'" data-pub-add-source="'+id+'"'+(!enabled?' disabled':'')+'><span>'+esc(lookup.get(id))+'</span><small>'+(enabled?(count?count+' set'+(count===1?'':'s')+' · ＋':'＋'):supports(id)?'Current item only':'Pending')+'</small></button>';
+     }).join('')+'</section>');
+   }
+   return out.join('')||'<p class="gd-pub-catalog-empty">No matching widgets.</p>';
  }
  function renderBuilder(){
-   const n=blocks.reduce((sum,x)=>sum+x.count,0);
-   return '<div class="gd-pub-builder"><aside class="gd-pub-catalog"><h3>Widgets</h3><p>Choose a widget. Add it again for different settings.</p>'+BUILDER_CATALOG.map(([id,label])=>'<button type="button" class="gd-pub-catalog-item" data-pub-add-source="'+id+'"'+(!supports(id)?' disabled':'')+'><span>'+esc(label)+'</span><small>'+(supports(id)?'+ Add':'Pending')+'</small></button>').join('')+'</aside><main class="gd-pub-sources"><div class="gd-pub-section-head"><h3>Configure worksheet</h3><span>'+n+' questions</span></div>'+(blocks.length?blocks.map(blockHtml).join(''):'<div class="gd-pub-empty"><strong>Choose a widget to start</strong><p>Set quantities and question types independently for each source.</p></div>')+'</main></div><footer class="gd-pub-footer"><label><input type="checkbox" data-pub-mix'+(mix?' checked':'')+'> Mix questions after generation</label><span class="gd-pub-spacer"></span><button type="button" class="gd-btn gd-btn--primary" data-pub-generate'+(!n||n+draft.list().length>80?' disabled':'')+'>Add '+n+' questions to draft</button></footer>';
+   const n=blocks.reduce((sum,x)=>sum+x.count,0),existing=draft.list().length,invalid=blocks.some(b=>!(b.types===null?types(b.tool,b.settings).length:b.types.length)),over=n+existing>80;
+   return '<div class="gd-pub-builder"><aside class="gd-pub-catalog"><div class="gd-pub-catalog-head"><h3>Add widgets</h3><p>Add the same widget again for a different set.</p><input type="search" data-pub-search placeholder="Find a widget…" aria-label="Find a widget" value="'+esc(catalogQuery)+'"></div><div class="gd-pub-catalog-results">'+catalogHtml()+'</div></aside><main class="gd-pub-sources"><div class="gd-pub-section-head gd-pub-config-head"><div><h3>Question sets</h3><small>'+blocks.length+' set'+(blocks.length===1?'':'s')+' · '+n+' new questions</small></div>'+(blocks.length?'<button type="button" class="gd-btn" data-pub-collapse-all>Collapse all</button>':'')+'</div>'+(blocks.length?blocks.map(blockHtml).join(''):'<div class="gd-pub-empty"><strong>Choose a widget to start</strong><p>Configure each set independently, then add the questions to your document.</p></div>')+'</main></div><footer class="gd-pub-footer gd-pub-builder-footer"><div class="gd-pub-draft-total"><strong>'+ (n+existing)+' / 80 items</strong><small>'+existing+' in draft · '+n+' new'+(over?' · reduce quantity':invalid?' · choose question types':'')+'</small></div><label><input type="checkbox" data-pub-mix'+(mix?' checked':'')+'> Mix questions after generation</label><button type="button" class="gd-btn gd-btn--primary" data-pub-generate'+(!n||over||invalid?' disabled':'')+'>Add '+n+' question'+(n===1?'':'s')+'</button></footer>';
  }
  function renderReview(){
-   const items=draft.list(),disabled=items.length?'':' disabled';
-   return '<div class="gd-pub-toolbar"><label class="gd-pub-title"><span>Document title</span><input type="text" data-pub-title maxlength="80" value="'+esc(title)+'"></label><div class="gd-pub-segment" aria-label="Preview version"><button type="button" class="gd-btn" data-pub-pupil aria-pressed="'+!teacher+'"'+disabled+'>Pupil</button><button type="button" class="gd-btn" data-pub-teacher aria-pressed="'+teacher+'"'+disabled+'>With answers</button></div><button type="button" class="gd-btn" data-pub-group'+disabled+'>Group</button><button type="button" class="gd-btn" data-pub-shuffle'+disabled+'>Mix</button><button type="button" class="gd-btn gd-btn--primary" data-pub-print'+disabled+'>Print / PDF</button></div>'+
-   (items.length?'<div class="gd-pub-body gd-pub-body--inline"><div class="gd-pub-preview"></div></div>':'<div class="gd-pub-empty"><strong>Start a worksheet</strong><p>Generate questions here, or add a diagram or challenge from a widget’s Export menu.</p><div><button type="button" class="gd-btn gd-btn--primary" data-pub-builder>Build automatically</button><button type="button" class="gd-btn" data-pub-close>Back to whiteboard</button></div></div>');
+   const items=draft.list(),disabled=items.length?'':' disabled',questions=items.filter(i=>i.kind==='challenge').length,illustrations=items.length-questions;
+   const info=questions+' question'+(questions===1?'':'s')+(illustrations?' · '+illustrations+' illustration'+(illustrations===1?'':'s'):'');
+   return '<div class="gd-pub-review-controls"><div class="gd-pub-toolbar gd-pub-review-title"><label class="gd-pub-title"><span>Document title</span><input type="text" data-pub-title maxlength="80" value="'+esc(title)+'"></label><div class="gd-pub-review-count"><strong>'+items.length+' / 80 items</strong><small>'+info+'</small></div><button type="button" class="gd-btn gd-btn--primary" data-pub-print'+disabled+'>Print / PDF</button></div>'+
+   '<div class="gd-pub-toolbar gd-pub-review-tools"><div class="gd-pub-segment" aria-label="Preview and print version"><button type="button" class="gd-btn" data-pub-pupil aria-pressed="'+!teacher+'"'+disabled+'>Pupil</button><button type="button" class="gd-btn" data-pub-teacher aria-pressed="'+teacher+'"'+disabled+'>With answers</button></div><div class="gd-pub-order"><button type="button" class="gd-btn" data-pub-group'+disabled+' title="Group questions by widget">Group by widget</button><button type="button" class="gd-btn" data-pub-shuffle'+disabled+' title="Randomise document order">Mix</button></div><span class="gd-pub-spacer"></span><div class="gd-pub-segment" aria-label="Preview size"><button type="button" class="gd-btn" data-pub-zoom="fit" aria-pressed="'+(previewZoom==='fit')+'"'+disabled+'>Fit</button><button type="button" class="gd-btn" data-pub-zoom="large" aria-pressed="'+(previewZoom==='large')+'"'+disabled+'>Large</button></div></div></div>'+
+   (items.length?'<div class="gd-pub-pagination"><button type="button" class="gd-btn gd-pub-icon" data-pub-prev aria-label="Previous page">‹</button><label><span>Page</span><select data-pub-page aria-label="Go to page"></select></label><span data-pub-page-total></span><button type="button" class="gd-btn gd-pub-icon" data-pub-next aria-label="Next page">›</button><span class="gd-pub-spacer"></span><button type="button" class="gd-btn" data-pub-jump-answers hidden>Go to answers</button><small data-pub-print-caption></small></div><div class="gd-pub-body gd-pub-body--inline"><div class="gd-pub-preview'+(previewZoom==='large'?' is-large':'')+'" tabindex="0" aria-label="Document preview"></div></div>':'<div class="gd-pub-empty"><strong>Start a worksheet</strong><p>Generate questions here, or add a diagram or challenge from a widget’s Export menu.</p><div><button type="button" class="gd-btn gd-btn--primary" data-pub-builder>Build automatically</button><button type="button" class="gd-btn" data-pub-close>Back to whiteboard</button></div></div>');
  }
  const actionIcons={up:'<path d="m6 14 6-6 6 6"/>',down:'<path d="m6 10 6 6 6-6"/>',replace:'<path d="M20 7v5h-5M4 17v-5h5M6 8a7 7 0 0 1 12-2l2 6M18 16a7 7 0 0 1-12 2l-2-6"/>',remove:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 10v6m4-6v6"/>'};
  function itemActions(item,i,count){
@@ -307,29 +365,60 @@ function openEditor(draft,{mode='review'}={}){
    node.innerHTML='<div class="gd-pub-inline-desktop">'+buttons+'</div><details class="gd-pub-inline-mobile"><summary title="Question actions" aria-label="Actions for question '+(i+1)+'">⋯</summary><div>'+buttons+'</div></details>';
    return node;
  }
+ function syncPageControls(){
+   const preview=dlg.querySelector('.gd-pub-preview'),select=dlg.querySelector('[data-pub-page]');
+   if(!preview||!select)return;
+   const frames=[...preview.querySelectorAll('.gd-pub-sheet')],total=frames.length;
+   if(!total)return;
+   previewPage=Math.max(1,Math.min(previewPage,total));
+   select.value=String(previewPage);
+   dlg.querySelector('[data-pub-prev]').disabled=previewPage<=1;
+   dlg.querySelector('[data-pub-next]').disabled=previewPage>=total;
+   dlg.querySelector('[data-pub-page-total]').textContent='of '+total;
+ }
+ function goToPage(n){
+   const preview=dlg.querySelector('.gd-pub-preview');if(!preview)return;
+   const frames=[...preview.querySelectorAll('.gd-pub-sheet')];if(!frames.length)return;
+   previewPage=Math.max(1,Math.min(Number(n)||1,frames.length));
+   const frame=frames[previewPage-1],pr=preview.getBoundingClientRect(),fr=frame.getBoundingClientRect();
+   preview.scrollTop+=fr.top-pr.top-12;syncPageControls();
+ }
  function paintPreview(){
    const preview=dlg.querySelector('.gd-pub-preview');if(!preview)return;
-   const items=draft.list(),sheets=pages(items,{title,teacher});
-   preview.replaceChildren(...sheets.map(sheet=>{
-     const frame=document.createElement('div');frame.className='gd-pub-sheet';
+   const items=draft.list(),sheets=pages(items,{title,teacher}),oldScroll=preview.scrollTop;
+   const pupilCount=sheets.filter(s=>s.getAttribute('data-worksheet-answer')==='pupil').length,annexCount=sheets.length-pupilCount;
+   preview.replaceChildren(...sheets.map((sheet,i)=>{
+     const frame=document.createElement('div'),annex=sheet.getAttribute('data-worksheet-answer')==='annex';
+     frame.className='gd-pub-sheet'+(annex?' is-annex':'');frame.dataset.pubSheet=String(i+1);
+     frame.setAttribute('aria-label',annex?'Answer annex '+(i-pupilCount+1):'Worksheet page '+(i+1));
      const paper=G.exportTools.preparePaperSvg(sheet);frame.appendChild(paper);
-     const rail=document.createElement('div');rail.className='gd-pub-action-rail';frame.appendChild(rail);
-     for(const number of paper.querySelectorAll('[data-pub-number]')){
-       const i=Number(number.getAttribute('data-pub-number'))-1;if(!items[i])continue;
-       const action=itemActions(items[i],i,items.length);action.style.top=(100*Number(number.getAttribute('y'))/dimensions(paper).h)+'%';rail.appendChild(action);
+     if(!annex){
+       const rail=document.createElement('div');rail.className='gd-pub-action-rail';frame.appendChild(rail);
+       for(const number of paper.querySelectorAll('[data-pub-number]')){
+         const i=Number(number.getAttribute('data-pub-number'))-1;if(!items[i])continue;
+         const action=itemActions(items[i],i,items.length);action.style.top=(100*(Number(number.getAttribute('y'))-dimensions(paper).y)/dimensions(paper).h)+'%';rail.appendChild(action);
+       }
      }
      return frame;
    }));
+   const select=dlg.querySelector('[data-pub-page]'),jump=dlg.querySelector('[data-pub-jump-answers]');
+   select.replaceChildren(...sheets.map((sheet,i)=>{const opt=document.createElement('option');opt.value=String(i+1);opt.textContent=i<pupilCount?'Page '+(i+1):'Answers '+(i-pupilCount+1);return opt}));
+   jump.hidden=!annexCount;jump.dataset.pubJumpAnswers=String(pupilCount+1);
+   dlg.querySelector('[data-pub-print-caption]').textContent=pupilCount+' pupil page'+(pupilCount===1?'':'s')+(annexCount?' · '+annexCount+' answer page'+(annexCount===1?'':'s'):'');
+   preview.onscroll=()=>{const pr=preview.getBoundingClientRect();const frames=[...preview.querySelectorAll('.gd-pub-sheet')];const active=frames.findIndex(frame=>frame.getBoundingClientRect().bottom>pr.top+Math.min(60,pr.height/4));if(active>=0){previewPage=active+1;syncPageControls()}};
+   preview.scrollTop=oldScroll;syncPageControls();
  }
 
  function render(){
    const scroll=dlg.querySelector('.gd-pub-sources')?.scrollTop||0,catalogScroll=dlg.querySelector('.gd-pub-catalog')?.scrollTop||0,previewScroll=dlg.querySelector('.gd-pub-preview')?.scrollTop||0,listScroll=dlg.querySelector('.gd-pub-list')?.scrollTop||0;
-   dlg._pubBlocks=blocks;
+   dlg._pubBlocks=blocks;dlg._pubMix=mix;dlg._pubCatalogQuery=catalogQuery;dlg._pubPreviewZoom=previewZoom;
    dlg.classList.toggle('is-builder',view==='builder');
    dlg.innerHTML='<header class="gd-pub-head"><div><small>99 Club Studio</small><strong>Worksheet publisher</strong></div><button type="button" class="gd-btn gd-pub-icon" data-pub-close aria-label="Close">×</button></header><nav class="gd-pub-nav"><button type="button" class="gd-btn" data-pub-builder aria-pressed="'+(view==='builder')+'">Automatic builder</button><button type="button" class="gd-btn" data-pub-back aria-pressed="'+(view==='review')+'">Review document <small>'+draft.list().length+'</small></button><span class="gd-pub-spacer"></span><button type="button" class="gd-btn" data-pub-close>Back to whiteboard</button></nav><p role="status" class="gd-pub-status"'+(!status?' hidden':'')+'>'+esc(status)+'</p>'+(view==='builder'?renderBuilder():renderReview());
    const source=dlg.querySelector('.gd-pub-sources');if(source)source.scrollTop=scroll;
    if(view==='review')try{paintPreview()}catch(e){const p=dlg.querySelector('.gd-pub-preview');if(p)p.textContent=e.message}
    for(const [selector,value] of [['.gd-pub-catalog',catalogScroll],['.gd-pub-preview',previewScroll],['.gd-pub-list',listScroll]]){const el=dlg.querySelector(selector);if(el)el.scrollTop=value}
+   if(view==='review'&&jumpPage!==null){goToPage(jumpPage);jumpPage=null}
+   if(focusSource!==null){const el=dlg.querySelector('[data-pub-block="'+focusSource+'"]');if(el&&source){source.scrollTop=Math.max(0,el.offsetTop-source.offsetTop-12);el.querySelector('[data-pub-toggle-block]')?.focus({preventScroll:true})}focusSource=null}
  }
  function getBlock(el){return blocks.find(b=>String(b.id)===el.closest('[data-pub-block]')?.dataset.pubBlock)}
  dlg.onclick=e=>{const btn=e.target.closest('button');if(!btn||btn.disabled)return;const d=btn.dataset;
@@ -337,19 +426,27 @@ function openEditor(draft,{mode='review'}={}){
      status='';
      if('pubClose'in d){dlg.close();return}
      if('pubBuilder'in d)view='builder';else if('pubBack'in d)view='review';
-     else if('pubAddSource'in d){blocks.push({id:nextBlock++,tool:d.pubAddSource,count:5,settings:defaults(d.pubAddSource),types:null,open:false})}
+     else if('pubAddSource'in d){if(!canGenerate(d.pubAddSource))throw Error('Add this illustration from its widget export menu.');blocks.forEach(b=>b.collapsed=true);const id=nextBlock++;blocks.push({id,tool:d.pubAddSource,count:5,settings:defaults(d.pubAddSource),types:null,open:false,collapsed:false});focusSource=id}
+     else if('pubToggleBlock'in d){const b=getBlock(btn);b.collapsed=!b.collapsed}
+     else if('pubCollapseAll'in d)blocks.forEach(b=>b.collapsed=true);
      else if('pubDeleteBlock'in d)blocks=blocks.filter(b=>b.id!==+d.pubDeleteBlock);
      else if('pubAllTypes'in d||'pubNoTypes'in d){const b=getBlock(btn);b.types='pubAllTypes'in d?null:[];b.open=true}
      else if('pubGenerate'in d){draft.generateBlocks(blocks);if(mix)draft.shuffle();blocks=[];view='review';teacher=false}
+     else if('pubPrev'in d){goToPage(previewPage-1);return}
+     else if('pubNext'in d){goToPage(previewPage+1);return}
+     else if('pubJumpAnswers'in d){goToPage(+d.pubJumpAnswers);return}
+     else if('pubZoom'in d){previewZoom=d.pubZoom;jumpPage=previewPage}
      else if('pubPrint'in d){G.exportTools.printSvg(pages(draft.list(),{title,teacher}),{title:title+(teacher?' — with answers':''),landscape:false,maxHeightMm:265});return}
-     else if('pubGroup'in d)draft.group();else if('pubShuffle'in d)draft.shuffle();else if('pubPupil'in d)teacher=false;else if('pubTeacher'in d)teacher=true;else if('pubReplace'in d)draft.replace(+d.pubReplace);else if('pubRemove'in d)draft.remove(+d.pubRemove);else if('pubUp'in d)draft.move(+d.pubUp,-1);else if('pubDown'in d)draft.move(+d.pubDown,1);
+     else if('pubGroup'in d)draft.group();else if('pubShuffle'in d)draft.shuffle();else if('pubPupil'in d){teacher=false;jumpPage=1}else if('pubTeacher'in d){teacher=true;jumpPage=1}else if('pubReplace'in d)draft.replace(+d.pubReplace);else if('pubRemove'in d)draft.remove(+d.pubRemove);else if('pubUp'in d)draft.move(+d.pubUp,-1);else if('pubDown'in d)draft.move(+d.pubDown,1);
    }catch(err){status=err.message}
    render();
  };
+ dlg.oninput=e=>{if(e.target.hasAttribute('data-pub-search')){catalogQuery=e.target.value;dlg._pubCatalogQuery=catalogQuery;dlg.querySelector('.gd-pub-catalog-results').innerHTML=catalogHtml()}};
  dlg.onchange=e=>{
    const el=e.target,b=getBlock(el);
+   if(el.hasAttribute('data-pub-page')){goToPage(+el.value);return}
    if(el.hasAttribute('data-pub-title')){title=el.value.trim()||'Maths practice';dlg.dataset.title=title;paintPreview();return}
-   if(el.hasAttribute('data-pub-mix')){mix=el.checked;return}
+   if(el.hasAttribute('data-pub-mix')){mix=el.checked;dlg._pubMix=mix;return}
    if(!b)return;
    const section=el.closest('[data-pub-block]');b.open=!!section.querySelector('[data-pub-type-details]')?.open;b.topicsOpen=!!section.querySelector('[data-pub-topics]')?.open;
    if(el.hasAttribute('data-pub-count'))b.count=+el.value;
@@ -368,5 +465,5 @@ function openEditor(draft,{mode='review'}={}){
  dlg.ontoggle=null;dlg.addEventListener('toggle',function rememberDetails(e){const el=e.target;if(el.tagName!=='DETAILS')return;const b=getBlock(el);if(!b)return;if(el.hasAttribute('data-pub-type-details'))b.open=el.open;if(el.hasAttribute('data-pub-topics'))b.topicsOpen=el.open;},{capture:true,signal:(()=>{dlg._pubToggleController?.abort();dlg._pubToggleController=new AbortController();return dlg._pubToggleController.signal})()});
  render();if(!dlg.open)dlg.showModal();
 }
-G.publishing={register,supports,types,record,signature,createDocument,renderItem,pages,answerPages,answerSummary,answerNote,answerGraphic,openEditor,isolateSvgIds};
+G.publishing={register,supports,canGenerate,types,record,signature,createDocument,renderItem,pages,answerPages,answerSummary,answerNote,answerGraphic,openEditor,openQuickGenerate,isolateSvgIds,catalogue:()=>BUILDER_CATALOG.map(([id,label])=>({id,label,canGenerate:canGenerate(id)})),defaultSettings:tool=>copy(defaults(tool))};
 })(window.TT99Goodies);

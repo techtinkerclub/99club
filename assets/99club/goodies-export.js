@@ -145,6 +145,28 @@ function wrapSvgText(text,maxChars=72,maxLines=6){
   }
   return lines;
 }
+// Actual font metrics rather than a character-count approximation. No ellipsis:
+// a printed question or marking rule must never silently lose content.
+let paperMeasureContext=null;
+function wrapPaperText(value,width,size,weight=400){
+ const raw=String(value??'').replace(/\s+/g,' ').trim();if(!raw)return [];
+ paperMeasureContext=paperMeasureContext||document.createElement('canvas').getContext('2d');
+ const ctx=paperMeasureContext;
+ if(ctx)ctx.font=weight+' '+size+'px Arial, sans-serif';
+ const measure=s=>ctx?ctx.measureText(s).width:s.length*size*.62;
+ const lines=[];let line='';
+ const push=()=>{if(line)lines.push(line);line=''};
+ for(const word of raw.split(' ')){
+   if(measure(word)>width){
+     push();let part='';
+     for(const char of word){if(part&&measure(part+char)>width){lines.push(part);part=''}part+=char}
+     line=part;continue;
+   }
+   const next=line?line+' '+word:word;
+   if(line&&measure(next)>width){push();line=word}else line=next;
+ }
+ push();return lines;
+}
 function svgEl(name,attrs={},text=''){
   const el=document.createElementNS('http://www.w3.org/2000/svg',name);
   Object.entries(attrs).forEach(([key,value])=>el.setAttribute(key,String(value)));
@@ -211,17 +233,19 @@ function composeWorksheetCardSvg(diagram,{title='Challenge',prompt='',responseLa
   if(answerDiagramLayout)return source;
   const plain=paperStyle==='plain',compact=plain&&documentCardLayout,shortEquation=compact&&compactEquation;
   const width=1120,pad=documentCardLayout&&plain?12:plain?38:48,contentW=width-pad*2;
-  const promptLines=wrapSvgText(prompt,plain?92:88,4),embedded=documentCardLayout&&plain&&promptLines.length>0;
+  const promptSize=compact?28:plain?24:26,promptStep=compact?35:plain?31:34;
+  const promptLines=wrapPaperText(prompt,contentW-4,promptSize,700),embedded=documentCardLayout&&plain&&promptLines.length>0;
   const titleLines=embedded?[]:wrapSvgText(title,plain?88:72,1);
-  const titleH=titleLines.length?(plain?24:34):0,promptSize=compact?23:plain?24:26,promptStep=compact?28:plain?31:34,promptH=promptLines.length?promptLines.length*promptStep+(compact?3:8):0;
+  const titleH=titleLines.length?(plain?24:34):0,promptH=promptLines.length?promptLines.length*promptStep+(compact?5:8):0;
   const naturalDiagramH=sourceH*(contentW/sourceW);
   const diagramH=shortEquation?naturalDiagramH:Math.max(plain?260:300,Math.min(diagramMaxHeight==null?(plain?500:525):Math.max(260,Math.min(1000,Number(diagramMaxHeight)||500)),naturalDiagramH));
   const diagramY=pad+titleH+promptH+(compact?3:plain?12:18);
   const resolvedMode=responseMode==='auto'?(responseLines>1?'lines':'box'):responseMode;
   const answerRows=Math.max(1,Math.min(4,Math.round(Number(responseLines)||1))),writingPitch=compact?44:32,boxHeight=compact?50:42;
-  const answerLines=showAnswer&&answer?wrapSvgText(answer,92,5):[];
+  const answerLines=showAnswer&&answer?wrapPaperText(answer,contentW-4,20,750):[];
   const responseVisible=showAnswer?!!answer:resolvedMode!=='none';
-  const labelLines=wrapSvgText(responseLabel||'Answer',72,3),labelH=Math.max(1,labelLines.length)*20;
+  const responseFont=compact?20:15,labelStep=compact?24:20;
+  const labelLines=wrapPaperText(responseLabel||'Answer',contentW-4,responseFont,850),labelH=Math.max(1,labelLines.length)*labelStep;
   const responseH=!responseVisible?0:showAnswer?labelH+22+answerLines.length*27:(resolvedMode==='lines'?labelH+12+answerRows*writingPitch:labelH+boxHeight+18);
   const answerY=diagramY+diagramH+(responseVisible?(compact?5:20):0);
   const height=Math.max(plain?diagramY+diagramH+(compact?12:30):560,answerY+responseH+(compact?12:plain?26:42));
@@ -238,7 +262,7 @@ function composeWorksheetCardSvg(diagram,{title='Challenge',prompt='',responseLa
     x:pad,y,
     'font-family':'Arial,sans-serif','font-size':plain?15:22,'font-weight':800,fill:plain?'#66777c':'#66787e'
   },line)));
-  y=pad+titleH+(plain?22:28);
+  y=pad+titleH+(compact?27:plain?22:28);
   if(promptLines.length){out.setAttribute('data-worksheet-prompt-baseline',String(y));out.setAttribute('data-worksheet-prompt-size',String(promptSize));}
   promptLines.forEach((line,i)=>out.appendChild(svgEl('text',{
     x:pad,y:y+i*promptStep,
@@ -255,13 +279,13 @@ function composeWorksheetCardSvg(diagram,{title='Challenge',prompt='',responseLa
       labelLines.forEach((line,i)=>out.appendChild(svgEl('text',{x:pad,y:answerY+20+i*20,'font-family':'Arial,sans-serif','font-size':16,'font-weight':850,fill:'#526a70'},line)));
       answerLines.forEach((line,i)=>out.appendChild(svgEl('text',{x:pad,y:answerY+labelH+26+i*27,'font-family':'Arial,sans-serif','font-size':20,'font-weight':750,fill:'#284b50'},line)));
     }else if(resolvedMode==='lines'){
-      labelLines.forEach((line,i)=>out.appendChild(svgEl('text',{x:pad,y:answerY+16+i*20,'font-family':'Arial,sans-serif','font-size':15,'font-weight':850,fill:'#64777d'},line)));
+      labelLines.forEach((line,i)=>out.appendChild(svgEl('text',{x:pad,y:answerY+responseFont+i*labelStep,'font-family':'Arial,sans-serif','font-size':responseFont,'font-weight':850,fill:'#64777d'},line)));
       for(let i=0;i<answerRows;i++){
         const lineY=answerY+labelH+17+i*writingPitch;
         out.appendChild(svgEl('line',{x1:pad,y1:lineY,x2:width-pad,y2:lineY,stroke:'#aebdc1','stroke-width':1.5}));
       }
     }else if(resolvedMode==='box'){
-      labelLines.forEach((line,i)=>out.appendChild(svgEl('text',{x:pad,y:answerY+16+i*20,'font-family':'Arial,sans-serif','font-size':15,'font-weight':850,fill:'#64777d'},line)));
+      labelLines.forEach((line,i)=>out.appendChild(svgEl('text',{x:pad,y:answerY+responseFont+i*labelStep,'font-family':'Arial,sans-serif','font-size':responseFont,'font-weight':850,fill:'#64777d'},line)));
       out.appendChild(svgEl('rect',{x:pad,y:answerY+labelH+7,width:250,height:boxHeight,rx:4,fill:'#ffffff',stroke:'#9fafb3','stroke-width':1.8}));
     }
   }
@@ -273,5 +297,5 @@ function copyText(text){
   if(navigator.clipboard?.writeText)return navigator.clipboard.writeText(text);
   return Promise.reject(new Error('Clipboard access is not available in this browser.'));
 }
-G.exportTools={preparePaperSvg,safeFilename,downloadSvg,downloadPng,copyPng,printSvg,copyText,serialiseSvg,composeChallengeCardSvg,composeWorksheetCardSvg,withDocumentCardLayout,isDocumentCardLayout,withAnswerDiagram,isAnswerDiagramLayout};
+G.exportTools={wrapPaperText,preparePaperSvg,safeFilename,downloadSvg,downloadPng,copyPng,printSvg,copyText,serialiseSvg,composeChallengeCardSvg,composeWorksheetCardSvg,withDocumentCardLayout,isDocumentCardLayout,withAnswerDiagram,isAnswerDiagramLayout};
 })(window.TT99Goodies);

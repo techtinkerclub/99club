@@ -645,13 +645,13 @@ function objectMarkup(obj,tool){
     '<button type="button" class="gd-board-export-direct" data-board-export="'+obj.id+'" aria-label="Export '+esc(tool.title)+'" title="Export for worksheet or print">'+iconSvg('export')+'</button>'+
     '<button type="button" class="gd-board-delete-direct" data-board-delete="'+obj.id+'" aria-label="Delete '+esc(tool.title)+'" title="Delete">'+iconSvg('trash')+'</button>'+
     '<div class="gd-board-export-menu" data-board-export-menu role="menu" aria-label="Export '+esc(tool.title)+'">'+
-      '<div class="gd-pub-menu-section"><span>Current item</span><div class="gd-pub-menu-formats">'+
-      '<button type="button" data-board-export-kind="copy" role="menuitem">Copy</button>'+
+      (G.publishing?.supports(tool.id)?'<div class="gd-pub-menu-section" data-pub-document-group><span>Worksheet</span><button type="button" data-board-export-kind="add-document" role="menuitem" class="gd-pub-menu-primary"><span>Add current item</span><small>＋</small></button>'+(G.publishing.canGenerate(tool.id)?'<button type="button" data-board-export-kind="generate-document" role="menuitem"><span>Generate questions…</span><small>›</small></button>':'')+'</div>':'')+
+      '<div class="gd-pub-menu-section"><span>Export current item</span><div class="gd-pub-menu-formats">'+
+      '<button type="button" data-board-export-kind="copy" role="menuitem" title="Copy image to clipboard">Copy</button>'+
       '<button type="button" data-board-export-kind="png" role="menuitem">PNG</button>'+
       '<button type="button" data-board-export-kind="svg" role="menuitem">SVG</button>'+
       '<button type="button" data-board-export-kind="print" role="menuitem">Print</button></div></div>'+
-      (G.publishing?.supports(tool.id)?'<div class="gd-pub-menu-section" data-pub-document-group><span>Worksheet</span><button type="button" data-board-export-kind="add-document" role="menuitem">Add current item</button><button type="button" data-board-export-kind="generate-document" role="menuitem">Generate questions…</button></div>':'')+
-      (tool.id==='maths-canvas'?'<div class="gd-pub-menu-section"><button type="button" data-board-export-kind="paper-settings" role="menuitem">Paper settings…</button></div>':'')+
+      (tool.id==='maths-canvas'?'<div class="gd-pub-menu-section"><button type="button" data-board-export-kind="paper-settings" role="menuitem"><span>Paper settings…</span><small>›</small></button></div>':'')+
       (['maths-canvas','abacus','place-value','sequences'].includes(tool.id)?'<div class="gd-pub-menu-section" data-pub-key-group hidden><span>Teacher key</span><div class="gd-pub-menu-formats"><button type="button" data-board-export-kind="key-print" role="menuitem" hidden>Print</button><button type="button" data-board-export-kind="key-copy" role="menuitem" hidden>Copy</button></div></div>':'')+
     '</div>'+
     '<div class="gd-board-quick-actions is-empty" data-board-quick-actions aria-label="'+esc(tool.title)+' quick actions"></div>'+
@@ -863,8 +863,8 @@ function bindObject(obj){
     e.preventDefault();e.stopPropagation();
     if(['add-document','generate-document'].includes(button.dataset.boardExportKind)){
       try{const api=frame.querySelector('iframe')?.contentWindow?.TT99Goodies,snapshot=api?.lessonState.capture(obj.toolId)?.model;if(!snapshot)throw Error('Widget is not ready.');
-        if(button.dataset.boardExportKind==='add-document')publishingDraft.addCurrent(obj.toolId,snapshot,!snapshot.challenge&&['maths-canvas','place-value'].includes(obj.toolId)?api.publishingCurrent?.():null);
-        else{const available=G.publishing.types(obj.toolId,snapshot),current=snapshot.challenge||snapshot.task;const options=available.length?available.map(t=>'<option value="'+esc(t.id)+'">'+esc(t.label)+'</option>').join(''):(current?.type?'<option value="'+esc(current.type)+'">Current challenge type</option>':'');const dlg=document.createElement('dialog');dlg.className='gd-publishing-editor gd-publishing-generate';dlg.innerHTML='<form method="dialog"><strong>Generate challenges for document</strong><label class="gd-field"><span>Number of challenges</span><select name="count" class="gd-select">'+[1,2,3,4,5,6,8,10,15,20].map(n=>'<option'+(n===5?' selected':'')+'>'+n+'</option>').join('')+'</select></label><label class="gd-field"><span>Question types</span><select name="type" class="gd-select"><option value="all">All enabled types</option>'+options+'</select></label><p class="gd-help">Uses this widget’s current generation settings.</p><button class="gd-btn" value="cancel">Cancel</button> <button class="gd-btn gd-btn--primary" value="generate">Generate</button></form>';document.body.appendChild(dlg);dlg.addEventListener('close',()=>{const count=dlg.querySelector('[name=count]').value,type=dlg.querySelector('[name=type]').value,ok=dlg.returnValue==='generate';dlg.remove();if(ok)try{publishingDraft.generate(obj.toolId,snapshot,count,type);G.publishing.openEditor(publishingDraft)}catch(err){boardHint(err.message)}});dlg.showModal();frame.classList.remove('has-export-menu');return}
+        if(button.dataset.boardExportKind==='add-document')publishingDraft.addCurrent(obj.toolId,snapshot,!snapshot.challenge&&['maths-canvas','place-value','randomiser'].includes(obj.toolId)?api.publishingCurrent?.():null);
+        else{frame.classList.remove('has-export-menu');G.publishing.openQuickGenerate(publishingDraft,obj.toolId,snapshot);return}
         G.publishing.openEditor(publishingDraft);
       }catch(err){boardHint(err.message||'Unable to add worksheet content.');}
     }else if(button.dataset.boardExportKind==='paper-settings'){

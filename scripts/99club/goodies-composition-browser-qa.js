@@ -536,7 +536,227 @@ async function run(){
   randomExportMenu.querySelector('[data-board-export-kind="svg"]').click();await tick();
   assert(randomExportSvg&&/randomiser-dice/.test(randomExportName),'Randomiser frame export produces a clean vector paper result');
   randomWin.TT99Goodies.exportTools.downloadSvg=randomOldSvg;
+  assert(TT99Goodies.publishing.supports('randomiser')&&!TT99Goodies.publishing.canGenerate('randomiser'),'Randomiser is available for current illustration capture only');
+  randomExportButton.click();await tick();
+  assert(randomExportMenu.querySelector('[data-board-export-kind="add-document"]')&&!randomExportMenu.querySelector('[data-board-export-kind="generate-document"]'),'Randomiser offers current item publishing without unsupported challenge generation');
+  randomExportMenu.querySelector('[data-board-export-kind="add-document"]').click();await tick();
+  const publisher=document.getElementById('gd-publishing-editor');
+  assert(publisher.open&&publisher.querySelector('.gd-pub-preview svg')?.textContent.includes('Dice result'),'Randomiser illustration appears in the shared worksheet preview');
+  publisher.querySelector('[data-pub-teacher]').click();await tick();
+  assert(!publisher.querySelector('[data-worksheet-answer="annex"]'),'An illustration alone does not create a spurious answer annex');
+  publisher.querySelector('[data-pub-builder]').click();await tick();
+  const randomSource=publisher.querySelector('[data-pub-add-source="randomiser"]');
+  assert(randomSource.disabled&&randomSource.textContent.includes('Current item only'),'Automatic builder explains why Randomiser is not a challenge source');
+  publisher.querySelector('[data-pub-back]').click();await tick();
+  publisher.querySelector('[data-pub-remove]').click();await tick();
+  publisher.querySelector('[data-pub-close]').click();
   TT99Goodies.compositionBoard.remove(randomRecord.id);
+  // Review navigation and print versions use the actual generated page set.
+  {
+    const P=TT99Goodies.publishing,draft=P.createDocument();
+    draft.generate('geoboard',{gridSize:9},1,'build-area',()=>0.15);
+    draft.generate('times-table',{},1,'find-total',()=>0.2);
+    P.openEditor(draft);
+    const dialog=document.getElementById('gd-publishing-editor');
+    assert(dialog.querySelector('.gd-pub-review-count').textContent.includes('2 / 80'),'Review shows the document item count');
+    assert(!dialog.querySelector('.gd-pub-sheet.is-annex')&&dialog.querySelector('[data-pub-jump-answers]').hidden,'Pupil version contains no annex');
+    dialog.querySelector('[data-pub-teacher]').click();await tick();
+    const annex=dialog.querySelector('.gd-pub-sheet.is-annex');
+    assert(annex&&!annex.querySelector('.gd-pub-action-rail'),'Annex preview has no duplicate question editing controls');
+    assert(!dialog.querySelector('[data-pub-jump-answers]').hidden,'Teacher view offers direct annex navigation');
+    dialog.querySelector('[data-pub-jump-answers]').click();
+    assert(dialog.querySelector('[data-pub-page]').selectedOptions[0].textContent.startsWith('Answers'),'Page selector navigates to annex');
+    dialog.querySelector('[data-pub-zoom="large"]').click();
+    assert(dialog.querySelector('.gd-pub-preview.is-large'),'Large preview mode is available');
+    dialog.querySelector('[data-pub-pupil]').click();await tick();
+    assert(!dialog.querySelector('.gd-pub-sheet.is-annex')&&dialog.querySelector('[data-pub-page]').value==='1','Switching back to pupil resets page navigation');
+    dialog.querySelector('[data-pub-zoom="fit"]').click();
+    dialog.querySelector('[data-pub-close]').click();await tick();
+  }
+
+  // Automatic builder supports search, independent sets and visible validation.
+  {
+    const P=TT99Goodies.publishing,draft=P.createDocument();
+    P.openEditor(draft,{mode:'builder'});
+    const dialog=document.getElementById('gd-publishing-editor');
+    const search=dialog.querySelector('[data-pub-search]');
+    search.value='geoboard';search.dispatchEvent(new Event('input',{bubbles:true}));
+    assert(dialog.querySelectorAll('[data-pub-add-source]').length===1,'Catalogue search filters widgets');
+    dialog.querySelector('[data-pub-add-source="geoboard"]').click();
+    dialog.querySelector('[data-pub-add-source="geoboard"]').click();
+    let sets=dialog.querySelectorAll('[data-pub-block]');
+    assert(sets.length===2&&sets[0].querySelector('.gd-pub-source-content').hidden&&!sets[1].querySelector('.gd-pub-source-content').hidden,'Repeated widget sets are independent and prior sets collapse');
+    sets[0].querySelector('[data-pub-toggle-block]').click();
+    sets=dialog.querySelectorAll('[data-pub-block]');
+    assert(!sets[0].querySelector('.gd-pub-source-content').hidden,'Source settings can be reopened');
+    sets[0].querySelector('[data-pub-no-types]').click();
+    assert(dialog.querySelector('[data-pub-generate]').disabled&&dialog.querySelector('.gd-pub-source.is-invalid'),'Builder prevents generation when a set has no question types');
+    dialog.querySelector('[data-pub-block] [data-pub-all-types]').click();
+    assert(!dialog.querySelector('[data-pub-generate]').disabled,'Selecting compatible types restores the action');
+    const searchAgain=dialog.querySelector('[data-pub-search]');searchAgain.value='';searchAgain.dispatchEvent(new Event('input',{bubbles:true}));
+    assert(dialog.querySelectorAll('[data-pub-add-source]').length===20,'Clearing search restores the full catalogue');
+    dialog.querySelector('[data-pub-collapse-all]').click();
+    assert([...dialog.querySelectorAll('.gd-pub-source-content')].every(el=>el.hidden),'Collapse all preserves sets while hiding settings');
+    const counts=dialog.querySelectorAll('[data-pub-count]');counts[0].value='1';counts[0].dispatchEvent(new Event('change',{bubbles:true}));
+    const second=dialog.querySelectorAll('[data-pub-count]')[1];second.value='1';second.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(dialog.querySelector('.gd-pub-draft-total').textContent.includes('2 / 80'),'Builder shows total capacity');
+    dialog.querySelector('[data-pub-generate]').click();await tick();
+    assert(draft.list().length===2,'Independent sets generate into one draft');
+    dialog.querySelector('[data-pub-close]').click();await tick();
+  }
+
+  // Manual and automatic publishing share selection and validation.
+  {
+    const P=TT99Goodies.publishing,draft=P.createDocument();
+    P.openQuickGenerate(draft,'geoboard',{gridSize:9,responseLines:2});
+    const dialog=document.querySelector('.gd-publishing-generate');
+    assert(dialog.open&&dialog.querySelectorAll('[data-pub-quick-type]:checked').length===6,'Quick publisher starts with all compatible types selected');
+    dialog.querySelector('[data-pub-quick-none]').click();
+    assert(dialog.querySelector('[data-pub-quick-add]').disabled,'Cannot generate without selected types');
+    const type=dialog.querySelector('[data-pub-quick-type][value="build-area"]');type.click();
+    const count=dialog.querySelector('[name=count]');count.value='1';count.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(!dialog.querySelector('[data-pub-quick-add]').disabled&&dialog.querySelector('[data-pub-quick-add]').textContent==='Add 1 question','Quick publisher updates its count and action');
+    dialog.querySelector('[data-pub-quick-add]').click();await tick();
+    assert(draft.list().length===1&&draft.list()[0].data.type==='build-area'&&draft.list()[0].data.diagram.gridSize===9,'Quick publisher uses selected family and preserves live grid settings');
+    document.getElementById('gd-publishing-editor').querySelector('[data-pub-close]').click();await tick();
+  }
+
+  // Geoboard paper generation uses exactly the selected pin count.
+  {
+    const P=TT99Goodies.publishing,G=TT99Goodies.geoboardPaperModel;
+    assert(P.canGenerate('geoboard')&&G.types().length===6,'Geoboard supports all six publication families');
+    const draft=P.createDocument();
+    for(const {id} of G.types())draft.generate('geoboard',{gridSize:11,responseLines:2},1,id,()=>0.15);
+    const items=draft.list(),build=items.find(item=>item.data.type==='build-area');
+    const pupil=P.renderItem(build,false),teacher=P.answerGraphic(build);
+    assert(pupil.querySelectorAll('[data-ge-paper-pin]').length===121&&teacher.querySelectorAll('[data-ge-paper-pin]').length===121,'11 by 11 grid renders exactly 121 pins');
+    assert(!pupil.querySelector('[data-ge-paper-shape]')&&teacher.querySelector('[data-ge-paper-shape]'),'Construction pupil grid is blank and teacher diagram is solved');
+    assert(G.area(G.solution(build.data))===build.data.challenge.targetArea,'Teacher example has the target area');
+    assert(P.answerNote(build).includes('only one example'),'Geoboard marking accepts other correct polygons');
+    assert(P.pages(items,{teacher:true}).some(page=>page.getAttribute('data-worksheet-answer')==='annex'),'Geoboard worksheet includes graphical teacher annex');
+    const captured=P.createDocument();captured.addCurrent('geoboard',{diagram:{gridSize:11,pts:G.solution(build.data)},challenge:{...build.data.challenge,revealed:true}});
+    assert(P.signature(captured.list()[0])===P.signature(build),'Captured construction task remains blank after reveal');
+    for(const gridSize of [5,7,9,11,13])for(const {id} of G.types())for(let i=0;i<20;i++){
+      let seed=i+10;const rng=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
+      const d=G.generate(id,{gridSize},rng),pts=G.solution(d);
+      assert(pts.every(v=>Number.isInteger(v.x)&&Number.isInteger(v.y)&&v.x>=0&&v.y>=0&&v.x<gridSize&&v.y<gridSize),'Generated geometry fits chosen pins');
+      if(id==='build-area')assert(G.area(pts)===d.challenge.targetArea,'Every target area has a valid example');
+      if(id==='find-length')assert(parseFloat(d.challenge.answer)===G.length(pts),'Segment length is exact');
+      if(id==='find-area')assert(parseFloat(d.challenge.answer)===G.area(pts),'Area is exact');
+      if(id==='find-perimeter')assert(parseFloat(d.challenge.answer)===G.perimeter(pts),'Perimeter uses integer side lengths');
+    }
+  }
+
+  // Number Mobile paper models retain the recursive topology and freeze all answers.
+  {
+    const P=TT99Goodies.publishing,N=TT99Goodies.numberMobilePaperModel;
+    assert(P.canGenerate('balance')&&N.types().length===6,'Number Mobile exposes all six publishing families');
+    const draft=P.createDocument();
+    for(const difficulty of ['easy','medium','hard'])for(const {id} of N.types())if(id!=='same-to-both'||difficulty==='easy')draft.generate('balance',{difficulty,responseLines:2},1,id,()=>difficulty==='easy'?0.1:difficulty==='medium'?0.4:0.8);
+    const items=draft.list(),hard=items.find(item=>item.data.type==='missing-weight'&&item.data.difficulty==='hard');
+    const pupil=P.renderItem(hard,false),teacher=P.answerGraphic(hard);
+    assert(pupil.querySelectorAll('[data-nm-paper-bar]').length===3&&teacher.querySelectorAll('[data-nm-paper-bar]').length===3,'Hard missing-number paper retains both hanging branches');
+    assert([...pupil.querySelectorAll('[data-nm-paper-value]')].filter(n=>n.textContent==='?').length===2&&!([...teacher.querySelectorAll('[data-nm-paper-value]')].some(n=>n.textContent==='?')),'Pupil unknowns remain hidden and teacher values are revealed');
+    assert(P.answerSummary(hard).includes('A =')&&P.answerSummary(hard).includes('B ='),'Multiple missing answers are identified by position');
+    assert(P.pages(items,{teacher:true}).some(page=>page.getAttribute('data-worksheet-answer')==='annex'),'Mixed Number Mobile worksheet includes marking annex');
+    const d=hard.data,captured=P.createDocument();captured.addCurrent('balance',{diagram:d.diagram,topology:d.topology,session:{engine:{challenge:{mode:'custom',revealed:true,...d.challenge}},generator:{difficulty:'hard',spec:{...d.challenge,difficulty:'hard'}}}});
+    assert(P.signature(captured.list()[0])===P.signature(hard),'Number Mobile captures exact recursive question topology');
+    for(const difficulty of ['easy','medium','hard'])for(const {id} of N.types())for(let i=0;i<25;i++){
+      let seed=i+100;const rng=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
+      const v=N.generate(id,{difficulty},rng),ch=v.challenge,tokens=new Map([...v.diagram.left,...v.diagram.right].map(x=>[String(x.id),x]));
+      const sum=ns=>ns.reduce((a,n)=>a+(n.kind==='branch'?sum(n.left)+sum(n.right):tokens.get(String(n.id)).value),0);
+      const L=sum(v.topology.roots.left),R=sum(v.topology.roots.right);
+      const walk=ns=>ns.forEach(n=>{if(n.kind==='branch'){assert(sum(n.left)===sum(n.right),'Each generated hanging bar is balanced');walk(n.left);walk(n.right)}});
+      walk(v.topology.roots.left);walk(v.topology.roots.right);
+      if(id==='missing-weight'||id==='same-to-both')assert(L===R,'Equality task is balanced');
+      if(id==='make-balance'||id==='find-difference')assert(Number(ch.answer)===Math.abs(L-R),'Mobile difference is exact');
+      if(id==='choose-relation')assert(ch.answer===(difficulty==='easy'?(L===R?'=':L>R?'>':'<'):(L>R?'Left side':'Right side')),'Mobile comparison is exact');
+      if(id==='spot-false-equality')assert(L!==R&&ch.answer.startsWith('No.'),'False equality is indeed false');
+    }
+  }
+
+  // Equal-groups worksheets must not expose solutions on the pupil page.
+  {
+    const P=TT99Goodies.publishing,T=TT99Goodies.timesTablePaperModel;
+    assert(P.canGenerate('times-table')&&T.types().length===6,'Times-table publishing covers every challenge family');
+    const draft=P.createDocument();
+    for(const {id} of T.types())draft.generate('times-table',{responseLines:2},1,id,()=>0.1);
+    const items=draft.list(),build=items.find(item=>item.data.type==='build-fact'),c=build.data.challenge;
+    const pupil=P.renderItem(build,false),teacher=P.answerGraphic(build);
+    assert(pupil.querySelector('[data-tv-paper-working]')&&!pupil.querySelector('[data-tv-paper-dot]'),'Build-fact pupil page supplies blank drawing space');
+    assert(teacher.querySelectorAll('[data-tv-paper-group]').length===c.targetGroups&&teacher.querySelectorAll('[data-tv-paper-dot]').length===c.targetGroups*c.targetItems,'Teacher diagram has the exact target groups and dot count');
+    assert(P.answerNote(build).includes('exactly'),'Equal groups annex states the marking criteria');
+    assert(P.pages(items,{teacher:true}).some(page=>page.getAttribute('data-worksheet-answer')==='annex'),'Times-table worksheet includes teacher annex');
+    const captured=P.createDocument();captured.addCurrent('times-table',{...build.data,diagram:{groupsCount:1,itemsPerGroup:1},challenge:{...c,revealed:true}});
+    assert(P.signature(captured.list()[0])===P.signature(build),'Times-table capture preserves the original question after manipulation');
+    for(const {id} of T.types())for(let i=0;i<30;i++){
+      let seed=i+1;const rng=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
+      const d=T.generate(id,{},rng),{groupsCount:g,itemsPerGroup:n}=d.diagram,q=d.challenge;
+      if(id==='find-total')assert(Number(q.answer)===g*n,'Equal group total is exact');
+      if(id==='related-division')assert(Number(q.answer)===n,'Related division is exact');
+      if(id==='commutative-fact')assert(g!==n&&q.answer===n+' × '+g+' = '+g*n,'Reversed multiplication fact is correct');
+      if(id==='spot-error')assert(q.answer.startsWith(q.wrongTotal===g*n?'Yes':'No'),'Error classification is correct');
+      if(id==='build-fact')assert(q.answer===q.targetGroups+' × '+q.targetItems+' = '+q.targetGroups*q.targetItems,'Construction target is exact');
+      if(id==='write-repeated')assert(q.answer===Array.from({length:g},()=>n).join(' + ')+' = '+g*n,'Repeated addition is correct');
+    }
+  }
+
+  // Factor evidence and frozen solutions use the same question generator as the widget.
+  {
+    const P=TT99Goodies.publishing,F=TT99Goodies.factorPaperModel;
+    assert(P.canGenerate('factors')&&F.types().length===7,'Factors publishes every existing challenge family');
+    const draft=P.createDocument();
+    for(const {id} of F.types())draft.generate('factors',{responseLines:2},1,id,()=>0.1);
+    const items=draft.list();
+    assert(items.length===7&&items.every(item=>P.answerSummary(item)),'Factors questions have frozen answers');
+    const missing=items.find(item=>item.data.type==='missing-factor');
+    const pupil=P.renderItem(missing,false),teacher=P.answerGraphic(missing);
+    assert(pupil.querySelector('[data-fe-paper-equation]').textContent.includes('?')&&!teacher.querySelector('[data-fe-paper-equation]').textContent.includes('?'),'Factor rectangle pupil question hides the missing factor and teacher graphic solves it');
+    assert(teacher.querySelectorAll('[data-fe-paper-cell]').length===missing.data.diagram.a,'Factor rectangle has the exact number of cells');
+    assert(P.pages(items,{teacher:true}).some(page=>page.getAttribute('data-worksheet-answer')==='annex'),'Factors worksheet has graphical marking annex');
+    const captured=P.createDocument();captured.addCurrent('factors',{...missing.data,challenge:{...missing.data.challenge,revealed:true}});
+    assert(P.signature(captured.list()[0])===P.signature(missing),'Revealed factor challenge captures the original question');
+    for(const {id} of F.types())for(let i=0;i<20;i++){
+      const d=F.generate(id,{},()=>i/20),{a,b}=d.diagram,c=d.challenge;
+      const factors=n=>Array.from({length:n},(_,j)=>j+1).filter(v=>n%v===0);
+      if(id==='missing-factor')assert(Number(c.answer)*Number(c.prompt.split(' ×')[0].split(' ').pop())===a,'Factor pair product is exact');
+      if(id==='common-factors')assert(c.answer===factors(a).filter(v=>b%v===0).join(', '),'Common factors are complete');
+      if(id==='hcf')assert(Number(c.answer)===Math.max(...factors(a).filter(v=>b%v===0)),'Highest common factor is exact');
+      if(id==='lcm'){const n=Number(c.answer);assert(n%a===0&&n%b===0&&!Array.from({length:n/a-1},(_,j)=>a*(j+1)).some(v=>v%b===0),'Lowest common multiple is minimal');}
+      if(id==='prime-or-composite')assert(c.answer===(factors(a).length===2?'Prime':'Composite'),'Classification is correct');
+      if(id==='explain-prime')assert(factors(a).length===2,'Prime reasoning uses a prime number');
+      if(id==='divisible-by')assert(c.answer.startsWith(a%c.hiddenDivisor===0?'Yes':'No'),'Divisibility answer is exact');
+    }
+  }
+
+  // The FDP publication model is shared with the live widget.
+  {
+    const P=TT99Goodies.publishing,F=TT99Goodies.fdpPaperModel;
+    assert(P.canGenerate('fdp')&&F.types().length===6,'FDP publishes all six challenge families');
+    const draft=P.createDocument();
+    const ids=F.types().map(x=>x.id);
+    for(const id of ids)draft.generate('fdp',{responseLines:2},1,id,()=>0.1);
+    const items=draft.list();
+    assert(items.length===6&&items.every(item=>P.answerSummary(item)),'All FDP challenge families have frozen answers');
+    const build=items.find(item=>item.data.type==='build-percentage');
+    const pupil=P.renderItem(build,false),teacher=P.answerGraphic(build);
+    assert(!pupil.querySelector('[data-fdp-shaded="1"]')&&teacher.querySelectorAll('[data-fdp-shaded="1"]').length===build.data.challenge.targetNumerator,'FDP pupil shading is blank and teacher graphic is solved');
+    assert(P.answerNote(build).includes('Accept any valid shading'),'FDP marking guidance accepts equivalent valid shading');
+    assert(P.pages(items,{teacher:true}).some(page=>page.getAttribute('data-worksheet-answer')==='annex'),'FDP mixed-family worksheet includes teacher annex');
+    const live=F.generate('build-percentage',{},()=>0.1);
+    const captured=P.createDocument();captured.addCurrent('fdp',{...live,diagram:{numerator:0,denominator:1},challenge:{...live.challenge,revealed:true}});
+    assert(P.signature(captured.list()[0])===P.signature(build),'FDP current challenge capture preserves original question after reveal or manipulation');
+    for(const type of ids){
+      for(let i=0;i<12;i++){
+        const d=F.generate(type,{},()=>i/12),c=d.challenge,{numerator:n,denominator:den}=d.diagram;
+        if(type==='to-decimal')assert(Number(c.answer)===n/den,'FDP decimal answer is exact');
+        if(type==='to-percentage')assert(Math.abs(parseFloat(c.answer)-n/den*100)<1e-8,'FDP percentage answer is exact');
+        if(type==='build-percentage')assert(Math.abs(c.targetNumerator/c.targetDenominator*100-c.targetPercent)<1e-8,'FDP shading target is exact');
+        if(type==='simplify-fraction'){const [a,b]=c.answer.split('/').map(Number);assert(a*den===b*n,'FDP simplified answer is equivalent');}
+      }
+    }
+  }
+
 
   document.querySelector('[data-board-add="maths-canvas"]').click();await tick();
   const mcRecord=TT99Goodies.compositionBoard.objects().find(x=>x.toolId==='maths-canvas');
@@ -751,11 +971,25 @@ async function run(){
   assert(rulerApi.capture('measurement').model.diagram.cm===rulerAttempt.diagram.cm,'Hide answer restores previous marker');
   api.remove(qaRuler.record.id);
   const qaGeo=await addForSave('geoboard'),geoDoc=qaGeo.doc;
+  const geoGrid=geoDoc.getElementById('ge-grid-size');
+  assert(geoGrid&&geoDoc.querySelectorAll('[data-gp]').length===49,'Geoboard defaults to 7 by 7 pins');
+  geoDoc.querySelector('[data-gp="2,2"]').dispatchEvent(new geoDoc.defaultView.MouseEvent('click',{bubbles:true}));await tick();
+  function changeGeoGrid(n){const select=geoDoc.getElementById('ge-grid-size');select.value=String(n);select.dispatchEvent(new geoDoc.defaultView.Event('change',{bubbles:true}))}
+  changeGeoGrid(13);await tick();
+  assert(geoDoc.querySelectorAll('[data-gp]').length===169&&geoDoc.querySelector('[data-ge-pos="2,2"]'),'Increasing pins preserves the existing vertex');
+  geoDoc.querySelector('[data-gp="12,12"]').dispatchEvent(new geoDoc.defaultView.MouseEvent('click',{bubbles:true}));await tick();
+  changeGeoGrid(5);await tick();
+  assert(geoDoc.querySelectorAll('[data-gp]').length===169&&geoDoc.getElementById('ge-grid-status').textContent.includes('does not fit'),'Shrinking cannot silently delete an outlying vertex');
+  geoDoc.getElementById('ge-clear').click();await tick();changeGeoGrid(5);await tick();
+  assert(geoDoc.querySelectorAll('[data-gp]').length===25,'Cleared board can shrink to 5 by 5');
+
   geoDoc.querySelector('[data-ge-workflow="challenge"]').click();
   geoDoc.querySelector('[data-ge-challenge-cat="measure"]').click();
   geoDoc.querySelector('[data-ge-challenge-type="find-area"]').click();
+  changeGeoGrid(11);await tick();
   geoDoc.getElementById('ge-generate').click();await tick();
   const geoState=geoDoc.defaultView.TT99Goodies.lessonState;
+  assert(geoState.capture('geoboard').model.diagram.gridSize===11&&geoDoc.querySelectorAll('[data-gp]').length===121,'Live challenge uses its selected generation grid');
   const given=JSON.stringify(geoState.capture('geoboard').model.diagram.pts);
   geoDoc.querySelector('[data-gp]').dispatchEvent(new geoDoc.defaultView.MouseEvent('click',{bubbles:true}));
   assert(JSON.stringify(geoState.capture('geoboard').model.diagram.pts)===given,'Given geometry cannot be altered during a calculation question');

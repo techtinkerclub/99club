@@ -44,6 +44,7 @@ jobs:
           node scripts/99club/goodies-whiteboard-browser-qa.js prepare
           node scripts/99club/goodies-composition-browser-qa.js prepare
           node scripts/99club/goodies-layout-browser-qa.js prepare
+          node scripts/99club/goodies-publication-browser-qa.js prepare
       - name: Exercise Goodies and mixed whiteboard
         shell: bash
         run: |
@@ -71,7 +72,8 @@ jobs:
           run_suite whiteboard-browser whiteboard-qa 50 30000
           run_suite composition-browser composition-qa 55 30000
           run_suite layout-browser layout-qa 55 30000
-          echo "Failed browser suites: $failures / 4"
+          run_suite publication-browser publication-qa 90 50000
+          echo "Failed browser suites: $failures / 5"
           test "$failures" -eq 0
       - name: Upload focused reports
         if: always()
@@ -83,4 +85,6 @@ jobs:
             99club-goodies-whiteboard-qa-report.json
             99club-goodies-composition-qa-report.json
             99club-goodies-layout-qa-report.json
+            99club-goodies-publication-qa-report.json
+            /tmp/publication-browser.html
           if-no-files-found: ignore
