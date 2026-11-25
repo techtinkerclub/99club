@@ -34,7 +34,7 @@ window.TT99_GOODIES_BOARD_HOME = '/goodies/';
 <script src="/assets/99club/goodies-interaction.js?v=4&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
 <script src="/assets/99club/goodies-challenge.js?v=19&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
 <script src="/assets/99club/goodies-export.js?v=13&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
-<script src="/assets/99club/goodies-publishing.js?v=17&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
+<script src="/assets/99club/goodies-publishing.js?v=18&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
 <script src="/assets/99club/goodies-tools-a.js?v=74&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
 <script src="/assets/99club/goodies-abacus.js?v=27&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
 <script src="/assets/99club/goodies-number-line-v6.js?v=26&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
@@ -46,5 +46,5 @@ window.TT99_GOODIES_BOARD_HOME = '/goodies/';
 <script src="/assets/99club/goodies-statistics-model.js?v=1&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
 <script src="/assets/99club/goodies-statistics-table.js?v=1&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
 <script src="/assets/99club/goodies-function-machine.js?v=1&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
-<script src="/assets/99club/goodies-app.js?v=13&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
-<script src="/assets/99club/goodies-board.js?v=55&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
+<script src="/assets/99club/goodies-app.js?v=14&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
+<script src="/assets/99club/goodies-board.js?v=56&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
