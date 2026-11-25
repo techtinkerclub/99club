@@ -327,8 +327,31 @@ function renderFloatingControls(obj){
   if(obj.toolId==='abacus'&&floatingPanelMode!=='challenge')clone.querySelectorAll('[data-ab-workflow="challenge"],[data-ab-workflow="export"]').forEach(n=>n.remove());
   clone.querySelectorAll('#nl-fullscreen,.gd-embed-workflow-hidden[id$="-fullscreen"]').forEach(node=>node.remove());
   const compact=floatingPanelMode==='challenge';
+  floatingControls.dataset.panelMode=floatingPanelMode;
   floatingControls.classList.toggle('is-challenge-launcher',compact);
   if(compact)clone=compactChallengeControls(clone,obj);
+  else if(!isObjectPalette()){
+    // Preserve the native controls and their proxy identities, but give the
+    // three panel modes a common presentation and compact challenge catalogue.
+    const picker=clone.querySelector('.gd-challenge-picker');
+    if(picker){
+      picker.classList.add('gd-panel-challenge-picker');
+      const chips=picker.querySelector('.gd-challenge-chips'),random=picker.querySelector('.gd-challenge-random-row');
+      if(chips&&random)picker.insertBefore(chips,random);
+      for(const card of picker.querySelectorAll('.gd-challenge-card')){
+        const desc=card.querySelector('span');
+        if(desc){card.title=desc.textContent;desc.classList.add('gd-panel-card-description')}
+      }
+    }
+    const workflows=clone.querySelectorAll('[role="tablist"][aria-label$="workflow"],.nl-workflow-tabs,.gd-mc-workflow-tabs');
+    workflows.forEach(row=>row.classList.add('gd-panel-workflow'));
+    const fields=clone.querySelectorAll('.gd-field');
+    fields.forEach(field=>field.classList.add('gd-panel-field'));
+    if(floatingPanelMode==='challenge-settings'){
+      const back=document.createElement('button');back.type='button';back.className='gd-panel-back gd-btn';back.dataset.boardLauncherBack='1';back.textContent='‹ Quick challenge';
+      clone.prepend(back);
+    }
+  }
   // Preserve locally opened sections on proxy refresh; controls still dispatch to the original.
   if(!compact&&obj.toolId==='maths-canvas'&&floatingControlsBody.firstElementChild?.dataset.mcProxyObject===String(obj.id)){
     const open=new Set([...floatingControlsBody.querySelectorAll('details[data-mc-section][open]')].map(el=>el.dataset.mcSection));
@@ -445,13 +468,24 @@ function closeFloatingControls(id=null){
   if(target){target.settingsOpen=false;frameFor(target.id)?.classList.remove('has-settings')}
   if(id==null||String(floatingControlObjectId)===String(id)){
     floatingControlObjectId=null;floatingHelpData=null;floatingPanelMode='settings';floatingControlSources=[];floatingControlSignature='';floatingControlStructure='';
-    if(floatingControls){floatingControls.classList.remove('is-help','is-challenge-launcher','is-money-palette');delete floatingControls.dataset.tool;floatingControls.hidden=true;floatingControlsBody?.replaceChildren()}
+    if(floatingControls){floatingControls.classList.remove('is-help','is-challenge-launcher','is-money-palette');delete floatingControls.dataset.tool;delete floatingControls.dataset.panelMode;floatingControls.hidden=true;floatingControlsBody?.replaceChildren()}
   }
 }
 function floatingOriginal(index){
   const obj=objectById(floatingControlObjectId),source=obj&&sourceControls(obj);
   if(!source)return{obj:null,node:null};
-  const node=isObjectPalette()?source.querySelectorAll(CONTROL_SELECTOR)[Number(index)]:floatingControlSources[Number(index)];
+  let node=isObjectPalette()?source.querySelectorAll(CONTROL_SELECTOR)[Number(index)]:floatingControlSources[Number(index)];
+  // Controls are rebuilt synchronously by several engines. If a proxy is
+  // clicked between that rebuild and the observer refresh, match its native
+  // identity rather than forwarding to a detached element or a shifted index.
+  if(node&&!source.contains(node)){
+    const candidates=[...source.querySelectorAll(CONTROL_SELECTOR)];
+    if(node.id)node=candidates.find(n=>n.id===node.id);
+    else{
+      const old=node,attrs=[...old.attributes].filter(a=>a.name.startsWith('data-'));
+      node=attrs.length?candidates.find(n=>n.tagName===old.tagName&&attrs.every(a=>n.getAttribute(a.name)===a.value)):null;
+    }
+  }
   return{obj,node:node&&source.contains(node)?node:null};
 }
 function measuredStageContentHeight(stage){
@@ -921,12 +955,12 @@ function bindObject(obj){
 
 if(floatingControlsBody){
   floatingControlsBody.addEventListener('click',e=>{
-    const launcherAction=e.target.closest('[data-board-launcher-settings],[data-board-launcher-category]');
-    if(launcherAction){e.preventDefault();e.stopPropagation();const obj=objectById(floatingControlObjectId);if(!obj)return;if(launcherAction.hasAttribute('data-board-launcher-settings'))openFloatingControls(obj,'challenge-settings');else{obj.launcherCategory=Number(launcherAction.dataset.boardLauncherCategory);renderFloatingControls(obj)}return}
+    const launcherAction=e.target.closest('[data-board-launcher-settings],[data-board-launcher-category],[data-board-launcher-back]');
+    if(launcherAction){e.preventDefault();e.stopPropagation();const obj=objectById(floatingControlObjectId);if(!obj)return;if(launcherAction.hasAttribute('data-board-launcher-settings'))openFloatingControls(obj,'challenge-settings');else if(launcherAction.hasAttribute('data-board-launcher-back'))openFloatingControls(obj,'challenge');else{obj.launcherCategory=Number(launcherAction.dataset.boardLauncherCategory);renderFloatingControls(obj)}return}
     const control=e.target.closest('[data-board-control-index]');if(!control)return;
     if(control.tagName!=='BUTTON'&&!(control.tagName==='INPUT'&&/^(button|submit|reset)$/i.test(control.type||'')))return;
     e.preventDefault();e.stopPropagation();
-    const {obj,node}=floatingOriginal(control.dataset.boardControlIndex);if(!obj||!node)return;
+    const {obj,node}=floatingOriginal(control.dataset.boardControlIndex);if(!obj||!node||node.disabled)return;
     const launch=node.matches('[data-gd-random-scope],[data-gd-native-random],[data-pv-challenge-mode],[data-ab-challenge-mode],[data-mc-challenge-mode],[data-seq-challenge-mode],[data-ab-history-operation],#ab-history-challenge,[id$="-generate"]');
     const specific=floatingPanelMode==='challenge'&&[...node.attributes].find(a=>/^-?data-[a-z0-9-]+-challenge-type$/.test(a.name));
     if(specific){const prefix=specific.name.match(/^data-([a-z0-9-]+)-challenge-type$/)[1];node.click();const generate=sourceControls(obj)?.querySelector('#'+prefix+'-generate');if(generate&&!generate.disabled){generate.click();closeFloatingControls(obj.id)}}

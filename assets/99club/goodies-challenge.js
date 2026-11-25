@@ -171,7 +171,7 @@ function nativeRandom(row,scope){
   launchingRandom=true;try{randomScope={prefix,scope,last:id,native:true};document.querySelector('#gd-controls [data-'+prefix+'-challenge-mode="'+CSS.escape(id)+'"]').click()}finally{launchingRandom=false}
 }
 if(typeof document!=='undefined')document.addEventListener('click',e=>{
-  const el=e.target?.closest?.('button');if(!el||launchingRandom)return;
+  const el=e.target?.closest?.('button');if(!el||launchingRandom||el.closest('#gd-board-floating-controls'))return;
   const picker=el.closest('.gd-challenge-picker');
   if(el.hasAttribute('data-gd-random-scope')&&picker){e.preventDefault();e.stopImmediatePropagation();randomFromPicker(picker,el.dataset.gdRandomScope);return}
   const native=el.closest('[data-gd-native-prefix]');

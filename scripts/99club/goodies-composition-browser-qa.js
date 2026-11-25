@@ -971,6 +971,29 @@ async function run(){
   assert(rulerApi.capture('measurement').model.diagram.cm===rulerAttempt.diagram.cm,'Hide answer restores previous marker');
   api.remove(qaRuler.record.id);
   const qaGeo=await addForSave('geoboard'),geoDoc=qaGeo.doc;
+  // Exercise the real parent floating inspector, not only iframe controls.
+  const geoPanel=document.getElementById('gd-board-floating-controls');
+  qaGeo.frame.querySelector('[data-board-quick-actions] button[aria-label="Choose a challenge"]').click();await tick();
+  assert(geoPanel.dataset.panelMode==='challenge'&&geoPanel.querySelector('[data-gd-random-scope="all"]'),'Geoboard has the common quick challenge launcher');
+  geoPanel.querySelector('[data-board-launcher-settings]').click();await tick();
+  assert(geoPanel.dataset.panelMode==='challenge-settings'&&geoPanel.querySelector('[data-board-launcher-back]'),'Challenge settings provide a clear route back to launcher');
+  const proxyGrid=geoPanel.querySelector('#ge-grid-size');proxyGrid.value='13';proxyGrid.dispatchEvent(new Event('change',{bubbles:true}));await tick();
+  geoPanel.querySelector('[data-gd-random-scope="all"]').click();await tick(100);
+  const geoCapture=()=>geoDoc.defaultView.TT99Goodies.lessonState.capture('geoboard').model;
+  assert(geoCapture().challenge&&geoCapture().diagram.gridSize===13,'Full settings Random all forwards into live widget using selected pin count');
+  const firstRandom=JSON.stringify(geoCapture().challenge);
+  geoPanel.querySelector('[data-gd-random-scope="all"]').click();await tick(100);
+  assert(JSON.stringify(geoCapture().challenge)!==firstRandom,'Second Random all generates a different question');
+  geoPanel.querySelector('[data-board-launcher-back]').click();await tick();
+  assert(geoPanel.dataset.panelMode==='challenge','Back returns to quick launcher');
+  geoPanel.querySelector('[data-gd-random-scope="all"]').click();await tick(100);
+  assert(geoCapture().challenge&&!visible(geoPanel),'Quick Random all generates and closes the launcher');
+  geoDoc.querySelector('[data-challenge-action="end"]').click();await tick();
+  geoDoc.querySelector('[data-ge-workflow="explore"]').click();await tick();
+  qaGeo.frame.querySelector('[data-board-settings]').click();await tick();
+  assert(geoPanel.dataset.panelMode==='settings'&&geoPanel.querySelector('#ge-grid-size'),'Normal teaching settings preserve the grid selector');
+  geoPanel.querySelector('[data-board-controls-close]').click();await tick();
+
   const geoGrid=geoDoc.getElementById('ge-grid-size');
   assert(geoGrid&&geoDoc.querySelectorAll('[data-gp]').length===49,'Geoboard defaults to 7 by 7 pins');
   geoDoc.querySelector('[data-gp="2,2"]').dispatchEvent(new geoDoc.defaultView.MouseEvent('click',{bubbles:true}));await tick();
