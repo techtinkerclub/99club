@@ -22,9 +22,9 @@ function challengeBuilding(){return document.body.classList.contains('nmb-v7-cha
 function pupilActive(){return challengeActive()&&!challengeBuilding()}
 function revealed(){const b=banner();return !!(b&&(q('.gd-challenge-actions em',b)||/hide answer/i.test(q('[data-board-action="reveal"]',b)?.textContent||'')))}
 function text(el){return String(el?.textContent||'').trim()}
-function numeric(str){const n=Number(String(str??'').trim());return Number.isFinite(n)?n:null}
+function numeric(str){const raw=String(str??'').trim();if(!raw||raw==='.'||raw==='?')return null;const n=Number(raw);return Number.isFinite(n)?n:null}
 function scheduleAdapt(){if(adaptQueued)return;adaptQueued=true;queueMicrotask(()=>{adaptQueued=false;adapt()})}
-function challengeKey(){const b=banner(),ids=qa('[data-ba-token]',work()).map(el=>el.dataset.baToken).join(',');return b?text(q('.gd-challenge-kicker',b))+'|'+text(q('.gd-challenge-prompt',b))+'|'+ids:''}
+function challengeKey(){const b=banner(),ids=qa('[data-ba-token]',work()).map(el=>el.dataset.baToken).join(',');return b?text(q('.gd-challenge-copy h3',b))+'|'+text(q('.gd-challenge-prompt',b))+'|'+ids:''}
 function intendedAnswers(){const map=G.numberMobileChallengeSpec?.answerByToken;return map&&typeof map==='object'?map:null}
 function isIntendedAnswerTile(tile){const map=intendedAnswers(),id=String(tile?.dataset?.baToken||'');return map?Object.prototype.hasOwnProperty.call(map,id):(text(q('strong',tile))==='?'||answers.has(id))}
 function unknownTiles(){const map=intendedAnswers();if(map)return Object.keys(map).map(id=>q('[data-ba-token="'+CSS.escape(String(id))+'"]',work())).filter(Boolean);return qa('[data-ba-token]',work()).filter(tile=>text(q('strong',tile))==='?'||answers.has(String(tile.dataset.baToken)))}
@@ -57,7 +57,7 @@ function mainExpected(tile){
 }
 function expectedForTile(tile){const map=intendedAnswers(),id=String(tile?.dataset?.baToken||'');if(map&&Object.prototype.hasOwnProperty.call(map,id)){const expected=Number(map[id]);return Number.isFinite(expected)?expected:null}const branch=branchExpected(tile);return branch==null?mainExpected(tile):branch}
 function normalise(value){return String(value??'').trim().toLowerCase().replace(/\s+/g,' ')}
-function setFeedback(message,kind=''){feedback=message;feedbackKind=kind;renderFeedback()}
+function setFeedback(message,kind=''){feedback=message;feedbackKind=kind;renderFeedback();const reveal=q('[data-board-action="reveal"]',banner());if(reveal&&!revealed())reveal.hidden=kind==='correct'}
 function renderFeedback(){const el=q('[data-nmb-v8-feedback]',stage());if(!el)return;el.textContent=feedback||'';el.className='nmb-v8-feedback'+(feedbackKind?' is-'+feedbackKind:'');el.setAttribute('aria-live','polite')}
 function answerState(id){if(!answers.has(id))answers.set(id,{buffer:'',correct:false,wrong:false});return answers.get(id)}
 function renderTileAnswer(tile){const state=answers.get(String(tile.dataset.baToken));if(!state)return;const strong=q('strong',tile);if(strong)strong.textContent=state.buffer||'?';tile.classList.toggle('nmb-v8-answer-correct',!!state.correct);tile.classList.toggle('nmb-v8-answer-wrong',!!state.wrong);tile.setAttribute('aria-label',state.buffer?'Answer box. Current answer '+state.buffer:'Answer box. Tap to enter the missing number')}
