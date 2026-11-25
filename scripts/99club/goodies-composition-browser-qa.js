@@ -364,7 +364,18 @@ async function run(){
   assert(pvChallengeKinds.includes(pvGame.dataset.pvActivityKind),'Random frame Challenge chooses from the full pupil-task set');
   assert(pvDoc.querySelector('[data-pv-activity-check]')&&pvDoc.querySelector('[data-pv-activity-another]'),'Generated pupil challenge exposes Check and Another directly on the board');
   if(['build','exact'].includes(pvGame.dataset.pvActivityKind))assert(pvDoc.querySelectorAll('[data-gd-object]').length===0,'Build/Exact random challenges start with an empty pupil board');
-  else if(pvGame.dataset.pvActivityKind==='add')assert(pvDoc.querySelector('.gd-pv-abacus')&&Number((pvDoc.getElementById('pv-total').textContent||'').replace(/,/g,''))>0,'Random Addition challenge starts from the first addend on an abacus');
+  else if(pvGame.dataset.pvActivityKind==='add'){
+    const model=pvWin.TT99Goodies.lessonState.capture('place-value').model;
+    const originalMode=JSON.parse(pvOriginal).representationMode;
+    const mode=model.diagram.representationMode;
+    assert(mode===originalMode,'Random Addition preserves the teacher-selected representation');
+    assert((mode==='abacus'||mode==='both')===!!pvDoc.querySelector('.gd-pv-abacus'),'Addition shows the selected bead representation');
+    assert((mode==='counters'||mode==='both')===!!pvDoc.querySelector('.gd-pv-board-wrap'),'Addition shows the selected counter representation');
+    const displayed=Number((pvDoc.getElementById('pv-total').textContent||'').replace(/,/g,''));
+    assert(Number.isFinite(model.additionA)&&displayed===model.additionA,'Random Addition starts from the exact first addend');
+    if(mode!=='abacus')assert(pvDoc.querySelectorAll('#pv-canvas [data-gd-object]').length===model.paperActivityStart.reduce((a,b)=>a+b,0),'Addition renders every starting counter');
+    if(mode!=='counters')assert([...pvDoc.querySelectorAll('.gd-pv-abacus-rod')].every((rod,i)=>rod.querySelectorAll('.gd-pv-abacus-bead.is-active').length===model.paperActivityStart[i]),'Addition renders the starting digits on the bead frame');
+  }
   else assert(pvDoc.querySelectorAll('[data-gd-object]').length>0,'Interpret/regroup/same-value random challenges start with a meaningful board representation');
 
   const challengeKindBefore=pvGame.dataset.pvActivityKind;
