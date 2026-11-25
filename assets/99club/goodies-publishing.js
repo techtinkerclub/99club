@@ -304,16 +304,17 @@ function pages(items,{title='Maths practice',teacher=false}={}){
 // Automatic and live capture share the same document and immutable recipes.
 const BUILDER_CATALOG=[
  ['written-division','Written division'],['written-multiplication','Written multiplication'],['column-addition','Column addition'],['column-subtraction','Column subtraction'],['maths-canvas','Arithmetic Hub'],['sequences','Sequences & rules'],['abacus','Abacus'],['place-value','Place value'],
- ['number-line','Number line'],['fraction-wall','Fraction wall'],['bar-model','Bar model'],['hundred-square','Hundred square'],['multiplication-grid','Multiplication grid'],['array-builder','Array builder'],['clock','Clock & time'],['money','UK money'],['coordinates','Coordinate grid'],['measurement','Ruler & measures'],['randomiser','Dice, spinner & randomiser'],['balance','Equation balance'],['times-table','Times-table visualiser'],['factors','Factors & multiples'],['fdp','Fraction–decimal–percentage'],['geoboard','Shape & geoboard']
+ ['number-line','Number line'],['fraction-wall','Fraction wall'],['bar-model','Bar model'],['hundred-square','Hundred square'],['multiplication-grid','Multiplication grid'],['array-builder','Array builder'],['clock','Clock & time'],['money','UK money'],['coordinates','Coordinate grid'],['measurement','Ruler & measures'],['statistics-table','Tables & tally charts'],['randomiser','Dice, spinner & randomiser'],['balance','Equation balance'],['times-table','Times-table visualiser'],['factors','Factors & multiples'],['fdp','Fraction–decimal–percentage'],['geoboard','Shape & geoboard']
 ];
 const BUILDER_GROUPS=[
  ['Number & calculation',['column-addition','column-subtraction','maths-canvas','sequences','abacus','place-value','number-line','hundred-square','balance']],
  ['Multiplication & division',['written-division','written-multiplication','multiplication-grid','array-builder','times-table','factors']],
  ['Fractions & proportions',['fraction-wall','bar-model','fdp']],
  ['Geometry & measurement',['geoboard','coordinates','measurement','clock','money']],
- ['Other classroom tools',['randomiser']]
+ ['Data & statistics',['statistics-table','randomiser']]
 ];
 function defaults(tool){
+ if(tool==='statistics-table')return {view:'table',max:20,count:4};
  if(tool==='written-division')return {year:6,remainders:'any'};
  if(tool==='written-multiplication')return {year:5};
  if(tool==='column-addition'||tool==='column-subtraction')return {year:4};
