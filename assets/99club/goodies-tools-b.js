@@ -575,6 +575,17 @@ function coordinateTool(){
   setPanels(controlsHtml(),'');
   bindControls();
   draw();
+  G.lessonState?.register('coordinates',()=>({diagram:teachingSnapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
+    restoreTeachingSnapshot(saved.diagram);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
+    if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeTab'))challengeTab=saved.challengeTab;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeCategory'))challengeCategory=saved.challengeCategory;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeType'))challengeType=saved.challengeType;
+    if(Object.prototype.hasOwnProperty.call(saved,'exportMode'))exportMode=saved.exportMode;
+    if(Object.prototype.hasOwnProperty.call(saved,'responseLines'))responseLines=saved.responseLines;
+    CK?.restorePupil?.(challenge,saved.pupil);renderControls();draw();
+  });
+
 }
 
 function measurementTool(){
@@ -1119,6 +1130,17 @@ function measurementTool(){
   setPanels(controlsHtml(),'');
   bindControls();
   draw();
+  G.lessonState?.register('measurement',()=>({diagram:snapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
+    restoreSnapshot(saved.diagram);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
+    if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeTab'))challengeTab=saved.challengeTab;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeCategory'))challengeCategory=saved.challengeCategory;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeType'))challengeType=saved.challengeType;
+    if(Object.prototype.hasOwnProperty.call(saved,'exportMode'))exportMode=saved.exportMode;
+    if(Object.prototype.hasOwnProperty.call(saved,'responseLines'))responseLines=saved.responseLines;
+    CK?.restorePupil?.(challenge,saved.pupil);renderControls();draw();
+  });
+
 }
 
 function randomiser(){
@@ -1315,6 +1337,15 @@ function randomiser(){
   q('#ra-svg').onclick=()=>exportAction('svg');
   q('#ra-print').onclick=()=>exportAction('print');
   draw();
+  G.lessonState?.register('randomiser',()=>{
+    if(busy)throw new Error('Finish rolling or spinning before saving.');
+    return {mode:q('#ra-mode').value,count:q('#ra-count')?.value,sides:q('#ra-sides')?.value,min:q('#ra-min')?.value,max:q('#ra-max')?.value,result,diceValues,spinnerRotation,spinnerKind,customSpinnerText};
+  },saved=>{
+    q('#ra-mode').value=['dice','spinner','number','card'].includes(saved.mode)?saved.mode:'dice';
+    spinnerKind=saved.spinnerKind==='custom'?'custom':'colours';customSpinnerText=String(saved.customSpinnerText||'').slice(0,320);
+    result=String(saved.result||'');diceValues=Array.isArray(saved.diceValues)?saved.diceValues.slice(0,8):[];spinnerRotation=Number(saved.spinnerRotation)||0;draw();
+    for(const key of ['count','sides','min','max']){const el=q('#ra-'+key);if(el&&saved[key]!=null)el.value=saved[key]}show(q('#ra-mode').value);
+  });
 }
 
 function balanceTool(){
@@ -2372,6 +2403,17 @@ function timesTableVisual(){
   setPanels(controlsHtml(),'');
   bindControls();
   draw();
+  G.lessonState?.register('times-table',()=>({diagram:snapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
+    restore(saved.diagram);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
+    if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeTab'))challengeTab=saved.challengeTab;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeCategory'))challengeCategory=saved.challengeCategory;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeType'))challengeType=saved.challengeType;
+    if(Object.prototype.hasOwnProperty.call(saved,'exportMode'))exportMode=saved.exportMode;
+    if(Object.prototype.hasOwnProperty.call(saved,'responseLines'))responseLines=saved.responseLines;
+    CK?.restorePupil?.(challenge,saved.pupil);renderControls();draw();
+  });
+
 }
 
 function factorExplorer(){
@@ -2793,6 +2835,17 @@ function factorExplorer(){
   setPanels(controlsHtml(),'');
   bindControls();
   draw();
+  G.lessonState?.register('factors',()=>({diagram:snapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
+    restore(saved.diagram);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
+    if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeTab'))challengeTab=saved.challengeTab;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeCategory'))challengeCategory=saved.challengeCategory;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeType'))challengeType=saved.challengeType;
+    if(Object.prototype.hasOwnProperty.call(saved,'exportMode'))exportMode=saved.exportMode;
+    if(Object.prototype.hasOwnProperty.call(saved,'responseLines'))responseLines=saved.responseLines;
+    CK?.restorePupil?.(challenge,saved.pupil);renderControls();draw();
+  });
+
 }
 
 function fdpExplorer(){
@@ -3227,6 +3280,17 @@ function fdpExplorer(){
   setPanels(controlsHtml(),'');
   bindControls();
   draw();
+  G.lessonState?.register('fdp',()=>({diagram:snapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
+    restore(saved.diagram);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
+    if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeTab'))challengeTab=saved.challengeTab;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeCategory'))challengeCategory=saved.challengeCategory;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeType'))challengeType=saved.challengeType;
+    if(Object.prototype.hasOwnProperty.call(saved,'exportMode'))exportMode=saved.exportMode;
+    if(Object.prototype.hasOwnProperty.call(saved,'responseLines'))responseLines=saved.responseLines;
+    CK?.restorePupil?.(challenge,saved.pupil);renderControls();draw();
+  });
+
 }
 
 function geoboard(){
@@ -3752,6 +3816,17 @@ function geoboard(){
   setPanels(controlsHtml(),'');
   bindControls();
   draw();
+  G.lessonState?.register('geoboard',()=>({diagram:teachingSnapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
+    restoreTeachingSnapshot(saved.diagram);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
+    if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeTab'))challengeTab=saved.challengeTab;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeCategory'))challengeCategory=saved.challengeCategory;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeType'))challengeType=saved.challengeType;
+    if(Object.prototype.hasOwnProperty.call(saved,'exportMode'))exportMode=saved.exportMode;
+    if(Object.prototype.hasOwnProperty.call(saved,'responseLines'))responseLines=saved.responseLines;
+    CK?.restorePupil?.(challenge,saved.pupil);renderControls();draw();
+  });
+
 }
 
 function mathsCanvas(){
@@ -3960,6 +4035,10 @@ onSelectionChange:item=>{
 });
 bindControls();
 controller.refresh();
+G.lessonState?.register('maths-canvas',()=>({diagram:stateSnapshot(),workflow,taskTitle,taskPrompt,exportMode,responseLines}),saved=>{
+ restoreState(saved.diagram);workflow=saved.workflow;taskTitle=String(saved.taskTitle||'');taskPrompt=String(saved.taskPrompt||'');exportMode=saved.exportMode;responseLines=saved.responseLines;
+ q('#gd-controls').innerHTML=controlsHtml();bindControls();controller.refresh();
+});
 }
 
 Object.assign(G,{coordinateTool,measurementTool,randomiser,balanceTool,timesTableVisual,factorExplorer,fdpExplorer,geoboard,mathsCanvas});

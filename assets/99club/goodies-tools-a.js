@@ -1225,6 +1225,34 @@ function placeValue(){
     });
     resizeObserver.observe(q('#gd-stage'));
   }
+  G.lessonState?.register('place-value',()=>({diagram:stateSnapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines,activityMode,activityTarget,activityBudget,activityStatus,powerMessage,activityActive,activityContext,activityInput,activityAnswer,activityHiddenIndex,activityDigit,activityStartCounts,activityPrompt,additionA,additionB,additionStep,additionDifficulty}),saved=>{
+    restoreState(saved.diagram);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
+    if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeTab'))challengeTab=saved.challengeTab;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeCategory'))challengeCategory=saved.challengeCategory;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeType'))challengeType=saved.challengeType;
+    if(Object.prototype.hasOwnProperty.call(saved,'exportMode'))exportMode=saved.exportMode;
+    if(Object.prototype.hasOwnProperty.call(saved,'responseLines'))responseLines=saved.responseLines;
+    if(Object.prototype.hasOwnProperty.call(saved,'activityMode'))activityMode=saved.activityMode;
+    if(Object.prototype.hasOwnProperty.call(saved,'activityTarget'))activityTarget=saved.activityTarget;
+    if(Object.prototype.hasOwnProperty.call(saved,'activityBudget'))activityBudget=saved.activityBudget;
+    if(Object.prototype.hasOwnProperty.call(saved,'activityStatus'))activityStatus=saved.activityStatus;
+    if(Object.prototype.hasOwnProperty.call(saved,'powerMessage'))powerMessage=saved.powerMessage;
+    if(Object.prototype.hasOwnProperty.call(saved,'activityActive'))activityActive=saved.activityActive;
+    if(Object.prototype.hasOwnProperty.call(saved,'activityContext'))activityContext=saved.activityContext;
+    if(Object.prototype.hasOwnProperty.call(saved,'activityInput'))activityInput=saved.activityInput;
+    if(Object.prototype.hasOwnProperty.call(saved,'activityAnswer'))activityAnswer=saved.activityAnswer;
+    if(Object.prototype.hasOwnProperty.call(saved,'activityHiddenIndex'))activityHiddenIndex=saved.activityHiddenIndex;
+    if(Object.prototype.hasOwnProperty.call(saved,'activityDigit'))activityDigit=saved.activityDigit;
+    if(Object.prototype.hasOwnProperty.call(saved,'activityStartCounts'))activityStartCounts=saved.activityStartCounts;
+    if(Object.prototype.hasOwnProperty.call(saved,'activityPrompt'))activityPrompt=saved.activityPrompt;
+    if(Object.prototype.hasOwnProperty.call(saved,'additionA'))additionA=saved.additionA;
+    if(Object.prototype.hasOwnProperty.call(saved,'additionB'))additionB=saved.additionB;
+    if(Object.prototype.hasOwnProperty.call(saved,'additionStep'))additionStep=saved.additionStep;
+    if(Object.prototype.hasOwnProperty.call(saved,'additionDifficulty'))additionDifficulty=saved.additionDifficulty;
+    CK?.restorePupil?.(challenge,saved.pupil);renderControls();controller.refresh();
+  });
+
 }
 
 function fractionWall(){
@@ -1872,6 +1900,17 @@ function fractionWall(){
   setPanels(controlsHtml(),'');
   bindControls();
   drawWall();
+  G.lessonState?.register('fraction-wall',()=>({diagram:teachingSnapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
+    restoreTeachingSnapshot(saved.diagram);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
+    if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeTab'))challengeTab=saved.challengeTab;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeCategory'))challengeCategory=saved.challengeCategory;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeType'))challengeType=saved.challengeType;
+    if(Object.prototype.hasOwnProperty.call(saved,'exportMode'))exportMode=saved.exportMode;
+    if(Object.prototype.hasOwnProperty.call(saved,'responseLines'))responseLines=saved.responseLines;
+    CK?.restorePupil?.(challenge,saved.pupil);renderControls();renderRepresentation();
+  });
+
 }
 
 function barModel(){
@@ -2530,6 +2569,17 @@ function barModel(){
   setPanels(controlsHtml(),'');
   bindControls();
   draw();
+  G.lessonState?.register('bar-model',()=>({diagram:snapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
+    restore(saved.diagram);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
+    if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeTab'))challengeTab=saved.challengeTab;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeCategory'))challengeCategory=saved.challengeCategory;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeType'))challengeType=saved.challengeType;
+    if(Object.prototype.hasOwnProperty.call(saved,'exportMode'))exportMode=saved.exportMode;
+    if(Object.prototype.hasOwnProperty.call(saved,'responseLines'))responseLines=saved.responseLines;
+    CK?.restorePupil?.(challenge,saved.pupil);renderControls();draw();
+  });
+
 }
 
 function hundredSquare(){
@@ -3089,6 +3139,17 @@ function hundredSquare(){
   setPanels(controlsHtml(),'');
   bindControls();
   draw();
+  G.lessonState?.register('hundred-square',()=>({diagram:snapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
+    restore(saved.diagram);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
+    if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeTab'))challengeTab=saved.challengeTab;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeCategory'))challengeCategory=saved.challengeCategory;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeType'))challengeType=saved.challengeType;
+    if(Object.prototype.hasOwnProperty.call(saved,'exportMode'))exportMode=saved.exportMode;
+    if(Object.prototype.hasOwnProperty.call(saved,'responseLines'))responseLines=saved.responseLines;
+    CK?.restorePupil?.(challenge,saved.pupil);renderControls();draw();
+  });
+
 }
 
 function multiplicationGrid(){
@@ -3602,6 +3663,17 @@ function multiplicationGrid(){
   setPanels(controlsHtml(),'');
   bindControls();
   draw();
+  G.lessonState?.register('multiplication-grid',()=>({diagram:snapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
+    restore(saved.diagram);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
+    if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeTab'))challengeTab=saved.challengeTab;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeCategory'))challengeCategory=saved.challengeCategory;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeType'))challengeType=saved.challengeType;
+    if(Object.prototype.hasOwnProperty.call(saved,'exportMode'))exportMode=saved.exportMode;
+    if(Object.prototype.hasOwnProperty.call(saved,'responseLines'))responseLines=saved.responseLines;
+    CK?.restorePupil?.(challenge,saved.pupil);renderControls();draw();
+  });
+
 }
 
 function arrayBuilder(){
@@ -4186,6 +4258,17 @@ function arrayBuilder(){
   setPanels(controlsHtml(),'');
   bindControls();
   draw();
+  G.lessonState?.register('array-builder',()=>({diagram:snapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
+    restoreSnapshot(saved.diagram);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
+    if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeTab'))challengeTab=saved.challengeTab;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeCategory'))challengeCategory=saved.challengeCategory;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeType'))challengeType=saved.challengeType;
+    if(Object.prototype.hasOwnProperty.call(saved,'exportMode'))exportMode=saved.exportMode;
+    if(Object.prototype.hasOwnProperty.call(saved,'responseLines'))responseLines=saved.responseLines;
+    CK?.restorePupil?.(challenge,saved.pupil);renderControls();draw();
+  });
+
 }
 
 function clockTool(){
@@ -4924,6 +5007,17 @@ function clockTool(){
   setPanels(controlsHtml(),'');
   bindControls();
   draw();
+  G.lessonState?.register('clock',()=>({diagram:snapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
+    restoreSnapshot(saved.diagram);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
+    if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeTab'))challengeTab=saved.challengeTab;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeCategory'))challengeCategory=saved.challengeCategory;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeType'))challengeType=saved.challengeType;
+    if(Object.prototype.hasOwnProperty.call(saved,'exportMode'))exportMode=saved.exportMode;
+    if(Object.prototype.hasOwnProperty.call(saved,'responseLines'))responseLines=saved.responseLines;
+    CK?.restorePupil?.(challenge,saved.pupil);renderControls();draw();
+  });
+
 }
 
 function moneyTool(){
@@ -5489,6 +5583,17 @@ function moneyTool(){
   });
   bindControls();
   controller.refresh();
+  G.lessonState?.register('money',()=>({diagram:snapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
+    restore(saved.diagram);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
+    if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeTab'))challengeTab=saved.challengeTab;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeCategory'))challengeCategory=saved.challengeCategory;
+    if(Object.prototype.hasOwnProperty.call(saved,'challengeType'))challengeType=saved.challengeType;
+    if(Object.prototype.hasOwnProperty.call(saved,'exportMode'))exportMode=saved.exportMode;
+    if(Object.prototype.hasOwnProperty.call(saved,'responseLines'))responseLines=saved.responseLines;
+    CK?.restorePupil?.(challenge,saved.pupil);renderControls();controller.refresh();
+  });
+
 }
 
 Object.assign(G,{numberLine,placeValue,fractionWall,barModel,hundredSquare,multiplicationGrid,arrayBuilder,clockTool,moneyTool});
