@@ -585,6 +585,19 @@ async function run(){
     assert(marked.filter(n=>n%k!==0).length===1,'Wrong-mark task has exactly one incorrect multiple');
     assert(marked.filter(n=>n%k===0).length>=2,'Wrong-mark task contains enough valid examples');
   }
+  hsDoc.querySelector('[data-hs-challenge-cat="read"]').click();
+  hsDoc.querySelector('[data-hs-challenge-type="ten-more"]').click();
+  hsDoc.getElementById('hs-generate').click();await tick();
+  assert(hsDoc.querySelectorAll('.gd-hs-cell.is-hidden-number').length===0,'Ten-more challenge does not mark the answer location');
+  hsDoc.querySelector('[data-hs-challenge-cat="patterns"]').click();
+  hsDoc.querySelector('[data-hs-challenge-type="mark-rule"]').click();
+  hsDoc.getElementById('hs-generate').click();await tick();
+  const hsMarkModel=hsDoc.defaultView.TT99Goodies.lessonState.capture('hundred-square').model;
+  assert(!/✓|do not fit/.test(hsDoc.querySelector('[data-hs-target-status]').textContent),'Marking does not provide premature correctness feedback');
+  hsDoc.querySelector('[data-board-action="reveal"]').click();await tick();
+  assert(hsDoc.querySelectorAll('.gd-hs-cell.is-marked').length===hsMarkModel.challenge.targetValues.length,'Reveal shows the complete marking solution');
+  hsDoc.querySelector('[data-board-action="reveal"]').click();await tick();
+  assert(hsDoc.querySelectorAll('.gd-hs-cell.is-marked').length===0,'Hiding the solution restores the pupil marks');
   const checker=hsDoc.defaultView.TT99Goodies.challengeKit;
   assert(checker.pupilAnswerCorrect(checker.pupilSpec('clock-face'),['3:25'],'3:25 pm'),'Analogue reading does not require AM or PM');
   assert(checker.pupilAnswerCorrect(checker.pupilSpec('clock-face'),['3:25 am'],'3:25 pm'),'Analogue reading does not infer an invisible period');
@@ -652,6 +665,17 @@ async function run(){
     return {record,frame,doc:frame.querySelector('iframe').contentDocument};
   }
   // Verify real widget challenge controls before the saved-board round trip.
+  const qaFraction=await addForSave('fraction-wall'),fwDoc=qaFraction.doc;
+  fwDoc.querySelector('[data-fw-workflow="challenge"]').click();
+  fwDoc.querySelector('[data-fw-challenge-cat="read"]').click();
+  fwDoc.querySelector('[data-fw-challenge-type="identify-strip"]').click();
+  fwDoc.getElementById('fw-generate').click();await tick();
+  const fixedFraction=fwDoc.defaultView.TT99Goodies.lessonState.capture('fraction-wall').model;
+  assert(fwDoc.querySelectorAll('[data-fr-strip-piece]:disabled').length>0,'Generated fraction strips cannot be changed');
+  assert(!fwDoc.querySelector('.gd-fr-workbench .gd-object-rail'),'Generated fraction strips do not offer simplify or delete tools');
+  fwDoc.querySelector('[data-fr-strip-piece]').click();await tick();
+  assert(JSON.stringify(fwDoc.defaultView.TT99Goodies.lessonState.capture('fraction-wall').model.diagram)===JSON.stringify(fixedFraction.diagram),'Tapping a given fraction cannot change the question');
+  api.remove(qaFraction.record.id);
   const qaClock=await addForSave('clock'),clockDoc=qaClock.doc;
   clockDoc.querySelector('[data-cl-workflow="challenge"]').click();
   clockDoc.querySelector('[data-cl-challenge-cat="set"]').click();
