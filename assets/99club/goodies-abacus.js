@@ -927,7 +927,10 @@ function abacusTool(){
   function paperTaskPrompt(t){
     const label=kind==='western'?'abacus':kind;
     const actions={show:'Show '+t.target+' on the '+label+'.',add:'Start at '+t.start+'. Add '+t.b+'.',subtract:'Start at '+t.start+'. Subtract '+t.b+'.',make10:'Start at '+t.start+'. How many more are needed to make 10?',bond:'Complete '+t.a+' + ? = '+t.target+'.',double:'Double '+t.start+'.',near:'Use a near-double strategy to work out '+t.a+' + '+t.b+'.',missing:'Solve '+t.a+' + ? = '+t.target+'.',skip:'Count on in '+t.step+'s from '+t.start+'.'};
-    return (actions[t.mode]||'Complete the calculation.')+' '+(kind==='western'?'Shade the final beads from the left of each row.':'Shade the final beads nearest the middle bar in each column.');
+    const missing=['make10','bond','missing'].includes(t.mode);
+    const instruction=kind==='western'?'Shade beads from the left to show the final total. Exchange ten beads for one in the next place.':'Shade beads nearest the middle bar to show the final total.';
+    const action=t.mode==='skip'?'Count on one step of '+t.step+' from '+t.start+'.':(actions[t.mode]||'Complete the calculation.');
+    return action+' '+instruction+(missing?' Write the missing number in the box.':' Write the final number in the box.');
   }
   function paperTaskDiagram(t,teacher){
     const showStart=t.mode!=='show',W=showStart?1840:900,H=590;
@@ -938,7 +941,7 @@ function abacusTool(){
       [...frameSvg({value,template,pupil:true}).childNodes].forEach(n=>nested.appendChild(n.cloneNode(true)));out.appendChild(nested);
     };
     if(showStart)addFrame(t.start,false,0,'Start');
-    addFrame(teacher?t.target:0,!teacher,showStart?940:0,teacher?'Final configuration':'Your final configuration');
+    addFrame(teacher?t.target:0,!teacher,showStart?940:0,teacher?'Final total':'Shade to show the final total');
     return out;
   }
   function exportSvg(teacher=false){
@@ -947,7 +950,7 @@ function abacusTool(){
       return X.composeWorksheetCardSvg(paperTaskDiagram(task,teacher),{
         title:taskTitle(task.mode)+(teacher?' · Teacher answer key':''),
         prompt:paperTaskPrompt(task),
-        responseLabel:missing?'Missing number':'Answer',
+        responseLabel:missing?'Missing number (not the final total)':'Final number',
         responseLines:1,responseMode:'box',paperStyle:'plain',
         answer:task.requiresAnswer?String(task.answer):String(task.target),
         showAnswer:teacher,brand:'99 Club Studio'
