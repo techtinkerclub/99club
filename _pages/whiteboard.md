@@ -38,8 +38,8 @@ window.TT99_GOODIES_BOARD_HOME = '/goodies/';
 <script src="/assets/99club/goodies-tools-a.js?v=65" defer></script>
 <script src="/assets/99club/goodies-abacus.js?v=26" defer></script>
 <script src="/assets/99club/goodies-number-line-v6.js?v=25" defer></script>
-<script src="/assets/99club/goodies-tools-b.js?v=60" defer></script>
+<script src="/assets/99club/goodies-tools-b.js?v=61" defer></script>
 <script src="/assets/99club/goodies-number-mobile.js?v=1" defer></script>
-<script src="/assets/99club/goodies-sequences.js?v=3" defer></script>
+<script src="/assets/99club/goodies-sequences.js?v=4" defer></script>
 <script src="/assets/99club/goodies-app.js?v=13" defer></script>
 <script src="/assets/99club/goodies-board.js?v=53" defer></script>
