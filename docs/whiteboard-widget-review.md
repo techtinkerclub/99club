@@ -48,7 +48,7 @@ Reckoning board, Chinese counting rods, Napier's Bones, slide rule and Pascaline
 
 1. Keep direct current export independent of document creation.
 2. Array Builder adapter added after Fraction Wall, Clock & Time, Place Value, Arithmetic, Sequences and the three abacus types; continue with number line, money and coordinates. Audit response semantics and teacher solutions while integrating each.
-3. Automatic builder initial source configuration added for the ten integrated widgets (independent type/family/range/difficulty/count). Editing or regenerating already-published source blocks remains pending; preserve manually retained items. Refine all publishing menus with the same compact visual language.
+3. Automatic builder initial source configuration added for the eleven integrated widgets (independent type/family/range/difficulty/count). Editing or regenerating already-published source blocks remains pending; preserve manually retained items. Refine all publishing menus with the same compact visual language.
 4. Extend preview layout: configurable portrait/landscape and intelligent columns, full-width diagrams where necessary, consistent numbering, page breaks, working space and teacher keys.
 5. Save/reopen and reusable settings, stable versioned model records, import/export of drafts with validation; preserve exact content rather than regenerating silently.
 6. Align controls and branding with Studio's existing worksheet workflow. Test actual preview/print parity and mobile/touch performance.
@@ -60,7 +60,7 @@ Continue the catalogue review one widget at a time, with defects and regressions
 
 ## Current verified scope
 
-- Ten catalogue entries have shared publishing adapters (Arithmetic, Sequences, Abacus limited to three bead instruments, Place Value, Clock & Time, Fraction Wall, Array Builder, Number Line, UK Money, Coordinate Grid).
+- Eleven catalogue entries have shared publishing adapters (Arithmetic, Sequences, Abacus limited to three bead instruments, Place Value, Clock & Time, Fraction Wall, Array Builder, Number Line, UK Money, Coordinate Grid, Bar Model).
 - Automated abacus rollout checks: 2,160 generated tasks; 4,320 pupil/teacher diagrams; 108 mixed-document scenarios and isolated replacements; 1,236 page checks.
 - Automated Place Value rollout: 45 column ranges, 14,040 generated tasks, 28,080 pupil/teacher diagrams, 135 mixed drafts and isolated replacements, 135 captures and 1,655 page checks. Custom teacher-authored tasks still require individual export; the existing powers-of-ten demo is capture-only.
 - Clock rollout: 2,800 individual generator/render checks; 100 multi-source clock drafts, 1,900 generated questions, 200 captures, 100 isolated replacements and 2,583 pupil/teacher page checks. One-clock recipes enable 10 types; two-clock recipes enable 14. Custom tasks remain direct-export only. Actual browser, touch and A4 verification is open.
@@ -84,3 +84,6 @@ Continue the catalogue review one widget at a time, with defects and regressions
 ### UK Money and Coordinate Grid follow-up
 - UK Money: 3,000 generated tasks, 800 graphical solutions, independent minimum-piece validation, 30 mixed documents. Coordinate Grid: 3,200 generator checks, 800 individual solution checks, 30 mixed documents, 390 answer entries and alignment checks. Both entry points updated. Actual browser, touch and print acceptance still open.
 - Graphical teacher annex includes solved diagrams and marking guidance. Next: Bar Model, then Hundred Square. Ten of 20 entries integrated; formal written methods follow the existing catalogue rollout.
+
+### Bar Model follow-up
+- 2,400 generator checks, 800 pupil/solution checks, 30 mixed documents, 390 annex entries. Both entry points updated. Real browser/touch/print acceptance remains open. Next: Hundred Square.
