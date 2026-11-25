@@ -4379,7 +4379,7 @@ if(!I){q('#gd-stage').innerHTML='<p class="gd-empty">The interactive canvas coul
 let tiles=[],next=1,grid=true,colourOpen=false,addOpen=false,combineOpen=false,splitOpen=false,controller=null;
 let workflow='build',taskTitle='Number tiles task',taskPrompt='',exportMode='canvas',responseLines=2,exportStatus='';
 let challenge=null,difficulty='medium',numberSettings=N.settings({},difficulty),generationError='';
-let questionCount=1,setLayout='auto',batch=[],batchScope='',batchType='',curriculumProfile='custom';
+let questionCount=1,setLayout='auto',batch=[],batchScope='',batchType='',curriculumProfile='custom',workingLines=0;
 const colours=['#cbe7e2','#f6cf79','#cfe0f6','#efcfd9','#dbcff2','#d5ead2','#f3d7c4','#ffffff'];
 function textColour(hex){const h=String(hex||'').replace('#','');if(!/^[0-9a-f]{6}$/i.test(h))return '#24343b';const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);return (r*299+g*587+b*114)/1000>155?'#24343b':'#ffffff'}
 function stateSnapshot(){return{tiles:JSON.parse(JSON.stringify(tiles)),next,grid}}
@@ -4554,21 +4554,36 @@ function numberChallengeSvg(){
  rows.forEach((row,i)=>appendEquationSvg(svg,challenge,row,metrics,font,40,85+i*114,W-80));
  return svg;
 }
-function numberSetSvg(){
+function numberSetLayout(){
  const cols=batchCols(),W=960,pad=28,gap=26,cellW=(W-pad*2-gap*(cols-1))/cols,rowHeights=[],metrics=N.equationMetrics(batch.map(item=>item.question));
  // One consistent mathematical font, with a fixed left edge per column.
  const font=Math.min(32,(cellW-12)/metrics.maxUnits),hasFractions=batch.some(item=>item.question.tiles.some(v=>N.parseFractionToken(v)||/^\?\/\d+$/.test(v))),lineH=Math.max(32,font*(hasFractions?1.85:1.35)+3),headingH=24,rowGap=10;
  const ordering=qn=>qn.type==='fraction-order'||qn.type==='expression-order';
  const extraH=qn=>qn.kind==='target-expression'?36:ordering(qn)?20:qn.kind==='choice'?(!qn.tiles.some(metrics.isHole)?29:20):(!qn.tiles.some(metrics.isHole)?29:0);
- batch.forEach((item,i)=>{const qn=item.question,height=headingH+metrics.rows(qn).length*lineH+extraH(qn)+6,index=Math.floor(i/cols);rowHeights[index]=Math.max(rowHeights[index]||0,height)});
- const H=62+rowHeights.reduce((n,h)=>n+h+rowGap,0)+12,svg=mcSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':batch.length+' unanswered arithmetic questions','data-gd-paper-ready':'sheet','data-gd-paper-label':'99 Club Studio','data-worksheet-answer':'pupil'});
+ const workingH=workingLines?18+workingLines*36:0;
+ batch.forEach((item,i)=>{const qn=item.question,height=headingH+metrics.rows(qn).length*lineH+extraH(qn)+workingH+6,index=Math.floor(i/cols);rowHeights[index]=Math.max(rowHeights[index]||0,height)});
+ return {cols,W,pad,gap,cellW,rowHeights,metrics,font,lineH,headingH,rowGap,ordering,extraH,workingH};
+}
+function numberSetPageRanges(layout){
+ // At 182 mm usable width, 1200 SVG units fit within 242 mm height.
+ // Keep complete rows together and the shared equation font unchanged.
+ const maxHeight=1200,ranges=[];let start=0,height=74;
+ layout.rowHeights.forEach((h,i)=>{const need=h+layout.rowGap;if(i>start&&height+need>maxHeight){ranges.push([start,i]);start=i;height=74}height+=need});
+ if(start<layout.rowHeights.length)ranges.push([start,layout.rowHeights.length]);return ranges;
+}
+function numberSetSvg({startRow=0,endRow=null,pageNumber=1,pageCount=1}={}){
+ const {cols,W,pad,gap,cellW,rowHeights,metrics,font,lineH,headingH,rowGap,ordering,extraH}=numberSetLayout();
+ endRow=endRow??rowHeights.length;
+ const H=74+rowHeights.slice(startRow,endRow).reduce((n,h)=>n+h+rowGap,0),svg=mcSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':batch.length+' unanswered arithmetic questions','data-gd-paper-ready':'sheet','data-gd-paper-label':'99 Club Studio','data-worksheet-answer':'pupil'});
  const add=(name,attrs,txt)=>svg.appendChild(mcSvgEl(name,attrs,txt));
  add('rect',{width:W,height:H,fill:'#fff'});
- add('text',{x:pad,y:32,'font-family':'Arial,sans-serif','font-size':24,'font-weight':700,fill:'#24343b'},batch.length+' arithmetic questions');
+ add('text',{x:pad,y:32,'font-family':'Arial,sans-serif','font-size':24,'font-weight':700,fill:'#24343b'},batch.length+' arithmetic questions'+(pageCount>1?' · page '+pageNumber+' / '+pageCount:''));
  add('text',{x:W-pad,y:32,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':15,fill:'#52666d'},'Name: __________________');
  batch.forEach((item,i)=>{
-   const qn=item.question,row=Math.floor(i/cols),x=pad+(i%cols)*(cellW+gap),y=48+rowHeights.slice(0,row).reduce((n,h)=>n+h+rowGap,0),rows=metrics.rows(qn);
-   add('text',{x:x+4,y:y+16,'font-family':'Arial,sans-serif','font-size':15,'font-weight':700,fill:'#24343b'},(i+1)+'. '+N.titles[qn.type]);
+   const qn=item.question,row=Math.floor(i/cols);if(row<startRow||row>=endRow)return;
+   const x=pad+(i%cols)*(cellW+gap),y=48+rowHeights.slice(startRow,row).reduce((n,h)=>n+h+rowGap,0),rows=metrics.rows(qn);
+   const heading=(i+1)+'. '+N.titles[qn.type];
+   add('text',{x:x+4,y:y+16,'font-family':'Arial,sans-serif','font-size':Math.min(15,(cellW-8)/Math.max(1,heading.length*.62)),'font-weight':700,fill:'#24343b','data-mc-paper-question':i+1},heading);
    rows.forEach((tokens,j)=>appendEquationSvg(svg,qn,tokens,metrics,font,x+4,y+headingH+lineH*.72+j*lineH,cellW-12,'left'));
    const bottom=y+headingH+rows.length*lineH;
    if(!qn.tiles.some(metrics.isHole)){
@@ -4577,10 +4592,12 @@ function numberSetSvg(){
    }else if(qn.kind==='target-expression'){add('text',{x:x+4,y:bottom+12,'font-family':'Arial,sans-serif','font-size':13,fill:'#52666d'},'Use each number once. Allowed: '+qn.targetRule.ops.join(' '));add('text',{x:x+4,y:bottom+27,'font-family':'Arial,sans-serif','font-size':13,fill:'#52666d'},(qn.targetRule.brackets?'Brackets allowed. ':'No brackets. ')+'Exact whole-number division.');}
    else if(ordering(qn))add('text',{x:x+4,y:bottom+14,'font-family':'Arial,sans-serif','font-size':14,fill:'#52666d'},'Write the labels as digits in order.');
    else if(qn.kind==='choice')add('text',{x:x+4,y:bottom+14,'font-family':'Arial,sans-serif','font-size':14,fill:'#52666d'},'Choose: '+qn.choices.join('   /   '));
+   if(workingLines){const wy=bottom+extraH(qn)+12;add('text',{x:x+4,y:wy,'font-family':'Arial,sans-serif','font-size':12,fill:'#64777d'},'Working');for(let j=0;j<workingLines;j++)add('line',{x1:x+4,y1:wy+30+j*36,x2:x+cellW-4,y2:wy+30+j*36,stroke:'#c7d2d4','stroke-width':1,'data-mc-working-line':i+1})}
    add('line',{x1:x,y1:y+rowHeights[row]+3,x2:x+cellW,y2:y+rowHeights[row]+3,stroke:'#d8e0e1','stroke-width':1});
  });
  return svg;
 }
+function numberSetPages(){const ranges=numberSetPageRanges(numberSetLayout());return ranges.map(([startRow,endRow],i)=>numberSetSvg({startRow,endRow,pageNumber:i+1,pageCount:ranges.length}))}
 function canvasExportSvg(){
 const W=960,H=560,pad=34,canvas=q('#mc-canvas'),sourceW=Math.max(1,canvas?.clientWidth||760),sourceH=Math.max(1,canvas?.clientHeight||420);
 const innerW=W-pad*2,innerH=H-pad*2,scale=Math.min(innerW/sourceW,innerH/sourceH),offsetX=pad+(innerW-sourceW*scale)/2,offsetY=pad+(innerH-sourceH*scale)/2;
@@ -4626,7 +4643,7 @@ if(batch.length>1&&challenge)return numberSetSvg();
 if(challenge&&X?.composeWorksheetCardSvg){
  const hasHole=challenge.tiles.some(N.equationMetrics([challenge]).isHole);
  const prompt=challenge.prompt+(challenge.kind==='choice'&&challenge.choices?.length?' Choose: '+challenge.choices.join(' / ')+'.':'');
- return X.composeWorksheetCardSvg(numberChallengeSvg(),{title:N.titles[challenge.type],prompt,responseLabel:'Answer',responseMode:hasHole?'none':'box',responseLines:1,paperStyle:'plain',brand:'99 Club Studio'});
+ return X.composeWorksheetCardSvg(numberChallengeSvg(),{title:N.titles[challenge.type],prompt,responseLabel:workingLines?(hasHole?'Working':'Answer / working'):'Answer',responseMode:workingLines?'lines':hasHole?'none':'box',responseLines:workingLines||1,paperStyle:'plain',brand:'99 Club Studio'});
 }
 if(exportMode!=='task'||!X?.composeChallengeCardSvg)return canvasExportSvg();
 return X.composeChallengeCardSvg(canvasExportSvg(),{
@@ -4648,11 +4665,12 @@ if(kind==='key-copy'){await X.copyPng(target);exportMessage('Teacher answer key 
 if(kind==='copy'){await X.copyPng(target);exportMessage(exportMode==='task'?'Task card copied — paste it into your worksheet, slide or document.':'Canvas copied — paste it into your slide or document.')}
 if(kind==='png'){await X.downloadPng(target,name,2);exportMessage(exportMode==='task'?'Task PNG downloaded.':'Canvas PNG downloaded.')}
 if(kind==='svg'){X.downloadSvg(target,name);exportMessage(exportMode==='task'?'Task SVG downloaded.':'Canvas SVG downloaded.')}
-if(kind==='print'){X.printSvg(target,{title:'',landscape:false,maxHeightMm:batch.length>1?242:150});exportMessage('Print view opened. Choose “Save as PDF” in the print dialog.')}
+if(kind==='print'){X.printSvg(batch.length>1&&challenge?numberSetPages():target,{title:'',landscape:false,maxHeightMm:batch.length>1||workingLines?242:150});exportMessage('Print view opened. Choose “Save as PDF” in the print dialog.')}
 }catch(err){exportMessage(err?.message||'That export did not work.')}
 }
 function exportControlsHtml(){
-if(challenge)return '<div class="nl-panel-title"><div><strong>'+(batch.length>1?'Export question set':'Export challenge')+'</strong><span>'+(batch.length>1?'All '+batch.length+' unanswered questions in the selected layout, ready for paper.':'The original unanswered question, ready for paper.')+'</span></div></div><div class="nl-export-grid"><button class="gd-btn gd-btn--primary" id="mc-copy-image" type="button">Copy challenge</button><button class="gd-btn" id="mc-png" type="button">PNG</button><button class="gd-btn" id="mc-svg-download" type="button">SVG</button><button class="gd-btn" id="mc-print" type="button">Print / PDF</button></div><p class="gd-section-title">Teacher only</p><div class="gd-row"><button class="gd-btn" id="mc-key-copy" type="button">Copy answer key</button><button class="gd-btn" id="mc-key-print" type="button">Print answer key</button></div><p class="gd-help" id="mc-export-status" role="status">'+esc(exportStatus)+'</p>';
+const paperOptions=field('Working space per question','<select class="gd-select" id="mc-working-lines">'+[[0,'None'],[2,'2 lines'],[4,'4 lines']].map(([v,label])=>'<option value="'+v+'"'+(workingLines===v?' selected':'')+'>'+label+'</option>').join('')+'</select>')+'<p class="gd-help">Print / PDF keeps complete question rows together across A4 pages. Image exports retain a single continuous set.</p>';
+if(challenge)return '<div class="nl-panel-title"><div><strong>'+(batch.length>1?'Export question set':'Export challenge')+'</strong><span>'+(batch.length>1?'All '+batch.length+' unanswered questions in the selected layout, ready for paper.':'The original unanswered question, ready for paper.')+'</span></div></div>'+paperOptions+'<div class="nl-export-grid"><button class="gd-btn gd-btn--primary" id="mc-copy-image" type="button">Copy challenge</button><button class="gd-btn" id="mc-png" type="button">PNG</button><button class="gd-btn" id="mc-svg-download" type="button">SVG</button><button class="gd-btn" id="mc-print" type="button">Print / PDF</button></div><p class="gd-section-title">Teacher only</p><div class="gd-row"><button class="gd-btn" id="mc-key-copy" type="button">Copy answer key</button><button class="gd-btn" id="mc-key-print" type="button">Print answer key</button></div><p class="gd-help" id="mc-export-status" role="status">'+esc(exportStatus)+'</p>';
 return '<div class="nl-panel-title"><div><strong>Use it elsewhere</strong><span>Export the clean canvas or turn it into a pupil-ready task card.</span></div></div>'+
 '<div class="nl-export-mode" role="tablist" aria-label="Number and symbol tiles export content">'+
 '<button type="button" class="'+(exportMode==='canvas'?'is-active':'')+'" data-mc-export-mode="canvas">Canvas only</button>'+
@@ -4713,6 +4731,7 @@ const prompt=q('#mc-task-prompt');if(prompt)prompt.oninput=()=>{taskPrompt=promp
 return;
 }
 qa('[data-mc-export-mode]',controls).forEach(button=>button.onclick=()=>{exportMode=button.dataset.mcExportMode==='task'?'task':'canvas';exportStatus='';renderControls()});
+const working=q('#mc-working-lines');if(working)working.onchange=()=>{workingLines=[0,2,4].includes(Number(working.value))?Number(working.value):0;renderControls()};
 const response=q('#mc-response-lines');if(response)response.onchange=()=>{responseLines=clamp(Math.round(num(response.value,2)),1,4);renderControls()};
 const copy=q('#mc-copy-image');if(copy)copy.onclick=()=>exportAction('copy');
 const png=q('#mc-png');if(png)png.onclick=()=>exportAction('png');
@@ -4756,8 +4775,8 @@ onSelectionChange:item=>{
 });
 bindControls();
 controller.refresh();
-G.lessonState?.register('maths-canvas',()=>({diagram:stateSnapshot(),workflow,taskTitle,taskPrompt,exportMode,responseLines,difficulty,numberSettings,challenge,questionCount,setLayout,batch,batchScope,batchType,curriculumProfile,pupil:CK?.capturePupil?.(challenge)}),saved=>{
- restoreState(saved.diagram);questionCount=Math.max(1,Math.min(10,Math.round(Number(saved.questionCount)||1)));setLayout=['auto','one','two'].includes(saved.setLayout)?saved.setLayout:'auto';batch=Array.isArray(saved.batch)?saved.batch.slice(0,10).filter(item=>item?.question?.tiles&&N.titles[item.question.type]).map(item=>({...item,value:String(item.value||''),feedback:String(item.feedback||'')})):[];if(batch.length<2)batch=[];batchScope=String(saved.batchScope||'');batchType=String(saved.batchType||'');difficulty=['easy','medium','hard','custom'].includes(saved.difficulty)?saved.difficulty:'medium';numberSettings=N.settings(saved.numberSettings||{},difficulty);curriculumProfile=N.curriculumProfiles.some(p=>p.id===saved.curriculumProfile)?saved.curriculumProfile:'custom';generationError='';challenge=saved.challenge&&N?.titles[saved.challenge.type]?CK.normalise(saved.challenge):null;if(!challenge)batch=[];CK?.restorePupil?.(challenge,saved.pupil);workflow=saved.workflow==='challenge'&&!N?'build':saved.workflow;taskTitle=String(saved.taskTitle||'');taskPrompt=String(saved.taskPrompt||'');exportMode=saved.exportMode;responseLines=saved.responseLines;
+G.lessonState?.register('maths-canvas',()=>({diagram:stateSnapshot(),workflow,taskTitle,taskPrompt,exportMode,responseLines,difficulty,numberSettings,challenge,questionCount,setLayout,batch,batchScope,batchType,curriculumProfile,workingLines,pupil:CK?.capturePupil?.(challenge)}),saved=>{
+ restoreState(saved.diagram);workingLines=[0,2,4].includes(Number(saved.workingLines))?Number(saved.workingLines):0;questionCount=Math.max(1,Math.min(10,Math.round(Number(saved.questionCount)||1)));setLayout=['auto','one','two'].includes(saved.setLayout)?saved.setLayout:'auto';batch=Array.isArray(saved.batch)?saved.batch.slice(0,10).filter(item=>item?.question?.tiles&&N.titles[item.question.type]).map(item=>({...item,value:String(item.value||''),feedback:String(item.feedback||'')})):[];if(batch.length<2)batch=[];batchScope=String(saved.batchScope||'');batchType=String(saved.batchType||'');difficulty=['easy','medium','hard','custom'].includes(saved.difficulty)?saved.difficulty:'medium';numberSettings=N.settings(saved.numberSettings||{},difficulty);curriculumProfile=N.curriculumProfiles.some(p=>p.id===saved.curriculumProfile)?saved.curriculumProfile:'custom';generationError='';challenge=saved.challenge&&N?.titles[saved.challenge.type]?CK.normalise(saved.challenge):null;if(!challenge)batch=[];CK?.restorePupil?.(challenge,saved.pupil);workflow=saved.workflow==='challenge'&&!N?'build':saved.workflow;taskTitle=String(saved.taskTitle||'');taskPrompt=String(saved.taskPrompt||'');exportMode=saved.exportMode;responseLines=saved.responseLines;
  q('#gd-controls').innerHTML=controlsHtml();bindControls();controller.refresh();
 });
 }
