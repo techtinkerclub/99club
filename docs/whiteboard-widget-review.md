@@ -20,7 +20,7 @@ The notes are implementation evidence, not a completed acceptance test. “Pilot
 | Widget | Recent evidence / focus for next review | L1 paper status | L2/L3 shared document | Final QA |
 |---|---|---|---|---|
 | Number line | Marker/jump labels, multiple lines, solvability, precision and scaling | Existing; audit | Pending | Open |
-| Place value board | Counters first; regrouping, exact budgets, alternative representations, decimal columns | Revised templates; audit | Pending | Open |
+| Place value board | Counters first; regrouping, exact budgets, alternative representations, decimal columns | Shared templates; custom task audit | Pilot: 13 generated types + diagrams | Open |
 | Abacus & historical calculators | Western, suanpan, soroban; bead geometry; exchange and final total; historical subdevices below | Three abacus templates; historical blocked | Pilot: three abacus types | Open |
 | Fraction wall | Equivalent fractions, comparison, construction and label placement | Existing; audit | Pending | Open |
 | Bar model builder | Editable part–whole model, unknown quantities, paper construction | Existing; audit | Pending | Open |
@@ -60,7 +60,7 @@ Continue the catalogue review one widget at a time, with defects and regressions
 
 ## Current verified scope
 
-- Three catalogue entries have shared publishing adapters (Arithmetic, Sequences, Abacus limited to three bead instruments).
+- Four catalogue entries have shared publishing adapters (Arithmetic, Sequences, Abacus limited to three bead instruments, Place Value).
 - Automated abacus rollout checks: 2,160 generated tasks; 4,320 pupil/teacher diagrams; 108 mixed-document scenarios and isolated replacements; 1,236 page checks.
 - Both entry points must load identical shared asset versions.
 - No real browser visual, touchscreen or physical A4 acceptance run was performed in this batch. No widget is signed off as finished.
