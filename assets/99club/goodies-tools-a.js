@@ -4338,6 +4338,7 @@ function clockTool(){
   }
   const initialClockSlot=Math.max(0,Math.round(num(clockParams.get('clockStart'),0)));
   let hour=10,minute=10,second=0,snap=5,numerals='arabic',showDigital=true,showSeconds=false,drag=null,extraClocks=[],activeClock=0;
+  let clockLayout='auto';
   let clockSlots=[initialClockSlot],clockNames=['Clock '+clockLetter(initialClockSlot),'','',''];
   const roman=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
   const CHALLENGE_CATEGORIES=[
@@ -4448,7 +4449,7 @@ function clockTool(){
     return{x:150+len*Math.cos(a),y:150+len*Math.sin(a)};
   }
   function faceNumber(n){return numerals==='roman'?roman[n-1]:String(n)}
-  function snapshot(){return{hour,minute,second,snap,numerals,showDigital,showSeconds,clockSlots:clockSlots.slice(),clockNames:clockNames.slice(),extraClocks:extraClocks.map(c=>({hour:c.hour,minute:c.minute,second:clamp(Math.round(num(c.second,0)),0,59)})),activeClock}}
+  function snapshot(){return{hour,minute,second,snap,numerals,showDigital,showSeconds,clockLayout,clockSlots:clockSlots.slice(),clockNames:clockNames.slice(),extraClocks:extraClocks.map(c=>({hour:c.hour,minute:c.minute,second:clamp(Math.round(num(c.second,0)),0,59)})),activeClock}}
   function restoreSnapshot(value){
     if(!value)return;
     hour=clamp(Math.round(num(value.hour,10)),0,23);
@@ -4458,6 +4459,7 @@ function clockTool(){
     numerals=value.numerals==='roman'?'roman':'arabic';
     showDigital=value.showDigital!==false;
     showSeconds=!!value.showSeconds;
+    clockLayout=['horizontal','vertical','grid'].includes(value.clockLayout)?value.clockLayout:'auto';
     extraClocks=Array.isArray(value.extraClocks)?value.extraClocks.slice(0,MAX_CLOCKS-1).map(c=>({...normaliseClockTime(c?.hour,c?.minute,10,10),second:clamp(Math.round(num(c?.second,0)),0,59)})):[];
     const count=1+extraClocks.length,storedSlots=Array.isArray(value.clockSlots)?value.clockSlots:[];
     clockSlots=Array.from({length:count},(_,i)=>{
@@ -4490,6 +4492,30 @@ function clockTool(){
   }
   function twoClockTask(){return challenge?.mode==='standard'&&challenge.category==='two-clocks'&&Array.isArray(challenge.clockEvidence)}
   function availableClockTemplates(){return CHALLENGE_TEMPLATES.filter(t=>t.category!=='two-clocks'||extraClocks.length>0)}
+  function visibleClockCount(){return twoClockTask()?2:challenge?1:1+extraClocks.length}
+  function resolvedClockLayout(count=visibleClockCount()){
+    const preference=twoClockTask()?(challenge.clockLayout||'horizontal'):clockLayout;
+    if(count<2)return 'vertical';
+    if(preference==='vertical')return 'vertical';
+    if(preference==='horizontal'||count===2)return 'horizontal';
+    return 'grid';
+  }
+  function setClockLayout(next){
+    if(!['horizontal','vertical','grid','auto'].includes(next))return;
+    if(twoClockTask())challenge.clockLayout=next==='vertical'?'vertical':'horizontal';else clockLayout=next;
+    draw();
+    const select=q('#cl-layout');if(select)select.value=clockLayout;
+  }
+  function cycleClockLayout(){
+    const count=visibleClockCount();if(count<2)return;
+    const modes=count>2?['horizontal','vertical','grid']:['horizontal','vertical'];
+    setClockLayout(modes[(modes.indexOf(resolvedClockLayout(count))+1)%modes.length]);
+  }
+  function layoutButton(){
+    const count=visibleClockCount();if(count<2)return '';
+    const current=resolvedClockLayout(count),glyph={horizontal:'↔',vertical:'↕',grid:'▦'}[current];
+    return '<div class="gd-clock-layout-toolbar"><button type="button" class="gd-btn gd-clock-layout-cycle" data-cl-layout-cycle aria-label="Clock layout: '+current+'. Tap to change layout" title="Clock layout: '+current+'. Tap to change layout">'+glyph+'</button></div>';
+  }
   function visibleClockLabel(index){return twoClockTask()?challenge.clockEvidence[index].label:clockLabel(index)}
   function periodLabel(state){return state.hour<12?'AM':'PM'}
   function handsFrozen(){return !!(challenge&&challenge.mode==='standard'&&(challenge.freezeHands||challenge.revealed))}
@@ -4641,8 +4667,8 @@ function clockTool(){
     return svg;
   }
   function multiClockExportSvg({pupil=false}={}){
-    const task=twoClockTask(),states=task?challenge.clockEvidence:clockStates(),width=1100,cols=2,cardW=500,cardH=task?350:400,gapX=40,gapY=20,rows=Math.ceil(states.length/cols);
-    const diffCount=task?0:Math.max(0,states.length-1),diffH=diffCount?90+Math.ceil(diffCount/3)*58:30,height=40+rows*(cardH+gapY)+diffH;
+    const task=twoClockTask(),states=task?challenge.clockEvidence:clockStates(),layout=resolvedClockLayout(states.length),cols=layout==='vertical'?1:layout==='horizontal'?states.length:2,cardW=500,cardH=task?350:400,gapX=40,gapY=20,rows=Math.ceil(states.length/cols),width=60+cols*cardW+(cols-1)*gapX;
+    const diffCount=task?0:Math.max(0,states.length-1),diffCols=Math.min(3,cols),diffH=diffCount?90+Math.ceil(diffCount/diffCols)*58:30,height=40+rows*(cardH+gapY)+diffH;
     const svg=clSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Clock comparison','data-cl-export':'clock-comparison'});
     svg.appendChild(clSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
     states.forEach((state,index)=>{
@@ -4672,7 +4698,7 @@ function clockTool(){
       const y=40+rows*(cardH+gapY)+22;
       svg.appendChild(clSvgEl('text',{x:30,y,'font-family':'Arial,sans-serif','font-size':15,'font-weight':850,fill:'#334a52'},'Forward elapsed time from '+clockLabel(0)));
       states.slice(1).forEach((state,i)=>{
-        const index=i+1,col=i%3,row=Math.floor(i/3),x=30+col*340,yy=y+38+row*52;
+        const index=i+1,col=i%diffCols,row=Math.floor(i/diffCols),x=30+col*((width-60)/diffCols),yy=y+38+row*52;
         svg.appendChild(clSvgEl('text',{x,y:yy,'font-family':'Arial,sans-serif','font-size':13,'font-weight':750,fill:'#718288'},clockLabel(0)+' → '+clockLabel(index)));
         svg.appendChild(clSvgEl('text',{x:x+82,y:yy,'font-family':'Arial,sans-serif','font-size':17,'font-weight':900,fill:'#304b52','data-cl-export-difference-to':index},durationText(forwardDifferenceMinutes(states[0],state))));
       });
@@ -4716,6 +4742,7 @@ function clockTool(){
     return '<div class="gd-field"><span>Clocks</span><div class="gd-row gd-clock-selector">'+selector+'</div></div>'+
       '<div class="gd-row"><button class="gd-btn" id="cl-add-clock" type="button"'+(extraClocks.length>=MAX_CLOCKS-1?' disabled':'')+'>Add clock</button>'+
       '<button class="gd-btn" id="cl-remove-clock" type="button"'+(activeClock===0?' disabled':'')+'>Remove selected</button></div>'+
+      (extraClocks.length?field('Clock layout','<select class="gd-select" id="cl-layout">'+[['auto','Automatic'],['horizontal','Horizontal'],['vertical','Vertical'],['grid','Grid (2 columns)']].filter(v=>v[0]!=='grid'||extraClocks.length>1||clockLayout==='grid').map(([v,label])=>'<option value="'+v+'"'+(clockLayout===v?' selected':'')+'>'+label+'</option>').join('')+'</select>'):'')+
       field('Clock label','<input class="gd-input" id="cl-label" maxlength="30" value="'+esc(clockLabel(activeClock))+'" placeholder="e.g. Start">','Use labels such as Start, End, Before or After when comparing clocks.')+
       field('Selected clock hour (24-hour)','<input class="gd-input gd-small" id="cl-h" type="number" min="0" max="23" value="'+selected.hour+'">')+
       field('Minutes','<input class="gd-input gd-small" id="cl-m" type="number" min="0" max="59" value="'+selected.minute+'">')+
@@ -4786,6 +4813,7 @@ function clockTool(){
   }
   function generateChallenge(type){
     const template=availableClockTemplates().find(t=>t.id===type);if(!template)return;
+    const previousLayout=twoClockTask()?challenge.clockLayout:null;
     if(!beforeChallenge)beforeChallenge=snapshot();else restoreSnapshot(beforeChallenge);
     activeClock=0;numerals='arabic';snap=5;second=0;
     if(template.category==='two-clocks'){
@@ -4811,7 +4839,7 @@ function clockTool(){
         answer=claim===elapsed?'Yes':'No';explanation='The actual elapsed time is '+durationText(elapsed)+' ('+elapsed+' minutes).';
       }
       setClockTime(0,evidence[0].hour,evidence[0].minute);setClockTime(1,evidence[1].hour,evidence[1].minute);setClockSecond(1,0);
-      challenge=challengeObject(type,prompt,answer,{clockEvidence:evidence,solutionExplanation:explanation});
+      challenge=challengeObject(type,prompt,answer,{clockEvidence:evidence,clockLayout:previousLayout||'horizontal',solutionExplanation:explanation});
     }else if(type==='read-five'){
       hour=randomHour();minute=randomMinute(5);
       challenge=challengeObject(type,'What time is shown on the analogue clock? (No AM or PM needed.)',time12());
@@ -4950,6 +4978,7 @@ function clockTool(){
     refreshClock();
   }
   function bindStage(){
+    const layout=q('[data-cl-layout-cycle]',q('#gd-stage'));if(layout)layout.onclick=cycleClockLayout;
     qa('[data-cl-period-stage]',q('#gd-stage')).forEach(button=>button.onclick=()=>{if(handsFrozen())return;setClockTime(0,hour%12+Number(button.dataset.clPeriodStage),minute);refreshClock()});
     qa('.gd-clock-hand-hit',q('#gd-stage')).forEach(hit=>{
       const index=Math.round(num(hit.dataset.clClockIndex,0)),kind=hit.dataset.clHand;
@@ -5011,6 +5040,7 @@ function clockTool(){
         extraClocks.splice(activeClock-1,1);clockSlots.splice(activeClock,1);clockNames.splice(activeClock,1);while(clockNames.length<MAX_CLOCKS)clockNames.push('');
         activeClock=Math.min(activeClock-1,extraClocks.length);renderControls();draw();
       };
+      const layout=q('#cl-layout',controls);if(layout)layout.onchange=()=>setClockLayout(layout.value);
       const h=q('#cl-h',controls),m=q('#cl-m',controls),sec=q('#cl-s',controls),label=q('#cl-label',controls);
       if(h)h.oninput=()=>{const current=clockState(activeClock);setClockTime(activeClock,clamp(num(h.value,current.hour),0,23),current.minute);refreshClock()};
       if(m)m.oninput=()=>{const current=clockState(activeClock);setClockTime(activeClock,current.hour,clamp(num(m.value,current.minute),0,59));refreshClock()};
@@ -5091,10 +5121,10 @@ function clockTool(){
   }
   function draw(){
     const states=twoClockTask()?clockStates().slice(0,2):challenge?[clockState(0)]:clockStates(),frozen=handsFrozen(),hidden=anyTimeHidden();
-    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Clock challenge',pupil:(twoClockTask()?(challenge.type==='two-order'?CK.pupilSpec('choice',{choices:['Clock A','Clock B']}):challenge.type==='two-duration-reason'?CK.pupilSpec('choice',{choices:['Yes','No'],explain:true}):CK.pupilSpec('unit',{unit:'minutes',hint:'Minutes'})):challenge.freezeHands===false?CK.pupilSpec('model',{check:onTarget}):challenge.type==='hour-hand-misconception'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:challenge.answer.startsWith('Yes')?'Yes':'No',explain:true}):challenge.type==='time-language'?CK.pupilSpec('spoken',{hint:'e.g. quarter past 3'}):CK.pupilSpec(challenge.type==='twelve-to-twentyfour'?'clock-24':challenge.type==='twentyfour-to-twelve'?'clock-12':'clock-face')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Clock challenge',pupil:(twoClockTask()?(challenge.type==='two-order'?CK.pupilSpec('choice',{choices:['Clock A','Clock B']}):challenge.type==='two-duration-reason'?CK.pupilSpec('choice',{choices:['Yes','No'],explain:true}):CK.pupilSpec('unit',{unit:'minutes',hint:'Number'})):challenge.freezeHands===false?CK.pupilSpec('model',{check:onTarget}):challenge.type==='hour-hand-misconception'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:challenge.answer.startsWith('Yes')?'Yes':'No',explain:true}):challenge.type==='time-language'?CK.pupilSpec('spoken',{hint:'e.g. quarter past 3'}):CK.pupilSpec(challenge.type==='twelve-to-twentyfour'?'clock-24':challenge.type==='twentyfour-to-twelve'?'clock-12':'clock-face')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     const targetStatus='';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-clock-workbench">'+
-      '<div class="gd-clock-grid">'+states.map((state,index)=>clockCardMarkup(index,state,(index===0||twoClockTask())&&frozen,(index===0||twoClockTask())&&hidden)).join('')+'</div>'+
+      layoutButton()+'<div class="gd-clock-grid" data-cl-layout="'+resolvedClockLayout(states.length)+'" style="--cl-count:'+states.length+'">'+states.map((state,index)=>clockCardMarkup(index,state,(index===0||twoClockTask())&&frozen,(index===0||twoClockTask())&&hidden)).join('')+'</div>'+
       differenceMarkup()+targetStatus+
     '</div>';
     bindStage();bindChallengeStageActions();refreshClock();
