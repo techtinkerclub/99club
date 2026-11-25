@@ -178,6 +178,13 @@ Three levels: (1) publish the current challenge or non-challenge representation 
 - Checks: 3,000 generated tasks, 800 solution diagrams with independent minimum-piece validation, 30 mixed nine-widget documents, 840 annex entries, 750 graphics, 350 pupil and 208 annex pages, 30 replacements and 30 captured solved construction tasks. Mock SVG DOM verification; real browser/print QA open.
 - Next adapter: Coordinate Grid, then Bar Model. Nine of 20 integrated. Formal written-methods tools follow the original 20.
 
+
+### Coordinate Grid shared publishing
+- Tenth adapter: all six existing standard challenge types, shared live/worksheet generator, manual capture, automatic source, replacement and solved graphical annex.
+- Mixed, first-quadrant-only and four-quadrant generation settings persist with the live widget; the automatic builder exposes the same scope. First-quadrant-only excludes reflection and quadrant identification. Plot tasks leave the grid blank regardless of live reveal state; teacher diagrams show the exact target intersection. Reflection and translation keys show original and transformed coordinates plus dashed construction guides. Paper grids have labelled axes and collision-aware point label placement.
+- Checks: 3,200 generator checks across three scopes; 800 individual pupil/solution checks, including 250 transformations and 150 plotting tasks; 30 mixed documents, 294 pupil pages, 150 annex pages, 390 answer entries, 30 replacements, 30 solved captures and 390 prompt alignment checks. Mock SVG DOM only; browser, touchscreen and physical print QA still open. Custom authored tasks remain individual-export only.
+- Ten of 20 existing catalogue entries integrated. Next: Bar Model, then Hundred Square. Formal written methods remain queued after the existing rollout.
+
 ## Next priorities
 1. Visual/touch feedback: validate the practice-set launcher, whiteboard layout, inline answer boxes, responsive columns and paper outputs; refine density and font sizes after classroom feedback.
 2. Worksheet-oriented improvements: separate arithmetic answer key implemented; five-a-day shortcut implemented; optional arithmetic working space and row-based A4 pagination implemented; shared pupil/teacher export policies across the remaining widgets still need work.
