@@ -194,7 +194,9 @@ function composeChallengeCardSvg(diagram,{title='Challenge',prompt='',responseLa
   return addPaperBrand(out,brand);
 }
 // Document composition is synchronous; scoped layout leaves standalone exports unchanged.
-let documentCardLayout=false;
+let documentCardLayout=false,answerDiagramLayout=false;
+function withAnswerDiagram(render){const previous=answerDiagramLayout;answerDiagramLayout=true;try{return render()}finally{answerDiagramLayout=previous}}
+function isAnswerDiagramLayout(){return answerDiagramLayout}
 function isDocumentCardLayout(){return documentCardLayout}
 function withDocumentCardLayout(render){
  const previous=documentCardLayout;documentCardLayout=true;
@@ -206,6 +208,7 @@ function composeWorksheetCardSvg(diagram,{title='Challenge',prompt='',responseLa
   source.removeAttribute('id');
   const vb=diagram.viewBox&&diagram.viewBox.baseVal;
   const sourceW=Math.max(1,vb?.width||1000),sourceH=Math.max(1,vb?.height||420);
+  if(answerDiagramLayout)return source;
   const plain=paperStyle==='plain',compact=plain&&documentCardLayout,shortEquation=compact&&compactEquation;
   const width=1120,pad=documentCardLayout&&plain?12:plain?38:48,contentW=width-pad*2;
   const promptLines=wrapSvgText(prompt,plain?92:88,4),embedded=documentCardLayout&&plain&&promptLines.length>0;
@@ -270,5 +273,5 @@ function copyText(text){
   if(navigator.clipboard?.writeText)return navigator.clipboard.writeText(text);
   return Promise.reject(new Error('Clipboard access is not available in this browser.'));
 }
-G.exportTools={preparePaperSvg,safeFilename,downloadSvg,downloadPng,copyPng,printSvg,copyText,serialiseSvg,composeChallengeCardSvg,composeWorksheetCardSvg,withDocumentCardLayout,isDocumentCardLayout};
+G.exportTools={preparePaperSvg,safeFilename,downloadSvg,downloadPng,copyPng,printSvg,copyText,serialiseSvg,composeChallengeCardSvg,composeWorksheetCardSvg,withDocumentCardLayout,isDocumentCardLayout,withAnswerDiagram,isAnswerDiagramLayout};
 })(window.TT99Goodies);
