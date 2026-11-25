@@ -1044,22 +1044,22 @@ if(mode==='prepare'){
     document.querySelector('[data-hs-workflow="challenge"]').click();
     document.querySelector('[data-hs-challenge-type="one-more"]').click();
     document.getElementById('hs-generate').click();
-    assert(document.querySelector('.gd-challenge-prompt').textContent.includes('one more than 11'),'One-more challenge states the deterministic anchor');
-    assert(document.querySelector('[data-hs-value="11"]').classList.contains('is-current'),'One-more challenge clearly identifies the anchor cell');
-    assert(document.querySelector('[data-hs-value="12"]').textContent.trim()==='?','One-more challenge hides the answer cell');
+    assert(document.querySelector('.gd-challenge-prompt').textContent.includes('one more than 12'),'One-more challenge states the deterministic anchor');
+    assert(document.querySelector('[data-hs-value="12"]').classList.contains('is-current'),'One-more challenge clearly identifies the anchor cell');
+    assert(!document.querySelector('[data-hs-value="13"]').classList.contains('is-current'),'One-more challenge leaves pupils to locate the answer on the square');
     assert(!document.querySelector('.gd-hs-selected'),'One-more challenge does not leak the answer through the relationship panel');
     document.querySelector('[data-board-action="reveal"]').click();
-    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: 12'),'One-more Reveal shows the deterministic answer');
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: 13'),'One-more Reveal shows the deterministic answer');
 
     document.querySelector('[data-hs-workflow="challenge"]').click();
     document.querySelector('[data-hs-challenge-cat="patterns"]').click();
     assert(document.querySelector('[data-hs-challenge-type="continue-pattern"]')&&document.querySelector('[data-hs-challenge-type="mark-rule"]'),'Hundred Square pattern challenge types are available');
     document.getElementById('hs-generate').click();
     assert(document.querySelector('.gd-challenge-prompt').textContent.includes('+2 pattern'),'Continue-pattern challenge uses the deterministic +2 step');
-    assert(['5','7','9'].every(v=>document.querySelector('[data-hs-value="'+v+'"]').classList.contains('is-marked')),'Continue-pattern challenge shows the three seed marks');
-    assert(document.querySelector('[data-hs-value="11"]').textContent.trim()==='?','Continue-pattern challenge hides the next term');
+    assert(['1','3','5'].every(v=>document.querySelector('[data-hs-value="'+v+'"]').classList.contains('is-marked')),'Continue-pattern challenge shows the three seed marks');
+    assert(!document.querySelector('[data-hs-value="7"]').classList.contains('is-marked'),'Continue-pattern challenge leaves the next term unmarked');
     document.querySelector('[data-board-action="reveal"]').click();
-    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: 11'),'Continue-pattern Reveal gives the next term');
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: 7'),'Continue-pattern Reveal gives the next term');
 
     document.querySelector('[data-hs-workflow="challenge"]').click();
     document.querySelector('[data-hs-challenge-cat="patterns"]').click();
@@ -1297,11 +1297,11 @@ if(mode==='prepare'){
 
     TT99Goodies.multiplicationGrid();
     const realMgRandom=Math.random;
-    Math.random=()=>0;
+    let mgDraw=0;Math.random=()=>[0,.1,.75,0][mgDraw++]??0;
     document.querySelector('[data-mg-workflow="challenge"]').click();
     assert(document.querySelector('[data-mg-challenge-tab="standard"]')&&document.querySelector('[data-mg-challenge-tab="custom"]'),'Multiplication Grid uses the shared Standard / Custom challenge tabs');
     assert(document.querySelector('[data-mg-challenge-type="missing-product"]')&&document.querySelector('[data-mg-challenge-type="select-fact"]'),'Multiplication Grid read-and-locate challenges are available');
-    document.getElementById('mg-generate').click();
+    mgDraw=0;document.getElementById('mg-generate').click();
     assert(document.querySelector('.gd-challenge-banner'),'Generated Multiplication Grid challenge appears above the grid');
     assert(document.querySelector('[data-mg-cell="2-3"]').textContent.trim()==='?','Missing-product challenge hides the deterministic 2 × 3 product');
     assert(document.querySelector('[data-mg-cell="3-2"]').textContent.trim()==='?','Missing-product challenge also hides its commutative partner');
@@ -1313,7 +1313,7 @@ if(mode==='prepare'){
 
     document.querySelector('[data-mg-workflow="challenge"]').click();
     document.querySelector('[data-mg-challenge-type="select-fact"]').click();
-    document.getElementById('mg-generate').click();
+    mgDraw=0;document.getElementById('mg-generate').click();
     assert(document.querySelector('.gd-challenge-prompt').textContent.includes('2 × 3'),'Select-fact challenge states the deterministic target fact');
     assert([...document.querySelectorAll('[data-mg-cell]')].every(x=>!x.disabled),'Select-fact challenge keeps product cells interactive');
     assert(document.querySelector('[data-mg-target-status]').textContent.includes('Select the matching'),'Select-fact challenge starts without identifying the target cell');
@@ -1328,7 +1328,7 @@ if(mode==='prepare'){
     document.querySelector('[data-mg-challenge-cat="connections"]').click();
     assert(document.querySelector('[data-mg-challenge-type="missing-factor"]')&&document.querySelector('[data-mg-challenge-type="commutative-fact"]')&&document.querySelector('[data-mg-challenge-type="related-division"]'),'Multiplication Grid fact-family challenge types are available');
     document.querySelector('[data-mg-challenge-type="missing-factor"]').click();
-    document.getElementById('mg-generate').click();
+    mgDraw=0;document.getElementById('mg-generate').click();
     assert(document.querySelector('.gd-challenge-prompt').textContent.includes('2 × ? = 6'),'Missing-factor challenge states the deterministic fact');
     assert(document.querySelector('[data-mg-cell="2-3"]').textContent.trim()==='6','Missing-factor challenge leaves the supporting product grid readable');
     assert(!document.querySelector('.gd-mg-selected'),'Missing-factor challenge hides the selected fact panel');
@@ -1338,7 +1338,7 @@ if(mode==='prepare'){
     document.querySelector('[data-mg-workflow="challenge"]').click();
     document.querySelector('[data-mg-challenge-cat="connections"]').click();
     document.querySelector('[data-mg-challenge-type="commutative-fact"]').click();
-    document.getElementById('mg-generate').click();
+    mgDraw=0;document.getElementById('mg-generate').click();
     assert(document.querySelector('[data-mg-cell="2-3"]').classList.contains('is-current')&&document.querySelector('[data-mg-cell="3-2"]').classList.contains('is-commutative'),'Commutative challenge visually pairs the two reversed facts');
     assert(!document.querySelector('.gd-mg-selected'),'Commutative challenge hides the panel that would state the answer');
     document.querySelector('[data-board-action="reveal"]').click();
@@ -1347,7 +1347,7 @@ if(mode==='prepare'){
     document.querySelector('[data-mg-workflow="challenge"]').click();
     document.querySelector('[data-mg-challenge-cat="connections"]').click();
     document.querySelector('[data-mg-challenge-type="related-division"]').click();
-    document.getElementById('mg-generate').click();
+    mgDraw=0;document.getElementById('mg-generate').click();
     assert(document.querySelector('.gd-challenge-prompt').textContent.includes('6 ÷ 2 = ?'),'Related-division challenge uses the deterministic multiplication fact');
     assert(!document.querySelector('.gd-mg-selected'),'Related-division challenge hides inverse facts from the selected panel');
     document.querySelector('[data-board-action="reveal"]').click();
@@ -1356,7 +1356,7 @@ if(mode==='prepare'){
     document.querySelector('[data-mg-workflow="challenge"]').click();
     document.querySelector('[data-mg-challenge-cat="reason"]').click();
     assert(document.querySelector('[data-mg-challenge-type="spot-error"]'),'Multiplication Grid reasoning challenge is available');
-    document.getElementById('mg-generate').click();
+    mgDraw=0;document.getElementById('mg-generate').click();
     assert(document.querySelector('[data-mg-cell="2-3"]').textContent.trim()==='7','Spot-error challenge deliberately shows the wrong product in the target row');
     assert(document.querySelector('[data-mg-cell="3-2"]').textContent.trim()==='6','Commutative partner remains correct so pupils can use structure to diagnose the error');
     assert(!document.querySelector('[data-mg-cell="2-3"]').classList.contains('is-current'),'Spot-error challenge does not outline the incorrect cell');
@@ -1409,7 +1409,7 @@ if(mode==='prepare'){
     document.querySelector('[data-mg-workflow="challenge"]').click();
     document.querySelector('[data-mg-challenge-cat="read"]').click();
     document.querySelector('[data-mg-challenge-type="missing-product"]').click();
-    document.getElementById('mg-generate').click();
+    mgDraw=0;document.getElementById('mg-generate').click();
     document.querySelector('[data-board-action="reveal"]').click();
     document.querySelector('[data-mg-workflow="export"]').click();
     assert(document.querySelector('[data-mg-export-mode="challenge"]')?.classList.contains('is-active'),'Generated Multiplication Grid challenge defaults to Challenge card export');
@@ -1426,7 +1426,7 @@ if(mode==='prepare'){
     document.querySelector('[data-mg-workflow="challenge"]').click();
     document.querySelector('[data-mg-challenge-cat="read"]').click();
     document.querySelector('[data-mg-challenge-type="select-fact"]').click();
-    document.getElementById('mg-generate').click();
+    mgDraw=0;document.getElementById('mg-generate').click();
     document.querySelector('[data-mg-cell="2-3"]').click();
     assert(document.querySelector('[data-mg-target-status]').textContent.includes('Found 2 × 3 = 6'),'Teacher can test the interactive select-fact challenge before export');
     document.querySelector('[data-mg-workflow="export"]').click();
@@ -1443,7 +1443,7 @@ if(mode==='prepare'){
     document.querySelector('[data-mg-workflow="challenge"]').click();
     document.querySelector('[data-mg-challenge-cat="reason"]').click();
     document.querySelector('[data-mg-challenge-type="spot-error"]').click();
-    document.getElementById('mg-generate').click();
+    mgDraw=0;document.getElementById('mg-generate').click();
     document.querySelector('[data-board-action="reveal"]').click();
     document.querySelector('[data-mg-workflow="export"]').click();
     let mgErrorCard=null;
@@ -1557,14 +1557,14 @@ if(mode==='prepare'){
     document.getElementById('tv-generate').click();
     assert(document.querySelector('.gd-challenge-banner'),'Generated Times-table challenge appears above the equal-groups model');
     assert(document.querySelectorAll('[data-tv-group]').length===3&&[...document.querySelectorAll('[data-tv-group]')].every(g=>g.querySelectorAll('.gd-tv-dots i').length===4),'Find-total challenge builds the deterministic 3 groups of 4 model');
-    assert(document.querySelector('[data-tv-equation]').textContent.trim()==='3 × 4 = ?','Find-total challenge hides the total in the multiplication equation');
-    assert(document.querySelector('[data-tv-repeated]').textContent.trim()==='?','Find-total challenge hides the repeated-addition total');
-    assert(document.querySelector('[data-tv-commutative]').textContent.trim()==='?'&&document.querySelector('[data-tv-division-a]').textContent.trim()==='?','Find-total challenge hides fact-family shortcuts');
+    assert(!document.querySelector('[data-tv-equation]'),'Find-total challenge omits the multiplication equation');
+    assert(!document.querySelector('[data-tv-repeated]'),'Find-total challenge omits the repeated-addition total');
+    assert(!document.querySelector('[data-tv-commutative]')&&!document.querySelector('[data-tv-division-a]'),'Find-total challenge omits fact-family shortcuts');
     assert(!document.querySelector('.gd-tv-jump-section'),'Find-total challenge hides equal-jump endpoint shortcuts');
     assert([...document.querySelectorAll('[data-tv-group]')].every(g=>g.disabled),'Read-only equal-groups challenge freezes supplied groups');
     document.querySelector('[data-board-action="reveal"]').click();
     assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: 12'),'Find-total challenge reveals the deterministic answer');
-    assert(document.querySelector('[data-tv-equation]').textContent.trim()==='3 × 4 = 12','Reveal restores the correct multiplication equation');
+    assert(!document.querySelector('[data-tv-equation]'),'Reveal keeps the focused groups and shows the answer in the banner');
 
     document.querySelector('[data-tv-workflow="challenge"]').click();
     document.querySelector('[data-tv-challenge-cat="connections"]').click();
@@ -1753,9 +1753,9 @@ if(mode==='prepare'){
     assert(document.querySelector('[data-fe-challenge-type="prime-or-composite"]'),'Prime/composite challenge is available');
     document.getElementById('fe-generate').click();
     assert(document.querySelector('.gd-challenge-banner'),'Generated Factor Explorer challenge appears above the workbench');
-    assert(document.querySelector('[data-fe-card="a"] .gd-fe-card-head strong').textContent.trim()==='29','Prime challenge uses the supplied number');
-    assert(document.querySelector('[data-fe-card="a"] .gd-fe-card-head em').textContent.trim()==='?','Prime challenge hides the classification');
-    assert(document.querySelector('[data-fe-prime="a"]').textContent.trim()==='?','Prime challenge hides prime factorisation shortcut');
+    assert(document.querySelector('.gd-fe-question-number').textContent.trim()==='29','Prime challenge uses the supplied number in its focused evidence');
+    assert(!document.querySelector('[data-fe-card="a"] .gd-fe-card-head em'),'Prime challenge omits the classification');
+    assert(!document.querySelector('[data-fe-prime="a"]'),'Prime challenge omits the factorisation shortcut');
     assert([...document.querySelectorAll('[data-fe-pair]')].every(x=>x.disabled),'Standard Factor Explorer challenge freezes factor-pair interaction');
     document.querySelector('[data-board-action="reveal"]').click();
     assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: Prime'),'Prime challenge reveals the classification contextually');
@@ -1929,8 +1929,8 @@ if(mode==='prepare'){
     document.querySelector('[data-fd-workflow="challenge"]').click();
     assert(document.querySelector('[data-fd-challenge-tab="standard"]')&&document.querySelector('[data-fd-challenge-tab="custom"]'),'FDP Explorer uses shared Standard / Custom challenge tabs');
     document.getElementById('fd-generate').click();
-    assert(document.querySelector('[data-fd-decimal]').textContent.trim()==='?','Fraction-to-decimal challenge hides the decimal answer');
-    assert(document.querySelector('[data-fd-percent]').textContent.trim()==='?','Fraction-to-decimal challenge hides the percentage shortcut');
+    assert(!document.querySelector('[data-fd-decimal]'),'Fraction-to-decimal challenge omits the decimal answer');
+    assert(!document.querySelector('[data-fd-percent]'),'Fraction-to-decimal challenge omits the percentage shortcut');
     assert(!document.querySelector('[data-fd-hundred-exact]'),'Fraction-to-decimal challenge hides the hundred-square shortcut');
     document.querySelector('[data-board-action="reveal"]').click();
     assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: 0.375'),'Fraction-to-decimal challenge reveals the correct answer');
@@ -1939,15 +1939,15 @@ if(mode==='prepare'){
     document.querySelector('[data-fd-challenge-cat="equivalent"]').click();
     document.querySelector('[data-fd-challenge-type="simplify-fraction"]').click();
     document.getElementById('fd-generate').click();
-    assert(document.querySelector('[data-fd-source]').textContent.trim()==='6/8','Simplify challenge keeps the source fraction visible');
-    assert(document.querySelector('[data-fd-fraction]').textContent.trim()==='?/?','Simplify challenge hides simplest form');
-    assert([...document.querySelectorAll('[data-fd-equiv]')].every(x=>x.textContent.trim()==='?/?'),'Simplify challenge hides equivalent-family shortcuts');
+    assert(document.querySelector('.gd-fdp-section-head').textContent.includes('6 of 8 equal parts'),'Simplify challenge keeps the source fraction visible in the model');
+    assert(!document.querySelector('[data-fd-fraction]'),'Simplify challenge omits simplest form');
+    assert(!document.querySelector('[data-fd-equiv]'),'Simplify challenge omits equivalent-family shortcuts');
 
     document.querySelector('[data-fd-workflow="challenge"]').click();
     document.querySelector('[data-fd-challenge-cat="build"]').click();
     document.querySelector('[data-fd-challenge-type="build-percentage"]').click();
     document.getElementById('fd-generate').click();
-    assert(document.querySelector('[data-fd-source]').textContent.trim()==='1/2','Build-percentage challenge starts from a neutral 1/2 model');
+    assert(document.querySelector('[data-fd-numerator]').textContent.trim()==='1'&&document.querySelector('[data-fd-denominator]').textContent.trim()==='2','Build-percentage challenge starts from a neutral 1/2 model');
     assert(document.querySelector('.gd-challenge-prompt').textContent.includes('75%'),'Build-percentage challenge states its target');
     let fn=document.getElementById('fd-n'),fd=document.getElementById('fd-d');
     fn.value='3';fn.dispatchEvent(new Event('change',{bubbles:true}));
@@ -2107,7 +2107,7 @@ if(mode==='prepare'){
     assert(document.querySelector('[data-pv-challenge-tab="standard"]'),'Place Value keeps Standard / Custom challenge tabs');
     const pvChallengeModes=['build','exact','regroup','same','read','hidden','digit','add'];
     assert(pvChallengeModes.every(mode=>document.querySelector('[data-pv-challenge-mode="'+mode+'"]')),'Place Value Challenge tab exposes Build, Exact, Regroup, Same value, Read, Hidden place, Digit value and Addition');
-    assert(document.getElementById('pv-challenge-random'),'Place Value Challenge tab also exposes a Random challenge action');
+    assert(document.querySelector('[data-gd-native-prefix="pv"] [data-gd-native-random="all"]'),'Place Value Challenge tab exposes the shared Random all-types action');
 
     document.querySelector('[data-pv-challenge-mode="read"]').click();
     let pvChallengeGame=document.querySelector('.gd-pv-activity--game[data-pv-activity-kind="read"]');
@@ -2389,7 +2389,7 @@ if(mode==='prepare'){
     assert(document.querySelector('.gd-challenge-banner'),'Generated Fractions challenge appears above the representation');
     assert(document.getElementById('fw-strip-canvas'),'Read-a-strip challenge switches to the strip representation');
     assert(!document.querySelector('[data-gd-action="add"]'),'Read-only standard strip challenge does not expose the stage add action');
-    assert(document.querySelector('#fw-strip-canvas [data-gd-object] .gd-fr-strip-head strong').textContent.trim()==='?','Read-a-strip challenge hides the target fraction label');
+    assert(!document.querySelector('#fw-strip-canvas [data-gd-object] .gd-fr-strip-head strong'),'Read-a-strip challenge omits the target fraction label');
     assert(document.querySelector('[data-challenge-action="another"]'),'Fractions standard challenge exposes Another like this');
     document.querySelector('[data-board-action="reveal"]').click();
     assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer:'),'Fractions challenge reveals its answer contextually');
@@ -2531,11 +2531,11 @@ if(mode==='prepare'){
     document.getElementById('ge-generate').click();
     assert(document.querySelector('.gd-challenge-banner'),'Generated Geoboard challenge appears above the board');
     assert(document.querySelectorAll('[data-ge-vertex]').length===2,'Length challenge creates a two-point segment');
-    assert(document.getElementById('ge-readout').textContent.includes('Length ≈ ?'),'Length challenge hides the target measurement');
+    assert(!document.getElementById('ge-readout'),'Length challenge omits the target measurement readout');
     assert(document.querySelector('[data-challenge-action="another"]'),'Geoboard standard challenge exposes Another like this');
     document.querySelector('[data-board-action="reveal"]').click();
     assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer:'),'Geoboard challenge reveals its answer contextually');
-    assert(!document.getElementById('ge-readout').textContent.includes('Length ≈ ?'),'Reveal restores the live length readout');
+    assert(!document.getElementById('ge-readout'),'Reveal keeps the focused diagram and shows the answer in the banner');
 
     document.querySelector('[data-ge-workflow="export"]').click();
     assert(document.querySelector('[data-ge-export-mode="challenge"]'),'Active Geoboard challenge offers Challenge card export');
@@ -2678,8 +2678,8 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=(svg,name)=>{coCapturedSvg=svg.cloneNode(true);coCapturedName=name};
     document.getElementById('co-svg-download').click();
     TT99Goodies.exportTools.downloadSvg=coOldDownloadSvg;
-    assert(coCapturedSvg&&coCapturedSvg.dataset.coExport==='grid','Coordinates board-only export is a deterministic SVG grid');
-    assert(coCapturedSvg.querySelectorAll('[data-co-export-point]').length===3,'Coordinates SVG export preserves all visible four-quadrant points');
+    assert(coCapturedSvg&&coCapturedSvg.getAttribute('aria-label')==='Coordinate grid','Coordinates board-only export is a deterministic SVG grid');
+    assert(coCapturedSvg.querySelectorAll('[data-co-paper-point]').length===3,'Coordinates SVG export preserves all visible four-quadrant points');
     assert(coCapturedSvg.textContent.includes('(-3, -2)'),'Coordinates SVG export preserves negative coordinates');
     assert(coCapturedName.includes('four-quadrants'),'Coordinates four-quadrant export has a reusable filename');
 
@@ -2884,9 +2884,9 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=(svg,name)=>{abCapturedSvg=svg.cloneNode(true);abCapturedName=name};
     document.getElementById('ab-svg-download').click();
     TT99Goodies.exportTools.downloadSvg=abOldDownloadSvg;
-    assert(abCapturedSvg&&abCapturedSvg.dataset.abExport==='array','Array-only export is a deterministic SVG model');
-    assert(abCapturedSvg.querySelectorAll('[data-ab-export-dot]').length===24,'Array SVG export preserves every object in the 4 × 6 model');
-    assert(abCapturedSvg.querySelector('[data-ab-export-row-split]')&&abCapturedSvg.querySelector('[data-ab-export-col-split]'),'Array SVG export preserves both teacher partition lines');
+    assert(abCapturedSvg&&abCapturedSvg.getAttribute('aria-label')==='Array diagram','Array-only export is a deterministic SVG model');
+    assert(abCapturedSvg.querySelectorAll('[data-array-dot]').length===24,'Array SVG export preserves every object in the 4 × 6 model');
+    assert(abCapturedSvg.querySelectorAll('line[stroke="#b77d16"]').length===2,'Array SVG export preserves both teacher partition lines');
     assert(abCapturedSvg.textContent.includes('4 × 6 = 24'),'Array-only export includes the visible multiplication fact');
     assert(abCapturedName.includes('array-4x6'),'Array-only export has a reusable dimension-based filename');
 
@@ -3058,7 +3058,7 @@ if(mode==='prepare'){
     let objects=[...document.querySelectorAll('#mo-canvas [data-gd-object]')];
     assert(objects.length===5,'UK Money opens with a five-piece £3.75 example');
     assert(document.querySelector('[data-mo-total]').textContent.trim()==='£3.75','UK Money totals the draggable pieces');
-    assert(document.querySelector('[data-mo-status]').textContent.includes('Exactly right'),'UK Money checks the starting amount against its target');
+    assert(!document.querySelector('[data-mo-status]'),'UK Money does not display target feedback until a teacher activates a target');
     const fifty=document.querySelector('[data-mo-value="50"]'),pound=document.querySelector('[data-mo-value="100"]');
     assert(fifty.classList.contains('gd-money-object--hept'),'50p uses the curved seven-sided classroom coin silhouette');
     assert(fifty.querySelector('.gd-money-coin-art--hept path'),'50p artwork is a self-contained curved SVG shape rather than a cropped photograph');
@@ -3308,7 +3308,7 @@ if(mode==='prepare'){
     assert(face&&face.dataset.clHour==='10'&&face.dataset.clMinute==='10','Clock workbench opens at 10:10');
     assert(document.querySelector('[data-cl-readout="24"]').textContent.trim()==='10:10','Clock shows a live 24-hour readout');
     assert(document.querySelector('[data-cl-readout="12"]').textContent.trim()==='10:10 am','Clock shows a live 12-hour readout');
-    assert(document.querySelector('[data-cl-digital]').textContent.trim()==='10:10 am','Clock shows a prominent digital am/pm comparison');
+    assert(!document.querySelector('[data-cl-digital]'),'Clock avoids a duplicate digital readout');
     assert(document.querySelectorAll('.gd-clock-tick').length===60,'Clock renders all 60 minute ticks');
 
     document.getElementById('cl-add-clock').click();
@@ -3322,7 +3322,7 @@ if(mode==='prepare'){
     const secondsInput=document.getElementById('cl-s');
     secondsInput.value='30';secondsInput.dispatchEvent(new Event('input',{bubbles:true}));
     assert(document.querySelectorAll('.gd-clock-second').length===2,'Optional seconds hands appear on all comparison clocks');
-    assert([...document.querySelectorAll('[data-cl-digital]')].some(x=>x.textContent.includes(':30 ')),'Digital comparison includes seconds when seconds are enabled');
+    assert([...document.querySelectorAll('[data-cl-readout-kind="12"]')].some(x=>x.textContent.includes(':30 ')),'Digital comparison includes seconds when seconds are enabled');
     const secondHour=document.getElementById('cl-h');
     secondHour.value='11';secondHour.dispatchEvent(new Event('input',{bubbles:true}));
     const secondMinute=document.getElementById('cl-m');
@@ -3617,9 +3617,9 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=(svg,name)=>{meCapturedSvg=svg.cloneNode(true);meCapturedName=name};
     document.getElementById('me-svg-download').click();
     TT99Goodies.exportTools.downloadSvg=meOldDownloadSvg;
-    assert(meCapturedSvg&&meCapturedSvg.dataset.meExport==='ruler','Measurement ruler-only export is a deterministic SVG ruler');
-    assert(meCapturedSvg.querySelector('[data-me-export-ruler]'),'Measurement SVG export preserves the ruler structure');
-    assert(meCapturedSvg.querySelector('[data-me-export-marker="main"]'),'Measurement board export preserves the current marker');
+    assert(meCapturedSvg&&meCapturedSvg.getAttribute('aria-label')==='Measurement ruler diagram','Measurement ruler-only export is a deterministic SVG ruler');
+    assert(meCapturedSvg.querySelectorAll('line').length>=300,'Measurement SVG export preserves the metric tick structure');
+    assert(meCapturedSvg.querySelector('[data-me-paper-marker="main"]'),'Measurement board export preserves the current marker');
     assert(meCapturedSvg.textContent.includes(teacherValue+' cm'),'Measurement board export includes the visible centimetre readout');
     assert(meCapturedName.includes('measurement-ruler'),'Measurement ruler export has a reusable filename');
 
