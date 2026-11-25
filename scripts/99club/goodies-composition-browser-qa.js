@@ -518,6 +518,28 @@ async function run(){
   const hsEven=hsDoc.querySelector('[data-hs-rule-mode="even"]');assert(hsEven,'Compact Hundred Square rule picker includes Even');
   hsEven.click();await tick();
   assert(hsDoc.querySelectorAll('.gd-hs-cell.is-rule').length===50,'Compact rule picker applies the selected rule immediately');
+  hsDoc.querySelector('[data-hs-workflow="challenge"]').click();
+  hsDoc.querySelector('[data-hs-challenge-cat="patterns"]').click();
+  hsDoc.querySelector('[data-hs-challenge-type="continue-pattern"]').click();
+  hsDoc.getElementById('hs-generate').click();await tick(50);
+  assert(hsDoc.querySelectorAll('.gd-hs-cell.is-marked').length===3,'Pattern task marks only the three given terms');
+  assert(hsDoc.querySelectorAll('.gd-hs-cell.is-hidden-number').length===0,'Pattern task does not point to the next term');
+  hsDoc.querySelector('[data-hs-challenge-cat="reason"]').click();
+  hsDoc.querySelector('[data-hs-challenge-type="spot-wrong-mark"]').click();
+  for(let attempt=0;attempt<8;attempt++){
+    hsDoc.getElementById('hs-generate').click();await tick();
+    const prompt=hsDoc.querySelector('.gd-challenge-prompt').textContent;
+    const k=Number(prompt.match(/multiple of (\d+)/)[1]);
+    const marked=[...hsDoc.querySelectorAll('.gd-hs-cell.is-marked')].map(el=>Number(el.dataset.hsValue));
+    assert(marked.filter(n=>n%k!==0).length===1,'Wrong-mark task has exactly one incorrect multiple');
+    assert(marked.filter(n=>n%k===0).length>=2,'Wrong-mark task contains enough valid examples');
+  }
+  const checker=hsDoc.defaultView.TT99Goodies.challengeKit;
+  const equation=checker.pupilSpec('addition-equation');
+  assert(checker.pupilAnswerCorrect(equation,['5 + 9 + 4 = 18'],'4 + 5 + 9 = 18'),'Equivalent reordered addition equation is accepted');
+  assert(checker.pupilAnswerCorrect(equation,['18 = 9 + 4 + 5'],'4 + 5 + 9 = 18'),'Reversed equality is accepted');
+  assert(!checker.pupilAnswerCorrect(equation,['6 + 6 + 6 = 18'],'4 + 5 + 9 = 18'),'Unrelated equation with same total is rejected');
+  assert(!checker.pupilAnswerCorrect(equation,['5 + 9 + 4 = 19'],'4 + 5 + 9 = 18'),'Incorrect sum is rejected');
   TT99Goodies.compositionBoard.remove(hsRecord.id);
 
   const clock=objects[0];
