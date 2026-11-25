@@ -991,12 +991,12 @@ function abacusTool(){
     const keyPrint=q('#ab-key-print');if(keyPrint)keyPrint.onclick=()=>exportAction('key-print');
   }
 
-  function exportSvg(teacher=false){return abacusPaper({rows,counts,kind:isAbacusKind()?kind:'soroban',showTotal,showRowCounts,showRowLabels,suanUpper,suanLower,colourScheme,task},teacher)}
+  function exportSvg(teacher=false){return abacusPaper({rows,counts,kind,showTotal,showRowCounts,showRowLabels,suanUpper,suanLower,colourScheme,task},teacher)}
   async function exportAction(kind){
     if(!X)return;
     const teacher=kind==='key-copy'||kind==='key-print';if(teacher&&!task)return;
-    const svg=exportSvg(teacher),filename=task?'abacus-'+task.mode:'abacus-frame';
     try{
+      const svg=exportSvg(teacher),filename=task?'abacus-'+task.mode:'abacus-frame';
       if(kind==='copy'||kind==='key-copy'){await X.copyPng(svg);exportStatus=teacher?'Teacher key copied.':'Image copied.'}
       else if(kind==='png'){await X.downloadPng(svg,filename,2);exportStatus='PNG downloaded.'}
       else if(kind==='svg'){X.downloadSvg(svg,filename);exportStatus='SVG downloaded.'}
