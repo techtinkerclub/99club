@@ -90,7 +90,7 @@ Updated 25 November 2026.
 - Existing Whiteboard three-number target activity stays available by explicit selection only; no longer automatically enabled by year/KS3 presets. Saved settings are not overwritten.
 - Added a teacher-led Sequences & rules manipulative: directly choose first term, number of terms, constant/changing difference, multiplication factor or alternating differences; reveal terms progressively and toggle rule/links. No random puzzle generator, scoring or new independent practice engine.
 - Uses the same SVG for display and export; hidden terms remain blank, and links into hidden terms are not exported. Lesson save/restore supported. Function-machine expansion deferred pending a distinct live teaching need because the Games catalogue already has it.
-- Browser, embedded-board interaction and print appearance still need visual QA.
+- Synced all shared asset versions and sequence script registration between /whiteboard/ and /goodies/; the former previously referenced older cached assets. Automated checks: 576 sequence states, 12,928 SVG nodes, 21 year/difficulty opt-in checks; both entry-point asset manifests match exactly. Browser, embedded-board interaction and print appearance still need visual QA.
 
 ## Next priorities
 1. Visual/touch feedback: validate the practice-set launcher, whiteboard layout, inline answer boxes, responsive columns and paper outputs; refine density and font sizes after classroom feedback.
