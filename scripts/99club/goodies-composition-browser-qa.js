@@ -921,6 +921,21 @@ async function run(){
     assert(frame.classList.contains('is-ready'),'Lesson object is ready: '+id);await tick(50);
     return {record,frame,doc:frame.querySelector('iframe').contentDocument};
   }
+  // Function machine live exploration, reverse and shared pupil assessment.
+  {
+    const id='function-machine',fixture=await addForSave(id),doc=fixture.doc,G=doc.defaultView.TT99Goodies,M=G.functionMachines,cap=()=>G.lessonState.capture(id).model;
+    doc.getElementById('fm-next-step').click();await tick();assert(cap().progress===1,'Machine step demonstration advances one operation');
+    doc.getElementById('fm-table').click();await tick();assert(cap().showTable&&doc.querySelector('#gd-stage table'),'Input/output table appears in explore mode');
+    const before=cap(),out=M.trace(before.input,before.steps).at(-1);
+    doc.getElementById('fm-reverse').click();await tick();assert(cap().input===out&&M.trace(cap().input,cap().steps).at(-1)===before.input,'Machine inverse reverses the order and operations');
+    doc.querySelector('[data-fm-workflow="challenge"]').click();await tick();
+    doc.querySelector('[data-fm-challenge-mode="pairs-all"]').click();await tick();
+    const task=cap().task,check=doc.querySelector('[data-gd-pupil-check]');assert(task.all.length>0&&check.disabled,'No pair is selected initially');
+    for(const p of task.all){const button=[...doc.querySelectorAll('#gd-stage button[aria-pressed]')].find(b=>b.textContent==='('+p.join(', ')+')');assert(button,'Every valid pair is offered');button.click()}
+    check.click();await tick();assert(doc.querySelector('.gd-pupil-feedback').classList.contains('is-correct'),'All valid pairs are accepted');
+    const draft=TT99Goodies.publishing.createDocument();draft.addCurrent(id,cap());assert(draft.list()[0].data.type==='pairs-all','Saved challenge and teacher marking are preserved');
+    api.remove(fixture.record.id);
+  }
   // Verify real widget challenge controls before the saved-board round trip.
   const qaFraction=await addForSave('fraction-wall'),fwDoc=qaFraction.doc;
   fwDoc.querySelector('[data-fw-workflow="challenge"]').click();
