@@ -2411,7 +2411,7 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=fwOldChallengeDownload;
     assert(fwChallengeSvg&&fwChallengeSvg.querySelectorAll('rect[height="27"]').length>1,'Fractions challenge card embeds the vector strip model');
     assert(!fwChallengeSvg.textContent.includes('Answer:'),'Fractions pupil challenge export never includes a revealed answer label');
-    assert(![...fwChallengeSvg.querySelectorAll('text')].some(x=>/^\d+\/\d+$/.test(x.textContent.trim())),'Fractions pupil export omits the target strip label after teacher reveal');
+    assert(![...fwChallengeSvg.querySelectorAll('text')].some(x=>/^[0-9]+[/][0-9]+$/.test(x.textContent.trim())),'Fractions pupil export omits the target strip label after teacher reveal');
     assert(fwChallengeSvg.textContent.includes('What fraction is represented'),'Fractions challenge-card export includes the pupil prompt');
 
     document.querySelector('[data-fw-workflow="challenge"]').click();
@@ -3662,7 +3662,7 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=meOldChallengeDownload;
     assert(meChallengeSvg&&meChallengeSvg.querySelector('[data-me-paper-marker="main"]')&&meChallengeSvg.querySelectorAll('line').length>=100,'Measurement challenge card embeds the ruler ticks and marker');
     assert(!meChallengeSvg.textContent.includes('Answer:'),'Measurement pupil challenge export never includes a revealed answer label');
-    assert(![...meChallengeSvg.querySelectorAll('text')].some(x=>/\d+\s*cm\s*=/.test(x.textContent)),'Measurement pupil export omits equivalent unit readouts after Reveal');
+    assert(![...meChallengeSvg.querySelectorAll('text')].some(x=>/[0-9]+ *cm *=/.test(x.textContent)),'Measurement pupil export omits equivalent unit readouts after Reveal');
     assert(meChallengeSvg.textContent.includes('What length does the orange marker show?'),'Measurement challenge-card export includes the pupil prompt');
 
     document.querySelector('[data-me-workflow="challenge"]').click();
@@ -3907,6 +3907,10 @@ if(mode==='prepare'){
 </script>
 </body>
 </html>`;
+  // The test is inside an HTML template. Validate the generated script too,
+  // because parsing this Node wrapper cannot catch template escaping bugs.
+  const inline=html.slice(html.indexOf('<script>')+8,html.lastIndexOf('</script>'));
+  new Function(inline);
   fs.writeFileSync(HARNESS,html);
   console.log(HARNESS);
   process.exit(0);
