@@ -958,6 +958,8 @@ try{
   if(!goodiesCss.includes('@media(min-width:901px){.gd-controls>[role="tablist"][aria-label$="workflow"]{position:sticky'))fail('goodies-layout','Desktop workflow navigation is no longer pinned inside the teacher controls');
   ok('goodies-layout','Shared desktop/mobile containment, reduced-scroll and workflow-navigation contracts are present');
   const capabilitySpecs=[
+    {id:'statistics-table',source:read('assets/99club/goodies-statistics-table.js'),mode:'challenge'},
+    ...['column-addition','column-subtraction','written-multiplication','written-division'].map(id=>({id,source:read('assets/99club/goodies-column-methods.js'),mode:'challenge'})),
     {id:'number-line',source:numberLine,mode:'challenge'},
     {id:'abacus',source:goodiesAbacus,fn:'abacusTool',mode:'challenge'},
     {id:'sequences',source:goodiesSequences,mode:'challenge'},
