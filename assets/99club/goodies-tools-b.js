@@ -30,14 +30,14 @@ function coordinateTool(){
     redoStack.length=0;
   }
   function undo(){
-    if(!undoStack.length)return;
+    if(challengeFrozen()||!undoStack.length)return;
     redoStack.push(copyPoints());
     points=copyPoints(undoStack.pop());
     selected=-1;
     draw();
   }
   function redo(){
-    if(!redoStack.length)return;
+    if(challengeFrozen()||!redoStack.length)return;
     undoStack.push(copyPoints());
     points=copyPoints(redoStack.pop());
     selected=-1;
@@ -71,6 +71,7 @@ function coordinateTool(){
     return !!(challenge&&!challenge.revealed&&Array.isArray(challenge.hiddenPointLabels)&&challenge.hiddenPointLabels.map(Number).includes(index));
   }
   function pointLabel(index,p){
+    if(challenge?.mode==='standard'&&challenge.type==='plot-coordinate')return pointName(index);
     if(!hiddenPoint(index))return rawCoordinate(p);
     const overrides=challenge&&challenge.pointLabelOverrides&&typeof challenge.pointLabelOverrides==='object'?challenge.pointLabelOverrides:{};
     return overrides[index]!=null?String(overrides[index]):pointName(index);
@@ -102,7 +103,31 @@ function coordinateTool(){
     fourQuadrants=!!value.fourQuadrants;
     undoStack.length=0;redoStack.length=0;
   }
-  function challengeFrozen(){return !!(challenge&&challenge.mode==='standard'&&challenge.freezePoints)}
+  function challengeFrozen(){return !!(challenge&&challenge.mode==='standard'&&(challenge.freezePoints||challenge.revealed))}
+  function toggleCoordinateReveal(){
+    if(!challenge)return;
+    if(challenge.mode==='standard'&&challenge.type==='plot-coordinate'){
+      if(!challenge.revealed){
+        const target=String(challenge.targetCoordinate||'').match(/^\((-?\d+),\s*(-?\d+)\)$/);
+        if(target){
+          challenge.preRevealPoints=copyPoints();
+          challenge.preRevealSelected=selected;
+          points=[{x:Number(target[1]),y:Number(target[2])}];
+          selected=-1;
+        }
+      }else if(Array.isArray(challenge.preRevealPoints)){
+        points=copyPoints(challenge.preRevealPoints);
+        selected=Number.isInteger(challenge.preRevealSelected)?challenge.preRevealSelected:-1;
+        delete challenge.preRevealPoints;
+        delete challenge.preRevealSelected;
+      }
+    }
+    challenge.revealed=!challenge.revealed;renderControls();draw();
+  }
+  function pointLabelLayout(x,y,minX,minY,maxX){
+    const left=x>maxX-72;
+    return {x:x+(left?-12:12),y:y<minY+20?y+22:y-12,anchor:left?'end':'start'};
+  }
   function resolveCustomAnswerSource(source){
     const m=String(source||'').match(/^point:(\d+):(coords|x|y|quadrant)$/);
     if(!m)return'';
@@ -241,7 +266,8 @@ function coordinateTool(){
       if(!visible(p,c))return;
       const x=gridX+(p.x-c.min)*gridStep,y=gridY+(c.max-p.y)*gridStep,label=exportPointLabel(index,p,pupil);
       svg.appendChild(coSvgEl('circle',{cx:x,cy:y,r:9,fill:'#ffffff',stroke:'#2f6f68','stroke-width':4,'data-co-export-point':index}));
-      svg.appendChild(coSvgEl('text',{x:x+13,y:y-12,'font-family':'Arial,sans-serif','font-size':14,'font-weight':800,fill:'#334a52'},label));
+      const layout=pointLabelLayout(x,y,gridX,gridY,gridX+gridSize);
+      svg.appendChild(coSvgEl('text',{x:layout.x,y:layout.y,'text-anchor':layout.anchor,'font-family':'Arial,sans-serif','font-size':14,'font-weight':800,fill:'#334a52'},label));
     });
     const labels=exportPts.map((p,index)=>exportPointLabel(index,p,pupil)).join(' · ')||'none';
     const outside=exportPts.filter(p=>!visible(p,c)).length;
@@ -355,8 +381,8 @@ function coordinateTool(){
     });
     qa('[data-co-label]',q('#gd-stage')).forEach(el=>{
       const i=+el.dataset.coLabel,p=points[i];if(!p||!visible(p))return;
-      const v=pointPx(p);
-      el.setAttribute('x',v.x+10);el.setAttribute('y',v.y-10);
+      const v=pointPx(p),layout=pointLabelLayout(v.x,v.y,pad,pad,W-pad);
+      el.setAttribute('x',layout.x);el.setAttribute('y',layout.y);el.setAttribute('text-anchor',layout.anchor);
       el.textContent=pointLabel(i,p);
     });
     const readout=q('#co-readout');if(readout)readout.textContent=pointsText();
@@ -468,7 +494,7 @@ function coordinateTool(){
     const endChallenge=q('[data-challenge-action="end"]',q('#gd-stage'));if(endChallenge)endChallenge.onclick=e=>{e.stopPropagation();clearChallenge()};
     const stage=q('#gd-stage');if(!stage||!challenge)return;
     const reveal=q('[data-board-action="reveal"]',stage);
-    if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();draw()};
+    if(reveal)reveal.onclick=e=>{e.stopPropagation();toggleCoordinateReveal()};
     const another=q('[data-challenge-action="another"]',stage);
     if(another)another.onclick=e=>{e.stopPropagation();if(challenge?.mode==='standard')generateChallenge(challenge.type)};
   }
@@ -493,9 +519,9 @@ function coordinateTool(){
     }
     const u=q('#co-undo',controls);if(u)u.onclick=undo;
     const r=q('#co-redo',controls);if(r)r.onclick=redo;
-    const clear=q('#co-clear',controls);if(clear)clear.onclick=()=>{if(!points.length)return;remember();points=[];selected=-1;draw()};
+    const clear=q('#co-clear',controls);if(clear)clear.onclick=()=>{if(challengeFrozen()||!points.length)return;remember();points=[];selected=-1;draw()};
     if(controlTab==='explore'){
-      const four=q('#co-four',controls);if(four)four.onchange=()=>{fourQuadrants=!!four.checked;selected=-1;draw()};
+      const four=q('#co-four',controls);if(four){four.disabled=challenge?.mode==='standard';four.onchange=()=>{if(challenge?.mode==='standard')return;fourQuadrants=!!four.checked;selected=-1;draw()}};
       return;
     }
     qa('[data-co-challenge-tab]',controls).forEach(button=>button.onclick=()=>{
@@ -510,7 +536,7 @@ function coordinateTool(){
     const generate=q('#co-generate',controls);if(generate)generate.onclick=()=>generateChallenge(challengeType);
     const edit=q('#co-edit-challenge',controls);if(edit)edit.onclick=enterCustomChallenge;
     const end=q('#co-clear-challenge',controls);if(end)end.onclick=clearChallenge;
-    const reveal=q('#co-reveal',controls);if(reveal)reveal.onclick=()=>{if(!challenge)return;challenge.revealed=!challenge.revealed;renderControls();draw()};
+    const reveal=q('#co-reveal',controls);if(reveal)reveal.onclick=toggleCoordinateReveal;
     qa('[data-gd-rich-action]',controls).forEach(button=>button.onclick=e=>{
       e.preventDefault();const editor=q('#co-custom-prompt',controls);
       if(editor&&CK&&challenge){
@@ -548,9 +574,9 @@ function coordinateTool(){
     const zeroX=pad+(0-view.min)*view.step,zeroY=pad+(view.max-0)*view.step;
     const plotted=points.map((p,i)=>{
       if(!visible(p))return'';
-      const v=pointPx(p),display=pointLabel(i,p);
+      const v=pointPx(p),display=pointLabel(i,p),layout=pointLabelLayout(v.x,v.y,pad,pad,W-pad);
       return '<circle class="gd-point gd-co-point'+(i===selected?' is-selected':'')+'" data-co-point="'+i+'" data-co-pos="'+p.x+','+p.y+'" tabindex="0" role="button" aria-label="'+esc(pointAria(i,p)+(challengeFrozen()?' Fixed for this challenge.':' Drag to move.'))+'" cx="'+v.x+'" cy="'+v.y+'" r="9"></circle>'+
-        '<text class="gd-co-point-label" data-co-label="'+i+'" x="'+(v.x+10)+'" y="'+(v.y-10)+'">'+esc(display)+'</text>';
+        '<text class="gd-co-point-label" data-co-label="'+i+'" x="'+layout.x+'" y="'+layout.y+'" text-anchor="'+layout.anchor+'" pointer-events="none">'+esc(display)+'</text>';
     }).join('');
     const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Coordinates challenge',pupil:(challenge.type==='plot-coordinate'?CK.pupilSpec('model',{check:()=>points.length===1&&rawCoordinate(points[0])===challenge.targetCoordinate}):challenge.type==='identify-quadrant'?CK.pupilSpec('choice',{choices:['Quadrant I','Quadrant II','Quadrant III','Quadrant IV']}):CK.pupilSpec(challenge.type==='missing-coordinate'?'number':'coordinate')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-coord gd-coordinate-direct">'+
@@ -560,12 +586,12 @@ function coordinateTool(){
         '<line class="gd-axis" x1="'+pad+'" y1="'+zeroY+'" x2="'+(W-pad)+'" y2="'+zeroY+'"></line>'+
         labels+plotted+
       '</svg>'+
-      '<div class="gd-co-context"><span id="co-context-text">'+(challengeFrozen()?'The given point'+(points.length===1?' is':'s are')+' fixed for this challenge.':selected>=0&&points[selected]?'Selected '+esc(pointLabel(selected,points[selected])):'Tap the grid to plot a point. Drag an existing point to move it.')+'</span><div class="gd-context-actions">'+
+      (challenge?.mode==='standard'&&challengeFrozen()?'':'<div class="gd-co-context"><span id="co-context-text">'+(challengeFrozen()?'The given point'+(points.length===1?' is':'s are')+' fixed for this challenge.':selected>=0&&points[selected]?'Selected '+esc(pointLabel(selected,points[selected])):'Tap the grid to plot a point. Drag an existing point to move it.')+'</span><div class="gd-context-actions">'+
         '<button type="button" class="gd-context-history" data-co-undo-stage'+(!undoStack.length||challengeFrozen()?' disabled':'')+'>Undo</button>'+
         '<button type="button" class="gd-context-history" data-co-redo-stage'+(!redoStack.length||challengeFrozen()?' disabled':'')+'>Redo</button>'+
         '<button type="button" class="gd-context-delete" data-co-delete'+(challengeFrozen()||!(selected>=0&&points[selected])?' hidden':'')+'>Delete point</button>'+
-      '</div></div>'+
-      '<div class="gd-readout" id="co-readout">'+esc(pointsText())+'</div>'+
+      '</div></div>')+
+      (challenge?.mode==='standard'?'':'<div class="gd-readout" id="co-readout">'+esc(pointsText())+'</div>')+
     '</div>';
     bindStage();
     bindChallengeStageActions();
