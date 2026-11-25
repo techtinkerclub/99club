@@ -2749,11 +2749,17 @@ function hundredSquare(){
     ].filter(Boolean).join(' ');
     return '<button type="button" class="'+classes+'" data-hs-index="'+index+'" data-hs-value="'+n+'" aria-label="'+(isHidden?'Hidden number':'Number '+n)+'" aria-pressed="'+(marked.has(n)?'true':'false')+'"'+(frozen?' disabled':'')+'><span>'+(isHidden?'?':n)+'</span></button>';
   }
+  function toggleMarkingReveal(){
+    if(!challenge)return;
+    challenge.revealed=!challenge.revealed;
+    if(challengeMarkOnly()){if(challenge.revealed){challenge.marksBeforeReveal=[...marked];marked=new Set(challenge.targetValues)}else{marked=new Set(challenge.marksBeforeReveal||[]);delete challenge.marksBeforeReveal}}
+    renderControls();draw();
+  }
   function bindChallengeStageActions(){
     const endChallenge=q('[data-challenge-action="end"]',q('#gd-stage'));if(endChallenge)endChallenge.onclick=e=>{e.stopPropagation();clearChallenge()};
     const stage=q('#gd-stage');if(!stage||!challenge)return;
     const reveal=q('[data-board-action="reveal"]',stage);
-    if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;if(challengeMarkOnly()){if(challenge.revealed){challenge.marksBeforeReveal=[...marked];marked=new Set(challenge.targetValues)}else{marked=new Set(challenge.marksBeforeReveal||[]);delete challenge.marksBeforeReveal}}renderControls();draw()};
+    if(reveal)reveal.onclick=e=>{e.stopPropagation();toggleMarkingReveal()};
     const another=q('[data-challenge-action="another"]',stage);
     if(another)another.onclick=e=>{e.stopPropagation();if(challenge?.mode==='standard')generateChallenge(challenge.type)};
   }
@@ -3145,7 +3151,7 @@ function hundredSquare(){
     qa('[data-hs-challenge-type]',q('#gd-controls')).forEach(button=>button.onclick=()=>{challengeType=button.dataset.hsChallengeType;renderControls()});
     const generate=q('#hs-generate');if(generate)generate.onclick=()=>generateChallenge(challengeType);
     const edit=q('#hs-edit-challenge');if(edit)edit.onclick=enterCustomChallenge;
-    const reveal=q('#hs-reveal');if(reveal)reveal.onclick=()=>{if(challenge){challenge.revealed=!challenge.revealed;renderControls();draw()}};
+    const reveal=q('#hs-reveal');if(reveal)reveal.onclick=toggleMarkingReveal;
     const clearChallengeBtn=q('#hs-clear-challenge');if(clearChallengeBtn)clearChallengeBtn.onclick=clearChallenge;
     if(challengeTab==='custom'&&challenge){
       const title=q('#hs-custom-title');if(title)title.oninput=()=>{challenge.title=title.value.slice(0,100);draw()};
