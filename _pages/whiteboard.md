@@ -39,9 +39,9 @@ window.TT99_GOODIES_BOARD_HOME = '/goodies/';
 </script>
 <script src="/assets/99club/goodies-core.js?v=2" defer></script>
 <script src="/assets/99club/goodies-interaction.js?v=3" defer></script>
-<script src="/assets/99club/goodies-challenge.js?v=10" defer></script>
+<script src="/assets/99club/goodies-challenge.js?v=11" defer></script>
 <script src="/assets/99club/goodies-export.js?v=5" defer></script>
-<script src="/assets/99club/goodies-tools-a.js?v=47" defer></script>
+<script src="/assets/99club/goodies-tools-a.js?v=48" defer></script>
 <script src="/assets/99club/goodies-abacus.js?v=21" defer></script>
 <script src="/assets/99club/goodies-number-line-v6.js?v=24" defer></script>
 <script src="/assets/99club/goodies-tools-b.js?v=30" defer></script>
