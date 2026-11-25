@@ -131,7 +131,7 @@ function abacusTool(){
   }
   function historyChallengeBanner(){
     if(!historyChallenge)return '';
-    const input=historyChallenge.requiresAnswer?'<label class="gd-ab-answer">Answer <input type="number" step="0.01" inputmode="decimal" data-ab-history-answer value="'+esc(historyAnswer)+'"></label>':'';
+    const input=historyChallenge.requiresAnswer?'<label class="gd-ab-answer">Answer <input type="text" inputmode="none" data-ab-history-answer value="'+esc(historyAnswer)+'"></label>':'';
     return '<section class="gd-ab-task gd-history-task gd-native-challenge"><div class="gd-ab-task-head"><div><span>CHALLENGE</span><strong>'+esc(historyChallenge.prompt)+'</strong></div><em>'+esc(historyStatus)+'</em></div>'+input+'<div class="gd-ab-task-actions"><button type="button" data-ab-history-check>Check</button><button type="button" data-ab-history-another>Another</button>'+(historyRevealed?'':'<button type="button" data-ab-history-reveal>Reveal answer</button>')+'<button type="button" data-ab-history-end>Exit challenge</button></div></section>';
   }
 
@@ -615,7 +615,7 @@ function abacusTool(){
   function taskBanner(){
     if(!task)return '';
     const context=taskContext==='challenge'?'CHALLENGE':'PLAY';
-    const answer=task.requiresAnswer?'<label class="gd-ab-answer">Answer <input type="number" inputmode="numeric" data-ab-answer value="'+esc(answerInput)+'"></label>':'';
+    const answer=task.requiresAnswer?'<label class="gd-ab-answer">Answer <input type="text" inputmode="none" data-ab-answer value="'+esc(answerInput)+'"></label>':'';
     const reveal=taskContext==='challenge'?'<button type="button" data-ab-reveal>Reveal answer</button>':'';
     const skipNext=task.mode==='skip'&&workflow==='play'?'<button type="button" data-ab-skip-next>Next '+task.step+'</button>':'';
     return '<section class="gd-ab-task'+(taskContext==='challenge'?' gd-native-challenge':'')+'" data-ab-task="'+task.mode+'">'+
@@ -706,8 +706,8 @@ function abacusTool(){
     return modeButtons('data-ab-play-mode')+extra+(playMode==='free'?'<p class="gd-help">Free play keeps the frame completely open for teacher or pupil modelling.</p>':'<div class="gd-row"><button class="gd-btn" id="ab-new-task" type="button">New task</button></div>');
   }
   function challengeControls(){
-    return '<div class="gd-ab-mode-grid">'+CHALLENGE_MODES.map(([id,label])=>'<button class="gd-btn'+(task?.mode===id?' gd-btn--primary':'')+'" type="button" data-ab-challenge-mode="'+id+'">'+label+'</button>').join('')+'</div>'+
-      '<button class="gd-btn gd-btn--primary" id="ab-random-challenge" type="button">Random challenge</button>'+
+    return (G.challengeKit?.nativeRandomHtml('ab',[{label:'Represent',ids:['show','missing']},{label:'Calculate',ids:['add','subtract','double','near']},{label:'Number patterns',ids:['make10','bond','skip']}])||'')+'<div class="gd-ab-mode-grid">'+CHALLENGE_MODES.map(([id,label])=>'<button class="gd-btn'+(task?.mode===id?' gd-btn--primary':'')+'" type="button" data-ab-challenge-mode="'+id+'">'+label+'</button>').join('')+'</div>'+
+
       '<p class="gd-help">Challenges hide the total until the pupil checks or reveals the answer.</p>';
   }
   function exportControls(){
