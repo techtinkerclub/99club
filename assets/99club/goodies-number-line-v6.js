@@ -1697,10 +1697,10 @@ function numberLineV2(){
   function svg(){return q('#nl-svg')}
   function pupilDiagramSvg(){
     if(!state.challenge)return svg();
-    const previous=state.challenge.revealed;
-    state.challenge.revealed=false;
-    const markup=buildSvg();
-    state.challenge.revealed=previous;
+    const previous=state.challenge.revealed,previousCorrect=state.challenge.correct;
+    state.challenge.revealed=false;state.challenge.correct=false;
+    let markup;
+    try{markup=buildSvg()}finally{state.challenge.revealed=previous;state.challenge.correct=previousCorrect}
     const holder=document.createElement('div');holder.innerHTML=markup;
     return holder.querySelector('svg');
   }
