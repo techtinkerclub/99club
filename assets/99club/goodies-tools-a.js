@@ -3951,7 +3951,8 @@ function arrayBuilder(){
     const width=900,cell=34,gridRows=buildBlank?MAX:rows,gridCols=buildBlank?MAX:cols;
     const boardW=gridCols*cell,boardH=gridRows*cell,boardX=(width-boardW)/2,boardY=76;
     const mathsY=boardY+boardH+62,partial=partitionMath(),showPartial=!!partial&&!buildBlank;
-    const mathsRows=buildBlank?0:(showPartial?4:3),height=buildBlank?boardY+boardH+100:mathsY+mathsRows*48+50;
+    const focusedExport=pupil&&challenge?.mode==='standard';
+    const mathsRows=buildBlank||focusedExport?0:(showPartial?4:3),height=buildBlank||focusedExport?boardY+boardH+100:mathsY+mathsRows*48+50;
     const svg=abSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Array model','data-ab-export':'array'});
     svg.appendChild(abSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
     svg.appendChild(abSvgEl('rect',{x:boardX-14,y:boardY-14,width:boardW+28,height:boardH+28,rx:16,fill:'#f8fbfb',stroke:'#9db2b5','stroke-width':2,'data-ab-export-board':'1','data-ab-export-build-grid':buildBlank?'12x12':''}));
@@ -3994,7 +3995,7 @@ function arrayBuilder(){
         ['Related division facts',exportHiddenFlag('hiddenInverse',pupil)?'?':inverseFacts()]
       ];
       if(showPartial)lines.push(['Partial products',exportHiddenFlag('hiddenPartial',pupil)?'?':partial]);
-      lines.forEach((item,index)=>{
+      if(!focusedExport)lines.forEach((item,index)=>{
         const y=mathsY+index*48;
         svg.appendChild(abSvgEl('rect',{x:96,y:y-27,width:width-192,height:38,rx:10,fill:index===3?'#fff9ea':'#f6f9f9',stroke:'#d9e2e4','stroke-width':1}));
         svg.appendChild(abSvgEl('text',{x:112,y:y-4,'font-family':'Arial,sans-serif','font-size':11,'font-weight':750,fill:'#718288'},item[0]));
@@ -4071,7 +4072,7 @@ function arrayBuilder(){
     if(type==='count-total'){
       challenge=challengeObject(type,'How many objects are in the array altogether?',String(total()),{hiddenTotal:true,hiddenRepeated:true,hiddenInverse:true});
     }else if(type==='multiplication-fact'){
-      challenge=challengeObject(type,'Write the multiplication sentence represented by this array.',multiplicationFact(),{hiddenEquation:true,hiddenRepeated:true,hiddenInverse:true});
+      challenge=challengeObject(type,'Write the complete multiplication equation, including the total.',multiplicationFact(),{hiddenEquation:true,hiddenRepeated:true,hiddenInverse:true});
     }else if(type==='missing-factor'){
       const hideRows=Math.random()<.5,known=hideRows?cols:rows;
       challenge=challengeObject(
@@ -4214,11 +4215,12 @@ function arrayBuilder(){
     if(nextRows===rows&&nextCols===cols)return;
     setDimensions(nextRows,nextCols);
     if(!drag.remembered){rememberSnapshot(drag.before);drag.remembered=true}
-    draw();renderControls();
+    draw();
   }
   function resizeEnd(e){
     if(drag&&e.pointerId!=null&&e.pointerId!==drag.pointerId)return;
-    drag=null;
+    const wasDragging=!!drag;drag=null;
+    if(wasDragging)renderControls();
     document.removeEventListener('pointermove',resizeMove);
     document.removeEventListener('pointerup',resizeEnd);
     document.removeEventListener('pointercancel',resizeEnd);
@@ -4275,26 +4277,23 @@ function arrayBuilder(){
       const splitTop=rowSplit&&r===rowSplit,splitLeft=colSplit&&c===colSplit;
       cells+='<span class="gd-array-cell'+(splitTop?' is-row-split':'')+(splitLeft?' is-col-split':'')+'" data-ab-cell="'+r+'-'+c+'"><span class="gd-dot"></span></span>';
     }
-    const repeated=hiddenFlag('hiddenRepeated')?'?':repeatedAddition();
-    const inverse=hiddenFlag('hiddenInverse')?'?':inverseFacts();
-    const partial=partitionMath(),partialText=hiddenFlag('hiddenPartial')?'?':partial;
+    const focused=challenge?.mode==='standard'&&!challenge.revealed;
+    const partial=partitionMath();
+    const showMath=!focused;
+    const mathsRows=[['Repeated addition','data-ab-repeated',hiddenFlag('hiddenRepeated'),repeatedAddition()],['Related division facts','data-ab-inverse',hiddenFlag('hiddenInverse'),inverseFacts()],...(partial?[['Partial products','data-ab-partial',hiddenFlag('hiddenPartial'),partial]]:[])].filter(row=>!row[2]);
     const rowDisplay=displayDimension('rows'),colDisplay=displayDimension('cols'),frozen=challengeFrozen();
     const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Array challenge',pupil:(challenge.type==='build-array'?CK.pupilSpec('model',{check:()=>rows===challenge.targetRows&&cols===challenge.targetCols}):challenge.type==='partial-products'?CK.pupilSpec('partials',{products:partitionParts().map(p=>p.value),total:total()}):CK.pupilSpec(challenge.type==='multiplication-fact'?'multiplication-equation':challenge.type==='commutative-fact'?'equation':'number')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     const targetStatus='';
-    q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-array-workbench">'+
-      '<div class="gd-array-summary"><strong data-ab-equation>'+equationText()+'</strong><span>'+rowDisplay+' row'+(rowDisplay==='1'?'':'s')+' of '+colDisplay+'</span></div>'+
+    q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-array-workbench'+(focused?' is-focused-challenge':'')+(frozen?' is-fixed-array':'')+'">'+
+      (focused?'': '<div class="gd-array-summary"><strong data-ab-equation>'+equationText()+'</strong><span>'+rowDisplay+' row'+(rowDisplay==='1'?'':'s')+' of '+colDisplay+'</span></div>')+
       '<div class="gd-context-actions gd-array-history" aria-label="Array history"><button class="gd-btn" type="button" data-ab-undo-stage'+(historyDisabled()||!undoStack.length?' disabled':'')+'>Undo</button><button class="gd-btn" type="button" data-ab-redo-stage'+(historyDisabled()||!redoStack.length?' disabled':'')+'>Redo</button></div>'+
       (!frozen?'<div class="gd-array-touch-steps" role="group" aria-label="Change array size">'+['rows','cols'].map(axis=>'<div><button type="button" class="gd-btn" data-array-step="'+axis+':-1" aria-label="Fewer '+(axis==='rows'?'rows':'columns')+'"'+((axis==='rows'?rows:cols)<=1?' disabled':'')+'>−</button><span>'+(axis==='rows'?rows+' rows':cols+' columns')+'</span><button type="button" class="gd-btn" data-array-step="'+axis+':1" aria-label="More '+(axis==='rows'?'rows':'columns')+'"'+((axis==='rows'?rows:cols)>=MAX?' disabled':'')+'>+</button></div>').join('')+'</div>':'')+
       '<div class="gd-array-shell">'+
         '<div class="gd-array-board" id="ab-board" data-ab-rows="'+rows+'" data-ab-cols="'+cols+'" data-ab-row-split="'+rowSplit+'" data-ab-col-split="'+colSplit+'" data-ab-frozen="'+(frozen?'true':'false')+'" data-ab-target-rows="'+(challenge?.type==='build-array'?challenge.targetRows:'')+'" data-ab-target-cols="'+(challenge?.type==='build-array'?challenge.targetCols:'')+'" style="grid-template-columns:repeat('+cols+',var(--ab-cell));grid-template-rows:repeat('+rows+',var(--ab-cell))">'+cells+'</div>'+
-        '<button class="gd-array-resize gd-array-resize--cols'+(frozen?' is-frozen':'')+'" type="button" data-ab-resize="cols"'+(frozen?' disabled':'')+' aria-label="'+(hiddenDimension('cols')?'Columns hidden for this challenge.':'Columns: '+cols+(frozen?'. Fixed for this challenge.':'. Drag left or right, or use arrow keys.'))+'"'+(hiddenDimension('cols')?'':' role="slider" aria-valuemin="1" aria-valuemax="'+MAX+'" aria-valuenow="'+cols+'"')+'><span>'+colDisplay+'</span><small>columns ↔</small></button>'+
-        '<button class="gd-array-resize gd-array-resize--rows'+(frozen?' is-frozen':'')+'" type="button" data-ab-resize="rows"'+(frozen?' disabled':'')+' aria-label="'+(hiddenDimension('rows')?'Rows hidden for this challenge.':'Rows: '+rows+(frozen?'. Fixed for this challenge.':'. Drag up or down, or use arrow keys.'))+'"'+(hiddenDimension('rows')?'':' role="slider" aria-valuemin="1" aria-valuemax="'+MAX+'" aria-valuenow="'+rows+'"')+'><span>'+rowDisplay+'</span><small>rows ↕</small></button>'+
+        '<button class="gd-array-resize gd-array-resize--cols'+(frozen?' is-frozen':'')+'" type="button" data-ab-resize="cols"'+(frozen?' disabled':'')+' aria-label="'+(hiddenDimension('cols')?'Columns hidden for this challenge.':'Columns: '+cols+(frozen?'. Fixed for this challenge.':'. Drag left or right, or use arrow keys.'))+'"'+(hiddenDimension('cols')?'':' role="slider" aria-valuemin="1" aria-valuemax="'+MAX+'" aria-valuenow="'+cols+'"')+'><span>'+colDisplay+'</span><small>columns'+(frozen?'':' ↔')+'</small></button>'+
+        '<button class="gd-array-resize gd-array-resize--rows'+(frozen?' is-frozen':'')+'" type="button" data-ab-resize="rows"'+(frozen?' disabled':'')+' aria-label="'+(hiddenDimension('rows')?'Rows hidden for this challenge.':'Rows: '+rows+(frozen?'. Fixed for this challenge.':'. Drag up or down, or use arrow keys.'))+'"'+(hiddenDimension('rows')?'':' role="slider" aria-valuemin="1" aria-valuemax="'+MAX+'" aria-valuenow="'+rows+'"')+'><span>'+rowDisplay+'</span><small>rows'+(frozen?'':' ↕')+'</small></button>'+
       '</div>'+
-      '<div class="gd-array-maths">'+
-        '<div class="gd-readout"><span>Repeated addition</span><strong data-ab-repeated>'+repeated+'</strong></div>'+
-        '<div class="gd-readout"><span>Related division facts</span><strong data-ab-inverse>'+inverse+'</strong></div>'+
-        (partial?'<div class="gd-readout gd-array-partial" data-ab-partial><span>Partial products</span><strong>'+partialText+'</strong></div>':'')+
-      '</div>'+targetStatus+
+      (showMath&&mathsRows.length?'<div class="gd-array-maths">'+mathsRows.map(([label,attr,hidden,value])=>'<div class="gd-readout'+(attr==='data-ab-partial'?' gd-array-partial':'')+'"><span>'+label+'</span><strong '+attr+'>'+value+'</strong></div>').join('')+'</div>':'')+targetStatus+
     '</div>';
     bindStage();bindChallengeStageActions();
   }
