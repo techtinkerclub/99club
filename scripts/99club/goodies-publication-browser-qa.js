@@ -78,6 +78,8 @@ if(process.argv[2]==='prepare'){
    assert(vb(denseCard)[3]>vb(compactCard)[3],'Dense worksheet policy allocates more vertical drawing space');
    const geoAnnex=P.pages([geoItem],{teacher:true}).find(page=>page.getAttribute('data-worksheet-answer')==='annex');
    assert(Number(geoAnnex.querySelector('[data-pub-answer-graphic]').getAttribute('height'))>340,'Dense Geoboard answer is no longer compressed to the former annex cap');
+   const abacusResult=results.find(r=>r.tool==='abacus');
+   assert(abacusResult.annexPages<=5,'Nine bead-abacus answers fit on at most five annex pages while maintaining legibility');
    assert(warnings.length===0,'Default publication samples must retain the zero sub-7pt text baseline');
    assert(clipping.length===0,'No rendered text outside the page: '+JSON.stringify(clipping.slice(0,5)));
    for(const kind of ['reckoning','rods','napier','slide','pascaline']){
@@ -91,6 +93,8 @@ if(process.argv[2]==='prepare'){
        for(const page of pages){const prepared=X.preparePaperSvg(page);const frame=document.createElement('div');frame.className='audit-sheet';frame.appendChild(prepared);host.appendChild(frame);checkPage(prepared,'abacus-'+kind,page.getAttribute('data-worksheet-answer'))}
      }
    }
+   assert(warnings.length===0,'Historical samples also retain readable text');
+   assert(clipping.length===0,'Historical samples have no page clipping');
    const markingCases=[['fraction-wall','identify-strip','actual number of shaded parts'],['fraction-wall','denominator-misconception','equal-sized wholes'],['array-builder','multiplication-fact','rows × columns'],['clock','elapsed-forward','Both hands'],['clock','twentyfour-to-twelve','am or pm'],['number-line','missing-labels','respective boxes'],['fdp','equivalent-fraction','preserve the value'],['sequences','rule','stated rule family'],['measurement','distance-between','larger minus smaller']];
    for(const [tool,type,expected] of markingCases){const draft=P.createDocument();draft.generate(tool,P.defaultSettings(tool),1,type,rng);const item=draft.list()[0];assert(P.answerNote(item).includes(expected),'Explicit marking criteria: '+tool+'/'+type)}
    const sample='A very long marking explanation. '+('Accept all equivalent mathematical explanations using the required units and exact values. '.repeat(15))+'End of marking explanation.';
