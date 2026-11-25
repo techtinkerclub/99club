@@ -1979,7 +1979,7 @@ function timesTableVisual(){
     if(undoStack.length>60)undoStack.shift();
     redoStack.length=0;
   }
-  function challengeFrozen(){return !!(challenge&&challenge.mode==='standard'&&challenge.freezeModel)}
+  function challengeFrozen(){return !!(challenge&&challenge.mode==='standard'&&(challenge.freezeModel||challenge.revealed))}
   function mutate(fn){
     if(challengeFrozen())return;
     remember();fn();draw();renderControls();
@@ -2056,11 +2056,20 @@ function timesTableVisual(){
     if(!challenge||challenge.type!=='build-fact')return'';
     return 'Build the groups, then press Check.';
   }
+  function toggleModelReveal(){
+    if(!challenge)return;
+    challenge.revealed=!challenge.revealed;
+    if(challenge.mode==='standard'&&challenge.type==='build-fact'){
+      if(challenge.revealed){challenge.modelBeforeReveal=snapshot();setGroups(challenge.targetGroups);setItems(challenge.targetItems)}
+      else if(challenge.modelBeforeReveal){restore(challenge.modelBeforeReveal);delete challenge.modelBeforeReveal}
+    }
+    renderControls();draw();
+  }
   function bindChallengeStageActions(){
     const endChallenge=q('[data-challenge-action="end"]',q('#gd-stage'));if(endChallenge)endChallenge.onclick=e=>{e.stopPropagation();clearChallenge()};
     const stage=q('#gd-stage');if(!stage||!challenge)return;
     const reveal=q('[data-board-action="reveal"]',stage);
-    if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();draw()};
+    if(reveal)reveal.onclick=e=>{e.stopPropagation();toggleModelReveal()};
     const another=q('[data-challenge-action="another"]',stage);
     if(another)another.onclick=e=>{e.stopPropagation();if(challenge?.mode==='standard')generateChallenge(challenge.type)};
   }
@@ -2398,7 +2407,7 @@ function timesTableVisual(){
     qa('[data-tv-challenge-type]',q('#gd-controls')).forEach(button=>button.onclick=()=>{challengeType=button.dataset.tvChallengeType;renderControls()});
     const generate=q('#tv-generate');if(generate)generate.onclick=()=>generateChallenge(challengeType);
     const edit=q('#tv-edit-challenge');if(edit)edit.onclick=enterCustomChallenge;
-    const reveal=q('#tv-reveal');if(reveal)reveal.onclick=()=>{if(challenge){challenge.revealed=!challenge.revealed;renderControls();draw()}};
+    const reveal=q('#tv-reveal');if(reveal)reveal.onclick=toggleModelReveal;
     const clear=q('#tv-clear-challenge');if(clear)clear.onclick=clearChallenge;
     if(challengeTab==='custom'&&challenge){
       const title=q('#tv-custom-title');if(title)title.oninput=()=>{challenge.title=title.value.slice(0,100);draw()};
