@@ -2040,7 +2040,7 @@ function barModel(){
   function statusText(){
     if(challengeHidden('hiddenStatus'))return'?';
     if(challenge?.comparison)return'Difference = '+(Math.round(challenge.comparison.difference*100)/100);
-    if(challenge?.type==='build-model')return buildOnTarget()?'On target ✓':'Keep editing the model';
+    if(challenge?.type==='build-model')return 'Build the model, then check';
     return rawStatusText();
   }
   function challengeFrozen(){return !!(challenge&&challenge.mode==='standard'&&challenge.freezeModel)}
@@ -2236,7 +2236,7 @@ function barModel(){
         '<input class="gd-input" id="bm-value" type="number" min="0" step="1" value="'+(part.unknown?'':partText(part,index,true))+'"'+(part.unknown?' disabled placeholder="?"':'')+' aria-label="Selected part value">'+
         '<button class="gd-btn" id="bm-plus" type="button" aria-label="Increase selected part"'+(part.unknown?' disabled':'')+'>+</button>'+
       '</div>'+
-      (part.unknown&&inferredUnknown()!=null?'<p class="gd-help">With one unknown and a fixed total, this part currently resolves to <strong>'+Math.round(inferredUnknown()*100)/100+'</strong>.</p>':'')+
+      (part.unknown&&inferredUnknown()!=null&&(!challenge||challenge.revealed)?'<p class="gd-help">With one unknown and a fixed total, this part currently resolves to <strong>'+Math.round(inferredUnknown()*100)/100+'</strong>.</p>':'')+
     '</div>';
   }
   function comparisonMarkup(){
@@ -2260,7 +2260,7 @@ function barModel(){
     updateChallengeAnswer();
     let cumulative=0,handles='';
     parts.slice(0,-1).forEach((part,index)=>{cumulative+=effectiveValue(part)/visualTotal()*100;handles+=handleMarkup(index,cumulative)});
-    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Bar Model challenge',pupil:(challenge.type==='build-model'?CK.pupilSpec('model',{check:()=>parts.length===3&&total===challenge.targetTotal&&parts.every((p,i)=>p.unknown===challenge.targetParts[i].unknown&&(p.unknown||Number(p.value)===challenge.targetParts[i].value))}):challenge.type==='spot-error'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:'No',explain:true}):CK.pupilSpec(challenge.type==='write-equation'?'text':'number')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Bar Model challenge',pupil:(challenge.type==='build-model'?CK.pupilSpec('model',{check:()=>parts.length===3&&total===challenge.targetTotal&&parts.every((p,i)=>p.unknown===challenge.targetParts[i].unknown&&(p.unknown||Number(p.value)===challenge.targetParts[i].value))}):challenge.type==='spot-error'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:'No',explain:true}):CK.pupilSpec(challenge.type==='write-equation'?'addition-equation':'number')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     const model=challenge?.comparison?comparisonMarkup():
       '<div class="gd-bar-model">'+
         '<div class="gd-bar-total-bracket"><span></span><strong>Total '+totalText()+'</strong></div>'+
@@ -2270,7 +2270,7 @@ function barModel(){
       '<div class="gd-bar-summary"><div><span>'+(challenge?.comparison?'Comparison model':'Part–whole model')+'</span><strong>'+(challenge?.comparison?'Compare the aligned bars':equationText())+'</strong></div><div class="gd-object-toolbar">'+(!challengeFrozen()&&!challenge?.comparison?'<button type="button" class="gd-btn" id="bm-add-stage"'+(parts.length>=8?' disabled':'')+'>+ Part</button>':'')+'<button type="button" class="gd-btn" id="bm-undo"'+(undoStack.length&&!challengeFrozen()?'':' disabled')+'>Undo</button><button type="button" class="gd-btn" id="bm-redo"'+(redoStack.length&&!challengeFrozen()?'':' disabled')+'>Redo</button></div></div>'+
       model+selectedEditor()+
       '<div class="gd-bar-readouts"><div class="gd-readout"><span>Equation</span><strong data-bm-equation>'+(challenge?.comparison?'—':equationText())+'</strong></div><div class="gd-readout"><span>Relationship</span><strong data-bm-status>'+statusText()+'</strong></div></div>'+
-      (challenge?.type==='build-model'?'<div class="gd-answer-live" data-bm-target-status>'+(buildOnTarget()?'On target ✓':'')+'</div>':'')+
+      ''+
     '</div>';
     bindStage();bindChallengeStageActions();
   }
@@ -3021,7 +3021,7 @@ function hundredSquare(){
     else if(type==='ten-less')challenge=relationshipChallenge(type,-10,'ten less');
     else if(type==='continue-pattern'){
       const steps=[2,5,10],step=steps[Math.floor(Math.random()*steps.length)],first=randomInt(5,20),seq=[first,first+step,first+2*step],answer=first+3*step;
-      marked=new Set(seq);hidden.add(answer);selectedIndex=first-1;
+      marked=new Set(seq);selectedIndex=first-1;
       challenge=challengeObject(type,'The marked numbers follow a +'+step+' pattern. What comes next?',answer,{hideSelectedPanel:true});
     }else if(type==='mark-rule'){
       const modes=['multiples','prime','even','odd'],mode=modes[Math.floor(Math.random()*modes.length)],k=mode==='multiples'?[10,5,4,3][Math.floor(Math.random()*4)]:5;
@@ -3029,9 +3029,10 @@ function hundredSquare(){
       interactionMode='mark';
       challenge=challengeObject(type,'Mark all '+label+' on the hundred square.','All matching numbers marked',{freezeGrid:false,markOnly:true,targetValues:target,ruleLabel:label});
     }else{
-      const k=10,target=valuesForRule('multiples',k),wrong=5;
-      marked=new Set([...target,wrong]);selectedIndex=9;
-      challenge=challengeObject(type,'One marked number is not a multiple of 10. Which number is wrong?',wrong,{hideSelectedPanel:true,ruleLabel:'multiples of 10'});
+      const k=[3,4,5,6,8,9,10][randomInt(0,6)],all=valuesForRule('multiples',k),pool=Array.from({length:100},(_,i)=>i+1).filter(n=>n%k!==0),wrong=pool[randomInt(0,pool.length-1)];
+      const target=all.slice().sort(()=>Math.random()-.5).slice(0,Math.min(8,all.length));
+      marked=new Set([...target,wrong]);selectedIndex=target[0]-1;
+      challenge=challengeObject(type,'One marked number is not a multiple of '+k+'. Which number is wrong?',wrong,{hideSelectedPanel:true,ruleLabel:'multiples of '+k});
     }
     challenge.initialState=snapshot();
     challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';exportMode='challenge';exportStatus='';renderControls();draw();
@@ -5479,7 +5480,7 @@ function moneyTool(){
       challenge=challengeObject(type,'How much money is shown altogether?',money(total()),{hiddenTotal:true,hiddenTarget:true,hiddenStatus:true});
     }else if(type==='compare-amount'){
       values=randomShownValues();setValues(values);shown=total();
-      const delta=[-200,-100,-50,50,100,200][randomInt(0,5)];target=Math.max(5,shown+delta);
+      const delta=[-200,-100,-50,0,50,100,200][randomInt(0,6)];target=Math.max(1,shown+delta);
       const relation=shown<target?'less than':shown>target?'greater than':'equal to';
       challenge=challengeObject(type,'Is the money shown less than, equal to or greater than '+money(target)+'?',relation+' '+money(target),{hiddenTotal:true,hiddenStatus:true});
     }else if(type==='missing-to-target'){
@@ -5502,7 +5503,7 @@ function moneyTool(){
       const tender=[500,1000,2000][randomInt(0,2)];
       const price=randomStep(Math.max(50,Math.round(tender*.25)),tender-25,5);
       target=tender-price;items=[];nextId=1;
-      challenge=challengeObject(type,'An item costs '+money(price)+'. You pay with '+money(tender)+'. Build the correct change.',money(target),{freezeMoney:false,hiddenTarget:true,price,tender});
+      challenge=challengeObject(type,'An item costs '+money(price)+'. You pay with '+money(tender)+'. Build the correct change.',money(target),{freezeMoney:false,hiddenTarget:true,hiddenStatus:true,price,tender});
     }
     challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';exportMode='challenge';exportStatus='';renderControls();controller.refresh();
   }
