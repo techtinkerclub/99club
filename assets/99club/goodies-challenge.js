@@ -126,12 +126,63 @@ function pickerHtml(templates,categories,activeCategory,selectedId,prefix){
       <span>${esc(t.desc||'')}</span>
       ${t.disabledReason?`<small>${esc(t.disabledReason)}</small>`:''}
     </button>`).join('');
-  return `<div class="gd-challenge-picker">
+  const pool=(templates||[]).filter(t=>!t.disabled).map(t=>({id:t.id,category:t.category}));
+  return `<div class="gd-challenge-picker" data-gd-picker-prefix="${esc(prefix)}" data-gd-picker-pool="${esc(JSON.stringify(pool))}">
+    <div class="gd-challenge-random-row"><button type="button" class="gd-btn gd-btn--primary" data-gd-random-scope="all">Random · all types</button><button type="button" class="gd-btn" data-gd-random-scope="${esc(activeCategory)}">Random · this category</button></div>
     <div class="gd-challenge-chips" role="tablist" aria-label="Challenge categories">${cats}</div>
     <div class="gd-challenge-cards">${cards||'<p class="gd-help">No challenge types in this category yet.</p>'}</div>
   </div>`;
 }
 
+
+// Random generation uses the same native selectors and generator as the
+// teacher's explicit selection. Keep the scope for subsequent Another clicks.
+let randomScope=null,launchingRandom=false;
+function randomFromPicker(picker,scope){
+  const prefix=picker.dataset.gdPickerPrefix;
+  if(!/^[a-z0-9-]+$/.test(prefix||''))return;
+  const pool=JSON.parse(picker.dataset.gdPickerPool||'[]').filter(t=>scope==='all'||t.category===scope);
+  if(!pool.length)return;
+  const previous=randomScope?.last;
+  const candidates=pool.length>1?pool.filter(t=>t.id!==previous):pool;
+  const pick=candidates[Math.floor(Math.random()*candidates.length)];
+  launchingRandom=true;
+  try{
+    const controls=document.getElementById('gd-controls');
+    controls.querySelector('[data-'+prefix+'-challenge-cat="'+CSS.escape(pick.category)+'"]')?.click();
+    const type=controls.querySelector('[data-'+prefix+'-challenge-type="'+CSS.escape(pick.id)+'"]');
+    if(!type||type.disabled)return;
+    type.click();
+    randomScope={prefix,scope,last:pick.id};
+    controls.querySelector('#'+prefix+'-generate')?.click();
+  }finally{launchingRandom=false}
+}
+function nativeRandomHtml(prefix,groups){
+  return '<div class="gd-challenge-random-row" data-gd-native-prefix="'+esc(prefix)+'" data-gd-native-groups="'+esc(JSON.stringify(groups))+'"><button type="button" class="gd-btn gd-btn--primary" data-gd-native-random="all">Random · all types</button>'+groups.map((g,i)=>'<button type="button" class="gd-btn" data-gd-native-random="'+i+'">Random · '+esc(g.label)+'</button>').join('')+'</div>';
+}
+function nativeRandom(row,scope){
+  const groups=JSON.parse(row.dataset.gdNativeGroups||'[]'),prefix=row.dataset.gdNativePrefix;
+  if(!/^[a-z0-9-]+$/.test(prefix||''))return;
+  const ids=scope==='all'?groups.flatMap(g=>g.ids):groups[Number(scope)]?.ids||[];
+  const available=ids.filter(id=>document.querySelector('#gd-controls [data-'+prefix+'-challenge-mode="'+CSS.escape(id)+'"]:not(:disabled)'));
+  if(!available.length)return;
+  const options=available.length>1?available.filter(id=>id!==randomScope?.last):available;
+  const id=options[Math.floor(Math.random()*options.length)];
+  launchingRandom=true;try{randomScope={prefix,scope,last:id,native:true};document.querySelector('#gd-controls [data-'+prefix+'-challenge-mode="'+CSS.escape(id)+'"]').click()}finally{launchingRandom=false}
+}
+if(typeof document!=='undefined')document.addEventListener('click',e=>{
+  const el=e.target?.closest?.('button');if(!el||launchingRandom)return;
+  const picker=el.closest('.gd-challenge-picker');
+  if(el.hasAttribute('data-gd-random-scope')&&picker){e.preventDefault();e.stopImmediatePropagation();randomFromPicker(picker,el.dataset.gdRandomScope);return}
+  const native=el.closest('[data-gd-native-prefix]');
+  if(el.hasAttribute('data-gd-native-random')&&native){e.preventDefault();e.stopImmediatePropagation();nativeRandom(native,el.dataset.gdNativeRandom);return}
+  if(el.matches('[data-challenge-action="another"],[data-pv-activity-another],[data-ab-another]')&&randomScope){
+    const p=document.querySelector('#gd-controls [data-gd-picker-prefix="'+randomScope.prefix+'"]'),n=document.querySelector('#gd-controls [data-gd-native-prefix="'+randomScope.prefix+'"]');
+    if(p||n){e.preventDefault();e.stopImmediatePropagation();if(p)randomFromPicker(p,randomScope.scope);else nativeRandom(n,randomScope.scope);return}
+  }
+  if(el.closest('#gd-controls')&&(el.id.endsWith('-generate')||Array.from(el.attributes).some(a=>/-challenge-(type|mode|cat)$/.test(a.name))))randomScope=null;
+  if(el.matches('[data-challenge-action="end"],[data-pv-activity-exit],[data-ab-exit]'))randomScope=null;
+},true);
 
 const pupilStates=new WeakMap();
 let pupilCurrent=null;
@@ -365,5 +416,5 @@ function applyFormat(editor,action){
   else if(action==='size-large')document.execCommand('fontSize',false,'5');
 }
 
-G.challengeKit={capturePupil,restorePupil,pupilSpec,pupilAnswerCorrect,pickVariant,simplePolygon,normalise,makeCustom,sanitiseRichHtml,plainText,toolbarHtml,tabsHtml,editorHtml,pickerHtml,bannerHtml,applyFormat};
+G.challengeKit={nativeRandomHtml,capturePupil,restorePupil,pupilSpec,pupilAnswerCorrect,pickVariant,simplePolygon,normalise,makeCustom,sanitiseRichHtml,plainText,toolbarHtml,tabsHtml,editorHtml,pickerHtml,bannerHtml,applyFormat};
 })(window.TT99Goodies);
