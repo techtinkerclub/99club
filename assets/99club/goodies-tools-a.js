@@ -53,7 +53,7 @@ function pvModel(settings,rng=Math.random){
  function makeNonStandardActivity(v){buildFromNumber(v);const candidates=cs.map((n,i)=>n>0&&i<cs.length-1?i:-1).filter(i=>i>=0);if(!candidates.length)return false;const i=candidates[Math.floor(rng()*candidates.length)];cs[i]--;cs[i+1]+=10;return true}
  function challengeObject(type,prompt,answer,extra={}){return{mode:'standard',type,category:PV_TEMPLATES.find(t=>t.id===type)?.category||'',title:'',prompt,promptHtml:prompt,answer:String(answer??''),answerMode:'bound',answerSource:'',revealed:false,...extra}}
    function randomBoardValue({decimal=true,min=valueStep(),max=rangeMax()}={}){
-    const step=decimal?valueStep():Math.max(1,valueStep()),high=Math.max(0,Math.min(rangeMax(),normaliseValue(max))),low=Math.min(high,Math.max(0,normaliseValue(min)));
+    const step=decimal||rangeMax()<1?valueStep():Math.max(1,valueStep()),high=Math.max(0,Math.min(rangeMax(),normaliseValue(Math.max(max,20*step)))),low=Math.min(high,Math.max(step,normaliseValue(min)));
     if(high<=low||Math.ceil(low/step)>Math.floor(high/step))return high;
     const first=Math.ceil(low/step),last=Math.floor(high/step),pick=first+Math.floor(rng()*Math.max(1,last-first+1));
     return normaliseValue(pick*step);
@@ -102,7 +102,7 @@ function pvModel(settings,rng=Math.random){
       challenge=challengeObject(type,'What number is represented by the place-value counters?',format(value),{hiddenSummary:['total','expanded']});
     }else if(type==='build-number'){
       const target=randomBoardValue({decimal:true,min:10,max:9999});
-      tokens=[];next=1;layoutTokens();
+      cs=Array(places.length).fill(0);
       challenge=challengeObject(type,'Build '+format(target)+' using the place-value counters. Use the live total to check your work.',format(target));
     }else if(type==='digit-value'){
       const placeIndex=1+Math.floor(rng()*(places.length-1)),digit=2+Math.floor(rng()*7);
@@ -123,7 +123,7 @@ function pvModel(settings,rng=Math.random){
       digits[zeroIndex]=0;
       const value=normaliseValue(digits.reduce((sum,d,i)=>sum+d*places[i].value,0));
       buildFromNumber(value);
-      challenge=challengeObject(type,'A pupil says the empty '+places[zeroIndex].name+' column does not matter when reading this number. Are they correct?','No. It represents '+format(value)+'. Zero is acting as a placeholder in the '+places[zeroIndex].name+' place.',{hiddenSummary:['total','expanded']});
+      challenge=challengeObject(type,'Write the number represented. Explain what the empty '+places[zeroIndex].name+' column tells you.','The number is '+format(value)+'. The zero means there are no counters in the '+places[zeroIndex].name+' column.',{hiddenSummary:['total','expanded']});
     }
 
     challenge.paperStartCounts=counts();return {type,settings:cfg,challenge};
