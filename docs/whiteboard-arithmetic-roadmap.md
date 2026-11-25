@@ -130,6 +130,13 @@ Three levels: (1) publish the current challenge or non-challenge representation 
 - Automated builder checks: 100 four-widget drafts, 1,500 generated questions, 100 atomic failure checks, selected-type balance and isolated replacement. Both entry-point manifests match. Popover bounds correction and review scroll preservation added; actual browser acceptance remains open.
 - Continue remaining adapter rollout, then persistence, intelligent document layouts, source recipe editing and full visual/touch/print quality gate.
 
+## Clock & Time shared publishing (25 November)
+- Fifth catalogue adapter: 14 existing standard types, including four comparisons enabled when a second clock is available. The original native challenge generator now supplies the live widget and document editor; no parallel random challenge engine.
+- Pupil clock tasks preserve elapsed-time start evidence; set-time tasks have blank faces and teacher keys show correct hands. Analogue read solutions omit unnecessary AM/PM. Paper comparison tasks retain clock labels and AM/PM evidence. Standard pupil cards no longer include hidden answer metadata or live reveal state. Free diagram export respects digital and seconds options. Custom authored tasks remain individual-export only until safe frozen semantics are reviewed.
+- Automatic builder exposes independent one/two-clock source settings, horizontal/vertical comparison layout and response space. Current diagrams, generation and same-type replacement use the shared draft; explicit copy/print teacher keys for direct standard challenge exports.
+- Automated checks: 2,800 individual generation/render checks; 100 multi-source clock documents, 1,900 generated questions, 200 captures, 100 isolated replacements and 2,583 pupil/teacher page checks with the real composer in a mock SVG DOM. Both entry-point asset manifests match and modified JavaScript parses. No actual browser/touch/print signoff.
+- Next adapter: Fraction Wall. Continue the full widget audit separately; publishing integration is now 5 of 20 catalogue entries, all final QA open.
+
 ## Next priorities
 1. Visual/touch feedback: validate the practice-set launcher, whiteboard layout, inline answer boxes, responsive columns and paper outputs; refine density and font sizes after classroom feedback.
 2. Worksheet-oriented improvements: separate arithmetic answer key implemented; five-a-day shortcut implemented; optional arithmetic working space and row-based A4 pagination implemented; shared pupil/teacher export policies across the remaining widgets still need work.
