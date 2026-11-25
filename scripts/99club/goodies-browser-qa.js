@@ -311,8 +311,11 @@ if(mode==='prepare'){
     fractionSequence.click();
     document.getElementById('nl-generate').click();
     assert(/Count on in|Make three jumps of/.test(document.querySelector('.gd-challenge-prompt').textContent),'Fraction-sequence challenge asks pupils to continue equal fractional steps');
-    assert(document.querySelectorAll('[data-marker-hit]').length===4,'Fraction-sequence challenge builds four sequence positions');
-    assert(document.querySelector('[data-marker-hit="m4"]').textContent.trim()==='?','Fraction-sequence challenge hides the final value with one unknown endpoint');
+    assert(document.querySelectorAll('[data-marker-hit]').length===1&&document.querySelector('[data-marker-hit="m1"]'),'Fraction-sequence challenge shows only the known start so pupils cannot read off the answer');
+    assert(!document.querySelector('[data-marker-hit="m4"]'),'Fraction-sequence challenge conceals the landing position');
+    document.getElementById('nl-reveal').click();
+    assert(document.querySelectorAll('[data-marker-hit]').length===4,'Fraction-sequence reveal restores all four sequence positions');
+    assert(document.querySelector('[data-marker-hit="m4"]')&&!document.querySelector('[data-marker-hit="m4"]').textContent.includes('?'),'Fraction-sequence reveal restores the final value');
 
     document.querySelector('[data-nl-challenge-cat="fractions"]').click();
     const fractionJump=document.querySelector('[data-nl-challenge-type="fraction-jump"]');
@@ -320,7 +323,9 @@ if(mode==='prepare'){
     fractionJump.click();
     document.getElementById('nl-generate').click();
     assert(/fraction jump|Jump|jump/.test(document.querySelector('.gd-challenge-prompt').textContent),'Fraction-jump challenge has an explicit calculation prompt');
-    assert(document.querySelector('[data-marker-hit="m2"]').textContent.trim()==='?','Fraction-jump challenge hides the landing value');
+    assert(document.querySelector('[data-marker-hit="m1"]')&&!document.querySelector('[data-marker-hit="m2"]'),'Fraction-jump challenge conceals the landing position, not merely its label');
+    document.getElementById('nl-reveal').click();
+    assert(document.querySelector('[data-marker-hit="m2"]')&&!document.querySelector('[data-marker-hit="m2"]').textContent.includes('?'),'Fraction-jump reveal restores the landing marker');
 
     document.querySelector('[data-nl-challenge-cat="fractions"]').click();
     const compareFractions=document.querySelector('[data-nl-challenge-type="compare-fractions"]');

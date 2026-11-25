@@ -928,6 +928,8 @@ try{
   const challengeKit=read('assets/99club/goodies-challenge.js');
   const goodiesToolsA=read('assets/99club/goodies-tools-a.js');
   const goodiesToolsB=read('assets/99club/goodies-tools-b.js');
+  const goodiesAbacus=read('assets/99club/goodies-abacus.js');
+  const goodiesSequences=read('assets/99club/goodies-sequences.js');
   const goodiesExport=read('assets/99club/goodies-export.js');
   const goodiesCss=read('assets/99club/goodies.css');
   new Function(goodiesApp);
@@ -935,6 +937,8 @@ try{
   new Function(challengeKit);
   new Function(goodiesToolsA);
   new Function(goodiesToolsB);
+  new Function(goodiesAbacus);
+  new Function(goodiesSequences);
   new Function(goodiesExport);
   if(!goodiesPage.includes('permalink: /goodies/')||!goodiesPage.includes('sitemap: false')||!goodiesPage.includes('search: false')||!goodiesPage.includes('noindex,nofollow,noarchive'))fail('goodies-number-line','Hidden goodies route/indexing contract regressed');
   const toolBlock=goodiesApp.slice(goodiesApp.indexOf('const tools=['),goodiesApp.indexOf('].map',goodiesApp.indexOf('const tools=[')));
@@ -955,6 +959,8 @@ try{
   ok('goodies-layout','Shared desktop/mobile containment, reduced-scroll and workflow-navigation contracts are present');
   const capabilitySpecs=[
     {id:'number-line',source:numberLine,mode:'challenge'},
+    {id:'abacus',source:goodiesAbacus,fn:'abacusTool',mode:'challenge'},
+    {id:'sequences',source:goodiesSequences,mode:'challenge'},
     {id:'place-value',source:goodiesToolsA,fn:'placeValue',mode:'challenge'},
     {id:'fraction-wall',source:goodiesToolsA,fn:'fractionWall',mode:'challenge'},
     {id:'bar-model',source:goodiesToolsA,fn:'barModel',mode:'challenge'},
