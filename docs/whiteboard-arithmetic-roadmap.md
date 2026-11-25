@@ -117,6 +117,11 @@ Three levels: (1) publish the current challenge or non-challenge representation 
 - Automated checks: 2,160 abacus tasks, 4,320 pupil/teacher diagrams, 108 mixed documents and isolated replacements, 1,236 document page checks. Historical instrument rejection checked; no real browser or printer QA.
 - The 20-widget audit is a separate mandatory workstream, not superseded by publishing. See docs/whiteboard-widget-review.md. No widget is certified until visual, mathematical, challenge, settings, touch and print checks are completed.
 
+## Place Value shared publishing (25 November)
+- Fourth document adapter: five standard challenges plus eight counter activities (build, exact, regroup, same value, read, hidden place, digit value, addition). Shared generator now drives live standard challenges and random counter activities as well as document generation; paper renderer is shared with direct pupil/teacher exports. Captures range, counter budget, addition regroup preference and original representation independently.
+- Current free/teaching diagrams captured using existing static renderer, including legacy linked views; long counter stacks no longer clip due to capped export height. Custom authored tasks remain direct-export only until safe frozen custom response semantics are reviewed. Powers-of-ten demonstrations can be captured as diagrams, not randomly generated puzzles.
+- Full browser, touch and actual print certification remains open.
+
 ## Next priorities
 1. Visual/touch feedback: validate the practice-set launcher, whiteboard layout, inline answer boxes, responsive columns and paper outputs; refine density and font sizes after classroom feedback.
 2. Worksheet-oriented improvements: separate arithmetic answer key implemented; five-a-day shortcut implemented; optional arithmetic working space and row-based A4 pagination implemented; shared pupil/teacher export policies across the remaining widgets still need work.
