@@ -294,7 +294,7 @@ function compactChallengeControls(clone,obj){
     if(standard&&/standard/i.test(standard.textContent)){standard.textContent='Browse standard challenges';addButton(standard,'gd-launch-all')}
     else wrap.appendChild(label('Challenge options are available in settings.'));
   }
-  if(obj.toolId==='maths-canvas'){const info=clone.querySelector('[data-mc-settings-summary]');if(info){info.classList.add('gd-launch-label');wrap.insertBefore(info,wrap.firstChild)}}
+  if(obj.toolId==='maths-canvas'){const info=clone.querySelector('[data-mc-settings-summary]');if(info){info.classList.add('gd-launch-label');wrap.insertBefore(info,wrap.firstChild)}const setControls=clone.querySelector('[data-mc-set-controls]');if(setControls)wrap.insertBefore(setControls,wrap.firstChild)}
   const advanced=doc.createElement('button');advanced.type='button';advanced.className='gd-launch-settings';advanced.dataset.boardLauncherSettings='1';advanced.textContent='Challenge settings';wrap.appendChild(advanced);
   return wrap;
 }
