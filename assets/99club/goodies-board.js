@@ -152,12 +152,13 @@ const paletteGroups=[
  {id:'written',label:'Written',title:'Written calculation',icon:'▤',ids:['column-addition','column-subtraction','written-multiplication','written-division']},
  {id:'tables',label:'Tables',title:'Multiplication & factors',icon:'▦',ids:['multiplication-grid','array-builder','times-table','factors']},
  {id:'fractions',label:'Fractions',title:'Fractions, decimals & percentages',icon:'½',ids:['fraction-wall','fdp']},
- {id:'models',label:'Models',title:'Number & equation models',icon:'⚖',ids:['bar-model','balance','maths-canvas']},
+ {id:'models',label:'Models',title:'Number & equation models',icon:'⚖',ids:['bar-model','balance']},
  {id:'measure',label:'Measure',title:'Measurement, time & money',icon:'◷',ids:['clock','money','measurement']},
  {id:'shape',label:'Shape',title:'Geometry & coordinates',icon:'◇',ids:['coordinates','geoboard']},
  {id:'data',label:'Data',title:'Data & chance',icon:'⚄',ids:['randomiser']}
 ];
-const assigned=new Set(paletteGroups.flatMap(g=>g.ids));
+const hub=tools.find(t=>t.id==='maths-canvas');
+const assigned=new Set([...paletteGroups.flatMap(g=>g.ids),...(hub?[hub.id]:[])]);
 const ungrouped=tools.filter(t=>!assigned.has(t.id));if(ungrouped.length)paletteGroups.push({id:'other',label:'More',title:'Other tools',icon:'…',ids:ungrouped.map(t=>t.id)});
 const activePaletteGroups=paletteGroups.map(g=>({...g,tools:g.ids.map(id=>tools.find(t=>t.id===id)).filter(Boolean)})).filter(g=>g.tools.length);
 function paletteIcon(id){
@@ -188,12 +189,13 @@ function paletteIcon(id){
  };
  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+(paths[id]||'M5 12h.1m7 0h.1m7 0h.1')+'"/></svg>';
 }
-const paletteNames={'fdp':'Fractions, decimals & percentages','balance':'Number Mobile','maths-canvas':'Number & symbol tiles'};
+const paletteNames={'fdp':'Fractions, decimals & percentages','balance':'Number Mobile','maths-canvas':'Arithmetic Hub'};
 document.documentElement.classList.add('gd-mixed-board-page');
 document.body.classList.add('gd-mixed-board-page');
 
 root.innerHTML='<div class="gd-mixed-board" id="gd-mixed-board">'+
   '<nav class="gd-board-palette" aria-label="Add manipulatives">'+
+    (hub?'<button type="button" class="gd-board-group gd-board-hub" data-board-add="maths-canvas" aria-label="Add Arithmetic Hub" title="Arithmetic Hub"><span aria-hidden="true">'+paletteIcon('maths-canvas')+'</span><small>Arithmetic</small></button>':'')+
     activePaletteGroups.map(g=>'<button type="button" class="gd-board-group" data-board-group="'+esc(g.id)+'" data-label="'+esc(g.title)+'" aria-label="'+esc(g.title)+'" aria-expanded="false" aria-controls="gd-board-tool-picker"><span aria-hidden="true">'+paletteIcon(g.id)+'</span><small>'+esc(g.label)+'</small></button>').join('')+
   '</nav>'+
   '<aside class="gd-board-tool-picker" id="gd-board-tool-picker" aria-label="Choose a manipulative" hidden>'+
@@ -243,7 +245,7 @@ function closePicker(restoreFocus=false){
 }
 function positionPicker(){
   const host=board.getBoundingClientRect(),rail=palette.getBoundingClientRect();
-  palette.classList.toggle('is-short',host.height<400);
+  palette.classList.toggle('is-short',host.height<440);
   palette.classList.toggle('is-tiny',host.height<220);
   const r=palette.getBoundingClientRect();
   const x=r.right-host.left+8;

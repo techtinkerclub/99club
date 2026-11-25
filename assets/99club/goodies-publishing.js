@@ -303,7 +303,7 @@ function pages(items,{title='Maths practice',teacher=false}={}){
 
 // Automatic and live capture share the same document and immutable recipes.
 const BUILDER_CATALOG=[
- ['written-division','Written division'],['written-multiplication','Written multiplication'],['column-addition','Column addition'],['column-subtraction','Column subtraction'],['maths-canvas','Arithmetic'],['sequences','Sequences & rules'],['abacus','Abacus'],['place-value','Place value'],
+ ['written-division','Written division'],['written-multiplication','Written multiplication'],['column-addition','Column addition'],['column-subtraction','Column subtraction'],['maths-canvas','Arithmetic Hub'],['sequences','Sequences & rules'],['abacus','Abacus'],['place-value','Place value'],
  ['number-line','Number line'],['fraction-wall','Fraction wall'],['bar-model','Bar model'],['hundred-square','Hundred square'],['multiplication-grid','Multiplication grid'],['array-builder','Array builder'],['clock','Clock & time'],['money','UK money'],['coordinates','Coordinate grid'],['measurement','Ruler & measures'],['randomiser','Dice, spinner & randomiser'],['balance','Equation balance'],['times-table','Times-table visualiser'],['factors','Factors & multiples'],['fdp','Fraction–decimal–percentage'],['geoboard','Shape & geoboard']
 ];
 const BUILDER_GROUPS=[

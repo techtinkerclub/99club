@@ -2222,3 +2222,10 @@ html:not(.gd-embed-page) #tt99-goodies-root #gd-controls .gd-mc-five{min-height:
 .gd-board-tool-picker .gd-board-tool-symbol{display:grid;place-items:center;justify-self:center;width:24px;height:24px;background:transparent;color:#46796e}
 .gd-board-tool-picker .gd-board-tool-symbol svg{display:block;width:22px;height:22px}
 .gd-board-tool-picker .gd-board-tool-name{display:block;width:100%;min-width:0;justify-self:stretch;text-align:left;font:550 14px/1.3 Arial,sans-serif;overflow-wrap:break-word}
+
+/* Direct access to the general arithmetic workspace. */
+.gd-board-palette .gd-board-hub{color:#17685b;background:#edf5f1}
+.gd-board-palette .gd-board-hub:hover,.gd-board-palette .gd-board-hub:focus-visible{background:#dbeee6;color:#125e51}
+.gd-board-palette .gd-board-hub>small{font-size:9px;letter-spacing:-.15px}
+.gd-board-palette.is-tiny .gd-board-hub>small{font-size:7px}
+.gd-board-palette.is-tiny .gd-board-hub{flex-direction:column;gap:0}
