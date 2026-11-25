@@ -43,5 +43,7 @@ window.TT99_GOODIES_BOARD_HOME = '/goodies/';
 <script src="/assets/99club/goodies-sequences.js?v=4&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
 <script src="/assets/99club/goodies-written-methods.js?v=1&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
 <script src="/assets/99club/goodies-column-methods.js?v=1&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
+<script src="/assets/99club/goodies-statistics-model.js?v=1&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
+<script src="/assets/99club/goodies-statistics-table.js?v=1&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
 <script src="/assets/99club/goodies-app.js?v=13&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
 <script src="/assets/99club/goodies-board.js?v=55&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>

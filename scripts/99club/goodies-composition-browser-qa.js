@@ -71,7 +71,7 @@ async function run(){
   assert(getComputedStyle(document.getElementById('gd-qa-theme-header')).display==='none','Mixed whiteboard hides the site masthead');
   assert(getComputedStyle(document.getElementById('gd-qa-theme-footer')).display==='none','Mixed whiteboard hides the site footer');
   const tools=[...document.querySelectorAll('[data-board-add]')];
-  assert(tools.length===24&&new Set(tools.map(button=>button.dataset.boardAdd)).size===24,'All 24 distinct manipulatives are available in the grouped palette');
+  assert(tools.length===25&&new Set(tools.map(button=>button.dataset.boardAdd)).size===25,'All 25 distinct manipulatives are available in the grouped palette');
   assert(palette.getBoundingClientRect().width<=64,'Left category rail stays narrow');
   const groups=[...palette.querySelectorAll('[data-board-group]')],picker=document.getElementById('gd-board-tool-picker');
   assert(groups.length===8&&picker.hidden,'Eight groups replace the long icon list');
@@ -612,7 +612,7 @@ async function run(){
     dialog.querySelector('[data-pub-block] [data-pub-all-types]').click();
     assert(!dialog.querySelector('[data-pub-generate]').disabled,'Selecting compatible types restores the action');
     const searchAgain=dialog.querySelector('[data-pub-search]');searchAgain.value='';searchAgain.dispatchEvent(new Event('input',{bubbles:true}));
-    assert(dialog.querySelectorAll('[data-pub-add-source]').length===24,'Clearing search restores the full catalogue');
+    assert(dialog.querySelectorAll('[data-pub-add-source]').length===25,'Clearing search restores the full catalogue');
     dialog.querySelector('[data-pub-collapse-all]').click();
     assert([...dialog.querySelectorAll('.gd-pub-source-content')].every(el=>el.hidden),'Collapse all preserves sets while hiding settings');
     const counts=dialog.querySelectorAll('[data-pub-count]');counts[0].value='1';counts[0].dispatchEvent(new Event('change',{bubbles:true}));
@@ -1003,6 +1003,71 @@ async function run(){
     assert(P.pages(draft.list(),{teacher:true}).some(svg=>svg.getAttribute('data-worksheet-answer')==='annex'),'Authored challenge receives teacher annex');
     let rejected=false;try{draft.addCurrent('geoboard',{},null,{...authored,answer:''})}catch(_){rejected=true}
     assert(rejected&&draft.list().length===2,'Incomplete custom tasks cannot silently create answerless documents');
+    api.remove(fixture.record.id);
+  }
+  // Statistics: live representations, random challenge, current capture and generated worksheets.
+  {
+    const id='statistics-table',fixture=await addForSave(id),doc=fixture.doc,live=doc.defaultView.TT99Goodies;
+    const capture=()=>live.lessonState.capture(id).model;
+    const original=capture();
+    const select=doc.getElementById('st-view');select.value='tally';select.dispatchEvent(new doc.defaultView.Event('change',{bubbles:true}));
+    await tick();
+    assert(capture().view==='tally'&&JSON.stringify(capture().data)===JSON.stringify(original.data),'Statistics representation switch preserves dataset');
+    assert(doc.querySelectorAll('#gd-stage svg line').length>0,'Tally marks render as lines');
+    doc.querySelector('[data-st-change="0,1"]').click();await tick();
+    assert(capture().data.rows[0].value===original.data.rows[0].value+1,'Statistics touch increment changes frequency');
+    const teaching=capture();
+    doc.querySelector('[data-st-workflow="challenge"]').click();await tick();
+    doc.querySelector('[data-st-challenge-mode="total"]').click();await tick();
+    const question=capture();
+    assert(question.task&&Number(question.task.answer)===question.data.rows.reduce((sum,r)=>sum+r.value,0),'Statistics challenge total matches dataset');
+    const P=TT99Goodies.publishing,draft=P.createDocument();
+    draft.addCurrent(id,question);
+    draft.generate(id,question,3,'read');
+    assert(draft.list().length===4,'Statistics current capture and batch generation');
+    assert(Number(P.answerSummary(draft.list()[0]))===Number(question.task.answer),'Current question marking remains exact');
+    assert(P.pages(draft.list(),{teacher:true}).some(svg=>svg.querySelector('[data-pub-answer-graphic]')),'Statistics graphical teacher annex');
+    doc.querySelector('[data-challenge-action="end"]').click();await tick();
+    assert(JSON.stringify(capture().data)===JSON.stringify(teaching.data),'Exiting statistics challenge restores teaching dataset');
+    api.remove(fixture.record.id);
+  }
+  // Interactive construction: all five representations require a real model edit.
+  {
+    const id='statistics-table',fixture=await addForSave(id),doc=fixture.doc,live=doc.defaultView.TT99Goodies;
+    const capture=()=>live.lessonState.capture(id).model;
+    const stage=doc.querySelector('#gd-stage');
+    for(const view of ['table','tally','pictogram','block','bar','line']){
+      const select=doc.getElementById('st-view');select.value=view;select.dispatchEvent(new doc.defaultView.Event('change',{bubbles:true}));await tick();
+      doc.querySelector('[data-st-workflow="challenge"]').click();await tick();
+      doc.querySelector('[data-st-challenge-mode="complete"]').click();await tick();
+      const model=capture(),target=model.data.rows[model.task.missing].value,check=stage.querySelector('[data-gd-pupil-check]');
+      assert(check&&check.disabled&&model.attempt===null,'Construction starts blank: '+view);
+      stage.querySelector('[data-st-edit="zero"]').click();await tick();
+      assert(!check.disabled,'Explicit zero enables construction check: '+view);
+      for(let i=0;i<target/(view==='pictogram'?model.key:1);i++)stage.querySelector('[data-st-edit="plus"]').click();
+      assert(capture().attempt===target,'Touch controls build exact missing value: '+view);
+      check.click();await tick();
+      assert(stage.querySelector('.gd-pupil-feedback').classList.contains('is-correct'),'Correct construction is accepted: '+view);
+      const draft=TT99Goodies.publishing.createDocument();draft.addCurrent(id,capture());
+      assert(draft.list()[0].data.missing===model.task.missing,'Publishing retains missing index rather than solved pupil state');
+      doc.querySelector('[data-challenge-action="end"]').click();await tick();
+    }
+    api.remove(fixture.record.id);
+  }
+  // Full pie construction and a timetable question exercise the shared assessment UI.
+  {
+    const id='statistics-table',fixture=await addForSave(id),doc=fixture.doc,live=doc.defaultView.TT99Goodies,stage=doc.querySelector('#gd-stage'),capture=()=>live.lessonState.capture(id).model;
+    const choose=view=>{const select=doc.getElementById('st-view');select.value=view;select.dispatchEvent(new doc.defaultView.Event('change',{bubbles:true}))};
+    choose('pie');await tick();doc.querySelector('[data-st-workflow="challenge"]').click();await tick();
+    doc.querySelector('[data-st-challenge-mode="pie-build"]').click();await tick();
+    const angles=live.statistics.pie(capture().data).map(s=>Math.round(s.angle)),check=stage.querySelector('[data-gd-pupil-check]');
+    assert(check.disabled,'Pie construction starts with no sectors allocated');
+    for(let i=0;i<angles.length;i++){const select=stage.querySelector('[data-st-sector="'+i+'"]');select.value=String(angles[i]);select.dispatchEvent(new doc.defaultView.Event('change',{bubbles:true}));}
+    assert(!check.disabled,'Pie check is enabled only after every angle is entered');check.click();await tick();
+    assert(stage.querySelector('.gd-pupil-feedback').classList.contains('is-correct'),'Complete pie construction is marked correctly');
+    const draft=TT99Goodies.publishing.createDocument();draft.addCurrent(id,capture());assert(TT99Goodies.publishing.answerSummary(draft.list()[0])===angles.join(', '),'Pie marking keeps all angles');
+    choose('timetable');await tick();doc.querySelector('[data-st-challenge-mode="time-elapsed"]').click();await tick();
+    const model=capture();assert(model.task.type==='time-elapsed'&&Number(model.task.answer)>0,'Timetable journey duration is positive');
     api.remove(fixture.record.id);
   }
   // Work directly in actual embedded written-method grids with the shared keypad.

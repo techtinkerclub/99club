@@ -600,3 +600,18 @@ body.nmb-v8-pupil-challenge .gd-number-mobile-workbench.nmb-v12-conceal-main-bal
 #tt99-goodies-root .nmb-panel-specific{grid-template-columns:1fr}
 #tt99-goodies-root .nmb-panel-specific button{min-height:32px}
 #tt99-goodies-root .nmb-v5-challenge-popover button:focus-visible{outline:2px solid #2d9288;outline-offset:1px}
+
+/* Compare answer reveal must use the current engine target even if a
+   deferred animation frame did not execute while the beam was concealed. */
+body.nmb-v8-pupil-challenge .gd-number-mobile-workbench.nmb-v12-show-main-balance:not(.nmb-v12-conceal-main-balance) .gd-eq-beam{
+  transform:rotate(calc(-1 * var(--ba-tilt,0deg)))!important;
+  transition:none!important;
+}
+body.nmb-v8-pupil-challenge .gd-number-mobile-workbench.nmb-v12-show-main-balance:not(.nmb-v12-conceal-main-balance) .gd-eq-side--left{
+  transform:translateY(var(--ba-left-lift,0px))!important;
+  transition:none!important;
+}
+body.nmb-v8-pupil-challenge .gd-number-mobile-workbench.nmb-v12-show-main-balance:not(.nmb-v12-conceal-main-balance) .gd-eq-side--right{
+  transform:translateY(var(--ba-right-lift,0px))!important;
+  transition:none!important;
+}

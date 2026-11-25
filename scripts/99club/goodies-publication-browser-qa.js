@@ -12,7 +12,7 @@ if(process.argv[2]==='prepare'){
    const results=[],warnings=[],issues=[],clipping=[];
    let seed=42137;const rng=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
    const catalog=P.catalogue();
-   assert(catalog.length===24&&catalog.every(x=>P.supports(x.id)),'All 24 widgets must have publishing adapters');
+   assert(catalog.length===25&&catalog.every(x=>P.supports(x.id)),'All 25 widgets must have publishing adapters');
    const vb=svg=>svg.getAttribute('viewBox').split(/\s+/).map(Number);
    function checkPage(svg,tool,kind){
      const [x,y,w,h]=vb(svg);
@@ -72,6 +72,27 @@ if(process.argv[2]==='prepare'){
        results.push({tool,families:families.map(f=>f.id),generated:items.length,pupilPages:sheets.filter(s=>s.getAttribute('data-worksheet-answer')==='pupil').length,annexPages:sheets.filter(s=>s.getAttribute('data-worksheet-answer')==='annex').length,graphics:sheets.reduce((n,s)=>n+s.querySelectorAll('[data-pub-answer-graphic]').length,0)});
      }catch(err){issues.push(tool+': '+err.message)}
    }
+   // Audit every statistics representation rather than only its default table.
+   for(const view of ['tally','pictogram','block','bar','line','pie','timetable']){
+     const settings={...P.defaultSettings('statistics-table'),view};
+     const draft=P.createDocument();
+     for(const family of P.types('statistics-table',settings))draft.generate('statistics-table',settings,1,family.id,rng);
+     const items=draft.list();assert(items.length===P.types('statistics-table',settings).length,'Every statistics family is generated: '+view);
+     assert(items.every(item=>{const a=String(P.answerSummary(item));return item.data.type==='pie-build'?a.split(', ').map(Number).reduce((s,v)=>s+v,0)===360:item.data.type==='pie-fraction'?/^\d+\/\d+$/.test(a):['time-read','time-complete'].includes(item.data.type)?/^\d{2}:\d{2}$/.test(a):Number.isFinite(Number(a));}),'All statistics answers have valid formats: '+view);
+     for(const sheet of P.pages(items,{teacher:true})){
+       const prepared=X.preparePaperSvg(sheet),frame=document.createElement('div');frame.className='audit-sheet';frame.appendChild(prepared);host.appendChild(frame);
+       checkPage(prepared,'statistics-'+view,sheet.getAttribute('data-worksheet-answer'));
+     }
+   }
+   for(const [year,view] of [['2','pictogram'],['3','bar'],['4','line'],['5','line'],['6','pie']]){
+     const S=G.statisticsTable,settings={year,view,max:20,count:4,key:2};
+     for(const family of S.questionTypes(view,year))for(let i=0;i<30;i++){
+       const item=S.generate(S.recipe(settings,family[0]),rng);
+       assert(family[0]==='pie-build'?item.answer.split(', ').map(Number).reduce((s,v)=>s+v,0)===360:family[0]==='pie-fraction'?/^\d+\/\d+$/.test(item.answer):Number.isInteger(item.answer),'Valid primary statistics answer: '+year+'/'+view+'/'+family[0]);
+       if(year==='2')assert(item.key===2&&item.data.rows.every(r=>r.value<=20),'Year selection preserves teacher chosen scale and range');
+     }
+   }
+   for(const year of ['2','3','4','5','6']){const S=G.statisticsTable;assert(S.viewsFor(year).length===8,'Year suggestions never hide representations');assert(S.recipe({year,view:'pie',max:40,count:6,key:5}).view==='pie','Teacher may choose any representation regardless of year');assert(S.questionTypes('table',year).some(([id])=>id==='mean'),'Teacher may choose advanced content regardless of year');}
    // Dense cards should use available page height, while standalone output remains unchanged.
    const geo=P.createDocument();geo.generate('geoboard',{gridSize:13},1,'build-area',rng);
    const geoItem=geo.list()[0],denseCard=X.withDocumentCardLayout(()=>P.renderItem(geoItem,false),{denseDiagram:true}),compactCard=X.withDocumentCardLayout(()=>P.renderItem(geoItem,false));
