@@ -54,6 +54,9 @@ function preparePaperSvg(svg){
     clone.setAttribute('data-gd-paper-ready','diagram');
     clone.setAttribute('data-gd-paper-label',brand);
   }
+  const finalBounds=svgBounds(clone);
+  clone.setAttribute('width',String(finalBounds.w));
+  clone.setAttribute('height',String(finalBounds.h));
   return addPaperBrand(clone,brand);
 }
 function serialiseSvg(svg){
@@ -116,7 +119,7 @@ function printSvg(svg,{title='99 Club Studio illustration',prompt='',answer='',s
   win.document.open();
   win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+safeFilename(title)+'</title><style>'+
     '@page{size:A4 '+(landscape?'landscape':'portrait')+';margin:14mm}'+
-    '*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#24343b;margin:0}h1{font-size:20pt;margin:0 0 8mm}.prompt{font-size:16pt;font-weight:700;margin:0 0 8mm;padding:4mm 5mm;background:#f3f7f7;border-radius:4mm}.sheet{display:flex;align-items:center;justify-content:center;width:100%}.sheet svg{display:block;width:'+printWidth+'mm;max-width:100%;height:auto;max-height:'+heightLimit+'mm}.answer{margin-top:8mm;font-size:14pt;padding:4mm 5mm;border:1px solid #cbd7d9;border-radius:4mm}.sheet{break-inside:avoid}@media print{button{display:none!important}}</style></head><body>'+
+    '*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#24343b;margin:0}h1{font-size:20pt;margin:0 0 8mm}.prompt{font-size:16pt;font-weight:700;margin:0 0 8mm;padding:4mm 5mm;background:#f3f7f7;border-radius:4mm}.sheet{display:flex;align-items:center;justify-content:center;width:100%}.sheet>svg{display:block;width:'+printWidth+'mm;max-width:100%;height:auto;max-height:'+heightLimit+'mm}.answer{margin-top:8mm;font-size:14pt;padding:4mm 5mm;border:1px solid #cbd7d9;border-radius:4mm}.sheet{break-inside:avoid}@media print{button{display:none!important}}</style></head><body>'+
     (displayTitle?'<h1>'+String(displayTitle).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))+'</h1>':'')+
     promptHtml+'<div class="sheet">'+svgText+'</div>'+answerHtml+
     '<script>window.addEventListener("load",()=>setTimeout(()=>window.print(),120));<\/script></body></html>');
