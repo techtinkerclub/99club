@@ -1790,3 +1790,19 @@ html.gd-embed-page,body.gd-embed-page{margin:0!important;width:100%!important;he
 .gd-money-exchange-summary button{min-height:38px;padding:6px 12px;background:#147d75;border:1px solid #147d75;border-radius:8px;color:white;font:inherit;font-size:.8rem;font-weight:800;cursor:pointer}
 .gd-money-exchange-summary button:disabled{background:#edf1f1;border-color:#dce5e5;color:#829294;cursor:default}
 .gd-money-context.is-exchange-selection>small{font-size:.72rem;color:#60757b}
+
+
+/* Explicit clock layouts override responsive auto-stacking inside board iframes. */
+.gd-clock-grid[data-cl-layout="horizontal"]{grid-template-columns:repeat(var(--cl-count,2),minmax(0,1fr))}
+.gd-clock-grid[data-cl-layout="vertical"]{grid-template-columns:minmax(0,1fr)}
+.gd-clock-grid[data-cl-layout="grid"]{grid-template-columns:repeat(2,minmax(0,1fr))}
+.gd-clock-grid[data-cl-layout] .gd-clock-card{min-width:0;box-sizing:border-box;padding:clamp(4px,1.5vw,12px);overflow-wrap:anywhere}
+.gd-clock-grid[data-cl-layout] .gd-clock-card .gd-clock{width:min(100%,330px);min-width:0}
+.gd-clock-grid[data-cl-layout="horizontal"]{gap:clamp(5px,1.4vw,14px)}
+.gd-clock-grid[data-cl-layout] .gd-clock-card-head{min-height:28px;text-align:center}
+.gd-clock-grid[data-cl-layout] .gd-clock-select{max-width:100%;white-space:normal}
+.gd-clock-grid[data-cl-layout] .gd-clock-readouts{display:flex;flex-wrap:wrap}
+.gd-clock-grid[data-cl-layout] .gd-clock-readouts>*{flex:1 1 95px;min-width:0}
+.gd-clock-layout-toolbar{display:flex;justify-content:flex-end;margin-bottom:6px}
+.gd-clock-layout-cycle{min-width:36px;min-height:36px;padding:3px 9px;font-size:1.15rem;line-height:1}
+.gd-embed-page .gd-clock-layout-toolbar{display:none!important}
