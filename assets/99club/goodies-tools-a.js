@@ -3218,7 +3218,7 @@ function multiplicationGrid(){
     if(undoStack.length>60)undoStack.shift();
     redoStack.length=0;
   }
-  function challengeFrozen(){return !!(challenge&&challenge.mode==='standard'&&challenge.freezeGrid)}
+  function challengeFrozen(){return !!(challenge&&challenge.mode==='standard'&&(challenge.freezeGrid||challenge.revealed))}
   function challengeSelectOnly(){return !!(challenge&&challenge.mode==='standard'&&challenge.selectOnly)}
   function mutate(fn){
     if(challengeFrozen())return;
@@ -3298,11 +3298,20 @@ function multiplicationGrid(){
     const classes=['gd-mg-cell',rowcol?'is-focus':'',selected?'is-current':'',mirror?'is-commutative':'',isHidden?'is-hidden-product':'',!frozen&&interactionMode==='hide'?'is-paintable':'',frozen?'is-frozen':''].filter(Boolean).join(' ');
     return '<button type="button" class="'+classes+'" data-mg-cell="'+k+'" data-mg-row="'+r+'" data-mg-col="'+c+'" aria-label="'+(isHidden?'Hidden product for '+r+' times '+c:r+' times '+c+' equals '+shown)+'"'+(override!=null?' data-mg-display-override="'+override+'"':'')+(frozen?' disabled':'')+'><span>'+(isHidden?'?':shown)+'</span></button>';
   }
+  function toggleModelReveal(){
+    if(!challenge)return;
+    challenge.revealed=!challenge.revealed;
+    if(challenge.mode==='standard'&&challenge.type==='select-fact'){
+      if(challenge.revealed){challenge.modelBeforeReveal=snapshot();selectedRow=challenge.targetRow;selectedCol=challenge.targetCol}
+      else if(challenge.modelBeforeReveal){restore(challenge.modelBeforeReveal);delete challenge.modelBeforeReveal}
+    }
+    renderControls();draw();
+  }
   function bindChallengeStageActions(){
     const endChallenge=q('[data-challenge-action="end"]',q('#gd-stage'));if(endChallenge)endChallenge.onclick=e=>{e.stopPropagation();clearChallenge()};
     const stage=q('#gd-stage');if(!stage||!challenge)return;
     const reveal=q('[data-board-action="reveal"]',stage);
-    if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();draw()};
+    if(reveal)reveal.onclick=e=>{e.stopPropagation();toggleModelReveal()};
     const another=q('[data-challenge-action="another"]',stage);
     if(another)another.onclick=e=>{e.stopPropagation();if(challenge?.mode==='standard')generateChallenge(challenge.type)};
   }
@@ -3440,7 +3449,7 @@ function multiplicationGrid(){
       focus=a;
       challenge=challengeObject(type,'Select the cell for '+a+' × '+b+'.',p,{freezeGrid:false,selectOnly:true,targetRow:a,targetCol:b,hideFactsPanel:false});
     }else if(type==='missing-factor'){
-      focus=a;selectedRow=a;selectedCol=1;setHidden(a,b,true);
+      focus=a;selectedRow=a;selectedCol=1;
       challenge=challengeObject(type,a+' × ? = '+p+'. What is the missing factor?',b,{hideFactsPanel:true});
     }else if(type==='commutative-fact'){
       focus=a;selectedRow=a;selectedCol=b;
@@ -3674,7 +3683,7 @@ function multiplicationGrid(){
     qa('[data-mg-challenge-type]',q('#gd-controls')).forEach(button=>button.onclick=()=>{challengeType=button.dataset.mgChallengeType;renderControls()});
     const generate=q('#mg-generate');if(generate)generate.onclick=()=>generateChallenge(challengeType);
     const edit=q('#mg-edit-challenge');if(edit)edit.onclick=enterCustomChallenge;
-    const reveal=q('#mg-reveal');if(reveal)reveal.onclick=()=>{if(challenge){challenge.revealed=!challenge.revealed;renderControls();draw()}};
+    const reveal=q('#mg-reveal');if(reveal)reveal.onclick=toggleModelReveal;
     const clearChallengeBtn=q('#mg-clear-challenge');if(clearChallengeBtn)clearChallengeBtn.onclick=clearChallenge;
     if(challengeTab==='custom'&&challenge){
       const title=q('#mg-custom-title');if(title)title.oninput=()=>{challenge.title=title.value.slice(0,100);draw()};
@@ -3805,7 +3814,7 @@ function arrayBuilder(){
     return !!(challenge&&!challenge.revealed&&Array.isArray(challenge.hiddenDimensions)&&challenge.hiddenDimensions.includes(kind));
   }
   function challengeFrozen(){
-    return !!(challenge&&challenge.mode==='standard'&&challenge.freezeBoard);
+    return !!(challenge&&challenge.mode==='standard'&&(challenge.freezeBoard||challenge.revealed));
   }
   function resolveAnswerSource(source){
     if(source==='rows')return String(rows);
@@ -4167,7 +4176,7 @@ function arrayBuilder(){
     const generate=q('#ab-generate',controls);if(generate)generate.onclick=()=>generateChallenge(challengeType);
     const edit=q('#ab-edit-challenge',controls);if(edit)edit.onclick=enterCustomChallenge;
     const end=q('#ab-clear-challenge',controls);if(end)end.onclick=clearChallenge;
-    const reveal=q('#ab-reveal',controls);if(reveal)reveal.onclick=()=>{if(!challenge)return;challenge.revealed=!challenge.revealed;renderControls();draw()};
+    const reveal=q('#ab-reveal',controls);if(reveal)reveal.onclick=toggleModelReveal;
     qa('[data-gd-rich-action]',controls).forEach(button=>button.onclick=e=>{
       e.preventDefault();const editor=q('#ab-custom-prompt',controls);
       if(editor&&CK&&challenge){
@@ -4234,11 +4243,20 @@ function arrayBuilder(){
       };
     }
   }
+  function toggleModelReveal(){
+    if(!challenge)return;
+    challenge.revealed=!challenge.revealed;
+    if(challenge.mode==='standard'&&challenge.type==='build-array'){
+      if(challenge.revealed){challenge.modelBeforeReveal=snapshot();setDimensions(challenge.targetRows,challenge.targetCols)}
+      else if(challenge.modelBeforeReveal){restoreSnapshot(challenge.modelBeforeReveal);delete challenge.modelBeforeReveal}
+    }
+    renderControls();draw();
+  }
   function bindChallengeStageActions(){
     const endChallenge=q('[data-challenge-action="end"]',q('#gd-stage'));if(endChallenge)endChallenge.onclick=e=>{e.stopPropagation();clearChallenge()};
     const stage=q('#gd-stage');if(!stage||!challenge)return;
     const reveal=q('[data-board-action="reveal"]',stage);
-    if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();draw()};
+    if(reveal)reveal.onclick=e=>{e.stopPropagation();toggleModelReveal()};
     const another=q('[data-challenge-action="another"]',stage);
     if(another)another.onclick=e=>{e.stopPropagation();if(challenge?.mode==='standard')generateChallenge(challenge.type)};
   }
