@@ -31,6 +31,7 @@ window.scrollTo=function(){};
 <script src="/assets/99club/goodies-sequences.js"></script>
 <script src="/assets/99club/goodies-written-methods.js"></script>
 <script src="/assets/99club/goodies-column-methods.js"></script>
+<script src="/assets/99club/goodies-function-machine.js"></script>
 <script src="/assets/99club/goodies-app.js"></script>
 <script>
 (function(){
