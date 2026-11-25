@@ -4807,7 +4807,7 @@ function clockTool(){
   }
   function faceNumber(n){return numerals==='roman'?roman[n-1]:String(n)}
   function refreshClock(){
-    updateChallengeAnswer();
+    updateChallengeAnswer();CK?.refreshModelPupil?.(challenge);
     const cards=qa('.gd-clock-card[data-cl-clock-index]',q('#gd-stage'));
     cards.forEach(card=>{
       const index=Math.round(num(card.dataset.clClockIndex,0)),state=clockState(index);
