@@ -172,7 +172,7 @@ root.innerHTML='<div class="gd-mixed-board" id="gd-mixed-board">'+
   '</div>'+
 '</div>';
 
-document.getElementById('gd-board-publishing').onclick=()=>G.publishing?.openEditor(publishingDraft);
+document.getElementById('gd-board-publishing').onclick=()=>G.publishing?.openEditor(publishingDraft,{mode:publishingDraft.list().length?'review':'builder'});
 const board=document.getElementById('gd-mixed-board');
 const viewport=document.getElementById('gd-board-viewport');
 const canvas=document.getElementById('gd-board-canvas');
@@ -637,13 +637,14 @@ function objectMarkup(obj,tool){
     '<button type="button" class="gd-board-export-direct" data-board-export="'+obj.id+'" aria-label="Export '+esc(tool.title)+'" title="Export for worksheet or print">'+iconSvg('export')+'</button>'+
     '<button type="button" class="gd-board-delete-direct" data-board-delete="'+obj.id+'" aria-label="Delete '+esc(tool.title)+'" title="Delete">'+iconSvg('trash')+'</button>'+
     '<div class="gd-board-export-menu" data-board-export-menu role="menu" aria-label="Export '+esc(tool.title)+'">'+
+      '<div class="gd-pub-menu-section"><span>Current item</span><div class="gd-pub-menu-formats">'+
       '<button type="button" data-board-export-kind="copy" role="menuitem">Copy</button>'+
       '<button type="button" data-board-export-kind="png" role="menuitem">PNG</button>'+
       '<button type="button" data-board-export-kind="svg" role="menuitem">SVG</button>'+
-      '<button type="button" data-board-export-kind="print" role="menuitem">Print</button>'+
-      (G.publishing?.supports(tool.id)?'<button type="button" data-board-export-kind="add-document" role="menuitem">Add current to document</button><button type="button" data-board-export-kind="generate-document" role="menuitem">Generate for document</button>':'')+
-      (tool.id==='maths-canvas'?'<button type="button" data-board-export-kind="paper-settings" role="menuitem">Paper settings</button>':'')+
-      (['maths-canvas','abacus','place-value','sequences'].includes(tool.id)?'<button type="button" data-board-export-kind="key-print" role="menuitem" hidden>Answer key · print</button><button type="button" data-board-export-kind="key-copy" role="menuitem" hidden>Answer key · copy</button>':'')+
+      '<button type="button" data-board-export-kind="print" role="menuitem">Print</button></div></div>'+
+      (G.publishing?.supports(tool.id)?'<div class="gd-pub-menu-section" data-pub-document-group><span>Worksheet</span><button type="button" data-board-export-kind="add-document" role="menuitem">Add current item</button><button type="button" data-board-export-kind="generate-document" role="menuitem">Generate questions…</button></div>':'')+
+      (tool.id==='maths-canvas'?'<div class="gd-pub-menu-section"><button type="button" data-board-export-kind="paper-settings" role="menuitem">Paper settings…</button></div>':'')+
+      (['maths-canvas','abacus','place-value','sequences'].includes(tool.id)?'<div class="gd-pub-menu-section" data-pub-key-group hidden><span>Teacher key</span><div class="gd-pub-menu-formats"><button type="button" data-board-export-kind="key-print" role="menuitem" hidden>Print</button><button type="button" data-board-export-kind="key-copy" role="menuitem" hidden>Copy</button></div></div>':'')+
     '</div>'+
     '<div class="gd-board-quick-actions is-empty" data-board-quick-actions aria-label="'+esc(tool.title)+' quick actions"></div>'+
     '<div class="gd-board-context-menu" role="menu" aria-label="'+esc(tool.title)+' controls">'+
@@ -820,11 +821,11 @@ function toggleExportMenu(id){
   canvas.querySelectorAll('.gd-board-object.has-export-menu').forEach(el=>el.classList.remove('has-export-menu'));
   if(open&&obj.toolId==='abacus'){
     let supported=false;try{const model=frame.querySelector('iframe')?.contentWindow?.TT99Goodies?.lessonState.capture('abacus').model;supported=['western','suanpan','soroban'].includes(model?.kind)}catch(_){}
-    frame.querySelectorAll('[data-board-export-kind$="document"]').forEach(button=>button.hidden=!supported);
+    frame.querySelectorAll('[data-board-export-kind$="document"]').forEach(button=>button.hidden=!supported);const group=frame.querySelector('[data-pub-document-group]');if(group)group.hidden=!supported;
   }
   if(open&&['maths-canvas','abacus','place-value','sequences'].includes(obj.toolId)){
     const doc=innerDocument(obj),active=obj.toolId!=='maths-canvas'?!!doc?.querySelector('[data-gd-direct-export="key-print"]'):!!doc?.querySelector('#gd-stage .gd-challenge-banner');
-    frame?.querySelectorAll('[data-board-export-kind^="key-"]').forEach(button=>{button.hidden=!active});
+    frame?.querySelectorAll('[data-board-export-kind^="key-"]').forEach(button=>{button.hidden=!active});const group=frame?.querySelector('[data-pub-key-group]');if(group)group.hidden=!active;
   }
   frame?.classList.toggle('has-export-menu',open);
   frame?.classList.remove('has-context-menu');
