@@ -1346,9 +1346,13 @@ function syncCompareConceal(){
   const correct=!!q('[data-nmb-v8-choice].is-correct',panel);
   const conceal=pupilReady()&&compare&&!revealed()&&!correct;
   w.classList.toggle('nmb-v12-conceal-main-balance',conceal);
+  // Compare uses the engine's physical target, not the last animated frame.
+  // A hidden beam may have missed its animation frame while the CSS override
+  // held it level (notably in background tabs and embedded headless browsers).
+  w.classList.toggle('nmb-v12-show-main-balance',pupilReady()&&compare&&!conceal);
 }
 function tidy(){
-  if(!pupilReady()){work()?.classList.remove('nmb-v12-conceal-main-balance');return false}
+  if(!pupilReady()){work()?.classList.remove('nmb-v12-conceal-main-balance','nmb-v12-show-main-balance');return false}
   const b=banner(),w=work(),actions=q('.gd-challenge-actions',b);if(!b||!w||!actions)return false;
   let buttons=[...actions.querySelectorAll('button')];
   let change=q('[data-nmb-v9-change]',actions)||buttons.find(btn=>/^change$/i.test(btn.textContent.trim()));
