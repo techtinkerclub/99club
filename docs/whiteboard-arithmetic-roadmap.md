@@ -71,11 +71,18 @@ Updated 25 November 2026.
 - Automated checks: 960 pupil/teacher worksheet pairs over six whole-number and decimal ranges; 117,288 SVG nodes checked for finite geometry, plus blank response charts, equal-value alternative solutions and exact counter budgets. These are DOM-model checks, not rendered-page verification.
 - Retain addition and regrouping teaching tools, not duplicate all generic abacus arithmetic. Review remaining panel density after classroom feedback.
 
+## Arithmetic reasoning and ordering (25 November)
+- Three optional fixed-format tasks: order three/four distinct proper fractions (exact cross multiplication), order three arithmetic expressions with distinct values, and correct a deliberately incorrect calculated result. Use labelled answers through the existing touch keypad; paper prompts explain the response convention. Curriculum starting profiles include them from Years 5, 4 and 3 respectively.
+- Expression ordering/correction use a bounded pool of exact fixed-point calculations constrained by enabled operators, selected number range and precision. Incompatible settings hide these types. Fraction ordering uses the denominator limit and avoids equal-valued alternatives.
+- Single arithmetic worksheet exports now use the shared plain worksheet composer and omit redundant response boxes when the equation already has an inline response. Choices are listed in paper instructions when needed.
+- Target-number puzzles with multiple valid solutions remain a separate next priority; avoid disguising a single-answer calculation as an open-ended target puzzle.
+- Browser and print validation still pending.
+
 ## Next priorities
 1. Visual/touch feedback: validate the practice-set launcher, whiteboard layout, inline answer boxes, responsive columns and paper outputs; refine density and font sizes after classroom feedback.
 2. Worksheet-oriented improvements: separate arithmetic answer key implemented; five-a-day shortcut implemented; optional space for working, shared pupil/teacher export policies across all widgets, and print pagination remain.
 3. Extend the implemented fraction/roots topics to remaining curriculum content and complete visual QA, and refine the curriculum presets.
-4. Target-number puzzles; ordering expressions by value; identify and correct errors. Ensure questions are solvable and answer checking handles valid alternatives.
+4. Target-number puzzles with multiple valid solutions; extend error-spotting to reasoning explanations. Initial fraction/expression ordering and result correction implemented.
 5. Refine curriculum presets with narrower year-specific objectives, including multiplication-table and early fraction constraints.
 6. Dedicated sequences and rules widget: number sequences, missing terms, next terms and rule reasoning. Keep separate from arithmetic generator but reuse challenge interaction and export patterns.
 7. Performance and accessibility audit of whiteboard, all manipulatives and mobile/touch behaviour.
