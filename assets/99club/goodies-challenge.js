@@ -128,7 +128,7 @@ function pickerHtml(templates,categories,activeCategory,selectedId,prefix){
     </button>`).join('');
   const pool=(templates||[]).filter(t=>!t.disabled).map(t=>({id:t.id,category:t.category}));
   return `<div class="gd-challenge-picker" data-gd-picker-prefix="${esc(prefix)}" data-gd-picker-pool="${esc(JSON.stringify(pool))}">
-    <div class="gd-challenge-random-row"><button type="button" class="gd-btn gd-btn--primary" data-gd-random-scope="all">Random · all types</button><button type="button" class="gd-btn" data-gd-random-scope="${esc(activeCategory)}">Random · this category</button></div>
+    <div class="gd-challenge-random-row"><button type="button" class="gd-btn gd-btn--primary" data-gd-random-scope="all">Random · all types</button><button type="button" class="gd-btn" data-gd-random-scope="${esc(activeCategory)}"${pool.some(t=>t.category===activeCategory)?'':' disabled'}>Random · ${esc((categories||[]).find(c=>c.id===activeCategory)?.label||'this category')}</button></div>
     <div class="gd-challenge-chips" role="tablist" aria-label="Challenge categories">${cats}</div>
     <div class="gd-challenge-cards">${cards||'<p class="gd-help">No challenge types in this category yet.</p>'}</div>
   </div>`;
@@ -180,7 +180,7 @@ if(typeof document!=='undefined')document.addEventListener('click',e=>{
     const p=document.querySelector('#gd-controls [data-gd-picker-prefix="'+randomScope.prefix+'"]'),n=document.querySelector('#gd-controls [data-gd-native-prefix="'+randomScope.prefix+'"]');
     if(p||n){e.preventDefault();e.stopImmediatePropagation();if(p)randomFromPicker(p,randomScope.scope);else nativeRandom(n,randomScope.scope);return}
   }
-  if(el.closest('#gd-controls')&&(el.id.endsWith('-generate')||Array.from(el.attributes).some(a=>/-challenge-(type|mode|cat)$/.test(a.name))))randomScope=null;
+  if(el.closest('#gd-controls')&&(el.id.endsWith('-generate')||Array.from(el.attributes).some(a=>/-challenge-mode$/.test(a.name))))randomScope=null;
   if(el.matches('[data-challenge-action="end"],[data-pv-activity-exit],[data-ab-exit]'))randomScope=null;
 },true);
 
