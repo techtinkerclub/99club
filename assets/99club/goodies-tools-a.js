@@ -5083,7 +5083,8 @@ function moneyTool(){
   const CHALLENGE_CATEGORIES=[
     {id:'read',label:'Count & compare'},
     {id:'make',label:'Make an amount'},
-    {id:'change',label:'Change & difference'}
+    {id:'change',label:'Change & difference'},
+    {id:'exchange',label:'Exchange money'}
   ];
   const CHALLENGE_TEMPLATES=[
     {id:'count-total',category:'read',title:'How much is shown?',desc:'Add the shown coins and notes to find the total.'},
@@ -5092,9 +5093,12 @@ function moneyTool(){
     {id:'make-target',category:'make',title:'Make the target',desc:'Build an exact amount in any valid way.'},
     {id:'exact-pieces',category:'make',title:'Use exactly N pieces',desc:'Make a target using an exact number of coins or notes.'},
     {id:'fewest-pieces',category:'make',title:'Fewest pieces',desc:'Make the target with the smallest possible number of pieces.'},
-    {id:'find-change',category:'change',title:'Find the change',desc:'Build the correct change from a larger payment.'}
+    {id:'find-change',category:'change',title:'Find the change',desc:'Build the correct change from a larger payment.'},
+    {id:'split-change',category:'exchange',title:'Split into change',desc:'Exchange one piece for smaller denominations.'},
+    {id:'combine-change',category:'exchange',title:'Exchange for a larger coin',desc:'Exchange several pieces for one larger denomination.'},
+    {id:'exchange-fewest',category:'exchange',title:'Exchange for fewer pieces',desc:'Keep the same value while reducing the number of pieces.'}
   ];
-  let items=[],nextId=1,target=375,targetActive=false,controller=null,addOpen=false,coinSerial=0;
+  let items=[],nextId=1,target=375,targetActive=false,controller=null,addOpen=false,coinSerial=0,contextMode='',contextItemId=null;
   const coinPrefix='mo-'+Math.random().toString(36).slice(2,10);
   let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='count-total',challenge=null,beforeChallenge=null;
   let exportMode='board',responseLines=1,exportStatus='';
@@ -5131,6 +5135,50 @@ function moneyTool(){
     '</svg>';
   }
   function total(){return items.reduce((sum,item)=>sum+Number(item.value||0),0)}
+  function exchangeTask(){return challenge?.mode==='standard'&&challenge.category==='exchange'}
+  function freeMoneyEdit(){return !challengeFrozen()&&!exchangeTask()}
+  function splitOptions(item){
+    if(!item||item.locked)return [];
+    const smaller=DENOMS.filter(d=>d.value<item.value),options=[];
+    for(const d of smaller){
+      const n=item.value/d.value;
+      if(Number.isInteger(n)&&n>=2&&n<=20)options.push(Array(n).fill(d.value));
+    }
+    let left=item.value,mixed=[];
+    for(const d of smaller.slice().reverse())while(left>=d.value&&mixed.length<21){mixed.push(d.value);left-=d.value}
+    if(!left&&mixed.length>=2&&mixed.length<=20&&!options.some(v=>v.join()===mixed.join()))options.push(mixed);
+    return options.sort((a,b)=>a.length-b.length);
+  }
+  function combineOptions(item){
+    if(!item||item.locked)return [];
+    const available=items.filter(x=>x!==item&&!x.locked).sort((a,b)=>(a.value===item.value?0:1)-(b.value===item.value?0:1)||b.value-a.value);
+    const limit=DENOMS.at(-1).value-item.value,reachable=new Map([[0,[]]]);
+    for(const piece of available){
+      for(const [sum,group] of [...reachable]){
+        const next=sum+piece.value;if(next>limit||group.length>=19)continue;
+        const existing=reachable.get(next);
+        if(!existing||existing.length>group.length+1)reachable.set(next,[...group,piece]);
+      }
+    }
+    return DENOMS.filter(d=>d.value>item.value&&reachable.has(d.value-item.value)).map(d=>({value:d.value,group:[item,...reachable.get(d.value-item.value)]}));
+  }
+  function piecesText(values){
+    const counts=new Map();values.forEach(v=>counts.set(v,(counts.get(v)||0)+1));
+    return [...counts].sort((a,b)=>b[0]-a[0]).map(([v,n])=>(n>1?n+' × ':'')+metaFor(v).label).join(' + ');
+  }
+  function replaceMoney(group,values){
+    if(!group.length||group.some(x=>x.locked||!items.includes(x))||values.some(v=>!DENOMS.some(d=>d.value===v)))return false;
+    if(group.reduce((n,x)=>n+x.value,0)!==values.reduce((n,v)=>n+v,0))return false;
+    const ids=new Set(group.map(x=>x.id));items=items.filter(x=>!ids.has(x.id));
+    values.forEach(addMoney);tidyMoney();return true;
+  }
+  function exchangeCheck(){
+    if(total()!==target)return false;
+    if(challenge.type==='split-change')return items.length===challenge.solutionValues.length&&items.every(x=>x.value===challenge.solutionValues[0]);
+    if(challenge.type==='combine-change')return items.length===1&&items[0].value===target;
+    if(challenge.type==='exchange-fewest')return items.length===minimumPieces(target);
+    return true;
+  }
   function canvasMetrics(count=items.length){
     const stageWidth=q('#gd-stage')?.clientWidth||760;
     const width=Math.max(280,stageWidth-38);
@@ -5282,21 +5330,14 @@ function moneyTool(){
     const frozen=challengeFrozen(),unavailable=!selected||frozen,deleteDisabled=unavailable||!!selected?.locked;
     return '<div class="gd-money-boardbar">'+
       '<div class="gd-object-toolbar gd-money-history">'+
-        I.toolButton('add-money','plus','Add money',addOpen?'is-active':'',frozen)+
+        I.toolButton('add-money','plus','Add money',addOpen?'is-active':'',!freeMoneyEdit())+
         I.toolButton('undo','undo','Undo','',!history.canUndo||frozen)+
         I.toolButton('redo','redo','Redo','',!history.canRedo||frozen)+
       '</div>'+
-      '<div class="gd-money-selection"><span data-mo-selection>'+(frozen?'Money fixed for this challenge':selected?money(selected.value)+(selected.locked?' · locked':''):'Select a coin or note to move it')+'</span>'+
-        '<div class="gd-object-toolbar gd-money-selected-actions">'+
-          I.toolButton('duplicate','duplicate','Duplicate selected','',unavailable)+
-          I.toolButton('lock',selected&&selected.locked?'unlock':'lock',selected&&selected.locked?'Unlock selected':'Lock selected','',unavailable)+
-          I.toolButton('delete','delete','Delete selected','gd-object-tool--danger',deleteDisabled)+
-        '</div>'+
-      '</div>'+
-    '</div>';
+      '</div>';
   }
   function moneyStagePaletteHtml(proxy=false){
-    if(challengeFrozen()||(!proxy&&!addOpen))return'';
+    if(!freeMoneyEdit()||(!proxy&&!addOpen))return'';
     const picks=DENOMS.map(d=>{
       const visual=d.kind==='coin'
         ?'<span class="gd-money-pick__coin gd-money-pick__coin--'+d.shape+' gd-money-pick__coin--'+d.tone+'">'+coinArt(d)+'</span>'
@@ -5305,15 +5346,46 @@ function moneyTool(){
     }).join('');
     return '<div class="gd-money-stage-palette"'+(proxy?' id="mo-board-palette" hidden':'')+' role="group" aria-label="Add money">'+(proxy?'':'<button type="button" class="gd-money-palette-close" data-gd-action="close-money" aria-label="Close add money">×</button>')+picks+'</div>';
   }
-  function updateSelectionTools(item){
-    const frozen=challengeFrozen(),label=q('[data-mo-selection]',q('#gd-stage'));
-    if(label)label.textContent=frozen?'Money fixed for this challenge':item?money(item.value)+(item.locked?' · locked':''):'Select a coin or note to move it';
-    qa('.gd-money-selected-actions [data-gd-action]',q('#gd-stage')).forEach(button=>{
-      const action=button.dataset.gdAction;
-      button.disabled=frozen||!item||(action==='delete'&&!!item.locked);
-    });
+  function positionMoneyContext(item){
+    const panel=q('#mo-context'),canvas=q('#mo-canvas');if(!panel||!canvas||!item)return;
+    const d=metaFor(item.value),w=d.kind==='note'?d.width:d.size,h=d.kind==='note'?d.height:d.size+19;
+    const pw=panel.offsetWidth||180,ph=panel.offsetHeight||40;
+    const x=clamp(item.x+w/2-pw/2,4,Math.max(4,canvas.clientWidth-pw-4));
+    const below=item.y+h+12,above=item.y-ph-12;
+    const y=below+ph<=canvas.clientHeight-4?below:above>=4?above:clamp(below,4,Math.max(4,canvas.clientHeight-ph-4));
+    panel.style.left=x+'px';panel.style.top=y+'px';
   }
-  function toggleMoneyReveal(){if(!challenge)return;challenge.revealed=!challenge.revealed;if(challenge.mode==='standard'&&challenge.freezeMoney===false){if(challenge.revealed){challenge.modelBeforeReveal=snapshot();setValues(challenge.type==='exact-pieces'?(challenge.solutionValues||exactPieceValues(target,challenge.targetPieces)):amountValues(target))}else if(challenge.modelBeforeReveal){restore(challenge.modelBeforeReveal);delete challenge.modelBeforeReveal}}renderControls();controller.refresh()}
+  function updateSelectionTools(item){
+    const panel=q('#mo-context');if(!panel)return;
+    if(!item||challengeFrozen()){panel.hidden=true;contextMode='';contextItemId=null;return}
+    if(contextItemId!==item.id){contextMode='';contextItemId=item.id}
+    const splits=splitOptions(item),combines=combineOptions(item);
+    const actions=(freeMoneyEdit()?I.toolButton('mo-copy','duplicate','Duplicate '+metaFor(item.value).label,'',false)+I.toolButton('mo-delete','delete','Delete '+metaFor(item.value).label,'gd-object-tool--danger',item.locked)+I.toolButton('mo-lock',item.locked?'unlock':'lock',item.locked?'Unlock':'Lock','',false):'')+
+      (!item.locked&&splits.length?I.toolButton('mo-split','split','Split into change',contextMode==='split'?'is-active':'',false):'')+
+      (!item.locked&&combines.length?I.toolButton('mo-combine','combine','Exchange for a larger denomination',contextMode==='combine'?'is-active':'',false):'');
+    if(!actions){panel.hidden=true;return}
+    const options=contextMode==='split'?splits.map((v,i)=>({label:piecesText(v),i})):contextMode==='combine'?combines.map((v,i)=>({label:piecesText(v.group.map(x=>x.value))+' → '+metaFor(v.value).label,i})):[];
+    panel.innerHTML='<div class="gd-money-context-actions">'+actions+'</div>'+
+      (options.length?'<div class="gd-money-exchange-options"><strong>'+(contextMode==='split'?'Split '+metaFor(item.value).label+' into':'Exchange selected piece with others')+'</strong>'+options.map(o=>'<button type="button" data-mo-option="'+o.i+'">'+esc(o.label)+'</button>').join('')+'</div>':'');
+    panel.hidden=false;
+    panel.onpointerdown=e=>e.stopPropagation();
+    panel.onclick=e=>{
+      const button=e.target.closest('button');if(!button||button.disabled)return;
+      e.preventDefault();e.stopPropagation();
+      const action=button.dataset.gdAction,selected=controller.selected();if(!selected||selected.id!==item.id||challengeFrozen())return;
+      if(action==='mo-copy'&&freeMoneyEdit())controller.duplicateSelected();
+      else if(action==='mo-delete'&&freeMoneyEdit())controller.removeSelected();
+      else if(action==='mo-lock'&&freeMoneyEdit())controller.toggleLockSelected();
+      else if(action==='mo-split'||action==='mo-combine'){const mode=action==='mo-split'?'split':'combine';contextMode=contextMode===mode?'':mode;updateSelectionTools(selected)}
+      else if(button.hasAttribute('data-mo-option')){
+        const i=Number(button.dataset.moOption),mode=contextMode;
+        const option=mode==='split'?splitOptions(selected)[i]:combineOptions(selected)[i];if(!option)return;
+        contextMode='';controller.mutate(()=>{if(mode==='split')replaceMoney([selected],option);else replaceMoney(option.group,[option.value])});controller.select(null);
+      }
+    };
+    positionMoneyContext(item);
+  }
+  function toggleMoneyReveal(){if(!challenge)return;challenge.revealed=!challenge.revealed;if(challenge.mode==='standard'&&challenge.freezeMoney===false){if(challenge.revealed){challenge.modelBeforeReveal=snapshot();setValues(exchangeTask()?challenge.solutionValues:challenge.type==='exact-pieces'?(challenge.solutionValues||exactPieceValues(target,challenge.targetPieces)):amountValues(target))}else if(challenge.modelBeforeReveal){restore(challenge.modelBeforeReveal);delete challenge.modelBeforeReveal}}renderControls();controller.refresh()}
   function bindChallengeStageActions(){
     const endChallenge=q('[data-challenge-action="end"]',q('#gd-stage'));if(endChallenge)endChallenge.onclick=e=>{e.stopPropagation();clearChallenge()};
     const stage=q('#gd-stage');if(!stage||!challenge)return;
@@ -5325,13 +5397,13 @@ function moneyTool(){
   function renderMoney(selectedId,history={}){
     updateChallengeAnswer();
     const selected=items.find(x=>String(x.id)===String(selectedId))||null,m=canvasMetrics(items.length);
-    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Money challenge',pupil:(challenge.freezeMoney===false?CK.pupilSpec('model',{check:()=>total()===target&&(challenge.type!=='exact-pieces'||items.length===challenge.targetPieces)&&(challenge.type!=='fewest-pieces'||items.length===challenge.minPieces)}):challenge.type==='compare-amount'?CK.pupilSpec('choice',{choices:['Less than','Equal to','Greater than'],expected:total()<target?'Less than':total()>target?'Greater than':'Equal to'}):CK.pupilSpec('money')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Money challenge',pupil:(challenge.freezeMoney===false?CK.pupilSpec('model',{check:()=>exchangeTask()?exchangeCheck():total()===target&&(challenge.type!=='exact-pieces'||items.length===challenge.targetPieces)&&(challenge.type!=='fewest-pieces'||items.length===challenge.minPieces)}):challenge.type==='compare-amount'?CK.pupilSpec('choice',{choices:['Less than','Equal to','Greater than'],expected:total()<target?'Less than':total()>target?'Greater than':'Equal to'}):CK.pupilSpec('money')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     const embedded=document.documentElement.classList.contains('gd-embed-page');
     q('#gd-stage').innerHTML=banner+'<div class="gd-money-workbench'+(challengeFrozen()&&challenge?.mode==='standard'?' gd-money-workbench--fixed':'')+'">'+
       (challengeFrozen()&&challenge?.mode==='standard'?'':toolbarHtml(history,selected)+(embedded?moneyStagePaletteHtml(true):moneyStagePaletteHtml()))+
       '<div class="gd-money-canvas" id="mo-canvas" data-gd-canvas-bg style="min-height:'+m.height+'px;--mo-fixed-height:'+m.height+'px" aria-label="Money workbench">'+
         (items.length?items.map(moneyObject).join(''):'<div class="gd-money-empty" data-gd-canvas-bg>Choose a denomination to start building an amount.</div>')+
-      '</div>'+
+      '<div id="mo-context" class="gd-money-context" role="group" aria-label="Selected money actions" hidden></div></div>'+
       (!challenge?'<div class="gd-money-summary'+(targetActive?'':' gd-money-summary--total')+'">'+
         '<div><span>Total</span><strong data-mo-total>'+money(total())+'</strong></div>'+
         (targetActive?'<div><span>Target</span><strong data-mo-target-readout>'+money(target)+'</strong></div>'+
@@ -5375,7 +5447,7 @@ function moneyTool(){
     }
     const picker=CK.pickerHtml(CHALLENGE_TEMPLATES,CHALLENGE_CATEGORIES,challengeCategory,challengeType,'mo');
     const repeat=!!(challenge&&challenge.mode==='standard'&&challenge.type===challengeType);
-    const manipulate=challenge&&!challengeFrozen()?moneyPaletteHtml():'';
+    const manipulate=challenge&&freeMoneyEdit()?moneyPaletteHtml():'';
     return tabs+picker+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="mo-generate" type="button">'+(repeat?'Another like this':'Generate challenge')+'</button>'+
       (challenge&&challenge.mode!=='custom'?'<button class="gd-btn" id="mo-edit-challenge" type="button">Edit challenge</button>':'')+
       (challenge&&challenge.answer?'<button class="gd-btn" id="mo-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
@@ -5398,6 +5470,7 @@ function moneyTool(){
     return pupil?!!challenge[key]:hidden(key);
   }
   function exportPieces(pupil=false){
+    if(pupil&&exchangeTask())return challenge.initialItems||[];
     if(pupil&&challenge&&challenge.mode==='standard'&&!challenge.freezeMoney)return[];
     return items;
   }
@@ -5509,7 +5582,7 @@ function moneyTool(){
   function renderControls(){const panel=q('#gd-controls');if(panel)panel.innerHTML=controlsHtml();bindControls()}
   function restoreBeforeChallenge(){if(beforeChallenge){restore(beforeChallenge);beforeChallenge=null}}
   function clearChallenge(){
-    restoreBeforeChallenge();addOpen=false;challenge=null;challengeTab='standard';controlTab='explore';exportMode='board';exportStatus='';renderControls();controller.refresh();
+    restoreBeforeChallenge();controller?.resetHistory?.();contextMode='';contextItemId=null;addOpen=false;challenge=null;challengeTab='standard';controlTab='explore';exportMode='board';exportStatus='';renderControls();controller.refresh();
   }
   function enterCustomChallenge(){
     if(!beforeChallenge)beforeChallenge=snapshot();
@@ -5529,7 +5602,7 @@ function moneyTool(){
   function generateChallenge(type){
     const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
     if(!beforeChallenge)beforeChallenge=snapshot();else restore(beforeChallenge);
-    addOpen=false;
+    controller?.resetHistory?.();contextMode='';contextItemId=null;addOpen=false;
     let values=[],shown=0;
     if(type==='count-total'){
       values=randomShownValues();setValues(values);target=total();
@@ -5555,6 +5628,15 @@ function moneyTool(){
       do{target=randomStep(55,1500,5)}while(minimumPieces(target)<2||minimumPieces(target)>6);
       items=[];nextId=1;
       challenge=challengeObject(type,'Build '+money(target)+' using the fewest coins or notes you can.',minimumPieces(target)+' pieces',{freezeMoney:false,minPieces:minimumPieces(target)});
+    }else if(type==='split-change'||type==='combine-change'||type==='exchange-fewest'){
+      const pairs=[[10,1],[10,2],[20,5],[50,10],[100,20],[200,50],[500,100],[1000,200]];
+      const [large,small]=pairs[randomInt(0,pairs.length-1)],n=large/small;
+      target=large;
+      let initial=type==='split-change'?[large]:Array(n).fill(small),solution=type==='split-change'?Array(n).fill(small):[large];
+      if(type==='exchange-fewest'){initial=[20,20,10,10,10,10,10,10];target=100;solution=[100];if(Math.random()<.5){initial=[50,20,20,10,5,5];target=110;solution=[100,10]}}
+      setValues(initial);
+      const prompt=type==='split-change'?'Split '+metaFor(large).label+' into '+n+' '+metaFor(small).label+' pieces.':type==='combine-change'?'Exchange the '+n+' '+metaFor(small).label+' pieces for one '+metaFor(large).label+' piece.':'Keep the total value the same. Exchange the money for the fewest possible pieces.';
+      challenge=challengeObject(type,prompt,piecesText(solution),{freezeMoney:false,solutionValues:solution,initialItems:items.map(x=>({...x}))});
     }else{
       const tender=[500,1000,2000][randomInt(0,2)];
       const price=randomStep(Math.max(50,Math.round(tender*.25)),tender-25,5);
@@ -5565,11 +5647,11 @@ function moneyTool(){
   }
   function bindMoneyButtons(){
     qa('[data-mo-add]',q('#gd-controls')).forEach(button=>button.onclick=()=>{
-      if(challengeFrozen())return;
+      if(!freeMoneyEdit())return;
       let id=null;controller.mutate(()=>{id=addMoney(button.dataset.moAdd)});controller.select(id?.id);
     });
     const tidy=q('#mo-tidy');if(tidy)tidy.onclick=()=>{if(!challengeFrozen())controller.mutate(tidyMoney)};
-    const clear=q('#mo-clear');if(clear)clear.onclick=()=>{if(!items.length||challengeFrozen())return;controller.mutate(()=>{items=[]})};
+    const clear=q('#mo-clear');if(clear)clear.onclick=()=>{if(!items.length||!freeMoneyEdit())return;controller.mutate(()=>{items=[]})};
   }
   function bindControls(){
     qa('[data-mo-workflow]',q('#gd-controls')).forEach(button=>button.onclick=()=>{controlTab=button.dataset.moWorkflow;renderControls()});
@@ -5583,10 +5665,12 @@ function moneyTool(){
     }
     if(controlTab==='explore'){
       const targetInput=q('#mo-target');if(targetInput)targetInput.oninput=()=>{
+        if(challenge)return;
         target=Math.max(1,Math.round(Math.max(.01,num(targetInput.value,target/100))*100));targetActive=true;controller.refresh();
       };
-      const clearTarget=q('#mo-clear-target');if(clearTarget)clearTarget.onclick=()=>controller.mutate(()=>{targetActive=false});
+      const clearTarget=q('#mo-clear-target');if(clearTarget)clearTarget.onclick=()=>{if(!challenge)controller.mutate(()=>{targetActive=false})};
       const random=q('#mo-random');if(random)random.onclick=()=>{
+        if(challenge)return;
         controller.mutate(()=>{target=Math.floor(Math.random()*2000)+1;targetActive=true;items=[]});
         const input=q('#mo-target');if(input)input.value=(target/100).toFixed(2);
       };
@@ -5628,14 +5712,16 @@ function moneyTool(){
     remove:item=>{const index=items.indexOf(item);if(index>=0)items.splice(index,1)},
     toggleLock:item=>{item.locked=!item.locked},
     isLocked:item=>!!item.locked||challengeFrozen(),
+    canAction:action=>['undo','redo'].includes(action)?!challengeFrozen():freeMoneyEdit(),
     snap:4,
     nudgeStep:4,
     onAction:(action,api,button)=>{
-      if(action==='add-money'){if(challengeFrozen())return;addOpen=!addOpen;api.refresh()}
-      else if(action==='add-money-piece'&&!challengeFrozen()){
+      if(action==='add-money'){if(!freeMoneyEdit())return;addOpen=!addOpen;api.refresh()}
+      else if(action==='add-money-piece'&&freeMoneyEdit()){
         let id=null;api.mutate(()=>{id=addMoney(button?.dataset?.moValue)});api.select(id?.id);
       }else if(action==='close-money'){addOpen=false;api.refresh()}
     },
+    onMove:item=>positionMoneyContext(item),
     onSelectionChange:item=>{updateSelectionTools(item)}
   });
   bindControls();
