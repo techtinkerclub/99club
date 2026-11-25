@@ -232,6 +232,27 @@ async function run(){
   const nlFloating=document.getElementById('gd-board-floating-controls');
   assert(visible(nlFloating)&&nlFloating.querySelector('[data-nl-active-line-top]'),'Number Line settings are proxied into the floating whiteboard palette');
   nlSettings.click();await tick();
+  // Generate through the actual teacher controls, not a synthetic question.
+  nlDoc.querySelector('[data-nl-workflow="challenge"]').click();
+  nlDoc.querySelector('[data-nl-challenge-cat="calculate"]').click();
+  for(const type of ['jump','missing-start','repeated-jumps']){
+    nlDoc.querySelector('[data-nl-challenge-type="'+type+'"]').click();
+    nlDoc.getElementById('nl-generate').click();await tick(100);
+    const stage=nlDoc.getElementById('gd-stage');
+    assert(stage.querySelector('.gd-challenge-kicker').textContent.trim()==='Challenge','Standard challenge heading: '+type);
+    assert(stage.querySelectorAll('.nl-challenge-jump').length===0,'Unsolved calculation never draws the answer-bearing jump: '+type);
+    assert(stage.querySelectorAll('.nl-svg-marker--challenge-jump').length===1,'Unsolved calculation shows only the known marker: '+type);
+    assert(stage.querySelectorAll('[data-challenge-action="end"],[data-nmb-v7-exit]').length===1,'Exactly one challenge exit: '+type);
+    const model=nlDoc.defaultView.TT99Goodies.lessonState.capture('number-line').model.state;
+    const input=stage.querySelector('[data-challenge-response]');
+    input.value=model.challenge.answer;input.dispatchEvent(new nlDoc.defaultView.Event('input',{bubbles:true}));
+    stage.querySelector('[data-challenge-check]').click();await tick(100);
+    assert(stage.querySelectorAll('.nl-challenge-jump').length>0,'Correct answer shows the worked jump: '+type);
+    assert(!stage.querySelector('.gd-challenge-reveal'),'Reveal is redundant after a correct answer: '+type);
+    stage.querySelector('[data-challenge-action="end"]').click();await tick(50);
+    nlDoc.querySelector('[data-nl-workflow="challenge"]').click();
+    nlDoc.querySelector('[data-nl-challenge-cat="calculate"]').click();
+  }
   TT99Goodies.compositionBoard.remove(nlRecord.id);
 
   const firstClockRecord=TT99Goodies.compositionBoard.objects().find(x=>x.toolId==='clock');
@@ -297,6 +318,9 @@ async function run(){
   assert(!visible(pvFloating),'Frame Challenge starts a pupil task directly instead of opening another settings/picker palette');
   const pvGame=pvDoc.querySelector('.gd-pv-activity--game');
   assert(pvGame,'Frame Challenge immediately creates an active Place Value pupil task');
+  assert(pvGame.classList.contains('gd-native-challenge'),'Place Value uses the shared challenge presentation');
+  assert(pvGame.querySelector('.gd-pv-activity-head span').textContent.trim()==='CHALLENGE','Place Value uses the common challenge heading');
+  assert(pvGame.querySelector('[data-pv-activity-exit]'),'Place Value has a direct challenge exit');
   const pvRepresentationView=pvDoc.querySelector('.gd-pv-board-wrap,.gd-pv-abacus');
   const pvChallengeGap=Math.round(pvRepresentationView.getBoundingClientRect().top-pvGame.getBoundingClientRect().bottom);
   assert(pvChallengeGap>=6&&pvChallengeGap<=16,'Place Value challenge card keeps a small fixed gap before the table: '+pvChallengeGap+'px');
