@@ -551,6 +551,37 @@ async function run(){
   publisher.querySelector('[data-pub-remove]').click();await tick();
   publisher.querySelector('[data-pub-close]').click();
   TT99Goodies.compositionBoard.remove(randomRecord.id);
+  // Automatic builder supports search, independent sets and visible validation.
+  {
+    const P=TT99Goodies.publishing,draft=P.createDocument();
+    P.openEditor(draft,{mode:'builder'});
+    const dialog=document.getElementById('gd-publishing-editor');
+    const search=dialog.querySelector('[data-pub-search]');
+    search.value='geoboard';search.dispatchEvent(new Event('input',{bubbles:true}));
+    assert(dialog.querySelectorAll('[data-pub-add-source]').length===1,'Catalogue search filters widgets');
+    dialog.querySelector('[data-pub-add-source="geoboard"]').click();
+    dialog.querySelector('[data-pub-add-source="geoboard"]').click();
+    let sets=dialog.querySelectorAll('[data-pub-block]');
+    assert(sets.length===2&&sets[0].querySelector('.gd-pub-source-content').hidden&&!sets[1].querySelector('.gd-pub-source-content').hidden,'Repeated widget sets are independent and prior sets collapse');
+    sets[0].querySelector('[data-pub-toggle-block]').click();
+    sets=dialog.querySelectorAll('[data-pub-block]');
+    assert(!sets[0].querySelector('.gd-pub-source-content').hidden,'Source settings can be reopened');
+    sets[0].querySelector('[data-pub-no-types]').click();
+    assert(dialog.querySelector('[data-pub-generate]').disabled&&dialog.querySelector('.gd-pub-source.is-invalid'),'Builder prevents generation when a set has no question types');
+    dialog.querySelector('[data-pub-block] [data-pub-all-types]').click();
+    assert(!dialog.querySelector('[data-pub-generate]').disabled,'Selecting compatible types restores the action');
+    const searchAgain=dialog.querySelector('[data-pub-search]');searchAgain.value='';searchAgain.dispatchEvent(new Event('input',{bubbles:true}));
+    assert(dialog.querySelectorAll('[data-pub-add-source]').length===20,'Clearing search restores the full catalogue');
+    dialog.querySelector('[data-pub-collapse-all]').click();
+    assert([...dialog.querySelectorAll('.gd-pub-source-content')].every(el=>el.hidden),'Collapse all preserves sets while hiding settings');
+    const counts=dialog.querySelectorAll('[data-pub-count]');counts[0].value='1';counts[0].dispatchEvent(new Event('change',{bubbles:true}));
+    const second=dialog.querySelectorAll('[data-pub-count]')[1];second.value='1';second.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(dialog.querySelector('.gd-pub-draft-total').textContent.includes('2 / 80'),'Builder shows total capacity');
+    dialog.querySelector('[data-pub-generate]').click();await tick();
+    assert(draft.list().length===2,'Independent sets generate into one draft');
+    dialog.querySelector('[data-pub-close]').click();await tick();
+  }
+
   // Manual and automatic publishing share selection and validation.
   {
     const P=TT99Goodies.publishing,draft=P.createDocument();

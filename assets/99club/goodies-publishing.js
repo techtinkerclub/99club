@@ -238,6 +238,13 @@ const BUILDER_CATALOG=[
  ['maths-canvas','Arithmetic'],['sequences','Sequences & rules'],['abacus','Abacus'],['place-value','Place value'],
  ['number-line','Number line'],['fraction-wall','Fraction wall'],['bar-model','Bar model'],['hundred-square','Hundred square'],['multiplication-grid','Multiplication grid'],['array-builder','Array builder'],['clock','Clock & time'],['money','UK money'],['coordinates','Coordinate grid'],['measurement','Ruler & measures'],['randomiser','Dice, spinner & randomiser'],['balance','Equation balance'],['times-table','Times-table visualiser'],['factors','Factors & multiples'],['fdp','Fraction–decimal–percentage'],['geoboard','Shape & geoboard']
 ];
+const BUILDER_GROUPS=[
+ ['Number & calculation',['maths-canvas','sequences','abacus','place-value','number-line','hundred-square','balance']],
+ ['Multiplication & division',['multiplication-grid','array-builder','times-table','factors']],
+ ['Fractions & proportions',['fraction-wall','bar-model','fdp']],
+ ['Geometry & measurement',['geoboard','coordinates','measurement','clock','money']],
+ ['Other classroom tools',['randomiser']]
+];
 function defaults(tool){
  if(tool==='maths-canvas')return {difficulty:'medium',curriculumProfile:'custom',numberSettings:G.numberChallenges.settings({},'medium'),workingLines:0};
  if(tool==='sequences')return {settings:{family:'all',difficulty:'medium'}};
@@ -289,7 +296,7 @@ function openQuickGenerate(draft,tool,snapshot){
 function openEditor(draft,{mode='review'}={}){
  let dlg=document.getElementById('gd-publishing-editor');
  if(!dlg){dlg=document.createElement('dialog');dlg.id='gd-publishing-editor';dlg.className='gd-publishing-editor';document.body.appendChild(dlg)}
- let title=dlg.dataset.title||'Maths practice',teacher=false,status='',view=mode,blocks=dlg._pubBlocks||[],nextBlock=Math.max(0,...blocks.map(b=>b.id))+1,mix=false;
+ let title=dlg.dataset.title||'Maths practice',teacher=false,status='',view=mode,blocks=dlg._pubBlocks||[],nextBlock=Math.max(0,...blocks.map(b=>b.id))+1,mix=!!dlg._pubMix,catalogQuery=dlg._pubCatalogQuery||'',focusSource=null;
  const esc=G.esc;
  const option=(value,label,current)=>'<option value="'+esc(value)+'"'+(String(value)===String(current)?' selected':'')+'>'+esc(label)+'</option>';
  const select=(label,key,values,current)=>'<label class="gd-pub-field"><span>'+esc(label)+'</span><select data-pub-setting="'+esc(key)+'">'+values.map(v=>Array.isArray(v)?option(v[0],v[1],current):option(v,v,current)).join('')+'</select></label>';
@@ -325,11 +332,26 @@ function openEditor(draft,{mode='review'}={}){
  }
  function blockHtml(block,i){
    const available=types(block.tool,block.settings),selected=block.types===null?available.map(t=>t.id):block.types;
-   return '<section class="gd-pub-source" data-pub-block="'+block.id+'"><header><div><small>Source '+(i+1)+'</small><strong>'+esc(adapterFor(block.tool).label)+'</strong></div><label class="gd-pub-count">Questions <select data-pub-count>'+Array.from({length:20},(_,j)=>option(j+1,j+1,block.count)).join('')+'</select></label><button type="button" class="gd-btn gd-pub-icon" data-pub-delete-block="'+block.id+'" aria-label="Remove source">×</button></header>'+blockSettings(block)+'<details class="gd-pub-details"'+(block.open?' open':'')+' data-pub-type-details><summary>Challenge types · '+selected.length+' of '+available.length+'</summary><div class="gd-pub-check-row"><button type="button" class="gd-btn" data-pub-all-types>All</button><button type="button" class="gd-btn" data-pub-no-types>None</button></div><div class="gd-pub-check-grid">'+available.map(t=>'<label><input type="checkbox" data-pub-type value="'+esc(t.id)+'"'+(selected.includes(t.id)?' checked':'')+'>'+esc(t.label)+'</label>').join('')+'</div></details></section>';
+   const settings=blockSettings(block),invalid=!selected.length;
+   return '<section class="gd-pub-source'+(invalid?' is-invalid':'')+'" data-pub-block="'+block.id+'"><header><button type="button" class="gd-pub-source-toggle" data-pub-toggle-block aria-expanded="'+!block.collapsed+'"><span class="gd-pub-source-chevron">'+(block.collapsed?'›':'⌄')+'</span><span><small>Set '+(i+1)+'</small><strong>'+esc(adapterFor(block.tool).label)+'</strong><small class="gd-pub-source-meta">'+(invalid?'Choose question types':selected.length+' of '+available.length+' types')+'</small></span></button><label class="gd-pub-count"><span>Questions</span><select data-pub-count aria-label="Number of questions in set '+(i+1)+'">'+Array.from({length:20},(_,j)=>option(j+1,j+1,block.count)).join('')+'</select></label><button type="button" class="gd-btn gd-pub-icon" data-pub-delete-block="'+block.id+'" aria-label="Remove set '+(i+1)+'" title="Remove set">×</button></header>'+
+     '<div class="gd-pub-source-content"'+(block.collapsed?' hidden':'')+'>'+(settings?'<div class="gd-pub-source-settings">'+settings+'</div>':'')+
+     '<details class="gd-pub-details"'+(block.open?' open':'')+' data-pub-type-details><summary>Question types <small>'+selected.length+' / '+available.length+'</small></summary><div class="gd-pub-check-row"><button type="button" class="gd-btn" data-pub-all-types>All</button><button type="button" class="gd-btn" data-pub-no-types>None</button></div><div class="gd-pub-check-grid">'+available.map(t=>'<label><input type="checkbox" data-pub-type value="'+esc(t.id)+'"'+(selected.includes(t.id)?' checked':'')+'><span>'+esc(t.label)+'</span></label>').join('')+'</div></details></div></section>';
+ }
+ function catalogHtml(){
+   const lookup=new Map(BUILDER_CATALOG),query=catalogQuery.trim().toLowerCase(),out=[];
+   for(const [group,ids] of BUILDER_GROUPS){
+     const matches=ids.filter(id=>!query||(lookup.get(id)+' '+group+' '+id+' '+(supports(id)?adapterFor(id).label:'')).toLowerCase().includes(query));
+     if(!matches.length)continue;
+     out.push('<section class="gd-pub-catalog-group"><h4>'+esc(group)+'</h4>'+matches.map(id=>{
+       const count=blocks.filter(b=>b.tool===id).length,enabled=canGenerate(id);
+       return '<button type="button" class="gd-pub-catalog-item'+(count?' is-selected':'')+'" data-pub-add-source="'+id+'"'+(!enabled?' disabled':'')+'><span>'+esc(lookup.get(id))+'</span><small>'+(enabled?(count?count+' set'+(count===1?'':'s')+' · ＋':'＋'):supports(id)?'Current item only':'Pending')+'</small></button>';
+     }).join('')+'</section>');
+   }
+   return out.join('')||'<p class="gd-pub-catalog-empty">No matching widgets.</p>';
  }
  function renderBuilder(){
-   const n=blocks.reduce((sum,x)=>sum+x.count,0);
-   return '<div class="gd-pub-builder"><aside class="gd-pub-catalog"><h3>Widgets</h3><p>Choose a widget. Add it again for different settings.</p>'+BUILDER_CATALOG.map(([id,label])=>'<button type="button" class="gd-pub-catalog-item" data-pub-add-source="'+id+'"'+(!canGenerate(id)?' disabled':'')+'><span>'+esc(label)+'</span><small>'+(canGenerate(id)?'+ Add':supports(id)?'Current item only':'Pending')+'</small></button>').join('')+'</aside><main class="gd-pub-sources"><div class="gd-pub-section-head"><h3>Configure worksheet</h3><span>'+n+' questions</span></div>'+(blocks.length?blocks.map(blockHtml).join(''):'<div class="gd-pub-empty"><strong>Choose a widget to start</strong><p>Set quantities and question types independently for each source.</p></div>')+'</main></div><footer class="gd-pub-footer"><label><input type="checkbox" data-pub-mix'+(mix?' checked':'')+'> Mix questions after generation</label><span class="gd-pub-spacer"></span><button type="button" class="gd-btn gd-btn--primary" data-pub-generate'+(!n||n+draft.list().length>80?' disabled':'')+'>Add '+n+' questions to draft</button></footer>';
+   const n=blocks.reduce((sum,x)=>sum+x.count,0),existing=draft.list().length,invalid=blocks.some(b=>!(b.types===null?types(b.tool,b.settings).length:b.types.length)),over=n+existing>80;
+   return '<div class="gd-pub-builder"><aside class="gd-pub-catalog"><div class="gd-pub-catalog-head"><h3>Add widgets</h3><p>Add the same widget again for a different set.</p><input type="search" data-pub-search placeholder="Find a widget…" aria-label="Find a widget" value="'+esc(catalogQuery)+'"></div><div class="gd-pub-catalog-results">'+catalogHtml()+'</div></aside><main class="gd-pub-sources"><div class="gd-pub-section-head gd-pub-config-head"><div><h3>Question sets</h3><small>'+blocks.length+' set'+(blocks.length===1?'':'s')+' · '+n+' new questions</small></div>'+(blocks.length?'<button type="button" class="gd-btn" data-pub-collapse-all>Collapse all</button>':'')+'</div>'+(blocks.length?blocks.map(blockHtml).join(''):'<div class="gd-pub-empty"><strong>Choose a widget to start</strong><p>Configure each set independently, then add the questions to your document.</p></div>')+'</main></div><footer class="gd-pub-footer gd-pub-builder-footer"><div class="gd-pub-draft-total"><strong>'+ (n+existing)+' / 80 items</strong><small>'+existing+' in draft · '+n+' new'+(over?' · reduce quantity':invalid?' · choose question types':'')+'</small></div><label><input type="checkbox" data-pub-mix'+(mix?' checked':'')+'> Mix questions after generation</label><button type="button" class="gd-btn gd-btn--primary" data-pub-generate'+(!n||over||invalid?' disabled':'')+'>Add '+n+' question'+(n===1?'':'s')+'</button></footer>';
  }
  function renderReview(){
    const items=draft.list(),disabled=items.length?'':' disabled';
@@ -361,12 +383,13 @@ function openEditor(draft,{mode='review'}={}){
 
  function render(){
    const scroll=dlg.querySelector('.gd-pub-sources')?.scrollTop||0,catalogScroll=dlg.querySelector('.gd-pub-catalog')?.scrollTop||0,previewScroll=dlg.querySelector('.gd-pub-preview')?.scrollTop||0,listScroll=dlg.querySelector('.gd-pub-list')?.scrollTop||0;
-   dlg._pubBlocks=blocks;
+   dlg._pubBlocks=blocks;dlg._pubMix=mix;dlg._pubCatalogQuery=catalogQuery;
    dlg.classList.toggle('is-builder',view==='builder');
    dlg.innerHTML='<header class="gd-pub-head"><div><small>99 Club Studio</small><strong>Worksheet publisher</strong></div><button type="button" class="gd-btn gd-pub-icon" data-pub-close aria-label="Close">×</button></header><nav class="gd-pub-nav"><button type="button" class="gd-btn" data-pub-builder aria-pressed="'+(view==='builder')+'">Automatic builder</button><button type="button" class="gd-btn" data-pub-back aria-pressed="'+(view==='review')+'">Review document <small>'+draft.list().length+'</small></button><span class="gd-pub-spacer"></span><button type="button" class="gd-btn" data-pub-close>Back to whiteboard</button></nav><p role="status" class="gd-pub-status"'+(!status?' hidden':'')+'>'+esc(status)+'</p>'+(view==='builder'?renderBuilder():renderReview());
    const source=dlg.querySelector('.gd-pub-sources');if(source)source.scrollTop=scroll;
    if(view==='review')try{paintPreview()}catch(e){const p=dlg.querySelector('.gd-pub-preview');if(p)p.textContent=e.message}
    for(const [selector,value] of [['.gd-pub-catalog',catalogScroll],['.gd-pub-preview',previewScroll],['.gd-pub-list',listScroll]]){const el=dlg.querySelector(selector);if(el)el.scrollTop=value}
+   if(focusSource!==null){const el=dlg.querySelector('[data-pub-block="'+focusSource+'"]');if(el&&source){source.scrollTop=Math.max(0,el.offsetTop-source.offsetTop-12);el.querySelector('[data-pub-toggle-block]')?.focus({preventScroll:true})}focusSource=null}
  }
  function getBlock(el){return blocks.find(b=>String(b.id)===el.closest('[data-pub-block]')?.dataset.pubBlock)}
  dlg.onclick=e=>{const btn=e.target.closest('button');if(!btn||btn.disabled)return;const d=btn.dataset;
@@ -374,7 +397,9 @@ function openEditor(draft,{mode='review'}={}){
      status='';
      if('pubClose'in d){dlg.close();return}
      if('pubBuilder'in d)view='builder';else if('pubBack'in d)view='review';
-     else if('pubAddSource'in d){if(!canGenerate(d.pubAddSource))throw Error('Add this illustration from its widget export menu.');blocks.push({id:nextBlock++,tool:d.pubAddSource,count:5,settings:defaults(d.pubAddSource),types:null,open:false})}
+     else if('pubAddSource'in d){if(!canGenerate(d.pubAddSource))throw Error('Add this illustration from its widget export menu.');blocks.forEach(b=>b.collapsed=true);const id=nextBlock++;blocks.push({id,tool:d.pubAddSource,count:5,settings:defaults(d.pubAddSource),types:null,open:false,collapsed:false});focusSource=id}
+     else if('pubToggleBlock'in d){const b=getBlock(btn);b.collapsed=!b.collapsed}
+     else if('pubCollapseAll'in d)blocks.forEach(b=>b.collapsed=true);
      else if('pubDeleteBlock'in d)blocks=blocks.filter(b=>b.id!==+d.pubDeleteBlock);
      else if('pubAllTypes'in d||'pubNoTypes'in d){const b=getBlock(btn);b.types='pubAllTypes'in d?null:[];b.open=true}
      else if('pubGenerate'in d){draft.generateBlocks(blocks);if(mix)draft.shuffle();blocks=[];view='review';teacher=false}
@@ -383,10 +408,11 @@ function openEditor(draft,{mode='review'}={}){
    }catch(err){status=err.message}
    render();
  };
+ dlg.oninput=e=>{if(e.target.hasAttribute('data-pub-search')){catalogQuery=e.target.value;dlg._pubCatalogQuery=catalogQuery;dlg.querySelector('.gd-pub-catalog-results').innerHTML=catalogHtml()}};
  dlg.onchange=e=>{
    const el=e.target,b=getBlock(el);
    if(el.hasAttribute('data-pub-title')){title=el.value.trim()||'Maths practice';dlg.dataset.title=title;paintPreview();return}
-   if(el.hasAttribute('data-pub-mix')){mix=el.checked;return}
+   if(el.hasAttribute('data-pub-mix')){mix=el.checked;dlg._pubMix=mix;return}
    if(!b)return;
    const section=el.closest('[data-pub-block]');b.open=!!section.querySelector('[data-pub-type-details]')?.open;b.topicsOpen=!!section.querySelector('[data-pub-topics]')?.open;
    if(el.hasAttribute('data-pub-count'))b.count=+el.value;
