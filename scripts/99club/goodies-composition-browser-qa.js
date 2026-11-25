@@ -1005,6 +1005,32 @@ async function run(){
     assert(rejected&&draft.list().length===2,'Incomplete custom tasks cannot silently create answerless documents');
     api.remove(fixture.record.id);
   }
+  // Statistics: live representations, random challenge, current capture and generated worksheets.
+  {
+    const id='statistics-table',fixture=await addForSave(id),doc=fixture.doc,live=doc.defaultView.TT99Goodies;
+    const capture=()=>live.lessonState.capture(id).model;
+    const original=capture();
+    const select=doc.getElementById('st-view');select.value='tally';select.dispatchEvent(new doc.defaultView.Event('change',{bubbles:true}));
+    await tick();
+    assert(capture().view==='tally'&&JSON.stringify(capture().data)===JSON.stringify(original.data),'Statistics representation switch preserves dataset');
+    assert(doc.querySelectorAll('#gd-stage svg line').length>0,'Tally marks render as lines');
+    doc.querySelector('[data-st-change="0,1"]').click();await tick();
+    assert(capture().data.rows[0].value===original.data.rows[0].value+1,'Statistics touch increment changes frequency');
+    const teaching=capture();
+    doc.querySelector('[data-st-workflow="challenge"]').click();await tick();
+    doc.querySelector('[data-st-challenge-mode="total"]').click();await tick();
+    const question=capture();
+    assert(question.task&&Number(question.task.answer)===question.data.rows.reduce((sum,r)=>sum+r.value,0),'Statistics challenge total matches dataset');
+    const P=TT99Goodies.publishing,draft=P.createDocument();
+    draft.addCurrent(id,question);
+    draft.generate(id,question,3,'read');
+    assert(draft.list().length===4,'Statistics current capture and batch generation');
+    assert(Number(P.answerSummary(draft.list()[0]))===Number(question.task.answer),'Current question marking remains exact');
+    assert(P.pages(draft.list(),{teacher:true}).some(svg=>svg.querySelector('[data-pub-answer-graphic]')),'Statistics graphical teacher annex');
+    doc.querySelector('[data-challenge-action="end"]').click();await tick();
+    assert(JSON.stringify(capture().data)===JSON.stringify(teaching.data),'Exiting statistics challenge restores teaching dataset');
+    api.remove(fixture.record.id);
+  }
   // Work directly in actual embedded written-method grids with the shared keypad.
   for(const id of ['column-addition','column-subtraction','written-multiplication','written-division']){
     const fixture=await addForSave(id),doc=fixture.doc,live=doc.defaultView.TT99Goodies,frame=fixture.frame;
