@@ -132,7 +132,7 @@ function abacusTool(){
   function historyChallengeBanner(){
     if(!historyChallenge)return '';
     const input=historyChallenge.requiresAnswer?'<label class="gd-ab-answer">Answer <input type="number" step="0.01" inputmode="decimal" data-ab-history-answer value="'+esc(historyAnswer)+'"></label>':'';
-    return '<section class="gd-ab-task gd-history-task"><div class="gd-ab-task-head"><div><span>CHALLENGE · '+esc(deviceHelp().title.toUpperCase())+'</span><strong>'+esc(historyChallenge.prompt)+'</strong></div><em>'+esc(historyStatus)+'</em></div>'+input+'<div class="gd-ab-task-actions"><button type="button" data-ab-history-check>Check</button><button type="button" data-ab-history-another>Another</button>'+(historyRevealed?'':'<button type="button" data-ab-history-reveal>Reveal</button>')+'<button type="button" data-ab-history-end>End challenge</button></div></section>';
+    return '<section class="gd-ab-task gd-history-task gd-native-challenge"><div class="gd-ab-task-head"><div><span>CHALLENGE</span><strong>'+esc(historyChallenge.prompt)+'</strong></div><em>'+esc(historyStatus)+'</em></div>'+input+'<div class="gd-ab-task-actions"><button type="button" data-ab-history-check>Check</button><button type="button" data-ab-history-another>Another</button>'+(historyRevealed?'':'<button type="button" data-ab-history-reveal>Reveal answer</button>')+'<button type="button" data-ab-history-end>Exit challenge</button></div></section>';
   }
 
   function isAbacusKind(){return kind==='western'||kind==='suanpan'||kind==='soroban'}
@@ -616,10 +616,10 @@ function abacusTool(){
     if(!task)return '';
     const context=taskContext==='challenge'?'CHALLENGE':'PLAY';
     const answer=task.requiresAnswer?'<label class="gd-ab-answer">Answer <input type="number" inputmode="numeric" data-ab-answer value="'+esc(answerInput)+'"></label>':'';
-    const reveal=taskContext==='challenge'?'<button type="button" data-ab-reveal>Reveal</button>':'';
+    const reveal=taskContext==='challenge'?'<button type="button" data-ab-reveal>Reveal answer</button>':'';
     const skipNext=task.mode==='skip'&&workflow==='play'?'<button type="button" data-ab-skip-next>Next '+task.step+'</button>':'';
-    return '<section class="gd-ab-task" data-ab-task="'+task.mode+'">'+
-      '<div class="gd-ab-task-head"><div><span>'+context+' · '+esc(taskTitle(task.mode).toUpperCase())+'</span><strong>'+esc(task.prompt)+'</strong></div><em data-ab-status>'+esc(status)+'</em></div>'+
+    return '<section class="gd-ab-task'+(taskContext==='challenge'?' gd-native-challenge':'')+'" data-ab-task="'+task.mode+'">'+
+      '<div class="gd-ab-task-head"><div><span>'+context+'</span><strong>'+esc(task.prompt)+'</strong></div><em data-ab-status>'+esc(status)+'</em></div>'+
       answer+
       '<div class="gd-ab-task-actions"><button type="button" data-ab-check>Check</button>'+skipNext+reveal+'<button type="button" data-ab-another>Another</button></div>'+
     '</section>';
