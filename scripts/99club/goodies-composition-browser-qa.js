@@ -970,6 +970,23 @@ async function run(){
   rulerDoc.querySelector('[data-board-action="reveal"]').click();await tick();
   assert(rulerApi.capture('measurement').model.diagram.cm===rulerAttempt.diagram.cm,'Hide answer restores previous marker');
   api.remove(qaRuler.record.id);
+  {
+    const P=TT99Goodies.publishing,fixture=await addForSave('geoboard'),live=fixture.doc.defaultView.TT99Goodies;
+    const original=live.publishingLive(),draft=P.createDocument();
+    assert(original.illustration,'Geoboard exposes its actual teaching illustration for publishing');
+    draft.addCurrent('geoboard',live.lessonState.capture('geoboard').model,original);
+    const first=draft.list()[0];
+    assert(first.kind==='diagram'&&first.data.frozenSvg===original.illustration,'Current teaching SVG is frozen verbatim');
+    const authored={title:'Teacher question',prompt:'Find the missing value.',answer:'42',pupilSvg:original.illustration,responseLines:2};
+    draft.addCurrent('geoboard',{},null,authored);
+    const item=draft.list()[1];
+    assert(item.kind==='challenge'&&!item.recipe&&P.answerSummary(item)==='42','Authored challenges retain answers but cannot be randomly regenerated');
+    assert(!P.renderItem(item,false).textContent.includes('42')||original.illustration.includes('42'),'Teacher answer is not inserted into the pupil question');
+    assert(P.pages(draft.list(),{teacher:true}).some(svg=>svg.getAttribute('data-worksheet-answer')==='annex'),'Authored challenge receives teacher annex');
+    let rejected=false;try{draft.addCurrent('geoboard',{},null,{...authored,answer:''})}catch(_){rejected=true}
+    assert(rejected&&draft.list().length===2,'Incomplete custom tasks cannot silently create answerless documents');
+    api.remove(fixture.record.id);
+  }
   // Specialist native engines must work through the same full and quick panels.
   for(const id of ['place-value','abacus','maths-canvas','sequences']){
     const fixture=await addForSave(id),panel=document.getElementById('gd-board-floating-controls');

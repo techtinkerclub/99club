@@ -401,7 +401,18 @@ function restoreMobile(saved){
   G.numberMobileChallengeChrome?.refresh();
   G.numberMobileNumericInput?.refresh();
 }
-function topologySnapshot(){return JSON.parse(JSON.stringify({roots,blankIds:[...blankIds],nextBranch}))}
+// Manual authored tasks may not be serialisable as generated lesson sessions.
+ // Capture their pupil-safe diagram independently; do not relax lesson validation.
+ G.publishingLive=undefined;
+ function publishingMobile(){
+  const engine=G.numberMobileEngineState?.captureChallenge(),ch=engine?.challenge;
+  if(ch?.mode!=='custom'||G.numberMobileChallengeSpec)return null;
+  if(G.numberMobileChallengeIsBuilding?.()||pendingAdd||adapting||editingId)throw Error('Finish editing the Number Mobile before publishing.');
+  const diagram=G.numberMobileEngineState.capture(),topology=topologySnapshot();
+  const data={type:'custom',diagram,topology,settings:{responseLines:engine.responseLines||1},challenge:{type:'custom',prompt:ch.prompt,answer:ch.answer}};
+  return G.publishing.captureLiveDiagram(()=>G.numberMobilePaperModel.render(data,false,true),ch,engine.responseLines);
+ }
+ function topologySnapshot(){return JSON.parse(JSON.stringify({roots,blankIds:[...blankIds],nextBranch}))}
 function applyTopology(t){
   roots=t.roots;blankIds=new Set(t.blankIds.map(String));nextBranch=t.nextBranch;
   selectedBranchId=null;focusedTileId=null;editingId=null;editBuffer='';pendingAdd=null;
@@ -415,6 +426,7 @@ G.balanceTool=function numberMobileBalanceToolV3(){
   disconnect();setupTopology=null;lastVisual={angle:0,left:0,right:0};blankIds=new Set();roots={left:[],right:[]};nextBranch=1;selectedBranchId=null;focusedTileId=null;editingId=null;editBuffer='';pendingAdd=null;
   originalBalanceTool();adaptToolHeader();document.addEventListener('keydown',keyboardHandler);cleanups.push(()=>document.removeEventListener('keydown',keyboardHandler));
   observe(document.getElementById('gd-stage'),adaptStage);observe(document.getElementById('gd-controls'),adaptControls);
+  G.publishingLive=publishingMobile;
   G.lessonState?.register('balance',captureMobile,restoreMobile);
 };
 G.numberMobileBalanceVersion='3.0.1';

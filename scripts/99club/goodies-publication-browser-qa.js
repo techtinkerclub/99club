@@ -72,10 +72,31 @@ if(process.argv[2]==='prepare'){
        results.push({tool,families:families.map(f=>f.id),generated:items.length,pupilPages:sheets.filter(s=>s.getAttribute('data-worksheet-answer')==='pupil').length,annexPages:sheets.filter(s=>s.getAttribute('data-worksheet-answer')==='annex').length,graphics:sheets.reduce((n,s)=>n+s.querySelectorAll('[data-pub-answer-graphic]').length,0)});
      }catch(err){issues.push(tool+': '+err.message)}
    }
+   // Dense cards should use available page height, while standalone output remains unchanged.
+   const geo=P.createDocument();geo.generate('geoboard',{gridSize:13},1,'build-area',rng);
+   const geoItem=geo.list()[0],denseCard=X.withDocumentCardLayout(()=>P.renderItem(geoItem,false),{denseDiagram:true}),compactCard=X.withDocumentCardLayout(()=>P.renderItem(geoItem,false));
+   assert(vb(denseCard)[3]>vb(compactCard)[3],'Dense worksheet policy allocates more vertical drawing space');
+   const geoAnnex=P.pages([geoItem],{teacher:true}).find(page=>page.getAttribute('data-worksheet-answer')==='annex');
+   assert(Number(geoAnnex.querySelector('[data-pub-answer-graphic]').getAttribute('height'))>340,'Dense Geoboard answer is no longer compressed to the former annex cap');
+   assert(warnings.length===0,'Default publication samples must retain the zero sub-7pt text baseline');
+   assert(clipping.length===0,'No rendered text outside the page: '+JSON.stringify(clipping.slice(0,5)));
+   for(const kind of ['reckoning','rods','napier','slide','pascaline']){
+     const settings={kind},families=P.types('abacus',settings);
+     for(const family of families){
+       const draft=P.createDocument();draft.generate('abacus',settings,2,family.id,rng);
+       const items=draft.list();
+       assert(items.every(item=>item.data.historical&&P.answerSummary(item)&&P.answerNote(item)),'Historical instrument marking: '+kind);
+       const pages=P.pages(items,{teacher:true});
+       assert(pages.some(page=>page.querySelector('[data-pub-answer-graphic]')),'Historical instrument graphic: '+kind);
+       for(const page of pages){const prepared=X.preparePaperSvg(page);const frame=document.createElement('div');frame.className='audit-sheet';frame.appendChild(prepared);host.appendChild(frame);checkPage(prepared,'abacus-'+kind,page.getAttribute('data-worksheet-answer'))}
+     }
+   }
+   const markingCases=[['fraction-wall','identify-strip','actual number of shaded parts'],['fraction-wall','denominator-misconception','equal-sized wholes'],['array-builder','multiplication-fact','rows × columns'],['clock','elapsed-forward','Both hands'],['clock','twentyfour-to-twelve','am or pm'],['number-line','missing-labels','respective boxes'],['fdp','equivalent-fraction','preserve the value'],['sequences','rule','stated rule family'],['measurement','distance-between','larger minus smaller']];
+   for(const [tool,type,expected] of markingCases){const draft=P.createDocument();draft.generate(tool,P.defaultSettings(tool),1,type,rng);const item=draft.list()[0];assert(P.answerNote(item).includes(expected),'Explicit marking criteria: '+tool+'/'+type)}
    const sample='A very long marking explanation. '+('Accept all equivalent mathematical explanations using the required units and exact values. '.repeat(15))+'End of marking explanation.';
    const wrapped=X.wrapPaperText(sample,430,20,600);
    assert(wrapped.join(' ')===sample.replace(/\s+/g,' ').trim(),'Measured wrapping preserves complete text');
-   const report={widgets:results,issues,clipping,smallText:warnings.slice(0,250),smallTextCount:warnings.length,smallTextByWidget:Object.fromEntries(catalog.map(({id})=>[id,warnings.filter(w=>w.tool===id).length]))};
+   const report={widgets:results,issues,clipping,smallText:warnings.slice(0,250),smallTextCount:warnings.length,smallTextByWidget:Object.fromEntries(catalog.map(({id})=>[id,warnings.filter(w=>w.tool===id).length])),smallTextByPageKind:Object.fromEntries(catalog.map(({id})=>[id,{pupil:warnings.filter(w=>w.tool===id&&w.kind==='pupil').length,annex:warnings.filter(w=>w.tool===id&&w.kind==='annex').length}])),worstTextByWidget:Object.fromEntries(catalog.map(({id})=>[id,warnings.filter(w=>w.tool===id).sort((a,b)=>a.pointSize-b.pointSize).slice(0,4)]))};
    document.getElementById('publication-report').textContent=JSON.stringify(report);
    document.getElementById('publication-status').textContent=issues.length?'FAIL':'PASS';
    document.getElementById('publication-summary').textContent=results.length+' widgets · '+results.reduce((n,r)=>n+(r.generated||0),0)+' challenge families · '+issues.length+' structural issues · '+warnings.length+' small text observations';
@@ -90,6 +111,6 @@ if(process.argv[2]==='prepare'){
  const result=JSON.parse(raw.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&'));
  fs.writeFileSync(report,JSON.stringify(result,null,2));
  console.log('Publication audit:',status, result.widgets?.length||0,'widgets;',result.smallTextCount||0,'small text observations');
- console.log(JSON.stringify({widgets:result.widgets||[],smallTextByWidget:result.smallTextByWidget,clipping:result.clipping},null,2));
+ console.log(JSON.stringify({widgets:result.widgets||[],smallTextByWidget:result.smallTextByWidget,smallTextByPageKind:result.smallTextByPageKind,worstTextByWidget:result.worstTextByWidget,clipping:result.clipping},null,2));
  if(status!=='PASS'){console.error(JSON.stringify(result.issues||['Browser audit did not complete'],null,2));process.exitCode=1}
 }else throw Error('Use prepare or check');

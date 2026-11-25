@@ -216,13 +216,13 @@ function composeChallengeCardSvg(diagram,{title='Challenge',prompt='',responseLa
   return addPaperBrand(out,brand);
 }
 // Document composition is synchronous; scoped layout leaves standalone exports unchanged.
-let documentCardLayout=false,answerDiagramLayout=false;
+let documentCardLayout=false,answerDiagramLayout=false,documentDenseDiagram=false;
 function withAnswerDiagram(render){const previous=answerDiagramLayout;answerDiagramLayout=true;try{return render()}finally{answerDiagramLayout=previous}}
 function isAnswerDiagramLayout(){return answerDiagramLayout}
 function isDocumentCardLayout(){return documentCardLayout}
-function withDocumentCardLayout(render){
- const previous=documentCardLayout;documentCardLayout=true;
- try{return render()}finally{documentCardLayout=previous}
+function withDocumentCardLayout(render,{denseDiagram=false}={}){
+ const previous=documentCardLayout,previousDense=documentDenseDiagram;documentCardLayout=true;documentDenseDiagram=!!denseDiagram;
+ try{return render()}finally{documentCardLayout=previous;documentDenseDiagram=previousDense}
 }
 function composeWorksheetCardSvg(diagram,{title='Challenge',prompt='',responseLabel='Answer',responseLines=1,responseMode='auto',paperStyle='card',brand='99 Club Studio',answer='',showAnswer=false,diagramMaxHeight=null,compactEquation=false}={}){
   if(!diagram)throw new Error('A diagram is required.');
@@ -238,7 +238,9 @@ function composeWorksheetCardSvg(diagram,{title='Challenge',prompt='',responseLa
   const titleLines=embedded?[]:wrapSvgText(title,plain?88:72,1);
   const titleH=titleLines.length?(plain?24:34):0,promptH=promptLines.length?promptLines.length*promptStep+(compact?5:8):0;
   const naturalDiagramH=sourceH*(contentW/sourceW);
-  const diagramH=shortEquation?naturalDiagramH:Math.max(plain?260:300,Math.min(diagramMaxHeight==null?(plain?500:525):Math.max(260,Math.min(1000,Number(diagramMaxHeight)||500)),naturalDiagramH));
+  const configuredLimit=diagramMaxHeight==null?(plain?500:525):Math.max(260,Math.min(1000,Number(diagramMaxHeight)||500));
+  const diagramLimit=documentCardLayout&&documentDenseDiagram?Math.max(configuredLimit,1200):configuredLimit;
+  const diagramH=shortEquation?naturalDiagramH:Math.max(plain?260:300,Math.min(diagramLimit,naturalDiagramH));
   const diagramY=pad+titleH+promptH+(compact?3:plain?12:18);
   const resolvedMode=responseMode==='auto'?(responseLines>1?'lines':'box'):responseMode;
   const answerRows=Math.max(1,Math.min(4,Math.round(Number(responseLines)||1))),writingPitch=compact?44:32,boxHeight=compact?50:42;

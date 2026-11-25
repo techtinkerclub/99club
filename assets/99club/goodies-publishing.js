@@ -4,13 +4,36 @@ if(!G)return;
 const adapters=new Map(),copy=v=>JSON.parse(JSON.stringify(v));
 // Match the A4 printable area used by printSvg: 182 mm wide × 265 mm high.
 const PAGE_W=960,PAGE_H=Math.round(PAGE_W*265/182);
+// These diagrams contain labels pupils must actually read, not decorative
+// detail. Prefer a larger diagram and an extra page to unreadable print.
+const DENSE_DIAGRAMS=new Set(['sequences','abacus','place-value','number-line','hundred-square','multiplication-grid','array-builder','money','coordinates','measurement','geoboard']);
 function register(tool,adapter){adapters.set(tool,adapter)}
 function supports(tool){return adapters.has(tool)}
 function canGenerate(tool){return supports(tool)&&typeof adapters.get(tool).generate==='function'}
 function types(tool,model){return adapterFor(tool).types?.(model)||[]}
 function adapterFor(tool){const a=adapters.get(tool);if(!a)throw Error('Publishing is not yet supported for this widget.');return a}
 function record(tool,kind,data,recipe=null){return {tool,kind,data:copy(data),recipe:recipe?copy(recipe):null}}
-function signature(item){return item.kind==='challenge'?item.tool+':'+adapterFor(item.tool).signature(item.data):null}
+function signature(item){return item.kind==='challenge'&&!item.data.authored?item.tool+':'+adapterFor(item.tool).signature(item.data):null}
+function frozenSvg(raw){
+ if(typeof raw!=='string'||!raw.trim())throw Error('The current diagram is not ready.');
+ const svg=new DOMParser().parseFromString(raw,'image/svg+xml').documentElement;
+ if(svg.localName!=='svg'||svg.querySelector('parsererror,script,foreignObject'))throw Error('The current diagram is not a printable vector image.');
+ dimensions(svg);return svg;
+}
+function captureLiveDiagram(diagram,challenge,responseLines){
+ const svg=diagram(!!challenge);
+ const raw=new XMLSerializer().serializeToString(svg);
+ if(!challenge)return {illustration:raw};
+ if(challenge.mode!=='custom')return null;
+ return {authored:{title:challenge.title,prompt:G.challengeKit.plainText(challenge.promptHtml||challenge.prompt||''),answer:challenge.answer,pupilSvg:raw,responseLines}};
+}
+function authoredRecord(tool,capture){
+ const {prompt,title,answer,pupilSvg,responseLines}=capture;
+ if(!String(prompt||'').trim())throw Error('Write a question before adding this custom challenge.');
+ if(!String(answer??'').trim())throw Error('Add the correct answer or marking guidance before publishing this custom challenge.');
+ frozenSvg(pupilSvg);
+ return record(tool,'challenge',{type:'custom',authored:true,title:String(title||'Custom challenge'),prompt:String(prompt),answer:String(answer),pupilSvg,responseLines:Math.max(1,Math.min(4,Number(responseLines)||1))});
+}
 function uniqueQuestion(tool,recipe,existing,rng=Math.random){
  const a=adapterFor(tool),seen=new Set(existing.map(signature).filter(Boolean));
  for(let i=0;i<100;i++){const q=a.generate(recipe,rng),item=record(tool,'challenge',q,{...recipe,type:q.type});if(!seen.has(signature(item)))return item}
@@ -21,7 +44,11 @@ function createDocument(){
  function append(records){if(items.length+records.length>80)throw Error('This draft supports up to 80 items.');const added=records.map(r=>({...copy(r),id:next++}));items=items.concat(added);return added.map(copy)}
  return {
   list:()=>copy(items),
-  addCurrent(tool,snapshot,staticSvg){return append(adapterFor(tool).capture(copy(snapshot),staticSvg))},
+  addCurrent(tool,snapshot,staticSvg,authored){
+    if(authored)return append([authoredRecord(tool,authored)]);
+    if(staticSvg&&typeof staticSvg==='object'&&staticSvg.illustration){frozenSvg(staticSvg.illustration);return append([record(tool,'diagram',{frozenSvg:staticSvg.illustration})])}
+    return append(adapterFor(tool).capture(copy(snapshot),staticSvg));
+  },
   generate(tool,snapshot,count,type='all',rng=Math.random){
     if(!canGenerate(tool))throw Error('This widget supports current illustrations only.');
     const a=adapterFor(tool),recipe=a.recipe(copy(snapshot),type),n=Math.max(1,Math.min(20,Math.round(Number(count)||1))),records=[];
@@ -39,8 +66,15 @@ function createDocument(){
       const queue=[];
       for(let i=0;i<n;i++){
         if(!queue.length){queue.push(...selected);for(let j=queue.length-1;j>0;j--){const k=Math.floor(rng()*(j+1));[queue[j],queue[k]]=[queue[k],queue[j]]}}
-        const recipe=a.recipe(copy(block.settings),queue.shift());
-        try{records.push(uniqueQuestion(block.tool,recipe,items.concat(records),rng))}catch(e){throw Error(a.label+': '+e.message)}
+        const preferred=queue.shift(),candidates=[preferred,...selected.filter(id=>id!==preferred)];
+        let generated=null,lastError=null;
+        for(const type of candidates){
+          const recipe=a.recipe(copy(block.settings),type);
+          try{generated=uniqueQuestion(block.tool,recipe,items.concat(records),rng);break}
+          catch(e){if(!String(e.message).startsWith('No different question'))throw Error(a.label+': '+e.message);lastError=e}
+        }
+        if(!generated)throw Error(a.label+': '+lastError.message);
+        records.push(generated);
       }
     }
     return append(records);
@@ -55,7 +89,11 @@ function createDocument(){
  };
 }
 function svgElement(name,attrs={},text){const node=document.createElementNS('http://www.w3.org/2000/svg',name);Object.entries(attrs).forEach(([k,v])=>node.setAttribute(k,String(v)));if(text!==undefined)node.textContent=String(text);return node}
-function renderItem(item,teacher=false){return adapterFor(item.tool).render(item,teacher)}
+function renderItem(item,teacher=false){
+ if(item.data.frozenSvg)return frozenSvg(item.data.frozenSvg);
+ if(item.data.authored)return G.exportTools.composeWorksheetCardSvg(frozenSvg(item.data.pupilSvg),{title:item.data.title,prompt:item.data.prompt,responseLabel:'Answer / working',responseLines:item.data.responseLines,responseMode:item.data.responseLines>1?'lines':'box',paperStyle:'plain',answer:item.data.answer,showAnswer:teacher});
+ return adapterFor(item.tool).render(item,teacher);
+}
 function dimensions(svg){const [x,y,w,h]=svg.getAttribute('viewBox').trim().split(/[ ,]+/).map(Number);if(![x,y,w,h].every(Number.isFinite)||w<=0||h<=0)throw Error('Invalid publication diagram.');return {x,y,w,h}}
 // SVG references resolve within the print document, not reliably within each
 // nested SVG. Isolate each item's IDs before combining diagrams on a page.
@@ -77,7 +115,7 @@ function isolateSvgIds(svg,prefix){
 function pupilPages(items,title){
  const W=PAGE_W,H=PAGE_H,pad=28,top=92,bottom=H-40,gap=14,layouts=[];let entries=[],y=top;
  for(const [index,item] of items.entries()){
-   const svg=G.exportTools.withDocumentCardLayout(()=>renderItem(item,false)),v=dimensions(svg),width=W-2*pad-32,scale=Math.min(width/v.w,(bottom-top-gap)/v.h),h=v.h*scale;
+   const svg=G.exportTools.withDocumentCardLayout(()=>renderItem(item,false),{denseDiagram:DENSE_DIAGRAMS.has(item.tool)}),v=dimensions(svg),width=W-2*pad-32,scale=Math.min(width/v.w,(bottom-top-gap)/v.h),h=v.h*scale;
    if(entries.length&&y+h>bottom){layouts.push(entries);entries=[];y=top}
    entries.push({svg,v,scale,h,y,index});y+=h+gap;
  }
@@ -104,6 +142,7 @@ function pupilPages(items,title){
 // Answer summaries come from frozen mathematical records, not rendered pupil text.
 function answerSummary(item){
  if(item.kind!=='challenge')return null;
+ if(item.data.authored)return item.data.answer;
  const a=adapterFor(item.tool),d=item.data,c=d.challenge;
  if(a.answerSummary)return a.answerSummary(item);
  if(item.tool==='abacus'){
@@ -141,7 +180,9 @@ function wrapAnnex(text,width,size,weight=400){
 // "other answers possible" message.
 function answerNote(item){
  const adapter=adapterFor(item.tool),d=item.data,c=d.challenge||d.state?.challenge;
- if(adapter.answerNote)return adapter.answerNote(item);
+ if(item.kind!=='challenge')return '';
+ if(d.authored)return 'Teacher-authored answer / marking guidance. The diagram is the question reference, not a generated worked solution.';
+ const specific=adapter.answerNote?.(item);if(specific)return specific;
  if(item.tool==='abacus'){
    const k=d.settings.kind;
    return k==='suanpan'?'Standard bead arrangement shown. Accept another arrangement only if the engaged beads give the correct value and the question does not require a standard arrangement.':'Use the completed bead arrangement shown; exchange into the next place when needed.';
@@ -156,8 +197,13 @@ function answerNote(item){
  if(item.tool==='array-builder'){
    if(c?.type==='build-array')return 'Accept drawn dots, shaded cells or another clearly shown array with the specified rows and columns.';
    if(c?.type==='partial-products')return 'Accept the partial products in any order, provided they match the shown partitions and sum to the correct total.';
+   if(c?.type==='multiplication-fact')return 'Require rows × columns in that order, as requested, with the correct total. Accept the product written on either side of the equality.';
+   if(c?.type==='commutative-fact')return 'Require the reversed factor order and the unchanged product.';
  }
  if(item.tool==='fraction-wall'){
+   if(c?.type==='identify-strip')return 'Require the actual number of shaded parts over the actual number of equal parts shown. A simplified equivalent alone does not give both requested counts.';
+   if(c?.type==='compare-strips')return 'The comparison symbol must describe A compared with B, in that order.';
+   if(c?.type==='denominator-misconception')return 'Accept equivalent reasoning comparing unit fractions of equal-sized wholes: more equal parts make each part smaller.';
    if(c?.type==='simplify-strip')return 'Answer must be in lowest terms.';
    if(c?.type==='equivalent-strip')return 'The equivalent fraction must have the denominator specified in the question.';
    if(c?.type==='mixed-improper')return 'Accept an equivalent mixed number; require lowest terms only if requested.';
@@ -167,16 +213,33 @@ function answerNote(item){
    if(['error-scale'].includes(c?.type))return 'Accept equivalent explanations that correctly distinguish the interval value or spaces from marks.';
    if(['fraction-jump','fraction-sequence','mixed-number'].includes(c?.type))return 'Accept an equivalent fraction or mixed number, subject to the form requested in the question.';
    if(c?.type==='equivalent-fractions')return 'Use the denominator of the requested fraction line.';
+   if(c?.type==='missing-labels')return 'All missing numbers must be correct in their respective boxes, read from left to right.';
+   if(c?.type==='order-markers')return 'Require every requested marker in the order specified by the question.';
+   if(c?.type==='fdp-equivalence')return 'Require the requested fraction, decimal or percentage form; equivalent notation within that form is acceptable.';
+   if(c?.type==='missing-jump')return 'The signed jump must have the correct magnitude and direction.';
  }
  if(item.tool==='clock'){
    if(['set-five','set-minute'].includes(c?.type))return 'Both hands must be correct; the hour hand should sit proportionally between hour marks. The analogue face alone cannot distinguish am from pm.';
    if(['read-five','read-minute','roman-read'].includes(c?.type))return 'Accept equivalent time notation. AM/PM cannot be determined from the analogue face alone.';
    if(c?.type==='two-duration-reason')return 'Accept equivalent explanations supported by the actual elapsed time.';
+   if(c?.type==='elapsed-forward')return 'Both hands must show the final time. If a written time is given, check the stated starting time and elapsed minutes for the correct am/pm or 24-hour value.';
+   if(c?.type==='time-language')return 'Accept equivalent past/to wording that identifies the correct hour and minute, including quarter or half where appropriate.';
+   if(c?.type==='twelve-to-twentyfour')return 'Require correct 24-hour notation, including the correct hour for am or pm.';
+   if(c?.type==='twentyfour-to-twelve')return 'Require correct 12-hour notation and am or pm, including noon and midnight.';
+   if(['two-elapsed','two-midnight'].includes(c?.type))return 'The total must be correct in minutes as requested; equivalent working is acceptable.';
+   if(c?.type==='two-order')return 'Require the correct labelled clock; equivalent wording identifying it is acceptable.';
+   if(c?.type==='hour-hand-misconception')return 'Accept equivalent reasoning that the hour hand moves continuously as minutes pass.';
  }
  if(item.tool==='maths-canvas'&&d.targetRule)return 'Accept any expression that reaches the target, uses each supplied number once and follows the permitted operations and bracket rules.';
+ if(item.tool==='maths-canvas')return d.solutionExplanation?'Accept equivalent working. '+d.solutionExplanation:'Accept equivalent numerical notation or the requested operator or comparison symbol.';
+ if(item.tool==='sequences')return 'Use the stated rule family. '+(d.solutionExplanation||'Each missing term or rule value must match the displayed sequence.');
+ if(item.tool==='place-value'&&c?.type==='zero-placeholder')return 'Accept equivalent reasoning that zero preserves the positions of the other digits.';
+ if(item.tool==='measurement')return 'Require the requested measurement unit; accept equivalent numerical notation in that unit.';
+ if(item.tool==='money')return 'Accept equivalent money notation with the correct value; require the specified denomination or number of pieces where requested.';
  return '';
 }
 function answerGraphic(item){
+ if(item.data.authored)return frozenSvg(item.data.pupilSvg);
  const a=adapterFor(item.tool);
  if(a.answerGraphic)return a.answerGraphic(item);
  if(!['abacus','place-value','fraction-wall','array-builder','number-line','clock','sequences'].includes(item.tool))return null;
@@ -191,9 +254,12 @@ function answerPages(items,title){
    if(value===undefined||!String(value).trim())throw Error('Answer not available for question '+(index+1)+'.');
    const graphic=answerGraphic(item),v=graphic?dimensions(graphic):null,note=answerNote(item);
    // Compact models sit beside marking text; wide labelled charts remain full-width.
-   const beside=!!v&&(item.tool==='abacus'||item.tool==='array-builder'||item.tool==='clock'&&v.w<=310);
-   const widthLimit=beside?(item.tool==='clock'?270:425):item.tool==='fraction-wall'?760:850;
-   const scale=v?Math.min(widthLimit/v.w,(beside?285:340)/v.h):0,gh=v?v.h*scale:0,gw=v?v.w*scale:0;
+   const dense=DENSE_DIAGRAMS.has(item.tool);
+   // Small clock faces can sit beside the text. Label-rich boards get a
+   // full-width answer graphic, with enough height to maintain legibility.
+   const beside=!!v&&!dense&&item.tool==='clock'&&v.w<=310;
+   const widthLimit=beside?270:item.tool==='fraction-wall'?760:W-2*pad-48;
+   const scale=v?Math.min(widthLimit/v.w,(beside?285:dense?760:340)/v.h):0,gh=v?v.h*scale:0,gw=v?v.w*scale:0;
    const textWidth=beside?W-2*pad-48-gw-20:W-2*pad-48;
    const lines=wrapAnnex(value,textWidth,20,600),notes=note?wrapAnnex(note,textWidth,18,400):[];
    const textH=lines.length*step,notesH=notes.length?notes.length*23+8:0;
@@ -307,7 +373,7 @@ function openEditor(draft,{mode='review'}={}){
      '<details class="gd-pub-details"'+(block.topicsOpen?' open':'')+' data-pub-topics><summary>Optional arithmetic topics ('+n.topics.length+')</summary><div class="gd-pub-check-grid">'+N.topics.map(o=>'<label><input type="checkbox" data-pub-array="topics" value="'+esc(o.id)+'"'+(n.topics.includes(o.id)?' checked':'')+'>'+esc(o.label)+'</label>').join('')+'</div></details>';
    }
    if(t==='sequences')return '<div class="gd-pub-fields">'+select('Rule family','settings.family',[['all','All families'],['constant','Constant difference'],['increasing','Changing difference'],['geometric','Multiplication'],['alternating','Alternating']],m.settings.family)+select('Difficulty','settings.difficulty',levels,m.settings.difficulty)+'</div>';
-   if(t==='abacus')return '<div class="gd-pub-fields">'+select('Instrument','kind',[['western','Western abacus'],['soroban','Soroban'],['suanpan','Suanpan']],m.kind)+select('Places','rows',[3,4,5,6],m.rows)+select('Colours','colourScheme',['classic','place','sea','berry','forest'],m.colourScheme)+'</div>';
+   if(t==='abacus')return '<div class="gd-pub-fields">'+select('Instrument','kind',[['western','Western abacus'],['soroban','Soroban'],['suanpan','Suanpan'],['reckoning','Reckoning table'],['rods','Counting rods'],['napier','Napier’s bones'],['slide','Slide rule'],['pascaline','Pascaline']],m.kind)+select('Places','rows',[3,4,5,6],m.rows)+select('Colours','colourScheme',['classic','place','sea','berry','forest'],m.colourScheme)+'</div>';
    if(t==='measurement')return '<div class="gd-pub-fields">'+select('Precision','precision',[['tenth','Millimetres (0.1 cm)'],['whole','Whole centimetres']],m.precision)+select('Maximum length','maxCm',[[10,'10 cm'],[20,'20 cm'],[30,'30 cm']],m.maxCm)+select('Answer space','responseLines',[[1,'Answer box'],[2,'2 lines'],[3,'3 lines'],[4,'4 lines']],m.responseLines)+'</div><p class="gd-help">Labelled ruler extracts are diagrams, not physical-size rulers. Placement tasks use the scale itself for the answer.</p>';
    if(t==='multiplication-grid')return '<div class="gd-pub-fields">'+select('Grid size','size',Array.from({length:11},(_,i)=>[i+5,(i+5)+' × '+(i+5)]),m.size)+select('Answer space','responseLines',[[1,'Answer box'],[2,'2 lines'],[3,'3 lines'],[4,'4 lines']],m.responseLines)+'</div><p class="gd-help">Find-the-fact questions use the whole grid; other challenges use the relevant table rows.</p>';
    if(t==='hundred-square')return '<div class="gd-pub-fields">'+select('Number range','startValue',[0,1,101,201,901].map(n=>[n,n+' to '+(n+99)]),m.startValue)+select('Answer space','responseLines',[[1,'Answer box'],[2,'2 lines'],[3,'3 lines'],[4,'4 lines']],m.responseLines)+'</div><p class="gd-help">Missing-number and neighbour tasks use complete row extracts; marking and pattern tasks use the whole square.</p>';
@@ -465,5 +531,5 @@ function openEditor(draft,{mode='review'}={}){
  dlg.ontoggle=null;dlg.addEventListener('toggle',function rememberDetails(e){const el=e.target;if(el.tagName!=='DETAILS')return;const b=getBlock(el);if(!b)return;if(el.hasAttribute('data-pub-type-details'))b.open=el.open;if(el.hasAttribute('data-pub-topics'))b.topicsOpen=el.open;},{capture:true,signal:(()=>{dlg._pubToggleController?.abort();dlg._pubToggleController=new AbortController();return dlg._pubToggleController.signal})()});
  render();if(!dlg.open)dlg.showModal();
 }
-G.publishing={register,supports,canGenerate,types,record,signature,createDocument,renderItem,pages,answerPages,answerSummary,answerNote,answerGraphic,openEditor,openQuickGenerate,isolateSvgIds,catalogue:()=>BUILDER_CATALOG.map(([id,label])=>({id,label,canGenerate:canGenerate(id)})),defaultSettings:tool=>copy(defaults(tool))};
+G.publishing={captureLiveDiagram,register,supports,canGenerate,types,record,signature,createDocument,renderItem,pages,answerPages,answerSummary,answerNote,answerGraphic,openEditor,openQuickGenerate,isolateSvgIds,catalogue:()=>BUILDER_CATALOG.map(([id,label])=>({id,label,canGenerate:canGenerate(id)})),defaultSettings:tool=>copy(defaults(tool))};
 })(window.TT99Goodies);

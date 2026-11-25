@@ -1111,6 +1111,7 @@ function coordinateTool(){
   setPanels(controlsHtml(),'');
   bindControls();
   draw();
+  G.publishingLive=()=>{if(challenge&&challenge.mode!=='custom')return null;return G.publishing.captureLiveDiagram(pupil=>coordinateExportSvg({pupil}),challenge,responseLines)};
   G.lessonState?.register('coordinates',()=>({diagram:teachingSnapshot(),challenge,beforeChallenge,generationSettings:{...generationSettings},pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
     restoreTeachingSnapshot(saved.diagram);generationSettings={scope:coSettings(saved).scope};challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
     if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
@@ -1200,7 +1201,7 @@ function mePaper(data,teacher=false){
      add('line',{x1:x,y1:base-(major?43:mid?31:19),x2:x,y2:base,stroke:'#344b52','stroke-width':major?1.8:1});
      if(major)text(x,y+25,imperial?i/16:Math.round(v),span>20?17:20);
    }
-   text(endX+13,y+25,imperial?'in':'cm',16,{'text-anchor':'start'});
+   text(endX+10,y+25,imperial?'in':'cm',18,{'text-anchor':'start'});
    function marker(value,label,kind,colour){
      const x=px(value);
      add('line',{x1:x,y1:y-7,x2:x,y2:base+4,stroke:colour,'stroke-width':2.8,'data-me-paper-marker':kind});
@@ -1236,7 +1237,7 @@ if(G.publishing)G.publishing.register('measurement',{
  capture(model){const d=meData(model);return [G.publishing.record('measurement',d.challenge?'challenge':'diagram',d,d.challenge?{type:d.type,settings:d.settings}:null)]},
  answerSummary:item=>item.data.challenge.answer,
  answerGraphic:item=>G.exportTools.withAnswerDiagram(()=>mePaper(item.data,true)),
- answerNote:item=>{const c=item.data.challenge;if(c.type==='place-mark')return 'The mark must align with the stated scale division. Judge against the printed tick marks, not a physical ruler.';if(c.type==='distance-between')return 'Subtract the reading at A from the reading at B. Accept equivalent working giving the requested unit.';if(c.type==='unit-misconception')return 'Accept equivalent explanations using 1 cm = 10 mm.';return ''},
+ answerNote:item=>{const c=item.data.challenge;if(c.type==='place-mark')return 'The mark must align with the stated scale division. Judge against the printed tick marks, not a physical ruler.';if(c.type==='distance-between')return 'Find the positive difference between the two readings (larger minus smaller). Accept equivalent working giving the requested unit.';if(c.type==='unit-misconception')return 'Accept equivalent explanations using 1 cm = 10 mm.';return ''},
  render(item,teacher){return mePaper(item.data,teacher)}
 });
 
@@ -1747,6 +1748,7 @@ function measurementTool(){
   setPanels(controlsHtml(),'');
   bindControls();
   draw();
+  G.publishingLive=()=>{if(challenge&&challenge.mode!=='custom')return null;return G.publishing.captureLiveDiagram(pupil=>pupil?rulerExportSvg({pupil:true}):exploreRulersExportSvg(),challenge,responseLines)};
   G.lessonState?.register('measurement',()=>({diagram:snapshot(),challenge,beforeChallenge,generationSettings:{...generationSettings},pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
     restoreSnapshot(saved.diagram);const cfg=meSettings(saved);generationSettings={precision:cfg.precision,maxCm:cfg.maxCm};challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
     if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
@@ -3276,6 +3278,7 @@ function timesTableVisual(){
   setPanels(controlsHtml(),'');
   bindControls();
   draw();
+  G.publishingLive=()=>{if(challenge&&challenge.mode!=='custom')return null;return G.publishing.captureLiveDiagram(pupil=>timesTableExportSvg({pupil}),challenge,responseLines)};
   G.lessonState?.register('times-table',()=>({diagram:snapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
     restore(saved.diagram);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
     if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
@@ -3822,6 +3825,7 @@ function factorExplorer(){
   setPanels(controlsHtml(),'');
   bindControls();
   draw();
+  G.publishingLive=()=>{if(challenge&&challenge.mode!=='custom')return null;return G.publishing.captureLiveDiagram(pupil=>factorExplorerExportSvg({pupil}),challenge,responseLines)};
   G.lessonState?.register('factors',()=>({diagram:snapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
     restore(saved.diagram);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
     if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
@@ -3910,7 +3914,7 @@ if(G.publishing)G.publishing.register('fdp',{
  capture(model){const d=fdpPublicationData(model);return [G.publishing.record('fdp',d.challenge?'challenge':'diagram',d,d.challenge?{type:d.type,settings:d.settings}:null)]},
  answerSummary:item=>item.data.challenge.answer,
  answerGraphic:item=>fdpPaper(item.data,true,true),
- answerNote:item=>{const c=item.data.challenge;if(c.type==='build-percentage')return 'Accept any valid shading representing exactly '+c.targetPercent+'% of the whole.';if(c.type==='simplify-fraction')return 'The numerator and denominator must have no common factor greater than 1.';if(c.type==='spot-percent-error')return 'Accept equivalent explanations that calculate the correct percentage and compare it with the displayed value.';if(c.type==='to-decimal'||c.type==='to-percentage')return 'Accept equivalent notation, including trailing decimal zeros.';return 'The missing denominator must preserve the value of the original fraction.'},
+ answerNote:item=>{const c=item.data.challenge;if(c.type==='build-percentage')return 'Accept any valid shading representing exactly '+c.targetPercent+'% of the whole.';if(c.type==='simplify-fraction')return 'The numerator and denominator must have no common factor greater than 1.';if(c.type==='spot-percent-error')return 'Accept equivalent explanations that calculate the correct percentage and compare it with the displayed value.';if(c.type==='to-decimal'||c.type==='to-percentage')return 'Accept equivalent notation, including trailing decimal zeros.';return 'The missing number must preserve the value of the original fraction, with the given numerator or denominator unchanged.'},
  render(item,teacher){return fdpPaper(item.data,teacher)}
 });
 
@@ -4332,6 +4336,7 @@ function fdpExplorer(){
   setPanels(controlsHtml(),'');
   bindControls();
   draw();
+  G.publishingLive=()=>{if(challenge&&challenge.mode!=='custom')return null;return G.publishing.captureLiveDiagram(pupil=>fdpExportSvg({pupil}),challenge,responseLines)};
   G.lessonState?.register('fdp',()=>({diagram:snapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
     restore(saved.diagram);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
     if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
@@ -4955,6 +4960,7 @@ function geoboard(){
   setPanels(controlsHtml(),'');
   bindControls();
   draw();
+  G.publishingLive=()=>{if(challenge&&challenge.mode!=='custom')return null;return G.publishing.captureLiveDiagram(pupil=>geoboardExportSvg({pupil}),challenge,responseLines)};
   G.lessonState?.register('geoboard',()=>({diagram:teachingSnapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines,generationGrid}),saved=>{
     restoreTeachingSnapshot(saved.diagram);generationGrid=geGridSize(saved.generationGrid??saved.diagram?.gridSize);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
     if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;

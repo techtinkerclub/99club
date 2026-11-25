@@ -52,7 +52,7 @@ function diagram(raw,{task=null,teacher=false}={}){
  const point=i=>({x:pad+slot*(i%cols+.5),y:94+Math.floor(i/cols)*128});
  for(let i=0;i<s.length;i++){
    const {x,y}=point(i),shown=task?teacher||i!==task.hole:i<s.shown;
-   add('text',{x,y:y-9,'font-family':'Arial,sans-serif','font-size':14,'text-anchor':'middle',fill:'#63777c'},'Term '+(i+1));
+   add('text',{x,y:y-9,'font-family':'Arial,sans-serif','font-size':17,'text-anchor':'middle',fill:'#52666d'},'Term '+(i+1));
    add('rect',{x:x-boxW/2,y,width:boxW,height:62,rx:7,fill:shown?'#edf7f4':'#fff',stroke:shown?'#9ec7bf':'#9fafb3','stroke-width':1.7,...(!shown?{'stroke-dasharray':'5 4'}:{})});
    if(shown)add('text',{x,y:y+41,'font-family':'Arial,sans-serif','font-size':font,'font-weight':700,'text-anchor':'middle',fill:'#28534f','data-seq-term':i},terms[i]);
    if(i&&(task?teacher:s.links&&i<s.shown)){

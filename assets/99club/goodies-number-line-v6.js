@@ -234,7 +234,8 @@ function nlSettings(model={}){
  return {min,max:actualMax,step:actualStep,labelEvery:Math.max(1,Math.min(50,Math.round(num(raw.labelEvery,1)))),showTickLabels:true,responseLines:Math.max(1,Math.min(4,Math.round(num(model.responseLines,1))))};
 }
 function nlTypes(model){return templatesFor(nlSettings({...model,generationSettings:model?.state?.challenge?.generationSettings||model?.beforeChallenge||model?.state||model})).filter(t=>!t.disabled).map(t=>({id:t.id,label:t.title}))}
-function nlRenderer(state,embedded=true){
+function nlRenderer(state,embedded=true,paper=false){
+  const fontSize=n=>paper?Math.max(18,n):n;
   function scaleFor(line){
     return line&&line.scaleMode!=='shared'
       ?{min:line.min,max:line.max,step:line.step,labelEvery:line.labelEvery}
@@ -295,7 +296,7 @@ function nlRenderer(state,embedded=true){
       const markerUnknown=hidden&&line.markers.some(m=>hiddenChallengeMarker(line,m)&&Math.abs(m.value-t.v)<scaleFor(line).step/1000);
       const text=lineValueText(line,t.v);
       const slot=missingLabelIndex(line,t.v);
-      return {...t,hidden,markerUnknown,text,slot,width:slot>=0?slotWidth:hidden?42:Math.max(16,text.length*8+8)};
+      return {...t,hidden,markerUnknown,text,slot,width:slot>=0?slotWidth:hidden?42:Math.max(16,text.length*(paper?10:8)+8)};
     }).filter(t=>!t.markerUnknown);
     const fits=(t,lane)=>!(lanes[lane]||[]).some(p=>Math.abs(p.x-t.x)<(p.width+t.width)/2+7);
     function put(t,lane){if(!lanes[lane])lanes[lane]=[];lanes[lane].push(t);labels.push({...t,lane})}
@@ -385,8 +386,8 @@ function nlRenderer(state,embedded=true){
   function lineLabelRows(label){
     const text=String(label||'').trim(),rows=[];let rest=text;
     while(rest&&rows.length<2){
-      if(rest.length<=20){rows.push(rest);break}
-      let cut=rest.lastIndexOf(' ',20);if(cut<8)cut=20;
+      if(rest.length<=(paper?16:20)){rows.push(rest);break}
+      let cut=rest.lastIndexOf(' ',paper?16:20);if(cut<8)cut=paper?16:20;
       rows.push(rest.slice(0,cut).trim());rest=rest.slice(cut).trim();
       if(rows.length===2&&rest)rows[1]=rows[1].slice(0,19)+'…';
     }
@@ -428,7 +429,7 @@ function nlRenderer(state,embedded=true){
       const d=relationDisplay(line,r);if(!d)return;
       const x1=px(d.a.value,line),x2=px(d.b.value,line),left=Math.min(x1,x2),w=Math.abs(x2-x1),y=r.side==='above'?baseY-16:baseY;
       intervalLayer+=`<rect x="${left}" y="${y}" width="${w}" height="16" rx="6" fill="${esc(r.color)}" opacity=".18"/>`;
-      if(d.show&&d.label){const ty=r.side==='above'?baseY-22:(showLabels?baseY+58:baseY+30);intervalLayer+=`<text x="${(x1+x2)/2}" y="${ty}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="${esc(r.color)}">${esc(d.label)}</text>`}
+      if(d.show&&d.label){const ty=r.side==='above'?baseY-22:(showLabels?baseY+58:baseY+30);intervalLayer+=`<text x="${(x1+x2)/2}" y="${ty}" text-anchor="middle" font-family="Arial,sans-serif" font-size="${fontSize(13)}" font-weight="700" fill="${esc(r.color)}">${esc(d.label)}</text>`}
     });
     tickPlan.ticks.forEach(t=>{
       const {x,major}=t;
@@ -442,14 +443,14 @@ function nlRenderer(state,embedded=true){
         if(interactive&&!ch.correct){
           ticks+=`<foreignObject x="${t.x-w/2}" y="${y-13}" width="${w}" height="26"><input xmlns="http://www.w3.org/1999/xhtml" type="text" inputmode="none" autocomplete="off" spellcheck="false" data-nl-missing-slot="${t.slot}" aria-label="Missing number ${t.slot+1} from the left" value="${esc(answer)}" maxlength="18" style="display:block;width:100%;height:100%;box-sizing:border-box;border:1.5px dashed #52666d;border-radius:5px;background:#fff;color:#24343b;font:600 14px Arial,sans-serif;text-align:center;padding:0;outline-offset:-1px;touch-action:manipulation"/></foreignObject>`;
         }else if(interactive&&ch.correct){
-          ticks+=`<text x="${t.x}" y="${y+5}" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" font-weight="700" fill="#216a48">${esc(t.text)}</text>`;
+          ticks+=`<text x="${t.x}" y="${y+5}" text-anchor="middle" font-family="Arial,sans-serif" font-size="${fontSize(14)}" font-weight="700" fill="#216a48">${esc(t.text)}</text>`;
         }else ticks+=answerBox(t.x,y,w,24);
       }else if(t.hidden)ticks+=answerBox(t.x,y,40,23);
-      else ticks+=`<text class="nl-tick-label" x="${t.x}" y="${y+5}" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" fill="#33474e">${esc(t.text)}</text>`;
+      else ticks+=`<text class="nl-tick-label" x="${t.x}" y="${y+5}" text-anchor="middle" font-family="Arial,sans-serif" font-size="${fontSize(14)}" fill="#33474e">${esc(t.text)}</text>`;
     });
     const baseline=`<line class="nl-baseline" data-line-id="${esc(line.id)}" data-nl-line-mode="${esc(line.scaleMode)}" x1="${xStart()}" y1="${baseY}" x2="${xEnd()}" y2="${baseY}" stroke="#24343b" stroke-width="4" stroke-linecap="round"/><rect data-line-hit="${esc(line.id)}" x="${xStart()}" y="${baseY-16}" width="${xEnd()-xStart()}" height="32" fill="transparent" style="cursor:crosshair"/>`;
     const nameRows=lineLabelRows(line.label),labelX=xStart()-18;
-    const lineLabel=nameRows.length?`<text class="nl-line-name" x="${labelX}" y="${baseY+4-(nameRows.length-1)*8}" text-anchor="end" font-family="Arial,sans-serif" font-size="13" font-weight="600" fill="#52666d"><title>${esc(line.label)}</title>${nameRows.map((name,j)=>`<tspan x="${labelX}" dy="${j?16:0}">${esc(name)}</tspan>`).join('')}</text>`:'';
+    const lineLabel=nameRows.length?`<text class="nl-line-name" x="${labelX}" y="${baseY+4-(nameRows.length-1)*8}" text-anchor="end" font-family="Arial,sans-serif" font-size="${fontSize(13)}" font-weight="600" fill="#52666d"><title>${esc(line.label)}</title>${nameRows.map((name,j)=>`<tspan x="${labelX}" dy="${j?(paper?20:16):0}">${esc(name)}</tspan>`).join('')}</text>`:'';
 
     line.relations.filter(r=>r.type!=='interval').forEach(r=>{
       if(concealJumpPosition()&&r.type==='jump')return;
@@ -460,7 +461,7 @@ function nlRenderer(state,embedded=true){
         const y=r.side==='above'?baseY-layout.relationAbove-lane*38:baseY+layout.relationBelow+lane*38;
         const drop=r.side==='above'?9:-9;
         relationshipLayer+=`<path d="M${left} ${y+drop} V${y} H${right} V${y+drop}" fill="none" stroke="${esc(r.color)}" stroke-width="2.4" stroke-linecap="round"/>`;
-        if(d.show&&(d.label||d.hidden)){const labelCy=r.side==='above'?y-25:y+25;if(d.hidden)relationshipLayer+=answerBox(mid,labelCy,58,24);else relationshipLayer+=`<rect x="${mid-31}" y="${labelCy-12}" width="62" height="22" rx="10" fill="#fff"/><text x="${mid}" y="${labelCy+4}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="${esc(r.color)}">${esc(d.label)}</text>`}
+        if(d.show&&(d.label||d.hidden)){const labelCy=r.side==='above'?y-25:y+25;if(d.hidden)relationshipLayer+=answerBox(mid,labelCy,58,24);else relationshipLayer+=`<rect x="${mid-31}" y="${labelCy-12}" width="62" height="22" rx="10" fill="#fff"/><text x="${mid}" y="${labelCy+4}" text-anchor="middle" font-family="Arial,sans-serif" font-size="${fontSize(13)}" font-weight="700" fill="${esc(r.color)}">${esc(d.label)}</text>`}
       }else{
         const challengeJump=isJumpChallenge();
         const y1=challengeJump?baseY-5:markerCentre(layout,d.a),y2=challengeJump?baseY-5:markerCentre(layout,d.b);
@@ -471,7 +472,7 @@ function nlRenderer(state,embedded=true){
         if(d.show&&(d.label||d.hidden)){
           const labelCy=challengeJump?controlY-12:(r.side==='above'?controlY-19:controlY+19);
           if(d.hidden)relationshipLayer+=answerBox(mid,labelCy,58,24);
-          else relationshipLayer+=`<rect x="${mid-32}" y="${labelCy-12}" width="64" height="23" rx="11.5" fill="#fff" stroke="#dbe5e3"/><text x="${mid}" y="${labelCy+4}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12.5" font-weight="800" fill="${esc(r.color)}">${esc(d.label)}</text>`;
+          else relationshipLayer+=`<rect x="${mid-32}" y="${labelCy-12}" width="64" height="23" rx="11.5" fill="#fff" stroke="#dbe5e3"/><text x="${mid}" y="${labelCy+4}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="${fontSize(12.5)}" font-weight="800" fill="${esc(r.color)}">${esc(d.label)}</text>`;
         }
       }
     });
@@ -480,7 +481,7 @@ function nlRenderer(state,embedded=true){
       const sorted=[...line.markers].sort((a,b)=>a.value-b.value);
       sorted.slice(0,-1).forEach((m,i)=>{
         const n=sorted[i+1],x1=px(m.value,line),x2=px(n.value,line),mid=(x1+x2)/2,side=line.consecutiveSide||'above',lane=(side==='above'?above.map['auto-'+i]:below.map['auto-'+i])||0,y=side==='above'?baseY-layout.relationAbove-lane*38:baseY+layout.relationBelow+lane*38,drop=side==='above'?9:-9,labelCy=side==='above'?y-23:y+23;
-        relationshipLayer+=`<path d="M${x1} ${y+drop} V${y} H${x2} V${y+drop}" fill="none" stroke="#71858b" stroke-width="1.8"/><rect x="${mid-25}" y="${labelCy-11}" width="50" height="20" rx="10" fill="#fff"/><text x="${mid}" y="${labelCy+4}" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="700" fill="#52666d">${esc(fmt(Math.abs(n.value-m.value)))}</text>`;
+        relationshipLayer+=`<path d="M${x1} ${y+drop} V${y} H${x2} V${y+drop}" fill="none" stroke="#71858b" stroke-width="1.8"/><rect x="${mid-25}" y="${labelCy-11}" width="50" height="20" rx="10" fill="#fff"/><text x="${mid}" y="${labelCy+4}" text-anchor="middle" font-family="Arial,sans-serif" font-size="${fontSize(12)}" font-weight="700" fill="#52666d">${esc(fmt(Math.abs(n.value-m.value)))}</text>`;
       });
     }
 
@@ -496,9 +497,9 @@ function nlRenderer(state,embedded=true){
         const endpoint=line.relations.some(r=>r.type==='jump'&&r.from===m.id)&&!line.relations.some(r=>r.type==='jump'&&r.to===m.id);
         const knownLabel=endpoint?'Start':(concealJumpPosition()&&state.challenge.type==='missing-start'?'End':'');
         const alreadyLabelled=tickPlan.labels.some(t=>!t.hidden&&Math.abs(t.v-m.value)<scale.step/1000);
-        markerLayer+=`<g class="nl-svg-marker nl-svg-marker--challenge-jump" data-line-id="${esc(line.id)}" data-marker-hit="${esc(m.id)}"><circle cx="${x}" cy="${baseY}" r="${hidden?6:5}" fill="${hidden?'#fff':esc(m.color)}" stroke="${esc(m.color)}" stroke-width="${hidden?2.4:2}"/>${hidden?`<text x="${x}" y="${baseY-17}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="850" fill="#33474e">?</text>`:(knownLabel?`<text x="${x}" y="${baseY-18}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12.5" font-weight="800" fill="#33474e" stroke="#fff" stroke-width="3" paint-order="stroke">${esc(knownLabel)}</text>`:'')}${!hidden&&!alreadyLabelled&&(endpoint||m.showValue||label==='?'||label==='End'||(isUnknownJumpPosition()&&state.challenge.correct))?`<text x="${x}" y="${baseY+36}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#33474e">${esc(lineValueText(line,m.value))}</text>`:''}</g>`;
+        markerLayer+=`<g class="nl-svg-marker nl-svg-marker--challenge-jump" data-line-id="${esc(line.id)}" data-marker-hit="${esc(m.id)}"><circle cx="${x}" cy="${baseY}" r="${hidden?6:5}" fill="${hidden?'#fff':esc(m.color)}" stroke="${esc(m.color)}" stroke-width="${hidden?2.4:2}"/>${hidden?`<text x="${x}" y="${baseY-17}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="${fontSize(17)}" font-weight="850" fill="#33474e">?</text>`:(knownLabel?`<text x="${x}" y="${baseY-18}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="${fontSize(12.5)}" font-weight="800" fill="#33474e" stroke="#fff" stroke-width="3" paint-order="stroke">${esc(knownLabel)}</text>`:'')}${!hidden&&!alreadyLabelled&&(endpoint||m.showValue||label==='?'||label==='End'||(isUnknownJumpPosition()&&state.challenge.correct))?`<text x="${x}" y="${baseY+36}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="${fontSize(12)}" font-weight="700" fill="#33474e">${esc(lineValueText(line,m.value))}</text>`:''}</g>`;
       }else{
-        markerLayer+=`<g class="nl-svg-marker" data-line-id="${esc(line.id)}" data-marker-hit="${esc(m.id)}"${m.positionGroup?` data-position-group="${esc(m.positionGroup)}"`:''} style="cursor:ew-resize;touch-action:none">${markerStem(layout,m)}<circle cx="${x}" cy="${layout.baseY}" r="4.2" fill="${esc(m.color)}" stroke="#fff" stroke-width="1.6"/><circle cx="${x}" cy="${cy}" r="24" fill="transparent"/><text x="${x}" y="${cy+5}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="760" fill="#263b42" stroke="#fff" stroke-width="4" paint-order="stroke" pointer-events="none">${esc(m.label||String(i+1))}</text><line x1="${x-8}" y1="${cy+10}" x2="${x+8}" y2="${cy+10}" stroke="${esc(m.color)}" stroke-width="3" stroke-linecap="round" pointer-events="none"/>${showValue?`<text x="${x}" y="${valueY}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12.5" font-weight="680" fill="#33474e" stroke="#fff" stroke-width="3" paint-order="stroke" pointer-events="none">${esc(lineValueText(line,m.value))}</text>`:(hidden?answerBox(x,valueY-5,72,24):'')}</g>`;
+        markerLayer+=`<g class="nl-svg-marker" data-line-id="${esc(line.id)}" data-marker-hit="${esc(m.id)}"${m.positionGroup?` data-position-group="${esc(m.positionGroup)}"`:''} style="cursor:ew-resize;touch-action:none">${markerStem(layout,m)}<circle cx="${x}" cy="${layout.baseY}" r="4.2" fill="${esc(m.color)}" stroke="#fff" stroke-width="1.6"/><circle cx="${x}" cy="${cy}" r="24" fill="transparent"/><text x="${x}" y="${cy+5}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="${fontSize(15)}" font-weight="760" fill="#263b42" stroke="#fff" stroke-width="4" paint-order="stroke" pointer-events="none">${esc(m.label||String(i+1))}</text><line x1="${x-8}" y1="${cy+10}" x2="${x+8}" y2="${cy+10}" stroke="${esc(m.color)}" stroke-width="3" stroke-linecap="round" pointer-events="none"/>${showValue?`<text x="${x}" y="${valueY}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="${fontSize(12.5)}" font-weight="680" fill="#33474e" stroke="#fff" stroke-width="3" paint-order="stroke" pointer-events="none">${esc(lineValueText(line,m.value))}</text>`:(hidden?answerBox(x,valueY-5,72,24):'')}</g>`;
       }
     });
 
@@ -534,7 +535,7 @@ function nlRenderer(state,embedded=true){
           out+=`<line class="nl-linked-pair-guide" data-position-group="${esc(marker.positionGroup)}" x1="${xMain}" y1="${main.baseY}" x2="${xLinked}" y2="${item.baseY}" stroke="${esc(marker.color)}" stroke-width="1.6" stroke-dasharray="4 5" opacity=".36"/>`;
         });
         const badge=linkedFactorText(line),bx=950;
-        out+=`<g class="nl-linked-badge"><rect x="${bx-38}" y="${mid-11}" width="76" height="22" rx="11" fill="#f1f8f7" stroke="#bad6d3"/><text x="${bx}" y="${mid+4}" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="800" fill="#2f6e69">${esc(badge)}</text></g>`;
+        out+=`<g class="nl-linked-badge"><rect x="${bx-38}" y="${mid-11}" width="76" height="22" rx="11" fill="#f1f8f7" stroke="#bad6d3"/><text x="${bx}" y="${mid+4}" text-anchor="middle" font-family="Arial,sans-serif" font-size="${fontSize(11)}" font-weight="800" fill="#2f6e69">${esc(badge)}</text></g>`;
       }
     });
     return out;
@@ -548,7 +549,7 @@ function nlRenderer(state,embedded=true){
   }
   function markerVisualWidth(line,marker){
     const label=String(marker?.label||''),value=marker?.showValue===false?'':lineValueText(line,marker.value);
-    return Math.max(hiddenChallengeMarker(line,marker)?76:28,16+Math.max(label.length*9,String(value).length*8));
+    return Math.max(hiddenChallengeMarker(line,marker)?76:28,16+Math.max(label.length*(paper?11:9),String(value).length*(paper?10:8)));
   }
   function autoLayoutMarkerSides(line){
     const scale=scaleFor(line),range=Math.max(.0001,scale.max-scale.min);
@@ -863,7 +864,7 @@ function nlData(model){
 function nlPaper(data,teacher=false){
  const state=normalise(copy(data.state)),ch=state.challenge;
  if(ch){ch.revealed=!!teacher;ch.correct=false;ch.userResponse='';ch.labelResponses=(ch.hiddenTicks||[]).map(()=> '');}
- const markup=nlRenderer(state).buildSvg(false);
+ const markup=nlRenderer(state,true,true).buildSvg(false);
  const diagram=new DOMParser().parseFromString(markup,'image/svg+xml').documentElement;
  if(diagram.localName==='parsererror')throw Error('Invalid number-line diagram.');
  diagram.removeAttribute('id');
@@ -1834,6 +1835,7 @@ function numberLineV2(){
     const holder=document.createElement('div');holder.innerHTML=markup;
     return holder.querySelector('svg');
   }
+  G.publishingLive=()=>{const ch=state.challenge;if(ch&&ch.mode!=='custom')return null;return G.publishing.captureLiveDiagram(pupil=>pupil?pupilDiagramSvg():new DOMParser().parseFromString(buildSvg(false),'image/svg+xml').documentElement,ch,responseLines)};
   function exportSvg(){
     if(state.challenge?.mode==='standard'&&exportMode==='challenge')return nlPaper(nlData({state,beforeChallenge,responseLines}));
     if(exportMode!=='challenge'||!state.challenge||!X?.composeChallengeCardSvg){
