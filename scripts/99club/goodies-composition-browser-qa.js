@@ -558,6 +558,18 @@ async function run(){
   assert(saved.objects.length===2,'Mixed board captures both objects');
   document.getElementById('gd-board-saved').click();
   assert(document.getElementById('gd-board-library').open,'Saved boards library opens');
+  const library=document.getElementById('gd-board-library');
+  const saveButton=document.getElementById('gd-board-save-current');
+  api.select(saveNl.record.id);
+  const modalDelete=new KeyboardEvent('keydown',{key:'Delete',bubbles:true,cancelable:true});
+  saveButton.dispatchEvent(modalDelete);
+  assert(api.objects().length===2&&!modalDelete.defaultPrevented,'Delete in the saved-board dialog cannot delete a board object');
+  const modalBackspace=new KeyboardEvent('keydown',{key:'Backspace',bubbles:true,cancelable:true});
+  saveButton.dispatchEvent(modalBackspace);
+  assert(api.objects().length===2&&!modalBackspace.defaultPrevented,'Backspace in the saved-board dialog cannot delete a board object');
+  const modalEscape=new KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true});
+  saveButton.dispatchEvent(modalEscape);
+  assert(!modalEscape.defaultPrevented,'Escape remains available for native modal dismissal');
   document.getElementById('gd-board-save-name').value='QA lesson';
   document.getElementById('gd-board-save-current').click();
   const stored=JSON.parse(localStorage.getItem('tt99-whiteboard-lessons-v1'));
@@ -572,6 +584,15 @@ async function run(){
   const broken=JSON.parse(JSON.stringify(saved));broken.objects[0].state.model.counts=null;
   let failed=false;try{await api.restore(broken)}catch(_){failed=true}
   assert(failed&&api.objects().length===2,'Failed restore keeps original lesson intact');
+  const saveBalance=await addForSave('balance');
+  document.getElementById('gd-board-saved').click();
+  assert(/Number Mobile Balance.*cannot be saved/i.test(document.getElementById('gd-board-library-status').textContent),'Saved-board library warns about unsupported Number Mobile Balance before saving');
+  document.getElementById('gd-board-save-name').value='Unsupported lesson';
+  document.getElementById('gd-board-save-current').click();
+  assert(!JSON.parse(localStorage.getItem('tt99-whiteboard-lessons-v1')).some(e=>e.name==='Unsupported lesson'),'Unsupported save does not write a partial board');
+  assert(api.objects().length===3,'Unsupported save leaves all current objects intact');
+  document.querySelector('[data-board-library-close]').click();
+  api.remove(saveBalance.record.id);
   localStorage.removeItem('tt99-whiteboard-lessons-v1');
   result('pass','board','Mixed whiteboard objects are frameless, scalable, contextual, all palette tools mount and editable lessons restore','tools='+tools.length);
 }
