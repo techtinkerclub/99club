@@ -122,7 +122,7 @@ function abacusTool(){
       setHistoricalNumber(start);
       pascalMessage='Challenge loaded · '+(operation==='add'?'add ':'subtract ')+amount+' using the input dials.';
       pascalCarryFlash=[];
-      historyChallenge={start,amount,operation,target,answer:target,requiresAnswer:false,prompt:'The Pascaline starts at '+start+'. '+(operation==='add'?'Add ':'Subtract ')+amount+' using the numbered input dials. Enter each place value, watch for '+(operation==='add'?'carrying':'borrowing')+', then press Check when the result windows show your answer.'};
+      historyChallenge={start,amount,operation,operationScope:['add','subtract'].includes(operationChoice)?operationChoice:'random',target,answer:target,requiresAnswer:false,prompt:'The Pascaline starts at '+start+'. '+(operation==='add'?'Add ':'Subtract ')+amount+' using the numbered input dials. Enter each place value, watch for '+(operation==='add'?'carrying':'borrowing')+', then press Check when the result windows show your answer.'};
     }
     renderAll();
   }
@@ -375,7 +375,7 @@ function abacusTool(){
     qa('[data-ab-stage-theme]').forEach(stageTheme=>stageTheme.onclick=()=>{const next=stageTheme.dataset.abStageTheme;colourScheme=COLOUR_SCHEMES.some(([id])=>id===next)?next:'classic';renderAll()});
     const answer=q('[data-ab-history-answer]');if(answer)answer.oninput=()=>{historyAnswer=answer.value;historyStatus=''};
     const check=q('[data-ab-history-check]');if(check)check.onclick=checkHistoricalChallenge;
-    const another=q('[data-ab-history-another]');if(another)another.onclick=newHistoricalChallenge;
+    const another=q('[data-ab-history-another]');if(another)another.onclick=()=>newHistoricalChallenge(historyChallenge?.operationScope||'random');
     const reveal=q('[data-ab-history-reveal]');if(reveal)reveal.onclick=revealHistoricalChallenge;
     const end=q('[data-ab-history-end]');if(end)end.onclick=exitChallenge;
     const stageKind=q('[data-ab-stage-kind]');if(stageKind)stageKind.onchange=()=>{changeDevice(stageKind.value)};
@@ -633,7 +633,7 @@ function abacusTool(){
     if(!task)return '';
     const context=taskContext==='challenge'?'CHALLENGE':'PLAY';
     const answer=task.requiresAnswer?'<label class="gd-ab-answer">Answer <input type="text" inputmode="none" data-ab-answer value="'+esc(answerInput)+'"'+(revealed||status==='Correct ✓'?' disabled':'')+'></label>':'';
-    const reveal=taskContext==='challenge'&&!revealed&&status!=='Correct ✓'?'<button type="button" data-ab-reveal>Reveal answer</button>':'';
+    const reveal=taskContext==='challenge'?'<button type="button" data-ab-reveal'+(revealed||status==='Correct ✓'?' hidden':'')+'>Reveal answer</button>':'';
     const skipNext=task.mode==='skip'&&workflow==='play'?'<button type="button" data-ab-skip-next>Next '+task.step+'</button>':'';
     return '<section class="gd-ab-task'+(taskContext==='challenge'?' gd-native-challenge':'')+'" data-ab-task="'+task.mode+'">'+
       '<div class="gd-ab-task-head"><div><span>'+context+'</span><strong>'+esc(task.prompt)+'</strong></div><em data-ab-status>'+esc(status)+'</em></div>'+
