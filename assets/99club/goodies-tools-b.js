@@ -2540,6 +2540,33 @@ function factorExplorer(){
     const cf=commonFactors(),h=gcd2(a,b),l=lcm2(a,b),hide=challenge&&!challenge.revealed;
     return '<div class="gd-fe-common" data-fe-common-summary><div><span>Common factors</span><strong>'+(hide&&challenge.hiddenCommonFactors?'?':cf.join(', '))+'</strong></div><div><span>Highest common factor</span><strong data-fe-hcf>'+(hide&&challenge.hiddenHcf?'?':h)+'</strong></div><div><span>Lowest common multiple</span><strong data-fe-lcm>'+(hide&&challenge.hiddenLcm?'?':l)+'</strong></div></div>';
   }
+  // A challenge shows evidence, not the teaching dashboard or precomputed answers.
+  function questionEvidence(){
+    const type=challenge.type;
+    if(type==='missing-factor')return arrayDiagram();
+    if(type==='divisible-by')return '<div class="gd-fe-question-number">'+a+' ÷ '+challenge.hiddenDivisor+' = ?</div>';
+    const useMultiples=type==='lcm';
+    return '<div class="gd-fe-question-evidence">'+(compare?[a,b]:[a]).map(n=>'<section><strong class="gd-fe-question-number">'+n+'</strong><span class="gd-fe-label">'+(useMultiples?'First 12 multiples':'Factor pairs')+'</span><div class="gd-fe-question-values">'+(useMultiples?multiples(n).map(v=>'<span>'+v+'</span>'):factorPairs(n).map(pair=>'<span>'+pairLabel(pair)+'</span>')).join('')+'</div></section>').join('')+'</div>';
+  }
+  function questionEvidenceSvg(){
+    const type=challenge.type,useMultiples=type==='lcm',numbers=compare?[a,b]:[a],width=920,height=type==='missing-factor'?320:type==='divisible-by'?160:270;
+    const svg=feSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Factor question evidence'});
+    svg.appendChild(feSvgEl('rect',{x:0,y:0,width,height,fill:'#fff'}));
+    const text=(x,y,value,size=22)=>svg.appendChild(feSvgEl('text',{x,y,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':size,'font-weight':700,fill:'#304b52'},value));
+    if(type==='missing-factor'){
+      const [rows,cols]=currentPairs()[selectedPair];text(460,36,rows+' × ? = '+a,26);
+      const w=cols*24,h=rows*24,x=(width-w)/2,y=70;
+      svg.appendChild(feSvgEl('rect',{x,y,width:w,height:h,fill:'#e8f4f1',stroke:'#77918e','stroke-width':2}));
+      for(let i=1;i<cols;i++)svg.appendChild(feSvgEl('line',{x1:x+i*24,y1:y,x2:x+i*24,y2:y+h,stroke:'#9ab9b4'}));
+      for(let i=1;i<rows;i++)svg.appendChild(feSvgEl('line',{x1:x,y1:y+i*24,x2:x+w,y2:y+i*24,stroke:'#9ab9b4'}));
+    }else if(type==='divisible-by')text(460,86,a+' ÷ '+challenge.hiddenDivisor+' = ?',30);
+    else numbers.forEach((n,i)=>{
+      const colW=width/numbers.length,center=colW*(i+.5);text(center,38,n,30);text(center,72,useMultiples?'First 12 multiples':'Factor pairs',16);
+      const values=useMultiples?multiples(n).map(String):factorPairs(n).map(pairLabel);
+      values.forEach((v,j)=>text(i*colW+(j%3+.5)*colW/3,112+Math.floor(j/3)*38,v,20));
+    });
+    return svg;
+  }
   function bindChallengeStageActions(){
     const endChallenge=q('[data-challenge-action="end"]',q('#gd-stage'));if(endChallenge)endChallenge.onclick=e=>{e.stopPropagation();clearChallenge()};
     const stage=q('#gd-stage');if(!stage||!challenge)return;
@@ -2549,6 +2576,7 @@ function factorExplorer(){
   function draw(){
     updateChallengeAnswer();
     const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Factors & multiples challenge',pupil:(challenge.type==='prime-or-composite'?CK.pupilSpec('choice',{choices:['Prime','Composite']}):challenge.type==='divisible-by'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:/^yes/i.test(challenge.answer)?'Yes':'No',explain:true}):challenge.type==='explain-prime'?CK.pupilSpec('discuss'):CK.pupilSpec(challenge.type==='common-factors'?'set':'number')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
+    if(challenge?.mode==='standard'&&!challenge.revealed){q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-fe-workbench is-focused-challenge">'+questionEvidence()+'</div>';bindChallengeStageActions();return}
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-fe-workbench">'+
       '<div class="gd-fe-summary"><div><span>Factors & multiples</span><strong>'+(compare?a+' and '+b:a)+'</strong></div><div class="gd-object-toolbar"><button class="gd-btn" id="fe-undo" type="button"'+(undoStack.length?'':' disabled')+'>Undo</button><button class="gd-btn" id="fe-redo" type="button"'+(redoStack.length?'':' disabled')+'>Redo</button></div></div>'+
       compareSummary()+
@@ -2724,6 +2752,7 @@ function factorExplorer(){
     return pupil?!!challenge[key]:challenge&&!challenge.revealed&&!!challenge[key];
   }
   function factorExplorerExportSvg({pupil=false}={}){
+    if(pupil&&challenge?.mode==='standard')return questionEvidenceSvg();
     const width=920,cardGap=18,cardCount=compare?2:1,cardW=cardCount===2?410:650,cardX0=(width-(cardCount*cardW+(cardCount-1)*cardGap))/2;
     const height=compare?790:720;
     const svg=feSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Factors and multiples model','data-fe-export':'diagram'});
