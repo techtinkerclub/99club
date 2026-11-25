@@ -3441,7 +3441,7 @@ function multiplicationGrid(){
     const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
     if(!beforeChallenge)beforeChallenge=snapshot();else restore(beforeChallenge);
     undoStack.length=0;redoStack.length=0;resetChallengeGrid();
-    const a=randomInt(2,12),b=randomInt(2,12),p=a*b;
+    const a=randomInt(2,12);let b=randomInt(2,12);if(type==='commutative-fact'&&a===b)b=a===12?11:a+1;const p=a*b;
     if(type==='missing-product'){
       selectedRow=a;selectedCol=b;focus=a;setHidden(a,b,true);
       challenge=challengeObject(type,'What is '+a+' × '+b+'?',p,{hideFactsPanel:true});
@@ -4067,7 +4067,7 @@ function arrayBuilder(){
     const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
     if(!beforeChallenge)beforeChallenge=snapshot();else restoreSnapshot(beforeChallenge);
     rowSplit=0;colSplit=0;
-    const r=randomDimension(),c=randomDimension();
+    const r=randomDimension();let c=randomDimension();if(type==='commutative-fact'&&c===r)c=r===10?9:r+1;
     setDimensions(r,c);
     if(type==='count-total'){
       challenge=challengeObject(type,'How many objects are in the array altogether?',String(total()),{hiddenTotal:true,hiddenRepeated:true,hiddenInverse:true});
@@ -4469,7 +4469,7 @@ function clockTool(){
   function anyTimeHidden(){
     return !!(challenge&&!challenge.revealed&&Array.isArray(challenge.hiddenReadouts)&&challenge.hiddenReadouts.length);
   }
-  function handsFrozen(){return !!(challenge&&challenge.mode==='standard'&&challenge.freezeHands)}
+  function handsFrozen(){return !!(challenge&&challenge.mode==='standard'&&(challenge.freezeHands||challenge.revealed))}
   function challengeObject(type,prompt,answer,extra={}){
     const meta=CHALLENGE_TEMPLATES.find(t=>t.id===type);
     const raw={
@@ -4565,7 +4565,7 @@ function clockTool(){
   }
   function clockExportSvg({pupil=false}={}){
     if(!pupil&&!challenge&&extraClocks.length)return multiClockExportSvg();
-    const state=exportClockState(pupil),width=760,height=690,cx=380,cy=255,r=205;
+    const state=exportClockState(pupil),focused=pupil&&challenge?.mode==='standard',width=760,height=focused?(state.blankHands?530:495):690,cx=380,cy=255,r=205;
     const svg=clSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Analogue clock','data-cl-export':'clock'});
     svg.appendChild(clSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
     svg.appendChild(clSvgEl('circle',{cx,cy,r,fill:'#ffffff',stroke:'#43555c','stroke-width':5,'data-cl-export-face':'1','data-cl-export-state':state.source,'data-cl-export-hour':state.hour,'data-cl-export-minute':state.minute}));
@@ -4604,14 +4604,14 @@ function clockTool(){
       ['24-hour',exportReadoutHidden('24',pupil)?'?':format24(state.hour,state.minute),'24'],
       ['12-hour',exportReadoutHidden('12',pupil)?'?':format12(state.hour,state.minute),'12']
     ];
-    values.forEach((item,index)=>{
+    if(!focused)values.forEach((item,index)=>{
       const x=start+index*(cardW+gap);
       svg.appendChild(clSvgEl('rect',{x,y:readY,width:cardW,height:78,rx:13,fill:'#f6f9f9',stroke:'#d9e2e4','stroke-width':1}));
       svg.appendChild(clSvgEl('text',{x:x+16,y:readY+25,'font-family':'Arial,sans-serif','font-size':12,'font-weight':750,fill:'#718288'},item[0]));
       svg.appendChild(clSvgEl('text',{x:x+cardW-16,y:readY+55,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':22,'font-weight':900,fill:'#304b52','data-cl-export-readout':item[2]},item[1]));
     });
     if(state.blankHands){
-      svg.appendChild(clSvgEl('text',{x:width/2,y:625,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':14,'font-weight':750,fill:'#718288','data-cl-export-set-blank':'1'},'Draw the hands on the clock face'));
+      svg.appendChild(clSvgEl('text',{x:width/2,y:focused?500:625,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':14,'font-weight':750,fill:'#718288','data-cl-export-set-blank':'1'},'Draw the hands on the clock face'));
     }
     svg.appendChild(clSvgEl('text',{x:width-42,y:height-18,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':10,fill:'#87969a'},'99 Club Studio'));
     return svg;
@@ -4794,8 +4794,8 @@ function clockTool(){
       hour=randomHour();minute=[0,5,10,15,20,25,30,35,40,45,50,55][Math.floor(Math.random()*12)];
       challenge=challengeObject(type,'Write the time using past / to language.',spokenTime());
     }else{
-      hour=1+Math.floor(Math.random()*10);minute=30;
-      challenge=challengeObject(type,'A pupil says that at half past '+h12()+' the hour hand should point exactly at '+h12()+'. Are they correct?','No. At half past '+h12()+', the hour hand is halfway between '+h12()+' and '+nextH12()+'.');
+      hour=1+Math.floor(Math.random()*12);minute=30;const valid=Math.random()<.5;
+      challenge=challengeObject(type,'A pupil says that at half past '+h12()+' the hour hand should point '+(valid?'halfway between '+h12()+' and '+nextH12():'exactly at '+h12())+'. Are they correct?',(valid?'Yes. ':'No. ')+'At half past '+h12()+', the hour hand is halfway between '+h12()+' and '+nextH12()+'.');
     }
     challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';
     exportMode='challenge';responseLines=template.category==='reason'?3:(type==='set-five'||type==='set-minute'?2:1);exportStatus='';
@@ -4915,11 +4915,12 @@ function clockTool(){
       renderControls();draw();
     });
   }
+  function toggleClockReveal(){if(!challenge)return;challenge.revealed=!challenge.revealed;if(challenge.mode==='standard'&&challenge.freezeHands===false){if(challenge.revealed){challenge.modelBeforeReveal=snapshot();hour=challenge.targetHour;minute=challenge.targetMinute;second=0}else if(challenge.modelBeforeReveal){restoreSnapshot(challenge.modelBeforeReveal);delete challenge.modelBeforeReveal}}renderControls();draw()}
   function bindChallengeStageActions(){
     const endChallenge=q('[data-challenge-action="end"]',q('#gd-stage'));if(endChallenge)endChallenge.onclick=e=>{e.stopPropagation();clearChallenge()};
     const stage=q('#gd-stage');if(!stage||!challenge)return;
     const reveal=q('[data-board-action="reveal"]',stage);
-    if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();draw()};
+    if(reveal)reveal.onclick=e=>{e.stopPropagation();toggleClockReveal()};
     const another=q('[data-challenge-action="another"]',stage);
     if(another)another.onclick=e=>{e.stopPropagation();if(challenge?.mode==='standard')generateChallenge(challenge.type)};
   }
@@ -4984,7 +4985,7 @@ function clockTool(){
     const generate=q('#cl-generate',controls);if(generate)generate.onclick=()=>generateChallenge(challengeType);
     const edit=q('#cl-edit-challenge',controls);if(edit)edit.onclick=enterCustomChallenge;
     const end=q('#cl-clear-challenge',controls);if(end)end.onclick=clearChallenge;
-    const reveal=q('#cl-reveal',controls);if(reveal)reveal.onclick=()=>{if(!challenge)return;challenge.revealed=!challenge.revealed;renderControls();draw()};
+    const reveal=q('#cl-reveal',controls);if(reveal)reveal.onclick=toggleClockReveal;
     qa('[data-gd-rich-action]',controls).forEach(button=>button.onclick=e=>{
       e.preventDefault();const editor=q('#cl-custom-prompt',controls);
       if(editor&&CK&&challenge){
@@ -5020,11 +5021,11 @@ function clockTool(){
         '<circle class="gd-clock-centre" cx="150" cy="150" r="7"></circle>'+
       '</svg></div>'+
       (primary&&challenge?.mode==='standard'&&!frozen?'<div class="gd-row gd-cl-period-choice" role="group" aria-label="Choose morning or afternoon">'+[0,12].map(p=>'<button type="button" class="gd-btn" data-cl-period-stage="'+p+'" aria-pressed="'+(p===(state.hour>=12?12:0))+'">'+(p===0?'AM':'PM')+'</button>').join('')+'</div>':'')+
-      (showDigital?'<div class="gd-clock-digital" data-cl-digital>'+(hiddenReadout('12')&&primary?'?':format12Digital(state.hour,state.minute,state.second))+'</div>':'')+
-      '<div class="gd-clock-readouts">'+
+      (showDigital&&!hiddenReadout('12')?'<div class="gd-clock-digital" data-cl-digital>'+(hiddenReadout('12')&&primary?'?':format12Digital(state.hour,state.minute,state.second))+'</div>':'')+
+      (primary&&challenge?.mode==='standard'&&!challenge.revealed?'':'<div class="gd-clock-readouts">'+
         '<div class="gd-readout"><span>24-hour</span><strong data-cl-readout-kind="24"'+(primary?' data-cl-readout="24"':'')+'>'+(hiddenReadout('24')&&primary?'?':format24(state.hour,state.minute))+'</strong></div>'+
         '<div class="gd-readout"><span>12-hour</span><strong data-cl-readout-kind="12"'+(primary?' data-cl-readout="12"':'')+'>'+(hiddenReadout('12')&&primary?'?':format12(state.hour,state.minute))+'</strong></div>'+
-      '</div>'+
+      '</div>')+
     '</section>';
   }
   function differenceMarkup(){
@@ -5037,7 +5038,7 @@ function clockTool(){
   }
   function draw(){
     const states=challenge?[clockState(0)]:clockStates(),frozen=handsFrozen(),hidden=anyTimeHidden();
-    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Clock challenge',pupil:(challenge.freezeHands===false?CK.pupilSpec('model',{check:onTarget}):challenge.type==='hour-hand-misconception'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:'No',explain:true}):challenge.type==='time-language'?CK.pupilSpec('spoken',{hint:'e.g. quarter past 3'}):CK.pupilSpec(challenge.type==='twelve-to-twentyfour'?'clock-24':challenge.type==='twentyfour-to-twelve'?'clock-12':'clock-face')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Clock challenge',pupil:(challenge.freezeHands===false?CK.pupilSpec('model',{check:onTarget}):challenge.type==='hour-hand-misconception'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:challenge.answer.startsWith('Yes')?'Yes':'No',explain:true}):challenge.type==='time-language'?CK.pupilSpec('spoken',{hint:'e.g. quarter past 3'}):CK.pupilSpec(challenge.type==='twelve-to-twentyfour'?'clock-24':challenge.type==='twentyfour-to-twelve'?'clock-12':'clock-face')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     const targetStatus='';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-clock-workbench">'+
       '<div class="gd-clock-grid">'+states.map((state,index)=>clockCardMarkup(index,state,index===0&&frozen,index===0&&hidden)).join('')+'</div>'+
@@ -5190,7 +5191,7 @@ function moneyTool(){
     const raw={mode:'standard',type,category:meta?.category||'',title:'',prompt,promptHtml:prompt,answer:String(answer??''),answerMode:'bound',answerSource:'',revealed:false,freezeMoney:true,hiddenTotal:false,hiddenTarget:false,hiddenStatus:false,targetPieces:null,minPieces:null,...extra};
     return CK?CK.normalise(raw):raw;
   }
-  function challengeFrozen(){return !!(challenge&&challenge.mode==='standard'&&challenge.freezeMoney)}
+  function challengeFrozen(){return !!(challenge&&challenge.mode==='standard'&&(challenge.freezeMoney||challenge.revealed))}
   function hidden(key){return !!(challenge&&!challenge.revealed&&challenge[key])}
   function statusText(){
     const value=total(),delta=target-value;
@@ -5199,6 +5200,7 @@ function moneyTool(){
   }
   function challengeProgress(){
     if(!challenge||challenge.mode!=='standard')return statusText();
+    if(!challenge.revealed)return 'Build your amount, then press Check.';
     if(challenge.type==='make-target'||challenge.type==='find-change')return total()===target?'On target ✓':'Keep building';
     if(challenge.type==='exact-pieces'){
       const count=items.length,amountRight=total()===target,piecesRight=count===Number(challenge.targetPieces);
@@ -5292,11 +5294,12 @@ function moneyTool(){
       button.disabled=frozen||!item||(action==='delete'&&!!item.locked);
     });
   }
+  function toggleMoneyReveal(){if(!challenge)return;challenge.revealed=!challenge.revealed;if(challenge.mode==='standard'&&challenge.freezeMoney===false){if(challenge.revealed){challenge.modelBeforeReveal=snapshot();setValues(challenge.type==='exact-pieces'&&Array.isArray(challenge.solutionValues)?challenge.solutionValues:amountValues(target))}else if(challenge.modelBeforeReveal){restore(challenge.modelBeforeReveal);delete challenge.modelBeforeReveal}}renderControls();controller.refresh()}
   function bindChallengeStageActions(){
     const endChallenge=q('[data-challenge-action="end"]',q('#gd-stage'));if(endChallenge)endChallenge.onclick=e=>{e.stopPropagation();clearChallenge()};
     const stage=q('#gd-stage');if(!stage||!challenge)return;
     const reveal=q('[data-board-action="reveal"]',stage);
-    if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();controller.refresh()};
+    if(reveal)reveal.onclick=e=>{e.stopPropagation();toggleMoneyReveal()};
     const another=q('[data-challenge-action="another"]',stage);
     if(another)another.onclick=e=>{e.stopPropagation();if(challenge?.mode==='standard')generateChallenge(challenge.type)};
   }
@@ -5311,16 +5314,16 @@ function moneyTool(){
       ?'<div class="gd-answer-live" data-mo-target-status>'+(status==='On target ✓'?'On target ✓':status)+'</div>'
       :'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-money-workbench">'+
-      toolbarHtml(history,selected)+moneyStagePaletteHtml()+
+      (challengeFrozen()&&challenge?.mode==='standard'?'':toolbarHtml(history,selected)+moneyStagePaletteHtml())+
       '<div class="gd-money-canvas" id="mo-canvas" data-gd-canvas-bg style="min-height:'+m.height+'px" aria-label="Money workbench">'+
         (items.length?items.map(moneyObject).join(''):'<div class="gd-money-empty" data-gd-canvas-bg>Choose a denomination to start building an amount.</div>')+
       '</div>'+
-      '<p class="gd-money-credit gd-money-credit--stage">Stylised UK classroom coins · relative sizes shown approximately.</p>'+
-      '<div class="gd-money-summary">'+
+      (challenge?.mode==='standard'&&!challenge.revealed?'':'<p class="gd-money-credit gd-money-credit--stage">Stylised UK classroom coins · relative sizes shown approximately.</p>')+
+      (challenge?.mode==='standard'&&!challenge.revealed?'':'<div class="gd-money-summary">'+
         '<div><span>Total</span><strong data-mo-total>'+totalText+'</strong></div>'+
         '<div><span>Target</span><strong data-mo-target-readout>'+targetText+'</strong></div>'+
         '<div class="'+(!hidden('hiddenStatus')&&total()===target?'is-match':'')+'"><span>Check</span><strong data-mo-status>'+status+'</strong></div>'+
-      '</div>'+live+
+      '</div>')+
     '</div>';
     bindChallengeStageActions();
   }
@@ -5418,7 +5421,7 @@ function moneyTool(){
     svg.appendChild(g);
   }
   function moneyExportSvg({pupil=false}={}){
-    const width=1000,height=620,board={x:64,y:92,w:872,h:360};
+    const focused=pupil&&challenge?.mode==='standard',width=1000,height=focused?485:620,board={x:64,y:92,w:872,h:360};
     const liveCanvas=q('#mo-canvas'),canvasW=Math.max(280,liveCanvas?.clientWidth||760),canvasH=Math.max(320,liveCanvas?.clientHeight||390);
     const svg=moSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'UK money model','data-mo-export':'money'});
     svg.appendChild(moSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
@@ -5434,13 +5437,13 @@ function moneyTool(){
     let statusTextExport=exportHidden('hiddenStatus',pupil)?'?':(construction?'Build the target':challengeProgress());
     const summaries=[['Total',totalText,'total'],['Target',targetText,'target'],['Check',statusTextExport,'status']];
     const gap=14,cardW=(board.w-gap*2)/3,cardY=478;
-    summaries.forEach((row,index)=>{
+    if(!focused)summaries.forEach((row,index)=>{
       const x=board.x+index*(cardW+gap);
       svg.appendChild(moSvgEl('rect',{x,y:cardY,width:cardW,height:82,rx:12,fill:index===2&&statusTextExport.includes('✓')?'#e8f6ef':'#f5f8f8',stroke:'#d4dfe1','stroke-width':1.5}));
       svg.appendChild(moSvgEl('text',{x:x+14,y:cardY+24,'font-family':'Arial,sans-serif','font-size':11,'font-weight':850,fill:'#708287'},row[0].toUpperCase()));
       svg.appendChild(moSvgEl('text',{x:x+14,y:cardY+56,'font-family':'Arial,sans-serif','font-size':18,'font-weight':900,fill:'#304b52','data-mo-export-summary':row[2]},row[1]));
     });
-    svg.appendChild(moSvgEl('text',{x:936,y:602,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':10,fill:'#87969a'},'99 Club Studio'));
+    svg.appendChild(moSvgEl('text',{x:936,y:height-18,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':10,fill:'#87969a'},'99 Club Studio'));
     return svg;
   }
   function exportTargetSvg(){
@@ -5525,7 +5528,7 @@ function moneyTool(){
     }else if(type==='missing-to-target'){
       const gap=[10,20,50,100,200][randomInt(0,4)];target=randomStep(Math.max(100,gap+50),1000,10);
       shown=Math.max(0,target-gap);setValues(amountValues(shown));
-      challenge=challengeObject(type,'The money shown needs to reach '+money(target)+'. How much more is needed?',money(gap),{hiddenStatus:true});
+      challenge=challengeObject(type,'The money shown needs to reach '+money(target)+'. How much more is needed?',money(gap),{hiddenStatus:true,hiddenTotal:true});
     }else if(type==='make-target'){
       target=randomStep(35,1500,5);items=[];nextId=1;
       challenge=challengeObject(type,'Build exactly '+money(target)+' using any coins or notes.',money(target),{freezeMoney:false,hiddenStatus:false});
@@ -5533,7 +5536,7 @@ function moneyTool(){
       const pieces=randomInt(3,5),pool=[5,10,20,50,100,200],chosen=[];
       for(let i=0;i<pieces;i++)chosen.push(pool[randomInt(0,pool.length-1)]);
       target=chosen.reduce((a,b)=>a+b,0);items=[];nextId=1;
-      challenge=challengeObject(type,'Build '+money(target)+' using exactly '+pieces+' money pieces.',money(target)+' using '+pieces+' pieces',{freezeMoney:false,targetPieces:pieces});
+      challenge=challengeObject(type,'Build '+money(target)+' using exactly '+pieces+' money pieces.',money(target)+' using '+pieces+' pieces',{freezeMoney:false,targetPieces:pieces,solutionValues:chosen.slice()});
     }else if(type==='fewest-pieces'){
       do{target=randomStep(55,1500,5)}while(minimumPieces(target)<2||minimumPieces(target)>6);
       items=[];nextId=1;
@@ -5586,7 +5589,7 @@ function moneyTool(){
     qa('[data-mo-challenge-type]',q('#gd-controls')).forEach(button=>button.onclick=()=>{challengeType=button.dataset.moChallengeType;renderControls()});
     const generate=q('#mo-generate');if(generate)generate.onclick=()=>generateChallenge(challengeType);
     const edit=q('#mo-edit-challenge');if(edit)edit.onclick=enterCustomChallenge;
-    const reveal=q('#mo-reveal');if(reveal)reveal.onclick=()=>{if(challenge){challenge.revealed=!challenge.revealed;renderControls();controller.refresh()}};
+    const reveal=q('#mo-reveal');if(reveal)reveal.onclick=toggleMoneyReveal;
     const clearChallengeBtn=q('#mo-clear-challenge');if(clearChallengeBtn)clearChallengeBtn.onclick=clearChallenge;
     if(challengeTab==='custom'&&challenge){
       const title=q('#mo-custom-title');if(title)title.oninput=()=>{challenge.title=title.value.slice(0,100);controller.refresh()};
