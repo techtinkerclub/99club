@@ -104,7 +104,7 @@ window.scrollTo=function(){};
       const workflow=[...controls.children].find(el=>el.matches('[role="tablist"][aria-label$="workflow"]'));
       assert(workflow,label+' exposes workflow navigation at the top of the teacher controls');
       const workflowButtons=[...workflow.querySelectorAll('button')].filter(visible);
-      const expectedWorkflowCount=(id==='place-value'||id==='abacus')?4:3;
+      const expectedWorkflowCount=(id==='place-value'||id==='abacus'||id==='maths-canvas')?4:3;
       assert(workflowButtons.length===expectedWorkflowCount,label+' workflow navigation keeps the expected '+expectedWorkflowCount+' primary destinations');
       assert(getComputedStyle(workflow).display==='grid',label+' workflow navigation uses the shared equal-width grid');
       workflowButtons.forEach(button=>assert(button.scrollWidth<=button.clientWidth+4,label+' workflow label stays fully readable: '+button.textContent.trim()));

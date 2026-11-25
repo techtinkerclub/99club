@@ -535,7 +535,10 @@ async function run(){
   assert(mcAdd,'Maths Canvas exposes Add Tile directly on the frame');
   mcAdd.click();await tick();
   const mcDoc=mcFrame.querySelector('iframe').contentDocument;
-  assert(visible(mcDoc.querySelector('.gd-mc-stage-palette')),'Frame Add Tile opens the number / operation palette inside Maths Canvas');
+  const tilePalette=document.getElementById('gd-board-floating-controls');
+  const tilePick=tilePalette.querySelector('[data-board-control-index][data-mc-add], [data-board-control-index][data-mc-stage-add]');
+  assert(visible(tilePalette)&&tilePalette.querySelector('.gd-mc-stage-palette')&&tilePalette.querySelectorAll('button[data-board-control-index]').length>4,'Frame Add Tile opens the contextual number / operation palette on the board');
+  assert(mcDoc.querySelector('#mc-board-palette').hidden,'Embedded palette remains a hidden proxy source');
   TT99Goodies.compositionBoard.remove(mcRecord.id);
 
   document.querySelector('[data-board-add="measurement"]').click();await tick();

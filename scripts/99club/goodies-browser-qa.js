@@ -1158,7 +1158,7 @@ if(mode==='prepare'){
     assert(hsMissingCard.querySelector('[data-hs-paper-value="11"]').textContent.trim()==='?','Missing-number pupil export re-hides the target after teacher Reveal');
     assert(!hsMissingCard.querySelector('[data-hs-export-value]'),'Hundred Square SVG does not store hidden answers in per-cell value metadata');
     assert(!hsMissingCard.textContent.includes('Answer: 12'),'Hundred Square pupil card never includes the revealed answer label');
-    assert(hsMissingCard.textContent.includes('What number is hidden on the hundred square?'),'Hundred Square challenge-card export includes the pupil prompt');
+    assert(hsMissingCard.textContent.includes('What number is hidden')&&/hundred square|this part/.test(hsMissingCard.textContent),'Hundred Square challenge-card export includes the pupil prompt');
 
     document.querySelector('[data-hs-workflow="challenge"]').click();
     document.querySelector('[data-hs-challenge-cat="read"]').click();
@@ -2294,7 +2294,7 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=(svg)=>{pvAbacusSvg=svg.cloneNode(true)};
     document.getElementById('pv-svg-download').click();
     TT99Goodies.exportTools.downloadSvg=pvOldAbacusDownload;
-    assert(pvAbacusSvg&&pvAbacusSvg.querySelector('[data-pv-export-abacus="1"]'),'Addition worksheet export preserves the abacus representation');
+    assert(pvAbacusSvg&&pvAbacusSvg.querySelectorAll('[data-pv-paper-counter]').length>0&&pvAbacusSvg.textContent.includes('Starting representation')&&pvAbacusSvg.textContent.includes('Your representation'),'Addition worksheet provides starting counters and a blank final chart');
 
     document.querySelector('[data-pv-workflow="challenge"]').click();
     document.querySelector('[data-pv-challenge-mode="add"]').click();
@@ -2443,7 +2443,7 @@ if(mode==='prepare'){
     assert([...fwSource.options].some(o=>o.value==='strip:1:mixed'),'Fractions custom answer can bind to a mixed-number value');
     fwSource.value='strip:1:fraction';
     fwSource.dispatchEvent(new Event('change',{bubbles:true}));
-    assert(!document.querySelector('#fw-strip-canvas [data-gd-object="1"] .gd-fr-strip-head strong')||document.querySelector('#fw-strip-canvas [data-gd-object="1"] .gd-fr-strip-head strong').textContent.trim()==='?','Binding a custom answer hides that strip label');
+    assert(document.querySelector('#fw-strip-canvas [data-gd-object="1"] .gd-fr-strip-head strong').textContent.trim()==='?'&&!document.querySelector('#fw-strip-canvas [data-gd-object="1"] small'),'Binding a custom answer hides both the strip label and equivalent-value hint');
     const fwLiveBefore=document.getElementById('fw-custom-live-answer').textContent.trim();
     const stripOnePieces=[...document.querySelectorAll('[data-fr-strip-piece^="1:"]')];
     assert(stripOnePieces.length>=2,'Bound strip exposes editable fraction segments');
@@ -3000,10 +3000,10 @@ if(mode==='prepare'){
     document.getElementById('ab-generate').click();
     board=document.getElementById('ab-board');
     assert(Number(board.dataset.abRowSplit)>0||Number(board.dataset.abColSplit)>0,'Partial-products challenge generates a real partition');
-    assert(document.querySelector('[data-ab-partial] strong').textContent.trim()==='?','Partial-products challenge hides the decomposition answer');
-    assert(document.querySelector('[data-ab-equation]').textContent.trim()==='?','Partial-products challenge hides the whole multiplication equation');
+    assert(!document.querySelector('[data-ab-partial]'),'Partial-products challenge omits the decomposition answer');
+    assert(!document.querySelector('[data-ab-equation]'),'Partial-products challenge omits the whole multiplication equation');
     document.querySelector('[data-board-action="reveal"]').click();
-    assert(document.querySelector('[data-ab-partial] strong').textContent.includes('×'),'Reveal restores the partial-product calculation');
+    assert(document.querySelector('[data-ab-partial]').textContent.includes('×'),'Reveal restores the partial-product calculation');
 
     document.querySelector('[data-ab-workflow="export"]').click();
     let abPartialSvg=null;
@@ -3011,8 +3011,8 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=(svg)=>{abPartialSvg=svg.cloneNode(true)};
     document.getElementById('ab-svg-download').click();
     TT99Goodies.exportTools.downloadSvg=abOldPartialDownload;
-    assert(abPartialSvg.querySelector('[data-ab-export-row-split]')||abPartialSvg.querySelector('[data-ab-export-col-split]'),'Partial-products pupil export preserves the visual partition');
-    assert(abPartialSvg.querySelector('[data-ab-export-math="3"]').textContent.trim()==='?','Partial-products pupil export re-hides the decomposition after Reveal');
+    assert(abPartialSvg.querySelector('line[stroke="#b77d16"]'),'Partial-products pupil export preserves the visual partition');
+    assert(!abPartialSvg.querySelector('[data-ab-export-math]'),'Partial-products pupil export omits the decomposition after Reveal');
 
     document.querySelector('[data-ab-workflow="challenge"]').click();
     document.getElementById('ab-edit-challenge').click();
@@ -3160,11 +3160,11 @@ if(mode==='prepare'){
     document.getElementById('mo-generate').click();
     assert(document.querySelector('.gd-challenge-banner'),'Generated UK Money challenge appears above the workbench');
     assert(document.querySelectorAll('#mo-canvas [data-gd-object]').length===4,'Deterministic count challenge shows four money pieces');
-    assert(document.querySelector('[data-mo-total]').textContent.trim()==='?'&&document.querySelector('[data-mo-target-readout]').textContent.trim()==='?','Count-money challenge hides both total and target shortcuts');
-    assert(document.querySelector('[data-mo-status]').textContent.trim()==='?','Count-money challenge hides the difference/status shortcut');
+    assert(!document.querySelector('[data-mo-total]')&&!document.querySelector('[data-mo-target-readout]'),'Count-money challenge omits both total and target shortcuts');
+    assert(!document.querySelector('[data-mo-status]'),'Count-money challenge omits the difference/status shortcut');
     let frozenMoney=document.querySelector('#mo-canvas [data-gd-object]');
     assert(frozenMoney.classList.contains('is-frozen'),'Read-money challenge visibly fixes the supplied pieces');
-    assert(document.querySelector('[data-gd-action="add-money"]')?.disabled,'Read-only money challenge disables the live Add money action');
+    assert(!document.querySelector('[data-gd-action="add-money"]')||document.querySelector('[data-gd-action="add-money"]').disabled,'Read-only money challenge prevents adding pieces');
     let frozenLeft=parseFloat(frozenMoney.style.left);
     let frozenRect=frozenMoney.getBoundingClientRect();
     pointer(frozenMoney,'pointerdown',frozenRect.left+frozenRect.width/2,frozenRect.top+frozenRect.height/2,151);
@@ -3174,7 +3174,7 @@ if(mode==='prepare'){
     assert(parseFloat(frozenMoney.style.left)===frozenLeft,'Frozen money challenge ignores direct keyboard movement');
     document.querySelector('[data-board-action="reveal"]').click();
     assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: 20p'),'Count-money challenge reveals the deterministic 20p answer contextually');
-    assert(document.querySelector('[data-mo-total]').textContent.trim()==='20p','Reveal restores the hidden total');
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('20p'),'Reveal displays the total in the banner');
 
     document.querySelector('[data-mo-workflow="challenge"]').click();
     document.querySelector('[data-mo-challenge-cat="make"]').click();
@@ -3184,14 +3184,14 @@ if(mode==='prepare'){
     document.querySelector('[data-mo-challenge-type="make-target"]').click();
     document.getElementById('mo-generate').click();
     assert(document.querySelectorAll('#mo-canvas [data-gd-object]').length===0,'Make-target challenge starts with an empty money board');
-    assert(document.querySelector('[data-mo-target-readout]').textContent.trim()==='35p','Deterministic make-target challenge exposes the pupil target');
-    assert(document.querySelector('[data-mo-status]').textContent.trim()==='Keep building','Interactive money challenge does not leak the remaining difference');
+    assert(document.querySelector('.gd-challenge-prompt').textContent.includes('35p'),'Make-target challenge exposes the pupil target in its prompt');
+    assert(!document.querySelector('[data-mo-status]'),'Interactive money challenge does not leak the remaining difference');
     assert(!document.querySelector('[data-gd-action="add-money"]').disabled,'Editable make-target challenge keeps Add money available directly on stage');
     addMoneyFromStage(20);
     addMoneyFromStage(10);
     addMoneyFromStage(5);
-    assert(document.querySelector('[data-mo-total]').textContent.trim()==='35p','Pupil-built coins update the challenge total');
-    assert(document.querySelector('[data-mo-status]').textContent.includes('On target'),'Make-target challenge confirms the exact amount');
+    assert([...document.querySelectorAll('#mo-canvas [data-gd-object]')].reduce((sum,el)=>sum+Number(el.dataset.moValue),0)===35,'Pupil-built coins make the requested total');
+    document.querySelector('[data-gd-pupil-check]').click(); assert(document.querySelector('.gd-pupil-feedback.is-correct'),'Make-target challenge confirms the exact amount after Check');
 
     document.querySelector('[data-mo-workflow="challenge"]').click();
     document.querySelector('[data-mo-challenge-cat="make"]').click();
@@ -3199,7 +3199,7 @@ if(mode==='prepare'){
     document.getElementById('mo-generate').click();
     assert(document.querySelector('.gd-challenge-prompt').textContent.includes('exactly 3 money pieces'),'Exact-pieces challenge states the required piece count');
     for(let i=0;i<3;i++)document.querySelector('[data-mo-add="5"]').click();
-    assert(document.querySelector('[data-mo-status]').textContent.includes('On target')&&document.querySelector('[data-mo-status]').textContent.includes('3 pieces'),'Exact-pieces challenge validates both amount and piece count');
+    document.querySelector('[data-gd-pupil-check]').click(); assert(document.querySelector('.gd-pupil-feedback.is-correct'),'Exact-pieces challenge validates both amount and piece count after Check');
 
     document.querySelector('[data-mo-workflow="challenge"]').click();
     document.querySelector('[data-mo-challenge-cat="make"]').click();
@@ -3208,15 +3208,15 @@ if(mode==='prepare'){
     assert(document.querySelector('.gd-challenge-prompt').textContent.includes('fewest'),'Fewest-pieces challenge asks for an efficient representation');
     document.querySelector('[data-mo-add="50"]').click();
     document.querySelector('[data-mo-add="5"]').click();
-    assert(document.querySelector('[data-mo-status]').textContent.includes('minimum pieces'),'Fewest-pieces challenge recognises the deterministic two-piece optimum');
+    document.querySelector('[data-gd-pupil-check]').click(); assert(document.querySelector('.gd-pupil-feedback.is-correct'),'Fewest-pieces challenge recognises the deterministic two-piece optimum after Check');
 
     document.querySelector('[data-mo-workflow="challenge"]').click();
     document.querySelector('[data-mo-challenge-cat="change"]').click();
     assert(document.querySelector('[data-mo-challenge-type="find-change"]'),'Find-change challenge is available');
     document.getElementById('mo-generate').click();
     assert(document.querySelector('.gd-challenge-prompt').textContent.includes('£1.25')&&document.querySelector('.gd-challenge-prompt').textContent.includes('£5'),'Deterministic change challenge states price and payment');
-    assert(document.querySelector('[data-mo-target-readout]').textContent.trim()==='?','Change challenge hides the target amount because it is the answer');
-    assert(document.querySelector('[data-mo-status]').textContent.trim()==='Keep building','Change challenge gives progress without leaking the change');
+    assert(!document.querySelector('[data-mo-target-readout]'),'Change challenge omits the answer-bearing target');
+    assert(!document.querySelector('[data-mo-status]'),'Change challenge omits the difference shortcut');
     document.querySelector('[data-board-action="reveal"]').click();
     assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: £3.75'),'Change challenge reveals the calculated change only on request');
 
@@ -3225,7 +3225,7 @@ if(mode==='prepare'){
     const moSource=document.getElementById('mo-custom-answer-source');
     assert(moSource&&['total','target','difference','pieces'].every(source=>[...moSource.options].some(o=>o.value===source)),'UK Money custom challenges expose all live answer sources');
     moSource.value='total';moSource.dispatchEvent(new Event('change',{bubbles:true}));
-    assert(document.querySelector('[data-mo-total]').textContent.trim()==='?','Binding a custom answer to total hides the direct total shortcut');
+    assert(!document.querySelector('[data-mo-total]'),'Binding a custom answer to total hides the direct total shortcut');
     const moLiveBefore=document.getElementById('mo-custom-live-answer').textContent;
     document.querySelector('[data-mo-add="100"]').click();
     const moLiveAfter=document.getElementById('mo-custom-live-answer').textContent;
@@ -3262,10 +3262,10 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=(svg)=>{moCountCard=svg.cloneNode(true)};
     document.getElementById('mo-svg-download').click();
     TT99Goodies.exportTools.downloadSvg=moOldCountDownload;
-    assert(moCountCard&&moCountCard.querySelectorAll('[data-mo-export-piece]').length===4,'Count-money pupil card preserves the supplied money pieces');
-    assert(moCountCard.querySelector('[data-mo-export-summary="total"]').textContent.trim()==='?','Count-money pupil export re-hides total after teacher Reveal');
-    assert(moCountCard.querySelector('[data-mo-export-summary="target"]').textContent.trim()==='?','Count-money pupil export re-hides target after teacher Reveal');
-    assert(moCountCard.querySelector('[data-mo-export-summary="status"]').textContent.trim()==='?','Count-money pupil export re-hides status after teacher Reveal');
+    assert(moCountCard&&moCountCard.querySelectorAll('[data-money-paper-value]').length===4,'Count-money pupil card preserves the supplied money pieces');
+    assert(!moCountCard.querySelector('[data-mo-export-summary="total"]'),'Count-money pupil export omits total after Reveal');
+    assert(!moCountCard.querySelector('[data-mo-export-summary="target"]'),'Count-money pupil export omits target after Reveal');
+    assert(!moCountCard.querySelector('[data-mo-export-summary="status"]'),'Count-money pupil export omits status after Reveal');
     assert(!moCountCard.textContent.includes('Answer:'),'UK Money challenge-card export never contains the revealed answer label');
     assert(moCountCard.textContent.includes('How much money is shown altogether?'),'UK Money challenge-card export includes the pupil prompt');
 
@@ -3283,9 +3283,9 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=(svg)=>{moMakeCard=svg.cloneNode(true)};
     document.getElementById('mo-svg-download').click();
     TT99Goodies.exportTools.downloadSvg=moOldMakeDownload;
-    assert(moMakeCard&&moMakeCard.querySelectorAll('[data-mo-export-piece]').length===0,'Make-target pupil card strips the teacher trial solution');
-    assert(moMakeCard.querySelector('[data-mo-export-summary="target"]').textContent.trim()==='35p','Make-target pupil card keeps the target amount');
-    assert(moMakeCard.querySelector('[data-mo-export-summary="total"]').textContent.trim()==='—','Make-target pupil card does not prefill the pupil total');
+    assert(moMakeCard&&moMakeCard.querySelectorAll('[data-money-paper-value]').length===0,'Make-target pupil card strips the teacher trial solution');
+    assert(moMakeCard.textContent.includes('35p'),'Make-target pupil card keeps the target amount in the prompt');
+    assert(!moMakeCard.querySelector('[data-mo-export-summary="total"]')&&moMakeCard.querySelector('rect[stroke-dasharray="5 4"]'),'Make-target pupil card provides blank drawing space');
 
     document.querySelector('[data-mo-workflow="challenge"]').click();
     document.querySelector('[data-mo-challenge-cat="change"]').click();
@@ -3297,8 +3297,8 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=(svg)=>{moChangeCard=svg.cloneNode(true)};
     document.getElementById('mo-svg-download').click();
     TT99Goodies.exportTools.downloadSvg=moOldChangeDownload;
-    assert(moChangeCard.querySelector('[data-mo-export-summary="target"]').textContent.trim()==='?','Find-change pupil export re-hides the answer-bearing target after teacher Reveal');
-    assert(moChangeCard.querySelectorAll('[data-mo-export-piece]').length===0,'Find-change pupil card never includes a teacher-built change solution');
+    assert(!moChangeCard.querySelector('[data-mo-export-summary="target"]')&&!moChangeCard.textContent.includes('£3.75'),'Find-change pupil export omits the answer-bearing target after Reveal');
+    assert(moChangeCard.querySelectorAll('[data-money-paper-value]').length===0,'Find-change pupil card never includes a teacher-built change solution');
     assert(!moChangeCard.textContent.includes('Answer:'),'Find-change pupil card does not leak the revealed answer');
 
     Math.random=realMoneyRandom;
@@ -3518,8 +3518,8 @@ if(mode==='prepare'){
     assert(document.querySelector('[data-cl-challenge-type="twelve-to-twentyfour"]')&&document.querySelector('[data-cl-challenge-type="twentyfour-to-twelve"]'),'Clock exposes both 12 / 24-hour conversion directions');
     document.querySelector('[data-cl-challenge-type="twelve-to-twentyfour"]').click();
     document.getElementById('cl-generate').click();
-    assert(document.querySelector('[data-cl-readout="24"]').textContent.trim()==='?','12-to-24 challenge hides the 24-hour answer');
-    assert(document.querySelector('[data-cl-readout="12"]').textContent.trim()==='12:00 am','12-to-24 challenge keeps the 12-hour source visible');
+    assert(!document.querySelector('[data-cl-readout="24"]'),'12-to-24 challenge omits the 24-hour answer');
+    assert(document.querySelector('.gd-challenge-prompt').textContent.includes('12:00 am'),'12-to-24 challenge keeps the 12-hour source in the prompt');
     assert(document.getElementById('cl-face').getAttribute('aria-label')==='Analogue clock for challenge','Conversion challenge does not leak the hidden representation through SVG accessibility text');
 
     document.querySelector('[data-cl-workflow="export"]').click();
@@ -3528,20 +3528,20 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=(svg)=>{clConvertSvg=svg.cloneNode(true)};
     document.getElementById('cl-svg-download').click();
     TT99Goodies.exportTools.downloadSvg=clOldConvertDownload;
-    assert(clConvertSvg.querySelector('[data-cl-export-readout="24"]').textContent.trim()==='?','12-to-24 pupil export hides the requested 24-hour answer');
-    assert(clConvertSvg.querySelector('[data-cl-export-readout="12"]').textContent.trim()==='12:00 am','12-to-24 pupil export preserves the source representation');
+    assert(!clConvertSvg.textContent.includes('00:00'),'12-to-24 pupil export omits the 24-hour answer');
+    assert(clConvertSvg.textContent.includes('12:00 am'),'12-to-24 pupil export preserves the source in the prompt');
 
     document.querySelector('[data-cl-workflow="challenge"]').click();
     document.querySelector('[data-cl-challenge-type="twentyfour-to-twelve"]').click();
     document.getElementById('cl-generate').click();
-    assert(document.querySelector('[data-cl-readout="24"]').textContent.trim()==='00:00','24-to-12 challenge keeps the 24-hour source visible');
-    assert(document.querySelector('[data-cl-readout="12"]').textContent.trim()==='?','24-to-12 challenge hides the 12-hour answer');
+    assert(document.querySelector('.gd-challenge-prompt').textContent.includes('00:00'),'24-to-12 challenge keeps the source in the prompt');
+    assert(!document.querySelector('[data-cl-readout="12"]'),'24-to-12 challenge omits the 12-hour answer');
 
     document.querySelector('[data-cl-challenge-cat="reason"]').click();
     assert(document.querySelector('[data-cl-challenge-type="time-language"]')&&document.querySelector('[data-cl-challenge-type="hour-hand-misconception"]'),'Clock reasoning challenges are available');
     document.querySelector('[data-cl-challenge-type="time-language"]').click();
     document.getElementById('cl-generate').click();
-    assert(document.querySelector('[data-cl-readout="24"]').textContent.trim()==='?','Time-language challenge hides digital answer shortcuts');
+    assert(!document.querySelector('[data-cl-readout="24"]'),'Time-language challenge omits digital answer shortcuts');
     document.querySelector('[data-board-action="reveal"]').click();
     assert(document.querySelector('.gd-challenge-banner').textContent.includes('12 o'),'Time-language challenge reveals the generated spoken-time answer');
 
@@ -3553,7 +3553,7 @@ if(mode==='prepare'){
       assert([...clockSource.options].some(o=>o.value===source),'Clock custom answer source '+source+' is available');
     }
     clockSource.value='time24';clockSource.dispatchEvent(new Event('change',{bubbles:true}));
-    assert(document.querySelector('[data-cl-readout="24"]').textContent.trim()==='?'&&document.querySelector('[data-cl-readout="12"]').textContent.trim()==='?','Bound Clock time hides both equivalent digital readouts');
+    assert(!document.querySelector('[data-cl-readout="24"]')&&!document.querySelector('[data-cl-readout="12"]'),'Bound Clock time omits both equivalent digital readouts');
     assert(!document.getElementById('cl-minute-hit').hasAttribute('aria-valuenow'),'Custom bound Clock answer is not leaked through interactive hand metadata');
     const clockLiveBefore=document.getElementById('cl-custom-live-answer').textContent.trim();
     document.getElementById('cl-minute-hit').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
