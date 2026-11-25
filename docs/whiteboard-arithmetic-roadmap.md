@@ -164,6 +164,13 @@ Three levels: (1) publish the current challenge or non-challenge representation 
 - Initial 5,840 generator/markup checks; final 3,630 across all five presets, plus 40 mixed Number Line/arithmetic documents, 800 generated questions, 80 current captures, 40 isolated replacements, 321 pupil pages, 40 annex pages and 840 exact prompt alignments. Pupil pages identical in both modes; mock SVG DOM/lightweight XML validation, not browser or actual A4 signoff.
 - Next adapter: UK Money, followed by Coordinate Grid. Eight of 20 catalogue entries integrated; full visual/touch/print acceptance still open.
 
+
+### Graphical answer annex and later written-methods work
+- Teacher annex: solved vector graphics for Abacus, Place Value, Fraction Wall, Array Builder, Clock, Number Line and Sequences, with task-specific marking notes. Arithmetic remains concise text. Completed models omit starting models where appropriate. Future graphical adapters must implement answerGraphic/answerNote as appropriate.
+- Verification: 696 individual questions, 616 graphics, 264 marking notes; 25 mixed documents, 800 entries, 700 graphics, 327 pupil and 239 annex pages; structural parity, bounds and branding in mock SVG DOM. Real print legibility and compactness remain open.
+- Finish all 20 existing publishing adapters first. Next: UK Money.
+- Then dedicated formal written-methods tools: column addition, column subtraction (interpreting repeated addition request), short and long multiplication, short and long division. Research England primary curriculum, DfE guidance and school calculation policies before specifying progression and notation. Include interactive step-by-step demonstrations, carries/exchanges, partial products and remainders, structured pupil working grids, worked solution graphics and marking guidance. Support school notation variants.
+
 ## Next priorities
 1. Visual/touch feedback: validate the practice-set launcher, whiteboard layout, inline answer boxes, responsive columns and paper outputs; refine density and font sizes after classroom feedback.
 2. Worksheet-oriented improvements: separate arithmetic answer key implemented; five-a-day shortcut implemented; optional arithmetic working space and row-based A4 pagination implemented; shared pupil/teacher export policies across the remaining widgets still need work.
