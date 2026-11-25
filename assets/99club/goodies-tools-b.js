@@ -4292,16 +4292,26 @@ function generateNumberChallenge(type,scope=CK.nativeScope?.('mc')||''){
 function exitNumberChallenge(){challenge=null;batch=[];batchScope='';batchType='';generationError='';workflow='build';exportMode='canvas';renderControls();controller?.refresh()}
 function batchCols(){return setLayout==='one'?1:setLayout==='two'?2:batch.length>=4?2:1}
 function batchRows(question){const rows=[[]];for(const token of question.tiles){if(token===' ; ')rows.push([]);else rows.at(-1).push(token)}return rows}
+function mathFractionHtml(v,unknownHtml){
+ const hole=String(v).match(/^\?\/(\d+)$/),f=N.parseFractionToken(v);
+ if(hole)return '<span class="gd-mc-fraction gd-mc-fraction-hole"><span class="gd-mc-frac-stack"><span class="gd-mc-frac-num">'+unknownHtml+'</span><span class="gd-mc-frac-den">'+esc(hole[1])+'</span></span></span>';
+ if(!f)return null;
+ return '<span class="gd-mc-fraction">'+(f.whole?'<span class="gd-mc-mixed-whole">'+esc(f.whole)+'</span>':'')+'<span class="gd-mc-frac-stack"><span class="gd-mc-frac-num">'+esc(f.n)+'</span><span class="gd-mc-frac-den">'+esc(f.d)+'</span></span></span>';
+}
+function equationTokenHtml(v,unknownHtml){
+ if(v==='?')return unknownHtml;
+ return mathFractionHtml(v,unknownHtml)||'<span class="gd-number-equation-token'+(/^[+−×÷=<>R]$/.test(v)?' is-operator':/^[()]$/.test(v)?' is-bracket':'')+'">'+esc(v)+'</span>';
+}
 function batchMarkup(){
  const shown=batch.some(item=>item.revealed),done=batch.filter(item=>item.correct).length,metrics=N.equationMetrics(batch.map(item=>item.question));
  const cards=batch.map((item,i)=>{
    const qn=item.question,locked=item.correct||item.revealed,display=item.revealed?qn.answer:item.value,choice=qn.kind==='choice',label='Answer to question '+(i+1);
-   const answer=choice?'<select class="gd-mc-set-answer '+(qn.tiles.includes('?')?'is-symbol-answer':'is-word-answer')+'" aria-label="'+label+'" data-mc-set-value="'+i+'"'+(locked?' disabled':'')+'><option value="">?</option>'+qn.choices.map(v=>'<option value="'+esc(v)+'"'+(display===v?' selected':'')+'>'+esc(v)+'</option>').join('')+'</select>':'<input type="text" inputmode="none" data-gd-keypad="number" class="gd-mc-set-answer is-number-answer" aria-label="'+label+'" data-mc-set-value="'+i+'" autocomplete="off" maxlength="24" value="'+esc(display)+'" placeholder="?"'+(locked?' disabled':'')+'>';
-   const hasHole=qn.tiles.includes('?');
-   const equations=batchRows(qn).map(row=>'<div class="gd-number-equation">'+row.map(v=>v==='?'?answer:'<span class="gd-number-equation-token'+(/^[+−×÷=<>R]$/.test(v)?' is-operator':/^[()]$/.test(v)?' is-bracket':'')+'">'+esc(v)+'</span>').join('')+'</div>').join('');
+   const answer=choice?'<select class="gd-mc-set-answer '+(qn.tiles.includes('?')?'is-symbol-answer':'is-word-answer')+'" aria-label="'+label+'" data-mc-set-value="'+i+'"'+(locked?' disabled':'')+'><option value="">?</option>'+qn.choices.map(v=>'<option value="'+esc(v)+'"'+(display===v?' selected':'')+'>'+esc(v)+'</option>').join('')+'</select>':'<input type="text" inputmode="none" data-gd-keypad="'+esc(qn.kind?.startsWith('fraction')?qn.kind:'number')+'" class="gd-mc-set-answer '+(qn.kind?.startsWith('fraction')?'is-fraction-answer':'is-number-answer')+'" aria-label="'+label+'" data-mc-set-value="'+i+'" autocomplete="off" maxlength="24" value="'+esc(display)+'" placeholder="?"'+(locked?' disabled':'')+'>';
+   const hasHole=qn.tiles.some(metrics.isHole);
+   const equations=batchRows(qn).map(row=>'<div class="gd-number-equation">'+row.map(v=>equationTokenHtml(v,answer)).join('')+'</div>').join('');
    return '<article class="gd-mc-set-card nl-challenge-solve'+(item.correct?' is-correct':item.revealed?' is-revealed':'')+'"><div class="gd-mc-set-card-head"><strong class="gd-mc-set-index">'+(i+1)+'.</strong><span>'+esc(N.titles[qn.type])+'</span><span class="gd-mc-set-feedback" role="status" aria-live="polite">'+esc(item.feedback||(item.revealed?'Answer shown':''))+'</span></div><div class="gd-mc-set-equations">'+equations+'</div><div class="gd-mc-set-card-foot">'+(!hasHole?answer:'')+'<button type="button" class="gd-btn gd-mc-set-check" data-challenge-check data-mc-set-check="'+i+'"'+(!item.value.trim()||locked?' disabled':'')+'>Check</button></div></article>';
  }).join('');
- return '<div class="gd-mc-set"><div class="gd-challenge-banner gd-mc-set-header" data-challenge-mode="standard"><div><strong>'+batch.length+' questions</strong> <span class="gd-mc-set-progress">'+done+' / '+batch.length+' correct</span></div><div class="gd-challenge-actions"><button type="button" class="gd-challenge-action" data-mc-new-set>New set</button><button type="button" class="gd-challenge-action" data-mc-layout-toggle>'+(batchCols()===1?'Two columns':'One column')+'</button><button type="button" class="gd-challenge-reveal" data-board-action="reveal"'+(done===batch.length?' hidden':'')+'>'+(shown?'Hide answers':'Reveal answers')+'</button><button type="button" class="gd-challenge-action" data-challenge-action="end">Exit challenge</button></div></div>'+(generationError?'<p class="gd-number-error" role="status">'+esc(generationError)+'</p>':'')+'<div class="gd-mc-set-grid" data-columns="'+batchCols()+'" style="--mc-equation-units:'+metrics.maxUnits+';--mc-number-width:'+metrics.numberWidth+'em;--mc-symbol-width:'+metrics.symbolWidth+'em">'+cards+'</div></div>';
+ return '<div class="gd-mc-set"><div class="gd-challenge-banner gd-mc-set-header" data-challenge-mode="standard"><div><strong>'+batch.length+' questions</strong> <span class="gd-mc-set-progress">'+done+' / '+batch.length+' correct</span></div><div class="gd-challenge-actions"><button type="button" class="gd-challenge-action" data-mc-new-set>New set</button><button type="button" class="gd-challenge-action" data-mc-layout-toggle>'+(batchCols()===1?'Two columns':'One column')+'</button><button type="button" class="gd-challenge-reveal" data-board-action="reveal"'+(done===batch.length?' hidden':'')+'>'+(shown?'Hide answers':'Reveal answers')+'</button><button type="button" class="gd-challenge-action" data-challenge-action="end">Exit challenge</button></div></div>'+(generationError?'<p class="gd-number-error" role="status">'+esc(generationError)+'</p>':'')+'<div class="gd-mc-set-grid" data-columns="'+batchCols()+'" style="--mc-equation-units:'+metrics.maxUnits+';--mc-number-width:'+metrics.numberWidth+'em;--mc-fraction-width:'+metrics.fractionWidth+'em;--mc-symbol-width:'+metrics.symbolWidth+'em">'+cards+'</div></div>';
 }
 function bindBatch(stage){
  const refresh=()=>controller.refresh();
@@ -4313,10 +4323,10 @@ function bindBatch(stage){
  qa('[data-mc-set-check]',stage).forEach(el=>el.onclick=()=>{const item=batch[Number(el.dataset.mcSetCheck)];if(!item||item.correct||item.revealed||!item.value.trim())return;item.correct=CK.pupilAnswerCorrect(CK.pupilSpec(item.question.kind,{choices:item.question.choices}),[item.value],item.question.answer);item.feedback=item.correct?'Correct ✓':'Try again';refresh()});
 }
 function challengeMarkup(){
- const spec=CK.pupilSpec(challenge.kind,challenge.choices?{choices:challenge.choices}:{hint:'Number'});
+ const spec=CK.pupilSpec(challenge.kind,challenge.choices?{choices:challenge.choices}:{hint:challenge.kind?.startsWith('fraction')?'e.g. 2/3':'Number'});
  const banner=CK.bannerHtml(challenge,{pupil:spec,actions:[{action:'another',label:'Another'},{action:'end',label:'Exit challenge'}]});
  const metrics=N.equationMetrics([challenge]);
- return (generationError?'<p class="gd-number-error" role="status">'+esc(generationError)+'</p>':'')+banner+'<div class="gd-number-task-rows gd-number-equations gd-mc-single-equations" style="--mc-equation-units:'+metrics.maxUnits+';--mc-number-width:'+metrics.numberWidth+'em;--mc-symbol-width:'+metrics.symbolWidth+'em">'+metrics.rows(challenge).map(row=>'<div class="gd-number-equation">'+row.map(v=>'<span class="gd-number-equation-token'+(v==='?'?' is-unknown '+(challenge.kind==='choice'?'is-symbol-answer':'is-number-answer')+(challenge.revealed?' is-revealed':''):/^[+−×÷=<>R]$/.test(v)?' is-operator':/^[()]$/.test(v)?' is-bracket':'')+'">'+esc(v==='?'&&challenge.revealed?challenge.answer:v)+'</span>').join('')+'</div>').join('')+'</div>';
+ return (generationError?'<p class="gd-number-error" role="status">'+esc(generationError)+'</p>':'')+banner+'<div class="gd-number-task-rows gd-number-equations gd-mc-single-equations" style="--mc-equation-units:'+metrics.maxUnits+';--mc-number-width:'+metrics.numberWidth+'em;--mc-fraction-width:'+metrics.fractionWidth+'em;--mc-symbol-width:'+metrics.symbolWidth+'em">'+metrics.rows(challenge).map(row=>'<div class="gd-number-equation">'+row.map(v=>equationTokenHtml(v,'<span class="gd-number-equation-token is-unknown '+(challenge.kind==='choice'?'is-symbol-answer':challenge.kind?.startsWith('fraction')?'is-fraction-answer':'is-number-answer')+(challenge.revealed?' is-revealed':'')+'">'+esc(challenge.revealed?challenge.answer:'?')+'</span>')).join('')+'</div>').join('')+'</div>';
 }
 function draw(selectedId,meta){
  if(challenge){q('#gd-stage').innerHTML=batch.length>1?batchMarkup():challengeMarkup();return}
@@ -4369,7 +4379,16 @@ function appendEquationSvg(svg,qn,tokens,metrics,font,x,y,width,align='center'){
  let xx=align==='left'?x:x+(width-total)/2;
  tokens.forEach((v,i)=>{
    const w=weights[i]*font;
-   if(v==='?')svg.appendChild(mcSvgEl('rect',{x:xx,y:y-font*.86,width:w,height:font*1.16,rx:font*.12,fill:'#fff',stroke:'#48666b','stroke-width':1.6}));
+   const f=N.parseFractionToken(v),hole=String(v).match(/^\?\/(\d+)$/);
+   if(hole||f){
+     const whole=f?.whole||'',fw=whole?whole.length*.7*font:0,cx=xx+fw+(w-fw)/2,barY=y-font*.32,fs=font*.69;
+     if(whole)svg.appendChild(mcSvgEl('text',{x:xx+fw/2,y,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':font,'font-weight':700,fill:'#24343b'},whole));
+     const barW=hole?Math.min(w,font*1.6):Math.max(fs*.9,Math.max(f.n.length,f.d.length)*fs*.68);
+     if(hole)svg.appendChild(mcSvgEl('rect',{x:cx-barW/2,y:barY-font*.86,width:barW,height:font*.78,rx:font*.08,fill:'#fff',stroke:'#48666b','stroke-width':1.6}));
+     else svg.appendChild(mcSvgEl('text',{x:cx,y:barY-font*.16,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':fs,'font-weight':700,fill:'#24343b'},f.n));
+     svg.appendChild(mcSvgEl('line',{x1:cx-barW/2,y1:barY,x2:cx+barW/2,y2:barY,stroke:'#24343b','stroke-width':Math.max(1,font*.045)}));
+     svg.appendChild(mcSvgEl('text',{x:cx,y:barY+font*.7,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':fs,'font-weight':700,fill:'#24343b'},hole?hole[1]:f.d));
+   }else if(v==='?')svg.appendChild(mcSvgEl('rect',{x:xx,y:y-font*.86,width:w,height:font*1.16,rx:font*.12,fill:'#fff',stroke:'#48666b','stroke-width':1.6}));
    else svg.appendChild(mcSvgEl('text',{x:xx+w/2,y,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':font,'font-weight':700,fill:'#24343b'},v));
    xx+=w+gap;
  });
@@ -4378,15 +4397,15 @@ function numberChallengeSvg(){
  const metrics=N.equationMetrics([challenge]),rows=metrics.rows(challenge),W=960,H=rows.length*114+54;
  const svg=mcSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':'Unanswered arithmetic question'});
  svg.appendChild(mcSvgEl('rect',{width:W,height:H,fill:'#fff'}));
- const font=Math.min(56,880/metrics.maxUnits);
+ const font=Math.min(rows.some(row=>row.some(v=>N.parseFractionToken(v)||/^\?\/\d+$/.test(v)))?48:56,880/metrics.maxUnits);
  rows.forEach((row,i)=>appendEquationSvg(svg,challenge,row,metrics,font,40,85+i*114,W-80));
  return svg;
 }
 function numberSetSvg(){
  const cols=batchCols(),W=960,pad=28,gap=26,cellW=(W-pad*2-gap*(cols-1))/cols,rowHeights=[],metrics=N.equationMetrics(batch.map(item=>item.question));
  // One consistent mathematical font, with a fixed left edge per column.
- const font=Math.min(32,(cellW-12)/metrics.maxUnits),lineH=Math.max(32,font*1.35+3),headingH=24,rowGap=10;
- const extraH=qn=>qn.kind==='choice'?(!qn.tiles.includes('?')?29:20):(!qn.tiles.includes('?')?29:0);
+ const font=Math.min(32,(cellW-12)/metrics.maxUnits),hasFractions=batch.some(item=>item.question.tiles.some(v=>N.parseFractionToken(v)||/^\?\/\d+$/.test(v))),lineH=Math.max(32,font*(hasFractions?1.85:1.35)+3),headingH=24,rowGap=10;
+ const extraH=qn=>qn.kind==='choice'?(!qn.tiles.some(metrics.isHole)?29:20):(!qn.tiles.some(metrics.isHole)?29:0);
  batch.forEach((item,i)=>{const qn=item.question,height=headingH+metrics.rows(qn).length*lineH+extraH(qn)+6,index=Math.floor(i/cols);rowHeights[index]=Math.max(rowHeights[index]||0,height)});
  const H=62+rowHeights.reduce((n,h)=>n+h+rowGap,0)+12,svg=mcSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':batch.length+' unanswered arithmetic questions','data-gd-paper-ready':'sheet','data-gd-paper-label':'99 Club Studio','data-worksheet-answer':'pupil'});
  const add=(name,attrs,txt)=>svg.appendChild(mcSvgEl(name,attrs,txt));
@@ -4398,7 +4417,7 @@ function numberSetSvg(){
    add('text',{x:x+4,y:y+16,'font-family':'Arial,sans-serif','font-size':15,'font-weight':700,fill:'#24343b'},(i+1)+'. '+N.titles[qn.type]);
    rows.forEach((tokens,j)=>appendEquationSvg(svg,qn,tokens,metrics,font,x+4,y+headingH+lineH*.72+j*lineH,cellW-12,'left'));
    const bottom=y+headingH+rows.length*lineH;
-   if(!qn.tiles.includes('?')){
+   if(!qn.tiles.some(metrics.isHole)){
      const answerW=Math.min(110,cellW*.3);add('rect',{x:x+4,y:bottom+1,width:answerW,height:24,rx:3,fill:'#fff',stroke:'#48666b','stroke-width':1.5});
      if(qn.kind==='choice')add('text',{x:x+answerW+14,y:bottom+18,'font-family':'Arial,sans-serif','font-size':14,fill:'#52666d'},'Choose: '+qn.choices.join(' / '));
    }else if(qn.kind==='choice')add('text',{x:x+4,y:bottom+14,'font-family':'Arial,sans-serif','font-size':14,fill:'#52666d'},'Choose: '+qn.choices.join('   /   '));
@@ -4485,6 +4504,10 @@ return '<div class="nl-panel-title"><div><strong>Use it elsewhere</strong><span>
 '<button class="gd-btn" id="mc-png" type="button">PNG</button><button class="gd-btn" id="mc-svg-download" type="button">SVG</button><button class="gd-btn" id="mc-print" type="button">Print / PDF</button></div>'+
 '<p class="gd-help" id="mc-export-status" role="status" aria-live="polite">'+exportStatus+'</p>';
 }
+function advancedTopicControls(){
+ const stages=[...new Set(N.topics.map(t=>t.stage))];
+ return '<details class="gd-mc-advanced"'+(numberSettings.topics.length?' open':'')+'><summary>Optional fractions, percentages &amp; KS3 topics ('+numberSettings.topics.length+' selected)</summary>'+stages.map(stage=>'<fieldset><legend>'+esc(stage)+'</legend>'+N.topics.filter(t=>t.stage===stage).map(t=>'<label><input type="checkbox" data-mc-toggle="topics" value="'+esc(t.id)+'"'+(numberSettings.topics.includes(t.id)?' checked':'')+'><span>'+esc(t.label)+'</span></label>').join('')+'</fieldset>').join('')+field('Maximum input denominator','<select class="gd-select" data-mc-setting="denominator">'+[4,6,8,10,12,20].map(d=>'<option value="'+d+'"'+(numberSettings.denominator===d?' selected':'')+'>'+d+'</option>').join('')+'</select>')+'<p class="gd-help">Fixed-format optional topics ignore ordinary term counts. Fractions use the input denominator limit; answers can have larger denominators. Whole-number quantities and roots use the ordinary range. Mixed-number whole parts are 1–4. Whole multipliers/divisors are 2–12 within the ordinary range. Allowed operations filter fraction calculations. KS3 extensions start off.</p></details>';
+}
 function challengeControlsHtml(){
  const options=(id,label,values,value)=>field(label,'<select class="gd-select" id="'+id+'" data-mc-setting="'+id.replace('mc-','')+'">'+values.map(([v,t])=>'<option value="'+v+'"'+(Number(value)===Number(v)?' selected':'')+'>'+esc(t)+'</option>').join('')+'</select>');
  const groups=N.available(numberSettings,difficulty);
@@ -4493,11 +4516,11 @@ function challengeControlsHtml(){
  const setControls='<div data-mc-set-controls class="gd-mc-set-controls">'+field('Questions','<select class="gd-select" id="mc-question-count">'+Array.from({length:10},(_,i)=>i+1).map(n=>'<option value="'+n+'"'+(n===questionCount?' selected':'')+'>'+n+(n===5?' · 5 a day':'')+'</option>').join('')+'</select>')+field('Layout','<select class="gd-select" id="mc-set-layout">'+[['auto','Auto'],['one','One column'],['two','Two columns']].map(([v,t])=>'<option value="'+v+'"'+(v===setLayout?' selected':'')+'>'+t+'</option>').join('')+'</select>')+'</div>';
  return setControls+'<div data-mc-settings-summary class="gd-number-settings-summary">'+esc(numberSettings.ops.join('  ')||'No operations')+' · '+numberSettings.min+' to '+numberSettings.max+' · '+(numberSettings.precision?'Up to '+numberSettings.precision+' dp':'Whole numbers')+' · '+(numberSettings.left||'2–4')+' / '+(numberSettings.right||'1–2')+' numbers</div><div class="gd-number-settings"><div class="gd-section-title">Question settings</div>'+
  field('Preset','<select class="gd-select" id="mc-difficulty">'+[['easy','Easy'],['medium','Medium'],['hard','Hard'],['custom','Custom']].map(([v,t])=>'<option value="'+v+'"'+(difficulty===v?' selected':'')+'>'+t+'</option>').join('')+'</select>')+
- toggles('ops',N.OPS,'Allowed operations')+toggles('relations',N.REL,'Allowed comparison symbols')+toggles('extras',N.EXTRAS,'Additional question types')+
+ toggles('ops',N.OPS,'Allowed operations')+toggles('relations',N.REL,'Allowed comparison symbols')+toggles('extras',N.EXTRAS,'Additional question types')+advancedTopicControls()+
  '<div class="gd-number-settings-pair">'+options('mc-min','Smallest number',[-100,-20,-10,0,1,2,5,10,20,50,100,200,500,1000].filter(v=>v<numberSettings.max).map(v=>[v,String(v)]),numberSettings.min)+options('mc-max','Largest number',[10,20,50,100,200,500,1000,10000].filter(v=>v>numberSettings.min).map(v=>[v,String(v)]),numberSettings.max)+'</div>'+
  options('mc-precision','Number type',[[0,'Whole numbers'],[1,'Up to 1 decimal place'],[2,'Up to 2 decimal places']],numberSettings.precision)+
  '<div class="gd-number-settings-pair">'+options('mc-left','Numbers on left',termOptions('left'),numberSettings.left)+options('mc-right','Numbers on right',termOptions('right'),numberSettings.right)+'</div>'+
- '<p class="gd-help">All displayed numbers and missing values stay in the selected range. Division is exact except in explicitly labelled remainder questions. Squares, cubes and remainders use whole numbers. A power counts as a base and exponent; a remainder question has two numbers on the right. Parentheses make grouping explicit. Comparison settings apply to comparison questions. Only compatible question types are listed.</p></div>'+
+ '<p class="gd-help">Ordinary arithmetic numbers and missing values stay in the selected range. Optional topics have separate rules above. Division is exact except in explicitly labelled remainder questions. Squares, cubes and remainders use whole numbers. A power counts as a base and exponent; a remainder question has two numbers on the right. Parentheses make grouping explicit. Comparison settings apply to comparison questions. Only compatible question types are listed.</p></div>'+
  (generationError?'<p class="gd-number-error" role="status">'+esc(generationError)+'</p>':'')+
  (groups.length?CK.nativeRandomHtml('mc',groups)+groups.map(g=>'<div class="gd-section-title">'+esc(g.label)+'</div><div class="gd-row">'+g.ids.map(id=>'<button type="button" class="gd-btn" data-mc-challenge-mode="'+id+'">'+esc(N.titles[id])+'</button>').join('')+'</div>').join(''):'<p class="gd-help">No compatible questions. Enable an operation, allow a comparison, or change the number of terms.</p>')+(challenge?btn('Exit challenge','mc-exit-challenge'):'');
 }
