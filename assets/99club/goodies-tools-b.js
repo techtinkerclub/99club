@@ -4314,7 +4314,7 @@ function numberSetSvg(){
  const font=Math.min(32,(cellW-12)/metrics.maxUnits),lineH=Math.max(32,font*1.35+3),headingH=24,rowGap=10;
  const extraH=qn=>qn.kind==='choice'?(!qn.tiles.includes('?')?29:20):(!qn.tiles.includes('?')?29:0);
  batch.forEach((item,i)=>{const qn=item.question,height=headingH+metrics.rows(qn).length*lineH+extraH(qn)+6,index=Math.floor(i/cols);rowHeights[index]=Math.max(rowHeights[index]||0,height)});
- const H=62+rowHeights.reduce((n,h)=>n+h+rowGap,0)+12,svg=mcSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':batch.length+' unanswered arithmetic questions'});
+ const H=62+rowHeights.reduce((n,h)=>n+h+rowGap,0)+12,svg=mcSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':batch.length+' unanswered arithmetic questions','data-gd-paper-ready':'sheet','data-gd-paper-label':'99 Club Studio','data-worksheet-answer':'pupil'});
  const add=(name,attrs,txt)=>svg.appendChild(mcSvgEl(name,attrs,txt));
  add('rect',{width:W,height:H,fill:'#fff'});
  add('text',{x:pad,y:32,'font-family':'Arial,sans-serif','font-size':24,'font-weight':700,fill:'#24343b'},batch.length+' arithmetic questions');
@@ -4354,6 +4354,24 @@ tiles.forEach(t=>{
 svg.appendChild(mcSvgEl('text',{x:W-36,y:H-14,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':10,fill:'#87969a'},'99 Club Studio'));
 return svg;
 }
+function numberAnswerKeySvg(){
+ const questions=batch.length>1?batch.map(item=>item.question):challenge?[challenge]:[];
+ if(!questions.length)throw Error('Generate a challenge first.');
+ const W=960,pad=34,cols=questions.length>5?2:1,cellW=(W-2*pad)/cols,rowH=76,H=110+Math.ceil(questions.length/cols)*rowH;
+ const svg=mcSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':'Teacher arithmetic answer key','data-gd-paper-ready':'sheet','data-gd-paper-label':'99 Club Studio','data-worksheet-answer':'teacher'});
+ const add=(name,attrs,txt)=>svg.appendChild(mcSvgEl(name,attrs,txt));
+ add('rect',{width:W,height:H,fill:'#fff'});
+ add('text',{x:pad,y:36,'font-family':'Arial,sans-serif','font-size':27,'font-weight':700,fill:'#24343b'},'Arithmetic · teacher answer key');
+ add('text',{x:pad,y:61,'font-family':'Arial,sans-serif','font-size':15,fill:'#52666d'},questions.length+' question'+(questions.length===1?'':'s')+' · matches the current set in order');
+ questions.forEach((qn,i)=>{
+   const x=pad+(i%cols)*cellW,y=86+Math.floor(i/cols)*rowH,expression=qn.tiles.map(v=>v===' ; '?' · ':v).join(' ');
+   add('text',{x,y,'font-family':'Arial,sans-serif','font-size':14,fill:'#52666d'},(i+1)+'. '+N.titles[qn.type]);
+   add('text',{x,y:y+24,'font-family':'Arial,sans-serif','font-size':23,'font-weight':700,fill:'#24343b'},String(qn.answer));
+   const font=Math.min(14,(cellW-22)/Math.max(1,expression.length*.64));
+   add('text',{x,y:y+45,'font-family':'Arial,sans-serif','font-size':font,fill:'#52666d'},expression);
+ });
+ return svg;
+}
 function exportTargetSvg(){
 if(batch.length>1&&challenge)return numberSetSvg();
 if(challenge&&X?.composeChallengeCardSvg)return X.composeChallengeCardSvg(numberChallengeSvg(),{title:N.titles[challenge.type],prompt:challenge.prompt,responseLabel:'Answer / working',responseLines:2,brand:'99 Club Studio'});
@@ -4370,7 +4388,10 @@ function exportMessage(text){exportStatus=text;const el=q('#mc-export-status');i
 async function exportAction(kind){
 try{
 if(!X)throw new Error('Export tools are not available.');
-const target=exportTargetSvg(),name=batch.length>1?'arithmetic-'+batch.length+'-questions':exportMode==='task'?'maths-canvas-task':'maths-canvas';
+const teacher=kind==='key-print'||kind==='key-copy';if(teacher&&!challenge)throw Error('Generate a challenge first.');
+const target=teacher?numberAnswerKeySvg():exportTargetSvg(),name=batch.length>1?'arithmetic-'+batch.length+'-questions':exportMode==='task'?'maths-canvas-task':'maths-canvas';
+if(kind==='key-print'){X.printSvg(target,{title:'',landscape:false,maxHeightMm:242});exportMessage('Teacher answer key opened.');return}
+if(kind==='key-copy'){await X.copyPng(target);exportMessage('Teacher answer key copied.');return}
 if(kind==='copy'){await X.copyPng(target);exportMessage(exportMode==='task'?'Task card copied — paste it into your worksheet, slide or document.':'Canvas copied — paste it into your slide or document.')}
 if(kind==='png'){await X.downloadPng(target,name,2);exportMessage(exportMode==='task'?'Task PNG downloaded.':'Canvas PNG downloaded.')}
 if(kind==='svg'){X.downloadSvg(target,name);exportMessage(exportMode==='task'?'Task SVG downloaded.':'Canvas SVG downloaded.')}
@@ -4378,7 +4399,7 @@ if(kind==='print'){X.printSvg(target,{title:'',landscape:false,maxHeightMm:batch
 }catch(err){exportMessage(err?.message||'That export did not work.')}
 }
 function exportControlsHtml(){
-if(challenge)return '<div class="nl-panel-title"><div><strong>'+(batch.length>1?'Export question set':'Export challenge')+'</strong><span>'+(batch.length>1?'All '+batch.length+' unanswered questions in the selected layout, ready for paper.':'The original unanswered question, ready for paper.')+'</span></div></div><div class="nl-export-grid"><button class="gd-btn gd-btn--primary" id="mc-copy-image" type="button">Copy challenge</button><button class="gd-btn" id="mc-png" type="button">PNG</button><button class="gd-btn" id="mc-svg-download" type="button">SVG</button><button class="gd-btn" id="mc-print" type="button">Print / PDF</button></div><p class="gd-help" id="mc-export-status" role="status">'+esc(exportStatus)+'</p>';
+if(challenge)return '<div class="nl-panel-title"><div><strong>'+(batch.length>1?'Export question set':'Export challenge')+'</strong><span>'+(batch.length>1?'All '+batch.length+' unanswered questions in the selected layout, ready for paper.':'The original unanswered question, ready for paper.')+'</span></div></div><div class="nl-export-grid"><button class="gd-btn gd-btn--primary" id="mc-copy-image" type="button">Copy challenge</button><button class="gd-btn" id="mc-png" type="button">PNG</button><button class="gd-btn" id="mc-svg-download" type="button">SVG</button><button class="gd-btn" id="mc-print" type="button">Print / PDF</button></div><p class="gd-section-title">Teacher only</p><div class="gd-row"><button class="gd-btn" id="mc-key-copy" type="button">Copy answer key</button><button class="gd-btn" id="mc-key-print" type="button">Print answer key</button></div><p class="gd-help" id="mc-export-status" role="status">'+esc(exportStatus)+'</p>';
 return '<div class="nl-panel-title"><div><strong>Use it elsewhere</strong><span>Export the clean canvas or turn it into a pupil-ready task card.</span></div></div>'+
 '<div class="nl-export-mode" role="tablist" aria-label="Number and symbol tiles export content">'+
 '<button type="button" class="'+(exportMode==='canvas'?'is-active':'')+'" data-mc-export-mode="canvas">Canvas only</button>'+
@@ -4436,6 +4457,8 @@ const copy=q('#mc-copy-image');if(copy)copy.onclick=()=>exportAction('copy');
 const png=q('#mc-png');if(png)png.onclick=()=>exportAction('png');
 const svg=q('#mc-svg-download');if(svg)svg.onclick=()=>exportAction('svg');
 const print=q('#mc-print');if(print)print.onclick=()=>exportAction('print');
+const keyCopy=q('#mc-key-copy');if(keyCopy)keyCopy.onclick=()=>exportAction('key-copy');
+const keyPrint=q('#mc-key-print');if(keyPrint)keyPrint.onclick=()=>exportAction('key-print');
 }
 setPanels(controlsHtml(),'');
 controller=I.mount({
