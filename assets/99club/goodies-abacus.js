@@ -315,6 +315,11 @@ function abacusTool(){
       pascalMessage='Cannot subtract '+change.toLocaleString('en-GB')+' from '+before.toLocaleString('en-GB')+' without going below 0.';
       renderHistoricalStage();return;
     }
+    if(pascalOperation==='add'&&before+change>9999){
+      pascalCarryFlash=[];
+      pascalMessage='The four-digit machine can display up to 9,999. Reset it before adding beyond that limit.';
+      renderHistoricalStage();return;
+    }
     const delta=pascalOperation==='add'?1:-1,transfers=[];
     for(let step=0;step<amount;step++){
       const moved=pascalStep(index,delta);
