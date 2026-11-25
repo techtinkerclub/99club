@@ -56,6 +56,7 @@ function beginBuild(){
   clearTimeout(failSafeTimer);failSafeTimer=setTimeout(()=>{if(seq!==buildSeq)return;if(finalChallengeReady()||!banner())finishBuild(seq);else if(!G.numberMobileChallengeIsBuilding?.())exitChallenge()},30000);
 }
 function noteMutation(){
+  if(!building&&!work())return;
   if(building)checkBuild(buildSeq);
   else ensureExit();
 }
@@ -106,7 +107,7 @@ function captureChallengeStart(e){
 function install(){
   if(installed)return;installed=true;
   document.addEventListener('click',captureChallengeStart,true);
-  document.addEventListener('click',()=>setTimeout(ensureExit,0),true);
+  document.addEventListener('click',()=>{if(work())setTimeout(ensureExit,0)},true);
   installObserver();ensureExit();
 }
 
