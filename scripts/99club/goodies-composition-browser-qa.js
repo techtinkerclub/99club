@@ -921,6 +921,27 @@ async function run(){
     assert(frame.classList.contains('is-ready'),'Lesson object is ready: '+id);await tick(50);
     return {record,frame,doc:frame.querySelector('iframe').contentDocument};
   }
+  // Angles: live construction, exact assessment and capture of revealed work.
+  {
+    const id='angles',fixture=await addForSave(id),doc=fixture.doc,G=doc.defaultView.TT99Goodies,M=G.angles,cap=()=>G.lessonState.capture(id).model;
+    assert(doc.querySelector('#gd-stage svg'),'Angle explorer mounts a geometry diagram');
+    doc.querySelector('[data-ag-workflow="challenge"]').click();await tick();
+    doc.querySelector('[data-ag-challenge-mode="draw"]').click();await tick();
+    const t=cap().task;assert(t.type==='draw'&&doc.querySelector('[data-gd-pupil-check]').disabled,'Construction starts unanswered');
+    for(let i=0;i<Math.floor(t.angle/10);i++)doc.querySelector('[data-ag-adjust="10"]').click();
+    for(let i=0;i<t.angle%10;i++)doc.querySelector('[data-ag-adjust="1"]').click();
+    doc.querySelector('[data-gd-pupil-check]').click();await tick();
+    assert(doc.querySelector('.gd-pupil-feedback').classList.contains('is-correct'),'Constructed angle is assessed');
+    const P=TT99Goodies.publishing,draft=P.createDocument();draft.addCurrent(id,cap());
+    assert(draft.list()[0].data.mode==='angle','Published question retains geometry mode');
+    assert(P.answerSummary(draft.list()[0])===String(t.angle),'Published key retains answer');
+    const calls=[],X=G.exportTools;X.downloadSvg=svg=>calls.push(svg.textContent);X.printSvg=svg=>calls.push(svg.textContent);
+    doc.querySelector('[data-gd-direct-export="svg"]').click();await tick();doc.querySelector('[data-gd-direct-export="key-print"]').click();await tick();
+    assert(calls.length===2&&calls[0].includes('Target:')&&calls[1].includes('°'),'Direct pupil and teacher exports are connected');
+    fixture.frame.querySelector('[data-board-export]').click();await tick();
+    assert(!fixture.frame.querySelector('[data-pub-key-group]').hidden,'Angle teacher keys available in whiteboard');
+    api.remove(fixture.record.id);
+  }
   // Function machine live exploration, reverse and shared pupil assessment.
   {
     const id='function-machine',fixture=await addForSave(id),doc=fixture.doc,G=doc.defaultView.TT99Goodies,M=G.functionMachines,cap=()=>G.lessonState.capture(id).model;
