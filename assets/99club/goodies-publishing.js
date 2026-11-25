@@ -258,6 +258,34 @@ function defaults(tool){
  if(tool==='place-value')return {rangeStart:3,rangeEnd:9,activityBudget:5,additionDifficulty:'mixed',responseLines:3};
  return {};
 }
+function openQuickGenerate(draft,tool,snapshot){
+ if(!canGenerate(tool))throw Error('This widget supports current illustrations only.');
+ const available=types(tool,snapshot),room=80-draft.list().length;
+ if(!available.length)throw Error('No question types are available with these settings.');
+ if(room<1)throw Error('This draft already contains 80 items.');
+ const esc=G.esc,dlg=document.createElement('dialog');
+ dlg.className='gd-publishing-editor gd-publishing-generate';
+ dlg.setAttribute('aria-label','Generate worksheet questions');
+ const count=Math.min(5,room),current=snapshot.challenge?.type||snapshot.task?.type||snapshot.session?.generator?.spec?.type||snapshot.session?.engine?.challenge?.type;
+ dlg.innerHTML='<form class="gd-pub-quick"><header class="gd-pub-head"><div><small>Worksheet · '+esc(adapterFor(tool).label)+'</small><strong>Generate questions</strong></div><button type="button" class="gd-btn gd-pub-icon" data-pub-quick-cancel aria-label="Close">×</button></header>'+
+ '<div class="gd-pub-quick-body"><div class="gd-pub-quick-count"><label class="gd-pub-field"><span>Number of questions</span><select name="count">'+Array.from({length:Math.min(20,room)},(_,i)=>'<option'+(i+1===count?' selected':'')+'>'+(i+1)+'</option>').join('')+'</select></label><p>Uses the widget’s current generation settings.</p></div>'+
+ '<div class="gd-pub-quick-types"><div class="gd-pub-section-head"><h3>Question types</h3><small data-pub-quick-selected></small></div><div class="gd-pub-quick-actions"><button class="gd-btn" type="button" data-pub-quick-all>All</button><button class="gd-btn" type="button" data-pub-quick-none>None</button>'+
+ (available.some(t=>t.id===current)?'<button class="gd-btn" type="button" data-pub-quick-current>Current type</button>':'')+'</div>'+
+ '<div class="gd-pub-check-grid">'+available.map(t=>'<label><input type="checkbox" data-pub-quick-type value="'+esc(t.id)+'" checked><span>'+esc(t.label)+'</span></label>').join('')+'</div></div><p class="gd-pub-quick-error" role="status" hidden></p></div>'+
+ '<footer class="gd-pub-footer"><button class="gd-btn" type="button" data-pub-quick-cancel>Cancel</button><button class="gd-btn gd-btn--primary" type="submit" data-pub-quick-add>Add questions</button></footer></form>';
+ document.body.appendChild(dlg);
+ const boxes=[...dlg.querySelectorAll('[data-pub-quick-type]')],number=dlg.querySelector('[name=count]'),submit=dlg.querySelector('[data-pub-quick-add]'),error=dlg.querySelector('.gd-pub-quick-error');
+ const selected=()=>boxes.filter(x=>x.checked).map(x=>x.value);
+ const sync=()=>{const n=selected().length;dlg.querySelector('[data-pub-quick-selected]').textContent=n+' of '+boxes.length+' selected';submit.disabled=!n;submit.textContent='Add '+number.value+' question'+(number.value==='1'?'':'s');error.hidden=true};
+ dlg.querySelectorAll('[data-pub-quick-cancel]').forEach(btn=>btn.onclick=()=>dlg.close());
+ for(const [key,test] of [['all',()=>true],['none',()=>false],['current',x=>x.value===current]]){
+   const btn=dlg.querySelector('[data-pub-quick-'+key+']');if(btn)btn.onclick=()=>{boxes.forEach(x=>x.checked=test(x));sync()};
+ }
+ dlg.onchange=sync;
+ dlg.querySelector('form').onsubmit=e=>{e.preventDefault();try{draft.generateBlocks([{tool,settings:snapshot,count:+number.value,types:selected()}]);dlg.close();openEditor(draft)}catch(err){error.textContent=err.message;error.hidden=false}};
+ dlg.addEventListener('close',()=>dlg.remove(),{once:true});
+ sync();dlg.showModal();
+}
 function openEditor(draft,{mode='review'}={}){
  let dlg=document.getElementById('gd-publishing-editor');
  if(!dlg){dlg=document.createElement('dialog');dlg.id='gd-publishing-editor';dlg.className='gd-publishing-editor';document.body.appendChild(dlg)}
@@ -377,5 +405,5 @@ function openEditor(draft,{mode='review'}={}){
  dlg.ontoggle=null;dlg.addEventListener('toggle',function rememberDetails(e){const el=e.target;if(el.tagName!=='DETAILS')return;const b=getBlock(el);if(!b)return;if(el.hasAttribute('data-pub-type-details'))b.open=el.open;if(el.hasAttribute('data-pub-topics'))b.topicsOpen=el.open;},{capture:true,signal:(()=>{dlg._pubToggleController?.abort();dlg._pubToggleController=new AbortController();return dlg._pubToggleController.signal})()});
  render();if(!dlg.open)dlg.showModal();
 }
-G.publishing={register,supports,canGenerate,types,record,signature,createDocument,renderItem,pages,answerPages,answerSummary,answerNote,answerGraphic,openEditor,isolateSvgIds};
+G.publishing={register,supports,canGenerate,types,record,signature,createDocument,renderItem,pages,answerPages,answerSummary,answerNote,answerGraphic,openEditor,openQuickGenerate,isolateSvgIds};
 })(window.TT99Goodies);

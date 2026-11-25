@@ -551,6 +551,22 @@ async function run(){
   publisher.querySelector('[data-pub-remove]').click();await tick();
   publisher.querySelector('[data-pub-close]').click();
   TT99Goodies.compositionBoard.remove(randomRecord.id);
+  // Manual and automatic publishing share selection and validation.
+  {
+    const P=TT99Goodies.publishing,draft=P.createDocument();
+    P.openQuickGenerate(draft,'geoboard',{gridSize:9,responseLines:2});
+    const dialog=document.querySelector('.gd-publishing-generate');
+    assert(dialog.open&&dialog.querySelectorAll('[data-pub-quick-type]:checked').length===6,'Quick publisher starts with all compatible types selected');
+    dialog.querySelector('[data-pub-quick-none]').click();
+    assert(dialog.querySelector('[data-pub-quick-add]').disabled,'Cannot generate without selected types');
+    const type=dialog.querySelector('[data-pub-quick-type][value="build-area"]');type.click();
+    const count=dialog.querySelector('[name=count]');count.value='1';count.dispatchEvent(new Event('change',{bubbles:true}));
+    assert(!dialog.querySelector('[data-pub-quick-add]').disabled&&dialog.querySelector('[data-pub-quick-add]').textContent==='Add 1 question','Quick publisher updates its count and action');
+    dialog.querySelector('[data-pub-quick-add]').click();await tick();
+    assert(draft.list().length===1&&draft.list()[0].data.type==='build-area'&&draft.list()[0].data.diagram.gridSize===9,'Quick publisher uses selected family and preserves live grid settings');
+    document.getElementById('gd-publishing-editor').querySelector('[data-pub-close]').click();await tick();
+  }
+
   // Geoboard paper generation uses exactly the selected pin count.
   {
     const P=TT99Goodies.publishing,G=TT99Goodies.geoboardPaperModel;

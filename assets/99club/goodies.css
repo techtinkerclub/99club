@@ -2027,3 +2027,27 @@ html:not(.gd-embed-page) #tt99-goodies-root .nl-export-mode button{min-height:44
 
 /* Standalone Maths Canvas generation controls: preserve compact board proxy. */
 html:not(.gd-embed-page) #tt99-goodies-root #gd-controls .gd-mc-five{min-height:44px!important}
+
+/* Shared publishing controls: small, readable, aligned and touch-friendly. */
+#tt99-goodies-root .gd-board-export-menu{width:238px;padding:6px!important;gap:0}
+#tt99-goodies-root .gd-board-export-menu .gd-pub-menu-section{padding:4px 0;gap:3px}
+#tt99-goodies-root .gd-board-export-menu .gd-pub-menu-section>button{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:38px!important}
+#tt99-goodies-root .gd-board-export-menu .gd-pub-menu-section>button small{font-size:16px;color:#638481}
+#tt99-goodies-root .gd-board-export-menu .gd-pub-menu-primary{background:#e9f4f1;color:#176e64}
+#tt99-goodies-root .gd-board-export-menu .gd-pub-menu-formats{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:3px;padding:0 3px}
+#tt99-goodies-root .gd-board-export-menu .gd-pub-menu-formats button{background:#f3f7f6;border:1px solid #dce7e5;padding:7px 3px!important;font-size:12px!important;text-align:center!important}
+#tt99-goodies-root .gd-board-export-menu .gd-pub-menu-formats button:hover{background:#e3f1ed}
+.gd-publishing-editor.gd-publishing-generate{width:min(440px,calc(100vw - 24px));padding:0!important}
+.gd-publishing-generate .gd-pub-quick{display:flex;flex-direction:column;gap:0;margin:0;min-width:0}
+.gd-pub-quick-body{padding:14px 16px;display:grid;gap:14px;overflow:auto;max-height:calc(100dvh - 180px)}
+.gd-pub-quick-count{display:grid;grid-template-columns:140px minmax(0,1fr);gap:12px;align-items:end}
+.gd-pub-quick-count p{font-size:12px!important;padding-bottom:3px}
+.gd-pub-quick-types{border-top:1px solid #e2e9e8;padding-top:12px;min-width:0}
+.gd-pub-quick-actions{display:flex;flex-wrap:wrap;gap:5px}
+.gd-publishing-editor .gd-pub-quick-actions button{min-height:32px!important;padding:6px 10px!important;font-size:12px!important}
+.gd-pub-quick-types .gd-pub-check-grid{gap:6px;padding:8px 0 0}
+.gd-pub-quick-types .gd-pub-check-grid label{min-height:40px;padding:7px 8px;border:1px solid #dce7e5;border-radius:7px;background:#fff;align-items:center;overflow-wrap:anywhere}
+.gd-pub-quick-types .gd-pub-check-grid label:has(input:checked){background:#f0f7f4;border-color:#a9cac2}
+.gd-publishing-editor .gd-pub-quick-error{padding:9px 10px;border:1px solid #eed3c5;border-radius:7px;background:#fff5ee;color:#994536}
+.gd-publishing-generate .gd-pub-footer{justify-content:flex-end;padding:10px 16px}
+@media(max-width:420px){.gd-pub-quick-count{grid-template-columns:1fr}.gd-pub-quick-types .gd-pub-check-grid{grid-template-columns:1fr}.gd-pub-quick-body{padding:12px}}
