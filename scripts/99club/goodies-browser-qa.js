@@ -3059,7 +3059,7 @@ if(mode==='prepare'){
     function addMoneyFromStage(value){
       const add=document.querySelector('[data-gd-action="add-money"]');
       assert(add&&!add.disabled,'UK Money exposes Add money directly on the live board');
-      add.click();
+      if(!document.querySelector('.gd-money-stage-palette'))add.click();
       const palette=document.querySelector('.gd-money-stage-palette');
       assert(palette,'UK Money opens a temporary denomination palette on the board');
       const pick=palette.querySelector('[data-gd-action="add-money-piece"][data-mo-value="'+value+'"]');

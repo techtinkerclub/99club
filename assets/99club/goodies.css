@@ -2024,3 +2024,6 @@ select.gd-mc-set-answer{width:3.6em;font-size:.75em;height:1.7em}
    deliberately compact embedded whiteboard controls separate. */
 html:not(.gd-embed-page) #tt99-goodies-root .nl-export-grid .gd-btn,
 html:not(.gd-embed-page) #tt99-goodies-root .nl-export-mode button{min-height:44px!important}
+
+/* Standalone Maths Canvas generation controls: preserve compact board proxy. */
+html:not(.gd-embed-page) #tt99-goodies-root #gd-controls .gd-mc-five{min-height:44px!important}

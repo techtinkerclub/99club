@@ -171,7 +171,7 @@ window.scrollTo=function(){};
       checkLayout(id,'generated challenge');
       return true;
     }
-    const generate=id==='sequences'?controls.querySelector('[data-gd-native-prefix="seq"] [data-gd-native-random="all"]'):[...controls.querySelectorAll('button')].find(b=>/^(Generate challenge|Another like this)$/.test((b.textContent||'').trim()));
+    const generate=['sequences','maths-canvas'].includes(id)?controls.querySelector('[data-gd-native-prefix="'+(id==='sequences'?'seq':'mc')+'"] [data-gd-native-random="all"]'):[...controls.querySelectorAll('button')].find(b=>/^(Generate challenge|Another like this)$/.test((b.textContent||'').trim()));
     assert(generate,id+' challenge controls expose a direct generate action');
     generate.click();await tick();await tick();
     let banner=stage.querySelector('.gd-challenge-banner');
