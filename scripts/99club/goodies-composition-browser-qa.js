@@ -1036,7 +1036,7 @@ async function run(){
     const id='statistics-table',fixture=await addForSave(id),doc=fixture.doc,live=doc.defaultView.TT99Goodies;
     const capture=()=>live.lessonState.capture(id).model;
     const stage=doc.querySelector('#gd-stage');
-    for(const view of ['table','tally','pictogram','bar','line']){
+    for(const view of ['table','tally','pictogram','block','bar','line']){
       const select=doc.getElementById('st-view');select.value=view;select.dispatchEvent(new doc.defaultView.Event('change',{bubbles:true}));await tick();
       doc.querySelector('[data-st-workflow="challenge"]').click();await tick();
       doc.querySelector('[data-st-challenge-mode="complete"]').click();await tick();
