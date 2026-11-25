@@ -63,6 +63,13 @@ Updated 25 November 2026.
 - Existing distinct-question policy retained. Very small denominator caps can have fewer unique conversions than the requested set; show a clear error rather than repeat questions.
 - Fraction ordering, more precise year-based conversion restrictions, target puzzles and reasoning remain. Browser/print appearance not yet verified.
 
+## Place value paper tasks (25 November)
+- Counters are the primary model; addition no longer forces bead-frame mode. Legacy bead-frame/linked displays remain under Setup > Display options for saved lessons and comparison.
+- Paper-specific counter charts: reading/hidden/digit tasks use one original chart and an answer box; build/exact tasks use a blank drawing chart; addition/regroup/same-value tasks use starting and blank final charts. Same-value tasks omit unnecessary numeric response boxes. Teacher keys show the original task and an example solution, not live pupil progress.
+- Explicit teacher copy/print paths and immutable original counts for new activities and standard generated tasks. Old saved regroup tasks without original counts may reconstruct an equivalent starting chart; custom challenges retain their existing diagram behaviour.
+- Taller stacked paper layouts use portrait printing and a per-template diagram height allowance; visual A4 checks pending.
+- Retain addition and regrouping teaching tools, not duplicate all generic abacus arithmetic. Review remaining panel density after classroom feedback.
+
 ## Next priorities
 1. Visual/touch feedback: validate the practice-set launcher, whiteboard layout, inline answer boxes, responsive columns and paper outputs; refine density and font sizes after classroom feedback.
 2. Worksheet-oriented improvements: separate arithmetic answer key implemented; five-a-day shortcut implemented; optional space for working, shared pupil/teacher export policies across all widgets, and print pagination remain.
