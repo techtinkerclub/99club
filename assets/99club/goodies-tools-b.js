@@ -3030,7 +3030,7 @@ function fdpExplorer(){
       '</div>':'')+
       '<div class="gd-fdp-section"><div class="gd-fdp-section-head"><div><span>Fraction bar</span><strong>'+numerator+' of '+denominator+' equal parts</strong></div><small>'+(challengeFrozen()?'Use the model to reason about the value.':'Tap a part to set the numerator.')+'</small></div>'+
         '<div class="gd-fdp-bar" style="--fd-denominator:'+denominator+'">'+barPieces()+'</div></div>'+
-      (focused?(build?'<div class="gd-fdp-question-value">'+percentText()+'%</div>':challenge.type==='spot-percent-error'?'<div class="gd-fdp-question-value">'+percentDisplay+'</div>':''):'<div class="gd-fdp-readout">'+
+      (focused?(build?'':challenge.type==='spot-percent-error'?'<div class="gd-fdp-question-value">'+percentDisplay+'</div>':''):'<div class="gd-fdp-readout">'+
         '<div class="gd-fdp-value"><span>fraction</span><strong data-fd-fraction>'+fractionDisplay+'</strong><small>'+(hidden&&challenge.hiddenFraction?'simplified form hidden':(same?'already simplified':'simplified from '+numerator+'/'+denominator))+'</small></div>'+
         '<div class="gd-fdp-value"><span>decimal</span><strong data-fd-decimal>'+decimalDisplay+'</strong><small>same value</small></div>'+
         '<div class="gd-fdp-value"><span>percentage</span><strong data-fd-percent>'+percentDisplay+'</strong><small>same value</small></div>'+
@@ -3038,7 +3038,7 @@ function fdpExplorer(){
       '<div class="gd-fdp-section"><div class="gd-fdp-section-head"><div><span>Equivalent fractions</span><strong>Same amount, different-sized parts</strong></div></div>'+equivalentHtml()+'</div>')+
       (focused||hidden&&challenge.hiddenHundred?'':'<div class="gd-fdp-section"><div class="gd-fdp-section-head"><div><span>Hundred square</span><strong data-fd-hundred-label>'+rounded+' of 100 cells</strong></div><small>'+(exact?'Exact match':'Rounded from '+percentText()+'% to the nearest whole cell')+'</small></div>'+
         '<div class="gd-hundred" data-fd-hundred-exact="'+(exact?'true':'false')+'">'+hundredCells()+'</div></div>')+
-      (challenge?.type==='build-percentage'?'<div class="gd-answer-live" data-fd-target-status>'+challengeProgress()+'</div>':'')+
+      
     '</div>';
     bindStage();bindChallengeStageActions();
   }
