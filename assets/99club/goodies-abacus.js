@@ -45,6 +45,20 @@ function abacusTool(){
   let historyDrag=null;
   const COLOUR_SCHEMES=[['classic','Honey wood'],['place','Pastel places'],['sea','Ocean'],['berry','Berry'],['forest','Meadow']];
 
+  let challengeSetup=null;
+  function rememberChallengeSetup(){
+    if(challengeSetup)return;
+    challengeSetup={kind,rows,counts:counts.slice(),suanUpper:suanUpper.slice(),suanLower:suanLower.slice(),reckoning:reckoning.slice(),rodDigits:rodDigits.slice(),napierNumber,napierMultiplier,slideA,slideB,slideIndex,pascalDigits:pascalDigits.slice(),pascalOperation,pascalMessage,showTotal,showRowCounts,showRowLabels,colourScheme};
+  }
+  function restoreChallengeSetup(){
+    const s=challengeSetup;challengeSetup=null;if(!s)return;
+    ({kind,rows,counts,suanUpper,suanLower,reckoning,rodDigits,napierNumber,napierMultiplier,slideA,slideB,slideIndex,pascalDigits,pascalOperation,pascalMessage,showTotal,showRowCounts,showRowLabels,colourScheme}=s);
+    pascalCarryFlash=[];
+  }
+  function exitChallenge(){
+    restoreChallengeSetup();task=null;historyChallenge=null;taskContext='play';workflow='setup';playMode='free';
+    status='';answerInput='';revealed=false;historyAnswer='';historyStatus='';historyRevealed=false;renderAll();
+  }
   function historicalValue(){
     if(kind==='reckoning')return reckoning.reduce((sum,n,i)=>sum+n*[1000,100,10,1][i],0);
     if(kind==='rods')return Number(rodDigits.join(''));
@@ -59,7 +73,8 @@ function abacusTool(){
     if(kind==='rods')rodDigits=digits.slice();
     if(kind==='pascaline')pascalDigits=digits.slice();
   }
-  function newHistoricalChallenge(){
+  function newHistoricalChallenge(operationChoice='random'){
+    rememberChallengeSetup();
     historyAnswer='';historyStatus='';historyRevealed=false;
     if(kind==='reckoning'){
       const target=randomInt(24,879);
@@ -80,7 +95,7 @@ function abacusTool(){
         ?'Work out '+a+' × '+b+'. Because the product is beyond 10, use the right-hand C=10 index: slide C=10 above D='+a+', move the cursor to C='+b+', then enter the value represented on D.'
         :'Work out '+a+' × '+b+'. FIRST MOVE: use the LEFT end of C. Put C=1 directly over D='+a+'. THEN move the cursor to C='+b+'. Read D and enter the product.'};
     }else if(kind==='pascaline'){
-      const operation=Math.random()<.5?'add':'subtract';
+      const operation=['add','subtract'].includes(operationChoice)?operationChoice:Math.random()<.5?'add':'subtract';
       let start,amount,target;
       if(operation==='add'){
         if(Math.random()<.72){
@@ -112,7 +127,7 @@ function abacusTool(){
     renderAll();
   }
   function checkHistoricalChallenge(){
-    if(!historyChallenge)return;
+    if(!historyChallenge||historyRevealed)return;
     const answerOk=!historyChallenge.requiresAnswer||String(historyAnswer).trim()!==''&&Math.abs(Number(historyAnswer)-Number(historyChallenge.answer))<0.011;
     const deviceOk=historyChallenge.requiresInstrument&&kind==='slide'
       ?Math.abs(slideA-historyChallenge.a)<=0.11&&Math.abs(slideB-historyChallenge.b)<=0.11&&slideIndex===(historyChallenge.index||((historyChallenge.a*historyChallenge.b)>10?'right':'left'))
@@ -131,8 +146,8 @@ function abacusTool(){
   }
   function historyChallengeBanner(){
     if(!historyChallenge)return '';
-    const input=historyChallenge.requiresAnswer?'<label class="gd-ab-answer">Answer <input type="text" inputmode="none" data-ab-history-answer value="'+esc(historyAnswer)+'"></label>':'';
-    return '<section class="gd-ab-task gd-history-task gd-native-challenge"><div class="gd-ab-task-head"><div><span>CHALLENGE</span><strong>'+esc(historyChallenge.prompt)+'</strong></div><em>'+esc(historyStatus)+'</em></div>'+input+'<div class="gd-ab-task-actions"><button type="button" data-ab-history-check>Check</button><button type="button" data-ab-history-another>Another</button>'+(historyRevealed?'':'<button type="button" data-ab-history-reveal>Reveal answer</button>')+'<button type="button" data-ab-history-end>Exit challenge</button></div></section>';
+    const input=historyChallenge.requiresAnswer?'<label class="gd-ab-answer">Answer <input type="text" inputmode="none" data-ab-history-answer value="'+esc(historyAnswer)+'"'+(historyRevealed?' disabled':'')+'></label>':'';
+    return '<section class="gd-ab-task gd-history-task gd-native-challenge"><div class="gd-ab-task-head"><div><span>CHALLENGE</span><strong>'+esc(historyChallenge.prompt)+'</strong></div><em>'+esc(historyStatus)+'</em></div>'+input+'<div class="gd-ab-task-actions"><button type="button" data-ab-history-check'+(historyRevealed?' disabled':'')+'>Check</button><button type="button" data-ab-history-another>Another</button>'+(historyRevealed?'':'<button type="button" data-ab-history-reveal>Reveal answer</button>')+'<button type="button" data-ab-history-end>Exit challenge</button></div></section>';
   }
 
   function isAbacusKind(){return kind==='western'||kind==='suanpan'||kind==='soroban'}
@@ -142,6 +157,7 @@ function abacusTool(){
     suanLower=Array.from({length:rows},(_,i)=>(counts[i]||0)%5);
   }
   function changeDevice(next){
+    restoreChallengeSetup();
     const previousValue=total();
     kind=DEVICE_OPTIONS.some(([id])=>id===next)?next:'western';
     task=null;historyChallenge=null;workflow='setup';historyHelpOpen=false;
@@ -275,7 +291,7 @@ function abacusTool(){
   }
   function historicalControls(){
     const common=field('Colour scheme','<select class="gd-select" id="ab-theme">'+COLOUR_SCHEMES.map(([id,label])=>'<option value="'+id+'"'+(colourScheme===id?' selected':'')+'>'+label+'</option>').join('')+'</select>')+
-      '<div class="gd-row"><button class="gd-btn gd-btn--primary" id="ab-history-challenge" type="button">New challenge</button>'+(historyChallenge?'<button class="gd-btn" id="ab-history-end-control" type="button">End challenge</button>':'')+'</div>';
+      '<div class="gd-row"><button class="gd-btn gd-btn--primary" id="ab-history-challenge" type="button">New challenge</button>'+(kind==='pascaline'?'<button class="gd-btn" data-ab-history-operation="add" type="button">Addition</button><button class="gd-btn" data-ab-history-operation="subtract" type="button">Subtraction</button>':'')+(historyChallenge?'<button class="gd-btn" id="ab-history-end-control" type="button">End challenge</button>':'')+'</div>';
     if(kind==='reckoning')return common+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="ab-h-example" type="button">Show 126</button><button class="gd-btn" id="ab-h-regroup" type="button">Regroup 10 → 1</button><button class="gd-btn" id="ab-h-clear" type="button">Clear</button></div><p class="gd-help">Add and remove counters directly on the board.</p>';
     if(kind==='rods')return common+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="ab-h-example" type="button">Show 372</button><button class="gd-btn" id="ab-h-clear" type="button">Clear</button></div><p class="gd-help">Use + and − under each place to change the rod numeral.</p>';
     if(kind==='napier')return common+field('Number','<input class="gd-input" id="ab-napier-number" inputmode="numeric" maxlength="5" value="'+esc(napierNumber)+'"'+(historyChallenge?' disabled':'')+'>')+field('Multiply by','<select class="gd-select" id="ab-napier-mult"'+(historyChallenge?' disabled':'')+'>'+Array.from({length:9},(_,i)=>'<option value="'+(i+1)+'"'+(i+1===napierMultiplier?' selected':'')+'>'+(i+1)+'</option>').join('')+'</select>')+'<p class="gd-help">Choose a number and multiplier, then read the selected row and add its diagonals.</p>';
@@ -361,7 +377,7 @@ function abacusTool(){
     const check=q('[data-ab-history-check]');if(check)check.onclick=checkHistoricalChallenge;
     const another=q('[data-ab-history-another]');if(another)another.onclick=newHistoricalChallenge;
     const reveal=q('[data-ab-history-reveal]');if(reveal)reveal.onclick=revealHistoricalChallenge;
-    const end=q('[data-ab-history-end]');if(end)end.onclick=()=>{historyChallenge=null;historyAnswer='';historyStatus='';historyRevealed=false;renderAll()};
+    const end=q('[data-ab-history-end]');if(end)end.onclick=exitChallenge;
     const stageKind=q('[data-ab-stage-kind]');if(stageKind)stageKind.onchange=()=>{changeDevice(stageKind.value)};
     const open=q('[data-ab-help-open]');if(open)open.onclick=openDeviceHelp;
     const close=q('[data-ab-help-close]');if(close)close.onclick=()=>{historyHelpOpen=false;renderHistoricalStage()};
@@ -556,6 +572,7 @@ function abacusTool(){
     return null;
   }
   function newTask(mode=playMode,context=workflow==='challenge'?'challenge':'play',custom=null){
+    if(context==='challenge')rememberChallengeSetup();else if(challengeSetup)restoreChallengeSetup();
     playMode=mode;taskContext=context==='challenge'?'challenge':'play';status='';answerInput='';revealed=false;
     if(mode==='free'){task=null;taskContext='play';renderAll();return}
     task=custom||generatedTask(mode);
@@ -573,7 +590,7 @@ function abacusTool(){
     }
   }
   function checkTask(){
-    if(!task)return;
+    if(!task||revealed||status==='Correct ✓')return;
     if(taskSolved())status='Correct ✓';
     else if(total()!==task.target)status='Not yet — the '+(kind==='suanpan'?'suanpan':kind==='soroban'?'soroban':'abacus')+' shows '+total()+'.';
     else status='The beads are right. Enter the missing number too.';
@@ -615,13 +632,13 @@ function abacusTool(){
   function taskBanner(){
     if(!task)return '';
     const context=taskContext==='challenge'?'CHALLENGE':'PLAY';
-    const answer=task.requiresAnswer?'<label class="gd-ab-answer">Answer <input type="text" inputmode="none" data-ab-answer value="'+esc(answerInput)+'"></label>':'';
-    const reveal=taskContext==='challenge'?'<button type="button" data-ab-reveal>Reveal answer</button>':'';
+    const answer=task.requiresAnswer?'<label class="gd-ab-answer">Answer <input type="text" inputmode="none" data-ab-answer value="'+esc(answerInput)+'"'+(revealed||status==='Correct ✓'?' disabled':'')+'></label>':'';
+    const reveal=taskContext==='challenge'&&!revealed&&status!=='Correct ✓'?'<button type="button" data-ab-reveal>Reveal answer</button>':'';
     const skipNext=task.mode==='skip'&&workflow==='play'?'<button type="button" data-ab-skip-next>Next '+task.step+'</button>':'';
     return '<section class="gd-ab-task'+(taskContext==='challenge'?' gd-native-challenge':'')+'" data-ab-task="'+task.mode+'">'+
       '<div class="gd-ab-task-head"><div><span>'+context+'</span><strong>'+esc(task.prompt)+'</strong></div><em data-ab-status>'+esc(status)+'</em></div>'+
       answer+
-      '<div class="gd-ab-task-actions"><button type="button" data-ab-check>Check</button>'+skipNext+'<button type="button" data-ab-another>Another</button>'+reveal+(taskContext==='challenge'?'<button type="button" data-ab-exit>Exit challenge</button>':'')+'</div>'+
+      '<div class="gd-ab-task-actions"><button type="button" data-ab-check'+(revealed||status==='Correct ✓'?' disabled':'')+'>Check</button>'+skipNext+'<button type="button" data-ab-another>Another</button>'+reveal+(taskContext==='challenge'?'<button type="button" data-ab-exit>Exit challenge</button>':'')+'</div>'+
     '</section>';
   }
   function beadMarkup(i,part,j){
@@ -678,9 +695,9 @@ function abacusTool(){
     const hideTotal=!!task&&taskContext==='challenge'&&!revealed&&status!=='Correct ✓';
     const totalEl=q('[data-ab-total]');if(totalEl)totalEl.textContent=hideTotal?'?':total().toLocaleString('en-GB');
     const statusEl=q('[data-ab-status]');if(statusEl)statusEl.textContent=status;
-    const input=q('[data-ab-answer]');if(input&&document.activeElement!==input)input.value=answerInput;
+    const input=q('[data-ab-answer]');if(input){if(document.activeElement!==input)input.value=answerInput;input.disabled=revealed||status==='Correct ✓'}
     const reveal=q('[data-ab-reveal]');if(reveal)reveal.hidden=!!revealed||status==='Correct ✓';
-    const check=q('[data-ab-check]');if(check)check.disabled=status==='Correct ✓';
+    const check=q('[data-ab-check]');if(check)check.disabled=revealed||status==='Correct ✓';
   }
   function setupControls(){
     const selector=field('Device','<select class="gd-select" id="ab-kind">'+DEVICE_OPTIONS.map(([id,label])=>'<option value="'+id+'"'+(kind===id?' selected':'')+'>'+label+'</option>').join('')+'</select>');
@@ -775,7 +792,7 @@ function abacusTool(){
     }
     const check=q('[data-ab-check]');if(check)check.onclick=checkTask;
     const another=q('[data-ab-another]');if(another)another.onclick=()=>newTask(task?.mode||playMode,taskContext);
-    const exitTask=q('[data-ab-exit]');if(exitTask)exitTask.onclick=()=>{task=null;taskContext='play';workflow='setup';playMode='free';status='';answerInput='';revealed=false;renderAll()};
+    const exitTask=q('[data-ab-exit]');if(exitTask)exitTask.onclick=exitChallenge;
     const reveal=q('[data-ab-reveal]');if(reveal)reveal.onclick=()=>{if(!taskSolved())revealTask()};
     const skip=q('[data-ab-skip-next]');if(skip)skip.onclick=()=>{
       if(!task||task.mode!=='skip')return;
@@ -791,6 +808,7 @@ function abacusTool(){
   function bindControls(){
     qa('[data-ab-workflow]').forEach(button=>button.onclick=()=>{
       const next=button.dataset.abWorkflow,previous=workflow;
+      if(challengeSetup&&['setup','play'].includes(next)){exitChallenge();return}
       workflow=next;
       if(next!=='challenge'||taskContext!=='challenge'){status='';revealed=false}
       if(next==='challenge'&&taskContext!=='challenge'){task=null;taskContext='challenge';answerInput=''}
@@ -801,8 +819,9 @@ function abacusTool(){
     const kindEl=q('#ab-kind');if(kindEl)kindEl.onchange=()=>{changeDevice(kindEl.value)};
     if(!isAbacusKind()){
       const theme=q('#ab-theme');if(theme)theme.onchange=()=>{colourScheme=COLOUR_SCHEMES.some(([id])=>id===theme.value)?theme.value:'classic';renderAll()};
-      const challengeButton=q('#ab-history-challenge');if(challengeButton)challengeButton.onclick=newHistoricalChallenge;
-      const endControl=q('#ab-history-end-control');if(endControl)endControl.onclick=()=>{historyChallenge=null;historyAnswer='';historyStatus='';historyRevealed=false;renderAll()};
+      const challengeButton=q('#ab-history-challenge');if(challengeButton)challengeButton.onclick=()=>newHistoricalChallenge();
+      qa('[data-ab-history-operation]').forEach(button=>button.onclick=()=>newHistoricalChallenge(button.dataset.abHistoryOperation));
+      const endControl=q('#ab-history-end-control');if(endControl)endControl.onclick=exitChallenge;
       const hiddenChallenge=q('[data-ab-random-challenge]');if(hiddenChallenge)hiddenChallenge.onclick=newHistoricalChallenge;
       const ex=q('#ab-h-example');if(ex)ex.onclick=()=>{
         if(kind==='reckoning')reckoning=[0,1,2,6];
@@ -940,7 +959,7 @@ function abacusTool(){
   }
 
   renderAll();
-  G.lessonState?.register('abacus',()=>({rows,counts,kind,showTotal,showRowCounts,showRowLabels,workflow,playMode,task,taskContext,status,answerInput,revealed,reckoning,rodDigits,napierNumber,napierMultiplier,slideA,slideB,slideIndex,pascalDigits,pascalOperation,pascalMessage,suanUpper,suanLower,colourScheme,historyChallenge,historyAnswer,historyStatus,historyRevealed}),saved=>{
+  G.lessonState?.register('abacus',()=>({rows,counts,kind,showTotal,showRowCounts,showRowLabels,workflow,playMode,task,taskContext,status,answerInput,revealed,reckoning,rodDigits,napierNumber,napierMultiplier,slideA,slideB,slideIndex,pascalDigits,pascalOperation,pascalMessage,suanUpper,suanLower,colourScheme,historyChallenge,historyAnswer,historyStatus,historyRevealed,challengeSetup}),saved=>{
     if(Object.prototype.hasOwnProperty.call(saved,'rows'))rows=saved.rows;
     if(Object.prototype.hasOwnProperty.call(saved,'counts'))counts=saved.counts;
     if(Object.prototype.hasOwnProperty.call(saved,'kind'))kind=saved.kind;
@@ -971,7 +990,7 @@ function abacusTool(){
     if(Object.prototype.hasOwnProperty.call(saved,'historyAnswer'))historyAnswer=saved.historyAnswer;
     if(Object.prototype.hasOwnProperty.call(saved,'historyStatus'))historyStatus=saved.historyStatus;
     if(Object.prototype.hasOwnProperty.call(saved,'historyRevealed'))historyRevealed=saved.historyRevealed;
-    historyHelpOpen=false;historyDrag=null;drag=null;pascalCarryFlash=[];renderAll();
+    challengeSetup=saved.challengeSetup||null;historyHelpOpen=false;historyDrag=null;drag=null;pascalCarryFlash=[];renderAll();
   });
 }
 
