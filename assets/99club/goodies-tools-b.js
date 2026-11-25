@@ -51,7 +51,7 @@ function curriculumSettings(profile,level='medium'){
    ops:year===1?['+','−']:OPS,relations:year===1?['=']:REL,
    left:year>=6&&rank>0?0:2,right:year>=4?0:1,precision:0,
    extras:year>=6?EXTRAS:year===5?['Powers','Remainders']:year===4?['Remainders']:[],
-   topics:topics.filter(include).map(t=>t.id),
+   topics:topics.filter(t=>t.id!=='target-number'&&include(t)).map(t=>t.id),
    denominator:year<=3?[4,6,8][rank]:year<=4?[4,8,12][rank]:[6,12,20][rank]
  };
  return settings(raw,level);
