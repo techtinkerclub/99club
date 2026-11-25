@@ -42,6 +42,13 @@ Updated 25 November 2026.
 - Maths Canvas settings now use progressive disclosure: quantity/layout and preset visible, operations/comparisons, range/terms, optional topics and specific questions expandable. Preserve opened sections during selections and board proxy refresh; wider floating panel, compact workflow tabs and no horizontal scrollbar.
 - Continue reviewing other widgets individually where crowded; do not impose additional panels on simple widgets. Browser verification pending.
 
+## Abacus paper tasks (25 November)
+- Shared live/paper bead position and active-state logic, reduced bead diameter to avoid overlapping western beads and vertical bead collisions; theme-aware SVG.
+- Task exports now reconstruct the original start rather than exporting a child's partially solved or revealed screen. Build-number tasks show only a final template; operation tasks show start plus a final outline template to shade. Western rows shade from left; soroban/suanpan shade nearest the beam. Teacher keys explicitly requested and show completed final configuration.
+- Paper prompts omit interactive Check/move instructions. Pupil and teacher exports are independent of reveal state. Other historical calculator paper workflows remain to audit.
+- Standard templates only where meaningful: single diagram, before/after construction, question set, teacher key. Do not force all four onto every widget.
+- Browser/print review pending, including visual comparison of themes and final template readability.
+
 ## Next priorities
 1. Visual/touch feedback: validate the practice-set launcher, whiteboard layout, inline answer boxes, responsive columns and paper outputs; refine density and font sizes after classroom feedback.
 2. Worksheet-oriented improvements: separate arithmetic answer key implemented; dedicated five-a-day shortcut, optional space for working, shared pupil/teacher export policies across all widgets, and print pagination remain.
