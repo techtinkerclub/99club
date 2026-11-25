@@ -25,7 +25,7 @@ The notes are implementation evidence, not a completed acceptance test. “Pilot
 | Fraction wall | Shared six-type generator; equivalent fractions, comparison, simplify, mixed numbers, reasoning; compact aligned paper strips | Shared templates; custom task audit | Pilot: 6 types + diagrams | Open |
 | Bar model builder | Editable part–whole model, unknown quantities, paper construction | Existing; audit | Pending | Open |
 | Hundred square | Shared eight-type generator, five ranges, compact row extracts, complete marking diagrams | Shared templates; custom audit | Pilot: 8 types + diagrams and graphical keys | Open |
-| Multiplication grid | Related facts, grid labels, response locations | Existing; audit | Pending | Open |
+| Multiplication grid | Shared six-type generator, 5–15 size, compact rows, writable cells and corrected diagrams | Shared templates; custom audit | Pilot: 6 types + diagrams and graphical keys | Open |
 | Array builder | Shared seven-type generator, saved factor ranges, build grid and teacher key, partitions | Shared templates; custom task audit | Pilot: 7 types + diagrams | Open |
 | Clock & time | Shared native 14-type generator; original elapsed-time evidence, blank hands, visible display options, explicit teacher key | Shared templates; custom task audit | Pilot: 14 types + diagrams | Open |
 | UK money | Shared ten-type generator, consistent coin art, exact/minimum pieces, change | Shared templates; custom audit | Pilot: 10 types + diagrams and graphical keys | Open |
@@ -48,7 +48,7 @@ Reckoning board, Chinese counting rods, Napier's Bones, slide rule and Pascaline
 
 1. Keep direct current export independent of document creation.
 2. Array Builder adapter added after Fraction Wall, Clock & Time, Place Value, Arithmetic, Sequences and the three abacus types; continue with number line, money and coordinates. Audit response semantics and teacher solutions while integrating each.
-3. Automatic builder initial source configuration added for the twelve integrated widgets (independent type/family/range/difficulty/count). Editing or regenerating already-published source blocks remains pending; preserve manually retained items. Refine all publishing menus with the same compact visual language.
+3. Automatic builder initial source configuration added for the thirteen integrated widgets (independent type/family/range/difficulty/count). Editing or regenerating already-published source blocks remains pending; preserve manually retained items. Refine all publishing menus with the same compact visual language.
 4. Extend preview layout: configurable portrait/landscape and intelligent columns, full-width diagrams where necessary, consistent numbering, page breaks, working space and teacher keys.
 5. Save/reopen and reusable settings, stable versioned model records, import/export of drafts with validation; preserve exact content rather than regenerating silently.
 6. Align controls and branding with Studio's existing worksheet workflow. Test actual preview/print parity and mobile/touch performance.
@@ -60,7 +60,7 @@ Continue the catalogue review one widget at a time, with defects and regressions
 
 ## Current verified scope
 
-- Twelve catalogue entries have shared publishing adapters (Arithmetic, Sequences, Abacus limited to three bead instruments, Place Value, Clock & Time, Fraction Wall, Array Builder, Number Line, UK Money, Coordinate Grid, Bar Model, Hundred Square).
+- Thirteen catalogue entries have shared publishing adapters (Arithmetic, Sequences, Abacus limited to three bead instruments, Place Value, Clock & Time, Fraction Wall, Array Builder, Number Line, UK Money, Coordinate Grid, Bar Model, Hundred Square, Multiplication Grid).
 - Automated abacus rollout checks: 2,160 generated tasks; 4,320 pupil/teacher diagrams; 108 mixed-document scenarios and isolated replacements; 1,236 page checks.
 - Automated Place Value rollout: 45 column ranges, 14,040 generated tasks, 28,080 pupil/teacher diagrams, 135 mixed drafts and isolated replacements, 135 captures and 1,655 page checks. Custom teacher-authored tasks still require individual export; the existing powers-of-ten demo is capture-only.
 - Clock rollout: 2,800 individual generator/render checks; 100 multi-source clock drafts, 1,900 generated questions, 200 captures, 100 isolated replacements and 2,583 pupil/teacher page checks. One-clock recipes enable 10 types; two-clock recipes enable 14. Custom tasks remain direct-export only. Actual browser, touch and A4 verification is open.
@@ -90,3 +90,7 @@ Continue the catalogue review one widget at a time, with defects and regressions
 
 ### Hundred Square follow-up
 - 6,000 generator checks, 1,600 pupil/solution checks, 30 mixed documents, 390 annex entries. Both entry points updated. Browser/touch/print acceptance remains open. Next: Multiplication Grid.
+
+### Multiplication Grid follow-up
+- 5,400 generator checks, 1,080 pupil/solution checks, 30 mixed documents, 330 annex entries. Both entry points updated. Browser/touch/print acceptance remains open. Next: Ruler & Measures.
+- Follow-on Statistics and Data Handling workstream recorded in the arithmetic roadmap, alongside formal written methods; existing 20-widget publishing baseline unchanged.
