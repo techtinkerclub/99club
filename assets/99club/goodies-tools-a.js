@@ -5172,7 +5172,8 @@ function moneyTool(){
     const ids=new Set(group.map(x=>x.id));items=items.filter(x=>!ids.has(x.id));
     values.forEach(v=>{const added=addMoney(v),m=canvasMetrics(items.length);const d=metaFor(v),w=d.kind==='note'?d.width:d.size,h=d.kind==='note'?d.height:d.size+19;
       const free=(p)=>items.every(other=>{if(other===added)return true;const o=metaFor(other.value),ow=o.kind==='note'?o.width:o.size,oh=o.kind==='note'?o.height:o.size+19;return p.x+w+8<=other.x||other.x+ow+8<=p.x||p.y+h+8<=other.y||other.y+oh+8<=p.y});
-      for(let i=0;i<Math.max(items.length+8,24);i++){const p=slot(i);if(p.x+w<=m.width&&free(p)){added.x=p.x;added.y=p.y;break}}
+      let placed=false;for(let i=0;i<Math.max(items.length*3+12,32);i++){const p=slot(i);if(p.x+w<=m.width&&free(p)){added.x=p.x;added.y=p.y;placed=true;break}}
+      if(!placed){added.x=18;added.y=m.height+12}
     });return true;
   }
   function exchangeCheck(){
