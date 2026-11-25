@@ -82,9 +82,7 @@ function captureKeydown(e){
 }
 function install(){
   window.addEventListener('click',captureWindowClick,true);
-  document.addEventListener('click',captureCheck,true);
-  document.addEventListener('click',bubbleClick,false);
-  window.addEventListener('keydown',captureKeydown,true);
+  // Multi-box checking is owned by v8, including keyboard submission.
 }
 G.numberMobilePupilStateVersion='10.2';
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
