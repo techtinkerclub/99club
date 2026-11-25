@@ -79,7 +79,7 @@ const QUICK_ACTIONS={
     {label:'×',selector:'#ba-delete',allowHidden:true,title:'Delete selected weight',danger:true}
   ],
   'maths-canvas':[
-    {label:'+ Tile',selector:'[data-gd-action="add"]',allowHidden:true,title:'Add number or operation tile'},
+    {label:'+ Tile',selector:'[data-gd-action="add"]',allowHidden:true,panelMode:'tile-palette',title:'Add number or operation tile'},
     {label:'Combine +',selector:'[data-gd-action="combine"]',allowHidden:true,title:'Combine selected number tile by addition'},
     {label:'Split',selector:'[data-gd-action="split"]',allowHidden:true,title:'Split selected number into equal tiles'},
     {label:'Duplicate',selector:'[data-gd-action="duplicate"]',allowHidden:true},
@@ -242,7 +242,8 @@ function positionFloatingControls(){
   floatingControlX=clamp(floatingControlX,margin,maxX);floatingControlY=clamp(floatingControlY,margin,maxY);
   floatingControls.style.left=floatingControlX+'px';floatingControls.style.top=floatingControlY+'px';
 }
-function sourceControls(obj){return innerDocument(obj)?.getElementById(floatingPanelMode==='money-palette'&&obj?.toolId==='money'?'mo-board-palette':'gd-controls')||null}
+function sourceControls(obj){return innerDocument(obj)?.getElementById(floatingPanelMode==='money-palette'&&obj?.toolId==='money'?'mo-board-palette':floatingPanelMode==='tile-palette'&&obj?.toolId==='maths-canvas'?'mc-board-palette':'gd-controls')||null}
+function isObjectPalette(){return floatingPanelMode==='money-palette'||floatingPanelMode==='tile-palette'}
 // The frame launcher is deliberately not a clone of the full settings panel.
 // Keep proxy identities, so every action runs through its native widget engine.
 function compactChallengeControls(clone,obj){
@@ -298,8 +299,8 @@ function compactChallengeControls(clone,obj){
 function renderFloatingControls(obj){
   if(floatingPanelMode==='help')return;
   if(!floatingControls||!floatingControlsBody||!obj||!obj.settingsOpen||floatingControlObjectId!==obj.id)return;
-  const source=sourceControls(obj);if(!source){if(floatingPanelMode==='money-palette')closeFloatingControls(obj.id);return}
-  if(floatingControls){floatingControls.dataset.tool=obj.toolId||'';floatingControls.classList.toggle('is-money-palette',floatingPanelMode==='money-palette')}
+  const source=sourceControls(obj);if(!source){if(isObjectPalette())closeFloatingControls(obj.id);return}
+  if(floatingControls){floatingControls.dataset.tool=obj.toolId||'';floatingControls.classList.toggle('is-money-palette',isObjectPalette())}
   const sourceInputs=[...source.querySelectorAll(CONTROL_SELECTOR)];
   let clone=source.cloneNode(true);
   clone.removeAttribute('id');clone.removeAttribute('aria-hidden');clone.removeAttribute('hidden');clone.classList.add('gd-board-controls-proxy');
@@ -322,7 +323,7 @@ function renderFloatingControls(obj){
   floatingControls.classList.toggle('is-challenge-launcher',compact);
   if(compact)clone=compactChallengeControls(clone,obj);
   // Use a signature that includes property values (not just innerHTML).
-  const signature=JSON.stringify([obj.id,floatingPanelMode,floatingPanelMode==='money-palette'?'denominations':clone.innerHTML,sourceInputs.map(n=>[n.value,n.checked,n.disabled,n.isContentEditable?n.innerHTML:null])]);
+  const signature=JSON.stringify([obj.id,floatingPanelMode,isObjectPalette()?'object-palette':clone.innerHTML,sourceInputs.map(n=>[n.value,n.checked,n.disabled,n.isContentEditable?n.innerHTML:null])]);
   const structure=JSON.stringify(sourceInputs.map(n=>[n.tagName,n.id,n.type,n.name,{...n.dataset},n.tagName==='BUTTON'?n.textContent:null]));
   if(signature===floatingControlSignature&&floatingControlsBody.firstElementChild){floatingControlSources=sourceInputs;return}
   // Preserve an active input only when the new source has the same control identities.
@@ -336,7 +337,7 @@ function renderFloatingControls(obj){
   floatingControlSignature=signature;
   floatingControlsBody.scrollTop=scroll;
   const tool=tools.find(t=>t.id===obj.toolId);
-  if(floatingControlsTitle)floatingControlsTitle.textContent=floatingPanelMode==='money-palette'?'Add money':(tool?.title||'Manipulative')+(floatingPanelMode==='challenge'?' · Challenge':floatingPanelMode==='challenge-settings'?' · Challenge settings':' settings');
+  if(floatingControlsTitle)floatingControlsTitle.textContent=floatingPanelMode==='tile-palette'?'Add tiles':floatingPanelMode==='money-palette'?'Add money':(tool?.title||'Manipulative')+(floatingPanelMode==='challenge'?' · Challenge':floatingPanelMode==='challenge-settings'?' · Challenge settings':' settings');
   floatingControls.hidden=false;
   requestAnimationFrame(positionFloatingControls);
 }
@@ -392,8 +393,8 @@ function refreshFloatingControls(obj,delay=0){
 function openFloatingControls(obj,mode='settings'){
   if(!obj)return;
   floatingHelpData=null;floatingControls?.classList.remove('is-help');
-  floatingPanelMode=['challenge','challenge-settings','money-palette'].includes(mode)?mode:'settings';
-  floatingControls?.classList.toggle('is-money-palette',floatingPanelMode==='money-palette');
+  floatingPanelMode=['challenge','challenge-settings','money-palette','tile-palette'].includes(mode)?mode:'settings';
+  floatingControls?.classList.toggle('is-money-palette',isObjectPalette());
   floatingControls?.classList.toggle('is-challenge-launcher',floatingPanelMode==='challenge');
   if(obj.toolId==='place-value'&&floatingPanelMode==='settings'){
     const source=sourceControls(obj),active=source?.querySelector('[data-pv-workflow].gd-btn--primary')?.dataset?.pvWorkflow;
@@ -409,7 +410,7 @@ function openFloatingControls(obj,mode='settings'){
   floatingControlObjectId=obj.id;obj.settingsOpen=true;
   const frame=frameFor(obj.id);frame?.classList.add('has-settings');
   const tool=tools.find(t=>t.id===obj.toolId);
-  if(floatingControlsTitle)floatingControlsTitle.textContent=floatingPanelMode==='money-palette'?'Add money':(tool?.title||'Manipulative')+(floatingPanelMode==='challenge'?' · Challenge':floatingPanelMode==='challenge-settings'?' · Challenge settings':' settings');
+  if(floatingControlsTitle)floatingControlsTitle.textContent=floatingPanelMode==='tile-palette'?'Add tiles':floatingPanelMode==='money-palette'?'Add money':(tool?.title||'Manipulative')+(floatingPanelMode==='challenge'?' · Challenge':floatingPanelMode==='challenge-settings'?' · Challenge settings':' settings');
   if(floatingControls)floatingControls.hidden=false;
   const rect=frame?.getBoundingClientRect(),host=board.getBoundingClientRect();
   if(rect&&(floatingPanelMode==='challenge'||!floatingControlMoved)){
@@ -417,7 +418,7 @@ function openFloatingControls(obj,mode='settings'){
     if(trigger){const tr=trigger.getBoundingClientRect();floatingControlX=tr.right-host.left-320;floatingControlY=tr.bottom-host.top+8}
     else{
     const right=rect.right-host.left+14,left=rect.left-host.left-310;
-    const preferredX=floatingPanelMode==='money-palette'?(right+300<=board.clientWidth?right:left>=8?left:Math.max(8,board.clientWidth-310)):Math.min(board.clientWidth-330,Math.max(58,right));
+    const preferredX=isObjectPalette()?(right+300<=board.clientWidth?right:left>=8?left:Math.max(8,board.clientWidth-310)):Math.min(board.clientWidth-330,Math.max(58,right));
     const preferredY=Math.max(12,Math.min(board.clientHeight-280,rect.top-host.top));
     floatingControlX=preferredX;floatingControlY=preferredY;
     }
@@ -437,7 +438,7 @@ function closeFloatingControls(id=null){
 function floatingOriginal(index){
   const obj=objectById(floatingControlObjectId),source=obj&&sourceControls(obj);
   if(!source)return{obj:null,node:null};
-  const node=floatingPanelMode==='money-palette'?source.querySelectorAll(CONTROL_SELECTOR)[Number(index)]:floatingControlSources[Number(index)];
+  const node=isObjectPalette()?source.querySelectorAll(CONTROL_SELECTOR)[Number(index)]:floatingControlSources[Number(index)];
   return{obj,node:node&&source.contains(node)?node:null};
 }
 function measuredStageContentHeight(stage){
@@ -846,7 +847,7 @@ function bindObject(obj){
     if(target){
       if(action.panelMode){
         if(obj.settingsOpen&&floatingControlObjectId===obj.id&&floatingPanelMode===action.panelMode){closeFloatingControls(obj.id);return}
-        if(action.panelMode==='money-palette'){sendSettings(obj,true,'money-palette');return}
+        if(['money-palette','tile-palette'].includes(action.panelMode)){sendSettings(obj,true,action.panelMode);return}
         if(!action.skipClickSelector||!target.matches(action.skipClickSelector)){const active=target.classList.contains('gd-btn--primary')||target.classList.contains('is-active')||target.getAttribute('aria-selected')==='true';if(!active)target.click()}
         setTimeout(()=>{sendSettings(obj,true,action.panelMode);syncQuickActions(obj)},0);
       }else if(action.openSettings){
@@ -884,7 +885,7 @@ if(floatingControlsBody){
     const launch=node.matches('[data-gd-random-scope],[data-gd-native-random],[data-pv-challenge-mode],[data-ab-challenge-mode],[data-ab-history-operation],#ab-history-challenge,[id$="-generate"]');
     const specific=floatingPanelMode==='challenge'&&[...node.attributes].find(a=>/^-?data-[a-z0-9-]+-challenge-type$/.test(a.name));
     if(specific){const prefix=specific.name.match(/^data-([a-z0-9-]+)-challenge-type$/)[1];node.click();const generate=sourceControls(obj)?.querySelector('#'+prefix+'-generate');if(generate&&!generate.disabled){generate.click();closeFloatingControls(obj.id)}}
-    else{node.click();if(launch&&floatingPanelMode==='challenge')closeFloatingControls(obj.id);else if(floatingPanelMode==='money-palette')renderFloatingControls(obj)}
+    else{node.click();if(launch&&floatingPanelMode==='challenge')closeFloatingControls(obj.id);else if(isObjectPalette())renderFloatingControls(obj)}
     setTimeout(()=>{syncQuickActions(obj);refreshFloatingControls(obj)},0);
   });
   const forwardValue=e=>{
