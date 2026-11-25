@@ -78,6 +78,8 @@ if(process.argv[2]==='prepare'){
    assert(vb(denseCard)[3]>vb(compactCard)[3],'Dense worksheet policy allocates more vertical drawing space');
    const geoAnnex=P.pages([geoItem],{teacher:true}).find(page=>page.getAttribute('data-worksheet-answer')==='annex');
    assert(Number(geoAnnex.querySelector('[data-pub-answer-graphic]').getAttribute('height'))>340,'Dense Geoboard answer is no longer compressed to the former annex cap');
+   assert(warnings.length<1211,'Paper label readability must improve from the previous 1,211 warnings');
+   assert(clipping.length===0,'No rendered text outside the page: '+JSON.stringify(clipping.slice(0,5)));
    const sample='A very long marking explanation. '+('Accept all equivalent mathematical explanations using the required units and exact values. '.repeat(15))+'End of marking explanation.';
    const wrapped=X.wrapPaperText(sample,430,20,600);
    assert(wrapped.join(' ')===sample.replace(/\s+/g,' ').trim(),'Measured wrapping preserves complete text');

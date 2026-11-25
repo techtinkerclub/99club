@@ -1200,7 +1200,7 @@ function mePaper(data,teacher=false){
      add('line',{x1:x,y1:base-(major?43:mid?31:19),x2:x,y2:base,stroke:'#344b52','stroke-width':major?1.8:1});
      if(major)text(x,y+25,imperial?i/16:Math.round(v),span>20?17:20);
    }
-   text(endX+13,y+25,imperial?'in':'cm',16,{'text-anchor':'start'});
+   text(endX+10,y+25,imperial?'in':'cm',18,{'text-anchor':'start'});
    function marker(value,label,kind,colour){
      const x=px(value);
      add('line',{x1:x,y1:y-7,x2:x,y2:base+4,stroke:colour,'stroke-width':2.8,'data-me-paper-marker':kind});

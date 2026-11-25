@@ -239,7 +239,7 @@ function composeWorksheetCardSvg(diagram,{title='Challenge',prompt='',responseLa
   const titleH=titleLines.length?(plain?24:34):0,promptH=promptLines.length?promptLines.length*promptStep+(compact?5:8):0;
   const naturalDiagramH=sourceH*(contentW/sourceW);
   const configuredLimit=diagramMaxHeight==null?(plain?500:525):Math.max(260,Math.min(1000,Number(diagramMaxHeight)||500));
-  const diagramLimit=documentCardLayout&&documentDenseDiagram?Math.max(configuredLimit,900):configuredLimit;
+  const diagramLimit=documentCardLayout&&documentDenseDiagram?Math.max(configuredLimit,1200):configuredLimit;
   const diagramH=shortEquation?naturalDiagramH:Math.max(plain?260:300,Math.min(diagramLimit,naturalDiagramH));
   const diagramY=pad+titleH+promptH+(compact?3:plain?12:18);
   const resolvedMode=responseMode==='auto'?(responseLines>1?'lines':'box'):responseMode;

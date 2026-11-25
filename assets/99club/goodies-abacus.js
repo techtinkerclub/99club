@@ -109,7 +109,7 @@ function abacusPaper(model,teacher=false){
       for(let row=0;row<rows;row++){
         const y=112+(row+.5)*348/rows,digit=ds[row]||0;
         add('line',{x1:152,y1:y,x2:752,y2:y,stroke:rail,'stroke-width':4,'stroke-linecap':'round'});
-        if(showRowLabels||pupil)add('text',{x:130,y:y+6,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':18,'font-weight':700,fill:ink},placeShort(row));
+        if(showRowLabels||pupil)add('text',{x:130,y:y+6,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':23,'font-weight':700,fill:ink},placeShort(row));
         for(let j=0;j<10;j++){
           const g=beadGeometry(kind,digit,0,0,'unit',j),bx=152+600*(template?4+j*(92/9):g.position)/100;
           bead(bx,y,11.5,13,g.active,row);
@@ -122,7 +122,7 @@ function abacusPaper(model,teacher=false){
         const x=left+(right-left)*(col+.5)/rows,digit=ds[col]||0;
         const upper=kind==='suanpan'&&live?(suanUpper[col]||0):Math.floor(digit/5),lower=kind==='suanpan'&&live?(suanLower[col]||0):digit%5;
         add('line',{x1:x,y1:top-10,x2:x,y2:top+rodH+10,stroke:rail,'stroke-width':4,'stroke-linecap':'round'});
-        if(showRowLabels||pupil)add('text',{x,y:94,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':rows>=5?16:19,'font-weight':700,fill:ink},placeShort(col));
+        if(showRowLabels||pupil)add('text',{x,y:94,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':22,'font-weight':700,fill:ink},placeShort(col));
         const specs=[...Array.from({length:kind==='suanpan'?2:1},(_,j)=>({part:'upper',j})),...Array.from({length:kind==='suanpan'?5:4},(_,j)=>({part:'lower',j}))];
         specs.forEach(({part,j})=>{
           const g=beadGeometry(kind,digit,upper,lower,part,j);
@@ -145,15 +145,15 @@ function abacusPaper(model,teacher=false){
     return action+' '+instruction+(missing?' Write the missing number in the box.':' Write the final number in the box.');
   }
   function paperTaskDiagram(t,teacher){
-    const showStart=t.mode!=='show'&&!(teacher&&X.isAnswerDiagramLayout?.()),W=showStart?1840:900,H=590;
+    const showStart=t.mode!=='show'&&!(teacher&&X.isAnswerDiagramLayout?.()),stacked=showStart&&X.isDocumentCardLayout?.(),W=showStart&&!stacked?1840:900,H=stacked?1180:590;
     const out=svgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':teacher?'Completed abacus solution':'Abacus practice diagrams'});
-    const addFrame=(value,template,x,label)=>{
-      out.appendChild(svgEl('text',{x:x+450,y:34,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':26,'font-weight':700,fill:'#52666d'},label));
-      const nested=svgEl('svg',{x,y:42,width:900,height:540,viewBox:'0 0 900 540'});
+    const addFrame=(value,template,x,label,y=0)=>{
+      out.appendChild(svgEl('text',{x:x+450,y:y+34,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':26,'font-weight':700,fill:'#52666d'},label));
+      const nested=svgEl('svg',{x,y:y+42,width:900,height:540,viewBox:'0 0 900 540'});
       [...frameSvg({value,template,pupil:true}).childNodes].forEach(n=>nested.appendChild(n.cloneNode(true)));out.appendChild(nested);
     };
     if(showStart)addFrame(t.start,false,0,'Start');
-    addFrame(teacher?t.target:0,!teacher,showStart?940:0,teacher?'Final total':'Shade to show the final total');
+    addFrame(teacher?t.target:0,!teacher,showStart&&!stacked?940:0,teacher?'Final total':'Shade to show the final total',stacked?590:0);
     return out;
   }
   function exportSvg(teacher=false){
