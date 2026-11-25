@@ -2606,11 +2606,12 @@ function barModel(){
   }
   function statusText(){
     if(challengeHidden('hiddenStatus'))return'?';
+    if(challenge?.revealed&&challenge.type==='equal-groups-part')return 'Each equal part = '+challenge.answer;
     if(challenge?.comparison)return'Difference = '+(Math.round(challenge.comparison.difference*100)/100);
     if(challenge?.type==='build-model')return 'Build the model, then check';
     return rawStatusText();
   }
-  function challengeFrozen(){return !!(challenge&&challenge.mode==='standard'&&challenge.freezeModel)}
+  function challengeFrozen(){return !!(challenge&&challenge.mode==='standard'&&(challenge.freezeModel||challenge.revealed))}
   function syncControlInputs(){
     const input=q('#bm-total');
     if(input)input.value=total==null?'':String(total);
@@ -2783,11 +2784,19 @@ function barModel(){
       '<div class="gd-bar-compare-note">Difference between the aligned bar ends</div>'+
     '</div>';
   }
+  function toggleBarReveal(){
+    if(!challenge)return;
+    if(challenge.mode==='standard'&&challenge.type==='build-model'){
+      if(!challenge.revealed){challenge.preRevealModel=snapshot();restore({parts:challenge.targetParts.map((p,i)=>({...p,id:i+1})),total:challenge.targetTotal,nextId:challenge.targetParts.length+1,selectedId:null})}
+      else if(challenge.preRevealModel){restore(challenge.preRevealModel);delete challenge.preRevealModel}
+    }
+    challenge.revealed=!challenge.revealed;renderControls();draw();
+  }
   function bindChallengeStageActions(){
     const endChallenge=q('[data-challenge-action="end"]',q('#gd-stage'));if(endChallenge)endChallenge.onclick=e=>{e.stopPropagation();clearChallenge()};
     const stage=q('#gd-stage');if(!stage||!challenge)return;
     const reveal=q('[data-board-action="reveal"]',stage);
-    if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();draw()};
+    if(reveal)reveal.onclick=e=>{e.stopPropagation();toggleBarReveal()};
     const another=q('[data-challenge-action="another"]',stage);
     if(another)another.onclick=e=>{e.stopPropagation();if(challenge?.mode==='standard')generateChallenge(challenge.type)};
   }
@@ -3093,7 +3102,7 @@ function barModel(){
     qa('[data-bm-challenge-type]',q('#gd-controls')).forEach(button=>button.onclick=()=>{challengeType=button.dataset.bmChallengeType;renderControls()});
     const generate=q('#bm-generate');if(generate)generate.onclick=()=>generateChallenge(challengeType);
     const edit=q('#bm-edit-challenge');if(edit)edit.onclick=enterCustomChallenge;
-    const reveal=q('#bm-reveal');if(reveal)reveal.onclick=()=>{if(challenge){challenge.revealed=!challenge.revealed;renderControls();draw()}};
+    const reveal=q('#bm-reveal');if(reveal)reveal.onclick=()=>{if(challenge)toggleBarReveal()};
     const clear=q('#bm-clear-challenge');if(clear)clear.onclick=clearChallenge;
     if(challengeTab==='custom'&&challenge){
       const title=q('#bm-custom-title');if(title)title.oninput=()=>{challenge.title=title.value.slice(0,100);draw()};
