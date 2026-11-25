@@ -123,6 +123,12 @@ Three levels: (1) publish the current challenge or non-challenge representation 
 - Fixed narrow custom ranges that produced insufficient variation, and changed zero-placeholder prompts to avoid assuming that trailing decimal zeros change numeric value. Shared document composer isolates local SVG IDs and references per question to avoid repeated clip-path collisions.
 - Automated checks: 45 column ranges × 3 addition settings, 14,040 generated tasks, 28,080 pupil/teacher diagrams, 135 mixed drafts, 135 isolated replacements and captures, 1,655 page checks. Full browser, touch and actual print certification remains open.
 
+## Publishing UX and dual entry workflow (25 November)
+- User screenshots show horizontal export menu overflow and oversized/misaligned document controls. Replace with a compact grouped popover, explicit local type scale and consistent 34–36px controls; redesign review, generator dialogue and responsive layout. Actual browser appearance still needs checking.
+- Two entry workflows, one document: live capture/generate from a widget; automatic builder with a full catalogue, independent source blocks, quantities and compatible challenge checkboxes. A widget may be added more than once with different settings. Both append to the same review draft; existing items are retained. Source generation is atomic, with type-balanced selection and independent frozen recipes.
+- Automatic builder currently enables the four integrated widgets only; other catalogue rows are disabled until adapters are ready. Arithmetic options include curriculum, difficulty, ranges, precision, allowed operations/relations, term counts and opt-in topics. Abacus, Place Value and Sequences use their existing settings. No separate challenge engine.
+- Continue remaining adapter rollout, then persistence, intelligent document layouts, source recipe editing and full visual/touch/print quality gate.
+
 ## Next priorities
 1. Visual/touch feedback: validate the practice-set launcher, whiteboard layout, inline answer boxes, responsive columns and paper outputs; refine density and font sizes after classroom feedback.
 2. Worksheet-oriented improvements: separate arithmetic answer key implemented; five-a-day shortcut implemented; optional arithmetic working space and row-based A4 pagination implemented; shared pupil/teacher export policies across the remaining widgets still need work.
