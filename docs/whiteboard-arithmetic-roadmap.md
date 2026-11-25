@@ -68,6 +68,7 @@ Updated 25 November 2026.
 - Paper-specific counter charts: reading/hidden/digit tasks use one original chart and an answer box; build/exact tasks use a blank drawing chart; addition/regroup/same-value tasks use starting and blank final charts. Same-value tasks omit unnecessary numeric response boxes. Teacher keys show the original task and an example solution, not live pupil progress.
 - Explicit teacher copy/print paths and immutable original counts for new activities and standard generated tasks. Old saved regroup tasks without original counts may reconstruct an equivalent starting chart; custom challenges retain their existing diagram behaviour.
 - Taller stacked paper layouts use portrait printing and a per-template diagram height allowance; visual A4 checks pending.
+- Automated checks: 960 pupil/teacher worksheet pairs over six whole-number and decimal ranges; 117,288 SVG nodes checked for finite geometry, plus blank response charts, equal-value alternative solutions and exact counter budgets. These are DOM-model checks, not rendered-page verification.
 - Retain addition and regrouping teaching tools, not duplicate all generic abacus arithmetic. Review remaining panel density after classroom feedback.
 
 ## Next priorities
