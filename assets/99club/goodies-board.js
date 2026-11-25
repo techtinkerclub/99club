@@ -345,7 +345,7 @@ function renderFloatingHelp(obj,data){
   if(!floatingControls||!floatingControlsBody||!obj||!data)return;
   floatingPanelMode='help';floatingHelpData=data;floatingControlSignature='';floatingControlSources=[];floatingControlStructure='';
   if(floatingControls)floatingControls.dataset.tool=obj.toolId||'';
-  floatingControls.classList.remove('is-challenge-launcher');floatingControls.classList.add('is-help');
+  floatingControls.classList.remove('is-challenge-launcher','is-money-palette');floatingControls.classList.add('is-help');
   floatingControlsBody.replaceChildren();
   const wrap=document.createElement('div');wrap.className='gd-board-help-panel';
   const intro=document.createElement('p');intro.className='gd-board-help-intro';intro.textContent=String(data.intro||'');wrap.appendChild(intro);
@@ -438,7 +438,7 @@ function closeFloatingControls(id=null){
 function floatingOriginal(index){
   const obj=objectById(floatingControlObjectId),source=obj&&sourceControls(obj);
   if(!source)return{obj:null,node:null};
-  const node=floatingControlSources[Number(index)];
+  const node=floatingPanelMode==='money-palette'?source.querySelectorAll(CONTROL_SELECTOR)[Number(index)]:floatingControlSources[Number(index)];
   return{obj,node:node&&source.contains(node)?node:null};
 }
 function measuredStageContentHeight(stage){
@@ -883,7 +883,7 @@ if(floatingControlsBody){
     const launch=node.matches('[data-gd-random-scope],[data-gd-native-random],[data-pv-challenge-mode],[data-ab-challenge-mode],[data-ab-history-operation],#ab-history-challenge,[id$="-generate"]');
     const specific=floatingPanelMode==='challenge'&&[...node.attributes].find(a=>/^-?data-[a-z0-9-]+-challenge-type$/.test(a.name));
     if(specific){const prefix=specific.name.match(/^data-([a-z0-9-]+)-challenge-type$/)[1];node.click();const generate=sourceControls(obj)?.querySelector('#'+prefix+'-generate');if(generate&&!generate.disabled){generate.click();closeFloatingControls(obj.id)}}
-    else{node.click();if(launch&&floatingPanelMode==='challenge')closeFloatingControls(obj.id)}
+    else{node.click();if(launch&&floatingPanelMode==='challenge')closeFloatingControls(obj.id);else if(floatingPanelMode==='money-palette')renderFloatingControls(obj)}
     setTimeout(()=>{syncQuickActions(obj);refreshFloatingControls(obj)},0);
   });
   const forwardValue=e=>{
