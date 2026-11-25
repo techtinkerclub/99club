@@ -232,6 +232,20 @@ async function run(){
   const nlFloating=document.getElementById('gd-board-floating-controls');
   assert(visible(nlFloating)&&nlFloating.querySelector('[data-nl-active-line-top]'),'Number Line settings are proxied into the floating whiteboard palette');
   nlSettings.click();await tick();
+  nlFrame.querySelector('[data-board-quick-actions] button[aria-label="Choose a challenge"]').click();await tick();
+  assert(nlFloating.classList.contains('is-challenge-launcher'),'Frame Challenge uses compact launcher styling');
+  assert(!nlFloating.querySelector('[data-nl-active-line-top],.nl-workflow-tabs,#nl-generate'),'Quick launcher does not duplicate setup, workflow tabs or Generate');
+  assert(nlFloating.querySelector('[data-gd-random-scope="all"]'),'Random all is directly available');
+  nlFloating.querySelector('[data-nl-challenge-cat="calculate"]').click();await tick();
+  assert(nlFloating.querySelector('[data-gd-random-scope="calculate"]'),'Random category is directly available after one category tap');
+  nlFloating.querySelector('[data-nl-challenge-type="jump"]').click();await tick(100);
+  assert(!visible(nlFloating),'Choosing a specific question generates and closes in one tap');
+  assert(nlDoc.querySelector('.gd-challenge-banner'),'Specific question is generated without separate Generate button');
+  nlDoc.querySelector('[data-challenge-action="end"]').click();await tick();
+  nlFrame.querySelector('[data-board-quick-actions] button[aria-label="Choose a challenge"]').click();await tick();
+  nlFloating.querySelector('[data-board-launcher-settings]').click();await tick();
+  assert(!nlFloating.classList.contains('is-challenge-launcher')&&nlFloating.querySelector('.gd-challenge-tabs'),'Full standard and custom challenge settings remain accessible');
+  nlFloating.querySelector('[data-board-controls-close]').click();await tick();
   // Generate through the actual teacher controls, not a synthetic question.
   nlDoc.querySelector('[data-nl-workflow="challenge"]').click();
   nlDoc.querySelector('[data-nl-challenge-cat="calculate"]').click();
