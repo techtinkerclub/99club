@@ -68,9 +68,7 @@ const QUICK_ACTIONS={
     {label:'− Clock',selector:'#cl-remove-clock',allowHidden:true,title:'Remove selected clock',danger:true}
   ],
   money:[
-    {label:'+ Money',selector:'[data-gd-action="add-money"]',panelMode:'money-palette',title:'Add coins and notes'},
-    {label:'Duplicate',selector:'[data-gd-action="duplicate"]'},
-    {label:'×',selector:'[data-gd-action="delete"]',title:'Delete selected money',danger:true}
+    {label:'+ Money',selector:'[data-gd-action="add-money"]',panelMode:'money-palette',title:'Add coins and notes'}
   ],
   balance:[
     {label:'+ Left',selector:'[data-ba-stage-add="left"]'},
