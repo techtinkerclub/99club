@@ -484,6 +484,7 @@ function bannerHtml(challenge,opts={}){
       ${answerButton}
       ${exitActions}
     </div>
+    ${ch.revealed&&ch.solutionExplanation?`<div class="gd-pupil-instruction gd-challenge-explanation">${esc(String(ch.solutionExplanation).slice(0,600))}</div>`:'' }
     ${pupil}
   </div>`;
 }
