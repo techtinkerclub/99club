@@ -1054,6 +1054,22 @@ async function run(){
     }
     api.remove(fixture.record.id);
   }
+  // Full pie construction and a timetable question exercise the shared assessment UI.
+  {
+    const id='statistics-table',fixture=await addForSave(id),doc=fixture.doc,live=doc.defaultView.TT99Goodies,stage=doc.querySelector('#gd-stage'),capture=()=>live.lessonState.capture(id).model;
+    const choose=view=>{const select=doc.getElementById('st-view');select.value=view;select.dispatchEvent(new doc.defaultView.Event('change',{bubbles:true}))};
+    choose('pie');await tick();doc.querySelector('[data-st-workflow="challenge"]').click();await tick();
+    doc.querySelector('[data-st-challenge-mode="pie-build"]').click();await tick();
+    const angles=live.statistics.pie(capture().data).map(s=>Math.round(s.angle)),check=stage.querySelector('[data-gd-pupil-check]');
+    assert(check.disabled,'Pie construction starts with no sectors allocated');
+    for(let i=0;i<angles.length;i++){const select=stage.querySelector('[data-st-sector="'+i+'"]');select.value=String(angles[i]);select.dispatchEvent(new doc.defaultView.Event('change',{bubbles:true}));}
+    assert(!check.disabled,'Pie check is enabled only after every angle is entered');check.click();await tick();
+    assert(stage.querySelector('.gd-pupil-feedback').classList.contains('is-correct'),'Complete pie construction is marked correctly');
+    const draft=TT99Goodies.publishing.createDocument();draft.addCurrent(id,capture());assert(TT99Goodies.publishing.answerSummary(draft.list()[0])===angles.join(', '),'Pie marking keeps all angles');
+    choose('timetable');await tick();doc.querySelector('[data-st-challenge-mode="time-elapsed"]').click();await tick();
+    const model=capture();assert(model.task.type==='time-elapsed'&&Number(model.task.answer)>0,'Timetable journey duration is positive');
+    api.remove(fixture.record.id);
+  }
   // Work directly in actual embedded written-method grids with the shared keypad.
   for(const id of ['column-addition','column-subtraction','written-multiplication','written-division']){
     const fixture=await addForSave(id),doc=fixture.doc,live=doc.defaultView.TT99Goodies,frame=fixture.frame;
