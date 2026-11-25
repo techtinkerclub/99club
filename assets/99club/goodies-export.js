@@ -190,7 +190,7 @@ function composeChallengeCardSvg(diagram,{title='Challenge',prompt='',responseLa
   }
   return addPaperBrand(out,brand);
 }
-function composeWorksheetCardSvg(diagram,{title='Challenge',prompt='',responseLabel='Answer',responseLines=1,responseMode='auto',paperStyle='card',brand='99 Club Studio',answer='',showAnswer=false}={}){
+function composeWorksheetCardSvg(diagram,{title='Challenge',prompt='',responseLabel='Answer',responseLines=1,responseMode='auto',paperStyle='card',brand='99 Club Studio',answer='',showAnswer=false,diagramMaxHeight=null}={}){
   if(!diagram)throw new Error('A diagram is required.');
   const source=stripPaperBrand(diagram.cloneNode(true));
   source.removeAttribute('id');
@@ -201,7 +201,7 @@ function composeWorksheetCardSvg(diagram,{title='Challenge',prompt='',responseLa
   const titleLines=wrapSvgText(title,plain?88:72,1),promptLines=wrapSvgText(prompt,plain?92:88,4);
   const titleH=titleLines.length?(plain?24:34):0,promptStep=plain?31:34,promptH=promptLines.length?promptLines.length*promptStep+8:0;
   const naturalDiagramH=sourceH*(contentW/sourceW);
-  const diagramH=Math.max(plain?260:300,Math.min(plain?500:525,naturalDiagramH));
+  const diagramH=Math.max(plain?260:300,Math.min(diagramMaxHeight==null?(plain?500:525):Math.max(260,Math.min(1000,Number(diagramMaxHeight)||500)),naturalDiagramH));
   const diagramY=pad+titleH+promptH+(plain?12:18);
   const resolvedMode=responseMode==='auto'?(responseLines>1?'lines':'box'):responseMode;
   const answerRows=Math.max(1,Math.min(4,Math.round(Number(responseLines)||1)));
