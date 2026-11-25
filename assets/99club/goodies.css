@@ -1734,3 +1734,22 @@ html.gd-embed-page,body.gd-embed-page{margin:0!important;width:100%!important;he
 #gd-stage .gd-fdp-main.is-focused-challenge{gap:10px}
 #gd-stage .gd-fdp-piece:disabled{opacity:1;cursor:default;box-shadow:none}
 #gd-stage .gd-fdp-piece.is-fill:disabled{background:#f6cf79}
+
+
+/* Classroom challenge presentation: the answer belongs in the response panel,
+   not in a second summary or a strip of placeholder question marks. */
+#gd-stage:has(.gd-challenge-banner,.gd-native-challenge) :is(.gd-money-summary,.gd-bar-readouts,.gd-array-maths,.gd-array-summary,.gd-mg-facts,.gd-clock-readouts,.gd-tv-readout,.gd-ab-summary,.gd-fdp-summary,.gd-ruler-sync-readout,#co-readout,#ge-readout){display:none!important}
+#gd-stage>.gd-challenge-banner,#gd-stage>.gd-native-challenge{margin-bottom:16px!important}
+#gd-stage>.gd-challenge-banner+.gd-money-workbench{margin-top:4px!important}
+.gd-money-summary--total{grid-template-columns:minmax(0,1fr)!important}
+.gd-money-summary--total>div{display:flex;align-items:center;justify-content:center;gap:10px;padding:5px 12px!important;background:transparent!important}
+.gd-money-summary--total strong{font-size:1rem}
+.gd-money-workbench--fixed .gd-money-canvas{min-height:var(--mo-fixed-height,160px)}
+.gd-money-stage-palette[hidden]{display:none!important}
+.gd-money-palette-close{position:absolute;right:6px;top:4px;border:0;background:transparent;color:#52696f;font-size:20px;line-height:1;cursor:pointer;z-index:1}
+.gd-money-stage-palette:not([hidden]){padding-top:24px}
+.gd-board-floating-controls.is-money-palette{width:min(300px,calc(100% - 16px));max-height:70vh}
+.gd-board-floating-controls.is-money-palette .gd-money-stage-palette{position:static!important;inset:auto!important;transform:none!important;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:5px!important;width:100%!important;padding:4px!important;margin:0!important;border:0!important;background:transparent!important;box-shadow:none!important}
+.gd-board-floating-controls.is-money-palette .gd-money-stage-pick{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:66px;padding:4px;border:1px solid #d7e2e4;border-radius:9px;background:#fff;font-size:.78rem;font-weight:800;color:#304b52;cursor:pointer;touch-action:manipulation}
+.gd-board-floating-controls.is-money-palette .gd-money-stage-pick:hover,.gd-board-floating-controls.is-money-palette .gd-money-stage-pick:focus-visible{background:#edf7f4;border-color:#78a9a3}
+@media(max-width:620px){.gd-money-workbench--fixed .gd-money-canvas{min-height:var(--mo-fixed-height,160px)!important}}
