@@ -264,7 +264,8 @@ function answerPages(items,title){
    // per sheet. Historical and authored diagrams retain their own sizing.
    const compactWidth=!item.data.authored&&!item.data.historical?({abacus:700,'hundred-square':510,'multiplication-grid':550}[item.tool]):null;
    const widthLimit=beside?270:compactWidth|| (item.tool==='fraction-wall'?760:W-2*pad-48);
-   const scale=v?Math.min(widthLimit/v.w,(beside?285:dense?760:340)/v.h):0,gh=v?v.h*scale:0,gw=v?v.w*scale:0;
+   const written=!item.data.authored&&['column-addition','column-subtraction','written-multiplication','written-division'].includes(item.tool);
+   const scale=v?Math.min(widthLimit/v.w,(beside?285:dense?760:340)/v.h,written?0.6:Infinity):0,gh=v?v.h*scale:0,gw=v?v.w*scale:0;
    const textWidth=beside?W-2*pad-48-gw-20:W-2*pad-48;
    const lines=wrapAnnex(value,textWidth,20,600),notes=note?wrapAnnex(note,textWidth,18,400):[];
    const textH=lines.length*step,notesH=notes.length?notes.length*23+8:0;
