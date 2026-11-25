@@ -30,6 +30,29 @@ function settings(raw={},level='medium'){
  return {min,max,
  ops:select(raw.ops,OPS,base.ops),relations:select(raw.relations,REL,base.relations),left:valid(raw.left,[0,1,2,3,4],base.left),right:valid(raw.right,[0,1,2,3,4],base.right),precision:valid(raw.precision,[0,1,2],base.precision),extras:select(raw.extras,EXTRAS,EXTRAS),topics:select(raw.topics,topics.map(t=>t.id),[]),denominator:valid(raw.denominator,[4,6,8,10,12,20],12)};
 }
+// Curriculum presets are editable teaching starting points, not exhaustive
+// mappings of all statutory objectives or times-table restrictions.
+const curriculumProfiles=[
+ {id:'custom',label:'Free choice'},
+ ...Array.from({length:6},(_,i)=>({id:'y'+(i+1),label:'Year '+(i+1)})),
+ {id:'ks3',label:'KS3 extension'}
+];
+function curriculumSettings(profile,level='medium'){
+ const rank=level==='easy'?0:level==='hard'?2:1;
+ const year=profile==='ks3'?7:Number(profile.slice(1));
+ if(!Number.isInteger(year)||year<1||year>7)return settings({},level);
+ const ranges=[[10,20,20],[20,50,100],[50,100,1000],[100,500,1000],[100,1000,10000],[100,1000,10000],[100,1000,10000]];
+ const include=t=>year>=7||t.stage!=='KS3 extension'&&year>=(t.stage==='Year 6'?6:t.stage==='Year 5'?5:3);
+ const raw={
+   min:year>=6&&rank===2?-20:0,max:ranges[year-1][rank],
+   ops:year===1?['+','−']:OPS,relations:year===1?['=']:REL,
+   left:year>=6&&rank>0?0:2,right:year>=4?0:1,precision:0,
+   extras:year>=6?EXTRAS:year===5?['Powers','Remainders']:year===4?['Remainders']:[],
+   topics:topics.filter(include).map(t=>t.id),
+   denominator:year<=3?[4,6,8][rank]:year<=4?[4,8,12][rank]:[6,12,20][rank]
+ };
+ return settings(raw,level);
+}
 function powerOptions(s){
  if(s.precision!==0)return [];
  const options=[];
@@ -277,7 +300,7 @@ function equationMetrics(questions){
  const maxUnits=Math.max(1,...questions.flatMap(q=>rows(q).map(tokens=>rowWidth(tokens,q))));
  return {rows,numberWidth,symbolWidth,fractionWidth,width,rowWidth,maxUnits,isHole};
 }
-G.numberChallenges={groups,titles,generate,generateSet,settings,presets,available,OPS,REL,EXTRAS,topics,equationMetrics,parseFractionToken};
+G.numberChallenges={groups,titles,generate,generateSet,settings,presets,available,OPS,REL,EXTRAS,topics,equationMetrics,parseFractionToken,curriculumProfiles,curriculumSettings};
 })(window.TT99Goodies);
 ;
 (function(G){
@@ -4229,7 +4252,7 @@ if(!I){q('#gd-stage').innerHTML='<p class="gd-empty">The interactive canvas coul
 let tiles=[],next=1,grid=true,colourOpen=false,addOpen=false,combineOpen=false,splitOpen=false,controller=null;
 let workflow='build',taskTitle='Number tiles task',taskPrompt='',exportMode='canvas',responseLines=2,exportStatus='';
 let challenge=null,difficulty='medium',numberSettings=N.settings({},difficulty),generationError='';
-let questionCount=1,setLayout='auto',batch=[],batchScope='',batchType='';
+let questionCount=1,setLayout='auto',batch=[],batchScope='',batchType='',curriculumProfile='custom';
 const colours=['#cbe7e2','#f6cf79','#cfe0f6','#efcfd9','#dbcff2','#d5ead2','#f3d7c4','#ffffff'];
 function textColour(hex){const h=String(hex||'').replace('#','');if(!/^[0-9a-f]{6}$/i.test(h))return '#24343b';const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);return (r*299+g*587+b*114)/1000>155?'#24343b':'#ffffff'}
 function stateSnapshot(){return{tiles:JSON.parse(JSON.stringify(tiles)),next,grid}}
@@ -4515,7 +4538,8 @@ function challengeControlsHtml(){
  const termOptions=(side)=>[[0,side==='left'?'Vary (2–4)':'Vary (1–2)'],[1,'1 number'],[2,'2 numbers'],[3,'3 numbers'],[4,'4 numbers']];
  const setControls='<div data-mc-set-controls class="gd-mc-set-controls">'+field('Questions','<select class="gd-select" id="mc-question-count">'+Array.from({length:10},(_,i)=>i+1).map(n=>'<option value="'+n+'"'+(n===questionCount?' selected':'')+'>'+n+(n===5?' · 5 a day':'')+'</option>').join('')+'</select>')+field('Layout','<select class="gd-select" id="mc-set-layout">'+[['auto','Auto'],['one','One column'],['two','Two columns']].map(([v,t])=>'<option value="'+v+'"'+(v===setLayout?' selected':'')+'>'+t+'</option>').join('')+'</select>')+'</div>';
  return '<div class="gd-mc-challenge-controls">'+setControls+'<div data-mc-settings-summary class="gd-number-settings-summary">'+esc(numberSettings.ops.join('  ')||'No operations')+' · '+numberSettings.min+' to '+numberSettings.max+' · '+(numberSettings.precision?'Up to '+numberSettings.precision+' dp':'Whole numbers')+' · '+(numberSettings.left||'2–4')+' / '+(numberSettings.right||'1–2')+' numbers</div><div class="gd-number-settings">'+
- field('Preset','<select class="gd-select" id="mc-difficulty">'+[['easy','Easy'],['medium','Medium'],['hard','Hard'],['custom','Custom']].map(([v,t])=>'<option value="'+v+'"'+(difficulty===v?' selected':'')+'>'+t+'</option>').join('')+'</select>')+
+ '<div class="gd-number-settings-pair">'+field('Curriculum','<select class="gd-select" id="mc-curriculum">'+N.curriculumProfiles.map(({id,label})=>'<option value="'+id+'"'+(curriculumProfile===id?' selected':'')+'>'+esc(label)+'</option>').join('')+'</select>')+
+ field('Difficulty','<select class="gd-select" id="mc-difficulty">'+[['easy','Easy'],['medium','Medium'],['hard','Hard'],['custom','Adjusted']].map(([v,t])=>'<option value="'+v+'"'+(difficulty===v?' selected':'')+'>'+t+'</option>').join('')+'</select>')+'</div>'+
  '<details class="gd-mc-settings-section" data-mc-section="operations"><summary>Operations &amp; comparisons <small>'+esc(numberSettings.ops.join(' '))+'</small></summary>'+toggles('ops',N.OPS,'Operations')+toggles('relations',N.REL,'Comparisons')+toggles('extras',N.EXTRAS,'Other types')+'</details>'+ 
  '<details class="gd-mc-settings-section" data-mc-section="range"><summary>Range &amp; equation length <small>'+numberSettings.min+'–'+numberSettings.max+'</small></summary>'+
  '<div class="gd-number-settings-pair">'+options('mc-min','Smallest number',[-100,-20,-10,0,1,2,5,10,20,50,100,200,500,1000].filter(v=>v<numberSettings.max).map(v=>[v,String(v)]),numberSettings.min)+options('mc-max','Largest number',[10,20,50,100,200,500,1000,10000].filter(v=>v>numberSettings.min).map(v=>[v,String(v)]),numberSettings.max)+'</div>'+
@@ -4523,7 +4547,7 @@ function challengeControlsHtml(){
  '<div class="gd-number-settings-pair">'+options('mc-left','Numbers on left',termOptions('left'),numberSettings.left)+options('mc-right','Numbers on right',termOptions('right'),numberSettings.right)+'</div>'+
  '<p class="gd-help">Ordinary values follow this range. Division is exact except for remainder tasks. Fixed-format optional topics have separate constraints.</p></details>'+advancedTopicControls()+'</div>'+
  (generationError?'<p class="gd-number-error" role="status">'+esc(generationError)+'</p>':'')+
- (groups.length?CK.nativeRandomHtml('mc',groups)+'<details class="gd-mc-settings-section" data-mc-section="specific"><summary>Choose a specific question type</summary>'+groups.map(g=>'<details class="gd-mc-topic-group" data-mc-section="type-'+esc(g.id)+'"><summary>'+esc(g.label)+' <small>'+g.ids.length+'</small></summary><div class="gd-mc-type-grid">'+g.ids.map(id=>'<button type="button" class="gd-btn" data-mc-challenge-mode="'+id+'">'+esc(N.titles[id])+'</button>').join('')+'</div></details>').join('')+'</details>':'<p class="gd-help">No compatible questions. Adjust operations, topics or range.</p>')+(challenge?btn('Exit challenge','mc-exit-challenge'):'')+'</div>';
+ (groups.length?'<button type="button" id="mc-five-generate" class="gd-btn gd-mc-five">5 a day · generate five</button>'+CK.nativeRandomHtml('mc',groups)+'<details class="gd-mc-settings-section" data-mc-section="specific"><summary>Choose a specific question type</summary>'+groups.map(g=>'<details class="gd-mc-topic-group" data-mc-section="type-'+esc(g.id)+'"><summary>'+esc(g.label)+' <small>'+g.ids.length+'</small></summary><div class="gd-mc-type-grid">'+g.ids.map(id=>'<button type="button" class="gd-btn" data-mc-challenge-mode="'+id+'">'+esc(N.titles[id])+'</button>').join('')+'</div></details>').join('')+'</details>':'<p class="gd-help">No compatible questions. Adjust operations, topics or range.</p>')+(challenge?btn('Exit challenge','mc-exit-challenge'):'')+'</div>';
 }
 function controlsHtml(){return workflowTabs()+(workflow==='challenge'&&N?challengeControlsHtml():workflow==='task'?taskControlsHtml():workflow==='export'?exportControlsHtml():buildControlsHtml())}
 function renderControls(){const root=q('#gd-controls'),open=new Set(qa('details[data-mc-section][open]',root).map(el=>el.dataset.mcSection));root.innerHTML=controlsHtml();qa('details[data-mc-section]',root).forEach(el=>el.open=open.has(el.dataset.mcSection));bindControls()}
@@ -4532,8 +4556,10 @@ const controls=q('#gd-controls');if(!controls)return;
 qa('[data-mc-workflow]',controls).forEach(button=>button.onclick=()=>{workflow=button.dataset.mcWorkflow;exportStatus='';if(workflow==='build'||workflow==='task'){challenge=null;batch=[];batchScope='';batchType='';exportMode='canvas'}renderControls();controller?.refresh()});
 if(workflow==='challenge'&&N){
  const count=q('#mc-question-count',controls),layout=q('#mc-set-layout',controls);if(count)count.onchange=()=>{questionCount=Math.max(1,Math.min(10,Math.round(Number(count.value)||1)));renderControls()};if(layout)layout.onchange=()=>{setLayout=['auto','one','two'].includes(layout.value)?layout.value:'auto';renderControls();controller?.refresh()};
- const level=q('#mc-difficulty',controls);if(level)level.onchange=()=>{difficulty=level.value;if(difficulty!=='custom')numberSettings=N.settings({},difficulty);generationError='';renderControls()};
- const change=()=>{difficulty='custom';numberSettings=N.settings(numberSettings,difficulty);generationError='';renderControls()};
+ const curriculum=q('#mc-curriculum',controls);if(curriculum)curriculum.onchange=()=>{curriculumProfile=N.curriculumProfiles.some(p=>p.id===curriculum.value)?curriculum.value:'custom';if(curriculumProfile!=='custom'){if(difficulty==='custom')difficulty='medium';numberSettings=N.curriculumSettings(curriculumProfile,difficulty)}generationError='';renderControls()};
+ const level=q('#mc-difficulty',controls);if(level)level.onchange=()=>{difficulty=level.value;if(difficulty!=='custom')numberSettings=curriculumProfile==='custom'?N.settings({},difficulty):N.curriculumSettings(curriculumProfile,difficulty);generationError='';renderControls()};
+ const change=()=>{difficulty='custom';curriculumProfile='custom';numberSettings=N.settings(numberSettings,difficulty);generationError='';renderControls()};
+ const five=q('#mc-five-generate',controls);if(five)five.onclick=()=>{questionCount=5;generateNumberChallenge('','all')};
  qa('[data-mc-setting]',controls).forEach(el=>el.onchange=()=>{numberSettings[el.dataset.mcSetting]=Number(el.value);change()});
  qa('[data-mc-toggle]',controls).forEach(el=>el.onchange=()=>{const key=el.dataset.mcToggle,values=new Set(numberSettings[key]);if(el.checked)values.add(el.value);else values.delete(el.value);numberSettings[key]=[...values];change()});
  qa('[data-mc-challenge-mode]',controls).forEach(b=>b.onclick=()=>generateNumberChallenge(b.dataset.mcChallengeMode));const exit=q('#mc-exit-challenge',controls);if(exit)exit.onclick=exitNumberChallenge;return}
@@ -4593,8 +4619,8 @@ onSelectionChange:item=>{
 });
 bindControls();
 controller.refresh();
-G.lessonState?.register('maths-canvas',()=>({diagram:stateSnapshot(),workflow,taskTitle,taskPrompt,exportMode,responseLines,difficulty,numberSettings,challenge,questionCount,setLayout,batch,batchScope,batchType,pupil:CK?.capturePupil?.(challenge)}),saved=>{
- restoreState(saved.diagram);questionCount=Math.max(1,Math.min(10,Math.round(Number(saved.questionCount)||1)));setLayout=['auto','one','two'].includes(saved.setLayout)?saved.setLayout:'auto';batch=Array.isArray(saved.batch)?saved.batch.slice(0,10).filter(item=>item?.question?.tiles&&N.titles[item.question.type]).map(item=>({...item,value:String(item.value||''),feedback:String(item.feedback||'')})):[];if(batch.length<2)batch=[];batchScope=String(saved.batchScope||'');batchType=String(saved.batchType||'');difficulty=['easy','medium','hard','custom'].includes(saved.difficulty)?saved.difficulty:'medium';numberSettings=N.settings(saved.numberSettings||{},difficulty);generationError='';challenge=saved.challenge&&N?.titles[saved.challenge.type]?CK.normalise(saved.challenge):null;if(!challenge)batch=[];CK?.restorePupil?.(challenge,saved.pupil);workflow=saved.workflow==='challenge'&&!N?'build':saved.workflow;taskTitle=String(saved.taskTitle||'');taskPrompt=String(saved.taskPrompt||'');exportMode=saved.exportMode;responseLines=saved.responseLines;
+G.lessonState?.register('maths-canvas',()=>({diagram:stateSnapshot(),workflow,taskTitle,taskPrompt,exportMode,responseLines,difficulty,numberSettings,challenge,questionCount,setLayout,batch,batchScope,batchType,curriculumProfile,pupil:CK?.capturePupil?.(challenge)}),saved=>{
+ restoreState(saved.diagram);questionCount=Math.max(1,Math.min(10,Math.round(Number(saved.questionCount)||1)));setLayout=['auto','one','two'].includes(saved.setLayout)?saved.setLayout:'auto';batch=Array.isArray(saved.batch)?saved.batch.slice(0,10).filter(item=>item?.question?.tiles&&N.titles[item.question.type]).map(item=>({...item,value:String(item.value||''),feedback:String(item.feedback||'')})):[];if(batch.length<2)batch=[];batchScope=String(saved.batchScope||'');batchType=String(saved.batchType||'');difficulty=['easy','medium','hard','custom'].includes(saved.difficulty)?saved.difficulty:'medium';numberSettings=N.settings(saved.numberSettings||{},difficulty);curriculumProfile=N.curriculumProfiles.some(p=>p.id===saved.curriculumProfile)?saved.curriculumProfile:'custom';generationError='';challenge=saved.challenge&&N?.titles[saved.challenge.type]?CK.normalise(saved.challenge):null;if(!challenge)batch=[];CK?.restorePupil?.(challenge,saved.pupil);workflow=saved.workflow==='challenge'&&!N?'build':saved.workflow;taskTitle=String(saved.taskTitle||'');taskPrompt=String(saved.taskPrompt||'');exportMode=saved.exportMode;responseLines=saved.responseLines;
  q('#gd-controls').innerHTML=controlsHtml();bindControls();controller.refresh();
 });
 }
