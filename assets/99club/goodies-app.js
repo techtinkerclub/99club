@@ -15,7 +15,7 @@ const tools=[
   ['money','UK money','£','measure','Make amounts with UK coins and notes.','Coin recognition, totals, equivalence, budgeting and calculating change.',moneyTool],
   ['coordinates','Coordinate grid','⌖','geometry','Plot points on a one- or four-quadrant grid.','Coordinates, translations, plotting vertices and describing position.',coordinateTool],
   ['measurement','Ruler & measures','📏','measure','Read a ruler and convert common metric lengths.','Reading scales accurately and linking millimetres, centimetres and metres.',measurementTool],
-  ...(G.statisticsTableTool?[['statistics-table','Tables & tally charts','▤','random','Collect, organise and interpret categorical data.','Frequency tables, tally marks and statistical reasoning.',G.statisticsTableTool]]:[]),
+  ...(G.statisticsTableTool?[['statistics-table','Data & graphs','▤','random','Explore tables, tally charts, pictograms, bar charts, line graphs and pie charts.','Collect, represent and interpret data using six linked representations.',G.statisticsTableTool]]:[]),
   ['randomiser','Dice, spinner & randomiser','⚄','random','Generate dice, spinner choices, cards and random numbers.','Mental starters, probability language, turn-taking, sampling and quick classroom games.',randomiser],
   ['balance','Equation balance','⚖','operations','See equality as a balance between two expressions.','Missing-number problems, inverse operations and the meaning of the equals sign.',balanceTool],
   ['times-table','Times-table visualiser','⋅','operations','See one multiplication fact as groups, addition and jumps.','Connecting representations instead of memorising a fact in isolation.',timesTableVisual],
