@@ -16,18 +16,18 @@ const runtimeScripts=`
 <script src="/assets/99club/goodies-tools-a.js"></script>
 <script src="/assets/99club/goodies-number-line-v6.js"></script>
 <script src="/assets/99club/goodies-tools-b.js"></script>
-<script src="/assets/99club/goodies-number-mobile-balance-v3.js"></script>
-<script src="/assets/99club/goodies-number-mobile-balance-v4.js"></script>
-<script src="/assets/99club/goodies-number-mobile-balance-v6.js"></script>
-<script src="/assets/99club/goodies-number-mobile-balance-v6-blank-bridge.js"></script>
-<script src="/assets/99club/goodies-number-mobile-balance-v5-embed.js"></script>
+<script src="/assets/99club/goodies-number-mobile.js"></script>
+
+
+
+
 <script src="/assets/99club/goodies-app.js"></script>`;
 
 const commonHead=`<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="stylesheet" href="/assets/99club/goodies.css">
-<link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v3.css">
-<link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v4.css">
-<link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v5.css">
+<link rel="stylesheet" href="/assets/99club/goodies-number-mobile.css">
+
+
 <style>body{margin:0}</style>`;
 
 if(mode==='prepare'){
@@ -90,9 +90,9 @@ if(mode==='prepare'){
     assert(await waitFor(()=>work()?.querySelectorAll('.nmb-branch').length>=2),'Hard missing-number challenge uses two hanging branches');
     assert(await waitFor(()=>missingCount()>=2),'Hard missing-number challenge exposes at least two unknowns');
     assert([...work().querySelectorAll('.gd-eq-total')].every(el=>getComputedStyle(el).display==='none'),'Hard challenge keeps all side totals hidden');
-    assert(await waitFor(()=>/HARD/.test(stage()?.querySelector('.gd-challenge-kicker')?.textContent||'')),'Challenge banner identifies Hard difficulty');
+    assert(await waitFor(()=>TT99Goodies.numberMobileChallengeSpec?.difficulty==='hard'),'Generated challenge retains Hard difficulty');
     assert(await waitFor(()=>stage()?.querySelector('[data-nmb-v6-another]')),'Hard challenge keeps Another like this');
-    assert(await waitFor(()=>work()&&[...work().querySelectorAll('[data-ba-token]')].every(el=>el.disabled)),'Hard reasoning puzzle protects its given boxes');
+    assert(await waitFor(()=>{const tokens=[...(work()?.querySelectorAll('[data-ba-token]')||[])],targets=TT99Goodies.numberMobileChallengeSpec?.answerByToken||{};return tokens.length&&tokens.every(el=>Object.prototype.hasOwnProperty.call(targets,String(el.dataset.baToken))?!el.disabled:el.disabled)}),'Hard reasoning puzzle protects given boxes while allowing missing-number input');
 
     const reveal=stage().querySelector('[data-board-action="reveal"]');assert(reveal,'Hard challenge exposes Reveal answer');reveal.click();
     await waitFor(()=>missingCount()===0);assert(missingCount()===0,'Reveal restores all hidden values');

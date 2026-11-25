@@ -3,9 +3,9 @@
 const fs=require('fs');
 const pageSource=fs.readFileSync('_pages/whiteboard.md','utf8');
 // Exercise the exact production asset order, including Number Mobile extensions.
-const styleTags=pageSource.split('\n').filter(line=>line.startsWith('<link rel="stylesheet" href="/assets/99club/goodies')).join('\n');
-const scriptTags=pageSource.split('\n').filter(line=>line.startsWith('<script src="/assets/99club/goodies')).map(line=>line.replace(' defer','')).join('\n');
-if(!styleTags||!scriptTags||!scriptTags.includes('goodies-number-mobile-balance-v13.js'))throw new Error('Production Goodies asset manifest is incomplete');
+const styleTags=pageSource.split('\n').filter(line=>line.startsWith('<link rel="stylesheet" href="/assets/99club/goodies')).join('\n').replace(/\?v=[^\"]+/g,'');
+const scriptTags=pageSource.split('\n').filter(line=>line.startsWith('<script src="/assets/99club/goodies')).map(line=>line.replace(' defer','')).join('\n').replace(/\?v=[^\"]+/g,'');
+if(!styleTags||!scriptTags||!scriptTags.includes('goodies-number-mobile.js'))throw new Error('Production Goodies asset manifest is incomplete');
 
 const mode=process.argv[2];
 const BOARD='99club-goodies-composition-qa.html';
