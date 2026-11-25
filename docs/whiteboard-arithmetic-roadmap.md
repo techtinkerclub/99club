@@ -111,6 +111,11 @@ Three levels: (1) publish the current challenge or non-challenge representation 
 - Automated initial checks: 120 mixed draft scenarios, 1,440 items, 120 isolated replacements and 1,204 pupil/teacher page geometry checks. Initial test uses mock SVG DOM, not browser print rendering.
 - Rollout: audit and certify each widget's current representation and pupil/teacher renderer; extract pure generation and snapshot adapters; add current/generate/replace to all eligible widgets; then improve document editor layout, per-source generation recipes, persistence and print/preview parity. No additional game engines.
 
+## Publishing rollout and whole-catalogue quality gate (25 November)
+- Third publishing adapter: Western abacus, Chinese suanpan and Japanese soroban; original generator and paper rendering refactored into reusable functions, with the live widget still calling them. Capture existing diagram or task; generate any of nine task types under captured device, rod count and display settings; replace individually; pupil and teacher diagrams follow existing start/final templates. Historical calculators remain outside this adapter until their paper representations are reviewed.
+- Generation type selector now accepts adapter-provided choices. The current board and other document items remain unchanged.
+- The 20-widget audit is a separate mandatory workstream, not superseded by publishing. See docs/whiteboard-widget-review.md. No widget is certified until visual, mathematical, challenge, settings, touch and print checks are completed.
+
 ## Next priorities
 1. Visual/touch feedback: validate the practice-set launcher, whiteboard layout, inline answer boxes, responsive columns and paper outputs; refine density and font sizes after classroom feedback.
 2. Worksheet-oriented improvements: separate arithmetic answer key implemented; five-a-day shortcut implemented; optional arithmetic working space and row-based A4 pagination implemented; shared pupil/teacher export policies across the remaining widgets still need work.
