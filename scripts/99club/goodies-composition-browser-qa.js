@@ -686,6 +686,10 @@ async function run(){
   assert(!JSON.parse(localStorage.getItem('tt99-whiteboard-lessons-v1')).some(e=>e.name==='Unsupported lesson'),'Unsupported active challenge does not write a partial board');
   assert(api.objects().length===3,'Unsupported save leaves all current objects intact');
   document.querySelector('[data-board-library-close]').click();
+  mobileDoc.querySelector('[data-nmb-v7-exit]').click();
+  for(let i=0;i<60&&mobileDoc.querySelector('.gd-challenge-banner');i++)await tick(40);
+  const returnedMobile=mobileDoc.defaultView.TT99Goodies.lessonState.capture('balance');
+  assert(JSON.stringify(returnedMobile.model.topology)===JSON.stringify(mobileSnapshot.model.topology),'Exiting a challenge restores original nested teaching topology and blank boxes');
   api.remove(mobileRecord.id);
   localStorage.removeItem('tt99-whiteboard-lessons-v1');
   result('pass','board','Mixed whiteboard objects are frameless, scalable, contextual, all palette tools mount and editable lessons restore','tools='+tools.length);
