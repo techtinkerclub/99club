@@ -5711,6 +5711,27 @@ function moneyTool(){
     else{challenge.answerMode='bound';challenge.answerSource=source;challenge.answer=resolveAnswerSource(source);applyBoundHiding(source)}
     challenge.revealed=false;renderControls();controller.refresh();
   }
+  // Saved procedural exchange questions must not survive a challenge-policy upgrade.
+  function migrateLegacyExchange(){
+    if(challenge?.mode!=='standard'||!['split-change','combine-change','exchange-fewest'].includes(challenge.type)||challenge.paperFirst===true)return false;
+    const type=challenge.type,old=challenge;
+    const initial=Array.isArray(old.initialItems)?old.initialItems.map(x=>Number(x.value)):[];
+    const solution=Array.isArray(old.solutionValues)?old.solutionValues.map(Number):[];
+    const valid=values=>values.length>0&&values.every(v=>DENOMS.some(d=>d.value===v));
+    const sum=values=>values.reduce((a,b)=>a+b,0);
+    if(!valid(initial)||!valid(solution)||sum(initial)!==sum(solution)||
+      (type==='split-change'&&(initial.length!==1||solution.length<2||!solution.every(v=>v===solution[0])||metaFor(solution[0]).kind!=='coin'))||
+      (type==='combine-change'&&(initial.length<2||solution.length!==1))){
+      generateChallenge(type);return true;
+    }
+    target=sum(initial);setValues(initial);
+    const answerValues=type==='exchange-fewest'?amountValues(target):solution;
+    const prompt=type==='split-change'?'How many '+metaFor(solution[0]).label+' coins are worth the same as the money shown?':type==='combine-change'?'Which single coin or note is worth the same as all the money shown?':'What is the fewest number of coins or notes that have the same total value as the money shown?';
+    const answer=type==='split-change'?String(solution.length):type==='combine-change'?money(target):String(answerValues.length);
+    challenge=challengeObject(type,prompt,answer,{paperFirst:true,freezeMoney:true,solutionValues:answerValues,initialItems:items.map(x=>({...x})),solutionExplanation:piecesText(initial)+' = '+piecesText(answerValues)});
+    controller?.resetHistory?.();contextMode='';contextItemId=null;exchangeSelection.clear();addOpen=false;challengeType=type;challengeCategory='exchange';challengeTab='standard';exportMode='challenge';
+    return true;
+  }
   function generateChallenge(type){
     const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
     if(!beforeChallenge)beforeChallenge=snapshot();else restore(beforeChallenge);
@@ -5855,7 +5876,8 @@ function moneyTool(){
     if(Object.prototype.hasOwnProperty.call(saved,'challengeType'))challengeType=saved.challengeType;
     if(Object.prototype.hasOwnProperty.call(saved,'exportMode'))exportMode=saved.exportMode;
     if(Object.prototype.hasOwnProperty.call(saved,'responseLines'))responseLines=saved.responseLines;
-    CK?.restorePupil?.(challenge,saved.pupil);renderControls();controller.refresh();
+    const migrated=migrateLegacyExchange();
+    if(!migrated)CK?.restorePupil?.(challenge,saved.pupil);renderControls();controller.refresh();
   });
 
 }
