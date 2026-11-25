@@ -312,7 +312,7 @@ if(typeof document!=='undefined'){
 function bannerHtml(challenge,opts={}){
   if(!challenge)return '';
   const ch=normalise(challenge);
-  const label=opts.label||'Challenge';
+  const label='Challenge';
   const pupil=pupilResponseHtml(challenge,opts.pupil);
   const pupilCorrect=!!(opts.pupil&&pupilStates.get(challenge)?.correct);
   const answerButton=ch.answer&&!opts.hideReveal
@@ -322,8 +322,9 @@ function bannerHtml(challenge,opts={}){
   const actionButtons=extraActions
     .filter(a=>a&&a.action&&a.label)
     .slice(0,3)
-    .map(a=>`<button class="gd-challenge-action" type="button" data-challenge-action="${esc(String(a.action).replace(/[^a-zA-Z0-9_-]/g,'').slice(0,40))}">${esc(String(a.label).slice(0,60))}</button>`)
-    .join('');
+    .map(a=>({action:a.action,html:`<button class="gd-challenge-action" type="button" data-challenge-action="${esc(String(a.action).replace(/[^a-zA-Z0-9_-]/g,'').slice(0,40))}">${esc(a.action==='another'?'Another':a.action==='end'?'Exit challenge':String(a.label).slice(0,60))}</button>`}));
+  const regularActions=actionButtons.filter(a=>a.action!=='end').map(a=>a.html).join('');
+  const exitActions=actionButtons.filter(a=>a.action==='end').map(a=>a.html).join('');
   return `<div class="nl-challenge-banner gd-challenge-banner" data-challenge-mode="${ch.mode}">
     <span class="gd-challenge-kicker">${esc(label)}</span>
     <div class="gd-challenge-copy">
@@ -332,8 +333,9 @@ function bannerHtml(challenge,opts={}){
     </div>
     <div class="gd-challenge-actions">
       ${ch.revealed&&ch.answer?`<em>Answer: ${esc(ch.answer)}</em>`:''}
-      ${actionButtons}
+      ${regularActions}
       ${answerButton}
+      ${exitActions}
     </div>
     ${pupil}
   </div>`;
