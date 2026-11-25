@@ -25,7 +25,7 @@ robots: "noindex,nofollow,noarchive"
 <script src="/assets/99club/goodies-challenge.js?v=18" defer></script>
 <script src="/assets/99club/goodies-export.js?v=8" defer></script>
 <script src="/assets/99club/goodies-tools-a.js?v=64" defer></script>
-<script src="/assets/99club/goodies-abacus.js?v=24" defer></script>
+<script src="/assets/99club/goodies-abacus.js?v=25" defer></script>
 <script src="/assets/99club/goodies-number-line-v6.js?v=25" defer></script>
 <script src="/assets/99club/goodies-tools-b.js?v=55" defer></script>
 <!-- compatibility marker for the retiring adapter smoke check: goodies-number-mobile-balance.js?v=5 -->
