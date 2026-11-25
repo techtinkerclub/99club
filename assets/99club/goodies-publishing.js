@@ -2,6 +2,8 @@
 'use strict';
 if(!G)return;
 const adapters=new Map(),copy=v=>JSON.parse(JSON.stringify(v));
+// Match the A4 printable area used by printSvg: 182 mm wide × 265 mm high.
+const PAGE_W=960,PAGE_H=Math.round(PAGE_W*265/182);
 function register(tool,adapter){adapters.set(tool,adapter)}
 function supports(tool){return adapters.has(tool)}
 function canGenerate(tool){return supports(tool)&&typeof adapters.get(tool).generate==='function'}
@@ -73,7 +75,7 @@ function isolateSvgIds(svg,prefix){
  return svg;
 }
 function pupilPages(items,title){
- const W=960,H=1250,pad=28,top=85,bottom=H-32,gap=8,layouts=[];let entries=[],y=top;
+ const W=PAGE_W,H=PAGE_H,pad=28,top=92,bottom=H-40,gap=14,layouts=[];let entries=[],y=top;
  for(const [index,item] of items.entries()){
    const svg=G.exportTools.withDocumentCardLayout(()=>renderItem(item,false)),v=dimensions(svg),width=W-2*pad-32,scale=Math.min(width/v.w,(bottom-top-gap)/v.h),h=v.h*scale;
    if(entries.length&&y+h>bottom){layouts.push(entries);entries=[];y=top}
@@ -92,7 +94,7 @@ function pupilPages(items,title){
      const baseline=Number(svg.getAttribute('data-worksheet-prompt-baseline')),promptSize=Number(svg.getAttribute('data-worksheet-prompt-size')),hasPrompt=baseline>0&&promptSize>0;
      const numberY=hasPrompt?y+(baseline-v.y)*scale:y+Math.min(24,h/2);
      add('text',{x:pad,y:numberY,'font-family':'Arial,sans-serif','font-size':hasPrompt?promptSize*scale:18,'font-weight':700,fill:'#24343b','data-pub-number':index+1},(index+1)+'.');
-     const nested=svgElement('svg',{x:pad+32,y,width:v.w*scale,height:h,viewBox:[v.x,v.y,v.w,v.h].join(' ')});
+     const nested=svgElement('svg',{x:pad+32,y,width:v.w*scale,height:h,viewBox:[v.x,v.y,v.w,v.h].join(' '),'data-pub-item':index+1});
      const source=isolateSvgIds(svg.cloneNode(true),'pub-'+(page+1)+'-'+(index+1)+'-');source.querySelectorAll('[data-gd-paper-brand]').forEach(n=>n.remove());
      [...source.childNodes].forEach(n=>nested.appendChild(n.cloneNode(true)));out.appendChild(nested);
    }
@@ -132,14 +134,8 @@ function answerSummary(item){
  if(item.tool==='maths-canvas'&&d.targetRule)return 'One possible solution: '+d.answer+'. Accept other valid expressions.';
  return c?.answer??d.answer;
 }
-function wrapAnnex(text,max=68){
- const out=[];let line='';
- for(const word of String(text).trim().split(/\s+/)){
-   // Hard-break exceptional unspaced strings; never silently truncate an answer.
-   const chunks=word.length>max?word.match(new RegExp('.{1,'+max+'}','gu')):[word];
-   for(const chunk of chunks){if(line&&line.length+chunk.length+1>max){out.push(line);line=''}line+=(line?' ':'')+chunk}
- }
- if(line)out.push(line);return out;
+function wrapAnnex(text,width,size,weight=400){
+ return G.exportTools.wrapPaperText(text,width,size,weight);
 }
 // Marking guidance describes the actual constraints, not just a generic
 // "other answers possible" message.
@@ -187,7 +183,7 @@ function answerGraphic(item){
  return G.exportTools.withAnswerDiagram(()=>renderItem(item,true));
 }
 function answerPages(items,title){
- const W=960,H=1250,pad=28,top=98,bottom=H-48,step=26,gap=14,layouts=[];
+ const W=PAGE_W,H=PAGE_H,pad=28,top=98,bottom=H-48,step=27,gap=18,layouts=[];
  let entries=[],y=top;
  const flush=()=>{if(entries.length)layouts.push(entries);entries=[];y=top};
  for(const [index,item] of items.entries()){
@@ -198,8 +194,9 @@ function answerPages(items,title){
    const beside=!!v&&(item.tool==='abacus'||item.tool==='array-builder'||item.tool==='clock'&&v.w<=310);
    const widthLimit=beside?(item.tool==='clock'?270:425):item.tool==='fraction-wall'?760:850;
    const scale=v?Math.min(widthLimit/v.w,(beside?285:340)/v.h):0,gh=v?v.h*scale:0,gw=v?v.w*scale:0;
-   const lines=wrapAnnex(value,beside?36:68),notes=note?wrapAnnex(note,beside?42:82):[];
-   const textH=lines.length*step,notesH=notes.length?notes.length*22+6:0;
+   const textWidth=beside?W-2*pad-48-gw-20:W-2*pad-48;
+   const lines=wrapAnnex(value,textWidth,20,600),notes=note?wrapAnnex(note,textWidth,18,400):[];
+   const textH=lines.length*step,notesH=notes.length?notes.length*23+8:0;
    const h=(beside?Math.max(textH+notesH,gh):textH+notesH+(graphic?gh+8:0))+gap;
    if(entries.length&&y+h>bottom)flush();
    if(h>bottom-top)throw Error('Answer for question '+(index+1)+' is too large for the annex.');
@@ -217,7 +214,7 @@ function answerPages(items,title){
    for(const e of entries){
      text(pad,e.y+18,20,(e.index+1)+'.',{'font-weight':700,'data-pub-answer-number':e.index+1});
      e.lines.forEach((line,i)=>text(pad+48,e.y+18+i*step,20,line,{'font-weight':600}));
-     e.notes.forEach((line,i)=>text(pad+48,e.y+e.textH+15+i*22,17,line,{fill:'#52666d','data-pub-answer-note':e.index+1}));
+     e.notes.forEach((line,i)=>text(pad+48,e.y+e.textH+16+i*23,18,line,{fill:'#52666d','data-pub-answer-note':e.index+1}));
      if(e.graphic){
        const nested=svgElement('svg',{x:e.beside?W-pad-e.gw:pad+48,y:e.beside?e.y:e.y+e.textH+e.notesH+4,width:e.gw,height:e.gh,viewBox:[e.v.x,e.v.y,e.v.w,e.v.h].join(' '),'data-pub-answer-graphic':e.index+1});
        const source=isolateSvgIds(e.graphic.cloneNode(true),'annex-'+(page+1)+'-'+(e.index+1)+'-');
@@ -468,5 +465,5 @@ function openEditor(draft,{mode='review'}={}){
  dlg.ontoggle=null;dlg.addEventListener('toggle',function rememberDetails(e){const el=e.target;if(el.tagName!=='DETAILS')return;const b=getBlock(el);if(!b)return;if(el.hasAttribute('data-pub-type-details'))b.open=el.open;if(el.hasAttribute('data-pub-topics'))b.topicsOpen=el.open;},{capture:true,signal:(()=>{dlg._pubToggleController?.abort();dlg._pubToggleController=new AbortController();return dlg._pubToggleController.signal})()});
  render();if(!dlg.open)dlg.showModal();
 }
-G.publishing={register,supports,canGenerate,types,record,signature,createDocument,renderItem,pages,answerPages,answerSummary,answerNote,answerGraphic,openEditor,openQuickGenerate,isolateSvgIds};
+G.publishing={register,supports,canGenerate,types,record,signature,createDocument,renderItem,pages,answerPages,answerSummary,answerNote,answerGraphic,openEditor,openQuickGenerate,isolateSvgIds,catalogue:()=>BUILDER_CATALOG.map(([id,label])=>({id,label,canGenerate:canGenerate(id)})),defaultSettings:tool=>copy(defaults(tool))};
 })(window.TT99Goodies);
