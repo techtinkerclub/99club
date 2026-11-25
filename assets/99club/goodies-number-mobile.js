@@ -380,7 +380,7 @@ function captureMobile(){
   if(G.numberMobileChallengeIsBuilding?.()||document.body.classList.contains('nmb-v7-challenge-building'))throw new Error('Wait for the Number Mobile challenge to finish generating.');
   const engine=G.numberMobileEngineState.captureChallenge();
   if(pendingAdd||adapting||(!engine&&editingId))throw new Error('Finish editing the Number Mobile Balance before saving.');
-  const saved={diagram:G.numberMobileEngineState.capture(),topology:topologySnapshot()};
+  const saved={diagram:G.numberMobileEngineState.capture(),topology:topologySnapshot(),difficulty:G.numberMobileChallengeDifficulty||'easy'};
   if(engine){
     const generator=G.numberMobileChallengeSession.capture();
     if(engine.challenge.mode==='custom'&&!generator.spec)throw new Error('Finish or exit the custom Number Mobile challenge before saving.');

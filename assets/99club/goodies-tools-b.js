@@ -1979,6 +1979,152 @@ function randomiser(){
   });
 }
 
+
+const NM_PAPER_TYPES=[
+ {id:'missing-weight',label:'Missing number'},{id:'choose-relation',label:'Compare'},
+ {id:'find-difference',label:'Difference'},{id:'make-balance',label:'Make it balance'},
+ {id:'same-to-both',label:'Same to both'},{id:'spot-false-equality',label:'Spot the mistake'}
+];
+function nmPaperSettings(model={}){
+ const raw=model.session?.generator?.difficulty||model.difficulty||model.settings?.difficulty;
+ return {difficulty:['easy','medium','hard'].includes(raw)?raw:'easy',responseLines:clamp(Math.round(Number(model.responseLines??model.session?.engine?.responseLines??model.settings?.responseLines)||1),1,4)};
+}
+function nmFlatTopology(diagram){return {roots:{left:(diagram.left||[]).map(x=>({kind:'tile',id:String(x.id)})),right:(diagram.right||[]).map(x=>({kind:'tile',id:String(x.id)}))},blankIds:[],nextBranch:1}}
+function nmPaperGenerate(type,settings={},rng=Math.random){
+ const config=nmPaperSettings(settings);
+ if(!NM_PAPER_TYPES.some(t=>t.id===type))throw Error('Unknown Number Mobile challenge.');
+ // The live same-to-both activity is the direct equality task at every level.
+ const level=type==='same-to-both'?'easy':config.difficulty;
+ const diagram={left:[],right:[],showTotals:true,nextId:1,selectedId:null},topology={roots:{left:[],right:[]},blankIds:[],nextBranch:1};
+ const r=(lo,hi)=>lo+Math.floor(rng()*(hi-lo+1)),coin=()=>rng()<.5;
+ const tile=(side,value,hidden=false)=>{const id=diagram.nextId++;diagram[side].push({id,value,hidden});return {kind:'tile',id:String(id)}};
+ const put=(side,value,hidden=false)=>{const node=tile(side,value,hidden);topology.roots[side].push(node);return node};
+ const split=(sum,count)=>{const out=[];for(let i=1;i<count;i++){const v=r(2,sum-2*(count-i));out.push(v);sum-=v}out.push(sum);return out};
+ const branch=(side,L,R,hideSide='',hideIndex=-1)=>{
+   const n={kind:'branch',id:'b'+topology.nextBranch++,left:L.map((v,i)=>tile(side,v,hideSide==='left'&&i===hideIndex)),right:R.map((v,i)=>tile(side,v,hideSide==='right'&&i===hideIndex))};
+   topology.roots[side].push(n);return n;
+ };
+ const balanced=(side,sum)=>branch(side,split(sum,2),[sum]);
+ const hiddenBranch=(side,sum,hard=false)=>{
+   const hiddenSide=hard&&coin()?'right':'left',knownCount=hard?r(1,2):1,otherCount=hard?r(1,3):1;
+   const missing=r(Math.min(5,sum-2*knownCount),sum-2*knownCount),hidden=[missing,...split(sum-missing,knownCount)],other=split(sum,otherCount);
+   return hiddenSide==='left'?branch(side,hidden,other,'left',0):branch(side,other,hidden,'right',0);
+ };
+ let prompt='',answer='',delta=null;
+ if(level==='easy'){
+   if(type==='missing-weight'){const a=r(4,12),b=r(3,10);put('left',a);put('left',b,true);put('right',a+b);prompt='The balance is equal. What value is hidden by the question mark?';answer=String(b)}
+   else if(type==='choose-relation'){const l=r(8,18),right=l+r(-1,1)*r(2,8);put('left',l);put('right',right);prompt='Which symbol makes this comparison correct: <, > or = ?';answer=l===right?'=':l>right?'>':'<'}
+   else if(type==='find-difference'){const small=r(8,20),gap=r(3,10),heavy=coin()?'left':'right';put(heavy,small+gap);put(heavy==='left'?'right':'left',small);prompt='What is the difference between the two sides?';answer=String(gap)}
+   else if(type==='make-balance'){const a=r(5,12),b=r(2,7),gap=r(2,6);put('left',a);put('left',b);put('right',a+b-gap);prompt='How much must be added to the lighter main side to balance the main bar?';answer=String(gap)}
+   else if(type==='same-to-both'){const base=r(5,12);delta=r(2,6);put('left',base);put('right',base);prompt='Add '+delta+' to both sides. What happens to the equality?';answer='It stays balanced.'}
+   else {const a=r(4,10),b=r(3,8),wrong=a+b+r(2,6);put('left',a);put('left',b);put('right',wrong);prompt='A pupil says these two sides are equal. Are they correct? Explain.';answer='No. '+(a+b)+' is not equal to '+wrong+'.'}
+ }else if(type==='missing-weight'){
+   const sum=level==='hard'?r(14,24):r(8,13);hiddenBranch('left',sum,level==='hard');
+   if(level==='hard')hiddenBranch('right',sum,true);else put('right',2*sum);
+   prompt=level==='hard'?'Every bar is balanced. Find both missing numbers. Use the two smaller balances before checking the main bar.':'Every bar is balanced. Work out the missing number in the smaller hanging balance.';
+   answer=[...diagram.left,...diagram.right].filter(x=>x.hidden).map(x=>x.value).join(' and ');
+ }else{
+   const side=type==='make-balance'&&coin()?'right':'left',other=side==='left'?'right':'left';
+   const sum=r(9,13),gap=r(2,5);
+   balanced(side,sum);
+   if(level==='hard')balanced(other,type==='find-difference'?sum-gap:sum+gap);
+   else put(other,2*sum+(type==='find-difference'?-gap:gap));
+   const L=diagram.left.reduce((a,x)=>a+x.value,0),R=diagram.right.reduce((a,x)=>a+x.value,0);
+   if(type==='choose-relation'){prompt='Compare the two main sides. Use the hanging balance'+(level==='hard'?'s':'')+' to decide which side is heavier.';answer=L>R?'Left side':'Right side'}
+   else if(type==='find-difference'){prompt='Find the difference between the two main sides. Work through the hanging balance'+(level==='hard'?'s':'')+' first.';answer=String(Math.abs(L-R))}
+   else if(type==='make-balance'){prompt='How much must be added to the lighter main side to balance the main bar?';answer=String(Math.abs(L-R))}
+   else {prompt='A pupil says the whole mobile is balanced. Are they correct? Explain.';answer='No. The left side totals '+L+' and the right side totals '+R+'.'}
+ }
+ const challenge={type,prompt,answer,targetDelta:delta};
+ return {type,settings:config,difficulty:level,diagram,topology,challenge};
+}
+function nmPaperCapture(model){
+ const session=model.session,engine=session?.engine?.challenge,spec=session?.generator?.spec;
+ if(engine?.mode==='custom'&&!spec)throw Error('Finish or exit the custom Number Mobile challenge before publishing.');
+ const settings=nmPaperSettings(model);
+ const initial=engine?.mode==='standard'&&engine.initialState;
+ const diagram=JSON.parse(JSON.stringify(initial||model.diagram)),topology=JSON.parse(JSON.stringify(initial?nmFlatTopology(diagram):model.topology||nmFlatTopology(diagram)));
+ const challenge=engine?{type:spec?.type||engine.type,prompt:spec?.prompt||engine.prompt,answer:spec?.answer||engine.answer,targetDelta:engine.targetDelta??null}:null;
+ if(spec?.answerByToken)for(const token of [...diagram.left,...diagram.right])if(Object.prototype.hasOwnProperty.call(spec.answerByToken,String(token.id))){token.hidden=true;token.value=spec.answerByToken[String(token.id)]}
+ return {type:challenge?.type,settings,difficulty:spec?.difficulty||(engine?'easy':settings.difficulty),diagram,topology,challenge};
+}
+function nmPaperUnknowns(data){
+ const tokens=new Map([...data.diagram.left,...data.diagram.right].map(x=>[String(x.id),x])),out=[];
+ const visit=nodes=>{for(const n of nodes){if(n.kind==='branch'){visit(n.left);visit(n.right)}else if(tokens.get(String(n.id))?.hidden)out.push(tokens.get(String(n.id)))}};
+ visit(data.topology.roots.left);visit(data.topology.roots.right);return out;
+}
+function nmPaperSummary(data){
+ const unknowns=nmPaperUnknowns(data);
+ if(data.type==='missing-weight'&&unknowns.length>1)return unknowns.map((x,i)=>String.fromCharCode(65+i)+' = '+x.value).join('; ');
+ if(data.type==='same-to-both'&&Number.isFinite(data.challenge.targetDelta)){
+   const l=data.diagram.left.reduce((a,x)=>a+x.value,0),v=data.challenge.targetDelta;
+   return l+' + '+v+' = '+(l+v)+' on both sides. It stays balanced.';
+ }
+ return data.challenge.answer;
+}
+function nmPaperRender(data,teacher=false,graphicOnly=false){
+ const c=data.challenge,model=data.diagram,roots=data.topology.roots,tokens=new Map([...model.left,...model.right].map(x=>[String(x.id),x]));
+ const unknowns=nmPaperUnknowns(data),labels=new Map(unknowns.map((x,i)=>[String(x.id),String.fromCharCode(65+i)])),blankIds=new Set(data.topology.blankIds||[]);
+ const tileW=86,tileH=54,gap=16,branchGap=32,hang=34;
+ const sum=nodes=>nodes.reduce((a,n)=>a+(n.kind==='branch'?sum(n.left)+sum(n.right):Number(tokens.get(String(n.id))?.value)||0),0);
+ const listW=nodes=>Math.max(tileW,nodes.reduce((a,n)=>a+nodeW(n),0)+Math.max(0,nodes.length-1)*gap);
+ const sideW=(L,R)=>Math.max(listW(L),listW(R));
+ const nodeW=n=>n.kind==='branch'?2*sideW(n.left,n.right)+branchGap:tileW;
+ const listH=nodes=>Math.max(tileH,...nodes.map(n=>n.kind==='branch'?hang+listH([...n.left,...n.right])+12:tileH));
+ const rootW=2*sideW(roots.left,roots.right)+branchGap,W=Math.max(400,rootW+48),contentH=hang+listH([...roots.left,...roots.right])+32,H=contentH+(teacher||!c?42:0);
+ const el=(name,attrs={},value)=>{const n=document.createElementNS('http://www.w3.org/2000/svg',name);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,String(v));if(value!==undefined)n.textContent=String(value);return n};
+ const svg=el('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':'Number Mobile with hanging balances'});
+ const add=(name,attrs,value)=>svg.appendChild(el(name,attrs,value));
+ const line=(x1,y1,x2,y2,w=2)=>add('line',{x1,y1,x2,y2,stroke:'#52666d','stroke-width':w,'stroke-linecap':'round'});
+ const text=(x,y,value,attrs={})=>add('text',{x,y,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':21,'font-weight':700,fill:'#304b52',...attrs},value);
+ add('rect',{width:W,height:H,fill:'#fff'});
+ function drawList(nodes,cx,y){
+   let x=cx-listW(nodes)/2;
+   for(const n of nodes){const w=nodeW(n),center=x+w/2;drawNode(n,center,y);x+=w+gap}
+ }
+ function drawNode(n,x,y){
+   if(n.kind==='branch'){drawBar(n.left,n.right,x,y,n.id);return}
+   const token=tokens.get(String(n.id));if(!token)return;
+   const hidden=token.hidden,tag=labels.get(String(n.id)),value=blankIds.has(String(n.id))?'□':hidden&&!teacher&&c?'?':String(token.value);
+   add('rect',{x:x-tileW/2,y,width:tileW,height:tileH,rx:7,fill:hidden?'#fff4d7':'#edf6f4',stroke:hidden?'#b49a54':'#85aaa4','stroke-width':1.5,'data-nm-paper-tile':n.id});
+   text(x,y+33,value,{'data-nm-paper-value':n.id});
+   if(hidden&&unknowns.length>1)text(x-tileW/2+11,y+14,tag,{'font-size':12,'text-anchor':'start','data-nm-paper-label':tag});
+ }
+ function drawBar(L,R,x,y,id){
+   const sw=sideW(L,R),dx=(sw+branchGap)/2,lc=x-dx,rc=x+dx;
+   // Use a level schematic on pupil papers: do not encode a comparison answer in the tilt.
+   line(x,y,x,y+8,2);line(lc,y+8,rc,y+8,5);
+   add('circle',{cx:x,cy:y+8,r:4,fill:'#52666d','data-nm-paper-bar':id});
+   line(lc,y+8,lc,y+hang,2);line(rc,y+8,rc,y+hang,2);
+   // The horizontal distributor makes every sibling visibly attached to the bar.
+   for(const [nodes,center] of [[L,lc],[R,rc]]){
+     if(nodes.length>1){let pos=center-listW(nodes)/2,centers=[];for(const n of nodes){const w=nodeW(n);centers.push(pos+w/2);pos+=w+gap}line(centers[0],y+hang-8,centers[centers.length-1],y+hang-8,2);for(const a of centers)line(a,y+hang-8,a,y+hang,2)}
+     drawList(nodes,center,y+hang);
+   }
+ }
+ drawBar(roots.left,roots.right,W/2,12,'main');
+ if(teacher||!c){
+   const L=sum(roots.left),R=sum(roots.right),rel=L===R?'=':L>R?'>':'<';
+   text(W/2,H-15,L+' '+rel+' '+R,{'data-nm-paper-solved':'1'});
+ }
+ if(!c||graphicOnly)return svg;
+ const build=c.type==='same-to-both',reason=c.type==='spot-false-equality',lines=Math.max(data.settings.responseLines,reason||build?3:1);
+ return G.exportTools.composeWorksheetCardSvg(svg,{title:NM_PAPER_TYPES.find(t=>t.id===c.type)?.label||'Number Mobile',prompt:c.prompt,responseMode:c.type==='missing-weight'?'none':lines>1?'lines':'box',responseLabel:reason?'Explain your thinking':'Answer',responseLines:lines,paperStyle:'plain',answer:nmPaperSummary(data),showAnswer:teacher,diagramMaxHeight:420});
+}
+G.numberMobilePaperModel={settings:nmPaperSettings,types:()=>NM_PAPER_TYPES,generate:nmPaperGenerate,capture:nmPaperCapture,render:nmPaperRender};
+if(G.publishing)G.publishing.register('balance',{
+ label:'Number mobile balance',types:()=>NM_PAPER_TYPES,
+ title:item=>item.kind==='diagram'?'Number Mobile illustration':NM_PAPER_TYPES.find(t=>t.id===item.data.type)?.label||'Number Mobile',
+ signature:d=>{const tokens=new Map([...d.diagram.left,...d.diagram.right].map(x=>[String(x.id),x]));const shape=nodes=>nodes.map(n=>n.kind==='branch'?[shape(n.left),shape(n.right)]:tokens.get(String(n.id))?.hidden?'?':tokens.get(String(n.id))?.value);return JSON.stringify([d.type,d.challenge.prompt,shape(d.topology.roots.left),shape(d.topology.roots.right)])},
+ recipe:(model,type)=>({type,settings:nmPaperSettings(model)}),
+ generate(recipe,rng){const ids=NM_PAPER_TYPES.map(t=>t.id);return nmPaperGenerate(recipe.type==='all'?ids[Math.floor(rng()*ids.length)]:recipe.type,recipe.settings,rng)},
+ capture(model){const d=nmPaperCapture(model);return [G.publishing.record('balance',d.challenge?'challenge':'diagram',d,d.challenge?{type:d.type,settings:d.settings}:null)]},
+ answerSummary:item=>nmPaperSummary(item.data),
+ answerGraphic:item=>nmPaperRender(item.data,true,true),
+ answerNote:item=>{const d=item.data;if(d.type==='missing-weight')return 'Each missing box must have its own correct value. Each smaller bar balances independently before checking the main bar.';if(d.type==='same-to-both')return 'Accept equivalent explanations that adding the same amount to equal sides preserves equality.';if(d.type==='spot-false-equality')return 'Accept equivalent reasoning comparing the total weights of the main sides, including the whole contribution of each hanging branch.';if(d.type==='make-balance')return 'Add the stated amount to the lighter main side without disturbing the smaller balances.';return ''},
+ render(item,teacher){return nmPaperRender(item.data,teacher)}
+});
+
 function balanceTool(){
   const CK=G.challengeKit,X=G.exportTools;
   let left=[

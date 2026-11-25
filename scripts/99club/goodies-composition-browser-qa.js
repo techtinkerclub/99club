@@ -551,6 +551,34 @@ async function run(){
   publisher.querySelector('[data-pub-remove]').click();await tick();
   publisher.querySelector('[data-pub-close]').click();
   TT99Goodies.compositionBoard.remove(randomRecord.id);
+  // Number Mobile paper models retain the recursive topology and freeze all answers.
+  {
+    const P=TT99Goodies.publishing,N=TT99Goodies.numberMobilePaperModel;
+    assert(P.canGenerate('balance')&&N.types().length===6,'Number Mobile exposes all six publishing families');
+    const draft=P.createDocument();
+    for(const difficulty of ['easy','medium','hard'])for(const {id} of N.types())if(id!=='same-to-both'||difficulty==='easy')draft.generate('balance',{difficulty,responseLines:2},1,id,()=>difficulty==='easy'?0.1:difficulty==='medium'?0.4:0.8);
+    const items=draft.list(),hard=items.find(item=>item.data.type==='missing-weight'&&item.data.difficulty==='hard');
+    const pupil=P.renderItem(hard,false),teacher=P.answerGraphic(hard);
+    assert(pupil.querySelectorAll('[data-nm-paper-bar]').length===3&&teacher.querySelectorAll('[data-nm-paper-bar]').length===3,'Hard missing-number paper retains both hanging branches');
+    assert([...pupil.querySelectorAll('[data-nm-paper-value]')].filter(n=>n.textContent==='?').length===2&&!([...teacher.querySelectorAll('[data-nm-paper-value]')].some(n=>n.textContent==='?')),'Pupil unknowns remain hidden and teacher values are revealed');
+    assert(P.answerSummary(hard).includes('A =')&&P.answerSummary(hard).includes('B ='),'Multiple missing answers are identified by position');
+    assert(P.pages(items,{teacher:true}).some(page=>page.getAttribute('data-worksheet-answer')==='annex'),'Mixed Number Mobile worksheet includes marking annex');
+    const d=hard.data,captured=P.createDocument();captured.addCurrent('balance',{diagram:d.diagram,topology:d.topology,session:{engine:{challenge:{mode:'custom',revealed:true,...d.challenge}},generator:{difficulty:'hard',spec:{...d.challenge,difficulty:'hard'}}}});
+    assert(P.signature(captured.list()[0])===P.signature(hard),'Number Mobile captures exact recursive question topology');
+    for(const difficulty of ['easy','medium','hard'])for(const {id} of N.types())for(let i=0;i<25;i++){
+      let seed=i+100;const rng=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
+      const v=N.generate(id,{difficulty},rng),ch=v.challenge,tokens=new Map([...v.diagram.left,...v.diagram.right].map(x=>[String(x.id),x]));
+      const sum=ns=>ns.reduce((a,n)=>a+(n.kind==='branch'?sum(n.left)+sum(n.right):tokens.get(String(n.id)).value),0);
+      const L=sum(v.topology.roots.left),R=sum(v.topology.roots.right);
+      const walk=ns=>ns.forEach(n=>{if(n.kind==='branch'){assert(sum(n.left)===sum(n.right),'Each generated hanging bar is balanced');walk(n.left);walk(n.right)}});
+      walk(v.topology.roots.left);walk(v.topology.roots.right);
+      if(id==='missing-weight'||id==='same-to-both')assert(L===R,'Equality task is balanced');
+      if(id==='make-balance'||id==='find-difference')assert(Number(ch.answer)===Math.abs(L-R),'Mobile difference is exact');
+      if(id==='choose-relation')assert(ch.answer===(difficulty==='easy'?(L===R?'=':L>R?'>':'<'):(L>R?'Left side':'Right side')),'Mobile comparison is exact');
+      if(id==='spot-false-equality')assert(L!==R&&ch.answer.startsWith('No.'),'False equality is indeed false');
+    }
+  }
+
   // Equal-groups worksheets must not expose solutions on the pupil page.
   {
     const P=TT99Goodies.publishing,T=TT99Goodies.timesTablePaperModel;
