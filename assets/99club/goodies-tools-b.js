@@ -675,7 +675,7 @@ function measurementTool(){
     dragPointer=null;
   }
   function readoutHidden(){return !!(challenge&&!challenge.revealed&&challenge.hiddenReadout)}
-  function markerFrozen(){return !!(challenge&&challenge.mode==='standard'&&challenge.freezeMarker)}
+  function markerFrozen(){return !!(challenge&&challenge.mode==='standard'&&(challenge.freezeMarker||challenge.revealed))}
   function liveAnswer(source){
     if(source==='cm')return cmText()+' cm';
     if(source==='mm')return mmValue()+' mm';
@@ -777,7 +777,7 @@ function measurementTool(){
   }
   function rulerExportSvg({pupil=false}={}){
     if(!pupil&&!challenge&&(primaryScale==='imperial'||secondRuler))return exploreRulersExportSvg();
-    const width=1100,height=340,left=50,right=50,rulerY=72,rulerH=145,rulerW=width-left-right,baseY=rulerY+rulerH;
+    const focused=pupil&&challenge?.mode==='standard',width=1100,height=focused?252:340,left=50,right=50,rulerY=72,rulerH=145,rulerW=width-left-right,baseY=rulerY+rulerH;
     const svg=meSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'30 centimetre ruler','data-me-export':'ruler'});
     svg.appendChild(meSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
     svg.appendChild(meSvgEl('rect',{x:left,y:rulerY,width:rulerW,height:rulerH,rx:8,fill:'#fbfcfc',stroke:'#9fb2b7','stroke-width':2,'data-me-export-ruler':'1'}));
@@ -802,7 +802,7 @@ function measurementTool(){
       ['metres',hidden?'?':mText()+' m']
     ];
     const cardW=285,gap=28,start=(width-(cardW*3+gap*2))/2;
-    readouts.forEach((item,index)=>{
+    if(!focused)readouts.forEach((item,index)=>{
       const x=start+index*(cardW+gap);
       svg.appendChild(meSvgEl('rect',{x,y:readY-29,width:cardW,height:50,rx:11,fill:'#f5f8f8',stroke:'#d8e2e4','stroke-width':1}));
       svg.appendChild(meSvgEl('text',{x:x+14,y:readY-8,'font-family':'Arial,sans-serif','font-size':10,'font-weight':700,fill:'#74868b'},item[0]));
@@ -922,8 +922,8 @@ function measurementTool(){
       challenge=challengeObject(type,cmText()+' cm is how many metres?',mText()+' m');
     }else{
       setCm([2.4,3.5,7.2,12.3,18.6,24.8][Math.floor(Math.random()*6)]);
-      const wrong=mmValue()*10;
-      challenge=challengeObject(type,'A pupil says '+cmText()+' cm = '+wrong+' mm. Are they correct?','No. '+cmText()+' cm = '+mmValue()+' mm because 1 cm = 10 mm.',{hiddenReadout:true});
+      const valid=Math.random()<.5,shown=valid?mmValue():Math.random()<.5?mmValue()*10:mmValue()/10;
+      challenge=challengeObject(type,'A pupil says '+cmText()+' cm = '+shown+' mm. Are they correct?',(valid?'Yes. ':'No. ')+cmText()+' cm = '+mmValue()+' mm because 1 cm = 10 mm.',{hiddenReadout:true});
     }
     challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';
     exportMode='challenge';responseLines=template.category==='reason'?3:1;exportStatus='';renderControls();draw();
@@ -987,11 +987,12 @@ function measurementTool(){
       activeRuler=Number(button.dataset.meSelectStage)===1&&secondRuler?1:0;renderControls();draw();
     });
   }
+  function toggleRulerReveal(){if(!challenge)return;challenge.revealed=!challenge.revealed;if(challenge.mode==='standard'&&challenge.type==='place-mark'){if(challenge.revealed){challenge.modelBeforeReveal=snapshot();setCm(challenge.targetCm)}else if(challenge.modelBeforeReveal){restoreSnapshot(challenge.modelBeforeReveal);delete challenge.modelBeforeReveal}}renderControls();draw()}
   function bindChallengeStageActions(){
     const endChallenge=q('[data-challenge-action="end"]',q('#gd-stage'));if(endChallenge)endChallenge.onclick=e=>{e.stopPropagation();clearChallenge()};
     const stage=q('#gd-stage');if(!stage||!challenge)return;
     const reveal=q('[data-board-action="reveal"]',stage);
-    if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();draw()};
+    if(reveal)reveal.onclick=e=>{e.stopPropagation();toggleRulerReveal()};
     const another=q('[data-challenge-action="another"]',stage);
     if(another)another.onclick=e=>{e.stopPropagation();if(challenge?.mode==='standard')generateChallenge(challenge.type)};
   }
@@ -1053,7 +1054,7 @@ function measurementTool(){
     const generate=q('#me-generate',controls);if(generate)generate.onclick=()=>generateChallenge(challengeType);
     const edit=q('#me-edit-challenge',controls);if(edit)edit.onclick=enterCustomChallenge;
     const end=q('#me-clear-challenge',controls);if(end)end.onclick=clearChallenge;
-    const reveal=q('#me-reveal',controls);if(reveal)reveal.onclick=()=>{if(!challenge)return;challenge.revealed=!challenge.revealed;renderControls();draw()};
+    const reveal=q('#me-reveal',controls);if(reveal)reveal.onclick=toggleRulerReveal;
     qa('[data-gd-rich-action]',controls).forEach(button=>button.onclick=e=>{
       e.preventDefault();const editor=q('#me-custom-prompt',controls);
       if(editor&&CK&&challenge){
@@ -1104,12 +1105,12 @@ function measurementTool(){
           (mainLabel?'<span class="gd-ruler-marker-label">'+mainLabel+'</span>':'')+
         '</span>'+
       '</div>'+
-      '<div class="gd-fdp-readout">'+values.map(item=>'<div class="gd-fdp-value"><span>'+item[0]+'</span><strong data-me-readout-value>'+(hidden?'?':item[1])+'</strong></div>').join('')+'</div>'+
+      (primary&&challenge?.mode==='standard'&&!challenge.revealed?'':'<div class="gd-fdp-readout">'+values.map(item=>'<div class="gd-fdp-value"><span>'+item[0]+'</span><strong data-me-readout-value>'+(hidden?'?':item[1])+'</strong></div>').join('')+'</div>')+
     '</section>';
   }
   function draw(){
     updateChallengeAnswer();
-    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Measurement challenge',pupil:(challenge.type==='place-mark'?CK.pupilSpec('model',{check:()=>Math.abs(cm-challenge.targetCm)<1e-8}):challenge.type==='unit-misconception'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:'No',explain:true}):CK.pupilSpec('unit',{unit:challenge.type==='cm-to-mm'?'mm':challenge.type==='cm-to-m'?'m':'cm'})),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Measurement challenge',pupil:(challenge.type==='place-mark'?CK.pupilSpec('model',{check:()=>Math.abs(cm-challenge.targetCm)<1e-8}):challenge.type==='unit-misconception'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:challenge.answer.startsWith('Yes')?'Yes':'No',explain:true}):CK.pupilSpec('unit',{unit:challenge.type==='cm-to-mm'?'mm':challenge.type==='cm-to-m'?'m':'cm'})),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     const targetStatus='';
     const states=challenge?[rulerState(0)]:[rulerState(0),...(secondRuler?[rulerState(1)]:[])];
     const syncReadout=!challenge&&secondRuler&&syncRulers
@@ -2154,7 +2155,7 @@ function timesTableVisual(){
     const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
     if(!beforeChallenge)beforeChallenge=snapshot();else restore(beforeChallenge);
     undoStack.length=0;redoStack.length=0;resetChallengeModel();
-    const a=randomInt(3,8),b=randomInt(4,9),t=a*b;
+    const a=randomInt(3,8);let b=randomInt(4,9);if(type==='commutative-fact'&&a===b)b=a+1;const t=a*b;
     groupsCount=a;itemsPerGroup=b;selectedGroup=0;
     if(type==='find-total'){
       challenge=challengeObject(type,'How many items are there altogether in '+a+' equal groups of '+b+'?',t,{hiddenEquation:true,hiddenRepeated:true,hiddenFactFamily:true,hiddenJumps:true,hiddenSelectedPanel:true});
