@@ -633,10 +633,12 @@ async function run(){
   assert(!clock.classList.contains('is-selected'),'Touching blank canvas removes object focus');
   assert(getComputedStyle(clock.querySelector('[data-board-context]')).display==='none','Object chrome disappears completely when unfocused');
 
+  // Clear the initial Clock at every viewport width. Only the expensive
+  // all-widget catalogue smoke pass is desktop-only.
+  assert(TT99Goodies.compositionBoard.objects().length===1&&TT99Goodies.compositionBoard.objects()[0].toolId==='clock','Only the initial Clock remains before fixture cleanup');
+  TT99Goodies.compositionBoard.remove(firstClockRecord.id);
+  assert(TT99Goodies.compositionBoard.objects().length===0&&document.querySelectorAll('[data-board-object]').length===0,'All initial test objects can be cleared before the next test');
   if(innerWidth>=900){
-    const firstRecord=TT99Goodies.compositionBoard.objects()[0];
-    if(firstRecord)TT99Goodies.compositionBoard.remove(firstRecord.id);
-    assert(document.querySelectorAll('[data-board-object]').length===0,'All initial test objects can be cleared before the catalogue smoke pass');
     const mounted=[],clipFailures=[];
     for(const toolButton of tools){
       toolButton.click();
@@ -758,6 +760,7 @@ async function run(){
   geoDoc.querySelector('[data-gp]').dispatchEvent(new geoDoc.defaultView.MouseEvent('click',{bubbles:true}));
   assert(JSON.stringify(geoState.capture('geoboard').model.diagram.pts)===given,'Given geometry cannot be altered during a calculation question');
   api.remove(qaGeo.record.id);
+  assert(api.objects().length===0,'Saved-board fixture starts with an empty board at every viewport width');
   const saveAb=await addForSave('abacus');
   saveAb.doc.querySelector('[data-ab-bead="4:unit:0"]').click();
   const saveNl=await addForSave('number-line');
