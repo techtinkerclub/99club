@@ -16,7 +16,7 @@ robots: "noindex,nofollow,noarchive"
   </article>
 </div>
 
-<link rel="stylesheet" href="/assets/99club/goodies.css?v=103">
+<link rel="stylesheet" href="/assets/99club/goodies.css?v=104">
 <link rel="stylesheet" href="/assets/99club/goodies-abacus.css?v=22">
 <link rel="stylesheet" href="/assets/99club/goodies-number-mobile.css?v=1">
 <script>window.TT99_GOODIES_BUILD = {{ site.github.build_revision | default: site.time | jsonify }};</script>
@@ -30,6 +30,6 @@ robots: "noindex,nofollow,noarchive"
 <script src="/assets/99club/goodies-tools-b.js?v=59" defer></script>
 <!-- compatibility marker for the retiring adapter smoke check: goodies-number-mobile-balance.js?v=5 -->
 <script src="/assets/99club/goodies-number-mobile.js?v=1" defer></script>
-<script src="/assets/99club/goodies-sequences.js?v=1" defer></script>
+<script src="/assets/99club/goodies-sequences.js?v=2" defer></script>
 <script src="/assets/99club/goodies-app.js?v=13" defer></script>
-<script src="/assets/99club/goodies-board.js?v=50" defer></script>
+<script src="/assets/99club/goodies-board.js?v=51" defer></script>
