@@ -4430,6 +4430,7 @@ function clockTool(){
   function format24(h,m){return pad(h)+':'+pad(m)}
   function time24(){return format24(hour,minute)}
   function format12(h,m){return(h%12||12)+':'+pad(m)+' '+(h<12?'am':'pm')}
+  function format24Digital(h,m,sec=0){return format24(h,m)+(showSeconds?':'+pad(sec):'')}
   function format12Digital(h,m,sec=0){return(h%12||12)+':'+pad(m)+(showSeconds?':'+pad(sec):'')+' '+(h<12?'am':'pm')}
   function time12(){return format12(hour,minute)}
   function nextH12(){return(hour+1)%12||12}
@@ -4912,8 +4913,8 @@ function clockTool(){
         svg.dataset.clHour=String(state.hour);svg.dataset.clMinute=String(state.minute);
       }
       const d24=q('[data-cl-readout-kind="24"]',card),d12=q('[data-cl-readout-kind="12"]',card),digital=q('[data-cl-digital]',card);
-      if(d24)d24.textContent=hiddenReadout('24')&&index===0?'?':format24(state.hour,state.minute);
-      if(d12)d12.textContent=hiddenReadout('12')&&index===0?'?':format12(state.hour,state.minute);
+      if(d24)d24.textContent=hiddenReadout('24')&&index===0?'?':format24Digital(state.hour,state.minute,state.second);
+      if(d12)d12.textContent=hiddenReadout('12')&&index===0?'?':format12Digital(state.hour,state.minute,state.second);
       if(digital)digital.textContent=hiddenReadout('12')&&index===0?'?':format12Digital(state.hour,state.minute,state.second);
     });
     qa('[data-cl-difference-to]',q('#gd-stage')).forEach(el=>{
@@ -5104,17 +5105,16 @@ function clockTool(){
       '</svg></div>'+
       (primary&&challenge?.mode==='standard'&&!frozen?'<div class="gd-row gd-cl-period-choice" role="group" aria-label="Choose morning or afternoon">'+[0,12].map(p=>'<button type="button" class="gd-btn" data-cl-period-stage="'+p+'" aria-pressed="'+(p===(state.hour>=12?12:0))+'">'+(p===0?'AM':'PM')+'</button>').join('')+'</div>':'')+
       (twoClockTask()?'<div class="gd-clock-period" style="text-align:center;font-weight:800;padding:4px">'+periodLabel(state)+'</div>':'')+
-      (!twoClockTask()&&showDigital&&!hiddenReadout('12')?'<div class="gd-clock-digital" data-cl-digital>'+(hiddenReadout('12')&&primary?'?':format12Digital(state.hour,state.minute,state.second))+'</div>':'')+
-      (twoClockTask()||primary&&challenge?.mode==='standard'&&!challenge.revealed?'':'<div class="gd-clock-readouts">'+
-        '<div class="gd-readout"><span>24-hour</span><strong data-cl-readout-kind="24"'+(primary?' data-cl-readout="24"':'')+'>'+(hiddenReadout('24')&&primary?'?':format24(state.hour,state.minute))+'</strong></div>'+
-        '<div class="gd-readout"><span>12-hour</span><strong data-cl-readout-kind="12"'+(primary?' data-cl-readout="12"':'')+'>'+(hiddenReadout('12')&&primary?'?':format12(state.hour,state.minute))+'</strong></div>'+
+      (!showDigital||twoClockTask()||primary&&challenge?.mode==='standard'&&!challenge.revealed?'':'<div class="gd-clock-readouts">'+
+        (primary&&hiddenReadout('24')?'':'<div class="gd-readout"><span>24-hour</span><strong data-cl-readout-kind="24"'+(primary?' data-cl-readout="24"':'')+'>'+format24Digital(state.hour,state.minute,state.second)+'</strong></div>')+
+        (primary&&hiddenReadout('12')?'':'<div class="gd-readout"><span>12-hour</span><strong data-cl-readout-kind="12"'+(primary?' data-cl-readout="12"':'')+'>'+format12Digital(state.hour,state.minute,state.second)+'</strong></div>')+
       '</div>')+
     '</section>';
   }
   function differenceMarkup(){
     if(challenge||!extraClocks.length)return'';
     const base=clockState(0);
-    return '<div class="gd-clock-differences" aria-label="Time differences from '+esc(clockLabel(0))+'">'+clockStates().slice(1).map((state,i)=>{
+    return '<div class="gd-clock-differences" data-cl-difference-count="'+extraClocks.length+'" aria-label="Time differences from '+esc(clockLabel(0))+'">'+clockStates().slice(1).map((state,i)=>{
       const index=i+1;
       return '<div class="gd-readout"><span>'+esc(clockLabel(0))+' → '+esc(clockLabel(index))+'</span><strong data-cl-difference-to="'+index+'">'+durationText(forwardDifferenceMinutes(base,state))+'</strong></div>';
     }).join('')+'</div>';
