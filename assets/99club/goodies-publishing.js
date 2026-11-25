@@ -69,7 +69,7 @@ function openEditor(draft){
    dlg.innerHTML='<div class="gd-pub-head"><strong>Worksheet document · pilot</strong><button type="button" class="gd-btn" data-pub-close>Close</button></div><div class="gd-pub-toolbar"><label>Title <input type="text" class="gd-input" data-pub-title maxlength="80" value="'+esc(title)+'"></label><button class="gd-btn" data-pub-group>Group by widget</button><button class="gd-btn" data-pub-shuffle>Mix questions</button><button class="gd-btn" data-pub-pupil'+(!teacher?' aria-pressed="true"':'')+'>Pupil</button><button class="gd-btn" data-pub-teacher'+(teacher?' aria-pressed="true"':'')+'>Teacher key</button><button class="gd-btn gd-btn--primary" data-pub-print'+(!items.length?' disabled':'')+'>Print / PDF</button></div><p class="gd-help">Add more content from the whiteboard frame Export menu. Replace one challenge without changing the others. Draft stays in this open whiteboard session.</p><p role="status" class="gd-pub-status">'+esc(status)+'</p><div class="gd-pub-body"><div class="gd-pub-list">'+items.map((item,i)=>'<div class="gd-pub-item"><strong>'+(i+1)+'. '+esc(adapterFor(item.tool).label)+' · '+esc(adapterFor(item.tool).title(item))+'</strong><div><button class="gd-btn" data-pub-up="'+item.id+'"'+(i===0?' disabled':'')+'>↑</button><button class="gd-btn" data-pub-down="'+item.id+'"'+(i===items.length-1?' disabled':'')+'>↓</button>'+(item.recipe?'<button class="gd-btn" data-pub-replace="'+item.id+'">Replace</button>':'')+'<button class="gd-btn" data-pub-remove="'+item.id+'">Remove</button></div></div>').join('')+'</div><div class="gd-pub-preview"></div></div>';
    const preview=dlg.querySelector('.gd-pub-preview');
    if(!items.length)preview.textContent='Your document is empty.';
-   else for(const page of pages(items,{title,teacher}))preview.appendChild(page);
+   else for(const page of pages(items,{title,teacher}))preview.appendChild(G.exportTools.preparePaperSvg(page));
  }
  dlg.onclick=e=>{const btn=e.target.closest('button');if(!btn)return;const d=btn.dataset;
    try{
@@ -80,7 +80,7 @@ function openEditor(draft){
    }catch(err){status=err.message}
    render();
  };
- dlg.onchange=e=>{if(e.target.hasAttribute('data-pub-title')){title=e.target.value.trim()||'Maths practice';dlg.dataset.title=title;render()}};
+ dlg.oninput=e=>{if(e.target.hasAttribute('data-pub-title')){title=e.target.value.trim()||'Maths practice';dlg.dataset.title=title;const preview=dlg.querySelector('.gd-pub-preview');if(draft.list().length)preview.replaceChildren(...pages(draft.list(),{title,teacher}).map(G.exportTools.preparePaperSvg))}};
  render();if(!dlg.open)dlg.showModal();
 }
 G.publishing={register,supports,record,signature,createDocument,renderItem,pages,openEditor};
