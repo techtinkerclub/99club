@@ -316,7 +316,7 @@ const BUILDER_GROUPS=[
 function defaults(tool){
  if(tool==='written-division')return {year:6,remainders:'any'};
  if(tool==='written-multiplication')return {year:5};
- if(tool==='column-addition'||tool==='column-subtraction')return {year:4};
+ if(tool==='column-addition'||tool==='column-subtraction')return {year:4,precision:0};
  if(tool==='maths-canvas')return {difficulty:'medium',curriculumProfile:'custom',numberSettings:G.numberChallenges.settings({},'medium'),workingLines:0};
  if(tool==='sequences')return {settings:{family:'all',difficulty:'medium'}};
  if(tool==='abacus')return {kind:'western',rows:5,colourScheme:'classic',showRowLabels:true};
@@ -382,7 +382,7 @@ function openEditor(draft,{mode='review'}={}){
    }
    if(t==='written-division')return '<div class="gd-pub-fields">'+select('Year group','year',[[3,'Year 3'],[4,'Year 4'],[5,'Year 5'],[6,'Year 6']],m.year)+select('Remainders','remainders',[['any','Mixed'],['exact','Exact division'],['with','With remainders']],m.remainders)+'</div><p class="gd-help">Short or long division under Question types. Long division is available in Year 6.</p>';
    if(t==='written-multiplication')return '<div class="gd-pub-fields">'+select('Year group','year',[[3,'Year 3'],[4,'Year 4'],[5,'Year 5'],[6,'Year 6']],m.year)+'</div><p class="gd-help">Select short or long multiplication in Question types. Long multiplication is available from Year 5.</p>';
-   if(t==='column-addition'||t==='column-subtraction')return '<div class="gd-pub-fields">'+select('Year group','year',[[3,'Year 3'],[4,'Year 4'],[5,'Year 5'],[6,'Year 6']],m.year)+'</div><p class="gd-help">Choose exchange requirements under Question types. Pupil sheets include a place-value grid and blank working.</p>';
+   if(t==='column-addition'||t==='column-subtraction')return '<div class="gd-pub-fields">'+select('Year group','year',[[3,'Year 3'],[4,'Year 4'],[5,'Year 5'],[6,'Year 6']],m.year)+select('Number format','precision',[[0,'Whole numbers'],[1,'1 decimal place'],[2,'2 decimal places'],[3,'3 decimal places']],m.precision||0)+'</div><p class="gd-help">Choose exchange requirements under Question types. Pupil sheets include a place-value grid and blank working.</p>';
    if(t==='sequences')return '<div class="gd-pub-fields">'+select('Rule family','settings.family',[['all','All families'],['constant','Constant difference'],['increasing','Changing difference'],['geometric','Multiplication'],['alternating','Alternating']],m.settings.family)+select('Difficulty','settings.difficulty',levels,m.settings.difficulty)+'</div>';
    if(t==='abacus')return '<div class="gd-pub-fields">'+select('Instrument','kind',[['western','Western abacus'],['soroban','Soroban'],['suanpan','Suanpan'],['reckoning','Reckoning table'],['rods','Counting rods'],['napier','Napier’s bones'],['slide','Slide rule'],['pascaline','Pascaline']],m.kind)+select('Places','rows',[3,4,5,6],m.rows)+select('Colours','colourScheme',['classic','place','sea','berry','forest'],m.colourScheme)+'</div>';
    if(t==='measurement')return '<div class="gd-pub-fields">'+select('Precision','precision',[['tenth','Millimetres (0.1 cm)'],['whole','Whole centimetres']],m.precision)+select('Maximum length','maxCm',[[10,'10 cm'],[20,'20 cm'],[30,'30 cm']],m.maxCm)+select('Answer space','responseLines',[[1,'Answer box'],[2,'2 lines'],[3,'3 lines'],[4,'4 lines']],m.responseLines)+'</div><p class="gd-help">Labelled ruler extracts are diagrams, not physical-size rulers. Placement tasks use the scale itself for the answer.</p>';

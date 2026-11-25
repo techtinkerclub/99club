@@ -131,7 +131,7 @@ function generateDecimal(method,raw={},rng=Math.random){
 }
 function settings(raw={}){
  const year=[3,4,5,6].includes(+raw.year)?+raw.year:5;
- return {year,exchange:['any','with','without','across-zero'].includes(raw.exchange)?raw.exchange:'any',remainders:['any','exact','with'].includes(raw.remainders)?raw.remainders:year<5?'exact':'any'};
+ return {year,precision:[0,1,2,3].includes(+raw.precision)?+raw.precision:0,exchange:['any','with','without','across-zero'].includes(raw.exchange)?raw.exchange:'any',remainders:['any','exact','with'].includes(raw.remainders)?raw.remainders:year<5?'exact':'any'};
 }
 function available(raw){return METHODS.filter(m=>Object.hasOwn(PROFILES[settings(raw).year],m))}
 function generate(method,raw={},rng=Math.random){
