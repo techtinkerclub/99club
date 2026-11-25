@@ -105,6 +105,7 @@ function defaults(tool){
  if(tool==='maths-canvas')return {difficulty:'medium',curriculumProfile:'custom',numberSettings:G.numberChallenges.settings({},'medium'),workingLines:0};
  if(tool==='sequences')return {settings:{family:'all',difficulty:'medium'}};
  if(tool==='abacus')return {kind:'western',rows:5,colourScheme:'classic',showRowLabels:true};
+ if(tool==='array-builder')return {min:2,max:10,responseLines:1};
  if(tool==='fraction-wall')return {responseLines:1};
  if(tool==='clock')return {clockCount:2,clockLayout:'horizontal',responseLines:1};
  if(tool==='place-value')return {rangeStart:3,rangeEnd:9,activityBudget:5,additionDifficulty:'mixed',responseLines:3};
@@ -128,6 +129,7 @@ function openEditor(draft,{mode='review'}={}){
    }
    if(t==='sequences')return '<div class="gd-pub-fields">'+select('Rule family','settings.family',[['all','All families'],['constant','Constant difference'],['increasing','Changing difference'],['geometric','Multiplication'],['alternating','Alternating']],m.settings.family)+select('Difficulty','settings.difficulty',levels,m.settings.difficulty)+'</div>';
    if(t==='abacus')return '<div class="gd-pub-fields">'+select('Instrument','kind',[['western','Western abacus'],['soroban','Soroban'],['suanpan','Suanpan']],m.kind)+select('Places','rows',[3,4,5,6],m.rows)+select('Colours','colourScheme',['classic','place','sea','berry','forest'],m.colourScheme)+'</div>';
+   if(t==='array-builder')return '<div class="gd-pub-fields">'+select('Smallest factor','min',Array.from({length:10},(_,i)=>i+2),m.min)+select('Largest factor','max',Array.from({length:12-m.min},(_,i)=>m.min+1+i),m.max)+select('Answer space','responseLines',[[1,'Answer box'],[2,'2 lines'],[3,'3 lines'],[4,'4 lines']],m.responseLines)+'</div>';
    if(t==='fraction-wall')return '<div class="gd-pub-fields">'+select('Answer space','responseLines',[[1,'Answer box'],[2,'2 lines'],[3,'3 lines'],[4,'4 lines']],m.responseLines)+'</div>';
    if(t==='clock')return '<div class="gd-pub-fields">'+select('Clock faces','clockCount',[[1,'One clock'],[2,'Two clocks (comparison enabled)']],m.clockCount)+select('Comparison layout','clockLayout',[['horizontal','Side by side'],['vertical','Stacked']],m.clockLayout)+select('Answer space','responseLines',[[1,'Answer box'],[2,'2 lines'],[3,'3 lines'],[4,'4 lines']],m.responseLines)+'</div>';
    if(t==='place-value'){
@@ -209,6 +211,7 @@ function openEditor(draft,{mode='review'}={}){
      const key=el.dataset.pubSetting,parts=key.split('.'),obj=parts.length===2?b.settings[parts[0]]:b.settings,k=parts.at(-1);
      obj[k]=typeof obj[k]==='number'?+el.value:el.value;
      if(b.tool==='maths-canvas'&&(key==='curriculumProfile'||key==='difficulty'))b.settings.numberSettings=G.numberChallenges.curriculumSettings(b.settings.curriculumProfile,b.settings.difficulty);
+     if(b.tool==='array-builder'&&key==='min')b.settings.max=Math.max(b.settings.min+1,b.settings.max);
      if(b.tool==='place-value'&&key==='rangeStart')b.settings.rangeEnd=Math.max(b.settings.rangeStart+1,Math.min(b.settings.rangeStart+6,b.settings.rangeEnd));
    }
    if(b.types!==null){const ids=types(b.tool,b.settings).map(t=>t.id);b.types=b.types.filter(id=>ids.includes(id))}
