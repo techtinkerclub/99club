@@ -1321,7 +1321,9 @@ function numberLineV2(){
       .replace(/\s+/g,' ').replace(/\s*([<>=,+\/-])\s*/g,'$1');
   }
   function numericEquivalent(a,b){
-    const na=Number(String(a).replace(/%$/,'')),nb=Number(String(b).replace(/%$/,''));
+    const sa=String(a).trim().replace(/−/g,'-'),sb=String(b).trim().replace(/−/g,'-');
+    if(!sa||!sb||/%$/.test(sa)!==/%$/.test(sb))return false;
+    const na=Number(sa.replace(/%$/,'')),nb=Number(sb.replace(/%$/,''));
     return Number.isFinite(na)&&Number.isFinite(nb)&&Math.abs(na-nb)<1e-8;
   }
   function fractionEquivalent(a,b){
