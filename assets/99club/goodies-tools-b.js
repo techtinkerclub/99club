@@ -4512,7 +4512,7 @@ function geoboard(){
         '<button type="button" class="gd-context-history" data-ge-redo-stage'+(!redoStack.length?' disabled':'')+'>Redo</button>'+
         '<button type="button" class="gd-context-delete" data-ge-delete'+(selected>=0&&pts[selected]?'':' hidden')+'>Delete vertex</button>'+
       '</div></div>')+
-      (!challenge?'<div class="gd-readout" id="ge-readout">'+metricText()+'</div>':'')+
+      (challenge?.mode!=='standard'?'<div class="gd-readout" id="ge-readout">'+metricText()+'</div>':'')+
     '</div>';
     bindStage();
     bindChallengeStageActions();

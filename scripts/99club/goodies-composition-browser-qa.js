@@ -26,7 +26,7 @@ ${styleTags}
 <header class="masthead" id="gd-qa-theme-header">Theme header</header>
 <div id="tt99-goodies-root"></div>
 <footer class="page__footer" id="gd-qa-theme-footer">Theme footer</footer>
-<div id="gd-composition-qa-result" data-status="pending" data-kind="">pending</div>
+<div id="gd-composition-qa-result" data-status="pending" data-kind="" data-message="" data-detail="">pending</div>
 <script>history.replaceState(null,'','${url}');window.scrollTo=function(){};${url.includes('board=1')?`window.TT99_GOODIES_BOARD_EMBED_PATH='/${HOST}';`:''}</script>
 ${scriptTags}
 <script>
@@ -71,7 +71,7 @@ async function run(){
   assert(getComputedStyle(document.getElementById('gd-qa-theme-header')).display==='none','Mixed whiteboard hides the site masthead');
   assert(getComputedStyle(document.getElementById('gd-qa-theme-footer')).display==='none','Mixed whiteboard hides the site footer');
   const tools=[...document.querySelectorAll('[data-board-add]')];
-  assert(tools.length===19,'All 19 manipulatives are available as compact palette icons');
+  assert(tools.length===20&&new Set(tools.map(button=>button.dataset.boardAdd)).size===20,'All 20 distinct manipulatives are available as compact palette icons');
   assert(palette.getBoundingClientRect().width<=50,'Left manipulative rail stays narrow');
   assert(getComputedStyle(canvas).backgroundImage.includes('radial-gradient'),'Whiteboard uses a fine dotted canvas');
   assert(getComputedStyle(canvas).backgroundSize==='10px 10px','Whiteboard dot spacing matches the 10px snap grid');
@@ -771,9 +771,9 @@ async function run(){
   await api.restore(saved);await tick(80);
   const restored=api.capture();
   assert(restored.objects.length===2,'Mixed lesson opens with both objects');
-  const restoredAb=restored.objects.find(o=>o.toolId==='abacus'),originalAb=saved.objects.find(o=>o.toolId==='abacus');
-  assert(JSON.stringify(restoredAb.state.model.counts)===JSON.stringify(originalAb.state.model.counts),'Abacus bead positions survive save and restore');
-  assert(restoredAb.x===originalAb.x&&restoredAb.y===originalAb.y&&restoredAb.scale===originalAb.scale,'Object position and scale survive save and restore');
+  const restoredAb=restored.objects.find(o=>o.toolId==='abacus'),savedAb=saved.objects.find(o=>o.toolId==='abacus');
+  assert(JSON.stringify(restoredAb.state.model.counts)===JSON.stringify(savedAb.state.model.counts),'Abacus bead positions survive save and restore');
+  assert(restoredAb.x===savedAb.x&&restoredAb.y===savedAb.y&&restoredAb.scale===savedAb.scale,'Object position and scale survive save and restore');
   const broken=JSON.parse(JSON.stringify(saved));broken.objects[0].state.model.counts=null;
   let failed=false;try{await api.restore(broken)}catch(_){failed=true}
   assert(failed&&api.objects().length===2,'Failed restore keeps original lesson intact');
@@ -864,6 +864,8 @@ async function run(){
 window.addEventListener('load',()=>setTimeout(()=>run().catch(err=>result('fail','embed',err&&err.message?err.message:String(err),err&&err.stack?err.stack:'')),180));
 })();`;
 
+  // Parse the generated inline scripts before launching the browser.
+  new Function(boardScript);new Function(embedScript);
   fs.writeFileSync(BOARD,shell('/goodies/?board=1',boardScript));
   fs.writeFileSync(EMBED,shell('/goodies/?embed=1#fraction-wall',embedScript));
   fs.writeFileSync(HOST,embedHost());
