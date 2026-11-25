@@ -20,7 +20,7 @@ Updated 25 November 2026.
 
 ## Equation typography polish (25 November)
 - Shared range-based numeric answer width and compact symbol answer width; consistent inline height and equation font across the entire set, including inverse facts and SVG export.
-- Centred equation rows, aligned card headings and bottom-aligned Check controls. Responsive shared font budget changes for the entire grid, never a single question.
+- Compact worksheet-style layout following classroom feedback: left-aligned headings and equations, smaller shared font cap, slim inline answer boxes, Check controls beside equations, feedback in headings, tighter gaps and subtle borders. Paper export uses left-aligned equations and reduced row heights. Responsive shared font budget changes for the entire grid, never a single question.
 - Browser visual/touch and actual paper checks remain pending. Exceptionally long equations can require the whole set to use a smaller font; future pagination or expression wrapping should improve that without inconsistent type sizes.
 
 ## Next priorities
