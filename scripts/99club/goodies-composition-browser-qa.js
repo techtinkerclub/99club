@@ -695,6 +695,12 @@ async function run(){
   assert(arraySolution.diagram.rows===arraySolution.challenge.targetRows&&arraySolution.diagram.cols===arraySolution.challenge.targetCols,'Reveal builds the correct array');
   arrayDoc.querySelector('[data-board-action="reveal"]').click();await tick();
   assert(JSON.stringify(arrayApi.capture('array-builder').model.diagram)===JSON.stringify(arrayEdited.diagram),'Hide answer restores pupil array');
+  arrayDoc.querySelector('[data-ab-challenge-cat="read"]').click();
+  arrayDoc.querySelector('[data-ab-challenge-type="multiplication-fact"]').click();
+  arrayDoc.getElementById('ab-generate').click();await tick(100);
+  assert(!arrayDoc.querySelector('.gd-array-maths,.gd-array-summary'),'Fixed array challenge omits redundant concealed teaching readouts');
+  assert(arrayDoc.querySelector('.gd-challenge-prompt').textContent.includes('including the total'),'Multiplication question explicitly asks for a complete equation');
+  assert(!arrayDoc.querySelector('[data-ab-resize="rows"] small').textContent.includes('↕'),'Fixed dimension labels no longer imply dragging');
   api.remove(qaArray.record.id);
   const qaClock=await addForSave('clock'),clockDoc=qaClock.doc;
   clockDoc.querySelector('[data-cl-workflow="challenge"]').click();
