@@ -4401,18 +4401,18 @@ function appendEquationSvg(svg,qn,tokens,metrics,font,x,y,width,align='center'){
 }
 function numberChallengeSvg(challenge){
  const N=G.numberChallenges;
- const metrics=N.equationMetrics([challenge]),rows=metrics.rows(challenge),W=960,H=rows.length*114+54;
+ const metrics=N.equationMetrics([challenge]),rows=metrics.rows(challenge),W=960,compact=G.exportTools?.isDocumentCardLayout?.(),step=compact?82:114,H=compact?rows.length*step+8:rows.length*114+54;
  const svg=mcSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':'Unanswered arithmetic question'});
  svg.appendChild(mcSvgEl('rect',{width:W,height:H,fill:'#fff'}));
- const font=Math.min(rows.some(row=>row.some(v=>N.parseFractionToken(v)||/^\?\/\d+$/.test(v)))?48:56,880/metrics.maxUnits);
- rows.forEach((row,i)=>appendEquationSvg(svg,challenge,row,metrics,font,40,85+i*114,W-80));
+ const font=Math.min(rows.some(row=>row.some(v=>N.parseFractionToken(v)||/^\?\/\d+$/.test(v)))?(compact?42:48):(compact?44:56),880/metrics.maxUnits);
+ rows.forEach((row,i)=>appendEquationSvg(svg,challenge,row,metrics,font,40,(compact?59:85)+i*step,W-80));
  return svg;
 }
 function arithmeticPaper(question,workingLines=0,teacher=false){
  const N=G.numberChallenges,X=G.exportTools;
  const hasHole=question.tiles.some(N.equationMetrics([question]).isHole);
  const prompt=question.prompt+(question.kind==='choice'&&question.choices?.length?' Choose: '+question.choices.join(' / ')+'.':'');
- return X.composeWorksheetCardSvg(numberChallengeSvg(question),{title:N.titles[question.type],prompt,responseLabel:teacher?'Answer':workingLines?(hasHole?'Working':'Answer / working'):'Answer',responseMode:workingLines?'lines':hasHole?'none':'box',responseLines:workingLines||1,paperStyle:'plain',answer:question.answer,showAnswer:teacher});
+ return X.composeWorksheetCardSvg(numberChallengeSvg(question),{title:N.titles[question.type],prompt,responseLabel:teacher?'Answer':workingLines?(hasHole?'Working':'Answer / working'):'Answer',responseMode:workingLines?'lines':hasHole?'none':'box',responseLines:workingLines||1,paperStyle:'plain',compactEquation:true,answer:question.answer,showAnswer:teacher});
 }
 if(G.publishing)G.publishing.register('maths-canvas',{
  label:'Arithmetic',
