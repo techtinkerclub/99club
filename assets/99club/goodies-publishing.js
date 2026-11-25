@@ -4,6 +4,7 @@ if(!G)return;
 const adapters=new Map(),copy=v=>JSON.parse(JSON.stringify(v));
 function register(tool,adapter){adapters.set(tool,adapter)}
 function supports(tool){return adapters.has(tool)}
+function types(tool,model){return adapterFor(tool).types?.(model)||[]}
 function adapterFor(tool){const a=adapters.get(tool);if(!a)throw Error('Publishing is not yet supported for this widget.');return a}
 function record(tool,kind,data,recipe=null){return {tool,kind,data:copy(data),recipe:recipe?copy(recipe):null}}
 function signature(item){return item.kind==='challenge'?item.tool+':'+adapterFor(item.tool).signature(item.data):null}
@@ -83,5 +84,5 @@ function openEditor(draft){
  dlg.oninput=e=>{if(e.target.hasAttribute('data-pub-title')){title=e.target.value.trim()||'Maths practice';dlg.dataset.title=title;const preview=dlg.querySelector('.gd-pub-preview');if(draft.list().length)preview.replaceChildren(...pages(draft.list(),{title,teacher}).map(G.exportTools.preparePaperSvg))}};
  render();if(!dlg.open)dlg.showModal();
 }
-G.publishing={register,supports,record,signature,createDocument,renderItem,pages,openEditor};
+G.publishing={register,supports,types,record,signature,createDocument,renderItem,pages,openEditor};
 })(window.TT99Goodies);
