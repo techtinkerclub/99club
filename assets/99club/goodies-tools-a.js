@@ -5113,8 +5113,8 @@ function moneyTool(){
   function coinArt(d){
     const id=coinPrefix+'-'+(++coinSerial),shape=d.shape,metal=d.tone;
     const outer=shape==='round'?'<circle cx="50" cy="50" r="46"/>':'<path d="'+coinPath(shape)+'"/>';
-    const edgeFill=metal==='bimetal'?'url(#'+id+'-gold)':metal==='copper'?'url(#'+id+'-copper)':'url(#'+id+'-silver)';
-    const inner=metal==='bimetal'?'<circle cx="50" cy="50" r="31" fill="url(#'+id+'-silver)" stroke="rgba(63,78,82,.32)" stroke-width="1.3"/>':'';
+    const edgeFill=metal==='bimetal'?'url(#'+id+'-gold) #d7b64e':metal==='copper'?'url(#'+id+'-copper) #cf8867':'url(#'+id+'-silver) #bbc6c8';
+    const inner=metal==='bimetal'?'<circle cx="50" cy="50" r="31" fill="url(#'+id+'-silver) #bbc6c8" stroke="rgba(63,78,82,.32)" stroke-width="1.3"/>':'';
     const labelSize=d.label.length>=3?21:25;
     return '<svg class="gd-money-coin-art gd-money-coin-art--'+shape+' gd-money-coin-art--'+metal+'" viewBox="0 0 100 100" aria-hidden="true" focusable="false">'+
       '<defs>'+
@@ -5136,7 +5136,7 @@ function moneyTool(){
     const width=Math.max(280,stageWidth-38);
     const cols=Math.max(2,Math.floor((width-28)/128));
     const rows=Math.max(1,Math.ceil(Math.max(1,count)/cols));
-    return{width,cols,height:Math.max(390,44+rows*108)};
+    return{width,cols,height:Math.max(challenge?.mode==='standard'&&challengeFrozen()?160:390,44+rows*108)};
   }
   function slot(index){
     const m=canvasMetrics(Math.max(items.length,index+1));
@@ -5327,7 +5327,7 @@ function moneyTool(){
     const selected=items.find(x=>String(x.id)===String(selectedId))||null,m=canvasMetrics(items.length);
     const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Money challenge',pupil:(challenge.freezeMoney===false?CK.pupilSpec('model',{check:()=>total()===target&&(challenge.type!=='exact-pieces'||items.length===challenge.targetPieces)&&(challenge.type!=='fewest-pieces'||items.length===challenge.minPieces)}):challenge.type==='compare-amount'?CK.pupilSpec('choice',{choices:['Less than','Equal to','Greater than'],expected:total()<target?'Less than':total()>target?'Greater than':'Equal to'}):CK.pupilSpec('money')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     const embedded=document.documentElement.classList.contains('gd-embed-page');
-    q('#gd-stage').innerHTML=banner+'<div class="gd-money-workbench">'+
+    q('#gd-stage').innerHTML=banner+'<div class="gd-money-workbench'+(challengeFrozen()&&challenge?.mode==='standard'?' gd-money-workbench--fixed':'')+'">'+
       (challengeFrozen()&&challenge?.mode==='standard'?'':toolbarHtml(history,selected)+(embedded?moneyStagePaletteHtml(true):moneyStagePaletteHtml()))+
       '<div class="gd-money-canvas" id="mo-canvas" data-gd-canvas-bg style="min-height:'+m.height+'px" aria-label="Money workbench">'+
         (items.length?items.map(moneyObject).join(''):'<div class="gd-money-empty" data-gd-canvas-bg>Choose a denomination to start building an amount.</div>')+
@@ -5566,7 +5566,7 @@ function moneyTool(){
   function bindMoneyButtons(){
     qa('[data-mo-add]',q('#gd-controls')).forEach(button=>button.onclick=()=>{
       if(challengeFrozen())return;
-      let id=null;controller.mutate(()=>{id=addMoney(button.dataset.moAdd)});controller.select(id);
+      let id=null;controller.mutate(()=>{id=addMoney(button.dataset.moAdd)});controller.select(id?.id);
     });
     const tidy=q('#mo-tidy');if(tidy)tidy.onclick=()=>{if(!challengeFrozen())controller.mutate(tidyMoney)};
     const clear=q('#mo-clear');if(clear)clear.onclick=()=>{if(!items.length||challengeFrozen())return;controller.mutate(()=>{items=[]})};
@@ -5633,7 +5633,7 @@ function moneyTool(){
     onAction:(action,api,button)=>{
       if(action==='add-money'){if(challengeFrozen())return;addOpen=!addOpen;api.refresh()}
       else if(action==='add-money-piece'&&!challengeFrozen()){
-        let id=null;api.mutate(()=>{id=addMoney(button?.dataset?.moValue)});api.select(id);
+        let id=null;api.mutate(()=>{id=addMoney(button?.dataset?.moValue)});api.select(id?.id);
       }else if(action==='close-money'){addOpen=false;api.refresh()}
     },
     onSelectionChange:item=>{updateSelectionTools(item)}
