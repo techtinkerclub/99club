@@ -2072,7 +2072,7 @@ function timesTableVisual(){
     return '<div class="gd-tv-jump" data-tv-jump="'+index+'"><span>'+from+'</span><b>+'+itemsPerGroup+'</b><span>'+to+'</span></div>';
   }
   function selectedPanel(){
-    if(hiddenFlag('hiddenSelectedPanel'))return'';
+    if(hiddenFlag('hiddenSelectedPanel')||(challenge?.mode==='standard'&&challengeFrozen()))return'';
     const frozen=challengeFrozen();
     return '<div class="gd-tv-selected" data-tv-selected="'+selectedGroup+'">'+
       '<div><span>Selected group</span><strong>Group '+(selectedGroup+1)+' · '+itemsPerGroup+' items</strong></div>'+
@@ -2105,7 +2105,7 @@ function timesTableVisual(){
     updateChallengeAnswer();
     const t=total(),frozen=challengeFrozen(),banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Times-table challenge',pupil:(challenge.type==='build-fact'?CK.pupilSpec('model',{check:()=>groupsCount===challenge.targetGroups&&itemsPerGroup===challenge.targetItems}):challenge.type==='spot-error'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:challenge.answer.startsWith('Yes')?'Yes':'No',explain:true}):CK.pupilSpec(challenge.type==='write-repeated'?'addition-equation':challenge.type==='commutative-fact'?'equation':'number')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-tv-workbench">'+
-      '<div class="gd-tv-summary"><div><span>Equal groups</span><strong data-tv-equation>'+equationText()+'</strong></div>'+
+      '<div class="gd-tv-summary"><div'+(challenge?' hidden':'')+'><span>Equal groups</span><strong data-tv-equation>'+equationText()+'</strong></div>'+
         '<div class="gd-object-toolbar"><button class="gd-btn" id="tv-undo" type="button"'+(undoStack.length&&!frozen?'':' disabled')+'>Undo</button><button class="gd-btn" id="tv-redo" type="button"'+(redoStack.length&&!frozen?'':' disabled')+'>Redo</button></div></div>'+
       (!frozen?'<div class="gd-tv-direct">'+
         '<div class="gd-tv-stepper"><span>Groups</span><div><button class="gd-btn" id="tv-groups-minus" type="button"'+(groupsCount<=1?' disabled':'')+'>−</button><strong data-tv-groups>'+groupsCount+'</strong><button class="gd-btn" id="tv-groups-plus" type="button"'+(groupsCount>=12?' disabled':'')+'>+</button></div></div>'+
@@ -2115,14 +2115,14 @@ function timesTableVisual(){
       '<div class="gd-tv-groups" data-tv-group-count="'+groupsCount+'">'+Array.from({length:groupsCount},(_,i)=>groupHtml(i)).join('')+
         (!frozen&&groupsCount<12?'<button class="gd-tv-add-group" id="tv-add-group" type="button"><strong>+</strong><span>Add group</span></button>':'')+'</div>'+
       selectedPanel()+
-      (showRepeated?'<div class="gd-tv-readout"><span>Repeated addition</span><strong data-tv-repeated>'+repeatedDisplay()+'</strong></div>':'')+
-      (showJumps&&!hiddenFlag('hiddenJumps')?'<div class="gd-tv-jump-section"><span>Equal jumps</span><div class="gd-tv-jumps">'+Array.from({length:groupsCount},(_,i)=>jumpHtml(i)).join('')+'</div></div>':'')+
-      (showFactFamily?'<div class="gd-tv-fact-family"><span>Fact family</span><div>'+
+      (showRepeated&&!challenge?'<div class="gd-tv-readout"><span>Repeated addition</span><strong data-tv-repeated>'+repeatedDisplay()+'</strong></div>':'')+
+      (showJumps&&!challenge&&!hiddenFlag('hiddenJumps')?'<div class="gd-tv-jump-section"><span>Equal jumps</span><div class="gd-tv-jumps">'+Array.from({length:groupsCount},(_,i)=>jumpHtml(i)).join('')+'</div></div>':'')+
+      (showFactFamily&&!challenge?'<div class="gd-tv-fact-family"><span>Fact family</span><div>'+
         '<strong data-tv-commutative>'+commutativeDisplay()+'</strong>'+
         '<strong data-tv-division-a>'+divisionADisplay()+'</strong>'+
         '<strong data-tv-division-b>'+divisionBDisplay()+'</strong>'+
       '</div></div>':'')+
-      (challenge?.type==='build-fact'?'<div class="gd-answer-live" data-tv-target-status>'+challengeProgress()+'</div>':'')+
+      ''+
     '</div>';
     bindStage();bindChallengeStageActions();
   }
@@ -2205,7 +2205,7 @@ function timesTableVisual(){
   }
   function restoreBeforeChallenge(){if(beforeChallenge){restore(beforeChallenge);beforeChallenge=null}}
   function clearChallenge(){
-    restoreBeforeChallenge();challenge=null;challengeTab='standard';controlTab='challenge';undoStack.length=0;redoStack.length=0;renderControls();draw();
+    restoreBeforeChallenge();challenge=null;challengeTab='standard';controlTab='explore';undoStack.length=0;redoStack.length=0;renderControls();draw();
   }
   function clearBoundHiding(){
     if(!challenge)return;
@@ -2323,19 +2323,19 @@ function timesTableVisual(){
   function timesTableExportSvg({pupil=false}={}){
     const state=exportState(pupil),groups=Number(state.groupsCount),items=Number(state.itemsPerGroup),width=900;
     const cols=Math.min(groups,4),rows=Math.ceil(groups/cols),cardW=170,cardH=128,gap=18;
-    const groupsW=cols*cardW+(cols-1)*gap,groupsX=(width-groupsW)/2,groupsY=115;
-    const showRep=state.showRepeated!==false,showFamily=state.showFactFamily!==false;
+    const groupsW=cols*cardW+(cols-1)*gap,groupsX=(width-groupsW)/2,groupsY=pupil?60:115;
+    const showRep=!pupil&&state.showRepeated!==false,showFamily=!pupil&&state.showFactFamily!==false;
     const repHidden=exportHidden('hiddenRepeated',pupil),familyHidden=exportHidden('hiddenFactFamily',pupil),jumpsHidden=exportHidden('hiddenJumps',pupil);
     let yAfter=groupsY+rows*cardH+(rows-1)*gap+42;
     let extra=0;
     if(showRep)extra+=66;
-    if(state.showJumps!==false&&!jumpsHidden)extra+=70;
+    if(!pupil&&state.showJumps!==false&&!jumpsHidden)extra+=70;
     if(showFamily)extra+=96;
     const height=Math.max(500,yAfter+extra+70);
     const svg=tvSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Equal groups multiplication model','data-tv-export':'model'});
     svg.appendChild(tvSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
     svg.appendChild(tvSvgEl('rect',{x:34,y:30,width:width-68,height:height-62,rx:20,fill:'#fbfcfc',stroke:'#c5d3d6','stroke-width':2,'data-tv-export-model':'1'}));
-    svg.appendChild(tvSvgEl('text',{x:width/2,y:78,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':30,'font-weight':800,fill:'#304b52','data-tv-export-equation':'1'},stateEquation(state,pupil)));
+    if(!pupil)svg.appendChild(tvSvgEl('text',{x:width/2,y:78,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':30,'font-weight':800,fill:'#304b52','data-tv-export-equation':'1'},stateEquation(state,pupil)));
     for(let g=0;g<groups;g++){
       const col=g%cols,row=Math.floor(g/cols),x=groupsX+col*(cardW+gap),y=groupsY+row*(cardH+gap);
       svg.appendChild(tvSvgEl('rect',{x,y,width:cardW,height:cardH,rx:16,fill:'#f7fbfa',stroke:'#8bb9b2','stroke-width':2,'data-tv-export-group':g}));
@@ -2353,7 +2353,7 @@ function timesTableVisual(){
       svg.appendChild(tvSvgEl('text',{x:70,y:y+27,'font-family':'Arial,sans-serif','font-size':19,'font-weight':800,fill:'#304b52','data-tv-export-repeated':'1'},repHidden?'?':stateRepeated(state)));
       y+=66;
     }
-    if(state.showJumps!==false&&!jumpsHidden){
+    if(!pupil&&state.showJumps!==false&&!jumpsHidden){
       svg.appendChild(tvSvgEl('text',{x:70,y,'font-family':'Arial,sans-serif','font-size':13,'font-weight':800,fill:'#718288'},'EQUAL JUMPS'));
       const jumps=Array.from({length:groups},(_,i)=>(i*items)+' → '+((i+1)*items)).join('   ');
       svg.appendChild(tvSvgEl('text',{x:70,y:y+27,'font-family':'Arial,sans-serif','font-size':16,'font-weight':700,fill:'#425b62','data-tv-export-jumps':'1'},jumps));
