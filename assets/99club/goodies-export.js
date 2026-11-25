@@ -207,7 +207,8 @@ function composeWorksheetCardSvg(diagram,{title='Challenge',prompt='',responseLa
   const answerRows=Math.max(1,Math.min(4,Math.round(Number(responseLines)||1)));
   const answerLines=showAnswer&&answer?wrapSvgText(answer,92,5):[];
   const responseVisible=showAnswer?!!answer:resolvedMode!=='none';
-  const responseH=!responseVisible?0:showAnswer?Math.max(54,26+answerLines.length*27):(resolvedMode==='lines'?32+answerRows*32:76);
+  const labelLines=wrapSvgText(responseLabel||'Answer',72,3),labelH=Math.max(1,labelLines.length)*20;
+  const responseH=!responseVisible?0:showAnswer?labelH+22+answerLines.length*27:(resolvedMode==='lines'?labelH+12+answerRows*32:labelH+60);
   const answerY=diagramY+diagramH+(responseVisible?20:0);
   const height=Math.max(plain?diagramY+diagramH+30:560,answerY+responseH+(plain?26:42));
 
@@ -236,17 +237,17 @@ function composeWorksheetCardSvg(diagram,{title='Challenge',prompt='',responseLa
   if(responseVisible){
     if(showAnswer){
       out.appendChild(svgEl('line',{x1:pad,y1:answerY,x2:width-pad,y2:answerY,stroke:'#c8d4d6','stroke-width':1.4}));
-      out.appendChild(svgEl('text',{x:pad,y:answerY+29,'font-family':'Arial,sans-serif','font-size':16,'font-weight':850,fill:'#526a70'},(responseLabel||'Answer')+':'));
-      answerLines.forEach((line,i)=>out.appendChild(svgEl('text',{x:pad+88,y:answerY+29+i*27,'font-family':'Arial,sans-serif','font-size':20,'font-weight':750,fill:'#284b50'},line)));
+      labelLines.forEach((line,i)=>out.appendChild(svgEl('text',{x:pad,y:answerY+20+i*20,'font-family':'Arial,sans-serif','font-size':16,'font-weight':850,fill:'#526a70'},line)));
+      answerLines.forEach((line,i)=>out.appendChild(svgEl('text',{x:pad,y:answerY+labelH+26+i*27,'font-family':'Arial,sans-serif','font-size':20,'font-weight':750,fill:'#284b50'},line)));
     }else if(resolvedMode==='lines'){
-      out.appendChild(svgEl('text',{x:pad,y:answerY+18,'font-family':'Arial,sans-serif','font-size':15,'font-weight':850,fill:'#64777d'},responseLabel));
+      labelLines.forEach((line,i)=>out.appendChild(svgEl('text',{x:pad,y:answerY+16+i*20,'font-family':'Arial,sans-serif','font-size':15,'font-weight':850,fill:'#64777d'},line)));
       for(let i=0;i<answerRows;i++){
-        const lineY=answerY+37+i*32;
+        const lineY=answerY+labelH+17+i*32;
         out.appendChild(svgEl('line',{x1:pad,y1:lineY,x2:width-pad,y2:lineY,stroke:'#aebdc1','stroke-width':1.5}));
       }
     }else if(resolvedMode==='box'){
-      out.appendChild(svgEl('text',{x:pad,y:answerY+18,'font-family':'Arial,sans-serif','font-size':15,'font-weight':850,fill:'#64777d'},responseLabel));
-      out.appendChild(svgEl('rect',{x:pad+78,y:answerY-4,width:250,height:42,rx:4,fill:'#ffffff',stroke:'#9fafb3','stroke-width':1.8}));
+      labelLines.forEach((line,i)=>out.appendChild(svgEl('text',{x:pad,y:answerY+16+i*20,'font-family':'Arial,sans-serif','font-size':15,'font-weight':850,fill:'#64777d'},line)));
+      out.appendChild(svgEl('rect',{x:pad,y:answerY+labelH+7,width:250,height:42,rx:4,fill:'#ffffff',stroke:'#9fafb3','stroke-width':1.8}));
     }
   }
 
