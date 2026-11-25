@@ -5113,6 +5113,7 @@ function moneyTool(){
     {id:'exchange-fewest',category:'exchange',title:'Exchange for fewer pieces',desc:'Keep the same value while reducing the number of pieces.'}
   ];
   let items=[],nextId=1,target=375,targetActive=false,controller=null,addOpen=false,coinSerial=0,contextMode='',contextItemId=null;
+  const exchangeSelection=new Set();
   const coinPrefix='mo-'+Math.random().toString(36).slice(2,10);
   let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='count-total',challenge=null,beforeChallenge=null;
   let exportMode='board',responseLines=1,exportStatus='';
@@ -5184,8 +5185,8 @@ function moneyTool(){
     if(!group.length||group.some(x=>x.locked||!items.includes(x))||values.some(v=>!DENOMS.some(d=>d.value===v)))return false;
     if(group.reduce((n,x)=>n+x.value,0)!==values.reduce((n,v)=>n+v,0))return false;
     const ids=new Set(group.map(x=>x.id));items=items.filter(x=>!ids.has(x.id));
-    values.forEach(v=>{const added=addMoney(v),m=canvasMetrics(items.length);const d=metaFor(v),w=d.kind==='note'?d.width:d.size,h=d.kind==='note'?d.height:d.size+19;
-      const free=(p)=>items.every(other=>{if(other===added)return true;const o=metaFor(other.value),ow=o.kind==='note'?o.width:o.size,oh=o.kind==='note'?o.height:o.size+19;return p.x+w+8<=other.x||other.x+ow+8<=p.x||p.y+h+8<=other.y||other.y+oh+8<=p.y});
+    values.forEach(v=>{const added=addMoney(v),m=canvasMetrics(items.length);const d=metaFor(v),w=d.kind==='note'?d.width:d.size,h=d.kind==='note'?d.height:d.size;
+      const free=(p)=>items.every(other=>{if(other===added)return true;const o=metaFor(other.value),ow=o.kind==='note'?o.width:o.size,oh=o.kind==='note'?o.height:o.size;return p.x+w+8<=other.x||other.x+ow+8<=p.x||p.y+h+8<=other.y||other.y+oh+8<=p.y});
       let placed=false;for(let i=0;i<Math.max(items.length*3+12,32);i++){const p=slot(i);if(p.x+w<=m.width&&free(p)){added.x=p.x;added.y=p.y;placed=true;break}}
       if(!placed){added.x=18;added.y=m.height+12}
     });return true;
@@ -5202,7 +5203,7 @@ function moneyTool(){
     const width=Math.max(280,stageWidth-38);
     const cols=Math.max(2,Math.floor((width-28)/128));
     const rows=Math.max(1,Math.ceil(Math.max(1,count)/cols));
-    const occupiedHeight=items.reduce((max,item)=>{const d=metaFor(item.value);return Math.max(max,(Number(item.y)||0)+(d.kind==='note'?d.height:d.size+19)+20)},0);
+    const occupiedHeight=items.reduce((max,item)=>{const d=metaFor(item.value);return Math.max(max,(Number(item.y)||0)+(d.kind==='note'?d.height:d.size)+20)},0);
     return{width,cols,height:Math.max(challenge?.mode==='standard'&&challengeFrozen()?160:390,44+rows*108,occupiedHeight)};
   }
   function slot(index){
@@ -5341,9 +5342,9 @@ function moneyTool(){
       :'left:'+item.x+'px;top:'+item.y+'px;--mo-size:'+d.size+'px';
     const cls='gd-money-object gd-money-object--'+d.kind+' gd-money-object--'+d.shape+' gd-money-object--'+d.tone+(item.locked?' is-locked':'')+(frozen?' is-frozen':'');
     const face=d.kind==='coin'
-      ?'<span class="gd-money-object__face gd-money-object__face--stylised">'+coinArt(d)+'</span><span class="gd-money-object__coin-label">'+d.label+'</span>'
+      ?'<span class="gd-money-object__face gd-money-object__face--stylised">'+coinArt(d)+'</span>'
       :'<span class="gd-money-object__face"><strong>'+d.label+'</strong><small>CLASSROOM NOTE</small></span>';
-    return '<button type="button" class="'+cls+'" data-gd-object="'+item.id+'" data-mo-value="'+d.value+'" style="'+style+'" aria-label="'+d.label+' stylised UK classroom '+(d.kind==='note'?'note':'coin')+(frozen?' fixed for this challenge':'')+'">'+face+'</button>';
+    return '<button type="button" class="'+cls+'" data-gd-object="'+item.id+'" data-mo-value="'+d.value+'" style="'+style+'" aria-label="'+d.label+' stylised UK classroom '+(d.kind==='note'?'note':'coin')+(frozen?' fixed for this challenge':'')+'"'+(frozen?' disabled tabindex="-1"':'')+'>'+face+'</button>';
   }
   function toolbarHtml(history,selected){
     const frozen=challengeFrozen();
@@ -5367,7 +5368,8 @@ function moneyTool(){
   }
   function positionMoneyContext(item){
     const panel=q('#mo-context'),canvas=q('#mo-canvas');if(!panel||!canvas||!item)return;
-    const d=metaFor(item.value),w=d.kind==='note'?d.width:d.size,h=d.kind==='note'?d.height:d.size+19;
+    const d=metaFor(item.value),w=d.kind==='note'?d.width:d.size,h=d.kind==='note'?d.height:d.size;
+    if(contextMode==='combine'){panel.style.left='';panel.style.top='';return}
     const pw=panel.offsetWidth||180,ph=panel.offsetHeight||40;
     const x=clamp(item.x+w/2-pw/2,4,Math.max(4,canvas.clientWidth-pw-4));
     const below=item.y+h+12,above=item.y-ph-12;
@@ -5376,14 +5378,18 @@ function moneyTool(){
   }
   function updateSelectionTools(item){
     const panel=q('#mo-context');if(!panel)return;
-    if(!item||challengeFrozen()){panel.hidden=true;contextMode='';contextItemId=null;return}
-    if(contextItemId!==item.id){contextMode='';contextItemId=item.id}
-    const splits=splitOptions(item),combines=combineOptions(item);
+    if(contextMode!=='combine')q('#mo-canvas')?.classList.remove('is-exchange-mode');
+    if(!item||challengeFrozen()){panel.hidden=true;contextMode='';contextItemId=null;exchangeSelection.clear();q('#mo-canvas')?.classList.remove('is-exchange-mode');qa('.gd-money-object.is-exchange-selected',q('#mo-canvas')).forEach(el=>el.classList.remove('is-exchange-selected'));return}
+    if(contextItemId!==item.id){contextMode='';contextItemId=item.id;exchangeSelection.clear()}
+    if(contextMode==='combine'){renderExchangeSelection(item);return}
+    panel.classList.remove('is-exchange-selection');
+    qa('.gd-money-object.is-exchange-selected',q('#mo-canvas')).forEach(el=>el.classList.remove('is-exchange-selected'));
+    const splits=splitOptions(item),canCombine=items.some(x=>x!==item&&!x.locked);
     const actions=(freeMoneyEdit()?I.toolButton('mo-copy','duplicate','Duplicate '+metaFor(item.value).label,'',false)+I.toolButton('mo-delete','delete','Delete '+metaFor(item.value).label,'gd-object-tool--danger',item.locked)+I.toolButton('mo-lock',item.locked?'unlock':'lock',item.locked?'Unlock':'Lock','',false):'')+
       (!item.locked&&splits.length?'<button type="button" class="gd-money-exchange-action'+(contextMode==='split'?' is-active':'')+'" data-gd-action="mo-split" aria-label="Split into change">'+I.icon('split')+'<span>Split</span></button>':'')+
-      (!item.locked&&combines.length?'<button type="button" class="gd-money-exchange-action'+(contextMode==='combine'?' is-active':'')+'" data-gd-action="mo-combine" aria-label="Exchange for a larger denomination">'+I.icon('combine')+'<span>Exchange</span></button>':'');
+      (!item.locked&&canCombine?'<button type="button" class="gd-money-exchange-action'+(contextMode==='combine'?' is-active':'')+'" data-gd-action="mo-combine" aria-label="Exchange for a larger denomination">'+I.icon('combine')+'<span>Exchange</span></button>':'');
     if(!actions){panel.hidden=true;return}
-    const options=contextMode==='split'?splits.map((v,i)=>({label:piecesText(v),i})):contextMode==='combine'?combines.map((v,i)=>({label:piecesText(v.group.map(x=>x.value))+' → '+metaFor(v.value).label,i})):[];
+    const options=contextMode==='split'?splits.map((v,i)=>({label:piecesText(v),i})):[];
     panel.innerHTML='<div class="gd-money-context-actions">'+actions+'</div>'+
       (options.length?'<div class="gd-money-exchange-options"><strong>'+(contextMode==='split'?'Split '+metaFor(item.value).label+' into':'Exchange selected piece with others')+'</strong>'+options.map(o=>'<button type="button" data-mo-option="'+o.i+'">'+esc(o.label)+'</button>').join('')+'</div>':'');
     panel.hidden=false;
@@ -5395,14 +5401,59 @@ function moneyTool(){
       if(action==='mo-copy'&&freeMoneyEdit())controller.duplicateSelected();
       else if(action==='mo-delete'&&freeMoneyEdit())controller.removeSelected();
       else if(action==='mo-lock'&&freeMoneyEdit())controller.toggleLockSelected();
-      else if(action==='mo-split'||action==='mo-combine'){const mode=action==='mo-split'?'split':'combine';contextMode=contextMode===mode?'':mode;updateSelectionTools(selected)}
+      else if(action==='mo-split'||action==='mo-combine'){const mode=action==='mo-split'?'split':'combine';contextMode=contextMode===mode?'':mode;exchangeSelection.clear();if(contextMode==='combine')exchangeSelection.add(selected.id);updateSelectionTools(selected)}
       else if(button.hasAttribute('data-mo-option')){
-        const i=Number(button.dataset.moOption),mode=contextMode;
-        const option=mode==='split'?splitOptions(selected)[i]:combineOptions(selected)[i];if(!option)return;
-        contextMode='';controller.mutate(()=>{if(mode==='split')replaceMoney([selected],option);else replaceMoney(option.group,[option.value])});controller.select(null);
+        const i=Number(button.dataset.moOption),option=splitOptions(selected)[i];if(contextMode!=='split'||!option)return;
+        contextMode='';controller.mutate(()=>replaceMoney([selected],option));controller.select(null);
       }
     };
     positionMoneyContext(item);
+  }
+  function selectedExchange(){
+    const group=items.filter(x=>exchangeSelection.has(x.id)&&!x.locked);
+    const sum=group.reduce((n,x)=>n+x.value,0);
+    return {group,sum,denom:group.length>=2?DENOMS.find(d=>d.value===sum):null};
+  }
+  function renderExchangeSelection(anchor){
+    const panel=q('#mo-context'),canvas=q('#mo-canvas');if(!panel||!canvas)return;
+    const {group,sum,denom}=selectedExchange();
+    panel.classList.add('is-exchange-selection');panel.hidden=false;
+    canvas.classList.add('is-exchange-mode');
+    qa('.gd-money-object',canvas).forEach(el=>{
+      const active=group.some(x=>String(x.id)===el.dataset.gdObject);
+      el.classList.toggle('is-exchange-selected',active);el.setAttribute('aria-pressed',String(active));
+    });
+    panel.innerHTML='<div class="gd-money-exchange-head"><strong>Tap coins or notes to select</strong><button type="button" data-mo-cancel-exchange aria-label="Cancel exchange">×</button></div>'+
+      '<div class="gd-money-exchange-summary"><span>'+group.length+' selected · '+money(sum)+'</span><button type="button" data-mo-confirm-exchange'+(denom?'':' disabled')+'>'+(denom?'Exchange for '+denom.label:'Exchange')+'</button></div>'+
+      (group.length>=2&&!denom?'<small>No single UK denomination matches this total.</small>':'');
+    panel.onpointerdown=e=>e.stopPropagation();
+    panel.onclick=e=>{
+      const button=e.target.closest('button');if(!button||button.disabled)return;
+      e.preventDefault();e.stopPropagation();
+      if(button.hasAttribute('data-mo-cancel-exchange')){contextMode='';exchangeSelection.clear();canvas.classList.remove('is-exchange-mode');controller.select(null);return}
+      if(button.hasAttribute('data-mo-confirm-exchange')){
+        const current=selectedExchange();if(!current.denom||challengeFrozen())return;
+        contextMode='';exchangeSelection.clear();
+        controller.mutate(()=>replaceMoney(current.group,[current.denom.value]));controller.select(null);
+      }
+    };
+    positionMoneyContext(anchor);
+  }
+  function bindExchangeSelection(){
+    const canvas=q('#mo-canvas');if(!canvas)return;
+    function toggle(el){
+      if(contextMode!=='combine'||challengeFrozen()||!el)return false;
+      const piece=items.find(x=>String(x.id)===el.dataset.gdObject);if(!piece||piece.locked)return true;
+      if(exchangeSelection.has(piece.id))exchangeSelection.delete(piece.id);else exchangeSelection.add(piece.id);
+      renderExchangeSelection(controller.selected());return true;
+    }
+    canvas.addEventListener('pointerdown',e=>{
+      if(contextMode!=='combine')return;
+      const el=e.target.closest('.gd-money-object');
+      if(el){e.preventDefault();e.stopImmediatePropagation();toggle(el)}
+      else if(e.target===canvas||e.target.hasAttribute('data-gd-canvas-bg')){e.preventDefault();e.stopImmediatePropagation()}
+    },true);
+    canvas.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&toggle(e.target.closest('.gd-money-object'))){e.preventDefault();e.stopImmediatePropagation()}},true);
   }
   function toggleMoneyReveal(){if(!challenge)return;challenge.revealed=!challenge.revealed;if(challenge.mode==='standard'&&challenge.freezeMoney===false){if(challenge.revealed){challenge.modelBeforeReveal=snapshot();setValues(exchangeTask()?challenge.solutionValues:challenge.type==='exact-pieces'?(challenge.solutionValues||exactPieceValues(target,challenge.targetPieces)):amountValues(target))}else if(challenge.modelBeforeReveal){restore(challenge.modelBeforeReveal);delete challenge.modelBeforeReveal}}renderControls();controller.refresh()}
   function bindChallengeStageActions(){
@@ -5429,7 +5480,7 @@ function moneyTool(){
         '<div class="'+(total()===target?'is-match':'')+'"><span>Check</span><strong data-mo-status>'+statusText()+'</strong></div>':'')+
       '</div>':'')+
     '</div>';
-    bindChallengeStageActions();
+    bindExchangeSelection();bindChallengeStageActions();
   }
   function workflowTabs(){
     return '<div class="gd-row gd-money-workflow-tabs" role="tablist" aria-label="Money workflow">'+
