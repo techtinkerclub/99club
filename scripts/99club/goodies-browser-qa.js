@@ -620,9 +620,18 @@ if(mode==='prepare'){
     document.querySelector('[data-bm-workflow="challenge"]').click();
     document.querySelector('[data-bm-challenge-cat="reason"]').click();
     assert(document.querySelector('[data-bm-challenge-type="spot-error"]'),'Bar Model reasoning challenge is available');
+    // Spot-error now includes both true and false pupil claims.
     document.getElementById('bm-generate').click();
-    assert(document.querySelector('[data-bm-equation]').textContent.trim()==='8 + 8 + 5 = 24','Spot-error challenge presents a deliberately inconsistent model');
-    assert(document.querySelector('[data-bm-status]').textContent.trim()==='?','Spot-error challenge hides the diagnostic shortcut');
+    assert(document.querySelector('[data-bm-equation]').textContent.trim()==='8 + 8 + 5 = 21','Reasoning challenge can present a valid model');
+    assert(document.querySelector('[data-bm-status]').textContent.trim()==='?','Reasoning challenge hides the diagnostic shortcut even for valid models');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Yes. The parts total 21.'),'Reveal confirms a valid claim');
+    let bmReasonDraw=0;
+    Math.random=()=>[0,0,0,.75,.75,0][bmReasonDraw++]??0;
+    document.getElementById('bm-generate').click();
+    Math.random=()=>0;
+    assert(document.querySelector('[data-bm-equation]').textContent.trim()==='8 + 8 + 5 = 24','Reasoning challenge can present a deliberately inconsistent model');
+    assert(document.querySelector('[data-bm-status]').textContent.trim()==='?','Reasoning challenge hides the diagnostic shortcut');
     document.querySelector('[data-board-action="reveal"]').click();
     assert(document.querySelector('.gd-challenge-banner').textContent.includes('The parts total 21, not 24'),'Reasoning Reveal explains the inconsistency');
 
