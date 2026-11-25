@@ -171,6 +171,13 @@ Three levels: (1) publish the current challenge or non-challenge representation 
 - Finish all 20 existing publishing adapters first. Next: UK Money.
 - Then dedicated formal written-methods tools: column addition, column subtraction (interpreting repeated addition request), short and long multiplication, short and long division. Research England primary curriculum, DfE guidance and school calculation policies before specifying progression and notation. Include interactive step-by-step demonstrations, carries/exchanges, partial products and remainders, structured pupil working grids, worked solution graphics and marking guidance. Support school notation variants.
 
+
+### UK Money shared publishing and graphical annex refinement
+- Ninth adapter: all ten standard Money challenge types, shared live/worksheet generator, demonstration and challenge capture, automatic source, replacement and graphical answer annex. Marking criteria distinguish exact-piece, minimum-piece and any-valid-combination tasks. Coin artwork is reused from the live widget, including twelve-sided £1 geometry.
+- Compact graphics sit beside answer text; wide charts remain full-width.
+- Checks: 3,000 generated tasks, 800 solution diagrams with independent minimum-piece validation, 30 mixed nine-widget documents, 840 annex entries, 750 graphics, 350 pupil and 208 annex pages, 30 replacements and 30 captured solved construction tasks. Mock SVG DOM verification; real browser/print QA open.
+- Next adapter: Coordinate Grid, then Bar Model. Nine of 20 integrated. Formal written-methods tools follow the original 20.
+
 ## Next priorities
 1. Visual/touch feedback: validate the practice-set launcher, whiteboard layout, inline answer boxes, responsive columns and paper outputs; refine density and font sizes after classroom feedback.
 2. Worksheet-oriented improvements: separate arithmetic answer key implemented; five-a-day shortcut implemented; optional arithmetic working space and row-based A4 pagination implemented; shared pupil/teacher export policies across the remaining widgets still need work.
