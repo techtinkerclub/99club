@@ -49,12 +49,19 @@ Updated 25 November 2026.
 - Standard templates only where meaningful: single diagram, before/after construction, question set, teacher key. Do not force all four onto every widget.
 - Browser/print review pending, including visual comparison of themes and final template readability.
 
+## Curriculum presets and daily practice (25 November)
+- Curriculum selector: Free choice, Years 1–6, KS3 extension. Independent Easy/Medium/Hard choices adapt ranges and denominator caps within the selected profile. The profiles are arithmetic teaching starting points, not complete statutory curriculum coverage; targeted multiplication-table filters, year-specific mental/written methods and restricted early fraction forms still need development.
+- Curriculum profile applies only when explicitly selected. Manual changes return to Free choice / Adjusted; saved settings and profiles persist. Older boards retain their original settings.
+- One-tap 5 a day shortcut in the quick launcher and full settings uses five distinct questions mixed across compatible enabled types, with existing layout and export. New set retains the same scope.
+- Source: https://www.gov.uk/government/publications/national-curriculum-in-england-mathematics-programmes-of-study/national-curriculum-in-england-mathematics-programmes-of-study
+- Browser interaction and live print verification pending.
+
 ## Next priorities
 1. Visual/touch feedback: validate the practice-set launcher, whiteboard layout, inline answer boxes, responsive columns and paper outputs; refine density and font sizes after classroom feedback.
-2. Worksheet-oriented improvements: separate arithmetic answer key implemented; dedicated five-a-day shortcut, optional space for working, shared pupil/teacher export policies across all widgets, and print pagination remain.
-3. Extend the implemented fraction/roots topics to remaining curriculum content and complete visual QA, then add curriculum presets.
+2. Worksheet-oriented improvements: separate arithmetic answer key implemented; five-a-day shortcut implemented; optional space for working, shared pupil/teacher export policies across all widgets, and print pagination remain.
+3. Extend the implemented fraction/roots topics to remaining curriculum content and complete visual QA, and refine the curriculum presets.
 4. Target-number puzzles; ordering expressions by value; identify and correct errors. Ensure questions are solvable and answer checking handles valid alternatives.
-5. Curriculum-aligned KS1/KS2 presets and compatible question-type controls.
+5. Refine curriculum presets with narrower year-specific objectives, including multiplication-table and early fraction constraints.
 6. Dedicated sequences and rules widget: number sequences, missing terms, next terms and rule reasoning. Keep separate from arithmetic generator but reuse challenge interaction and export patterns.
 7. Performance and accessibility audit of whiteboard, all manipulatives and mobile/touch behaviour.
 
