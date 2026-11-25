@@ -2356,6 +2356,141 @@ function fractionWall(){
 
 }
 
+  const BM_TEMPLATES=[
+    {id:'missing-part',category:'read',title:'Find the missing part',desc:'Use the whole and known parts to find one missing part.'},
+    {id:'find-whole',category:'read',title:'Find the whole',desc:'Add the shown parts to find the whole.'},
+    {id:'write-equation',category:'read',title:'Write the equation',desc:'Write an equation that matches the shown model.'},
+    {id:'compare-difference',category:'compare',title:'Find the difference',desc:'Compare two aligned bars and find how much more one represents.'},
+    {id:'equal-groups-total',category:'groups',title:'Equal groups — whole',desc:'Use equal parts to find the whole.'},
+    {id:'equal-groups-part',category:'groups',title:'Equal groups — one part',desc:'Use the whole and number of equal parts to find one part.'},
+    {id:'build-model',category:'build',title:'Build the model',desc:'Edit the bar to match a given part–whole relationship.'},
+    {id:'spot-error',category:'reason',title:'Spot the error',desc:'Decide whether a shown part–whole model is mathematically consistent.'}
+  ];
+
+function bmSettings(model={}){return {responseLines:Math.max(1,Math.min(4,Math.round(Number(model.responseLines)||1)))}}
+function bmTypes(){return BM_TEMPLATES.map(t=>({id:t.id,label:t.title}))}
+function bmGenerate(type,settings={},rng=Math.random){
+ const CHALLENGE_TEMPLATES=BM_TEMPLATES,CK=null;
+ if(!bmTypes().some(t=>t.id===type))throw Error('Unknown bar model question.');
+ let parts=[],total=null,nextId=1,selectedId=null,challenge;
+  function challengeObject(type,prompt,answer,extra={}){
+    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===type);
+    const raw={mode:'standard',type,category:meta?.category||'',title:'',prompt,promptHtml:prompt,answer:String(answer??''),answerMode:'bound',answerSource:'',revealed:false,freezeModel:true,hiddenTotal:false,hiddenEquation:false,hiddenStatus:false,hiddenPartIndexes:[],comparison:null,targetParts:null,targetTotal:null,...extra};
+    return CK?CK.normalise(raw):raw;
+  }
+  function randomInt(min,max){return min+Math.floor(rng()*(max-min+1))}
+  function setParts(values){
+    parts=values.map((entry,index)=>{
+      const unknown=entry==null||entry==='?';
+      return{id:index+1,value:unknown?10:Number(entry),unknown};
+    });
+    nextId=parts.length+1;selectedId=parts.find(p=>p.unknown)?.id||parts[0]?.id||null;
+  }
+
+    if(type==='missing-part'){
+      const a=randomInt(12,45),b=randomInt(8,30),c=randomInt(6,25);
+      total=a+b+c;setParts([a,null,c]);
+      challenge=challengeObject(type,'Find the missing part in this part–whole model.',b,{hiddenStatus:true,hiddenPartIndexes:[1]});
+    }else if(type==='find-whole'){
+      const values=[randomInt(8,30),randomInt(8,30),randomInt(5,25)];
+      total=values.reduce((a,b)=>a+b,0);setParts(values);
+      challenge=challengeObject(type,'What is the whole represented by these parts?',total,{hiddenTotal:true,hiddenStatus:true});
+    }else if(type==='write-equation'){
+      const values=[randomInt(5,25),randomInt(5,25),randomInt(5,25)];
+      total=values.reduce((a,b)=>a+b,0);setParts(values);
+      challenge=challengeObject(type,'Write an addition equation that matches this bar model.',values.join(' + ')+' = '+total,{hiddenEquation:true});
+    }else if(type==='compare-difference'){
+      const smaller=randomInt(20,60),difference=randomInt(5,30),larger=smaller+difference;
+      setParts([larger]);total=larger;
+      challenge=challengeObject(type,'The top bar represents '+larger+' and the lower bar represents '+smaller+'. What is the difference?',difference,{hiddenStatus:true,comparison:{larger,smaller,difference,topLabel:'A',bottomLabel:'B'}});
+    }else if(type==='equal-groups-total'){
+      const groups=randomInt(3,7),each=randomInt(3,12);
+      total=groups*each;setParts(Array.from({length:groups},()=>each));
+      challenge=challengeObject(type,'There are '+groups+' equal parts of '+each+'. What is the whole?',total,{hiddenTotal:true,hiddenStatus:true});
+    }else if(type==='equal-groups-part'){
+      const groups=randomInt(3,7),each=randomInt(3,12);
+      total=groups*each;setParts(Array.from({length:groups},()=>null));
+      challenge=challengeObject(type,'The whole is '+total+' and it is split into '+groups+' equal parts. What is one part worth?',each,{hiddenStatus:true});
+    }else if(type==='build-model'){
+      const a=randomInt(10,35),b=randomInt(8,25),c=randomInt(5,20),whole=a+b+c;
+      total=whole;setParts([10,10,10]);
+      challenge=challengeObject(type,'Build a bar model for '+a+' + ? + '+c+' = '+whole+'.',String(b),{freezeModel:false,targetParts:[{value:a,unknown:false},{value:10,unknown:true},{value:c,unknown:false}],targetTotal:whole});
+    }else{
+      const values=[randomInt(8,25),randomInt(8,25),randomInt(5,20)],sum=values.reduce((a,b)=>a+b,0),valid=rng()<.5,shown=valid?sum:sum+(rng()<.5?-1:1)*randomInt(3,12);
+      total=shown;setParts(values);
+      challenge=challengeObject(type,'A pupil says this part–whole model is correct. Are they right? Explain your answer.',valid?'Yes. The parts total '+sum+'.':'No. The parts total '+sum+', not '+shown+'.',{hiddenStatus:true});
+    }
+
+ return {type,settings:bmSettings(settings),diagram:{parts,total,nextId,selectedId},challenge};
+}
+function bmSolved(data){
+ const c=data.challenge,d=data.diagram;
+ const source=c?.type==='build-model'?c.targetParts:d.parts;
+ const total=c?.type==='build-model'?c.targetTotal:d.total;
+ const unknown=source.filter(p=>p.unknown).length,known=source.filter(p=>!p.unknown).reduce((n,p)=>n+Number(p.value),0);
+ const value=unknown&&total!=null&&(unknown===1||c?.type==='equal-groups-part')?(total-known)/unknown:null;
+ return {total,parts:source.map((p,i)=>({...p,id:p.id??i+1,solved:p.unknown?value:Number(p.value)}))};
+}
+function bmPaper(data,teacher=false){
+ const c=data.challenge,task=!!c,build=c?.type==='build-model',blank=build&&!teacher,cmp=c?.comparison,model=bmSolved(data);
+ const W=1000,H=blank?255:cmp?218:178;
+ const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+ for(const [k,v] of Object.entries({xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':teacher?'Completed bar model':'Bar model'}))svg.setAttribute(k,String(v));
+ function add(name,attrs={},value){const n=document.createElementNS('http://www.w3.org/2000/svg',name);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,String(v));if(value!==undefined)n.textContent=String(value);svg.appendChild(n);return n}
+ const txt=(x,y,value,size=25)=>add('text',{x,y,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':size,'font-weight':700,fill:'#304b52'},value);
+ const rect=(x,y,width,height,hidden=false,extra={})=>add('rect',{x,y,width,height,fill:hidden?'#fff5dd':'#e4f3ef',stroke:'#698f8a','stroke-width':2,...extra});
+ add('rect',{width:W,height:H,fill:'#fff'});
+ if(blank){
+   add('rect',{x:40,y:10,width:920,height:230,rx:6,fill:'none',stroke:'#b7c8ca','stroke-dasharray':'6 5'});
+ }else if(cmp){
+   const x=100,w=850,b=w*cmp.smaller/cmp.larger,diff=w-b;
+   txt(60,56,cmp.topLabel||'A',20);rect(x,20,w,66);txt(x+w/2,61,cmp.larger);
+   txt(60,146,cmp.bottomLabel||'B',20);rect(x,110,b,66);txt(x+b/2,151,cmp.smaller);
+   rect(x+b,110,diff,66,true,{'stroke-dasharray':'6 5','data-bm-paper-difference':'1'});txt(x+b+diff/2,151,teacher?cmp.difference:'?',Math.min(25,diff*.65));
+ }else{
+   const x=40,w=920,y=62,h=82,parts=model.parts,whole=model.total??(parts.every(p=>p.solved!=null)?parts.reduce((n,p)=>n+p.solved,0):null);
+   const known=parts.filter(p=>p.solved!=null&&p.solved>0).map(p=>p.solved),fallback=known.length?known.reduce((a,b)=>a+b,0)/known.length:1;
+   const weights=parts.map(p=>p.solved==null||p.solved<0?fallback:p.solved),sum=weights.reduce((a,b)=>a+b,0);
+   // Keep proportions exact for positive generated values. A minimum slot for
+   // zero-valued free-play parts makes their label visible without a negative width.
+   const adjusted=weights.map(v=>Math.max(v,sum*.035||1)),den=adjusted.reduce((a,b)=>a+b,0)||1;
+   add('path',{d:'M'+x+' 51 V32 H'+(x+w)+' V51',fill:'none',stroke:'#536c72','stroke-width':2});
+   add('rect',{x:W/2-100,y:17,width:200,height:30,fill:'#fff'});
+   txt(W/2,38,'Total '+(!teacher&&c?.hiddenTotal?'?':whole??'?'),22);
+   let cursor=x;
+   parts.forEach((p,i)=>{
+     const width=i===parts.length-1?x+w-cursor:w*adjusted[i]/den;
+     const unknown=p.unknown||c?.hiddenPartIndexes?.includes(i),hidden=unknown&&(!teacher||p.solved==null);
+     rect(cursor,y,width,h,unknown,{'data-bm-paper-part':i});
+     const label=hidden?'?':String(p.solved??'?');
+     const node=txt(cursor+width/2,y+h*.61,label,Math.min(27,width/Math.max(1,label.length*.65)));
+     node.setAttribute('data-bm-paper-value',String(i));cursor+=width;
+   });
+ }
+ if(!task)return svg;
+ const prompt=build?c.prompt.replace(/^Build a bar model/,'Draw and label a bar model'):c.prompt;
+ const lines=Math.max(data.settings?.responseLines||1,c.category==='reason'?3:1);
+ return G.exportTools.composeWorksheetCardSvg(svg,{title:BM_TEMPLATES.find(t=>t.id===c.type)?.title||'Bar model challenge',prompt,responseMode:build?'box':lines>1?'lines':'box',responseLabel:build?'Missing part':c.category==='reason'?'Answer and explain':'Answer',responseLines:lines,paperStyle:'plain',answer:c.answer,showAnswer:teacher,diagramMaxHeight:500});
+}
+function bmData(model){
+ const c=model.challenge?JSON.parse(JSON.stringify(model.challenge)):null,diagram=JSON.parse(JSON.stringify(model.diagram||model));
+ if(c?.mode==='custom')throw Error('Use individual export for custom bar model tasks.');
+ if(c){c.revealed=false;delete c.preRevealModel;if(c.type==='build-model'){diagram.parts=c.targetParts.map((p,i)=>({...p,id:i+1}));diagram.total=c.targetTotal}}
+ return {type:c?.type,settings:bmSettings(model),diagram,challenge:c};
+}
+G.barPaperModel={generate:bmGenerate,render:bmPaper,types:bmTypes,solution:bmSolved};
+if(G.publishing)G.publishing.register('bar-model',{
+ label:'Bar model',types:bmTypes,title:item=>item.kind==='diagram'?'Bar model illustration':BM_TEMPLATES.find(t=>t.id===item.data.type)?.title||'Bar model challenge',
+ signature:d=>JSON.stringify([d.type,d.challenge.prompt,d.challenge.answer,d.challenge.comparison,d.challenge.targetParts,d.diagram.parts.map(p=>[p.unknown,p.unknown?null:p.value]),d.diagram.total]),
+ recipe:(model,type)=>({type,settings:bmSettings(model)}),
+ generate(recipe,rng){const ids=bmTypes().map(t=>t.id);return bmGenerate(recipe.type==='all'?ids[Math.floor(rng()*ids.length)]:recipe.type,recipe.settings,rng)},
+ capture(model,staticSvg){const d=bmData(model);if(!d.challenge&&staticSvg)return [G.publishing.record('bar-model','diagram',{svg:staticSvg})];return [G.publishing.record('bar-model',d.challenge?'challenge':'diagram',d,d.challenge?{type:d.type,settings:d.settings}:null)]},
+ answerSummary:item=>item.data.challenge.answer,
+ answerGraphic:item=>G.exportTools.withAnswerDiagram(()=>bmPaper(item.data,true)),
+ answerNote:item=>{const c=item.data.challenge;if(c.type==='write-equation')return 'Accept any addition equation using all the displayed parts once and the correct whole, including a different order or reversed equality.';if(c.type==='build-model')return 'Accept an equivalent labelled part–whole bar in any order, with the correct known parts, missing part and whole. The missing part may be labelled with its value or a question mark plus the correct answer.';if(c.type==='spot-error')return 'Accept equivalent explanations comparing the sum of the parts with the stated whole.';if(c.type==='equal-groups-part')return 'All the equal parts must have the same value; divide the whole by the number of parts.';return ''},
+ render(item,teacher){return item.data.svg?new DOMParser().parseFromString(item.data.svg,'image/svg+xml').documentElement:bmPaper(item.data,teacher)}
+});
+
 function barModel(){
   const CK=G.challengeKit,X=G.exportTools;
   let parts=[
@@ -2372,16 +2507,7 @@ function barModel(){
     {id:'build',label:'Build'},
     {id:'reason',label:'Reasoning'}
   ];
-  const CHALLENGE_TEMPLATES=[
-    {id:'missing-part',category:'read',title:'Find the missing part',desc:'Use the whole and known parts to find one missing part.'},
-    {id:'find-whole',category:'read',title:'Find the whole',desc:'Add the shown parts to find the whole.'},
-    {id:'write-equation',category:'read',title:'Write the equation',desc:'Write an equation that matches the shown model.'},
-    {id:'compare-difference',category:'compare',title:'Find the difference',desc:'Compare two aligned bars and find how much more one represents.'},
-    {id:'equal-groups-total',category:'groups',title:'Equal groups — whole',desc:'Use equal parts to find the whole.'},
-    {id:'equal-groups-part',category:'groups',title:'Equal groups — one part',desc:'Use the whole and number of equal parts to find one part.'},
-    {id:'build-model',category:'build',title:'Build the model',desc:'Edit the bar to match a given part–whole relationship.'},
-    {id:'spot-error',category:'reason',title:'Spot the error',desc:'Decide whether a shown part–whole model is mathematically consistent.'}
-  ];
+  const CHALLENGE_TEMPLATES=BM_TEMPLATES;
   let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='missing-part',challenge=null,beforeChallenge=null;
   let exportMode='diagram',responseLines=1,exportStatus='';
 
@@ -2446,7 +2572,7 @@ function barModel(){
   }
   function partText(part,index,raw=false){
     if(!raw&&hiddenPart(index))return'?';
-    if(part.unknown)return'?';
+    if(part.unknown){if(!raw&&challenge?.revealed){const v=challenge.type==='equal-groups-part'?Number(challenge.answer):inferredUnknown();if(v!=null)return String(v)}return'?';}
     return String(Math.round((Number(part.value)||0)*100)/100);
   }
   function solvedPartText(part){
@@ -2616,39 +2742,7 @@ function barModel(){
     const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
     if(!beforeChallenge)beforeChallenge=snapshot();else restore(beforeChallenge);
     undoStack.length=0;redoStack.length=0;
-    if(type==='missing-part'){
-      const a=randomInt(12,45),b=randomInt(8,30),c=randomInt(6,25);
-      total=a+b+c;setParts([a,null,c]);
-      challenge=challengeObject(type,'Find the missing part in this part–whole model.',b,{hiddenStatus:true,hiddenPartIndexes:[1]});
-    }else if(type==='find-whole'){
-      const values=[randomInt(8,30),randomInt(8,30),randomInt(5,25)];
-      total=values.reduce((a,b)=>a+b,0);setParts(values);
-      challenge=challengeObject(type,'What is the whole represented by these parts?',total,{hiddenTotal:true,hiddenStatus:true});
-    }else if(type==='write-equation'){
-      const values=[randomInt(5,25),randomInt(5,25),randomInt(5,25)];
-      total=values.reduce((a,b)=>a+b,0);setParts(values);
-      challenge=challengeObject(type,'Write an addition equation that matches this bar model.',values.join(' + ')+' = '+total,{hiddenEquation:true});
-    }else if(type==='compare-difference'){
-      const smaller=randomInt(20,60),difference=randomInt(5,30),larger=smaller+difference;
-      setParts([larger]);total=larger;
-      challenge=challengeObject(type,'The top bar represents '+larger+' and the lower bar represents '+smaller+'. What is the difference?',difference,{hiddenStatus:true,comparison:{larger,smaller,difference,topLabel:'A',bottomLabel:'B'}});
-    }else if(type==='equal-groups-total'){
-      const groups=randomInt(3,7),each=randomInt(3,12);
-      total=groups*each;setParts(Array.from({length:groups},()=>each));
-      challenge=challengeObject(type,'There are '+groups+' equal parts of '+each+'. What is the whole?',total,{hiddenTotal:true,hiddenStatus:true});
-    }else if(type==='equal-groups-part'){
-      const groups=randomInt(3,7),each=randomInt(3,12);
-      total=groups*each;setParts(Array.from({length:groups},()=>null));
-      challenge=challengeObject(type,'The whole is '+total+' and it is split into '+groups+' equal parts. What is one part worth?',each,{hiddenStatus:true});
-    }else if(type==='build-model'){
-      const a=randomInt(10,35),b=randomInt(8,25),c=randomInt(5,20),whole=a+b+c;
-      total=whole;setParts([10,10,10]);
-      challenge=challengeObject(type,'Build a bar model for '+a+' + ? + '+c+' = '+whole+'.',String(b),{freezeModel:false,targetParts:[{value:a,unknown:false},{value:10,unknown:true},{value:c,unknown:false}],targetTotal:whole});
-    }else{
-      const values=[randomInt(8,25),randomInt(8,25),randomInt(5,20)],sum=values.reduce((a,b)=>a+b,0),valid=Math.random()<.5,shown=valid?sum:sum+(Math.random()<.5?-1:1)*randomInt(3,12);
-      total=shown;setParts(values);
-      challenge=challengeObject(type,'A pupil says this part–whole model is correct. Are they right? Explain your answer.',valid?'Yes. The parts total '+sum+'.':'No. The parts total '+sum+', not '+shown+'.',{hiddenStatus:true});
-    }
+    const data=bmGenerate(type,{responseLines});restore(data.diagram);challenge=CK?CK.normalise(data.challenge):data.challenge;
     challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';exportMode='challenge';exportStatus='';renderControls();draw();
   }
 
@@ -2685,7 +2779,7 @@ function barModel(){
     const max=Math.max(c.larger,c.smaller,1),top=c.larger/max*100,bottom=c.smaller/max*100,diff=c.difference/max*100;
     return '<div class="gd-bar-comparison" data-bm-comparison>'+
       '<div class="gd-bar-compare-row"><span>'+c.topLabel+'</span><div class="gd-bar-compare-track"><strong style="width:'+top+'%">'+c.larger+'</strong></div></div>'+
-      '<div class="gd-bar-compare-row"><span>'+c.bottomLabel+'</span><div class="gd-bar-compare-track"><strong style="width:'+bottom+'%">'+c.smaller+'</strong><em style="left:'+bottom+'%;width:'+diff+'%">?</em></div></div>'+
+      '<div class="gd-bar-compare-row"><span>'+c.bottomLabel+'</span><div class="gd-bar-compare-track"><strong style="width:'+bottom+'%">'+c.smaller+'</strong><em style="left:'+bottom+'%;width:'+diff+'%">'+(challenge.revealed?c.difference:'?')+'</em></div></div>'+
       '<div class="gd-bar-compare-note">Difference between the aligned bar ends</div>'+
     '</div>';
   }
@@ -2916,6 +3010,7 @@ function barModel(){
     return svg;
   }
   function exportTargetSvg(){
+    if(challenge?.mode==='standard'&&exportMode==='challenge')return bmPaper(bmData({diagram:snapshot(),challenge,responseLines}));
     if(exportMode!=='challenge'||!challenge||!X?.composeChallengeCardSvg)return barModelExportSvg({pupil:false});
     const prompt=CK?CK.plainText(challenge.promptHtml||challenge.prompt||''):challenge.prompt||'';
     const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
@@ -2949,7 +3044,7 @@ function barModel(){
         '<button type="button" class="'+(exportMode==='challenge'?'is-active':'')+'" data-bm-export-mode="challenge">Challenge card</button>'+
         '<button type="button" class="'+(exportMode==='diagram'?'is-active':'')+'" data-bm-export-mode="diagram">Bar model</button></div>':'')+
       (canCard&&exportMode==='challenge'
-        ?'<label class="gd-field"><span>Answer space</span><select class="gd-select" id="bm-response-lines">'+[1,2,3,4].map(n=>'<option value="'+n+'"'+(responseLines===n?' selected':'')+'>'+n+' line'+(n===1?'':'s')+'</option>').join('')+'</select></label><p class="gd-help">Pupil challenge export re-hides answers even after Reveal. Build challenges export the target scaffold, not the teacher\'s trial solution.</p>'
+        ?'<label class="gd-field"><span>Answer space</span><select class="gd-select" id="bm-response-lines">'+[1,2,3,4].map(n=>'<option value="'+n+'"'+(responseLines===n?' selected':'')+'>'+n+' line'+(n===1?'':'s')+'</option>').join('')+'</select></label><p class="gd-help">Pupil challenge export re-hides answers even after Reveal. Build challenges export blank drawing space, not the teacher\'s trial solution.</p>'
         :'<p class="gd-help">Bar-model export contains the current vector model and visible mathematical readouts without editing controls.</p>')+
       '<div class="nl-export-grid bm-export-grid">'+
         '<button class="gd-btn gd-btn--primary" id="bm-copy-image" type="button">Copy '+(canCard&&exportMode==='challenge'?'challenge':'image')+'</button>'+
