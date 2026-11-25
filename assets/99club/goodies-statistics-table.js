@@ -34,7 +34,37 @@ function svgTable(data,view='table'){
  });
  return svg;
 }
-G.statisticsTable={svgTable,randomData};
+function recipe(model={},type='all'){
+ return {type,view:model.view==='tally'?'tally':'table',max:[10,20,30,40].includes(+model.max)?+model.max:20,count:[3,4,5,6].includes(+model.count)?+model.count:4};
+}
+function generate(r,rng=Math.random){
+ const type=r.type==='all'?TYPES[Math.floor(rng()*TYPES.length)][0]:r.type;
+ const data=randomData(r.max,r.count,type==='mean',rng);
+ const a=Math.floor(rng()*data.rows.length),b=(a+1+Math.floor(rng()*(data.rows.length-1)))%data.rows.length;
+ return {...M.question(data,type,a,b),data,view:r.view};
+}
+function paper(item,teacher){
+ const d=item.data,svg=svgTable(d.data,d.view);
+ if(item.kind==='diagram')return svg;
+ return G.exportTools.composeWorksheetCardSvg(svg,{title:d.view==='tally'?'Tally chart':'Frequency table',prompt:d.prompt,responseLabel:'Answer',responseMode:'box',responseLines:1,paperStyle:'plain',answer:String(d.answer),showAnswer:teacher});
+}
+if(G.publishing)G.publishing.register(ID,{
+ label:'Tables & tally charts',
+ types:()=>TYPES.map(([id,label])=>({id,label})),
+ title:item=>item.data.view==='tally'?'Tally chart':'Frequency table',
+ signature:d=>JSON.stringify([d.view,d.type,d.prompt,d.data.rows]),
+ recipe,generate,
+ capture(saved){
+  const data=M.dataset(saved.data.rows,saved.data),view=saved.view==='tally'?'tally':'table';
+  if(saved.task)return [G.publishing.record(ID,'challenge',{data,view,type:saved.task.type,prompt:saved.task.prompt,answer:saved.task.answer})];
+  return [G.publishing.record(ID,'diagram',{data,view})];
+ },
+ render:paper,
+ answerSummary:item=>String(item.data.answer),
+ answerGraphic:item=>svgTable(item.data.data,'table'),
+ answerNote:item=>item.data.type==='mean'?'Add all frequencies and divide by the number of categories.':item.data.type==='total'?'Add all frequencies.':item.data.type==='range'?'Subtract the smallest frequency from the largest.':item.data.type==='difference'?'Subtract the smaller named frequency from the larger.':'Read the frequency for the named category. Accept equivalent numerical working.'
+});
+G.statisticsTable={svgTable,randomData,recipe,generate};
 G.statisticsTableTool=function(){
  const CK=G.challengeKit;let data=initial(),view='table',workflow='build',task=null,setup=null,max=20,count=4,status='';
  const types=()=>TYPES.filter(([id])=>id!=='mean'||max>=6);
@@ -42,9 +72,7 @@ G.statisticsTableTool=function(){
  function change(i,delta){const rows=data.rows.map((r,j)=>({...r,value:j===i?Math.max(0,Math.min(40,r.value+delta)):r.value}));data=M.dataset(rows,data);render()}
  function launch(type){
   if(!task)setup=data;
-  const chosen=type==='all'?types()[Math.floor(Math.random()*types().length)][0]:type;
-  data=randomData(max,count,chosen==='mean');const a=Math.floor(Math.random()*data.rows.length),b=(a+1+Math.floor(Math.random()*(data.rows.length-1)))%data.rows.length;
-  const question=M.question(data,chosen,a,b);
+  const question=generate(recipe({view,max,count},type));data=question.data;const chosen=question.type;
   task=CK.normalise({mode:'standard',type:chosen,title:view==='tally'?'Tally chart':'Frequency table',prompt:question.prompt,answer:String(question.answer),answerMode:'manual',revealed:false});workflow='challenge';render();
  }
  function exit(){if(setup)data=setup;setup=null;task=null;workflow='build';render()}
