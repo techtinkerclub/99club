@@ -493,22 +493,17 @@ function abacusTool(){
   }
   function placeLabel(i){return ['Ones','Tens','Hundreds','Thousands','Ten thousands','Hundred thousands'][rows-i-1]}
   function placeShort(i){return ['1s','10s','100s','1k','10k','100k'][rows-i-1]}
-  function abBeadY(i,part,j){
-    const d=counts[i]||0;
-    if(kind==='western')return beadX(j,d);
-    if(kind==='suanpan'){
-      if(part==='upper')return j<(suanUpper[i]||0)?35-j*11:9+j*11;
-      return j<(suanLower[i]||0)?46+j*8:60+j*8;
+  function beadGeometry(device,digit,upper,lower,part,j){
+    if(device==='western')return {position:beadX(j,digit),active:j<digit};
+    if(device==='suanpan'){
+      const active=part==='upper'?j<upper:j<lower;
+      return {active,position:part==='upper'?(active?35-j*11:9+j*11):(active?46+j*8:60+j*8)};
     }
-    if(part==='upper')return d>=5?36:12;
-    return j<d%5?44+j*8.5:67+j*8.5;
+    const active=part==='upper'?digit>=5:j<digit%5;
+    return {active,position:part==='upper'?(active?36:12):(active?44+j*8.5:67+j*8.5)};
   }
-  function abBeadActive(i,part,j){
-    const d=counts[i]||0;
-    if(kind==='western')return j<d;
-    if(kind==='suanpan')return part==='upper'?j<(suanUpper[i]||0):j<(suanLower[i]||0);
-    return part==='upper'?d>=5:j<d%5;
-  }
+  function abBeadY(i,part,j){return beadGeometry(kind,counts[i]||0,suanUpper[i]||0,suanLower[i]||0,part,j).position}
+  function abBeadActive(i,part,j){return beadGeometry(kind,counts[i]||0,suanUpper[i]||0,suanLower[i]||0,part,j).active}
   function randomInt(min,max){return Math.floor(Math.random()*(max-min+1))+min}
   function beadX(index,count){return index<count?4+index*4.5:55+index*4.5}
   function taskSolved(){
@@ -666,7 +661,7 @@ function abacusTool(){
     if(!isAbacusKind()){renderHistoricalStage();return}
     const hideTotal=!!task&&taskContext==='challenge'&&!revealed&&status!=='Correct ✓';
     q('#gd-stage').innerHTML=taskBanner()+
-      '<div hidden aria-hidden="true">'+['copy','png','svg','print'].map(type=>'<button type="button" data-gd-direct-export="'+type+'">'+type+'</button>').join('')+'</div>'+
+      '<div hidden aria-hidden="true">'+['copy','png','svg','print',...(task?['key-copy','key-print']:[])].map(type=>'<button type="button" data-gd-direct-export="'+type+'">'+type+'</button>').join('')+'</div>'+
       '<div class="gd-ab-workspace gd-history-theme--'+colourScheme+'">'+deviceToolbar()+
         '<div class="gd-ab-main"><div class="gd-ab-device-column">'+
           '<div class="gd-ab-frame gd-ab-frame--'+kind+'" data-ab-frame>'+
@@ -730,7 +725,7 @@ function abacusTool(){
   function exportControls(){
     return '<div class="nl-panel-title"><div><strong>Paper export</strong><span>Clean abacus or current challenge.</span></div></div>'+
       '<div class="nl-export-grid"><button class="gd-btn gd-btn--primary" id="ab-copy" type="button">Copy image</button><button class="gd-btn" id="ab-png" type="button">PNG</button><button class="gd-btn" id="ab-svg" type="button">SVG</button><button class="gd-btn" id="ab-print" type="button">Print / PDF</button></div>'+
-      '<p class="gd-help" id="ab-export-status" role="status">'+esc(exportStatus)+'</p>';
+      (task?'<div class="nl-export-grid"><button class="gd-btn" id="ab-key-copy" type="button">Copy answer key</button><button class="gd-btn" id="ab-key-print" type="button">Print answer key</button></div>':'')+'<p class="gd-help" id="ab-export-status" role="status">'+esc(exportStatus)+'</p>';
   }
   function controlsHtml(){
     if(!isAbacusKind())return '<button type="button" data-ab-random-challenge hidden aria-hidden="true" tabindex="-1">Challenge</button>'+setupControls();
@@ -872,6 +867,8 @@ function abacusTool(){
     const png=q('#ab-png');if(png)png.onclick=()=>exportAction('png');
     const svg=q('#ab-svg');if(svg)svg.onclick=()=>exportAction('svg');
     const print=q('#ab-print');if(print)print.onclick=()=>exportAction('print');
+    const keyCopy=q('#ab-key-copy');if(keyCopy)keyCopy.onclick=()=>exportAction('key-copy');
+    const keyPrint=q('#ab-key-print');if(keyPrint)keyPrint.onclick=()=>exportAction('key-print');
   }
 
   function svgEl(name,attrs={},text=''){
@@ -880,80 +877,93 @@ function abacusTool(){
     if(text!==''&&text!=null)el.textContent=String(text);
     return el;
   }
-  function frameSvg({blank=false}={}){
+  function frameSvg({value=null,template=false,pupil=false}={}){
     const width=900,height=540,left=80,right=820,top=118,rodH=324;
-    const svg=svgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':kind==='western'?'Western base-ten abacus':kind==='suanpan'?'Chinese suanpan':'Japanese soroban'});
-    svg.appendChild(svgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
-    svg.appendChild(svgEl('rect',{x:40,y:36,width:820,height:457,rx:18,fill:'#d9b389',stroke:'#986b41','stroke-width':14,'data-ab-export-frame':'1'}));
-    svg.appendChild(svgEl('rect',{x:62,y:60,width:776,height:414,rx:8,fill:'#f7f0e6'}));
+    const live=value===null,ds=live?counts:Array.from(String(normal(value)).padStart(rows,'0'),Number);
+    const palette={classic:['#8b5b30','#f0d7ad','#725039','#d88a51','#3e9487','#4b3826'],place:['#65728e','#f3e6c9','#6d6a73','#c9928c','#6e98b8','#41495a'],sea:['#446f7c','#dceeed','#4e6b71','#d7a27a','#3f8796','#314f58'],berry:['#765266','#f0dfe3','#694b59','#d59a6f','#955d76','#5d4050'],forest:['#58705b','#e4ecd8','#5e6650','#d79661','#63866b','#465644']};
+    const [frame,board,rail,inactive,active,ink]=palette[colourScheme]||palette.classic;
+    const svg=svgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':template?'Abacus template to complete':kind==='western'?'Western base-ten abacus':kind==='suanpan'?'Chinese suanpan':'Japanese soroban'});
+    const add=(tag,attrs,txt)=>svg.appendChild(svgEl(tag,attrs,txt));
+    add('rect',{x:0,y:0,width,height,fill:'#fff'});
+    add('rect',{x:40,y:36,width:820,height:457,rx:18,fill:template?'#fff':board,stroke:frame,'stroke-width':10,'data-ab-export-frame':'1'});
+    add('rect',{x:62,y:60,width:776,height:414,rx:8,fill:template?'#fff':board});
+    function bead(cx,cy,rx,ry,on,row){
+      const placeColours=['#6e98b8','#7ca58a','#b1849a','#c29a5c','#9589b7','#a8ad73'];
+      const col=on?(colourScheme==='place'?placeColours[row%6]:active):inactive;
+      add('ellipse',{cx,cy,rx,ry,fill:template?'#fff':col,stroke:template?'#75878b':frame,'stroke-width':template?1.8:1.6,'data-ab-paper-bead':'1'});
+      if(!template)add('ellipse',{cx:cx-rx*.28,cy:cy-ry*.35,rx:rx*.32,ry:ry*.23,fill:'#fff','fill-opacity':.45});
+    }
     if(kind==='western'){
       for(let row=0;row<rows;row++){
-        const y=112+(row+.5)*348/rows;
-        svg.appendChild(svgEl('line',{x1:152,y1:y,x2:752,y2:y,stroke:'#977c5e','stroke-width':5,'stroke-linecap':'round'}));
-        if(showRowLabels)svg.appendChild(svgEl('text',{x:130,y:y+6,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':18,'font-weight':700,fill:'#60482e'},placeShort(row)));
-        const digit=blank?0:counts[row]||0;
+        const y=112+(row+.5)*348/rows,digit=ds[row]||0;
+        add('line',{x1:152,y1:y,x2:752,y2:y,stroke:rail,'stroke-width':4,'stroke-linecap':'round'});
+        if(showRowLabels||pupil)add('text',{x:130,y:y+6,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':18,'font-weight':700,fill:ink},placeShort(row));
         for(let j=0;j<10;j++){
-          const active=j<digit;
-          const bx=152+600*beadX(j,digit)/100;
-          svg.appendChild(svgEl('ellipse',{cx:bx,cy:y,rx:17,ry:14,fill:active?'#4b9a8d':'#dc9b52',stroke:active?'#32786e':'#a56d37','stroke-width':2}));
-          svg.appendChild(svgEl('ellipse',{cx:bx-5,cy:y-4,rx:5,ry:3,fill:'#ffffff','fill-opacity':.43}));
+          const g=beadGeometry(kind,digit,0,0,'unit',j),bx=152+600*(template?4+j*(92/9):g.position)/100;
+          bead(bx,y,11.5,13,g.active,row);
         }
-        if(showRowCounts&&!blank)svg.appendChild(svgEl('text',{x:772,y:y+6,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':20,'font-weight':700,fill:'#295c56'},String(digit)));
+        if(showRowCounts&&!pupil&&!template)add('text',{x:782,y:y+6,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':20,'font-weight':700,fill:ink},String(digit));
       }
     }else{
-      svg.appendChild(svgEl('rect',{x:62,y:top+rodH*.40-5,width:776,height:10,rx:3,fill:'#90633a'}));
+      add('rect',{x:62,y:top+rodH*.40-5,width:776,height:10,rx:3,fill:frame});
       for(let col=0;col<rows;col++){
-        const x=left+(right-left)*(col+.5)/rows;
-        svg.appendChild(svgEl('line',{x1:x,y1:top-10,x2:x,y2:top+rodH+10,stroke:'#977c5e','stroke-width':5,'stroke-linecap':'round'}));
-        if(showRowLabels)svg.appendChild(svgEl('text',{x,y:94,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':rows>=5?16:19,'font-weight':700,fill:'#60482e'},placeShort(col)));
-        const digit=blank?0:(kind==='suanpan'?suanRodValue(col):(counts[col]||0));
-        const beadSpecs=kind==='suanpan'
-          ?[...Array.from({length:2},(_,j)=>({part:'upper',j})),...Array.from({length:5},(_,j)=>({part:'lower',j}))]
-          :[{part:'upper',j:0},...Array.from({length:4},(_,j)=>({part:'lower',j}))];
-        beadSpecs.forEach(({part,j})=>{
-          let active,y;
-          if(kind==='suanpan'){
-            active=part==='upper'?j<(suanUpper[col]||0):j<(suanLower[col]||0);
-            y=part==='upper'?(active?35-j*11:9+j*11):(active?46+j*8:60+j*8);
-          }else{
-            active=part==='upper'?digit>=5:j<(digit%5);
-            y=part==='upper'?(active?36:12):(active?44+j*8.5:67+j*8.5);
-          }
-          const cy=top+rodH*y/100;
-          svg.appendChild(svgEl('ellipse',{cx:x,cy,rx:rows>=6?22:27,ry:13,fill:active?'#4b9a8d':'#dc9b52',stroke:active?'#32786e':'#a56d37','stroke-width':2}));
-          svg.appendChild(svgEl('ellipse',{cx:x-7,cy:cy-4,rx:8,ry:3,fill:'#ffffff','fill-opacity':.43}));
+        const x=left+(right-left)*(col+.5)/rows,digit=ds[col]||0;
+        const upper=kind==='suanpan'&&live?(suanUpper[col]||0):Math.floor(digit/5),lower=kind==='suanpan'&&live?(suanLower[col]||0):digit%5;
+        add('line',{x1:x,y1:top-10,x2:x,y2:top+rodH+10,stroke:rail,'stroke-width':4,'stroke-linecap':'round'});
+        if(showRowLabels||pupil)add('text',{x,y:94,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':rows>=5?16:19,'font-weight':700,fill:ink},placeShort(col));
+        const specs=[...Array.from({length:kind==='suanpan'?2:1},(_,j)=>({part:'upper',j})),...Array.from({length:kind==='suanpan'?5:4},(_,j)=>({part:'lower',j}))];
+        specs.forEach(({part,j})=>{
+          const g=beadGeometry(kind,digit,upper,lower,part,j);
+          // Fixed outline slots nearest the beam represent countable beads on paper.
+          const pos=template?(part==='upper'?35-j*11:46+j*8.5):g.position;
+          bead(x,top+rodH*pos/100,rows>=6?22:26,10.8,g.active,col);
         });
-        if(showRowCounts&&!blank)svg.appendChild(svgEl('text',{x,y:462,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':20,'font-weight':700,fill:'#295c56'},String(digit)));
+        if(showRowCounts&&!pupil&&!template)add('text',{x,y:462,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':20,'font-weight':700,fill:ink},String(kind==='suanpan'?upper*5+lower:digit));
       }
     }
-    if(showTotal&&!blank&&!task)svg.appendChild(svgEl('text',{x:width/2,y:527,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':19,'font-weight':700,fill:'#2a5953'},'Number shown: '+total().toLocaleString('en-GB')));
+    if(showTotal&&!pupil&&!template)add('text',{x:width/2,y:527,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':19,'font-weight':700,fill:ink},'Number shown: '+(live?total():normal(value)).toLocaleString('en-GB'));
     return svg;
   }
-  function exportSvg(){
-    const diagram=frameSvg({blank:!!task&&task.mode==='show'});
+  function paperTaskPrompt(t){
+    const label=kind==='western'?'abacus':kind;
+    const actions={show:'Show '+t.target+' on the '+label+'.',add:'Start at '+t.start+'. Add '+t.b+'.',subtract:'Start at '+t.start+'. Subtract '+t.b+'.',make10:'Start at '+t.start+'. How many more are needed to make 10?',bond:'Complete '+t.a+' + ? = '+t.target+'.',double:'Double '+t.start+'.',near:'Use a near-double strategy to work out '+t.a+' + '+t.b+'.',missing:'Solve '+t.a+' + ? = '+t.target+'.',skip:'Count on in '+t.step+'s from '+t.start+'.'};
+    return (actions[t.mode]||'Complete the calculation.')+' '+(kind==='western'?'Shade the final beads from the left of each row.':'Shade the final beads nearest the middle bar in each column.');
+  }
+  function paperTaskDiagram(t,teacher){
+    const showStart=t.mode!=='show',W=showStart?1840:900,H=590;
+    const out=svgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':teacher?'Completed abacus solution':'Abacus practice diagrams'});
+    const addFrame=(value,template,x,label)=>{
+      out.appendChild(svgEl('text',{x:x+450,y:34,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':26,'font-weight':700,fill:'#52666d'},label));
+      const nested=svgEl('svg',{x,y:42,width:900,height:540,viewBox:'0 0 900 540'});
+      [...frameSvg({value,template,pupil:true}).childNodes].forEach(n=>nested.appendChild(n.cloneNode(true)));out.appendChild(nested);
+    };
+    if(showStart)addFrame(t.start,false,0,'Start');
+    addFrame(teacher?t.target:0,!teacher,showStart?940:0,teacher?'Final configuration':'Your final configuration');
+    return out;
+  }
+  function exportSvg(teacher=false){
     if(task&&X?.composeWorksheetCardSvg){
-      return X.composeWorksheetCardSvg(diagram,{
-        title:taskTitle(task.mode),
-        prompt:task.prompt,
-        responseLabel:'Answer',
-        responseLines:1,
-        responseMode:task.mode==='show'?'none':'box',
-        paperStyle:'plain',
+      const missing=['make10','bond','missing'].includes(task.mode);
+      return X.composeWorksheetCardSvg(paperTaskDiagram(task,teacher),{
+        title:taskTitle(task.mode)+(teacher?' · Teacher answer key':''),
+        prompt:paperTaskPrompt(task),
+        responseLabel:missing?'Missing number':'Answer',
+        responseLines:1,responseMode:'box',paperStyle:'plain',
         answer:task.requiresAnswer?String(task.answer):String(task.target),
-        showAnswer:revealed,
-        brand:'99 Club Studio'
+        showAnswer:teacher,brand:'99 Club Studio'
       });
     }
-    return diagram;
+    return frameSvg();
   }
   async function exportAction(kind){
     if(!X)return;
-    const svg=exportSvg(),filename=task?'abacus-'+task.mode:'abacus-frame';
+    const teacher=kind==='key-copy'||kind==='key-print';if(teacher&&!task)return;
+    const svg=exportSvg(teacher),filename=task?'abacus-'+task.mode:'abacus-frame';
     try{
-      if(kind==='copy'){await X.copyPng(svg);exportStatus='Image copied.'}
+      if(kind==='copy'||kind==='key-copy'){await X.copyPng(svg);exportStatus=teacher?'Teacher key copied.':'Image copied.'}
       else if(kind==='png'){await X.downloadPng(svg,filename,2);exportStatus='PNG downloaded.'}
       else if(kind==='svg'){X.downloadSvg(svg,filename);exportStatus='SVG downloaded.'}
-      else if(kind==='print'){X.printSvg(svg,{title:task?'Abacus worksheet':'Abacus'});exportStatus='Print view opened.'}
+      else if(kind==='print'||kind==='key-print'){X.printSvg(svg,{title:task?'':'Abacus',landscape:!!task&&task.mode!=='show'});exportStatus='Print view opened.'}
     }catch(err){exportStatus=err?.message||'Export failed.'}
     const out=q('#ab-export-status');if(out)out.textContent=exportStatus;
   }
