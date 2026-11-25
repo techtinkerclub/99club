@@ -41,7 +41,7 @@ const questionTypes=view=>view==='pie'?EXTRA.pie:[...TYPES,...(EXTRA[view]||[]),
 const viewName=view=>VIEWS.find(v=>v[0]===view)?.[1]||'Frequency table';
 const validView=view=>VIEWS.some(v=>v[0]===view)?view:'table';
 const COLOURS=['#39887e','#537eaa','#c68a48','#9275ac','#c66c75','#718b48'];
-function svgChart(data,view,key=2,missing=-1){
+function svgChart(data,view,key=2,missing=-1,axisOverride=null){
  if(view==='table'||view==='tally')return svgTable(data,view,missing);
  const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),W=760,H=view==='pictogram'?120+data.rows.length*60:480;
  Object.entries({viewBox:'0 0 '+W+' '+H,xmlns:ns,role:'img','aria-label':data.title+' — '+viewName(view)}).forEach(([k,v])=>svg.setAttribute(k,v));
@@ -64,7 +64,7 @@ function svgChart(data,view,key=2,missing=-1){
    add('rect',{x:460,y:100+i*52,width:23,height:23,rx:3,fill:col});text(495,119+i*52,s.label,Math.min(24,245/Math.max(1,s.label.length*.6)));
   });text(460,440,'Total: '+total+' '+(data.unit||'items'),23);return svg;
  }
- const left=84,right=730,top=80,bottom=380,axis=M.axis(data),n=data.rows.length,slot=(right-left)/n;
+ const left=84,right=730,top=80,bottom=380,axis=axisOverride||M.axis(data),n=data.rows.length,slot=(right-left)/n;
  const py=v=>bottom-v/axis.max*(bottom-top),px=i=>left+(i+.5)*slot;
  for(let v=0;v<=axis.max;v+=axis.step){const y=py(v);add('line',{x1:left,x2:right,y1:y,y2:y,stroke:'#d6e3e1','stroke-width':1.5});text(left-12,y+7,String(v),22,{'text-anchor':'end'})}
  add('path',{d:'M '+left+' '+top+' V '+bottom+' H '+right,fill:'none',stroke:'#24343b','stroke-width':2});
@@ -119,16 +119,17 @@ if(G.publishing)G.publishing.register(ID,{
 });
 G.statisticsTable={svgTable,svgChart,randomData,recipe,generate};
 G.statisticsTableTool=function(){
- const CK=G.challengeKit;let data=initial(),view='table',workflow='build',task=null,setup=null,max=20,count=4,key=2,status='';
- const types=()=>questionTypes(view).filter(([id])=>id!=='complete');
+ const CK=G.challengeKit;let data=initial(),view='table',workflow='build',task=null,setup=null,max=20,count=4,key=2,status='',attempt=null;
+ const types=()=>questionTypes(view);
  function message(s){status=s;const el=q('#st-status');if(el)el.textContent=s}
  function change(i,delta){const rows=data.rows.map((r,j)=>({...r,value:j===i?Math.max(0,Math.min(40,r.value+delta)):r.value}));data=M.dataset(rows,data);render()}
  function launch(type){
   if(!task)setup=data;
+  attempt=null;
   const allowed=types();const chosenType=type==='all'?allowed[Math.floor(Math.random()*allowed.length)][0]:type;const question=generate(recipe({view,max,count,key},chosenType));data=question.data;const chosen=question.type;
   task=CK.normalise({mode:'standard',type:chosen,title:viewName(view),prompt:question.prompt,answer:String(question.answer),answerMode:'manual',revealed:false});if(chosen==='complete')task.missing=question.missing;workflow='challenge';render();
  }
- function exit(){if(setup)data=setup;setup=null;task=null;workflow='build';render()}
+ function exit(){if(setup)data=setup;setup=null;task=null;attempt=null;workflow='build';render()}
  function controls(){
   const tabs='<div class="gd-row" role="tablist" aria-label="Data workflow">'+[['build','Explore'],['challenge','Challenge']].map(([v,l])=>'<button class="gd-btn'+(workflow===v?' gd-btn--primary':'')+'" type="button" data-st-workflow="'+v+'">'+l+'</button>').join('')+'</div>';
   const select=(id,options,current)=>'<select class="gd-select" id="'+id+'">'+options.map(([v,l])=>'<option value="'+v+'"'+(String(v)===String(current)?' selected':'')+'>'+l+'</option>').join('')+'</select>';
@@ -139,8 +140,30 @@ G.statisticsTableTool=function(){
  }
  function renderStage(){
   const stage=q('#gd-stage');
-  stage.innerHTML=(task?CK.bannerHtml(task,{pupil:task.type==='complete'?CK.pupilSpec('number'):CK.pupilSpec('number'),actions:[{action:'another',label:'Another'},{action:'end',label:'Exit challenge'}]}):'')+'<div class="gd-st-diagram" style="width:100%;max-width:850px;margin:auto"></div>';
-  const svg=svgChart(data,view,key,task?.type==='complete'&&!task.revealed?task.missing:-1);svg.style.width='100%';svg.style.height='auto';q('.gd-st-diagram',stage).appendChild(svg);
+  const constructing=task?.type==='complete',target=constructing?data.rows[task.missing]:null;
+  const pupil=constructing?CK.pupilSpec('model',{hint:'Complete the diagram, then check your work.',ready:()=>attempt!==null,check:()=>attempt===target.value}):CK.pupilSpec('number');
+  stage.innerHTML=(task?CK.bannerHtml(task,{pupil,actions:[{action:'another',label:'Another'},{action:'end',label:'Exit challenge'}]}):'')+'<div class="gd-st-diagram" style="width:100%;max-width:850px;margin:auto"></div>';
+  const host=q('.gd-st-diagram',stage);
+  const axis=constructing&&['bar','line'].includes(view)?M.axis(data):null;
+  function draw(){
+   const editing=constructing&&!task.revealed,preview=editing&&attempt!==null?M.dataset(data.rows.map((r,i)=>i===task.missing?{...r,value:attempt}:r),data):data;
+   const svg=svgChart(preview,view,key,editing&&attempt===null?task.missing:-1,axis);
+   svg.style.width='100%';svg.style.height='auto';svg.style.display='block';host.replaceChildren(svg);
+   if(editing&&axis){
+    const ns='http://www.w3.org/2000/svg',slot=646/data.rows.length,x=84+(task.missing+.5)*slot,hit=document.createElementNS(ns,'rect');
+    Object.entries({x:x-slot*.42,y:80,width:slot*.84,height:300,fill:'#39887e','fill-opacity':'.045',stroke:'#39887e','stroke-dasharray':'5 5','data-st-plot-target':'1','aria-label':'Set missing graph value'}).forEach(([k,v])=>hit.setAttribute(k,v));
+    hit.style.cursor='crosshair';hit.style.touchAction='none';
+    hit.addEventListener('pointerdown',e=>{e.preventDefault();const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(svg.getScreenCTM().inverse());setAttempt(Math.round((380-p.y)/300*axis.max))});svg.appendChild(hit);
+   }
+  }
+  function setAttempt(v){const limit=axis?axis.max:40;attempt=Math.max(0,Math.min(limit,v));draw();const output=q('[data-st-attempt]',stage);if(output)output.textContent=attempt===null?'—':String(view==='pictogram'?attempt/key:attempt);CK.refreshModelPupil(task)}
+  draw();
+  if(constructing&&!task.revealed){
+   const step=view==='pictogram'?key:1,editor=document.createElement('div');editor.className='gd-row gd-st-construction';editor.style.cssText='justify-content:center;align-items:center;gap:12px;flex-wrap:wrap;padding:8px';
+   editor.innerHTML='<span>'+esc(view==='pictogram'?'Full symbols':view==='tally'?'Tally marks':view==='bar'?'Bar height':view==='line'?'Point value':'Frequency')+'</span><button type="button" class="gd-btn" data-st-edit="minus" aria-label="Decrease">−</button><strong data-st-attempt style="min-width:2.5em;text-align:center;font-size:1.4rem">'+(attempt===null?'—':String(view==='pictogram'?attempt/key:attempt))+'</strong><button type="button" class="gd-btn" data-st-edit="plus" aria-label="Increase">+</button><button type="button" class="gd-btn" data-st-edit="zero">Set zero</button>';
+   host.insertAdjacentElement('afterend',editor);
+   qa('[data-st-edit]',editor).forEach(b=>b.onclick=()=>setAttempt(b.dataset.stEdit==='zero'?0:(attempt??0)+(b.dataset.stEdit==='plus'?step:-step)));
+  }
   if(task){
    q('[data-challenge-action="another"]',stage).onclick=()=>launch(task.type);
    q('[data-challenge-action="end"]',stage).onclick=exit;
@@ -151,8 +174,8 @@ G.statisticsTableTool=function(){
  function renderControls(){
   const host=q('#gd-controls');host.innerHTML=controls();
   qa('[data-st-workflow]',host).forEach(el=>el.onclick=()=>{workflow=el.dataset.stWorkflow;if(workflow==='build'&&task)exit();else renderControls()});
-  q('#st-view',host).onchange=e=>{const next=validView(e.target.value);if(task){if(setup)data=setup;task=null;setup=null;}view=next;render()};
-  const keyInput=q('#st-key',host);if(keyInput)keyInput.onchange=e=>{key=Number(e.target.value);renderStage()};
+  q('#st-view',host).onchange=e=>{const next=validView(e.target.value);if(task){if(setup)data=setup;task=null;setup=null;}attempt=null;view=next;render()};
+  const keyInput=q('#st-key',host);if(keyInput)keyInput.onchange=e=>{if(task){if(setup)data=setup;task=null;setup=null;attempt=null;}key=Number(e.target.value);render()};
   q('#st-max',host).onchange=e=>{max=Number(e.target.value)};
   q('#st-count',host).onchange=e=>{count=Number(e.target.value)};
   qa('[data-st-challenge-mode]',host).forEach(el=>el.onclick=()=>launch(el.dataset.stChallengeMode));
@@ -162,9 +185,9 @@ G.statisticsTableTool=function(){
  }
  function render(){renderControls();renderStage()}
  setPanels('','');render();
- G.lessonState.register(ID,()=>({data,view,workflow,task,setup,max,count,key,pupil:CK.capturePupil(task)}),saved=>{
+ G.lessonState.register(ID,()=>({data,view,workflow,task,setup,max,count,key,attempt,pupil:CK.capturePupil(task)}),saved=>{
   data=M.dataset(saved.data.rows,saved.data);view=validView(saved.view);workflow=saved.workflow==='challenge'?'challenge':'build';max=[10,20,30,40].includes(saved.max)?saved.max:20;count=[3,4,5,6].includes(saved.count)?saved.count:4;
-  key=[1,2,5,10].includes(saved.key)?saved.key:2;setup=saved.setup?M.dataset(saved.setup.rows,saved.setup):null;task=saved.task?CK.normalise(saved.task):null;if(task&&saved.task.type==='complete')task.missing=saved.task.missing;CK.restorePupil(task,saved.pupil);render();
+  key=[1,2,5,10].includes(saved.key)?saved.key:2;setup=saved.setup?M.dataset(saved.setup.rows,saved.setup):null;task=saved.task?CK.normalise(saved.task):null;if(task&&saved.task.type==='complete')task.missing=saved.task.missing;attempt=task?.type==='complete'&&Number.isInteger(saved.attempt)&&saved.attempt>=0&&saved.attempt<=40?saved.attempt:null;CK.restorePupil(task,saved.pupil);render();
  });
 };
 })(window.TT99Goodies);
