@@ -937,6 +937,7 @@ function measurementTool(){
     return state.scale==='imperial'?decimalInches(state.cm):cmText(state.cm);
   }
   function refreshLiveMeasurement(){
+    CK?.refreshModelPupil?.(challenge);
     updateChallengeAnswer();
     qa('.gd-ruler-card[data-me-ruler-index]',q('#gd-stage')).forEach(card=>{
       const index=Math.round(num(card.dataset.meRulerIndex,0)),state=rulerState(index),maximum=maxCm(state.scale),imperial=state.scale==='imperial';
