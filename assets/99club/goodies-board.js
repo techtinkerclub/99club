@@ -65,6 +65,7 @@ const QUICK_ACTIONS={
   ],
   clock:[
     {label:'+ Clock',selector:'#cl-add-clock',allowHidden:true,title:'Add another clock'},
+    {label:'↔',selector:'[data-cl-layout-cycle]',allowHidden:true,dynamicLabel:true,title:'Change clock layout (horizontal / vertical / grid)'},
     {label:'− Clock',selector:'#cl-remove-clock',allowHidden:true,title:'Remove selected clock',danger:true}
   ],
   money:[
