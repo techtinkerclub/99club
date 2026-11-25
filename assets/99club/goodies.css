@@ -1715,3 +1715,12 @@ html.gd-embed-page,body.gd-embed-page{margin:0!important;width:100%!important;he
 #gd-stage .gd-array-touch-steps>div{display:flex;align-items:center;gap:6px}
 #gd-stage .gd-array-touch-steps span{min-width:72px;text-align:center;font-size:.8rem;font-weight:700;color:#456269}
 #gd-stage .gd-array-touch-steps button{min-width:40px;min-height:38px;padding:4px 9px;font-size:1.1rem;touch-action:manipulation}
+
+
+/* Challenge diagrams should contain only information pupils need. */
+#gd-stage .gd-array-workbench.is-focused-challenge{gap:8px}
+#gd-stage .gd-array-workbench.is-fixed-array .gd-array-history{display:none}
+#gd-stage .gd-array-workbench.is-fixed-array .gd-array-resize{background:transparent;border:0;box-shadow:none;opacity:1;cursor:default;pointer-events:none}
+#gd-stage .gd-array-workbench.is-fixed-array .gd-array-shell{margin-top:8px;margin-bottom:28px}
+#gd-stage .gd-pupil-response [data-gd-pupil-check]:disabled{background:#e6eceb!important;color:#718580!important;border-color:#d1dcda!important;box-shadow:none!important;cursor:default;opacity:1}
+#gd-stage .gd-pupil-response input:disabled{opacity:1;color:#38535a;-webkit-text-fill-color:#38535a}
