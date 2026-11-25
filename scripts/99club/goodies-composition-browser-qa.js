@@ -551,6 +551,34 @@ async function run(){
   publisher.querySelector('[data-pub-remove]').click();await tick();
   publisher.querySelector('[data-pub-close]').click();
   TT99Goodies.compositionBoard.remove(randomRecord.id);
+  // The FDP publication model is shared with the live widget.
+  {
+    const P=TT99Goodies.publishing,F=TT99Goodies.fdpPaperModel;
+    assert(P.canGenerate('fdp')&&F.types().length===6,'FDP publishes all six challenge families');
+    const draft=P.createDocument();
+    const ids=F.types().map(x=>x.id);
+    for(const id of ids)draft.generate('fdp',{responseLines:2},1,id,()=>0.1);
+    const items=draft.list();
+    assert(items.length===6&&items.every(item=>P.answerSummary(item)),'All FDP challenge families have frozen answers');
+    const build=items.find(item=>item.data.type==='build-percentage');
+    const pupil=P.renderItem(build,false),teacher=P.answerGraphic(build);
+    assert(!pupil.querySelector('[data-fdp-shaded="1"]')&&teacher.querySelectorAll('[data-fdp-shaded="1"]').length===build.data.challenge.targetNumerator,'FDP pupil shading is blank and teacher graphic is solved');
+    assert(P.answerNote(build).includes('Accept any valid shading'),'FDP marking guidance accepts equivalent valid shading');
+    assert(P.pages(items,{teacher:true}).some(page=>page.getAttribute('data-worksheet-answer')==='annex'),'FDP mixed-family worksheet includes teacher annex');
+    const live=F.generate('build-percentage',{},()=>0.1);
+    const captured=P.createDocument();captured.addCurrent('fdp',{...live,diagram:{numerator:0,denominator:1},challenge:{...live.challenge,revealed:true}});
+    assert(P.signature(captured.list()[0])===P.signature(build),'FDP current challenge capture preserves original question after reveal or manipulation');
+    for(const type of ids){
+      for(let i=0;i<12;i++){
+        const d=F.generate(type,{},()=>i/12),c=d.challenge,{numerator:n,denominator:den}=d.diagram;
+        if(type==='to-decimal')assert(Number(c.answer)===n/den,'FDP decimal answer is exact');
+        if(type==='to-percentage')assert(Math.abs(parseFloat(c.answer)-n/den*100)<1e-8,'FDP percentage answer is exact');
+        if(type==='build-percentage')assert(Math.abs(c.targetNumerator/c.targetDenominator*100-c.targetPercent)<1e-8,'FDP shading target is exact');
+        if(type==='simplify-fraction'){const [a,b]=c.answer.split('/').map(Number);assert(a*den===b*n,'FDP simplified answer is equivalent');}
+      }
+    }
+  }
+
 
   document.querySelector('[data-board-add="maths-canvas"]').click();await tick();
   const mcRecord=TT99Goodies.compositionBoard.objects().find(x=>x.toolId==='maths-canvas');

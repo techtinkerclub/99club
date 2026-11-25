@@ -3535,6 +3535,85 @@ function factorExplorer(){
 
 }
 
+const FDP_TEMPLATES=[
+    {id:'to-decimal',category:'convert',title:'Fraction to decimal',desc:'Convert the shown fraction to a decimal.'},
+    {id:'to-percentage',category:'convert',title:'Fraction to percentage',desc:'Convert the shown fraction to a percentage.'},
+    {id:'equivalent-fraction',category:'equivalent',title:'Complete an equivalent fraction',desc:'Find the missing numerator or denominator.'},
+    {id:'simplify-fraction',category:'equivalent',title:'Simplify the fraction',desc:'Write the shown fraction in its simplest form.'},
+    {id:'build-percentage',category:'build',title:'Build a percentage',desc:'Adjust the fraction until it represents the requested percentage.'},
+    {id:'spot-percent-error',category:'reason',title:'Spot the percentage error',desc:'Decide whether a displayed percentage matches the fraction.'}
+  ];
+function fdpSettings(model={}){return {responseLines:clamp(Math.round(Number(model.responseLines??model.settings?.responseLines)||1),1,4)}}
+function fdpTypes(){return FDP_TEMPLATES.map(t=>({id:t.id,label:t.title}))}
+function fdpGenerate(type,settings={},rng=Math.random,previous=''){
+ const meta=FDP_TEMPLATES.find(t=>t.id===type);if(!meta)throw Error('Unknown FDP challenge.');
+ let numerator=1,denominator=2,variantKey='';
+ const pick=list=>{const choices=list.filter(v=>JSON.stringify(v)!==previous),v=choices[Math.floor(rng()*choices.length)];variantKey=JSON.stringify(v);return v};
+ const decimal=()=>String(Number((numerator/denominator).toFixed(4))),percent=()=>String(Number((numerator/denominator*100).toFixed(2)));
+ let prompt,answer,extra={};
+ if(type==='to-decimal'){
+  [numerator,denominator]=pick([[3,8],[1,4],[3,5],[7,10],[5,8],[9,20],[1,8],[3,4]]);
+  prompt='Write '+numerator+'/'+denominator+' as a decimal.';answer=decimal();extra={hiddenDecimal:true,hiddenPercent:true,hiddenHundred:true};
+ }else if(type==='to-percentage'){
+  [numerator,denominator]=pick([[3,5],[1,4],[7,10],[3,8],[4,5],[9,20],[5,8]]);
+  prompt='Write '+numerator+'/'+denominator+' as a percentage.';answer=percent()+'%';extra={hiddenDecimal:true,hiddenPercent:true,hiddenHundred:true};
+ }else if(type==='equivalent-fraction'){
+  const [n,d,k]=pick([[3,4,2],[2,3,3],[1,5,4],[3,5,2],[2,7,2],[5,6,3]]);numerator=n;denominator=d;
+  prompt='Complete the equivalent fraction: '+n+'/'+d+' = '+n*k+'/?.';answer=String(d*k);extra={hiddenEquivalentFamily:true};
+ }else if(type==='simplify-fraction'){
+  [numerator,denominator]=pick([[6,8],[4,6],[8,12],[10,15],[6,10],[9,12],[12,16],[15,20]]);
+  const g=gcd(numerator,denominator);prompt='Write '+numerator+'/'+denominator+' in its simplest form.';answer=numerator/g+'/'+denominator/g;extra={hiddenFraction:true,hiddenEquivalentFamily:true};
+ }else if(type==='build-percentage'){
+  const [n,d]=pick([[3,4],[1,4],[2,5],[4,5],[3,5],[1,5],[7,10],[3,8]]);
+  const targetPercent=n/d*100;prompt='Change the model until it represents '+targetPercent+'%.';answer=n+'/'+d+' = '+targetPercent+'%';extra={freezeModel:false,targetPercent,targetNumerator:n,targetDenominator:d};
+ }else{
+  const [n,d,wrong]=pick([[2,5,45],[1,4,20],[3,4,70],[3,5,65],[1,5,25],[7,10,75]]);numerator=n;denominator=d;
+  const valid=rng()<.5,shown=valid?Number(percent()):wrong;
+  prompt='The percentage shown is '+shown+'%. Is that correct? Explain.';answer=valid?'Yes. '+n+'/'+d+' = '+percent()+'%.':'No. '+n+'/'+d+' = '+percent()+'%, not '+shown+'%.';extra={wrongPercent:shown,hiddenDecimal:true,hiddenHundred:true};
+ }
+ const diagram={numerator,denominator,equivScale:1};
+ const raw={mode:'standard',type,category:meta.category,title:'',prompt,promptHtml:prompt,answer,answerMode:'manual',answerSource:'',revealed:false,freezeModel:true,hiddenSource:false,hiddenFraction:false,hiddenDecimal:false,hiddenPercent:false,hiddenHundred:false,hiddenEquivalentFamily:false,targetPercent:null,wrongPercent:null,...extra,variantKey,initialState:{...diagram}};
+ return {type,settings:fdpSettings(settings),diagram,challenge:raw};
+}
+function fdpPublicationData(model){
+ const c=model.challenge?JSON.parse(JSON.stringify(model.challenge)):null;
+ if(c?.mode==='custom')throw Error('Use individual export for custom FDP tasks.');
+ const diagram=JSON.parse(JSON.stringify(c?.initialState||model.diagram||model));
+ if(c){c.revealed=false;delete c.modelBeforeReveal}
+ return {type:c?.type,settings:fdpSettings(model),diagram,challenge:c};
+}
+function fdpPaper(data,teacher=false,graphicOnly=false){
+ const c=data.challenge,build=c?.type==='build-percentage',state=data.diagram;
+ let n=state.numerator,d=state.denominator;
+ if(build){n=c.targetNumerator;d=c.targetDenominator}
+ const W=720,H=c?.type==='spot-percent-error'&&!teacher?160:130;
+ const node=(name,attrs={},value)=>{const el=document.createElementNS('http://www.w3.org/2000/svg',name);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,String(v));if(value!==undefined)el.textContent=String(value);return el};
+ const svg=node('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':build&&!teacher?'Blank fraction bar':'Fraction bar'});
+ const add=(name,attrs,value)=>svg.appendChild(node(name,attrs,value));
+ const text=(x,y,value)=>add('text',{x,y,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':22,fill:'#304b52','font-weight':700},value);
+ add('rect',{width:W,height:H,fill:'#fff'});
+ if(!build||teacher)text(W/2,26,n+'/'+d);
+ for(let i=0;i<d;i++)add('rect',{x:30+i*660/d,y:40,width:660/d,height:64,fill:(!build||teacher)&&i<n?'#f6cf79':'#fff',stroke:'#526b70','stroke-width':1.5,'data-fdp-paper-part':i,'data-fdp-shaded':(!build||teacher)&&i<n?'1':'0'});
+ if(c?.type==='spot-percent-error'&&!teacher)text(W/2,143,c.wrongPercent+'%');
+ if(!c){const pct=String(Number((n/d*100).toFixed(2))),decimal=String(Number((n/d).toFixed(4)));text(W/2,126,decimal+' = '+pct+'%');return svg}
+ if(graphicOnly)return svg;
+ const lines=Math.max(data.settings.responseLines,c.category==='reason'?3:1);
+ return G.exportTools.composeWorksheetCardSvg(svg,{title:FDP_TEMPLATES.find(t=>t.id===c.type)?.title||'FDP challenge',prompt:build?'Shade '+c.targetPercent+'% of the bar.':c.prompt,responseMode:build?'none':lines>1?'lines':'box',responseLabel:c.category==='reason'?'Explain your thinking':'Answer',responseLines:lines,paperStyle:'plain',answer:c.answer,showAnswer:teacher,diagramMaxHeight:230});
+}
+G.fdpPaperModel={settings:fdpSettings,types:fdpTypes,generate:fdpGenerate,render:fdpPaper};
+if(G.publishing)G.publishing.register('fdp',{
+ label:'Fraction–decimal–percentage',types:fdpTypes,
+ title:item=>item.kind==='diagram'?'Fraction–decimal–percentage illustration':FDP_TEMPLATES.find(t=>t.id===item.data.type)?.title||'FDP challenge',
+ signature:d=>JSON.stringify([d.type,d.challenge.prompt]),
+ recipe:(model,type)=>({type,settings:fdpSettings(model)}),
+ generate(recipe,rng){const ids=fdpTypes().map(t=>t.id);return fdpGenerate(recipe.type==='all'?ids[Math.floor(rng()*ids.length)]:recipe.type,recipe.settings,rng)},
+ capture(model){const d=fdpPublicationData(model);return [G.publishing.record('fdp',d.challenge?'challenge':'diagram',d,d.challenge?{type:d.type,settings:d.settings}:null)]},
+ answerSummary:item=>item.data.challenge.answer,
+ answerGraphic:item=>fdpPaper(item.data,true,true),
+ answerNote:item=>{const c=item.data.challenge;if(c.type==='build-percentage')return 'Accept any valid shading representing exactly '+c.targetPercent+'% of the whole.';if(c.type==='simplify-fraction')return 'The numerator and denominator must have no common factor greater than 1.';if(c.type==='spot-percent-error')return 'Accept equivalent explanations that calculate the correct percentage and compare it with the displayed value.';if(c.type==='to-decimal'||c.type==='to-percentage')return 'Accept equivalent notation, including trailing decimal zeros.';return 'The missing denominator must preserve the value of the original fraction.'},
+ render(item,teacher){return fdpPaper(item.data,teacher)}
+});
+
 function fdpExplorer(){
   const CK=G.challengeKit,X=G.exportTools;
   let numerator=3,denominator=8,equivScale=1;
@@ -3548,14 +3627,7 @@ function fdpExplorer(){
     {id:'build',label:'Build'},
     {id:'reason',label:'Reasoning'}
   ];
-  const CHALLENGE_TEMPLATES=[
-    {id:'to-decimal',category:'convert',title:'Fraction to decimal',desc:'Convert the shown fraction to a decimal.'},
-    {id:'to-percentage',category:'convert',title:'Fraction to percentage',desc:'Convert the shown fraction to a percentage.'},
-    {id:'equivalent-fraction',category:'equivalent',title:'Complete an equivalent fraction',desc:'Find the missing numerator or denominator.'},
-    {id:'simplify-fraction',category:'equivalent',title:'Simplify the fraction',desc:'Write the shown fraction in its simplest form.'},
-    {id:'build-percentage',category:'build',title:'Build a percentage',desc:'Adjust the fraction until it represents the requested percentage.'},
-    {id:'spot-percent-error',category:'reason',title:'Spot the percentage error',desc:'Decide whether a displayed percentage matches the fraction.'}
-  ];
+  const CHALLENGE_TEMPLATES=FDP_TEMPLATES;
   let controlTab='explore',challengeTab='standard',challengeCategory='convert',challengeType='to-decimal',challenge=null,beforeChallenge=null;
   let exportMode='diagram',responseLines=1,exportStatus='';
 
@@ -3748,33 +3820,10 @@ function fdpExplorer(){
   function generateChallenge(type){
     const meta=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!meta)return;
     if(!beforeChallenge)beforeChallenge=snapshot();else restore(beforeChallenge);
-    undoStack.length=0;redoStack.length=0;equivScale=1;
-    let variantKey='';
-    const pick=list=>{const v=CK.pickVariant(list,challenge?.type===type?challenge.variantKey:'');variantKey=JSON.stringify(v);return v};
-    if(type==='to-decimal'){
-      [numerator,denominator]=pick([[3,8],[1,4],[3,5],[7,10],[5,8],[9,20],[1,8],[3,4]]);
-      challenge=challengeObject(type,'Write '+numerator+'/'+denominator+' as a decimal.',decimalText(),{hiddenDecimal:true,hiddenPercent:true,hiddenHundred:true});
-    }else if(type==='to-percentage'){
-      [numerator,denominator]=pick([[3,5],[1,4],[7,10],[3,8],[4,5],[9,20],[5,8]]);
-      challenge=challengeObject(type,'Write '+numerator+'/'+denominator+' as a percentage.',percentText()+'%',{hiddenDecimal:true,hiddenPercent:true,hiddenHundred:true});
-    }else if(type==='equivalent-fraction'){
-      const [n,d,k]=pick([[3,4,2],[2,3,3],[1,5,4],[3,5,2],[2,7,2],[5,6,3]]);
-      numerator=n;denominator=d;
-      challenge=challengeObject(type,'Complete the equivalent fraction: '+n+'/'+d+' = '+n*k+'/?.',String(d*k),{hiddenEquivalentFamily:true});
-    }else if(type==='simplify-fraction'){
-      [numerator,denominator]=pick([[6,8],[4,6],[8,12],[10,15],[6,10],[9,12],[12,16],[15,20]]);
-      const f=simplified();challenge=challengeObject(type,'Write '+numerator+'/'+denominator+' in its simplest form.',f.n+'/'+f.d,{hiddenFraction:true,hiddenEquivalentFamily:true});
-    }else if(type==='build-percentage'){
-      const [n,d]=pick([[3,4],[1,4],[2,5],[4,5],[3,5],[1,5],[7,10],[3,8]]);
-      const targetPercent=n/d*100;numerator=1;denominator=2;
-      challenge=challengeObject(type,'Change the model until it represents '+targetPercent+'%.',n+'/'+d+' = '+targetPercent+'%',{freezeModel:false,targetPercent,targetNumerator:n,targetDenominator:d});
-    }else{
-      const [n,d,wrong]=pick([[2,5,45],[1,4,20],[3,4,70],[3,5,65],[1,5,25],[7,10,75]]);
-      numerator=n;denominator=d;const valid=Math.random()<.5,shown=valid?percentValue():wrong;
-      challenge=challengeObject(type,'The percentage shown is '+shown+'%. Is that correct? Explain.',valid?'Yes. '+n+'/'+d+' = '+percentText()+'%.':'No. '+n+'/'+d+' = '+percentText()+'%, not '+shown+'%.',{wrongPercent:shown,hiddenDecimal:true,hiddenHundred:true});
-    }
-    challenge.variantKey=variantKey;
-    challenge.initialState=snapshot();
+    undoStack.length=0;redoStack.length=0;
+    const generated=fdpGenerate(type,{responseLines},Math.random,challenge?.type===type?challenge.variantKey:'');
+    restore(generated.diagram);
+    challenge=CK?CK.normalise(generated.challenge):generated.challenge;
     challengeType=type;challengeCategory=meta.category;challengeTab='standard';controlTab='challenge';exportMode='challenge';responseLines=meta.category==='reason'?3:1;exportStatus='';renderControls();draw();
   }
   function enterCustomChallenge(){
