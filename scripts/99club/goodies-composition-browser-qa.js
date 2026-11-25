@@ -401,7 +401,7 @@ async function run(){
   assert(abFrame&&abFrame.classList.contains('is-ready'),'Classical Abacus reaches embedded ready state');
   assert(abRecord.baseW>=740,'Abacus receives enough width for the place-value rods');
   const abIframe=abFrame.querySelector('iframe'),abDoc=abIframe.contentDocument,abWin=abIframe.contentWindow;
-  assert(abDoc.querySelector('.gd-ab-frame--western')&&abDoc.querySelectorAll('[data-ab-col]').length===5&&abDoc.querySelectorAll('[data-ab-bead]').length===45,'Whiteboard Abacus renders five Western rows of nine physical beads');
+  assert(abDoc.querySelector('.gd-ab-frame--western')&&abDoc.querySelectorAll('[data-ab-col]').length===5&&abDoc.querySelectorAll('[data-ab-bead]').length===50,'Whiteboard Abacus renders five Western rows of ten physical beads');
 
   const abSettings=abFrame.querySelector('[data-board-settings]');abSettings.click();await tick();
   const abFloating=document.getElementById('gd-board-floating-controls');
@@ -527,6 +527,14 @@ async function run(){
         const horizontal=innerStage.scrollWidth-innerStage.clientWidth;
         if(vertical>3||horizontal>3)clipFailures.push(label+' (vertical +'+Math.max(0,vertical)+'px, horizontal +'+Math.max(0,horizontal)+'px)');
       }
+      if(record.toolId!=='balance'){
+        const stateApi=frame.querySelector('iframe').contentWindow.TT99Goodies.lessonState;
+        assert(stateApi?.supports(record.toolId),'State adapter is registered for '+record.toolId);
+        const saved=stateApi.capture(record.toolId);
+        assert(saved.tool===record.toolId&&saved.version===1&&saved.model,'Captures editable state for '+record.toolId);
+        assert(stateApi.restore(record.toolId,saved),'Restores editable state for '+record.toolId);
+        assert(stateApi.capture(record.toolId).tool===saved.tool,'Restored state is readable for '+record.toolId);
+      }
       mounted.push(record.toolId);
       TT99Goodies.compositionBoard.remove(record.id);
       await tick();
@@ -535,7 +543,37 @@ async function run(){
     assert(clipFailures.length===0,'Whiteboard frame clipping: '+clipFailures.join('; '));
   }
 
-  result('pass','board','Mixed whiteboard objects are frameless, scalable, contextual and all palette tools mount','tools='+tools.length);
+  // Exercise the actual saved-board library with a mixed editable lesson.
+  const api=TT99Goodies.compositionBoard;
+  async function addForSave(id){
+    api.add(id);const record=api.objects().slice(-1)[0],frame=document.querySelector('[data-board-object="'+record.id+'"]');
+    for(let i=0;i<50&&!frame.classList.contains('is-ready');i++)await tick(40);
+    assert(frame.classList.contains('is-ready'),'Lesson object is ready: '+id);await tick(50);
+    return {record,frame,doc:frame.querySelector('iframe').contentDocument};
+  }
+  const saveAb=await addForSave('abacus');
+  saveAb.doc.querySelector('[data-ab-bead="4:unit:0"]').click();
+  const saveNl=await addForSave('number-line');
+  const saved=api.capture();
+  assert(saved.objects.length===2,'Mixed board captures both objects');
+  document.getElementById('gd-board-saved').click();
+  assert(document.getElementById('gd-board-library').open,'Saved boards library opens');
+  document.getElementById('gd-board-save-name').value='QA lesson';
+  document.getElementById('gd-board-save-current').click();
+  const stored=JSON.parse(localStorage.getItem('tt99-whiteboard-lessons-v1'));
+  assert(stored.some(e=>e.name==='QA lesson'&&e.board.objects.length===2),'Library writes a named editable board');
+  document.querySelector('[data-board-library-close]').click();
+  await api.restore(saved);await tick(80);
+  const restored=api.capture();
+  assert(restored.objects.length===2,'Mixed lesson opens with both objects');
+  const restoredAb=restored.objects.find(o=>o.toolId==='abacus'),originalAb=saved.objects.find(o=>o.toolId==='abacus');
+  assert(JSON.stringify(restoredAb.state.model.counts)===JSON.stringify(originalAb.state.model.counts),'Abacus bead positions survive save and restore');
+  assert(restoredAb.x===originalAb.x&&restoredAb.y===originalAb.y&&restoredAb.scale===originalAb.scale,'Object position and scale survive save and restore');
+  const broken=JSON.parse(JSON.stringify(saved));broken.objects[0].state.model.counts=null;
+  let failed=false;try{await api.restore(broken)}catch(_){failed=true}
+  assert(failed&&api.objects().length===2,'Failed restore keeps original lesson intact');
+  localStorage.removeItem('tt99-whiteboard-lessons-v1');
+  result('pass','board','Mixed whiteboard objects are frameless, scalable, contextual, all palette tools mount and editable lessons restore','tools='+tools.length);
 }
 window.addEventListener('load',()=>setTimeout(()=>run().catch(err=>result('fail','board',err&&err.message?err.message:String(err),err&&err.stack?err.stack:'')),180));
 })();`;
