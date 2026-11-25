@@ -229,11 +229,11 @@ const NL_PRESETS={'0-20':{min:0,max:20,step:1},'0-100':{min:0,max:100,step:10},'
 function nlSettings(model={}){
  const src=model.generationSettings||model.state||model,preset=NL_PRESETS[src.preset],raw=preset||src;
  const min=num(raw.min,-10),max=Math.max(min+.0001,num(raw.max,20)),step=Math.max(.0001,Math.min(max-min,num(raw.step,1)));
- const intervals=Math.max(1,Math.min(50,Math.floor((max-min)/step+1e-6)));
- const actualStep=cleanNumber(Math.max(step,(max-min)/50)),actualMax=cleanNumber(min+intervals*actualStep);
+ const rawIntervals=Math.max(1,Math.floor((max-min)/step+1e-6)),stride=Math.max(1,Math.ceil(rawIntervals/50));
+ const intervals=Math.max(1,Math.floor(rawIntervals/stride)),actualStep=cleanNumber(step*stride),actualMax=cleanNumber(min+intervals*actualStep);
  return {min,max:actualMax,step:actualStep,labelEvery:Math.max(1,Math.min(50,Math.round(num(raw.labelEvery,1)))),showTickLabels:true,responseLines:Math.max(1,Math.min(4,Math.round(num(model.responseLines,1))))};
 }
-function nlTypes(model){return templatesFor(nlSettings(model)).filter(t=>!t.disabled).map(t=>({id:t.id,label:t.title}))}
+function nlTypes(model){return templatesFor(nlSettings({...model,generationSettings:model?.state?.challenge?.generationSettings||model?.beforeChallenge||model?.state||model})).filter(t=>!t.disabled).map(t=>({id:t.id,label:t.title}))}
 function nlRenderer(state,embedded=true){
   function scaleFor(line){
     return line&&line.scaleMode!=='shared'
@@ -864,7 +864,7 @@ G.numberLinePaperModel={settings:nlSettings,generate:nlGenerate,types:nlTypes,re
 if(G.publishing)G.publishing.register('number-line',{
  label:'Number line',types:nlTypes,title:item=>item.kind==='diagram'?'Number line illustration':CHALLENGE_TEMPLATES.find(t=>t.id===item.data.type)?.title||'Number line challenge',
  signature:d=>JSON.stringify([d.type,d.state.challenge.prompt,d.state.min,d.state.max,d.state.step,d.state.challenge.answer,d.state.challenge.hiddenTicks,d.state.lines.map(l=>[l.min,l.max,l.step,l.markers.map(m=>[m.label,m.value])])]),
- recipe:(model,type)=>({type,settings:nlSettings(model.beforeChallenge||model.state&&model.state.challenge&&model.state.challenge.generationSettings||model)}),
+ recipe:(model,type)=>({type,settings:nlSettings({...model,generationSettings:model.state?.challenge?.generationSettings||model.beforeChallenge||model.state||model})}),
  generate(recipe,rng){const ids=nlTypes(recipe.settings).map(t=>t.id);return nlGenerate(recipe.type==='all'?ids[Math.floor(rng()*ids.length)]:recipe.type,recipe.settings,rng)},
  capture(model){const d=nlData(model);return [G.publishing.record('number-line',d.state.challenge?'challenge':'diagram',d,d.state.challenge?{type:d.type,settings:d.settings}:null)]},
  answerSummary:item=>item.data.state.challenge.answer,
@@ -1642,13 +1642,7 @@ function numberLineV2(){
     });
     return out;
   }
-  function buildSvg(interactive=false){
-    const plan=layout();
-    const title=state.title?`<text x="500" y="30" text-anchor="middle" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#24343b">${esc(state.title)}</text>`:'';
-    const connections=teachingConnections(plan);
-    const liveBrand=embedded?'':`<text x="500" y="${plan.height-6}" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#87969a">99 Club Studio</text>`;
-    return `<svg id="nl-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 ${plan.height}" role="img" aria-label="Interactive number line workspace with ${state.lines.length} line${state.lines.length===1?'':'s'}"><defs>${state.lines.map(line=>line.relations.filter(r=>r.type==='jump').map(r=>`<marker id="nl-arrow-${esc(line.id)}-${esc(r.id)}" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,4 L0,8 z" fill="${esc(r.color)}"/></marker>`).join('')).join('')}</defs><rect x="0" y="0" width="1000" height="${plan.height}" rx="18" fill="#ffffff"/>${title}${connections}${plan.lines.map(l=>buildLine(l,interactive)).join('')}${liveBrand}</svg>`;
-  }
+  function buildSvg(interactive=false){return nlRenderer(state,embedded).buildSvg(interactive)}
   function boardMarkerRows(){
     const line=activeLine(),scale=scaleFor(line);
     return line.markers.map(m=>`<div class="nl-board-item">
