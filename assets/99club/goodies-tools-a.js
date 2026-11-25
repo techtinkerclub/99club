@@ -4344,7 +4344,8 @@ function clockTool(){
     {id:'read',label:'Read the clock'},
     {id:'set',label:'Set & elapsed time'},
     {id:'convert',label:'12 / 24 hour'},
-    {id:'reason',label:'Reasoning'}
+    {id:'reason',label:'Reasoning'},
+    {id:'two-clocks',label:'Compare two clocks'}
   ];
   const CHALLENGE_TEMPLATES=[
     {id:'read-five',category:'read',title:'Read to 5 minutes',desc:'Read an analogue time shown to a 5-minute interval.'},
@@ -4356,7 +4357,11 @@ function clockTool(){
     {id:'twelve-to-twentyfour',category:'convert',title:'12-hour to 24-hour',desc:'Convert a shown am/pm time to 24-hour notation.'},
     {id:'twentyfour-to-twelve',category:'convert',title:'24-hour to 12-hour',desc:'Convert a 24-hour time to 12-hour am/pm notation.'},
     {id:'time-language',category:'reason',title:'Say the time',desc:'Write an analogue time using past/to language.'},
-    {id:'hour-hand-misconception',category:'reason',title:'Where should the hour hand be?',desc:'Diagnose the common idea that the hour hand stays on the hour number.'}
+    {id:'hour-hand-misconception',category:'reason',title:'Where should the hour hand be?',desc:'Diagnose the common idea that the hour hand stays on the hour number.'},
+    {id:'two-elapsed',category:'two-clocks',title:'Elapsed time',desc:'Calculate minutes between a start and a finish.'},
+    {id:'two-order',category:'two-clocks',title:'Which is earlier?',desc:'Compare two analogue times with AM/PM evidence.'},
+    {id:'two-duration-reason',category:'two-clocks',title:'Check a duration',desc:'Decide whether a stated duration is correct.'},
+    {id:'two-midnight',category:'two-clocks',title:'Across midnight',desc:'Calculate elapsed time across two labelled days.'}
   ];
   let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='read-five',challenge=null,beforeChallenge=null;
   let exportMode='diagram',responseLines=1,exportStatus='';
@@ -4483,6 +4488,10 @@ function clockTool(){
   function anyTimeHidden(){
     return !!(challenge&&!challenge.revealed&&Array.isArray(challenge.hiddenReadouts)&&challenge.hiddenReadouts.length);
   }
+  function twoClockTask(){return challenge?.mode==='standard'&&challenge.category==='two-clocks'&&Array.isArray(challenge.clockEvidence)}
+  function availableClockTemplates(){return CHALLENGE_TEMPLATES.filter(t=>t.category!=='two-clocks'||extraClocks.length>0)}
+  function visibleClockLabel(index){return twoClockTask()?challenge.clockEvidence[index].label:clockLabel(index)}
+  function periodLabel(state){return state.hour<12?'AM':'PM'}
   function handsFrozen(){return !!(challenge&&challenge.mode==='standard'&&(challenge.freezeHands||challenge.revealed))}
   function challengeObject(type,prompt,answer,extra={}){
     const meta=CHALLENGE_TEMPLATES.find(t=>t.id===type);
@@ -4578,6 +4587,7 @@ function clockTool(){
     return{hour:h,minute:m,blankHands,source};
   }
   function clockExportSvg({pupil=false}={}){
+    if(twoClockTask())return multiClockExportSvg({pupil});
     if(!pupil&&!challenge&&extraClocks.length)return multiClockExportSvg();
     const state=exportClockState(pupil),focused=pupil&&challenge?.mode==='standard',width=760,height=focused?(state.blankHands?530:495):690,cx=380,cy=255,r=205;
     const svg=clSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Analogue clock','data-cl-export':'clock'});
@@ -4630,15 +4640,15 @@ function clockTool(){
     svg.appendChild(clSvgEl('text',{x:width-42,y:height-18,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':10,fill:'#87969a'},'99 Club Studio'));
     return svg;
   }
-  function multiClockExportSvg(){
-    const states=clockStates(),width=1100,cols=2,cardW=500,cardH=400,gapX=40,gapY=20,rows=Math.ceil(states.length/cols);
-    const diffCount=Math.max(0,states.length-1),diffH=diffCount?90+Math.ceil(diffCount/3)*58:30,height=40+rows*(cardH+gapY)+diffH;
+  function multiClockExportSvg({pupil=false}={}){
+    const task=twoClockTask(),states=task?challenge.clockEvidence:clockStates(),width=1100,cols=2,cardW=500,cardH=task?350:400,gapX=40,gapY=20,rows=Math.ceil(states.length/cols);
+    const diffCount=task?0:Math.max(0,states.length-1),diffH=diffCount?90+Math.ceil(diffCount/3)*58:30,height=40+rows*(cardH+gapY)+diffH;
     const svg=clSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Clock comparison','data-cl-export':'clock-comparison'});
     svg.appendChild(clSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
     states.forEach((state,index)=>{
       const col=index%cols,row=Math.floor(index/cols),x0=30+col*(cardW+gapX),y0=25+row*(cardH+gapY),cx=x0+cardW/2,cy=y0+165,r=128;
       svg.appendChild(clSvgEl('rect',{x:x0,y:y0,width:cardW,height:cardH,rx:18,fill:'#fbfcfc',stroke:'#d9e2e4','stroke-width':2,'data-cl-export-clock-index':index}));
-      svg.appendChild(clSvgEl('text',{x:x0+18,y:y0+28,'font-family':'Arial,sans-serif','font-size':16,'font-weight':850,fill:'#334a52'},clockLabel(index)));
+      svg.appendChild(clSvgEl('text',{x:x0+18,y:y0+28,'font-family':'Arial,sans-serif','font-size':16,'font-weight':850,fill:'#334a52'},visibleClockLabel(index)));
       svg.appendChild(clSvgEl('circle',{cx,cy,r,fill:'#ffffff',stroke:'#43555c','stroke-width':4}));
       for(let i=0;i<60;i++){
         const a=(i*6-90)*Math.PI/180,major=i%5===0,inner=r-(major?18:12),outer=r-6;
@@ -4652,6 +4662,7 @@ function clockTool(){
       svg.appendChild(clSvgEl('line',{x1:cx,y1:cy,x2:cx+70*Math.cos(ha),y2:cy+70*Math.sin(ha),stroke:'#24343b','stroke-width':8,'stroke-linecap':'round'}));
       svg.appendChild(clSvgEl('line',{x1:cx,y1:cy,x2:cx+96*Math.cos(ma),y2:cy+96*Math.sin(ma),stroke:'#147d75','stroke-width':6,'stroke-linecap':'round'}));
       svg.appendChild(clSvgEl('circle',{cx,cy,r:7,fill:'#f2b84b',stroke:'#8b681f','stroke-width':1.5}));
+      if(task){svg.appendChild(clSvgEl('text',{x:cx,y:y0+320,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':20,'font-weight':850,fill:'#334a52'},periodLabel(state)));return}
       svg.appendChild(clSvgEl('text',{x:x0+28,y:y0+360,'font-family':'Arial,sans-serif','font-size':13,'font-weight':750,fill:'#718288'},'24-hour'));
       svg.appendChild(clSvgEl('text',{x:x0+150,y:y0+360,'font-family':'Arial,sans-serif','font-size':18,'font-weight':900,fill:'#304b52'},format24(state.hour,state.minute)));
       svg.appendChild(clSvgEl('text',{x:x0+270,y:y0+360,'font-family':'Arial,sans-serif','font-size':13,'font-weight':750,fill:'#718288'},'12-hour'));
@@ -4725,7 +4736,9 @@ function clockTool(){
         (challenge?'<button class="gd-btn" id="cl-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
         '<p class="gd-help">Custom challenges stay linked to the live clock. Bound time answers hide both digital readouts so one representation cannot give away another.</p>';
     }
-    const picker=CK.pickerHtml(CHALLENGE_TEMPLATES,CHALLENGE_CATEGORIES,challengeCategory,challengeType,'cl');
+    const templates=availableClockTemplates(),categories=CHALLENGE_CATEGORIES.filter(c=>templates.some(t=>t.category===c.id));
+    if(!templates.some(t=>t.id===challengeType)){challengeType=templates[0].id;challengeCategory=templates[0].category}
+    const picker=CK.pickerHtml(templates,categories,challengeCategory,challengeType,'cl');
     const repeat=!!(challenge&&challenge.mode==='standard'&&challenge.type===challengeType);
     return tabs+picker+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="cl-generate" type="button">'+(repeat?'Another like this':'Generate challenge')+'</button>'+
       (challenge&&challenge.mode!=='custom'?'<button class="gd-btn" id="cl-edit-challenge" type="button">Edit challenge</button>':'')+
@@ -4744,7 +4757,7 @@ function clockTool(){
     if(beforeChallenge){restoreSnapshot(beforeChallenge);beforeChallenge=null}
   }
   function clearChallenge(){
-    restoreBeforeChallenge();challenge=null;challengeTab='standard';controlTab='challenge';renderControls();draw();
+    restoreBeforeChallenge();challenge=null;challengeTab='standard';controlTab='explore';exportMode='diagram';renderControls();draw();
   }
   function enterCustomChallenge(){
     const wasCustom=challenge?.mode==='custom';
@@ -4772,10 +4785,34 @@ function clockTool(){
     return{hour:Math.floor(startTotal/60),minute:Math.floor(startTotal%60/step)*step};
   }
   function generateChallenge(type){
-    const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
+    const template=availableClockTemplates().find(t=>t.id===type);if(!template)return;
     if(!beforeChallenge)beforeChallenge=snapshot();else restoreSnapshot(beforeChallenge);
     activeClock=0;numerals='arabic';snap=5;second=0;
-    if(type==='read-five'){
+    if(template.category==='two-clocks'){
+      showSeconds=false;
+      const pick=arr=>arr[Math.floor(Math.random()*arr.length)];
+      let start=pick([8,9,10,11,13,14,15,16,17])*60+randomMinute(5);
+      let elapsed=pick([15,20,25,35,40,45,50,55,65,75,85,90,105,120,135,150]);
+      if(type==='two-midnight'){start=23*60+pick([15,20,25,30,35,40,45,50,55]);elapsed=pick([60,65,75,90,105,120,135])}
+      const finish=start+elapsed,asState=(t,label)=>({...normaliseClockTime(0,t),second:0,label});
+      let evidence=[asState(start,type==='two-midnight'?'Start · Day 1':'Start'),asState(finish,type==='two-midnight'?'Finish · Day 2':'Finish')];
+      let prompt='How many minutes elapse from Start to Finish?',answer=String(elapsed);
+      let explanation=format24(evidence[0].hour,evidence[0].minute)+' → '+format24(evidence[1].hour,evidence[1].minute)+' = '+durationText(elapsed)+' ('+elapsed+' minutes).';
+      if(type==='two-midnight'){prompt='The journey starts on Day 1 and finishes on Day 2. How many minutes does it take?';explanation=(1440-start)+' minutes to midnight + '+(finish-1440)+' minutes after midnight = '+elapsed+' minutes.'}
+      if(type==='two-order'){
+        if(Math.random()<.5)evidence.reverse();
+        evidence=evidence.map((v,i)=>({...v,label:'Clock '+(i===0?'A':'B')}));
+        const earlier=evidence[0].hour*60+evidence[0].minute<evidence[1].hour*60+evidence[1].minute?0:1;
+        prompt='Which clock shows the earlier time on the same day?';answer=evidence[earlier].label;
+        explanation=format12(evidence[earlier].hour,evidence[earlier].minute)+' is earlier than '+format12(evidence[1-earlier].hour,evidence[1-earlier].minute)+'.';
+      }else if(type==='two-duration-reason'){
+        const claim=Math.random()<.5?elapsed:elapsed+pick([-10,-5,5,10,15]);
+        prompt='A pupil says that '+claim+' minutes elapse from Start to Finish. Are they correct?';
+        answer=claim===elapsed?'Yes':'No';explanation='The actual elapsed time is '+durationText(elapsed)+' ('+elapsed+' minutes).';
+      }
+      setClockTime(0,evidence[0].hour,evidence[0].minute);setClockTime(1,evidence[1].hour,evidence[1].minute);setClockSecond(1,0);
+      challenge=challengeObject(type,prompt,answer,{clockEvidence:evidence,solutionExplanation:explanation});
+    }else if(type==='read-five'){
       hour=randomHour();minute=randomMinute(5);
       challenge=challengeObject(type,'What time is shown on the analogue clock? (No AM or PM needed.)',time12());
     }else if(type==='read-minute'){
@@ -4832,7 +4869,7 @@ function clockTool(){
       [hourLine,hourHit].forEach(el=>{if(el){el.setAttribute('x2',hourPt.x);el.setAttribute('y2',hourPt.y)}});
       [minuteLine,minuteHit].forEach(el=>{if(el){el.setAttribute('x2',minutePt.x);el.setAttribute('y2',minutePt.y)}});
       if(secondLine){secondLine.setAttribute('x2',secondPt.x);secondLine.setAttribute('y2',secondPt.y)}
-      const frozen=index===0&&handsFrozen(),hidden=index===0&&anyTimeHidden();
+      const frozen=(index===0||twoClockTask())&&handsFrozen(),hidden=(index===0||twoClockTask())&&anyTimeHidden();
       if(hourHit){
         if(hidden){hourHit.removeAttribute('aria-valuenow');hourHit.removeAttribute('aria-valuetext');hourHit.setAttribute('aria-label',frozen?'Hour hand fixed for this challenge':'Hour hand for challenge')}
         else{hourHit.setAttribute('aria-valuenow',state.hour);hourHit.setAttribute('aria-label',clockLabel(index)+' hour hand');hourHit.setAttribute('aria-valuetext','Hour hand, '+format12(state.hour,state.minute))}
@@ -4869,7 +4906,7 @@ function clockTool(){
     return mod(Math.round(raw/snap)*snap,60);
   }
   function setHandFromPointer(kind,clientX,clientY,carryHour,index,svg){
-    if(index===0&&handsFrozen())return;
+    if((index===0||twoClockTask())&&handsFrozen())return;
     const state=clockState(index),angle=angleFromPointer(clientX,clientY,svg);
     if(kind==='minute'){
       const next=snappedMinute(angle),previous=state.minute;
@@ -4886,7 +4923,7 @@ function clockTool(){
     refreshClock();
   }
   function startDrag(kind,index,e){
-    if((index===0&&handsFrozen())||(e.button!=null&&e.button!==0))return;
+    if(((index===0||twoClockTask())&&handsFrozen())||(e.button!=null&&e.button!==0))return;
     e.preventDefault();
     drag={kind,index,pointerId:e.pointerId,svg:e.currentTarget.closest('svg')};
     setHandFromPointer(kind,e.clientX,e.clientY,false,index,drag.svg);
@@ -4906,7 +4943,7 @@ function clockTool(){
     document.removeEventListener('pointercancel',dragEnd);
   }
   function adjustHand(kind,delta,index=0){
-    if(index===0&&handsFrozen())return;
+    if((index===0||twoClockTask())&&handsFrozen())return;
     const state=clockState(index);
     if(kind==='minute')setClockTime(index,state.hour,state.minute+delta*snap);
     else setClockTime(index,state.hour+delta,state.minute);
@@ -4916,7 +4953,7 @@ function clockTool(){
     qa('[data-cl-period-stage]',q('#gd-stage')).forEach(button=>button.onclick=()=>{if(handsFrozen())return;setClockTime(0,hour%12+Number(button.dataset.clPeriodStage),minute);refreshClock()});
     qa('.gd-clock-hand-hit',q('#gd-stage')).forEach(hit=>{
       const index=Math.round(num(hit.dataset.clClockIndex,0)),kind=hit.dataset.clHand;
-      if(index===0&&handsFrozen())return;
+      if((index===0||twoClockTask())&&handsFrozen())return;
       hit.onpointerdown=e=>startDrag(kind,index,e);
       hit.onkeydown=e=>{
         if(e.key==='ArrowLeft'||e.key==='ArrowDown'){e.preventDefault();adjustHand(kind,-1,index)}
@@ -4958,6 +4995,7 @@ function clockTool(){
       return;
     }
     if(controlTab==='explore'){
+      if(challenge?.mode==='standard'){qa('button,input,select',controls).filter(el=>!el.matches('[data-cl-workflow]')).forEach(el=>el.disabled=true);return}
       qa('[data-cl-select-clock]',controls).forEach(button=>button.onclick=()=>{
         activeClock=clamp(Math.round(num(button.dataset.clSelectClock,0)),0,extraClocks.length);
         renderControls();draw();
@@ -4992,7 +5030,7 @@ function clockTool(){
     });
     qa('[data-cl-challenge-cat]',controls).forEach(button=>button.onclick=()=>{
       challengeCategory=button.dataset.clChallengeCat;
-      const first=CHALLENGE_TEMPLATES.find(t=>t.category===challengeCategory);if(first)challengeType=first.id;
+      const first=availableClockTemplates().find(t=>t.category===challengeCategory);if(first)challengeType=first.id;
       renderControls();
     });
     qa('[data-cl-challenge-type]',controls).forEach(button=>button.onclick=()=>{challengeType=button.dataset.clChallengeType;renderControls()});
@@ -5019,7 +5057,7 @@ function clockTool(){
     };
   }
   function clockCardMarkup(index,state,frozen,hidden){
-    const label=clockLabel(index),hp=handPoint(((state.hour%12)+state.minute/60)*30,72),mp=handPoint(state.minute*6,102),sp=handPoint(state.second*6,112);
+    const label=visibleClockLabel(index),hp=handPoint(((state.hour%12)+state.minute/60)*30,72),mp=handPoint(state.minute*6,102),sp=handPoint(state.second*6,112);
     const primary=index===0,selected=!challenge&&activeClock===index;
     const faceId=primary?'cl-face':'cl-face-'+index,hourId=primary?'cl-hour-hand':'cl-hour-hand-'+index,minuteId=primary?'cl-minute-hand':'cl-minute-hand-'+index;
     const hourHitId=primary?'cl-hour-hit':'cl-hour-hit-'+index,minuteHitId=primary?'cl-minute-hit':'cl-minute-hit-'+index;
@@ -5035,8 +5073,9 @@ function clockTool(){
         '<circle class="gd-clock-centre" cx="150" cy="150" r="7"></circle>'+
       '</svg></div>'+
       (primary&&challenge?.mode==='standard'&&!frozen?'<div class="gd-row gd-cl-period-choice" role="group" aria-label="Choose morning or afternoon">'+[0,12].map(p=>'<button type="button" class="gd-btn" data-cl-period-stage="'+p+'" aria-pressed="'+(p===(state.hour>=12?12:0))+'">'+(p===0?'AM':'PM')+'</button>').join('')+'</div>':'')+
-      (showDigital&&!hiddenReadout('12')?'<div class="gd-clock-digital" data-cl-digital>'+(hiddenReadout('12')&&primary?'?':format12Digital(state.hour,state.minute,state.second))+'</div>':'')+
-      (primary&&challenge?.mode==='standard'&&!challenge.revealed?'':'<div class="gd-clock-readouts">'+
+      (twoClockTask()?'<div class="gd-clock-period" style="text-align:center;font-weight:800;padding:4px">'+periodLabel(state)+'</div>':'')+
+      (!twoClockTask()&&showDigital&&!hiddenReadout('12')?'<div class="gd-clock-digital" data-cl-digital>'+(hiddenReadout('12')&&primary?'?':format12Digital(state.hour,state.minute,state.second))+'</div>':'')+
+      (twoClockTask()||primary&&challenge?.mode==='standard'&&!challenge.revealed?'':'<div class="gd-clock-readouts">'+
         '<div class="gd-readout"><span>24-hour</span><strong data-cl-readout-kind="24"'+(primary?' data-cl-readout="24"':'')+'>'+(hiddenReadout('24')&&primary?'?':format24(state.hour,state.minute))+'</strong></div>'+
         '<div class="gd-readout"><span>12-hour</span><strong data-cl-readout-kind="12"'+(primary?' data-cl-readout="12"':'')+'>'+(hiddenReadout('12')&&primary?'?':format12(state.hour,state.minute))+'</strong></div>'+
       '</div>')+
@@ -5051,11 +5090,11 @@ function clockTool(){
     }).join('')+'</div>';
   }
   function draw(){
-    const states=challenge?[clockState(0)]:clockStates(),frozen=handsFrozen(),hidden=anyTimeHidden();
-    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Clock challenge',pupil:(challenge.freezeHands===false?CK.pupilSpec('model',{check:onTarget}):challenge.type==='hour-hand-misconception'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:challenge.answer.startsWith('Yes')?'Yes':'No',explain:true}):challenge.type==='time-language'?CK.pupilSpec('spoken',{hint:'e.g. quarter past 3'}):CK.pupilSpec(challenge.type==='twelve-to-twentyfour'?'clock-24':challenge.type==='twentyfour-to-twelve'?'clock-12':'clock-face')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
+    const states=twoClockTask()?clockStates().slice(0,2):challenge?[clockState(0)]:clockStates(),frozen=handsFrozen(),hidden=anyTimeHidden();
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Clock challenge',pupil:(twoClockTask()?(challenge.type==='two-order'?CK.pupilSpec('choice',{choices:['Clock A','Clock B']}):challenge.type==='two-duration-reason'?CK.pupilSpec('choice',{choices:['Yes','No'],explain:true}):CK.pupilSpec('unit',{unit:'minutes',hint:'Minutes'})):challenge.freezeHands===false?CK.pupilSpec('model',{check:onTarget}):challenge.type==='hour-hand-misconception'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:challenge.answer.startsWith('Yes')?'Yes':'No',explain:true}):challenge.type==='time-language'?CK.pupilSpec('spoken',{hint:'e.g. quarter past 3'}):CK.pupilSpec(challenge.type==='twelve-to-twentyfour'?'clock-24':challenge.type==='twentyfour-to-twelve'?'clock-12':'clock-face')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     const targetStatus='';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-clock-workbench">'+
-      '<div class="gd-clock-grid">'+states.map((state,index)=>clockCardMarkup(index,state,index===0&&frozen,index===0&&hidden)).join('')+'</div>'+
+      '<div class="gd-clock-grid">'+states.map((state,index)=>clockCardMarkup(index,state,(index===0||twoClockTask())&&frozen,(index===0||twoClockTask())&&hidden)).join('')+'</div>'+
       differenceMarkup()+targetStatus+
     '</div>';
     bindStage();bindChallengeStageActions();refreshClock();
