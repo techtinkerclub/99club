@@ -1505,6 +1505,214 @@ function placeValue(){
 
 }
 
+  const FW_TEMPLATES=[
+    {id:'identify-strip',category:'read',title:'Read the fraction strip',desc:'Identify the fraction represented by a strip.'},
+    {id:'equivalent-strip',category:'read',title:'Find an equivalent fraction',desc:'Use aligned strips to complete an equivalence.'},
+    {id:'compare-strips',category:'compare',title:'Compare two fractions',desc:'Choose <, > or = from visual fraction strips.'},
+    {id:'simplify-strip',category:'convert',title:'Simplify a fraction',desc:'Use the strip structure to write the simplest form.'},
+    {id:'mixed-improper',category:'convert',title:'Improper to mixed',desc:'Read an improper strip and write it as a mixed number.'},
+    {id:'denominator-misconception',category:'reason',title:'Larger denominator?',desc:'Diagnose the common unit-fraction denominator misconception.'}
+  ];
+
+function fwSettings(model={}){return {responseLines:Math.max(1,Math.min(4,Math.round(Number(model.responseLines)||1)))}}
+function fwTypes(){return FW_TEMPLATES.map(t=>({id:t.id,label:t.title}))}
+function fwGenerate(type,settings={},rng=Math.random){
+ const template=FW_TEMPLATES.find(t=>t.id===type);if(!template)throw Error('Unknown fraction challenge.');
+ let focus={n:1,d:2},compareA={n:1,d:2},compareB={n:1,d:3},mode='wall',strips=[],nextStrip=1,challenge;
+ function randomProper(d){return {n:1+Math.floor(rng()*Math.max(1,d-1)),d}}
+ function gcd(a,b){while(b){const t=b;b=a%b;a=t}return a||1}
+ function simplify(n,d){const g=gcd(n,d);return {n:n/g,d:d/g}}
+ function rawFractionText(f){return f.n+'/'+f.d}
+ function equivalent(a,b){return a.n*b.d===b.n*a.d}
+ function fractionValue(f){return f.n/f.d}
+ function challengeObject(type,prompt,answer,extra={}){return {mode:'standard',type,category:template.category,title:'',prompt,promptHtml:prompt,answer:String(answer),answerMode:'bound',answerSource:'',revealed:false,hiddenStripLabels:[],hiddenStripHints:[],hiddenFocusLabel:false,hiddenCompareSign:false,...extra}}
+    const dens=[2,3,4,5,6,7,8,9,10,11,12];
+    if(type==='identify-strip'){
+      const d=dens[Math.floor(rng()*dens.length)],f=randomProper(d);
+      mode='workbench';strips=[{id:1,...f,x:24,y:24,locked:false,color:'#cbe7e2'}];nextStrip=2;
+      challenge=challengeObject(type,'Write the number of shaded parts over the total number of equal parts.',rawFractionText(f),{answerSource:'strip:1:fraction',hiddenStripLabels:[1],hiddenStripHints:[1]});
+    }else if(type==='equivalent-strip'){
+      const d=[2,3,4,5,6][Math.floor(rng()*5)],f=randomProper(d),factor=2+Math.floor(rng()*(Math.floor(12/d)-1)),target={n:f.n*factor,d:f.d*factor};
+      mode='workbench';strips=[
+        {id:1,...f,x:24,y:24,locked:false,color:'#cbe7e2'},
+        {id:2,...target,x:24,y:130,locked:false,color:'#cfe0f6'}
+      ];nextStrip=3;
+      challenge=challengeObject(type,'The two strips represent the same amount. What fraction with denominator '+target.d+' is equivalent to '+rawFractionText(f)+'?',rawFractionText(target),{answerSource:'strip:2:fraction',hiddenStripLabels:[2],hiddenStripHints:[2]});
+    }else if(type==='compare-strips'){
+      const a=randomProper(dens[Math.floor(rng()*dens.length)]);
+      const equivalents=dens.filter(d=>d!==a.d&&Number.isInteger(a.n*d/a.d));
+      const d2=equivalents[Math.floor(rng()*equivalents.length)];
+      const b=rng()<.25?(d2?{n:a.n*d2/a.d,d:d2}:{...a}):randomProper(dens[Math.floor(rng()*dens.length)]);
+      compareA=a;compareB=b;focus={...a};mode='wall';
+      const sign=equivalent(a,b)?'=':fractionValue(a)>fractionValue(b)?'>':'<';
+      challenge=challengeObject(type,'Which symbol belongs between A and B: <, > or =?',sign,{answerSource:'compare-sign',hiddenCompareSign:true});
+    }else if(type==='simplify-strip'){
+      const pool=[];for(let d=4;d<=12;d++)for(let n=1;n<d;n++)if(gcd(n,d)>1)pool.push({n,d});
+      const f=pool[Math.floor(rng()*pool.length)],base=simplify(f.n,f.d);
+      mode='workbench';strips=[{id:1,...f,x:24,y:24,locked:false,color:'#f6dfad'}];nextStrip=2;
+      challenge=challengeObject(type,'Simplify the fraction shown to its lowest terms.',rawFractionText(base),{answerSource:'strip:1:simplified',hiddenStripHints:[1]});
+    }else if(type==='mixed-improper'){
+      const d=dens[Math.floor(rng()*dens.length)],whole=1+Math.floor(rng()*2),rem=1+Math.floor(rng()*(d-1)),f={n:whole*d+rem,d};
+      mode='workbench';strips=[{id:1,...f,x:24,y:24,locked:false,color:'#e7d8f3'}];nextStrip=2;
+      challenge=challengeObject(type,'Write the improper fraction shown as a mixed number.',whole+' '+rawFractionText(simplify(rem,d)),{answerSource:'strip:1:mixed',hiddenStripHints:[1]});
+    }else{
+      const small=2+Math.floor(rng()*10),large=small+1+Math.floor(rng()*(12-small)),a={n:1,d:small},b={n:1,d:large},valid=rng()<.5;
+      mode='workbench';strips=[
+        {id:1,...a,x:24,y:24,locked:false,color:'#cbe7e2'},
+        {id:2,...b,x:24,y:130,locked:false,color:'#cfe0f6'}
+      ];nextStrip=3;
+      challenge=challengeObject(type,'A pupil says 1/'+(valid?small:large)+' is greater than 1/'+(valid?large:small)+'. Are they correct?',(valid?'Yes. ':'No. ')+'For unit fractions, more equal parts make each part smaller, so 1/'+small+' > 1/'+large+'.',{hiddenStripHints:[1,2]});
+    }
+
+ return {type,settings:fwSettings(settings),diagram:{focus,compareA,compareB,mode,strips,nextStrip},challenge};
+}
+function fwPaper(data,teacher=false){
+ const d=data.diagram||{},challenge=data.challenge||null;
+ const {focus={n:1,d:2},compareA={n:1,d:2},compareB={n:1,d:3},mode='wall',strips=[]}=d;
+ function equivalentNumerator(d){const n=focus.n*d/focus.d;return Number.isInteger(n)?n:null}
+ function challengeActiveHidden(key,id){return false}
+  function gcd(a,b){a=Math.abs(Math.round(a));b=Math.abs(Math.round(b));while(b){const t=b;b=a%b;a=t}return a||1}
+  function simplify(n,d){const g=gcd(n,d);return{n:n/g,d:d/g}}
+  function normalFraction(f,defaultN=1,defaultD=2){
+    const d=clamp(Math.round(num(f?.d,defaultD)),1,12);
+    const n=clamp(Math.round(num(f?.n,defaultN)),0,d*3);
+    return{n,d};
+  }
+  function fractionText(f){
+    const value=normalFraction(f),s=simplify(value.n,value.d);
+    return s.n===value.n&&s.d===value.d?value.n+'/'+value.d:value.n+'/'+value.d+' = '+s.n+'/'+s.d;
+  }
+  function fractionValue(f){const v=normalFraction(f);return v.n/v.d}
+  function rawFractionText(f){const v=normalFraction(f);return v.n+'/'+v.d}
+  function equivalent(a,b){return Math.abs(fractionValue(a)-fractionValue(b))<1e-10}
+  function fwSvgEl(name,attrs={},text=''){
+    const el=document.createElementNS('http://www.w3.org/2000/svg',name);
+    Object.entries(attrs).forEach(([key,value])=>el.setAttribute(key,String(value)));
+    if(text!==''&&text!=null)el.textContent=String(text);
+    return el;
+  }
+  function exportHidden(key,id=null,pupil=false){
+    if(!challenge)return false;
+    if(!pupil)return challengeActiveHidden(key,id);
+    if(key==='focus')return !!challenge.hiddenFocusLabel;
+    if(key==='compare')return !!challenge.hiddenCompareSign;
+    const list=key==='strip-label'?challenge.hiddenStripLabels:challenge.hiddenStripHints;
+    return Array.isArray(list)&&list.map(String).includes(String(id));
+  }
+  function addSvgFractionBar(svg,f,x,y,width,label){
+    const value=normalFraction(f),groups=Math.max(1,Math.ceil(value.n/value.d)),rowH=22,rowGap=7;
+    if(label)svg.appendChild(fwSvgEl('text',{x,y:y-8,'font-family':'Arial,sans-serif','font-size':13,'font-weight':800,fill:'#40565d'},label));
+    for(let g=0;g<groups;g++){
+      const yy=y+g*(rowH+rowGap),segW=width/value.d;
+      for(let i=0;i<value.d;i++){
+        const absolute=g*value.d+i+1,fill=absolute<=value.n;
+        svg.appendChild(fwSvgEl('rect',{x:x+i*segW,y:yy,width:segW,height:rowH,fill:fill?'#bfe1dc':'#ffffff',stroke:'#71878c','stroke-width':1}));
+      }
+    }
+    return groups*(rowH+rowGap)-rowGap;
+  }
+  function wallExportSvg({pupil=false}={}){
+    if(pupil&&challenge?.type==='compare-strips'){
+      const width=1000,height=225,svg=fwSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Compare fraction strips'});
+      svg.appendChild(fwSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
+      addSvgFractionBar(svg,compareA,50,65,900,'A · '+rawFractionText(compareA));
+      addSvgFractionBar(svg,compareB,50,150,900,'B · '+rawFractionText(compareB));return svg;
+    }
+    const width=1000,pad=38,rowX=118,rowW=844,rowH=24,rowGap=6,startY=62,wallBottom=startY+12*(rowH+rowGap);
+    const compareY=wallBottom+48,height=compareY+154;
+    const svg=fwSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Fraction wall and comparison','data-fw-export':'wall'});
+    svg.appendChild(fwSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
+    svg.appendChild(fwSvgEl('text',{x:pad,y:34,'font-family':'Arial,sans-serif','font-size':20,'font-weight':800,fill:'#24343b'},'Fraction wall'));
+    const simpleFocus=simplify(focus.n,focus.d),focusRaw=rawFractionText(focus),focusShown=simpleFocus.n===focus.n&&simpleFocus.d===focus.d?focusRaw:focusRaw+' = '+simpleFocus.n+'/'+simpleFocus.d;
+    svg.appendChild(fwSvgEl('text',{x:width-pad,y:34,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':15,'font-weight':700,fill:'#52666d'},'Selected: '+(exportHidden('focus',null,pupil)?'?':focusShown)));
+    for(let d=1;d<=12;d++){
+      const y=startY+(d-1)*(rowH+rowGap),eqN=equivalentNumerator(d),rowFocus=d===focus.d,segW=rowW/d;
+      svg.appendChild(fwSvgEl('text',{x:rowX-14,y:y+17,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':12,'font-weight':700,fill:'#60757b'},d===1?'whole':'1/'+d));
+      for(let i=0;i<d;i++){
+        const on=eqN!=null&&i<eqN;
+        svg.appendChild(fwSvgEl('rect',{x:rowX+i*segW,y,width:segW,height:rowH,fill:on?(rowFocus?'#4faaa0':'#cae7e3'):'#ffffff',stroke:rowFocus?'#397f77':'#9aadb1','stroke-width':rowFocus?1.7:1}));
+      }
+    }
+    svg.appendChild(fwSvgEl('line',{x1:pad,y1:wallBottom+20,x2:width-pad,y2:wallBottom+20,stroke:'#d9e3e5','stroke-width':1.5}));
+    const cardW=390,leftX=pad,rightX=width-pad-cardW;
+    svg.appendChild(fwSvgEl('text',{x:leftX,y:compareY-12,'font-family':'Arial,sans-serif','font-size':15,'font-weight':800,fill:'#334a52'},'A  '+rawFractionText(compareA)));
+    svg.appendChild(fwSvgEl('text',{x:rightX,y:compareY-12,'font-family':'Arial,sans-serif','font-size':15,'font-weight':800,fill:'#334a52'},'B  '+rawFractionText(compareB)));
+    addSvgFractionBar(svg,compareA,leftX,compareY,cardW,'');
+    addSvgFractionBar(svg,compareB,rightX,compareY,cardW,'');
+    const av=fractionValue(compareA),bv=fractionValue(compareB),sign=Math.abs(av-bv)<1e-10?'=':(av>bv?'>':'<');
+    svg.appendChild(fwSvgEl('text',{x:width/2,y:height-31,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':26,'font-weight':800,fill:'#2f5f5a'},rawFractionText(compareA)+'  '+(exportHidden('compare',null,pupil)?'?':sign)+'  '+rawFractionText(compareB)));
+    svg.appendChild(fwSvgEl('text',{x:width-pad,y:height-10,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':10,fill:'#87969a'},'99 Club Studio'));
+    return svg;
+  }
+  function stripsExportSvg({pupil=false}={}){
+    const width=1000,pad=42,cardW=520,canvasW=720;
+    const ordered=[...strips].sort((a,b)=>(Number(a.y)||0)-(Number(b.y)||0)||Number(a.id)-Number(b.id));
+    const items=ordered.map(strip=>{
+      const groups=Math.max(1,Math.ceil(strip.n/strip.d)),h=62+groups*38+28;
+      return{strip,groups,h};
+    });
+    const height=Math.max(250,pad*2+items.reduce((sum,item)=>sum+item.h+18,0)-18);
+    const svg=fwSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Fraction strip workbench','data-fw-export':'strips'});
+    svg.appendChild(fwSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
+    let y=pad;
+    items.forEach(({strip,groups,h})=>{
+      const maxX=Math.max(0,width-pad*2-cardW),x=pad+clamp((Number(strip.x)||0)/Math.max(1,canvasW-cardW),0,1)*maxX;
+      const hideLabel=exportHidden('strip-label',strip.id,pupil),hideHint=exportHidden('strip-hint',strip.id,pupil);
+      const simple=simplify(strip.n,strip.d),canSimplify=simple.n!==strip.n||simple.d!==strip.d;
+      svg.appendChild(fwSvgEl('rect',{x,y,width:cardW,height:h,rx:14,fill:'#f8fbfb',stroke:'#b9c9cc','stroke-width':1.5,'data-fw-export-strip':strip.id}));
+      if(!hideLabel)svg.appendChild(fwSvgEl('text',{x:x+18,y:y+28,'font-family':'Arial,sans-serif','font-size':18,'font-weight':800,fill:'#2e4a51'},rawFractionText(strip)));
+      if(!pupil&&!hideLabel&&!hideHint&&canSimplify)svg.appendChild(fwSvgEl('text',{x:x+84,y:y+28,'font-family':'Arial,sans-serif','font-size':12,'font-weight':700,fill:'#697d82'},'= '+simple.n+'/'+simple.d));
+      const barX=x+18,barW=cardW-36,rowH=25,rowGap=8,barY=y+45;
+      for(let g=0;g<groups;g++){
+        const yy=barY+g*(rowH+rowGap),segW=barW/strip.d;
+        for(let i=0;i<strip.d;i++){
+          const absolute=g*strip.d+i+1,fill=absolute<=strip.n;
+          svg.appendChild(fwSvgEl('rect',{x:barX+i*segW,y:yy,width:segW,height:rowH,fill:fill?(strip.color||'#cbe7e2'):'#ffffff',stroke:'#70878c','stroke-width':1}));
+        }
+      }
+      const hint=hideHint?'Work it out from the strip.':canSimplify?'Can simplify to '+simple.n+'/'+simple.d:'Value '+Number(fractionValue(strip).toFixed(4));
+      if(!pupil&&!hideHint)svg.appendChild(fwSvgEl('text',{x:x+18,y:y+h-12,'font-family':'Arial,sans-serif','font-size':11,fill:'#73858a'},hint));
+      y+=h+18;
+    });
+    if(!items.length)svg.appendChild(fwSvgEl('text',{x:width/2,y:height/2,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':18,fill:'#718388'},'No fraction strips on the workbench.'));
+    svg.appendChild(fwSvgEl('text',{x:width-pad,y:height-10,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':10,fill:'#87969a'},'99 Club Studio'));
+    return svg;
+  }
+  function fractionExportSvg(options={}){
+    return mode==='workbench'?stripsExportSvg(options):wallExportSvg(options);
+  }
+
+ if(!challenge)return fractionExportSvg();
+ // Same-width strips, no card chrome or extra hints, and no answer metadata.
+ const comparison=challenge.type==='compare-strips',models=comparison?[{...compareA,id:1},{...compareB,id:2}]:strips;
+ const W=900,pad=42,rowW=W-pad*2,groups=f=>Math.max(1,Math.ceil(f.n/f.d));
+ const H=24+models.reduce((sum,f)=>sum+32+groups(f)*30+14,0);
+ const svg=fwSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+Math.max(80,H),role:'img','aria-label':'Fraction strips'});
+ svg.appendChild(fwSvgEl('rect',{width:W,height:Math.max(80,H),fill:'#fff'}));
+ let y=14;
+ models.forEach((f,i)=>{
+   const hidden=exportHidden('strip-label',f.id,true),label=comparison?(i===0?'A · ':'B · ')+rawFractionText(f):hidden?'':rawFractionText(f);
+   if(label)svg.appendChild(fwSvgEl('text',{x:pad,y:y+17,'font-family':'Arial,sans-serif','font-size':19,'font-weight':750,fill:'#334a52'},label));
+   y+=label?30:8;
+   for(let g=0;g<groups(f);g++){
+     for(let j=0;j<f.d;j++)svg.appendChild(fwSvgEl('rect',{x:pad+j*rowW/f.d,y,width:rowW/f.d,height:27,fill:g*f.d+j<f.n?(f.color||'#bfe1dc'):'#fff',stroke:'#71878c','stroke-width':1.3}));
+     y+=30;
+   }
+   y+=14;
+ });
+ return G.exportTools.composeWorksheetCardSvg(svg,{title:FW_TEMPLATES.find(t=>t.id===challenge.type)?.title||'Fractions challenge',prompt:challenge.prompt,responseLabel:challenge.category==='reason'?'Answer and explain':'Answer',responseMode:challenge.category==='reason'||data.settings?.responseLines>1?'lines':'box',responseLines:Math.max(data.settings?.responseLines||1,challenge.category==='reason'?3:1),paperStyle:'plain',answer:challenge.answer,showAnswer:teacher,diagramMaxHeight:500});
+}
+function fwData(model){if(model.challenge?.mode==='custom')throw Error('Use individual export for custom fraction tasks.');return {type:model.challenge?.type,settings:fwSettings(model),diagram:model.diagram,challenge:model.challenge?{...model.challenge,revealed:false}:null}}
+G.fractionPaperModel={generate:fwGenerate,render:fwPaper,types:fwTypes};
+if(G.publishing)G.publishing.register('fraction-wall',{
+ label:'Fraction wall',types:fwTypes,title:item=>item.kind==='diagram'?'Fraction illustration':FW_TEMPLATES.find(t=>t.id===item.data.type)?.title||'Fraction challenge',
+ signature:d=>JSON.stringify([d.type,d.challenge.prompt,d.diagram.mode==='wall'?[d.diagram.compareA,d.diagram.compareB]:d.diagram.strips.map(s=>[s.n,s.d])]),
+ recipe:(model,type)=>({type,settings:fwSettings(model)}),
+ generate(recipe,rng){const ids=fwTypes().map(t=>t.id);return fwGenerate(recipe.type==='all'?ids[Math.floor(rng()*ids.length)]:recipe.type,recipe.settings,rng)},
+ capture(model){const data=fwData(model);return [G.publishing.record('fraction-wall',data.challenge?'challenge':'diagram',data,data.challenge?{type:data.type,settings:data.settings}:null)]},
+ render(item,teacher){return fwPaper(item.data,teacher)}
+});
+
 function fractionWall(){
   const I=G.interaction,CK=G.challengeKit,X=G.exportTools;
   let focus={n:1,d:2},compareA={n:1,d:2},compareB={n:1,d:3},mode='wall';
@@ -1518,14 +1726,7 @@ function fractionWall(){
     {id:'convert',label:'Convert & simplify'},
     {id:'reason',label:'Reasoning'}
   ];
-  const CHALLENGE_TEMPLATES=[
-    {id:'identify-strip',category:'read',title:'Read the fraction strip',desc:'Identify the fraction represented by a strip.'},
-    {id:'equivalent-strip',category:'read',title:'Find an equivalent fraction',desc:'Use aligned strips to complete an equivalence.'},
-    {id:'compare-strips',category:'compare',title:'Compare two fractions',desc:'Choose <, > or = from visual fraction strips.'},
-    {id:'simplify-strip',category:'convert',title:'Simplify a fraction',desc:'Use the strip structure to write the simplest form.'},
-    {id:'mixed-improper',category:'convert',title:'Improper to mixed',desc:'Read an improper strip and write it as a mixed number.'},
-    {id:'denominator-misconception',category:'reason',title:'Larger denominator?',desc:'Diagnose the common unit-fraction denominator misconception.'}
-  ];
+  const CHALLENGE_TEMPLATES=FW_TEMPLATES;
   let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='identify-strip',challenge=null,beforeChallenge=null;
   let exportMode='diagram',responseLines=1,exportStatus='';
 
@@ -1718,47 +1919,11 @@ function fractionWall(){
     if(beforeChallenge){restoreTeachingSnapshot(beforeChallenge);beforeChallenge=null}
     challenge=null;challengeTab='standard';controlTab='explore';renderControls();renderRepresentation();
   }
-  function randomProper(d){return{n:1+Math.floor(Math.random()*Math.max(1,d-1)),d}}
   function generateChallenge(type){
     const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
     if(!beforeChallenge)beforeChallenge=teachingSnapshot();else restoreTeachingSnapshot(beforeChallenge);
-    const dens=[2,3,4,5,6,8];
-    if(type==='identify-strip'){
-      const d=dens[Math.floor(Math.random()*dens.length)],f=randomProper(d);
-      mode='workbench';strips=[{id:1,...f,x:24,y:24,locked:false,color:'#cbe7e2'}];nextStrip=2;
-      challenge=challengeObject(type,'Write the number of shaded parts over the total number of equal parts.',rawFractionText(f),{answerSource:'strip:1:fraction',hiddenStripLabels:[1],hiddenStripHints:[1]});
-    }else if(type==='equivalent-strip'){
-      const d=[2,3,4,5,6][Math.floor(Math.random()*5)],f=randomProper(d),target={n:f.n*2,d:f.d*2};
-      mode='workbench';strips=[
-        {id:1,...f,x:24,y:24,locked:false,color:'#cbe7e2'},
-        {id:2,...target,x:24,y:130,locked:false,color:'#cfe0f6'}
-      ];nextStrip=3;
-      challenge=challengeObject(type,'The two strips represent the same amount. What fraction with denominator '+target.d+' is equivalent to '+rawFractionText(f)+'?',rawFractionText(target),{answerSource:'strip:2:fraction',hiddenStripLabels:[2],hiddenStripHints:[2]});
-    }else if(type==='compare-strips'){
-      const a=randomProper(dens[Math.floor(Math.random()*dens.length)]);
-      const equivalents=dens.filter(d=>d!==a.d&&Number.isInteger(a.n*d/a.d));
-      const d2=equivalents[Math.floor(Math.random()*equivalents.length)];
-      const b=Math.random()<.25?(d2?{n:a.n*d2/a.d,d:d2}:{...a}):randomProper(dens[Math.floor(Math.random()*dens.length)]);
-      compareA=a;compareB=b;focus={...a};mode='wall';
-      const sign=equivalent(a,b)?'=':fractionValue(a)>fractionValue(b)?'>':'<';
-      challenge=challengeObject(type,'Which symbol belongs between A and B: <, > or =?',sign,{answerSource:'compare-sign',hiddenCompareSign:true});
-    }else if(type==='simplify-strip'){
-      const base=[{n:1,d:2},{n:2,d:3},{n:3,d:4},{n:2,d:5}][Math.floor(Math.random()*4)],factor=2;
-      const f={n:base.n*factor,d:base.d*factor};
-      mode='workbench';strips=[{id:1,...f,x:24,y:24,locked:false,color:'#f6dfad'}];nextStrip=2;
-      challenge=challengeObject(type,'Simplify the fraction shown to its lowest terms.',rawFractionText(base),{answerSource:'strip:1:simplified',hiddenStripHints:[1]});
-    }else if(type==='mixed-improper'){
-      const d=[2,3,4,5][Math.floor(Math.random()*4)],whole=1+Math.floor(Math.random()*2),rem=1+Math.floor(Math.random()*(d-1)),f={n:whole*d+rem,d};
-      mode='workbench';strips=[{id:1,...f,x:24,y:24,locked:false,color:'#e7d8f3'}];nextStrip=2;
-      challenge=challengeObject(type,'Write the improper fraction shown as a mixed number.',whole+' '+rem+'/'+d,{answerSource:'strip:1:mixed',hiddenStripHints:[1]});
-    }else{
-      const small=[3,4,5,6][Math.floor(Math.random()*4)],large=Math.min(12,small*2),a={n:1,d:small},b={n:1,d:large},valid=Math.random()<.5;
-      mode='workbench';strips=[
-        {id:1,...a,x:24,y:24,locked:false,color:'#cbe7e2'},
-        {id:2,...b,x:24,y:130,locked:false,color:'#cfe0f6'}
-      ];nextStrip=3;
-      challenge=challengeObject(type,'A pupil says 1/'+(valid?small:large)+' is greater than 1/'+(valid?large:small)+'. Are they correct?',(valid?'Yes. ':'No. ')+'For unit fractions, more equal parts make each part smaller, so 1/'+small+' > 1/'+large+'.',{hiddenStripHints:[1,2]});
-    }
+    const data=fwGenerate(type,{responseLines});
+    restoreTeachingSnapshot(data.diagram);challenge=CK?CK.normalise(data.challenge):data.challenge;
     challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';
     exportMode='challenge';responseLines=template.category==='reason'?3:1;exportStatus='';
     alignStrips();renderControls();renderRepresentation();
@@ -1781,7 +1946,7 @@ function fractionWall(){
         '<button class="gd-btn" id="fw-png" type="button">PNG</button>'+
         '<button class="gd-btn" id="fw-svg-download" type="button">SVG</button>'+
         '<button class="gd-btn" id="fw-print" type="button">Print / PDF</button>'+
-      '</div><p class="gd-help" id="fw-export-status" role="status" aria-live="polite">'+exportStatus+'</p>';
+      '</div>'+(challenge?.mode==='standard'&&exportMode==='challenge'?'<div class="nl-export-grid fw-export-grid"><button class="gd-btn" id="fw-copy-key" type="button">Copy teacher key</button><button class="gd-btn" id="fw-print-key" type="button">Print teacher key</button></div>':'')+'<p class="gd-help" id="fw-export-status" role="status" aria-live="polite">'+exportStatus+'</p>';
   }
   function fwSvgEl(name,attrs={},text=''){
     const el=document.createElementNS('http://www.w3.org/2000/svg',name);
@@ -1879,7 +2044,8 @@ function fractionWall(){
   function fractionExportSvg(options={}){
     return mode==='workbench'?stripsExportSvg(options):wallExportSvg(options);
   }
-  function exportTargetSvg(){
+  function exportTargetSvg(teacher=false){
+    if(challenge?.mode==='standard'&&exportMode==='challenge')return fwPaper(fwData({diagram:teachingSnapshot(),challenge,responseLines}),teacher);
     if(exportMode!=='challenge'||!challenge||!X?.composeChallengeCardSvg)return fractionExportSvg({pupil:false});
     const prompt=CK?CK.plainText(challenge.promptHtml||challenge.prompt||''):challenge.prompt||'';
     const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
@@ -1897,10 +2063,10 @@ function fractionWall(){
     return mode==='workbench'?'fraction-strips':'fraction-wall';
   }
   function exportMessage(text){exportStatus=text;const el=q('#fw-export-status');if(el)el.textContent=text}
-  async function exportAction(kind){
+  async function exportAction(kind,teacher=false){
     try{
       if(!X)throw new Error('Export tools are not available.');
-      const target=exportTargetSvg(),isCard=exportMode==='challenge'&&!!challenge,name=exportName();
+      const target=exportTargetSvg(teacher),isCard=exportMode==='challenge'&&!!challenge,name=exportName()+(teacher?'-teacher-key':'');
       if(kind==='copy'){await X.copyPng(target);exportMessage(isCard?'Challenge copied — paste it into your worksheet, slide or document.':'Fraction image copied — paste it into your slide or document.')}
       if(kind==='png'){await X.downloadPng(target,name,2);exportMessage(isCard?'Challenge PNG downloaded.':'Fraction PNG downloaded.')}
       if(kind==='svg'){X.downloadSvg(target,name);exportMessage(isCard?'Challenge SVG downloaded.':'Fraction SVG downloaded.')}
@@ -2109,6 +2275,7 @@ function fractionWall(){
       const png=q('#fw-png',controls);if(png)png.onclick=()=>exportAction('png');
       const svgDownload=q('#fw-svg-download',controls);if(svgDownload)svgDownload.onclick=()=>exportAction('svg');
       const print=q('#fw-print',controls);if(print)print.onclick=()=>exportAction('print');
+      const kc=q('#fw-copy-key',controls),kp=q('#fw-print-key',controls);if(kc)kc.onclick=()=>exportAction('copy',true);if(kp)kp.onclick=()=>exportAction('print',true);
       return;
     }
 
