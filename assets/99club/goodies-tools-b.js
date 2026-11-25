@@ -1930,8 +1930,16 @@ function balanceTool(){
   // underlying numeric model. Neither serialises transient DOM state.
   G.numberMobileEngineState={
     challengeIdentity(){return challenge},
-    capture(){if(challenge)throw new Error('Exit the Number Mobile Balance challenge before saving this board.');return snapshot()},
-    restore(saved){restore(saved);challenge=null;beforeChallenge=null;controlTab='explore';challengeTab='standard';exportMode='diagram';undoStack.length=0;redoStack.length=0;drag=null;renderControls();draw()}
+    capture(){return snapshot()},
+    captureChallenge(){return challenge?{challenge,beforeChallenge,challengeCategory,challengeType,challengeTab,exportMode,responseLines}:null},
+    restore(saved,session=null){
+      restore(saved);challenge=session?.challenge?CK.normalise(session.challenge):null;
+      beforeChallenge=challenge?session.beforeChallenge:null;
+      controlTab=challenge?'challenge':'explore';challengeTab=challenge?.mode==='custom'?'custom':'standard';
+      if(challenge){challengeCategory=session.challengeCategory||'read';challengeType=session.challengeType||'missing-weight'}
+      exportMode=challenge?'challenge':'diagram';responseLines=clamp(Math.round(num(session?.responseLines,1)),1,4);
+      undoStack.length=0;redoStack.length=0;drag=null;renderControls();draw()
+    }
   };
 }
 
