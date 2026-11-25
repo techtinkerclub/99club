@@ -2019,3 +2019,11 @@ select.gd-mc-set-answer{width:3.6em;font-size:.75em;height:1.7em}
  .gd-pub-inline-mobile>div{position:absolute;right:0;top:38px;display:flex;gap:3px;padding:4px;background:white;border:1px solid #c4d7d4;border-radius:8px;box-shadow:0 4px 12px #24343b22}
  .gd-pub-inline-mobile:not([open])>div{display:none}
 }
+
+/* Full-size teacher panels must remain comfortably touchable. Keep the
+   deliberately compact embedded whiteboard controls separate. */
+html:not(.gd-embed-page) #tt99-goodies-root .nl-export-grid .gd-btn,
+html:not(.gd-embed-page) #tt99-goodies-root .nl-export-mode button{min-height:44px!important}
+
+/* Standalone Maths Canvas generation controls: preserve compact board proxy. */
+html:not(.gd-embed-page) #tt99-goodies-root #gd-controls .gd-mc-five{min-height:44px!important}

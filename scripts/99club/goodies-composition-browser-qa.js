@@ -26,7 +26,7 @@ ${styleTags}
 <header class="masthead" id="gd-qa-theme-header">Theme header</header>
 <div id="tt99-goodies-root"></div>
 <footer class="page__footer" id="gd-qa-theme-footer">Theme footer</footer>
-<div id="gd-composition-qa-result" data-status="pending" data-kind="">pending</div>
+<div id="gd-composition-qa-result" data-status="pending" data-kind="" data-message="" data-detail="">pending</div>
 <script>history.replaceState(null,'','${url}');window.scrollTo=function(){};${url.includes('board=1')?`window.TT99_GOODIES_BOARD_EMBED_PATH='/${HOST}';`:''}</script>
 ${scriptTags}
 <script>
@@ -71,7 +71,7 @@ async function run(){
   assert(getComputedStyle(document.getElementById('gd-qa-theme-header')).display==='none','Mixed whiteboard hides the site masthead');
   assert(getComputedStyle(document.getElementById('gd-qa-theme-footer')).display==='none','Mixed whiteboard hides the site footer');
   const tools=[...document.querySelectorAll('[data-board-add]')];
-  assert(tools.length===19,'All 19 manipulatives are available as compact palette icons');
+  assert(tools.length===20&&new Set(tools.map(button=>button.dataset.boardAdd)).size===20,'All 20 distinct manipulatives are available as compact palette icons');
   assert(palette.getBoundingClientRect().width<=50,'Left manipulative rail stays narrow');
   assert(getComputedStyle(canvas).backgroundImage.includes('radial-gradient'),'Whiteboard uses a fine dotted canvas');
   assert(getComputedStyle(canvas).backgroundSize==='10px 10px','Whiteboard dot spacing matches the 10px snap grid');
@@ -355,7 +355,7 @@ async function run(){
   pvFitProbe.dispatchEvent(new MouseEvent('click',{bubbles:true}));
   await tick(180);
   const pvBaseWithProbe=livePvRecord().baseH;
-  assert(pvBaseWithProbe>pvBaseBeforeProbe+150,'Place Value auto-fit grows when real embedded content becomes taller');
+  assert(pvBaseWithProbe>pvBaseBeforeProbe+150,'Place Value auto-fit grows when real embedded content becomes taller: '+pvBaseBeforeProbe+' → '+pvBaseWithProbe+' (probe '+pvFitProbe.getBoundingClientRect().height+'px)');
   pvFitProbe.remove();
   pvDoc.getElementById('gd-stage').dispatchEvent(new MouseEvent('click',{bubbles:true}));
   await tick(180);
@@ -364,7 +364,18 @@ async function run(){
   assert(pvChallengeKinds.includes(pvGame.dataset.pvActivityKind),'Random frame Challenge chooses from the full pupil-task set');
   assert(pvDoc.querySelector('[data-pv-activity-check]')&&pvDoc.querySelector('[data-pv-activity-another]'),'Generated pupil challenge exposes Check and Another directly on the board');
   if(['build','exact'].includes(pvGame.dataset.pvActivityKind))assert(pvDoc.querySelectorAll('[data-gd-object]').length===0,'Build/Exact random challenges start with an empty pupil board');
-  else if(pvGame.dataset.pvActivityKind==='add')assert(pvDoc.querySelector('.gd-pv-abacus')&&Number((pvDoc.getElementById('pv-total').textContent||'').replace(/,/g,''))>0,'Random Addition challenge starts from the first addend on an abacus');
+  else if(pvGame.dataset.pvActivityKind==='add'){
+    const model=pvWin.TT99Goodies.lessonState.capture('place-value').model;
+    const originalMode=JSON.parse(pvOriginal).representationMode;
+    const mode=model.diagram.representationMode;
+    assert(mode===originalMode,'Random Addition preserves the teacher-selected representation');
+    assert((mode==='abacus'||mode==='both')===!!pvDoc.querySelector('.gd-pv-abacus'),'Addition shows the selected bead representation');
+    assert((mode==='counters'||mode==='both')===!!pvDoc.querySelector('.gd-pv-board-wrap'),'Addition shows the selected counter representation');
+    const displayed=Number((pvDoc.getElementById('pv-total').textContent||'').replace(/,/g,''));
+    assert(Number.isFinite(model.additionA)&&displayed===model.additionA,'Random Addition starts from the exact first addend');
+    if(mode!=='abacus')assert(pvDoc.querySelectorAll('#pv-canvas [data-gd-object]').length===model.paperActivityStart.reduce((a,b)=>a+b,0),'Addition renders every starting counter');
+    if(mode!=='counters')assert([...pvDoc.querySelectorAll('.gd-pv-abacus-rod')].every((rod,i)=>rod.querySelectorAll('.gd-pv-abacus-bead.is-active').length===model.paperActivityStart[i]),'Addition renders the starting digits on the bead frame');
+  }
   else assert(pvDoc.querySelectorAll('[data-gd-object]').length>0,'Interpret/regroup/same-value random challenges start with a meaningful board representation');
 
   const challengeKindBefore=pvGame.dataset.pvActivityKind;
@@ -414,7 +425,7 @@ async function run(){
   const pvTens=[...pvDoc.querySelectorAll('[data-gd-object][data-pv-place="2"]')][0]||[...pvDoc.querySelectorAll('[data-gd-object]')].find(el=>Number(el.dataset.pvPlace)<pvDoc.querySelectorAll('.gd-pv-column').length-1);
   const pvr=pvTens.getBoundingClientRect();
   pointer(pvTens,'pointerdown',pvr.left+pvr.width/2,pvr.top+pvr.height/2,55);
-  pointer(pvTens,'pointerup',pvr.left+pvr.width/2,pvr.top+pvr.height/2,55);await tick();
+  pointer(pvTens,'pointerup',pvr.left+pvr.width/2,pvr.top+pvr.height/2,55);await tick(100);
   pvQuick=[...pvFrame.querySelectorAll('[data-board-quick-actions] button')];
   const splitPV=pvQuick.find(button=>button.textContent.includes('Split 1→10'));
   assert(splitPV,'Place Value exposes Split 1→10 directly on the selected whiteboard widget');
@@ -535,7 +546,10 @@ async function run(){
   assert(mcAdd,'Maths Canvas exposes Add Tile directly on the frame');
   mcAdd.click();await tick();
   const mcDoc=mcFrame.querySelector('iframe').contentDocument;
-  assert(visible(mcDoc.querySelector('.gd-mc-stage-palette')),'Frame Add Tile opens the number / operation palette inside Maths Canvas');
+  const tilePalette=document.getElementById('gd-board-floating-controls');
+  const tilePick=tilePalette.querySelector('[data-board-control-index][data-mc-add], [data-board-control-index][data-mc-stage-add]');
+  assert(visible(tilePalette)&&tilePalette.querySelector('.gd-mc-stage-palette')&&tilePalette.querySelectorAll('button[data-board-control-index]').length>4,'Frame Add Tile opens the contextual number / operation palette on the board');
+  assert(mcDoc.querySelector('#mc-board-palette').hidden,'Embedded palette remains a hidden proxy source');
   TT99Goodies.compositionBoard.remove(mcRecord.id);
 
   document.querySelector('[data-board-add="measurement"]').click();await tick();
@@ -619,10 +633,12 @@ async function run(){
   assert(!clock.classList.contains('is-selected'),'Touching blank canvas removes object focus');
   assert(getComputedStyle(clock.querySelector('[data-board-context]')).display==='none','Object chrome disappears completely when unfocused');
 
+  // Clear the initial Clock at every viewport width. Only the expensive
+  // all-widget catalogue smoke pass is desktop-only.
+  assert(TT99Goodies.compositionBoard.objects().length===1&&TT99Goodies.compositionBoard.objects()[0].toolId==='clock','Only the initial Clock remains before fixture cleanup');
+  TT99Goodies.compositionBoard.remove(firstClockRecord.id);
+  assert(TT99Goodies.compositionBoard.objects().length===0&&document.querySelectorAll('[data-board-object]').length===0,'All initial test objects can be cleared before the next test');
   if(innerWidth>=900){
-    const firstRecord=TT99Goodies.compositionBoard.objects()[0];
-    if(firstRecord)TT99Goodies.compositionBoard.remove(firstRecord.id);
-    assert(document.querySelectorAll('[data-board-object]').length===0,'All initial test objects can be cleared before the catalogue smoke pass');
     const mounted=[],clipFailures=[];
     for(const toolButton of tools){
       toolButton.click();
@@ -744,6 +760,7 @@ async function run(){
   geoDoc.querySelector('[data-gp]').dispatchEvent(new geoDoc.defaultView.MouseEvent('click',{bubbles:true}));
   assert(JSON.stringify(geoState.capture('geoboard').model.diagram.pts)===given,'Given geometry cannot be altered during a calculation question');
   api.remove(qaGeo.record.id);
+  assert(api.objects().length===0,'Saved-board fixture starts with an empty board at every viewport width');
   const saveAb=await addForSave('abacus');
   saveAb.doc.querySelector('[data-ab-bead="4:unit:0"]').click();
   const saveNl=await addForSave('number-line');
@@ -771,9 +788,9 @@ async function run(){
   await api.restore(saved);await tick(80);
   const restored=api.capture();
   assert(restored.objects.length===2,'Mixed lesson opens with both objects');
-  const restoredAb=restored.objects.find(o=>o.toolId==='abacus'),originalAb=saved.objects.find(o=>o.toolId==='abacus');
-  assert(JSON.stringify(restoredAb.state.model.counts)===JSON.stringify(originalAb.state.model.counts),'Abacus bead positions survive save and restore');
-  assert(restoredAb.x===originalAb.x&&restoredAb.y===originalAb.y&&restoredAb.scale===originalAb.scale,'Object position and scale survive save and restore');
+  const restoredAb=restored.objects.find(o=>o.toolId==='abacus'),savedAb=saved.objects.find(o=>o.toolId==='abacus');
+  assert(JSON.stringify(restoredAb.state.model.counts)===JSON.stringify(savedAb.state.model.counts),'Abacus bead positions survive save and restore');
+  assert(restoredAb.x===savedAb.x&&restoredAb.y===savedAb.y&&restoredAb.scale===savedAb.scale,'Object position and scale survive save and restore');
   const broken=JSON.parse(JSON.stringify(saved));broken.objects[0].state.model.counts=null;
   let failed=false;try{await api.restore(broken)}catch(_){failed=true}
   assert(failed&&api.objects().length===2,'Failed restore keeps original lesson intact');
@@ -864,6 +881,8 @@ async function run(){
 window.addEventListener('load',()=>setTimeout(()=>run().catch(err=>result('fail','embed',err&&err.message?err.message:String(err),err&&err.stack?err.stack:'')),180));
 })();`;
 
+  // Parse the generated inline scripts before launching the browser.
+  new Function(boardScript);new Function(embedScript);
   fs.writeFileSync(BOARD,shell('/goodies/?board=1',boardScript));
   fs.writeFileSync(EMBED,shell('/goodies/?embed=1#fraction-wall',embedScript));
   fs.writeFileSync(HOST,embedHost());

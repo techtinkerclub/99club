@@ -2699,7 +2699,7 @@ function timesTableVisual(){
     updateChallengeAnswer();
     const t=total(),frozen=challengeFrozen(),banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Times-table challenge',pupil:(challenge.type==='build-fact'?CK.pupilSpec('model',{check:()=>groupsCount===challenge.targetGroups&&itemsPerGroup===challenge.targetItems}):challenge.type==='spot-error'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:challenge.answer.startsWith('Yes')?'Yes':'No',explain:true}):CK.pupilSpec(challenge.type==='write-repeated'?'addition-equation':challenge.type==='commutative-fact'?'equation':'number')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-tv-workbench">'+
-      (challenge&&frozen?'':'<div class="gd-tv-summary">'+(!challenge?'<div><span>Equal groups</span><strong data-tv-equation>'+equationText()+'</strong></div>':'')+
+      (challenge&&frozen?'':'<div class="gd-tv-summary">'+(challenge?.mode!=='standard'?'<div><span>Equal groups</span><strong data-tv-equation>'+equationText()+'</strong></div>':'')+
         '<div class="gd-object-toolbar"><button class="gd-btn" id="tv-undo" type="button"'+(undoStack.length&&!frozen?'':' disabled')+'>Undo</button><button class="gd-btn" id="tv-redo" type="button"'+(redoStack.length&&!frozen?'':' disabled')+'>Redo</button></div></div>')+
       (!frozen?'<div class="gd-tv-direct">'+
         '<div class="gd-tv-stepper"><span>Groups</span><div><button class="gd-btn" id="tv-groups-minus" type="button"'+(groupsCount<=1?' disabled':'')+'>−</button><strong data-tv-groups>'+groupsCount+'</strong><button class="gd-btn" id="tv-groups-plus" type="button"'+(groupsCount>=12?' disabled':'')+'>+</button></div></div>'+
@@ -2709,9 +2709,9 @@ function timesTableVisual(){
       '<div class="gd-tv-groups" data-tv-group-count="'+groupsCount+'">'+Array.from({length:groupsCount},(_,i)=>groupHtml(i)).join('')+
         (!frozen&&groupsCount<12?'<button class="gd-tv-add-group" id="tv-add-group" type="button"><strong>+</strong><span>Add group</span></button>':'')+'</div>'+
       selectedPanel()+
-      (showRepeated&&!challenge?'<div class="gd-tv-readout"><span>Repeated addition</span><strong data-tv-repeated>'+repeatedDisplay()+'</strong></div>':'')+
-      (showJumps&&!challenge&&!hiddenFlag('hiddenJumps')?'<div class="gd-tv-jump-section"><span>Equal jumps</span><div class="gd-tv-jumps">'+Array.from({length:groupsCount},(_,i)=>jumpHtml(i)).join('')+'</div></div>':'')+
-      (showFactFamily&&!challenge?'<div class="gd-tv-fact-family"><span>Fact family</span><div>'+
+      (showRepeated&&challenge?.mode!=='standard'?'<div class="gd-tv-readout"><span>Repeated addition</span><strong data-tv-repeated>'+repeatedDisplay()+'</strong></div>':'')+
+      (showJumps&&challenge?.mode!=='standard'&&!hiddenFlag('hiddenJumps')?'<div class="gd-tv-jump-section"><span>Equal jumps</span><div class="gd-tv-jumps">'+Array.from({length:groupsCount},(_,i)=>jumpHtml(i)).join('')+'</div></div>':'')+
+      (showFactFamily&&challenge?.mode!=='standard'?'<div class="gd-tv-fact-family"><span>Fact family</span><div>'+
         '<strong data-tv-commutative>'+commutativeDisplay()+'</strong>'+
         '<strong data-tv-division-a>'+divisionADisplay()+'</strong>'+
         '<strong data-tv-division-b>'+divisionBDisplay()+'</strong>'+
@@ -2915,7 +2915,7 @@ function timesTableVisual(){
     return state.groupsCount+' × '+state.itemsPerGroup+' = '+stateTotal(state);
   }
   function timesTableExportSvg({pupil=false}={}){
-    if(pupil&&challenge?.type==='build-fact'){
+    if(pupil&&challenge?.mode==='standard'&&challenge.type==='build-fact'){
       const svg=tvSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 900 500',role:'img','aria-label':'Space to draw equal groups'});
       svg.appendChild(tvSvgEl('rect',{x:0,y:0,width:900,height:500,fill:'#fff'}));svg.appendChild(tvSvgEl('rect',{x:30,y:30,width:840,height:440,rx:12,fill:'#fff',stroke:'#aabcc0','stroke-width':2}));return svg;
     }
@@ -2972,7 +2972,7 @@ function timesTableVisual(){
     const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
     return X.composeChallengeCardSvg(timesTableExportSvg({pupil:true}),{
       title:challenge.title||meta?.title||'Times-table challenge',
-      prompt:challenge.type==='build-fact'?'Draw '+challenge.targetGroups+' equal groups with '+challenge.targetItems+' items in each group.':prompt,
+      prompt:challenge.mode==='standard'&&challenge.type==='build-fact'?'Draw '+challenge.targetGroups+' equal groups with '+challenge.targetItems+' items in each group.':prompt,
       responseLabel:challenge.type==='build-fact'?'Draw your groups / working':challenge.category==='reason'?'Explain your thinking':'Answer',
       responseLines:challenge.type==='build-fact'?Math.max(3,responseLines):responseLines,
       brand:'99 Club Studio'
@@ -3843,7 +3843,7 @@ function fdpExplorer(){
   }
   function stateHundredFill(state){return Math.round(stateValue(state)*100)}
   function fdpExportSvg({pupil=false}={}){
-    if(pupil&&challenge?.type==='build-percentage'){
+    if(pupil&&challenge?.mode==='standard'&&challenge.type==='build-percentage'){
       const divisions=Array.from({length:20},(_,i)=>i+1).find(d=>Math.abs(challenge.targetPercent*d/100-Math.round(challenge.targetPercent*d/100))<1e-8)||20;
       const svg=fdSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 920 210',role:'img','aria-label':'Blank fraction bar to shade'});
       svg.appendChild(fdSvgEl('rect',{x:0,y:0,width:920,height:210,fill:'#ffffff'}));
@@ -3901,7 +3901,7 @@ function fdpExplorer(){
     const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
     return X.composeChallengeCardSvg(fdpExportSvg({pupil:true}),{
       title:challenge.title||meta?.title||'Fraction–decimal–percentage challenge',
-      prompt:challenge.type==='build-percentage'?'Shade '+challenge.targetPercent+'% of the bar.':prompt,
+      prompt:challenge.mode==='standard'&&challenge.type==='build-percentage'?'Shade '+challenge.targetPercent+'% of the bar.':prompt,
       responseLabel:challenge.category==='reason'?'Explain your thinking':'Answer',
       responseLines,
       brand:'99 Club Studio'
@@ -4512,7 +4512,7 @@ function geoboard(){
         '<button type="button" class="gd-context-history" data-ge-redo-stage'+(!redoStack.length?' disabled':'')+'>Redo</button>'+
         '<button type="button" class="gd-context-delete" data-ge-delete'+(selected>=0&&pts[selected]?'':' hidden')+'>Delete vertex</button>'+
       '</div></div>')+
-      (!challenge?'<div class="gd-readout" id="ge-readout">'+metricText()+'</div>':'')+
+      (challenge?.mode!=='standard'?'<div class="gd-readout" id="ge-readout">'+metricText()+'</div>':'')+
     '</div>';
     bindStage();
     bindChallengeStageActions();

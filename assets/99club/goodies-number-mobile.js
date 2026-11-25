@@ -931,7 +931,7 @@ function setBuilding(on){
 function finishBuild(seq){
   if(seq!==buildSeq)return;
   clearTimeout(checkTimer);clearTimeout(failSafeTimer);checkTimer=failSafeTimer=null;originBanner=null;
-  setBuilding(false);ensureExit();
+  setBuilding(false);ensureExit();G.numberMobilePupilState?.refresh?.();G.numberMobileNumericInput?.refresh?.();
 }
 function finalChallengeReady(){
   const b=banner(),w=work();if(!b||!w||q('.nmb-v5-challenge-popover',w))return false;
@@ -948,15 +948,17 @@ function finalChallengeReady(){
 }
 function checkBuild(seq){
   if(!building||seq!==buildSeq)return;
-  clearTimeout(checkTimer);
+  if(checkTimer!==null)return;
   checkTimer=setTimeout(()=>{
+    checkTimer=null;
     if(!building||seq!==buildSeq)return;
     const oldEnough=Date.now()-buildStarted>=180;
     if(!oldEnough||!finalChallengeReady()){checkBuild(seq);return}
-    requestAnimationFrame(()=>requestAnimationFrame(()=>finishBuild(seq)));
+    finishBuild(seq);
   },45);
 }
 function beginBuild(){
+  clearTimeout(checkTimer);checkTimer=null;
   const seq=++buildSeq;buildStarted=Date.now();originBanner=banner();setBuilding(true);checkBuild(seq);
   clearTimeout(failSafeTimer);failSafeTimer=setTimeout(()=>{if(seq!==buildSeq)return;if(finalChallengeReady()||!banner())finishBuild(seq);else if(!G.numberMobileChallengeIsBuilding?.())exitChallenge()},30000);
 }
@@ -1089,6 +1091,9 @@ function mainTotals(){return{left:sumTokens(mainSide('left')),right:sumTokens(ma
 function relation(){const t=mainTotals();return Math.abs(t.left-t.right)<1e-9?'=':t.left>t.right?'>':'<'}
 function challengeType(){
   if(unknownTiles().length)return'missing';
+  const type=G.numberMobileChallengeSpec?.type||G.numberMobileEngineState?.challengeIdentity?.()?.type;
+  const types={'find-difference':'difference','make-balance':'balance','choose-relation':'compare','spot-false-equality':'spot','same-to-both':'same'};
+  if(types[type])return types[type];
   const b=banner(),copy=(text(q('.gd-challenge-prompt',b))+' '+text(q('.gd-challenge-copy h3',b))+' '+text(q('[data-ba-equation]',work()))).toLowerCase();
   if(G.numberMobileChallengeSpec?.type==='make-balance'||/how much.*(?:add|added).*lighter.*balance/.test(copy))return'balance';
   if(/difference|how much heavier/.test(copy))return'difference';

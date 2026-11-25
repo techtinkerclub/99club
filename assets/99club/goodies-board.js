@@ -553,20 +553,28 @@ function connectInnerObject(obj){
     }
     function queueFit(){
       if(!valid()||pending)return;
-      pending=requestAnimationFrame(()=>{
-        pending=0;if(!valid())return;measure();
-        // ResizeObserver catches subsequent layout and font changes. Only use
-        // a fallback trailing measurement when that API is unavailable.
-        if(!ro){clearTimeout(settleTimer);settleTimer=setTimeout(measure,80)}
-      });
+      const flush=()=>{
+        if(pending)cancelAnimationFrame(pending);
+        pending=0;clearTimeout(settleTimer);settleTimer=0;
+        if(!valid())return;measure();
+        if(!ro)settleTimer=setTimeout(measure,80);
+      };
+      pending=requestAnimationFrame(flush);
+      clearTimeout(settleTimer);settleTimer=setTimeout(flush,80);
     }
     function dispose(){
       disposed=true;clearTimeout(settleTimer);if(pending)cancelAnimationFrame(pending);
-      ro?.disconnect();mo?.disconnect();events.forEach(type=>doc.removeEventListener(type,queueFit,true));
+      ro?.disconnect();mo?.disconnect();events.forEach(type=>doc.removeEventListener(type,handleInteraction,true));
     }
     const events=['click','pointerup','change'];
     innerConnections.set(obj.id,{doc,dispose});
-    events.forEach(type=>doc.addEventListener(type,queueFit,true));
+    function handleInteraction(){
+      // Selection changes are synchronous; refresh the contextual rail after
+      // the event has finished, without waiting for a painted animation frame.
+      Promise.resolve().then(()=>{if(valid())syncQuickActions(obj)});
+      queueFit();
+    }
+    events.forEach(type=>doc.addEventListener(type,handleInteraction,true));
     observeChildren();
     mo?.observe(stage,{childList:true,subtree:true,characterData:true});
     if(controls)mo?.observe(controls,{childList:true,subtree:true,characterData:true});

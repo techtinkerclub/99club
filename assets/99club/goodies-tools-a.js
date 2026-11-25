@@ -1265,8 +1265,13 @@ function placeValue(){
       const nextTab=button.dataset.pvWorkflow;
       if(nextTab==='activity'){
         if(challenge){restoreBeforeChallenge();challenge=null}
-        const teachMode=activityContext==='challenge'?'powers':activityMode;
-        controlTab='activity';startActivity(teachMode,'teach');return;
+        if(activityBefore)exitActivityChallenge();
+        // Opening Teach / play must not silently generate a new pupil problem
+        // and overwrite the teacher's existing counters.
+        const teachMode=activityActive&&activityContext==='teach'?activityMode:'powers';
+        controlTab='activity';
+        if(activityActive&&activityContext==='teach'){renderControls();controller?.refresh();return}
+        startActivity(teachMode,'teach');return;
       }
       if(nextTab==='setup'&&activityBefore){exitActivityChallenge();return}
       if(nextTab==='setup')activityActive=false;
@@ -1805,7 +1810,7 @@ function fractionWall(){
     else if(source==='compare-sign')challenge.hiddenCompareSign=true;
     else{
       const m=String(source||'').match(/^strip:(\d+):(fraction|simplified|mixed)$/);
-      if(m&&m[2]==='fraction')challenge.hiddenStripLabels=[m[1]];
+      if(m&&m[2]==='fraction'){challenge.hiddenStripLabels=[m[1]];challenge.hiddenStripHints=[m[1]]}
       if(m&&(m[2]==='simplified'||m[2]==='mixed'))challenge.hiddenStripHints=[m[1]];
     }
   }
@@ -2145,7 +2150,7 @@ function fractionWall(){
     const selected=String(strip.id)===String(selectedId),selectedObj=selectedStrip(selectedId),same=selectedObj&&String(selectedObj.id)!==String(strip.id)&&equivalent(strip,selectedObj);
     const simple=simplify(strip.n,strip.d),canSimplify=simple.n!==strip.n||simple.d!==strip.d;
     const hideLabel=challengeActiveHidden('strip-label',strip.id),hideHint=challengeActiveHidden('strip-hint',strip.id);
-    const fixed=fractionQuestionFixed(),label=hideLabel?'':strip.n+'/'+strip.d,secondary=fixed||hideLabel||hideHint?'':fractionText(strip);
+    const fixed=fractionQuestionFixed(),label=hideLabel?(fixed?'':'?'):strip.n+'/'+strip.d,secondary=fixed||hideLabel||hideHint?'':fractionText(strip);
     const hint=hideHint?'Work it out':(canSimplify?'Can simplify to '+simple.n+'/'+simple.d:'Value '+Number(fractionValue(strip).toFixed(4)));
     return '<div class="gd-fr-strip-object'+(selected?' is-selected':'')+(same?' is-equivalent':'')+(strip.locked?' is-locked':'')+'" data-gd-object="'+strip.id+'" role="button" tabindex="0" aria-selected="'+(selected?'true':'false')+'" aria-label="Fraction strip'+(hideLabel?' with hidden value':' '+strip.n+'/'+strip.d)+(strip.locked?', locked':'')+'" style="left:'+strip.x+'px;top:'+strip.y+'px;--fr-strip:'+strip.color+'">'+
       (fixed&&hideLabel?'':'<div class="gd-fr-strip-head"><strong>'+label+'</strong>'+(secondary?'<span>'+secondary+'</span>':'')+(same?'<em>same value</em>':'')+(strip.locked?'<b aria-hidden="true">⌑</b>':'')+'</div>')+

@@ -1010,7 +1010,7 @@ try{
   for(const token of ['gd-die-cube','gd-die-face','gd-spinner-wheel','gd-spinner-pointer','Spin wheel','Roll dice','data-ra-stage-go','gd-random-stage-action'])if(!randomiserBlock.includes(token))fail('goodies-randomiser','Animated Randomiser contract missing '+token);
   for(const token of ['.gd-die-cube.is-rolling','.gd-spinner-wheel.is-spinning','@keyframes gd-die-tumble','.gd-spinner-pointer{','.gd-random-stage-action{'])if(!goodiesCss.includes(token))fail('goodies-randomiser','Randomiser presentation CSS missing '+token);
   ok('goodies-randomiser','Randomiser keeps physical dice, labelled wheel, fixed pointer, motion states and a direct stage action');
-  const moneyBlock=goodiesFunctionBlock(goodiesToolsA,'moneyTool');
+  const moneyBlock=goodiesToolsA.slice(goodiesToolsA.indexOf('const MONEY_DENOMS='));
   for(const token of ['function coinArt','gd-money-coin-art','shape:\'hept\'','shape:\'dodec\'','tone:\'copper\'','tone:\'silver\'','tone:\'bimetal\'','Stylised UK classroom','CLASSROOM NOTE'])if(!moneyBlock.includes(token)&&!goodiesCss.includes(token))fail('goodies-money-imagery','UK Money visual contract missing '+token);
   if(/ROYAL_MINT_BASE|www\.royalmint\.com|face--official/.test(moneyBlock+goodiesCss))fail('goodies-money-imagery','UK Money must not depend on cropped or filtered Royal Mint photography');
   if(!goodiesCss.includes('.gd-money-coin-art'))fail('goodies-money-imagery','UK Money scalable SVG coin styling is missing');
@@ -1038,9 +1038,9 @@ try{
     'data-relation-side',
     'consecutiveSide',
     'function markerStem',
-    'labelTop=base+20,labelBottom=base+43',
+    'labelTop=base+17,labelBottom=base+layout.tickPlan.extent',
     'function assignLanes',
-    'const y1=markerCentre(layout,d.a),y2=markerCentre(layout,d.b)',
+    'const y1=challengeJump?baseY-5:markerCentre(layout,d.a),y2=challengeJump?baseY-5:markerCentre(layout,d.b)',
     'state.lines.length>=4',
     'nl-add-line',
     'activeLineId',
@@ -1086,7 +1086,7 @@ try{
     'data-nl-workflow',
     'data-nl-export-mode',
     'function pupilDiagramSvg',
-    'labelSkip',
+    'function concealJumpPosition',
     "const allowedScaleModes=['shared','own','zoom','linked']",
     'function scaleFor',
     'function scaleModeLabel',
@@ -1114,7 +1114,7 @@ try{
     'function resolveCustomAnswerSource',
     'function setCustomAnswerSource',
     'nl-custom-answer-source',
-    "label:'Another like this'",
+    "label:'Another'",
     "repeatStandard?'Another like this':'Generate challenge'"
   ])if(!numberLine.includes(token))fail('goodies-number-line','Number Line v6 missing classroom contract: '+token);
   for(const token of ['G.challengeKit=','function tabsHtml','function bannerHtml','nl-challenge-reveal','data-board-action="reveal"','data-challenge-action','answerSource','Type the answer myself','custom-live-answer'])if(!challengeKit.includes(token))fail('goodies-number-line','Shared challenge layer missing classroom contract: '+token);
@@ -1138,7 +1138,7 @@ try{
   for(const token of ['.gd-hs-workbench','.gd-hs-grid','.gd-hs-cell.is-rule','.gd-hs-cell.is-marked','.gd-hs-cell.is-related','.gd-hs-cell.is-current','.gd-hs-cell.is-hidden-number','.gd-hs-cell.is-frozen','.gd-hs-selected','.gd-hs-relations'])if(!goodiesCss.includes(token))fail('goodies-hundred-square','Hundred Square workbench/challenge styling missing: '+token);
   ok('goodies-hundred-square','Hundred Square supports direct custom-range exploration, shared Standard/Custom challenges and pupil-safe reusable vector exports');
 
-  for(const token of ['function barModel','function inferredUnknown','function adjustBoundary','function boundaryDragMove','data-bm-part','data-bm-boundary','data-bm-equation','data-bm-status','id="bm-unknown"','id="bm-value"','id="bm-duplicate"','id="bm-delete"','id="bm-add"',"{id:'missing-part'","{id:'find-whole'","{id:'write-equation'","{id:'compare-difference'","{id:'equal-groups-total'","{id:'equal-groups-part'","{id:'build-model'","{id:'spot-error'",'function customAnswerSources','function resolveAnswerSource','function challengeFrozen','function generateChallenge','data-bm-workflow','bm-custom-answer-source','CK.pickerHtml','CK.bannerHtml','hiddenPartIndexes','hiddenTotal','hiddenEquation','hiddenStatus','comparison','targetParts','data-bm-comparison','data-bm-target-status','function exportControlsHtml','function barModelExportSvg','function exportTargetSvg','function exportState','function appendComparison','data-bm-export','data-bm-export-mode','bm-copy-image','bm-svg-download','bm-response-lines','data-bm-export-build-scaffold'])if(!goodiesToolsA.includes(token))fail('goodies-bar-model','Bar Model direct-workbench/challenge/export contract missing: '+token);
+  for(const token of ['function barModel','function inferredUnknown','function adjustBoundary','function boundaryDragMove','data-bm-part','data-bm-boundary','data-bm-equation','data-bm-status','id="bm-unknown"','id="bm-value"','id="bm-duplicate"','id="bm-delete"','id="bm-add"',"{id:'missing-part'","{id:'find-whole'","{id:'write-equation'","{id:'compare-difference'","{id:'equal-groups-total'","{id:'equal-groups-part'","{id:'build-model'","{id:'spot-error'",'function customAnswerSources','function resolveAnswerSource','function challengeFrozen','function generateChallenge','data-bm-workflow','bm-custom-answer-source','CK.pickerHtml','CK.bannerHtml','hiddenPartIndexes','hiddenTotal','hiddenEquation','hiddenStatus','comparison','targetParts','data-bm-comparison',"CK.pupilSpec('model',{check:()=>parts.length===3",'function exportControlsHtml','function barModelExportSvg','function exportTargetSvg','function exportState','function appendComparison','data-bm-export','data-bm-export-mode','bm-copy-image','bm-svg-download','bm-response-lines','data-bm-export-build-scaffold'])if(!goodiesToolsA.includes(token))fail('goodies-bar-model','Bar Model direct-workbench/challenge/export contract missing: '+token);
   for(const token of ['.gd-bar-workbench','.gd-bar-track','.gd-bar-segment','.gd-bar-segment.is-unknown','.gd-bar-segment.is-frozen','.gd-bar-boundary','.gd-bar-selected','.gd-bar-readouts','.gd-bar-comparison','.gd-bar-compare-track'])if(!goodiesCss.includes(token))fail('goodies-bar-model','Bar Model workbench/challenge styling missing: '+token);
   ok('goodies-bar-model','Bar Model supports direct part editing and repartitioning plus shared Standard/Custom part-whole, comparison, equal-group, build and reasoning challenges');
 
@@ -1158,7 +1158,7 @@ try{
   for(const token of ['function fdpExplorer','function equivalentFamily','function setEquivalentScale','data-fd-source','data-fd-fraction','data-fd-decimal','data-fd-percent','data-fd-piece','data-fd-equiv','data-fd-hundred-exact','id="fd-n-minus"','id="fd-n-plus"','id="fd-d-minus"','id="fd-d-plus"','id="fd-random"','id="fd-reset"'])if(!goodiesToolsB.includes(token))fail('goodies-fdp','FDP Explorer direct-workbench contract missing: '+token);
   for(const token of ['.gd-fdp-main','.gd-fdp-summary','.gd-fdp-direct','.gd-fdp-stepper','.gd-fdp-section','.gd-fdp-bar','.gd-fdp-piece','.gd-fdp-equivalents','.gd-fdp-equivalent.is-current'])if(!goodiesCss.includes(token))fail('goodies-fdp','FDP Explorer workbench styling missing: '+token);
   ok('goodies-fdp','FDP Explorer supports direct fraction editing, benchmarks, equivalent-fraction scaling, linked decimal/percentage values and explicit hundred-square rounding');
-  for(const token of ["{id:'to-decimal'","{id:'to-percentage'","{id:'equivalent-fraction'","{id:'simplify-fraction'","{id:'build-percentage'","{id:'spot-percent-error'",'function challengeFrozen','function generateChallenge','function customAnswerSources','function resolveAnswerSource','data-fd-workflow','fd-custom-answer-source','CK.pickerHtml','CK.bannerHtml','hiddenFraction','hiddenDecimal','hiddenPercent','hiddenHundred','hiddenEquivalentFamily','data-fd-target-status'])if(!goodiesToolsB.includes(token))fail('goodies-fdp-challenges','FDP Explorer challenge contract missing: '+token);
+  for(const token of ["{id:'to-decimal'","{id:'to-percentage'","{id:'equivalent-fraction'","{id:'simplify-fraction'","{id:'build-percentage'","{id:'spot-percent-error'",'function challengeFrozen','function generateChallenge','function customAnswerSources','function resolveAnswerSource','data-fd-workflow','fd-custom-answer-source','CK.pickerHtml','CK.bannerHtml','hiddenFraction','hiddenDecimal','hiddenPercent','hiddenHundred','hiddenEquivalentFamily',"CK.pupilSpec('model',{check:()=>Math.abs(percentValue()-challenge.targetPercent)<1e-8}"])if(!goodiesToolsB.includes(token))fail('goodies-fdp-challenges','FDP Explorer challenge contract missing: '+token);
   ok('goodies-fdp-challenges','FDP Explorer supports shared Standard/Custom conversion, equivalence, build and reasoning challenges');
 
   for(const token of ['function exportControlsHtml','function fdpExportSvg','function exportTargetSvg','function exportState','function exportHidden','data-fd-export','data-fd-export-mode','fd-copy-image','fd-svg-download','fd-response-lines'])if(!goodiesToolsB.includes(token))fail('goodies-fdp-export','FDP Explorer export contract missing: '+token);
