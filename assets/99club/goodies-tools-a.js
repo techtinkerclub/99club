@@ -3129,6 +3129,116 @@ function barModel(){
 
 }
 
+  const HS_TEMPLATES=[
+    {id:'missing-number',category:'read',title:'Find the hidden number',desc:'Use the surrounding hundred-square pattern to identify a hidden cell.'},
+    {id:'one-more',category:'read',title:'One more',desc:'Find the number that is one more than the selected number.'},
+    {id:'one-less',category:'read',title:'One less',desc:'Find the number that is one less than the selected number.'},
+    {id:'ten-more',category:'read',title:'Ten more',desc:'Find the number that is ten more than the selected number.'},
+    {id:'ten-less',category:'read',title:'Ten less',desc:'Find the number that is ten less than the selected number.'},
+    {id:'continue-pattern',category:'patterns',title:'Continue the pattern',desc:'Use marked numbers to continue a step pattern.'},
+    {id:'mark-rule',category:'patterns',title:'Mark every match',desc:'Mark every number that matches a given rule.'},
+    {id:'spot-wrong-mark',category:'reason',title:'Spot the wrong mark',desc:'Find the one marked number that does not fit the rule.'}
+  ];
+
+function hsSettings(model={}){
+ const src=model.generationSettings||model;
+ const start=Number(src.startValue);
+ return {startValue:Number.isInteger(start)&&start>=0&&start<=999900?start:1,responseLines:Math.max(1,Math.min(4,Math.round(Number(model.responseLines)||1)))};
+}
+function hsTypes(){return HS_TEMPLATES.map(t=>({id:t.id,label:t.title}))}
+function hsMatches(n,mode,k){
+ if(mode==='multiples')return n%k===0;
+ if(mode==='factors')return n>0&&k%n===0;
+ if(mode==='even')return n%2===0;
+ if(mode==='odd')return Math.abs(n%2)===1;
+ if(mode==='prime'){if(n<2||!Number.isInteger(n))return false;for(let i=2;i*i<=n;i++)if(n%i===0)return false;return true}
+ return false;
+}
+function hsGenerate(type,settings={},rng=Math.random){
+ const cfg=hsSettings(settings),template=HS_TEMPLATES.find(t=>t.id===type);if(!template)throw Error('Unknown hundred-square question.');
+ const start=cfg.startValue,rand=(a,b)=>a+Math.floor(rng()*(b-a+1)),values=Array.from({length:100},(_,i)=>start+i);
+ let diagram={startValue:start,selectedIndex:0,interactionMode:'select',ruleMode:'none',ruleNumber:5,marked:[],hidden:[]},challenge;
+ function task(prompt,answer,extra={}){return {mode:'standard',type,category:template.category,title:'',prompt,promptHtml:prompt,answer:String(answer),answerMode:'manual',answerSource:'',revealed:false,freezeGrid:true,markOnly:false,hideSelectedPanel:true,hiddenRangeSummary:false,targetValues:null,...extra}}
+ if(type==='missing-number'){
+   const i=rand(11,88),target=start+i;diagram.hidden=[target];diagram.selectedIndex=i;
+   challenge=task('What number is hidden on the hundred square?',target);
+ }else if(['one-more','one-less','ten-more','ten-less'].includes(type)){
+   const delta={'one-more':1,'one-less':-1,'ten-more':10,'ten-less':-10}[type],i=rand(11,88),anchor=start+i;
+   diagram.selectedIndex=i;challenge=task('What is '+type.replace('-',' ')+' than '+anchor+'?',anchor+delta,{anchor,delta});
+ }else if(type==='continue-pattern'){
+   const step=[2,3,4,5,6,7,8,9,10,11,12][rand(0,10)],i=rand(0,99-3*step),first=start+i;
+   diagram.marked=[first,first+step,first+2*step];diagram.selectedIndex=i;
+   challenge=task('The marked numbers follow a +'+step+' pattern. What comes next?',first+3*step,{patternStep:step});
+ }else if(type==='mark-rule'){
+   const rules=[...Array.from({length:19},(_,i)=>['multiples',i+2]),['prime',1],['odd',1]];
+   const [mode,k]=rules[rand(0,rules.length-1)],target=values.filter(n=>hsMatches(n,mode,k));
+   const label=mode==='multiples'?'multiples of '+k:mode==='prime'?'prime numbers':mode+' numbers';
+   diagram.interactionMode='mark';
+   challenge=task('Mark all '+label+' on the hundred square.',target.length+' matching numbers',{freezeGrid:false,markOnly:true,targetValues:target,ruleLabel:label,ruleKind:mode,ruleFactor:k});
+ }else{
+   const k=[3,4,5,6,7,8,9,10,11,12][rand(0,9)],correct=values.filter(n=>n%k===0),wrongPool=values.filter(n=>n%k!==0),wrong=wrongPool[rand(0,wrongPool.length-1)];
+   for(let i=correct.length-1;i>0;i--){const j=rand(0,i);[correct[i],correct[j]]=[correct[j],correct[i]]}
+   diagram.marked=[...correct.slice(0,8),wrong];diagram.selectedIndex=diagram.marked[0]-start;
+   challenge=task('One marked number is not a multiple of '+k+'. Which number is wrong?',wrong,{ruleLabel:'multiples of '+k,ruleFactor:k});
+ }
+ challenge.initialState=JSON.parse(JSON.stringify(diagram));challenge.generationSettings=cfg;
+ return {type,settings:cfg,diagram,challenge};
+}
+function hsData(model){
+ const c=model.challenge?JSON.parse(JSON.stringify(model.challenge)):null;
+ if(c?.mode==='custom')throw Error('Use individual export for custom hundred-square tasks.');
+ const diagram=JSON.parse(JSON.stringify(c?.initialState||model.diagram||model));
+ if(c){c.revealed=false;delete c.marksBeforeReveal;if(c.type==='mark-rule')diagram.marked=[]}
+ return {type:c?.type,settings:hsSettings({...model,generationSettings:c?.generationSettings||model.generationSettings||{startValue:diagram.startValue}}),diagram,challenge:c};
+}
+function hsPaper(data,teacher=false){
+ const d=data.diagram,c=data.challenge,task=!!c,start=d.startValue,markTask=c?.type==='mark-rule',wrongTask=c?.type==='spot-wrong-mark';
+ const marks=new Set(teacher&&markTask?c.targetValues:d.marked||[]),hidden=new Set(d.hidden||[]),answer=Number(c?.answer),anchor=start+d.selectedIndex;
+ // A short extract retains complete rows and all required numbers; marking
+ // and pattern questions use the whole square.
+ let first=0,last=9;
+ const extract=task&&['missing-number','one-more','one-less','ten-more','ten-less'].includes(c.type);
+ if(extract){
+   const low=Math.floor((Math.min(anchor,answer)-start)/10),high=Math.floor((Math.max(anchor,answer)-start)/10);
+   first=Math.max(0,low-1);last=Math.min(9,high+1);
+ }
+ const cell=60,W=620,H=(last-first+1)*cell+20;
+ const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+ for(const [k,v] of Object.entries({xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':extract?'Extract from a hundred square':'Hundred square'}))svg.setAttribute(k,String(v));
+ function el(name,attrs={},value){const n=document.createElementNS('http://www.w3.org/2000/svg',name);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,String(v));if(value!==undefined)n.textContent=String(value);return n}
+ svg.appendChild(el('rect',{width:W,height:H,fill:'#fff'}));
+ for(let row=first;row<=last;row++)for(let col=0;col<10;col++){
+   const i=row*10+col,n=start+i,x=10+col*cell,y=10+(row-first)*cell;
+   const isHidden=hidden.has(n)&&(!task||!teacher),isAnswer=task&&teacher&&!markTask&&n===answer;
+   const selected=!markTask&&!wrongTask&&i===d.selectedIndex,rule=!task&&hsMatches(n,d.ruleMode,d.ruleNumber);
+   const isMarked=marks.has(n)||(teacher&&c?.type==='continue-pattern'&&isAnswer);
+   const g=el('g',{'data-hs-paper-index':i});
+   const fill=isHidden?'#f1f4f4':isAnswer&&wrongTask?'#fbe3db':isAnswer?'#d3eee2':rule?'#fff2c8':'#fff';
+   g.appendChild(el('rect',{x,y,width:cell-2,height:cell-2,rx:2,fill,stroke:isAnswer?(wrongTask?'#aa4937':'#147d75'):selected?'#147d75':'#a9bdc1','stroke-width':isAnswer||selected?2.8:1}));
+   if(isMarked)g.appendChild(el('circle',{cx:x+29,cy:y+29,r:23,fill:'none',stroke:isAnswer&&wrongTask?'#aa4937':'#147d75','stroke-width':2.5,'data-hs-paper-mark':'1'}));
+   if(isAnswer)g.setAttribute('data-hs-paper-answer','1');
+   const label=isHidden?'?':String(n);
+   g.appendChild(el('text',{x:x+29,y:y+30,'text-anchor':'middle','dominant-baseline':'middle','font-family':'Arial,sans-serif','font-size':Math.min(23,85/Math.max(1,label.length)),'font-weight':700,fill:'#304b52','data-hs-paper-value':i},label));
+   svg.appendChild(g);
+ }
+ if(!task)return svg;
+ const prompt=extract?c.prompt.replace('on the hundred square','in this part of the hundred square'):markTask?c.prompt.replace(/^Mark all /,'Circle all '):c.prompt;
+ const lines=Math.max(data.settings?.responseLines||1,1);
+ return G.exportTools.composeWorksheetCardSvg(svg,{title:HS_TEMPLATES.find(t=>t.id===c.type)?.title||'Hundred square challenge',prompt,responseMode:markTask||c.type==='missing-number'?'none':lines>1?'lines':'box',responseLines:lines,paperStyle:'plain',answer:c.answer,showAnswer:teacher,diagramMaxHeight:extract?360:700});
+}
+G.hundredSquarePaperModel={settings:hsSettings,types:hsTypes,generate:hsGenerate,render:hsPaper,matches:hsMatches};
+if(G.publishing)G.publishing.register('hundred-square',{
+ label:'Hundred square',types:hsTypes,title:item=>item.kind==='diagram'?'Hundred square illustration':HS_TEMPLATES.find(t=>t.id===item.data.type)?.title||'Hundred square challenge',
+ signature:d=>JSON.stringify([d.type,d.diagram.startValue,d.challenge.prompt,d.challenge.answer,[...d.diagram.marked].sort((a,b)=>a-b),d.diagram.hidden]),
+ recipe:(model,type)=>({type,settings:hsSettings(model)}),
+ generate(recipe,rng){const ids=hsTypes().map(t=>t.id);return hsGenerate(recipe.type==='all'?ids[Math.floor(rng()*ids.length)]:recipe.type,recipe.settings,rng)},
+ capture(model){const d=hsData(model);return [G.publishing.record('hundred-square',d.challenge?'challenge':'diagram',d,d.challenge?{type:d.type,settings:d.settings}:null)]},
+ answerSummary:item=>{const c=item.data.challenge;return c.type==='mark-rule'?c.targetValues.length+' matching numbers: '+c.targetValues.join(', '):c.answer},
+ answerGraphic:item=>G.exportTools.withAnswerDiagram(()=>hsPaper(item.data,true)),
+ answerNote:item=>{const c=item.data.challenge;if(c.type==='mark-rule')return 'All and only the matching numbers must be circled or otherwise clearly marked.';if(c.type==='spot-wrong-mark')return 'The highlighted number is the only marked number that is not '+c.ruleLabel.replace('multiples of','a multiple of')+'.';if(c.type==='continue-pattern'&&c.patternStep)return 'Add '+c.patternStep+' to the last marked number.';return ''},
+ render(item,teacher){return hsPaper(item.data,teacher)}
+});
+
 function hundredSquare(){
   const CK=G.challengeKit,X=G.exportTools;
   let startValue=1,selectedIndex=0,interactionMode='select',ruleMode='multiples',ruleNumber=5,paint=null,rulePanelOpen=false;
@@ -3139,18 +3249,9 @@ function hundredSquare(){
     {id:'patterns',label:'Patterns'},
     {id:'reason',label:'Reasoning'}
   ];
-  const CHALLENGE_TEMPLATES=[
-    {id:'missing-number',category:'read',title:'Find the hidden number',desc:'Use the surrounding hundred-square pattern to identify a hidden cell.'},
-    {id:'one-more',category:'read',title:'One more',desc:'Find the number that is one more than the selected number.'},
-    {id:'one-less',category:'read',title:'One less',desc:'Find the number that is one less than the selected number.'},
-    {id:'ten-more',category:'read',title:'Ten more',desc:'Find the number that is ten more than the selected number.'},
-    {id:'ten-less',category:'read',title:'Ten less',desc:'Find the number that is ten less than the selected number.'},
-    {id:'continue-pattern',category:'patterns',title:'Continue the pattern',desc:'Use marked numbers to continue a step pattern.'},
-    {id:'mark-rule',category:'patterns',title:'Mark every match',desc:'Mark every number that matches a given rule.'},
-    {id:'spot-wrong-mark',category:'reason',title:'Spot the wrong mark',desc:'Find the one marked number that does not fit the rule.'}
-  ];
+  const CHALLENGE_TEMPLATES=HS_TEMPLATES;
   let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='missing-number',challenge=null,beforeChallenge=null;
-  let exportMode='grid',responseLines=1,exportStatus='';
+  let exportMode='grid',responseLines=1,exportStatus='',generationSettings={startValue:1};
 
   function snapshot(){
     return{startValue,selectedIndex,interactionMode,ruleMode,ruleNumber,marked:[...marked],hidden:[...hidden]};
@@ -3264,7 +3365,7 @@ function hundredSquare(){
   function cellHtml(index,related){
     const n=valueAt(index),isHidden=valueHidden(n),frozen=challengeFrozen(),classes=[
       'gd-square-cell','gd-hs-cell',
-      ruleMatches(n)?'is-rule':'',
+      (ruleMatches(n)||(challenge?.mode==='standard'&&challenge.revealed&&!challenge.markOnly&&Number(challenge.answer)===n))?'is-rule':'',
       marked.has(n)?'is-marked':'',
       index===selectedIndex?'is-current':'',
       related.has(n)&&index!==selectedIndex&&!challenge?'is-related':'',
@@ -3424,7 +3525,7 @@ function hundredSquare(){
     }
     const picker=CK.pickerHtml(CHALLENGE_TEMPLATES,CHALLENGE_CATEGORIES,challengeCategory,challengeType,'hs');
     const repeat=!!(challenge&&challenge.mode==='standard'&&challenge.type===challengeType);
-    return tabs+picker+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="hs-generate" type="button">'+(repeat?'Another like this':'Generate challenge')+'</button>'+
+    return tabs+field('Challenge range','<select id="hs-challenge-range" class="gd-select">'+[0,1,101,201,901].map(n=>'<option value="'+n+'"'+(generationSettings.startValue===n?' selected':'')+'>'+n+' to '+(n+99)+'</option>').join('')+'</select>')+picker+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="hs-generate" type="button">'+(repeat?'Another like this':'Generate challenge')+'</button>'+
       (challenge&&challenge.mode!=='custom'?'<button class="gd-btn" id="hs-edit-challenge" type="button">Edit challenge</button>':'')+
       (challenge&&challenge.answer?'<button class="gd-btn" id="hs-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
       (challenge?'<button class="gd-btn" id="hs-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
@@ -3496,6 +3597,7 @@ function hundredSquare(){
     return svg;
   }
   function exportTargetSvg(){
+    if(challenge?.mode==='standard'&&exportMode==='challenge')return hsPaper(hsData({diagram:snapshot(),challenge,responseLines}));
     if(exportMode!=='challenge'||!challenge||!X?.composeChallengeCardSvg)return hundredSquareExportSvg({pupil:false});
     const prompt=CK?CK.plainText(challenge.promptHtml||challenge.prompt||''):challenge.prompt||'';
     const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
@@ -3547,42 +3649,11 @@ function hundredSquare(){
     const raw={mode:'standard',type,category:meta?.category||'',title:'',prompt,promptHtml:prompt,answer:String(answer??''),answerMode:'manual',answerSource:'',revealed:false,freezeGrid:true,markOnly:false,hideSelectedPanel:false,hiddenRangeSummary:false,targetValues:null,...extra};
     return CK?CK.normalise(raw):raw;
   }
-  function randomInt(min,max){return min+Math.floor(Math.random()*(max-min+1))}
-  function resetChallengeGrid(){
-    startValue=1;selectedIndex=0;interactionMode='select';ruleMode='none';ruleNumber=5;marked.clear();hidden.clear();
-  }
-  function relationshipChallenge(type,delta,label){
-    const min=delta<0?1-delta:1,max=delta>0?100-delta:100,anchor=randomInt(Math.max(11,min),Math.min(89,max)),target=anchor+delta;
-    selectedIndex=anchor-startValue;
-    return challengeObject(type,'What is '+label+' than '+anchor+'?',target,{hideSelectedPanel:true});
-  }
   function generateChallenge(type){
     const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
     if(!beforeChallenge)beforeChallenge=snapshot();else restore(beforeChallenge);
-    undoStack.length=0;redoStack.length=0;resetChallengeGrid();
-    if(type==='missing-number'){
-      const target=randomInt(12,89);hidden.add(target);selectedIndex=target-1;
-      challenge=challengeObject(type,'What number is hidden on the hundred square?',target,{hideSelectedPanel:true});
-    }else if(type==='one-more')challenge=relationshipChallenge(type,1,'one more');
-    else if(type==='one-less')challenge=relationshipChallenge(type,-1,'one less');
-    else if(type==='ten-more')challenge=relationshipChallenge(type,10,'ten more');
-    else if(type==='ten-less')challenge=relationshipChallenge(type,-10,'ten less');
-    else if(type==='continue-pattern'){
-      const steps=[2,5,10],step=steps[Math.floor(Math.random()*steps.length)],first=randomInt(5,20),seq=[first,first+step,first+2*step],answer=first+3*step;
-      marked=new Set(seq);selectedIndex=first-1;
-      challenge=challengeObject(type,'The marked numbers follow a +'+step+' pattern. What comes next?',answer,{hideSelectedPanel:true});
-    }else if(type==='mark-rule'){
-      const modes=['multiples','prime','even','odd'],mode=modes[Math.floor(Math.random()*modes.length)],k=mode==='multiples'?[10,5,4,3][Math.floor(Math.random()*4)]:5;
-      const target=valuesForRule(mode,k),label=mode==='multiples'?'multiples of '+k:mode==='prime'?'prime numbers':mode+' numbers';
-      interactionMode='mark';
-      challenge=challengeObject(type,'Mark all '+label+' on the hundred square.','All matching numbers marked',{freezeGrid:false,markOnly:true,targetValues:target,ruleLabel:label});
-    }else{
-      const k=[3,4,5,6,8,9,10][randomInt(0,6)],all=valuesForRule('multiples',k),pool=Array.from({length:100},(_,i)=>i+1).filter(n=>n%k!==0),wrong=pool[randomInt(0,pool.length-1)];
-      const target=all.slice().sort(()=>Math.random()-.5).slice(0,Math.min(8,all.length));
-      marked=new Set([...target,wrong]);selectedIndex=target[0]-1;
-      challenge=challengeObject(type,'One marked number is not a multiple of '+k+'. Which number is wrong?',wrong,{hideSelectedPanel:true,ruleLabel:'multiples of '+k});
-    }
-    challenge.initialState=snapshot();
+    undoStack.length=0;redoStack.length=0;
+    const data=hsGenerate(type,{generationSettings,responseLines});restore(data.diagram);challenge=CK?CK.normalise(data.challenge):data.challenge;
     challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';exportMode='challenge';exportStatus='';renderControls();draw();
   }
   function restoreBeforeChallenge(){if(beforeChallenge){restore(beforeChallenge);beforeChallenge=null}}
@@ -3674,6 +3745,7 @@ function hundredSquare(){
       renderControls();
     });
     qa('[data-hs-challenge-type]',q('#gd-controls')).forEach(button=>button.onclick=()=>{challengeType=button.dataset.hsChallengeType;renderControls()});
+    const range=q('#hs-challenge-range');if(range)range.onchange=()=>{generationSettings={startValue:Number(range.value)};renderControls()};
     const generate=q('#hs-generate');if(generate)generate.onclick=()=>generateChallenge(challengeType);
     const edit=q('#hs-edit-challenge');if(edit)edit.onclick=enterCustomChallenge;
     const reveal=q('#hs-reveal');if(reveal)reveal.onclick=toggleMarkingReveal;
@@ -3690,8 +3762,8 @@ function hundredSquare(){
   setPanels(controlsHtml(),'');
   bindControls();
   draw();
-  G.lessonState?.register('hundred-square',()=>({diagram:snapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
-    restore(saved.diagram);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
+  G.lessonState?.register('hundred-square',()=>({diagram:snapshot(),challenge,beforeChallenge,generationSettings:{...generationSettings},pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
+    restore(saved.diagram);generationSettings={startValue:hsSettings(saved).startValue};challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
     if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
     if(Object.prototype.hasOwnProperty.call(saved,'challengeTab'))challengeTab=saved.challengeTab;
     if(Object.prototype.hasOwnProperty.call(saved,'challengeCategory'))challengeCategory=saved.challengeCategory;
