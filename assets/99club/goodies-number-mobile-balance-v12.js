@@ -51,22 +51,22 @@ function tidy(){
   return true;
 }
 async function stabilise(){
-  const token=++runToken;
+  const token=++runToken;if(!work())return;
   /* A Hard custom mobile can take several seconds to assemble in an embedded
      board. Stay bounded, but remain alive for the whole construction window. */
-  for(let i=0;i<240&&token===runToken;i++){
+  for(let i=0;i<240&&token===runToken&&work();i++){
     if(tidy()){
       /* Keep a short settling tail for buttons/answer UI appended after pupil
          mode first becomes visible. The direct action-row observer handles
          later button changes, while event-driven sync handles answer choices. */
-      for(let j=0;j<40&&token===runToken;j++){await new Promise(r=>setTimeout(r,50));tidy()}
+      for(let j=0;j<40&&token===runToken&&work();j++){await new Promise(r=>setTimeout(r,50));tidy()}
       return;
     }
     syncCompareConceal();
     await new Promise(r=>setTimeout(r,50));
   }
 }
-function relevant(target){return !!target?.closest?.('[data-nmb-v6-type],[data-nmb-v6-another],[data-nmb-v9-change],[data-nmb-challenge-toggle],[data-board-action="reveal"],[data-nmb-v7-exit],[data-nmb-v8-choice]')}
+function relevant(target){return !!work()&&!!target?.closest?.('[data-nmb-v6-type],[data-nmb-v6-another],[data-nmb-v9-change],[data-nmb-challenge-toggle],[data-board-action="reveal"],[data-nmb-v7-exit],[data-nmb-v8-choice]')}
 function install(){
   window.addEventListener('click',e=>{if(relevant(e.target))setTimeout(stabilise,0)},true);
   document.addEventListener('click',e=>{if(relevant(e.target)){setTimeout(syncCompareConceal,0);setTimeout(stabilise,0)}},false);
