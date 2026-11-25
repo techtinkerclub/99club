@@ -609,6 +609,7 @@ function captureBoard(){
   if(objects.length>60)throw new Error('A saved board can contain up to 60 objects.');
   return {version:1,snapOn,viewport:{left:viewport.scrollLeft,top:viewport.scrollTop},objects:objects.map(obj=>{
     const api=innerDocument(obj)?.defaultView?.TT99Goodies?.lessonState;
+    if(obj.toolId==='balance')throw new Error('Number Mobile Balance does not support saved boards yet. Nothing was saved.');
     if(!api?.supports(obj.toolId))throw new Error((tools.find(t=>t.id===obj.toolId)?.title||obj.toolId)+' is still loading or does not support saved boards yet. Nothing was saved.');
     const {toolId,x,y,baseW,baseH,scale,locked,z,clockSlots}=obj;
     return {toolId,x,y,baseW,baseH,scale,locked,z,clockSlots,state:api.capture(toolId)};
@@ -662,7 +663,7 @@ function renderLibrary(){
     row.append(copy,open,del);list.append(row);
   }
 }
-document.getElementById('gd-board-saved').onclick=()=>{libraryMessage('');renderLibrary();if(!libraryDialog.open)libraryDialog.showModal()};
+document.getElementById('gd-board-saved').onclick=()=>{libraryMessage(objects.some(o=>o.toolId==='balance')?'This board contains Number Mobile Balance, which cannot be saved yet. Existing saved boards can still be opened.':'');renderLibrary();if(!libraryDialog.open)libraryDialog.showModal()};
 libraryDialog.addEventListener('cancel',e=>{if(libraryBusy)e.preventDefault()});
 libraryDialog.querySelector('[data-board-library-close]').onclick=()=>{if(!libraryBusy)libraryDialog.close()};
 document.getElementById('gd-board-save-current').onclick=()=>{
@@ -904,7 +905,7 @@ document.querySelectorAll('[data-board-add]').forEach(button=>{
   button.addEventListener('blur',hideToolTip);
 });
 
-document.getElementById('gd-board-back').onclick=()=>{if(objects.length&&!window.confirm('Leave this whiteboard? Your current objects are not saved.'))return;location.href=window.TT99_GOODIES_BOARD_HOME||location.pathname};
+document.getElementById('gd-board-back').onclick=()=>{if(objects.length&&!window.confirm('Leave this whiteboard? Changes made since your last save will be lost.'))return;location.href=window.TT99_GOODIES_BOARD_HOME||location.pathname};
 document.getElementById('gd-board-snap').onclick=e=>{
   snapOn=!snapOn;e.currentTarget.classList.toggle('is-active',snapOn);e.currentTarget.setAttribute('aria-pressed',snapOn?'true':'false');
   board.classList.toggle('is-snap-off',!snapOn);
@@ -915,6 +916,9 @@ document.getElementById('gd-board-full').onclick=()=>{
 };
 document.addEventListener('fullscreenchange',()=>board.classList.toggle('is-fullscreen',document.fullscreenElement===board));
 document.addEventListener('keydown',e=>{
+  // The modal owns its keyboard interaction, including native Escape dismissal.
+  // Never apply board shortcuts to a focused saved-board button or field.
+  if(libraryDialog.open)return;
   const tag=(e.target?.tagName||'').toLowerCase();
   const editing=tag==='input'||tag==='textarea'||tag==='select'||e.target?.isContentEditable;
   if(e.key==='Escape'&&selectedId!=null){e.preventDefault();deselect();return}
