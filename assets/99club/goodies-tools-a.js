@@ -224,7 +224,7 @@ function pvPaper(data,teacher=false){
       if(mode==='exact'){
         while(solution.reduce((a,b)=>a+b,0)<activityBudget){const next=paperAlternative(solution);if(!next||next.reduce((a,b)=>a+b,0)>activityBudget)break;solution=next}
       }
-      if(['regroup','same','add'].includes(mode))charts.push(paperChart(initial,{label:'Starting representation'}));
+      if(['regroup','same','add'].includes(mode)&&!(teacher&&X.isAnswerDiagramLayout?.()))charts.push(paperChart(initial,{label:'Starting representation'}));
       prompt+=' '+(teacher?'':'Draw counters in the final chart. ')+(mode==='same'?'Exchange one counter for ten in the next column, or use another valid exchange.':mode==='regroup'?'Use no more than nine counters in each column.':mode==='add'?'Exchange ten counters for one in the next place when needed.':'');
       charts.push(paperChart(teacher?solution:zeros,{label:teacher?(mode==='same'?'One possible solution':'Completed chart'):'Your representation',blank:!teacher}));
       if(mode==='add'){responseMode='box';responseLabel='Final number';answer=format(activityTarget)}
@@ -248,7 +248,7 @@ function pvPaper(data,teacher=false){
       }else if(type==='non-standard'){
         prompt='What number does the starting chart represent? Regroup it in the final chart, using no more than nine counters per column.';
         const target=Number(String(challenge.answer).replace(/,/g,''));
-        charts=[paperChart(initial,{label:'Starting representation'}),paperChart(teacher?digitsForValue(target):Array(places.length).fill(0),{label:teacher?'Regrouped chart':'Your regrouped chart',blank:!teacher})];
+        charts=[...(teacher&&X.isAnswerDiagramLayout?.()?[]:[paperChart(initial,{label:'Starting representation'})]),paperChart(teacher?digitsForValue(target):Array(places.length).fill(0),{label:teacher?'Regrouped chart':'Your regrouped chart',blank:!teacher})];
       }else charts=[paperChart(initial)];
       return X.composeWorksheetCardSvg(stackPaperCharts(charts),{title:(challenge.title||meta?.title||'Place Value challenge')+(teacher?' · Teacher key':''),prompt,responseLabel:challenge.category==='reason'?'Explain your thinking':'Answer',responseLines:challenge.category==='reason'?Math.max(2,Math.min(4,responseLines)):1,responseMode:mode,paperStyle:'plain',answer:type==='build-number'?'':challenge.answer||'',showAnswer:teacher,diagramMaxHeight:charts.length>1?850:500});
  }
@@ -1691,7 +1691,7 @@ function fwPaper(data,teacher=false){
  svg.appendChild(fwSvgEl('rect',{width:W,height:Math.max(80,H),fill:'#fff'}));
  let y=14;
  models.forEach((f,i)=>{
-   const hidden=exportHidden('strip-label',f.id,true),label=comparison?(i===0?'A · ':'B · ')+rawFractionText(f):hidden?'':rawFractionText(f);
+   const hidden=!teacher&&exportHidden('strip-label',f.id,true),label=comparison?(i===0?'A · ':'B · ')+rawFractionText(f):hidden?'':rawFractionText(f);
    if(label)svg.appendChild(fwSvgEl('text',{x:pad,y:y+17,'font-family':'Arial,sans-serif','font-size':19,'font-weight':750,fill:'#334a52'},label));
    y+=label?30:8;
    for(let g=0;g<groups(f);g++){
@@ -4945,7 +4945,7 @@ function clockGenerate(type,settings={},rng=Math.random){
 }
 function clockPaper(data,teacher=false){
  const d=data.diagram||{},c=data.challenge,task=!!c,comparison=Array.isArray(c?.clockEvidence),drawTask=c?.type==='set-five'||c?.type==='set-minute',elapsed=c?.type==='elapsed-forward';
- const states=comparison?c.clockEvidence:task?[elapsed?{hour:c.startHour,minute:c.startMinute,second:0}:drawTask&&teacher?{hour:c.targetHour,minute:c.targetMinute,second:0}:d]:[d,...(d.extraClocks||[])];
+ const states=comparison?c.clockEvidence:task?[elapsed?{hour:teacher&&G.exportTools.isAnswerDiagramLayout?.()?c.targetHour:c.startHour,minute:teacher&&G.exportTools.isAnswerDiagramLayout?.()?c.targetMinute:c.startMinute,second:0}:drawTask&&teacher?{hour:c.targetHour,minute:c.targetMinute,second:0}:d]:[d,...(d.extraClocks||[])];
  const count=states.length,cols=count===1?1:(comparison?c.clockLayout:d.clockLayout)==='vertical'?1:(d.clockLayout==='horizontal'&&!comparison?count:2),rows=Math.ceil(count/cols),cell=310,W=cols*cell,H=rows*(task?304:354);
  function el(name,attrs={},text){const n=document.createElementNS('http://www.w3.org/2000/svg',name);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,String(v));if(text!==undefined)n.textContent=String(text);return n}
  const svg=el('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':task?'Clock task diagram':'Clock illustration'});
