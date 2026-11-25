@@ -1753,3 +1753,19 @@ html.gd-embed-page,body.gd-embed-page{margin:0!important;width:100%!important;he
 .gd-board-floating-controls.is-money-palette .gd-money-stage-pick{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:66px;padding:4px;border:1px solid #d7e2e4;border-radius:9px;background:#fff;font-size:.78rem;font-weight:800;color:#304b52;cursor:pointer;touch-action:manipulation}
 .gd-board-floating-controls.is-money-palette .gd-money-stage-pick:hover,.gd-board-floating-controls.is-money-palette .gd-money-stage-pick:focus-visible{background:#edf7f4;border-color:#78a9a3}
 @media(max-width:620px){.gd-money-workbench--fixed .gd-money-canvas{min-height:var(--mo-fixed-height,160px)!important}}
+
+
+/* Object-local money actions, anchored to the selected coin or note. */
+.gd-money-context[hidden]{display:none!important}
+.gd-money-context{position:absolute;z-index:12;max-width:calc(100% - 8px);width:max-content;border:1px solid #d1e0df;border-radius:12px;background:rgba(255,255,255,.98);box-shadow:0 6px 18px #25424a20;padding:4px;touch-action:manipulation}
+.gd-money-context-actions{display:flex;align-items:center;flex-wrap:wrap;gap:3px}
+.gd-money-context .gd-object-tool,.gd-money-exchange-action{height:36px;min-height:36px;border:0;border-radius:8px;background:transparent;color:#34525b;box-shadow:none;backdrop-filter:none}
+.gd-money-context .gd-object-tool{width:36px;min-width:36px}
+.gd-money-exchange-action{display:flex;align-items:center;gap:4px;padding:0 7px;font:inherit;font-size:.73rem;font-weight:800;cursor:pointer}
+.gd-money-exchange-action svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.gd-money-context button:hover,.gd-money-context button:focus-visible,.gd-money-exchange-action.is-active{background:#e8f4f1;color:#166e63}
+.gd-money-context .gd-object-tool--danger{color:#a44943}
+.gd-money-exchange-options{display:grid;gap:3px;padding:5px 3px 2px;border-top:1px solid #dce7e6;max-height:210px;overflow:auto;overscroll-behavior:contain;touch-action:pan-y}
+.gd-money-exchange-options>strong{font-size:.7rem;color:#60757b;padding:3px 5px}
+.gd-money-exchange-options>button{min-height:38px;text-align:left;background:#f5f9f8;border:1px solid #dce7e6;border-radius:7px;color:#304b52;padding:5px 8px;font:inherit;font-size:.8rem;font-weight:750;cursor:pointer}
+.gd-money-object.is-selected:after{inset:-4px;border-width:2px}
