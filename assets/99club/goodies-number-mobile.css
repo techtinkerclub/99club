@@ -585,3 +585,18 @@ body.nmb-v8-pupil-challenge .gd-number-mobile-workbench.nmb-v12-conceal-main-bal
     width:216px!important;
   }
 }
+
+/* Match the shared whiteboard challenge launcher without bypassing the
+   Number Mobile recursive challenge engine. */
+#tt99-goodies-root .nmb-v5-challenge-popover{font:13px/1.3 Arial,sans-serif;padding:10px;border-radius:11px;max-height:min(470px,75vh);overflow:auto;overscroll-behavior:contain;box-shadow:0 10px 30px #23434a20}
+#tt99-goodies-root .nmb-v5-popover-head{align-items:center;margin:0 0 7px;padding-bottom:7px;border-bottom:1px solid #e0e9e6}
+#tt99-goodies-root .nmb-v5-popover-head strong{font-size:14px;font-weight:600}
+#tt99-goodies-root .nmb-v5-popover-head button{border:0;background:transparent;color:#60777b;font-size:20px;line-height:1;width:28px;height:28px;cursor:pointer}
+#tt99-goodies-root .nmb-panel-label{font-size:11px;font-weight:600;color:#62787c;margin:7px 0 4px}
+#tt99-goodies-root .nmb-v5-difficulty-help{min-height:0;font:12px/1.3 Arial,sans-serif;margin:5px 0 8px}
+#tt99-goodies-root :is(.nmb-v5-difficulty,.nmb-v5-challenge-grid button,.nmb-v5-clear){font:600 12px/1.2 Arial,sans-serif;min-height:34px;border-radius:7px}
+#tt99-goodies-root .nmb-panel-categories{grid-template-columns:repeat(3,minmax(0,1fr))}
+#tt99-goodies-root .nmb-panel-categories button{text-align:center;padding:5px 3px}
+#tt99-goodies-root .nmb-panel-specific{grid-template-columns:1fr}
+#tt99-goodies-root .nmb-panel-specific button{min-height:32px}
+#tt99-goodies-root .nmb-v5-challenge-popover button:focus-visible{outline:2px solid #2d9288;outline-offset:1px}

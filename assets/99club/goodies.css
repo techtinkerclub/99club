@@ -2149,3 +2149,15 @@ html:not(.gd-embed-page) #tt99-goodies-root #gd-controls .gd-mc-five{min-height:
 #tt99-goodies-root .gd-board-controls-proxy .gd-panel-workflow>button{overflow-wrap:anywhere}
 #tt99-goodies-root .gd-board-controls-proxy .gd-challenge-card:focus-visible{outline-offset:1px}
 #tt99-goodies-root .gd-board-controls-proxy .gd-panel-challenge-picker .gd-challenge-random-row{position:relative}
+
+/* Native challenge families use the same compact grouping as standard cards. */
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-native-random{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;margin:0}
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-native-random [data-gd-native-random=all]{grid-column:1/-1;min-height:38px!important}
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-native-types{display:grid;gap:8px;padding:8px 0;border-top:1px solid #e0e9e6}
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-native-types>strong{font-size:12px;font-weight:600;color:#38575b}
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-native-group{display:grid;gap:4px}
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-native-group>span{font-size:11px;font-weight:600;color:#62787c}
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-native-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-native-grid>button{min-width:0;width:100%;white-space:normal!important;text-align:left;font-size:12px!important}
+#tt99-goodies-root .gd-board-controls-proxy .gd-seq-settings{display:grid;gap:8px}
+#tt99-goodies-root .gd-board-controls-proxy .gd-mc-set-controls{margin:0}

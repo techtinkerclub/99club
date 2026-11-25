@@ -257,7 +257,7 @@ function compactChallengeControls(clone,obj){
   const picker=clone.querySelector('.gd-challenge-picker');
   const native=clone.querySelector('[data-gd-native-prefix]');
   const label=(text)=>{const node=doc.createElement('div');node.className='gd-launch-label';node.textContent=text;return node};
-  function addButton(button,cls){if(!button)return;button.classList.add(cls);wrap.appendChild(button)}
+  function addButton(button,cls){if(!button)return;button.classList.add(cls);if(cls==='gd-launch-all'&&button.matches('[data-gd-random-scope],[data-gd-native-random]'))button.textContent='Random challenge';wrap.appendChild(button)}
   if(picker){
     const all=picker.querySelector('[data-gd-random-scope="all"]');
     const category=picker.querySelector('[data-gd-random-scope]:not([data-gd-random-scope="all"])');
@@ -341,6 +341,31 @@ function renderFloatingControls(obj){
       for(const card of picker.querySelectorAll('.gd-challenge-card')){
         const desc=card.querySelector('span');
         if(desc){card.title=desc.textContent;desc.classList.add('gd-panel-card-description')}
+      }
+    }
+    // Native challenge engines use the same catalogue rhythm as the
+    // standard pickers, without replacing their own generation handlers.
+    const native=clone.querySelector('[data-gd-native-prefix]');
+    if(native){
+      native.classList.add('gd-panel-native-random');
+      const all=native.querySelector('[data-gd-native-random="all"]');
+      if(all)all.textContent='Random challenge';
+      const types=[...clone.querySelectorAll('[data-'+native.dataset.gdNativePrefix+'-challenge-mode]')];
+      if(types.length&&obj.toolId!=='maths-canvas'){
+        const section=clone.ownerDocument.createElement('div');section.className='gd-panel-native-types';
+        const heading=clone.ownerDocument.createElement('strong');heading.textContent='Specific question';section.appendChild(heading);
+        const groups=JSON.parse(native.dataset.gdNativeGroups||'[]');
+        for(const group of groups){
+          const row=clone.ownerDocument.createElement('div');row.className='gd-panel-native-group';
+          const title=clone.ownerDocument.createElement('span');title.textContent=group.label;row.appendChild(title);
+          const buttons=clone.ownerDocument.createElement('div');buttons.className='gd-panel-native-grid';
+          types.filter(btn=>group.ids.includes(btn.getAttribute('data-'+native.dataset.gdNativePrefix+'-challenge-mode'))).forEach(btn=>buttons.appendChild(btn));
+          if(buttons.children.length){row.appendChild(buttons);section.appendChild(row)}
+        }
+        const ungrouped=types.filter(btn=>!section.contains(btn));
+        if(ungrouped.length){const row=clone.ownerDocument.createElement('div');row.className='gd-panel-native-grid';ungrouped.forEach(btn=>row.appendChild(btn));section.appendChild(row)}
+        native.after(section);
+        clone.querySelectorAll('.gd-ab-mode-grid,.pv-challenge-task-grid').forEach(el=>{if(!el.children.length)el.remove()});
       }
     }
     const workflows=clone.querySelectorAll('[role="tablist"][aria-label$="workflow"],.nl-workflow-tabs,.gd-mc-workflow-tabs');
@@ -446,11 +471,13 @@ function openFloatingControls(obj,mode='settings'){
   }
   if(obj.toolId==='place-value'&&floatingPanelMode==='settings'){
     const source=sourceControls(obj),active=source?.querySelector('[data-pv-workflow].gd-btn--primary')?.dataset?.pvWorkflow;
-    if(active==='challenge'||active==='export')source?.querySelector('[data-pv-workflow="setup"]')?.click();
+    if(active==='challenge'&&innerDocument(obj)?.querySelector('#gd-stage .gd-native-challenge'))floatingPanelMode='challenge-settings';
+    else if(active==='challenge'||active==='export')source?.querySelector('[data-pv-workflow="setup"]')?.click();
   }
   if(obj.toolId==='abacus'&&floatingPanelMode==='settings'){
     const source=sourceControls(obj),active=source?.querySelector('[data-ab-workflow].gd-btn--primary')?.dataset?.abWorkflow;
-    if(active==='challenge'||active==='export')source?.querySelector('[data-ab-workflow="setup"]')?.click();
+    if(active==='challenge'&&innerDocument(obj)?.querySelector('#gd-stage .gd-native-challenge,#gd-stage .gd-ab-task'))floatingPanelMode='challenge-settings';
+    else if(active==='challenge'||active==='export')source?.querySelector('[data-ab-workflow="setup"]')?.click();
   }
   if(floatingControlObjectId!=null&&String(floatingControlObjectId)!==String(obj.id)){
     const previous=objectById(floatingControlObjectId);if(previous)previous.settingsOpen=false;

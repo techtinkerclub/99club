@@ -970,6 +970,45 @@ async function run(){
   rulerDoc.querySelector('[data-board-action="reveal"]').click();await tick();
   assert(rulerApi.capture('measurement').model.diagram.cm===rulerAttempt.diagram.cm,'Hide answer restores previous marker');
   api.remove(qaRuler.record.id);
+  // Specialist native engines must work through the same full and quick panels.
+  for(const id of ['place-value','abacus','maths-canvas','sequences']){
+    const fixture=await addForSave(id),panel=document.getElementById('gd-board-floating-controls');
+    fixture.frame.querySelector('[data-board-settings]').click();await tick();
+    assert(panel.dataset.panelMode==='settings'&&panel.querySelector('.gd-board-controls-proxy'),'Specialist teaching settings open: '+id);
+    panel.querySelector('[data-board-controls-close]').click();await tick();
+    fixture.frame.querySelector('[data-board-quick-actions] button[aria-label="Choose a challenge"]').click();await tick();
+    assert(panel.querySelector('[data-gd-native-random="all"]'),'Specialist quick launcher: '+id);
+    panel.querySelector('[data-board-launcher-settings]').click();await tick();
+    assert(panel.querySelector('.gd-panel-native-random')&&panel.querySelector('[data-board-launcher-back]'),'Specialist full challenge settings: '+id);
+    if(id==='sequences'){const d=panel.querySelector('[data-seq-challenge-setting="difficulty"]');d.value='hard';d.dispatchEvent(new Event('change',{bubbles:true}));await tick();assert(fixture.doc.querySelector('[data-seq-challenge-setting="difficulty"]').value==='hard','Sequence difficulty forwards from full panel')}
+    panel.querySelector('[data-gd-native-random="all"]').click();await tick(100);
+    assert(fixture.doc.querySelector('#gd-stage .gd-native-challenge,#gd-stage .gd-challenge-banner,#gd-stage .gd-ab-task'),'Specialist full settings Random generates: '+id);
+    panel.querySelector('[data-board-launcher-back]').click();await tick();
+    panel.querySelector('[data-gd-native-random="all"]').click();await tick(100);
+    assert(!visible(panel),'Specialist quick generation closes launcher: '+id);
+    api.remove(fixture.record.id);
+  }
+  {
+    const fixture=await addForSave('balance');
+    const panel=document.getElementById('gd-board-floating-controls');
+    fixture.frame.querySelector('[data-board-settings]').click();await tick();
+    assert(panel.dataset.panelMode==='settings'&&panel.querySelector('.gd-board-controls-proxy'),'Number Mobile teaching settings remain available');
+    panel.querySelector('[data-board-controls-close]').click();await tick();
+    for(let i=0;i<20&&!fixture.frame.querySelector('[data-nmb-board-challenge]');i++)await tick(50);
+    fixture.frame.querySelector('[data-nmb-board-challenge]').click();await tick();
+    const pop=fixture.doc.querySelector('.nmb-v5-challenge-popover');
+    assert(pop&&pop.querySelector('[data-nmb-panel-close]'),'Number Mobile uses grouped challenge menu with close action');
+    pop.querySelector('[data-nmb-v6-type="random"]').click();
+    for(let i=0;i<30&&!fixture.doc.querySelector('#gd-stage .gd-challenge-banner');i++)await tick(60);
+    assert(fixture.doc.querySelector('#gd-stage .gd-challenge-banner'),'Number Mobile frame Random generates an actual challenge');
+    api.remove(fixture.record.id);
+  }
+  {
+    const fixture=await addForSave('randomiser'),panel=document.getElementById('gd-board-floating-controls');
+    fixture.frame.querySelector('[data-board-settings]').click();await tick();
+    assert(panel.dataset.panelMode==='settings'&&panel.querySelector('.gd-board-controls-proxy'),'Randomiser teaching settings remain available without an invented challenge mode');
+    panel.querySelector('[data-board-controls-close]').click();await tick();api.remove(fixture.record.id);
+  }
   // The standard picker is shared, but validate the parent-to-iframe path on
   // every standard-picker widget with a fresh board object.
   for(const [id,prefix] of [['fraction-wall','fw'],['bar-model','bm'],['hundred-square','hs'],['multiplication-grid','mg'],['array-builder','ab'],['clock','cl'],['money','mo'],['coordinates','co'],['measurement','me'],['times-table','tv'],['factors','fe'],['fdp','fd']]){

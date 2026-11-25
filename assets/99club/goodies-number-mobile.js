@@ -554,13 +554,15 @@ function closePopover(){
 }
 function challengePopover(){
   const pop=document.createElement('div');pop.className='nmb-v5-challenge-popover';pop.setAttribute('role','menu');pop.setAttribute('aria-label','Number Mobile challenge generator');
-  pop.innerHTML='<div class="nmb-v5-popover-head"><strong>Generate challenge</strong><span>Choose a difficulty first.</span></div>'+ 
+  pop.innerHTML='<div class="nmb-v5-popover-head"><strong>Challenge</strong><button type="button" data-nmb-panel-close aria-label="Close challenge menu">×</button></div><div class="nmb-panel-label">Difficulty</div>'+ 
     '<div class="nmb-v5-difficulty-row" role="group" aria-label="Challenge difficulty">'+
       ['easy','medium','hard'].map(level=>'<button type="button" class="nmb-v5-difficulty'+(difficulty===level?' is-active':'')+'" data-nmb-v6-difficulty="'+level+'">'+level[0].toUpperCase()+level.slice(1)+'</button>').join('')+
-    '</div><p class="nmb-v5-difficulty-help">'+DIFFICULTY_COPY[difficulty]+'</p>'+ 
-    '<div class="nmb-v5-challenge-grid"><button type="button" class="is-surprise" data-nmb-v6-type="random">Random · all types</button><button type="button" data-nmb-v6-type="random-read">Random · read &amp; compare</button><button type="button" data-nmb-v6-type="random-build">Random · balance</button><button type="button" data-nmb-v6-type="random-reason">Random · reasoning</button>'+ 
-      TYPES.map(type=>'<button type="button" data-nmb-v6-type="'+type+'">'+titleFor(type)+'</button>').join('')+'</div>'+ 
+    '</div><p class="nmb-v5-difficulty-help">'+DIFFICULTY_COPY[difficulty]+'</p>'+
+    '<div class="nmb-v5-challenge-grid"><button type="button" class="is-surprise" data-nmb-v6-type="random">Random challenge</button></div>'+
+    '<div class="nmb-panel-label">By category</div><div class="nmb-v5-challenge-grid nmb-panel-categories"><button type="button" data-nmb-v6-type="random-read">Read &amp; compare</button><button type="button" data-nmb-v6-type="random-build">Balance</button><button type="button" data-nmb-v6-type="random-reason">Reasoning</button></div>'+
+    '<div class="nmb-panel-label">Specific question</div><div class="nmb-v5-challenge-grid nmb-panel-specific">'+TYPES.map(type=>'<button type="button" data-nmb-v6-type="'+type+'">'+titleFor(type)+'</button>').join('')+'</div>'+ 
     (activeChallenge()?'<button type="button" class="nmb-v5-clear is-danger" data-nmb-v6-clear>Clear challenge</button>':'');
+  q('[data-nmb-panel-close]',pop).onclick=e=>{e.stopPropagation();closePopover()};
   qa('[data-nmb-v6-difficulty]',pop).forEach(button=>button.onclick=e=>{
     e.stopPropagation();difficulty=button.dataset.nmbV6Difficulty||'easy';G.numberMobileChallengeDifficulty=difficulty;
     const fresh=challengePopover();pop.replaceWith(fresh);popoverOpen=true;const trigger=q('[data-nmb-challenge-toggle]',work());if(trigger)trigger.setAttribute('aria-expanded','true');
