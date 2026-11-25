@@ -38,7 +38,7 @@ function generateChallenge(type,raw={},rng=Math.random){
  const familyHint={constant:'The difference is constant.',increasing:'The differences change by the same amount each time.',geometric:'Multiply by the same whole number each time.',alternating:'Two different steps repeat in alternation.'}[family];
  const ruleQuestion={constant:'What number is added each time? Use a negative number for subtraction.',increasing:'By how much does each successive difference increase?',geometric:'What number is each term multiplied by?',alternating:'What is the second step of the repeating pair? Use a negative number for subtraction.'}[family];
  const answer=type==='rule'?({constant:sequence.step,increasing:sequence.change,geometric:sequence.factor,alternating:sequence.second}[family]):m.terms[hole];
- return {mode:'standard',type,title:TYPES[type],category:type==='rule'?'rules':'terms',prompt:familyHint+' '+(type==='rule'?ruleQuestion:type==='next'?'What is the next term?':'Fill in the missing term.'),answer:String(answer),answerMode:'manual',revealed:false,sequence,hole,solutionExplanation:m.rule};
+ return {mode:'standard',type,title:TYPES[type],category:type==='rule'?'rules':'terms',prompt:familyHint+' '+(type==='rule'?ruleQuestion:type==='next'?'What is the next term?':'Fill in the missing term.'),answer:String(answer),answerMode:'manual',revealed:false,sequence,hole,generationSettings:settings,solutionExplanation:m.rule};
 }
 function diagram(raw,{task=null,teacher=false}={}){
  const {s,terms,steps,rule}=model(raw),W=960,pad=24,cols=s.length>6?4:s.length,rows=Math.ceil(s.length/cols),slot=(W-2*pad)/cols,H=78+rows*128;
@@ -73,7 +73,7 @@ if(G.publishing)G.publishing.register('sequences',{
  signature:q=>JSON.stringify([model(q.sequence).terms,q.hole,q.type,q.prompt]),
  recipe:(model,type)=>({type,settings:challengeSettings(model.settings)}),
  generate(recipe,rng){const ids=Object.keys(TYPES),type=recipe.type==='all'?ids[Math.min(ids.length-1,Math.floor(rng()*ids.length))]:recipe.type;return generateChallenge(type,recipe.settings,rng)},
- capture(model){return model.task?[G.publishing.record('sequences','challenge',{...model.task,revealed:false},{type:model.task.type,settings:{family:model.task.sequence.mode,difficulty:challengeSettings(model.settings).difficulty}})]:[G.publishing.record('sequences','diagram',normalise(model))]},
+ capture(model){return model.task?[G.publishing.record('sequences','challenge',{...model.task,revealed:false},{type:model.task.type,settings:{family:model.task.sequence.mode,difficulty:challengeSettings(model.task.generationSettings||model.settings).difficulty}})]:[G.publishing.record('sequences','diagram',normalise(model))]},
  render(item,teacher){return item.kind==='diagram'?diagram(item.data):sequencePaper(item.data,teacher)}
 });
 G.sequencesTool=function(){
