@@ -222,6 +222,8 @@ function innerTarget(obj,selector,allowHidden=false){
   return node;
 }
 const CONTROL_SELECTOR='button,input,select,textarea,[contenteditable="true"]';
+let floatingControlSources=[],floatingControlSignature='';
+const innerConnections=new Map();
 function positionFloatingControls(){
   if(!floatingControls)return;
   const margin=8,maxX=Math.max(margin,board.clientWidth-floatingControls.offsetWidth-margin),maxY=Math.max(margin,board.clientHeight-floatingControls.offsetHeight-margin);
@@ -237,39 +239,28 @@ function renderFloatingControls(obj){
   const sourceInputs=[...source.querySelectorAll(CONTROL_SELECTOR)];
   const clone=source.cloneNode(true);
   clone.removeAttribute('id');clone.removeAttribute('aria-hidden');clone.classList.add('gd-board-controls-proxy');
-  if(obj.toolId==='place-value'){
-    const tablist=clone.querySelector('.pv-mode-tabs');
-    if(floatingPanelMode==='challenge'){
-      tablist?.remove();
-    }else{
-      clone.querySelector('[data-pv-workflow="challenge"]')?.remove();
-      clone.querySelector('[data-pv-workflow="export"]')?.remove();
-    }
-  }
-  if(obj.toolId==='abacus'&&floatingPanelMode!=='challenge'){
-    clone.querySelector('[data-ab-workflow="challenge"]')?.remove();
-    clone.querySelector('[data-ab-workflow="export"]')?.remove();
-  }
-  if(obj.toolId==='number-line'){
-    clone.querySelector('#nl-fullscreen')?.remove();
-  }
-  const cloneInputs=[...clone.querySelectorAll(CONTROL_SELECTOR)];
-  cloneInputs.forEach(node=>{
-    const originalIndex=[...sourceInputs].findIndex(original=>{
-      if(node.id&&original.id===node.id)return true;
-      const pvWorkflow=node.dataset?.pvWorkflow;if(pvWorkflow&&original.dataset?.pvWorkflow===pvWorkflow)return true;
-      const nlWorkflow=node.dataset?.nlWorkflow;if(nlWorkflow&&original.dataset?.nlWorkflow===nlWorkflow)return true;
-      const pvActivity=node.dataset?.pvActivityMode;if(pvActivity&&original.dataset?.pvActivityMode===pvActivity)return true;
-      return false;
-    });
-    const index=originalIndex>=0?originalIndex:cloneInputs.indexOf(node);
-    node.dataset.boardControlIndex=String(index);
+  // Stamp identity on the complete clone BEFORE pruning controls.
+  // Array offsets after pruning are not equivalent to the source positions.
+  [...clone.querySelectorAll(CONTROL_SELECTOR)].forEach((node,index)=>{
     const original=sourceInputs[index];if(!original)return;
+    node.dataset.boardControlIndex=String(index);
     if('value' in original)node.value=original.value;
     if('checked' in original)node.checked=original.checked;
     if(original.isContentEditable)node.innerHTML=original.innerHTML;
   });
+  if(obj.toolId==='place-value'&&floatingPanelMode==='challenge')clone.querySelector('.pv-mode-tabs')?.remove();
+  clone.querySelectorAll('#nl-fullscreen,.gd-embed-workflow-hidden[id$="-fullscreen"]').forEach(node=>node.remove());
+  // Use a signature that includes property values (not just innerHTML).
+  const signature=JSON.stringify([obj.id,floatingPanelMode,clone.innerHTML,sourceInputs.map(n=>[n.value,n.checked,n.disabled,n.isContentEditable?n.innerHTML:null])]);
+  floatingControlSources=sourceInputs;
+  if(signature===floatingControlSignature&&floatingControlsBody.firstElementChild)return;
+  // Never destroy an active text field/slider while the user is editing it.
+  const active=document.activeElement;
+  if(floatingControlsBody.contains(active)&&active.matches('input,textarea,[contenteditable="true"]')&&active.type!=='button')return;
+  const scroll=floatingControlsBody.scrollTop;
   floatingControlsBody.replaceChildren(clone);
+  floatingControlSignature=signature;
+  floatingControlsBody.scrollTop=scroll;
   const tool=tools.find(t=>t.id===obj.toolId);
   if(floatingControlsTitle)floatingControlsTitle.textContent=obj.toolId==='place-value'&&floatingPanelMode==='challenge'?'Place value challenge':(tool?.title||'Manipulative')+' settings';
   floatingControls.hidden=false;
@@ -277,7 +268,7 @@ function renderFloatingControls(obj){
 }
 function renderFloatingHelp(obj,data){
   if(!floatingControls||!floatingControlsBody||!obj||!data)return;
-  floatingPanelMode='help';floatingHelpData=data;
+  floatingPanelMode='help';floatingHelpData=data;floatingControlSignature='';floatingControlSources=[];
   if(floatingControls)floatingControls.dataset.tool=obj.toolId||'';
   floatingControls.classList.add('is-help');
   floatingControlsBody.replaceChildren();
@@ -358,14 +349,15 @@ function closeFloatingControls(id=null){
   const target=id==null?objectById(floatingControlObjectId):objectById(id);
   if(target){target.settingsOpen=false;frameFor(target.id)?.classList.remove('has-settings')}
   if(id==null||String(floatingControlObjectId)===String(id)){
-    floatingControlObjectId=null;floatingHelpData=null;floatingPanelMode='settings';
+    floatingControlObjectId=null;floatingHelpData=null;floatingPanelMode='settings';floatingControlSources=[];floatingControlSignature='';
     if(floatingControls){floatingControls.classList.remove('is-help');delete floatingControls.dataset.tool;floatingControls.hidden=true;floatingControlsBody?.replaceChildren()}
   }
 }
 function floatingOriginal(index){
   const obj=objectById(floatingControlObjectId),source=obj&&sourceControls(obj);
   if(!source)return{obj:null,node:null};
-  return{obj,node:[...source.querySelectorAll(CONTROL_SELECTOR)][Number(index)]||null};
+  const node=floatingControlSources[Number(index)];
+  return{obj,node:node&&source.contains(node)?node:null};
 }
 function measuredStageContentHeight(stage){
   const rect=stage.getBoundingClientRect(),style=getComputedStyle(stage);
@@ -408,10 +400,11 @@ function syncQuickActions(obj){
   const frame=frameFor(obj?.id),rail=frame?.querySelector('[data-board-quick-actions]');if(!rail)return;
   const actions=QUICK_ACTIONS[obj.toolId]||[];
   const available=actions.map((action,index)=>({action,index,node:innerTarget(obj,action.selector,!!action.allowHidden)})).filter(x=>x.node);
-  rail.innerHTML=available.map(({action,index,node})=>{
+  const markup=available.map(({action,index,node})=>{
     const label=action.checkedLabel&&'checked' in node?(node.checked?action.checkedLabel:(action.uncheckedLabel||action.label)):(action.dynamicLabel?(node.textContent||action.label).trim():action.label);
     return '<button type="button" data-board-inner-action="'+index+'"'+(action.danger?' class="is-danger"':'')+' aria-label="'+esc(action.title||label)+'" title="'+esc(action.title||label)+'">'+esc(label)+'</button>';
   }).join('');
+  if(rail.innerHTML!==markup)rail.innerHTML=markup;
   rail.classList.toggle('is-empty',available.length===0);
   syncHistoryActions(obj);
 }
@@ -427,59 +420,58 @@ function syncHistoryActions(obj){
 }
 function connectInnerObject(obj){
   const frame=frameFor(obj.id),iframe=frame?.querySelector('iframe');if(!iframe)return;
-  const connect=()=>{
-    let doc=null;try{doc=iframe.contentDocument}catch(_){}
-    if(!doc)return;
-    let fitQueued=false;
-    const settleFit=(initial=false,pass=0)=>{
-      fitEmbeddedObject(obj,initial&&pass===0);
-      syncQuickActions(obj);
-      if(pass<4)setTimeout(()=>settleFit(false,pass+1),28);
-    };
-    const scheduleFit=(initial=false)=>{
-      if(fitQueued)return;
-      fitQueued=true;
-      requestAnimationFrame(()=>{
-        fitQueued=false;
-        settleFit(initial,0);
-        if(obj.settingsOpen){
-          if(floatingPanelMode==='help'&&floatingHelpData)renderFloatingHelp(obj,floatingHelpData);
-          else renderFloatingControls(obj);
-        }
-      });
-    };
-    const refresh=()=>scheduleFit(false);
-    const refreshLayoutOnly=()=>scheduleFit(false);
-    doc.addEventListener('click',refresh,true);
-    doc.addEventListener('pointerup',refresh,true);
-    doc.addEventListener('change',refresh,true);
-    doc.addEventListener('input',refreshLayoutOnly,true);
-
-    const stage=doc.getElementById('gd-stage');
-    if(stage){
-      const observeChildren=()=>{
-        if(!('ResizeObserver' in window))return;
-        if(stage._tt99ResizeObserver)stage._tt99ResizeObserver.disconnect();
-        const ro=new ResizeObserver(()=>scheduleFit(false));
-        ro.observe(stage);
-        [...stage.children].forEach(child=>ro.observe(child));
-        stage._tt99ResizeObserver=ro;
-      };
-      observeChildren();
-      if('MutationObserver' in window){
-        const mo=new MutationObserver(mutations=>{
-          if(mutations.some(m=>m.type==='childList'))observeChildren();
-          scheduleFit(false);
-        });
-        mo.observe(stage,{childList:true,subtree:true,characterData:true});
-        stage._tt99MutationObserver=mo;
-      }
+  function connect(){
+    const doc=innerDocument(obj),stage=doc?.getElementById('gd-stage');
+    if(!doc||!stage)return;
+    const previous=innerConnections.get(obj.id);
+    if(previous?.doc===doc)return;
+    previous?.dispose();
+    let pending=0,settleTimer=0,disposed=false,initial=true;
+    const observed=new Set();
+    const controls=doc.getElementById('gd-controls');
+    const ro=typeof ResizeObserver==='function'?new ResizeObserver(()=>queueFit()):null;
+    const mo=typeof MutationObserver==='function'?new MutationObserver(records=>{
+      if(records.some(r=>r.target===stage&&r.type==='childList'))observeChildren();
+      queueFit();
+    }):null;
+    function observeChildren(){
+      if(!ro)return;
+      const next=new Set([stage,...stage.children]);
+      observed.forEach(n=>{if(!next.has(n)){ro.unobserve(n);observed.delete(n)}});
+      next.forEach(n=>{if(!observed.has(n)){ro.observe(n);observed.add(n)}});
     }
-    scheduleFit(true);
-  };
-  iframe.addEventListener('load',connect,{once:true});
-  try{if(iframe.contentDocument?.readyState==='complete')connect()}catch(_){}
+    function valid(){return !disposed&&frameFor(obj.id)===frame&&innerDocument(obj)===doc}
+    function measure(){
+      if(!valid())return;
+      fitEmbeddedObject(obj,initial);initial=false;
+      syncQuickActions(obj);
+      if(obj.settingsOpen&&floatingPanelMode!=='help')renderFloatingControls(obj);
+    }
+    function queueFit(){
+      if(!valid()||pending)return;
+      pending=requestAnimationFrame(()=>{
+        pending=0;measure();
+        // One trailing pass catches async font/layout changes without a perpetual
+        // five-pass timer chain for every pointer/input or observer notification.
+        clearTimeout(settleTimer);settleTimer=setTimeout(measure,80);
+      });
+    }
+    function dispose(){
+      disposed=true;if(pending)cancelAnimationFrame(pending);clearTimeout(settleTimer);
+      ro?.disconnect();mo?.disconnect();events.forEach(type=>doc.removeEventListener(type,queueFit,true));
+    }
+    const events=['click','pointerup','change','input'];
+    innerConnections.set(obj.id,{doc,dispose});
+    events.forEach(type=>doc.addEventListener(type,queueFit,true));
+    observeChildren();
+    mo?.observe(stage,{childList:true,subtree:true,characterData:true});
+    if(controls)mo?.observe(controls,{childList:true,subtree:true,characterData:true});
+    queueFit();
+  }
+  iframe.addEventListener('load',connect);
+  connect();
 }
+
 function sendSettings(obj,open,mode='settings'){
   if(!obj)return;
   const frame=frameFor(obj.id),iframe=frame?.querySelector('iframe');
@@ -581,6 +573,7 @@ function addObject(toolId){
 function removeObject(id){
   const obj=objectById(id);if(!obj)return;
   sendSettings(obj,false);
+  innerConnections.get(obj.id)?.dispose();innerConnections.delete(obj.id);
   const index=objects.indexOf(obj);if(index>=0)objects.splice(index,1);
   frameFor(id)?.remove();
   if(selectedId===id)selectedId=null;
@@ -732,6 +725,7 @@ if(floatingControlsBody){
   };
   floatingControlsBody.addEventListener('input',forwardValue);
   floatingControlsBody.addEventListener('change',forwardValue);
+  floatingControlsBody.addEventListener('focusout',()=>{const obj=objectById(floatingControlObjectId);if(obj)refreshFloatingControls(obj,0)});
 }
 const floatingClose=floatingControls?.querySelector('[data-board-controls-close]');
 if(floatingClose)floatingClose.onclick=e=>{e.preventDefault();e.stopPropagation();closeFloatingControls()};
@@ -808,7 +802,7 @@ document.querySelectorAll('[data-board-add]').forEach(button=>{
   button.addEventListener('blur',hideToolTip);
 });
 
-document.getElementById('gd-board-back').onclick=()=>{location.href=window.TT99_GOODIES_BOARD_HOME||location.pathname};
+document.getElementById('gd-board-back').onclick=()=>{if(objects.length&&!window.confirm('Leave this whiteboard? Your current objects are not saved.'))return;location.href=window.TT99_GOODIES_BOARD_HOME||location.pathname};
 document.getElementById('gd-board-snap').onclick=e=>{
   snapOn=!snapOn;e.currentTarget.classList.toggle('is-active',snapOn);e.currentTarget.setAttribute('aria-pressed',snapOn?'true':'false');
   board.classList.toggle('is-snap-off',!snapOn);
