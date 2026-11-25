@@ -1480,6 +1480,7 @@ function placeValue(){
     resizeObserver.observe(q('#gd-stage'));
   }
   G.publishingCurrent=()=>new XMLSerializer().serializeToString(worksheetBoardSvg({pupil:false}));
+  G.publishingLive=()=>{if(activityActive&&!challenge)return null;if(challenge&&challenge.mode!=='custom')return null;return G.publishing.captureLiveDiagram(pupil=>worksheetBoardSvg({pupil}),challenge,responseLines)};
   G.lessonState?.register('place-value',()=>({diagram:stateSnapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines,activityMode,activityTarget,activityBudget,activityStatus,powerMessage,activityActive,activityContext,activityBefore,activityInput,activityAnswer,activityHiddenIndex,activityDigit,activityStartCounts,activityPrompt,paperActivityStart,additionA,additionB,additionStep,additionDifficulty}),saved=>{
     restoreState(saved.diagram);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
     if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
@@ -2349,6 +2350,7 @@ function fractionWall(){
   setPanels(controlsHtml(),'');
   bindControls();
   drawWall();
+  G.publishingLive=()=>{if(challenge&&challenge.mode!=='custom')return null;return G.publishing.captureLiveDiagram(pupil=>fractionExportSvg({pupil}),challenge,responseLines)};
   G.lessonState?.register('fraction-wall',()=>({diagram:teachingSnapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
     restoreTeachingSnapshot(saved.diagram);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
     if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
@@ -3122,6 +3124,7 @@ function barModel(){
   setPanels(controlsHtml(),'');
   bindControls();
   draw();
+  G.publishingLive=()=>{if(challenge&&challenge.mode!=='custom')return null;return G.publishing.captureLiveDiagram(pupil=>barModelExportSvg({pupil}),challenge,responseLines)};
   G.lessonState?.register('bar-model',()=>({diagram:snapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
     restore(saved.diagram);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
     if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
@@ -3768,6 +3771,7 @@ function hundredSquare(){
   setPanels(controlsHtml(),'');
   bindControls();
   draw();
+  G.publishingLive=()=>{if(challenge&&challenge.mode!=='custom')return null;return G.publishing.captureLiveDiagram(pupil=>hundredSquareExportSvg({pupil}),challenge,responseLines)};
   G.lessonState?.register('hundred-square',()=>({diagram:snapshot(),challenge,beforeChallenge,generationSettings:{...generationSettings},pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
     restore(saved.diagram);generationSettings={startValue:hsSettings(saved).startValue};challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
     if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
@@ -4372,6 +4376,7 @@ function multiplicationGrid(){
   setPanels(controlsHtml(),'');
   bindControls();
   draw();
+  G.publishingLive=()=>{if(challenge&&challenge.mode!=='custom')return null;return G.publishing.captureLiveDiagram(pupil=>multiplicationGridExportSvg({pupil}),challenge,responseLines)};
   G.lessonState?.register('multiplication-grid',()=>({diagram:snapshot(),challenge,beforeChallenge,generationSettings:{...generationSettings},pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
     restore(saved.diagram);generationSettings={size:mgSettings(saved).size};challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
     if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
@@ -5063,6 +5068,7 @@ function arrayBuilder(){
   setPanels(controlsHtml(),'');
   bindControls();
   draw();
+  G.publishingLive=()=>{if(challenge&&challenge.mode!=='custom')return null;return G.publishing.captureLiveDiagram(pupil=>arrayExportSvg({pupil}),challenge,responseLines)};
   G.lessonState?.register('array-builder',()=>({diagram:snapshot(),challenge,beforeChallenge,generationSettings:{...generationSettings},pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
     restoreSnapshot(saved.diagram);const cfg=arraySettings(saved);generationSettings={min:cfg.min,max:cfg.max};challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
     if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
@@ -5977,6 +5983,7 @@ function clockTool(){
   setPanels(controlsHtml(),'');
   bindControls();
   draw();
+  G.publishingLive=()=>{if(challenge&&challenge.mode!=='custom')return null;return G.publishing.captureLiveDiagram(pupil=>multiClockExportSvg({pupil}),challenge,responseLines)};
   G.lessonState?.register('clock',()=>({diagram:snapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
     restoreSnapshot(saved.diagram);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
     if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
@@ -6883,6 +6890,7 @@ function moneyTool(){
   });
   bindControls();
   controller.refresh();
+  G.publishingLive=()=>{if(challenge&&challenge.mode!=='custom')return null;return G.publishing.captureLiveDiagram(pupil=>moneyExportSvg({pupil}),challenge,responseLines)};
   G.lessonState?.register('money',()=>({diagram:snapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
     restore(saved.diagram);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
     if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;

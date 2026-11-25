@@ -1835,6 +1835,7 @@ function numberLineV2(){
     const holder=document.createElement('div');holder.innerHTML=markup;
     return holder.querySelector('svg');
   }
+  G.publishingLive=()=>{const ch=state.challenge;if(ch&&ch.mode!=='custom')return null;return G.publishing.captureLiveDiagram(pupil=>pupil?pupilDiagramSvg():new DOMParser().parseFromString(buildSvg(false),'image/svg+xml').documentElement,ch,responseLines)};
   function exportSvg(){
     if(state.challenge?.mode==='standard'&&exportMode==='challenge')return nlPaper(nlData({state,beforeChallenge,responseLines}));
     if(exportMode!=='challenge'||!state.challenge||!X?.composeChallengeCardSvg){

@@ -1111,6 +1111,7 @@ function coordinateTool(){
   setPanels(controlsHtml(),'');
   bindControls();
   draw();
+  G.publishingLive=()=>{if(challenge&&challenge.mode!=='custom')return null;return G.publishing.captureLiveDiagram(pupil=>coordinateExportSvg({pupil}),challenge,responseLines)};
   G.lessonState?.register('coordinates',()=>({diagram:teachingSnapshot(),challenge,beforeChallenge,generationSettings:{...generationSettings},pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
     restoreTeachingSnapshot(saved.diagram);generationSettings={scope:coSettings(saved).scope};challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
     if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
@@ -1747,6 +1748,7 @@ function measurementTool(){
   setPanels(controlsHtml(),'');
   bindControls();
   draw();
+  G.publishingLive=()=>{if(challenge&&challenge.mode!=='custom')return null;return G.publishing.captureLiveDiagram(pupil=>pupil?rulerExportSvg({pupil:true}):exploreRulersExportSvg(),challenge,responseLines)};
   G.lessonState?.register('measurement',()=>({diagram:snapshot(),challenge,beforeChallenge,generationSettings:{...generationSettings},pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
     restoreSnapshot(saved.diagram);const cfg=meSettings(saved);generationSettings={precision:cfg.precision,maxCm:cfg.maxCm};challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
     if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
@@ -3276,6 +3278,7 @@ function timesTableVisual(){
   setPanels(controlsHtml(),'');
   bindControls();
   draw();
+  G.publishingLive=()=>{if(challenge&&challenge.mode!=='custom')return null;return G.publishing.captureLiveDiagram(pupil=>timesTableExportSvg({pupil}),challenge,responseLines)};
   G.lessonState?.register('times-table',()=>({diagram:snapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
     restore(saved.diagram);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
     if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
@@ -3822,6 +3825,7 @@ function factorExplorer(){
   setPanels(controlsHtml(),'');
   bindControls();
   draw();
+  G.publishingLive=()=>{if(challenge&&challenge.mode!=='custom')return null;return G.publishing.captureLiveDiagram(pupil=>factorExplorerExportSvg({pupil}),challenge,responseLines)};
   G.lessonState?.register('factors',()=>({diagram:snapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
     restore(saved.diagram);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
     if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
@@ -4332,6 +4336,7 @@ function fdpExplorer(){
   setPanels(controlsHtml(),'');
   bindControls();
   draw();
+  G.publishingLive=()=>{if(challenge&&challenge.mode!=='custom')return null;return G.publishing.captureLiveDiagram(pupil=>fdpExportSvg({pupil}),challenge,responseLines)};
   G.lessonState?.register('fdp',()=>({diagram:snapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
     restore(saved.diagram);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
     if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
@@ -4955,6 +4960,7 @@ function geoboard(){
   setPanels(controlsHtml(),'');
   bindControls();
   draw();
+  G.publishingLive=()=>{if(challenge&&challenge.mode!=='custom')return null;return G.publishing.captureLiveDiagram(pupil=>geoboardExportSvg({pupil}),challenge,responseLines)};
   G.lessonState?.register('geoboard',()=>({diagram:teachingSnapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines,generationGrid}),saved=>{
     restoreTeachingSnapshot(saved.diagram);generationGrid=geGridSize(saved.generationGrid??saved.diagram?.gridSize);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
     if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;

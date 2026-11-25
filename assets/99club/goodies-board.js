@@ -936,7 +936,11 @@ function bindObject(obj){
     e.preventDefault();e.stopPropagation();
     if(['add-document','generate-document'].includes(button.dataset.boardExportKind)){
       try{const api=frame.querySelector('iframe')?.contentWindow?.TT99Goodies,snapshot=api?.lessonState.capture(obj.toolId)?.model;if(!snapshot)throw Error('Widget is not ready.');
-        if(button.dataset.boardExportKind==='add-document')publishingDraft.addCurrent(obj.toolId,snapshot,!snapshot.challenge&&['maths-canvas','place-value','randomiser'].includes(obj.toolId)?api.publishingCurrent?.():null);
+        if(button.dataset.boardExportKind==='add-document'){
+          const live=api.publishingLive?.();
+          const legacy=!snapshot.challenge&&['maths-canvas','place-value','randomiser'].includes(obj.toolId)?api.publishingCurrent?.():null;
+          publishingDraft.addCurrent(obj.toolId,snapshot,live?.illustration?live:legacy,live?.authored);
+        }
         else{frame.classList.remove('has-export-menu');G.publishing.openQuickGenerate(publishingDraft,obj.toolId,snapshot);return}
         G.publishing.openEditor(publishingDraft);
       }catch(err){boardHint(err.message||'Unable to add worksheet content.');}

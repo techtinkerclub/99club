@@ -13,7 +13,27 @@ function canGenerate(tool){return supports(tool)&&typeof adapters.get(tool).gene
 function types(tool,model){return adapterFor(tool).types?.(model)||[]}
 function adapterFor(tool){const a=adapters.get(tool);if(!a)throw Error('Publishing is not yet supported for this widget.');return a}
 function record(tool,kind,data,recipe=null){return {tool,kind,data:copy(data),recipe:recipe?copy(recipe):null}}
-function signature(item){return item.kind==='challenge'?item.tool+':'+adapterFor(item.tool).signature(item.data):null}
+function signature(item){return item.kind==='challenge'&&!item.data.authored?item.tool+':'+adapterFor(item.tool).signature(item.data):null}
+function frozenSvg(raw){
+ if(typeof raw!=='string'||!raw.trim())throw Error('The current diagram is not ready.');
+ const svg=new DOMParser().parseFromString(raw,'image/svg+xml').documentElement;
+ if(svg.localName!=='svg'||svg.querySelector('parsererror,script,foreignObject'))throw Error('The current diagram is not a printable vector image.');
+ dimensions(svg);return svg;
+}
+function captureLiveDiagram(diagram,challenge,responseLines){
+ const svg=diagram(!!challenge);
+ const raw=new XMLSerializer().serializeToString(svg);
+ if(!challenge)return {illustration:raw};
+ if(challenge.mode!=='custom')return null;
+ return {authored:{title:challenge.title,prompt:G.challengeKit.plainText(challenge.promptHtml||challenge.prompt||''),answer:challenge.answer,pupilSvg:raw,responseLines}};
+}
+function authoredRecord(tool,capture){
+ const {prompt,title,answer,pupilSvg,responseLines}=capture;
+ if(!String(prompt||'').trim())throw Error('Write a question before adding this custom challenge.');
+ if(!String(answer??'').trim())throw Error('Add the correct answer or marking guidance before publishing this custom challenge.');
+ frozenSvg(pupilSvg);
+ return record(tool,'challenge',{type:'custom',authored:true,title:String(title||'Custom challenge'),prompt:String(prompt),answer:String(answer),pupilSvg,responseLines:Math.max(1,Math.min(4,Number(responseLines)||1))});
+}
 function uniqueQuestion(tool,recipe,existing,rng=Math.random){
  const a=adapterFor(tool),seen=new Set(existing.map(signature).filter(Boolean));
  for(let i=0;i<100;i++){const q=a.generate(recipe,rng),item=record(tool,'challenge',q,{...recipe,type:q.type});if(!seen.has(signature(item)))return item}
@@ -24,7 +44,11 @@ function createDocument(){
  function append(records){if(items.length+records.length>80)throw Error('This draft supports up to 80 items.');const added=records.map(r=>({...copy(r),id:next++}));items=items.concat(added);return added.map(copy)}
  return {
   list:()=>copy(items),
-  addCurrent(tool,snapshot,staticSvg){return append(adapterFor(tool).capture(copy(snapshot),staticSvg))},
+  addCurrent(tool,snapshot,staticSvg,authored){
+    if(authored)return append([authoredRecord(tool,authored)]);
+    if(staticSvg&&typeof staticSvg==='object'&&staticSvg.illustration){frozenSvg(staticSvg.illustration);return append([record(tool,'diagram',{frozenSvg:staticSvg.illustration})])}
+    return append(adapterFor(tool).capture(copy(snapshot),staticSvg));
+  },
   generate(tool,snapshot,count,type='all',rng=Math.random){
     if(!canGenerate(tool))throw Error('This widget supports current illustrations only.');
     const a=adapterFor(tool),recipe=a.recipe(copy(snapshot),type),n=Math.max(1,Math.min(20,Math.round(Number(count)||1))),records=[];
@@ -65,7 +89,11 @@ function createDocument(){
  };
 }
 function svgElement(name,attrs={},text){const node=document.createElementNS('http://www.w3.org/2000/svg',name);Object.entries(attrs).forEach(([k,v])=>node.setAttribute(k,String(v)));if(text!==undefined)node.textContent=String(text);return node}
-function renderItem(item,teacher=false){return adapterFor(item.tool).render(item,teacher)}
+function renderItem(item,teacher=false){
+ if(item.data.frozenSvg)return frozenSvg(item.data.frozenSvg);
+ if(item.data.authored)return G.exportTools.composeWorksheetCardSvg(frozenSvg(item.data.pupilSvg),{title:item.data.title,prompt:item.data.prompt,responseLabel:'Answer / working',responseLines:item.data.responseLines,responseMode:item.data.responseLines>1?'lines':'box',paperStyle:'plain',answer:item.data.answer,showAnswer:teacher});
+ return adapterFor(item.tool).render(item,teacher);
+}
 function dimensions(svg){const [x,y,w,h]=svg.getAttribute('viewBox').trim().split(/[ ,]+/).map(Number);if(![x,y,w,h].every(Number.isFinite)||w<=0||h<=0)throw Error('Invalid publication diagram.');return {x,y,w,h}}
 // SVG references resolve within the print document, not reliably within each
 // nested SVG. Isolate each item's IDs before combining diagrams on a page.
@@ -114,6 +142,7 @@ function pupilPages(items,title){
 // Answer summaries come from frozen mathematical records, not rendered pupil text.
 function answerSummary(item){
  if(item.kind!=='challenge')return null;
+ if(item.data.authored)return item.data.answer;
  const a=adapterFor(item.tool),d=item.data,c=d.challenge;
  if(a.answerSummary)return a.answerSummary(item);
  if(item.tool==='abacus'){
@@ -152,6 +181,7 @@ function wrapAnnex(text,width,size,weight=400){
 function answerNote(item){
  const adapter=adapterFor(item.tool),d=item.data,c=d.challenge||d.state?.challenge;
  if(item.kind!=='challenge')return '';
+ if(d.authored)return 'Teacher-authored answer / marking guidance. The diagram is the question reference, not a generated worked solution.';
  const specific=adapter.answerNote?.(item);if(specific)return specific;
  if(item.tool==='abacus'){
    const k=d.settings.kind;
@@ -209,6 +239,7 @@ function answerNote(item){
  return '';
 }
 function answerGraphic(item){
+ if(item.data.authored)return frozenSvg(item.data.pupilSvg);
  const a=adapterFor(item.tool);
  if(a.answerGraphic)return a.answerGraphic(item);
  if(!['abacus','place-value','fraction-wall','array-builder','number-line','clock','sequences'].includes(item.tool))return null;
@@ -500,5 +531,5 @@ function openEditor(draft,{mode='review'}={}){
  dlg.ontoggle=null;dlg.addEventListener('toggle',function rememberDetails(e){const el=e.target;if(el.tagName!=='DETAILS')return;const b=getBlock(el);if(!b)return;if(el.hasAttribute('data-pub-type-details'))b.open=el.open;if(el.hasAttribute('data-pub-topics'))b.topicsOpen=el.open;},{capture:true,signal:(()=>{dlg._pubToggleController?.abort();dlg._pubToggleController=new AbortController();return dlg._pubToggleController.signal})()});
  render();if(!dlg.open)dlg.showModal();
 }
-G.publishing={register,supports,canGenerate,types,record,signature,createDocument,renderItem,pages,answerPages,answerSummary,answerNote,answerGraphic,openEditor,openQuickGenerate,isolateSvgIds,catalogue:()=>BUILDER_CATALOG.map(([id,label])=>({id,label,canGenerate:canGenerate(id)})),defaultSettings:tool=>copy(defaults(tool))};
+G.publishing={captureLiveDiagram,register,supports,canGenerate,types,record,signature,createDocument,renderItem,pages,answerPages,answerSummary,answerNote,answerGraphic,openEditor,openQuickGenerate,isolateSvgIds,catalogue:()=>BUILDER_CATALOG.map(([id,label])=>({id,label,canGenerate:canGenerate(id)})),defaultSettings:tool=>copy(defaults(tool))};
 })(window.TT99Goodies);
