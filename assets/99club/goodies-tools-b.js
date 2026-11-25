@@ -434,6 +434,117 @@ G.numberChallenges={groups,titles,generate,generateSet,settings,presets,availabl
 'use strict';
 if(!G)return;
 const {q,qa,esc,clamp,num,gcd,field,btn,setPanels}=G;
+  const CO_TEMPLATES=[
+    {id:'read-coordinate',category:'read',title:'Read the coordinate',desc:'Read an unlabelled point from the grid.'},
+    {id:'plot-coordinate',category:'read',title:'Plot the point',desc:'Place a point at the given coordinate.'},
+    {id:'missing-coordinate',category:'read',title:'Missing coordinate',desc:'Find the missing x- or y-coordinate.'},
+    {id:'reflect-axis',category:'transform',title:'Reflect in an axis',desc:'Find the coordinate after reflection in the x- or y-axis.'},
+    {id:'translate-point',category:'transform',title:'Translate a point',desc:'Apply a horizontal and vertical displacement.'},
+    {id:'identify-quadrant',category:'reason',title:'Which quadrant?',desc:'Identify the quadrant containing an unlabelled point.'}
+  ];
+
+function coSettings(model={}){
+ const src=model.generationSettings||model;
+ return {scope:['mixed','first','four'].includes(src.scope)?src.scope:'mixed',responseLines:Math.max(1,Math.min(4,Math.round(Number(model.responseLines)||1)))};
+}
+function coTypes(model){const cfg=coSettings(model);return CO_TEMPLATES.filter(t=>cfg.scope!=='first'||!['reflect-axis','identify-quadrant'].includes(t.id)).map(t=>({id:t.id,label:t.title}))}
+function coGenerate(type,settings={},rng=Math.random){
+ const cfg=coSettings(settings),template=CO_TEMPLATES.find(t=>t.id===type);
+ if(!template||!coTypes(cfg).some(t=>t.id===type))throw Error('Choose a compatible coordinate-grid question.');
+ const four=cfg.scope==='four'||['reflect-axis','identify-quadrant'].includes(type);
+ const min=four?-10:0,max=10,rand=(a,b)=>a+Math.floor(rng()*(b-a+1)),signed=()=>rand(1,8)*(rng()<.5?-1:1),coord=p=>'('+p.x+', '+p.y+')';
+ let point=four?{x:rand(-9,9),y:rand(-9,9)}:{x:rand(1,9),y:rand(1,9)},points=[point],target=null,challenge;
+ function task(prompt,answer,extra={}){return {mode:'standard',type,category:template.category,title:'',prompt,promptHtml:prompt,answer:String(answer),answerMode:'manual',answerSource:'',revealed:false,hiddenPointLabels:[],pointLabelOverrides:{},freezePoints:true,...extra}}
+ if(type==='read-coordinate')challenge=task('What are the coordinates of point A?',coord(point),{hiddenPointLabels:[0],pointLabelOverrides:{0:'A'}});
+ else if(type==='plot-coordinate'){target=point;points=[];challenge=task('Plot and label point A at '+coord(target)+'.','A = '+coord(target),{freezePoints:false,targetCoordinate:coord(target),solutionPoint:target})}
+ else if(type==='missing-coordinate'){
+   const hideX=rng()<.5,shown=hideX?'(?, '+point.y+')':'('+point.x+', ?)';
+   challenge=task('What number is missing from the coordinate shown?',hideX?point.x:point.y,{hiddenPointLabels:[0],pointLabelOverrides:{0:shown}});
+ }else if(type==='identify-quadrant'){
+   point={x:signed(),y:signed()};points=[point];
+   challenge=task('Which quadrant contains point A?',point.x>0?(point.y>0?'Quadrant I':'Quadrant IV'):(point.y>0?'Quadrant II':'Quadrant III'),{hiddenPointLabels:[0],pointLabelOverrides:{0:'A'}});
+ }else if(type==='reflect-axis'){
+   point={x:signed(),y:signed()};points=[point];const axis=rng()<.5?'x':'y';
+   target=axis==='x'?{x:point.x,y:-point.y}:{x:-point.x,y:point.y};
+   challenge=task('Point A is at '+coord(point)+'. Reflect it in the '+axis+'-axis. What are the new coordinates?',coord(target),{solutionPoint:target,reflectionAxis:axis});
+ }else{
+   const offsets=[-3,-2,-1,1,2,3],moves=[];
+   for(const dx of offsets)for(const dy of offsets)if(point.x+dx>=min&&point.x+dx<=max&&point.y+dy>=min&&point.y+dy<=max)moves.push([dx,dy]);
+   const [dx,dy]=moves[rand(0,moves.length-1)];target={x:point.x+dx,y:point.y+dy};
+   challenge=task('Point A is at '+coord(point)+'. Translate it '+Math.abs(dx)+(dx>0?' right':' left')+' and '+Math.abs(dy)+(dy>0?' up':' down')+'. What are the new coordinates?',coord(target),{solutionPoint:target,translation:{dx,dy}});
+ }
+ challenge.generationSettings={...cfg};
+ return {type,settings:cfg,diagram:{points,fourQuadrants:four,selected:-1},challenge};
+}
+function coSolution(c){
+ if(c?.solutionPoint)return c.solutionPoint;
+ const match=String(c?.targetCoordinate||c?.answer||'').match(/\((-?\d+),\s*(-?\d+)\)/);
+ return match?{x:+match[1],y:+match[2]}:null;
+}
+function coPaper(data,teacher=false){
+ const d=data.diagram,c=data.challenge,four=!!d.fourQuadrants,min=four?-10:0,max=10,task=!!c,plot=c?.type==='plot-coordinate',transform=['reflect-axis','translate-point'].includes(c?.type),solution=coSolution(c);
+ const W=740,H=740,pad=58,size=W-2*pad,step=size/(max-min);
+ const pos=p=>({x:pad+(p.x-min)*step,y:pad+(max-p.y)*step}),raw=p=>'('+p.x+', '+p.y+')';
+ const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+ for(const [k,v] of Object.entries({xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':teacher?'Completed coordinate grid':'Coordinate grid'}))svg.setAttribute(k,String(v));
+ function add(name,attrs={},value){const n=document.createElementNS('http://www.w3.org/2000/svg',name);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,String(v));if(value!==undefined)n.textContent=String(value);svg.appendChild(n);return n}
+ function text(x,y,value,extra={}){return add('text',{x,y,'font-family':'Arial,sans-serif','font-size':18,fill:'#334a52',...extra},value)}
+ add('rect',{width:W,height:H,fill:'#fff'});
+ for(let v=min;v<=max;v++){
+   const x=pos({x:v,y:0}).x,y=pos({x:0,y:v}).y;
+   add('line',{x1:x,y1:pad,x2:x,y2:H-pad,stroke:'#c6d2d5','stroke-width':1.2});
+   add('line',{x1:pad,y1:y,x2:W-pad,y2:y,stroke:'#c6d2d5','stroke-width':1.2});
+   if(v%(four?2:1)===0){text(x,H-pad+26,v,{'text-anchor':'middle'});text(pad-12,y+6,v,{'text-anchor':'end'})}
+ }
+ const zero=pos({x:0,y:0});
+ add('line',{x1:zero.x,y1:pad-10,x2:zero.x,y2:H-pad,stroke:'#334a52','stroke-width':2.6});
+ add('line',{x1:pad,y1:zero.y,x2:W-pad+10,y2:zero.y,stroke:'#334a52','stroke-width':2.6});
+ add('path',{d:'M'+(zero.x-5)+' '+(pad-3)+' L'+zero.x+' '+(pad-12)+' L'+(zero.x+5)+' '+(pad-3),stroke:'#334a52',fill:'none','stroke-width':2});
+ add('path',{d:'M'+(W-pad+3)+' '+(zero.y-5)+' L'+(W-pad+12)+' '+zero.y+' L'+(W-pad+3)+' '+(zero.y+5),stroke:'#334a52',fill:'none','stroke-width':2});
+ text(W-pad+26,zero.y+5,'x',{'font-weight':700});text(zero.x,pad-23,'y',{'font-weight':700,'text-anchor':'middle'});
+ let points=plot?(teacher&&solution?[solution]:[]):(d.points||[]).filter(p=>p.x>=min&&p.x<=max&&p.y>=min&&p.y<=max);
+ if(teacher&&transform&&solution&&points.length){
+   const a=pos(points[0]),b=pos(solution);
+   if(c.type==='reflect-axis')add('line',{x1:a.x,y1:a.y,x2:b.x,y2:b.y,stroke:'#637d83','stroke-width':2,'stroke-dasharray':'6 5'});
+   else add('path',{d:'M'+a.x+' '+a.y+' H'+b.x+' V'+b.y,stroke:'#637d83',fill:'none','stroke-width':2,'stroke-dasharray':'6 5'});
+   points=[...points,solution];
+ }
+ const boxes=[];
+ points.forEach((p,i)=>{
+   const {x,y}=pos(p),answer=teacher&&(plot||transform&&i===points.length-1),hidden=!teacher&&c?.hiddenPointLabels?.map(Number).includes(i);
+   const label=answer?(plot?'A ':'A′ ')+raw(p):hidden?String(c.pointLabelOverrides?.[i]??String.fromCharCode(65+i)):task?'A '+raw(p):raw(p);
+   add('circle',{cx:x,cy:y,r:6,fill:answer?'#b76926':'#147d75',stroke:'#fff','stroke-width':1.5,'data-co-paper-point':i,'data-co-x':p.x,'data-co-y':p.y});
+   const w=label.length*10+8,h=22,choices=[[11,-11],[-11,-11],[11,24],[-11,24],[11,-34],[-11,-34]];
+   const options=choices.map(([dx,dy])=>{const tx=x+dx,ty=y+dy,left=dx<0?tx-w:tx;return {tx,ty,left,right:left+w,top:ty-h,bottom:ty+4,anchor:dx<0?'end':'start'}});
+   const overlap=(a,b)=>a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top;
+   const fit=b=>b.left>=5&&b.right<=W-5&&b.top>=5&&b.bottom<=H-32&&!boxes.some(o=>overlap(b,o))&&!points.some(q=>{const z=pos(q);return z.x>b.left-6&&z.x<b.right+6&&z.y>b.top-6&&z.y<b.bottom+6});
+   const b=options.find(fit)||options.find(o=>o.left>=5&&o.right<=W-5)||options[0];boxes.push(b);
+   text(b.tx,b.ty,label,{'text-anchor':b.anchor,'font-size':17,'font-weight':700,stroke:'#fff','stroke-width':4,'paint-order':'stroke'});
+ });
+ if(!task)return svg;
+ const lines=Math.max(data.settings?.responseLines||1,c.category==='reason'?2:1);
+ return G.exportTools.composeWorksheetCardSvg(svg,{title:CO_TEMPLATES.find(t=>t.id===c.type)?.title||'Coordinates challenge',prompt:c.prompt,responseMode:plot?'none':lines>1?'lines':'box',responseLabel:'Answer',responseLines:lines,paperStyle:'plain',answer:c.answer,showAnswer:teacher,diagramMaxHeight:650});
+}
+function coData(model){
+ const c=model.challenge?JSON.parse(JSON.stringify(model.challenge)):null;
+ if(c?.mode==='custom')throw Error('Use individual export for custom coordinate tasks.');
+ const diagram=JSON.parse(JSON.stringify(model.diagram||model));
+ if(c){c.revealed=false;delete c.preRevealPoints;delete c.preRevealSelected;if(c.type==='plot-coordinate')diagram.points=[]}
+ return {type:c?.type,settings:coSettings({...model,generationSettings:c?.generationSettings||model.generationSettings}),diagram,challenge:c};
+}
+G.coordinatePaperModel={settings:coSettings,types:coTypes,generate:coGenerate,render:coPaper,solution:coSolution};
+if(G.publishing)G.publishing.register('coordinates',{
+ label:'Coordinate grid',types:coTypes,title:item=>item.kind==='diagram'?'Coordinate grid illustration':CO_TEMPLATES.find(t=>t.id===item.data.type)?.title||'Coordinates challenge',
+ signature:d=>JSON.stringify([d.type,d.challenge.prompt,d.diagram.fourQuadrants,d.diagram.points,d.challenge.pointLabelOverrides]),
+ recipe:(model,type)=>({type,settings:coSettings(model)}),
+ generate(recipe,rng){const ids=coTypes(recipe.settings).map(t=>t.id);return coGenerate(recipe.type==='all'?ids[Math.floor(rng()*ids.length)]:recipe.type,recipe.settings,rng)},
+ capture(model){const d=coData(model);return [G.publishing.record('coordinates',d.challenge?'challenge':'diagram',d,d.challenge?{type:d.type,settings:d.settings}:null)]},
+ answerSummary:item=>item.data.challenge.answer,
+ answerGraphic:item=>G.exportTools.withAnswerDiagram(()=>coPaper(item.data,true)),
+ answerNote:item=>{const c=item.data.challenge;if(c.type==='plot-coordinate')return 'Point A must be on the exact intersection, with x read before y.';if(c.type==='reflect-axis')return 'The image must be the same perpendicular distance from the mirror axis on its opposite side.';if(c.type==='translate-point')return 'Accept equivalent working; the horizontal and vertical moves must give the stated final coordinate.';if(c.type==='identify-quadrant')return 'Accept the matching quadrant number in Roman or Arabic numerals.';return ''},
+ render(item,teacher){return coPaper(item.data,teacher)}
+});
+
 function coordinateTool(){
   const CK=G.challengeKit,X=G.exportTools;
   let points=[],selected=-1,drag=null,view=null,fourQuadrants=false;
@@ -444,16 +555,9 @@ function coordinateTool(){
     {id:'transform',label:'Transform'},
     {id:'reason',label:'Reasoning'}
   ];
-  const CHALLENGE_TEMPLATES=[
-    {id:'read-coordinate',category:'read',title:'Read the coordinate',desc:'Read an unlabelled point from the grid.'},
-    {id:'plot-coordinate',category:'read',title:'Plot the point',desc:'Place a point at the given coordinate.'},
-    {id:'missing-coordinate',category:'read',title:'Missing coordinate',desc:'Find the missing x- or y-coordinate.'},
-    {id:'reflect-axis',category:'transform',title:'Reflect in an axis',desc:'Find the coordinate after reflection in the x- or y-axis.'},
-    {id:'translate-point',category:'transform',title:'Translate a point',desc:'Apply a horizontal and vertical displacement.'},
-    {id:'identify-quadrant',category:'reason',title:'Which quadrant?',desc:'Identify the quadrant containing an unlabelled point.'}
-  ];
+  const CHALLENGE_TEMPLATES=CO_TEMPLATES;
   let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='read-coordinate',challenge=null,beforeChallenge=null;
-  let exportMode='diagram',responseLines=1,exportStatus='';
+  let exportMode='diagram',responseLines=1,exportStatus='',generationSettings={scope:'mixed'};
 
   function copyPoints(value=points){return value.map(p=>({x:p.x,y:p.y}))}
   function remember(snapshot=copyPoints()){
@@ -629,9 +733,9 @@ function coordinateTool(){
         '<div class="gd-row">'+btn('Undo','co-undo')+btn('Redo','co-redo')+'</div>'+
         '<p class="gd-help">Custom challenges stay attached to the live coordinate grid. Build the diagram first, then bind the answer to a point coordinate or one component of it if useful.</p>';
     }
-    const picker=CK.pickerHtml(CHALLENGE_TEMPLATES,CHALLENGE_CATEGORIES,challengeCategory,challengeType,'co');
+    const allowed=coTypes(generationSettings).map(t=>t.id),picker=CK.pickerHtml(CHALLENGE_TEMPLATES.filter(t=>allowed.includes(t.id)),CHALLENGE_CATEGORIES,challengeCategory,challengeType,'co');
     const repeat=!!(challenge&&challenge.mode==='standard'&&challenge.type===challengeType);
-    return tabs+picker+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="co-generate" type="button">'+(repeat?'Another like this':'Generate challenge')+'</button>'+
+    return tabs+field('Challenge grid','<select id="co-scope" class="gd-select">'+[['mixed','Mixed / suitable grid'],['first','First quadrant only'],['four','Four quadrants']].map(([v,l])=>'<option value="'+v+'"'+(generationSettings.scope===v?' selected':'')+'>'+l+'</option>').join('')+'</select>')+picker+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="co-generate" type="button">'+(repeat?'Another like this':'Generate challenge')+'</button>'+
       (challenge&&challenge.mode!=='custom'?'<button class="gd-btn" id="co-edit-challenge" type="button">Edit challenge</button>':'')+
       (challenge&&challenge.answer?'<button class="gd-btn" id="co-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
       (challenge?'<button class="gd-btn" id="co-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
@@ -709,6 +813,8 @@ function coordinateTool(){
     return svg;
   }
   function exportTargetSvg(){
+    if(challenge?.mode==='standard'&&exportMode==='challenge')return coPaper(coData({diagram:teachingSnapshot(),challenge,responseLines,generationSettings}));
+    if(!challenge)return coPaper(coData({diagram:teachingSnapshot(),responseLines}));
     if(exportMode!=='challenge'||!challenge||!X?.composeChallengeCardSvg)return coordinateExportSvg({pupil:false});
     const prompt=CK?CK.plainText(challenge.promptHtml||challenge.prompt||''):challenge.prompt||'';
     const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
@@ -766,38 +872,9 @@ function coordinateTool(){
   function generateChallenge(type){
     const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
     if(!beforeChallenge)beforeChallenge=teachingSnapshot();else restoreTeachingSnapshot(beforeChallenge);
-    const point={x:1+Math.floor(Math.random()*9),y:1+Math.floor(Math.random()*9)};
-    if(type==='read-coordinate'){
-      setGeneratedPoints([point],false);
-      challenge=challengeObject(type,'What are the coordinates of point A?',rawCoordinate(point),{hiddenPointLabels:[0],pointLabelOverrides:{0:'A'},freezePoints:true});
-    }else if(type==='plot-coordinate'){
-      setGeneratedPoints([],false);
-      challenge=challengeObject(type,'Plot point A at '+rawCoordinate(point)+'.','Point A should be at '+rawCoordinate(point)+'.',{freezePoints:false,targetCoordinate:rawCoordinate(point)});
-    }else if(type==='missing-coordinate'){
-      setGeneratedPoints([point],false);
-      const hideX=Math.random()<.5,shown=hideX?'(?, '+point.y+')':'('+point.x+', ?)';
-      challenge=challengeObject(type,'What number is missing from the coordinate shown?',hideX?point.x:point.y,{hiddenPointLabels:[0],pointLabelOverrides:{0:shown},freezePoints:true});
-    }else if(type==='identify-quadrant'){
-      const p={x:nonZeroSigned(),y:nonZeroSigned()};
-      setGeneratedPoints([p],true);
-      challenge=challengeObject(type,'Which quadrant contains point A?',quadrantName(p),{hiddenPointLabels:[0],pointLabelOverrides:{0:'A'},freezePoints:true});
-    }else if(type==='reflect-axis'){
-      const p={x:nonZeroSigned(),y:nonZeroSigned()},axis=Math.random()<.5?'x':'y';
-      setGeneratedPoints([p],true);
-      const target=axis==='x'?{x:p.x,y:-p.y}:{x:-p.x,y:p.y};
-      challenge=challengeObject(type,'Point A is at '+rawCoordinate(p)+'. What are its coordinates after reflection in the '+axis+'-axis?',rawCoordinate(target),{freezePoints:true});
-    }else{
-      let dx=0,dy=0,target=null,guard=0;
-      do{
-        dx=[-3,-2,-1,1,2,3][Math.floor(Math.random()*6)];
-        dy=[-3,-2,-1,1,2,3][Math.floor(Math.random()*6)];
-        target={x:point.x+dx,y:point.y+dy};guard++;
-      }while((target.x<0||target.x>10||target.y<0||target.y>10)&&guard<50);
-      if(target.x<0||target.x>10||target.y<0||target.y>10){dx=1;dy=1;target={x:point.x+1,y:point.y+1}}
-      setGeneratedPoints([point],false);
-      const h=dx>0?dx+' right':Math.abs(dx)+' left',v=dy>0?dy+' up':Math.abs(dy)+' down';
-      challenge=challengeObject(type,'Point A is at '+rawCoordinate(point)+'. Translate it '+h+' and '+v+'. What are the new coordinates?',rawCoordinate(target),{freezePoints:true});
-    }
+    if(!coTypes(generationSettings).some(t=>t.id===type))return;
+    const data=coGenerate(type,generationSettings);
+    setGeneratedPoints(data.diagram.points,data.diagram.fourQuadrants);challenge=CK?CK.normalise(data.challenge):data.challenge;
     challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';
     exportMode='challenge';responseLines=template.category==='reason'?2:1;exportStatus='';renderControls();draw();
   }
@@ -1016,7 +1093,7 @@ function coordinateTool(){
         lines+
         '<line class="gd-axis" x1="'+zeroX+'" y1="'+pad+'" x2="'+zeroX+'" y2="'+(W-pad)+'"></line>'+
         '<line class="gd-axis" x1="'+pad+'" y1="'+zeroY+'" x2="'+(W-pad)+'" y2="'+zeroY+'"></line>'+
-        labels+plotted+
+        '<text x="'+(W-pad+18)+'" y="'+(zeroY+5)+'" class="gd-co-axis-label">x</text><text x="'+zeroX+'" y="'+(pad-17)+'" text-anchor="middle" class="gd-co-axis-label">y</text>'+labels+plotted+
       '</svg>'+
       (challenge?.mode==='standard'&&challengeFrozen()?'':'<div class="gd-co-context"><span id="co-context-text">'+(challengeFrozen()?'The given point'+(points.length===1?' is':'s are')+' fixed for this challenge.':selected>=0&&points[selected]?'Selected '+esc(pointLabel(selected,points[selected])):'Tap the grid to plot a point. Drag an existing point to move it.')+'</span><div class="gd-context-actions">'+
         '<button type="button" class="gd-context-history" data-co-undo-stage'+(!undoStack.length||challengeFrozen()?' disabled':'')+'>Undo</button>'+
@@ -1033,8 +1110,8 @@ function coordinateTool(){
   setPanels(controlsHtml(),'');
   bindControls();
   draw();
-  G.lessonState?.register('coordinates',()=>({diagram:teachingSnapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
-    restoreTeachingSnapshot(saved.diagram);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
+  G.lessonState?.register('coordinates',()=>({diagram:teachingSnapshot(),challenge,beforeChallenge,generationSettings:{...generationSettings},pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
+    restoreTeachingSnapshot(saved.diagram);generationSettings={scope:coSettings(saved).scope};challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
     if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
     if(Object.prototype.hasOwnProperty.call(saved,'challengeTab'))challengeTab=saved.challengeTab;
     if(Object.prototype.hasOwnProperty.call(saved,'challengeCategory'))challengeCategory=saved.challengeCategory;
