@@ -529,7 +529,7 @@ async function run(){
   for(let attempt=0;attempt<8;attempt++){
     hsDoc.getElementById('hs-generate').click();await tick();
     const prompt=hsDoc.querySelector('.gd-challenge-prompt').textContent;
-    const k=Number(prompt.match(/multiple of (\d+)/)[1]);
+    const k=Number(prompt.match(/multiple of ([0-9]+)/)[1]);
     const marked=[...hsDoc.querySelectorAll('.gd-hs-cell.is-marked')].map(el=>Number(el.dataset.hsValue));
     assert(marked.filter(n=>n%k!==0).length===1,'Wrong-mark task has exactly one incorrect multiple');
     assert(marked.filter(n=>n%k===0).length>=2,'Wrong-mark task contains enough valid examples');
