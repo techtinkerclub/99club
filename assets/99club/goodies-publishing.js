@@ -239,6 +239,7 @@ function defaults(tool){
  if(tool==='maths-canvas')return {difficulty:'medium',curriculumProfile:'custom',numberSettings:G.numberChallenges.settings({},'medium'),workingLines:0};
  if(tool==='sequences')return {settings:{family:'all',difficulty:'medium'}};
  if(tool==='abacus')return {kind:'western',rows:5,colourScheme:'classic',showRowLabels:true};
+ if(tool==='coordinates')return {scope:'mixed',responseLines:1};
  if(tool==='money')return {responseLines:1};
  if(tool==='number-line')return {preset:'negative',responseLines:1};
  if(tool==='array-builder')return {min:2,max:10,responseLines:1};
@@ -265,6 +266,7 @@ function openEditor(draft,{mode='review'}={}){
    }
    if(t==='sequences')return '<div class="gd-pub-fields">'+select('Rule family','settings.family',[['all','All families'],['constant','Constant difference'],['increasing','Changing difference'],['geometric','Multiplication'],['alternating','Alternating']],m.settings.family)+select('Difficulty','settings.difficulty',levels,m.settings.difficulty)+'</div>';
    if(t==='abacus')return '<div class="gd-pub-fields">'+select('Instrument','kind',[['western','Western abacus'],['soroban','Soroban'],['suanpan','Suanpan']],m.kind)+select('Places','rows',[3,4,5,6],m.rows)+select('Colours','colourScheme',['classic','place','sea','berry','forest'],m.colourScheme)+'</div>';
+   if(t==='coordinates')return '<div class="gd-pub-fields">'+select('Grid','scope',[['mixed','Mixed / suitable grid'],['first','First quadrant only'],['four','Four quadrants']],m.scope)+select('Answer space','responseLines',[[1,'Answer box'],[2,'2 lines'],[3,'3 lines'],[4,'4 lines']],m.responseLines)+'</div><p class="gd-help">Plotting tasks use the grid itself as the answer area. Reflection and quadrant questions require four quadrants.</p>';
    if(t==='money')return '<div class="gd-pub-fields">'+select('Answer space','responseLines',[[1,'Answer box'],[2,'2 lines'],[3,'3 lines'],[4,'4 lines']],m.responseLines)+'</div><p class="gd-help">Construction questions retain drawing space. Teacher solutions include a valid combination of UK classroom coins and notes.</p>';
    if(t==='number-line')return '<div class="gd-pub-fields">'+select('Number line scale','preset',[['0-20','0 to 20 · ones'],['0-100','0 to 100 · tens'],['0-1000','0 to 1,000 · hundreds'],['negative','−10 to 10 · ones'],['decimal','0 to 1 · tenths']],m.preset)+select('Answer space','responseLines',[[1,'Answer box'],[2,'2 lines'],[3,'3 lines'],[4,'4 lines']],m.responseLines)+'</div><p class="gd-help">Fraction, zoom and proportional questions use their own compatible scales. Crossing zero requires the negative-number preset.</p>';
    if(t==='array-builder')return '<div class="gd-pub-fields">'+select('Smallest factor','min',Array.from({length:10},(_,i)=>i+2),m.min)+select('Largest factor','max',Array.from({length:12-m.min},(_,i)=>m.min+1+i),m.max)+select('Answer space','responseLines',[[1,'Answer box'],[2,'2 lines'],[3,'3 lines'],[4,'4 lines']],m.responseLines)+'</div>';
