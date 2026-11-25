@@ -1642,3 +1642,8 @@ html.gd-embed-page,body.gd-embed-page{margin:0!important;width:100%!important;he
 #gd-stage .gd-challenge-banner .gd-pupil-response{grid-column:1;grid-row:auto}
 #gd-stage .nl-challenge-response{min-width:0;flex:0 1 auto}
 #gd-stage .nl-challenge-response input{min-width:0}
+
+/* Explicit clock period selection for interactive time challenges. */
+.gd-cl-period-choice{justify-content:center;gap:6px;margin:6px 0}
+.gd-cl-period-choice .gd-btn{min-width:48px;min-height:34px}
+.gd-cl-period-choice .gd-btn[aria-pressed="true"]{background:#147d75;color:#fff;border-color:#147d75}
