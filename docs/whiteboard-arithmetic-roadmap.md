@@ -144,6 +144,12 @@ Three levels: (1) publish the current challenge or non-challenge representation 
 - Checks: 3,000 individual generation/render checks; 100 two-source drafts, 1,600 generated questions, 200 captures, 100 isolated replacements, 1,527 pupil/teacher pages and 3,400 exact prompt-baseline alignments in mock SVG DOM. Standalone headings retained. Browser and actual A4 QA open.
 - Next adapter: Array Builder. Six of 20 catalogue entries integrated; no final widget certification yet.
 
+## Array Builder shared publishing (25 November)
+- Seventh adapter: seven native challenge types, direct current diagram or challenge capture, automatic source generation and same-type replacement. Shared paper renderer gives blank 12 × 12 drawing grid for build tasks, exact target array in teacher keys, visible partition lines and no hidden-answer readouts.
+- Explicit factor range settings in live challenge panel and automatic builder (2–12, default 2–10, minimum strictly below maximum); live settings persist and captured generated tasks retain their original range. Commutative tasks avoid equal factors; paper labels stay horizontal. Custom teacher-authored challenges remain direct-export only.
+- Automated checks: 4,200 individual generation/render checks across three ranges; 100 two-source documents, 1,400 generated questions, 200 captures, 100 isolated replacements, 1,679 pupil/teacher page checks and 3,000 prompt baseline checks. Mock SVG DOM, not browser acceptance.
+- Next adapter: Number Line. Seven of 20 entries integrated; final widget certification still open.
+
 ## Next priorities
 1. Visual/touch feedback: validate the practice-set launcher, whiteboard layout, inline answer boxes, responsive columns and paper outputs; refine density and font sizes after classroom feedback.
 2. Worksheet-oriented improvements: separate arithmetic answer key implemented; five-a-day shortcut implemented; optional arithmetic working space and row-based A4 pagination implemented; shared pupil/teacher export policies across the remaining widgets still need work.
