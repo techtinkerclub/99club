@@ -286,7 +286,7 @@ function maskChallengeReadouts(){
 }
 function freezeReadonly(){
   if(!complexSpec?.readOnly)return;const w=work();if(!w)return;
-  qa('[data-ba-token],[data-ba-stage-add],.nmb-branch-add,.nmb-branch-empty',w).forEach(el=>{el.disabled=true;el.setAttribute('aria-disabled','true')});
+  qa('[data-ba-token],[data-ba-stage-add],.nmb-branch-add,.nmb-branch-empty',w).forEach(el=>{const answer=el.matches('[data-ba-token]')&&Object.prototype.hasOwnProperty.call(complexSpec.answerByToken||{},String(el.dataset.baToken))&&document.body.classList.contains('nmb-v8-pupil-challenge');el.disabled=!answer;if(answer)el.removeAttribute('aria-disabled');else el.setAttribute('aria-disabled','true')});
   qa('.nmb-keypad,.nmb-tile-toolbar,.nmb-branch-toolbar',w).forEach(el=>el.remove());
   ['ba-move','ba-duplicate','ba-delete','ba-minus','ba-plus','ba-value','ba-hidden'].forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=true});
 }
@@ -309,6 +309,15 @@ function install(){
   adapt();
 }
 G.balanceTool=function numberMobileBalanceToolV6(){const result=balanceToolV4.apply(this,arguments);exposeSpec(null);popoverOpen=false;setTimeout(adapt,30);setTimeout(adapt,130);return result};
+G.numberMobileChallengeSession={
+  capture(){if(busy)throw new Error('Wait for the Number Mobile challenge to finish generating.');return {difficulty,spec:complexSpec}},
+  restore(saved){
+    difficulty=['easy','medium','hard'].includes(saved?.difficulty)?saved.difficulty:'easy';
+    G.numberMobileChallengeDifficulty=difficulty;
+    exposeSpec(saved?.spec||null);popoverOpen=false;
+  },
+  refresh(){adapt()}
+};
 G.numberMobileChallengeIsBuilding=()=>busy;
 G.numberMobileBalanceEnhancementVersion='6.3';
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else queueMicrotask(install);
