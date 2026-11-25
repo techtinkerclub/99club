@@ -85,13 +85,20 @@ Updated 25 November 2026.
 - Retain the initial three-tile scope as a short teacher-led activity. Do not expand into a standalone target-number game or larger puzzle engine without first reviewing the existing Studio Games & Puzzles catalogue and establishing a distinct teaching need.
 - Automated checks: 2,100 puzzle generation/validation checks, 70 initial five-question sets, 120 ten-question SVG/markup/key sets and 1,200 shared-checker validations passed. Browser/print visual QA remains pending.
 
+## Catalogue comparison and sequence teaching model (25 November)
+- Reviewed actual Studio sources: games-arithmetic.js (Target Number Challenge, Number Trails & Snakes, Function Machines, Number Connections); games-play-target-v1.js (existing interactive target game); games-app.js (catalogue and print rendering). These already cover independent puzzle generation and practice.
+- Existing Whiteboard three-number target activity stays available by explicit selection only; no longer automatically enabled by year/KS3 presets. Saved settings are not overwritten.
+- Added a teacher-led Sequences & rules manipulative: directly choose first term, number of terms, constant/changing difference, multiplication factor or alternating differences; reveal terms progressively and toggle rule/links. No random puzzle generator, scoring or new independent practice engine.
+- Uses the same SVG for display and export; hidden terms remain blank, and links into hidden terms are not exported. Lesson save/restore supported. Function-machine expansion deferred pending a distinct live teaching need because the Games catalogue already has it.
+- Browser, embedded-board interaction and print appearance still need visual QA.
+
 ## Next priorities
 1. Visual/touch feedback: validate the practice-set launcher, whiteboard layout, inline answer boxes, responsive columns and paper outputs; refine density and font sizes after classroom feedback.
 2. Worksheet-oriented improvements: separate arithmetic answer key implemented; five-a-day shortcut implemented; optional space for working, shared pupil/teacher export policies across all widgets, and print pagination remain.
 3. Extend the implemented fraction/roots topics to remaining curriculum content and complete visual QA, and refine the curriculum presets.
 4. Consolidate the existing arithmetic teaching challenges and fix usability issues. Larger target-number puzzles and game-like extensions are deferred to avoid duplication with Studio Games & Puzzles.
 5. Refine curriculum presets with narrower year-specific objectives, including multiplication-table and early fraction constraints.
-6. Dedicated sequences and rules teaching manipulative: editable number sequences, visible differences/ratios and rule demonstrations, input/output tables and function machines where appropriate. Allow short contextual missing-term/rule checks only where they support the teaching model. Review the existing Games & Puzzles catalogue before adding challenge types; reuse shared engines when appropriate.
+6. Sequences & rules initial teaching manipulative implemented; validate live rendering, progressive reveals, rule visibility and saved lessons. Add input/output demonstrations only if justified separately from existing Function Machines activities.
 7. Performance and accessibility audit of whiteboard, all manipulatives and mobile/touch behaviour.
 
 ## Principles
