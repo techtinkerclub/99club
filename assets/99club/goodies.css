@@ -1769,3 +1769,24 @@ html.gd-embed-page,body.gd-embed-page{margin:0!important;width:100%!important;he
 .gd-money-exchange-options>strong{font-size:.7rem;color:#60757b;padding:3px 5px}
 .gd-money-exchange-options>button{min-height:38px;text-align:left;background:#f5f9f8;border:1px solid #dce7e6;border-radius:7px;color:#304b52;padding:5px 8px;font:inherit;font-size:.8rem;font-weight:750;cursor:pointer}
 .gd-money-object.is-selected:after{inset:-4px;border-width:2px}
+
+
+/* Money has one selection indicator; never show the theme's red focus ring. */
+.gd-money-object:focus,.gd-money-object:focus-visible,.gd-money-object:active{outline:none!important;box-shadow:none!important}
+.gd-money-object:focus-visible:not(.is-selected):not(.is-frozen):after{content:"";position:absolute;inset:-4px;border:2px solid #80b8b2;border-radius:14px;pointer-events:none}
+.gd-money-object--coin{height:var(--mo-size)}
+.gd-money-object__coin-label{display:none!important}
+.gd-money-object.is-frozen{pointer-events:none;cursor:default;opacity:1}
+.gd-money-object.is-frozen:after{display:none!important}
+.gd-money-canvas.is-exchange-mode{padding-bottom:0}
+.gd-money-canvas.is-exchange-mode .gd-money-object.is-selected:not(.is-exchange-selected):after{display:none}
+.gd-money-canvas.is-exchange-mode .gd-money-object.is-exchange-selected:after{content:"";position:absolute;inset:-4px;border:2px solid #168b7e;border-radius:14px;background:#1e9b8610;pointer-events:none}
+.gd-money-canvas.is-exchange-mode .gd-money-object:not(.is-locked){cursor:pointer}
+.gd-money-context.is-exchange-selection{position:sticky;left:auto!important;top:0!important;bottom:auto;width:100%;max-width:100%;box-sizing:border-box;margin-top:0;display:grid;gap:6px;padding:8px 10px;border-radius:0 0 12px 12px;box-shadow:0 3px 12px #25424a15}
+.gd-money-exchange-head,.gd-money-exchange-summary{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.gd-money-exchange-head strong{font-size:.8rem;color:#34525b}
+.gd-money-exchange-head button{width:32px;height:32px;border:0;background:transparent;border-radius:7px;color:#34525b;font-size:22px;cursor:pointer}
+.gd-money-exchange-summary span{font-size:.82rem;font-weight:800;color:#34525b}
+.gd-money-exchange-summary button{min-height:38px;padding:6px 12px;background:#147d75;border:1px solid #147d75;border-radius:8px;color:white;font:inherit;font-size:.8rem;font-weight:800;cursor:pointer}
+.gd-money-exchange-summary button:disabled{background:#edf1f1;border-color:#dce5e5;color:#829294;cursor:default}
+.gd-money-context.is-exchange-selection>small{font-size:.72rem;color:#60757b}
