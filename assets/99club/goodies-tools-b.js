@@ -401,7 +401,7 @@ function generateSet(ids,count,level='medium',rng=Math.random,raw={}){
  for(let attempts=0;questions.length<size&&attempts<size*60;attempts++){
    if(!bag.length){bag=pool.slice();for(let i=bag.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[bag[i],bag[j]]=[bag[j],bag[i]]}}
    const type=bag.pop();
-   try{const question=generate(type,level,rng,raw),key=JSON.stringify(question.tiles);if(seen.has(key))continue;seen.add(key);questions.push(question)}catch(_){}
+   try{const question=generate(type,level,rng,raw),key=question.targetRule?'target:'+question.targetRule.numbers.slice().sort((a,b)=>a-b).join(',')+'='+question.targetRule.target:JSON.stringify(question.tiles);if(seen.has(key))continue;seen.add(key);questions.push(question)}catch(_){}
  }
  if(questions.length!==size)throw Error('Could not make '+size+' distinct questions. Try fewer questions, a wider range or a larger denominator limit.');
  return questions;
