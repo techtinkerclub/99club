@@ -5,6 +5,7 @@ if(!G)return;
 const OPS=['+','−','×','÷'],REL=['<','=','>'],EXTRAS=['Brackets','Powers','Remainders'];
 const topics=[
  ['fraction-quantity','Fraction of a quantity','Years 3–4'],['fraction-same','Same denominator + / −','Years 3–4'],['fraction-equivalent','Equivalent fractions','Years 3–5'],['fraction-related','Related denominators + / −','Year 5'],['fraction-times-whole','Fraction × whole number','Year 5'],['fraction-unlike','Different denominators + / −','Year 6'],['fraction-mixed','Mixed numbers + / −','Year 6'],['fraction-simplify','Simplify fractions','Year 6'],['fraction-times-fraction','Fraction × fraction','Year 6'],['fraction-divide-whole','Fraction ÷ whole number','Year 6'],['percentage-quantity','Percentage of a quantity','Year 6'],['square-root','Square roots (exact)','KS3 extension'],['cube-root','Cube roots (exact)','KS3 extension'],['fraction-divide-fraction','Fraction ÷ fraction','KS3 extension']
+ ,['fdp-fraction-decimal','Fraction to decimal','Year 5'],['fdp-decimal-fraction','Decimal to fraction','Year 5'],['fdp-fraction-percent','Fraction to percentage','Year 5'],['fdp-percent-fraction','Percentage to fraction','Year 5'],['fdp-decimal-percent','Decimal to percentage','Year 5'],['fdp-percent-decimal','Percentage to decimal','Year 5'],['fraction-compare','Compare fractions','Year 5']
 ].map(([id,label,stage])=>({id,label,stage}));
 const groups=[
  {id:'arithmetic',label:'Arithmetic',ids:['missing-result','missing-number','missing-operation','number-bond']},
@@ -13,6 +14,7 @@ const groups=[
  {id:'extended',label:'Powers & remainders',ids:['power-result','division-remainder']},
  {id:'fractions',label:'Fractions',ids:topics.filter(t=>t.id.startsWith('fraction-')&&t.stage!=='KS3 extension').map(t=>t.id)},
  {id:'percentages',label:'Percentages',ids:['percentage-quantity']},
+ {id:'conversions',label:'Fraction, decimal & percentage conversions',ids:topics.filter(t=>t.id.startsWith('fdp-')).map(t=>t.id)},
  {id:'secondary',label:'KS3 extension',ids:topics.filter(t=>t.stage==='KS3 extension').map(t=>t.id)}
 ];
 const titles={'missing-result':'Calculate the result','missing-number':'Find the missing number','missing-operation':'Find the operator','number-bond':'Number bonds','equal-expressions':'Balance the equation','compare-values':'Compare expressions','true-false':'True or false','order-of-operations':'Order of operations','inverse-operation':'Use the inverse','bracket-operation':'Calculate with brackets','power-result':'Calculate a square or cube','division-remainder':'Find the remainder'};
@@ -79,6 +81,13 @@ function quantityOptions(s,percent=false){
  for(const [n,d] of fractions){const step=d/gcdInt(n,d),first=Math.max(1,Math.ceil(lo/step),Math.ceil(lo*d/(step*n))),last=Math.floor(s.max/step);if(first<=last)out.push({n,d,step,first,last})}return out;
 }
 function wholeFactorOptions(s){const lo=Math.max(2,s.min),hi=Math.min(12,s.max);return lo<=hi?{lo,hi}:null}
+function conversionOptions(s){
+ const out=[];
+ for(let d=2;d<=s.denominator;d++)for(let n=1;n<d;n++){
+   if(gcdInt(n,d)===1&&(100*n)%d===0)out.push({n,d,p:100*n/d});
+ }
+ return out;
+}
 function available(raw,level='medium'){
  const s=settings(raw,level),has=n=>s.ops.includes(n),left=n=>s.left===0?n>=2&&n<=4:s.left===n,right=n=>s.right===0?n>=1&&n<=2:s.right===n;
  const expression=(s.left!==1||s.right!==1),canExpressions=!expression||s.ops.length>0;
@@ -102,7 +111,9 @@ function available(raw,level='medium'){
  'fraction-related':addSub,'fraction-times-whole':has('×')&&!!factor,'fraction-unlike':addSub,'fraction-mixed':addSub,'fraction-simplify':true,
  'fraction-times-fraction':has('×'),'fraction-divide-whole':has('÷')&&!!factor,
  'percentage-quantity':enabled('percentage-quantity')&&quantityOptions(s,true).length>0,
- 'square-root':enabled('square-root')&&rootOptions(s,2).length>0,'cube-root':enabled('cube-root')&&rootOptions(s,3).length>0,'fraction-divide-fraction':has('÷')
+ 'square-root':enabled('square-root')&&rootOptions(s,2).length>0,'cube-root':enabled('cube-root')&&rootOptions(s,3).length>0,'fraction-divide-fraction':has('÷'),
+ 'fraction-compare':s.relations.length>0,
+ ...Object.fromEntries(topics.filter(t=>t.id.startsWith('fdp-')).map(t=>[t.id,true]))
  });
  const optional=new Set(topics.map(t=>t.id));
  return groups.map(g=>({...g,ids:g.ids.filter(id=>valid[id]&&(!optional.has(id)||enabled(id)))})).filter(g=>g.ids.length);
@@ -151,6 +162,31 @@ function generate(type,level='medium',rng=Math.random,raw={}){
  if(type==='fraction-quantity'||type==='percentage-quantity'){
    const isPercent=type==='percentage-quantity',{n,d,step,first,last}=pick(quantityOptions(s,isPercent)),whole=step*int(first,last),value=whole*n/d;
    return result([isPercent?n+'%':fractionText(n,d),'of',String(whole),'=','?'],'Find the '+(isPercent?'percentage':'fraction')+' of the quantity.',String(value),'number',undefined,whole+' × '+n+' ÷ '+d+' = '+value);
+ }
+ if(type.startsWith('fdp-')){
+   // Exact terminating conversions in (0,1), with no floating-point rounding.
+   // Fraction forms respect the input denominator limit, including reduced results.
+   const fractionBased=type.includes('fraction'),f=fractionBased?pick(conversionOptions(s)):rat(int(1,99),100);
+   const p=fractionBased?f.p:f.n*100/f.d,decimal=String(p/100),frac=fractionText(f.n,f.d);
+   if(type==='fdp-fraction-decimal')return result([frac,'=','?'],'Write the equivalent decimal.',decimal);
+   if(type==='fdp-decimal-fraction')return result([decimal,'=','?'],'Write the fraction in its simplest form.',frac,'fraction-form');
+   if(type==='fdp-fraction-percent')return result([frac,'=','?','%'],'Write the equivalent percentage.',String(p));
+   if(type==='fdp-percent-fraction')return result([p+'%','=','?'],'Write the fraction in its simplest form.',frac,'fraction-form');
+   if(type==='fdp-decimal-percent')return result([decimal,'=','?','%'],'Write the equivalent percentage.',String(p));
+   return result([p+'%','=','?'],'Write the equivalent decimal.',decimal);
+ }
+ if(type==='fraction-compare'){
+   const fractions=Array.from({length:s.denominator-1},(_,i)=>i+2).flatMap(d=>Array.from({length:d-1},(_,i)=>({n:i+1,d})));
+   const sign=pick(s.relations);
+   // Prefer distinct forms for equality, otherwise allow identical fractions.
+   for(let i=0;i<120;i++){
+     const a=pick(fractions),b=pick(fractions),r=relation(a.n*b.d,b.n*a.d);
+     if(r!==sign)continue;
+     if(sign==='='&&a.n===b.n&&a.d===b.d&&i<100)continue;
+     return result([fractionText(a.n,a.d),'?',fractionText(b.n,b.d)],'Choose the correct comparison symbol.',r,'choice',s.relations.slice());
+   }
+   for(const a of fractions)for(const b of fractions)if(relation(a.n*b.d,b.n*a.d)===sign)return result([fractionText(a.n,a.d),'?',fractionText(b.n,b.d)],'Choose the correct comparison symbol.',sign,'choice',s.relations.slice());
+   throw Error('No comparison fits these settings.');
  }
  if(type.startsWith('fraction-')){
    const cap=s.denominator,proper=d=>({n:int(1,d-1),d}),text=a=>fractionText(a.n,a.d),addSub=s.ops.filter(o=>o==='+'||o==='−');
@@ -276,7 +312,7 @@ function generateSet(ids,count,level='medium',rng=Math.random,raw={}){
    const type=bag.pop();
    try{const question=generate(type,level,rng,raw),key=JSON.stringify(question.tiles);if(seen.has(key))continue;seen.add(key);questions.push(question)}catch(_){}
  }
- if(questions.length!==size)throw Error('Could not make '+size+' distinct questions. Try fewer questions or a wider range.');
+ if(questions.length!==size)throw Error('Could not make '+size+' distinct questions. Try fewer questions, a wider range or a larger denominator limit.');
  return questions;
 }
 // Use the configured range, not the hidden answer, to size every numeric box
@@ -4529,7 +4565,7 @@ return '<div class="nl-panel-title"><div><strong>Use it elsewhere</strong><span>
 }
 function advancedTopicControls(){
  const stages=[...new Set(N.topics.map(t=>t.stage))];
- return '<details class="gd-mc-advanced gd-mc-settings-section" data-mc-section="topics"><summary>Fractions, percentages &amp; KS3 <small>'+numberSettings.topics.length+' selected</small></summary>'+stages.map(stage=>'<fieldset><legend>'+esc(stage)+'</legend>'+N.topics.filter(t=>t.stage===stage).map(t=>'<label><input type="checkbox" data-mc-toggle="topics" value="'+esc(t.id)+'"'+(numberSettings.topics.includes(t.id)?' checked':'')+'><span>'+esc(t.label)+'</span></label>').join('')+'</fieldset>').join('')+field('Maximum input denominator','<select class="gd-select" data-mc-setting="denominator">'+[4,6,8,10,12,20].map(d=>'<option value="'+d+'"'+(numberSettings.denominator===d?' selected':'')+'>'+d+'</option>').join('')+'</select>')+'<p class="gd-help">Fixed-format optional topics ignore ordinary term counts. Fractions use the input denominator limit; answers can have larger denominators. Whole-number quantities and roots use the ordinary range. Mixed-number whole parts are 1–4. Whole multipliers/divisors are 2–12 within the ordinary range. Allowed operations filter fraction calculations. KS3 extensions start off.</p></details>';
+ return '<details class="gd-mc-advanced gd-mc-settings-section" data-mc-section="topics"><summary>Fractions, percentages &amp; KS3 <small>'+numberSettings.topics.length+' selected</small></summary>'+stages.map(stage=>'<fieldset><legend>'+esc(stage)+'</legend>'+N.topics.filter(t=>t.stage===stage).map(t=>'<label><input type="checkbox" data-mc-toggle="topics" value="'+esc(t.id)+'"'+(numberSettings.topics.includes(t.id)?' checked':'')+'><span>'+esc(t.label)+'</span></label>').join('')+'</fieldset>').join('')+field('Maximum input denominator','<select class="gd-select" data-mc-setting="denominator">'+[4,6,8,10,12,20].map(d=>'<option value="'+d+'"'+(numberSettings.denominator===d?' selected':'')+'>'+d+'</option>').join('')+'</select>')+'<p class="gd-help">Fixed-format optional topics ignore ordinary term counts. Conversions use exact values between zero and one (1–99%), up to two decimal places. Fractions use the input denominator limit; answers can have larger denominators. Whole-number quantities and roots use the ordinary range. Mixed-number whole parts are 1–4. Whole multipliers/divisors are 2–12 within the ordinary range. Allowed operations filter fraction calculations. KS3 extensions start off.</p></details>';
 }
 function challengeControlsHtml(){
  const options=(id,label,values,value)=>field(label,'<select class="gd-select" id="'+id+'" data-mc-setting="'+id.replace('mc-','')+'">'+values.map(([v,t])=>'<option value="'+v+'"'+(Number(value)===Number(v)?' selected':'')+'>'+esc(t)+'</option>').join('')+'</select>');
