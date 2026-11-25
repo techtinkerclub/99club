@@ -73,7 +73,7 @@ if(process.argv[2]==='prepare'){
      }catch(err){issues.push(tool+': '+err.message)}
    }
    // Audit every statistics representation rather than only its default table.
-   for(const view of ['tally','pictogram','bar','line','pie']){
+   for(const view of ['tally','pictogram','block','bar','line','pie']){
      const settings={...P.defaultSettings('statistics-table'),view};
      const draft=P.createDocument();
      for(const family of P.types('statistics-table',settings))draft.generate('statistics-table',settings,1,family.id,rng);
@@ -89,9 +89,10 @@ if(process.argv[2]==='prepare'){
      for(const family of S.questionTypes(view,year))for(let i=0;i<30;i++){
        const item=S.generate(S.recipe(settings,family[0]),rng);
        assert(Number.isInteger(item.answer),'Integer primary statistics answer: '+year+'/'+view+'/'+family[0]);
-       if(year==='2')assert([1,2,5,10].includes(item.key)&&item.data.rows.every(r=>r.value<=10),'Year 2 simple scaled pictogram data');
+       if(year==='2')assert(item.key===2&&item.data.rows.every(r=>r.value<=20),'Year selection preserves teacher chosen scale and range');
      }
    }
+   for(const year of ['2','3','4','5','6']){const S=G.statisticsTable;assert(S.viewsFor(year).length===7,'Year suggestions never hide representations');assert(S.recipe({year,view:'pie',max:40,count:6,key:5}).view==='pie','Teacher may choose any representation regardless of year');assert(S.questionTypes('table',year).some(([id])=>id==='mean'),'Teacher may choose advanced content regardless of year');}
    // Dense cards should use available page height, while standalone output remains unchanged.
    const geo=P.createDocument();geo.generate('geoboard',{gridSize:13},1,'build-area',rng);
    const geoItem=geo.list()[0],denseCard=X.withDocumentCardLayout(()=>P.renderItem(geoItem,false),{denseDiagram:true}),compactCard=X.withDocumentCardLayout(()=>P.renderItem(geoItem,false));
