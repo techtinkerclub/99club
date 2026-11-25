@@ -234,6 +234,17 @@ async function run(){
   nlFloating.querySelector('[data-board-launcher-settings]').click();await tick();
   assert(!nlFloating.classList.contains('is-challenge-launcher')&&nlFloating.querySelector('.gd-challenge-tabs'),'Full standard and custom challenge settings remain accessible');
   nlFloating.querySelector('[data-board-controls-close]').click();await tick();
+  nlDoc.querySelector('[data-nl-workflow="challenge"]').click();
+  nlDoc.querySelector('[data-nl-challenge-cat="compare"]').click();
+  nlDoc.querySelector('[data-nl-challenge-type="order-markers"]').click();
+  nlDoc.getElementById('nl-generate').click();await tick(100);
+  const orderInput=nlDoc.querySelector('[data-challenge-response]');orderInput.click();
+  const orderPad=nlDoc.querySelector('.gd-touch-keypad');
+  const orderAnswer=nlDoc.defaultView.TT99Goodies.lessonState.capture('number-line').model.state.challenge.answer;
+  for(const letter of orderAnswer.match(/[ABC]/g))orderPad.querySelector('[data-gd-touch-key="'+letter+'"]').click();
+  orderPad.querySelector('[data-gd-touch-check]').click();await tick(100);
+  assert(nlDoc.querySelector('.nl-challenge-feedback.is-correct'),'Ordering challenge can be solved entirely using touch letter keys');
+  nlDoc.querySelector('[data-challenge-action="end"]').click();await tick();
   // Generate through the actual teacher controls, not a synthetic question.
   nlDoc.querySelector('[data-nl-workflow="challenge"]').click();
   nlDoc.querySelector('[data-nl-challenge-cat="calculate"]').click();
@@ -322,6 +333,7 @@ async function run(){
   let pvQuick=[...pvFrame.querySelectorAll('[data-board-quick-actions] button')];
   const challengePV=pvQuick.find(button=>/^Challenge/.test(button.textContent.trim()));
   assert(challengePV,'Place Value exposes Challenge as a direct whiteboard frame action');
+  const pvOriginal=JSON.stringify(pvDoc.defaultView.TT99Goodies.lessonState.capture('place-value').model.diagram);
   challengePV.click();await tick();
   assert(visible(pvFloating),'Frame Challenge opens the common challenge picker');
   assert(!pvDoc.querySelector('.gd-pv-activity--game'),'Opening Challenge does not replace the teaching board');
