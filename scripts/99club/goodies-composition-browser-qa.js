@@ -71,7 +71,7 @@ async function run(){
   assert(getComputedStyle(document.getElementById('gd-qa-theme-header')).display==='none','Mixed whiteboard hides the site masthead');
   assert(getComputedStyle(document.getElementById('gd-qa-theme-footer')).display==='none','Mixed whiteboard hides the site footer');
   const tools=[...document.querySelectorAll('[data-board-add]')];
-  assert(tools.length===23&&new Set(tools.map(button=>button.dataset.boardAdd)).size===23,'All 23 distinct manipulatives are available as compact palette icons');
+  assert(tools.length===24&&new Set(tools.map(button=>button.dataset.boardAdd)).size===24,'All 24 distinct manipulatives are available as compact palette icons');
   assert(palette.getBoundingClientRect().width<=50,'Left manipulative rail stays narrow');
   assert(getComputedStyle(canvas).backgroundImage.includes('radial-gradient'),'Whiteboard uses a fine dotted canvas');
   assert(getComputedStyle(canvas).backgroundSize==='10px 10px','Whiteboard dot spacing matches the 10px snap grid');
@@ -594,7 +594,7 @@ async function run(){
     dialog.querySelector('[data-pub-block] [data-pub-all-types]').click();
     assert(!dialog.querySelector('[data-pub-generate]').disabled,'Selecting compatible types restores the action');
     const searchAgain=dialog.querySelector('[data-pub-search]');searchAgain.value='';searchAgain.dispatchEvent(new Event('input',{bubbles:true}));
-    assert(dialog.querySelectorAll('[data-pub-add-source]').length===23,'Clearing search restores the full catalogue');
+    assert(dialog.querySelectorAll('[data-pub-add-source]').length===24,'Clearing search restores the full catalogue');
     dialog.querySelector('[data-pub-collapse-all]').click();
     assert([...dialog.querySelectorAll('.gd-pub-source-content')].every(el=>el.hidden),'Collapse all preserves sets while hiding settings');
     const counts=dialog.querySelectorAll('[data-pub-count]');counts[0].value='1';counts[0].dispatchEvent(new Event('change',{bubbles:true}));

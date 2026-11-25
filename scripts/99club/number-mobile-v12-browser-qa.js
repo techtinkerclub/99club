@@ -12,7 +12,7 @@ function beamRotation(){const beam=M()?.querySelector('.gd-eq-beam');if(!beam)re
 async function tidyGeometry(){
   const ready=await W(()=>{
     const b=S()?.querySelector('.gd-challenge-banner'),actions=b?.querySelector('.gd-challenge-actions');if(!b||!actions)return null;
-    const l=labels(actions);if(!(l.includes('Change')&&l.includes('Another')&&l.includes('Reveal')&&l.includes('Exit')))return null;
+    const l=labels(actions);if(!(l.includes('Change')&&l.includes('Another')&&l.includes('Reveal answer')&&l.includes('Exit challenge')))return null;
     const bs=getComputedStyle(b),as=getComputedStyle(actions);if(bs.display!=='flex'||bs.flexDirection!=='column'||as.position!=='static')return null;
     const prompt=b.querySelector('.gd-challenge-prompt'),rr=prompt?.getBoundingClientRect(),br=b.getBoundingClientRect(),ar=actions.getBoundingClientRect();if(!rr||ar.top<rr.bottom-1||ar.bottom>br.bottom+2)return null;
     const panel=S()?.querySelector('.nmb-v8-response-panel'),pr=panel?.getBoundingClientRect();if(!panel||pr.top<br.bottom+2)return null;
