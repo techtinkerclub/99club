@@ -1925,6 +1925,12 @@ function balanceTool(){
   setPanels(controlsHtml(),'');
   bindControls();
   draw();
+  // The recursive mobile adapter owns the topology; this bridge owns the
+  // underlying numeric model. Neither serialises transient DOM state.
+  G.numberMobileEngineState={
+    capture(){if(challenge)throw new Error('Exit the Number Mobile Balance challenge before saving this board.');return snapshot()},
+    restore(saved){restore(saved);challenge=null;beforeChallenge=null;controlTab='explore';challengeTab='standard';exportMode='diagram';undoStack.length=0;redoStack.length=0;drag=null;renderControls();draw()}
+  };
 }
 
 function timesTableVisual(){
