@@ -170,6 +170,20 @@ function pupilAnswerCorrect(spec,values,expected){
   switch(spec.kind){
     case 'choice':return cleanAnswer(a)===cleanAnswer(spec.expected??b);
     case 'number':return equal(numericAnswer(a),numericAnswer(b));
+    case 'addition-equation':{
+      const parse=v=>{
+        const sides=cleanAnswer(v).split('=').map(t=>t.trim());
+        if(sides.length!==2)return null;
+        const sum=sides.find(t=>t.includes('+'));
+        if(!sum)return null;
+        const total=numericAnswer(sides[sides.indexOf(sum)===0?1:0]);
+        const terms=sum.split('+').map(numericAnswer).sort((x,y)=>x-y);
+        if(!Number.isFinite(total)||terms.some(n=>!Number.isFinite(n))||!equal(terms.reduce((x,y)=>x+y,0),total))return null;
+        return {terms,total};
+      };
+      const x=parse(a),y=parse(b);
+      return !!x&&!!y&&equal(x.total,y.total)&&x.terms.length===y.terms.length&&x.terms.every((n,i)=>equal(n,y.terms[i]));
+    }
     case 'unit':{
       const suffix=String(spec.unit||'');
       const strip=v=>{v=cleanAnswer(v);return suffix&&v.endsWith(suffix)?v.slice(0,-suffix.length).trim():v};
@@ -281,13 +295,13 @@ function updatePupilUi(panel,s){
     if(el.hasAttribute('data-gd-pupil-choice'))el.setAttribute('aria-pressed',String(el.dataset.gdPupilChoice===s.values[0]));
   });
   const reveal=panel.closest('.gd-challenge-banner')?.querySelector('[data-board-action="reveal"]');
-  if(reveal)reveal.hidden=s.correct;
+  if(reveal)reveal.hidden=s.correct&&!s.spec.explain;
 }
 function checkPupil(panel,s){
   if(!pupilReady(s)||s.correct||s.challenge.revealed)return;
   const ok=pupilAnswerCorrect(s.spec,s.values,s.challenge.answer);
   s.correct=ok;
-  s.status=ok?(s.spec.explain?'Correct choice. Explain why: '+s.challenge.answer:'Correct ✓'):'Not quite — try again.';
+  s.status=ok?(s.spec.explain?'Correct choice. Now explain why.':'Correct ✓'):'Not quite — try again.';
   updatePupilUi(panel,s);
 }
 function pupilEvent(e){
@@ -314,7 +328,7 @@ function bannerHtml(challenge,opts={}){
   const ch=normalise(challenge);
   const label='Challenge';
   const pupil=pupilResponseHtml(challenge,opts.pupil);
-  const pupilCorrect=!!(opts.pupil&&pupilStates.get(challenge)?.correct);
+  const pupilCorrect=!!(opts.pupil&&!opts.pupil.explain&&pupilStates.get(challenge)?.correct);
   const answerButton=ch.answer&&!opts.hideReveal
     ?`<button class="nl-challenge-reveal gd-challenge-reveal" type="button" data-board-action="reveal"${pupilCorrect?' hidden':''}>${ch.revealed?'Hide answer':'Reveal answer'}</button>`
     :'';
