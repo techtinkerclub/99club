@@ -3,6 +3,188 @@
 if(!G)return;
 const {q,qa,esc,clamp,num,field,btn}=G;
 
+const ABACUS_MODES=['show','add','subtract','make10','bond','double','near','missing','skip'];
+function abacusSettings(model={}){
+ const rows=[3,4,5,6].includes(Number(model.rows))?Number(model.rows):5,kind=model.kind||'western';
+ if(!['western','suanpan','soroban'].includes(kind))throw Error('Historical calculators need their own paper template. Choose Western abacus, suanpan or soroban for document publishing.');
+ return {rows,kind,colourScheme:['classic','place','sea','berry','forest'].includes(model.colourScheme)?model.colourScheme:'classic',showTotal:model.showTotal!==false,showRowCounts:!!model.showRowCounts,showRowLabels:model.showRowLabels!==false};
+}
+  function beadX(index,count){return index<count?4+index*4.5:55+index*4.5}
+  function beadGeometry(device,digit,upper,lower,part,j){
+    if(device==='western')return {position:beadX(j,digit),active:j<digit};
+    if(device==='suanpan'){
+      const active=part==='upper'?j<upper:j<lower;
+      return {active,position:part==='upper'?(active?35-j*11:9+j*11):(active?46+j*8:60+j*8)};
+    }
+    const active=part==='upper'?digit>=5:j<digit%5;
+    return {active,position:part==='upper'?(active?36:12):(active?44+j*8.5:67+j*8.5)};
+  }
+
+  function abacusTaskTitle(mode){
+    return ({
+      show:'Show a number',add:'Addition',subtract:'Subtraction',make10:'Make 10',bond:'Number bonds',
+      double:'Doubles',near:'Near doubles',missing:'Missing number',skip:'Skip counting'
+    })[mode]||'Abacus';
+  }
+
+  function generateAbacusTask(mode,settings,rng=Math.random){
+    const {rows,kind}=settings,capacity=()=>10**rows-1,randomInt=(min,max)=>min+Math.min(max-min,Math.floor(rng()*(max-min+1)));
+    const cap=Math.min(capacity(),rows===3?999:9999),instrument=kind==='suanpan'?'suanpan':kind==='soroban'?'soroban':'abacus';
+    if(mode==='show'){
+      const target=randomInt(1,cap);
+      return{mode,start:0,target,prompt:'Build '+target+' on the '+instrument+' by moving the beads. When you are happy with it, press Check.',requiresAnswer:false};
+    }
+    if(mode==='add'){
+      let a=randomInt(1,Math.max(1,cap-1)),b=randomInt(1,Math.max(1,cap-a));
+      if(cap>=12&&rng()<.65){
+        const low=Math.max(1,10-(a%10));
+        if(low<=cap-a)b=randomInt(low,Math.max(low,cap-a));
+      }
+      return{mode,start:a,target:a+b,a,b,prompt:'The '+instrument+' starts at '+a+'. Add '+b+' by moving the beads. Stop when it shows the answer, then press Check.',requiresAnswer:false};
+    }
+    if(mode==='subtract'){
+      const a=randomInt(2,cap),b=randomInt(1,a);
+      return{mode,start:a,target:a-b,a,b,prompt:'The '+instrument+' starts at '+a+'. Subtract '+b+' by moving the beads. Stop when it shows the answer, then press Check.',requiresAnswer:false};
+    }
+    if(mode==='make10'){
+      const a=randomInt(1,9),answer=10-a;
+      return{mode,start:a,target:10,a,answer,requiresAnswer:true,prompt:'The '+instrument+' starts at '+a+'. How many more are needed to make 10? Move the beads to 10 and enter the missing number.'};
+    }
+    if(mode==='bond'){
+      const bondTotal=cap>=20&&rng()<.5?20:10;
+      const a=randomInt(1,bondTotal-1),answer=bondTotal-a;
+      return{mode,start:a,target:bondTotal,a,answer,requiresAnswer:true,prompt:'Complete the number bond '+a+' + ? = '+bondTotal+'. Move the '+instrument+' to '+bondTotal+' and enter the missing number.'};
+    }
+    if(mode==='double'){
+      const a=randomInt(1,Math.max(1,Math.floor(cap/2)));
+      return{mode,start:a,target:a*2,a,prompt:'The '+instrument+' starts at '+a+'. Double it by adding another '+a+' with the beads, then press Check.',requiresAnswer:false};
+    }
+    if(mode==='near'){
+      let a=randomInt(2,Math.max(2,Math.floor(cap/2))),b=a+(rng()<.5?-1:1);
+      b=Math.max(1,b);
+      while(a+b>cap&&a>2){a--;b=Math.max(1,a-1)}
+      return{mode,start:a,target:a+b,a,b,prompt:'Use a near-double strategy to work out '+a+' + '+b+'. Show the final answer on the '+instrument+', then press Check.',requiresAnswer:false};
+    }
+    if(mode==='missing'){
+      const target=randomInt(5,cap),a=randomInt(0,target-1),answer=target-a;
+      return{mode,start:a,target,a,answer,requiresAnswer:true,finalTarget:target,prompt:'Solve '+a+' + ? = '+target+'. Enter the missing number and move the '+instrument+' from '+a+' to '+target+'.'};
+    }
+    if(mode==='skip'){
+      const possible=[2,5,10].filter(s=>s<=cap),step=possible[randomInt(0,possible.length-1)];
+      const maxStart=Math.max(0,cap-step),start=Math.floor(randomInt(0,maxStart)/step)*step,target=start+step;
+      return{mode,start,target,step,answer:target,requiresAnswer:true,prompt:'Count on in '+step+'s from '+start+'. Enter the next number and show it on the '+instrument+'.'};
+    }
+    return null;
+  }
+
+function abacusPaper(model,teacher=false){
+ const {rows,kind,colourScheme,showTotal,showRowCounts,showRowLabels}=abacusSettings(model),X=G.exportTools,task=model.task||null;
+ const arr=(a,max)=>Array.from({length:rows},(_,i)=>Math.max(0,Math.min(max,Math.round(Number(a?.[i])||0))));
+ const counts=arr(model.counts,10),suanUpper=arr(model.suanUpper,2),suanLower=arr(model.suanLower,5);
+ const normal=v=>Math.max(0,Math.min(10**rows-1,Math.round(Number(v)||0))),placeShort=i=>['1s','10s','100s','1k','10k','100k'][rows-i-1];
+ const total=()=>counts.reduce((sum,digit,i)=>sum+(kind==='suanpan'?5*suanUpper[i]+suanLower[i]:digit)*10**(rows-i-1),0);
+  function svgEl(name,attrs={},text=''){
+    const el=document.createElementNS('http://www.w3.org/2000/svg',name);
+    Object.entries(attrs).forEach(([k,v])=>el.setAttribute(k,String(v)));
+    if(text!==''&&text!=null)el.textContent=String(text);
+    return el;
+  }
+  function frameSvg({value=null,template=false,pupil=false}={}){
+    const width=900,height=540,left=80,right=820,top=118,rodH=324;
+    const live=value===null,ds=live?counts:Array.from(String(normal(value)).padStart(rows,'0'),Number);
+    const palette={classic:['#8b5b30','#f0d7ad','#725039','#d88a51','#3e9487','#4b3826'],place:['#65728e','#f3e6c9','#6d6a73','#c9928c','#6e98b8','#41495a'],sea:['#446f7c','#dceeed','#4e6b71','#d7a27a','#3f8796','#314f58'],berry:['#765266','#f0dfe3','#694b59','#d59a6f','#955d76','#5d4050'],forest:['#58705b','#e4ecd8','#5e6650','#d79661','#63866b','#465644']};
+    const [frame,board,rail,inactive,active,ink]=palette[colourScheme]||palette.classic;
+    const svg=svgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':template?'Abacus template to complete':kind==='western'?'Western base-ten abacus':kind==='suanpan'?'Chinese suanpan':'Japanese soroban'});
+    const add=(tag,attrs,txt)=>svg.appendChild(svgEl(tag,attrs,txt));
+    add('rect',{x:0,y:0,width,height,fill:'#fff'});
+    add('rect',{x:40,y:36,width:820,height:457,rx:18,fill:template?'#fff':board,stroke:frame,'stroke-width':10,'data-ab-export-frame':'1'});
+    add('rect',{x:62,y:60,width:776,height:414,rx:8,fill:template?'#fff':board});
+    function bead(cx,cy,rx,ry,on,row){
+      const placeColours=['#6e98b8','#7ca58a','#b1849a','#c29a5c','#9589b7','#a8ad73'];
+      const col=on?(colourScheme==='place'?placeColours[row%6]:active):inactive;
+      add('ellipse',{cx,cy,rx,ry,fill:template?'#fff':col,stroke:template?'#75878b':frame,'stroke-width':template?1.8:1.6,'data-ab-paper-bead':'1'});
+      if(!template)add('ellipse',{cx:cx-rx*.28,cy:cy-ry*.35,rx:rx*.32,ry:ry*.23,fill:'#fff','fill-opacity':.45});
+    }
+    if(kind==='western'){
+      for(let row=0;row<rows;row++){
+        const y=112+(row+.5)*348/rows,digit=ds[row]||0;
+        add('line',{x1:152,y1:y,x2:752,y2:y,stroke:rail,'stroke-width':4,'stroke-linecap':'round'});
+        if(showRowLabels||pupil)add('text',{x:130,y:y+6,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':18,'font-weight':700,fill:ink},placeShort(row));
+        for(let j=0;j<10;j++){
+          const g=beadGeometry(kind,digit,0,0,'unit',j),bx=152+600*(template?4+j*(92/9):g.position)/100;
+          bead(bx,y,11.5,13,g.active,row);
+        }
+        if(showRowCounts&&!pupil&&!template)add('text',{x:782,y:y+6,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':20,'font-weight':700,fill:ink},String(digit));
+      }
+    }else{
+      add('rect',{x:62,y:top+rodH*.40-5,width:776,height:10,rx:3,fill:frame});
+      for(let col=0;col<rows;col++){
+        const x=left+(right-left)*(col+.5)/rows,digit=ds[col]||0;
+        const upper=kind==='suanpan'&&live?(suanUpper[col]||0):Math.floor(digit/5),lower=kind==='suanpan'&&live?(suanLower[col]||0):digit%5;
+        add('line',{x1:x,y1:top-10,x2:x,y2:top+rodH+10,stroke:rail,'stroke-width':4,'stroke-linecap':'round'});
+        if(showRowLabels||pupil)add('text',{x,y:94,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':rows>=5?16:19,'font-weight':700,fill:ink},placeShort(col));
+        const specs=[...Array.from({length:kind==='suanpan'?2:1},(_,j)=>({part:'upper',j})),...Array.from({length:kind==='suanpan'?5:4},(_,j)=>({part:'lower',j}))];
+        specs.forEach(({part,j})=>{
+          const g=beadGeometry(kind,digit,upper,lower,part,j);
+          // Fixed outline slots nearest the beam represent countable beads on paper.
+          const pos=template?(part==='upper'?35-j*11:46+j*8.5):g.position;
+          bead(x,top+rodH*pos/100,rows>=6?22:26,10.8,g.active,col);
+        });
+        if(showRowCounts&&!pupil&&!template)add('text',{x,y:462,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':20,'font-weight':700,fill:ink},String(kind==='suanpan'?upper*5+lower:digit));
+      }
+    }
+    if(showTotal&&!pupil&&!template)add('text',{x:width/2,y:527,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':19,'font-weight':700,fill:ink},'Number shown: '+(live?total():normal(value)).toLocaleString('en-GB'));
+    return svg;
+  }
+  function paperTaskPrompt(t){
+    const label=kind==='western'?'abacus':kind;
+    const actions={show:'Show '+t.target+' on the '+label+'.',add:'Start at '+t.start+'. Add '+t.b+'.',subtract:'Start at '+t.start+'. Subtract '+t.b+'.',make10:'Start at '+t.start+'. How many more are needed to make 10?',bond:'Complete '+t.a+' + ? = '+t.target+'.',double:'Double '+t.start+'.',near:'Use a near-double strategy to work out '+t.a+' + '+t.b+'.',missing:'Solve '+t.a+' + ? = '+t.target+'.',skip:'Count on in '+t.step+'s from '+t.start+'.'};
+    const missing=['make10','bond','missing'].includes(t.mode);
+    const instruction=kind==='western'?'Shade beads from the left to show the final total. Exchange ten beads for one in the next place.':'Shade beads nearest the middle bar to show the final total.';
+    const action=t.mode==='skip'?'Count on one step of '+t.step+' from '+t.start+'.':(actions[t.mode]||'Complete the calculation.');
+    return action+' '+instruction+(missing?' Write the missing number in the box.':' Write the final number in the box.');
+  }
+  function paperTaskDiagram(t,teacher){
+    const showStart=t.mode!=='show',W=showStart?1840:900,H=590;
+    const out=svgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':teacher?'Completed abacus solution':'Abacus practice diagrams'});
+    const addFrame=(value,template,x,label)=>{
+      out.appendChild(svgEl('text',{x:x+450,y:34,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':26,'font-weight':700,fill:'#52666d'},label));
+      const nested=svgEl('svg',{x,y:42,width:900,height:540,viewBox:'0 0 900 540'});
+      [...frameSvg({value,template,pupil:true}).childNodes].forEach(n=>nested.appendChild(n.cloneNode(true)));out.appendChild(nested);
+    };
+    if(showStart)addFrame(t.start,false,0,'Start');
+    addFrame(teacher?t.target:0,!teacher,showStart?940:0,teacher?'Final total':'Shade to show the final total');
+    return out;
+  }
+  function exportSvg(teacher=false){
+    if(task&&X?.composeWorksheetCardSvg){
+      const missing=['make10','bond','missing'].includes(task.mode);
+      return X.composeWorksheetCardSvg(paperTaskDiagram(task,teacher),{
+        title:abacusTaskTitle(task.mode)+(teacher?' · Teacher answer key':''),
+        prompt:paperTaskPrompt(task),
+        responseLabel:missing?'Missing number (not the final total)':'Final number',
+        responseLines:1,responseMode:'box',paperStyle:'plain',
+        answer:task.requiresAnswer?String(task.answer):String(task.target),
+        showAnswer:teacher,brand:'99 Club Studio'
+      });
+    }
+    return frameSvg();
+  }
+
+ return exportSvg(teacher);
+}
+G.abacusPaperModel={settings:abacusSettings,generate:generateAbacusTask,render:abacusPaper};
+if(G.publishing)G.publishing.register('abacus',{
+ label:'Abacus',
+ title:item=>item.kind==='challenge'?abacusTaskTitle(item.data.task.mode):'Abacus diagram',
+ signature:item=>JSON.stringify([item.settings.kind,item.settings.rows,item.task.mode,item.task.start,item.task.target,item.task.answer,item.task.b,item.task.step]),
+ recipe:(model,type)=>({type,settings:abacusSettings(model)}),
+ types:model=>{abacusSettings(model);return ABACUS_MODES.map(id=>({id,label:abacusTaskTitle(id)}))},
+ generate(recipe,rng){const settings=abacusSettings(recipe.settings),type=recipe.type==='all'?ABACUS_MODES[Math.min(ABACUS_MODES.length-1,Math.floor(rng()*ABACUS_MODES.length))]:recipe.type;if(!ABACUS_MODES.includes(type))throw Error('Unsupported abacus question.');return {type,settings,task:generateAbacusTask(type,settings,rng)}},
+ capture(model){const settings=abacusSettings(model);if(model.task){const task={...model.task};return [G.publishing.record('abacus','challenge',{type:task.mode,settings,task},{type:task.mode,settings})]}return [G.publishing.record('abacus','diagram',{...settings,counts:model.counts,suanUpper:model.suanUpper,suanLower:model.suanLower})]},
+ render(item,teacher){return item.kind==='diagram'?abacusPaper(item.data):abacusPaper({...item.data.settings,task:item.data.task},teacher)}
+});
+
 function abacusTool(){
   const X=G.exportTools,embedded=new URLSearchParams(location.search).get('embed')==='1';
   let rows=5,counts=Array(5).fill(0),kind='western',showTotal=true,showRowCounts=false,showRowLabels=true;
@@ -493,79 +675,17 @@ function abacusTool(){
   }
   function placeLabel(i){return ['Ones','Tens','Hundreds','Thousands','Ten thousands','Hundred thousands'][rows-i-1]}
   function placeShort(i){return ['1s','10s','100s','1k','10k','100k'][rows-i-1]}
-  function beadGeometry(device,digit,upper,lower,part,j){
-    if(device==='western')return {position:beadX(j,digit),active:j<digit};
-    if(device==='suanpan'){
-      const active=part==='upper'?j<upper:j<lower;
-      return {active,position:part==='upper'?(active?35-j*11:9+j*11):(active?46+j*8:60+j*8)};
-    }
-    const active=part==='upper'?digit>=5:j<digit%5;
-    return {active,position:part==='upper'?(active?36:12):(active?44+j*8.5:67+j*8.5)};
-  }
   function abBeadY(i,part,j){return beadGeometry(kind,counts[i]||0,suanUpper[i]||0,suanLower[i]||0,part,j).position}
   function abBeadActive(i,part,j){return beadGeometry(kind,counts[i]||0,suanUpper[i]||0,suanLower[i]||0,part,j).active}
   function randomInt(min,max){return Math.floor(Math.random()*(max-min+1))+min}
-  function beadX(index,count){return index<count?4+index*4.5:55+index*4.5}
   function taskSolved(){
     if(!task)return false;
     const valueOk=total()===task.target;
     const answerOk=!task.requiresAnswer||String(answerInput).trim()!==''&&Number(answerInput)===Number(task.answer);
     return valueOk&&answerOk;
   }
-  function taskTitle(mode=playMode){
-    return ({
-      show:'Show a number',add:'Addition',subtract:'Subtraction',make10:'Make 10',bond:'Number bonds',
-      double:'Doubles',near:'Near doubles',missing:'Missing number',skip:'Skip counting'
-    })[mode]||'Abacus';
-  }
-  function generatedTask(mode){
-    const cap=Math.min(capacity(),rows===3?999:9999),instrument=kind==='suanpan'?'suanpan':kind==='soroban'?'soroban':'abacus';
-    if(mode==='show'){
-      const target=randomInt(1,cap);
-      return{mode,start:0,target,prompt:'Build '+target+' on the '+instrument+' by moving the beads. When you are happy with it, press Check.',requiresAnswer:false};
-    }
-    if(mode==='add'){
-      let a=randomInt(1,Math.max(1,cap-1)),b=randomInt(1,Math.max(1,cap-a));
-      if(cap>=12&&Math.random()<.65){
-        const low=Math.max(1,10-(a%10));
-        if(low<=cap-a)b=randomInt(low,Math.max(low,cap-a));
-      }
-      return{mode,start:a,target:a+b,a,b,prompt:'The '+instrument+' starts at '+a+'. Add '+b+' by moving the beads. Stop when it shows the answer, then press Check.',requiresAnswer:false};
-    }
-    if(mode==='subtract'){
-      const a=randomInt(2,cap),b=randomInt(1,a);
-      return{mode,start:a,target:a-b,a,b,prompt:'The '+instrument+' starts at '+a+'. Subtract '+b+' by moving the beads. Stop when it shows the answer, then press Check.',requiresAnswer:false};
-    }
-    if(mode==='make10'){
-      const a=randomInt(1,9),answer=10-a;
-      return{mode,start:a,target:10,a,answer,requiresAnswer:true,prompt:'The '+instrument+' starts at '+a+'. How many more are needed to make 10? Move the beads to 10 and enter the missing number.'};
-    }
-    if(mode==='bond'){
-      const bondTotal=cap>=20&&Math.random()<.5?20:10;
-      const a=randomInt(1,bondTotal-1),answer=bondTotal-a;
-      return{mode,start:a,target:bondTotal,a,answer,requiresAnswer:true,prompt:'Complete the number bond '+a+' + ? = '+bondTotal+'. Move the '+instrument+' to '+bondTotal+' and enter the missing number.'};
-    }
-    if(mode==='double'){
-      const a=randomInt(1,Math.max(1,Math.floor(cap/2)));
-      return{mode,start:a,target:a*2,a,prompt:'The '+instrument+' starts at '+a+'. Double it by adding another '+a+' with the beads, then press Check.',requiresAnswer:false};
-    }
-    if(mode==='near'){
-      let a=randomInt(2,Math.max(2,Math.floor(cap/2))),b=a+(Math.random()<.5?-1:1);
-      b=Math.max(1,b);
-      while(a+b>cap&&a>2){a--;b=Math.max(1,a-1)}
-      return{mode,start:a,target:a+b,a,b,prompt:'Use a near-double strategy to work out '+a+' + '+b+'. Show the final answer on the '+instrument+', then press Check.',requiresAnswer:false};
-    }
-    if(mode==='missing'){
-      const target=randomInt(5,cap),a=randomInt(0,target-1),answer=target-a;
-      return{mode,start:a,target,a,answer,requiresAnswer:true,finalTarget:target,prompt:'Solve '+a+' + ? = '+target+'. Enter the missing number and move the '+instrument+' from '+a+' to '+target+'.'};
-    }
-    if(mode==='skip'){
-      const possible=[2,5,10].filter(s=>s<=cap),step=possible[randomInt(0,possible.length-1)];
-      const maxStart=Math.max(0,cap-step),start=Math.floor(randomInt(0,maxStart)/step)*step,target=start+step;
-      return{mode,start,target,step,answer:target,requiresAnswer:true,prompt:'Count on in '+step+'s from '+start+'. Enter the next number and show it on the '+instrument+'.'};
-    }
-    return null;
-  }
+  function taskTitle(mode=playMode){return abacusTaskTitle(mode)}
+  function generatedTask(mode){return generateAbacusTask(mode,{rows,kind})}
   function newTask(mode=playMode,context=workflow==='challenge'?'challenge':'play',custom=null){
     if(context==='challenge')rememberChallengeSetup();else if(challengeSetup)restoreChallengeSetup();
     playMode=mode;taskContext=context==='challenge'?'challenge':'play';status='';answerInput='';revealed=false;
@@ -871,93 +991,7 @@ function abacusTool(){
     const keyPrint=q('#ab-key-print');if(keyPrint)keyPrint.onclick=()=>exportAction('key-print');
   }
 
-  function svgEl(name,attrs={},text=''){
-    const el=document.createElementNS('http://www.w3.org/2000/svg',name);
-    Object.entries(attrs).forEach(([k,v])=>el.setAttribute(k,String(v)));
-    if(text!==''&&text!=null)el.textContent=String(text);
-    return el;
-  }
-  function frameSvg({value=null,template=false,pupil=false}={}){
-    const width=900,height=540,left=80,right=820,top=118,rodH=324;
-    const live=value===null,ds=live?counts:Array.from(String(normal(value)).padStart(rows,'0'),Number);
-    const palette={classic:['#8b5b30','#f0d7ad','#725039','#d88a51','#3e9487','#4b3826'],place:['#65728e','#f3e6c9','#6d6a73','#c9928c','#6e98b8','#41495a'],sea:['#446f7c','#dceeed','#4e6b71','#d7a27a','#3f8796','#314f58'],berry:['#765266','#f0dfe3','#694b59','#d59a6f','#955d76','#5d4050'],forest:['#58705b','#e4ecd8','#5e6650','#d79661','#63866b','#465644']};
-    const [frame,board,rail,inactive,active,ink]=palette[colourScheme]||palette.classic;
-    const svg=svgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':template?'Abacus template to complete':kind==='western'?'Western base-ten abacus':kind==='suanpan'?'Chinese suanpan':'Japanese soroban'});
-    const add=(tag,attrs,txt)=>svg.appendChild(svgEl(tag,attrs,txt));
-    add('rect',{x:0,y:0,width,height,fill:'#fff'});
-    add('rect',{x:40,y:36,width:820,height:457,rx:18,fill:template?'#fff':board,stroke:frame,'stroke-width':10,'data-ab-export-frame':'1'});
-    add('rect',{x:62,y:60,width:776,height:414,rx:8,fill:template?'#fff':board});
-    function bead(cx,cy,rx,ry,on,row){
-      const placeColours=['#6e98b8','#7ca58a','#b1849a','#c29a5c','#9589b7','#a8ad73'];
-      const col=on?(colourScheme==='place'?placeColours[row%6]:active):inactive;
-      add('ellipse',{cx,cy,rx,ry,fill:template?'#fff':col,stroke:template?'#75878b':frame,'stroke-width':template?1.8:1.6,'data-ab-paper-bead':'1'});
-      if(!template)add('ellipse',{cx:cx-rx*.28,cy:cy-ry*.35,rx:rx*.32,ry:ry*.23,fill:'#fff','fill-opacity':.45});
-    }
-    if(kind==='western'){
-      for(let row=0;row<rows;row++){
-        const y=112+(row+.5)*348/rows,digit=ds[row]||0;
-        add('line',{x1:152,y1:y,x2:752,y2:y,stroke:rail,'stroke-width':4,'stroke-linecap':'round'});
-        if(showRowLabels||pupil)add('text',{x:130,y:y+6,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':18,'font-weight':700,fill:ink},placeShort(row));
-        for(let j=0;j<10;j++){
-          const g=beadGeometry(kind,digit,0,0,'unit',j),bx=152+600*(template?4+j*(92/9):g.position)/100;
-          bead(bx,y,11.5,13,g.active,row);
-        }
-        if(showRowCounts&&!pupil&&!template)add('text',{x:782,y:y+6,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':20,'font-weight':700,fill:ink},String(digit));
-      }
-    }else{
-      add('rect',{x:62,y:top+rodH*.40-5,width:776,height:10,rx:3,fill:frame});
-      for(let col=0;col<rows;col++){
-        const x=left+(right-left)*(col+.5)/rows,digit=ds[col]||0;
-        const upper=kind==='suanpan'&&live?(suanUpper[col]||0):Math.floor(digit/5),lower=kind==='suanpan'&&live?(suanLower[col]||0):digit%5;
-        add('line',{x1:x,y1:top-10,x2:x,y2:top+rodH+10,stroke:rail,'stroke-width':4,'stroke-linecap':'round'});
-        if(showRowLabels||pupil)add('text',{x,y:94,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':rows>=5?16:19,'font-weight':700,fill:ink},placeShort(col));
-        const specs=[...Array.from({length:kind==='suanpan'?2:1},(_,j)=>({part:'upper',j})),...Array.from({length:kind==='suanpan'?5:4},(_,j)=>({part:'lower',j}))];
-        specs.forEach(({part,j})=>{
-          const g=beadGeometry(kind,digit,upper,lower,part,j);
-          // Fixed outline slots nearest the beam represent countable beads on paper.
-          const pos=template?(part==='upper'?35-j*11:46+j*8.5):g.position;
-          bead(x,top+rodH*pos/100,rows>=6?22:26,10.8,g.active,col);
-        });
-        if(showRowCounts&&!pupil&&!template)add('text',{x,y:462,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':20,'font-weight':700,fill:ink},String(kind==='suanpan'?upper*5+lower:digit));
-      }
-    }
-    if(showTotal&&!pupil&&!template)add('text',{x:width/2,y:527,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':19,'font-weight':700,fill:ink},'Number shown: '+(live?total():normal(value)).toLocaleString('en-GB'));
-    return svg;
-  }
-  function paperTaskPrompt(t){
-    const label=kind==='western'?'abacus':kind;
-    const actions={show:'Show '+t.target+' on the '+label+'.',add:'Start at '+t.start+'. Add '+t.b+'.',subtract:'Start at '+t.start+'. Subtract '+t.b+'.',make10:'Start at '+t.start+'. How many more are needed to make 10?',bond:'Complete '+t.a+' + ? = '+t.target+'.',double:'Double '+t.start+'.',near:'Use a near-double strategy to work out '+t.a+' + '+t.b+'.',missing:'Solve '+t.a+' + ? = '+t.target+'.',skip:'Count on in '+t.step+'s from '+t.start+'.'};
-    const missing=['make10','bond','missing'].includes(t.mode);
-    const instruction=kind==='western'?'Shade beads from the left to show the final total. Exchange ten beads for one in the next place.':'Shade beads nearest the middle bar to show the final total.';
-    const action=t.mode==='skip'?'Count on one step of '+t.step+' from '+t.start+'.':(actions[t.mode]||'Complete the calculation.');
-    return action+' '+instruction+(missing?' Write the missing number in the box.':' Write the final number in the box.');
-  }
-  function paperTaskDiagram(t,teacher){
-    const showStart=t.mode!=='show',W=showStart?1840:900,H=590;
-    const out=svgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':teacher?'Completed abacus solution':'Abacus practice diagrams'});
-    const addFrame=(value,template,x,label)=>{
-      out.appendChild(svgEl('text',{x:x+450,y:34,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':26,'font-weight':700,fill:'#52666d'},label));
-      const nested=svgEl('svg',{x,y:42,width:900,height:540,viewBox:'0 0 900 540'});
-      [...frameSvg({value,template,pupil:true}).childNodes].forEach(n=>nested.appendChild(n.cloneNode(true)));out.appendChild(nested);
-    };
-    if(showStart)addFrame(t.start,false,0,'Start');
-    addFrame(teacher?t.target:0,!teacher,showStart?940:0,teacher?'Final total':'Shade to show the final total');
-    return out;
-  }
-  function exportSvg(teacher=false){
-    if(task&&X?.composeWorksheetCardSvg){
-      const missing=['make10','bond','missing'].includes(task.mode);
-      return X.composeWorksheetCardSvg(paperTaskDiagram(task,teacher),{
-        title:taskTitle(task.mode)+(teacher?' · Teacher answer key':''),
-        prompt:paperTaskPrompt(task),
-        responseLabel:missing?'Missing number (not the final total)':'Final number',
-        responseLines:1,responseMode:'box',paperStyle:'plain',
-        answer:task.requiresAnswer?String(task.answer):String(task.target),
-        showAnswer:teacher,brand:'99 Club Studio'
-      });
-    }
-    return frameSvg();
-  }
+  function exportSvg(teacher=false){return abacusPaper({rows,counts,kind:isAbacusKind()?kind:'soroban',showTotal,showRowCounts,showRowLabels,suanUpper,suanLower,colourScheme,task},teacher)}
   async function exportAction(kind){
     if(!X)return;
     const teacher=kind==='key-copy'||kind==='key-print';if(teacher&&!task)return;
