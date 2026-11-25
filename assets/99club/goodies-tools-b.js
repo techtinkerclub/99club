@@ -3,13 +3,20 @@
 'use strict';
 if(!G)return;
 const OPS=['+','−','×','÷'],REL=['<','=','>'],EXTRAS=['Brackets','Powers','Remainders'];
+const topics=[
+ ['fraction-quantity','Fraction of a quantity','Years 3–4'],['fraction-same','Same denominator + / −','Years 3–4'],['fraction-equivalent','Equivalent fractions','Years 3–5'],['fraction-related','Related denominators + / −','Year 5'],['fraction-times-whole','Fraction × whole number','Year 5'],['fraction-unlike','Different denominators + / −','Year 6'],['fraction-mixed','Mixed numbers + / −','Year 6'],['fraction-simplify','Simplify fractions','Year 6'],['fraction-times-fraction','Fraction × fraction','Year 6'],['fraction-divide-whole','Fraction ÷ whole number','Year 6'],['percentage-quantity','Percentage of a quantity','Year 6'],['square-root','Square roots (exact)','KS3 extension'],['cube-root','Cube roots (exact)','KS3 extension'],['fraction-divide-fraction','Fraction ÷ fraction','KS3 extension']
+].map(([id,label,stage])=>({id,label,stage}));
 const groups=[
  {id:'arithmetic',label:'Arithmetic',ids:['missing-result','missing-number','missing-operation','number-bond']},
  {id:'equivalence',label:'Equality & comparison',ids:['equal-expressions','compare-values','true-false']},
  {id:'reasoning',label:'Reasoning',ids:['order-of-operations','inverse-operation','bracket-operation']},
- {id:'extended',label:'Powers & remainders',ids:['power-result','division-remainder']}
+ {id:'extended',label:'Powers & remainders',ids:['power-result','division-remainder']},
+ {id:'fractions',label:'Fractions',ids:topics.filter(t=>t.id.startsWith('fraction-')&&t.stage!=='KS3 extension').map(t=>t.id)},
+ {id:'percentages',label:'Percentages',ids:['percentage-quantity']},
+ {id:'secondary',label:'KS3 extension',ids:topics.filter(t=>t.stage==='KS3 extension').map(t=>t.id)}
 ];
 const titles={'missing-result':'Calculate the result','missing-number':'Find the missing number','missing-operation':'Find the operator','number-bond':'Number bonds','equal-expressions':'Balance the equation','compare-values':'Compare expressions','true-false':'True or false','order-of-operations':'Order of operations','inverse-operation':'Use the inverse','bracket-operation':'Calculate with brackets','power-result':'Calculate a square or cube','division-remainder':'Find the remainder'};
+Object.assign(titles,Object.fromEntries(topics.map(t=>[t.id,t.label])));
 const presets={
  easy:{min:0,max:20,ops:['+','−'],relations:REL,left:2,right:1,precision:0},
  medium:{min:0,max:100,ops:OPS,relations:REL,left:2,right:0,precision:0},
@@ -21,7 +28,7 @@ function settings(raw={},level='medium'){
  const select=(v,allowed,def)=>Array.isArray(v)?allowed.filter(x=>v.includes(x)):def.slice();
  const max=valid(raw.max,[10,20,50,100,200,500,1000,10000],base.max),min=valid(raw.min,[-100,-20,-10,0,1,2,5,10,20,50,100,200,500,1000].filter(v=>v<max),Math.min(base.min,max-1));
  return {min,max,
- ops:select(raw.ops,OPS,base.ops),relations:select(raw.relations,REL,base.relations),left:valid(raw.left,[0,1,2,3,4],base.left),right:valid(raw.right,[0,1,2,3,4],base.right),precision:valid(raw.precision,[0,1,2],base.precision),extras:select(raw.extras,EXTRAS,EXTRAS)};
+ ops:select(raw.ops,OPS,base.ops),relations:select(raw.relations,REL,base.relations),left:valid(raw.left,[0,1,2,3,4],base.left),right:valid(raw.right,[0,1,2,3,4],base.right),precision:valid(raw.precision,[0,1,2],base.precision),extras:select(raw.extras,EXTRAS,EXTRAS),topics:select(raw.topics,topics.map(t=>t.id),[]),denominator:valid(raw.denominator,[4,6,8,10,12,20],12)};
 }
 function powerOptions(s){
  if(s.precision!==0)return [];
@@ -38,6 +45,17 @@ function remainderLimits(s){
  const remainder=Math.max(1,s.min),divisor=Math.max(2,s.min,remainder+1),quotient=Math.max(1,s.min);
  return {remainder,divisor,quotient,possible:s.precision===0&&quotient*divisor+remainder<=s.max};
 }
+function gcdInt(a,b){a=Math.abs(a);b=Math.abs(b);while(b){const t=a%b;a=b;b=t}return a||1}
+function rat(n,d=1){if(d<0){n=-n;d=-d}const g=gcdInt(n,d);return {n:n/g,d:d/g}}
+function fractionText(n,d){return d===1?String(n):n+'/'+d}
+function parseFractionToken(token){const m=String(token).match(/^(?:(\d+) )?(\d+)\/(\d+)$/);return m?{whole:m[1]||'',n:m[2],d:m[3]}:null}
+function rootOptions(s,power){const out=[];for(let base=Math.max(0,s.min);base<=Math.floor(s.max**(1/power)+1e-9);base++){const value=base**power;if(value>=s.min&&value<=s.max)out.push({base,value})}return out}
+function quantityOptions(s,percent=false){
+ const out=[],lo=Math.max(1,s.min);
+ const fractions=percent?[5,10,15,20,25,30,35,40,50,60,65,70,75,80,90,100].map(n=>[n,100]):Array.from({length:s.denominator-1},(_,i)=>i+2).flatMap(d=>Array.from({length:d-1},(_,i)=>[i+1,d]));
+ for(const [n,d] of fractions){const step=d/gcdInt(n,d),first=Math.max(1,Math.ceil(lo/step),Math.ceil(lo*d/(step*n))),last=Math.floor(s.max/step);if(first<=last)out.push({n,d,step,first,last})}return out;
+}
+function wholeFactorOptions(s){const lo=Math.max(2,s.min),hi=Math.min(12,s.max);return lo<=hi?{lo,hi}:null}
 function available(raw,level='medium'){
  const s=settings(raw,level),has=n=>s.ops.includes(n),left=n=>s.left===0?n>=2&&n<=4:s.left===n,right=n=>s.right===0?n>=1&&n<=2:s.right===n;
  const expression=(s.left!==1||s.right!==1),canExpressions=!expression||s.ops.length>0;
@@ -55,7 +73,16 @@ function available(raw,level='medium'){
  'power-result':s.extras.includes('Powers')&&left(2)&&right(1)&&has('×')&&powerOptions(s).length>0,
  'division-remainder':s.extras.includes('Remainders')&&left(2)&&right(2)&&has('÷')&&remainderLimits(s).possible
  };
- return groups.map(g=>({...g,ids:g.ids.filter(id=>valid[id])})).filter(g=>g.ids.length);
+ const addSub=has('+')||has('−'),factor=wholeFactorOptions(s),enabled=id=>s.topics.includes(id);
+ Object.assign(valid,{
+ 'fraction-quantity':enabled('fraction-quantity')&&quantityOptions(s).length>0,'fraction-same':addSub,'fraction-equivalent':true,
+ 'fraction-related':addSub,'fraction-times-whole':has('×')&&!!factor,'fraction-unlike':addSub,'fraction-mixed':addSub,'fraction-simplify':true,
+ 'fraction-times-fraction':has('×'),'fraction-divide-whole':has('÷')&&!!factor,
+ 'percentage-quantity':enabled('percentage-quantity')&&quantityOptions(s,true).length>0,
+ 'square-root':enabled('square-root')&&rootOptions(s,2).length>0,'cube-root':enabled('cube-root')&&rootOptions(s,3).length>0,'fraction-divide-fraction':has('÷')
+ });
+ const optional=new Set(topics.map(t=>t.id));
+ return groups.map(g=>({...g,ids:g.ids.filter(id=>valid[id]&&(!optional.has(id)||enabled(id)))})).filter(g=>g.ids.length);
 }
 function generate(type,level='medium',rng=Math.random,raw={}){
  const s=settings(raw,level),scale=10**s.precision,lo=s.min*scale,hi=s.max*scale;
@@ -93,6 +120,47 @@ function generate(type,level='medium',rng=Math.random,raw={}){
  function equation(a,b,hA,hB,sign='='){return [...tokens(a,hA),sign,...tokens(b,hB)]}
  function result(tiles,prompt,answer,kind='number',choices,solutionExplanation){
    return {mode:'standard',type,category:groups.find(g=>g.ids.includes(type)).id,title:'',prompt,answer:String(answer),answerMode:'manual',revealed:false,tiles,kind,choices,solutionExplanation:solutionExplanation||tiles.map(v=>v==='?'?String(answer):v).join(' '),level,settings:s};
+ }
+ if(type==='square-root'||type==='cube-root'){
+   const power=type==='square-root'?2:3,{base,value}=pick(rootOptions(s,power));
+   return result([(power===2?'√':'∛')+value,'=','?'],'Find the exact '+(power===2?'square':'cube')+' root.',String(base),'number',undefined,Array(power).fill(base).join(' × ')+' = '+value);
+ }
+ if(type==='fraction-quantity'||type==='percentage-quantity'){
+   const isPercent=type==='percentage-quantity',{n,d,step,first,last}=pick(quantityOptions(s,isPercent)),whole=step*int(first,last),value=whole*n/d;
+   return result([isPercent?n+'%':fractionText(n,d),'of',String(whole),'=','?'],'Find the '+(isPercent?'percentage':'fraction')+' of the quantity.',String(value),'number',undefined,whole+' × '+n+' ÷ '+d+' = '+value);
+ }
+ if(type.startsWith('fraction-')){
+   const cap=s.denominator,proper=d=>({n:int(1,d-1),d}),text=a=>fractionText(a.n,a.d),addSub=s.ops.filter(o=>o==='+'||o==='−');
+   const reduced=(a,b,o)=>o==='+'?rat(a.n*b.d+b.n*a.d,a.d*b.d):o==='−'?rat(a.n*b.d-b.n*a.d,a.d*b.d):o==='×'?rat(a.n*b.n,a.d*b.d):rat(a.n*b.d,a.d*b.n);
+   if(type==='fraction-equivalent'||type==='fraction-simplify'){
+     const d=int(2,Math.floor(cap/2)),a=rat(int(1,d-1),d),k=int(2,Math.floor(cap/a.d)),expanded={n:a.n*k,d:a.d*k};
+     if(type==='fraction-simplify')return result([text(expanded),'=','?'],'Give the fraction in its simplest form.',text(a),'fraction-form',undefined,text(expanded)+' = '+text(a));
+     return result([text(a),'=','?/'+expanded.d],'Find the missing numerator.',String(expanded.n),'number',undefined,text(a)+' = '+text(expanded));
+   }
+   if(type==='fraction-times-whole'||type==='fraction-divide-whole'){
+     const a=proper(int(2,cap)),f=wholeFactorOptions(s),n=int(f.lo,f.hi),o=type==='fraction-times-whole'?'×':'÷',v=reduced(a,{n,d:1},o);
+     return result([text(a),o,String(n),'=','?'],'Calculate the result. Enter a fraction or equivalent value.',text(v),'fraction');
+   }
+   if(type==='fraction-times-fraction'||type==='fraction-divide-fraction'){
+     const a=proper(int(2,cap)),b=proper(int(2,cap)),o=type==='fraction-times-fraction'?'×':'÷',v=reduced(a,b,o);
+     return result([text(a),o,text(b),'=','?'],o==='×'?'Multiply and give the fraction in its simplest form.':'Divide the fractions. Enter a fraction or equivalent value.',text(v),o==='×'?'fraction-form':'fraction');
+   }
+   const pairs=[];
+   for(let d=2;d<=cap;d++)for(let e=2;e<=cap;e++){
+     if(type==='fraction-same'&&d!==e)continue;
+     if(type==='fraction-related'&&(d===e||d%e!==0&&e%d!==0))continue;
+     if(type==='fraction-unlike'&&(d===e||d%e===0||e%d===0))continue;
+     pairs.push([d,e]);
+   }
+   for(let i=0;i<160;i++){
+     const [d,e]=pick(pairs),a=proper(d),b=proper(e),o=pick(addSub);
+     let aa=a,bb=b,ta=text(a),tb=text(b);
+     if(type==='fraction-mixed'){const wa=int(1,4),wb=int(1,4);aa={n:wa*d+a.n,d};bb={n:wb*e+b.n,d:e};ta=wa+' '+text(a);tb=wb+' '+text(b)}
+     const v=reduced(aa,bb,o);
+     if(!Number.isSafeInteger(v.n)||!Number.isSafeInteger(v.d)||v.n<0||(type==='fraction-same'&&v.n>v.d))continue;
+     return result([ta,o,tb,'=','?'],'Calculate the result. Enter a fraction, mixed number or equivalent value.',text(v),'fraction',undefined,ta+' '+o+' '+tb+' = '+text(v));
+   }
+   throw Error('No fraction calculation fits these settings.');
  }
  if(type==='power-result'){
    const {base,exponent,value}=pick(powerOptions(s));
@@ -197,13 +265,19 @@ function equationMetrics(questions){
    const digits=Math.max(String(cfg.min??0).length,String(cfg.max??1000).length)+(dp?1+dp:0);
    return Math.max(2.15,digits*.66+.65)
  }));
- const symbolWidth=2.05;
- const width=(token,q)=>token==='?'?(q.kind==='choice'?symbolWidth:numberWidth):/^[+−×÷=<>R]$/.test(token)?1:/^[()]$/.test(token)?.55:Math.max(.85,String(token).length*.71);
+ const symbolWidth=2.05,fractionWidth=Math.max(4.3,...questions.filter(q=>q.kind?.startsWith('fraction')).map(q=>{const cap=q.settings?.denominator||12;return (String(cap*cap*8).length+1+String(cap*cap).length)*.65+.5}));
+ const isHole=token=>token==='?'||/^\?\/\d+$/.test(token);
+ const width=(token,q)=>{
+   if(/^\?\/\d+$/.test(token))return 1.8;
+   if(token==='?')return q.kind==='choice'?symbolWidth:q.kind?.startsWith('fraction')?fractionWidth:numberWidth;
+   const f=parseFractionToken(token);if(f)return Math.max(.85,Math.max(f.n.length,f.d.length)*.62+.35)+(f.whole?f.whole.length*.7+.2:0);
+   return /^[+−×÷=<>R]$/.test(token)?1:/^[()]$/.test(token)?.55:Math.max(.85,String(token).length*.71);
+ };
  const rowWidth=(tokens,q)=>tokens.reduce((sum,token)=>sum+width(token,q),0)+Math.max(0,tokens.length-1)*.18;
  const maxUnits=Math.max(1,...questions.flatMap(q=>rows(q).map(tokens=>rowWidth(tokens,q))));
- return {rows,numberWidth,symbolWidth,width,rowWidth,maxUnits};
+ return {rows,numberWidth,symbolWidth,fractionWidth,width,rowWidth,maxUnits,isHole};
 }
-G.numberChallenges={groups,titles,generate,generateSet,settings,presets,available,OPS,REL,EXTRAS,equationMetrics};
+G.numberChallenges={groups,titles,generate,generateSet,settings,presets,available,OPS,REL,EXTRAS,topics,equationMetrics,parseFractionToken};
 })(window.TT99Goodies);
 ;
 (function(G){
