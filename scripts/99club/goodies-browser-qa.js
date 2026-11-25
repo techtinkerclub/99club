@@ -1685,6 +1685,7 @@ if(mode==='prepare'){
   }
 
   function testFactorExplorerWorkbench(){
+    const factorRandom=Math.random;Math.random=()=>0;
     TT99Goodies.interaction.clear();
     assert(TT99Goodies.factorExplorer,'Factor Explorer is registered');
     TT99Goodies.factorExplorer();
@@ -1860,8 +1861,10 @@ if(mode==='prepare'){
     document.getElementById('fe-svg-download').click();
     TT99Goodies.exportTools.downloadSvg=feOldCustomDownload;
     assert(feCustomSvg&&[...feCustomSvg.querySelectorAll('[data-fe-export-pair^="a-"]')].every(x=>x.textContent.includes('?')),'Pupil Custom factor-list export keeps every factor pair hidden');
+    Math.random=factorRandom;
   }
   function testFdpWorkbench(){
+    const fdpRandom=Math.random;Math.random=()=>0;
     TT99Goodies.interaction.clear();
     assert(TT99Goodies.fdpExplorer,'FDP Explorer is registered');
     TT99Goodies.fdpExplorer();
@@ -2004,6 +2007,7 @@ if(mode==='prepare'){
     document.getElementById('fd-svg-download').click();
     TT99Goodies.exportTools.downloadSvg=fdOldCustomDownload;
     assert(fdCustomSvg&&fdCustomSvg.querySelector('[data-fd-export-source]').textContent.trim()==='?/?','Pupil Custom displayed-fraction export keeps the bound source fraction hidden');
+    Math.random=fdpRandom;
   }
 
   function testPlaceValue(){
@@ -3690,7 +3694,7 @@ if(mode==='prepare'){
     TT99Goodies.abacusTool();
     assert(document.querySelector('.gd-ab-frame--western'),'Western place-value abacus opens by default');
     assert(document.querySelectorAll('[data-ab-col]').length===5,'Western abacus opens with five place-value rows');
-    assert(document.querySelectorAll('[data-ab-bead]').length===45,'Western abacus has nine beads per horizontal row');
+    assert(document.querySelectorAll('[data-ab-bead]').length===50,'Western abacus has ten beads per horizontal row');
     assert(document.querySelectorAll('.gd-ab-rod').length===5,'Western frame has five horizontal rods');
 
     let setValue=document.getElementById('ab-set-number');
@@ -3830,9 +3834,35 @@ if(mode==='prepare'){
     assert([...document.querySelectorAll('.gd-poly-die small')].every(x=>x.textContent.trim()==='d20'),'Polyhedral dice identify their side count clearly');
   }
 
+  function testSharedPupilResponses(){
+    const savedRandom=Math.random;Math.random=()=>0;
+    try{
+      TT99Goodies.factorExplorer();
+      document.querySelector('[data-fe-workflow="challenge"]').click();
+      document.querySelector('[data-fe-challenge-type="prime-or-composite"]').click();
+      document.getElementById('fe-generate').click();
+      let panel=document.querySelector('.gd-pupil-response');
+      assert(panel,'Factors exposes a pupil response');
+      assert(panel.querySelector('[data-gd-pupil-check]').disabled,'Check starts disabled without a choice');
+      panel.querySelector('[data-gd-pupil-choice="Composite"]').click();
+      panel.querySelector('[data-gd-pupil-check]').click();
+      assert(panel.querySelector('.gd-pupil-feedback.is-wrong'),'Incorrect choice gives feedback');
+      panel.querySelector('[data-gd-pupil-choice="Prime"]').click();
+      panel.querySelector('[data-gd-pupil-check]').click();
+      assert(panel.querySelector('.gd-pupil-feedback.is-correct'),'Correct choice gives feedback');
+      assert(document.querySelector('.gd-challenge-reveal').hidden,'Reveal disappears after a correct answer');
+      const oldPrompt=document.querySelector('.gd-challenge-prompt').textContent;
+      document.querySelector('[data-challenge-action="another"]').click();
+      assert(document.querySelector('.gd-challenge-prompt').textContent!==oldPrompt,'Another chooses a different Factors question even with repeated RNG');
+      assert(document.querySelector('[data-gd-pupil-check]').disabled,'Another clears the pupil response');
+      document.querySelector('[data-challenge-action="end"]').click();
+      assert(!document.querySelector('.gd-challenge-banner'),'Back to setup clears the challenge');
+    }finally{Math.random=savedRandom}
+  }
   window.addEventListener('load',function(){
     setTimeout(function(){
       try{
+        testSharedPupilResponses();
         testNumberLineChallenges();
         testMathsCanvas();
         testBarModelWorkbench();

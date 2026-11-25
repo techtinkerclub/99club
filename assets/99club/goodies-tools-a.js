@@ -4004,7 +4004,7 @@ function arrayBuilder(){
       normaliseSplits();
       challenge=challengeObject(
         type,
-        'Use the partition lines to write the partial-product calculation for this array.',
+        'Use the partition lines. Enter each partial product and the total.',
         partitionMath(),
         {hiddenEquation:true,hiddenRepeated:true,hiddenInverse:true,hiddenPartial:true}
       );
@@ -4163,7 +4163,7 @@ function arrayBuilder(){
     const inverse=hiddenFlag('hiddenInverse')?'?':inverseFacts();
     const partial=partitionMath(),partialText=hiddenFlag('hiddenPartial')?'?':partial;
     const rowDisplay=displayDimension('rows'),colDisplay=displayDimension('cols'),frozen=challengeFrozen();
-    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Array challenge',pupil:(challenge.type==='build-array'?CK.pupilSpec('model',{check:()=>rows===challenge.targetRows&&cols===challenge.targetCols}):challenge.type==='partial-products'?CK.pupilSpec('discuss'):CK.pupilSpec(['multiplication-fact','commutative-fact'].includes(challenge.type)?'text':'number')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Array challenge',pupil:(challenge.type==='build-array'?CK.pupilSpec('model',{check:()=>rows===challenge.targetRows&&cols===challenge.targetCols}):challenge.type==='partial-products'?CK.pupilSpec('partials',{products:partitionParts().map(p=>p.value),total:total()}):CK.pupilSpec(['multiplication-fact','commutative-fact'].includes(challenge.type)?'text':'number')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     const targetStatus=challenge?.mode==='standard'&&challenge.type==='build-array'
       ?'<div class="gd-answer-live" data-ab-target-status>'+(buildOnTarget()?'On target ✓':'')+'</div>'
       :'';
@@ -4911,7 +4911,7 @@ function clockTool(){
   }
   function draw(){
     const states=challenge?[clockState(0)]:clockStates(),frozen=handsFrozen(),hidden=anyTimeHidden();
-    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Clock challenge',pupil:(challenge.freezeHands===false?CK.pupilSpec('model',{check:onTarget}):challenge.type==='hour-hand-misconception'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:'No',explain:true}):challenge.type==='time-language'?CK.pupilSpec('discuss'):CK.pupilSpec(challenge.type==='twelve-to-twentyfour'?'clock-24':challenge.type==='twentyfour-to-twelve'?'clock-12':'clock-face')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Clock challenge',pupil:(challenge.freezeHands===false?CK.pupilSpec('model',{check:onTarget}):challenge.type==='hour-hand-misconception'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:'No',explain:true}):challenge.type==='time-language'?CK.pupilSpec('spoken',{hint:'e.g. quarter past 3'}):CK.pupilSpec(challenge.type==='twelve-to-twentyfour'?'clock-24':challenge.type==='twentyfour-to-twelve'?'clock-12':'clock-face')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     const targetStatus=challenge&&!challenge.freezeHands&&Number.isFinite(Number(challenge.targetHour))
       ?'<div class="gd-answer-live" data-cl-target-status>'+(onTarget()?'On target ✓':'')+'</div>':'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-clock-workbench">'+

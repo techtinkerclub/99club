@@ -1583,3 +1583,10 @@ html.gd-embed-page,body.gd-embed-page{margin:0!important;width:100%!important;he
 .gd-board-floating-controls .gd-board-controls-proxy{max-height:none!important;overflow:visible!important;scrollbar-gutter:auto!important;min-width:0}
 .gd-board-floating-controls .gd-board-controls-proxy [role="tablist"]{min-width:0;flex-wrap:wrap}
 @media(max-width:520px){.gd-pupil-field{flex:1 1 145px}.gd-pupil-field input{min-width:0;width:100%}.gd-pupil-response button{min-height:40px!important}}
+
+/* Frame actions live above, rather than on top of, the maths surface. */
+.gd-board-object>.gd-board-quick-actions{top:auto;bottom:calc(100% + 5px);right:0;max-width:calc(100% + 10px);flex-wrap:wrap;justify-content:flex-end}
+.gd-board-object>.gd-board-move-handle{left:0;transform:none;top:-22px}
+.gd-board-object>.gd-board-context-trigger{right:-30px;top:0}
+.gd-board-object>.gd-board-export-direct{right:-30px;top:32px}
+.gd-board-object>.gd-board-delete-direct{right:-30px;top:64px}

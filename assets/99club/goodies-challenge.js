@@ -185,6 +185,11 @@ function pupilAnswerCorrect(spec,values,expected){
       const m=b.match(/Perimeter\s+([\d.]+)\s+units;\s*area\s+([\d.]+)\s+square units/i);
       return !!m&&equal(numericAnswer(a),+m[1])&&equal(numericAnswer(values[1]),+m[2]);
     }
+    case 'spoken':return spokenAnswer(a)===spokenAnswer(b);
+    case 'partials':{
+      const given=values.slice(0,-1).map(numericAnswer).sort((x,y)=>x-y),products=[...spec.products].sort((x,y)=>x-y);
+      return given.length===products.length&&given.every((v,i)=>equal(v,products[i]))&&equal(numericAnswer(values.at(-1)),spec.total);
+    }
     case 'set':{
       const parse=v=>cleanAnswer(v).split(/[,;\s]+/).filter(Boolean).map(numericAnswer).sort((x,y)=>x-y);
       const x=parse(a),y=parse(b);
@@ -205,9 +210,41 @@ function pupilAnswerCorrect(spec,values,expected){
     default:return compact(a)===compact(b);
   }
 }
+function pickVariant(list,previous){
+  if(!Array.isArray(list)||!list.length)throw new Error('Empty challenge variant list');
+  let i=Math.min(list.length-1,Math.floor(Math.random()*list.length));
+  if(list.length>1&&JSON.stringify(list[i])===previous)i=(i+1)%list.length;
+  return list[i];
+}
+function simplePolygon(points){
+  if(!Array.isArray(points)||points.length<3||points.some(p=>!Number.isFinite(p.x)||!Number.isFinite(p.y)))return false;
+  if(new Set(points.map(p=>p.x+','+p.y)).size!==points.length)return false;
+  const cross=(a,b,c)=>(b.x-a.x)*(c.y-a.y)-(b.y-a.y)*(c.x-a.x);
+  const on=(a,b,c)=>Math.abs(cross(a,b,c))<1e-9&&c.x>=Math.min(a.x,b.x)&&c.x<=Math.max(a.x,b.x)&&c.y>=Math.min(a.y,b.y)&&c.y<=Math.max(a.y,b.y);
+  const intersect=(a,b,c,d)=>{
+    const x=cross(a,b,c),y=cross(a,b,d),z=cross(c,d,a),w=cross(c,d,b);
+    return x*y<0&&z*w<0||on(a,b,c)||on(a,b,d)||on(c,d,a)||on(c,d,b);
+  };
+  let signed=0;
+  for(let i=0;i<points.length;i++){
+    const a=points[i],b=points[(i+1)%points.length],c=points[(i+2)%points.length];
+    signed+=a.x*b.y-a.y*b.x;
+    if(Math.abs(cross(a,b,c))<1e-9&&(a.x-b.x)*(c.x-b.x)+(a.y-b.y)*(c.y-b.y)>0)return false;
+    for(let j=i+2;j<points.length;j++){
+      if(i===0&&j===points.length-1)continue;
+      if(intersect(a,b,points[j],points[(j+1)%points.length]))return false;
+    }
+  }
+  return Math.abs(signed)>1e-9;
+}
+function spokenAnswer(v){
+  const nums={one:'1',two:'2',three:'3',four:'4',five:'5',six:'6',seven:'7',eight:'8',nine:'9',ten:'10',eleven:'11',twelve:'12',fifteen:'15',twenty:'20','twenty-five':'25','twenty five':'25',thirty:'30'};
+  return cleanAnswer(v).replace(/\btwenty[- ]five\b/g,'25').replace(/\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty)\b/g,m=>nums[m]).replace(/\bminutes?\b/g,'').replace(/\b15\s+(past|to)\b/g,'quarter $1').replace(/\b30\s+past\b/g,'half past').replace(/\bo\s*'?\s*clock\b/g,"o'clock").replace(/\s+/g,' ').trim();
+}
 function pupilFields(spec){
   if(spec.kind==='coordinate')return [{label:'x',hint:'x'},{label:'y',hint:'y'}];
   if(spec.kind==='metrics')return [{label:'Perimeter',hint:'units'},{label:'Area',hint:'square units'}];
+  if(spec.kind==='partials')return spec.products.map((_,i)=>({label:'Part '+(i+1),hint:'Product'})).concat({label:'Total',hint:'Total'});
   return [{label:'Answer',hint:spec.hint||({number:'Number',money:'e.g. £2.50',fraction:'e.g. 2/3','fraction-form':'e.g. 2/3',mixed:'e.g. 1 2/3','clock-face':'e.g. 3:25','clock-24':'e.g. 15:25','clock-12':'e.g. 3:25 pm',set:'e.g. 1, 2, 4'}[spec.kind]||'Type your answer'),unit:spec.unit}];
 }
 function pupilReady(s){return s.spec.kind==='model'||s.values.length>0&&s.values.every(v=>String(v).trim()!=='')}
@@ -229,7 +266,7 @@ function pupilResponseHtml(challenge,spec){
   }else{
     const defs=pupilFields(spec);
     s.values=defs.map((_,i)=>s.values[i]||'');
-    fields=defs.map((f,i)=>'<label class="gd-pupil-field"><span>'+esc(f.label)+'</span><input type="text" inputmode="'+(['number','unit','coordinate','metrics'].includes(spec.kind)?'decimal':'text')+'" autocomplete="off" maxlength="240" data-gd-pupil-field="'+i+'" value="'+esc(s.values[i])+'" placeholder="'+esc(f.hint||'')+'"'+(s.correct||challenge.revealed?' disabled':'')+'>'+(f.unit?'<span>'+esc(f.unit)+'</span>':'')+'</label>').join('');
+    fields=defs.map((f,i)=>'<label class="gd-pupil-field"><span>'+esc(f.label)+'</span><input type="text" inputmode="'+(['number','unit','coordinate','metrics','partials'].includes(spec.kind)?'decimal':'text')+'" autocomplete="off" maxlength="240" data-gd-pupil-field="'+i+'" value="'+esc(s.values[i])+'" placeholder="'+esc(f.hint||'')+'"'+(s.correct||challenge.revealed?' disabled':'')+'>'+(f.unit?'<span>'+esc(f.unit)+'</span>':'')+'</label>').join('');
   }
   return '<div class="gd-pupil-response">'+fields+'<button type="button" class="gd-btn gd-btn--primary" data-gd-pupil-check'+(!pupilReady(s)||s.correct||challenge.revealed?' disabled':'')+'>Check</button><span role="status" aria-live="polite" class="gd-pupil-feedback'+(s.correct?' is-correct':s.status&&s.status!=='Answer shown'?' is-wrong':'')+'">'+esc(s.status)+'</span></div>';
 }
@@ -310,5 +347,5 @@ function applyFormat(editor,action){
   else if(action==='size-large')document.execCommand('fontSize',false,'5');
 }
 
-G.challengeKit={pupilSpec,pupilAnswerCorrect,normalise,makeCustom,sanitiseRichHtml,plainText,toolbarHtml,tabsHtml,editorHtml,pickerHtml,bannerHtml,applyFormat};
+G.challengeKit={pupilSpec,pupilAnswerCorrect,pickVariant,simplePolygon,normalise,makeCustom,sanitiseRichHtml,plainText,toolbarHtml,tabsHtml,editorHtml,pickerHtml,bannerHtml,applyFormat};
 })(window.TT99Goodies);

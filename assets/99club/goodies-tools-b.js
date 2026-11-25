@@ -2570,21 +2570,31 @@ function factorExplorer(){
     const meta=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!meta)return;
     if(!beforeChallenge)beforeChallenge=snapshot();else restore(beforeChallenge);
     undoStack.length=0;redoStack.length=0;selectedSide='a';selectedPair=0;
+    let variantKey='';
+    const pick=list=>{const v=CK.pickVariant(list,challenge?.type===type?challenge.variantKey:'');variantKey=JSON.stringify(v);return v};
     if(type==='prime-or-composite'){
-      a=29;compare=false;challenge=challengeObject(type,'Is 29 prime or composite? Use the factor evidence to decide.','Prime',{hiddenClassificationSide:'a',hiddenPrimeSide:'a'});
+      a=pick([29,21,37,49,23,51,41,57,31,27]);compare=false;
+      challenge=challengeObject(type,'Is '+a+' prime or composite? Use the factor evidence to decide.',isPrime(a)?'Prime':'Composite',{hiddenClassificationSide:'a',hiddenPrimeSide:'a'});
     }else if(type==='missing-factor'){
-      a=36;compare=false;selectedPair=3;challenge=challengeObject(type,'Complete the selected factor pair: 4 × ? = 36.','9',{hiddenPairSide:'a',hiddenPairIndex:3});
+      const item=pick([[36,4],[24,3],[42,6],[48,4],[56,7],[63,7],[72,8],[45,5]]);
+      a=item[0];compare=false;selectedPair=factorPairs(a).findIndex(p=>p[0]===item[1]);
+      challenge=challengeObject(type,'Complete the selected factor pair: '+item[1]+' × ? = '+a+'.',String(a/item[1]),{hiddenPairSide:'a',hiddenPairIndex:selectedPair});
     }else if(type==='divisible-by'){
-      a=42;compare=false;challenge=challengeObject(type,'Is 42 divisible by 6? Explain using the evidence shown.','Yes. 42 ÷ 6 = 7.',{hiddenDivisor:6,hiddenDivisorSide:'a'});
-    }else if(type==='common-factors'){
-      a=36;b=24;compare=true;challenge=challengeObject(type,'What are the common factors of 36 and 24?','1, 2, 3, 4, 6, 12',{hiddenCommonFactors:true});
-    }else if(type==='hcf'){
-      a=36;b=24;compare=true;challenge=challengeObject(type,'What is the highest common factor of 36 and 24?','12',{hiddenHcf:true});
+      const item=pick([[42,6],[45,6],[36,4],[35,4],[54,9],[56,9],[75,5],[72,5]]);
+      a=item[0];compare=false;const divisor=item[1],yes=a%divisor===0;
+      challenge=challengeObject(type,'Is '+a+' divisible by '+divisor+'? Explain using the evidence shown.',yes?'Yes. '+a+' ÷ '+divisor+' = '+a/divisor+'.':'No. '+a+' is not a multiple of '+divisor+'.',{hiddenDivisor:divisor,hiddenDivisorSide:'a'});
+    }else if(type==='common-factors'||type==='hcf'){
+      [a,b]=pick([[36,24],[18,30],[48,60],[42,28],[32,40],[45,60]]);compare=true;
+      const list=commonFactors();
+      challenge=type==='common-factors'?challengeObject(type,'What are the common factors of '+a+' and '+b+'?',list.join(', '),{hiddenCommonFactors:true}):challengeObject(type,'What is the highest common factor of '+a+' and '+b+'?',String(gcd2(a,b)),{hiddenHcf:true});
     }else if(type==='lcm'){
-      a=12;b=18;compare=true;challenge=challengeObject(type,'What is the lowest common multiple of 12 and 18?','36',{hiddenLcm:true});
+      [a,b]=pick([[12,18],[4,6],[8,12],[6,15],[9,12],[10,15],[14,21]]);compare=true;
+      challenge=challengeObject(type,'What is the lowest common multiple of '+a+' and '+b+'?',String(lcm2(a,b)),{hiddenLcm:true});
     }else{
-      a=31;compare=false;challenge=challengeObject(type,'Explain why 31 is prime using the factor information shown.','31 has exactly two factors: 1 and 31.',{hiddenClassificationSide:'a',hiddenPrimeSide:'a'});
+      a=pick([31,17,19,23,29,37,41,43]);compare=false;
+      challenge=challengeObject(type,'Explain why '+a+' is prime using the factor information shown.',a+' has exactly two factors: 1 and '+a+'.',{hiddenClassificationSide:'a',hiddenPrimeSide:'a'});
     }
+    challenge.variantKey=variantKey;
     challengeType=type;challengeCategory=meta.category;challengeTab='standard';controlTab='challenge';exportMode='challenge';responseLines=meta.category==='reason'?3:1;exportStatus='';renderControls();draw();
   }
   function enterCustomChallenge(){
@@ -2992,19 +3002,31 @@ function fdpExplorer(){
     const meta=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!meta)return;
     if(!beforeChallenge)beforeChallenge=snapshot();else restore(beforeChallenge);
     undoStack.length=0;redoStack.length=0;equivScale=1;
+    let variantKey='';
+    const pick=list=>{const v=CK.pickVariant(list,challenge?.type===type?challenge.variantKey:'');variantKey=JSON.stringify(v);return v};
     if(type==='to-decimal'){
-      numerator=3;denominator=8;challenge=challengeObject(type,'Write 3/8 as a decimal.','0.375',{hiddenDecimal:true,hiddenPercent:true,hiddenHundred:true});
+      [numerator,denominator]=pick([[3,8],[1,4],[3,5],[7,10],[5,8],[9,20],[1,8],[3,4]]);
+      challenge=challengeObject(type,'Write '+numerator+'/'+denominator+' as a decimal.',decimalText(),{hiddenDecimal:true,hiddenPercent:true,hiddenHundred:true});
     }else if(type==='to-percentage'){
-      numerator=3;denominator=5;challenge=challengeObject(type,'Write 3/5 as a percentage.','60%',{hiddenDecimal:true,hiddenPercent:true,hiddenHundred:true});
+      [numerator,denominator]=pick([[3,5],[1,4],[7,10],[3,8],[4,5],[9,20],[5,8]]);
+      challenge=challengeObject(type,'Write '+numerator+'/'+denominator+' as a percentage.',percentText()+'%',{hiddenDecimal:true,hiddenPercent:true,hiddenHundred:true});
     }else if(type==='equivalent-fraction'){
-      numerator=3;denominator=4;challenge=challengeObject(type,'Complete the equivalent fraction: 3/4 = 6/?.','8',{hiddenEquivalentFamily:true});
+      const [n,d,k]=pick([[3,4,2],[2,3,3],[1,5,4],[3,5,2],[2,7,2],[5,6,3]]);
+      numerator=n;denominator=d;
+      challenge=challengeObject(type,'Complete the equivalent fraction: '+n+'/'+d+' = '+n*k+'/?.',String(d*k),{hiddenEquivalentFamily:true});
     }else if(type==='simplify-fraction'){
-      numerator=6;denominator=8;challenge=challengeObject(type,'Write 6/8 in its simplest form.','3/4',{hiddenFraction:true,hiddenEquivalentFamily:true});
+      [numerator,denominator]=pick([[6,8],[4,6],[8,12],[10,15],[6,10],[9,12],[12,16],[15,20]]);
+      const f=simplified();challenge=challengeObject(type,'Write '+numerator+'/'+denominator+' in its simplest form.',f.n+'/'+f.d,{hiddenFraction:true,hiddenEquivalentFamily:true});
     }else if(type==='build-percentage'){
-      numerator=1;denominator=2;challenge=challengeObject(type,'Change the model until it represents 75%.','3/4 = 75%',{freezeModel:false,targetPercent:75});
+      const [n,d]=pick([[3,4],[1,4],[2,5],[4,5],[3,5],[1,5],[7,10],[3,8]]);
+      const targetPercent=n/d*100;numerator=1;denominator=2;
+      challenge=challengeObject(type,'Change the model until it represents '+targetPercent+'%.',n+'/'+d+' = '+targetPercent+'%',{freezeModel:false,targetPercent});
     }else{
-      numerator=2;denominator=5;challenge=challengeObject(type,'The percentage shown is 45%. Is that correct? Explain.','No. 2/5 = 40%, not 45%.',{wrongPercent:45,hiddenDecimal:true,hiddenHundred:true});
+      const [n,d,wrong]=pick([[2,5,45],[1,4,20],[3,4,70],[3,5,65],[1,5,25],[7,10,75]]);
+      numerator=n;denominator=d;
+      challenge=challengeObject(type,'The percentage shown is '+wrong+'%. Is that correct? Explain.','No. '+n+'/'+d+' = '+percentText()+'%, not '+wrong+'%.',{wrongPercent:wrong,hiddenDecimal:true,hiddenHundred:true});
     }
+    challenge.variantKey=variantKey;
     challenge.initialState=snapshot();
     challengeType=type;challengeCategory=meta.category;challengeTab='standard';controlTab='challenge';exportMode='challenge';responseLines=meta.category==='reason'?3:1;exportStatus='';renderControls();draw();
   }
@@ -3493,7 +3515,7 @@ function geoboard(){
     }else if(type==='build-area'){
       const option=pick([{area:4,w:2,h:2},{area:6,w:3,h:2},{area:8,w:4,h:2},{area:9,w:3,h:3},{area:10,w:5,h:2},{area:12,w:4,h:3}]);
       setGeneratedShape([]);
-      challenge=challengeObject(type,'Build any polygon with an area of '+option.area+' square units. Use the live area readout to check your shape.','For example, a '+option.w+' × '+option.h+' rectangle.',{answerMode:'manual'});
+      challenge=challengeObject(type,'Build any polygon with an area of '+option.area+' square units. Use the live area readout to check your shape.','For example, a '+option.w+' × '+option.h+' rectangle.',{answerMode:'manual',targetArea:option.area});
     }else{
       setGeneratedShape([{x:1,y:1},{x:5,y:1},{x:5,y:5},{x:1,y:5}]);
       challenge=challengeObject(type,'This square has perimeter 16 units and area 16 square units. A pupil says the two measurements are the same because both numbers are 16. Are they correct?','No. Perimeter measures distance around the shape in units; area measures the surface inside it in square units.',{answerMode:'manual'});
@@ -3712,7 +3734,7 @@ function geoboard(){
       return '<circle class="gd-point gd-ge-vertex'+(i===selected?' is-selected':'')+'" data-ge-vertex="'+i+'" data-ge-pos="'+p.x+','+p.y+'" tabindex="0" role="button" aria-label="Vertex '+label+' at '+p.x+', '+p.y+'. Drag to move." cx="'+v.x+'" cy="'+v.y+'" r="10"></circle>'+
         '<text class="gd-ge-label" data-ge-label="'+i+'" x="'+(v.x+11)+'" y="'+(v.y-11)+'">'+label+'</text>';
     }).join('');
-    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Geoboard challenge',pupil:(challenge.type==='build-area'?CK.pupilSpec('discuss'):challenge.type==='area-perimeter-units'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:'No',explain:true}):challenge.type==='perimeter-area'?CK.pupilSpec('metrics'):CK.pupilSpec('unit',{unit:challenge.type==='find-area'?'square units':'units'})),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Geoboard challenge',pupil:(challenge.type==='build-area'?CK.pupilSpec('model',{check:()=>CK.simplePolygon(pts)&&Math.abs(area()-challenge.targetArea)<1e-8}):challenge.type==='area-perimeter-units'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:'No',explain:true}):challenge.type==='perimeter-area'?CK.pupilSpec('metrics'):CK.pupilSpec('unit',{unit:challenge.type==='find-area'?'square units':'units'})),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-geo gd-geoboard-direct">'+
       '<svg id="ge-svg" viewBox="0 0 '+W+' '+W+'" role="img" aria-label="Interactive geoboard">'+grid+poly+vertices+'</svg>'+
       '<div class="gd-ge-context"><span id="ge-context-text">'+(selected>=0&&pts[selected]?'Selected '+String.fromCharCode(65+selected)+' · ('+pts[selected].x+', '+pts[selected].y+')':'Tap a peg to add a vertex. Drag an existing vertex to reshape the polygon.')+'</span><div class="gd-context-actions">'+
