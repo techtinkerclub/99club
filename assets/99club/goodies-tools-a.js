@@ -4716,7 +4716,7 @@ function clockPaper(data,teacher=false){
  const readFace=['read-five','read-minute','roman-read'].includes(c.type);
  const prompt=drawTask?'Draw the clock hands to show '+c.answer+'.':elapsed?c.prompt.replace('Move it forward by','What time will it show after').replace(/ minutes\.$/,' minutes?'):c.prompt;
  const answer=(readFace?c.answer.replace(/ (am|pm)$/i,''):c.answer)+(c.solutionExplanation?' — '+c.solutionExplanation:'');
- return G.exportTools.composeWorksheetCardSvg(svg,{title:meta?.title||'Clock challenge',prompt,responseMode:drawTask?'none':c.category==='reason'||c.type==='two-duration-reason'?'lines':'box',responseLabel:drawTask?'Correct hands':c.category==='reason'||c.type==='two-duration-reason'?'Answer and explain':'Answer',responseLines:Math.max(1,data.settings?.responseLines||1,c.category==='reason'?3:1),paperStyle:'plain',answer,showAnswer:teacher,diagramMaxHeight:comparison&&cols===1?800:420});
+ return G.exportTools.composeWorksheetCardSvg(svg,{title:meta?.title||'Clock challenge',prompt,responseMode:drawTask?'none':c.category==='reason'||c.type==='two-duration-reason'||data.settings?.responseLines>1?'lines':'box',responseLabel:drawTask?'Correct hands':c.category==='reason'||c.type==='two-duration-reason'?'Answer and explain':'Answer',responseLines:Math.max(1,data.settings?.responseLines||1,c.category==='reason'||c.type==='two-duration-reason'?3:1),paperStyle:'plain',answer,showAnswer:teacher,diagramMaxHeight:comparison&&cols===1?800:420});
 }
 function clockPublicationData(model){
  const settings=clockPublicationSettings(model),diagram=JSON.parse(JSON.stringify(model.diagram||model)),c=model.challenge;
