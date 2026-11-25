@@ -239,6 +239,7 @@ function defaults(tool){
  if(tool==='maths-canvas')return {difficulty:'medium',curriculumProfile:'custom',numberSettings:G.numberChallenges.settings({},'medium'),workingLines:0};
  if(tool==='sequences')return {settings:{family:'all',difficulty:'medium'}};
  if(tool==='abacus')return {kind:'western',rows:5,colourScheme:'classic',showRowLabels:true};
+ if(tool==='measurement')return {precision:'tenth',maxCm:30,responseLines:1};
  if(tool==='multiplication-grid')return {size:12,responseLines:1};
  if(tool==='hundred-square')return {startValue:1,responseLines:1};
  if(tool==='bar-model')return {responseLines:1};
@@ -269,6 +270,7 @@ function openEditor(draft,{mode='review'}={}){
    }
    if(t==='sequences')return '<div class="gd-pub-fields">'+select('Rule family','settings.family',[['all','All families'],['constant','Constant difference'],['increasing','Changing difference'],['geometric','Multiplication'],['alternating','Alternating']],m.settings.family)+select('Difficulty','settings.difficulty',levels,m.settings.difficulty)+'</div>';
    if(t==='abacus')return '<div class="gd-pub-fields">'+select('Instrument','kind',[['western','Western abacus'],['soroban','Soroban'],['suanpan','Suanpan']],m.kind)+select('Places','rows',[3,4,5,6],m.rows)+select('Colours','colourScheme',['classic','place','sea','berry','forest'],m.colourScheme)+'</div>';
+   if(t==='measurement')return '<div class="gd-pub-fields">'+select('Precision','precision',[['tenth','Millimetres (0.1 cm)'],['whole','Whole centimetres']],m.precision)+select('Maximum length','maxCm',[[10,'10 cm'],[20,'20 cm'],[30,'30 cm']],m.maxCm)+select('Answer space','responseLines',[[1,'Answer box'],[2,'2 lines'],[3,'3 lines'],[4,'4 lines']],m.responseLines)+'</div><p class="gd-help">Labelled ruler extracts are diagrams, not physical-size rulers. Placement tasks use the scale itself for the answer.</p>';
    if(t==='multiplication-grid')return '<div class="gd-pub-fields">'+select('Grid size','size',Array.from({length:11},(_,i)=>[i+5,(i+5)+' × '+(i+5)]),m.size)+select('Answer space','responseLines',[[1,'Answer box'],[2,'2 lines'],[3,'3 lines'],[4,'4 lines']],m.responseLines)+'</div><p class="gd-help">Find-the-fact questions use the whole grid; other challenges use the relevant table rows.</p>';
    if(t==='hundred-square')return '<div class="gd-pub-fields">'+select('Number range','startValue',[0,1,101,201,901].map(n=>[n,n+' to '+(n+99)]),m.startValue)+select('Answer space','responseLines',[[1,'Answer box'],[2,'2 lines'],[3,'3 lines'],[4,'4 lines']],m.responseLines)+'</div><p class="gd-help">Missing-number and neighbour tasks use complete row extracts; marking and pattern tasks use the whole square.</p>';
    if(t==='bar-model')return '<div class="gd-pub-fields">'+select('Answer space','responseLines',[[1,'Answer box'],[2,'2 lines'],[3,'3 lines'],[4,'4 lines']],m.responseLines)+'</div><p class="gd-help">Build tasks reserve a blank drawing area; reasoning questions include space to explain.</p>';
