@@ -36,26 +36,32 @@ function svgTable(data,view='table',missing=-1){
  });
  return svg;
 }
-const VIEWS=[['table','Frequency table'],['tally','Tally chart'],['pictogram','Pictogram'],['block','Block diagram'],['bar','Bar chart'],['line','Line graph'],['pie','Pie chart']];
+const VIEWS=[['table','Frequency table'],['tally','Tally chart'],['pictogram','Pictogram'],['block','Block diagram'],['bar','Bar chart'],['line','Line graph'],['pie','Pie chart'],['timetable','Timetable']];
 const EXTRA={bar:[['read-scale','Read the axis interval']],line:[['read-scale','Read the axis interval'],['change','Find the change between consecutive days']],pie:[['angle','Find a sector angle'],['percent','Find a sector percentage']],pictogram:[['symbols','Count full symbols']]};
 const PROFILES=[['custom','All / custom'],['2','Year 2 suggestions'],['3','Year 3 suggestions'],['4','Year 4 suggestions'],['5','Year 5 suggestions'],['6','Year 6 suggestions']];
 const profile=v=>PROFILES.some(p=>p[0]===String(v))?String(v):'custom';
 const viewsFor=()=>VIEWS;
-const RECOMMENDED={'2':['table','tally','pictogram','block'],'3':['table','pictogram','bar'],'4':['bar','line'],'5':['table','line'],'6':['line','pie','table']};
-const guidance=year=>profile(year)==='custom'?'Choose any representation or question type.': 'Suggested focus: '+(RECOMMENDED[year]||[]).map(viewName).join(', ')+(year==='5'?' and timetables (planned).':year==='6'?', including mean as an average.':'.')+' All representations remain available.';
+const RECOMMENDED={'2':['table','tally','pictogram','block'],'3':['table','pictogram','bar'],'4':['bar','line'],'5':['table','line','timetable'],'6':['line','pie','table']};
+const guidance=year=>profile(year)==='custom'?'Choose any representation or question type.': 'Suggested focus: '+(RECOMMENDED[year]||[]).map(viewName).join(', ')+(year==='5'?'.':year==='6'?', including mean as an average.':'.')+' All representations remain available.';
 const DIFFICULTIES=[['custom','Custom'],['easy','Gentle'],['medium','Standard'],['hard','Stretch']];
 const difficultySettings=level=>({easy:{max:10,count:3,key:1},medium:{max:20,count:4,key:2},hard:{max:40,count:6,key:5}}[level]||{});
-const questionTypes=(view,year='custom')=>{year=profile(year);const all=view==='pie'?EXTRA.pie:[...TYPES,...(EXTRA[view]||[]),['combined','Two-step sum and comparison'],['complete','Complete the missing entry']];return all;};
+const questionTypes=(view,year='custom')=>{year=profile(year);const all=view==='pie'?[...EXTRA.pie,['pie-fraction','Fraction of the total'],['pie-build','Construct a pie chart']]:view==='timetable'?[['time-read','Read a departure time'],['time-elapsed','Journey duration'],['time-complete','Complete the timetable']]:[...TYPES,...(EXTRA[view]||[]),['rank','Order categories by value'],['mean-missing','Find a missing measurement from the mean'],['combined','Two-step sum and comparison'],['complete','Complete the missing entry']];return all;};
 const viewName=view=>VIEWS.find(v=>v[0]===view)?.[1]||'Frequency table';
 const validView=view=>VIEWS.some(v=>v[0]===view)?view:'table';
 const COLOURS=['#39887e','#537eaa','#c68a48','#9275ac','#c66c75','#718b48'];
+const clock=v=>String(Math.floor((540+v)/60)).padStart(2,'0')+':'+String((540+v)%60).padStart(2,'0');
+function timetable(count,rng=Math.random){let elapsed=0;return M.dataset(['School','Library','Market','Museum','Park','Station'].slice(0,count).map((label,i)=>({label,value:i===0?0:(elapsed+=5*(1+Math.floor(rng()*4)))})),{title:'Town bus timetable',unit:'minutes',ordered:true});}
 function svgChart(data,view,key=2,missing=-1,axisOverride=null){
  if(view==='table'||view==='tally')return svgTable(data,view,missing);
- const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),W=760,H=view==='pictogram'?120+data.rows.length*60:480;
+ const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),W=760,H=['pictogram','timetable'].includes(view)?120+data.rows.length*60:480;
  Object.entries({viewBox:'0 0 '+W+' '+H,xmlns:ns,role:'img','aria-label':data.title+' — '+viewName(view)}).forEach(([k,v])=>svg.setAttribute(k,v));
  function add(tag,attrs,value){const n=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,String(v)));if(value!==undefined)n.textContent=value;svg.appendChild(n);return n}
  const text=(x,y,v,size=24,extra={})=>add('text',{x,y,fill:'#24343b','font-family':'Arial,sans-serif','font-size':size,...extra},v);
  add('rect',{width:W,height:H,fill:'#fff'});text(24,36,data.title||'Data',28,{'font-weight':700});
+ if(view==='timetable'){
+  add('rect',{x:18,y:52,width:724,height:48,rx:5,fill:'#e7f2ee'});text(30,84,'Stop',24,{'font-weight':700});text(445,84,'Bus A',24,{'text-anchor':'middle','font-weight':700});text(620,84,'Bus B',24,{'text-anchor':'middle','font-weight':700});
+  data.rows.forEach((row,i)=>{const y=100+i*60;add('rect',{x:18,y,width:724,height:60,fill:i%2?'#f5f8f7':'#fff',stroke:'#d8e3e1'});text(30,y+39,row.label,26);text(445,y+39,clock(row.value),26,{'text-anchor':'middle'});if(i!==missing)text(620,y+39,clock(row.value+30),26,{'text-anchor':'middle'});else add('rect',{x:565,y:y+10,width:110,height:40,rx:4,fill:'none',stroke:'#8da6a3','stroke-dasharray':'6 5'});});return svg;
+ }
  if(view==='pictogram'){
   text(24,72,'Key: one full symbol = '+key+' '+(data.unit||'items'),24);
   const rows=M.pictogram(data,key),max=Math.max(1,...rows.map(r=>r.whole+(r.remainder?1:0))),pitch=Math.min(36,465/max),size=Math.min(27,pitch-3);
@@ -68,7 +74,9 @@ function svgChart(data,view,key=2,missing=-1,axisOverride=null){
   const cx=245,cy=252,r=175,total=M.summary(data).total;
   if(!total){text(cx,cy,'No data to display',24,{'text-anchor':'middle'});return svg}
   const point=a=>[cx+r*Math.sin(a*Math.PI/180),cy-r*Math.cos(a*Math.PI/180)];
-  M.pie(data).forEach((s,i)=>{const col=COLOURS[i%COLOURS.length];if(s.angle>=359.999999)add('circle',{cx,cy,r,fill:col,stroke:'#fff','stroke-width':2});else if(s.angle>0){const a=point(s.start),b=point(s.end);add('path',{d:'M '+cx+' '+cy+' L '+a.join(' ')+' A '+r+' '+r+' 0 '+(s.angle>180?1:0)+' 1 '+b.join(' ')+' Z',fill:col,stroke:'#fff','stroke-width':2})}
+  const construction=axisOverride?.construction,angles=axisOverride?.angles||[],sectors=M.pie(data);let cumulative=0;
+  if(construction){add('circle',{cx,cy,r,fill:'#f7faf9',stroke:'#829d99','stroke-width':2});add('line',{x1:cx,x2:cx,y1:cy,y2:cy-r,stroke:'#829d99','stroke-width':2});add('circle',{cx,cy,r:3,fill:'#24343b'});}
+  sectors.forEach((real,i)=>{const angle=construction?Math.max(0,Math.min(360-cumulative,Number(angles[i])||0)):real.angle,s=construction?{...real,angle,start:cumulative,end:cumulative+angle}:real;cumulative+=angle;const col=COLOURS[i%COLOURS.length];if(s.angle>=359.999999)add('circle',{cx,cy,r,fill:col,stroke:'#fff','stroke-width':2});else if(s.angle>0){const a=point(s.start),b=point(s.end);add('path',{d:'M '+cx+' '+cy+' L '+a.join(' ')+' A '+r+' '+r+' 0 '+(s.angle>180?1:0)+' 1 '+b.join(' ')+' Z',fill:col,stroke:'#fff','stroke-width':2})}
    add('rect',{x:460,y:100+i*52,width:23,height:23,rx:3,fill:col});const label=s.label+' ('+s.value+')';text(495,119+i*52,label,Math.min(24,245/Math.max(1,label.length*.6)));
   });text(460,440,'Total: '+total+' '+(data.unit||'items'),23);return svg;
  }
@@ -92,15 +100,23 @@ function recipe(model={},type='all'){
 function generate(r,rng=Math.random){
  const available=questionTypes(r.view,r.year),type=r.type==='all'?available[Math.floor(rng()*available.length)][0]:r.type;
  if(!available.some(t=>t[0]===type))throw Error('Choose a question compatible with this graph.');
- let data=randomData(r.max,r.count,type==='mean',rng);
- if(r.view==='line'){const continuous=rng()<.65||type==='mean';data=M.dataset(data.rows.map((row,i)=>({...row,label:continuous?String(9+i)+':00':['Mon','Tue','Wed','Thu','Fri','Sat'][i]})),{title:continuous?'Temperature during the day':'Daily visitors',unit:continuous?'°C':'visitors',ordered:true});}
- if(type==='mean'&&r.view!=='line')data=M.dataset(data.rows.map((row,i)=>({...row,label:'Day '+(i+1)})),{title:'Rainfall over several days',unit:'mm',ordered:true});
+ let data=randomData(r.max,r.count,['mean','mean-missing'].includes(type),rng);
+ if(r.view==='timetable')data=timetable(r.count,rng);
+ if(r.view==='line'){const continuous=rng()<.65||['mean','mean-missing'].includes(type);data=M.dataset(data.rows.map((row,i)=>({...row,label:continuous?String(9+i)+':00':['Mon','Tue','Wed','Thu','Fri','Sat'][i]})),{title:continuous?'Temperature during the day':'Daily visitors',unit:continuous?'°C':'visitors',ordered:true});}
+ if(['mean','mean-missing'].includes(type)&&r.view!=='line')data=M.dataset(data.rows.map((row,i)=>({...row,label:'Day '+(i+1)})),{title:'Rainfall over several days',unit:'mm',ordered:true});
  if(r.view==='pie'){const total=type==='percent'?20:12;const values=Array(r.count).fill(1);for(let i=r.count;i<total;i++)values[Math.floor(rng()*r.count)]++;data=M.dataset(data.rows.map((row,i)=>({...row,value:values[i]})),data);}
- if(r.view==='block')data=randomData(Math.min(10,r.max),r.count,type==='mean',rng);
- if(r.view==='pictogram'){let values=data.rows.map(row=>Math.floor(row.value/r.key));if(type==='mean'){const remainder=values.reduce((a,b)=>a+b,0)%r.count;for(let i=0,left=remainder;i<values.length&&left;i++){const take=Math.min(left,values[i]);values[i]-=take;left-=take}}data=M.dataset(data.rows.map((row,i)=>({...row,value:values[i]*r.key})),data);}
+ if(r.view==='block'){data=randomData(Math.min(10,r.max),r.count,['mean','mean-missing'].includes(type),rng);if(['mean','mean-missing'].includes(type))data=M.dataset(data.rows.map((row,i)=>({...row,label:'Day '+(i+1)})),{title:'Rainfall over several days',unit:'mm',ordered:true});}
+ if(r.view==='pictogram'){let values=data.rows.map(row=>Math.floor(row.value/r.key));if(['mean','mean-missing'].includes(type)){const remainder=values.reduce((a,b)=>a+b,0)%r.count;for(let i=0,left=remainder;i<values.length&&left;i++){const take=Math.min(left,values[i]);values[i]-=take;left-=take}}data=M.dataset(data.rows.map((row,i)=>({...row,value:values[i]*r.key})),data);}
  const a=Math.floor(rng()*data.rows.length),b=(a+1+Math.floor(rng()*(data.rows.length-1)))%data.rows.length;
  let question;
- if(type==='angle'||type==='percent'){const row=data.rows[a],total=M.summary(data).total;question={type,prompt:(type==='angle'?'What is the angle in degrees of the sector for ':'What percentage of the total is represented by ')+row.label+'?',answer:row.value*(type==='angle'?360:100)/total};}
+ if(type==='pie-build'){question={type,prompt:'Construct the complete pie chart using the frequencies. Begin at the top and work clockwise in legend order.',answer:M.pie(data).map(s=>Math.round(s.angle)).join(', ')};}
+ else if(type==='pie-fraction'){question={type,prompt:'What fraction of the total is represented by '+data.rows[a].label+'? Give a fraction.',answer:data.rows[a].value+'/'+M.summary(data).total};}
+ else if(type==='time-read'){question={type,prompt:'At what time does Bus B depart from '+data.rows[a].label+'? Use 24-hour time.',answer:clock(data.rows[a].value+30)};}
+ else if(type==='time-elapsed'){const lo=Math.min(a,b),hi=Math.max(a,b);question={type,prompt:'How many minutes does Bus A take from '+data.rows[lo].label+' to '+data.rows[hi].label+'?',answer:data.rows[hi].value-data.rows[lo].value};}
+ else if(type==='time-complete'){question={type,missing:a,prompt:'Bus B runs 30 minutes after Bus A. Complete the missing departure time in 24-hour format.',answer:clock(data.rows[a].value+30)};}
+ else if(type==='rank'){question={type,prompt:'What is the rank of '+data.rows[a].label+' from largest to smallest? Equal values share a rank.',answer:1+data.rows.filter(row=>row.value>data.rows[a].value).length};}
+ else if(type==='mean-missing'){question={type,missing:a,prompt:'The mean of all '+data.rows.length+' measurements is '+M.summary(data).mean+' '+data.unit+'. Find the missing measurement.',answer:data.rows[a].value};}
+ else if(type==='angle'||type==='percent'){const row=data.rows[a],total=M.summary(data).total;question={type,prompt:(type==='angle'?'What is the angle in degrees of the sector for ':'What percentage of the total is represented by ')+row.label+'?',answer:row.value*(type==='angle'?360:100)/total};}
  else if(type==='read-scale')question={type,prompt:'How many '+data.unit+' does one labelled vertical axis interval represent?',answer:M.axis(data).step};
  else if(type==='symbols')question={type,prompt:'How many full symbols represent '+data.rows[a].label+'?',answer:data.rows[a].value/r.key};
  else if(type==='change'){const i=Math.floor(rng()*(data.rows.length-1)),x=data.rows[i],y=data.rows[i+1];question={type,prompt:'By how much did the value change from '+x.label+' to '+y.label+'? Give your answer in '+data.unit+'.',answer:Math.abs(y.value-x.value)};}
@@ -110,9 +126,9 @@ function generate(r,rng=Math.random){
  return {...question,data,view:r.view,key:r.key};
 }
 function paper(item,teacher){
- const d=item.data,svg=svgChart(d.data,d.view,d.key,!teacher&&d.type==='complete'?d.missing:-1);
+ const d=item.data,svg=svgChart(d.data,d.view,d.key,!teacher&&['complete','mean-missing','time-complete'].includes(d.type)?d.missing:-1,!teacher&&d.type==='pie-build'?{construction:true,angles:[]}:null);
  if(item.kind==='diagram')return svg;
- return G.exportTools.composeWorksheetCardSvg(svg,{title:viewName(d.view),prompt:d.prompt,responseLabel:'Answer',responseMode:d.type==='complete'?'none':'box',responseLines:1,paperStyle:'plain',answer:String(d.answer),showAnswer:teacher});
+ return G.exportTools.composeWorksheetCardSvg(svg,{title:viewName(d.view),prompt:d.prompt,responseLabel:'Answer',responseMode:['complete','pie-build'].includes(d.type)?'none':'box',responseLines:1,paperStyle:'plain',answer:String(d.answer),showAnswer:teacher});
 }
 if(G.publishing)G.publishing.register(ID,{
  label:'Data & graphs',
@@ -128,14 +144,14 @@ if(G.publishing)G.publishing.register(ID,{
  render:paper,
  answerSummary:item=>String(item.data.answer),
  answerGraphic:item=>svgChart(item.data.data,item.data.view,item.data.key),
- answerNote:item=>item.data.type==='combined'?'Add the first two named values, then find the absolute difference between that sum and the third value.':item.data.type==='complete'?'Complete the missing entry to represent the stated frequency. Check its position, height, or symbol count against the completed diagram.':item.data.type==='angle'?'Divide the category frequency by the total and multiply by 360 degrees.':item.data.type==='percent'?'Divide the category frequency by the total and multiply by 100.':item.data.type==='read-scale'?'Subtract consecutive labelled axis values.':item.data.type==='symbols'?'Count the full symbols in the named row.':item.data.type==='change'?'Subtract the smaller of the two consecutive daily values from the larger.':item.data.type==='mean'?'Add all frequencies and divide by the number of categories.':item.data.type==='total'?'Add all frequencies.':item.data.type==='range'?'Subtract the smallest frequency from the largest.':item.data.type==='difference'?'Subtract the smaller named frequency from the larger.':'Read the frequency for the named category. Accept equivalent numerical working.'
+ answerNote:item=>item.data.type==='pie-build'?'Clockwise angles in legend order: '+item.data.answer+' degrees. All sectors must total 360 degrees. Accept accurate proportional construction.':item.data.type==='pie-fraction'?'Divide the category frequency by the total; accept all equivalent fractions.':item.data.type==='time-read'?'Read the departure in the Bus B column.':item.data.type==='time-elapsed'?'Subtract the earlier departure from the later departure in minutes.':item.data.type==='time-complete'?'Add 30 minutes to the Bus A departure, carrying across the hour if needed.':item.data.type==='rank'?'Count categories with a strictly greater value and add one. Ties share the same rank.':item.data.type==='mean-missing'?'Multiply the mean by the number of measurements, then subtract the sum of the visible measurements.':item.data.type==='combined'?'Add the first two named values, then find the absolute difference between that sum and the third value.':item.data.type==='complete'?'Complete the missing entry to represent the stated frequency. Check its position, height, or symbol count against the completed diagram.':item.data.type==='angle'?'Divide the category frequency by the total and multiply by 360 degrees.':item.data.type==='percent'?'Divide the category frequency by the total and multiply by 100.':item.data.type==='read-scale'?'Subtract consecutive labelled axis values.':item.data.type==='symbols'?'Count the full symbols in the named row.':item.data.type==='change'?'Subtract the smaller of the two consecutive daily values from the larger.':item.data.type==='mean'?'Add all frequencies and divide by the number of categories.':item.data.type==='total'?'Add all frequencies.':item.data.type==='range'?'Subtract the smallest frequency from the largest.':item.data.type==='difference'?'Subtract the smaller named frequency from the larger.':'Read the frequency for the named category. Accept equivalent numerical working.'
 });
 G.statisticsTable={svgTable,svgChart,randomData,recipe,generate,profiles:PROFILES,viewsFor,questionTypes,guidance,difficulties:DIFFICULTIES,difficultySettings};
 G.statisticsTableTool=function(){
  const CK=G.challengeKit;let data=initial(),view='table',workflow='build',task=null,setup=null,max=20,count=4,key=2,year='custom',difficulty='custom',status='',attempt=null;
  const types=()=>questionTypes(view,year);
  function message(s){status=s;const el=q('#st-status');if(el)el.textContent=s}
- function change(i,delta){const rows=data.rows.map((r,j)=>({...r,value:j===i?Math.max(0,Math.min(40,r.value+delta)):r.value}));data=M.dataset(rows,data);render()}
+ function change(i,delta){const rows=data.rows.map((r,j)=>({...r,value:j===i?Math.max(0,Math.min(view==='timetable'?180:40,r.value+delta)):r.value}));data=M.dataset(rows,data);render()}
  function launch(type){
   if(!task)setup=data;
   attempt=null;
@@ -153,14 +169,16 @@ G.statisticsTableTool=function(){
  }
  function renderStage(){
   const stage=q('#gd-stage');
-  const constructing=task?.type==='complete',target=constructing?data.rows[task.missing]:null;
-  const pupil=constructing?CK.pupilSpec('model',{hint:'Complete the diagram, then check your work.',ready:()=>attempt!==null,check:()=>attempt===target.value}):CK.pupilSpec('number');
+  const pieBuild=task?.type==='pie-build',constructing=task?.type==='complete',target=constructing?data.rows[task.missing]:null;
+  const pieExpected=pieBuild?M.pie(data).map(s=>Math.round(s.angle)):[];
+  const pupil=pieBuild?CK.pupilSpec('model',{hint:'Set every sector angle, then check the pie chart.',ready:()=>Array.isArray(attempt)&&attempt.length===pieExpected.length&&attempt.every(Number.isInteger),check:()=>Array.isArray(attempt)&&attempt.every((v,i)=>v===pieExpected[i])}):constructing?CK.pupilSpec('model',{hint:'Complete the diagram, then check your work.',ready:()=>attempt!==null,check:()=>attempt===target.value}):CK.pupilSpec(['time-read','time-complete'].includes(task?.type)?'clock-24':task?.type==='pie-fraction'?'fraction':'number');
   stage.innerHTML=(task?CK.bannerHtml(task,{pupil,actions:[{action:'another',label:'Another'},{action:'end',label:'Exit challenge'}]}):'')+'<div class="gd-st-diagram" style="width:100%;max-width:850px;margin:auto"></div>';
   const host=q('.gd-st-diagram',stage);
-  const axis=constructing&&['bar','line'].includes(view)?M.axis(data):null;
+  const axis=constructing&&['bar','line','block'].includes(view)?(view==='block'?{step:1,max:Math.max(1,M.summary(data).max)}:M.axis(data)):null;
   function draw(){
    const editing=constructing&&!task.revealed,preview=editing&&attempt!==null?M.dataset(data.rows.map((r,i)=>i===task.missing?{...r,value:attempt}:r),data):data;
-   const svg=svgChart(preview,view,key,editing&&attempt===null?task.missing:-1,axis);
+   const hidden=editing&&attempt===null||(!task?.revealed&&['mean-missing','time-complete'].includes(task?.type));
+   const svg=svgChart(preview,view,key,hidden?task.missing:-1,pieBuild&&!task.revealed?{construction:true,angles:Array.isArray(attempt)?attempt:[]}:axis);
    svg.style.width='100%';svg.style.height='auto';svg.style.display='block';host.replaceChildren(svg);
    if(editing&&axis){
     const ns='http://www.w3.org/2000/svg',slot=646/data.rows.length,x=84+(task.missing+.5)*slot,hit=document.createElementNS(ns,'rect');
@@ -171,6 +189,12 @@ G.statisticsTableTool=function(){
   }
   function setAttempt(v){const limit=axis?axis.max:40;attempt=Math.max(0,Math.min(limit,v));draw();const output=q('[data-st-attempt]',stage);if(output)output.textContent=attempt===null?'—':String(view==='pictogram'?attempt/key:attempt);CK.refreshModelPupil(task)}
   draw();
+  if(pieBuild&&!task.revealed){
+   const editor=document.createElement('div');editor.className='gd-st-construction';editor.style.cssText='display:flex;flex-wrap:wrap;justify-content:center;gap:8px;padding:8px';
+   if(!Array.isArray(attempt))attempt=Array(data.rows.length).fill(null);
+   data.rows.forEach((row,i)=>{const label=document.createElement('label');label.style.cssText='display:grid;gap:4px;min-width:110px';label.textContent=row.label;const select=document.createElement('select');select.className='gd-select';select.setAttribute('data-st-sector',i);select.setAttribute('aria-label',row.label+' sector angle');select.innerHTML='<option value="">Choose angle</option>'+Array.from({length:73},(_,n)=>'<option value="'+n*5+'">'+n*5+'°</option>').join('');select.value=attempt[i]===null?'':String(attempt[i]);select.onchange=()=>{attempt[i]=select.value===''?null:Number(select.value);draw();total.textContent='Allocated: '+attempt.reduce((sum,v)=>sum+(v||0),0)+'° / 360°';CK.refreshModelPupil(task)};label.appendChild(select);editor.appendChild(label)});
+   const total=document.createElement('strong');total.style.cssText='flex-basis:100%;text-align:center';total.textContent='Allocated: '+attempt.reduce((sum,v)=>sum+(v||0),0)+'° / 360°';editor.appendChild(total);host.insertAdjacentElement('afterend',editor);
+  }
   if(constructing&&!task.revealed){
    const step=view==='pictogram'?key:1,editor=document.createElement('div');editor.className='gd-row gd-st-construction';editor.style.cssText='justify-content:center;align-items:center;gap:12px;flex-wrap:wrap;padding:8px';
    editor.innerHTML='<span>'+esc(view==='pictogram'?'Full symbols':view==='tally'?'Tally marks':view==='block'?'Blocks':view==='bar'?'Bar height':view==='line'?'Point value':'Frequency')+'</span><button type="button" class="gd-btn" data-st-edit="minus" aria-label="Decrease">−</button><strong data-st-attempt style="min-width:2.5em;text-align:center;font-size:1.4rem">'+(attempt===null?'—':String(view==='pictogram'?attempt/key:attempt))+'</strong><button type="button" class="gd-btn" data-st-edit="plus" aria-label="Increase">+</button><button type="button" class="gd-btn" data-st-edit="zero">Set zero</button>';
@@ -189,20 +213,20 @@ G.statisticsTableTool=function(){
   qa('[data-st-workflow]',host).forEach(el=>el.onclick=()=>{workflow=el.dataset.stWorkflow;if(workflow==='build'&&task)exit();else renderControls()});
   q('#st-year',host).onchange=e=>{if(task){if(setup)data=setup;task=null;setup=null;attempt=null}year=profile(e.target.value);render()};
   q('#st-difficulty',host).onchange=e=>{difficulty=e.target.value;const s=difficultySettings(difficulty);max=s.max??max;count=s.count??count;key=s.key??key;if(task){if(setup)data=setup;task=null;setup=null;attempt=null}render()};
-  q('#st-view',host).onchange=e=>{const next=validView(e.target.value);if(task){if(setup)data=setup;task=null;setup=null;}attempt=null;view=next;render()};
+  q('#st-view',host).onchange=e=>{const next=validView(e.target.value);if(task){if(setup)data=setup;task=null;setup=null;}attempt=null;view=next;if(view==='timetable'&&data.title!=='Town bus timetable')data=timetable(count);render()};
   const keyInput=q('#st-key',host);if(keyInput)keyInput.onchange=e=>{if(task){if(setup)data=setup;task=null;setup=null;attempt=null;}key=Number(e.target.value);difficulty='custom';render()};
   q('#st-max',host).onchange=e=>{max=Number(e.target.value);difficulty='custom';renderControls()};
   q('#st-count',host).onchange=e=>{count=Number(e.target.value);difficulty='custom';renderControls()};
   qa('[data-st-challenge-mode]',host).forEach(el=>el.onclick=()=>launch(el.dataset.stChallengeMode));
   qa('[data-st-change]',host).forEach(el=>el.onclick=()=>{try{applyLabels();change(...el.dataset.stChange.split(',').map(Number))}catch(e){message(e.message)}});
   const apply=q('#st-apply',host);if(apply)apply.onclick=()=>{try{applyLabels();status='';render()}catch(e){message(e.message)}};
-  const fresh=q('#st-new',host);if(fresh)fresh.onclick=()=>{data=randomData(max,count);status='';render()};
+  const fresh=q('#st-new',host);if(fresh)fresh.onclick=()=>{data=view==='timetable'?timetable(count):randomData(max,count);status='';render()};
  }
  function render(){renderControls();renderStage()}
  setPanels('','');render();
  G.lessonState.register(ID,()=>({data,view,workflow,task,setup,max,count,key,year,difficulty,attempt,pupil:CK.capturePupil(task)}),saved=>{
   data=M.dataset(saved.data.rows,saved.data);view=validView(saved.view);year=profile(saved.year);difficulty=DIFFICULTIES.some(d=>d[0]===saved.difficulty)?saved.difficulty:'custom';workflow=saved.workflow==='challenge'?'challenge':'build';max=[10,20,30,40].includes(saved.max)?saved.max:20;count=[3,4,5,6].includes(saved.count)?saved.count:4;
-  key=[1,2,5,10].includes(saved.key)?saved.key:2;setup=saved.setup?M.dataset(saved.setup.rows,saved.setup):null;task=saved.task?CK.normalise(saved.task):null;if(task&&saved.task.type==='complete')task.missing=saved.task.missing;attempt=task?.type==='complete'&&Number.isInteger(saved.attempt)&&saved.attempt>=0&&saved.attempt<=40?saved.attempt:null;CK.restorePupil(task,saved.pupil);render();
+  key=[1,2,5,10].includes(saved.key)?saved.key:2;setup=saved.setup?M.dataset(saved.setup.rows,saved.setup):null;task=saved.task?CK.normalise(saved.task):null;if(task&&saved.task.type==='complete')task.missing=saved.task.missing;attempt=task?.type==='pie-build'&&Array.isArray(saved.attempt)&&saved.attempt.length===data.rows.length&&saved.attempt.every(v=>v===null||Number.isInteger(v)&&v>=0&&v<=360)?saved.attempt.slice():task?.type==='complete'&&Number.isInteger(saved.attempt)&&saved.attempt>=0&&saved.attempt<=40?saved.attempt:null;CK.restorePupil(task,saved.pupil);render();
  });
 };
 })(window.TT99Goodies);
