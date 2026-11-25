@@ -1031,6 +1031,29 @@ async function run(){
     assert(JSON.stringify(capture().data)===JSON.stringify(teaching.data),'Exiting statistics challenge restores teaching dataset');
     api.remove(fixture.record.id);
   }
+  // Interactive construction: all five representations require a real model edit.
+  {
+    const id='statistics-table',fixture=await addForSave(id),doc=fixture.doc,live=doc.defaultView.TT99Goodies;
+    const capture=()=>live.lessonState.capture(id).model;
+    const stage=doc.querySelector('#gd-stage');
+    for(const view of ['table','tally','pictogram','bar','line']){
+      const select=doc.getElementById('st-view');select.value=view;select.dispatchEvent(new doc.defaultView.Event('change',{bubbles:true}));await tick();
+      doc.querySelector('[data-st-workflow="challenge"]').click();await tick();
+      doc.querySelector('[data-st-challenge-mode="complete"]').click();await tick();
+      const model=capture(),target=model.data.rows[model.task.missing].value,check=stage.querySelector('[data-gd-pupil-check]');
+      assert(check&&check.disabled&&model.attempt===null,'Construction starts blank: '+view);
+      stage.querySelector('[data-st-edit="zero"]').click();await tick();
+      assert(!check.disabled,'Explicit zero enables construction check: '+view);
+      for(let i=0;i<target/(view==='pictogram'?model.key:1);i++)stage.querySelector('[data-st-edit="plus"]').click();
+      assert(capture().attempt===target,'Touch controls build exact missing value: '+view);
+      check.click();await tick();
+      assert(stage.querySelector('.gd-pupil-feedback').classList.contains('is-correct'),'Correct construction is accepted: '+view);
+      const draft=TT99Goodies.publishing.createDocument();draft.addCurrent(id,capture());
+      assert(draft.list()[0].data.missing===model.task.missing,'Publishing retains missing index rather than solved pupil state');
+      doc.querySelector('[data-challenge-action="end"]').click();await tick();
+    }
+    api.remove(fixture.record.id);
+  }
   // Work directly in actual embedded written-method grids with the shared keypad.
   for(const id of ['column-addition','column-subtraction','written-multiplication','written-division']){
     const fixture=await addForSave(id),doc=fixture.doc,live=doc.defaultView.TT99Goodies,frame=fixture.frame;
