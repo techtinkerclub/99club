@@ -5094,18 +5094,24 @@ function moneyTool(){
     {id:'fewest-pieces',category:'make',title:'Fewest pieces',desc:'Make the target with the smallest possible number of pieces.'},
     {id:'find-change',category:'change',title:'Find the change',desc:'Build the correct change from a larger payment.'}
   ];
-  let items=[],nextId=1,target=375,controller=null,addOpen=false;
+  let items=[],nextId=1,target=375,targetActive=false,controller=null,addOpen=false,coinSerial=0;
+  const coinPrefix='mo-'+Math.random().toString(36).slice(2,10);
   let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='count-total',challenge=null,beforeChallenge=null;
   let exportMode='board',responseLines=1,exportStatus='';
 
   function metaFor(value){return DENOMS.find(d=>d.value===Number(value))||DENOMS[0]}
   function coinPath(shape){
-    if(shape==='hept')return 'M50 4 Q65 3 78 13 Q91 23 96 38 Q101 52 96 67 Q91 82 78 92 Q65 102 50 96 Q35 102 22 92 Q9 82 4 67 Q-1 52 4 38 Q9 23 22 13 Q35 3 50 4Z';
+    if(shape==='hept'){
+      const vertices=Array.from({length:7},(_,i)=>{const angle=(-90+i*360/7)*Math.PI/180;return{x:50+47*Math.cos(angle),y:50+47*Math.sin(angle)}});
+      const blend=(a,b,t)=>({x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t});
+      const xy=p=>p.x.toFixed(2)+' '+p.y.toFixed(2);
+      return vertices.map((v,i)=>{const before=blend(v,vertices[(i+6)%7],.15),after=blend(v,vertices[(i+1)%7],.15);return(i?'L':'M')+xy(before)+' Q'+xy(v)+' '+xy(after)}).join(' ')+' Z';
+    }
     if(shape==='dodec')return 'M37 3H63L86 16L98 38V62L86 84L63 97H37L14 84L2 62V38L14 16Z';
     return '';
   }
   function coinArt(d){
-    const id='mo-'+d.value,shape=d.shape,metal=d.tone;
+    const id=coinPrefix+'-'+(++coinSerial),shape=d.shape,metal=d.tone;
     const outer=shape==='round'?'<circle cx="50" cy="50" r="46"/>':'<path d="'+coinPath(shape)+'"/>';
     const edgeFill=metal==='bimetal'?'url(#'+id+'-gold)':metal==='copper'?'url(#'+id+'-copper)':'url(#'+id+'-silver)';
     const inner=metal==='bimetal'?'<circle cx="50" cy="50" r="31" fill="url(#'+id+'-silver)" stroke="rgba(63,78,82,.32)" stroke-width="1.3"/>':'';
@@ -5144,12 +5150,12 @@ function moneyTool(){
       items.push({id:nextId++,value,x:p.x,y:p.y,locked:false});
     });
   }
-  function snapshot(){return{items:items.map(x=>({...x})),nextId,target}}
+  function snapshot(){return{items:items.map(x=>({...x})),nextId,target,targetActive}}
   function restore(state){
     items=Array.isArray(state?.items)?state.items.map(x=>({...x})):[];
     nextId=Math.max(Number(state?.nextId)||1,items.reduce((m,x)=>Math.max(m,Number(x.id)||0),0)+1);
     target=Math.max(1,Math.round(Number(state?.target)||375));
-    addOpen=false;
+    targetActive=state?.targetActive===true;
     const targetInput=q('#mo-target');if(targetInput)targetInput.value=(target/100).toFixed(2);
   }
   function setValues(values){
@@ -5289,15 +5295,15 @@ function moneyTool(){
       '</div>'+
     '</div>';
   }
-  function moneyStagePaletteHtml(){
-    if(!addOpen||challengeFrozen())return'';
+  function moneyStagePaletteHtml(proxy=false){
+    if(challengeFrozen()||(!proxy&&!addOpen))return'';
     const picks=DENOMS.map(d=>{
       const visual=d.kind==='coin'
         ?'<span class="gd-money-pick__coin gd-money-pick__coin--'+d.shape+' gd-money-pick__coin--'+d.tone+'">'+coinArt(d)+'</span>'
         :'<span class="gd-money-pick__note gd-money-pick__note--'+d.tone+'">'+d.label+'</span>';
       return '<button type="button" class="gd-money-stage-pick gd-money-stage-pick--'+d.kind+'" data-gd-action="add-money-piece" data-mo-value="'+d.value+'" aria-label="Add '+d.label+'">'+visual+'<span>'+d.label+'</span></button>';
     }).join('');
-    return '<div class="gd-money-stage-palette" role="group" aria-label="Add money">'+picks+'</div>';
+    return '<div class="gd-money-stage-palette"'+(proxy?' id="mo-board-palette" hidden':'')+' role="group" aria-label="Add money">'+(proxy?'':'<button type="button" class="gd-money-palette-close" data-gd-action="close-money" aria-label="Close add money">×</button>')+picks+'</div>';
   }
   function updateSelectionTools(item){
     const frozen=challengeFrozen(),label=q('[data-mo-selection]',q('#gd-stage'));
@@ -5320,23 +5326,17 @@ function moneyTool(){
     updateChallengeAnswer();
     const selected=items.find(x=>String(x.id)===String(selectedId))||null,m=canvasMetrics(items.length);
     const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Money challenge',pupil:(challenge.freezeMoney===false?CK.pupilSpec('model',{check:()=>total()===target&&(challenge.type!=='exact-pieces'||items.length===challenge.targetPieces)&&(challenge.type!=='fewest-pieces'||items.length===challenge.minPieces)}):challenge.type==='compare-amount'?CK.pupilSpec('choice',{choices:['Less than','Equal to','Greater than'],expected:total()<target?'Less than':total()>target?'Greater than':'Equal to'}):CK.pupilSpec('money')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
-    const totalText=hidden('hiddenTotal')?'?':money(total());
-    const targetText=hidden('hiddenTarget')?'?':money(target);
-    const status=hidden('hiddenStatus')?'?':challengeProgress();
-    const live=challenge&&challenge.mode==='standard'&&!challengeFrozen()
-      ?'<div class="gd-answer-live" data-mo-target-status>'+(status==='On target ✓'?'On target ✓':status)+'</div>'
-      :'';
+    const embedded=document.documentElement.classList.contains('gd-embed-page');
     q('#gd-stage').innerHTML=banner+'<div class="gd-money-workbench">'+
-      (challengeFrozen()&&challenge?.mode==='standard'?'':toolbarHtml(history,selected)+moneyStagePaletteHtml())+
+      (challengeFrozen()&&challenge?.mode==='standard'?'':toolbarHtml(history,selected)+(embedded?moneyStagePaletteHtml(true):moneyStagePaletteHtml()))+
       '<div class="gd-money-canvas" id="mo-canvas" data-gd-canvas-bg style="min-height:'+m.height+'px" aria-label="Money workbench">'+
         (items.length?items.map(moneyObject).join(''):'<div class="gd-money-empty" data-gd-canvas-bg>Choose a denomination to start building an amount.</div>')+
       '</div>'+
-      (challenge?.mode==='standard'&&!challenge.revealed?'':'<p class="gd-money-credit gd-money-credit--stage">Stylised UK classroom coins · relative sizes shown approximately.</p>')+
-      (challenge?.mode==='standard'&&!challenge.revealed?'':'<div class="gd-money-summary">'+
-        '<div><span>Total</span><strong data-mo-total>'+totalText+'</strong></div>'+
-        '<div><span>Target</span><strong data-mo-target-readout>'+targetText+'</strong></div>'+
-        '<div class="'+(!hidden('hiddenStatus')&&total()===target?'is-match':'')+'"><span>Check</span><strong data-mo-status>'+status+'</strong></div>'+
-      '</div>')+
+      (!challenge?'<div class="gd-money-summary'+(targetActive?'':' gd-money-summary--total')+'">'+
+        '<div><span>Total</span><strong data-mo-total>'+money(total())+'</strong></div>'+
+        (targetActive?'<div><span>Target</span><strong data-mo-target-readout>'+money(target)+'</strong></div>'+
+        '<div class="'+(total()===target?'is-match':'')+'"><span>Check</span><strong data-mo-status>'+statusText()+'</strong></div>':'')+
+      '</div>':'')+
     '</div>';
     bindChallengeStageActions();
   }
@@ -5359,7 +5359,7 @@ function moneyTool(){
   }
   function exploreControlsHtml(){
     return field('Target amount','<div class="gd-money-target-input"><span>£</span><input class="gd-input" id="mo-target" type="number" min="0.01" max="100" step="0.01" value="'+(target/100).toFixed(2)+'"></div>','Set any amount up to £100.')+
-      moneyPaletteHtml()+btn('New random target','mo-random')+
+      moneyPaletteHtml()+'<div class="gd-row">'+btn('New random target','mo-random')+btn('Clear target','mo-clear-target')+'</div>'+
       '<p class="gd-help">Add coins or notes, then drag them around the workbench. Select one to duplicate, lock or delete it. Arrow keys nudge the selected item; Ctrl/Cmd+Z undoes changes.</p>';
   }
   function challengeControlsHtml(){
@@ -5509,7 +5509,7 @@ function moneyTool(){
   function renderControls(){const panel=q('#gd-controls');if(panel)panel.innerHTML=controlsHtml();bindControls()}
   function restoreBeforeChallenge(){if(beforeChallenge){restore(beforeChallenge);beforeChallenge=null}}
   function clearChallenge(){
-    restoreBeforeChallenge();addOpen=false;challenge=null;challengeTab='standard';controlTab='challenge';exportMode='board';exportStatus='';renderControls();controller.refresh();
+    restoreBeforeChallenge();addOpen=false;challenge=null;challengeTab='standard';controlTab='explore';exportMode='board';exportStatus='';renderControls();controller.refresh();
   }
   function enterCustomChallenge(){
     if(!beforeChallenge)beforeChallenge=snapshot();
@@ -5529,6 +5529,7 @@ function moneyTool(){
   function generateChallenge(type){
     const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
     if(!beforeChallenge)beforeChallenge=snapshot();else restore(beforeChallenge);
+    addOpen=false;
     let values=[],shown=0;
     if(type==='count-total'){
       values=randomShownValues();setValues(values);target=total();
@@ -5582,10 +5583,11 @@ function moneyTool(){
     }
     if(controlTab==='explore'){
       const targetInput=q('#mo-target');if(targetInput)targetInput.oninput=()=>{
-        target=Math.max(1,Math.round(Math.max(.01,num(targetInput.value,target/100))*100));controller.refresh();
+        target=Math.max(1,Math.round(Math.max(.01,num(targetInput.value,target/100))*100));targetActive=true;controller.refresh();
       };
+      const clearTarget=q('#mo-clear-target');if(clearTarget)clearTarget.onclick=()=>controller.mutate(()=>{targetActive=false});
       const random=q('#mo-random');if(random)random.onclick=()=>{
-        controller.mutate(()=>{target=Math.floor(Math.random()*2000)+1;items=[]});
+        controller.mutate(()=>{target=Math.floor(Math.random()*2000)+1;targetActive=true;items=[]});
         const input=q('#mo-target');if(input)input.value=(target/100).toFixed(2);
       };
       return;
@@ -5631,13 +5633,10 @@ function moneyTool(){
     onAction:(action,api,button)=>{
       if(action==='add-money'){if(challengeFrozen())return;addOpen=!addOpen;api.refresh()}
       else if(action==='add-money-piece'&&!challengeFrozen()){
-        let id=null;addOpen=false;api.mutate(()=>{id=addMoney(button?.dataset?.moValue)});api.select(id);
-      }
+        let id=null;api.mutate(()=>{id=addMoney(button?.dataset?.moValue)});api.select(id);
+      }else if(action==='close-money'){addOpen=false;api.refresh()}
     },
-    onSelectionChange:item=>{
-      updateSelectionTools(item);
-      if(item&&addOpen){addOpen=false;queueMicrotask(()=>controller?.refresh())}
-    }
+    onSelectionChange:item=>{updateSelectionTools(item)}
   });
   bindControls();
   controller.refresh();
