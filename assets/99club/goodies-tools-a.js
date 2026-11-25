@@ -1265,8 +1265,13 @@ function placeValue(){
       const nextTab=button.dataset.pvWorkflow;
       if(nextTab==='activity'){
         if(challenge){restoreBeforeChallenge();challenge=null}
-        const teachMode=activityContext==='challenge'?'powers':activityMode;
-        controlTab='activity';startActivity(teachMode,'teach');return;
+        if(activityBefore)exitActivityChallenge();
+        // Opening Teach / play must not silently generate a new pupil problem
+        // and overwrite the teacher's existing counters.
+        const teachMode=activityActive&&activityContext==='teach'?activityMode:'powers';
+        controlTab='activity';
+        if(activityActive&&activityContext==='teach'){renderControls();controller?.refresh();return}
+        startActivity(teachMode,'teach');return;
       }
       if(nextTab==='setup'&&activityBefore){exitActivityChallenge();return}
       if(nextTab==='setup')activityActive=false;

@@ -2915,7 +2915,7 @@ function timesTableVisual(){
     return state.groupsCount+' × '+state.itemsPerGroup+' = '+stateTotal(state);
   }
   function timesTableExportSvg({pupil=false}={}){
-    if(pupil&&challenge?.type==='build-fact'){
+    if(pupil&&challenge?.mode==='standard'&&challenge.type==='build-fact'){
       const svg=tvSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 900 500',role:'img','aria-label':'Space to draw equal groups'});
       svg.appendChild(tvSvgEl('rect',{x:0,y:0,width:900,height:500,fill:'#fff'}));svg.appendChild(tvSvgEl('rect',{x:30,y:30,width:840,height:440,rx:12,fill:'#fff',stroke:'#aabcc0','stroke-width':2}));return svg;
     }
@@ -2972,7 +2972,7 @@ function timesTableVisual(){
     const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
     return X.composeChallengeCardSvg(timesTableExportSvg({pupil:true}),{
       title:challenge.title||meta?.title||'Times-table challenge',
-      prompt:challenge.type==='build-fact'?'Draw '+challenge.targetGroups+' equal groups with '+challenge.targetItems+' items in each group.':prompt,
+      prompt:challenge.mode==='standard'&&challenge.type==='build-fact'?'Draw '+challenge.targetGroups+' equal groups with '+challenge.targetItems+' items in each group.':prompt,
       responseLabel:challenge.type==='build-fact'?'Draw your groups / working':challenge.category==='reason'?'Explain your thinking':'Answer',
       responseLines:challenge.type==='build-fact'?Math.max(3,responseLines):responseLines,
       brand:'99 Club Studio'

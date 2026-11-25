@@ -564,11 +564,17 @@ function connectInnerObject(obj){
     }
     function dispose(){
       disposed=true;clearTimeout(settleTimer);if(pending)cancelAnimationFrame(pending);
-      ro?.disconnect();mo?.disconnect();events.forEach(type=>doc.removeEventListener(type,queueFit,true));
+      ro?.disconnect();mo?.disconnect();events.forEach(type=>doc.removeEventListener(type,handleInteraction,true));
     }
     const events=['click','pointerup','change'];
     innerConnections.set(obj.id,{doc,dispose});
-    events.forEach(type=>doc.addEventListener(type,queueFit,true));
+    function handleInteraction(){
+      // Selection changes are synchronous; refresh the contextual rail after
+      // the event has finished, without waiting for a painted animation frame.
+      Promise.resolve().then(()=>{if(valid())syncQuickActions(obj)});
+      queueFit();
+    }
+    events.forEach(type=>doc.addEventListener(type,handleInteraction,true));
     observeChildren();
     mo?.observe(stage,{childList:true,subtree:true,characterData:true});
     if(controls)mo?.observe(controls,{childList:true,subtree:true,characterData:true});
