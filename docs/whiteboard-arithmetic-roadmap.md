@@ -76,7 +76,7 @@ Updated 25 November 2026.
 - Expression ordering/correction use a bounded pool of exact fixed-point calculations constrained by enabled operators, selected number range and precision. Incompatible settings hide these types. Fraction ordering uses the denominator limit and avoids equal-valued alternatives.
 - Single arithmetic worksheet exports now use the shared plain worksheet composer and omit redundant response boxes when the equation already has an inline response. Choices are listed in paper instructions when needed.
 - Target-number puzzles with multiple valid solutions remain a separate next priority; avoid disguising a single-answer calculation as an open-ended target puzzle.
-- Browser and print validation still pending.
+- Automated checks: 2,600 individual generation checks, 144 ten-question sets, 120 SVG/markup/answer-key sets and 1,200 answer-checking tests passed. Seven incompatible settings combinations excluded. Browser and print validation still pending.
 
 ## Next priorities
 1. Visual/touch feedback: validate the practice-set launcher, whiteboard layout, inline answer boxes, responsive columns and paper outputs; refine density and font sizes after classroom feedback.
