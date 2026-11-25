@@ -807,7 +807,8 @@ function addObject(toolId){
   const tool=tools.find(t=>t.id===toolId);if(!tool)return;
   const [baseW,baseH]=defaults[tool.id]||[650,520];
   const narrow=viewport.clientWidth<620;
-  const availableW=Math.max(220,viewport.clientWidth-(narrow?72:110));
+  const railInset=Math.ceil(palette.getBoundingClientRect().right-board.getBoundingClientRect().left)+12;
+  const availableW=Math.max(220,viewport.clientWidth-Math.max(railInset+20,narrow?72:110));
   const availableH=Math.max(180,viewport.clientHeight-90);
   let scale=Math.min(1,availableW/baseW,availableH/baseH);
   scale=clamp(Math.round(scale*20)/20,.4,1);
