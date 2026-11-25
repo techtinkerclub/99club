@@ -536,6 +536,20 @@ async function run(){
   randomExportMenu.querySelector('[data-board-export-kind="svg"]').click();await tick();
   assert(randomExportSvg&&/randomiser-dice/.test(randomExportName),'Randomiser frame export produces a clean vector paper result');
   randomWin.TT99Goodies.exportTools.downloadSvg=randomOldSvg;
+  assert(TT99Goodies.publishing.supports('randomiser')&&!TT99Goodies.publishing.canGenerate('randomiser'),'Randomiser is available for current illustration capture only');
+  randomExportButton.click();await tick();
+  assert(randomExportMenu.querySelector('[data-board-export-kind="add-document"]')&&!randomExportMenu.querySelector('[data-board-export-kind="generate-document"]'),'Randomiser offers current item publishing without unsupported challenge generation');
+  randomExportMenu.querySelector('[data-board-export-kind="add-document"]').click();await tick();
+  const publisher=document.getElementById('gd-publishing-editor');
+  assert(publisher.open&&publisher.querySelector('.gd-pub-preview svg')?.textContent.includes('Dice result'),'Randomiser illustration appears in the shared worksheet preview');
+  publisher.querySelector('[data-pub-teacher]').click();await tick();
+  assert(!publisher.querySelector('[data-worksheet-answer="annex"]'),'An illustration alone does not create a spurious answer annex');
+  publisher.querySelector('[data-pub-builder]').click();await tick();
+  const randomSource=publisher.querySelector('[data-pub-add-source="randomiser"]');
+  assert(randomSource.disabled&&randomSource.textContent.includes('Current item only'),'Automatic builder explains why Randomiser is not a challenge source');
+  publisher.querySelector('[data-pub-back]').click();await tick();
+  publisher.querySelector('[data-pub-remove]').click();await tick();
+  publisher.querySelector('[data-pub-close]').click();
   TT99Goodies.compositionBoard.remove(randomRecord.id);
 
   document.querySelector('[data-board-add="maths-canvas"]').click();await tick();

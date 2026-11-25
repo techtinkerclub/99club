@@ -1760,6 +1760,16 @@ function measurementTool(){
 
 }
 
+// The Randomiser is an illustration source, not a question generator.
+if(G.publishing)G.publishing.register('randomiser',{
+ label:'Dice, spinner & randomiser',types:()=>[],
+ title:item=>({dice:'Dice result',spinner:'Spinner result',number:'Random number',card:'Playing card'})[item.data.mode]||'Randomiser illustration',
+ capture(model,svg){
+   if(!svg)throw Error('The randomiser illustration is not ready.');
+   return [G.publishing.record('randomiser','diagram',{mode:model.mode,svg})];
+ },
+ render(item){return new DOMParser().parseFromString(item.data.svg,'image/svg+xml').documentElement}
+});
 function randomiser(){
   const X=G.exportTools;
   let result='',diceValues=[],spinnerRotation=0,spinnerKind='colours',customSpinnerText='1\n2\n3\n4',busy=false,finishTimer=null;
@@ -1954,6 +1964,10 @@ function randomiser(){
   q('#ra-svg').onclick=()=>exportAction('svg');
   q('#ra-print').onclick=()=>exportAction('print');
   draw();
+  G.publishingCurrent=()=>{
+    if(busy)throw Error('Finish rolling or spinning before publishing.');
+    return new XMLSerializer().serializeToString(paperSvg());
+  };
   G.lessonState?.register('randomiser',()=>{
     if(busy)throw new Error('Finish rolling or spinning before saving.');
     return {mode:q('#ra-mode').value,count:q('#ra-count')?.value,sides:q('#ra-sides')?.value,min:q('#ra-min')?.value,max:q('#ra-max')?.value,result,diceValues,spinnerRotation,spinnerKind,customSpinnerText};
