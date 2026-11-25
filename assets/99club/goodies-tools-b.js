@@ -2054,9 +2054,7 @@ function timesTableVisual(){
   }
   function challengeProgress(){
     if(!challenge||challenge.type!=='build-fact')return'';
-    return groupsCount===Number(challenge.targetGroups)&&itemsPerGroup===Number(challenge.targetItems)
-      ?'On target · '+groupsCount+' × '+itemsPerGroup+' = '+total()+' ✓'
-      :'Build '+challenge.targetGroups+' groups of '+challenge.targetItems;
+    return 'Build the groups, then press Check.';
   }
   function bindChallengeStageActions(){
     const endChallenge=q('[data-challenge-action="end"]',q('#gd-stage'));if(endChallenge)endChallenge.onclick=e=>{e.stopPropagation();clearChallenge()};
@@ -2068,7 +2066,7 @@ function timesTableVisual(){
   }
   function draw(){
     updateChallengeAnswer();
-    const t=total(),frozen=challengeFrozen(),banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Times-table challenge',pupil:(challenge.type==='build-fact'?CK.pupilSpec('model',{check:()=>groupsCount===challenge.targetGroups&&itemsPerGroup===challenge.targetItems}):challenge.type==='spot-error'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:'No',explain:true}):CK.pupilSpec(['write-repeated','commutative-fact'].includes(challenge.type)?'equation':'number')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
+    const t=total(),frozen=challengeFrozen(),banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Times-table challenge',pupil:(challenge.type==='build-fact'?CK.pupilSpec('model',{check:()=>groupsCount===challenge.targetGroups&&itemsPerGroup===challenge.targetItems}):challenge.type==='spot-error'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:challenge.answer.startsWith('Yes')?'Yes':'No',explain:true}):CK.pupilSpec(challenge.type==='write-repeated'?'addition-equation':challenge.type==='commutative-fact'?'equation':'number')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-tv-workbench">'+
       '<div class="gd-tv-summary"><div><span>Equal groups</span><strong data-tv-equation>'+equationText()+'</strong></div>'+
         '<div class="gd-object-toolbar"><button class="gd-btn" id="tv-undo" type="button"'+(undoStack.length&&!frozen?'':' disabled')+'>Undo</button><button class="gd-btn" id="tv-redo" type="button"'+(redoStack.length&&!frozen?'':' disabled')+'>Redo</button></div></div>'+
@@ -2162,8 +2160,8 @@ function timesTableVisual(){
       groupsCount=2;itemsPerGroup=2;selectedGroup=0;
       challenge=challengeObject(type,'Build '+targetGroups+' equal groups with '+targetItems+' items in each group.',targetGroups+' × '+targetItems+' = '+(targetGroups*targetItems),{freezeModel:false,targetGroups,targetItems,hiddenFactFamily:false});
     }else{
-      const wrong=t+1;
-      challenge=challengeObject(type,'The equation says '+a+' × '+b+' = '+wrong+'. Use the equal groups to decide whether it is correct.','No. '+a+' × '+b+' = '+t+', not '+wrong+'.',{wrongTotal:wrong,hiddenRepeated:true,hiddenFactFamily:true,hiddenJumps:true,hiddenSelectedPanel:true});
+      const valid=Math.random()<.5,shown=valid?t:t+(Math.random()<.5?-1:1)*randomInt(1,3);
+      challenge=challengeObject(type,'The equation says '+a+' × '+b+' = '+shown+'. Use the equal groups to decide whether it is correct.',valid?'Yes. '+a+' × '+b+' = '+t+'.':'No. '+a+' × '+b+' = '+t+', not '+shown+'.',{wrongTotal:shown,hiddenRepeated:true,hiddenFactFamily:true,hiddenJumps:true,hiddenSelectedPanel:true});
     }
     challenge.initialState=snapshot();
     challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';exportMode='challenge';responseLines=template.category==='reason'?3:1;exportStatus='';renderControls();draw();
