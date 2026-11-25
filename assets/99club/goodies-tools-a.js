@@ -1512,12 +1512,12 @@ function fractionWall(){
       mode='workbench';strips=[{id:1,...f,x:24,y:24,locked:false,color:'#e7d8f3'}];nextStrip=2;
       challenge=challengeObject(type,'Write the improper fraction shown as a mixed number.',whole+' '+rem+'/'+d,{answerSource:'strip:1:mixed',hiddenStripHints:[1]});
     }else{
-      const small=[3,4,5,6][Math.floor(Math.random()*4)],large=Math.min(12,small*2),a={n:1,d:small},b={n:1,d:large};
+      const small=[3,4,5,6][Math.floor(Math.random()*4)],large=Math.min(12,small*2),a={n:1,d:small},b={n:1,d:large},valid=Math.random()<.5;
       mode='workbench';strips=[
         {id:1,...a,x:24,y:24,locked:false,color:'#cbe7e2'},
         {id:2,...b,x:24,y:130,locked:false,color:'#cfe0f6'}
       ];nextStrip=3;
-      challenge=challengeObject(type,'A pupil says 1/'+large+' is greater than 1/'+small+' because '+large+' is the larger denominator. Are they correct?','No. For unit fractions, more equal parts make each part smaller, so 1/'+small+' > 1/'+large+'.',{hiddenStripHints:[1,2]});
+      challenge=challengeObject(type,'A pupil says 1/'+(valid?small:large)+' is greater than 1/'+(valid?large:small)+'. Are they correct?',(valid?'Yes. ':'No. ')+'For unit fractions, more equal parts make each part smaller, so 1/'+small+' > 1/'+large+'.',{hiddenStripHints:[1,2]});
     }
     challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';
     exportMode='challenge';responseLines=template.category==='reason'?3:1;exportStatus='';
@@ -1672,7 +1672,7 @@ function fractionWall(){
     const simpleFocus=simplify(focus.n,focus.d);
     const rawFocusText=simpleFocus.n===focus.n&&simpleFocus.d===focus.d?focus.n+'/'+focus.d:focus.n+'/'+focus.d+' = '+simpleFocus.n+'/'+simpleFocus.d;
     const focusText=challengeActiveHidden('focus')?'?':rawFocusText,displaySign=challengeActiveHidden('compare')?'?':sign;
-    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Fractions challenge',pupil:({ 'identify-strip':CK.pupilSpec('fraction-form'), 'equivalent-strip':CK.pupilSpec('fraction-form'), 'compare-strips':CK.pupilSpec('choice',{choices:['<','>','=']}), 'simplify-strip':CK.pupilSpec('fraction-form'), 'mixed-improper':CK.pupilSpec('mixed'), 'denominator-misconception':CK.pupilSpec('choice',{choices:['Yes','No'],expected:'No',explain:true}) }[challenge.type]),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Fractions challenge',pupil:({ 'identify-strip':CK.pupilSpec('fraction-form'), 'equivalent-strip':CK.pupilSpec('fraction-form'), 'compare-strips':CK.pupilSpec('choice',{choices:['<','>','=']}), 'simplify-strip':CK.pupilSpec('fraction-form'), 'mixed-improper':CK.pupilSpec('mixed'), 'denominator-misconception':CK.pupilSpec('choice',{choices:['Yes','No'],expected:challenge.answer.startsWith('Yes')?'Yes':'No',explain:true}) }[challenge.type]),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-fractions-workspace">'+
       '<section class="gd-fr-wall-card">'+
         '<div class="gd-fr-wall-heading"><div><strong>Fraction wall</strong><span>Tap an endpoint. Equivalent amounts highlight automatically.</span></div>'+
@@ -1753,7 +1753,7 @@ function fractionWall(){
   function workbenchHeight(){return Math.max(fractionQuestionFixed()?150:500,40+strips.reduce((max,strip)=>Math.max(max,(Number(strip.y)||0)+stripHeight(strip)),0))}
   function drawWorkbench(selectedId,meta){
     const selected=selectedStrip(selectedId);
-    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Fractions challenge',pupil:({ 'identify-strip':CK.pupilSpec('fraction-form'), 'equivalent-strip':CK.pupilSpec('fraction-form'), 'compare-strips':CK.pupilSpec('choice',{choices:['<','>','=']}), 'simplify-strip':CK.pupilSpec('fraction-form'), 'mixed-improper':CK.pupilSpec('mixed'), 'denominator-misconception':CK.pupilSpec('choice',{choices:['Yes','No'],expected:'No',explain:true}) }[challenge.type]),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Fractions challenge',pupil:({ 'identify-strip':CK.pupilSpec('fraction-form'), 'equivalent-strip':CK.pupilSpec('fraction-form'), 'compare-strips':CK.pupilSpec('choice',{choices:['<','>','=']}), 'simplify-strip':CK.pupilSpec('fraction-form'), 'mixed-improper':CK.pupilSpec('mixed'), 'denominator-misconception':CK.pupilSpec('choice',{choices:['Yes','No'],expected:challenge.answer.startsWith('Yes')?'Yes':'No',explain:true}) }[challenge.type]),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-fr-workbench"><div class="gd-fr-strip-canvas-wrap"><div class="gd-fr-strip-canvas" id="fw-strip-canvas" data-gd-canvas-bg style="min-height:'+workbenchHeight()+'px" tabindex="0" aria-label="Fraction strip workbench. Drag strips to compare them.">'+
       strips.map(s=>stripMarkup(s,selectedId)).join('')+
       '</div>'+workbenchRail(selected,meta)+'</div>'+
@@ -2742,7 +2742,7 @@ function hundredSquare(){
       ruleMatches(n)?'is-rule':'',
       marked.has(n)?'is-marked':'',
       index===selectedIndex?'is-current':'',
-      related.has(n)&&index!==selectedIndex&&!challenge?.hideSelectedPanel?'is-related':'',
+      related.has(n)&&index!==selectedIndex&&!challenge?'is-related':'',
       isHidden?'is-hidden-number':'',
       !frozen&&interactionMode!=='select'?'is-paintable':'',
       frozen?'is-frozen':''
