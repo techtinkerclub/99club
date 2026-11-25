@@ -26,6 +26,7 @@ const defaults={
   'coordinates':[680,610],
   'measurement':[780,650],
   'randomiser':[680,500],
+  'statistics-table':[760,620],
   'balance':[760,580],
   'times-table':[700,580],
   'factors':[740,620],
@@ -155,7 +156,7 @@ const paletteGroups=[
  {id:'models',label:'Models',title:'Number & equation models',icon:'⚖',ids:['bar-model','balance']},
  {id:'measure',label:'Measure',title:'Measurement, time & money',icon:'◷',ids:['clock','money','measurement']},
  {id:'shape',label:'Shape',title:'Geometry & coordinates',icon:'◇',ids:['coordinates','geoboard']},
- {id:'data',label:'Data',title:'Data & chance',icon:'⚄',ids:['randomiser']}
+ {id:'data',label:'Data',title:'Data & chance',icon:'⚄',ids:['randomiser','statistics-table']}
 ];
 const hub=tools.find(t=>t.id==='maths-canvas');
 const assigned=new Set([...paletteGroups.flatMap(g=>g.ids),...(hub?[hub.id]:[])]);
@@ -185,6 +186,7 @@ function paletteIcon(id){
  money:'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM16 7c-1-2-6-2-6 2v7m-3 1h10M8 12h6',
  measurement:ruler,coordinates:'M3 12h18M12 3v18M5 9v6m14-6v6M9 5h6M9 19h6M17 6v2',
  geoboard:'M5 5h14l-7 14zM4 4h2v2H4zM18 4h2v2h-2zM11 18h2v2h-2z',
+ 'statistics-table':'M3 3h18v18H3zM3 9h18M3 15h18M11 3v18',
  randomiser:'M3 3h18v18H3zM7 7v.1m10-.1v.1m-5 4.9v.1M7 17v.1m10-.1v.1'
  };
  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+(paths[id]||'M5 12h.1m7 0h.1m7 0h.1')+'"/></svg>';
