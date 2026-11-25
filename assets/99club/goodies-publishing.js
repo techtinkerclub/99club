@@ -164,7 +164,8 @@ function answerNote(item){
    if(c?.type==='mixed-improper')return 'Accept an equivalent mixed number; require lowest terms only if requested.';
  }
  if(item.tool==='number-line'){
-   if(['error-scale','marks-vs-spaces'].includes(c?.type))return 'Accept equivalent explanations that correctly distinguish the interval value or spaces from marks.';
+   if(c?.type==='marks-vs-spaces')return 'There are '+Math.round((d.state.max-d.state.min)/d.state.step)+' equal intervals. Accept equivalent explanations that count spaces rather than marks.';
+   if(['error-scale'].includes(c?.type))return 'Accept equivalent explanations that correctly distinguish the interval value or spaces from marks.';
    if(['fraction-jump','fraction-sequence','mixed-number'].includes(c?.type))return 'Accept an equivalent fraction or mixed number, subject to the form requested in the question.';
    if(c?.type==='equivalent-fractions')return 'Use the denominator of the requested fraction line.';
  }
@@ -189,16 +190,17 @@ function answerPages(items,title){
  for(const [index,item] of items.entries()){
    const value=answerSummary(item);if(value===null)continue;
    if(value===undefined||!String(value).trim())throw Error('Answer not available for question '+(index+1)+'.');
-   const lines=wrapAnnex(value),note=answerNote(item),notes=note?wrapAnnex(note,82):[],graphic=answerGraphic(item);
-   const v=graphic?dimensions(graphic):null;
-   // Wide labelled scales retain a generous width; simple compact models are smaller.
-   const widthLimit=item.tool==='clock'&&v&&v.w<=310?310:item.tool==='abacus'?540:item.tool==='array-builder'?640:item.tool==='fraction-wall'?760:850;
-   const scale=v?Math.min(widthLimit/v.w,360/v.h):0,gh=v?v.h*scale:0,gw=v?v.w*scale:0;
+   const graphic=answerGraphic(item),v=graphic?dimensions(graphic):null,note=answerNote(item);
+   // Compact models sit beside marking text; wide labelled charts remain full-width.
+   const beside=!!v&&(item.tool==='abacus'||item.tool==='array-builder'||item.tool==='clock'&&v.w<=310);
+   const widthLimit=beside?(item.tool==='clock'?270:425):item.tool==='fraction-wall'?760:850;
+   const scale=v?Math.min(widthLimit/v.w,(beside?285:340)/v.h):0,gh=v?v.h*scale:0,gw=v?v.w*scale:0;
+   const lines=wrapAnnex(value,beside?36:68),notes=note?wrapAnnex(note,beside?42:82):[];
    const textH=lines.length*step,notesH=notes.length?notes.length*22+6:0;
-   const h=textH+notesH+(graphic?gh+8:0)+gap;
+   const h=(beside?Math.max(textH+notesH,gh):textH+notesH+(graphic?gh+8:0))+gap;
    if(entries.length&&y+h>bottom)flush();
    if(h>bottom-top)throw Error('Answer for question '+(index+1)+' is too large for the annex.');
-   entries.push({index,y,lines,notes,graphic,v,gw,gh,textH,notesH});y+=h;
+   entries.push({index,y,lines,notes,graphic,v,gw,gh,textH,notesH,beside});y+=h;
  }
  flush();
  return layouts.map((entries,page)=>{
@@ -214,7 +216,7 @@ function answerPages(items,title){
      e.lines.forEach((line,i)=>text(pad+48,e.y+18+i*step,20,line,{'font-weight':600}));
      e.notes.forEach((line,i)=>text(pad+48,e.y+e.textH+15+i*22,17,line,{fill:'#52666d','data-pub-answer-note':e.index+1}));
      if(e.graphic){
-       const nested=svgElement('svg',{x:pad+48,y:e.y+e.textH+e.notesH+4,width:e.gw,height:e.gh,viewBox:[e.v.x,e.v.y,e.v.w,e.v.h].join(' '),'data-pub-answer-graphic':e.index+1});
+       const nested=svgElement('svg',{x:e.beside?W-pad-e.gw:pad+48,y:e.beside?e.y:e.y+e.textH+e.notesH+4,width:e.gw,height:e.gh,viewBox:[e.v.x,e.v.y,e.v.w,e.v.h].join(' '),'data-pub-answer-graphic':e.index+1});
        const source=isolateSvgIds(e.graphic.cloneNode(true),'annex-'+(page+1)+'-'+(e.index+1)+'-');
        source.querySelectorAll('[data-gd-paper-brand]').forEach(n=>n.remove());
        [...source.childNodes].forEach(n=>nested.appendChild(n.cloneNode(true)));svg.appendChild(nested);
@@ -237,6 +239,7 @@ function defaults(tool){
  if(tool==='maths-canvas')return {difficulty:'medium',curriculumProfile:'custom',numberSettings:G.numberChallenges.settings({},'medium'),workingLines:0};
  if(tool==='sequences')return {settings:{family:'all',difficulty:'medium'}};
  if(tool==='abacus')return {kind:'western',rows:5,colourScheme:'classic',showRowLabels:true};
+ if(tool==='money')return {responseLines:1};
  if(tool==='number-line')return {preset:'negative',responseLines:1};
  if(tool==='array-builder')return {min:2,max:10,responseLines:1};
  if(tool==='fraction-wall')return {responseLines:1};
@@ -262,6 +265,7 @@ function openEditor(draft,{mode='review'}={}){
    }
    if(t==='sequences')return '<div class="gd-pub-fields">'+select('Rule family','settings.family',[['all','All families'],['constant','Constant difference'],['increasing','Changing difference'],['geometric','Multiplication'],['alternating','Alternating']],m.settings.family)+select('Difficulty','settings.difficulty',levels,m.settings.difficulty)+'</div>';
    if(t==='abacus')return '<div class="gd-pub-fields">'+select('Instrument','kind',[['western','Western abacus'],['soroban','Soroban'],['suanpan','Suanpan']],m.kind)+select('Places','rows',[3,4,5,6],m.rows)+select('Colours','colourScheme',['classic','place','sea','berry','forest'],m.colourScheme)+'</div>';
+   if(t==='money')return '<div class="gd-pub-fields">'+select('Answer space','responseLines',[[1,'Answer box'],[2,'2 lines'],[3,'3 lines'],[4,'4 lines']],m.responseLines)+'</div><p class="gd-help">Construction questions retain drawing space. Teacher solutions include a valid combination of UK classroom coins and notes.</p>';
    if(t==='number-line')return '<div class="gd-pub-fields">'+select('Number line scale','preset',[['0-20','0 to 20 · ones'],['0-100','0 to 100 · tens'],['0-1000','0 to 1,000 · hundreds'],['negative','−10 to 10 · ones'],['decimal','0 to 1 · tenths']],m.preset)+select('Answer space','responseLines',[[1,'Answer box'],[2,'2 lines'],[3,'3 lines'],[4,'4 lines']],m.responseLines)+'</div><p class="gd-help">Fraction, zoom and proportional questions use their own compatible scales. Crossing zero requires the negative-number preset.</p>';
    if(t==='array-builder')return '<div class="gd-pub-fields">'+select('Smallest factor','min',Array.from({length:10},(_,i)=>i+2),m.min)+select('Largest factor','max',Array.from({length:12-m.min},(_,i)=>m.min+1+i),m.max)+select('Answer space','responseLines',[[1,'Answer box'],[2,'2 lines'],[3,'3 lines'],[4,'4 lines']],m.responseLines)+'</div>';
    if(t==='fraction-wall')return '<div class="gd-pub-fields">'+select('Answer space','responseLines',[[1,'Answer box'],[2,'2 lines'],[3,'3 lines'],[4,'4 lines']],m.responseLines)+'</div>';
