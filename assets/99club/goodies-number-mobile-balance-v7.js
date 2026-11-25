@@ -13,7 +13,7 @@ function q(sel,root=document){return root?.querySelector?.(sel)||null}
 function stage(){return document.getElementById('gd-stage')}
 function controls(){return document.getElementById('gd-controls')}
 function work(){return q('.gd-number-mobile-workbench',stage())}
-function banner(){return q('.gd-challenge-banner',stage())}
+function banner(){return work()?q('.gd-challenge-banner',stage()):null}
 function wait(ms=30){return new Promise(resolve=>setTimeout(resolve,ms))}
 async function waitFor(fn,{tries=50,delay=30}={}){for(let i=0;i<tries;i++){const value=fn();if(value)return value;await wait(delay)}return null}
 
