@@ -104,25 +104,28 @@ async function copyPng(svg,options={}){
   await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
 }
 function printSvg(svg,{title='99 Club Studio illustration',prompt='',answer='',showAnswer=false,landscape=true,maxHeightMm=150}={}){
+  const sources=Array.isArray(svg)?svg:[svg];
+  if(!sources.length)throw new Error('There are no pages to print.');
+  const prepared=sources.map(preparePaperSvg),first=prepared[0];
+  const displayTitle=['card','sheet'].includes(first.getAttribute('data-gd-paper-ready'))?'':title;
+  const pageW=landscape?269:182,pageH=landscape?182:269;
+  const safe=v=>String(v).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  const answerHtml=showAnswer&&answer?'<div class="answer"><strong>Answer:</strong> '+safe(answer)+'</div>':'';
+  const promptHtml=prompt?'<div class="prompt">'+safe(prompt)+'</div>':'';
+  const pages=prepared.map((item,i)=>{
+    const bounds=svgBounds(item),reserve=(i===0&&displayTitle?20:0)+(i===0&&prompt?26:0)+(i===prepared.length-1&&showAnswer&&answer?26:0)+4;
+    const heightLimit=Math.max(45,Math.min(pageH-reserve,Number(maxHeightMm)||150)),printWidth=Math.min(pageW,heightLimit*bounds.w/bounds.h);
+    const svgText=serialiseSvg(item).replace(/^<\?xml[^>]*>\s*/,'');
+    return '<section class="print-page">'+(i===0&&displayTitle?'<h1>'+safe(displayTitle)+'</h1>':'')+(i===0?promptHtml:'')+'<div class="sheet" style="--print-width:'+printWidth+'mm;--print-height:'+heightLimit+'mm">'+svgText+'</div>'+(i===prepared.length-1?answerHtml:'')+'</section>';
+  });
   const win=window.open('','_blank');
   if(!win)throw new Error('Allow pop-ups to print or save as PDF.');
   try{win.opener=null}catch(_){}
-  const prepared=preparePaperSvg(svg),bounds=svgBounds(prepared);
-  const svgText=serialiseSvg(prepared).replace(/^<\?xml[^>]*>\s*/,'');
-  const displayTitle=['card','sheet'].includes(prepared.getAttribute('data-gd-paper-ready'))?'':title;
-  const pageW=landscape?269:182,pageH=landscape?182:269;
-  const reserve=(displayTitle?20:0)+(prompt?26:0)+(showAnswer&&answer?26:0)+4;
-  const heightLimit=Math.max(45,Math.min(pageH-reserve,Number(maxHeightMm)||150));
-  const printWidth=Math.min(pageW,heightLimit*bounds.w/bounds.h);
-  const answerHtml=showAnswer&&answer?'<div class="answer"><strong>Answer:</strong> '+String(answer).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))+'</div>':'';
-  const promptHtml=prompt?'<div class="prompt">'+String(prompt).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))+'</div>':'';
   win.document.open();
   win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+safeFilename(title)+'</title><style>'+
     '@page{size:A4 '+(landscape?'landscape':'portrait')+';margin:14mm}'+
-    '*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#24343b;margin:0}h1{font-size:20pt;margin:0 0 8mm}.prompt{font-size:16pt;font-weight:700;margin:0 0 8mm;padding:4mm 5mm;background:#f3f7f7;border-radius:4mm}.sheet{display:flex;align-items:center;justify-content:center;width:100%}.sheet>svg{display:block;width:'+printWidth+'mm;max-width:100%;height:auto;max-height:'+heightLimit+'mm}.answer{margin-top:8mm;font-size:14pt;padding:4mm 5mm;border:1px solid #cbd7d9;border-radius:4mm}.sheet{break-inside:avoid}@media print{button{display:none!important}}</style></head><body>'+
-    (displayTitle?'<h1>'+String(displayTitle).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))+'</h1>':'')+
-    promptHtml+'<div class="sheet">'+svgText+'</div>'+answerHtml+
-    '<script>window.addEventListener("load",()=>setTimeout(()=>window.print(),120));<\/script></body></html>');
+    '*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#24343b;margin:0}h1{font-size:20pt;margin:0 0 8mm}.prompt{font-size:16pt;font-weight:700;margin:0 0 8mm;padding:4mm 5mm;background:#f3f7f7;border-radius:4mm}.sheet{display:flex;align-items:center;justify-content:center;width:100%;break-inside:avoid}.sheet>svg{display:block;width:var(--print-width);max-width:100%;height:auto;max-height:var(--print-height)}.answer{margin-top:8mm;font-size:14pt;padding:4mm 5mm;border:1px solid #cbd7d9;border-radius:4mm}.print-page{break-inside:avoid;page-break-inside:avoid}.print-page:not(:last-child){break-after:page;page-break-after:always}@media print{button{display:none!important}}</style></head><body>'+
+    pages.join('')+'<script>window.addEventListener("load",()=>setTimeout(()=>window.print(),120));<\/script></body></html>');
   win.document.close();
 }
 function wrapSvgText(text,maxChars=72,maxLines=6){
