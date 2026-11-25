@@ -2140,3 +2140,12 @@ html:not(.gd-embed-page) #tt99-goodies-root #gd-controls .gd-mc-five{min-height:
 #tt99-goodies-root .gd-board-controls-proxy :is(button,select,input):focus-visible{outline:2px solid #2d9288!important;outline-offset:1px}
 #tt99-goodies-root .gd-board-challenge-launcher{font-family:Arial,sans-serif;gap:6px}
 #tt99-goodies-root .gd-board-challenge-launcher button{font-weight:600!important}
+
+/* Preserve the narrow two-tab teaching layouts; full inspectors share one
+   compact catalogue but must not override established widget-specific sizing. */
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-workflow.pv-mode-tabs>button,
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-workflow.gd-ab-workflow>button{white-space:nowrap!important;font-size:12px!important;line-height:1.1!important}
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-workflow{flex-wrap:nowrap!important}
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-workflow>button{overflow-wrap:anywhere}
+#tt99-goodies-root .gd-board-controls-proxy .gd-challenge-card:focus-visible{outline-offset:1px}
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-challenge-picker .gd-challenge-random-row{position:relative}

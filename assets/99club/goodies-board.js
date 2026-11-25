@@ -432,6 +432,18 @@ function openFloatingControls(obj,mode='settings'){
   floatingPanelMode=['challenge','challenge-settings','money-palette','tile-palette','paper'].includes(mode)?mode:'settings';
   floatingControls?.classList.toggle('is-money-palette',isObjectPalette());
   floatingControls?.classList.toggle('is-challenge-launcher',floatingPanelMode==='challenge');
+  if(floatingPanelMode==='settings'&&!['place-value','abacus','balance'].includes(obj.toolId)){
+    const doc=innerDocument(obj),source=sourceControls(obj);
+    const current=[...source?.querySelectorAll('button')||[]].find(n=>(n.classList.contains('gd-btn--primary')||n.classList.contains('is-active')||n.getAttribute('aria-selected')==='true')&&[...n.attributes].some(a=>/^data-[a-z]+-workflow$/.test(a.name)&&['challenge','export'].includes(a.value)));
+    if(current){
+      const active=!!doc?.querySelector('#gd-stage .gd-challenge-banner,#gd-stage .gd-native-challenge');
+      if(active)floatingPanelMode='challenge-settings';
+      else{
+        const teaching=[...source.querySelectorAll('button')].find(n=>[...n.attributes].some(a=>/^data-[a-z]+-workflow$/.test(a.name)&&['explore','build','setup','model'].includes(a.value)));
+        teaching?.click();
+      }
+    }
+  }
   if(obj.toolId==='place-value'&&floatingPanelMode==='settings'){
     const source=sourceControls(obj),active=source?.querySelector('[data-pv-workflow].gd-btn--primary')?.dataset?.pvWorkflow;
     if(active==='challenge'||active==='export')source?.querySelector('[data-pv-workflow="setup"]')?.click();
@@ -964,7 +976,15 @@ if(floatingControlsBody){
     const launch=node.matches('[data-gd-random-scope],[data-gd-native-random],[data-pv-challenge-mode],[data-ab-challenge-mode],[data-mc-challenge-mode],[data-seq-challenge-mode],[data-ab-history-operation],#ab-history-challenge,[id$="-generate"]');
     const specific=floatingPanelMode==='challenge'&&[...node.attributes].find(a=>/^-?data-[a-z0-9-]+-challenge-type$/.test(a.name));
     if(specific){const prefix=specific.name.match(/^data-([a-z0-9-]+)-challenge-type$/)[1];node.click();const generate=sourceControls(obj)?.querySelector('#'+prefix+'-generate');if(generate&&!generate.disabled){generate.click();closeFloatingControls(obj.id)}}
-    else{node.click();if(launch&&floatingPanelMode==='challenge')closeFloatingControls(obj.id);else if(isObjectPalette())renderFloatingControls(obj)}
+    else{
+      const workflow=[...node.attributes].find(a=>/^data-[a-z]+-workflow$/.test(a.name));
+      node.click();
+      if(launch&&floatingPanelMode==='challenge')closeFloatingControls(obj.id);
+      else if(workflow&&!isObjectPalette()){
+        const mode=workflow.value==='challenge'?'challenge-settings':workflow.value==='export'?'paper':'settings';
+        if(mode!==floatingPanelMode){floatingPanelMode=mode;floatingControlSignature='';floatingControlsBody.scrollTop=0;renderFloatingControls(obj)}
+      }else if(isObjectPalette())renderFloatingControls(obj);
+    }
     setTimeout(()=>{syncQuickActions(obj);refreshFloatingControls(obj)},0);
   });
   const forwardValue=e=>{

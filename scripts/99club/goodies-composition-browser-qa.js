@@ -970,6 +970,26 @@ async function run(){
   rulerDoc.querySelector('[data-board-action="reveal"]').click();await tick();
   assert(rulerApi.capture('measurement').model.diagram.cm===rulerAttempt.diagram.cm,'Hide answer restores previous marker');
   api.remove(qaRuler.record.id);
+  // The standard picker is shared, but validate the parent-to-iframe path on
+  // every standard-picker widget with a fresh board object.
+  for(const [id,prefix] of [['fraction-wall','fw'],['bar-model','bm'],['hundred-square','hs'],['multiplication-grid','mg'],['array-builder','ab'],['clock','cl'],['money','mo'],['coordinates','co'],['measurement','me'],['times-table','tv'],['factors','fe'],['fdp','fd']]){
+    const fixture=await addForSave(id),panel=document.getElementById('gd-board-floating-controls');
+    fixture.frame.querySelector('[data-board-settings]').click();await tick();
+    assert(panel.dataset.panelMode==='settings'&&panel.querySelector('.gd-board-controls-proxy'),'Normal settings open for '+id);
+    panel.querySelector('[data-board-controls-close]').click();await tick();
+    fixture.frame.querySelector('[data-board-quick-actions] button[aria-label="Choose a challenge"]').click();await tick();
+    assert(panel.dataset.panelMode==='challenge'&&panel.querySelector('[data-gd-random-scope="all"]'),'Quick challenge available for '+id);
+    panel.querySelector('[data-board-launcher-settings]').click();await tick();
+    assert(panel.dataset.panelMode==='challenge-settings'&&panel.querySelector('.gd-panel-challenge-picker'),'Shared full challenge settings for '+id);
+    panel.querySelector('[data-gd-random-scope="all"]').click();await tick(70);
+    const model=fixture.doc.defaultView.TT99Goodies.lessonState.capture(id).model;
+    assert(model.challenge||model.state?.challenge||fixture.doc.querySelector('#gd-stage .gd-challenge-banner'),'Full settings Random actually generates for '+id);
+    panel.querySelector('[data-board-launcher-back]').click();await tick();
+    assert(panel.dataset.panelMode==='challenge','Back to quick challenge for '+id);
+    panel.querySelector('[data-gd-random-scope="all"]').click();await tick(70);
+    assert(!visible(panel)&&fixture.doc.querySelector('#gd-stage .gd-challenge-banner'),'Quick Random generates and closes for '+id);
+    api.remove(fixture.record.id);
+  }
   const qaGeo=await addForSave('geoboard'),geoDoc=qaGeo.doc;
   // Exercise the real parent floating inspector, not only iframe controls.
   const geoPanel=document.getElementById('gd-board-floating-controls');
