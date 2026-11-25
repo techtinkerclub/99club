@@ -3945,11 +3945,11 @@ function mathsCanvas(){
 const I=G.interaction,CK=G.challengeKit,X=G.exportTools;
 if(!I){q('#gd-stage').innerHTML='<p class="gd-empty">The interactive canvas could not start.</p>';return;}
 let tiles=[],next=1,grid=true,colourOpen=false,addOpen=false,combineOpen=false,splitOpen=false,controller=null;
-let workflow='build',taskTitle='Maths canvas task',taskPrompt='',exportMode='canvas',responseLines=2,exportStatus='';
+let workflow='build',taskTitle='Number tiles task',taskPrompt='',exportMode='canvas',responseLines=2,exportStatus='';
 const colours=['#cbe7e2','#f6cf79','#cfe0f6','#efcfd9','#dbcff2','#d5ead2','#f3d7c4','#ffffff'];
 function textColour(hex){const h=String(hex||'').replace('#','');if(!/^[0-9a-f]{6}$/i.test(h))return '#24343b';const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);return (r*299+g*587+b*114)/1000>155?'#24343b':'#ffffff'}
 function stateSnapshot(){return{tiles:JSON.parse(JSON.stringify(tiles)),next,grid}}
-function restoreState(value){tiles=Array.isArray(value?.tiles)?value.tiles:[];next=Math.max(1,num(value?.next,1));grid=value?.grid!==false;colourOpen=false;addOpen=false;combineOpen=false;splitOpen=false}
+function restoreState(value){tiles=Array.isArray(value?.tiles)?JSON.parse(JSON.stringify(value.tiles)):[];next=Math.max(1,num(value?.next,1),...tiles.map(t=>Number(t.id)+1||1));grid=value?.grid!==false;colourOpen=false;combineOpen=false;splitOpen=false}
 function selectedTile(id){return tiles.find(t=>String(t.id)===String(id))||null}
 function numericTile(item){if(!item||item.symbol)return null;const raw=String(item.text??'').trim();if(!/^-?\d+(?:\.\d+)?$/.test(raw))return null;const value=Number(raw);return Number.isFinite(value)?value:null}
 function niceNumber(value){const n=Math.round(Number(value)*1000)/1000;return String(n)}
@@ -3971,7 +3971,8 @@ I.toolButton('lock',selected.locked?'unlock':'lock',selected.locked?'Unlock tile
 I.toolButton('delete','delete','Delete tile','is-danger',selected.locked);
 }
 const swatches=selected&&colourOpen&&!selected.locked?'<div class="gd-object-colours" role="group" aria-label="Tile colour">'+colours.map(col=>'<button type="button" data-gd-colour="'+col+'" aria-label="Use '+col+'" style="--swatch:'+col+'"></button>').join('')+'</div>':'';
-const palette=addOpen?'<div class="gd-mc-stage-palette" role="group" aria-label="Add a maths tile">'+
+const embedded=document.documentElement.classList.contains('gd-embed-page');
+const palette=(addOpen||embedded)?'<div class="gd-mc-stage-palette"'+(embedded?' id="mc-board-palette" hidden':'')+' role="group" aria-label="Add a maths tile">'+(!embedded?'<button type="button" class="gd-mc-palette-close" data-gd-action="close-tiles" aria-label="Close tile palette">×</button>':'')+
   ['1','2','3','4','5','10','100'].map(x=>'<button type="button" data-gd-action="add-tile" data-mc-value="'+x+'">'+x+'</button>').join('')+
   ['+','−','×','÷','=','<','>','?'].map(x=>'<button type="button" class="is-symbol" data-gd-action="add-tile" data-mc-value="'+x+'" data-mc-symbol="true">'+x+'</button>').join('')+
   '</div>':'';
@@ -3997,7 +3998,7 @@ q('#gd-stage').innerHTML=taskPreview()+'<div class="gd-vis gd-object-workspace">
 }
 function constrainTile(item,x,y,element,canvas){const el=element||canvas.querySelector('[data-gd-object="'+item.id+'"]');const w=el?.offsetWidth||52,h=el?.offsetHeight||52;return{x:clamp(x,0,Math.max(0,canvas.clientWidth-w)),y:clamp(y,0,Math.max(0,canvas.clientHeight-h))}}
 function duplicateTile(item){const canvas=q('#mc-canvas'),copy={...item,id:next++,locked:false};const w=canvas?.clientWidth||700,h=canvas?.clientHeight||420;copy.x=clamp((Number(item.x)||0)+40,0,Math.max(0,w-70));copy.y=clamp((Number(item.y)||0)+40,0,Math.max(0,h-60));tiles.push(copy);return copy}
-function add(text,symbol=false){let id=null;addOpen=false;colourOpen=false;controller.mutate(()=>{id=next++;const canvas=q('#mc-canvas'),width=canvas?.clientWidth||700,cols=Math.max(1,Math.floor(Math.max(80,width-40)/80)),i=tiles.length,x=20+(i%cols)*80,y=20+Math.floor(i/cols)*80;tiles.push({id,text,x,y,symbol,locked:false,color:symbol?'#f6cf79':'#cbe7e2'})});controller.select(id)}
+function add(text,symbol=false){let id=null;colourOpen=false;combineOpen=false;splitOpen=false;controller.mutate(()=>{id=next++;const canvas=q('#mc-canvas'),width=canvas?.clientWidth||700,cols=Math.max(1,Math.floor(Math.max(80,width-40)/80)),i=tiles.length,x=20+(i%cols)*80,y=20+Math.floor(i/cols)*80;tiles.push({id,text,x,y,symbol,locked:false,color:symbol?'#f6cf79':'#cbe7e2'})});controller.select(id)}
 function combineTiles(source,other){
 if(!source||!other||source===other||source.locked||other.locked)return;
 const a=numericTile(source),b=numericTile(other);if(a==null||b==null)return;
@@ -4012,7 +4013,7 @@ controller.mutate(()=>{
 });controller.select(keep)
 }
 function workflowTabs(){
-return '<div class="gd-row gd-mc-workflow-tabs" role="tablist" aria-label="Maths Canvas workflow">'+
+return '<div class="gd-row gd-mc-workflow-tabs" role="tablist" aria-label="Number and symbol tiles workflow">'+
 '<button class="gd-btn'+(workflow==='build'?' gd-btn--primary':'')+'" type="button" data-mc-workflow="build">Build</button>'+
 '<button class="gd-btn'+(workflow==='task'?' gd-btn--primary':'')+'" type="button" data-mc-workflow="task">Task</button>'+
 '<button class="gd-btn'+(workflow==='export'?' gd-btn--primary':'')+'" type="button" data-mc-workflow="export">Export / reuse</button></div>';
@@ -4038,7 +4039,7 @@ return el;
 }
 function canvasExportSvg(){
 const W=960,H=560,pad=34,canvas=q('#mc-canvas'),sourceW=Math.max(1,canvas?.clientWidth||760),sourceH=Math.max(1,canvas?.clientHeight||420);
-const innerW=W-pad*2,innerH=H-pad*2,sx=innerW/sourceW,sy=innerH/sourceH,scale=Math.min(sx,sy);
+const innerW=W-pad*2,innerH=H-pad*2,scale=Math.min(innerW/sourceW,innerH/sourceH),offsetX=pad+(innerW-sourceW*scale)/2,offsetY=pad+(innerH-sourceH*scale)/2;
 const svg=mcSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':'Maths canvas model','data-mc-export':'canvas'});
 svg.appendChild(mcSvgEl('rect',{x:0,y:0,width:W,height:H,fill:'#ffffff'}));
 svg.appendChild(mcSvgEl('rect',{x:pad,y:pad,width:innerW,height:innerH,rx:18,fill:'#fbfdfd',stroke:'#b9c9cc','stroke-width':2,'stroke-dasharray':'8 7'}));
@@ -4050,10 +4051,10 @@ if(grid){
 tiles.forEach(t=>{
   const node=canvas?.querySelector('[data-gd-object="'+t.id+'"]');
   const rawW=Math.max(52,node?.offsetWidth||Math.min(150,52+String(t.text||'').length*11)),rawH=Math.max(52,node?.offsetHeight||52);
-  const tw=Math.max(44,rawW*scale),th=Math.max(44,rawH*scale),x=pad+(Number(t.x)||0)*sx,y=pad+(Number(t.y)||0)*sy;
+  const tw=rawW*scale,th=rawH*scale,x=offsetX+(Number(t.x)||0)*scale,y=offsetY+(Number(t.y)||0)*scale;
   const stroke=t.symbol?'#bd9140':'#81aaa4';
   svg.appendChild(mcSvgEl('rect',{x,y,width:tw,height:th,rx:Math.min(12*scale,12),fill:t.color||'#ffffff',stroke,'stroke-width':2,'data-mc-export-tile':t.id}));
-  svg.appendChild(mcSvgEl('text',{x:x+tw/2,y:y+th/2+7*scale,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':Math.max(16,20*scale),'font-weight':800,fill:textColour(t.color||'#ffffff')},t.text));
+  svg.appendChild(mcSvgEl('text',{x:x+tw/2,y:y+th/2+7*scale,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':Math.max(8,20*scale),'font-weight':800,fill:textColour(t.color||'#ffffff')},t.text));
 });
 svg.appendChild(mcSvgEl('text',{x:W-36,y:H-14,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':10,fill:'#87969a'},'99 Club Studio'));
 return svg;
@@ -4061,7 +4062,7 @@ return svg;
 function exportTargetSvg(){
 if(exportMode!=='task'||!X?.composeChallengeCardSvg)return canvasExportSvg();
 return X.composeChallengeCardSvg(canvasExportSvg(),{
-title:String(taskTitle||'Maths canvas task').trim()||'Maths canvas task',
+title:String(taskTitle||'Number tiles task').trim()||'Number tiles task',
 prompt:String(taskPrompt||'').trim(),
 responseLabel:'Working / answer',
 responseLines,
@@ -4081,7 +4082,7 @@ if(kind==='print'){X.printSvg(target,{title:'',landscape:false});exportMessage('
 }
 function exportControlsHtml(){
 return '<div class="nl-panel-title"><div><strong>Use it elsewhere</strong><span>Export the clean canvas or turn it into a pupil-ready task card.</span></div></div>'+
-'<div class="nl-export-mode" role="tablist" aria-label="Maths Canvas export content">'+
+'<div class="nl-export-mode" role="tablist" aria-label="Number and symbol tiles export content">'+
 '<button type="button" class="'+(exportMode==='canvas'?'is-active':'')+'" data-mc-export-mode="canvas">Canvas only</button>'+
 '<button type="button" class="'+(exportMode==='task'?'is-active':'')+'" data-mc-export-mode="task">Task card</button></div>'+
 (exportMode==='task'
@@ -4133,6 +4134,7 @@ toggleLock:item=>{item.locked=!item.locked;colourOpen=false;combineOpen=false;sp
 onAction:(action,api,button)=>{
 if(action==='add'){addOpen=!addOpen;colourOpen=false;combineOpen=false;splitOpen=false;api.refresh()}
 else if(action==='add-tile'){add(button?.dataset?.mcValue||'',button?.dataset?.mcSymbol==='true')}
+else if(action==='close-tiles'){addOpen=false;api.refresh()}
 else if(action==='combine'){combineOpen=!combineOpen;splitOpen=false;colourOpen=false;addOpen=false;api.refresh()}
 else if(action==='split'){splitOpen=!splitOpen;combineOpen=false;colourOpen=false;addOpen=false;api.refresh()}
 else if(action==='combine-with'){combineTiles(api.selected(),selectedTile(button?.dataset?.mcOther))}
@@ -4142,7 +4144,7 @@ else if(action==='grid'){api.mutate(()=>{grid=!grid;colourOpen=false;addOpen=fal
 },
 onSelectionChange:item=>{
   if(!item){colourOpen=false;combineOpen=false;splitOpen=false;return}
-  if(addOpen){addOpen=false;queueMicrotask(()=>controller?.refresh())}
+  // Adding or selecting a tile must not dismiss the reusable tile palette.
 }
 });
 bindControls();
