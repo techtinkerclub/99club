@@ -346,7 +346,7 @@ function renderFloatingControls(obj){
   floatingControlSignature=signature;
   floatingControlsBody.scrollTop=scroll;
   const tool=tools.find(t=>t.id===obj.toolId);
-  if(floatingControlsTitle)floatingControlsTitle.textContent=floatingPanelMode==='tile-palette'?'Add tiles':floatingPanelMode==='money-palette'?'Add money':(tool?.title||'Manipulative')+(floatingPanelMode==='challenge'?' · Challenge':floatingPanelMode==='challenge-settings'?' · Challenge settings':' settings');
+  if(floatingControlsTitle)floatingControlsTitle.textContent=floatingPanelMode==='tile-palette'?'Add tiles':floatingPanelMode==='money-palette'?'Add money':(tool?.title||'Manipulative')+(floatingPanelMode==='challenge'?' · Challenge':floatingPanelMode==='challenge-settings'?' · Challenge settings':floatingPanelMode==='paper'?' · Paper settings':' settings');
   floatingControls.hidden=false;
   requestAnimationFrame(positionFloatingControls);
 }
@@ -402,7 +402,7 @@ function refreshFloatingControls(obj,delay=0){
 function openFloatingControls(obj,mode='settings'){
   if(!obj)return;
   floatingHelpData=null;floatingControls?.classList.remove('is-help');
-  floatingPanelMode=['challenge','challenge-settings','money-palette','tile-palette'].includes(mode)?mode:'settings';
+  floatingPanelMode=['challenge','challenge-settings','money-palette','tile-palette','paper'].includes(mode)?mode:'settings';
   floatingControls?.classList.toggle('is-money-palette',isObjectPalette());
   floatingControls?.classList.toggle('is-challenge-launcher',floatingPanelMode==='challenge');
   if(obj.toolId==='place-value'&&floatingPanelMode==='settings'){
@@ -419,7 +419,7 @@ function openFloatingControls(obj,mode='settings'){
   floatingControlObjectId=obj.id;obj.settingsOpen=true;
   const frame=frameFor(obj.id);frame?.classList.add('has-settings');
   const tool=tools.find(t=>t.id===obj.toolId);
-  if(floatingControlsTitle)floatingControlsTitle.textContent=floatingPanelMode==='tile-palette'?'Add tiles':floatingPanelMode==='money-palette'?'Add money':(tool?.title||'Manipulative')+(floatingPanelMode==='challenge'?' · Challenge':floatingPanelMode==='challenge-settings'?' · Challenge settings':' settings');
+  if(floatingControlsTitle)floatingControlsTitle.textContent=floatingPanelMode==='tile-palette'?'Add tiles':floatingPanelMode==='money-palette'?'Add money':(tool?.title||'Manipulative')+(floatingPanelMode==='challenge'?' · Challenge':floatingPanelMode==='challenge-settings'?' · Challenge settings':floatingPanelMode==='paper'?' · Paper settings':' settings');
   if(floatingControls)floatingControls.hidden=false;
   const rect=frame?.getBoundingClientRect(),host=board.getBoundingClientRect();
   if(rect&&(floatingPanelMode==='challenge'||!floatingControlMoved)){
@@ -637,6 +637,7 @@ function objectMarkup(obj,tool){
       '<button type="button" data-board-export-kind="png" role="menuitem">PNG</button>'+
       '<button type="button" data-board-export-kind="svg" role="menuitem">SVG</button>'+
       '<button type="button" data-board-export-kind="print" role="menuitem">Print</button>'+
+      (tool.id==='maths-canvas'?'<button type="button" data-board-export-kind="paper-settings" role="menuitem">Paper settings</button>':'')+
       (['maths-canvas','abacus','place-value'].includes(tool.id)?'<button type="button" data-board-export-kind="key-print" role="menuitem" hidden>Answer key · print</button><button type="button" data-board-export-kind="key-copy" role="menuitem" hidden>Answer key · copy</button>':'')+
     '</div>'+
     '<div class="gd-board-quick-actions is-empty" data-board-quick-actions aria-label="'+esc(tool.title)+' quick actions"></div>'+
@@ -841,7 +842,11 @@ function bindObject(obj){
   if(exportMenu)exportMenu.onclick=e=>{
     const button=e.target.closest('[data-board-export-kind]');if(!button)return;
     e.preventDefault();e.stopPropagation();
-    runPaperExport(obj,button.dataset.boardExportKind);
+    if(button.dataset.boardExportKind==='paper-settings'){
+      const doc=innerDocument(obj),tab=doc&&workflowExportButton(doc);
+      if(!tab){boardHint('Paper settings are not available yet.');return}
+      tab.click();sendSettings(obj,true,'paper');
+    }else runPaperExport(obj,button.dataset.boardExportKind);
     frame.classList.remove('has-export-menu');
   };
   const lock=frame.querySelector('[data-board-lock]');
