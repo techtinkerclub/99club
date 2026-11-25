@@ -175,7 +175,20 @@ function generate(type,level='medium',rng=Math.random,raw={}){
  }
  throw Error('No suitable question found. Try a wider number range, fewer terms, or more operations.');
 }
-G.numberChallenges={groups,titles,generate,settings,presets,available,OPS,REL,EXTRAS};
+function generateSet(ids,count,level='medium',rng=Math.random,raw={}){
+ const allowed=available(raw,level).flatMap(g=>g.ids),pool=[...new Set(ids)].filter(id=>allowed.includes(id));
+ const size=Math.max(1,Math.min(10,Math.round(Number(count)||1)));
+ if(!pool.length)throw Error('No compatible questions in this selection.');
+ const questions=[],seen=new Set();let bag=[];
+ for(let attempts=0;questions.length<size&&attempts<size*60;attempts++){
+   if(!bag.length){bag=pool.slice();for(let i=bag.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[bag[i],bag[j]]=[bag[j],bag[i]]}}
+   const type=bag.pop();
+   try{const question=generate(type,level,rng,raw),key=JSON.stringify(question.tiles);if(seen.has(key))continue;seen.add(key);questions.push(question)}catch(_){}
+ }
+ if(questions.length!==size)throw Error('Could not make '+size+' distinct questions. Try fewer questions or a wider range.');
+ return questions;
+}
+G.numberChallenges={groups,titles,generate,generateSet,settings,presets,available,OPS,REL,EXTRAS};
 })(window.TT99Goodies);
 ;
 (function(G){
@@ -4127,6 +4140,7 @@ if(!I){q('#gd-stage').innerHTML='<p class="gd-empty">The interactive canvas coul
 let tiles=[],next=1,grid=true,colourOpen=false,addOpen=false,combineOpen=false,splitOpen=false,controller=null;
 let workflow='build',taskTitle='Number tiles task',taskPrompt='',exportMode='canvas',responseLines=2,exportStatus='';
 let challenge=null,difficulty='medium',numberSettings=N.settings({},difficulty),generationError='';
+let questionCount=1,setLayout='auto',batch=[],batchScope='',batchType='';
 const colours=['#cbe7e2','#f6cf79','#cfe0f6','#efcfd9','#dbcff2','#d5ead2','#f3d7c4','#ffffff'];
 function textColour(hex){const h=String(hex||'').replace('#','');if(!/^[0-9a-f]{6}$/i.test(h))return '#24343b';const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);return (r*299+g*587+b*114)/1000>155?'#24343b':'#ffffff'}
 function stateSnapshot(){return{tiles:JSON.parse(JSON.stringify(tiles)),next,grid}}
@@ -4173,12 +4187,42 @@ const title=String(taskTitle||'').trim(),prompt=String(taskPrompt||'').trim();
 if(!title&&!prompt)return'';
 return '<div class="gd-mc-task-preview">'+(title?'<strong>'+esc(title)+'</strong>':'')+(prompt?'<span>'+esc(prompt)+'</span>':'')+'</div>';
 }
-function generateNumberChallenge(type){
+function generateNumberChallenge(type,scope=CK.nativeScope?.('mc')||''){
  if(!N)return;
- try{challenge=CK.normalise(N.generate(type,difficulty,Math.random,numberSettings));generationError='';workflow='challenge';exportMode='challenge'}catch(e){generationError=e.message||'Unable to generate a question with these settings.'}
+ try{
+   const groups=N.available(numberSettings,difficulty),ids=scope==='all'?groups.flatMap(g=>g.ids):scope.startsWith('category:')?groups.find(g=>g.id===scope.slice(9))?.ids||[]:[type];
+   if(questionCount>1){
+     const questions=N.generateSet(ids,questionCount,difficulty,Math.random,numberSettings);
+     batch=questions.map(question=>({question,value:'',correct:false,revealed:false,feedback:''}));
+     batchScope=scope;batchType=type;challenge=CK.normalise(questions[0]);
+   }else{challenge=CK.normalise(N.generate(type,difficulty,Math.random,numberSettings));batch=[];batchScope='';batchType=''}
+   generationError='';workflow='challenge';exportMode='challenge';
+ }catch(e){generationError=e.message||'Unable to generate a question with these settings.'}
  renderControls();controller?.refresh();
 }
-function exitNumberChallenge(){challenge=null;generationError='';workflow='build';exportMode='canvas';renderControls();controller?.refresh()}
+function exitNumberChallenge(){challenge=null;batch=[];batchScope='';batchType='';generationError='';workflow='build';exportMode='canvas';renderControls();controller?.refresh()}
+function batchCols(){return setLayout==='one'?1:setLayout==='two'?2:batch.length>=4?2:1}
+function batchRows(question){const rows=[[]];for(const token of question.tiles){if(token===' ; ')rows.push([]);else rows.at(-1).push(token)}return rows}
+function batchMarkup(){
+ const shown=batch.some(item=>item.revealed),done=batch.filter(item=>item.correct).length;
+ const cards=batch.map((item,i)=>{
+   const qn=item.question,locked=item.correct||item.revealed,display=item.revealed?qn.answer:item.value,choice=qn.kind==='choice',label='Answer to question '+(i+1);
+   const answer=choice?'<select class="gd-mc-set-answer" aria-label="'+label+'" data-mc-set-value="'+i+'"'+(locked?' disabled':'')+'><option value="">?</option>'+qn.choices.map(v=>'<option value="'+esc(v)+'"'+(display===v?' selected':'')+'>'+esc(v)+'</option>').join('')+'</select>':'<input type="text" inputmode="none" data-gd-keypad="number" class="gd-mc-set-answer" aria-label="'+label+'" data-mc-set-value="'+i+'" autocomplete="off" maxlength="24" value="'+esc(display)+'" placeholder="?"'+(locked?' disabled':'')+'>';
+   const hasHole=qn.tiles.includes('?');
+   const equations=batchRows(qn).map(row=>{const units=row.reduce((n,v)=>n+(v==='?'?4:/^[+−×÷=<>]$/.test(v)?1.35:/^[()]$/.test(v)?.65:Math.max(1.35,String(v).length*.66+.45)),0);return '<div class="gd-number-equation" style="--eq-units:'+units+'">'+row.map(v=>v==='?'?answer:'<span class="gd-number-equation-token'+(/^[+−×÷=<>]$/.test(v)?' is-operator':/^[()]$/.test(v)?' is-bracket':'')+'">'+esc(v)+'</span>').join('')+'</div>'}).join('');
+   return '<article class="gd-mc-set-card nl-challenge-solve'+(item.correct?' is-correct':item.revealed?' is-revealed':'')+'"><div class="gd-mc-set-card-head"><strong class="gd-mc-set-index">'+(i+1)+'.</strong><span>'+esc(N.titles[qn.type])+'</span></div><div class="gd-mc-set-equations">'+equations+'</div><div class="gd-mc-set-card-foot">'+(!hasHole?answer:'')+'<span class="gd-mc-set-feedback" role="status" aria-live="polite">'+esc(item.feedback||(item.revealed?'Answer shown':''))+'</span><button type="button" class="gd-btn gd-mc-set-check" data-challenge-check data-mc-set-check="'+i+'"'+(!item.value.trim()||locked?' disabled':'')+'>Check</button></div></article>';
+ }).join('');
+ return '<div class="gd-mc-set"><div class="gd-challenge-banner gd-mc-set-header" data-challenge-mode="standard"><div><strong>'+batch.length+' questions</strong> <span class="gd-mc-set-progress">'+done+' / '+batch.length+' correct</span></div><div class="gd-challenge-actions"><button type="button" class="gd-challenge-action" data-mc-new-set>New set</button><button type="button" class="gd-challenge-action" data-mc-layout-toggle>'+(batchCols()===1?'Two columns':'One column')+'</button><button type="button" class="gd-challenge-reveal" data-board-action="reveal"'+(done===batch.length?' hidden':'')+'>'+(shown?'Hide answers':'Reveal answers')+'</button><button type="button" class="gd-challenge-action" data-challenge-action="end">Exit challenge</button></div></div>'+(generationError?'<p class="gd-number-error" role="status">'+esc(generationError)+'</p>':'')+'<div class="gd-mc-set-grid" data-columns="'+batchCols()+'">'+cards+'</div></div>';
+}
+function bindBatch(stage){
+ const refresh=()=>controller.refresh();
+ q('[data-mc-new-set]',stage).onclick=()=>generateNumberChallenge(batchType,batchScope);
+ q('[data-mc-layout-toggle]',stage).onclick=()=>{setLayout=batchCols()===1?'two':'one';renderControls();refresh()};
+ q('[data-challenge-action="end"]',stage).onclick=exitNumberChallenge;
+ q('[data-board-action="reveal"]',stage).onclick=()=>{const show=!batch.some(item=>item.revealed);batch.forEach(item=>{if(!item.correct){item.revealed=show;item.feedback=''}});refresh()};
+ qa('[data-mc-set-value]',stage).forEach(el=>{const i=Number(el.dataset.mcSetValue),item=batch[i];const update=()=>{item.value=el.value;item.feedback='';const card=el.closest('.gd-mc-set-card');q('[data-mc-set-check]',card).disabled=!item.value.trim();q('.gd-mc-set-feedback',card).textContent=''};el.oninput=update;el.onchange=update;el.onkeydown=ev=>{if(ev.key==='Enter'){ev.preventDefault();q('[data-mc-set-check]',el.closest('.gd-mc-set-card')).click()}}});
+ qa('[data-mc-set-check]',stage).forEach(el=>el.onclick=()=>{const item=batch[Number(el.dataset.mcSetCheck)];if(!item||item.correct||item.revealed||!item.value.trim())return;item.correct=CK.pupilAnswerCorrect(CK.pupilSpec(item.question.kind,{choices:item.question.choices}),[item.value],item.question.answer);item.feedback=item.correct?'Correct ✓':'Try again';refresh()});
+}
 function challengeMarkup(){
  const spec=CK.pupilSpec(challenge.kind,challenge.choices?{choices:challenge.choices}:{hint:'Number'});
  const banner=CK.bannerHtml(challenge,{pupil:spec,actions:[{action:'another',label:'Another'},{action:'end',label:'Exit challenge'}]});
@@ -4186,7 +4230,7 @@ function challengeMarkup(){
  return (generationError?'<p class="gd-number-error" role="status">'+esc(generationError)+'</p>':'')+banner+'<div class="gd-number-task-rows gd-number-equations">'+rows.map(row=>{const units=row.reduce((n,v)=>n+(v==='?'?2.4:/^[+−×÷=<>]$/.test(v)?1.35:/^[()]$/.test(v)?.65:Math.max(1.35,String(v).length*.66+.45)),0);return '<div class="gd-number-equation" style="--eq-units:'+units+'">'+row.map(v=>'<span class="gd-number-equation-token'+(v==='?'?' is-unknown'+(challenge.revealed?' is-revealed':''):/^[+−×÷=<>]$/.test(v)?' is-operator':/^[()]$/.test(v)?' is-bracket':'')+'">'+esc(v==='?'&&challenge.revealed?challenge.answer:v)+'</span>').join('')+'</div>'}).join('')+'</div>';
 }
 function draw(selectedId,meta){
- if(challenge){q('#gd-stage').innerHTML=challengeMarkup();return}
+ if(challenge){q('#gd-stage').innerHTML=batch.length>1?batchMarkup():challengeMarkup();return}
 const selected=selectedTile(selectedId);
 q('#gd-stage').innerHTML=(generationError?'<p class="gd-number-error" role="status">'+esc(generationError)+'</p>':'')+taskPreview()+'<div class="gd-vis gd-object-workspace"><div class="gd-object-canvas-wrap"><div class="gd-canvas gd-object-canvas'+(grid?' has-grid':'')+'" id="mc-canvas" data-gd-canvas-bg tabindex="0" aria-label="Maths canvas. Tap a tile to select it and drag to move it.">'+tiles.map(t=>tileMarkup(t,selectedId)).join('')+'</div>'+railMarkup(selected,meta)+'</div><div class="gd-object-hint">'+(selected?(selected.locked?'Tile locked · use the lock icon to move or edit it again.':'Drag to move · the side tools duplicate, colour, lock or delete it.'):'Use + to add a common tile, then drag tiles directly around the board. Custom tile text stays in Tools.')+'</div></div>'
 }
@@ -4242,6 +4286,29 @@ function numberChallengeSvg(){
    row.forEach((v,i)=>{const w=widths[i];if(v==='?'){svg.appendChild(mcSvgEl('rect',{x:x+font*.12,y:y-font*.85,width:w-font*.24,height:font*1.12,rx:7,fill:'#fff',stroke:'#466c70','stroke-width':2,'stroke-dasharray':'5 3'}))}else svg.appendChild(mcSvgEl('text',{x:x+w/2,y,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':font,'font-weight':700,fill:'#24343b'},v));x+=w})
  });return svg;
 }
+function numberSetSvg(){
+ const cols=batchCols(),W=960,pad=24,gap=20,cellW=(W-pad*2-gap*(cols-1))/cols,rowHeights=[];
+ batch.forEach((item,i)=>{const qn=item.question,rows=batchRows(qn).length,height=40+rows*58+(qn.kind==='choice'?22:0)+(!qn.tiles.includes('?')?38:0),index=Math.floor(i/cols);rowHeights[index]=Math.max(rowHeights[index]||0,height)});
+ const H=70+rowHeights.reduce((n,h)=>n+h+12,0)+12,svg=mcSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':batch.length+' unanswered arithmetic questions'});
+ const add=(name,attrs,txt)=>svg.appendChild(mcSvgEl(name,attrs,txt));
+ add('rect',{width:W,height:H,fill:'#fff'});
+ add('text',{x:pad,y:32,'font-family':'Arial,sans-serif','font-size':24,'font-weight':700,fill:'#24343b'},batch.length+' arithmetic questions');
+ add('text',{x:W-pad,y:32,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':15,fill:'#52666d'},'Name: __________________');
+ batch.forEach((item,i)=>{
+   const qn=item.question,row=Math.floor(i/cols),x=pad+(i%cols)*(cellW+gap),y=58+rowHeights.slice(0,row).reduce((n,h)=>n+h+12,0);
+   add('text',{x,y:y+18,'font-family':'Arial,sans-serif','font-size':17,'font-weight':700,fill:'#24343b'},(i+1)+'. '+N.titles[qn.type]);
+   batchRows(qn).forEach((tokens,j)=>{
+     const weights=tokens.map(v=>v==='?'?2.4:/^[+−×÷=<>]$/.test(v)?1.25:/^[()]$/.test(v)?.6:Math.max(1.1,String(v).length*.65+.25));
+     const font=Math.min(38,(cellW-16)/weights.reduce((a,b)=>a+b,0)),widths=weights.map(v=>v*font);let xx=x+6;const yy=y+57+j*58;
+     tokens.forEach((v,n)=>{const w=widths[n];if(v==='?')add('rect',{x:xx+font*.12,y:yy-font*.8,width:w-font*.24,height:font*1.08,rx:4,fill:'#fff',stroke:'#48666b','stroke-width':1.6});else add('text',{x:xx+w/2,y:yy,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':font,'font-weight':650,fill:'#24343b'},v);xx+=w});
+   });
+   let bottom=y+40+batchRows(qn).length*58;
+   if(!qn.tiles.includes('?')){add('rect',{x:x+6,y:bottom-12,width:Math.min(150,cellW-20),height:27,rx:3,fill:'#fff',stroke:'#48666b','stroke-width':1.5});bottom+=38}
+   if(qn.kind==='choice')add('text',{x:x+6,y:bottom+6,'font-family':'Arial,sans-serif','font-size':14,fill:'#52666d'},'Choose: '+qn.choices.join('   /   '));
+   add('line',{x1:x,y1:y+rowHeights[row]+3,x2:x+cellW,y2:y+rowHeights[row]+3,stroke:'#d8e0e1','stroke-width':1});
+ });
+ return svg;
+}
 function canvasExportSvg(){
 const W=960,H=560,pad=34,canvas=q('#mc-canvas'),sourceW=Math.max(1,canvas?.clientWidth||760),sourceH=Math.max(1,canvas?.clientHeight||420);
 const innerW=W-pad*2,innerH=H-pad*2,scale=Math.min(innerW/sourceW,innerH/sourceH),offsetX=pad+(innerW-sourceW*scale)/2,offsetY=pad+(innerH-sourceH*scale)/2;
@@ -4265,6 +4332,7 @@ svg.appendChild(mcSvgEl('text',{x:W-36,y:H-14,'text-anchor':'end','font-family':
 return svg;
 }
 function exportTargetSvg(){
+if(batch.length>1&&challenge)return numberSetSvg();
 if(challenge&&X?.composeChallengeCardSvg)return X.composeChallengeCardSvg(numberChallengeSvg(),{title:N.titles[challenge.type],prompt:challenge.prompt,responseLabel:'Answer / working',responseLines:2,brand:'99 Club Studio'});
 if(exportMode!=='task'||!X?.composeChallengeCardSvg)return canvasExportSvg();
 return X.composeChallengeCardSvg(canvasExportSvg(),{
@@ -4279,15 +4347,15 @@ function exportMessage(text){exportStatus=text;const el=q('#mc-export-status');i
 async function exportAction(kind){
 try{
 if(!X)throw new Error('Export tools are not available.');
-const target=exportTargetSvg(),name=exportMode==='task'?'maths-canvas-task':'maths-canvas';
+const target=exportTargetSvg(),name=batch.length>1?'arithmetic-'+batch.length+'-questions':exportMode==='task'?'maths-canvas-task':'maths-canvas';
 if(kind==='copy'){await X.copyPng(target);exportMessage(exportMode==='task'?'Task card copied — paste it into your worksheet, slide or document.':'Canvas copied — paste it into your slide or document.')}
 if(kind==='png'){await X.downloadPng(target,name,2);exportMessage(exportMode==='task'?'Task PNG downloaded.':'Canvas PNG downloaded.')}
 if(kind==='svg'){X.downloadSvg(target,name);exportMessage(exportMode==='task'?'Task SVG downloaded.':'Canvas SVG downloaded.')}
-if(kind==='print'){X.printSvg(target,{title:'',landscape:false});exportMessage('Print view opened. Choose “Save as PDF” in the print dialog.')}
+if(kind==='print'){X.printSvg(target,{title:'',landscape:false,maxHeightMm:batch.length>1?242:150});exportMessage('Print view opened. Choose “Save as PDF” in the print dialog.')}
 }catch(err){exportMessage(err?.message||'That export did not work.')}
 }
 function exportControlsHtml(){
-if(challenge)return '<div class="nl-panel-title"><div><strong>Export challenge</strong><span>The original unanswered question, ready for paper.</span></div></div><div class="nl-export-grid"><button class="gd-btn gd-btn--primary" id="mc-copy-image" type="button">Copy challenge</button><button class="gd-btn" id="mc-png" type="button">PNG</button><button class="gd-btn" id="mc-svg-download" type="button">SVG</button><button class="gd-btn" id="mc-print" type="button">Print / PDF</button></div><p class="gd-help" id="mc-export-status" role="status">'+esc(exportStatus)+'</p>';
+if(challenge)return '<div class="nl-panel-title"><div><strong>'+(batch.length>1?'Export question set':'Export challenge')+'</strong><span>'+(batch.length>1?'All '+batch.length+' unanswered questions in the selected layout, ready for paper.':'The original unanswered question, ready for paper.')+'</span></div></div><div class="nl-export-grid"><button class="gd-btn gd-btn--primary" id="mc-copy-image" type="button">Copy challenge</button><button class="gd-btn" id="mc-png" type="button">PNG</button><button class="gd-btn" id="mc-svg-download" type="button">SVG</button><button class="gd-btn" id="mc-print" type="button">Print / PDF</button></div><p class="gd-help" id="mc-export-status" role="status">'+esc(exportStatus)+'</p>';
 return '<div class="nl-panel-title"><div><strong>Use it elsewhere</strong><span>Export the clean canvas or turn it into a pupil-ready task card.</span></div></div>'+
 '<div class="nl-export-mode" role="tablist" aria-label="Number and symbol tiles export content">'+
 '<button type="button" class="'+(exportMode==='canvas'?'is-active':'')+'" data-mc-export-mode="canvas">Canvas only</button>'+
@@ -4304,7 +4372,8 @@ function challengeControlsHtml(){
  const groups=N.available(numberSettings,difficulty);
  const toggles=(key,values,label)=>'<fieldset class="gd-number-options"><legend>'+label+'</legend><div class="gd-number-toggle-row">'+values.map(v=>'<label><input type="checkbox" data-mc-toggle="'+key+'" value="'+esc(v)+'"'+(numberSettings[key].includes(v)?' checked':'')+'><span>'+esc(v)+'</span></label>').join('')+'</div></fieldset>';
  const termOptions=(side)=>[[0,side==='left'?'Vary (2–4)':'Vary (1–2)'],[1,'1 number'],[2,'2 numbers'],[3,'3 numbers'],[4,'4 numbers']];
- return '<div data-mc-settings-summary class="gd-number-settings-summary">'+esc(numberSettings.ops.join('  ')||'No operations')+' · '+numberSettings.min+' to '+numberSettings.max+' · '+(numberSettings.precision?'Up to '+numberSettings.precision+' dp':'Whole numbers')+' · '+(numberSettings.left||'2–4')+' / '+(numberSettings.right||'1–2')+' numbers</div><div class="gd-number-settings"><div class="gd-section-title">Question settings</div>'+
+ const setControls='<div data-mc-set-controls class="gd-mc-set-controls">'+field('Questions','<select class="gd-select" id="mc-question-count">'+Array.from({length:10},(_,i)=>i+1).map(n=>'<option value="'+n+'"'+(n===questionCount?' selected':'')+'>'+n+(n===5?' · 5 a day':'')+'</option>').join('')+'</select>')+field('Layout','<select class="gd-select" id="mc-set-layout">'+[['auto','Auto'],['one','One column'],['two','Two columns']].map(([v,t])=>'<option value="'+v+'"'+(v===setLayout?' selected':'')+'>'+t+'</option>').join('')+'</select>')+'</div>';
+ return setControls+'<div data-mc-settings-summary class="gd-number-settings-summary">'+esc(numberSettings.ops.join('  ')||'No operations')+' · '+numberSettings.min+' to '+numberSettings.max+' · '+(numberSettings.precision?'Up to '+numberSettings.precision+' dp':'Whole numbers')+' · '+(numberSettings.left||'2–4')+' / '+(numberSettings.right||'1–2')+' numbers</div><div class="gd-number-settings"><div class="gd-section-title">Question settings</div>'+
  field('Preset','<select class="gd-select" id="mc-difficulty">'+[['easy','Easy'],['medium','Medium'],['hard','Hard'],['custom','Custom']].map(([v,t])=>'<option value="'+v+'"'+(difficulty===v?' selected':'')+'>'+t+'</option>').join('')+'</select>')+
  toggles('ops',N.OPS,'Allowed operations')+toggles('relations',N.REL,'Allowed comparison symbols')+toggles('extras',N.EXTRAS,'Additional question types')+
  '<div class="gd-number-settings-pair">'+options('mc-min','Smallest number',[-100,-20,-10,0,1,2,5,10,20,50,100,200,500,1000].filter(v=>v<numberSettings.max).map(v=>[v,String(v)]),numberSettings.min)+options('mc-max','Largest number',[10,20,50,100,200,500,1000,10000].filter(v=>v>numberSettings.min).map(v=>[v,String(v)]),numberSettings.max)+'</div>'+
@@ -4318,8 +4387,9 @@ function controlsHtml(){return workflowTabs()+(workflow==='challenge'&&N?challen
 function renderControls(){q('#gd-controls').innerHTML=controlsHtml();bindControls()}
 function bindControls(){
 const controls=q('#gd-controls');if(!controls)return;
-qa('[data-mc-workflow]',controls).forEach(button=>button.onclick=()=>{workflow=button.dataset.mcWorkflow;exportStatus='';if(workflow==='build'||workflow==='task'){challenge=null;exportMode='canvas'}renderControls();controller?.refresh()});
+qa('[data-mc-workflow]',controls).forEach(button=>button.onclick=()=>{workflow=button.dataset.mcWorkflow;exportStatus='';if(workflow==='build'||workflow==='task'){challenge=null;batch=[];batchScope='';batchType='';exportMode='canvas'}renderControls();controller?.refresh()});
 if(workflow==='challenge'&&N){
+ const count=q('#mc-question-count',controls),layout=q('#mc-set-layout',controls);if(count)count.onchange=()=>{questionCount=Math.max(1,Math.min(10,Math.round(Number(count.value)||1)));renderControls()};if(layout)layout.onchange=()=>{setLayout=['auto','one','two'].includes(layout.value)?layout.value:'auto';renderControls();controller?.refresh()};
  const level=q('#mc-difficulty',controls);if(level)level.onchange=()=>{difficulty=level.value;if(difficulty!=='custom')numberSettings=N.settings({},difficulty);generationError='';renderControls()};
  const change=()=>{difficulty='custom';numberSettings=N.settings(numberSettings,difficulty);generationError='';renderControls()};
  qa('[data-mc-setting]',controls).forEach(el=>el.onchange=()=>{numberSettings[el.dataset.mcSetting]=Number(el.value);change()});
@@ -4353,7 +4423,7 @@ getCanvas:()=>q('#mc-canvas'),
 getActionRoot:()=>q('#gd-stage'),
 render:draw,
 canAction:()=>!challenge,
-afterRender:()=>{if(!challenge)return;const stage=q('#gd-stage');const another=q('[data-challenge-action="another"]',stage),exit=q('[data-challenge-action="end"]',stage),reveal=q('[data-board-action="reveal"]',stage);if(another)another.onclick=()=>{const pool=N.available(numberSettings,difficulty).flatMap(g=>g.ids);generateNumberChallenge(pool.includes(challenge.type)?challenge.type:pool[0]||challenge.type)};if(exit)exit.onclick=exitNumberChallenge;if(reveal)reveal.onclick=()=>{challenge.revealed=!challenge.revealed;controller.refresh()}},
+afterRender:()=>{if(!challenge)return;const stage=q('#gd-stage');if(batch.length>1){bindBatch(stage);return}const another=q('[data-challenge-action="another"]',stage),exit=q('[data-challenge-action="end"]',stage),reveal=q('[data-board-action="reveal"]',stage);if(another)another.onclick=()=>{const pool=N.available(numberSettings,difficulty).flatMap(g=>g.ids);generateNumberChallenge(pool.includes(challenge.type)?challenge.type:pool[0]||challenge.type)};if(exit)exit.onclick=exitNumberChallenge;if(reveal)reveal.onclick=()=>{challenge.revealed=!challenge.revealed;controller.refresh()}},
 snap:()=>grid?20:1,
 nudgeStep:()=>grid?20:1,
 constrain:constrainTile,
@@ -4379,8 +4449,8 @@ onSelectionChange:item=>{
 });
 bindControls();
 controller.refresh();
-G.lessonState?.register('maths-canvas',()=>({diagram:stateSnapshot(),workflow,taskTitle,taskPrompt,exportMode,responseLines,difficulty,numberSettings,challenge,pupil:CK?.capturePupil?.(challenge)}),saved=>{
- restoreState(saved.diagram);difficulty=['easy','medium','hard','custom'].includes(saved.difficulty)?saved.difficulty:'medium';numberSettings=N.settings(saved.numberSettings||{},difficulty);generationError='';challenge=saved.challenge&&N?.titles[saved.challenge.type]?CK.normalise(saved.challenge):null;CK?.restorePupil?.(challenge,saved.pupil);workflow=saved.workflow==='challenge'&&!N?'build':saved.workflow;taskTitle=String(saved.taskTitle||'');taskPrompt=String(saved.taskPrompt||'');exportMode=saved.exportMode;responseLines=saved.responseLines;
+G.lessonState?.register('maths-canvas',()=>({diagram:stateSnapshot(),workflow,taskTitle,taskPrompt,exportMode,responseLines,difficulty,numberSettings,challenge,questionCount,setLayout,batch,batchScope,batchType,pupil:CK?.capturePupil?.(challenge)}),saved=>{
+ restoreState(saved.diagram);questionCount=Math.max(1,Math.min(10,Math.round(Number(saved.questionCount)||1)));setLayout=['auto','one','two'].includes(saved.setLayout)?saved.setLayout:'auto';batch=Array.isArray(saved.batch)?saved.batch.slice(0,10).filter(item=>item?.question?.tiles&&N.titles[item.question.type]).map(item=>({...item,value:String(item.value||''),feedback:String(item.feedback||'')})):[];if(batch.length<2)batch=[];batchScope=String(saved.batchScope||'');batchType=String(saved.batchType||'');difficulty=['easy','medium','hard','custom'].includes(saved.difficulty)?saved.difficulty:'medium';numberSettings=N.settings(saved.numberSettings||{},difficulty);generationError='';challenge=saved.challenge&&N?.titles[saved.challenge.type]?CK.normalise(saved.challenge):null;if(!challenge)batch=[];CK?.restorePupil?.(challenge,saved.pupil);workflow=saved.workflow==='challenge'&&!N?'build':saved.workflow;taskTitle=String(saved.taskTitle||'');taskPrompt=String(saved.taskPrompt||'');exportMode=saved.exportMode;responseLines=saved.responseLines;
  q('#gd-controls').innerHTML=controlsHtml();bindControls();controller.refresh();
 });
 }
