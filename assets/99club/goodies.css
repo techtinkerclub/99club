@@ -1819,3 +1819,12 @@ html.gd-embed-page,body.gd-embed-page{margin:0!important;width:100%!important;he
 .gd-clock-differences .gd-readout{grid-template-columns:minmax(0,1fr) max-content;gap:8px;align-items:center}
 .gd-clock-differences .gd-readout strong{white-space:nowrap;font-variant-numeric:tabular-nums}
 .gd-clock-differences .gd-readout span{min-width:0;overflow-wrap:anywhere}
+
+
+/* Shared floating number tile palette. Hidden source is only used by the board proxy. */
+.gd-mc-stage-palette[hidden]{display:none!important}
+.gd-mc-stage-palette:has(.gd-mc-palette-close){padding-top:30px}
+.gd-mc-palette-close{position:absolute;top:3px;right:4px;min-width:24px!important;width:24px!important;height:24px!important;border:0!important;background:transparent!important;font-size:18px!important}
+.gd-board-floating-controls.is-money-palette .gd-mc-stage-palette{position:static!important;inset:auto!important;transform:none!important;display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:5px;width:100%;padding:4px;border:0;background:transparent;box-shadow:none;box-sizing:border-box}
+.gd-board-floating-controls .gd-mc-stage-palette button{width:100%;min-width:0;height:42px;border:1px solid #cbd8da;border-radius:9px;background:#e6f4f1;color:#304b52;font:inherit;font-weight:850;cursor:pointer;touch-action:manipulation}
+.gd-board-floating-controls .gd-mc-stage-palette button.is-symbol{background:#fff3ce}
