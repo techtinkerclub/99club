@@ -571,6 +571,17 @@ function nlRenderer(state,embedded=true){
 function nlGenerate(type,settings={},rng=Math.random){
  const cfg=nlSettings(settings),state=normalise({...cfg,title:'',lines:[],challenge:null});
  const template=templatesFor(state).find(t=>t.id===type&&!t.disabled);if(!template)throw Error('This challenge needs a different number-line range.');
+ // Scale-reading tasks need more than one paper question even when a teacher
+ // fixes the outer range. Choose a subinterval and an integer tick multiple.
+ if(['interval-value','error-scale','marks-vs-spaces'].includes(type)){
+   const count=Math.round((state.max-state.min)/state.step);
+   if(count>=4){
+     const strides=[1,2,3,4,5].filter(k=>Math.floor(count/k)>=3),stride=strides[Math.floor(rng()*strides.length)];
+     const available=Math.floor(count/stride),length=3+Math.floor(rng()*(available-2)),offset=Math.floor(rng()*(count-length*stride+1));
+     state.min=cleanNumber(state.min+offset*state.step);state.step=cleanNumber(state.step*stride);state.max=cleanNumber(state.min+length*state.step);
+   }
+ }
+
  function tickRef(id,v){return String(id)+':'+fmt(v)}
  function xStart(){return 76}
  function xEnd(){return 940}
@@ -809,7 +820,7 @@ function nlGenerate(type,settings={},rng=Math.random){
 
     }else if(type==='error-scale'){
       endpointLabelsOnly();
-      let wrong=cleanNumber(state.step*2);if(Math.abs(wrong-state.step)<1e-10)wrong=cleanNumber(state.step+1);
+      let wrong=cleanNumber(state.step*[.5,2,3,5][Math.floor(rng()*4)]);if(Math.abs(wrong-state.step)<1e-10)wrong=cleanNumber(state.step+1);
       state.challenge=challengeObject(type,'A pupil says each interval is worth '+fmt(wrong)+'. Are they correct?','No. Each interval is '+fmt(state.step)+'.',{claimedInterval:wrong});
 
     }else if(type==='marks-vs-spaces'){
