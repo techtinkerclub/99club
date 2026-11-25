@@ -244,13 +244,64 @@ function positionFloatingControls(){
   floatingControls.style.left=floatingControlX+'px';floatingControls.style.top=floatingControlY+'px';
 }
 function sourceControls(obj){return innerDocument(obj)?.getElementById('gd-controls')||null}
+// The frame launcher is deliberately not a clone of the full settings panel.
+// Keep proxy identities, so every action runs through its native widget engine.
+function compactChallengeControls(clone,obj){
+  const doc=clone.ownerDocument,wrap=doc.createElement('div');wrap.className='gd-board-challenge-launcher';
+  const picker=clone.querySelector('.gd-challenge-picker');
+  const native=clone.querySelector('[data-gd-native-prefix]');
+  const label=(text)=>{const node=doc.createElement('div');node.className='gd-launch-label';node.textContent=text;return node};
+  function addButton(button,cls){if(!button)return;button.classList.add(cls);wrap.appendChild(button)}
+  if(picker){
+    const all=picker.querySelector('[data-gd-random-scope="all"]');
+    const category=picker.querySelector('[data-gd-random-scope]:not([data-gd-random-scope="all"])');
+    const chips=picker.querySelector('.gd-challenge-chips'),cards=picker.querySelector('.gd-challenge-cards');
+    addButton(all,'gd-launch-all');
+    wrap.appendChild(label('Choose a category'));
+    if(chips)wrap.appendChild(chips);
+    if(category){category.textContent='Random · '+(chips?.querySelector('.is-active')?.textContent.trim()||'this category');addButton(category,'gd-launch-category-random')}
+    wrap.appendChild(label('Or choose a question'));
+    if(cards){
+      cards.querySelectorAll('.gd-challenge-card').forEach(card=>{
+        const desc=card.querySelector('span');if(desc){card.title=desc.textContent;desc.remove()}
+        card.removeAttribute('aria-selected');card.classList.remove('is-selected');
+      });
+      wrap.appendChild(cards);
+    }
+  }else if(native){
+    const groups=JSON.parse(native.dataset.gdNativeGroups||'[]'),prefix=native.dataset.gdNativePrefix;
+    const selected=Math.max(0,Math.min(groups.length-1,Number(obj.launcherCategory)||0));
+    addButton(native.querySelector('[data-gd-native-random="all"]'),'gd-launch-all');
+    wrap.appendChild(label('Choose a category'));
+    const chips=doc.createElement('div');chips.className='gd-challenge-chips';
+    groups.forEach((group,index)=>{const chip=doc.createElement('button');chip.type='button';chip.className='gd-challenge-chip'+(index===selected?' is-active':'');chip.dataset.boardLauncherCategory=String(index);chip.textContent=group.label;chip.setAttribute('aria-pressed',String(index===selected));chips.appendChild(chip)});
+    wrap.appendChild(chips);
+    addButton(native.querySelector('[data-gd-native-random="'+selected+'"]'),'gd-launch-category-random');
+    wrap.appendChild(label('Or choose a question'));
+    const cards=doc.createElement('div');cards.className='gd-challenge-cards';
+    for(const button of clone.querySelectorAll('[data-'+prefix+'-challenge-mode]')){
+      if(!groups[selected]?.ids.includes(button.getAttribute('data-'+prefix+'-challenge-mode')))continue;
+      button.classList.remove('gd-btn--primary');button.classList.add('gd-launch-native-type');cards.appendChild(button)
+    }
+    wrap.appendChild(cards);
+  }else if(clone.querySelector('#ab-history-challenge')){
+    const button=clone.querySelector('#ab-history-challenge');button.textContent='Random challenge';addButton(button,'gd-launch-all');
+  }else{
+    // An authored custom task can remain intact while its standard tab is reopened.
+    const standard=clone.querySelector('.gd-challenge-tab:not(.is-active)[data-board-control-index]');
+    if(standard&&/standard/i.test(standard.textContent)){standard.textContent='Browse standard challenges';addButton(standard,'gd-launch-all')}
+    else wrap.appendChild(label('Challenge options are available in settings.'));
+  }
+  const advanced=doc.createElement('button');advanced.type='button';advanced.className='gd-launch-settings';advanced.dataset.boardLauncherSettings='1';advanced.textContent='Challenge settings';wrap.appendChild(advanced);
+  return wrap;
+}
 function renderFloatingControls(obj){
   if(floatingPanelMode==='help')return;
   if(!floatingControls||!floatingControlsBody||!obj||!obj.settingsOpen||floatingControlObjectId!==obj.id)return;
   const source=sourceControls(obj);if(!source)return;
   if(floatingControls)floatingControls.dataset.tool=obj.toolId||'';
   const sourceInputs=[...source.querySelectorAll(CONTROL_SELECTOR)];
-  const clone=source.cloneNode(true);
+  let clone=source.cloneNode(true);
   clone.removeAttribute('id');clone.removeAttribute('aria-hidden');clone.classList.add('gd-board-controls-proxy');
   // Stamp identity on the complete clone BEFORE pruning controls.
   // Array offsets after pruning are not equivalent to the source positions.
@@ -267,6 +318,9 @@ function renderFloatingControls(obj){
   }
   if(obj.toolId==='abacus'&&floatingPanelMode!=='challenge')clone.querySelectorAll('[data-ab-workflow="challenge"],[data-ab-workflow="export"]').forEach(n=>n.remove());
   clone.querySelectorAll('#nl-fullscreen,.gd-embed-workflow-hidden[id$="-fullscreen"]').forEach(node=>node.remove());
+  const compact=floatingPanelMode==='challenge';
+  floatingControls.classList.toggle('is-challenge-launcher',compact);
+  if(compact)clone=compactChallengeControls(clone,obj);
   // Use a signature that includes property values (not just innerHTML).
   const signature=JSON.stringify([obj.id,floatingPanelMode,clone.innerHTML,sourceInputs.map(n=>[n.value,n.checked,n.disabled,n.isContentEditable?n.innerHTML:null])]);
   const structure=JSON.stringify(sourceInputs.map(n=>[n.tagName,n.id,n.type,n.name,{...n.dataset},n.tagName==='BUTTON'?n.textContent:null]));
@@ -282,7 +336,7 @@ function renderFloatingControls(obj){
   floatingControlSignature=signature;
   floatingControlsBody.scrollTop=scroll;
   const tool=tools.find(t=>t.id===obj.toolId);
-  if(floatingControlsTitle)floatingControlsTitle.textContent=(tool?.title||'Manipulative')+(floatingPanelMode==='challenge'?' · Challenge':' settings');
+  if(floatingControlsTitle)floatingControlsTitle.textContent=(tool?.title||'Manipulative')+(floatingPanelMode==='challenge'?' · Challenge':floatingPanelMode==='challenge-settings'?' · Challenge settings':' settings');
   floatingControls.hidden=false;
   requestAnimationFrame(positionFloatingControls);
 }
@@ -290,7 +344,7 @@ function renderFloatingHelp(obj,data){
   if(!floatingControls||!floatingControlsBody||!obj||!data)return;
   floatingPanelMode='help';floatingHelpData=data;floatingControlSignature='';floatingControlSources=[];floatingControlStructure='';
   if(floatingControls)floatingControls.dataset.tool=obj.toolId||'';
-  floatingControls.classList.add('is-help');
+  floatingControls.classList.remove('is-challenge-launcher');floatingControls.classList.add('is-help');
   floatingControlsBody.replaceChildren();
   const wrap=document.createElement('div');wrap.className='gd-board-help-panel';
   const intro=document.createElement('p');intro.className='gd-board-help-intro';intro.textContent=String(data.intro||'');wrap.appendChild(intro);
@@ -338,7 +392,8 @@ function refreshFloatingControls(obj,delay=0){
 function openFloatingControls(obj,mode='settings'){
   if(!obj)return;
   floatingHelpData=null;floatingControls?.classList.remove('is-help');
-  floatingPanelMode=mode==='challenge'?'challenge':'settings';
+  floatingPanelMode=mode==='challenge'||mode==='challenge-settings'?mode:'settings';
+  floatingControls?.classList.toggle('is-challenge-launcher',floatingPanelMode==='challenge');
   if(obj.toolId==='place-value'&&floatingPanelMode==='settings'){
     const source=sourceControls(obj),active=source?.querySelector('[data-pv-workflow].gd-btn--primary')?.dataset?.pvWorkflow;
     if(active==='challenge'||active==='export')source?.querySelector('[data-pv-workflow="setup"]')?.click();
@@ -353,13 +408,17 @@ function openFloatingControls(obj,mode='settings'){
   floatingControlObjectId=obj.id;obj.settingsOpen=true;
   const frame=frameFor(obj.id);frame?.classList.add('has-settings');
   const tool=tools.find(t=>t.id===obj.toolId);
-  if(floatingControlsTitle)floatingControlsTitle.textContent=(tool?.title||'Manipulative')+(floatingPanelMode==='challenge'?' · Challenge':' settings');
+  if(floatingControlsTitle)floatingControlsTitle.textContent=(tool?.title||'Manipulative')+(floatingPanelMode==='challenge'?' · Challenge':floatingPanelMode==='challenge-settings'?' · Challenge settings':' settings');
   if(floatingControls)floatingControls.hidden=false;
   const rect=frame?.getBoundingClientRect(),host=board.getBoundingClientRect();
-  if(rect&&!floatingControlMoved){
+  if(rect&&(floatingPanelMode==='challenge'||!floatingControlMoved)){
+    const trigger=floatingPanelMode==='challenge'?frame.querySelector('[data-board-inner-action][aria-label="Choose a challenge"]'):null;
+    if(trigger){const tr=trigger.getBoundingClientRect();floatingControlX=tr.right-host.left-320;floatingControlY=tr.bottom-host.top+8}
+    else{
     const preferredX=Math.min(board.clientWidth-330,Math.max(58,rect.right-host.left+14));
     const preferredY=Math.max(12,Math.min(board.clientHeight-280,rect.top-host.top));
     floatingControlX=preferredX;floatingControlY=preferredY;
+    }
   }
   positionFloatingControls();
   renderFloatingControls(obj);
@@ -370,7 +429,7 @@ function closeFloatingControls(id=null){
   if(target){target.settingsOpen=false;frameFor(target.id)?.classList.remove('has-settings')}
   if(id==null||String(floatingControlObjectId)===String(id)){
     floatingControlObjectId=null;floatingHelpData=null;floatingPanelMode='settings';floatingControlSources=[];floatingControlSignature='';floatingControlStructure='';
-    if(floatingControls){floatingControls.classList.remove('is-help');delete floatingControls.dataset.tool;floatingControls.hidden=true;floatingControlsBody?.replaceChildren()}
+    if(floatingControls){floatingControls.classList.remove('is-help','is-challenge-launcher');delete floatingControls.dataset.tool;floatingControls.hidden=true;floatingControlsBody?.replaceChildren()}
   }
 }
 function floatingOriginal(index){
@@ -781,6 +840,7 @@ function bindObject(obj){
     const target=action&&innerTarget(obj,action.selector,!!action.allowHidden);
     if(target){
       if(action.panelMode){
+        if(obj.settingsOpen&&floatingControlObjectId===obj.id&&floatingPanelMode==='challenge'){closeFloatingControls(obj.id);return}
         if(!action.skipClickSelector||!target.matches(action.skipClickSelector)){const active=target.classList.contains('gd-btn--primary')||target.classList.contains('is-active')||target.getAttribute('aria-selected')==='true';if(!active)target.click()}
         setTimeout(()=>{sendSettings(obj,true,action.panelMode);syncQuickActions(obj)},0);
       }else if(action.openSettings){
@@ -809,13 +869,16 @@ function bindObject(obj){
 
 if(floatingControlsBody){
   floatingControlsBody.addEventListener('click',e=>{
+    const launcherAction=e.target.closest('[data-board-launcher-settings],[data-board-launcher-category]');
+    if(launcherAction){e.preventDefault();e.stopPropagation();const obj=objectById(floatingControlObjectId);if(!obj)return;if(launcherAction.hasAttribute('data-board-launcher-settings'))openFloatingControls(obj,'challenge-settings');else{obj.launcherCategory=Number(launcherAction.dataset.boardLauncherCategory);renderFloatingControls(obj)}return}
     const control=e.target.closest('[data-board-control-index]');if(!control)return;
     if(control.tagName!=='BUTTON'&&!(control.tagName==='INPUT'&&/^(button|submit|reset)$/i.test(control.type||'')))return;
     e.preventDefault();e.stopPropagation();
     const {obj,node}=floatingOriginal(control.dataset.boardControlIndex);if(!obj||!node)return;
     const launch=node.matches('[data-gd-random-scope],[data-gd-native-random],[data-pv-challenge-mode],[data-ab-challenge-mode],#ab-history-challenge,[id$="-generate"]');
-    node.click();
-    if(launch&&floatingPanelMode==='challenge')closeFloatingControls(obj.id);
+    const specific=floatingPanelMode==='challenge'&&[...node.attributes].find(a=>/^-?data-[a-z0-9-]+-challenge-type$/.test(a.name));
+    if(specific){const prefix=specific.name.slice(5,-15);node.click();const generate=sourceControls(obj)?.querySelector('#'+prefix+'-generate');if(generate&&!generate.disabled){generate.click();closeFloatingControls(obj.id)}}
+    else{node.click();if(launch&&floatingPanelMode==='challenge')closeFloatingControls(obj.id)}
     setTimeout(()=>{syncQuickActions(obj);refreshFloatingControls(obj)},0);
   });
   const forwardValue=e=>{
