@@ -10,15 +10,16 @@ const html=`<!doctype html><html><head><meta charset="utf-8"><meta name="viewpor
 function A(v,m){if(!v)throw new Error(m)}function T(ms=0){return new Promise(r=>setTimeout(r,ms))}async function W(fn,n=320,d=30){for(let i=0;i<n;i++){const v=fn();if(v)return v;await T(d)}return null}function S(){return document.getElementById('gd-stage')}function M(){return S()?.querySelector('.gd-number-mobile-workbench')||null}function R(s,m,d=''){const e=document.getElementById('nmb-v12-result');e.dataset.status=s;e.dataset.message=m||'';e.dataset.detail=d||'';e.textContent=s+': '+m}function labels(actions){return[...actions.querySelectorAll('button')].map(x=>x.textContent.trim())}
 function beamRotation(){const beam=M()?.querySelector('.gd-eq-beam');if(!beam)return NaN;const t=getComputedStyle(beam).transform;if(!t||t==='none')return 0;try{const m=new DOMMatrixReadOnly(t);return Math.atan2(m.b,m.a)*180/Math.PI}catch(_){return NaN}}
 async function tidyGeometry(){
+  let diagnostic={};
   const ready=await W(()=>{
     const b=S()?.querySelector('.gd-challenge-banner'),actions=b?.querySelector('.gd-challenge-actions');if(!b||!actions)return null;
-    const l=labels(actions);if(!(l.includes('Change')&&l.includes('Another')&&l.includes('Reveal')&&l.includes('Exit')))return null;
-    const bs=getComputedStyle(b),as=getComputedStyle(actions);if(bs.display!=='flex'||bs.flexDirection!=='column'||as.position!=='static')return null;
-    const prompt=b.querySelector('.gd-challenge-prompt'),rr=prompt?.getBoundingClientRect(),br=b.getBoundingClientRect(),ar=actions.getBoundingClientRect();if(!rr||ar.top<rr.bottom-1||ar.bottom>br.bottom+2)return null;
-    const panel=S()?.querySelector('.nmb-v8-response-panel'),pr=panel?.getBoundingClientRect();if(!panel||pr.top<br.bottom+2)return null;
+    const l=labels(actions);diagnostic={labels:l};if(!(l.includes('Change')&&l.includes('Another')&&l.some(x=>/^Reveal(?: answer)?$/i.test(x))&&l.some(x=>/^Exit(?: challenge)?$/i.test(x))))return null;
+    const bs=getComputedStyle(b),as=getComputedStyle(actions);Object.assign(diagnostic,{display:bs.display,direction:bs.flexDirection,position:as.position});if(bs.display!=='flex'||bs.flexDirection!=='column'||as.position!=='static')return null;
+    const prompt=b.querySelector('.gd-challenge-prompt'),rr=prompt?.getBoundingClientRect(),br=b.getBoundingClientRect(),ar=actions.getBoundingClientRect();Object.assign(diagnostic,{promptBottom:rr?.bottom,actionsTop:ar.top,actionsBottom:ar.bottom,bannerBottom:br.bottom});if(!rr||ar.top<rr.bottom-1||ar.bottom>br.bottom+2)return null;
+    const panel=S()?.querySelector('.nmb-v8-response-panel'),pr=panel?.getBoundingClientRect();diagnostic.responseTop=pr?.top;if(!panel||pr.top<br.bottom+2)return null;
     return{b,actions,panel};
   },160,25);
-  A(ready,'Current challenge uses a vertical contained header with Change / Another / Reveal / Exit before pupil interaction');
+  A(ready,'Current challenge uses a vertical contained header with Change / Another / Reveal / Exit before pupil interaction: '+JSON.stringify(diagnostic));
   return ready;
 }
 async function run(){

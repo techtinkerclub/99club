@@ -29,6 +29,8 @@ window.scrollTo=function(){};
 <script src="/assets/99club/goodies-number-line-v6.js"></script>
 <script src="/assets/99club/goodies-tools-b.js"></script>
 <script src="/assets/99club/goodies-sequences.js"></script>
+<script src="/assets/99club/goodies-written-methods.js"></script>
+<script src="/assets/99club/goodies-column-methods.js"></script>
 <script src="/assets/99club/goodies-app.js"></script>
 <script>
 (function(){
@@ -171,7 +173,7 @@ window.scrollTo=function(){};
       checkLayout(id,'generated challenge');
       return true;
     }
-    const generate=['sequences','maths-canvas'].includes(id)?controls.querySelector('[data-gd-native-prefix="'+(id==='sequences'?'seq':'mc')+'"] [data-gd-native-random="all"]'):[...controls.querySelectorAll('button')].find(b=>/^(Generate challenge|Another like this)$/.test((b.textContent||'').trim()));
+    const generate=['sequences','maths-canvas','column-addition','column-subtraction','written-multiplication','written-division'].includes(id)?controls.querySelector('[data-gd-native-prefix="'+(id==='sequences'?'seq':(id.startsWith('column-')||id.startsWith('written-'))?'wm':'mc')+'"] [data-gd-native-random="all"]'):[...controls.querySelectorAll('button')].find(b=>/^(Generate challenge|Another like this)$/.test((b.textContent||'').trim()));
     assert(generate,id+' challenge controls expose a direct generate action');
     generate.click();await tick();await tick();
     let banner=stage.querySelector('.gd-challenge-banner');

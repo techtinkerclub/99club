@@ -6,7 +6,7 @@ const adapters=new Map(),copy=v=>JSON.parse(JSON.stringify(v));
 const PAGE_W=960,PAGE_H=Math.round(PAGE_W*265/182);
 // These diagrams contain labels pupils must actually read, not decorative
 // detail. Prefer a larger diagram and an extra page to unreadable print.
-const DENSE_DIAGRAMS=new Set(['sequences','abacus','place-value','number-line','hundred-square','multiplication-grid','array-builder','money','coordinates','measurement','geoboard']);
+const DENSE_DIAGRAMS=new Set(['written-division','written-multiplication','column-addition','column-subtraction','sequences','abacus','place-value','number-line','hundred-square','multiplication-grid','array-builder','money','coordinates','measurement','geoboard']);
 function register(tool,adapter){adapters.set(tool,adapter)}
 function supports(tool){return adapters.has(tool)}
 function canGenerate(tool){return supports(tool)&&typeof adapters.get(tool).generate==='function'}
@@ -303,17 +303,20 @@ function pages(items,{title='Maths practice',teacher=false}={}){
 
 // Automatic and live capture share the same document and immutable recipes.
 const BUILDER_CATALOG=[
- ['maths-canvas','Arithmetic'],['sequences','Sequences & rules'],['abacus','Abacus'],['place-value','Place value'],
+ ['written-division','Written division'],['written-multiplication','Written multiplication'],['column-addition','Column addition'],['column-subtraction','Column subtraction'],['maths-canvas','Arithmetic'],['sequences','Sequences & rules'],['abacus','Abacus'],['place-value','Place value'],
  ['number-line','Number line'],['fraction-wall','Fraction wall'],['bar-model','Bar model'],['hundred-square','Hundred square'],['multiplication-grid','Multiplication grid'],['array-builder','Array builder'],['clock','Clock & time'],['money','UK money'],['coordinates','Coordinate grid'],['measurement','Ruler & measures'],['randomiser','Dice, spinner & randomiser'],['balance','Equation balance'],['times-table','Times-table visualiser'],['factors','Factors & multiples'],['fdp','Fraction–decimal–percentage'],['geoboard','Shape & geoboard']
 ];
 const BUILDER_GROUPS=[
- ['Number & calculation',['maths-canvas','sequences','abacus','place-value','number-line','hundred-square','balance']],
- ['Multiplication & division',['multiplication-grid','array-builder','times-table','factors']],
+ ['Number & calculation',['column-addition','column-subtraction','maths-canvas','sequences','abacus','place-value','number-line','hundred-square','balance']],
+ ['Multiplication & division',['written-division','written-multiplication','multiplication-grid','array-builder','times-table','factors']],
  ['Fractions & proportions',['fraction-wall','bar-model','fdp']],
  ['Geometry & measurement',['geoboard','coordinates','measurement','clock','money']],
  ['Other classroom tools',['randomiser']]
 ];
 function defaults(tool){
+ if(tool==='written-division')return {year:6,remainders:'any'};
+ if(tool==='written-multiplication')return {year:5};
+ if(tool==='column-addition'||tool==='column-subtraction')return {year:4};
  if(tool==='maths-canvas')return {difficulty:'medium',curriculumProfile:'custom',numberSettings:G.numberChallenges.settings({},'medium'),workingLines:0};
  if(tool==='sequences')return {settings:{family:'all',difficulty:'medium'}};
  if(tool==='abacus')return {kind:'western',rows:5,colourScheme:'classic',showRowLabels:true};
@@ -377,6 +380,9 @@ function openEditor(draft,{mode='review'}={}){
      return '<div class="gd-pub-fields">'+select('Curriculum','curriculumProfile',N.curriculumProfiles.map(x=>[x.id,x.label]),m.curriculumProfile)+select('Difficulty','difficulty',levels,m.difficulty)+select('Minimum','numberSettings.min',[-100,-20,-10,0,1,2,5,10,20,50,100,200,500,1000].filter(x=>x<n.max),n.min)+select('Maximum','numberSettings.max',[10,20,50,100,200,500,1000,10000].filter(x=>x>n.min),n.max)+select('Precision','numberSettings.precision',[[0,'Whole numbers'],[1,'1 decimal place'],[2,'2 decimal places']],n.precision)+select('Working space','workingLines',[[0,'None'],[2,'2 lines'],[4,'4 lines']],m.workingLines)+select('Left terms','numberSettings.left',[[0,'Automatic'],1,2,3,4],n.left)+select('Right terms','numberSettings.right',[[0,'Automatic'],1,2,3,4],n.right)+select('Max denominator','numberSettings.denominator',[4,6,8,10,12,20],n.denominator)+'</div>'+checks('Operations','ops',N.OPS,n.ops)+checks('Comparisons','relations',['=','<','>'],n.relations)+checks('Extensions','extras',['Brackets','Powers','Remainders'],n.extras)+
      '<details class="gd-pub-details"'+(block.topicsOpen?' open':'')+' data-pub-topics><summary>Optional arithmetic topics ('+n.topics.length+')</summary><div class="gd-pub-check-grid">'+N.topics.map(o=>'<label><input type="checkbox" data-pub-array="topics" value="'+esc(o.id)+'"'+(n.topics.includes(o.id)?' checked':'')+'>'+esc(o.label)+'</label>').join('')+'</div></details>';
    }
+   if(t==='written-division')return '<div class="gd-pub-fields">'+select('Year group','year',[[3,'Year 3'],[4,'Year 4'],[5,'Year 5'],[6,'Year 6']],m.year)+select('Remainders','remainders',[['any','Mixed'],['exact','Exact division'],['with','With remainders']],m.remainders)+'</div><p class="gd-help">Short or long division under Question types. Long division is available in Year 6.</p>';
+   if(t==='written-multiplication')return '<div class="gd-pub-fields">'+select('Year group','year',[[3,'Year 3'],[4,'Year 4'],[5,'Year 5'],[6,'Year 6']],m.year)+'</div><p class="gd-help">Select short or long multiplication in Question types. Long multiplication is available from Year 5.</p>';
+   if(t==='column-addition'||t==='column-subtraction')return '<div class="gd-pub-fields">'+select('Year group','year',[[3,'Year 3'],[4,'Year 4'],[5,'Year 5'],[6,'Year 6']],m.year)+'</div><p class="gd-help">Choose exchange requirements under Question types. Pupil sheets include a place-value grid and blank working.</p>';
    if(t==='sequences')return '<div class="gd-pub-fields">'+select('Rule family','settings.family',[['all','All families'],['constant','Constant difference'],['increasing','Changing difference'],['geometric','Multiplication'],['alternating','Alternating']],m.settings.family)+select('Difficulty','settings.difficulty',levels,m.settings.difficulty)+'</div>';
    if(t==='abacus')return '<div class="gd-pub-fields">'+select('Instrument','kind',[['western','Western abacus'],['soroban','Soroban'],['suanpan','Suanpan'],['reckoning','Reckoning table'],['rods','Counting rods'],['napier','Napier’s bones'],['slide','Slide rule'],['pascaline','Pascaline']],m.kind)+select('Places','rows',[3,4,5,6],m.rows)+select('Colours','colourScheme',['classic','place','sea','berry','forest'],m.colourScheme)+'</div>';
    if(t==='measurement')return '<div class="gd-pub-fields">'+select('Precision','precision',[['tenth','Millimetres (0.1 cm)'],['whole','Whole centimetres']],m.precision)+select('Maximum length','maxCm',[[10,'10 cm'],[20,'20 cm'],[30,'30 cm']],m.maxCm)+select('Answer space','responseLines',[[1,'Answer box'],[2,'2 lines'],[3,'3 lines'],[4,'4 lines']],m.responseLines)+'</div><p class="gd-help">Labelled ruler extracts are diagrams, not physical-size rulers. Placement tasks use the scale itself for the answer.</p>';

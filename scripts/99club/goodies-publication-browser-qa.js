@@ -12,7 +12,7 @@ if(process.argv[2]==='prepare'){
    const results=[],warnings=[],issues=[],clipping=[];
    let seed=42137;const rng=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
    const catalog=P.catalogue();
-   assert(catalog.length===20&&catalog.every(x=>P.supports(x.id)),'All 20 widgets must have publishing adapters');
+   assert(catalog.length===24&&catalog.every(x=>P.supports(x.id)),'All 24 widgets must have publishing adapters');
    const vb=svg=>svg.getAttribute('viewBox').split(/\s+/).map(Number);
    function checkPage(svg,tool,kind){
      const [x,y,w,h]=vb(svg);
@@ -95,6 +95,34 @@ if(process.argv[2]==='prepare'){
    }
    assert(warnings.length===0,'Historical samples also retain readable text');
    assert(clipping.length===0,'Historical samples have no page clipping');
+   for(const [method,a,b] of [['addition',999,1],['subtraction',1000,1]]){
+     const m=G.writtenMethods.calculate(method,a,b),blank=G.columnMethods.diagram(m,{step:0,work:true}),solved=G.columnMethods.diagram(m,{step:m.steps.length});
+     assert(!blank.querySelector('[data-wm-result],[data-wm-exchange],[data-wm-carry]'),'Pupil grid has no worked answer or exchange annotations');
+     assert(solved.querySelectorAll('[data-wm-result]').length===m.result.length,'Teacher graphic contains all result digits');
+     assert(solved.querySelector(method==='addition'?'[data-wm-carry]':'[data-wm-exchange]'),'Teacher diagram includes exchanges');
+   }
+   {
+     const m=G.writtenMethods.calculate('long-multiplication',247,36),blank=G.columnMethods.diagram(m,{step:0,work:true}),solved=G.columnMethods.diagram(m,{step:m.steps.length});
+     assert(!blank.querySelector('[data-wm-result],[data-wm-partial],[data-wm-carry]'),'Multiplication pupil grid has no leaked working');
+     assert(solved.querySelectorAll('[data-wm-partial]').length===String(1482).length+String(7410).length,'Long multiplication shows both partial products');
+     assert(solved.querySelectorAll('[data-wm-result]').length===String(8892).length,'Long multiplication shows completed sum');
+   }
+   for(const [method,a,b] of [['short-division',1005,5],['long-division',875,24],['long-division',9801,98]]){
+     const m=G.writtenMethods.calculate(method,a,b),blank=G.columnMethods.diagram(m,{step:0,work:true}),solved=G.columnMethods.diagram(m,{step:m.steps.length});
+     assert(!blank.querySelector('[data-wm-quotient],[data-wm-div-product],[data-wm-final-remainder]'),'Division pupil grid hides quotient and working');
+     assert([...solved.querySelectorAll('[data-wm-quotient]')].map(n=>n.textContent).join('')===String(m.answer),'Quotient digits are correctly aligned with leading zeros omitted');
+     assert(solved.querySelector('[data-wm-final-remainder]').textContent===String(m.remainder),'Teacher key includes the exact remainder');
+     const spec=G.challengeKit.pupilSpec('quotient-remainder',{quotient:m.answer,remainder:m.remainder});
+     assert(G.challengeKit.pupilAnswerCorrect(spec,[String(m.answer),String(m.remainder)],m.answerText),'Both division answers accepted');
+     assert(!G.challengeKit.pupilAnswerCorrect(spec,[String(m.answer),String(m.remainder+1)],m.answerText),'Correct quotient alone is insufficient');
+   }
+   for(const [method,a,b] of [['addition',999,1],['subtraction',1000,1],['short-multiplication',247,6],['long-multiplication',247,36],['short-division',1005,5],['long-division',875,24]]){
+     const m=G.writtenMethods.calculate(method,a,b),W=G.columnMethods,slots=W.practiceCells(m),values=Object.fromEntries(slots.filter(s=>!s.optional).map(s=>[s.id,String(s.expected)]));
+     assert(!W.practiceReady(m,{})&&!W.practiceCorrect(m,{}),'Empty working cannot pass: '+method);
+     assert(W.practiceReady(m,values)&&W.practiceCorrect(m,values),'Correct working including blank unused cells: '+method);
+     const first=slots.find(s=>!s.optional);assert(!W.practiceCorrect(m,{...values,[first.id]:String(first.expected+1)}),'Wrong working cell fails: '+method);
+     assert(new Set(slots.map(s=>s.id)).size===slots.length,'Distinct working cells: '+method);
+   }
    const markingCases=[['fraction-wall','identify-strip','actual number of shaded parts'],['fraction-wall','denominator-misconception','equal-sized wholes'],['array-builder','multiplication-fact','rows × columns'],['clock','elapsed-forward','Both hands'],['clock','twentyfour-to-twelve','am or pm'],['number-line','missing-labels','respective boxes'],['fdp','equivalent-fraction','preserve the value'],['sequences','rule','stated rule family'],['measurement','distance-between','larger minus smaller']];
    for(const [tool,type,expected] of markingCases){const draft=P.createDocument();draft.generate(tool,P.defaultSettings(tool),1,type,rng);const item=draft.list()[0];assert(P.answerNote(item).includes(expected),'Explicit marking criteria: '+tool+'/'+type)}
    const sample='A very long marking explanation. '+('Accept all equivalent mathematical explanations using the required units and exact values. '.repeat(15))+'End of marking explanation.';

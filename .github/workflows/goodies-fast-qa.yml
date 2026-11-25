@@ -38,6 +38,8 @@ jobs:
           node-version: '22'
       - name: Goodies contracts
         run: node assets/99club/tests/goodies-interaction-smoke.js
+      - name: Written methods mathematical contracts
+        run: node scripts/99club/goodies-written-methods-qa.js
       - name: Prepare Goodies browser harnesses
         run: |
           node scripts/99club/goodies-browser-qa.js prepare

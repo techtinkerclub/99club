@@ -22,6 +22,10 @@ const tools=[
   ['fdp','Fraction–decimal–percentage','%','fractions','See the same quantity as a fraction, decimal and percentage.','Making equivalence visible with fraction bars and a hundred square.',fdpExplorer],
   ['geoboard','Shape & geoboard','◇','geometry','Plot vertices on a dot grid to make and inspect polygons.','Coordinates, perimeter, area, polygons and geometric reasoning.',geoboard],
   ['sequences','Sequences & rules','1…','number','Change a sequence rule and reveal terms step by step.','Teacher-led exploration of constant and changing differences, multiplication patterns and alternating rules.',sequencesTool],
+  ['column-addition','Column addition','+','operations','Model column addition with place-value exchanges and step-by-step working.','Written addition, carrying and place-value reasoning.',()=>G.columnMethodTool('addition')],
+  ['written-division','Written division','÷','operations','Model short and long division with quotient digits, regrouping and remainders.','Formal written division, place-value reasoning and remainders.',()=>G.columnMethodTool('division')],
+  ['written-multiplication','Written multiplication','×','operations','Teach short and long multiplication with carries and partial products.','Written multiplication, place-value shifts and addition of partial products.',()=>G.columnMethodTool('multiplication')],
+  ['column-subtraction','Column subtraction','−','operations','Model column subtraction, including exchanges across zero.','Written subtraction and regrouping across place-value columns.',()=>G.columnMethodTool('subtraction')],
   ['maths-canvas','Number & symbol tiles','3+?','canvas','Arrange, combine and split draggable number and mathematical symbol tiles.','Build equations, order numbers, model number composition and create custom pupil tasks.',mathsCanvas],
 ].map(([id,title,icon,cat,desc,use,build])=>({id,title,icon,cat,desc,use,build}));
 const params=new URLSearchParams(location.search),embedded=params.get('embed')==='1';

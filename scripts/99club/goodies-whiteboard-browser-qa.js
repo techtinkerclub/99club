@@ -38,6 +38,8 @@ document.exitFullscreen=function(){
 <script src="/assets/99club/goodies-abacus.js"></script>
 <script src="/assets/99club/goodies-number-line-v6.js"></script>
 <script src="/assets/99club/goodies-tools-b.js"></script>
+<script src="/assets/99club/goodies-written-methods.js"></script>
+<script src="/assets/99club/goodies-column-methods.js"></script>
 <script src="/assets/99club/goodies-app.js"></script>
 <script>
 (function(){
