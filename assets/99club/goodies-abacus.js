@@ -621,7 +621,7 @@ function abacusTool(){
     return '<section class="gd-ab-task'+(taskContext==='challenge'?' gd-native-challenge':'')+'" data-ab-task="'+task.mode+'">'+
       '<div class="gd-ab-task-head"><div><span>'+context+'</span><strong>'+esc(task.prompt)+'</strong></div><em data-ab-status>'+esc(status)+'</em></div>'+
       answer+
-      '<div class="gd-ab-task-actions"><button type="button" data-ab-check>Check</button>'+skipNext+reveal+'<button type="button" data-ab-another>Another</button></div>'+
+      '<div class="gd-ab-task-actions"><button type="button" data-ab-check>Check</button>'+skipNext+'<button type="button" data-ab-another>Another</button>'+reveal+(taskContext==='challenge'?'<button type="button" data-ab-exit>Exit challenge</button>':'')+'</div>'+
     '</section>';
   }
   function beadMarkup(i,part,j){
@@ -775,6 +775,7 @@ function abacusTool(){
     }
     const check=q('[data-ab-check]');if(check)check.onclick=checkTask;
     const another=q('[data-ab-another]');if(another)another.onclick=()=>newTask(task?.mode||playMode,taskContext);
+    const exitTask=q('[data-ab-exit]');if(exitTask)exitTask.onclick=()=>{task=null;taskContext='play';workflow='setup';playMode='free';status='';answerInput='';revealed=false;renderAll()};
     const reveal=q('[data-ab-reveal]');if(reveal)reveal.onclick=()=>{if(!taskSolved())revealTask()};
     const skip=q('[data-ab-skip-next]');if(skip)skip.onclick=()=>{
       if(!task||task.mode!=='skip')return;
