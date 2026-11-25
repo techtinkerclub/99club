@@ -72,6 +72,26 @@ if(process.argv[2]==='prepare'){
        results.push({tool,families:families.map(f=>f.id),generated:items.length,pupilPages:sheets.filter(s=>s.getAttribute('data-worksheet-answer')==='pupil').length,annexPages:sheets.filter(s=>s.getAttribute('data-worksheet-answer')==='annex').length,graphics:sheets.reduce((n,s)=>n+s.querySelectorAll('[data-pub-answer-graphic]').length,0)});
      }catch(err){issues.push(tool+': '+err.message)}
    }
+   // Audit every statistics representation rather than only its default table.
+   for(const view of ['tally','pictogram','bar','line','pie']){
+     const settings={...P.defaultSettings('statistics-table'),view};
+     const draft=P.createDocument();
+     for(const family of P.types('statistics-table',settings))draft.generate('statistics-table',settings,1,family.id,rng);
+     const items=draft.list();assert(items.length===P.types('statistics-table',settings).length,'Every statistics family is generated: '+view);
+     assert(items.every(item=>Number.isFinite(Number(P.answerSummary(item)))),'All statistics answers are numeric: '+view);
+     for(const sheet of P.pages(items,{teacher:true})){
+       const prepared=X.preparePaperSvg(sheet),frame=document.createElement('div');frame.className='audit-sheet';frame.appendChild(prepared);host.appendChild(frame);
+       checkPage(prepared,'statistics-'+view,sheet.getAttribute('data-worksheet-answer'));
+     }
+   }
+   for(const [year,view] of [['2','pictogram'],['3','bar'],['4','line'],['5','line'],['6','pie']]){
+     const S=G.statisticsTable,settings={year,view,max:20,count:4,key:2};
+     for(const family of S.questionTypes(view,year))for(let i=0;i<30;i++){
+       const item=S.generate(S.recipe(settings,family[0]),rng);
+       assert(Number.isInteger(item.answer),'Integer primary statistics answer: '+year+'/'+view+'/'+family[0]);
+       if(year==='2')assert(item.key===1&&item.data.rows.every(r=>r.value<=10),'Year 2 one-to-one bounded data');
+     }
+   }
    // Dense cards should use available page height, while standalone output remains unchanged.
    const geo=P.createDocument();geo.generate('geoboard',{gridSize:13},1,'build-area',rng);
    const geoItem=geo.list()[0],denseCard=X.withDocumentCardLayout(()=>P.renderItem(geoItem,false),{denseDiagram:true}),compactCard=X.withDocumentCardLayout(()=>P.renderItem(geoItem,false));
