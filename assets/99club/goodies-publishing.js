@@ -72,7 +72,7 @@ function isolateSvgIds(svg,prefix){
 function pages(items,{title='Maths practice',teacher=false}={}){
  const W=960,H=1250,pad=28,top=93,bottom=H-32,gap=12,layouts=[];let entries=[],y=top;
  for(const [index,item] of items.entries()){
-   const svg=renderItem(item,teacher),v=dimensions(svg),width=W-2*pad-32,scale=Math.min(width/v.w,(bottom-top-gap)/v.h),h=v.h*scale;
+   const svg=G.exportTools.withDocumentCardLayout(()=>renderItem(item,teacher)),v=dimensions(svg),width=W-2*pad-32,scale=Math.min(width/v.w,(bottom-top-gap)/v.h),h=v.h*scale;
    if(entries.length&&y+h>bottom){layouts.push(entries);entries=[];y=top}
    entries.push({svg,v,scale,h,y,index});y+=h+gap;
  }
@@ -86,7 +86,9 @@ function pages(items,{title='Maths practice',teacher=false}={}){
    add('text',{x:pad,y:64,'font-family':'Arial,sans-serif','font-size':14,fill:'#52666d'},teacher?'Matches the pupil document in order.':'Name: __________________________');
    add('text',{x:W-pad,y:64,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':14,fill:'#52666d'},'Page '+(page+1)+' / '+layouts.length);
    for(const {svg,v,scale,h,y,index} of entries){
-     add('text',{x:pad,y:y+24,'font-family':'Arial,sans-serif','font-size':18,'font-weight':700,fill:'#24343b','data-pub-number':index+1},(index+1)+'.');
+     const baseline=Number(svg.getAttribute('data-worksheet-prompt-baseline')),promptSize=Number(svg.getAttribute('data-worksheet-prompt-size')),hasPrompt=baseline>0&&promptSize>0;
+     const numberY=hasPrompt?y+(baseline-v.y)*scale:y+Math.min(24,h/2);
+     add('text',{x:pad,y:numberY,'font-family':'Arial,sans-serif','font-size':hasPrompt?promptSize*scale:18,'font-weight':700,fill:'#24343b','data-pub-number':index+1},(index+1)+'.');
      const nested=svgElement('svg',{x:pad+32,y,width:v.w*scale,height:h,viewBox:[v.x,v.y,v.w,v.h].join(' ')});
      const source=isolateSvgIds(svg.cloneNode(true),'pub-'+(page+1)+'-'+(index+1)+'-');source.querySelectorAll('[data-gd-paper-brand]').forEach(n=>n.remove());
      [...source.childNodes].forEach(n=>nested.appendChild(n.cloneNode(true)));out.appendChild(nested);
@@ -142,10 +144,32 @@ function openEditor(draft,{mode='review'}={}){
  }
  function renderReview(){
    const items=draft.list(),disabled=items.length?'':' disabled';
-   return '<div class="gd-pub-toolbar"><label class="gd-pub-title"><span>Document title</span><input type="text" data-pub-title maxlength="80" value="'+esc(title)+'"></label><div class="gd-pub-segment" aria-label="Preview version"><button type="button" class="gd-btn" data-pub-pupil aria-pressed="'+!teacher+'"'+disabled+'>Pupil</button><button type="button" class="gd-btn" data-pub-teacher aria-pressed="'+teacher+'"'+disabled+'>Teacher key</button></div><button type="button" class="gd-btn gd-btn--primary" data-pub-print'+disabled+'>Print / PDF</button></div>'+
-   (items.length?'<div class="gd-pub-body"><aside class="gd-pub-list"><div class="gd-pub-section-head"><h3>Content <small>'+items.length+'</small></h3></div><div class="gd-pub-list-tools"><button type="button" class="gd-btn" data-pub-group>Group</button><button type="button" class="gd-btn" data-pub-shuffle>Mix</button></div>'+items.map((item,i)=>'<div class="gd-pub-item"><small>'+esc(adapterFor(item.tool).label)+'</small><strong>'+(i+1)+'. '+esc(adapterFor(item.tool).title(item))+'</strong><div><button type="button" class="gd-btn gd-pub-icon" data-pub-up="'+item.id+'" aria-label="Move up"'+(i===0?' disabled':'')+'>↑</button><button type="button" class="gd-btn gd-pub-icon" data-pub-down="'+item.id+'" aria-label="Move down"'+(i===items.length-1?' disabled':'')+'>↓</button>'+(item.recipe?'<button type="button" class="gd-btn" data-pub-replace="'+item.id+'">Replace</button>':'')+'<button type="button" class="gd-btn" data-pub-remove="'+item.id+'">Remove</button></div></div>').join('')+'</aside><div class="gd-pub-preview"></div></div>':'<div class="gd-pub-empty"><strong>Start a worksheet</strong><p>Generate questions here, or add a diagram or challenge from a widget’s Export menu.</p><div><button type="button" class="gd-btn gd-btn--primary" data-pub-builder>Build automatically</button><button type="button" class="gd-btn" data-pub-close>Back to whiteboard</button></div></div>');
+   return '<div class="gd-pub-toolbar"><label class="gd-pub-title"><span>Document title</span><input type="text" data-pub-title maxlength="80" value="'+esc(title)+'"></label><div class="gd-pub-segment" aria-label="Preview version"><button type="button" class="gd-btn" data-pub-pupil aria-pressed="'+!teacher+'"'+disabled+'>Pupil</button><button type="button" class="gd-btn" data-pub-teacher aria-pressed="'+teacher+'"'+disabled+'>Teacher key</button></div><button type="button" class="gd-btn" data-pub-group'+disabled+'>Group</button><button type="button" class="gd-btn" data-pub-shuffle'+disabled+'>Mix</button><button type="button" class="gd-btn gd-btn--primary" data-pub-print'+disabled+'>Print / PDF</button></div>'+
+   (items.length?'<div class="gd-pub-body gd-pub-body--inline"><div class="gd-pub-preview"></div></div>':'<div class="gd-pub-empty"><strong>Start a worksheet</strong><p>Generate questions here, or add a diagram or challenge from a widget’s Export menu.</p><div><button type="button" class="gd-btn gd-btn--primary" data-pub-builder>Build automatically</button><button type="button" class="gd-btn" data-pub-close>Back to whiteboard</button></div></div>');
  }
- function paintPreview(){const preview=dlg.querySelector('.gd-pub-preview');if(preview)preview.replaceChildren(...pages(draft.list(),{title,teacher}).map(G.exportTools.preparePaperSvg))}
+ const actionIcons={up:'<path d="m6 14 6-6 6 6"/>',down:'<path d="m6 10 6 6 6-6"/>',replace:'<path d="M20 7v5h-5M4 17v-5h5M6 8a7 7 0 0 1 12-2l2 6M18 16a7 7 0 0 1-12 2l-2-6"/>',remove:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 10v6m4-6v6"/>'};
+ function itemActions(item,i,count){
+   const node=document.createElement('div');node.className='gd-pub-inline-actions';
+   const button=(key,label,disabled=false)=>'<button type="button" class="gd-btn gd-pub-inline-icon" data-pub-'+key+'="'+item.id+'" title="'+esc(label)+'" aria-label="'+esc(label+' — question '+(i+1))+'"'+(disabled?' disabled':'')+'><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+actionIcons[key]+'</svg></button>';
+   const buttons=button('up','Move up',i===0)+button('down','Move down',i===count-1)+(item.recipe?button('replace','Replace with another question'):'')+button('remove','Remove');
+   node.innerHTML='<div class="gd-pub-inline-desktop">'+buttons+'</div><details class="gd-pub-inline-mobile"><summary title="Question actions" aria-label="Actions for question '+(i+1)+'">⋯</summary><div>'+buttons+'</div></details>';
+   return node;
+ }
+ function paintPreview(){
+   const preview=dlg.querySelector('.gd-pub-preview');if(!preview)return;
+   const items=draft.list(),sheets=pages(items,{title,teacher});
+   preview.replaceChildren(...sheets.map(sheet=>{
+     const frame=document.createElement('div');frame.className='gd-pub-sheet';
+     const paper=G.exportTools.preparePaperSvg(sheet);frame.appendChild(paper);
+     const rail=document.createElement('div');rail.className='gd-pub-action-rail';frame.appendChild(rail);
+     for(const number of paper.querySelectorAll('[data-pub-number]')){
+       const i=Number(number.getAttribute('data-pub-number'))-1;if(!items[i])continue;
+       const action=itemActions(items[i],i,items.length);action.style.top=(100*Number(number.getAttribute('y'))/dimensions(paper).h)+'%';rail.appendChild(action);
+     }
+     return frame;
+   }));
+ }
+
  function render(){
    const scroll=dlg.querySelector('.gd-pub-sources')?.scrollTop||0,catalogScroll=dlg.querySelector('.gd-pub-catalog')?.scrollTop||0,previewScroll=dlg.querySelector('.gd-pub-preview')?.scrollTop||0,listScroll=dlg.querySelector('.gd-pub-list')?.scrollTop||0;
    dlg._pubBlocks=blocks;
