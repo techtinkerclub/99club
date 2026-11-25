@@ -3942,10 +3942,11 @@ function geoboard(){
 }
 
 function mathsCanvas(){
-const I=G.interaction,CK=G.challengeKit,X=G.exportTools;
+const I=G.interaction,CK=G.challengeKit,X=G.exportTools,N=G.numberChallenges;
 if(!I){q('#gd-stage').innerHTML='<p class="gd-empty">The interactive canvas could not start.</p>';return;}
 let tiles=[],next=1,grid=true,colourOpen=false,addOpen=false,combineOpen=false,splitOpen=false,controller=null;
 let workflow='build',taskTitle='Number tiles task',taskPrompt='',exportMode='canvas',responseLines=2,exportStatus='';
+let challenge=null,difficulty='medium';
 const colours=['#cbe7e2','#f6cf79','#cfe0f6','#efcfd9','#dbcff2','#d5ead2','#f3d7c4','#ffffff'];
 function textColour(hex){const h=String(hex||'').replace('#','');if(!/^[0-9a-f]{6}$/i.test(h))return '#24343b';const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);return (r*299+g*587+b*114)/1000>155?'#24343b':'#ffffff'}
 function stateSnapshot(){return{tiles:JSON.parse(JSON.stringify(tiles)),next,grid}}
@@ -3992,7 +3993,18 @@ const title=String(taskTitle||'').trim(),prompt=String(taskPrompt||'').trim();
 if(!title&&!prompt)return'';
 return '<div class="gd-mc-task-preview">'+(title?'<strong>'+esc(title)+'</strong>':'')+(prompt?'<span>'+esc(prompt)+'</span>':'')+'</div>';
 }
+function generateNumberChallenge(type){
+ if(!N)return;challenge=CK.normalise(N.generate(type,difficulty));workflow='challenge';exportMode='challenge';renderControls();controller?.refresh();
+}
+function exitNumberChallenge(){challenge=null;workflow='build';exportMode='canvas';renderControls();controller?.refresh()}
+function challengeMarkup(){
+ const spec=CK.pupilSpec(challenge.kind,challenge.choices?{choices:challenge.choices}:{hint:'Number'});
+ const banner=CK.bannerHtml(challenge,{pupil:spec,actions:[{action:'another',label:'Another'},{action:'end',label:'Exit challenge'}]});
+ const rows=[[]];for(const tile of challenge.tiles){if(tile===' ; ')rows.push([]);else rows.at(-1).push(tile)}
+ return banner+'<div class="gd-number-task-rows">'+rows.map(row=>'<div class="gd-number-task-row">'+row.map(v=>'<span class="gd-number-task-tile'+(v==='?'?' is-unknown':/^[+−×÷=<>]$/.test(v)?' is-symbol':'')+'">'+esc(v==='?'&&challenge.revealed?challenge.answer:v)+'</span>').join('')+'</div>').join('')+'</div>';
+}
 function draw(selectedId,meta){
+ if(challenge){q('#gd-stage').innerHTML=challengeMarkup();return}
 const selected=selectedTile(selectedId);
 q('#gd-stage').innerHTML=taskPreview()+'<div class="gd-vis gd-object-workspace"><div class="gd-object-canvas-wrap"><div class="gd-canvas gd-object-canvas'+(grid?' has-grid':'')+'" id="mc-canvas" data-gd-canvas-bg tabindex="0" aria-label="Maths canvas. Tap a tile to select it and drag to move it.">'+tiles.map(t=>tileMarkup(t,selectedId)).join('')+'</div>'+railMarkup(selected,meta)+'</div><div class="gd-object-hint">'+(selected?(selected.locked?'Tile locked · use the lock icon to move or edit it again.':'Drag to move · the side tools duplicate, colour, lock or delete it.'):'Use + to add a common tile, then drag tiles directly around the board. Custom tile text stays in Tools.')+'</div></div>'
 }
@@ -4015,7 +4027,7 @@ controller.mutate(()=>{
 function workflowTabs(){
 return '<div class="gd-row gd-mc-workflow-tabs" role="tablist" aria-label="Number and symbol tiles workflow">'+
 '<button class="gd-btn'+(workflow==='build'?' gd-btn--primary':'')+'" type="button" data-mc-workflow="build">Build</button>'+
-'<button class="gd-btn'+(workflow==='task'?' gd-btn--primary':'')+'" type="button" data-mc-workflow="task">Task</button>'+
+'<button class="gd-btn'+(workflow==='task'?' gd-btn--primary':'')+'" type="button" data-mc-workflow="task">Task</button>'+(N?'<button class="gd-btn'+(workflow==='challenge'?' gd-btn--primary':'')+'" type="button" data-mc-workflow="challenge">Challenge</button>':'')+
 '<button class="gd-btn'+(workflow==='export'?' gd-btn--primary':'')+'" type="button" data-mc-workflow="export">Export / reuse</button></div>';
 }
 function buildControlsHtml(){
@@ -4036,6 +4048,12 @@ const el=document.createElementNS('http://www.w3.org/2000/svg',name);
 Object.entries(attrs).forEach(([key,value])=>el.setAttribute(key,String(value)));
 if(text!==''&&text!=null)el.textContent=String(text);
 return el;
+}
+function numberChallengeSvg(){
+ const rows=[[]];for(const tile of challenge.tiles){if(tile===' ; ')rows.push([]);else rows.at(-1).push(tile)}
+ const W=960,H=rows.length*100+60,svg=mcSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':'Number tile question'});
+ svg.appendChild(mcSvgEl('rect',{width:W,height:H,fill:'#fff'}));
+ rows.forEach((row,r)=>{const w=Math.min(104,Math.floor(850/row.length)-10),gap=10,start=(W-row.length*(w+gap)+gap)/2;row.forEach((v,i)=>{const x=start+i*(w+gap),y=30+r*100;svg.appendChild(mcSvgEl('rect',{x,y,width:w,height:72,rx:9,fill:v==='?'?'#fff':'#f2f7f6',stroke:'#8ba8a6','stroke-width':2}));svg.appendChild(mcSvgEl('text',{x:x+w/2,y:y+44,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':Math.min(28,w/(String(v).length+1)*1.4),'font-weight':800,fill:'#24343b'},v==='?'?'':v))})});return svg;
 }
 function canvasExportSvg(){
 const W=960,H=560,pad=34,canvas=q('#mc-canvas'),sourceW=Math.max(1,canvas?.clientWidth||760),sourceH=Math.max(1,canvas?.clientHeight||420);
@@ -4060,6 +4078,7 @@ svg.appendChild(mcSvgEl('text',{x:W-36,y:H-14,'text-anchor':'end','font-family':
 return svg;
 }
 function exportTargetSvg(){
+if(challenge&&X?.composeChallengeCardSvg)return X.composeChallengeCardSvg(numberChallengeSvg(),{title:N.titles[challenge.type],prompt:challenge.prompt,responseLabel:'Answer / working',responseLines:2,brand:'99 Club Studio'});
 if(exportMode!=='task'||!X?.composeChallengeCardSvg)return canvasExportSvg();
 return X.composeChallengeCardSvg(canvasExportSvg(),{
 title:String(taskTitle||'Number tiles task').trim()||'Number tiles task',
@@ -4092,11 +4111,16 @@ return '<div class="nl-panel-title"><div><strong>Use it elsewhere</strong><span>
 '<button class="gd-btn" id="mc-png" type="button">PNG</button><button class="gd-btn" id="mc-svg-download" type="button">SVG</button><button class="gd-btn" id="mc-print" type="button">Print / PDF</button></div>'+
 '<p class="gd-help" id="mc-export-status" role="status" aria-live="polite">'+exportStatus+'</p>';
 }
-function controlsHtml(){return workflowTabs()+(workflow==='task'?taskControlsHtml():workflow==='export'?exportControlsHtml():buildControlsHtml())}
+function challengeControlsHtml(){
+ return field('Difficulty','<select class="gd-select" id="mc-difficulty">'+['easy','medium','hard'].map(v=>'<option value="'+v+'"'+(difficulty===v?' selected':'')+'>'+v[0].toUpperCase()+v.slice(1)+'</option>').join('')+'</select>')+
+ CK.nativeRandomHtml('mc',N.groups)+N.groups.map(g=>'<div class="gd-section-title">'+esc(g.label)+'</div><div class="gd-row">'+g.ids.map(id=>'<button type="button" class="gd-btn" data-mc-challenge-mode="'+id+'">'+esc(N.titles[id])+'</button>').join('')+'</div>').join('')+(challenge?btn('Exit challenge','mc-exit-challenge'):'');
+}
+function controlsHtml(){return workflowTabs()+(workflow==='challenge'&&N?challengeControlsHtml():workflow==='task'?taskControlsHtml():workflow==='export'?exportControlsHtml():buildControlsHtml())}
 function renderControls(){q('#gd-controls').innerHTML=controlsHtml();bindControls()}
 function bindControls(){
 const controls=q('#gd-controls');if(!controls)return;
-qa('[data-mc-workflow]',controls).forEach(button=>button.onclick=()=>{workflow=button.dataset.mcWorkflow;exportStatus='';renderControls();controller?.refresh()});
+qa('[data-mc-workflow]',controls).forEach(button=>button.onclick=()=>{workflow=button.dataset.mcWorkflow;exportStatus='';if(workflow==='build'||workflow==='task'){challenge=null;exportMode='canvas'}renderControls();controller?.refresh()});
+if(workflow==='challenge'&&N){const level=q('#mc-difficulty',controls);if(level)level.onchange=()=>{difficulty=level.value};qa('[data-mc-challenge-mode]',controls).forEach(b=>b.onclick=()=>generateNumberChallenge(b.dataset.mcChallengeMode));const exit=q('#mc-exit-challenge',controls);if(exit)exit.onclick=exitNumberChallenge;return}
 if(workflow==='build'){
 qa('[data-mc-add]',controls).forEach(x=>x.onclick=()=>add(x.dataset.mcAdd,false));
 qa('[data-mc-sym]',controls).forEach(x=>x.onclick=()=>add(x.dataset.mcSym,true));
@@ -4124,6 +4148,8 @@ setState:restoreState,
 getCanvas:()=>q('#mc-canvas'),
 getActionRoot:()=>q('#gd-stage'),
 render:draw,
+canAction:()=>!challenge,
+afterRender:()=>{if(!challenge)return;const stage=q('#gd-stage');const another=q('[data-challenge-action="another"]',stage),exit=q('[data-challenge-action="end"]',stage),reveal=q('[data-board-action="reveal"]',stage);if(another)another.onclick=()=>generateNumberChallenge(challenge.type);if(exit)exit.onclick=exitNumberChallenge;if(reveal)reveal.onclick=()=>{challenge.revealed=!challenge.revealed;controller.refresh()}},
 snap:()=>grid?20:1,
 nudgeStep:()=>grid?20:1,
 constrain:constrainTile,
@@ -4149,8 +4175,8 @@ onSelectionChange:item=>{
 });
 bindControls();
 controller.refresh();
-G.lessonState?.register('maths-canvas',()=>({diagram:stateSnapshot(),workflow,taskTitle,taskPrompt,exportMode,responseLines}),saved=>{
- restoreState(saved.diagram);workflow=saved.workflow;taskTitle=String(saved.taskTitle||'');taskPrompt=String(saved.taskPrompt||'');exportMode=saved.exportMode;responseLines=saved.responseLines;
+G.lessonState?.register('maths-canvas',()=>({diagram:stateSnapshot(),workflow,taskTitle,taskPrompt,exportMode,responseLines,difficulty,challenge,pupil:CK?.capturePupil?.(challenge)}),saved=>{
+ restoreState(saved.diagram);difficulty=['easy','medium','hard'].includes(saved.difficulty)?saved.difficulty:'medium';challenge=saved.challenge&&N?.titles[saved.challenge.type]?CK.normalise(saved.challenge):null;CK?.restorePupil?.(challenge,saved.pupil);workflow=saved.workflow==='challenge'&&!N?'build':saved.workflow;taskTitle=String(saved.taskTitle||'');taskPrompt=String(saved.taskPrompt||'');exportMode=saved.exportMode;responseLines=saved.responseLines;
  q('#gd-controls').innerHTML=controlsHtml();bindControls();controller.refresh();
 });
 }
