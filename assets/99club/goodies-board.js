@@ -607,6 +607,8 @@ function positionObject(obj){
 function objectMarkup(obj,tool){
   const embedPath=window.TT99_GOODIES_BOARD_EMBED_PATH||location.pathname;
   const query=new URLSearchParams({embed:'1'});
+  // Tie iframe navigation to the deployed parent build, not a stale cached /goodies/ page.
+  const build=String(window.TT99_GOODIES_BUILD||'');if(build)query.set('build',build);
   if(tool.id==='clock'){
     query.set('clockStart',String(Array.isArray(obj.clockSlots)&&obj.clockSlots.length?obj.clockSlots[0]:0));
     query.set('boardObject',String(obj.id));
