@@ -145,13 +145,33 @@ function iconSvg(name){
   return '<svg viewBox="0 0 24 24" aria-hidden="true">'+(paths[name]||'')+'</svg>';
 }
 
+// Keep the persistent rail small; each teaching tool belongs to exactly one
+// named group. The catch-all protects future additions from becoming invisible.
+const paletteGroups=[
+ {id:'number',label:'Number',title:'Number & place value',icon:'123',ids:['number-line','place-value','abacus','hundred-square','sequences']},
+ {id:'written',label:'Written',title:'Written calculation',icon:'▤',ids:['column-addition','column-subtraction','written-multiplication','written-division']},
+ {id:'tables',label:'Tables',title:'Multiplication & factors',icon:'▦',ids:['multiplication-grid','array-builder','times-table','factors']},
+ {id:'fractions',label:'Fractions',title:'Fractions, decimals & percentages',icon:'½',ids:['fraction-wall','fdp']},
+ {id:'models',label:'Models',title:'Number & equation models',icon:'⚖',ids:['bar-model','balance','maths-canvas']},
+ {id:'measure',label:'Measure',title:'Measurement, time & money',icon:'◷',ids:['clock','money','measurement']},
+ {id:'shape',label:'Shape',title:'Geometry & coordinates',icon:'◇',ids:['coordinates','geoboard']},
+ {id:'data',label:'Data',title:'Data & chance',icon:'⚄',ids:['randomiser']}
+];
+const assigned=new Set(paletteGroups.flatMap(g=>g.ids));
+const ungrouped=tools.filter(t=>!assigned.has(t.id));if(ungrouped.length)paletteGroups.push({id:'other',label:'More',title:'Other tools',icon:'…',ids:ungrouped.map(t=>t.id)});
+const activePaletteGroups=paletteGroups.map(g=>({...g,tools:g.ids.map(id=>tools.find(t=>t.id===id)).filter(Boolean)})).filter(g=>g.tools.length);
+const paletteIcons={'column-addition':'+','column-subtraction':'−','written-multiplication':'×','written-division':'÷','multiplication-grid':'▦','times-table':'3×4','factors':'1·2','array-builder':'⠿','number-line':'↔','place-value':'123','hundred-square':'100','maths-canvas':'3+?','balance':'⚖','measurement':'↕'};
 document.documentElement.classList.add('gd-mixed-board-page');
 document.body.classList.add('gd-mixed-board-page');
 
 root.innerHTML='<div class="gd-mixed-board" id="gd-mixed-board">'+
   '<nav class="gd-board-palette" aria-label="Add manipulatives">'+
-    tools.map(t=>'<button type="button" class="gd-board-tool" data-board-add="'+esc(t.id)+'" data-label="'+esc(t.title)+'" aria-label="Add '+esc(t.title)+'"><span aria-hidden="true">'+esc(t.icon)+'</span></button>').join('')+
+    activePaletteGroups.map(g=>'<button type="button" class="gd-board-group" data-board-group="'+esc(g.id)+'" data-label="'+esc(g.title)+'" aria-label="'+esc(g.title)+'" aria-expanded="false" aria-controls="gd-board-tool-picker"><span aria-hidden="true">'+esc(g.icon)+'</span><small>'+esc(g.label)+'</small></button>').join('')+
   '</nav>'+
+  '<aside class="gd-board-tool-picker" id="gd-board-tool-picker" aria-label="Choose a manipulative" hidden>'+
+    '<header><strong id="gd-board-tool-picker-title">Manipulatives</strong><button type="button" data-board-picker-close aria-label="Close manipulative picker">×</button></header>'+
+    '<div class="gd-board-picker-body">'+activePaletteGroups.map(g=>'<section data-board-tool-group="'+esc(g.id)+'" hidden>'+g.tools.map(t=>'<button type="button" class="gd-board-tool" data-board-add="'+esc(t.id)+'" aria-label="Add '+esc(t.title)+'"><span class="gd-board-tool-symbol" aria-hidden="true">'+esc(paletteIcons[t.id]||t.icon)+'</span><span class="gd-board-tool-name">'+esc(t.id==='balance'?'Number Mobile balance':t.title)+'</span><span class="gd-board-tool-plus" aria-hidden="true">+</span></button>').join('')+'</section>').join('')+'</div>'+
+  '</aside>'+
   '<div class="gd-board-viewport" id="gd-board-viewport" tabindex="0" aria-label="Maths whiteboard">'+
     '<div class="gd-board-canvas" id="gd-board-canvas" style="width:'+BOARD_W+'px;height:'+BOARD_H+'px"></div>'+
   '</div>'+
@@ -186,6 +206,43 @@ const viewport=document.getElementById('gd-board-viewport');
 const canvas=document.getElementById('gd-board-canvas');
 const hint=document.getElementById('gd-board-hint');
 const tooltip=document.getElementById('gd-board-tooltip');
+const palette=board.querySelector('.gd-board-palette'),picker=document.getElementById('gd-board-tool-picker');
+let openGroup=null;
+function closePicker(restoreFocus=false){
+  const old=openGroup;openGroup=null;picker.hidden=true;
+  palette.querySelectorAll('[data-board-group]').forEach(el=>el.setAttribute('aria-expanded','false'));
+  if(restoreFocus&&old)palette.querySelector('[data-board-group="'+old+'"]')?.focus();
+}
+function positionPicker(){
+  const host=board.getBoundingClientRect(),rail=palette.getBoundingClientRect();
+  palette.classList.toggle('is-short',host.height<400);
+  palette.classList.toggle('is-tiny',host.height<220);
+  const r=palette.getBoundingClientRect();
+  const x=r.right-host.left+8;
+  picker.style.left=x+'px';
+  picker.style.maxWidth=Math.max(120,host.width-x-8)+'px';
+  if(!openGroup)return;
+  const trigger=palette.querySelector('[data-board-group="'+openGroup+'"]'),tr=trigger?.getBoundingClientRect();
+  if(!tr)return;
+  const h=picker.getBoundingClientRect().height;
+  picker.style.top=clamp(tr.top-host.top,8,Math.max(8,host.height-h-8))+'px';
+}
+function openPicker(id){
+  if(openGroup===id){closePicker();return}
+  const g=activePaletteGroups.find(g=>g.id===id);if(!g)return;
+  openGroup=id;picker.hidden=false;
+  picker.querySelector('#gd-board-tool-picker-title').textContent=g.title;
+  picker.querySelectorAll('[data-board-tool-group]').forEach(el=>el.hidden=el.dataset.boardToolGroup!==id);
+  palette.querySelectorAll('[data-board-group]').forEach(el=>el.setAttribute('aria-expanded',String(el.dataset.boardGroup===id)));
+  positionPicker();
+  picker.querySelector('.gd-board-picker-body').scrollTop=0;
+}
+palette.querySelectorAll('[data-board-group]').forEach(el=>el.onclick=()=>openPicker(el.dataset.boardGroup));
+picker.querySelector('[data-board-picker-close]').onclick=()=>closePicker(true);
+document.addEventListener('pointerdown',e=>{if(openGroup&&!palette.contains(e.target)&&!picker.contains(e.target))closePicker()},true);
+window.addEventListener('resize',positionPicker);
+if(typeof ResizeObserver!=='undefined')new ResizeObserver(positionPicker).observe(board);
+positionPicker();
 const floatingControls=document.getElementById('gd-board-floating-controls');
 const floatingControlsBody=document.getElementById('gd-board-floating-controls-body');
 const floatingControlsTitle=document.getElementById('gd-board-floating-controls-title');
@@ -571,7 +628,8 @@ function fitEmbeddedObject(obj,initial=false){
   obj.baseW=nextBaseW;obj.baseH=nextBaseH;
   if(initial){
     const narrow=viewport.clientWidth<620;
-    const availableW=Math.max(220,viewport.clientWidth-(narrow?72:110));
+    const railInset=Math.ceil(palette.getBoundingClientRect().right-board.getBoundingClientRect().left)+12;
+  const availableW=Math.max(220,viewport.clientWidth-Math.max(railInset+20,narrow?72:110));
     const availableH=Math.max(180,viewport.clientHeight-90);
     const fitScale=clamp(Math.floor(Math.min(1,availableW/obj.baseW,availableH/obj.baseH)*20)/20,.35,1);
     obj.scale=Math.min(obj.scale,fitScale);
@@ -749,14 +807,15 @@ function addObject(toolId){
   const tool=tools.find(t=>t.id===toolId);if(!tool)return;
   const [baseW,baseH]=defaults[tool.id]||[650,520];
   const narrow=viewport.clientWidth<620;
-  const availableW=Math.max(220,viewport.clientWidth-(narrow?72:110));
+  const railInset=Math.ceil(palette.getBoundingClientRect().right-board.getBoundingClientRect().left)+12;
+  const availableW=Math.max(220,viewport.clientWidth-Math.max(railInset+20,narrow?72:110));
   const availableH=Math.max(180,viewport.clientHeight-90);
   let scale=Math.min(1,availableW/baseW,availableH/baseH);
   scale=clamp(Math.round(scale*20)/20,.4,1);
   const w=Math.round(baseW*scale),h=Math.round(baseH*scale);
   const i=objects.length,obj={
     id:nextId++,toolId:tool.id,baseW,baseH,scale,
-    x:snapped((narrow?55:90)+(i%5)*40+viewport.scrollLeft),
+    x:snapped(Math.max(railInset,narrow?55:90)+(i%5)*40+viewport.scrollLeft),
     y:snapped((narrow?45:80)+(i%4)*40+viewport.scrollTop),
     w,h,z:++zCounter,locked:false,menuOpen:false,settingsOpen:false
   };
@@ -1106,11 +1165,7 @@ canvas.addEventListener('pointerdown',e=>{
   try{canvas.setPointerCapture(e.pointerId)}catch(_){}
 });
 document.querySelectorAll('[data-board-add]').forEach(button=>{
-  button.addEventListener('click',()=>addObject(button.dataset.boardAdd));
-  button.addEventListener('pointerenter',()=>showToolTip(button));
-  button.addEventListener('pointerleave',hideToolTip);
-  button.addEventListener('focus',()=>showToolTip(button));
-  button.addEventListener('blur',hideToolTip);
+  button.addEventListener('click',()=>{closePicker();addObject(button.dataset.boardAdd)});
 });
 
 document.getElementById('gd-board-back').onclick=()=>{if(objects.length&&!window.confirm('Leave this whiteboard? Changes made since your last save will be lost.'))return;location.href=window.TT99_GOODIES_BOARD_HOME||location.pathname};
@@ -1129,6 +1184,7 @@ document.addEventListener('keydown',e=>{
   if(libraryDialog.open)return;
   const tag=(e.target?.tagName||'').toLowerCase();
   const editing=tag==='input'||tag==='textarea'||tag==='select'||e.target?.isContentEditable;
+  if(e.key==='Escape'&&openGroup){e.preventDefault();closePicker(true);return}
   if(e.key==='Escape'&&selectedId!=null){e.preventDefault();deselect();return}
   if(!editing&&selectedId!=null&&e.code==='Space'){
     const obj=objectById(selectedId);

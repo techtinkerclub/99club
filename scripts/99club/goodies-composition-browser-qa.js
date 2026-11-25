@@ -71,21 +71,34 @@ async function run(){
   assert(getComputedStyle(document.getElementById('gd-qa-theme-header')).display==='none','Mixed whiteboard hides the site masthead');
   assert(getComputedStyle(document.getElementById('gd-qa-theme-footer')).display==='none','Mixed whiteboard hides the site footer');
   const tools=[...document.querySelectorAll('[data-board-add]')];
-  assert(tools.length===24&&new Set(tools.map(button=>button.dataset.boardAdd)).size===24,'All 24 distinct manipulatives are available as compact palette icons');
-  assert(palette.getBoundingClientRect().width<=50,'Left manipulative rail stays narrow');
+  assert(tools.length===24&&new Set(tools.map(button=>button.dataset.boardAdd)).size===24,'All 24 distinct manipulatives are available in the grouped palette');
+  assert(palette.getBoundingClientRect().width<=64,'Left category rail stays narrow');
+  const groups=[...palette.querySelectorAll('[data-board-group]')],picker=document.getElementById('gd-board-tool-picker');
+  assert(groups.length===8&&picker.hidden,'Eight groups replace the long icon list');
+  const rail=palette.getBoundingClientRect(),br=board.getBoundingClientRect();
+  assert(rail.top>=br.top&&rail.bottom<=br.bottom,'Entire toolbar fits the board height');
   assert(getComputedStyle(canvas).backgroundImage.includes('radial-gradient'),'Whiteboard uses a fine dotted canvas');
   assert(getComputedStyle(canvas).backgroundSize==='10px 10px','Whiteboard dot spacing matches the 10px snap grid');
-  tools.forEach(button=>{
-    const r=button.getBoundingClientRect(),s=getComputedStyle(button);
-    assert(r.width<=38&&r.height<=38,'Palette icon stays visually compact: '+button.getAttribute('aria-label'));
-    assert(parseFloat(s.borderTopWidth)<=1,'Palette icon does not use a thick contour');
-  });
-  const firstTool=tools[0],toolTip=document.getElementById('gd-board-tooltip');
-  firstTool.dispatchEvent(new PointerEvent('pointerenter',{bubbles:false,pointerType:'mouse'}));
-  assert(visible(toolTip)&&toolTip.textContent.trim().length>0,'Left manipulative rail exposes a readable hover tooltip');
-  firstTool.dispatchEvent(new PointerEvent('pointerleave',{bubbles:false,pointerType:'mouse'}));
-
+  for(const group of groups){
+    group.click();await tick();
+    assert(!picker.hidden&&group.getAttribute('aria-expanded')==='true','Category opens a labelled picker: '+group.dataset.boardGroup);
+    const visibleTools=tools.filter(visible);assert(visibleTools.length>0&&visibleTools.every(el=>el.closest('[data-board-tool-group]').dataset.boardToolGroup===group.dataset.boardGroup),'Only selected category tools are visible');
+    assert(visibleTools.every(el=>el.textContent.trim().length>3&&el.getBoundingClientRect().height>=40),'Picker rows are labelled and touch sized');
+    const pr=picker.getBoundingClientRect();assert(pr.top>=br.top-1&&pr.bottom<=br.bottom+1&&pr.right<=br.right+1,'Category picker fits board');
+    picker.querySelector('[data-board-picker-close]').click();
+    assert(picker.hidden,'Picker closes independently');
+  }
+  // Reflow to a short landscape board; all eight category buttons stay visible.
+  const oldHeight=board.style.height;board.style.height='320px';window.dispatchEvent(new Event('resize'));await tick();
+  const shortRail=palette.getBoundingClientRect(),shortBoard=board.getBoundingClientRect();
+  assert(palette.classList.contains('is-short')&&shortRail.bottom<=shortBoard.bottom+1&&shortRail.top>=shortBoard.top-1,'Compact rail fits a 320px board');
+  groups.find(g=>g.dataset.boardGroup==='number').click();await tick();
+  assert(picker.getBoundingClientRect().bottom<=shortBoard.bottom+1,'Short-screen picker remains contained');
+  picker.querySelector('[data-board-picker-close]').click();board.style.height=oldHeight;window.dispatchEvent(new Event('resize'));await tick();
+  groups.find(g=>g.dataset.boardGroup==='measure').click();await tick();
   document.querySelector('[data-board-add="clock"]').click();
+  assert(picker.hidden,'Adding a widget closes the picker');
+  groups.find(g=>g.dataset.boardGroup==='measure').click();await tick();
   document.querySelector('[data-board-add="money"]').click();
   await tick();
   let objects=[...document.querySelectorAll('[data-board-object]')];
