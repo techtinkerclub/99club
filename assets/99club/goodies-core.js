@@ -12,5 +12,14 @@ function field(label,input,help=''){return `<label class="gd-field"><span>${labe
 function btn(text,id,primary=false){return `<button class="gd-btn${primary?' gd-btn--primary':''}" id="${id}" type="button">${text}</button>`}
 function setPanels(controls,stage){q('#gd-controls').innerHTML=controls;q('#gd-stage').innerHTML=stage}
 
-global.TT99Goodies={root,CATS,q,qa,esc,clamp,num,gcd,money,field,btn,setPanels};
+let lessonAdapter=null;
+const jsonCopy=value=>JSON.parse(JSON.stringify(value));
+const lessonState={
+ register(tool,read,write){lessonAdapter={tool,read,write}},
+ clear(){lessonAdapter=null},
+ supports(tool){return lessonAdapter?.tool===tool},
+ capture(tool){if(!this.supports(tool))throw new Error('Saving this tool is not supported yet.');return jsonCopy({version:1,tool,model:lessonAdapter.read()})},
+ restore(tool,snapshot){if(!this.supports(tool)||snapshot?.version!==1||snapshot.tool!==tool||!snapshot.model||typeof snapshot.model!=='object')throw new Error('Incompatible saved widget.');lessonAdapter.write(jsonCopy(snapshot.model));return true}
+};
+global.TT99Goodies={root,CATS,q,qa,esc,clamp,num,gcd,money,field,btn,setPanels,lessonState};
 })(window);

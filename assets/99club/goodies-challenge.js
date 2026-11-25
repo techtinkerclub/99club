@@ -135,6 +135,8 @@ function pickerHtml(templates,categories,activeCategory,selectedId,prefix){
 
 const pupilStates=new WeakMap();
 let pupilCurrent=null;
+function capturePupil(ch){const s=ch&&pupilStates.get(ch);return s?{values:s.values.slice(),status:s.status,correct:s.correct}:null}
+function restorePupil(ch,s){if(ch&&s&&Array.isArray(s.values))pupilStates.set(ch,{challenge:ch,values:s.values.map(v=>String(v).slice(0,240)),status:String(s.status||''),correct:!!s.correct,spec:null})}
 function pupilSpec(kind='text',extra={}){return {kind,...extra}}
 function cleanAnswer(v){return String(v??'').trim().toLowerCase().replace(/[−–—]/g,'-').replace(/[×·]/g,'*').replace(/÷/g,'/').replace(/[’‘]/g,"'").replace(/\s+/g,' ')}
 function numericAnswer(v){
@@ -347,5 +349,5 @@ function applyFormat(editor,action){
   else if(action==='size-large')document.execCommand('fontSize',false,'5');
 }
 
-G.challengeKit={pupilSpec,pupilAnswerCorrect,pickVariant,simplePolygon,normalise,makeCustom,sanitiseRichHtml,plainText,toolbarHtml,tabsHtml,editorHtml,pickerHtml,bannerHtml,applyFormat};
+G.challengeKit={capturePupil,restorePupil,pupilSpec,pupilAnswerCorrect,pickVariant,simplePolygon,normalise,makeCustom,sanitiseRichHtml,plainText,toolbarHtml,tabsHtml,editorHtml,pickerHtml,bannerHtml,applyFormat};
 })(window.TT99Goodies);

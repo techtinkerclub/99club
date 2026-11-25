@@ -1933,6 +1933,10 @@ function numberLineV2(){
   });
 
   renderAll();
+  G.lessonState?.register('number-line',()=>({state,beforeChallenge,challengeTab,challengeCategory,challengeType,controlTab,objectTab,exportMode,responseLines}),saved=>{
+    state=normalise(saved.state);beforeChallenge=saved.beforeChallenge?normalise(saved.beforeChallenge):null;
+    challengeTab=saved.challengeTab;challengeCategory=saved.challengeCategory;challengeType=saved.challengeType;controlTab=saved.controlTab;objectTab=saved.objectTab;exportMode=saved.exportMode;responseLines=saved.responseLines;undoStack.length=0;redoStack.length=0;renderAll();
+  });
 }
 
 G.numberLine=numberLineV2;

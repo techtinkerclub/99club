@@ -939,6 +939,39 @@ function abacusTool(){
   }
 
   renderAll();
+  G.lessonState?.register('abacus',()=>({rows,counts,kind,showTotal,showRowCounts,showRowLabels,workflow,playMode,task,taskContext,status,answerInput,revealed,reckoning,rodDigits,napierNumber,napierMultiplier,slideA,slideB,slideIndex,pascalDigits,pascalOperation,pascalMessage,suanUpper,suanLower,colourScheme,historyChallenge,historyAnswer,historyStatus,historyRevealed}),saved=>{
+    if(Object.prototype.hasOwnProperty.call(saved,'rows'))rows=saved.rows;
+    if(Object.prototype.hasOwnProperty.call(saved,'counts'))counts=saved.counts;
+    if(Object.prototype.hasOwnProperty.call(saved,'kind'))kind=saved.kind;
+    if(Object.prototype.hasOwnProperty.call(saved,'showTotal'))showTotal=saved.showTotal;
+    if(Object.prototype.hasOwnProperty.call(saved,'showRowCounts'))showRowCounts=saved.showRowCounts;
+    if(Object.prototype.hasOwnProperty.call(saved,'showRowLabels'))showRowLabels=saved.showRowLabels;
+    if(Object.prototype.hasOwnProperty.call(saved,'workflow'))workflow=saved.workflow;
+    if(Object.prototype.hasOwnProperty.call(saved,'playMode'))playMode=saved.playMode;
+    if(Object.prototype.hasOwnProperty.call(saved,'task'))task=saved.task;
+    if(Object.prototype.hasOwnProperty.call(saved,'taskContext'))taskContext=saved.taskContext;
+    if(Object.prototype.hasOwnProperty.call(saved,'status'))status=saved.status;
+    if(Object.prototype.hasOwnProperty.call(saved,'answerInput'))answerInput=saved.answerInput;
+    if(Object.prototype.hasOwnProperty.call(saved,'revealed'))revealed=saved.revealed;
+    if(Object.prototype.hasOwnProperty.call(saved,'reckoning'))reckoning=saved.reckoning;
+    if(Object.prototype.hasOwnProperty.call(saved,'rodDigits'))rodDigits=saved.rodDigits;
+    if(Object.prototype.hasOwnProperty.call(saved,'napierNumber'))napierNumber=saved.napierNumber;
+    if(Object.prototype.hasOwnProperty.call(saved,'napierMultiplier'))napierMultiplier=saved.napierMultiplier;
+    if(Object.prototype.hasOwnProperty.call(saved,'slideA'))slideA=saved.slideA;
+    if(Object.prototype.hasOwnProperty.call(saved,'slideB'))slideB=saved.slideB;
+    if(Object.prototype.hasOwnProperty.call(saved,'slideIndex'))slideIndex=saved.slideIndex;
+    if(Object.prototype.hasOwnProperty.call(saved,'pascalDigits'))pascalDigits=saved.pascalDigits;
+    if(Object.prototype.hasOwnProperty.call(saved,'pascalOperation'))pascalOperation=saved.pascalOperation;
+    if(Object.prototype.hasOwnProperty.call(saved,'pascalMessage'))pascalMessage=saved.pascalMessage;
+    if(Object.prototype.hasOwnProperty.call(saved,'suanUpper'))suanUpper=saved.suanUpper;
+    if(Object.prototype.hasOwnProperty.call(saved,'suanLower'))suanLower=saved.suanLower;
+    if(Object.prototype.hasOwnProperty.call(saved,'colourScheme'))colourScheme=saved.colourScheme;
+    if(Object.prototype.hasOwnProperty.call(saved,'historyChallenge'))historyChallenge=saved.historyChallenge;
+    if(Object.prototype.hasOwnProperty.call(saved,'historyAnswer'))historyAnswer=saved.historyAnswer;
+    if(Object.prototype.hasOwnProperty.call(saved,'historyStatus'))historyStatus=saved.historyStatus;
+    if(Object.prototype.hasOwnProperty.call(saved,'historyRevealed'))historyRevealed=saved.historyRevealed;
+    historyHelpOpen=false;historyDrag=null;drag=null;pascalCarryFlash=[];renderAll();
+  });
 }
 
 G.abacusTool=abacusTool;
