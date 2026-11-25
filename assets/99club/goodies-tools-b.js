@@ -311,21 +311,123 @@ function coordinateTool(){
       '<p class="gd-help">Tap an intersection to plot a point, then drag the point to move it. Switching grid mode does not delete your work; points outside the current grid are kept and reappear when they fit again.</p>';
   }
   function challengeControlsHtml(){
- const options=(id,label,values,value)=>field(label,'<select class="gd-select" id="'+id+'" data-mc-setting="'+id.replace('mc-','')+'">'+values.map(([v,t])=>'<option value="'+v+'"'+(Number(value)===Number(v)?' selected':'')+'>'+esc(t)+'</option>').join('')+'</select>');
- const groups=N.available(numberSettings,difficulty);
- const toggles=(key,values,label)=>'<fieldset class="gd-number-options"><legend>'+label+'</legend><div class="gd-number-toggle-row">'+values.map(v=>'<label><input type="checkbox" data-mc-toggle="'+key+'" value="'+esc(v)+'"'+(numberSettings[key].includes(v)?' checked':'')+'><span>'+esc(v)+'</span></label>').join('')+'</div></fieldset>';
- const termOptions=(side)=>[[0,side==='left'?'Vary (2–4)':'Vary (1–2)'],[1,'1 number'],[2,'2 numbers'],[3,'3 numbers'],[4,'4 numbers']];
- return '<div data-mc-settings-summary class="gd-number-settings-summary">'+esc(numberSettings.ops.join('  ')||'No operations')+' · '+numberSettings.min+' to '+numberSettings.max+' · '+(numberSettings.precision?'Up to '+numberSettings.precision+' dp':'Whole numbers')+' · '+(numberSettings.left||'2–4')+' / '+(numberSettings.right||'1–2')+' numbers</div><div class="gd-number-settings"><div class="gd-section-title">Question settings</div>'+
- field('Preset','<select class="gd-select" id="mc-difficulty">'+[['easy','Easy'],['medium','Medium'],['hard','Hard'],['custom','Custom']].map(([v,t])=>'<option value="'+v+'"'+(difficulty===v?' selected':'')+'>'+t+'</option>').join('')+'</select>')+
- toggles('ops',N.OPS,'Allowed operations')+toggles('relations',N.REL,'Allowed comparison symbols')+
- '<div class="gd-number-settings-pair">'+options('mc-min','Smallest number',[-100,-20,-10,0,1,2,5,10,20,50,100,200,500,1000].filter(v=>v<numberSettings.max).map(v=>[v,String(v)]),numberSettings.min)+options('mc-max','Largest number',[10,20,50,100,200,500,1000,10000].filter(v=>v>numberSettings.min).map(v=>[v,String(v)]),numberSettings.max)+'</div>'+
- options('mc-precision','Number type',[[0,'Whole numbers'],[1,'Up to 1 decimal place'],[2,'Up to 2 decimal places']],numberSettings.precision)+
- '<div class="gd-number-settings-pair">'+options('mc-left','Numbers on left',termOptions('left'),numberSettings.left)+options('mc-right','Numbers on right',termOptions('right'),numberSettings.right)+'</div>'+
- '<p class="gd-help">All displayed numbers and missing values stay in the selected range. Division is exact at the selected precision. Parentheses make grouping explicit. Comparison settings apply to comparison questions. Only compatible question types are listed.</p></div>'+
- (generationError?'<p class="gd-number-error" role="status">'+esc(generationError)+'</p>':'')+
- (groups.length?CK.nativeRandomHtml('mc',groups)+groups.map(g=>'<div class="gd-section-title">'+esc(g.label)+'</div><div class="gd-row">'+g.ids.map(id=>'<button type="button" class="gd-btn" data-mc-challenge-mode="'+id+'">'+esc(N.titles[id])+'</button>').join('')+'</div>').join(''):'<p class="gd-help">No compatible questions. Enable an operation, allow a comparison, or change the number of terms.</p>')+(challenge?btn('Exit challenge','mc-exit-challenge'):'');
-}
-function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():controlTab==='export'?exportControlsHtml():exploreControlsHtml())}
+    if(!CK)return '<p class="gd-help">Challenge tools are unavailable.</p>';
+    const tabs=CK.tabsHtml?CK.tabsHtml('co',challengeTab):'';
+    if(challengeTab==='custom'){
+      const custom=challenge&&challenge.mode==='custom'?challenge:CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual'});
+      return tabs+CK.editorHtml(custom,'co',{answerSources:customAnswerSources(),generatedAnswerLabel:'Keep the generated answer'})+
+        '<div class="gd-row">'+(challenge&&challenge.answer?'<button class="gd-btn" id="co-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
+        (challenge?'<button class="gd-btn" id="co-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
+        '<div class="gd-row">'+btn('Undo','co-undo')+btn('Redo','co-redo')+'</div>'+
+        '<p class="gd-help">Custom challenges stay attached to the live coordinate grid. Build the diagram first, then bind the answer to a point coordinate or one component of it if useful.</p>';
+    }
+    const picker=CK.pickerHtml(CHALLENGE_TEMPLATES,CHALLENGE_CATEGORIES,challengeCategory,challengeType,'co');
+    const repeat=!!(challenge&&challenge.mode==='standard'&&challenge.type===challengeType);
+    return tabs+picker+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="co-generate" type="button">'+(repeat?'Another like this':'Generate challenge')+'</button>'+
+      (challenge&&challenge.mode!=='custom'?'<button class="gd-btn" id="co-edit-challenge" type="button">Edit challenge</button>':'')+
+      (challenge&&challenge.answer?'<button class="gd-btn" id="co-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
+      (challenge?'<button class="gd-btn" id="co-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>'+
+      '<div class="gd-row">'+btn('Undo','co-undo')+btn('Redo','co-redo')+'</div>';
+  }
+  function exportControlsHtml(){
+    const canCard=!!challenge;
+    if(!canCard&&exportMode==='challenge')exportMode='diagram';
+    return '<div class="nl-panel-title"><div><strong>Use it elsewhere</strong><span>Export a clean vector coordinate grid or a pupil-ready challenge card.</span></div></div>'+
+      (canCard?'<div class="nl-export-mode co-export-mode" role="tablist" aria-label="Export content">'+
+        '<button type="button" class="'+(exportMode==='challenge'?'is-active':'')+'" data-co-export-mode="challenge">Challenge card</button>'+
+        '<button type="button" class="'+(exportMode==='diagram'?'is-active':'')+'" data-co-export-mode="diagram">Grid only</button></div>':'')+
+      (canCard&&exportMode==='challenge'
+        ?'<label class="gd-field"><span>Answer space</span><select class="gd-select" id="co-response-lines">'+
+          [1,2,3,4].map(n=>'<option value="'+n+'"'+(responseLines===n?' selected':'')+'>'+n+' line'+(n===1?'':'s')+'</option>').join('')+
+          '</select></label><p class="gd-help">The pupil card contains the question, coordinate grid and blank answer space. Hidden coordinates stay hidden even after Reveal answer.</p>'
+        :'<p class="gd-help">Grid-only export contains the current axes, plotted points, labels and visible readout without editing controls.</p>')+
+      '<div class="nl-export-grid co-export-grid">'+
+        '<button class="gd-btn gd-btn--primary" id="co-copy-image" type="button">Copy '+(canCard&&exportMode==='challenge'?'challenge':'image')+'</button>'+
+        '<button class="gd-btn" id="co-png" type="button">PNG</button>'+
+        '<button class="gd-btn" id="co-svg-download" type="button">SVG</button>'+
+        '<button class="gd-btn" id="co-print" type="button">Print / PDF</button>'+
+      '</div><p class="gd-help" id="co-export-status" role="status" aria-live="polite">'+exportStatus+'</p>';
+  }
+  function coSvgEl(name,attrs={},text=''){
+    const el=document.createElementNS('http://www.w3.org/2000/svg',name);
+    Object.entries(attrs).forEach(([key,value])=>el.setAttribute(key,String(value)));
+    if(text!==''&&text!=null)el.textContent=String(text);
+    return el;
+  }
+  function exportPointHidden(index,pupil=false){
+    if(!challenge)return false;
+    if(!pupil)return hiddenPoint(index);
+    return Array.isArray(challenge.hiddenPointLabels)&&challenge.hiddenPointLabels.map(Number).includes(index);
+  }
+  function exportPointLabel(index,p,pupil=false){
+    if(!exportPointHidden(index,pupil))return rawCoordinate(p);
+    const overrides=challenge&&challenge.pointLabelOverrides&&typeof challenge.pointLabelOverrides==='object'?challenge.pointLabelOverrides:{};
+    return overrides[index]!=null?String(overrides[index]):pointName(index);
+  }
+  function exportPointSet(pupil=false){
+    if(pupil&&challenge?.mode==='standard'&&challenge.type==='plot-coordinate')return [];
+    return points;
+  }
+  function coordinateExportSvg({pupil=false}={}){
+    const c=config(),width=800,height=830,gridX=92,gridY=70,gridSize=620,gridStep=gridSize/c.range,labelEvery=c.four?2:1;
+    const exportPts=exportPointSet(pupil);
+    const svg=coSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Coordinate grid','data-co-export':'grid'});
+    svg.appendChild(coSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
+    svg.appendChild(coSvgEl('rect',{x:48,y:34,width:704,height:720,rx:18,fill:'#fbfcfc',stroke:'#c5d3d6','stroke-width':2,'data-co-export-board':'1'}));
+    for(let v=c.min;v<=c.max;v++){
+      const x=gridX+(v-c.min)*gridStep,y=gridY+(c.max-v)*gridStep;
+      svg.appendChild(coSvgEl('line',{x1:x,y1:gridY,x2:x,y2:gridY+gridSize,stroke:'#d9e2e4','stroke-width':1}));
+      svg.appendChild(coSvgEl('line',{x1:gridX,y1:y,x2:gridX+gridSize,y2:y,stroke:'#d9e2e4','stroke-width':1}));
+      if(v%labelEvery===0){
+        svg.appendChild(coSvgEl('text',{x,y:gridY+gridSize+24,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':11,fill:'#65787e'},v));
+        svg.appendChild(coSvgEl('text',{x:gridX-14,y:y+4,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':11,fill:'#65787e'},v));
+      }
+    }
+    const zeroX=gridX+(0-c.min)*gridStep,zeroY=gridY+(c.max-0)*gridStep;
+    svg.appendChild(coSvgEl('line',{x1:zeroX,y1:gridY,x2:zeroX,y2:gridY+gridSize,stroke:'#526970','stroke-width':2.5}));
+    svg.appendChild(coSvgEl('line',{x1:gridX,y1:zeroY,x2:gridX+gridSize,y2:zeroY,stroke:'#526970','stroke-width':2.5}));
+    exportPts.forEach((p,index)=>{
+      if(!visible(p,c))return;
+      const x=gridX+(p.x-c.min)*gridStep,y=gridY+(c.max-p.y)*gridStep,label=exportPointLabel(index,p,pupil);
+      svg.appendChild(coSvgEl('circle',{cx:x,cy:y,r:9,fill:'#ffffff',stroke:'#2f6f68','stroke-width':4,'data-co-export-point':index}));
+      const layout=pointLabelLayout(x,y,gridX,gridY,gridX+gridSize);
+      svg.appendChild(coSvgEl('text',{x:layout.x,y:layout.y,'text-anchor':layout.anchor,'font-family':'Arial,sans-serif','font-size':14,'font-weight':800,fill:'#334a52'},label));
+    });
+    const labels=exportPts.map((p,index)=>exportPointLabel(index,p,pupil)).join(' · ')||'none';
+    const outside=exportPts.filter(p=>!visible(p,c)).length;
+    const readout='Points: '+labels+(outside?' · '+outside+' outside this grid '+(outside===1?'is':'are')+' hidden':'');
+    svg.appendChild(coSvgEl('text',{x:width/2,y:785,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':16,'font-weight':700,fill:'#425b62'},readout));
+    svg.appendChild(coSvgEl('text',{x:width-52,y:height-18,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':10,fill:'#87969a'},'99 Club Studio'));
+    return svg;
+  }
+  function exportTargetSvg(){
+    if(exportMode!=='challenge'||!challenge||!X?.composeChallengeCardSvg)return coordinateExportSvg({pupil:false});
+    const prompt=CK?CK.plainText(challenge.promptHtml||challenge.prompt||''):challenge.prompt||'';
+    const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
+    return X.composeChallengeCardSvg(coordinateExportSvg({pupil:true}),{
+      title:challenge.title||meta?.title||'Coordinates challenge',
+      prompt:prompt+(challenge.type==='plot-coordinate'?' Mark and label the point on the grid.':''),
+      responseLabel:challenge.type==='plot-coordinate'?'Working / answer':challenge.category==='reason'?'Explain your thinking':'Answer',
+      responseLines,
+      brand:'99 Club Studio'
+    });
+  }
+  function exportName(){
+    const meta=challenge&&CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
+    return exportMode==='challenge'&&challenge?(challenge.title||meta?.title||'coordinates-challenge'):(fourQuadrants?'coordinate-grid-four-quadrants':'coordinate-grid');
+  }
+  function exportMessage(text){exportStatus=text;const el=q('#co-export-status');if(el)el.textContent=text}
+  async function exportAction(kind){
+    try{
+      if(!X)throw new Error('Export tools are not available.');
+      const target=exportTargetSvg(),isCard=exportMode==='challenge'&&!!challenge,name=exportName();
+      if(kind==='copy'){await X.copyPng(target);exportMessage(isCard?'Challenge copied — paste it into your worksheet, slide or document.':'Coordinate grid copied — paste it into your slide or document.')}
+      if(kind==='png'){await X.downloadPng(target,name,2);exportMessage(isCard?'Challenge PNG downloaded.':'Coordinate-grid PNG downloaded.')}
+      if(kind==='svg'){X.downloadSvg(target,name);exportMessage(isCard?'Challenge SVG downloaded.':'Coordinate-grid SVG downloaded.')}
+      if(kind==='print'){X.printSvg(target,{title:'',landscape:false});exportMessage('Print view opened. Choose “Save as PDF” in the print dialog.')}
+    }catch(err){exportMessage(err?.message||'That export did not work.')}
+  }
+  function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():controlTab==='export'?exportControlsHtml():exploreControlsHtml())}
   function renderControls(){const panel=q('#gd-controls');if(panel)panel.innerHTML=controlsHtml();bindControls()}
   function enterCustomChallenge(){
     if(CK)challenge=CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''});
@@ -4142,8 +4244,19 @@ return '<div class="nl-panel-title"><div><strong>Use it elsewhere</strong><span>
 '<p class="gd-help" id="mc-export-status" role="status" aria-live="polite">'+exportStatus+'</p>';
 }
 function challengeControlsHtml(){
- return field('Difficulty','<select class="gd-select" id="mc-difficulty">'+['easy','medium','hard'].map(v=>'<option value="'+v+'"'+(difficulty===v?' selected':'')+'>'+v[0].toUpperCase()+v.slice(1)+'</option>').join('')+'</select>')+
- CK.nativeRandomHtml('mc',N.groups)+N.groups.map(g=>'<div class="gd-section-title">'+esc(g.label)+'</div><div class="gd-row">'+g.ids.map(id=>'<button type="button" class="gd-btn" data-mc-challenge-mode="'+id+'">'+esc(N.titles[id])+'</button>').join('')+'</div>').join('')+(challenge?btn('Exit challenge','mc-exit-challenge'):'');
+ const options=(id,label,values,value)=>field(label,'<select class="gd-select" id="'+id+'" data-mc-setting="'+id.replace('mc-','')+'">'+values.map(([v,t])=>'<option value="'+v+'"'+(Number(value)===Number(v)?' selected':'')+'>'+esc(t)+'</option>').join('')+'</select>');
+ const groups=N.available(numberSettings,difficulty);
+ const toggles=(key,values,label)=>'<fieldset class="gd-number-options"><legend>'+label+'</legend><div class="gd-number-toggle-row">'+values.map(v=>'<label><input type="checkbox" data-mc-toggle="'+key+'" value="'+esc(v)+'"'+(numberSettings[key].includes(v)?' checked':'')+'><span>'+esc(v)+'</span></label>').join('')+'</div></fieldset>';
+ const termOptions=(side)=>[[0,side==='left'?'Vary (2–4)':'Vary (1–2)'],[1,'1 number'],[2,'2 numbers'],[3,'3 numbers'],[4,'4 numbers']];
+ return '<div data-mc-settings-summary class="gd-number-settings-summary">'+esc(numberSettings.ops.join('  ')||'No operations')+' · '+numberSettings.min+' to '+numberSettings.max+' · '+(numberSettings.precision?'Up to '+numberSettings.precision+' dp':'Whole numbers')+' · '+(numberSettings.left||'2–4')+' / '+(numberSettings.right||'1–2')+' numbers</div><div class="gd-number-settings"><div class="gd-section-title">Question settings</div>'+
+ field('Preset','<select class="gd-select" id="mc-difficulty">'+[['easy','Easy'],['medium','Medium'],['hard','Hard'],['custom','Custom']].map(([v,t])=>'<option value="'+v+'"'+(difficulty===v?' selected':'')+'>'+t+'</option>').join('')+'</select>')+
+ toggles('ops',N.OPS,'Allowed operations')+toggles('relations',N.REL,'Allowed comparison symbols')+
+ '<div class="gd-number-settings-pair">'+options('mc-min','Smallest number',[-100,-20,-10,0,1,2,5,10,20,50,100,200,500,1000].filter(v=>v<numberSettings.max).map(v=>[v,String(v)]),numberSettings.min)+options('mc-max','Largest number',[10,20,50,100,200,500,1000,10000].filter(v=>v>numberSettings.min).map(v=>[v,String(v)]),numberSettings.max)+'</div>'+
+ options('mc-precision','Number type',[[0,'Whole numbers'],[1,'Up to 1 decimal place'],[2,'Up to 2 decimal places']],numberSettings.precision)+
+ '<div class="gd-number-settings-pair">'+options('mc-left','Numbers on left',termOptions('left'),numberSettings.left)+options('mc-right','Numbers on right',termOptions('right'),numberSettings.right)+'</div>'+
+ '<p class="gd-help">All displayed numbers and missing values stay in the selected range. Division is exact at the selected precision. Parentheses make grouping explicit. Comparison settings apply to comparison questions. Only compatible question types are listed.</p></div>'+
+ (generationError?'<p class="gd-number-error" role="status">'+esc(generationError)+'</p>':'')+
+ (groups.length?CK.nativeRandomHtml('mc',groups)+groups.map(g=>'<div class="gd-section-title">'+esc(g.label)+'</div><div class="gd-row">'+g.ids.map(id=>'<button type="button" class="gd-btn" data-mc-challenge-mode="'+id+'">'+esc(N.titles[id])+'</button>').join('')+'</div>').join(''):'<p class="gd-help">No compatible questions. Enable an operation, allow a comparison, or change the number of terms.</p>')+(challenge?btn('Exit challenge','mc-exit-challenge'):'');
 }
 function controlsHtml(){return workflowTabs()+(workflow==='challenge'&&N?challengeControlsHtml():workflow==='task'?taskControlsHtml():workflow==='export'?exportControlsHtml():buildControlsHtml())}
 function renderControls(){q('#gd-controls').innerHTML=controlsHtml();bindControls()}
