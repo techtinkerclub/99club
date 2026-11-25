@@ -1205,11 +1205,17 @@ function mePaper(data,teacher=false){
      const x=px(value);
      add('line',{x1:x,y1:y-7,x2:x,y2:base+4,stroke:colour,'stroke-width':2.8,'data-me-paper-marker':kind});
      add('path',{d:'M'+(x-7)+' '+(y-8)+' H'+(x+7)+' L'+x+' '+(y+3)+' Z',fill:colour});
-     if(label)text(x,y-15,label,20);
-     if(teacher)text(x,base+26,Number(value.toFixed(3))+' cm',18);
+     if(label){
+       const close=distance&&Math.abs(state.cm-Number(c.secondaryCm))*scale<34;
+       const offset=close?(kind==='secondary'?-15:15):0;
+       if(close)add('line',{x1:x,y1:y-9,x2:x+offset,y2:y-16,stroke:colour,'stroke-width':1.2});
+       text(x+offset,y-20,label,20);
+     }
+     if(teacher&&!distance)text(Math.max(46,Math.min(W-46,x)),base+26,Number(value.toFixed(3))+' cm',18);
    }
    if(distance)marker(Number(c.secondaryCm),'A','secondary','#3186b3');
    if(!place||teacher)marker(state.cm,distance?'B':'','main','#c67e19');
+   if(teacher&&distance)text(W/2,base+28,'A = '+c.secondaryCm+' cm     ·     B = '+state.cm+' cm     ·     Difference = '+c.answer,21);
    if(!task){
      const mm=Math.round(state.cm*1000)/100,inch=state.cm/2.54;
      text(pad,y-17,'Ruler '+(index===0?'A':'B')+' · '+(imperial?'Imperial':'Metric'),18,{'text-anchor':'start'});
