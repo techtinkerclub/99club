@@ -119,6 +119,7 @@ function snapped(v){return snapOn?Math.round(v/SNAP)*SNAP:v}
 function iconSvg(name){
   const paths={
     back:'<path d="m14 6-6 6 6 6"/>',
+    save:'<path d="M6 4h12l2 2v14H4V4zM8 4v6h8V4M8 20v-6h8v6"/>',
     full:'<path d="M8 4H4v4M16 4h4v4M20 16v4h-4M4 16v4h4"/>',
     snap:'<circle cx="7" cy="7" r="1.2"/><circle cx="12" cy="7" r="1.2"/><circle cx="17" cy="7" r="1.2"/><circle cx="7" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="17" cy="12" r="1.2"/><circle cx="7" cy="17" r="1.2"/><circle cx="12" cy="17" r="1.2"/><circle cx="17" cy="17" r="1.2"/>',
     settings:'<path d="M5 7h8M17 7h2M11 12h8M5 12h2M5 17h5M14 17h5"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="12" cy="17" r="2"/>',
@@ -152,7 +153,15 @@ root.innerHTML='<div class="gd-mixed-board" id="gd-mixed-board">'+
     '</div>'+
     '<div class="gd-board-floating-controls-body" id="gd-board-floating-controls-body"></div>'+
   '</aside>'+
+  '<dialog class="gd-board-library" id="gd-board-library" aria-labelledby="gd-board-library-title">'+
+    '<div class="gd-board-library-head"><strong id="gd-board-library-title">Saved boards</strong><button type="button" data-board-library-close aria-label="Close saved boards">×</button></div>'+
+    '<p>Save editable lesson boards in this browser. No account required. Clearing browser data removes saved boards.</p>'+
+    '<label class="gd-field"><span>Board name</span><input id="gd-board-save-name" class="gd-input" maxlength="80" placeholder="e.g. Fractions lesson"></label>'+
+    '<button type="button" class="gd-btn gd-btn--primary" id="gd-board-save-current">Save current board</button>'+
+    '<div id="gd-board-library-list"></div><p id="gd-board-library-status" role="status" aria-live="polite"></p>'+
+  '</dialog>'+
   '<div class="gd-board-global" aria-label="Whiteboard controls">'+
+    '<button type="button" class="gd-board-global-button" id="gd-board-saved" aria-label="Saved boards" title="Saved boards">'+iconSvg('save')+'</button>'+
     '<button type="button" class="gd-board-global-button" id="gd-board-back" aria-label="Back to manipulatives" title="Back">'+iconSvg('back')+'</button>'+
     '<button type="button" class="gd-board-global-button is-active" id="gd-board-snap" aria-pressed="true" aria-label="Toggle snap to dots" title="Snap to dots">'+iconSvg('snap')+'</button>'+
     '<button type="button" class="gd-board-global-button" id="gd-board-full" aria-label="Present full screen" title="Present">'+iconSvg('full')+'</button>'+
@@ -446,7 +455,7 @@ function connectInnerObject(obj){
     const previous=innerConnections.get(obj.id);
     if(previous?.doc===doc)return;
     previous?.dispose();
-    let pending=0,settleTimer=0,disposed=false,initial=true;
+    let pending=0,settleTimer=0,disposed=false,initial=!obj.restored;
     const observed=new Set();
     const controls=doc.getElementById('gd-controls');
     const ro=typeof ResizeObserver==='function'?new ResizeObserver(()=>queueFit()):null;
@@ -590,6 +599,79 @@ function addObject(toolId){
   bindObject(obj);
   connectInnerObject(obj);
 }
+const LIBRARY_KEY='tt99-whiteboard-lessons-v1';
+let libraryBusy=false;
+const libraryDialog=document.getElementById('gd-board-library'),libraryStatus=document.getElementById('gd-board-library-status');
+function libraryMessage(message){libraryStatus.textContent=String(message)}
+function readLibrary(){const value=JSON.parse(localStorage.getItem(LIBRARY_KEY)||'[]');if(!Array.isArray(value))throw new Error('The saved-board library is unreadable.');return value}
+function writeLibrary(entries){localStorage.setItem(LIBRARY_KEY,JSON.stringify(entries))}
+function captureBoard(){
+  if(objects.length>60)throw new Error('A saved board can contain up to 60 objects.');
+  return {version:1,snapOn,viewport:{left:viewport.scrollLeft,top:viewport.scrollTop},objects:objects.map(obj=>{
+    const api=innerDocument(obj)?.defaultView?.TT99Goodies?.lessonState;
+    if(!api?.supports(obj.toolId))throw new Error((tools.find(t=>t.id===obj.toolId)?.title||obj.toolId)+' is still loading or does not support saved boards yet. Nothing was saved.');
+    const {toolId,x,y,baseW,baseH,scale,locked,z,clockSlots}=obj;
+    return {toolId,x,y,baseW,baseH,scale,locked,z,clockSlots,state:api.capture(toolId)};
+  })};
+}
+function validateBoard(saved){
+  if(saved?.version!==1||!Array.isArray(saved.objects)||saved.objects.length>60)throw new Error('Unsupported saved board format.');
+  for(const o of saved.objects){
+    if(!tools.some(t=>t.id===o.toolId)||o.toolId==='balance'||o.state?.version!==1||o.state.tool!==o.toolId||!o.state.model)throw new Error('This board contains an unsupported widget.');
+    if(!['x','y','baseW','baseH','scale','z'].every(k=>Number.isFinite(o[k]))||o.x<0||o.y<0||o.x>BOARD_W||o.y>BOARD_H||o.baseW<100||o.baseW>1200||o.baseH<100||o.baseH>1400||o.scale<.35||o.scale>2)throw new Error('Invalid saved widget dimensions.');
+  }return saved;
+}
+async function restoreBoard(saved){
+  validateBoard(saved);if(libraryBusy)throw new Error('A board is already opening.');libraryBusy=true;
+  const original=objects.slice(),added=[],previousSelected=selectedId,previousScroll={left:viewport.scrollLeft,top:viewport.scrollTop};
+  try{
+    for(const record of saved.objects.slice().sort((a,b)=>a.z-b.z)){
+      const tool=tools.find(t=>t.id===record.toolId);
+      const obj={id:nextId++,toolId:record.toolId,x:record.x,y:record.y,baseW:record.baseW,baseH:record.baseH,scale:record.scale,locked:!!record.locked,z:++zCounter,menuOpen:false,settingsOpen:false,w:Math.round(record.baseW*record.scale),h:Math.round(record.baseH*record.scale),restored:true};
+      if(tool.id==='clock')obj.clockSlots=Array.isArray(record.clockSlots)?record.clockSlots.slice(0,4):[nextClockSlot()];
+      added.push(obj);objects.push(obj);canvas.insertAdjacentHTML('beforeend',objectMarkup(obj,tool));
+      const frame=frameFor(obj.id);frame.style.visibility='hidden';frame.classList.remove('is-selected');frame.setAttribute('aria-selected','false');positionObject(obj);bindObject(obj);
+      const iframe=frame.querySelector('iframe');
+      await new Promise((resolve,reject)=>{
+        let timer=null,timeout=null;function stop(){clearInterval(timer);clearTimeout(timeout)}
+        function ready(){try{const api=iframe.contentWindow?.TT99Goodies?.lessonState;if(!api?.supports(obj.toolId))return;stop();api.restore(obj.toolId,record.state);resolve()}catch(err){stop();reject(err)}}
+        timer=setInterval(ready,30);timeout=setTimeout(()=>{stop();reject(new Error(tool.title+' could not be restored.'))},8000);ready();
+      });
+    }
+    original.forEach(o=>removeObject(o.id));deselect();
+    for(const obj of added){const frame=frameFor(obj.id);frame.style.visibility='';if(obj.locked){obj.locked=false;toggleLock(obj.id)}connectInnerObject(obj)}
+    snapOn=saved.snapOn!==false;const button=document.getElementById('gd-board-snap');button.classList.toggle('is-active',snapOn);button.setAttribute('aria-pressed',String(snapOn));board.classList.toggle('is-snap-off',!snapOn);
+    viewport.scrollLeft=Math.max(0,Number(saved.viewport?.left)||0);viewport.scrollTop=Math.max(0,Number(saved.viewport?.top)||0);return true;
+  }catch(err){added.forEach(o=>removeObject(o.id));if(previousSelected!=null)selectObject(previousSelected);viewport.scrollLeft=previousScroll.left;viewport.scrollTop=previousScroll.top;throw err}
+  finally{libraryBusy=false}
+}
+function renderLibrary(){
+  const list=document.getElementById('gd-board-library-list');list.replaceChildren();
+  let entries;try{entries=readLibrary()}catch(err){libraryMessage(err.message);return}
+  if(!entries.length){const p=document.createElement('p');p.textContent='No saved boards yet.';list.append(p);return}
+  for(const entry of entries){
+    const row=document.createElement('div');row.className='gd-board-library-row';
+    const title=document.createElement('span');title.textContent=entry.name;
+    const info=document.createElement('small');info.textContent=(entry.board?.objects?.length||0)+' objects';
+    const copy=document.createElement('div');copy.append(title,info);
+    const open=document.createElement('button');open.type='button';open.className='gd-btn';open.textContent='Open';
+    open.onclick=async()=>{if(libraryBusy)return;if(objects.length&&!window.confirm('Replace the current board with "'+entry.name+'"?'))return;libraryMessage('Opening '+entry.name+'…');open.disabled=true;
+      try{await restoreBoard(entry.board);libraryDialog.close();boardHint('Opened '+entry.name)}catch(err){libraryMessage(err.message+' Your previous board has been kept.')}finally{open.disabled=false}};
+    const del=document.createElement('button');del.type='button';del.className='gd-btn';del.textContent='Delete';del.setAttribute('aria-label','Delete saved board '+entry.name);
+    del.onclick=()=>{if(libraryBusy||!window.confirm('Delete saved board "'+entry.name+'"?'))return;try{writeLibrary(readLibrary().filter(e=>e.name!==entry.name));renderLibrary();libraryMessage('Saved board deleted.')}catch(err){libraryMessage(err.message)}};
+    row.append(copy,open,del);list.append(row);
+  }
+}
+document.getElementById('gd-board-saved').onclick=()=>{libraryMessage('');renderLibrary();if(!libraryDialog.open)libraryDialog.showModal()};
+libraryDialog.addEventListener('cancel',e=>{if(libraryBusy)e.preventDefault()});
+libraryDialog.querySelector('[data-board-library-close]').onclick=()=>{if(!libraryBusy)libraryDialog.close()};
+document.getElementById('gd-board-save-current').onclick=()=>{
+  if(libraryBusy)return;
+  const name=document.getElementById('gd-board-save-name').value.trim().slice(0,80);
+  if(!name){libraryMessage('Enter a name for your board.');return}if(!objects.length){libraryMessage('Add a manipulative before saving.');return}
+  try{const snapshot=captureBoard(),entries=readLibrary();if(entries.some(e=>e.name===name)&&!window.confirm('Replace the saved board "'+name+'"?'))return;
+    writeLibrary([{name,board:snapshot},...entries.filter(e=>e.name!==name)]);renderLibrary();libraryMessage('Saved '+name+' in this browser.')}catch(err){libraryMessage(err.message)}
+};
 function removeObject(id){
   const obj=objectById(id);if(!obj)return;
   sendSettings(obj,false);
@@ -861,6 +943,8 @@ window.addEventListener('message',event=>{
 
 G.compositionBoard={
   add:addObject,
+  capture:captureBoard,
+  restore:restoreBoard,
   select:selectObject,
   remove:removeObject,
   allocateClockSlot,
