@@ -4100,6 +4100,7 @@ if(kind==='print'){X.printSvg(target,{title:'',landscape:false});exportMessage('
 }catch(err){exportMessage(err?.message||'That export did not work.')}
 }
 function exportControlsHtml(){
+if(challenge)return '<div class="nl-panel-title"><div><strong>Export challenge</strong><span>The original unanswered question, ready for paper.</span></div></div><div class="nl-export-grid"><button class="gd-btn gd-btn--primary" id="mc-copy-image" type="button">Copy challenge</button><button class="gd-btn" id="mc-png" type="button">PNG</button><button class="gd-btn" id="mc-svg-download" type="button">SVG</button><button class="gd-btn" id="mc-print" type="button">Print / PDF</button></div><p class="gd-help" id="mc-export-status" role="status">'+esc(exportStatus)+'</p>';
 return '<div class="nl-panel-title"><div><strong>Use it elsewhere</strong><span>Export the clean canvas or turn it into a pupil-ready task card.</span></div></div>'+
 '<div class="nl-export-mode" role="tablist" aria-label="Number and symbol tiles export content">'+
 '<button type="button" class="'+(exportMode==='canvas'?'is-active':'')+'" data-mc-export-mode="canvas">Canvas only</button>'+
