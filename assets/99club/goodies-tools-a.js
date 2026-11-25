@@ -49,7 +49,7 @@ function placeValue(){
   let activityBefore=null;
   let activityInput='',activityAnswer=null,activityHiddenIndex=-1,activityDigit=0,activityStartCounts=[],activityPrompt='';
   let additionA=247,additionB=185,additionStep=0,additionDifficulty='mixed';
-  let exportMode='diagram',responseLines=1,exportStatus='';
+  let exportMode='diagram',responseLines=1,exportStatus='',paperActivityStart=null,representationOptionsOpen=false;
 
   function rangeFor(id=placeRange){return PLACE_RANGES.find(r=>r.id===id)||PLACE_RANGES.find(r=>r.id==='standard')}
   function applyPlaceWindow(start,end,id='custom'){
@@ -207,6 +207,7 @@ function placeValue(){
       buildFromNumber(value);
       challenge=challengeObject(type,'A pupil says the empty '+places[zeroIndex].name+' column does not matter when reading this number. Are they correct?','No. It represents '+format(value)+'. Zero is acting as a placeholder in the '+places[zeroIndex].name+' place.',{hiddenSummary:['total','expanded']});
     }
+    challenge.paperStartCounts=counts().slice();
     activityActive=false;challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';
     exportMode='challenge';responseLines=template.category==='reason'?3:1;exportStatus='';
     renderControls();controller?.select(null);controller?.refresh();
@@ -321,7 +322,7 @@ function placeValue(){
     const problem=a==null||b==null?randomAdditionProblem():{a:normaliseValue(a),b:normaliseValue(b)};
     const safeA=clamp(problem.a,0,rangeMax()),safeB=clamp(problem.b,0,Math.max(0,rangeMax()-safeA));
     additionA=safeA;additionB=safeB;activityTarget=normaliseValue(safeA+safeB);additionStep=0;activityStatus='';
-    if(representationMode==='counters')representationMode='abacus';
+    paperActivityStart=digitsForValue(additionA);
     controller?.mutate(()=>{buildFromNumber(additionA);notice='Start at '+format(additionA)+'. '+additionProgressText()});controller?.select(null);
   }
   function applyAdditionStep(){
@@ -434,6 +435,7 @@ function placeValue(){
       else if(activityMode==='hidden')activityAnswer=chosen.count;
       else activityAnswer=clean(chosen.count*places[chosen.index].value);
     }
+    paperActivityStart=counts().slice();
     activityPrompt=activityDescriptor().prompt;
     controller?.refresh();renderControls();
   }
@@ -457,7 +459,7 @@ function placeValue(){
     if(activityMode==='powers'||(activityAnswerMode()&&activityStatus.startsWith('Correct')))return;
     const target=clean(activityTarget),value=total(),same=Math.abs(value-target)<(valueStep()/2+1e-9);
     if(activityMode==='add'){
-      activityStatus=same?'Correct ✓ — '+format(additionA)+' + '+format(additionB)+' = '+format(target)+'.':'Not yet — the place-value frame currently shows '+format(value)+'.';
+      activityStatus=same?'Correct ✓ — '+format(additionA)+' + '+format(additionB)+' = '+format(target)+'.':'Not yet — the place-value board currently shows '+format(value)+'.';
     }else if(activityMode==='exact'){
       const rightCount=tokens.length===activityBudget;
       activityStatus=same&&rightCount?'Correct ✓':same?'Right value — now use exactly '+activityBudget+' counters.':rightCount?'You used '+activityBudget+' counters, but the value is not '+format(target)+' yet.':'Keep going — match both the target and the counter limit.';
@@ -499,7 +501,7 @@ function placeValue(){
         '<option value="regroup"'+(additionDifficulty==='regroup'?' selected':'')+'>Needs regrouping</option>'+
       '</select>')+
       '<div class="gd-row"><button class="gd-btn gd-btn--primary" id="pv-add-set" type="button">Set addition</button><button class="gd-btn" id="pv-activity-new" type="button">New problem</button></div>'+
-      '<p class="gd-help">Use the place-value frame to add by place value. In Teach mode, Next place demonstrates each part and carries automatically.</p>';
+      '<p class="gd-help">Use counters to add by place value and exchange groups of ten. In Teach mode, Next place demonstrates each part and carries automatically.</p>';
     else if(activityMode==='exact')extras=field('Counters to use','<select class="gd-select" id="pv-activity-budget">'+[3,4,5,6,7,8,9].map(n=>'<option value="'+n+'"'+(activityBudget===n?' selected':'')+'>'+n+'</option>').join('')+'</select>')+
       '<button class="gd-btn" id="pv-activity-new" type="button">New task</button><p class="gd-help">Build the target using exactly the chosen number of counters.</p>';
     else extras='<button class="gd-btn" id="pv-activity-new" type="button">New task</button>';
@@ -581,23 +583,23 @@ function placeValue(){
         '</select></label>'
       :'';
     const challengeHelp=buildTask
-      ?'The chart itself is the pupil response area. Reveal the answer to export a teacher copy with the completed chart.'
+      ?'The blank chart is the pupil response area.'
       :reasonTask
-        ?'Pupil copy has writing lines. Reveal the answer to export the teacher version.'
-        :'Pupil copy has one answer box. Reveal the answer to export the teacher version.';
+        ?'Pupil copy has writing lines. Teacher key is separate.'
+        :'Pupil copy has an answer box. Teacher key is separate.';
     return '<div class="nl-panel-title"><div><strong>Paper export</strong><span>Clean worksheet content only.</span></div></div>'+
       (canCard?'<div class="nl-export-mode pv-export-mode" role="tablist" aria-label="Export content">'+
         '<button type="button" class="'+(exportMode==='challenge'?'is-active':'')+'" data-pv-export-mode="challenge">Worksheet</button>'+
         '<button type="button" class="'+(exportMode==='diagram'?'is-active':'')+'" data-pv-export-mode="diagram">Chart</button></div>':'')+
       (canCard&&exportMode==='challenge'
-        ?responseControl+'<div class="gd-row"><button class="gd-btn" id="pv-export-reveal" type="button">'+(challenge?.revealed?'Hide answer':'Reveal answer')+'</button></div><p class="gd-help">'+challengeHelp+'</p>'
+        ?responseControl+'<p class="gd-help">'+challengeHelp+'</p>'
         :'<p class="gd-help">Chart-only export contains the place-value chart and counters on a white paper background.</p>')+
       '<div class="nl-export-grid pv-export-grid">'+
         '<button class="gd-btn gd-btn--primary" id="pv-copy-image" type="button">Copy '+(canCard&&exportMode==='challenge'?'question':'chart')+'</button>'+
         '<button class="gd-btn" id="pv-png" type="button">PNG</button>'+
         '<button class="gd-btn" id="pv-svg-download" type="button">SVG</button>'+
         '<button class="gd-btn" id="pv-print" type="button">Print / PDF</button>'+
-      '</div><p class="gd-help" id="pv-export-status" role="status" aria-live="polite">'+exportStatus+'</p>';
+      '</div>'+((challenge||activityActive&&activityMode!=='powers')?'<div class="gd-row"><button class="gd-btn" id="pv-key-copy" type="button">Copy answer key</button><button class="gd-btn" id="pv-key-print" type="button">Print answer key</button></div>':'')+'<p class="gd-help" id="pv-export-status" role="status" aria-live="polite">'+exportStatus+'</p>';
   }
   function pvSvgEl(name,attrs={},text=''){
     const el=document.createElementNS('http://www.w3.org/2000/svg',name);
@@ -692,71 +694,120 @@ function placeValue(){
     if(challenge.category==='reason')return'lines';
     return'box';
   }
-  function exportTargetSvg(){
-    if(exportMode==='challenge'&&challenge&&X?.composeWorksheetCardSvg){
-      const prompt=CK?CK.plainText(challenge.promptHtml||challenge.prompt||''):challenge.prompt||'';
-      const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
-      const mode=challengeResponseMode(),showAnswer=!!challenge.revealed;
-      return X.composeWorksheetCardSvg(worksheetBoardSvg({pupil:!showAnswer}),{
-        title:challenge.title||meta?.title||'Place Value challenge',
-        prompt,
-        responseLabel:challenge.category==='reason'?'Explain your thinking':'Answer',
-        responseLines:challenge.category==='reason'?Math.max(2,Math.min(4,responseLines)):1,
-        responseMode:mode,
-        paperStyle:'plain',
-        answer:challenge.answer||'',
-        showAnswer,
-        brand:'99 Club Studio'
-      });
-    }
-    if(activityActive&&X?.composeWorksheetCardSvg){
-      let title='Place Value',prompt='',mode='none',responseLabel='Answer',responseLines=1;
-      if(activityMode==='powers'){
-        title='Powers of ten';
-        prompt=powerMessage||'Explain what happens to the digits when the number is multiplied or divided by a power of ten.';
-        mode='lines';responseLabel='Explain your thinking';responseLines=2;
-      }else{
-        const descriptor=activityDescriptor();title=descriptor.title;prompt=descriptor.prompt;
-        if(activityAnswerMode())mode='box';
+  // Paper tasks are based on their original data, not on the mutable live chart.
+  function paperAlternative(cs){
+    const next=cs.slice(),index=next.findIndex((n,i)=>n>0&&i<next.length-1);
+    if(index<0)return null;
+    next[index]--;next[index+1]+=10;return next;
+  }
+  function paperChart(cs,{label='',blank=false,hidden=-1,highlight=-1}={}){
+    const W=1000,pad=16,colW=(W-pad*2)/places.length,top=label?40:8,head=60;
+    const perRow=places.length>5?3:4,maxCount=Math.max(1,...cs.map((n,i)=>i===hidden?0:n));
+    const pitch=Math.min(34,colW/(perRow+.55)),radius=pitch*.36;
+    const body=blank?190:Math.max(108,Math.ceil(maxCount/perRow)*pitch+22),H=top+head+body+10;
+    const svg=pvSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':label||'Place value counters'});
+    const add=(tag,attrs,txt)=>svg.appendChild(pvSvgEl(tag,attrs,txt));
+    add('rect',{width:W,height:H,fill:'#fff'});
+    if(label)add('text',{x:pad,y:26,'font-family':'Arial,sans-serif','font-size':20,'font-weight':700,fill:'#52666d'},label);
+    places.forEach((place,i)=>{
+      const x=pad+i*colW,decimal=i>0&&place.value<1&&places[i-1].value>=1;
+      add('rect',{x,y:top,width:colW,height:head,fill:i===highlight?'#fff6cf':'#f3f7f7'});
+      if(i>0)add('line',{x1:x,y1:top,x2:x,y2:top+head+body,stroke:decimal?'#627b82':'#c5d2d5','stroke-width':decimal?3:1.4});
+      add('text',{x:x+colW/2,y:top+24,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':Math.min(21,colW/6),'font-weight':800,fill:'#2d454d'},place.label);
+      add('text',{x:x+colW/2,y:top+44,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':Math.min(13,colW/10),fill:'#61767c'},place.name);
+      if(i===hidden){add('text',{x:x+colW/2,y:top+head+body/2+8,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':30,'font-weight':700,fill:'#64777d'},'?');return}
+      if(blank)return;
+      for(let j=0;j<(cs[i]||0);j++){
+        const cx=x+colW/2+(j%perRow-(perRow-1)/2)*pitch,cy=top+head+11+pitch/2+Math.floor(j/perRow)*pitch;
+        add('circle',{cx,cy,r:radius,fill:place.color,stroke:'#6d8288','stroke-width':1.4,'data-pv-paper-counter':'1','data-place':i});
+        add('circle',{cx,cy,r:radius*.34,fill:'#fff','fill-opacity':.62});
       }
-      return X.composeWorksheetCardSvg(worksheetBoardSvg({pupil:false}),{
-        title,prompt,responseLabel,responseLines,responseMode:mode,paperStyle:'plain',brand:'99 Club Studio'
-      });
+    });
+    add('line',{x1:pad,y1:top+head,x2:W-pad,y2:top+head,stroke:'#aebdc1','stroke-width':1.5});
+    add('rect',{x:pad,y:top,width:W-pad*2,height:head+body,rx:5,fill:'none',stroke:'#8fa5aa','stroke-width':2});
+    return svg;
+  }
+  function stackPaperCharts(charts){
+    if(charts.length===1)return charts[0];
+    const heights=charts.map(chart=>Number(chart.getAttribute('viewBox').split(' ')[3])),gap=14,H=heights.reduce((a,b)=>a+b,0)+gap*(charts.length-1);
+    const svg=pvSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 1000 '+H,role:'img','aria-label':'Starting and final place value charts'});
+    let y=0;charts.forEach((chart,i)=>{const group=pvSvgEl('g',{transform:'translate(0 '+y+')'});[...chart.childNodes].forEach(node=>group.appendChild(node.cloneNode(true)));svg.appendChild(group);y+=heights[i]+gap});return svg;
+  }
+  function activityPaper(teacher){
+    const descriptor=activityDescriptor(),mode=activityMode,zeros=Array(places.length).fill(0),target=digitsForValue(activityTarget);
+    const initial=mode==='add'?digitsForValue(additionA):mode==='same'&&activityStartCounts.length===places.length?activityStartCounts.slice():paperActivityStart?.length===places.length?paperActivityStart.slice():mode==='regroup'?(paperAlternative(target)||target):target;
+    let charts=[],prompt=descriptor.prompt,responseMode='none',responseLabel='Answer',answer='';
+    if(['read','hidden','digit'].includes(mode)){
+      charts=[paperChart(initial,{hidden:mode==='hidden'&&!teacher?activityHiddenIndex:-1,highlight:mode==='digit'?activityHiddenIndex:-1})];responseMode='box';answer=format(activityAnswer);
+    }else if(['build','exact','regroup','same','add'].includes(mode)){
+      let solution=target.slice();
+      if(mode==='same')solution=paperAlternative(initial)||target.slice();
+      if(mode==='exact'){
+        while(solution.reduce((a,b)=>a+b,0)<activityBudget){const next=paperAlternative(solution);if(!next||next.reduce((a,b)=>a+b,0)>activityBudget)break;solution=next}
+      }
+      if(['regroup','same','add'].includes(mode))charts.push(paperChart(initial,{label:'Starting representation'}));
+      prompt+=' '+(teacher?'':'Draw counters in the final chart. ')+(mode==='same'?'Exchange one counter for ten in the next column, or use another valid exchange.':mode==='regroup'?'Use no more than nine counters in each column.':mode==='add'?'Exchange ten counters for one in the next place when needed.':'');
+      charts.push(paperChart(teacher?solution:zeros,{label:teacher?(mode==='same'?'One possible solution':'Completed chart'):'Your representation',blank:!teacher}));
+      if(mode==='add'){responseMode='box';responseLabel='Final number';answer=format(activityTarget)}
+      if(mode==='same')answer='Other representations are correct if the total stays '+format(activityTarget)+' and the counters differ from the starting chart.';
+      if(mode==='exact')answer='Use exactly '+activityBudget+' counters.';
+    }else{
+      charts=[paperChart(counts())];prompt=powerMessage||'Explain what happens to the digits when the number is multiplied or divided by a power of ten.';responseMode='lines';responseLabel='Explain your thinking';
     }
+    return X.composeWorksheetCardSvg(stackPaperCharts(charts),{title:descriptor.title+(teacher?' · Teacher key':''),prompt,responseLabel,responseMode,responseLines:2,paperStyle:'plain',answer,showAnswer:teacher&&!!answer,diagramMaxHeight:charts.length>1?850:500});
+  }
+  function exportTargetSvg(teacher=false){
+    if(exportMode==='challenge'&&challenge&&X?.composeWorksheetCardSvg||teacher&&challenge&&X?.composeWorksheetCardSvg){
+      const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type),type=challenge.type;
+      let prompt=CK?CK.plainText(challenge.promptHtml||challenge.prompt||''):challenge.prompt||'',mode=challengeResponseMode(),charts=[];
+      const initial=challenge.paperStartCounts?.length===places.length?challenge.paperStartCounts.slice():counts();
+      if(type==='build-number'){
+        const target=Number(String(challenge.answer).replace(/,/g,''));
+        prompt='Draw counters to show '+format(target)+'.';
+        charts=[paperChart(teacher?digitsForValue(target):Array(places.length).fill(0),{blank:!teacher})];
+      }else if(type==='non-standard'){
+        prompt='What number does the starting chart represent? Regroup it in the final chart, using no more than nine counters per column.';
+        const target=Number(String(challenge.answer).replace(/,/g,''));
+        charts=[paperChart(initial,{label:'Starting representation'}),paperChart(teacher?digitsForValue(target):Array(places.length).fill(0),{label:teacher?'Regrouped chart':'Your regrouped chart',blank:!teacher})];
+      }else charts=[type==='custom'?worksheetBoardSvg({pupil:!teacher}):paperChart(initial)];
+      return X.composeWorksheetCardSvg(stackPaperCharts(charts),{title:(challenge.title||meta?.title||'Place Value challenge')+(teacher?' · Teacher key':''),prompt,responseLabel:challenge.category==='reason'?'Explain your thinking':'Answer',responseLines:challenge.category==='reason'?Math.max(2,Math.min(4,responseLines)):1,responseMode:mode,paperStyle:'plain',answer:type==='build-number'?'':challenge.answer||'',showAnswer:teacher&&type!=='build-number',diagramMaxHeight:charts.length>1?850:500});
+    }
+    if(activityActive&&X?.composeWorksheetCardSvg)return activityPaper(teacher);
     return worksheetBoardSvg({pupil:false});
   }
-  function exportName(){
+  function exportName(teacher=false){
     const meta=challenge&&CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
-    if(exportMode==='challenge'&&challenge)return (challenge.title||meta?.title||'place-value-challenge')+(challenge.revealed?'-teacher':'-pupil');
-    if(activityActive)return 'place-value-'+activityMode;
+    if(exportMode==='challenge'&&challenge||teacher&&challenge)return (challenge.title||meta?.title||'place-value-challenge')+(teacher?'-teacher':'-pupil');
+    if(activityActive)return 'place-value-'+activityMode+(teacher?'-teacher':'-pupil');
     return 'place-value-board-'+String(total()).replace(/[^0-9.-]+/g,'-');
   }
   function exportMessage(text){exportStatus=text;const el=q('#pv-export-status');if(el)el.textContent=text}
   async function exportAction(kind){
     try{
       if(!X)throw new Error('Export tools are not available.');
-      const target=exportTargetSvg(),isCard=(exportMode==='challenge'&&!!challenge)||activityActive,name=exportName(),transparent=false;
-      const worksheetKind=exportMode==='challenge'&&challenge?(challenge.revealed?'Teacher worksheet':'Pupil worksheet'):'Worksheet-ready item';
-      if(kind==='copy'){await X.copyPng(target,{transparent});exportMessage(isCard?worksheetKind+' copied.':'Chart copied on a white paper background.')}
+      const teacher=kind==='key-copy'||kind==='key-print';if(teacher&&!challenge&&!activityActive)return;
+      const target=exportTargetSvg(teacher),isCard=(exportMode==='challenge'&&!!challenge)||activityActive||teacher,name=exportName(teacher),transparent=false;
+      const worksheetKind=teacher?'Teacher worksheet':'Pupil worksheet';
+      if(kind==='copy'||kind==='key-copy'){await X.copyPng(target,{transparent});exportMessage(isCard?worksheetKind+' copied.':'Chart copied on a white paper background.')}
       if(kind==='png'){await X.downloadPng(target,name,2,{transparent});exportMessage(isCard?worksheetKind+' PNG downloaded.':'Chart PNG downloaded.')}
       if(kind==='svg'){X.downloadSvg(target,name);exportMessage(isCard?worksheetKind+' SVG downloaded.':'SVG downloaded.')}
-      if(kind==='print'){X.printSvg(target,{title:'',landscape:true});exportMessage('Print view opened. Choose “Save as PDF” in the print dialog.')}
+      if(kind==='print'||kind==='key-print'){X.printSvg(target,{title:'',landscape:!isCard,maxHeightMm:isCard?245:150});exportMessage('Print view opened. Choose “Save as PDF” in the print dialog.')}
     }catch(err){exportMessage(err?.message||'That export did not work.')}
   }
   function representationControlsHtml(){
-    return '<div class="pv-representation-tabs" role="tablist" aria-label="Place Value representation">'+
+    return '<details class="pv-representation-options"'+(representationOptionsOpen?' open':'')+'><summary>Display options · '+(representationMode==='counters'?'Counters':representationMode==='abacus'?'Bead frame':'Linked views')+'</summary><div class="pv-representation-tabs" role="tablist" aria-label="Place Value representation">'+
       ['counters','abacus','both'].map(mode=>'<button type="button" class="'+(representationMode===mode?'is-active':'')+'" data-pv-representation="'+mode+'">'+(mode==='counters'?'Counters':mode==='abacus'?'Place-value frame':'Both')+'</button>').join('')+
-      '</div>';
+      '</div><p class="gd-help">Counters are the main place-value model. Use the dedicated Abacus for bead-based arithmetic; linked views remain available for comparison.</p></details>';
   }
   function controlsHtml(){
     return '<button type="button" data-pv-random-challenge hidden aria-hidden="true" tabindex="-1">Challenge</button>'+
-      representationControlsHtml()+
+      
       '<div class="gd-row pv-mode-tabs" role="tablist" aria-label="Place Value workflow">'+
       '<button class="gd-btn'+(controlTab==='setup'?' gd-btn--primary':'')+'" type="button" data-pv-workflow="setup">Setup</button>'+
       '<button class="gd-btn'+(controlTab==='activity'?' gd-btn--primary':'')+'" type="button" data-pv-workflow="activity">Teach / play</button>'+
       '<button class="gd-btn'+(controlTab==='challenge'?' gd-btn--primary':'')+'" type="button" data-pv-workflow="challenge">Challenge'+(challenge?' •':'')+'</button>'+
       '<button class="gd-btn'+(controlTab==='export'?' gd-btn--primary':'')+'" type="button" data-pv-workflow="export">Export</button></div>'+
-      (controlTab==='activity'?activityControlsHtml():controlTab==='challenge'?challengeControlsHtml():controlTab==='export'?exportControlsHtml():setupControlsHtml());
+      (controlTab==='activity'?activityControlsHtml():controlTab==='challenge'?challengeControlsHtml():controlTab==='export'?exportControlsHtml():setupControlsHtml()+representationControlsHtml());
   }
   function renderControls(){
     const panel=q('#gd-controls');
@@ -872,7 +923,7 @@ function placeValue(){
     const height=layoutTokens(),cs=counts(),selected=tokens.find(t=>String(t.id)===String(selectedId))||null;
     const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Place Value challenge',actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'}]:[]}):'';
     const activity=activityBannerHtml();
-    const directExports='<div hidden aria-hidden="true">'+['copy','png','svg','print'].map(kind=>'<button type="button" data-gd-direct-export="'+kind+'">'+kind+'</button>').join('')+'</div>';
+    const directExports='<div hidden aria-hidden="true">'+['copy','png','svg','print',...((activityActive&&activityMode!=='powers'||challenge)?['key-copy','key-print']:[])].map(kind=>'<button type="button" data-gd-direct-export="'+kind+'">'+kind+'</button>').join('')+'</div>';
     const counterView=representationMode!=='abacus'?counterBoardMarkup(height,cs,selectedId,selected,meta):'';
     const abacusView=representationMode!=='counters'?abacusMarkup(cs):'';
     q('#gd-stage').innerHTML=banner+activity+directExports+'<div class="gd-vis gd-pv-workspace is-'+representationMode+'">'+
@@ -1009,6 +1060,7 @@ function placeValue(){
     if(regroup)regroup.disabled=!nonStandard()||total()>rangeMax();
   }
   function bindControls(){
+    const displayOptions=q('.pv-representation-options');if(displayOptions)displayOptions.ontoggle=()=>{representationOptionsOpen=displayOptions.open};
     qa('[data-pv-representation]').forEach(button=>button.onclick=()=>{
       const mode=button.dataset.pvRepresentation;
       if(!['counters','abacus','both'].includes(mode))return;
@@ -1165,6 +1217,7 @@ function placeValue(){
     const png=q('#pv-png');if(png)png.onclick=()=>exportAction('png');
     const svgDownload=q('#pv-svg-download');if(svgDownload)svgDownload.onclick=()=>exportAction('svg');
     const print=q('#pv-print');if(print)print.onclick=()=>exportAction('print');
+    const keyCopy=q('#pv-key-copy');if(keyCopy)keyCopy.onclick=()=>exportAction('key-copy');const keyPrint=q('#pv-key-print');if(keyPrint)keyPrint.onclick=()=>exportAction('key-print');
     syncControls();
   }
 
@@ -1234,7 +1287,7 @@ function placeValue(){
     });
     resizeObserver.observe(q('#gd-stage'));
   }
-  G.lessonState?.register('place-value',()=>({diagram:stateSnapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines,activityMode,activityTarget,activityBudget,activityStatus,powerMessage,activityActive,activityContext,activityBefore,activityInput,activityAnswer,activityHiddenIndex,activityDigit,activityStartCounts,activityPrompt,additionA,additionB,additionStep,additionDifficulty}),saved=>{
+  G.lessonState?.register('place-value',()=>({diagram:stateSnapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines,activityMode,activityTarget,activityBudget,activityStatus,powerMessage,activityActive,activityContext,activityBefore,activityInput,activityAnswer,activityHiddenIndex,activityDigit,activityStartCounts,activityPrompt,paperActivityStart,additionA,additionB,additionStep,additionDifficulty}),saved=>{
     restoreState(saved.diagram);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
     if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
     if(Object.prototype.hasOwnProperty.call(saved,'challengeTab'))challengeTab=saved.challengeTab;
@@ -1249,7 +1302,7 @@ function placeValue(){
     if(Object.prototype.hasOwnProperty.call(saved,'powerMessage'))powerMessage=saved.powerMessage;
     if(Object.prototype.hasOwnProperty.call(saved,'activityActive'))activityActive=saved.activityActive;
     if(Object.prototype.hasOwnProperty.call(saved,'activityContext'))activityContext=saved.activityContext;
-    activityBefore=saved.activityBefore||null;
+    activityBefore=saved.activityBefore||null;paperActivityStart=Array.isArray(saved.paperActivityStart)&&saved.paperActivityStart.length===places.length?saved.paperActivityStart.slice():null;
     if(Object.prototype.hasOwnProperty.call(saved,'activityInput'))activityInput=saved.activityInput;
     if(Object.prototype.hasOwnProperty.call(saved,'activityAnswer'))activityAnswer=saved.activityAnswer;
     if(Object.prototype.hasOwnProperty.call(saved,'activityHiddenIndex'))activityHiddenIndex=saved.activityHiddenIndex;
