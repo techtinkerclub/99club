@@ -2514,7 +2514,7 @@ function barModel(){
     const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
     return X.composeChallengeCardSvg(barModelExportSvg({pupil:true}),{
       title:challenge.title||meta?.title||'Bar Model challenge',
-      prompt,
+      prompt:challenge.type==='build-model'?prompt.replace(/^Build a bar model/,'Draw a bar model'):prompt,
       responseLabel:challenge.category==='reason'?'Explain your thinking':challenge.type==='build-model'?'Working / answer':'Answer',
       responseLines
     });
@@ -3627,7 +3627,7 @@ function multiplicationGrid(){
     const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
     return X.composeChallengeCardSvg(multiplicationGridExportSvg({pupil:true}),{
       title:challenge.title||meta?.title||'Multiplication Grid challenge',
-      prompt,
+      prompt:challenge.type==='select-fact'?'Circle the cell for '+challenge.targetRow+' × '+challenge.targetCol+'.':prompt,
       responseLabel:challenge.category==='reason'?'Explain your thinking':challenge.type==='select-fact'?'Selected fact / answer':'Answer',
       responseLines
     });
@@ -4025,7 +4025,7 @@ function arrayBuilder(){
     const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
     return X.composeChallengeCardSvg(arrayExportSvg({pupil:true}),{
       title:challenge.title||meta?.title||'Array challenge',
-      prompt,
+      prompt:challenge.type==='build-array'?'Draw or shade an array with '+challenge.targetRows+' rows and '+challenge.targetCols+' columns.':prompt,
       responseLabel:challenge.type==='build-array'?'Working / answer':challenge.category==='reason'?'Explain your thinking':'Answer',
       responseLines,
       brand:'99 Club Studio'
@@ -4676,7 +4676,7 @@ function clockTool(){
     const drawTask=challenge.type==='set-five'||challenge.type==='set-minute';
     return X.composeChallengeCardSvg(clockExportSvg({pupil:true}),{
       title:challenge.title||meta?.title||'Clock challenge',
-      prompt,
+      prompt:drawTask?'Draw the clock hands to show '+challenge.answer+'.':challenge.type==='elapsed-forward'?prompt.replace('Move it forward by','What time will it show after').replace(/ minutes\.$/,' minutes?'):prompt,
       responseLabel:drawTask?'Draw the hands / answer':challenge.category==='reason'?'Explain your thinking':'Answer',
       responseLines,
       brand:'99 Club Studio'
@@ -5468,7 +5468,7 @@ function moneyTool(){
   function renderMoney(selectedId,history={}){
     updateChallengeAnswer();
     const selected=items.find(x=>String(x.id)===String(selectedId))||null,m=canvasMetrics(items.length);
-    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Money challenge',pupil:(exchangeTask()&&challenge.paperFirst?CK.pupilSpec(challenge.type==='combine-change'?'money':'number',{hint:challenge.type==='combine-change'?'e.g. 50p':'Number of pieces'}):challenge.freezeMoney===false?CK.pupilSpec('model',{check:()=>exchangeTask()?exchangeCheck():total()===target&&(challenge.type!=='exact-pieces'||items.length===challenge.targetPieces)&&(challenge.type!=='fewest-pieces'||items.length===challenge.minPieces)}):challenge.type==='compare-amount'?CK.pupilSpec('choice',{choices:['Less than','Equal to','Greater than'],expected:total()<target?'Less than':total()>target?'Greater than':'Equal to'}):CK.pupilSpec('money')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Money challenge',pupil:(exchangeTask()&&challenge.paperFirst?CK.pupilSpec(challenge.type==='combine-change'?'money':'number',{hint:challenge.type==='combine-change'?'Amount':'Number of pieces'}):challenge.freezeMoney===false?CK.pupilSpec('model',{check:()=>exchangeTask()?exchangeCheck():total()===target&&(challenge.type!=='exact-pieces'||items.length===challenge.targetPieces)&&(challenge.type!=='fewest-pieces'||items.length===challenge.minPieces)}):challenge.type==='compare-amount'?CK.pupilSpec('choice',{choices:['Less than','Equal to','Greater than'],expected:total()<target?'Less than':total()>target?'Greater than':'Equal to'}):CK.pupilSpec('money')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     const embedded=document.documentElement.classList.contains('gd-embed-page');
     q('#gd-stage').innerHTML=banner+'<div class="gd-money-workbench'+(challengeFrozen()&&challenge?.mode==='standard'?' gd-money-workbench--fixed':'')+'">'+
       (challengeFrozen()&&challenge?.mode==='standard'?'':toolbarHtml(history,selected)+(embedded?moneyStagePaletteHtml(true):moneyStagePaletteHtml()))+
