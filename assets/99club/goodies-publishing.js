@@ -129,7 +129,7 @@ function answerSummary(item){
  if(item.tool==='maths-canvas'&&d.targetRule)return 'One possible solution: '+d.answer+'. Accept other valid expressions.';
  return c?.answer??d.answer;
 }
-function wrapAnnex(text,max=96){
+function wrapAnnex(text,max=68){
  const out=[];let line='';
  for(const word of String(text).trim().split(/\s+/)){
    // Hard-break exceptional unspaced strings; never silently truncate an answer.
@@ -160,7 +160,7 @@ function answerPages(items,title){
    add('rect',{width:W,height:H,fill:'#fff'});
    const text=(x,y,size,value,extra={})=>add('text',{x,y,'font-family':'Arial,sans-serif','font-size':size,fill:'#24343b',...extra},value);
    text(pad,38,26,'Answer key',{ 'font-weight':700 });
-   text(pad,64,15,title+' · Teacher annex');
+   text(pad,64,Math.min(15,650/Math.max(1,(title.length+16)*.65)),title+' · Teacher annex');
    text(W-pad,64,14,'Annex '+(page+1)+' / '+layouts.length,{'text-anchor':'end'});
    for(const row of rows){
      if(row.first)text(pad,row.y,20,(row.index+1)+'.',{'font-weight':700,'data-pub-answer-number':row.index+1});
