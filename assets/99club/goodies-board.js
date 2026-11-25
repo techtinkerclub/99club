@@ -935,9 +935,8 @@ function bindObject(obj){
     const button=e.target.closest('[data-board-export-kind]');if(!button)return;
     e.preventDefault();e.stopPropagation();
     if(['add-document','generate-document'].includes(button.dataset.boardExportKind)){
-      try{const api=frame.querySelector('iframe')?.contentWindow?.TT99Goodies,snapshot=api?.lessonState.capture(obj.toolId)?.model;if(!snapshot)throw Error('Widget is not ready.');
+      try{const api=frame.querySelector('iframe')?.contentWindow?.TT99Goodies,live=button.dataset.boardExportKind==='add-document'?api?.publishingLive?.():null,snapshot=live?.authored?{}:api?.lessonState.capture(obj.toolId)?.model;if(!snapshot)throw Error('Widget is not ready.');
         if(button.dataset.boardExportKind==='add-document'){
-          const live=api.publishingLive?.();
           const legacy=!snapshot.challenge&&['maths-canvas','place-value','randomiser'].includes(obj.toolId)?api.publishingCurrent?.():null;
           publishingDraft.addCurrent(obj.toolId,snapshot,live?.illustration?live:legacy,live?.authored);
         }

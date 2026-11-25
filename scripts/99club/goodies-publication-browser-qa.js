@@ -80,6 +80,17 @@ if(process.argv[2]==='prepare'){
    assert(Number(geoAnnex.querySelector('[data-pub-answer-graphic]').getAttribute('height'))>340,'Dense Geoboard answer is no longer compressed to the former annex cap');
    assert(warnings.length===0,'Default publication samples must retain the zero sub-7pt text baseline');
    assert(clipping.length===0,'No rendered text outside the page: '+JSON.stringify(clipping.slice(0,5)));
+   for(const kind of ['reckoning','rods','napier','slide','pascaline']){
+     const settings={kind},families=P.types('abacus',settings);
+     for(const family of families){
+       const draft=P.createDocument();draft.generate('abacus',settings,2,family.id,rng);
+       const items=draft.list();
+       assert(items.every(item=>item.data.historical&&P.answerSummary(item)&&P.answerNote(item)),'Historical instrument marking: '+kind);
+       const pages=P.pages(items,{teacher:true});
+       assert(pages.some(page=>page.querySelector('[data-pub-answer-graphic]')),'Historical instrument graphic: '+kind);
+       for(const page of pages){const prepared=X.preparePaperSvg(page);const frame=document.createElement('div');frame.className='audit-sheet';frame.appendChild(prepared);host.appendChild(frame);checkPage(prepared,'abacus-'+kind,page.getAttribute('data-worksheet-answer'))}
+     }
+   }
    const markingCases=[['fraction-wall','identify-strip','actual number of shaded parts'],['fraction-wall','denominator-misconception','equal-sized wholes'],['array-builder','multiplication-fact','rows × columns'],['clock','elapsed-forward','Both hands'],['clock','twentyfour-to-twelve','am or pm'],['number-line','missing-labels','respective boxes'],['fdp','equivalent-fraction','preserve the value'],['sequences','rule','stated rule family'],['measurement','distance-between','larger minus smaller']];
    for(const [tool,type,expected] of markingCases){const draft=P.createDocument();draft.generate(tool,P.defaultSettings(tool),1,type,rng);const item=draft.list()[0];assert(P.answerNote(item).includes(expected),'Explicit marking criteria: '+tool+'/'+type)}
    const sample='A very long marking explanation. '+('Accept all equivalent mathematical explanations using the required units and exact values. '.repeat(15))+'End of marking explanation.';

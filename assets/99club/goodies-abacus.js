@@ -174,15 +174,82 @@ function abacusPaper(model,teacher=false){
  return exportSvg(teacher);
 }
 G.abacusPaperModel={settings:abacusSettings,generate:generateAbacusTask,render:abacusPaper};
+
+const HISTORY_NAMES={reckoning:'Reckoning table',rods:'Chinese counting rods',napier:"Napier’s bones",slide:'Slide rule',pascaline:'Pascaline'};
+function historyPaperTypes(kind){return kind==='pascaline'?[{id:'history-add',label:'Addition'},{id:'history-subtract',label:'Subtraction'}]:[{id:'history-task',label:kind==='napier'||kind==='slide'?'Multiplication':'Represent a number'}]}
+function historyPaperData(model,type,rng=Math.random){
+ const kind=model.kind,settings={kind},r=(a,b)=>a+Math.floor(rng()*(b-a+1));
+ const d={kind,reckoning:[0,0,0,0],rodDigits:[0,0,0,0],napierNumber:'12',napierMultiplier:2,slideA:1,slideB:1,slideIndex:'left',pascalDigits:[0,0,0,0],pascalOperation:'add',...model};
+ let task;
+ if(kind==='reckoning'||kind==='rods'){const target=r(102,kind==='reckoning'?999:9999);task={target,answer:target,prompt:'Represent '+target+' using '+HISTORY_NAMES[kind]+'.'};}
+ else if(kind==='napier'){d.napierNumber=String(r(12,987));d.napierMultiplier=r(2,9);const target=Number(d.napierNumber)*d.napierMultiplier;task={target,answer:target,prompt:'Use row '+d.napierMultiplier+' to work out '+d.napierNumber+' × '+d.napierMultiplier+'.'};}
+ else if(kind==='slide'){const a=r(10,90)/10,b=r(2,9),target=Math.round(a*b*100)/100;task={a,b,target,answer:target,index:target>10?'right':'left',prompt:'Use the C and D scales to calculate '+a+' × '+b+'. Mark the correct index and cursor positions, then give the product.'};}
+ else{const operation=type==='history-subtract'?'subtract':'add',start=r(25,95),amount=r(6,24),target=operation==='add'?start+amount:start-amount;task={start,amount,operation,target,answer:target,prompt:'The Pascaline starts at '+start+'. '+(operation==='add'?'Add ':'Subtract ')+amount+'. Write the result in the final windows.'};}
+ return {historical:true,type,settings,device:d,task};
+}
+function historyDiagram(data,teacher=false){
+ const d=data.device,c=data.task,k=d.kind,W=960;
+ const H=k==='napier'?560:k==='slide'?300:k==='pascaline'&&c?400:270;
+ const el=(tag,attrs={},value)=>{const n=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [key,v] of Object.entries(attrs))n.setAttribute(key,String(v));if(value!==undefined)n.textContent=String(value);return n};
+ const svg=el('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':HISTORY_NAMES[k]});
+ const add=(tag,attrs,value)=>svg.appendChild(el(tag,attrs,value));
+ const text=(x,y,value,size=22,extra={})=>add('text',{x,y,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':size,'font-weight':600,fill:'#24343b',...extra},value);
+ const rect=(x,y,width,height,fill='#fff')=>add('rect',{x,y,width,height,rx:5,fill,stroke:'#84999e','stroke-width':1.5});
+ const line=(x1,y1,x2,y2,extra={})=>add('line',{x1,y1,x2,y2,stroke:'#344a50','stroke-width':2,...extra});
+ const digits=v=>String(Math.max(0,Math.round(v))).padStart(4,'0').slice(-4).split('').map(Number);
+ add('rect',{width:W,height:H,fill:'#fff'});text(W/2,30,HISTORY_NAMES[k],26);
+ if(k==='reckoning'||k==='rods'){
+   const values=c?(teacher?digits(c.target):[0,0,0,0]):k==='reckoning'?d.reckoning:d.rodDigits;
+   for(let i=0;i<4;i++){
+     const x=40+i*220,cx=x+110;rect(x,48,220,204);text(cx,78,['Thousands','Hundreds','Tens','Ones'][i]);
+     const v=values[i]||0;
+     if(k==='reckoning'){for(let j=0;j<v;j++)add('circle',{cx:cx+(j%3-1)*36,cy:111+Math.floor(j/3)*40,r:14,fill:'#c8e3dc',stroke:'#426d68','stroke-width':2});}
+     else if(v){
+       const vertical=i%2===0,five=v>=5,ones=v%5;
+       if(vertical){if(five)line(cx-39,105,cx+39,105,{'stroke-width':6});for(let j=0;j<ones;j++)line(cx-30+j*20,five?119:102,cx-30+j*20,205,{'stroke-width':6});}
+       else{if(five)line(cx-45,105,cx-45,205,{'stroke-width':6});for(let j=0;j<ones;j++)line(five?cx-30:cx-45,115+j*22,cx+45,115+j*22,{'stroke-width':6});}
+     }
+   }
+ }else if(k==='napier'){
+   const ds=String(d.napierNumber).split('').map(Number),cell=Math.min(105,Math.floor(780/ds.length)),x0=(W-cell*ds.length)/2;
+   ds.forEach((v,i)=>{const x=x0+i*cell;rect(x,44,cell,45,'#eef5f3');text(x+cell/2,74,v,25);
+     for(let row=1;row<=9;row++){const y=89+(row-1)*47,prod=v*row;rect(x,y,cell,47,row===d.napierMultiplier?'#fff3cf':'#fff');line(x,y+47,x+cell,y);text(x+cell*.24,y+18,Math.floor(prod/10),20);text(x+cell*.76,y+38,prod%10,20);}
+   });for(let row=1;row<=9;row++)text(x0-24,120+(row-1)*47,row,20);
+ }else if(k==='pascaline'){
+   const windows=(values,y,label)=>{text(45,y+20,label,20,{'text-anchor':'start'});values.forEach((v,i)=>{const x=258+i*130;rect(x,y,110,82,'#f0f5f4');text(x+55,y+55,v==null?'':v,39);text(x+55,y+105,['1000','100','10','1'][i],20);});};
+   if(c){windows(digits(c.start),52,'Start');text(W/2,200,(c.operation==='add'?'ADD ':'SUBTRACT ')+c.amount,25);windows(teacher?digits(c.target):[null,null,null,null],232,'Result');}
+   else windows(d.pascalDigits,75,'Result');
+ }else if(k==='slide'){
+   const x0=120,len=720,yC=105,yD=190,log=v=>Math.log10(v)*len;
+   const a=c?(teacher?c.a:1):d.slideA,b=c?(teacher?c.b:1):d.slideB,index=c?(teacher?c.index:'left'):d.slideIndex;
+   const offset=log(a)-(index==='right'?len:0);
+   for(const [tag,y,shift] of [['C',yC,offset],['D',yD,0]]){
+     text(48,y+5,tag,24);rect(x0,y-43,len,70,'#f4f7f5');
+     for(let i=10;i<=100;i++){const v=i/10,x=x0+log(v)+shift;if(x<x0||x>x0+len)continue;const major=i%10===0;line(x,y-12,x,y+(major?15:2));if(major)text(x,y-19,v,19);}
+   }
+   if(!c||teacher){const cx=x0+offset+log(b);line(cx,56,cx,226,{stroke:'#aa6d25','stroke-width':3});}
+   if(c&&teacher)text(W/2,267,'C='+ (c.index==='right'?'10':'1')+' aligned with D='+c.a+'; cursor at C='+c.b+'; product '+c.target,21);
+ }
+ return svg;
+}
+function historyPaper(data,teacher=false){const svg=historyDiagram(data,teacher);if(!data.task)return svg;const c=data.task,k=data.device.kind;
+ const prompt=c.prompt.replace(/, then press Check\.?/gi,'.').replace(/using the numbered input dials\./gi,'using the instrument.').replace(/, then press Check when the result windows show your answer\./gi,'. Write the result in the final windows.');
+ return G.exportTools.composeWorksheetCardSvg(svg,{title:HISTORY_NAMES[k],prompt,responseLabel:'Answer / working',responseMode:['reckoning','rods','pascaline'].includes(k)?'none':'box',paperStyle:'plain',answer:String(c.answer),showAnswer:teacher,diagramMaxHeight:850});
+}
+function captureHistory(model){const kind=model.kind,task=model.historyChallenge?{...model.historyChallenge}:null;return {historical:true,type:task?(kind==='pascaline'?'history-'+task.operation:'history-task'):null,settings:{kind},device:{kind,reckoning:model.reckoning,rodDigits:model.rodDigits,napierNumber:model.napierNumber,napierMultiplier:model.napierMultiplier,slideA:model.slideA,slideB:model.slideB,slideIndex:model.slideIndex,pascalDigits:model.pascalDigits,pascalOperation:model.pascalOperation},task};}
+
 if(G.publishing)G.publishing.register('abacus',{
  label:'Abacus',
- title:item=>item.kind==='challenge'?abacusTaskTitle(item.data.task.mode):'Abacus diagram',
- signature:item=>JSON.stringify([item.settings.kind,item.settings.rows,item.task.mode,item.task.start,item.task.target,item.task.answer,item.task.b,item.task.step]),
- recipe:(model,type)=>({type,settings:abacusSettings(model)}),
- types:model=>{abacusSettings(model);return ABACUS_MODES.map(id=>({id,label:abacusTaskTitle(id)}))},
- generate(recipe,rng){const settings=abacusSettings(recipe.settings),type=recipe.type==='all'?ABACUS_MODES[Math.min(ABACUS_MODES.length-1,Math.floor(rng()*ABACUS_MODES.length))]:recipe.type;if(!ABACUS_MODES.includes(type))throw Error('Unsupported abacus question.');return {type,settings,task:generateAbacusTask(type,settings,rng)}},
- capture(model){const settings=abacusSettings(model);if(model.task){const task={...model.task};return [G.publishing.record('abacus','challenge',{type:task.mode,settings,task},{type:task.mode,settings})]}return [G.publishing.record('abacus','diagram',{...settings,counts:model.counts,suanUpper:model.suanUpper,suanLower:model.suanLower})]},
- render(item,teacher){return item.kind==='diagram'?abacusPaper(item.data):abacusPaper({...item.data.settings,task:item.data.task},teacher)}
+ title:item=>item.data.historical?HISTORY_NAMES[item.data.device.kind]:item.kind==='challenge'?abacusTaskTitle(item.data.task.mode):'Abacus diagram',
+ signature:item=>item.historical?JSON.stringify([item.settings.kind,item.type,item.task.prompt]):JSON.stringify([item.settings.kind,item.settings.rows,item.task.mode,item.task.start,item.task.target,item.task.answer,item.task.b,item.task.step]),
+ recipe:(model,type)=>({type,settings:HISTORY_NAMES[model.kind]?{kind:model.kind}:abacusSettings(model)}),
+ types:model=>{if(HISTORY_NAMES[model.kind])return historyPaperTypes(model.kind);abacusSettings(model);return ABACUS_MODES.map(id=>({id,label:abacusTaskTitle(id)}))},
+ generate(recipe,rng){if(HISTORY_NAMES[recipe.settings.kind]){const ids=historyPaperTypes(recipe.settings.kind).map(t=>t.id),type=recipe.type==='all'?ids[Math.floor(rng()*ids.length)]:recipe.type;if(!ids.includes(type))throw Error('Unsupported historical instrument question.');return historyPaperData(recipe.settings,type,rng)}const settings=abacusSettings(recipe.settings),type=recipe.type==='all'?ABACUS_MODES[Math.min(ABACUS_MODES.length-1,Math.floor(rng()*ABACUS_MODES.length))]:recipe.type;if(!ABACUS_MODES.includes(type))throw Error('Unsupported abacus question.');return {type,settings,task:generateAbacusTask(type,settings,rng)}},
+ capture(model){if(HISTORY_NAMES[model.kind]){const d=captureHistory(model);return [G.publishing.record('abacus',d.task?'challenge':'diagram',d,d.task?{type:d.type,settings:d.settings}:null)]}const settings=abacusSettings(model);if(model.task){const task={...model.task};return [G.publishing.record('abacus','challenge',{type:task.mode,settings,task},{type:task.mode,settings})]}return [G.publishing.record('abacus','diagram',{...settings,counts:model.counts,suanUpper:model.suanUpper,suanLower:model.suanLower})]},
+ render(item,teacher){if(item.data.historical)return historyPaper(item.data,teacher);return item.kind==='diagram'?abacusPaper(item.data):abacusPaper({...item.data.settings,task:item.data.task},teacher)},
+ answerSummary:item=>{const t=item.data.task;if(item.data.historical)return String(t.answer);return ['make10','bond','missing'].includes(t.mode)?'Missing number: '+t.answer+'; final abacus total: '+t.target:'Final abacus total: '+t.target},
+ answerGraphic:item=>item.data.historical?historyDiagram(item.data,true):G.exportTools.withAnswerDiagram(()=>abacusPaper({...item.data.settings,task:item.data.task},true)),
+ answerNote:item=>{if(!item.data.historical)return '';const k=item.data.device.kind,t=item.data.task;if(k==='reckoning')return 'Accept any counter arrangement with the correct place-value total; if standard digits are required, use at most nine counters in each column.';if(k==='rods')return 'Use the correct rod numeral in each place, alternating rod direction. Empty places represent zero.';if(k==='napier')return 'Use the selected row and add the diagonal groups, carrying as required.';if(k==='slide')return 'Use the '+(t.index==='right'?'right-hand C=10':'left-hand C=1')+' index. Read the D scale with the correct decimal place.';return 'The result windows must show the correct total after '+(t.operation==='add'?'addition':'subtraction')+'; leading zeros are optional.'}
 });
 
 function abacusTool(){
