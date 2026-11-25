@@ -1476,7 +1476,7 @@ function fractionWall(){
   }
   function clearChallenge(){
     if(beforeChallenge){restoreTeachingSnapshot(beforeChallenge);beforeChallenge=null}
-    challenge=null;challengeTab='standard';controlTab='challenge';renderControls();renderRepresentation();
+    challenge=null;challengeTab='standard';controlTab='explore';renderControls();renderRepresentation();
   }
   function randomProper(d){return{n:1+Math.floor(Math.random()*Math.max(1,d-1)),d}}
   function generateChallenge(type){
@@ -1486,7 +1486,7 @@ function fractionWall(){
     if(type==='identify-strip'){
       const d=dens[Math.floor(Math.random()*dens.length)],f=randomProper(d);
       mode='workbench';strips=[{id:1,...f,x:24,y:24,locked:false,color:'#cbe7e2'}];nextStrip=2;
-      challenge=challengeObject(type,'What fraction is represented by the strip?',rawFractionText(f),{answerSource:'strip:1:fraction',hiddenStripLabels:[1],hiddenStripHints:[1]});
+      challenge=challengeObject(type,'Write the number of shaded parts over the total number of equal parts.',rawFractionText(f),{answerSource:'strip:1:fraction',hiddenStripLabels:[1],hiddenStripHints:[1]});
     }else if(type==='equivalent-strip'){
       const d=[2,3,4,5,6][Math.floor(Math.random()*5)],f=randomProper(d),target={n:f.n*2,d:f.d*2};
       mode='workbench';strips=[
@@ -1570,6 +1570,12 @@ function fractionWall(){
     return groups*(rowH+rowGap)-rowGap;
   }
   function wallExportSvg({pupil=false}={}){
+    if(pupil&&challenge?.type==='compare-strips'){
+      const width=1000,height=225,svg=fwSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Compare fraction strips'});
+      svg.appendChild(fwSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
+      addSvgFractionBar(svg,compareA,50,65,900,'A · '+rawFractionText(compareA));
+      addSvgFractionBar(svg,compareB,50,150,900,'B · '+rawFractionText(compareB));return svg;
+    }
     const width=1000,pad=38,rowX=118,rowW=844,rowH=24,rowGap=6,startY=62,wallBottom=startY+12*(rowH+rowGap);
     const compareY=wallBottom+48,height=compareY+154;
     const svg=fwSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Fraction wall and comparison','data-fw-export':'wall'});
@@ -1612,8 +1618,8 @@ function fractionWall(){
       const hideLabel=exportHidden('strip-label',strip.id,pupil),hideHint=exportHidden('strip-hint',strip.id,pupil);
       const simple=simplify(strip.n,strip.d),canSimplify=simple.n!==strip.n||simple.d!==strip.d;
       svg.appendChild(fwSvgEl('rect',{x,y,width:cardW,height:h,rx:14,fill:'#f8fbfb',stroke:'#b9c9cc','stroke-width':1.5,'data-fw-export-strip':strip.id}));
-      svg.appendChild(fwSvgEl('text',{x:x+18,y:y+28,'font-family':'Arial,sans-serif','font-size':18,'font-weight':800,fill:'#2e4a51'},hideLabel?'?':rawFractionText(strip)));
-      if(!hideLabel&&!hideHint&&canSimplify)svg.appendChild(fwSvgEl('text',{x:x+84,y:y+28,'font-family':'Arial,sans-serif','font-size':12,'font-weight':700,fill:'#697d82'},'= '+simple.n+'/'+simple.d));
+      if(!hideLabel)svg.appendChild(fwSvgEl('text',{x:x+18,y:y+28,'font-family':'Arial,sans-serif','font-size':18,'font-weight':800,fill:'#2e4a51'},rawFractionText(strip)));
+      if(!pupil&&!hideLabel&&!hideHint&&canSimplify)svg.appendChild(fwSvgEl('text',{x:x+84,y:y+28,'font-family':'Arial,sans-serif','font-size':12,'font-weight':700,fill:'#697d82'},'= '+simple.n+'/'+simple.d));
       const barX=x+18,barW=cardW-36,rowH=25,rowGap=8,barY=y+45;
       for(let g=0;g<groups;g++){
         const yy=barY+g*(rowH+rowGap),segW=barW/strip.d;
@@ -1623,7 +1629,7 @@ function fractionWall(){
         }
       }
       const hint=hideHint?'Work it out from the strip.':canSimplify?'Can simplify to '+simple.n+'/'+simple.d:'Value '+Number(fractionValue(strip).toFixed(4));
-      svg.appendChild(fwSvgEl('text',{x:x+18,y:y+h-12,'font-family':'Arial,sans-serif','font-size':11,fill:'#73858a'},hint));
+      if(!pupil&&!hideHint)svg.appendChild(fwSvgEl('text',{x:x+18,y:y+h-12,'font-family':'Arial,sans-serif','font-size':11,fill:'#73858a'},hint));
       y+=h+18;
     });
     if(!items.length)svg.appendChild(fwSvgEl('text',{x:width/2,y:height/2,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':18,fill:'#718388'},'No fraction strips on the workbench.'));
@@ -1668,11 +1674,18 @@ function fractionWall(){
   function renderControls(){const panel=q('#gd-controls');if(panel)panel.innerHTML=controlsHtml();bindControls()}
 
   function drawWall(){
-    const a=readCompare('a'),b=readCompare('b'),av=a.n/a.d,bv=b.n/b.d,sign=Math.abs(av-bv)<1e-10?'=':(av>bv?'>':'<');
+    const a=fractionQuestionFixed()?compareA:readCompare('a'),b=fractionQuestionFixed()?compareB:readCompare('b'),av=a.n/a.d,bv=b.n/b.d,sign=Math.abs(av-bv)<1e-10?'=':(av>bv?'>':'<');
     const simpleFocus=simplify(focus.n,focus.d);
     const rawFocusText=simpleFocus.n===focus.n&&simpleFocus.d===focus.d?focus.n+'/'+focus.d:focus.n+'/'+focus.d+' = '+simpleFocus.n+'/'+simpleFocus.d;
     const focusText=challengeActiveHidden('focus')?'?':rawFocusText,displaySign=challengeActiveHidden('compare')?'?':sign;
     const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Fractions challenge',pupil:({ 'identify-strip':CK.pupilSpec('fraction-form'), 'equivalent-strip':CK.pupilSpec('fraction-form'), 'compare-strips':CK.pupilSpec('choice',{choices:['<','>','=']}), 'simplify-strip':CK.pupilSpec('fraction-form'), 'mixed-improper':CK.pupilSpec('mixed'), 'denominator-misconception':CK.pupilSpec('choice',{choices:['Yes','No'],expected:challenge.answer.startsWith('Yes')?'Yes':'No',explain:true}) }[challenge.type]),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
+    if(fractionQuestionFixed()&&challenge.type==='compare-strips'){
+      q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-fractions-workspace"><section class="gd-fr-compare gd-fr-compare-direct gd-fr-focused-compare">'+
+        '<div class="gd-fr-compare-card"><div class="gd-fr-card-head"><strong>A</strong><span>'+rawFractionText(a)+'</span></div>'+directBar(a,'a')+'</div>'+
+        '<div class="gd-fr-compare-card"><div class="gd-fr-card-head"><strong>B</strong><span>'+rawFractionText(b)+'</span></div>'+directBar(b,'b')+'</div></section></div>';
+      qa('[data-fw-set]',q('#gd-stage')).forEach(el=>{el.disabled=true;el.setAttribute('aria-label',el.classList.contains('is-fill')?'Shaded part':'Unshaded part')});
+      bindChallengeStageActions();return;
+    }
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-fractions-workspace">'+
       '<section class="gd-fr-wall-card">'+
         '<div class="gd-fr-wall-heading"><div><strong>Fraction wall</strong><span>Tap an endpoint. Equivalent amounts highlight automatically.</span></div>'+
@@ -1726,12 +1739,12 @@ function fractionWall(){
     const selected=String(strip.id)===String(selectedId),selectedObj=selectedStrip(selectedId),same=selectedObj&&String(selectedObj.id)!==String(strip.id)&&equivalent(strip,selectedObj);
     const simple=simplify(strip.n,strip.d),canSimplify=simple.n!==strip.n||simple.d!==strip.d;
     const hideLabel=challengeActiveHidden('strip-label',strip.id),hideHint=challengeActiveHidden('strip-hint',strip.id);
-    const label=hideLabel?'?':strip.n+'/'+strip.d,secondary=hideLabel||hideHint?'':fractionText(strip);
+    const fixed=fractionQuestionFixed(),label=hideLabel?'':strip.n+'/'+strip.d,secondary=fixed||hideLabel||hideHint?'':fractionText(strip);
     const hint=hideHint?'Work it out':(canSimplify?'Can simplify to '+simple.n+'/'+simple.d:'Value '+Number(fractionValue(strip).toFixed(4)));
     return '<div class="gd-fr-strip-object'+(selected?' is-selected':'')+(same?' is-equivalent':'')+(strip.locked?' is-locked':'')+'" data-gd-object="'+strip.id+'" role="button" tabindex="0" aria-selected="'+(selected?'true':'false')+'" aria-label="Fraction strip'+(hideLabel?' with hidden value':' '+strip.n+'/'+strip.d)+(strip.locked?', locked':'')+'" style="left:'+strip.x+'px;top:'+strip.y+'px;--fr-strip:'+strip.color+'">'+
-      '<div class="gd-fr-strip-head"><strong>'+label+'</strong><span>'+secondary+'</span>'+(same?'<em>same value</em>':'')+(strip.locked?'<b aria-hidden="true">⌑</b>':'')+'</div>'+
+      (fixed&&hideLabel?'':'<div class="gd-fr-strip-head"><strong>'+label+'</strong>'+(secondary?'<span>'+secondary+'</span>':'')+(same?'<em>same value</em>':'')+(strip.locked?'<b aria-hidden="true">⌑</b>':'')+'</div>')+
       '<div class="gd-fr-strip-bars">'+stripBars(strip)+'</div>'+
-      '<small>'+hint+'</small>'+
+      (fixed||hideHint?'':'<small>'+hint+'</small>')+
     '</div>';
   }
   function workbenchRail(selected,meta){
@@ -1833,6 +1846,7 @@ function fractionWall(){
     else mountWorkbench();
   }
   function switchMode(next){
+    if(fractionQuestionFixed())return;
     mode=next==='workbench'?'workbench':'wall';
     renderControls();renderRepresentation();
   }
