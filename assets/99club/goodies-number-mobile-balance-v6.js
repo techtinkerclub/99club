@@ -32,7 +32,7 @@ function qa(sel,root=document){return root?.querySelectorAll?[...root.querySelec
 function stage(){return document.getElementById('gd-stage')}
 function controls(){return document.getElementById('gd-controls')}
 function work(){return q('.gd-number-mobile-workbench',stage())}
-function banner(){return q('.gd-challenge-banner',stage())}
+function banner(){return work()?q('.gd-challenge-banner',stage()):null}
 function wait(ms=35){return new Promise(resolve=>setTimeout(resolve,ms))}
 async function waitFor(fn,{tries=36,delay=30}={}){for(let i=0;i<tries;i++){const value=fn();if(value)return value;await wait(delay)}return null}
 function randint(min,max){return min+Math.floor(Math.random()*(max-min+1))}
@@ -239,7 +239,7 @@ async function complexChallenge(type,level){
   }catch(err){console.error('Number Mobile complex challenge:',err);exposeSpec(null)}
   finally{busy=false;adapt()}
 }
-function generate(type){G.numberMobileChallengeDifficulty=difficulty;return difficulty==='easy'?standardChallenge(type):complexChallenge(type,difficulty)}
+function generate(type){if(busy)return;G.numberMobileChallengeDifficulty=difficulty;return difficulty==='easy'?standardChallenge(type):complexChallenge(type,difficulty)}
 async function clearChallenge(){
   busy=true;closePopover();try{await selectWorkflow('challenge');const clear=await waitFor(()=>q('#ba-clear-challenge',controls()));exposeSpec(null);if(clear){clear.click();await wait(75)}}finally{busy=false;adapt()}
 }
@@ -306,6 +306,7 @@ function install(){
   adapt();
 }
 G.balanceTool=function numberMobileBalanceToolV6(){const result=balanceToolV4.apply(this,arguments);exposeSpec(null);popoverOpen=false;setTimeout(adapt,30);setTimeout(adapt,130);return result};
-G.numberMobileBalanceEnhancementVersion='6.2';
+G.numberMobileChallengeIsBuilding=()=>busy;
+G.numberMobileBalanceEnhancementVersion='6.3';
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else queueMicrotask(install);
 })(window.TT99Goodies);
