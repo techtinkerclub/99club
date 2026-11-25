@@ -27,7 +27,7 @@ The notes are implementation evidence, not a completed acceptance test. “Pilot
 | Hundred square | Number patterns, highlighting, selection, hidden values | Existing; audit | Pending | Open |
 | Multiplication grid | Related facts, grid labels, response locations | Existing; audit | Pending | Open |
 | Array builder | Row/column operations, factor pairs, missing dimensions, paper response | Existing; audit | Pending | Open |
-| Clock & time | Multiple clocks, digital/analogue consistency, time intervals, blank hands | Existing; audit | Pending | Open |
+| Clock & time | Shared native 14-type generator; original elapsed-time evidence, blank hands, visible display options, explicit teacher key | Shared templates; custom task audit | Pilot: 14 types + diagrams | Open |
 | UK money | Consistent UK coins/notes, exact totals/change, paper manipulation | Existing; audit | Pending | Open |
 | Coordinate grid | Plotting/deleting older points, labels, transformations, blank plotting grid | Existing; audit | Pending | Open |
 | Ruler & measures | Scale accuracy, metric/imperial synchronisation, measurement tasks | Existing; audit | Pending | Open |
@@ -47,8 +47,8 @@ Reckoning board, Chinese counting rods, Napier's Bones, slide rule and Pascaline
 ## Workstream A — shared publishing
 
 1. Keep direct current export independent of document creation.
-2. Place Value adapter added to Arithmetic, Sequences and the three abacus types; continue the catalogue and prioritise high-use models (clocks, fraction wall, array, number line, money, coordinates). Audit response semantics and teacher solutions while integrating each.
-3. Automatic builder initial source configuration added for the four integrated widgets (independent type/family/range/difficulty/count). Editing or regenerating already-published source blocks remains pending; preserve manually retained items. Refine all publishing menus with the same compact visual language.
+2. Clock & Time adapter added after Place Value, Arithmetic, Sequences and the three abacus types; continue with fraction wall, array, number line, money and coordinates. Audit response semantics and teacher solutions while integrating each.
+3. Automatic builder initial source configuration added for the five integrated widgets (independent type/family/range/difficulty/count). Editing or regenerating already-published source blocks remains pending; preserve manually retained items. Refine all publishing menus with the same compact visual language.
 4. Extend preview layout: configurable portrait/landscape and intelligent columns, full-width diagrams where necessary, consistent numbering, page breaks, working space and teacher keys.
 5. Save/reopen and reusable settings, stable versioned model records, import/export of drafts with validation; preserve exact content rather than regenerating silently.
 6. Align controls and branding with Studio's existing worksheet workflow. Test actual preview/print parity and mobile/touch performance.
@@ -60,8 +60,9 @@ Continue the catalogue review one widget at a time, with defects and regressions
 
 ## Current verified scope
 
-- Four catalogue entries have shared publishing adapters (Arithmetic, Sequences, Abacus limited to three bead instruments, Place Value).
+- Five catalogue entries have shared publishing adapters (Arithmetic, Sequences, Abacus limited to three bead instruments, Place Value, Clock & Time).
 - Automated abacus rollout checks: 2,160 generated tasks; 4,320 pupil/teacher diagrams; 108 mixed-document scenarios and isolated replacements; 1,236 page checks.
 - Automated Place Value rollout: 45 column ranges, 14,040 generated tasks, 28,080 pupil/teacher diagrams, 135 mixed drafts and isolated replacements, 135 captures and 1,655 page checks. Custom teacher-authored tasks still require individual export; the existing powers-of-ten demo is capture-only.
+- Clock rollout: 2,800 individual generator/render checks; 100 multi-source clock drafts, 1,900 generated questions, 200 captures, 100 isolated replacements and 2,583 pupil/teacher page checks. One-clock recipes enable 10 types; two-clock recipes enable 14. Custom tasks remain direct-export only. Actual browser, touch and A4 verification is open.
 - Both entry points must load identical shared asset versions.
 - No real browser visual, touchscreen or physical A4 acceptance run was performed in this batch. No widget is signed off as finished.
