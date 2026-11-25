@@ -3108,16 +3108,16 @@ function feGenerate(type,settings={},rng=Math.random,previous=''){
       const item=pick([[42,6],[45,6],[36,4],[35,4],[54,9],[56,9],[75,5],[72,5]]);
       a=item[0];compare=false;const divisor=item[1],yes=a%divisor===0;
       challenge=challengeObject(type,'Is '+a+' divisible by '+divisor+'? Explain using the evidence shown.',yes?'Yes. '+a+' ÷ '+divisor+' = '+a/divisor+'.':'No. '+a+' is not a multiple of '+divisor+'.',{hiddenDivisor:divisor,hiddenDivisorSide:'a'});
-    }else if(type==='common-fe_factors'||type==='hcf'){
+    }else if(type==='common-factors'||type==='hcf'){
       [a,b]=pick([[36,24],[18,30],[48,60],[42,28],[32,40],[45,60]]);compare=true;
       const list=fe_factors(a).filter(n=>b%n===0);
-      challenge=type==='common-fe_factors'?challengeObject(type,'What are the common fe_factors of '+a+' and '+b+'?',list.join(', '),{hiddenCommonFactors:true}):challengeObject(type,'What is the highest common factor of '+a+' and '+b+'?',String(fe_gcd2(a,b)),{hiddenHcf:true});
+      challenge=type==='common-factors'?challengeObject(type,'What are the common factors of '+a+' and '+b+'?',list.join(', '),{hiddenCommonFactors:true}):challengeObject(type,'What is the highest common factor of '+a+' and '+b+'?',String(fe_gcd2(a,b)),{hiddenHcf:true});
     }else if(type==='lcm'){
       [a,b]=pick([[12,18],[4,6],[8,12],[6,15],[9,12],[10,15],[14,21]]);compare=true;
       challenge=challengeObject(type,'What is the lowest common multiple of '+a+' and '+b+'?',String(fe_lcm2(a,b)),{hiddenLcm:true});
     }else{
       a=pick([31,17,19,23,29,37,41,43]);compare=false;
-      challenge=challengeObject(type,'Explain why '+a+' is prime using the factor information shown.',a+' has exactly two fe_factors: 1 and '+a+'.',{hiddenClassificationSide:'a',hiddenPrimeSide:'a'});
+      challenge=challengeObject(type,'Explain why '+a+' is prime using the factor information shown.',a+' has exactly two factors: 1 and '+a+'.',{hiddenClassificationSide:'a',hiddenPrimeSide:'a'});
     }
 
  challenge.variantKey=variantKey;
@@ -3155,7 +3155,7 @@ function fePaper(data,teacher=false,graphicOnly=false){
      const values=type==='lcm'?Array.from({length:12},(_,j)=>n*(j+1)):fe_factorPairs(n);
      values.forEach((v,j)=>{
        const x=left+cw*(j%3+.5)/3,y=86+Math.floor(j/3)*30;
-       const highlighted=teacher&&(type==='lcm'?v===lcm:type==='hcf'||type==='common-factors'?v.some(f=>common.includes(f)):false);
+       const highlighted=teacher&&type==='lcm'&&v===lcm;
        if(highlighted)add('rect',{x:x-cw/6+8,y:y-23,width:cw/3-16,height:29,rx:5,fill:'#d9eee9','data-fe-paper-highlight':'1'});
        text(x,y,Array.isArray(v)?v.join(' × '):v,{'font-size':20});
      });
@@ -3167,7 +3167,8 @@ function fePaper(data,teacher=false,graphicOnly=false){
        Array.from({length:12},(_,j)=>n*(j+1)).forEach((v,j)=>text(left+cw*(j%3+.5)/3,y+91+Math.floor(j/3)*24,v,{'font-size':16}));
      }
    });
-   if(d.compare)add('line',{x1:W/2,y1:12,x2:W/2,y2:H-12,stroke:'#d6e0e0'});
+   if(d.compare)add('line',{x1:W/2,y1:12,x2:W/2,y2:teacher&&['common-factors','hcf'].includes(type)?H-44:H-12,stroke:'#d6e0e0'});
+   if(teacher&&['common-factors','hcf'].includes(type))text(W/2,H-12,'Common factors: '+common.join(', '),{'font-size':19,'data-fe-paper-common':'1'});
    if(!c&&d.compare){text(W/2,H-12,'HCF: '+fe_gcd2(d.a,d.b)+' · LCM: '+lcm,{'font-size':17,stroke:'#fff','stroke-width':4,'paint-order':'stroke'})}
  }
  if(!c||graphicOnly)return svg;
