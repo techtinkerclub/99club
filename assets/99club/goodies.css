@@ -1598,3 +1598,47 @@ html.gd-embed-page,body.gd-embed-page{margin:0!important;width:100%!important;he
 
 /* Local lesson library */
 .gd-board-library{box-sizing:border-box;width:min(500px,calc(100vw - 24px));max-height:85dvh;overflow:auto;border:1px solid #c5d8d6;border-radius:16px;background:#fff;color:#24343b;padding:18px;box-shadow:0 20px 70px #163c4238;font:inherit}.gd-board-library::backdrop{background:#163c4240}.gd-board-library-head{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:1.1rem}.gd-board-library-head button{border:0;background:transparent;font-size:1.5rem;cursor:pointer;color:#52666d;min-width:36px;min-height:36px}.gd-board-library>p{font-size:.85rem;line-height:1.45}.gd-board-library .gd-field{margin:12px 0}#gd-board-library-list{display:grid;gap:6px;margin-top:16px}.gd-board-library-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:10px 0;border-top:1px solid #e0e9e8}.gd-board-library-row>div{min-width:0;overflow-wrap:anywhere}.gd-board-library-row span,.gd-board-library-row small{display:block}.gd-board-library-row small,#gd-board-library-status{color:#52666d;font-size:.78rem}
+
+
+/* Shared challenge presentation: same hierarchy and controls for all engines.
+   Native activity cards retain their original event bindings. */
+#gd-stage .gd-challenge-banner,#gd-stage .gd-native-challenge{
+  box-sizing:border-box;width:100%;padding:10px 12px!important;
+  border:1px solid #ead9ae;border-radius:12px!important;background:#fff9e9;box-shadow:none;
+  color:#263f46;
+}
+#gd-stage .gd-challenge-banner{grid-template-columns:minmax(0,1fr)!important;gap:5px!important}
+#gd-stage .gd-challenge-banner .gd-challenge-kicker,
+#gd-stage .gd-native-challenge :is(.gd-pv-activity-head,.gd-ab-task-head)>div>span{
+  grid-column:1;grid-row:auto;margin:0;letter-spacing:.07em;color:#805d16;font-size:.68rem!important;font-weight:750;text-transform:uppercase;line-height:1.25;
+}
+#gd-stage .gd-challenge-banner .gd-challenge-copy{grid-column:1;grid-row:auto;gap:3px}
+#gd-stage .gd-challenge-banner .gd-challenge-prompt,
+#gd-stage .gd-native-challenge :is(.gd-pv-activity-head,.gd-ab-task-head)>div>strong{
+  color:#263f46;font-size:1rem!important;line-height:1.35!important;font-weight:700;
+}
+#gd-stage .gd-challenge-banner .gd-challenge-actions,
+#gd-stage .gd-native-challenge :is(.gd-pv-activity-actions,.gd-ab-task-actions){
+  grid-column:1;grid-row:auto;justify-content:flex-start;gap:6px!important;margin:4px 0 0;
+}
+#gd-stage .gd-native-challenge :is(.gd-pv-activity-head,.gd-ab-task-head){display:grid;gap:4px;margin:0}
+#gd-stage .gd-native-challenge :is(.gd-pv-activity-head,.gd-ab-task-head)>em{max-width:none;text-align:left}
+#gd-stage .gd-challenge-banner :is(.gd-challenge-action,.gd-challenge-reveal),
+#gd-stage .gd-native-challenge :is(.gd-pv-activity-actions,.gd-ab-task-actions)>button{
+  min-height:34px!important;padding:5px 10px!important;border-radius:8px;
+  border:1px solid #a9cbc8;background:#fff;color:#126f68;font-size:.75rem!important;font-weight:700;
+}
+#gd-stage .gd-native-challenge :is([data-pv-activity-check],[data-ab-check],[data-ab-history-check]){
+  background:#147d75;color:#fff;border-color:#147d75;
+}
+#gd-stage .gd-challenge-banner :is([data-challenge-action="end"],[data-nmb-v7-exit]),
+#gd-stage .gd-native-challenge :is([data-pv-activity-exit],[data-ab-exit],[data-ab-history-end]){
+  color:#964438;border-color:#e0b9b0;
+}
+#gd-stage .gd-challenge-banner [data-board-action="reveal"],
+#gd-stage .gd-native-challenge :is([data-ab-reveal],[data-ab-history-reveal]){
+  color:#805d16;border-color:#e1cb96;
+}
+#gd-stage .gd-challenge-banner .gd-pupil-response{grid-column:1;grid-row:auto}
+#gd-stage .nl-challenge-response{min-width:0;flex:0 1 auto}
+#gd-stage .nl-challenge-response input{min-width:0}
