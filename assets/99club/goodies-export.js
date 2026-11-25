@@ -19,8 +19,45 @@ function triggerDownload(blob,filename){
   a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),1500);
 }
+const PAPER_BRAND='99 Club Studio';
+function svgBounds(svg){
+  const raw=String(svg.getAttribute('viewBox')||'').trim().split(/[\s,]+/).map(Number);
+  if(raw.length===4&&raw.every(Number.isFinite)&&raw[2]>0&&raw[3]>0)return {x:raw[0],y:raw[1],w:raw[2],h:raw[3]};
+  const vb=svg.viewBox?.baseVal;
+  return {x:0,y:0,w:Math.max(1,vb?.width||parseFloat(svg.getAttribute('width'))||svg.clientWidth||1000),h:Math.max(1,vb?.height||parseFloat(svg.getAttribute('height'))||svg.clientHeight||420)};
+}
+function stripPaperBrand(svg){
+  for(const node of [...svg.querySelectorAll('text,[data-gd-paper-brand]')]){
+    const text=String(node.textContent||'').trim();
+    const legacy=text===PAPER_BRAND&&['#87969a','#96a4a8','#a0abad'].includes(String(node.getAttribute('fill')||'').toLowerCase());
+    if(node.hasAttribute('data-gd-paper-brand')||legacy)node.remove();
+  }
+  return svg;
+}
+function addPaperBrand(svg,brand=PAPER_BRAND){
+  if(!brand)return svg;
+  const {x,y,w,h}=svgBounds(svg),font=w*.0105;
+  svg.appendChild(svgEl('text',{x:x+w-w*.045,y:y+h-w*.014,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':font,fill:'#87969a','data-gd-paper-brand':'1'},brand));
+  return svg;
+}
+function preparePaperSvg(svg){
+  if(!svg)throw new Error('A diagram is required.');
+  const clone=stripPaperBrand(svg.cloneNode(true));
+  const branded=clone.hasAttribute('data-gd-paper-ready');
+  const brand=branded?(clone.getAttribute('data-gd-paper-label')??PAPER_BRAND):PAPER_BRAND;
+  const {x,y,w,h}=svgBounds(clone);
+  if(!branded){
+    const height=h+w*.035;
+    clone.setAttribute('viewBox',[x,y,w,height].join(' '));
+    if(clone.hasAttribute('width'))clone.setAttribute('width',String(w));
+    if(clone.hasAttribute('height'))clone.setAttribute('height',String(height));
+    clone.setAttribute('data-gd-paper-ready','diagram');
+    clone.setAttribute('data-gd-paper-label',brand);
+  }
+  return addPaperBrand(clone,brand);
+}
 function serialiseSvg(svg){
-  const clone=svg.cloneNode(true);
+  const clone=preparePaperSvg(svg);
   clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
   clone.setAttribute('xmlns:xlink','http://www.w3.org/1999/xlink');
   return '<?xml version="1.0" encoding="UTF-8"?>\n'+new XMLSerializer().serializeToString(clone);
@@ -31,10 +68,10 @@ function downloadSvg(svg,filename){
 }
 function svgToPngBlob(svg,scale=2,{transparent=false}={}){
   return new Promise((resolve,reject)=>{
-    const viewBox=svg.viewBox&&svg.viewBox.baseVal;
-    const width=Math.max(1,Math.round((viewBox?.width||svg.clientWidth||1000)*scale));
-    const height=Math.max(1,Math.round((viewBox?.height||svg.clientHeight||420)*scale));
-    const source=serialiseSvg(svg);
+    const prepared=preparePaperSvg(svg),bounds=svgBounds(prepared);
+    const width=Math.max(1,Math.round(bounds.w*scale));
+    const height=Math.max(1,Math.round(bounds.h*scale));
+    const source=serialiseSvg(prepared);
     const url=URL.createObjectURL(new Blob([source],{type:'image/svg+xml;charset=utf-8'}));
     const img=new Image();
     img.onload=()=>{
@@ -67,15 +104,21 @@ function printSvg(svg,{title='99 Club Studio illustration',prompt='',answer='',s
   const win=window.open('','_blank');
   if(!win)throw new Error('Allow pop-ups to print or save as PDF.');
   try{win.opener=null}catch(_){}
-  const svgText=serialiseSvg(svg).replace(/^<\?xml[^>]*>\s*/,'');
+  const prepared=preparePaperSvg(svg),bounds=svgBounds(prepared);
+  const svgText=serialiseSvg(prepared).replace(/^<\?xml[^>]*>\s*/,'');
+  const displayTitle=['card','sheet'].includes(prepared.getAttribute('data-gd-paper-ready'))?'':title;
+  const pageW=landscape?269:182,pageH=landscape?182:269;
+  const reserve=(displayTitle?20:0)+(prompt?26:0)+(showAnswer&&answer?26:0)+4;
+  const heightLimit=Math.max(45,Math.min(pageH-reserve,Number(maxHeightMm)||150));
+  const printWidth=Math.min(pageW,heightLimit*bounds.w/bounds.h);
   const answerHtml=showAnswer&&answer?'<div class="answer"><strong>Answer:</strong> '+String(answer).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))+'</div>':'';
   const promptHtml=prompt?'<div class="prompt">'+String(prompt).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))+'</div>':'';
   win.document.open();
   win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+safeFilename(title)+'</title><style>'+
     '@page{size:A4 '+(landscape?'landscape':'portrait')+';margin:14mm}'+
-    '*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#24343b;margin:0}h1{font-size:20pt;margin:0 0 8mm}.prompt{font-size:16pt;font-weight:700;margin:0 0 8mm;padding:4mm 5mm;background:#f3f7f7;border-radius:4mm}.sheet{display:flex;align-items:center;justify-content:center;width:100%}.sheet svg{width:100%;height:auto;max-height:'+Math.max(50,Math.min(250,Number(maxHeightMm)||150))+'mm}.answer{margin-top:8mm;font-size:14pt;padding:4mm 5mm;border:1px solid #cbd7d9;border-radius:4mm}.brand{margin-top:8mm;font-size:8pt;color:#77878c;text-align:right}@media print{button{display:none!important}}</style></head><body>'+
-    (title?'<h1>'+String(title).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))+'</h1>':'')+
-    promptHtml+'<div class="sheet">'+svgText+'</div>'+answerHtml+'<div class="brand">Created with 99 Club Studio</div>'+
+    '*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#24343b;margin:0}h1{font-size:20pt;margin:0 0 8mm}.prompt{font-size:16pt;font-weight:700;margin:0 0 8mm;padding:4mm 5mm;background:#f3f7f7;border-radius:4mm}.sheet{display:flex;align-items:center;justify-content:center;width:100%}.sheet svg{display:block;width:'+printWidth+'mm;max-width:100%;height:auto;max-height:'+heightLimit+'mm}.answer{margin-top:8mm;font-size:14pt;padding:4mm 5mm;border:1px solid #cbd7d9;border-radius:4mm}.sheet{break-inside:avoid}@media print{button{display:none!important}}</style></head><body>'+
+    (displayTitle?'<h1>'+String(displayTitle).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))+'</h1>':'')+
+    promptHtml+'<div class="sheet">'+svgText+'</div>'+answerHtml+
     '<script>window.addEventListener("load",()=>setTimeout(()=>window.print(),120));<\/script></body></html>');
   win.document.close();
 }
@@ -104,7 +147,7 @@ function svgEl(name,attrs={},text=''){
 }
 function composeChallengeCardSvg(diagram,{title='Challenge',prompt='',responseLabel='Answer',responseLines=1,brand='99 Club Studio'}={}){
   if(!diagram)throw new Error('A diagram is required.');
-  const source=diagram.cloneNode(true);
+  const source=stripPaperBrand(diagram.cloneNode(true));
   source.removeAttribute('id');
   const vb=diagram.viewBox&&diagram.viewBox.baseVal;
   const sourceW=Math.max(1,vb?.width||1000),sourceH=Math.max(1,vb?.height||420);
@@ -120,7 +163,7 @@ function composeChallengeCardSvg(diagram,{title='Challenge',prompt='',responseLa
   const answerY=diagramY+diagramH+26;
   const height=answerY+answerH+56;
 
-  const out=svgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:`0 0 ${width} ${height}`,role:'img','aria-label':title||'Challenge'});
+  const out=svgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:`0 0 ${width} ${height}`,role:'img','aria-label':title||'Challenge','data-gd-paper-ready':'card','data-gd-paper-label':brand});
   out.appendChild(svgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
 
   let y=pad+30;
@@ -142,12 +185,11 @@ function composeChallengeCardSvg(diagram,{title='Challenge',prompt='',responseLa
     const lineY=answerY+36+i*((answerH-50)/answerRows);
     out.appendChild(svgEl('line',{x1:pad+18,y1:lineY,x2:width-pad-18,y2:lineY,stroke:'#dfe6e8','stroke-width':1.5}));
   }
-  out.appendChild(svgEl('text',{x:width-pad,y:height-20,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':12,fill:'#87969a'},brand));
-  return out;
+  return addPaperBrand(out,brand);
 }
 function composeWorksheetCardSvg(diagram,{title='Challenge',prompt='',responseLabel='Answer',responseLines=1,responseMode='auto',paperStyle='card',brand='99 Club Studio',answer='',showAnswer=false}={}){
   if(!diagram)throw new Error('A diagram is required.');
-  const source=diagram.cloneNode(true);
+  const source=stripPaperBrand(diagram.cloneNode(true));
   source.removeAttribute('id');
   const vb=diagram.viewBox&&diagram.viewBox.baseVal;
   const sourceW=Math.max(1,vb?.width||1000),sourceH=Math.max(1,vb?.height||420);
@@ -166,7 +208,7 @@ function composeWorksheetCardSvg(diagram,{title='Challenge',prompt='',responseLa
   const answerY=diagramY+diagramH+(responseVisible?20:0);
   const height=Math.max(plain?diagramY+diagramH+30:560,answerY+responseH+(plain?26:42));
 
-  const out=svgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:`0 0 ${width} ${height}`,role:'img','aria-label':title||'Worksheet item','data-worksheet-card':'1','data-worksheet-answer':showAnswer?'teacher':'pupil','data-paper-style':plain?'plain':'card'});
+  const out=svgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:`0 0 ${width} ${height}`,role:'img','aria-label':title||'Worksheet item','data-worksheet-card':'1','data-worksheet-answer':showAnswer?'teacher':'pupil','data-paper-style':plain?'plain':'card','data-gd-paper-ready':'card','data-gd-paper-label':brand});
   if(plain){
     out.appendChild(svgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
   }else{
@@ -205,13 +247,12 @@ function composeWorksheetCardSvg(diagram,{title='Challenge',prompt='',responseLa
     }
   }
 
-  out.appendChild(svgEl('text',{x:width-pad,y:height-10,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':8,fill:'#a0abad'},brand));
-  return out;
+  return addPaperBrand(out,brand);
 }
 
 function copyText(text){
   if(navigator.clipboard?.writeText)return navigator.clipboard.writeText(text);
   return Promise.reject(new Error('Clipboard access is not available in this browser.'));
 }
-G.exportTools={safeFilename,downloadSvg,downloadPng,copyPng,printSvg,copyText,serialiseSvg,composeChallengeCardSvg,composeWorksheetCardSvg};
+G.exportTools={preparePaperSvg,safeFilename,downloadSvg,downloadPng,copyPng,printSvg,copyText,serialiseSvg,composeChallengeCardSvg,composeWorksheetCardSvg};
 })(window.TT99Goodies);
