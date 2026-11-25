@@ -5862,6 +5862,15 @@ function moneyGenerate(type,settings={},rng=Math.random){
 function moneySolution(data){
  const c=data.challenge,d=data.diagram,denoms=MONEY_DENOMS.map(d=>d.value).sort((a,b)=>b-a);
  if(c.solutionValues?.length)return c.solutionValues.slice();
+ if(c.type==='exact-pieces'){
+   const memo=new Set(),count=Number(c.targetPieces);
+   function find(left,n,start){if(n===0)return left===0?[]:null;if(left<n||start>=denoms.length||left>n*denoms[start])return null;
+     const key=left+':'+n+':'+start;if(memo.has(key))return null;
+     for(let i=start;i<denoms.length;i++){if(denoms[i]>left)continue;const tail=find(left-denoms[i],n-1,i);if(tail)return [denoms[i],...tail]}memo.add(key);return null}
+   const found=Number.isInteger(count)&&count>0&&count<=12?find(d.target,count,0):null;
+   if(!found)throw Error('No valid exact-piece solution exists for this saved task.');return found;
+ }
+
  if(!c.freezeMoney){let left=d.target,values=[];for(const v of denoms)while(left>=v){values.push(v);left-=v}return values}
  return (c.initialItems||d.items||[]).map(i=>i.value);
 }
@@ -6408,22 +6417,10 @@ function moneyTool(){
       g.appendChild(moSvgEl('rect',{x:0,y:0,width:w,height:h,rx:8,fill:fills[d.tone]||'#e7eeee',stroke:'#657e84','stroke-width':2}));
       g.appendChild(moSvgEl('rect',{x:7,y:7,width:w-14,height:h-14,rx:5,fill:'none',stroke:'#ffffff','stroke-opacity':.65,'stroke-width':1.5}));
       g.appendChild(moSvgEl('text',{x:12,y:h*.5,'font-family':'Arial,sans-serif','font-size':20,'font-weight':900,fill:'#29434a','dominant-baseline':'middle'},d.label));
-      g.appendChild(moSvgEl('text',{x:w-10,y:h-9,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':7,'font-weight':800,fill:'#60747a'},'UK PLAY NOTE'));
+      g.appendChild(moSvgEl('text',{x:w-10,y:h-9,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':7,'font-weight':800,fill:'#60747a'},'CLASSROOM NOTE'));
     }else{
-      const size=Math.min(w,h),cx=size/2,cy=size/2,r=size/2-2;
-      const fills={copper:'#c98768',silver:'#d7ddde',gold:'#dfc46b'};
-      const stroke=d.tone==='copper'?'#8f5b45':d.tone==='bimetal'?'#8b6f2c':'#778b90';
-      let outer=null;
-      if(d.shape==='hept'){
-        outer=moSvgEl('path',{d:coinPath('hept'),transform:'translate(2 2) scale('+((size-4)/100).toFixed(4)+')',fill:d.tone==='bimetal'?'#d6b452':(fills[d.tone]||'#d7ddde'),stroke,'stroke-width':2,'vector-effect':'non-scaling-stroke','data-mo-export-coin-shape':'hept'});
-      }else if(d.shape==='dodec'){
-        outer=moSvgEl('polygon',{points:polygonPoints(12,cx,cy,r,-75),fill:d.tone==='bimetal'?'#d6b452':(fills[d.tone]||'#d7ddde'),stroke,'stroke-width':2,'data-mo-export-coin-shape':'dodec'});
-      }else{
-        outer=moSvgEl('circle',{cx,cy,r,fill:d.tone==='bimetal'?'#d6b452':(fills[d.tone]||'#d7ddde'),stroke,'stroke-width':2,'data-mo-export-coin-shape':'round'});
-      }
-      g.appendChild(outer);
-      if(d.tone==='bimetal')g.appendChild(moSvgEl('circle',{cx,cy,r:r*.58,fill:'#e2e7e8',stroke:'#87979a','stroke-width':1.4}));
-      g.appendChild(moSvgEl('text',{x:cx,y:cy+1,'text-anchor':'middle','dominant-baseline':'middle','font-family':'Arial,sans-serif','font-size':Math.max(11,size*.25),'font-weight':900,fill:'#30474d'},d.label));
+      const coin=new DOMParser().parseFromString(coinArt(d).replace('<svg ','<svg xmlns="http://www.w3.org/2000/svg" '),'image/svg+xml').documentElement;
+      coin.setAttribute('width',w);coin.setAttribute('height',h);g.appendChild(coin);
     }
     svg.appendChild(g);
   }
