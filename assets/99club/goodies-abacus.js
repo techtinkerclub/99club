@@ -145,7 +145,7 @@ function abacusPaper(model,teacher=false){
     return action+' '+instruction+(missing?' Write the missing number in the box.':' Write the final number in the box.');
   }
   function paperTaskDiagram(t,teacher){
-    const showStart=t.mode!=='show',W=showStart?1840:900,H=590;
+    const showStart=t.mode!=='show'&&!(teacher&&X.isAnswerDiagramLayout?.()),W=showStart?1840:900,H=590;
     const out=svgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':teacher?'Completed abacus solution':'Abacus practice diagrams'});
     const addFrame=(value,template,x,label)=>{
       out.appendChild(svgEl('text',{x:x+450,y:34,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':26,'font-weight':700,fill:'#52666d'},label));
