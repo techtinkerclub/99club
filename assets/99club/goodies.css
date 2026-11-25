@@ -1969,3 +1969,6 @@ select.gd-mc-set-answer{width:3.6em;font-size:.75em;height:1.7em}
 .gd-mc-set-grid .gd-mc-set-card .gd-mc-set-answer.is-target-answer,.gd-mc-single-equations .is-target-answer{width:7.6em;max-width:100%;font-size:inherit}
 .gd-mc-target-rules{font-size:11px;line-height:1.25;color:#526970;margin-bottom:3px;overflow-wrap:anywhere}
 .gd-pupil-response [data-gd-keypad="target-expression"]{width:min(100%,280px);min-width:0}
+
+/* Sequences & rules — an editable classroom demonstration, not a game. */
+.gd-seq-settings{display:grid;gap:8px;min-width:0}.gd-seq-settings .gd-field{min-width:0;margin:0}.gd-seq-settings .gd-select{width:100%;min-width:0}.gd-seq-pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}.gd-seq-toggle{display:flex;align-items:center;gap:8px;font-size:13px}.gd-seq-toggle input{width:18px;height:18px;accent-color:#16796d}.gd-seq-stage{display:grid;gap:8px;min-width:0}.gd-seq-actions{display:flex;align-items:center;gap:5px;flex-wrap:wrap}.gd-seq-actions .gd-btn{min-height:34px;font-size:12px;padding:5px 9px}.gd-seq-progress{margin-left:auto;font-size:12px;color:#526970}.gd-seq-diagram svg{display:block;width:100%;height:auto;max-width:100%;border-radius:8px}.gd-seq-settings .gd-row{flex-wrap:wrap}
