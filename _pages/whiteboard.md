@@ -21,8 +21,8 @@ robots: "noindex,nofollow,noarchive"
   </article>
 </div>
 
-<link rel="stylesheet" href="/assets/99club/goodies.css?v=94">
-<link rel="stylesheet" href="/assets/99club/goodies-abacus.css?v=21">
+<link rel="stylesheet" href="/assets/99club/goodies.css?v=103">
+<link rel="stylesheet" href="/assets/99club/goodies-abacus.css?v=22">
 <link rel="stylesheet" href="/assets/99club/goodies-number-mobile.css?v=1">
 <script>
 window.TT99_GOODIES_FORCE_BOARD = true;
@@ -32,12 +32,13 @@ window.TT99_GOODIES_BOARD_HOME = '/goodies/';
 <script>window.TT99_GOODIES_BUILD = {{ site.github.build_revision | default: site.time | jsonify }};</script>
 <script src="/assets/99club/goodies-core.js?v=2" defer></script>
 <script src="/assets/99club/goodies-interaction.js?v=4" defer></script>
-<script src="/assets/99club/goodies-challenge.js?v=17" defer></script>
-<script src="/assets/99club/goodies-export.js?v=5" defer></script>
-<script src="/assets/99club/goodies-tools-a.js?v=64" defer></script>
-<script src="/assets/99club/goodies-abacus.js?v=23" defer></script>
+<script src="/assets/99club/goodies-challenge.js?v=19" defer></script>
+<script src="/assets/99club/goodies-export.js?v=9" defer></script>
+<script src="/assets/99club/goodies-tools-a.js?v=65" defer></script>
+<script src="/assets/99club/goodies-abacus.js?v=25" defer></script>
 <script src="/assets/99club/goodies-number-line-v6.js?v=25" defer></script>
-<script src="/assets/99club/goodies-tools-b.js?v=46" defer></script>
+<script src="/assets/99club/goodies-tools-b.js?v=58" defer></script>
 <script src="/assets/99club/goodies-number-mobile.js?v=1" defer></script>
-<script src="/assets/99club/goodies-app.js?v=12" defer></script>
-<script src="/assets/99club/goodies-board.js?v=43" defer></script>
+<script src="/assets/99club/goodies-sequences.js?v=1" defer></script>
+<script src="/assets/99club/goodies-app.js?v=13" defer></script>
+<script src="/assets/99club/goodies-board.js?v=49" defer></script>
