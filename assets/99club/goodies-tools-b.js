@@ -1760,6 +1760,22 @@ function measurementTool(){
 
 }
 
+// Randomiser publishes the current illustration, not a generated question.
+if(G.publishing)G.publishing.register('randomiser',{
+  label:'Dice, spinner & randomiser',
+  captureOnly:true,
+  types:()=>[],
+  capture(model,staticSvg){
+    if(typeof staticSvg!=='string'||!staticSvg.trim())throw Error('The Randomiser illustration is not ready.');
+    return [G.publishing.record('randomiser','diagram',{svg:staticSvg})];
+  },
+  render(item){
+    const svg=new DOMParser().parseFromString(item.data.svg,'image/svg+xml').documentElement;
+    if(svg.localName!=='svg'||!svg.hasAttribute('viewBox')||svg.querySelector('parsererror'))throw Error('Invalid Randomiser illustration.');
+    return document.importNode(svg,true);
+  }
+});
+
 function randomiser(){
   const X=G.exportTools;
   let result='',diceValues=[],spinnerRotation=0,spinnerKind='colours',customSpinnerText='1\n2\n3\n4',busy=false,finishTimer=null;
@@ -1954,6 +1970,10 @@ function randomiser(){
   q('#ra-svg').onclick=()=>exportAction('svg');
   q('#ra-print').onclick=()=>exportAction('print');
   draw();
+  G.publishingCurrent=()=>{
+    if(busy)throw Error('Finish rolling or spinning before publishing.');
+    return new XMLSerializer().serializeToString(paperSvg());
+  };
   G.lessonState?.register('randomiser',()=>{
     if(busy)throw new Error('Finish rolling or spinning before saving.');
     return {mode:q('#ra-mode').value,count:q('#ra-count')?.value,sides:q('#ra-sides')?.value,min:q('#ra-min')?.value,max:q('#ra-max')?.value,result,diceValues,spinnerRotation,spinnerKind,customSpinnerText};
