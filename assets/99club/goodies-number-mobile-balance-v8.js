@@ -10,7 +10,7 @@ if(!G)return;
 const ACTIVE_CLASS='nmb-v8-pupil-challenge';
 let installed=false,observer=null,adaptQueued=false,lastKey=null,activeTileId=null;
 const answers=new Map();
-let responseBuffer='',feedback='',feedbackKind='';
+let responseBuffer='',feedback='',feedbackKind='',choiceValue='';
 
 function q(sel,root=document){return root?.querySelector?.(sel)||null}
 function qa(sel,root=document){return root?.querySelectorAll?[...root.querySelectorAll(sel)]:[]}
@@ -64,6 +64,15 @@ function answerState(id){if(!answers.has(id))answers.set(id,{buffer:'',correct:f
 function renderTileAnswer(tile){const state=answers.get(String(tile.dataset.baToken));if(!state)return;const strong=q('strong',tile);if(strong)strong.textContent=state.buffer||'?';tile.classList.toggle('nmb-v8-answer-correct',!!state.correct);tile.classList.toggle('nmb-v8-answer-wrong',!!state.wrong);tile.setAttribute('aria-label',state.buffer?'Answer box. Current answer '+state.buffer:'Answer box. Tap to enter the missing number')}
 function closePad(){activeTileId=null;q('.nmb-v8-answer-pad',stage())?.remove()}
 function checkTile(tile){
+  const unknowns=unknownTiles();
+  if(unknowns.length>1){
+    const rows=unknowns.map(el=>({el,state:answerState(String(el.dataset.baToken)),expected:expectedForTile(el)}));
+    if(rows.some(row=>numeric(row.state.buffer)==null)){setFeedback('Fill in all ? boxes, then check.');return}
+    const correct=rows.every(row=>row.expected!=null&&Math.abs(numeric(row.state.buffer)-row.expected)<1e-9);
+    rows.forEach(row=>{row.state.correct=correct;row.state.wrong=!correct&&!(row.expected!=null&&Math.abs(numeric(row.state.buffer)-row.expected)<1e-9);renderTileAnswer(row.el)});
+    setFeedback(correct?'Correct ✓':'Not quite — check both answers.',correct?'correct':'wrong');
+    if(correct)closePad();return;
+  }
   const state=answerState(String(tile.dataset.baToken)),expected=expectedForTile(tile),given=numeric(state.buffer);
   if(expected==null||!Number.isFinite(expected)){state.wrong=true;renderTileAnswer(tile);setFeedback('Not quite — try again.','wrong');return}
   if(given!=null&&Math.abs(given-expected)<1e-9){state.correct=true;state.wrong=false;renderTileAnswer(tile);setFeedback('Correct ✓','correct');closePad()}
@@ -71,7 +80,7 @@ function checkTile(tile){
 }
 function answerPad(tile){
   closePad();const host=work();if(!host)return;const id=String(tile.dataset.baToken),state=answerState(id),pad=document.createElement('div');activeTileId=id;pad.className='nmb-v8-answer-pad';pad.dataset.nmbV8AnswerPad=id;
-  pad.innerHTML='<div class="nmb-v8-answer-pad__head"><strong>Enter your answer</strong><button type="button" data-nmb-v8-close aria-label="Close number pad">×</button></div><div class="nmb-v8-answer-display">'+(state.buffer||'?')+'</div><div class="nmb-v8-answer-digits">'+['7','8','9','4','5','6','1','2','3','0','.','⌫'].map(key=>'<button type="button" data-nmb-v8-key="'+key+'">'+key+'</button>').join('')+'</div><button type="button" class="nmb-v8-check" data-nmb-v8-check>Check answer</button>';
+  pad.innerHTML='<div class="nmb-v8-answer-pad__head"><strong>Enter your answer</strong><button type="button" data-nmb-v8-close aria-label="Close number pad">×</button></div><div class="nmb-v8-answer-display">'+(state.buffer||'?')+'</div><div class="nmb-v8-answer-digits">'+['7','8','9','4','5','6','1','2','3','0','.','⌫'].map(key=>'<button type="button" data-nmb-v8-key="'+key+'">'+key+'</button>').join('')+'</div><button type="button" class="nmb-v8-check" data-nmb-v8-check>Check</button>';
   host.appendChild(pad);const wr=host.getBoundingClientRect(),tr=tile.getBoundingClientRect(),width=225,height=300;let left=tr.right-wr.left+10,top=tr.top-wr.top-18;if(left+width>wr.width)left=Math.max(8,tr.left-wr.left-width-10);if(top+height>wr.height)top=Math.max(8,wr.height-height-8);pad.style.left=left+'px';pad.style.top=top+'px';
   q('[data-nmb-v8-close]',pad).onclick=closePad;
   qa('[data-nmb-v8-key]',pad).forEach(button=>button.onclick=()=>{if(state.correct)return;const key=button.dataset.nmbV8Key;if(key==='⌫')state.buffer=state.buffer.slice(0,-1);else if(key==='.'&&!state.buffer.includes('.'))state.buffer=(state.buffer||'0')+'.';else if(key!=='.')state.buffer=(state.buffer+key).replace(/^0(?=\d)/,'');state.wrong=false;q('.nmb-v8-answer-display',pad).textContent=state.buffer||'?';renderTileAnswer(tile);setFeedback('','')});q('[data-nmb-v8-check]',pad).onclick=()=>checkTile(tile);
@@ -88,10 +97,10 @@ function checkNumericResponse(type,panel){const expected=numericResponseExpected
 function insertResponsePanel(panel){const w=work();if(!w)return;const summary=q('.gd-eq-summary',w);if(summary)summary.insertAdjacentElement('afterend',panel);else w.prepend(panel)}
 function responsePanel(type){
   const existing=q('.nmb-v8-response-panel',stage());if(existing)return existing;const panel=document.createElement('div');panel.className='nmb-v8-response-panel';panel.dataset.nmbV8Response=type;const choice=responseChoice(type);
-  if(choice){panel.innerHTML='<span class="nmb-v8-response-label">'+responseInstructions(type)+'</span><div class="nmb-v8-choice-row">'+choice.options.map(option=>'<button type="button" data-nmb-v8-choice="'+option.replace(/"/g,'&quot;')+'">'+option+'</button>').join('')+'</div><span class="nmb-v8-feedback" data-nmb-v8-feedback aria-live="polite"></span>';qa('[data-nmb-v8-choice]',panel).forEach(button=>button.onclick=()=>{const ok=normalise(button.dataset.nmbV8Choice)===normalise(choice.correct);qa('[data-nmb-v8-choice]',panel).forEach(b=>b.classList.remove('is-correct','is-wrong'));button.classList.add(ok?'is-correct':'is-wrong');setFeedback(ok?'Correct ✓':'Not quite — try again.',ok?'correct':'wrong')})}
-  else if(type==='difference'||type==='balance'){panel.innerHTML='<span class="nmb-v8-response-label">'+responseInstructions(type)+'</span><div class="nmb-v8-number-response"><div class="nmb-v8-response-display" tabindex="0">'+(responseBuffer||'?')+'</div><div class="nmb-v8-response-keys">'+['1','2','3','4','5','6','7','8','9','0','⌫'].map(k=>'<button type="button" data-nmb-v8-response-key="'+k+'">'+k+'</button>').join('')+'</div><button type="button" class="nmb-v8-check" data-nmb-v8-response-check>Check answer</button></div><span class="nmb-v8-feedback" data-nmb-v8-feedback aria-live="polite"></span>';qa('[data-nmb-v8-response-key]',panel).forEach(button=>button.onclick=()=>{const key=button.dataset.nmbV8ResponseKey;if(key==='⌫')responseBuffer=responseBuffer.slice(0,-1);else responseBuffer=(responseBuffer+key).replace(/^0(?=\d)/,'');q('.nmb-v8-response-display',panel).textContent=responseBuffer||'?';setFeedback('','')});q('[data-nmb-v8-response-check]',panel).onclick=()=>checkNumericResponse(type,panel)}
+  if(choice){panel.innerHTML='<span class="nmb-v8-response-label">'+responseInstructions(type)+'</span><div class="nmb-v8-choice-row">'+choice.options.map(option=>'<button type="button" data-nmb-v8-choice="'+option.replace(/"/g,'&quot;')+'">'+option+'</button>').join('')+'</div><span class="nmb-v8-feedback" data-nmb-v8-feedback aria-live="polite"></span>';qa('[data-nmb-v8-choice]',panel).forEach(button=>button.onclick=()=>{choiceValue=button.dataset.nmbV8Choice;const ok=normalise(choiceValue)===normalise(choice.correct);qa('[data-nmb-v8-choice]',panel).forEach(b=>b.classList.remove('is-correct','is-wrong'));button.classList.add(ok?'is-correct':'is-wrong');setFeedback(ok?'Correct ✓':'Not quite — try again.',ok?'correct':'wrong')})}
+  else if(type==='difference'||type==='balance'){panel.innerHTML='<span class="nmb-v8-response-label">'+responseInstructions(type)+'</span><div class="nmb-v8-number-response"><div class="nmb-v8-response-display" tabindex="0">'+(responseBuffer||'?')+'</div><div class="nmb-v8-response-keys">'+['1','2','3','4','5','6','7','8','9','0','⌫'].map(k=>'<button type="button" data-nmb-v8-response-key="'+k+'">'+k+'</button>').join('')+'</div><button type="button" class="nmb-v8-check" data-nmb-v8-response-check>Check</button></div><span class="nmb-v8-feedback" data-nmb-v8-feedback aria-live="polite"></span>';qa('[data-nmb-v8-response-key]',panel).forEach(button=>button.onclick=()=>{const key=button.dataset.nmbV8ResponseKey;if(key==='⌫')responseBuffer=responseBuffer.slice(0,-1);else responseBuffer=(responseBuffer+key).replace(/^0(?=\d)/,'');q('.nmb-v8-response-display',panel).textContent=responseBuffer||'?';setFeedback('','')});q('[data-nmb-v8-response-check]',panel).onclick=()=>checkNumericResponse(type,panel)}
   else panel.innerHTML='<span class="nmb-v8-response-label">Think through the mobile, then tell your teacher your answer.</span><span class="nmb-v8-feedback" data-nmb-v8-feedback aria-live="polite"></span>';
-  insertResponsePanel(panel);renderFeedback();return panel;
+  insertResponsePanel(panel);if(choice&&choiceValue){const selected=qa('[data-nmb-v8-choice]',panel).find(b=>b.dataset.nmbV8Choice===choiceValue);if(selected)selected.classList.add(feedbackKind==='correct'?'is-correct':'is-wrong')}renderFeedback();return panel;
 }
 function missingPanel(){let panel=q('.nmb-v8-response-panel',stage());if(panel)return panel;panel=document.createElement('div');panel.className='nmb-v8-response-panel is-missing';panel.dataset.nmbV8Response='missing';panel.innerHTML='<span class="nmb-v8-response-label">Tap a <strong>?</strong> box and enter the missing number.</span><span class="nmb-v8-feedback" data-nmb-v8-feedback aria-live="polite"></span>';insertResponsePanel(panel);renderFeedback();return panel}
 function hideTeacherControls(active){
@@ -101,7 +110,7 @@ function hideTeacherControls(active){
 function restoreBoardRail(){try{if(window.parent!==window){const rail=window.frameElement?.closest?.('[data-board-object]')?.querySelector?.('[data-board-quick-actions]');if(rail)qa(':scope > button',rail).forEach(button=>button.hidden=false)}}catch(_err){}}
 function prepareUnknownTiles(){const unknowns=unknownTiles();unknowns.forEach(tile=>{const id=String(tile.dataset.baToken);tile.disabled=false;tile.removeAttribute('disabled');tile.removeAttribute('aria-disabled');tile.classList.add('nmb-v8-answer-box');answerState(id);renderTileAnswer(tile)});return unknowns}
 function compactPrompt(type){const p=q('.gd-challenge-prompt',banner());if(p&&type==='balance'&&p.textContent!=='How much must be added to the lighter main side to balance the main bar?')p.textContent='How much must be added to the lighter main side to balance the main bar?'}
-function resetChallengeState(){answers.clear();activeTileId=null;responseBuffer='';feedback='';feedbackKind='';closePad();q('.nmb-v8-response-panel',stage())?.remove()}
+function resetChallengeState(){answers.clear();activeTileId=null;responseBuffer='';feedback='';feedbackKind='';choiceValue='';closePad();q('.nmb-v8-response-panel',stage())?.remove()}
 function adapt(){
   if(challengeBuilding()){document.body.classList.remove(ACTIVE_CLASS);document.documentElement.classList.remove(ACTIVE_CLASS);setTimeout(scheduleAdapt,80);return}
   const active=challengeActive();document.body.classList.toggle(ACTIVE_CLASS,active);document.documentElement.classList.toggle(ACTIVE_CLASS,active);
@@ -124,6 +133,7 @@ function install(){
   if(installed)return;installed=true;document.addEventListener('pointerdown',intercept,true);document.addEventListener('click',intercept,true);document.addEventListener('click',blankClick,true);document.addEventListener('keydown',keyboard,true);document.addEventListener('click',()=>setTimeout(scheduleAdapt,0),true);document.addEventListener('change',scheduleAdapt,true);
   observe();const root=document.getElementById('tt99-goodies-root');if(root){const rootObserver=new MutationObserver(()=>{observe();scheduleAdapt()});rootObserver.observe(root,{childList:true})}scheduleAdapt();
 }
-G.numberMobilePupilChallengeVersion='8.3';
+G.numberMobilePupilState={capture:()=>({answers:[...answers].map(([id,state])=>[id,{...state}]),responseBuffer,choiceValue,feedback,feedbackKind})};
+G.numberMobilePupilChallengeVersion='8.4';
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else queueMicrotask(install);
 })(window.TT99Goodies);
