@@ -15,7 +15,7 @@ Update it with evidence and release revisions as the work progresses.
 - [x] Initial adapters for all 20 existing widgets (Randomiser illustration-only).
 - [x] Manual current-item publication, widget batches, automatic mixed-widget builder, document review, teacher annex.
 - [x] Initial shared A4 renderer and publication audit. Released in b0c9a82 (PR #212).
-- [ ] Individual worksheet quality audit: every question family, print font size, diagrams, working space, pagination, no leaked answers. Baseline audit passed structure with 2,111 sub-7pt text observations and no reported page clipping. Dense-diagram scaling pass in progress.
+- [ ] Individual worksheet quality audit: every question family, print font size, diagrams, working space, pagination, no leaked answers. Baseline audit passed structure with 2,111 sub-7pt text observations and no reported page clipping. Dense-diagram and label refinements now pass the default sample audit with zero sub-7pt observations and zero reported page clipping. Visual inspection and alternate-settings coverage still outstanding.
 - [ ] Verify graphical answers and explicit acceptance criteria for all valid alternatives; no teacher guesswork.
 - [ ] Audit exact current illustrations and authored custom challenges, generation coverage and variety, and mixed documents. Do not equate an adapter with complete support for every live state.
 - [ ] Final mathematical, browser, layout, print and release QA.

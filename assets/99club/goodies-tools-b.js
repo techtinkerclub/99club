@@ -1236,7 +1236,7 @@ if(G.publishing)G.publishing.register('measurement',{
  capture(model){const d=meData(model);return [G.publishing.record('measurement',d.challenge?'challenge':'diagram',d,d.challenge?{type:d.type,settings:d.settings}:null)]},
  answerSummary:item=>item.data.challenge.answer,
  answerGraphic:item=>G.exportTools.withAnswerDiagram(()=>mePaper(item.data,true)),
- answerNote:item=>{const c=item.data.challenge;if(c.type==='place-mark')return 'The mark must align with the stated scale division. Judge against the printed tick marks, not a physical ruler.';if(c.type==='distance-between')return 'Subtract the reading at A from the reading at B. Accept equivalent working giving the requested unit.';if(c.type==='unit-misconception')return 'Accept equivalent explanations using 1 cm = 10 mm.';return ''},
+ answerNote:item=>{const c=item.data.challenge;if(c.type==='place-mark')return 'The mark must align with the stated scale division. Judge against the printed tick marks, not a physical ruler.';if(c.type==='distance-between')return 'Find the positive difference between the two readings (larger minus smaller). Accept equivalent working giving the requested unit.';if(c.type==='unit-misconception')return 'Accept equivalent explanations using 1 cm = 10 mm.';return ''},
  render(item,teacher){return mePaper(item.data,teacher)}
 });
 
@@ -3910,7 +3910,7 @@ if(G.publishing)G.publishing.register('fdp',{
  capture(model){const d=fdpPublicationData(model);return [G.publishing.record('fdp',d.challenge?'challenge':'diagram',d,d.challenge?{type:d.type,settings:d.settings}:null)]},
  answerSummary:item=>item.data.challenge.answer,
  answerGraphic:item=>fdpPaper(item.data,true,true),
- answerNote:item=>{const c=item.data.challenge;if(c.type==='build-percentage')return 'Accept any valid shading representing exactly '+c.targetPercent+'% of the whole.';if(c.type==='simplify-fraction')return 'The numerator and denominator must have no common factor greater than 1.';if(c.type==='spot-percent-error')return 'Accept equivalent explanations that calculate the correct percentage and compare it with the displayed value.';if(c.type==='to-decimal'||c.type==='to-percentage')return 'Accept equivalent notation, including trailing decimal zeros.';return 'The missing denominator must preserve the value of the original fraction.'},
+ answerNote:item=>{const c=item.data.challenge;if(c.type==='build-percentage')return 'Accept any valid shading representing exactly '+c.targetPercent+'% of the whole.';if(c.type==='simplify-fraction')return 'The numerator and denominator must have no common factor greater than 1.';if(c.type==='spot-percent-error')return 'Accept equivalent explanations that calculate the correct percentage and compare it with the displayed value.';if(c.type==='to-decimal'||c.type==='to-percentage')return 'Accept equivalent notation, including trailing decimal zeros.';return 'The missing number must preserve the value of the original fraction, with the given numerator or denominator unchanged.'},
  render(item,teacher){return fdpPaper(item.data,teacher)}
 });
 

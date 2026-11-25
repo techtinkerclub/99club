@@ -42,8 +42,15 @@ function createDocument(){
       const queue=[];
       for(let i=0;i<n;i++){
         if(!queue.length){queue.push(...selected);for(let j=queue.length-1;j>0;j--){const k=Math.floor(rng()*(j+1));[queue[j],queue[k]]=[queue[k],queue[j]]}}
-        const recipe=a.recipe(copy(block.settings),queue.shift());
-        try{records.push(uniqueQuestion(block.tool,recipe,items.concat(records),rng))}catch(e){throw Error(a.label+': '+e.message)}
+        const preferred=queue.shift(),candidates=[preferred,...selected.filter(id=>id!==preferred)];
+        let generated=null,lastError=null;
+        for(const type of candidates){
+          const recipe=a.recipe(copy(block.settings),type);
+          try{generated=uniqueQuestion(block.tool,recipe,items.concat(records),rng);break}
+          catch(e){if(!String(e.message).startsWith('No different question'))throw Error(a.label+': '+e.message);lastError=e}
+        }
+        if(!generated)throw Error(a.label+': '+lastError.message);
+        records.push(generated);
       }
     }
     return append(records);
@@ -144,7 +151,8 @@ function wrapAnnex(text,width,size,weight=400){
 // "other answers possible" message.
 function answerNote(item){
  const adapter=adapterFor(item.tool),d=item.data,c=d.challenge||d.state?.challenge;
- if(adapter.answerNote)return adapter.answerNote(item);
+ if(item.kind!=='challenge')return '';
+ const specific=adapter.answerNote?.(item);if(specific)return specific;
  if(item.tool==='abacus'){
    const k=d.settings.kind;
    return k==='suanpan'?'Standard bead arrangement shown. Accept another arrangement only if the engaged beads give the correct value and the question does not require a standard arrangement.':'Use the completed bead arrangement shown; exchange into the next place when needed.';
@@ -159,8 +167,13 @@ function answerNote(item){
  if(item.tool==='array-builder'){
    if(c?.type==='build-array')return 'Accept drawn dots, shaded cells or another clearly shown array with the specified rows and columns.';
    if(c?.type==='partial-products')return 'Accept the partial products in any order, provided they match the shown partitions and sum to the correct total.';
+   if(c?.type==='multiplication-fact')return 'Require rows × columns in that order, as requested, with the correct total. Accept the product written on either side of the equality.';
+   if(c?.type==='commutative-fact')return 'Require the reversed factor order and the unchanged product.';
  }
  if(item.tool==='fraction-wall'){
+   if(c?.type==='identify-strip')return 'Require the actual number of shaded parts over the actual number of equal parts shown. A simplified equivalent alone does not give both requested counts.';
+   if(c?.type==='compare-strips')return 'The comparison symbol must describe A compared with B, in that order.';
+   if(c?.type==='denominator-misconception')return 'Accept equivalent reasoning comparing unit fractions of equal-sized wholes: more equal parts make each part smaller.';
    if(c?.type==='simplify-strip')return 'Answer must be in lowest terms.';
    if(c?.type==='equivalent-strip')return 'The equivalent fraction must have the denominator specified in the question.';
    if(c?.type==='mixed-improper')return 'Accept an equivalent mixed number; require lowest terms only if requested.';
@@ -170,13 +183,29 @@ function answerNote(item){
    if(['error-scale'].includes(c?.type))return 'Accept equivalent explanations that correctly distinguish the interval value or spaces from marks.';
    if(['fraction-jump','fraction-sequence','mixed-number'].includes(c?.type))return 'Accept an equivalent fraction or mixed number, subject to the form requested in the question.';
    if(c?.type==='equivalent-fractions')return 'Use the denominator of the requested fraction line.';
+   if(c?.type==='missing-labels')return 'All missing numbers must be correct in their respective boxes, read from left to right.';
+   if(c?.type==='order-markers')return 'Require every requested marker in the order specified by the question.';
+   if(c?.type==='fdp-equivalence')return 'Require the requested fraction, decimal or percentage form; equivalent notation within that form is acceptable.';
+   if(c?.type==='missing-jump')return 'The signed jump must have the correct magnitude and direction.';
  }
  if(item.tool==='clock'){
    if(['set-five','set-minute'].includes(c?.type))return 'Both hands must be correct; the hour hand should sit proportionally between hour marks. The analogue face alone cannot distinguish am from pm.';
    if(['read-five','read-minute','roman-read'].includes(c?.type))return 'Accept equivalent time notation. AM/PM cannot be determined from the analogue face alone.';
    if(c?.type==='two-duration-reason')return 'Accept equivalent explanations supported by the actual elapsed time.';
+   if(c?.type==='elapsed-forward')return 'Both hands must show the final time. If a written time is given, check the stated starting time and elapsed minutes for the correct am/pm or 24-hour value.';
+   if(c?.type==='time-language')return 'Accept equivalent past/to wording that identifies the correct hour and minute, including quarter or half where appropriate.';
+   if(c?.type==='twelve-to-twentyfour')return 'Require correct 24-hour notation, including the correct hour for am or pm.';
+   if(c?.type==='twentyfour-to-twelve')return 'Require correct 12-hour notation and am or pm, including noon and midnight.';
+   if(['two-elapsed','two-midnight'].includes(c?.type))return 'The total must be correct in minutes as requested; equivalent working is acceptable.';
+   if(c?.type==='two-order')return 'Require the correct labelled clock; equivalent wording identifying it is acceptable.';
+   if(c?.type==='hour-hand-misconception')return 'Accept equivalent reasoning that the hour hand moves continuously as minutes pass.';
  }
  if(item.tool==='maths-canvas'&&d.targetRule)return 'Accept any expression that reaches the target, uses each supplied number once and follows the permitted operations and bracket rules.';
+ if(item.tool==='maths-canvas')return d.solutionExplanation?'Accept equivalent working. '+d.solutionExplanation:'Accept equivalent numerical notation or the requested operator or comparison symbol.';
+ if(item.tool==='sequences')return 'Use the stated rule family. '+(d.solutionExplanation||'Each missing term or rule value must match the displayed sequence.');
+ if(item.tool==='place-value'&&c?.type==='zero-placeholder')return 'Accept equivalent reasoning that zero preserves the positions of the other digits.';
+ if(item.tool==='measurement')return 'Require the requested measurement unit; accept equivalent numerical notation in that unit.';
+ if(item.tool==='money')return 'Accept equivalent money notation with the correct value; require the specified denomination or number of pieces where requested.';
  return '';
 }
 function answerGraphic(item){
