@@ -546,9 +546,9 @@ function placeValue(){
       ['digit','Digit value'],
       ['add','Addition']
     ].map(([id,label])=>'<button class="gd-btn'+(activityActive&&activityContext==='challenge'&&activityMode===id?' gd-btn--primary':'')+'" type="button" data-pv-challenge-mode="'+id+'">'+label+'</button>').join('');
-    return tabs+
+    return tabs+CK.nativeRandomHtml('pv',[{label:'Build & regroup',ids:['build','exact','regroup','same']},{label:'Read & identify',ids:['read','hidden','digit']},{label:'Calculation',ids:['add']}])+
       '<div class="pv-challenge-task-grid" role="group" aria-label="Place Value challenge types">'+tasks+'</div>'+
-      '<div class="gd-row"><button class="gd-btn gd-btn--primary" id="pv-challenge-random" type="button">Random challenge</button></div>'+
+
       '<p class="gd-help">Choose a challenge type, or let 99 Club choose one at random. Check and Another appear directly on the board.</p>';
   }
   function setupControlsHtml(){
