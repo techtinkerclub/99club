@@ -28,8 +28,8 @@ The notes are implementation evidence, not a completed acceptance test. “Pilot
 | Multiplication grid | Related facts, grid labels, response locations | Existing; audit | Pending | Open |
 | Array builder | Shared seven-type generator, saved factor ranges, build grid and teacher key, partitions | Shared templates; custom task audit | Pilot: 7 types + diagrams | Open |
 | Clock & time | Shared native 14-type generator; original elapsed-time evidence, blank hands, visible display options, explicit teacher key | Shared templates; custom task audit | Pilot: 14 types + diagrams | Open |
-| UK money | Consistent UK coins/notes, exact totals/change, paper manipulation | Existing; audit | Pending | Open |
-| Coordinate grid | Plotting/deleting older points, labels, transformations, blank plotting grid | Existing; audit | Pending | Open |
+| UK money | Shared ten-type generator, consistent coin art, exact/minimum pieces, change | Shared templates; custom audit | Pilot: 10 types + diagrams and graphical keys | Open |
+| Coordinate grid | Shared six-type generator, grid scopes, collision-aware paper labels, solved transformations | Shared templates; custom audit | Pilot: 6 types + diagrams and graphical keys | Open |
 | Ruler & measures | Scale accuracy, metric/imperial synchronisation, measurement tasks | Existing; audit | Pending | Open |
 | Dice, spinner & randomiser | Roll/spin, label orientation, probabilities, reproducible current diagrams | Existing; audit; decide eligible tasks | Pending | Open |
 | Equation balance | Physical model and equality, moving number tiles, animations, solvable tasks | Existing; audit | Pending | Open |
@@ -48,7 +48,7 @@ Reckoning board, Chinese counting rods, Napier's Bones, slide rule and Pascaline
 
 1. Keep direct current export independent of document creation.
 2. Array Builder adapter added after Fraction Wall, Clock & Time, Place Value, Arithmetic, Sequences and the three abacus types; continue with number line, money and coordinates. Audit response semantics and teacher solutions while integrating each.
-3. Automatic builder initial source configuration added for the eight integrated widgets (independent type/family/range/difficulty/count). Editing or regenerating already-published source blocks remains pending; preserve manually retained items. Refine all publishing menus with the same compact visual language.
+3. Automatic builder initial source configuration added for the ten integrated widgets (independent type/family/range/difficulty/count). Editing or regenerating already-published source blocks remains pending; preserve manually retained items. Refine all publishing menus with the same compact visual language.
 4. Extend preview layout: configurable portrait/landscape and intelligent columns, full-width diagrams where necessary, consistent numbering, page breaks, working space and teacher keys.
 5. Save/reopen and reusable settings, stable versioned model records, import/export of drafts with validation; preserve exact content rather than regenerating silently.
 6. Align controls and branding with Studio's existing worksheet workflow. Test actual preview/print parity and mobile/touch performance.
@@ -60,7 +60,7 @@ Continue the catalogue review one widget at a time, with defects and regressions
 
 ## Current verified scope
 
-- Eight catalogue entries have shared publishing adapters (Arithmetic, Sequences, Abacus limited to three bead instruments, Place Value, Clock & Time, Fraction Wall, Array Builder, Number Line).
+- Ten catalogue entries have shared publishing adapters (Arithmetic, Sequences, Abacus limited to three bead instruments, Place Value, Clock & Time, Fraction Wall, Array Builder, Number Line, UK Money, Coordinate Grid).
 - Automated abacus rollout checks: 2,160 generated tasks; 4,320 pupil/teacher diagrams; 108 mixed-document scenarios and isolated replacements; 1,236 page checks.
 - Automated Place Value rollout: 45 column ranges, 14,040 generated tasks, 28,080 pupil/teacher diagrams, 135 mixed drafts and isolated replacements, 135 captures and 1,655 page checks. Custom teacher-authored tasks still require individual export; the existing powers-of-ten demo is capture-only.
 - Clock rollout: 2,800 individual generator/render checks; 100 multi-source clock drafts, 1,900 generated questions, 200 captures, 100 isolated replacements and 2,583 pupil/teacher page checks. One-clock recipes enable 10 types; two-clock recipes enable 14. Custom tasks remain direct-export only. Actual browser, touch and A4 verification is open.
@@ -80,3 +80,7 @@ Continue the catalogue review one widget at a time, with defects and regressions
 - Live and paper outputs now use the same generator and SVG renderer, retaining existing marker/tick collision lanes and relationship geometry. Unknown jump positions remain concealed in pupil output; missing-label boxes reset after reveal and have no redundant response box. Nearest-endpoint ties are avoided; scale-reading and misconception tasks vary subranges/tick multiples so replacement works under fixed outer ranges. Long/non-divisible challenge scales use a bounded aligned subset of the configured range rather than claiming incorrect endpoint intervals. Custom authored tasks remain direct-export only.
 - Initial 5,840 generator/markup checks; final 3,630 across all five presets, plus 40 mixed Number Line/arithmetic documents, 800 generated questions, 80 current captures, 40 isolated replacements, 321 pupil pages, 40 annex pages and 840 exact prompt alignments. Pupil pages identical in both modes; mock SVG DOM/lightweight XML validation, not browser or actual A4 signoff.
 - Next adapter: UK Money, followed by Coordinate Grid. Eight of 20 catalogue entries integrated; full visual/touch/print acceptance still open.
+
+### UK Money and Coordinate Grid follow-up
+- UK Money: 3,000 generated tasks, 800 graphical solutions, independent minimum-piece validation, 30 mixed documents. Coordinate Grid: 3,200 generator checks, 800 individual solution checks, 30 mixed documents, 390 answer entries and alignment checks. Both entry points updated. Actual browser, touch and print acceptance still open.
+- Graphical teacher annex includes solved diagrams and marking guidance. Next: Bar Model, then Hundred Square. Ten of 20 entries integrated; formal written methods follow the existing catalogue rollout.
