@@ -9,6 +9,7 @@ if(!G||typeof G.balanceTool!=='function')return;
 const originalBalanceTool=G.balanceTool;
 let observers=[],cleanups=[],lastVisual={angle:0,left:0,right:0};
 let blankIds=new Set(),roots={left:[],right:[]},nextBranch=1;
+let setupTopology=null;
 let selectedBranchId=null,focusedTileId=null,editingId=null,editBuffer='',pendingAdd=null,adapting=false,adaptQueued=false;
 
 let catalogueValue=G.toolCatalogue;
@@ -348,14 +349,24 @@ function captureMobile(){
   validateMobile(saved);return saved;
 }
 function restoreMobile(saved){
-  validateMobile(saved);
+  validateMobile(saved);setupTopology=null;
   roots=saved.topology.roots;blankIds=new Set(saved.topology.blankIds.map(String));nextBranch=saved.topology.nextBranch;
   selectedBranchId=null;focusedTileId=null;editingId=null;editBuffer='';pendingAdd=null;
   G.numberMobileEngineState.restore(saved.diagram);
   adaptStage(stage());adaptControls(document.getElementById('gd-controls'));
 }
+function topologySnapshot(){return JSON.parse(JSON.stringify({roots,blankIds:[...blankIds],nextBranch}))}
+function applyTopology(t){
+  roots=t.roots;blankIds=new Set(t.blankIds.map(String));nextBranch=t.nextBranch;
+  selectedBranchId=null;focusedTileId=null;editingId=null;editBuffer='';pendingAdd=null;
+}
+G.numberMobileTopology={
+  captureSetup(){setupTopology=topologySnapshot()},
+  restoreSetup(){if(setupTopology){applyTopology(setupTopology);setupTopology=null}},
+  resetChallengeTree(){applyTopology({roots:{left:[],right:[]},blankIds:[],nextBranch:1})}
+};
 G.balanceTool=function numberMobileBalanceToolV3(){
-  disconnect();lastVisual={angle:0,left:0,right:0};blankIds=new Set();roots={left:[],right:[]};nextBranch=1;selectedBranchId=null;focusedTileId=null;editingId=null;editBuffer='';pendingAdd=null;
+  disconnect();setupTopology=null;lastVisual={angle:0,left:0,right:0};blankIds=new Set();roots={left:[],right:[]};nextBranch=1;selectedBranchId=null;focusedTileId=null;editingId=null;editBuffer='';pendingAdd=null;
   originalBalanceTool();adaptToolHeader();document.addEventListener('keydown',keyboardHandler);cleanups.push(()=>document.removeEventListener('keydown',keyboardHandler));
   observe(document.getElementById('gd-stage'),adaptStage);observe(document.getElementById('gd-controls'),adaptControls);
   G.lessonState?.register('balance',captureMobile,restoreMobile);
