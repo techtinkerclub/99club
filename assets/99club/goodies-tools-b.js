@@ -2932,7 +2932,7 @@ function fdpExplorer(){
     normalise();
   }
   function remember(){undoStack.push(snapshot());if(undoStack.length>60)undoStack.shift();redoStack.length=0}
-  function challengeFrozen(){return !!(challenge&&challenge.mode==='standard'&&challenge.freezeModel)}
+  function challengeFrozen(){return !!(challenge&&challenge.mode==='standard'&&(challenge.freezeModel||challenge.revealed))}
   function mutate(fn){if(challengeFrozen())return;remember();fn();normalise();draw();renderControls()}
   function undo(){if(!undoStack.length||challengeFrozen())return;redoStack.push(snapshot());restore(undoStack.pop());draw();renderControls()}
   function redo(){if(!redoStack.length||challengeFrozen())return;undoStack.push(snapshot());restore(redoStack.pop());draw();renderControls()}
@@ -2976,7 +2976,7 @@ function fdpExplorer(){
   function barPieces(){
     return Array.from({length:denominator},(_,i)=>{
       const fill=i<numerator;
-      return '<button type="button" class="gd-fdp-piece'+(fill?' is-fill':'')+'" data-fd-piece="'+i+'" aria-label="Set numerator to '+(i+1)+' out of '+denominator+'" aria-pressed="'+(fill?'true':'false')+'"><span>'+(i+1)+'</span></button>';
+      return '<button type="button" class="gd-fdp-piece'+(fill?' is-fill':'')+'" data-fd-piece="'+i+'" aria-label="Set numerator to '+(i+1)+' out of '+denominator+'" aria-pressed="'+(fill?'true':'false')+'"'+(challengeFrozen()?' disabled':'')+'><span>'+(i+1)+'</span></button>';
     }).join('');
   }
   function hundredCells(){
@@ -2995,16 +2995,22 @@ function fdpExplorer(){
       return '<button type="button" class="gd-fdp-equivalent'+(selected?' is-current':'')+'" data-fd-equiv="'+item.k+'"'+(item.d>20||challengeFrozen()?' disabled':'')+'>'+(hide?'?/?':txt)+'</button>';
     }).join('')+'</div>';
   }
+  function togglePercentageReveal(){
+    if(!challenge)return;challenge.revealed=!challenge.revealed;
+    if(challenge.type==='build-percentage'&&challenge.mode==='standard'){
+      if(challenge.revealed){challenge.modelBeforeReveal=snapshot();const match=Array.from({length:20},(_,i)=>i+1).find(d=>Math.abs(challenge.targetPercent*d/100-Math.round(challenge.targetPercent*d/100))<1e-9);if(match)setBenchmark(Math.round(challenge.targetPercent*match/100),match)}
+      else if(challenge.modelBeforeReveal){restore(challenge.modelBeforeReveal);delete challenge.modelBeforeReveal}
+    }renderControls();draw();
+  }
   function bindChallengeStageActions(){
     const endChallenge=q('[data-challenge-action="end"]',q('#gd-stage'));if(endChallenge)endChallenge.onclick=e=>{e.stopPropagation();clearChallenge()};
     const stage=q('#gd-stage');if(!stage||!challenge)return;
-    const reveal=q('[data-board-action="reveal"]',stage);if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();draw()};
+    const reveal=q('[data-board-action="reveal"]',stage);if(reveal)reveal.onclick=e=>{e.stopPropagation();togglePercentageReveal()};
     const another=q('[data-challenge-action="another"]',stage);if(another)another.onclick=e=>{e.stopPropagation();if(challenge?.mode==='standard')generateChallenge(challenge.type)};
   }
   function challengeProgress(){
     if(!challenge||challenge.type!=='build-percentage')return'';
-    const diff=Math.abs(percentValue()-Number(challenge.targetPercent));
-    return diff<1e-9?'On target · '+percentText()+'% ✓':'Build '+challenge.targetPercent+'%';
+    return 'Adjust the fraction, then press Check.';
   }
   function draw(){
     updateChallengeAnswer();
@@ -3013,23 +3019,24 @@ function fdpExplorer(){
     const fractionDisplay=hidden&&challenge.hiddenFraction?'?/?':s.n+'/'+s.d;
     const decimalDisplay=hidden&&challenge.hiddenDecimal?'?':decimalText();
     const percentDisplay=challenge?.mode==='standard'&&challenge.type==='spot-percent-error'&&hidden?challenge.wrongPercent+'%':(hidden&&challenge.hiddenPercent?'?':percentText()+'%');
-    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Fraction–decimal–percentage challenge',pupil:(challenge.type==='build-percentage'?CK.pupilSpec('model',{check:()=>Math.abs(percentValue()-challenge.targetPercent)<1e-8}):challenge.type==='spot-percent-error'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:'No',explain:true}):challenge.type==='to-percentage'?CK.pupilSpec('unit',{unit:'%'}):CK.pupilSpec(challenge.type==='simplify-fraction'?'fraction-form':'number')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
-    q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-fdp-main">'+
-      '<div class="gd-fdp-summary"><div><span>Fraction value</span><strong data-fd-source>'+(hidden&&challenge.hiddenSource?'?/?':numerator+'/'+denominator)+'</strong></div>'+
-        '<div class="gd-object-toolbar"><button class="gd-btn" id="fd-undo" type="button"'+(undoStack.length&&!challengeFrozen()?'':' disabled')+'>Undo</button><button class="gd-btn" id="fd-redo" type="button"'+(redoStack.length&&!challengeFrozen()?'':' disabled')+'>Redo</button></div></div>'+
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Fraction–decimal–percentage challenge',pupil:(challenge.type==='build-percentage'?CK.pupilSpec('model',{check:()=>Math.abs(percentValue()-challenge.targetPercent)<1e-8}):challenge.type==='spot-percent-error'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:challenge.answer.startsWith('Yes')?'Yes':'No',explain:true}):challenge.type==='to-percentage'?CK.pupilSpec('unit',{unit:'%'}):CK.pupilSpec(challenge.type==='simplify-fraction'?'fraction-form':'number')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
+    const focused=challenge?.mode==='standard'&&!challenge.revealed,build=focused&&challenge.type==='build-percentage';
+    q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-fdp-main'+(focused?' is-focused-challenge':'')+'">'+
+      (focused?'':'<div class="gd-fdp-summary"><div><span>Fraction value</span><strong data-fd-source>'+(hidden&&challenge.hiddenSource?'?/?':numerator+'/'+denominator)+'</strong></div>'+
+        '<div class="gd-object-toolbar"><button class="gd-btn" id="fd-undo" type="button"'+(undoStack.length&&!challengeFrozen()?'':' disabled')+'>Undo</button><button class="gd-btn" id="fd-redo" type="button"'+(redoStack.length&&!challengeFrozen()?'':' disabled')+'>Redo</button></div></div>')+
       (!challengeFrozen()?'<div class="gd-fdp-direct">'+
         '<div class="gd-fdp-stepper"><span>Numerator</span><div><button class="gd-btn" id="fd-n-minus" type="button"'+(numerator<=0?' disabled':'')+'>−</button><strong data-fd-numerator>'+numerator+'</strong><button class="gd-btn" id="fd-n-plus" type="button"'+(numerator>=denominator?' disabled':'')+'>+</button></div></div>'+
         '<div class="gd-fdp-stepper"><span>Denominator</span><div><button class="gd-btn" id="fd-d-minus" type="button"'+(denominator<=1?' disabled':'')+'>−</button><strong data-fd-denominator>'+denominator+'</strong><button class="gd-btn" id="fd-d-plus" type="button"'+(denominator>=20?' disabled':'')+'>+</button></div></div>'+
       '</div>':'')+
       '<div class="gd-fdp-section"><div class="gd-fdp-section-head"><div><span>Fraction bar</span><strong>'+numerator+' of '+denominator+' equal parts</strong></div><small>'+(challengeFrozen()?'Use the model to reason about the value.':'Tap a part to set the numerator.')+'</small></div>'+
         '<div class="gd-fdp-bar" style="--fd-denominator:'+denominator+'">'+barPieces()+'</div></div>'+
-      '<div class="gd-fdp-readout">'+
+      (focused?(build?'<div class="gd-fdp-question-value">'+percentText()+'%</div>':challenge.type==='spot-percent-error'?'<div class="gd-fdp-question-value">'+percentDisplay+'</div>':''):'<div class="gd-fdp-readout">'+
         '<div class="gd-fdp-value"><span>fraction</span><strong data-fd-fraction>'+fractionDisplay+'</strong><small>'+(hidden&&challenge.hiddenFraction?'simplified form hidden':(same?'already simplified':'simplified from '+numerator+'/'+denominator))+'</small></div>'+
         '<div class="gd-fdp-value"><span>decimal</span><strong data-fd-decimal>'+decimalDisplay+'</strong><small>same value</small></div>'+
         '<div class="gd-fdp-value"><span>percentage</span><strong data-fd-percent>'+percentDisplay+'</strong><small>same value</small></div>'+
       '</div>'+
-      '<div class="gd-fdp-section"><div class="gd-fdp-section-head"><div><span>Equivalent fractions</span><strong>Same amount, different-sized parts</strong></div></div>'+equivalentHtml()+'</div>'+
-      (hidden&&challenge.hiddenHundred?'':'<div class="gd-fdp-section"><div class="gd-fdp-section-head"><div><span>Hundred square</span><strong data-fd-hundred-label>'+rounded+' of 100 cells</strong></div><small>'+(exact?'Exact match':'Rounded from '+percentText()+'% to the nearest whole cell')+'</small></div>'+
+      '<div class="gd-fdp-section"><div class="gd-fdp-section-head"><div><span>Equivalent fractions</span><strong>Same amount, different-sized parts</strong></div></div>'+equivalentHtml()+'</div>')+
+      (focused||hidden&&challenge.hiddenHundred?'':'<div class="gd-fdp-section"><div class="gd-fdp-section-head"><div><span>Hundred square</span><strong data-fd-hundred-label>'+rounded+' of 100 cells</strong></div><small>'+(exact?'Exact match':'Rounded from '+percentText()+'% to the nearest whole cell')+'</small></div>'+
         '<div class="gd-hundred" data-fd-hundred-exact="'+(exact?'true':'false')+'">'+hundredCells()+'</div></div>')+
       (challenge?.type==='build-percentage'?'<div class="gd-answer-live" data-fd-target-status>'+challengeProgress()+'</div>':'')+
     '</div>';
@@ -3120,11 +3127,11 @@ function fdpExplorer(){
     }else if(type==='build-percentage'){
       const [n,d]=pick([[3,4],[1,4],[2,5],[4,5],[3,5],[1,5],[7,10],[3,8]]);
       const targetPercent=n/d*100;numerator=1;denominator=2;
-      challenge=challengeObject(type,'Change the model until it represents '+targetPercent+'%.',n+'/'+d+' = '+targetPercent+'%',{freezeModel:false,targetPercent});
+      challenge=challengeObject(type,'Change the model until it represents '+targetPercent+'%.',n+'/'+d+' = '+targetPercent+'%',{freezeModel:false,targetPercent,targetNumerator:n,targetDenominator:d});
     }else{
       const [n,d,wrong]=pick([[2,5,45],[1,4,20],[3,4,70],[3,5,65],[1,5,25],[7,10,75]]);
-      numerator=n;denominator=d;
-      challenge=challengeObject(type,'The percentage shown is '+wrong+'%. Is that correct? Explain.','No. '+n+'/'+d+' = '+percentText()+'%, not '+wrong+'%.',{wrongPercent:wrong,hiddenDecimal:true,hiddenHundred:true});
+      numerator=n;denominator=d;const valid=Math.random()<.5,shown=valid?percentValue():wrong;
+      challenge=challengeObject(type,'The percentage shown is '+shown+'%. Is that correct? Explain.',valid?'Yes. '+n+'/'+d+' = '+percentText()+'%.':'No. '+n+'/'+d+' = '+percentText()+'%, not '+shown+'%.',{wrongPercent:shown,hiddenDecimal:true,hiddenHundred:true});
     }
     challenge.variantKey=variantKey;
     challenge.initialState=snapshot();
@@ -3211,7 +3218,8 @@ function fdpExplorer(){
   function stateHundredFill(state){return Math.round(stateValue(state)*100)}
   function fdpExportSvg({pupil=false}={}){
     const state=exportState(pupil),s=stateSimplified(state),v=stateValue(state),pct=statePercent(state),fill=stateHundredFill(state);
-    const width=920,height=760,pad=70,barY=115,barH=82,barW=width-2*pad;
+    const focused=pupil&&challenge?.mode==='standard';
+    const width=920,height=focused?(challenge.type==='spot-percent-error'?280:235):760,pad=70,barY=115,barH=82,barW=width-2*pad;
     const svg=fdSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Fraction decimal percentage model','data-fd-export':'diagram'});
     svg.appendChild(fdSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
     svg.appendChild(fdSvgEl('text',{x:width/2,y:48,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':26,'font-weight':800,fill:'#304b52'},'Fraction · Decimal · Percentage'));
@@ -3222,6 +3230,7 @@ function fdpExplorer(){
       svg.appendChild(fdSvgEl('rect',{x:pad+i*pieceW,y:barY,width:pieceW,height:barH,fill:i<state.numerator?'#f6cf79':'#ffffff',stroke:'#6d858a','stroke-width':1,'data-fd-export-piece':i}));
     }
     svg.appendChild(fdSvgEl('rect',{x:pad,y:barY,width:barW,height:barH,fill:'none',stroke:'#536c72','stroke-width':3}));
+    if(focused){if(challenge.type==='spot-percent-error')svg.appendChild(fdSvgEl('text',{x:width/2,y:246,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':24,'font-weight':800,fill:'#304b52'},challenge.wrongPercent+'%'));return svg}
     const boxes=[
       {x:80,label:'FRACTION',value:exportHidden('hiddenFraction',pupil)?'?/?':s.n+'/'+s.d,key:'fraction'},
       {x:335,label:'DECIMAL',value:exportHidden('hiddenDecimal',pupil)?'?':stateDecimal(state),key:'decimal'},
@@ -3313,7 +3322,7 @@ function fdpExplorer(){
     qa('[data-fd-challenge-type]',controls).forEach(button=>button.onclick=()=>{challengeType=button.dataset.fdChallengeType;renderControls()});
     const gen=q('#fd-generate');if(gen)gen.onclick=()=>generateChallenge(challengeType);
     const edit=q('#fd-edit-challenge');if(edit)edit.onclick=enterCustomChallenge;
-    const reveal=q('#fd-reveal');if(reveal)reveal.onclick=()=>{if(challenge){challenge.revealed=!challenge.revealed;renderControls();draw()}};
+    const reveal=q('#fd-reveal');if(reveal)reveal.onclick=togglePercentageReveal;
     const clear=q('#fd-clear-challenge');if(clear)clear.onclick=clearChallenge;
     if(challengeTab==='custom'&&challenge){
       const title=q('#fd-custom-title');if(title)title.oninput=()=>{challenge.title=title.value.slice(0,100);draw()};
