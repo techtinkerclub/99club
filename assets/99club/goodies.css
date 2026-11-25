@@ -1738,7 +1738,7 @@ html.gd-embed-page,body.gd-embed-page{margin:0!important;width:100%!important;he
 
 /* Classroom challenge presentation: the answer belongs in the response panel,
    not in a second summary or a strip of placeholder question marks. */
-#gd-stage:has(.gd-challenge-banner,.gd-native-challenge) :is(.gd-money-summary,.gd-bar-readouts,.gd-array-maths,.gd-array-summary,.gd-mg-facts,.gd-clock-readouts,.gd-tv-readout,.gd-ab-summary,.gd-fdp-summary,.gd-ruler-sync-readout,#co-readout,#ge-readout){display:none!important}
+#gd-stage:has(.gd-challenge-banner,.gd-native-challenge) :is(.gd-money-summary,.gd-bar-readouts,.gd-array-maths,.gd-array-summary,.gd-mg-facts,.gd-clock-readouts,.gd-tv-readout,.gd-tv-fact-family,.gd-ab-summary,.gd-pv-summary,.gd-fdp-summary,.gd-ruler-card .gd-fdp-readout,.gd-ruler-sync-readout,#co-readout,#ge-readout){display:none!important}
 #gd-stage>.gd-challenge-banner,#gd-stage>.gd-native-challenge{margin-bottom:16px!important}
 #gd-stage>.gd-challenge-banner+.gd-money-workbench{margin-top:4px!important}
 .gd-money-summary--total{grid-template-columns:minmax(0,1fr)!important}
