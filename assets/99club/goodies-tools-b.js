@@ -3760,6 +3760,7 @@ function geoboard(){
     const vertexText=metricHidden('vertices')?'?':pts.length;
     if(pts.length<2)return'Vertices: '+vertexText+' · Add at least two vertices to measure a length.';
     if(pts.length===2)return'Vertices: '+vertexText+' · Length ≈ '+(metricHidden('length')?'?':segmentLength().toFixed(2)+' units');
+    if(CK?.simplePolygon&&!CK.simplePolygon(pts))return 'Vertices: '+vertexText+' · Make a non-crossing polygon to measure area and perimeter.';
     return'Vertices: '+vertexText+' · Perimeter ≈ '+(metricHidden('perimeter')?'?':perimeter().toFixed(2)+' units')+' · Area = '+(metricHidden('area')?'?':area().toFixed(2)+' square units');
   }
   function occupied(x,y,except=-1){
@@ -3889,8 +3890,9 @@ function geoboard(){
     let grid='';
     for(let y=0;y<N;y++)for(let x=0;x<N;x++){
       const v=pointPx({x,y});
-      grid+='<circle class="gd-ge-peg" cx="'+v.x+'" cy="'+v.y+'" r="11" data-gp="'+x+','+y+'"></circle>';
+      grid+='<circle class="gd-ge-peg" cx="'+v.x+'" cy="'+v.y+'" r="5" pointer-events="none"></circle>';
     }
+    const hitGrid=Array.from({length:N*N},(_,i)=>{const x=i%N,y=Math.floor(i/N),v=pointPx({x,y});return '<circle class="gd-ge-peg-hit" cx="'+v.x+'" cy="'+v.y+'" r="16" fill="transparent" data-gp="'+x+','+y+'"></circle>'}).join('');
     const poly='<polyline class="gd-poly" data-ge-poly'+(pts.length<3?' style="fill:none"':'')+' points="'+polyPoints()+'"></polyline>';
     const vertices=pts.map((p,i)=>{
       const v=pointPx(p),label=String.fromCharCode(65+i);
@@ -3899,7 +3901,7 @@ function geoboard(){
     }).join('');
     const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Geoboard challenge',pupil:(challenge.type==='build-area'?CK.pupilSpec('model',{check:()=>CK.simplePolygon(pts)&&Math.abs(area()-challenge.targetArea)<1e-8}):challenge.type==='area-perimeter-units'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:'No',explain:true}):challenge.type==='perimeter-area'?CK.pupilSpec('metrics'):CK.pupilSpec('unit',{unit:challenge.type==='find-area'?'square units':'units'})),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-geo gd-geoboard-direct">'+
-      '<svg id="ge-svg" viewBox="0 0 '+W+' '+W+'" role="img" aria-label="Interactive geoboard">'+grid+poly+vertices+'</svg>'+
+      '<svg id="ge-svg" viewBox="0 0 '+W+' '+W+'" role="img" aria-label="Interactive geoboard">'+grid+poly+hitGrid+vertices+'</svg>'+
       (shapeFrozen()?'':'<div class="gd-ge-context"><span id="ge-context-text">'+(selected>=0&&pts[selected]?'Selected '+String.fromCharCode(65+selected)+' · ('+pts[selected].x+', '+pts[selected].y+')':(shapeFrozen()?'The given shape is fixed for this challenge.':'Tap a peg to add a vertex. Drag an existing vertex to reshape the polygon.'))+'</span><div class="gd-context-actions">'+
         '<button type="button" class="gd-context-history" data-ge-undo-stage'+(!undoStack.length?' disabled':'')+'>Undo</button>'+
         '<button type="button" class="gd-context-history" data-ge-redo-stage'+(!redoStack.length?' disabled':'')+'>Redo</button>'+
