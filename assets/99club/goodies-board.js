@@ -114,6 +114,7 @@ const HISTORY_SELECTORS={
   redo:'[data-gd-action="redo"],[data-board-action="redo"],[data-co-redo-stage],#hs-redo,#ab-redo,#ba-redo'
 };
 const objects=[];
+const publishingDraft=G.publishing?.createDocument();
 
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -163,6 +164,7 @@ root.innerHTML='<div class="gd-mixed-board" id="gd-mixed-board">'+
     '<div id="gd-board-library-list"></div><p id="gd-board-library-status" role="status" aria-live="polite"></p>'+
   '</dialog>'+
   '<div class="gd-board-global" aria-label="Whiteboard controls">'+
+    '<button type="button" class="gd-board-global-button" id="gd-board-publishing" aria-label="Worksheet document" title="Worksheet document">'+iconSvg('export')+'</button>'+
     '<button type="button" class="gd-board-global-button" id="gd-board-saved" aria-label="Saved boards" title="Saved boards">'+iconSvg('save')+'</button>'+
     '<button type="button" class="gd-board-global-button" id="gd-board-back" aria-label="Back to manipulatives" title="Back">'+iconSvg('back')+'</button>'+
     '<button type="button" class="gd-board-global-button is-active" id="gd-board-snap" aria-pressed="true" aria-label="Toggle snap to dots" title="Snap to dots">'+iconSvg('snap')+'</button>'+
@@ -170,6 +172,7 @@ root.innerHTML='<div class="gd-mixed-board" id="gd-mixed-board">'+
   '</div>'+
 '</div>';
 
+document.getElementById('gd-board-publishing').onclick=()=>G.publishing?.openEditor(publishingDraft);
 const board=document.getElementById('gd-mixed-board');
 const viewport=document.getElementById('gd-board-viewport');
 const canvas=document.getElementById('gd-board-canvas');
@@ -638,6 +641,7 @@ function objectMarkup(obj,tool){
       '<button type="button" data-board-export-kind="png" role="menuitem">PNG</button>'+
       '<button type="button" data-board-export-kind="svg" role="menuitem">SVG</button>'+
       '<button type="button" data-board-export-kind="print" role="menuitem">Print</button>'+
+      (G.publishing?.supports(tool.id)?'<button type="button" data-board-export-kind="add-document" role="menuitem">Add current to document</button><button type="button" data-board-export-kind="generate-document" role="menuitem">Generate for document</button>':'')+
       (tool.id==='maths-canvas'?'<button type="button" data-board-export-kind="paper-settings" role="menuitem">Paper settings</button>':'')+
       (['maths-canvas','abacus','place-value','sequences'].includes(tool.id)?'<button type="button" data-board-export-kind="key-print" role="menuitem" hidden>Answer key · print</button><button type="button" data-board-export-kind="key-copy" role="menuitem" hidden>Answer key · copy</button>':'')+
     '</div>'+
@@ -843,7 +847,13 @@ function bindObject(obj){
   if(exportMenu)exportMenu.onclick=e=>{
     const button=e.target.closest('[data-board-export-kind]');if(!button)return;
     e.preventDefault();e.stopPropagation();
-    if(button.dataset.boardExportKind==='paper-settings'){
+    if(['add-document','generate-document'].includes(button.dataset.boardExportKind)){
+      try{const api=frame.querySelector('iframe')?.contentWindow?.TT99Goodies,snapshot=api?.lessonState.capture(obj.toolId)?.model;if(!snapshot)throw Error('Widget is not ready.');
+        if(button.dataset.boardExportKind==='add-document')publishingDraft.addCurrent(obj.toolId,snapshot,!snapshot.challenge&&obj.toolId==='maths-canvas'?api.publishingCurrent?.():null);
+        else{const dlg=document.createElement('dialog');dlg.className='gd-publishing-editor gd-publishing-generate';dlg.innerHTML='<form method="dialog"><strong>Generate challenges for document</strong><label class="gd-field"><span>Number of challenges</span><select name="count" class="gd-select">'+[1,2,3,4,5,6,8,10,15,20].map(n=>'<option'+(n===5?' selected':'')+'>'+n+'</option>').join('')+'</select></label><label class="gd-field"><span>Question types</span><select name="type" class="gd-select"><option value="all">All enabled types</option>'+((snapshot.challenge||snapshot.task)?.type?'<option value="'+esc((snapshot.challenge||snapshot.task).type)+'">Current challenge type</option>':'')+'</select></label><p class="gd-help">Uses this widget’s current generation settings.</p><button class="gd-btn" value="cancel">Cancel</button> <button class="gd-btn gd-btn--primary" value="generate">Generate</button></form>';document.body.appendChild(dlg);dlg.addEventListener('close',()=>{const count=dlg.querySelector('[name=count]').value,type=dlg.querySelector('[name=type]').value,ok=dlg.returnValue==='generate';dlg.remove();if(ok)try{publishingDraft.generate(obj.toolId,snapshot,count,type);G.publishing.openEditor(publishingDraft)}catch(err){boardHint(err.message)}});dlg.showModal();frame.classList.remove('has-export-menu');return}
+        G.publishing.openEditor(publishingDraft);
+      }catch(err){boardHint(err.message||'Unable to add worksheet content.');}
+    }else if(button.dataset.boardExportKind==='paper-settings'){
       const doc=innerDocument(obj),tab=doc&&workflowExportButton(doc);
       if(!tab){boardHint('Paper settings are not available yet.');return}
       tab.click();sendSettings(obj,true,'paper');
