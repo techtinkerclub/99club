@@ -1664,3 +1664,13 @@ html.gd-embed-page,body.gd-embed-page{margin:0!important;width:100%!important;he
 .gd-challenge-random-row button{flex:1 1 auto;min-height:38px}
 .gd-pupil-field input[data-gd-keypad],#gd-stage input[data-nl-missing-slot],#gd-stage input[data-challenge-response],#gd-stage input[data-pv-activity-answer],#gd-stage input[data-ab-answer],#gd-stage input[data-ab-history-answer]{cursor:pointer;touch-action:manipulation}
 .gd-touch-keypad:focus-within{outline:none}
+
+/* Short whiteboard frames keep the keypad usable without changing diagram size. */
+@media (max-height:340px) and (min-width:470px){
+  .gd-touch-keypad{width:min(452px,calc(100vw - 16px));display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:6px 10px;align-items:start}
+  .gd-touch-head,.gd-touch-display,.gd-touch-symbols,.gd-touch-actions{grid-column:1;margin:0}
+  .gd-touch-grid{grid-column:2;grid-row:1 / span 4}
+  .gd-touch-symbols button{min-height:32px;min-width:30px}
+  .gd-touch-actions button{min-height:34px}
+  .gd-touch-grid button{min-height:38px}
+}
