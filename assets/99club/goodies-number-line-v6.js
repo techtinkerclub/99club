@@ -692,15 +692,18 @@ function numberLineV2(){
 
   function renderControls(){if(!numberLineMounted())return;controls.innerHTML=controlsHtml()}
 
-  const X0=110,X1=940;
+  // Reserve real label/connector gutters in the common SVG coordinate system.
+  // Dragging, ticks, guides and exports all use these same bounds.
+  function xStart(){return state.lines.some(l=>String(l.label||'').trim())?190:76}
+  function xEnd(){return state.lines.some(l=>l.scaleMode==='linked')?886:940}
   function px(value,line=state.lines[0]){
     const scale=scaleFor(line),range=scale.max-scale.min;
-    return X0+(value-scale.min)/range*(X1-X0);
+    return xStart()+(value-scale.min)/range*(xEnd()-xStart());
   }
   function valueFromClientX(clientX,line=activeLine()){
     const svg=q('#nl-svg'),scale=scaleFor(line);if(!svg)return scale.min;
     const r=svg.getBoundingClientRect(),svgX=(clientX-r.left)/r.width*1000;
-    const raw=scale.min+(clamp(svgX,X0,X1)-X0)/(X1-X0)*(scale.max-scale.min);
+    const raw=scale.min+(clamp(svgX,xStart(),xEnd())-xStart())/(xEnd()-xStart())*(scale.max-scale.min);
     return snapToScale(raw,scale);
   }
   function tickRef(lineId,value){return String(lineId)+':'+fmt(value)}
@@ -708,7 +711,38 @@ function numberLineV2(){
     const scale=scaleFor(line),ch=state.challenge;
     if(!ch||ch.revealed)return false;
     if(ch.hiddenTicks.some(x=>Math.abs(x-v)<scale.step/1000))return true;
-    return (ch.hiddenTickRefs||[]).includes(tickRef(line.id,v));
+    if((ch.hiddenTickRefs||[]).includes(tickRef(line.id,v)))return true;
+    // If a marker is the unknown, its scale label must never reveal it.
+    return line.markers.some(m=>hiddenChallengeMarker(line,m)&&Math.abs(m.value-v)<scale.step/1000);
+  }
+  function tickGeometry(line){
+    const scale=scaleFor(line),range=scale.max-scale.min,rawCount=Math.floor(range/scale.step+1e-8);
+    const renderStep=scale.step*Math.max(1,Math.ceil(rawCount/160))*line.tickStride;
+    const count=Math.floor(range/renderStep+1e-8),items=[];
+    for(let i=0;i<=count;i++){
+      const v=cleanNumber(scale.min+i*renderStep);
+      items.push({i,v,x:px(v,line),major:i%scale.labelEvery===0||i===0||i===count,endpoint:i===0||i===count});
+    }
+    return items;
+  }
+  function tickLabelPlan(line,index){
+    const ticks=tickGeometry(line),labels=[],lanes=[[]];
+    if(!labelsVisible(line,index))return {ticks,labels,extent:18};
+    const candidates=ticks.filter(t=>t.major).map(t=>{
+      const hidden=hiddenTick(t.v,line);
+      const markerUnknown=hidden&&line.markers.some(m=>hiddenChallengeMarker(line,m)&&Math.abs(m.value-t.v)<scaleFor(line).step/1000);
+      const text=lineValueText(line,t.v);
+      return {...t,hidden,markerUnknown,text,width:hidden?42:Math.max(16,text.length*8+8)};
+    }).filter(t=>!t.markerUnknown);
+    const fits=(t,lane)=>!(lanes[lane]||[]).some(p=>Math.abs(p.x-t.x)<(p.width+t.width)/2+7);
+    function put(t,lane){if(!lanes[lane])lanes[lane]=[];lanes[lane].push(t);labels.push({...t,lane})}
+    // Endpoints and missing answer positions are never dropped. If an old saved
+    // challenge contains adjacent missing ticks, stagger them with leader lines.
+    candidates.filter(t=>t.hidden||t.endpoint).forEach(t=>{
+      let lane=0;while(!fits(t,lane))lane++;put(t,lane);
+    });
+    candidates.filter(t=>!t.hidden&&!t.endpoint).forEach(t=>{if(fits(t,0))put(t,0)});
+    return {ticks,labels,extent:44+(lanes.length-1)*30};
   }
   function answerBox(cx,cy,w=54,h=24){
     return `<rect class="nl-answer-box" x="${cx-w/2}" y="${cy-h/2}" width="${w}" height="${h}" rx="5" fill="#fff" stroke="#52666d" stroke-width="1.8" stroke-dasharray="5 3"/>`;
@@ -724,13 +758,14 @@ function numberLineV2(){
     line.relations.filter(r=>r.type!=='interval'&&r.side===side).forEach(r=>{
       const d=relationDisplay(line,r);if(!d)return;
       const left=Math.min(px(d.a.value,line),px(d.b.value,line)),right=Math.max(px(d.a.value,line),px(d.b.value,line));
-      items.push({id:r.id,left,right});
+      const mid=(left+right)/2,half=d.show?Math.max(35,(d.label||'').length*4+7):0;
+      items.push({id:r.id,left:Math.min(left,mid-half),right:Math.max(right,mid+half)});
     });
     if(line.showConsecutiveDifferences&&line.consecutiveSide===side){
       const sorted=[...line.markers].sort((a,b)=>a.value-b.value);
       sorted.slice(0,-1).forEach((m,i)=>{
         const n=sorted[i+1],left=Math.min(px(m.value,line),px(n.value,line)),right=Math.max(px(m.value,line),px(n.value,line));
-        items.push({id:'auto-'+i,left,right});
+        items.push({id:'auto-'+i,left:Math.min(left,(left+right)/2-28),right:Math.max(right,(left+right)/2+28)});
       });
     }
     items.sort((a,b)=>a.left-b.left||a.right-b.right);
@@ -742,38 +777,57 @@ function numberLineV2(){
     });
     return {map,count:ends.length};
   }
+  function markerLanes(line,side){
+    const ends=[],map={};
+    line.markers.filter(m=>m.side===side).sort((a,b)=>a.value-b.value).forEach(m=>{
+      const x=px(m.value,line),w=markerVisualWidth(line,m),left=x-w/2,right=x+w/2;
+      let lane=ends.findIndex(end=>left>=end+9);
+      if(lane<0)lane=ends.length;
+      ends[lane]=right;map[m.id]=lane;
+    });
+    return {map,count:ends.length};
+  }
   function layout(){
     const layouts=[];let cursor=state.title?54:28;
     state.lines.forEach((line,index)=>{
       autoLayoutMarkerSides(line);
       const above=assignLanes(line,'above'),below=assignLanes(line,'below');
-      const hasAboveMarker=line.markers.some(m=>m.side==='above');
-      const hasBelowMarker=line.markers.some(m=>m.side==='below');
-      const aboveExtent=Math.max(hasAboveMarker?82:24,above.count?136+(above.count-1)*30:24);
-      const belowLabel=labelsVisible(line,index)?42:18;
-      const belowExtent=Math.max(belowLabel,hasBelowMarker?belowLabel+70:belowLabel,below.count?belowLabel+112+(below.count-1)*30:belowLabel);
+      const ma=markerLanes(line,'above'),mb=markerLanes(line,'below'),tickPlan=tickLabelPlan(line,index);
+      const jump=isJumpChallenge(),labelBand=tickPlan.extent;
+      const markerAbove=ma.count?94+(ma.count-1)*54:24;
+      const markerBelow=mb.count?labelBand+82+(mb.count-1)*54:labelBand;
+      const relationAbove=Math.max(112,markerAbove+30),relationBelow=Math.max(labelBand+70,markerBelow+30);
+      const aboveExtent=jump?Math.max(96,above.count?108+(above.count-1)*38:96):Math.max(markerAbove,above.count?relationAbove+46+(above.count-1)*38:24);
+      const belowExtent=jump?labelBand+8:Math.max(markerBelow,below.count?relationBelow+46+(below.count-1)*38:labelBand);
       const baseY=cursor+aboveExtent;
-      layouts.push({line,index,baseY,above,below,aboveExtent,belowExtent});
+      layouts.push({line,index,baseY,above,below,aboveExtent,belowExtent,ma,mb,tickPlan,relationAbove,relationBelow});
       cursor=baseY+belowExtent+26;
     });
     return {lines:layouts,height:Math.max(250,cursor+18)};
   }
   function markerCentre(layout,m){
-    const labelBand=labelsVisible(layout.line,layout.index)?42:18;
-    return m.side==='above'?layout.baseY-48:layout.baseY+labelBand+38;
+    const labelBand=layout.tickPlan.extent,lane=(m.side==='above'?layout.ma.map[m.id]:layout.mb.map[m.id])||0;
+    return m.side==='above'?layout.baseY-48-lane*54:layout.baseY+labelBand+32+lane*54;
   }
   function markerStem(layout,m){
     const line=layout.line,x=px(m.value,line),cy=markerCentre(layout,m),base=layout.baseY;
     if(m.side==='above')return `<line x1="${x}" y1="${base-3}" x2="${x}" y2="${cy+13}" stroke="${esc(m.color)}" stroke-width="2.5"/>`;
     if(!labelsVisible(line,layout.index))return `<line x1="${x}" y1="${base+3}" x2="${x}" y2="${cy-13}" stroke="${esc(m.color)}" stroke-width="2.5"/>`;
-    const labelTop=base+20,labelBottom=base+43;
+    const labelTop=base+17,labelBottom=base+layout.tickPlan.extent;
     return `<line x1="${x}" y1="${base+3}" x2="${x}" y2="${labelTop-4}" stroke="${esc(m.color)}" stroke-width="2.5"/><line x1="${x}" y1="${labelBottom+4}" x2="${x}" y2="${cy-13}" stroke="${esc(m.color)}" stroke-width="2.5"/>`;
   }
-  function shortLineLabel(label){
-    const text=String(label||'');return text.length>14?text.slice(0,13)+'…':text;
+  function lineLabelRows(label){
+    const text=String(label||'').trim(),rows=[];let rest=text;
+    while(rest&&rows.length<2){
+      if(rest.length<=20){rows.push(rest);break}
+      let cut=rest.lastIndexOf(' ',20);if(cut<8)cut=20;
+      rows.push(rest.slice(0,cut).trim());rest=rest.slice(cut).trim();
+      if(rows.length===2&&rest)rows[1]=rows[1].slice(0,19)+'…';
+    }
+    return rows;
   }
   function isJumpChallenge(){
-    return !!(state.challenge?.mode==='standard'&&['jump','missing-start','repeated-jumps','fraction-jump','fraction-sequence'].includes(state.challenge.type));
+    return !!(state.challenge?.mode==='standard'&&['jump','missing-jump','missing-start','repeated-jumps','fraction-jump','fraction-sequence'].includes(state.challenge.type));
   }
   function hiddenChallengeMarker(line,marker){
     return !!(state.challenge&&!state.challenge.revealed&&(state.challenge.hiddenMarkerIds.includes(marker.id)||state.challenge.hiddenMarkerIds.includes(line.id+':'+marker.id)));
@@ -783,8 +837,7 @@ function numberLineV2(){
   }
   function buildLine(layout){
     const {line,baseY,above,below,index}=layout,scale=scaleFor(line),showLabels=labelsVisible(line,index);
-    const range=scale.max-scale.min,rawCount=Math.floor(range/scale.step+1e-8),safetyStride=Math.max(1,Math.ceil(rawCount/160)),renderStep=scale.step*safetyStride*line.tickStride,tickCount=Math.floor(range/renderStep+1e-8);
-    const pxPerTick=(X1-X0)/Math.max(1,tickCount),majorSpacing=pxPerTick*Math.max(1,scale.labelEvery),labelSkip=Math.max(1,Math.ceil(54/majorSpacing));
+    const tickPlan=layout.tickPlan;
     let intervalLayer='',ticks='',relationshipLayer='',markerLayer='';
     line.relations.filter(r=>r.type==='interval').forEach(r=>{
       const d=relationDisplay(line,r);if(!d)return;
@@ -792,29 +845,26 @@ function numberLineV2(){
       intervalLayer+=`<rect x="${left}" y="${y}" width="${w}" height="16" rx="6" fill="${esc(r.color)}" opacity=".18"/>`;
       if(d.show&&d.label){const ty=r.side==='above'?baseY-22:(showLabels?baseY+58:baseY+30);intervalLayer+=`<text x="${(x1+x2)/2}" y="${ty}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="${esc(r.color)}">${esc(d.label)}</text>`}
     });
-    for(let i=0;i<=tickCount;i++){
-      const v=cleanNumber(scale.min+i*renderStep),x=px(v,line),major=(i%scale.labelEvery===0)||i===0||i===tickCount;
+    tickPlan.ticks.forEach(t=>{
+      const {x,major}=t;
       ticks+=`<line x1="${x}" y1="${baseY-(major?13:8)}" x2="${x}" y2="${baseY+(major?13:8)}" stroke="#33474e" stroke-width="${major?2:1}"/>`;
-      if(showLabels&&major){
-        const hidden=hiddenTick(v,line),majorIndex=Math.round(i/Math.max(1,scale.labelEvery));
-        const showLabel=hidden||i===0||i===tickCount||majorIndex%labelSkip===0;
-        if(hidden){
-          const jumpEndpoint=isJumpChallenge()&&!!jumpMarkerAtValue(line,v);
-          if(!jumpEndpoint)ticks+=answerBox(x,baseY+30,50,24);
-        }else if(showLabel)ticks+=`<text x="${x}" y="${baseY+35}" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" fill="#33474e">${esc(lineValueText(line,v))}</text>`;
-      }
-    }
-    const baseline=`<line class="nl-baseline" data-line-id="${esc(line.id)}" data-nl-line-mode="${esc(line.scaleMode)}" x1="${X0}" y1="${baseY}" x2="${X1}" y2="${baseY}" stroke="#24343b" stroke-width="4" stroke-linecap="round"/><rect data-line-hit="${esc(line.id)}" x="${X0}" y="${baseY-16}" width="${X1-X0}" height="32" fill="transparent" style="cursor:crosshair"/>`;
-    const badgeText=line.scaleMode==='own'?'own scale':line.scaleMode==='zoom'?'zoom':line.scaleMode==='linked'?'double line':'';
-    const scaleBadge=badgeText?`<tspan font-size="10" font-weight="700" fill="#7a8a8f"> · ${esc(badgeText)}</tspan>`:'';
-    const lineLabel=line.label?`<text x="26" y="${baseY+5}" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#52666d">${esc(shortLineLabel(line.label))}${scaleBadge}</text>`:'';
+    });
+    tickPlan.labels.forEach(t=>{
+      const y=baseY+31+t.lane*30;
+      if(t.lane)ticks+=`<path d="M${t.x} ${baseY+14} V${y-14}" stroke="#9aafb1" stroke-width="1" stroke-dasharray="2 3" fill="none"/>`;
+      if(t.hidden)ticks+=answerBox(t.x,y,40,23);
+      else ticks+=`<text class="nl-tick-label" x="${t.x}" y="${y+5}" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" fill="#33474e">${esc(t.text)}</text>`;
+    });
+    const baseline=`<line class="nl-baseline" data-line-id="${esc(line.id)}" data-nl-line-mode="${esc(line.scaleMode)}" x1="${xStart()}" y1="${baseY}" x2="${xEnd()}" y2="${baseY}" stroke="#24343b" stroke-width="4" stroke-linecap="round"/><rect data-line-hit="${esc(line.id)}" x="${xStart()}" y="${baseY-16}" width="${xEnd()-xStart()}" height="32" fill="transparent" style="cursor:crosshair"/>`;
+    const nameRows=lineLabelRows(line.label),labelX=xStart()-18;
+    const lineLabel=nameRows.length?`<text class="nl-line-name" x="${labelX}" y="${baseY+4-(nameRows.length-1)*8}" text-anchor="end" font-family="Arial,sans-serif" font-size="13" font-weight="600" fill="#52666d"><title>${esc(line.label)}</title>${nameRows.map((name,j)=>`<tspan x="${labelX}" dy="${j?16:0}">${esc(name)}</tspan>`).join('')}</text>`:'';
 
     line.relations.filter(r=>r.type!=='interval').forEach(r=>{
       const d=relationDisplay(line,r);if(!d)return;
       const x1=px(d.a.value,line),x2=px(d.b.value,line),left=Math.min(x1,x2),right=Math.max(x1,x2),mid=(x1+x2)/2;
       const lane=(r.side==='above'?above.map[r.id]:below.map[r.id])||0;
       if(r.type==='difference'){
-        const y=r.side==='above'?baseY-112-lane*30:baseY+(showLabels?112:88)+lane*30;
+        const y=r.side==='above'?baseY-layout.relationAbove-lane*38:baseY+layout.relationBelow+lane*38;
         const drop=r.side==='above'?9:-9;
         relationshipLayer+=`<path d="M${left} ${y+drop} V${y} H${right} V${y+drop}" fill="none" stroke="${esc(r.color)}" stroke-width="2.4" stroke-linecap="round"/>`;
         if(d.show&&(d.label||d.hidden)){const labelCy=r.side==='above'?y-25:y+25;if(d.hidden)relationshipLayer+=answerBox(mid,labelCy,58,24);else relationshipLayer+=`<rect x="${mid-31}" y="${labelCy-12}" width="62" height="22" rx="10" fill="#fff"/><text x="${mid}" y="${labelCy+4}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="${esc(r.color)}">${esc(d.label)}</text>`}
@@ -822,8 +872,8 @@ function numberLineV2(){
         const challengeJump=isJumpChallenge();
         const y1=challengeJump?baseY-5:markerCentre(layout,d.a),y2=challengeJump?baseY-5:markerCentre(layout,d.b);
         const controlY=challengeJump
-          ? baseY-62-lane*26
-          : (r.side==='above'?baseY-92-lane*30:baseY+(showLabels?132:108)+lane*30);
+          ? baseY-66-lane*38
+          : (r.side==='above'?baseY-layout.relationAbove-lane*38:baseY+layout.relationBelow+lane*38);
         relationshipLayer+=`<path class="${challengeJump?'nl-challenge-jump':'nl-jump'}" d="M${x1} ${y1} Q${mid} ${controlY} ${x2} ${y2}" fill="none" stroke="${esc(r.color)}" stroke-width="${challengeJump?2.6:3}" stroke-linecap="round" marker-end="url(#nl-arrow-${esc(line.id)}-${esc(r.id)})"/>`;
         if(d.show&&(d.label||d.hidden)){
           const labelCy=challengeJump?controlY-12:(r.side==='above'?controlY-19:controlY+19);
@@ -836,7 +886,7 @@ function numberLineV2(){
     if(line.showConsecutiveDifferences&&line.markers.length>1){
       const sorted=[...line.markers].sort((a,b)=>a.value-b.value);
       sorted.slice(0,-1).forEach((m,i)=>{
-        const n=sorted[i+1],x1=px(m.value,line),x2=px(n.value,line),mid=(x1+x2)/2,side=line.consecutiveSide||'above',lane=(side==='above'?above.map['auto-'+i]:below.map['auto-'+i])||0,y=side==='above'?baseY-112-lane*30:baseY+(showLabels?112:88)+lane*30,drop=side==='above'?9:-9,labelCy=side==='above'?y-23:y+23;
+        const n=sorted[i+1],x1=px(m.value,line),x2=px(n.value,line),mid=(x1+x2)/2,side=line.consecutiveSide||'above',lane=(side==='above'?above.map['auto-'+i]:below.map['auto-'+i])||0,y=side==='above'?baseY-layout.relationAbove-lane*38:baseY+layout.relationBelow+lane*38,drop=side==='above'?9:-9,labelCy=side==='above'?y-23:y+23;
         relationshipLayer+=`<path d="M${x1} ${y+drop} V${y} H${x2} V${y+drop}" fill="none" stroke="#71858b" stroke-width="1.8"/><rect x="${mid-25}" y="${labelCy-11}" width="50" height="20" rx="10" fill="#fff"/><text x="${mid}" y="${labelCy+4}" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="700" fill="#52666d">${esc(fmt(Math.abs(n.value-m.value)))}</text>`;
       });
     }
@@ -846,8 +896,10 @@ function numberLineV2(){
       const valueY=m.side==='above'?cy-28:cy+34;
       if(isJumpChallenge()){
         const label=String(m.label||'').trim();
-        const knownLabel=label&&label!=='?'?label:'';
-        markerLayer+=`<g class="nl-svg-marker nl-svg-marker--challenge-jump" data-line-id="${esc(line.id)}" data-marker-hit="${esc(m.id)}"><circle cx="${x}" cy="${baseY}" r="${hidden?6:5}" fill="${hidden?'#fff':esc(m.color)}" stroke="${esc(m.color)}" stroke-width="${hidden?2.4:2}"/>${hidden?`<text x="${x}" y="${baseY-17}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="850" fill="#33474e">?</text>`:(knownLabel?`<text x="${x}" y="${baseY-18}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12.5" font-weight="800" fill="#33474e" stroke="#fff" stroke-width="3" paint-order="stroke">${esc(knownLabel)}</text>`:'')}${showValue&&knownLabel?`<text x="${x}" y="${baseY+34}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#33474e">${esc(lineValueText(line,m.value))}</text>`:''}</g>`;
+        const endpoint=line.relations.some(r=>r.type==='jump'&&r.from===m.id)&&!line.relations.some(r=>r.type==='jump'&&r.to===m.id);
+        const knownLabel=endpoint?'Start':'';
+        const alreadyLabelled=tickPlan.labels.some(t=>!t.hidden&&Math.abs(t.v-m.value)<scale.step/1000);
+        markerLayer+=`<g class="nl-svg-marker nl-svg-marker--challenge-jump" data-line-id="${esc(line.id)}" data-marker-hit="${esc(m.id)}"><circle cx="${x}" cy="${baseY}" r="${hidden?6:5}" fill="${hidden?'#fff':esc(m.color)}" stroke="${esc(m.color)}" stroke-width="${hidden?2.4:2}"/>${hidden?`<text x="${x}" y="${baseY-17}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="850" fill="#33474e">?</text>`:(knownLabel?`<text x="${x}" y="${baseY-18}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12.5" font-weight="800" fill="#33474e" stroke="#fff" stroke-width="3" paint-order="stroke">${esc(knownLabel)}</text>`:'')}${!hidden&&!alreadyLabelled&&(endpoint||m.showValue||label==='?'||label==='End')?`<text x="${x}" y="${baseY+36}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#33474e">${esc(lineValueText(line,m.value))}</text>`:''}</g>`;
       }else{
         markerLayer+=`<g class="nl-svg-marker" data-line-id="${esc(line.id)}" data-marker-hit="${esc(m.id)}"${m.positionGroup?` data-position-group="${esc(m.positionGroup)}"`:''} style="cursor:ew-resize;touch-action:none">${markerStem(layout,m)}<circle cx="${x}" cy="${layout.baseY}" r="4.2" fill="${esc(m.color)}" stroke="#fff" stroke-width="1.6"/><circle cx="${x}" cy="${cy}" r="24" fill="transparent"/><text x="${x}" y="${cy+5}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="760" fill="#263b42" stroke="#fff" stroke-width="4" paint-order="stroke" pointer-events="none">${esc(m.label||String(i+1))}</text><line x1="${x-8}" y1="${cy+10}" x2="${x+8}" y2="${cy+10}" stroke="${esc(m.color)}" stroke-width="3" stroke-linecap="round" pointer-events="none"/>${showValue?`<text x="${x}" y="${valueY}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12.5" font-weight="680" fill="#33474e" stroke="#fff" stroke-width="3" paint-order="stroke" pointer-events="none">${esc(lineValueText(line,m.value))}</text>`:(hidden?answerBox(x,valueY-5,72,24):'')}</g>`;
       }
@@ -868,23 +920,24 @@ function numberLineV2(){
     plan.lines.slice(1).forEach(item=>{
       const line=item.line;
       if(line.scaleMode==='zoom'){
-        const left=clamp(px(line.min,main.line),X0,X1),right=clamp(px(line.max,main.line),X0,X1);
+        const left=clamp(px(line.min,main.line),xStart(),xEnd()),right=clamp(px(line.max,main.line),xStart(),xEnd());
         if(right>left){
-          out+=`<g class="nl-zoom-link" data-zoom-line="${esc(line.id)}"><path d="M${left} ${main.baseY} L${X0} ${item.baseY} L${X1} ${item.baseY} L${right} ${main.baseY} Z" fill="#147d75" opacity=".035"/><line x1="${left}" y1="${main.baseY}" x2="${X0}" y2="${item.baseY}" stroke="#6c9d98" stroke-width="1.5" stroke-dasharray="5 5" opacity=".55"/><line x1="${right}" y1="${main.baseY}" x2="${X1}" y2="${item.baseY}" stroke="#6c9d98" stroke-width="1.5" stroke-dasharray="5 5" opacity=".55"/><line x1="${left}" y1="${main.baseY}" x2="${right}" y2="${main.baseY}" stroke="#147d75" stroke-width="10" stroke-linecap="round" opacity=".14"/></g>`;
+          out+=`<g class="nl-zoom-link" data-zoom-line="${esc(line.id)}"><path d="M${left} ${main.baseY} L${xStart()} ${item.baseY} L${xEnd()} ${item.baseY} L${right} ${main.baseY} Z" fill="#147d75" opacity=".035"/><line x1="${left}" y1="${main.baseY}" x2="${xStart()}" y2="${item.baseY}" stroke="#6c9d98" stroke-width="1.5" stroke-dasharray="5 5" opacity=".55"/><line x1="${right}" y1="${main.baseY}" x2="${xEnd()}" y2="${item.baseY}" stroke="#6c9d98" stroke-width="1.5" stroke-dasharray="5 5" opacity=".55"/><line x1="${left}" y1="${main.baseY}" x2="${right}" y2="${main.baseY}" stroke="#147d75" stroke-width="10" stroke-linecap="round" opacity=".14"/></g>`;
         }
       }
       if(line.scaleMode==='linked'){
-        const top=Math.min(main.baseY,item.baseY),bottom=Math.max(main.baseY,item.baseY),mid=(top+bottom)/2;
-        [X0,(X0+X1)/2,X1].forEach((x,idx)=>{
-          out+=`<line class="nl-linked-guide" data-linked-line="${esc(line.id)}" x1="${x}" y1="${top}" x2="${x}" y2="${bottom}" stroke="#147d75" stroke-width="${idx===1?1.5:1.2}" stroke-dasharray="4 6" opacity="${idx===1?'.28':'.18'}"/>`;
+        const top=Math.min(main.baseY,item.baseY),bottom=Math.max(main.baseY,item.baseY);
+        const previous=plan.lines[item.index-1],mid=((previous.baseY+previous.belowExtent)+(item.baseY-item.aboveExtent))/2;
+        [xStart(),(xStart()+xEnd())/2,xEnd()].forEach((x,idx)=>{
+          out+=`<line class="nl-linked-guide" data-linked-line="${esc(line.id)}" x1="${x}" y1="${top}" x2="${x}" y2="${bottom}" stroke="#147d75" stroke-width="1" stroke-dasharray="4 6" opacity=".14"/>`;
         });
         line.markers.filter(m=>m.positionGroup).forEach(marker=>{
           const paired=main.line.markers.find(m=>m.positionGroup===marker.positionGroup);if(!paired)return;
           const xMain=px(paired.value,main.line),xLinked=px(marker.value,line);
-          out+=`<line class="nl-linked-pair-guide" data-position-group="${esc(marker.positionGroup)}" x1="${xMain}" y1="${main.baseY}" x2="${xLinked}" y2="${item.baseY}" stroke="${esc(marker.color)}" stroke-width="2.2" stroke-dasharray="3 4" opacity=".52"/>`;
+          out+=`<line class="nl-linked-pair-guide" data-position-group="${esc(marker.positionGroup)}" x1="${xMain}" y1="${main.baseY}" x2="${xLinked}" y2="${item.baseY}" stroke="${esc(marker.color)}" stroke-width="1.6" stroke-dasharray="4 5" opacity=".36"/>`;
         });
-        const badge=linkedFactorText(line);
-        out+=`<g class="nl-linked-badge"><rect x="944" y="${mid-11}" width="48" height="22" rx="11" fill="#f1f8f7" stroke="#bad6d3"/><text x="968" y="${mid+4}" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="800" fill="#2f6e69">${esc(badge)}</text></g>`;
+        const badge=linkedFactorText(line),bx=950;
+        out+=`<g class="nl-linked-badge"><rect x="${bx-38}" y="${mid-11}" width="76" height="22" rx="11" fill="#f1f8f7" stroke="#bad6d3"/><text x="${bx}" y="${mid+4}" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="800" fill="#2f6e69">${esc(badge)}</text></g>`;
       }
     });
     return out;
@@ -1054,17 +1107,17 @@ function numberLineV2(){
   }
   function markerVisualWidth(line,marker){
     const label=String(marker?.label||''),value=marker?.showValue===false?'':lineValueText(line,marker.value);
-    return Math.max(28,16+Math.max(label.length*8,String(value).length*7));
+    return Math.max(hiddenChallengeMarker(line,marker)?76:28,16+Math.max(label.length*9,String(value).length*8));
   }
   function autoLayoutMarkerSides(line){
     const scale=scaleFor(line),range=Math.max(.0001,scale.max-scale.min);
     const placed={above:[],below:[]};
-    [...(line?.markers||[])].sort((a,b)=>a.value-b.value).forEach(marker=>{
+    [...(line?.markers||[])].sort((a,b)=>Number(!!b.sideLocked)-Number(!!a.sideLocked)||a.value-b.value).forEach(marker=>{
       if(marker.sideLocked){
         const side=marker.side==='below'?'below':'above';placed[side].push(marker);return;
       }
       const collides=side=>placed[side].some(other=>{
-        const dx=Math.abs(other.value-marker.value)/range*(X1-X0);
+        const dx=Math.abs(other.value-marker.value)/range*(xEnd()-xStart());
         return dx<(markerVisualWidth(line,marker)+markerVisualWidth(line,other))/2+14;
       });
       marker.side=!collides('above')?'above':!collides('below')?'below':'above';
@@ -1076,7 +1129,7 @@ function numberLineV2(){
     const scale=scaleFor(line),range=Math.max(.0001,scale.max-scale.min);
     const collides=side=>(line?.markers||[]).some(marker=>{
       if((marker.side==='below'?'below':'above')!==side)return false;
-      const dx=Math.abs(marker.value-value)/range*(X1-X0);
+      const dx=Math.abs(marker.value-value)/range*(xEnd()-xStart());
       return dx<(markerVisualWidth(line,temp)+markerVisualWidth(line,marker))/2+14;
     });
     return !collides('above')?'above':!collides('below')?'below':'above';
@@ -1272,9 +1325,9 @@ function numberLineV2(){
       return raw===expected;
     }
     if(ch.type==='missing-labels'){
-      const got=raw.split(/[;,\s]+/).map(x=>normaliseChallengeResponse(x)).filter(Boolean).sort();
-      const exp=String(ch.answer).split(',').map(x=>normaliseChallengeResponse(x)).filter(Boolean).sort();
-      return got.length===exp.length&&got.every((x,i)=>x===exp[i]);
+      const got=raw.split(/[;,\s]+/).map(x=>normaliseChallengeResponse(x)).filter(Boolean);
+      const exp=String(ch.answer).split(',').map(x=>normaliseChallengeResponse(x)).filter(Boolean);
+      return got.length===exp.length&&got.every((x,i)=>numericEquivalent(x,exp[i]));
     }
     const expected=String(ch.answer??'').trim();
     if(numericEquivalent(raw,expected))return true;
@@ -1526,7 +1579,7 @@ function numberLineV2(){
     }else if(type==='double-line-value'){
       const factor=[2,5][Math.floor(Math.random()*2)],targets=[4,6,8,12,14,16,18],target=targets[Math.floor(Math.random()*targets.length)],known=10;
       state.min=0;state.max=20;state.step=2;state.labelEvery=1;state.showTickLabels=true;
-      const main=makeLine('l1','Top scale'),linked=makeLine('l2','Linked scale');
+      const main=makeLine('l1','Top line'),linked=makeLine('l2','Bottom line');
       Object.assign(linked,{scaleMode:'linked',min:0,max:20*factor,step:2*factor,labelEvery:1,valueFormat:'number',tickStride:1,showLabels:false});
       main.markers=[
         {id:'mKnownTop',label:'A',value:known,color:'#147d75',showValue:true,side:'above',positionGroup:'p1'},
@@ -1550,16 +1603,19 @@ function numberLineV2(){
       state.challenge=challengeObject(type,'A pupil counts '+marks+' marks and says there are '+marks+' equal intervals. Are they correct?','No. There are '+intervals+' equal spaces (intervals). Count the spaces, not the marks.');
 
     }else{
-      const count=Math.max(2,Math.floor((state.max-state.min)/state.step+1e-8)),candidates=[];
-      for(let i=1;i<count;i++)if(i%state.labelEvery===0)candidates.push(cleanNumber(state.min+i*state.step));
-      if(candidates.length<2){
-        state.labelEvery=1;
-        candidates.length=0;
-        for(let i=1;i<count;i++)candidates.push(cleanNumber(state.min+i*state.step));
-      }
-      const take=Math.min(5,Math.max(2,Math.floor(candidates.length/3)));
-      const shuffled=candidates.sort(()=>Math.random()-.5).slice(0,take);
-      state.challenge=challengeObject('missing-labels','Fill in the missing number labels on the line.',shuffled.sort((x,y)=>x-y).map(fmt).join(', '),{hiddenTicks:shuffled});
+      const count=Math.max(3,Math.floor((state.max-state.min)/state.step+1e-8));
+      // Use a readable labelled scale, with enough anchors for inference.
+      if(count>120){const factor=Math.ceil(count/60);state.step=cleanNumber(state.step*factor)}
+      const intervals=Math.floor((state.max-state.min)/state.step+1e-8);
+      state.labelEvery=Math.max(1,Math.ceil(intervals/13));
+      state.showTickLabels=true;
+      const candidates=[];
+      for(let i=state.labelEvery;i<intervals;i+=state.labelEvery)candidates.push(cleanNumber(state.min+i*state.step));
+      const take=Math.min(5,Math.max(1,Math.floor(candidates.length/3)));
+      for(let i=candidates.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[candidates[i],candidates[j]]=[candidates[j],candidates[i]]}
+      const missing=candidates.slice(0,take).sort((x,y)=>x-y);
+      state.challenge=challengeObject('missing-labels','Fill in the missing number labels from left to right.',missing.map(fmt).join(', '),{hiddenTicks:missing});
+
     }
 
     state=normalise(state);challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';exportMode='challenge';responseLines=template.category==='reason'?3:1;openGroups.add('challenge');renderAll();
