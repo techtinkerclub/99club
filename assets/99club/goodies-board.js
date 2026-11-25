@@ -31,7 +31,7 @@ const defaults={
   'factors':[740,620],
   'fdp':[700,800],
   'geoboard':[650,780],
-  'sequences':[840,400],
+  'sequences':[840,460],
   'maths-canvas':[760,560]
 };
 const QUICK_ACTIONS={
