@@ -48,7 +48,7 @@ Reckoning board, Chinese counting rods, Napier's Bones, slide rule and Pascaline
 
 1. Keep direct current export independent of document creation.
 2. Place Value adapter added to Arithmetic, Sequences and the three abacus types; continue the catalogue and prioritise high-use models (clocks, fraction wall, array, number line, money, coordinates). Audit response semantics and teacher solutions while integrating each.
-3. Add source-block editing: independent type/family/range/difficulty and count, regenerate block only when explicitly requested, preserve manually retained items.
+3. Automatic builder initial source configuration added for the four integrated widgets (independent type/family/range/difficulty/count). Editing or regenerating already-published source blocks remains pending; preserve manually retained items. Refine all publishing menus with the same compact visual language.
 4. Extend preview layout: configurable portrait/landscape and intelligent columns, full-width diagrams where necessary, consistent numbering, page breaks, working space and teacher keys.
 5. Save/reopen and reusable settings, stable versioned model records, import/export of drafts with validation; preserve exact content rather than regenerating silently.
 6. Align controls and branding with Studio's existing worksheet workflow. Test actual preview/print parity and mobile/touch performance.
