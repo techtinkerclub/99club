@@ -18,7 +18,8 @@ function settings(raw={},level='medium'){
  const base=presets[level]||presets.medium;
  const valid=(v,options,def)=>options.includes(Number(v))?Number(v):def;
  const select=(v,allowed,def)=>Array.isArray(v)?allowed.filter(x=>v.includes(x)):def.slice();
- return {min:valid(raw.min,[-100,-20,-10,0,1],base.min),max:valid(raw.max,[10,20,50,100,200,500,1000,10000],base.max),
+ const max=valid(raw.max,[10,20,50,100,200,500,1000,10000],base.max),min=valid(raw.min,[-100,-20,-10,0,1,2,5,10,20,50,100,200,500,1000].filter(v=>v<max),Math.min(base.min,max-1));
+ return {min,max,
  ops:select(raw.ops,OPS,base.ops),relations:select(raw.relations,REL,base.relations),left:valid(raw.left,[0,1,2,3,4],base.left),right:valid(raw.right,[0,1,2,3,4],base.right),precision:valid(raw.precision,[0,1,2],base.precision)};
 }
 function available(raw,level='medium'){
@@ -45,8 +46,9 @@ function generate(type,level='medium',rng=Math.random,raw={}){
  const calc=(a,o,b)=>{let v=o==='+'?a+b:o==='−'?a-b:o==='×'?a*b/scale:b!==0?a*scale/b:NaN;return Number.isSafeInteger(v)?v:NaN};
  const evaluate=(e)=>{let v=e.n[0];for(let i=0;i<e.o.length;i++)v=calc(v,e.o[i],e.n[i+1]);return v};
  function samples(){const a=[lo,hi,0,scale,2*scale,3*scale,5*scale,10*scale,-scale,1,-1];for(let i=0;i<32;i++)a.push(i%2?int(lo,hi):int(Math.ceil(lo/scale),Math.floor(hi/scale))*scale);return [...new Set(a.filter(inRange))].sort(()=>rng()-.5)}
+ let searchBudget=0;
  function build(target,count,depth=0){
-   if(!inRange(target))return null;
+   if(--searchBudget<0||!inRange(target))return null;
    if(count===1)return {n:[target],o:[]};
    const candidates=[];for(const b of samples())for(const o of s.ops){let prev=o==='+'?target-b:o==='−'?target+b:o==='×'?(b?target*scale/b:NaN):target*b/scale;
      if(o==='÷'&&b===0||!inRange(prev)||calc(prev,o,b)!==target)continue;
@@ -75,6 +77,7 @@ function generate(type,level='medium',rng=Math.random,raw={}){
  }
  const targetSample=()=>rng()<.6?int(Math.ceil(lo/scale),Math.floor(hi/scale))*scale:int(lo,hi);
  for(let attempt=0;attempt<150;attempt++){
+   searchBudget=140;
    let L=count(s.left,'left'),R=count(s.right,'right'),target=targetSample(),a,b;
    if(type==='missing-result'||type==='number-bond'||type==='order-of-operations'||type==='inverse-operation')R=1;
    if(type==='equal-expressions'&&s.right===0)R=2;
@@ -315,7 +318,7 @@ function coordinateTool(){
  return '<div class="gd-number-settings"><div class="gd-section-title">Question settings</div>'+
  field('Preset','<select class="gd-select" id="mc-difficulty">'+[['easy','Easy'],['medium','Medium'],['hard','Hard'],['custom','Custom']].map(([v,t])=>'<option value="'+v+'"'+(difficulty===v?' selected':'')+'>'+t+'</option>').join('')+'</select>')+
  toggles('ops',N.OPS,'Allowed operations')+toggles('relations',N.REL,'Allowed comparison symbols')+
- '<div class="gd-number-settings-pair">'+options('mc-min','Smallest number',[-100,-20,-10,0,1].map(v=>[v,String(v)]),numberSettings.min)+options('mc-max','Largest number',[10,20,50,100,200,500,1000,10000].map(v=>[v,String(v)]),numberSettings.max)+'</div>'+
+ '<div class="gd-number-settings-pair">'+options('mc-min','Smallest number',[-100,-20,-10,0,1,2,5,10,20,50,100,200,500,1000].filter(v=>v<numberSettings.max).map(v=>[v,String(v)]),numberSettings.min)+options('mc-max','Largest number',[10,20,50,100,200,500,1000,10000].filter(v=>v>numberSettings.min).map(v=>[v,String(v)]),numberSettings.max)+'</div>'+
  options('mc-precision','Number type',[[0,'Whole numbers'],[1,'Up to 1 decimal place'],[2,'Up to 2 decimal places']],numberSettings.precision)+
  '<div class="gd-number-settings-pair">'+options('mc-left','Numbers on left',termOptions('left'),numberSettings.left)+options('mc-right','Numbers on right',termOptions('right'),numberSettings.right)+'</div>'+
  '<p class="gd-help">All displayed numbers and missing values stay in the selected range. Division is exact at the selected precision. Parentheses make grouping explicit. Comparison settings apply to comparison questions. Only compatible question types are listed.</p></div>'+
