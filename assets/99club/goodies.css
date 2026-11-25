@@ -1724,3 +1724,13 @@ html.gd-embed-page,body.gd-embed-page{margin:0!important;width:100%!important;he
 #gd-stage .gd-array-workbench.is-fixed-array .gd-array-shell{margin-top:8px;margin-bottom:28px}
 #gd-stage .gd-pupil-response [data-gd-pupil-check]:disabled{background:#e6eceb!important;color:#718580!important;border-color:#d1dcda!important;box-shadow:none!important;cursor:default;opacity:1}
 #gd-stage .gd-pupil-response input:disabled{opacity:1;color:#38535a;-webkit-text-fill-color:#38535a}
+
+/* Question evidence is compact, neutral and does not highlight the solution. */
+#gd-stage .gd-fe-question-evidence{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:12px;width:100%}
+#gd-stage .gd-fe-question-evidence section{display:grid;gap:8px;padding:12px;border:1px solid #d4e1df;border-radius:12px;background:#fff;text-align:center}
+#gd-stage .gd-fe-question-number,#gd-stage .gd-fdp-question-value{display:block;text-align:center;font-size:clamp(1.3rem,3vw,2rem);font-weight:800;color:#304b52;padding:6px}
+#gd-stage .gd-fe-question-values{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+#gd-stage .gd-fe-question-values span{padding:7px 3px;background:#f3f7f6;border-radius:6px;font-size:.95rem;font-weight:700;color:#304b52}
+#gd-stage .gd-fdp-main.is-focused-challenge{gap:10px}
+#gd-stage .gd-fdp-piece:disabled{opacity:1;cursor:default;box-shadow:none}
+#gd-stage .gd-fdp-piece.is-fill:disabled{background:#f6cf79}
