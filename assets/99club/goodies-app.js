@@ -26,7 +26,7 @@ const tools=[
   ['written-division','Written division','÷','operations','Model short and long division with quotient digits, regrouping and remainders.','Formal written division, place-value reasoning and remainders.',()=>G.columnMethodTool('division')],
   ['written-multiplication','Written multiplication','×','operations','Teach short and long multiplication with carries and partial products.','Written multiplication, place-value shifts and addition of partial products.',()=>G.columnMethodTool('multiplication')],
   ['column-subtraction','Column subtraction','−','operations','Model column subtraction, including exchanges across zero.','Written subtraction and regrouping across place-value columns.',()=>G.columnMethodTool('subtraction')],
-  ['maths-canvas','Number & symbol tiles','3+?','canvas','Arrange, combine and split draggable number and mathematical symbol tiles.','Build equations, order numbers, model number composition and create custom pupil tasks.',mathsCanvas],
+  ['maths-canvas','Arithmetic Hub','3+?','canvas','Arrange, combine and split draggable number and mathematical symbol tiles.','Build equations, order numbers, model number composition and create custom pupil tasks.',mathsCanvas],
 ].map(([id,title,icon,cat,desc,use,build])=>({id,title,icon,cat,desc,use,build}));
 const params=new URLSearchParams(location.search),embedded=params.get('embed')==='1';
 G.toolCatalogue=tools.map(({id,title,icon,cat,desc,use})=>({id,title,icon,cat,desc,use}));

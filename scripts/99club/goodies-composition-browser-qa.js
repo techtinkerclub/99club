@@ -75,6 +75,8 @@ async function run(){
   assert(palette.getBoundingClientRect().width<=64,'Left category rail stays narrow');
   const groups=[...palette.querySelectorAll('[data-board-group]')],picker=document.getElementById('gd-board-tool-picker');
   assert(groups.length===8&&picker.hidden,'Eight groups replace the long icon list');
+  const hub=palette.querySelector('[data-board-add="maths-canvas"]');
+  assert(hub&&visible(hub)&&hub.getAttribute('aria-label')==='Add Arithmetic Hub'&&palette.firstElementChild===hub,'Arithmetic Hub is directly available as the first toolbar item');
   const rail=palette.getBoundingClientRect(),br=board.getBoundingClientRect();
   assert(rail.top>=br.top&&rail.bottom<=br.bottom,'Entire toolbar fits the board height');
   assert(getComputedStyle(canvas).backgroundImage.includes('radial-gradient'),'Whiteboard uses a fine dotted canvas');
@@ -82,8 +84,11 @@ async function run(){
   for(const group of groups){
     group.click();await tick();
     assert(!picker.hidden&&group.getAttribute('aria-expanded')==='true','Category opens a labelled picker: '+group.dataset.boardGroup);
-    const visibleTools=tools.filter(visible);assert(visibleTools.length>0&&visibleTools.every(el=>el.closest('[data-board-tool-group]').dataset.boardToolGroup===group.dataset.boardGroup),'Only selected category tools are visible');
+    const visibleTools=tools.filter(el=>picker.contains(el)&&visible(el));assert(visibleTools.length>0&&visibleTools.every(el=>el.closest('[data-board-tool-group]').dataset.boardToolGroup===group.dataset.boardGroup),'Only selected category tools are visible');
     assert(visibleTools.every(el=>el.textContent.trim().length>3&&el.getBoundingClientRect().height>=40),'Picker rows are labelled and touch sized');
+    const labels=visibleTools.map(el=>el.querySelector('.gd-board-tool-name')),left=labels[0].getBoundingClientRect().left;
+    assert(labels.every(el=>Math.abs(el.getBoundingClientRect().left-left)<1&&getComputedStyle(el).textAlign==='left'&&el.getBoundingClientRect().width>0),'All menu names share a left edge, including wrapped names');
+    assert(visibleTools.every(el=>el.querySelector('.gd-board-tool-symbol svg')&&!el.querySelector('.gd-board-tool-plus')),'Consistent outline icons without redundant plus signs');
     const pr=picker.getBoundingClientRect();assert(pr.top>=br.top-1&&pr.bottom<=br.bottom+1&&pr.right<=br.right+1,'Category picker fits board');
     picker.querySelector('[data-board-picker-close]').click();
     assert(picker.hidden,'Picker closes independently');
@@ -771,7 +776,7 @@ async function run(){
   }
 
 
-  document.querySelector('[data-board-add="maths-canvas"]').click();await tick();
+  hub.click();await tick();assert(picker.hidden,'Arithmetic Hub opens directly without a category menu');
   const mcRecord=TT99Goodies.compositionBoard.objects().find(x=>x.toolId==='maths-canvas');
   const mcFrame=mcRecord&&document.querySelector('[data-board-object="'+mcRecord.id+'"]');
   for(let attempt=0;attempt<40&&mcFrame&&!mcFrame.classList.contains('is-ready');attempt++)await tick(50);
