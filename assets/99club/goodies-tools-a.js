@@ -1486,10 +1486,10 @@ function fractionWall(){
       ];nextStrip=3;
       challenge=challengeObject(type,'The two strips represent the same amount. What fraction with denominator '+target.d+' is equivalent to '+rawFractionText(f)+'?',rawFractionText(target),{answerSource:'strip:2:fraction',hiddenStripLabels:[2],hiddenStripHints:[2]});
     }else if(type==='compare-strips'){
-      let a,b,guard=0;
-      do{a=randomProper(dens[Math.floor(Math.random()*dens.length)]);b=randomProper(dens[Math.floor(Math.random()*dens.length)]);guard++}while(equivalent(a,b)&&guard<30);
+      const a=randomProper(dens[Math.floor(Math.random()*dens.length)]);
+      const b=Math.random()<.25?{n:a.n,d:a.d}:randomProper(dens[Math.floor(Math.random()*dens.length)]);
       compareA=a;compareB=b;focus={...a};mode='wall';
-      const av=fractionValue(a),bv=fractionValue(b),sign=av>bv?'>':'<';
+      const sign=equivalent(a,b)?'=':fractionValue(a)>fractionValue(b)?'>':'<';
       challenge=challengeObject(type,'Which symbol belongs between A and B: <, > or =?',sign,{answerSource:'compare-sign',hiddenCompareSign:true});
     }else if(type==='simplify-strip'){
       const base=[{n:1,d:2},{n:2,d:3},{n:3,d:4},{n:2,d:5}][Math.floor(Math.random()*4)],factor=2;
@@ -4724,13 +4724,13 @@ function clockTool(){
     activeClock=0;numerals='arabic';snap=5;second=0;
     if(type==='read-five'){
       hour=randomHour();minute=randomMinute(5);
-      challenge=challengeObject(type,'What time is shown on the analogue clock?',time12());
+      challenge=challengeObject(type,'What time is shown on the analogue clock? (No AM or PM needed.)',time12());
     }else if(type==='read-minute'){
       hour=randomHour();minute=randomMinute(1);snap=1;
-      challenge=challengeObject(type,'Read the analogue clock to the nearest minute.',time12());
+      challenge=challengeObject(type,'Read the analogue clock to the nearest minute. (No AM or PM needed.)',time12());
     }else if(type==='roman-read'){
       hour=randomHour();minute=randomMinute(5);numerals='roman';
-      challenge=challengeObject(type,'What time is shown on the Roman-numeral clock?',time12());
+      challenge=challengeObject(type,'What time is shown on the Roman-numeral clock? (No AM or PM needed.)',time12());
     }else if(type==='set-five'||type==='set-minute'){
       const step=type==='set-minute'?1:5,targetHour=randomHour(),targetMinute=randomMinute(step),start=differentStart(targetHour,targetMinute,step);
       hour=start.hour;minute=start.minute;snap=step;
@@ -4802,8 +4802,7 @@ function clockTool(){
       const index=Math.round(num(el.dataset.clDifferenceTo,1)),state=clockState(index);
       el.textContent=durationText(forwardDifferenceMinutes(clockState(0),state));
     });
-    const status=q('[data-cl-target-status]');
-    if(status)status.textContent=onTarget()?'On target ✓':'';
+    qa('[data-cl-period-stage]',q('#gd-stage')).forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.clPeriodStage)===(hour>=12?12:0))));
     refreshControls();
   }
   function angleFromPointer(clientX,clientY,svg){
@@ -4861,6 +4860,7 @@ function clockTool(){
     refreshClock();
   }
   function bindStage(){
+    qa('[data-cl-period-stage]',q('#gd-stage')).forEach(button=>button.onclick=()=>{if(handsFrozen())return;setClockTime(0,hour%12+Number(button.dataset.clPeriodStage),minute);refreshClock()});
     qa('.gd-clock-hand-hit',q('#gd-stage')).forEach(hit=>{
       const index=Math.round(num(hit.dataset.clClockIndex,0)),kind=hit.dataset.clHand;
       if(index===0&&handsFrozen())return;
@@ -4980,6 +4980,7 @@ function clockTool(){
         '<line class="gd-clock-hand-hit gd-clock-hand-hit--minute'+(frozen?' is-frozen':'')+'" id="'+minuteHitId+'" data-cl-clock-index="'+index+'" data-cl-hand="minute" tabindex="'+(frozen?'-1':'0')+'"'+(hidden?' aria-label="'+(frozen?'Minute hand fixed for this challenge':'Minute hand for challenge')+'"':' role="slider" aria-label="'+esc(label+' minute hand')+'" aria-valuemin="0" aria-valuemax="59" aria-valuenow="'+state.minute+'"')+' x1="150" y1="150" x2="'+mp.x+'" y2="'+mp.y+'"></line>'+
         '<circle class="gd-clock-centre" cx="150" cy="150" r="7"></circle>'+
       '</svg></div>'+
+      (primary&&challenge?.mode==='standard'&&!frozen?'<div class="gd-row gd-cl-period-choice" role="group" aria-label="Choose morning or afternoon">'+[0,12].map(p=>'<button type="button" class="gd-btn" data-cl-period-stage="'+p+'" aria-pressed="'+(p===(state.hour>=12?12:0))+'">'+(p===0?'AM':'PM')+'</button>').join('')+'</div>':'')+
       (showDigital?'<div class="gd-clock-digital" data-cl-digital>'+(hiddenReadout('12')&&primary?'?':format12Digital(state.hour,state.minute,state.second))+'</div>':'')+
       '<div class="gd-clock-readouts">'+
         '<div class="gd-readout"><span>24-hour</span><strong data-cl-readout-kind="24"'+(primary?' data-cl-readout="24"':'')+'>'+(hiddenReadout('24')&&primary?'?':format24(state.hour,state.minute))+'</strong></div>'+
@@ -4998,8 +4999,7 @@ function clockTool(){
   function draw(){
     const states=challenge?[clockState(0)]:clockStates(),frozen=handsFrozen(),hidden=anyTimeHidden();
     const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Clock challenge',pupil:(challenge.freezeHands===false?CK.pupilSpec('model',{check:onTarget}):challenge.type==='hour-hand-misconception'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:'No',explain:true}):challenge.type==='time-language'?CK.pupilSpec('spoken',{hint:'e.g. quarter past 3'}):CK.pupilSpec(challenge.type==='twelve-to-twentyfour'?'clock-24':challenge.type==='twentyfour-to-twelve'?'clock-12':'clock-face')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
-    const targetStatus=challenge&&!challenge.freezeHands&&Number.isFinite(Number(challenge.targetHour))
-      ?'<div class="gd-answer-live" data-cl-target-status>'+(onTarget()?'On target ✓':'')+'</div>':'';
+    const targetStatus='';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-clock-workbench">'+
       '<div class="gd-clock-grid">'+states.map((state,index)=>clockCardMarkup(index,state,index===0&&frozen,index===0&&hidden)).join('')+'</div>'+
       differenceMarkup()+targetStatus+
