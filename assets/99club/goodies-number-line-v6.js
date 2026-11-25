@@ -725,23 +725,42 @@ function numberLineV2(){
     }
     return items;
   }
+  function missingLabelValues(ch=state.challenge){
+    return ch?.mode==='standard'&&ch.type==='missing-labels'?[...new Set(ch.hiddenTicks||[])].sort((a,b)=>a-b):[];
+  }
+  function missingLabelIndex(line,value){
+    if(line!==state.lines[0])return -1;
+    return missingLabelValues().findIndex(v=>Math.abs(v-value)<scaleFor(line).step/1000);
+  }
+  function missingLabelResponses(ch=state.challenge){
+    const n=missingLabelValues(ch).length;
+    return Array.from({length:n},(_,i)=>String(ch?.labelResponses?.[i]??''));
+  }
+  function missingLabelsComplete(ch=state.challenge){
+    const values=missingLabelResponses(ch);return values.length>0&&values.every(v=>v.trim()!=='');
+  }
   function tickLabelPlan(line,index){
     const ticks=tickGeometry(line),labels=[],lanes=[[]];
     if(!labelsVisible(line,index))return {ticks,labels,extent:18};
-    const candidates=ticks.filter(t=>t.major).map(t=>{
+    const slotValues=missingLabelValues(),slotWidth=Math.max(48,...slotValues.map(v=>fmt(v).length*8+18));
+    const candidates=ticks.filter(t=>t.major||missingLabelIndex(line,t.v)>=0).map(t=>{
       const hidden=hiddenTick(t.v,line);
       const markerUnknown=hidden&&line.markers.some(m=>hiddenChallengeMarker(line,m)&&Math.abs(m.value-t.v)<scaleFor(line).step/1000);
       const text=lineValueText(line,t.v);
-      return {...t,hidden,markerUnknown,text,width:hidden?42:Math.max(16,text.length*8+8)};
+      const slot=missingLabelIndex(line,t.v);
+      return {...t,hidden,markerUnknown,text,slot,width:slot>=0?slotWidth:hidden?42:Math.max(16,text.length*8+8)};
     }).filter(t=>!t.markerUnknown);
     const fits=(t,lane)=>!(lanes[lane]||[]).some(p=>Math.abs(p.x-t.x)<(p.width+t.width)/2+7);
     function put(t,lane){if(!lanes[lane])lanes[lane]=[];lanes[lane].push(t);labels.push({...t,lane})}
     // Endpoints and missing answer positions are never dropped. If an old saved
     // challenge contains adjacent missing ticks, stagger them with leader lines.
-    candidates.filter(t=>t.hidden||t.endpoint).forEach(t=>{
+    candidates.filter(t=>t.hidden||t.endpoint||t.slot>=0).forEach(t=>{
       let lane=0;while(!fits(t,lane))lane++;put(t,lane);
     });
-    candidates.filter(t=>!t.hidden&&!t.endpoint).forEach(t=>{if(fits(t,0))put(t,0)});
+    candidates.filter(t=>!t.hidden&&!t.endpoint&&t.slot<0).forEach(t=>{
+      if(fits(t,0))put(t,0);
+      else if(slotValues.length){let lane=1;while(!fits(t,lane))lane++;put(t,lane)}
+    });
     return {ticks,labels,extent:44+(lanes.length-1)*30};
   }
   function answerBox(cx,cy,w=54,h=24){
@@ -835,7 +854,7 @@ function numberLineV2(){
   function jumpMarkerAtValue(line,value){
     return (line.markers||[]).find(m=>Math.abs(m.value-value)<Math.max(1e-9,scaleFor(line).step/1000));
   }
-  function buildLine(layout){
+  function buildLine(layout,interactive=false){
     const {line,baseY,above,below,index}=layout,scale=scaleFor(line),showLabels=labelsVisible(line,index);
     const tickPlan=layout.tickPlan;
     let intervalLayer='',ticks='',relationshipLayer='',markerLayer='';
@@ -852,7 +871,14 @@ function numberLineV2(){
     tickPlan.labels.forEach(t=>{
       const y=baseY+31+t.lane*30;
       if(t.lane)ticks+=`<path d="M${t.x} ${baseY+14} V${y-14}" stroke="#9aafb1" stroke-width="1" stroke-dasharray="2 3" fill="none"/>`;
-      if(t.hidden)ticks+=answerBox(t.x,y,40,23);
+      if(t.slot>=0&&t.hidden){
+        const ch=state.challenge,w=t.width-2,answer=missingLabelResponses(ch)[t.slot]||'';
+        if(interactive&&!ch.correct){
+          ticks+=`<foreignObject x="${t.x-w/2}" y="${y-13}" width="${w}" height="26"><input xmlns="http://www.w3.org/1999/xhtml" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" data-nl-missing-slot="${t.slot}" aria-label="Missing number ${t.slot+1} from the left" value="${esc(answer)}" maxlength="18" style="display:block;width:100%;height:100%;box-sizing:border-box;border:1.5px dashed #52666d;border-radius:5px;background:#fff;color:#24343b;font:600 14px Arial,sans-serif;text-align:center;padding:0;outline-offset:-1px;touch-action:manipulation"/></foreignObject>`;
+        }else if(interactive&&ch.correct){
+          ticks+=`<text x="${t.x}" y="${y+5}" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" font-weight="700" fill="#216a48">${esc(t.text)}</text>`;
+        }else ticks+=answerBox(t.x,y,w,24);
+      }else if(t.hidden)ticks+=answerBox(t.x,y,40,23);
       else ticks+=`<text class="nl-tick-label" x="${t.x}" y="${y+5}" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" fill="#33474e">${esc(t.text)}</text>`;
     });
     const baseline=`<line class="nl-baseline" data-line-id="${esc(line.id)}" data-nl-line-mode="${esc(line.scaleMode)}" x1="${xStart()}" y1="${baseY}" x2="${xEnd()}" y2="${baseY}" stroke="#24343b" stroke-width="4" stroke-linecap="round"/><rect data-line-hit="${esc(line.id)}" x="${xStart()}" y="${baseY-16}" width="${xEnd()-xStart()}" height="32" fill="transparent" style="cursor:crosshair"/>`;
@@ -942,12 +968,12 @@ function numberLineV2(){
     });
     return out;
   }
-  function buildSvg(){
+  function buildSvg(interactive=false){
     const plan=layout();
     const title=state.title?`<text x="500" y="30" text-anchor="middle" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#24343b">${esc(state.title)}</text>`:'';
     const connections=teachingConnections(plan);
     const liveBrand=embedded?'':`<text x="500" y="${plan.height-6}" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#87969a">99 Club Studio</text>`;
-    return `<svg id="nl-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 ${plan.height}" role="img" aria-label="Interactive number line workspace with ${state.lines.length} line${state.lines.length===1?'':'s'}"><defs>${state.lines.map(line=>line.relations.filter(r=>r.type==='jump').map(r=>`<marker id="nl-arrow-${esc(line.id)}-${esc(r.id)}" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,4 L0,8 z" fill="${esc(r.color)}"/></marker>`).join('')).join('')}</defs><rect x="0" y="0" width="1000" height="${plan.height}" rx="18" fill="#ffffff"/>${title}${connections}${plan.lines.map(buildLine).join('')}${liveBrand}</svg>`;
+    return `<svg id="nl-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 ${plan.height}" role="img" aria-label="Interactive number line workspace with ${state.lines.length} line${state.lines.length===1?'':'s'}"><defs>${state.lines.map(line=>line.relations.filter(r=>r.type==='jump').map(r=>`<marker id="nl-arrow-${esc(line.id)}-${esc(r.id)}" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,4 L0,8 z" fill="${esc(r.color)}"/></marker>`).join('')).join('')}</defs><rect x="0" y="0" width="1000" height="${plan.height}" rx="18" fill="#ffffff"/>${title}${connections}${plan.lines.map(l=>buildLine(l,interactive)).join('')}${liveBrand}</svg>`;
   }
   function boardMarkerRows(){
     const line=activeLine(),scale=scaleFor(line);
@@ -1031,7 +1057,7 @@ function numberLineV2(){
       ]:[];
     const prompt=state.challenge?(CK?CK.bannerHtml(state.challenge,{actions:challengeActions,hideReveal:!!state.challenge.correct}):`<div class="nl-challenge-banner"><span>Challenge</span><strong>${esc(state.challenge.prompt)}</strong></div>`):'';
     const solve=state.challenge?challengeResponseHtml(state.challenge):'';
-    q('#gd-stage').innerHTML=`<button type="button" hidden data-nl-random-challenge aria-hidden="true"></button><div class="nl-stage-wrap">${prompt}${solve}<div class="nl-export-frame">${buildSvg()}</div><p class="nl-drag-help">Drag markers directly. Values snap to the chosen tick step and relationships move with them.</p></div>${boardUiHtml()}`;
+    q('#gd-stage').innerHTML=`<button type="button" hidden data-nl-random-challenge aria-hidden="true"></button><div class="nl-stage-wrap">${prompt}${solve}<div class="nl-export-frame">${buildSvg(true)}</div><p class="nl-drag-help">Drag markers directly. Values snap to the chosen tick step and relationships move with them.</p></div>${boardUiHtml()}`;
     stage.classList.toggle('is-board-active',boardActive());
     stage.classList.toggle('is-delete-mode',boardMode==='delete');
     stage.classList.toggle('is-add-marker-mode',boardMode==='add-marker');
@@ -1341,7 +1367,9 @@ function numberLineV2(){
     if(!ch||ch.mode!=='standard')return '';
     const kind=challengeResponseKind(ch),status=ch.responseStatus||'',correct=!!ch.correct;
     let input='';
-    if(kind==='yesno'){
+    if(kind==='list'){
+      input='<span class="nl-missing-instructions">Type directly into each blank on the number line.</span>';
+    }else if(kind==='yesno'){
       input='<div class="nl-challenge-choice" role="group" aria-label="Choose an answer"><button type="button" data-challenge-response-choice="Yes"'+(ch.userResponse==='Yes'?' class="is-selected"':'')+(correct?' disabled':'')+'>Yes</button><button type="button" data-challenge-response-choice="No"'+(ch.userResponse==='No'?' class="is-selected"':'')+(correct?' disabled':'')+'>No</button></div>';
     }else if(kind==='symbol'){
       input='<div class="nl-challenge-choice nl-challenge-choice--symbol" role="group" aria-label="Choose comparison symbol">'+['<','>','='].map(v=>'<button type="button" data-challenge-response-choice="'+esc(v)+'"'+(ch.userResponse===v?' class="is-selected"':'')+(correct?' disabled':'')+'>'+esc(v)+'</button>').join('')+'</div>';
@@ -1349,11 +1377,12 @@ function numberLineV2(){
       const placeholder=kind==='list'?'e.g. 4, 8, 12':'Type your answer';
       input='<label class="nl-challenge-response"><span>Answer</span><input type="text" inputmode="text" autocomplete="off" data-challenge-response value="'+esc(ch.userResponse||'')+'" placeholder="'+placeholder+'"'+(correct?' disabled':'')+'></label>';
     }
-    return '<div class="nl-challenge-solve">'+input+'<button type="button" class="gd-btn gd-btn--primary" data-challenge-check'+(correct?' disabled':'')+'>Check</button>'+(status?'<span class="nl-challenge-feedback '+(correct?'is-correct':'is-wrong')+'">'+esc(status)+'</span>':'')+'</div>';
+    return '<div class="nl-challenge-solve">'+input+'<button type="button" class="gd-btn gd-btn--primary" data-challenge-check'+((correct||(kind==='list'&&!missingLabelsComplete(ch)))?' disabled':'')+'>Check</button>'+(status?'<span class="nl-challenge-feedback '+(correct?'is-correct':'is-wrong')+'">'+esc(status)+'</span>':'')+'</div>';
   }
   function checkChallengeResponse(){
     const ch=state.challenge;if(!ch||ch.mode!=='standard')return;
-    const response=String(ch.userResponse||'').trim();
+    if(ch.type==='missing-labels'&&!missingLabelsComplete(ch))return;
+    const response=ch.type==='missing-labels'?missingLabelResponses(ch).join(', '):String(ch.userResponse||'').trim();
     if(!response){ch.responseStatus='Enter an answer first.';ch.correct=false;renderStage();return}
     const ok=challengeResponseCorrect(ch,response);
     ch.correct=ok;ch.responseStatus=ok?'Correct ✓':'Not quite — try again.';
@@ -1607,14 +1636,18 @@ function numberLineV2(){
       // Use a readable labelled scale, with enough anchors for inference.
       if(count>120){const factor=Math.ceil(count/60);state.step=cleanNumber(state.step*factor)}
       const intervals=Math.floor((state.max-state.min)/state.step+1e-8);
-      state.labelEvery=Math.max(1,Math.ceil(intervals/13));
+      const longest=Math.max(fmt(state.min).length,fmt(state.max).length);
+      const gap=Math.max(66,longest*8+26);
+      state.labelEvery=Math.max(1,Math.ceil(intervals/Math.min(11,Math.floor((xEnd()-xStart())/gap))));
       state.showTickLabels=true;
       const candidates=[];
-      for(let i=state.labelEvery;i<intervals;i+=state.labelEvery)candidates.push(cleanNumber(state.min+i*state.step));
+      for(let i=state.labelEvery;i<intervals;i+=state.labelEvery){
+        if((intervals-i)*(xEnd()-xStart())/intervals>=gap)candidates.push(cleanNumber(state.min+i*state.step));
+      }
       const take=Math.min(5,Math.max(1,Math.floor(candidates.length/3)));
       for(let i=candidates.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[candidates[i],candidates[j]]=[candidates[j],candidates[i]]}
       const missing=candidates.slice(0,take).sort((x,y)=>x-y);
-      state.challenge=challengeObject('missing-labels','Fill in the missing number labels from left to right.',missing.map(fmt).join(', '),{hiddenTicks:missing});
+      state.challenge=challengeObject('missing-labels','Enter the missing numbers directly in the boxes.',missing.map(fmt).join(', '),{hiddenTicks:missing,labelResponses:missing.map(()=> '')});
 
     }
 
@@ -1645,7 +1678,12 @@ function numberLineV2(){
     return holder.querySelector('svg');
   }
   function exportSvg(){
-    if(exportMode!=='challenge'||!state.challenge||!X?.composeChallengeCardSvg)return svg();
+    if(exportMode!=='challenge'||!state.challenge||!X?.composeChallengeCardSvg){
+      if(missingLabelValues().length){
+        const holder=document.createElement('div');holder.innerHTML=buildSvg();return holder.querySelector('svg');
+      }
+      return svg();
+    }
     const ch=state.challenge,prompt=CK?CK.plainText(ch.promptHtml||ch.prompt||''):ch.prompt||'';
     return X.composeChallengeCardSvg(pupilDiagramSvg(),{
       title:ch.title||state.title||'Challenge',
@@ -1838,6 +1876,14 @@ function numberLineV2(){
     if(action==='exit'){leaveBoard();return}
   });
   stage.addEventListener('input',e=>{
+    const slot=e.target.closest('[data-nl-missing-slot]');
+    if(slot&&state.challenge?.type==='missing-labels'&&!state.challenge.correct){
+      const ch=state.challenge,values=missingLabelResponses(ch);
+      values[Number(slot.dataset.nlMissingSlot)]=slot.value;
+      ch.labelResponses=values;ch.responseStatus='';
+      const check=q('[data-challenge-check]',stage);if(check)check.disabled=!missingLabelsComplete(ch);
+      q('.nl-challenge-feedback',stage)?.remove();return;
+    }
     const input=e.target.closest('[data-challenge-response]');
     if(!input||!state.challenge)return;
     state.challenge.userResponse=input.value;state.challenge.responseStatus='';state.challenge.correct=false;
@@ -1845,10 +1891,11 @@ function numberLineV2(){
   stage.addEventListener('keydown',e=>{
     const input=e.target.closest('[data-challenge-response]');
     if(input&&e.key==='Enter'){e.preventDefault();state.challenge.userResponse=input.value;checkChallengeResponse()}
+    if(e.target.closest('[data-nl-missing-slot]')&&e.key==='Enter'){e.preventDefault();checkChallengeResponse()}
   });
   stage.addEventListener('pointerdown',e=>{
     if(!boardActive()||!boardMenuOpen)return;
-    if(e.target.closest('.nl-board-menu,.nl-board-rail,.nl-challenge-banner'))return;
+    if(e.target.closest('.nl-board-menu,.nl-board-rail,.nl-challenge-banner,[data-nl-missing-slot]'))return;
     boardMenuOpen=false;boardMoreOpen=false;boardChallengeOpen=false;
     renderStage();
   });
