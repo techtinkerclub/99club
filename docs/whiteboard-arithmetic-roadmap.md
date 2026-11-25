@@ -30,10 +30,18 @@ Updated 25 November 2026.
 - Remaining consistency audit: older Place Value and Abacus paper modes currently follow reveal state; define explicit pupil versus teacher exports across all widgets, harmonise card/prompt/working-space templates, review diagram-specific hidden labels, print orientation and pagination with actual browser output. Do not silently change legacy teacher behaviour.
 - Browser print/PDF and raster/clipboard tests remain outstanding; shared code tests are not visual signoff.
 
+## Curriculum extensions (25 November)
+- Source: England DfE mathematics programme of study: https://www.gov.uk/government/publications/national-curriculum-in-england-mathematics-programmes-of-study/national-curriculum-in-england-mathematics-programmes-of-study
+- Fourteen individually selectable fraction, percentage and exact-root topics, grouped by indicative curriculum year/stage. All default off for compatibility; KS3 roots and fraction division clearly separate from primary.
+- Exact rational arithmetic, input denominator limit, fixed-format topics independent of ordinary term counts. Whole quantities and roots respect ordinary range; mixed-number whole parts are 1–4; whole multipliers/divisors are 2–12 within the range.
+- Stacked fraction notation on screen and paper; existing touch keypad and separate teacher keys.
+- Generator checks: 8,400 individual questions and 120 ten-question sets, six denominator caps, operation filters and default-off regression checks passed.
+- Remaining: fraction ordering, fraction/decimal/percentage conversions, mixed-number multiplication, signed fractions, higher powers and root approximations (optional KS3), full curriculum presets and browser/print QA.
+
 ## Next priorities
 1. Visual/touch feedback: validate the practice-set launcher, whiteboard layout, inline answer boxes, responsive columns and paper outputs; refine density and font sizes after classroom feedback.
 2. Worksheet-oriented improvements: separate arithmetic answer key implemented; dedicated five-a-day shortcut, optional space for working, shared pupil/teacher export policies across all widgets, and print pagination remain.
-3. Exact fraction arithmetic: equivalence, addition/subtraction, multiplication/division where appropriate; integrate with the same quantity, layout and export workflow.
+3. Extend the implemented fraction/roots topics to remaining curriculum content and complete visual QA, then add curriculum presets.
 4. Target-number puzzles; ordering expressions by value; identify and correct errors. Ensure questions are solvable and answer checking handles valid alternatives.
 5. Curriculum-aligned KS1/KS2 presets and compatible question-type controls.
 6. Dedicated sequences and rules widget: number sequences, missing terms, next terms and rule reasoning. Keep separate from arithmetic generator but reuse challenge interaction and export patterns.
