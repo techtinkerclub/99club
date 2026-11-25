@@ -217,7 +217,7 @@ function innerDocument(obj){
 function innerTarget(obj,selector,allowHidden=false){
   const doc=innerDocument(obj);if(!doc||!selector)return null;
   const node=doc.querySelector(selector);
-  if(!node||node.disabled||node.classList?.contains('is-disabled')||node.getAttribute?.('aria-disabled')==='true')return null;
+  if(!node||node.disabled||(node.hidden&&node.matches('[data-board-action="reveal"]'))||node.classList?.contains('is-disabled')||node.getAttribute?.('aria-disabled')==='true')return null;
   if(!allowHidden){
     if(node.hidden)return null;
     const style=doc.defaultView?.getComputedStyle(node);
@@ -371,17 +371,26 @@ function floatingOriginal(index){
   return{obj,node:node&&source.contains(node)?node:null};
 }
 function measuredStageContentHeight(stage){
-  const rect=stage.getBoundingClientRect(),style=getComputedStyle(stage);
-  const padBottom=parseFloat(style.paddingBottom)||0;
-  let bottom=0;
-  [...stage.children].forEach(child=>{
-    const childStyle=getComputedStyle(child);
-    if(childStyle.display==='none'||childStyle.visibility==='hidden')return;
-    const childRect=child.getBoundingClientRect();
-    if(childRect.width<=0&&childRect.height<=0)return;
-    bottom=Math.max(bottom,childRect.bottom-rect.top);
-  });
-  return Math.ceil(bottom+padBottom);
+  // Measure the natural flow at the current width, without the iframe height
+  // influencing flex auto margins, alignments or viewport-sized stage boxes.
+  const saved=['height','bottom','min-height','max-height'].map(key=>[key,stage.style.getPropertyValue(key),stage.style.getPropertyPriority(key)]);
+  try{
+    stage.style.setProperty('height','max-content','important');
+    stage.style.setProperty('bottom','auto','important');
+    stage.style.setProperty('min-height','0','important');
+    stage.style.setProperty('max-height','none','important');
+    const rect=stage.getBoundingClientRect(),view=stage.ownerDocument.defaultView,style=view.getComputedStyle(stage);
+    const padBottom=parseFloat(style.paddingBottom)||0;
+    let bottom=0;
+    [...stage.children].forEach(child=>{
+      const cs=view.getComputedStyle(child);
+      if(cs.display==='none'||cs.visibility==='hidden'||cs.position==='absolute'||cs.position==='fixed')return;
+      const cr=child.getBoundingClientRect();
+      if(cr.width<=0&&cr.height<=0)return;
+      bottom=Math.max(bottom,cr.bottom-rect.top+(parseFloat(cs.marginBottom)||0));
+    });
+    return Math.ceil(Math.max(rect.height,bottom+padBottom));
+  }finally{saved.forEach(([key,value,priority])=>{if(value)stage.style.setProperty(key,value,priority);else stage.style.removeProperty(key)})}
 }
 function fitEmbeddedObject(obj,initial=false){
   const frame=frameFor(obj?.id),doc=innerDocument(obj);if(!frame||!doc)return;
@@ -460,15 +469,15 @@ function connectInnerObject(obj){
     }
     function queueFit(){
       if(!valid()||pending)return;
-      pending=requestAnimationFrame(()=>{
-        pending=0;measure();
+      pending=1;queueMicrotask(()=>{
+        pending=0;if(!valid())return;measure();
         // One trailing pass catches async font/layout changes without a perpetual
         // five-pass timer chain for every pointer/input or observer notification.
         clearTimeout(settleTimer);settleTimer=setTimeout(measure,80);
       });
     }
     function dispose(){
-      disposed=true;if(pending)cancelAnimationFrame(pending);clearTimeout(settleTimer);
+      disposed=true;clearTimeout(settleTimer);
       ro?.disconnect();mo?.disconnect();events.forEach(type=>doc.removeEventListener(type,queueFit,true));
     }
     const events=['click','pointerup','change','input'];
