@@ -69,21 +69,21 @@ function isolateSvgIds(svg,prefix){
  }
  return svg;
 }
-function pages(items,{title='Maths practice',teacher=false}={}){
- const W=960,H=1250,pad=28,top=93,bottom=H-32,gap=12,layouts=[];let entries=[],y=top;
+function pupilPages(items,title){
+ const W=960,H=1250,pad=28,top=85,bottom=H-32,gap=8,layouts=[];let entries=[],y=top;
  for(const [index,item] of items.entries()){
-   const svg=G.exportTools.withDocumentCardLayout(()=>renderItem(item,teacher)),v=dimensions(svg),width=W-2*pad-32,scale=Math.min(width/v.w,(bottom-top-gap)/v.h),h=v.h*scale;
+   const svg=G.exportTools.withDocumentCardLayout(()=>renderItem(item,false)),v=dimensions(svg),width=W-2*pad-32,scale=Math.min(width/v.w,(bottom-top-gap)/v.h),h=v.h*scale;
    if(entries.length&&y+h>bottom){layouts.push(entries);entries=[];y=top}
    entries.push({svg,v,scale,h,y,index});y+=h+gap;
  }
  if(entries.length)layouts.push(entries);
  return layouts.map((entries,page)=>{
-   const out=svgElement('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':teacher?'Teacher key':'Worksheet','data-gd-paper-ready':'sheet','data-gd-paper-label':'99 Club Studio','data-worksheet-answer':teacher?'teacher':'pupil'});
+   const out=svgElement('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':'Worksheet','data-gd-paper-ready':'sheet','data-gd-paper-label':'99 Club Studio','data-worksheet-answer':'pupil'});
    const add=(name,attrs,text)=>out.appendChild(svgElement(name,attrs,text));
    add('rect',{width:W,height:H,fill:'#fff'});
-   const heading=title+(teacher?' · Teacher key':'');
+   const heading=title;
    add('text',{x:pad,y:38,'font-family':'Arial,sans-serif','font-size':Math.min(26,850/Math.max(1,heading.length*.62)),'font-weight':700,fill:'#24343b'},heading);
-   add('text',{x:pad,y:64,'font-family':'Arial,sans-serif','font-size':14,fill:'#52666d'},teacher?'Matches the pupil document in order.':'Name: __________________________');
+   add('text',{x:pad,y:64,'font-family':'Arial,sans-serif','font-size':14,fill:'#52666d'},'Name: __________________________');
    add('text',{x:W-pad,y:64,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':14,fill:'#52666d'},'Page '+(page+1)+' / '+layouts.length);
    for(const {svg,v,scale,h,y,index} of entries){
      const baseline=Number(svg.getAttribute('data-worksheet-prompt-baseline')),promptSize=Number(svg.getAttribute('data-worksheet-prompt-size')),hasPrompt=baseline>0&&promptSize>0;
@@ -96,6 +96,84 @@ function pages(items,{title='Maths practice',teacher=false}={}){
    return out;
  });
 }
+// Answer summaries come from frozen mathematical records, not rendered pupil text.
+function answerSummary(item){
+ if(item.kind!=='challenge')return null;
+ const a=adapterFor(item.tool),d=item.data,c=d.challenge;
+ if(a.answerSummary)return a.answerSummary(item);
+ if(item.tool==='abacus'){
+   const t=d.task,missing=['make10','bond','missing'].includes(t.mode);
+   return missing?'Missing number: '+t.answer+'; final abacus total: '+t.target:'Final abacus total: '+t.target;
+ }
+ if(item.tool==='place-value'){
+   const v=d.activity;
+   if(v){
+     const mode=v.activityMode;
+     if(['read','hidden','digit'].includes(mode))return String(v.activityAnswer);
+     const names=['10,000,000','1,000,000','100,000','10,000','1,000','100','10','1','0.1','0.01','0.001'].slice(d.settings.rangeStart,d.settings.rangeEnd+1);
+     const powers=names.map(x=>Number(x.replace(/,/g,''))),scale=10**Math.max(0,d.settings.rangeEnd-7),units=Math.round(v.activityTarget*scale);
+     const digits=powers.map(p=>Math.floor(units/Math.round(p*scale))%10);
+     const exchange=counts=>{const i=counts.findIndex((n,j)=>n>0&&j<counts.length-1);if(i<0)return false;counts[i]--;counts[i+1]+=10;return true};
+     if(mode==='same'){const start=v.activityStartCounts?.slice()||digits.slice();if(exchange(start))digits.splice(0,digits.length,...start);}
+     if(mode==='exact')while(digits.reduce((x,y)=>x+y,0)<v.activityBudget){if(!exchange(digits))break}
+     const chart=digits.map((n,i)=>n?n+' × '+names[i]:null).filter(Boolean).join(' + ')||'No counters';
+     return (mode==='same'?'One possible different representation: ':mode==='exact'?'Example using '+v.activityBudget+' counters: ':'Completed chart: ')+chart+' = '+v.activityTarget+(mode==='same'?'. Accept other valid exchanges.':'');
+   }
+   return c?.answer;
+ }
+ if(item.tool==='clock'){
+   if(['read-five','read-minute','roman-read'].includes(c.type))return c.answer.replace(/ (am|pm)$/i,'');
+   return c.answer+(c.solutionExplanation?' — '+c.solutionExplanation:'');
+ }
+ if(item.tool==='array-builder'&&c.type==='build-array')return c.targetRows+' rows × '+c.targetCols+' columns = '+(c.targetRows*c.targetCols);
+ if(item.tool==='maths-canvas'&&d.targetRule)return 'One possible solution: '+d.answer+'. Accept other valid expressions.';
+ return c?.answer??d.answer;
+}
+function wrapAnnex(text,max=96){
+ const out=[];let line='';
+ for(const word of String(text).trim().split(/\s+/)){
+   // Hard-break exceptional unspaced strings; never silently truncate an answer.
+   const chunks=word.length>max?word.match(new RegExp('.{1,'+max+'}','gu')):[word];
+   for(const chunk of chunks){if(line&&line.length+chunk.length+1>max){out.push(line);line=''}line+=(line?' ':'')+chunk}
+ }
+ if(line)out.push(line);return out;
+}
+function answerPages(items,title){
+ const W=960,H=1250,pad=28,top=106,bottom=H-48,step=29,gap=9,layouts=[];
+ let rows=[],y=top;
+ for(const [index,item] of items.entries()){
+   const value=answerSummary(item);if(value===null)continue;
+   if(value===undefined||!String(value).trim())throw Error('Answer not available for question '+(index+1)+'.');
+   const lines=wrapAnnex(value);
+   // Keep normal answers together; exceptionally long entries may span annex pages.
+   if(rows.length&&y+lines.length*step+gap>bottom){layouts.push(rows);rows=[];y=top}
+   for(const [i,line] of lines.entries()){
+     if(y+step>bottom){layouts.push(rows);rows=[];y=top}
+     rows.push({index,line,y,first:i===0});y+=step;
+   }
+   y+=gap;
+ }
+ if(rows.length)layouts.push(rows);
+ return layouts.map((rows,page)=>{
+   const svg=svgElement('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':'Answer annex','data-gd-paper-ready':'sheet','data-gd-paper-label':'99 Club Studio','data-worksheet-answer':'annex'});
+   const add=(n,attrs,value)=>svg.appendChild(svgElement(n,attrs,value));
+   add('rect',{width:W,height:H,fill:'#fff'});
+   const text=(x,y,size,value,extra={})=>add('text',{x,y,'font-family':'Arial,sans-serif','font-size':size,fill:'#24343b',...extra},value);
+   text(pad,38,26,'Answer key',{ 'font-weight':700 });
+   text(pad,64,15,title+' · Teacher annex');
+   text(W-pad,64,14,'Annex '+(page+1)+' / '+layouts.length,{'text-anchor':'end'});
+   for(const row of rows){
+     if(row.first)text(pad,row.y,20,(row.index+1)+'.',{'font-weight':700,'data-pub-answer-number':row.index+1});
+     text(pad+48,row.y,20,row.line);
+   }
+   return svg;
+ });
+}
+function pages(items,{title='Maths practice',teacher=false}={}){
+ const pupil=pupilPages(items,title);
+ return teacher?pupil.concat(answerPages(items,title)):pupil;
+}
+
 // Automatic and live capture share the same document and immutable recipes.
 const BUILDER_CATALOG=[
  ['maths-canvas','Arithmetic'],['sequences','Sequences & rules'],['abacus','Abacus'],['place-value','Place value'],
@@ -148,7 +226,7 @@ function openEditor(draft,{mode='review'}={}){
  }
  function renderReview(){
    const items=draft.list(),disabled=items.length?'':' disabled';
-   return '<div class="gd-pub-toolbar"><label class="gd-pub-title"><span>Document title</span><input type="text" data-pub-title maxlength="80" value="'+esc(title)+'"></label><div class="gd-pub-segment" aria-label="Preview version"><button type="button" class="gd-btn" data-pub-pupil aria-pressed="'+!teacher+'"'+disabled+'>Pupil</button><button type="button" class="gd-btn" data-pub-teacher aria-pressed="'+teacher+'"'+disabled+'>Teacher key</button></div><button type="button" class="gd-btn" data-pub-group'+disabled+'>Group</button><button type="button" class="gd-btn" data-pub-shuffle'+disabled+'>Mix</button><button type="button" class="gd-btn gd-btn--primary" data-pub-print'+disabled+'>Print / PDF</button></div>'+
+   return '<div class="gd-pub-toolbar"><label class="gd-pub-title"><span>Document title</span><input type="text" data-pub-title maxlength="80" value="'+esc(title)+'"></label><div class="gd-pub-segment" aria-label="Preview version"><button type="button" class="gd-btn" data-pub-pupil aria-pressed="'+!teacher+'"'+disabled+'>Pupil</button><button type="button" class="gd-btn" data-pub-teacher aria-pressed="'+teacher+'"'+disabled+'>With answers</button></div><button type="button" class="gd-btn" data-pub-group'+disabled+'>Group</button><button type="button" class="gd-btn" data-pub-shuffle'+disabled+'>Mix</button><button type="button" class="gd-btn gd-btn--primary" data-pub-print'+disabled+'>Print / PDF</button></div>'+
    (items.length?'<div class="gd-pub-body gd-pub-body--inline"><div class="gd-pub-preview"></div></div>':'<div class="gd-pub-empty"><strong>Start a worksheet</strong><p>Generate questions here, or add a diagram or challenge from a widget’s Export menu.</p><div><button type="button" class="gd-btn gd-btn--primary" data-pub-builder>Build automatically</button><button type="button" class="gd-btn" data-pub-close>Back to whiteboard</button></div></div>');
  }
  const actionIcons={up:'<path d="m6 14 6-6 6 6"/>',down:'<path d="m6 10 6 6 6-6"/>',replace:'<path d="M20 7v5h-5M4 17v-5h5M6 8a7 7 0 0 1 12-2l2 6M18 16a7 7 0 0 1-12 2l-2-6"/>',remove:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 10v6m4-6v6"/>'};
@@ -193,7 +271,7 @@ function openEditor(draft,{mode='review'}={}){
      else if('pubDeleteBlock'in d)blocks=blocks.filter(b=>b.id!==+d.pubDeleteBlock);
      else if('pubAllTypes'in d||'pubNoTypes'in d){const b=getBlock(btn);b.types='pubAllTypes'in d?null:[];b.open=true}
      else if('pubGenerate'in d){draft.generateBlocks(blocks);if(mix)draft.shuffle();blocks=[];view='review';teacher=false}
-     else if('pubPrint'in d){G.exportTools.printSvg(pages(draft.list(),{title,teacher}),{title:'',landscape:false,maxHeightMm:242});return}
+     else if('pubPrint'in d){G.exportTools.printSvg(pages(draft.list(),{title,teacher}),{title:title+(teacher?' — with answers':''),landscape:false,maxHeightMm:265});return}
      else if('pubGroup'in d)draft.group();else if('pubShuffle'in d)draft.shuffle();else if('pubPupil'in d)teacher=false;else if('pubTeacher'in d)teacher=true;else if('pubReplace'in d)draft.replace(+d.pubReplace);else if('pubRemove'in d)draft.remove(+d.pubRemove);else if('pubUp'in d)draft.move(+d.pubUp,-1);else if('pubDown'in d)draft.move(+d.pubDown,1);
    }catch(err){status=err.message}
    render();
@@ -220,5 +298,5 @@ function openEditor(draft,{mode='review'}={}){
  dlg.ontoggle=null;dlg.addEventListener('toggle',function rememberDetails(e){const el=e.target;if(el.tagName!=='DETAILS')return;const b=getBlock(el);if(!b)return;if(el.hasAttribute('data-pub-type-details'))b.open=el.open;if(el.hasAttribute('data-pub-topics'))b.topicsOpen=el.open;},{capture:true,signal:(()=>{dlg._pubToggleController?.abort();dlg._pubToggleController=new AbortController();return dlg._pubToggleController.signal})()});
  render();if(!dlg.open)dlg.showModal();
 }
-G.publishing={register,supports,types,record,signature,createDocument,renderItem,pages,openEditor,isolateSvgIds};
+G.publishing={register,supports,types,record,signature,createDocument,renderItem,pages,answerPages,answerSummary,openEditor,isolateSvgIds};
 })(window.TT99Goodies);
