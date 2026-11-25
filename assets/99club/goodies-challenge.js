@@ -424,6 +424,12 @@ function updatePupilUi(panel,s){
   const reveal=panel.closest('.gd-challenge-banner')?.querySelector('[data-board-action="reveal"]');
   if(reveal)reveal.hidden=s.correct&&!s.spec.explain;
 }
+function refreshModelPupil(challenge){
+  const s=challenge&&pupilStates.get(challenge);
+  if(!s?.correct||s.spec?.kind!=='model'||s.spec.check?.())return;
+  s.correct=false;s.status='';
+  if(typeof document!=='undefined'){const panel=document.querySelector('#gd-stage .gd-pupil-response');if(panel)updatePupilUi(panel,s)}
+}
 function checkPupil(panel,s){
   if(!pupilReady(s)||s.correct||s.challenge.revealed)return;
   const ok=pupilAnswerCorrect(s.spec,s.values,s.challenge.answer);
@@ -492,5 +498,5 @@ function applyFormat(editor,action){
   else if(action==='size-large')document.execCommand('fontSize',false,'5');
 }
 
-G.challengeKit={nativeRandomHtml,capturePupil,restorePupil,pupilSpec,pupilAnswerCorrect,pickVariant,simplePolygon,normalise,makeCustom,sanitiseRichHtml,plainText,toolbarHtml,tabsHtml,editorHtml,pickerHtml,bannerHtml,applyFormat};
+G.challengeKit={refreshModelPupil,nativeRandomHtml,capturePupil,restorePupil,pupilSpec,pupilAnswerCorrect,pickVariant,simplePolygon,normalise,makeCustom,sanitiseRichHtml,plainText,toolbarHtml,tabsHtml,editorHtml,pickerHtml,bannerHtml,applyFormat};
 })(window.TT99Goodies);
