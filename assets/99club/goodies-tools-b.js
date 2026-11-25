@@ -4373,6 +4373,60 @@ function geoboard(){
 
 }
 
+function mcSvgEl(name,attrs={},text=''){
+const el=document.createElementNS('http://www.w3.org/2000/svg',name);
+Object.entries(attrs).forEach(([key,value])=>el.setAttribute(key,String(value)));
+if(text!==''&&text!=null)el.textContent=String(text);
+return el;
+}
+function appendEquationSvg(svg,qn,tokens,metrics,font,x,y,width,align='center'){
+ const N=G.numberChallenges;
+ const weights=tokens.map(v=>metrics.width(v,qn)),gap=.18*font,total=metrics.rowWidth(tokens,qn)*font;
+ let xx=align==='left'?x:x+(width-total)/2;
+ tokens.forEach((v,i)=>{
+   const w=weights[i]*font;
+   const f=N.parseFractionToken(v),hole=String(v).match(/^\?\/(\d+)$/);
+   if(hole||f){
+     const whole=f?.whole||'',fw=whole?whole.length*.7*font:0,cx=xx+fw+(w-fw)/2,barY=y-font*.32,fs=font*.69;
+     if(whole)svg.appendChild(mcSvgEl('text',{x:xx+fw/2,y,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':font,'font-weight':700,fill:'#24343b'},whole));
+     const barW=hole?Math.min(w,font*1.6):Math.max(fs*.9,Math.max(f.n.length,f.d.length)*fs*.68);
+     if(hole)svg.appendChild(mcSvgEl('rect',{x:cx-barW/2,y:barY-font*.86,width:barW,height:font*.78,rx:font*.08,fill:'#fff',stroke:'#48666b','stroke-width':1.6}));
+     else svg.appendChild(mcSvgEl('text',{x:cx,y:barY-font*.16,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':fs,'font-weight':700,fill:'#24343b'},f.n));
+     svg.appendChild(mcSvgEl('line',{x1:cx-barW/2,y1:barY,x2:cx+barW/2,y2:barY,stroke:'#24343b','stroke-width':Math.max(1,font*.045)}));
+     svg.appendChild(mcSvgEl('text',{x:cx,y:barY+font*.7,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':fs,'font-weight':700,fill:'#24343b'},hole?hole[1]:f.d));
+   }else if(v==='?')svg.appendChild(mcSvgEl('rect',{x:xx,y:y-font*.86,width:w,height:font*1.16,rx:font*.12,fill:'#fff',stroke:'#48666b','stroke-width':1.6}));
+   else svg.appendChild(mcSvgEl('text',{x:xx+w/2,y,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':font,'font-weight':700,fill:'#24343b'},v));
+   xx+=w+gap;
+ });
+}
+function numberChallengeSvg(challenge){
+ const N=G.numberChallenges;
+ const metrics=N.equationMetrics([challenge]),rows=metrics.rows(challenge),W=960,H=rows.length*114+54;
+ const svg=mcSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':'Unanswered arithmetic question'});
+ svg.appendChild(mcSvgEl('rect',{width:W,height:H,fill:'#fff'}));
+ const font=Math.min(rows.some(row=>row.some(v=>N.parseFractionToken(v)||/^\?\/\d+$/.test(v)))?48:56,880/metrics.maxUnits);
+ rows.forEach((row,i)=>appendEquationSvg(svg,challenge,row,metrics,font,40,85+i*114,W-80));
+ return svg;
+}
+function arithmeticPaper(question,workingLines=0,teacher=false){
+ const N=G.numberChallenges,X=G.exportTools;
+ const hasHole=question.tiles.some(N.equationMetrics([question]).isHole);
+ const prompt=question.prompt+(question.kind==='choice'&&question.choices?.length?' Choose: '+question.choices.join(' / ')+'.':'');
+ return X.composeWorksheetCardSvg(numberChallengeSvg(question),{title:N.titles[question.type],prompt,responseLabel:teacher?'Answer':workingLines?(hasHole?'Working':'Answer / working'):'Answer',responseMode:workingLines?'lines':hasHole?'none':'box',responseLines:workingLines||1,paperStyle:'plain',answer:question.answer,showAnswer:teacher});
+}
+if(G.publishing)G.publishing.register('maths-canvas',{
+ label:'Arithmetic',
+ title:item=>item.kind==='challenge'?G.numberChallenges.titles[item.data.type]:'Number & symbol tiles',
+ signature:q=>q.targetRule?'target:'+q.targetRule.numbers.slice().sort((a,b)=>a-b).join(',')+'='+q.targetRule.target:JSON.stringify(q.tiles),
+ recipe:(model,type)=>({type,settings:G.numberChallenges.settings(model.numberSettings||{},model.difficulty),difficulty:model.difficulty||'medium',workingLines:[0,2,4].includes(model.workingLines)?model.workingLines:0}),
+ generate(recipe,rng){const N=G.numberChallenges,ids=N.available(recipe.settings,recipe.difficulty).flatMap(g=>g.ids);if(!ids.length)throw Error('No compatible arithmetic questions.');const type=recipe.type==='all'?ids[Math.min(ids.length-1,Math.floor(rng()*ids.length))]:recipe.type;if(!ids.includes(type))throw Error('This question type is not available under the selected rules.');return N.generate(type,recipe.difficulty,rng,recipe.settings)},
+ capture(model,staticSvg){
+  const questions=model.batch?.length>1?model.batch.map(x=>x.question):model.challenge?[model.challenge]:[];
+  if(!questions.length){if(!staticSvg)throw Error('The current canvas is not ready.');return [G.publishing.record('maths-canvas','diagram',{svg:staticSvg})]}
+  return questions.map(q=>G.publishing.record('maths-canvas','challenge',{...q,revealed:false},{...this.recipe(model,q.type),settings:q.settings||this.recipe(model,q.type).settings}));
+ },
+ render(item,teacher){if(item.kind==='diagram')return new DOMParser().parseFromString(item.data.svg,'image/svg+xml').documentElement;return arithmeticPaper(item.data,item.recipe?.workingLines||0,teacher)}
+});
 function mathsCanvas(){
 const I=G.interaction,CK=G.challengeKit,X=G.exportTools,N=G.numberChallenges;
 if(!I){q('#gd-stage').innerHTML='<p class="gd-empty">The interactive canvas could not start.</p>';return;}
@@ -4521,39 +4575,6 @@ field('Task title','<input class="gd-input" id="mc-task-title" maxlength="100" v
 field('Pupil instructions','<textarea class="gd-textarea gd-mc-task-prompt" id="mc-task-prompt" rows="5" maxlength="500" placeholder="What should pupils do with this starting layout?">'+esc(taskPrompt)+'</textarea>')+
 '<p class="gd-help">The canvas stays live while you write the task, so you can arrange, lock and colour the exact starting layout pupils should receive.</p>';
 }
-function mcSvgEl(name,attrs={},text=''){
-const el=document.createElementNS('http://www.w3.org/2000/svg',name);
-Object.entries(attrs).forEach(([key,value])=>el.setAttribute(key,String(value)));
-if(text!==''&&text!=null)el.textContent=String(text);
-return el;
-}
-function appendEquationSvg(svg,qn,tokens,metrics,font,x,y,width,align='center'){
- const weights=tokens.map(v=>metrics.width(v,qn)),gap=.18*font,total=metrics.rowWidth(tokens,qn)*font;
- let xx=align==='left'?x:x+(width-total)/2;
- tokens.forEach((v,i)=>{
-   const w=weights[i]*font;
-   const f=N.parseFractionToken(v),hole=String(v).match(/^\?\/(\d+)$/);
-   if(hole||f){
-     const whole=f?.whole||'',fw=whole?whole.length*.7*font:0,cx=xx+fw+(w-fw)/2,barY=y-font*.32,fs=font*.69;
-     if(whole)svg.appendChild(mcSvgEl('text',{x:xx+fw/2,y,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':font,'font-weight':700,fill:'#24343b'},whole));
-     const barW=hole?Math.min(w,font*1.6):Math.max(fs*.9,Math.max(f.n.length,f.d.length)*fs*.68);
-     if(hole)svg.appendChild(mcSvgEl('rect',{x:cx-barW/2,y:barY-font*.86,width:barW,height:font*.78,rx:font*.08,fill:'#fff',stroke:'#48666b','stroke-width':1.6}));
-     else svg.appendChild(mcSvgEl('text',{x:cx,y:barY-font*.16,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':fs,'font-weight':700,fill:'#24343b'},f.n));
-     svg.appendChild(mcSvgEl('line',{x1:cx-barW/2,y1:barY,x2:cx+barW/2,y2:barY,stroke:'#24343b','stroke-width':Math.max(1,font*.045)}));
-     svg.appendChild(mcSvgEl('text',{x:cx,y:barY+font*.7,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':fs,'font-weight':700,fill:'#24343b'},hole?hole[1]:f.d));
-   }else if(v==='?')svg.appendChild(mcSvgEl('rect',{x:xx,y:y-font*.86,width:w,height:font*1.16,rx:font*.12,fill:'#fff',stroke:'#48666b','stroke-width':1.6}));
-   else svg.appendChild(mcSvgEl('text',{x:xx+w/2,y,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':font,'font-weight':700,fill:'#24343b'},v));
-   xx+=w+gap;
- });
-}
-function numberChallengeSvg(){
- const metrics=N.equationMetrics([challenge]),rows=metrics.rows(challenge),W=960,H=rows.length*114+54;
- const svg=mcSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':'Unanswered arithmetic question'});
- svg.appendChild(mcSvgEl('rect',{width:W,height:H,fill:'#fff'}));
- const font=Math.min(rows.some(row=>row.some(v=>N.parseFractionToken(v)||/^\?\/\d+$/.test(v)))?48:56,880/metrics.maxUnits);
- rows.forEach((row,i)=>appendEquationSvg(svg,challenge,row,metrics,font,40,85+i*114,W-80));
- return svg;
-}
 function numberSetLayout(){
  const cols=batchCols(),W=960,pad=28,gap=26,cellW=(W-pad*2-gap*(cols-1))/cols,rowHeights=[],metrics=N.equationMetrics(batch.map(item=>item.question));
  // One consistent mathematical font, with a fixed left edge per column.
@@ -4643,7 +4664,7 @@ if(batch.length>1&&challenge)return numberSetSvg();
 if(challenge&&X?.composeWorksheetCardSvg){
  const hasHole=challenge.tiles.some(N.equationMetrics([challenge]).isHole);
  const prompt=challenge.prompt+(challenge.kind==='choice'&&challenge.choices?.length?' Choose: '+challenge.choices.join(' / ')+'.':'');
- return X.composeWorksheetCardSvg(numberChallengeSvg(),{title:N.titles[challenge.type],prompt,responseLabel:workingLines?(hasHole?'Working':'Answer / working'):'Answer',responseMode:workingLines?'lines':hasHole?'none':'box',responseLines:workingLines||1,paperStyle:'plain',brand:'99 Club Studio'});
+ return X.composeWorksheetCardSvg(numberChallengeSvg(challenge),{title:N.titles[challenge.type],prompt,responseLabel:workingLines?(hasHole?'Working':'Answer / working'):'Answer',responseMode:workingLines?'lines':hasHole?'none':'box',responseLines:workingLines||1,paperStyle:'plain',brand:'99 Club Studio'});
 }
 if(exportMode!=='task'||!X?.composeChallengeCardSvg)return canvasExportSvg();
 return X.composeChallengeCardSvg(canvasExportSvg(),{
@@ -4775,6 +4796,7 @@ onSelectionChange:item=>{
 });
 bindControls();
 controller.refresh();
+G.publishingCurrent=()=>new XMLSerializer().serializeToString(exportTargetSvg());
 G.lessonState?.register('maths-canvas',()=>({diagram:stateSnapshot(),workflow,taskTitle,taskPrompt,exportMode,responseLines,difficulty,numberSettings,challenge,questionCount,setLayout,batch,batchScope,batchType,curriculumProfile,workingLines,pupil:CK?.capturePupil?.(challenge)}),saved=>{
  restoreState(saved.diagram);workingLines=[0,2,4].includes(Number(saved.workingLines))?Number(saved.workingLines):0;questionCount=Math.max(1,Math.min(10,Math.round(Number(saved.questionCount)||1)));setLayout=['auto','one','two'].includes(saved.setLayout)?saved.setLayout:'auto';batch=Array.isArray(saved.batch)?saved.batch.slice(0,10).filter(item=>item?.question?.tiles&&N.titles[item.question.type]).map(item=>({...item,value:String(item.value||''),feedback:String(item.feedback||'')})):[];if(batch.length<2)batch=[];batchScope=String(saved.batchScope||'');batchType=String(saved.batchType||'');difficulty=['easy','medium','hard','custom'].includes(saved.difficulty)?saved.difficulty:'medium';numberSettings=N.settings(saved.numberSettings||{},difficulty);curriculumProfile=N.curriculumProfiles.some(p=>p.id===saved.curriculumProfile)?saved.curriculumProfile:'custom';generationError='';challenge=saved.challenge&&N?.titles[saved.challenge.type]?CK.normalise(saved.challenge):null;if(!challenge)batch=[];CK?.restorePupil?.(challenge,saved.pupil);workflow=saved.workflow==='challenge'&&!N?'build':saved.workflow;taskTitle=String(saved.taskTitle||'');taskPrompt=String(saved.taskPrompt||'');exportMode=saved.exportMode;responseLines=saved.responseLines;
  q('#gd-controls').innerHTML=controlsHtml();bindControls();controller.refresh();
