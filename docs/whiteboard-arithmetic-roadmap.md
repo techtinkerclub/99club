@@ -56,6 +56,12 @@ Updated 25 November 2026.
 - Source: https://www.gov.uk/government/publications/national-curriculum-in-england-mathematics-programmes-of-study/national-curriculum-in-england-mathematics-programmes-of-study
 - Browser interaction and live print verification pending.
 
+## Worksheet response and conversion pass (25 November)
+- Shared worksheet composer now puts the response label on a separate line above boxes, writing lines and teacher answers, with height reserved for wrapped labels. Fixes the abacus “Missing number” overlap and applies to all widgets using the composer.
+- Six opt-in exact fraction/decimal/percentage conversion directions and fraction comparisons; Year 5+ starting presets include them. Fractions use the selected denominator cap, conversions use values strictly between zero and one with at most two decimal places, comparison symbols respect the enabled relation filter. Simplest-form fraction answers required where indicated.
+- Existing distinct-question policy retained. Very small denominator caps can have fewer unique conversions than the requested set; show a clear error rather than repeat questions.
+- Fraction ordering, more precise year-based conversion restrictions, target puzzles and reasoning remain. Browser/print appearance not yet verified.
+
 ## Next priorities
 1. Visual/touch feedback: validate the practice-set launcher, whiteboard layout, inline answer boxes, responsive columns and paper outputs; refine density and font sizes after classroom feedback.
 2. Worksheet-oriented improvements: separate arithmetic answer key implemented; five-a-day shortcut implemented; optional space for working, shared pupil/teacher export policies across all widgets, and print pagination remain.
