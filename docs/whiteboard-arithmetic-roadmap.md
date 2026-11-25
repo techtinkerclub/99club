@@ -92,9 +92,15 @@ Updated 25 November 2026.
 - Uses the same SVG for display and export; hidden terms remain blank, and links into hidden terms are not exported. Lesson save/restore supported. Function-machine expansion deferred pending a distinct live teaching need because the Games catalogue already has it.
 - Synced all shared asset versions and sequence script registration between /whiteboard/ and /goodies/; the former previously referenced older cached assets. Automated checks: 576 sequence states, 12,928 SVG nodes, 21 year/difficulty opt-in checks; both entry-point asset manifests match exactly. Browser, embedded-board interaction and print appearance still need visual QA.
 
+## Arithmetic working space and A4 pagination (25 November)
+- Optional 0/2/4 working lines per question, in Export only, saved with the widget. No changes to whiteboard response layout. Single question worksheets use the working section without a redundant answer box when the equation contains one.
+- Question sets calculate row heights including working space and instructions; print uses complete rows on separate portrait A4 SVGs with the same font metrics, continued numbering, page headings and a single footer per page. Copy/PNG/SVG still export the continuous set for external layout work.
+- Shared print helper accepts one SVG or an array of pages, preserving existing single-page callers. Both entry pages have matching cache versions.
+- Physical print/browser testing remains outstanding; the next cross-widget pass should focus on model-building response areas and explicit teacher keys.
+
 ## Next priorities
 1. Visual/touch feedback: validate the practice-set launcher, whiteboard layout, inline answer boxes, responsive columns and paper outputs; refine density and font sizes after classroom feedback.
-2. Worksheet-oriented improvements: separate arithmetic answer key implemented; five-a-day shortcut implemented; optional space for working, shared pupil/teacher export policies across all widgets, and print pagination remain.
+2. Worksheet-oriented improvements: separate arithmetic answer key implemented; five-a-day shortcut implemented; optional arithmetic working space and row-based A4 pagination implemented; shared pupil/teacher export policies across the remaining widgets still need work.
 3. Extend the implemented fraction/roots topics to remaining curriculum content and complete visual QA, and refine the curriculum presets.
 4. Consolidate the existing arithmetic teaching challenges and fix usability issues. Larger target-number puzzles and game-like extensions are deferred to avoid duplication with Studio Games & Puzzles.
 5. Refine curriculum presets with narrower year-specific objectives, including multiplication-table and early fraction constraints.
