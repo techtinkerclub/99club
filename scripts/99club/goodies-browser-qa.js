@@ -821,10 +821,10 @@ if(mode==='prepare'){
     document.querySelector('[data-ba-workflow="challenge"]').click();
     document.querySelector('[data-ba-challenge-type="choose-relation"]').click();
     document.getElementById('ba-generate').click();
-    assert(document.querySelector('[data-ba-equation]').textContent.trim()==='8 ? 10','Relation challenge hides the comparison symbol');
+    assert(document.querySelector('[data-ba-equation]').textContent.trim()==='8 ? 6','Relation challenge hides the comparison symbol');
     assert(document.querySelector('[data-ba-relation]').textContent.trim()==='?','Relation challenge also hides the verdict shortcut');
     document.querySelector('[data-board-action="reveal"]').click();
-    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: <'),'Relation challenge reveals the deterministic less-than answer');
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: >'),'Relation challenge reveals the deterministic greater-than answer');
 
     document.querySelector('[data-ba-workflow="challenge"]').click();
     document.querySelector('[data-ba-challenge-type="find-difference"]').click();
@@ -838,13 +838,11 @@ if(mode==='prepare'){
     document.querySelector('[data-ba-challenge-cat="build"]').click();
     assert(document.querySelector('[data-ba-challenge-type="make-balance"]')&&document.querySelector('[data-ba-challenge-type="same-to-both"]'),'Both interactive balance-building challenge types are available');
     document.getElementById('ba-generate').click();
-    assert(document.querySelector('[data-ba-equation]').textContent.trim()==='5 + 2 > 5','Make-balance challenge starts deliberately unequal');
-    assert([...document.querySelectorAll('[data-ba-token]')].every(x=>!x.disabled),'Make-balance challenge keeps direct editing active');
-    const makeCustom=document.getElementById('ba-custom');
-    makeCustom.value='2';
-    document.getElementById('ba-add-right').click();
-    assert(document.querySelector('[data-ba-equation]').textContent.trim()==='5 + 2 = 5 + 2','Pupil can balance the model by adding the missing weight to the lighter side');
-    assert(document.querySelector('[data-ba-target-status]').textContent.includes('Balanced'),'Make-balance challenge confirms equality');
+    assert(document.querySelector('[data-ba-equation]').textContent.trim()==='5 + 2 ? 5','Make-balance challenge starts deliberately unequal without a comparison shortcut');
+    assert([...document.querySelectorAll('[data-ba-token]')].every(x=>x.disabled),'Numeric Make-balance challenge protects the supplied weights');
+    assert(document.querySelector('[data-ba-relation]').textContent.trim()==='?','Make-balance challenge hides the relationship');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: 2'),'Make-balance reveals the exact amount needed');
 
     document.querySelector('[data-ba-workflow="challenge"]').click();
     document.querySelector('[data-ba-challenge-cat="build"]').click();
@@ -935,17 +933,15 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=(svg)=>{baRelationCard=svg.cloneNode(true)};
     document.getElementById('ba-svg-download').click();
     TT99Goodies.exportTools.downloadSvg=baOldRelationDownload;
-    assert(baRelationCard.querySelector('[data-ba-export-equation]').textContent.trim()==='8 ? 10','Relation pupil export re-hides the comparison symbol after teacher Reveal');
+    assert(baRelationCard.querySelector('[data-ba-export-equation]').textContent.trim()==='8 ? 6','Relation pupil export re-hides the comparison symbol after teacher Reveal');
     assert(baRelationCard.querySelector('[data-ba-export-relation]').textContent.trim()==='?','Relation pupil export also re-hides the verdict');
 
     document.querySelector('[data-ba-workflow="challenge"]').click();
     document.querySelector('[data-ba-challenge-cat="build"]').click();
     document.querySelector('[data-ba-challenge-type="make-balance"]').click();
     document.getElementById('ba-generate').click();
-    const baBuildCustom=document.getElementById('ba-custom');
-    baBuildCustom.value='2';
-    document.getElementById('ba-add-right').click();
-    assert(document.querySelector('[data-ba-equation]').textContent.trim()==='5 + 2 = 5 + 2','Teacher can complete a make-balance challenge before exporting');
+    document.querySelector('[data-board-action="reveal"]').click();
+    assert(document.querySelector('.gd-challenge-banner').textContent.includes('Answer: 2'),'Teacher can reveal the make-balance answer before exporting');
     document.querySelector('[data-ba-workflow="export"]').click();
     let baBuildCard=null;
     const baOldBuildDownload=TT99Goodies.exportTools.downloadSvg;
@@ -953,8 +949,8 @@ if(mode==='prepare'){
     document.getElementById('ba-svg-download').click();
     TT99Goodies.exportTools.downloadSvg=baOldBuildDownload;
     assert(baBuildCard&&baBuildCard.querySelector('[data-ba-export-initial-state="1"]'),'Interactive Equation Balance card explicitly uses the challenge start state');
-    assert(baBuildCard.querySelector('[data-ba-export-equation]').textContent.trim()==='5 + 2 > 5','Make-balance pupil card restores the original unequal problem');
-    assert(!baBuildCard.textContent.includes('5 + 2 = 5 + 2'),'Make-balance pupil export strips the teacher completed solution');
+    assert(baBuildCard.querySelector('[data-ba-export-equation]').textContent.trim()==='5 + 2 ? 5','Make-balance pupil card restores the original unequal problem without the comparison sign');
+    assert(!baBuildCard.textContent.includes('Answer: 2')&&baBuildCard.querySelector('[data-ba-export-relation]').textContent.trim()==='?','Make-balance pupil export strips the revealed answer and verdict');
 
     Math.random=realBalanceRandom;
   }
@@ -3889,31 +3885,15 @@ if(mode==='prepare'){
   }
   window.addEventListener('load',function(){
     setTimeout(function(){
-      try{
-        testSharedPupilResponses();
-        testNumberLineChallenges();
-        testMathsCanvas();
-        testBarModelWorkbench();
-        testEquationBalanceWorkbench();
-        testHundredSquareWorkbench();
-        testMultiplicationGridWorkbench();
-        testTimesTableVisualWorkbench();
-        testFactorExplorerWorkbench();
-        testFdpWorkbench();
-        testPlaceValue();
-        testAbacus();
-        testFractions();
-        testGeoboard();
-        testCoordinates();
-        testMeasurement();
-        testRandomiser();
-        testArrayWorkbench();
-        testMoneyWorkbench();
-        testClockWorkbench();
-        result('pass','Number Line challenges, Maths Canvas, Bar Model, Equation Balance, Hundred Square, Multiplication Grid, Times-table Visualiser, Factor Explorer, FDP Explorer, Place Value, Abacus, Fraction Wall, Geoboard, Coordinates, Measurement, Randomiser, Array, UK Money and Clock workbench interactions work');
-      }catch(err){
-        result('fail',err&&err.stack?err.stack.split(String.fromCharCode(10)).join(' | '):String(err));
+      const checks=[testSharedPupilResponses,testNumberLineChallenges,testMathsCanvas,testBarModelWorkbench,testEquationBalanceWorkbench,testHundredSquareWorkbench,testMultiplicationGridWorkbench,testTimesTableVisualWorkbench,testFactorExplorerWorkbench,testFdpWorkbench,testPlaceValue,testAbacus,testFractions,testGeoboard,testCoordinates,testMeasurement,testRandomiser,testArrayWorkbench,testMoneyWorkbench,testClockWorkbench];
+      const failures=[],originalRandom=Math.random,originalExports={...TT99Goodies.exportTools};
+      for(const check of checks){
+        try{TT99Goodies.interaction.clear();check()}
+        catch(err){failures.push(check.name+': '+(err&&err.stack?err.stack.split(String.fromCharCode(10)).join(' | '):String(err)))}
+        finally{Math.random=originalRandom;Object.assign(TT99Goodies.exportTools,originalExports)}
       }
+      if(failures.length)result('fail',failures.length+' of '+checks.length+' widget checks failed: '+failures.join(' || '));
+      else result('pass',checks.length+' widget checks passed: '+checks.map(check=>check.name).join(', '));
     },100);
   });
 })();
