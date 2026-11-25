@@ -103,6 +103,7 @@ function defaults(tool){
  if(tool==='maths-canvas')return {difficulty:'medium',curriculumProfile:'custom',numberSettings:G.numberChallenges.settings({},'medium'),workingLines:0};
  if(tool==='sequences')return {settings:{family:'all',difficulty:'medium'}};
  if(tool==='abacus')return {kind:'western',rows:5,colourScheme:'classic',showRowLabels:true};
+ if(tool==='clock')return {clockCount:2,clockLayout:'horizontal',responseLines:1};
  if(tool==='place-value')return {rangeStart:3,rangeEnd:9,activityBudget:5,additionDifficulty:'mixed',responseLines:3};
  return {};
 }
@@ -124,6 +125,7 @@ function openEditor(draft,{mode='review'}={}){
    }
    if(t==='sequences')return '<div class="gd-pub-fields">'+select('Rule family','settings.family',[['all','All families'],['constant','Constant difference'],['increasing','Changing difference'],['geometric','Multiplication'],['alternating','Alternating']],m.settings.family)+select('Difficulty','settings.difficulty',levels,m.settings.difficulty)+'</div>';
    if(t==='abacus')return '<div class="gd-pub-fields">'+select('Instrument','kind',[['western','Western abacus'],['soroban','Soroban'],['suanpan','Suanpan']],m.kind)+select('Places','rows',[3,4,5,6],m.rows)+select('Colours','colourScheme',['classic','place','sea','berry','forest'],m.colourScheme)+'</div>';
+   if(t==='clock')return '<div class="gd-pub-fields">'+select('Clock faces','clockCount',[[1,'One clock'],[2,'Two clocks (comparison enabled)']],m.clockCount)+select('Comparison layout','clockLayout',[['horizontal','Side by side'],['vertical','Stacked']],m.clockLayout)+select('Answer space','responseLines',[[1,'Answer box'],[2,'2 lines'],[3,'3 lines'],[4,'4 lines']],m.responseLines)+'</div>';
    if(t==='place-value'){
      const labels=['10,000,000','1,000,000','100,000','10,000','1,000','100','10','1','0.1','0.01','0.001'];
      return '<div class="gd-pub-fields">'+select('Highest place','rangeStart',labels.slice(0,10).map((v,i)=>[i,v]),m.rangeStart)+select('Lowest place','rangeEnd',labels.map((v,i)=>[i,v]).filter(v=>v[0]>m.rangeStart&&v[0]<=m.rangeStart+6),m.rangeEnd)+select('Exact counter budget','activityBudget',[3,4,5,6,7,8,9],m.activityBudget)+select('Addition','additionDifficulty',[['mixed','Mixed'],['regroup','Needs regrouping'],['no-regroup','No regrouping']],m.additionDifficulty)+'</div>';
