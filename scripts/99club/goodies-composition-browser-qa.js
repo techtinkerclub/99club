@@ -535,6 +535,9 @@ async function run(){
     assert(marked.filter(n=>n%k===0).length>=2,'Wrong-mark task contains enough valid examples');
   }
   const checker=hsDoc.defaultView.TT99Goodies.challengeKit;
+  assert(checker.pupilAnswerCorrect(checker.pupilSpec('clock-face'),['3:25'],'3:25 pm'),'Analogue reading does not require AM or PM');
+  assert(checker.pupilAnswerCorrect(checker.pupilSpec('clock-face'),['3:25 am'],'3:25 pm'),'Analogue reading does not infer an invisible period');
+  assert(!checker.pupilAnswerCorrect(checker.pupilSpec('clock-12'),['3:25 am'],'3:25 pm'),'Explicit AM/PM conversion still checks the period');
   const equation=checker.pupilSpec('addition-equation');
   assert(checker.pupilAnswerCorrect(equation,['5 + 9 + 4 = 18'],'4 + 5 + 9 = 18'),'Equivalent reordered addition equation is accepted');
   assert(checker.pupilAnswerCorrect(equation,['18 = 9 + 4 + 5'],'4 + 5 + 9 = 18'),'Reversed equality is accepted');
@@ -597,6 +600,34 @@ async function run(){
     assert(frame.classList.contains('is-ready'),'Lesson object is ready: '+id);await tick(50);
     return {record,frame,doc:frame.querySelector('iframe').contentDocument};
   }
+  // Verify real widget challenge controls before the saved-board round trip.
+  const qaClock=await addForSave('clock'),clockDoc=qaClock.doc;
+  clockDoc.querySelector('[data-cl-workflow="challenge"]').click();
+  clockDoc.querySelector('[data-cl-challenge-cat="set"]').click();
+  clockDoc.querySelector('[data-cl-challenge-type="set-five"]').click();
+  clockDoc.getElementById('cl-generate').click();await tick();
+  assert(clockDoc.querySelectorAll('[data-cl-period-stage]').length===2,'Setting a time exposes both AM and PM');
+  clockDoc.querySelector('[data-cl-period-stage="12"]').click();
+  assert(Number(clockDoc.getElementById('cl-face').dataset.clHour)>=12,'PM selector actually changes the clock period');
+  assert(!clockDoc.querySelector('[data-cl-target-status]'),'Clock setting does not reveal success before Check');
+  api.remove(qaClock.record.id);
+  const qaRuler=await addForSave('measurement'),rulerDoc=qaRuler.doc;
+  rulerDoc.querySelector('[data-me-workflow="challenge"]').click();
+  rulerDoc.querySelector('[data-me-challenge-cat="read"]').click();
+  rulerDoc.querySelector('[data-me-challenge-type="read-mark"]').click();
+  rulerDoc.getElementById('me-generate').click();await tick();
+  assert(rulerDoc.querySelectorAll('.gd-ruler-marker--secondary').length===0,'Single marker task does not invent a marker at zero');
+  api.remove(qaRuler.record.id);
+  const qaGeo=await addForSave('geoboard'),geoDoc=qaGeo.doc;
+  geoDoc.querySelector('[data-ge-workflow="challenge"]').click();
+  geoDoc.querySelector('[data-ge-challenge-cat="measure"]').click();
+  geoDoc.querySelector('[data-ge-challenge-type="find-area"]').click();
+  geoDoc.getElementById('ge-generate').click();await tick();
+  const geoState=geoDoc.defaultView.TT99Goodies.lessonState;
+  const given=JSON.stringify(geoState.capture('geoboard').model.diagram.pts);
+  geoDoc.querySelector('[data-gp]').dispatchEvent(new geoDoc.defaultView.MouseEvent('click',{bubbles:true}));
+  assert(JSON.stringify(geoState.capture('geoboard').model.diagram.pts)===given,'Given geometry cannot be altered during a calculation question');
+  api.remove(qaGeo.record.id);
   const saveAb=await addForSave('abacus');
   saveAb.doc.querySelector('[data-ab-bead="4:unit:0"]').click();
   const saveNl=await addForSave('number-line');
