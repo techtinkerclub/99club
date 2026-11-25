@@ -2082,3 +2082,27 @@ html:not(.gd-embed-page) #tt99-goodies-root #gd-controls .gd-mc-five{min-height:
 .gd-pub-draft-total{display:grid;gap:2px;min-width:0}.gd-pub-draft-total strong{font-size:14px}.gd-pub-draft-total small{overflow-wrap:anywhere}
 @media(max-width:680px){.gd-pub-builder .gd-pub-catalog{max-height:30dvh}.gd-pub-catalog-results{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.gd-pub-catalog-head{padding:8px}.gd-pub-catalog-group h4{font-size:10px}.gd-pub-catalog-item small{font-size:10px!important}.gd-pub-source>header{grid-template-columns:minmax(0,1fr) auto auto;gap:4px;padding:7px}.gd-pub-count{display:grid;gap:2px}.gd-publishing-editor .gd-pub-count select{width:54px}.gd-pub-builder-footer{grid-template-columns:1fr auto;gap:6px}.gd-pub-builder-footer label{grid-row:2;grid-column:1/-1}.gd-pub-source-content{padding:8px}}
 @media(max-width:380px){.gd-pub-catalog-results{grid-template-columns:1fr}}
+
+/* Review and print: compact controls, navigation and separate annex presentation. */
+.gd-pub-review-controls{background:#fff}
+.gd-pub-review-title{gap:12px;padding:10px 16px}
+.gd-pub-review-title .gd-pub-title{min-width:160px;max-width:580px}
+.gd-pub-review-count{display:grid;gap:2px;margin-left:auto;min-width:0}
+.gd-pub-review-count strong{font-size:13px;color:#31575a}
+.gd-pub-review-tools{padding:8px 16px;gap:12px}
+.gd-pub-review-tools .gd-pub-order{display:flex;gap:4px}
+.gd-pub-review-tools .gd-pub-segment{border:1px solid #d5e3df;border-radius:8px;padding:2px}
+.gd-publishing-editor .gd-pub-review-tools button{min-height:32px!important;padding:6px 9px!important;font-size:12px!important}
+.gd-pub-pagination{display:flex;align-items:center;gap:6px;padding:7px 16px;background:#f8fbfa;border-bottom:1px solid #e0e9e8;font-size:12px;color:#526970;flex-wrap:wrap}
+.gd-pub-pagination label{display:flex;align-items:center;gap:6px}
+.gd-publishing-editor .gd-pub-pagination select{width:auto;max-width:125px;min-height:32px!important;padding:5px 8px!important}
+.gd-publishing-editor .gd-pub-pagination button{min-height:32px!important;padding:5px 8px!important}
+.gd-pub-pagination [data-pub-print-caption]{white-space:nowrap}
+.gd-pub-preview{max-height:calc(100dvh - 260px);min-height:120px;overflow:auto;overscroll-behavior:contain}
+.gd-pub-body--inline .gd-pub-preview{display:flex;flex-direction:column;align-items:center}
+.gd-pub-sheet{flex:none;align-items:stretch}
+.gd-pub-sheet.is-annex{grid-template-columns:minmax(0,780px);padding-right:150px}
+.gd-pub-preview.is-large{align-items:flex-start}
+.gd-pub-preview.is-large .gd-pub-sheet{width:930px;max-width:none}
+.gd-pub-preview.is-large .gd-pub-sheet.is-annex{width:930px;max-width:none}
+@media(max-width:680px){.gd-pub-review-title,.gd-pub-review-tools{padding:8px;gap:6px}.gd-pub-review-title .gd-pub-title{flex:1 1 100%;max-width:none}.gd-pub-review-count{margin-left:0;flex:1}.gd-pub-pagination{padding:6px 8px}.gd-pub-pagination [data-pub-print-caption]{flex-basis:100%}.gd-pub-preview{max-height:calc(100dvh - 300px)}.gd-pub-sheet.is-annex{grid-template-columns:minmax(0,1fr);padding-right:41px}.gd-pub-preview.is-large .gd-pub-sheet{width:820px;grid-template-columns:minmax(0,1fr) 36px}.gd-pub-preview.is-large .gd-pub-sheet.is-annex{width:820px;grid-template-columns:minmax(0,1fr)}}

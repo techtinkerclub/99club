@@ -551,6 +551,29 @@ async function run(){
   publisher.querySelector('[data-pub-remove]').click();await tick();
   publisher.querySelector('[data-pub-close]').click();
   TT99Goodies.compositionBoard.remove(randomRecord.id);
+  // Review navigation and print versions use the actual generated page set.
+  {
+    const P=TT99Goodies.publishing,draft=P.createDocument();
+    draft.generate('geoboard',{gridSize:9},1,'build-area',()=>0.15);
+    draft.generate('times-table',{},1,'find-total',()=>0.2);
+    P.openEditor(draft);
+    const dialog=document.getElementById('gd-publishing-editor');
+    assert(dialog.querySelector('.gd-pub-review-count').textContent.includes('2 / 80'),'Review shows the document item count');
+    assert(!dialog.querySelector('.gd-pub-sheet.is-annex')&&dialog.querySelector('[data-pub-jump-answers]').hidden,'Pupil version contains no annex');
+    dialog.querySelector('[data-pub-teacher]').click();await tick();
+    const annex=dialog.querySelector('.gd-pub-sheet.is-annex');
+    assert(annex&&!annex.querySelector('.gd-pub-action-rail'),'Annex preview has no duplicate question editing controls');
+    assert(!dialog.querySelector('[data-pub-jump-answers]').hidden,'Teacher view offers direct annex navigation');
+    dialog.querySelector('[data-pub-jump-answers]').click();
+    assert(dialog.querySelector('[data-pub-page]').selectedOptions[0].textContent.startsWith('Answers'),'Page selector navigates to annex');
+    dialog.querySelector('[data-pub-zoom="large"]').click();
+    assert(dialog.querySelector('.gd-pub-preview.is-large'),'Large preview mode is available');
+    dialog.querySelector('[data-pub-pupil]').click();await tick();
+    assert(!dialog.querySelector('.gd-pub-sheet.is-annex')&&dialog.querySelector('[data-pub-page]').value==='1','Switching back to pupil resets page navigation');
+    dialog.querySelector('[data-pub-zoom="fit"]').click();
+    dialog.querySelector('[data-pub-close]').click();await tick();
+  }
+
   // Automatic builder supports search, independent sets and visible validation.
   {
     const P=TT99Goodies.publishing,draft=P.createDocument();
