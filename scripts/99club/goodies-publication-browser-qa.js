@@ -12,7 +12,7 @@ if(process.argv[2]==='prepare'){
    const results=[],warnings=[],issues=[],clipping=[];
    let seed=42137;const rng=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
    const catalog=P.catalogue();
-   assert(catalog.length===22&&catalog.every(x=>P.supports(x.id)),'All 22 widgets must have publishing adapters');
+   assert(catalog.length===23&&catalog.every(x=>P.supports(x.id)),'All 23 widgets must have publishing adapters');
    const vb=svg=>svg.getAttribute('viewBox').split(/\s+/).map(Number);
    function checkPage(svg,tool,kind){
      const [x,y,w,h]=vb(svg);
@@ -100,6 +100,12 @@ if(process.argv[2]==='prepare'){
      assert(!blank.querySelector('[data-wm-result],[data-wm-exchange],[data-wm-carry]'),'Pupil grid has no worked answer or exchange annotations');
      assert(solved.querySelectorAll('[data-wm-result]').length===m.result.length,'Teacher graphic contains all result digits');
      assert(solved.querySelector(method==='addition'?'[data-wm-carry]':'[data-wm-exchange]'),'Teacher diagram includes exchanges');
+   }
+   {
+     const m=G.writtenMethods.calculate('long-multiplication',247,36),blank=G.columnMethods.diagram(m,{step:0,work:true}),solved=G.columnMethods.diagram(m,{step:m.steps.length});
+     assert(!blank.querySelector('[data-wm-result],[data-wm-partial],[data-wm-carry]'),'Multiplication pupil grid has no leaked working');
+     assert(solved.querySelectorAll('[data-wm-partial]').length===String(1482).length+String(7410).length,'Long multiplication shows both partial products');
+     assert(solved.querySelectorAll('[data-wm-result]').length===String(8892).length,'Long multiplication shows completed sum');
    }
    const markingCases=[['fraction-wall','identify-strip','actual number of shaded parts'],['fraction-wall','denominator-misconception','equal-sized wholes'],['array-builder','multiplication-fact','rows × columns'],['clock','elapsed-forward','Both hands'],['clock','twentyfour-to-twelve','am or pm'],['number-line','missing-labels','respective boxes'],['fdp','equivalent-fraction','preserve the value'],['sequences','rule','stated rule family'],['measurement','distance-between','larger minus smaller']];
    for(const [tool,type,expected] of markingCases){const draft=P.createDocument();draft.generate(tool,P.defaultSettings(tool),1,type,rng);const item=draft.list()[0];assert(P.answerNote(item).includes(expected),'Explicit marking criteria: '+tool+'/'+type)}

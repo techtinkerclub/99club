@@ -32,6 +32,7 @@ const defaults={
   'fdp':[700,800],
   'geoboard':[650,780],
   'sequences':[840,460],
+  'written-multiplication':[760,700],
   'column-addition':[760,600],
   'column-subtraction':[760,600],
   'maths-canvas':[760,560]
@@ -81,6 +82,7 @@ const QUICK_ACTIONS={
     {label:'Duplicate',selector:'#ba-duplicate',allowHidden:true},
     {label:'×',selector:'#ba-delete',allowHidden:true,title:'Delete selected weight',danger:true}
   ],
+  'written-multiplication':[{label:'Challenge',selector:'[data-wm-workflow="challenge"]',allowHidden:true,panelMode:'challenge',title:'Choose a challenge'},{label:'Reveal answer',selector:'[data-board-action="reveal"]',dynamicLabel:true,title:'Reveal or hide the challenge answer'}],
   'column-addition':[{label:'Challenge',selector:'[data-wm-workflow="challenge"]',allowHidden:true,panelMode:'challenge',title:'Choose a challenge'},{label:'Reveal answer',selector:'[data-board-action="reveal"]',dynamicLabel:true,title:'Reveal or hide the challenge answer'}],
   'column-subtraction':[{label:'Challenge',selector:'[data-wm-workflow="challenge"]',allowHidden:true,panelMode:'challenge',title:'Choose a challenge'},{label:'Reveal answer',selector:'[data-board-action="reveal"]',dynamicLabel:true,title:'Reveal or hide the challenge answer'}],
   sequences:[{label:'Challenge',selector:'[data-seq-workflow="challenge"]',allowHidden:true,panelMode:'challenge',title:'Choose a challenge'},{label:'Reveal answer',selector:'[data-board-action="reveal"]',dynamicLabel:true,title:'Reveal or hide the challenge answer'}],
@@ -729,7 +731,7 @@ function objectMarkup(obj,tool){
       '<button type="button" data-board-export-kind="svg" role="menuitem">SVG</button>'+
       '<button type="button" data-board-export-kind="print" role="menuitem">Print</button></div></div>'+
       (tool.id==='maths-canvas'?'<div class="gd-pub-menu-section"><button type="button" data-board-export-kind="paper-settings" role="menuitem"><span>Paper settings…</span><small>›</small></button></div>':'')+
-      (['maths-canvas','abacus','place-value','sequences','column-addition','column-subtraction'].includes(tool.id)?'<div class="gd-pub-menu-section" data-pub-key-group hidden><span>Teacher key</span><div class="gd-pub-menu-formats"><button type="button" data-board-export-kind="key-print" role="menuitem" hidden>Print</button><button type="button" data-board-export-kind="key-copy" role="menuitem" hidden>Copy</button></div></div>':'')+
+      (['maths-canvas','abacus','place-value','sequences','column-addition','column-subtraction','written-multiplication'].includes(tool.id)?'<div class="gd-pub-menu-section" data-pub-key-group hidden><span>Teacher key</span><div class="gd-pub-menu-formats"><button type="button" data-board-export-kind="key-print" role="menuitem" hidden>Print</button><button type="button" data-board-export-kind="key-copy" role="menuitem" hidden>Copy</button></div></div>':'')+
     '</div>'+
     '<div class="gd-board-quick-actions is-empty" data-board-quick-actions aria-label="'+esc(tool.title)+' quick actions"></div>'+
     '<div class="gd-board-context-menu" role="menu" aria-label="'+esc(tool.title)+' controls">'+
@@ -908,7 +910,7 @@ function toggleExportMenu(id){
     let supported=false;try{const model=frame.querySelector('iframe')?.contentWindow?.TT99Goodies?.lessonState.capture('abacus').model;supported=['western','suanpan','soroban'].includes(model?.kind)}catch(_){}
     frame.querySelectorAll('[data-board-export-kind$="document"]').forEach(button=>button.hidden=!supported);const group=frame.querySelector('[data-pub-document-group]');if(group)group.hidden=!supported;
   }
-  if(open&&['maths-canvas','abacus','place-value','sequences','column-addition','column-subtraction'].includes(obj.toolId)){
+  if(open&&['maths-canvas','abacus','place-value','sequences','column-addition','column-subtraction','written-multiplication'].includes(obj.toolId)){
     const doc=innerDocument(obj),active=obj.toolId!=='maths-canvas'?!!doc?.querySelector('[data-gd-direct-export="key-print"]'):!!doc?.querySelector('#gd-stage .gd-challenge-banner');
     frame?.querySelectorAll('[data-board-export-kind^="key-"]').forEach(button=>{button.hidden=!active});const group=frame?.querySelector('[data-pub-key-group]');if(group)group.hidden=!active;
   }
