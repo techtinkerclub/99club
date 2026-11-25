@@ -828,6 +828,7 @@ function toggleExportMenu(id){
     frame?.querySelectorAll('[data-board-export-kind^="key-"]').forEach(button=>{button.hidden=!active});const group=frame?.querySelector('[data-pub-key-group]');if(group)group.hidden=!active;
   }
   frame?.classList.toggle('has-export-menu',open);
+  if(open){const menu=frame.querySelector('[data-board-export-menu]');if(menu){menu.style.transform='';const r=menu.getBoundingClientRect(),v=viewport.getBoundingClientRect(),left=Math.max(8,v.left+6),right=Math.min(window.innerWidth-8,v.right-6),top=Math.max(8,v.top+6),bottom=Math.min(window.innerHeight-8,v.bottom-6),dx=r.left<left?left-r.left:r.right>right?right-r.right:0,dy=r.bottom>bottom?bottom-r.bottom:0;menu.style.transform='translate('+dx+'px,'+Math.max(dy,top-r.top)+'px)';}}
   frame?.classList.remove('has-context-menu');
   obj.menuOpen=false;
 }
