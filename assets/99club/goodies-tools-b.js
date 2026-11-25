@@ -188,7 +188,22 @@ function generateSet(ids,count,level='medium',rng=Math.random,raw={}){
  if(questions.length!==size)throw Error('Could not make '+size+' distinct questions. Try fewer questions or a wider range.');
  return questions;
 }
-G.numberChallenges={groups,titles,generate,generateSet,settings,presets,available,OPS,REL,EXTRAS};
+// Use the configured range, not the hidden answer, to size every numeric box
+// in a set. One width budget for all equations avoids question-by-question shrinkage.
+function equationMetrics(questions){
+ const rows=q=>{const result=[[]];for(const token of q.tiles){if(token===' ; ')result.push([]);else result.at(-1).push(token)}return result};
+ const numberWidth=Math.max(2.15,...questions.map(q=>{
+   const cfg=q.settings||{},dp=Number(cfg.precision)||0;
+   const digits=Math.max(String(cfg.min??0).length,String(cfg.max??1000).length)+(dp?1+dp:0);
+   return Math.max(2.15,digits*.66+.65)
+ }));
+ const symbolWidth=2.05;
+ const width=(token,q)=>token==='?'?(q.kind==='choice'?symbolWidth:numberWidth):/^[+−×÷=<>R]$/.test(token)?1:/^[()]$/.test(token)?.55:Math.max(.85,String(token).length*.71);
+ const rowWidth=(tokens,q)=>tokens.reduce((sum,token)=>sum+width(token,q),0)+Math.max(0,tokens.length-1)*.18;
+ const maxUnits=Math.max(1,...questions.flatMap(q=>rows(q).map(tokens=>rowWidth(tokens,q))));
+ return {rows,numberWidth,symbolWidth,width,rowWidth,maxUnits};
+}
+G.numberChallenges={groups,titles,generate,generateSet,settings,presets,available,OPS,REL,EXTRAS,equationMetrics};
 })(window.TT99Goodies);
 ;
 (function(G){
@@ -4204,15 +4219,15 @@ function exitNumberChallenge(){challenge=null;batch=[];batchScope='';batchType='
 function batchCols(){return setLayout==='one'?1:setLayout==='two'?2:batch.length>=4?2:1}
 function batchRows(question){const rows=[[]];for(const token of question.tiles){if(token===' ; ')rows.push([]);else rows.at(-1).push(token)}return rows}
 function batchMarkup(){
- const shown=batch.some(item=>item.revealed),done=batch.filter(item=>item.correct).length;
+ const shown=batch.some(item=>item.revealed),done=batch.filter(item=>item.correct).length,metrics=N.equationMetrics(batch.map(item=>item.question));
  const cards=batch.map((item,i)=>{
    const qn=item.question,locked=item.correct||item.revealed,display=item.revealed?qn.answer:item.value,choice=qn.kind==='choice',label='Answer to question '+(i+1);
-   const answer=choice?'<select class="gd-mc-set-answer" aria-label="'+label+'" data-mc-set-value="'+i+'"'+(locked?' disabled':'')+'><option value="">?</option>'+qn.choices.map(v=>'<option value="'+esc(v)+'"'+(display===v?' selected':'')+'>'+esc(v)+'</option>').join('')+'</select>':'<input type="text" inputmode="none" data-gd-keypad="number" class="gd-mc-set-answer" aria-label="'+label+'" data-mc-set-value="'+i+'" autocomplete="off" maxlength="24" value="'+esc(display)+'" placeholder="?"'+(locked?' disabled':'')+'>';
+   const answer=choice?'<select class="gd-mc-set-answer '+(qn.tiles.includes('?')?'is-symbol-answer':'is-word-answer')+'" aria-label="'+label+'" data-mc-set-value="'+i+'"'+(locked?' disabled':'')+'><option value="">?</option>'+qn.choices.map(v=>'<option value="'+esc(v)+'"'+(display===v?' selected':'')+'>'+esc(v)+'</option>').join('')+'</select>':'<input type="text" inputmode="none" data-gd-keypad="number" class="gd-mc-set-answer is-number-answer" aria-label="'+label+'" data-mc-set-value="'+i+'" autocomplete="off" maxlength="24" value="'+esc(display)+'" placeholder="?"'+(locked?' disabled':'')+'>';
    const hasHole=qn.tiles.includes('?');
-   const equations=batchRows(qn).map(row=>{const units=row.reduce((n,v)=>n+(v==='?'?4:/^[+−×÷=<>]$/.test(v)?1.35:/^[()]$/.test(v)?.65:Math.max(1.35,String(v).length*.66+.45)),0);return '<div class="gd-number-equation" style="--eq-units:'+units+'">'+row.map(v=>v==='?'?answer:'<span class="gd-number-equation-token'+(/^[+−×÷=<>]$/.test(v)?' is-operator':/^[()]$/.test(v)?' is-bracket':'')+'">'+esc(v)+'</span>').join('')+'</div>'}).join('');
+   const equations=batchRows(qn).map(row=>'<div class="gd-number-equation">'+row.map(v=>v==='?'?answer:'<span class="gd-number-equation-token'+(/^[+−×÷=<>R]$/.test(v)?' is-operator':/^[()]$/.test(v)?' is-bracket':'')+'">'+esc(v)+'</span>').join('')+'</div>').join('');
    return '<article class="gd-mc-set-card nl-challenge-solve'+(item.correct?' is-correct':item.revealed?' is-revealed':'')+'"><div class="gd-mc-set-card-head"><strong class="gd-mc-set-index">'+(i+1)+'.</strong><span>'+esc(N.titles[qn.type])+'</span></div><div class="gd-mc-set-equations">'+equations+'</div><div class="gd-mc-set-card-foot">'+(!hasHole?answer:'')+'<span class="gd-mc-set-feedback" role="status" aria-live="polite">'+esc(item.feedback||(item.revealed?'Answer shown':''))+'</span><button type="button" class="gd-btn gd-mc-set-check" data-challenge-check data-mc-set-check="'+i+'"'+(!item.value.trim()||locked?' disabled':'')+'>Check</button></div></article>';
  }).join('');
- return '<div class="gd-mc-set"><div class="gd-challenge-banner gd-mc-set-header" data-challenge-mode="standard"><div><strong>'+batch.length+' questions</strong> <span class="gd-mc-set-progress">'+done+' / '+batch.length+' correct</span></div><div class="gd-challenge-actions"><button type="button" class="gd-challenge-action" data-mc-new-set>New set</button><button type="button" class="gd-challenge-action" data-mc-layout-toggle>'+(batchCols()===1?'Two columns':'One column')+'</button><button type="button" class="gd-challenge-reveal" data-board-action="reveal"'+(done===batch.length?' hidden':'')+'>'+(shown?'Hide answers':'Reveal answers')+'</button><button type="button" class="gd-challenge-action" data-challenge-action="end">Exit challenge</button></div></div>'+(generationError?'<p class="gd-number-error" role="status">'+esc(generationError)+'</p>':'')+'<div class="gd-mc-set-grid" data-columns="'+batchCols()+'">'+cards+'</div></div>';
+ return '<div class="gd-mc-set"><div class="gd-challenge-banner gd-mc-set-header" data-challenge-mode="standard"><div><strong>'+batch.length+' questions</strong> <span class="gd-mc-set-progress">'+done+' / '+batch.length+' correct</span></div><div class="gd-challenge-actions"><button type="button" class="gd-challenge-action" data-mc-new-set>New set</button><button type="button" class="gd-challenge-action" data-mc-layout-toggle>'+(batchCols()===1?'Two columns':'One column')+'</button><button type="button" class="gd-challenge-reveal" data-board-action="reveal"'+(done===batch.length?' hidden':'')+'>'+(shown?'Hide answers':'Reveal answers')+'</button><button type="button" class="gd-challenge-action" data-challenge-action="end">Exit challenge</button></div></div>'+(generationError?'<p class="gd-number-error" role="status">'+esc(generationError)+'</p>':'')+'<div class="gd-mc-set-grid" data-columns="'+batchCols()+'" style="--mc-equation-units:'+metrics.maxUnits+';--mc-number-width:'+metrics.numberWidth+'em;--mc-symbol-width:'+metrics.symbolWidth+'em">'+cards+'</div></div>';
 }
 function bindBatch(stage){
  const refresh=()=>controller.refresh();
@@ -4226,8 +4241,8 @@ function bindBatch(stage){
 function challengeMarkup(){
  const spec=CK.pupilSpec(challenge.kind,challenge.choices?{choices:challenge.choices}:{hint:'Number'});
  const banner=CK.bannerHtml(challenge,{pupil:spec,actions:[{action:'another',label:'Another'},{action:'end',label:'Exit challenge'}]});
- const rows=[[]];for(const tile of challenge.tiles){if(tile===' ; ')rows.push([]);else rows.at(-1).push(tile)}
- return (generationError?'<p class="gd-number-error" role="status">'+esc(generationError)+'</p>':'')+banner+'<div class="gd-number-task-rows gd-number-equations">'+rows.map(row=>{const units=row.reduce((n,v)=>n+(v==='?'?2.4:/^[+−×÷=<>]$/.test(v)?1.35:/^[()]$/.test(v)?.65:Math.max(1.35,String(v).length*.66+.45)),0);return '<div class="gd-number-equation" style="--eq-units:'+units+'">'+row.map(v=>'<span class="gd-number-equation-token'+(v==='?'?' is-unknown'+(challenge.revealed?' is-revealed':''):/^[+−×÷=<>]$/.test(v)?' is-operator':/^[()]$/.test(v)?' is-bracket':'')+'">'+esc(v==='?'&&challenge.revealed?challenge.answer:v)+'</span>').join('')+'</div>'}).join('')+'</div>';
+ const metrics=N.equationMetrics([challenge]);
+ return (generationError?'<p class="gd-number-error" role="status">'+esc(generationError)+'</p>':'')+banner+'<div class="gd-number-task-rows gd-number-equations gd-mc-single-equations" style="--mc-equation-units:'+metrics.maxUnits+';--mc-number-width:'+metrics.numberWidth+'em;--mc-symbol-width:'+metrics.symbolWidth+'em">'+metrics.rows(challenge).map(row=>'<div class="gd-number-equation">'+row.map(v=>'<span class="gd-number-equation-token'+(v==='?'?' is-unknown '+(challenge.kind==='choice'?'is-symbol-answer':'is-number-answer')+(challenge.revealed?' is-revealed':''):/^[+−×÷=<>R]$/.test(v)?' is-operator':/^[()]$/.test(v)?' is-bracket':'')+'">'+esc(v==='?'&&challenge.revealed?challenge.answer:v)+'</span>').join('')+'</div>').join('')+'</div>';
 }
 function draw(selectedId,meta){
  if(challenge){q('#gd-stage').innerHTML=batch.length>1?batchMarkup():challengeMarkup();return}
@@ -4275,36 +4290,41 @@ Object.entries(attrs).forEach(([key,value])=>el.setAttribute(key,String(value)))
 if(text!==''&&text!=null)el.textContent=String(text);
 return el;
 }
+function appendEquationSvg(svg,qn,tokens,metrics,font,x,y,width){
+ const weights=tokens.map(v=>metrics.width(v,qn)),gap=.18*font,total=metrics.rowWidth(tokens,qn)*font;
+ let xx=x+(width-total)/2;
+ tokens.forEach((v,i)=>{
+   const w=weights[i]*font;
+   if(v==='?')svg.appendChild(mcSvgEl('rect',{x:xx,y:y-font*.86,width:w,height:font*1.16,rx:font*.12,fill:'#fff',stroke:'#48666b','stroke-width':1.6}));
+   else svg.appendChild(mcSvgEl('text',{x:xx+w/2,y,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':font,'font-weight':700,fill:'#24343b'},v));
+   xx+=w+gap;
+ });
+}
 function numberChallengeSvg(){
- const rows=[[]];for(const tile of challenge.tiles){if(tile===' ; ')rows.push([]);else rows.at(-1).push(tile)}
- const W=960,H=rows.length*114+54,svg=mcSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':'Unanswered arithmetic question'});
+ const metrics=N.equationMetrics([challenge]),rows=metrics.rows(challenge),W=960,H=rows.length*114+54;
+ const svg=mcSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':'Unanswered arithmetic question'});
  svg.appendChild(mcSvgEl('rect',{width:W,height:H,fill:'#fff'}));
- rows.forEach((row,r)=>{
-   const weights=row.map(v=>v==='?'?2.2:/^[+−×÷=<>]$/.test(v)?1.25:/^[()]$/.test(v)?.6:Math.max(1.1,String(v).length*.65+.25));
-   const font=Math.min(56,880/weights.reduce((a,b)=>a+b,0)),widths=weights.map(v=>v*font),total=widths.reduce((a,b)=>a+b,0);
-   let x=(W-total)/2;const y=85+r*114;
-   row.forEach((v,i)=>{const w=widths[i];if(v==='?'){svg.appendChild(mcSvgEl('rect',{x:x+font*.12,y:y-font*.85,width:w-font*.24,height:font*1.12,rx:7,fill:'#fff',stroke:'#466c70','stroke-width':2,'stroke-dasharray':'5 3'}))}else svg.appendChild(mcSvgEl('text',{x:x+w/2,y,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':font,'font-weight':700,fill:'#24343b'},v));x+=w})
- });return svg;
+ const font=Math.min(56,880/metrics.maxUnits);
+ rows.forEach((row,i)=>appendEquationSvg(svg,challenge,row,metrics,font,40,85+i*114,W-80));
+ return svg;
 }
 function numberSetSvg(){
- const cols=batchCols(),W=960,pad=24,gap=20,cellW=(W-pad*2-gap*(cols-1))/cols,rowHeights=[];
- batch.forEach((item,i)=>{const qn=item.question,rows=batchRows(qn).length,height=40+rows*58+(qn.kind==='choice'?22:0)+(!qn.tiles.includes('?')?38:0),index=Math.floor(i/cols);rowHeights[index]=Math.max(rowHeights[index]||0,height)});
+ const cols=batchCols(),W=960,pad=24,gap=20,cellW=(W-pad*2-gap*(cols-1))/cols,rowHeights=[],metrics=N.equationMetrics(batch.map(item=>item.question));
+ // Compute once, then use exactly the same font for every equation on the sheet.
+ const font=Math.min(38,(cellW-20)/metrics.maxUnits),lineH=Math.max(44,font*1.48);
+ batch.forEach((item,i)=>{const qn=item.question,rows=metrics.rows(qn).length,height=40+rows*lineH+(qn.kind==='choice'?24:0)+(!qn.tiles.includes('?')?38:0),index=Math.floor(i/cols);rowHeights[index]=Math.max(rowHeights[index]||0,height)});
  const H=70+rowHeights.reduce((n,h)=>n+h+12,0)+12,svg=mcSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':batch.length+' unanswered arithmetic questions'});
  const add=(name,attrs,txt)=>svg.appendChild(mcSvgEl(name,attrs,txt));
  add('rect',{width:W,height:H,fill:'#fff'});
  add('text',{x:pad,y:32,'font-family':'Arial,sans-serif','font-size':24,'font-weight':700,fill:'#24343b'},batch.length+' arithmetic questions');
  add('text',{x:W-pad,y:32,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':15,fill:'#52666d'},'Name: __________________');
  batch.forEach((item,i)=>{
-   const qn=item.question,row=Math.floor(i/cols),x=pad+(i%cols)*(cellW+gap),y=58+rowHeights.slice(0,row).reduce((n,h)=>n+h+12,0);
-   add('text',{x,y:y+18,'font-family':'Arial,sans-serif','font-size':17,'font-weight':700,fill:'#24343b'},(i+1)+'. '+N.titles[qn.type]);
-   batchRows(qn).forEach((tokens,j)=>{
-     const weights=tokens.map(v=>v==='?'?2.4:/^[+−×÷=<>]$/.test(v)?1.25:/^[()]$/.test(v)?.6:Math.max(1.1,String(v).length*.65+.25));
-     const font=Math.min(38,(cellW-16)/weights.reduce((a,b)=>a+b,0)),widths=weights.map(v=>v*font);let xx=x+6;const yy=y+57+j*58;
-     tokens.forEach((v,n)=>{const w=widths[n];if(v==='?')add('rect',{x:xx+font*.12,y:yy-font*.8,width:w-font*.24,height:font*1.08,rx:4,fill:'#fff',stroke:'#48666b','stroke-width':1.6});else add('text',{x:xx+w/2,y:yy,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':font,'font-weight':650,fill:'#24343b'},v);xx+=w});
-   });
-   let bottom=y+40+batchRows(qn).length*58;
-   if(!qn.tiles.includes('?')){add('rect',{x:x+6,y:bottom-12,width:Math.min(150,cellW-20),height:27,rx:3,fill:'#fff',stroke:'#48666b','stroke-width':1.5});bottom+=38}
-   if(qn.kind==='choice')add('text',{x:x+6,y:bottom+6,'font-family':'Arial,sans-serif','font-size':14,fill:'#52666d'},'Choose: '+qn.choices.join('   /   '));
+   const qn=item.question,row=Math.floor(i/cols),x=pad+(i%cols)*(cellW+gap),y=58+rowHeights.slice(0,row).reduce((n,h)=>n+h+12,0),rows=metrics.rows(qn);
+   add('text',{x:x+cellW/2,y:y+18,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':17,'font-weight':700,fill:'#24343b'},(i+1)+'. '+N.titles[qn.type]);
+   rows.forEach((tokens,j)=>appendEquationSvg(svg,qn,tokens,metrics,font,x+10,y+28+lineH*.75+j*lineH,cellW-20));
+   let bottom=y+40+rows.length*lineH;
+   if(!qn.tiles.includes('?')){const answerW=Math.min(150,cellW-20);add('rect',{x:x+(cellW-answerW)/2,y:bottom-12,width:answerW,height:27,rx:3,fill:'#fff',stroke:'#48666b','stroke-width':1.5});bottom+=38}
+   if(qn.kind==='choice')add('text',{x:x+cellW/2,y:bottom+6,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':14,fill:'#52666d'},'Choose: '+qn.choices.join('   /   '));
    add('line',{x1:x,y1:y+rowHeights[row]+3,x2:x+cellW,y2:y+rowHeights[row]+3,stroke:'#d8e0e1','stroke-width':1});
  });
  return svg;
