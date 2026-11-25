@@ -2229,3 +2229,10 @@ html:not(.gd-embed-page) #tt99-goodies-root #gd-controls .gd-mc-five{min-height:
 .gd-board-palette .gd-board-hub>small{font-size:9px;letter-spacing:-.15px}
 .gd-board-palette.is-tiny .gd-board-hub>small{font-size:7px}
 .gd-board-palette.is-tiny .gd-board-hub{flex-direction:column;gap:0}
+
+/* Whiteboard chrome: pointer selections use their active background, while
+   keyboard navigation retains a clearly visible, theme-matched focus ring. */
+#tt99-goodies-root .gd-mixed-board :is(.gd-board-palette,.gd-board-tool-picker,.gd-board-context-menu,.gd-board-floating-controls,.gd-board-quick-actions) button:focus,
+#tt99-goodies-root .gd-mixed-board :is(.gd-board-palette,.gd-board-tool-picker,.gd-board-context-menu,.gd-board-floating-controls,.gd-board-quick-actions) button:active{outline:none!important;box-shadow:none!important}
+#tt99-goodies-root .gd-mixed-board :is(.gd-board-palette,.gd-board-tool-picker,.gd-board-context-menu,.gd-board-floating-controls,.gd-board-quick-actions) button:focus-visible{outline:2px solid #27877b!important;outline-offset:2px;box-shadow:none!important}
+#tt99-goodies-root .gd-board-tool-picker .gd-board-tool:focus-visible{outline-offset:-2px}
