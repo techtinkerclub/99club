@@ -1,7 +1,7 @@
 (function(G){
 'use strict';
 if(!G)return;
-const {root,CATS,q,qa,numberLine,placeValue,abacusTool,fractionWall,barModel,hundredSquare,multiplicationGrid,arrayBuilder,clockTool,moneyTool,coordinateTool,measurementTool,randomiser,balanceTool,timesTableVisual,factorExplorer,fdpExplorer,geoboard,mathsCanvas}=G;
+const {root,CATS,q,qa,numberLine,placeValue,abacusTool,fractionWall,barModel,hundredSquare,multiplicationGrid,arrayBuilder,clockTool,moneyTool,coordinateTool,measurementTool,randomiser,balanceTool,timesTableVisual,factorExplorer,fdpExplorer,geoboard,mathsCanvas,sequencesTool}=G;
 const tools=[
   ['number-line','Number line','↔','number','Explore integers, decimals and jumps on a configurable line.','Mental arithmetic, rounding, negative numbers, fractions/decimals and explaining calculation strategies.',numberLine],
   ['place-value','Place value board','123','number','Build numbers with counters and a linked place-value bead frame.','Reading, composing and decomposing whole numbers and decimals; useful on an interactive whiteboard.',placeValue],
@@ -21,6 +21,7 @@ const tools=[
   ['factors','Factors & multiples','÷','number','Find factor pairs, multiples and prime factors.','Factors, multiples, primes, common factors and divisibility.',factorExplorer],
   ['fdp','Fraction–decimal–percentage','%','fractions','See the same quantity as a fraction, decimal and percentage.','Making equivalence visible with fraction bars and a hundred square.',fdpExplorer],
   ['geoboard','Shape & geoboard','◇','geometry','Plot vertices on a dot grid to make and inspect polygons.','Coordinates, perimeter, area, polygons and geometric reasoning.',geoboard],
+  ['sequences','Sequences & rules','1…','number','Change a sequence rule and reveal terms step by step.','Teacher-led exploration of constant and changing differences, multiplication patterns and alternating rules.',sequencesTool],
   ['maths-canvas','Number & symbol tiles','3+?','canvas','Arrange, combine and split draggable number and mathematical symbol tiles.','Build equations, order numbers, model number composition and create custom pupil tasks.',mathsCanvas],
 ].map(([id,title,icon,cat,desc,use,build])=>({id,title,icon,cat,desc,use,build}));
 const params=new URLSearchParams(location.search),embedded=params.get('embed')==='1';
