@@ -3152,6 +3152,8 @@ if(mode==='prepare'){
     TT99Goodies.moneyTool();
     const realMoneyRandom=Math.random;
     Math.random=()=>0;
+    const baselineTarget=document.getElementById('mo-target');
+    baselineTarget.value='3.75';baselineTarget.dispatchEvent(new Event('input',{bubbles:true}));
     document.querySelector('[data-mo-workflow="challenge"]').click();
     assert(document.querySelector('[data-mo-challenge-tab="standard"]')&&document.querySelector('[data-mo-challenge-tab="custom"]'),'UK Money uses the shared Standard / Custom challenge tabs');
     for(const type of ['count-total','compare-amount','missing-to-target']){
@@ -3197,7 +3199,7 @@ if(mode==='prepare'){
     document.querySelector('[data-mo-challenge-cat="make"]').click();
     document.querySelector('[data-mo-challenge-type="exact-pieces"]').click();
     document.getElementById('mo-generate').click();
-    assert(document.querySelector('.gd-challenge-prompt').textContent.includes('exactly 3 money pieces'),'Exact-pieces challenge states the required piece count');
+    assert(document.querySelector('.gd-challenge-prompt').textContent.includes('exactly 3 coins or notes'),'Exact-pieces challenge states the required piece count');
     for(let i=0;i<3;i++)document.querySelector('[data-mo-add="5"]').click();
     document.querySelector('[data-gd-pupil-check]').click(); assert(document.querySelector('.gd-pupil-feedback.is-correct'),'Exact-pieces challenge validates both amount and piece count after Check');
 
