@@ -4423,7 +4423,7 @@ if(G.publishing)G.publishing.register('maths-canvas',{
  capture(model,staticSvg){
   const questions=model.batch?.length>1?model.batch.map(x=>x.question):model.challenge?[model.challenge]:[];
   if(!questions.length){if(!staticSvg)throw Error('The current canvas is not ready.');return [G.publishing.record('maths-canvas','diagram',{svg:staticSvg})]}
-  return questions.map(q=>G.publishing.record('maths-canvas','challenge',{...q,revealed:false},{...this.recipe(model,q.type),settings:q.settings||this.recipe(model,q.type).settings}));
+  return questions.map(q=>G.publishing.record('maths-canvas','challenge',{...q,revealed:false},{...this.recipe(model,q.type),settings:q.settings||this.recipe(model,q.type).settings,difficulty:q.level||model.difficulty||'medium'}));
  },
  render(item,teacher){if(item.kind==='diagram')return new DOMParser().parseFromString(item.data.svg,'image/svg+xml').documentElement;return arithmeticPaper(item.data,item.recipe?.workingLines||0,teacher)}
 });
