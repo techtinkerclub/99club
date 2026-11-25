@@ -318,6 +318,7 @@ function keypadKind(field){
   return 'number';
 }
 function keypadSymbols(kind){
+  if(kind==='marker-order')return ['A','B','C','<'];
   if(kind==='number-line')return ['−','/','Space','%'];
   if(['fraction','fraction-form','mixed'].includes(kind))return ['−','/','Space'];
   if(kind==='money')return ['£','p'];
@@ -362,7 +363,7 @@ function openKeypad(field){
   const panel=document.createElement('div');panel.className='gd-touch-keypad';panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Enter your answer');
   const label=field.getAttribute('aria-label')||field.closest('label')?.querySelector('span')?.textContent||'Enter your answer';
   const keyButton=k=>'<button type="button" data-gd-touch-key="'+esc(k)+'" aria-label="'+esc(k==='⌫'?'Backspace':k)+'">'+esc(k)+'</button>';
-  panel.innerHTML='<div class="gd-touch-head"><strong>'+esc(label==='Answer'?'Enter your answer':label)+'</strong><button type="button" data-gd-touch-close aria-label="Close keypad">×</button></div><div class="gd-touch-display" aria-live="polite"></div><div class="gd-touch-grid">'+['7','8','9','4','5','6','1','2','3','0','.','⌫'].map(keyButton).join('')+'</div><div class="gd-touch-symbols">'+keypadSymbols(keypadKind(field)).map(keyButton).join('')+'</div><div class="gd-touch-actions"><button type="button" data-gd-touch-key="Clear">Clear</button><button type="button" data-gd-touch-close>Done</button><button type="button" data-gd-touch-check>Check</button></div>';
+  panel.innerHTML='<div class="gd-touch-head"><strong>'+esc(label==='Answer'?'Enter your answer':label)+'</strong><button type="button" data-gd-touch-close aria-label="Close keypad">×</button></div><div class="gd-touch-display" aria-live="polite"></div><div class="gd-touch-grid">'+(keypadKind(field)==='marker-order'?['A','B','C','<','⌫']:['7','8','9','4','5','6','1','2','3','0','.','⌫']).map(keyButton).join('')+'</div><div class="gd-touch-symbols">'+(keypadKind(field)==='marker-order'?[]:keypadSymbols(keypadKind(field))).map(keyButton).join('')+'</div><div class="gd-touch-actions"><button type="button" data-gd-touch-key="Clear">Clear</button><button type="button" data-gd-touch-close>Done</button><button type="button" data-gd-touch-check>Check</button></div>';
   keypad=panel;document.body.appendChild(panel);keypadUpdateDisplay();positionKeypad();
   panel.addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault()});
   panel.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();const button=e.target.closest('button');if(!button)return;if(button.hasAttribute('data-gd-touch-close'))closeKeypad();else if(button.hasAttribute('data-gd-touch-check'))keypadCheck();else if(button.hasAttribute('data-gd-touch-key'))keypadWrite(button.dataset.gdTouchKey)});
