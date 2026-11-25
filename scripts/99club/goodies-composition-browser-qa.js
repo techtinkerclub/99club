@@ -926,6 +926,14 @@ async function run(){
     const id='function-machine',fixture=await addForSave(id),doc=fixture.doc,G=doc.defaultView.TT99Goodies,M=G.functionMachines,cap=()=>G.lessonState.capture(id).model;
     doc.getElementById('fm-next-step').click();await tick();assert(cap().progress===1,'Machine step demonstration advances one operation');
     doc.getElementById('fm-table').click();await tick();assert(cap().showTable&&doc.querySelector('#gd-stage table'),'Input/output table appears in explore mode');
+    const pub=TT99Goodies.publishing;
+    const demoDraft=pub.createDocument();demoDraft.addCurrent(id,cap());
+    const demo=demoDraft.list()[0];assert(demo.kind==='diagram'&&demo.data.progress===1&&demo.data.rows.length===5,'Teaching capture preserves displayed step and table');
+    const demoSvg=pub.renderItem(demo,false);assert(demoSvg.textContent.includes('Input')&&demoSvg.textContent.includes('Output')&&demoSvg.textContent.includes('?'),'Unfinished demonstration remains unfinished on paper');
+    const exportCalls=[],X=G.exportTools;
+    X.copyPng=async svg=>{exportCalls.push(['copy',svg.textContent])};X.downloadPng=async svg=>{exportCalls.push(['png',svg.textContent])};X.downloadSvg=svg=>{exportCalls.push(['svg',svg.textContent])};X.printSvg=svg=>{exportCalls.push(['print',svg.textContent])};
+    for(const kind of ['copy','png','svg','print']){const button=doc.querySelector('[data-gd-direct-export="'+kind+'"]');assert(button,'Direct export exists in Explore: '+kind);button.click();await tick()}
+    assert(exportCalls.length===4&&exportCalls.every(e=>e[1].includes('Input')&&e[1].includes('Output')),'All four direct exports use current machine diagram');
     const before=cap(),out=M.trace(before.input,before.steps).at(-1);
     doc.getElementById('fm-reverse').click();await tick();assert(cap().input===out&&M.trace(cap().input,cap().steps).at(-1)===before.input,'Machine inverse reverses the order and operations');
     doc.querySelector('[data-fm-workflow="challenge"]').click();await tick();
@@ -934,6 +942,14 @@ async function run(){
     for(const p of task.all){const button=[...doc.querySelectorAll('#gd-stage button[aria-pressed]')].find(b=>b.textContent==='('+p.join(', ')+')');assert(button,'Every valid pair is offered');button.click()}
     check.click();await tick();assert(doc.querySelector('.gd-pupil-feedback').classList.contains('is-correct'),'All valid pairs are accepted');
     const draft=TT99Goodies.publishing.createDocument();draft.addCurrent(id,cap());assert(draft.list()[0].data.type==='pairs-all','Saved challenge and teacher marking are preserved');
+    doc.querySelector('[data-board-action="reveal"]').click();await tick();
+    for(const kind of ['svg','key-copy','key-print']){const button=doc.querySelector('[data-gd-direct-export="'+kind+'"]');assert(button,'Challenge export exists: '+kind);button.click();await tick()}
+    const pupil=exportCalls.at(-3)[1],key=exportCalls.at(-2)[1];assert(!pupil.includes(task.answer)&&key.includes(task.all.map(p=>'('+p.join(', ')+')').join('; ').slice(0,10)),'Revealed challenge exports remain answer-free; teacher key lists solutions');
+    fixture.frame.querySelector('[data-board-export]').click();await tick();
+    assert(!fixture.frame.querySelector('[data-pub-key-group]').hidden,'Whiteboard menu exposes teacher key for a live challenge');
+    assert(!fixture.frame.querySelector('[data-board-export-kind="add-document"]').hidden&& !fixture.frame.querySelector('[data-board-export-kind="generate-document"]').hidden,'Whiteboard supports current and batch publication');
+    const mixed=pub.createDocument();mixed.addCurrent(id,cap());mixed.generateBlocks([{tool:id,settings:pub.defaultSettings(id),types:['output','table','rule'],count:5},{tool:'statistics-table',settings:pub.defaultSettings('statistics-table'),types:['read'],count:2}]);
+    assert(mixed.list().length===8&&pub.pages(mixed.list(),{teacher:true}).some(s=>s.getAttribute('data-worksheet-answer')==='annex'),'Current and generated machine items coexist with other widgets and answer annex');
     api.remove(fixture.record.id);
   }
   // Verify real widget challenge controls before the saved-board round trip.
