@@ -553,12 +553,14 @@ function connectInnerObject(obj){
     }
     function queueFit(){
       if(!valid()||pending)return;
-      pending=requestAnimationFrame(()=>{
-        pending=0;if(!valid())return;measure();
-        // ResizeObserver catches subsequent layout and font changes. Only use
-        // a fallback trailing measurement when that API is unavailable.
-        if(!ro){clearTimeout(settleTimer);settleTimer=setTimeout(measure,80)}
-      });
+      const flush=()=>{
+        if(pending)cancelAnimationFrame(pending);
+        pending=0;clearTimeout(settleTimer);settleTimer=0;
+        if(!valid())return;measure();
+        if(!ro)settleTimer=setTimeout(measure,80);
+      };
+      pending=requestAnimationFrame(flush);
+      clearTimeout(settleTimer);settleTimer=setTimeout(flush,80);
     }
     function dispose(){
       disposed=true;clearTimeout(settleTimer);if(pending)cancelAnimationFrame(pending);

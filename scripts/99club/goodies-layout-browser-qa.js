@@ -137,7 +137,7 @@ window.scrollTo=function(){};
     if(id==='abacus'){
       const modes=[...controls.querySelectorAll('[data-ab-challenge-mode]')];
       assert(modes.length===9,'abacus challenge controls expose all nine arithmetic and number-sense task types');
-      const random=controls.querySelector('#ab-random-challenge');
+      const random=controls.querySelector('[data-gd-native-prefix="ab"] [data-gd-native-random="all"]');
       assert(visible(random),'abacus challenge controls expose a direct Random challenge action');
       assert(!stage.querySelector('.gd-ab-task'),'opening the Abacus Challenge tab shows the picker without silently replacing the teacher setup');
       random.click();await tick();await tick();
@@ -147,7 +147,7 @@ window.scrollTo=function(){};
       const kind=game.dataset.abTask;
       game.querySelector('[data-ab-another]').click();await tick();await tick();
       game=stage.querySelector('.gd-ab-task');
-      assert(visible(game)&&game.dataset.abTask===kind,'abacus Another keeps the chosen challenge type and creates a fresh task');
+      assert(visible(game)&&modes.some(mode=>mode.dataset.abChallengeMode===game.dataset.abTask),'abacus Random-all Another generates a valid fresh task');
       assert(stage.querySelector('[data-ab-total]').textContent.trim()==='?','abacus challenge keeps the total hidden before reveal');
       game.querySelector('[data-ab-reveal]').click();await tick();await tick();
       assert(stage.querySelector('[data-ab-total]').textContent.trim()!=='?','abacus Reveal shows the completed frame value');
@@ -157,7 +157,7 @@ window.scrollTo=function(){};
     if(id==='place-value'){
       const modes=[...controls.querySelectorAll('[data-pv-challenge-mode]')];
       assert(modes.length===8,'place-value challenge controls expose all eight unified task types, including Addition');
-      const random=controls.querySelector('#pv-challenge-random');
+      const random=controls.querySelector('[data-gd-native-prefix="pv"] [data-gd-native-random="all"]');
       assert(visible(random),'place-value challenge controls expose a direct Random challenge action');
       random.click();await tick();await tick();
       let game=stage.querySelector('.gd-pv-activity--game');
@@ -166,7 +166,7 @@ window.scrollTo=function(){};
       const kind=game.dataset.pvActivityKind;
       game.querySelector('[data-pv-activity-another]').click();await tick();await tick();
       game=stage.querySelector('.gd-pv-activity--game');
-      assert(visible(game)&&game.dataset.pvActivityKind===kind,'place-value Another keeps the chosen challenge type and creates a fresh task');
+      assert(visible(game)&&modes.some(mode=>mode.dataset.pvChallengeMode===game.dataset.pvActivityKind),'place-value Random-all Another generates a valid fresh task');
       checkLayout(id,'generated challenge');
       return true;
     }

@@ -1106,20 +1106,23 @@ if(mode==='prepare'){
     assert(hsSource&&['selected-value','one-more','ten-more','marked-count','hidden-count'].every(source=>[...hsSource.options].some(o=>o.value===source)),'Hundred Square custom challenges expose useful live grid answer sources');
     hsSource.value='selected-value';hsSource.dispatchEvent(new Event('change',{bubbles:true}));
     assert(!document.querySelector('.gd-hs-selected'),'Binding a custom answer to the selected number hides the selected-number panel');
-    assert(document.getElementById('hs-custom-live-answer').textContent.trim()==='10','Selected-value custom answer starts from the current neutral cell');
-    assert(document.querySelector('[data-hs-value="10"]').textContent.trim()==='?'&&document.querySelector('[data-hs-value="10"]').getAttribute('aria-label')==='Hidden number','Selected-value binding hides the answer cell itself without an accessibility leak');
+    const hsBoundCell=document.querySelector('.gd-hs-cell.is-current'),hsBoundValue=hsBoundCell.dataset.hsValue;
+    assert(document.getElementById('hs-custom-live-answer').textContent.trim()===hsBoundValue,'Selected-value custom answer matches the currently selected cell');
+    assert(hsBoundCell.textContent.trim()==='?'&&hsBoundCell.getAttribute('aria-label')==='Hidden number','Selected-value binding hides the answer cell itself without an accessibility leak');
     document.querySelector('[data-hs-value="20"]').click();
     assert(document.getElementById('hs-custom-live-answer').textContent.trim()==='20','Selected-value custom answer follows direct cell selection');
-    assert(document.querySelector('[data-hs-value="20"]').textContent.trim()==='?'&&document.querySelector('[data-hs-value="10"]').textContent.trim()==='10','Bound hidden cell follows the current selection dynamically');
+    assert(document.querySelector('[data-hs-value="20"]').textContent.trim()==='?'&&document.querySelector('[data-hs-value="'+hsBoundValue+'"]').textContent.trim()===hsBoundValue,'Bound hidden cell follows the current selection dynamically');
 
     hsSource.value='marked-count';hsSource.dispatchEvent(new Event('change',{bubbles:true}));
     assert(document.querySelector('[data-hs-value="20"]').textContent.trim()==='20','Switching to a non-cell answer source restores the previously bound cell');
-    assert(document.getElementById('hs-custom-live-answer').textContent.trim()==='11','Marked-count custom answer reflects the current marked set');
-    let extraCell=document.querySelector('[data-hs-value="1"]');
+    const hsMarkCount=document.querySelectorAll('.gd-hs-cell.is-marked').length;
+    assert(document.getElementById('hs-custom-live-answer').textContent.trim()===String(hsMarkCount),'Marked-count custom answer reflects the current marked set');
+    let extraCell=[...document.querySelectorAll('[data-hs-value]')].find(cell=>!cell.classList.contains('is-marked'));
+    const extraValue=extraCell.dataset.hsValue;
     extraCell.click();
-    extraCell=document.querySelector('[data-hs-value="1"]');
+    extraCell=document.querySelector('[data-hs-value="'+extraValue+'"]');
     extraCell.dispatchEvent(new KeyboardEvent('keydown',{key:' ',bubbles:true}));
-    assert(document.getElementById('hs-custom-live-answer').textContent.trim()==='12','Marked-count custom answer updates after a direct mark');
+    assert(document.getElementById('hs-custom-live-answer').textContent.trim()===String(hsMarkCount+1),'Marked-count custom answer updates after a direct mark');
 
     document.getElementById('hs-clear-challenge').click();
     assert(document.querySelector('[data-hs-value="1"]').textContent.trim()==='1'&&document.querySelector('[data-hs-value="100"]').textContent.trim()==='100','Ending Hundred Square challenges restores the teacher grid');
@@ -1428,10 +1431,10 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=(svg)=>{mgMissingCard=svg.cloneNode(true)};
     document.getElementById('mg-svg-download').click();
     TT99Goodies.exportTools.downloadSvg=mgOldMissingDownload;
-    assert(mgMissingCard&&mgMissingCard.querySelector('[data-mg-export-initial-state="1"]'),'Multiplication Grid pupil card is regenerated from the recorded challenge start');
-    assert(mgMissingCard.querySelector('[data-mg-export-cell-text="2-3"]').textContent.trim()==='?'&&mgMissingCard.querySelector('[data-mg-export-cell-text="3-2"]').textContent.trim()==='?','Missing-product pupil export re-hides both commutative products after teacher Reveal');
+    assert(mgMissingCard&&mgMissingCard.querySelectorAll('[data-mg-paper-blank]').length===2,'Multiplication Grid pupil card is regenerated with both original blanks');
+    assert(mgMissingCard.querySelector('[data-mg-paper-value="2-3"]').textContent.trim()===''&&mgMissingCard.querySelector('[data-mg-paper-value="3-2"]').textContent.trim()==='','Missing-product pupil export blanks both commutative products after teacher Reveal');
     assert(!mgMissingCard.textContent.includes('Answer: 6'),'Multiplication Grid challenge-card export never includes the revealed answer');
-    assert(mgMissingCard.textContent.includes('What is 2 × 3?'),'Multiplication Grid challenge card includes the pupil prompt');
+    assert(mgMissingCard.textContent.includes('Complete the blank product 2 × 3'),'Multiplication Grid challenge card includes the pupil prompt');
 
     document.querySelector('[data-mg-workflow="challenge"]').click();
     document.querySelector('[data-mg-challenge-cat="read"]').click();
@@ -1446,10 +1449,9 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=(svg)=>{mgSelectCard=svg.cloneNode(true)};
     document.getElementById('mg-svg-download').click();
     TT99Goodies.exportTools.downloadSvg=mgOldSelectDownload;
-    const mgSelectedExport=mgSelectCard.querySelector('[data-mg-export-selected="1"]');
-    assert(mgSelectedExport&&mgSelectedExport.getAttribute('data-mg-export-cell')==='1-1','Select-fact pupil card restores the original neutral selection');
-    assert(!mgSelectCard.querySelector('[data-mg-export-cell="2-3"]').hasAttribute('data-mg-export-selected'),'Select-fact pupil export strips the teacher tested selection');
-    assert(mgSelectCard.textContent.includes('Select the cell for 2 × 3.'),'Select-fact pupil card keeps the target instruction');
+    assert(mgSelectCard.querySelectorAll('[data-mg-paper-cell]').length===144,'Select-fact pupil card contains the full grid');
+    assert(mgSelectCard.querySelector('[data-mg-paper-cell="2-3"] rect').getAttribute('stroke')==='#a9bdc1','Select-fact pupil export does not highlight the teacher tested selection');
+    assert(mgSelectCard.textContent.includes('Circle the cell in row 2, column 3'),'Select-fact pupil card keeps the target instruction');
 
     document.querySelector('[data-mg-workflow="challenge"]').click();
     document.querySelector('[data-mg-challenge-cat="reason"]').click();
@@ -1462,9 +1464,9 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=(svg)=>{mgErrorCard=svg.cloneNode(true)};
     document.getElementById('mg-svg-download').click();
     TT99Goodies.exportTools.downloadSvg=mgOldErrorDownload;
-    assert(mgErrorCard.querySelector('[data-mg-export-cell="2-3"]').getAttribute('data-mg-export-override')==='1','Spot-error pupil export restores the deliberate incorrect product after teacher Reveal');
-    assert(mgErrorCard.querySelector('[data-mg-export-cell-text="2-3"]').textContent.trim()==='7','Spot-error pupil card keeps the incorrect displayed value');
-    assert(mgErrorCard.querySelector('[data-mg-export-cell-text="3-2"]').textContent.trim()==='6','Spot-error pupil card keeps the correct commutative comparison');
+    assert(mgErrorCard.querySelector('[data-mg-paper-cell="2-3"]').getAttribute('data-mg-paper-error')==='1','Spot-error pupil export restores the deliberate incorrect product after teacher Reveal');
+    assert(mgErrorCard.querySelector('[data-mg-paper-value="2-3"]').textContent.trim()==='7','Spot-error pupil card keeps the incorrect displayed value');
+    assert(!mgErrorCard.querySelector('[data-mg-paper-cell="3-2"]'),'Spot-error paper extract retains the relevant row only');
     assert(!mgErrorCard.textContent.includes('Answer: 2 × 3 = 6'),'Spot-error pupil export does not include the revealed correction');
 
     document.querySelector('[data-mg-workflow="challenge"]').click();
@@ -1689,7 +1691,7 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=tvOldChallengeDownload;
     assert(tvChallengeSvg&&tvChallengeSvg.querySelector('[data-tv-export-model]'),'Times-table challenge card embeds the vector equal-groups model');
     assert(!tvChallengeSvg.textContent.includes('Answer: 12'),'Pupil challenge export never includes the teacher Reveal answer');
-    assert(tvChallengeSvg.textContent.includes('3 × 4 = ?'),'Pupil find-total export re-hides the total after teacher Reveal');
+    assert(!tvChallengeSvg.querySelector('[data-tv-export-equation]')&&tvChallengeSvg.querySelectorAll('[data-tv-export-group]').length===3,'Pupil find-total export retains three groups without the total equation after teacher Reveal');
     assert(tvChallengeSvg.textContent.includes('How many items are there altogether'),'Challenge-card export includes the pupil prompt');
 
     document.querySelector('[data-tv-workflow="challenge"]').click();
@@ -1698,14 +1700,14 @@ if(mode==='prepare'){
     document.getElementById('tv-generate').click();
     tvA=document.getElementById('tv-a');tvA.value='3';tvA.dispatchEvent(new Event('change',{bubbles:true}));
     tvB=document.getElementById('tv-b');tvB.value='4';tvB.dispatchEvent(new Event('change',{bubbles:true}));
-    assert(document.querySelector('[data-tv-equation]').textContent.trim()==='3 × 4 = 12','Teacher can test-complete the build challenge');
+    assert(document.querySelectorAll('[data-tv-group]').length===3&&[...document.querySelectorAll('[data-tv-group]')].every(g=>g.querySelectorAll('.gd-tv-dots i').length===4),'Teacher can test-complete the build challenge');
     document.querySelector('[data-tv-workflow="export"]').click();
     let tvBuildSvg=null;
     const tvOldBuildDownload=TT99Goodies.exportTools.downloadSvg;
     TT99Goodies.exportTools.downloadSvg=(svg)=>{tvBuildSvg=svg.cloneNode(true)};
     document.getElementById('tv-svg-download').click();
     TT99Goodies.exportTools.downloadSvg=tvOldBuildDownload;
-    assert(tvBuildSvg&&tvBuildSvg.textContent.includes('2 × 2 = 4'),'Pupil build challenge export restores the original neutral model after teacher completion');
+    assert(tvBuildSvg&&tvBuildSvg.textContent.includes('Draw 3 equal groups')&&!tvBuildSvg.querySelector('[data-tv-export-equation]'),'Pupil build challenge export keeps the drawing instruction without a solved equation');
     assert(tvBuildSvg.querySelectorAll('[data-tv-export-group]').length===2,'Pupil build export restores the original two equal groups');
 
     Math.random=realTvRandom;
@@ -1793,7 +1795,7 @@ if(mode==='prepare'){
     assert(document.querySelector('[data-fe-challenge-type="common-factors"]')&&document.querySelector('[data-fe-challenge-type="hcf"]')&&document.querySelector('[data-fe-challenge-type="lcm"]'),'Factor comparison challenge types are available');
     document.querySelector('[data-fe-challenge-type="common-factors"]').click();
     document.getElementById('fe-generate').click();
-    assert(document.querySelector('[data-fe-common-summary] strong').textContent.trim()==='?','Common-factors challenge hides the shared-factor list');
+    assert(!document.querySelector('[data-fe-common-summary] strong')&&document.querySelectorAll('.gd-fe-question-number').length===2,'Common-factors challenge hides the shared-factor list while showing both numbers');
     document.querySelector('[data-board-action="reveal"]').click();
     assert(document.querySelector('[data-fe-common-summary]').textContent.includes('1, 2, 3, 4, 6, 12'),'Reveal restores the common factors');
 
@@ -1801,7 +1803,7 @@ if(mode==='prepare'){
     document.querySelector('[data-fe-challenge-cat="compare"]').click();
     document.querySelector('[data-fe-challenge-type="hcf"]').click();
     document.getElementById('fe-generate').click();
-    assert(document.querySelector('[data-fe-hcf]').textContent.trim()==='?','HCF challenge hides the HCF readout');
+    assert(!document.querySelector('[data-fe-hcf]')&&document.querySelectorAll('.gd-fe-question-number').length===2,'HCF challenge hides the HCF readout while showing both numbers');
     document.querySelector('[data-board-action="reveal"]').click();
     assert(document.querySelector('[data-fe-hcf]').textContent.trim()==='12','HCF challenge reveals 12');
 
@@ -1809,7 +1811,7 @@ if(mode==='prepare'){
     document.querySelector('[data-fe-challenge-cat="compare"]').click();
     document.querySelector('[data-fe-challenge-type="lcm"]').click();
     document.getElementById('fe-generate').click();
-    assert(document.querySelector('[data-fe-lcm]').textContent.trim()==='?','LCM challenge hides the LCM readout');
+    assert(!document.querySelector('[data-fe-lcm]')&&document.querySelectorAll('.gd-fe-question-number').length===2,'LCM challenge hides the LCM readout while showing both numbers');
     document.querySelector('[data-board-action="reveal"]').click();
     assert(document.querySelector('[data-fe-lcm]').textContent.trim()==='36','LCM challenge reveals 36');
 
@@ -2199,7 +2201,7 @@ if(mode==='prepare'){
     const timesTen=document.querySelector('[data-pv-power="1"]');
     assert(timesTen&&!timesTen.disabled,'Powers-of-ten demo exposes ×10 when the result fits the active place range');
     timesTen.click();
-    assert(numberText('#pv-total')===100,'×10 demo moves the represented value from 10 to 100');
+    assert(numberText('#pv-total')===100,'×10 demo moves the represented value from 10 to 100 (actual: '+document.getElementById('pv-total').textContent+')');
     assert(document.querySelector('.gd-pv-activity-head em').textContent.includes('Digits moved 1 place left'),'×10 demo explicitly explains digit movement instead of moving the decimal point');
 
     document.querySelector('[data-pv-activity-mode="build"]').click();
@@ -2428,7 +2430,7 @@ if(mode==='prepare'){
     equivalentChallenge.click();
     document.getElementById('fw-generate').click();
     assert(document.querySelectorAll('#fw-strip-canvas [data-gd-object]').length===2,'Equivalent challenge creates two aligned strips');
-    assert(document.querySelectorAll('#fw-strip-canvas [data-gd-object]')[1].querySelector('.gd-fr-strip-head strong').textContent.trim()==='?','Equivalent challenge hides the target equivalent fraction');
+    assert(!document.querySelectorAll('#fw-strip-canvas [data-gd-object]')[1].querySelector('.gd-fr-strip-head strong'),'Equivalent challenge omits the target equivalent fraction label');
 
     document.querySelector('[data-fw-workflow="challenge"]').click();
     document.querySelector('[data-fw-challenge-tab="custom"]').click();
@@ -2726,9 +2728,9 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=(svg)=>{coChallengeSvg=svg.cloneNode(true)};
     document.getElementById('co-svg-download').click();
     TT99Goodies.exportTools.downloadSvg=coOldChallengeDownload;
-    assert(coChallengeSvg&&coChallengeSvg.querySelector('[data-co-export-board]'),'Coordinates challenge card embeds the vector grid');
+    assert(coChallengeSvg&&coChallengeSvg.querySelectorAll('[data-co-paper-point]').length===1&&coChallengeSvg.querySelectorAll('line').length>20,'Coordinates challenge card embeds the vector grid and supplied point');
     assert(!coChallengeSvg.textContent.includes('Answer:'),'Coordinates pupil challenge export never includes a revealed answer label');
-    assert(coChallengeSvg.textContent.includes('Points: A'),'Coordinates pupil export re-hides the coordinate after teacher reveal');
+    assert([...coChallengeSvg.querySelectorAll('text')].some(x=>x.textContent.trim()==='A')&&!coChallengeSvg.textContent.includes('Points:'),'Coordinates pupil export labels the point A without the coordinate readout after Reveal');
     assert(coChallengeSvg.textContent.includes('What are the coordinates of point A?'),'Coordinates challenge-card export includes the pupil prompt');
 
     document.querySelector('[data-co-workflow="challenge"]').click();
@@ -2752,7 +2754,7 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=(svg)=>{coPlotSvg=svg.cloneNode(true)};
     document.getElementById('co-svg-download').click();
     TT99Goodies.exportTools.downloadSvg=coOldPlotDownload;
-    assert(coPlotSvg&&!coPlotSvg.querySelector('[data-co-export-point]'),'Plot-coordinate pupil card exports a blank grid even after the teacher tested a point');
+    assert(coPlotSvg&&!coPlotSvg.querySelector('[data-co-paper-point]'),'Plot-coordinate pupil card exports a blank grid even after the teacher tested a point');
     assert(coPlotSvg.textContent.includes('Plot point A at'),'Plot-coordinate pupil card keeps the target instruction');
 
     document.querySelector('[data-co-workflow="challenge"]').click();
@@ -2938,7 +2940,7 @@ if(mode==='prepare'){
     const hiddenHandle=[...document.querySelectorAll('[data-ab-resize]')].find(h=>h.querySelector('span').textContent.trim()==='?');
     assert(hiddenHandle,'Missing-factor challenge hides exactly one dimension handle');
     assert(!hiddenHandle.hasAttribute('aria-valuenow')&&hiddenHandle.getAttribute('aria-label').includes('hidden'),'Hidden Array dimension does not leak through slider accessibility metadata');
-    assert(document.querySelector('[data-ab-equation]').textContent.includes('?'),'Missing-factor challenge shows a genuine missing value in the equation');
+    assert(!document.querySelector('[data-ab-equation]'),'Missing-factor challenge omits the equation while hiding one dimension');
     document.querySelector('[data-board-action="reveal"]').click();
     assert(![...document.querySelectorAll('[data-ab-resize]')].some(h=>h.querySelector('span').textContent.trim()==='?'),'Reveal restores the hidden Array dimension');
 
@@ -2948,7 +2950,7 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=(svg)=>{abMissingSvg=svg.cloneNode(true)};
     document.getElementById('ab-svg-download').click();
     TT99Goodies.exportTools.downloadSvg=abOldMissingDownload;
-    assert([...abMissingSvg.querySelectorAll('[data-ab-export-rows],[data-ab-export-cols]')].some(x=>x.textContent.trim().startsWith('?')),'Missing-factor pupil export re-hides the unknown dimension after Reveal');
+    assert([...abMissingSvg.querySelectorAll('text')].some(x=>x.textContent.trim().startsWith('?')),'Missing-factor pupil export re-hides the unknown dimension after Reveal');
 
     document.querySelector('[data-ab-workflow="challenge"]').click();
     document.querySelector('[data-ab-challenge-cat="build"]').click();
@@ -3093,7 +3095,9 @@ if(mode==='prepare'){
     assert(document.querySelectorAll('.gd-money-stage-palette .gd-money-pick__coin .gd-money-coin-art').length===8,'Money stage palette uses the shared SVG artwork for all eight coins');
     assert(!document.querySelector('.gd-money-stage-palette .gd-money-pick__coin img'),'Money stage palette contains no cropped coin photography');
     document.querySelector('.gd-money-stage-palette [data-mo-value="500"]').click();
-    assert(!document.querySelector('.gd-money-stage-palette'),'Money stage palette closes as soon as a denomination is added');
+    assert(document.querySelector('.gd-money-stage-palette [data-gd-action="close-money"]'),'Money stage palette stays available for repeated denomination selection');
+    document.querySelector('.gd-money-stage-palette [data-gd-action="close-money"]').click();
+    assert(!document.querySelector('.gd-money-stage-palette'),'Teacher can close the denomination palette explicitly');
     objects=[...document.querySelectorAll('#mo-canvas [data-gd-object]')];
     assert(objects.length===6&&document.querySelector('#mo-canvas [data-mo-value="500"]').classList.contains('gd-money-object--note'),'A £5 note can be added directly from the live-stage palette');
     assert(document.querySelector('[data-mo-total]').textContent.trim()==='£8.75','Adding money updates the live total');
@@ -3442,9 +3446,9 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=(svg)=>{clReadSvg=svg.cloneNode(true)};
     document.getElementById('cl-svg-download').click();
     TT99Goodies.exportTools.downloadSvg=clOldReadDownload;
-    assert(clReadSvg&&clReadSvg.querySelector('[data-cl-export-face]'),'Clock challenge card embeds the vector clock face');
-    assert(clReadSvg.querySelectorAll('[data-cl-export-hand]').length===2,'Read-the-clock pupil export preserves the shown analogue hands');
-    assert(clReadSvg.querySelector('[data-cl-export-readout="24"]').textContent.trim()==='?'&&clReadSvg.querySelector('[data-cl-export-readout="12"]').textContent.trim()==='?','Clock pupil export re-hides both readouts after teacher reveal');
+    assert(clReadSvg&&clReadSvg.querySelectorAll('line:not([stroke-linecap])').length===60,'Clock challenge card embeds all 60 vector face ticks');
+    assert(clReadSvg.querySelectorAll('line[stroke-linecap="round"]').length===2,'Read-the-clock pupil export preserves the shown analogue hands');
+    assert(![...clReadSvg.querySelectorAll('text')].some(x=>/^[0-9]{1,2}:[0-9]{2}/.test(x.textContent.trim())),'Clock pupil export omits digital readouts after teacher reveal');
     assert(!clReadSvg.textContent.includes('Answer:'),'Clock pupil challenge export never includes the revealed answer label');
     assert(clReadSvg.textContent.includes('What time is shown on the analogue clock?'),'Clock challenge-card export includes the pupil prompt');
 
@@ -3452,7 +3456,7 @@ if(mode==='prepare'){
     document.querySelector('[data-cl-challenge-type="roman-read"]').click();
     document.getElementById('cl-generate').click();
     assert([...document.querySelectorAll('.gd-clock-num')].some(x=>x.textContent.trim()==='XII'),'Roman-read challenge automatically switches the clock face to I–XII');
-    assert(document.querySelector('[data-cl-readout="24"]').textContent.trim()==='?','Roman-read challenge remains pupil-safe');
+    assert(!document.querySelector('[data-cl-readout="24"]'),'Roman-read challenge remains pupil-safe');
 
     document.querySelector('[data-cl-challenge-cat="set"]').click();
     for(const type of ['set-five','set-minute','elapsed-forward']){
@@ -3464,7 +3468,7 @@ if(mode==='prepare'){
     const setTargetHour=Number(face.dataset.clTargetHour),setTargetMinute=Number(face.dataset.clTargetMinute);
     assert(Number.isFinite(setTargetHour)&&Number.isFinite(setTargetMinute),'Set-time challenge exposes a semantic target for QA');
     assert(face.dataset.clFrozen==='false','Set-time challenge keeps both hands interactive');
-    assert(document.querySelector('[data-cl-readout="24"]').textContent.trim()==='?'&&document.querySelector('[data-cl-readout="12"]').textContent.trim()==='?','Set-time challenge hides digital shortcuts');
+    assert(!document.querySelector('[data-cl-readout="24"]')&&!document.querySelector('[data-cl-readout="12"]'),'Set-time challenge omits digital shortcuts');
     for(let guard=0;guard<30&&(Number(document.getElementById('cl-face').dataset.clHour)!==setTargetHour||Number(document.getElementById('cl-face').dataset.clMinute)!==setTargetMinute);guard++){
       document.getElementById('cl-minute-hit').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
     }
@@ -3480,9 +3484,9 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=(svg)=>{clSetSvg=svg.cloneNode(true)};
     document.getElementById('cl-svg-download').click();
     TT99Goodies.exportTools.downloadSvg=clOldSetDownload;
-    assert(clSetSvg.querySelectorAll('[data-cl-export-hand]').length===0,'Set-time pupil card exports a blank clock even after the teacher tests the target');
-    assert(clSetSvg.querySelector('[data-cl-export-draw-centre]')&&clSetSvg.querySelector('[data-cl-export-set-blank]'),'Set-time pupil card provides a clean draw-the-hands face');
-    assert(clSetSvg.textContent.includes('Move the hands to'),'Set-time pupil card keeps the target instruction');
+    assert(clSetSvg.querySelectorAll('line[stroke-linecap="round"]').length===0,'Set-time pupil card exports a blank clock even after the teacher tests the target');
+    assert(clSetSvg.querySelectorAll('line:not([stroke-linecap])').length===60&&clSetSvg.querySelector('circle[r="4"]'),'Set-time pupil card provides a clean draw-the-hands face');
+    assert(clSetSvg.textContent.includes('Draw the clock hands to show'),'Set-time pupil card keeps the target instruction');
 
     document.querySelector('[data-cl-workflow="challenge"]').click();
     document.querySelector('[data-cl-challenge-cat="set"]').click();
@@ -3688,8 +3692,8 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=(svg)=>{mePlaceSvg=svg.cloneNode(true)};
     document.getElementById('me-svg-download').click();
     TT99Goodies.exportTools.downloadSvg=meOldPlaceDownload;
-    assert(mePlaceSvg&&!mePlaceSvg.querySelector('[data-me-export-marker="main"]'),'Place-the-mark pupil card exports a blank ruler even after the teacher tests the target');
-    assert(mePlaceSvg.textContent.includes('Move the orange marker to '+targetValue+' cm.'),'Place-the-mark pupil card keeps the target instruction');
+    assert(mePlaceSvg&&!mePlaceSvg.querySelector('[data-me-paper-marker="main"]'),'Place-the-mark pupil card exports a blank ruler even after the teacher tests the target');
+    assert(mePlaceSvg.textContent.includes('Draw a mark at '+targetValue+' cm'),'Place-the-mark pupil card keeps the target instruction');
 
     document.querySelector('[data-me-workflow="challenge"]').click();
     document.querySelector('[data-me-challenge-type="distance-between"]').click();

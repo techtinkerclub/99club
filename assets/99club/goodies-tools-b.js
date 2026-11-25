@@ -3843,7 +3843,7 @@ function fdpExplorer(){
   }
   function stateHundredFill(state){return Math.round(stateValue(state)*100)}
   function fdpExportSvg({pupil=false}={}){
-    if(pupil&&challenge?.type==='build-percentage'){
+    if(pupil&&challenge?.mode==='standard'&&challenge.type==='build-percentage'){
       const divisions=Array.from({length:20},(_,i)=>i+1).find(d=>Math.abs(challenge.targetPercent*d/100-Math.round(challenge.targetPercent*d/100))<1e-8)||20;
       const svg=fdSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 920 210',role:'img','aria-label':'Blank fraction bar to shade'});
       svg.appendChild(fdSvgEl('rect',{x:0,y:0,width:920,height:210,fill:'#ffffff'}));
@@ -3901,7 +3901,7 @@ function fdpExplorer(){
     const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
     return X.composeChallengeCardSvg(fdpExportSvg({pupil:true}),{
       title:challenge.title||meta?.title||'Fraction–decimal–percentage challenge',
-      prompt:challenge.type==='build-percentage'?'Shade '+challenge.targetPercent+'% of the bar.':prompt,
+      prompt:challenge.mode==='standard'&&challenge.type==='build-percentage'?'Shade '+challenge.targetPercent+'% of the bar.':prompt,
       responseLabel:challenge.category==='reason'?'Explain your thinking':'Answer',
       responseLines,
       brand:'99 Club Studio'

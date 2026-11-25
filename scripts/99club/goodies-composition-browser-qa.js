@@ -355,7 +355,7 @@ async function run(){
   pvFitProbe.dispatchEvent(new MouseEvent('click',{bubbles:true}));
   await tick(180);
   const pvBaseWithProbe=livePvRecord().baseH;
-  assert(pvBaseWithProbe>pvBaseBeforeProbe+150,'Place Value auto-fit grows when real embedded content becomes taller');
+  assert(pvBaseWithProbe>pvBaseBeforeProbe+150,'Place Value auto-fit grows when real embedded content becomes taller: '+pvBaseBeforeProbe+' → '+pvBaseWithProbe+' (probe '+pvFitProbe.getBoundingClientRect().height+'px)');
   pvFitProbe.remove();
   pvDoc.getElementById('gd-stage').dispatchEvent(new MouseEvent('click',{bubbles:true}));
   await tick(180);
