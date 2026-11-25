@@ -195,32 +195,33 @@ function composeChallengeCardSvg(diagram,{title='Challenge',prompt='',responseLa
 }
 // Document composition is synchronous; scoped layout leaves standalone exports unchanged.
 let documentCardLayout=false;
+function isDocumentCardLayout(){return documentCardLayout}
 function withDocumentCardLayout(render){
  const previous=documentCardLayout;documentCardLayout=true;
  try{return render()}finally{documentCardLayout=previous}
 }
-function composeWorksheetCardSvg(diagram,{title='Challenge',prompt='',responseLabel='Answer',responseLines=1,responseMode='auto',paperStyle='card',brand='99 Club Studio',answer='',showAnswer=false,diagramMaxHeight=null}={}){
+function composeWorksheetCardSvg(diagram,{title='Challenge',prompt='',responseLabel='Answer',responseLines=1,responseMode='auto',paperStyle='card',brand='99 Club Studio',answer='',showAnswer=false,diagramMaxHeight=null,compactEquation=false}={}){
   if(!diagram)throw new Error('A diagram is required.');
   const source=stripPaperBrand(diagram.cloneNode(true));
   source.removeAttribute('id');
   const vb=diagram.viewBox&&diagram.viewBox.baseVal;
   const sourceW=Math.max(1,vb?.width||1000),sourceH=Math.max(1,vb?.height||420);
-  const plain=paperStyle==='plain';
+  const plain=paperStyle==='plain',compact=plain&&documentCardLayout,shortEquation=compact&&compactEquation;
   const width=1120,pad=documentCardLayout&&plain?12:plain?38:48,contentW=width-pad*2;
   const promptLines=wrapSvgText(prompt,plain?92:88,4),embedded=documentCardLayout&&plain&&promptLines.length>0;
   const titleLines=embedded?[]:wrapSvgText(title,plain?88:72,1);
-  const titleH=titleLines.length?(plain?24:34):0,promptStep=plain?31:34,promptH=promptLines.length?promptLines.length*promptStep+8:0;
+  const titleH=titleLines.length?(plain?24:34):0,promptSize=compact?23:plain?24:26,promptStep=compact?28:plain?31:34,promptH=promptLines.length?promptLines.length*promptStep+(compact?3:8):0;
   const naturalDiagramH=sourceH*(contentW/sourceW);
-  const diagramH=Math.max(plain?260:300,Math.min(diagramMaxHeight==null?(plain?500:525):Math.max(260,Math.min(1000,Number(diagramMaxHeight)||500)),naturalDiagramH));
-  const diagramY=pad+titleH+promptH+(plain?12:18);
+  const diagramH=shortEquation?naturalDiagramH:Math.max(plain?260:300,Math.min(diagramMaxHeight==null?(plain?500:525):Math.max(260,Math.min(1000,Number(diagramMaxHeight)||500)),naturalDiagramH));
+  const diagramY=pad+titleH+promptH+(compact?3:plain?12:18);
   const resolvedMode=responseMode==='auto'?(responseLines>1?'lines':'box'):responseMode;
   const answerRows=Math.max(1,Math.min(4,Math.round(Number(responseLines)||1)));
   const answerLines=showAnswer&&answer?wrapSvgText(answer,92,5):[];
   const responseVisible=showAnswer?!!answer:resolvedMode!=='none';
   const labelLines=wrapSvgText(responseLabel||'Answer',72,3),labelH=Math.max(1,labelLines.length)*20;
   const responseH=!responseVisible?0:showAnswer?labelH+22+answerLines.length*27:(resolvedMode==='lines'?labelH+12+answerRows*32:labelH+60);
-  const answerY=diagramY+diagramH+(responseVisible?20:0);
-  const height=Math.max(plain?diagramY+diagramH+30:560,answerY+responseH+(plain?26:42));
+  const answerY=diagramY+diagramH+(responseVisible?(compact?5:20):0);
+  const height=Math.max(plain?diagramY+diagramH+(compact?12:30):560,answerY+responseH+(compact?12:plain?26:42));
 
   const out=svgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:`0 0 ${width} ${height}`,role:'img','aria-label':title||'Worksheet item','data-worksheet-card':'1','data-worksheet-answer':showAnswer?'teacher':'pupil','data-paper-style':plain?'plain':'card','data-gd-paper-ready':'card','data-gd-paper-label':brand});
   if(plain){
@@ -235,10 +236,10 @@ function composeWorksheetCardSvg(diagram,{title='Challenge',prompt='',responseLa
     'font-family':'Arial,sans-serif','font-size':plain?15:22,'font-weight':800,fill:plain?'#66777c':'#66787e'
   },line)));
   y=pad+titleH+(plain?22:28);
-  if(promptLines.length){out.setAttribute('data-worksheet-prompt-baseline',String(y));out.setAttribute('data-worksheet-prompt-size',String(plain?24:26));}
+  if(promptLines.length){out.setAttribute('data-worksheet-prompt-baseline',String(y));out.setAttribute('data-worksheet-prompt-size',String(promptSize));}
   promptLines.forEach((line,i)=>out.appendChild(svgEl('text',{
     x:pad,y:y+i*promptStep,
-    'font-family':'Arial,sans-serif','font-size':plain?24:26,'font-weight':700,fill:'#263f47'
+    'font-family':'Arial,sans-serif','font-size':promptSize,'font-weight':700,fill:'#263f47'
   },line)));
 
   const nested=svgEl('svg',{x:pad,y:diagramY,width:contentW,height:diagramH,viewBox:`0 0 ${sourceW} ${sourceH}`,preserveAspectRatio:'xMidYMid meet'});
@@ -269,5 +270,5 @@ function copyText(text){
   if(navigator.clipboard?.writeText)return navigator.clipboard.writeText(text);
   return Promise.reject(new Error('Clipboard access is not available in this browser.'));
 }
-G.exportTools={preparePaperSvg,safeFilename,downloadSvg,downloadPng,copyPng,printSvg,copyText,serialiseSvg,composeChallengeCardSvg,composeWorksheetCardSvg,withDocumentCardLayout};
+G.exportTools={preparePaperSvg,safeFilename,downloadSvg,downloadPng,copyPng,printSvg,copyText,serialiseSvg,composeChallengeCardSvg,composeWorksheetCardSvg,withDocumentCardLayout,isDocumentCardLayout};
 })(window.TT99Goodies);
