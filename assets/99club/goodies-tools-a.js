@@ -5181,6 +5181,19 @@ function moneyTool(){
     return values;
   }
   function minimumPieces(amount){return amountValues(amount).length}
+  // Older saved exact-piece questions did not contain their generated example.
+  function exactPieceValues(amount,count){
+    if(!Number.isInteger(amount)||amount<1||amount>10000||!Number.isInteger(count)||count<1||count>12)return [];
+    const values=DENOMS.map(d=>d.value).filter(v=>v<=amount).sort((a,b)=>b-a),memo=new Set();
+    function find(left,n,start){
+      if(n===0)return left===0?[]:null;
+      if(left<n||start>=values.length||left>n*values[start])return null;
+      const key=left+':'+n+':'+start;if(memo.has(key))return null;
+      for(let i=start;i<values.length;i++){const v=values[i];if(v>left)continue;const tail=find(left-v,n-1,i);if(tail)return [v,...tail]}
+      memo.add(key);return null;
+    }
+    return find(amount,count,0)||[];
+  }
   function randomShownValues(){
     const pool=[5,10,20,50,100,200,500],count=randomInt(4,7),values=[];
     for(let i=0;i<count;i++)values.push(pool[randomInt(0,pool.length-1)]);
@@ -5294,7 +5307,7 @@ function moneyTool(){
       button.disabled=frozen||!item||(action==='delete'&&!!item.locked);
     });
   }
-  function toggleMoneyReveal(){if(!challenge)return;challenge.revealed=!challenge.revealed;if(challenge.mode==='standard'&&challenge.freezeMoney===false){if(challenge.revealed){challenge.modelBeforeReveal=snapshot();setValues(challenge.type==='exact-pieces'&&Array.isArray(challenge.solutionValues)?challenge.solutionValues:amountValues(target))}else if(challenge.modelBeforeReveal){restore(challenge.modelBeforeReveal);delete challenge.modelBeforeReveal}}renderControls();controller.refresh()}
+  function toggleMoneyReveal(){if(!challenge)return;challenge.revealed=!challenge.revealed;if(challenge.mode==='standard'&&challenge.freezeMoney===false){if(challenge.revealed){challenge.modelBeforeReveal=snapshot();setValues(challenge.type==='exact-pieces'?(challenge.solutionValues||exactPieceValues(target,challenge.targetPieces)):amountValues(target))}else if(challenge.modelBeforeReveal){restore(challenge.modelBeforeReveal);delete challenge.modelBeforeReveal}}renderControls();controller.refresh()}
   function bindChallengeStageActions(){
     const endChallenge=q('[data-challenge-action="end"]',q('#gd-stage'));if(endChallenge)endChallenge.onclick=e=>{e.stopPropagation();clearChallenge()};
     const stage=q('#gd-stage');if(!stage||!challenge)return;
