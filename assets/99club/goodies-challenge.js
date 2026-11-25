@@ -499,5 +499,5 @@ function applyFormat(editor,action){
   else if(action==='size-large')document.execCommand('fontSize',false,'5');
 }
 
-G.challengeKit={refreshModelPupil,nativeRandomHtml,capturePupil,restorePupil,pupilSpec,pupilAnswerCorrect,pickVariant,simplePolygon,normalise,makeCustom,sanitiseRichHtml,plainText,toolbarHtml,tabsHtml,editorHtml,pickerHtml,bannerHtml,applyFormat};
+G.challengeKit={nativeScope:prefix=>{if(!launchingRandom||randomScope?.prefix!==prefix||!randomScope.native)return '';if(randomScope.scope==='all')return 'all';const row=document.querySelector('#gd-controls [data-gd-native-prefix="'+CSS.escape(prefix)+'"]');const group=JSON.parse(row?.dataset.gdNativeGroups||'[]')[Number(randomScope.scope)];return group?'category:'+group.id:''},refreshModelPupil,nativeRandomHtml,capturePupil,restorePupil,pupilSpec,pupilAnswerCorrect,pickVariant,simplePolygon,normalise,makeCustom,sanitiseRichHtml,plainText,toolbarHtml,tabsHtml,editorHtml,pickerHtml,bannerHtml,applyFormat};
 })(window.TT99Goodies);
