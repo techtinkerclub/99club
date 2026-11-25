@@ -4131,6 +4131,141 @@ function multiplicationGrid(){
 
 }
 
+  const ARRAY_TEMPLATES=[
+    {id:'count-total',category:'read',title:'How many altogether?',desc:'Use the rows and columns to find the total.'},
+    {id:'multiplication-fact',category:'read',title:'Write the multiplication',desc:'Write the multiplication sentence represented by the array.'},
+    {id:'missing-factor',category:'read',title:'Missing factor',desc:'Use the array to find a hidden row or column count.'},
+    {id:'related-division',category:'build',title:'Related division fact',desc:'Use the array to complete an inverse division fact.'},
+    {id:'build-array',category:'build',title:'Build the array',desc:'Resize the board to make a requested rows-by-columns array.'},
+    {id:'commutative-fact',category:'reason',title:'Commutative fact',desc:'Write the swapped multiplication fact represented by the same total.'},
+    {id:'partial-products',category:'reason',title:'Use the partition',desc:'Read a split array as partial products.'}
+  ];
+
+function arraySettings(model={}){
+ const src=model.generationSettings||model,minimum=Math.max(2,Math.min(11,Math.round(Number(src.min)||2))),maximum=Math.max(minimum+1,Math.min(12,Math.round(Number(src.max)||10)));
+ return {min:minimum,max:maximum,responseLines:Math.max(1,Math.min(4,Math.round(Number(model.responseLines)||1)))};
+}
+function arrayTypes(){return ARRAY_TEMPLATES.map(t=>({id:t.id,label:t.title}))}
+function arrayGenerate(type,settings={},rng=Math.random){
+ const template=ARRAY_TEMPLATES.find(t=>t.id===type);if(!template)throw Error('Unknown array question.');
+ const cfg=arraySettings(settings);let rows=2,cols=2,rowSplit=0,colSplit=0,challenge;
+ function randomDimension(){return cfg.min+Math.floor(rng()*(cfg.max-cfg.min+1))}
+ function setDimensions(r,c){rows=r;cols=c}
+ function normaliseSplits(){if(rowSplit>=rows)rowSplit=0;if(colSplit>=cols)colSplit=0}
+ function challengeObject(type,prompt,answer,extra={}){return {mode:'standard',type,category:template.category,title:'',prompt,promptHtml:prompt,answer:String(answer),answerMode:'manual',answerSource:'',revealed:false,freezeBoard:true,hiddenEquation:false,hiddenTotal:false,hiddenRepeated:false,hiddenInverse:false,hiddenPartial:false,hiddenDimensions:[],targetRows:null,targetCols:null,...extra}}
+  function total(){return rows*cols}
+  function multiplicationFact(){return rows+' × '+cols+' = '+total()}
+  function repeatedAddition(){return Array.from({length:rows},()=>cols).join(' + ')+' = '+total()}
+  function inverseFacts(){return total()+' ÷ '+rows+' = '+cols+' · '+total()+' ÷ '+cols+' = '+rows}
+  function partitionParts(){
+    const parts=[];
+    const rowBands=rowSplit?[rowSplit,rows-rowSplit]:[rows];
+    const colBands=colSplit?[colSplit,cols-colSplit]:[cols];
+    rowBands.forEach(r=>colBands.forEach(c=>parts.push({r,c,value:r*c})));
+    return parts;
+  }
+  function partitionMath(){
+    const parts=partitionParts();
+    if(parts.length===1)return'';
+    return parts.map(p=>p.r+' × '+p.c).join(' + ')+' = '+parts.map(p=>p.value).join(' + ')+' = '+total();
+  }
+    rowSplit=0;colSplit=0;
+    const r=randomDimension();let c=randomDimension();if(type==='commutative-fact'&&c===r)c=r===cfg.max?cfg.min:r+1;
+    setDimensions(r,c);
+    if(type==='count-total'){
+      challenge=challengeObject(type,'How many objects are in the array altogether?',String(total()),{hiddenTotal:true,hiddenRepeated:true,hiddenInverse:true});
+    }else if(type==='multiplication-fact'){
+      challenge=challengeObject(type,'Write the multiplication equation as rows × columns, including the total.',multiplicationFact(),{hiddenEquation:true,hiddenRepeated:true,hiddenInverse:true});
+    }else if(type==='missing-factor'){
+      const hideRows=rng()<.5,known=hideRows?cols:rows;
+      challenge=challengeObject(
+        type,
+        'There are '+total()+' objects arranged in '+known+' '+(hideRows?'columns':'rows')+'. How many '+(hideRows?'rows':'columns')+' are there?',
+        String(hideRows?rows:cols),
+        {hiddenDimensions:[hideRows?'rows':'cols'],hiddenRepeated:true,hiddenInverse:true}
+      );
+    }else if(type==='related-division'){
+      const divisorRows=rng()<.5,divisor=divisorRows?rows:cols,answer=divisorRows?cols:rows;
+      challenge=challengeObject(
+        type,
+        'Complete the related division fact: '+total()+' ÷ '+divisor+' = ?',
+        String(answer),
+        {hiddenDimensions:[divisorRows?'cols':'rows'],hiddenRepeated:true,hiddenInverse:true}
+      );
+    }else if(type==='build-array'){
+      const targetRows=r,targetCols=c,startRows=targetRows===2?3:2,startCols=targetCols===2?3:2;
+      setDimensions(startRows,startCols);
+      challenge=challengeObject(
+        type,
+        'Build an array with '+targetRows+' rows and '+targetCols+' columns.',
+        targetRows+' × '+targetCols+' = '+(targetRows*targetCols),
+        {freezeBoard:false,targetRows,targetCols,hiddenEquation:false,hiddenRepeated:false,hiddenInverse:false}
+      );
+    }else if(type==='commutative-fact'){
+      challenge=challengeObject(
+        type,
+        'The array shows '+multiplicationFact()+'. Write the commutative multiplication fact.',
+        cols+' × '+rows+' = '+total(),
+        {hiddenRepeated:true,hiddenInverse:true}
+      );
+    }else{
+      if(cols>=4&&rng()<.65)colSplit=1+Math.floor(rng()*(cols-1));
+      else rowSplit=1+Math.floor(rng()*(rows-1));
+      normaliseSplits();
+      challenge=challengeObject(
+        type,
+        'Use the partition lines. Write each partial product and the total.',
+        partitionMath(),
+        {hiddenEquation:true,hiddenRepeated:true,hiddenInverse:true,hiddenPartial:true}
+      );
+    }
+
+ return {type,settings:cfg,diagram:{rows,cols,rowSplit,colSplit},challenge};
+}
+function arrayPaper(data,teacher=false){
+ const c=data.challenge,task=!!c,build=c?.type==='build-array',blank=build&&!teacher;
+ const d=build?{rows:c.targetRows,cols:c.targetCols,rowSplit:0,colSplit:0}:data.diagram;
+ const rows=blank?12:d.rows,cols=blank?12:d.cols,rowSplit=d.rowSplit||0,colSplit=d.colSplit||0;
+ const cell=30,W=680,x=(W-cols*cell)/2,y=40,H=y+rows*cell+(task?30:155+(rowSplit||colSplit?38:0));
+ function el(name,attrs={},value){const n=document.createElementNS('http://www.w3.org/2000/svg',name);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,String(v));if(value!==undefined)n.textContent=String(value);return n}
+ const svg=el('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':blank?'Blank grid for drawing':'Array diagram'});
+ const add=(name,attrs,value)=>svg.appendChild(el(name,attrs,value));
+ const text=(xx,yy,value,size=16,anchor='middle')=>add('text',{x:xx,y:yy,'text-anchor':anchor,'font-family':'Arial,sans-serif','font-size':size,'font-weight':700,fill:'#334a52'},value);
+ add('rect',{width:W,height:H,fill:'#fff'});
+ add('rect',{x,y,width:cols*cell,height:rows*cell,fill:'#fff',stroke:'#91a6a9','stroke-width':1.5});
+ for(let j=1;j<cols;j++)add('line',{x1:x+j*cell,y1:y,x2:x+j*cell,y2:y+rows*cell,stroke:'#cbd9db'});
+ for(let i=1;i<rows;i++)add('line',{x1:x,y1:y+i*cell,x2:x+cols*cell,y2:y+i*cell,stroke:'#cbd9db'});
+ if(!blank){
+  for(let i=0;i<rows;i++)for(let j=0;j<cols;j++)add('circle',{cx:x+(j+.5)*cell,cy:y+(i+.5)*cell,r:7,fill:'#147d75','data-array-dot':'1'});
+  if(rowSplit)add('line',{x1:x,y1:y+rowSplit*cell,x2:x+cols*cell,y2:y+rowSplit*cell,stroke:'#b77d16','stroke-width':3});
+  if(colSplit)add('line',{x1:x+colSplit*cell,y1:y,x2:x+colSplit*cell,y2:y+rows*cell,stroke:'#b77d16','stroke-width':3});
+  text(W/2,26,(c?.hiddenDimensions?.includes('cols')&&!teacher?'?':cols)+' columns');
+  // Horizontal label on the left avoids clipping and rotated text.
+  text(x-12,y+rows*cell/2-3,c?.hiddenDimensions?.includes('rows')&&!teacher?'?':rows,16,'end');
+  text(x-12,y+rows*cell/2+15,'rows',12,'end');
+ }
+ if(!task){
+  const base=y+rows*cell+30; text(W/2,base,rows+' × '+cols+' = '+rows*cols,20);
+  text(W/2,base+30,Array.from({length:rows},()=>cols).join(' + ')+' = '+rows*cols,14);
+  text(W/2,base+58,rows*cols+' ÷ '+rows+' = '+cols+'     ·     '+rows*cols+' ÷ '+cols+' = '+rows,14);
+  if(rowSplit||colSplit){const rr=rowSplit?[rowSplit,rows-rowSplit]:[rows],cc=colSplit?[colSplit,cols-colSplit]:[cols];text(W/2,base+86,rr.flatMap(r=>cc.map(k=>r+' × '+k)).join(' + ')+' = '+rows*cols,14)}
+  return svg;
+ }
+ const prompt=build?'Draw or shade an array with '+c.targetRows+' rows and '+c.targetCols+' columns.':c.prompt;
+ const lines=Math.max(data.settings?.responseLines||1,c.type==='partial-products'?2:1);
+ return G.exportTools.composeWorksheetCardSvg(svg,{title:ARRAY_TEMPLATES.find(t=>t.id===c.type)?.title||'Array challenge',prompt,responseLabel:c.type==='partial-products'?'Partial products and total':'Answer',responseMode:build?'none':lines>1?'lines':'box',responseLines:lines,paperStyle:'plain',answer:c.answer,showAnswer:teacher,diagramMaxHeight:build?550:450});
+}
+function arrayData(model){if(model.challenge?.mode==='custom')throw Error('Use individual export for custom array tasks.');return {type:model.challenge?.type,settings:arraySettings(model),diagram:model.diagram,challenge:model.challenge?{...model.challenge,revealed:false}:null}}
+G.arrayPaperModel={generate:arrayGenerate,render:arrayPaper,types:arrayTypes,settings:arraySettings};
+if(G.publishing)G.publishing.register('array-builder',{
+ label:'Array builder',types:arrayTypes,title:item=>item.kind==='diagram'?'Array illustration':ARRAY_TEMPLATES.find(t=>t.id===item.data.type)?.title||'Array challenge',
+ signature:d=>JSON.stringify([d.type,d.challenge.prompt,d.type==='build-array'?[d.challenge.targetRows,d.challenge.targetCols]:d.diagram]),
+ recipe:(model,type)=>({type,settings:arraySettings(model)}),
+ generate(recipe,rng){const ids=arrayTypes().map(t=>t.id);return arrayGenerate(recipe.type==='all'?ids[Math.floor(rng()*ids.length)]:recipe.type,recipe.settings,rng)},
+ capture(model){const data=arrayData(model);return [G.publishing.record('array-builder',data.challenge?'challenge':'diagram',data,data.challenge?{type:data.type,settings:data.settings}:null)]},
+ render(item,teacher){return arrayPaper(item.data,teacher)}
+});
+
 function arrayBuilder(){
   const CK=G.challengeKit,X=G.exportTools;
   let rows=4,cols=6,rowSplit=0,colSplit=0,drag=null;
@@ -4141,15 +4276,7 @@ function arrayBuilder(){
     {id:'build',label:'Build & relate'},
     {id:'reason',label:'Reasoning'}
   ];
-  const CHALLENGE_TEMPLATES=[
-    {id:'count-total',category:'read',title:'How many altogether?',desc:'Use the rows and columns to find the total.'},
-    {id:'multiplication-fact',category:'read',title:'Write the multiplication',desc:'Write the multiplication sentence represented by the array.'},
-    {id:'missing-factor',category:'read',title:'Missing factor',desc:'Use the array to find a hidden row or column count.'},
-    {id:'related-division',category:'build',title:'Related division fact',desc:'Use the array to complete an inverse division fact.'},
-    {id:'build-array',category:'build',title:'Build the array',desc:'Resize the board to make a requested rows-by-columns array.'},
-    {id:'commutative-fact',category:'reason',title:'Commutative fact',desc:'Write the swapped multiplication fact represented by the same total.'},
-    {id:'partial-products',category:'reason',title:'Use the partition',desc:'Read a split array as partial products.'}
-  ];
+  const CHALLENGE_TEMPLATES=ARRAY_TEMPLATES;
   let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='count-total',challenge=null,beforeChallenge=null;
   let exportMode='diagram',responseLines=1,exportStatus='';
 
@@ -4342,7 +4469,7 @@ function arrayBuilder(){
         '<button class="gd-btn" id="ab-png" type="button">PNG</button>'+
         '<button class="gd-btn" id="ab-svg-download" type="button">SVG</button>'+
         '<button class="gd-btn" id="ab-print" type="button">Print / PDF</button>'+
-      '</div><p class="gd-help" id="ab-export-status" role="status" aria-live="polite">'+exportStatus+'</p>';
+      '</div>'+(challenge?.mode==='standard'&&exportMode==='challenge'?'<div class="nl-export-grid ab-export-grid"><button class="gd-btn" id="ab-copy-key" type="button">Copy teacher key</button><button class="gd-btn" id="ab-print-key" type="button">Print teacher key</button></div>':'')+'<p class="gd-help" id="ab-export-status" role="status" aria-live="polite">'+exportStatus+'</p>';
   }
   function abSvgEl(name,attrs={},text=''){
     const el=document.createElementNS('http://www.w3.org/2000/svg',name);
@@ -4426,7 +4553,9 @@ function arrayBuilder(){
     svg.appendChild(abSvgEl('text',{x:width-42,y:height-16,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':10,fill:'#87969a'},'99 Club Studio'));
     return svg;
   }
-  function exportTargetSvg(){
+  function exportTargetSvg(teacher=false){
+    if(challenge?.mode==='standard'&&exportMode==='challenge')return arrayPaper(arrayData({diagram:snapshot(),challenge,responseLines}),teacher);
+    if(!challenge)return arrayPaper(arrayData({diagram:snapshot(),responseLines}));
     if(exportMode!=='challenge'||!challenge||!X?.composeChallengeCardSvg)return arrayExportSvg({pupil:false});
     const prompt=CK?CK.plainText(challenge.promptHtml||challenge.prompt||''):challenge.prompt||'';
     const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
@@ -4443,10 +4572,10 @@ function arrayBuilder(){
     return exportMode==='challenge'&&challenge?(challenge.title||meta?.title||'array-challenge'):'array-'+rows+'x'+cols;
   }
   function exportMessage(text){exportStatus=text;const el=q('#ab-export-status');if(el)el.textContent=text}
-  async function exportAction(kind){
+  async function exportAction(kind,teacher=false){
     try{
       if(!X)throw new Error('Export tools are not available.');
-      const target=exportTargetSvg(),isCard=exportMode==='challenge'&&!!challenge,name=exportName();
+      const target=exportTargetSvg(teacher),isCard=exportMode==='challenge'&&!!challenge,name=exportName()+(teacher?'-teacher-key':'');
       if(kind==='copy'){await X.copyPng(target);exportMessage(isCard?'Challenge copied — paste it into your worksheet, slide or document.':'Array image copied — paste it into your slide or document.')}
       if(kind==='png'){await X.downloadPng(target,name,2);exportMessage(isCard?'Challenge PNG downloaded.':'Array PNG downloaded.')}
       if(kind==='svg'){X.downloadSvg(target,name);exportMessage(isCard?'Challenge SVG downloaded.':'Array SVG downloaded.')}
@@ -4487,56 +4616,8 @@ function arrayBuilder(){
   function generateChallenge(type){
     const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
     if(!beforeChallenge)beforeChallenge=snapshot();else restoreSnapshot(beforeChallenge);
-    rowSplit=0;colSplit=0;
-    const r=randomDimension();let c=randomDimension();if(type==='commutative-fact'&&c===r)c=r===10?9:r+1;
-    setDimensions(r,c);
-    if(type==='count-total'){
-      challenge=challengeObject(type,'How many objects are in the array altogether?',String(total()),{hiddenTotal:true,hiddenRepeated:true,hiddenInverse:true});
-    }else if(type==='multiplication-fact'){
-      challenge=challengeObject(type,'Write the complete multiplication equation, including the total.',multiplicationFact(),{hiddenEquation:true,hiddenRepeated:true,hiddenInverse:true});
-    }else if(type==='missing-factor'){
-      const hideRows=Math.random()<.5,known=hideRows?cols:rows;
-      challenge=challengeObject(
-        type,
-        'There are '+total()+' objects arranged in '+known+' '+(hideRows?'columns':'rows')+'. How many '+(hideRows?'rows':'columns')+' are there?',
-        String(hideRows?rows:cols),
-        {hiddenDimensions:[hideRows?'rows':'cols'],hiddenRepeated:true,hiddenInverse:true}
-      );
-    }else if(type==='related-division'){
-      const divisorRows=Math.random()<.5,divisor=divisorRows?rows:cols,answer=divisorRows?cols:rows;
-      challenge=challengeObject(
-        type,
-        'Complete the related division fact: '+total()+' ÷ '+divisor+' = ?',
-        String(answer),
-        {hiddenDimensions:[divisorRows?'cols':'rows'],hiddenRepeated:true,hiddenInverse:true}
-      );
-    }else if(type==='build-array'){
-      const targetRows=r,targetCols=c,startRows=targetRows===2?3:2,startCols=targetCols===2?3:2;
-      setDimensions(startRows,startCols);
-      challenge=challengeObject(
-        type,
-        'Build an array with '+targetRows+' rows and '+targetCols+' columns.',
-        targetRows+' × '+targetCols+' = '+(targetRows*targetCols),
-        {freezeBoard:false,targetRows,targetCols,hiddenEquation:false,hiddenRepeated:false,hiddenInverse:false}
-      );
-    }else if(type==='commutative-fact'){
-      challenge=challengeObject(
-        type,
-        'The array shows '+multiplicationFact()+'. Write the commutative multiplication fact.',
-        cols+' × '+rows+' = '+total(),
-        {hiddenRepeated:true,hiddenInverse:true}
-      );
-    }else{
-      if(cols>=4&&Math.random()<.65)colSplit=1+Math.floor(Math.random()*(cols-1));
-      else rowSplit=1+Math.floor(Math.random()*(rows-1));
-      normaliseSplits();
-      challenge=challengeObject(
-        type,
-        'Use the partition lines. Enter each partial product and the total.',
-        partitionMath(),
-        {hiddenEquation:true,hiddenRepeated:true,hiddenInverse:true,hiddenPartial:true}
-      );
-    }
+    const data=arrayGenerate(type,{responseLines});
+    restoreSnapshot(data.diagram);challenge=CK?CK.normalise(data.challenge):data.challenge;
     challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';
     exportMode='challenge';responseLines=template.category==='reason'?3:type==='build-array'?2:1;exportStatus='';clearHistory();
     renderControls();draw();
@@ -4562,6 +4643,7 @@ function arrayBuilder(){
       const png=q('#ab-png',controls);if(png)png.onclick=()=>exportAction('png');
       const svgDownload=q('#ab-svg-download',controls);if(svgDownload)svgDownload.onclick=()=>exportAction('svg');
       const print=q('#ab-print',controls);if(print)print.onclick=()=>exportAction('print');
+      const kc=q('#ab-copy-key',controls),kp=q('#ab-print-key',controls);if(kc)kc.onclick=()=>exportAction('copy',true);if(kp)kp.onclick=()=>exportAction('print',true);
       return;
     }
     if(controlTab==='explore'){
