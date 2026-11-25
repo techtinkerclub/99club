@@ -5,9 +5,6 @@ const {q,qa,esc,clamp,num,money,field,btn,setPanels}=G;
 function numberLine(){let s={min:-10,max:20,step:1,marker:5};function draw(){s.min=num(q('#nl-min').value,s.min);s.max=num(q('#nl-max').value,s.max);if(s.max<=s.min)s.max=s.min+1;s.step=Math.max(.1,num(q('#nl-step').value,s.step));s.marker=clamp(num(q('#nl-marker').value,s.marker),s.min,s.max);q('#nl-marker').min=s.min;q('#nl-marker').max=s.max;q('#nl-marker').step=s.step;const range=s.max-s.min,n=Math.floor(range/s.step);const maxTicks=50,skip=Math.max(1,Math.ceil(n/maxTicks));let html='<div class="gd-vis"><div class="gd-numberline"><div class="gd-numberline__line"></div>';for(let i=0;i<=n;i+=skip){const v=s.min+i*s.step,p=(v-s.min)/range*100;html+=`<span class="gd-numberline__tick" style="left:${p}%"></span><span class="gd-numberline__label" style="left:${p}%">${Number(v.toFixed(4))}</span>`}const p=(s.marker-s.min)/range*100;html+=`<span class="gd-numberline__marker" style="left:${p}%">${Number(s.marker.toFixed(2))}</span></div><div class="gd-readout">Marker: ${Number(s.marker.toFixed(2))}</div></div>`;q('#gd-stage').innerHTML=html}
 setPanels(`${field('Minimum','<input class="gd-input" id="nl-min" type="number" value="-10">')}${field('Maximum','<input class="gd-input" id="nl-max" type="number" value="20">')}${field('Step','<input class="gd-input" id="nl-step" type="number" min="0.1" step="0.1" value="1">')}${field('Move marker','<input class="gd-input" id="nl-marker" type="range" value="5">')}<div class="gd-row">${btn('− step','nl-down')}${btn('+ step','nl-up')}</div><p class="gd-help">Change the range for negatives, decimals or larger-number work.</p>`,'');['nl-min','nl-max','nl-step','nl-marker'].forEach(id=>q('#'+id).addEventListener('input',draw));q('#nl-down').onclick=()=>{q('#nl-marker').value=clamp(num(q('#nl-marker').value)-s.step,s.min,s.max);draw()};q('#nl-up').onclick=()=>{q('#nl-marker').value=clamp(num(q('#nl-marker').value)+s.step,s.min,s.max);draw()};draw()}
 
-function placeValue(){
-  const I=G.interaction,CK=G.challengeKit,X=G.exportTools;
-  if(!I){q('#gd-stage').innerHTML='<p class="gd-empty">The interactive place-value board could not start.</p>';return;}
   const PLACE_CATALOG=[
     {power:7,label:'10,000,000',name:'ten millions',value:10000000,color:'#cbd9ef'},
     {power:6,label:'1,000,000',name:'millions',value:1000000,color:'#ceddf2'},
@@ -28,20 +25,268 @@ function placeValue(){
     {id:'standard',label:'10,000 → 0.01',start:3,end:9},
     {id:'decimals',label:'1,000 → 0.001',start:4,end:10}
   ];
-  let placeRange='standard',rangeStart=3,rangeEnd=9;
-  let places=PLACE_CATALOG.slice(rangeStart,rangeEnd+1);
-  const CHALLENGE_CATEGORIES=[
+  const PV_CATEGORIES=[
     {id:'read',label:'Read & place value'},
     {id:'build',label:'Build & regroup'},
     {id:'reason',label:'Reasoning'}
   ];
-  const CHALLENGE_TEMPLATES=[
+  const PV_TEMPLATES=[
     {id:'read-number',category:'read',title:'Read the number',desc:'Work out the number represented by the counters.'},
     {id:'digit-value',category:'read',title:'Value of a digit',desc:'Use the board to identify a digit\'s place value.'},
     {id:'build-number',category:'build',title:'Build the number',desc:'Make a target number with place-value counters.'},
     {id:'non-standard',category:'build',title:'Non-standard representation',desc:'Interpret a value before regrouping it.'},
     {id:'zero-placeholder',category:'reason',title:'Zero placeholder',desc:'Diagnose a common place-value misconception.'}
   ];
+
+const PV_ACTIVITIES={build:'Build the target',exact:'Exact counters',regroup:'Regroup',same:'Same value, different way',read:'Read the number (activity)',hidden:'Hidden place',digit:'Digit value (activity)',add:'Addition'};
+function pvSettings(model={}){
+ const d=model.diagram||model, preset=PLACE_RANGES.find(r=>r.id===d.placeRange)||PLACE_RANGES.find(r=>r.id==='standard');
+ const a=Number.isInteger(d.rangeStart)?Math.max(0,Math.min(PLACE_CATALOG.length-2,d.rangeStart)):preset.start,b=Number.isInteger(d.rangeEnd)?Math.max(a+1,Math.min(a+6,PLACE_CATALOG.length-1,d.rangeEnd)):Math.min(a+6,preset.end);
+ return {rangeStart:a,rangeEnd:b,activityBudget:Math.max(3,Math.min(9,Math.round(Number(model.activityBudget)||5))),additionDifficulty:['mixed','no-regroup','regroup'].includes(model.additionDifficulty)?model.additionDifficulty:'mixed',responseLines:Math.max(1,Math.min(4,Math.round(Number(model.responseLines)||1)))};
+}
+function pvModel(settings,rng=Math.random){
+ const cfg=pvSettings(settings),places=PLACE_CATALOG.slice(cfg.rangeStart,cfg.rangeEnd+1),additionDifficulty=cfg.additionDifficulty;
+ const fractionDigits=()=>Math.max(0,-places.at(-1).power),valueStep=()=>places.at(-1).value,valueScale=()=>10**fractionDigits(),rangeMax=()=>places[0].value*10-valueStep();
+ const clean=v=>Math.round((Number(v)||0)*valueScale())/valueScale(),normaliseValue=v=>clean(Math.round((Number(v)||0)/valueStep())*valueStep()),format=v=>clean(v).toLocaleString('en-GB',{maximumFractionDigits:fractionDigits()});
+ let cs=Array(places.length).fill(0),challenge;
+ const counts=()=>cs.slice(),buildFromNumber=v=>{cs=digitsForValue(Math.max(0,Math.min(rangeMax(),v)));return v};
+ function makeNonStandardActivity(v){buildFromNumber(v);const candidates=cs.map((n,i)=>n>0&&i<cs.length-1?i:-1).filter(i=>i>=0);if(!candidates.length)return false;const i=candidates[Math.floor(rng()*candidates.length)];cs[i]--;cs[i+1]+=10;return true}
+ function challengeObject(type,prompt,answer,extra={}){return{mode:'standard',type,category:PV_TEMPLATES.find(t=>t.id===type)?.category||'',title:'',prompt,promptHtml:prompt,answer:String(answer??''),answerMode:'bound',answerSource:'',revealed:false,...extra}}
+   function randomBoardValue({decimal=true,min=valueStep(),max=rangeMax()}={}){
+    const step=decimal?valueStep():Math.max(1,valueStep()),high=Math.max(0,Math.min(rangeMax(),normaliseValue(max))),low=Math.min(high,Math.max(0,normaliseValue(min)));
+    if(high<=low||Math.ceil(low/step)>Math.floor(high/step))return high;
+    const first=Math.ceil(low/step),last=Math.floor(high/step),pick=first+Math.floor(rng()*Math.max(1,last-first+1));
+    return normaliseValue(pick*step);
+  }
+
+   function digitsForValue(value){
+    const scale=valueScale(),units=Math.round(normaliseValue(value)*scale);
+    return places.map(place=>{
+      const unitValue=Math.max(1,Math.round(place.value*scale));
+      return Math.floor(units/unitValue)%10;
+    });
+  }
+  function valueFromDigits(digits){
+    return normaliseValue((digits||[]).reduce((sum,digit,index)=>sum+(Number(digit)||0)*(places[index]?.value||0),0));
+  }
+  function additionNeedsRegroup(a,b){
+    const ad=digitsForValue(a),bd=digitsForValue(b);
+    return ad.some((digit,index)=>digit+(bd[index]||0)>=10);
+  }
+  function randomAdditionProblem(){
+    const wholeIndexes=places.map((place,index)=>({place,index})).filter(x=>x.place.value>=1).map(x=>x.index);
+    const eligible=(wholeIndexes.length?wholeIndexes:places.map((_,index)=>index)).slice(-4);
+    for(let attempt=0;attempt<160;attempt++){
+      const ad=Array(places.length).fill(0),bd=Array(places.length).fill(0);
+      for(const i of eligible){
+        ad[i]=Math.floor(rng()*8);
+        bd[i]=Math.floor(rng()*7);
+        if(additionDifficulty==='no-regroup'&&ad[i]+bd[i]>9)bd[i]=Math.max(0,9-ad[i]);
+      }
+      if(!ad.some(Boolean))ad[places.length-1]=2+Math.floor(rng()*5);
+      if(!bd.some(Boolean))bd[places.length-1]=1+Math.floor(rng()*5);
+      const a=valueFromDigits(ad),b=valueFromDigits(bd),sum=normaliseValue(a+b),regroup=additionNeedsRegroup(a,b);
+      if(a<=0||b<=0||sum>rangeMax())continue;
+      if(additionDifficulty==='regroup'&&!regroup)continue;
+      if(additionDifficulty==='no-regroup'&&regroup)continue;
+      return{a,b,sum};
+    }
+    const step=valueStep(),a=normaliseValue((additionDifficulty==='regroup'?6:2)*step),b=normaliseValue((additionDifficulty==='regroup'?7:3)*step);
+    return{a,b,sum:normaliseValue(a+b)};
+  }
+
+ function standard(type){
+    if(type==='read-number'){
+      const value=randomBoardValue({decimal:true,min:12,max:9999});
+      buildFromNumber(value);
+      challenge=challengeObject(type,'What number is represented by the place-value counters?',format(value),{hiddenSummary:['total','expanded']});
+    }else if(type==='build-number'){
+      const target=randomBoardValue({decimal:true,min:10,max:9999});
+      tokens=[];next=1;layoutTokens();
+      challenge=challengeObject(type,'Build '+format(target)+' using the place-value counters. Use the live total to check your work.',format(target));
+    }else if(type==='digit-value'){
+      const placeIndex=1+Math.floor(rng()*(places.length-1)),digit=2+Math.floor(rng()*7);
+      const digits=Array(places.length).fill(0);
+      digits[placeIndex]=digit;
+      const supportIndex=placeIndex===0?1:0;
+      digits[supportIndex]=digits[supportIndex]===digit?1:1+Math.floor(rng()*4);
+      const value=clean(digits.reduce((sum,d,i)=>sum+d*places[i].value,0));
+      buildFromNumber(value);
+      challenge=challengeObject(type,'What is the value of the digit '+digit+' in the '+places[placeIndex].name+' column?',format(digit*places[placeIndex].value),{hiddenSummary:['total','expanded']});
+    }else if(type==='non-standard'){
+      let value=randomBoardValue({decimal:false,min:120,max:8999});
+      if(!makeNonStandardActivity(value)){value=places[places.length-2].value;makeNonStandardActivity(value)}
+      challenge=challengeObject(type,'This is a non-standard representation. What number does it represent? Regroup it to check.',format(value),{hiddenSummary:['total','expanded']});
+    }else{
+      const digits=Array(places.length).fill(0).map(()=>1+Math.floor(rng()*8));
+      const zeroIndex=1+Math.floor(rng()*Math.max(1,places.length-2));
+      digits[zeroIndex]=0;
+      const value=normaliseValue(digits.reduce((sum,d,i)=>sum+d*places[i].value,0));
+      buildFromNumber(value);
+      challenge=challengeObject(type,'A pupil says the empty '+places[zeroIndex].name+' column does not matter when reading this number. Are they correct?','No. It represents '+format(value)+'. Zero is acting as a placeholder in the '+places[zeroIndex].name+' place.',{hiddenSummary:['total','expanded']});
+    }
+
+    challenge.paperStartCounts=counts();return {type,settings:cfg,challenge};
+ }
+ function activity(mode){
+   const budget=cfg.activityBudget,n=places.length,zero=()=>Array(n).fill(0),pick=a=>a[Math.min(a.length-1,Math.floor(rng()*a.length))];
+   let target=randomBoardValue({decimal:fractionDigits()>0,min:10*valueStep(),max:Math.min(rangeMax(),places[0].value*3)}),start=digitsForValue(target),answer=null,index=-1,digit=0,additionA=0,additionB=0;
+   if(mode==='add'){const problem=randomAdditionProblem();additionA=problem.a;additionB=problem.b;target=problem.sum;start=digitsForValue(additionA)}
+   else if(mode==='exact'){const d=zero();for(let i=0;i<budget;i++)d[Math.floor(rng()*n)]++;target=valueFromDigits(d);start=zero()}
+   else if(mode==='build'){start=zero()}
+   else if(mode==='regroup'||mode==='same'){
+     if(!start.slice(0,-1).some(Boolean)){target=places[n-2].value;start=digitsForValue(target)}
+     if(mode==='regroup'){const i=pick(start.map((v,i)=>v&&i<n-1?i:-1).filter(i=>i>=0));start[i]--;start[i+1]+=10}
+   }else{
+     let pool=start.map((v,i)=>v?i:-1).filter(i=>i>=0);
+     if(mode==='digit'){const candidates=pool.filter(i=>places[i].value!==1);if(candidates.length)pool=candidates}
+     index=pick(pool);digit=start[index];answer=mode==='read'?target:mode==='hidden'?digit:clean(digit*places[index].value);
+   }
+   return {type:'activity-'+mode,settings:cfg,activity:{activityMode:mode,activityTarget:target,activityBudget:budget,activityAnswer:answer,activityHiddenIndex:index,activityDigit:digit,activityStartCounts:start.slice(),paperActivityStart:start.slice(),additionA,additionB,additionDifficulty:cfg.additionDifficulty}};
+ }
+ return {places,format,digitsForValue,standard,activity};
+}
+function pvPaper(data,teacher=false){
+ const {places,format,digitsForValue}=pvModel(data.settings),X=G.exportTools,responseLines=data.settings.responseLines;
+ const challenge=data.challenge||null,activity=data.activity||{}, {activityMode,activityTarget,activityBudget,activityAnswer,activityHiddenIndex,activityDigit,activityStartCounts=[],paperActivityStart,additionA,additionB,powerMessage=''}=activity;
+ const counts=()=>data.counts||challenge?.paperStartCounts||paperActivityStart||Array(places.length).fill(0);
+ const representationNoun=()=>'place-value counters';
+   function pvSvgEl(name,attrs={},text=''){
+    const el=document.createElementNS('http://www.w3.org/2000/svg',name);
+    Object.entries(attrs).forEach(([key,value])=>el.setAttribute(key,String(value)));
+    if(text!==''&&text!=null)el.textContent=String(text);
+    return el;
+  }
+
+   function paperAlternative(cs){
+    const next=cs.slice(),index=next.findIndex((n,i)=>n>0&&i<next.length-1);
+    if(index<0)return null;
+    next[index]--;next[index+1]+=10;return next;
+  }
+  function paperChart(cs,{label='',blank=false,hidden=-1,highlight=-1}={}){
+    const W=1000,pad=16,colW=(W-pad*2)/places.length,top=label?40:8,head=60;
+    const perRow=places.length>5?3:4,maxCount=Math.max(1,...cs.map((n,i)=>i===hidden?0:n));
+    const pitch=Math.min(34,colW/(perRow+.55)),radius=pitch*.36;
+    const body=blank?Math.max(190,Math.ceil(19/perRow)*pitch+22):Math.max(108,Math.ceil(maxCount/perRow)*pitch+22),H=top+head+body+10;
+    const svg=pvSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':label||'Place value counters'});
+    const add=(tag,attrs,txt)=>svg.appendChild(pvSvgEl(tag,attrs,txt));
+    add('rect',{width:W,height:H,fill:'#fff'});
+    if(label)add('text',{x:pad,y:26,'font-family':'Arial,sans-serif','font-size':20,'font-weight':700,fill:'#52666d'},label);
+    places.forEach((place,i)=>{
+      const x=pad+i*colW,decimal=i>0&&place.value<1&&places[i-1].value>=1;
+      add('rect',{x,y:top,width:colW,height:head,fill:i===highlight?'#fff6cf':'#f3f7f7'});
+      if(i>0)add('line',{x1:x,y1:top,x2:x,y2:top+head+body,stroke:decimal?'#627b82':'#c5d2d5','stroke-width':decimal?3:1.4});
+      add('text',{x:x+colW/2,y:top+24,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':Math.min(21,colW/6),'font-weight':800,fill:'#2d454d'},place.label);
+      add('text',{x:x+colW/2,y:top+44,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':Math.min(13,colW/10),fill:'#61767c'},place.name);
+      if(i===hidden){add('text',{x:x+colW/2,y:top+head+body/2+8,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':30,'font-weight':700,fill:'#64777d'},'?');return}
+      if(blank)return;
+      for(let j=0;j<(cs[i]||0);j++){
+        const cx=x+colW/2+(j%perRow-(perRow-1)/2)*pitch,cy=top+head+11+pitch/2+Math.floor(j/perRow)*pitch;
+        add('circle',{cx,cy,r:radius,fill:place.color,stroke:'#6d8288','stroke-width':1.4,'data-pv-paper-counter':'1','data-place':i});
+        add('circle',{cx,cy,r:radius*.34,fill:'#fff','fill-opacity':.62});
+      }
+    });
+    add('line',{x1:pad,y1:top+head,x2:W-pad,y2:top+head,stroke:'#aebdc1','stroke-width':1.5});
+    add('rect',{x:pad,y:top,width:W-pad*2,height:head+body,rx:5,fill:'none',stroke:'#8fa5aa','stroke-width':2});
+    return svg;
+  }
+  function stackPaperCharts(charts){
+    if(charts.length===1)return charts[0];
+    const heights=charts.map(chart=>Number(chart.getAttribute('viewBox').split(' ')[3])),gap=14,H=heights.reduce((a,b)=>a+b,0)+gap*(charts.length-1);
+    const svg=pvSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 1000 '+H,role:'img','aria-label':'Starting and final place value charts'});
+    let y=0;charts.forEach((chart,i)=>{const group=pvSvgEl('g',{transform:'translate(0 '+y+')'});[...chart.childNodes].forEach(node=>group.appendChild(node.cloneNode(true)));svg.appendChild(group);y+=heights[i]+gap});return svg;
+  }
+
+   function activityDescriptor(){
+    if(activityMode==='build')return{title:'Build the target',prompt:'Build '+format(activityTarget)+' with the '+representationNoun()+'.'};
+    if(activityMode==='exact')return{title:'Exact counters',prompt:'Make '+format(activityTarget)+' using exactly '+activityBudget+' counters.'};
+    if(activityMode==='regroup')return{title:'Regroup',prompt:'Regroup this non-standard representation into standard place-value digits without changing its value.'};
+    if(activityMode==='same')return{title:'Same value, different way',prompt:'Show '+format(activityTarget)+' in a different way. Keep the value exactly the same.'};
+    if(activityMode==='read')return{title:'Read the number',prompt:'What number is represented by the '+representationNoun()+'?'};
+    if(activityMode==='hidden')return{title:'Hidden place',prompt:'This representation shows '+format(activityTarget)+'. How many '+(places[activityHiddenIndex]?.name||'place-value')+' units are hidden?'};
+    if(activityMode==='digit')return{title:'Digit value',prompt:'What is the value of the digit '+activityDigit+' in the '+(places[activityHiddenIndex]?.name||'selected')+' column?'};
+    if(activityMode==='add')return{title:'Addition',prompt:'Start with '+format(additionA)+'. Add '+format(additionB)+'.'};
+    return{title:'Place value',prompt:''};
+  }
+
+   function activityPaper(teacher){
+    const descriptor=activityDescriptor(),mode=activityMode,zeros=Array(places.length).fill(0),target=digitsForValue(activityTarget);
+    const initial=mode==='add'?digitsForValue(additionA):mode==='same'&&activityStartCounts.length===places.length?activityStartCounts.slice():paperActivityStart?.length===places.length?paperActivityStart.slice():mode==='regroup'?(paperAlternative(target)||target):target;
+    let charts=[],prompt=descriptor.prompt.replace(/linked counter chart and place-value frame|place-value bead frame/g,'place-value counters'),responseMode='none',responseLabel='Answer',answer='';
+    if(['read','hidden','digit'].includes(mode)){
+      charts=[paperChart(initial,{hidden:mode==='hidden'&&!teacher?activityHiddenIndex:-1,highlight:mode==='digit'?activityHiddenIndex:-1})];responseMode='box';answer=format(activityAnswer);
+    }else if(['build','exact','regroup','same','add'].includes(mode)){
+      let solution=target.slice();
+      if(mode==='same')solution=paperAlternative(initial)||target.slice();
+      if(mode==='exact'){
+        while(solution.reduce((a,b)=>a+b,0)<activityBudget){const next=paperAlternative(solution);if(!next||next.reduce((a,b)=>a+b,0)>activityBudget)break;solution=next}
+      }
+      if(['regroup','same','add'].includes(mode))charts.push(paperChart(initial,{label:'Starting representation'}));
+      prompt+=' '+(teacher?'':'Draw counters in the final chart. ')+(mode==='same'?'Exchange one counter for ten in the next column, or use another valid exchange.':mode==='regroup'?'Use no more than nine counters in each column.':mode==='add'?'Exchange ten counters for one in the next place when needed.':'');
+      charts.push(paperChart(teacher?solution:zeros,{label:teacher?(mode==='same'?'One possible solution':'Completed chart'):'Your representation',blank:!teacher}));
+      if(mode==='add'){responseMode='box';responseLabel='Final number';answer=format(activityTarget)}
+      if(mode==='same')answer='Other representations are correct if the total stays '+format(activityTarget)+' and the counters differ from the starting chart.';
+      if(mode==='exact')answer='Use exactly '+activityBudget+' counters.';
+    }else{
+      charts=[paperChart(counts())];prompt=powerMessage||'Explain what happens to the digits when the number is multiplied or divided by a power of ten.';responseMode='lines';responseLabel='Explain your thinking';
+    }
+    return X.composeWorksheetCardSvg(stackPaperCharts(charts),{title:descriptor.title+(teacher?' · Teacher key':''),prompt,responseLabel,responseMode,responseLines:2,paperStyle:'plain',answer,showAnswer:teacher,diagramMaxHeight:charts.length>1?850:500});
+  }
+
+ if(activityMode)return activityPaper(teacher);
+ if(challenge){
+      const meta=PV_TEMPLATES.find(t=>t.id===challenge.type),type=challenge.type;
+      let prompt=challenge.prompt||'',mode=type==='build-number'?'none':challenge.category==='reason'?'lines':'box',charts=[];
+      const initial=challenge.paperStartCounts?.length===places.length?challenge.paperStartCounts.slice():counts();
+      if(type==='build-number'){
+        const target=Number(String(challenge.answer).replace(/,/g,''));
+        prompt='Draw counters to show '+format(target)+'.';
+        charts=[paperChart(teacher?digitsForValue(target):Array(places.length).fill(0),{blank:!teacher})];
+      }else if(type==='non-standard'){
+        prompt='What number does the starting chart represent? Regroup it in the final chart, using no more than nine counters per column.';
+        const target=Number(String(challenge.answer).replace(/,/g,''));
+        charts=[paperChart(initial,{label:'Starting representation'}),paperChart(teacher?digitsForValue(target):Array(places.length).fill(0),{label:teacher?'Regrouped chart':'Your regrouped chart',blank:!teacher})];
+      }else charts=[paperChart(initial)];
+      return X.composeWorksheetCardSvg(stackPaperCharts(charts),{title:(challenge.title||meta?.title||'Place Value challenge')+(teacher?' · Teacher key':''),prompt,responseLabel:challenge.category==='reason'?'Explain your thinking':'Answer',responseLines:challenge.category==='reason'?Math.max(2,Math.min(4,responseLines)):1,responseMode:mode,paperStyle:'plain',answer:type==='build-number'?'':challenge.answer||'',showAnswer:teacher,diagramMaxHeight:charts.length>1?850:500});
+ }
+ return paperChart(counts());
+}
+function pvGenerate(type,settings,rng=Math.random){
+ const model=pvModel(settings,rng);return type.startsWith('activity-')?model.activity(type.slice(9)):model.standard(type);
+}
+const pvTypes=()=>[...PV_TEMPLATES.map(t=>({id:t.id,label:t.title})),...Object.entries(PV_ACTIVITIES).map(([id,label])=>({id:'activity-'+id,label}))];
+G.placeValuePaperModel={settings:pvSettings,generate:pvGenerate,render:pvPaper,types:pvTypes};
+if(G.publishing)G.publishing.register('place-value',{
+ label:'Place value',types:pvTypes,title:item=>item.kind==='challenge'?pvTypes().find(t=>t.id===item.data.type)?.label||'Place value task':'Place value illustration',
+ signature:d=>JSON.stringify([d.settings.rangeStart,d.settings.rangeEnd,d.type,d.challenge?.prompt,d.challenge?.paperStartCounts,d.activity?.activityTarget,d.activity?.paperActivityStart,d.activity?.activityHiddenIndex,d.activity?.additionA,d.activity?.additionB]),
+ recipe:(model,type)=>({type,settings:pvSettings(model)}),
+ generate(recipe,rng){const ids=pvTypes().map(t=>t.id),type=recipe.type==='all'?ids[Math.floor(rng()*ids.length)]:recipe.type;if(!ids.includes(type))throw Error('Unsupported place value question.');return pvGenerate(type,recipe.settings,rng)},
+ capture(model,staticSvg){
+   const settings=pvSettings(model);
+   if(model.challenge?.mode==='custom')throw Error('Custom place value tasks are not yet supported in the document editor. Use the individual paper export.');
+   if(model.challenge){
+     if(!model.challenge.paperStartCounts?.length)throw Error('Regenerate this older challenge before adding it to a document.');
+     const data={type:model.challenge.type,settings,challenge:{...model.challenge,revealed:false}};
+     return [G.publishing.record('place-value','challenge',data,{type:data.type,settings})];
+   }
+   if(model.activityActive&&model.activityMode!=='powers'){
+     const type='activity-'+model.activityMode,keys=['activityMode','activityTarget','activityBudget','activityAnswer','activityHiddenIndex','activityDigit','activityStartCounts','paperActivityStart','additionA','additionB','additionDifficulty'];
+     const activity=Object.fromEntries(keys.map(k=>[k,model[k]])),data={type,settings,activity};
+     return [G.publishing.record('place-value','challenge',data,{type,settings})];
+   }
+   if(staticSvg)return [G.publishing.record('place-value','diagram',{settings,svg:staticSvg})];
+   const counts=Array(settings.rangeEnd-settings.rangeStart+1).fill(0);for(const t of model.diagram?.tokens||[])if(Number.isInteger(t.place)&&counts[t.place]!=null)counts[t.place]++;
+   return [G.publishing.record('place-value','diagram',{settings,counts})];
+ },
+ render(item,teacher){if(item.data.svg)return new DOMParser().parseFromString(item.data.svg,'image/svg+xml').documentElement;return pvPaper(item.data,teacher)}
+});
+
+function placeValue(){
+  const I=G.interaction,CK=G.challengeKit,X=G.exportTools;
+  if(!I){q('#gd-stage').innerHTML='<p class="gd-empty">The interactive place-value board could not start.</p>';return;}
+  let placeRange='standard',rangeStart=3,rangeEnd=9;
+  let places=PLACE_CATALOG.slice(rangeStart,rangeEnd+1);
+  const CHALLENGE_CATEGORIES=PV_CATEGORIES,CHALLENGE_TEMPLATES=PV_TEMPLATES;
   let tokens=[],next=1,controller=null,resizeObserver=null,resizeFrame=0,lastStageWidth=0,notice='';
   let controlTab='setup',challengeTab='standard',challengeCategory='read',challengeType='read-number',challenge=null,beforeChallenge=null;
   let representationMode='counters';
@@ -171,36 +416,11 @@ function placeValue(){
     const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
     if(!beforeChallenge)beforeChallenge=stateSnapshot();else restoreState(beforeChallenge);
     notice='';
-    if(type==='read-number'){
-      const value=randomBoardValue({decimal:true,min:12,max:9999});
-      buildFromNumber(value);
-      challenge=challengeObject(type,'What number is represented by the place-value counters?',format(value),{hiddenSummary:['total','expanded']});
-    }else if(type==='build-number'){
-      const target=randomBoardValue({decimal:true,min:10,max:9999});
-      tokens=[];next=1;layoutTokens();
-      challenge=challengeObject(type,'Build '+format(target)+' using the place-value counters. Use the live total to check your work.',format(target));
-    }else if(type==='digit-value'){
-      const placeIndex=1+Math.floor(Math.random()*(places.length-1)),digit=2+Math.floor(Math.random()*7);
-      const digits=Array(places.length).fill(0);
-      digits[placeIndex]=digit;
-      const supportIndex=placeIndex===0?1:0;
-      digits[supportIndex]=digits[supportIndex]===digit?1:1+Math.floor(Math.random()*4);
-      const value=clean(digits.reduce((sum,d,i)=>sum+d*places[i].value,0));
-      buildFromNumber(value);
-      challenge=challengeObject(type,'What is the value of the digit '+digit+' in the '+places[placeIndex].name+' column?',format(digit*places[placeIndex].value),{hiddenSummary:['total','expanded']});
-    }else if(type==='non-standard'){
-      let value=randomBoardValue({decimal:false,min:120,max:8999});
-      if(!makeNonStandardActivity(value)){value=places[places.length-2].value;makeNonStandardActivity(value)}
-      challenge=challengeObject(type,'This is a non-standard representation. What number does it represent? Regroup it to check.',format(value),{hiddenSummary:['total','expanded']});
-    }else{
-      const digits=Array(places.length).fill(0).map(()=>1+Math.floor(Math.random()*8));
-      const zeroIndex=1+Math.floor(Math.random()*Math.max(1,places.length-2));
-      digits[zeroIndex]=0;
-      const value=normaliseValue(digits.reduce((sum,d,i)=>sum+d*places[i].value,0));
-      buildFromNumber(value);
-      challenge=challengeObject(type,'A pupil says the empty '+places[zeroIndex].name+' column does not matter when reading this number. Are they correct?','No. It represents '+format(value)+'. Zero is acting as a placeholder in the '+places[zeroIndex].name+' place.',{hiddenSummary:['total','expanded']});
-    }
-    challenge.paperStartCounts=counts().slice();
+    const data=pvGenerate(type,{rangeStart,rangeEnd,activityBudget,additionDifficulty,responseLines});
+    challenge=CK?CK.normalise(data.challenge):data.challenge;
+    challenge.paperStartCounts=data.challenge.paperStartCounts.slice();
+    tokens=[];next=1;
+    challenge.paperStartCounts.forEach((count,place)=>{for(let i=0;i<count;i++)tokens.push({id:next++,place,x:0,y:0,locked:false})});layoutTokens();
     activityActive=false;challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';
     exportMode='challenge';responseLines=template.category==='reason'?3:1;exportStatus='';
     renderControls();controller?.select(null);controller?.refresh();
@@ -298,7 +518,7 @@ function placeValue(){
       if(additionDifficulty==='no-regroup'&&regroup)continue;
       return{a,b,sum};
     }
-    const step=Math.max(valueStep(),1),a=normaliseValue(Math.min(rangeMax()/3,247*step)),b=normaliseValue(Math.min(rangeMax()-a,185*step));
+    const step=valueStep(),a=normaliseValue((additionDifficulty==='regroup'?6:2)*step),b=normaliseValue((additionDifficulty==='regroup'?7:3)*step);
     return{a,b,sum:normaliseValue(a+b)};
   }
   function additionPlaces(){
@@ -386,49 +606,14 @@ function placeValue(){
     if(context==='challenge'&&!activityBefore)activityBefore=stateSnapshot();
     activityMode=modes.includes(mode)?mode:'powers';activityContext=context==='challenge'?'challenge':'teach';activityActive=true;activityStatus='';powerMessage='';activityInput='';activityAnswer=null;activityHiddenIndex=-1;activityDigit=0;activityStartCounts=[];activityPrompt='';
     if(['exact','regroup','same'].includes(activityMode)&&representationMode!=='counters')representationMode='counters';
-    if(activityMode==='add'){
-      startAdditionProblem();
-    }else if(activityMode==='powers'){
+    if(activityMode==='powers'){
       const value=total();controller?.mutate(()=>{buildFromNumber(value);notice=''});controller?.select(null);
-    }else if(activityMode==='exact'){
-      activityTarget=exactCounterTarget(activityBudget);
-      controller?.mutate(()=>{tokens=[];next=1;notice='';layoutTokens()});controller?.select(null);
-    }else if(activityMode==='build'){
-      activityTarget=activityRandomTarget();
-      controller?.mutate(()=>{tokens=[];next=1;notice='';layoutTokens()});controller?.select(null);
-    }else if(activityMode==='regroup'){
-      activityTarget=activityRandomTarget();
-      controller?.mutate(()=>{
-        let guard=0;
-        while(!makeNonStandardActivity(activityTarget)&&guard++<20)activityTarget=activityRandomTarget();
-        if(!nonStandard()){activityTarget=places[places.length-2].value;makeNonStandardActivity(activityTarget)}
-        notice='Regroup the counters without changing the represented value.';
-      });
-      controller?.select(null);
-    }else if(activityMode==='same'){
-      controller?.mutate(()=>{
-        const seeded=splittableActivityTarget();activityTarget=seeded.target;
-        activityStartCounts=counts().slice();
-        notice='Change the representation while keeping the total unchanged.';
-      });
-      controller?.select(null);
     }else{
-      let nonZero=[],digitChoices=[];
-      for(let attempt=0;attempt<12;attempt++){
-        activityTarget=activityRandomTarget();
-        controller?.mutate(()=>{buildFromNumber(activityTarget);notice=''});controller?.select(null);
-        const cs=counts();
-        nonZero=cs.map((count,index)=>({count,index})).filter(x=>x.count>0);
-        digitChoices=nonZero.filter(x=>Math.abs((places[x.index]?.value||0)-1)>1e-12);
-        if(activityMode!=='digit'||digitChoices.length)break;
-      }
-      const pool=activityMode==='digit'&&digitChoices.length?digitChoices:nonZero;
-      const fallbackCounts=counts();
-      const chosen=pool[Math.floor(Math.random()*pool.length)]||{count:fallbackCounts[places.length-1]||0,index:places.length-1};
-      activityHiddenIndex=chosen.index;activityDigit=chosen.count;
-      if(activityMode==='read')activityAnswer=activityTarget;
-      else if(activityMode==='hidden')activityAnswer=chosen.count;
-      else activityAnswer=clean(chosen.count*places[chosen.index].value);
+      const data=pvGenerate('activity-'+activityMode,{rangeStart,rangeEnd,activityBudget,additionDifficulty,responseLines}),a=data.activity;
+      activityTarget=a.activityTarget;activityBudget=a.activityBudget;activityAnswer=a.activityAnswer;activityHiddenIndex=a.activityHiddenIndex;activityDigit=a.activityDigit;activityStartCounts=a.activityStartCounts.slice();
+      if(activityMode==='add'){additionA=a.additionA;additionB=a.additionB;additionStep=0}
+      controller?.mutate(()=>{tokens=[];next=1;a.paperActivityStart.forEach((count,place)=>{for(let j=0;j<count;j++)tokens.push({id:next++,place,x:0,y:0,locked:false})});layoutTokens();notice=activityMode==='regroup'?'Regroup the counters without changing the represented value.':activityMode==='same'?'Change the representation while keeping the total unchanged.':activityMode==='add'?'Start at '+format(additionA)+'. '+additionProgressText():''});
+      controller?.select(null);
     }
     paperActivityStart=counts().slice();
     activityPrompt=activityDescriptor().prompt;
@@ -606,7 +791,7 @@ function placeValue(){
     const cs=counts(),width=1000,pad=18,boardX=pad,boardY=12,boardW=width-pad*2,colW=boardW/places.length;
     const exportCounts=cs.map((count,index)=>activityActive&&activityMode==='hidden'&&index===activityHiddenIndex?0:count);
     const maxCount=Math.max(1,...exportCounts),perRow=colW>=190?3:2,rows=Math.max(1,Math.ceil(maxCount/perRow));
-    const headerH=92,counterStep=52,bodyH=Math.max(250,Math.min(340,54+rows*counterStep)),boardH=headerH+bodyH,height=boardY+boardH+12;
+    const headerH=92,counterStep=52,bodyH=Math.max(250,54+rows*counterStep),boardH=headerH+bodyH,height=boardY+boardH+12;
     const pupilColumnHidden=index=>!!(challenge&&challenge.answerMode==='bound'&&(challenge.answerSource==='count:'+index||challenge.answerSource==='value:'+index));
     const svg=pvSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Place value chart','data-pv-export':'board'});
     svg.appendChild(pvSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
@@ -752,6 +937,9 @@ function placeValue(){
     return X.composeWorksheetCardSvg(stackPaperCharts(charts),{title:descriptor.title+(teacher?' · Teacher key':''),prompt,responseLabel,responseMode,responseLines:2,paperStyle:'plain',answer,showAnswer:teacher,diagramMaxHeight:charts.length>1?850:500});
   }
   function exportTargetSvg(teacher=false){
+    const settings=pvSettings({rangeStart,rangeEnd,activityBudget,additionDifficulty,responseLines});
+    if(challenge&&challenge.mode!=='custom'&&(exportMode==='challenge'||teacher))return pvPaper({settings,type:challenge.type,challenge:{...challenge,paperStartCounts:challenge.paperStartCounts?.length===places.length?challenge.paperStartCounts:counts()}},teacher);
+    if(activityActive&&activityMode!=='powers'&&!challenge)return pvPaper({settings,type:'activity-'+activityMode,activity:{activityMode,activityTarget,activityBudget,activityAnswer,activityHiddenIndex,activityDigit,activityStartCounts,paperActivityStart,additionA,additionB}},teacher);
     if(exportMode==='challenge'&&challenge&&X?.composeWorksheetCardSvg||teacher&&challenge&&X?.composeWorksheetCardSvg){
       const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type),type=challenge.mode==='custom'?'custom':challenge.type;
       let prompt=CK?CK.plainText(challenge.promptHtml||challenge.prompt||''):challenge.prompt||'',mode=challengeResponseMode(),charts=[];
@@ -1282,6 +1470,7 @@ function placeValue(){
     });
     resizeObserver.observe(q('#gd-stage'));
   }
+  G.publishingCurrent=()=>new XMLSerializer().serializeToString(worksheetBoardSvg({pupil:false}));
   G.lessonState?.register('place-value',()=>({diagram:stateSnapshot(),challenge,beforeChallenge,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines,activityMode,activityTarget,activityBudget,activityStatus,powerMessage,activityActive,activityContext,activityBefore,activityInput,activityAnswer,activityHiddenIndex,activityDigit,activityStartCounts,activityPrompt,paperActivityStart,additionA,additionB,additionStep,additionDifficulty}),saved=>{
     restoreState(saved.diagram);challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
     if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
