@@ -1899,3 +1899,7 @@
   color:#9a4935;
   font-size:.5rem;
 }
+
+/* Keep live bead widths below the shared centre spacing at narrow frame sizes. */
+.gd-ab-frame--western .gd-ab-bead{max-width:4%!important}
+.gd-ab-frame--soroban .gd-ab-bead,.gd-ab-frame--suanpan .gd-ab-bead{max-height:6.8%!important;min-height:0!important}
