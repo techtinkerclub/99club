@@ -18,6 +18,11 @@ Updated 25 November 2026.
 - Changed JavaScript files parse successfully.
 - **Pending:** live browser deployment verification; actual touch/keypad interaction, mobile and board resizing, lesson save/reopen, PNG/SVG/copy, portrait print readability (especially ten long expressions in one column). Generator tests are not browser integration tests.
 
+## Equation typography polish (25 November)
+- Shared range-based numeric answer width and compact symbol answer width; consistent inline height and equation font across the entire set, including inverse facts and SVG export.
+- Centred equation rows, aligned card headings and bottom-aligned Check controls. Responsive shared font budget changes for the entire grid, never a single question.
+- Browser visual/touch and actual paper checks remain pending. Exceptionally long equations can require the whole set to use a smaller font; future pagination or expression wrapping should improve that without inconsistent type sizes.
+
 ## Next priorities
 1. Visual/touch feedback: validate the practice-set launcher, whiteboard layout, inline answer boxes, responsive columns and paper outputs; refine density and font sizes after classroom feedback.
 2. Worksheet-oriented improvements: optional separate answer key, compact paper layout choices, dedicated five-a-day shortcut, and optional space for working. Consider print pagination for unusually long single-column sets.
