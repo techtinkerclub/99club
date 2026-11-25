@@ -19,7 +19,7 @@ The notes are implementation evidence, not a completed acceptance test. “Pilot
 
 | Widget | Recent evidence / focus for next review | L1 paper status | L2/L3 shared document | Final QA |
 |---|---|---|---|---|
-| Number line | Marker/jump labels, multiple lines, solvability, precision and scaling | Existing; audit | Pending | Open |
+| Number line | Shared 25-type generator/rendering; collision lanes retained, endpoint ties and scale variation addressed | Shared templates; custom task audit | Pilot: 25 types + diagrams | Open |
 | Place value board | Counters first; regrouping, exact budgets, alternative representations, decimal columns | Shared templates; custom task audit | Pilot: 13 generated types + diagrams | Open |
 | Abacus & historical calculators | Western, suanpan, soroban; bead geometry; exchange and final total; historical subdevices below | Three abacus templates; historical blocked | Pilot: three abacus types | Open |
 | Fraction wall | Shared six-type generator; equivalent fractions, comparison, simplify, mixed numbers, reasoning; compact aligned paper strips | Shared templates; custom task audit | Pilot: 6 types + diagrams | Open |
@@ -48,7 +48,7 @@ Reckoning board, Chinese counting rods, Napier's Bones, slide rule and Pascaline
 
 1. Keep direct current export independent of document creation.
 2. Array Builder adapter added after Fraction Wall, Clock & Time, Place Value, Arithmetic, Sequences and the three abacus types; continue with number line, money and coordinates. Audit response semantics and teacher solutions while integrating each.
-3. Automatic builder initial source configuration added for the seven integrated widgets (independent type/family/range/difficulty/count). Editing or regenerating already-published source blocks remains pending; preserve manually retained items. Refine all publishing menus with the same compact visual language.
+3. Automatic builder initial source configuration added for the eight integrated widgets (independent type/family/range/difficulty/count). Editing or regenerating already-published source blocks remains pending; preserve manually retained items. Refine all publishing menus with the same compact visual language.
 4. Extend preview layout: configurable portrait/landscape and intelligent columns, full-width diagrams where necessary, consistent numbering, page breaks, working space and teacher keys.
 5. Save/reopen and reusable settings, stable versioned model records, import/export of drafts with validation; preserve exact content rather than regenerating silently.
 6. Align controls and branding with Studio's existing worksheet workflow. Test actual preview/print parity and mobile/touch performance.
@@ -60,7 +60,7 @@ Continue the catalogue review one widget at a time, with defects and regressions
 
 ## Current verified scope
 
-- Seven catalogue entries have shared publishing adapters (Arithmetic, Sequences, Abacus limited to three bead instruments, Place Value, Clock & Time, Fraction Wall, Array Builder).
+- Eight catalogue entries have shared publishing adapters (Arithmetic, Sequences, Abacus limited to three bead instruments, Place Value, Clock & Time, Fraction Wall, Array Builder, Number Line).
 - Automated abacus rollout checks: 2,160 generated tasks; 4,320 pupil/teacher diagrams; 108 mixed-document scenarios and isolated replacements; 1,236 page checks.
 - Automated Place Value rollout: 45 column ranges, 14,040 generated tasks, 28,080 pupil/teacher diagrams, 135 mixed drafts and isolated replacements, 135 captures and 1,655 page checks. Custom teacher-authored tasks still require individual export; the existing powers-of-ten demo is capture-only.
 - Clock rollout: 2,800 individual generator/render checks; 100 multi-source clock drafts, 1,900 generated questions, 200 captures, 100 isolated replacements and 2,583 pupil/teacher page checks. One-clock recipes enable 10 types; two-clock recipes enable 14. Custom tasks remain direct-export only. Actual browser, touch and A4 verification is open.
@@ -74,3 +74,9 @@ Continue the catalogue review one widget at a time, with defects and regressions
 - Pupil mode prints questions only; With answers appends a numbered, text-only answer annex from frozen mathematical records. Pupil pages are identical between modes. Diagrams without questions have no annex entry; numbering follows the actual document order. Construction/alternative answers use concise expected results or example solutions. Standalone widget teacher exports remain unchanged.
 - Verified 80 mixed seven-widget documents, 2,800 annex entries, 1,161 pupil pages and 160 annex pages; exact pupil-page structural parity, answer order and single branding checked. A ten-question missing-result document uses two pages in the SVG layout. No actual browser or physical print validation. Browser print headers/footers still require disabling in print settings if shown.
 - Next planned widget: Number Line; seven of 20 adapters integrated.
+
+### Number Line shared publishing (25 November)
+- Eighth catalogue adapter: all 25 standard templates, current demonstration/challenge capture, automatic generation, individual replacement and concise answer annex. Automatic builder provides five scale presets and answer-space selection; fraction, zoom and proportional tasks use their own compatible scales. Across-zero tasks require a negative-to-positive scale.
+- Live and paper outputs now use the same generator and SVG renderer, retaining existing marker/tick collision lanes and relationship geometry. Unknown jump positions remain concealed in pupil output; missing-label boxes reset after reveal and have no redundant response box. Nearest-endpoint ties are avoided; scale-reading and misconception tasks vary subranges/tick multiples so replacement works under fixed outer ranges. Long/non-divisible challenge scales use a bounded aligned subset of the configured range rather than claiming incorrect endpoint intervals. Custom authored tasks remain direct-export only.
+- Initial 5,840 generator/markup checks; final 3,630 across all five presets, plus 40 mixed Number Line/arithmetic documents, 800 generated questions, 80 current captures, 40 isolated replacements, 321 pupil pages, 40 annex pages and 840 exact prompt alignments. Pupil pages identical in both modes; mock SVG DOM/lightweight XML validation, not browser or actual A4 signoff.
+- Next adapter: UK Money, followed by Coordinate Grid. Eight of 20 catalogue entries integrated; full visual/touch/print acceptance still open.
