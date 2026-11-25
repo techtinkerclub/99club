@@ -150,6 +150,13 @@ Three levels: (1) publish the current challenge or non-challenge representation 
 - Automated checks: 4,200 individual generation/render checks across three ranges; 100 two-source documents, 1,400 generated questions, 200 captures, 100 isolated replacements, 1,679 pupil/teacher page checks and 3,000 prompt baseline checks. Mock SVG DOM, not browser acceptance.
 - Next adapter: Number Line. Seven of 20 entries integrated; final widget certification still open.
 
+
+### Compact worksheet layout and teacher annex (25 November)
+- Shared document cards now remove excess vertical space; equation-only items use compact intrinsic geometry and reduced equation type, without applying that reduction to diagrams. Written boxes and line spacing are larger for handwriting. Standalone exports retain their original layout.
+- Pupil mode prints questions only; With answers appends a numbered, text-only answer annex from frozen mathematical records. Pupil pages are identical between modes. Diagrams without questions have no annex entry; numbering follows the actual document order. Construction/alternative answers use concise expected results or example solutions. Standalone widget teacher exports remain unchanged.
+- Verified 80 mixed seven-widget documents, 2,800 annex entries, 1,161 pupil pages and 160 annex pages; exact pupil-page structural parity, answer order and single branding checked. A ten-question missing-result document uses two pages in the SVG layout. No actual browser or physical print validation. Browser print headers/footers still require disabling in print settings if shown.
+- Next planned widget: Number Line; seven of 20 adapters integrated.
+
 ## Next priorities
 1. Visual/touch feedback: validate the practice-set launcher, whiteboard layout, inline answer boxes, responsive columns and paper outputs; refine density and font sizes after classroom feedback.
 2. Worksheet-oriented improvements: separate arithmetic answer key implemented; five-a-day shortcut implemented; optional arithmetic working space and row-based A4 pagination implemented; shared pupil/teacher export policies across the remaining widgets still need work.
