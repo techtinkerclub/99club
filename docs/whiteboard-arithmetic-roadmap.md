@@ -96,7 +96,7 @@ Updated 25 November 2026.
 - Optional 0/2/4 working lines per question, in Export only, saved with the widget. No changes to whiteboard response layout. Single question worksheets use the working section without a redundant answer box when the equation contains one.
 - Question sets calculate row heights including working space and instructions; print uses complete rows on separate portrait A4 SVGs with the same font metrics, continued numbering, page headings and a single footer per page. Copy/PNG/SVG still export the continuous set for external layout work.
 - Shared print helper accepts one SVG or an array of pages, preserving existing single-page callers. Both entry pages have matching cache versions.
-- Physical print/browser testing remains outstanding; the next cross-widget pass should focus on model-building response areas and explicit teacher keys.
+- Whiteboard frame Export → Paper settings exposes the arithmetic Export controls directly, without requiring a hidden workflow tab. Automated checks: 288 sets, 444 pages, 2,160 questions; four simulated print documents verified page count, footer count and backwards-compatible single-page print options. Physical print/browser testing remains outstanding; the next cross-widget pass should focus on model-building response areas and explicit teacher keys.
 
 ## Next priorities
 1. Visual/touch feedback: validate the practice-set launcher, whiteboard layout, inline answer boxes, responsive columns and paper outputs; refine density and font sizes after classroom feedback.
