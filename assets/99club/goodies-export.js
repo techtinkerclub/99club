@@ -215,11 +215,11 @@ function composeWorksheetCardSvg(diagram,{title='Challenge',prompt='',responseLa
   const diagramH=shortEquation?naturalDiagramH:Math.max(plain?260:300,Math.min(diagramMaxHeight==null?(plain?500:525):Math.max(260,Math.min(1000,Number(diagramMaxHeight)||500)),naturalDiagramH));
   const diagramY=pad+titleH+promptH+(compact?3:plain?12:18);
   const resolvedMode=responseMode==='auto'?(responseLines>1?'lines':'box'):responseMode;
-  const answerRows=Math.max(1,Math.min(4,Math.round(Number(responseLines)||1)));
+  const answerRows=Math.max(1,Math.min(4,Math.round(Number(responseLines)||1))),writingPitch=compact?44:32,boxHeight=compact?50:42;
   const answerLines=showAnswer&&answer?wrapSvgText(answer,92,5):[];
   const responseVisible=showAnswer?!!answer:resolvedMode!=='none';
   const labelLines=wrapSvgText(responseLabel||'Answer',72,3),labelH=Math.max(1,labelLines.length)*20;
-  const responseH=!responseVisible?0:showAnswer?labelH+22+answerLines.length*27:(resolvedMode==='lines'?labelH+12+answerRows*32:labelH+60);
+  const responseH=!responseVisible?0:showAnswer?labelH+22+answerLines.length*27:(resolvedMode==='lines'?labelH+12+answerRows*writingPitch:labelH+boxHeight+18);
   const answerY=diagramY+diagramH+(responseVisible?(compact?5:20):0);
   const height=Math.max(plain?diagramY+diagramH+(compact?12:30):560,answerY+responseH+(compact?12:plain?26:42));
 
@@ -254,12 +254,12 @@ function composeWorksheetCardSvg(diagram,{title='Challenge',prompt='',responseLa
     }else if(resolvedMode==='lines'){
       labelLines.forEach((line,i)=>out.appendChild(svgEl('text',{x:pad,y:answerY+16+i*20,'font-family':'Arial,sans-serif','font-size':15,'font-weight':850,fill:'#64777d'},line)));
       for(let i=0;i<answerRows;i++){
-        const lineY=answerY+labelH+17+i*32;
+        const lineY=answerY+labelH+17+i*writingPitch;
         out.appendChild(svgEl('line',{x1:pad,y1:lineY,x2:width-pad,y2:lineY,stroke:'#aebdc1','stroke-width':1.5}));
       }
     }else if(resolvedMode==='box'){
       labelLines.forEach((line,i)=>out.appendChild(svgEl('text',{x:pad,y:answerY+16+i*20,'font-family':'Arial,sans-serif','font-size':15,'font-weight':850,fill:'#64777d'},line)));
-      out.appendChild(svgEl('rect',{x:pad,y:answerY+labelH+7,width:250,height:42,rx:4,fill:'#ffffff',stroke:'#9fafb3','stroke-width':1.8}));
+      out.appendChild(svgEl('rect',{x:pad,y:answerY+labelH+7,width:250,height:boxHeight,rx:4,fill:'#ffffff',stroke:'#9fafb3','stroke-width':1.8}));
     }
   }
 
