@@ -3295,7 +3295,7 @@ function multiplicationGrid(){
       table+='</tr>';
     }
     table+='</tbody></table>';
-    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Multiplication Grid challenge',pupil:(challenge.type==='select-fact'?CK.pupilSpec('model',{check:()=>selectedRow===Number(challenge.targetRow)&&selectedCol===Number(challenge.targetCol)}):CK.pupilSpec(['commutative-fact','spot-error'].includes(challenge.type)?'text':'number')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Multiplication Grid challenge',pupil:(challenge.type==='select-fact'?CK.pupilSpec('model',{check:()=>selectedRow===Number(challenge.targetRow)&&selectedCol===Number(challenge.targetCol)}):CK.pupilSpec(['commutative-fact','spot-error'].includes(challenge.type)?'equation':'number')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-mg-workbench">'+
       '<div class="gd-mg-summary"><div><span>Multiplication grid</span><strong>'+size+' × '+size+' · focus '+focus+' times table</strong></div>'+
         '<div class="gd-object-toolbar"><button class="gd-btn" id="mg-undo" type="button"'+(undoStack.length&&!challengeFrozen()?'':' disabled')+'>Undo</button><button class="gd-btn" id="mg-redo" type="button"'+(redoStack.length&&!challengeFrozen()?'':' disabled')+'>Redo</button></div></div>'+
@@ -4238,7 +4238,7 @@ function arrayBuilder(){
     const inverse=hiddenFlag('hiddenInverse')?'?':inverseFacts();
     const partial=partitionMath(),partialText=hiddenFlag('hiddenPartial')?'?':partial;
     const rowDisplay=displayDimension('rows'),colDisplay=displayDimension('cols'),frozen=challengeFrozen();
-    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Array challenge',pupil:(challenge.type==='build-array'?CK.pupilSpec('model',{check:()=>rows===challenge.targetRows&&cols===challenge.targetCols}):challenge.type==='partial-products'?CK.pupilSpec('partials',{products:partitionParts().map(p=>p.value),total:total()}):CK.pupilSpec(['multiplication-fact','commutative-fact'].includes(challenge.type)?'text':'number')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Array challenge',pupil:(challenge.type==='build-array'?CK.pupilSpec('model',{check:()=>rows===challenge.targetRows&&cols===challenge.targetCols}):challenge.type==='partial-products'?CK.pupilSpec('partials',{products:partitionParts().map(p=>p.value),total:total()}):CK.pupilSpec(['multiplication-fact','commutative-fact'].includes(challenge.type)?'equation':'number')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     const targetStatus=challenge?.mode==='standard'&&challenge.type==='build-array'
       ?'<div class="gd-answer-live" data-ab-target-status>'+(buildOnTarget()?'On target ✓':'')+'</div>'
       :'';
