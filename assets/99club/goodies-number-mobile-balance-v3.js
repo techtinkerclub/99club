@@ -267,7 +267,7 @@ function keypad(work,tokens){
 }
 
 function equationOverride(work,tokens){
-  if(work.querySelector('.gd-challenge-banner'))return;
+  if(stage()?.querySelector('.gd-challenge-banner'))return;
   const labels=labelMap(tokens),leftLabels=flattenLabels(roots.left,labels),rightLabels=flattenLabels(roots.right,labels),lt=treeValue(roots.left,labels),rt=treeValue(roots.right,labels),rel=Math.abs(lt-rt)<1e-9?'=':lt>rt?'>':'<';
   const desired=(leftLabels.length?leftLabels.join(' + '):'0')+' '+rel+' '+(rightLabels.length?rightLabels.join(' + '):'0'),eq=work.querySelector('[data-ba-equation]');if(eq&&eq.textContent!==desired)eq.textContent=desired;
 }
