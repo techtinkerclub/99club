@@ -286,6 +286,7 @@ function compactChallengeControls(clone,obj){
     wrap.appendChild(cards);
   }else if(clone.querySelector('#ab-history-challenge')){
     const button=clone.querySelector('#ab-history-challenge');button.textContent='Random challenge';addButton(button,'gd-launch-all');
+    const ops=[...clone.querySelectorAll('[data-ab-history-operation]')];if(ops.length){wrap.appendChild(label('Or choose an operation'));const cards=doc.createElement('div');cards.className='gd-challenge-cards';ops.forEach(op=>{op.classList.add('gd-launch-native-type');cards.appendChild(op)});wrap.appendChild(cards)}
   }else{
     // An authored custom task can remain intact while its standard tab is reopened.
     const standard=clone.querySelector('.gd-challenge-tab:not(.is-active)[data-board-control-index]');
@@ -876,7 +877,7 @@ if(floatingControlsBody){
     if(control.tagName!=='BUTTON'&&!(control.tagName==='INPUT'&&/^(button|submit|reset)$/i.test(control.type||'')))return;
     e.preventDefault();e.stopPropagation();
     const {obj,node}=floatingOriginal(control.dataset.boardControlIndex);if(!obj||!node)return;
-    const launch=node.matches('[data-gd-random-scope],[data-gd-native-random],[data-pv-challenge-mode],[data-ab-challenge-mode],#ab-history-challenge,[id$="-generate"]');
+    const launch=node.matches('[data-gd-random-scope],[data-gd-native-random],[data-pv-challenge-mode],[data-ab-challenge-mode],[data-ab-history-operation],#ab-history-challenge,[id$="-generate"]');
     const specific=floatingPanelMode==='challenge'&&[...node.attributes].find(a=>/^-?data-[a-z0-9-]+-challenge-type$/.test(a.name));
     if(specific){const prefix=specific.name.match(/^data-([a-z0-9-]+)-challenge-type$/)[1];node.click();const generate=sourceControls(obj)?.querySelector('#'+prefix+'-generate');if(generate&&!generate.disabled){generate.click();closeFloatingControls(obj.id)}}
     else{node.click();if(launch&&floatingPanelMode==='challenge')closeFloatingControls(obj.id)}
