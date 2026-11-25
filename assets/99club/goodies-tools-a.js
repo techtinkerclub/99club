@@ -183,21 +183,14 @@ function placeValue(){
       const placeIndex=1+Math.floor(Math.random()*(places.length-1)),digit=2+Math.floor(Math.random()*7);
       const digits=Array(places.length).fill(0);
       digits[placeIndex]=digit;
-      const supportIndex=placeIndex===4?3:4;
+      const supportIndex=placeIndex===0?1:0;
       digits[supportIndex]=digits[supportIndex]===digit?1:1+Math.floor(Math.random()*4);
       const value=clean(digits.reduce((sum,d,i)=>sum+d*places[i].value,0));
       buildFromNumber(value);
       challenge=challengeObject(type,'What is the value of the digit '+digit+' in the '+places[placeIndex].name+' column?',format(digit*places[placeIndex].value),{hiddenSummary:['total','expanded']});
     }else if(type==='non-standard'){
-      const value=randomBoardValue({decimal:false,min:120,max:8999});
-      buildFromNumber(value);
-      const cs=counts(),candidates=[];
-      for(let i=0;i<places.length-1;i++)if(cs[i]>0)candidates.push(i);
-      const exchange=candidates[Math.floor(Math.random()*candidates.length)]??3;
-      const tokenIndex=tokens.findIndex(t=>t.place===exchange);
-      if(tokenIndex>=0)tokens.splice(tokenIndex,1);
-      for(let n=0;n<10;n++)tokens.push({id:next++,place:exchange+1,x:0,y:0,locked:false});
-      layoutTokens();
+      let value=randomBoardValue({decimal:false,min:120,max:8999});
+      if(!makeNonStandardActivity(value)){value=places[places.length-2].value;makeNonStandardActivity(value)}
       challenge=challengeObject(type,'This is a non-standard representation. What number does it represent? Regroup it to check.',format(value),{hiddenSummary:['total','expanded']});
     }else{
       const digits=Array(places.length).fill(0).map(()=>1+Math.floor(Math.random()*8));
@@ -258,6 +251,7 @@ function placeValue(){
       if(options.length){candidate=options[Math.floor(Math.random()*options.length)];break}
       target=activityRandomTarget();
     }
+    if(candidate<0){target=places[places.length-2].value;buildFromNumber(target);candidate=places.length-2}
     return{target,candidate};
   }
   function makeNonStandardActivity(target){
@@ -407,6 +401,7 @@ function placeValue(){
       controller?.mutate(()=>{
         let guard=0;
         while(!makeNonStandardActivity(activityTarget)&&guard++<20)activityTarget=activityRandomTarget();
+        if(!nonStandard()){activityTarget=places[places.length-2].value;makeNonStandardActivity(activityTarget)}
         notice='Regroup the counters without changing the represented value.';
       });
       controller?.select(null);
@@ -704,7 +699,7 @@ function placeValue(){
     const W=1000,pad=16,colW=(W-pad*2)/places.length,top=label?40:8,head=60;
     const perRow=places.length>5?3:4,maxCount=Math.max(1,...cs.map((n,i)=>i===hidden?0:n));
     const pitch=Math.min(34,colW/(perRow+.55)),radius=pitch*.36;
-    const body=blank?190:Math.max(108,Math.ceil(maxCount/perRow)*pitch+22),H=top+head+body+10;
+    const body=blank?Math.max(190,Math.ceil(19/perRow)*pitch+22):Math.max(108,Math.ceil(maxCount/perRow)*pitch+22),H=top+head+body+10;
     const svg=pvSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':label||'Place value counters'});
     const add=(tag,attrs,txt)=>svg.appendChild(pvSvgEl(tag,attrs,txt));
     add('rect',{width:W,height:H,fill:'#fff'});
@@ -736,7 +731,7 @@ function placeValue(){
   function activityPaper(teacher){
     const descriptor=activityDescriptor(),mode=activityMode,zeros=Array(places.length).fill(0),target=digitsForValue(activityTarget);
     const initial=mode==='add'?digitsForValue(additionA):mode==='same'&&activityStartCounts.length===places.length?activityStartCounts.slice():paperActivityStart?.length===places.length?paperActivityStart.slice():mode==='regroup'?(paperAlternative(target)||target):target;
-    let charts=[],prompt=descriptor.prompt,responseMode='none',responseLabel='Answer',answer='';
+    let charts=[],prompt=descriptor.prompt.replace(/linked counter chart and place-value frame|place-value bead frame/g,'place-value counters'),responseMode='none',responseLabel='Answer',answer='';
     if(['read','hidden','digit'].includes(mode)){
       charts=[paperChart(initial,{hidden:mode==='hidden'&&!teacher?activityHiddenIndex:-1,highlight:mode==='digit'?activityHiddenIndex:-1})];responseMode='box';answer=format(activityAnswer);
     }else if(['build','exact','regroup','same','add'].includes(mode)){
@@ -758,7 +753,7 @@ function placeValue(){
   }
   function exportTargetSvg(teacher=false){
     if(exportMode==='challenge'&&challenge&&X?.composeWorksheetCardSvg||teacher&&challenge&&X?.composeWorksheetCardSvg){
-      const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type),type=challenge.type;
+      const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type),type=challenge.mode==='custom'?'custom':challenge.type;
       let prompt=CK?CK.plainText(challenge.promptHtml||challenge.prompt||''):challenge.prompt||'',mode=challengeResponseMode(),charts=[];
       const initial=challenge.paperStartCounts?.length===places.length?challenge.paperStartCounts.slice():counts();
       if(type==='build-number'){
