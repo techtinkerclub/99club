@@ -35,7 +35,7 @@ const defaults={
 };
 const QUICK_ACTIONS={
   'number-line':[
-    {label:'Challenge',selector:'[data-nl-random-challenge]',allowHidden:true,title:'Give a random Number Line challenge'},
+    {label:'Challenge',selector:'[data-nl-workflow="challenge"]',allowHidden:true,panelMode:'challenge',title:'Choose a challenge'},
     {label:'Reveal answer',selector:'[data-board-action="reveal"]',allowHidden:true,dynamicLabel:true,title:'Reveal or hide the current challenge answer'},
     {label:'+ Marker',selector:'[data-board-action="add-marker"]',title:'Add marker',notice:'Tap the number line where you want the marker.'},
     {label:'− Item',selector:'[data-board-action="delete"]',title:'Delete marker or comparison line',notice:'Tap the marker or comparison line you want to remove.'},
@@ -43,13 +43,13 @@ const QUICK_ACTIONS={
     {label:'+ Line',selector:'[data-board-action="add-line"]',title:'Add aligned comparison line'}
   ],
   'place-value':[
-    {label:'Challenge',selector:'[data-pv-random-challenge]',allowHidden:true,title:'Give a random Place Value challenge'},
+    {label:'Challenge',selector:'[data-pv-workflow="challenge"]',allowHidden:true,panelMode:'challenge',title:'Choose a challenge'},
     {label:'Reveal answer',selector:'[data-board-action="reveal"]',dynamicLabel:true,title:'Reveal or hide the challenge answer'},
     {label:'Exchange 10→1',selector:'[data-gd-action="exchange-up"]',allowHidden:true,title:'Exchange ten selected-place counters for one of the next larger place'},
     {label:'Split 1→10',selector:'[data-gd-action="split-down"]',allowHidden:true,title:'Split the selected counter into ten of the next smaller place'}
   ],
   abacus:[
-    {label:'Challenge',selector:'[data-ab-random-challenge]',allowHidden:true,title:'Give a random Abacus challenge'},
+    {label:'Challenge',selector:'[data-ab-workflow="challenge"],#ab-history-challenge',allowHidden:true,panelMode:'challenge',title:'Choose a challenge',skipClickSelector:'#ab-history-challenge'},
     {label:'Clear',selector:'[data-ab-stage="clear"]',title:'Reset every place-value rod to zero',danger:true}
   ],
   'bar-model':[
@@ -282,7 +282,7 @@ function renderFloatingControls(obj){
   floatingControlSignature=signature;
   floatingControlsBody.scrollTop=scroll;
   const tool=tools.find(t=>t.id===obj.toolId);
-  if(floatingControlsTitle)floatingControlsTitle.textContent=obj.toolId==='place-value'&&floatingPanelMode==='challenge'?'Place value challenge':(tool?.title||'Manipulative')+' settings';
+  if(floatingControlsTitle)floatingControlsTitle.textContent=(tool?.title||'Manipulative')+(floatingPanelMode==='challenge'?' · Challenge':' settings');
   floatingControls.hidden=false;
   requestAnimationFrame(positionFloatingControls);
 }
@@ -353,7 +353,7 @@ function openFloatingControls(obj,mode='settings'){
   floatingControlObjectId=obj.id;obj.settingsOpen=true;
   const frame=frameFor(obj.id);frame?.classList.add('has-settings');
   const tool=tools.find(t=>t.id===obj.toolId);
-  if(floatingControlsTitle)floatingControlsTitle.textContent=obj.toolId==='place-value'&&floatingPanelMode==='challenge'?'Place value challenge':(tool?.title||'Manipulative')+' settings';
+  if(floatingControlsTitle)floatingControlsTitle.textContent=(tool?.title||'Manipulative')+(floatingPanelMode==='challenge'?' · Challenge':' settings');
   if(floatingControls)floatingControls.hidden=false;
   const rect=frame?.getBoundingClientRect(),host=board.getBoundingClientRect();
   if(rect&&!floatingControlMoved){
@@ -781,7 +781,7 @@ function bindObject(obj){
     const target=action&&innerTarget(obj,action.selector,!!action.allowHidden);
     if(target){
       if(action.panelMode){
-        target.click();
+        if(!action.skipClickSelector||!target.matches(action.skipClickSelector)){const active=target.classList.contains('gd-btn--primary')||target.classList.contains('is-active')||target.getAttribute('aria-selected')==='true';if(!active)target.click()}
         setTimeout(()=>{sendSettings(obj,true,action.panelMode);syncQuickActions(obj)},0);
       }else if(action.openSettings){
         sendSettings(obj,true);setTimeout(()=>target.focus?.(),30)
@@ -813,7 +813,9 @@ if(floatingControlsBody){
     if(control.tagName!=='BUTTON'&&!(control.tagName==='INPUT'&&/^(button|submit|reset)$/i.test(control.type||'')))return;
     e.preventDefault();e.stopPropagation();
     const {obj,node}=floatingOriginal(control.dataset.boardControlIndex);if(!obj||!node)return;
+    const launch=node.matches('[data-gd-random-scope],[data-gd-native-random],[data-pv-challenge-mode],[data-ab-challenge-mode],#ab-history-challenge,[id$="-generate"]');
     node.click();
+    if(launch&&floatingPanelMode==='challenge')closeFloatingControls(obj.id);
     setTimeout(()=>{syncQuickActions(obj);refreshFloatingControls(obj)},0);
   });
   const forwardValue=e=>{
