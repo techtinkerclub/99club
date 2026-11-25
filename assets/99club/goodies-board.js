@@ -222,7 +222,7 @@ function innerTarget(obj,selector,allowHidden=false){
   return node;
 }
 const CONTROL_SELECTOR='button,input,select,textarea,[contenteditable="true"]';
-let floatingControlSources=[],floatingControlSignature='';
+let floatingControlSources=[],floatingControlSignature='',floatingControlStructure='';
 const innerConnections=new Map();
 function positionFloatingControls(){
   if(!floatingControls)return;
@@ -252,11 +252,14 @@ function renderFloatingControls(obj){
   clone.querySelectorAll('#nl-fullscreen,.gd-embed-workflow-hidden[id$="-fullscreen"]').forEach(node=>node.remove());
   // Use a signature that includes property values (not just innerHTML).
   const signature=JSON.stringify([obj.id,floatingPanelMode,clone.innerHTML,sourceInputs.map(n=>[n.value,n.checked,n.disabled,n.isContentEditable?n.innerHTML:null])]);
-  floatingControlSources=sourceInputs;
-  if(signature===floatingControlSignature&&floatingControlsBody.firstElementChild)return;
-  // Never destroy an active text field/slider while the user is editing it.
+  const structure=JSON.stringify(sourceInputs.map(n=>[n.tagName,n.id,n.type,n.name,{...n.dataset},n.tagName==='BUTTON'?n.textContent:null]));
+  if(signature===floatingControlSignature&&floatingControlsBody.firstElementChild){floatingControlSources=sourceInputs;return}
+  // Preserve an active input only when the new source has the same control identities.
   const active=document.activeElement;
-  if(floatingControlsBody.contains(active)&&active.matches('input,textarea,[contenteditable="true"]')&&active.type!=='button')return;
+  if(structure===floatingControlStructure&&floatingControlsBody.contains(active)&&active.matches('input,textarea,[contenteditable="true"]')&&active.type!=='button'){
+    floatingControlSources=sourceInputs;return;
+  }
+  floatingControlSources=sourceInputs;floatingControlStructure=structure;
   const scroll=floatingControlsBody.scrollTop;
   floatingControlsBody.replaceChildren(clone);
   floatingControlSignature=signature;
@@ -268,7 +271,7 @@ function renderFloatingControls(obj){
 }
 function renderFloatingHelp(obj,data){
   if(!floatingControls||!floatingControlsBody||!obj||!data)return;
-  floatingPanelMode='help';floatingHelpData=data;floatingControlSignature='';floatingControlSources=[];
+  floatingPanelMode='help';floatingHelpData=data;floatingControlSignature='';floatingControlSources=[];floatingControlStructure='';
   if(floatingControls)floatingControls.dataset.tool=obj.toolId||'';
   floatingControls.classList.add('is-help');
   floatingControlsBody.replaceChildren();
@@ -349,7 +352,7 @@ function closeFloatingControls(id=null){
   const target=id==null?objectById(floatingControlObjectId):objectById(id);
   if(target){target.settingsOpen=false;frameFor(target.id)?.classList.remove('has-settings')}
   if(id==null||String(floatingControlObjectId)===String(id)){
-    floatingControlObjectId=null;floatingHelpData=null;floatingPanelMode='settings';floatingControlSources=[];floatingControlSignature='';
+    floatingControlObjectId=null;floatingHelpData=null;floatingPanelMode='settings';floatingControlSources=[];floatingControlSignature='';floatingControlStructure='';
     if(floatingControls){floatingControls.classList.remove('is-help');delete floatingControls.dataset.tool;floatingControls.hidden=true;floatingControlsBody?.replaceChildren()}
   }
 }
@@ -404,7 +407,7 @@ function syncQuickActions(obj){
     const label=action.checkedLabel&&'checked' in node?(node.checked?action.checkedLabel:(action.uncheckedLabel||action.label)):(action.dynamicLabel?(node.textContent||action.label).trim():action.label);
     return '<button type="button" data-board-inner-action="'+index+'"'+(action.danger?' class="is-danger"':'')+' aria-label="'+esc(action.title||label)+'" title="'+esc(action.title||label)+'">'+esc(label)+'</button>';
   }).join('');
-  if(rail.innerHTML!==markup)rail.innerHTML=markup;
+  if(rail._tt99Markup!==markup){rail.innerHTML=markup;rail._tt99Markup=markup}
   rail.classList.toggle('is-empty',available.length===0);
   syncHistoryActions(obj);
 }
