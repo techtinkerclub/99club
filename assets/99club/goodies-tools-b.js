@@ -4416,6 +4416,7 @@ function arithmeticPaper(question,workingLines=0,teacher=false){
 }
 if(G.publishing)G.publishing.register('maths-canvas',{
  label:'Arithmetic',
+ types:model=>G.numberChallenges.available(model.numberSettings||{},model.difficulty||'medium').flatMap(g=>g.ids.map(id=>({id,label:G.numberChallenges.titles[id]}))),
  title:item=>item.kind==='challenge'?G.numberChallenges.titles[item.data.type]:'Number & symbol tiles',
  signature:q=>q.targetRule?'target:'+q.targetRule.numbers.slice().sort((a,b)=>a-b).join(',')+'='+q.targetRule.target:JSON.stringify(q.tiles),
  recipe:(model,type)=>({type,settings:G.numberChallenges.settings(model.numberSettings||{},model.difficulty),difficulty:model.difficulty||'medium',workingLines:[0,2,4].includes(model.workingLines)?model.workingLines:0}),
