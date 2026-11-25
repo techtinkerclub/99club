@@ -4225,7 +4225,7 @@ function batchMarkup(){
    const answer=choice?'<select class="gd-mc-set-answer '+(qn.tiles.includes('?')?'is-symbol-answer':'is-word-answer')+'" aria-label="'+label+'" data-mc-set-value="'+i+'"'+(locked?' disabled':'')+'><option value="">?</option>'+qn.choices.map(v=>'<option value="'+esc(v)+'"'+(display===v?' selected':'')+'>'+esc(v)+'</option>').join('')+'</select>':'<input type="text" inputmode="none" data-gd-keypad="number" class="gd-mc-set-answer is-number-answer" aria-label="'+label+'" data-mc-set-value="'+i+'" autocomplete="off" maxlength="24" value="'+esc(display)+'" placeholder="?"'+(locked?' disabled':'')+'>';
    const hasHole=qn.tiles.includes('?');
    const equations=batchRows(qn).map(row=>'<div class="gd-number-equation">'+row.map(v=>v==='?'?answer:'<span class="gd-number-equation-token'+(/^[+−×÷=<>R]$/.test(v)?' is-operator':/^[()]$/.test(v)?' is-bracket':'')+'">'+esc(v)+'</span>').join('')+'</div>').join('');
-   return '<article class="gd-mc-set-card nl-challenge-solve'+(item.correct?' is-correct':item.revealed?' is-revealed':'')+'"><div class="gd-mc-set-card-head"><strong class="gd-mc-set-index">'+(i+1)+'.</strong><span>'+esc(N.titles[qn.type])+'</span></div><div class="gd-mc-set-equations">'+equations+'</div><div class="gd-mc-set-card-foot">'+(!hasHole?answer:'')+'<span class="gd-mc-set-feedback" role="status" aria-live="polite">'+esc(item.feedback||(item.revealed?'Answer shown':''))+'</span><button type="button" class="gd-btn gd-mc-set-check" data-challenge-check data-mc-set-check="'+i+'"'+(!item.value.trim()||locked?' disabled':'')+'>Check</button></div></article>';
+   return '<article class="gd-mc-set-card nl-challenge-solve'+(item.correct?' is-correct':item.revealed?' is-revealed':'')+'"><div class="gd-mc-set-card-head"><strong class="gd-mc-set-index">'+(i+1)+'.</strong><span>'+esc(N.titles[qn.type])+'</span><span class="gd-mc-set-feedback" role="status" aria-live="polite">'+esc(item.feedback||(item.revealed?'Answer shown':''))+'</span></div><div class="gd-mc-set-equations">'+equations+'</div><div class="gd-mc-set-card-foot">'+(!hasHole?answer:'')+'<button type="button" class="gd-btn gd-mc-set-check" data-challenge-check data-mc-set-check="'+i+'"'+(!item.value.trim()||locked?' disabled':'')+'>Check</button></div></article>';
  }).join('');
  return '<div class="gd-mc-set"><div class="gd-challenge-banner gd-mc-set-header" data-challenge-mode="standard"><div><strong>'+batch.length+' questions</strong> <span class="gd-mc-set-progress">'+done+' / '+batch.length+' correct</span></div><div class="gd-challenge-actions"><button type="button" class="gd-challenge-action" data-mc-new-set>New set</button><button type="button" class="gd-challenge-action" data-mc-layout-toggle>'+(batchCols()===1?'Two columns':'One column')+'</button><button type="button" class="gd-challenge-reveal" data-board-action="reveal"'+(done===batch.length?' hidden':'')+'>'+(shown?'Hide answers':'Reveal answers')+'</button><button type="button" class="gd-challenge-action" data-challenge-action="end">Exit challenge</button></div></div>'+(generationError?'<p class="gd-number-error" role="status">'+esc(generationError)+'</p>':'')+'<div class="gd-mc-set-grid" data-columns="'+batchCols()+'" style="--mc-equation-units:'+metrics.maxUnits+';--mc-number-width:'+metrics.numberWidth+'em;--mc-symbol-width:'+metrics.symbolWidth+'em">'+cards+'</div></div>';
 }
@@ -4290,9 +4290,9 @@ Object.entries(attrs).forEach(([key,value])=>el.setAttribute(key,String(value)))
 if(text!==''&&text!=null)el.textContent=String(text);
 return el;
 }
-function appendEquationSvg(svg,qn,tokens,metrics,font,x,y,width){
+function appendEquationSvg(svg,qn,tokens,metrics,font,x,y,width,align='center'){
  const weights=tokens.map(v=>metrics.width(v,qn)),gap=.18*font,total=metrics.rowWidth(tokens,qn)*font;
- let xx=x+(width-total)/2;
+ let xx=align==='left'?x:x+(width-total)/2;
  tokens.forEach((v,i)=>{
    const w=weights[i]*font;
    if(v==='?')svg.appendChild(mcSvgEl('rect',{x:xx,y:y-font*.86,width:w,height:font*1.16,rx:font*.12,fill:'#fff',stroke:'#48666b','stroke-width':1.6}));
@@ -4309,22 +4309,25 @@ function numberChallengeSvg(){
  return svg;
 }
 function numberSetSvg(){
- const cols=batchCols(),W=960,pad=24,gap=20,cellW=(W-pad*2-gap*(cols-1))/cols,rowHeights=[],metrics=N.equationMetrics(batch.map(item=>item.question));
- // Compute once, then use exactly the same font for every equation on the sheet.
- const font=Math.min(38,(cellW-20)/metrics.maxUnits),lineH=Math.max(44,font*1.48);
- batch.forEach((item,i)=>{const qn=item.question,rows=metrics.rows(qn).length,height=40+rows*lineH+(qn.kind==='choice'?24:0)+(!qn.tiles.includes('?')?38:0),index=Math.floor(i/cols);rowHeights[index]=Math.max(rowHeights[index]||0,height)});
- const H=70+rowHeights.reduce((n,h)=>n+h+12,0)+12,svg=mcSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':batch.length+' unanswered arithmetic questions'});
+ const cols=batchCols(),W=960,pad=28,gap=26,cellW=(W-pad*2-gap*(cols-1))/cols,rowHeights=[],metrics=N.equationMetrics(batch.map(item=>item.question));
+ // One consistent mathematical font, with a fixed left edge per column.
+ const font=Math.min(32,(cellW-12)/metrics.maxUnits),lineH=Math.max(32,font*1.35+3),headingH=24,rowGap=10;
+ const extraH=qn=>qn.kind==='choice'?(!qn.tiles.includes('?')?29:20):(!qn.tiles.includes('?')?29:0);
+ batch.forEach((item,i)=>{const qn=item.question,height=headingH+metrics.rows(qn).length*lineH+extraH(qn)+6,index=Math.floor(i/cols);rowHeights[index]=Math.max(rowHeights[index]||0,height)});
+ const H=62+rowHeights.reduce((n,h)=>n+h+rowGap,0)+12,svg=mcSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':batch.length+' unanswered arithmetic questions'});
  const add=(name,attrs,txt)=>svg.appendChild(mcSvgEl(name,attrs,txt));
  add('rect',{width:W,height:H,fill:'#fff'});
  add('text',{x:pad,y:32,'font-family':'Arial,sans-serif','font-size':24,'font-weight':700,fill:'#24343b'},batch.length+' arithmetic questions');
  add('text',{x:W-pad,y:32,'text-anchor':'end','font-family':'Arial,sans-serif','font-size':15,fill:'#52666d'},'Name: __________________');
  batch.forEach((item,i)=>{
-   const qn=item.question,row=Math.floor(i/cols),x=pad+(i%cols)*(cellW+gap),y=58+rowHeights.slice(0,row).reduce((n,h)=>n+h+12,0),rows=metrics.rows(qn);
-   add('text',{x:x+cellW/2,y:y+18,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':17,'font-weight':700,fill:'#24343b'},(i+1)+'. '+N.titles[qn.type]);
-   rows.forEach((tokens,j)=>appendEquationSvg(svg,qn,tokens,metrics,font,x+10,y+28+lineH*.75+j*lineH,cellW-20));
-   let bottom=y+40+rows.length*lineH;
-   if(!qn.tiles.includes('?')){const answerW=Math.min(150,cellW-20);add('rect',{x:x+(cellW-answerW)/2,y:bottom-12,width:answerW,height:27,rx:3,fill:'#fff',stroke:'#48666b','stroke-width':1.5});bottom+=38}
-   if(qn.kind==='choice')add('text',{x:x+cellW/2,y:bottom+6,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':14,fill:'#52666d'},'Choose: '+qn.choices.join('   /   '));
+   const qn=item.question,row=Math.floor(i/cols),x=pad+(i%cols)*(cellW+gap),y=48+rowHeights.slice(0,row).reduce((n,h)=>n+h+rowGap,0),rows=metrics.rows(qn);
+   add('text',{x:x+4,y:y+16,'font-family':'Arial,sans-serif','font-size':15,'font-weight':700,fill:'#24343b'},(i+1)+'. '+N.titles[qn.type]);
+   rows.forEach((tokens,j)=>appendEquationSvg(svg,qn,tokens,metrics,font,x+4,y+headingH+lineH*.72+j*lineH,cellW-12,'left'));
+   const bottom=y+headingH+rows.length*lineH;
+   if(!qn.tiles.includes('?')){
+     const answerW=Math.min(110,cellW*.3);add('rect',{x:x+4,y:bottom+1,width:answerW,height:24,rx:3,fill:'#fff',stroke:'#48666b','stroke-width':1.5});
+     if(qn.kind==='choice')add('text',{x:x+answerW+14,y:bottom+18,'font-family':'Arial,sans-serif','font-size':14,fill:'#52666d'},'Choose: '+qn.choices.join(' / '));
+   }else if(qn.kind==='choice')add('text',{x:x+4,y:bottom+14,'font-family':'Arial,sans-serif','font-size':14,fill:'#52666d'},'Choose: '+qn.choices.join('   /   '));
    add('line',{x1:x,y1:y+rowHeights[row]+3,x2:x+cellW,y2:y+rowHeights[row]+3,stroke:'#d8e0e1','stroke-width':1});
  });
  return svg;
