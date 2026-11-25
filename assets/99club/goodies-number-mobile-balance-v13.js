@@ -14,7 +14,7 @@ function stage(){return document.getElementById('gd-stage')}
 function work(){return q('.gd-number-mobile-workbench',stage())}
 function banner(){return q('.gd-challenge-banner',stage())}
 function text(el){return String(el?.textContent||'').trim()}
-function numeric(value){const n=Number(String(value??'').trim());return Number.isFinite(n)?n:null}
+function numeric(value){const raw=String(value??'').trim();if(!raw||raw==='.'||raw==='?')return null;const n=Number(raw);return Number.isFinite(n)?n:null}
 function sideTotal(side){return qa('.gd-eq-side--'+side+' .gd-eq-weights [data-ba-token]',work()).reduce((sum,tile)=>{const n=numeric(text(q('strong',tile)));return sum+(n==null?0:n)},0)}
 function revealButton(){return q('[data-board-action="reveal"]',banner())}
 function closePad(panel=activePanel){
