@@ -5,12 +5,13 @@ if(!G)return;
 const OPS=['+','−','×','÷'],REL=['<','=','>'],EXTRAS=['Brackets','Powers','Remainders'];
 const topics=[
  ['fraction-quantity','Fraction of a quantity','Years 3–4'],['fraction-same','Same denominator + / −','Years 3–4'],['fraction-equivalent','Equivalent fractions','Years 3–5'],['fraction-related','Related denominators + / −','Year 5'],['fraction-times-whole','Fraction × whole number','Year 5'],['fraction-unlike','Different denominators + / −','Year 6'],['fraction-mixed','Mixed numbers + / −','Year 6'],['fraction-simplify','Simplify fractions','Year 6'],['fraction-times-fraction','Fraction × fraction','Year 6'],['fraction-divide-whole','Fraction ÷ whole number','Year 6'],['percentage-quantity','Percentage of a quantity','Year 6'],['square-root','Square roots (exact)','KS3 extension'],['cube-root','Cube roots (exact)','KS3 extension'],['fraction-divide-fraction','Fraction ÷ fraction','KS3 extension']
- ,['fdp-fraction-decimal','Fraction to decimal','Year 5'],['fdp-decimal-fraction','Decimal to fraction','Year 5'],['fdp-fraction-percent','Fraction to percentage','Year 5'],['fdp-percent-fraction','Percentage to fraction','Year 5'],['fdp-decimal-percent','Decimal to percentage','Year 5'],['fdp-percent-decimal','Percentage to decimal','Year 5'],['fraction-compare','Compare fractions','Year 5']
+ ,['fdp-fraction-decimal','Fraction to decimal','Year 5'],['fdp-decimal-fraction','Decimal to fraction','Year 5'],['fdp-fraction-percent','Fraction to percentage','Year 5'],['fdp-percent-fraction','Percentage to fraction','Year 5'],['fdp-decimal-percent','Decimal to percentage','Year 5'],['fdp-percent-decimal','Percentage to decimal','Year 5'],['fraction-compare','Compare fractions','Year 5'],['fraction-order','Order fractions: smallest first','Year 5'],['expression-order','Order expressions: smallest first','Year 4'],['correct-result','Correct the wrong result','Year 3']
 ].map(([id,label,stage])=>({id,label,stage}));
 const groups=[
  {id:'arithmetic',label:'Arithmetic',ids:['missing-result','missing-number','missing-operation','number-bond']},
  {id:'equivalence',label:'Equality & comparison',ids:['equal-expressions','compare-values','true-false']},
  {id:'reasoning',label:'Reasoning',ids:['order-of-operations','inverse-operation','bracket-operation']},
+ {id:'reasoning-extra',label:'Ordering & correcting',ids:['expression-order','correct-result']},
  {id:'extended',label:'Powers & remainders',ids:['power-result','division-remainder']},
  {id:'fractions',label:'Fractions',ids:topics.filter(t=>t.id.startsWith('fraction-')&&t.stage!=='KS3 extension').map(t=>t.id)},
  {id:'percentages',label:'Percentages',ids:['percentage-quantity']},
@@ -44,7 +45,7 @@ function curriculumSettings(profile,level='medium'){
  const year=profile==='ks3'?7:Number(profile.slice(1));
  if(!Number.isInteger(year)||year<1||year>7)return settings({},level);
  const ranges=[[10,20,20],[20,50,100],[50,100,1000],[100,500,1000],[100,1000,10000],[100,1000,10000],[100,1000,10000]];
- const include=t=>year>=7||t.stage!=='KS3 extension'&&year>=(t.stage==='Year 6'?6:t.stage==='Year 5'?5:3);
+ const include=t=>year>=7||t.stage!=='KS3 extension'&&year>=(t.stage==='Year 6'?6:t.stage==='Year 5'?5:t.stage==='Year 4'?4:3);
  const raw={
    min:year>=6&&rank===2?-20:0,max:ranges[year-1][rank],
    ops:year===1?['+','−']:OPS,relations:year===1?['=']:REL,
@@ -88,6 +89,22 @@ function conversionOptions(s){
  }
  return out;
 }
+// A bounded pool of valid, exact two-term calculations. Use a small evenly
+// sampled grid plus common whole numbers; never enumerate a huge number range.
+function reasoningPool(s){
+ const scale=10**s.precision,lo=s.min*scale,hi=s.max*scale;
+ const grid=new Set([lo,hi]);
+ for(let i=0;i<=12;i++)grid.add(Math.round(lo+(hi-lo)*i/12));
+ for(const n of [-10,-5,-2,-1,0,1,2,3,4,5,6,7,8,9,10,12,20,25,50,100])if(n*scale>=lo&&n*scale<=hi)grid.add(n*scale);
+ const values=[...grid],byValue=new Map();
+ for(const a of values)for(const b of values)for(const op of s.ops){
+   const v=op==='+'?a+b:op==='−'?a-b:op==='×'?a*b/scale:b!==0?a*scale/b:NaN;
+   if(!Number.isSafeInteger(v)||v<lo||v>hi)continue;
+   if((op==='×'&&(a===0||b===0||a===scale||b===scale))||(op==='÷'&&(a===0||b===scale))||((op==='+'||op==='−')&&b===0))continue;
+   const list=byValue.get(v)||[];if(list.length<18){list.push({a,b,op,v});byValue.set(v,list)}
+ }
+ return byValue;
+}
 function available(raw,level='medium'){
  const s=settings(raw,level),has=n=>s.ops.includes(n),left=n=>s.left===0?n>=2&&n<=4:s.left===n,right=n=>s.right===0?n>=1&&n<=2:s.right===n;
  const expression=(s.left!==1||s.right!==1),canExpressions=!expression||s.ops.length>0;
@@ -112,9 +129,11 @@ function available(raw,level='medium'){
  'fraction-times-fraction':has('×'),'fraction-divide-whole':has('÷')&&!!factor,
  'percentage-quantity':enabled('percentage-quantity')&&quantityOptions(s,true).length>0,
  'square-root':enabled('square-root')&&rootOptions(s,2).length>0,'cube-root':enabled('cube-root')&&rootOptions(s,3).length>0,'fraction-divide-fraction':has('÷'),
- 'fraction-compare':s.relations.length>0,
+ 'fraction-compare':s.relations.length>0,'fraction-order':true,
+ 'expression-order':false,'correct-result':false,
  ...Object.fromEntries(topics.filter(t=>t.id.startsWith('fdp-')).map(t=>[t.id,true]))
  });
+ if(enabled('expression-order')||enabled('correct-result')){const pool=reasoningPool(s);valid['expression-order']=pool.size>=3;valid['correct-result']=pool.size>=1}
  const optional=new Set(topics.map(t=>t.id));
  return groups.map(g=>({...g,ids:g.ids.filter(id=>valid[id]&&(!optional.has(id)||enabled(id)))})).filter(g=>g.ids.length);
 }
@@ -174,6 +193,30 @@ function generate(type,level='medium',rng=Math.random,raw={}){
    if(type==='fdp-percent-fraction')return result([p+'%','=','?'],'Write the fraction in its simplest form.',frac,'fraction-form');
    if(type==='fdp-decimal-percent')return result([decimal,'=','?','%'],'Write the equivalent percentage.',String(p));
    return result([p+'%','=','?'],'Write the equivalent decimal.',decimal);
+ }
+ if(type==='fraction-order'){
+   const pool=[];
+   for(let d=2;d<=s.denominator;d++)for(let n=1;n<d;n++)if(gcdInt(n,d)===1)pool.push({n,d});
+   const size=level==='hard'?4:3,selected=[];
+   while(selected.length<size){const index=int(0,pool.length-1);selected.push(pool.splice(index,1)[0])}
+   const labels=['①','②','③','④'];
+   const ordered=selected.map((f,i)=>({...f,i})).sort((a,b)=>a.n*b.d-b.n*a.d);
+   const answer=ordered.map(f=>f.i+1).join('');
+   const row=selected.flatMap((f,i)=>[...(i?['·']:[]),labels[i],fractionText(f.n,f.d)]);
+   return result([...row,' ; ','Order:','?'],'Enter the numbered labels from smallest to largest, as digits without spaces.',answer,'number',undefined,ordered.map(f=>fractionText(f.n,f.d)).join(' < '));
+ }
+ if(type==='expression-order'||type==='correct-result'){
+   const pool=reasoningPool(s),keys=[...pool.keys()];
+   if(type==='correct-result'){
+     const v=pick(keys),e=pick(pool.get(v)),delta=pick([1,-1,scale,-scale,2*scale,-2*scale].filter(d=>inRange(v+d)));
+     const wrong=v+delta;
+     return result([fmt(e.a),e.op,fmt(e.b),'=',fmt(wrong),' ; ','Correct:','?'],'The calculation has an incorrect result. Enter the correct result.',fmt(v),'number',undefined,fmt(e.a)+' '+e.op+' '+fmt(e.b)+' = '+fmt(v));
+   }
+   const labels=['①','②','③'],selected=[];
+   while(selected.length<3){const index=int(0,keys.length-1),v=keys.splice(index,1)[0];selected.push(pick(pool.get(v)))}
+   const ordered=selected.map((e,i)=>({...e,i})).sort((a,b)=>a.v-b.v),answer=ordered.map(e=>e.i+1).join('');
+   const rows=selected.flatMap((e,i)=>[...(i?[' ; ']:[]),labels[i],fmt(e.a),e.op,fmt(e.b)]);
+   return result([...rows,' ; ','Order:','?'],'Calculate each expression. Enter the numbered labels from smallest to largest, as digits without spaces.',answer,'number',undefined,ordered.map(e=>fmt(e.v)).join(' < '));
  }
  if(type==='fraction-compare'){
    const fractions=Array.from({length:s.denominator-1},(_,i)=>i+2).flatMap(d=>Array.from({length:d-1},(_,i)=>({n:i+1,d})));
@@ -322,7 +365,7 @@ function equationMetrics(questions){
  const numberWidth=Math.max(2.15,...questions.map(q=>{
    const cfg=q.settings||{},dp=Number(cfg.precision)||0;
    const digits=Math.max(String(cfg.min??0).length,String(cfg.max??1000).length)+(dp?1+dp:0);
-   return Math.max(2.15,digits*.66+.65)
+   return Math.max(q.type==='fraction-order'||q.type==='expression-order'?3.5:2.15,digits*.66+.65)
  }));
  const symbolWidth=2.05,fractionWidth=Math.max(4.3,...questions.filter(q=>q.kind?.startsWith('fraction')).map(q=>{const cap=q.settings?.denominator||12;return (String(cap*cap*8).length+1+String(cap*cap).length)*.65+.5}));
  const isHole=token=>token==='?'||/^\?\/\d+$/.test(token);
@@ -4464,7 +4507,8 @@ function numberSetSvg(){
  const cols=batchCols(),W=960,pad=28,gap=26,cellW=(W-pad*2-gap*(cols-1))/cols,rowHeights=[],metrics=N.equationMetrics(batch.map(item=>item.question));
  // One consistent mathematical font, with a fixed left edge per column.
  const font=Math.min(32,(cellW-12)/metrics.maxUnits),hasFractions=batch.some(item=>item.question.tiles.some(v=>N.parseFractionToken(v)||/^\?\/\d+$/.test(v))),lineH=Math.max(32,font*(hasFractions?1.85:1.35)+3),headingH=24,rowGap=10;
- const extraH=qn=>qn.kind==='choice'?(!qn.tiles.some(metrics.isHole)?29:20):(!qn.tiles.some(metrics.isHole)?29:0);
+ const ordering=qn=>qn.type==='fraction-order'||qn.type==='expression-order';
+ const extraH=qn=>ordering(qn)?20:qn.kind==='choice'?(!qn.tiles.some(metrics.isHole)?29:20):(!qn.tiles.some(metrics.isHole)?29:0);
  batch.forEach((item,i)=>{const qn=item.question,height=headingH+metrics.rows(qn).length*lineH+extraH(qn)+6,index=Math.floor(i/cols);rowHeights[index]=Math.max(rowHeights[index]||0,height)});
  const H=62+rowHeights.reduce((n,h)=>n+h+rowGap,0)+12,svg=mcSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':batch.length+' unanswered arithmetic questions','data-gd-paper-ready':'sheet','data-gd-paper-label':'99 Club Studio','data-worksheet-answer':'pupil'});
  const add=(name,attrs,txt)=>svg.appendChild(mcSvgEl(name,attrs,txt));
@@ -4479,7 +4523,8 @@ function numberSetSvg(){
    if(!qn.tiles.some(metrics.isHole)){
      const answerW=Math.min(110,cellW*.3);add('rect',{x:x+4,y:bottom+1,width:answerW,height:24,rx:3,fill:'#fff',stroke:'#48666b','stroke-width':1.5});
      if(qn.kind==='choice')add('text',{x:x+answerW+14,y:bottom+18,'font-family':'Arial,sans-serif','font-size':14,fill:'#52666d'},'Choose: '+qn.choices.join(' / '));
-   }else if(qn.kind==='choice')add('text',{x:x+4,y:bottom+14,'font-family':'Arial,sans-serif','font-size':14,fill:'#52666d'},'Choose: '+qn.choices.join('   /   '));
+   }else if(ordering(qn))add('text',{x:x+4,y:bottom+14,'font-family':'Arial,sans-serif','font-size':14,fill:'#52666d'},'Write the labels as digits in order.');
+   else if(qn.kind==='choice')add('text',{x:x+4,y:bottom+14,'font-family':'Arial,sans-serif','font-size':14,fill:'#52666d'},'Choose: '+qn.choices.join('   /   '));
    add('line',{x1:x,y1:y+rowHeights[row]+3,x2:x+cellW,y2:y+rowHeights[row]+3,stroke:'#d8e0e1','stroke-width':1});
  });
  return svg;
@@ -4526,7 +4571,11 @@ function numberAnswerKeySvg(){
 }
 function exportTargetSvg(){
 if(batch.length>1&&challenge)return numberSetSvg();
-if(challenge&&X?.composeChallengeCardSvg)return X.composeChallengeCardSvg(numberChallengeSvg(),{title:N.titles[challenge.type],prompt:challenge.prompt,responseLabel:'Answer / working',responseLines:2,brand:'99 Club Studio'});
+if(challenge&&X?.composeWorksheetCardSvg){
+ const hasHole=challenge.tiles.some(N.equationMetrics([challenge]).isHole);
+ const prompt=challenge.prompt+(challenge.kind==='choice'&&challenge.choices?.length?' Choose: '+challenge.choices.join(' / ')+'.':'');
+ return X.composeWorksheetCardSvg(numberChallengeSvg(),{title:N.titles[challenge.type],prompt,responseLabel:'Answer',responseMode:hasHole?'none':'box',responseLines:1,paperStyle:'plain',brand:'99 Club Studio'});
+}
 if(exportMode!=='task'||!X?.composeChallengeCardSvg)return canvasExportSvg();
 return X.composeChallengeCardSvg(canvasExportSvg(),{
 title:String(taskTitle||'Number tiles task').trim()||'Number tiles task',
@@ -4565,7 +4614,7 @@ return '<div class="nl-panel-title"><div><strong>Use it elsewhere</strong><span>
 }
 function advancedTopicControls(){
  const stages=[...new Set(N.topics.map(t=>t.stage))];
- return '<details class="gd-mc-advanced gd-mc-settings-section" data-mc-section="topics"><summary>Fractions, percentages &amp; KS3 <small>'+numberSettings.topics.length+' selected</small></summary>'+stages.map(stage=>'<fieldset><legend>'+esc(stage)+'</legend>'+N.topics.filter(t=>t.stage===stage).map(t=>'<label><input type="checkbox" data-mc-toggle="topics" value="'+esc(t.id)+'"'+(numberSettings.topics.includes(t.id)?' checked':'')+'><span>'+esc(t.label)+'</span></label>').join('')+'</fieldset>').join('')+field('Maximum input denominator','<select class="gd-select" data-mc-setting="denominator">'+[4,6,8,10,12,20].map(d=>'<option value="'+d+'"'+(numberSettings.denominator===d?' selected':'')+'>'+d+'</option>').join('')+'</select>')+'<p class="gd-help">Fixed-format optional topics ignore ordinary term counts. Conversions use exact values between zero and one (1–99%), up to two decimal places. Fractions use the input denominator limit; answers can have larger denominators. Whole-number quantities and roots use the ordinary range. Mixed-number whole parts are 1–4. Whole multipliers/divisors are 2–12 within the ordinary range. Allowed operations filter fraction calculations. KS3 extensions start off.</p></details>';
+ return '<details class="gd-mc-advanced gd-mc-settings-section" data-mc-section="topics"><summary>Optional topics &amp; KS3 <small>'+numberSettings.topics.length+' selected</small></summary>'+stages.map(stage=>'<fieldset><legend>'+esc(stage)+'</legend>'+N.topics.filter(t=>t.stage===stage).map(t=>'<label><input type="checkbox" data-mc-toggle="topics" value="'+esc(t.id)+'"'+(numberSettings.topics.includes(t.id)?' checked':'')+'><span>'+esc(t.label)+'</span></label>').join('')+'</fieldset>').join('')+field('Maximum input denominator','<select class="gd-select" data-mc-setting="denominator">'+[4,6,8,10,12,20].map(d=>'<option value="'+d+'"'+(numberSettings.denominator===d?' selected':'')+'>'+d+'</option>').join('')+'</select>')+'<p class="gd-help">Fixed-format optional topics ignore ordinary term counts. Ordering tasks use numbered labels, entered as digits in smallest-to-largest order. Conversions use exact values between zero and one (1–99%), up to two decimal places. Fractions use the input denominator limit; answers can have larger denominators. Whole-number quantities and roots use the ordinary range. Mixed-number whole parts are 1–4. Whole multipliers/divisors are 2–12 within the ordinary range. Allowed operations filter fraction calculations. KS3 extensions start off.</p></details>';
 }
 function challengeControlsHtml(){
  const options=(id,label,values,value)=>field(label,'<select class="gd-select" id="'+id+'" data-mc-setting="'+id.replace('mc-','')+'">'+values.map(([v,t])=>'<option value="'+v+'"'+(Number(value)===Number(v)?' selected':'')+'>'+esc(t)+'</option>').join('')+'</select>');
