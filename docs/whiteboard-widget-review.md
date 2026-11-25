@@ -47,7 +47,7 @@ Reckoning board, Chinese counting rods, Napier's Bones, slide rule and Pascaline
 ## Workstream A — shared publishing
 
 1. Keep direct current export independent of document creation.
-2. Extend adapters from Arithmetic, Sequences and the three abacus types to Place Value next; then follow the catalogue and prioritise high-use models (clocks, fraction wall, array, number line, money, coordinates). Audit response semantics and teacher solutions while integrating each.
+2. Place Value adapter added to Arithmetic, Sequences and the three abacus types; continue the catalogue and prioritise high-use models (clocks, fraction wall, array, number line, money, coordinates). Audit response semantics and teacher solutions while integrating each.
 3. Add source-block editing: independent type/family/range/difficulty and count, regenerate block only when explicitly requested, preserve manually retained items.
 4. Extend preview layout: configurable portrait/landscape and intelligent columns, full-width diagrams where necessary, consistent numbering, page breaks, working space and teacher keys.
 5. Save/reopen and reusable settings, stable versioned model records, import/export of drafts with validation; preserve exact content rather than regenerating silently.
@@ -62,5 +62,6 @@ Continue the catalogue review one widget at a time, with defects and regressions
 
 - Four catalogue entries have shared publishing adapters (Arithmetic, Sequences, Abacus limited to three bead instruments, Place Value).
 - Automated abacus rollout checks: 2,160 generated tasks; 4,320 pupil/teacher diagrams; 108 mixed-document scenarios and isolated replacements; 1,236 page checks.
+- Automated Place Value rollout: 45 column ranges, 14,040 generated tasks, 28,080 pupil/teacher diagrams, 135 mixed drafts and isolated replacements, 135 captures and 1,655 page checks. Custom teacher-authored tasks still require individual export; the existing powers-of-ten demo is capture-only.
 - Both entry points must load identical shared asset versions.
 - No real browser visual, touchscreen or physical A4 acceptance run was performed in this batch. No widget is signed off as finished.
