@@ -68,7 +68,7 @@ const QUICK_ACTIONS={
     {label:'− Clock',selector:'#cl-remove-clock',allowHidden:true,title:'Remove selected clock',danger:true}
   ],
   money:[
-    {label:'+ Money',selector:'[data-gd-action="add-money"]'},
+    {label:'+ Money',selector:'[data-gd-action="add-money"]',panelMode:'money-palette',title:'Add coins and notes'},
     {label:'Duplicate',selector:'[data-gd-action="duplicate"]'},
     {label:'×',selector:'[data-gd-action="delete"]',title:'Delete selected money',danger:true}
   ],
@@ -243,7 +243,7 @@ function positionFloatingControls(){
   floatingControlX=clamp(floatingControlX,margin,maxX);floatingControlY=clamp(floatingControlY,margin,maxY);
   floatingControls.style.left=floatingControlX+'px';floatingControls.style.top=floatingControlY+'px';
 }
-function sourceControls(obj){return innerDocument(obj)?.getElementById('gd-controls')||null}
+function sourceControls(obj){return innerDocument(obj)?.getElementById(floatingPanelMode==='money-palette'&&obj?.toolId==='money'?'mo-board-palette':'gd-controls')||null}
 // The frame launcher is deliberately not a clone of the full settings panel.
 // Keep proxy identities, so every action runs through its native widget engine.
 function compactChallengeControls(clone,obj){
@@ -299,11 +299,11 @@ function compactChallengeControls(clone,obj){
 function renderFloatingControls(obj){
   if(floatingPanelMode==='help')return;
   if(!floatingControls||!floatingControlsBody||!obj||!obj.settingsOpen||floatingControlObjectId!==obj.id)return;
-  const source=sourceControls(obj);if(!source)return;
-  if(floatingControls)floatingControls.dataset.tool=obj.toolId||'';
+  const source=sourceControls(obj);if(!source){if(floatingPanelMode==='money-palette')closeFloatingControls(obj.id);return}
+  if(floatingControls){floatingControls.dataset.tool=obj.toolId||'';floatingControls.classList.toggle('is-money-palette',floatingPanelMode==='money-palette')}
   const sourceInputs=[...source.querySelectorAll(CONTROL_SELECTOR)];
   let clone=source.cloneNode(true);
-  clone.removeAttribute('id');clone.removeAttribute('aria-hidden');clone.classList.add('gd-board-controls-proxy');
+  clone.removeAttribute('id');clone.removeAttribute('aria-hidden');clone.removeAttribute('hidden');clone.classList.add('gd-board-controls-proxy');
   // Stamp identity on the complete clone BEFORE pruning controls.
   // Array offsets after pruning are not equivalent to the source positions.
   [...clone.querySelectorAll(CONTROL_SELECTOR)].forEach((node,index)=>{
@@ -323,7 +323,7 @@ function renderFloatingControls(obj){
   floatingControls.classList.toggle('is-challenge-launcher',compact);
   if(compact)clone=compactChallengeControls(clone,obj);
   // Use a signature that includes property values (not just innerHTML).
-  const signature=JSON.stringify([obj.id,floatingPanelMode,clone.innerHTML,sourceInputs.map(n=>[n.value,n.checked,n.disabled,n.isContentEditable?n.innerHTML:null])]);
+  const signature=JSON.stringify([obj.id,floatingPanelMode,floatingPanelMode==='money-palette'?'denominations':clone.innerHTML,sourceInputs.map(n=>[n.value,n.checked,n.disabled,n.isContentEditable?n.innerHTML:null])]);
   const structure=JSON.stringify(sourceInputs.map(n=>[n.tagName,n.id,n.type,n.name,{...n.dataset},n.tagName==='BUTTON'?n.textContent:null]));
   if(signature===floatingControlSignature&&floatingControlsBody.firstElementChild){floatingControlSources=sourceInputs;return}
   // Preserve an active input only when the new source has the same control identities.
@@ -337,7 +337,7 @@ function renderFloatingControls(obj){
   floatingControlSignature=signature;
   floatingControlsBody.scrollTop=scroll;
   const tool=tools.find(t=>t.id===obj.toolId);
-  if(floatingControlsTitle)floatingControlsTitle.textContent=(tool?.title||'Manipulative')+(floatingPanelMode==='challenge'?' · Challenge':floatingPanelMode==='challenge-settings'?' · Challenge settings':' settings');
+  if(floatingControlsTitle)floatingControlsTitle.textContent=floatingPanelMode==='money-palette'?'Add money':(tool?.title||'Manipulative')+(floatingPanelMode==='challenge'?' · Challenge':floatingPanelMode==='challenge-settings'?' · Challenge settings':' settings');
   floatingControls.hidden=false;
   requestAnimationFrame(positionFloatingControls);
 }
@@ -393,7 +393,8 @@ function refreshFloatingControls(obj,delay=0){
 function openFloatingControls(obj,mode='settings'){
   if(!obj)return;
   floatingHelpData=null;floatingControls?.classList.remove('is-help');
-  floatingPanelMode=mode==='challenge'||mode==='challenge-settings'?mode:'settings';
+  floatingPanelMode=['challenge','challenge-settings','money-palette'].includes(mode)?mode:'settings';
+  floatingControls?.classList.toggle('is-money-palette',floatingPanelMode==='money-palette');
   floatingControls?.classList.toggle('is-challenge-launcher',floatingPanelMode==='challenge');
   if(obj.toolId==='place-value'&&floatingPanelMode==='settings'){
     const source=sourceControls(obj),active=source?.querySelector('[data-pv-workflow].gd-btn--primary')?.dataset?.pvWorkflow;
@@ -409,14 +410,15 @@ function openFloatingControls(obj,mode='settings'){
   floatingControlObjectId=obj.id;obj.settingsOpen=true;
   const frame=frameFor(obj.id);frame?.classList.add('has-settings');
   const tool=tools.find(t=>t.id===obj.toolId);
-  if(floatingControlsTitle)floatingControlsTitle.textContent=(tool?.title||'Manipulative')+(floatingPanelMode==='challenge'?' · Challenge':floatingPanelMode==='challenge-settings'?' · Challenge settings':' settings');
+  if(floatingControlsTitle)floatingControlsTitle.textContent=floatingPanelMode==='money-palette'?'Add money':(tool?.title||'Manipulative')+(floatingPanelMode==='challenge'?' · Challenge':floatingPanelMode==='challenge-settings'?' · Challenge settings':' settings');
   if(floatingControls)floatingControls.hidden=false;
   const rect=frame?.getBoundingClientRect(),host=board.getBoundingClientRect();
   if(rect&&(floatingPanelMode==='challenge'||!floatingControlMoved)){
     const trigger=floatingPanelMode==='challenge'?frame.querySelector('[data-board-inner-action][aria-label="Choose a challenge"]'):null;
     if(trigger){const tr=trigger.getBoundingClientRect();floatingControlX=tr.right-host.left-320;floatingControlY=tr.bottom-host.top+8}
     else{
-    const preferredX=Math.min(board.clientWidth-330,Math.max(58,rect.right-host.left+14));
+    const right=rect.right-host.left+14,left=rect.left-host.left-310;
+    const preferredX=floatingPanelMode==='money-palette'?(right+300<=board.clientWidth?right:left>=8?left:Math.max(8,board.clientWidth-310)):Math.min(board.clientWidth-330,Math.max(58,right));
     const preferredY=Math.max(12,Math.min(board.clientHeight-280,rect.top-host.top));
     floatingControlX=preferredX;floatingControlY=preferredY;
     }
@@ -430,7 +432,7 @@ function closeFloatingControls(id=null){
   if(target){target.settingsOpen=false;frameFor(target.id)?.classList.remove('has-settings')}
   if(id==null||String(floatingControlObjectId)===String(id)){
     floatingControlObjectId=null;floatingHelpData=null;floatingPanelMode='settings';floatingControlSources=[];floatingControlSignature='';floatingControlStructure='';
-    if(floatingControls){floatingControls.classList.remove('is-help','is-challenge-launcher');delete floatingControls.dataset.tool;floatingControls.hidden=true;floatingControlsBody?.replaceChildren()}
+    if(floatingControls){floatingControls.classList.remove('is-help','is-challenge-launcher','is-money-palette');delete floatingControls.dataset.tool;floatingControls.hidden=true;floatingControlsBody?.replaceChildren()}
   }
 }
 function floatingOriginal(index){
@@ -842,7 +844,8 @@ function bindObject(obj){
     const target=action&&innerTarget(obj,action.selector,!!action.allowHidden);
     if(target){
       if(action.panelMode){
-        if(obj.settingsOpen&&floatingControlObjectId===obj.id&&floatingPanelMode==='challenge'){closeFloatingControls(obj.id);return}
+        if(obj.settingsOpen&&floatingControlObjectId===obj.id&&floatingPanelMode===action.panelMode){closeFloatingControls(obj.id);return}
+        if(action.panelMode==='money-palette'){sendSettings(obj,true,'money-palette');return}
         if(!action.skipClickSelector||!target.matches(action.skipClickSelector)){const active=target.classList.contains('gd-btn--primary')||target.classList.contains('is-active')||target.getAttribute('aria-selected')==='true';if(!active)target.click()}
         setTimeout(()=>{sendSettings(obj,true,action.panelMode);syncQuickActions(obj)},0);
       }else if(action.openSettings){
