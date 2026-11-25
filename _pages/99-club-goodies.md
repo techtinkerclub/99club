@@ -27,11 +27,12 @@ robots: "noindex,nofollow,noarchive"
 <link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v11.css?v=1">
 <link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v12.css?v=3">
 <link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v13.css?v=1">
+<script>window.TT99_GOODIES_BUILD = {{ site.github.build_revision | default: site.time | jsonify }};</script>
 <script src="/assets/99club/goodies-core.js?v=2" defer></script>
 <script src="/assets/99club/goodies-interaction.js?v=4" defer></script>
 <script src="/assets/99club/goodies-challenge.js?v=17" defer></script>
 <script src="/assets/99club/goodies-export.js?v=5" defer></script>
-<script src="/assets/99club/goodies-tools-a.js?v=61" defer></script>
+<script src="/assets/99club/goodies-tools-a.js?v=62" defer></script>
 <script src="/assets/99club/goodies-abacus.js?v=23" defer></script>
 <script src="/assets/99club/goodies-number-line-v6.js?v=25" defer></script>
 <script src="/assets/99club/goodies-tools-b.js?v=41" defer></script>
@@ -47,4 +48,4 @@ robots: "noindex,nofollow,noarchive"
 <script src="/assets/99club/goodies-number-mobile-balance-v12.js?v=5" defer></script>
 <script src="/assets/99club/goodies-number-mobile-balance-v13.js?v=5" defer></script>
 <script src="/assets/99club/goodies-app.js?v=10" defer></script>
-<script src="/assets/99club/goodies-board.js?v=38" defer></script>
+<script src="/assets/99club/goodies-board.js?v=39" defer></script>
