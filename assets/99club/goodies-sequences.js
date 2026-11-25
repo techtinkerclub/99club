@@ -69,7 +69,7 @@ function diagram(raw,{task=null,teacher=false}={}){
 G.sequenceModel={normalise,model,diagram,challengeSettings,generateChallenge};
 function sequencePaper(task,teacher){return G.exportTools.composeWorksheetCardSvg(diagram(task.sequence,{task,teacher}),{title:task.title,prompt:task.prompt,responseLabel:'Answer',responseMode:task.hole>=0?'none':'box',answer:task.answer,showAnswer:teacher,paperStyle:'plain'})}
 if(G.publishing)G.publishing.register('sequences',{
- label:'Sequences & rules',title:item=>item.kind==='challenge'?TYPES[item.data.type]:'Number sequence',
+ label:'Sequences & rules',types:()=>Object.entries(TYPES).map(([id,label])=>({id,label})),title:item=>item.kind==='challenge'?TYPES[item.data.type]:'Number sequence',
  signature:q=>JSON.stringify([model(q.sequence).terms,q.hole,q.type,q.prompt]),
  recipe:(model,type)=>({type,settings:challengeSettings(model.settings)}),
  generate(recipe,rng){const ids=Object.keys(TYPES),type=recipe.type==='all'?ids[Math.min(ids.length-1,Math.floor(rng()*ids.length))]:recipe.type;return generateChallenge(type,recipe.settings,rng)},
