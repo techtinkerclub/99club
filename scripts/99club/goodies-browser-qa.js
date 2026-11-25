@@ -675,9 +675,9 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=(svg)=>{bmMissingCard=svg.cloneNode(true)};
     document.getElementById('bm-svg-download').click();
     TT99Goodies.exportTools.downloadSvg=bmOldMissingDownload;
-    assert(bmMissingCard&&bmMissingCard.querySelectorAll('[data-bm-export-part]').length===3,'Missing-part pupil card embeds the vector bar model');
-    assert(bmMissingCard.querySelector('[data-bm-export-part-value="1"]').textContent.trim()==='?','Missing-part pupil export re-hides the target part after teacher Reveal');
-    assert(bmMissingCard.querySelector('[data-bm-export-status]').textContent.trim()==='?','Missing-part pupil export re-hides the relationship shortcut after Reveal');
+    assert(bmMissingCard&&bmMissingCard.querySelectorAll('[data-bm-paper-part]').length===3,'Missing-part pupil card embeds the simplified paper bar model');
+    assert(bmMissingCard.querySelector('[data-bm-paper-value="1"]').textContent.trim()==='?','Missing-part pupil export re-hides the target part after teacher Reveal');
+    assert(!bmMissingCard.textContent.includes('Unknown part = 8'),'Missing-part pupil export omits the relationship shortcut');
     assert(!bmMissingCard.textContent.includes('Answer:'),'Bar Model pupil challenge export never includes the revealed answer label');
     assert(bmMissingCard.textContent.includes('Find the missing part in this part–whole model.'),'Bar Model challenge-card export includes the pupil prompt');
 
@@ -691,9 +691,9 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=(svg)=>{bmCompareCard=svg.cloneNode(true)};
     document.getElementById('bm-svg-download').click();
     TT99Goodies.exportTools.downloadSvg=bmOldCompareDownload;
-    assert(bmCompareCard&&bmCompareCard.querySelector('[data-bm-export-comparison="difference"]'),'Comparison pupil card preserves the aligned two-bar structure');
-    assert(bmCompareCard.querySelector('[data-bm-export-difference]').textContent.trim()==='?','Comparison pupil export re-hides the difference after teacher Reveal');
-    assert(bmCompareCard.querySelector('[data-bm-export-status]').textContent.trim()==='?','Comparison pupil export does not leak the difference through the relationship readout');
+    assert(bmCompareCard&&bmCompareCard.querySelector('[data-bm-paper-difference]'),'Comparison pupil card preserves the difference region of the aligned bars');
+    assert(bmCompareCard.textContent.includes('?'),'Comparison pupil export re-hides the difference after teacher Reveal');
+    assert(!bmCompareCard.textContent.includes('Difference = 5')&&!bmCompareCard.textContent.includes('Answer: 5'),'Comparison pupil export does not leak the difference through a readout');
 
     document.querySelector('[data-bm-workflow="challenge"]').click();
     document.querySelector('[data-bm-challenge-cat="build"]').click();
@@ -717,10 +717,9 @@ if(mode==='prepare'){
     TT99Goodies.exportTools.downloadSvg=(svg)=>{bmBuildCard=svg.cloneNode(true)};
     document.getElementById('bm-svg-download').click();
     TT99Goodies.exportTools.downloadSvg=bmOldBuildDownload;
-    assert(bmBuildCard&&bmBuildCard.querySelector('[data-bm-export-build-scaffold="1"]'),'Build-model pupil card is explicitly exported from the target scaffold');
-    const bmBuildValues=[...bmBuildCard.querySelectorAll('[data-bm-export-part-value]')].map(x=>x.textContent.trim());
-    assert(bmBuildValues.join('|')==='10|?|5','Build-model pupil card uses the requested target structure, not the teacher trial solution');
-    assert(bmBuildCard.querySelector('[data-bm-export-equation]').textContent.trim()==='10 + ? + 5 = 23','Build-model pupil card keeps the target equation');
+    assert(bmBuildCard&&bmBuildCard.querySelector('rect[stroke-dasharray="6 5"]'),'Build-model pupil card has blank drawing space');
+    assert(bmBuildCard.querySelectorAll('[data-bm-paper-part]').length===0,'Build-model pupil card leaves the pupil to construct the model');
+    assert(bmBuildCard.textContent.includes('10 + ? + 5 = 23'),'Build-model pupil card keeps the target equation in the instructions');
     assert(!bmBuildCard.textContent.includes('17 + ? + 1'),'Build-model pupil export strips the teacher trial values');
     assert(!bmBuildCard.textContent.includes('Answer: 8'),'Build-model pupil export does not reveal the inferred unknown');
 
@@ -1606,18 +1605,23 @@ if(mode==='prepare'){
     document.getElementById('tv-generate').click();
     assert(document.querySelector('[data-tv-equation]').textContent.trim()==='2 × 2 = 4','Build-fact challenge starts from a neutral editable 2 × 2 model');
     assert([...document.querySelectorAll('[data-tv-group]')].every(g=>!g.disabled),'Build-fact challenge keeps direct equal-group editing active');
-    assert(document.querySelector('[data-tv-target-status]').textContent.includes('Build 3 groups of 4'),'Build-fact challenge states the live target');
+    assert(document.querySelector('.gd-challenge-prompt').textContent.includes('Build 3 equal groups with 4 items'),'Build-fact challenge states the live target');
     let tvA=document.getElementById('tv-a');
     tvA.value='3';tvA.dispatchEvent(new Event('change',{bubbles:true}));
     let tvB=document.getElementById('tv-b');
     tvB.value='4';tvB.dispatchEvent(new Event('change',{bubbles:true}));
     assert(document.querySelector('[data-tv-equation]').textContent.trim()==='3 × 4 = 12','Build-fact challenge can be completed by directly changing the equal-groups model');
-    assert(document.querySelector('[data-tv-target-status]').textContent.includes('On target'),'Build-fact challenge validates the exact target model');
+    assert(!document.querySelector('[data-tv-target-status]'),'Model does not give automatic correctness feedback');
+    document.querySelector('[data-gd-pupil-check]').click();
+    assert(document.querySelector('.gd-pupil-feedback.is-correct'),'Build-fact challenge validates the exact target model after Check');
 
     document.querySelector('[data-tv-workflow="challenge"]').click();
     document.querySelector('[data-tv-challenge-cat="reason"]').click();
     assert(document.querySelector('[data-tv-challenge-type="spot-error"]'),'Times-table reasoning challenge is available');
+    let tvReasonDraw=0;
+    Math.random=()=>[0,0,.75,.75,0][tvReasonDraw++]??0;
     document.getElementById('tv-generate').click();
+    Math.random=()=>0;
     assert(document.querySelector('[data-tv-equation]').textContent.trim()==='3 × 4 = 13','Spot-error challenge presents the deterministic incorrect equation');
     assert(document.querySelectorAll('[data-tv-group]').length===3&&[...document.querySelectorAll('[data-tv-group]')].every(g=>g.querySelectorAll('.gd-tv-dots i').length===4),'Spot-error challenge keeps the correct equal-groups model for diagnosis');
     assert(!document.querySelector('[data-tv-repeated]')||document.querySelector('[data-tv-repeated]').textContent.trim()==='?','Spot-error challenge does not leak the correct total through repeated addition');
@@ -2964,7 +2968,9 @@ if(mode==='prepare'){
     }
     board=document.getElementById('ab-board');
     assert(Number(board.dataset.abRows)===targetRows&&Number(board.dataset.abCols)===targetCols,'Build-array challenge can be completed using the direct handles');
-    assert(document.querySelector('[data-ab-target-status]').textContent.includes('On target'),'Build-array challenge confirms an exact construction');
+    assert(!document.querySelector('[data-ab-target-status]'),'Model does not give automatic correctness feedback');
+    document.querySelector('[data-gd-pupil-check]').click();
+    assert(document.querySelector('.gd-pupil-feedback.is-correct'),'Build-array challenge confirms an exact construction after Check');
 
     document.querySelector('[data-ab-workflow="export"]').click();
     let abBuildSvg=null;
@@ -3459,7 +3465,9 @@ if(mode==='prepare'){
     }
     face=document.getElementById('cl-face');
     assert(Number(face.dataset.clHour)===setTargetHour&&Number(face.dataset.clMinute)===setTargetMinute,'Set-time challenge can be completed using the minute hand');
-    assert(document.querySelector('[data-cl-target-status]').textContent.includes('On target'),'Set-time challenge confirms an exact hand placement');
+    assert(!document.querySelector('[data-cl-target-status]'),'Model does not give automatic correctness feedback');
+    document.querySelector('[data-gd-pupil-check]').click();
+    assert(document.querySelector('.gd-pupil-feedback.is-correct'),'Set-time challenge confirms an exact hand placement after Check');
 
     document.querySelector('[data-cl-workflow="export"]').click();
     let clSetSvg=null;
@@ -3481,7 +3489,9 @@ if(mode==='prepare'){
     for(let guard=0;guard<30&&(Number(document.getElementById('cl-face').dataset.clHour)!==elapsedTargetHour||Number(document.getElementById('cl-face').dataset.clMinute)!==elapsedTargetMinute);guard++){
       document.getElementById('cl-minute-hit').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
     }
-    assert(document.querySelector('[data-cl-target-status]').textContent.includes('On target'),'Elapsed-time challenge can be completed by advancing the analogue hands');
+    assert(!document.querySelector('[data-cl-target-status]'),'Model does not give automatic correctness feedback');
+    document.querySelector('[data-gd-pupil-check]').click();
+    assert(document.querySelector('.gd-pupil-feedback.is-correct'),'Elapsed-time challenge can be completed by advancing the analogue hands after Check');
 
     document.querySelector('[data-cl-workflow="export"]').click();
     let clElapsedSvg=null;
