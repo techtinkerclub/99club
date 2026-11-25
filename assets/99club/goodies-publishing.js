@@ -138,33 +138,87 @@ function wrapAnnex(text,max=68){
  }
  if(line)out.push(line);return out;
 }
+// Marking guidance describes the actual constraints, not just a generic
+// "other answers possible" message.
+function answerNote(item){
+ const adapter=adapterFor(item.tool),d=item.data,c=d.challenge||d.state?.challenge;
+ if(adapter.answerNote)return adapter.answerNote(item);
+ if(item.tool==='abacus'){
+   const k=d.settings.kind;
+   return k==='suanpan'?'Standard bead arrangement shown. Accept another arrangement only if the engaged beads give the correct value and the question does not require a standard arrangement.':'Use the completed bead arrangement shown; exchange into the next place when needed.';
+ }
+ if(item.tool==='place-value'){
+   const v=d.activity,mode=v?.activityMode;
+   if(mode==='same')return 'Accept any different counter arrangement with the same total, including a valid exchange in either direction.';
+   if(mode==='exact')return 'Accept any arrangement with the target value AND exactly '+v.activityBudget+' counters.';
+   if(mode==='build'||c?.type==='build-number')return 'Accept any valid representation of the target value, unless standard place-value digits are explicitly required.';
+   if(mode==='regroup'||mode==='add'||c?.type==='non-standard')return 'Final chart must use no more than nine counters in each place and represent the correct total.';
+ }
+ if(item.tool==='array-builder'){
+   if(c?.type==='build-array')return 'Accept drawn dots, shaded cells or another clearly shown array with the specified rows and columns.';
+   if(c?.type==='partial-products')return 'Accept the partial products in any order, provided they match the shown partitions and sum to the correct total.';
+ }
+ if(item.tool==='fraction-wall'){
+   if(c?.type==='simplify-strip')return 'Answer must be in lowest terms.';
+   if(c?.type==='equivalent-strip')return 'The equivalent fraction must have the denominator specified in the question.';
+   if(c?.type==='mixed-improper')return 'Accept an equivalent mixed number; require lowest terms only if requested.';
+ }
+ if(item.tool==='number-line'){
+   if(['error-scale','marks-vs-spaces'].includes(c?.type))return 'Accept equivalent explanations that correctly distinguish the interval value or spaces from marks.';
+   if(['fraction-jump','fraction-sequence','mixed-number'].includes(c?.type))return 'Accept an equivalent fraction or mixed number, subject to the form requested in the question.';
+   if(c?.type==='equivalent-fractions')return 'Use the denominator of the requested fraction line.';
+ }
+ if(item.tool==='clock'){
+   if(['set-five','set-minute'].includes(c?.type))return 'Both hands must be correct; the hour hand should sit proportionally between hour marks. The analogue face alone cannot distinguish am from pm.';
+   if(['read-five','read-minute','roman-read'].includes(c?.type))return 'Accept equivalent time notation. AM/PM cannot be determined from the analogue face alone.';
+   if(c?.type==='two-duration-reason')return 'Accept equivalent explanations supported by the actual elapsed time.';
+ }
+ if(item.tool==='maths-canvas'&&d.targetRule)return 'Accept any expression that reaches the target, uses each supplied number once and follows the permitted operations and bracket rules.';
+ return '';
+}
+function answerGraphic(item){
+ const a=adapterFor(item.tool);
+ if(a.answerGraphic)return a.answerGraphic(item);
+ if(!['abacus','place-value','fraction-wall','array-builder','number-line','clock','sequences'].includes(item.tool))return null;
+ return G.exportTools.withAnswerDiagram(()=>renderItem(item,true));
+}
 function answerPages(items,title){
- const W=960,H=1250,pad=28,top=106,bottom=H-48,step=29,gap=9,layouts=[];
- let rows=[],y=top;
+ const W=960,H=1250,pad=28,top=98,bottom=H-48,step=26,gap=14,layouts=[];
+ let entries=[],y=top;
+ const flush=()=>{if(entries.length)layouts.push(entries);entries=[];y=top};
  for(const [index,item] of items.entries()){
    const value=answerSummary(item);if(value===null)continue;
    if(value===undefined||!String(value).trim())throw Error('Answer not available for question '+(index+1)+'.');
-   const lines=wrapAnnex(value);
-   // Keep normal answers together; exceptionally long entries may span annex pages.
-   if(rows.length&&y+lines.length*step+gap>bottom){layouts.push(rows);rows=[];y=top}
-   for(const [i,line] of lines.entries()){
-     if(y+step>bottom){layouts.push(rows);rows=[];y=top}
-     rows.push({index,line,y,first:i===0});y+=step;
-   }
-   y+=gap;
+   const lines=wrapAnnex(value),note=answerNote(item),notes=note?wrapAnnex(note,82):[],graphic=answerGraphic(item);
+   const v=graphic?dimensions(graphic):null;
+   // Wide labelled scales retain a generous width; simple compact models are smaller.
+   const widthLimit=item.tool==='clock'&&v&&v.w<=310?310:item.tool==='abacus'?540:item.tool==='array-builder'?640:item.tool==='fraction-wall'?760:850;
+   const scale=v?Math.min(widthLimit/v.w,360/v.h):0,gh=v?v.h*scale:0,gw=v?v.w*scale:0;
+   const textH=lines.length*step,notesH=notes.length?notes.length*22+6:0;
+   const h=textH+notesH+(graphic?gh+8:0)+gap;
+   if(entries.length&&y+h>bottom)flush();
+   if(h>bottom-top)throw Error('Answer for question '+(index+1)+' is too large for the annex.');
+   entries.push({index,y,lines,notes,graphic,v,gw,gh,textH,notesH});y+=h;
  }
- if(rows.length)layouts.push(rows);
- return layouts.map((rows,page)=>{
+ flush();
+ return layouts.map((entries,page)=>{
    const svg=svgElement('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':'Answer annex','data-gd-paper-ready':'sheet','data-gd-paper-label':'99 Club Studio','data-worksheet-answer':'annex'});
    const add=(n,attrs,value)=>svg.appendChild(svgElement(n,attrs,value));
    add('rect',{width:W,height:H,fill:'#fff'});
    const text=(x,y,size,value,extra={})=>add('text',{x,y,'font-family':'Arial,sans-serif','font-size':size,fill:'#24343b',...extra},value);
-   text(pad,38,26,'Answer key',{ 'font-weight':700 });
+   text(pad,38,26,'Answer key',{'font-weight':700});
    text(pad,64,Math.min(15,650/Math.max(1,(title.length+16)*.65)),title+' · Teacher annex');
    text(W-pad,64,14,'Annex '+(page+1)+' / '+layouts.length,{'text-anchor':'end'});
-   for(const row of rows){
-     if(row.first)text(pad,row.y,20,(row.index+1)+'.',{'font-weight':700,'data-pub-answer-number':row.index+1});
-     text(pad+48,row.y,20,row.line);
+   for(const e of entries){
+     text(pad,e.y+18,20,(e.index+1)+'.',{'font-weight':700,'data-pub-answer-number':e.index+1});
+     e.lines.forEach((line,i)=>text(pad+48,e.y+18+i*step,20,line,{'font-weight':600}));
+     e.notes.forEach((line,i)=>text(pad+48,e.y+e.textH+15+i*22,17,line,{fill:'#52666d','data-pub-answer-note':e.index+1}));
+     if(e.graphic){
+       const nested=svgElement('svg',{x:pad+48,y:e.y+e.textH+e.notesH+4,width:e.gw,height:e.gh,viewBox:[e.v.x,e.v.y,e.v.w,e.v.h].join(' '),'data-pub-answer-graphic':e.index+1});
+       const source=isolateSvgIds(e.graphic.cloneNode(true),'annex-'+(page+1)+'-'+(e.index+1)+'-');
+       source.querySelectorAll('[data-gd-paper-brand]').forEach(n=>n.remove());
+       [...source.childNodes].forEach(n=>nested.appendChild(n.cloneNode(true)));svg.appendChild(nested);
+     }
    }
    return svg;
  });
@@ -300,5 +354,5 @@ function openEditor(draft,{mode='review'}={}){
  dlg.ontoggle=null;dlg.addEventListener('toggle',function rememberDetails(e){const el=e.target;if(el.tagName!=='DETAILS')return;const b=getBlock(el);if(!b)return;if(el.hasAttribute('data-pub-type-details'))b.open=el.open;if(el.hasAttribute('data-pub-topics'))b.topicsOpen=el.open;},{capture:true,signal:(()=>{dlg._pubToggleController?.abort();dlg._pubToggleController=new AbortController();return dlg._pubToggleController.signal})()});
  render();if(!dlg.open)dlg.showModal();
 }
-G.publishing={register,supports,types,record,signature,createDocument,renderItem,pages,answerPages,answerSummary,openEditor,isolateSvgIds};
+G.publishing={register,supports,types,record,signature,createDocument,renderItem,pages,answerPages,answerSummary,answerNote,answerGraphic,openEditor,isolateSvgIds};
 })(window.TT99Goodies);
