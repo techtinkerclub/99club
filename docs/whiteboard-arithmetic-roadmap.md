@@ -23,9 +23,16 @@ Updated 25 November 2026.
 - Compact worksheet-style layout following classroom feedback: left-aligned headings and equations, smaller shared font cap, slim inline answer boxes, Check controls beside equations, feedback in headings, tighter gaps and subtle borders. Paper export uses left-aligned equations and reduced row heights. Responsive shared font budget changes for the entire grid, never a single question.
 - Browser visual/touch and actual paper checks remain pending. Exceptionally long equations can require the whole set to use a smaller font; future pagination or expression wrapping should improve that without inconsistent type sizes.
 
+## Shared paper publication pass (25 November)
+- Reviewed export entry points across the catalogue. Legacy diagram branding, nested challenge-card branding and print-page branding could stack.
+- Shared export layer removes legacy generated marks from cloned diagrams, adds one canonical footer, and uses the same prepared SVG for copy/PNG/SVG/print. Print avoids duplicate card headings and sizes to the A4 content area. Existing portrait/landscape and transparency choices remain.
+- Arithmetic answer key: explicit teacher-only copy and print actions, exact current question order and answers, independent of pupil responses and reveal state. Pupil exports stay unanswered.
+- Remaining consistency audit: older Place Value and Abacus paper modes currently follow reveal state; define explicit pupil versus teacher exports across all widgets, harmonise card/prompt/working-space templates, review diagram-specific hidden labels, print orientation and pagination with actual browser output. Do not silently change legacy teacher behaviour.
+- Browser print/PDF and raster/clipboard tests remain outstanding; shared code tests are not visual signoff.
+
 ## Next priorities
 1. Visual/touch feedback: validate the practice-set launcher, whiteboard layout, inline answer boxes, responsive columns and paper outputs; refine density and font sizes after classroom feedback.
-2. Worksheet-oriented improvements: optional separate answer key, compact paper layout choices, dedicated five-a-day shortcut, and optional space for working. Consider print pagination for unusually long single-column sets.
+2. Worksheet-oriented improvements: separate arithmetic answer key implemented; dedicated five-a-day shortcut, optional space for working, shared pupil/teacher export policies across all widgets, and print pagination remain.
 3. Exact fraction arithmetic: equivalence, addition/subtraction, multiplication/division where appropriate; integrate with the same quantity, layout and export workflow.
 4. Target-number puzzles; ordering expressions by value; identify and correct errors. Ensure questions are solvable and answer checking handles valid alternatives.
 5. Curriculum-aligned KS1/KS2 presets and compatible question-type controls.
