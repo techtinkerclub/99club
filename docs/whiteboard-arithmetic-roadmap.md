@@ -137,6 +137,13 @@ Three levels: (1) publish the current challenge or non-challenge representation 
 - Automated checks: 2,800 individual generation/render checks; 100 multi-source clock documents, 1,900 generated questions, 200 captures, 100 isolated replacements and 2,583 pupil/teacher page checks with the real composer in a mock SVG DOM. Both entry-point asset manifests match and modified JavaScript parses. No actual browser/touch/print signoff.
 - Next adapter: Fraction Wall. Continue the full widget audit separately; publishing integration is now 5 of 20 catalogue entries, all final QA open.
 
+## Worksheet review refinements and Fraction Wall (25 November)
+- User feedback: align question number and prompt, remove redundant small type labels, replace content sidebar with contextual actions beside each question. Shared plain cards now suppress the type heading only when composed into a document and expose the first prompt baseline for exact numbering. Direct standalone cards retain headings. Group/Mix remain in the toolbar.
+- Preview-only HTML action rail is separate from paper SVG and print path. Move up/down, replace and remove sit beside each numbered item; narrow screens use a contextual ellipsis. Actual responsive browser/touch appearance needs verification.
+- Sixth adapter: Fraction Wall, six existing challenge types and current wall/workbench captures. Shared native generator expands denominators and equivalent/reducible fraction variation; mixed answers are simplified. Compact same-width strips hide the original unknown labels, with explicit teacher copy/print. Custom authored tasks remain individual-export only. Automatic builder exposes answer space; no new curriculum range setting introduced.
+- Checks: 3,000 individual generation/render checks; 100 two-source drafts, 1,600 generated questions, 200 captures, 100 isolated replacements, 1,527 pupil/teacher pages and 3,400 exact prompt-baseline alignments in mock SVG DOM. Standalone headings retained. Browser and actual A4 QA open.
+- Next adapter: Array Builder. Six of 20 catalogue entries integrated; no final widget certification yet.
+
 ## Next priorities
 1. Visual/touch feedback: validate the practice-set launcher, whiteboard layout, inline answer boxes, responsive columns and paper outputs; refine density and font sizes after classroom feedback.
 2. Worksheet-oriented improvements: separate arithmetic answer key implemented; five-a-day shortcut implemented; optional arithmetic working space and row-based A4 pagination implemented; shared pupil/teacher export policies across the remaining widgets still need work.
