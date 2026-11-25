@@ -36,6 +36,23 @@ function createDocument(){
 function svgElement(name,attrs={},text){const node=document.createElementNS('http://www.w3.org/2000/svg',name);Object.entries(attrs).forEach(([k,v])=>node.setAttribute(k,String(v)));if(text!==undefined)node.textContent=String(text);return node}
 function renderItem(item,teacher=false){return adapterFor(item.tool).render(item,teacher)}
 function dimensions(svg){const [x,y,w,h]=svg.getAttribute('viewBox').trim().split(/[ ,]+/).map(Number);if(![x,y,w,h].every(Number.isFinite)||w<=0||h<=0)throw Error('Invalid publication diagram.');return {x,y,w,h}}
+// SVG references resolve within the print document, not reliably within each
+// nested SVG. Isolate each item's IDs before combining diagrams on a page.
+function isolateSvgIds(svg,prefix){
+ const nodes=[svg,...svg.querySelectorAll('*')],ids=new Map();
+ for(const n of nodes){const old=n.getAttribute('id');if(old&&!ids.has(old))ids.set(old,prefix+old)}
+ for(const n of nodes){
+  const id=n.getAttribute('id');if(id&&ids.has(id))n.setAttribute('id',ids.get(id));
+  for(const attr of n.getAttributeNames()){
+    if(attr==='id')continue;
+    const value=n.getAttribute(attr);let next=value.replace(/url\(\s*(['"]?)#([^\s)'"]+)\1\s*\)/g,(match,quote,key)=>ids.has(key)?'url(#'+ids.get(key)+')':match);
+    if((attr==='href'||attr==='xlink:href')&&next.startsWith('#')&&ids.has(next.slice(1)))next='#'+ids.get(next.slice(1));
+    if(attr==='aria-labelledby'||attr==='aria-describedby')next=next.split(/\s+/).map(key=>ids.get(key)||key).join(' ');
+    if(next!==value)n.setAttribute(attr,next);
+  }
+ }
+ return svg;
+}
 function pages(items,{title='Maths practice',teacher=false}={}){
  const W=960,H=1250,pad=28,top=93,bottom=H-32,gap=12,layouts=[];let entries=[],y=top;
  for(const [index,item] of items.entries()){
@@ -55,7 +72,7 @@ function pages(items,{title='Maths practice',teacher=false}={}){
    for(const {svg,v,scale,h,y,index} of entries){
      add('text',{x:pad,y:y+24,'font-family':'Arial,sans-serif','font-size':18,'font-weight':700,fill:'#24343b','data-pub-number':index+1},(index+1)+'.');
      const nested=svgElement('svg',{x:pad+32,y,width:v.w*scale,height:h,viewBox:[v.x,v.y,v.w,v.h].join(' ')});
-     const source=svg.cloneNode(true);source.querySelectorAll('[data-gd-paper-brand]').forEach(n=>n.remove());
+     const source=isolateSvgIds(svg.cloneNode(true),'pub-'+(page+1)+'-'+(index+1)+'-');source.querySelectorAll('[data-gd-paper-brand]').forEach(n=>n.remove());
      [...source.childNodes].forEach(n=>nested.appendChild(n.cloneNode(true)));out.appendChild(nested);
    }
    return out;
@@ -84,5 +101,5 @@ function openEditor(draft){
  dlg.oninput=e=>{if(e.target.hasAttribute('data-pub-title')){title=e.target.value.trim()||'Maths practice';dlg.dataset.title=title;const preview=dlg.querySelector('.gd-pub-preview');if(draft.list().length)preview.replaceChildren(...pages(draft.list(),{title,teacher}).map(G.exportTools.preparePaperSvg))}};
  render();if(!dlg.open)dlg.showModal();
 }
-G.publishing={register,supports,types,record,signature,createDocument,renderItem,pages,openEditor};
+G.publishing={register,supports,types,record,signature,createDocument,renderItem,pages,openEditor,isolateSvgIds};
 })(window.TT99Goodies);
