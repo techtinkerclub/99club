@@ -609,7 +609,6 @@ function captureBoard(){
   if(objects.length>60)throw new Error('A saved board can contain up to 60 objects.');
   return {version:1,snapOn,viewport:{left:viewport.scrollLeft,top:viewport.scrollTop},objects:objects.map(obj=>{
     const api=innerDocument(obj)?.defaultView?.TT99Goodies?.lessonState;
-    if(obj.toolId==='balance')throw new Error('Number Mobile Balance does not support saved boards yet. Nothing was saved.');
     if(!api?.supports(obj.toolId))throw new Error((tools.find(t=>t.id===obj.toolId)?.title||obj.toolId)+' is still loading or does not support saved boards yet. Nothing was saved.');
     const {toolId,x,y,baseW,baseH,scale,locked,z,clockSlots}=obj;
     return {toolId,x,y,baseW,baseH,scale,locked,z,clockSlots,state:api.capture(toolId)};
@@ -618,7 +617,7 @@ function captureBoard(){
 function validateBoard(saved){
   if(saved?.version!==1||!Array.isArray(saved.objects)||saved.objects.length>60)throw new Error('Unsupported saved board format.');
   for(const o of saved.objects){
-    if(!tools.some(t=>t.id===o.toolId)||o.toolId==='balance'||o.state?.version!==1||o.state.tool!==o.toolId||!o.state.model)throw new Error('This board contains an unsupported widget.');
+    if(!tools.some(t=>t.id===o.toolId)||o.state?.version!==1||o.state.tool!==o.toolId||!o.state.model)throw new Error('This board contains an unsupported widget.');
     if(!['x','y','baseW','baseH','scale','z'].every(k=>Number.isFinite(o[k]))||o.x<0||o.y<0||o.x>BOARD_W||o.y>BOARD_H||o.baseW<100||o.baseW>1200||o.baseH<100||o.baseH>1400||o.scale<.35||o.scale>2)throw new Error('Invalid saved widget dimensions.');
   }return saved;
 }
@@ -663,7 +662,7 @@ function renderLibrary(){
     row.append(copy,open,del);list.append(row);
   }
 }
-document.getElementById('gd-board-saved').onclick=()=>{libraryMessage(objects.some(o=>o.toolId==='balance')?'This board contains Number Mobile Balance, which cannot be saved yet. Existing saved boards can still be opened.':'');renderLibrary();if(!libraryDialog.open)libraryDialog.showModal()};
+document.getElementById('gd-board-saved').onclick=()=>{libraryMessage(objects.some(o=>o.toolId==='balance'&&innerDocument(o)?.querySelector('.gd-challenge-banner'))?'Exit active Number Mobile Balance challenges before saving. Editable teaching mobiles can be saved.':'');renderLibrary();if(!libraryDialog.open)libraryDialog.showModal()};
 libraryDialog.addEventListener('cancel',e=>{if(libraryBusy)e.preventDefault()});
 libraryDialog.querySelector('[data-board-library-close]').onclick=()=>{if(!libraryBusy)libraryDialog.close()};
 document.getElementById('gd-board-save-current').onclick=()=>{
