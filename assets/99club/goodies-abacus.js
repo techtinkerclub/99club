@@ -792,8 +792,8 @@ function abacusTool(){
     qa('[data-ab-workflow]').forEach(button=>button.onclick=()=>{
       const next=button.dataset.abWorkflow,previous=workflow;
       workflow=next;
-      status='';revealed=false;
-      if(next==='challenge'){task=null;taskContext='challenge';answerInput=''}
+      if(next!=='challenge'||taskContext!=='challenge'){status='';revealed=false}
+      if(next==='challenge'&&taskContext!=='challenge'){task=null;taskContext='challenge';answerInput=''}
       else if(next==='play'&&previous==='challenge'){task=null;taskContext='play';answerInput='';playMode='free'}
       else if(next==='setup'){taskContext='play'}
       renderAll();
