@@ -21,7 +21,7 @@ robots: "noindex,nofollow,noarchive"
   </article>
 </div>
 
-<link rel="stylesheet" href="/assets/99club/goodies.css?v=75">
+<link rel="stylesheet" href="/assets/99club/goodies.css?v=76">
 <link rel="stylesheet" href="/assets/99club/goodies-abacus.css?v=21">
 <link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v3.css?v=1">
 <link rel="stylesheet" href="/assets/99club/goodies-number-mobile-balance-v4.css?v=1">

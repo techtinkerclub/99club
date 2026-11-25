@@ -1199,6 +1199,11 @@ html.gd-embed-page,body.gd-embed-page{margin:0!important;width:100%!important;he
 .gd-embed-page #gd-stage > *{
   flex-shrink:0!important;
 }
+/* Auto vertical margins consume the spare iframe height and obstruct content-based shrinking. */
+.gd-embed-page #gd-stage > .gd-vis{
+  margin-block:0!important;
+  margin-inline:auto!important;
+}
 .gd-embed-page #gd-stage{
   align-content:flex-start!important;
 }
