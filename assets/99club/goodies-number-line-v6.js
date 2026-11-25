@@ -709,7 +709,7 @@ function numberLineV2(){
   function tickRef(lineId,value){return String(lineId)+':'+fmt(value)}
   function hiddenTick(v,line){
     const scale=scaleFor(line),ch=state.challenge;
-    if(!ch||ch.revealed)return false;
+    if(!ch||ch.revealed||isUnknownJumpPosition())return false;
     if(ch.hiddenTicks.some(x=>Math.abs(x-v)<scale.step/1000))return true;
     if((ch.hiddenTickRefs||[]).includes(tickRef(line.id,v)))return true;
     // If a marker is the unknown, its scale label must never reveal it.
@@ -848,8 +848,27 @@ function numberLineV2(){
   function isJumpChallenge(){
     return !!(state.challenge?.mode==='standard'&&['jump','missing-jump','missing-start','repeated-jumps','fraction-jump','fraction-sequence'].includes(state.challenge.type));
   }
+  // A calculation question must not highlight the answer position on the scale.
+  function isUnknownJumpPosition(){
+    const ch=state.challenge;
+    return !!(ch?.mode==='standard'&&['jump','missing-start','repeated-jumps','fraction-jump','fraction-sequence'].includes(ch.type));
+  }
+  function concealJumpPosition(){return isUnknownJumpPosition()&&!state.challenge.revealed&&!state.challenge.correct}
+  function refreshJumpPrompt(){
+    if(!isUnknownJumpPosition())return;
+    const ch=state.challenge,line=state.lines[0],r=line?.relations.find(r=>r.type==='jump');
+    if(!r)return;
+    const from=line.markers.find(m=>m.id===r.from),to=line.markers.find(m=>m.id===r.to);
+    if(!from||!to)return;
+    const delta=cleanNumber(to.value-from.value),signed=(delta>=0?'+':'−')+lineValueText(line,Math.abs(delta));
+    let prompt;
+    if(ch.type==='missing-start')prompt='A jump of '+signed+' lands at '+lineValueText(line,to.value)+'. Where did it start?';
+    else if(ch.type==='repeated-jumps'||ch.type==='fraction-sequence')prompt='Start at '+lineValueText(line,from.value)+'. Make three jumps of '+signed+'. What is the final value?';
+    else prompt='Start at '+lineValueText(line,from.value)+'. Jump '+signed+'. Where do you land?';
+    ch.prompt=prompt;ch.promptHtml=esc(prompt);
+  }
   function hiddenChallengeMarker(line,marker){
-    return !!(state.challenge&&!state.challenge.revealed&&(state.challenge.hiddenMarkerIds.includes(marker.id)||state.challenge.hiddenMarkerIds.includes(line.id+':'+marker.id)));
+    return !!(state.challenge&&!state.challenge.revealed&&!(isUnknownJumpPosition()&&state.challenge.correct)&&(state.challenge.hiddenMarkerIds.includes(marker.id)||state.challenge.hiddenMarkerIds.includes(line.id+':'+marker.id)));
   }
   function jumpMarkerAtValue(line,value){
     return (line.markers||[]).find(m=>Math.abs(m.value-value)<Math.max(1e-9,scaleFor(line).step/1000));
@@ -886,6 +905,7 @@ function numberLineV2(){
     const lineLabel=nameRows.length?`<text class="nl-line-name" x="${labelX}" y="${baseY+4-(nameRows.length-1)*8}" text-anchor="end" font-family="Arial,sans-serif" font-size="13" font-weight="600" fill="#52666d"><title>${esc(line.label)}</title>${nameRows.map((name,j)=>`<tspan x="${labelX}" dy="${j?16:0}">${esc(name)}</tspan>`).join('')}</text>`:'';
 
     line.relations.filter(r=>r.type!=='interval').forEach(r=>{
+      if(concealJumpPosition()&&r.type==='jump')return;
       const d=relationDisplay(line,r);if(!d)return;
       const x1=px(d.a.value,line),x2=px(d.b.value,line),left=Math.min(x1,x2),right=Math.max(x1,x2),mid=(x1+x2)/2;
       const lane=(r.side==='above'?above.map[r.id]:below.map[r.id])||0;
@@ -918,14 +938,18 @@ function numberLineV2(){
     }
 
     line.markers.forEach((m,i)=>{
+      if(concealJumpPosition()){
+        const knownId=state.challenge.type==='missing-start'?line.relations.find(r=>r.type==='jump')?.to:line.relations.find(r=>r.type==='jump')?.from;
+        if(m.id!==knownId)return;
+      }
       const x=px(m.value,line),cy=markerCentre(layout,m),hidden=hiddenChallengeMarker(line,m),showValue=m.showValue&&!hidden;
       const valueY=m.side==='above'?cy-28:cy+34;
       if(isJumpChallenge()){
         const label=String(m.label||'').trim();
         const endpoint=line.relations.some(r=>r.type==='jump'&&r.from===m.id)&&!line.relations.some(r=>r.type==='jump'&&r.to===m.id);
-        const knownLabel=endpoint?'Start':'';
+        const knownLabel=endpoint?'Start':(concealJumpPosition()&&state.challenge.type==='missing-start'?'End':'');
         const alreadyLabelled=tickPlan.labels.some(t=>!t.hidden&&Math.abs(t.v-m.value)<scale.step/1000);
-        markerLayer+=`<g class="nl-svg-marker nl-svg-marker--challenge-jump" data-line-id="${esc(line.id)}" data-marker-hit="${esc(m.id)}"><circle cx="${x}" cy="${baseY}" r="${hidden?6:5}" fill="${hidden?'#fff':esc(m.color)}" stroke="${esc(m.color)}" stroke-width="${hidden?2.4:2}"/>${hidden?`<text x="${x}" y="${baseY-17}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="850" fill="#33474e">?</text>`:(knownLabel?`<text x="${x}" y="${baseY-18}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12.5" font-weight="800" fill="#33474e" stroke="#fff" stroke-width="3" paint-order="stroke">${esc(knownLabel)}</text>`:'')}${!hidden&&!alreadyLabelled&&(endpoint||m.showValue||label==='?'||label==='End')?`<text x="${x}" y="${baseY+36}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#33474e">${esc(lineValueText(line,m.value))}</text>`:''}</g>`;
+        markerLayer+=`<g class="nl-svg-marker nl-svg-marker--challenge-jump" data-line-id="${esc(line.id)}" data-marker-hit="${esc(m.id)}"><circle cx="${x}" cy="${baseY}" r="${hidden?6:5}" fill="${hidden?'#fff':esc(m.color)}" stroke="${esc(m.color)}" stroke-width="${hidden?2.4:2}"/>${hidden?`<text x="${x}" y="${baseY-17}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="850" fill="#33474e">?</text>`:(knownLabel?`<text x="${x}" y="${baseY-18}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12.5" font-weight="800" fill="#33474e" stroke="#fff" stroke-width="3" paint-order="stroke">${esc(knownLabel)}</text>`:'')}${!hidden&&!alreadyLabelled&&(endpoint||m.showValue||label==='?'||label==='End'||(isUnknownJumpPosition()&&state.challenge.correct))?`<text x="${x}" y="${baseY+36}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#33474e">${esc(lineValueText(line,m.value))}</text>`:''}</g>`;
       }else{
         markerLayer+=`<g class="nl-svg-marker" data-line-id="${esc(line.id)}" data-marker-hit="${esc(m.id)}"${m.positionGroup?` data-position-group="${esc(m.positionGroup)}"`:''} style="cursor:ew-resize;touch-action:none">${markerStem(layout,m)}<circle cx="${x}" cy="${layout.baseY}" r="4.2" fill="${esc(m.color)}" stroke="#fff" stroke-width="1.6"/><circle cx="${x}" cy="${cy}" r="24" fill="transparent"/><text x="${x}" y="${cy+5}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="760" fill="#263b42" stroke="#fff" stroke-width="4" paint-order="stroke" pointer-events="none">${esc(m.label||String(i+1))}</text><line x1="${x-8}" y1="${cy+10}" x2="${x+8}" y2="${cy+10}" stroke="${esc(m.color)}" stroke-width="3" stroke-linecap="round" pointer-events="none"/>${showValue?`<text x="${x}" y="${valueY}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12.5" font-weight="680" fill="#33474e" stroke="#fff" stroke-width="3" paint-order="stroke" pointer-events="none">${esc(lineValueText(line,m.value))}</text>`:(hidden?answerBox(x,valueY-5,72,24):'')}</g>`;
       }
@@ -1050,10 +1074,11 @@ function numberLineV2(){
   }
   function renderStage(){
     if(!numberLineMounted())return;
+    refreshJumpPrompt();
     const challengeActions=state.challenge
       ?[
         ...(state.challenge.mode==='standard'&&CHALLENGE_TEMPLATES.some(t=>t.id===state.challenge.type)?[{action:'another',label:'Another'}]:[]),
-        {action:'end',label:beforeChallenge?'Back to setup':'End challenge'}
+        {action:'end',label:'Exit challenge'}
       ]:[];
     const prompt=state.challenge?(CK?CK.bannerHtml(state.challenge,{actions:challengeActions,hideReveal:!!state.challenge.correct}):`<div class="nl-challenge-banner"><span>Challenge</span><strong>${esc(state.challenge.prompt)}</strong></div>`):'';
     const solve=state.challenge?challengeResponseHtml(state.challenge):'';
