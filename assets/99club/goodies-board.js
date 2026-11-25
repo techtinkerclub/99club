@@ -803,7 +803,8 @@ function toggleExportMenu(id){
 function toggleSettings(id){
   const obj=objectById(id);if(!obj)return;
   selectObject(id);
-  sendSettings(obj,!obj.settingsOpen);
+  const alreadySettings=obj.settingsOpen&&floatingControlObjectId===obj.id&&floatingPanelMode==='settings';
+  sendSettings(obj,!alreadySettings);
   obj.menuOpen=false;frameFor(id)?.classList.remove('has-context-menu');
 }
 function bindObject(obj){
@@ -877,7 +878,7 @@ if(floatingControlsBody){
     const {obj,node}=floatingOriginal(control.dataset.boardControlIndex);if(!obj||!node)return;
     const launch=node.matches('[data-gd-random-scope],[data-gd-native-random],[data-pv-challenge-mode],[data-ab-challenge-mode],#ab-history-challenge,[id$="-generate"]');
     const specific=floatingPanelMode==='challenge'&&[...node.attributes].find(a=>/^-?data-[a-z0-9-]+-challenge-type$/.test(a.name));
-    if(specific){const prefix=specific.name.slice(5,-15);node.click();const generate=sourceControls(obj)?.querySelector('#'+prefix+'-generate');if(generate&&!generate.disabled){generate.click();closeFloatingControls(obj.id)}}
+    if(specific){const prefix=specific.name.match(/^data-([a-z0-9-]+)-challenge-type$/)[1];node.click();const generate=sourceControls(obj)?.querySelector('#'+prefix+'-generate');if(generate&&!generate.disabled){generate.click();closeFloatingControls(obj.id)}}
     else{node.click();if(launch&&floatingPanelMode==='challenge')closeFloatingControls(obj.id)}
     setTimeout(()=>{syncQuickActions(obj);refreshFloatingControls(obj)},0);
   });
