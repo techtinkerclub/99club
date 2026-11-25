@@ -1,6 +1,12 @@
 'use strict';
 
 const fs=require('fs');
+const pageSource=fs.readFileSync('_pages/whiteboard.md','utf8');
+// Exercise the exact production asset order, including Number Mobile extensions.
+const styleTags=pageSource.split('\n').filter(line=>line.startsWith('<link rel="stylesheet" href="/assets/99club/goodies')).join('\n');
+const scriptTags=pageSource.split('\n').filter(line=>line.startsWith('<script src="/assets/99club/goodies')).map(line=>line.replace(' defer','')).join('\n');
+if(!styleTags||!scriptTags||!scriptTags.includes('goodies-number-mobile-balance-v13.js'))throw new Error('Production Goodies asset manifest is incomplete');
+
 const mode=process.argv[2];
 const BOARD='99club-goodies-composition-qa.html';
 const EMBED='99club-goodies-embed-qa.html';
@@ -13,7 +19,7 @@ function shell(url,bodyScript){
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="stylesheet" href="/assets/99club/goodies.css">\n<link rel="stylesheet" href="/assets/99club/goodies-abacus.css">
+${styleTags}
 <style>html{scroll-behavior:auto!important}body{margin:0}</style>
 </head>
 <body>
@@ -22,16 +28,7 @@ function shell(url,bodyScript){
 <footer class="page__footer" id="gd-qa-theme-footer">Theme footer</footer>
 <div id="gd-composition-qa-result" data-status="pending" data-kind="">pending</div>
 <script>history.replaceState(null,'','${url}');window.scrollTo=function(){};${url.includes('board=1')?`window.TT99_GOODIES_BOARD_EMBED_PATH='/${HOST}';`:''}</script>
-<script src="/assets/99club/goodies-core.js"></script>
-<script src="/assets/99club/goodies-interaction.js"></script>
-<script src="/assets/99club/goodies-challenge.js"></script>
-<script src="/assets/99club/goodies-export.js"></script>
-<script src="/assets/99club/goodies-tools-a.js"></script>
-<script src="/assets/99club/goodies-abacus.js"></script>
-<script src="/assets/99club/goodies-number-line-v6.js"></script>
-<script src="/assets/99club/goodies-tools-b.js"></script>
-<script src="/assets/99club/goodies-app.js"></script>
-<script src="/assets/99club/goodies-board.js"></script>
+${scriptTags}
 <script>
 ${bodyScript}
 </script>
@@ -45,22 +42,13 @@ function embedHost(){
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="stylesheet" href="/assets/99club/goodies.css">\n<link rel="stylesheet" href="/assets/99club/goodies-abacus.css">
+${styleTags}
 <style>html{scroll-behavior:auto!important}body{margin:0}</style>
 </head>
 <body>
 <div id="tt99-goodies-root"></div>
 <script>window.scrollTo=function(){};</script>
-<script src="/assets/99club/goodies-core.js"></script>
-<script src="/assets/99club/goodies-interaction.js"></script>
-<script src="/assets/99club/goodies-challenge.js"></script>
-<script src="/assets/99club/goodies-export.js"></script>
-<script src="/assets/99club/goodies-tools-a.js"></script>
-<script src="/assets/99club/goodies-abacus.js"></script>
-<script src="/assets/99club/goodies-number-line-v6.js"></script>
-<script src="/assets/99club/goodies-tools-b.js"></script>
-<script src="/assets/99club/goodies-app.js"></script>
-<script src="/assets/99club/goodies-board.js"></script>
+${scriptTags}
 </body>
 </html>`;
 }
