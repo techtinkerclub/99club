@@ -31,9 +31,7 @@ function finishBuild(seq){
 function finalChallengeReady(){
   const b=banner(),w=work();if(!b||!w||q('.nmb-v5-challenge-popover',w))return false;
   if(originBanner&&b===originBanner)return false;
-  const level=String(G.numberMobileChallengeDifficulty||'easy').toUpperCase();
-  const kicker=String(q('.gd-challenge-kicker',b)?.textContent||'').toUpperCase();
-  if(!kicker.includes(level))return false;
+  if(G.numberMobileChallengeIsBuilding?.())return false;
   const prompt=String(q('.gd-challenge-prompt',b)?.textContent||'').trim();
   if(!prompt||/write your challenge here/i.test(prompt))return false;
   /* Medium/Hard complex puzzles are assembled through the custom editor. The
@@ -55,7 +53,7 @@ function checkBuild(seq){
 }
 function beginBuild(){
   const seq=++buildSeq;buildStarted=Date.now();originBanner=banner();setBuilding(true);checkBuild(seq);
-  clearTimeout(failSafeTimer);failSafeTimer=setTimeout(()=>finishBuild(seq),5000);
+  clearTimeout(failSafeTimer);failSafeTimer=setTimeout(()=>{if(seq!==buildSeq)return;if(finalChallengeReady()||!banner())finishBuild(seq);else if(!G.numberMobileChallengeIsBuilding?.())exitChallenge()},30000);
 }
 function noteMutation(){
   if(building)checkBuild(buildSeq);
