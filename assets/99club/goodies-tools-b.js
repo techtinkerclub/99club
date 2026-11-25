@@ -282,8 +282,8 @@ function coordinateTool(){
     const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
     return X.composeChallengeCardSvg(coordinateExportSvg({pupil:true}),{
       title:challenge.title||meta?.title||'Coordinates challenge',
-      prompt,
-      responseLabel:challenge.category==='reason'?'Explain your thinking':'Answer',
+      prompt:prompt+(challenge.type==='plot-coordinate'?' Mark and label the point on the grid.':''),
+      responseLabel:challenge.type==='plot-coordinate'?'Working / answer':challenge.category==='reason'?'Explain your thinking':'Answer',
       responseLines,
       brand:'99 Club Studio'
     });
@@ -873,8 +873,8 @@ function measurementTool(){
     const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
     return X.composeChallengeCardSvg(rulerExportSvg({pupil:true}),{
       title:challenge.title||meta?.title||'Measurement challenge',
-      prompt,
-      responseLabel:challenge.category==='reason'?'Explain your thinking':'Answer',
+      prompt:challenge.type==='place-mark'?'Draw a mark at '+cmText(challenge.targetCm)+' cm on the ruler.':prompt,
+      responseLabel:challenge.type==='place-mark'?'Working / answer':challenge.category==='reason'?'Explain your thinking':'Answer',
       responseLines,
       brand:'99 Club Studio'
     });
@@ -2321,6 +2321,10 @@ function timesTableVisual(){
     return state.groupsCount+' × '+state.itemsPerGroup+' = '+stateTotal(state);
   }
   function timesTableExportSvg({pupil=false}={}){
+    if(pupil&&challenge?.type==='build-fact'){
+      const svg=tvSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 900 500',role:'img','aria-label':'Space to draw equal groups'});
+      svg.appendChild(tvSvgEl('rect',{x:0,y:0,width:900,height:500,fill:'#fff'}));svg.appendChild(tvSvgEl('rect',{x:30,y:30,width:840,height:440,rx:12,fill:'#fff',stroke:'#aabcc0','stroke-width':2}));return svg;
+    }
     const state=exportState(pupil),groups=Number(state.groupsCount),items=Number(state.itemsPerGroup),width=900;
     const cols=Math.min(groups,4),rows=Math.ceil(groups/cols),cardW=170,cardH=128,gap=18;
     const groupsW=cols*cardW+(cols-1)*gap,groupsX=(width-groupsW)/2,groupsY=pupil?60:115;
@@ -2374,9 +2378,9 @@ function timesTableVisual(){
     const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
     return X.composeChallengeCardSvg(timesTableExportSvg({pupil:true}),{
       title:challenge.title||meta?.title||'Times-table challenge',
-      prompt,
-      responseLabel:challenge.category==='reason'?'Explain your thinking':'Answer',
-      responseLines,
+      prompt:challenge.type==='build-fact'?'Draw '+challenge.targetGroups+' equal groups with '+challenge.targetItems+' items in each group.':prompt,
+      responseLabel:challenge.type==='build-fact'?'Draw your groups / working':challenge.category==='reason'?'Explain your thinking':'Answer',
+      responseLines:challenge.type==='build-fact'?Math.max(3,responseLines):responseLines,
       brand:'99 Club Studio'
     });
   }
@@ -3245,6 +3249,13 @@ function fdpExplorer(){
   }
   function stateHundredFill(state){return Math.round(stateValue(state)*100)}
   function fdpExportSvg({pupil=false}={}){
+    if(pupil&&challenge?.type==='build-percentage'){
+      const divisions=Array.from({length:20},(_,i)=>i+1).find(d=>Math.abs(challenge.targetPercent*d/100-Math.round(challenge.targetPercent*d/100))<1e-8)||20;
+      const svg=fdSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 920 210',role:'img','aria-label':'Blank fraction bar to shade'});
+      svg.appendChild(fdSvgEl('rect',{x:0,y:0,width:920,height:210,fill:'#ffffff'}));
+      for(let i=0;i<divisions;i++)svg.appendChild(fdSvgEl('rect',{x:70+i*780/divisions,y:65,width:780/divisions,height:85,fill:'#ffffff',stroke:'#526b70','stroke-width':2}));
+      return svg;
+    }
     const state=exportState(pupil),s=stateSimplified(state),v=stateValue(state),pct=statePercent(state),fill=stateHundredFill(state);
     const focused=pupil&&challenge?.mode==='standard';
     const width=920,height=focused?(challenge.type==='spot-percent-error'?280:235):760,pad=70,barY=115,barH=82,barW=width-2*pad;
@@ -3296,7 +3307,7 @@ function fdpExplorer(){
     const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
     return X.composeChallengeCardSvg(fdpExportSvg({pupil:true}),{
       title:challenge.title||meta?.title||'Fraction–decimal–percentage challenge',
-      prompt,
+      prompt:challenge.type==='build-percentage'?'Shade '+challenge.targetPercent+'% of the bar.':prompt,
       responseLabel:challenge.category==='reason'?'Explain your thinking':'Answer',
       responseLines,
       brand:'99 Club Studio'
@@ -3587,8 +3598,8 @@ function geoboard(){
     const meta=CHALLENGE_TEMPLATES.find(t=>t.id===challenge.type);
     return X.composeChallengeCardSvg(geoboardExportSvg({pupil:true}),{
       title:challenge.title||meta?.title||'Geoboard challenge',
-      prompt,
-      responseLabel:challenge.category==='reason'?'Explain your thinking':'Answer',
+      prompt:challenge.type==='build-area'?'Draw a polygon with an area of '+challenge.targetArea+' square units on the peg grid.':prompt,
+      responseLabel:challenge.type==='build-area'?'Working / answer':challenge.category==='reason'?'Explain your thinking':'Answer',
       responseLines,
       brand:'99 Club Studio'
     });
@@ -3666,7 +3677,7 @@ function geoboard(){
     }else if(type==='build-area'){
       const option=pick([{area:4,w:2,h:2},{area:6,w:3,h:2},{area:8,w:4,h:2},{area:9,w:3,h:3},{area:10,w:5,h:2},{area:12,w:4,h:3}]);
       setGeneratedShape([]);
-      challenge=challengeObject(type,'Build any polygon with an area of '+option.area+' square units. Build your shape, then press Check.','For example, a '+option.w+' × '+option.h+' rectangle.',{answerMode:'manual',targetArea:option.area,solutionSize:[option.w,option.h],hiddenMetrics:['area']});
+      challenge=challengeObject(type,'Show a polygon with an area of '+option.area+' square units.','For example, a '+option.w+' × '+option.h+' rectangle.',{answerMode:'manual',targetArea:option.area,solutionSize:[option.w,option.h],hiddenMetrics:['area']});
     }else{
       setGeneratedShape([{x:1,y:1},{x:5,y:1},{x:5,y:5},{x:1,y:5}]);
       challenge=challengeObject(type,'This square has perimeter 16 units and area 16 square units. A pupil says the two measurements are the same because both numbers are 16. Are they correct?','No. Perimeter measures distance around the shape in units; area measures the surface inside it in square units.',{answerMode:'manual'});
