@@ -893,7 +893,7 @@ function numberLineV2(){
       if(t.slot>=0&&t.hidden){
         const ch=state.challenge,w=t.width-2,answer=missingLabelResponses(ch)[t.slot]||'';
         if(interactive&&!ch.correct){
-          ticks+=`<foreignObject x="${t.x-w/2}" y="${y-13}" width="${w}" height="26"><input xmlns="http://www.w3.org/1999/xhtml" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" data-nl-missing-slot="${t.slot}" aria-label="Missing number ${t.slot+1} from the left" value="${esc(answer)}" maxlength="18" style="display:block;width:100%;height:100%;box-sizing:border-box;border:1.5px dashed #52666d;border-radius:5px;background:#fff;color:#24343b;font:600 14px Arial,sans-serif;text-align:center;padding:0;outline-offset:-1px;touch-action:manipulation"/></foreignObject>`;
+          ticks+=`<foreignObject x="${t.x-w/2}" y="${y-13}" width="${w}" height="26"><input xmlns="http://www.w3.org/1999/xhtml" type="text" inputmode="none" autocomplete="off" spellcheck="false" data-nl-missing-slot="${t.slot}" aria-label="Missing number ${t.slot+1} from the left" value="${esc(answer)}" maxlength="18" style="display:block;width:100%;height:100%;box-sizing:border-box;border:1.5px dashed #52666d;border-radius:5px;background:#fff;color:#24343b;font:600 14px Arial,sans-serif;text-align:center;padding:0;outline-offset:-1px;touch-action:manipulation"/></foreignObject>`;
         }else if(interactive&&ch.correct){
           ticks+=`<text x="${t.x}" y="${y+5}" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" font-weight="700" fill="#216a48">${esc(t.text)}</text>`;
         }else ticks+=answerBox(t.x,y,w,24);
@@ -1367,11 +1367,13 @@ function numberLineV2(){
     if(['error-scale','marks-vs-spaces'].includes(ch.type))return 'yesno';
     if(ch.type==='compare-fractions')return 'symbol';
     if(ch.type==='missing-labels')return 'list';
+    if(ch.type==='order-markers')return 'order';
     return 'text';
   }
   function challengeResponseCorrect(ch,response){
     if(!ch)return false;
     const raw=String(response??'').trim();if(!raw)return false;
+    if(challengeResponseKind(ch)==='order'){const order=v=>String(v).toUpperCase().replace(/[\s<,;]+/g,'');return /^[ABC]{3}$/.test(order(raw))&&order(raw)===order(ch.answer)}
     if(challengeResponseKind(ch)==='yesno')return normaliseChallengeResponse(raw)==='no';
     if(challengeResponseKind(ch)==='symbol'){
       const expected=(String(ch.answer).match(/[<>=]/)||[])[0]||'';
@@ -1395,19 +1397,19 @@ function numberLineV2(){
     const kind=challengeResponseKind(ch),status=ch.responseStatus||'',correct=!!ch.correct;
     let input='';
     if(kind==='list'){
-      input='<span class="nl-missing-instructions">Type directly into each blank on the number line.</span>';
+      input='<span class="nl-missing-instructions">Tap each blank to enter its number.</span>';
     }else if(kind==='yesno'){
       input='<div class="nl-challenge-choice" role="group" aria-label="Choose an answer"><button type="button" data-challenge-response-choice="Yes"'+(ch.userResponse==='Yes'?' class="is-selected"':'')+(correct?' disabled':'')+'>Yes</button><button type="button" data-challenge-response-choice="No"'+(ch.userResponse==='No'?' class="is-selected"':'')+(correct?' disabled':'')+'>No</button></div>';
     }else if(kind==='symbol'){
       input='<div class="nl-challenge-choice nl-challenge-choice--symbol" role="group" aria-label="Choose comparison symbol">'+['<','>','='].map(v=>'<button type="button" data-challenge-response-choice="'+esc(v)+'"'+(ch.userResponse===v?' class="is-selected"':'')+(correct?' disabled':'')+'>'+esc(v)+'</button>').join('')+'</div>';
     }else{
       const placeholder=kind==='list'?'e.g. 4, 8, 12':'Type your answer';
-      input='<label class="nl-challenge-response"><span>Answer</span><input type="text" inputmode="text" autocomplete="off" data-challenge-response value="'+esc(ch.userResponse||'')+'" placeholder="'+placeholder+'"'+(correct?' disabled':'')+'></label>';
+      input='<label class="nl-challenge-response"><span>Answer</span><input type="text" inputmode="none" data-gd-keypad="'+(kind==='order'?'marker-order':'number-line')+'" autocomplete="off" data-challenge-response value="'+esc(ch.userResponse||'')+'" placeholder="'+placeholder+'"'+(correct||ch.revealed?' disabled':'')+'></label>';
     }
-    return '<div class="nl-challenge-solve">'+input+'<button type="button" class="gd-btn gd-btn--primary" data-challenge-check'+((correct||(kind==='list'&&!missingLabelsComplete(ch)))?' disabled':'')+'>Check</button>'+(status?'<span class="nl-challenge-feedback '+(correct?'is-correct':'is-wrong')+'">'+esc(status)+'</span>':'')+'</div>';
+    return '<div class="nl-challenge-solve">'+input+'<button type="button" class="gd-btn gd-btn--primary" data-challenge-check'+((correct||ch.revealed||(kind==='list'&&!missingLabelsComplete(ch)))?' disabled':'')+'>Check</button>'+(status?'<span class="nl-challenge-feedback '+(correct?'is-correct':'is-wrong')+'">'+esc(status)+'</span>':'')+'</div>';
   }
   function checkChallengeResponse(){
-    const ch=state.challenge;if(!ch||ch.mode!=='standard')return;
+    const ch=state.challenge;if(!ch||ch.mode!=='standard'||ch.correct||ch.revealed)return;
     if(ch.type==='missing-labels'&&!missingLabelsComplete(ch))return;
     const response=ch.type==='missing-labels'?missingLabelResponses(ch).join(', '):String(ch.userResponse||'').trim();
     if(!response){ch.responseStatus='Enter an answer first.';ch.correct=false;renderStage();return}
