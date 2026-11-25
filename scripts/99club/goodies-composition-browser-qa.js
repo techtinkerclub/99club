@@ -84,6 +84,9 @@ async function run(){
     assert(!picker.hidden&&group.getAttribute('aria-expanded')==='true','Category opens a labelled picker: '+group.dataset.boardGroup);
     const visibleTools=tools.filter(visible);assert(visibleTools.length>0&&visibleTools.every(el=>el.closest('[data-board-tool-group]').dataset.boardToolGroup===group.dataset.boardGroup),'Only selected category tools are visible');
     assert(visibleTools.every(el=>el.textContent.trim().length>3&&el.getBoundingClientRect().height>=40),'Picker rows are labelled and touch sized');
+    const labels=visibleTools.map(el=>el.querySelector('.gd-board-tool-name')),left=labels[0].getBoundingClientRect().left;
+    assert(labels.every(el=>Math.abs(el.getBoundingClientRect().left-left)<1&&getComputedStyle(el).textAlign==='left'&&el.getBoundingClientRect().width>0),'All menu names share a left edge, including wrapped names');
+    assert(visibleTools.every(el=>el.querySelector('.gd-board-tool-symbol svg')&&!el.querySelector('.gd-board-tool-plus')),'Consistent outline icons without redundant plus signs');
     const pr=picker.getBoundingClientRect();assert(pr.top>=br.top-1&&pr.bottom<=br.bottom+1&&pr.right<=br.right+1,'Category picker fits board');
     picker.querySelector('[data-board-picker-close]').click();
     assert(picker.hidden,'Picker closes independently');

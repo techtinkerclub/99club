@@ -160,17 +160,45 @@ const paletteGroups=[
 const assigned=new Set(paletteGroups.flatMap(g=>g.ids));
 const ungrouped=tools.filter(t=>!assigned.has(t.id));if(ungrouped.length)paletteGroups.push({id:'other',label:'More',title:'Other tools',icon:'…',ids:ungrouped.map(t=>t.id)});
 const activePaletteGroups=paletteGroups.map(g=>({...g,tools:g.ids.map(id=>tools.find(t=>t.id===id)).filter(Boolean)})).filter(g=>g.tools.length);
-const paletteIcons={'column-addition':'+','column-subtraction':'−','written-multiplication':'×','written-division':'÷','multiplication-grid':'▦','times-table':'3×4','factors':'1·2','array-builder':'⠿','number-line':'↔','place-value':'123','hundred-square':'100','maths-canvas':'3+?','balance':'⚖','measurement':'↕'};
+function paletteIcon(id){
+ const grid='M3 3h18v18H3zM9 3v18m6-18v18M3 9h18M3 15h18',ruler='m3 16 13-13 5 5L8 21zM12 7l3 3M8 11l3 3M4 15l3 3',balance='M12 4v16M5 20h14M3 8h18M6 8l-4 7h8zm12 0-4 7h8z',column='M10 4h9m-9 6h9M3 16h18m-9 4h7';
+ const paths={
+ number:'M4 5h2v14M4 19h4M11 7a3 3 0 0 1 6 0c0 3-6 6-6 12h7',
+ written:'M5 3h14v18H5zM8 7h8M8 11h3m3 0h2M8 15h3m3 0h2M8 18h8',
+ tables:grid,fractions:'M5 5h4v5H5zM15 14h4v5h-4zM5 19 19 5',models:balance,measure:ruler,shape:'m12 3 9 15H3zM12 10a3 3 0 1 0 0 6 3 3 0 0 0 0-6z',data:'M3 3v18h18M7 17v-5h3v5m3 0V8h3v9m3 0V5h2v12',
+ 'number-line':'M3 12h18M3 12l3-3m-3 3 3 3m15-3-3-3m3 3-3 3M8 9v6m4-8v10m4-8v6',
+ 'place-value':'M3 4h18v16H3zM9 4v16m6-16v16M3 9h18M6 13v3m6-5v3m6 1v3',
+ abacus:'M3 4h18v16H3zM8 4v16m4-16v16m4-16v16M3 10h18M6 7h4m0 7h4m0 3h4',
+ 'hundred-square':'M3 3h18v18H3zM7.5 3v18m4.5-18v18m4.5-18v18M3 7.5h18M3 12h18M3 16.5h18',
+ sequences:'M3 17h4m3-4h4m3-4h4M5 7l3-3m-3 0h3v3',
+ 'column-addition':column+'M3 8v6m-3-3h6','column-subtraction':column+'M1 11h5','written-multiplication':column+'M1 8l5 6m0-6-5 6',
+ 'written-division':'M10 5h9m-9 5h12M8 10v10m3-6h8m-5 4h5M2 12h3M3.5 9v.1m0 6v.1',
+ 'multiplication-grid':grid+'M11 11h2v2h-2z','array-builder':'M5 5h1v1H5zM11 5h1v1h-1zM17 5h1v1h-1zM5 11h1v1H5zM11 11h1v1h-1zM17 11h1v1h-1zM5 17h1v1H5zM11 17h1v1h-1zM17 17h1v1h-1z',
+ 'times-table':'M4 4l5 5m0-5L4 9M14 5h7m-7 4h7M4 15h16M4 20h16',
+ factors:'M12 3v4M5 16v4m14-4v4M12 7 5 16m7-9 7 9M9 3h6M2 20h6m8 0h6',
+ 'fraction-wall':'M3 4h18v5H3zM3 10h18v5H3zM3 16h18v5H3zM12 10v5m-3 1v5m6-5v5',
+ fdp:'M4 20 20 4M7 4a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM17 14a3 3 0 1 0 0 6 3 3 0 0 0 0-6z',
+ 'bar-model':'M3 5h18v6H3zM3 13h18v6H3zM10 13v6',balance,
+ 'maths-canvas':'M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8zM6 7h2m9-2v4m-2-2h4M5 17h4m6-1h4m-4 2h4',
+ clock:'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 6v6l4 2',
+ money:'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM16 7c-1-2-6-2-6 2v7m-3 1h10M8 12h6',
+ measurement:ruler,coordinates:'M3 12h18M12 3v18M5 9v6m14-6v6M9 5h6M9 19h6M17 6v2',
+ geoboard:'M5 5h14l-7 14zM4 4h2v2H4zM18 4h2v2h-2zM11 18h2v2h-2z',
+ randomiser:'M3 3h18v18H3zM7 7v.1m10-.1v.1m-5 4.9v.1M7 17v.1m10-.1v.1'
+ };
+ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+(paths[id]||'M5 12h.1m7 0h.1m7 0h.1')+'"/></svg>';
+}
+const paletteNames={'fdp':'Fractions, decimals & percentages','balance':'Number Mobile','maths-canvas':'Number & symbol tiles'};
 document.documentElement.classList.add('gd-mixed-board-page');
 document.body.classList.add('gd-mixed-board-page');
 
 root.innerHTML='<div class="gd-mixed-board" id="gd-mixed-board">'+
   '<nav class="gd-board-palette" aria-label="Add manipulatives">'+
-    activePaletteGroups.map(g=>'<button type="button" class="gd-board-group" data-board-group="'+esc(g.id)+'" data-label="'+esc(g.title)+'" aria-label="'+esc(g.title)+'" aria-expanded="false" aria-controls="gd-board-tool-picker"><span aria-hidden="true">'+esc(g.icon)+'</span><small>'+esc(g.label)+'</small></button>').join('')+
+    activePaletteGroups.map(g=>'<button type="button" class="gd-board-group" data-board-group="'+esc(g.id)+'" data-label="'+esc(g.title)+'" aria-label="'+esc(g.title)+'" aria-expanded="false" aria-controls="gd-board-tool-picker"><span aria-hidden="true">'+paletteIcon(g.id)+'</span><small>'+esc(g.label)+'</small></button>').join('')+
   '</nav>'+
   '<aside class="gd-board-tool-picker" id="gd-board-tool-picker" aria-label="Choose a manipulative" hidden>'+
     '<header><strong id="gd-board-tool-picker-title">Manipulatives</strong><button type="button" data-board-picker-close aria-label="Close manipulative picker">×</button></header>'+
-    '<div class="gd-board-picker-body">'+activePaletteGroups.map(g=>'<section data-board-tool-group="'+esc(g.id)+'" hidden>'+g.tools.map(t=>'<button type="button" class="gd-board-tool" data-board-add="'+esc(t.id)+'" aria-label="Add '+esc(t.title)+'"><span class="gd-board-tool-symbol" aria-hidden="true">'+esc(paletteIcons[t.id]||t.icon)+'</span><span class="gd-board-tool-name">'+esc(t.id==='balance'?'Number Mobile balance':t.title)+'</span><span class="gd-board-tool-plus" aria-hidden="true">+</span></button>').join('')+'</section>').join('')+'</div>'+
+    '<div class="gd-board-picker-body">'+activePaletteGroups.map(g=>'<section data-board-tool-group="'+esc(g.id)+'" hidden>'+g.tools.map(t=>'<button type="button" class="gd-board-tool" data-board-add="'+esc(t.id)+'" aria-label="Add '+esc(t.title)+'"><span class="gd-board-tool-symbol" aria-hidden="true">'+paletteIcon(t.id)+'</span><span class="gd-board-tool-name">'+esc(paletteNames[t.id]||t.title)+'</span></button>').join('')+'</section>').join('')+'</div>'+
   '</aside>'+
   '<div class="gd-board-viewport" id="gd-board-viewport" tabindex="0" aria-label="Maths whiteboard">'+
     '<div class="gd-board-canvas" id="gd-board-canvas" style="width:'+BOARD_W+'px;height:'+BOARD_H+'px"></div>'+
