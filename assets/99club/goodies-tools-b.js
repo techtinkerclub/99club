@@ -1573,7 +1573,7 @@ function balanceTool(){
     }else if(type==='make-balance'){
       const a=randomInt(5,12),b=randomInt(2,7),gap=randomInt(2,6);
       setSides([a,b],[a+b-gap]);
-      challenge=challengeObject(type,'Make both sides equal. You may add, edit or move weights.',String(gap),{freezeBoard:false,answer:'Balanced'});
+      challenge=challengeObject(type,'How much must be added to the lighter main side to balance the main bar?',String(gap),{hiddenRelation:true,hiddenVerdict:true});
     }else if(type==='same-to-both'){
       const base=randomInt(5,12),delta=randomInt(2,6);
       setSides([base],[base]);
