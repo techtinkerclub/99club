@@ -61,7 +61,7 @@ function normalise(value){return String(value??'').trim().toLowerCase().replace(
 function setFeedback(message,kind=''){feedback=message;feedbackKind=kind;renderFeedback();const reveal=q('[data-board-action="reveal"]',banner());if(reveal&&!revealed())reveal.hidden=kind==='correct'}
 function renderFeedback(){const el=q('[data-nmb-v8-feedback]',stage());if(!el)return;if(el.textContent!==(feedback||''))el.textContent=feedback||'';el.className='nmb-v8-feedback'+(feedbackKind?' is-'+feedbackKind:'');el.setAttribute('aria-live','polite')}
 function answerState(id){if(!answers.has(id))answers.set(id,{buffer:'',correct:false,wrong:false});return answers.get(id)}
-function renderTileAnswer(tile){const state=answers.get(String(tile.dataset.baToken));if(!state)return;const strong=q('strong',tile);if(strong)strong.textContent=state.buffer||'?';tile.classList.toggle('nmb-v8-answer-correct',!!state.correct);tile.classList.toggle('nmb-v8-answer-wrong',!!state.wrong);tile.setAttribute('aria-label',state.buffer?'Answer box. Current answer '+state.buffer:'Answer box. Tap to enter the missing number')}
+function renderTileAnswer(tile){const state=answers.get(String(tile.dataset.baToken));if(!state)return;const strong=q('strong',tile);if(strong&&strong.textContent!==(state.buffer||'?'))strong.textContent=state.buffer||'?';tile.classList.toggle('nmb-v8-answer-correct',!!state.correct);tile.classList.toggle('nmb-v8-answer-wrong',!!state.wrong);tile.setAttribute('aria-label',state.buffer?'Answer box. Current answer '+state.buffer:'Answer box. Tap to enter the missing number')}
 function closePad(){activeTileId=null;q('.nmb-v8-answer-pad',stage())?.remove()}
 function checkTile(tile){
   const unknowns=unknownTiles();
@@ -118,6 +118,7 @@ function adapt(){
   const key=challengeKey();if(key!==lastKey){resetChallengeState();lastKey=key}hideTeacherControls(true);const type=challengeType();compactPrompt(type);
   if(revealed()){closePad();q('.nmb-v8-response-panel',stage())?.remove();return}
   const unknowns=prepareUnknownTiles();if(unknowns.length)missingPanel();else responsePanel(type);
+  setFeedback(feedback,feedbackKind);
 }
 function intercept(e){
   if(!pupilActive()||revealed())return;const target=e.target?.closest?.('[data-ba-token],.nmb-branch-bar,.nmb-branch-add,.nmb-branch-empty,[data-ba-stage-add],.nmb-tile-toolbar,.nmb-branch-toolbar,.nmb-keypad');if(!target)return;const tile=target.closest?.('[data-ba-token]');e.preventDefault();e.stopImmediatePropagation();if(tile&&isIntendedAnswerTile(tile)){const state=answerState(String(tile.dataset.baToken));if(!state.correct)answerPad(tile)}
@@ -133,7 +134,20 @@ function install(){
   if(installed)return;installed=true;document.addEventListener('pointerdown',intercept,true);document.addEventListener('click',intercept,true);document.addEventListener('click',blankClick,true);document.addEventListener('keydown',keyboard,true);document.addEventListener('click',()=>setTimeout(scheduleAdapt,0),true);document.addEventListener('change',scheduleAdapt,true);
   observe();const root=document.getElementById('tt99-goodies-root');if(root){const rootObserver=new MutationObserver(()=>{observe();scheduleAdapt()});rootObserver.observe(root,{childList:true})}scheduleAdapt();
 }
-G.numberMobilePupilState={capture:()=>({answers:[...answers].map(([id,state])=>[id,{...state}]),responseBuffer,choiceValue,feedback,feedbackKind})};
+G.numberMobilePupilState={
+  capture:()=>({answers:[...answers].map(([id,state])=>[id,{...state}]),responseBuffer,choiceValue,feedback,feedbackKind}),
+  restore(saved){
+    resetChallengeState();lastKey=challengeKey();
+    if(saved){
+      for(const [id,state] of saved.answers||[])answers.set(String(id),{buffer:String(state.buffer),correct:!!state.correct,wrong:!!state.wrong});
+      responseBuffer=String(saved.responseBuffer||'');choiceValue=String(saved.choiceValue||'');
+      feedback=String(saved.feedback||'');feedbackKind=saved.feedbackKind||'';
+    }
+    adapt();
+    if(!revealed())setFeedback(feedback,feedbackKind);
+  },
+  refresh(){adapt()}
+};
 G.numberMobilePupilChallengeVersion='8.4';
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else queueMicrotask(install);
 })(window.TT99Goodies);
