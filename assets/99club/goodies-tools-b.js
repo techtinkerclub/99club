@@ -871,8 +871,8 @@ function coordinateTool(){
   }
   function generateChallenge(type){
     const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
-    if(!beforeChallenge)beforeChallenge=teachingSnapshot();else restoreTeachingSnapshot(beforeChallenge);
     if(!coTypes(generationSettings).some(t=>t.id===type))return;
+    if(!beforeChallenge)beforeChallenge=teachingSnapshot();else restoreTeachingSnapshot(beforeChallenge);
     const data=coGenerate(type,generationSettings);
     setGeneratedPoints(data.diagram.points,data.diagram.fourQuadrants);challenge=CK?CK.normalise(data.challenge):data.challenge;
     challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';
@@ -1005,7 +1005,7 @@ function coordinateTool(){
     const reveal=q('[data-board-action="reveal"]',stage);
     if(reveal)reveal.onclick=e=>{e.stopPropagation();toggleCoordinateReveal()};
     const another=q('[data-challenge-action="another"]',stage);
-    if(another)another.onclick=e=>{e.stopPropagation();if(challenge?.mode==='standard')generateChallenge(challenge.type)};
+    if(another)another.onclick=e=>{e.stopPropagation();if(challenge?.mode==='standard')generateChallenge(coTypes(generationSettings).some(t=>t.id===challenge.type)?challenge.type:challengeType)};
   }
   function bindControls(){
     const controls=q('#gd-controls');if(!controls)return;
@@ -1042,6 +1042,7 @@ function coordinateTool(){
       renderControls();
     });
     qa('[data-co-challenge-type]',controls).forEach(button=>button.onclick=()=>{challengeType=button.dataset.coChallengeType;renderControls()});
+    const scope=q('#co-scope',controls);if(scope)scope.onchange=()=>{generationSettings={scope:scope.value};if(!coTypes(generationSettings).some(t=>t.id===challengeType)){challengeType='read-coordinate';challengeCategory='read'}renderControls()};
     const generate=q('#co-generate',controls);if(generate)generate.onclick=()=>generateChallenge(challengeType);
     const edit=q('#co-edit-challenge',controls);if(edit)edit.onclick=enterCustomChallenge;
     const end=q('#co-clear-challenge',controls);if(end)end.onclick=clearChallenge;
