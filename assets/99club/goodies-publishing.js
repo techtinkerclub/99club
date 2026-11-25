@@ -304,17 +304,18 @@ function pages(items,{title='Maths practice',teacher=false}={}){
 
 // Automatic and live capture share the same document and immutable recipes.
 const BUILDER_CATALOG=[
- ['written-division','Written division'],['written-multiplication','Written multiplication'],['column-addition','Column addition'],['column-subtraction','Column subtraction'],['maths-canvas','Arithmetic Hub'],['sequences','Sequences & rules'],['abacus','Abacus'],['place-value','Place value'],
+ ['written-division','Written division'],['written-multiplication','Written multiplication'],['column-addition','Column addition'],['column-subtraction','Column subtraction'],['maths-canvas','Arithmetic Hub'],['function-machine','Function machines & algebra'],['sequences','Sequences & rules'],['abacus','Abacus'],['place-value','Place value'],
  ['number-line','Number line'],['fraction-wall','Fraction wall'],['bar-model','Bar model'],['hundred-square','Hundred square'],['multiplication-grid','Multiplication grid'],['array-builder','Array builder'],['clock','Clock & time'],['money','UK money'],['coordinates','Coordinate grid'],['measurement','Ruler & measures'],['statistics-table','Data & graphs'],['randomiser','Dice, spinner & randomiser'],['balance','Equation balance'],['times-table','Times-table visualiser'],['factors','Factors & multiples'],['fdp','Fraction–decimal–percentage'],['geoboard','Shape & geoboard']
 ];
 const BUILDER_GROUPS=[
- ['Number & calculation',['column-addition','column-subtraction','maths-canvas','sequences','abacus','place-value','number-line','hundred-square','balance']],
+ ['Number & calculation',['column-addition','column-subtraction','maths-canvas','function-machine','sequences','abacus','place-value','number-line','hundred-square','balance']],
  ['Multiplication & division',['written-division','written-multiplication','multiplication-grid','array-builder','times-table','factors']],
  ['Fractions & proportions',['fraction-wall','bar-model','fdp']],
  ['Geometry & measurement',['geoboard','coordinates','measurement','clock','money']],
  ['Data & statistics',['statistics-table','randomiser']]
 ];
 function defaults(tool){
+ if(tool==='function-machine')return {level:'medium',stages:2};
  if(tool==='statistics-table')return {view:'table',max:20,count:4,key:2,year:'custom',difficulty:'custom'};
  if(tool==='written-division')return {year:6,remainders:'any'};
  if(tool==='written-multiplication')return {year:5};
@@ -382,6 +383,7 @@ function openEditor(draft,{mode='review'}={}){
      return '<div class="gd-pub-fields">'+select('Curriculum','curriculumProfile',N.curriculumProfiles.map(x=>[x.id,x.label]),m.curriculumProfile)+select('Difficulty','difficulty',levels,m.difficulty)+select('Minimum','numberSettings.min',[-100,-20,-10,0,1,2,5,10,20,50,100,200,500,1000].filter(x=>x<n.max),n.min)+select('Maximum','numberSettings.max',[10,20,50,100,200,500,1000,10000].filter(x=>x>n.min),n.max)+select('Precision','numberSettings.precision',[[0,'Whole numbers'],[1,'1 decimal place'],[2,'2 decimal places']],n.precision)+select('Working space','workingLines',[[0,'None'],[2,'2 lines'],[4,'4 lines']],m.workingLines)+select('Left terms','numberSettings.left',[[0,'Automatic'],1,2,3,4],n.left)+select('Right terms','numberSettings.right',[[0,'Automatic'],1,2,3,4],n.right)+select('Max denominator','numberSettings.denominator',[4,6,8,10,12,20],n.denominator)+'</div>'+checks('Operations','ops',N.OPS,n.ops)+checks('Comparisons','relations',['=','<','>'],n.relations)+checks('Extensions','extras',['Brackets','Powers','Remainders'],n.extras)+
      '<details class="gd-pub-details"'+(block.topicsOpen?' open':'')+' data-pub-topics><summary>Optional arithmetic topics ('+n.topics.length+')</summary><div class="gd-pub-check-grid">'+N.topics.map(o=>'<label><input type="checkbox" data-pub-array="topics" value="'+esc(o.id)+'"'+(n.topics.includes(o.id)?' checked':'')+'>'+esc(o.label)+'</label>').join('')+'</div></details>';
    }
+   if(t==='function-machine')return '<div class="gd-pub-fields">'+select('Difficulty','level',G.functionMachines.LEVELS,m.level)+select('Machine stages','stages',[[1,'One'],[2,'Two']],m.stages)+'</div><p class="gd-help">Formula, pair and order tasks use their own mathematical constraints.</p>';
    if(t==='statistics-table')return '<div class="gd-pub-fields">'+select('Curriculum suggestions','year',G.statisticsTable.profiles,m.year)+select('Representation','view',G.statisticsTable.viewsFor(m.year),m.view)+select('Difficulty','difficulty',G.statisticsTable.difficulties,m.difficulty)+(m.view==='pictogram'?select('Symbol value','key',[1,2,5,10],m.key):'')+select('Maximum frequency','max',[10,20,30,40],m.max)+select('Categories','count',[3,4,5,6],m.count)+'</div>';
    if(t==='written-division')return '<div class="gd-pub-fields">'+select('Year group','year',[[3,'Year 3'],[4,'Year 4'],[5,'Year 5'],[6,'Year 6']],m.year)+select('Remainders','remainders',[['any','Mixed'],['exact','Exact division'],['with','With remainders']],m.remainders)+'</div><p class="gd-help">Short or long division under Question types. Long division is available in Year 6.</p>';
    if(t==='written-multiplication')return '<div class="gd-pub-fields">'+select('Year group','year',[[3,'Year 3'],[4,'Year 4'],[5,'Year 5'],[6,'Year 6']],m.year)+'</div><p class="gd-help">Select short or long multiplication in Question types. Long multiplication is available from Year 5.</p>';

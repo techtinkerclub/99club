@@ -22,6 +22,7 @@ const tools=[
   ['factors','Factors & multiples','÷','number','Find factor pairs, multiples and prime factors.','Factors, multiples, primes, common factors and divisibility.',factorExplorer],
   ['fdp','Fraction–decimal–percentage','%','fractions','See the same quantity as a fraction, decimal and percentage.','Making equivalence visible with fraction bars and a hundred square.',fdpExplorer],
   ['geoboard','Shape & geoboard','◇','geometry','Plot vertices on a dot grid to make and inspect polygons.','Coordinates, perimeter, area, polygons and geometric reasoning.',geoboard],
+  ['function-machine','Function machines & algebra','ƒ','operations','Explore input, output, rules and inverse operations.','Arithmetic relationships, missing numbers, formulae, linear sequences and pairs of values.',()=>G.functionMachineTool()],
   ['sequences','Sequences & rules','1…','number','Change a sequence rule and reveal terms step by step.','Teacher-led exploration of constant and changing differences, multiplication patterns and alternating rules.',sequencesTool],
   ['column-addition','Column addition','+','operations','Model column addition with place-value exchanges and step-by-step working.','Written addition, carrying and place-value reasoning.',()=>G.columnMethodTool('addition')],
   ['written-division','Written division','÷','operations','Model short and long division with quotient digits, regrouping and remainders.','Formal written division, place-value reasoning and remainders.',()=>G.columnMethodTool('division')],

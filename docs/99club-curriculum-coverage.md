@@ -29,3 +29,21 @@ Expand this matrix for Years 1–6 across number/place value, addition/subtracti
 ## Phase 4 release acceptance
 
 Eight representations are implemented in one workspace with advisory year guidance, independent difficulty presets, live assessment, saved lessons, and generated/current publication. Timetable and graph datasets are stored separately. Final browser/print tests and production deployment must be verified against the merged revision; classroom visual acceptance is not implied by an automated pass. The qualitative interpretation and broader curriculum extensions above remain tracked for Phase 5.
+
+
+## Phase 5A: Function machines and algebra
+
+| Curriculum link | Function-machine evidence | Scope |
+|---|---|---|
+| KS1 and lower KS2 arithmetic: unknown quantities, inverse operations and number relationships | output, input, constant, operation, reverse; step-by-step demonstration and reversible machines | Teaching representation; not a separate statutory algebra strand |
+| Year 6: simple formulae | formula; substitution of an input into an expression | Whole-number linear arithmetic |
+| Year 6: generate and describe linear sequences | sequence, rule, table; position-to-term rule and input/output pairs | Explicitly constrained rule families, not arbitrary inference |
+| Year 6: express missing-number problems algebraically | input, constant, formula, operation; machine diagram and letters | Complement Equation Balance and Arithmetic Hub |
+| Year 6: pairs of values satisfying an equation with two unknowns | pairs; accepts any positive whole-number pair meeting the sum | Multiple solutions accepted |
+| Year 6: enumerate possibilities with two variables | pairs-all; selects every valid ordered positive whole-number pair, with complete worked list in teacher annex | Bounded additive equations; further contexts remain for Phase 5 |
+| Year 6: order of operations | order; compare outputs with the same operations reversed | Reasoning about operation order |
+| Enrichment | configurable two-stage rules, signed exploration and reverse machines | No claim of complete KS3 functions curriculum |
+
+Source: https://www.gov.uk/government/publications/national-curriculum-in-england-mathematics-programmes-of-study/national-curriculum-in-england-mathematics-programmes-of-study
+
+Implementation uses one shared generator, screen and SVG paper rendering, existing touchscreen response framework, lesson-state capture and automatic builder. The initial generator uses whole-number exact arithmetic; fractional and decimal challenge generation, contextual formulae beyond the initial linear family, and deeper algebraic notation remain later extensions. The model was sampled over 5,400 seeded challenge cases during implementation; integrated CI, graphical print and classroom acceptance are still required.

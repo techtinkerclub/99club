@@ -957,7 +957,21 @@ try{
   if(!goodiesCss.includes('.gd-controls>[role="tablist"][aria-label$="workflow"]{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))'))fail('goodies-layout','Shared three-destination workflow navigation contract is missing');
   if(!goodiesCss.includes('@media(min-width:901px){.gd-controls>[role="tablist"][aria-label$="workflow"]{position:sticky'))fail('goodies-layout','Desktop workflow navigation is no longer pinned inside the teacher controls');
   ok('goodies-layout','Shared desktop/mobile containment, reduced-scroll and workflow-navigation contracts are present');
+  // Independent mathematical checks for each family and each difficulty.
+  const FM=load('assets/99club/goodies-function-machine.js');
+  let fmSeed=1234,fmCount=0;
+  const fmRng=()=>((fmSeed=(Math.imul(fmSeed,1664525)+1013904223)>>>0)/4294967296);
+  for(const level of ['easy','medium','hard'])for(const [type] of FM.TYPES)for(let i=0;i<100;i++){
+    const d=FM.generate({level,type},fmRng);
+    if(d.steps.length&&(FM.trace(d.input,d.steps).at(-1)!==d.output||Math.abs(FM.trace(d.output,FM.inverse(d.steps)).at(-1)-d.input)>1e-8))fail('function-machines','Invalid forward/inverse calculation: '+type);
+    if(type==='pairs-all'&&(d.all.length!==d.total-1||d.all.some(p=>p[0]+p[1]!==d.total)))fail('function-machines','Incomplete ordered-pair enumeration');
+    if(type==='constant'&&String(d.steps[d.slot].k)!==d.answer)fail('function-machines','Wrong missing constant');
+    if(type==='rule'&&!d.choices.includes(FM.ruleText(d.steps)))fail('function-machines','Correct rule missing from choices');
+    fmCount++;
+  }
+  ok('function-machines',fmCount+' seeded machine questions checked');
   const capabilitySpecs=[
+    {id:'function-machine',source:read('assets/99club/goodies-function-machine.js'),mode:'challenge'},
     {id:'statistics-table',source:read('assets/99club/goodies-statistics-table.js'),mode:'challenge'},
     ...['column-addition','column-subtraction','written-multiplication','written-division'].map(id=>({id,source:read('assets/99club/goodies-column-methods.js'),mode:'challenge'})),
     {id:'number-line',source:numberLine,mode:'challenge'},

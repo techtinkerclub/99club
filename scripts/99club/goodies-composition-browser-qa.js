@@ -71,7 +71,7 @@ async function run(){
   assert(getComputedStyle(document.getElementById('gd-qa-theme-header')).display==='none','Mixed whiteboard hides the site masthead');
   assert(getComputedStyle(document.getElementById('gd-qa-theme-footer')).display==='none','Mixed whiteboard hides the site footer');
   const tools=[...document.querySelectorAll('[data-board-add]')];
-  assert(tools.length===25&&new Set(tools.map(button=>button.dataset.boardAdd)).size===25,'All 25 distinct manipulatives are available in the grouped palette');
+  assert(tools.length===26&&new Set(tools.map(button=>button.dataset.boardAdd)).size===26,'All 26 distinct manipulatives are available in the grouped palette');
   assert(palette.getBoundingClientRect().width<=64,'Left category rail stays narrow');
   const groups=[...palette.querySelectorAll('[data-board-group]')],picker=document.getElementById('gd-board-tool-picker');
   assert(groups.length===8&&picker.hidden,'Eight groups replace the long icon list');
@@ -612,7 +612,7 @@ async function run(){
     dialog.querySelector('[data-pub-block] [data-pub-all-types]').click();
     assert(!dialog.querySelector('[data-pub-generate]').disabled,'Selecting compatible types restores the action');
     const searchAgain=dialog.querySelector('[data-pub-search]');searchAgain.value='';searchAgain.dispatchEvent(new Event('input',{bubbles:true}));
-    assert(dialog.querySelectorAll('[data-pub-add-source]').length===25,'Clearing search restores the full catalogue');
+    assert(dialog.querySelectorAll('[data-pub-add-source]').length===26,'Clearing search restores the full catalogue');
     dialog.querySelector('[data-pub-collapse-all]').click();
     assert([...dialog.querySelectorAll('.gd-pub-source-content')].every(el=>el.hidden),'Collapse all preserves sets while hiding settings');
     const counts=dialog.querySelectorAll('[data-pub-count]');counts[0].value='1';counts[0].dispatchEvent(new Event('change',{bubbles:true}));
@@ -920,6 +920,21 @@ async function run(){
     for(let i=0;i<50&&!frame.classList.contains('is-ready');i++)await tick(40);
     assert(frame.classList.contains('is-ready'),'Lesson object is ready: '+id);await tick(50);
     return {record,frame,doc:frame.querySelector('iframe').contentDocument};
+  }
+  // Function machine live exploration, reverse and shared pupil assessment.
+  {
+    const id='function-machine',fixture=await addForSave(id),doc=fixture.doc,G=doc.defaultView.TT99Goodies,M=G.functionMachines,cap=()=>G.lessonState.capture(id).model;
+    doc.getElementById('fm-next-step').click();await tick();assert(cap().progress===1,'Machine step demonstration advances one operation');
+    doc.getElementById('fm-table').click();await tick();assert(cap().showTable&&doc.querySelector('#gd-stage table'),'Input/output table appears in explore mode');
+    const before=cap(),out=M.trace(before.input,before.steps).at(-1);
+    doc.getElementById('fm-reverse').click();await tick();assert(cap().input===out&&M.trace(cap().input,cap().steps).at(-1)===before.input,'Machine inverse reverses the order and operations');
+    doc.querySelector('[data-fm-workflow="challenge"]').click();await tick();
+    doc.querySelector('[data-fm-challenge-mode="pairs-all"]').click();await tick();
+    const task=cap().task,check=doc.querySelector('[data-gd-pupil-check]');assert(task.all.length>0&&check.disabled,'No pair is selected initially');
+    for(const p of task.all){const button=[...doc.querySelectorAll('#gd-stage button[aria-pressed]')].find(b=>b.textContent==='('+p.join(', ')+')');assert(button,'Every valid pair is offered');button.click()}
+    check.click();await tick();assert(doc.querySelector('.gd-pupil-feedback').classList.contains('is-correct'),'All valid pairs are accepted');
+    const draft=TT99Goodies.publishing.createDocument();draft.addCurrent(id,cap());assert(draft.list()[0].data.type==='pairs-all','Saved challenge and teacher marking are preserved');
+    api.remove(fixture.record.id);
   }
   // Verify real widget challenge controls before the saved-board round trip.
   const qaFraction=await addForSave('fraction-wall'),fwDoc=qaFraction.doc;
