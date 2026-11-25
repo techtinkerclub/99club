@@ -1318,6 +1318,7 @@ function fractionWall(){
     strips=Array.isArray(value.strips)?value.strips.map(s=>({...s,...normalFraction(s),x:num(s.x,28),y:num(s.y,30),locked:!!s.locked,color:s.color||'#cbe7e2'})):[];
     nextStrip=Math.max(1,Math.round(num(value.nextStrip,1)));
   }
+  function fractionQuestionFixed(){return challenge?.mode==='standard'}
   function challengeActiveHidden(key,id=null){
     if(!challenge||challenge.revealed)return false;
     if(key==='focus')return !!challenge.hiddenFocusLabel;
@@ -1495,7 +1496,9 @@ function fractionWall(){
       challenge=challengeObject(type,'The two strips represent the same amount. What fraction with denominator '+target.d+' is equivalent to '+rawFractionText(f)+'?',rawFractionText(target),{answerSource:'strip:2:fraction',hiddenStripLabels:[2],hiddenStripHints:[2]});
     }else if(type==='compare-strips'){
       const a=randomProper(dens[Math.floor(Math.random()*dens.length)]);
-      const b=Math.random()<.25?{n:a.n,d:a.d}:randomProper(dens[Math.floor(Math.random()*dens.length)]);
+      const equivalents=dens.filter(d=>d!==a.d&&Number.isInteger(a.n*d/a.d));
+      const d2=equivalents[Math.floor(Math.random()*equivalents.length)];
+      const b=Math.random()<.25?(d2?{n:a.n*d2/a.d,d:d2}:{...a}):randomProper(dens[Math.floor(Math.random()*dens.length)]);
       compareA=a;compareB=b;focus={...a};mode='wall';
       const sign=equivalent(a,b)?'=':fractionValue(a)>fractionValue(b)?'>':'<';
       challenge=challengeObject(type,'Which symbol belongs between A and B: <, > or =?',sign,{answerSource:'compare-sign',hiddenCompareSign:true});
@@ -1682,6 +1685,11 @@ function fractionWall(){
       '</section>'+
       '<div class="gd-equation gd-fr-equation"><span>'+a.n+'/'+a.d+'</span><strong>'+displaySign+'</strong><span>'+b.n+'/'+b.d+'</span></div></div>';
 
+    if(fractionQuestionFixed()){
+      qa('[data-fw-wall],[data-fw-set],[data-fw-use],[data-fw-to-workbench]',q('#gd-stage')).forEach(el=>{el.disabled=true});
+      qa('.gd-fr-wall-heading > div > span,.gd-fr-compare-card > p',q('#gd-stage')).forEach(el=>el.hidden=true);
+      bindChallengeStageActions();return;
+    }
     qa('[data-fw-wall]',q('#gd-stage')).forEach(cell=>cell.onclick=()=>{
       const [d,i]=cell.dataset.fwWall.split(':').map(Number);focus={n:i+1,d};updateChallengeAnswer();renderControls();drawWall();
     });
@@ -1727,6 +1735,7 @@ function fractionWall(){
     '</div>';
   }
   function workbenchRail(selected,meta){
+    if(fractionQuestionFixed())return '';
     const object=selected?
       I.toolButton('duplicate','duplicate','Duplicate strip','',false)+
       I.toolButton('split','grid','Split every piece in two','',selected.locked||selected.d*2>12)+
@@ -1741,15 +1750,16 @@ function fractionWall(){
       I.toolButton('align','grid','Align strips','',strips.length<2)+'</div></div>';
   }
   function stripHeight(strip){return 58+Math.max(1,Math.ceil(strip.n/strip.d))*32}
-  function workbenchHeight(){return Math.max(500,40+strips.reduce((max,strip)=>Math.max(max,(Number(strip.y)||0)+stripHeight(strip)),0))}
+  function workbenchHeight(){return Math.max(fractionQuestionFixed()?150:500,40+strips.reduce((max,strip)=>Math.max(max,(Number(strip.y)||0)+stripHeight(strip)),0))}
   function drawWorkbench(selectedId,meta){
     const selected=selectedStrip(selectedId);
     const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Fractions challenge',pupil:({ 'identify-strip':CK.pupilSpec('fraction-form'), 'equivalent-strip':CK.pupilSpec('fraction-form'), 'compare-strips':CK.pupilSpec('choice',{choices:['<','>','=']}), 'simplify-strip':CK.pupilSpec('fraction-form'), 'mixed-improper':CK.pupilSpec('mixed'), 'denominator-misconception':CK.pupilSpec('choice',{choices:['Yes','No'],expected:'No',explain:true}) }[challenge.type]),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-fr-workbench"><div class="gd-fr-strip-canvas-wrap"><div class="gd-fr-strip-canvas" id="fw-strip-canvas" data-gd-canvas-bg style="min-height:'+workbenchHeight()+'px" tabindex="0" aria-label="Fraction strip workbench. Drag strips to compare them.">'+
       strips.map(s=>stripMarkup(s,selectedId)).join('')+
       '</div>'+workbenchRail(selected,meta)+'</div>'+
-      '<div class="gd-object-hint">'+(selected?(selected.locked?'Strip locked · unlock it to change or move it.':'Drag to compare · split keeps the same value with twice as many equal pieces.'):(challenge?.mode==='standard'?'Select a strip to inspect the supplied model.':'Use + to add the selected wall fraction, then drag or align strips to compare their lengths.'))+'</div></div>';
-    bindStripSegments();
+      '<div class="gd-object-hint">'+(selected?(selected.locked?'Strip locked · unlock it to change or move it.':'Drag to compare · split keeps the same value with twice as many equal pieces.'):(challenge?.mode==='standard'?'Use the shaded parts of the supplied strips to work out your answer.':'Use + to add the selected wall fraction, then drag or align strips to compare their lengths.'))+'</div></div>';
+    if(fractionQuestionFixed())qa('[data-fr-strip-piece]',q('#gd-stage')).forEach(piece=>{piece.disabled=true;piece.setAttribute('aria-label',piece.classList.contains('is-fill')?'Shaded part':'Unshaded part')});
+    else bindStripSegments();
     bindChallengeStageActions();
   }
   function constrainStrip(item,x,y,element,canvas){
@@ -1819,7 +1829,8 @@ function fractionWall(){
     updateChallengeAnswer();
     if(mode==='wall'){
       I?.clear?.();controller=null;drawWall();
-    }else mountWorkbench();
+    }else if(fractionQuestionFixed()){I?.clear?.();controller=null;drawWorkbench(null,{})}
+    else mountWorkbench();
   }
   function switchMode(next){
     mode=next==='workbench'?'workbench':'wall';
@@ -1890,6 +1901,7 @@ function fractionWall(){
       return;
     }
 
+    if(fractionQuestionFixed()){qa('button,input,select',controls).filter(el=>!el.matches('[data-fw-workflow]')).forEach(el=>el.disabled=true);return}
     qa('[data-fw-mode]',controls).forEach(button=>button.onclick=()=>switchMode(button.dataset.fwMode));
     if(mode==='wall'){
       ['fw-an','fw-ad','fw-bn','fw-bd'].forEach(id=>{const el=q('#'+id,controls);if(el)el.oninput=()=>{readCompare(id[3]);updateChallengeAnswer();drawWall()}});
@@ -2212,9 +2224,9 @@ function barModel(){
       total=whole;setParts([10,10,10]);
       challenge=challengeObject(type,'Build a bar model for '+a+' + ? + '+c+' = '+whole+'.',String(b),{freezeModel:false,targetParts:[{value:a,unknown:false},{value:10,unknown:true},{value:c,unknown:false}],targetTotal:whole});
     }else{
-      const values=[randomInt(8,25),randomInt(8,25),randomInt(5,20)],sum=values.reduce((a,b)=>a+b,0),wrong=sum+randomInt(3,12);
-      total=wrong;setParts(values);
-      challenge=challengeObject(type,'A pupil says this part–whole model is correct. Are they right? Explain your answer.','No. The parts total '+sum+', not '+wrong+'.',{hiddenStatus:true});
+      const values=[randomInt(8,25),randomInt(8,25),randomInt(5,20)],sum=values.reduce((a,b)=>a+b,0),valid=Math.random()<.5,shown=valid?sum:sum+(Math.random()<.5?-1:1)*randomInt(3,12);
+      total=shown;setParts(values);
+      challenge=challengeObject(type,'A pupil says this part–whole model is correct. Are they right? Explain your answer.',valid?'Yes. The parts total '+sum+'.':'No. The parts total '+sum+', not '+shown+'.',{hiddenStatus:true});
     }
     challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';exportMode='challenge';exportStatus='';renderControls();draw();
   }
@@ -2268,7 +2280,7 @@ function barModel(){
     updateChallengeAnswer();
     let cumulative=0,handles='';
     parts.slice(0,-1).forEach((part,index)=>{cumulative+=effectiveValue(part)/visualTotal()*100;handles+=handleMarkup(index,cumulative)});
-    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Bar Model challenge',pupil:(challenge.type==='build-model'?CK.pupilSpec('model',{check:()=>parts.length===3&&total===challenge.targetTotal&&parts.every((p,i)=>p.unknown===challenge.targetParts[i].unknown&&(p.unknown||Number(p.value)===challenge.targetParts[i].value))}):challenge.type==='spot-error'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:'No',explain:true}):CK.pupilSpec(challenge.type==='write-equation'?'addition-equation':'number')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
+    const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Bar Model challenge',pupil:(challenge.type==='build-model'?CK.pupilSpec('model',{check:()=>parts.length===3&&total===challenge.targetTotal&&parts.every((p,i)=>p.unknown===challenge.targetParts[i].unknown&&(p.unknown||Number(p.value)===challenge.targetParts[i].value))}):challenge.type==='spot-error'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:challenge.answer.startsWith('Yes')?'Yes':'No',explain:true}):CK.pupilSpec(challenge.type==='write-equation'?'addition-equation':'number')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     const model=challenge?.comparison?comparisonMarkup():
       '<div class="gd-bar-model">'+
         '<div class="gd-bar-total-bracket"><span></span><strong>Total '+totalText()+'</strong></div>'+
@@ -2632,7 +2644,7 @@ function hundredSquare(){
     if(undoStack.length>60)undoStack.shift();
     redoStack.length=0;
   }
-  function challengeFrozen(){return !!(challenge&&challenge.mode==='standard'&&challenge.freezeGrid)}
+  function challengeFrozen(){return !!(challenge&&challenge.mode==='standard'&&(challenge.freezeGrid||challenge.revealed))}
   function challengeMarkOnly(){return !!(challenge&&challenge.mode==='standard'&&challenge.markOnly)}
   function mutate(fn){
     if(challengeFrozen())return;
@@ -2722,10 +2734,7 @@ function hundredSquare(){
   }
   function challengeProgress(){
     if(!challenge||challenge.type!=='mark-rule'||!Array.isArray(challenge.targetValues))return'';
-    const target=new Set(challenge.targetValues),wrong=[...marked].some(v=>!target.has(v)),missing=[...target].some(v=>!marked.has(v));
-    if(!wrong&&!missing&&marked.size===target.size)return'All matching numbers marked ✓';
-    if(wrong)return'Some marks do not fit the rule';
-    return'Keep looking for matching numbers';
+    return 'Mark the numbers that match the rule, then press Check.';
   }
   function cellHtml(index,related){
     const n=valueAt(index),isHidden=valueHidden(n),frozen=challengeFrozen(),classes=[
@@ -2744,7 +2753,7 @@ function hundredSquare(){
     const endChallenge=q('[data-challenge-action="end"]',q('#gd-stage'));if(endChallenge)endChallenge.onclick=e=>{e.stopPropagation();clearChallenge()};
     const stage=q('#gd-stage');if(!stage||!challenge)return;
     const reveal=q('[data-board-action="reveal"]',stage);
-    if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;renderControls();draw()};
+    if(reveal)reveal.onclick=e=>{e.stopPropagation();challenge.revealed=!challenge.revealed;if(challengeMarkOnly()){if(challenge.revealed){challenge.marksBeforeReveal=[...marked];marked=new Set(challenge.targetValues)}else{marked=new Set(challenge.marksBeforeReveal||[]);delete challenge.marksBeforeReveal}}renderControls();draw()};
     const another=q('[data-challenge-action="another"]',stage);
     if(another)another.onclick=e=>{e.stopPropagation();if(challenge?.mode==='standard')generateChallenge(challenge.type)};
   }
@@ -3013,7 +3022,7 @@ function hundredSquare(){
   }
   function relationshipChallenge(type,delta,label){
     const min=delta<0?1-delta:1,max=delta>0?100-delta:100,anchor=randomInt(Math.max(11,min),Math.min(89,max)),target=anchor+delta;
-    selectedIndex=anchor-startValue;hidden.add(target);
+    selectedIndex=anchor-startValue;
     return challengeObject(type,'What is '+label+' than '+anchor+'?',target,{hideSelectedPanel:true});
   }
   function generateChallenge(type){
