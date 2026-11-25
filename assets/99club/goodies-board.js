@@ -252,7 +252,11 @@ function renderFloatingControls(obj){
     if('checked' in original)node.checked=original.checked;
     if(original.isContentEditable)node.innerHTML=original.innerHTML;
   });
-  if(obj.toolId==='place-value'&&floatingPanelMode==='challenge')clone.querySelector('.pv-mode-tabs')?.remove();
+  if(obj.toolId==='place-value'){
+    if(floatingPanelMode==='challenge')clone.querySelector('.pv-mode-tabs')?.remove();
+    else clone.querySelectorAll('[data-pv-workflow="challenge"],[data-pv-workflow="export"]').forEach(n=>n.remove());
+  }
+  if(obj.toolId==='abacus'&&floatingPanelMode!=='challenge')clone.querySelectorAll('[data-ab-workflow="challenge"],[data-ab-workflow="export"]').forEach(n=>n.remove());
   clone.querySelectorAll('#nl-fullscreen,.gd-embed-workflow-hidden[id$="-fullscreen"]').forEach(node=>node.remove());
   // Use a signature that includes property values (not just innerHTML).
   const signature=JSON.stringify([obj.id,floatingPanelMode,clone.innerHTML,sourceInputs.map(n=>[n.value,n.checked,n.disabled,n.isContentEditable?n.innerHTML:null])]);
