@@ -5378,8 +5378,8 @@ function moneyTool(){
   }
   function updateSelectionTools(item){
     const panel=q('#mo-context');if(!panel)return;
-    if(contextMode!=='combine')q('#mo-canvas')?.classList.remove('is-exchange-mode');
-    if(!item||challengeFrozen()){panel.hidden=true;contextMode='';contextItemId=null;exchangeSelection.clear();q('#mo-canvas')?.classList.remove('is-exchange-mode');qa('.gd-money-object.is-exchange-selected',q('#mo-canvas')).forEach(el=>el.classList.remove('is-exchange-selected'));return}
+    if(contextMode!=='combine'){const canvas=q('#mo-canvas');canvas?.classList.remove('is-exchange-mode');if(canvas&&panel.parentElement!==canvas)canvas.appendChild(panel)}
+    if(!item||challengeFrozen()){panel.hidden=true;contextMode='';contextItemId=null;exchangeSelection.clear();const canvas=q('#mo-canvas');canvas?.classList.remove('is-exchange-mode');if(canvas&&panel.parentElement!==canvas)canvas.appendChild(panel);qa('.gd-money-object.is-exchange-selected',canvas).forEach(el=>el.classList.remove('is-exchange-selected'));return}
     if(contextItemId!==item.id){contextMode='';contextItemId=item.id;exchangeSelection.clear()}
     if(contextMode==='combine'){renderExchangeSelection(item);return}
     panel.classList.remove('is-exchange-selection');
@@ -5418,6 +5418,7 @@ function moneyTool(){
     const panel=q('#mo-context'),canvas=q('#mo-canvas');if(!panel||!canvas)return;
     const {group,sum,denom}=selectedExchange();
     panel.classList.add('is-exchange-selection');panel.hidden=false;
+    if(panel.parentElement===canvas)canvas.before(panel);
     canvas.classList.add('is-exchange-mode');
     qa('.gd-money-object',canvas).forEach(el=>{
       const active=group.some(x=>String(x.id)===el.dataset.gdObject);
