@@ -1534,12 +1534,12 @@ function balanceTool(){
       const shown=q('.gd-challenge-actions em',q('#gd-stage'));if(shown)shown.textContent='Answer: '+challenge.answer;
     }
   }
-  function restoreBeforeChallenge(){if(beforeChallenge){restore(beforeChallenge);beforeChallenge=null}}
+  function restoreBeforeChallenge(){if(beforeChallenge){restore(beforeChallenge);beforeChallenge=null;G.numberMobileTopology?.restoreSetup()}}
   function clearChallenge(){
     restoreBeforeChallenge();challenge=null;challengeTab='standard';controlTab='challenge';exportMode='diagram';exportStatus='';undoStack.length=0;redoStack.length=0;renderControls();draw();
   }
   function enterCustomChallenge(){
-    if(!beforeChallenge)beforeChallenge=snapshot();
+    if(!beforeChallenge){beforeChallenge=snapshot();G.numberMobileTopology?.captureSetup()}
     const wasCustom=challenge?.mode==='custom';
     if(CK)challenge=CK.makeCustom(challenge||{type:'custom',title:'Challenge',promptHtml:'Write your challenge here.',answer:'',answerMode:'manual',answerSource:''});
     if(!wasCustom)clearBoundHiding();
@@ -1555,20 +1555,21 @@ function balanceTool(){
   }
   function generateChallenge(type){
     const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
-    if(!beforeChallenge)beforeChallenge=snapshot();else restore(beforeChallenge);
+    if(!beforeChallenge){beforeChallenge=snapshot();G.numberMobileTopology?.captureSetup()}else restore(beforeChallenge);
+    G.numberMobileTopology?.resetChallengeTree();
     undoStack.length=0;redoStack.length=0;showTotals=true;
     if(type==='missing-weight'){
       const a=randomInt(4,12),b=randomInt(3,10),whole=a+b;
       setSides([a,b],[whole],{hiddenLeft:[1]});
       challenge=challengeObject(type,'The balance is equal. What value is hidden by the question mark?',b,{hiddenVerdict:true});
     }else if(type==='choose-relation'){
-      const l=randomInt(8,18),r=l+randomInt(2,8);
+      const l=randomInt(8,18),delta=randomInt(2,8),direction=randomInt(-1,1),r=l+direction*delta;
       setSides([l],[r]);
       challenge=challengeObject(type,'Which symbol makes this comparison correct: <, > or = ?',relation(),{hiddenRelation:true,hiddenVerdict:true});
     }else if(type==='find-difference'){
       const smaller=randomInt(8,20),gap=randomInt(3,10),larger=smaller+gap;
-      setSides([larger],[smaller]);
-      challenge=challengeObject(type,'How much heavier is the left side than the right side?',gap,{hiddenVerdict:true});
+      const leftHeavy=Math.random()<.5;setSides(leftHeavy?[larger]:[smaller],leftHeavy?[smaller]:[larger]);
+      challenge=challengeObject(type,'What is the difference between the two sides?',gap,{hiddenVerdict:true});
     }else if(type==='make-balance'){
       const a=randomInt(5,12),b=randomInt(2,7),gap=randomInt(2,6);
       setSides([a,b],[a+b-gap]);
@@ -1928,6 +1929,7 @@ function balanceTool(){
   // The recursive mobile adapter owns the topology; this bridge owns the
   // underlying numeric model. Neither serialises transient DOM state.
   G.numberMobileEngineState={
+    challengeIdentity(){return challenge},
     capture(){if(challenge)throw new Error('Exit the Number Mobile Balance challenge before saving this board.');return snapshot()},
     restore(saved){restore(saved);challenge=null;beforeChallenge=null;controlTab='explore';challengeTab='standard';exportMode='diagram';undoStack.length=0;redoStack.length=0;drag=null;renderControls();draw()}
   };
