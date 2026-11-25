@@ -1828,3 +1828,11 @@ html.gd-embed-page,body.gd-embed-page{margin:0!important;width:100%!important;he
 .gd-board-floating-controls.is-money-palette .gd-mc-stage-palette{position:static!important;inset:auto!important;transform:none!important;display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:5px;width:100%;padding:4px;border:0;background:transparent;box-shadow:none;box-sizing:border-box}
 .gd-board-floating-controls .gd-mc-stage-palette button{width:100%;min-width:0;height:42px;border:1px solid #cbd8da;border-radius:9px;background:#e6f4f1;color:#304b52;font:inherit;font-weight:850;cursor:pointer;touch-action:manipulation}
 .gd-board-floating-controls .gd-mc-stage-palette button.is-symbol{background:#fff3ce}
+
+
+/* Paper-first number tile questions share the familiar tile visual language. */
+.gd-number-task-rows{display:grid;gap:16px;padding:clamp(12px,3vw,28px) 4px;min-height:90px}
+.gd-number-task-row{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:clamp(5px,1.3vw,12px)}
+.gd-number-task-tile{min-width:clamp(32px,7vw,62px);min-height:clamp(38px,8vw,66px);box-sizing:border-box;display:inline-grid;place-items:center;padding:6px 9px;border:1.5px solid #91b7b0;border-radius:10px;background:#dcefeb;color:#28474b;font-size:clamp(1rem,3vw,1.65rem);font-weight:850;font-variant-numeric:tabular-nums;white-space:nowrap}
+.gd-number-task-tile.is-symbol{background:#fff3ce;border-color:#c9ad6d}
+.gd-number-task-tile.is-unknown{background:#fff;border:2px dashed #90aaa6}
