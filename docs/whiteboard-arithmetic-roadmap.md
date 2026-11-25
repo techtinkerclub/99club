@@ -98,6 +98,11 @@ Updated 25 November 2026.
 - Shared print helper accepts one SVG or an array of pages, preserving existing single-page callers. Both entry pages have matching cache versions.
 - Whiteboard frame Export → Paper settings exposes the arithmetic Export controls directly, without requiring a hidden workflow tab. Automated checks: 288 sets, 444 pages, 2,160 questions; four simulated print documents verified page count, footer count and backwards-compatible single-page print options. Physical print/browser testing remains outstanding; the next cross-widget pass should focus on model-building response areas and explicit teacher keys.
 
+## Contextual sequence challenges (25 November)
+- Added Find the next term, Find the missing term and Identify the rule to Sequences & rules, using the existing native challenge launcher, touch numeric keypad, Check/Another/Reveal/Exit and explicit family/difficulty choices. This is short teacher-led practice; no independent puzzle engine or progression.
+- Prompts name the rule family so finite sequences are not presented as uniquely inferable without constraints. All tasks hide rule text and arrows until reveal. Pupil exports preserve the original missing term even after solving/revealing; teacher keys are explicit. Saved exploration models remain compatible.
+- Added sequence widget to automatic height fitting to reduce wasted whiteboard space. Browser/touch/print verification pending.
+
 ## Next priorities
 1. Visual/touch feedback: validate the practice-set launcher, whiteboard layout, inline answer boxes, responsive columns and paper outputs; refine density and font sizes after classroom feedback.
 2. Worksheet-oriented improvements: separate arithmetic answer key implemented; five-a-day shortcut implemented; optional arithmetic working space and row-based A4 pagination implemented; shared pupil/teacher export policies across the remaining widgets still need work.
