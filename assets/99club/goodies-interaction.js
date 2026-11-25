@@ -69,8 +69,10 @@ function mount(options){
     selectedId=null;
     refresh();
   }
-  function canUndo(){return undoStack.length>0}
-  function canRedo(){return redoStack.length>0}
+  function permitted(action){return !o.canAction||o.canAction(action)!==false}
+  function canUndo(){return permitted('undo')&&undoStack.length>0}
+  function canRedo(){return permitted('redo')&&redoStack.length>0}
+  function resetHistory(){undoStack.length=0;redoStack.length=0;selectedId=null;drag=null}
   function undo(){
     if(!canUndo())return;
     redoStack.push(snapshot());
@@ -110,6 +112,7 @@ function mount(options){
     refresh();
   }
   function removeSelected(){
+    if(!permitted('delete'))return;
     const item=selected();if(!item||isLocked(item))return;
     mutate(()=>{
       if(o.remove)o.remove(item);
@@ -121,6 +124,7 @@ function mount(options){
     });
   }
   function duplicateSelected(){
+    if(!permitted('duplicate'))return;
     const item=selected();if(!item)return;
     mutate(()=>{
       const duplicated=o.duplicate?o.duplicate(item):null;
@@ -128,6 +132,7 @@ function mount(options){
     });
   }
   function toggleLockSelected(){
+    if(!permitted('lock'))return;
     const item=selected();if(!item)return;
     mutate(()=>{
       if(o.toggleLock)o.toggleLock(item);
@@ -273,7 +278,7 @@ function mount(options){
   }
   document.addEventListener('keydown',keydown);
   const api={
-    refresh,select,selected,mutate,undo,redo,canUndo,canRedo,
+    refresh,select,selected,mutate,undo,redo,canUndo,canRedo,resetHistory,
     removeSelected,duplicateSelected,toggleLockSelected,setColourSelected,nudge,destroy,
     getSelectedId:()=>selectedId
   };
