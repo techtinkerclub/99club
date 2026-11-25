@@ -2063,7 +2063,10 @@ function nmPaperSummary(data){
  return data.challenge.answer;
 }
 function nmPaperRender(data,teacher=false,graphicOnly=false){
- const c=data.challenge,model=data.diagram,roots=data.topology.roots,tokens=new Map([...model.left,...model.right].map(x=>[String(x.id),x]));
+ const c=data.challenge,model=data.diagram,roots=JSON.parse(JSON.stringify(data.topology.roots)),tokens=new Map([...model.left,...model.right].map(x=>[String(x.id),x]));
+ if(teacher&&c?.type==='same-to-both'&&Number.isFinite(c.targetDelta)){
+   for(const side of ['left','right']){const id='added-'+side;tokens.set(id,{id,value:c.targetDelta,hidden:false});roots[side].push({kind:'tile',id})}
+ }
  const unknowns=nmPaperUnknowns(data),labels=new Map(unknowns.map((x,i)=>[String(x.id),String.fromCharCode(65+i)])),blankIds=new Set(data.topology.blankIds||[]);
  const tileW=86,tileH=54,gap=16,branchGap=32,hang=34;
  const sum=nodes=>nodes.reduce((a,n)=>a+(n.kind==='branch'?sum(n.left)+sum(n.right):Number(tokens.get(String(n.id))?.value)||0),0);
@@ -2071,7 +2074,7 @@ function nmPaperRender(data,teacher=false,graphicOnly=false){
  const sideW=(L,R)=>Math.max(listW(L),listW(R));
  const nodeW=n=>n.kind==='branch'?2*sideW(n.left,n.right)+branchGap:tileW;
  const listH=nodes=>Math.max(tileH,...nodes.map(n=>n.kind==='branch'?hang+listH([...n.left,...n.right])+12:tileH));
- const rootW=2*sideW(roots.left,roots.right)+branchGap,W=Math.max(400,rootW+48),contentH=hang+listH([...roots.left,...roots.right])+32,H=contentH+(teacher||!c?42:0);
+ const rootW=2*sideW(roots.left,roots.right)+branchGap,W=Math.max(400,rootW+48),contentH=hang+listH([...roots.left,...roots.right])+32,H=contentH+(teacher||!c?58:36);
  const el=(name,attrs={},value)=>{const n=document.createElementNS('http://www.w3.org/2000/svg',name);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,String(v));if(value!==undefined)n.textContent=String(value);return n};
  const svg=el('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':'Number Mobile with hanging balances'});
  const add=(name,attrs,value)=>svg.appendChild(el(name,attrs,value));
@@ -2085,7 +2088,7 @@ function nmPaperRender(data,teacher=false,graphicOnly=false){
  function drawNode(n,x,y){
    if(n.kind==='branch'){drawBar(n.left,n.right,x,y,n.id);return}
    const token=tokens.get(String(n.id));if(!token)return;
-   const hidden=token.hidden,tag=labels.get(String(n.id)),value=blankIds.has(String(n.id))?'□':hidden&&!teacher&&c?'?':String(token.value);
+   const hidden=token.hidden,tag=labels.get(String(n.id)),value=blankIds.has(String(n.id))?'□':hidden&&!teacher?'?':String(token.value);
    add('rect',{x:x-tileW/2,y,width:tileW,height:tileH,rx:7,fill:hidden?'#fff4d7':'#edf6f4',stroke:hidden?'#b49a54':'#85aaa4','stroke-width':1.5,'data-nm-paper-tile':n.id});
    text(x,y+33,value,{'data-nm-paper-value':n.id});
    if(hidden&&unknowns.length>1)text(x-tileW/2+11,y+14,tag,{'font-size':12,'text-anchor':'start','data-nm-paper-label':tag});
@@ -2105,8 +2108,12 @@ function nmPaperRender(data,teacher=false,graphicOnly=false){
  drawBar(roots.left,roots.right,W/2,12,'main');
  if(teacher||!c){
    const L=sum(roots.left),R=sum(roots.right),rel=L===R?'=':L>R?'>':'<';
-   text(W/2,H-15,L+' '+rel+' '+R,{'data-nm-paper-solved':'1'});
- }
+   if(teacher||!unknowns.length){
+     text(W/2,H-31,L+' '+rel+' '+R,{'data-nm-paper-solved':'1'});
+     if(c?.type==='same-to-both'&&teacher)text(W/2,H-10,'After adding to both sides',{'font-size':14,fill:'#52666d'});
+     else text(W/2,H-10,'Schematic: bars drawn level',{'font-size':14,fill:'#52666d'});
+   }else text(W/2,H-15,'Schematic: bars drawn level',{'font-size':14,fill:'#52666d'});
+ }else text(W/2,H-15,'Schematic: bars drawn level for calculation',{'font-size':14,fill:'#52666d'});
  if(!c||graphicOnly)return svg;
  const build=c.type==='same-to-both',reason=c.type==='spot-false-equality',lines=Math.max(data.settings.responseLines,reason||build?3:1);
  return G.exportTools.composeWorksheetCardSvg(svg,{title:NM_PAPER_TYPES.find(t=>t.id===c.type)?.label||'Number Mobile',prompt:c.prompt,responseMode:c.type==='missing-weight'?'none':lines>1?'lines':'box',responseLabel:reason?'Explain your thinking':'Answer',responseLines:lines,paperStyle:'plain',answer:nmPaperSummary(data),showAnswer:teacher,diagramMaxHeight:420});
