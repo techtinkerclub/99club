@@ -1913,3 +1913,18 @@ select.gd-mc-set-answer{width:3.6em;font-size:.75em;height:1.7em}
 .gd-mc-single-equations .is-symbol-answer{width:var(--mc-symbol-width,2.05em)}
 @container (max-width:480px){.gd-mc-set-grid[data-columns="2"]{grid-template-columns:minmax(0,1fr);--mc-columns:1;--mc-cell-budget:calc(100cqi - 100px)}}
 @container (max-width:280px){.gd-mc-set-grid,.gd-mc-set-grid[data-columns="2"]{--mc-cell-budget:calc(100cqi - 20px)}.gd-mc-set-grid .gd-mc-set-card{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto}.gd-mc-set-grid .gd-mc-set-card-foot{grid-column:1;flex-direction:row;justify-content:flex-end}.gd-mc-set-grid .gd-mc-set-card-foot .gd-mc-set-answer,.gd-mc-set-grid .gd-mc-set-check{width:auto;min-width:66px}.gd-mc-set-grid .gd-mc-set-feedback{white-space:normal}}
+
+/* Stacked fraction notation, shared across single and batch arithmetic. */
+.gd-mc-fraction{display:inline-flex;align-items:center;gap:.12em;flex:0 0 auto;font-weight:inherit;vertical-align:middle;line-height:1}
+.gd-mc-frac-stack{display:inline-flex;flex-direction:column;align-items:stretch;justify-content:center;min-width:.72em;text-align:center;line-height:1.02;font-size:.72em}
+.gd-mc-frac-num{display:flex;align-items:center;justify-content:center;padding:0 .10em .06em;border-bottom:.075em solid currentColor}
+.gd-mc-frac-den{padding:.06em .10em 0;text-align:center}
+.gd-mc-set-grid .gd-mc-set-card .gd-mc-fraction-hole .gd-mc-set-answer{font-size:1em;height:1.16em;width:1.8em;padding:0 .05em}
+.gd-mc-single-equations .gd-mc-fraction-hole .gd-number-equation-token.is-unknown{width:1.8em;height:1.16em;font-size:1em}
+.gd-mc-set-grid .gd-mc-set-card .gd-mc-set-answer.is-fraction-answer,.gd-mc-single-equations .is-fraction-answer{width:var(--mc-fraction-width,5em)}
+.gd-mc-advanced{border:1px solid #cbd8d7;border-radius:8px;padding:7px 9px;background:#fbfdfd}
+.gd-mc-advanced summary{font-size:.78rem;font-weight:750;cursor:pointer;color:#365a5e}
+.gd-mc-advanced fieldset{padding:5px 0;margin:6px 0;border:0;border-top:1px solid #e0e8e8}
+.gd-mc-advanced legend{font-size:.7rem;font-weight:750;color:#526970;padding-right:5px}
+.gd-mc-advanced label{display:flex;gap:7px;align-items:center;font-size:.74rem;line-height:1.2;padding:4px 0}
+.gd-mc-advanced input[type=checkbox]{flex:none;width:16px;height:16px;margin:0;accent-color:#16796d}
