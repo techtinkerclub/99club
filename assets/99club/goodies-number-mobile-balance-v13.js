@@ -88,6 +88,7 @@ function install(){
   document.addEventListener('click',e=>{if(activePanel&&!e.target.closest('.nmb-v13-number-response'))closePad(activePanel)},false);
   setTimeout(stabilise,100);
 }
-G.numberMobileNumericInputVersion='13.2';
+G.numberMobileNumericInput={refresh:enhanceCurrent};
+G.numberMobileNumericInputVersion='13.3';
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })(window.TT99Goodies);
