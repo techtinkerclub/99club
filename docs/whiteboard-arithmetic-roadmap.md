@@ -185,6 +185,12 @@ Three levels: (1) publish the current challenge or non-challenge representation 
 - Checks: 3,200 generator checks across three scopes; 800 individual pupil/solution checks, including 250 transformations and 150 plotting tasks; 30 mixed documents, 294 pupil pages, 150 annex pages, 390 answer entries, 30 replacements, 30 solved captures and 390 prompt alignment checks. Mock SVG DOM only; browser, touchscreen and physical print QA still open. Custom authored tasks remain individual-export only.
 - Ten of 20 existing catalogue entries integrated. Next: Bar Model, then Hundred Square. Formal written methods remain queued after the existing rollout.
 
+
+### Bar Model shared publishing
+- Eleventh adapter: eight existing challenge types, shared native generator, manual capture, automatic source settings, same-type replacement, graphical answer annex and marking notes. Build-model tasks use blank drawing space and a missing-part answer box; completed keys use the original target, not the teacher's trial. Equal groups and comparison reveals show actual values on the whiteboard. Construction reveal restores the pupil's previous model when hidden again.
+- Checks: 2,400 mathematical generator checks; 800 individual pupil/solution diagram checks, 400 marking notes; 30 mixed documents, 203 pupil pages, 124 annex pages, 390 answer entries, 30 replacements and 30 captures. Mock SVG DOM, not real-browser acceptance. Custom tasks remain individual-export only. Live model checking retains its existing ordered target; paper marking allows mathematically equivalent arrangements.
+- Eleven of 20 existing entries integrated. Next: Hundred Square, then Multiplication Grid. Formal written methods remain queued after existing rollout.
+
 ## Next priorities
 1. Visual/touch feedback: validate the practice-set launcher, whiteboard layout, inline answer boxes, responsive columns and paper outputs; refine density and font sizes after classroom feedback.
 2. Worksheet-oriented improvements: separate arithmetic answer key implemented; five-a-day shortcut implemented; optional arithmetic working space and row-based A4 pagination implemented; shared pupil/teacher export policies across the remaining widgets still need work.
