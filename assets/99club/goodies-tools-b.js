@@ -786,7 +786,7 @@ function measurementTool(){
       svg.appendChild(meSvgEl('line',{x1:x,y1:baseY-h,x2:x,y2:baseY,stroke:'#344b52','stroke-width':i%10===0?1.8:1}));
       if(i%10===0)svg.appendChild(meSvgEl('text',{x,y:rulerY+27,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':11,'font-weight':700,fill:'#566a70'},i/10));
     }
-    const secondary=challenge&&Number.isFinite(Number(challenge.secondaryCm))?roundCm(challenge.secondaryCm):null;
+    const secondary=challenge?.secondaryCm!=null&&Number.isFinite(Number(challenge.secondaryCm))?roundCm(challenge.secondaryCm):null;
     function addMarker(value,colour,label,kind){
       const x=left+roundCm(value)/30*rulerW;
       svg.appendChild(meSvgEl('line',{x1:x,y1:rulerY-8,x2:x,y2:baseY+2,stroke:colour,'stroke-width':4,'data-me-export-marker':kind}));
@@ -950,10 +950,7 @@ function measurementTool(){
       const values=readoutValues(state),hidden=index===0&&readoutHidden();
       qa('[data-me-readout-value]',card).forEach((el,i)=>{if(values[i])el.textContent=hidden?'?':values[i][1]});
     });
-    const target=q('#me-target-status');
-    if(target&&challenge?.mode==='standard'&&challenge.type==='place-mark'){
-      target.textContent=Math.abs(cm-Number(challenge.targetCm))<.05?'On target ✓':'';
-    }
+
     const slider=q('#me-cm',q('#gd-controls'));if(slider)slider.value=selectedSliderValue();
   }
   function setFromPointer(clientX,ruler,index){
@@ -1094,7 +1091,7 @@ function measurementTool(){
   }
   function rulerCardMarkup(index,state){
     const primary=index===0,imperial=state.scale==='imperial',maximum=maxCm(state.scale),hidden=primary&&readoutHidden(),frozen=primary&&markerFrozen();
-    const secondary=primary&&challenge&&Number.isFinite(Number(challenge.secondaryCm))?roundCm(challenge.secondaryCm):null;
+    const secondary=primary&&challenge?.secondaryCm!=null&&Number.isFinite(Number(challenge.secondaryCm))?roundCm(challenge.secondaryCm):null;
     const secondaryMarker=secondary!=null
       ?'<span class="gd-ruler-marker gd-ruler-marker--secondary" style="left:'+(secondary/30*100)+'%"><span class="gd-ruler-marker-label">A</span></span>'
       :'';
@@ -1113,9 +1110,7 @@ function measurementTool(){
   function draw(){
     updateChallengeAnswer();
     const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Measurement challenge',pupil:(challenge.type==='place-mark'?CK.pupilSpec('model',{check:()=>Math.abs(cm-challenge.targetCm)<1e-8}):challenge.type==='unit-misconception'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:'No',explain:true}):CK.pupilSpec('unit',{unit:challenge.type==='cm-to-mm'?'mm':challenge.type==='cm-to-m'?'m':'cm'})),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
-    const targetStatus=challenge?.mode==='standard'&&challenge.type==='place-mark'
-      ?'<div class="gd-answer-live" id="me-target-status">'+(Math.abs(cm-Number(challenge.targetCm))<.05?'On target ✓':'')+'</div>'
-      :'';
+    const targetStatus='';
     const states=challenge?[rulerState(0)]:[rulerState(0),...(secondRuler?[rulerState(1)]:[])];
     const syncReadout=!challenge&&secondRuler&&syncRulers
       ?'<div class="gd-ruler-sync-readout"><span>Linked length</span><strong>'+cmText(cm)+' cm ↔ '+inchText(cm)+' in</strong></div>':'';
@@ -3314,6 +3309,7 @@ function geoboard(){
   let controlTab='explore',challengeTab='standard',challengeCategory='measure',challengeType='find-length',challenge=null,beforeChallenge=null;
   let exportMode='diagram',responseLines=1,exportStatus='';
 
+  function shapeFrozen(){return !!(challenge?.mode==='standard'&&challenge.type!=='build-area')}
   function copyPts(value=pts){return value.map(p=>({x:p.x,y:p.y}))}
   function remember(snapshot=copyPts()){
     undoStack.push(copyPts(snapshot));
@@ -3321,14 +3317,14 @@ function geoboard(){
     redoStack.length=0;
   }
   function undo(){
-    if(!undoStack.length)return;
+    if(shapeFrozen()||!undoStack.length)return;
     redoStack.push(copyPts());
     pts=copyPts(undoStack.pop());
     selected=-1;
     draw();
   }
   function redo(){
-    if(!redoStack.length)return;
+    if(shapeFrozen()||!redoStack.length)return;
     undoStack.push(copyPts());
     pts=copyPts(redoStack.pop());
     selected=-1;
@@ -3463,6 +3459,7 @@ function geoboard(){
     return Array.isArray(challenge.hiddenMetrics)&&challenge.hiddenMetrics.includes(kind);
   }
   function geoboardExportSvg({pupil=false}={}){
+    if(pupil&&challenge?.mode==='standard'&&challenge.type==='build-area'&&pts.length){const previous=pts;pts=[];try{return geoboardExportSvg({pupil:true})}finally{pts=previous}}
     const width=760,height=760,gridPad=82,gridW=596,gridStep=gridW/(N-1),readY=690;
     const svg=geSvgEl('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Geoboard','data-ge-export':'board'});
     svg.appendChild(geSvgEl('rect',{x:0,y:0,width,height,fill:'#ffffff'}));
@@ -3579,7 +3576,7 @@ function geoboard(){
     }else if(type==='build-area'){
       const option=pick([{area:4,w:2,h:2},{area:6,w:3,h:2},{area:8,w:4,h:2},{area:9,w:3,h:3},{area:10,w:5,h:2},{area:12,w:4,h:3}]);
       setGeneratedShape([]);
-      challenge=challengeObject(type,'Build any polygon with an area of '+option.area+' square units. Use the live area readout to check your shape.','For example, a '+option.w+' × '+option.h+' rectangle.',{answerMode:'manual',targetArea:option.area});
+      challenge=challengeObject(type,'Build any polygon with an area of '+option.area+' square units. Build your shape, then press Check.','For example, a '+option.w+' × '+option.h+' rectangle.',{answerMode:'manual',targetArea:option.area,hiddenMetrics:['area']});
     }else{
       setGeneratedShape([{x:1,y:1},{x:5,y:1},{x:5,y:5},{x:1,y:5}]);
       challenge=challengeObject(type,'This square has perimeter 16 units and area 16 square units. A pupil says the two measurements are the same because both numbers are 16. Are they correct?','No. Perimeter measures distance around the shape in units; area measures the surface inside it in square units.',{answerMode:'manual'});
@@ -3616,7 +3613,7 @@ function geoboard(){
     }
     const u=q('#ge-undo',controls);if(u)u.onclick=undo;
     const r=q('#ge-redo',controls);if(r)r.onclick=redo;
-    const clear=q('#ge-clear',controls);if(clear)clear.onclick=()=>{if(!pts.length)return;remember();pts=[];selected=-1;draw()};
+    const clear=q('#ge-clear',controls);if(clear)clear.onclick=()=>{if(shapeFrozen()||!pts.length)return;remember();pts=[];selected=-1;draw()};
     if(controlTab!=='challenge')return;
     qa('[data-ge-challenge-tab]',controls).forEach(button=>button.onclick=()=>{
       if(button.dataset.geChallengeTab==='custom')enterCustomChallenge();else{challengeTab='standard';renderControls()}
@@ -3704,7 +3701,7 @@ function geoboard(){
     syncControls();
   }
   function moveVertex(index,x,y,withHistory=true){
-    if(!pts[index]||occupied(x,y,index)>=0)return false;
+    if(shapeFrozen()||!pts[index]||occupied(x,y,index)>=0)return false;
     if(pts[index].x===x&&pts[index].y===y)return false;
     if(withHistory)remember();
     pts[index]={x,y};
@@ -3712,7 +3709,7 @@ function geoboard(){
     return true;
   }
   function deleteVertex(index){
-    if(index<0||index>=pts.length)return;
+    if(shapeFrozen()||index<0||index>=pts.length)return;
     remember();
     pts.splice(index,1);
     selected=-1;
@@ -3729,6 +3726,7 @@ function geoboard(){
   }
   function bindStage(){
     const svg=q('#ge-svg');
+    if(shapeFrozen())return;
     qa('[data-gp]',q('#gd-stage')).forEach(peg=>peg.onclick=()=>{
       const [x,y]=peg.dataset.gp.split(',').map(Number);
       const existing=occupied(x,y);
@@ -3795,13 +3793,13 @@ function geoboard(){
     const poly=pts.length?'<polyline class="gd-poly" data-ge-poly points="'+polyPoints()+'"></polyline>':'<polyline class="gd-poly" data-ge-poly points=""></polyline>';
     const vertices=pts.map((p,i)=>{
       const v=pointPx(p),label=String.fromCharCode(65+i);
-      return '<circle class="gd-point gd-ge-vertex'+(i===selected?' is-selected':'')+'" data-ge-vertex="'+i+'" data-ge-pos="'+p.x+','+p.y+'" tabindex="0" role="button" aria-label="Vertex '+label+' at '+p.x+', '+p.y+'. Drag to move." cx="'+v.x+'" cy="'+v.y+'" r="10"></circle>'+
+      return '<circle class="gd-point gd-ge-vertex'+(i===selected?' is-selected':'')+'" data-ge-vertex="'+i+'" data-ge-pos="'+p.x+','+p.y+'" tabindex="'+(shapeFrozen()?'-1':'0')+'" role="'+(shapeFrozen()?'img':'button')+'" aria-label="Vertex '+label+' at '+p.x+', '+p.y+(shapeFrozen()?'. Fixed for this challenge.':'. Drag to move.')+'" cx="'+v.x+'" cy="'+v.y+'" r="10"></circle>'+
         '<text class="gd-ge-label" data-ge-label="'+i+'" x="'+(v.x+11)+'" y="'+(v.y-11)+'">'+label+'</text>';
     }).join('');
     const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Geoboard challenge',pupil:(challenge.type==='build-area'?CK.pupilSpec('model',{check:()=>CK.simplePolygon(pts)&&Math.abs(area()-challenge.targetArea)<1e-8}):challenge.type==='area-perimeter-units'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:'No',explain:true}):challenge.type==='perimeter-area'?CK.pupilSpec('metrics'):CK.pupilSpec('unit',{unit:challenge.type==='find-area'?'square units':'units'})),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-geo gd-geoboard-direct">'+
       '<svg id="ge-svg" viewBox="0 0 '+W+' '+W+'" role="img" aria-label="Interactive geoboard">'+grid+poly+vertices+'</svg>'+
-      '<div class="gd-ge-context"><span id="ge-context-text">'+(selected>=0&&pts[selected]?'Selected '+String.fromCharCode(65+selected)+' · ('+pts[selected].x+', '+pts[selected].y+')':'Tap a peg to add a vertex. Drag an existing vertex to reshape the polygon.')+'</span><div class="gd-context-actions">'+
+      '<div class="gd-ge-context"><span id="ge-context-text">'+(selected>=0&&pts[selected]?'Selected '+String.fromCharCode(65+selected)+' · ('+pts[selected].x+', '+pts[selected].y+')':(shapeFrozen()?'The given shape is fixed for this challenge.':'Tap a peg to add a vertex. Drag an existing vertex to reshape the polygon.'))+'</span><div class="gd-context-actions">'+
         '<button type="button" class="gd-context-history" data-ge-undo-stage'+(!undoStack.length?' disabled':'')+'>Undo</button>'+
         '<button type="button" class="gd-context-history" data-ge-redo-stage'+(!redoStack.length?' disabled':'')+'>Redo</button>'+
         '<button type="button" class="gd-context-delete" data-ge-delete'+(selected>=0&&pts[selected]?'':' hidden')+'>Delete vertex</button>'+
