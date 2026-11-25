@@ -2,13 +2,14 @@
 (function(G){
 'use strict';
 if(!G)return;
-const OPS=['+','−','×','÷'],REL=['<','=','>'];
+const OPS=['+','−','×','÷'],REL=['<','=','>'],EXTRAS=['Brackets','Powers','Remainders'];
 const groups=[
  {id:'arithmetic',label:'Arithmetic',ids:['missing-result','missing-number','missing-operation','number-bond']},
  {id:'equivalence',label:'Equality & comparison',ids:['equal-expressions','compare-values','true-false']},
- {id:'reasoning',label:'Reasoning',ids:['order-of-operations','inverse-operation']}
+ {id:'reasoning',label:'Reasoning',ids:['order-of-operations','inverse-operation','bracket-operation']},
+ {id:'extended',label:'Powers & remainders',ids:['power-result','division-remainder']}
 ];
-const titles={'missing-result':'Calculate the result','missing-number':'Find the missing number','missing-operation':'Find the operator','number-bond':'Number bonds','equal-expressions':'Balance the equation','compare-values':'Compare expressions','true-false':'True or false','order-of-operations':'Order of operations','inverse-operation':'Use the inverse'};
+const titles={'missing-result':'Calculate the result','missing-number':'Find the missing number','missing-operation':'Find the operator','number-bond':'Number bonds','equal-expressions':'Balance the equation','compare-values':'Compare expressions','true-false':'True or false','order-of-operations':'Order of operations','inverse-operation':'Use the inverse','bracket-operation':'Calculate with brackets','power-result':'Calculate a square or cube','division-remainder':'Find the remainder'};
 const presets={
  easy:{min:0,max:20,ops:['+','−'],relations:REL,left:2,right:1,precision:0},
  medium:{min:0,max:100,ops:OPS,relations:REL,left:2,right:0,precision:0},
@@ -20,7 +21,22 @@ function settings(raw={},level='medium'){
  const select=(v,allowed,def)=>Array.isArray(v)?allowed.filter(x=>v.includes(x)):def.slice();
  const max=valid(raw.max,[10,20,50,100,200,500,1000,10000],base.max),min=valid(raw.min,[-100,-20,-10,0,1,2,5,10,20,50,100,200,500,1000].filter(v=>v<max),Math.min(base.min,max-1));
  return {min,max,
- ops:select(raw.ops,OPS,base.ops),relations:select(raw.relations,REL,base.relations),left:valid(raw.left,[0,1,2,3,4],base.left),right:valid(raw.right,[0,1,2,3,4],base.right),precision:valid(raw.precision,[0,1,2],base.precision)};
+ ops:select(raw.ops,OPS,base.ops),relations:select(raw.relations,REL,base.relations),left:valid(raw.left,[0,1,2,3,4],base.left),right:valid(raw.right,[0,1,2,3,4],base.right),precision:valid(raw.precision,[0,1,2],base.precision),extras:select(raw.extras,EXTRAS,EXTRAS)};
+}
+function powerOptions(s){
+ if(s.precision!==0)return [];
+ const options=[];
+ for(const exponent of [2,3]){
+   if(exponent<s.min||exponent>s.max)continue;
+   for(let base=Math.max(2,s.min);base<=Math.floor(s.max**(1/exponent)+1e-9);base++){
+     const value=base**exponent;if(value>=s.min&&value<=s.max)options.push({base,exponent,value});
+   }
+ }
+ return options;
+}
+function remainderLimits(s){
+ const remainder=Math.max(1,s.min),divisor=Math.max(2,s.min,remainder+1),quotient=Math.max(1,s.min);
+ return {remainder,divisor,quotient,possible:s.precision===0&&quotient*divisor+remainder<=s.max};
 }
 function available(raw,level='medium'){
  const s=settings(raw,level),has=n=>s.ops.includes(n),left=n=>s.left===0?n>=2&&n<=4:s.left===n,right=n=>s.right===0?n>=1&&n<=2:s.right===n;
@@ -34,7 +50,10 @@ function available(raw,level='medium'){
  'compare-values':canExpressions&&s.relations.length>0,
  'true-false':canExpressions,
  'order-of-operations':left(3)&&right(1)&&(has('+')||has('−'))&&(has('×')||has('÷')),
- 'inverse-operation':left(2)&&right(1)&&has('×')&&has('÷')
+ 'inverse-operation':left(2)&&right(1)&&has('×')&&has('÷'),
+ 'bracket-operation':s.extras.includes('Brackets')&&s.min<=1&&left(3)&&right(1)&&(has('+')||has('−'))&&(has('×')||has('÷')),
+ 'power-result':s.extras.includes('Powers')&&left(2)&&right(1)&&has('×')&&powerOptions(s).length>0,
+ 'division-remainder':s.extras.includes('Remainders')&&left(2)&&right(2)&&has('÷')&&remainderLimits(s).possible
  };
  return groups.map(g=>({...g,ids:g.ids.filter(id=>valid[id])})).filter(g=>g.ids.length);
 }
@@ -74,6 +93,43 @@ function generate(type,level='medium',rng=Math.random,raw={}){
  function equation(a,b,hA,hB,sign='='){return [...tokens(a,hA),sign,...tokens(b,hB)]}
  function result(tiles,prompt,answer,kind='number',choices,solutionExplanation){
    return {mode:'standard',type,category:groups.find(g=>g.ids.includes(type)).id,title:'',prompt,answer:String(answer),answerMode:'manual',revealed:false,tiles,kind,choices,solutionExplanation:solutionExplanation||tiles.map(v=>v==='?'?String(answer):v).join(' '),level,settings:s};
+ }
+ if(type==='power-result'){
+   const {base,exponent,value}=pick(powerOptions(s));
+   return result([String(base)+(exponent===2?'²':'³'),'=','?'],'Calculate the power.',String(value),'number',undefined,Array(exponent).fill(base).join(' × ')+' = '+value);
+ }
+ if(type==='division-remainder'){
+   const lim=remainderLimits(s),q=int(lim.quotient,Math.floor((s.max-lim.remainder)/lim.divisor));
+   const d=int(lim.divisor,Math.floor((s.max-lim.remainder)/q));
+   const r=int(lim.remainder,Math.min(d-1,s.max-q*d)),n=q*d+r;
+   return result([String(n),'÷',String(d),'=',String(q),'R','?'],'The whole-number quotient is shown. Find the remainder (R).',String(r),'number',undefined,n+' = '+q+' × '+d+' + '+r);
+ }
+ if(type==='bracket-operation'){
+   const lowOps=s.ops.filter(o=>o==='+'||o==='−'),highOps=s.ops.filter(o=>o==='×'||o==='÷');
+   function question(x,o,y,p,z){
+     const inner=calc(x,o,y),v=calc(inner,p,z),ungrouped=calc(x,o,calc(y,p,z));
+     if(![x,y,z,v].every(inRange)||!Number.isSafeInteger(inner)||v===ungrouped||z===0)return null;
+     return result(['(',fmt(x),o,fmt(y),')',p,fmt(z),'=','?'],'Work out the brackets first, then calculate the result.',fmt(v),'number',undefined,'('+fmt(x)+' '+o+' '+fmt(y)+') = '+fmt(inner)+'; '+fmt(inner)+' '+p+' '+fmt(z)+' = '+fmt(v));
+   }
+   // Mix integer and fixed-point operands; invert the final operation to construct
+   // an exactly representable result rather than rely on a lucky decimal division.
+   for(let i=0;i<100;i++){
+     const o=pick(lowOps),p=pick(highOps),v=int(1,Math.min(s.max,50))*scale,z=pick(samples().filter(v=>v!==0&&v!==scale));
+     const inner=p==='×'?v*scale/z:v*z/scale;
+     if(!Number.isSafeInteger(inner))continue;
+     for(const y of samples()){
+       const x=o==='+'?inner-y:inner+y,questionValue=question(x,o,y,p,z);
+       if(questionValue)return questionValue;
+     }
+   }
+   // Every advertised bracket configuration includes 1..10. A bounded whole-number
+   // fallback still honours the selected operators and range.
+   const candidates=[];
+   for(const o of lowOps)for(const p of highOps)for(let x=1;x<=10;x++)for(let y=1;y<=10;y++)for(let z=2;z<=5;z++){
+     const q=question(x*scale,o,y*scale,p,z*scale);if(q)candidates.push(q);
+   }
+   if(candidates.length)return pick(candidates);
+   throw Error('No bracket question fits these settings.');
  }
  const targetSample=()=>rng()<.6?int(Math.ceil(lo/scale),Math.floor(hi/scale))*scale:int(lo,hi);
  for(let attempt=0;attempt<150;attempt++){
@@ -119,7 +175,7 @@ function generate(type,level='medium',rng=Math.random,raw={}){
  }
  throw Error('No suitable question found. Try a wider number range, fewer terms, or more operations.');
 }
-G.numberChallenges={groups,titles,generate,settings,presets,available,OPS,REL};
+G.numberChallenges={groups,titles,generate,settings,presets,available,OPS,REL,EXTRAS};
 })(window.TT99Goodies);
 ;
 (function(G){
@@ -4250,11 +4306,11 @@ function challengeControlsHtml(){
  const termOptions=(side)=>[[0,side==='left'?'Vary (2–4)':'Vary (1–2)'],[1,'1 number'],[2,'2 numbers'],[3,'3 numbers'],[4,'4 numbers']];
  return '<div data-mc-settings-summary class="gd-number-settings-summary">'+esc(numberSettings.ops.join('  ')||'No operations')+' · '+numberSettings.min+' to '+numberSettings.max+' · '+(numberSettings.precision?'Up to '+numberSettings.precision+' dp':'Whole numbers')+' · '+(numberSettings.left||'2–4')+' / '+(numberSettings.right||'1–2')+' numbers</div><div class="gd-number-settings"><div class="gd-section-title">Question settings</div>'+
  field('Preset','<select class="gd-select" id="mc-difficulty">'+[['easy','Easy'],['medium','Medium'],['hard','Hard'],['custom','Custom']].map(([v,t])=>'<option value="'+v+'"'+(difficulty===v?' selected':'')+'>'+t+'</option>').join('')+'</select>')+
- toggles('ops',N.OPS,'Allowed operations')+toggles('relations',N.REL,'Allowed comparison symbols')+
+ toggles('ops',N.OPS,'Allowed operations')+toggles('relations',N.REL,'Allowed comparison symbols')+toggles('extras',N.EXTRAS,'Additional question types')+
  '<div class="gd-number-settings-pair">'+options('mc-min','Smallest number',[-100,-20,-10,0,1,2,5,10,20,50,100,200,500,1000].filter(v=>v<numberSettings.max).map(v=>[v,String(v)]),numberSettings.min)+options('mc-max','Largest number',[10,20,50,100,200,500,1000,10000].filter(v=>v>numberSettings.min).map(v=>[v,String(v)]),numberSettings.max)+'</div>'+
  options('mc-precision','Number type',[[0,'Whole numbers'],[1,'Up to 1 decimal place'],[2,'Up to 2 decimal places']],numberSettings.precision)+
  '<div class="gd-number-settings-pair">'+options('mc-left','Numbers on left',termOptions('left'),numberSettings.left)+options('mc-right','Numbers on right',termOptions('right'),numberSettings.right)+'</div>'+
- '<p class="gd-help">All displayed numbers and missing values stay in the selected range. Division is exact at the selected precision. Parentheses make grouping explicit. Comparison settings apply to comparison questions. Only compatible question types are listed.</p></div>'+
+ '<p class="gd-help">All displayed numbers and missing values stay in the selected range. Division is exact except in explicitly labelled remainder questions. Squares, cubes and remainders use whole numbers. A power counts as a base and exponent; a remainder question has two numbers on the right. Parentheses make grouping explicit. Comparison settings apply to comparison questions. Only compatible question types are listed.</p></div>'+
  (generationError?'<p class="gd-number-error" role="status">'+esc(generationError)+'</p>':'')+
  (groups.length?CK.nativeRandomHtml('mc',groups)+groups.map(g=>'<div class="gd-section-title">'+esc(g.label)+'</div><div class="gd-row">'+g.ids.map(id=>'<button type="button" class="gd-btn" data-mc-challenge-mode="'+id+'">'+esc(N.titles[id])+'</button>').join('')+'</div>').join(''):'<p class="gd-help">No compatible questions. Enable an operation, allow a comparison, or change the number of terms.</p>')+(challenge?btn('Exit challenge','mc-exit-challenge'):'');
 }
