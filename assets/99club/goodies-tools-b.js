@@ -2699,7 +2699,7 @@ function timesTableVisual(){
     updateChallengeAnswer();
     const t=total(),frozen=challengeFrozen(),banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Times-table challenge',pupil:(challenge.type==='build-fact'?CK.pupilSpec('model',{check:()=>groupsCount===challenge.targetGroups&&itemsPerGroup===challenge.targetItems}):challenge.type==='spot-error'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:challenge.answer.startsWith('Yes')?'Yes':'No',explain:true}):CK.pupilSpec(challenge.type==='write-repeated'?'addition-equation':challenge.type==='commutative-fact'?'equation':'number')),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-tv-workbench">'+
-      (challenge&&frozen?'':'<div class="gd-tv-summary">'+(!challenge?'<div><span>Equal groups</span><strong data-tv-equation>'+equationText()+'</strong></div>':'')+
+      (challenge&&frozen?'':'<div class="gd-tv-summary">'+(challenge?.mode!=='standard'?'<div><span>Equal groups</span><strong data-tv-equation>'+equationText()+'</strong></div>':'')+
         '<div class="gd-object-toolbar"><button class="gd-btn" id="tv-undo" type="button"'+(undoStack.length&&!frozen?'':' disabled')+'>Undo</button><button class="gd-btn" id="tv-redo" type="button"'+(redoStack.length&&!frozen?'':' disabled')+'>Redo</button></div></div>')+
       (!frozen?'<div class="gd-tv-direct">'+
         '<div class="gd-tv-stepper"><span>Groups</span><div><button class="gd-btn" id="tv-groups-minus" type="button"'+(groupsCount<=1?' disabled':'')+'>−</button><strong data-tv-groups>'+groupsCount+'</strong><button class="gd-btn" id="tv-groups-plus" type="button"'+(groupsCount>=12?' disabled':'')+'>+</button></div></div>'+
@@ -2709,9 +2709,9 @@ function timesTableVisual(){
       '<div class="gd-tv-groups" data-tv-group-count="'+groupsCount+'">'+Array.from({length:groupsCount},(_,i)=>groupHtml(i)).join('')+
         (!frozen&&groupsCount<12?'<button class="gd-tv-add-group" id="tv-add-group" type="button"><strong>+</strong><span>Add group</span></button>':'')+'</div>'+
       selectedPanel()+
-      (showRepeated&&!challenge?'<div class="gd-tv-readout"><span>Repeated addition</span><strong data-tv-repeated>'+repeatedDisplay()+'</strong></div>':'')+
-      (showJumps&&!challenge&&!hiddenFlag('hiddenJumps')?'<div class="gd-tv-jump-section"><span>Equal jumps</span><div class="gd-tv-jumps">'+Array.from({length:groupsCount},(_,i)=>jumpHtml(i)).join('')+'</div></div>':'')+
-      (showFactFamily&&!challenge?'<div class="gd-tv-fact-family"><span>Fact family</span><div>'+
+      (showRepeated&&challenge?.mode!=='standard'?'<div class="gd-tv-readout"><span>Repeated addition</span><strong data-tv-repeated>'+repeatedDisplay()+'</strong></div>':'')+
+      (showJumps&&challenge?.mode!=='standard'&&!hiddenFlag('hiddenJumps')?'<div class="gd-tv-jump-section"><span>Equal jumps</span><div class="gd-tv-jumps">'+Array.from({length:groupsCount},(_,i)=>jumpHtml(i)).join('')+'</div></div>':'')+
+      (showFactFamily&&challenge?.mode!=='standard'?'<div class="gd-tv-fact-family"><span>Fact family</span><div>'+
         '<strong data-tv-commutative>'+commutativeDisplay()+'</strong>'+
         '<strong data-tv-division-a>'+divisionADisplay()+'</strong>'+
         '<strong data-tv-division-b>'+divisionBDisplay()+'</strong>'+
