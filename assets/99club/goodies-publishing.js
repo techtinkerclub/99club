@@ -4,6 +4,7 @@ if(!G)return;
 const adapters=new Map(),copy=v=>JSON.parse(JSON.stringify(v));
 function register(tool,adapter){adapters.set(tool,adapter)}
 function supports(tool){return adapters.has(tool)}
+function canGenerate(tool){return supports(tool)&&!adapterFor(tool).captureOnly}
 function types(tool,model){return adapterFor(tool).types?.(model)||[]}
 function adapterFor(tool){const a=adapters.get(tool);if(!a)throw Error('Publishing is not yet supported for this widget.');return a}
 function record(tool,kind,data,recipe=null){return {tool,kind,data:copy(data),recipe:recipe?copy(recipe):null}}
@@ -20,6 +21,7 @@ function createDocument(){
   list:()=>copy(items),
   addCurrent(tool,snapshot,staticSvg){return append(adapterFor(tool).capture(copy(snapshot),staticSvg))},
   generate(tool,snapshot,count,type='all',rng=Math.random){
+    if(!canGenerate(tool))throw Error('This widget publishes illustrations only.');
     const a=adapterFor(tool),recipe=a.recipe(copy(snapshot),type),n=Math.max(1,Math.min(20,Math.round(Number(count)||1))),records=[];
     for(let i=0;i<n;i++)records.push(uniqueQuestion(tool,recipe,items.concat(records),rng));
     return append(records);
@@ -27,6 +29,7 @@ function createDocument(){
   generateBlocks(blocks,rng=Math.random){
     const records=[];
     for(const block of blocks){
+      if(!canGenerate(block.tool))throw Error('This widget publishes illustrations only.');
       const a=adapterFor(block.tool),n=Math.round(Number(block.count)),allowed=types(block.tool,block.settings).map(t=>t.id),selected=block.types===null?allowed:block.types;
       if(!Number.isInteger(n)||n<1||n>20)throw Error('Choose 1–20 questions per source.');
       if(!selected?.length||selected.some(id=>!allowed.includes(id)))throw Error('Choose compatible question types for '+a.label+'.');
@@ -292,7 +295,7 @@ function openEditor(draft,{mode='review'}={}){
  }
  function renderBuilder(){
    const n=blocks.reduce((sum,x)=>sum+x.count,0);
-   return '<div class="gd-pub-builder"><aside class="gd-pub-catalog"><h3>Widgets</h3><p>Choose a widget. Add it again for different settings.</p>'+BUILDER_CATALOG.map(([id,label])=>'<button type="button" class="gd-pub-catalog-item" data-pub-add-source="'+id+'"'+(!supports(id)?' disabled':'')+'><span>'+esc(label)+'</span><small>'+(supports(id)?'+ Add':'Pending')+'</small></button>').join('')+'</aside><main class="gd-pub-sources"><div class="gd-pub-section-head"><h3>Configure worksheet</h3><span>'+n+' questions</span></div>'+(blocks.length?blocks.map(blockHtml).join(''):'<div class="gd-pub-empty"><strong>Choose a widget to start</strong><p>Set quantities and question types independently for each source.</p></div>')+'</main></div><footer class="gd-pub-footer"><label><input type="checkbox" data-pub-mix'+(mix?' checked':'')+'> Mix questions after generation</label><span class="gd-pub-spacer"></span><button type="button" class="gd-btn gd-btn--primary" data-pub-generate'+(!n||n+draft.list().length>80?' disabled':'')+'>Add '+n+' questions to draft</button></footer>';
+   return '<div class="gd-pub-builder"><aside class="gd-pub-catalog"><h3>Widgets</h3><p>Choose a widget. Add it again for different settings.</p>'+BUILDER_CATALOG.map(([id,label])=>'<button type="button" class="gd-pub-catalog-item" data-pub-add-source="'+id+'"'+(!canGenerate(id)?' disabled':'')+'><span>'+esc(label)+'</span><small>'+(canGenerate(id)?'+ Add':supports(id)?'Illustration only':'Pending')+'</small></button>').join('')+'</aside><main class="gd-pub-sources"><div class="gd-pub-section-head"><h3>Configure worksheet</h3><span>'+n+' questions</span></div>'+(blocks.length?blocks.map(blockHtml).join(''):'<div class="gd-pub-empty"><strong>Choose a widget to start</strong><p>Set quantities and question types independently for each source.</p></div>')+'</main></div><footer class="gd-pub-footer"><label><input type="checkbox" data-pub-mix'+(mix?' checked':'')+'> Mix questions after generation</label><span class="gd-pub-spacer"></span><button type="button" class="gd-btn gd-btn--primary" data-pub-generate'+(!n||n+draft.list().length>80?' disabled':'')+'>Add '+n+' questions to draft</button></footer>';
  }
  function renderReview(){
    const items=draft.list(),disabled=items.length?'':' disabled';
@@ -368,5 +371,5 @@ function openEditor(draft,{mode='review'}={}){
  dlg.ontoggle=null;dlg.addEventListener('toggle',function rememberDetails(e){const el=e.target;if(el.tagName!=='DETAILS')return;const b=getBlock(el);if(!b)return;if(el.hasAttribute('data-pub-type-details'))b.open=el.open;if(el.hasAttribute('data-pub-topics'))b.topicsOpen=el.open;},{capture:true,signal:(()=>{dlg._pubToggleController?.abort();dlg._pubToggleController=new AbortController();return dlg._pubToggleController.signal})()});
  render();if(!dlg.open)dlg.showModal();
 }
-G.publishing={register,supports,types,record,signature,createDocument,renderItem,pages,answerPages,answerSummary,answerNote,answerGraphic,openEditor,isolateSvgIds};
+G.publishing={register,supports,canGenerate,types,record,signature,createDocument,renderItem,pages,answerPages,answerSummary,answerNote,answerGraphic,openEditor,isolateSvgIds};
 })(window.TT99Goodies);
