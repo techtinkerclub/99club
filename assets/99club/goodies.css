@@ -1708,3 +1708,10 @@ html.gd-embed-page,body.gd-embed-page{margin:0!important;width:100%!important;he
 #gd-stage .gd-fr-strip-segment.is-fill:disabled{background:var(--fr-strip,#cbe7e2)}
 #gd-stage .gd-fr-strip-segment:not(.is-fill):disabled{background:#fff}
 #gd-stage .gd-fr-piece.is-fill:disabled{background:#cbe7e2}
+
+
+/* Direct touch sizing remains available alongside the array's drag handles. */
+#gd-stage .gd-array-touch-steps{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 18px;margin:4px 0 8px}
+#gd-stage .gd-array-touch-steps>div{display:flex;align-items:center;gap:6px}
+#gd-stage .gd-array-touch-steps span{min-width:72px;text-align:center;font-size:.8rem;font-weight:700;color:#456269}
+#gd-stage .gd-array-touch-steps button{min-width:40px;min-height:38px;padding:4px 9px;font-size:1.1rem;touch-action:manipulation}
