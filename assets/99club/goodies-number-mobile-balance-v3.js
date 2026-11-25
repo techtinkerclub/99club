@@ -343,17 +343,60 @@ function validateMobile(saved){
   }
   if(seen.size!==all.size||t.nextBranch<=maxBranch||new Set(t.blankIds).size!==t.blankIds.length||t.blankIds.some(id=>!all.has(String(id))||all.get(String(id)).value!==0))invalid();
 }
+function validateChallengeSession(saved){
+  const session=saved.session;if(!session)return;
+  const invalid=()=>{throw new Error('Invalid saved Number Mobile challenge.')};
+  const ch=session.engine?.challenge,meta=session.generator,pupil=session.pupil;
+  if(!ch||!session.engine.beforeChallenge||!session.setupTopology||!meta||!pupil)invalid();
+  const types=['missing-weight','choose-relation','find-difference','make-balance','same-to-both','spot-false-equality'];
+  if(!['standard','custom'].includes(ch.mode)||!['easy','medium','hard'].includes(meta.difficulty)||typeof ch.promptHtml!=='string'||typeof ch.answer!=='string')invalid();
+  if(ch.mode==='standard'&&!types.includes(ch.type))invalid();
+  if(ch.mode==='custom'&&(!meta.spec||!types.includes(meta.spec.type)))invalid();
+  validateMobile({diagram:session.engine.beforeChallenge,topology:session.setupTopology});
+  const tokens=new Map([...saved.diagram.left,...saved.diagram.right].map(t=>[String(t.id),t]));
+  if(meta.spec){
+    const spec=meta.spec;
+    if(!types.includes(spec.type)||!['medium','hard'].includes(spec.difficulty)||typeof spec.readOnly!=='boolean')invalid();
+    if(spec.answerByToken!=null){
+      if(typeof spec.answerByToken!=='object'||Array.isArray(spec.answerByToken))invalid();
+      for(const [id,value] of Object.entries(spec.answerByToken)){if(!tokens.get(id)?.hidden||!Number.isFinite(value)||tokens.get(id).value!==value)invalid()}
+    }
+    if(!Array.isArray(spec.balancedBranchIds)||spec.balancedBranchIds.some(id=>typeof id!=='string'||!/^b[1-9][0-9]*$/.test(id)))invalid();
+  }
+  const buffer=v=>typeof v==='string'&&v.length<=64&&/^[0-9]*[.]?[0-9]*$/.test(v);
+  if(!Array.isArray(pupil.answers)||!buffer(pupil.responseBuffer)||typeof pupil.choiceValue!=='string'||pupil.choiceValue.length>40||typeof pupil.feedback!=='string'||pupil.feedback.length>200||!['','correct','wrong'].includes(pupil.feedbackKind))invalid();
+  const seen=new Set();
+  for(const row of pupil.answers){
+    if(!Array.isArray(row)||row.length!==2)invalid();
+    const [id,state]=row;
+    if(typeof id!=='string'||seen.has(id)||!tokens.get(id)?.hidden||!state||!buffer(state.buffer)||typeof state.correct!=='boolean'||typeof state.wrong!=='boolean')invalid();
+    seen.add(id);
+  }
+}
 function captureMobile(){
-  if(pendingAdd||adapting||editingId)throw new Error('Finish editing the Number Mobile Balance before saving.');
-  const saved={diagram:G.numberMobileEngineState.capture(),topology:{roots,blankIds:[...blankIds],nextBranch}};
-  validateMobile(saved);return saved;
+  if(G.numberMobileChallengeIsBuilding?.()||document.body.classList.contains('nmb-v7-challenge-building'))throw new Error('Wait for the Number Mobile challenge to finish generating.');
+  const engine=G.numberMobileEngineState.captureChallenge();
+  if(pendingAdd||adapting||(!engine&&editingId))throw new Error('Finish editing the Number Mobile Balance before saving.');
+  const saved={diagram:G.numberMobileEngineState.capture(),topology:topologySnapshot()};
+  if(engine){
+    const generator=G.numberMobileChallengeSession.capture();
+    if(engine.challenge.mode==='custom'&&!generator.spec)throw new Error('Finish or exit the custom Number Mobile challenge before saving.');
+    saved.session={engine,generator,pupil:G.numberMobilePupilState.capture(),setupTopology};
+  }
+  validateMobile(saved);validateChallengeSession(saved);return saved;
 }
 function restoreMobile(saved){
-  validateMobile(saved);setupTopology=null;
-  roots=saved.topology.roots;blankIds=new Set(saved.topology.blankIds.map(String));nextBranch=saved.topology.nextBranch;
-  selectedBranchId=null;focusedTileId=null;editingId=null;editBuffer='';pendingAdd=null;
-  G.numberMobileEngineState.restore(saved.diagram);
+  validateMobile(saved);validateChallengeSession(saved);
+  const session=saved.session||null;
+  setupTopology=session?.setupTopology||null;
+  applyTopology(saved.topology);
+  G.numberMobileChallengeSession?.restore(session?.generator);
+  G.numberMobileEngineState.restore(saved.diagram,session?.engine);
   adaptStage(stage());adaptControls(document.getElementById('gd-controls'));
+  G.numberMobileChallengeSession?.refresh();
+  G.numberMobilePupilState?.restore(session?.pupil);
+  G.numberMobileChallengeChrome?.refresh();
+  G.numberMobileNumericInput?.refresh();
 }
 function topologySnapshot(){return JSON.parse(JSON.stringify({roots,blankIds:[...blankIds],nextBranch}))}
 function applyTopology(t){
