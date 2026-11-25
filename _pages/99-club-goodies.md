@@ -32,4 +32,4 @@ robots: "noindex,nofollow,noarchive"
 <script src="/assets/99club/goodies-number-mobile.js?v=1" defer></script>
 <script src="/assets/99club/goodies-sequences.js?v=1" defer></script>
 <script src="/assets/99club/goodies-app.js?v=13" defer></script>
-<script src="/assets/99club/goodies-board.js?v=49" defer></script>
+<script src="/assets/99club/goodies-board.js?v=50" defer></script>
