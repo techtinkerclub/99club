@@ -71,3 +71,15 @@ Based on production after PR #238, retaining label placement, independent measur
 - Compass retains an exact chosen aperture for reuse at another centre; opening can be changed again. Snapping remains limited to existing drawn geometry, not hidden task targets.
 - Browser regressions cover immovable points, compass transfer, default measurement policy, undo, and retained exploration controls.
 - Remaining: convert the separate angle-drawing tasks to paper-equivalent instrument placement and fixed marks; implement allowed-instrument presets, ungraduated straightedge, classical construction tasks and method assessment. Current six shape construction families assess the finished geometry, not the sequence. The general dynamic dependency engine belongs only to exploration.
+
+## Three geometry environments (agreed refinement)
+
+The earlier two-environment distinction is refined into three explicit modes, not a global toggle:
+
+1. **Construction Lab:** paper-equivalent fixed marks, instruments, erase/undo. Never allow vertex movement or constraint-solving shortcuts during construction assessment.
+2. **Free exploration:** independently movable points; attached segments and circles follow their points, but no equal-side/angle/parallel constraints are automatically imposed. Useful for counterexamples, showing a square cease to be a square, or a triangle change classification. Allow selective tracing of moving points.
+3. **Dynamic geometry — loci & traces:** explicit mathematical constraints and dependent points; a dragged driver preserves its defining property and dependent points recalculate. Trace any selected available point; distinguish the observed sampled trail from the exact mathematical locus. Keep trace paths in the saved scene and export them as vector graphics. Toggle tracing without connecting separate recording periods. Include clear/reset and optional reveal of exact locus.
+
+The KS3 teaching guidance explicitly includes the circle as a locus of points equidistant from a fixed point: https://www.gov.uk/government/publications/teaching-mathematics-at-key-stage-3 . GeoGebra distinguishes tracing and generating loci: https://geogebra.github.io/docs/manual/en/Tracing/ and https://geogebra.github.io/docs/manual/en/tools/Locus/ .
+
+Initial implementation on the motion/loci branch: separate saved free-exploration workspace with Move and Trace; two constrained demonstrations (fixed distance from a point and equal distance from two points), optionally show and trace dependent midpoint M as well as driver P. Constraint projection is exact, within finite canvas bounds; recorded traces are sampled paths. This is not yet a general constraint editor. Next add point on line/circle, perpendicular-distance loci (both parallel branches), angle bisectors, region inequalities, independent point selection and arbitrary dependency graphs with robust cycle/degeneracy handling. Future investigations include intersections of loci and multiple valid solutions. Keep fixed construction unaffected.
