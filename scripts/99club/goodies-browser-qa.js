@@ -3722,13 +3722,40 @@ if(mode==='prepare'){
     assert([...document.querySelectorAll('.gd-fdp-value strong')].every(x=>x.textContent.trim()==='?'),'Bound custom measurement answer hides all equivalent readouts');
     const liveBefore=document.getElementById('me-custom-live-answer').textContent.trim();
     marker=document.getElementById('me-marker');
-    marker.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
+    marker.dispatchEvent(new KeyboardEvent('keydown',{key:Number(marker.getAttribute('aria-valuenow'))>=Number(marker.getAttribute('aria-valuemax'))?'ArrowLeft':'ArrowRight',bubbles:true}));
     const liveAfter=document.getElementById('me-custom-live-answer').textContent.trim();
     assert(liveAfter!==liveBefore,'Measurement live custom answer updates when the marker moves');
 
     document.getElementById('me-clear-challenge').click();
     assert(document.getElementById('me-marker').getAttribute('aria-valuenow')===teacherValue,'Ending a Measurement challenge restores the teacher marker position');
     assert(document.querySelectorAll('.gd-ruler-card').length===2&&document.getElementById('me-ruler-1')?.dataset.meScale==='imperial','Ending a Measurement challenge restores the teacher dual-ruler metric/imperial setup');
+    const MM=TT99Goodies.measurePaperModel,PP=TT99Goodies.publishing;
+    for(const type of ['measure-line','measure-side','measure-compare','measure-perimeter']){
+      for(const precision of ['whole','tenth'])for(let i=0;i<25;i++){
+        const d=MM.generate(type,{precision,maxCm:10}),c=d.challenge,m=c.measurement;
+        assert(m.edges.every(e=>Math.abs(Math.hypot(m.points[e.i][0]-m.points[e.j][0],m.points[e.i][1]-m.points[e.j][1])/4-e.mm)<1e-7),'Measurement coordinates match lengths');
+        const expected=type==='measure-compare'?Math.abs(m.edges[0].mm-m.edges[1].mm):m.target.reduce((sum,j)=>sum+m.edges[j].mm,0);
+        assert(c.answer===String(expected/10)+' cm','Measurement answer agrees with geometric data: '+type);
+      }
+      const d=MM.generate(type,{precision:'tenth',maxCm:10}),card=MM.render(d,false);
+      assert(card.querySelector('[data-me-calibration="50"]')&&!card.querySelector('[data-geometry-instrument]'),'Paper measurement task provides calibration without a solved ruler');
+      assert(!card.textContent.includes('Answer: '+d.challenge.answer),'Paper measurement task hides the answer');
+      const item=PP.record('measurement','challenge',d),pages=PP.pages([item],{teacher:false});
+      const pg=pages[0],outer=pg.querySelector('[data-pub-item]'),inner=outer.querySelector('svg'),cal=inner.querySelector('[data-me-calibration]');
+      const physical=Number(pg.getAttribute('data-gd-mm-per-unit')),scale=Number(outer.getAttribute('width'))/1120,innerScale=Number(inner.getAttribute('width'))/560;
+      assert(Math.abs((Number(cal.getAttribute('x2'))-Number(cal.getAttribute('x1')))*physical*scale*innerScale-50)<.01,'A4 worksheet calibration is physically 50 mm');
+    }
+    document.querySelector('[data-me-workflow="challenge"]').click();
+    document.querySelector('[data-me-challenge-cat="measure"]').click();
+    document.querySelector('[data-me-challenge-type="measure-side"]').click();
+    document.getElementById('me-generate').click();
+    const ms=document.querySelector('[data-me-measure-diagram]'),vertices=[...ms.querySelectorAll('[data-me-measure-point]')];
+    assert(vertices.length===4&&!ms.querySelector('[data-geometry-instrument]'),'Measuring starts with a shape and no aligned ruler');
+    for(const p of vertices.slice(0,2)){const v=new DOMPoint(Number(p.getAttribute('cx')),Number(p.getAttribute('cy'))).matrixTransform(ms.getScreenCTM());pointer(ms,'pointerdown',v.x,v.y,91);pointer(ms,'pointerup',v.x,v.y,91)}
+    assert(ms.querySelector('[data-geometry-instrument="ruler"]'),'Two snapped taps align the shared graduated ruler');
+    document.querySelector('[data-me-reset-ruler]').click();
+    assert(!ms.querySelector('[data-geometry-instrument]'),'Ruler reset removes the instrument without changing the task');
+
   }
 
   function testAbacus(){
