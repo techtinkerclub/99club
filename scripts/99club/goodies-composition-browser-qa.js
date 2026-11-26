@@ -1033,6 +1033,25 @@ async function run(){
     assert(!doc.querySelector('[data-gd-pupil-check]').disabled,'Completed triangle enables Check');
     tray.querySelector('[data-ag-tool="undo"]').click();await tick();
     assert(!M.labCheck(cap().lab,labTask).ready,'Illustrated Undo removes the last segment');
+    tray.querySelector('[data-ag-tool="help"]').click();await tick();
+    assert(!doc.querySelector('.gd-ag-lab-guide').hidden&&!doc.querySelector('.gd-ag-guide-example'),'Challenge help provides technique without worked answers');
+    for(const type of ['build-sss','build-equilateral','build-right','build-rectangle','build-square']){
+      doc.querySelector('[data-ag-challenge-mode="'+type+'"]').click();await tick();
+      assert(cap().task.type===type&&doc.querySelector('.gd-ag-lab-tools'),'New construction family mounts interactive lab: '+type);
+      const pubDraft=P.createDocument();pubDraft.addCurrent(id,cap());const item=pubDraft.list()[0];
+      assert(P.renderItem(item,false).textContent.includes('Draw AB')||P.renderItem(item,false).textContent.includes('draw AB'),'Printed construction asks pupils to draw full-size baseline');
+      assert(P.answerGraphic(item).querySelectorAll('line').length>2,'New construction has graphical key: '+type);
+    }
+    doc.querySelector('[data-ag-workflow="build"]').click();await tick();
+    const mode=doc.getElementById('ag-mode');mode.value='construct';mode.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
+    const freeSvg=doc.querySelector('.gd-ag-lab-canvas');
+    assert(freeSvg&&freeSvg.getAttribute('viewBox')==='0 0 1000 640','Free construction has expanded blank canvas');
+    assert(cap().demo.labDrawing.points.length===0,'Free canvas has no compulsory baseline');
+    doc.querySelector('[data-ag-tool="help"]').click();await tick();
+    assert(doc.querySelector('.gd-ag-guide-example svg'),'Free mode provides worked instrument demonstration');
+    const next=[...doc.querySelectorAll('.gd-ag-guide-example button')].find(b=>b.textContent==='Next step');next.click();await tick();
+    assert(doc.querySelector('.gd-ag-guide-example').textContent.includes('Step 2 / 3')&&cap().demo.labDrawing.points.length===0,'Demo advances without altering free drawing');
+
 
     api.remove(fixture.record.id);
   }
