@@ -2341,3 +2341,21 @@ html:not(.gd-embed-page) #tt99-goodies-root #gd-controls .gd-mc-five{min-height:
   margin:0!important;padding:0 9px!important;font-size:1rem!important;
   line-height:normal!important;align-self:center;
 }
+
+/* Construction Lab: illustrated instrument tray, secondary actions and assistance. */
+#tt99-goodies-root .gd-ag-lab-toolbar{display:flex;flex-direction:column;gap:5px;margin:0 0 8px;padding:6px 8px;max-width:100%;box-sizing:border-box;background:#f8fbfa;border:1px solid #d1e1dd;border-radius:10px}
+#tt99-goodies-root .gd-ag-lab-tools,#tt99-goodies-root .gd-ag-lab-helpers,#tt99-goodies-root .gd-ag-lab-actions,#tt99-goodies-root .gd-ag-lab-options{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:5px;min-width:0}
+#tt99-goodies-root .gd-ag-lab-helpers{border-top:1px solid #dce8e4;padding-top:5px;column-gap:12px}
+#tt99-goodies-root .gd-ag-lab-toolbar .gd-ag-lab-button{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:44px!important;margin:0!important;padding:4px 8px!important;font:600 12px/1.15 Arial,sans-serif!important;white-space:nowrap;border-radius:7px;box-sizing:border-box}
+#tt99-goodies-root .gd-ag-lab-tools .gd-ag-lab-button{flex-direction:column;gap:3px;min-width:62px;min-height:56px!important;padding:5px 7px!important}
+#tt99-goodies-root .gd-ag-lab-button svg,#tt99-goodies-root .gd-ag-lab-option svg{flex:none;display:block;width:23px!important;height:23px!important;max-width:none!important;max-height:none!important;margin:0!important;pointer-events:none}
+#tt99-goodies-root .gd-ag-lab-tools .gd-ag-lab-button svg{width:26px!important;height:26px!important}
+#tt99-goodies-root .gd-ag-lab-actions .gd-ag-lab-button svg,#tt99-goodies-root .gd-ag-lab-option svg{width:17px!important;height:17px!important}
+#tt99-goodies-root .gd-ag-lab-button[aria-pressed="true"]{background:#16796e!important;color:white!important;border-color:#16796e!important;box-shadow:inset 0 -2px 0 #105e55}
+#tt99-goodies-root .gd-ag-lab-button[hidden]{display:none!important}
+#tt99-goodies-root .gd-ag-lab-button:disabled{opacity:.45;cursor:default}
+#tt99-goodies-root .gd-ag-lab-option{display:inline-flex;align-items:center;justify-content:center;gap:4px;min-height:36px;box-sizing:border-box;margin:0!important;padding:4px 7px!important;font:500 12px/1.2 Arial,sans-serif!important;color:#48655e;cursor:pointer;border:1px solid #d6e3df;border-radius:7px;background:white}
+#tt99-goodies-root .gd-ag-lab-option:has(input:checked){background:#e5f2ed;border-color:#afcec3;color:#175e50}
+#tt99-goodies-root .gd-ag-lab-option input{accent-color:#16796e;width:14px;height:14px;margin:0!important;flex:none}
+#tt99-goodies-root .gd-ag-lab-option:focus-within,#tt99-goodies-root .gd-ag-lab-button:focus-visible{outline:2px solid #16796e;outline-offset:2px}
+@media(max-width:520px){#tt99-goodies-root .gd-ag-lab-toolbar{padding:5px;gap:4px}#tt99-goodies-root .gd-ag-lab-tools .gd-ag-lab-button{min-width:54px;padding:4px 5px!important;font-size:11px!important}#tt99-goodies-root .gd-ag-lab-helpers{column-gap:6px}}
