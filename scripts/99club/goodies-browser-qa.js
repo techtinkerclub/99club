@@ -24,6 +24,7 @@ if(mode==='prepare'){
 <script src="/assets/99club/goodies-interaction.js"></script>
 <script src="/assets/99club/goodies-challenge.js"></script>
 <script src="/assets/99club/goodies-export.js"></script>
+<script src="/assets/99club/goodies-publishing.js"></script>
 <script src="/assets/99club/goodies-tools-a.js"></script>
 <script src="/assets/99club/goodies-abacus.js"></script>
 <script src="/assets/99club/goodies-number-line-v6.js"></script>
