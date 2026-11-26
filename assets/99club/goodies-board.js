@@ -460,7 +460,7 @@ function renderFloatingControls(obj){
       const all=native.querySelector('[data-gd-native-random="all"]');
       if(all)all.textContent='Random challenge';
       const types=[...clone.querySelectorAll('[data-'+native.dataset.gdNativePrefix+'-challenge-mode]')];
-      if(types.length&&obj.toolId!=='maths-canvas'){
+      if(types.length&&obj.toolId!=='maths-canvas'&&!native.classList.contains('gd-ag-challenge-catalogue')){
         const section=clone.ownerDocument.createElement('div');section.className='gd-panel-native-types';
         const heading=clone.ownerDocument.createElement('strong');heading.textContent='Specific question';section.appendChild(heading);
         const groups=JSON.parse(native.dataset.gdNativeGroups||'[]');
@@ -485,6 +485,16 @@ function renderFloatingControls(obj){
       const back=document.createElement('button');back.type='button';back.className='gd-panel-back gd-btn';back.dataset.boardLauncherBack='1';back.textContent='‹ Quick challenge';
       clone.prepend(back);
     }
+  }
+  // Geometry's native catalogue is already grouped. Preserve local expansion
+  // without moving buttons out of their original category or losing proxy identity.
+  if(!compact&&obj.toolId==='angles'){
+    const previous=floatingControlsBody.firstElementChild;
+    if(previous?.dataset.agProxyObject===String(obj.id)){
+      const open=new Set([...previous.querySelectorAll('details[data-ag-section][open]')].map(el=>el.dataset.agSection));
+      clone.querySelectorAll('details[data-ag-section]').forEach(el=>el.open=open.has(el.dataset.agSection));
+    }
+    clone.dataset.agProxyObject=String(obj.id);
   }
   // Preserve locally opened sections on proxy refresh; controls still dispatch to the original.
   if(!compact&&obj.toolId==='maths-canvas'&&floatingControlsBody.firstElementChild?.dataset.mcProxyObject===String(obj.id)){
