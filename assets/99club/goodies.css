@@ -2380,3 +2380,10 @@ html:not(.gd-embed-page) #tt99-goodies-root #gd-controls .gd-mc-five{min-height:
 #tt99-goodies-root .gd-ruler-marker.is-interactive{margin-left:0}
 #tt99-goodies-root .gd-ruler-marker.is-interactive:after{height:100%}
 #tt99-goodies-root .gd-ruler-card-head{margin-bottom:5px}
+
+/* Optional shape investigation instruments: compact and touch-friendly. */
+#tt99-goodies-root .gd-ag-inspect-tools{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px;padding:5px 8px;margin:0 0 6px;border:1px solid #d1e1dd;background:#f8fbfa;border-radius:9px}
+#tt99-goodies-root .gd-ag-inspect-btn{display:inline-flex;gap:5px;align-items:center;justify-content:center;min-height:44px!important;margin:0!important;padding:5px 9px!important;font:600 13px/1.2 Arial,sans-serif!important}
+#tt99-goodies-root .gd-ag-inspect-btn svg{display:block;width:22px!important;height:22px!important;margin:0!important;flex:none;pointer-events:none}
+#tt99-goodies-root .gd-ag-inspect-btn[aria-pressed="true"]{background:#16796e!important;color:white!important;border-color:#16796e!important}
+#tt99-goodies-root .gd-ag-inspect-message{flex:1 1 220px;text-align:center;color:#355c54;font:500 13px/1.4 Arial,sans-serif}
