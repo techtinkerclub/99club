@@ -21,7 +21,7 @@ function layout(model){
  const {a,b,method,width}=model,A=operandDigits(model,'A'),B=operandDigits(model,'B'),division=method.endsWith('division'),mult=method.endsWith('multiplication'),long=method.startsWith('long-'),cell=82,top=42;
  const cols=division?(model.inputDigits?.length||A.length):mult?A.length+B.length:width+(method==='addition'?1:0);
  const left=division?164:82,right=left+cols*cell;
- const rows=division?(long?2+2*cols+1:3):mult&&long?7:4;
+ const rows=division?(long?2+2*(cols-divisionFirst(model))+1:3):mult&&long?7:4;
  const bottom=top+rows*cell,W=right+(division&&!decimalDivision(model)?126:24),H=bottom+(model.resultMode==='rounded'?76:34);
  const x=i=>division?left+(i+.5)*cell:right-(i+.5)*cell,y=row=>top+(row+.5)*cell;
  return {cols,cell,top,left,right,bottom,rows,W,H,x,y,baseline:(row,size=46)=>y(row)+size*.34};
@@ -66,7 +66,7 @@ function multiplicationDiagram(model,{step=0,grid=true,labels=true,work=false}={
 
    if(sum?.result)(seen.length===steps.length&&p?model.result:sum.result).forEach((v,i)=>{if(v!=null)text(x(i),baseline(6),v,46,{fill:'#23675d','data-wm-result':i})});
  }
- if(p){if(!long&&seen.length===steps.length&&model.result.length>(partials[0]?.length||0))for(let i=partials[0]?.length||0;i<model.result.length;i++)text(x(i),baseline(3),model.result[i],46,{fill:'#23675d','data-wm-result':i});text(dot,baseline(long?6:3),'.',40,{'data-wm-decimal':'answer'});text(W/2,H-10,'Multiply digits; place the decimal point in the product.',20,{fill:'#526970'})}
+ if(p){if(!long&&seen.length===steps.length&&model.result.length>(partials[0]?.length||0))for(let i=partials[0]?.length||0;i<model.result.length;i++)text(x(i),baseline(3),model.result[i],46,{fill:'#23675d','data-wm-result':i});text(dot,baseline(long?6:3),'.',40,{'data-wm-decimal':'answer'});}
  return svg;
 }
 function divisionDiagram(model,{step=0,grid=true,labels=true,work=false}={}){
@@ -110,7 +110,7 @@ function divisionDiagram(model,{step=0,grid=true,labels=true,work=false}={}){
    }
  }
  if(!decimalDivision(model)){text(W-85,baseline(0,28),'r',28,{fill:'#526970'});add('rect',{x:W-65,y:L.top+12,width:54,height:58,rx:4,fill:'none',stroke:'#a8bdb9','stroke-width':1.5});if(complete)text(W-38,baseline(0,30),model.remainder,30,{fill:'#23675d','data-wm-final-remainder':'1'})}else if(complete&&model.resultMode==='rounded')text(W/2,H-39,'Rounded to '+model.resultPrecision+' d.p.: '+model.answerText,27,{fill:'#23675d','data-wm-rounded-answer':'1'});
- if(work)text(W/2,H-19,long?'Show each subtraction and bring down the next digit.':'Write the quotient and carried remainders.',20,{fill:'#526970'});
+ 
  return svg;
 }
 function diagram(model,{step=0,grid=true,labels=true,work=false}={}){
@@ -145,13 +145,13 @@ function diagram(model,{step=0,grid=true,labels=true,work=false}={}){
  if(method==='addition'&&current?.carries)current.carries.forEach((v,i)=>{if(v)text(x(i),baseline(0,32),v,32,{fill:'#915638','data-wm-carry':i})});
  if(current?.result)(shown===steps.length&&p?model.result:current.result).forEach((v,i)=>{if(v!==undefined&&v!==null)text(x(i),baseline(3),v,46,{fill:'#23675d','data-wm-result':i})});
  if(p)for(const row of [1,2,3])text(dot,baseline(row),'.',40,{'data-wm-decimal':row===3?'answer':'operand'});
- if(work)text(W/2,H-10,'Show exchanges above the digits.',21,{fill:'#526970'});
+ 
  return svg;
 }
 function printDiagram(model,options){const svg=diagram(model,options);svg.querySelectorAll('text[font-size]').forEach(n=>{if(Number(n.getAttribute('font-size'))<28)n.setAttribute('font-size','28')});return svg}
-function paper(model,teacher){return G.exportTools.composeWorksheetCardSvg(printDiagram(model,{step:teacher?model.steps.length:0,work:!teacher}),{title:LABEL[model.method],prompt:'Calculate '+operandText(model,'a')+' '+(model.method==='addition'?'+':model.method==='subtraction'?'−':model.method.endsWith('division')?'÷':'×')+' '+operandText(model,'b')+' using the '+((model.method.endsWith('multiplication')||model.method.endsWith('division'))?LABEL[model.method].toLowerCase():'column method')+'. Show your working.'+(model.resultMode==='rounded'?' Round to '+model.resultPrecision+' decimal places.':''),responseMode:'none',paperStyle:'plain',answer:model.answerText,showAnswer:teacher,diagramMaxHeight:600,printDiagramScale:0.65})}
-function generationTypes(method,settings={}){if(method==='all')return M.METHODS.map(id=>({id,label:LABEL[id]}));if(['multiplication','division'].includes(method))return M.available(settings).filter(v=>v.endsWith(method)).map(id=>({id,label:LABEL[id]}));return EXCHANGES.filter(([id])=>id!=='across-zero'||method==='subtraction').map(([id,label])=>({id,label}))}
-function generate(method,settings,type,rng=Math.random){if(method==='all'){const chosen=type==='all'?M.METHODS[Math.floor(rng()*M.METHODS.length)]:type;return {...M.generate(chosen,settings,rng),type:chosen}}if(['multiplication','division'].includes(method)){const ids=generationTypes(method,settings).map(t=>t.id),choice=type==='all'?ids[Math.floor(rng()*ids.length)]:type;return {...M.generate(choice,settings,rng),type:choice}}return {...M.generate(method,{...settings,exchange:type==='all'?'any':type},rng),type:type==='all'?'any':type}}
+function paper(model,teacher){return G.exportTools.composeWorksheetCardSvg(printDiagram(model,{step:teacher?model.steps.length:0,work:!teacher}),{title:LABEL[model.method],prompt:'Calculate '+operandText(model,'a')+' '+(model.method==='addition'?'+':model.method==='subtraction'?'−':model.method.endsWith('division')?'÷':'×')+' '+operandText(model,'b')+' using the '+((model.method.endsWith('multiplication')||model.method.endsWith('division'))?LABEL[model.method].toLowerCase():'column method')+'. Show your working.'+(model.resultMode==='rounded'?' Round to '+model.resultPrecision+' decimal places.':decimalDivision(model)?' Give an exact decimal answer.':''),responseMode:'none',paperStyle:'plain',answer:model.answerText,showAnswer:teacher,diagramMaxHeight:600,printDiagramScale:0.65})}
+function generationTypes(method,settings={}){if(method==='all')return M.METHODS.filter(id=>settings.exchange!=='across-zero'||id!=='addition').map(id=>({id,label:LABEL[id]}));if(['multiplication','division'].includes(method))return M.available(settings).filter(v=>v.endsWith(method)).map(id=>({id,label:LABEL[id]}));return EXCHANGES.filter(([id])=>id!=='across-zero'||method==='subtraction').map(([id,label])=>({id,label}))}
+function generate(method,settings,type,rng=Math.random){if(method==='all'){const candidates=generationTypes(method,settings).map(t=>t.id),chosen=type==='all'?candidates[Math.floor(rng()*candidates.length)]:type;return {...M.generate(chosen,{...settings,exchange:chosen==='addition'&&settings.exchange==='across-zero'?'any':settings.exchange},rng),type:chosen}}if(['multiplication','division'].includes(method)){const ids=generationTypes(method,settings).map(t=>t.id),choice=type==='all'?ids[Math.floor(rng()*ids.length)]:type;return {...M.generate(choice,settings,rng),type:choice}}return {...M.generate(method,{...settings,exchange:type==='all'?'any':type},rng),type:type==='all'?'any':type}}
 for(const method of Object.keys(IDS)){
  const id=IDS[method];
  if(G.publishing)G.publishing.register(id,{
@@ -248,7 +248,7 @@ G.columnMethodTool=function(method){
  const families=()=>generationTypes(method,settings);
  function controls(){
   const tabs='<div class="gd-row gd-wm-tabs" role="tablist" aria-label="Written calculation workflow">'+[['build','Explore'],['challenge','Challenge'],['export','Export']].map(([v,l])=>'<button type="button" class="gd-btn'+(workflow===v?' gd-btn--primary':'')+'" data-wm-workflow="'+v+'">'+l+'</button>').join('')+'</div>';
-  if(workflow==='export')return tabs+'<div class="gd-row">'+btn('Copy image','wm-copy')+btn('PNG','wm-png')+btn('SVG','wm-svg')+btn('Print / PDF','wm-print')+'</div>'+(task?'<div class="gd-row">'+btn('Print answer key','wm-key-print')+'</div>':'')+'<p class="gd-help" id="wm-status">'+esc(status)+'</p>';
+  if(workflow==='export')return tabs+'<div class="gd-row">'+btn('Copy image','wm-copy')+btn('PNG','wm-png')+btn('SVG','wm-svg')+btn('Print / PDF','wm-print')+'</div>'+(task?'<div class="gd-row">'+btn('Copy answer key','wm-key-copy')+btn('Print answer key','wm-key-print')+'</div>':'')+'<p class="gd-help" id="wm-status">'+esc(status)+'</p>';
   if(workflow==='challenge')return tabs+field('Year suggestions',select('year',[[3,'Year 3'],[4,'Year 4'],[5,'Year 5'],[6,'Year 6']],settings.year))+field('Practice',select('practiceMode',[['working','Complete working'],['answer','Final answer only']],practiceMode))+(unified?field('Generation settings for',select('method',modes.map(v=>[v,LABEL[v]]),model.method)):'')+numberSettings()+CK.nativeRandomHtml('wm',unified?[{id:'column',label:'Addition & subtraction',ids:['addition','subtraction']},{id:'multiply',label:'Multiplication',ids:['short-multiplication','long-multiplication']},{id:'divide',label:'Division',ids:['short-division','long-division']}]:[{id:'practice',label:'Practice',ids:families().map(t=>t.id)}])+families().map(t=>'<button type="button" class="gd-btn" data-wm-challenge-mode="'+t.id+'">'+esc(t.label)+'</button>').join('')+'<p class="gd-help">Use the on-screen keypad. Rounded division uses final-answer practice.</p><p class="gd-help" id="wm-status" role="status">'+esc(status)+'</p>';
   return tabs+(multi?field('Method',select('method',modes.map(v=>[v,LABEL[v]]),model.method)):'')+field(isDivide()?'Dividend':'First number','<input class="gd-input" type="text" inputmode="none" data-gd-keypad="number" id="wm-a" value="'+esc(operandText(model,'a'))+'">')+field(isDivide()?'Divisor':'Second number','<input class="gd-input" type="text" inputmode="none" data-gd-keypad="number" id="wm-b" value="'+esc(operandText(model,'b'))+'">')+'<div class="gd-row">'+btn('Apply numbers','wm-apply')+btn('New example','wm-new')+'</div>'+field('Year suggestions',select('year',[[3,'Year 3'],[4,'Year 4'],[5,'Year 5'],[6,'Year 6']],settings.year))+numberSettings()+'<label class="gd-wm-toggle"><input type="checkbox" data-wm-display="grid"'+(grid?' checked':'')+'> Place-value grid</label><label class="gd-wm-toggle"><input type="checkbox" data-wm-display="labels"'+(labels?' checked':'')+'> Column headings</label><p class="gd-help" id="wm-status" role="status">'+esc(status)+'</p>';
  }
@@ -278,7 +278,7 @@ G.columnMethodTool=function(method){
   qa('[data-wm-step]',stage).forEach(el=>el.onclick=()=>{shown=el.dataset.wmStep==='reset'?0:el.dataset.wmStep==='previous'?Math.max(0,shown-1):el.dataset.wmStep==='next'?Math.min(max,shown+1):max;renderStage()});
  }
  function message(s){status=s;const el=q('#wm-status');if(el)el.textContent=s}
- async function exportAction(kind){try{const teacher=kind.startsWith('key-');if(teacher&&!task)return;const svg=task?paper(model,teacher):diagram(model,{step:shown,grid,labels});if(kind==='copy')await X.copyPng(svg);else if(kind==='png')await X.downloadPng(svg,id,2);else if(kind==='svg')X.downloadSvg(svg,id);else X.printSvg(svg,{title:'',landscape:false});message('Export ready.')}catch(e){message(e.message||'Export failed.')}}
+ async function exportAction(kind){try{const teacher=kind.startsWith('key-');if(teacher&&!task)return;const svg=task?paper(model,teacher):diagram(model,{step:shown,grid,labels});if(kind==='copy'||kind==='key-copy')await X.copyPng(svg);else if(kind==='png')await X.downloadPng(svg,id,2);else if(kind==='svg')X.downloadSvg(svg,id);else X.printSvg(svg,{title:'',landscape:false});message('Export ready.')}catch(e){message(e.message||'Export failed.')}}
  function renderControls(){
   const root=q('#gd-controls');root.innerHTML=controls();
   qa('[data-wm-workflow]',root).forEach(el=>el.onclick=()=>{workflow=el.dataset.wmWorkflow;if(workflow==='build'&&task){exit();return}renderControls()});
@@ -287,7 +287,7 @@ G.columnMethodTool=function(method){
   qa('[data-wm-challenge-mode]',root).forEach(el=>el.onclick=()=>launch(el.dataset.wmChallengeMode));
   const apply=q('#wm-apply',root);if(apply)apply.onclick=()=>{try{const a=q('#wm-a').value,b=q('#wm-b').value;if(a===''||b==='')throw Error('Enter both numbers.');model=M.calculate(model.method,a,b,{...settings,resultMode:isDivide()&&a.includes('.')&&settings.resultMode==='remainder'?'decimal':settings.resultMode});shown=0;status='';renderControls();renderStage()}catch(e){message(e.message)}};
   const next=q('#wm-new',root);if(next)next.onclick=()=>{try{model=multi?generate(method,settings,model.method):M.generate(method,settings);shown=0;status='';renderControls();renderStage()}catch(e){message(e.message)}};
-  for(const kind of ['copy','png','svg','print',...(task?['key-print']:[])]){let el=q('#wm-'+kind,root);if(!el){el=document.createElement('button');el.type='button';el.hidden=true;root.appendChild(el)}el.setAttribute('data-gd-direct-export',kind);el.onclick=()=>exportAction(kind)}
+  for(const kind of ['copy','png','svg','print',...(task?['key-print','key-copy']:[])]){let el=q('#wm-'+kind,root);if(!el){el=document.createElement('button');el.type='button';el.hidden=true;root.appendChild(el)}el.setAttribute('data-gd-direct-export',kind);el.onclick=()=>exportAction(kind)}
  }
  setPanels('','');renderControls();renderStage();
  G.lessonState.register(id,()=>({...modelSnapshot(),shown,grid,labels,workflow,settings,task,setup,practiceMode,entries:{...entries},pupil:CK.capturePupil(task)}),saved=>{model=M.calculate(multi?saved.method:method,saved.aText??saved.a,saved.bText??saved.b,{...saved.settings,...saved.calculationOptions});shown=Math.max(0,Math.min(model.steps.length,Number(saved.shown)||0));grid=saved.grid!==false;labels=saved.labels!==false;workflow=['build','challenge','export'].includes(saved.workflow)?saved.workflow:'build';settings=M.settings(saved.settings);task=saved.task?CK.normalise({...saved.task,answer:answerLabel(model)}):null;setup=saved.setup||null;practiceMode=saved.practiceMode==='answer'?'answer':'working';entries=Object.fromEntries(Object.entries(saved.entries||{}).filter(([id,v])=>practiceCells(model).some(s=>s.id===id)&&/^\d{0,2}$/.test(String(v))));CK.restorePupil(task,saved.pupil);renderControls();renderStage()});
