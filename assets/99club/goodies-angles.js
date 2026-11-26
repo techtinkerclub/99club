@@ -70,42 +70,49 @@ function diagram(d,teacher=false,options={}){
  const labelArc=(x,y,r,start,a,label)=>{if(a===90){const p=polar(x,y,r*.75,start),v=polar(x,y,r*.75,start+90),u=[p[0]+v[0]-x,p[1]+v[1]-y];path('M '+p.join(' ')+' L '+u.join(' ')+' L '+v.join(' '))}else arc(x,y,r,start,a);if(label!=null){const p=polar(x,y,r+30,start+a/2);text(p[0],p[1]+8,label,27)}};
  const ray=(x,y,r,a,color=ink)=>line([x,y],polar(x,y,r,a),color);
  const arrow=(x,y,r,a,color=ink)=>{const p=polar(x,y,r,a),l=polar(p[0],p[1],16,a+150),rr=polar(p[0],p[1],16,a-150);line([x,y],p,color,5);line(p,l,color,5);line(p,rr,color,5)};
- add('rect',{width:W,height:H,fill:'#fff'});
+ const background=add('rect',{width:W,height:H,fill:'#fff'});
+ // Crop to the mathematical content, not a fixed landscape canvas. Keep the same coordinates for pointer mapping and paper export.
+ function frame(x,y,w,h){svg.setAttribute('viewBox',[x,y,w,h].join(' '));Object.entries({x,y,width:w,height:h}).forEach(([k,v])=>background.setAttribute(k,v));return svg}
  const type=d.type,explore=type==='diagram',a=d.angle??60,rot=d.rotation??0,mode=d.mode||'angle';
  function protractor(x,y,r,start,full=false){
    // Baseline always has zero at its ray. Inner scale runs in the opposite direction.
    const range=full?360:180,pts=Array.from({length:range/5+1},(_,i)=>polar(x,y,r,start+i*5));
    const shape='M '+x+' '+y+' L '+pts.map(p=>p.join(' ')).join(' L ')+' Z';
    path(shape,{fill:'#dceee9','fill-opacity':.48,stroke:'#82a69e','stroke-width':1.5});
-   for(let i=0;i<=range;i++){if(full&&i===360)break;const p=polar(x,y,r,start+i),p2=polar(x,y,r-(i%10===0?14:i%5===0?9:4),start+i);line(p,p2,'#668d86',i%10===0?1.5:.7);if(i%10===0){const t=polar(x,y,r-27,start+i);text(t[0],t[1]+4,String(i),full?14:16,{fill:'#285f57'});if(!full){const u=polar(x,y,r-48,start+i);text(u[0],u[1]+4,String(180-i),14,{fill:'#99672c'})}}}
+   for(let i=0;i<=range;i++){if(full&&i===360)break;const p=polar(x,y,r,start+i),p2=polar(x,y,r-(i%10===0?19:i%5===0?12:6),start+i);line(p,p2,'#668d86',i%10===0?2.1:1.05);if(i%10===0){const t=polar(x,y,r-35,start+i);text(t[0],t[1]+6,String(i),19,{fill:'#285f57','font-weight':'600'});if(!full){const u=polar(x,y,r-62,start+i);text(u[0],u[1]+5,String(180-i),17,{fill:'#80551d','font-weight':'600'})}}}
    line(polar(x,y,r,start),polar(x,y,r,start+180),'#668d86',1.5);circle([x,y],4,'#668d86');
  }
  function single(x,y,r,a,start,label,scale=false,blank=false,full=false){if(scale)protractor(x,y,r,start,full);ray(x,y,r+5,start);if(!blank){ray(x,y,r+5,start+a,teal);labelArc(x,y,Math.min(r*.27,48),start,a,label)}circle([x,y],4,ink)}
  if(mode==='turn'){
    const x=400,y=225,r=136,sign=d.clockwise?-1:1,start=90,end=start+sign*a;add('circle',{cx:x,cy:y,r:r+28,fill:'#f8fbfa',stroke:'#d4e2de','stroke-width':2});for(let i=0;i<4;i++)line(polar(x,y,r+18,90+i*90),polar(x,y,r+28,90+i*90),'#a3b8b3',3);
-   arrow(x,y,r,start,'#99a9ab');arrow(x,y,r,end,teal);const rr=92;if(a===360)add('circle',{cx:x,cy:y,r:rr,fill:'none',stroke:orange,'stroke-width':4});else if(d.clockwise)arc(x,y,rr,end,a,{stroke:orange,'stroke-width':4});else arc(x,y,rr,start,a,{stroke:orange,'stroke-width':4});const tip=polar(x,y,rr,end),tangent=end+(d.clockwise?-90:90);line(tip,polar(tip[0],tip[1],14,tangent+155),orange,4);line(tip,polar(tip[0],tip[1],14,tangent-155),orange,4);text(400,420,teacher||explore?(d.clockwise?'Clockwise':'Anticlockwise')+' · '+a+'°':'Start: grey arrow   •   Finish: green arrow',27);return svg
+   arrow(x,y,r,start,'#99a9ab');arrow(x,y,r,end,teal);const rr=92;if(a===360)add('circle',{cx:x,cy:y,r:rr,fill:'none',stroke:orange,'stroke-width':4});else if(d.clockwise)arc(x,y,rr,end,a,{stroke:orange,'stroke-width':4});else arc(x,y,rr,start,a,{stroke:orange,'stroke-width':4});const tip=polar(x,y,rr,end),tangent=end+(d.clockwise?-90:90);line(tip,polar(tip[0],tip[1],14,tangent+155),orange,4);line(tip,polar(tip[0],tip[1],14,tangent-155),orange,4);text(400,420,teacher||explore?(d.clockwise?'Clockwise':'Anticlockwise')+' · '+a+'°':'Start: grey arrow   •   Finish: green arrow',24);return frame(144,43,512,397)
  }
  if(mode==='lines'){
-   if(type==='line-orientation'){const x=400,y=220;line(polar(x,y,155,a),polar(x,y,155,a+180),teal,6);return svg}
+   if(type==='line-orientation'){const x=400,y=220;line(polar(x,y,155,a),polar(x,y,155,a+180),teal,6);return frame(208,28,384,384)}
    const r=d.relation||(a===0?'Parallel':a===90?'Perpendicular':'Neither'),x=400,y=220;const start=rot;
    if(r==='Parallel'){for(const off of [-65,65]){const c=polar(x,y,off,start+90);line(polar(...c,180,start),polar(...c,180,start+180),teal,5)}}
    else{line(polar(x,y,180,start),polar(x,y,180,start+180));line(polar(x,y,155,start+a),polar(x,y,155,start+a+180),teal);if(r==='Perpendicular'&&(teacher||explore))labelArc(x,y,35,start,90,'90°')}
-   return svg
+   return frame(180,20,440,400)
  }
- if(['compare','order','compare-reflex'].includes(type)){const n=d.angles.length;d.angles.forEach((v,i)=>{const x=(i+.5)*W/n,y=210,r=n===3?83:130;single(x,y,r,v,(rot+i*55)%360,teacher?v+'°':null);text(x,395,['A','B','C'][i],34)});return svg}
+ if(['compare','order','compare-reflex'].includes(type)){const n=d.angles.length;d.angles.forEach((v,i)=>{const x=(i+.5)*W/n,y=200,r=n===3?105:162;single(x,y,r,v,(rot+i*55)%360,teacher?v+'°':null);text(x,395,['A','B','C'][i],34)});return svg}
  if(mode==='angle'){
    const draw=['draw','draw-reflex'].includes(type),blank=draw&&!teacher&&options.attempt==null,shown=draw&&!teacher&&options.attempt!=null?options.attempt:a;
    const full=shown>180||['reflex','draw-reflex'].includes(type),scale=options.scale??d.scale??['measure','reflex'].includes(type);
-   const r=full?158:154,start=rot,x=400,y=220;single(x,y,r,shown,start,teacher||explore?shown+'°':null,scale,blank,full);
-   if(draw&&!teacher)text(400,408,'Target: '+a+'°',30);
-   if(options.interactive){const p=polar(x,y,r+5,start+shown);circle(p,13,'#d58c42');const hit=add('circle',{cx:x,cy:y,r:185,fill:'transparent','data-ag-angle-target':'1',style:'cursor:crosshair;touch-action:none'});}
+   const r=238,start=rot,x=400,y=220;
+   // A rotated semicircle occupies a different bounding rectangle. Include the full arc, rays, degree labels and touch handle, with generous edge clearance.
+   const sweep=full?360:180,extent=Array.from({length:sweep+1},(_,i)=>polar(x,y,r+9,start+i));extent.push([x,y]);
+   const pad=26,minX=Math.min(...extent.map(p=>p[0]))-pad,maxX=Math.max(...extent.map(p=>p[0]))+pad,minY=Math.min(...extent.map(p=>p[1]))-pad,maxY=Math.max(...extent.map(p=>p[1]))+pad;
+   const targetH=draw&&!teacher?42:0;frame(minX,minY,maxX-minX,maxY-minY+targetH);
+   single(x,y,r,shown,start,teacher||explore?shown+'°':null,scale,blank,full);
+   if(draw&&!teacher)text((minX+maxX)/2,maxY+26,'Target: '+a+'°',25);
+   if(options.interactive){const p=polar(x,y,r+5,start+shown);circle(p,10,'#d58c42');add('circle',{cx:x,cy:y,r:r+20,fill:'transparent','data-ag-angle-target':'1',style:'cursor:crosshair;touch-action:none'});}
    return svg
  }
  if(mode==='facts'){
    if(type==='parallel'){const y1=130,y2=310,dx=90/Math.tan(a*D),p=[400+dx,y1],u=[400-dx,y2];line([95,y1],[705,y1]);line([95,y2],[705,y2]);line(polar(...p,90/Math.sin(a*D),a),polar(...u,90/Math.sin(a*D),a+180),teal);const alt=d.relation==='alternate';labelArc(...p,44,alt?180:0,a,a+'°');labelArc(...u,44,0,a,teacher?a+'°':'x');return svg}
    const values=d.angles||[a,180-a],x=400,y=220,r=165;let at=rot;const count=type==='opposite'?4:values.length;
    for(let i=0;i<count;i++){ray(x,y,r,at);const v=values[i],missing=type==='opposite'?i===2:i===count-1;labelArc(x,y,70,at,v,missing&&!teacher&&!explore?'x':type==='opposite'&&i%2===1&&!teacher?null:v+'°');at+=v}
-   if(type==='straight'||explore&&values.reduce((s,v)=>s+v,0)===180)ray(x,y,r,at);circle([x,y],4,ink);return svg
+   if(type==='straight'||explore&&values.reduce((s,v)=>s+v,0)===180)ray(x,y,r,at);circle([x,y],4,ink);return frame(195,20,410,400)
  }
  function polygon(points){add('polygon',{points:points.map(p=>p.join(',')).join(' '),fill:'#e9f4f0',stroke:ink,'stroke-width':4,'stroke-linejoin':'round'});}
  function corner(points,i,label){const p=points[i],prev=points[(i+points.length-1)%points.length],next=points[(i+1)%points.length],dir=v=>mod(Math.atan2(p[1]-v[1],v[0]-p[0])/D);let start=dir(prev),v=mod(dir(next)-start);if(v>180){start=dir(next);v=360-v}labelArc(...p,Math.min(38,Math.hypot(next[0]-p[0],next[1]-p[1])*.22,Math.hypot(prev[0]-p[0],prev[1]-p[1])*.22),start,v,label)}
@@ -173,9 +180,9 @@ G.anglesTool=function(){
  function demoData(){if(demo.mode==='facts'){const f=demo.fact||'straight',a=Math.max(10,Math.min(170,demo.angle));return {...demo,type:f,angles:f==='straight'?[a,180-a]:f==='point'?[a,90,270-a]:[a,180-a,a,180-a]}}if(demo.mode==='lines')return {...demo,angle:demo.relation==='Parallel'?0:demo.relation==='Perpendicular'?90:Math.max(10,Math.min(80,demo.angle))};return demo}
  function stage(){const host=q('#gd-stage'),draw=['draw','draw-reflex'].includes(task?.type),build=task?.type==='shape-build',construct=draw||build,d=task?geometryTask(task):demoData(),teacher=!task||task.revealed;
   const pupil=construct?CK.pupilSpec('model',{hint:draw?'Set the angle, then check.':'Set the angle and side length, then check.',ready:()=>attempt!==null&&(!build||attemptLength!==null),check:()=>Math.abs(attempt-task.angle)<=1&&(!build||attemptLength===task.length)}):task?.choices?CK.pupilSpec('choice',{choices:task.choices,expected:task.answer}):CK.pupilSpec('number');
-  host.innerHTML=(task?CK.bannerHtml(task,{pupil,actions:[{action:'another',label:'Another'},{action:'end',label:'Exit challenge'}]}):'')+'<div class="gd-ag-visual" style="max-width:850px;margin:auto"></div>';
+  host.innerHTML=(task?CK.bannerHtml(task,{pupil,actions:[{action:'another',label:'Another'},{action:'end',label:'Exit challenge'}]}):'')+'<div class="gd-ag-visual" style="width:100%;max-width:920px;margin:auto"></div>';
   const box=q('.gd-ag-visual',host);
-  function drawSvg(){const interactive=!task&&demo.mode==='angle'||draw&&!task.revealed,svg=diagram(d,teacher,{attempt,length:attemptLength,scale:task?['measure','reflex','draw','draw-reflex'].includes(task.type):demo.scale,interactive});svg.style.cssText='width:100%;height:auto;display:block';box.replaceChildren(svg);
+  function drawSvg(){const interactive=!task&&demo.mode==='angle'||draw&&!task.revealed,svg=diagram(d,teacher,{attempt,length:attemptLength,scale:task?['measure','reflex','draw','draw-reflex'].includes(task.type):demo.scale,interactive});svg.style.cssText='width:100%;height:auto;max-height:520px;display:block;margin:auto';box.replaceChildren(svg);
     const target=q('[data-ag-angle-target]',svg);if(target){const move=e=>{const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(svg.getScreenCTM().inverse()),raw=mod(Math.atan2(220-p.y,p.x-400)/D-(d.rotation||0)),v=Math.round(raw);if(draw)setAngle(v);else{demo.angle=v;d.angle=v;const label=q('#ag-value');if(label&&[...label.options].some(o=>+o.value===v))label.value=String(v);drawSvg();}};target.addEventListener('pointerdown',e=>{e.preventDefault();move(e)})}
   }
   function setAngle(v){attempt=Math.max(0,Math.min(task?.type==='draw-reflex'?360:180,v));drawSvg();const el=q('#ag-attempt',host);if(el)el.textContent=attempt+'°';CK.refreshModelPupil(task)}
