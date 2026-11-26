@@ -1277,6 +1277,10 @@ try {
    solution.segments=[];if(model.labCheck(solution,task).ready)throw Error('Incomplete shape accepted: '+type);
    cases++;
  }
+ const pts=[[0,0],[100,0],[100,100],[0,100],[50,50]];
+ if(!model.validRegion(pts,[0,1,4])||model.polygonArea(pts.slice(0,4))!==10000)throw Error('Valid region or area failed');
+ if(model.validRegion(pts,[0,2,1,3])||model.validRegion(pts,[0,4,2])||model.validRegion(pts,[0,1,1])||model.validRegion(pts,[0,1,9]))throw Error('Invalid polygon region accepted');
+ const corner=model.vertexLabel(pts[0],pts[3],pts[1]);if(corner[0]>=0||corner[1]>=0)throw Error('Convex vertex label must sit outside');
  const free=model.labEmpty(true);if(free.points.length||free.given!==false||model.labSnap(free,[100,100]).kind)throw Error('Free construction is not blank');
  ok('construction-lab',cases+' shape constructions plus reflected solutions, circle intersections and disabled snapping');
 }catch(e){fail('construction-lab','Geometry construction lab regression',e.stack||e.message);}
