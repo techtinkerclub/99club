@@ -972,7 +972,7 @@ async function run(){
     const graphic=TT99Goodies.publishing.answerGraphic(straight.list()[0]);
     const marks=[...graphic.querySelectorAll('[data-ag-angle-mark]')],labels=[...graphic.querySelectorAll('[data-ag-angle-label]')];
     assert(marks.length===2&&marks[0].getAttribute('data-ag-radius')!==marks[1].getAttribute('data-ag-radius'),'Adjacent angle arcs have distinct radii');
-    assert(labels.length===2&&labels.every(n=>+n.getAttribute('font-size')===24),'Geometry labels use restrained consistent size');
+    assert(labels.length===2&&labels.every(n=>+n.getAttribute('font-size')===18),'Geometry labels use restrained consistent size');
 
     
     doc.querySelector('[data-ag-workflow="challenge"]').click();await tick();
@@ -1091,6 +1091,22 @@ async function run(){
     assert(doc.querySelector('.gd-ag-visual svg').textContent.includes('Diameter = 2 × radius'),'Circle explorer explains radius-diameter relationship');
     const beforeRadius=cap().demo.radius||5;doc.querySelector('[data-ag-action="radius-up"]').click();await tick();
     assert(cap().demo.radius===beforeRadius+1,'Circle radius adjusts interactively');
+    const circleSvg=()=>doc.querySelector('.gd-ag-visual svg');
+    assert([...circleSvg().querySelectorAll('[data-ag-circle-symbol]')].map(n=>n.textContent).sort().join(',')==='D,r','Circle diagram uses only short mathematical symbols');
+    assert(circleSvg().querySelector('[data-ag-circle-outline]').getAttribute('fill')!=='none','Screen exploration keeps its subtle shape fill');
+    doc.querySelector('[data-ag-action="circle-extension"]').click();await tick();
+    assert(circleSvg().querySelectorAll('[data-ag-circle-formula]').length===2&&circleSvg().querySelectorAll('[data-ag-circle-working]').length===2,'KS3 extension shows general formulae and substituted numerical working');
+    for(const type of ['regularity','triangle-type','quad-type','circle-diameter','circle-radius','circle-part']){
+      const pack=P.createDocument();pack.generate(id,P.defaultSettings(id),1,type);const item=pack.list()[0];
+      for(const out of [P.renderItem(item,false),P.answerGraphic(item)]){
+        const outline=out.querySelector('[data-ag-inspect-polygon],[data-ag-circle-outline]');
+        assert(outline&&outline.getAttribute('fill')==='none','Printed geometry shape has no decorative shading: '+type);
+      }
+      if(type==='circle-diameter'||type==='circle-radius'){
+        const values=P.renderItem(item,false).querySelector('[data-ag-circle-values]').textContent;
+        assert(type==='circle-diameter'?!values.includes('D ='):!values.includes('r ='),'Pupil print does not reveal missing circle dimension');
+      }
+    }
     for(const [type,expected] of [['circle-diameter','cm'],['circle-radius','cm'],['rectangle-length','cm'],['isosceles-angle','°'],['diagonal-equal','diagonals']]){
       const pack=P.createDocument();pack.generate(id,P.defaultSettings(id),1,type);const item=pack.list()[0];
       assert(P.renderItem(item,false).querySelector('svg,polygon,circle'),'Relationship question has pupil diagram: '+type);
