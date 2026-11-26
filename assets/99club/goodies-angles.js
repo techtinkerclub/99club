@@ -428,7 +428,7 @@ function diagram(d,teacher=false,options={}){
    for(const r of st.rays)line(st.points[r.i],polar(...st.points[r.i],1200,r.angle),teal,1.8,{'stroke-dasharray':'7 5'});
    const dimLines=labLines(st).map(l=>[l.a,l.ray?labAt(l.a,l.v,1200):l.b]);
    if(!free){line(st.points[0],st.points[1],ink,4);dimension(st.points[0],st.points[1],'6 cm',{outside:[460,360],lines:dimLines,bounds:[0,0,ww,hh]})}
-   for(const [i,j] of st.segments){const a=st.points[i],b=st.points[j];line(a,b,teal,3);if(!free||st.showMeasurements!==false){const others=st.points.filter(p=>p!==a&&p!==b),mid=labAt(a,labSub(b,a),.5),c=others.length?others.reduce((v,p)=>labAt(v,p,1/others.length),[0,0]):null;dimension(a,b,round(labDist(a,b)/40)+' cm',{size:14,outside:c?labAt(mid,labSub(mid,c),1):null,lines:dimLines,bounds:[0,0,ww,hh]})}}
+   for(const [i,j] of st.segments){const a=st.points[i],b=st.points[j];line(a,b,teal,3);if(!free||st.showMeasurements===true){const others=st.points.filter(p=>p!==a&&p!==b),mid=labAt(a,labSub(b,a),.5),c=others.length?others.reduce((v,p)=>labAt(v,p,1/others.length),[0,0]):null;dimension(a,b,round(labDist(a,b)/40)+' cm',{size:14,outside:c?labAt(mid,labSub(mid,c),1):null,lines:dimLines,bounds:[0,0,ww,hh]})}}
    st.points.forEach((p,i)=>{circle(p,3,ink);const pos=labLabel(st,i);text(pos[0],pos[1]+4,st.names[i],16,{'data-ag-point-label':st.names[i],'paint-order':'stroke',stroke:'#fff','stroke-width':3})});
    if(!free&&d.type==='shape-build'||!free&&d.type==='build-right')labelArc(...st.points[0],38,0,d.angle,d.angle+'°');
    if(!free&&['build-rectangle','build-square'].includes(d.type)){for(let i=0;i<4;i++){const p=st.points[i],u=st.points[(i+1)%4],v=st.points[(i+3)%4],a=polar(...p,16,labAngle(p,u)),b=polar(...p,16,labAngle(p,v));path('M '+a.join(' ')+' L '+[a[0]+b[0]-p[0],a[1]+b[1]-p[1]].join(' ')+' L '+b.join(' '),{stroke:teal,'stroke-width':2})}}
@@ -620,7 +620,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
   let formatInput,orientationInput,widthInput,heightInput,gridInput,sheetStatus,customFields;
   function resizeWorkspace(next){
     if(!free)return false;
-    if(!workspaceFits(st,next.w,next.h)){sheetStatus.textContent='Existing drawing does not fit this sheet. Choose a larger size or undo/erase marks first.';return false}
+    if((next.w<ww||next.h<hh)&&!workspaceFits(st,next.w,next.h)){sheetStatus.textContent='Existing drawing does not fit this sheet. Choose a larger size or undo/erase marks first.';return false}
     ws={...next};ww=ws.w;hh=ws.h;grid=ws.gridMm>0;st.workspace={...ws};sizeCanvas();syncSheet();changed();return true
   }
   function syncSheet(){
