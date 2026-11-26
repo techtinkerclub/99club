@@ -1177,7 +1177,7 @@ async function run(){
     const moved=cap().demo.labDrawing;assert(Math.hypot(moved.points[1][0]-400,moved.points[1][1]-300)<.1&&moved.segments.length===1,'Free drag changes connected geometry without enforcing its length');
     assert(motion.querySelector('[data-ag-trace]'),'Free movement leaves selected point trace');
     const motionDraft=P.createDocument();motionDraft.addCurrent(id,cap());assert(P.renderItem(motionDraft.list()[0],false).querySelector('[data-ag-trace]'),'Free trace survives publication');
-    setGeometryMode('construct');await tick();assert(!doc.querySelector('[data-ag-tool="move"]')&&cap().demo.labDrawing.points.length===3,'Construction stays fixed and separate from the free scene');
+    setGeometryMode('construct');await tick();assert(!doc.querySelector('[data-ag-tool="move"]')&&cap().demo.labDrawing.points.length===angleDrawing.points.length,'Construction stays fixed and separate from the free scene');
     setGeometryMode('loci');await tick();
     const locusTap=(type,p)=>{const surface=doc.querySelector('[data-ag-locus-point="P"]').closest('svg').parentElement,v=new win.DOMPoint(...p).matrixTransform(surface.querySelector('svg').getScreenCTM());surface.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:33,pointerType:'touch',button:0,buttons:type==='pointerup'?0:1,clientX:v.x,clientY:v.y}))};
     doc.querySelector('[data-ag-locus-action="midpoint"]').click();
