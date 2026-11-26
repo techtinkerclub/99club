@@ -985,17 +985,17 @@ async function run(){
     const handleAngle=()=>((Math.atan2(220-Number(handle().getAttribute('cy')),Number(handle().getAttribute('cx'))-400)/rad-t.rotation)%360+360)%360;
     assert(Math.min(handleAngle(),360-handleAngle())<.02&&cap().attempt===null,'Initial construction arm is at zero, not the answer');
     assert(!svg().querySelector('[data-ag-angle-label]')&&!svg().querySelector('[data-ag-angle-mark]'),'No solved angle or angle label before construction');
-    function pointer(type,angle,node){
+    function anglePointer(type,angle,node){
       const theta=(t.rotation+angle)*rad,p=new win.DOMPoint(400+247*Math.cos(theta),220-247*Math.sin(theta)).matrixTransform(svg().getScreenCTM());
       node.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:8,pointerType:'touch',button:0,buttons:type==='pointerup'?0:1,clientX:p.x,clientY:p.y}));
     }
-    pointer('pointerdown',0,svg().querySelector('[data-ag-angle-target]'));
+    anglePointer('pointerdown',0,svg().querySelector('[data-ag-angle-target]'));
     const wrong=t.angle>90?40:140;
-    pointer('pointermove',wrong+.27,box);await tick();
+    anglePointer('pointermove',wrong+.27,box);await tick();
     assert(cap().attempt===wrong&&Math.abs(handleAngle()-wrong)<.02,'Continuous pointer movement snaps to nearest whole degree');
     assert(!svg().querySelector('[data-ag-angle-label]')&&!doc.querySelector('#ag-attempt').textContent.includes('°'),'Construction does not display its numerical answer');
-    pointer('pointermove',t.angle+.24,box);
-    pointer('pointerup',t.angle,box);await tick();
+    anglePointer('pointermove',t.angle+.24,box);
+    anglePointer('pointerup',t.angle,box);await tick();
     assert(cap().attempt===t.angle&&Math.abs(handleAngle()-t.angle)<.02,'Arm continues dragging after SVG redraw and reaches target graduation');
     doc.querySelector('[data-gd-pupil-check]').click();await tick();
     assert(doc.querySelector('.gd-pupil-feedback').classList.contains('is-correct'),'Constructed angle is assessed');
