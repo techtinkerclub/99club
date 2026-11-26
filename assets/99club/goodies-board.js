@@ -339,7 +339,7 @@ function innerTarget(obj,selector,allowHidden=false){
   if(!allowHidden){
     if(node.hidden)return null;
     const style=doc.defaultView?.getComputedStyle(node);
-    if(style&&(style.display==='none'||style.visibility==='hidden'))return null;
+    if(style&&(style.display==='none'||style.visibility==='hidden')&&!node.hasAttribute('data-board-delegated-reveal'))return null;
   }
   return node;
 }
@@ -699,6 +699,21 @@ function syncModePicker(obj){
   select.value=data.value;select.title=data.options.find(o=>o.value===data.value)?.label||'Choose mode';
   doc.documentElement.classList.toggle('gd-frame-mode-active',!picker.hidden);
 }
+// Delegate the existing reveal action only while its frame proxy is visible.
+ // The native button stays in the DOM for the widget's handler and standalone
+ // operation; the real hidden/disabled state still governs proxy availability.
+function syncRevealDelegation(obj){
+  const frame=frameFor(obj?.id),doc=innerDocument(obj),rail=frame?.querySelector('[data-board-quick-actions]');
+  if(!doc||!rail)return;
+  let target=null;
+  if(frame.classList.contains('is-selected')&&!frame.classList.contains('has-context-menu')&&doc.defaultView){
+    const actions=QUICK_ACTIONS[obj.toolId]||[];
+    const index=actions.findIndex(a=>a.selector==='[data-board-action="reveal"]');
+    if(index>=0&&rail.querySelector('[data-board-inner-action="'+index+'"]'))target=innerTarget(obj,actions[index].selector,true);
+  }
+  for(const n of doc.querySelectorAll('[data-board-delegated-reveal]'))if(n!==target)n.removeAttribute('data-board-delegated-reveal');
+  if(target&&!target.hasAttribute('data-board-delegated-reveal'))target.setAttribute('data-board-delegated-reveal','');
+}
 function syncQuickActions(obj){
   const frame=frameFor(obj?.id),rail=frame?.querySelector('[data-board-quick-actions]');if(!rail)return;
   const actions=QUICK_ACTIONS[obj.toolId]||[];
@@ -709,7 +724,7 @@ function syncQuickActions(obj){
   }).join('');
   if(rail._tt99Markup!==markup){rail.innerHTML=markup;rail._tt99Markup=markup}
   rail.classList.toggle('is-empty',available.length===0);
-  syncHistoryActions(obj);syncModePicker(obj);
+  syncHistoryActions(obj);syncModePicker(obj);syncRevealDelegation(obj);
 }
 function syncHistoryActions(obj){
   const frame=frameFor(obj?.id);if(!frame)return;
@@ -791,7 +806,7 @@ function sendSettings(obj,open,mode='settings'){
 }
 function closeContext(obj){
   obj.menuOpen=false;
-  frameFor(obj.id)?.classList.remove('has-context-menu');
+  frameFor(obj.id)?.classList.remove('has-context-menu');syncRevealDelegation(obj);
 }
 function selectObject(id){
   const next=objectById(id);
@@ -807,6 +822,7 @@ function selectObject(id){
     frame?.classList.toggle('is-selected',selected);
     frame?.setAttribute('aria-selected',selected?'true':'false');
     if(selected)frame.style.zIndex=String(obj.z);
+    syncRevealDelegation(obj);
   });
 }
 function deselect(){
@@ -816,6 +832,7 @@ function deselect(){
   }
   selectedId=null;
   canvas.querySelectorAll('.gd-board-object').forEach(el=>{el.classList.remove('is-selected','has-context-menu','has-settings','has-export-menu');el.setAttribute('aria-selected','false')});
+  objects.forEach(syncRevealDelegation);
 }
 function positionObject(obj){
   const frame=frameFor(obj.id);if(!frame)return;
@@ -986,7 +1003,7 @@ function toggleContext(id){
   const obj=objectById(id);if(!obj)return;
   selectObject(id);
   obj.menuOpen=!obj.menuOpen;
-  frameFor(id)?.classList.toggle('has-context-menu',obj.menuOpen);
+  frameFor(id)?.classList.toggle('has-context-menu',obj.menuOpen);syncRevealDelegation(obj);
 }
 function workflowExportButton(doc){
   const buttons=[...doc.querySelectorAll('#gd-controls button')];

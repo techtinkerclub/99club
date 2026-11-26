@@ -2279,3 +2279,7 @@ html:not(.gd-embed-page) #tt99-goodies-root #gd-controls .gd-mc-five{min-height:
  .gd-board-object.has-mode-picker>.gd-board-quick-actions{max-width:42%}
  #tt99-goodies-root .gd-board-mode-picker select{font-size:11px!important;padding-left:7px!important}
 }
+
+/* The whiteboard delegates Reveal/Hide to its frame only when that proxy is available.
+   This is a presentation flag, not the challenge's own hidden/disabled state. */
+[data-board-delegated-reveal]{display:none!important}

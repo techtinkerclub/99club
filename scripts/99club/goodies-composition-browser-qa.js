@@ -1207,6 +1207,19 @@ async function run(){
       assert(specific,'New widget has a specific question in the quick launcher: '+id);
       specific.click();await tick(100);
       assert(!visible(panel),'Specific question closes quick launcher: '+id);
+      const reveal=fixture.doc.querySelector('[data-board-action="reveal"]'),rail=fixture.frame.querySelector('[data-board-quick-actions]');
+      const frameReveal=()=>[...rail.querySelectorAll('button')].filter(b=>/^(Reveal|Hide) answer$/.test(b.textContent.trim()));
+      assert(reveal&&frameReveal().length===1&&reveal.hasAttribute('data-board-delegated-reveal')&&fixture.doc.defaultView.getComputedStyle(reveal).display==='none','Exactly one visible reveal action in selected frame: '+id);
+      frameReveal()[0].click();await tick(100);
+      const hidden=fixture.doc.querySelector('[data-board-action="reveal"]');
+      assert(frameReveal().length===1&&frameReveal()[0].textContent.trim()==='Hide answer'&&hidden?.hasAttribute('data-board-delegated-reveal'),'Delegated reveal remains in sync after revealing: '+id);
+      frameReveal()[0].click();await tick(100);
+      assert(frameReveal().length===1&&frameReveal()[0].textContent.trim()==='Reveal answer','Delegated hide restores question: '+id);
+      fixture.frame.querySelector('[data-board-context]').click();await tick();
+      assert(!fixture.doc.querySelector('[data-board-action="reveal"]').hasAttribute('data-board-delegated-reveal'),'Native reveal available while frame context menu hides rail: '+id);
+      fixture.frame.querySelector('[data-board-context]').click();await tick();
+      assert(fixture.doc.querySelector('[data-board-action="reveal"]').hasAttribute('data-board-delegated-reveal'),'Frame delegation resumes when context menu closes: '+id);
+
     }
     api.remove(fixture.record.id);
   }
