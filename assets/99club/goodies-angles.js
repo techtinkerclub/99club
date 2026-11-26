@@ -360,6 +360,28 @@ function generate(s={},rng=Math.random){
    fixedAngle:{label:'Fixed angle at a moving point',initial:[400,100],anchors:{A:[280,220],B:[520,220]},links:[['A','B'],['A','P'],['B','P']],project:(p,old)=>{const q=locusCircle(p,[400,220],120,old);if(labDist(q,[280,220])<5||labDist(q,[520,220])<5)return locusCircle([q[0],220+(old[1]<220?-8:8)],[400,220],120,old);return q},guides:[{circle:[400,220,120]}],summary:()=> 'Angle APB = 90° (constant)',rule:'Every point on either semicircle, except A and B, makes a right angle at P.'},
    reflection:{label:'Reflection in a line',initial:[280,120],anchors:{A:[400,40],B:[400,400]},links:[['A','B'],['P','Q']],project:p=>[locusClamp(p[0],100,700),locusClamp(p[1],45,395)],dependent:p=>({Q:[800-p[0],p[1]],F:[400,p[1]]}),guides:[{line:[[400,28],[400,412]]}],summary:p=>'PF = FQ = '+(Math.abs(p[0]-400)/40).toFixed(2)+' cm',rule:'Q is the mirror image of P; the mirror line perpendicularly bisects PQ.'}
  };
+ // Dynamic shapes use the same driver/dependency contract as the locus investigations.
+ function constrainedShape(kind,c){
+   const box=(kind==='rectangle'||kind==='areaRectangle'||kind==='perimeterRectangle');
+   if(box){
+     const A=[180,360],w0=240,h0=160,lo=80,hi=480,top=280;
+     let project=p=>[A[0]+locusClamp(p[0]-A[0],lo,hi),A[1]-locusClamp(A[1]-p[1],lo,top)],initial=[A[0]+w0,A[1]-h0],guides=[],label='Rectangle — four right angles',rule='Opposite sides stay parallel and equal; all four angles remain right angles.';
+     if(kind==='areaRectangle'){const area=c.area*1600,minW=Math.max(lo,area/top),maxW=Math.min(hi,area/lo),at=w=>[A[0]+w,A[1]-area/w];project=p=>at(locusClamp(p[0]-A[0],minW,maxW));initial=at((minW+maxW)/2);guides=[{polyline:Array.from({length:81},(_,i)=>at(minW+(maxW-minW)*i/80))}];label='Rectangle — constant area';rule='Changing the width changes the height so the area stays constant.'}
+     if(kind==='perimeterRectangle'){const sum=c.perimeter*20,minW=Math.max(lo,sum-top),maxW=Math.min(hi,sum-lo),at=w=>[A[0]+w,A[1]-(sum-w)];project=p=>at(locusClamp((p[0]-A[0]+sum-(A[1]-p[1]))/2,minW,maxW));initial=at((minW+maxW)/2);guides=[{line:[at(minW),at(maxW)]}];label='Rectangle — constant perimeter';rule='Width plus height stays constant, even while the area changes.'}
+     return {label,initial,anchors:{A},links:[['A','B'],['B','P'],['P','C'],['C','A']],project,dependent:p=>({B:[p[0],A[1]],C:[A[0],p[1]]}),guides,summary:p=>{const w=(p[0]-A[0])/40,h=(A[1]-p[1])/40;return 'Area = '+(w*h).toFixed(2)+' cm²   ·   Perimeter = '+(2*(w+h)).toFixed(2)+' cm'},rule,shape:['A','B','P','C'],rightCorners:['A','B','P','C']};
+   }
+   if(kind==='isosceles'){
+     const A=[400-20*c.base,350],B=[400+20*c.base,350],at=y=>[400,y];return {label:'Isosceles triangle — equal sides',initial:at(130),anchors:{A,B},links:[['A','B'],['A','P'],['B','P']],project:p=>at(locusClamp(p[1],60,300)),guides:[{line:[at(60),at(300)]}],summary:p=>'AP = BP = '+(labDist(A,p)/40).toFixed(2)+' cm',rule:'The apex moves along the perpendicular bisector; the two sides stay equal.',shape:['A','B','P'],equalEdges:[['A','P'],['B','P']]};
+   }
+   if(kind==='rhombus'){
+     const l=c.side*40,A=[260,245],B=[260+l,245],at=t=>[B[0]+l*Math.cos(t*D),B[1]-l*Math.sin(t*D)];return {label:'Rhombus — four equal sides',initial:at(65),anchors:{A,B},links:[['A','B'],['B','P'],['P','C'],['C','A']],project:p=>at(locusClamp(Math.atan2(B[1]-p[1],p[0]-B[0])/D,25,155)),dependent:p=>({C:labAt(A,labSub(p,B),1)}),guides:[{polyline:Array.from({length:81},(_,i)=>at(25+130*i/80))}],summary:p=>'All sides = '+(l/40).toFixed(2)+' cm   ·   Angle ABP = '+(180-labAngle(B,p)).toFixed(0)+'°',rule:'All four sides remain equal as the angles change.',shape:['A','B','P','C'],equalEdges:[['A','B'],['B','P'],['P','C'],['C','A']]};
+   }
+   if(kind==='rightTriangle'){
+     const A=[230,350],B=[230+c.base*40,350],at=y=>[230,y];return {label:'Right-angled triangle',initial:at(130),anchors:{A,B},links:[['A','B'],['A','P'],['B','P']],project:p=>at(locusClamp(p[1],60,300)),guides:[{line:[at(60),at(300)]}],summary:p=>'Angle BAP = 90°   ·   BP = '+(labDist(B,p)/40).toFixed(2)+' cm',rule:'The right angle is preserved as the height and hypotenuse change.',shape:['A','B','P'],rightCorners:['A']};
+   }
+ }
+ const SHAPE_DEFAULTS={rectangle:{},areaRectangle:{area:20},perimeterRectangle:{perimeter:24},isosceles:{base:6},rhombus:{side:4},rightTriangle:{base:6}};
+ for(const [kind,c] of Object.entries(SHAPE_DEFAULTS))LOCUS_PRESETS[kind]=constrainedShape(kind,c);
  const LOCUS_PARAMETERS={
    circle:[['radius','Radius (cm)',1,4,.5,3.5]],
    bisector:[['separation','Distance AB (cm)',2,12,.5,7.5]],
@@ -367,11 +389,12 @@ function generate(s={},rng=Math.random){
    angleBisector:[['angle','Angle between lines (°)',30,150,15,90]],
    ellipse:[['major','Semi-major axis (cm)',3,6,.5,5],['minor','Semi-minor axis (cm)',1,4,.5,4]],
    fixedAngle:[['diameter','Diameter AB (cm)',2,8,.5,6]],
-   reflection:[['axis','Mirror x-position (cm)',8,12,.5,10]]
+   reflection:[['axis','Mirror x-position (cm)',8,12,.5,10]],
+   rectangle:[],areaRectangle:[['area','Area (cm²)',6,36,2,20]],perimeterRectangle:[['perimeter','Perimeter (cm)',10,34,2,24]],isosceles:[['base','Base AB (cm)',2,10,.5,6]],rhombus:[['side','Side length (cm)',2,4.5,.5,4]],rightTriangle:[['base','Base AB (cm)',2,10,.5,6]]
  };
  function locusParameters(kind,values={}){const out={};for(const [id,,min,max,step,initial] of LOCUS_PARAMETERS[kind]||[]){const v=Number(values[id]);out[id]=Number.isFinite(v)?locusClamp(Math.round((v-min)/step)*step+min,min,max):initial}if(kind==='ellipse')out.minor=Math.min(out.minor,out.major-.5);return out}
  function locusPreset(kind,values){
-   const base=LOCUS_PRESETS[kind]||LOCUS_PRESETS.circle;if(!values)return base;const c=locusParameters(kind,values),o=[400,220];
+   const base=LOCUS_PRESETS[kind]||LOCUS_PRESETS.circle;if(!values)return base;const c=locusParameters(kind,values),o=[400,220];if(Object.hasOwn(SHAPE_DEFAULTS,kind))return constrainedShape(kind,c);
    if(kind==='circle'){const r=40*c.radius;return {...base,initial:[400+r,220],project:(p,old)=>locusCircle(p,o,r,old),guides:[{circle:[...o,r]}],summary:p=>'OP = '+(labDist(p,o)/40).toFixed(2)+' cm (constant)'}}
    if(kind==='bisector'){const A=[400-20*c.separation,220],B=[400+20*c.separation,220];return {...base,anchors:{A,B},summary:p=>'AP = BP = '+(labDist(p,A)/40).toFixed(2)+' cm'}}
    if(kind==='parallel'){const d=40*c.distance;return {...base,initial:[400,220-d],project:(p,old)=>[locusClamp(p[0],100,700),220+(p[1]===220?(old[1]<220?-d:d):p[1]<220?-d:d)],guides:[{line:[[100,220-d],[700,220-d]]},{line:[[100,220+d],[700,220+d]]}],summary:()=> 'PF = '+c.distance.toFixed(2)+' cm (constant)'}}
@@ -532,9 +555,12 @@ function diagram(d,teacher=false,options={}){
 
  if(mode==='loci'){
    const st=d.locusState||locusInitial(),preset=locusPreset(st.kind,st.params),points=locusPoints(st),P=points.P,showM=st.showMidpoint||st.traceNames?.includes('M')||st.traces?.M?.length,guideAttrs={fill:'none',stroke:'#83a99f','stroke-width':1.6,'stroke-dasharray':'6 5','data-ag-locus-guide':'1'};
-   if(st.showLocus)for(const g of preset.guides){if(g.circle){const [cx,cy,r]=g.circle;add('circle',{cx,cy,r,...guideAttrs})}else if(g.ellipse){const [cx,cy,rx,ry]=g.ellipse;add('ellipse',{cx,cy,rx,ry,...guideAttrs})}else line(...g.line,'#83a99f',1.6,guideAttrs)}
+   if(st.showLocus)for(const g of preset.guides){if(g.circle){const [cx,cy,r]=g.circle;add('circle',{cx,cy,r,...guideAttrs})}else if(g.ellipse){const [cx,cy,rx,ry]=g.ellipse;add('ellipse',{cx,cy,rx,ry,...guideAttrs})}else if(g.polyline)add('polyline',{points:g.polyline.map(p=>p.join(',')).join(' '),...guideAttrs});else line(...g.line,'#83a99f',1.6,guideAttrs)}
    for(const [name,trail] of Object.entries(st.traces||{}))for(const pts of traceParts(trail))add('polyline',{points:pts.map(p=>p.join(',')).join(' '),fill:'none',stroke:name==='P'?orange:'#5385c5','stroke-width':2.4,'stroke-linejoin':'round','stroke-linecap':'round','data-ag-locus-trace':name});
-   for(const [a,b] of preset.links){const fixed=a in preset.anchors&&b in preset.anchors;line(points[a],points[b],fixed?ink:teal,fixed?1.5:2.5,fixed?{'stroke-dasharray':'5 4'}:{})}
+   if(preset.shape)add('polygon',{points:preset.shape.map(n=>points[n].join(',')).join(' '),fill:'#dceee9','fill-opacity':.45,stroke:'none','data-ag-constrained-shape':st.kind});
+   for(const [a,b] of preset.links){const fixed=a in preset.anchors&&b in preset.anchors;line(points[a],points[b],fixed?ink:teal,fixed?1.5:2.5,fixed&&!preset.shape?{'stroke-dasharray':'5 4'}:{})}
+   for(const n of preset.rightCorners||[]){const i=preset.shape.indexOf(n),p=points[n],a=points[preset.shape[(i+1)%preset.shape.length]],b=points[preset.shape[(i+preset.shape.length-1)%preset.shape.length]],u=labSub(a,p),v=labSub(b,p),q=labAt(p,u,13/Math.hypot(...u)),r=labAt(p,v,13/Math.hypot(...v));add('polyline',{points:[q,[q[0]+r[0]-p[0],q[1]+r[1]-p[1]],r].map(p=>p.join(',')).join(' '),fill:'none',stroke:teal,'stroke-width':1.7,'data-ag-constraint-right-angle':n})}
+   for(const [a,b] of preset.equalEdges||[]){const p=points[a],q=points[b],m=labAt(p,labSub(q,p),.5),angle=labAngle(p,q)+90;line(polar(...m,7,angle),polar(...m,7,angle+180),teal,2,{'data-ag-constraint-equal-side':'1'})}
    const namePoint=(p,name,movable=false)=>{if(st.traceNames?.includes(name)&&!options.paper)add('circle',{cx:p[0],cy:p[1],r:11,fill:'none',stroke:name==='P'?orange:'#5385c5','stroke-width':2});add('circle',{cx:p[0],cy:p[1],r:movable?6:4,fill:movable?teal:ink,'data-ag-locus-point':name});const neighbours=preset.links.filter(l=>l.includes(name)).map(l=>points[l.find(n=>n!==name)]),q=vertexLabel(p,neighbours[0],neighbours[1],18);text(q[0],q[1]+4,name,16,{'paint-order':'stroke',stroke:'#fff','stroke-width':3})};
    for(const name of Object.keys(points))if(name!=='M'||showM)namePoint(points[name],name,name==='P');
    text(400,435,preset.summary(P),17);
@@ -1028,7 +1054,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    let st=JSON.parse(JSON.stringify(initial||locusInitial())),drag=null,selecting=false;
    const bar=document.createElement('div');bar.className='gd-ag-inspect-tools';
    const choice=document.createElement('select');choice.className='gd-select';choice.setAttribute('aria-label','Locus relationship');choice.dataset.agLocusPreset='1';
-   for(const [value,{label}] of Object.entries(LOCUS_PRESETS)){const o=document.createElement('option');o.value=value;o.textContent=label;choice.append(o)}choice.value=st.kind;bar.append(choice);
+   for(const [title,filter] of [['Loci & relationships',k=>!Object.hasOwn(SHAPE_DEFAULTS,k)],['Constrained shapes',k=>Object.hasOwn(SHAPE_DEFAULTS,k)]]){const group=document.createElement('optgroup');group.label=title;for(const [value,{label}] of Object.entries(LOCUS_PRESETS).filter(([k])=>filter(k))){const o=document.createElement('option');o.value=value;o.textContent=label;group.append(o)}choice.append(group)}choice.value=st.kind;bar.append(choice);
    const button=(id,label,fn)=>{const b=document.createElement('button');b.type='button';b.className='gd-btn';b.dataset.agLocusAction=id;b.textContent=label;b.onclick=fn;bar.append(b);return b};
    const configure=button('settings','Dimensions',()=>{settingsBar.hidden=!settingsBar.hidden;configure.setAttribute('aria-pressed',String(!settingsBar.hidden))});
    const trace=button('trace','Select trace point',()=>{selecting=!selecting;paint()});
@@ -1042,7 +1068,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    choice.onchange=()=>{st=locusInitial(choice.value);selecting=false;buildSettings();changed()};buildSettings();
    function changed(){onChange(JSON.parse(JSON.stringify(st)));paint()}
    function paint(){
-     trace.setAttribute('aria-pressed',String(selecting));trace.classList.toggle('gd-btn--primary',selecting);
+     trace.setAttribute('aria-pressed',String(selecting));trace.classList.toggle('gd-btn--primary',selecting);configure.hidden=!(LOCUS_PARAMETERS[st.kind]?.length);if(configure.hidden){settingsBar.hidden=true;configure.setAttribute('aria-pressed','false')}guide.hidden=!locusPreset(st.kind,st.params).guides.length;
      mid.textContent=st.showMidpoint?'Hide midpoint M':'Show midpoint M';guide.textContent=st.showLocus?'Hide locus guide':'Reveal locus';
      hint.textContent=selecting?'Tap a moving or dependent point to toggle its trace.':('Drag P to investigate. Tracing: '+(st.traceNames?.join(', ')||'off')+'.');
      const svg=diagram({type:'diagram',mode:'loci',locusState:st});svg.style.cssText='width:100%;height:auto;max-height:600px;display:block';surface.replaceChildren(svg)
