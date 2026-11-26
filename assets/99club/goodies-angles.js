@@ -601,23 +601,7 @@ function geometry(t){return {...t,mode:t.geometryMode||FAMILIES.find(f=>f[0]===t
 function paper(item,teacher){const d=geometry(item.data);if(item.kind==='diagram')return diagram(d,true,{scale:d.scale,paper:true});let prompt=d.prompt;if(['measure','reflex'].includes(d.type))prompt+=' Use your own protractor.';if(inspectTypes.includes(d.type))prompt+=' You may use a ruler or protractor to investigate the diagram.';if(labTypes.includes(d.type))prompt+=' On paper, draw AB = 6 cm first using your ruler. Use your geometry set in the working space.';if(d.choices)prompt+=' Choices: '+d.choices.join(' / ')+'.';return G.exportTools.composeWorksheetCardSvg(diagram(d,teacher,{paper:true,scale:teacher&&['measure','reflex','draw','draw-reflex'].includes(d.type)}),{title:'Angles & geometry',prompt,responseMode:(['draw','draw-reflex'].includes(d.type)||labTypes.includes(d.type))?'none':d.choices?'lines':'box',responseLines:1,responseLabel:'Answer',paperStyle:'plain',printDiagramScale:labTypes.includes(d.type)?null:['draw','draw-reflex','measure','reflex'].includes(d.type)?1.55:1.05,diagramMaxHeight:labTypes.includes(d.type)?420:380,answer:d.answer,showAnswer:teacher})}
 if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>types(s),title:item=>FAMILIES.find(t=>t[0]===item.data.type)?.[1]||'Angle illustration',recipe:(s,type)=>({...settings(s),type}),generate,signature:d=>JSON.stringify([d.type,d.angle,d.angles,d.rotation,d.clockwise,d.n,d.regular,d.shape,d.relation,d.length,d.rightLength,d.radius,d.part,d.width,d.height,d.missingSide,d.claim,d.baseLength,d.factor,d.hypotenuse]),capture:s=>[G.publishing.record(ID,s.task?'challenge':'diagram',s.task?{...geometry(s.task),revealed:false}:s.demo)],render:paper,answerSummary:item=>item.data.answer,answerGraphic:item=>diagram(geometry(item.data),true,{paper:true,scale:['measure','draw','draw-reflex','reflex'].includes(item.data.type)}),answerNote:item=>item.data.note||''});
 
- function mountLab(box,initial,onChange,{free=false,motion=false}={}){
-  let st=labNames(initial||labEmpty(free)),ws=workspaceState(st),ww=free?ws.w:800,hh=free?ws.h:400,corner=0,hand=1,selection=null,tool=(free&&st.allowMovement||motion)?'move':'segment',first=null,aligned=null,reference=null,hover=null,history=[],snap=true,measure=free&&st.showMeasurements!==false,grid=free?ws.gridMm>0:true,moving=null,sheetPan=null,panMode=false,aperture=null,keepOpening=false,guideOpen=false,guideStep=0,regionPick=[],regionColour=0,regionStatus='',shadeMode='region',notationMode='',notationPick=[];
-  motion=free&&(st.allowMovement??motion);if(free){st.allowMovement=motion;st.showMeasurements=measure;}
-  const clone=x=>JSON.parse(JSON.stringify(x)),save=()=>history.push(clone(st)),N='http://www.w3.org/2000/svg';
-  const toolbar=document.createElement('div');toolbar.className='gd-ag-lab-toolbar';toolbar.setAttribute('aria-label','Construction tools');
-  const instruments=document.createElement('div');instruments.className='gd-ag-lab-tools';instruments.setAttribute('role','group');instruments.setAttribute('aria-label','Drawing instruments');
-  const helpers=document.createElement('div');helpers.className='gd-ag-lab-helpers';
-  const actions=document.createElement('div');actions.className='gd-ag-lab-actions';actions.setAttribute('role','group');actions.setAttribute('aria-label','Drawing actions');
-  const options=document.createElement('div');options.className='gd-ag-lab-options';options.setAttribute('role','group');options.setAttribute('aria-label','Drawing assistance');
-  helpers.append(actions,options);toolbar.append(instruments,helpers);helpers.style.justifyContent='space-between';helpers.style.columnGap='8px';
-  const svg=document.createElementNS(N,'svg');svg.setAttribute('viewBox','0 0 '+ww+' '+hh);svg.classList.add('gd-ag-lab-canvas');svg.style.cssText='width:100%;max-height:'+(free?'820':'620')+'px;display:block;touch-action:none;user-select:none;background:white;border:1px solid #cbded8;border-radius:8px';
-  const hint=document.createElement('p');hint.className='gd-help';hint.dataset.agPaperConstruction='1';hint.style.cssText='text-align:center;min-height:24px;margin:5px 0';
-  const guide=document.createElement('section');guide.className='gd-ag-lab-guide';guide.hidden=true;
-  const viewport=free?document.createElement('div'):null;if(viewport){viewport.className='gd-ag-sheet-viewport';viewport.style.cssText='max-width:100%;max-height:680px;overflow:auto;overscroll-behavior:contain;border:1px solid #cbded8;border-radius:8px;background:#e4eae8;padding:8px;box-sizing:border-box';viewport.append(svg)}box.replaceChildren(toolbar,viewport||svg,hint,guide);
-  let screenUnit=1,availableHeight=680;
-  function sizeCanvas(){svg.setAttribute('viewBox','0 0 '+ww+' '+hh);if(free){screenUnit=Math.max(.02,Math.min(Math.max(1,(viewport.clientWidth||box.clientWidth||800)-18)/ww,Math.max(1,availableHeight-18)/hh));svg.style.width=ww*screenUnit+'px';svg.style.height=hh*screenUnit+'px';svg.style.maxWidth='none';svg.style.maxHeight='none';svg.style.boxSizing='content-box';svg.style.border='0';svg.style.borderRadius='0';svg.style.margin='0 auto';svg.style.boxShadow='0 0 0 1px #aebfba, 2px 3px 7px #243d3920'}}sizeCanvas();
-  const icons={
+ const INSTRUMENT_ICONS={
     select:'<path d="M4 3l15 10-7 1-3 7Z"/>',
     move:'<path d="M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"/>',
     trace:'<path d="M3 19C5 6 12 20 16 8S21 5 21 5" stroke-dasharray="2 3"/><circle cx="21" cy="5" r="2" fill="currentColor"/>',
@@ -640,9 +624,28 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
     measure:'<path d="M3 18h18M3 15v6m18-6v6M4 8h16M4 8l4-4M4 8l4 4m12-4-4-4m4 4-4 4"/>',
     grid:'<rect x="3" y="3" width="18" height="18" rx="1"/><path d="M9 3v18m6-18v18M3 9h18M3 15h18"/>',help:'<circle cx="12" cy="12" r="9"/><path d="M9 8a3 3 0 1 1 4 3c-1 .5-1 1-1 2m0 3v.2"/>'
   };
-  function icon(id){const x=document.createElementNS(N,'svg');x.setAttribute('viewBox','0 0 24 24');x.setAttribute('fill','none');x.setAttribute('stroke','currentColor');x.setAttribute('stroke-width','1.65');x.setAttribute('stroke-linecap','round');x.setAttribute('stroke-linejoin','round');x.setAttribute('aria-hidden','true');x.setAttribute('focusable','false');x.innerHTML=icons[id];return x}
+ Object.assign(INSTRUMENT_ICONS,{ruler:INSTRUMENT_ICONS.segment,angle:INSTRUMENT_ICONS.protractor,show:INSTRUMENT_ICONS.protractor,clear:'<path d="M6 6l12 12M18 6L6 18"/>',format:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3v3M12 18v3"/>',left:INSTRUMENT_ICONS.undo,right:'<path d="m16 5 5 5-5 5m5-5H10a6 6 0 0 0 0 12"/>'});
+ function icon(id){const x=document.createElementNS('http://www.w3.org/2000/svg','svg');for(const [k,v] of Object.entries({viewBox:'0 0 24 24',fill:'none',stroke:'currentColor','stroke-width':1.65,'stroke-linecap':'round','stroke-linejoin':'round','aria-hidden':'true',focusable:'false'}))x.setAttribute(k,v);x.innerHTML=INSTRUMENT_ICONS[id]||'';return x}
+ function instrumentButton(parent,id,label,description,fn,group='agTool'){const b=document.createElement('button');b.type='button';b.className='gd-btn gd-ag-lab-button';b.dataset[group]=id;b.title=description;b.setAttribute('aria-label',description);const t=document.createElement('span');t.textContent=label;b.append(icon(id),t);b.onclick=fn;parent.append(b);return b}
+ function mountLab(box,initial,onChange,{free=false,motion=false}={}){
+  let st=labNames(initial||labEmpty(free)),ws=workspaceState(st),ww=free?ws.w:800,hh=free?ws.h:400,corner=0,hand=1,selection=null,tool=(free&&st.allowMovement||motion)?'move':'segment',first=null,aligned=null,reference=null,hover=null,history=[],snap=true,measure=free&&st.showMeasurements!==false,grid=free?ws.gridMm>0:true,moving=null,sheetPan=null,panMode=false,aperture=null,keepOpening=false,guideOpen=false,guideStep=0,regionPick=[],regionColour=0,regionStatus='',shadeMode='region',notationMode='',notationPick=[];
+  motion=free&&(st.allowMovement??motion);if(free){st.allowMovement=motion;st.showMeasurements=measure;}
+  const clone=x=>JSON.parse(JSON.stringify(x)),save=()=>history.push(clone(st)),N='http://www.w3.org/2000/svg';
+  const toolbar=document.createElement('div');toolbar.className='gd-ag-lab-toolbar';toolbar.setAttribute('aria-label','Construction tools');
+  const instruments=document.createElement('div');instruments.className='gd-ag-lab-tools';instruments.setAttribute('role','group');instruments.setAttribute('aria-label','Drawing instruments');
+  const helpers=document.createElement('div');helpers.className='gd-ag-lab-helpers';
+  const actions=document.createElement('div');actions.className='gd-ag-lab-actions';actions.setAttribute('role','group');actions.setAttribute('aria-label','Drawing actions');
+  const options=document.createElement('div');options.className='gd-ag-lab-options';options.setAttribute('role','group');options.setAttribute('aria-label','Drawing assistance');
+  helpers.append(actions,options);toolbar.append(instruments,helpers);helpers.style.justifyContent='space-between';helpers.style.columnGap='8px';
+  const svg=document.createElementNS(N,'svg');svg.setAttribute('viewBox','0 0 '+ww+' '+hh);svg.classList.add('gd-ag-lab-canvas');svg.style.cssText='width:100%;max-height:'+(free?'820':'620')+'px;display:block;touch-action:none;user-select:none;background:white;border:1px solid #cbded8;border-radius:8px';
+  const hint=document.createElement('p');hint.className='gd-help';hint.dataset.agPaperConstruction='1';hint.style.cssText='text-align:center;min-height:24px;margin:5px 0';
+  const guide=document.createElement('section');guide.className='gd-ag-lab-guide';guide.hidden=true;
+  const viewport=free?document.createElement('div'):null;if(viewport){viewport.className='gd-ag-sheet-viewport';viewport.style.cssText='max-width:100%;max-height:680px;overflow:auto;overscroll-behavior:contain;border:1px solid #cbded8;border-radius:8px;background:#e4eae8;padding:8px;box-sizing:border-box';viewport.append(svg)}box.replaceChildren(toolbar,viewport||svg,hint,guide);
+  let screenUnit=1,availableHeight=680;
+  function sizeCanvas(){svg.setAttribute('viewBox','0 0 '+ww+' '+hh);if(free){screenUnit=Math.max(.02,Math.min(Math.max(1,(viewport.clientWidth||box.clientWidth||800)-18)/ww,Math.max(1,availableHeight-18)/hh));svg.style.width=ww*screenUnit+'px';svg.style.height=hh*screenUnit+'px';svg.style.maxWidth='none';svg.style.maxHeight='none';svg.style.boxSizing='content-box';svg.style.border='0';svg.style.borderRadius='0';svg.style.margin='0 auto';svg.style.boxShadow='0 0 0 1px #aebfba, 2px 3px 7px #243d3920'}}sizeCanvas();
+
   const controls=[['point','Point','Place a point'],['segment','Ruler','Draw a straight line with the ruler'],['ray','Ray','Draw a ray'],['protractor','Protractor','Measure and draw an angle'],['square45','45°','45° set square'],['square30','30°–60°','30°–60° set square'],['compass','Compass','Draw a compass circle'],['erase','Erase','Erase a drawn object']];if(free)controls.push(['select','Select','Select a line, ray or circle to change its style'],['shade','Shade','Select and shade a polygonal region']);if(free){controls.unshift(['move','Move','Move vertices freely without preserving shape properties']);controls.push(['trace','Trace','Select a point to trace its movement'])}
-  function button(id,label,description,fn,parent=actions){const b=document.createElement('button');b.type='button';b.className='gd-btn gd-ag-lab-button';b.dataset.agTool=id;b.title=description;b.setAttribute('aria-label',description);const t=document.createElement('span');t.textContent=label;b.append(icon(id),t);b.onclick=fn;parent.append(b);return b}
+  function button(id,label,description,fn,parent=actions){return instrumentButton(parent,id,label,description,fn)}
   const buttons=controls.map(([id,label,desc])=>[id,button(id,label,desc,()=>{tool=id;selection=null;panMode=false;first=null;aligned=null;hand=1;hover=null;guideStep=0;regionPick=[];regionStatus='';notationMode='';notationPick=[];paint()},instruments)]);
   const cornerButton=button('corner','Corner','Change set square corner',()=>{corner=(corner+1)%3;paint()});
   button('flip','Mirror','Mirror across the reference edge',()=>{if(aligned!==null){hand=-hand;paint()}}).dataset.agFlip='1';
@@ -855,9 +858,8 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
   const message=document.createElement('span');message.className='gd-ag-inspect-message';message.setAttribute('role','status');
   const layer=document.createElementNS(N,'g');layer.setAttribute('data-ag-inspection','1');layer.setAttribute('pointer-events','none');svg.append(layer);
   let tool='',selected=[],hover=-1;
-  const icons={ruler:'<rect x="3" y="8" width="18" height="8" rx="1"/><path d="M7 8v4m4-4v2m4-2v4m4-4v2"/>',angle:'<path d="M2 17a10 10 0 0 1 20 0Z M12 7v4M5 10l3 3M19 10l-3 3"/>',clear:'<path d="M6 6l12 12M18 6L6 18"/>'};
-  function button(id,label){const b=document.createElement('button');b.type='button';b.className='gd-btn gd-ag-inspect-btn';b.dataset.agInspect=id;b.setAttribute('aria-pressed','false');b.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+icons[id]+'</svg><span>'+label+'</span>';b.onclick=()=>{tool=id==='clear'||tool===id?'':id;selected=[];hover=-1;paint()};bar.append(b);return b}
-  const rb=button('ruler','Ruler'),ab=button('angle','Protractor');button('clear','Clear');bar.append(message);box.insertBefore(bar,svg);
+  function button(id,label){const b=instrumentButton(bar,id,label,label,()=>{physicalMode.deactivate();physicalMode.bar.hidden=true;physical.setAttribute('aria-pressed','false');tool=id==='clear'||tool===id?'':id;selected=[];hover=-1;paint()},'agInspect');b.classList.add('gd-ag-inspect-btn');b.setAttribute('aria-pressed','false');return b}
+  const rb=button('ruler','Ruler'),ab=button('angle','Protractor');button('clear','Clear');const physical=instrumentButton(bar,'protractor','Free protractor','Place and rotate a physical protractor',()=>{tool='';selected=[];paint();if(physicalMode.isActive()){physicalMode.deactivate();physicalMode.bar.hidden=true;physical.setAttribute('aria-pressed','false')}else{physicalMode.bar.hidden=false;physicalMode.activate();physical.setAttribute('aria-pressed','true')}},'agInspect');physical.classList.add('gd-ag-inspect-btn');bar.append(message);box.insertBefore(bar,svg);const physicalMode=mountAngleMeasurement(box,svg,{}, {inspectionPoints:points});physicalMode.bar.hidden=true;
   function el(tag,attrs,content){const e=document.createElementNS(N,tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));if(content!=null)e.textContent=content;layer.append(e);return e}
   function line(a,b,stroke='#14796b',w=2,extra={}){return el('line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke,'stroke-width':w,...extra})}
   function mark(p,r,fill){el('circle',{cx:p[0],cy:p[1],r,fill,stroke:'#177d6f','stroke-width':2})}
@@ -885,13 +887,13 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
 
  // Independent measurement: the pupil places and aligns the same instrument
  // used in the explorer. No computed answer or target angle is displayed.
- function mountAngleMeasurement(box,svg,d){
-  const N='http://www.w3.org/2000/svg',vertex=[400,220],rays=[mod(d.rotation||0),mod((d.rotation||0)+d.angle)],radius=208;
+ function mountAngleMeasurement(box,svg,d,{inspectionPoints=null}={}){
+  const N='http://www.w3.org/2000/svg',vertex=[400,220],rays=[mod(d.rotation||0),mod((d.rotation||0)+d.angle)],radius=inspectionPoints?155:208;
   let active=false,centre=null,start=0,aligned=false,full=false,direction=1,drag=null,preview=null;
   const bar=document.createElement('div');bar.className='gd-ag-inspect-tools';
   const message=document.createElement('span');message.className='gd-ag-inspect-message';message.setAttribute('role','status');
   const layer=document.createElementNS(N,'g');layer.setAttribute('data-ag-measure-overlay','1');layer.setAttribute('pointer-events','none');svg.append(layer);
-  function button(id,label,fn){const b=document.createElement('button');b.type='button';b.className='gd-btn gd-ag-inspect-btn';b.dataset.agMeasure=id;const glyphs={show:'<path d="M2 17a10 10 0 0 1 20 0Z M12 7v4M5 10l3 3M19 10l-3 3"/>',format:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3v3M12 18v3"/>',flip:'<path d="M3 18l7-12v12ZM21 18L14 6v12ZM12 3v2m0 4v2m0 4v2m0 4v1"/>',left:'<path d="M8 5L3 10l5 5M3 10h11a6 6 0 0 1 0 12"/>',right:'<path d="m16 5 5 5-5 5m5-5H10a6 6 0 0 0 0 12"/>',reset:'<path d="M3 11a9 9 0 1 1 2.5 7M3 4v7h7"/>'};b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+glyphs[id]+'</svg><span></span>';b.querySelector('span').textContent=label;b.onclick=fn;bar.append(b);return b}
+  function button(id,label,fn){const b=instrumentButton(bar,id,label,label,fn,'agMeasure');b.classList.add('gd-ag-inspect-btn');return b}
   const show=button('show','Protractor',()=>{active=!active;if(!active){centre=null;aligned=false;preview=null}paint()});
   const format=button('format','360° protractor',()=>{full=!full;paint()});
   const flip=button('flip','Flip',()=>{direction*=-1;paint()});
@@ -902,8 +904,8 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
   function el(tag,attrs){const n=document.createElementNS(N,tag);Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,v));layer.append(n);return n}
   function point(e){const m=svg.getScreenCTM();if(!m)return null;const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(m.inverse());return [p.x,p.y]}
   function tol(){const m=svg.getScreenCTM();return m?Math.min(60,26/Math.hypot(m.a,m.b)):25}
-  function snapCentre(p){return labDist(vertex,p)<=tol()?vertex.slice():p}
-  function orientation(p){const a=labAngle(centre,p),delta=(u,v)=>Math.min(mod(u-v),mod(v-u));const nearest=rays.reduce((u,v)=>delta(u,a)<=delta(v,a)?u:v);return labDist(centre,vertex)<.01&&delta(nearest,a)<=5?nearest:mod(Math.round(a))}
+  function snapCentre(p){const candidates=inspectionPoints||[vertex],nearest=candidates.reduce((a,b)=>labDist(a,p)<labDist(b,p)?a:b);return labDist(nearest,p)<=tol()?nearest.slice():p}
+  function orientation(p){const a=labAngle(centre,p),delta=(u,v)=>Math.min(mod(u-v),mod(v-u));const candidates=inspectionPoints?inspectionPoints.filter(p=>labDist(p,centre)>.01).map(p=>labAngle(centre,p)):rays;const nearest=candidates.reduce((u,v)=>delta(u,a)<=delta(v,a)?u:v,a+180);return (inspectionPoints||labDist(centre,vertex)<.01)&&delta(nearest,a)<=5?nearest:mod(Math.round(a))}
   function paint(){
    layer.replaceChildren();show.setAttribute('aria-pressed',String(active));show.classList.toggle('gd-btn--primary',active);
    for(const b of [format,flip,left,right,reset])b.hidden=!active;
@@ -934,7 +936,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    if(drag.kind==='centre')centre=snapCentre(p);else if(labDist(p,centre)>10){start=orientation(p);aligned=true}paint();
   });
   const finish=e=>{if(drag?.id===e.pointerId)drag=null};svg.addEventListener('pointerup',finish);svg.addEventListener('pointercancel',finish);svg.addEventListener('lostpointercapture',finish);
-  paint();
+  paint();return {bar,activate(){if(!active)show.click()},deactivate(){if(active)show.click()},isActive:()=>active};
  }
 
 
