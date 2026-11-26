@@ -9,7 +9,7 @@ const root=G.root;
 const tools=Array.isArray(G.toolCatalogue)?G.toolCatalogue:[];
 const SNAP=10;
 const BOARD_W=2800,BOARD_H=1800;
-const AUTO_SHRINK_HEIGHT_TOOLS=new Set(['angles','function-machine','statistics-table','number-line','place-value','abacus','array-builder','factors','fdp','clock','money','measurement','sequences']);
+const AUTO_SHRINK_HEIGHT_TOOLS=new Set(['written-methods','angles','function-machine','statistics-table','number-line','place-value','abacus','array-builder','factors','fdp','clock','money','measurement','sequences']);
 let nextId=1,selectedId=null,snapOn=true,zCounter=10,drag=null,resize=null,pan=null;
 
 const defaults={
@@ -35,6 +35,7 @@ const defaults={
   'fdp':[700,800],
   'geoboard':[650,780],
   'sequences':[840,460],
+  'written-methods':[760,650],
   'written-division':[760,820],
   'written-multiplication':[760,700],
   'column-addition':[760,600],
@@ -89,6 +90,7 @@ const QUICK_ACTIONS={
   'angles':[{label:'Challenge',selector:'[data-ag-workflow="challenge"]',allowHidden:true,panelMode:'challenge',title:'Choose a challenge'},{label:'Reveal answer',selector:'[data-board-action="reveal"]',dynamicLabel:true,title:'Reveal or hide the challenge answer'}],
   'function-machine':[{label:'Challenge',selector:'[data-fm-workflow="challenge"]',allowHidden:true,panelMode:'challenge',title:'Choose a challenge'},{label:'Reveal answer',selector:'[data-board-action="reveal"]',dynamicLabel:true,title:'Reveal or hide the challenge answer'}],
   'statistics-table':[{label:'Challenge',selector:'[data-st-workflow="challenge"]',allowHidden:true,panelMode:'challenge',title:'Choose a challenge'},{label:'Reveal answer',selector:'[data-board-action="reveal"]',dynamicLabel:true,title:'Reveal or hide the challenge answer'}],
+  'written-methods':[{label:'Challenge',selector:'[data-wm-workflow="challenge"]',allowHidden:true,panelMode:'challenge',title:'Choose a challenge'},{label:'Reveal answer',selector:'[data-board-action="reveal"]',dynamicLabel:true,title:'Reveal or hide the challenge answer'}],
   'written-division':[{label:'Challenge',selector:'[data-wm-workflow="challenge"]',allowHidden:true,panelMode:'challenge',title:'Choose a challenge'},{label:'Reveal answer',selector:'[data-board-action="reveal"]',dynamicLabel:true,title:'Reveal or hide the challenge answer'}],
   'written-multiplication':[{label:'Challenge',selector:'[data-wm-workflow="challenge"]',allowHidden:true,panelMode:'challenge',title:'Choose a challenge'},{label:'Reveal answer',selector:'[data-board-action="reveal"]',dynamicLabel:true,title:'Reveal or hide the challenge answer'}],
   'column-addition':[{label:'Challenge',selector:'[data-wm-workflow="challenge"]',allowHidden:true,panelMode:'challenge',title:'Choose a challenge'},{label:'Reveal answer',selector:'[data-board-action="reveal"]',dynamicLabel:true,title:'Reveal or hide the challenge answer'}],
@@ -155,7 +157,7 @@ function iconSvg(name){
 // named group. The catch-all protects future additions from becoming invisible.
 const paletteGroups=[
  {id:'number',label:'Number',title:'Number & place value',icon:'123',ids:['number-line','place-value','abacus','hundred-square','sequences','function-machine']},
- {id:'written',label:'Written',title:'Written calculation',icon:'▤',ids:['column-addition','column-subtraction','written-multiplication','written-division']},
+ {id:'written',label:'Written',title:'Written calculation',icon:'▤',ids:['written-methods']},
  {id:'tables',label:'Tables',title:'Multiplication & factors',icon:'▦',ids:['multiplication-grid','array-builder','times-table','factors']},
  {id:'fractions',label:'Fractions',title:'Fractions, decimals & percentages',icon:'½',ids:['fraction-wall','fdp']},
  {id:'models',label:'Models',title:'Number & equation models',icon:'⚖',ids:['bar-model','balance']},
@@ -165,7 +167,7 @@ const paletteGroups=[
 ];
 const hub=tools.find(t=>t.id==='maths-canvas');
 const assigned=new Set([...paletteGroups.flatMap(g=>g.ids),...(hub?[hub.id]:[])]);
-const ungrouped=tools.filter(t=>!assigned.has(t.id));if(ungrouped.length)paletteGroups.push({id:'other',label:'More',title:'Other tools',icon:'…',ids:ungrouped.map(t=>t.id)});
+const ungrouped=tools.filter(t=>!t.legacy&&!assigned.has(t.id));if(ungrouped.length)paletteGroups.push({id:'other',label:'More',title:'Other tools',icon:'…',ids:ungrouped.map(t=>t.id)});
 const activePaletteGroups=paletteGroups.map(g=>({...g,tools:g.ids.map(id=>tools.find(t=>t.id===id)).filter(Boolean)})).filter(g=>g.tools.length);
 function paletteIcon(id){
  const grid='M3 3h18v18H3zM9 3v18m6-18v18M3 9h18M3 15h18',ruler='m3 16 13-13 5 5L8 21zM12 7l3 3M8 11l3 3M4 15l3 3',balance='M12 4v16M5 20h14M3 8h18M6 8l-4 7h8zm12 0-4 7h8z',column='M10 4h9m-9 6h9M3 16h18m-9 4h7';
@@ -178,7 +180,7 @@ function paletteIcon(id){
  abacus:'M3 4h18v16H3zM8 4v16m4-16v16m4-16v16M3 10h18M6 7h4m0 7h4m0 3h4',
  'hundred-square':'M3 3h18v18H3zM7.5 3v18m4.5-18v18m4.5-18v18M3 7.5h18M3 12h18M3 16.5h18',
  sequences:'M3 17h4m3-4h4m3-4h4M5 7l3-3m-3 0h3v3',
- 'column-addition':column+'M3 8v6m-3-3h6','column-subtraction':column+'M1 11h5','written-multiplication':column+'M1 8l5 6m0-6-5 6',
+ 'written-methods':column,'column-addition':column+'M3 8v6m-3-3h6','column-subtraction':column+'M1 11h5','written-multiplication':column+'M1 8l5 6m0-6-5 6',
  'written-division':'M10 5h9m-9 5h12M8 10v10m3-6h8m-5 4h5M2 12h3M3.5 9v.1m0 6v.1',
  'multiplication-grid':grid+'M11 11h2v2h-2z','array-builder':'M5 5h1v1H5zM11 5h1v1h-1zM17 5h1v1h-1zM5 11h1v1H5zM11 11h1v1h-1zM17 11h1v1h-1zM5 17h1v1H5zM11 17h1v1h-1zM17 17h1v1h-1z',
  'times-table':'M4 4l5 5m0-5L4 9M14 5h7m-7 4h7M4 15h16M4 20h16',
@@ -869,7 +871,7 @@ function objectMarkup(obj,tool){
       '<button type="button" data-board-export-kind="svg" role="menuitem">SVG</button>'+
       '<button type="button" data-board-export-kind="print" role="menuitem">Print</button></div></div>'+
       (tool.id==='maths-canvas'?'<div class="gd-pub-menu-section"><button type="button" data-board-export-kind="paper-settings" role="menuitem"><span>Paper settings…</span><small>›</small></button></div>':'')+
-      (['maths-canvas','abacus','place-value','sequences','column-addition','column-subtraction','written-multiplication','written-division','function-machine','angles','statistics-table'].includes(tool.id)?'<div class="gd-pub-menu-section" data-pub-key-group hidden><span>Teacher key</span><div class="gd-pub-menu-formats"><button type="button" data-board-export-kind="key-print" role="menuitem" hidden>Print</button><button type="button" data-board-export-kind="key-copy" role="menuitem" hidden>Copy</button></div></div>':'')+
+      (['maths-canvas','abacus','place-value','sequences','written-methods','column-addition','column-subtraction','written-multiplication','written-division','function-machine','angles','statistics-table'].includes(tool.id)?'<div class="gd-pub-menu-section" data-pub-key-group hidden><span>Teacher key</span><div class="gd-pub-menu-formats"><button type="button" data-board-export-kind="key-print" role="menuitem" hidden>Print</button><button type="button" data-board-export-kind="key-copy" role="menuitem" hidden>Copy</button></div></div>':'')+
     '</div>'+
     '<div class="gd-board-quick-actions is-empty" data-board-quick-actions aria-label="'+esc(tool.title)+' quick actions"></div>'+
     '<div class="gd-board-context-menu" role="menu" aria-label="'+esc(tool.title)+' controls">'+
@@ -1050,7 +1052,7 @@ function toggleExportMenu(id){
     let supported=false;try{const model=frame.querySelector('iframe')?.contentWindow?.TT99Goodies?.lessonState.capture('abacus').model;supported=['western','suanpan','soroban'].includes(model?.kind)}catch(_){}
     frame.querySelectorAll('[data-board-export-kind$="document"]').forEach(button=>button.hidden=!supported);const group=frame.querySelector('[data-pub-document-group]');if(group)group.hidden=!supported;
   }
-  if(open&&['maths-canvas','abacus','place-value','sequences','column-addition','column-subtraction','written-multiplication','written-division','function-machine','angles','statistics-table'].includes(obj.toolId)){
+  if(open&&['maths-canvas','abacus','place-value','sequences','written-methods','column-addition','column-subtraction','written-multiplication','written-division','function-machine','angles','statistics-table'].includes(obj.toolId)){
     const doc=innerDocument(obj),active=obj.toolId!=='maths-canvas'?!!doc?.querySelector('[data-gd-direct-export="key-print"]'):!!doc?.querySelector('#gd-stage .gd-challenge-banner');
     frame?.querySelectorAll('[data-board-export-kind^="key-"]').forEach(button=>{button.hidden=!active});const group=frame?.querySelector('[data-pub-key-group]');if(group)group.hidden=!active;
   }
