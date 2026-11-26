@@ -2283,3 +2283,61 @@ html:not(.gd-embed-page) #tt99-goodies-root #gd-controls .gd-mc-five{min-height:
 /* The whiteboard delegates Reveal/Hide to its frame only when that proxy is available.
    This is a presentation flag, not the challenge's own hidden/disabled state. */
 [data-board-delegated-reveal]{display:none!important}
+
+/* One compact classroom challenge header across old and new tools.
+   Keep actual maths large; controls have equal border-box height and no
+   inherited theme margins. Touch targets remain at least 40 CSS px. */
+#tt99-goodies-root #gd-stage :is(.gd-challenge-banner,.gd-native-challenge){
+  padding:9px 12px!important;gap:5px!important;margin-bottom:9px!important;
+}
+#tt99-goodies-root #gd-stage .gd-challenge-banner .gd-challenge-copy{gap:2px}
+#tt99-goodies-root #gd-stage :is(.gd-challenge-banner,.gd-native-challenge) :is(.gd-challenge-prompt,.gd-pv-activity-head>div>strong,.gd-ab-task-head>div>strong){
+  font-size:1.08rem!important;line-height:1.28!important;
+}
+#tt99-goodies-root #gd-stage :is(.gd-challenge-banner,.gd-native-challenge) :is(.gd-challenge-actions,.gd-pv-activity-actions,.gd-ab-task-actions,.gd-pupil-response,.gd-pupil-choices){
+  align-items:center!important;align-content:center;gap:6px!important;flex-wrap:wrap;
+}
+#tt99-goodies-root #gd-stage :is(.gd-challenge-actions,.gd-pv-activity-actions,.gd-ab-task-actions){
+  margin:2px 0 0!important;
+}
+#tt99-goodies-root #gd-stage :is(.gd-challenge-banner,.gd-native-challenge) :is(.gd-challenge-action,.gd-challenge-reveal,.gd-pupil-response button,.gd-pv-activity-actions>button,.gd-ab-task-actions>button){
+  box-sizing:border-box;min-height:40px!important;height:40px!important;max-height:none!important;
+  margin:0!important;padding:0 10px!important;font-size:.9rem!important;line-height:1.15!important;
+  align-self:center;vertical-align:middle;
+}
+#tt99-goodies-root #gd-stage .gd-pupil-response{padding:5px 0 0!important}
+#tt99-goodies-root #gd-stage .gd-pupil-field{
+  display:flex;align-items:center!important;gap:6px;margin:0!important;
+  padding:0!important;font-size:.85rem!important;line-height:1.2!important;
+}
+#tt99-goodies-root #gd-stage .gd-pupil-field input{
+  display:block;box-sizing:border-box;height:40px!important;min-height:40px!important;
+  margin:0!important;padding:0 9px!important;font-size:1rem!important;line-height:normal!important;
+  align-self:center;
+}
+#tt99-goodies-root #gd-stage .gd-pupil-response [data-gd-pupil-check]{
+  align-self:center!important;min-width:64px;
+}
+#tt99-goodies-root #gd-stage :is(.gd-pupil-feedback,.gd-pupil-instruction,.gd-pupil-discuss){
+  font-size:.86rem!important;line-height:1.3!important;margin:0!important;
+}
+@media(max-width:520px){
+  #tt99-goodies-root #gd-stage :is(.gd-challenge-banner,.gd-native-challenge){padding:8px 9px!important}
+  #tt99-goodies-root #gd-stage .gd-pupil-field{flex:0 1 auto}
+  #tt99-goodies-root #gd-stage .gd-pupil-field input{width:clamp(80px,24vw,160px)}
+}
+
+/* Longer textual answers must be able to wrap rather than clip. */
+#tt99-goodies-root #gd-stage .gd-challenge-banner .gd-pupil-choices button{
+  height:auto!important;min-height:40px!important;padding:5px 10px!important;
+  white-space:normal;overflow-wrap:anywhere;max-width:100%;
+}
+#tt99-goodies-root #gd-stage :is(.nl-challenge-response,.gd-pv-activity-response,.gd-pv-activity-response label){
+  display:flex;align-items:center!important;gap:6px;margin:0!important;
+}
+#tt99-goodies-root #gd-stage :is(.nl-challenge-response,.gd-pv-activity-response) input,
+#tt99-goodies-root #gd-stage .gd-native-challenge :is(input[data-ab-answer],input[data-ab-history-answer]){
+  box-sizing:border-box;height:40px!important;min-height:40px!important;
+  margin:0!important;padding:0 9px!important;font-size:1rem!important;
+  line-height:normal!important;align-self:center;
+}

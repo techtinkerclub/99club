@@ -25,14 +25,15 @@ const tools=[
   ['angles','Angles & geometry','∠','geometry','Explore turns, measure and construct angles, and reason about angles in shapes.','Angle classification, protractors, turns, line relationships, missing angles and shape construction.',()=>G.anglesTool()],
   ['function-machine','Function machines & algebra','ƒ','operations','Explore input, output, rules and inverse operations.','Arithmetic relationships, missing numbers, formulae, linear sequences and pairs of values.',()=>G.functionMachineTool()],
   ['sequences','Sequences & rules','1…','number','Change a sequence rule and reveal terms step by step.','Teacher-led exploration of constant and changing differences, multiplication patterns and alternating rules.',sequencesTool],
+  ['written-methods','Written Methods','▤','operations','Explore all six formal written methods, including decimals.','Addition, subtraction, short and long multiplication and division with shared working grids.',()=>G.columnMethodTool('all')],
   ['column-addition','Column addition','+','operations','Model column addition with place-value exchanges and step-by-step working.','Written addition, carrying and place-value reasoning.',()=>G.columnMethodTool('addition')],
   ['written-division','Written division','÷','operations','Model short and long division with quotient digits, regrouping and remainders.','Formal written division, place-value reasoning and remainders.',()=>G.columnMethodTool('division')],
   ['written-multiplication','Written multiplication','×','operations','Teach short and long multiplication with carries and partial products.','Written multiplication, place-value shifts and addition of partial products.',()=>G.columnMethodTool('multiplication')],
   ['column-subtraction','Column subtraction','−','operations','Model column subtraction, including exchanges across zero.','Written subtraction and regrouping across place-value columns.',()=>G.columnMethodTool('subtraction')],
   ['maths-canvas','Arithmetic Hub','3+?','canvas','Arrange, combine and split draggable number and mathematical symbol tiles.','Build equations, order numbers, model number composition and create custom pupil tasks.',mathsCanvas],
-].map(([id,title,icon,cat,desc,use,build])=>({id,title,icon,cat,desc,use,build}));
+].map(([id,title,icon,cat,desc,use,build])=>({id,title,icon,cat,desc,use,build,legacy:['column-addition','column-subtraction','written-multiplication','written-division'].includes(id)}));
 const params=new URLSearchParams(location.search),embedded=params.get('embed')==='1';
-G.toolCatalogue=tools.map(({id,title,icon,cat,desc,use})=>({id,title,icon,cat,desc,use}));
+G.toolCatalogue=tools.map(({id,title,icon,cat,desc,use,legacy})=>({id,title,icon,cat,desc,use,legacy}));
 if(embedded){document.documentElement.classList.add('gd-embed-page');document.body.classList.add('gd-embed-page')}
 
 root.innerHTML=`<div class="gd-shell">
@@ -66,6 +67,7 @@ const MODE_CONTRACTS={
  randomiser:{select:'#ra-mode',hints:{dice:'Roll the dice and compare the possible outcomes.',spinner:'Spin to explore the outcomes and their chances.',number:'Generate a number within the chosen range.',card:'Draw a card from the deck.'}},
  factors:{check:'#fe-compare',choices:[['one','Explore one number'],['two','Compare two numbers']],hints:{one:'Find factor pairs that multiply to this number.',two:'Compare the factors and multiples of two numbers.'}},
  sequences:{select:'[data-seq-setting="mode"]',hints:{constant:'Add the same difference to find the next term.',increasing:'Look for a pattern in the differences.',geometric:'Multiply each term by the same number.',alternating:'Look for two differences that alternate.'}},
+ 'written-methods':{select:'[data-wm-setting="method"]',hints:{addition:'Align place values and add each column.',subtraction:'Exchange between adjacent places when needed.','short-multiplication':'Multiply each place in turn.','long-multiplication':'Calculate and add partial products.','short-division':'Divide each place and regroup the remainder.','long-division':'Divide, multiply, subtract and bring down.'}},
  'written-multiplication':{select:'[data-wm-setting="method"]',hints:{'short-multiplication':'Multiply each place in turn and carry when necessary.','long-multiplication':'Calculate partial products, then add them together.'}},
  'written-division':{select:'[data-wm-setting="method"]',hints:{'short-division':'Divide each place in turn, carrying the remainder.','long-division':'Divide, multiply, subtract and bring down the next digit.'}},
  'function-machine':{select:'#fm-stages',labels:{'1':'One-stage machine','2':'Two-stage machine'},hints:{'1':'Follow the operation to calculate the output.','2':'Follow the operations in order to calculate the output.'}},
@@ -117,7 +119,7 @@ function syncModeHint(){
  if(!show){existing?.remove();return}
  const el=existing||document.createElement('p');el.className='gd-mode-hint';if(el.textContent!==data.hint)el.textContent=data.hint;if(!existing)stage.appendChild(el);
 }
-G.modeControl={read:modeRead,set:modeSet,hint(show){modeHintVisible=!!show;syncModeHint()},contracts:()=>Object.keys(MODE_CONTRACTS),audit:()=>tools.map(t=>({id:t.id,multi:!!MODE_CONTRACTS[t.id],reason:SINGLE_PURPOSE[t.id]||''})),sourceSelectors:id=>{const s=MODE_CONTRACTS[id];return s?[s.select,s.check,s.buttons,s.prefer].filter(Boolean).join(','):''}};
+G.modeControl={read:modeRead,set:modeSet,hint(show){modeHintVisible=!!show;syncModeHint()},contracts:()=>Object.keys(MODE_CONTRACTS),audit:()=>tools.filter(t=>!t.legacy).map(t=>({id:t.id,multi:!!MODE_CONTRACTS[t.id],reason:SINGLE_PURPOSE[t.id]||''})),sourceSelectors:id=>{const s=MODE_CONTRACTS[id];return s?[s.select,s.check,s.buttons,s.prefer].filter(Boolean).join(','):''}};
 const modeObserver=new MutationObserver(()=>syncModeHint());
 modeObserver.observe(q('#gd-stage'),{childList:true,subtree:true});modeObserver.observe(q('#gd-controls'),{childList:true,subtree:true});
 
@@ -165,7 +167,7 @@ function enterWhiteboard(){
   }
   enterGenericWhiteboard();
 }
-function renderCards(){const term=search.value.trim().toLowerCase();const filtered=tools.filter(t=>(category==='all'||t.cat===category)&&(!term||`${t.title} ${t.desc} ${t.use}`.toLowerCase().includes(term)));grid.innerHTML=filtered.map(t=>`<button class="gd-tool-card" type="button" data-tool="${t.id}"><div class="gd-tool-card__top"><span class="gd-icon">${t.icon}</span><h2>${t.title}</h2></div><p>${t.desc}</p><span class="gd-tag">${CATS[t.cat]}</span></button>`).join('')||'<p class="gd-empty">No manipulatives match that search.</p>';qa('[data-tool]',grid).forEach(b=>b.addEventListener('click',()=>openTool(b.dataset.tool)))}
+function renderCards(){const term=search.value.trim().toLowerCase();const filtered=tools.filter(t=>!t.legacy&&(category==='all'||t.cat===category)&&(!term||`${t.title} ${t.desc} ${t.use}`.toLowerCase().includes(term)));grid.innerHTML=filtered.map(t=>`<button class="gd-tool-card" type="button" data-tool="${t.id}"><div class="gd-tool-card__top"><span class="gd-icon">${t.icon}</span><h2>${t.title}</h2></div><p>${t.desc}</p><span class="gd-tag">${CATS[t.cat]}</span></button>`).join('')||'<p class="gd-empty">No manipulatives match that search.</p>';qa('[data-tool]',grid).forEach(b=>b.addEventListener('click',()=>openTool(b.dataset.tool)))}
 function openTool(id){const t=tools.find(x=>x.id===id);if(!t)return;if(genericWhiteboardActive())leaveGenericWhiteboard();G.interaction?.clear();G.lessonState?.clear();currentToolId=id;lastMode=null;modeHintVisible=true;shell.classList.add('is-tool-open');q('#gd-tool-cat').textContent=CATS[t.cat];q('#gd-tool-title').textContent=t.title;q('#gd-tool-desc').textContent=t.desc;q('#gd-use').innerHTML=`<strong>Classroom use:</strong> ${t.use}`;const present=q('#gd-present');if(present)present.hidden=id==='number-line';t.build();syncModeHint();history.replaceState(null,'','#'+id);if(embedded&&window.parent!==window)window.parent.postMessage({type:'tt99-board-ready',tool:id},location.origin);window.scrollTo({top:root.getBoundingClientRect().top+scrollY-20,behavior:'smooth'})}
 function closeTool(){if(genericWhiteboardActive())exitWhiteboard();G.interaction?.clear();G.lessonState?.clear();currentToolId='';lastMode=null;shell.classList.remove('is-tool-open');history.replaceState(null,'',location.pathname+location.search);q('#gd-controls').innerHTML='';q('#gd-stage').innerHTML=''}
 q('#gd-present').addEventListener('click',enterWhiteboard);

@@ -974,7 +974,7 @@ try{
     {id:'angles',source:read('assets/99club/goodies-angles.js'),mode:'challenge'},
     {id:'function-machine',source:read('assets/99club/goodies-function-machine.js'),mode:'challenge'},
     {id:'statistics-table',source:read('assets/99club/goodies-statistics-table.js'),mode:'challenge'},
-    ...['column-addition','column-subtraction','written-multiplication','written-division'].map(id=>({id,source:read('assets/99club/goodies-column-methods.js'),mode:'challenge'})),
+    ...['written-methods','column-addition','column-subtraction','written-multiplication','written-division'].map(id=>({id,source:read('assets/99club/goodies-column-methods.js'),mode:'challenge'})),
     {id:'number-line',source:numberLine,mode:'challenge'},
     {id:'abacus',source:goodiesAbacus,fn:'abacusTool',mode:'challenge'},
     {id:'sequences',source:goodiesSequences,mode:'challenge'},

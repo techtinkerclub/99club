@@ -15,7 +15,7 @@ Use most of the available stage without clipping or excessive blank margins; SVG
 
 Mode changes use the widget's existing model. Preserve compatible content (for example the same chart data across representations); keep incompatible work separately where appropriate (for example timetable data). Mode changes that cannot preserve a model must be explicit and pedagogically sensible, not silently corrupt the lesson. Saved lessons and exports derive from the actual current model.
 
-## Catalogue audit (27 tools)
+## Catalogue audit (24 visible tools; legacy written-method IDs retained)
 
 | Tool | Primary mode or single-purpose decision |
 |---|---|
@@ -41,10 +41,7 @@ Mode changes use the widget's existing model. Preserve compatible content (for e
 | Angles & geometry | Protractor, turns, lines, angle facts, polygons, construction |
 | Function machines | One-stage or two-stage machine |
 | Sequences & rules | Sequence rule families |
-| Column addition | One written method |
-| Column subtraction | One written method |
-| Written multiplication | Short or long multiplication |
-| Written division | Short or long division |
+| Written Methods | Column addition/subtraction, short/long multiplication, short/long division |
 | Arithmetic Hub | Single arithmetic workspace; challenge families remain in Challenge |
 
 ## Release gate for new content
@@ -61,3 +58,11 @@ The composition QA checks that every catalogue item has a mode contract or a sin
 ### One reveal action
 
 Never display both a frame Reveal/Hide answer action and its native challenge button. The board delegates presentation to the frame while the selected object's proxy is available; keep the original native handler and intrinsic hidden/disabled state intact. Restore native presentation when the proxy is unavailable, the object is deselected, or the context menu hides the frame rail. Standalone tools retain their own control. Test Reveal/Hide round trips and context-menu fallback for every delegated widget.
+
+### Compact challenge headers and geometric notation
+
+Use the common compact challenge header and aligned response controls (40 CSS px border-box height for buttons and standard input fields). Remove inherited margins, keep controls centred in their row and allow wrapping on narrow screens. Keep mathematical content large rather than enlarging interface chrome. In adjacent angle sectors use distinct arc radii, conventional right-angle squares and restrained labels placed along their own angle bisector. Apply the same notation in teaching, challenges and exports.
+
+## Written Methods release gate
+
+All six methods use the same square-cell layout for teacher steps, pupil input overlays and printed working/answer diagrams. Retain the four historic IDs as loadable legacy aliases, but do not expose them as duplicate catalogue items. Generate independent worksheet blocks by method and settings; multiple blocks of the same method are allowed. Use exact scaled-integer arithmetic for decimal operands and quotient calculations. Decimal multipliers and decimal divisors are optional enrichment and not yet implemented. Rounded division currently uses final-answer assessment; complete rounded working requires a separate rounding step/response. Inspect actual desktop, touch and print output before declaring the rebuild complete.
