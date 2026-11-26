@@ -71,7 +71,7 @@ async function run(){
   assert(getComputedStyle(document.getElementById('gd-qa-theme-header')).display==='none','Mixed whiteboard hides the site masthead');
   assert(getComputedStyle(document.getElementById('gd-qa-theme-footer')).display==='none','Mixed whiteboard hides the site footer');
   const tools=[...document.querySelectorAll('[data-board-add]')];
-  assert(tools.length===27&&new Set(tools.map(button=>button.dataset.boardAdd)).size===27,'All 27 distinct manipulatives are available in the grouped palette');
+  assert(tools.length===24&&new Set(tools.map(button=>button.dataset.boardAdd)).size===24,'All 24 distinct manipulatives are available in the grouped palette');
   assert(palette.getBoundingClientRect().width<=64,'Left category rail stays narrow');
   const groups=[...palette.querySelectorAll('[data-board-group]')],picker=document.getElementById('gd-board-tool-picker');
   assert(groups.length===8&&picker.hidden,'Eight groups replace the long icon list');
@@ -612,7 +612,7 @@ async function run(){
     dialog.querySelector('[data-pub-block] [data-pub-all-types]').click();
     assert(!dialog.querySelector('[data-pub-generate]').disabled,'Selecting compatible types restores the action');
     const searchAgain=dialog.querySelector('[data-pub-search]');searchAgain.value='';searchAgain.dispatchEvent(new Event('input',{bubbles:true}));
-    assert(dialog.querySelectorAll('[data-pub-add-source]').length===27,'Clearing search restores the full catalogue');
+    assert(dialog.querySelectorAll('[data-pub-add-source]').length===24,'Clearing search restores the full catalogue');
     dialog.querySelector('[data-pub-collapse-all]').click();
     assert([...dialog.querySelectorAll('.gd-pub-source-content')].every(el=>el.hidden),'Collapse all preserves sets while hiding settings');
     const counts=dialog.querySelectorAll('[data-pub-count]');counts[0].value='1';counts[0].dispatchEvent(new Event('change',{bubbles:true}));
@@ -924,7 +924,7 @@ async function run(){
   // Shared mode picker: audit every catalogue item, dispatch real native mode
   // handlers, and preserve chart data when changing representations.
   const modeAudit=TT99Goodies.modeControl.audit();
-  assert(modeAudit.length===27&&modeAudit.every(t=>t.multi||t.reason),'Every widget declares primary modes or a single-purpose reason');
+  assert(modeAudit.length===24&&modeAudit.every(t=>t.multi||t.reason),'Every widget declares primary modes or a single-purpose reason');
   for(const item of modeAudit){
     const fixture=await addForSave(item.id),bridge=fixture.doc.defaultView.TT99Goodies.modeControl,picker=fixture.frame.querySelector('[data-board-mode-picker]'),select=picker.querySelector('select');
     const before=bridge.read();
@@ -1167,7 +1167,7 @@ async function run(){
     api.remove(fixture.record.id);
   }
   // Work directly in actual embedded written-method grids with the shared keypad.
-  for(const id of ['column-addition','column-subtraction','written-multiplication','written-division']){
+  for(const id of ['written-methods','column-addition','column-subtraction','written-multiplication','written-division']){
     const fixture=await addForSave(id),doc=fixture.doc,live=doc.defaultView.TT99Goodies,frame=fixture.frame;
     const choose=doc.querySelector('[data-wm-workflow="challenge"]');choose.click();await tick();
     doc.querySelector('[data-wm-challenge-mode]').click();await tick();
