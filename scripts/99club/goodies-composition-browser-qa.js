@@ -1194,6 +1194,26 @@ async function run(){
     {
       const model=win.TT99Goodies.angles,methods=await model.loadConstructionLibrary();
       assert(methods.length>=36,'Construction library has at least thirty-six methods');
+      {
+        const roleMap=model.INDEPENDENT_METHOD_ROLES;
+        assert(Object.keys(roleMap).length===25,'Independent checker covers 25 methods');
+        for(const [methodId,roles] of Object.entries(roleMap)){
+          const m=methods.find(m=>m.id===methodId),items=model.constructionFrame(m,m.steps.length-1);
+          for(const [rotation,scale,reflect] of [[0,1,1],[.77,1.8,1],[1.2,1.4,-1]]){
+            const st=model.labEmpty(true),assignment={},transform=p=>[500+scale*(p[0]*Math.cos(rotation)-p[1]*reflect*Math.sin(rotation)),300+scale*(p[0]*Math.sin(rotation)+p[1]*reflect*Math.cos(rotation))];
+            function index(p){const q=transform(p),i=st.points.findIndex(v=>Math.hypot(v[0]-q[0],v[1]-q[1])<1e-6);if(i>=0)return i;st.points.push(q);return st.points.length-1}
+            for(const o of items)if(o.kind==='point'&&roles.includes(o.label))assignment[o.label]=index(o.at);
+            if(methodId==='parallel-through-point')assignment.Q=index(items.find(o=>o.kind==='line'&&o.style==='result').b);
+            for(const o of items){if(o.kind==='line')st.segments.push([index(o.a),index(o.b)]);if(o.kind==='circle')st.circles.push({i:index(o.center),r:o.radius*scale})}
+            const result=model.independentConstructionCheck(st,methodId,assignment);
+            assert(result.ready&&result.correct,'Independent construction accepts exact transformed '+methodId+': '+JSON.stringify(result));
+            assert(!model.independentConstructionCheck(st,methodId,{}).ready,'Unassigned roles cannot pass '+methodId);
+            const broken=JSON.parse(JSON.stringify(st));broken.points[assignment[roles.at(-1)]]=[-5000,-4000];
+            assert(!model.independentConstructionCheck(broken,methodId,assignment).correct,'Broken construction rejected '+methodId);
+          }
+        }
+        assert(!model.independentConstructionCheck(model.labEmpty(true),'copy-angle',{}).supported,'Unsupported checks are explicitly marked unavailable');
+      }
       for(const m of methods){
         for(const publicationMode of ['exercise','instructions','illustrated']){
           const draft=P.createDocument();draft.addCurrent(id,{constructionPublication:{type:'construction-method',constructionMethod:m,publicationMode}});
@@ -1243,7 +1263,8 @@ async function run(){
       act('instructions').click();assert(!panel.querySelector('[data-ag-method-graphic]')&&panel.querySelector('[data-ag-method-step]').dataset.agMethodStep==='2','Returning to instructions preserves progress');
       act('verify').click();assert(panel.textContent.includes("Thales"),'Optional verification explains geometry');
       act('restart').click();assert(panel.querySelector('[data-ag-method-step]').dataset.agMethodStep==='-1','Restart returns to problem statement');
-      assert(JSON.stringify(cap().demo.labDrawing)===originalDrawing,'Guide never alters the actual drawing');
+            const independent=panel.querySelector('[data-ag-method-action="check-independent"]');assert(independent,'Independent method offers geometric verification');independent.click();assert(panel.querySelector('[data-ag-method-independent-feedback]').textContent.includes('Assign a distinct existing point'),'Independent checker reports missing assignments without revealing answers');
+assert(JSON.stringify(cap().demo.labDrawing)===originalDrawing,'Guide never alters the actual drawing');
       act('close').click();assert(panel.hidden,'Guide closes independently');
     }
     const work=doc.querySelector('.gd-ag-lab-canvas'),beforeView=work.viewBox.baseVal.height,beforeScale=Math.hypot(work.getScreenCTM().a,work.getScreenCTM().b);
