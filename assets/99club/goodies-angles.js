@@ -860,7 +860,7 @@ function methodPublication(data,teacher=false){
  svg.setAttribute('data-ag-method-publication',mode);
  para(m.title,24,700);para('Given: '+m.given.join('; '));para(m.objective||m.title,18,600);para('Tools: '+m.instruments.join(', '),16);
  if(mode==='exercise'){
-   if(!teacher){picture(-1,150);para('Construct your answer in the space below.',16);add('rect',{x:pad,y,width:W-2*pad,height:300,rx:3,fill:'white',stroke:'#a9b9b5','stroke-width':1,'data-ag-method-working':'1'});y+=318}
+   if(!teacher){para('Use the starting diagram and working space below. Redraw to the specified dimensions where measurements are given; the printed example is not necessarily actual size.',16);const startY=y;add('rect',{x:pad,y,width:W-2*pad,height:390,rx:3,fill:'white',stroke:'#a9b9b5','stroke-width':1,'data-ag-method-working':'1'});y+=12;picture(-1,340);y=startY+408}
    else{picture(m.steps.length-1);para('Check: '+m.checks.join('; '),17);para(m.why,16)}
  }else{
    const illustrated=mode==='illustrated';if(illustrated)picture(-1,130);
