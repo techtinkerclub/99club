@@ -8,85 +8,100 @@ const LABEL={addition:'Column addition',subtraction:'Column subtraction',multipl
 const IDS={addition:'column-addition',subtraction:'column-subtraction',multiplication:'written-multiplication',division:'written-division'};
 const EXCHANGES=[['any','Mixed'],['with','With exchanges'],['without','Without exchanges'],['across-zero','Across zero']];
 const digits=n=>String(n).split('').reverse().map(Number);
+// Shared square grid geometry, used by every renderer and every input overlay.
+// Coordinates are in SVG user units, independent of display or print scale.
+function layout(model){
+ const {a,b,method,width}=model,A=digits(a),B=digits(b),division=method.endsWith('division'),mult=method.endsWith('multiplication'),long=method.startsWith('long-'),cell=82,top=42;
+ const cols=division?A.length:mult?A.length+B.length:width+(method==='addition'?1:0);
+ const left=division?164:82,right=left+cols*cell;
+ const rows=division?(long?2+2*cols+1:3):mult&&long?7:4;
+ const bottom=top+rows*cell,W=right+(division?126:24),H=bottom+34;
+ const x=i=>division?left+(i+.5)*cell:right-(i+.5)*cell,y=row=>top+(row+.5)*cell;
+ return {cols,cell,top,left,right,bottom,rows,W,H,x,y,baseline:(row,size=46)=>y(row)+size*.34};
+}
+function gridLines(add,L){
+ for(let i=0;i<=L.cols;i++)add('line',{x1:L.left+i*L.cell,x2:L.left+i*L.cell,y1:L.top,y2:L.bottom,stroke:'#d8e3e1','stroke-width':1,'data-wm-grid':'vertical'});
+ for(let i=0;i<=L.rows;i++)add('line',{x1:L.left,x2:L.right,y1:L.top+i*L.cell,y2:L.top+i*L.cell,stroke:'#d8e3e1','stroke-width':1,'data-wm-grid':'horizontal'});
+}
 function multiplicationDiagram(model,{step=0,grid=true,labels=true,work=false}={}){
- const {a,b,method,steps}=model,A=digits(a),B=digits(b),long=method==='long-multiplication',cols=A.length+B.length,cell=90,W=Math.max(480,(cols+1)*cell+52),H=long?510:330,left=W-30-cols*cell;
+ const {a,b,method,steps}=model,A=digits(a),B=digits(b),long=method==='long-multiplication',L=layout(model),{cols,cell,W,H,left,right,x,y,baseline}=L;
  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
  const attrs=(n,a)=>{Object.entries(a).forEach(([k,v])=>n.setAttribute(k,String(v)));return n};
  attrs(svg,{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':LABEL[method]+' working'});
  function add(tag,a,text){const n=attrs(document.createElementNS('http://www.w3.org/2000/svg',tag),a);if(text!==undefined)n.textContent=String(text);svg.appendChild(n);return n}
  const text=(x,y,v,size=46,extra={})=>add('text',{x,y,'font-family':'Arial,sans-serif','font-size':size,'font-weight':600,'text-anchor':'middle',fill:'#24343b',...extra},v);
- const x=i=>left+(cols-i-.5)*cell, line=(y,strong=false)=>add('line',{x1:left-5,x2:W-28,y1:y,y2:y,stroke:strong?'#24343b':'#d8e3e1','stroke-width':strong?3:1});
+ const line=(yy,strong=false)=>add('line',{x1:left-5,x2:right+4,y1:yy,y2:yy,stroke:strong?'#24343b':'#d8e3e1','stroke-width':strong?3:1});
  const seen=steps.slice(0,Math.max(0,Math.min(steps.length,step))),current=seen.at(-1);
  add('rect',{width:W,height:H,fill:'#fff'});
  const active=current?.column??current?.sumStep?.column;
  if(!work&&active!==undefined)add('rect',{x:x(active)-cell/2+2,y:40,width:cell-4,height:H-62,rx:7,fill:'#e7f4f0'});
  if(labels)for(let i=0;i<cols;i++)text(x(i),30,['O','T','H','Th','TTh','HTh','M'][i],22,{fill:'#526970'});
- if(grid){for(let i=0;i<=cols;i++)add('line',{x1:left+i*cell,x2:left+i*cell,y1:40,y2:H-18,stroke:'#d8e3e1','stroke-width':1});for(const y of long?[40,110,180,250,315,380,440,492]:[40,110,180,250,312])line(y)}
- A.forEach((v,i)=>text(x(i),158,v,46,{'data-wm-operand':'a'}));B.forEach((v,i)=>text(x(i),225,v,46,{'data-wm-operand':'b'}));text(left-34,225,'×',40);line(246,true);
+ if(grid)gridLines(add,L);
+ A.forEach((v,i)=>text(x(i),baseline(1),v,46,{'data-wm-operand':'a'}));B.forEach((v,i)=>text(x(i),baseline(2),v,46,{'data-wm-operand':'b'}));text(left-40,baseline(2,40),'×',40);line(L.top+3*cell,true);
  const partials=[],carryRows=[];
  for(const s of seen){
    if(s.partial)partials[s.row]=s.partial;
    if(s.carries)carryRows[s.row]=s.carries;
  }
  for(let j=0;j<partials.length;j++){
-   const row=partials[j]||[];row.forEach((v,i)=>{if(v!=null)text(x(i),294+j*65,v,46,{fill:'#23675d',[long?'data-wm-partial':'data-wm-result']:j,'data-wm-column':i})});
+   const row=partials[j]||[];row.forEach((v,i)=>{if(v!=null)text(x(i),baseline(3+j),v,46,{fill:'#23675d',[long?'data-wm-partial':'data-wm-result']:j,'data-wm-column':i})});
  }
  // Show carries for the active multiplication row only; preserve final
  // partial products for the later addition rather than mixing carry systems.
  const cr=current?.type==='sum-products'?null:carryRows[current?.row??0];
- if(cr)cr.forEach((v,i)=>{if(v&&i+(current?.row??0)<cols)text(x(i+(current?.row??0)),90,v,30,{fill:'#915638','data-wm-carry':i})});
+ if(cr)cr.forEach((v,i)=>{if(v&&i+(current?.row??0)<cols)text(x(i+(current?.row??0)),baseline(0,30),v,30,{fill:'#915638','data-wm-carry':i})});
  if(long){
-   text(left-34,360,'+',34);line(378,true);
+   text(left-40,baseline(4,34),'+',34);line(L.top+5*cell,true);
    const sum=current?.type==='sum-products'?current.sumStep:null;
-   if(sum?.carries)sum.carries.forEach((v,i)=>{if(v)text(x(i),405,v,28,{fill:'#915638','data-wm-sum-carry':i})});
-   line(421);
-   if(sum?.result)sum.result.forEach((v,i)=>{if(v!=null)text(x(i),466,v,46,{fill:'#23675d','data-wm-result':i})});
+   if(sum?.carries)sum.carries.forEach((v,i)=>{if(v)text(x(i),baseline(5,28),v,28,{fill:'#915638','data-wm-sum-carry':i})});
+
+   if(sum?.result)sum.result.forEach((v,i)=>{if(v!=null)text(x(i),baseline(6),v,46,{fill:'#23675d','data-wm-result':i})});
  }
  return svg;
 }
 function divisionDiagram(model,{step=0,grid=true,labels=true,work=false}={}){
- const {a,b,method,steps}=model,long=method==='long-division',A=String(a).split(''),cols=A.length,cell=82,left=170,W=Math.max(580,left+cols*cell+150),H=long?220+cols*132:340;
+ const {a,b,method,steps}=model,long=method==='long-division',A=String(a).split(''),L=layout(model),{cols,cell,left,right,W,H,x,y,baseline}=L;
  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
  const attrs=(n,a)=>{Object.entries(a).forEach(([k,v])=>n.setAttribute(k,String(v)));return n};
  attrs(svg,{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':LABEL[method]+' working'});
  function add(tag,a,text){const n=attrs(document.createElementNS('http://www.w3.org/2000/svg',tag),a);if(text!==undefined)n.textContent=String(text);svg.appendChild(n);return n}
  const text=(x,y,v,size=43,extra={})=>add('text',{x,y,'font-family':'Arial,sans-serif','font-size':size,'font-weight':600,'text-anchor':'middle',fill:'#24343b',...extra},v);
- const x=i=>left+(i+.5)*cell,right=left+cols*cell;
+
  const line=(x1,y1,x2,y2,strong=false)=>add('line',{x1,y1,x2,y2,stroke:strong?'#24343b':'#d8e3e1','stroke-width':strong?3:1});
  const seen=steps.slice(0,Math.max(0,Math.min(steps.length,step))),current=seen.at(-1),complete=seen.length===steps.length;
  add('rect',{width:W,height:H,fill:'#fff'});
  if(!work&&current)add('rect',{x:x(current.index)-cell/2+2,y:42,width:cell-4,height:H-76,rx:6,fill:'#e7f4f0'});
  if(labels)for(let i=0;i<cols;i++)text(x(i),30,['O','T','H','Th'][cols-1-i],21,{fill:'#526970'});
- if(grid){for(let i=0;i<=cols;i++)line(left+i*cell,42,left+i*cell,H-64);for(let y=42;y<=H-64;y+=66)line(left,y,right,y)}
- text(left-45,169,b,43,{'data-wm-divisor':'1'});
- add('path',{d:'M '+(left-8)+' 188 L '+(left-8)+' 110 L '+(right+5)+' 110',fill:'none',stroke:'#24343b','stroke-width':3,'stroke-linejoin':'round'});
- A.forEach((n,i)=>text(x(i),169,n,43,{'data-wm-dividend':i}));
+ if(grid)gridLines(add,L);
+ text(left-55,baseline(1,43),b,43,{'data-wm-divisor':'1'});
+ add('path',{d:'M '+(left-8)+' '+(L.top+2*cell)+' L '+(left-8)+' '+(L.top+cell)+' L '+(right+5)+' '+(L.top+cell),fill:'none',stroke:'#24343b','stroke-width':3,'stroke-linejoin':'round'});
+ A.forEach((n,i)=>text(x(i),baseline(1,43),n,43,{'data-wm-dividend':i}));
  // Initial quotient zeros may be omitted; interior zeros must stay visible.
  const first=seen.findIndex(s=>s.digit!==0);
  for(const s of seen){
-   if((first>=0&&s.index>=first)||(complete&&s.index===cols-1))text(x(s.index),92,s.digit,43,{fill:'#23675d','data-wm-quotient':s.index});
+   if((first>=0&&s.index>=first)||(complete&&s.index===cols-1))text(x(s.index),baseline(0,43),s.digit,43,{fill:'#23675d','data-wm-quotient':s.index});
  }
  if(!long){
-   for(const s of seen)if(s.incoming)text(x(s.index)-25,134,s.incoming,25,{fill:'#915638','data-wm-remainder-carry':s.index});
+   for(const s of seen)if(s.incoming)text(x(s.index)-25,L.top+cell+21,s.incoming,25,{fill:'#915638','data-wm-remainder-carry':s.index});
  }else{
    // Start written subtraction at the first usable partial dividend.
    // Every following row is aligned with the next dividend digit.
    let row=0;
    for(const s of seen){
      if(s.index<(first<0?cols-1:first))continue;
-     const y=230+row*132;
+     const yy=baseline(2+row*2,36);
      const number=(n,yy,attr)=>String(n).split('').reverse().forEach((v,i)=>text(x(s.index-i),yy,v,36,{[attr]:s.index,'data-wm-column':s.index-i}));
-     if(row)number(s.dividend,y-64,'data-wm-partial-dividend');
-     number(s.product,y,'data-wm-div-product');
-     text(left-38,y,'−',30);
-     line(Math.max(left,x(s.index-String(s.dividend).length+1)-cell/2),y+12,x(s.index)+cell/2,y+12,true);
-     if(s===current)number(s.remainder,y+60,'data-wm-div-remainder');
+     if(row)number(s.dividend,yy-cell,'data-wm-partial-dividend');
+     number(s.product,yy,'data-wm-div-product');
+     text(left-38,yy,'−',30);
+     line(Math.max(left,x(s.index-String(s.dividend).length+1)-cell/2),L.top+(3+row*2)*cell,x(s.index)+cell/2,L.top+(3+row*2)*cell,true);
+     if(s===current)number(s.remainder,yy+cell,'data-wm-div-remainder');
      row++;
    }
  }
- text(W-70,92,'r',28,{fill:'#526970'});
- add('rect',{x:W-48,y:48,width:42,height:57,rx:4,fill:'none',stroke:'#a8bdb9','stroke-width':1.5});
- if(complete)text(W-27,89,model.remainder,30,{fill:'#23675d','data-wm-final-remainder':'1'});
+ text(W-85,baseline(0,28),'r',28,{fill:'#526970'});
+ add('rect',{x:W-65,y:L.top+12,width:54,height:58,rx:4,fill:'none',stroke:'#a8bdb9','stroke-width':1.5});
+ if(complete)text(W-38,baseline(0,30),model.remainder,30,{fill:'#23675d','data-wm-final-remainder':'1'});
  if(work)text(W/2,H-19,long?'Show each subtraction and bring down the next digit.':'Write the quotient and carried remainders.',20,{fill:'#526970'});
  return svg;
 }
@@ -96,33 +111,32 @@ function diagram(model,{step=0,grid=true,labels=true,work=false}={}){
  const {a,b,method,steps,width}=model,shown=Math.max(0,Math.min(steps.length,step)),current=steps[shown-1],A=digits(a),B=digits(b);
  // Reserve a possible extra place before showing any result; the blank grid
  // must not reveal whether the addition actually produces a carry.
- const cols=width+(method==='addition'?1:0),cell=90,W=Math.max(480,(cols+1)*cell+52),H=work?410:330,left=W-30-cols*cell;
+ const L=layout(model),{cols,cell,W,H,left,right,x,y,baseline}=L;
  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
  const attrs=(n,a)=>{Object.entries(a).forEach(([k,v])=>n.setAttribute(k,String(v)));return n};
  attrs(svg,{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':LABEL[method]+' working'});
  function add(tag,a,text){const n=attrs(document.createElementNS('http://www.w3.org/2000/svg',tag),a);if(text!==undefined)n.textContent=String(text);svg.appendChild(n);return n}
  const text=(x,y,v,size=46,extra={})=>add('text',{x,y,'font-family':'Arial,sans-serif','font-size':size,'font-weight':600,'text-anchor':'middle',fill:'#24343b',...extra},v);
- const x=i=>left+(cols-i-.5)*cell;
+
  add('rect',{width:W,height:H,fill:'#fff'});
  const active=current?.column??current?.to;
- if(!work&&active!==undefined)add('rect',{x:x(active)-cell/2+2,y:42,width:cell-4,height:258,rx:7,fill:'#e7f4f0'});
+ if(!work&&active!==undefined)add('rect',{x:x(active)-cell/2+2,y:42,width:cell-4,height:L.bottom-L.top,rx:7,fill:'#e7f4f0'});
  const placeShort=['O','T','H','Th','TTh','HTh','M','TM'];
  if(labels)for(let i=0;i<cols;i++)text(x(i),30,placeShort[i],20,{fill:'#526970','data-wm-place':i});
- if(grid)for(let i=0;i<=cols;i++)add('line',{x1:left+i*cell,x2:left+i*cell,y1:40,y2:work?365:300,stroke:'#d8e3e1','stroke-width':1});
- if(grid)for(const y of [40,110,180,250,work?365:300])add('line',{x1:left,x2:W-30,y1:y,y2:y,stroke:'#d8e3e1','stroke-width':1});
- text(left-34,225,method==='addition'?'+':'−',40);
+ if(grid)gridLines(add,L);
+ text(left-40,baseline(2,40),method==='addition'?'+':'−',40);
  for(let i=0;i<A.length;i++){
-   text(x(i),158,A[i],46,{'data-wm-operand':'a','data-wm-column':i});
+   text(x(i),baseline(1),A[i],46,{'data-wm-operand':'a','data-wm-column':i});
    if(method==='subtraction'&&current?.top&&current.top[i]!==A[i]){
-     add('line',{x1:x(i)-20,x2:x(i)+20,y1:144,y2:144,stroke:'#915638','stroke-width':3});
-     text(x(i),91,current.top[i],32,{fill:'#915638','data-wm-exchange':i});
+     add('line',{x1:x(i)-20,x2:x(i)+20,y1:y(1),y2:y(1),stroke:'#915638','stroke-width':3});
+     text(x(i),baseline(0,32),current.top[i],32,{fill:'#915638','data-wm-exchange':i});
    }
  }
- for(let i=0;i<B.length;i++)text(x(i),225,B[i],46,{'data-wm-operand':'b','data-wm-column':i});
- add('line',{x1:left-5,x2:W-28,y1:246,y2:246,stroke:'#24343b','stroke-width':3});
- if(method==='addition'&&current?.carries)current.carries.forEach((v,i)=>{if(v)text(x(i),91,v,32,{fill:'#915638','data-wm-carry':i})});
- if(current?.result)current.result.forEach((v,i)=>{if(v!==undefined&&v!==null)text(x(i),290,v,46,{fill:'#23675d','data-wm-result':i})});
- if(work)text(W/2,395,'Show exchanges above the digits.',21,{fill:'#526970'});
+ for(let i=0;i<B.length;i++)text(x(i),baseline(2),B[i],46,{'data-wm-operand':'b','data-wm-column':i});
+ add('line',{x1:left-5,x2:right+4,y1:L.top+3*cell,y2:L.top+3*cell,stroke:'#24343b','stroke-width':3});
+ if(method==='addition'&&current?.carries)current.carries.forEach((v,i)=>{if(v)text(x(i),baseline(0,32),v,32,{fill:'#915638','data-wm-carry':i})});
+ if(current?.result)current.result.forEach((v,i)=>{if(v!==undefined&&v!==null)text(x(i),baseline(3),v,46,{fill:'#23675d','data-wm-result':i})});
+ if(work)text(W/2,H-10,'Show exchanges above the digits.',21,{fill:'#526970'});
  return svg;
 }
 function printDiagram(model,options){const svg=diagram(model,options);svg.querySelectorAll('text[font-size]').forEach(n=>{if(Number(n.getAttribute('font-size'))<28)n.setAttribute('font-size','28')});return svg}
@@ -152,46 +166,46 @@ function practiceCells(model){
  const add=(id,x,y,w,h,label,expected,optional=false)=>slots.push({id,x,y,w,h,label,expected,optional});
  const short=method==='short-division',longDiv=method==='long-division';
  if(short||longDiv){
-   const cols=A.length,cell=82,left=170,W=Math.max(580,left+cols*cell+150),x=i=>left+(i+.5)*cell;
+   const L=layout(model),{cols,cell,left,W,x,y}=L;
    let first=0,prefix=0;const input=String(a).split('').map(Number);
    while(first<cols-1){prefix=prefix*10+input[first];if(prefix>=b)break;first++}
-   for(const s of steps)add('q'+s.index,x(s.index),78,64,49,'Quotient digit '+(s.index+1),s.digit,s.index<first);
+   for(const s of steps)add('q'+s.index,x(s.index),y(0),64,60,'Quotient digit '+(s.index+1),s.digit,s.index<first);
    if(short){
-     for(const s of steps.slice(1))add('carry'+s.index,x(s.index)-25,126,36,30,'Carried remainder '+(s.index+1),s.incoming,s.incoming===0);
+     for(const s of steps.slice(1))add('carry'+s.index,x(s.index)-25,L.top+cell+13,36,26,'Carried remainder '+(s.index+1),s.incoming,s.incoming===0);
    }else{
      for(let i=first;i<cols;i++){
-       const s=steps[i],row=i-first,y=230+row*132,available=Math.min(i+1,String(b).length+1);
+       const s=steps[i],row=i-first,yy=y(2+row*2),available=Math.min(i+1,String(b).length+1);
        if(row){
          const ds=digits(s.dividend);
-         for(let j=0;j<available;j++)add('dividend'+i+'-'+j,x(i-j),y-78,65,43,'Partial dividend, row '+(row+1)+', digit '+(j+1),ds[j]??0,j>=ds.length);
+         for(let j=0;j<available;j++)add('dividend'+i+'-'+j,x(i-j),yy-cell,65,60,'Partial dividend, row '+(row+1)+', digit '+(j+1),ds[j]??0,j>=ds.length);
        }
        const ds=digits(s.product);
-       for(let j=0;j<available;j++)add('product'+i+'-'+j,x(i-j),y-14,65,43,'Subtraction row '+(row+1)+', digit '+(j+1),ds[j]??0,j>=ds.length);
+       for(let j=0;j<available;j++)add('product'+i+'-'+j,x(i-j),yy,65,60,'Subtraction row '+(row+1)+', digit '+(j+1),ds[j]??0,j>=ds.length);
      }
-     const last=steps.at(-1),ds=digits(last.remainder),row=cols-1-first,y=230+row*132+60;
-     for(let j=0;j<Math.min(cols,String(b).length);j++)add('last-remainder'+j,x(cols-1-j),y-14,65,43,'Final remainder digit '+(j+1),ds[j]??0,j>=ds.length);
+     const last=steps.at(-1),ds=digits(last.remainder),row=cols-1-first,yy=y(3+row*2);
+     for(let j=0;j<Math.min(cols,String(b).length);j++)add('last-remainder'+j,x(cols-1-j),yy,65,60,'Final remainder digit '+(j+1),ds[j]??0,j>=ds.length);
    }
-   add('remainder',W-27,76,40,50,'Remainder',model.remainder);
+   add('remainder',W-38,y(0),50,60,'Remainder',model.remainder);
    return slots;
  }
- const mult=method.endsWith('multiplication'),long=method==='long-multiplication',cols=mult?A.length+B.length:width+(method==='addition'?1:0),cell=90,W=Math.max(480,(cols+1)*cell+52),left=W-30-cols*cell,x=i=>left+(cols-i-.5)*cell;
+ const mult=method.endsWith('multiplication'),long=method==='long-multiplication',L=layout(model),{cols,cell,x,y}=L;
  const expected=digits(model.answer);
- for(let i=0;i<cols;i++)add('result'+i,x(i),long?450:278,72,54,'Result '+M.place(i),expected[i]??0,i>=expected.length);
+ for(let i=0;i<cols;i++)add('result'+i,x(i),y(long?6:3),72,64,'Result '+M.place(i),expected[i]??0,i>=expected.length);
  if(method==='addition'){
-   for(let i=1;i<cols;i++){const n=model.carries[i]||0;add('carry'+i,x(i),79,58,43,'Carry into '+M.place(i),n,!n)}
+   for(let i=1;i<cols;i++){const n=model.carries[i]||0;add('carry'+i,x(i),y(0),58,54,'Carry into '+M.place(i),n,!n)}
  }else if(method==='subtraction'){
-   for(let i=0;i<A.length;i++){const n=model.exchanged[i];add('exchange'+i,x(i),79,58,43,'Regrouped '+M.place(i),n,n===A[i])}
+   for(let i=0;i<A.length;i++){const n=model.exchanged[i];add('exchange'+i,x(i),y(0),58,54,'Regrouped '+M.place(i),n,n===A[i])}
  }else if(mult){
    if(long){
      for(let r=0;r<2;r++){
        const ds=digits(model.partialProducts[r]);
-       for(let i=0;i<cols;i++)add('partial'+r+'-'+i,x(i),280+r*65,72,50,'Partial product '+(r+1)+', '+M.place(i),ds[i]??0,i>=ds.length);
+       for(let i=0;i<cols;i++)add('partial'+r+'-'+i,x(i),y(3+r),72,64,'Partial product '+(r+1)+', '+M.place(i),ds[i]??0,i>=ds.length);
      }
      const s=steps.filter(s=>s.type==='sum-products').at(-1)?.sumStep;
-     for(let i=1;i<cols;i++){const n=s?.carries?.[i]||0;add('sum-carry'+i,x(i),394,58,32,'Addition carry into '+M.place(i),n,!n)}
+     for(let i=1;i<cols;i++){const n=s?.carries?.[i]||0;add('sum-carry'+i,x(i),y(5),58,54,'Addition carry into '+M.place(i),n,!n)}
    }else{
      const s=steps.filter(s=>s.carries).at(-1);
-     for(let i=1;i<cols;i++){const n=s?.carries?.[i]||0;add('carry'+i,x(i),79,58,43,'Carry into '+M.place(i),n,!n)}
+     for(let i=1;i<cols;i++){const n=s?.carries?.[i]||0;add('carry'+i,x(i),y(0),58,54,'Carry into '+M.place(i),n,!n)}
    }
  }
  return slots;
@@ -200,7 +214,7 @@ function practiceReady(model,entries){return practiceCells(model).every(s=>s.opt
 function practiceCorrect(model,entries){return practiceCells(model).every(s=>{const v=String(entries[s.id]??'').trim();return !v?s.optional:/^\d+$/.test(v)&&Number(v)===s.expected})}
 function mountPractice(host,model,entries,onEdit,grid,labels){
  const svg=diagram(model,{grid,labels}),[, ,W,H]=svg.getAttribute('viewBox').split(' ').map(Number);
- const wrap=document.createElement('div');wrap.className='gd-wm-practice';wrap.style.maxWidth='min(100%, '+(W/H*65).toFixed(1)+'vh)';
+ const wrap=document.createElement('div');wrap.className='gd-wm-practice';wrap.style.maxWidth='100%';
  wrap.appendChild(svg);host.appendChild(wrap);
  for(const slot of practiceCells(model)){
    const el=document.createElement('input');el.className='gd-wm-cell';el.type='text';el.inputMode='none';el.autocomplete='off';el.maxLength=2;
@@ -210,7 +224,7 @@ function mountPractice(host,model,entries,onEdit,grid,labels){
  }
 }
 
-G.columnMethods={diagram,paper,practiceCells,practiceReady,practiceCorrect};
+G.columnMethods={layout,diagram,paper,practiceCells,practiceReady,practiceCorrect};
 G.columnMethodTool=function(method){
  const id=IDS[method],CK=G.challengeKit,X=G.exportTools;
  const multiply=method==='multiplication',divide=method==='division',multi=multiply||divide;
