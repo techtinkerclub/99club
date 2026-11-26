@@ -1026,6 +1026,21 @@ async function run(){
       inspectTap(1);
       assert(inspectSvg.querySelector('[data-ag-inspect-polygon]').getAttribute('points')===questionOutline,'Physical instrument operations preserve the original question');
       doc.querySelector('[data-ag-inspect="clear"]').click();assert(!overlay.children.length&&instrumentPicker.closest('.gd-ag-inspect-tools').hidden,'Clear dismisses physical instruments and contextual controls');
+      const auxiliary=inspectSvg.querySelector('[data-ag-auxiliary]');
+      doc.querySelector('[data-ag-inspect="auxiliary"]').click();inspectTap(0);inspectTap(2);
+      assert(auxiliary.querySelectorAll('[data-ag-aux-mark="segment"]').length===1,'Auxiliary diagonal can be drawn between existing vertices');
+      doc.querySelector('[data-ag-aux="circle"]').click();inspectTap(0);inspectTap(1);
+      assert(auxiliary.querySelector('[data-ag-aux-mark="circle"]'),'Auxiliary compass circle is retained');
+      doc.querySelector('[data-ag-aux="undo"]').click();assert(!auxiliary.querySelector('[data-ag-aux-mark="circle"]')&&auxiliary.querySelector('[data-ag-aux-mark="segment"]'),'Undo only removes latest auxiliary mark');
+      physicalBtn.click();assert(auxiliary.querySelector('[data-ag-aux-mark="segment"]'),'Switching to physical tools retains construction marks');
+      doc.querySelector('[data-ag-inspect="auxiliary"]').click();doc.querySelector('[data-ag-aux="erase"]').click();
+      const mid=inspectPoints[0].map((v,i)=>(v+inspectPoints[2][i])/2),v=new iw.DOMPoint(...mid).matrixTransform(inspectSvg.getScreenCTM());
+      inspectSvg.dispatchEvent(new iw.PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerType:'touch',button:0,clientX:v.x,clientY:v.y}));
+      assert(!auxiliary.querySelector('[data-ag-aux-mark]'),'Erase removes only auxiliary diagonal');
+      assert(inspectSvg.querySelector('[data-ag-inspect-polygon]').getAttribute('points')===questionOutline,'Question geometry unchanged after auxiliary construction and erase');
+      doc.querySelector('[data-ag-aux="undo"]').click();assert(auxiliary.querySelector('[data-ag-aux-mark="segment"]'),'Undo restores erased mark');
+      doc.querySelector('[data-ag-inspect="clear"]').click();assert(!auxiliary.children.length,'Clear removes auxiliary marks as well as instruments');
+
     }
     doc.querySelector('[data-ag-challenge-mode="diagonal-bisect"]').click();await tick();
     const ds=doc.querySelector('.gd-ag-visual>svg'),dp=ds.querySelector('[data-ag-inspect-polygon]').points,intersection=ds.querySelector('[data-ag-inspect-point="O"]');
