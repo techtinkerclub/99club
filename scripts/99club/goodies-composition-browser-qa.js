@@ -1124,6 +1124,21 @@ async function run(){
     opening.click();assert(opening.getAttribute('aria-pressed')==='false','Compass can be reopened for a different radius');
     tray.querySelector('[data-ag-tool="help"]').click();await tick();
     assert(!doc.querySelector('.gd-ag-lab-guide').hidden&&!doc.querySelector('.gd-ag-guide-example'),'Challenge help provides technique without worked answers');
+    {
+      const constructionModel=win.TT99Goodies.angles;
+      for(const type of ['build-midpoint','build-perpendicular','build-circle','build-asa','build-bisector','build-rhombus']){
+        for(let sample=0;sample<60;sample++){
+          const t=constructionModel.generate({type,enrichment:true}),solution=constructionModel.labSolution(t);
+          assert(constructionModel.labCheck(solution,t).correct,'Generated construction solution validates: '+type);
+          assert(solution.points.every(p=>p[0]>=0&&p[0]<=800&&p[1]>=0&&p[1]<=400),'Construction solution fits canvas: '+type);
+          assert(!constructionModel.labCheck(constructionModel.labEmpty(),t).correct,'Empty construction cannot pass: '+type);
+          const reflected=JSON.parse(JSON.stringify(solution));reflected.points=reflected.points.map(p=>[p[0],604-p[1]]);
+          assert(constructionModel.labCheck(reflected,t).correct,'Reflected construction is mathematically valid: '+type);
+        }
+        const t=constructionModel.generate({type,enrichment:true});
+        assert(constructionModel.labCheck(constructionModel.labSolution(t),t).ready,'Construction answer ready: '+type);
+      }
+    }
     for(const type of ['build-sss','build-equilateral','build-right','build-rectangle','build-square']){
       doc.querySelector('[data-ag-challenge-mode="'+type+'"]').click();await tick();
       assert(cap().task.type===type&&doc.querySelector('.gd-ag-lab-tools'),'New construction family mounts interactive lab: '+type);
