@@ -1,9 +1,9 @@
 /* Angles & geometry: common mathematical model, teaching diagrams, assessment and publishing. */
 (function(root){
 'use strict';
-const constructionLibraryUrl=new URL('geometry-construction-methods.json',document.currentScript?.src||new URL('/assets/99club/goodies-angles.js',document.baseURI)).href;
+const constructionLibraryUrl=typeof document==='undefined'?null:new URL('geometry-construction-methods.json',document.currentScript?.src||new URL('/assets/99club/goodies-angles.js',document.baseURI)).href;
 let constructionLibraryPromise=null;
-function loadConstructionLibrary(){if(!constructionLibraryPromise)constructionLibraryPromise=fetch(constructionLibraryUrl).then(r=>{if(!r.ok)throw Error('Construction library unavailable');return r.json()}).then(d=>{if(d.schemaVersion!==2||!Array.isArray(d.methods)||d.methods.some(m=>!m.steps?.length||m.graphics?.frames?.length!==m.steps.length))throw Error('Invalid construction library');return d.methods}).catch(e=>{constructionLibraryPromise=null;throw e});return constructionLibraryPromise}
+function loadConstructionLibrary(){if(!constructionLibraryUrl)return Promise.reject(Error('Construction library requires a browser'));if(!constructionLibraryPromise)constructionLibraryPromise=fetch(constructionLibraryUrl).then(r=>{if(!r.ok)throw Error('Construction library unavailable');return r.json()}).then(d=>{if(d.schemaVersion!==2||!Array.isArray(d.methods)||d.methods.some(m=>!m.steps?.length||m.graphics?.frames?.length!==m.steps.length))throw Error('Invalid construction library');return d.methods}).catch(e=>{constructionLibraryPromise=null;throw e});return constructionLibraryPromise}
 function constructionFrame(method,step=-1){const g=method.graphics;return [...g.initial,...g.frames.slice(0,Math.max(0,step+1)).flatMap(f=>f.add)]}
 function constructionMethodGraphic(method,step=-1){
  const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),add=(tag,attrs,content)=>{const el=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,v);if(content!=null)el.textContent=content;svg.append(el);return el};
