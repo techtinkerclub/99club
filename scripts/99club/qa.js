@@ -1302,6 +1302,25 @@ try {
  }
  const blocked=model.dimensionPlacement([100,100],[250,100],'4 cm',{lines:[[[100,82],[250,82]]]});
  if(!blocked||model.labelIntersectsLine(blocked.box,[100,82],[250,82]))throw Error('Dimension placement did not avoid adjacent line');
+ // Shape-preserving exploration: vary proportions without invalidating the named family.
+ const distance=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]),dot=(a,b)=>a[0]*b[0]+a[1]*b[1],sub=(a,b)=>[a[0]-b[0],a[1]-b[1]],cross=(a,b)=>a[0]*b[1]-a[1]*b[0];
+ for(const shape of ['square','rectangle','rhombus','parallelogram','trapezium','kite','equilateral','isosceles','scalene','right-triangle'])for(let i=0;i<100;i++){
+   const p=model.shapeGeometry({shapeView:shape,shapeHeight:90+i*1.9,shapeAngle:25+i*.6,shapeBaseAngle:20+i*.55});
+   if(!model.validRegion(p,p.map((_,j)=>j)))throw Error('Invalid shape '+shape);
+   const l=p.map((a,j)=>distance(a,p[(j+1)%p.length])),v=p.map((a,j)=>sub(p[(j+1)%p.length],a));
+   if(['square','rhombus','equilateral'].includes(shape)&&Math.max(...l)-Math.min(...l)>.1)throw Error('Equal sides lost '+shape);
+   if(['rectangle','square','right-triangle'].includes(shape)&&Math.abs(dot(v[0],v[v.length-1]))>.1)throw Error('Right angle lost '+shape);
+   if(['square','rectangle','parallelogram','rhombus','trapezium'].includes(shape)&&Math.abs(cross(v[0],v[2]))>.2)throw Error('Parallel sides lost '+shape);
+   if(shape==='isosceles'&&Math.abs(l[1]-l[2])>.1)throw Error('Equal legs lost');
+   if(shape==='scalene'&&l.some((x,j)=>l.some((y,k)=>j!==k&&Math.abs(x-y)<.1)))throw Error('Scalene triangle lost');
+ }
+ for(const type of ['diagonal-bisect','diagonal-perpendicular','side-count','parallel-count','shape-family','co-interior','similar-side','pythagoras'])for(let i=0;i<100;i++){
+   const d=model.generate({type,enrichment:true});
+   if(type==='co-interior'&&Number(d.answer)!==180-d.angle)throw Error('Co-interior answer');
+   if(type==='similar-side'&&Number(d.answer)!==d.factor*d.length)throw Error('Similarity answer');
+   if(type==='pythagoras'&&Number(d.answer)**2!==d.baseLength**2+d.length**2)throw Error('Pythagoras answer');
+   if(!d.prompt||!d.answer)throw Error('Empty reasoning challenge');
+ }
  const free=model.labEmpty(true);if(free.points.length||free.given!==false||model.labSnap(free,[100,100]).kind)throw Error('Free construction is not blank');
  ok('construction-lab',cases+' shape constructions plus reflected solutions, circle intersections and disabled snapping');
 }catch(e){fail('construction-lab','Geometry construction lab regression',e.stack||e.message);}
