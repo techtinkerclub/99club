@@ -1053,10 +1053,10 @@ async function run(){
     assert(!fixture.frame.querySelector('[data-pub-key-group]').hidden,'Angle teacher keys available in whiteboard');
     doc.querySelector('[data-ag-challenge-mode="shape-build"]').click();await tick();
     const labTask=cap().task,tray=doc.querySelector('.gd-ag-lab-toolbar'),tools=[...tray.querySelectorAll('.gd-ag-lab-tools button')];
-    assert(labTask.type==='shape-build'&&tools.length===9,'Construction lab opens with nine illustrated tools');
+    assert(labTask.type==='shape-build'&&tools.length===8&&!tray.querySelector('[data-ag-tool="move"]'),'Construction opens with eight paper-equivalent tools and no vertex move');
     assert(tools.every(b=>b.querySelector('svg path,svg rect,svg circle')&&b.getAttribute('aria-label')&&b.getBoundingClientRect().height>=44),'Instrument icons have accessible names and touch targets');
     assert(tray.querySelector('[data-ag-tool="segment"]').getAttribute('aria-pressed')==='true','Ruler selected initially');
-    assert(tray.querySelectorAll('.gd-ag-lab-options input:checked').length===3,'Drawing assistance options start enabled');
+    assert(tray.querySelectorAll('.gd-ag-lab-options input:checked').length===2&&!tray.querySelector('[data-ag-option="measure"]'),'Construction challenges keep snap and grid but hide numerical measurement shortcuts');
     tray.querySelector('[data-ag-tool="square30"]').click();await tick();
     assert(tray.querySelector('[data-ag-tool="square30"]').getAttribute('aria-pressed')==='true'&&!tray.querySelector('[data-ag-tool="corner"]').hidden,'Set square shows its contextual corner control');
     tray.querySelector('[data-ag-tool="segment"]').click();await tick();
@@ -1072,6 +1072,14 @@ async function run(){
     assert(!doc.querySelector('[data-gd-pupil-check]').disabled,'Completed triangle enables Check');
     tray.querySelector('[data-ag-tool="undo"]').click();await tick();
     assert(!M.labCheck(cap().lab,labTask).ready,'Illustrated Undo removes the last segment');
+    assert(labSvg.querySelectorAll('[data-ag-dimension]').length===1,'Only given baseline dimension is shown in pupil construction');
+    const fixedPoints=JSON.stringify(cap().lab.points);
+    tray.querySelector('[data-ag-tool="compass"]').click();tapLab(340,302);tapLab(580,302);
+    const opening=tray.querySelector('[data-ag-tool="compass-opening"]');assert(!opening.disabled,'Compass opening can be retained after drawing');
+    opening.click();tapLab(580,302);
+    const circles=cap().lab.circles;assert(circles.length===2&&Math.abs(circles[0].r-240)<1e-7&&circles[1].r===circles[0].r,'Compass transfers its exact opening to another centre');
+    assert(JSON.stringify(cap().lab.points)===fixedPoints,'Compass operations preserve existing points');
+    opening.click();assert(opening.getAttribute('aria-pressed')==='false','Compass can be reopened for a different radius');
     tray.querySelector('[data-ag-tool="help"]').click();await tick();
     assert(!doc.querySelector('.gd-ag-lab-guide').hidden&&!doc.querySelector('.gd-ag-guide-example'),'Challenge help provides technique without worked answers');
     for(const type of ['build-sss','build-equilateral','build-right','build-rectangle','build-square']){
@@ -1097,6 +1105,10 @@ async function run(){
     doc.querySelector('[data-ag-tool="point"]').click();
     const tapWork=(p)=>{const v=new win.DOMPoint(...p).matrixTransform(work.getScreenCTM());work.dispatchEvent(new win.PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerType:'touch',button:0,clientX:v.x,clientY:v.y}))};
     for(const p of [[150,150],[450,150],[300,350]])tapWork(p);
+    assert(!doc.querySelector('[data-ag-tool="move"]')&&!doc.querySelector('[data-ag-option="measure"]').checked,'Free construction has fixed marks and optional, initially disabled measurement annotations');
+    const beforeInk=JSON.stringify(cap().demo.labDrawing.points);
+    for(const [type,p] of [['pointerdown',[150,150]],['pointermove',[220,210]],['pointerup',[220,210]]]){const v=new win.DOMPoint(...p).matrixTransform(work.getScreenCTM());work.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerType:'touch',pointerId:31,button:0,buttons:type==='pointerup'?0:1,clientX:v.x,clientY:v.y}))}
+    assert(JSON.stringify(cap().demo.labDrawing.points)===beforeInk,'Dragging a drawn point does not move ink or create a new point');
     doc.querySelector('[data-ag-tool="shade"]').click();
     for(const p of [[150,150],[450,150],[300,350]])tapWork(p);
     [...doc.querySelectorAll('.gd-ag-lab-toolbar button')].find(b=>b.textContent==='Shade selected').click();
@@ -1106,6 +1118,8 @@ async function run(){
     doc.querySelector('[data-ag-tool="segment"]').click();
     const lineTap=p=>{const v=new win.DOMPoint(...p).matrixTransform(work.getScreenCTM());for(const type of ['pointerdown','pointerup'])work.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:21,pointerType:'touch',button:0,clientX:v.x,clientY:v.y}))};
     lineTap([150,150]);lineTap([300,350]);
+    assert(!work.querySelector('[data-ag-dimension]'),'Free construction defaults to reading actual instruments');
+    doc.querySelector('[data-ag-option="measure"]').click();await tick();
     const dim=work.querySelector('[data-ag-dimension]');assert(dim&&Math.abs(+dim.getAttribute('transform').slice(7).split(' ')[0]-Math.atan2(200,150)*180/Math.PI)<.1,'Length label rotates parallel to its sloping segment');
     const paperDimensions=P.createDocument();paperDimensions.addCurrent(id,cap());assert(P.renderItem(paperDimensions.list()[0],false).querySelector('[data-ag-dimension]'),'Published free construction retains its offset length labels');
 
