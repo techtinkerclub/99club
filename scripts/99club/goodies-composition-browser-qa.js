@@ -1117,6 +1117,8 @@ async function run(){
     const wsField=id=>doc.querySelector('[data-ag-workspace="'+id+'"]');
     wsField('format').value='A4';wsField('format').dispatchEvent(new win.Event('change',{bubbles:true}));wsField('orientation').value='landscape';wsField('grid').value='5';wsField('apply').click();await tick();
     assert(work.viewBox.baseVal.width===1188&&work.viewBox.baseVal.height===840&&Math.abs(Math.hypot(work.getScreenCTM().a,work.getScreenCTM().b)-beforeScale)<.02,'A4 workspace expands without zooming geometry');
+    work.parentElement.dispatchEvent(new win.CustomEvent('tt99-viewport-resize',{detail:{h:1000}}));await tick();
+    assert(work.viewBox.baseVal.width===1188&&work.viewBox.baseVal.height===840&&cap().demo.labDrawing.workspace.format==='A4','Viewport resize preserves paper dimensions and preset');
     const verticalGrid=[...work.querySelectorAll('[data-ag-grid]')].filter(l=>l.getAttribute('x1')===l.getAttribute('x2'));
     assert(Number(verticalGrid[1].getAttribute('x1'))-Number(verticalGrid[0].getAttribute('x1'))===20,'Five millimetre grid is exactly 20 drawing units');
     wsField('format').value='A5';wsField('apply').click();await tick();
