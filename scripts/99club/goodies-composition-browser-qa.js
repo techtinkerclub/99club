@@ -1012,6 +1012,28 @@ async function run(){
 
     fixture.frame.querySelector('[data-board-export]').click();await tick();
     assert(!fixture.frame.querySelector('[data-pub-key-group]').hidden,'Angle teacher keys available in whiteboard');
+    doc.querySelector('[data-ag-challenge-mode="shape-build"]').click();await tick();
+    const labTask=cap().task,tray=doc.querySelector('.gd-ag-lab-toolbar'),tools=[...tray.querySelectorAll('.gd-ag-lab-tools button')];
+    assert(labTask.type==='shape-build'&&tools.length===9,'Construction lab opens with nine illustrated tools');
+    assert(tools.every(b=>b.querySelector('svg path,svg rect,svg circle')&&b.getAttribute('aria-label')&&b.getBoundingClientRect().height>=44),'Instrument icons have accessible names and touch targets');
+    assert(tray.querySelector('[data-ag-tool="segment"]').getAttribute('aria-pressed')==='true','Ruler selected initially');
+    assert(tray.querySelectorAll('.gd-ag-lab-options input:checked').length===3,'Drawing assistance options start enabled');
+    tray.querySelector('[data-ag-tool="square30"]').click();await tick();
+    assert(tray.querySelector('[data-ag-tool="square30"]').getAttribute('aria-pressed')==='true'&&!tray.querySelector('[data-ag-tool="corner"]').hidden,'Set square shows its contextual corner control');
+    tray.querySelector('[data-ag-tool="segment"]').click();await tick();
+    assert(tray.querySelector('[data-ag-tool="corner"]').hidden,'Irrelevant instrument controls remain hidden');
+    const labSvg=doc.querySelector('.gd-ag-visual>svg');
+    function tapLab(x,y){
+      const p=new win.DOMPoint(x,y).matrixTransform(labSvg.getScreenCTM());
+      for(const type of ['pointerdown','pointerup'])labSvg.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:11,pointerType:'touch',button:0,buttons:type==='pointerup'?0:1,clientX:p.x,clientY:p.y}));
+    }
+    const [cx,cy]=M.polar(340,302,labTask.length*40,labTask.angle);
+    tapLab(340,302);tapLab(cx,cy);tapLab(580,302);tapLab(cx,cy);await tick();
+    assert(M.labCheck(cap().lab,labTask).correct,'Illustrated ruler remains functional and shares geometric assessment');
+    assert(!doc.querySelector('[data-gd-pupil-check]').disabled,'Completed triangle enables Check');
+    tray.querySelector('[data-ag-tool="undo"]').click();await tick();
+    assert(!M.labCheck(cap().lab,labTask).ready,'Illustrated Undo removes the last segment');
+
     api.remove(fixture.record.id);
   }
   // Function machine live exploration, reverse and shared pupil assessment.
