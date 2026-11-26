@@ -71,7 +71,7 @@ async function run(){
   assert(getComputedStyle(document.getElementById('gd-qa-theme-header')).display==='none','Mixed whiteboard hides the site masthead');
   assert(getComputedStyle(document.getElementById('gd-qa-theme-footer')).display==='none','Mixed whiteboard hides the site footer');
   const tools=[...document.querySelectorAll('[data-board-add]')];
-  assert(tools.length===26&&new Set(tools.map(button=>button.dataset.boardAdd)).size===26,'All 26 distinct manipulatives are available in the grouped palette');
+  assert(tools.length===27&&new Set(tools.map(button=>button.dataset.boardAdd)).size===27,'All 27 distinct manipulatives are available in the grouped palette');
   assert(palette.getBoundingClientRect().width<=64,'Left category rail stays narrow');
   const groups=[...palette.querySelectorAll('[data-board-group]')],picker=document.getElementById('gd-board-tool-picker');
   assert(groups.length===8&&picker.hidden,'Eight groups replace the long icon list');
@@ -612,7 +612,7 @@ async function run(){
     dialog.querySelector('[data-pub-block] [data-pub-all-types]').click();
     assert(!dialog.querySelector('[data-pub-generate]').disabled,'Selecting compatible types restores the action');
     const searchAgain=dialog.querySelector('[data-pub-search]');searchAgain.value='';searchAgain.dispatchEvent(new Event('input',{bubbles:true}));
-    assert(dialog.querySelectorAll('[data-pub-add-source]').length===26,'Clearing search restores the full catalogue');
+    assert(dialog.querySelectorAll('[data-pub-add-source]').length===27,'Clearing search restores the full catalogue');
     dialog.querySelector('[data-pub-collapse-all]').click();
     assert([...dialog.querySelectorAll('.gd-pub-source-content')].every(el=>el.hidden),'Collapse all preserves sets while hiding settings');
     const counts=dialog.querySelectorAll('[data-pub-count]');counts[0].value='1';counts[0].dispatchEvent(new Event('change',{bubbles:true}));
@@ -920,6 +920,27 @@ async function run(){
     for(let i=0;i<50&&!frame.classList.contains('is-ready');i++)await tick(40);
     assert(frame.classList.contains('is-ready'),'Lesson object is ready: '+id);await tick(50);
     return {record,frame,doc:frame.querySelector('iframe').contentDocument};
+  }
+  // Angles: live construction, exact assessment and capture of revealed work.
+  {
+    const id='angles',fixture=await addForSave(id),doc=fixture.doc,G=doc.defaultView.TT99Goodies,M=G.angles,cap=()=>G.lessonState.capture(id).model;
+    assert(doc.querySelector('#gd-stage svg'),'Angle explorer mounts a geometry diagram');
+    doc.querySelector('[data-ag-workflow="challenge"]').click();await tick();
+    doc.querySelector('[data-ag-challenge-mode="draw"]').click();await tick();
+    const t=cap().task;assert(t.type==='draw'&&doc.querySelector('[data-gd-pupil-check]').disabled,'Construction starts unanswered');
+    for(let i=0;i<Math.floor(t.angle/10);i++)doc.querySelector('[data-ag-adjust="10"]').click();
+    for(let i=0;i<t.angle%10;i++)doc.querySelector('[data-ag-adjust="1"]').click();
+    doc.querySelector('[data-gd-pupil-check]').click();await tick();
+    assert(doc.querySelector('.gd-pupil-feedback').classList.contains('is-correct'),'Constructed angle is assessed');
+    const P=TT99Goodies.publishing,draft=P.createDocument();draft.addCurrent(id,cap());
+    assert(draft.list()[0].data.mode==='angle','Published question retains geometry mode');
+    assert(P.answerSummary(draft.list()[0])===String(t.angle),'Published key retains answer');
+    const calls=[],X=G.exportTools;X.downloadSvg=svg=>calls.push(svg.textContent);X.printSvg=svg=>calls.push(svg.textContent);
+    doc.querySelector('[data-gd-direct-export="svg"]').click();await tick();doc.querySelector('[data-gd-direct-export="key-print"]').click();await tick();
+    assert(calls.length===2&&calls[0].includes('Target:')&&calls[1].includes('°'),'Direct pupil and teacher exports are connected');
+    fixture.frame.querySelector('[data-board-export]').click();await tick();
+    assert(!fixture.frame.querySelector('[data-pub-key-group]').hidden,'Angle teacher keys available in whiteboard');
+    api.remove(fixture.record.id);
   }
   // Function machine live exploration, reverse and shared pupil assessment.
   {
