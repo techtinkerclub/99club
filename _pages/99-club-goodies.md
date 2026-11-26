@@ -16,7 +16,7 @@ robots: "noindex,nofollow,noarchive"
   </article>
 </div>
 
-<link rel="stylesheet" href="/assets/99club/goodies.css?v=109&amp;build={{ site.github.build_revision | default: site.time | url_encode }}">
+<link rel="stylesheet" href="/assets/99club/goodies.css?v=110&amp;build={{ site.github.build_revision | default: site.time | url_encode }}">
 <link rel="stylesheet" href="/assets/99club/goodies-abacus.css?v=22&amp;build={{ site.github.build_revision | default: site.time | url_encode }}">
 <link rel="stylesheet" href="/assets/99club/goodies-number-mobile.css?v=1&amp;build={{ site.github.build_revision | default: site.time | url_encode }}">
 <script>window.TT99_GOODIES_BUILD = {{ site.github.build_revision | default: site.time | jsonify }};</script>
