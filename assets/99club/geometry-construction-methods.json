@@ -179,7 +179,8 @@
           }
         ]
       },
-      "objective": "Construct the midpoint and perpendicular bisector of AB."
+      "objective": "Construct the midpoint and perpendicular bisector of AB.",
+      "prerequisites": []
     },
     {
       "id": "perpendicular-at-point",
@@ -318,7 +319,8 @@
           }
         ]
       },
-      "objective": "Construct a perpendicular to l through P."
+      "objective": "Construct a perpendicular to l through P.",
+      "prerequisites": []
     },
     {
       "id": "perpendicular-from-point",
@@ -492,7 +494,10 @@
           }
         ]
       },
-      "objective": "Construct a perpendicular from P to l."
+      "objective": "Construct a perpendicular from P to l.",
+      "prerequisites": [
+        "midpoint"
+      ]
     },
     {
       "id": "angle-bisector",
@@ -662,7 +667,8 @@
           }
         ]
       },
-      "objective": "Construct the bisector of angle AOB."
+      "objective": "Construct the bisector of angle AOB.",
+      "prerequisites": []
     },
     {
       "id": "copy-angle",
@@ -877,7 +883,8 @@
           }
         ]
       },
-      "objective": "Construct a copy of angle AOB at P."
+      "objective": "Construct a copy of angle AOB at P.",
+      "prerequisites": []
     },
     {
       "id": "parallel-through-point",
@@ -1140,7 +1147,11 @@
           }
         ]
       },
-      "objective": "Construct a line through P parallel to l."
+      "objective": "Construct a line through P parallel to l.",
+      "prerequisites": [
+        "perpendicular-from-point",
+        "perpendicular-at-point"
+      ]
     },
     {
       "id": "triangle-sss",
@@ -1281,7 +1292,8 @@
           }
         ]
       },
-      "objective": "Construct triangle ABC with the three specified sides."
+      "objective": "Construct triangle ABC with the three specified sides.",
+      "prerequisites": []
     },
     {
       "id": "triangle-asa",
@@ -1422,7 +1434,8 @@
           }
         ]
       },
-      "objective": "Construct triangle ABC with the specified base and angles."
+      "objective": "Construct triangle ABC with the specified base and angles.",
+      "prerequisites": []
     },
     {
       "id": "circle-centre",
@@ -1567,7 +1580,10 @@
           }
         ]
       },
-      "objective": "Find the centre of the given circle."
+      "objective": "Find the centre of the given circle.",
+      "prerequisites": [
+        "midpoint"
+      ]
     },
     {
       "id": "tangent-at-point",
@@ -1743,7 +1759,10 @@
           }
         ]
       },
-      "objective": "Construct the tangent through T."
+      "objective": "Construct the tangent through T.",
+      "prerequisites": [
+        "perpendicular-at-point"
+      ]
     },
     {
       "id": "tangents-external-point",
@@ -1983,7 +2002,10 @@
           }
         ]
       },
-      "objective": "Construct both tangents through P."
+      "objective": "Construct both tangents through P.",
+      "prerequisites": [
+        "midpoint"
+      ]
     },
     {
       "id": "regular-hexagon",
@@ -2247,7 +2269,8 @@
           }
         ]
       },
-      "objective": "Inscribe a regular hexagon in the given circle."
+      "objective": "Inscribe a regular hexagon in the given circle.",
+      "prerequisites": []
     },
     {
       "id": "triangle-equilateral",
@@ -2380,7 +2403,8 @@
             ]
           }
         ]
-      }
+      },
+      "prerequisites": []
     },
     {
       "id": "triangle-sas",
@@ -2533,7 +2557,8 @@
             ]
           }
         ]
-      }
+      },
+      "prerequisites": []
     },
     {
       "id": "triangle-right-legs",
@@ -2761,7 +2786,8 @@
             ]
           }
         ]
-      }
+      },
+      "prerequisites": []
     },
     {
       "id": "square-on-side",
@@ -3031,7 +3057,10 @@
             ]
           }
         ]
-      }
+      },
+      "prerequisites": [
+        "perpendicular-at-point"
+      ]
     },
     {
       "id": "rectangle-sides",
@@ -3217,7 +3246,8 @@
             ]
           }
         ]
-      }
+      },
+      "prerequisites": []
     },
     {
       "id": "parallelogram-sas",
@@ -3396,7 +3426,8 @@
             ]
           }
         ]
-      }
+      },
+      "prerequisites": []
     },
     {
       "id": "triangle-circumcircle",
@@ -3642,7 +3673,10 @@
             ]
           }
         ]
-      }
+      },
+      "prerequisites": [
+        "midpoint"
+      ]
     },
     {
       "id": "triangle-incircle",
@@ -3914,7 +3948,11 @@
             ]
           }
         ]
-      }
+      },
+      "prerequisites": [
+        "angle-bisector",
+        "perpendicular-from-point"
+      ]
     },
     {
       "id": "rhombus-side-angle",
@@ -4109,7 +4147,8 @@
             ]
           }
         ]
-      }
+      },
+      "prerequisites": []
     },
     {
       "id": "isosceles-trapezium",
@@ -4319,7 +4358,11 @@
             ]
           }
         ]
-      }
+      },
+      "prerequisites": [
+        "midpoint",
+        "perpendicular-at-point"
+      ]
     },
     {
       "id": "square-in-circle",
@@ -4494,7 +4537,10 @@
             ]
           }
         ]
-      }
+      },
+      "prerequisites": [
+        "perpendicular-at-point"
+      ]
     },
     {
       "id": "regular-octagon",
@@ -4776,7 +4822,11 @@
             ]
           }
         ]
-      }
+      },
+      "prerequisites": [
+        "square-in-circle",
+        "angle-bisector"
+      ]
     },
     {
       "id": "divide-segment-thirds",
@@ -4984,7 +5034,10 @@
             ]
           }
         ]
-      }
+      },
+      "prerequisites": [
+        "parallel-through-point"
+      ]
     },
     {
       "id": "right-triangle-hypotenuse",
@@ -5130,7 +5183,10 @@
             ]
           }
         ]
-      }
+      },
+      "prerequisites": [
+        "midpoint"
+      ]
     },
     {
       "id": "triangle-centroid",
@@ -5297,7 +5353,10 @@
             ]
           }
         ]
-      }
+      },
+      "prerequisites": [
+        "midpoint"
+      ]
     },
     {
       "id": "angle-in-semicircle",
@@ -5426,6 +5485,1464 @@
                   295,
                   140
                 ],
+                "style": "result"
+              }
+            ]
+          }
+        ]
+      },
+      "prerequisites": [
+        "midpoint"
+      ]
+    },
+    {
+      "id": "triangle-orthocentre",
+      "title": "Construct the orthocentre of a triangle",
+      "category": "Triangles",
+      "given": [
+        "non-collinear triangle ABC"
+      ],
+      "instruments": [
+        "compass",
+        "straightedge"
+      ],
+      "objective": "Locate the intersection of the altitudes.",
+      "steps": [
+        "Construct the perpendicular from A to BC, meeting BC at F.",
+        "Construct the perpendicular from B to AC, meeting its line at G.",
+        "Mark the intersection of AF and BG as H.",
+        "Construct the perpendicular from C to AB to check that it passes through H."
+      ],
+      "why": "The three altitudes of any non-degenerate triangle concur at its orthocentre.",
+      "checks": [
+        "AF perpendicular to BC",
+        "BG perpendicular to AC",
+        "Third altitude passes through H"
+      ],
+      "conditions": "For an obtuse triangle extend the side lines; H may lie outside the triangle.",
+      "prerequisites": [
+        "perpendicular-from-point"
+      ],
+      "graphics": {
+        "viewBox": [
+          0,
+          0,
+          400,
+          280
+        ],
+        "initial": [
+          {
+            "kind": "line",
+            "a": [
+              180,
+              65
+            ],
+            "b": [
+              90,
+              210
+            ],
+            "style": "given"
+          },
+          {
+            "kind": "line",
+            "a": [
+              90,
+              210
+            ],
+            "b": [
+              310,
+              210
+            ],
+            "style": "given"
+          },
+          {
+            "kind": "line",
+            "a": [
+              310,
+              210
+            ],
+            "b": [
+              180,
+              65
+            ],
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              180,
+              65
+            ],
+            "label": "A",
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              90,
+              210
+            ],
+            "label": "B",
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              310,
+              210
+            ],
+            "label": "C",
+            "style": "given"
+          }
+        ],
+        "frames": [
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  180,
+                  65
+                ],
+                "b": [
+                  180,
+                  210
+                ],
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  180,
+                  210
+                ],
+                "label": "F",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  90,
+                  210
+                ],
+                "b": [
+                  211.96440342781807,
+                  100.65260382333554
+                ],
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  211.96440342781807,
+                  100.65260382333554
+                ],
+                "label": "G",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "point",
+                "at": [
+                  180,
+                  129.31034482758622
+                ],
+                "label": "H",
+                "style": "result"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  310,
+                  210
+                ],
+                "b": [
+                  151.1845493562232,
+                  111.42489270386267
+                ],
+                "style": "result"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "golden-section",
+      "title": "Divide a segment in the golden ratio",
+      "category": "Lines and points",
+      "given": [
+        "segment AB"
+      ],
+      "instruments": [
+        "compass",
+        "straightedge"
+      ],
+      "objective": "Find G on AB such that AB / AG = AG / GB.",
+      "steps": [
+        "Construct the midpoint M of AB.",
+        "At B construct a perpendicular to AB. Mark C on it with BC = AM.",
+        "Join A to C.",
+        "With centre C and radius CB, mark F on CA.",
+        "With centre A and radius AF, mark G on AB."
+      ],
+      "why": "If AB = 1, AF = √(1 + 1/4) − 1/2 = (√5 − 1)/2. This is the reciprocal of the golden ratio.",
+      "checks": [
+        "AB / AG = AG / GB",
+        "G lies strictly between A and B"
+      ],
+      "conditions": "Choose F on the segment CA, not beyond C.",
+      "prerequisites": [
+        "midpoint",
+        "perpendicular-at-point"
+      ],
+      "graphics": {
+        "viewBox": [
+          0,
+          0,
+          400,
+          280
+        ],
+        "initial": [
+          {
+            "kind": "line",
+            "a": [
+              90,
+              200
+            ],
+            "b": [
+              290,
+              200
+            ],
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              90,
+              200
+            ],
+            "label": "A",
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              290,
+              200
+            ],
+            "label": "B",
+            "style": "given"
+          }
+        ],
+        "frames": [
+          {
+            "add": [
+              {
+                "kind": "point",
+                "at": [
+                  190,
+                  200
+                ],
+                "label": "M",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  290,
+                  200
+                ],
+                "b": [
+                  290,
+                  100
+                ],
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  290,
+                  200
+                ],
+                "radius": 100,
+                "start": -108,
+                "end": -72,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  290,
+                  100
+                ],
+                "label": "C",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  90,
+                  200
+                ],
+                "b": [
+                  290,
+                  100
+                ],
+                "style": "construction"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "arc",
+                "center": [
+                  290,
+                  100
+                ],
+                "radius": 100,
+                "start": 135.43494882292202,
+                "end": 171.43494882292202,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  200.5572809000084,
+                  144.72135954999578
+                ],
+                "label": "F",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "arc",
+                "center": [
+                  90,
+                  200
+                ],
+                "radius": 123.60679774997897,
+                "start": -18,
+                "end": 18,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  213.60679774997897,
+                  200
+                ],
+                "label": "G",
+                "style": "result"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "regular-pentagon",
+      "title": "Inscribe a regular pentagon in a circle",
+      "category": "Polygons",
+      "given": [
+        "circle with centre O"
+      ],
+      "instruments": [
+        "compass",
+        "straightedge"
+      ],
+      "objective": "Construct five equally spaced vertices with a compass and straightedge.",
+      "steps": [
+        "Draw horizontal diameter LR and vertical radius OA, perpendicular to LR.",
+        "Construct M, the midpoint of OR.",
+        "With centre M and radius MA, draw an arc meeting the horizontal diameter on the left of O at K.",
+        "Set the compass opening to AK. Step this chord around the circumference from A to mark B, C, D and E.",
+        "Join the five vertices in order."
+      ],
+      "why": "The midpoint-and-arc construction gives AK = 2r sin 36°, the exact side of the inscribed regular pentagon.",
+      "checks": [
+        "Five equal sides",
+        "All vertices on the circle",
+        "Central angles 72°"
+      ],
+      "conditions": "Use the intersection K on the left of O, not the other arc intersection.",
+      "prerequisites": [
+        "midpoint",
+        "perpendicular-at-point"
+      ],
+      "graphics": {
+        "viewBox": [
+          0,
+          0,
+          400,
+          280
+        ],
+        "initial": [
+          {
+            "kind": "circle",
+            "center": [
+              200,
+              140
+            ],
+            "radius": 100,
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              200,
+              140
+            ],
+            "label": "O",
+            "style": "given"
+          }
+        ],
+        "frames": [
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  100,
+                  140
+                ],
+                "b": [
+                  300,
+                  140
+                ],
+                "style": "construction"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  200,
+                  140
+                ],
+                "b": [
+                  200,
+                  40
+                ],
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  100,
+                  140
+                ],
+                "label": "L",
+                "style": "given"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  300,
+                  140
+                ],
+                "label": "R",
+                "style": "given"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  200,
+                  40
+                ],
+                "label": "A",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "point",
+                "at": [
+                  250,
+                  140
+                ],
+                "label": "M",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "arc",
+                "center": [
+                  250,
+                  140
+                ],
+                "radius": 111.80339887498948,
+                "start": 162,
+                "end": 198,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  138.19660112501052,
+                  140
+                ],
+                "label": "K",
+                "style": "given"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  200,
+                  40
+                ],
+                "b": [
+                  138.19660112501052,
+                  140
+                ],
+                "style": "construction"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "arc",
+                "center": [
+                  200,
+                  40
+                ],
+                "radius": 117.55705045849463,
+                "start": 26,
+                "end": 46,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  295.10565162951536,
+                  109.09830056250526
+                ],
+                "label": "B",
+                "style": "given"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  295.10565162951536,
+                  109.09830056250526
+                ],
+                "radius": 117.55705045849463,
+                "start": 98.00000000000001,
+                "end": 118.00000000000001,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  258.7785252292473,
+                  220.90169943749476
+                ],
+                "label": "C",
+                "style": "given"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  258.7785252292473,
+                  220.90169943749476
+                ],
+                "radius": 117.55705045849463,
+                "start": 170,
+                "end": 190,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  141.2214747707527,
+                  220.90169943749476
+                ],
+                "label": "D",
+                "style": "given"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  141.2214747707527,
+                  220.90169943749476
+                ],
+                "radius": 117.55705045849463,
+                "start": -118,
+                "end": -98,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  104.89434837048465,
+                  109.09830056250523
+                ],
+                "label": "E",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  200,
+                  40
+                ],
+                "b": [
+                  295.10565162951536,
+                  109.09830056250526
+                ],
+                "style": "result"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  295.10565162951536,
+                  109.09830056250526
+                ],
+                "b": [
+                  258.7785252292473,
+                  220.90169943749476
+                ],
+                "style": "result"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  258.7785252292473,
+                  220.90169943749476
+                ],
+                "b": [
+                  141.2214747707527,
+                  220.90169943749476
+                ],
+                "style": "result"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  141.2214747707527,
+                  220.90169943749476
+                ],
+                "b": [
+                  104.89434837048465,
+                  109.09830056250523
+                ],
+                "style": "result"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  104.89434837048465,
+                  109.09830056250523
+                ],
+                "b": [
+                  200,
+                  40
+                ],
+                "style": "result"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "common-external-tangents",
+      "title": "Construct common external tangents to two circles",
+      "category": "Circles",
+      "given": [
+        "two disjoint circles with centres O and P",
+        "radii R > r"
+      ],
+      "instruments": [
+        "compass",
+        "straightedge"
+      ],
+      "objective": "Construct the two common tangents not crossing OP.",
+      "steps": [
+        "Draw OP and construct its midpoint M.",
+        "Draw an auxiliary circle centred at O with radius R − r.",
+        "Draw the circle with diameter OP. Mark its intersections X₁ and X₂ with the auxiliary circle.",
+        "Extend OX₁ and OX₂ to meet the original circle at T₁ and T₂.",
+        "Through P construct lines parallel to OT₁ and OT₂. Mark U₁ and U₂ on the same side of P as the corresponding radius from O.",
+        "Join T₁ to U₁ and T₂ to U₂."
+      ],
+      "why": "The auxiliary tangents are perpendicular to the radii. Offsetting by the smaller radius gives the two common external tangents.",
+      "checks": [
+        "Each tangent perpendicular to both contact radii",
+        "Each contact point lies on its circle"
+      ],
+      "conditions": "This method assumes R > r and disjoint circles. Equal radii use parallel lines perpendicular to OP at their contact radii.",
+      "prerequisites": [
+        "midpoint",
+        "parallel-through-point",
+        "tangents-external-point"
+      ],
+      "graphics": {
+        "viewBox": [
+          0,
+          0,
+          400,
+          280
+        ],
+        "initial": [
+          {
+            "kind": "circle",
+            "center": [
+              105,
+              140
+            ],
+            "radius": 65,
+            "style": "given"
+          },
+          {
+            "kind": "circle",
+            "center": [
+              295,
+              140
+            ],
+            "radius": 30,
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              105,
+              140
+            ],
+            "label": "O",
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              295,
+              140
+            ],
+            "label": "P",
+            "style": "given"
+          }
+        ],
+        "frames": [
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  105,
+                  140
+                ],
+                "b": [
+                  295,
+                  140
+                ],
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  200,
+                  140
+                ],
+                "label": "M",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "circle",
+                "center": [
+                  105,
+                  140
+                ],
+                "radius": 35,
+                "style": "construction"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "circle",
+                "center": [
+                  200,
+                  140
+                ],
+                "radius": 95,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  111.44736842105263,
+                  105.5989616371364
+                ],
+                "label": "X1",
+                "style": "given"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  111.44736842105263,
+                  174.4010383628636
+                ],
+                "label": "X2",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  105,
+                  140
+                ],
+                "b": [
+                  116.97368421052632,
+                  76.11235732611044
+                ],
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  116.97368421052632,
+                  76.11235732611044
+                ],
+                "label": "T1",
+                "style": "given"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  105,
+                  140
+                ],
+                "b": [
+                  116.97368421052632,
+                  203.88764267388956
+                ],
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  116.97368421052632,
+                  203.88764267388956
+                ],
+                "label": "T2",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  295,
+                  140
+                ],
+                "b": [
+                  300.5263157894737,
+                  110.51339568897406
+                ],
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  300.5263157894737,
+                  110.51339568897406
+                ],
+                "label": "U1",
+                "style": "given"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  295,
+                  140
+                ],
+                "b": [
+                  300.5263157894737,
+                  169.48660431102596
+                ],
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  300.5263157894737,
+                  169.48660431102596
+                ],
+                "label": "U2",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  116.97368421052632,
+                  76.11235732611044
+                ],
+                "b": [
+                  300.5263157894737,
+                  110.51339568897406
+                ],
+                "style": "result"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  116.97368421052632,
+                  203.88764267388956
+                ],
+                "b": [
+                  300.5263157894737,
+                  169.48660431102596
+                ],
+                "style": "result"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "common-internal-tangents",
+      "title": "Construct common internal tangents to two circles",
+      "category": "Circles",
+      "given": [
+        "two disjoint circles with centres O and P",
+        "radii R > r"
+      ],
+      "instruments": [
+        "compass",
+        "straightedge"
+      ],
+      "objective": "Construct the two common tangents crossing OP.",
+      "steps": [
+        "Draw OP and construct its midpoint M.",
+        "Draw an auxiliary circle centred at O with radius R + r.",
+        "Draw the circle with diameter OP. Mark its intersections X₁ and X₂ with the auxiliary circle.",
+        "Extend OX₁ and OX₂ to meet the original circle at T₁ and T₂.",
+        "Through P construct lines parallel to OT₁ and OT₂. Mark U₁ and U₂ on the opposite side of P as the corresponding radius from O.",
+        "Join T₁ to U₁ and T₂ to U₂."
+      ],
+      "why": "The auxiliary tangents are perpendicular to the radii. Offsetting by the smaller radius gives the two common internal tangents.",
+      "checks": [
+        "Each tangent perpendicular to both contact radii",
+        "Each contact point lies on its circle"
+      ],
+      "conditions": "OP must be greater than R + r for two distinct internal tangents.",
+      "prerequisites": [
+        "midpoint",
+        "parallel-through-point",
+        "tangents-external-point"
+      ],
+      "graphics": {
+        "viewBox": [
+          0,
+          0,
+          400,
+          280
+        ],
+        "initial": [
+          {
+            "kind": "circle",
+            "center": [
+              105,
+              140
+            ],
+            "radius": 65,
+            "style": "given"
+          },
+          {
+            "kind": "circle",
+            "center": [
+              295,
+              140
+            ],
+            "radius": 30,
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              105,
+              140
+            ],
+            "label": "O",
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              295,
+              140
+            ],
+            "label": "P",
+            "style": "given"
+          }
+        ],
+        "frames": [
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  105,
+                  140
+                ],
+                "b": [
+                  295,
+                  140
+                ],
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  200,
+                  140
+                ],
+                "label": "M",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "circle",
+                "center": [
+                  105,
+                  140
+                ],
+                "radius": 95,
+                "style": "construction"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "circle",
+                "center": [
+                  200,
+                  140
+                ],
+                "radius": 95,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  152.5,
+                  57.727586640478336
+                ],
+                "label": "X1",
+                "style": "given"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  152.5,
+                  222.27241335952166
+                ],
+                "label": "X2",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  105,
+                  140
+                ],
+                "b": [
+                  137.5,
+                  83.7083487540115
+                ],
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  137.5,
+                  83.7083487540115
+                ],
+                "label": "T1",
+                "style": "given"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  105,
+                  140
+                ],
+                "b": [
+                  137.5,
+                  196.2916512459885
+                ],
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  137.5,
+                  196.2916512459885
+                ],
+                "label": "T2",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  295,
+                  140
+                ],
+                "b": [
+                  280,
+                  165.98076211353316
+                ],
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  280,
+                  165.98076211353316
+                ],
+                "label": "U1",
+                "style": "given"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  295,
+                  140
+                ],
+                "b": [
+                  280,
+                  114.01923788646684
+                ],
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  280,
+                  114.01923788646684
+                ],
+                "label": "U2",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  137.5,
+                  83.7083487540115
+                ],
+                "b": [
+                  280,
+                  165.98076211353316
+                ],
+                "style": "result"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  137.5,
+                  196.2916512459885
+                ],
+                "b": [
+                  280,
+                  114.01923788646684
+                ],
+                "style": "result"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "two-distance-locus",
+      "title": "Locate points at fixed distances from two points",
+      "category": "Loci",
+      "given": [
+        "points A and B",
+        "distance AP and BP both equal to r"
+      ],
+      "instruments": [
+        "compass",
+        "straightedge"
+      ],
+      "objective": "Find all possible positions P satisfying both distance conditions.",
+      "steps": [
+        "Set the compass to the specified distance AP and draw a circle centred at A.",
+        "Set the compass to the specified distance BP and draw a circle centred at B.",
+        "Label every intersection of the two circles."
+      ],
+      "why": "A circle is the locus of points at a fixed distance from its centre. Intersections satisfy both conditions.",
+      "checks": [
+        "Each solution is at the required distance from A and B"
+      ],
+      "conditions": "Depending on the distances there can be two, one or no solutions. Coincident circles have infinitely many.",
+      "prerequisites": [],
+      "graphics": {
+        "viewBox": [
+          0,
+          0,
+          400,
+          280
+        ],
+        "initial": [
+          {
+            "kind": "point",
+            "at": [
+              115,
+              190
+            ],
+            "label": "A",
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              285,
+              190
+            ],
+            "label": "B",
+            "style": "given"
+          }
+        ],
+        "frames": [
+          {
+            "add": [
+              {
+                "kind": "circle",
+                "center": [
+                  115,
+                  190
+                ],
+                "radius": 110,
+                "style": "construction"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "circle",
+                "center": [
+                  285,
+                  190
+                ],
+                "radius": 110,
+                "style": "construction"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "point",
+                "at": [
+                  200,
+                  120.17879978115529
+                ],
+                "label": "P₁",
+                "style": "result"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  200,
+                  259.8212002188447
+                ],
+                "label": "P₂",
+                "style": "result"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "equidistant-fixed-radius-locus",
+      "title": "Intersect a perpendicular bisector and a circle",
+      "category": "Loci",
+      "given": [
+        "points A and B",
+        "circle centred at M, midpoint of AB"
+      ],
+      "instruments": [
+        "compass",
+        "straightedge"
+      ],
+      "objective": "Find the points on the given circle equidistant from A and B.",
+      "steps": [
+        "Construct the midpoint M and perpendicular bisector of AB.",
+        "Draw the given circle centred at M with its specified radius.",
+        "Mark both intersections of the perpendicular bisector and circle as P and Q."
+      ],
+      "why": "The perpendicular bisector contains all points equidistant from A and B. The circle fixes distance from M.",
+      "checks": [
+        "AP = BP",
+        "AQ = BQ",
+        "MP = MQ = given radius"
+      ],
+      "conditions": "The radius must be positive.",
+      "prerequisites": [
+        "midpoint"
+      ],
+      "graphics": {
+        "viewBox": [
+          0,
+          0,
+          400,
+          280
+        ],
+        "initial": [
+          {
+            "kind": "line",
+            "a": [
+              105,
+              140
+            ],
+            "b": [
+              295,
+              140
+            ],
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              105,
+              140
+            ],
+            "label": "A",
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              295,
+              140
+            ],
+            "label": "B",
+            "style": "given"
+          }
+        ],
+        "frames": [
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  200,
+                  25
+                ],
+                "b": [
+                  200,
+                  255
+                ],
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  200,
+                  140
+                ],
+                "label": "M",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "circle",
+                "center": [
+                  200,
+                  140
+                ],
+                "radius": 75,
+                "style": "construction"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "point",
+                "at": [
+                  200,
+                  65
+                ],
+                "label": "P",
+                "style": "result"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  200,
+                  215
+                ],
+                "label": "Q",
                 "style": "result"
               }
             ]
