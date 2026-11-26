@@ -1696,21 +1696,17 @@ function measurementTool(){
     };
   }
   function ticksForScale(scale){
-    let ticks='';
-    if(scale==='imperial'){
-      for(let i=0;i<=192;i++){
-        const p=i/192*100,h=i%16===0?55:i%8===0?45:i%4===0?35:i%2===0?28:21;
-        ticks+='<span class="gd-ruler-tick" style="left:'+p+'%;height:'+h+'px"></span>';
-        if(i%16===0)ticks+='<span class="gd-ruler-num" style="left:'+p+'%">'+(i/16)+'</span>';
-      }
-      return ticks;
+    const imperial=scale==='imperial',count=imperial?192:300,majorStep=imperial?16:10;
+    // A single vector scale avoids individually rounded CSS boxes when a
+    // whiteboard object is enlarged or shrunk. Use identical stroke weight
+    // at every graduation, with length alone indicating its denomination.
+    let marks='',labels='';
+    for(let i=0;i<=count;i++){
+      const x=i/count*1000,major=i%majorStep===0,h=major?52:imperial?(i%8===0?40:i%4===0?31:i%2===0?23:15):i%5===0?33:17;
+      marks+='<line class="gd-ruler-tick" data-me-division="'+i+'" x1="'+x+'" x2="'+x+'" y1="'+(56-h)+'" y2="56" vector-effect="non-scaling-stroke" stroke="#344b52" stroke-width="1" stroke-linecap="butt"/>';
+      if(major)labels+='<span class="gd-ruler-num" style="left:'+(i/count*100)+'%">'+(i/majorStep)+'</span>';
     }
-    for(let i=0;i<=300;i++){
-      const p=i/300*100,h=i%10===0?55:i%5===0?35:22;
-      ticks+='<span class="gd-ruler-tick" style="left:'+p+'%;height:'+h+'px"></span>';
-      if(i%10===0)ticks+='<span class="gd-ruler-num" style="left:'+p+'%">'+(i/10)+'</span>';
-    }
-    return ticks;
+    return '<svg class="gd-ruler-scale-svg" viewBox="0 0 1000 56" preserveAspectRatio="none" aria-hidden="true" focusable="false">'+marks+'</svg>'+labels+'<span class="gd-ruler-unit">'+(imperial?'in':'cm')+'</span>';
   }
   function rulerCardMarkup(index,state){
     const primary=index===0,imperial=state.scale==='imperial',maximum=maxCm(state.scale),hidden=primary&&readoutHidden(),frozen=primary&&markerFrozen();
