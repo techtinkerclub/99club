@@ -58,13 +58,83 @@ function challengeConstructionMethod(method,task){
  const xs=bounds.map(p=>p[0]),ys=bounds.map(p=>p[1]),x=Math.min(...xs)-28,y=Math.min(...ys)-28,w=Math.max(...xs)-x+28,h=Math.max(...ys)-y+28;
  return {...method,challengeSpecific:true,objective:task.prompt,given:type==='build-circle'?['centre A','radius '+fmt(length)+' cm']:['AB = 6 cm'],steps,checks:[task.answer||method.checks.join('; ')],graphics:{viewBox:[x,y,w,h],initial,frames}};
 }
+// Independent construction checks use explicitly assigned point roles, never
+// a pixel comparison with the illustrated example. Length tolerance 0.15 cm;
+ // angular tolerance 2 degrees. No claim is made about the tool sequence.
+const INDEPENDENT_METHOD_ROLES={
+ midpoint:['A','B','M'],
+ 'perpendicular-at-point':['A','B','P','X'],
+ 'perpendicular-from-point':['A','B','P','F'],
+ 'angle-bisector':['A','O','B','Z'],
+ 'parallel-through-point':['A','B','P','Q'],
+ 'triangle-equilateral':['A','B','C'],
+ 'square-on-side':['A','B','C','D'],
+ 'rectangle-sides':['A','B','C','D'],
+ 'parallelogram-sas':['A','B','C','D'],
+ 'rhombus-side-angle':['A','B','C','D'],
+ 'isosceles-trapezium':['A','B','C','D'],
+ 'circle-centre':['A','B','C','O'],
+ 'tangent-at-point':['O','T','X'],
+ 'tangents-external-point':['O','P','T₁','T₂'],
+ 'regular-hexagon':['O','A','B','C','D','E','F'],
+ 'square-in-circle':['O','A','B','C','D'],
+ 'regular-octagon':['O','A','B','C','D','E','F','G','H'],
+ 'regular-pentagon':['O','A','B','C','D','E'],
+ 'triangle-circumcircle':['A','B','C','O'],
+ 'triangle-incircle':['A','B','C','I','F'],
+ 'divide-segment-thirds':['A','B','P','Q'],
+ 'golden-section':['A','B','G'],
+ 'triangle-centroid':['A','B','C','G'],
+ 'triangle-orthocentre':['A','B','C','H'],
+ 'angle-in-semicircle':['A','B','T']
+};
+function independentConstructionCheck(st,id,assignment){
+ const roles=INDEPENDENT_METHOD_ROLES[id];if(!roles)return {supported:false,ready:false,correct:false,checks:[]};
+ const ids=roles.map(k=>assignment[k]);if(ids.some(i=>!Number.isInteger(i)||!st.points[i])||new Set(ids).size!==ids.length)return {supported:true,ready:false,correct:false,checks:[]};
+ const p=Object.fromEntries(roles.map((k,i)=>[k,st.points[ids[i]]])),{A,B,C,D:Q,O,M,P:U,F,G,H,I,T,X,Z}=p,checks=[],eps=6;
+ const d=labDist,v=labSub,dot=labDot,cross=labCross,near=(a,b)=>Math.abs(a-b)<=eps;
+ const angle=(a,b)=>Math.acos(Math.max(-1,Math.min(1,dot(a,b)/(Math.hypot(...a)*Math.hypot(...b)))))/D;
+ const lineDist=(q,a,b)=>d(a,b)>eps?Math.abs(cross(v(b,a),v(q,a)))/d(a,b):Infinity;
+ const perp=(a,b)=>Math.hypot(...a)>eps&&Math.hypot(...b)>eps&&Math.abs(angle(a,b)-90)<=2;
+ const parallel=(a,b)=>Math.hypot(...a)>eps&&Math.hypot(...b)>eps&&Math.min(angle(a,b),180-angle(a,b))<=2;
+ const segment=(a,b)=>d(a,b)>eps&&labLines(st).some(l=>lineDist(a,l.a,l.ray?labAt(l.a,l.v,100):l.b)<=eps&&lineDist(b,l.a,l.ray?labAt(l.a,l.v,100):l.b)<=eps&&[a,b].every(q=>{const t=dot(v(q,l.a),l.v)/dot(l.v,l.v);return t>=-eps/Math.hypot(...l.v)&&(l.ray||t<=1+eps/Math.hypot(...l.v))}));
+ const onSegment=(q,a,b)=>lineDist(q,a,b)<=eps&&dot(v(q,a),v(b,a))>=0&&dot(v(q,b),v(a,b))>=0;
+ const circle=(o,r)=>r>eps&&st.circles.some(c=>st.points[c.i]&&d(st.points[c.i],o)<=eps&&near(c.r,r));
+ const test=(label,ok)=>checks.push({label,ok:!!ok});
+ const polygon=pts=>{test('All sides are drawn',pts.every((a,i)=>segment(a,pts[(i+1)%pts.length])));test('Shape is non-degenerate and does not cross itself',validRegion(pts,pts.map((_,i)=>i)))};
+ const triangle=()=>{test('Triangle has three non-collinear vertices',lineDist(C,A,B)>eps);polygon([A,B,C])};
+ if(id==='midpoint'){test('M lies halfway along AB',d(M,labAt(A,v(B,A),.5))<=eps&&d(A,B)>2*eps);test('AB is drawn',segment(A,B))}
+ else if(id==='perpendicular-at-point'||id==='perpendicular-from-point'){
+   const from=id==='perpendicular-at-point'?U:F,to=id==='perpendicular-at-point'?X:U;
+   test('Reference line AB is drawn',segment(A,B));test('Foot lies on the line AB',lineDist(from,A,B)<=eps);test('Constructed line is perpendicular',perp(v(B,A),v(to,from)));test('Perpendicular is drawn',segment(from,to));
+ }else if(id==='angle-bisector'){
+   const a=v(A,O),b=v(B,O),z=v(Z,O),ab=angle(a,b),az=angle(a,z),zb=angle(z,b);test('Both angle arms are drawn',segment(O,A)&&segment(O,B));test('Bisector is inside the angle and divides it equally',ab>4&&ab<176&&Math.abs(az-zb)<=2&&Math.abs(az+zb-ab)<=2);test('Bisector is drawn',segment(O,Z));
+ }else if(id==='parallel-through-point'){test('Reference line AB is drawn',segment(A,B));test('PQ is parallel to AB',parallel(v(B,A),v(p.Q,U))&&lineDist(U,A,B)>eps);test('Parallel line is drawn',segment(U,p.Q))}
+ else if(id==='triangle-equilateral'){triangle();test('Three sides are equal',near(d(A,B),d(B,C))&&near(d(A,B),d(C,A)))}
+ else if(['square-on-side','rectangle-sides','parallelogram-sas','rhombus-side-angle','isosceles-trapezium'].includes(id)){
+   polygon([A,B,C,Q]);test('AB is parallel to CD',parallel(v(B,A),v(Q,C)));
+   if(id==='isosceles-trapezium'){test('AD and BC are equal',near(d(A,Q),d(B,C)));test('AB is longer than CD',d(A,B)>d(C,Q)+eps)}
+   else{test('AD is parallel to BC',parallel(v(Q,A),v(C,B)));test('Opposite sides are equal',near(d(A,B),d(C,Q))&&near(d(A,Q),d(B,C)));if(id==='square-on-side'||id==='rectangle-sides')test('Angle at A is a right angle',perp(v(B,A),v(Q,A)));if(id==='square-on-side'||id==='rhombus-side-angle')test('Adjacent sides are equal',near(d(A,B),d(A,Q)))}
+ }else if(id==='circle-centre'||id==='triangle-circumcircle'){test('A, B and C are not collinear',lineDist(C,A,B)>eps);test('O is equidistant from A, B and C',near(d(O,A),d(O,B))&&near(d(O,A),d(O,C)));test('Circle through A, B and C is present',circle(O,d(O,A)));if(id==='triangle-circumcircle')triangle()}
+ else if(id==='tangent-at-point'){test('Circle centred at O passes through T',circle(O,d(O,T)));test('TX is perpendicular to OT',perp(v(O,T),v(X,T)));test('Tangent line is drawn',segment(T,X))}
+ else if(id==='tangents-external-point'){const t=p['T₁'],u=p['T₂'];test('Both contacts lie on the circle',circle(O,d(O,t))&&near(d(O,t),d(O,u)));test('P lies outside the circle',d(O,U)>d(O,t)+eps);test('Two distinct perpendicular tangents are drawn',d(t,u)>2*eps&&perp(v(O,t),v(U,t))&&perp(v(O,u),v(U,u))&&segment(U,t)&&segment(U,u))}
+ else if(['regular-hexagon','square-in-circle','regular-octagon','regular-pentagon'].includes(id)){
+   const pts=roles.slice(1).map(k=>p[k]),r=d(O,A);polygon(pts);test('All vertices lie on the drawn circle',circle(O,r)&&pts.every(q=>near(d(O,q),r)));test('Every side subtends the required central angle',pts.every((q,i)=>Math.abs(angle(v(q,O),v(pts[(i+1)%pts.length],O))-360/pts.length)<=2));
+ }else if(id==='triangle-incircle'){triangle();test('I is inside the triangle',[[A,B,C],[B,C,A],[C,A,B]].every(([a,b,c])=>cross(v(b,a),v(I,a))*cross(v(b,a),v(c,a))>0));test('F is the perpendicular contact on BC',onSegment(F,B,C)&&perp(v(I,F),v(C,B)));test('Circle touches all three sides',circle(I,d(I,F))&&[[A,B],[B,C],[C,A]].every(([a,b])=>near(lineDist(I,a,b),d(I,F))))}
+ else if(id==='divide-segment-thirds'){test('P and Q lie at one third and two thirds along AB',d(A,B)>3*eps&&d(U,labAt(A,v(B,A),1/3))<=eps&&d(p.Q,labAt(A,v(B,A),2/3))<=eps);test('AB is drawn',segment(A,B))}
+ else if(id==='golden-section'){test('G divides AB in the golden ratio',d(A,B)>2*eps&&d(G,labAt(A,v(B,A),(Math.sqrt(5)-1)/2))<=eps);test('AB is drawn',segment(A,B))}
+ else if(id==='triangle-centroid'){triangle();test('G is the intersection of the medians',d(G,labAt(A,v(labAt(B,v(C,B),.5),A),2/3))<=eps)}
+ else if(id==='triangle-orthocentre'){triangle();test('H lies on the altitudes from A and B',Math.abs(dot(v(H,A),v(C,B)))/d(C,B)<=eps&&Math.abs(dot(v(H,B),v(C,A)))/d(C,A)<=eps)}
+ else if(id==='angle-in-semicircle'){const m=labAt(A,v(B,A),.5);test('Circle has AB as its diameter',circle(m,d(A,B)/2)&&near(d(m,T),d(A,B)/2));test('Angle ATB is a right angle',perp(v(A,T),v(B,T)));test('Both sides are drawn',segment(T,A)&&segment(T,B))}
+ return {supported:true,ready:true,correct:checks.length>0&&checks.every(c=>c.ok),checks};
+}
 function mountConstructionLibrary(owner,button,task=null,getDrawing=null,publishMethod=null){
  const panel=document.createElement('section');panel.className='gd-ag-method-panel';panel.dataset.agMethodPanel='1';panel.setAttribute('role','region');panel.setAttribute('aria-label','Construction library');panel.hidden=true;
  panel.style.cssText='position:fixed;z-index:2147483000;top:72px;right:16px;width:min(360px,calc(100vw - 24px));max-height:calc(100dvh - 90px);overflow:auto;box-sizing:border-box;padding:10px;background:#fff;color:#31434a;border:1px solid #abc6bd;border-radius:10px;box-shadow:0 5px 24px #183a3440;font-size:13px';
  const head=document.createElement('div');head.style.cssText='display:flex;gap:8px;align-items:center;cursor:move;touch-action:none';const title=document.createElement('strong');title.textContent='Construction library';title.style.flex='1';head.append(title);
  const mk=(parent,id,label,fn)=>{const b=document.createElement('button');b.type='button';b.className='gd-btn';b.textContent=label;b.dataset.agMethodAction=id;b.onclick=fn;parent.append(b);return b};
  const close=mk(head,'close','Close',()=>toggle(false));const body=document.createElement('div');body.style.cssText='display:grid;gap:8px;margin-top:8px';panel.append(head,body);document.body.append(panel);
- let methods=[],selected=null,step=-1,graphic=false,verification=false,query='',category='all',drag=null,disposed=false,loading=false,methodStack=[];
+ let methods=[],selected=null,step=-1,graphic=false,verification=false,query='',category='all',drag=null,disposed=false,loading=false,methodStack=[],showIndependent=false,roleAssignments={};
  const clamp=()=>{const rect=panel.getBoundingClientRect(),w=document.documentElement.clientWidth,h=window.innerHeight;panel.style.left=Math.max(4,Math.min(rect.left,w-rect.width-4))+'px';panel.style.top=Math.max(4,Math.min(rect.top,h-rect.height-4))+'px';panel.style.right='auto';panel.style.maxHeight=Math.max(80,h-12)+'px'};
  head.addEventListener('pointerdown',e=>{if(e.target.closest('button')||e.button!==0)return;const r=panel.getBoundingClientRect();drag={id:e.pointerId,x:e.clientX-r.left,y:e.clientY-r.top};try{head.setPointerCapture(e.pointerId)}catch(_){}e.preventDefault()});head.addEventListener('pointermove',e=>{if(drag?.id!==e.pointerId)return;panel.style.left=e.clientX-drag.x+'px';panel.style.top=e.clientY-drag.y+'px';panel.style.right='auto';clamp()});for(const t of ['pointerup','pointercancel','lostpointercapture'])head.addEventListener(t,()=>{drag=null});
  const resize=()=>{if(!panel.hidden)clamp()};window.addEventListener('resize',resize);
@@ -75,7 +145,7 @@ function mountConstructionLibrary(owner,button,task=null,getDrawing=null,publish
    body.replaceChildren();
    if(!selected){const input=el('input',body,null,'width:100%;box-sizing:border-box');input.type='search';input.placeholder='Search constructions';input.value=query;input.dataset.agMethodSearch='1';input.setAttribute('aria-label','Search construction methods');
      const cat=el('select',body);cat.className='gd-select';cat.dataset.agMethodCategory='1';cat.setAttribute('aria-label','Construction category');for(const [v,l] of [['all','All categories'],...[...new Set(methods.map(m=>m.category))].sort().map(c=>[c,c])]){const o=el('option',cat,l);o.value=v}cat.value=category;
-     const results=el('div',body,null,'display:grid;gap:5px');function filter(){results.replaceChildren();const q=query.toLowerCase().trim();const matches=methods.filter(m=>(category==='all'||m.category===category)&&[m.title,m.category,m.objective,...m.given,...m.instruments].join(' ').toLowerCase().includes(q));el('small',results,matches.length+' methods');for(const m of matches){const b=mk(results,'method',m.title,()=>{selected=m;step=-1;graphic=false;verification=false;methodStack=[];render()});b.dataset.agMethodId=m.id;b.style.cssText='text-align:left;white-space:normal;justify-content:flex-start'}if(!matches.length)el('p',results,'No matching constructions.')}
+     const results=el('div',body,null,'display:grid;gap:5px');function filter(){results.replaceChildren();const q=query.toLowerCase().trim();const matches=methods.filter(m=>(category==='all'||m.category===category)&&[m.title,m.category,m.objective,...m.given,...m.instruments].join(' ').toLowerCase().includes(q));el('small',results,matches.length+' methods');for(const m of matches){const b=mk(results,'method',m.title,()=>{selected=m;step=-1;graphic=false;verification=false;methodStack=[];showIndependent=false;render()});b.dataset.agMethodId=m.id;b.style.cssText='text-align:left;white-space:normal;justify-content:flex-start'}if(!matches.length)el('p',results,'No matching constructions.')}
      input.oninput=()=>{query=input.value;filter()};cat.onchange=()=>{category=cat.value;filter()};filter();return;
    }
    const top=el('div',body,null,'display:flex;gap:6px;align-items:center;flex-wrap:wrap');mk(top,'back',methodStack.length?'Back to construction':'All methods',()=>{if(methodStack.length){const last=methodStack.pop();selected=last.selected;step=last.step;graphic=last.graphic;verification=last.verification}else selected=null;render()});el('small',top,selected.category);
@@ -88,6 +158,7 @@ function mountConstructionLibrary(owner,button,task=null,getDrawing=null,publish
    mk(body,'verify',verification?'Hide explanation':'Check construction / why it works',()=>{verification=!verification;render()});if(verification){el('div',body,selected.why);const list=el('ul',body);for(const c of selected.checks)el('li',list,c)}
    if(publishMethod){const publishing=el('details',body);el('summary',publishing,'Add to document');const actions=el('div',publishing,null,'display:flex;flex-wrap:wrap;gap:5px;margin-top:6px');mk(actions,'publish-exercise','Exercise + answer key',()=>publishMethod(selected,'exercise'));mk(actions,'publish-instructions','Written instructions',()=>publishMethod(selected,'instructions'));mk(actions,'publish-illustrated','Illustrated instructions',()=>publishMethod(selected,'illustrated'))}
    if(task&&getDrawing&&selected.challengeSpecific){const feedback=el('div',body);feedback.dataset.agMethodFeedback='1';feedback.setAttribute('role','status');mk(body,'check-drawing','Check my drawing',()=>{const result=labCheck(getDrawing(),task);feedback.textContent=result.correct?'Correct — your drawing satisfies the challenge.':result.ready?'Not quite — check the required lengths and geometric relationships.':'Construction not complete yet — finish the required points, lines or circle.';feedback.style.color=result.correct?'#16796c':'#795520'})}
+   if(!task&&getDrawing&&INDEPENDENT_METHOD_ROLES[selected.id]){const block=el('details',body);block.open=showIndependent;block.ontoggle=()=>{showIndependent=block.open};el('summary',block,'Verify my construction');el('small',block,'Assign the points in your drawing to the method labels. Checks use geometric relationships, not the example size or orientation. Given numerical dimensions and the construction procedure must be checked separately.');const fields=el('div',block,null,'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;margin-top:6px');const selection=roleAssignments[selected.id]||(roleAssignments[selected.id]={});const refresh=()=>{const st=getDrawing();fields.replaceChildren();for(const role of INDEPENDENT_METHOD_ROLES[selected.id]){const label=el('label',fields,role);const sel=el('select',label);sel.className='gd-select';sel.dataset.agMethodRole=role;sel.style.width='100%';sel.setAttribute('aria-label','Point '+role);const empty=el('option',sel,'Choose point');empty.value='';st.points.forEach((_,i)=>{const opt=el('option',sel,st.names?.[i]||pointName(i));opt.value=i});const saved=selection[role],named=st.names?.indexOf(role);sel.value=Number.isInteger(saved)&&st.points[saved]?String(saved):named>=0?String(named):'';sel.onchange=()=>{selection[role]=sel.value===''?null:Number(sel.value)}}};refresh();mk(block,'refresh-points','Refresh points',refresh);const feedback=el('div',block);feedback.dataset.agMethodIndependentFeedback='1';feedback.setAttribute('role','status');mk(block,'check-independent','Check relationships',()=>{const assignment=Object.fromEntries([...fields.querySelectorAll('select')].map(e=>[e.dataset.agMethodRole,e.value===''?null:Number(e.value)])),result=independentConstructionCheck(getDrawing(),selected.id,assignment);feedback.replaceChildren();if(!result.ready){el('p',feedback,'Assign a distinct existing point to every role.');return}el('strong',feedback,result.correct?'All checked relationships satisfied':'Some relationships need attention');const list=el('ul',feedback);for(const c of result.checks){const li=el('li',list,(c.ok?'✓ ':'✗ ')+c.label);li.style.color=c.ok?'#16796c':'#795520'}})}
    if(!panel.hidden)clamp()
  }
  panel.style.display='none';button.setAttribute('aria-expanded','false');return {toggle}
@@ -594,7 +665,7 @@ function generate(s={},rng=Math.random){
    st.nodes.push(node);return id;
  }
  function customMove(st,id,p){const n=st.nodes.find(n=>n.id===id);if(!n||!CUSTOM_OPERATIONS[n.op]?.place)return false;const old=customResolve(st).points;n.at=p.slice();const next=customResolve(st).points;for(const name of st.traceNames||[]){if(old[name]&&next[name])traceAdd(st,name,next[name],old[name]);else if(st.traces[name]?.length&&st.traces[name].at(-1)!==null)st.traces[name].push(null)}return true}
- const model={challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labLabel,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,locusInitial,locusProject,locusPoints,traceParts,traceAdd,traceToggle,shapeGeometry,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
+ const model={INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labLabel,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,locusInitial,locusProject,locusPoints,traceParts,traceAdd,traceToggle,shapeGeometry,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
 if(typeof module==='object'&&module.exports){module.exports=model;return}
 const G=root.TT99Goodies;if(!G)return;G.angles=model;
 const {q,qa,esc,field,btn,setPanels}=G,CK=G.challengeKit;
