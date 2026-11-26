@@ -1,0 +1,299 @@
+{
+  "schemaVersion": 1,
+  "status": "foundation",
+  "methods": [
+    {
+      "id": "midpoint",
+      "title": "Midpoint and perpendicular bisector",
+      "category": "Lines and points",
+      "given": [
+        "segment AB"
+      ],
+      "instruments": [
+        "compass",
+        "straightedge"
+      ],
+      "steps": [
+        "Open the compass to a radius greater than half AB.",
+        "With the same opening draw arcs centred at A and B on both sides of AB.",
+        "Mark their intersections X and Y. Join X to Y.",
+        "Mark the intersection of XY and AB as M."
+      ],
+      "why": "AX = BX and AY = BY, so XY is the perpendicular bisector of AB; M divides AB into equal halves.",
+      "checks": [
+        "M is on AB",
+        "AM = MB",
+        "XY is perpendicular to AB"
+      ],
+      "conditions": "The compass opening must be greater than half AB."
+    },
+    {
+      "id": "perpendicular-at-point",
+      "title": "Perpendicular at a point on a line",
+      "category": "Lines and points",
+      "given": [
+        "line l",
+        "point P on l"
+      ],
+      "instruments": [
+        "compass",
+        "straightedge"
+      ],
+      "steps": [
+        "With centre P draw an arc crossing l at A and B.",
+        "Using equal openings greater than AP, draw arcs from A and B to intersect at X off l.",
+        "Join P to X."
+      ],
+      "why": "PA = PB and XA = XB; PX is the perpendicular bisector of AB.",
+      "checks": [
+        "PX perpendicular to l"
+      ],
+      "conditions": "Choose an arc intersection away from l."
+    },
+    {
+      "id": "perpendicular-from-point",
+      "title": "Perpendicular from an external point to a line",
+      "category": "Lines and points",
+      "given": [
+        "line l",
+        "point P outside l"
+      ],
+      "instruments": [
+        "compass",
+        "straightedge"
+      ],
+      "steps": [
+        "Draw a circle centred at P large enough to cross l at A and B.",
+        "Construct the perpendicular bisector of AB.",
+        "Mark its intersection with l as F. Join P to F."
+      ],
+      "why": "P is equidistant from A and B, so P lies on the perpendicular bisector.",
+      "checks": [
+        "PF perpendicular to l",
+        "F lies on l"
+      ],
+      "conditions": "The first circle must cross the line twice."
+    },
+    {
+      "id": "angle-bisector",
+      "title": "Bisect an angle",
+      "category": "Angles",
+      "given": [
+        "angle AOB"
+      ],
+      "instruments": [
+        "compass",
+        "straightedge"
+      ],
+      "steps": [
+        "Draw an arc centred at O crossing both arms at X and Y.",
+        "With equal compass openings greater than half XY, draw arcs from X and Y meeting inside the angle at Z.",
+        "Join O to Z."
+      ],
+      "why": "Triangles OXZ and OYZ are congruent by SSS.",
+      "checks": [
+        "Angle AOZ equals angle ZOB"
+      ],
+      "conditions": "Use the intersection within the intended angle; the other direction bisects the opposite angle."
+    },
+    {
+      "id": "copy-angle",
+      "title": "Copy an angle",
+      "category": "Angles",
+      "given": [
+        "angle AOB",
+        "new ray PQ"
+      ],
+      "instruments": [
+        "compass",
+        "straightedge"
+      ],
+      "steps": [
+        "Draw an arc centred at O crossing the arms at X and Y.",
+        "With the same opening draw an arc centred at P crossing PQ at R.",
+        "Set the compass opening to XY. Draw an arc from R intersecting the second arc at S.",
+        "Join P to S."
+      ],
+      "why": "The original and copied triangles have three matching sides.",
+      "checks": [
+        "Angle QPS equals angle AOB"
+      ],
+      "conditions": "Choose the intersection on the desired side of PQ."
+    },
+    {
+      "id": "parallel-through-point",
+      "title": "Parallel through a point",
+      "category": "Lines and points",
+      "given": [
+        "line l",
+        "point P outside l"
+      ],
+      "instruments": [
+        "compass",
+        "straightedge"
+      ],
+      "steps": [
+        "Construct the perpendicular to l through P.",
+        "At P construct a perpendicular to that new line."
+      ],
+      "why": "Two distinct lines perpendicular to the same line are parallel.",
+      "checks": [
+        "New line passes through P",
+        "New line parallel to l"
+      ],
+      "conditions": "The first perpendicular is a construction line."
+    },
+    {
+      "id": "triangle-sss",
+      "title": "Triangle from three side lengths",
+      "category": "Triangles",
+      "given": [
+        "AB = c",
+        "AC = b",
+        "BC = a"
+      ],
+      "instruments": [
+        "compass",
+        "straightedge",
+        "graduated ruler"
+      ],
+      "steps": [
+        "Draw AB to the specified length.",
+        "Draw an arc of radius b centred at A.",
+        "Draw an arc of radius a centred at B.",
+        "Mark either intersection C and join AC and BC."
+      ],
+      "why": "The arcs enforce both remaining side lengths.",
+      "checks": [
+        "AB = c",
+        "AC = b",
+        "BC = a"
+      ],
+      "conditions": "The lengths must satisfy the strict triangle inequality. Reflections are valid."
+    },
+    {
+      "id": "triangle-asa",
+      "title": "Triangle from two angles and an included side",
+      "category": "Triangles",
+      "given": [
+        "AB length",
+        "angle at A",
+        "angle at B"
+      ],
+      "instruments": [
+        "straightedge",
+        "graduated ruler",
+        "protractor"
+      ],
+      "steps": [
+        "Draw AB to length.",
+        "Construct the given angle at A using AB as the reference.",
+        "Construct the given angle at B using BA as the reference on the same side of AB.",
+        "Mark the intersection of the rays as C."
+      ],
+      "why": "The two rays meet at the unique third vertex on the chosen side.",
+      "checks": [
+        "Two given angles and AB match"
+      ],
+      "conditions": "Both angles must be positive and sum to less than 180 degrees. Reflections are valid."
+    },
+    {
+      "id": "circle-centre",
+      "title": "Find the centre of an existing circle",
+      "category": "Circles",
+      "given": [
+        "circle with unknown centre"
+      ],
+      "instruments": [
+        "compass",
+        "straightedge"
+      ],
+      "steps": [
+        "Choose three distinct points A, B and C on the circumference.",
+        "Draw chords AB and BC.",
+        "Construct their perpendicular bisectors.",
+        "Mark the bisectors' intersection O."
+      ],
+      "why": "A circle centre is equidistant from all points on its circumference.",
+      "checks": [
+        "OA = OB = OC"
+      ],
+      "conditions": "Use well-separated points to avoid poorly conditioned intersections."
+    },
+    {
+      "id": "tangent-at-point",
+      "title": "Tangent at a point on a circle",
+      "category": "Circles",
+      "given": [
+        "circle with centre O",
+        "point T on circumference"
+      ],
+      "instruments": [
+        "compass",
+        "straightedge"
+      ],
+      "steps": [
+        "Draw radius OT and extend its line through T.",
+        "Construct the perpendicular to OT at T."
+      ],
+      "why": "A radius is perpendicular to the tangent at its point of contact.",
+      "checks": [
+        "T lies on circle",
+        "Tangent perpendicular to OT"
+      ],
+      "conditions": "There is exactly one tangent at T."
+    },
+    {
+      "id": "tangents-external-point",
+      "title": "Two tangents from an external point to a circle",
+      "category": "Circles",
+      "given": [
+        "circle with centre O and radius r",
+        "external point P"
+      ],
+      "instruments": [
+        "compass",
+        "straightedge"
+      ],
+      "steps": [
+        "Draw segment OP.",
+        "Construct the perpendicular bisector of OP and mark midpoint M.",
+        "Draw the auxiliary circle centred at M with radius MO.",
+        "Mark the two intersections T1 and T2 of the auxiliary and original circles.",
+        "Draw PT1 and PT2."
+      ],
+      "why": "OP is the diameter of the auxiliary circle, so by Thales' theorem OT1P and OT2P are right angles. Both segments are perpendicular to the corresponding radii.",
+      "checks": [
+        "OT1 = OT2 = r",
+        "OT1 perpendicular to PT1",
+        "OT2 perpendicular to PT2",
+        "PT1 = PT2"
+      ],
+      "conditions": "P must be strictly outside the circle. On the circumference there is one tangent; inside there are none."
+    },
+    {
+      "id": "regular-hexagon",
+      "title": "Inscribe a regular hexagon in a circle",
+      "category": "Polygons",
+      "given": [
+        "circle with centre O"
+      ],
+      "instruments": [
+        "compass",
+        "straightedge"
+      ],
+      "steps": [
+        "Choose a point A on the circumference.",
+        "Set the compass opening equal to the circle radius.",
+        "From A mark the next point on the circumference; repeat around the circle until six vertices are marked.",
+        "Join consecutive vertices, including the last to the first."
+      ],
+      "why": "A chord equal to the radius subtends a central angle of 60 degrees.",
+      "checks": [
+        "Six equal sides",
+        "Six central angles of 60 degrees"
+      ],
+      "conditions": "Keep the compass opening fixed and progress consistently around the circle."
+    }
+  ]
+}
