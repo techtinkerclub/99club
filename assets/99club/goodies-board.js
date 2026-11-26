@@ -881,7 +881,7 @@ function objectMarkup(obj,tool){
       '<button type="button" data-board-settings="'+obj.id+'" role="menuitem" aria-label="Settings" title="Settings">'+iconSvg('settings')+'</button>'+
       '<button type="button" data-board-lock="'+obj.id+'" role="menuitem" aria-label="Lock position" title="Lock position">'+iconSvg('lock')+'</button>'+
     '</div>'+
-    '<button type="button" class="gd-board-resize-handle" data-board-resize="'+obj.id+'" aria-label="Resize '+esc(tool.title)+'" title="Resize"></button>'+
+    '<button type="button" class="gd-board-resize-handle" data-board-resize="'+obj.id+'" aria-label="Resize '+esc(tool.title)+'" title="'+(tool.id==='angles'?'Resize (free construction: expand workspace; Shift: zoom)':'Resize')+'"></button>'+
   '</section>';
 }
 function addObject(toolId){
@@ -1140,7 +1140,9 @@ function bindObject(obj){
   if(size)size.onpointerdown=e=>{
     if(obj.locked||e.button!==0)return;
     e.preventDefault();e.stopPropagation();selectObject(obj.id);
-    resize={id:obj.id,pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,w:obj.w,h:obj.h,scale:obj.scale,baseW:obj.baseW,baseH:obj.baseH};
+    const freeCanvas=!e.shiftKey&&obj.toolId==='angles'?innerDocument(obj)?.querySelector('[data-ag-free-workspace]'):null,view=freeCanvas?.viewBox.baseVal,rect=freeCanvas?.getBoundingClientRect();
+    const workspace=view&&rect?.width>0?{w:view.width,h:view.height,unitsPerPx:view.width/rect.width}:null;
+    resize={id:obj.id,pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,w:obj.w,h:obj.h,scale:obj.scale,baseW:obj.baseW,baseH:obj.baseH,workspace};
     try{size.setPointerCapture(e.pointerId)}catch(_){}
   };
 }
@@ -1214,6 +1216,16 @@ document.addEventListener('pointermove',e=>{
   if(resize&&resize.pointerId===e.pointerId){
     const obj=objectById(resize.id);if(!obj)return;
     const dx=e.clientX-resize.startX,dy=e.clientY-resize.startY;
+    if(resize.workspace){
+      // Expand the drawing surface in logical units, preserving its existing
+      // scale and the physical width of strokes, labels and graduations.
+      const doc=innerDocument(obj),canvas=doc?.querySelector('[data-ag-free-workspace]'),ws=resize.workspace;if(!canvas)return;
+      const baseW=clamp(resize.baseW+Math.max(0,dx)/resize.scale,resize.baseW,Math.min(1200,(BOARD_W-obj.x)/resize.scale));
+      const newW=ws.w+(baseW-resize.baseW)*ws.unitsPerPx,newH=ws.h+Math.max(0,dy)/resize.scale*ws.unitsPerPx;
+      obj.baseW=Math.round(baseW);obj.scale=resize.scale;obj.w=Math.round(obj.baseW*obj.scale);positionObject(obj);
+      canvas.parentElement.dispatchEvent(new doc.defaultView.CustomEvent('tt99-workspace-resize',{detail:{w:newW,h:newH}}));
+      fitEmbeddedObject(obj,false);return;
+    }
     const sx=(resize.w+dx)/resize.baseW,sy=(resize.h+dy)/resize.baseH;
     let nextScale=Math.abs(dx/resize.baseW)>=Math.abs(dy/resize.baseH)?sx:sy;
     nextScale=clamp(nextScale,.35,2);
