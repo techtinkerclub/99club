@@ -1124,6 +1124,8 @@ async function run(){
     const paperDimensions=P.createDocument();paperDimensions.addCurrent(id,cap());assert(P.renderItem(paperDimensions.list()[0],false).querySelector('[data-ag-dimension]'),'Published free construction retains its offset length labels');
 
 
+    const modePicker=doc.getElementById('ag-mode');
+    assert(modePicker.querySelectorAll('optgroup').length===2&&modePicker.querySelector('optgroup[label="Geometry workspaces"]').children.length===3,'Geometry modes are grouped into teaching diagrams and three distinct workspaces');
     const setGeometryMode=value=>{const el=doc.getElementById('ag-mode');el.value=value;el.dispatchEvent(new win.Event('change',{bubbles:true}))};
     setGeometryMode('free-explore');await tick();
     const motion=doc.querySelector('.gd-ag-lab-canvas');
