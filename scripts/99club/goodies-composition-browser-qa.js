@@ -937,6 +937,8 @@ async function run(){
     doc.querySelector('[data-ag-workflow="challenge"]').click();await tick();
     doc.querySelector('[data-ag-challenge-mode="draw"]').click();await tick();
     const t=cap().task;assert(t.type==='draw'&&doc.querySelector('[data-gd-pupil-check]').disabled,'Construction starts unanswered');
+    assert(parseFloat(doc.defaultView.getComputedStyle(doc.querySelector('.gd-challenge-prompt')).fontSize)>=17,'Angle question uses classroom-sized text');
+    assert(doc.querySelector('[data-gd-pupil-check]').getBoundingClientRect().height>=40,'Angle check action has a generous touch target');
     for(let i=0;i<Math.floor(t.angle/10);i++)doc.querySelector('[data-ag-adjust="10"]').click();
     for(let i=0;i<t.angle%10;i++)doc.querySelector('[data-ag-adjust="1"]').click();
     doc.querySelector('[data-gd-pupil-check]').click();await tick();
