@@ -1125,6 +1125,17 @@ async function run(){
     tray.querySelector('[data-ag-tool="help"]').click();await tick();
     assert(!doc.querySelector('.gd-ag-lab-guide').hidden&&!doc.querySelector('.gd-ag-guide-example'),'Challenge help provides technique without worked answers');
     {
+      const model=win.TT99Goodies.angles,methods=await model.loadConstructionLibrary();
+      assert(model.labTypes.every(type=>methods.some(m=>m.id===model.CONSTRUCTION_METHODS_BY_TASK[type])),'Every construction challenge has an associated method');
+      const before=JSON.stringify(cap().lab),taskBefore=JSON.stringify(cap().task);
+      doc.querySelector('[data-ag-tool="construction-library"]').click();await tick(50);
+      const panel=doc.querySelector('[data-ag-method-panel]'),action=id=>panel.querySelector('[data-ag-method-action="'+id+'"]');
+      assert(panel&&!panel.hidden&&panel.querySelector('[data-ag-method-task]'),'Challenge opens contextual method guide');
+      assert(!panel.querySelector('[data-ag-method-graphic]')&&panel.querySelector('[data-ag-method-step]').dataset.agMethodStep==='-1','Challenge guidance starts text-first');
+      action('next').click();action('graphics').click();assert(panel.querySelector('[data-ag-method-graphic]'),'Challenge graphic appears only by choice');
+      action('close').click();assert(JSON.stringify(cap().lab)===before&&JSON.stringify(cap().task)===taskBefore,'Method guide never modifies challenge drawing or assessment');
+    }
+    {
       const constructionModel=win.TT99Goodies.angles;
       for(const type of ['build-midpoint','build-perpendicular','build-circle','build-asa','build-bisector','build-rhombus']){
         for(let sample=0;sample<60;sample++){
@@ -1172,7 +1183,7 @@ async function run(){
     doc.querySelector('[data-ag-tool="help"]').click();
     {
       const model=win.TT99Goodies.angles,methods=await model.loadConstructionLibrary();
-      assert(methods.length>=35,'Construction library has at least thirty-five methods');
+      assert(methods.length>=36,'Construction library has at least thirty-six methods');
       assert(new Set(methods.map(m=>m.id)).size===methods.length,'Construction method IDs are unique');
       const finalPoints=id=>Object.fromEntries(model.constructionFrame(methods.find(m=>m.id===id),100).filter(o=>o.kind==='point').map(o=>[o.label,o.at])),dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]),near=(a,b)=>Math.abs(a-b)<1e-6,dot=(a,b,c)=>(a[0]-b[0])*(c[0]-b[0])+(a[1]-b[1])*(c[1]-b[1]);
       const eq=finalPoints('triangle-equilateral');assert(near(dist(eq.A,eq.B),dist(eq.A,eq.C))&&near(dist(eq.A,eq.B),dist(eq.B,eq.C)),'Equilateral example is exact');
