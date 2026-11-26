@@ -87,7 +87,29 @@ function generate(s={},rng=Math.random){
  const labAngle=(a,b)=>mod(Math.atan2(a[1]-b[1],b[0]-a[0])/D);
  const labCross=(a,b)=>a[0]*b[1]-a[1]*b[0],labSub=(a,b)=>[a[0]-b[0],a[1]-b[1]],labDot=(a,b)=>a[0]*b[0]+a[1]*b[1];
  const labAt=(a,v,t)=>[a[0]+v[0]*t,a[1]+v[1]*t];
- function labEmpty(free=false){return {given:!free,points:free?[]:[LAB_A.slice(),LAB_B.slice()],segments:[],rays:[],circles:[]}}
+
+ const REGION_COLOURS=['#4c9b85','#5385c5','#d7a13c','#a080c5','#d77968'];
+ function pointName(i){return String.fromCharCode(65+i%26)+(i>=26?Math.floor(i/26):'')}
+ function polygonArea(points){return Math.abs(points.reduce((sum,p,i)=>sum+labCross(p,points[(i+1)%points.length]),0))/2}
+ function validRegion(points,ids){
+   if(!Array.isArray(ids)||ids.length<3||new Set(ids).size!==ids.length||ids.some(i=>!points[i]))return false;
+   const p=ids.map(i=>points[i]),n=p.length,eps=1e-6;
+   if(polygonArea(p)<eps||p.some((a,i)=>p.slice(i+1).some(b=>labDist(a,b)<eps)))return false;
+   const orient=(a,b,c)=>labCross(labSub(b,a),labSub(c,a)),on=(a,b,c)=>Math.abs(orient(a,b,c))<eps&&labDot(labSub(c,a),labSub(c,b))<=eps;
+   const intersects=(a,b,c,d)=>{const u=orient(a,b,c),v=orient(a,b,d),w=orient(c,d,a),z=orient(c,d,b);return (u*v<0&&w*z<0)||on(a,b,c)||on(a,b,d)||on(c,d,a)||on(c,d,b)};
+   for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){if(j===i+1||i===0&&j===n-1)continue;if(intersects(p[i],p[(i+1)%n],p[j],p[(j+1)%n]))return false}
+   return true;
+ }
+ function vertexLabel(p,prev,next,offset=22){
+   const unit=v=>{const n=Math.hypot(...v)||1;return v.map(a=>a/n)};
+   if(!prev&&!next)return [p[0]+offset,p[1]-offset*.6];
+   const u=prev?unit(labSub(prev,p)):[0,0],v=next?unit(labSub(next,p)):[0,0],out=[-u[0]-v[0],-u[1]-v[1]];
+   const dir=Math.hypot(...out)<.01?[0,-1]:unit(out);return labAt(p,dir,offset)
+ }
+ function labNames(s){if(!Array.isArray(s.names)||s.names.length!==s.points.length){s.names=s.points.map((_,i)=>pointName(i));s.nextName=s.points.length}if(!Number.isInteger(s.nextName))s.nextName=s.points.length;if(!Array.isArray(s.regions))s.regions=[];return s}
+ function labLabel(s,i){const p=s.points[i],neighbours=s.segments.filter(e=>e.includes(i)).map(e=>s.points[e[0]===i?e[1]:e[0]]);if(s.given!==false&&i<2)neighbours.push(s.points[1-i]);return vertexLabel(p,neighbours[0],neighbours[1],20)}
+
+ function labEmpty(free=false){return {given:!free,points:free?[]:[LAB_A.slice(),LAB_B.slice()],segments:[],rays:[],circles:[],regions:[]}}
  function labLines(s,exclude=-1){return [...(s.given!==false&&s.points.length>=2?[{a:s.points[0],b:s.points[1],ray:false}]:[]),...s.segments.filter(l=>!l.includes(exclude)).map(([i,j])=>({a:s.points[i],b:s.points[j],ray:false})),...s.rays.filter(r=>r.i!==exclude).map(r=>({a:s.points[r.i],b:labAt(s.points[r.i],[Math.cos(r.angle*D),-Math.sin(r.angle*D)],1),ray:true}))].map(l=>({...l,v:labSub(l.b,l.a)}))}
  function labWithin(l,t){return t>=-1e-7&&(l.ray||t<=1+1e-7)}
  function labSnap(s,p,tol=16,enabled=true,exclude=-1){
@@ -144,12 +166,12 @@ function generate(s={},rng=Math.random){
   return st;
  }
 
-const model={labEmpty,labSnap,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
+const model={validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
 if(typeof module==='object'&&module.exports){module.exports=model;return}
 const G=root.TT99Goodies;if(!G)return;G.angles=model;
 const {q,qa,esc,field,btn,setPanels}=G,CK=G.challengeKit;
 function diagram(d,teacher=false,options={}){
- const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),W=800,H=440,ink='#263e43',teal='#277b70',orange='#b56d2c',shapeFill=options.paper?'none':'#e9f4f0';
+ const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),W=800,H=440,ink='#263e43',teal='#277b70',orange='#b56d2c',shapeFill=!options.paper&&d.type==='diagram'&&d.showFill===true?'#e9f4f0':'none';
  const add=(tag,attrs,t,parent=svg)=>{const e=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,String(v)));if(t!=null)e.textContent=t;parent.appendChild(e);return e};
  Object.entries({viewBox:'0 0 '+W+' '+H,xmlns:ns,role:'img','aria-label':'Geometry diagram'}).forEach(([k,v])=>svg.setAttribute(k,v));
  const text=(x,y,v,size=21,extra={})=>add('text',{x,y,fill:ink,'font-family':'Arial,sans-serif','font-size':size,'text-anchor':'middle',...extra},v);
@@ -224,17 +246,18 @@ function diagram(d,teacher=false,options={}){
    }
    if(type==='straight'||explore&&values.reduce((s,v)=>s+v,0)===180)ray(x,y,r,at);circle([x,y],4,ink);return frame(195,20,410,400)
  }
- function polygon(points){add('polygon',{'data-ag-inspect-polygon':'1',points:points.map(p=>p.join(',')).join(' '),fill:shapeFill,stroke:ink,'stroke-width':4,'stroke-linejoin':'round'});}
+ function polygon(points){add('polygon',{'data-ag-inspect-polygon':'1',points:points.map(p=>p.join(',')).join(' '),fill:shapeFill,stroke:ink,'stroke-width':3,'stroke-linejoin':'round'});points.forEach((p,i)=>{const pos=vertexLabel(p,points[(i+points.length-1)%points.length],points[(i+1)%points.length],22);circle(p,3,ink);text(pos[0],pos[1]+5,pointName(i),16,{'data-ag-point-label':pointName(i),'paint-order':'stroke',stroke:'#fff','stroke-width':3})})}
  function corner(points,i,label){const p=points[i],prev=points[(i+points.length-1)%points.length],next=points[(i+1)%points.length],dir=v=>mod(Math.atan2(p[1]-v[1],v[0]-p[0])/D);let start=dir(prev),v=mod(dir(next)-start);if(v>180){start=dir(next);v=360-v}labelArc(...p,Math.min(38,Math.hypot(next[0]-p[0],next[1]-p[1])*.22,Math.hypot(prev[0]-p[0],prev[1]-p[1])*.22),start,v,label)}
  function fit(points){const xs=points.map(p=>p[0]),ys=points.map(p=>p[1]),minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys),s=Math.min(540/Math.max(1,maxX-minX),300/Math.max(1,maxY-minY));return points.map(([x,y])=>[400+(x-(minX+maxX)/2)*s,210+(y-(minY+maxY)/2)*s])}
  function polygonFrame(points,pad=76){const xs=points.map(p=>p[0]),ys=points.map(p=>p[1]),x=Math.min(...xs)-pad,y=Math.min(...ys)-pad;return frame(x,y,Math.max(...xs)-x+pad,Math.max(...ys)-y+pad)}
  if(mode==='construct'&&(d.labDrawing||teacher&&labTypes.includes(d.type))){
-   const st=d.labDrawing||labSolution(d),free=st.given===false,ww=free?1000:800,hh=free?640:400;for(let gx=20;gx<=ww-20;gx+=40)line([gx,22],[gx,hh-18],'#e0e9e6',1);for(let gy=22;gy<=hh-18;gy+=40)line([20,gy],[ww-20,gy],'#e0e9e6',1);
+   const st=labNames(JSON.parse(JSON.stringify(d.labDrawing||labSolution(d)))),free=st.given===false,ww=free?Math.max(1000,st.workspace?.w||1000):800,hh=free?Math.max(640,st.workspace?.h||640):400;for(let gx=20;gx<=ww-20;gx+=40)line([gx,22],[gx,hh-18],'#e0e9e6',1);for(let gy=22;gy<=hh-18;gy+=40)line([20,gy],[ww-20,gy],'#e0e9e6',1);
+   for(const region of st.regions){if(validRegion(st.points,region.ids))add('polygon',{points:region.ids.map(i=>st.points[i].join(',')).join(' '),fill:REGION_COLOURS[region.colour]||REGION_COLOURS[0],'fill-opacity':.28,stroke:'none','data-ag-region':'1'})}
    for(const c of st.circles)add('circle',{cx:st.points[c.i][0],cy:st.points[c.i][1],r:c.r,fill:'none',stroke:orange,'stroke-width':1.8,'stroke-dasharray':'5 4'});
    for(const r of st.rays)line(st.points[r.i],polar(...st.points[r.i],1200,r.angle),teal,1.8,{'stroke-dasharray':'7 5'});
    if(!free){line(st.points[0],st.points[1],ink,4);text(460,330,'6 cm',20)}
    for(const [i,j] of st.segments){const a=st.points[i],b=st.points[j];line(a,b,teal,3);if(!free)text((a[0]+b[0])/2,(a[1]+b[1])/2-12,round(labDist(a,b)/40)+' cm',18,{'paint-order':'stroke',stroke:'#fff','stroke-width':4})}
-   st.points.forEach((p,i)=>{circle(p,4);text(p[0]+(!free&&i===0?-14:!free&&i===1?14:0),p[1]+(!free&&i<2?17:-13),String.fromCharCode(65+i),20)});
+   st.points.forEach((p,i)=>{circle(p,3,ink);const pos=labLabel(st,i);text(pos[0],pos[1]+4,st.names[i],16,{'data-ag-point-label':st.names[i],'paint-order':'stroke',stroke:'#fff','stroke-width':3})});
    if(!free&&d.type==='shape-build'||!free&&d.type==='build-right')labelArc(...st.points[0],38,0,d.angle,d.angle+'°');
    if(!free&&['build-rectangle','build-square'].includes(d.type)){for(let i=0;i<4;i++){const p=st.points[i],u=st.points[(i+1)%4],v=st.points[(i+3)%4],a=polar(...p,16,labAngle(p,u)),b=polar(...p,16,labAngle(p,v));path('M '+a.join(' ')+' L '+[a[0]+b[0]-p[0],a[1]+b[1]-p[1]].join(' ')+' L '+b.join(' '),{stroke:teal,'stroke-width':2})}}
    return frame(0,0,ww,hh);
@@ -332,7 +355,7 @@ function paper(item,teacher){const d=geometry(item.data);if(item.kind==='diagram
 if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>types(s),title:item=>FAMILIES.find(t=>t[0]===item.data.type)?.[1]||'Angle illustration',recipe:(s,type)=>({...settings(s),type}),generate,signature:d=>JSON.stringify([d.type,d.angle,d.angles,d.rotation,d.clockwise,d.n,d.regular,d.shape,d.relation,d.length,d.rightLength,d.radius,d.part,d.width,d.height,d.missingSide]),capture:s=>[G.publishing.record(ID,s.task?'challenge':'diagram',s.task?{...geometry(s.task),revealed:false}:s.demo)],render:paper,answerSummary:item=>item.data.answer,answerGraphic:item=>diagram(geometry(item.data),true,{paper:true,scale:['measure','draw','draw-reflex','reflex'].includes(item.data.type)}),answerNote:item=>item.data.note||''});
 
  function mountLab(box,initial,onChange,{free=false}={}){
-  const ww=free?1000:800,hh=free?640:400;let st=initial||labEmpty(free),corner=0,tool='segment',first=null,aligned=null,hover=null,history=[],snap=true,measure=true,grid=true,drag=null,guideOpen=false,guideStep=0;
+  let st=labNames(initial||labEmpty(free)),ww=free?Math.max(1000,st.workspace?.w||1000):800,hh=free?Math.max(640,st.workspace?.h||640):400,corner=0,tool='segment',first=null,aligned=null,hover=null,history=[],snap=true,measure=true,grid=true,drag=null,guideOpen=false,guideStep=0,regionPick=[],regionColour=0,regionStatus='';
   const clone=x=>JSON.parse(JSON.stringify(x)),save=()=>history.push(clone(st)),N='http://www.w3.org/2000/svg';
   const toolbar=document.createElement('div');toolbar.className='gd-ag-lab-toolbar';toolbar.setAttribute('aria-label','Construction tools');
   const instruments=document.createElement('div');instruments.className='gd-ag-lab-tools';instruments.setAttribute('role','group');instruments.setAttribute('aria-label','Drawing instruments');
@@ -352,6 +375,8 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
     square45:'<path d="M3 3v18h18Z M7 12v5h5Z M3 17h4v4"/>',
     square30:'<path d="M2 20h20L2 8Z M6 14v3h5Z M2 16h4v4"/>',
     compass:'<circle cx="12" cy="5" r="2.5"/><path d="M11 7L5 21M13 7l6 14M7.5 15h9M12 2V1"/>',
+    shade:'<path d="M3 19L13 3L21 19Z" fill="currentColor" fill-opacity=".22"/><circle cx="3" cy="19" r="1.5"/><circle cx="13" cy="3" r="1.5"/><circle cx="21" cy="19" r="1.5"/>',
+    expand:'<path d="M3 9V3h6m6 0h6v6M3 15v6h6m6 0h6v-6M3 3l6 6m12-6-6 6M3 21l6-6m12 6-6-6"/>',
     erase:'<path d="M3 14l10-10a2 2 0 0 1 3 0l5 5a2 2 0 0 1 0 3l-8 8H9L3 14ZM8 9l9 9M13 20h9"/>',
     corner:'<path d="M4 4v16h16Z M4 15h5v5"/><path d="M12 2a8 8 0 0 1 9 8m-4-3 4 3 2-4"/>',
     flip:'<path d="M3 18l7-12v12ZM21 18L14 6v12ZM12 3v2m0 4v2m0 4v2m0 4v1"/>',
@@ -362,22 +387,31 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
     grid:'<rect x="3" y="3" width="18" height="18" rx="1"/><path d="M9 3v18m6-18v18M3 9h18M3 15h18"/>',help:'<circle cx="12" cy="12" r="9"/><path d="M9 8a3 3 0 1 1 4 3c-1 .5-1 1-1 2m0 3v.2"/>'
   };
   function icon(id){const x=document.createElementNS(N,'svg');x.setAttribute('viewBox','0 0 24 24');x.setAttribute('fill','none');x.setAttribute('stroke','currentColor');x.setAttribute('stroke-width','1.65');x.setAttribute('stroke-linecap','round');x.setAttribute('stroke-linejoin','round');x.setAttribute('aria-hidden','true');x.setAttribute('focusable','false');x.innerHTML=icons[id];return x}
-  const controls=[['move','Move','Move points'],['point','Point','Place a point'],['segment','Ruler','Draw a straight line with the ruler'],['ray','Ray','Draw a ray'],['protractor','Protractor','Measure and draw an angle'],['square45','45°','45° set square'],['square30','30°–60°','30°–60° set square'],['compass','Compass','Draw a compass circle'],['erase','Erase','Erase a drawn object']];
+  const controls=[['move','Move','Move points'],['point','Point','Place a point'],['segment','Ruler','Draw a straight line with the ruler'],['ray','Ray','Draw a ray'],['protractor','Protractor','Measure and draw an angle'],['square45','45°','45° set square'],['square30','30°–60°','30°–60° set square'],['compass','Compass','Draw a compass circle'],['erase','Erase','Erase a drawn object']];if(free)controls.push(['shade','Shade','Select and shade a polygonal region']);
   function button(id,label,description,fn,parent=actions){const b=document.createElement('button');b.type='button';b.className='gd-btn gd-ag-lab-button';b.dataset.agTool=id;b.title=description;b.setAttribute('aria-label',description);const t=document.createElement('span');t.textContent=label;b.append(icon(id),t);b.onclick=fn;parent.append(b);return b}
-  const buttons=controls.map(([id,label,desc])=>[id,button(id,label,desc,()=>{tool=id;first=null;aligned=null;hover=null;guideStep=0;paint()},instruments)]);
+  const buttons=controls.map(([id,label,desc])=>[id,button(id,label,desc,()=>{tool=id;first=null;aligned=null;hover=null;guideStep=0;regionPick=[];regionStatus='';paint()},instruments)]);
   const cornerButton=button('corner','Corner','Change set square corner',()=>{corner=(corner+1)%3;paint()});
   button('flip','Flip','Flip instrument',()=>{if(aligned!==null){aligned=mod(aligned+180);paint()}}).dataset.agFlip='1';
-  const undoButton=button('undo','Undo','Undo last drawing action',()=>{if(history.length){st=history.pop();first=null;aligned=null;changed()}});
-  button('reset','Reset','Reset construction',()=>{save();st=labEmpty(free);first=null;aligned=null;changed()});
+  const undoButton=button('undo','Undo','Undo last drawing action',()=>{if(history.length){st=labNames(history.pop());if(free)st.workspace={w:ww,h:hh};first=null;aligned=null;regionPick=[];changed()}});
+  button('reset','Reset','Reset construction',()=>{save();st=labNames(labEmpty(free));if(free)st.workspace={w:ww,h:hh};first=null;aligned=null;regionPick=[];changed()});
+  const expandButton=free?button('expand','More space','Extend the workspace without enlarging the geometry',()=>resizeWorkspace(ww,hh+200)):null;
   const guideButton=button('help',free?'Help / demo':'Tool help','Show instrument instructions',()=>{guideOpen=!guideOpen;guideStep=0;paint()});
   for(const [id,label,get,set] of [['snap','Snap',()=>snap,v=>snap=v],['measure','Measurements',()=>measure,v=>measure=v],['grid','Grid',()=>grid,v=>grid=v]]){
    const l=document.createElement('label');l.className='gd-ag-lab-option';const input=document.createElement('input');input.type='checkbox';input.checked=get();input.onchange=()=>{set(input.checked);paint()};const t=document.createElement('span');t.textContent=label;l.append(input,icon(id),t);options.append(l);
   }
+  const regionBar=document.createElement('div');regionBar.className='gd-ag-lab-helpers';regionBar.hidden=true;toolbar.append(regionBar);
+  const colourButtons=REGION_COLOURS.map((c,i)=>{const b=document.createElement('button');b.type='button';b.className='gd-btn';b.style.cssText='width:34px;min-height:36px;background:'+c+';border:2px solid white';b.setAttribute('aria-label',['Green','Blue','Gold','Purple','Coral'][i]+' region');b.onclick=()=>{regionColour=i;paint()};regionBar.append(b);return b});
+  const regionAction=(label,fn)=>{const b=document.createElement('button');b.type='button';b.className='gd-btn';b.textContent=label;b.onclick=fn;regionBar.append(b);return b};
+  const applyRegion=regionAction('Shade selected',()=>{if(!validRegion(st.points,regionPick))return;save();st.regions.push({ids:regionPick.slice(),colour:regionColour});regionPick=[];regionStatus='';changed()});
+  regionAction('Clear selection',()=>{regionPick=[];regionStatus='';paint()});
+  const removeRegion=regionAction('Remove last region',()=>{if(!st.regions.length)return;save();st.regions.pop();changed()});
+  function resizeWorkspace(w,h){if(!free)return;ww=Math.min(2600,Math.max(1000,Math.round(w)));hh=Math.min(1800,Math.max(640,Math.round(h)));st.workspace={w:ww,h:hh};svg.setAttribute('viewBox','0 0 '+ww+' '+hh);svg.style.maxHeight='none';svg.style.height='auto';changed()}
+  if(free){svg.dataset.agFreeWorkspace='1';svg.style.maxHeight='none';box.addEventListener('tt99-workspace-resize',e=>resizeWorkspace(e.detail.w,e.detail.h));}
   const angleTool=()=>['protractor','square45','square30'].includes(tool);
   const nearest=(p,skip=-1)=>{const a=st.points.map((q,i)=>({i,d:labDist(q,p)})).filter(x=>x.i!==skip).sort((a,b)=>a.d-b.d)[0];return a&&a.d<=tolerance()?a.i:-1};
   function tolerance(){const m=svg.getScreenCTM();return m?Math.min(42,20/Math.hypot(m.a,m.b)):20}
   const magnetic=(p,exclude=-1)=>labSnap(st,p,tolerance(),snap,exclude);
-  function point(p){const hit=magnetic(p);const i=st.points.findIndex(q=>labDist(q,hit.p)<.001);if(i>=0)return i;st.points.push(hit.p.slice());return st.points.length-1}
+  function point(p){const hit=magnetic(p);const i=st.points.findIndex(q=>labDist(q,hit.p)<.001);if(i>=0)return i;st.points.push(hit.p.slice());st.names.push(pointName(st.nextName++));return st.points.length-1}
   function changed(){onChange(clone(st));paint()}
   function el(tag,attrs,txt){const x=document.createElementNS(N,tag);for(const [k,v] of Object.entries(attrs))x.setAttribute(k,v);if(txt!=null)x.textContent=txt;svg.append(x);return x}
   function line(a,b,color='#284d46',w=2.5,dash=''){el('line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:color,'stroke-width':w,'stroke-linecap':'round','stroke-dasharray':dash})}
@@ -413,6 +447,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    square45:['Select the 45° set square.','Choose a corner, tap a vertex and align the reference edge. Use Flip if the instrument faces the wrong way.','Draw along the other edge of the triangle. The tool has two 45° corners and one 90° corner.'],
    square30:['Select the 30°–60° set square.','Choose the appropriate corner, tap a vertex and align the reference edge. Use Flip if needed.','Draw along the other edge. This instrument has 30°, 60° and 90° corners.'],
    compass:['Select Compass.','Tap the centre. Touch and slide to set the radius using the length reading.','Release to draw a construction circle. Use Point to mark its intersection with another line or circle.'],
+   shade:['Select Shade.','Tap at least three existing vertices in perimeter order.','Choose a colour and apply shading. Use Undo or Remove last region to correct it.'],
    erase:['Select Erase.','Tap the object you want to remove. A point and its attached objects are removed together.','Undo restores the previous construction. Given challenge baselines are protected.']
   };
   function guideGraphic(step){
@@ -448,10 +483,13 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    guide.replaceChildren(header,body);
   }
   function paint(){
+   regionBar.hidden=tool!=='shade';regionBar.style.display=tool==='shade'?'flex':'none';applyRegion.disabled=!validRegion(st.points,regionPick);removeRegion.disabled=!st.regions.length;colourButtons.forEach((b,i)=>{b.setAttribute('aria-pressed',String(i===regionColour));b.style.outline=i===regionColour?'2px solid #263e43':'none'});if(expandButton)expandButton.disabled=hh>=1800;
    paintGuide();cornerButton.hidden=!tool.startsWith('square');const flip=toolbar.querySelector('[data-ag-flip]');flip.hidden=!angleTool()||aligned===null;
    buttons.forEach(([id,b])=>{b.classList.toggle('gd-btn--primary',id===tool);b.setAttribute('aria-pressed',String(id===tool))});undoButton.disabled=history.length===0;
    svg.replaceChildren();el('rect',{width:ww,height:hh,fill:'#fff'});
    if(grid){for(let x=20;x<ww;x+=40)line([x,22],[x,hh-18],'#e1ebe6',1);for(let y=22;y<=hh-18;y+=40)line([20,y],[ww-20,y],'#e1ebe6',1)}
+   for(const region of st.regions){if(validRegion(st.points,region.ids))el('polygon',{points:region.ids.map(i=>st.points[i].join(',')).join(' '),fill:REGION_COLOURS[region.colour]||REGION_COLOURS[0],'fill-opacity':.32,stroke:'none','data-ag-region':'1'})}
+   if(tool==='shade'&&regionPick.length>=2)el('polygon',{points:regionPick.map(i=>st.points[i].join(',')).join(' '),fill:validRegion(st.points,regionPick)?REGION_COLOURS[regionColour]:'none','fill-opacity':.15,stroke:REGION_COLOURS[regionColour],'stroke-width':2,'stroke-dasharray':'5 4'});
    for(const c of st.circles)circle(st.points[c.i],c.r,'#a97830','none','5 4');
    for(const r of st.rays)line(st.points[r.i],polar(...st.points[r.i],1200,r.angle),'#63978a',1.8,'7 5');
    if(st.given!==false&&st.points.length>=2){line(st.points[0],st.points[1],'#283f3a',4);text([460,330],'6 cm')}
@@ -465,8 +503,8 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
     }
     if(hit.kind){circle(p,12,'#2e9982','#d5eee5');circle(p,3,'#2e9982','#2e9982');text([p[0],p[1]-18],hit.kind,'#287b69',12)}
    }
-   st.points.forEach((p,i)=>{circle(p,i===first?7:5,'white',st.given!==false&&i<2?'#28413d':'#287f6c');text([p[0]+(i===0?-14:i===1?14:0),p[1]+(i<2?17:-13)],String.fromCharCode(65+i))});
-   hint.textContent=angleTool()?(first===null?'Tap a vertex to place the instrument.':aligned===null?'Tap along the reference edge to align the instrument.':'Choose a direction on the instrument to draw a ray.'):tool==='move'?'Drag a movable point.':tool==='point'?'Tap a point or a highlighted intersection.':tool==='erase'?'Tap a drawn point, line or circle to erase.':first===null?'Tap the starting point.':'Touch, slide to refine, then release to place.';
+   st.points.forEach((p,i)=>{if(regionPick.includes(i))circle(p,11,REGION_COLOURS[regionColour],'none');circle(p,i===first?6:4,'white',st.given!==false&&i<2?'#28413d':'#287f6c');const pos=labLabel(st,i);text([pos[0],pos[1]+4],st.names[i],'#325a50',13)});
+   hint.textContent=tool==='shade'?(regionStatus||'Tap vertices in perimeter order. '+regionPick.map(i=>st.names[i]).join(' → ')+(regionPick.length>=3&&!validRegion(st.points,regionPick)?' · Invalid or crossing region.':'')):angleTool()?(first===null?'Tap a vertex to place the instrument.':aligned===null?'Tap along the reference edge to align the instrument.':'Choose a direction on the instrument to draw a ray.'):tool==='move'?'Drag a movable point.':tool==='point'?'Tap a point or a highlighted intersection.':tool==='erase'?'Tap a drawn point, line or circle to erase.':first===null?'Tap the starting point.':'Touch, slide to refine, then release to place.';
   }
   function coords(e){const m=svg.getScreenCTM();if(!m)return null;return new DOMPoint(e.clientX,e.clientY).matrixTransform(m.inverse())}
   let placing=null;
@@ -475,8 +513,9 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    place(p,e);
   });
   function place(p,e){
+   if(tool==='shade'){const i=nearest(p);if(i>=0){regionPick=regionPick.includes(i)?regionPick.filter(j=>j!==i):[...regionPick,i];regionStatus='';paint()}return}
    if(tool==='move'){const i=nearest(p);if(i>=(st.given===false?0:2)){save();drag=i;try{svg.setPointerCapture(e.pointerId)}catch(_){}}return}
-   if(tool==='erase'){const i=nearest(p);if(i>=(st.given===false?0:2)){save();st.points.splice(i,1);st.segments=st.segments.filter(l=>!l.includes(i)).map(l=>l.map(j=>j>i?j-1:j));for(const k of ['rays','circles'])st[k]=st[k].filter(r=>r.i!==i).map(r=>({...r,i:r.i>i?r.i-1:r.i}));changed();return}
+   if(tool==='erase'){const i=nearest(p);if(i>=(st.given===false?0:2)){save();st.points.splice(i,1);st.names.splice(i,1);st.regions=st.regions.filter(r=>!r.ids.includes(i)).map(r=>({...r,ids:r.ids.map(j=>j>i?j-1:j)}));regionPick=[];st.segments=st.segments.filter(l=>!l.includes(i)).map(l=>l.map(j=>j>i?j-1:j));for(const k of ['rays','circles'])st[k]=st[k].filter(r=>r.i!==i).map(r=>({...r,i:r.i>i?r.i-1:r.i}));changed();return}
     const distanceTo=(a,b,ray=false)=>{const v=labSub(b,a),t=labDot(labSub(p,a),v)/(labDot(v,v)||1);return labDist(p,labAt(a,v,Math.max(0,ray?t:Math.min(1,t))))};
     let k=st.segments.findIndex(([i,j])=>distanceTo(st.points[i],st.points[j])<tolerance());if(k>=0){save();st.segments.splice(k,1)}else{k=st.rays.findIndex(r=>distanceTo(st.points[r.i],polar(...st.points[r.i],1,r.angle),true)<tolerance());if(k>=0){save();st.rays.splice(k,1)}else{k=st.circles.findIndex(c=>Math.abs(labDist(p,st.points[c.i])-c.r)<tolerance());if(k>=0){save();st.circles.splice(k,1)}}}changed();return;
    }
@@ -490,7 +529,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    else if(tool==='ray'||angleTool()){const a=angleTool()?selectedAngle(o,p):Math.round(labAngle(o,magnetic(p).p));st.rays.push({i:first,angle:a})}
    first=null;aligned=null;hover=null;changed();
   }
-  svg.addEventListener('pointermove',e=>{const z=coords(e);if(!z)return;hover=[z.x,z.y];if(drag!==null){const p=[Math.max(5,Math.min(ww-5,z.x)),Math.max(5,Math.min(hh-5,z.y))];st.points[drag]=magnetic(p,drag).p.slice();changed()}else paint()});
+  svg.addEventListener('pointermove',e=>{const z=coords(e);if(!z)return;hover=[z.x,z.y];if(drag!==null){const p=[Math.max(5,Math.min(ww-5,z.x)),Math.max(5,Math.min(hh-5,z.y))];const old=st.points[drag];st.points[drag]=magnetic(p,drag).p.slice();if(st.regions.some(r=>r.ids.includes(drag)&&!validRegion(st.points,r.ids)))st.points[drag]=old;changed()}else paint()});
   svg.addEventListener('pointerup',e=>{if(placing===e.pointerId){placing=null;const z=coords(e);if(z)place([z.x,z.y],e)}drag=null;paint()});
   const cancel=()=>{placing=null;drag=null;paint()};svg.addEventListener('pointercancel',cancel);svg.addEventListener('lostpointercapture',cancel);
   paint();
@@ -611,8 +650,8 @@ G.anglesTool=function(){
   const modeFields={
     angle:angleField()+rotationField+check('ag-scale','Show protractor',demo.scale),
     turn:angleField()+rotationField+field('Turn direction',select('ag-direction',[['cw','Clockwise'],['ccw','Anticlockwise']],demo.clockwise?'cw':'ccw')),
-    polygon:field('Shape',select('ag-shape-view',[['regular','General polygons'],['equilateral','Equilateral triangle'],['isosceles','Isosceles triangle'],['scalene','Scalene triangle'],['square','Square'],['rectangle','Rectangle'],['rhombus','Rhombus'],['parallelogram','Parallelogram'],['trapezium','Trapezium']],demo.shapeView||'regular'))+rotationField+(!demo.shapeView||demo.shapeView==='regular'?field('Sides',select('ag-sides',Array.from({length:10},(_,i)=>[i+3,i+3]),demo.n))+check('ag-regular','Regular polygon',demo.regular)+check('ag-triangulate','Show triangulation',demo.triangulate!==false):check('ag-sides-mark','Mark equal sides',demo.showSides!==false)+(['square','rectangle','rhombus','parallelogram','trapezium'].includes(demo.shapeView)?check('ag-diagonals','Show diagonals',demo.showDiagonals===true)+check('ag-parallel','Mark parallel sides',demo.showParallel===true):''))+check('ag-corners','Show interior angles',demo.showCorners!==false),
-    circle:field('Radius (cm)',select('ag-radius',Array.from({length:15},(_,i)=>[i+1,(i+1)+' cm']),demo.radius||5))+check('ag-circle-extension','Show KS3 formulae and working',demo.circleEnrichment===true),
+    polygon:check('ag-fill','Shade whole shape (demonstration)',demo.showFill===true)+field('Shape',select('ag-shape-view',[['regular','General polygons'],['equilateral','Equilateral triangle'],['isosceles','Isosceles triangle'],['scalene','Scalene triangle'],['square','Square'],['rectangle','Rectangle'],['rhombus','Rhombus'],['parallelogram','Parallelogram'],['trapezium','Trapezium']],demo.shapeView||'regular'))+rotationField+(!demo.shapeView||demo.shapeView==='regular'?field('Sides',select('ag-sides',Array.from({length:10},(_,i)=>[i+3,i+3]),demo.n))+check('ag-regular','Regular polygon',demo.regular)+check('ag-triangulate','Show triangulation',demo.triangulate!==false):check('ag-sides-mark','Mark equal sides',demo.showSides!==false)+(['square','rectangle','rhombus','parallelogram','trapezium'].includes(demo.shapeView)?check('ag-diagonals','Show diagonals',demo.showDiagonals===true)+check('ag-parallel','Mark parallel sides',demo.showParallel===true):''))+check('ag-corners','Show interior angles',demo.showCorners!==false),
+    circle:check('ag-fill','Shade whole circle (demonstration)',demo.showFill===true)+field('Radius (cm)',select('ag-radius',Array.from({length:15},(_,i)=>[i+1,(i+1)+' cm']),demo.radius||5))+check('ag-circle-extension','Show KS3 formulae and working',demo.circleEnrichment===true),
     construct:check('ag-free-lab','Free construction workspace',demo.freeLab===true)+(!demo.freeLab?angleField(170,10)+field('AC length (cm)',select('ag-length',Array.from({length:7},(_,i)=>[i+1,i+1]),demo.length)):'') ,
     facts:angleField(170,10)+rotationField+field('Angle relationship',select('ag-fact',[['straight','Straight line'],['point','Around a point'],['opposite','Vertically opposite']],demo.fact||'straight')),
     lines:field('Line relationship',select('ag-relation',[['Parallel','Parallel'],['Perpendicular','Perpendicular'],['Neither','Neither']],demo.relation||'Neither'))+rotationField+(!demo.relation||demo.relation==='Neither'?angleField(80,10):'')
@@ -623,7 +662,7 @@ G.anglesTool=function(){
   qa('[data-ag-workflow]',host).forEach(b=>b.onclick=()=>{workflow=b.dataset.agWorkflow;if(workflow==='build'){task=null;attempt=null;scope=''}render()});
   qa('[data-ag-challenge-mode]',host).forEach(b=>b.onclick=()=>{scope='';launch(b.dataset.agChallengeMode)});
   const bind=(id,fn)=>{const el=q('#'+id,host);if(el)el.onchange=e=>{fn(e.target);render()}};
-  bind('ag-year',e=>cfg.year=e.value);bind('ag-level',e=>cfg.level=e.value);bind('ag-enrich',e=>cfg.enrichment=e.checked);bind('ag-mode',e=>{demo.mode=e.value;cfg.mode=e.value;if(e.value==='construct'&&demo.freeLab==null)demo.freeLab=true});bind('ag-value',e=>demo.angle=+e.value);bind('ag-rotation',e=>demo.rotation=+e.value);bind('ag-scale',e=>demo.scale=e.checked);bind('ag-direction',e=>demo.clockwise=e.value==='cw');bind('ag-sides',e=>demo.n=+e.value);bind('ag-regular',e=>demo.regular=e.checked);bind('ag-triangulate',e=>demo.triangulate=e.checked);bind('ag-corners',e=>demo.showCorners=e.checked);bind('ag-shape-view',e=>demo.shapeView=e.value);bind('ag-sides-mark',e=>demo.showSides=e.checked);bind('ag-diagonals',e=>demo.showDiagonals=e.checked);bind('ag-parallel',e=>demo.showParallel=e.checked);bind('ag-radius',e=>demo.radius=+e.value);bind('ag-circle-extension',e=>demo.circleEnrichment=e.checked);bind('ag-length',e=>demo.length=+e.value);bind('ag-free-lab',e=>demo.freeLab=e.checked);bind('ag-fact',e=>demo.fact=e.value);bind('ag-relation',e=>demo.relation=e.value);
+  bind('ag-year',e=>cfg.year=e.value);bind('ag-level',e=>cfg.level=e.value);bind('ag-enrich',e=>cfg.enrichment=e.checked);bind('ag-mode',e=>{demo.mode=e.value;cfg.mode=e.value;if(e.value==='construct'&&demo.freeLab==null)demo.freeLab=true});bind('ag-value',e=>demo.angle=+e.value);bind('ag-rotation',e=>demo.rotation=+e.value);bind('ag-scale',e=>demo.scale=e.checked);bind('ag-direction',e=>demo.clockwise=e.value==='cw');bind('ag-sides',e=>demo.n=+e.value);bind('ag-regular',e=>demo.regular=e.checked);bind('ag-triangulate',e=>demo.triangulate=e.checked);bind('ag-corners',e=>demo.showCorners=e.checked);bind('ag-shape-view',e=>demo.shapeView=e.value);bind('ag-sides-mark',e=>demo.showSides=e.checked);bind('ag-diagonals',e=>demo.showDiagonals=e.checked);bind('ag-parallel',e=>demo.showParallel=e.checked);bind('ag-radius',e=>demo.radius=+e.value);bind('ag-fill',e=>demo.showFill=e.checked);bind('ag-circle-extension',e=>demo.circleEnrichment=e.checked);bind('ag-length',e=>demo.length=+e.value);bind('ag-free-lab',e=>demo.freeLab=e.checked);bind('ag-fact',e=>demo.fact=e.value);bind('ag-relation',e=>demo.relation=e.value);
   for(const kind of ['copy','png','svg','print',...(task?['key-copy','key-print']:[])]){let el=q('#ag-'+kind,host);if(!el){el=document.createElement('button');el.hidden=true;el.type='button';host.appendChild(el)}el.setAttribute('data-gd-direct-export',kind);el.onclick=()=>exportAction(kind)}
   const ad=q('#ag-add',host);if(ad)ad.onclick=()=>publish(false);const ba=q('#ag-batch',host);if(ba)ba.onclick=()=>publish(true);const re=q('#ag-review',host);if(re)re.onclick=()=>{const P=G.publishing;if(P){draft=draft||P.createDocument();P.openEditor(draft)}};
  }
