@@ -63,3 +63,11 @@ Agreed 26 November 2026: dynamic geometry is useful for investigating relationsh
 ## Status of this branch
 
 Based on production after PR #238, retaining label placement, independent measurement and selective shading. Forward-ports eight previously unmerged challenge families; adds right-triangle and kite exploration, parameter controls that preserve shape properties, diagonal and height overlays. Direct constrained vertex dragging and the general dependency engine are planned, not delivered here. Other rows above remain roadmap items unless already supported by the live widgets. Avoid merging the superseded development branches wholesale.
+
+## Paper-equivalent construction implementation — first increment
+
+- Fixed marks in free Construction Lab and the six shape-construction families: removed vertex Move and pointer-drag mutation. Undo/Erase remain available. Previewing an instrument or moving a pointer does not change committed coordinates.
+- Numeric dimension annotation is off by default in free construction (teacher may opt in) and not offered in shape-construction challenges; the given baseline remains labelled. The compass and ruler provide actual graduated scale previews.
+- Compass retains an exact chosen aperture for reuse at another centre; opening can be changed again. Snapping remains limited to existing drawn geometry, not hidden task targets.
+- Browser regressions cover immovable points, compass transfer, default measurement policy, undo, and retained exploration controls.
+- Remaining: convert the separate angle-drawing tasks to paper-equivalent instrument placement and fixed marks; implement allowed-instrument presets, ungraduated straightedge, classical construction tasks and method assessment. Current six shape construction families assess the finished geometry, not the sequence. The general dynamic dependency engine belongs only to exploration.
