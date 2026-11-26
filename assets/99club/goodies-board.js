@@ -140,6 +140,7 @@ function iconSvg(name){
     back:'<path d="m14 6-6 6 6 6"/>',
     save:'<path d="M6 4h12l2 2v14H4V4zM8 4v6h8V4M8 20v-6h8v6"/>',
     full:'<path d="M8 4H4v4M16 4h4v4M20 16v4h-4M4 16v4h4"/>',
+    restore:'<path d="M4 9h5V4M20 9h-5V4M15 20v-5h5M9 20v-5H4"/>',
     snap:'<circle cx="7" cy="7" r="1.2"/><circle cx="12" cy="7" r="1.2"/><circle cx="17" cy="7" r="1.2"/><circle cx="7" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="17" cy="12" r="1.2"/><circle cx="7" cy="17" r="1.2"/><circle cx="12" cy="17" r="1.2"/><circle cx="17" cy="17" r="1.2"/>',
     settings:'<path d="M5 7h8M17 7h2M11 12h8M5 12h2M5 17h5M14 17h5"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="12" cy="17" r="2"/>',
     lock:'<rect x="6" y="10" width="12" height="10" rx="2"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/>',
@@ -281,7 +282,7 @@ function openPicker(id){
 palette.querySelectorAll('[data-board-group]').forEach(el=>el.onclick=()=>openPicker(el.dataset.boardGroup));
 picker.querySelector('[data-board-picker-close]').onclick=()=>closePicker(true);
 document.addEventListener('pointerdown',e=>{if(openGroup&&!palette.contains(e.target)&&!picker.contains(e.target))closePicker()},true);
-window.addEventListener('resize',positionPicker);
+window.addEventListener('resize',()=>{positionPicker();objects.filter(o=>o.maximised).forEach(positionObject)});viewport.addEventListener('scroll',()=>objects.filter(o=>o.maximised).forEach(positionObject),{passive:true});
 if(typeof ResizeObserver!=='undefined')new ResizeObserver(positionPicker).observe(board);
 positionPicker();
 const floatingControls=document.getElementById('gd-board-floating-controls');
@@ -669,6 +670,7 @@ function measuredStageContentHeight(stage){
   }finally{saved.forEach(([key,value,priority])=>{if(value)stage.style.setProperty(key,value,priority);else stage.style.removeProperty(key)})}
 }
 function fitEmbeddedObject(obj,initial=false){
+  if(obj?.maximised)return;
   const frame=frameFor(obj?.id),doc=innerDocument(obj);if(!frame||!doc)return;
   const stage=doc.getElementById('gd-stage');if(!stage)return;
   const neededW=Math.ceil(Math.max(stage.clientWidth,stage.scrollWidth));
@@ -824,7 +826,7 @@ function selectObject(id){
   const next=objectById(id);
   if(selectedId!=null&&String(selectedId)!==String(id)){
     const previous=objectById(selectedId);
-    if(previous){sendSettings(previous,false);closeContext(previous)}
+    if(previous){if(previous.maximised)restoreWidget(previous);sendSettings(previous,false);closeContext(previous)}
   }
   selectedId=next?next.id:null;
   if(next){next.z=++zCounter}
@@ -840,14 +842,18 @@ function selectObject(id){
 function deselect(){
   if(selectedId!=null){
     const current=objectById(selectedId);
-    if(current){sendSettings(current,false);closeContext(current)}
+    if(current){if(current.maximised)restoreWidget(current);sendSettings(current,false);closeContext(current)}
   }
   selectedId=null;
   canvas.querySelectorAll('.gd-board-object').forEach(el=>{el.classList.remove('is-selected','has-context-menu','has-settings','has-export-menu');el.setAttribute('aria-selected','false')});
   objects.forEach(syncRevealDelegation);
 }
+function restoreWidget(obj){if(!obj.maximised)return;delete obj.maximised;positionObject(obj)}
+function maximiseWidget(obj){if(obj.maximised){restoreWidget(obj);return}selectObject(obj.id);closeContext(obj);obj.maximised=true;positionObject(obj)}
 function positionObject(obj){
   const frame=frameFor(obj.id);if(!frame)return;
+  frame.classList.toggle('is-maximised',!!obj.maximised);const maxButton=frame.querySelector('[data-board-maximise]');if(maxButton){maxButton.innerHTML=iconSvg(obj.maximised?'restore':'full');maxButton.title=obj.maximised?'Restore widget':'Maximise widget';maxButton.setAttribute('aria-label',maxButton.title);maxButton.setAttribute('aria-pressed',String(!!obj.maximised))}
+  if(obj.maximised){const vr=viewport.getBoundingClientRect(),rail=palette.getBoundingClientRect(),left=Math.max(16,rail.right-vr.left+12),w=Math.max(160,viewport.clientWidth-left-48),h=Math.max(120,viewport.clientHeight-82),scale=Math.min(w/obj.baseW,h/obj.baseH);frame.style.left=(viewport.scrollLeft+left+(w-obj.baseW*scale)/2)+'px';frame.style.top=(viewport.scrollTop+40+(h-obj.baseH*scale)/2)+'px';frame.style.width=Math.round(obj.baseW*scale)+'px';frame.style.height=Math.round(obj.baseH*scale)+'px';frame.style.zIndex=String(obj.z);frame.style.setProperty('--gd-board-base-w',obj.baseW+'px');frame.style.setProperty('--gd-board-base-h',obj.baseH+'px');frame.style.setProperty('--gd-board-scale',String(scale));return}
   frame.style.left=obj.x+'px';frame.style.top=obj.y+'px';
   frame.style.width=obj.w+'px';frame.style.height=obj.h+'px';
   frame.style.zIndex=String(obj.z);
@@ -870,6 +876,7 @@ function objectMarkup(obj,tool){
     '<button type="button" class="gd-board-object-cover" data-board-select="'+obj.id+'" aria-label="Select '+esc(tool.title)+'"></button>'+
     '<button type="button" class="gd-board-move-handle" data-board-move="'+obj.id+'" aria-label="Move '+esc(tool.title)+'" title="Move"><span></span><span></span><span></span></button>'+
     '<label class="gd-board-mode-picker" data-board-mode-picker hidden><select aria-label="Choose '+esc(tool.title)+' mode"></select><span aria-hidden="true">⌄</span></label>'+
+    '<button type="button" class="gd-board-maximise" data-board-maximise="'+obj.id+'" aria-label="Maximise widget" title="Maximise widget" aria-pressed="false">'+iconSvg('full')+'</button>'+
     '<button type="button" class="gd-board-context-trigger" data-board-context="'+obj.id+'" aria-label="Object menu" title="Object menu">'+iconSvg('more')+'</button>'+
     '<button type="button" class="gd-board-export-direct" data-board-export="'+obj.id+'" aria-label="Export '+esc(tool.title)+'" title="Export for worksheet or print">'+iconSvg('export')+'</button>'+
     '<button type="button" class="gd-board-delete-direct" data-board-delete="'+obj.id+'" aria-label="Delete '+esc(tool.title)+'" title="Delete">'+iconSvg('trash')+'</button>'+
@@ -1084,6 +1091,7 @@ function bindObject(obj){
   if(select)select.onclick=e=>{e.stopPropagation();selectObject(obj.id)};
   const mode=frame.querySelector('[data-board-mode-picker] select');if(mode){mode.onpointerdown=e=>e.stopPropagation();mode.onclick=e=>e.stopPropagation();mode.onchange=e=>{e.stopPropagation();const bridge=innerDocument(obj)?.defaultView?.TT99Goodies?.modeControl;if(!bridge?.set(mode.value))boardHint('This mode is not available in the current activity.');syncModePicker(obj);syncQuickActions(obj);refreshFloatingControls(obj)}}
   const hint=frame.querySelector('[data-board-mode-hint]');if(hint)hint.onclick=e=>{e.stopPropagation();const bridge=innerDocument(obj)?.defaultView?.TT99Goodies?.modeControl,data=bridge?.read();if(data)bridge.hint(!data.hintVisible);syncModePicker(obj);closeContext(obj)};
+  const maxButton=frame.querySelector('[data-board-maximise]');if(maxButton)maxButton.onclick=e=>{e.stopPropagation();maximiseWidget(obj)};
   const context=frame.querySelector('[data-board-context]');
   if(context)context.onclick=e=>{e.stopPropagation();toggleContext(obj.id)};
   const settings=frame.querySelector('[data-board-settings]');
@@ -1141,14 +1149,14 @@ function bindObject(obj){
 
   const move=frame.querySelector('[data-board-move]');
   if(move)move.onpointerdown=e=>{
-    if(obj.locked||e.button!==0)return;
+    if(obj.locked||obj.maximised||e.button!==0)return;
     e.preventDefault();e.stopPropagation();selectObject(obj.id);
     drag={id:obj.id,pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,x:obj.x,y:obj.y};
     try{move.setPointerCapture(e.pointerId)}catch(_){}
   };
   const size=frame.querySelector('[data-board-resize]');
   if(size)size.onpointerdown=e=>{
-    if(obj.locked||e.button!==0)return;
+    if(obj.locked||obj.maximised||e.button!==0)return;
     e.preventDefault();e.stopPropagation();selectObject(obj.id);
     const freeCanvas=!e.shiftKey&&obj.toolId==='angles'?innerDocument(obj)?.querySelector('[data-ag-free-workspace]'):null,view=freeCanvas?.viewBox.baseVal,rect=freeCanvas?.getBoundingClientRect();
     const workspace=view&&rect?.width>0?{w:view.width,h:view.height,unitsPerPx:view.width/rect.width}:null;
