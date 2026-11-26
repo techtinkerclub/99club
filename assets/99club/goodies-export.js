@@ -114,9 +114,10 @@ function printSvg(svg,{title='99 Club Studio illustration',prompt='',answer='',s
   const promptHtml=prompt?'<div class="prompt">'+safe(prompt)+'</div>':'';
   const pages=prepared.map((item,i)=>{
     const bounds=svgBounds(item),reserve=(i===0&&displayTitle?20:0)+(i===0&&prompt?26:0)+(i===prepared.length-1&&showAnswer&&answer?26:0)+4;
-    const heightLimit=Math.max(45,Math.min(pageH-reserve,Number(maxHeightMm)||150)),printWidth=Math.min(pageW,heightLimit*bounds.w/bounds.h);
+    const heightLimit=Math.max(45,Math.min(pageH-reserve,Number(maxHeightMm)||150)),physical=Number(item.getAttribute('data-gd-mm-per-unit')),printWidth=physical>0?bounds.w*physical:Math.min(pageW,heightLimit*bounds.w/bounds.h);
+    if(physical>0&&(printWidth>pageW+.1||bounds.h*physical>heightLimit+.1))throw Error('True-size measurement content does not fit the selected print page.');
     const svgText=serialiseSvg(item).replace(/^<\?xml[^>]*>\s*/,'');
-    return '<section class="print-page">'+(i===0&&displayTitle?'<h1>'+safe(displayTitle)+'</h1>':'')+(i===0?promptHtml:'')+'<div class="sheet" style="--print-width:'+printWidth+'mm;--print-height:'+heightLimit+'mm">'+svgText+'</div>'+(i===prepared.length-1?answerHtml:'')+'</section>';
+    return '<section class="print-page">'+(i===0&&displayTitle?'<h1>'+safe(displayTitle)+'</h1>':'')+(i===0?promptHtml:'')+'<div class="sheet" style="--print-width:'+printWidth+'mm;--print-height:'+(physical>0?bounds.h*physical:heightLimit)+'mm">'+svgText+'</div>'+(i===prepared.length-1?answerHtml:'')+'</section>';
   });
   const win=window.open('','_blank');
   if(!win)throw new Error('Allow pop-ups to print or save as PDF.');
