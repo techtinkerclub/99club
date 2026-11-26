@@ -470,7 +470,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
     if(first!==null){const a=st.points[first];
      if(angleTool()&&aligned!==null){const v=selectedAngle(a,p);line(a,polar(...a,190,v),'#b77b32',3);if(measure)text(polar(...a,75,aligned+mod(v-aligned)/2),Math.round(mod(v-aligned))+'°','#996221')}
      else if(tool==='compass'){const r=Math.round(labDist(a,p)/4)*4;circle(a,r,'#b77b32');line(a,p,'#b77b32',1.5);if(measure)text([(a[0]+p[0])/2,(a[1]+p[1])/2-10],(r/LAB_UNIT).toFixed(1)+' cm','#996221')}
-     else if(tool==='segment'){const len=labDist(a,p);if(len>1){const cm=Math.ceil(len/40)+1;G.instruments.ruler(svg,{x:a[0],y:a[1],width:cm*40,length:cm,height:44,tickHeight:23,angle:labAngle(a,p),labelSize:11});line(a,p,'#b77b32',2,'5 4');if(measure)text([(a[0]+p[0])/2,(a[1]+p[1])/2-12],(len/40).toFixed(1)+' cm','#996221')}}else if(tool==='ray'||angleTool())line(a,p,'#b77b32',2,'5 4');
+     else if(tool==='segment'){const len=labDist(a,p);if(len>1){const cm=30;G.instruments.ruler(svg,{x:a[0],y:a[1],width:cm*40,length:cm,height:44,tickHeight:23,angle:labAngle(a,p),labelSize:11});line(a,p,'#b77b32',2,'5 4');if(measure)text([(a[0]+p[0])/2,(a[1]+p[1])/2-12],(len/40).toFixed(1)+' cm','#996221')}}else if(tool==='ray'||angleTool())line(a,p,'#b77b32',2,'5 4');
     }
     if(hit.kind){circle(p,12,'#2e9982','#d5eee5');circle(p,3,'#2e9982','#2e9982');text([p[0],p[1]-18],hit.kind,'#287b69',12)}
    }
@@ -530,11 +530,11 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    points.forEach((p,i)=>mark(p,i===hover?10:5,selected.includes(i)?'#e3af53':i===hover?'#d0eee4':'white'));
    if(tool==='ruler'&&selected.length===2){
     const [a,b]=selected.map(i=>points[i]),len=labDist(a,b),v=labSub(b,a).map(x=>x/len),normal=[-v[1],v[0]],center=points.reduce((r,p)=>[r[0]+p[0]/points.length,r[1]+p[1]/points.length],[0,0]);if(labDot(labSub(center,a),normal)<0){normal[0]*=-1;normal[1]*=-1}
-    const angle=labAngle(a,b),side=labDot(normal,[-v[1],v[0]])>=0?1:-1,cm=Math.ceil(len/40)+1;G.instruments.ruler(layer,{x:a[0],y:a[1],width:cm*40,length:cm,height:44,tickHeight:23,angle,side,labelSize:11,unitLabel:false});
+    const angle=labAngle(a,b),side=labDot(normal,[-v[1],v[0]])>=0?1:-1,cm=20;G.instruments.ruler(layer,{x:a[0],y:a[1],width:cm*40,length:cm,height:44,tickHeight:23,angle,side,labelSize:11,unitLabel:false});
     line(a,b,'#177d6f',3);message.textContent='Length: '+(len/40).toFixed(2)+' diagram units. Tap two more vertices to compare.';
    }else if(tool==='angle'&&selected.length>=2){
-    const o=points[selected[0]],a=points[selected[1]],base=labAngle(o,a),b=selected.length===3?points[selected[2]]:null,delta=b?mod(labAngle(o,b)-base):0,sign=b&&delta>180?-1:1,deg=Math.min(delta,360-delta),radius=125;
-    G.instruments.protractor(layer,{x:o[0],y:o[1],radius:125,start:base,direction:sign});
+    const o=points[selected[0]],a=points[selected[1]],base=labAngle(o,a),b=selected.length===3?points[selected[2]]:null,delta=b?mod(labAngle(o,b)-base):0,sign=b&&delta>180?-1:1,deg=Math.min(delta,360-delta),radius=155;
+    G.instruments.protractor(layer,{x:o[0],y:o[1],radius,start:base,direction:sign});
     line(o,polar(...o,radius,base),'#397b70',2);if(b){line(o,polar(...o,radius,base+sign*deg),'#b77b32',3);message.textContent='Measured angle: '+Math.round(deg)+'°. Tap a new corner to measure another.'}else message.textContent='Tap a point on the second arm.';
    }else if(selected.length===1)message.textContent=tool==='ruler'?'Tap the other endpoint.':'Tap a point on the first arm.';
   }
