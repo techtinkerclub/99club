@@ -86,9 +86,36 @@ const INDEPENDENT_METHOD_ROLES={
  'golden-section':['A','B','G'],
  'triangle-centroid':['A','B','C','G'],
  'triangle-orthocentre':['A','B','C','H'],
- 'angle-in-semicircle':['A','B','T']
+ 'angle-in-semicircle':['A','B','T'],
+ 'copy-angle':['A','O','B','P','Q','S'],
+ 'triangle-sss':['A','B','C'],
+ 'triangle-asa':['A','B','C'],
+ 'triangle-sas':['A','B','C'],
+ 'triangle-right-legs':['A','B','C'],
+ 'right-triangle-hypotenuse':['A','B','C'],
+ 'common-external-tangents':['O','P','T1','T2','U1','U2'],
+ 'common-internal-tangents':['O','P','T1','T2','U1','U2'],
+ 'two-distance-locus':['A','B','P₁','P₂'],
+ 'equidistant-fixed-radius-locus':['A','B','M','P','Q'],
+ 'circle-given-radius':['A']
 };
-function independentConstructionCheck(st,id,assignment){
+// Each numerical given is entered by the teacher/pupil, not derived from
+// the illustrative solution. The result reports missing targets separately.
+const INDEPENDENT_METHOD_DIMENSIONS={
+ 'triangle-sss':[['AB','AB (cm)'],['AC','AC (cm)'],['BC','BC (cm)']],
+ 'triangle-asa':[['AB','AB (cm)'],['angleA','Angle BAC (°)'],['angleB','Angle ABC (°)']],
+ 'triangle-sas':[['AB','AB (cm)'],['AC','AC (cm)'],['angleA','Angle BAC (°)']],
+ 'triangle-right-legs':[['AB','AB (cm)'],['AC','AC (cm)']],
+ 'right-triangle-hypotenuse':[['AB','Hypotenuse AB (cm)'],['AC','AC (cm)']],
+ 'rectangle-sides':[['AB','AB (cm)'],['AD','AD (cm)']],
+ 'parallelogram-sas':[['AB','AB (cm)'],['AD','AD (cm)'],['angleA','Angle DAB (°)']],
+ 'rhombus-side-angle':[['angleA','Angle DAB (°)']],
+ 'isosceles-trapezium':[['AB','AB (cm)'],['CD','CD (cm)'],['height','Height (cm)']],
+ 'two-distance-locus':[['radius','Given distance (cm)']],
+ 'equidistant-fixed-radius-locus':[['radius','Given radius (cm)']],
+ 'circle-given-radius':[['radius','Given radius (cm)']]
+};
+function independentConstructionCheck(st,id,assignment,targets={}){
  const roles=INDEPENDENT_METHOD_ROLES[id];if(!roles)return {supported:false,ready:false,correct:false,checks:[]};
  const ids=roles.map(k=>assignment[k]);if(ids.some(i=>!Number.isInteger(i)||!st.points[i])||new Set(ids).size!==ids.length)return {supported:true,ready:false,correct:false,checks:[]};
  const p=Object.fromEntries(roles.map((k,i)=>[k,st.points[ids[i]]])),{A,B,C,D:Q,O,M,P:U,F,G,H,I,T,X,Z}=p,checks=[],eps=6;
@@ -126,7 +153,35 @@ function independentConstructionCheck(st,id,assignment){
  else if(id==='triangle-centroid'){triangle();test('G is the intersection of the medians',d(G,labAt(A,v(labAt(B,v(C,B),.5),A),2/3))<=eps)}
  else if(id==='triangle-orthocentre'){triangle();test('H lies on the altitudes from A and B',Math.abs(dot(v(H,A),v(C,B)))/d(C,B)<=eps&&Math.abs(dot(v(H,B),v(C,A)))/d(C,A)<=eps)}
  else if(id==='angle-in-semicircle'){const m=labAt(A,v(B,A),.5);test('Circle has AB as its diameter',circle(m,d(A,B)/2)&&near(d(m,T),d(A,B)/2));test('Angle ATB is a right angle',perp(v(A,T),v(B,T)));test('Both sides are drawn',segment(T,A)&&segment(T,B))}
- return {supported:true,ready:true,correct:checks.length>0&&checks.every(c=>c.ok),checks};
+ else if(id==='copy-angle'){
+   test('Original and copied angle arms are drawn',segment(O,A)&&segment(O,B)&&segment(U,p.Q)&&segment(U,p.S));
+   const original=angle(v(A,O),v(B,O)),copied=angle(v(p.Q,U),v(p.S,U));test('Copied angle equals original angle',original>2&&original<178&&Math.abs(original-copied)<=2)
+ }else if(['triangle-sss','triangle-asa','triangle-sas','triangle-right-legs','right-triangle-hypotenuse'].includes(id)){
+   triangle();if(id==='triangle-right-legs')test('Angle BAC is 90°',perp(v(B,A),v(C,A)));if(id==='right-triangle-hypotenuse')test('Angle ACB is 90°',perp(v(A,C),v(B,C)))
+ }else if(id==='common-external-tangents'||id==='common-internal-tangents'){
+   const t=p.T1,u=p.T2,x=p.U1,y=p.U2,R=d(O,t),r=d(U,x),internal=id==='common-internal-tangents';
+   test('Two disjoint circles are drawn',circle(O,R)&&circle(U,r)&&d(O,U)>R+r);
+   test('Contacts lie on the corresponding circles',near(d(O,u),R)&&near(d(U,y),r)&&d(t,u)>2*eps&&d(x,y)>2*eps);
+   for(const [a,b] of [[t,x],[u,y]]){const va=v(b,a);test('Common tangent is drawn perpendicular to both radii',segment(a,b)&&perp(v(O,a),va)&&perp(v(U,b),va));test(internal?'Centres on opposite sides of tangent':'Centres on same side of tangent',(cross(va,v(O,a))*cross(va,v(U,a))<0)===internal)}
+ }else if(id==='two-distance-locus'){
+   const a=p['P₁'],b=p['P₂'],r=d(A,a);test('Two equal-radius circles are drawn',circle(A,r)&&circle(B,r)&&d(A,B)>eps);test('Both distinct intersections satisfy the distance conditions',d(a,b)>2*eps&&near(d(A,b),r)&&near(d(B,a),r)&&near(d(B,b),r))
+ }else if(id==='equidistant-fixed-radius-locus'){
+   const a=U,b=p.Q,r=d(M,a);test('M is midpoint of AB',d(M,labAt(A,v(B,A),.5))<=eps&&d(A,B)>2*eps);test('Both distinct intersections are on the circle and equidistant from A and B',circle(M,r)&&near(d(M,b),r)&&d(a,b)>2*eps&&near(d(A,a),d(B,a))&&near(d(A,b),d(B,b)))
+ }else if(id==='circle-given-radius'){test('A circle centred at A is drawn',st.circles.some(c=>st.points[c.i]&&d(st.points[c.i],A)<=eps&&c.r>eps))}
+ const pending=[];
+ for(const [key,label] of INDEPENDENT_METHOD_DIMENSIONS[id]||[]){
+   const expected=Number(targets[key]);if(targets[key]==null||targets[key]===''||!Number.isFinite(expected)||expected<=0){pending.push(label);continue}
+   let actual=NaN;
+   if(key==='AB')actual=d(A,B)/LAB_UNIT;else if(key==='AC')actual=d(A,C)/LAB_UNIT;else if(key==='BC')actual=d(B,C)/LAB_UNIT;else if(key==='AD')actual=d(A,Q)/LAB_UNIT;else if(key==='CD')actual=d(C,Q)/LAB_UNIT;
+   else if(key==='height')actual=lineDist(Q,A,B)/LAB_UNIT;
+   else if(key==='angleA')actual=angle(v(B,A),v(Q||C,A));else if(key==='angleB')actual=angle(v(A,B),v(C,B));
+   else if(key==='radius'){
+      if(id==='circle-given-radius'){test(label+' matches specified value',circle(A,expected*LAB_UNIT));continue}
+      actual=(id==='two-distance-locus'?d(A,p['P₁']):d(M,U))/LAB_UNIT;
+   }
+   test(label+' matches specified value',Math.abs(actual-expected)<=(key.startsWith('angle')?2:eps/LAB_UNIT));
+ }
+ return {supported:true,ready:true,correct:checks.length>0&&checks.every(c=>c.ok)&&!pending.length,checks,pending};
 }
 function mountConstructionLibrary(owner,button,task=null,getDrawing=null,publishMethod=null){
  const panel=document.createElement('section');panel.className='gd-ag-method-panel';panel.dataset.agMethodPanel='1';panel.setAttribute('role','region');panel.setAttribute('aria-label','Construction library');panel.hidden=true;
@@ -134,7 +189,7 @@ function mountConstructionLibrary(owner,button,task=null,getDrawing=null,publish
  const head=document.createElement('div');head.style.cssText='display:flex;gap:8px;align-items:center;cursor:move;touch-action:none';const title=document.createElement('strong');title.textContent='Construction library';title.style.flex='1';head.append(title);
  const mk=(parent,id,label,fn)=>{const b=document.createElement('button');b.type='button';b.className='gd-btn';b.textContent=label;b.dataset.agMethodAction=id;b.onclick=fn;parent.append(b);return b};
  const close=mk(head,'close','Close',()=>toggle(false));const body=document.createElement('div');body.style.cssText='display:grid;gap:8px;margin-top:8px';panel.append(head,body);document.body.append(panel);
- let methods=[],selected=null,step=-1,graphic=false,verification=false,query='',category='all',drag=null,disposed=false,loading=false,methodStack=[],showIndependent=false,roleAssignments={};
+ let methods=[],selected=null,step=-1,graphic=false,verification=false,query='',category='all',drag=null,disposed=false,loading=false,methodStack=[],showIndependent=false,roleAssignments={},dimensionAssignments={};
  const clamp=()=>{const rect=panel.getBoundingClientRect(),w=document.documentElement.clientWidth,h=window.innerHeight;panel.style.left=Math.max(4,Math.min(rect.left,w-rect.width-4))+'px';panel.style.top=Math.max(4,Math.min(rect.top,h-rect.height-4))+'px';panel.style.right='auto';panel.style.maxHeight=Math.max(80,h-12)+'px'};
  head.addEventListener('pointerdown',e=>{if(e.target.closest('button')||e.button!==0)return;const r=panel.getBoundingClientRect();drag={id:e.pointerId,x:e.clientX-r.left,y:e.clientY-r.top};try{head.setPointerCapture(e.pointerId)}catch(_){}e.preventDefault()});head.addEventListener('pointermove',e=>{if(drag?.id!==e.pointerId)return;panel.style.left=e.clientX-drag.x+'px';panel.style.top=e.clientY-drag.y+'px';panel.style.right='auto';clamp()});for(const t of ['pointerup','pointercancel','lostpointercapture'])head.addEventListener(t,()=>{drag=null});
  const resize=()=>{if(!panel.hidden)clamp()};window.addEventListener('resize',resize);
@@ -158,7 +213,7 @@ function mountConstructionLibrary(owner,button,task=null,getDrawing=null,publish
    mk(body,'verify',verification?'Hide explanation':'Check construction / why it works',()=>{verification=!verification;render()});if(verification){el('div',body,selected.why);const list=el('ul',body);for(const c of selected.checks)el('li',list,c)}
    if(publishMethod){const publishing=el('details',body);el('summary',publishing,'Add to document');const actions=el('div',publishing,null,'display:flex;flex-wrap:wrap;gap:5px;margin-top:6px');mk(actions,'publish-exercise','Exercise + answer key',()=>publishMethod(selected,'exercise'));mk(actions,'publish-instructions','Written instructions',()=>publishMethod(selected,'instructions'));mk(actions,'publish-illustrated','Illustrated instructions',()=>publishMethod(selected,'illustrated'))}
    if(task&&getDrawing&&selected.challengeSpecific){const feedback=el('div',body);feedback.dataset.agMethodFeedback='1';feedback.setAttribute('role','status');mk(body,'check-drawing','Check my drawing',()=>{const result=labCheck(getDrawing(),task);feedback.textContent=result.correct?'Correct — your drawing satisfies the challenge.':result.ready?'Not quite — check the required lengths and geometric relationships.':'Construction not complete yet — finish the required points, lines or circle.';feedback.style.color=result.correct?'#16796c':'#795520'})}
-   if(!task&&getDrawing&&INDEPENDENT_METHOD_ROLES[selected.id]){const block=el('details',body);block.open=showIndependent;block.ontoggle=()=>{showIndependent=block.open};el('summary',block,'Verify my construction');el('small',block,'Assign the points in your drawing to the method labels. Checks use geometric relationships, not the example size or orientation. Given numerical dimensions and the construction procedure must be checked separately.');const fields=el('div',block,null,'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;margin-top:6px');const selection=roleAssignments[selected.id]||(roleAssignments[selected.id]={});const refresh=()=>{const st=getDrawing();fields.replaceChildren();for(const role of INDEPENDENT_METHOD_ROLES[selected.id]){const label=el('label',fields,role);const sel=el('select',label);sel.className='gd-select';sel.dataset.agMethodRole=role;sel.style.width='100%';sel.setAttribute('aria-label','Point '+role);const empty=el('option',sel,'Choose point');empty.value='';st.points.forEach((_,i)=>{const opt=el('option',sel,st.names?.[i]||pointName(i));opt.value=i});const saved=selection[role],named=st.names?.indexOf(role);sel.value=Number.isInteger(saved)&&st.points[saved]?String(saved):named>=0?String(named):'';sel.onchange=()=>{selection[role]=sel.value===''?null:Number(sel.value)}}};refresh();mk(block,'refresh-points','Refresh points',refresh);const feedback=el('div',block);feedback.dataset.agMethodIndependentFeedback='1';feedback.setAttribute('role','status');mk(block,'check-independent','Check relationships',()=>{const assignment=Object.fromEntries([...fields.querySelectorAll('select')].map(e=>[e.dataset.agMethodRole,e.value===''?null:Number(e.value)])),result=independentConstructionCheck(getDrawing(),selected.id,assignment);feedback.replaceChildren();if(!result.ready){el('p',feedback,'Assign a distinct existing point to every role.');return}el('strong',feedback,result.correct?'All checked relationships satisfied':'Some relationships need attention');const list=el('ul',feedback);for(const c of result.checks){const li=el('li',list,(c.ok?'✓ ':'✗ ')+c.label);li.style.color=c.ok?'#16796c':'#795520'}})}
+   if(!task&&getDrawing&&INDEPENDENT_METHOD_ROLES[selected.id]){const block=el('details',body);block.open=showIndependent;block.ontoggle=()=>{showIndependent=block.open};el('summary',block,'Verify my construction');el('small',block,'Assign the points in your drawing to the method labels. Checks use geometric relationships, not the example size or orientation. Enter any specified numerical givens below. The construction procedure itself is not assessed.');const fields=el('div',block,null,'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;margin-top:6px');const selection=roleAssignments[selected.id]||(roleAssignments[selected.id]={});const refresh=()=>{const st=getDrawing();fields.replaceChildren();for(const role of INDEPENDENT_METHOD_ROLES[selected.id]){const label=el('label',fields,role);const sel=el('select',label);sel.className='gd-select';sel.dataset.agMethodRole=role;sel.style.width='100%';sel.setAttribute('aria-label','Point '+role);const empty=el('option',sel,'Choose point');empty.value='';st.points.forEach((_,i)=>{const opt=el('option',sel,st.names?.[i]||pointName(i));opt.value=i});const saved=selection[role],named=st.names?.indexOf(role);sel.value=Number.isInteger(saved)&&st.points[saved]?String(saved):named>=0?String(named):'';sel.onchange=()=>{selection[role]=sel.value===''?null:Number(sel.value)}}};refresh();mk(block,'refresh-points','Refresh points',refresh);const targets=dimensionAssignments[selected.id]||(dimensionAssignments[selected.id]={});if(INDEPENDENT_METHOD_DIMENSIONS[selected.id]?.length){el('small',block,'Specified dimensions (from your problem)');const dimensions=el('div',block,null,'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px');for(const [id,title] of INDEPENDENT_METHOD_DIMENSIONS[selected.id]){const label=el('label',dimensions,title),input=el('input',label);input.type='number';input.min='0.01';input.step='any';input.inputMode='decimal';input.style.width='100%';input.value=targets[id]??'';input.dataset.agMethodDimension=id;input.oninput=()=>{targets[id]=input.value}}}if(selected.id==='two-distance-locus')el('small',block,'This check covers the case with two distinct intersections. For one or no solutions use the mathematical explanation.');const feedback=el('div',block);feedback.dataset.agMethodIndependentFeedback='1';feedback.setAttribute('role','status');mk(block,'check-independent','Check relationships',()=>{const assignment=Object.fromEntries([...fields.querySelectorAll('select')].map(e=>[e.dataset.agMethodRole,e.value===''?null:Number(e.value)])),result=independentConstructionCheck(getDrawing(),selected.id,assignment,targets);feedback.replaceChildren();if(!result.ready){el('p',feedback,'Assign a distinct existing point to every role.');return}el('strong',feedback,result.correct?'All checked relationships and specified dimensions satisfied':result.checks.every(c=>c.ok)&&result.pending?.length?'Relationships satisfied — enter missing dimensions to complete verification':'Some relationships need attention');if(result.pending?.length)el('small',feedback,'Missing: '+result.pending.join(', '));const list=el('ul',feedback);for(const c of result.checks){const li=el('li',list,(c.ok?'✓ ':'✗ ')+c.label);li.style.color=c.ok?'#16796c':'#795520'}})}
    if(!panel.hidden)clamp()
  }
  panel.style.display='none';button.setAttribute('aria-expanded','false');return {toggle}
@@ -665,7 +720,7 @@ function generate(s={},rng=Math.random){
    st.nodes.push(node);return id;
  }
  function customMove(st,id,p){const n=st.nodes.find(n=>n.id===id);if(!n||!CUSTOM_OPERATIONS[n.op]?.place)return false;const old=customResolve(st).points;n.at=p.slice();const next=customResolve(st).points;for(const name of st.traceNames||[]){if(old[name]&&next[name])traceAdd(st,name,next[name],old[name]);else if(st.traces[name]?.length&&st.traces[name].at(-1)!==null)st.traces[name].push(null)}return true}
- const model={INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labLabel,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,locusInitial,locusProject,locusPoints,traceParts,traceAdd,traceToggle,shapeGeometry,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
+ const model={INDEPENDENT_METHOD_DIMENSIONS,INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labLabel,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,locusInitial,locusProject,locusPoints,traceParts,traceAdd,traceToggle,shapeGeometry,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
 if(typeof module==='object'&&module.exports){module.exports=model;return}
 const G=root.TT99Goodies;if(!G)return;G.angles=model;
 const {q,qa,esc,field,btn,setPanels}=G,CK=G.challengeKit;
