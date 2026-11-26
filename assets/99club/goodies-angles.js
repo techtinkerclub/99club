@@ -11,10 +11,10 @@ const FAMILIES=[
  ['estimate','Estimate an angle','angle',5],['measure','Measure using a protractor','angle',5],['draw','Construct a given angle','angle',5],['reflex','Measure a reflex angle','angle',5],['draw-reflex','Construct a reflex angle','angle',5],['estimate-reflex','Estimate a reflex angle','angle',5],['compare-reflex','Compare reflex and other angles','angle',5],
  ['line-orientation','Horizontal or vertical','lines',3],['line-pair','Parallel or perpendicular','lines',3],
  ['straight','Missing angle on a straight line','facts',5],['point','Missing angle around a point','facts',5],['opposite','Vertically opposite angles','facts',6],
- ['rectangle','Angles in rectangles','polygon',5],['rectangle-length','Missing length in a rectangle','polygon',5],['isosceles-angle','Missing base angle in an isosceles triangle','polygon',6],['diagonal-equal','Equal diagonals in quadrilaterals','polygon',5],['circle-part','Name a circle part','circle',6],['circle-diameter','Find diameter from radius','circle',6],['circle-radius','Find radius from diameter','circle',6],['triangle-type','Classify a triangle','polygon',4],['quad-type','Classify a quadrilateral','polygon',4],['regularity','Regular or irregular polygon','polygon',5],
+ ['rectangle','Angles in rectangles','polygon',5],['rectangle-length','Missing length in a rectangle','polygon',5],['isosceles-angle','Missing base angle in an isosceles triangle','polygon',6],['diagonal-equal','Equal diagonals in quadrilaterals','polygon',5],['diagonal-bisect','Diagonals that bisect each other','polygon',6],['diagonal-perpendicular','Perpendicular diagonals','polygon',6],['side-count','Count sides of a polygon','polygon',2],['parallel-count','Count pairs of parallel sides','polygon',3],['shape-family','Recognise inclusive shape families','polygon',5],['circle-part','Name a circle part','circle',6],['circle-diameter','Find diameter from radius','circle',6],['circle-radius','Find radius from diameter','circle',6],['triangle-type','Classify a triangle','polygon',4],['quad-type','Classify a quadrilateral','polygon',4],['regularity','Regular or irregular polygon','polygon',5],
  ['triangle','Missing angle in a triangle','polygon',6],['quadrilateral','Missing angle in a quadrilateral','polygon',6],['regular','Interior angle of a regular polygon','polygon',6],
  ['shape-build','Construct a triangle from dimensions and an angle','construct',6],['build-sss','Construct a triangle from three sides','construct',6],['build-equilateral','Construct an equilateral triangle','construct',5],['build-right','Construct a right-angled triangle','construct',5],['build-rectangle','Construct a rectangle','construct',5],['build-square','Construct a square','construct',4],
- ['exterior','Exterior angle of a regular polygon','polygon',7],['circle-circumference','Find circumference using π','circle',7],['circle-area','Find circle area using π','circle',7],['parallel','Corresponding and alternate angles','facts',7],['polygon-sum','Interior angle sum of a polygon','polygon',7]
+ ['exterior','Exterior angle of a regular polygon','polygon',7],['circle-circumference','Find circumference using π','circle',7],['circle-area','Find circle area using π','circle',7],['parallel','Corresponding and alternate angles','facts',7],['co-interior','Co-interior angles','facts',7],['similar-side','Missing length in similar triangles','polygon',7],['pythagoras','Find a hypotenuse','polygon',7],['polygon-sum','Interior angle sum of a polygon','polygon',7]
 ];
 const rand=(rng,a,b)=>a+Math.floor(rng()*(b-a+1)),pick=(rng,a)=>a[rand(rng,0,a.length-1)];
 function settings(s={}){return {level:LEVELS.some(x=>x[0]===s.level)?s.level:'medium',mode:MODES.some(x=>x[0]===s.mode)?s.mode:'angle',year:YEARS.some(x=>x[0]===String(s.year))?String(s.year):'custom',enrichment:s.enrichment===true||s.enrichment===1||s.enrichment==='1'||s.enrichment==='true'}}
@@ -53,6 +53,17 @@ function generate(s={},rng=Math.random){
  if(type==='right-count'){const shape=pick(rng,['Rectangle','Right-angled triangle','Triangle with no right angle','Parallelogram with no right angles']);return task({shape},'How many right angles does the shape have?',shape==='Rectangle'?4:shape==='Right-angled triangle'?1:0,'Look for square corners, including when the shape has been rotated.');}
  if(type==='rectangle-length'){const w=rand(rng,6,15),h=rand(rng,2,5),side=pick(rng,[2,3]);return task({width:w,height:h,missingSide:side},'Find the missing side length x in centimetres.',side===2?w:h,'Opposite sides of a rectangle have equal lengths.')}
  if(type==='isosceles-angle'){const a=pick(rng,[30,40,50,70,80,100,110,120]),b=(180-a)/2;return task({angles:[b,b,a]},'The two marked sides are equal. Find the missing base angle x.',b,'The base angles of an isosceles triangle are equal. Subtract '+a+'° from 180° and divide by 2.')}
+ if(type==='diagonal-bisect'||type==='diagonal-perpendicular'){
+   const shape=pick(rng,['Square','Rectangle (not square)','Rhombus (not square)','Parallelogram (not rectangle or rhombus)','Trapezium']);
+   const bisect=type==='diagonal-bisect',yes=bisect?shape!=='Trapezium':shape==='Square'||shape.startsWith('Rhombus');
+   return task({shape},'For every '+shape.toLowerCase()+', '+(bisect?'do the diagonals bisect each other?':'are the diagonals perpendicular?'),yes?'Yes':'No',bisect?'The diagonals of a parallelogram, including rectangles, rhombuses and squares, bisect each other.':'Squares and rhombuses have perpendicular diagonals. The other listed shape families do not guarantee this.',['Yes','No']);
+ }
+ if(type==='side-count'){const n=rand(rng,3,10);return task({n,regular:rng()<.5},'How many sides does this polygon have?',n,'Count each straight side once.')}
+ if(type==='parallel-count'){const shape=pick(rng,['Square','Rectangle','Rhombus (not square)','Parallelogram (not rectangle)','Trapezium']);return task({shape},'How many pairs of parallel sides does this shape have?',shape==='Trapezium'?1:2,'Parallel sides remain the same distance apart.')}
+ if(type==='shape-family'){const [shape,claim,yes]=pick(rng,[['Square','rectangle',true],['Square','rhombus',true],['Rectangle','square',false],['Rhombus (not square)','square',false],['Rectangle','parallelogram',true],['Rhombus (not square)','parallelogram',true],['Parallelogram (not rectangle)','rectangle',false]]);return task({shape,claim},'Is every '+(shape==='Rhombus (not square)'?'rhombus':shape.startsWith('Parallelogram')?'parallelogram':shape.toLowerCase())+' a '+claim+'?',yes?'Yes':'No','A family includes all shapes that meet its defining properties. A square is both a rectangle and a rhombus.',['Yes','No'])}
+ if(type==='co-interior'){const a=angle(35,145);return task({angle:a,relation:'co-interior',rotation:0},'The lines are parallel. Find the marked co-interior angle x.',180-a,'Co-interior angles on the same side of a transversal sum to 180°.')}
+ if(type==='similar-side'){const base=rand(rng,3,7),height=rand(rng,2,5),factor=pick(rng,[2,3,4]);return task({baseLength:base,length:height,factor},'The two triangles are similar. Find the missing side x in centimetres.',height*factor,'The scale factor is '+factor+'. Corresponding lengths are multiplied by the same factor.')}
+ if(type==='pythagoras'){const [u,v,h]=pick(rng,[[3,4,5],[5,12,13],[6,8,10],[8,15,17],[9,12,15]]);return task({baseLength:u,length:v,hypotenuse:h},'Find the hypotenuse x in centimetres.',h,'Pythagoras: x² = '+u+'² + '+v+'² = '+h*h+'. Therefore x = '+h+' cm.')}
  if(type==='diagonal-equal'){const shape=pick(rng,['Square','Rectangle','Rhombus (not square)','Parallelogram (not rectangle)']);return task({shape},'For this type of '+(shape.startsWith('Parallelogram')?'parallelogram':'quadrilateral')+', are the two diagonals always equal in length?',shape==='Square'||shape==='Rectangle'?'Yes':'No','A rectangle (including a square) always has equal diagonals. A non-square rhombus or non-rectangular parallelogram does not.',['Yes','No'])}
  if(type==='circle-part'){const part=pick(rng,['Radius','Diameter','Circumference','Centre']);return task({part,radius:5},'Name the highlighted part of the circle.',part,'The radius runs from the centre to the boundary, the diameter crosses the centre between two boundary points, and the circumference is the boundary.',['Radius','Diameter','Circumference','Centre'])}
  if(type==='circle-diameter'||type==='circle-radius'){const r=rand(rng,2,15);return task({radius:r},type==='circle-diameter'?'Find the diameter in centimetres.':'Find the radius in centimetres.',type==='circle-diameter'?2*r:r,'Diameter = 2 × radius. Radius = diameter ÷ 2.')}
@@ -268,7 +279,7 @@ function diagram(d,teacher=false,options={}){
    if(isPart&&teacher)text(x,395,highlight,25);
    return frame(205,35,390,explore&&d.circleEnrichment?408:380)
  }
- if(mode==='polygon'&&['rectangle-length','diagonal-equal','isosceles-angle'].includes(type)){
+ if(mode==='polygon'&&['rectangle-length','diagonal-equal','diagonal-bisect','diagonal-perpendicular','parallel-count','shape-family','isosceles-angle'].includes(type)){
    let pts;
    if(type==='isosceles-angle'){
      pts=fit(trianglePoints(d.angles[0],d.angles[1]));polygon(pts);
@@ -277,23 +288,34 @@ function diagram(d,teacher=false,options={}){
    }
    if(type==='rectangle-length')pts=fit([[0,0],[d.width,0],[d.width,d.height],[0,d.height]]);
    else if(d.shape==='Square')pts=fit([[0,0],[200,0],[200,200],[0,200]]);
-   else if(d.shape==='Rectangle')pts=fit([[0,0],[320,0],[320,190],[0,190]]);
+   else if(d.shape==='Rectangle'||d.shape==='Rectangle (not square)')pts=fit([[0,0],[320,0],[320,190],[0,190]]);
    else if(d.shape.startsWith('Rhombus'))pts=fit([[0,0],[200,0],polar(200,0,200,65),polar(0,0,200,65)]);
+   else if(d.shape==='Trapezium')pts=fit([[0,0],[320,0],[240,-180],[70,-180]]);
    else pts=fit([[0,0],[320,0],polar(320,0,180,65),polar(0,0,180,65)]);
    polygon(pts);
    if(type==='rectangle-length'){pts.forEach((p,i)=>{corner(pts,i,null);const q=pts[(i+1)%4],m=[(p[0]+q[0])/2,(p[1]+q[1])/2],v=[m[0]-400,m[1]-210],norm=Math.hypot(...v)||1;text(m[0]+35*v[0]/norm,m[1]+35*v[1]/norm+7,i===d.missingSide&&!teacher?'x':(i%2?d.height:d.width)+' cm',23)})}
-   else{line(pts[0],pts[2],teal,3,{'stroke-dasharray':'7 4'});line(pts[1],pts[3],orange,3,{'stroke-dasharray':'7 4'});if(teacher){const eq=d.answer==='Yes';text(400,410,eq?'Equal diagonals':'Unequal diagonals',24);return frame(90,0,620,440)}}
+   else if(type.startsWith('diagonal-')){line(pts[0],pts[2],teal,3,{'stroke-dasharray':'7 4'});line(pts[1],pts[3],orange,3,{'stroke-dasharray':'7 4'});if(teacher){text(400,410,type==='diagonal-equal'?(d.answer==='Yes'?'Equal diagonals':'Not always equal'):d.answer==='Yes'?(type==='diagonal-bisect'?'Diagonals bisect each other':'Perpendicular diagonals'):'Not guaranteed for this family',22);return frame(90,0,620,440)}}
    return polygonFrame(pts,80)
  }
+ if(mode==='polygon'&&['similar-side','pythagoras'].includes(type)){
+   if(type==='similar-side'){
+     const ratio=d.length/d.baseLength,scale=Math.min(85,100/ratio),small=[[110,310],[110+scale,310],[110,310-scale*ratio]],large=[[390,310],[390+scale*d.factor,310],[390,310-scale*d.factor*ratio]];
+     for(const [pts,k] of [[small,1],[large,d.factor]]){polygon(pts);corner(pts,0,null);text((pts[0][0]+pts[1][0])/2,340,d.baseLength*k+' cm',22);text(pts[0][0]-36,(pts[0][1]+pts[2][1])/2,k===1?d.length+' cm':teacher?d.answer+' cm':'x',21)}
+     return frame(20,0,760,390)
+   }
+   const pts=fit([[0,0],[d.baseLength,0],[0,-d.length]]);polygon(pts);corner(pts,0,null);text((pts[0][0]+pts[1][0])/2,pts[0][1]+33,d.baseLength+' cm',24);text(pts[0][0]-45,(pts[0][1]+pts[2][1])/2,d.length+' cm',24);text((pts[1][0]+pts[2][0])/2+34,(pts[1][1]+pts[2][1])/2-12,teacher?d.answer+' cm':'x',24);return polygonFrame(pts,90)
+ }
  if(mode==='polygon'&&explore&&d.shapeView&&d.shapeView!=='regular'){
-   const shape=d.shapeView,w=300,h=shape==='square'?300:180,theta=shape==='rectangle'||shape==='square'?90:65;
-   let pts=shape==='trapezium'?[[0,0],[300,0],[240,-180],[65,-180]]:shape==='equilateral'?trianglePoints(60,60,0,0,300):shape==='isosceles'?trianglePoints(50,50,0,0,300):shape==='scalene'?trianglePoints(40,65,0,0,300):[[0,0],[w,0],polar(w,0,shape==='rhombus'?w:h,theta),polar(0,0,shape==='rhombus'?w:h,theta)];
+   const shape=d.shapeView,w=300,h=shape==='square'?300:(d.shapeHeight||180),theta=shape==='rectangle'||shape==='square'?90:(d.shapeAngle||65);
+   let pts=shape==='trapezium'?[[0,0],[300,0],[240,-h],[65,-h]]:shape==='kite'?[[0,-h],[150,0],[0,240],[-150,0]]:shape==='right-triangle'?[[0,0],[300,0],[0,-h]]:shape==='equilateral'?trianglePoints(60,60,0,0,300):shape==='isosceles'?trianglePoints(d.shapeBaseAngle||50,d.shapeBaseAngle||50,0,0,300):shape==='scalene'?trianglePoints(d.shapeBaseAngle||40,65,0,0,300):[[0,0],[w,0],polar(w,0,shape==='rhombus'?w:h,theta),polar(0,0,shape==='rhombus'?w:h,theta)];
    const ar=rot*D;pts=fit(pts.map(([x,y])=>[x*Math.cos(ar)-y*Math.sin(ar),x*Math.sin(ar)+y*Math.cos(ar)]));polygon(pts);
    if(d.showCorners!==false)pts.forEach((p,i)=>{const u=pts[(i+1)%pts.length],v=pts[(i+pts.length-1)%pts.length],a=labAngle(p,u),b=labAngle(p,v),ang=Math.min(mod(a-b),mod(b-a));corner(pts,i,Math.round(ang)+'°')});
-   if(d.showDiagonals&&pts.length===4){line(pts[0],pts[2],teal,3,{'stroke-dasharray':'6 5'});line(pts[1],pts[3],orange,3,{'stroke-dasharray':'6 5'});const eq=Math.abs(labDist(pts[0],pts[2])-labDist(pts[1],pts[3]))<.1;const bisect=['square','rectangle','rhombus','parallelogram'].includes(shape);text(400,378,(eq?'Equal diagonals':'Unequal diagonals')+(bisect?' · bisect each other':''),19)}
+   if(d.showDiagonals&&pts.length===4){line(pts[0],pts[2],teal,3,{'stroke-dasharray':'6 5'});line(pts[1],pts[3],orange,3,{'stroke-dasharray':'6 5'});const eq=Math.abs(labDist(pts[0],pts[2])-labDist(pts[1],pts[3]))<.1;const bisect=['square','rectangle','rhombus','parallelogram'].includes(shape),u=labSub(pts[2],pts[0]),v=labSub(pts[3],pts[1]),perp=Math.abs(labDot(u,v))/(Math.hypot(...u)*Math.hypot(...v))<.001;const den=labCross(u,v),p=labAt(pts[0],u,labCross(labSub(pts[1],pts[0]),v)/den);if(perp){const a=polar(...p,14,labAngle(p,pts[0])),b=polar(...p,14,labAngle(p,pts[1]));path('M '+a.join(' ')+' L '+[a[0]+b[0]-p[0],a[1]+b[1]-p[1]].join(' ')+' L '+b.join(' '),{stroke:teal})}circle(p,4,teal);text(400,378,(eq?'Equal':'Unequal')+' diagonals'+(bisect?' · bisect each other':'')+(perp?' · perpendicular':''),17)}
    if(d.showSides!==false){const lengths=pts.map((p,i)=>labDist(p,pts[(i+1)%pts.length]));const groups=[];lengths.forEach(l=>{if(!groups.some(v=>Math.abs(v-l)<.05))groups.push(l)});lengths.forEach((l,i)=>{if(lengths.filter(v=>Math.abs(v-l)<.05).length<2)return;const p=pts[i],q=pts[(i+1)%pts.length],a=Math.atan2(q[1]-p[1],q[0]-p[0]),m=[(p[0]+q[0])/2,(p[1]+q[1])/2],count=1+groups.findIndex(v=>Math.abs(v-l)<.05);for(let k=0;k<count;k++){const t=(k-(count-1)/2)*8,x=m[0]+t*Math.cos(a),y=m[1]+t*Math.sin(a);line([x-8*Math.sin(a),y+8*Math.cos(a)],[x+8*Math.sin(a),y-8*Math.cos(a)],teal,3)}})}
-   if(d.showParallel&&pts.length===4){const pairs=shape==='trapezium'?[0]:[0,1];for(const i of pairs)for(const j of [i,i+2]){const p=pts[j],q=pts[(j+1)%4],a=labAngle(p,q),m=[(p[0]+q[0])/2,(p[1]+q[1])/2];for(let k=0;k<=i;k++){const c=polar(...m,(k+1)*17,a);line(polar(...c,8,a+145),c,orange,2);line(polar(...c,8,a-145),c,orange,2)}}}
-   const notes={square:'Four equal sides · four right angles',rectangle:'Opposite sides equal · four right angles',rhombus:'Four equal sides · opposite angles equal',parallelogram:'Opposite sides and angles equal',trapezium:'One pair of parallel sides in this example',equilateral:'Three equal sides · three 60° angles',isosceles:'Two equal sides · equal base angles',scalene:'No equal sides · no equal angles'};
+   if(d.showParallel&&pts.length===4){const pairs=shape==='kite'?[]:shape==='trapezium'?[0]:[0,1];for(const i of pairs)for(const j of [i,i+2]){const p=pts[j],q=pts[(j+1)%4],a=labAngle(p,q),m=[(p[0]+q[0])/2,(p[1]+q[1])/2];for(let k=0;k<=i;k++){const c=polar(...m,(k+1)*17,a);line(polar(...c,8,a+145),c,orange,2);line(polar(...c,8,a-145),c,orange,2)}}}
+   const notes={square:'Four equal sides · four right angles',rectangle:'Opposite sides equal · four right angles',rhombus:'Four equal sides · opposite angles equal',parallelogram:'Opposite sides and angles equal',trapezium:'One pair of parallel sides in this example',kite:'Two pairs of adjacent equal sides', 'right-triangle':'One right angle · other angles sum to 90°',equilateral:'Three equal sides · three 60° angles',isosceles:'Two equal sides · equal base angles',scalene:'No equal sides · no equal angles'};
+   if(d.showHeight&&pts.length===3){const a=pts[0],b=pts[1],c=pts[2],v=labSub(b,a),p=labAt(a,v,labDot(labSub(c,a),v)/labDot(v,v));line(c,p,orange,2.5,{'stroke-dasharray':'5 4'});text((c[0]+p[0])/2+22,(c[1]+p[1])/2,'h',20);text(400,378,'Area = ½ × base × perpendicular height',20)}
+   if(options.interactive&& !['square','equilateral'].includes(shape)){const p=pts[2];add('circle',{cx:p[0],cy:p[1],r:15,fill:'#e6b965',stroke:ink,'stroke-width':2,'data-ag-shape-handle':'1'});}
    text(400,410,notes[shape]||'',21);return frame(75,0,650,440)
  }
  if(mode==='polygon'){
@@ -323,7 +345,7 @@ function diagram(d,teacher=false,options={}){
 }
 function geometry(t){return {...t,mode:t.geometryMode||FAMILIES.find(f=>f[0]===t.type)?.[2]||t.mode}}
 function paper(item,teacher){const d=geometry(item.data);if(item.kind==='diagram')return diagram(d,true,{scale:d.scale});let prompt=d.prompt;if(labTypes.includes(d.type))prompt+=' On paper, draw AB = 6 cm first using your ruler. Use your geometry set in the working space.';if(d.choices)prompt+=' Choices: '+d.choices.join(' / ')+'.';return G.exportTools.composeWorksheetCardSvg(diagram(d,teacher,{scale:['measure','reflex'].includes(d.type)||teacher&&['draw','draw-reflex'].includes(d.type)}),{title:'Angles & geometry',prompt,responseMode:(['draw','draw-reflex'].includes(d.type)||labTypes.includes(d.type))?'none':d.choices?'lines':'box',responseLines:1,responseLabel:'Answer',paperStyle:'plain',answer:d.answer,showAnswer:teacher})}
-if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>types(s),title:item=>FAMILIES.find(t=>t[0]===item.data.type)?.[1]||'Angle illustration',recipe:(s,type)=>({...settings(s),type}),generate,signature:d=>JSON.stringify([d.type,d.angle,d.angles,d.rotation,d.clockwise,d.n,d.regular,d.shape,d.relation,d.length,d.rightLength,d.radius,d.part,d.width,d.height,d.missingSide]),capture:s=>[G.publishing.record(ID,s.task?'challenge':'diagram',s.task?{...geometry(s.task),revealed:false}:s.demo)],render:paper,answerSummary:item=>item.data.answer,answerGraphic:item=>diagram(geometry(item.data),true,{scale:['measure','draw','draw-reflex','reflex'].includes(item.data.type)}),answerNote:item=>item.data.note||''});
+if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>types(s),title:item=>FAMILIES.find(t=>t[0]===item.data.type)?.[1]||'Angle illustration',recipe:(s,type)=>({...settings(s),type}),generate,signature:d=>JSON.stringify([d.type,d.angle,d.angles,d.rotation,d.clockwise,d.n,d.regular,d.shape,d.relation,d.length,d.rightLength,d.radius,d.part,d.width,d.height,d.missingSide,d.claim,d.baseLength,d.factor,d.hypotenuse]),capture:s=>[G.publishing.record(ID,s.task?'challenge':'diagram',s.task?{...geometry(s.task),revealed:false}:s.demo)],render:paper,answerSummary:item=>item.data.answer,answerGraphic:item=>diagram(geometry(item.data),true,{scale:['measure','draw','draw-reflex','reflex'].includes(item.data.type)}),answerNote:item=>item.data.note||''});
 
  function mountLab(box,initial,onChange,{free=false}={}){
   const ww=free?1000:800,hh=free?640:400;let st=initial||labEmpty(free),corner=0,tool='segment',first=null,aligned=null,hover=null,history=[],snap=true,measure=true,grid=true,drag=null,guideOpen=false,guideStep=0;
@@ -512,7 +534,7 @@ G.anglesTool=function(){
   const modeFields={
     angle:angleField()+rotationField+check('ag-scale','Show protractor',demo.scale),
     turn:angleField()+rotationField+field('Turn direction',select('ag-direction',[['cw','Clockwise'],['ccw','Anticlockwise']],demo.clockwise?'cw':'ccw')),
-    polygon:field('Shape',select('ag-shape-view',[['regular','General polygons'],['equilateral','Equilateral triangle'],['isosceles','Isosceles triangle'],['scalene','Scalene triangle'],['square','Square'],['rectangle','Rectangle'],['rhombus','Rhombus'],['parallelogram','Parallelogram'],['trapezium','Trapezium']],demo.shapeView||'regular'))+rotationField+(!demo.shapeView||demo.shapeView==='regular'?field('Sides',select('ag-sides',Array.from({length:10},(_,i)=>[i+3,i+3]),demo.n))+check('ag-regular','Regular polygon',demo.regular)+check('ag-triangulate','Show triangulation',demo.triangulate!==false):check('ag-sides-mark','Mark equal sides',demo.showSides!==false)+(['square','rectangle','rhombus','parallelogram','trapezium'].includes(demo.shapeView)?check('ag-diagonals','Show diagonals',demo.showDiagonals===true)+check('ag-parallel','Mark parallel sides',demo.showParallel===true):''))+check('ag-corners','Show interior angles',demo.showCorners!==false),
+    polygon:field('Shape',select('ag-shape-view',[['regular','General polygons'],['equilateral','Equilateral triangle'],['isosceles','Isosceles triangle'],['scalene','Scalene triangle'],['right-triangle','Right-angled triangle'],['kite','Kite'],['square','Square'],['rectangle','Rectangle'],['rhombus','Rhombus'],['parallelogram','Parallelogram'],['trapezium','Trapezium']],demo.shapeView||'regular'))+rotationField+(!demo.shapeView||demo.shapeView==='regular'?field('Sides',select('ag-sides',Array.from({length:10},(_,i)=>[i+3,i+3]),demo.n))+check('ag-regular','Regular polygon',demo.regular)+check('ag-triangulate','Show triangulation',demo.triangulate!==false):check('ag-sides-mark','Mark equal sides',demo.showSides!==false)+(['square','rectangle','rhombus','parallelogram','trapezium','kite'].includes(demo.shapeView)?check('ag-diagonals','Show diagonals',demo.showDiagonals===true)+check('ag-parallel','Mark parallel sides',demo.showParallel===true):''))+check('ag-corners','Show interior angles',demo.showCorners!==false)+(['equilateral','isosceles','scalene','right-triangle'].includes(demo.shapeView)?check('ag-height','Show perpendicular height',demo.showHeight===true):''),
     circle:field('Radius (cm)',select('ag-radius',Array.from({length:15},(_,i)=>[i+1,(i+1)+' cm']),demo.radius||5))+check('ag-circle-extension','Show KS3 circumference and area formulae',demo.circleEnrichment===true),
     construct:check('ag-free-lab','Free construction workspace',demo.freeLab===true)+(!demo.freeLab?angleField(170,10)+field('AC length (cm)',select('ag-length',Array.from({length:7},(_,i)=>[i+1,i+1]),demo.length)):'') ,
     facts:angleField(170,10)+rotationField+field('Angle relationship',select('ag-fact',[['straight','Straight line'],['point','Around a point'],['opposite','Vertically opposite']],demo.fact||'straight')),
@@ -524,7 +546,7 @@ G.anglesTool=function(){
   qa('[data-ag-workflow]',host).forEach(b=>b.onclick=()=>{workflow=b.dataset.agWorkflow;if(workflow==='build'){task=null;attempt=null;scope=''}render()});
   qa('[data-ag-challenge-mode]',host).forEach(b=>b.onclick=()=>{scope='';launch(b.dataset.agChallengeMode)});
   const bind=(id,fn)=>{const el=q('#'+id,host);if(el)el.onchange=e=>{fn(e.target);render()}};
-  bind('ag-year',e=>cfg.year=e.value);bind('ag-level',e=>cfg.level=e.value);bind('ag-enrich',e=>cfg.enrichment=e.checked);bind('ag-mode',e=>{demo.mode=e.value;cfg.mode=e.value;if(e.value==='construct'&&demo.freeLab==null)demo.freeLab=true});bind('ag-value',e=>demo.angle=+e.value);bind('ag-rotation',e=>demo.rotation=+e.value);bind('ag-scale',e=>demo.scale=e.checked);bind('ag-direction',e=>demo.clockwise=e.value==='cw');bind('ag-sides',e=>demo.n=+e.value);bind('ag-regular',e=>demo.regular=e.checked);bind('ag-triangulate',e=>demo.triangulate=e.checked);bind('ag-corners',e=>demo.showCorners=e.checked);bind('ag-shape-view',e=>demo.shapeView=e.value);bind('ag-sides-mark',e=>demo.showSides=e.checked);bind('ag-diagonals',e=>demo.showDiagonals=e.checked);bind('ag-parallel',e=>demo.showParallel=e.checked);bind('ag-radius',e=>demo.radius=+e.value);bind('ag-circle-extension',e=>demo.circleEnrichment=e.checked);bind('ag-length',e=>demo.length=+e.value);bind('ag-free-lab',e=>demo.freeLab=e.checked);bind('ag-fact',e=>demo.fact=e.value);bind('ag-relation',e=>demo.relation=e.value);
+  bind('ag-year',e=>cfg.year=e.value);bind('ag-level',e=>cfg.level=e.value);bind('ag-enrich',e=>cfg.enrichment=e.checked);bind('ag-mode',e=>{demo.mode=e.value;cfg.mode=e.value;if(e.value==='construct'&&demo.freeLab==null)demo.freeLab=true});bind('ag-value',e=>demo.angle=+e.value);bind('ag-rotation',e=>demo.rotation=+e.value);bind('ag-scale',e=>demo.scale=e.checked);bind('ag-direction',e=>demo.clockwise=e.value==='cw');bind('ag-sides',e=>demo.n=+e.value);bind('ag-regular',e=>demo.regular=e.checked);bind('ag-triangulate',e=>demo.triangulate=e.checked);bind('ag-corners',e=>demo.showCorners=e.checked);bind('ag-height',e=>demo.showHeight=e.checked);bind('ag-shape-view',e=>demo.shapeView=e.value);bind('ag-sides-mark',e=>demo.showSides=e.checked);bind('ag-diagonals',e=>demo.showDiagonals=e.checked);bind('ag-parallel',e=>demo.showParallel=e.checked);bind('ag-radius',e=>demo.radius=+e.value);bind('ag-circle-extension',e=>demo.circleEnrichment=e.checked);bind('ag-length',e=>demo.length=+e.value);bind('ag-free-lab',e=>demo.freeLab=e.checked);bind('ag-fact',e=>demo.fact=e.value);bind('ag-relation',e=>demo.relation=e.value);
   for(const kind of ['copy','png','svg','print',...(task?['key-copy','key-print']:[])]){let el=q('#ag-'+kind,host);if(!el){el=document.createElement('button');el.hidden=true;el.type='button';host.appendChild(el)}el.setAttribute('data-gd-direct-export',kind);el.onclick=()=>exportAction(kind)}
   const ad=q('#ag-add',host);if(ad)ad.onclick=()=>publish(false);const ba=q('#ag-batch',host);if(ba)ba.onclick=()=>publish(true);const re=q('#ag-review',host);if(re)re.onclick=()=>{const P=G.publishing;if(P){draft=draft||P.createDocument();P.openEditor(draft)}};
  }
@@ -537,9 +559,9 @@ G.anglesTool=function(){
   // snapped degree, but pointer capture and the coordinate transform survive.
   let drag=null;
   function drawSvg(){
-    const interactive=(!task&&demo.mode==='angle')||(draw&&!task.revealed);
+    const interactive=(!task&&(demo.mode==='angle'||demo.mode==='polygon'))||(draw&&!task.revealed);
     box.style.touchAction=interactive?'none':'auto';
-    const svg=diagram(d,teacher,{attempt,length:attemptLength,scale:task?['measure','reflex','draw','draw-reflex'].includes(task.type):demo.scale,interactive,...(drag?{full:drag.max===360}:{})});
+    const svg=diagram(d,teacher,{attempt,length:attemptLength,scale:task?['measure','reflex','draw','draw-reflex'].includes(task.type):demo.scale,interactive,...(drag&&!drag.shape?{full:drag.max===360}:{})});
     svg.style.cssText='width:100%;height:auto;max-height:560px;display:block;margin:auto';
     box.replaceChildren(svg);
   }
@@ -552,16 +574,20 @@ G.anglesTool=function(){
   function movePointer(e){
     if(!drag||e.pointerId!==drag.id)return;
     const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(drag.inverse);
+    if(drag.shape){const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),dy=p.y-drag.y,dx=p.x-drag.x;const shape=demo.shapeView;
+      if(['rhombus','parallelogram'].includes(shape)){demo.shapeAngle=clamp(Math.round(drag.angle+dx*.35),25,85);d.shapeAngle=demo.shapeAngle}
+      if(['isosceles','scalene'].includes(shape)){demo.shapeBaseAngle=clamp(Math.round(drag.base-dy*.25),shape==='scalene'?30:20,shape==='scalene'?50:75);d.shapeBaseAngle=demo.shapeBaseAngle}
+      else if(['rectangle','parallelogram','trapezium','right-triangle','kite'].includes(shape)){demo.shapeHeight=clamp(Math.round(drag.height-dy),85,340);d.shapeHeight=demo.shapeHeight}drawSvg();return}
     if(Math.hypot(p.x-400,p.y-220)<16)return;
     const raw=Math.atan2(220-p.y,p.x-400)/D-(d.rotation||0),previous=draw?(attempt??0):demo.angle;
     const v=snapAngle(raw,drag.max,previous);
     if(draw){if(attempt!==v)setAngle(v)}else if(demo.angle!==v)updateDemo(v);
   }
   box.addEventListener('pointerdown',e=>{
-    if(e.button!==0||!e.target.closest('[data-ag-angle-target]'))return;
+    if(e.button!==0||!e.target.closest('[data-ag-angle-target],[data-ag-shape-handle]'))return;
     const svg=q('svg',box),matrix=svg?.getScreenCTM();if(!matrix)return;
     const max=draw?(task.type==='draw-reflex'?360:180):(demo.angle>180?360:180);
-    drag={id:e.pointerId,inverse:matrix.inverse(),max};
+    const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(matrix.inverse());drag={id:e.pointerId,inverse:matrix.inverse(),max,shape:!!e.target.closest('[data-ag-shape-handle]'),x:p.x,y:p.y,height:demo.shapeHeight||180,angle:demo.shapeAngle||65,base:demo.shapeBaseAngle||(demo.shapeView==='scalene'?40:50)};
     e.preventDefault();try{box.setPointerCapture(e.pointerId)}catch(_){}
     movePointer(e);
   });
@@ -579,7 +605,7 @@ G.anglesTool=function(){
     const m=demo.mode;
     if(m==='angle')row.innerHTML=angleButtons(demo.angle+'° · '+classify(demo.angle));
     else if(m==='turn')row.innerHTML=action('minus-turn','−¼ turn')+'<strong>'+demo.angle+'° · '+(demo.clockwise?'Clockwise':'Anticlockwise')+'</strong>'+action('plus-turn','+¼ turn')+action('direction','Reverse direction')+action('reset-turn','Reset');
-    else if(m==='polygon'&&demo.shapeView&&demo.shapeView!=='regular')row.innerHTML=action('next-shape','Next shape')+action('toggle-side-marks',demo.showSides===false?'Show equal sides':'Hide equal sides')+action('toggle-corners',demo.showCorners===false?'Show angles':'Hide angles')+(['square','rectangle','rhombus','parallelogram','trapezium'].includes(demo.shapeView)?action('diagonal',demo.showDiagonals?'Hide diagonals':'Show diagonals')+action('parallel-marks',demo.showParallel?'Hide parallel marks':'Show parallel marks'):'');
+    else if(m==='polygon'&&demo.shapeView&&demo.shapeView!=='regular')row.innerHTML=action('next-shape','Next shape')+action('toggle-side-marks',demo.showSides===false?'Show equal sides':'Hide equal sides')+action('toggle-corners',demo.showCorners===false?'Show angles':'Hide angles')+(['square','rectangle','rhombus','parallelogram','trapezium','kite'].includes(demo.shapeView)?action('diagonal',demo.showDiagonals?'Hide diagonals':'Show diagonals')+action('parallel-marks',demo.showParallel?'Hide parallel marks':'Show parallel marks'):'');
     else if(m==='circle')row.innerHTML=action('radius-down','−1 cm')+'<strong>Radius: '+(demo.radius||5)+' cm</strong>'+action('radius-up','+1 cm')+action('circle-extension',demo.circleEnrichment?'Hide KS3 formulae':'Show KS3 formulae');
     else if(m==='polygon')row.innerHTML=action('minus-side','− side')+'<strong>'+demo.n+' sides · '+(demo.regular?'Regular':'Irregular')+'</strong>'+action('plus-side','+ side')+action('regular',demo.regular?'Make irregular':'Make regular')+action('triangulate',demo.triangulate===false?'Show triangles':'Hide triangles');
     else if(m==='facts')row.innerHTML=angleButtons(d.angle+'°')+action('fact','Change relationship');
@@ -599,7 +625,7 @@ G.anglesTool=function(){
       else if(id==='fact')demo.fact=cycle(demo.fact||'straight',['straight','point','opposite']);
       else if(id==='relation')demo.relation=cycle(d.relation,['Parallel','Perpendicular','Neither']);
       else if(id==='rotate')demo.rotation=mod(demo.rotation+15);
-      else if(id==='next-shape')demo.shapeView=cycle(demo.shapeView,['equilateral','isosceles','scalene','square','rectangle','rhombus','parallelogram','trapezium']);
+      else if(id==='next-shape')demo.shapeView=cycle(demo.shapeView,['equilateral','isosceles','scalene','right-triangle','square','rectangle','rhombus','parallelogram','trapezium','kite']);
       else if(id==='toggle-side-marks')demo.showSides=demo.showSides===false;
       else if(id==='toggle-corners')demo.showCorners=demo.showCorners===false;
       else if(id==='diagonal')demo.showDiagonals=!demo.showDiagonals;
