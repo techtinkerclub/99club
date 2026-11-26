@@ -56,7 +56,7 @@ function challengeConstructionMethod(method,task){
  }
  const bounds=[];for(const o of [...initial,...frames.flatMap(f=>f.add)]){if(o.kind==='line')bounds.push(o.a,o.b);else if(o.kind==='point')bounds.push(o.at);else if(o.kind==='circle')bounds.push([o.center[0]-o.radius,o.center[1]-o.radius],[o.center[0]+o.radius,o.center[1]+o.radius]);else if(o.kind==='arc'){for(let t=o.start;t<o.end;t+=5)bounds.push([o.center[0]+o.radius*Math.cos(t*D),o.center[1]+o.radius*Math.sin(t*D)]);bounds.push([o.center[0]+o.radius*Math.cos(o.end*D),o.center[1]+o.radius*Math.sin(o.end*D)])}}
  const xs=bounds.map(p=>p[0]),ys=bounds.map(p=>p[1]),x=Math.min(...xs)-28,y=Math.min(...ys)-28,w=Math.max(...xs)-x+28,h=Math.max(...ys)-y+28;
- return {...method,challengeSpecific:true,steps,checks:[task.answer||method.checks.join('; ')],graphics:{viewBox:[x,y,w,h],initial,frames}};
+ return {...method,challengeSpecific:true,objective:task.prompt,given:type==='build-circle'?['centre A','radius '+fmt(length)+' cm']:['AB = 6 cm'],steps,checks:[task.answer||method.checks.join('; ')],graphics:{viewBox:[x,y,w,h],initial,frames}};
 }
 function mountConstructionLibrary(owner,button,task=null,getDrawing=null,publishMethod=null){
  const panel=document.createElement('section');panel.className='gd-ag-method-panel';panel.dataset.agMethodPanel='1';panel.setAttribute('role','region');panel.setAttribute('aria-label','Construction library');panel.hidden=true;
