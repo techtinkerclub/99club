@@ -976,7 +976,21 @@ async function run(){
 
     
     doc.querySelector('[data-ag-workflow="challenge"]').click();await tick();
+    doc.querySelector('[data-ag-challenge-mode="quad-type"]').click();await tick();
+    const inspectSvg=doc.querySelector('.gd-ag-visual>svg'),inspectList=inspectSvg.querySelector('[data-ag-inspect-polygon]').points,inspectPoints=Array.from({length:inspectList.numberOfItems},(_,i)=>{const p=inspectList.getItem(i);return [p.x,p.y]}),iw=doc.defaultView;
+    const inspectTap=i=>{const p=new iw.DOMPoint(...inspectPoints[i]).matrixTransform(inspectSvg.getScreenCTM());inspectSvg.dispatchEvent(new iw.PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerType:'touch',button:0,clientX:p.x,clientY:p.y}))};
+    doc.querySelector('[data-ag-inspect="ruler"]').click();inspectTap(0);inspectTap(1);
+    const length=Math.hypot(inspectPoints[1][0]-inspectPoints[0][0],inspectPoints[1][1]-inspectPoints[0][1])/40;
+    assert(inspectSvg.querySelector('[data-ag-inspection] [data-geometry-instrument="ruler"]'),'Investigation uses the shared ruler renderer');
+    assert(doc.querySelector('.gd-ag-inspect-message').textContent.includes(length.toFixed(2)+' diagram units'),'Investigation ruler measures actual selected vertices');
+    doc.querySelector('[data-ag-inspect="angle"]').click();inspectTap(0);inspectTap(1);inspectTap(3);
+    const va=inspectPoints[1].map((v,i)=>v-inspectPoints[0][i]),vb=inspectPoints[3].map((v,i)=>v-inspectPoints[0][i]),deg=Math.round(Math.acos(Math.max(-1,Math.min(1,(va[0]*vb[0]+va[1]*vb[1])/(Math.hypot(...va)*Math.hypot(...vb)))))*180/Math.PI);
+    assert(inspectSvg.querySelector('[data-ag-inspection] [data-geometry-instrument="protractor"]'),'Investigation uses the shared dual-scale protractor');
+    assert(doc.querySelector('.gd-ag-inspect-message').textContent.includes(deg+'°'),'Investigation protractor measures selected angle');
+    doc.querySelector('[data-ag-inspect="clear"]').click();assert(!inspectSvg.querySelector('[data-ag-inspection]').children.length,'Clear removes inspection without changing question');
+    const investigationPaper=TT99Goodies.publishing.createDocument();investigationPaper.addCurrent(id,cap());assert(!TT99Goodies.publishing.renderItem(investigationPaper.list()[0],false).querySelector('[data-ag-inspection]'),'Inspection overlays do not leak into pupil publication');
     doc.querySelector('[data-ag-challenge-mode="draw"]').click();await tick();
+    assert(!doc.querySelector('.gd-ag-inspect-tools'),'Calculation and construction tasks do not get inspection shortcuts');
     const t=cap().task;assert(t.type==='draw'&&doc.querySelector('[data-gd-pupil-check]').disabled,'Construction starts unanswered');
     assert(parseFloat(doc.defaultView.getComputedStyle(doc.querySelector('.gd-challenge-prompt')).fontSize)>=17,'Angle question uses classroom-sized text');
     assert(doc.querySelector('[data-gd-pupil-check]').getBoundingClientRect().height>=40,'Angle check action has a generous touch target');
@@ -1012,6 +1026,61 @@ async function run(){
 
     fixture.frame.querySelector('[data-board-export]').click();await tick();
     assert(!fixture.frame.querySelector('[data-pub-key-group]').hidden,'Angle teacher keys available in whiteboard');
+    doc.querySelector('[data-ag-challenge-mode="shape-build"]').click();await tick();
+    const labTask=cap().task,tray=doc.querySelector('.gd-ag-lab-toolbar'),tools=[...tray.querySelectorAll('.gd-ag-lab-tools button')];
+    assert(labTask.type==='shape-build'&&tools.length===9,'Construction lab opens with nine illustrated tools');
+    assert(tools.every(b=>b.querySelector('svg path,svg rect,svg circle')&&b.getAttribute('aria-label')&&b.getBoundingClientRect().height>=44),'Instrument icons have accessible names and touch targets');
+    assert(tray.querySelector('[data-ag-tool="segment"]').getAttribute('aria-pressed')==='true','Ruler selected initially');
+    assert(tray.querySelectorAll('.gd-ag-lab-options input:checked').length===3,'Drawing assistance options start enabled');
+    tray.querySelector('[data-ag-tool="square30"]').click();await tick();
+    assert(tray.querySelector('[data-ag-tool="square30"]').getAttribute('aria-pressed')==='true'&&!tray.querySelector('[data-ag-tool="corner"]').hidden,'Set square shows its contextual corner control');
+    tray.querySelector('[data-ag-tool="segment"]').click();await tick();
+    assert(tray.querySelector('[data-ag-tool="corner"]').hidden,'Irrelevant instrument controls remain hidden');
+    const labSvg=doc.querySelector('.gd-ag-visual>svg');
+    function tapLab(x,y){
+      const p=new win.DOMPoint(x,y).matrixTransform(labSvg.getScreenCTM());
+      for(const type of ['pointerdown','pointerup'])labSvg.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:11,pointerType:'touch',button:0,buttons:type==='pointerup'?0:1,clientX:p.x,clientY:p.y}));
+    }
+    const [cx,cy]=M.polar(340,302,labTask.length*40,labTask.angle);
+    tapLab(340,302);tapLab(cx,cy);tapLab(580,302);tapLab(cx,cy);await tick();
+    assert(M.labCheck(cap().lab,labTask).correct,'Illustrated ruler remains functional and shares geometric assessment');
+    assert(!doc.querySelector('[data-gd-pupil-check]').disabled,'Completed triangle enables Check');
+    tray.querySelector('[data-ag-tool="undo"]').click();await tick();
+    assert(!M.labCheck(cap().lab,labTask).ready,'Illustrated Undo removes the last segment');
+    tray.querySelector('[data-ag-tool="help"]').click();await tick();
+    assert(!doc.querySelector('.gd-ag-lab-guide').hidden&&!doc.querySelector('.gd-ag-guide-example'),'Challenge help provides technique without worked answers');
+    for(const type of ['build-sss','build-equilateral','build-right','build-rectangle','build-square']){
+      doc.querySelector('[data-ag-challenge-mode="'+type+'"]').click();await tick();
+      assert(cap().task.type===type&&doc.querySelector('.gd-ag-lab-tools'),'New construction family mounts interactive lab: '+type);
+      const pubDraft=P.createDocument();pubDraft.addCurrent(id,cap());const item=pubDraft.list()[0];
+      assert(P.renderItem(item,false).textContent.includes('Draw AB')||P.renderItem(item,false).textContent.includes('draw AB'),'Printed construction asks pupils to draw full-size baseline');
+      assert(P.answerGraphic(item).querySelectorAll('line').length>2,'New construction has graphical key: '+type);
+    }
+    doc.querySelector('[data-ag-workflow="build"]').click();await tick();
+    const mode=doc.getElementById('ag-mode');mode.value='construct';mode.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
+    const freeSvg=doc.querySelector('.gd-ag-lab-canvas');
+    assert(freeSvg&&freeSvg.getAttribute('viewBox')==='0 0 1000 640','Free construction has expanded blank canvas');
+    assert(cap().demo.labDrawing.points.length===0,'Free canvas has no compulsory baseline');
+    doc.querySelector('[data-ag-tool="help"]').click();await tick();
+    assert(doc.querySelector('.gd-ag-guide-example svg'),'Free mode provides worked instrument demonstration');
+    const next=[...doc.querySelectorAll('.gd-ag-guide-example button')].find(b=>b.textContent==='Next step');next.click();await tick();
+    assert(doc.querySelector('.gd-ag-guide-example').textContent.includes('Step 2 / 3')&&cap().demo.labDrawing.points.length===0,'Demo advances without altering free drawing');
+    const polygonMode=doc.getElementById('ag-mode');polygonMode.value='polygon';polygonMode.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
+    const chooseShape=doc.getElementById('ag-shape-view');chooseShape.value='rectangle';chooseShape.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
+    doc.querySelector('[data-ag-action="diagonal"]').click();await tick();
+    assert(cap().demo.showDiagonals&&doc.querySelector('.gd-ag-visual svg').textContent.includes('Equal diagonals'),'Rectangle explorer displays its diagonal relationship');
+    const circleMode=doc.getElementById('ag-mode');circleMode.value='circle';circleMode.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
+    assert(doc.querySelector('.gd-ag-visual svg').textContent.includes('Diameter = 2 × radius'),'Circle explorer explains radius-diameter relationship');
+    const beforeRadius=cap().demo.radius||5;doc.querySelector('[data-ag-action="radius-up"]').click();await tick();
+    assert(cap().demo.radius===beforeRadius+1,'Circle radius adjusts interactively');
+    for(const [type,expected] of [['circle-diameter','cm'],['circle-radius','cm'],['rectangle-length','cm'],['isosceles-angle','°'],['diagonal-equal','diagonals']]){
+      const pack=P.createDocument();pack.generate(id,P.defaultSettings(id),1,type);const item=pack.list()[0];
+      assert(P.renderItem(item,false).querySelector('svg,polygon,circle'),'Relationship question has pupil diagram: '+type);
+      assert(P.answerGraphic(item).textContent.toLowerCase().includes(expected.toLowerCase()),'Relationship key displays relevant notation: '+type);
+    }
+
+
+
     api.remove(fixture.record.id);
   }
   // Function machine live exploration, reverse and shared pupil assessment.

@@ -1268,7 +1268,17 @@ try {
  const s=labEmpty();s.circles.push({i:0,r:200},{i:1,r:200});
  const hit=labSnap(s,[463,141],16);if(hit.kind!=='Intersection'||Math.hypot(hit.p[0]-460,hit.p[1]-142)>.01)throw Error('Circle intersection failed');
  const no=labSnap(s,[463,141],16,false);if(no.kind||no.p[0]!==463)throw Error('Snap off ignored');
- ok('construction-lab',cases+' triangle constructions plus circle intersections and disabled snapping');
+ const model=require(path.join(ROOT,'assets/99club/goodies-angles.js'));
+ for(const type of model.labTypes)for(let i=0;i<75;i++){
+   const task=model.generate({type,level:['easy','medium','hard'][i%3]}),solution=model.labSolution(task);
+   if(!model.labCheck(solution,task).correct)throw Error('Valid solution rejected: '+type);
+   const reflected=JSON.parse(JSON.stringify(solution));reflected.points=reflected.points.map(p=>[p[0],604-p[1]]);
+   if(!model.labCheck(reflected,task).correct)throw Error('Reflected solution rejected: '+type);
+   solution.segments=[];if(model.labCheck(solution,task).ready)throw Error('Incomplete shape accepted: '+type);
+   cases++;
+ }
+ const free=model.labEmpty(true);if(free.points.length||free.given!==false||model.labSnap(free,[100,100]).kind)throw Error('Free construction is not blank');
+ ok('construction-lab',cases+' shape constructions plus reflected solutions, circle intersections and disabled snapping');
 }catch(e){fail('construction-lab','Geometry construction lab regression',e.stack||e.message);}
 
 /* ---------- output ---------- */
