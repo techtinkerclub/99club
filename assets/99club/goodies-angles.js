@@ -560,7 +560,7 @@ function paper(item,teacher){const d=geometry(item.data);if(item.kind==='diagram
 if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>types(s),title:item=>FAMILIES.find(t=>t[0]===item.data.type)?.[1]||'Angle illustration',recipe:(s,type)=>({...settings(s),type}),generate,signature:d=>JSON.stringify([d.type,d.angle,d.angles,d.rotation,d.clockwise,d.n,d.regular,d.shape,d.relation,d.length,d.rightLength,d.radius,d.part,d.width,d.height,d.missingSide,d.claim,d.baseLength,d.factor,d.hypotenuse]),capture:s=>[G.publishing.record(ID,s.task?'challenge':'diagram',s.task?{...geometry(s.task),revealed:false}:s.demo)],render:paper,answerSummary:item=>item.data.answer,answerGraphic:item=>diagram(geometry(item.data),true,{paper:true,scale:['measure','draw','draw-reflex','reflex'].includes(item.data.type)}),answerNote:item=>item.data.note||''});
 
  function mountLab(box,initial,onChange,{free=false,motion=false}={}){
-  let st=labNames(initial||labEmpty(free)),ws=workspaceState(st),ww=free?ws.w:800,hh=free?ws.h:400,corner=0,tool=motion?'move':'segment',first=null,aligned=null,hover=null,history=[],snap=true,measure=free&&st.showMeasurements===true,grid=free?ws.gridMm>0:true,moving=null,aperture=null,keepOpening=false,guideOpen=false,guideStep=0,regionPick=[],regionColour=0,regionStatus='';
+  let st=labNames(initial||labEmpty(free)),ws=workspaceState(st),ww=free?ws.w:800,hh=free?ws.h:400,corner=0,tool=motion?'move':'segment',first=null,aligned=null,hover=null,history=[],snap=true,measure=free&&st.showMeasurements===true,grid=free?ws.gridMm>0:true,moving=null,sheetPan=null,panMode=false,aperture=null,keepOpening=false,guideOpen=false,guideStep=0,regionPick=[],regionColour=0,regionStatus='';
   const clone=x=>JSON.parse(JSON.stringify(x)),save=()=>history.push(clone(st)),N='http://www.w3.org/2000/svg';
   const toolbar=document.createElement('div');toolbar.className='gd-ag-lab-toolbar';toolbar.setAttribute('aria-label','Construction tools');
   const instruments=document.createElement('div');instruments.className='gd-ag-lab-tools';instruments.setAttribute('role','group');instruments.setAttribute('aria-label','Drawing instruments');
@@ -585,6 +585,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
     square30:'<path d="M2 20h20L2 8Z M6 14v3h5Z M2 16h4v4"/>',
     compass:'<circle cx="12" cy="5" r="2.5"/><path d="M11 7L5 21M13 7l6 14M7.5 15h9M12 2V1"/>',
     shade:'<path d="M3 19L13 3L21 19Z" fill="currentColor" fill-opacity=".22"/><circle cx="3" cy="19" r="1.5"/><circle cx="13" cy="3" r="1.5"/><circle cx="21" cy="19" r="1.5"/>',
+    pan:'<path d="M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"/>',
     expand:'<path d="M3 9V3h6m6 0h6v6M3 15v6h6m6 0h6v-6M3 3l6 6m12-6-6 6M3 21l6-6m12 6-6-6"/>',
     erase:'<path d="M3 14l10-10a2 2 0 0 1 3 0l5 5a2 2 0 0 1 0 3l-8 8H9L3 14ZM8 9l9 9M13 20h9"/>',
     corner:'<path d="M4 4v16h16Z M4 15h5v5"/><path d="M12 2a8 8 0 0 1 9 8m-4-3 4 3 2-4"/>',
@@ -598,7 +599,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
   function icon(id){const x=document.createElementNS(N,'svg');x.setAttribute('viewBox','0 0 24 24');x.setAttribute('fill','none');x.setAttribute('stroke','currentColor');x.setAttribute('stroke-width','1.65');x.setAttribute('stroke-linecap','round');x.setAttribute('stroke-linejoin','round');x.setAttribute('aria-hidden','true');x.setAttribute('focusable','false');x.innerHTML=icons[id];return x}
   const controls=[['point','Point','Place a point'],['segment','Ruler','Draw a straight line with the ruler'],['ray','Ray','Draw a ray'],['protractor','Protractor','Measure and draw an angle'],['square45','45°','45° set square'],['square30','30°–60°','30°–60° set square'],['compass','Compass','Draw a compass circle'],['erase','Erase','Erase a drawn object']];if(free)controls.push(['shade','Shade','Select and shade a polygonal region']);if(motion){controls.unshift(['move','Move','Move vertices freely without preserving shape properties']);controls.push(['trace','Trace','Select a point to trace its movement'])}
   function button(id,label,description,fn,parent=actions){const b=document.createElement('button');b.type='button';b.className='gd-btn gd-ag-lab-button';b.dataset.agTool=id;b.title=description;b.setAttribute('aria-label',description);const t=document.createElement('span');t.textContent=label;b.append(icon(id),t);b.onclick=fn;parent.append(b);return b}
-  const buttons=controls.map(([id,label,desc])=>[id,button(id,label,desc,()=>{tool=id;first=null;aligned=null;hover=null;guideStep=0;regionPick=[];regionStatus='';paint()},instruments)]);
+  const buttons=controls.map(([id,label,desc])=>[id,button(id,label,desc,()=>{tool=id;panMode=false;first=null;aligned=null;hover=null;guideStep=0;regionPick=[];regionStatus='';paint()},instruments)]);
   const cornerButton=button('corner','Corner','Change set square corner',()=>{corner=(corner+1)%3;paint()});
   button('flip','Flip','Flip instrument',()=>{if(aligned!==null){aligned=mod(aligned+180);paint()}}).dataset.agFlip='1';
   const openingButton=button('compass','Keep opening','Retain the compass opening for transfer to another centre',()=>{if(aperture===null)return;keepOpening=!keepOpening;first=null;aligned=null;hover=null;paint()});openingButton.dataset.agTool='compass-opening';
@@ -606,6 +607,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
   button('reset','Reset','Reset construction',()=>{save();st=labNames(labEmpty(free));if(free)st.workspace={...ws};first=null;aligned=null;regionPick=[];aperture=null;keepOpening=false;changed()});
   const expandButton=free?button('expand','Workspace','Choose paper dimensions and grid size',()=>{sheetPanel.hidden=!sheetPanel.hidden;expandButton.setAttribute('aria-expanded',String(!sheetPanel.hidden))}):null;
   if(motion)button('trace','Clear traces','Remove recorded paths without changing the drawing',()=>{save();st.traces={};changed()}).dataset.agTool='clear-traces';
+  const panButton=free?button('pan','Pan sheet','Move around the sheet without drawing',()=>{panMode=!panMode;first=null;aligned=null;hover=null;paint()}):null;
   const guideButton=button('help',free?'Help / demo':'Tool help','Show instrument instructions',()=>{guideOpen=!guideOpen;guideStep=0;paint()});
   for(const [id,label,get,set] of [['snap','Snap',()=>snap,v=>snap=v],...(free?[['measure','Measurements',()=>measure,v=>{measure=v;st.showMeasurements=v;onChange(clone(st))}]]:[]),...(free?[]:[['grid','Grid',()=>grid,v=>grid=v]])]){
    const l=document.createElement('label');l.className='gd-ag-lab-option';const input=document.createElement('input');input.type='checkbox';input.dataset.agOption=id;input.checked=get();input.onchange=()=>{set(input.checked);paint()};const t=document.createElement('span');t.textContent=label;l.append(input,icon(id),t);options.append(l);
@@ -723,6 +725,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
   }
   function paint(){
    regionBar.hidden=tool!=='shade';regionBar.style.display=tool==='shade'?'flex':'none';applyRegion.disabled=!validRegion(st.points,regionPick);removeRegion.disabled=!st.regions.length;colourButtons.forEach((b,i)=>{b.setAttribute('aria-pressed',String(i===regionColour));b.style.outline=i===regionColour?'2px solid #263e43':'none'});
+   if(panButton){panButton.setAttribute('aria-pressed',String(panMode));panButton.classList.toggle('gd-btn--primary',panMode);svg.style.cursor=panMode?'grab':''}
    openingButton.hidden=tool!=='compass';openingButton.disabled=aperture===null;openingButton.setAttribute('aria-pressed',String(keepOpening));openingButton.querySelector('span').textContent=keepOpening?'Change opening':'Keep opening';
    paintGuide();cornerButton.hidden=!tool.startsWith('square');const flip=toolbar.querySelector('[data-ag-flip]');flip.hidden=!angleTool()||aligned===null;
    buttons.forEach(([id,b])=>{b.classList.toggle('gd-btn--primary',id===tool);b.setAttribute('aria-pressed',String(id===tool))});undoButton.disabled=history.length===0;
@@ -746,13 +749,13 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
     if(hit.kind){circle(p,12,'#2e9982','#d5eee5');circle(p,3,'#2e9982','#2e9982');text([p[0],p[1]-18],hit.kind,'#287b69',12)}
    }
    st.points.forEach((p,i)=>{if(motion&&st.traceNames?.includes(st.names[i]))circle(p,10,'#b56d2c','none');if(regionPick.includes(i))circle(p,11,REGION_COLOURS[regionColour],'none');circle(p,i===first?6:4,'white',st.given!==false&&i<2?'#28413d':'#287f6c');const pos=labLabel(st,i);text([pos[0],pos[1]+4],st.names[i],'#325a50',13)});
-   hint.textContent=tool==='move'?'Drag a vertex freely. Its connected geometry will follow.':tool==='trace'?'Tap a point to toggle tracing, then select Move.':tool==='shade'?(regionStatus||'Tap vertices in perimeter order. '+regionPick.map(i=>st.names[i]).join(' → ')+(regionPick.length>=3&&!validRegion(st.points,regionPick)?' · Invalid or crossing region.':'')):angleTool()?(first===null?'Tap a vertex to place the instrument.':aligned===null?'Tap along the reference edge to align the instrument.':'Choose a direction on the instrument to draw a ray.'):tool==='compass'?(keepOpening?'Radius: '+(aperture/LAB_UNIT).toFixed(1)+' cm · Tap a new centre to transfer the opening.':first===null?'Tap the centre of the circle.':hover?'Radius: '+(labDist(st.points[first],magnetic(hover).p)/LAB_UNIT).toFixed(1)+' cm · Release to draw.':'Touch and slide to set the radius.'):tool==='point'?'Tap a point or a highlighted intersection.':tool==='erase'?'Tap a drawn point, line or circle to erase.':first===null?'Tap the starting point.':'Touch, slide to refine, then release to place.';
+   hint.textContent=panMode?'Drag to move around the sheet. Select an instrument to resume drawing.':tool==='move'?'Drag a vertex freely. Its connected geometry will follow.':tool==='trace'?'Tap a point to toggle tracing, then select Move.':tool==='shade'?(regionStatus||'Tap vertices in perimeter order. '+regionPick.map(i=>st.names[i]).join(' → ')+(regionPick.length>=3&&!validRegion(st.points,regionPick)?' · Invalid or crossing region.':'')):angleTool()?(first===null?'Tap a vertex to place the instrument.':aligned===null?'Tap along the reference edge to align the instrument.':'Choose a direction on the instrument to draw a ray.'):tool==='compass'?(keepOpening?'Radius: '+(aperture/LAB_UNIT).toFixed(1)+' cm · Tap a new centre to transfer the opening.':first===null?'Tap the centre of the circle.':hover?'Radius: '+(labDist(st.points[first],magnetic(hover).p)/LAB_UNIT).toFixed(1)+' cm · Release to draw.':'Touch and slide to set the radius.'):tool==='point'?'Tap a point or a highlighted intersection.':tool==='erase'?'Tap a drawn point, line or circle to erase.':first===null?'Tap the starting point.':'Touch, slide to refine, then release to place.';
    if(unplaced.length)hint.textContent+=' · Measurements in crowded areas: '+unplaced.join(', ');
    hint.textContent+=motion?' · Free exploration: no geometric constraints are applied.':' · Drawn marks are fixed. Use Undo or Erase to correct them.';
   }
   function coords(e){const m=svg.getScreenCTM();if(!m)return null;return new DOMPoint(e.clientX,e.clientY).matrixTransform(m.inverse())}
   let placing=null;
-  svg.addEventListener('pointerdown',e=>{if(e.button!==0)return;const z=coords(e);if(!z)return;const p=[z.x,z.y];e.preventDefault();hover=p;
+  svg.addEventListener('pointerdown',e=>{if(e.button!==0)return;if(panMode&&viewport){e.preventDefault();sheetPan={id:e.pointerId,x:e.clientX,y:e.clientY,left:viewport.scrollLeft,top:viewport.scrollTop};try{svg.setPointerCapture(e.pointerId)}catch(_){}return}const z=coords(e);if(!z)return;const p=[z.x,z.y];e.preventDefault();hover=p;
    if(first!==null&&!['erase','point','move','trace'].includes(tool)){placing=e.pointerId;try{svg.setPointerCapture(e.pointerId)}catch(_){}paint();return}
    place(p,e);
   });
@@ -775,9 +778,9 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    else if(tool==='ray'||angleTool()){const a=angleTool()?selectedAngle(o,p):Math.round(labAngle(o,magnetic(p).p));st.rays.push({i:first,angle:a})}
    first=null;aligned=null;hover=null;changed();
   }
-  svg.addEventListener('pointermove',e=>{const z=coords(e);if(!z)return;hover=[z.x,z.y];if(motion&&moving?.id===e.pointerId){const p=[Math.max(5,Math.min(ww-5,z.x)),Math.max(5,Math.min(hh-5,z.y))],i=moving.i,name=st.names[i],old=st.points[i];traceAdd(st,name,p,old);st.points[i]=p;changed()}else paint()});
-  svg.addEventListener('pointerup',e=>{if(placing===e.pointerId){placing=null;const z=coords(e);if(z)place([z.x,z.y],e)}moving=null;paint()});
-  const cancel=()=>{placing=null;moving=null;hover=null;paint()};svg.addEventListener('pointercancel',cancel);svg.addEventListener('lostpointercapture',cancel);
+  svg.addEventListener('pointermove',e=>{if(panMode&&viewport){if(sheetPan?.id===e.pointerId){viewport.scrollLeft=sheetPan.left+sheetPan.x-e.clientX;viewport.scrollTop=sheetPan.top+sheetPan.y-e.clientY}return}const z=coords(e);if(!z)return;hover=[z.x,z.y];if(motion&&moving?.id===e.pointerId){const p=[Math.max(5,Math.min(ww-5,z.x)),Math.max(5,Math.min(hh-5,z.y))],i=moving.i,name=st.names[i],old=st.points[i];traceAdd(st,name,p,old);st.points[i]=p;changed()}else paint()});
+  svg.addEventListener('pointerup',e=>{if(sheetPan?.id===e.pointerId){sheetPan=null;return}if(placing===e.pointerId){placing=null;const z=coords(e);if(z)place([z.x,z.y],e)}moving=null;paint()});
+  const cancel=()=>{placing=null;moving=null;sheetPan=null;hover=null;paint()};svg.addEventListener('pointercancel',cancel);svg.addEventListener('lostpointercapture',cancel);
   paint();
  }
 
