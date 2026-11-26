@@ -1016,7 +1016,7 @@ async function run(){
     doc.querySelector('[data-ag-challenge-mode="diagonal-bisect"]').click();await tick();
     const ds=doc.querySelector('.gd-ag-visual>svg'),dp=ds.querySelector('[data-ag-inspect-polygon]').points,intersection=ds.querySelector('[data-ag-inspect-point="O"]');
     assert(intersection,'Diagonal intersection is a selectable inspection point');
-    const diagTap=p=>{const v=new win.DOMPoint(...p).matrixTransform(ds.getScreenCTM());ds.dispatchEvent(new win.PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerType:'touch',button:0,clientX:v.x,clientY:v.y}))};
+    const diagTap=p=>{const view=doc.defaultView;const v=new view.DOMPoint(...p).matrixTransform(ds.getScreenCTM());ds.dispatchEvent(new view.PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerType:'touch',button:0,clientX:v.x,clientY:v.y}))};
     const o=[Number(intersection.getAttribute('cx')),Number(intersection.getAttribute('cy'))],a0=[dp.getItem(0).x,dp.getItem(0).y],b0=[dp.getItem(1).x,dp.getItem(1).y];
     doc.querySelector('[data-ag-inspect="ruler"]').click();diagTap(a0);diagTap(o);
     assert(ds.querySelector('[data-ag-inspection] [data-geometry-instrument="ruler"]'),'Ruler can measure vertex to diagonal intersection');
