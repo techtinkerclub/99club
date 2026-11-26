@@ -6,7 +6,7 @@ const adapters=new Map(),copy=v=>JSON.parse(JSON.stringify(v));
 const PAGE_W=960,PAGE_H=Math.round(PAGE_W*265/182);
 // These diagrams contain labels pupils must actually read, not decorative
 // detail. Prefer a larger diagram and an extra page to unreadable print.
-const DENSE_DIAGRAMS=new Set(['angles','written-division','written-multiplication','column-addition','column-subtraction','sequences','abacus','place-value','number-line','hundred-square','multiplication-grid','array-builder','money','coordinates','measurement','geoboard']);
+const DENSE_DIAGRAMS=new Set(['written-methods','angles','written-division','written-multiplication','column-addition','column-subtraction','sequences','abacus','place-value','number-line','hundred-square','multiplication-grid','array-builder','money','coordinates','measurement','geoboard']);
 function register(tool,adapter){adapters.set(tool,adapter)}
 function supports(tool){return adapters.has(tool)}
 function canGenerate(tool){return supports(tool)&&typeof adapters.get(tool).generate==='function'}
@@ -264,7 +264,7 @@ function answerPages(items,title){
    // per sheet. Historical and authored diagrams retain their own sizing.
    const compactWidth=!item.data.authored&&!item.data.historical?({abacus:700,'hundred-square':510,'multiplication-grid':550}[item.tool]):null;
    const widthLimit=beside?270:compactWidth|| (item.tool==='fraction-wall'?760:W-2*pad-48);
-   const written=!item.data.authored&&['column-addition','column-subtraction','written-multiplication','written-division'].includes(item.tool);
+   const written=!item.data.authored&&['written-methods','column-addition','column-subtraction','written-multiplication','written-division'].includes(item.tool);
    const scale=v?Math.min(widthLimit/v.w,(beside?285:dense?760:340)/v.h,written?0.6:Infinity):0,gh=v?v.h*scale:0,gw=v?v.w*scale:0;
    const textWidth=beside?W-2*pad-48-gw-20:W-2*pad-48;
    const lines=wrapAnnex(value,textWidth,20,600),notes=note?wrapAnnex(note,textWidth,18,400):[];
@@ -304,12 +304,12 @@ function pages(items,{title='Maths practice',teacher=false}={}){
 
 // Automatic and live capture share the same document and immutable recipes.
 const BUILDER_CATALOG=[
- ['written-division','Written division'],['written-multiplication','Written multiplication'],['column-addition','Column addition'],['column-subtraction','Column subtraction'],['maths-canvas','Arithmetic Hub'],['function-machine','Function machines & algebra'],['sequences','Sequences & rules'],['abacus','Abacus'],['place-value','Place value'],
+ ['written-methods','Written Methods'],['maths-canvas','Arithmetic Hub'],['function-machine','Function machines & algebra'],['sequences','Sequences & rules'],['abacus','Abacus'],['place-value','Place value'],
  ['number-line','Number line'],['fraction-wall','Fraction wall'],['bar-model','Bar model'],['hundred-square','Hundred square'],['multiplication-grid','Multiplication grid'],['array-builder','Array builder'],['clock','Clock & time'],['money','UK money'],['angles','Angles & geometry'],['coordinates','Coordinate grid'],['measurement','Ruler & measures'],['statistics-table','Data & graphs'],['randomiser','Dice, spinner & randomiser'],['balance','Equation balance'],['times-table','Times-table visualiser'],['factors','Factors & multiples'],['fdp','Fraction–decimal–percentage'],['geoboard','Shape & geoboard']
 ];
 const BUILDER_GROUPS=[
- ['Number & calculation',['column-addition','column-subtraction','maths-canvas','function-machine','sequences','abacus','place-value','number-line','hundred-square','balance']],
- ['Multiplication & division',['written-division','written-multiplication','multiplication-grid','array-builder','times-table','factors']],
+ ['Number & calculation',['written-methods','maths-canvas','function-machine','sequences','abacus','place-value','number-line','hundred-square','balance']],
+ ['Multiplication & division',['multiplication-grid','array-builder','times-table','factors']],
  ['Fractions & proportions',['fraction-wall','bar-model','fdp']],
  ['Geometry & measurement',['angles','geoboard','coordinates','measurement','clock','money']],
  ['Data & statistics',['statistics-table','randomiser']]
@@ -318,6 +318,7 @@ function defaults(tool){
  if(tool==='angles')return {level:'medium',mode:'angle',year:'custom',enrichment:false};
  if(tool==='function-machine')return {level:'medium',stages:2};
  if(tool==='statistics-table')return {view:'table',max:20,count:4,key:2,year:'custom',difficulty:'custom'};
+ if(tool==='written-methods')return G.writtenMethods.settings({year:5});
  if(tool==='written-division')return {year:6,remainders:'any'};
  if(tool==='written-multiplication')return {year:5};
  if(tool==='column-addition'||tool==='column-subtraction')return {year:4};
@@ -387,6 +388,10 @@ function openEditor(draft,{mode='review'}={}){
    if(t==='angles')return '<div class="gd-pub-fields">'+select('Curriculum suggestions','year',G.angles.YEARS,m.year)+select('Difficulty','level',G.angles.LEVELS,m.level)+select('Include enrichment','enrichment',[[0,'No'],[1,'Yes']],Number(!!m.enrichment))+'</div>';
    if(t==='function-machine')return '<div class="gd-pub-fields">'+select('Difficulty','level',G.functionMachines.LEVELS,m.level)+select('Machine stages','stages',[[1,'One'],[2,'Two']],m.stages)+'</div><p class="gd-help">Formula, pair and order tasks use their own mathematical constraints.</p>';
    if(t==='statistics-table')return '<div class="gd-pub-fields">'+select('Curriculum suggestions','year',G.statisticsTable.profiles,m.year)+select('Representation','view',G.statisticsTable.viewsFor(m.year),m.view)+select('Difficulty','difficulty',G.statisticsTable.difficulties,m.difficulty)+(m.view==='pictogram'?select('Symbol value','key',[1,2,5,10],m.key):'')+select('Maximum frequency','max',[10,20,30,40],m.max)+select('Categories','count',[3,4,5,6],m.count)+'</div>';
+   if(t==='written-methods'){
+     const cfg=G.writtenMethods.settings(m.settings||m);
+     return '<div class="gd-pub-fields">'+select('Year suggestions','year',[[3,'Year 3'],[4,'Year 4'],[5,'Year 5'],[6,'Year 6']],cfg.year)+select('Number type','numberType',[['whole','Whole numbers'],['decimal','Decimals'],['mixed','Mixed precision']],cfg.numberType)+select('First operand digits','operandDigits',[[0,'Year suggestion'],...Array.from({length:7},(_,i)=>[i+1,i+1])],cfg.operandDigits)+select('Second operand digits (addition/subtraction)','secondDigits',[[0,'Year suggestion'],...Array.from({length:7},(_,i)=>[i+1,i+1])],cfg.secondDigits)+(cfg.numberType!=='whole'?select('Operand decimal places','decimalPlaces',[[1,'1'],[2,'2'],[3,'3']],cfg.decimalPlaces):'')+select('Exchanges (addition/subtraction)','exchange',[['any','Mixed'],['with','With exchanges'],['without','Without exchanges'],['across-zero','Across zero (subtraction only)']],cfg.exchange)+select('Division result','resultMode',[['remainder','Quotient/remainder'],['decimal','Exact decimal'],['rounded','Rounded decimal']],cfg.resultMode)+(cfg.resultMode==='remainder'?select('Remainders','remainders',[['any','Mixed'],['exact','Exact'],['with','With remainders']],cfg.remainders):select('Result decimal places','resultPrecision',[[1,'1'],[2,'2'],[3,'3']],cfg.resultPrecision))+select('Short division divisor','twoDigitShort',[[0,'One digit'],[1,'One or two digits']],Number(cfg.twoDigitShort))+'</div><p class="gd-help">Choose calculation methods under Question types. Add another Written Methods group for different settings.</p>';
+   }
    if(t==='written-division')return '<div class="gd-pub-fields">'+select('Year group','year',[[3,'Year 3'],[4,'Year 4'],[5,'Year 5'],[6,'Year 6']],m.year)+select('Remainders','remainders',[['any','Mixed'],['exact','Exact division'],['with','With remainders']],m.remainders)+'</div><p class="gd-help">Short or long division under Question types. Long division is available in Year 6.</p>';
    if(t==='written-multiplication')return '<div class="gd-pub-fields">'+select('Year group','year',[[3,'Year 3'],[4,'Year 4'],[5,'Year 5'],[6,'Year 6']],m.year)+'</div><p class="gd-help">Select short or long multiplication in Question types. Long multiplication is available from Year 5.</p>';
    if(t==='column-addition'||t==='column-subtraction')return '<div class="gd-pub-fields">'+select('Year group','year',[[3,'Year 3'],[4,'Year 4'],[5,'Year 5'],[6,'Year 6']],m.year)+'</div><p class="gd-help">Choose exchange requirements under Question types. Pupil sheets include a place-value grid and blank working.</p>';
