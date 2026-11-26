@@ -94,7 +94,7 @@ function diagram(d,teacher=false,options={}){
    const range=full?360:180,pts=Array.from({length:range/5+1},(_,i)=>polar(x,y,r,start+i*5));
    const shape='M '+x+' '+y+' L '+pts.map(p=>p.join(' ')).join(' L ')+' Z';
    path(shape,{fill:'#dceee9','fill-opacity':.48,stroke:'#82a69e','stroke-width':1.5});
-   for(let i=0;i<=range;i++){if(full&&i===360)break;const p=polar(x,y,r,start+i),p2=polar(x,y,r-(i%10===0?19:i%5===0?12:6),start+i);line(p,p2,'#668d86',i%10===0?2.1:1.05);if(i%10===0){const t=polar(x,y,r-35,start+i);text(t[0],t[1]+6,String(i),19,{fill:'#285f57','font-weight':'600'});if(!full){const u=polar(x,y,r-62,start+i);text(u[0],u[1]+5,String(180-i),17,{fill:'#80551d','font-weight':'600'})}}}
+   for(let i=0;i<=range;i++){if(full&&i===360)break;const p=polar(x,y,r,start+i),p2=polar(x,y,r-(i%10===0?19:i%5===0?12:6),start+i);line(p,p2,'#668d86',i%10===0?2.1:1.05);if(i%10===0){const edge=i===0||i===180,offset=!full&&edge?polar(0,0,15,start-90):[0,0];const t=polar(x,y,r-35,start+i);text(t[0]+offset[0],t[1]+offset[1]+6,String(i),19,{fill:'#285f57','font-weight':'600'});if(!full){const u=polar(x,y,r-(edge?75:62),start+i);text(u[0]+offset[0],u[1]+offset[1]+5,String(180-i),17,{fill:'#80551d','font-weight':'600'})}}}
    line(polar(x,y,r,start),polar(x,y,r,start+180),'#668d86',1.5);circle([x,y],4,'#668d86');
  }
  function single(x,y,r,a,start,label,scale=false,blank=false,full=false){if(scale)protractor(x,y,r,start,full);ray(x,y,r+5,start);if(!blank){ray(x,y,r+5,start+a,teal);labelArc(x,y,Math.min(r*.27,48),start,a,label)}circle([x,y],4,ink)}
@@ -221,9 +221,9 @@ G.anglesTool=function(){
   // Capture on the persistent wrapper: the SVG may be replaced on every
   // snapped degree, but pointer capture and the coordinate transform survive.
   let drag=null;
-  box.style.touchAction='none';
   function drawSvg(){
     const interactive=(!task&&demo.mode==='angle')||(draw&&!task.revealed);
+    box.style.touchAction=interactive?'none':'auto';
     const svg=diagram(d,teacher,{attempt,length:attemptLength,scale:task?['measure','reflex','draw','draw-reflex'].includes(task.type):demo.scale,interactive,...(drag?{full:drag.max===360}:{})});
     svg.style.cssText='width:100%;height:auto;max-height:560px;display:block;margin:auto';
     box.replaceChildren(svg);
