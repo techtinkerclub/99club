@@ -1149,6 +1149,17 @@ async function run(){
     assert(!work.querySelector('[data-ag-dimension]'),'Free construction defaults to reading actual instruments');
     doc.querySelector('[data-ag-option="measure"]').click();await tick();
     const dim=work.querySelector('[data-ag-dimension]');assert(dim&&Math.abs(+dim.getAttribute('transform').slice(7).split(' ')[0]-Math.atan2(200,150)*180/Math.PI)<.1,'Length label rotates parallel to its sloping segment');
+    // A constructed angle must have permanent marks, even with measurements disabled.
+    doc.querySelector('[data-ag-option="measure"]').click();
+    doc.querySelector('[data-ag-tool="protractor"]').click();
+    lineTap([450,150]);lineTap([650,150]);lineTap([590,10]);
+    const angleDrawing=cap().demo.labDrawing;
+    assert(angleDrawing.segments.some(e=>e.includes(1)&&e.includes(3)),'Protractor creates the missing baseline');
+    assert(work.querySelector('[data-ag-angle-mark]')&&work.querySelector('[data-ag-angle-value]')?.textContent==='45°','Protractor retains 45 degree notation with measurements disabled');
+    const vertex=work.querySelector('[data-ag-point-label="B"]');
+    assert(vertex&&(+vertex.getAttribute('x')<450||+vertex.getAttribute('y')>150),'Vertex B label is outside the marked sector');
+    const anglePaper=P.createDocument();anglePaper.addCurrent(id,cap());assert(P.renderItem(anglePaper.list()[0],false).querySelector('[data-ag-angle-mark]'),'Publishing retains construction angle notation');
+    doc.querySelector('[data-ag-option="measure"]').click();
     const paperDimensions=P.createDocument();paperDimensions.addCurrent(id,cap());assert(P.renderItem(paperDimensions.list()[0],false).querySelector('[data-ag-dimension]'),'Published free construction retains its offset length labels');
     const sheetPaper=P.renderItem(paperDimensions.list()[0],false);assert(sheetPaper.getAttribute('data-ag-workspace-mm')==='297 210'&&!sheetPaper.querySelector('[data-ag-grid]'),'Publishing retains A4 landscape dimensions and plain paper');
 
