@@ -225,7 +225,7 @@ function diagram(d,teacher=false,options={}){
    return svg
  }
  if(mode==='facts'){
-   if(type==='parallel'){const y1=130,y2=310,dx=90/Math.tan(a*D),p=[400+dx,y1],u=[400-dx,y2];line([95,y1],[705,y1]);line([95,y2],[705,y2]);line(polar(...p,90/Math.sin(a*D),a),polar(...u,90/Math.sin(a*D),a+180),teal);const alt=d.relation==='alternate';labelArc(...p,44,alt?180:0,a,a+'°');labelArc(...u,44,0,a,teacher?a+'°':'x');return svg}
+   if(type==='parallel'||type==='co-interior'){const y1=130,y2=310,dx=90/Math.tan(a*D),p=[400+dx,y1],u=[400-dx,y2];line([95,y1],[705,y1]);line([95,y2],[705,y2]);line(polar(...p,90/Math.sin(a*D),a),polar(...u,90/Math.sin(a*D),a+180),teal);const co=type==='co-interior',alt=d.relation==='alternate'||co;labelArc(...p,44,alt?180:0,a,a+'°');labelArc(...u,44,co?a:0,co?180-a:a,teacher?(co?180-a:a)+'°':'x');return svg}
    const values=d.angles||[a,180-a],x=400,y=220,r=165;let at=rot;const count=type==='opposite'?4:values.length;
    // Give adjacent sectors different radii, including the last/first
    // pair around a point. Opposite sectors retain matching radii.
@@ -299,7 +299,7 @@ function diagram(d,teacher=false,options={}){
  }
  if(mode==='polygon'&&['similar-side','pythagoras'].includes(type)){
    if(type==='similar-side'){
-     const ratio=d.length/d.baseLength,scale=Math.min(85,100/ratio),small=[[110,310],[110+scale,310],[110,310-scale*ratio]],large=[[390,310],[390+scale*d.factor,310],[390,310-scale*d.factor*ratio]];
+     const ratio=d.length/d.baseLength,scale=Math.min(85,250/d.factor,250/(ratio*d.factor)),small=[[110,310],[110+scale,310],[110,310-scale*ratio]],large=[[390,310],[390+scale*d.factor,310],[390,310-scale*d.factor*ratio]];
      for(const [pts,k] of [[small,1],[large,d.factor]]){polygon(pts);corner(pts,0,null);text((pts[0][0]+pts[1][0])/2,340,d.baseLength*k+' cm',22);text(pts[0][0]-36,(pts[0][1]+pts[2][1])/2,k===1?d.length+' cm':teacher?d.answer+' cm':'x',21)}
      return frame(20,0,760,390)
    }
@@ -576,7 +576,7 @@ G.anglesTool=function(){
     const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(drag.inverse);
     if(drag.shape){const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),dy=p.y-drag.y,dx=p.x-drag.x;const shape=demo.shapeView;
       if(['rhombus','parallelogram'].includes(shape)){demo.shapeAngle=clamp(Math.round(drag.angle+dx*.35),25,85);d.shapeAngle=demo.shapeAngle}
-      if(['isosceles','scalene'].includes(shape)){demo.shapeBaseAngle=clamp(Math.round(drag.base-dy*.25),shape==='scalene'?30:20,shape==='scalene'?50:75);d.shapeBaseAngle=demo.shapeBaseAngle}
+      if(['isosceles','scalene'].includes(shape)){demo.shapeBaseAngle=clamp(Math.round(drag.base-dy*.25),shape==='scalene'?30:20,shape==='scalene'?48:75);d.shapeBaseAngle=demo.shapeBaseAngle}
       else if(['rectangle','parallelogram','trapezium','right-triangle','kite'].includes(shape)){demo.shapeHeight=clamp(Math.round(drag.height-dy),85,340);d.shapeHeight=demo.shapeHeight}drawSvg();return}
     if(Math.hypot(p.x-400,p.y-220)<16)return;
     const raw=Math.atan2(220-p.y,p.x-400)/D-(d.rotation||0),previous=draw?(attempt??0):demo.angle;
@@ -638,6 +638,6 @@ G.anglesTool=function(){
   }
  }
  function render(){controls();stage()}
- setPanels('','');render();G.lessonState.register(ID,()=>({...snapshot(),demo:demoData()}),s=>{cfg=settings(s);demo={...demo,...s.demo,type:'diagram'};workflow=['build','challenge','export'].includes(s.workflow)?s.workflow:'build';task=s.task?CK.normalise(s.task):null;attempt=Number.isFinite(s.attempt)?s.attempt:null;attemptLength=Number.isFinite(s.attemptLength)?s.attemptLength:null;scope=String(s.scope||'');lab=s.lab||null;freeLab=s.freeLab||null;CK.restorePupil(task,s.pupil);render()});
+ setPanels('','');render();G.lessonState.register(ID,()=>({...snapshot(),demo:demoData()}),s=>{cfg=settings(s);demo={...demo,...s.demo,type:'diagram',freeLab:s.demo?.freeLab??true};workflow=['build','challenge','export'].includes(s.workflow)?s.workflow:'build';task=s.task?CK.normalise(s.task):null;attempt=Number.isFinite(s.attempt)?s.attempt:null;attemptLength=Number.isFinite(s.attemptLength)?s.attemptLength:null;scope=String(s.scope||'');lab=s.lab||null;freeLab=s.freeLab||null;CK.restorePupil(task,s.pupil);render()});
 };
 })(typeof globalThis!=='undefined'?globalThis:this);
