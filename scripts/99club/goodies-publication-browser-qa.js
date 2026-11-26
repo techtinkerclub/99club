@@ -116,6 +116,58 @@ if(process.argv[2]==='prepare'){
    }
    assert(warnings.length===0,'Historical samples also retain readable text');
    assert(clipping.length===0,'Historical samples have no page clipping');
+   // Written Methods: square cells and mathematical decimal alignment on
+   // the same SVG used in demonstrations, working challenges and publication.
+   const WM=G.writtenMethods,WC=G.columnMethods;
+   const decimalExamples=[
+     ['addition','24.75','8.6',{},'33.35'],
+     ['subtraction','42.05','7.86',{},'34.19'],
+     ['short-multiplication','12.75','6',{},'76.50'],
+     ['long-multiplication','4.25','12',{},'51.00'],
+     ['short-division','98','4',{resultMode:'decimal',resultPrecision:1},'24.5'],
+     ['long-division','150','16',{resultMode:'decimal',resultPrecision:3},'9.375'],
+     ['short-division','42.75','5',{resultMode:'decimal',resultPrecision:2},'8.55'],
+     ['long-division','100','12',{resultMode:'rounded',resultPrecision:2},'8.33'],
+     ['long-division','1999','200',{resultMode:'rounded',resultPrecision:2},null],
+     ['short-division','875','24',{twoDigitShort:true},'36 r 11']
+   ];
+   for(const [method,a,b,options,answer] of decimalExamples){
+     if(answer===null){let rejected=false;try{WM.calculate(method,a,b,options)}catch(_){rejected=true}assert(rejected,'Invalid divisor rejected');continue}
+     const m=WM.calculate(method,a,b,options),L=WC.layout(m);
+     assert(m.answerText===answer,'Exact decimal example '+method+' '+a+' '+b);
+     for(const opts of [{step:0,grid:true},{step:0,grid:true,work:true},{step:m.steps.length,grid:true}]){
+       const svg=WC.diagram(m,opts),xs=[...svg.querySelectorAll('[data-wm-grid="vertical"]')].map(n=>+n.getAttribute('x1')),ys=[...svg.querySelectorAll('[data-wm-grid="horizontal"]')].map(n=>+n.getAttribute('y1'));
+       assert(xs.every((v,i)=>!i||v-xs[i-1]===L.cell)&&ys.every((v,i)=>!i||v-ys[i-1]===L.cell),'Square working cells '+method);
+       assert(!svg.textContent.includes('undefined')&&!svg.textContent.includes('NaN'),'All working labels valid '+method);
+       if(!opts.step)assert(!svg.querySelector('[data-wm-result],[data-wm-quotient],[data-wm-rounded-answer]'),'Blank pupil grid does not reveal result');
+       if(m.precision)assert(svg.querySelector('[data-wm-decimal="operand"]'),'Decimal point shown on operand');
+     }
+     for(const slot of WC.practiceCells(m))assert(slot.x-slot.w/2>=0&&slot.x+slot.w/2<=L.W&&slot.y-slot.h/2>=0&&slot.y+slot.h/2<=L.H&&Number.isFinite(slot.expected),'Working cell stays inside grid viewport');
+   }
+   let wmCases=0;
+   for(const method of WM.METHODS)for(const numberType of ['whole','decimal','mixed'])for(const resultMode of method.endsWith('division')?['remainder','decimal','rounded']:['remainder'])for(let i=0;i<100;i++){
+     const m=WM.generate(method,{year:6,numberType,decimalPlaces:2,resultPrecision:3,resultMode,operandDigits:3},rng);
+     const actual=method==='addition'?m.a+m.b:method==='subtraction'?m.a-m.b:method.endsWith('multiplication')?m.a*m.b:m.a/m.b;
+     if(method.endsWith('division')&&!m.resultMode)assert(m.answer*m.b+m.remainder===m.a&&m.remainder<m.b,'Integer division invariant');
+     else if(m.resultMode==='rounded')assert(Math.abs(m.answer-actual)<=.5*10**(-m.resultPrecision)+1e-8,'Rounded quotient invariant');
+     else assert(Math.abs(m.answer-actual)<1e-7,'Decimal calculation invariant');
+     wmCases++;
+   }
+   assert(wmCases===3000,'Seeded written-method generator coverage');
+   const writtenDraft=P.createDocument();
+   writtenDraft.generateBlocks([
+     {tool:'written-methods',settings:{year:4,numberType:'whole',operandDigits:3,exchange:'with'},types:['addition'],count:3},
+     {tool:'written-methods',settings:{year:5,numberType:'decimal',decimalPlaces:2,operandDigits:2},types:['addition'],count:3},
+     {tool:'written-methods',settings:{year:6,numberType:'whole',resultMode:'decimal',resultPrecision:3,operandDigits:3},types:['long-division'],count:3}
+   ],rng);
+   const wi=writtenDraft.list();
+   assert(wi.length===9&&wi.slice(0,3).every(i=>i.data.method==='addition'&&!i.data.precision)&&wi.slice(3,6).every(i=>i.data.method==='addition'&&i.data.precision===2)&&wi.slice(6).every(i=>i.data.method==='long-division'&&i.data.resultMode==='decimal'),'Independent repeated Written Methods blocks retain their settings');
+   const replaced=writtenDraft.replace(wi[3].id,rng);
+   assert(replaced.data.precision===2&&replaced.data.method==='addition','Regeneration preserves original written-method recipe');
+   for(const page of P.pages(writtenDraft.list(),{teacher:true})){
+     const prepared=X.preparePaperSvg(page),frame=document.createElement('div');frame.className='audit-sheet';frame.appendChild(prepared);host.appendChild(frame);checkPage(prepared,'written-methods-mixed',page.getAttribute('data-worksheet-answer'));
+   }
+   assert(warnings.length===0&&clipping.length===0,'Mixed written-method worksheet and worked annex remain readable without clipping: '+JSON.stringify({warnings:warnings.slice(0,5),clipping:clipping.slice(0,5)}));
    for(const [method,a,b] of [['addition',999,1],['subtraction',1000,1]]){
      const m=G.writtenMethods.calculate(method,a,b),blank=G.columnMethods.diagram(m,{step:0,work:true}),solved=G.columnMethods.diagram(m,{step:m.steps.length});
      assert(!blank.querySelector('[data-wm-result],[data-wm-exchange],[data-wm-carry]'),'Pupil grid has no worked answer or exchange annotations');
