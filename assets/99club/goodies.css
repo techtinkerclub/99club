@@ -2326,3 +2326,18 @@ html:not(.gd-embed-page) #tt99-goodies-root #gd-controls .gd-mc-five{min-height:
   #tt99-goodies-root #gd-stage .gd-pupil-field{flex:0 1 auto}
   #tt99-goodies-root #gd-stage .gd-pupil-field input{width:clamp(80px,24vw,160px)}
 }
+
+/* Longer textual answers must be able to wrap rather than clip. */
+#tt99-goodies-root #gd-stage .gd-challenge-banner .gd-pupil-choices button{
+  height:auto!important;min-height:40px!important;padding:5px 10px!important;
+  white-space:normal;overflow-wrap:anywhere;max-width:100%;
+}
+#tt99-goodies-root #gd-stage :is(.nl-challenge-response,.gd-pv-activity-response,.gd-pv-activity-response label){
+  display:flex;align-items:center!important;gap:6px;margin:0!important;
+}
+#tt99-goodies-root #gd-stage :is(.nl-challenge-response,.gd-pv-activity-response) input,
+#tt99-goodies-root #gd-stage .gd-native-challenge :is(input[data-ab-answer],input[data-ab-history-answer]){
+  box-sizing:border-box;height:40px!important;min-height:40px!important;
+  margin:0!important;padding:0 9px!important;font-size:1rem!important;
+  line-height:normal!important;align-self:center;
+}
