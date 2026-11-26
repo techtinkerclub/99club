@@ -281,7 +281,7 @@ function paper(item,teacher){const d=geometry(item.data);if(item.kind==='diagram
 if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>types(s),title:item=>FAMILIES.find(t=>t[0]===item.data.type)?.[1]||'Angle illustration',recipe:(s,type)=>({...settings(s),type}),generate,signature:d=>JSON.stringify([d.type,d.angle,d.angles,d.rotation,d.clockwise,d.n,d.regular,d.shape,d.relation,d.length,d.rightLength]),capture:s=>[G.publishing.record(ID,s.task?'challenge':'diagram',s.task?{...geometry(s.task),revealed:false}:s.demo)],render:paper,answerSummary:item=>item.data.answer,answerGraphic:item=>diagram(geometry(item.data),true,{scale:['measure','draw','draw-reflex','reflex'].includes(item.data.type)}),answerNote:item=>item.data.note||''});
 
  function mountLab(box,initial,onChange,{free=false}={}){
-  const ww=free?1000:800,hh=free?640:400;let st=initial||labEmpty(free),corner=0,tool='segment',first=null,aligned=null,hover=null,history=[],snap=true,measure=true,grid=true,drag=null;
+  const ww=free?1000:800,hh=free?640:400;let st=initial||labEmpty(free),corner=0,tool='segment',first=null,aligned=null,hover=null,history=[],snap=true,measure=true,grid=true,drag=null,guideOpen=false,guideStep=0;
   const clone=x=>JSON.parse(JSON.stringify(x)),save=()=>history.push(clone(st)),N='http://www.w3.org/2000/svg';
   const toolbar=document.createElement('div');toolbar.className='gd-ag-lab-toolbar';toolbar.setAttribute('aria-label','Construction tools');
   const instruments=document.createElement('div');instruments.className='gd-ag-lab-tools';instruments.setAttribute('role','group');instruments.setAttribute('aria-label','Drawing instruments');
@@ -291,7 +291,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
   helpers.append(actions,options);toolbar.append(instruments,helpers);
   const svg=document.createElementNS(N,'svg');svg.setAttribute('viewBox','0 0 '+ww+' '+hh);svg.classList.add('gd-ag-lab-canvas');svg.style.cssText='width:100%;max-height:'+(free?'820':'620')+'px;display:block;touch-action:none;user-select:none;background:white;border:1px solid #cbded8;border-radius:8px';
   const hint=document.createElement('p');hint.className='gd-help';hint.style.cssText='text-align:center;min-height:24px;margin:5px 0';
-  box.replaceChildren(toolbar,svg,hint);
+  const guide=document.createElement('section');guide.className='gd-ag-lab-guide';guide.hidden=true;box.replaceChildren(toolbar,svg,hint,guide);
   const icons={
     move:'<path d="M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"/>',
     point:'<circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/><path d="M12 3v4m0 10v4M3 12h4m10 0h4"/>',
@@ -308,16 +308,17 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
     reset:'<path d="M3 11a9 9 0 1 1 2.5 7M3 4v7h7"/>',
     snap:'<path d="M5 3v10a7 7 0 0 0 14 0V3h-5v10a2 2 0 0 1-4 0V3ZM5 8h5m4 0h5"/>',
     measure:'<path d="M3 18h18M3 15v6m18-6v6M4 8h16M4 8l4-4M4 8l4 4m12-4-4-4m4 4-4 4"/>',
-    grid:'<rect x="3" y="3" width="18" height="18" rx="1"/><path d="M9 3v18m6-18v18M3 9h18M3 15h18"/>'
+    grid:'<rect x="3" y="3" width="18" height="18" rx="1"/><path d="M9 3v18m6-18v18M3 9h18M3 15h18"/>',help:'<circle cx="12" cy="12" r="9"/><path d="M9 8a3 3 0 1 1 4 3c-1 .5-1 1-1 2m0 3v.2"/>'
   };
   function icon(id){const x=document.createElementNS(N,'svg');x.setAttribute('viewBox','0 0 24 24');x.setAttribute('fill','none');x.setAttribute('stroke','currentColor');x.setAttribute('stroke-width','1.65');x.setAttribute('stroke-linecap','round');x.setAttribute('stroke-linejoin','round');x.setAttribute('aria-hidden','true');x.setAttribute('focusable','false');x.innerHTML=icons[id];return x}
   const controls=[['move','Move','Move points'],['point','Point','Place a point'],['segment','Ruler','Draw a straight line with the ruler'],['ray','Ray','Draw a ray'],['protractor','Protractor','Measure and draw an angle'],['square45','45°','45° set square'],['square30','30°–60°','30°–60° set square'],['compass','Compass','Draw a compass circle'],['erase','Erase','Erase a drawn object']];
   function button(id,label,description,fn,parent=actions){const b=document.createElement('button');b.type='button';b.className='gd-btn gd-ag-lab-button';b.dataset.agTool=id;b.title=description;b.setAttribute('aria-label',description);const t=document.createElement('span');t.textContent=label;b.append(icon(id),t);b.onclick=fn;parent.append(b);return b}
-  const buttons=controls.map(([id,label,desc])=>[id,button(id,label,desc,()=>{tool=id;first=null;aligned=null;hover=null;paint()},instruments)]);
+  const buttons=controls.map(([id,label,desc])=>[id,button(id,label,desc,()=>{tool=id;first=null;aligned=null;hover=null;guideStep=0;paint()},instruments)]);
   const cornerButton=button('corner','Corner','Change set square corner',()=>{corner=(corner+1)%3;paint()});
   button('flip','Flip','Flip instrument',()=>{if(aligned!==null){aligned=mod(aligned+180);paint()}}).dataset.agFlip='1';
   const undoButton=button('undo','Undo','Undo last drawing action',()=>{if(history.length){st=history.pop();first=null;aligned=null;changed()}});
   button('reset','Reset','Reset construction',()=>{save();st=labEmpty(free);first=null;aligned=null;changed()});
+  const guideButton=button('help',free?'Help / demo':'Tool help','Show instrument instructions',()=>{guideOpen=!guideOpen;guideStep=0;paint()});
   for(const [id,label,get,set] of [['snap','Snap',()=>snap,v=>snap=v],['measure','Measurements',()=>measure,v=>measure=v],['grid','Grid',()=>grid,v=>grid=v]]){
    const l=document.createElement('label');l.className='gd-ag-lab-option';const input=document.createElement('input');input.type='checkbox';input.checked=get();input.onchange=()=>{set(input.checked);paint()};const t=document.createElement('span');t.textContent=label;l.append(input,icon(id),t);options.append(l);
   }
@@ -354,8 +355,50 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    // Actual set-square orientation is adjusted below to show the chosen edge.
    const diff=(x,y)=>Math.min(mod(x-y),mod(y-x));return mod(base+choices.reduce((x,y)=>diff(y,relative)<diff(x,relative)?y:x));
   }
+  const helpSteps={
+   move:['Select Move.','Press and drag a point to its new position. Connected lines move with it.','Release to keep the new position. Use Undo if needed.'],
+   point:['Select Point.','Touch near an endpoint or crossing. The magnetic highlight shows the exact snap position.','Place the point. You can now join other lines to it.'],
+   segment:['Select Ruler.','Tap the starting point.','Touch the ending point, slide to refine the length, and release. A straight segment joins the two points.'],
+   ray:['Select Ray.','Tap the starting point.','Touch in the direction you want the ray to extend, then release. A dashed construction ray appears.'],
+   protractor:['Select Protractor.','Tap the vertex, then tap along the reference line to align the zero edge.','Read the graduations from that edge. Touch the required direction and release to draw the ray.'],
+   square45:['Select the 45° set square.','Choose a corner, tap a vertex and align the reference edge. Use Flip if the instrument faces the wrong way.','Draw along the other edge of the triangle. The tool has two 45° corners and one 90° corner.'],
+   square30:['Select the 30°–60° set square.','Choose the appropriate corner, tap a vertex and align the reference edge. Use Flip if needed.','Draw along the other edge. This instrument has 30°, 60° and 90° corners.'],
+   compass:['Select Compass.','Tap the centre. Touch and slide to set the radius using the length reading.','Release to draw a construction circle. Use Point to mark its intersection with another line or circle.'],
+   erase:['Select Erase.','Tap the object you want to remove. A point and its attached objects are removed together.','Undo restores the previous construction. Given challenge baselines are protected.']
+  };
+  function guideGraphic(step){
+   // This sample is isolated from pupil work, and is available only in free mode.
+   const sample=labEmpty();const A=sample.points[0],B=sample.points[1],C=polar(...A,180,40);
+   if(tool==='segment'||tool==='move'||tool==='erase'||tool==='point'){
+    if(step>=1)sample.points.push(tool==='move'&&step===2?polar(...A,180,65):C);
+    if((tool==='segment'&&step===2)||tool==='move'&&step>=1||tool==='erase'&&step===1)sample.segments.push([0,2]);
+    if(tool==='erase'&&step===2)sample.points.pop();
+   }else if(tool==='compass'){if(step>=1)sample.circles.push({i:0,r:180});if(step===2){sample.rays.push({i:0,angle:40});sample.points.push(C)}}
+   else if(tool==='ray'){if(step>=1)sample.points.push(C);if(step===2)sample.rays.push({i:0,angle:40})}
+   else if(step===2)sample.rays.push({i:0,angle:tool==='square45'?45:tool==='square30'?30:40});
+   const picture=diagram({type:'diagram',mode:'construct',labDrawing:sample},true);picture.setAttribute('aria-label','Worked example of '+tool);
+   picture.style.cssText='width:100%;max-height:230px;display:block';
+   if(step>=1&&['protractor','square45','square30'].includes(tool)){
+    const add=(tag,attrs,content)=>{const e=document.createElementNS(N,tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));if(content!=null)e.textContent=content;picture.append(e);return e};
+    if(tool==='protractor'){const r=125,pts=Array.from({length:181},(_,i)=>polar(...A,r,i));add('polygon',{points:[A,...pts].map(p=>p.join(',')).join(' '),fill:'#c5e3da','fill-opacity':.55,stroke:'#76a99b'});for(let i=0;i<=180;i+=5){const p=polar(...A,r,i),q=polar(...A,r-(i%10===0?12:5),i);add('line',{x1:p[0],y1:p[1],x2:q[0],y2:q[1],stroke:'#477c70'});if(i%20===0){const t=polar(...A,r-22,i);add('text',{x:t[0],y:t[1]+4,'font-size':12,'text-anchor':'middle',fill:'#285d51'},i)}}}
+    else{const a=tool==='square45'?45:30,v=polar(...A,150,0),w=polar(...A,150/Math.cos(a*D),a);add('polygon',{points:[A,v,w].map(p=>p.join(',')).join(' '),fill:'#c5e3da','fill-opacity':.6,stroke:'#458778','stroke-width':2});const p=polar(...A,42,a/2);add('text',{x:p[0],y:p[1]+4,'font-size':15,fill:'#285d51'},a+'°')}
+    if(step===2){const p=polar(...A,200,tool==='square45'?45:tool==='square30'?30:40);add('line',{x1:A[0],y1:A[1],x2:p[0],y2:p[1],stroke:'#b77b32','stroke-width':3})}
+   }
+   return picture;
+  }
+  let guideKey='';
+  function paintGuide(){
+   guideButton.setAttribute('aria-expanded',String(guideOpen));guide.hidden=!guideOpen;
+   const key=[guideOpen,tool,guideStep,free].join(':');if(key===guideKey)return;guideKey=key;
+   if(!guideOpen){guide.replaceChildren();return}
+   const steps=helpSteps[tool],header=document.createElement('strong');header.textContent=controls.find(c=>c[0]===tool)?.[2]||'Using the tool';
+   const body=document.createElement('div');body.className='gd-ag-guide-body';
+   const list=document.createElement('ol');steps.forEach((t,i)=>{const li=document.createElement('li');li.textContent=t;if(free&&i===guideStep)li.className='is-current';list.append(li)});body.append(list);
+   if(free){const demo=document.createElement('div');demo.className='gd-ag-guide-example';demo.append(guideGraphic(guideStep));const nav=document.createElement('div');nav.className='gd-row';const prev=document.createElement('button'),next=document.createElement('button'),read=document.createElement('span');for(const b of [prev,next]){b.className='gd-btn';b.type='button'}prev.textContent='Previous';prev.disabled=guideStep===0;prev.onclick=()=>{guideStep--;paintGuide()};next.textContent=guideStep===2?'Replay':'Next step';next.onclick=()=>{guideStep=(guideStep+1)%3;paintGuide()};read.textContent='Step '+(guideStep+1)+' / 3';nav.append(prev,read,next);demo.append(nav);body.append(demo)}
+   guide.replaceChildren(header,body);
+  }
   function paint(){
-   cornerButton.hidden=!tool.startsWith('square');const flip=toolbar.querySelector('[data-ag-flip]');flip.hidden=!angleTool()||aligned===null;
+   paintGuide();cornerButton.hidden=!tool.startsWith('square');const flip=toolbar.querySelector('[data-ag-flip]');flip.hidden=!angleTool()||aligned===null;
    buttons.forEach(([id,b])=>{b.classList.toggle('gd-btn--primary',id===tool);b.setAttribute('aria-pressed',String(id===tool))});undoButton.disabled=history.length===0;
    svg.replaceChildren();el('rect',{width:ww,height:hh,fill:'#fff'});
    if(grid){for(let x=20;x<ww;x+=40)line([x,22],[x,hh-18],'#e1ebe6',1);for(let y=22;y<=hh-18;y+=40)line([20,y],[ww-20,y],'#e1ebe6',1)}
