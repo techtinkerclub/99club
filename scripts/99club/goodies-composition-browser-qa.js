@@ -1172,7 +1172,7 @@ async function run(){
     doc.querySelector('[data-ag-tool="help"]').click();
     {
       const model=win.TT99Goodies.angles,methods=await model.loadConstructionLibrary();
-      assert(methods.length>=28,'Construction library has at least twenty-eight methods');
+      assert(methods.length>=35,'Construction library has at least thirty-five methods');
       assert(new Set(methods.map(m=>m.id)).size===methods.length,'Construction method IDs are unique');
       const finalPoints=id=>Object.fromEntries(model.constructionFrame(methods.find(m=>m.id===id),100).filter(o=>o.kind==='point').map(o=>[o.label,o.at])),dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]),near=(a,b)=>Math.abs(a-b)<1e-6,dot=(a,b,c)=>(a[0]-b[0])*(c[0]-b[0])+(a[1]-b[1])*(c[1]-b[1]);
       const eq=finalPoints('triangle-equilateral');assert(near(dist(eq.A,eq.B),dist(eq.A,eq.C))&&near(dist(eq.A,eq.B),dist(eq.B,eq.C)),'Equilateral example is exact');
@@ -1187,20 +1187,26 @@ async function run(){
       const rt=finalPoints('right-triangle-hypotenuse');assert(near(dot(rt.A,rt.C,rt.B),0),'Hypotenuse construction preserves right angle');
       const cg=finalPoints('triangle-centroid');assert(near(dist(cg.C,cg.G),2*dist(cg.G,cg.M))&&near(dist(cg.A,cg.G),2*dist(cg.G,cg.N)),'Centroid divides medians 2:1');
       const semi=finalPoints('angle-in-semicircle');assert(near(dot(semi.A,semi.T,semi.B),0),'Semicircle construction creates right angle');
-      for(const m of methods){
+      const orth=finalPoints('triangle-orthocentre');assert(near(dot(orth.A,orth.F,orth.B),0)&&near(dot(orth.B,orth.G,orth.C),0)&&near((orth.H[0]-orth.B[0])*(orth.G[1]-orth.B[1])-(orth.H[1]-orth.B[1])*(orth.G[0]-orth.B[0]),0),'Orthocentre lies on the altitudes');
+      const gold=finalPoints('golden-section');assert(near(dist(gold.A,gold.B)/dist(gold.A,gold.G),dist(gold.A,gold.G)/dist(gold.G,gold.B)),'Golden ratio exact');
+      const pent=finalPoints('regular-pentagon'),vertices=[...'ABCDE'];assert(vertices.every((n,i)=>near(dist(pent[n],pent[vertices[(i+1)%5]]),dist(pent.A,pent.B))&&near(dist(pent[n],pent.O),dist(pent.A,pent.O)))&&near(dist(pent.A,pent.K),dist(pent.A,pent.B)),'Regular pentagon construction chord is exact');
+      for(const id of ['common-internal-tangents','common-external-tangents']){const p=finalPoints(id);for(const i of [1,2]){const t=p['T'+i],u=p['U'+i];assert(near(dot(p.O,t,u),0)&&near(dot(p.P,u,t),0)&&near(dist(p.O,t),65)&&near(dist(p.P,u),30),'Common tangent contacts are exact: '+id)}}
+      const lp=finalPoints('two-distance-locus');assert(['P₁','P₂'].every(n=>near(dist(lp[n],lp.A),110)&&near(dist(lp[n],lp.B),110)),'Both locus solutions satisfy both distances');
+      for(const m of methods){assert(m.prerequisites.every(id=>methods.some(n=>n.id===id)),'Prerequisite methods exist: '+m.id);
         assert(m.objective&&m.steps.length===m.graphics.frames.length&&m.checks.length,'Method includes problem, matching written and graphical steps and checks: '+m.id);
         for(let i=-1;i<m.steps.length;i++){const svg=model.constructionMethodGraphic(m,i);assert(svg.querySelectorAll('[data-ag-method-primitive]').length===model.constructionFrame(m,i).length&&!svg.outerHTML.includes('NaN'),'Each construction step renders exact vector primitives: '+m.id)}
       }
       const originalDrawing=JSON.stringify(cap().demo.labDrawing);
       const libButton=doc.querySelector('[data-ag-tool="construction-library"]');assert(libButton,'Free construction exposes method library');libButton.click();await tick(50);
       const panel=doc.querySelector('[data-ag-method-panel]');assert(panel&&!panel.hidden&&panel.parentElement===doc.body,'Library floats independently outside widget');
-      const search=panel.querySelector('[data-ag-method-search]');search.value='tangent';search.dispatchEvent(new win.Event('input',{bubbles:true}));assert(panel.querySelectorAll('[data-ag-method-id]').length===2,'Search filters the methods');
+      const search=panel.querySelector('[data-ag-method-search]');search.value='tangent';search.dispatchEvent(new win.Event('input',{bubbles:true}));assert(panel.querySelectorAll('[data-ag-method-id]').length===4,'Search filters the methods');
       panel.querySelector('[data-ag-method-id="tangents-external-point"]').click();
       const act=id=>panel.querySelector('[data-ag-method-action="'+id+'"]');
       assert(!panel.querySelector('[data-ag-method-graphic]')&&panel.querySelector('[data-ag-method-step]').dataset.agMethodStep==='-1','Text-first problem has no graphical spoilers');
       act('next').click();act('next').click();assert(panel.querySelector('[data-ag-method-step]').dataset.agMethodStep==='1','Written navigation advances step');
       act('graphics').click();assert(panel.querySelector('[data-ag-method-graphic]')&&panel.querySelector('[data-ag-method-step]').dataset.agMethodStep==='1','Graphical guide synchronises to current step');
       act('next').click();assert(panel.querySelector('[data-ag-method-graphic]').querySelectorAll('circle[data-ag-method-primitive="circle"]').length===2,'Auxiliary circle appears at correct step');
+      panel.querySelector('details').open=true;panel.querySelector('[data-ag-method-related="midpoint"]').click();assert(panel.querySelector('[data-ag-method-step]').dataset.agMethodStep==='-1'&&!panel.querySelector('[data-ag-method-graphic]'),'Related technique opens independently in text-first mode');act('back').click();assert(panel.querySelector('[data-ag-method-step]').dataset.agMethodStep==='2'&&panel.querySelector('[data-ag-method-graphic]'),'Return from prerequisite restores original step and graphical mode');
       act('instructions').click();assert(!panel.querySelector('[data-ag-method-graphic]')&&panel.querySelector('[data-ag-method-step]').dataset.agMethodStep==='2','Returning to instructions preserves progress');
       act('verify').click();assert(panel.textContent.includes("Thales"),'Optional verification explains geometry');
       act('restart').click();assert(panel.querySelector('[data-ag-method-step]').dataset.agMethodStep==='-1','Restart returns to problem statement');
