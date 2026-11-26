@@ -1250,6 +1250,27 @@ try{
   ok('public-copy','Public pages and major dynamic UI surfaces avoid internal/developer wording');
 }catch(e){fail('public-copy','Public copy audit threw',e.stack||e.message);}
 
+
+/* ---------- construction lab geometry ---------- */
+try {
+ const {labEmpty,labSnap,labCheck,polar}=require(path.join(ROOT,'assets/99club/goodies-angles.js'));
+ let cases=0;
+ for(let a=30;a<=120;a+=5)for(let length=3;length<=7;length++){
+   const state=labEmpty();state.rays.push({i:0,angle:a});state.circles.push({i:0,r:length*40});
+   const p=polar(...state.points[0],length*40,a);
+   const hit=labSnap(state,[p[0]+4,p[1]-4],16);
+   if(hit.kind!=='Intersection'||Math.hypot(hit.p[0]-p[0],hit.p[1]-p[1])>.01)throw Error('Ray/circle snap failed at '+a+' degrees');
+   state.points.push(hit.p);state.segments.push([0,2],[1,2]);
+   if(!labCheck(state,{angle:a,length}).correct||labCheck(state,{angle:a+5,length}).correct||labCheck(state,{angle:a,length:length+1}).correct)throw Error('Assessment failed');
+   state.segments.pop();if(labCheck(state,{angle:a,length}).ready)throw Error('Incomplete triangle accepted');
+   cases++;
+ }
+ const s=labEmpty();s.circles.push({i:0,r:200},{i:1,r:200});
+ const hit=labSnap(s,[463,141],16);if(hit.kind!=='Intersection'||Math.hypot(hit.p[0]-460,hit.p[1]-142)>.01)throw Error('Circle intersection failed');
+ const no=labSnap(s,[463,141],16,false);if(no.kind||no.p[0]!==463)throw Error('Snap off ignored');
+ ok('construction-lab',cases+' triangle constructions plus circle intersections and disabled snapping');
+}catch(e){fail('construction-lab','Geometry construction lab regression',e.stack||e.message);}
+
 /* ---------- output ---------- */
 const report={generatedAt:new Date().toISOString(),samplesPerDifficulty:SAMPLES,generated,engineCount:G?.ENGINES?Object.keys(G.ENGINES).length:0,onlineAdapterCount:adapterIds.length,guideCount:guideIds.length,failures,warnings,notes};
 const out=path.join(ROOT,'99club-qa-report.json');fs.writeFileSync(out,JSON.stringify(report,null,2)+'\n');
