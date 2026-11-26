@@ -182,14 +182,7 @@ function diagram(d,teacher=false,options={}){
  // Crop to the mathematical content, not a fixed landscape canvas. Keep the same coordinates for pointer mapping and paper export.
  function frame(x,y,w,h){svg.setAttribute('viewBox',[x,y,w,h].join(' '));Object.entries({x,y,width:w,height:h}).forEach(([k,v])=>background.setAttribute(k,v));return svg}
  const type=d.type,explore=type==='diagram',a=d.angle??60,rot=d.rotation??0,mode=d.mode||'angle';
- function protractor(x,y,r,start,full=false){
-   // Baseline always has zero at its ray. Inner scale runs in the opposite direction.
-   const range=full?360:180,pts=Array.from({length:range/5+1},(_,i)=>polar(x,y,r,start+i*5));
-   const shape='M '+x+' '+y+' L '+pts.map(p=>p.join(' ')).join(' L ')+' Z';
-   path(shape,{fill:'#dceee9','fill-opacity':.48,stroke:'#82a69e','stroke-width':1.5});
-   for(let i=0;i<=range;i++){if(full&&i===360)break;const p=polar(x,y,r,start+i),p2=polar(x,y,r-(i%10===0?19:i%5===0?12:6),start+i);line(p,p2,'#668d86',i%10===0?2.1:1.05);if(i%10===0){const edge=i===0||i===180,offset=!full&&edge?polar(0,0,15,start-90):[0,0];const t=polar(x,y,r-35,start+i);text(t[0]+offset[0],t[1]+offset[1]+6,String(i),19,{fill:'#285f57','font-weight':'600'});if(!full){const u=polar(x,y,r-(edge?75:62),start+i);text(u[0]+offset[0],u[1]+offset[1]+5,String(180-i),17,{fill:'#80551d','font-weight':'600'})}}}
-   line(polar(x,y,r,start),polar(x,y,r,start+180),'#668d86',1.5);circle([x,y],4,'#668d86');
- }
+ function protractor(x,y,r,start,full=false){G.instruments.protractor(svg,{x,y,radius:r,start,full});}
  function single(x,y,r,a,start,label,scale=false,blank=false,full=false){if(scale)protractor(x,y,r,start,full);ray(x,y,r+5,start);if(!blank){ray(x,y,r+5,start+a,teal);labelArc(x,y,Math.min(r*.27,48),start,a,label)}circle([x,y],4,ink)}
  if(mode==='turn'){
    const x=400,y=225,r=136,sign=d.clockwise?-1:1,start=explore?90+rot:90,end=start+sign*a;add('circle',{cx:x,cy:y,r:r+28,fill:'#f8fbfa',stroke:'#d4e2de','stroke-width':2});for(let i=0;i<4;i++)line(polar(x,y,r+18,start+i*90),polar(x,y,r+28,start+i*90),'#a3b8b3',3);
@@ -404,9 +397,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
   // selected by the pupil. The triangle edges, not target angles, determine rays.
   function instrument(o,base){
    if(tool==='protractor'){
-    const r=125,pts=Array.from({length:181},(_,i)=>polar(...o,r,base+i));
-    el('polygon',{points:[o,...pts].map(p=>p.join(',')).join(' '),fill:'#c5e3da','fill-opacity':.55,stroke:'#76a99b','stroke-width':1.5});
-    for(let i=0;i<=180;i++){line(polar(...o,r,base+i),polar(...o,r-(i%10===0?12:i%5===0?8:4),base+i),'#73988f',i%10===0?1.4:.65);if(i%10===0){const p=polar(...o,r-24,base+i);text([p[0],p[1]+4],i,'#285d51',12)}}
+    G.instruments.protractor(svg,{x:o[0],y:o[1],radius:170,start:base});
    }else{
     const angles=tool==='square45'?[90,45,45]:[90,30,60],opening=angles[corner],other=angles[(corner+1)%3],r=140*Math.sin(other*D)/Math.sin(angles[(corner+2)%3]*D),v=polar(...o,140,base),w=polar(...o,r,base+opening);
     el('polygon',{points:[o,v,w].map(p=>p.join(',')).join(' '),fill:'#c5e3da','fill-opacity':.65,stroke:'#458778','stroke-width':2});
@@ -445,9 +436,10 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    else if(step===2)sample.rays.push({i:0,angle:tool==='square45'?45:tool==='square30'?30:40});
    const picture=diagram({type:'diagram',mode:'construct',labDrawing:sample},true);picture.setAttribute('aria-label','Worked example of '+tool);
    picture.style.cssText='width:100%;max-height:230px;display:block';
+   if(step>=1&&tool==='segment'){G.instruments.ruler(picture,{x:A[0],y:A[1],width:240,length:6,height:44,tickHeight:23,angle:40,labelSize:11});}
    if(step>=1&&['protractor','square45','square30'].includes(tool)){
     const add=(tag,attrs,content)=>{const e=document.createElementNS(N,tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));if(content!=null)e.textContent=content;picture.append(e);return e};
-    if(tool==='protractor'){const r=125,pts=Array.from({length:181},(_,i)=>polar(...A,r,i));add('polygon',{points:[A,...pts].map(p=>p.join(',')).join(' '),fill:'#c5e3da','fill-opacity':.55,stroke:'#76a99b'});for(let i=0;i<=180;i+=5){const p=polar(...A,r,i),q=polar(...A,r-(i%10===0?12:5),i);add('line',{x1:p[0],y1:p[1],x2:q[0],y2:q[1],stroke:'#477c70'});if(i%20===0){const t=polar(...A,r-22,i);add('text',{x:t[0],y:t[1]+4,'font-size':12,'text-anchor':'middle',fill:'#285d51'},i)}}}
+    if(tool==='protractor'){G.instruments.protractor(picture,{x:A[0],y:A[1],radius:170,start:0});}
     else{const a=tool==='square45'?45:30,v=polar(...A,150,0),w=polar(...A,150/Math.cos(a*D),a);add('polygon',{points:[A,v,w].map(p=>p.join(',')).join(' '),fill:'#c5e3da','fill-opacity':.6,stroke:'#458778','stroke-width':2});const p=polar(...A,42,a/2);add('text',{x:p[0],y:p[1]+4,'font-size':15,fill:'#285d51'},a+'°')}
     if(step===2){const p=polar(...A,200,tool==='square45'?45:tool==='square30'?30:40);add('line',{x1:A[0],y1:A[1],x2:p[0],y2:p[1],stroke:'#b77b32','stroke-width':3})}
    }
@@ -478,7 +470,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
     if(first!==null){const a=st.points[first];
      if(angleTool()&&aligned!==null){const v=selectedAngle(a,p);line(a,polar(...a,190,v),'#b77b32',3);if(measure)text(polar(...a,75,aligned+mod(v-aligned)/2),Math.round(mod(v-aligned))+'°','#996221')}
      else if(tool==='compass'){const r=Math.round(labDist(a,p)/4)*4;circle(a,r,'#b77b32');line(a,p,'#b77b32',1.5);if(measure)text([(a[0]+p[0])/2,(a[1]+p[1])/2-10],(r/LAB_UNIT).toFixed(1)+' cm','#996221')}
-     else if(tool==='segment'||tool==='ray'||angleTool())line(a,p,'#b77b32',2,'5 4');
+     else if(tool==='segment'){const len=labDist(a,p);if(len>1){const cm=Math.ceil(len/40)+1;G.instruments.ruler(svg,{x:a[0],y:a[1],width:cm*40,length:cm,height:44,tickHeight:23,angle:labAngle(a,p),labelSize:11});line(a,p,'#b77b32',2,'5 4');if(measure)text([(a[0]+p[0])/2,(a[1]+p[1])/2-12],(len/40).toFixed(1)+' cm','#996221')}}else if(tool==='ray'||angleTool())line(a,p,'#b77b32',2,'5 4');
     }
     if(hit.kind){circle(p,12,'#2e9982','#d5eee5');circle(p,3,'#2e9982','#2e9982');text([p[0],p[1]-18],hit.kind,'#287b69',12)}
    }
@@ -538,14 +530,11 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    points.forEach((p,i)=>mark(p,i===hover?10:5,selected.includes(i)?'#e3af53':i===hover?'#d0eee4':'white'));
    if(tool==='ruler'&&selected.length===2){
     const [a,b]=selected.map(i=>points[i]),len=labDist(a,b),v=labSub(b,a).map(x=>x/len),normal=[-v[1],v[0]],center=points.reduce((r,p)=>[r[0]+p[0]/points.length,r[1]+p[1]/points.length],[0,0]);if(labDot(labSub(center,a),normal)<0){normal[0]*=-1;normal[1]*=-1}
-    const r=[a,b,labAt(b,normal,27),labAt(a,normal,27)];el('polygon',{points:r.map(p=>p.join(',')).join(' '),fill:'#c5e3da','fill-opacity':.8,stroke:'#397b70','stroke-width':1.5});
-    for(let i=0;i<=Math.floor(len/4);i++){const p=labAt(a,v,i*4),major=i%10===0;line(p,labAt(p,normal,major?16:i%5===0?12:6),'#397b70',major?1.5:.8)}
+    const angle=labAngle(a,b),side=labDot(normal,[-v[1],v[0]])>=0?1:-1,cm=Math.ceil(len/40)+1;G.instruments.ruler(layer,{x:a[0],y:a[1],width:cm*40,length:cm,height:44,tickHeight:23,angle,side,labelSize:11,unitLabel:false});
     line(a,b,'#177d6f',3);message.textContent='Length: '+(len/40).toFixed(2)+' diagram units. Tap two more vertices to compare.';
    }else if(tool==='angle'&&selected.length>=2){
-    const o=points[selected[0]],a=points[selected[1]],base=labAngle(o,a),b=selected.length===3?points[selected[2]]:null,delta=b?mod(labAngle(o,b)-base):0,sign=b&&delta>180?-1:1,deg=Math.min(delta,360-delta),radius=76;
-    const arcPts=Array.from({length:181},(_,i)=>polar(...o,radius,base+sign*i));
-    el('polygon',{points:[o,...arcPts].map(p=>p.join(',')).join(' '),fill:'#c5e3da','fill-opacity':.65,stroke:'#397b70','stroke-width':1.2});
-    for(let i=0;i<=180;i++){const aa=base+sign*i;line(polar(...o,radius,aa),polar(...o,radius-(i%10===0?9:i%5===0?6:3),aa),'#397b70',i%10===0?1.1:.55);if(i%30===0){const p=polar(...o,radius-18,aa);el('text',{x:p[0],y:p[1]+3,'font-size':9,'text-anchor':'middle',fill:'#285d51','paint-order':'stroke',stroke:'white','stroke-width':2},i)}}
+    const o=points[selected[0]],a=points[selected[1]],base=labAngle(o,a),b=selected.length===3?points[selected[2]]:null,delta=b?mod(labAngle(o,b)-base):0,sign=b&&delta>180?-1:1,deg=Math.min(delta,360-delta),radius=125;
+    G.instruments.protractor(layer,{x:o[0],y:o[1],radius:125,start:base,direction:sign});
     line(o,polar(...o,radius,base),'#397b70',2);if(b){line(o,polar(...o,radius,base+sign*deg),'#b77b32',3);message.textContent='Measured angle: '+Math.round(deg)+'°. Tap a new corner to measure another.'}else message.textContent='Tap a point on the second arm.';
    }else if(selected.length===1)message.textContent=tool==='ruler'?'Tap the other endpoint.':'Tap a point on the first arm.';
   }
