@@ -977,13 +977,15 @@ async function run(){
     
     doc.querySelector('[data-ag-workflow="challenge"]').click();await tick();
     doc.querySelector('[data-ag-challenge-mode="quad-type"]').click();await tick();
-    const inspectSvg=doc.querySelector('.gd-ag-visual>svg'),inspectPoints=inspectSvg.querySelector('[data-ag-inspect-polygon]').getAttribute('points').split(/\s+/).map(p=>p.split(',').map(Number)),iw=doc.defaultView;
+    const inspectSvg=doc.querySelector('.gd-ag-visual>svg'),inspectList=inspectSvg.querySelector('[data-ag-inspect-polygon]').points,inspectPoints=Array.from({length:inspectList.numberOfItems},(_,i)=>{const p=inspectList.getItem(i);return [p.x,p.y]}),iw=doc.defaultView;
     const inspectTap=i=>{const p=new iw.DOMPoint(...inspectPoints[i]).matrixTransform(inspectSvg.getScreenCTM());inspectSvg.dispatchEvent(new iw.PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerType:'touch',button:0,clientX:p.x,clientY:p.y}))};
     doc.querySelector('[data-ag-inspect="ruler"]').click();inspectTap(0);inspectTap(1);
     const length=Math.hypot(inspectPoints[1][0]-inspectPoints[0][0],inspectPoints[1][1]-inspectPoints[0][1])/40;
+    assert(inspectSvg.querySelector('[data-ag-inspection] [data-geometry-instrument="ruler"]'),'Investigation uses the shared ruler renderer');
     assert(doc.querySelector('.gd-ag-inspect-message').textContent.includes(length.toFixed(2)+' diagram units'),'Investigation ruler measures actual selected vertices');
     doc.querySelector('[data-ag-inspect="angle"]').click();inspectTap(0);inspectTap(1);inspectTap(3);
     const va=inspectPoints[1].map((v,i)=>v-inspectPoints[0][i]),vb=inspectPoints[3].map((v,i)=>v-inspectPoints[0][i]),deg=Math.round(Math.acos(Math.max(-1,Math.min(1,(va[0]*vb[0]+va[1]*vb[1])/(Math.hypot(...va)*Math.hypot(...vb)))))*180/Math.PI);
+    assert(inspectSvg.querySelector('[data-ag-inspection] [data-geometry-instrument="protractor"]'),'Investigation uses the shared dual-scale protractor');
     assert(doc.querySelector('.gd-ag-inspect-message').textContent.includes(deg+'°'),'Investigation protractor measures selected angle');
     doc.querySelector('[data-ag-inspect="clear"]').click();assert(!inspectSvg.querySelector('[data-ag-inspection]').children.length,'Clear removes inspection without changing question');
     const investigationPaper=TT99Goodies.publishing.createDocument();investigationPaper.addCurrent(id,cap());assert(!TT99Goodies.publishing.renderItem(investigationPaper.list()[0],false).querySelector('[data-ag-inspection]'),'Inspection overlays do not leak into pupil publication');
