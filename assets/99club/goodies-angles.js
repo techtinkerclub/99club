@@ -627,7 +627,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
   }
   function syncSheet(){
     if(!free)return;formatInput.value=ws.format;orientationInput.value=ws.orientation;widthInput.value=ww/4;heightInput.value=hh/4;gridInput.value=ws.gridMm;
-    customFields.hidden=ws.format!=='custom';orientationInput.disabled=ws.format==='custom';sheetStatus.textContent=(ww/4)+' × '+(hh/4)+' mm · '+(grid?ws.gridMm+' mm grid':'Plain paper');expandButton.querySelector('span').textContent='Workspace · '+(ws.format==='custom'?'Custom':ws.format)
+    customFields.hidden=ws.format!=='custom';customFields.style.display=ws.format==='custom'?'flex':'none';orientationInput.disabled=ws.format==='custom';sheetStatus.textContent=(ww/4)+' × '+(hh/4)+' mm · '+(grid?ws.gridMm+' mm grid':'Plain paper');expandButton.querySelector('span').textContent='Workspace · '+(ws.format==='custom'?'Custom':ws.format)
   }
   if(free){
     sheetPanel.style.cssText='padding:8px;border-top:1px solid #dce8e4';toolbar.append(sheetPanel);expandButton.setAttribute('aria-expanded','false');
@@ -639,7 +639,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
     gridInput=field(row,'Grid',[['0','Plain'],['5','5 mm'],['10','10 mm'],['20','20 mm']],'grid');
     customFields=document.createElement('div');customFields.className='gd-ag-lab-helpers';sheetPanel.append(customFields);
     widthInput=field(customFields,'Width (mm)',null,'width');heightInput=field(customFields,'Height (mm)',null,'height');
-    formatInput.onchange=()=>{customFields.hidden=formatInput.value!=='custom';orientationInput.disabled=formatInput.value==='custom'};
+    formatInput.onchange=()=>{customFields.hidden=formatInput.value!=='custom';customFields.style.display=formatInput.value==='custom'?'flex':'none';orientationInput.disabled=formatInput.value==='custom'};
     const apply=document.createElement('button');apply.type='button';apply.className='gd-btn gd-btn--primary';apply.textContent='Apply';apply.dataset.agWorkspace='apply';row.append(apply);
     sheetStatus=document.createElement('p');sheetStatus.className='gd-help';sheetStatus.setAttribute('role','status');sheetStatus.style.margin='4px 0 0';sheetPanel.append(sheetStatus);
     apply.onclick=()=>{const width=Number(widthInput.value),height=Number(heightInput.value);if(formatInput.value==='custom'&&(!Number.isFinite(width)||!Number.isFinite(height)||width<50||height<50||width>650||height>650)){sheetStatus.textContent='Enter dimensions between 50 and 650 mm.';return}const next={...workspaceSize(formatInput.value,orientationInput.value,width,height),gridMm:Number(gridInput.value)};resizeWorkspace(next)};
@@ -728,7 +728,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    if(panButton){panButton.setAttribute('aria-pressed',String(panMode));panButton.classList.toggle('gd-btn--primary',panMode);svg.style.cursor=panMode?'grab':''}
    openingButton.hidden=tool!=='compass';openingButton.disabled=aperture===null;openingButton.setAttribute('aria-pressed',String(keepOpening));openingButton.querySelector('span').textContent=keepOpening?'Change opening':'Keep opening';
    paintGuide();cornerButton.hidden=!tool.startsWith('square');const flip=toolbar.querySelector('[data-ag-flip]');flip.hidden=!angleTool()||aligned===null;
-   buttons.forEach(([id,b])=>{b.classList.toggle('gd-btn--primary',id===tool);b.setAttribute('aria-pressed',String(id===tool))});undoButton.disabled=history.length===0;
+   buttons.forEach(([id,b])=>{b.classList.toggle('gd-btn--primary',!panMode&&id===tool);b.setAttribute('aria-pressed',String(!panMode&&id===tool))});undoButton.disabled=history.length===0;
    svg.replaceChildren();dimLines=labLines(st).map(l=>[l.a,l.ray?labAt(l.a,l.v,1200):l.b]);dimBoxes=st.points.map((p,i)=>labelBox(labLabel(st,i),0,st.names[i],13));unplaced=[];el('rect',{width:ww,height:hh,fill:'#fff'});
    if(grid){const step=free?ws.gridMm*4:40;for(let x=free?step:20;x<ww;x+=step)el('line',{x1:x,y1:free?0:22,x2:x,y2:free?hh:hh-18,stroke:'#e1ebe6','stroke-width':1,'data-ag-grid':'1'});for(let y=free?step:22;y<hh;y+=step)el('line',{x1:free?0:20,y1:y,x2:free?ww:ww-20,y2:y,stroke:'#e1ebe6','stroke-width':1,'data-ag-grid':'1'})}
    if(motion)for(const trail of Object.values(st.traces||{}))for(const points of traceParts(trail)){el('polyline',{points:points.map(p=>p.join(',')).join(' '),fill:'none',stroke:'#b56d2c','stroke-width':2,'stroke-dasharray':'4 3','data-ag-trace':'1'})}
