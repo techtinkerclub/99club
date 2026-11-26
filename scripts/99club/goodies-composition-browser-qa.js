@@ -925,6 +925,15 @@ async function run(){
   {
     const id='angles',fixture=await addForSave(id),doc=fixture.doc,G=doc.defaultView.TT99Goodies,M=G.angles,cap=()=>G.lessonState.capture(id).model;
     assert(doc.querySelector('#gd-stage svg'),'Angle explorer mounts a geometry diagram');
+    const svg=()=>doc.querySelector('#gd-stage svg'),bounds=()=>svg().getAttribute('viewBox').split(' ').map(Number);
+    assert(bounds()[2]<=550&&bounds()[3]<=310,'Default semicircular protractor uses a tight content viewBox');
+    const scaleLabels=[...svg().querySelectorAll('text')].filter(el=>/^\d+$/.test(el.textContent));
+    assert(scaleLabels.length>=19&&scaleLabels.every(el=>+el.getAttribute('font-size')>=17),'Protractor numerals remain legible on both scales');
+    const rot=doc.getElementById('ag-rotation');rot.value='90';rot.dispatchEvent(new doc.defaultView.Event('change',{bubbles:true}));await tick();
+    assert(bounds()[2]<=310&&bounds()[3]<=550,'Rotated semicircle frames its geometry without clipping');
+    const value=doc.getElementById('ag-value');value.value='270';value.dispatchEvent(new doc.defaultView.Event('change',{bubbles:true}));await tick();
+    assert(bounds()[2]===bounds()[3]&&bounds()[2]<=550,'Reflex protractor uses a compact full-circle frame');
+    
     doc.querySelector('[data-ag-workflow="challenge"]').click();await tick();
     doc.querySelector('[data-ag-challenge-mode="draw"]').click();await tick();
     const t=cap().task;assert(t.type==='draw'&&doc.querySelector('[data-gd-pupil-check]').disabled,'Construction starts unanswered');
