@@ -2239,16 +2239,27 @@ html:not(.gd-embed-page) #tt99-goodies-root #gd-controls .gd-mc-five{min-height:
 
 /* Angle workspace: classroom readability at the same board scale as other tools.
    Scope to the actual current diagram so switching standalone tools cannot leak styles. */
-#gd-stage:has(>.gd-ag-visual){gap:10px;justify-content:flex-start}
-#gd-stage:has(>.gd-ag-visual)>.gd-challenge-banner{padding:12px 15px!important;gap:9px!important;margin-bottom:8px!important}
-#gd-stage:has(>.gd-ag-visual) .gd-challenge-prompt{font-size:clamp(1.08rem,2.4vw,1.5rem)!important;line-height:1.32!important}
-#gd-stage:has(>.gd-ag-visual) :is(.gd-challenge-action,.gd-challenge-reveal,.gd-pupil-response button){font-size:1rem!important;min-height:42px!important}
-#gd-stage:has(>.gd-ag-visual) :is(.gd-pupil-feedback,.gd-pupil-instruction,.gd-pupil-field label,.gd-pupil-discuss){font-size:1rem!important}
-#gd-stage:has(>.gd-ag-visual) .gd-pupil-field input{font-size:1.2rem!important;min-height:42px}
-#gd-stage:has(>.gd-ag-visual)>.gd-row :is(button,select){font-size:1rem!important;min-height:42px!important;min-width:46px}
-#gd-stage:has(>.gd-ag-visual)>.gd-row strong{font-size:1.3rem;font-variant-numeric:tabular-nums}
-#gd-stage:has(>.gd-ag-visual) .gd-ag-visual{flex:0 0 auto;min-width:0}
+#gd-stage:has(>.gd-ag-visual,>.gd-fm-visual,>.gd-st-diagram,>.gd-wm-diagram){gap:10px;justify-content:flex-start}
+#gd-stage:has(>.gd-ag-visual,>.gd-fm-visual,>.gd-st-diagram,>.gd-wm-diagram)>.gd-challenge-banner{padding:12px 15px!important;gap:9px!important;margin-bottom:8px!important}
+#gd-stage:has(>.gd-ag-visual,>.gd-fm-visual,>.gd-st-diagram,>.gd-wm-diagram) .gd-challenge-prompt{font-size:clamp(1.08rem,2.4vw,1.5rem)!important;line-height:1.32!important}
+#gd-stage:has(>.gd-ag-visual,>.gd-fm-visual,>.gd-st-diagram,>.gd-wm-diagram) :is(.gd-challenge-action,.gd-challenge-reveal,.gd-pupil-response button){font-size:1rem!important;min-height:42px!important}
+#gd-stage:has(>.gd-ag-visual,>.gd-fm-visual,>.gd-st-diagram,>.gd-wm-diagram) :is(.gd-pupil-feedback,.gd-pupil-instruction,.gd-pupil-field label,.gd-pupil-discuss){font-size:1rem!important}
+#gd-stage:has(>.gd-ag-visual,>.gd-fm-visual,>.gd-st-diagram,>.gd-wm-diagram) .gd-pupil-field input{font-size:1.2rem!important;min-height:42px}
+#gd-stage:has(>.gd-ag-visual,>.gd-fm-visual,>.gd-st-diagram,>.gd-wm-diagram)>.gd-row :is(button,select){font-size:1rem!important;min-height:42px!important;min-width:46px}
+#gd-stage:has(>.gd-ag-visual,>.gd-fm-visual,>.gd-st-diagram,>.gd-wm-diagram)>.gd-row strong{font-size:1.3rem;font-variant-numeric:tabular-nums}
+#gd-stage:has(>.gd-ag-visual,>.gd-fm-visual,>.gd-st-diagram,>.gd-wm-diagram) .gd-ag-visual{flex:0 0 auto;min-width:0}
 @media(max-width:520px){
- #gd-stage:has(>.gd-ag-visual) .gd-challenge-prompt{font-size:1.1rem!important}
- #gd-stage:has(>.gd-ag-visual)>.gd-challenge-banner{padding:9px!important}
+ #gd-stage:has(>.gd-ag-visual,>.gd-fm-visual,>.gd-st-diagram,>.gd-wm-diagram) .gd-challenge-prompt{font-size:1.1rem!important}
+ #gd-stage:has(>.gd-ag-visual,>.gd-fm-visual,>.gd-st-diagram,>.gd-wm-diagram)>.gd-challenge-banner{padding:9px!important}
 }
+
+/* New curriculum tools share the established classroom scale and compact settings rhythm. */
+#tt99-goodies-root .gd-wm-diagram{margin:0 auto;max-width:1000px}
+#tt99-goodies-root .gd-wm-diagram svg{max-height:none}
+#tt99-goodies-root .gd-wm-explanation{font-size:1.12rem;line-height:1.4}
+#tt99-goodies-root .gd-wm-actions .gd-btn{min-height:42px;font-size:1rem}
+#gd-stage:has(>.gd-fm-visual) .gd-fm-visual,#gd-stage:has(>.gd-st-diagram) .gd-st-diagram{flex:0 0 auto;min-width:0}
+#gd-stage:has(>.gd-fm-visual) .gd-row{flex-wrap:wrap}
+#tt99-goodies-root .gd-board-controls-proxy .gd-wm-toggle{min-height:34px;margin:0;padding:4px 0;font-size:13px}
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-field:has(> select + select){grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+#tt99-goodies-root .gd-board-controls-proxy .gd-panel-field:has(> select + select)>span{grid-column:1/-1}
