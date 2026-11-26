@@ -1144,7 +1144,21 @@ async function run(){
       assert(cap().task.type===type&&doc.querySelector('.gd-ag-lab-tools'),'New construction family mounts interactive lab: '+type);
       const pubDraft=P.createDocument();pubDraft.addCurrent(id,cap());const item=pubDraft.list()[0];
       assert(P.renderItem(item,false).textContent.includes('Draw AB')||P.renderItem(item,false).textContent.includes('draw AB'),'Printed construction asks pupils to draw full-size baseline');
-      assert(P.answerGraphic(item).querySelectorAll('line').length>2,'New construction has graphical key: '+type);
+      assert(P.answerGraphic(item).querySelector('[data-ag-point-label]')&&P.answerGraphic(item).getAttribute('data-ag-construction-key')==='1','New construction has graphical key: '+type);
+    }
+    {
+      const model=win.TT99Goodies.angles;
+      for(const type of model.labTypes){
+        const task=model.generate({type,enrichment:true}),item=P.record(id,'challenge',task);
+        const pupil=P.renderItem(item,false),key=P.answerGraphic(item);
+        assert(!pupil.querySelector('[data-ag-point-label]')&&!pupil.querySelector('[data-ag-construction-key]'),'Construction pupil sheet contains no solution: '+type);
+        assert(key.getAttribute('data-ag-construction-key')==='1'&&key.querySelector('[data-ag-point-label]'),'Every construction has compact graphical key: '+type);
+        assert(!key.querySelector('[data-ag-grid]'),'Answer annex omits working grid: '+type);
+        assert(P.answerNote(item).includes('Illustrative diagram'),'Answer note clarifies scale and valid alternatives: '+type);
+        if(type==='build-circle')assert(key.querySelector('[data-ag-radius-line]'),'Circle answer labels radius');
+        if(type==='build-asa')assert(key.querySelectorAll('[data-ag-angle-mark]').length>=2,'ASA answer marks both angles');
+        if(type==='build-midpoint'||type==='build-bisector')assert(key.querySelectorAll('[data-ag-midpoint-tick]').length===2,'Midpoint marks show equal halves: '+type);
+      }
     }
     doc.querySelector('[data-ag-workflow="build"]').click();await tick();
     const mode=doc.getElementById('ag-mode');mode.value='construct';mode.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
