@@ -445,7 +445,65 @@ function generate(s={},rng=Math.random){
    else state.traceNames.push(name)
  }
 
-const model={tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labLabel,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,locusInitial,locusProject,locusPoints,traceParts,traceAdd,traceToggle,shapeGeometry,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
+// Acyclic construction graph: each node depends only on earlier named points.
+ const CUSTOM_OPERATIONS={
+  free:{label:'Free point',refs:[],place:true},
+  onLine:{label:'Point on segment',refs:['Endpoint A','Endpoint B'],place:true},
+  onCircle:{label:'Point on circle',refs:['Centre','Radius point'],place:true},
+  midpoint:{label:'Midpoint',refs:['Point A','Point B']},
+  ratio:{label:'Divide a segment in a ratio',refs:['Endpoint A','Endpoint B'],values:[.2,.25,1/3,.4,.5,.6,2/3,.75,.8]},
+  foot:{label:'Perpendicular foot',refs:['Point P','Line A','Line B']},
+  reflection:{label:'Reflect point in line',refs:['Point P','Line A','Line B']},
+  parallel:{label:'Parallel direction point',refs:['Through P','Line A','Line B'],values:[1,2,3,4,5]},
+  perpendicular:{label:'Perpendicular direction point',refs:['Through P','Line A','Line B'],values:[1,2,3,4,5]},
+  angle:{label:'Fixed angle and length ratio',refs:['Vertex','Reference point'],values:[30,45,60,90,120,135,150,-30,-45,-60,-90]},
+  distance:{label:'Fixed distance from point',refs:['Centre','Direction point'],values:[1,2,3,4,5]},
+  lineIntersection:{label:'Intersection of two lines',refs:['Line 1 A','Line 1 B','Line 2 A','Line 2 B']},
+  lineCircle:{label:'Line–circle intersection',refs:['Line A','Line B','Centre','Radius point'],branches:true},
+  circleCircle:{label:'Circle–circle intersection',refs:['Centre 1','Radius point 1','Centre 2','Radius point 2'],branches:true},
+  tangentContact:{label:'Tangent contact from external point',refs:['External point','Centre','Radius point'],branches:true},
+  tangentDirection:{label:'Tangent direction at circle point',refs:['Centre','Contact point'],values:[1,2,3,4,5]},
+  segment:{label:'Join points (segment)',refs:['Point A','Point B'],object:true},
+  line:{label:'Draw straight line',refs:['Point A','Point B'],object:true},
+  circle:{label:'Draw circle',refs:['Centre','Radius point'],object:true}
+ };
+ function customInitial(){return {kind:'custom',nodes:[],objects:[],nextId:0,traceNames:[],traces:{},grid:true}}
+ function customName(i){let s='';for(i++;i>0;i=Math.floor((i-1)/26))s=String.fromCharCode(65+(i-1)%26)+s;return s}
+ function customLineCircle(a,b,o,r){const v=labSub(b,a),w=labSub(a,o),aa=labDot(v,v);if(aa<1e-10||r<1e-8)return [];const bb=2*labDot(v,w),cc=labDot(w,w)-r*r,disc=bb*bb-4*aa*cc;if(disc< -1e-7)return [];const h=Math.sqrt(Math.max(0,disc));return [labAt(a,v,(-bb+h)/(2*aa)),labAt(a,v,(-bb-h)/(2*aa))]}
+ function customResolve(st){
+   const p=Object.create(null),invalid=[];
+   const norm=v=>{const d=Math.hypot(...v);return d>1e-8?v.map(x=>x/d):null},rot=(v,t)=>[v[0]*Math.cos(t*D)+v[1]*Math.sin(t*D),-v[0]*Math.sin(t*D)+v[1]*Math.cos(t*D)],valid=q=>Array.isArray(q)&&q.length===2&&q.every(Number.isFinite);
+   for(const n of st.nodes||[]){
+     const spec=CUSTOM_OPERATIONS[n.op],refs=(n.refs||[]).map(id=>p[id]),[a,b,c,d]=refs;let q=null;
+     if(!spec||spec.object||refs.length!==spec.refs.length||refs.some(v=>!v)){invalid.push(n.id);continue}
+     const v=a&&b?labSub(b,a):null,u=v?norm(v):null,val=Number(n.value)||1,branch=n.branch===1?1:0;
+     if(n.op==='free')q=n.at;
+     else if(n.op==='onLine'&&u&&valid(n.at))q=labAt(a,v,locusClamp(labDot(labSub(n.at,a),v)/labDot(v,v),0,1));
+     else if(n.op==='onCircle'&&u&&valid(n.at))q=locusCircle(n.at,a,labDist(a,b),b);
+     else if(n.op==='midpoint')q=labAt(a,v,.5);
+     else if(n.op==='ratio')q=labAt(a,v,val);
+     else if((n.op==='foot'||n.op==='reflection')&&labDist(b,c)>1e-8){const f=locusLine(a,b,c);q=n.op==='foot'?f:labAt(a,labSub(f,a),2)}
+     else if(n.op==='parallel'||n.op==='perpendicular'){const dir=norm(labSub(c,b));if(dir)q=labAt(a,n.op==='parallel'?dir:rot(dir,90),40*val)}
+     else if(n.op==='angle'&&u)q=labAt(a,rot(v,val),1);
+     else if(n.op==='distance'&&u)q=labAt(a,u,40*val);
+     else if(n.op==='lineIntersection'&&u){const w=labSub(d,c),den=labCross(v,w);if(Math.abs(den)>1e-8)q=labAt(a,v,labCross(labSub(c,a),w)/den)}
+     else if(n.op==='lineCircle')q=customLineCircle(a,b,c,labDist(c,d))[branch];
+     else if(n.op==='circleCircle'&&labDist(a,b)>1e-8&&labDist(c,d)>1e-8)q=circleContacts(a,c,labDist(a,b),labDist(c,d))[branch];
+     else if(n.op==='tangentContact'&&labDist(b,c)>1e-8)q=tangentContacts(b,a,labDist(b,c))[branch];
+     else if(n.op==='tangentDirection'&&u)q=labAt(b,rot(u,90),40*val);
+     if(valid(q)&&q.every(x=>Math.abs(x)<1e6))p[n.id]=q.slice();else invalid.push(n.id);
+   }
+   return {points:p,invalid};
+ }
+ function customAppend(st,op,refs=[],options={}){
+   const spec=CUSTOM_OPERATIONS[op];if(!spec||refs.length!==spec.refs.length||refs.some(id=>!st.nodes.some(n=>n.id===id))||new Set(refs).size!==refs.length)throw Error('Choose distinct existing points for this relationship.');
+   if(spec.object){st.objects.push({op,refs:refs.slice()});return null}
+   if(st.nodes.length>=80)throw Error('This workspace supports up to 80 points.');
+   const id=customName(st.nextId++),node={id,op,refs:refs.slice()};if(spec.place){if(!Array.isArray(options.at)||!options.at.every(Number.isFinite))throw Error('Choose a location.');node.at=options.at.slice()}if(spec.values)node.value=spec.values.includes(Number(options.value))?Number(options.value):spec.values[0];if(spec.branches)node.branch=options.branch===1?1:0;
+   st.nodes.push(node);return id;
+ }
+ function customMove(st,id,p){const n=st.nodes.find(n=>n.id===id);if(!n||!CUSTOM_OPERATIONS[n.op]?.place)return false;const old=customResolve(st).points;n.at=p.slice();const next=customResolve(st).points;for(const name of st.traceNames||[]){if(old[name]&&next[name])traceAdd(st,name,next[name],old[name]);else if(st.traces[name]?.length&&st.traces[name].at(-1)!==null)st.traces[name].push(null)}return true}
+ const model={CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labLabel,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,locusInitial,locusProject,locusPoints,traceParts,traceAdd,traceToggle,shapeGeometry,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
 if(typeof module==='object'&&module.exports){module.exports=model;return}
 const G=root.TT99Goodies;if(!G)return;G.angles=model;
 const {q,qa,esc,field,btn,setPanels}=G,CK=G.challengeKit;
@@ -578,6 +636,18 @@ function diagram(d,teacher=false,options={}){
    text(400,402,'Scale: each grid square represents 1 cm',25);return svg
  }
 
+ if(mode==='loci'&&d.locusState?.kind==='custom'){
+   const st=d.locusState,{points}=customResolve(st),attrs={'data-ag-custom-object':'1'};
+   if(st.grid&&!options.paper)for(let x=40;x<800;x+=40){line([x,0],[x,440],'#e3ebe8',1);if(x<440)line([0,x],[800,x],'#e3ebe8',1)}
+   for(const object of st.objects||[]){const [a,b]=object.refs.map(id=>points[id]);if(!a||!b||labDist(a,b)<1e-8)continue;
+     if(object.op==='circle')add('circle',{cx:a[0],cy:a[1],r:labDist(a,b),fill:'none',stroke:teal,'stroke-width':2,...attrs});
+     else if(object.op==='line'){const v=labSub(b,a),u=v.map(n=>n/Math.hypot(...v));line(labAt(a,u,-2000),labAt(a,u,2000),teal,2,attrs)}
+     else line(a,b,teal,2.5,attrs);
+   }
+   for(const [name,trail] of Object.entries(st.traces||{}))for(const pts of traceParts(trail))add('polyline',{points:pts.map(p=>p.join(',')).join(' '),fill:'none',stroke:orange,'stroke-width':2,'data-ag-locus-trace':name});
+   for(const n of st.nodes||[]){const p=points[n.id];if(!p)continue;const movable=CUSTOM_OPERATIONS[n.op]?.place;if(st.traceNames?.includes(n.id)&&!options.paper)add('circle',{cx:p[0],cy:p[1],r:10,fill:'none',stroke:orange,'stroke-width':2});add('circle',{cx:p[0],cy:p[1],r:movable?5.5:4,fill:movable?teal:ink,'data-ag-custom-point':n.id,'data-ag-custom-movable':String(!!movable)});text(p[0]+12,p[1]-10,n.id,15,{'paint-order':'stroke',stroke:'#fff','stroke-width':3})}
+   return frame(0,0,800,440);
+ }
  if(mode==='loci'){
    const st=d.locusState||locusInitial(),preset=locusPreset(st.kind,st.params),points=locusPoints(st),P=points.P,showM=st.showMidpoint||st.traceNames?.includes('M')||st.traces?.M?.length,guideAttrs={fill:'none',stroke:'#83a99f','stroke-width':1.6,'stroke-dasharray':'6 5','data-ag-locus-guide':'1'};
    if(st.showLocus)for(const g of preset.guides){if(g.circle){const [cx,cy,r]=g.circle;add('circle',{cx,cy,r,...guideAttrs})}else if(g.ellipse){const [cx,cy,rx,ry]=g.ellipse;add('ellipse',{cx,cy,rx,ry,...guideAttrs})}else if(g.polyline)add('polyline',{points:g.polyline.map(p=>p.join(',')).join(' '),...guideAttrs});else line(...g.line,'#83a99f',1.6,guideAttrs)}
