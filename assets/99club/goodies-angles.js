@@ -379,7 +379,7 @@ function diagram(d,teacher=false,options={}){
    const r=238,start=rot,x=400,y=220;
    // A rotated semicircle occupies a different bounding rectangle. Include the full arc, rays, degree labels and touch handle, with generous edge clearance.
    const sweep=full?360:180,extent=Array.from({length:sweep+1},(_,i)=>polar(x,y,r+9,start+i));extent.push([x,y]);
-   const pad=26,minX=Math.min(...extent.map(p=>p[0]))-pad,maxX=Math.max(...extent.map(p=>p[0]))+pad,minY=Math.min(...extent.map(p=>p[1]))-pad,maxY=Math.max(...extent.map(p=>p[1]))+pad;
+   const pad=options.interactive?48:26,minX=Math.min(...extent.map(p=>p[0]))-pad,maxX=Math.max(...extent.map(p=>p[0]))+pad,minY=Math.min(...extent.map(p=>p[1]))-pad,maxY=Math.max(...extent.map(p=>p[1]))+pad;
    const targetH=pupilDraw&&!options.interactive?42:0;if(options.measureWorkspace)frame(110,-70,580,580);else frame(minX,minY,maxX-minX,maxY-minY+targetH);
    single(x,y,r,shown,start,teacher||explore?shown+'°':null,scale,blank||options.interactive,full);
    if(pupilDraw&&!options.interactive)text((minX+maxX)/2,maxY+26,'Target: '+a+'°',25);
@@ -393,11 +393,11 @@ function diagram(d,teacher=false,options={}){
      add('circle',{cx:x,cy:y,r:r+25,fill:'transparent','data-ag-angle-target':'1',style:'cursor:grab;touch-action:none'});
    }
    const named=[[polar(x,y,r+5,start),'B',start],[polar(x,y,r+5,start+shown),'C',start+shown]];
-   const vertex=angleVertexPlacement([x,y],start,shown);
+   const vertex=options.interactive&&!full?{p:polar(x,y,24,start+225),box:labelBox(polar(x,y,24,start+225),0,'A',13),external:false}:angleVertexPlacement([x,y],start,shown);
    if(vertex.external){const v=labSub(vertex.p,[x,y]),len=Math.hypot(...v);line(labAt([x,y],v,6/len),labAt([x,y],v,1-13/len),'#829793',1,{'stroke-dasharray':'3 4','data-ag-point-leader':'A'})}
    text(vertex.p[0],vertex.p[1],'A',13,{'dominant-baseline':'central','data-ag-point-label':'A','paint-order':'stroke',stroke:'#fff','stroke-width':3});
    if(!options.measureWorkspace&&!full){const corners=labelCorners(vertex.box),lx=Math.min(minX,...corners.map(q=>q[0]-3)),ly=Math.min(minY,...corners.map(q=>q[1]-3)),rx=Math.max(maxX,...corners.map(q=>q[0]+3)),by=Math.max(maxY+targetH,...corners.map(q=>q[1]+3));frame(lx,ly,rx-lx,by-ly)}
-   for(const [p,name,dir] of named.slice(0,blank||shown===0?1:2)){const q=polar(...p,13,dir);text(q[0],q[1]+4,name,13,{'data-ag-point-label':name,'paint-order':'stroke',stroke:'#fff','stroke-width':3})}
+   for(const [p,name,dir] of named.slice(0,blank||shown===0?1:2)){const q=polar(...p,options.interactive&&name==='C'?30:13,dir);text(q[0],q[1],name,13,{'data-ag-point-label':name,'paint-order':'stroke',stroke:'#fff','stroke-width':3})}
    return svg
  }
  if(mode==='facts'){
