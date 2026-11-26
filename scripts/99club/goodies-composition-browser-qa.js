@@ -1170,6 +1170,29 @@ async function run(){
     const next=[...doc.querySelectorAll('.gd-ag-guide-example button')].find(b=>b.textContent==='Next step');next.click();await tick();
     assert(doc.querySelector('.gd-ag-guide-example').textContent.includes('Step 2 / 3')&&cap().demo.labDrawing.points.length===0,'Demo advances without altering free drawing');
     doc.querySelector('[data-ag-tool="help"]').click();
+    {
+      const model=win.TT99Goodies.angles,methods=await model.loadConstructionLibrary();
+      assert(methods.length>=12,'Construction library has at least twelve methods');
+      for(const m of methods){
+        assert(m.objective&&m.steps.length===m.graphics.frames.length&&m.checks.length,'Method includes problem, matching written and graphical steps and checks: '+m.id);
+        for(let i=-1;i<m.steps.length;i++){const svg=model.constructionMethodGraphic(m,i);assert(svg.querySelectorAll('[data-ag-method-primitive]').length===model.constructionFrame(m,i).length&&!svg.outerHTML.includes('NaN'),'Each construction step renders exact vector primitives: '+m.id)}
+      }
+      const originalDrawing=JSON.stringify(cap().demo.labDrawing);
+      const libButton=doc.querySelector('[data-ag-tool="construction-library"]');assert(libButton,'Free construction exposes method library');libButton.click();await tick(50);
+      const panel=doc.querySelector('[data-ag-method-panel]');assert(panel&&!panel.hidden&&panel.parentElement===doc.body,'Library floats independently outside widget');
+      const search=panel.querySelector('[data-ag-method-search]');search.value='tangent';search.dispatchEvent(new win.Event('input',{bubbles:true}));assert(panel.querySelectorAll('[data-ag-method-id]').length===2,'Search filters the methods');
+      panel.querySelector('[data-ag-method-id="tangents-external-point"]').click();
+      const act=id=>panel.querySelector('[data-ag-method-action="'+id+'"]');
+      assert(!panel.querySelector('[data-ag-method-graphic]')&&panel.querySelector('[data-ag-method-step]').dataset.agMethodStep==='-1','Text-first problem has no graphical spoilers');
+      act('next').click();act('next').click();assert(panel.querySelector('[data-ag-method-step]').dataset.agMethodStep==='1','Written navigation advances step');
+      act('graphics').click();assert(panel.querySelector('[data-ag-method-graphic]')&&panel.querySelector('[data-ag-method-step]').dataset.agMethodStep==='1','Graphical guide synchronises to current step');
+      act('next').click();assert(panel.querySelector('[data-ag-method-graphic]').querySelectorAll('circle[data-ag-method-primitive="circle"]').length===2,'Auxiliary circle appears at correct step');
+      act('instructions').click();assert(!panel.querySelector('[data-ag-method-graphic]')&&panel.querySelector('[data-ag-method-step]').dataset.agMethodStep==='2','Returning to instructions preserves progress');
+      act('verify').click();assert(panel.textContent.includes("Thales"),'Optional verification explains geometry');
+      act('restart').click();assert(panel.querySelector('[data-ag-method-step]').dataset.agMethodStep==='-1','Restart returns to problem statement');
+      assert(JSON.stringify(cap().demo.labDrawing)===originalDrawing,'Guide never alters the actual drawing');
+      act('close').click();assert(panel.hidden,'Guide closes independently');
+    }
     const work=doc.querySelector('.gd-ag-lab-canvas'),beforeView=work.viewBox.baseVal.height,beforeScale=Math.hypot(work.getScreenCTM().a,work.getScreenCTM().b);
     doc.querySelector('[data-ag-tool="expand"]').click();await tick();
     const wsField=id=>doc.querySelector('[data-ag-workspace="'+id+'"]');
