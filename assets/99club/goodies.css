@@ -2404,3 +2404,17 @@ html:not(.gd-embed-page) #tt99-goodies-root #gd-controls .gd-mc-five{min-height:
 #tt99-goodies-root .gd-ag-challenge-options button,#tt99-goodies-root .gd-ag-challenge-catalogue>button{min-height:44px!important;min-width:0;width:100%;white-space:normal!important;text-align:left;line-height:1.25;padding:7px 9px!important;margin:0!important}
 #tt99-goodies-root .gd-ag-challenge-catalogue>button{text-align:center}
 #tt99-goodies-root .gd-ag-challenge-catalogue>.gd-help{margin:2px 0 4px}
+
+/* Construction lab: restrained, aligned instrument and contextual controls. */
+#tt99-goodies-root .gd-ag-lab-toolbar{gap:4px;padding:5px 7px;margin-bottom:6px;border-radius:8px;background:#f8fbfa}
+#tt99-goodies-root .gd-ag-lab-tools{gap:4px}
+#tt99-goodies-root .gd-ag-lab-tools .gd-ag-lab-button{min-width:54px;min-height:47px!important;padding:4px 6px!important;font-size:11px!important;gap:2px}
+#tt99-goodies-root .gd-ag-lab-tools .gd-ag-lab-button svg{width:22px!important;height:22px!important}
+#tt99-goodies-root .gd-ag-lab-actions,#tt99-goodies-root .gd-ag-lab-options{gap:4px}
+#tt99-goodies-root .gd-ag-lab-actions .gd-ag-lab-button,#tt99-goodies-root .gd-ag-lab-option{min-height:33px!important;height:33px;padding:3px 6px!important;font-size:11px!important}
+#tt99-goodies-root .gd-ag-lab-helpers{padding-top:4px;gap:5px;justify-content:center}
+#tt99-goodies-root .gd-ag-lab-helpers[hidden],#tt99-goodies-root .gd-ag-lab-helpers [hidden],#tt99-goodies-root .gd-ag-sheet-settings[hidden]{display:none!important}
+#tt99-goodies-root .gd-ag-lab-helpers .gd-btn:not(.gd-ag-lab-button),#tt99-goodies-root .gd-ag-lab-helpers .gd-select,#tt99-goodies-root .gd-ag-sheet-settings .gd-select{min-height:32px!important;height:32px!important;margin:0!important;padding:4px 8px!important;font:500 11px/1.2 Arial,sans-serif!important;border-radius:6px!important;box-sizing:border-box}
+#tt99-goodies-root .gd-ag-sheet-settings{background:#eff6f3;border-radius:6px;padding:7px!important}
+#tt99-goodies-root .gd-ag-sheet-settings label{white-space:nowrap;color:#385c54}
+#tt99-goodies-root .gd-ag-sheet-settings [data-ag-workspace="apply"]{min-height:32px!important;height:32px!important;margin:0!important;padding:3px 12px!important;font-size:12px!important}

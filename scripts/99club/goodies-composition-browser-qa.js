@@ -1105,7 +1105,7 @@ async function run(){
     doc.querySelector('[data-ag-workflow="build"]').click();await tick();
     const mode=doc.getElementById('ag-mode');mode.value='construct';mode.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
     const freeSvg=doc.querySelector('.gd-ag-lab-canvas');
-    assert(freeSvg&&freeSvg.getAttribute('viewBox')==='0 0 1000 640','Free construction has expanded blank canvas');
+    assert(freeSvg&&freeSvg.getAttribute('viewBox')==='0 0 1188 840','Free construction defaults to A4 landscape');
     assert(cap().demo.labDrawing.points.length===0,'Free canvas has no compulsory baseline');
     doc.querySelector('[data-ag-tool="help"]').click();await tick();
     assert(doc.querySelector('.gd-ag-guide-example svg'),'Free mode provides worked instrument demonstration');
@@ -1116,24 +1116,23 @@ async function run(){
     doc.querySelector('[data-ag-tool="expand"]').click();await tick();
     const wsField=id=>doc.querySelector('[data-ag-workspace="'+id+'"]');
     wsField('format').value='A4';wsField('format').dispatchEvent(new win.Event('change',{bubbles:true}));wsField('orientation').value='landscape';wsField('grid').value='5';wsField('apply').click();await tick();
-    assert(work.viewBox.baseVal.width===1188&&work.viewBox.baseVal.height===840&&Math.abs(Math.hypot(work.getScreenCTM().a,work.getScreenCTM().b)-beforeScale)<.02,'A4 workspace expands without zooming geometry');
+    assert(work.viewBox.baseVal.width===1188&&work.viewBox.baseVal.height===840&&work.getBoundingClientRect().width<=work.parentElement.clientWidth,'A4 workspace fits visible sheet');
     work.parentElement.dispatchEvent(new win.CustomEvent('tt99-viewport-resize',{detail:{h:1000}}));await tick();
     assert(work.viewBox.baseVal.width===1188&&work.viewBox.baseVal.height===840&&cap().demo.labDrawing.workspace.format==='A4','Viewport resize preserves paper dimensions and preset');
     const verticalGrid=[...work.querySelectorAll('[data-ag-grid]')].filter(l=>l.getAttribute('x1')===l.getAttribute('x2'));
     assert(Number(verticalGrid[1].getAttribute('x1'))-Number(verticalGrid[0].getAttribute('x1'))===20,'Five millimetre grid is exactly 20 drawing units');
-    wsField('format').value='A5';wsField('apply').click();await tick();
+    doc.querySelector('[data-ag-tool="expand"]').click();wsField('format').value='A5';wsField('apply').click();await tick();
     assert(work.viewBox.baseVal.width===840&&work.viewBox.baseVal.height===592,'A5 format can shrink the empty sheet below the old minimum');
-    wsField('format').value='A4';wsField('apply').click();await tick();
-    doc.querySelector('[data-ag-tool="expand"]').click();
+    doc.querySelector('[data-ag-tool="expand"]').click();wsField('format').value='A4';wsField('apply').click();await tick();
     doc.querySelector('[data-ag-tool="point"]').click();
     const tapWork=(p)=>{const v=new win.DOMPoint(...p).matrixTransform(work.getScreenCTM());work.dispatchEvent(new win.PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerType:'touch',button:0,clientX:v.x,clientY:v.y}))};
     for(const p of [[150,150],[450,150],[300,350]])tapWork(p);
-    assert(doc.querySelector('[data-ag-tool="move"]').hidden&&!doc.querySelector('[data-ag-option="measure"]').checked,'Free construction has fixed marks and optional, initially disabled measurement annotations');
+    assert(doc.querySelector('[data-ag-tool="move"]').hidden&&doc.querySelector('[data-ag-option="measure"]').checked,'Free construction defaults to fixed marks with measurements enabled');
     const beforeInk=JSON.stringify(cap().demo.labDrawing.points);
     doc.querySelector('[data-ag-tool="expand"]').click();wsField('format').value='custom';wsField('format').dispatchEvent(new win.Event('change',{bubbles:true}));wsField('width').value='50';wsField('height').value='50';wsField('apply').click();await tick();
     assert(work.viewBox.baseVal.width===1188&&JSON.stringify(cap().demo.labDrawing.points)===beforeInk,'Smaller sheet cannot clip existing drawing');
     wsField('format').value='A4';wsField('grid').value='0';wsField('apply').click();await tick();assert(!work.querySelector('[data-ag-grid]'),'Plain paper removes the grid');
-    doc.querySelector('[data-ag-tool="expand"]').click();
+    assert(wsField('format').closest('.gd-ag-sheet-settings').hidden,'Successful paper settings close automatically');
 
     for(const [type,p] of [['pointerdown',[150,150]],['pointermove',[220,210]],['pointerup',[220,210]]]){const v=new win.DOMPoint(...p).matrixTransform(work.getScreenCTM());work.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerType:'touch',pointerId:31,button:0,buttons:type==='pointerup'?0:1,clientX:v.x,clientY:v.y}))}
     assert(JSON.stringify(cap().demo.labDrawing.points)===beforeInk,'Dragging a drawn point does not move ink or create a new point');
@@ -1147,9 +1146,11 @@ async function run(){
     doc.querySelector('[data-ag-tool="segment"]').click();
     const lineTap=p=>{const v=new win.DOMPoint(...p).matrixTransform(work.getScreenCTM());for(const type of ['pointerdown','pointerup'])work.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:21,pointerType:'touch',button:0,clientX:v.x,clientY:v.y}))};
     lineTap([150,150]);lineTap([300,350]);
-    assert(!work.querySelector('[data-ag-dimension]'),'Free construction defaults to reading actual instruments');
-    doc.querySelector('[data-ag-option="measure"]').click();await tick();
+    assert(work.querySelector('[data-ag-dimension]'),'Free construction defaults to measurement annotations');
+    doc.querySelector('[data-ag-option="measure"]').click();await tick();assert(!work.querySelector('[data-ag-dimension]'),'Measurements can be switched off');doc.querySelector('[data-ag-option="measure"]').click();await tick();
     const dim=work.querySelector('[data-ag-dimension]');assert(dim&&Math.abs(+dim.getAttribute('transform').slice(7).split(' ')[0]-Math.atan2(200,150)*180/Math.PI)<.1,'Length label rotates parallel to its sloping segment');
+    doc.querySelector('[data-ag-tool="select"]').click();tapWork([225,250]);const mark=doc.querySelector('[data-ag-notation]');mark.value='equal2';mark.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();assert(work.querySelectorAll('[data-ag-notation="equal2"]').length===2,'Double equality ticks render on selected segment');const markDraft=P.createDocument();markDraft.addCurrent(id,cap());assert(P.renderItem(markDraft.list()[0],false).querySelectorAll('[data-ag-notation="equal2"]').length===2,'Manual marks survive publishing');
+    {const regionModel=win.TT99Goodies.angles,curves={given:false,points:[[250,250],[350,250]],names:['A','B'],segments:[],rays:[],circles:[{i:0,r:100},{i:1,r:100}],regions:[]};const lens=regionModel.labFaceAt(curves,[300,250]);assert(lens&&lens.path.includes('A ')&&regionModel.labFaces(curves).length===3,'Two overlapping circles form three bounded curved faces');assert(!regionModel.labFaceAt(curves,[50,50]),'Exterior remains unshaded');curves.regions.push({seed:[300,250],faceKey:lens.key,colour:0});assert(regionModel.labRegionShapes(curves)[0]?.path.includes('A '),'Curved region retains vector arcs');}
     // A constructed angle must have permanent marks, even with measurements disabled.
     doc.querySelector('[data-ag-option="measure"]').click();
     doc.querySelector('[data-ag-tool="protractor"]').click();
