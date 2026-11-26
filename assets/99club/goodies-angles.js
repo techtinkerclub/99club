@@ -379,7 +379,7 @@ function diagram(d,teacher=false,options={}){
    const r=238,start=rot,x=400,y=220;
    // A rotated semicircle occupies a different bounding rectangle. Include the full arc, rays, degree labels and touch handle, with generous edge clearance.
    const sweep=full?360:180,extent=Array.from({length:sweep+1},(_,i)=>polar(x,y,r+9,start+i));extent.push([x,y]);
-   const pad=options.interactive?48:26,minX=Math.min(...extent.map(p=>p[0]))-pad,maxX=Math.max(...extent.map(p=>p[0]))+pad,minY=Math.min(...extent.map(p=>p[1]))-pad,maxY=Math.max(...extent.map(p=>p[1]))+pad;
+   const pad=26,minX=Math.min(...extent.map(p=>p[0]))-pad,maxX=Math.max(...extent.map(p=>p[0]))+pad,minY=Math.min(...extent.map(p=>p[1]))-pad,maxY=Math.max(...extent.map(p=>p[1]))+pad;
    const targetH=pupilDraw&&!options.interactive?42:0;if(options.measureWorkspace)frame(110,-70,580,580);else frame(minX,minY,maxX-minX,maxY-minY+targetH);
    single(x,y,r,shown,start,teacher||explore?shown+'°':null,scale,blank||options.interactive,full);
    if(pupilDraw&&!options.interactive)text((minX+maxX)/2,maxY+26,'Target: '+a+'°',25);
@@ -397,7 +397,7 @@ function diagram(d,teacher=false,options={}){
    if(vertex.external){const v=labSub(vertex.p,[x,y]),len=Math.hypot(...v);line(labAt([x,y],v,6/len),labAt([x,y],v,1-13/len),'#829793',1,{'stroke-dasharray':'3 4','data-ag-point-leader':'A'})}
    text(vertex.p[0],vertex.p[1],'A',13,{'dominant-baseline':'central','data-ag-point-label':'A','paint-order':'stroke',stroke:'#fff','stroke-width':3});
    if(!options.measureWorkspace&&!full){const corners=labelCorners(vertex.box),lx=Math.min(minX,...corners.map(q=>q[0]-3)),ly=Math.min(minY,...corners.map(q=>q[1]-3)),rx=Math.max(maxX,...corners.map(q=>q[0]+3)),by=Math.max(maxY+targetH,...corners.map(q=>q[1]+3));frame(lx,ly,rx-lx,by-ly)}
-   for(const [p,name,dir] of named.slice(0,blank||shown===0?1:2)){const q=polar(...p,options.interactive&&name==='C'?30:13,dir);text(q[0],q[1],name,13,{'data-ag-point-label':name,'paint-order':'stroke',stroke:'#fff','stroke-width':3})}
+   for(const [p,name,dir] of named.slice(0,blank||shown===0?1:2)){const q=options.interactive&&name==='C'?polar(x,y,r+9+21,dir):polar(...p,13,dir);text(q[0],q[1],name,13,{'data-ag-point-label':name,'paint-order':'stroke',stroke:'#fff','stroke-width':3})}
    return svg
  }
  if(mode==='facts'){
@@ -580,7 +580,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
   const helpers=document.createElement('div');helpers.className='gd-ag-lab-helpers';
   const actions=document.createElement('div');actions.className='gd-ag-lab-actions';actions.setAttribute('role','group');actions.setAttribute('aria-label','Drawing actions');
   const options=document.createElement('div');options.className='gd-ag-lab-options';options.setAttribute('role','group');options.setAttribute('aria-label','Drawing assistance');
-  helpers.append(actions,options);toolbar.append(instruments,helpers);
+  helpers.append(actions,options);toolbar.append(instruments,helpers);helpers.style.justifyContent='space-between';helpers.style.columnGap='8px';
   const svg=document.createElementNS(N,'svg');svg.setAttribute('viewBox','0 0 '+ww+' '+hh);svg.classList.add('gd-ag-lab-canvas');svg.style.cssText='width:100%;max-height:'+(free?'820':'620')+'px;display:block;touch-action:none;user-select:none;background:white;border:1px solid #cbded8;border-radius:8px';
   const hint=document.createElement('p');hint.className='gd-help';hint.dataset.agPaperConstruction='1';hint.style.cssText='text-align:center;min-height:24px;margin:5px 0';
   const guide=document.createElement('section');guide.className='gd-ag-lab-guide';guide.hidden=true;
@@ -628,9 +628,9 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    const l=document.createElement('label');l.className='gd-ag-lab-option';const input=document.createElement('input');input.type='checkbox';input.dataset.agOption=id;input.checked=get();input.onchange=()=>{set(input.checked);paint()};const t=document.createElement('span');t.textContent=label;l.append(input,icon(id),t);options.append(l);
   }
   const styleBar=document.createElement('div');styleBar.className='gd-ag-lab-helpers';toolbar.append(styleBar);
-  const styleText=document.createElement('span');styleBar.append(styleText);
+  const styleText=document.createElement('span');styleText.style.font='600 12px Arial,sans-serif';styleBar.append(styleText);
   const styleButtons=[false,true].map(value=>{const b=document.createElement('button');b.type='button';b.className='gd-btn';b.textContent=value?'Construction':'Normal';b.dataset.agStyle=String(value);b.onclick=()=>{if(!selection)return;const {kind,index}=selection,obj=st[kind][index];if(!obj)return;save();if(kind==='segments'){st.segmentStyles||={};st.segmentStyles[labStyleKey(st,...obj)]=value}else obj.construction=value;changed()};styleBar.append(b);return b});
-  const visibility=document.createElement('label');const visibleInput=document.createElement('input');visibleInput.type='checkbox';visibleInput.checked=st.showConstruction!==false;visibleInput.dataset.agOption='construction';visibleInput.onchange=()=>{save();st.showConstruction=visibleInput.checked;selection=null;changed()};visibility.append(visibleInput,' Construction lines');if(free)options.append(visibility);
+  const visibility=document.createElement('label');visibility.className='gd-ag-lab-option';const visibleInput=document.createElement('input');visibleInput.type='checkbox';visibleInput.checked=st.showConstruction!==false;visibleInput.dataset.agOption='construction';visibleInput.onchange=()=>{save();st.showConstruction=visibleInput.checked;selection=null;changed()};const visibilityText=document.createElement('span');visibilityText.textContent='Construction lines';visibility.append(visibleInput,visibilityText);if(free)options.append(visibility);
   const regionBar=document.createElement('div');regionBar.className='gd-ag-lab-helpers';regionBar.hidden=true;toolbar.append(regionBar);
   const colourButtons=REGION_COLOURS.map((c,i)=>{const b=document.createElement('button');b.type='button';b.className='gd-btn';b.style.cssText='width:34px;min-height:36px;background:'+c+';border:2px solid white';b.setAttribute('aria-label',['Green','Blue','Gold','Purple','Coral'][i]+' region');b.onclick=()=>{regionColour=i;paint()};regionBar.append(b);return b});
   const regionAction=(label,fn)=>{const b=document.createElement('button');b.type='button';b.className='gd-btn';b.textContent=label;b.onclick=fn;regionBar.append(b);return b};
@@ -856,7 +856,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
   const bar=document.createElement('div');bar.className='gd-ag-inspect-tools';
   const message=document.createElement('span');message.className='gd-ag-inspect-message';message.setAttribute('role','status');
   const layer=document.createElementNS(N,'g');layer.setAttribute('data-ag-measure-overlay','1');layer.setAttribute('pointer-events','none');svg.append(layer);
-  function button(id,label,fn){const b=document.createElement('button');b.type='button';b.className='gd-btn gd-ag-inspect-btn';b.dataset.agMeasure=id;b.textContent=label;b.onclick=fn;bar.append(b);return b}
+  function button(id,label,fn){const b=document.createElement('button');b.type='button';b.className='gd-btn gd-ag-inspect-btn';b.dataset.agMeasure=id;const glyphs={show:'<path d="M2 17a10 10 0 0 1 20 0Z M12 7v4M5 10l3 3M19 10l-3 3"/>',format:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3v3M12 18v3"/>',flip:'<path d="M3 18l7-12v12ZM21 18L14 6v12ZM12 3v2m0 4v2m0 4v2m0 4v1"/>',left:'<path d="M8 5L3 10l5 5M3 10h11a6 6 0 0 1 0 12"/>',right:'<path d="m16 5 5 5-5 5m5-5H10a6 6 0 0 0 0 12"/>',reset:'<path d="M3 11a9 9 0 1 1 2.5 7M3 4v7h7"/>'};b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+glyphs[id]+'</svg><span></span>';b.querySelector('span').textContent=label;b.onclick=fn;bar.append(b);return b}
   const show=button('show','Protractor',()=>{active=!active;if(!active){centre=null;aligned=false;preview=null}paint()});
   const format=button('format','360° protractor',()=>{full=!full;paint()});
   const flip=button('flip','Flip',()=>{direction*=-1;paint()});
@@ -873,7 +873,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    layer.replaceChildren();show.setAttribute('aria-pressed',String(active));show.classList.toggle('gd-btn--primary',active);
    for(const b of [format,flip,left,right,reset])b.hidden=!active;
    for(const b of [flip,left,right])b.disabled=!centre;
-   format.textContent=full?'180° protractor':'360° protractor';flip.hidden=!active||full;
+   format.querySelector('span').textContent=full?'180° protractor':'360° protractor';flip.hidden=!active||full;
    svg.style.touchAction=active?'none':'auto';
    message.textContent=!active?'Select the protractor when you are ready to measure.':!centre?'Tap the angle vertex to position the centre.':!aligned?'Tap or slide along an arm to align the zero line.':'Read the correct scale. Drag a graduation to realign, or drag the centre to reposition.';
    if(!active)return;
