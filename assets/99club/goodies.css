@@ -2263,3 +2263,19 @@ html:not(.gd-embed-page) #tt99-goodies-root #gd-controls .gd-mc-five{min-height:
 #tt99-goodies-root .gd-board-controls-proxy .gd-wm-toggle{min-height:34px;margin:0;padding:4px 0;font-size:13px}
 #tt99-goodies-root .gd-board-controls-proxy .gd-panel-field:has(> select + select){grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
 #tt99-goodies-root .gd-board-controls-proxy .gd-panel-field:has(> select + select)>span{grid-column:1/-1}
+
+/* Shared mode selector: one compact, native touch-friendly control in the object chrome. */
+.gd-board-mode-picker{display:none;position:absolute;left:36px;bottom:calc(100% + 5px);z-index:21;max-width:calc(54% - 36px);height:28px;align-items:center;background:rgba(255,255,255,.97);border:1px solid #c5d9d4;border-radius:7px;box-shadow:0 2px 8px rgba(34,62,67,.07);color:#285c55}
+.gd-board-object.is-selected>.gd-board-mode-picker:not([hidden]){display:flex}
+.gd-board-object.has-context-menu>.gd-board-mode-picker{display:none!important}
+#tt99-goodies-root .gd-board-mode-picker select{appearance:none;-webkit-appearance:none;width:100%;min-width:0;height:100%;padding:2px 20px 2px 8px;border:0;background:transparent;color:inherit;font:600 12px/1.2 Arial,sans-serif;white-space:nowrap;text-overflow:ellipsis;cursor:pointer;outline-offset:2px}
+.gd-board-mode-picker>span{position:absolute;right:6px;pointer-events:none;font-size:14px}
+.gd-board-object.has-mode-picker>.gd-board-quick-actions{max-width:46%}
+.gd-board-object.has-mode-picker>.gd-board-move-handle{bottom:calc(100% + 8px);top:auto}
+.gd-frame-mode-active .gd-ab-device-switcher{display:none!important}
+#tt99-goodies-root .gd-mode-hint{flex:0 0 auto;width:100%;margin:5px auto 0;padding:4px 8px;color:#48676a;text-align:center;font:500 14px/1.4 Arial,sans-serif;box-sizing:border-box}
+@media(max-width:520px){
+ .gd-board-mode-picker{left:28px;max-width:calc(58% - 28px);height:30px}
+ .gd-board-object.has-mode-picker>.gd-board-quick-actions{max-width:42%}
+ #tt99-goodies-root .gd-board-mode-picker select{font-size:11px;padding-left:5px}
+}
