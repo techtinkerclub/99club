@@ -1251,6 +1251,25 @@ async function run(){
     const preset=doc.querySelector('[data-ag-locus-preset]');preset.value='bisector';preset.dispatchEvent(new win.Event('change',{bubbles:true}));
     locusTap('pointerdown',[400,100]);locusTap('pointermove',[630,320]);locusTap('pointerup',[630,320]);
     assert(Math.abs(cap().demo.locusState.p[0]-400)<1e-7,'Equidistant point moves along its perpendicular bisector');
+    {
+      const model=win.TT99Goodies.angles,dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]),near=(a,b)=>Math.abs(a-b)<1e-6;
+      for(const kind of Object.keys(model.LOCUS_PRESETS)){
+        const state=model.locusInitial(kind);preset.value=kind;preset.dispatchEvent(new win.Event('change',{bubbles:true}));
+        assert(doc.querySelector('[data-ag-locus-point="P"]'),'Locus preset mounts: '+kind);
+        doc.querySelector('[data-ag-locus-action="guide"]').click();assert(doc.querySelector('[data-ag-locus-guide]'),'Locus reveal renders: '+kind);
+        for(let x=100;x<=700;x+=50)for(let y=50;y<=400;y+=50){
+          state.p=model.locusProject(kind,[x,y],state.p);const p=model.locusPoints(state);
+          assert(Object.values(p).every(q=>q.every(Number.isFinite)),'Finite dependent geometry: '+kind);
+          if(kind==='circle')assert(near(dist(p.P,p.O),140),'Constant circle radius');
+          if(kind==='bisector')assert(near(dist(p.P,p.A),dist(p.P,p.B)),'Equal point distances');
+          if(kind==='parallel')assert(near(dist(p.P,p.F),120),'Fixed perpendicular distance');
+          if(kind==='angleBisector')assert(near(dist(p.P,p.F),dist(p.P,p.G)),'Equal perpendicular distances');
+          if(kind==='ellipse')assert(near(dist(p.P,p.A)+dist(p.P,p.B),400),'Constant ellipse focal sum');
+          if(kind==='fixedAngle')assert(Math.abs((p.A[0]-p.P[0])*(p.B[0]-p.P[0])+(p.A[1]-p.P[1])*(p.B[1]-p.P[1]))<1e-6,'Right angle remains invariant');
+          if(kind==='reflection')assert(near(p.P[0]+p.Q[0],800)&&near(p.P[1],p.Q[1]),'Reflection preserves symmetry');
+        }
+      }
+    }
     const polygonMode=doc.getElementById('ag-mode');polygonMode.value='polygon';polygonMode.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
     const chooseShape=doc.getElementById('ag-shape-view');chooseShape.value='rectangle';chooseShape.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
     doc.querySelector('[data-ag-action="diagonal"]').click();await tick();
