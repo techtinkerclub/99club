@@ -3722,7 +3722,7 @@ if(mode==='prepare'){
     assert([...document.querySelectorAll('.gd-fdp-value strong')].every(x=>x.textContent.trim()==='?'),'Bound custom measurement answer hides all equivalent readouts');
     const liveBefore=document.getElementById('me-custom-live-answer').textContent.trim();
     marker=document.getElementById('me-marker');
-    marker.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
+    marker.dispatchEvent(new KeyboardEvent('keydown',{key:Number(marker.getAttribute('aria-valuenow'))>=Number(marker.getAttribute('aria-valuemax'))?'ArrowLeft':'ArrowRight',bubbles:true}));
     const liveAfter=document.getElementById('me-custom-live-answer').textContent.trim();
     assert(liveAfter!==liveBefore,'Measurement live custom answer updates when the marker moves');
 
