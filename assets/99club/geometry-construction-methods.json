@@ -6949,6 +6949,81 @@
           }
         ]
       }
+    },
+    {
+      "id": "circle-given-radius",
+      "title": "Construct a circle of a given radius",
+      "category": "Circles",
+      "given": [
+        "centre A",
+        "specified radius"
+      ],
+      "instruments": [
+        "compass",
+        "graduated ruler"
+      ],
+      "objective": "Draw a circle centred at A with the given radius.",
+      "steps": [
+        "Use the ruler to set the compass opening to the specified radius.",
+        "Place the compass point on A. Rotate the pencil through one full turn without changing the opening."
+      ],
+      "why": "Every point on the circle is the same distance from A.",
+      "checks": [
+        "Centre is A",
+        "Radius matches the given length"
+      ],
+      "conditions": "The radius must be positive.",
+      "prerequisites": [],
+      "graphics": {
+        "viewBox": [
+          0,
+          0,
+          400,
+          280
+        ],
+        "initial": [
+          {
+            "kind": "point",
+            "at": [
+              200,
+              140
+            ],
+            "label": "A",
+            "style": "given"
+          }
+        ],
+        "frames": [
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  200,
+                  140
+                ],
+                "b": [
+                  290,
+                  140
+                ],
+                "style": "construction"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "circle",
+                "center": [
+                  200,
+                  140
+                ],
+                "radius": 90,
+                "style": "result"
+              }
+            ]
+          }
+        ]
+      }
     }
   ],
   "presentation": {
