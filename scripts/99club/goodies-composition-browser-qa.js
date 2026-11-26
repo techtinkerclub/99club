@@ -1342,6 +1342,34 @@ async function run(){
         const circleDraft=P.createDocument();circleDraft.addCurrent(id,cap());assert(P.renderItem(circleDraft.list()[0],false).querySelector('[data-ag-constraint-circle]'),'Circle relationship publishes as vector graphic: '+kind);
       }
     }
+    {
+      const model=win.TT99Goodies.angles,st=model.customInitial(),dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]),near=(a,b)=>Math.abs(a-b)<1e-6,dot=(a,b,c)=>(a[0]-b[0])*(c[0]-b[0])+(a[1]-b[1])*(c[1]-b[1]);
+      const O=model.customAppend(st,'free',[],{at:[350,220]}),R=model.customAppend(st,'free',[],{at:[450,220]}),P0=model.customAppend(st,'onCircle',[O,R],{at:[350,120]}),Q=model.customAppend(st,'tangentDirection',[O,P0],{value:2}),M=model.customAppend(st,'midpoint',[P0,Q]),N=model.customAppend(st,'ratio',[P0,Q],{value:.25}),E=model.customAppend(st,'free',[],{at:[600,220]}),T=model.customAppend(st,'tangentContact',[E,O,R],{branch:0}),U=model.customAppend(st,'tangentContact',[E,O,R],{branch:1}),F=model.customAppend(st,'foot',[E,O,R]),S=model.customAppend(st,'reflection',[P0,O,R]),V=model.customAppend(st,'parallel',[P0,O,R],{value:2}),W=model.customAppend(st,'perpendicular',[P0,O,R],{value:2}),K=model.customAppend(st,'angle',[O,R],{value:60}),H=model.customAppend(st,'distance',[O,R],{value:2}),I=model.customAppend(st,'lineIntersection',[P0,Q,O,E]);
+      model.customAppend(st,'circle',[O,R]);model.customAppend(st,'line',[P0,Q]);model.customAppend(st,'segment',[E,T]);model.customAppend(st,'segment',[E,U]);model.traceToggle(st,M);
+      for(let theta=0;theta<360;theta+=5){
+        model.customMove(st,P0,[350+110*Math.cos(theta*Math.PI/180),220+110*Math.sin(theta*Math.PI/180)]);
+        const {points:p}=model.customResolve(st);
+        assert(near(dist(p[O],p[P0]),dist(p[O],p[R]))&&near(dot(p[O],p[P0],p[Q]),0),'Custom compound tangent stays exact');
+        assert(near(dist(p[M],p[P0]),dist(p[M],p[Q]))&&near(dist(p[N],p[P0]),.25*dist(p[P0],p[Q])),'Midpoint and ratio follow tangent');
+        assert(near(dist(p[E],p[T]),dist(p[E],p[U]))&&near(dot(p[O],p[T],p[E]),0),'External tangents valid');
+        assert(near(p[F][1],220)&&near(p[S][1]+p[P0][1],440),'Foot and reflection remain valid');
+        assert(near(p[V][1],p[P0][1])&&near(p[W][0],p[P0][0]),'Parallel and perpendicular dependent points');
+        assert(near(dist(p[O],p[K]),100)&&near(dist(p[O],p[H]),80),'Fixed angle and distance');
+        if(p[I])assert(Math.abs((p[I][0]-p[P0][0])*(p[Q][1]-p[P0][1])-(p[I][1]-p[P0][1])*(p[Q][0]-p[P0][0]))<1e-6,'Line intersection lies on tangent');
+      }
+      assert(st.traces[M].length>20,'Dependent custom point traces follow movement');
+      model.customMove(st,E,[350,220]);assert(model.customResolve(st).invalid.includes(T),'Impossible tangent is marked undefined, not fabricated');model.customMove(st,E,[600,220]);assert(model.customResolve(st).points[T],'Tangent recovers when geometry becomes valid');
+      const A=model.customAppend(st,'free',[],{at:[300,220]}),B=model.customAppend(st,'free',[],{at:[500,220]}),C=model.customAppend(st,'free',[],{at:[430,220]}),D=model.customAppend(st,'free',[],{at:[430,300]}),J=model.customAppend(st,'lineCircle',[A,B,O,R]),Z=model.customAppend(st,'circleCircle',[O,R,C,D]);const p=model.customResolve(st).points;
+      assert(near(dist(p[J],p[O]),100)&&near(dist(p[Z],p[O]),100)&&near(dist(p[Z],p[C]),80),'Line/circle and circle/circle intersections exact');
+      preset.value='custom';preset.dispatchEvent(new win.Event('change',{bubbles:true}));
+      const place=(x,y)=>{doc.querySelector('[data-ag-custom-action="add"]').click();const svg=doc.querySelector('.gd-ag-visual svg'),surface=svg.parentElement,v=new win.DOMPoint(x,y).matrixTransform(svg.getScreenCTM());surface.dispatchEvent(new win.PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerId:44,pointerType:'touch',button:0,clientX:v.x,clientY:v.y}))};
+      place(200,220);place(400,220);
+      const operation=doc.querySelector('[data-ag-custom-operation]');operation.value='midpoint';operation.dispatchEvent(new win.Event('change',{bubbles:true}));doc.querySelector('[data-ag-custom-action="add"]').click();
+      assert(doc.querySelector('[data-ag-custom-point="C"]')&&cap().demo.locusState.nodes.length===3,'Custom workspace places points and adds a dependent midpoint');
+      const customDraft=P.createDocument();customDraft.addCurrent(id,cap());assert(customDraft.list()[0]&&P.renderItem(customDraft.list()[0],false).querySelector('[data-ag-custom-point="C"]'),'Custom construction publishes as a vector diagram');
+      doc.querySelector('[data-ag-custom-action="undo"]').click();assert(!doc.querySelector('[data-ag-custom-point="C"]'),'Custom construction undo restores graph');
+      const customPreset=doc.querySelector('[data-ag-locus-preset]');customPreset.value='circle';customPreset.dispatchEvent(new win.Event('change',{bubbles:true}));assert(doc.querySelector('[data-ag-locus-point="P"]'),'Return to predefined investigations');
+    }
     const polygonMode=doc.getElementById('ag-mode');polygonMode.value='polygon';polygonMode.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
     const chooseShape=doc.getElementById('ag-shape-view');chooseShape.value='rectangle';chooseShape.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
     doc.querySelector('[data-ag-action="diagonal"]').click();await tick();
