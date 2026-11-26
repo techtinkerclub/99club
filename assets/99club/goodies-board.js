@@ -430,6 +430,9 @@ function renderFloatingControls(obj){
   }
   if(obj.toolId==='abacus'&&floatingPanelMode!=='challenge')clone.querySelectorAll('[data-ab-workflow="challenge"],[data-ab-workflow="export"]').forEach(n=>n.remove());
   clone.querySelectorAll('#nl-fullscreen,.gd-embed-workflow-hidden[id$="-fullscreen"]').forEach(node=>node.remove());
+  if(floatingPanelMode==='settings'&&frameFor(obj.id)?.classList.contains('has-mode-picker')){
+    const selector=innerDocument(obj)?.defaultView?.TT99Goodies?.modeControl?.sourceSelectors(obj.toolId);if(selector)clone.querySelectorAll(selector).forEach(n=>{const group=n.closest('.gd-fr-mode-tabs,.pv-representation-tabs');if(group)group.remove();else{const label=n.closest('label');if(label)label.remove();else n.remove()}});
+  }
   const compact=floatingPanelMode==='challenge';
   floatingControls.dataset.panelMode=floatingPanelMode;
   floatingControls.classList.toggle('is-challenge-launcher',compact);
@@ -678,6 +681,24 @@ function fitEmbeddedObject(obj,initial=false){
   obj.w=Math.round(obj.baseW*obj.scale);obj.h=Math.round(obj.baseH*obj.scale);
   positionObject(obj);
 }
+function syncModePicker(obj){
+  const frame=frameFor(obj?.id),doc=innerDocument(obj),picker=frame?.querySelector('[data-board-mode-picker]'),select=picker?.querySelector('select');
+  if(!picker||!select)return;
+  const bridge=doc?.defaultView?.TT99Goodies?.modeControl,data=bridge?.read();
+  picker.hidden=!data||data.locked||data.options.length<2;
+  frame.classList.toggle('has-mode-picker',!picker.hidden);
+  const hint=frame.querySelector('[data-board-mode-hint]');
+  if(hint){hint.hidden=!data?.hint;hint.textContent=data?.hintVisible?'Hide teaching hint':'Show teaching hint'}
+  if(!data)return;
+  const signature=JSON.stringify(data.options);
+  if(select._modeSignature!==signature){
+    const groups=new Map();select.replaceChildren();
+    for(const o of data.options){let target=select;if(o.group){if(!groups.has(o.group)){const g=document.createElement('optgroup');g.label=o.group;groups.set(o.group,g);select.appendChild(g)}target=groups.get(o.group)}const option=document.createElement('option');option.value=o.value;option.textContent=o.label;option.disabled=o.disabled;target.appendChild(option)}
+    select._modeSignature=signature;
+  }
+  select.value=data.value;select.title=data.options.find(o=>o.value===data.value)?.label||'Choose mode';
+  doc.documentElement.classList.toggle('gd-frame-mode-active',!picker.hidden);
+}
 function syncQuickActions(obj){
   const frame=frameFor(obj?.id),rail=frame?.querySelector('[data-board-quick-actions]');if(!rail)return;
   const actions=QUICK_ACTIONS[obj.toolId]||[];
@@ -688,7 +709,7 @@ function syncQuickActions(obj){
   }).join('');
   if(rail._tt99Markup!==markup){rail.innerHTML=markup;rail._tt99Markup=markup}
   rail.classList.toggle('is-empty',available.length===0);
-  syncHistoryActions(obj);
+  syncHistoryActions(obj);syncModePicker(obj);
 }
 function syncHistoryActions(obj){
   const frame=frameFor(obj?.id);if(!frame)return;
@@ -819,6 +840,7 @@ function objectMarkup(obj,tool){
     '<iframe class="gd-board-object-iframe" src="'+src+'" title="'+esc(tool.title)+'"></iframe>'+
     '<button type="button" class="gd-board-object-cover" data-board-select="'+obj.id+'" aria-label="Select '+esc(tool.title)+'"></button>'+
     '<button type="button" class="gd-board-move-handle" data-board-move="'+obj.id+'" aria-label="Move '+esc(tool.title)+'" title="Move"><span></span><span></span><span></span></button>'+
+    '<label class="gd-board-mode-picker" data-board-mode-picker hidden><select aria-label="Choose '+esc(tool.title)+' mode"></select><span aria-hidden="true">⌄</span></label>'+
     '<button type="button" class="gd-board-context-trigger" data-board-context="'+obj.id+'" aria-label="Object menu" title="Object menu">'+iconSvg('more')+'</button>'+
     '<button type="button" class="gd-board-export-direct" data-board-export="'+obj.id+'" aria-label="Export '+esc(tool.title)+'" title="Export for worksheet or print">'+iconSvg('export')+'</button>'+
     '<button type="button" class="gd-board-delete-direct" data-board-delete="'+obj.id+'" aria-label="Delete '+esc(tool.title)+'" title="Delete">'+iconSvg('trash')+'</button>'+
@@ -834,6 +856,7 @@ function objectMarkup(obj,tool){
     '</div>'+
     '<div class="gd-board-quick-actions is-empty" data-board-quick-actions aria-label="'+esc(tool.title)+' quick actions"></div>'+
     '<div class="gd-board-context-menu" role="menu" aria-label="'+esc(tool.title)+' controls">'+
+      '<button type="button" data-board-mode-hint role="menuitem" hidden>Hide teaching hint</button>'+
       '<button type="button" data-board-history="undo" role="menuitem" aria-label="Undo" title="Undo" hidden>'+iconSvg('undo')+'</button>'+
       '<button type="button" data-board-history="redo" role="menuitem" aria-label="Redo" title="Redo" hidden>'+iconSvg('redo')+'</button>'+
       '<button type="button" data-board-settings="'+obj.id+'" role="menuitem" aria-label="Settings" title="Settings">'+iconSvg('settings')+'</button>'+
@@ -1030,6 +1053,8 @@ function bindObject(obj){
   const frame=frameFor(obj.id);if(!frame)return;
   const select=frame.querySelector('[data-board-select]');
   if(select)select.onclick=e=>{e.stopPropagation();selectObject(obj.id)};
+  const mode=frame.querySelector('[data-board-mode-picker] select');if(mode){mode.onpointerdown=e=>e.stopPropagation();mode.onclick=e=>e.stopPropagation();mode.onchange=e=>{e.stopPropagation();const bridge=innerDocument(obj)?.defaultView?.TT99Goodies?.modeControl;if(!bridge?.set(mode.value))boardHint('This mode is not available in the current activity.');syncModePicker(obj);syncQuickActions(obj);refreshFloatingControls(obj)}}
+  const hint=frame.querySelector('[data-board-mode-hint]');if(hint)hint.onclick=e=>{e.stopPropagation();const bridge=innerDocument(obj)?.defaultView?.TT99Goodies?.modeControl,data=bridge?.read();if(data)bridge.hint(!data.hintVisible);syncModePicker(obj);closeContext(obj)};
   const context=frame.querySelector('[data-board-context]');
   if(context)context.onclick=e=>{e.stopPropagation();toggleContext(obj.id)};
   const settings=frame.querySelector('[data-board-settings]');
