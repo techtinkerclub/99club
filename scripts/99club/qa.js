@@ -1281,6 +1281,27 @@ try {
  if(!model.validRegion(pts,[0,1,4])||model.polygonArea(pts.slice(0,4))!==10000)throw Error('Valid region or area failed');
  if(model.validRegion(pts,[0,2,1,3])||model.validRegion(pts,[0,4,2])||model.validRegion(pts,[0,1,1])||model.validRegion(pts,[0,1,9]))throw Error('Invalid polygon region accepted');
  const corner=model.vertexLabel(pts[0],pts[3],pts[1]);if(corner[0]>=0||corner[1]>=0)throw Error('Convex vertex label must sit outside');
+ // Check length labels in every orientation, including reversed endpoints,
+ // and angle annotations from zero to a full turn.
+ for(let rot=0;rot<360;rot+=5){
+   const a=[200,200],b=model.polar(...a,140,rot);
+   for(const [p,q] of [[a,b],[b,a]]){
+     const placement=model.dimensionPlacement(p,q,'4.3 cm');
+     if(!placement||Math.abs(placement.angle)>90||model.labelIntersectsLine(placement.box,p,q))throw Error('Length label intersects its edge: '+rot);
+     const expected=Math.atan2(q[1]-p[1],q[0]-p[0])*180/Math.PI;
+     if(Math.abs(Math.sin((placement.angle-expected)*Math.PI/180))>1e-7)throw Error('Dimension is not parallel to its edge');
+   }
+   for(let sweep=0;sweep<=360;sweep+=5){
+     const o=[400,220],placement=model.angleLabelPlacement(o,48,rot,sweep,sweep+'°');
+     if([rot,rot+sweep].some(a=>model.labelIntersectsLine(placement.box,o,model.polar(...o,3000,a))))throw Error('Angle annotation intersects an arm: '+rot+'/'+sweep);
+     const vertex=model.angleVertexPlacement(o,rot,sweep);
+     if([rot,rot+sweep].some(a=>model.labelIntersectsLine(vertex.box,o,model.polar(...o,243,a))))throw Error('Vertex name intersects an arm');
+     if(!vertex.external&&model.labelCorners(vertex.box).some(p=>((Math.atan2(o[1]-p[1],p[0]-o[0])*180/Math.PI-rot+720)%360)<sweep-1e-6))throw Error('Vertex name lies in marked sector');
+     if(vertex.external&&sweep<350)throw Error('Exterior vertex placement unexpectedly failed');
+   }
+ }
+ const blocked=model.dimensionPlacement([100,100],[250,100],'4 cm',{lines:[[[100,82],[250,82]]]});
+ if(!blocked||model.labelIntersectsLine(blocked.box,[100,82],[250,82]))throw Error('Dimension placement did not avoid adjacent line');
  const free=model.labEmpty(true);if(free.points.length||free.given!==false||model.labSnap(free,[100,100]).kind)throw Error('Free construction is not blank');
  ok('construction-lab',cases+' shape constructions plus reflected solutions, circle intersections and disabled snapping');
 }catch(e){fail('construction-lab','Geometry construction lab regression',e.stack||e.message);}
