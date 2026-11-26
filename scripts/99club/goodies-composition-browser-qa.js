@@ -966,14 +966,37 @@ async function run(){
     assert(bounds()[2]<=310&&bounds()[3]<=550,'Rotated semicircle frames its geometry without clipping');
     const value=doc.getElementById('ag-value');value.value='270';value.dispatchEvent(new doc.defaultView.Event('change',{bubbles:true}));await tick();
     assert(bounds()[2]===bounds()[3]&&bounds()[2]<=550,'Reflex protractor uses a compact full-circle frame');
+    // The same angle-fact renderer is used for the whiteboard and teacher key.
+    const straight=TT99Goodies.publishing.createDocument();
+    straight.generate('angles',TT99Goodies.publishing.defaultSettings('angles'),1,'straight');
+    const graphic=TT99Goodies.publishing.answerGraphic(straight.list()[0]);
+    const marks=[...graphic.querySelectorAll('[data-ag-angle-mark]')],labels=[...graphic.querySelectorAll('[data-ag-angle-label]')];
+    assert(marks.length===2&&marks[0].getAttribute('data-ag-radius')!==marks[1].getAttribute('data-ag-radius'),'Adjacent angle arcs have distinct radii');
+    assert(labels.length===2&&labels.every(n=>+n.getAttribute('font-size')===24),'Geometry labels use restrained consistent size');
+
     
     doc.querySelector('[data-ag-workflow="challenge"]').click();await tick();
     doc.querySelector('[data-ag-challenge-mode="draw"]').click();await tick();
     const t=cap().task;assert(t.type==='draw'&&doc.querySelector('[data-gd-pupil-check]').disabled,'Construction starts unanswered');
     assert(parseFloat(doc.defaultView.getComputedStyle(doc.querySelector('.gd-challenge-prompt')).fontSize)>=17,'Angle question uses classroom-sized text');
     assert(doc.querySelector('[data-gd-pupil-check]').getBoundingClientRect().height>=40,'Angle check action has a generous touch target');
-    for(let i=0;i<Math.floor(t.angle/10);i++)doc.querySelector('[data-ag-adjust="10"]').click();
-    for(let i=0;i<t.angle%10;i++)doc.querySelector('[data-ag-adjust="1"]').click();
+    const win=doc.defaultView,box=doc.querySelector('.gd-ag-visual'),rad=Math.PI/180;
+    const handle=()=>svg().querySelector('[data-ag-angle-handle]');
+    const handleAngle=()=>((Math.atan2(220-Number(handle().getAttribute('cy')),Number(handle().getAttribute('cx'))-400)/rad-t.rotation)%360+360)%360;
+    assert(Math.min(handleAngle(),360-handleAngle())<.02&&cap().attempt===null,'Initial construction arm is at zero, not the answer');
+    assert(!svg().querySelector('[data-ag-angle-label]')&&!svg().querySelector('[data-ag-angle-mark]'),'No solved angle or angle label before construction');
+    function anglePointer(type,angle,node){
+      const theta=(t.rotation+angle)*rad,p=new win.DOMPoint(400+247*Math.cos(theta),220-247*Math.sin(theta)).matrixTransform(svg().getScreenCTM());
+      node.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:8,pointerType:'touch',button:0,buttons:type==='pointerup'?0:1,clientX:p.x,clientY:p.y}));
+    }
+    anglePointer('pointerdown',0,svg().querySelector('[data-ag-angle-target]'));
+    const wrong=t.angle>90?40:140;
+    anglePointer('pointermove',wrong+.27,box);await tick();
+    assert(cap().attempt===wrong&&Math.abs(handleAngle()-wrong)<.02,'Continuous pointer movement snaps to nearest whole degree');
+    assert(!svg().querySelector('[data-ag-angle-label]')&&!doc.querySelector('#ag-attempt').textContent.includes('°'),'Construction does not display its numerical answer');
+    anglePointer('pointermove',t.angle+.24,box);
+    anglePointer('pointerup',t.angle,box);await tick();
+    assert(cap().attempt===t.angle&&Math.abs(handleAngle()-t.angle)<.02,'Arm continues dragging after SVG redraw and reaches target graduation');
     doc.querySelector('[data-gd-pupil-check]').click();await tick();
     assert(doc.querySelector('.gd-pupil-feedback').classList.contains('is-correct'),'Constructed angle is assessed');
     const P=TT99Goodies.publishing,draft=P.createDocument();draft.addCurrent(id,cap());
@@ -982,6 +1005,11 @@ async function run(){
     const calls=[],X=G.exportTools;X.downloadSvg=svg=>calls.push(svg.textContent);X.printSvg=svg=>calls.push(svg.textContent);
     doc.querySelector('[data-gd-direct-export="svg"]').click();await tick();doc.querySelector('[data-gd-direct-export="key-print"]').click();await tick();
     assert(calls.length===2&&calls[0].includes('Target:')&&calls[1].includes('°'),'Direct pupil and teacher exports are connected');
+    const pupilSvg=P.renderItem(draft.list()[0],false);
+    assert(!pupilSvg.querySelector('[data-ag-angle-handle],[data-ag-moving-arm],[data-ag-angle-mark]'),'Printed construction question contains no answer arm');
+    doc.querySelector('[data-challenge-action="another"]').click();await tick();
+    assert(cap().attempt===null&&!svg().querySelector('[data-ag-angle-mark]'),'Another resets the construction independently of its new target');
+
     fixture.frame.querySelector('[data-board-export]').click();await tick();
     assert(!fixture.frame.querySelector('[data-pub-key-group]').hidden,'Angle teacher keys available in whiteboard');
     api.remove(fixture.record.id);
@@ -1207,6 +1235,15 @@ async function run(){
       assert(specific,'New widget has a specific question in the quick launcher: '+id);
       specific.click();await tick(100);
       assert(!visible(panel),'Specific question closes quick launcher: '+id);
+      const banner=fixture.doc.querySelector('.gd-challenge-banner'),response=banner?.querySelector('.gd-pupil-response'),answer=response?.querySelector('.gd-pupil-field input'),check=response?.querySelector('[data-gd-pupil-check]');
+      if(answer&&check){
+        const ar=answer.getBoundingClientRect(),cr=check.getBoundingClientRect();
+        assert(Math.abs(ar.height-cr.height)<1.5,'Answer and Check use equal height: '+id);
+        if(Math.abs(ar.top-cr.top)<ar.height)assert(Math.abs(ar.top+ar.height/2-cr.top-cr.height/2)<1.5,'Answer and Check are vertically centred: '+id);
+      }
+      const actions=[...banner.querySelectorAll('.gd-challenge-actions button')].filter(b=>fixture.doc.defaultView.getComputedStyle(b).display!=='none'&&!b.hidden);
+      assert(actions.every(b=>Math.abs(b.getBoundingClientRect().height-40)<1.5),'Compact equal-height challenge controls: '+id);
+
       const reveal=fixture.doc.querySelector('[data-board-action="reveal"]'),rail=fixture.frame.querySelector('[data-board-quick-actions]');
       const frameReveal=()=>[...rail.querySelectorAll('button')].filter(b=>/^(Reveal|Hide) answer$/.test(b.textContent.trim()));
       assert(reveal&&frameReveal().length===1&&reveal.hasAttribute('data-board-delegated-reveal')&&fixture.doc.defaultView.getComputedStyle(reveal).display==='none','Exactly one visible reveal action in selected frame: '+id);

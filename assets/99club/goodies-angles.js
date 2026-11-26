@@ -20,6 +20,14 @@ const rand=(rng,a,b)=>a+Math.floor(rng()*(b-a+1)),pick=(rng,a)=>a[rand(rng,0,a.l
 function settings(s={}){return {level:LEVELS.some(x=>x[0]===s.level)?s.level:'medium',mode:MODES.some(x=>x[0]===s.mode)?s.mode:'angle',year:YEARS.some(x=>x[0]===String(s.year))?String(s.year):'custom',enrichment:s.enrichment===true||s.enrichment===1||s.enrichment==='1'||s.enrichment==='true'}}
 function types(s={}){return FAMILIES.filter(t=>t[3]!==7||settings(s).enrichment||s.type===t[0]).map(([id,label,mode,year])=>({id,label,mode,year}))}
 const polar=(x,y,r,a)=>[round(x+r*Math.cos(a*D)),round(y-r*Math.sin(a*D))];
+// Snap the movable ray to whole-degree graduations, relative to the fixed ray.
+// Outside a semicircle choose the nearer endpoint, not an arbitrary 180°.
+function snapAngle(raw,max=180,previous=0){
+ const v=mod(raw),n=Math.round(v);
+ if(max===180){if(v<=180)return Math.min(180,n);return v<270?180:0}
+ if(n===360||n===0)return previous>180?360:0;
+ return n;
+}
 function classify(a){return a===0?'Zero':a<90?'Acute':a===90?'Right':a<180?'Obtuse':a===180?'Straight':a<360?'Reflex':'Full turn'}
 function trianglePoints(a,b,x=140,y=315,length=400){const c=180-a-b,other=length*Math.sin(b*D)/Math.sin(c*D);return [[x,y],[x+length,y],polar(x,y,other,a)]}
 const polyInterior=n=>180*(n-2)/n,polyExterior=n=>360/n;
@@ -67,7 +75,14 @@ function diagram(d,teacher=false,options={}){
  const path=(p,extra={})=>add('path',{d:p,fill:'none',stroke:teal,'stroke-width':3,...extra});
  const circle=(p,r,fill=teal)=>add('circle',{cx:p[0],cy:p[1],r,fill});
  const arc=(x,y,r,start,a,extra={})=>{if(a>=360){add('circle',{cx:x,cy:y,r,fill:'none',stroke:teal,'stroke-width':3,...extra});return}if(a<=0)return;const p=polar(x,y,r,start),e=polar(x,y,r,start+a);path('M '+p.join(' ')+' A '+r+' '+r+' 0 '+(a>180?1:0)+' 0 '+e.join(' '),extra)};
- const labelArc=(x,y,r,start,a,label)=>{if(a===90){const p=polar(x,y,r*.75,start),v=polar(x,y,r*.75,start+90),u=[p[0]+v[0]-x,p[1]+v[1]-y];path('M '+p.join(' ')+' L '+u.join(' ')+' L '+v.join(' '))}else arc(x,y,r,start,a);if(label!=null){const p=polar(x,y,r+30,start+a/2);text(p[0],p[1]+9,label,32,{'font-weight':'600'})}};
+ // Angle labels sit on their own bisector; neighbouring sectors must not
+ // form a single continuous arc. Keep right-angle squares conventional.
+ const labelArc=(x,y,r,start,a,label,{labelSize=24,labelRadius=r+25}={})=>{
+   const meta={'data-ag-angle-mark':'1','data-ag-radius':r,'data-ag-start':start,'data-ag-sweep':a,'stroke-width':2.5};
+   if(a===90){const p=polar(x,y,r*.75,start),v=polar(x,y,r*.75,start+90),u=[p[0]+v[0]-x,p[1]+v[1]-y];path('M '+p.join(' ')+' L '+u.join(' ')+' L '+v.join(' '),meta)}
+   else arc(x,y,r,start,a,meta);
+   if(label!=null){const p=polar(x,y,labelRadius,start+a/2);text(p[0],p[1]+labelSize*.32,label,labelSize,{'font-weight':'500','data-ag-angle-label':'1'})}
+ };
  const ray=(x,y,r,a,color=ink)=>line([x,y],polar(x,y,r,a),color);
  const arrow=(x,y,r,a,color=ink)=>{const p=polar(x,y,r,a),l=polar(p[0],p[1],16,a+150),rr=polar(p[0],p[1],16,a-150);line([x,y],p,color,5);line(p,l,color,5);line(p,rr,color,5)};
  const background=add('rect',{width:W,height:H,fill:'#fff'});
@@ -79,7 +94,7 @@ function diagram(d,teacher=false,options={}){
    const range=full?360:180,pts=Array.from({length:range/5+1},(_,i)=>polar(x,y,r,start+i*5));
    const shape='M '+x+' '+y+' L '+pts.map(p=>p.join(' ')).join(' L ')+' Z';
    path(shape,{fill:'#dceee9','fill-opacity':.48,stroke:'#82a69e','stroke-width':1.5});
-   for(let i=0;i<=range;i++){if(full&&i===360)break;const p=polar(x,y,r,start+i),p2=polar(x,y,r-(i%10===0?19:i%5===0?12:6),start+i);line(p,p2,'#668d86',i%10===0?2.1:1.05);if(i%10===0){const t=polar(x,y,r-35,start+i);text(t[0],t[1]+6,String(i),19,{fill:'#285f57','font-weight':'600'});if(!full){const u=polar(x,y,r-62,start+i);text(u[0],u[1]+5,String(180-i),17,{fill:'#80551d','font-weight':'600'})}}}
+   for(let i=0;i<=range;i++){if(full&&i===360)break;const p=polar(x,y,r,start+i),p2=polar(x,y,r-(i%10===0?19:i%5===0?12:6),start+i);line(p,p2,'#668d86',i%10===0?2.1:1.05);if(i%10===0){const edge=i===0||i===180,offset=!full&&edge?polar(0,0,15,start-90):[0,0];const t=polar(x,y,r-35,start+i);text(t[0]+offset[0],t[1]+offset[1]+6,String(i),19,{fill:'#285f57','font-weight':'600'});if(!full){const u=polar(x,y,r-(edge?75:62),start+i);text(u[0]+offset[0],u[1]+offset[1]+5,String(180-i),17,{fill:'#80551d','font-weight':'600'})}}}
    line(polar(x,y,r,start),polar(x,y,r,start+180),'#668d86',1.5);circle([x,y],4,'#668d86');
  }
  function single(x,y,r,a,start,label,scale=false,blank=false,full=false){if(scale)protractor(x,y,r,start,full);ray(x,y,r+5,start);if(!blank){ray(x,y,r+5,start+a,teal);labelArc(x,y,Math.min(r*.27,48),start,a,label)}circle([x,y],4,ink)}
@@ -96,22 +111,42 @@ function diagram(d,teacher=false,options={}){
  }
  if(['compare','order','compare-reflex'].includes(type)){const n=d.angles.length;d.angles.forEach((v,i)=>{const x=(i+.5)*W/n,y=200,r=n===3?105:162;single(x,y,r,v,(rot+i*55)%360,teacher?v+'°':null);text(x,395,['A','B','C'][i],34)});return svg}
  if(mode==='angle'){
-   const draw=['draw','draw-reflex'].includes(type),blank=draw&&!teacher&&options.attempt==null,shown=draw&&!teacher&&options.attempt!=null?options.attempt:a;
-   const full=shown>180||['reflex','draw-reflex'].includes(type),scale=options.scale??d.scale??['measure','reflex'].includes(type);
+   const draw=['draw','draw-reflex'].includes(type),pupilDraw=draw&&!teacher,blank=pupilDraw&&options.attempt==null&&!options.interactive,shown=pupilDraw?(options.attempt??0):a;
+   const full=options.full??(shown>180||['reflex','draw-reflex'].includes(type)),scale=options.scale??d.scale??['measure','reflex'].includes(type);
    const r=238,start=rot,x=400,y=220;
    // A rotated semicircle occupies a different bounding rectangle. Include the full arc, rays, degree labels and touch handle, with generous edge clearance.
    const sweep=full?360:180,extent=Array.from({length:sweep+1},(_,i)=>polar(x,y,r+9,start+i));extent.push([x,y]);
    const pad=26,minX=Math.min(...extent.map(p=>p[0]))-pad,maxX=Math.max(...extent.map(p=>p[0]))+pad,minY=Math.min(...extent.map(p=>p[1]))-pad,maxY=Math.max(...extent.map(p=>p[1]))+pad;
-   const targetH=draw&&!teacher?42:0;frame(minX,minY,maxX-minX,maxY-minY+targetH);
-   single(x,y,r,shown,start,teacher||explore?shown+'°':null,scale,blank,full);
-   if(draw&&!teacher)text((minX+maxX)/2,maxY+26,'Target: '+a+'°',25);
-   if(options.interactive){const p=polar(x,y,r+5,start+shown);circle(p,10,'#d58c42');add('circle',{cx:x,cy:y,r:r+20,fill:'transparent','data-ag-angle-target':'1',style:'cursor:crosshair;touch-action:none'});}
+   const targetH=pupilDraw&&!options.interactive?42:0;frame(minX,minY,maxX-minX,maxY-minY+targetH);
+   single(x,y,r,shown,start,teacher||explore?shown+'°':null,scale,blank||options.interactive,full);
+   if(pupilDraw&&!options.interactive)text((minX+maxX)/2,maxY+26,'Target: '+a+'°',25);
+   if(options.interactive){
+     // The initial handle is at zero, independent of the answer. Show only
+     // the pupil's actual ray and its unlabelled arc during construction.
+     if(shown>0)labelArc(x,y,48,start,shown,teacher||explore?shown+'°':null);
+     const p=polar(x,y,r+9,start+shown);
+     line([x,y],p,'#be762b',shown===0?3:5,{'data-ag-moving-arm':'1'});
+     add('circle',{cx:p[0],cy:p[1],r:10,fill:'#d58c42',stroke:'#fff','stroke-width':2,'data-ag-angle-handle':'1'});
+     add('circle',{cx:x,cy:y,r:r+25,fill:'transparent','data-ag-angle-target':'1',style:'cursor:grab;touch-action:none'});
+   }
    return svg
  }
  if(mode==='facts'){
    if(type==='parallel'){const y1=130,y2=310,dx=90/Math.tan(a*D),p=[400+dx,y1],u=[400-dx,y2];line([95,y1],[705,y1]);line([95,y2],[705,y2]);line(polar(...p,90/Math.sin(a*D),a),polar(...u,90/Math.sin(a*D),a+180),teal);const alt=d.relation==='alternate';labelArc(...p,44,alt?180:0,a,a+'°');labelArc(...u,44,0,a,teacher?a+'°':'x');return svg}
    const values=d.angles||[a,180-a],x=400,y=220,r=165;let at=rot;const count=type==='opposite'?4:values.length;
-   for(let i=0;i<count;i++){ray(x,y,r,at);const v=values[i],missing=type==='opposite'?i===2:i===count-1;labelArc(x,y,70,at,v,missing&&!teacher&&!explore?'x':type==='opposite'&&i%2===1&&!teacher?null:v+'°');at+=v}
+   // Give adjacent sectors different radii, including the last/first
+   // pair around a point. Opposite sectors retain matching radii.
+   for(let i=0;i<count;i++){
+     ray(x,y,r,at);const v=values[i],missing=type==='opposite'?i===2:i===count-1;
+     const label=missing&&!teacher&&!explore?'x':type==='opposite'&&i%2===1&&!teacher?null:v+'°';
+     const radius=count===3?[49,70,91][i]:i%2===0?70:49;
+     // Narrow sectors need additional space for multi-digit labels.
+     const halfWidth=(String(label??'').length*24*.56)/2;
+     const halfHeight=12,angle=Math.min(v,360-v)*D/2;
+     const clearance=(halfWidth+halfHeight*.5+5)/Math.max(.2,Math.sin(angle));
+     const labelRadius=Math.min(145,Math.max(radius+24,clearance));
+     labelArc(x,y,radius,at,v,label,{labelSize:24,labelRadius});at+=v
+   }
    if(type==='straight'||explore&&values.reduce((s,v)=>s+v,0)===180)ray(x,y,r,at);circle([x,y],4,ink);return frame(195,20,410,400)
  }
  function polygon(points){add('polygon',{points:points.map(p=>p.join(',')).join(' '),fill:'#e9f4f0',stroke:ink,'stroke-width':4,'stroke-linejoin':'round'});}
@@ -180,17 +215,49 @@ G.anglesTool=function(){
  }
  function demoData(){if(demo.mode==='facts'){const f=demo.fact||'straight',a=Math.max(10,Math.min(170,demo.angle));return {...demo,type:f,angles:f==='straight'?[a,180-a]:f==='point'?[a,90,270-a]:[a,180-a,a,180-a]}}if(demo.mode==='lines')return {...demo,angle:demo.relation==='Parallel'?0:demo.relation==='Perpendicular'?90:Math.max(10,Math.min(80,demo.angle))};return demo}
  function stage(){const host=q('#gd-stage'),draw=['draw','draw-reflex'].includes(task?.type),build=task?.type==='shape-build',construct=draw||build,d=task?geometryTask(task):demoData(),teacher=!task||task.revealed;
-  const pupil=construct?CK.pupilSpec('model',{hint:draw?'Set the angle, then check.':'Set the angle and side length, then check.',ready:()=>attempt!==null&&(!build||attemptLength!==null),check:()=>Math.abs(attempt-task.angle)<=1&&(!build||attemptLength===task.length)}):task?.choices?CK.pupilSpec('choice',{choices:task.choices,expected:task.answer}):CK.pupilSpec('number');
+  const pupil=construct?CK.pupilSpec('model',{hint:draw?'Drag the orange arm to the correct graduation, then check.':'Set the angle and side length, then check.',ready:()=>attempt!==null&&(!build||attemptLength!==null),check:()=>Math.abs(attempt-task.angle)<=1&&(!build||attemptLength===task.length)}):task?.choices?CK.pupilSpec('choice',{choices:task.choices,expected:task.answer}):CK.pupilSpec('number');
   host.innerHTML=(task?CK.bannerHtml(task,{pupil,actions:[{action:'another',label:'Another'},{action:'end',label:'Exit challenge'}]}):'')+'<div class="gd-ag-visual" style="width:100%;max-width:920px;margin:0 auto"></div>';
   const box=q('.gd-ag-visual',host);
-  function drawSvg(){const interactive=!task&&demo.mode==='angle'||draw&&!task.revealed,svg=diagram(d,teacher,{attempt,length:attemptLength,scale:task?['measure','reflex','draw','draw-reflex'].includes(task.type):demo.scale,interactive});svg.style.cssText='width:100%;height:auto;max-height:560px;display:block;margin:auto';box.replaceChildren(svg);
-    const target=q('[data-ag-angle-target]',svg);if(target){const move=e=>{const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(svg.getScreenCTM().inverse()),raw=mod(Math.atan2(220-p.y,p.x-400)/D-(d.rotation||0)),v=Math.round(raw);if(draw)setAngle(v);else{demo.angle=v;d.angle=v;const label=q('#ag-value');if(label&&[...label.options].some(o=>+o.value===v))label.value=String(v);drawSvg();}};target.addEventListener('pointerdown',e=>{e.preventDefault();move(e)})}
+  // Capture on the persistent wrapper: the SVG may be replaced on every
+  // snapped degree, but pointer capture and the coordinate transform survive.
+  let drag=null;
+  function drawSvg(){
+    const interactive=(!task&&demo.mode==='angle')||(draw&&!task.revealed);
+    box.style.touchAction=interactive?'none':'auto';
+    const svg=diagram(d,teacher,{attempt,length:attemptLength,scale:task?['measure','reflex','draw','draw-reflex'].includes(task.type):demo.scale,interactive,...(drag?{full:drag.max===360}:{})});
+    svg.style.cssText='width:100%;height:auto;max-height:560px;display:block;margin:auto';
+    box.replaceChildren(svg);
   }
-  function setAngle(v){attempt=Math.max(0,Math.min(task?.type==='draw-reflex'?360:180,v));drawSvg();const el=q('#ag-attempt',host);if(el)el.textContent=attempt+'°';CK.refreshModelPupil(task)}
+  function updateDemo(v){
+    demo.angle=v;d.angle=v;const label=q('#ag-value');
+    if(label)label.value=String(v);
+    const readout=q('[data-ag-demo-value]',host);if(readout)readout.textContent=v+'° · '+classify(v);
+    drawSvg();
+  }
+  function movePointer(e){
+    if(!drag||e.pointerId!==drag.id)return;
+    const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(drag.inverse);
+    if(Math.hypot(p.x-400,p.y-220)<16)return;
+    const raw=Math.atan2(220-p.y,p.x-400)/D-(d.rotation||0),previous=draw?(attempt??0):demo.angle;
+    const v=snapAngle(raw,drag.max,previous);
+    if(draw){if(attempt!==v)setAngle(v)}else if(demo.angle!==v)updateDemo(v);
+  }
+  box.addEventListener('pointerdown',e=>{
+    if(e.button!==0||!e.target.closest('[data-ag-angle-target]'))return;
+    const svg=q('svg',box),matrix=svg?.getScreenCTM();if(!matrix)return;
+    const max=draw?(task.type==='draw-reflex'?360:180):(demo.angle>180?360:180);
+    drag={id:e.pointerId,inverse:matrix.inverse(),max};
+    e.preventDefault();try{box.setPointerCapture(e.pointerId)}catch(_){}
+    movePointer(e);
+  });
+  box.addEventListener('pointermove',e=>{if(drag&&e.pointerId===drag.id){e.preventDefault();movePointer(e)}});
+  function endDrag(e){if(!drag||e.pointerId!==drag.id)return;drag=null;try{if(box.hasPointerCapture(e.pointerId))box.releasePointerCapture(e.pointerId)}catch(_){}}
+  box.addEventListener('pointerup',endDrag);box.addEventListener('pointercancel',endDrag);box.addEventListener('lostpointercapture',endDrag);
+  function setAngle(v){attempt=Math.max(0,Math.min(task?.type==='draw-reflex'?360:180,Math.round(v)));drawSvg();const el=q('#ag-attempt',host);if(el)el.textContent=draw?'Arm positioned':attempt+'°';CK.refreshModelPupil(task)}
   drawSvg();
-  if(construct&&!task.revealed){const row=document.createElement('div');row.className='gd-row';row.style.cssText='justify-content:center;flex-wrap:wrap;padding:8px;gap:8px';row.innerHTML='<span>Angle</span><button class="gd-btn" data-ag-adjust="-10">−10°</button><button class="gd-btn" data-ag-adjust="-1">−1°</button><strong id="ag-attempt">'+(attempt===null?'—':attempt+'°')+'</strong><button class="gd-btn" data-ag-adjust="1">+1°</button><button class="gd-btn" data-ag-adjust="10">+10°</button>'+(build?'<label>AC (cm) '+select('ag-attempt-length',[['','Choose'],...Array.from({length:7},(_,i)=>[i+1,i+1])],attemptLength??'')+'</label>':'');host.appendChild(row);qa('[data-ag-adjust]',row).forEach(b=>b.onclick=()=>setAngle((attempt??0)+Number(b.dataset.agAdjust)));const l=q('#ag-attempt-length',row);if(l)l.onchange=()=>{attemptLength=l.value===''?null:+l.value;drawSvg();CK.refreshModelPupil(task)}}
+  if(construct&&!task.revealed){const row=document.createElement('div');row.className='gd-row';row.style.cssText='justify-content:center;flex-wrap:wrap;padding:8px;gap:8px';row.innerHTML='<span>Angle</span><button class="gd-btn" data-ag-adjust="-10">−10°</button><button class="gd-btn" data-ag-adjust="-1">−1°</button><strong id="ag-attempt">'+(draw?(attempt===null?'Move the arm':'Arm positioned'):(attempt===null?'—':attempt+'°'))+'</strong><button class="gd-btn" data-ag-adjust="1">+1°</button><button class="gd-btn" data-ag-adjust="10">+10°</button>'+(build?'<label>AC (cm) '+select('ag-attempt-length',[['','Choose'],...Array.from({length:7},(_,i)=>[i+1,i+1])],attemptLength??'')+'</label>':'');host.appendChild(row);qa('[data-ag-adjust]',row).forEach(b=>b.onclick=()=>setAngle((attempt??0)+Number(b.dataset.agAdjust)));const l=q('#ag-attempt-length',row);if(l)l.onchange=()=>{attemptLength=l.value===''?null:+l.value;drawSvg();CK.refreshModelPupil(task)}}
   if(task){q('[data-challenge-action="another"]',host).onclick=()=>{const current=task.type;if(scope==='all')launch('all');else if(scope.startsWith('category:')){const group=scope.slice(9),a=types(cfg).filter(t=>t.mode===group);launch(a.length?pick(Math.random,a).id:current)}else launch(current)};q('[data-challenge-action="end"]',host).onclick=()=>{task=null;attempt=null;scope='';workflow='build';render()};const reveal=q('[data-board-action="reveal"]',host);if(reveal)reveal.onclick=()=>{task.revealed=!task.revealed;stage()}}
-  else {const row=document.createElement('div');row.className='gd-row';row.style.justifyContent='center';row.innerHTML='<button class="gd-btn" data-ag-demo="-5">−5°</button><strong>'+demo.angle+'° · '+classify(demo.angle)+'</strong><button class="gd-btn" data-ag-demo="5">+5°</button>';host.appendChild(row);qa('[data-ag-demo]',row).forEach(b=>b.onclick=()=>{demo.angle=Math.max(0,Math.min(360,demo.angle+Number(b.dataset.agDemo)));render()})}
+  else {const row=document.createElement('div');row.className='gd-row';row.style.justifyContent='center';row.innerHTML='<button class="gd-btn" data-ag-demo="-5">−5°</button><strong data-ag-demo-value>'+demo.angle+'° · '+classify(demo.angle)+'</strong><button class="gd-btn" data-ag-demo="5">+5°</button>';host.appendChild(row);qa('[data-ag-demo]',row).forEach(b=>b.onclick=()=>{demo.angle=Math.max(0,Math.min(360,demo.angle+Number(b.dataset.agDemo)));render()})}
  }
  function render(){controls();stage()}
  setPanels('','');render();G.lessonState.register(ID,()=>({...snapshot(),demo:demoData()}),s=>{cfg=settings(s);demo={...demo,...s.demo,type:'diagram'};workflow=['build','challenge','export'].includes(s.workflow)?s.workflow:'build';task=s.task?CK.normalise(s.task):null;attempt=Number.isFinite(s.attempt)?s.attempt:null;attemptLength=Number.isFinite(s.attemptLength)?s.attemptLength:null;scope=String(s.scope||'');CK.restorePupil(task,s.pupil);render()});
