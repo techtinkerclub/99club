@@ -976,6 +976,13 @@ async function run(){
 
     
     doc.querySelector('[data-ag-workflow="challenge"]').click();await tick();
+    doc.querySelector('[data-ag-challenge-mode="classify"]').click();await tick();
+    const namedAngle=doc.querySelector('.gd-ag-visual>svg'),namedTask=cap().task,vertexName=namedAngle.querySelector('[data-ag-point-label="A"]');
+    assert(vertexName,'Angle challenge names its vertex');
+    const vertexDir=(Math.atan2(220-Number(vertexName.getAttribute('y')),Number(vertexName.getAttribute('x'))-400)*180/Math.PI-(namedTask.rotation||0)+720)%360;
+    assert(vertexDir>=namedTask.angle,'Vertex name is outside the marked angle sector');
+    const namesPaper=P.createDocument();namesPaper.addCurrent(id,cap());
+    assert(P.renderItem(namesPaper.list()[0],false).querySelector('[data-ag-point-label="A"]').getAttribute('x')===vertexName.getAttribute('x'),'Published angle uses the same exterior vertex placement');
     for(const type of ['measure','reflex']){
       doc.querySelector('[data-ag-challenge-mode="'+type+'"]').click();await tick();
       const t=cap().task,ms=doc.querySelector('.gd-ag-visual>svg'),w=doc.defaultView;
