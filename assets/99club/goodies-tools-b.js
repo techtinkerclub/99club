@@ -1174,7 +1174,7 @@ function meDrawingSvg(c,{teacher=false,paper=false}={}){
  const {points,edges,target}=c.measurement;
  Object.entries({xmlns:N,viewBox:paper?'0 0 '+ME_DRAW_W+' '+ME_DRAW_H:'-65 -45 690 420',role:'img','aria-label':'Measure the displayed lines or shape','data-me-measure-diagram':'1'}).forEach(([k,v])=>svg.setAttribute(k,v));
  const text=(x,y,value,size=15)=>el('text',{x,y,'font-size':size,'font-family':'Arial,sans-serif','text-anchor':'middle',fill:'#334a52','paint-order':'stroke',stroke:'#fff','stroke-width':3},value);
- if(edges.length===4)el('polygon',{points:points.map(p=>p.join(',')).join(' '),fill:'#e9f4f0',stroke:'none'});
+ if(edges.length===4)el('polygon',{points:points.map(p=>p.join(',')).join(' '),fill:paper?'none':'#e9f4f0',stroke:'none'});
  edges.forEach((e,k)=>{const a=points[e.i],b=points[e.j];el('line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:target.includes(k)?'#287c70':'#334a52','stroke-width':3.5,'stroke-linecap':'butt','data-me-measure-edge':k});if(teacher)text((a[0]+b[0])/2+((b[0]-a[0])<1?18:0),(a[1]+b[1])/2-12,e.mm/10+' cm',14)});
  points.forEach((p,i)=>{el('circle',{cx:p[0],cy:p[1],r:3.5,fill:'#334a52','data-me-measure-point':i});const shift=edges.length===4?(i<2?-13:23):-13;text(p[0],p[1]+shift,String.fromCharCode(65+i),15)});
  if(paper&&!teacher){

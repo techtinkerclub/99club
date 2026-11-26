@@ -972,7 +972,7 @@ async function run(){
     const graphic=TT99Goodies.publishing.answerGraphic(straight.list()[0]);
     const marks=[...graphic.querySelectorAll('[data-ag-angle-mark]')],labels=[...graphic.querySelectorAll('[data-ag-angle-label]')];
     assert(marks.length===2&&marks[0].getAttribute('data-ag-radius')!==marks[1].getAttribute('data-ag-radius'),'Adjacent angle arcs have distinct radii');
-    assert(labels.length===2&&labels.every(n=>+n.getAttribute('font-size')===24),'Geometry labels use restrained consistent size');
+    assert(labels.length===2&&labels.every(n=>+n.getAttribute('font-size')===18),'Geometry labels use restrained consistent size');
 
     
     doc.querySelector('[data-ag-workflow="challenge"]').click();await tick();
@@ -1083,14 +1083,56 @@ async function run(){
     assert(doc.querySelector('.gd-ag-guide-example svg'),'Free mode provides worked instrument demonstration');
     const next=[...doc.querySelectorAll('.gd-ag-guide-example button')].find(b=>b.textContent==='Next step');next.click();await tick();
     assert(doc.querySelector('.gd-ag-guide-example').textContent.includes('Step 2 / 3')&&cap().demo.labDrawing.points.length===0,'Demo advances without altering free drawing');
+    doc.querySelector('[data-ag-tool="help"]').click();
+    const work=doc.querySelector('.gd-ag-lab-canvas'),beforeView=work.viewBox.baseVal.height,beforeScale=Math.hypot(work.getScreenCTM().a,work.getScreenCTM().b);
+    doc.querySelector('[data-ag-tool="expand"]').click();await tick();
+    assert(work.viewBox.baseVal.height>beforeView&&Math.abs(Math.hypot(work.getScreenCTM().a,work.getScreenCTM().b)-beforeScale)<.02,'Workspace height increases without zooming geometry');
+    doc.querySelector('[data-ag-tool="point"]').click();
+    const tapWork=(p)=>{const v=new win.DOMPoint(...p).matrixTransform(work.getScreenCTM());work.dispatchEvent(new win.PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerType:'touch',button:0,clientX:v.x,clientY:v.y}))};
+    for(const p of [[150,150],[450,150],[300,350]])tapWork(p);
+    doc.querySelector('[data-ag-tool="shade"]').click();
+    for(const p of [[150,150],[450,150],[300,350]])tapWork(p);
+    [...doc.querySelectorAll('.gd-ag-lab-toolbar button')].find(b=>b.textContent==='Shade selected').click();
+    assert(work.querySelectorAll('[data-ag-region]').length===1&&cap().demo.labDrawing.regions.length===1,'Free construction stores a selected polygonal region');
+    doc.querySelector('[data-ag-tool="undo"]').click();
+    assert(!work.querySelector('[data-ag-region]'),'Undo removes the region without deleting its vertices');
+
     const polygonMode=doc.getElementById('ag-mode');polygonMode.value='polygon';polygonMode.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
     const chooseShape=doc.getElementById('ag-shape-view');chooseShape.value='rectangle';chooseShape.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
     doc.querySelector('[data-ag-action="diagonal"]').click();await tick();
     assert(cap().demo.showDiagonals&&doc.querySelector('.gd-ag-visual svg').textContent.includes('Equal diagonals'),'Rectangle explorer displays its diagonal relationship');
+    const regionSvg=doc.querySelector('.gd-ag-visual>svg'),regionOutline=regionSvg.querySelector('[data-ag-region-points]'),regionPoints=JSON.parse(regionOutline.getAttribute('data-ag-region-points'));
+    assert(regionPoints.length===5&&regionSvg.querySelectorAll('[data-ag-point-label]').length===5,'Polygon vertices and diagonal intersection have names');
+    doc.querySelector('[data-ag-polygon-shade]').click();
+    function shadeTap(svg,p){const v=new win.DOMPoint(...p).matrixTransform(svg.getScreenCTM());svg.dispatchEvent(new win.PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerType:'touch',button:0,clientX:v.x,clientY:v.y}))}
+    const shadeApply=()=>[...doc.querySelectorAll('.gd-ag-inspect-tools button')].find(b=>b.textContent==='Shade selected');
+    for(const j of [0,1,4])shadeTap(regionSvg,regionPoints[j]);shadeApply().click();
+    doc.querySelector('.gd-ag-inspect-tools button[aria-label="Blue region"]').click();
+    for(const j of [2,3,4])shadeTap(regionSvg,regionPoints[j]);shadeApply().click();
+    assert(regionSvg.querySelectorAll('[data-ag-region]').length===2,'Two independently selected regions are shaded');
+    const regionDraft=P.createDocument();regionDraft.addCurrent(id,cap());assert(P.renderItem(regionDraft.list()[0],false).querySelectorAll('[data-ag-region]').length===2,'Authored mathematical shading survives publication');
+    doc.querySelector('[data-ag-polygon-shade]').click();
+
     const circleMode=doc.getElementById('ag-mode');circleMode.value='circle';circleMode.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
     assert(doc.querySelector('.gd-ag-visual svg').textContent.includes('Diameter = 2 × radius'),'Circle explorer explains radius-diameter relationship');
     const beforeRadius=cap().demo.radius||5;doc.querySelector('[data-ag-action="radius-up"]').click();await tick();
     assert(cap().demo.radius===beforeRadius+1,'Circle radius adjusts interactively');
+    const circleSvg=()=>doc.querySelector('.gd-ag-visual svg');
+    assert([...circleSvg().querySelectorAll('[data-ag-circle-symbol]')].map(n=>n.textContent).sort().join(',')==='D,r','Circle diagram uses only short mathematical symbols');
+    assert(circleSvg().querySelector('[data-ag-circle-outline]').getAttribute('fill')==='none','Screen exploration defaults to clean outlines');
+    doc.querySelector('[data-ag-action="circle-extension"]').click();await tick();
+    assert(circleSvg().querySelectorAll('[data-ag-circle-formula]').length===2&&circleSvg().querySelectorAll('[data-ag-circle-working]').length===2,'KS3 extension shows general formulae and substituted numerical working');
+    for(const type of ['regularity','triangle-type','quad-type','circle-diameter','circle-radius','circle-part']){
+      const pack=P.createDocument();pack.generate(id,P.defaultSettings(id),1,type);const item=pack.list()[0];
+      for(const out of [P.renderItem(item,false),P.answerGraphic(item)]){
+        const outline=out.querySelector('[data-ag-inspect-polygon],[data-ag-circle-outline]');
+        assert(outline&&outline.getAttribute('fill')==='none','Printed geometry shape has no decorative shading: '+type);
+      }
+      if(type==='circle-diameter'||type==='circle-radius'){
+        const values=P.renderItem(item,false).querySelector('[data-ag-circle-values]').textContent;
+        assert(type==='circle-diameter'?!values.includes('D ='):!values.includes('r ='),'Pupil print does not reveal missing circle dimension');
+      }
+    }
     for(const [type,expected] of [['circle-diameter','cm'],['circle-radius','cm'],['rectangle-length','cm'],['isosceles-angle','°'],['diagonal-equal','diagonals']]){
       const pack=P.createDocument();pack.generate(id,P.defaultSettings(id),1,type);const item=pack.list()[0];
       assert(P.renderItem(item,false).querySelector('svg,polygon,circle'),'Relationship question has pupil diagram: '+type);

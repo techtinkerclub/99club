@@ -28,7 +28,7 @@ robots: "noindex,nofollow,noarchive"
 <script src="/assets/99club/goodies-tools-a.js?v=75&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
 <script src="/assets/99club/goodies-abacus.js?v=28&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
 <script src="/assets/99club/goodies-number-line-v6.js?v=27&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
-<script src="/assets/99club/goodies-tools-b.js?v=67&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
+<script src="/assets/99club/goodies-tools-b.js?v=68&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
 <!-- compatibility marker for the retiring adapter smoke check: goodies-number-mobile-balance.js?v=6 -->
 <script src="/assets/99club/goodies-number-mobile.js?v=2&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
 <script src="/assets/99club/goodies-sequences.js?v=5&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
@@ -37,6 +37,6 @@ robots: "noindex,nofollow,noarchive"
 <script src="/assets/99club/goodies-statistics-model.js?v=2&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
 <script src="/assets/99club/goodies-statistics-table.js?v=3&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
 <script src="/assets/99club/goodies-function-machine.js?v=4&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
-<script src="/assets/99club/goodies-angles.js?v=12&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
+<script src="/assets/99club/goodies-angles.js?v=14&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
 <script src="/assets/99club/goodies-app.js?v=18&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
-<script src="/assets/99club/goodies-board.js?v=62&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
+<script src="/assets/99club/goodies-board.js?v=63&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
