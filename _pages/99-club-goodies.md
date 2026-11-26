@@ -24,7 +24,7 @@ robots: "noindex,nofollow,noarchive"
 <script src="/assets/99club/goodies-interaction.js?v=4&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
 <script src="/assets/99club/goodies-challenge.js?v=19&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
 <script src="/assets/99club/goodies-export.js?v=14&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
-<script src="/assets/99club/goodies-publishing.js?v=19&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
+<script src="/assets/99club/goodies-publishing.js?v=20&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
 <script src="/assets/99club/goodies-tools-a.js?v=74&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
 <script src="/assets/99club/goodies-abacus.js?v=27&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
 <script src="/assets/99club/goodies-number-line-v6.js?v=26&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
@@ -32,11 +32,11 @@ robots: "noindex,nofollow,noarchive"
 <!-- compatibility marker for the retiring adapter smoke check: goodies-number-mobile-balance.js?v=5 -->
 <script src="/assets/99club/goodies-number-mobile.js?v=1&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
 <script src="/assets/99club/goodies-sequences.js?v=4&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
-<script src="/assets/99club/goodies-written-methods.js?v=1&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
-<script src="/assets/99club/goodies-column-methods.js?v=1&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
+<script src="/assets/99club/goodies-written-methods.js?v=2&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
+<script src="/assets/99club/goodies-column-methods.js?v=2&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
 <script src="/assets/99club/goodies-statistics-model.js?v=1&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
 <script src="/assets/99club/goodies-statistics-table.js?v=2&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
 <script src="/assets/99club/goodies-function-machine.js?v=3&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
 <script src="/assets/99club/goodies-angles.js?v=2&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
-<script src="/assets/99club/goodies-app.js?v=16&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
-<script src="/assets/99club/goodies-board.js?v=60&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
+<script src="/assets/99club/goodies-app.js?v=17&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
+<script src="/assets/99club/goodies-board.js?v=61&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
