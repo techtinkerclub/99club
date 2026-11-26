@@ -1030,7 +1030,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
      if(selecting){const name=Object.keys(pts).filter(n=>!(n in locusPreset(st.kind).anchors)&&(n!=='M'||st.showMidpoint||st.traceNames?.includes('M')||st.traces?.M?.length)).sort((a,b)=>labDist(hit.p,pts[a])-labDist(hit.p,pts[b])).find(n=>labDist(hit.p,pts[n])<=hit.tol);if(name){traceToggle(st,name);changed()}return}
      if(labDist(hit.p,pts.P)>hit.tol)return;e.preventDefault();drag=e.pointerId;try{surface.setPointerCapture(e.pointerId)}catch(_){}
    });
-   surface.addEventListener('pointermove',e=>{if(drag!==e.pointerId)return;const hit=locate(e);if(!hit)return;e.preventDefault();const old=locusPoints(st);st.p=locusProject(st.kind,hit.p,old.P);const next=locusPoints(st);for(const n of Object.keys(next))if(old[n])traceAdd(st,n,next[n],old[n]);changed()});
+   surface.addEventListener('pointermove',e=>{if(drag!==e.pointerId)return;const hit=locate(e);if(!hit)return;e.preventDefault();const old=locusPoints(st);st.p=locusProject(st.kind,hit.p,old.P);const next=locusPoints(st);const jumped=st.kind==='parallel'&&old.P[1]!==next.P[1];for(const n of Object.keys(next))if(old[n]){if(jumped&&st.traceNames?.includes(n)&&st.traces?.[n]?.length&&st.traces[n].at(-1)!==null)st.traces[n].push(null);if(!jumped)traceAdd(st,n,next[n],old[n])}changed()});
    const finish=e=>{if(drag===e.pointerId)drag=null};for(const t of ['pointerup','pointercancel','lostpointercapture'])surface.addEventListener(t,finish);
    paint();
  }
