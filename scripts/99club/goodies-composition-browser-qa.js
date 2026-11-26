@@ -485,7 +485,7 @@ async function run(){
 
   const abSettings=abFrame.querySelector('[data-board-settings]');abSettings.click();await tick();
   const abFloating=document.getElementById('gd-board-floating-controls');
-  assert(visible(abFloating)&&abFloating.querySelector('#ab-rows')&&abFloating.querySelector('#ab-kind'),'Abacus exposes place-value column and instrument settings on the whiteboard');
+  assert(visible(abFloating)&&abFloating.querySelector('#ab-rows')&&!abFloating.querySelector('#ab-kind')&&abFrame.querySelector('[data-board-mode-picker] select').options.length===8,'Abacus exposes place-value column and instrument settings on the whiteboard');
   const visibleAbWorkflows=[...abFloating.querySelectorAll('[data-ab-workflow]')].filter(visible).map(b=>b.textContent.trim());
   assert(visibleAbWorkflows.includes('Setup')&&visibleAbWorkflows.includes('Teach / play')&&!visibleAbWorkflows.includes('Challenge')&&!visibleAbWorkflows.includes('Export'),'Embedded Abacus keeps Setup / Teach controls and removes duplicate Challenge / Export tabs');
   abSettings.click();await tick();
