@@ -1270,6 +1270,32 @@ async function run(){
         }
       }
     }
+    {
+      const model=win.TT99Goodies.angles,dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]),near=(a,b)=>Math.abs(a-b)<1e-6;
+      for(const kind of Object.keys(model.LOCUS_PARAMETERS)){
+        const defs=model.LOCUS_PARAMETERS[kind];
+        for(const factor of [0,.5,1]){
+          const params=model.locusParameters(kind,Object.fromEntries(defs.map(([id,,min,max])=>[id,min+(max-min)*factor]))),st=model.locusInitial(kind,params);
+          for(let x=100;x<=700;x+=100)for(let y=50;y<=400;y+=50){
+            st.p=model.locusProject(kind,[x,y],st.p,params);const p=model.locusPoints(st);
+            assert(Object.values(p).every(q=>q.every(Number.isFinite)),'Configurable locus finite: '+kind);
+            if(kind==='circle')assert(near(dist(p.P,p.O),40*params.radius),'Adjustable radius');
+            if(kind==='bisector')assert(near(dist(p.P,p.A),dist(p.P,p.B))&&near(dist(p.A,p.B),40*params.separation),'Adjustable bisector anchors');
+            if(kind==='parallel')assert(near(dist(p.P,p.F),40*params.distance),'Adjustable parallel distance');
+            if(kind==='angleBisector')assert(near(dist(p.P,p.F),dist(p.P,p.G)),'Adjustable angle bisectors');
+            if(kind==='ellipse')assert(near(dist(p.P,p.A)+dist(p.P,p.B),80*params.major),'Adjustable ellipse focal sum');
+            if(kind==='fixedAngle')assert(Math.abs((p.A[0]-p.P[0])*(p.B[0]-p.P[0])+(p.A[1]-p.P[1])*(p.B[1]-p.P[1]))<1e-6,'Adjustable diameter right angle');
+            if(kind==='reflection')assert(near(p.P[0]+p.Q[0],80*params.axis)&&near(p.P[1],p.Q[1]),'Adjustable mirror axis');
+          }
+        }
+      }
+      preset.value='circle';preset.dispatchEvent(new win.Event('change',{bubbles:true}));
+      doc.querySelector('[data-ag-locus-action="settings"]').click();
+      const radiusControl=doc.querySelector('[data-ag-locus-parameter="radius"]');radiusControl.value='2';
+      doc.querySelector('[data-ag-locus-action="apply"]').click();
+      const saved=cap().demo.locusState;assert(saved.params.radius===2&&near(dist(model.locusPoints(saved).P,model.locusPoints(saved).O),80),'Dimensions apply and persist in snapshot');
+      assert(!Object.keys(saved.traces).length,'Changing dimensions clears stale traces');
+    }
     const polygonMode=doc.getElementById('ag-mode');polygonMode.value='polygon';polygonMode.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
     const chooseShape=doc.getElementById('ag-shape-view');chooseShape.value='rectangle';chooseShape.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
     doc.querySelector('[data-ag-action="diagonal"]').click();await tick();
