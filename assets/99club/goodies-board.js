@@ -9,7 +9,7 @@ const root=G.root;
 const tools=Array.isArray(G.toolCatalogue)?G.toolCatalogue:[];
 const SNAP=10;
 const BOARD_W=2800,BOARD_H=1800;
-const AUTO_SHRINK_HEIGHT_TOOLS=new Set(['number-line','place-value','abacus','array-builder','factors','fdp','clock','money','measurement','sequences']);
+const AUTO_SHRINK_HEIGHT_TOOLS=new Set(['angles','number-line','place-value','abacus','array-builder','factors','fdp','clock','money','measurement','sequences']);
 let nextId=1,selectedId=null,snapOn=true,zCounter=10,drag=null,resize=null,pan=null;
 
 const defaults={
@@ -26,7 +26,7 @@ const defaults={
   'coordinates':[680,610],
   'measurement':[780,650],
   'randomiser':[680,500],
-  'angles':[840,650],
+  'angles':[800,550],
   'function-machine':[840,480],
   'statistics-table':[760,620],
   'balance':[760,580],
