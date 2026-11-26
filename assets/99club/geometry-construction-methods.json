@@ -2248,6 +2248,1673 @@
         ]
       },
       "objective": "Inscribe a regular hexagon in the given circle."
+    },
+    {
+      "id": "triangle-equilateral",
+      "title": "Construct an equilateral triangle",
+      "category": "Triangles",
+      "given": [
+        "segment AB"
+      ],
+      "instruments": [
+        "compass",
+        "straightedge"
+      ],
+      "objective": "Construct an equilateral triangle on AB.",
+      "steps": [
+        "Set the compass opening to AB. Draw an arc from A above AB.",
+        "Without changing the opening draw an arc from B intersecting the first at C.",
+        "Join A to C and B to C."
+      ],
+      "why": "All three sides are equal to the unchanged compass opening.",
+      "checks": [
+        "AB = AC = BC",
+        "All angles are 60°"
+      ],
+      "conditions": "Either side of AB is valid.",
+      "graphics": {
+        "viewBox": [
+          0,
+          0,
+          400,
+          280
+        ],
+        "initial": [
+          {
+            "kind": "line",
+            "a": [
+              120,
+              205
+            ],
+            "b": [
+              280,
+              205
+            ],
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              120,
+              205
+            ],
+            "label": "A",
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              280,
+              205
+            ],
+            "label": "B",
+            "style": "given"
+          }
+        ],
+        "frames": [
+          {
+            "add": [
+              {
+                "kind": "arc",
+                "center": [
+                  120,
+                  205
+                ],
+                "radius": 160,
+                "start": -82,
+                "end": -37.99999999999999,
+                "style": "construction"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "arc",
+                "center": [
+                  280,
+                  205
+                ],
+                "radius": 160,
+                "start": -142,
+                "end": -98.00000000000001,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  200,
+                  66.43593539448983
+                ],
+                "label": "C",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  120,
+                  205
+                ],
+                "b": [
+                  200,
+                  66.43593539448983
+                ],
+                "style": "result"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  280,
+                  205
+                ],
+                "b": [
+                  200,
+                  66.43593539448983
+                ],
+                "style": "result"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "triangle-sas",
+      "title": "Triangle from two sides and included angle",
+      "category": "Triangles",
+      "given": [
+        "AB length",
+        "AC length",
+        "angle BAC"
+      ],
+      "instruments": [
+        "compass",
+        "straightedge",
+        "graduated ruler",
+        "protractor"
+      ],
+      "objective": "Construct triangle ABC using the given lengths and included angle.",
+      "steps": [
+        "Draw AB to the given length.",
+        "At A use the protractor to draw a ray at the specified angle from AB.",
+        "Open the compass to the given length AC and mark C on that ray.",
+        "Join B to C."
+      ],
+      "why": "The specified angle and two adjacent sides fix the shape and size.",
+      "checks": [
+        "AB and AC have the specified lengths",
+        "Angle BAC has the specified size"
+      ],
+      "conditions": "The included angle must lie strictly between 0° and 180°; a reflected triangle is also valid.",
+      "graphics": {
+        "viewBox": [
+          0,
+          0,
+          400,
+          280
+        ],
+        "initial": [],
+        "frames": [
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  100,
+                  210
+                ],
+                "b": [
+                  300,
+                  210
+                ],
+                "style": "given"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  100,
+                  210
+                ],
+                "label": "A",
+                "style": "given"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  300,
+                  210
+                ],
+                "label": "B",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  100,
+                  210
+                ],
+                "b": [
+                  195,
+                  45.45517328095667
+                ],
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  100,
+                  210
+                ],
+                "radius": 33,
+                "start": -60,
+                "end": 0,
+                "style": "construction"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "arc",
+                "center": [
+                  100,
+                  210
+                ],
+                "radius": 150,
+                "start": -84,
+                "end": -36.00000000000001,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  175,
+                  80.0961894323342
+                ],
+                "label": "C",
+                "style": "given"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  100,
+                  210
+                ],
+                "b": [
+                  175,
+                  80.0961894323342
+                ],
+                "style": "result"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  300,
+                  210
+                ],
+                "b": [
+                  175,
+                  80.0961894323342
+                ],
+                "style": "result"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "triangle-right-legs",
+      "title": "Right-angled triangle from perpendicular sides",
+      "category": "Triangles",
+      "given": [
+        "AB length",
+        "AC length"
+      ],
+      "instruments": [
+        "compass",
+        "straightedge",
+        "graduated ruler"
+      ],
+      "objective": "Construct a right-angled triangle with the right angle at A.",
+      "steps": [
+        "Draw AB to length and extend its line past A.",
+        "Mark X and Y on the line at equal distances from A.",
+        "Draw equal compass arcs from X and Y meeting at Z above the line. Draw ray AZ.",
+        "Mark C on AZ using the specified length AC.",
+        "Join B to C."
+      ],
+      "why": "The equal arcs locate a perpendicular through A; the compass fixes AC.",
+      "checks": [
+        "AB and AC match the given lengths",
+        "Angle BAC = 90°"
+      ],
+      "conditions": "Both given lengths must be positive.",
+      "graphics": {
+        "viewBox": [
+          0,
+          0,
+          400,
+          280
+        ],
+        "initial": [],
+        "frames": [
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  105,
+                  205
+                ],
+                "b": [
+                  295,
+                  205
+                ],
+                "style": "given"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  60,
+                  205
+                ],
+                "b": [
+                  105,
+                  205
+                ],
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  105,
+                  205
+                ],
+                "label": "A",
+                "style": "given"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  295,
+                  205
+                ],
+                "label": "B",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "arc",
+                "center": [
+                  105,
+                  205
+                ],
+                "radius": 45,
+                "start": 160,
+                "end": 200,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  105,
+                  205
+                ],
+                "radius": 45,
+                "start": -20,
+                "end": 20,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  60,
+                  205
+                ],
+                "label": "X",
+                "style": "given"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  150,
+                  205
+                ],
+                "label": "Y",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "arc",
+                "center": [
+                  60,
+                  205
+                ],
+                "radius": 85,
+                "start": -78.03428124920305,
+                "end": -38.03428124920305,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  150,
+                  205
+                ],
+                "radius": 85,
+                "start": -141.96571875079695,
+                "end": -101.96571875079697,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  105,
+                  132.88897449072022
+                ],
+                "label": "Z",
+                "style": "given"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  105,
+                  205
+                ],
+                "b": [
+                  105,
+                  45
+                ],
+                "style": "construction"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "arc",
+                "center": [
+                  105,
+                  205
+                ],
+                "radius": 120,
+                "start": -110,
+                "end": -70,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  105,
+                  85
+                ],
+                "label": "C",
+                "style": "given"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  105,
+                  205
+                ],
+                "b": [
+                  105,
+                  85
+                ],
+                "style": "result"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  295,
+                  205
+                ],
+                "b": [
+                  105,
+                  85
+                ],
+                "style": "result"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "square-on-side",
+      "title": "Construct a square on a given side",
+      "category": "Quadrilaterals",
+      "given": [
+        "segment AB"
+      ],
+      "instruments": [
+        "compass",
+        "straightedge"
+      ],
+      "objective": "Construct square ABCD on AB.",
+      "steps": [
+        "Mark X and Y at equal distances from A along the extended line AB.",
+        "Draw equal arcs from X and Y meeting at Z above AB. Draw a ray through A and Z.",
+        "Transfer AB with the compass onto ray AZ to mark D.",
+        "Using compass opening AB, draw arcs from B and D to meet at C, other than A.",
+        "Join B to C and C to D."
+      ],
+      "why": "AD is perpendicular and equal to AB; the remaining equal-length sides close a square.",
+      "checks": [
+        "AB = BC = CD = DA",
+        "Four right angles"
+      ],
+      "conditions": "Either side of AB is valid.",
+      "graphics": {
+        "viewBox": [
+          0,
+          0,
+          400,
+          280
+        ],
+        "initial": [
+          {
+            "kind": "line",
+            "a": [
+              120,
+              210
+            ],
+            "b": [
+              280,
+              210
+            ],
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              120,
+              210
+            ],
+            "label": "A",
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              280,
+              210
+            ],
+            "label": "B",
+            "style": "given"
+          }
+        ],
+        "frames": [
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  80,
+                  210
+                ],
+                "b": [
+                  120,
+                  210
+                ],
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  120,
+                  210
+                ],
+                "radius": 40,
+                "start": 160,
+                "end": 200,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  120,
+                  210
+                ],
+                "radius": 40,
+                "start": -20,
+                "end": 20,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  80,
+                  210
+                ],
+                "label": "X",
+                "style": "given"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  160,
+                  210
+                ],
+                "label": "Y",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "arc",
+                "center": [
+                  80,
+                  210
+                ],
+                "radius": 90,
+                "start": -83.61220003875701,
+                "end": -43.61220003875701,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  160,
+                  210
+                ],
+                "radius": 90,
+                "start": -136.387799961243,
+                "end": -96.38779996124299,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  120,
+                  129.3774225170145
+                ],
+                "label": "Z",
+                "style": "given"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  120,
+                  210
+                ],
+                "b": [
+                  120,
+                  25
+                ],
+                "style": "construction"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "arc",
+                "center": [
+                  120,
+                  210
+                ],
+                "radius": 160,
+                "start": -110,
+                "end": -70,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  120,
+                  50
+                ],
+                "label": "D",
+                "style": "given"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  120,
+                  210
+                ],
+                "b": [
+                  120,
+                  50
+                ],
+                "style": "result"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "arc",
+                "center": [
+                  280,
+                  210
+                ],
+                "radius": 160,
+                "start": -110,
+                "end": -70,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  120,
+                  50
+                ],
+                "radius": 160,
+                "start": -20,
+                "end": 20,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  280,
+                  50
+                ],
+                "label": "C",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  280,
+                  210
+                ],
+                "b": [
+                  280,
+                  50
+                ],
+                "style": "result"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  280,
+                  50
+                ],
+                "b": [
+                  120,
+                  50
+                ],
+                "style": "result"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "rectangle-sides",
+      "title": "Construct a rectangle from length and width",
+      "category": "Quadrilaterals",
+      "given": [
+        "AB length",
+        "AD width"
+      ],
+      "instruments": [
+        "compass",
+        "straightedge",
+        "graduated ruler",
+        "protractor"
+      ],
+      "objective": "Construct rectangle ABCD with the given dimensions.",
+      "steps": [
+        "Draw AB to length.",
+        "At A draw a 90° ray from AB and mark D using the width.",
+        "At B draw a 90° ray from BA on the same side and mark C at the same width.",
+        "Join D to C."
+      ],
+      "why": "Both perpendicular sides are equal and parallel, so the fourth side is parallel and equal to AB.",
+      "checks": [
+        "Opposite sides equal",
+        "Four right angles",
+        "AB and AD match the given dimensions"
+      ],
+      "conditions": "Both dimensions must be positive.",
+      "graphics": {
+        "viewBox": [
+          0,
+          0,
+          400,
+          280
+        ],
+        "initial": [],
+        "frames": [
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  80,
+                  205
+                ],
+                "b": [
+                  290,
+                  205
+                ],
+                "style": "given"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  80,
+                  205
+                ],
+                "label": "A",
+                "style": "given"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  290,
+                  205
+                ],
+                "label": "B",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  80,
+                  205
+                ],
+                "b": [
+                  80,
+                  50
+                ],
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  80,
+                  205
+                ],
+                "radius": 115,
+                "start": -110,
+                "end": -70,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  80,
+                  90
+                ],
+                "label": "D",
+                "style": "given"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  80,
+                  205
+                ],
+                "b": [
+                  80,
+                  90
+                ],
+                "style": "result"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  290,
+                  205
+                ],
+                "b": [
+                  290,
+                  50
+                ],
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  290,
+                  205
+                ],
+                "radius": 115,
+                "start": -110,
+                "end": -70,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  290,
+                  90
+                ],
+                "label": "C",
+                "style": "given"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  290,
+                  205
+                ],
+                "b": [
+                  290,
+                  90
+                ],
+                "style": "result"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  80,
+                  90
+                ],
+                "b": [
+                  290,
+                  90
+                ],
+                "style": "result"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "parallelogram-sas",
+      "title": "Construct a parallelogram from adjacent sides and angle",
+      "category": "Quadrilaterals",
+      "given": [
+        "AB length",
+        "AD length",
+        "angle DAB"
+      ],
+      "instruments": [
+        "compass",
+        "straightedge",
+        "graduated ruler",
+        "protractor"
+      ],
+      "objective": "Construct parallelogram ABCD.",
+      "steps": [
+        "Draw AB to the specified length.",
+        "At A construct the specified angle and mark D at the given length AD.",
+        "Draw an arc centred at B with radius AD.",
+        "Draw an arc centred at D with radius AB. Mark the intersection C on the opposite side of BD from A.",
+        "Join B to C and C to D."
+      ],
+      "why": "Both pairs of opposite sides are equal by construction, establishing a parallelogram.",
+      "checks": [
+        "AB = CD",
+        "AD = BC",
+        "Opposite sides parallel"
+      ],
+      "conditions": "Choose the non-crossing solution; the included angle must be between 0° and 180°.",
+      "graphics": {
+        "viewBox": [
+          0,
+          0,
+          400,
+          280
+        ],
+        "initial": [],
+        "frames": [
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  90,
+                  210
+                ],
+                "b": [
+                  240,
+                  210
+                ],
+                "style": "given"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  90,
+                  210
+                ],
+                "label": "A",
+                "style": "given"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  240,
+                  210
+                ],
+                "label": "B",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  90,
+                  210
+                ],
+                "b": [
+                  136.48800879147694,
+                  110.3061434259685
+                ],
+                "style": "result"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  136.48800879147694,
+                  110.3061434259685
+                ],
+                "label": "D",
+                "style": "given"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  90,
+                  210
+                ],
+                "radius": 32,
+                "start": -65,
+                "end": 0,
+                "style": "construction"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "arc",
+                "center": [
+                  240,
+                  210
+                ],
+                "radius": 110,
+                "start": -85,
+                "end": -45,
+                "style": "construction"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "arc",
+                "center": [
+                  136.48800879147694,
+                  110.3061434259685
+                ],
+                "radius": 150,
+                "start": -20,
+                "end": 20,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  286.48800879147694,
+                  110.3061434259685
+                ],
+                "label": "C",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  240,
+                  210
+                ],
+                "b": [
+                  286.48800879147694,
+                  110.3061434259685
+                ],
+                "style": "result"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  286.48800879147694,
+                  110.3061434259685
+                ],
+                "b": [
+                  136.48800879147694,
+                  110.3061434259685
+                ],
+                "style": "result"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "triangle-circumcircle",
+      "title": "Construct the circumcircle of a triangle",
+      "category": "Circles",
+      "given": [
+        "non-collinear triangle ABC"
+      ],
+      "instruments": [
+        "compass",
+        "straightedge"
+      ],
+      "objective": "Draw a circle through all three vertices.",
+      "steps": [
+        "Construct the perpendicular bisector of AB using equal compass arcs.",
+        "Construct the perpendicular bisector of BC using equal compass arcs.",
+        "Mark their intersection O, the circumcentre.",
+        "Set the compass to OA and draw the circle centred at O."
+      ],
+      "why": "O is equidistant from A and B and from B and C; therefore OA = OB = OC.",
+      "checks": [
+        "A, B and C lie on the constructed circle",
+        "OA = OB = OC"
+      ],
+      "conditions": "For an obtuse triangle the centre lies outside it; allow enough workspace.",
+      "graphics": {
+        "viewBox": [
+          0,
+          0,
+          400,
+          280
+        ],
+        "initial": [
+          {
+            "kind": "line",
+            "a": [
+              105,
+              190
+            ],
+            "b": [
+              295,
+              190
+            ],
+            "style": "given"
+          },
+          {
+            "kind": "line",
+            "a": [
+              295,
+              190
+            ],
+            "b": [
+              200,
+              65
+            ],
+            "style": "given"
+          },
+          {
+            "kind": "line",
+            "a": [
+              200,
+              65
+            ],
+            "b": [
+              105,
+              190
+            ],
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              105,
+              190
+            ],
+            "label": "A",
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              295,
+              190
+            ],
+            "label": "B",
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              200,
+              65
+            ],
+            "label": "C",
+            "style": "given"
+          }
+        ],
+        "frames": [
+          {
+            "add": [
+              {
+                "kind": "arc",
+                "center": [
+                  105,
+                  190
+                ],
+                "radius": 115,
+                "start": 22.30115275679156,
+                "end": 46.30115275679156,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  105,
+                  190
+                ],
+                "radius": 115,
+                "start": -46.30115275679156,
+                "end": -22.30115275679156,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  295,
+                  190
+                ],
+                "radius": 115,
+                "start": 133.69884724320846,
+                "end": 157.69884724320846,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  295,
+                  190
+                ],
+                "radius": 115,
+                "start": -157.69884724320846,
+                "end": -133.69884724320846,
+                "style": "construction"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  200,
+                  32
+                ],
+                "b": [
+                  200,
+                  255
+                ],
+                "style": "construction"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "arc",
+                "center": [
+                  295,
+                  190
+                ],
+                "radius": 95,
+                "start": -104.95865896503214,
+                "end": -80.95865896503214,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  295,
+                  190
+                ],
+                "radius": 95,
+                "start": -173.5110089981172,
+                "end": -149.5110089981172,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  200,
+                  65
+                ],
+                "radius": 95,
+                "start": 6.488991001882798,
+                "end": 30.4889910018828,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  200,
+                  65
+                ],
+                "radius": 95,
+                "start": 75.04134103496789,
+                "end": 99.04134103496789,
+                "style": "construction"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  290.096537537011,
+                  95.12663147187163
+                ],
+                "b": [
+                  144.26864641138283,
+                  205.95582872734906
+                ],
+                "style": "construction"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "point",
+                "at": [
+                  200,
+                  163.6
+                ],
+                "label": "O",
+                "style": "result"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "circle",
+                "center": [
+                  200,
+                  163.6
+                ],
+                "radius": 98.60000000000001,
+                "style": "result"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "triangle-incircle",
+      "title": "Construct the incircle of a triangle",
+      "category": "Circles",
+      "given": [
+        "non-degenerate triangle ABC"
+      ],
+      "instruments": [
+        "compass",
+        "straightedge"
+      ],
+      "objective": "Construct the circle touching all three sides internally.",
+      "steps": [
+        "Construct the internal angle bisector at A.",
+        "Construct the internal angle bisector at B.",
+        "Mark their intersection I, the incentre.",
+        "Construct a perpendicular from I to side BC and mark its foot F.",
+        "Set the compass opening to IF and draw the circle centred at I."
+      ],
+      "why": "A point on an angle bisector is equidistant from its arms, so I has the same perpendicular distance to all three sides.",
+      "checks": [
+        "Circle touches each side once",
+        "Radius IF is perpendicular to BC"
+      ],
+      "conditions": "Use the internal angle bisectors, not the external ones.",
+      "graphics": {
+        "viewBox": [
+          0,
+          0,
+          400,
+          280
+        ],
+        "initial": [
+          {
+            "kind": "line",
+            "a": [
+              200,
+              55
+            ],
+            "b": [
+              110,
+              205
+            ],
+            "style": "given"
+          },
+          {
+            "kind": "line",
+            "a": [
+              110,
+              205
+            ],
+            "b": [
+              290,
+              205
+            ],
+            "style": "given"
+          },
+          {
+            "kind": "line",
+            "a": [
+              290,
+              205
+            ],
+            "b": [
+              200,
+              55
+            ],
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              200,
+              55
+            ],
+            "label": "A",
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              110,
+              205
+            ],
+            "label": "B",
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              290,
+              205
+            ],
+            "label": "C",
+            "style": "given"
+          }
+        ],
+        "frames": [
+          {
+            "add": [
+              {
+                "kind": "arc",
+                "center": [
+                  200,
+                  55
+                ],
+                "radius": 65,
+                "start": 100.96375653207352,
+                "end": 140.96375653207352,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  200,
+                  55
+                ],
+                "radius": 65,
+                "start": 39.03624346792648,
+                "end": 79.03624346792648,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  166.55777589721077,
+                  110.73704017131539
+                ],
+                "radius": 60,
+                "start": 36.125862135516876,
+                "end": 76.12586213551688,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  233.44222410278923,
+                  110.73704017131537
+                ],
+                "radius": 60,
+                "start": 103.8741378644831,
+                "end": 143.8741378644831,
+                "style": "construction"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  200,
+                  55
+                ],
+                "b": [
+                  200,
+                  205
+                ],
+                "style": "construction"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "arc",
+                "center": [
+                  110,
+                  205
+                ],
+                "radius": 65,
+                "start": -79.03624346792648,
+                "end": -39.036243467926475,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  110,
+                  205
+                ],
+                "radius": 65,
+                "start": -20,
+                "end": 20,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  143.44222410278923,
+                  149.26295982868464
+                ],
+                "radius": 60,
+                "start": -17.258464949995805,
+                "end": 22.741535050004195,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  175,
+                  205
+                ],
+                "radius": 60,
+                "start": -81.7777785179307,
+                "end": -41.77777851793069,
+                "style": "construction"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  110,
+                  205
+                ],
+                "b": [
+                  244.88098554678922,
+                  128.6316836775431
+                ],
+                "style": "construction"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "point",
+                "at": [
+                  200,
+                  154.0428658927846
+                ],
+                "label": "I",
+                "style": "result"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  200,
+                  154.0428658927846
+                ],
+                "b": [
+                  200,
+                  205
+                ],
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  200,
+                  205
+                ],
+                "label": "F",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "circle",
+                "center": [
+                  200,
+                  154.0428658927846
+                ],
+                "radius": 50.95713410721541,
+                "style": "result"
+              }
+            ]
+          }
+        ]
+      }
     }
   ],
   "presentation": {
