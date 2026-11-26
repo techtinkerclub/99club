@@ -1096,6 +1096,12 @@ async function run(){
     assert(work.querySelectorAll('[data-ag-region]').length===1&&cap().demo.labDrawing.regions.length===1,'Free construction stores a selected polygonal region');
     doc.querySelector('[data-ag-tool="undo"]').click();
     assert(!work.querySelector('[data-ag-region]'),'Undo removes the region without deleting its vertices');
+    doc.querySelector('[data-ag-tool="segment"]').click();
+    const lineTap=p=>{const v=new win.DOMPoint(...p).matrixTransform(work.getScreenCTM());for(const type of ['pointerdown','pointerup'])work.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:21,pointerType:'touch',button:0,clientX:v.x,clientY:v.y}))};
+    lineTap([150,150]);lineTap([300,350]);
+    const dim=work.querySelector('[data-ag-dimension]');assert(dim&&Math.abs(+dim.getAttribute('transform').match(/rotate\(([-\d.]+)/)[1]-Math.atan2(200,150)*180/Math.PI)<.1,'Length label rotates parallel to its sloping segment');
+    const paperDimensions=P.createDocument();paperDimensions.addCurrent(id,cap());assert(P.renderItem(paperDimensions.list()[0],false).querySelector('[data-ag-dimension]'),'Published free construction retains its offset length labels');
+
 
     const polygonMode=doc.getElementById('ag-mode');polygonMode.value='polygon';polygonMode.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
     const chooseShape=doc.getElementById('ag-shape-view');chooseShape.value='rectangle';chooseShape.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
