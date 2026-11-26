@@ -382,6 +382,30 @@ function generate(s={},rng=Math.random){
  }
  const SHAPE_DEFAULTS={rectangle:{},areaRectangle:{area:20},perimeterRectangle:{perimeter:24},isosceles:{base:6},rhombus:{side:4},rightTriangle:{base:6}};
  for(const [kind,c] of Object.entries(SHAPE_DEFAULTS))LOCUS_PRESETS[kind]=constrainedShape(kind,c);
+ // Circle relationships use exact vector geometry, not visually estimated contacts.
+ function tangentContacts(o,p,r){const v=labSub(p,o),d2=labDot(v,v);if(d2<=r*r)return [];const f=r*r/d2,k=r*Math.sqrt(d2-r*r)/d2,b=labAt(o,v,f),n=[-v[1],v[0]];return [labAt(b,n,k),labAt(b,n,-k)]}
+ function circleContacts(a,b,r,s){const v=labSub(b,a),d=Math.hypot(...v);if(d<1e-8||d>r+s||d<Math.abs(r-s))return [];const x=(r*r-s*s+d*d)/(2*d),h=Math.sqrt(Math.max(0,r*r-x*x)),u=v.map(n=>n/d),m=labAt(a,u,x),n=[-u[1],u[0]];return [labAt(m,n,h),labAt(m,n,-h)]}
+ function circleRelationship(kind,c){
+   const O=[400,220],r=40*c.radius;
+   if(kind==='tangent'){
+     const ends=p=>{const v=labSub(p,O).map(n=>n/r),t=[-v[1],v[0]];return {A:labAt(p,t,120),B:labAt(p,t,-120)}};
+     return {label:'Tangent at a point on a circle',initial:[400+r,220],anchors:{O},links:[['O','P'],['A','B']],project:(p,old)=>locusCircle(p,O,r,old),dependent:ends,guides:[{circle:[...O,r]}],objects:()=>[{circle:[...O,r]}],rightTriples:[['O','P','A']],summary:()=> 'OP = '+c.radius.toFixed(1)+' cm   ·   Radius meets tangent at 90°',rule:'Drag P around the circle. The tangent remains perpendicular to OP.',hiddenPoints:['A','B']};
+   }
+   if(kind==='externalTangents'){
+     const initial=[400+r+65,220],project=(p,old)=>{const v=labSub(p,O),d=Math.hypot(...v);return locusCircle(p,O,locusClamp(d,r+25,175),old)},dependent=p=>{const [T,U]=tangentContacts(O,p,r);return {T,U}};
+     return {label:'Two tangents from an external point',initial,anchors:{O},links:[['O','T'],['O','U'],['P','T'],['P','U']],project,dependent,guides:[{circle:[...O,r+25]},{circle:[...O,175]}],objects:()=>[{circle:[...O,r]}],rightTriples:[['O','T','P'],['O','U','P']],equalEdges:[['P','T'],['P','U']],summary:p=>'PT = PU = '+(Math.sqrt(labDot(labSub(p,O),labSub(p,O))-r*r)/40).toFixed(2)+' cm',rule:'The two tangent lengths from the same external point are equal.'};
+   }
+   if(kind==='circleChord'){
+     const at=y=>[400,y],project=p=>at(locusClamp(p[1],220-r+5,220+r-5)),dependent=p=>{const dx=Math.sqrt(r*r-(p[1]-220)**2);return {A:[400-dx,p[1]],B:[400+dx,p[1]]}};
+     return {label:'Chord and perpendicular bisector',initial:at(220-r/2),anchors:{O},links:[['O','A'],['O','B'],['O','P'],['A','B']],project,dependent,guides:[{line:[at(220-r+5),at(220+r-5)]}],objects:()=>[{circle:[...O,r]}],equalEdges:[['P','A'],['P','B']],rightTriples:[['O','P','B']],summary:p=>'AP = PB = '+(Math.sqrt(r*r-(p[1]-220)**2)/40).toFixed(2)+' cm',rule:'The perpendicular from the centre bisects every chord.'};
+   }
+   if(kind==='circleIntersection'||kind==='circleTangency'){
+     const s=40*c.secondRadius,min=Math.abs(r-s)+12,max=r+s-12,touch=kind==='circleTangency',internal=touch&&c.contact==='internal',d=internal?Math.abs(r-s):r+s,initial=[400+(touch?d:(min+max)/2),220],project=(p,old)=>{const v=labSub(p,O),dist=Math.hypot(...v),angle=Math.atan2(v[1],v[0]),range=touch?d:locusClamp(dist,min,max),t=dist<1e-8?Math.atan2(old[1]-220,old[0]-400):angle;return [400+range*Math.cos(t),220+range*Math.sin(t)]},dependent=p=>{if(touch){const v=labSub(p,O),len=Math.hypot(...v);return {T:labAt(O,v,(internal&&s>r?-r:r)/len)}}const [T,U]=circleContacts(O,p,r,s);return {T,U}};
+     return {label:touch?'Two tangent circles':'Intersection of two circles',initial,anchors:{O},links:touch?[['O','P'],['O','T'],['P','T']]:[['O','T'],['P','T'],['O','U'],['P','U']],project,dependent,guides:touch?[{circle:[...O,d]}]:[{circle:[...O,min]},{circle:[...O,max]}],objects:p=>[{circle:[...O,r]},{circle:[...p,s]}],summary:p=>touch?'OP = '+(labDist(O,p)/40).toFixed(2)+' cm   ·   '+(internal?'Internal':'External')+' tangency':'OT = OU = '+c.radius.toFixed(1)+' cm   ·   PT = PU = '+c.secondRadius.toFixed(1)+' cm',rule:touch?'The centres and the single contact point remain collinear.':'Both intersection points remain on both circles as P moves.'};
+   }
+ }
+ const RELATION_DEFAULTS={tangent:{radius:3},externalTangents:{radius:2.5},circleChord:{radius:3.5},circleIntersection:{radius:2,secondRadius:1.5},circleTangency:{radius:2,secondRadius:1,contact:'external'}};
+ for(const [kind,c] of Object.entries(RELATION_DEFAULTS))LOCUS_PRESETS[kind]=circleRelationship(kind,c);
  const LOCUS_PARAMETERS={
    circle:[['radius','Radius (cm)',1,4,.5,3.5]],
    bisector:[['separation','Distance AB (cm)',2,12,.5,7.5]],
@@ -390,11 +414,12 @@ function generate(s={},rng=Math.random){
    ellipse:[['major','Semi-major axis (cm)',3,6,.5,5],['minor','Semi-minor axis (cm)',1,4,.5,4]],
    fixedAngle:[['diameter','Diameter AB (cm)',2,8,.5,6]],
    reflection:[['axis','Mirror x-position (cm)',8,12,.5,10]],
-   rectangle:[],areaRectangle:[['area','Area (cm²)',6,36,2,20]],perimeterRectangle:[['perimeter','Perimeter (cm)',10,34,2,24]],isosceles:[['base','Base AB (cm)',2,10,.5,6]],rhombus:[['side','Side length (cm)',2,4.5,.5,4]],rightTriangle:[['base','Base AB (cm)',2,10,.5,6]]
+   rectangle:[],areaRectangle:[['area','Area (cm²)',6,36,2,20]],perimeterRectangle:[['perimeter','Perimeter (cm)',10,34,2,24]],isosceles:[['base','Base AB (cm)',2,10,.5,6]],rhombus:[['side','Side length (cm)',2,4.5,.5,4]],rightTriangle:[['base','Base AB (cm)',2,10,.5,6]],
+   tangent:[['radius','Radius (cm)',1,3.5,.5,3]],externalTangents:[['radius','Radius (cm)',1,3,.5,2.5]],circleChord:[['radius','Radius (cm)',1,4,.5,3.5]],circleIntersection:[['radius','Radius O (cm)',1,2,.5,2],['secondRadius','Radius P (cm)',1,1.5,.5,1.5]],circleTangency:[['radius','Radius O (cm)',1.5,2,.5,2],['secondRadius','Radius P (cm)',.5,1,.5,1]]
  };
  function locusParameters(kind,values={}){const out={};for(const [id,,min,max,step,initial] of LOCUS_PARAMETERS[kind]||[]){const v=Number(values[id]);out[id]=Number.isFinite(v)?locusClamp(Math.round((v-min)/step)*step+min,min,max):initial}if(kind==='ellipse')out.minor=Math.min(out.minor,out.major-.5);return out}
  function locusPreset(kind,values){
-   const base=LOCUS_PRESETS[kind]||LOCUS_PRESETS.circle;if(!values)return base;const c=locusParameters(kind,values),o=[400,220];if(Object.hasOwn(SHAPE_DEFAULTS,kind))return constrainedShape(kind,c);
+   const base=LOCUS_PRESETS[kind]||LOCUS_PRESETS.circle;if(!values)return base;const c=locusParameters(kind,values),o=[400,220];if(Object.hasOwn(SHAPE_DEFAULTS,kind))return constrainedShape(kind,c);if(Object.hasOwn(RELATION_DEFAULTS,kind))return circleRelationship(kind,c);
    if(kind==='circle'){const r=40*c.radius;return {...base,initial:[400+r,220],project:(p,old)=>locusCircle(p,o,r,old),guides:[{circle:[...o,r]}],summary:p=>'OP = '+(labDist(p,o)/40).toFixed(2)+' cm (constant)'}}
    if(kind==='bisector'){const A=[400-20*c.separation,220],B=[400+20*c.separation,220];return {...base,anchors:{A,B},summary:p=>'AP = BP = '+(labDist(p,A)/40).toFixed(2)+' cm'}}
    if(kind==='parallel'){const d=40*c.distance;return {...base,initial:[400,220-d],project:(p,old)=>[locusClamp(p[0],100,700),220+(p[1]===220?(old[1]<220?-d:d):p[1]<220?-d:d)],guides:[{line:[[100,220-d],[700,220-d]]},{line:[[100,220+d],[700,220+d]]}],summary:()=> 'PF = '+c.distance.toFixed(2)+' cm (constant)'}}
@@ -420,7 +445,7 @@ function generate(s={},rng=Math.random){
    else state.traceNames.push(name)
  }
 
-const model={LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labLabel,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,locusInitial,locusProject,locusPoints,traceParts,traceAdd,traceToggle,shapeGeometry,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
+const model={tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labLabel,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,locusInitial,locusProject,locusPoints,traceParts,traceAdd,traceToggle,shapeGeometry,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
 if(typeof module==='object'&&module.exports){module.exports=model;return}
 const G=root.TT99Goodies;if(!G)return;G.angles=model;
 const {q,qa,esc,field,btn,setPanels}=G,CK=G.challengeKit;
@@ -556,13 +581,15 @@ function diagram(d,teacher=false,options={}){
  if(mode==='loci'){
    const st=d.locusState||locusInitial(),preset=locusPreset(st.kind,st.params),points=locusPoints(st),P=points.P,showM=st.showMidpoint||st.traceNames?.includes('M')||st.traces?.M?.length,guideAttrs={fill:'none',stroke:'#83a99f','stroke-width':1.6,'stroke-dasharray':'6 5','data-ag-locus-guide':'1'};
    if(st.showLocus)for(const g of preset.guides){if(g.circle){const [cx,cy,r]=g.circle;add('circle',{cx,cy,r,...guideAttrs})}else if(g.ellipse){const [cx,cy,rx,ry]=g.ellipse;add('ellipse',{cx,cy,rx,ry,...guideAttrs})}else if(g.polyline)add('polyline',{points:g.polyline.map(p=>p.join(',')).join(' '),...guideAttrs});else line(...g.line,'#83a99f',1.6,guideAttrs)}
+   for(const g of preset.objects?.(P)||[]){const [cx,cy,r]=g.circle;add('circle',{cx,cy,r,fill:'none',stroke:ink,'stroke-width':2.2,'data-ag-constraint-circle':'1'})}
    for(const [name,trail] of Object.entries(st.traces||{}))for(const pts of traceParts(trail))add('polyline',{points:pts.map(p=>p.join(',')).join(' '),fill:'none',stroke:name==='P'?orange:'#5385c5','stroke-width':2.4,'stroke-linejoin':'round','stroke-linecap':'round','data-ag-locus-trace':name});
    if(preset.shape)add('polygon',{points:preset.shape.map(n=>points[n].join(',')).join(' '),fill:'#dceee9','fill-opacity':.45,stroke:'none','data-ag-constrained-shape':st.kind});
    for(const [a,b] of preset.links){const fixed=a in preset.anchors&&b in preset.anchors;line(points[a],points[b],fixed?ink:teal,fixed?1.5:2.5,fixed&&!preset.shape?{'stroke-dasharray':'5 4'}:{})}
    for(const n of preset.rightCorners||[]){const i=preset.shape.indexOf(n),p=points[n],a=points[preset.shape[(i+1)%preset.shape.length]],b=points[preset.shape[(i+preset.shape.length-1)%preset.shape.length]],u=labSub(a,p),v=labSub(b,p),q=labAt(p,u,13/Math.hypot(...u)),r=labAt(p,v,13/Math.hypot(...v));add('polyline',{points:[q,[q[0]+r[0]-p[0],q[1]+r[1]-p[1]],r].map(p=>p.join(',')).join(' '),fill:'none',stroke:teal,'stroke-width':1.7,'data-ag-constraint-right-angle':n})}
+   for(const [a,n,b] of preset.rightTriples||[]){const p=points[n],u=labSub(points[a],p),v=labSub(points[b],p),lu=Math.hypot(...u),lv=Math.hypot(...v);if(lu<1e-6||lv<1e-6)continue;const q=labAt(p,u,Math.min(13,lu*.5)/lu),r=labAt(p,v,Math.min(13,lv*.5)/lv);add('polyline',{points:[q,[q[0]+r[0]-p[0],q[1]+r[1]-p[1]],r].map(p=>p.join(',')).join(' '),fill:'none',stroke:teal,'stroke-width':1.7,'data-ag-constraint-right-angle':n})}
    for(const [a,b] of preset.equalEdges||[]){const p=points[a],q=points[b],m=labAt(p,labSub(q,p),.5),angle=labAngle(p,q)+90;line(polar(...m,7,angle),polar(...m,7,angle+180),teal,2,{'data-ag-constraint-equal-side':'1'})}
    const namePoint=(p,name,movable=false)=>{if(st.traceNames?.includes(name)&&!options.paper)add('circle',{cx:p[0],cy:p[1],r:11,fill:'none',stroke:name==='P'?orange:'#5385c5','stroke-width':2});add('circle',{cx:p[0],cy:p[1],r:movable?6:4,fill:movable?teal:ink,'data-ag-locus-point':name});const neighbours=preset.links.filter(l=>l.includes(name)).map(l=>points[l.find(n=>n!==name)]),q=vertexLabel(p,neighbours[0],neighbours[1],18);text(q[0],q[1]+4,name,16,{'paint-order':'stroke',stroke:'#fff','stroke-width':3})};
-   for(const name of Object.keys(points))if(name!=='M'||showM)namePoint(points[name],name,name==='P');
+   for(const name of Object.keys(points))if((name!=='M'||showM)&&(!preset.hiddenPoints?.includes(name)||st.traceNames?.includes(name)))namePoint(points[name],name,name==='P');
    text(400,435,preset.summary(P),17);
    text(400,462,preset.rule,16);
    if(showM)text(400,484,'M is the midpoint of '+Object.keys(preset.anchors)[0]+'P.',15);
@@ -1054,7 +1081,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    let st=JSON.parse(JSON.stringify(initial||locusInitial())),drag=null,selecting=false;
    const bar=document.createElement('div');bar.className='gd-ag-inspect-tools';
    const choice=document.createElement('select');choice.className='gd-select';choice.setAttribute('aria-label','Locus relationship');choice.dataset.agLocusPreset='1';
-   for(const [title,filter] of [['Loci & relationships',k=>!Object.hasOwn(SHAPE_DEFAULTS,k)],['Constrained shapes',k=>Object.hasOwn(SHAPE_DEFAULTS,k)]]){const group=document.createElement('optgroup');group.label=title;for(const [value,{label}] of Object.entries(LOCUS_PRESETS).filter(([k])=>filter(k))){const o=document.createElement('option');o.value=value;o.textContent=label;group.append(o)}choice.append(group)}choice.value=st.kind;bar.append(choice);
+   for(const [title,filter] of [['Loci & relationships',k=>!Object.hasOwn(SHAPE_DEFAULTS,k)&&!Object.hasOwn(RELATION_DEFAULTS,k)],['Constrained shapes',k=>Object.hasOwn(SHAPE_DEFAULTS,k)],['Circles & tangents',k=>Object.hasOwn(RELATION_DEFAULTS,k)]]){const group=document.createElement('optgroup');group.label=title;for(const [value,{label}] of Object.entries(LOCUS_PRESETS).filter(([k])=>filter(k))){const o=document.createElement('option');o.value=value;o.textContent=label;group.append(o)}choice.append(group)}choice.value=st.kind;bar.append(choice);
    const button=(id,label,fn)=>{const b=document.createElement('button');b.type='button';b.className='gd-btn';b.dataset.agLocusAction=id;b.textContent=label;b.onclick=fn;bar.append(b);return b};
    const configure=button('settings','Dimensions',()=>{settingsBar.hidden=!settingsBar.hidden;configure.setAttribute('aria-pressed',String(!settingsBar.hidden))});
    const trace=button('trace','Select trace point',()=>{selecting=!selecting;paint()});
@@ -1075,7 +1102,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    }
    function locate(e){const svg=surface.querySelector('svg'),m=svg?.getScreenCTM();if(!m)return null;const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(m.inverse());return {p:[p.x,p.y],tol:Math.min(45,28/Math.hypot(m.a,m.b))}}
    surface.addEventListener('pointerdown',e=>{if(e.button!==0)return;const hit=locate(e);if(!hit)return;const pts=locusPoints(st);
-     if(selecting){const name=Object.keys(pts).filter(n=>!(n in locusPreset(st.kind,st.params).anchors)&&(n!=='M'||st.showMidpoint||st.traceNames?.includes('M')||st.traces?.M?.length)).sort((a,b)=>labDist(hit.p,pts[a])-labDist(hit.p,pts[b])).find(n=>labDist(hit.p,pts[n])<=hit.tol);if(name){traceToggle(st,name);changed()}return}
+     if(selecting){const name=Object.keys(pts).filter(n=>!(n in locusPreset(st.kind,st.params).anchors)&&!locusPreset(st.kind,st.params).hiddenPoints?.includes(n)&&(n!=='M'||st.showMidpoint||st.traceNames?.includes('M')||st.traces?.M?.length)).sort((a,b)=>labDist(hit.p,pts[a])-labDist(hit.p,pts[b])).find(n=>labDist(hit.p,pts[n])<=hit.tol);if(name){traceToggle(st,name);changed()}return}
      if(labDist(hit.p,pts.P)>hit.tol)return;e.preventDefault();drag=e.pointerId;try{surface.setPointerCapture(e.pointerId)}catch(_){}
    });
    surface.addEventListener('pointermove',e=>{if(drag!==e.pointerId)return;const hit=locate(e);if(!hit)return;e.preventDefault();const old=locusPoints(st);st.p=locusProject(st.kind,hit.p,old.P,st.params);const next=locusPoints(st);const jumped=st.kind==='parallel'&&old.P[1]!==next.P[1];for(const n of Object.keys(next))if(old[n]){if(jumped&&st.traceNames?.includes(n)&&st.traces?.[n]?.length&&st.traces[n].at(-1)!==null)st.traces[n].push(null);if(!jumped)traceAdd(st,n,next[n],old[n])}changed()});
