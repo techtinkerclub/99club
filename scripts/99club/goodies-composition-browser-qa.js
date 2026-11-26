@@ -1105,12 +1105,25 @@ async function run(){
     doc.querySelector('[data-ag-tool="help"]').click();
     const work=doc.querySelector('.gd-ag-lab-canvas'),beforeView=work.viewBox.baseVal.height,beforeScale=Math.hypot(work.getScreenCTM().a,work.getScreenCTM().b);
     doc.querySelector('[data-ag-tool="expand"]').click();await tick();
-    assert(work.viewBox.baseVal.height>beforeView&&Math.abs(Math.hypot(work.getScreenCTM().a,work.getScreenCTM().b)-beforeScale)<.02,'Workspace height increases without zooming geometry');
+    const wsField=id=>doc.querySelector('[data-ag-workspace="'+id+'"]');
+    wsField('format').value='A4';wsField('format').dispatchEvent(new win.Event('change',{bubbles:true}));wsField('orientation').value='landscape';wsField('grid').value='5';wsField('apply').click();await tick();
+    assert(work.viewBox.baseVal.width===1188&&work.viewBox.baseVal.height===840&&Math.abs(Math.hypot(work.getScreenCTM().a,work.getScreenCTM().b)-beforeScale)<.02,'A4 workspace expands without zooming geometry');
+    const verticalGrid=[...work.querySelectorAll('[data-ag-grid]')].filter(l=>l.getAttribute('x1')===l.getAttribute('x2'));
+    assert(Number(verticalGrid[1].getAttribute('x1'))-Number(verticalGrid[0].getAttribute('x1'))===20,'Five millimetre grid is exactly 20 drawing units');
+    wsField('format').value='A5';wsField('apply').click();await tick();
+    assert(work.viewBox.baseVal.width===840&&work.viewBox.baseVal.height===592,'A5 format can shrink the empty sheet below the old minimum');
+    wsField('format').value='A4';wsField('apply').click();await tick();
+    doc.querySelector('[data-ag-tool="expand"]').click();
     doc.querySelector('[data-ag-tool="point"]').click();
     const tapWork=(p)=>{const v=new win.DOMPoint(...p).matrixTransform(work.getScreenCTM());work.dispatchEvent(new win.PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerType:'touch',button:0,clientX:v.x,clientY:v.y}))};
     for(const p of [[150,150],[450,150],[300,350]])tapWork(p);
     assert(!doc.querySelector('[data-ag-tool="move"]')&&!doc.querySelector('[data-ag-option="measure"]').checked,'Free construction has fixed marks and optional, initially disabled measurement annotations');
     const beforeInk=JSON.stringify(cap().demo.labDrawing.points);
+    doc.querySelector('[data-ag-tool="expand"]').click();wsField('format').value='custom';wsField('format').dispatchEvent(new win.Event('change',{bubbles:true}));wsField('width').value='50';wsField('height').value='50';wsField('apply').click();await tick();
+    assert(work.viewBox.baseVal.width===1188&&JSON.stringify(cap().demo.labDrawing.points)===beforeInk,'Smaller sheet cannot clip existing drawing');
+    wsField('format').value='A4';wsField('grid').value='0';wsField('apply').click();await tick();assert(!work.querySelector('[data-ag-grid]'),'Plain paper removes the grid');
+    doc.querySelector('[data-ag-tool="expand"]').click();
+
     for(const [type,p] of [['pointerdown',[150,150]],['pointermove',[220,210]],['pointerup',[220,210]]]){const v=new win.DOMPoint(...p).matrixTransform(work.getScreenCTM());work.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerType:'touch',pointerId:31,button:0,buttons:type==='pointerup'?0:1,clientX:v.x,clientY:v.y}))}
     assert(JSON.stringify(cap().demo.labDrawing.points)===beforeInk,'Dragging a drawn point does not move ink or create a new point');
     doc.querySelector('[data-ag-tool="shade"]').click();
@@ -1126,6 +1139,7 @@ async function run(){
     doc.querySelector('[data-ag-option="measure"]').click();await tick();
     const dim=work.querySelector('[data-ag-dimension]');assert(dim&&Math.abs(+dim.getAttribute('transform').slice(7).split(' ')[0]-Math.atan2(200,150)*180/Math.PI)<.1,'Length label rotates parallel to its sloping segment');
     const paperDimensions=P.createDocument();paperDimensions.addCurrent(id,cap());assert(P.renderItem(paperDimensions.list()[0],false).querySelector('[data-ag-dimension]'),'Published free construction retains its offset length labels');
+    const sheetPaper=P.renderItem(paperDimensions.list()[0],false);assert(sheetPaper.getAttribute('data-ag-workspace-mm')==='297 210'&&!sheetPaper.querySelector('[data-ag-grid]'),'Publishing retains A4 landscape dimensions and plain paper');
 
 
     const modePicker=doc.getElementById('ag-mode');
