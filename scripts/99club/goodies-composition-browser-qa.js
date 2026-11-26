@@ -1128,7 +1128,7 @@ async function run(){
     doc.querySelector('[data-ag-tool="point"]').click();
     const tapWork=(p)=>{const v=new win.DOMPoint(...p).matrixTransform(work.getScreenCTM());work.dispatchEvent(new win.PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerType:'touch',button:0,clientX:v.x,clientY:v.y}))};
     for(const p of [[150,150],[450,150],[300,350]])tapWork(p);
-    assert(!doc.querySelector('[data-ag-tool="move"]')&&!doc.querySelector('[data-ag-option="measure"]').checked,'Free construction has fixed marks and optional, initially disabled measurement annotations');
+    assert(doc.querySelector('[data-ag-tool="move"]').hidden&&!doc.querySelector('[data-ag-option="measure"]').checked,'Free construction has fixed marks and optional, initially disabled measurement annotations');
     const beforeInk=JSON.stringify(cap().demo.labDrawing.points);
     doc.querySelector('[data-ag-tool="expand"]').click();wsField('format').value='custom';wsField('format').dispatchEvent(new win.Event('change',{bubbles:true}));wsField('width').value='50';wsField('height').value='50';wsField('apply').click();await tick();
     assert(work.viewBox.baseVal.width===1188&&JSON.stringify(cap().demo.labDrawing.points)===beforeInk,'Smaller sheet cannot clip existing drawing');
@@ -1165,19 +1165,20 @@ async function run(){
 
 
     const modePicker=doc.getElementById('ag-mode');
-    assert(modePicker.querySelectorAll('optgroup').length===2&&modePicker.querySelector('optgroup[label="Geometry workspaces"]').children.length===3,'Geometry modes are grouped into teaching diagrams and three distinct workspaces');
+    assert(modePicker.querySelectorAll('optgroup').length===2&&modePicker.querySelector('optgroup[label="Geometry workspaces"]').children.length===2,'Geometry workspaces are unified construction and constrained loci');
     const setGeometryMode=value=>{const el=doc.getElementById('ag-mode');el.value=value;el.dispatchEvent(new win.Event('change',{bubbles:true}))};
-    setGeometryMode('free-explore');await tick();
+    const movement=doc.querySelector('[data-ag-option="movement"]'),beforeMove=JSON.stringify(cap().demo.labDrawing.points);
+    assert(movement&&!movement.checked&&doc.querySelector('[data-ag-tool="move"]').hidden,'Fixed drawing starts with movement disabled');
+    movement.click();await tick();
     const motion=doc.querySelector('.gd-ag-lab-canvas');
-    assert(doc.querySelector('[data-ag-tool="move"]')&&doc.querySelector('[data-ag-tool="trace"]'),'Free exploration alone provides point movement and tracing');
+    assert(!doc.querySelector('[data-ag-tool="move"]').hidden&&!doc.querySelector('[data-ag-tool="trace"]').hidden&&JSON.stringify(cap().demo.labDrawing.points)===beforeMove,'Enabling movement preserves drawing and enables tracing');
     const motionPointer=(type,p)=>{const v=new win.DOMPoint(...p).matrixTransform(motion.getScreenCTM());motion.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:32,pointerType:'touch',button:0,buttons:type==='pointerup'?0:1,clientX:v.x,clientY:v.y}))};
-    doc.querySelector('[data-ag-tool="segment"]').click();for(const p of [[150,150],[450,150]]){motionPointer('pointerdown',p);motionPointer('pointerup',p)}
     doc.querySelector('[data-ag-tool="trace"]').click();motionPointer('pointerdown',[450,150]);motionPointer('pointerup',[450,150]);
     doc.querySelector('[data-ag-tool="move"]').click();motionPointer('pointerdown',[450,150]);motionPointer('pointermove',[420,230]);motionPointer('pointermove',[400,300]);motionPointer('pointerup',[400,300]);
-    const moved=cap().demo.labDrawing;assert(Math.hypot(moved.points[1][0]-400,moved.points[1][1]-300)<.1&&moved.segments.length===1,'Free drag changes connected geometry without enforcing its length');
+    const moved=cap().demo.labDrawing;assert(Math.hypot(moved.points[1][0]-400,moved.points[1][1]-300)<.1&&moved.segments.length===angleDrawing.segments.length,'Free drag changes existing connected geometry');
     assert(motion.querySelector('[data-ag-trace]'),'Free movement leaves selected point trace');
     const motionDraft=P.createDocument();motionDraft.addCurrent(id,cap());assert(P.renderItem(motionDraft.list()[0],false).querySelector('[data-ag-trace]'),'Free trace survives publication');
-    setGeometryMode('construct');await tick();assert(!doc.querySelector('[data-ag-tool="move"]')&&cap().demo.labDrawing.points.length===angleDrawing.points.length,'Construction stays fixed and separate from the free scene');
+    movement.click();await tick();assert(doc.querySelector('[data-ag-tool="move"]').hidden&&JSON.stringify(cap().demo.labDrawing.points)===JSON.stringify(moved.points),'Disabling movement preserves the same scene');
     setGeometryMode('loci');await tick();
     const locusTap=(type,p)=>{const surface=doc.querySelector('[data-ag-locus-point="P"]').closest('svg').parentElement,v=new win.DOMPoint(...p).matrixTransform(surface.querySelector('svg').getScreenCTM());surface.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:33,pointerType:'touch',button:0,buttons:type==='pointerup'?0:1,clientX:v.x,clientY:v.y}))};
     doc.querySelector('[data-ag-locus-action="midpoint"]').click();
