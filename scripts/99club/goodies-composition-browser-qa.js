@@ -980,8 +980,23 @@ async function run(){
     const t=cap().task;assert(t.type==='draw'&&doc.querySelector('[data-gd-pupil-check]').disabled,'Construction starts unanswered');
     assert(parseFloat(doc.defaultView.getComputedStyle(doc.querySelector('.gd-challenge-prompt')).fontSize)>=17,'Angle question uses classroom-sized text');
     assert(doc.querySelector('[data-gd-pupil-check]').getBoundingClientRect().height>=40,'Angle check action has a generous touch target');
-    for(let i=0;i<Math.floor(t.angle/10);i++)doc.querySelector('[data-ag-adjust="10"]').click();
-    for(let i=0;i<t.angle%10;i++)doc.querySelector('[data-ag-adjust="1"]').click();
+    const win=doc.defaultView,box=doc.querySelector('.gd-ag-visual'),rad=Math.PI/180;
+    const handle=()=>svg().querySelector('[data-ag-angle-handle]');
+    const handleAngle=()=>((Math.atan2(220-Number(handle().getAttribute('cy')),Number(handle().getAttribute('cx'))-400)/rad-t.rotation)%360+360)%360;
+    assert(Math.min(handleAngle(),360-handleAngle())<.02&&cap().attempt===null,'Initial construction arm is at zero, not the answer');
+    assert(!svg().querySelector('[data-ag-angle-label]')&&!svg().querySelector('[data-ag-angle-mark]'),'No solved angle or angle label before construction');
+    function pointer(type,angle,node){
+      const theta=(t.rotation+angle)*rad,p=new win.DOMPoint(400+247*Math.cos(theta),220-247*Math.sin(theta)).matrixTransform(svg().getScreenCTM());
+      node.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:8,pointerType:'touch',button:0,buttons:type==='pointerup'?0:1,clientX:p.x,clientY:p.y}));
+    }
+    pointer('pointerdown',0,svg().querySelector('[data-ag-angle-target]'));
+    const wrong=t.angle>90?40:140;
+    pointer('pointermove',wrong+.27,box);await tick();
+    assert(cap().attempt===wrong&&Math.abs(handleAngle()-wrong)<.02,'Continuous pointer movement snaps to nearest whole degree');
+    assert(!svg().querySelector('[data-ag-angle-label]')&&!doc.querySelector('#ag-attempt').textContent.includes('°'),'Construction does not display its numerical answer');
+    pointer('pointermove',t.angle+.24,box);
+    pointer('pointerup',t.angle,box);await tick();
+    assert(cap().attempt===t.angle&&Math.abs(handleAngle()-t.angle)<.02,'Arm continues dragging after SVG redraw and reaches target graduation');
     doc.querySelector('[data-gd-pupil-check]').click();await tick();
     assert(doc.querySelector('.gd-pupil-feedback').classList.contains('is-correct'),'Constructed angle is assessed');
     const P=TT99Goodies.publishing,draft=P.createDocument();draft.addCurrent(id,cap());
@@ -990,6 +1005,11 @@ async function run(){
     const calls=[],X=G.exportTools;X.downloadSvg=svg=>calls.push(svg.textContent);X.printSvg=svg=>calls.push(svg.textContent);
     doc.querySelector('[data-gd-direct-export="svg"]').click();await tick();doc.querySelector('[data-gd-direct-export="key-print"]').click();await tick();
     assert(calls.length===2&&calls[0].includes('Target:')&&calls[1].includes('°'),'Direct pupil and teacher exports are connected');
+    const pupilSvg=P.renderItem(draft.list()[0],false);
+    assert(!pupilSvg.querySelector('[data-ag-angle-handle],[data-ag-moving-arm],[data-ag-angle-mark]'),'Printed construction question contains no answer arm');
+    doc.querySelector('[data-challenge-action="another"]').click();await tick();
+    assert(cap().attempt===null&&!svg().querySelector('[data-ag-angle-mark]'),'Another resets the construction independently of its new target');
+
     fixture.frame.querySelector('[data-board-export]').click();await tick();
     assert(!fixture.frame.querySelector('[data-pub-key-group]').hidden,'Angle teacher keys available in whiteboard');
     api.remove(fixture.record.id);
