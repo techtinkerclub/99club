@@ -1127,12 +1127,22 @@ async function run(){
     {
       const model=win.TT99Goodies.angles,methods=await model.loadConstructionLibrary();
       assert(model.labTypes.every(type=>methods.some(m=>m.id===model.CONSTRUCTION_METHODS_BY_TASK[type])),'Every construction challenge has an associated method');
+      for(const type of model.labTypes)for(let i=0;i<30;i++){
+        const t=model.generate({type,enrichment:true}),base=methods.find(m=>m.id===model.CONSTRUCTION_METHODS_BY_TASK[type]),m=model.challengeConstructionMethod(base,t),sol=model.labSolution(t),end=model.constructionFrame(m,m.steps.length-1),pts=Object.fromEntries(end.filter(o=>o.kind==='point').map(o=>[o.label,o.at])),dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+        assert(m.challengeSpecific&&m.steps.length===m.graphics.frames.length&&model.constructionMethodGraphic(m,m.steps.length-1).outerHTML.indexOf('NaN')===-1,'Challenge-specific vector stages render: '+type);
+        assert(dist(pts.A,pts.B)===240,'Challenge baseline remains exactly 6 cm: '+type);
+        if(type==='build-circle')assert(end.some(o=>o.kind==='circle'&&o.radius===40*t.length),'Guide circle has task radius');
+        if(type==='build-midpoint'||type==='build-bisector')assert(dist(pts.A,pts.M)===120&&dist(pts.B,pts.M)===120,'Guide midpoint exact');
+        if(pts.C&&type!=='build-bisector')assert(dist(pts.C,sol.points[2])<1e-7,'Guide C matches assessed solution');
+        if(pts.D)assert(dist(pts.D,sol.points[3])<1e-7,'Guide D matches assessed solution');
+      }
       const before=JSON.stringify(cap().lab),taskBefore=JSON.stringify(cap().task);
       doc.querySelector('[data-ag-tool="construction-library"]').click();await tick(50);
       const panel=doc.querySelector('[data-ag-method-panel]'),action=id=>panel.querySelector('[data-ag-method-action="'+id+'"]');
       assert(panel&&!panel.hidden&&panel.querySelector('[data-ag-method-task]'),'Challenge opens contextual method guide');
       assert(!panel.querySelector('[data-ag-method-graphic]')&&panel.querySelector('[data-ag-method-step]').dataset.agMethodStep==='-1','Challenge guidance starts text-first');
       action('next').click();action('graphics').click();assert(panel.querySelector('[data-ag-method-graphic]'),'Challenge graphic appears only by choice');
+      action('check-drawing').click();assert(panel.querySelector('[data-ag-method-feedback]').textContent.length>0,'Optional verification returns drawing feedback');
       action('close').click();assert(JSON.stringify(cap().lab)===before&&JSON.stringify(cap().task)===taskBefore,'Method guide never modifies challenge drawing or assessment');
     }
     {
