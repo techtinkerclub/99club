@@ -500,7 +500,7 @@ function diagram(d,teacher=false,options={}){
    else pts=fit([[0,0],[320,0],polar(320,0,180,65),polar(0,0,180,65)]);
    polygon(pts);
    if(type==='rectangle-length'){pts.forEach((p,i)=>{corner(pts,i,null);const q=pts[(i+1)%4],m=labAt(p,labSub(q,p),.5);dimension(p,q,i===d.missingSide&&!teacher?'x':(i%2?d.height:d.width)+' cm',{outside:labAt(m,labSub(m,[400,210]),1),lines:pts.map((p,i)=>[p,pts[(i+1)%4]]),size:16,offset:25})})}
-   else if(type.startsWith('diagonal-')){line(pts[0],pts[2],teal,3,{'stroke-dasharray':'7 4'});line(pts[1],pts[3],orange,3,{'stroke-dasharray':'7 4'});const u=labSub(pts[2],pts[0]),v=labSub(pts[3],pts[1]),o=labAt(pts[0],u,labCross(labSub(pts[1],pts[0]),v)/labCross(u,v));circle(o,3,ink);text(o[0]+13,o[1]-10,'O',15);if(teacher){const yes=d.answer==='Yes';text(400,410,yes?({'diagonal-equal':'Equal diagonals','diagonal-bisect':'Diagonals bisect each other','diagonal-perpendicular':'Perpendicular diagonals'}[type]):({'diagonal-equal':'Diagonals are not always equal','diagonal-bisect':'Diagonals do not always bisect each other','diagonal-perpendicular':'Diagonals are not always perpendicular'}[type]),18);return frame(70,0,660,440)}}
+   else if(type.startsWith('diagonal-')){line(pts[0],pts[2],teal,3,{'stroke-dasharray':'7 4'});line(pts[1],pts[3],orange,3,{'stroke-dasharray':'7 4'});const u=labSub(pts[2],pts[0]),v=labSub(pts[3],pts[1]),o=labAt(pts[0],u,labCross(labSub(pts[1],pts[0]),v)/labCross(u,v));add('circle',{cx:o[0],cy:o[1],r:3,fill:ink,'data-ag-inspect-point':'O'});text(o[0]+13,o[1]-10,'O',15,{'data-ag-point-label':'O'});if(teacher){const yes=d.answer==='Yes';text(400,410,yes?({'diagonal-equal':'Equal diagonals','diagonal-bisect':'Diagonals bisect each other','diagonal-perpendicular':'Perpendicular diagonals'}[type]):({'diagonal-equal':'Diagonals are not always equal','diagonal-bisect':'Diagonals do not always bisect each other','diagonal-perpendicular':'Diagonals are not always perpendicular'}[type]),18);return frame(70,0,660,440)}}
    return polygonFrame(pts,80)
  }
 
@@ -792,6 +792,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
   const outline=svg.querySelector('[data-ag-inspect-polygon]');if(!outline)return;
   const points=outline.getAttribute('points').trim().split(/\s+/).map(v=>v.split(',').map(Number));
   if(points.length<3)return;
+  for(const p of svg.querySelectorAll('[data-ag-inspect-point]')){const pos=[Number(p.getAttribute('cx')),Number(p.getAttribute('cy'))];if(pos.every(Number.isFinite)&&!points.some(q=>labDist(q,pos)<.001))points.push(pos)}
   const N='http://www.w3.org/2000/svg',bar=document.createElement('div');bar.className='gd-ag-inspect-tools';
   const message=document.createElement('span');message.className='gd-ag-inspect-message';message.setAttribute('role','status');
   const layer=document.createElementNS(N,'g');layer.setAttribute('data-ag-inspection','1');layer.setAttribute('pointer-events','none');svg.append(layer);
@@ -804,13 +805,13 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
   function mark(p,r,fill){el('circle',{cx:p[0],cy:p[1],r,fill,stroke:'#177d6f','stroke-width':2})}
   function paint(){
    layer.replaceChildren();for(const [id,b] of [['ruler',rb],['angle',ab]]){b.classList.toggle('gd-btn--primary',tool===id);b.setAttribute('aria-pressed',String(tool===id))}
-   svg.style.touchAction=tool?'none':'auto';message.textContent=tool==='ruler'?'Tap two vertices to compare lengths (diagram units).':tool==='angle'?'Tap the corner, then one point on each arm.':'Optional: investigate the shape before answering.';
+   svg.style.touchAction=tool?'none':'auto';message.textContent=tool==='ruler'?'Tap two labelled points to compare lengths (diagram units).':tool==='angle'?'Tap the vertex or intersection, then one point on each arm.':'Optional: investigate the shape before answering.';
    if(!tool)return;
    points.forEach((p,i)=>mark(p,i===hover?10:5,selected.includes(i)?'#e3af53':i===hover?'#d0eee4':'white'));
    if(tool==='ruler'&&selected.length===2){
     const [a,b]=selected.map(i=>points[i]),len=labDist(a,b),v=labSub(b,a).map(x=>x/len),normal=[-v[1],v[0]],center=points.reduce((r,p)=>[r[0]+p[0]/points.length,r[1]+p[1]/points.length],[0,0]);if(labDot(labSub(center,a),normal)<0){normal[0]*=-1;normal[1]*=-1}
     const angle=labAngle(a,b),side=labDot(normal,[-v[1],v[0]])>=0?1:-1,cm=20;G.instruments.ruler(layer,{x:a[0],y:a[1],width:cm*40,length:cm,height:44,tickHeight:23,angle,side,labelSize:11,unitLabel:false});
-    line(a,b,'#177d6f',3);message.textContent='Length: '+(len/40).toFixed(2)+' diagram units. Tap two more vertices to compare.';
+    line(a,b,'#177d6f',3);message.textContent='Length: '+(len/40).toFixed(2)+' diagram units. Tap two more points to compare.';
    }else if(tool==='angle'&&selected.length>=2){
     const o=points[selected[0]],a=points[selected[1]],base=labAngle(o,a),b=selected.length===3?points[selected[2]]:null,delta=b?mod(labAngle(o,b)-base):0,sign=b&&delta>180?-1:1,deg=Math.min(delta,360-delta),radius=155;
     G.instruments.protractor(layer,{x:o[0],y:o[1],radius,start:base,direction:sign});
