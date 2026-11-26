@@ -199,6 +199,15 @@ function diagram(d,teacher=false,options={}){
  function corner(points,i,label){const p=points[i],prev=points[(i+points.length-1)%points.length],next=points[(i+1)%points.length],dir=v=>mod(Math.atan2(p[1]-v[1],v[0]-p[0])/D);let start=dir(prev),v=mod(dir(next)-start);if(v>180){start=dir(next);v=360-v}labelArc(...p,Math.min(38,Math.hypot(next[0]-p[0],next[1]-p[1])*.22,Math.hypot(prev[0]-p[0],prev[1]-p[1])*.22),start,v,label)}
  function fit(points){const xs=points.map(p=>p[0]),ys=points.map(p=>p[1]),minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys),s=Math.min(540/Math.max(1,maxX-minX),300/Math.max(1,maxY-minY));return points.map(([x,y])=>[400+(x-(minX+maxX)/2)*s,210+(y-(minY+maxY)/2)*s])}
  function polygonFrame(points,pad=76){const xs=points.map(p=>p[0]),ys=points.map(p=>p[1]),x=Math.min(...xs)-pad,y=Math.min(...ys)-pad;return frame(x,y,Math.max(...xs)-x+pad,Math.max(...ys)-y+pad)}
+ if(mode==='construct'&&d.labDrawing){
+   const st=d.labDrawing;for(let gx=20;gx<=780;gx+=40)line([gx,22],[gx,342],'#e0e9e6',1);for(let gy=22;gy<=342;gy+=40)line([20,gy],[780,gy],'#e0e9e6',1);
+   for(const c of st.circles)add('circle',{cx:st.points[c.i][0],cy:st.points[c.i][1],r:c.r,fill:'none',stroke:orange,'stroke-width':1.8,'stroke-dasharray':'5 4'});
+   for(const r of st.rays)line(st.points[r.i],polar(...st.points[r.i],1200,r.angle),teal,1.8,{'stroke-dasharray':'7 5'});
+   line(st.points[0],st.points[1],ink,4);text(460,330,'6 cm',20);
+   for(const [i,j] of st.segments)line(st.points[i],st.points[j],teal,3);
+   st.points.forEach((p,i)=>{circle(p,4);text(p[0]+(i===0?-14:i===1?14:0),p[1]+(i<2?17:-13),String.fromCharCode(65+i),20)});
+   return frame(0,0,800,400);
+ }
  if(mode==='construct'){
    const show=teacher||explore||options.attempt!=null,aa=teacher||explore?a:options.attempt??0,l=teacher||explore?d.length:options.length??0;
    const x=340,y=302,unit=40,B=[x+6*unit,y],C=polar(x,y,l*unit,aa);
@@ -305,10 +314,15 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
     if(hit.kind){circle(p,12,'#2e9982','#d5eee5');circle(p,3,'#2e9982','#2e9982');text([p[0],p[1]-18],hit.kind,'#287b69',12)}
    }
    st.points.forEach((p,i)=>{circle(p,i===first?7:5,'white',i<2?'#28413d':'#287f6c');text([p[0]+(i===0?-14:i===1?14:0),p[1]+(i<2?17:-13)],String.fromCharCode(65+i))});
-   hint.textContent=angleTool()?(first===null?'Tap a vertex to place the instrument.':aligned===null?'Tap along the reference edge to align the instrument.':'Choose a direction on the instrument to draw a ray.'):tool==='move'?'Drag a movable point.':tool==='point'?'Tap a point or a highlighted intersection.':tool==='erase'?'Tap a drawn point, line or circle to erase.':first===null?'Tap the starting point.':'Tap the second position.';
+   hint.textContent=angleTool()?(first===null?'Tap a vertex to place the instrument.':aligned===null?'Tap along the reference edge to align the instrument.':'Choose a direction on the instrument to draw a ray.'):tool==='move'?'Drag a movable point.':tool==='point'?'Tap a point or a highlighted intersection.':tool==='erase'?'Tap a drawn point, line or circle to erase.':first===null?'Tap the starting point.':'Touch, slide to refine, then release to place.';
   }
   function coords(e){const m=svg.getScreenCTM();if(!m)return null;return new DOMPoint(e.clientX,e.clientY).matrixTransform(m.inverse())}
+  let placing=null;
   svg.addEventListener('pointerdown',e=>{if(e.button!==0)return;const z=coords(e);if(!z)return;const p=[z.x,z.y];e.preventDefault();hover=p;
+   if(first!==null&&tool!=='move'&&tool!=='erase'&&tool!=='point'){placing=e.pointerId;try{svg.setPointerCapture(e.pointerId)}catch(_){}paint();return}
+   place(p,e);
+  });
+  function place(p,e){
    if(tool==='move'){const i=nearest(p);if(i>=2){save();drag=i;try{svg.setPointerCapture(e.pointerId)}catch(_){}}return}
    if(tool==='erase'){const i=nearest(p);if(i>=2){save();st.points.splice(i,1);st.segments=st.segments.filter(l=>!l.includes(i)).map(l=>l.map(j=>j>i?j-1:j));for(const k of ['rays','circles'])st[k]=st[k].filter(r=>r.i!==i).map(r=>({...r,i:r.i>i?r.i-1:r.i}));changed();return}
     const distanceTo=(a,b,ray=false)=>{const v=labSub(b,a),t=labDot(labSub(p,a),v)/(labDot(v,v)||1);return labDist(p,labAt(a,v,Math.max(0,ray?t:Math.min(1,t))))};
@@ -323,9 +337,10 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    else if(tool==='compass'){const r=Math.round(labDist(o,magnetic(p).p)/4)*4;if(r>0)st.circles.push({i:first,r})}
    else if(tool==='ray'||angleTool()){const a=angleTool()?selectedAngle(o,p):Math.round(labAngle(o,magnetic(p).p));st.rays.push({i:first,angle:a})}
    first=null;aligned=null;hover=null;changed();
-  });
+  }
   svg.addEventListener('pointermove',e=>{const z=coords(e);if(!z)return;hover=[z.x,z.y];if(drag!==null){const p=[Math.max(5,Math.min(795,z.x)),Math.max(5,Math.min(395,z.y))];st.points[drag]=magnetic(p,drag).p.slice();changed()}else paint()});
-  const finish=()=>{drag=null;paint()};svg.addEventListener('pointerup',finish);svg.addEventListener('pointercancel',finish);svg.addEventListener('lostpointercapture',finish);
+  svg.addEventListener('pointerup',e=>{if(placing===e.pointerId){placing=null;const z=coords(e);if(z)place([z.x,z.y],e)}drag=null;paint()});
+  const cancel=()=>{placing=null;drag=null;paint()};svg.addEventListener('pointercancel',cancel);svg.addEventListener('lostpointercapture',cancel);
   paint();
  }
 
@@ -365,7 +380,7 @@ G.anglesTool=function(){
   for(const kind of ['copy','png','svg','print',...(task?['key-copy','key-print']:[])]){let el=q('#ag-'+kind,host);if(!el){el=document.createElement('button');el.hidden=true;el.type='button';host.appendChild(el)}el.setAttribute('data-gd-direct-export',kind);el.onclick=()=>exportAction(kind)}
   const ad=q('#ag-add',host);if(ad)ad.onclick=()=>publish(false);const ba=q('#ag-batch',host);if(ba)ba.onclick=()=>publish(true);const re=q('#ag-review',host);if(re)re.onclick=()=>{const P=G.publishing;if(P){draft=draft||P.createDocument();P.openEditor(draft)}};
  }
- function demoData(){if(demo.mode==='facts'){const f=demo.fact||'straight',a=Math.max(10,Math.min(170,demo.angle));return {...demo,type:f,angles:f==='straight'?[a,180-a]:f==='point'?[a,90,270-a]:[a,180-a,a,180-a]}}if(demo.mode==='lines')return {...demo,angle:demo.relation==='Parallel'?0:demo.relation==='Perpendicular'?90:Math.max(10,Math.min(80,demo.angle)),relation:demo.relation||'Neither'};if(demo.mode==='construct')return {...demo,angle:Math.max(10,Math.min(170,demo.angle))};return demo}
+ function demoData(){if(demo.mode==='facts'){const f=demo.fact||'straight',a=Math.max(10,Math.min(170,demo.angle));return {...demo,type:f,angles:f==='straight'?[a,180-a]:f==='point'?[a,90,270-a]:[a,180-a,a,180-a]}}if(demo.mode==='lines')return {...demo,angle:demo.relation==='Parallel'?0:demo.relation==='Perpendicular'?90:Math.max(10,Math.min(80,demo.angle)),relation:demo.relation||'Neither'};if(demo.mode==='construct')return {...demo,angle:Math.max(10,Math.min(170,demo.angle)),labDrawing:demo.freeLab?freeLab||labEmpty():null};return demo}
  function stage(){const host=q('#gd-stage'),draw=['draw','draw-reflex'].includes(task?.type),build=task?.type==='shape-build',construct=draw||build,d=task?geometryTask(task):demoData(),teacher=!task||task.revealed;
   const pupil=construct?CK.pupilSpec('model',{hint:draw?'Drag the orange arm to the correct graduation, then check.':'Use the geometry tools to construct the triangle, then check.',ready:()=>build?labCheck(lab||labEmpty(),task).ready:attempt!==null,check:()=>build?labCheck(lab||labEmpty(),task).correct:Math.abs(attempt-task.angle)<=1}):task?.choices?CK.pupilSpec('choice',{choices:task.choices,expected:task.answer}):CK.pupilSpec('number');
   host.innerHTML=(task?CK.bannerHtml(task,{pupil,actions:[{action:'another',label:'Another'},{action:'end',label:'Exit challenge'}]}):'')+'<div class="gd-ag-visual" style="width:100%;max-width:920px;margin:0 auto"></div>';
