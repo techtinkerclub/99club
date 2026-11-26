@@ -2359,3 +2359,14 @@ html:not(.gd-embed-page) #tt99-goodies-root #gd-controls .gd-mc-five{min-height:
 #tt99-goodies-root .gd-ag-lab-option input{accent-color:#16796e;width:14px;height:14px;margin:0!important;flex:none}
 #tt99-goodies-root .gd-ag-lab-option:focus-within,#tt99-goodies-root .gd-ag-lab-button:focus-visible{outline:2px solid #16796e;outline-offset:2px}
 @media(max-width:520px){#tt99-goodies-root .gd-ag-lab-toolbar{padding:5px;gap:4px}#tt99-goodies-root .gd-ag-lab-tools .gd-ag-lab-button{min-width:54px;padding:4px 5px!important;font-size:11px!important}#tt99-goodies-root .gd-ag-lab-helpers{column-gap:6px}}
+
+/* Construction Lab help is optional and separate from the pupil's drawing. */
+#tt99-goodies-root .gd-ag-lab-guide{box-sizing:border-box;margin:8px 0 0;padding:12px;border:1px solid #c9ddd6;border-radius:10px;background:#f5faf8;text-align:left;font:500 14px/1.45 Arial,sans-serif;color:#2e5b50}
+#tt99-goodies-root .gd-ag-lab-guide[hidden]{display:none!important}
+#tt99-goodies-root .gd-ag-guide-body{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+#tt99-goodies-root .gd-ag-guide-body ol{flex:1 1 220px;margin:8px 0;padding-left:24px}
+#tt99-goodies-root .gd-ag-guide-body li{margin:6px 0;padding:5px}
+#tt99-goodies-root .gd-ag-guide-body li.is-current{background:#e1f1eb;border-radius:5px;font-weight:700}
+#tt99-goodies-root .gd-ag-guide-example{flex:1 1 260px;min-width:0;max-width:100%}
+#tt99-goodies-root .gd-ag-guide-example .gd-row{justify-content:center;align-items:center;gap:8px;flex-wrap:wrap}
+#tt99-goodies-root .gd-ag-guide-example .gd-btn{min-height:40px;font-size:13px}
