@@ -1294,6 +1294,10 @@ try {
    for(let sweep=0;sweep<=360;sweep+=5){
      const o=[400,220],placement=model.angleLabelPlacement(o,48,rot,sweep,sweep+'°');
      if([rot,rot+sweep].some(a=>model.labelIntersectsLine(placement.box,o,model.polar(...o,3000,a))))throw Error('Angle annotation intersects an arm: '+rot+'/'+sweep);
+     const vertex=model.angleVertexPlacement(o,rot,sweep);
+     if([rot,rot+sweep].some(a=>model.labelIntersectsLine(vertex.box,o,model.polar(...o,243,a))))throw Error('Vertex name intersects an arm');
+     if(!vertex.external&&model.labelCorners(vertex.box).some(p=>((Math.atan2(o[1]-p[1],p[0]-o[0])*180/Math.PI-rot+720)%360)<sweep-1e-6))throw Error('Vertex name lies in marked sector');
+     if(vertex.external&&sweep<350)throw Error('Exterior vertex placement unexpectedly failed');
    }
  }
  const blocked=model.dimensionPlacement([100,100],[250,100],'4 cm',{lines:[[[100,82],[250,82]]]});
