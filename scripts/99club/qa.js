@@ -1327,6 +1327,11 @@ try {
  }
  const traceState=model.locusInitial();model.traceToggle(traceState,'P');model.traceAdd(traceState,'P',[1,1],[0,0]);model.traceToggle(traceState,'P');model.traceToggle(traceState,'P');model.traceAdd(traceState,'P',[6,6],[5,5]);
  if(model.traceParts(traceState.traces.P).length!==2)throw Error('Trace incorrectly joins separated recording periods');
+ for(const enrichment of [false,true]){
+   const available=model.types({enrichment}),groups=model.challengeGroups({enrichment}),ids=groups.flatMap(g=>g.ids);
+   if(ids.length!==available.length||new Set(ids).size!==ids.length||available.some(t=>!ids.includes(t.id)))throw Error('Geometry challenge catalogue must cover every eligible type exactly once');
+   if(groups.some(g=>g.id==='ks3')!==enrichment)throw Error('Geometry enrichment must remain opt-in');
+ }
  const free=model.labEmpty(true);if(free.points.length||free.given!==false||model.labSnap(free,[100,100]).kind)throw Error('Free construction is not blank');
  ok('construction-lab',cases+' shape constructions plus reflected solutions, circle intersections and disabled snapping');
 }catch(e){fail('construction-lab','Geometry construction lab regression',e.stack||e.message);}
