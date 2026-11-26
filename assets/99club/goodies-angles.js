@@ -627,6 +627,8 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
  Object.assign(INSTRUMENT_ICONS,{ruler:INSTRUMENT_ICONS.segment,angle:INSTRUMENT_ICONS.protractor,show:INSTRUMENT_ICONS.protractor,clear:'<path d="M6 6l12 12M18 6L6 18"/>',format:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3v3M12 18v3"/>',left:INSTRUMENT_ICONS.undo,right:'<path d="m16 5 5 5-5 5m5-5H10a6 6 0 0 0 0 12"/>'});
  function icon(id){const x=document.createElementNS('http://www.w3.org/2000/svg','svg');for(const [k,v] of Object.entries({viewBox:'0 0 24 24',fill:'none',stroke:'currentColor','stroke-width':1.65,'stroke-linecap':'round','stroke-linejoin':'round','aria-hidden':'true',focusable:'false'}))x.setAttribute(k,v);x.innerHTML=INSTRUMENT_ICONS[id]||'';return x}
  function instrumentButton(parent,id,label,description,fn,group='agTool'){const b=document.createElement('button');b.type='button';b.className='gd-btn gd-ag-lab-button';b.dataset[group]=id;b.title=description;b.setAttribute('aria-label',description);const t=document.createElement('span');t.textContent=label;b.append(icon(id),t);b.onclick=fn;parent.append(b);return b}
+ function squareGeometry(o,base,kind,corner=0,hand=1){const angles=kind==='square45'?[90,45,45]:[90,30,60],opening=angles[corner],other=angles[(corner+1)%3],last=angles[(corner+2)%3],r=140*Math.sin(other*D)/Math.sin(last*D);return {angles,opening,other,last,v:polar(...o,140,base),w:polar(...o,r,base+hand*opening)}}
+ function drawSquare(layer,o,base,kind,corner=0,hand=1){const {opening,other,last,v,w}=squareGeometry(o,base,kind,corner,hand),N='http://www.w3.org/2000/svg';const g=document.createElementNS(N,'g');g.setAttribute('data-geometry-instrument',kind);g.setAttribute('pointer-events','none');layer.append(g);function add(tag,attrs,value){const e=document.createElementNS(N,tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,v);if(value!==undefined)e.textContent=value;g.append(e)}add('polygon',{points:[o,v,w].map(p=>p.join(',')).join(' '),fill:'#c5e3da','fill-opacity':.65,stroke:'#458778','stroke-width':2});if(opening===90){const a=polar(...o,13,base),b=polar(...o,13,base+hand*90);add('polyline',{points:[a,[a[0]+b[0]-o[0],a[1]+b[1]-o[1]],b].map(p=>p.join(',')).join(' '),fill:'none',stroke:'#458778','stroke-width':1.5})}for(const [p,q,t,deg] of [[o,v,w,opening],[v,o,w,other],[w,o,v,last]]){const a=labAngle(p,q),b=labAngle(p,t),delta=mod(b-a),m=polar(...p,30,a+(delta>180?delta-360:delta)/2);add('text',{x:m[0],y:m[1],fill:'#326e61','font-size':12,'text-anchor':'middle','dominant-baseline':'central'},deg+'°')}return g}
  function mountLab(box,initial,onChange,{free=false,motion=false}={}){
   let st=labNames(initial||labEmpty(free)),ws=workspaceState(st),ww=free?ws.w:800,hh=free?ws.h:400,corner=0,hand=1,selection=null,tool=(free&&st.allowMovement||motion)?'move':'segment',first=null,aligned=null,reference=null,hover=null,history=[],snap=true,measure=free&&st.showMeasurements!==false,grid=free?ws.gridMm>0:true,moving=null,sheetPan=null,panMode=false,aperture=null,keepOpening=false,guideOpen=false,guideStep=0,regionPick=[],regionColour=0,regionStatus='',shadeMode='region',notationMode='',notationPick=[];
   motion=free&&(st.allowMovement??motion);if(free){st.allowMovement=motion;st.showMeasurements=measure;}
@@ -718,13 +720,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
   function instrument(o,base){
    if(tool==='protractor'){
     G.instruments.protractor(svg,{x:o[0],y:o[1],radius:170,start:base,direction:hand});
-   }else{
-    const angles=tool==='square45'?[90,45,45]:[90,30,60],opening=angles[corner],other=angles[(corner+1)%3],r=140*Math.sin(other*D)/Math.sin(angles[(corner+2)%3]*D),v=polar(...o,140,base),w=polar(...o,r,base+hand*opening);
-    el('polygon',{points:[o,v,w].map(p=>p.join(',')).join(' '),fill:'#c5e3da','fill-opacity':.65,stroke:'#458778','stroke-width':2});
-    if(opening===90){const a=polar(...o,13,base),b=polar(...o,13,base+hand*90);line(a,[a[0]+b[0]-o[0],a[1]+b[1]-o[1]],'#458778',1.5);line(b,[a[0]+b[0]-o[0],a[1]+b[1]-o[1]],'#458778',1.5);}
-    // Alternate corner placement: use the acute vertex as well as the right-angle vertex.
-    text(polar(...o,30,base+hand*opening/2),opening+'°','#326e61',12);const vb=labAngle(v,o),vw=labAngle(v,w);text(polar(...v,25,vw+mod(vb-vw)/2),other+'°','#326e61',12);const wo=labAngle(w,o),wv=labAngle(w,v);text(polar(...w,25,wo+mod(wv-wo)/2),angles[(corner+2)%3]+'°','#326e61',12);
-   }
+   }else drawSquare(svg,o,base,tool,corner,hand);
   }
   function selectedAngle(o,p){
    const a=labAngle(o,p),base=aligned??0,relative=mod(hand*(a-base));
@@ -859,7 +855,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
   const layer=document.createElementNS(N,'g');layer.setAttribute('data-ag-inspection','1');layer.setAttribute('pointer-events','none');svg.append(layer);
   let tool='',selected=[],hover=-1;
   function button(id,label){const b=instrumentButton(bar,id,label,label,()=>{physicalMode.deactivate();physicalMode.bar.hidden=true;physical.setAttribute('aria-pressed','false');tool=id==='clear'||tool===id?'':id;selected=[];hover=-1;paint()},'agInspect');b.classList.add('gd-ag-inspect-btn');b.setAttribute('aria-pressed','false');return b}
-  const rb=button('ruler','Ruler'),ab=button('angle','Protractor');button('clear','Clear');const physical=instrumentButton(bar,'protractor','Free protractor','Place and rotate a physical protractor',()=>{tool='';selected=[];paint();if(physicalMode.isActive()){physicalMode.deactivate();physicalMode.bar.hidden=true;physical.setAttribute('aria-pressed','false')}else{physicalMode.bar.hidden=false;physicalMode.activate();physical.setAttribute('aria-pressed','true')}},'agInspect');physical.classList.add('gd-ag-inspect-btn');bar.append(message);box.insertBefore(bar,svg);const physicalMode=mountAngleMeasurement(box,svg,{}, {inspectionPoints:points});physicalMode.bar.hidden=true;
+  const rb=button('ruler','Ruler'),ab=button('angle','Protractor');button('clear','Clear');const physical=instrumentButton(bar,'protractor','Instruments','Place and manipulate physical geometry instruments',()=>{tool='';selected=[];paint();if(physicalMode.isActive()){physicalMode.deactivate();physicalMode.bar.hidden=true;physical.setAttribute('aria-pressed','false')}else{physicalMode.bar.hidden=false;physicalMode.activate();physical.setAttribute('aria-pressed','true')}},'agInspect');physical.classList.add('gd-ag-inspect-btn');bar.append(message);box.insertBefore(bar,svg);const physicalMode=mountAngleMeasurement(box,svg,{}, {inspectionPoints:points});physicalMode.bar.hidden=true;
   function el(tag,attrs,content){const e=document.createElementNS(N,tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));if(content!=null)e.textContent=content;layer.append(e);return e}
   function line(a,b,stroke='#14796b',w=2,extra={}){return el('line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke,'stroke-width':w,...extra})}
   function mark(p,r,fill){el('circle',{cx:p[0],cy:p[1],r,fill,stroke:'#177d6f','stroke-width':2})}
@@ -889,12 +885,14 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
  // used in the explorer. No computed answer or target angle is displayed.
  function mountAngleMeasurement(box,svg,d,{inspectionPoints=null}={}){
   const N='http://www.w3.org/2000/svg',vertex=[400,220],rays=[mod(d.rotation||0),mod((d.rotation||0)+d.angle)],radius=inspectionPoints?155:208;
-  let active=false,centre=null,start=0,aligned=false,full=false,direction=1,drag=null,preview=null;
+  let active=false,centre=null,start=0,aligned=false,full=false,direction=1,drag=null,preview=null,kind='protractor',corner=0,opening=100;
   const bar=document.createElement('div');bar.className='gd-ag-inspect-tools';
   const message=document.createElement('span');message.className='gd-ag-inspect-message';message.setAttribute('role','status');
   const layer=document.createElementNS(N,'g');layer.setAttribute('data-ag-measure-overlay','1');layer.setAttribute('pointer-events','none');svg.append(layer);
   function button(id,label,fn){const b=instrumentButton(bar,id,label,label,fn,'agMeasure');b.classList.add('gd-ag-inspect-btn');return b}
   const show=button('show','Protractor',()=>{active=!active;if(!active){centre=null;aligned=false;preview=null}paint()});
+  const picker=document.createElement('select');picker.className='gd-select';picker.setAttribute('aria-label','Physical instrument');picker.dataset.agInstrument='1';for(const [value,label] of [['protractor','Protractor'],['ruler','Ruler'],['square45','45° set square'],['square30','30°–60° set square'],['compass','Compass']]){const o=document.createElement('option');o.value=value;o.textContent=label;picker.append(o)}picker.onchange=()=>{kind=picker.value;drag=null;paint()};if(inspectionPoints){show.hidden=true;bar.append(picker)}
+  const cornerBtn=button('corner','Corner',()=>{corner=(corner+1)%3;paint()});
   const format=button('format','360° protractor',()=>{full=!full;paint()});
   const flip=button('flip','Flip',()=>{direction*=-1;paint()});
   const left=button('left','−1°',()=>{start=mod(start-1);aligned=true;paint()});
@@ -908,16 +906,17 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
   function orientation(p){const a=labAngle(centre,p),delta=(u,v)=>Math.min(mod(u-v),mod(v-u));const candidates=inspectionPoints?inspectionPoints.filter(p=>labDist(p,centre)>.01).map(p=>labAngle(centre,p)):rays;const nearest=candidates.reduce((u,v)=>delta(u,a)<=delta(v,a)?u:v,a+180);return (inspectionPoints||labDist(centre,vertex)<.01)&&delta(nearest,a)<=5?nearest:mod(Math.round(a))}
   function paint(){
    layer.replaceChildren();show.setAttribute('aria-pressed',String(active));show.classList.toggle('gd-btn--primary',active);
-   for(const b of [format,flip,left,right,reset])b.hidden=!active;
+   for(const b of [format,flip,left,right,reset,cornerBtn])b.hidden=!active;format.hidden=!active||kind!=='protractor';cornerBtn.hidden=!active||!kind.startsWith('square');left.hidden=right.hidden=!active||kind==='compass';
    for(const b of [flip,left,right])b.disabled=!centre;
-   format.querySelector('span').textContent=full?'180° protractor':'360° protractor';flip.hidden=!active||full;
+   format.querySelector('span').textContent=full?'180° protractor':'360° protractor';flip.hidden=!active||kind==='compass'||(kind==='protractor'&&full);
    svg.style.touchAction=active?'none':'auto';
    message.textContent=!active?'Select the protractor when you are ready to measure.':!centre?'Tap the angle vertex to position the centre.':!aligned?'Tap or slide along an arm to align the zero line.':'Read the correct scale. Drag a graduation to realign, or drag the centre to reposition.';
    if(!active)return;
-   if(!centre&&preview&&labDist(preview,vertex)<=tol())el('circle',{cx:vertex[0],cy:vertex[1],r:12,fill:'#c5e3da',stroke:'#287c70','stroke-width':2});
+   if(inspectionPoints){message.textContent=!centre?'Tap to position the instrument.':kind==='compass'?'Drag the centre to move; drag the radius handle to change its opening.':'Drag the centre to move; drag the amber handle to rotate. No answer is calculated.'}
+   if(!centre&&preview){const q=snapCentre(preview);if(labDist(q,preview)<.001&&(inspectionPoints||labDist(q,vertex)<.001))el('circle',{cx:q[0],cy:q[1],r:12,fill:'#c5e3da',stroke:'#287c70','stroke-width':2})}
    if(!centre)return;
-   G.instruments.protractor(layer,{x:centre[0],y:centre[1],radius,start,direction,full});
-   const zero=polar(...centre,radius,start);
+   let handleRadius=radius;if(kind==='protractor')G.instruments.protractor(layer,{x:centre[0],y:centre[1],radius,start,direction,full});else if(kind==='ruler'){handleRadius=320;G.instruments.ruler(layer,{x:centre[0],y:centre[1],width:320,length:8,height:44,tickHeight:23,angle:start,side:direction,labelSize:11,unitLabel:false})}else if(kind.startsWith('square')){handleRadius=140;drawSquare(layer,centre,start,kind,corner,direction)}else{handleRadius=opening;el('circle',{cx:centre[0],cy:centre[1],r:opening,fill:'none',stroke:'#b77b32','stroke-width':1.8,'stroke-dasharray':'5 3','data-geometry-instrument':'compass'})}
+   const zero=polar(...centre,handleRadius,start);
    el('line',{x1:centre[0],y1:centre[1],x2:zero[0],y2:zero[1],stroke:'#b77b32','stroke-width':2.5});
    el('circle',{cx:centre[0],cy:centre[1],r:7,fill:'#fff',stroke:'#287c70','stroke-width':2});
    el('circle',{cx:zero[0],cy:zero[1],r:8,fill:'#e4b56a',stroke:'#fff','stroke-width':2});
@@ -926,14 +925,14 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    if(!active||e.button!==0)return;const p=point(e);if(!p)return;e.preventDefault();
    if(!centre){centre=snapCentre(p);aligned=false;preview=null;paint();return}
    drag={id:e.pointerId,kind:labDist(p,centre)<=tol()?'centre':'rotate'};
-   if(drag.kind==='rotate'&&labDist(p,centre)>10){start=orientation(p);aligned=true}
+   if(drag.kind==='rotate'&&labDist(p,centre)>10){start=orientation(p);if(kind==='compass')opening=Math.max(5,labDist(p,centre));aligned=true}
    try{svg.setPointerCapture(e.pointerId)}catch(_){}paint();
   });
   svg.addEventListener('pointermove',e=>{
    if(!active)return;const p=point(e);if(!p)return;
    if(!centre){preview=p;paint();return}
    if(!drag||drag.id!==e.pointerId)return;e.preventDefault();
-   if(drag.kind==='centre')centre=snapCentre(p);else if(labDist(p,centre)>10){start=orientation(p);aligned=true}paint();
+   if(drag.kind==='centre')centre=snapCentre(p);else if(labDist(p,centre)>10){start=orientation(p);if(kind==='compass')opening=Math.max(5,labDist(p,centre));aligned=true}paint();
   });
   const finish=e=>{if(drag?.id===e.pointerId)drag=null};svg.addEventListener('pointerup',finish);svg.addEventListener('pointercancel',finish);svg.addEventListener('lostpointercapture',finish);
   paint();return {bar,activate(){if(!active)show.click()},deactivate(){if(active)show.click()},isActive:()=>active};
