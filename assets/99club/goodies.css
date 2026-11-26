@@ -2418,3 +2418,10 @@ html:not(.gd-embed-page) #tt99-goodies-root #gd-controls .gd-mc-five{min-height:
 #tt99-goodies-root .gd-ag-sheet-settings{background:#eff6f3;border-radius:6px;padding:7px!important}
 #tt99-goodies-root .gd-ag-sheet-settings label{white-space:nowrap;color:#385c54}
 #tt99-goodies-root .gd-ag-sheet-settings [data-ag-workspace="apply"]{min-height:32px!important;height:32px!important;margin:0!important;padding:3px 12px!important;font-size:12px!important}
+
+/* Shared geometry instruments, compact contextual measurement strip. */
+#tt99-goodies-root .gd-ag-inspect-tools[hidden],#tt99-goodies-root .gd-ag-inspect-tools [hidden]{display:none!important}
+#tt99-goodies-root .gd-ag-inspect-tools{gap:4px;padding:4px 6px;border-radius:7px}
+#tt99-goodies-root .gd-ag-inspect-btn,#tt99-goodies-root .gd-ag-inspect-tools .gd-select{min-height:34px!important;height:34px!important;margin:0!important;padding:4px 7px!important;font:600 11px/1.2 Arial,sans-serif!important;border-radius:6px;box-sizing:border-box}
+#tt99-goodies-root .gd-ag-inspect-btn svg{width:18px!important;height:18px!important}
+#tt99-goodies-root .gd-ag-inspect-message{font-size:11px;line-height:1.35}
