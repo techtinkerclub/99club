@@ -1125,6 +1125,27 @@ async function run(){
     tray.querySelector('[data-ag-tool="help"]').click();await tick();
     assert(!doc.querySelector('.gd-ag-lab-guide').hidden&&!doc.querySelector('.gd-ag-guide-example'),'Challenge help provides technique without worked answers');
     {
+      const model=win.TT99Goodies.angles,methods=await model.loadConstructionLibrary();
+      assert(model.labTypes.every(type=>methods.some(m=>m.id===model.CONSTRUCTION_METHODS_BY_TASK[type])),'Every construction challenge has an associated method');
+      for(const type of model.labTypes)for(let i=0;i<30;i++){
+        const t=model.generate({type,enrichment:true}),base=methods.find(m=>m.id===model.CONSTRUCTION_METHODS_BY_TASK[type]),m=model.challengeConstructionMethod(base,t),sol=model.labSolution(t),end=model.constructionFrame(m,m.steps.length-1),pts=Object.fromEntries(end.filter(o=>o.kind==='point').map(o=>[o.label,o.at])),dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+        assert(m.challengeSpecific&&m.steps.length===m.graphics.frames.length&&model.constructionMethodGraphic(m,m.steps.length-1).outerHTML.indexOf('NaN')===-1,'Challenge-specific vector stages render: '+type);
+        assert(dist(pts.A,pts.B)===240,'Challenge baseline remains exactly 6 cm: '+type);
+        if(type==='build-circle')assert(end.some(o=>o.kind==='circle'&&o.radius===40*t.length),'Guide circle has task radius');
+        if(type==='build-midpoint'||type==='build-bisector')assert(dist(pts.A,pts.M)===120&&dist(pts.B,pts.M)===120,'Guide midpoint exact');
+        if(pts.C&&type!=='build-bisector')assert(dist(pts.C,sol.points[2])<1e-7,'Guide C matches assessed solution');
+        if(pts.D)assert(dist(pts.D,sol.points[3])<1e-7,'Guide D matches assessed solution');
+      }
+      const before=JSON.stringify(cap().lab),taskBefore=JSON.stringify(cap().task);
+      doc.querySelector('[data-ag-tool="construction-library"]').click();await tick(50);
+      const panel=doc.querySelector('[data-ag-method-panel]'),action=id=>panel.querySelector('[data-ag-method-action="'+id+'"]');
+      assert(panel&&!panel.hidden&&panel.querySelector('[data-ag-method-task]'),'Challenge opens contextual method guide');
+      assert(!panel.querySelector('[data-ag-method-graphic]')&&panel.querySelector('[data-ag-method-step]').dataset.agMethodStep==='-1','Challenge guidance starts text-first');
+      action('next').click();action('graphics').click();assert(panel.querySelector('[data-ag-method-graphic]'),'Challenge graphic appears only by choice');
+      action('check-drawing').click();assert(panel.querySelector('[data-ag-method-feedback]').textContent.length>0,'Optional verification returns drawing feedback');
+      action('close').click();assert(JSON.stringify(cap().lab)===before&&JSON.stringify(cap().task)===taskBefore,'Method guide never modifies challenge drawing or assessment');
+    }
+    {
       const constructionModel=win.TT99Goodies.angles;
       for(const type of ['build-midpoint','build-perpendicular','build-circle','build-asa','build-bisector','build-rhombus']){
         for(let sample=0;sample<60;sample++){
@@ -1170,6 +1191,61 @@ async function run(){
     const next=[...doc.querySelectorAll('.gd-ag-guide-example button')].find(b=>b.textContent==='Next step');next.click();await tick();
     assert(doc.querySelector('.gd-ag-guide-example').textContent.includes('Step 2 / 3')&&cap().demo.labDrawing.points.length===0,'Demo advances without altering free drawing');
     doc.querySelector('[data-ag-tool="help"]').click();
+    {
+      const model=win.TT99Goodies.angles,methods=await model.loadConstructionLibrary();
+      assert(methods.length>=36,'Construction library has at least thirty-six methods');
+      for(const m of methods){
+        for(const publicationMode of ['exercise','instructions','illustrated']){
+          const draft=P.createDocument();draft.addCurrent(id,{constructionPublication:{type:'construction-method',constructionMethod:m,publicationMode}});
+          const item=draft.list()[0],pupil=P.renderItem(item,false);
+          assert(pupil.dataset.agMethodPublication===publicationMode&&!pupil.outerHTML.includes('NaN'),'Method publication renders: '+m.id+' '+publicationMode);
+          if(publicationMode==='exercise'){
+            assert(item.kind==='challenge'&&pupil.querySelector('[data-ag-method-working]')&&pupil.querySelectorAll('[data-ag-method-primitive]').length===m.graphics.initial.length,'Exercise exposes only starting geometry');
+            const key=P.answerGraphic(item);assert(key.querySelectorAll('[data-ag-method-primitive]').length===model.constructionFrame(m,m.steps.length-1).length&&P.answerSummary(item)===m.checks.join('; '),'Method answer annex shows complete construction and criteria');
+          }else{assert(item.kind==='diagram'&&P.answerSummary(item)===null,'Instruction handouts do not duplicate the answer annex');assert(pupil.textContent.includes(m.steps[0]),'Handout contains written instructions');if(publicationMode==='illustrated')assert(pupil.querySelectorAll('[data-ag-method-graphic]').length===m.steps.length+1,'Illustrated handout contains every stage');else assert(!pupil.querySelector('[data-ag-method-graphic]'),'Text handout omits diagrams')}
+          assert(P.pages([item],'Construction').length>0,'Method fits document pagination');
+        }
+      }
+      assert(new Set(methods.map(m=>m.id)).size===methods.length,'Construction method IDs are unique');
+      const finalPoints=id=>Object.fromEntries(model.constructionFrame(methods.find(m=>m.id===id),100).filter(o=>o.kind==='point').map(o=>[o.label,o.at])),dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]),near=(a,b)=>Math.abs(a-b)<1e-6,dot=(a,b,c)=>(a[0]-b[0])*(c[0]-b[0])+(a[1]-b[1])*(c[1]-b[1]);
+      const eq=finalPoints('triangle-equilateral');assert(near(dist(eq.A,eq.B),dist(eq.A,eq.C))&&near(dist(eq.A,eq.B),dist(eq.B,eq.C)),'Equilateral example is exact');
+      for(const id of ['square-on-side','rectangle-sides','parallelogram-sas']){const p=finalPoints(id);assert(near(dist(p.A,p.B),dist(p.C,p.D))&&near(dist(p.A,p.D),dist(p.B,p.C)),'Quadrilateral opposite sides match: '+id);if(id!=='parallelogram-sas')assert(near(dot(p.B,p.A,p.D),0),'Rectangle example has right angle: '+id)}
+      const sq=finalPoints('square-on-side');assert(near(dist(sq.A,sq.B),dist(sq.A,sq.D)),'Square has equal adjacent sides');
+      const cc=finalPoints('triangle-circumcircle');assert(near(dist(cc.O,cc.A),dist(cc.O,cc.B))&&near(dist(cc.O,cc.A),dist(cc.O,cc.C)),'Circumcentre is equidistant from vertices');
+      const ic=finalPoints('triangle-incircle'),lineDistance=(p,a,b)=>Math.abs((b[0]-a[0])*(p[1]-a[1])-(b[1]-a[1])*(p[0]-a[0]))/dist(a,b);assert([['A','B'],['B','C'],['C','A']].every(([a,b])=>near(lineDistance(ic.I,ic[a],ic[b]),dist(ic.I,ic.F))),'Incentre is equidistant from sides');
+      const rh=finalPoints('rhombus-side-angle');assert([dist(rh.B,rh.C),dist(rh.C,rh.D),dist(rh.D,rh.A)].every(v=>near(v,dist(rh.A,rh.B))),'Rhombus example has equal sides');
+      const tr=finalPoints('isosceles-trapezium');assert(near(dist(tr.A,tr.D),dist(tr.B,tr.C))&&near(tr.A[1],tr.B[1])&&near(tr.D[1],tr.C[1]),'Trapezium is symmetric with parallel bases');
+      for(const [mid,labels] of [['square-in-circle','ABCD'],['regular-octagon','ABCDEFGH']]){const p=finalPoints(mid),v=[...labels];assert(v.every((n,i)=>near(dist(p[n],p[v[(i+1)%v.length]]),dist(p.A,p.B))&&near(dist(p[n],p.O),dist(p.A,p.O))),'Inscribed regular polygon has equal sides and common radius: '+mid)}
+      const thirds=finalPoints('divide-segment-thirds');assert(near(dist(thirds.A,thirds.P),dist(thirds.P,thirds.Q))&&near(dist(thirds.P,thirds.Q),dist(thirds.Q,thirds.B)),'Segment is divided into exact thirds');
+      const rt=finalPoints('right-triangle-hypotenuse');assert(near(dot(rt.A,rt.C,rt.B),0),'Hypotenuse construction preserves right angle');
+      const cg=finalPoints('triangle-centroid');assert(near(dist(cg.C,cg.G),2*dist(cg.G,cg.M))&&near(dist(cg.A,cg.G),2*dist(cg.G,cg.N)),'Centroid divides medians 2:1');
+      const semi=finalPoints('angle-in-semicircle');assert(near(dot(semi.A,semi.T,semi.B),0),'Semicircle construction creates right angle');
+      const orth=finalPoints('triangle-orthocentre');assert(near(dot(orth.A,orth.F,orth.B),0)&&near(dot(orth.B,orth.G,orth.C),0)&&near((orth.H[0]-orth.B[0])*(orth.G[1]-orth.B[1])-(orth.H[1]-orth.B[1])*(orth.G[0]-orth.B[0]),0),'Orthocentre lies on the altitudes');
+      const gold=finalPoints('golden-section');assert(near(dist(gold.A,gold.B)/dist(gold.A,gold.G),dist(gold.A,gold.G)/dist(gold.G,gold.B)),'Golden ratio exact');
+      const pent=finalPoints('regular-pentagon'),vertices=[...'ABCDE'];assert(vertices.every((n,i)=>near(dist(pent[n],pent[vertices[(i+1)%5]]),dist(pent.A,pent.B))&&near(dist(pent[n],pent.O),dist(pent.A,pent.O)))&&near(dist(pent.A,pent.K),dist(pent.A,pent.B)),'Regular pentagon construction chord is exact');
+      for(const id of ['common-internal-tangents','common-external-tangents']){const p=finalPoints(id);for(const i of [1,2]){const t=p['T'+i],u=p['U'+i];assert(near(dot(p.O,t,u),0)&&near(dot(p.P,u,t),0)&&near(dist(p.O,t),65)&&near(dist(p.P,u),30),'Common tangent contacts are exact: '+id)}}
+      const lp=finalPoints('two-distance-locus');assert(['P₁','P₂'].every(n=>near(dist(lp[n],lp.A),110)&&near(dist(lp[n],lp.B),110)),'Both locus solutions satisfy both distances');
+      for(const m of methods){assert(m.prerequisites.every(id=>methods.some(n=>n.id===id)),'Prerequisite methods exist: '+m.id);
+        assert(m.objective&&m.steps.length===m.graphics.frames.length&&m.checks.length,'Method includes problem, matching written and graphical steps and checks: '+m.id);
+        for(let i=-1;i<m.steps.length;i++){const svg=model.constructionMethodGraphic(m,i);assert(svg.querySelectorAll('[data-ag-method-primitive]').length===model.constructionFrame(m,i).length&&!svg.outerHTML.includes('NaN'),'Each construction step renders exact vector primitives: '+m.id)}
+      }
+      const originalDrawing=JSON.stringify(cap().demo.labDrawing);
+      const libButton=doc.querySelector('[data-ag-tool="construction-library"]');assert(libButton,'Free construction exposes method library');libButton.click();await tick(50);
+      const panel=doc.querySelector('[data-ag-method-panel]');assert(panel&&!panel.hidden&&panel.parentElement===doc.body,'Library floats independently outside widget');
+      const search=panel.querySelector('[data-ag-method-search]');search.value='tangent';search.dispatchEvent(new win.Event('input',{bubbles:true}));assert(panel.querySelectorAll('[data-ag-method-id]').length===4,'Search filters the methods');
+      panel.querySelector('[data-ag-method-id="tangents-external-point"]').click();
+      const act=id=>panel.querySelector('[data-ag-method-action="'+id+'"]');
+      assert(!panel.querySelector('[data-ag-method-graphic]')&&panel.querySelector('[data-ag-method-step]').dataset.agMethodStep==='-1','Text-first problem has no graphical spoilers');
+      act('next').click();act('next').click();assert(panel.querySelector('[data-ag-method-step]').dataset.agMethodStep==='1','Written navigation advances step');
+      act('graphics').click();assert(panel.querySelector('[data-ag-method-graphic]')&&panel.querySelector('[data-ag-method-step]').dataset.agMethodStep==='1','Graphical guide synchronises to current step');
+      act('next').click();assert(panel.querySelector('[data-ag-method-graphic]').querySelectorAll('circle[data-ag-method-primitive="circle"]').length===2,'Auxiliary circle appears at correct step');
+      panel.querySelector('details').open=true;panel.querySelector('[data-ag-method-related="midpoint"]').click();assert(panel.querySelector('[data-ag-method-step]').dataset.agMethodStep==='-1'&&!panel.querySelector('[data-ag-method-graphic]'),'Related technique opens independently in text-first mode');act('back').click();assert(panel.querySelector('[data-ag-method-step]').dataset.agMethodStep==='2'&&panel.querySelector('[data-ag-method-graphic]'),'Return from prerequisite restores original step and graphical mode');
+      act('instructions').click();assert(!panel.querySelector('[data-ag-method-graphic]')&&panel.querySelector('[data-ag-method-step]').dataset.agMethodStep==='2','Returning to instructions preserves progress');
+      act('verify').click();assert(panel.textContent.includes("Thales"),'Optional verification explains geometry');
+      act('restart').click();assert(panel.querySelector('[data-ag-method-step]').dataset.agMethodStep==='-1','Restart returns to problem statement');
+      assert(JSON.stringify(cap().demo.labDrawing)===originalDrawing,'Guide never alters the actual drawing');
+      act('close').click();assert(panel.hidden,'Guide closes independently');
+    }
     const work=doc.querySelector('.gd-ag-lab-canvas'),beforeView=work.viewBox.baseVal.height,beforeScale=Math.hypot(work.getScreenCTM().a,work.getScreenCTM().b);
     doc.querySelector('[data-ag-tool="expand"]').click();await tick();
     const wsField=id=>doc.querySelector('[data-ag-workspace="'+id+'"]');
