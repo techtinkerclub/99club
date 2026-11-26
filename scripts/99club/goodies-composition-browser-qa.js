@@ -1052,7 +1052,7 @@ async function run(){
     assert(P.answerSummary(draft.list()[0])===String(t.angle),'Published key retains answer');
     const calls=[],X=G.exportTools;X.downloadSvg=svg=>calls.push(svg.textContent);X.printSvg=svg=>calls.push(svg.textContent);
     doc.querySelector('[data-gd-direct-export="svg"]').click();await tick();doc.querySelector('[data-gd-direct-export="key-print"]').click();await tick();
-    assert(calls.length===2&&calls[0].includes('Target:')&&calls[1].includes('°'),'Direct pupil and teacher exports are connected');
+    assert(calls.length===2&&calls[0].includes(t.prompt)&&calls[1].includes('°'),'Direct pupil and teacher exports are connected');
     const pupilSvg=P.renderItem(draft.list()[0],false);
     assert(!pupilSvg.querySelector('[data-ag-angle-handle],[data-ag-moving-arm],[data-ag-angle-mark]'),'Printed construction question contains no answer arm');
     doc.querySelector('[data-challenge-action="another"]').click();await tick();
