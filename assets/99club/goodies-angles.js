@@ -346,7 +346,7 @@ const G=root.TT99Goodies;if(!G)return;G.angles=model;
 const {q,qa,esc,field,btn,setPanels}=G,CK=G.challengeKit;
 function diagram(d,teacher=false,options={}){
  const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),W=800,H=440,ink='#263e43',teal='#277b70',orange='#b56d2c',shapeFill=!options.paper&&d.type==='diagram'&&d.showFill===true?'#e9f4f0':'none';
- const add=(tag,attrs,t,parent=svg)=>{const e=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,String(options.paper&&k==='stroke-width'&&Number(v)>0?Math.max(.8,Number(v)*.52):v)));if(t!=null)e.textContent=t;parent.appendChild(e);return e};
+ const add=(tag,attrs,t,parent=svg)=>{const e=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,String(options.paper&&k==='stroke-width'&&Number(v)>0?Math.max(.8,Number(v)*.52):options.paper&&k==='font-size'&&Number(v)>0?Math.max(29,Number(v)):v)));if(t!=null)e.textContent=t;parent.appendChild(e);return e};
  Object.entries({viewBox:'0 0 '+W+' '+H,xmlns:ns,role:'img','aria-label':'Geometry diagram'}).forEach(([k,v])=>svg.setAttribute(k,v));
  const text=(x,y,v,size=21,extra={})=>add('text',{x,y,fill:ink,'font-family':'Arial,sans-serif','font-size':size,'text-anchor':'middle',...extra},v);
  const dimensions=[];
