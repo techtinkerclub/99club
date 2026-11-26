@@ -1196,7 +1196,7 @@ async function run(){
       assert(methods.length>=36,'Construction library has at least thirty-six methods');
       {
         const roleMap=model.INDEPENDENT_METHOD_ROLES;
-        assert(Object.keys(roleMap).length===25,'Independent checker covers 25 methods');
+        assert(Object.keys(roleMap).length===methods.length&&methods.every(m=>roleMap[m.id]),'Every library method has independent verification');
         for(const [methodId,roles] of Object.entries(roleMap)){
           const m=methods.find(m=>m.id===methodId),items=model.constructionFrame(m,m.steps.length-1);
           for(const [rotation,scale,reflect] of [[0,1,1],[.77,1.8,1],[1.2,1.4,-1]]){
@@ -1205,14 +1205,29 @@ async function run(){
             for(const o of items)if(o.kind==='point'&&roles.includes(o.label))assignment[o.label]=index(o.at);
             if(methodId==='parallel-through-point')assignment.Q=index(items.find(o=>o.kind==='line'&&o.style==='result').b);
             for(const o of items){if(o.kind==='line')st.segments.push([index(o.a),index(o.b)]);if(o.kind==='circle')st.circles.push({i:index(o.center),r:o.radius*scale})}
-            const result=model.independentConstructionCheck(st,methodId,assignment);
+            const p=Object.fromEntries(roles.map(k=>[k,st.points[assignment[k]]])),d=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]),angle=(a,o,b)=>Math.acos(Math.max(-1,Math.min(1,((a[0]-o[0])*(b[0]-o[0])+(a[1]-o[1])*(b[1]-o[1]))/(d(a,o)*d(b,o)))))*180/Math.PI;
+            const targets={};
+            for(const [key] of model.INDEPENDENT_METHOD_DIMENSIONS[methodId]||[]){
+              if(['AB','AC','BC','AD','CD'].includes(key))targets[key]=d(p[key[0]],p[key[1]])/40;
+              else if(key==='angleA')targets[key]=angle(p.B,p.A,p.D||p.C);
+              else if(key==='angleB')targets[key]=angle(p.A,p.B,p.C);
+              else if(key==='height')targets[key]=Math.abs((p.B[0]-p.A[0])*(p.D[1]-p.A[1])-(p.B[1]-p.A[1])*(p.D[0]-p.A[0]))/d(p.A,p.B)/40;
+              else if(key==='radius')targets[key]=methodId==='circle-given-radius'?st.circles[0].r/40:methodId==='two-distance-locus'?d(p.A,p['P₁'])/40:d(p.M,p.P)/40;
+            }
+            const result=model.independentConstructionCheck(st,methodId,assignment,targets);
+            if(Object.keys(targets).length){
+              const missing=model.independentConstructionCheck(st,methodId,assignment,{});
+              assert(!missing.correct&&missing.pending.length===Object.keys(targets).length,'Missing dimensions cannot pass '+methodId);
+              const key=Object.keys(targets)[0],wrong={...targets,[key]:targets[key]+20};
+              assert(!model.independentConstructionCheck(st,methodId,assignment,wrong).correct,'Incorrect given dimension rejected '+methodId);
+            }
             assert(result.ready&&result.correct,'Independent construction accepts exact transformed '+methodId+': '+JSON.stringify(result));
             assert(!model.independentConstructionCheck(st,methodId,{}).ready,'Unassigned roles cannot pass '+methodId);
-            const broken=JSON.parse(JSON.stringify(st));broken.points[assignment[roles.at(-1)]]=[-5000,-4000];
-            assert(!model.independentConstructionCheck(broken,methodId,assignment).correct,'Broken construction rejected '+methodId);
+            const broken=JSON.parse(JSON.stringify(st));if(methodId==='circle-given-radius')broken.circles=[];else broken.points[assignment[roles.at(-1)]]=[-5000,-4000];
+            assert(!model.independentConstructionCheck(broken,methodId,assignment,targets).correct,'Broken construction rejected '+methodId);
           }
         }
-        assert(!model.independentConstructionCheck(model.labEmpty(true),'copy-angle',{}).supported,'Unsupported checks are explicitly marked unavailable');
+        assert(!model.independentConstructionCheck(model.labEmpty(true),'unknown-method',{}).supported,'Unsupported checks are explicitly marked unavailable');
       }
       for(const m of methods){
         for(const publicationMode of ['exercise','instructions','illustrated']){
