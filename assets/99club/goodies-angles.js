@@ -908,11 +908,14 @@ G.anglesTool=function(){
     circle:check('ag-fill','Shade whole circle (demonstration)',demo.showFill===true)+field('Radius (cm)',select('ag-radius',Array.from({length:15},(_,i)=>[i+1,(i+1)+' cm']),demo.radius||5))+check('ag-circle-extension','Show KS3 formulae and working',demo.circleEnrichment===true),
     'free-explore':'<p class="gd-help">Draw freely and move vertices to test what happens when a shape loses its properties. Trace any chosen point.</p>',
     loci:'<p class="gd-help">Move a constrained point and record the path it follows.</p>',
-    construct:check('ag-free-lab','Free construction workspace',demo.freeLab===true)+(!demo.freeLab?angleField(170,10)+field('AC length (cm)',select('ag-length',Array.from({length:7},(_,i)=>[i+1,i+1]),demo.length)):'') ,
+    construct:'<p class="gd-help">Fixed marks: draw using your instruments. Undo or erase to correct a drawing.</p>'+check('ag-free-lab','Free construction workspace',demo.freeLab===true)+(!demo.freeLab?angleField(170,10)+field('AC length (cm)',select('ag-length',Array.from({length:7},(_,i)=>[i+1,i+1]),demo.length)):'') ,
     facts:angleField(170,10)+rotationField+field('Angle relationship',select('ag-fact',[['straight','Straight line'],['point','Around a point'],['opposite','Vertically opposite']],demo.fact||'straight')),
     lines:field('Line relationship',select('ag-relation',[['Parallel','Parallel'],['Perpendicular','Perpendicular'],['Neither','Neither']],demo.relation||'Neither'))+rotationField+(!demo.relation||demo.relation==='Neither'?angleField(80,10):'')
   };
-  const exploration=field('Explore',select('ag-mode',MODES,demo.mode))+modeFields[demo.mode]+'<p class="gd-help">Use the controls for the selected diagram.</p>';
+  const modeGroups=[['Teaching diagrams',['angle','turn','lines','facts','polygon','circle']],['Geometry workspaces',['construct','free-explore','loci']]];
+  const modeLabels={'construct':'Construction Lab — fixed marks','free-explore':'Free exploration — movable points','loci':'Dynamic geometry — loci & traces'};
+  const groupedModes='<select class="gd-select" id="ag-mode" aria-label="Geometry activity">'+modeGroups.map(([group,ids])=>'<optgroup label="'+esc(group)+'">'+ids.map(id=>'<option value="'+esc(id)+'"'+(demo.mode===id?' selected':'')+'>'+esc(modeLabels[id]||MODES.find(m=>m[0]===id)[1])+'</option>').join('')+'</optgroup>').join('')+'</select>';
+  const exploration=field('Geometry activity',groupedModes)+modeFields[demo.mode];
   const exports='<p class="gd-help">'+(task?'Pupil copies always hide the answer. Use a separate teacher key.':'Export the current teaching diagram.')+'</p><div class="gd-row">'+btn('Copy image','ag-copy')+btn('PNG','ag-png')+btn('SVG','ag-svg')+btn('Print / PDF','ag-print')+'</div>'+(task?'<div class="gd-row">'+btn('Copy answer key','ag-key-copy')+btn('Print answer key','ag-key-print')+'</div>':'')+'<div class="gd-row">'+btn('Add current item','ag-add')+btn('Generate questions…','ag-batch')+'</div>'+btn('Review worksheet','ag-review');
   host.innerHTML=tabs+(workflow==='challenge'?challenge:workflow==='export'?exports:exploration)+'<p class="gd-help" id="ag-status" role="status">'+esc(status)+'</p>';
   qa('[data-ag-workflow]',host).forEach(b=>b.onclick=()=>{workflow=b.dataset.agWorkflow;if(workflow==='build'){task=null;attempt=null;scope=''}render()});
