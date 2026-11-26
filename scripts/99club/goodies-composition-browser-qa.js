@@ -930,6 +930,12 @@ async function run(){
     const before=bridge.read();
     if(!item.multi){assert(picker.hidden&&!before,'Single-purpose widget does not add a mode control: '+item.id);api.remove(fixture.record.id);continue}
     assert(before&&before.options.length>=2&&!picker.hidden,'Shared mode control appears for '+item.id);
+    const pr=picker.getBoundingClientRect(),sr=select.getBoundingClientRect(),cr=picker.querySelector('span').getBoundingClientRect(),mr=fixture.frame.querySelector('[data-board-move]').getBoundingClientRect();
+    const center=r=>r.top+r.height/2;
+    assert(Math.abs(center(pr)-center(sr))<1.5&&Math.abs(center(pr)-center(cr))<3,'Mode text control and chevron vertically centred: '+item.id);
+    assert(Math.abs(center(pr)-center(mr))<2,'Mode dropdown and move handle aligned: '+item.id);
+    assert(getComputedStyle(select).marginTop==='0px'&&getComputedStyle(select).marginBottom==='0px','Theme margins cannot shift native mode select: '+item.id);
+
     const alternate=before.options.find(o=>o.value!==before.value&&!o.disabled);
     assert(alternate,'Alternative mode available: '+item.id);
     const snapshot=()=>fixture.doc.defaultView.TT99Goodies.lessonState.capture(item.id).model;
