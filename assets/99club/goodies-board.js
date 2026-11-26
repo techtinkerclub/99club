@@ -9,7 +9,7 @@ const root=G.root;
 const tools=Array.isArray(G.toolCatalogue)?G.toolCatalogue:[];
 const SNAP=10;
 const BOARD_W=2800,BOARD_H=1800;
-const AUTO_SHRINK_HEIGHT_TOOLS=new Set(['angles','number-line','place-value','abacus','array-builder','factors','fdp','clock','money','measurement','sequences']);
+const AUTO_SHRINK_HEIGHT_TOOLS=new Set(['angles','function-machine','statistics-table','number-line','place-value','abacus','array-builder','factors','fdp','clock','money','measurement','sequences']);
 let nextId=1,selectedId=null,snapOn=true,zCounter=10,drag=null,resize=null,pan=null;
 
 const defaults={
@@ -830,7 +830,7 @@ function objectMarkup(obj,tool){
       '<button type="button" data-board-export-kind="svg" role="menuitem">SVG</button>'+
       '<button type="button" data-board-export-kind="print" role="menuitem">Print</button></div></div>'+
       (tool.id==='maths-canvas'?'<div class="gd-pub-menu-section"><button type="button" data-board-export-kind="paper-settings" role="menuitem"><span>Paper settings…</span><small>›</small></button></div>':'')+
-      (['maths-canvas','abacus','place-value','sequences','column-addition','column-subtraction','written-multiplication','written-division','function-machine','angles'].includes(tool.id)?'<div class="gd-pub-menu-section" data-pub-key-group hidden><span>Teacher key</span><div class="gd-pub-menu-formats"><button type="button" data-board-export-kind="key-print" role="menuitem" hidden>Print</button><button type="button" data-board-export-kind="key-copy" role="menuitem" hidden>Copy</button></div></div>':'')+
+      (['maths-canvas','abacus','place-value','sequences','column-addition','column-subtraction','written-multiplication','written-division','function-machine','angles','statistics-table'].includes(tool.id)?'<div class="gd-pub-menu-section" data-pub-key-group hidden><span>Teacher key</span><div class="gd-pub-menu-formats"><button type="button" data-board-export-kind="key-print" role="menuitem" hidden>Print</button><button type="button" data-board-export-kind="key-copy" role="menuitem" hidden>Copy</button></div></div>':'')+
     '</div>'+
     '<div class="gd-board-quick-actions is-empty" data-board-quick-actions aria-label="'+esc(tool.title)+' quick actions"></div>'+
     '<div class="gd-board-context-menu" role="menu" aria-label="'+esc(tool.title)+' controls">'+
@@ -1010,7 +1010,7 @@ function toggleExportMenu(id){
     let supported=false;try{const model=frame.querySelector('iframe')?.contentWindow?.TT99Goodies?.lessonState.capture('abacus').model;supported=['western','suanpan','soroban'].includes(model?.kind)}catch(_){}
     frame.querySelectorAll('[data-board-export-kind$="document"]').forEach(button=>button.hidden=!supported);const group=frame.querySelector('[data-pub-document-group]');if(group)group.hidden=!supported;
   }
-  if(open&&['maths-canvas','abacus','place-value','sequences','column-addition','column-subtraction','written-multiplication','written-division','function-machine','angles'].includes(obj.toolId)){
+  if(open&&['maths-canvas','abacus','place-value','sequences','column-addition','column-subtraction','written-multiplication','written-division','function-machine','angles','statistics-table'].includes(obj.toolId)){
     const doc=innerDocument(obj),active=obj.toolId!=='maths-canvas'?!!doc?.querySelector('[data-gd-direct-export="key-print"]'):!!doc?.querySelector('#gd-stage .gd-challenge-banner');
     frame?.querySelectorAll('[data-board-export-kind^="key-"]').forEach(button=>{button.hidden=!active});const group=frame?.querySelector('[data-pub-key-group]');if(group)group.hidden=!active;
   }
