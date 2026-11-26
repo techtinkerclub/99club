@@ -248,19 +248,43 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
  function mountLab(box,initial,onChange){
   let st=initial||labEmpty(),corner=0,tool='segment',first=null,aligned=null,hover=null,history=[],snap=true,measure=true,grid=true,drag=null;
   const clone=x=>JSON.parse(JSON.stringify(x)),save=()=>history.push(clone(st)),N='http://www.w3.org/2000/svg';
-  const toolbar=document.createElement('div');toolbar.className='gd-row';toolbar.style.cssText='justify-content:center;flex-wrap:wrap;gap:6px;margin:0 0 8px';
+  const toolbar=document.createElement('div');toolbar.className='gd-ag-lab-toolbar';toolbar.setAttribute('aria-label','Construction tools');
+  const instruments=document.createElement('div');instruments.className='gd-ag-lab-tools';instruments.setAttribute('role','group');instruments.setAttribute('aria-label','Drawing instruments');
+  const helpers=document.createElement('div');helpers.className='gd-ag-lab-helpers';
+  const actions=document.createElement('div');actions.className='gd-ag-lab-actions';actions.setAttribute('role','group');actions.setAttribute('aria-label','Drawing actions');
+  const options=document.createElement('div');options.className='gd-ag-lab-options';options.setAttribute('role','group');options.setAttribute('aria-label','Drawing assistance');
+  helpers.append(actions,options);toolbar.append(instruments,helpers);
   const svg=document.createElementNS(N,'svg');svg.setAttribute('viewBox','0 0 800 400');svg.style.cssText='width:100%;max-height:480px;display:block;touch-action:none;user-select:none;background:white;border:1px solid #cbded8;border-radius:8px';
   const hint=document.createElement('p');hint.className='gd-help';hint.style.cssText='text-align:center;min-height:24px;margin:5px 0';
   box.replaceChildren(toolbar,svg,hint);
-  const controls=[['move','Move'],['point','Point'],['segment','Ruler'],['ray','Ray'],['protractor','Protractor'],['square45','45° set square'],['square30','30°–60° set square'],['compass','Compass'],['erase','Erase']];
-  function button(label,fn){const b=document.createElement('button');b.type='button';b.className='gd-btn';b.style.minHeight='42px';b.textContent=label;b.onclick=fn;toolbar.append(b);return b}
-  const buttons=controls.map(([id,label])=>[id,button(label,()=>{tool=id;first=null;aligned=null;hover=null;paint()})]);
-  const cornerButton=button('Change corner',()=>{corner=(corner+1)%3;paint()});
-  button('Flip instrument',()=>{if(aligned!==null){aligned=mod(aligned+180);paint()}}).dataset.agFlip='1';
-  button('Undo',()=>{if(history.length){st=history.pop();first=null;aligned=null;changed()}});
-  button('Reset',()=>{save();st=labEmpty();first=null;aligned=null;changed()});
-  for(const [label,get,set] of [['Snap',()=>snap,v=>snap=v],['Measurements',()=>measure,v=>measure=v],['Grid',()=>grid,v=>grid=v]]){
-   const l=document.createElement('label');l.style.cssText='display:inline-flex;align-items:center;gap:5px;padding:6px';const input=document.createElement('input');input.type='checkbox';input.checked=get();input.onchange=()=>{set(input.checked);paint()};l.append(input,document.createTextNode(label));toolbar.append(l);
+  const icons={
+    move:'<path d="M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"/>',
+    point:'<circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/><path d="M12 3v4m0 10v4M3 12h4m10 0h4"/>',
+    segment:'<rect x="2.5" y="7.5" width="19" height="9" rx="1.5"/><path d="M6 8v4m4-4v2.5m4-2.5v4m4-4v2.5"/>',
+    ray:'<path d="M5 19L20 4M13 4h7v7"/><circle cx="4" cy="20" r="1.6" fill="currentColor" stroke="none"/>',
+    protractor:'<path d="M2 17a10 10 0 0 1 20 0Z M12 7v4M5 10l2.5 3M19 10l-2.5 3M3 14l3 1M21 14l-3 1"/><circle cx="12" cy="17" r="1.2" fill="currentColor" stroke="none"/>',
+    square45:'<path d="M3 3v18h18Z M7 12v5h5Z M3 17h4v4"/>',
+    square30:'<path d="M2 20h20L2 8Z M6 14v3h5Z M2 16h4v4"/>',
+    compass:'<circle cx="12" cy="5" r="2.5"/><path d="M11 7L5 21M13 7l6 14M7.5 15h9M12 2V1"/>',
+    erase:'<path d="M3 14l10-10a2 2 0 0 1 3 0l5 5a2 2 0 0 1 0 3l-8 8H9L3 14ZM8 9l9 9M13 20h9"/>',
+    corner:'<path d="M4 4v16h16Z M4 15h5v5"/><path d="M12 2a8 8 0 0 1 9 8m-4-3 4 3 2-4"/>',
+    flip:'<path d="M3 18l7-12v12ZM21 18L14 6v12ZM12 3v2m0 4v2m0 4v2m0 4v1"/>',
+    undo:'<path d="M8 5L3 10l5 5M3 10h11a6 6 0 0 1 0 12h-3"/>',
+    reset:'<path d="M3 11a9 9 0 1 1 2.5 7M3 4v7h7"/>',
+    snap:'<path d="M5 3v10a7 7 0 0 0 14 0V3h-5v10a2 2 0 0 1-4 0V3ZM5 8h5m4 0h5"/>',
+    measure:'<path d="M3 18h18M3 15v6m18-6v6M4 8h16M4 8l4-4M4 8l4 4m12-4-4-4m4 4-4 4"/>',
+    grid:'<rect x="3" y="3" width="18" height="18" rx="1"/><path d="M9 3v18m6-18v18M3 9h18M3 15h18"/>'
+  };
+  function icon(id){const x=document.createElementNS(N,'svg');x.setAttribute('viewBox','0 0 24 24');x.setAttribute('fill','none');x.setAttribute('stroke','currentColor');x.setAttribute('stroke-width','1.65');x.setAttribute('stroke-linecap','round');x.setAttribute('stroke-linejoin','round');x.setAttribute('aria-hidden','true');x.setAttribute('focusable','false');x.innerHTML=icons[id];return x}
+  const controls=[['move','Move','Move points'],['point','Point','Place a point'],['segment','Ruler','Draw a straight line with the ruler'],['ray','Ray','Draw a ray'],['protractor','Protractor','Measure and draw an angle'],['square45','45°','45° set square'],['square30','30°–60°','30°–60° set square'],['compass','Compass','Draw a compass circle'],['erase','Erase','Erase a drawn object']];
+  function button(id,label,description,fn,parent=actions){const b=document.createElement('button');b.type='button';b.className='gd-btn gd-ag-lab-button';b.dataset.agTool=id;b.title=description;b.setAttribute('aria-label',description);const t=document.createElement('span');t.textContent=label;b.append(icon(id),t);b.onclick=fn;parent.append(b);return b}
+  const buttons=controls.map(([id,label,desc])=>[id,button(id,label,desc,()=>{tool=id;first=null;aligned=null;hover=null;paint()},instruments)]);
+  const cornerButton=button('corner','Corner','Change set square corner',()=>{corner=(corner+1)%3;paint()});
+  button('flip','Flip','Flip instrument',()=>{if(aligned!==null){aligned=mod(aligned+180);paint()}}).dataset.agFlip='1';
+  const undoButton=button('undo','Undo','Undo last drawing action',()=>{if(history.length){st=history.pop();first=null;aligned=null;changed()}});
+  button('reset','Reset','Reset construction',()=>{save();st=labEmpty();first=null;aligned=null;changed()});
+  for(const [id,label,get,set] of [['snap','Snap',()=>snap,v=>snap=v],['measure','Measurements',()=>measure,v=>measure=v],['grid','Grid',()=>grid,v=>grid=v]]){
+   const l=document.createElement('label');l.className='gd-ag-lab-option';const input=document.createElement('input');input.type='checkbox';input.checked=get();input.onchange=()=>{set(input.checked);paint()};const t=document.createElement('span');t.textContent=label;l.append(input,icon(id),t);options.append(l);
   }
   const angleTool=()=>['protractor','square45','square30'].includes(tool);
   const nearest=(p,skip=-1)=>{const a=st.points.map((q,i)=>({i,d:labDist(q,p)})).filter(x=>x.i!==skip).sort((a,b)=>a.d-b.d)[0];return a&&a.d<=tolerance()?a.i:-1};
@@ -297,7 +321,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
   }
   function paint(){
    cornerButton.hidden=!tool.startsWith('square');const flip=toolbar.querySelector('[data-ag-flip]');flip.hidden=!angleTool()||aligned===null;
-   buttons.forEach(([id,b])=>b.classList.toggle('gd-btn--primary',id===tool));
+   buttons.forEach(([id,b])=>{b.classList.toggle('gd-btn--primary',id===tool);b.setAttribute('aria-pressed',String(id===tool))});undoButton.disabled=history.length===0;
    svg.replaceChildren();el('rect',{width:800,height:400,fill:'#fff'});
    if(grid){for(let x=20;x<800;x+=40)line([x,22],[x,342],'#e1ebe6',1);for(let y=22;y<=342;y+=40)line([20,y],[780,y],'#e1ebe6',1)}
    for(const c of st.circles)circle(st.points[c.i],c.r,'#a97830','none','5 4');
