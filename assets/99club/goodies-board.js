@@ -891,7 +891,7 @@ function objectMarkup(obj,tool){
       '<button type="button" data-board-settings="'+obj.id+'" role="menuitem" aria-label="Settings" title="Settings">'+iconSvg('settings')+'</button>'+
       '<button type="button" data-board-lock="'+obj.id+'" role="menuitem" aria-label="Lock position" title="Lock position">'+iconSvg('lock')+'</button>'+
     '</div>'+
-    '<button type="button" class="gd-board-resize-handle" data-board-resize="'+obj.id+'" aria-label="Resize '+esc(tool.title)+'" title="'+(tool.id==='angles'?'Resize (free construction: expand workspace; Shift: zoom)':'Resize')+'"></button>'+
+    '<button type="button" class="gd-board-resize-handle" data-board-resize="'+obj.id+'" aria-label="Resize '+esc(tool.title)+'" title="'+(tool.id==='angles'?'Resize viewport (Shift: zoom)':'Resize')+'"></button>'+
   '</section>';
 }
 function addObject(toolId){
@@ -1227,14 +1227,13 @@ document.addEventListener('pointermove',e=>{
     const obj=objectById(resize.id);if(!obj)return;
     const dx=e.clientX-resize.startX,dy=e.clientY-resize.startY;
     if(resize.workspace){
-      // Expand the drawing surface in logical units, preserving its existing
-      // scale and the physical width of strokes, labels and graduations.
-      const doc=innerDocument(obj),canvas=doc?.querySelector('[data-ag-free-workspace]'),ws=resize.workspace;if(!canvas)return;
-      const baseW=clamp(resize.baseW+Math.max(0,dx)/resize.scale,resize.baseW,Math.min(1200,(BOARD_W-obj.x)/resize.scale));
-      const newW=ws.w+(baseW-resize.baseW)*ws.unitsPerPx,newH=ws.h+Math.max(0,dy)/resize.scale*ws.unitsPerPx;
-      obj.baseW=Math.round(baseW);obj.scale=resize.scale;obj.w=Math.round(obj.baseW*obj.scale);positionObject(obj);
-      canvas.parentElement.dispatchEvent(new doc.defaultView.CustomEvent('tt99-workspace-resize',{detail:{w:newW,h:newH}}));
-      fitEmbeddedObject(obj,false);return;
+      // Resize the viewport, never the paper. Shift retains ordinary zoom.
+      const doc=innerDocument(obj),canvas=doc?.querySelector('[data-ag-free-workspace]');if(!canvas)return;
+      obj.baseW=Math.round(clamp(resize.baseW+dx/resize.scale,220,Math.min(1200,(BOARD_W-obj.x)/resize.scale)));
+      obj.baseH=Math.round(clamp(resize.baseH+dy/resize.scale,260,Math.min(1400,(BOARD_H-obj.y)/resize.scale)));
+      obj.scale=resize.scale;obj.w=Math.round(obj.baseW*obj.scale);obj.h=Math.round(obj.baseH*obj.scale);positionObject(obj);
+      canvas.parentElement.dispatchEvent(new doc.defaultView.CustomEvent('tt99-viewport-resize',{detail:{h:obj.baseH}}));
+      return;
     }
     const sx=(resize.w+dx)/resize.baseW,sy=(resize.h+dy)/resize.baseH;
     let nextScale=Math.abs(dx/resize.baseW)>=Math.abs(dy/resize.baseH)?sx:sy;
