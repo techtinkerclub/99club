@@ -160,10 +160,11 @@ G.statisticsTableTool=function(){
  }
  function exit(){if(setup)data=setup;setup=null;task=null;attempt=null;workflow='build';render()}
  function controls(){
-  const tabs='<div class="gd-row" role="tablist" aria-label="Data workflow">'+[['build','Explore'],['challenge','Challenge']].map(([v,l])=>'<button class="gd-btn'+(workflow===v?' gd-btn--primary':'')+'" type="button" data-st-workflow="'+v+'">'+l+'</button>').join('')+'</div>';
+  const tabs='<div class="gd-row" role="tablist" aria-label="Data workflow">'+[['build','Explore'],['challenge','Challenge'],['export','Export']].map(([v,l])=>'<button class="gd-btn'+(workflow===v?' gd-btn--primary':'')+'" type="button" data-st-workflow="'+v+'">'+l+'</button>').join('')+'</div>';
   const select=(id,options,current)=>'<select class="gd-select" id="'+id+'">'+options.map(([v,l])=>'<option value="'+v+'"'+(String(v)===String(current)?' selected':'')+'>'+l+'</option>').join('')+'</select>';
   const representation=field('Curriculum suggestions',''+select('st-year',PROFILES,year))+field('Representation',select('st-view',viewsFor(year),view))+'<p class="gd-help">'+esc(guidance(year))+'</p>';
   const settings=field('Difficulty',select('st-difficulty',DIFFICULTIES,difficulty))+(view==='pictogram'?field('Symbol value',select('st-key',[[1,'1'],[2,'2'],[5,'5'],[10,'10']],key)):'')+field('Maximum frequency',select('st-max',[[10,'10'],[20,'20'],[30,'30'],[40,'40']],max))+field('Categories',select('st-count',[[3,'3'],[4,'4'],[5,'5'],[6,'6']],count));
+  if(workflow==='export')return tabs+'<p class="gd-help">Pupil exports hide challenge answers; teacher keys are separate.</p><div class="gd-row">'+btn('Copy image','st-copy')+btn('PNG','st-png')+btn('SVG','st-svg')+btn('Print / PDF','st-print')+'</div>'+(task?'<div class="gd-row">'+btn('Copy answer key','st-key-copy')+btn('Print answer key','st-key-print')+'</div>':'')+'<p class="gd-help" id="st-status" role="status">'+esc(status)+'</p>';
   if(workflow==='challenge')return tabs+representation+settings+CK.nativeRandomHtml('st',[{id:'data',label:'Data questions',ids:types().map(t=>t[0])}])+types().map(([id,l])=>'<button class="gd-btn" type="button" data-st-challenge-mode="'+id+'">'+l+'</button>').join('');
   return tabs+representation+settings+field('Chart title','<input class="gd-input" id="st-title" maxlength="40" value="'+esc(data.title)+'">')+data.rows.map((r,i)=>'<div class="gd-row"><input class="gd-input" style="min-width:0;flex:1" maxlength="18" aria-label="Category '+(i+1)+'" data-st-label="'+i+'" value="'+esc(r.label)+'"><button type="button" class="gd-btn" data-st-change="'+i+',-1" aria-label="Decrease '+esc(r.label)+'">−</button><span>'+(view==='timetable'?clock(r.value):r.value)+'</span><button type="button" class="gd-btn" data-st-change="'+i+',1" aria-label="Increase '+esc(r.label)+'">+</button></div>').join('')+'<div class="gd-row">'+btn('Apply labels','st-apply')+btn('Random data','st-new')+'</div><p class="gd-help" id="st-status" role="status">'+esc(status)+'</p>';
  }
@@ -172,7 +173,7 @@ G.statisticsTableTool=function(){
   const pieBuild=task?.type==='pie-build',constructing=task?.type==='complete',target=constructing?data.rows[task.missing]:null;
   const pieExpected=pieBuild?M.pie(data).map(s=>Math.round(s.angle)):[];
   const pupil=pieBuild?CK.pupilSpec('model',{hint:'Set every sector angle, then check the pie chart.',ready:()=>Array.isArray(attempt)&&attempt.length===pieExpected.length&&attempt.every(Number.isInteger),check:()=>Array.isArray(attempt)&&attempt.every((v,i)=>v===pieExpected[i])}):constructing?CK.pupilSpec('model',{hint:'Complete the diagram, then check your work.',ready:()=>attempt!==null,check:()=>attempt===target.value}):CK.pupilSpec(['time-read','time-complete'].includes(task?.type)?'clock-24':task?.type==='pie-fraction'?'fraction':'number');
-  stage.innerHTML=(task?CK.bannerHtml(task,{pupil,actions:[{action:'another',label:'Another'},{action:'end',label:'Exit challenge'}]}):'')+'<div class="gd-st-diagram" style="width:100%;max-width:850px;margin:auto"></div>';
+  stage.innerHTML=(task?CK.bannerHtml(task,{pupil,actions:[{action:'another',label:'Another'},{action:'end',label:'Exit challenge'}]}):'')+'<div class="gd-st-diagram" style="width:100%;max-width:1000px;margin:0 auto"></div>';
   const host=q('.gd-st-diagram',stage);
   const axis=constructing&&['bar','line','block'].includes(view)?(view==='block'?{step:1,max:Math.max(1,M.summary(data).max)}:M.axis(data)):null;
   function draw(){
@@ -211,21 +212,22 @@ G.statisticsTableTool=function(){
  function renderControls(){
   const host=q('#gd-controls');host.innerHTML=controls();
   qa('[data-st-workflow]',host).forEach(el=>el.onclick=()=>{workflow=el.dataset.stWorkflow;if(workflow==='build'&&task)exit();else renderControls()});
-  q('#st-year',host).onchange=e=>{if(task){if(setup)data=setup;task=null;setup=null;attempt=null}year=profile(e.target.value);render()};
-  q('#st-difficulty',host).onchange=e=>{difficulty=e.target.value;const s=difficultySettings(difficulty);max=s.max??max;count=s.count??count;key=s.key??key;if(task){if(setup)data=setup;task=null;setup=null;attempt=null}render()};
-  q('#st-view',host).onchange=e=>{const next=validView(e.target.value);if(task){if(setup)data=setup;task=null;setup=null;}attempt=null;if(next==='timetable'&&view!=='timetable'){chartSetup=data;data=timetableSetup||timetable(count)}else if(view==='timetable'&&next!=='timetable'){timetableSetup=data;data=chartSetup||initial()}view=next;render()};
+  if(q('#st-year',host))q('#st-year',host).onchange=e=>{if(task){if(setup)data=setup;task=null;setup=null;attempt=null}year=profile(e.target.value);render()};
+  if(q('#st-difficulty',host))q('#st-difficulty',host).onchange=e=>{difficulty=e.target.value;const s=difficultySettings(difficulty);max=s.max??max;count=s.count??count;key=s.key??key;if(task){if(setup)data=setup;task=null;setup=null;attempt=null}render()};
+  if(q('#st-view',host))q('#st-view',host).onchange=e=>{const next=validView(e.target.value);if(task){if(setup)data=setup;task=null;setup=null;}attempt=null;if(next==='timetable'&&view!=='timetable'){chartSetup=data;data=timetableSetup||timetable(count)}else if(view==='timetable'&&next!=='timetable'){timetableSetup=data;data=chartSetup||initial()}view=next;render()};
   const keyInput=q('#st-key',host);if(keyInput)keyInput.onchange=e=>{if(task){if(setup)data=setup;task=null;setup=null;attempt=null;}key=Number(e.target.value);difficulty='custom';render()};
-  q('#st-max',host).onchange=e=>{max=Number(e.target.value);difficulty='custom';renderControls()};
-  q('#st-count',host).onchange=e=>{count=Number(e.target.value);difficulty='custom';renderControls()};
+  if(q('#st-max',host))q('#st-max',host).onchange=e=>{max=Number(e.target.value);difficulty='custom';renderControls()};
+  if(q('#st-count',host))q('#st-count',host).onchange=e=>{count=Number(e.target.value);difficulty='custom';renderControls()};
   qa('[data-st-challenge-mode]',host).forEach(el=>el.onclick=()=>launch(el.dataset.stChallengeMode));
   qa('[data-st-change]',host).forEach(el=>el.onclick=()=>{try{applyLabels();change(...el.dataset.stChange.split(',').map(Number))}catch(e){message(e.message)}});
   const apply=q('#st-apply',host);if(apply)apply.onclick=()=>{try{applyLabels();status='';render()}catch(e){message(e.message)}};
+  for(const kind of ['copy','png','svg','print',...(task?['key-copy','key-print']:[])]){let el=q('#st-'+kind,host);if(!el){el=document.createElement('button');el.type='button';el.hidden=true;host.appendChild(el)}el.setAttribute('data-gd-direct-export',kind);el.onclick=async()=>{try{const X=G.exportTools,teacher=kind.startsWith('key-'),item={kind:task?'challenge':'diagram',data:{data,view,key,type:task?.type,prompt:task?.prompt,answer:task?.answer,missing:task?.missing}},svg=paper(item,teacher);if(kind==='copy'||kind==='key-copy')await X.copyPng(svg);else if(kind==='png')await X.downloadPng(svg,ID,2);else if(kind==='svg')X.downloadSvg(svg,ID);else X.printSvg(svg,{title:viewName(view),landscape:true});message('Export ready.')}catch(e){message(e.message)}}}
   const fresh=q('#st-new',host);if(fresh)fresh.onclick=()=>{data=view==='timetable'?timetable(count):randomData(max,count);status='';render()};
  }
  function render(){renderControls();renderStage()}
  setPanels('','');render();
  G.lessonState.register(ID,()=>({data,view,workflow,task,setup,max,count,key,year,difficulty,attempt,chartSetup,timetableSetup,pupil:CK.capturePupil(task)}),saved=>{
-  data=M.dataset(saved.data.rows,saved.data);chartSetup=saved.chartSetup?M.dataset(saved.chartSetup.rows,saved.chartSetup):null;timetableSetup=saved.timetableSetup?M.dataset(saved.timetableSetup.rows,saved.timetableSetup):null;view=validView(saved.view);year=profile(saved.year);difficulty=DIFFICULTIES.some(d=>d[0]===saved.difficulty)?saved.difficulty:'custom';workflow=saved.workflow==='challenge'?'challenge':'build';max=[10,20,30,40].includes(saved.max)?saved.max:20;count=[3,4,5,6].includes(saved.count)?saved.count:4;
+  data=M.dataset(saved.data.rows,saved.data);chartSetup=saved.chartSetup?M.dataset(saved.chartSetup.rows,saved.chartSetup):null;timetableSetup=saved.timetableSetup?M.dataset(saved.timetableSetup.rows,saved.timetableSetup):null;view=validView(saved.view);year=profile(saved.year);difficulty=DIFFICULTIES.some(d=>d[0]===saved.difficulty)?saved.difficulty:'custom';workflow=['build','challenge','export'].includes(saved.workflow)?saved.workflow:'build';max=[10,20,30,40].includes(saved.max)?saved.max:20;count=[3,4,5,6].includes(saved.count)?saved.count:4;
   key=[1,2,5,10].includes(saved.key)?saved.key:2;setup=saved.setup?M.dataset(saved.setup.rows,saved.setup):null;task=saved.task?CK.normalise(saved.task):null;if(task&&saved.task.type==='complete')task.missing=saved.task.missing;attempt=task?.type==='pie-build'&&Array.isArray(saved.attempt)&&saved.attempt.length===data.rows.length&&saved.attempt.every(v=>v===null||Number.isInteger(v)&&v>=0&&v<=360)?saved.attempt.slice():task?.type==='complete'&&Number.isInteger(saved.attempt)&&saved.attempt>=0&&saved.attempt<=40?saved.attempt:null;CK.restorePupil(task,saved.pupil);render();
  });
 };
