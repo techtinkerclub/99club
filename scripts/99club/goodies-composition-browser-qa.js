@@ -1013,6 +1013,20 @@ async function run(){
     assert(inspectSvg.querySelector('[data-ag-inspection] [data-geometry-instrument="protractor"]'),'Investigation uses the shared dual-scale protractor');
     assert(doc.querySelector('.gd-ag-inspect-message').textContent.includes(deg+'°'),'Investigation protractor measures selected angle');
     doc.querySelector('[data-ag-inspect="clear"]').click();assert(!inspectSvg.querySelector('[data-ag-inspection]').children.length,'Clear removes inspection without changing question');
+    {
+      const questionOutline=inspectSvg.querySelector('[data-ag-inspect-polygon]').getAttribute('points');
+      const physicalBtn=doc.querySelector('[data-ag-inspect="protractor"]');physicalBtn.click();await tick();
+      const instrumentPicker=doc.querySelector('[data-ag-instrument]'),overlay=inspectSvg.querySelector('[data-ag-measure-overlay]');
+      assert(instrumentPicker&&!instrumentPicker.closest('.gd-ag-inspect-tools').hidden,'Physical instruments available in contextual toolbar');
+      inspectTap(0);
+      for(const kind of ['protractor','ruler','square45','square30','compass']){
+        instrumentPicker.value=kind;instrumentPicker.dispatchEvent(new iw.Event('change',{bubbles:true}));
+        assert(overlay.querySelector('[data-geometry-instrument="'+kind+'"]'),'Physical overlay renders '+kind);
+      }
+      inspectTap(1);
+      assert(inspectSvg.querySelector('[data-ag-inspect-polygon]').getAttribute('points')===questionOutline,'Physical instrument operations preserve the original question');
+      doc.querySelector('[data-ag-inspect="clear"]').click();assert(!overlay.children.length&&instrumentPicker.closest('.gd-ag-inspect-tools').hidden,'Clear dismisses physical instruments and contextual controls');
+    }
     doc.querySelector('[data-ag-challenge-mode="diagonal-bisect"]').click();await tick();
     const ds=doc.querySelector('.gd-ag-visual>svg'),dp=ds.querySelector('[data-ag-inspect-polygon]').points,intersection=ds.querySelector('[data-ag-inspect-point="O"]');
     assert(intersection,'Diagonal intersection is a selectable inspection point');
