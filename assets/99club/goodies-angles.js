@@ -8,7 +8,7 @@ const YEARS=[['custom','All / custom'],['1','Year 1'],['2','Year 2'],['3','Year 
 const FAMILIES=[
  ['turn','Describe a turn','turn',1],['direction','Clockwise or anticlockwise','turn',2],['right-turns','Count right-angle turns','turn',3],
  ['right-count','Count right angles in a shape','polygon',3],['right','Compare with a right angle','angle',3],['classify','Name the angle type','angle',4],['compare','Compare two angles','angle',4],['order','Order three angles','angle',4],
- ['estimate','Estimate an angle','angle',5],['measure','Measure using a protractor','angle',5],['draw','Construct a given angle','angle',5],['reflex','Measure a reflex angle','angle',5],['draw-reflex','Construct a reflex angle','angle',5],['estimate-reflex','Estimate a reflex angle','angle',5],['compare-reflex','Compare reflex and other angles','angle',5],
+ ['estimate','Estimate an angle','angle',5],['measure','Measure an angle independently','angle',5],['draw','Construct a given angle','angle',5],['reflex','Measure a reflex angle','angle',5],['draw-reflex','Construct a reflex angle','angle',5],['estimate-reflex','Estimate a reflex angle','angle',5],['compare-reflex','Compare reflex and other angles','angle',5],
  ['line-orientation','Horizontal or vertical','lines',3],['line-pair','Parallel or perpendicular','lines',3],
  ['straight','Missing angle on a straight line','facts',5],['point','Missing angle around a point','facts',5],['opposite','Vertically opposite angles','facts',6],
  ['rectangle','Angles in rectangles','polygon',5],['rectangle-length','Missing length in a rectangle','polygon',5],['isosceles-angle','Missing base angle in an isosceles triangle','polygon',6],['diagonal-equal','Equal diagonals in quadrilaterals','polygon',5],['circle-part','Name a circle part','circle',6],['circle-diameter','Find diameter from radius','circle',6],['circle-radius','Find radius from diameter','circle',6],['triangle-type','Classify a triangle','polygon',4],['quad-type','Classify a quadrilateral','polygon',4],['regularity','Regular or irregular polygon','polygon',5],
@@ -44,7 +44,7 @@ function generate(s={},rng=Math.random){
  if(type==='classify'){const a=pick(rng,[angle(15,75),90,angle(105,165),180,angle(195,345)]);return task({angle:a},'Name the marked angle.',classify(a),'Acute < 90°; right = 90°; obtuse between 90° and 180°; straight = 180°; reflex between 180° and 360°.',['Acute','Right','Obtuse','Straight','Reflex'])}
  if(['compare','order','compare-reflex'].includes(type)){const n=type==='order'?3:2,as=type==='compare-reflex'?[angle(195,345)]:[];while(as.length<n){const a=type==='compare-reflex'?angle(15,345):angle();if(!as.includes(a)&&as.every(b=>Math.abs(a-b)>=10))as.push(a)}const labels=['A','B','C'],order=as.map((a,i)=>({a,l:labels[i]})).sort((x,y)=>x.a-y.a).map(v=>v.l);const choices=type!=='order'?labels.slice(0,2):['A B C','A C B','B A C','B C A','C A B','C B A'];return task({angles:as},type!=='order'?'Which marked angle is larger?':'Order the marked angles from smallest to largest.',type!=='order'?order.at(-1):order.join(' '),'Actual openings: '+as.map((a,i)=>labels[i]+' = '+a+'°').join(', ')+'. Compare opening size rather than arm length.',choices)}
  if(type==='estimate'||type==='estimate-reflex'){let a=type==='estimate-reflex'?angle(195,345):angle(15,165);if(a%30===15)a+=1;const nearest=Math.round(a/30)*30,choices=Array.from({length:13},(_,i)=>i*30).filter(v=>Math.abs(v-nearest)<=60);return task({angle:a},'Which estimate is closest to the marked angle?',nearest+'°','The angle is '+a+'°. The nearest multiple of 30° is '+nearest+'°.',choices.map(v=>v+'°'))}
- if(['measure','draw','reflex','draw-reflex'].includes(type)){const a=['reflex','draw-reflex'].includes(type)?angle(195,345):angle(15,165);return task({angle:a},['draw','draw-reflex'].includes(type)?'Construct an angle of '+a+'° from the given baseline.':type==='reflex'?'Measure the marked reflex angle in degrees.':'Read the correct protractor scale. What is the marked angle in degrees?',a,type==='reflex'?'The full turn is 360°. The smaller angle is '+(360-a)+'°, so the reflex angle is '+a+'°.':'Align the centre and zero line with the vertex and baseline. The marked opening is '+a+'°.') }
+ if(['measure','draw','reflex','draw-reflex'].includes(type)){const a=['reflex','draw-reflex'].includes(type)?angle(195,345):angle(15,165);return task({angle:a},['draw','draw-reflex'].includes(type)?'Construct an angle of '+a+'° from the given baseline.':type==='reflex'?'Use a protractor to measure the marked reflex angle in degrees.':'Use a protractor to measure the marked angle in degrees.',a,type==='reflex'?'The full turn is 360°. The smaller angle is '+(360-a)+'°, so the reflex angle is '+a+'°.':'Align the centre and zero line with the vertex and baseline. The marked opening is '+a+'°.') }
  if(type==='line-orientation'){const a=pick(rng,[0,90]);return task({angle:a,rotation:0},'Is the marked line horizontal or vertical?',a===0?'Horizontal':'Vertical','Horizontal lines run left to right; vertical lines run up and down.',['Horizontal','Vertical'])}
  if(type==='line-pair'){const relation=pick(rng,['Parallel','Perpendicular','Neither']);return task({relation,angle:relation==='Parallel'?0:relation==='Perpendicular'?90:angle(15,75)},'Describe the relationship between the two lines.',relation,'Parallel lines never meet; perpendicular lines meet at 90°.',['Parallel','Perpendicular','Neither'])}
  if(type==='straight'){const a=angle(20,160);return task({angles:[a,180-a],rotation:rotation},'Find the missing angle x.',180-a,'Angles on a straight line total 180°. 180° − '+a+'° = '+(180-a)+'°.')}
@@ -187,12 +187,12 @@ function diagram(d,teacher=false,options={}){
  if(['compare','order','compare-reflex'].includes(type)){const n=d.angles.length;d.angles.forEach((v,i)=>{const x=(i+.5)*W/n,y=200,r=n===3?105:162;single(x,y,r,v,(rot+i*55)%360,teacher?v+'°':null);text(x,395,['A','B','C'][i],34)});return svg}
  if(mode==='angle'){
    const draw=['draw','draw-reflex'].includes(type),pupilDraw=draw&&!teacher,blank=pupilDraw&&options.attempt==null&&!options.interactive,shown=pupilDraw?(options.attempt??0):a;
-   const full=options.full??(shown>180||['reflex','draw-reflex'].includes(type)),scale=options.scale??d.scale??['measure','reflex'].includes(type);
+   const full=options.full??(shown>180||['reflex','draw-reflex'].includes(type)),scale=options.scale??d.scale??(teacher&&['measure','reflex'].includes(type));
    const r=238,start=rot,x=400,y=220;
    // A rotated semicircle occupies a different bounding rectangle. Include the full arc, rays, degree labels and touch handle, with generous edge clearance.
    const sweep=full?360:180,extent=Array.from({length:sweep+1},(_,i)=>polar(x,y,r+9,start+i));extent.push([x,y]);
    const pad=26,minX=Math.min(...extent.map(p=>p[0]))-pad,maxX=Math.max(...extent.map(p=>p[0]))+pad,minY=Math.min(...extent.map(p=>p[1]))-pad,maxY=Math.max(...extent.map(p=>p[1]))+pad;
-   const targetH=pupilDraw&&!options.interactive?42:0;frame(minX,minY,maxX-minX,maxY-minY+targetH);
+   const targetH=pupilDraw&&!options.interactive?42:0;if(options.measureWorkspace)frame(110,-70,580,580);else frame(minX,minY,maxX-minX,maxY-minY+targetH);
    single(x,y,r,shown,start,teacher||explore?shown+'°':null,scale,blank||options.interactive,full);
    if(pupilDraw&&!options.interactive)text((minX+maxX)/2,maxY+26,'Target: '+a+'°',25);
    if(options.interactive){
@@ -315,7 +315,7 @@ function diagram(d,teacher=false,options={}){
  return svg
 }
 function geometry(t){return {...t,mode:t.geometryMode||FAMILIES.find(f=>f[0]===t.type)?.[2]||t.mode}}
-function paper(item,teacher){const d=geometry(item.data);if(item.kind==='diagram')return diagram(d,true,{scale:d.scale});let prompt=d.prompt;if(inspectTypes.includes(d.type))prompt+=' You may use a ruler or protractor to investigate the diagram.';if(labTypes.includes(d.type))prompt+=' On paper, draw AB = 6 cm first using your ruler. Use your geometry set in the working space.';if(d.choices)prompt+=' Choices: '+d.choices.join(' / ')+'.';return G.exportTools.composeWorksheetCardSvg(diagram(d,teacher,{scale:['measure','reflex'].includes(d.type)||teacher&&['draw','draw-reflex'].includes(d.type)}),{title:'Angles & geometry',prompt,responseMode:(['draw','draw-reflex'].includes(d.type)||labTypes.includes(d.type))?'none':d.choices?'lines':'box',responseLines:1,responseLabel:'Answer',paperStyle:'plain',answer:d.answer,showAnswer:teacher})}
+function paper(item,teacher){const d=geometry(item.data);if(item.kind==='diagram')return diagram(d,true,{scale:d.scale});let prompt=d.prompt;if(['measure','reflex'].includes(d.type))prompt+=' Use your own protractor.';if(inspectTypes.includes(d.type))prompt+=' You may use a ruler or protractor to investigate the diagram.';if(labTypes.includes(d.type))prompt+=' On paper, draw AB = 6 cm first using your ruler. Use your geometry set in the working space.';if(d.choices)prompt+=' Choices: '+d.choices.join(' / ')+'.';return G.exportTools.composeWorksheetCardSvg(diagram(d,teacher,{scale:teacher&&['measure','reflex','draw','draw-reflex'].includes(d.type)}),{title:'Angles & geometry',prompt,responseMode:(['draw','draw-reflex'].includes(d.type)||labTypes.includes(d.type))?'none':d.choices?'lines':'box',responseLines:1,responseLabel:'Answer',paperStyle:'plain',answer:d.answer,showAnswer:teacher})}
 if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>types(s),title:item=>FAMILIES.find(t=>t[0]===item.data.type)?.[1]||'Angle illustration',recipe:(s,type)=>({...settings(s),type}),generate,signature:d=>JSON.stringify([d.type,d.angle,d.angles,d.rotation,d.clockwise,d.n,d.regular,d.shape,d.relation,d.length,d.rightLength,d.radius,d.part,d.width,d.height,d.missingSide]),capture:s=>[G.publishing.record(ID,s.task?'challenge':'diagram',s.task?{...geometry(s.task),revealed:false}:s.demo)],render:paper,answerSummary:item=>item.data.answer,answerGraphic:item=>diagram(geometry(item.data),true,{scale:['measure','draw','draw-reflex','reflex'].includes(item.data.type)}),answerNote:item=>item.data.note||''});
 
  function mountLab(box,initial,onChange,{free=false}={}){
@@ -522,6 +522,61 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
   paint();
  }
 
+
+ // Independent measurement: the pupil places and aligns the same instrument
+ // used in the explorer. No computed answer or target angle is displayed.
+ function mountAngleMeasurement(box,svg,d){
+  const N='http://www.w3.org/2000/svg',vertex=[400,220],rays=[mod(d.rotation||0),mod((d.rotation||0)+d.angle)],radius=208;
+  let active=false,centre=null,start=0,aligned=false,full=false,direction=1,drag=null,preview=null;
+  const bar=document.createElement('div');bar.className='gd-ag-inspect-tools';
+  const message=document.createElement('span');message.className='gd-ag-inspect-message';message.setAttribute('role','status');
+  const layer=document.createElementNS(N,'g');layer.setAttribute('data-ag-measure-overlay','1');layer.setAttribute('pointer-events','none');svg.append(layer);
+  function button(id,label,fn){const b=document.createElement('button');b.type='button';b.className='gd-btn gd-ag-inspect-btn';b.dataset.agMeasure=id;b.textContent=label;b.onclick=fn;bar.append(b);return b}
+  const show=button('show','Protractor',()=>{active=!active;if(!active){centre=null;aligned=false;preview=null}paint()});
+  const format=button('format','360° protractor',()=>{full=!full;paint()});
+  const flip=button('flip','Flip',()=>{direction*=-1;paint()});
+  const left=button('left','−1°',()=>{start=mod(start-1);aligned=true;paint()});
+  const right=button('right','+1°',()=>{start=mod(start+1);aligned=true;paint()});
+  const reset=button('reset','Reset',()=>{centre=null;aligned=false;start=0;direction=1;preview=null;paint()});
+  bar.append(message);box.insertBefore(bar,svg);
+  function el(tag,attrs){const n=document.createElementNS(N,tag);Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,v));layer.append(n);return n}
+  function point(e){const m=svg.getScreenCTM();if(!m)return null;const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(m.inverse());return [p.x,p.y]}
+  function tol(){const m=svg.getScreenCTM();return m?Math.min(60,26/Math.hypot(m.a,m.b)):25}
+  function snapCentre(p){return labDist(vertex,p)<=tol()?vertex.slice():p}
+  function orientation(p){const a=labAngle(centre,p),delta=(u,v)=>Math.min(mod(u-v),mod(v-u));const nearest=rays.reduce((u,v)=>delta(u,a)<=delta(v,a)?u:v);return labDist(centre,vertex)<.01&&delta(nearest,a)<=5?nearest:mod(Math.round(a))}
+  function paint(){
+   layer.replaceChildren();show.setAttribute('aria-pressed',String(active));show.classList.toggle('gd-btn--primary',active);
+   for(const b of [format,flip,left,right,reset])b.hidden=!active;
+   for(const b of [flip,left,right])b.disabled=!centre;
+   format.textContent=full?'180° protractor':'360° protractor';flip.hidden=!active||full;
+   svg.style.touchAction=active?'none':'auto';
+   message.textContent=!active?'Select the protractor when you are ready to measure.':!centre?'Tap the angle vertex to position the centre.':!aligned?'Tap or slide along an arm to align the zero line.':'Read the correct scale. Drag a graduation to realign, or drag the centre to reposition.';
+   if(!active)return;
+   if(!centre&&preview&&labDist(preview,vertex)<=tol())el('circle',{cx:vertex[0],cy:vertex[1],r:12,fill:'#c5e3da',stroke:'#287c70','stroke-width':2});
+   if(!centre)return;
+   G.instruments.protractor(layer,{x:centre[0],y:centre[1],radius,start,direction,full});
+   const zero=polar(...centre,radius,start);
+   el('line',{x1:centre[0],y1:centre[1],x2:zero[0],y2:zero[1],stroke:'#b77b32','stroke-width':2.5});
+   el('circle',{cx:centre[0],cy:centre[1],r:7,fill:'#fff',stroke:'#287c70','stroke-width':2});
+   el('circle',{cx:zero[0],cy:zero[1],r:8,fill:'#e4b56a',stroke:'#fff','stroke-width':2});
+  }
+  svg.addEventListener('pointerdown',e=>{
+   if(!active||e.button!==0)return;const p=point(e);if(!p)return;e.preventDefault();
+   if(!centre){centre=snapCentre(p);aligned=false;preview=null;paint();return}
+   drag={id:e.pointerId,kind:labDist(p,centre)<=tol()?'centre':'rotate'};
+   if(drag.kind==='rotate'&&labDist(p,centre)>10){start=orientation(p);aligned=true}
+   try{svg.setPointerCapture(e.pointerId)}catch(_){}paint();
+  });
+  svg.addEventListener('pointermove',e=>{
+   if(!active)return;const p=point(e);if(!p)return;
+   if(!centre){preview=p;paint();return}
+   if(!drag||drag.id!==e.pointerId)return;e.preventDefault();
+   if(drag.kind==='centre')centre=snapCentre(p);else if(labDist(p,centre)>10){start=orientation(p);aligned=true}paint();
+  });
+  const finish=e=>{if(drag?.id===e.pointerId)drag=null};svg.addEventListener('pointerup',finish);svg.addEventListener('pointercancel',finish);svg.addEventListener('lostpointercapture',finish);
+  paint();
+ }
+
 G.anglesTool=function(){
  let cfg=settings(),demo={type:'diagram',mode:'angle',angle:60,rotation:0,scale:true,clockwise:false,n:5,regular:true,length:5,baseLength:6},task=null,workflow='build',attempt=null,attemptLength=null,scope='',status='',draft=null,lab=null,freeLab=null;
  const snapshot=()=>({...cfg,demo:demoData(),task,workflow,attempt,attemptLength,scope,lab,freeLab,pupil:CK.capturePupil(task)});
@@ -570,9 +625,10 @@ G.anglesTool=function(){
   function drawSvg(){
     const interactive=(!task&&demo.mode==='angle')||(draw&&!task.revealed);
     box.style.touchAction=interactive?'none':'auto';
-    const svg=diagram(d,teacher,{attempt,length:attemptLength,scale:task?['measure','reflex','draw','draw-reflex'].includes(task.type):demo.scale,interactive,...(drag?{full:drag.max===360}:{})});
+    const measuring=!!task&&['measure','reflex'].includes(task.type)&&!task.revealed;
+    const svg=diagram(d,teacher,{attempt,length:attemptLength,scale:task?(task.revealed&&['measure','reflex'].includes(task.type)||['draw','draw-reflex'].includes(task.type)):demo.scale,measureWorkspace:measuring,interactive,...(drag?{full:drag.max===360}:{})});
     svg.style.cssText='width:100%;height:auto;max-height:560px;display:block;margin:auto';
-    box.replaceChildren(svg);if(task&&!task.revealed&&inspectTypes.includes(task.type))mountInvestigation(box,svg);
+    box.replaceChildren(svg);if(measuring)mountAngleMeasurement(box,svg,d);else if(task&&!task.revealed&&inspectTypes.includes(task.type))mountInvestigation(box,svg);
   }
   function updateDemo(v){
     demo.angle=v;d.angle=v;const label=q('#ag-value');

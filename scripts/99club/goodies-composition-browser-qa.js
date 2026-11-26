@@ -976,6 +976,24 @@ async function run(){
 
     
     doc.querySelector('[data-ag-workflow="challenge"]').click();await tick();
+    for(const type of ['measure','reflex']){
+      doc.querySelector('[data-ag-challenge-mode="'+type+'"]').click();await tick();
+      const t=cap().task,ms=doc.querySelector('.gd-ag-visual>svg'),w=doc.defaultView;
+      assert(!ms.querySelector('[data-geometry-instrument]'),'Independent angle starts without aligned protractor: '+type);
+      doc.querySelector('[data-ag-measure="show"]').click();
+      assert(!ms.querySelector('[data-geometry-instrument]'),'Pupil must position instrument centre');
+      const tap=(x,y)=>{const p=new w.DOMPoint(x,y).matrixTransform(ms.getScreenCTM());for(const event of ['pointerdown','pointerup'])ms.dispatchEvent(new w.PointerEvent(event,{bubbles:true,cancelable:true,pointerId:17,pointerType:'touch',button:0,clientX:p.x,clientY:p.y}))};
+      tap(403,222);assert(ms.querySelector('[data-geometry-instrument="protractor"]'),'Centre placement uses shared protractor');
+      tap(...M.polar(400,220,208,t.rotation));
+      const zero=ms.querySelector('[data-ag-measure-overlay]>line'),p=M.polar(400,220,208,t.rotation);
+      assert(Math.hypot(+zero.getAttribute('x2')-p[0],+zero.getAttribute('y2')-p[1])<.1,'Pupil aligns zero to selected ray');
+      assert(!doc.querySelector('.gd-ag-inspect-message').textContent.includes('Measured angle:'),'No numerical measurement readout');
+      doc.querySelector('[data-ag-measure="format"]').click();
+      assert(ms.querySelector('[data-geometry-instrument="protractor"]').textContent.includes('350'),'Full protractor available');
+      const pp=TT99Goodies.publishing.createDocument();pp.addCurrent(id,cap());
+      assert(!TT99Goodies.publishing.renderItem(pp.list()[0],false).querySelector('[data-geometry-instrument]'),'Printed angle requires real protractor');
+      assert(TT99Goodies.publishing.answerGraphic(pp.list()[0]).querySelector('[data-geometry-instrument]'),'Teacher key includes aligned protractor');
+    }
     doc.querySelector('[data-ag-challenge-mode="quad-type"]').click();await tick();
     const inspectSvg=doc.querySelector('.gd-ag-visual>svg'),inspectList=inspectSvg.querySelector('[data-ag-inspect-polygon]').points,inspectPoints=Array.from({length:inspectList.numberOfItems},(_,i)=>{const p=inspectList.getItem(i);return [p.x,p.y]}),iw=doc.defaultView;
     const inspectTap=i=>{const p=new iw.DOMPoint(...inspectPoints[i]).matrixTransform(inspectSvg.getScreenCTM());inspectSvg.dispatchEvent(new iw.PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerType:'touch',button:0,clientX:p.x,clientY:p.y}))};
