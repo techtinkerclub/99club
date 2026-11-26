@@ -1227,6 +1227,15 @@ async function run(){
             assert(!model.independentConstructionCheck(broken,methodId,assignment,targets).correct,'Broken construction rejected '+methodId);
           }
         }
+        for(const [separation,count] of [[240,'0'],[160,'1'],[100,'2'],[0,'infinite']]){
+          const r=80,st=model.labEmpty(true),a=[100,200],b=[100+separation,200];st.points=[a,b];st.circles=[{i:0,r},{i:1,r}];const roles={A:0,B:1};
+          if(count==='1'){roles['P₁']=2;st.points.push([180,200])}
+          if(count==='2'){const h=Math.sqrt(r*r-separation*separation/4);roles['P₁']=2;roles['P₂']=3;st.points.push([150,200-h],[150,200+h])}
+          if(count==='infinite')roles.B=0;
+          assert(model.independentConstructionCheck(st,'two-distance-locus',roles,{radius:2,solutionCount:count}).correct,'Locus solution count verified: '+count);
+          assert(!model.independentConstructionCheck(st,'two-distance-locus',roles,{radius:2,solutionCount:count==='0'?'infinite':'0'}).correct,'Wrong solution count cannot pass: '+count);
+          assert(!model.independentConstructionCheck(st,'two-distance-locus',roles,{solutionCount:count}).correct,'Missing radius cannot pass: '+count);
+        }
         assert(!model.independentConstructionCheck(model.labEmpty(true),'unknown-method',{}).supported,'Unsupported checks are explicitly marked unavailable');
       }
       for(const m of methods){
@@ -1280,7 +1289,8 @@ async function run(){
       act('restart').click();assert(panel.querySelector('[data-ag-method-step]').dataset.agMethodStep==='-1','Restart returns to problem statement');
             const independent=panel.querySelector('[data-ag-method-action="check-independent"]');assert(independent,'Independent method offers geometric verification');independent.click();assert(panel.querySelector('[data-ag-method-independent-feedback]').textContent.includes('Assign a distinct existing point'),'Independent checker reports missing assignments without revealing answers');
 assert(JSON.stringify(cap().demo.labDrawing)===originalDrawing,'Guide never alters the actual drawing');
-      act('close').click();assert(panel.hidden,'Guide closes independently');
+            act('back').click();const methodSearch=panel.querySelector('[data-ag-method-search]');methodSearch.value='given radius';methodSearch.dispatchEvent(new win.Event('input',{bubbles:true}));panel.querySelector('[data-ag-method-id="circle-given-radius"]').click();const field=panel.querySelector('[data-ag-method-dimension="radius"]');field.closest('details').open=true;field.click();await tick();const touch=doc.querySelector('.gd-touch-keypad');assert(touch&&field.dataset.gdKeypad==='number','Independent dimensions reuse shared whiteboard keypad');touch.querySelector('[data-gd-touch-key="2"]').click();assert(field.value==='2','Shared keypad enters dimension');touch.querySelector('[data-gd-touch-close]').click();
+act('close').click();assert(panel.hidden,'Guide closes independently');
     }
     const work=doc.querySelector('.gd-ag-lab-canvas'),beforeView=work.viewBox.baseVal.height,beforeScale=Math.hypot(work.getScreenCTM().a,work.getScreenCTM().b);
     doc.querySelector('[data-ag-tool="expand"]').click();await tick();
