@@ -348,20 +348,22 @@ function generate(s={},rng=Math.random){
  }
 
 
- function locusInitial(kind='circle'){
-   return {kind:kind==='bisector'?'bisector':'circle',p:kind==='bisector'?[400,100]:[540,220],traceNames:[],traces:{},showLocus:false};
- }
- function locusProject(kind,p,previous=[540,220]){
-   if(kind==='bisector')return [400,Math.max(45,Math.min(395,p[1]))];
-   let v=labSub(p,[400,220]),n=Math.hypot(...v);
-   if(n<1e-7){v=labSub(previous,[400,220]);n=Math.hypot(...v)}
-   return n<1e-7?[540,220]:labAt([400,220],v,140/n);
- }
- function locusPoints(state){
-   const p=locusProject(state.kind,state.p||[540,220]);
-   const a=state.kind==='bisector'?[250,220]:[400,220];
-   return {P:p,M:labAt(a,labSub(p,a),.5)};
- }
+ // A locus is a geometric constraint with a projection, guide and explanatory readout.
+ const locusClamp=(v,a,b)=>Math.max(a,Math.min(b,v)),locusCircle=(p,o,r,previous)=>{let v=labSub(p,o),n=Math.hypot(...v);if(n<1e-7){v=labSub(previous,o);n=Math.hypot(...v)}return n<1e-7?[o[0]+r,o[1]]:labAt(o,v,r/n)};
+ function locusLine(p,a,b,ray=false){const v=labSub(b,a),t=labDot(labSub(p,a),v)/labDot(v,v);return labAt(a,v,ray?Math.max(0,t):t)}
+ const LOCUS_PRESETS={
+   circle:{label:'Fixed distance from a point',initial:[540,220],anchors:{O:[400,220]},links:[['O','P']],project:(p,old)=>locusCircle(p,[400,220],140,old),guides:[{circle:[400,220,140]}],summary:p=>'OP = '+(labDist(p,[400,220])/40).toFixed(2)+' cm (constant)',rule:'P stays a fixed distance from O.'},
+   bisector:{label:'Equal distance from two points',initial:[400,100],anchors:{A:[250,220],B:[550,220]},links:[['A','P'],['B','P'],['A','B']],project:p=>[400,locusClamp(p[1],45,395)],guides:[{line:[[400,28],[400,412]]}],summary:p=>'AP = BP = '+(labDist(p,[250,220])/40).toFixed(2)+' cm',rule:'P stays equidistant from A and B.'},
+   parallel:{label:'Fixed distance from a line',initial:[400,100],anchors:{A:[170,220],B:[630,220]},links:[['A','B'],['P','F']],project:(p,old)=>[locusClamp(p[0],100,700),Math.abs(p[1]-220)<.001?(old[1]<220?100:340):p[1]<220?100:340],dependent:p=>({F:[p[0],220]}),guides:[{line:[[100,100],[700,100]]},{line:[[100,340],[700,340]]}],summary:()=> 'PF = 3.00 cm (constant)',rule:'P stays on either of two parallel lines.'},
+   angleBisector:{label:'Equal distance from two intersecting lines',initial:[500,120],anchors:{O:[400,220],A:[650,220],B:[400,40]},links:[['O','A'],['O','B'],['P','F'],['P','G']],project:(p,old)=>{const o=[400,220],v=labSub(p,o),a=labAt(o,[1,-1],locusClamp((v[0]-v[1])/2,-165,165)),b=labAt(o,[1,1],locusClamp((v[0]+v[1])/2,-165,165)),da=labDist(a,p),db=labDist(b,p);return Math.abs(da-db)<.001?(labDist(old,a)<=labDist(old,b)?a:b):da<db?a:b},dependent:p=>({F:[p[0],220],G:[400,p[1]]}),guides:[{line:[[235,385],[565,55]]},{line:[[235,55],[565,385]]}],summary:p=>'PF = PG = '+(Math.abs(p[1]-220)/40).toFixed(2)+' cm',rule:'Both angle bisectors are valid loci for two intersecting lines.'},
+   ellipse:{label:'Constant sum of distances (ellipse)',initial:[600,220],anchors:{A:[280,220],B:[520,220]},links:[['A','P'],['B','P']],project:(p,old)=>{let x=(p[0]-400)/200,y=(p[1]-220)/160;if(Math.hypot(x,y)<1e-7){x=(old[0]-400)/200;y=(old[1]-220)/160}const t=Math.atan2(y,x);return [400+200*Math.cos(t),220+160*Math.sin(t)]},guides:[{ellipse:[400,220,200,160]}],summary:p=>'AP + BP = '+((labDist(p,[280,220])+labDist(p,[520,220]))/40).toFixed(2)+' cm',rule:'The sum of the distances to the two foci remains constant.'},
+   fixedAngle:{label:'Fixed angle at a moving point',initial:[400,100],anchors:{A:[280,220],B:[520,220]},links:[['A','B'],['A','P'],['B','P']],project:(p,old)=>{const q=locusCircle(p,[400,220],120,old);if(labDist(q,[280,220])<5||labDist(q,[520,220])<5)return locusCircle([q[0],220+(old[1]<220?-8:8)],[400,220],120,old);return q},guides:[{circle:[400,220,120]}],summary:()=> 'Angle APB = 90° (constant)',rule:'Every point on either semicircle, except A and B, makes a right angle at P.'},
+   reflection:{label:'Reflection in a line',initial:[280,120],anchors:{A:[400,40],B:[400,400]},links:[['A','B'],['P','Q']],project:p=>[locusClamp(p[0],100,700),locusClamp(p[1],45,395)],dependent:p=>({Q:[800-p[0],p[1]],F:[400,p[1]]}),guides:[{line:[[400,28],[400,412]]}],summary:p=>'PF = FQ = '+(Math.abs(p[0]-400)/40).toFixed(2)+' cm',rule:'Q is the mirror image of P; the mirror line perpendicularly bisects PQ.'}
+ };
+ function locusPreset(kind){return LOCUS_PRESETS[kind]||LOCUS_PRESETS.circle}
+ function locusInitial(kind='circle'){const k=Object.hasOwn(LOCUS_PRESETS,kind)?kind:'circle';return {kind:k,p:locusPreset(k).initial.slice(),traceNames:[],traces:{},showLocus:false}}
+ function locusProject(kind,p,previous=locusPreset(kind).initial){return locusPreset(kind).project(p,previous)}
+ function locusPoints(state){const preset=locusPreset(state.kind),p=locusProject(state.kind,state.p||preset.initial),anchor=Object.values(preset.anchors)[0];return {...preset.anchors,P:p,M:labAt(anchor,labSub(p,anchor),.5),...(preset.dependent?preset.dependent(p):{})}}
  function traceParts(points){const parts=[];let part=[];for(const p of points||[]){if(p===null){if(part.length>1)parts.push(part);part=[]}else part.push(p)}if(part.length>1)parts.push(part);return parts}
  function traceAdd(state,name,p,old){
    if(!state.traceNames?.includes(name)||labDist(p,old)<.35)return;
@@ -375,7 +377,7 @@ function generate(s={},rng=Math.random){
    else state.traceNames.push(name)
  }
 
-const model={labNotation,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labLabel,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,locusInitial,locusProject,locusPoints,traceParts,traceAdd,traceToggle,shapeGeometry,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
+const model={LOCUS_PRESETS,locusPreset,labNotation,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labLabel,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,locusInitial,locusProject,locusPoints,traceParts,traceAdd,traceToggle,shapeGeometry,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
 if(typeof module==='object'&&module.exports){module.exports=model;return}
 const G=root.TT99Goodies;if(!G)return;G.angles=model;
 const {q,qa,esc,field,btn,setPanels}=G,CK=G.challengeKit;
@@ -509,17 +511,15 @@ function diagram(d,teacher=false,options={}){
  }
 
  if(mode==='loci'){
-   const st=d.locusState||locusInitial(),points=locusPoints(st),P=points.P,M=points.M,A=st.kind==='bisector'?[250,220]:[400,220],B=[550,220];
-   const showM=st.showMidpoint||st.traceNames?.includes('M')||st.traces?.M?.length;
-   if(st.showLocus){if(st.kind==='circle')add('circle',{cx:400,cy:220,r:140,fill:'none',stroke:'#83a99f','stroke-width':1.6,'stroke-dasharray':'6 5','data-ag-locus-guide':'1'});else line([400,28],[400,412],'#83a99f',1.6,{'stroke-dasharray':'6 5','data-ag-locus-guide':'1'})}
-   for(const [name,trail] of Object.entries(st.traces||{}))for(const pts of traceParts(trail))add('polyline',{points:pts.map(p=>p.join(',')).join(' '),fill:'none',stroke:name==='M'?'#5385c5':orange,'stroke-width':2.4,'stroke-linejoin':'round','stroke-linecap':'round','data-ag-locus-trace':name});
-   line(A,P,teal,2.5);if(st.kind==='bisector'){line(B,P,teal,2.5);line(A,B,ink,1.5,{'stroke-dasharray':'5 4'})}
-   const namePoint=(p,name,movable=false)=>{if(st.traceNames?.includes(name)&&!options.paper)add('circle',{cx:p[0],cy:p[1],r:11,fill:'none',stroke:name==='M'?'#5385c5':orange,'stroke-width':2});add('circle',{cx:p[0],cy:p[1],r:movable?6:4,fill:movable?teal:ink,'data-ag-locus-point':name});const q=vertexLabel(p,name==='P'?A:null,name==='P'&&st.kind==='bisector'?B:null,18);text(q[0],q[1]+4,name,16,{'paint-order':'stroke',stroke:'#fff','stroke-width':3})};
-   namePoint(A,st.kind==='circle'?'O':'A');if(st.kind==='bisector')namePoint(B,'B');namePoint(P,'P',true);if(showM)namePoint(M,'M');
-   const val=(labDist(A,P)/40).toFixed(2);
-   text(400,435,st.kind==='circle'?'OP = '+val+' cm (constant)':'AP = BP = '+val+' cm',17);
-   text(400,462,st.kind==='circle'?'P stays a fixed distance from O.':'P stays equidistant from A and B.',16);
-   if(showM)text(400,484,'M is the midpoint of '+(st.kind==='circle'?'OP':'AP')+'.',15);
+   const st=d.locusState||locusInitial(),preset=locusPreset(st.kind),points=locusPoints(st),P=points.P,showM=st.showMidpoint||st.traceNames?.includes('M')||st.traces?.M?.length,guideAttrs={fill:'none',stroke:'#83a99f','stroke-width':1.6,'stroke-dasharray':'6 5','data-ag-locus-guide':'1'};
+   if(st.showLocus)for(const g of preset.guides){if(g.circle){const [cx,cy,r]=g.circle;add('circle',{cx,cy,r,...guideAttrs})}else if(g.ellipse){const [cx,cy,rx,ry]=g.ellipse;add('ellipse',{cx,cy,rx,ry,...guideAttrs})}else line(...g.line,'#83a99f',1.6,guideAttrs)}
+   for(const [name,trail] of Object.entries(st.traces||{}))for(const pts of traceParts(trail))add('polyline',{points:pts.map(p=>p.join(',')).join(' '),fill:'none',stroke:name==='P'?orange:'#5385c5','stroke-width':2.4,'stroke-linejoin':'round','stroke-linecap':'round','data-ag-locus-trace':name});
+   for(const [a,b] of preset.links){const fixed=a in preset.anchors&&b in preset.anchors;line(points[a],points[b],fixed?ink:teal,fixed?1.5:2.5,fixed?{'stroke-dasharray':'5 4'}:{})}
+   const namePoint=(p,name,movable=false)=>{if(st.traceNames?.includes(name)&&!options.paper)add('circle',{cx:p[0],cy:p[1],r:11,fill:'none',stroke:name==='P'?orange:'#5385c5','stroke-width':2});add('circle',{cx:p[0],cy:p[1],r:movable?6:4,fill:movable?teal:ink,'data-ag-locus-point':name});const neighbours=preset.links.filter(l=>l.includes(name)).map(l=>points[l.find(n=>n!==name)]),q=vertexLabel(p,neighbours[0],neighbours[1],18);text(q[0],q[1]+4,name,16,{'paint-order':'stroke',stroke:'#fff','stroke-width':3})};
+   for(const name of Object.keys(points))if(name!=='M'||showM)namePoint(points[name],name,name==='P');
+   text(400,435,preset.summary(P),17);
+   text(400,462,preset.rule,16);
+   if(showM)text(400,484,'M is the midpoint of '+Object.keys(preset.anchors)[0]+'P.',15);
    return frame(65,10,670,490)
  }
  if(mode==='circle'){
@@ -1008,7 +1008,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    let st=JSON.parse(JSON.stringify(initial||locusInitial())),drag=null,selecting=false;
    const bar=document.createElement('div');bar.className='gd-ag-inspect-tools';
    const choice=document.createElement('select');choice.className='gd-select';choice.setAttribute('aria-label','Locus relationship');choice.dataset.agLocusPreset='1';
-   for(const [value,label] of [['circle','Fixed distance from a point'],['bisector','Equal distance from two points']]){const o=document.createElement('option');o.value=value;o.textContent=label;choice.append(o)}choice.value=st.kind;bar.append(choice);
+   for(const [value,{label}] of Object.entries(LOCUS_PRESETS)){const o=document.createElement('option');o.value=value;o.textContent=label;choice.append(o)}choice.value=st.kind;bar.append(choice);
    const button=(id,label,fn)=>{const b=document.createElement('button');b.type='button';b.className='gd-btn';b.dataset.agLocusAction=id;b.textContent=label;b.onclick=fn;bar.append(b);return b};
    const trace=button('trace','Select trace point',()=>{selecting=!selecting;paint()});
    const mid=button('midpoint','Show midpoint M',()=>{st.showMidpoint=!st.showMidpoint;changed()});
@@ -1022,15 +1022,15 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    function paint(){
      trace.setAttribute('aria-pressed',String(selecting));trace.classList.toggle('gd-btn--primary',selecting);
      mid.textContent=st.showMidpoint?'Hide midpoint M':'Show midpoint M';guide.textContent=st.showLocus?'Hide locus guide':'Reveal locus';
-     hint.textContent=selecting?'Tap P or M to toggle its trace.':('Drag P to investigate. Tracing: '+(st.traceNames?.join(', ')||'off')+'.');
+     hint.textContent=selecting?'Tap a moving or dependent point to toggle its trace.':('Drag P to investigate. Tracing: '+(st.traceNames?.join(', ')||'off')+'.');
      const svg=diagram({type:'diagram',mode:'loci',locusState:st});svg.style.cssText='width:100%;height:auto;max-height:600px;display:block';surface.replaceChildren(svg)
    }
    function locate(e){const svg=surface.querySelector('svg'),m=svg?.getScreenCTM();if(!m)return null;const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(m.inverse());return {p:[p.x,p.y],tol:Math.min(45,28/Math.hypot(m.a,m.b))}}
    surface.addEventListener('pointerdown',e=>{if(e.button!==0)return;const hit=locate(e);if(!hit)return;const pts=locusPoints(st);
-     if(selecting){const name=['P',...(st.showMidpoint||st.traceNames?.includes('M')||st.traces?.M?.length?['M']:[])].find(n=>labDist(hit.p,pts[n])<=hit.tol);if(name){traceToggle(st,name);changed()}return}
+     if(selecting){const name=Object.keys(pts).filter(n=>!(n in locusPreset(st.kind).anchors)&&(n!=='M'||st.showMidpoint||st.traceNames?.includes('M')||st.traces?.M?.length)).sort((a,b)=>labDist(hit.p,pts[a])-labDist(hit.p,pts[b])).find(n=>labDist(hit.p,pts[n])<=hit.tol);if(name){traceToggle(st,name);changed()}return}
      if(labDist(hit.p,pts.P)>hit.tol)return;e.preventDefault();drag=e.pointerId;try{surface.setPointerCapture(e.pointerId)}catch(_){}
    });
-   surface.addEventListener('pointermove',e=>{if(drag!==e.pointerId)return;const hit=locate(e);if(!hit)return;e.preventDefault();const old=locusPoints(st);st.p=locusProject(st.kind,hit.p,old.P);const next=locusPoints(st);for(const n of ['P','M'])traceAdd(st,n,next[n],old[n]);changed()});
+   surface.addEventListener('pointermove',e=>{if(drag!==e.pointerId)return;const hit=locate(e);if(!hit)return;e.preventDefault();const old=locusPoints(st);st.p=locusProject(st.kind,hit.p,old.P);const next=locusPoints(st);for(const n of Object.keys(next))if(old[n])traceAdd(st,n,next[n],old[n]);changed()});
    const finish=e=>{if(drag===e.pointerId)drag=null};for(const t of ['pointerup','pointercancel','lostpointercapture'])surface.addEventListener(t,finish);
    paint();
  }
