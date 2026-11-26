@@ -19,6 +19,21 @@ const FAMILIES=[
 const rand=(rng,a,b)=>a+Math.floor(rng()*(b-a+1)),pick=(rng,a)=>a[rand(rng,0,a.length-1)];
 function settings(s={}){return {level:LEVELS.some(x=>x[0]===s.level)?s.level:'medium',mode:MODES.some(x=>x[0]===s.mode)?s.mode:'angle',year:YEARS.some(x=>x[0]===String(s.year))?String(s.year):'custom',enrichment:s.enrichment===true||s.enrichment===1||s.enrichment==='1'||s.enrichment==='true'}}
 function types(s={}){return FAMILIES.filter(t=>t[3]!==7||settings(s).enrichment||s.type===t[0]).map(([id,label,mode,year])=>({id,label,mode,year}))}
+function challengeGroups(s={}){
+ const catalogue=types(s),defs=[
+  ['turn','Turns',t=>t.mode==='turn'],
+  ['angle','Angles',t=>t.mode==='angle'],
+  ['lines','Lines',t=>t.mode==='lines'],
+  ['facts','Angle relationships',t=>t.mode==='facts'],
+  ['properties','Shape properties',t=>t.mode==='polygon'&&['right-count','diagonal-equal','diagonal-bisect','diagonal-perpendicular','side-count','parallel-count','shape-family','triangle-type','quad-type','regularity'].includes(t.id)],
+  ['polygon','Shape calculations',t=>t.mode==='polygon'&&!['right-count','diagonal-equal','diagonal-bisect','diagonal-perpendicular','side-count','parallel-count','shape-family','triangle-type','quad-type','regularity'].includes(t.id)],
+  ['circle','Circles',t=>t.mode==='circle'],
+  ['construct','Construction',t=>t.mode==='construct'],
+  ['ks3','KS3 enrichment',t=>t.year===7]
+ ];
+ return defs.map(([id,label,test])=>({id,label,ids:catalogue.filter(t=>(id==='ks3'||t.year!==7)&&test(t)).map(t=>t.id)})).filter(g=>g.ids.length);
+}
+
 const polar=(x,y,r,a)=>[round(x+r*Math.cos(a*D)),round(y-r*Math.sin(a*D))];
 // Snap the movable ray to whole-degree graduations, relative to the fixed ray.
 // Outside a semicircle choose the nearer endpoint, not an arbitrary 180°.
@@ -288,7 +303,7 @@ function generate(s={},rng=Math.random){
    else state.traceNames.push(name)
  }
 
-const model={locusInitial,locusProject,locusPoints,traceParts,traceAdd,traceToggle,shapeGeometry,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
+const model={locusInitial,locusProject,locusPoints,traceParts,traceAdd,traceToggle,shapeGeometry,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
 if(typeof module==='object'&&module.exports){module.exports=model;return}
 const G=root.TT99Goodies;if(!G)return;G.angles=model;
 const {q,qa,esc,field,btn,setPanels}=G,CK=G.challengeKit;
@@ -894,10 +909,10 @@ G.anglesTool=function(){
  function exportRecord(){return {tool:ID,kind:task?'challenge':'diagram',data:task?{...geometryTask(task),revealed:false}:demoData()}}
  async function exportAction(kind){try{const teacher=kind.startsWith('key-');if(teacher&&!task)return;const X=G.exportTools,out=paper(exportRecord(),teacher);if(kind==='copy'||kind==='key-copy')await X.copyPng(out);else if(kind==='png')await X.downloadPng(out,'angles-and-geometry',2);else if(kind==='svg')X.downloadSvg(out,'angles-and-geometry');else X.printSvg(out,{title:teacher?'Angles — teacher key':'Angles & geometry',landscape:true});report('Export ready.')}catch(e){report(e.message)}}
  function publish(batch){const P=G.publishing;try{if(!P)throw Error('Publishing unavailable');draft=draft||P.createDocument();if(batch)P.openQuickGenerate(draft,ID,snapshot());else{draft.addCurrent(ID,snapshot());P.openEditor(draft)}}catch(e){report(e.message)}}
- function controls(){const host=q('#gd-controls'),tabs='<div class="gd-row" role="tablist" aria-label="Angles workflow">'+[['build','Explore'],['challenge','Challenge'],['export','Export']].map(([v,l])=>'<button type="button" class="gd-btn'+(workflow===v?' gd-btn--primary':'')+'" data-ag-workflow="'+v+'">'+l+'</button>').join('')+'</div>';
+ function controls(){const host=q('#gd-controls'),openSections=new Set([...host.querySelectorAll('details[data-ag-section][open]')].map(e=>e.dataset.agSection)),tabs='<div class="gd-row" role="tablist" aria-label="Angles workflow">'+[['build','Explore'],['challenge','Challenge'],['export','Export']].map(([v,l])=>'<button type="button" class="gd-btn'+(workflow===v?' gd-btn--primary':'')+'" data-ag-workflow="'+v+'">'+l+'</button>').join('')+'</div>';
   const common=field('Curriculum suggestions',select('ag-year',YEARS,cfg.year))+field('Difficulty',select('ag-level',LEVELS,cfg.level))+'<label class="gd-field"><span><input type="checkbox" id="ag-enrich"'+(cfg.enrichment?' checked':'')+'> Include KS3 enrichment</span></label>';
-  const avail=types(cfg),groups=MODES.map(([id,label])=>({id,label,ids:avail.filter(t=>t.mode===id).map(t=>t.id)})).filter(g=>g.ids.length);
-  const challenge=common+'<p class="gd-help">Year suggestions are advisory. Choose a topic or generate across all types.</p>'+CK.nativeRandomHtml('ag',groups)+avail.map(t=>'<button type="button" class="gd-btn" data-ag-challenge-mode="'+t.id+'">'+esc(t.label)+'</button>').join('');
+  const avail=types(cfg),groups=challengeGroups(cfg);
+  const challenge='<div class="gd-ag-challenge-catalogue" data-gd-native-prefix="ag" data-gd-native-groups="'+esc(JSON.stringify(groups))+'"><button type="button" class="gd-btn gd-btn--primary" data-gd-native-random="all">Random challenge</button><p class="gd-help">Choose any question, or generate randomly from a category.</p>'+groups.map((g,index)=>'<details class="gd-ag-challenge-section" data-ag-section="'+g.id+'"><summary>'+esc(g.label)+' <span>'+g.ids.length+'</span></summary><div class="gd-ag-challenge-options"><button type="button" class="gd-btn" data-gd-native-random="'+index+'">Random · '+esc(g.label)+'</button><div class="gd-ag-challenge-types">'+g.ids.map(id=>{const t=avail.find(x=>x.id===id);return '<button type="button" class="gd-btn" data-ag-challenge-mode="'+t.id+'">'+esc(t.label)+'</button>'}).join('')+'</div></div></details>').join('')+'</div><details class="gd-ag-challenge-section" data-ag-section="settings"><summary>Generation settings</summary><div class="gd-ag-challenge-options">'+common+'<p class="gd-help">Year suggestions are advisory; KS3 is optional.</p></div></details>';
   const angleField=(max=360,min=0)=>field(demo.mode==='turn'?'Turn amount':'Angle opening',select('ag-value',Array.from({length:max-min+1},(_,i)=>[i+min,(i+min)+'°']),Math.max(min,Math.min(max,demo.angle))));
   const rotationField=field(demo.mode==='turn'?'Starting direction':'Orientation',select('ag-rotation',Array.from({length:24},(_,i)=>[i*15,i*15+'°']),demo.rotation));
   const check=(id,label,on)=>'<label class="gd-field"><span><input type="checkbox" id="'+id+'"'+(on?' checked':'')+'> '+label+'</span></label>';
@@ -918,6 +933,7 @@ G.anglesTool=function(){
   const exploration=field('Geometry activity',groupedModes)+modeFields[demo.mode];
   const exports='<p class="gd-help">'+(task?'Pupil copies always hide the answer. Use a separate teacher key.':'Export the current teaching diagram.')+'</p><div class="gd-row">'+btn('Copy image','ag-copy')+btn('PNG','ag-png')+btn('SVG','ag-svg')+btn('Print / PDF','ag-print')+'</div>'+(task?'<div class="gd-row">'+btn('Copy answer key','ag-key-copy')+btn('Print answer key','ag-key-print')+'</div>':'')+'<div class="gd-row">'+btn('Add current item','ag-add')+btn('Generate questions…','ag-batch')+'</div>'+btn('Review worksheet','ag-review');
   host.innerHTML=tabs+(workflow==='challenge'?challenge:workflow==='export'?exports:exploration)+'<p class="gd-help" id="ag-status" role="status">'+esc(status)+'</p>';
+  host.querySelectorAll('details[data-ag-section]').forEach(el=>el.open=openSections.has(el.dataset.agSection));
   qa('[data-ag-workflow]',host).forEach(b=>b.onclick=()=>{workflow=b.dataset.agWorkflow;if(workflow==='build'){task=null;attempt=null;scope=''}render()});
   qa('[data-ag-challenge-mode]',host).forEach(b=>b.onclick=()=>{scope='';launch(b.dataset.agChallengeMode)});
   const bind=(id,fn)=>{const el=q('#'+id,host);if(el)el.onchange=e=>{fn(e.target);render()}};
@@ -969,7 +985,7 @@ G.anglesTool=function(){
   function setAngle(v){attempt=Math.max(0,Math.min(task?.type==='draw-reflex'?360:180,Math.round(v)));drawSvg();const el=q('#ag-attempt',host);if(el)el.textContent=draw?'Arm positioned':attempt+'°';CK.refreshModelPupil(task)}
   if(build&&!task.revealed){box.style.maxWidth='1200px';mountLab(box,lab,v=>{lab=v;CK.refreshModelPupil(task)})}else if(!task&&demo.mode==='loci'){box.style.maxWidth='none';mountLoci(box,locusState,v=>{locusState=v})}else if(!task&&demo.mode==='free-explore'){box.style.maxWidth='none';mountLab(box,motionLab,v=>{motionLab=v},{free:true,motion:true})}else if(!task&&demo.mode==='construct'&&demo.freeLab){box.style.maxWidth='none';mountLab(box,freeLab,v=>{freeLab=v},{free:true})}else drawSvg();
   if(draw&&!task.revealed){const row=document.createElement('div');row.className='gd-row';row.style.cssText='justify-content:center;flex-wrap:wrap;padding:8px;gap:8px';row.innerHTML='<span>Angle</span><button class="gd-btn" data-ag-adjust="-10">−10°</button><button class="gd-btn" data-ag-adjust="-1">−1°</button><strong id="ag-attempt">'+(draw?(attempt===null?'Move the arm':'Arm positioned'):(attempt===null?'—':attempt+'°'))+'</strong><button class="gd-btn" data-ag-adjust="1">+1°</button><button class="gd-btn" data-ag-adjust="10">+10°</button>'+(build?'<label>AC (cm) '+select('ag-attempt-length',[['','Choose'],...Array.from({length:7},(_,i)=>[i+1,i+1])],attemptLength??'')+'</label>':'');host.appendChild(row);qa('[data-ag-adjust]',row).forEach(b=>b.onclick=()=>setAngle((attempt??0)+Number(b.dataset.agAdjust)));const l=q('#ag-attempt-length',row);if(l)l.onchange=()=>{attemptLength=l.value===''?null:+l.value;drawSvg();CK.refreshModelPupil(task)}}
-  if(task){q('[data-challenge-action="another"]',host).onclick=()=>{const current=task.type;if(scope==='all')launch('all');else if(scope.startsWith('category:')){const group=scope.slice(9),a=types(cfg).filter(t=>t.mode===group);launch(a.length?pick(Math.random,a).id:current)}else launch(current)};q('[data-challenge-action="end"]',host).onclick=()=>{task=null;attempt=null;scope='';workflow='build';render()};const reveal=q('[data-board-action="reveal"]',host);if(reveal)reveal.onclick=()=>{task.revealed=!task.revealed;stage()}}
+  if(task){q('[data-challenge-action="another"]',host).onclick=()=>{const current=task.type;if(scope==='all')launch('all');else if(scope.startsWith('category:')){const group=scope.slice(9),ids=challengeGroups(cfg).find(g=>g.id===group)?.ids||[];launch(ids.length?pick(Math.random,ids):current)}else launch(current)};q('[data-challenge-action="end"]',host).onclick=()=>{task=null;attempt=null;scope='';workflow='build';render()};const reveal=q('[data-board-action="reveal"]',host);if(reveal)reveal.onclick=()=>{task.revealed=!task.revealed;stage()}}
   else {
     const row=document.createElement('div');row.className='gd-row';row.style.cssText='justify-content:center;flex-wrap:wrap;gap:8px';
     const action=(id,label)=>'<button type="button" class="gd-btn" data-ag-action="'+id+'">'+label+'</button>';

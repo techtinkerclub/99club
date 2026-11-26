@@ -1409,6 +1409,20 @@ async function run(){
     assert(panel.querySelector('[data-gd-native-random="all"]'),'Specialist quick launcher: '+id);
     panel.querySelector('[data-board-launcher-settings]').click();await tick();
     assert(panel.querySelector('.gd-panel-native-random')&&panel.querySelector('[data-board-launcher-back]'),'Specialist full challenge settings: '+id);
+    if(id==='angles'){
+      const catalogue=panel.querySelector('.gd-ag-challenge-catalogue'),settings=panel.querySelector('details[data-ag-section="settings"]');
+      assert(catalogue&&catalogue.querySelectorAll('details[data-ag-section]').length===8&&!catalogue.querySelector('details[open]'),'Geometry full challenge panel starts with eight compact primary categories');
+      const section=catalogue.querySelector('details[data-ag-section="properties"]');section.open=true;settings.open=true;
+      const en=panel.querySelector('#ag-enrich');en.checked=true;en.dispatchEvent(new Event('change',{bubbles:true}));await tick(100);
+      assert(panel.querySelector('details[data-ag-section="properties"]').open&&panel.querySelector('details[data-ag-section="settings"]').open,'Open geometry sections survive generation settings changes');
+      assert(panel.querySelector('details[data-ag-section="ks3"]')&&fixture.doc.querySelector('#ag-enrich').checked,'KS3 questions appear only after opt-in');
+      const propertyRandom=panel.querySelector('details[data-ag-section="properties"] [data-gd-native-random]');propertyRandom.click();await tick(100);
+      const source=fixture.doc.querySelector('[data-gd-native-prefix="ag"]'),groups=JSON.parse(source.dataset.gdNativeGroups);
+      const getTask=()=>fixture.doc.defaultView.TT99Goodies.lessonState.capture('angles').model.task;
+      assert(groups.find(g=>g.id==='properties').ids.includes(getTask().type),'Scoped geometry random generation uses selected category');
+      fixture.doc.querySelector('[data-challenge-action="another"]').click();await tick();
+      assert(groups.find(g=>g.id==='properties').ids.includes(getTask().type),'Another preserves geometry random category');
+    }
     if(id==='sequences'){const d=panel.querySelector('[data-seq-challenge-setting="difficulty"]');d.value='hard';d.dispatchEvent(new Event('change',{bubbles:true}));await tick();assert(fixture.doc.querySelector('[data-seq-challenge-setting="difficulty"]').value==='hard','Sequence difficulty forwards from full panel')}
     panel.querySelector('[data-gd-native-random="all"]').click();await tick(100);
     assert(fixture.doc.querySelector('#gd-stage .gd-native-challenge,#gd-stage .gd-challenge-banner,#gd-stage .gd-ab-task'),'Specialist full settings Random generates: '+id);
