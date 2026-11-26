@@ -1332,6 +1332,11 @@ try {
    if(ids.length!==available.length||new Set(ids).size!==ids.length||available.some(t=>!ids.includes(t.id)))throw Error('Geometry challenge catalogue must cover every eligible type exactly once');
    if(groups.some(g=>g.id==='ks3')!==enrichment)throw Error('Geometry enrichment must remain opt-in');
  }
+ for(const [format,orientation,w,h] of [['A4','landscape',1188,840],['A4','portrait',840,1188],['A5','landscape',840,592],['A5','portrait',592,840],['A3','landscape',1680,1188]]){
+   const sheet=model.workspaceSize(format,orientation);if(sheet.w!==w||sheet.h!==h)throw Error('Incorrect metric geometry sheet '+format);
+ }
+ const oldSheet=model.workspaceState({workspace:{w:1000,h:840}});if(oldSheet.w!==1000||oldSheet.h!==840||oldSheet.gridMm!==10)throw Error('Legacy workspace migration');
+ const occupied=model.labEmpty(true);occupied.points.push([300,200]);if(model.workspaceFits(occupied,200,200)||!model.workspaceFits(occupied,400,400))throw Error('Workspace clipping protection');
  const free=model.labEmpty(true);if(free.points.length||free.given!==false||model.labSnap(free,[100,100]).kind)throw Error('Free construction is not blank');
  ok('construction-lab',cases+' shape constructions plus reflected solutions, circle intersections and disabled snapping');
 }catch(e){fail('construction-lab','Geometry construction lab regression',e.stack||e.message);}
