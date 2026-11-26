@@ -1124,6 +1124,30 @@ async function run(){
     const paperDimensions=P.createDocument();paperDimensions.addCurrent(id,cap());assert(P.renderItem(paperDimensions.list()[0],false).querySelector('[data-ag-dimension]'),'Published free construction retains its offset length labels');
 
 
+    const setGeometryMode=value=>{const el=doc.getElementById('ag-mode');el.value=value;el.dispatchEvent(new win.Event('change',{bubbles:true}))};
+    setGeometryMode('free-explore');await tick();
+    const motion=doc.querySelector('.gd-ag-lab-canvas');
+    assert(doc.querySelector('[data-ag-tool="move"]')&&doc.querySelector('[data-ag-tool="trace"]'),'Free exploration alone provides point movement and tracing');
+    const motionPointer=(type,p)=>{const v=new win.DOMPoint(...p).matrixTransform(motion.getScreenCTM());motion.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:32,pointerType:'touch',button:0,buttons:type==='pointerup'?0:1,clientX:v.x,clientY:v.y}))};
+    doc.querySelector('[data-ag-tool="segment"]').click();for(const p of [[150,150],[450,150]]){motionPointer('pointerdown',p);motionPointer('pointerup',p)}
+    doc.querySelector('[data-ag-tool="trace"]').click();motionPointer('pointerdown',[450,150]);motionPointer('pointerup',[450,150]);
+    doc.querySelector('[data-ag-tool="move"]').click();motionPointer('pointerdown',[450,150]);motionPointer('pointermove',[420,230]);motionPointer('pointermove',[400,300]);motionPointer('pointerup',[400,300]);
+    const moved=cap().demo.labDrawing;assert(Math.hypot(moved.points[1][0]-400,moved.points[1][1]-300)<.1&&moved.segments.length===1,'Free drag changes connected geometry without enforcing its length');
+    assert(motion.querySelector('[data-ag-trace]'),'Free movement leaves selected point trace');
+    const motionDraft=P.createDocument();motionDraft.addCurrent(id,cap());assert(P.renderItem(motionDraft.list()[0],false).querySelector('[data-ag-trace]'),'Free trace survives publication');
+    setGeometryMode('construct');await tick();assert(!doc.querySelector('[data-ag-tool="move"]')&&cap().demo.labDrawing.points.length===3,'Construction stays fixed and separate from the free scene');
+    setGeometryMode('loci');await tick();
+    const locusTap=(type,p)=>{const surface=doc.querySelector('[data-ag-locus-point="P"]').closest('svg').parentElement,v=new win.DOMPoint(...p).matrixTransform(surface.querySelector('svg').getScreenCTM());surface.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:33,pointerType:'touch',button:0,buttons:type==='pointerup'?0:1,clientX:v.x,clientY:v.y}))};
+    doc.querySelector('[data-ag-locus-action="midpoint"]').click();
+    doc.querySelector('[data-ag-locus-action="trace"]').click();locusTap('pointerdown',[540,220]);locusTap('pointerdown',[470,220]);doc.querySelector('[data-ag-locus-action="trace"]').click();
+    locusTap('pointerdown',[540,220]);locusTap('pointermove',[400,70]);locusTap('pointermove',[260,220]);locusTap('pointerup',[260,220]);
+    const ls=cap().demo.locusState;
+    assert(Math.abs(Math.hypot(ls.p[0]-400,ls.p[1]-220)-140)<1e-7,'Constrained point preserves exact radius');
+    assert(doc.querySelector('[data-ag-locus-trace="P"]')&&doc.querySelector('[data-ag-locus-trace="M"]'),'Selected driver and dependent midpoint leave separate traces');
+    const lociDraft=P.createDocument();lociDraft.addCurrent(id,cap());assert(P.renderItem(lociDraft.list()[0],false).querySelectorAll('[data-ag-locus-trace]').length===2,'Locus traces publish as vector graphics');
+    const preset=doc.querySelector('[data-ag-locus-preset]');preset.value='bisector';preset.dispatchEvent(new win.Event('change',{bubbles:true}));
+    locusTap('pointerdown',[400,100]);locusTap('pointermove',[630,320]);locusTap('pointerup',[630,320]);
+    assert(Math.abs(cap().demo.locusState.p[0]-400)<1e-7,'Equidistant point moves along its perpendicular bisector');
     const polygonMode=doc.getElementById('ag-mode');polygonMode.value='polygon';polygonMode.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
     const chooseShape=doc.getElementById('ag-shape-view');chooseShape.value='rectangle';chooseShape.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
     doc.querySelector('[data-ag-action="diagonal"]').click();await tick();
