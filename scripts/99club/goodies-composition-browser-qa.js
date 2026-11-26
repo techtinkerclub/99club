@@ -1194,6 +1194,18 @@ async function run(){
     {
       const model=win.TT99Goodies.angles,methods=await model.loadConstructionLibrary();
       assert(methods.length>=36,'Construction library has at least thirty-six methods');
+      for(const m of methods){
+        for(const publicationMode of ['exercise','instructions','illustrated']){
+          const draft=P.createDocument();draft.addCurrent(id,{constructionPublication:{type:'construction-method',constructionMethod:m,publicationMode}});
+          const item=draft.list()[0],pupil=P.renderItem(item,false);
+          assert(pupil.dataset.agMethodPublication===publicationMode&&!pupil.outerHTML.includes('NaN'),'Method publication renders: '+m.id+' '+publicationMode);
+          if(publicationMode==='exercise'){
+            assert(item.kind==='challenge'&&pupil.querySelector('[data-ag-method-working]')&&pupil.querySelectorAll('[data-ag-method-primitive]').length===m.graphics.initial.length,'Exercise exposes only starting geometry');
+            const key=P.answerGraphic(item);assert(key.querySelectorAll('[data-ag-method-primitive]').length===model.constructionFrame(m,m.steps.length-1).length&&P.answerSummary(item)===m.checks.join('; '),'Method answer annex shows complete construction and criteria');
+          }else{assert(item.kind==='diagram'&&P.answerSummary(item)===null,'Instruction handouts do not duplicate the answer annex');assert(pupil.textContent.includes(m.steps[0]),'Handout contains written instructions');if(publicationMode==='illustrated')assert(pupil.querySelectorAll('[data-ag-method-graphic]').length===m.steps.length+1,'Illustrated handout contains every stage');else assert(!pupil.querySelector('[data-ag-method-graphic]'),'Text handout omits diagrams')}
+          assert(P.pages([item],'Construction').length>0,'Method fits document pagination');
+        }
+      }
       assert(new Set(methods.map(m=>m.id)).size===methods.length,'Construction method IDs are unique');
       const finalPoints=id=>Object.fromEntries(model.constructionFrame(methods.find(m=>m.id===id),100).filter(o=>o.kind==='point').map(o=>[o.label,o.at])),dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]),near=(a,b)=>Math.abs(a-b)<1e-6,dot=(a,b,c)=>(a[0]-b[0])*(c[0]-b[0])+(a[1]-b[1])*(c[1]-b[1]);
       const eq=finalPoints('triangle-equilateral');assert(near(dist(eq.A,eq.B),dist(eq.A,eq.C))&&near(dist(eq.A,eq.B),dist(eq.B,eq.C)),'Equilateral example is exact');
