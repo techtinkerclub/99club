@@ -1138,6 +1138,7 @@ async function run(){
     for(const [type,p] of [['pointerdown',[150,150]],['pointermove',[220,210]],['pointerup',[220,210]]]){const v=new win.DOMPoint(...p).matrixTransform(work.getScreenCTM());work.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerType:'touch',pointerId:31,button:0,buttons:type==='pointerup'?0:1,clientX:v.x,clientY:v.y}))}
     assert(JSON.stringify(cap().demo.labDrawing.points)===beforeInk,'Dragging a drawn point does not move ink or create a new point');
     doc.querySelector('[data-ag-tool="shade"]').click();
+    doc.querySelector('[data-ag-shade-mode]').click();
     for(const p of [[150,150],[450,150],[300,350]])tapWork(p);
     [...doc.querySelectorAll('.gd-ag-lab-toolbar button')].find(b=>b.textContent==='Shade selected').click();
     assert(work.querySelectorAll('[data-ag-region]').length===1&&cap().demo.labDrawing.regions.length===1,'Free construction stores a selected polygonal region');
