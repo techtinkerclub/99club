@@ -14,7 +14,7 @@
         "straightedge"
       ],
       "steps": [
-        "Open the compass to a radius greater than half AB.",
+        "Open the compass to a radius greater than half AB (shown by the dashed radius).",
         "With the same opening draw arcs centred at A and B on both sides of AB.",
         "Mark their intersections X and Y. Join X to Y.",
         "Mark the intersection of XY and AB as M."
@@ -67,7 +67,20 @@
         ],
         "frames": [
           {
-            "add": []
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  110,
+                  140
+                ],
+                "b": [
+                  110,
+                  20
+                ],
+                "style": "construction"
+              }
+            ]
           },
           {
             "add": [
@@ -165,7 +178,8 @@
             ]
           }
         ]
-      }
+      },
+      "objective": "Construct the midpoint and perpendicular bisector of AB."
     },
     {
       "id": "perpendicular-at-point",
@@ -303,7 +317,8 @@
             ]
           }
         ]
-      }
+      },
+      "objective": "Construct a perpendicular to l through P."
     },
     {
       "id": "perpendicular-from-point",
@@ -476,7 +491,8 @@
             ]
           }
         ]
-      }
+      },
+      "objective": "Construct a perpendicular from P to l."
     },
     {
       "id": "angle-bisector",
@@ -645,7 +661,8 @@
             ]
           }
         ]
-      }
+      },
+      "objective": "Construct the bisector of angle AOB."
     },
     {
       "id": "copy-angle",
@@ -859,7 +876,8 @@
             ]
           }
         ]
-      }
+      },
+      "objective": "Construct a copy of angle AOB at P."
     },
     {
       "id": "parallel-through-point",
@@ -874,8 +892,10 @@
         "straightedge"
       ],
       "steps": [
-        "Construct the perpendicular to l through P.",
-        "At P construct a perpendicular to that new line."
+        "From P draw an arc crossing the given line at A and B.",
+        "Construct the perpendicular bisector of AB. It passes through P and meets the line at F.",
+        "With centre P mark equally spaced points X and Y on the perpendicular.",
+        "Draw equal arcs from X and Y to intersect at Z. Join P to Z: the required parallel."
       ],
       "why": "Two distinct lines perpendicular to the same line are parallel.",
       "checks": [
@@ -917,14 +937,102 @@
           {
             "add": [
               {
+                "kind": "arc",
+                "center": [
+                  200,
+                  85
+                ],
+                "radius": 138.92443989449805,
+                "start": 108.25643716352927,
+                "end": 132.25643716352926,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  200,
+                  85
+                ],
+                "radius": 138.92443989449805,
+                "start": 47.74356283647074,
+                "end": 71.74356283647074,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  130,
+                  205
+                ],
+                "label": "A",
+                "style": "given"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  270,
+                  205
+                ],
+                "label": "B",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "arc",
+                "center": [
+                  130,
+                  205
+                ],
+                "radius": 100,
+                "start": 25.57299599919429,
+                "end": 65.57299599919429,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  130,
+                  205
+                ],
+                "radius": 100,
+                "start": -65.57299599919429,
+                "end": -25.57299599919429,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  270,
+                  205
+                ],
+                "radius": 100,
+                "start": 114.42700400080571,
+                "end": 154.4270040008057,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  270,
+                  205
+                ],
+                "radius": 100,
+                "start": -154.4270040008057,
+                "end": -114.42700400080571,
+                "style": "construction"
+              },
+              {
                 "kind": "line",
                 "a": [
                   200,
-                  30
+                  25
                 ],
                 "b": [
                   200,
-                  245
+                  267
                 ],
                 "style": "construction"
               },
@@ -942,6 +1050,81 @@
           {
             "add": [
               {
+                "kind": "arc",
+                "center": [
+                  200,
+                  85
+                ],
+                "radius": 50,
+                "start": -110,
+                "end": -70,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  200,
+                  85
+                ],
+                "radius": 50,
+                "start": 70,
+                "end": 110,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  200,
+                  35
+                ],
+                "label": "X",
+                "style": "given"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  200,
+                  135
+                ],
+                "label": "Y",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "arc",
+                "center": [
+                  200,
+                  35
+                ],
+                "radius": 98.6154146165801,
+                "start": 10.465544919459884,
+                "end": 50.46554491945989,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  200,
+                  135
+                ],
+                "radius": 98.6154146165801,
+                "start": -50.46554491945989,
+                "end": -10.465544919459884,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  285,
+                  85
+                ],
+                "label": "Z",
+                "style": "given"
+              },
+              {
                 "kind": "line",
                 "a": [
                   40,
@@ -956,7 +1139,8 @@
             ]
           }
         ]
-      }
+      },
+      "objective": "Construct a line through P parallel to l."
     },
     {
       "id": "triangle-sss",
@@ -1096,7 +1280,8 @@
             ]
           }
         ]
-      }
+      },
+      "objective": "Construct triangle ABC with the three specified sides."
     },
     {
       "id": "triangle-asa",
@@ -1236,7 +1421,8 @@
             ]
           }
         ]
-      }
+      },
+      "objective": "Construct triangle ABC with the specified base and angles."
     },
     {
       "id": "circle-centre",
@@ -1380,7 +1566,8 @@
             ]
           }
         ]
-      }
+      },
+      "objective": "Find the centre of the given circle."
     },
     {
       "id": "tangent-at-point",
@@ -1396,7 +1583,9 @@
       ],
       "steps": [
         "Draw radius OT and extend its line through T.",
-        "Construct the perpendicular to OT at T."
+        "With centre T draw equal arcs to mark points A and B on the extended radius.",
+        "Use equal compass openings to draw arcs from A and B meeting at X off the line.",
+        "Draw the straight line through T and X. It is the tangent."
       ],
       "why": "A radius is perpendicular to the tangent at its point of contact.",
       "checks": [
@@ -1460,10 +1649,89 @@
           {
             "add": [
               {
+                "kind": "arc",
+                "center": [
+                  250,
+                  145
+                ],
+                "radius": 30,
+                "start": 160,
+                "end": 200,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  250,
+                  145
+                ],
+                "radius": 30,
+                "start": -20,
+                "end": 20,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  220,
+                  145
+                ],
+                "label": "A",
+                "style": "given"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  280,
+                  145
+                ],
+                "label": "B",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "arc",
+                "center": [
+                  220,
+                  145
+                ],
+                "radius": 85.44003745317531,
+                "start": -89.44395478041653,
+                "end": -49.44395478041653,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  280,
+                  145
+                ],
+                "radius": 85.44003745317531,
+                "start": -130.55604521958347,
+                "end": -90.55604521958347,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  250,
+                  65
+                ],
+                "label": "X",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
                 "kind": "line",
                 "a": [
                   250,
-                  30
+                  25
                 ],
                 "b": [
                   250,
@@ -1474,7 +1742,8 @@
             ]
           }
         ]
-      }
+      },
+      "objective": "Construct the tangent through T."
     },
     {
       "id": "tangents-external-point",
@@ -1713,7 +1982,8 @@
             ]
           }
         ]
-      }
+      },
+      "objective": "Construct both tangents through P."
     },
     {
       "id": "regular-hexagon",
@@ -1729,7 +1999,7 @@
       "steps": [
         "Choose a point A on the circumference.",
         "Set the compass opening equal to the circle radius.",
-        "From A mark the next point on the circumference; repeat around the circle until six vertices are marked.",
+        "Keeping the opening unchanged, mark B, C, D, E and F in turn, stepping around the circumference; the next step returns to A.",
         "Join consecutive vertices, including the last to the first."
       ],
       "why": "A chord equal to the radius subtends a central angle of 60 degrees.",
@@ -1976,7 +2246,8 @@
             ]
           }
         ]
-      }
+      },
+      "objective": "Inscribe a regular hexagon in the given circle."
     }
   ],
   "presentation": {
