@@ -2387,3 +2387,15 @@ html:not(.gd-embed-page) #tt99-goodies-root #gd-controls .gd-mc-five{min-height:
 #tt99-goodies-root .gd-ag-inspect-btn svg{display:block;width:22px!important;height:22px!important;margin:0!important;flex:none;pointer-events:none}
 #tt99-goodies-root .gd-ag-inspect-btn[aria-pressed="true"]{background:#16796e!important;color:white!important;border-color:#16796e!important}
 #tt99-goodies-root .gd-ag-inspect-message{flex:1 1 220px;text-align:center;color:#355c54;font:500 13px/1.4 Arial,sans-serif}
+
+
+/* Geometry challenge catalogue: same hierarchy on standalone and board. */
+#tt99-goodies-root .gd-ag-challenge-catalogue,#tt99-goodies-root .gd-board-controls-proxy .gd-ag-challenge-catalogue.gd-panel-native-random{display:flex;flex-direction:column;gap:5px;min-width:0}
+#tt99-goodies-root .gd-ag-challenge-section{min-width:0;margin:0;border:1px solid #d1e1dd;border-radius:8px;background:#fff}
+#tt99-goodies-root .gd-ag-challenge-section>summary{min-height:44px;box-sizing:border-box;padding:11px 9px;cursor:pointer;font-size:13px;font-weight:600;color:#345d56;line-height:20px}
+#tt99-goodies-root .gd-ag-challenge-section>summary span{float:right;font-size:11px;color:#62787c;font-weight:500}
+#tt99-goodies-root .gd-ag-challenge-options{display:grid;gap:6px;padding:6px;border-top:1px solid #e0eae7}
+#tt99-goodies-root .gd-ag-challenge-types{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(145px,100%),1fr));gap:5px}
+#tt99-goodies-root .gd-ag-challenge-options button,#tt99-goodies-root .gd-ag-challenge-catalogue>button{min-height:44px!important;min-width:0;width:100%;white-space:normal!important;text-align:left;line-height:1.25;padding:7px 9px!important;margin:0!important}
+#tt99-goodies-root .gd-ag-challenge-catalogue>button{text-align:center}
+#tt99-goodies-root .gd-ag-challenge-catalogue>.gd-help{margin:2px 0 4px}
