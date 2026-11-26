@@ -1074,7 +1074,11 @@ async function run(){
     assert(!M.labCheck(cap().lab,labTask).ready,'Illustrated Undo removes the last segment');
     assert(labSvg.querySelectorAll('[data-ag-dimension]').length===1,'Only given baseline dimension is shown in pupil construction');
     const fixedPoints=JSON.stringify(cap().lab.points);
-    tray.querySelector('[data-ag-tool="compass"]').click();tapLab(340,302);tapLab(580,302);
+    tray.querySelector('[data-ag-tool="compass"]').click();tapLab(340,302);
+    const compassEnd=new win.DOMPoint(580,302).matrixTransform(labSvg.getScreenCTM());
+    labSvg.dispatchEvent(new win.PointerEvent('pointermove',{bubbles:true,pointerId:11,pointerType:'touch',clientX:compassEnd.x,clientY:compassEnd.y}));
+    assert(!labSvg.querySelector('[data-geometry-instrument="ruler"]')&&labSvg.textContent.includes('r = 6.0 cm'),'Compass preview shows its radius without a ruler or global measurement setting');
+    tapLab(580,302);
     const opening=tray.querySelector('[data-ag-tool="compass-opening"]');assert(!opening.disabled,'Compass opening can be retained after drawing');
     opening.click();tapLab(580,302);
     const circles=cap().lab.circles;assert(circles.length===2&&Math.abs(circles[0].r-240)<1e-7&&circles[1].r===circles[0].r,'Compass transfers its exact opening to another centre');
