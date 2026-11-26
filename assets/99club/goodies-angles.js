@@ -106,6 +106,7 @@ function generate(s={},rng=Math.random){
    const u=prev?unit(labSub(prev,p)):[0,0],v=next?unit(labSub(next,p)):[0,0],out=[-u[0]-v[0],-u[1]-v[1]];
    const dir=Math.hypot(...out)<.01?[0,-1]:unit(out);return labAt(p,dir,offset)
  }
+ function polygonRegionKey(d){return [d.shapeView||'regular',d.n||5,d.regular!==false,d.showDiagonals===true].join(':')}
  function labNames(s){if(!Array.isArray(s.names)||s.names.length!==s.points.length){s.names=s.points.map((_,i)=>pointName(i));s.nextName=s.points.length}if(!Number.isInteger(s.nextName))s.nextName=s.points.length;if(!Array.isArray(s.regions))s.regions=[];return s}
  function labLabel(s,i){const p=s.points[i],neighbours=s.segments.filter(e=>e.includes(i)).map(e=>s.points[e[0]===i?e[1]:e[0]]);if(s.given!==false&&i<2)neighbours.push(s.points[1-i]);return vertexLabel(p,neighbours[0],neighbours[1],20)}
 
@@ -226,6 +227,7 @@ function diagram(d,teacher=false,options={}){
      add('circle',{cx:p[0],cy:p[1],r:10,fill:'#d58c42',stroke:'#fff','stroke-width':2,'data-ag-angle-handle':'1'});
      add('circle',{cx:x,cy:y,r:r+25,fill:'transparent','data-ag-angle-target':'1',style:'cursor:grab;touch-action:none'});
    }
+   const named=[[polar(x,y,r+5,start),'B',start],[polar(x,y,r+5,start+shown),'C',start+shown]];text(x-12,y+17,'A',13,{'data-ag-point-label':'A','paint-order':'stroke',stroke:'#fff','stroke-width':3});for(const [p,name,dir] of named.slice(0,blank||shown===0?1:2)){const q=polar(...p,13,dir);text(q[0],q[1]+4,name,13,{'data-ag-point-label':name,'paint-order':'stroke',stroke:'#fff','stroke-width':3})}
    return svg
  }
  if(mode==='facts'){
@@ -246,7 +248,17 @@ function diagram(d,teacher=false,options={}){
    }
    if(type==='straight'||explore&&values.reduce((s,v)=>s+v,0)===180)ray(x,y,r,at);circle([x,y],4,ink);return frame(195,20,410,400)
  }
- function polygon(points){add('polygon',{'data-ag-inspect-polygon':'1',points:points.map(p=>p.join(',')).join(' '),fill:shapeFill,stroke:ink,'stroke-width':3,'stroke-linejoin':'round'});points.forEach((p,i)=>{const pos=vertexLabel(p,points[(i+points.length-1)%points.length],points[(i+1)%points.length],22);circle(p,3,ink);text(pos[0],pos[1]+5,pointName(i),16,{'data-ag-point-label':pointName(i),'paint-order':'stroke',stroke:'#fff','stroke-width':3})})}
+ function polygon(points){
+   const outline=add('polygon',{'data-ag-inspect-polygon':'1',points:points.map(p=>p.join(',')).join(' '),fill:shapeFill,stroke:ink,'stroke-width':3,'stroke-linejoin':'round'});
+   const names=points.map((_,i)=>pointName(i)),regionPoints=points.slice(),key=polygonRegionKey(d);
+   if(explore&&d.showDiagonals&&points.length===4){const u=labSub(points[2],points[0]),v=labSub(points[3],points[1]),den=labCross(u,v);if(Math.abs(den)>1e-6){regionPoints.push(labAt(points[0],u,labCross(labSub(points[1],points[0]),v)/den));names.push('O')}}
+   if(explore){
+     outline.setAttribute('data-ag-region-points',JSON.stringify(regionPoints));outline.setAttribute('data-ag-region-names',JSON.stringify(names));
+     for(const region of (d.regionsByShape?.[key]||[])){if(validRegion(regionPoints,region.ids))add('polygon',{points:region.ids.map(i=>regionPoints[i].join(',')).join(' '),fill:REGION_COLOURS[region.colour]||REGION_COLOURS[0],'fill-opacity':.28,stroke:'none','data-ag-region':'1'})}
+   }
+   points.forEach((p,i)=>{const pos=vertexLabel(p,points[(i+points.length-1)%points.length],points[(i+1)%points.length],22);circle(p,3,ink);text(pos[0],pos[1]+5,pointName(i),16,{'data-ag-point-label':pointName(i),'paint-order':'stroke',stroke:'#fff','stroke-width':3})});
+   if(regionPoints.length>points.length){const p=regionPoints.at(-1);circle(p,3,ink);text(p[0]+13,p[1]-10,'O',16,{'data-ag-point-label':'O','paint-order':'stroke',stroke:'#fff','stroke-width':3})}
+ }
  function corner(points,i,label){const p=points[i],prev=points[(i+points.length-1)%points.length],next=points[(i+1)%points.length],dir=v=>mod(Math.atan2(p[1]-v[1],v[0]-p[0])/D);let start=dir(prev),v=mod(dir(next)-start);if(v>180){start=dir(next);v=360-v}labelArc(...p,Math.min(38,Math.hypot(next[0]-p[0],next[1]-p[1])*.22,Math.hypot(prev[0]-p[0],prev[1]-p[1])*.22),start,v,label)}
  function fit(points){const xs=points.map(p=>p[0]),ys=points.map(p=>p[1]),minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys),s=Math.min(540/Math.max(1,maxX-minX),300/Math.max(1,maxY-minY));return points.map(([x,y])=>[400+(x-(minX+maxX)/2)*s,210+(y-(minY+maxY)/2)*s])}
  function polygonFrame(points,pad=76){const xs=points.map(p=>p[0]),ys=points.map(p=>p[1]),x=Math.min(...xs)-pad,y=Math.min(...ys)-pad;return frame(x,y,Math.max(...xs)-x+pad,Math.max(...ys)-y+pad)}
@@ -280,6 +292,7 @@ function diagram(d,teacher=false,options={}){
    if(dia){line(left,right,isPart?orange:teal,isPart?4:2.5,explore?{'stroke-dasharray':'7 5'}:{});if(!isPart)text(x-R*.45,y+21,'D',17,{'font-style':'italic','data-ag-circle-symbol':'D'})}
    if(rad){const end=polar(x,y,R,55);line(p,end,isPart?orange:teal,isPart?4:2.5);if(!isPart){const mid=polar(x,y,R*.58,55),offset=polar(...mid,15,-35);text(offset[0],offset[1]+4,'r',17,{'font-style':'italic','data-ag-circle-symbol':'r'})}}
    add('circle',{cx:x,cy:y,r:isPart&&highlight==='Centre'?7:3.5,fill:isPart&&highlight==='Centre'?orange:ink});
+   if(!isPart){text(x-11,y+14,'O',13,{'data-ag-point-label':'O'});if(dia){for(const [p,name,dx] of [[left,'A',-12],[right,'B',12]]){circle(p,2.8,ink);text(p[0]+dx,p[1]+4,name,13,{'data-ag-point-label':name})}}if(rad){const end=polar(x,y,R,55),pos=polar(x,y,R+15,55);circle(end,2.8,ink);text(pos[0],pos[1]+3,dia?'C':'A',13,{'data-ag-point-label':dia?'C':'A'})}}
    let baseline=365;
    if(isPart){if(teacher)text(x,baseline,highlight,19);return frame(200,12,400,teacher?380:338)}
    const given=explore||teacher?'r = '+r+' cm     ·     D = '+2*r+' cm':type==='circle-radius'?'D = '+2*r+' cm':'r = '+r+' cm';
@@ -629,6 +642,40 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
   paint();
  }
 
+
+ function mountPolygonRegions(box,svg,d,onChange){
+   const outline=svg.querySelector('[data-ag-region-points]');if(!outline)return;
+   const points=JSON.parse(outline.getAttribute('data-ag-region-points')),names=JSON.parse(outline.getAttribute('data-ag-region-names')),key=polygonRegionKey(d),N='http://www.w3.org/2000/svg';
+   let active=false,selected=[],colour=0,regions=(d.regionsByShape?.[key]||[]).slice();
+   const bar=document.createElement('div');bar.className='gd-ag-inspect-tools';
+   const toggle=document.createElement('button');toggle.type='button';toggle.className='gd-btn';toggle.textContent='Shade regions';toggle.dataset.agPolygonShade='1';bar.append(toggle);
+   const actions=document.createElement('div');actions.className='gd-ag-lab-helpers';bar.append(actions);
+   const status=document.createElement('span');status.className='gd-ag-inspect-message';status.setAttribute('role','status');bar.append(status);box.insertBefore(bar,svg);
+   const layer=document.createElementNS(N,'g');layer.setAttribute('pointer-events','none');svg.append(layer);
+   const colours=REGION_COLOURS.map((c,i)=>{const b=document.createElement('button');b.type='button';b.className='gd-btn';b.style.cssText='width:32px;min-height:34px;background:'+c+';border:2px solid white';b.setAttribute('aria-label',['Green','Blue','Gold','Purple','Coral'][i]+' region');b.onclick=()=>{colour=i;paint()};actions.append(b);return b});
+   function action(label,fn){const b=document.createElement('button');b.type='button';b.className='gd-btn';b.textContent=label;b.onclick=fn;actions.append(b);return b}
+   const apply=action('Shade selected',()=>{if(!validRegion(points,selected))return;regions.push({ids:selected.slice(),colour});selected=[];commit()});
+   const undo=action('Remove last',()=>{regions.pop();commit()});
+   action('Clear regions',()=>{regions=[];selected=[];commit()});
+   function el(tag,attrs){const node=document.createElementNS(N,tag);Object.entries(attrs).forEach(([k,v])=>node.setAttribute(k,String(v)));layer.append(node);return node}
+   function commit(){
+     d.regionsByShape={...(d.regionsByShape||{}),[key]:regions.slice()};onChange(d.regionsByShape);
+     svg.querySelectorAll('[data-ag-region]').forEach(e=>e.remove());let previous=outline;
+     for(const region of regions){if(!validRegion(points,region.ids))continue;const node=el('polygon',{points:region.ids.map(i=>points[i].join(',')).join(' '),fill:REGION_COLOURS[region.colour],'fill-opacity':.28,stroke:'none','data-ag-region':'1'});previous.after(node);previous=node}
+     paint()
+   }
+   function paint(){
+     layer.replaceChildren();toggle.setAttribute('aria-pressed',String(active));toggle.classList.toggle('gd-btn--primary',active);actions.style.display=active?'flex':'none';status.textContent=!active?'':selected.length>=3&&!validRegion(points,selected)?'Invalid region. Choose vertices in perimeter order.':'Tap vertices in perimeter order: '+selected.map(i=>names[i]).join(' → ');
+     colours.forEach((b,i)=>{b.style.outline=i===colour?'2px solid #263e43':'none';b.setAttribute('aria-pressed',String(i===colour))});apply.disabled=!validRegion(points,selected);undo.disabled=!regions.length;svg.style.touchAction=active?'none':'auto';
+     if(!active)return;
+     if(selected.length>=2)el('polygon',{points:selected.map(i=>points[i].join(',')).join(' '),fill:'none',stroke:REGION_COLOURS[colour],'stroke-width':2,'stroke-dasharray':'5 4'});
+     points.forEach((p,i)=>{el('circle',{cx:p[0],cy:p[1],r:selected.includes(i)?10:6,fill:selected.includes(i)?REGION_COLOURS[colour]:'white','fill-opacity':.8,stroke:REGION_COLOURS[colour],'stroke-width':2})})
+   }
+   toggle.onclick=()=>{active=!active;selected=[];paint()};
+   svg.addEventListener('pointerdown',e=>{if(!active||e.button!==0)return;const m=svg.getScreenCTM();if(!m)return;const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(m.inverse());let nearest=-1,dist=Math.min(45,25/Math.hypot(m.a,m.b));points.forEach((q,i)=>{const l=labDist(q,[p.x,p.y]);if(l<dist){nearest=i;dist=l}});if(nearest<0)return;e.preventDefault();selected=selected.includes(nearest)?selected.filter(i=>i!==nearest):[...selected,nearest];paint()});
+   paint();
+ }
+
 G.anglesTool=function(){
  let cfg=settings(),demo={type:'diagram',mode:'angle',angle:60,rotation:0,scale:true,clockwise:false,n:5,regular:true,length:5,baseLength:6},task=null,workflow='build',attempt=null,attemptLength=null,scope='',status='',draft=null,lab=null,freeLab=null;
  const snapshot=()=>({...cfg,demo:demoData(),task,workflow,attempt,attemptLength,scope,lab,freeLab,pupil:CK.capturePupil(task)});
@@ -680,7 +727,7 @@ G.anglesTool=function(){
     const measuring=!!task&&['measure','reflex'].includes(task.type)&&!task.revealed;
     const svg=diagram(d,teacher,{attempt,length:attemptLength,scale:task?(task.revealed&&['measure','reflex'].includes(task.type)||['draw','draw-reflex'].includes(task.type)):demo.scale,measureWorkspace:measuring,interactive,...(drag?{full:drag.max===360}:{})});
     svg.style.cssText='width:100%;height:auto;max-height:560px;display:block;margin:auto';
-    box.replaceChildren(svg);if(measuring)mountAngleMeasurement(box,svg,d);else if(task&&!task.revealed&&inspectTypes.includes(task.type))mountInvestigation(box,svg);
+    box.replaceChildren(svg);if(measuring)mountAngleMeasurement(box,svg,d);else if(task&&!task.revealed&&inspectTypes.includes(task.type))mountInvestigation(box,svg);else if(!task&&demo.mode==='polygon')mountPolygonRegions(box,svg,d,v=>demo.regionsByShape=v);
   }
   function updateDemo(v){
     demo.angle=v;d.angle=v;const label=q('#ag-value');
