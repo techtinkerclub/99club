@@ -813,6 +813,7 @@ function coordinateTool(){
     return svg;
   }
   function exportTargetSvg(){
+    if(challenge?.mode==='standard'&&challenge.measurement)return mePaper(meData({diagram:snapshot(),challenge,responseLines}));
     if(challenge?.mode==='standard'&&exportMode==='challenge')return coPaper(coData({diagram:teachingSnapshot(),challenge,responseLines,generationSettings}));
     if(!challenge)return coPaper(coData({diagram:teachingSnapshot(),responseLines}));
     if(exportMode!=='challenge'||!challenge||!X?.composeChallengeCardSvg)return coordinateExportSvg({pupil:false});
@@ -1128,12 +1129,91 @@ function coordinateTool(){
   const ME_TEMPLATES=[
     {id:'read-mark',category:'read',title:'Read the ruler',desc:'Read the orange marker to the nearest millimetre.'},
     {id:'place-mark',category:'read',title:'Place the mark',desc:'Move the marker to a requested length.'},
+    {id:'measure-line',category:'measure',title:'Measure a line',desc:'Align a ruler and measure a line.'},
+    {id:'measure-side',category:'measure',title:'Measure a shape side',desc:'Measure the highlighted side of a shape.'},
+    {id:'measure-compare',category:'measure',title:'Compare measured lengths',desc:'Measure two lines and find the difference.'},
+    {id:'measure-perimeter',category:'measure',title:'Measure perimeter',desc:'Measure the sides and calculate perimeter.'},
     {id:'distance-between',category:'read',title:'Distance between marks',desc:'Find the distance between two ruler marks.'},
     {id:'cm-to-mm',category:'convert',title:'Centimetres to millimetres',desc:'Convert a decimal centimetre length to millimetres.'},
     {id:'mm-to-cm',category:'convert',title:'Millimetres to centimetres',desc:'Convert millimetres to centimetres.'},
     {id:'cm-to-m',category:'convert',title:'Centimetres to metres',desc:'Convert centimetres to metres.'},
     {id:'unit-misconception',category:'reason',title:'Spot the conversion error',desc:'Explain a plausible ×10 / ×100 unit-conversion error.'}
   ];
+
+
+const ME_DRAW_TYPES=['measure-line','measure-side','measure-perimeter','measure-compare'];
+const ME_DRAW_UNIT=40,ME_DRAW_W=560,ME_DRAW_H=330;
+function meDrawTask(type,cfg,rng){
+ const step=cfg.precision==='whole'?10:1,rand=(a,b)=>a+Math.floor(rng()*(b-a+1)),pick=(a,b)=>rand(Math.ceil(a/step),Math.floor(b/step))*step;
+ // 10 cm is the largest line that fits this fixed-size A4 exercise.
+ const limit=Math.min(100,cfg.maxCm*10),fmt=n=>String(n/10);
+ let points=[],edges=[],target=[],answer,prompt,method;
+ function pt(x,y){points.push([x,y]);return points.length-1}
+ function edge(i,j,mm){edges.push({i,j,mm});return edges.length-1}
+ if(type==='measure-line'){
+  const mm=pick(20,limit),a=rand(-25,25)*Math.PI/180,L=mm*4,dx=L*Math.cos(a)/2,dy=L*Math.sin(a)/2;
+  edge(pt(280-dx,130-dy),pt(280+dx,130+dy),mm);target=[0];answer=mm;prompt='Measure line AB in centimetres.';method='Align zero with A and read the scale at B.';
+ }else if(type==='measure-compare'){
+  let a=pick(30,Math.min(90,limit)),b=pick(10,a-step);
+  if(rng()<.5)[a,b]=[b,a];
+  edge(pt(55,83),pt(55+a*4,83),a);edge(pt(85,208),pt(85+b*4,208),b);target=[0,1];answer=Math.abs(a-b);
+  prompt='Measure AB and CD. How much longer is the longer line? Give the difference in centimetres.';method='Measure both lines from zero, then subtract the shorter length from the longer length.';
+ }else{
+  const w=pick(40,Math.min(100,limit)),h=pick(20,Math.min(50,limit)),a=rand(-10,10)*Math.PI/180;
+  const coords=[[-w*2,-h*2],[w*2,-h*2],[w*2,h*2],[-w*2,h*2]];
+  coords.forEach(([x,y])=>pt(280+x*Math.cos(a)-y*Math.sin(a),135+x*Math.sin(a)+y*Math.cos(a)));
+  edge(0,1,w);edge(1,2,h);edge(2,3,w);edge(3,0,h);
+  if(type==='measure-side'){const j=rand(0,3);target=[j];answer=edges[j].mm;prompt='Measure side '+String.fromCharCode(65+edges[j].i,65+edges[j].j)+' in centimetres.';method='Place zero at the start of the highlighted side and read its other endpoint.';}
+  else{target=[0,1,2,3];answer=2*(w+h);prompt='Measure the sides of rectangle ABCD. Find its perimeter in centimetres.';method='Add all four side lengths, or double the sum of the length and width.';}
+ }
+ return {prompt,answer:fmt(answer)+' cm',measurement:{points,edges,target},solutionExplanation:method};
+}
+function meDrawingSvg(c,{teacher=false,paper=false}={}){
+ const N='http://www.w3.org/2000/svg',svg=document.createElementNS(N,'svg');
+ const el=(name,attrs={},value,parent=svg)=>{const n=document.createElementNS(N,name);Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,String(v)));if(value!=null)n.textContent=value;parent.appendChild(n);return n};
+ const {points,edges,target}=c.measurement;
+ Object.entries({xmlns:N,viewBox:paper?'0 0 '+ME_DRAW_W+' '+ME_DRAW_H:'-65 -45 690 420',role:'img','aria-label':'Measure the displayed lines or shape','data-me-measure-diagram':'1'}).forEach(([k,v])=>svg.setAttribute(k,v));
+ const text=(x,y,value,size=15)=>el('text',{x,y,'font-size':size,'font-family':'Arial,sans-serif','text-anchor':'middle',fill:'#334a52','paint-order':'stroke',stroke:'#fff','stroke-width':3},value);
+ if(edges.length===4)el('polygon',{points:points.map(p=>p.join(',')).join(' '),fill:'#e9f4f0',stroke:'none'});
+ edges.forEach((e,k)=>{const a=points[e.i],b=points[e.j];el('line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:target.includes(k)?'#287c70':'#334a52','stroke-width':3.5,'stroke-linecap':'butt','data-me-measure-edge':k});if(teacher)text((a[0]+b[0])/2+((b[0]-a[0])<1?18:0),(a[1]+b[1])/2-12,e.mm/10+' cm',14)});
+ points.forEach((p,i)=>{el('circle',{cx:p[0],cy:p[1],r:3.5,fill:'#334a52','data-me-measure-point':i});const shift=edges.length===4?(i<2?-13:23):-13;text(p[0],p[1]+shift,String.fromCharCode(65+i),15)});
+ if(paper&&!teacher){
+  el('line',{x1:25,y1:305,x2:225,y2:305,stroke:'#667e80','stroke-width':1.5,'data-me-calibration':'50'});
+  for(const x of [25,225])el('line',{x1:x,y1:300,x2:x,y2:310,stroke:'#667e80','stroke-width':1.5});
+  text(330,309,'Check: this reference line is 5 cm.',12);
+ }
+ if(teacher){text(280,286,'Answer: '+c.answer,17)}
+ return svg;
+}
+function mountMeasureDrawing(host,c){
+ const svg=meDrawingSvg(c,{teacher:c.revealed});svg.style.cssText='width:100%;max-height:520px;display:block;touch-action:none;margin:auto';
+ const bar=document.createElement('div');bar.className='gd-row';bar.style.cssText='justify-content:center;align-items:center;flex-wrap:wrap;gap:8px';
+ const clear=document.createElement('button');clear.type='button';clear.className='gd-btn';clear.textContent='Reset ruler';clear.dataset.meResetRuler='1';
+ const flip=document.createElement('button');flip.type='button';flip.className='gd-btn';flip.textContent='Flip ruler';flip.dataset.meFlipRuler='1';
+ const hint=document.createElement('span');hint.className='gd-help';hint.setAttribute('role','status');bar.append(clear,flip,hint);host.replaceChildren(bar,svg);
+ const N='http://www.w3.org/2000/svg',layer=document.createElementNS(N,'g');layer.setAttribute('pointer-events','none');layer.dataset.meRulerOverlay='1';svg.append(layer);
+ let first=null,second=null,hover=null,side=1;
+ const points=c.measurement.points;
+ const distance=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+ function node(name,attrs){const e=document.createElementNS(N,name);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,String(v)));layer.append(e);return e}
+ function hit(e){const m=svg.getScreenCTM();if(!m)return null;const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(m.inverse()),v=[p.x,p.y],tol=Math.min(55,25/Math.hypot(m.a,m.b));let near=null,d=tol;for(const q of points){const n=distance(q,v);if(n<d){near=q;d=n}}return near||v}
+ function paint(){
+  layer.replaceChildren();const end=second||hover;
+  hint.textContent=first===null?'Tap the point where the ruler should start.':second===null?'Tap the other endpoint to align the ruler.':'Read the graduation at the endpoint, then enter your answer. Tap a new starting point to measure again.';
+  if(first&&end&&distance(first,end)>2){
+   const a=Math.atan2(first[1]-end[1],end[0]-first[0])*180/Math.PI;
+   G.instruments.ruler(layer,{x:first[0],y:first[1],width:ME_DRAW_UNIT*12,length:12,height:44,tickHeight:23,angle:a,side,labelSize:11});
+   const n=[Math.sin(a*Math.PI/180),Math.cos(a*Math.PI/180)];
+   node('line',{x1:end[0],y1:end[1],x2:end[0]+n[0]*side*25,y2:end[1]+n[1]*side*25,stroke:'#b77b32','stroke-width':2.5});
+  }
+  for(const p of [first,second||hover].filter(Boolean))node('circle',{cx:p[0],cy:p[1],r:6,fill:'#fff',stroke:'#287c70','stroke-width':2});
+ }
+ clear.onclick=()=>{first=second=hover=null;paint()};flip.onclick=()=>{side*=-1;paint()};
+ if(c.revealed){bar.hidden=true;return}
+ svg.addEventListener('pointermove',e=>{if(first&&!second){hover=hit(e);paint()}});
+ svg.addEventListener('pointerdown',e=>{if(e.button!==0)return;e.preventDefault();const p=hit(e);if(!p)return;if(first===null||second){first=p;second=null;hover=null}else if(distance(first,p)>2){second=p;hover=null}paint()});
+ paint();
+}
 
 function meSettings(model={}){
  const src=model.generationSettings||model;
@@ -1146,7 +1226,8 @@ function meGenerate(type,settings={},rng=Math.random){
  const cmText=n=>String(n/10),metre=n=>String(n/1000);
  let mm=pick(unit,limit-unit),challenge;
  function task(prompt,answer,extra={}){return {mode:'standard',type,category:meta.category,title:'',prompt,promptHtml:prompt,answer:String(answer),answerMode:'manual',answerSource:'',revealed:false,hiddenReadout:true,freezeMarker:true,secondaryCm:null,...extra}}
- if(type==='read-mark')challenge=task('What length does the orange marker show? Give your answer in centimetres.',cmText(mm)+' cm');
+ if(ME_DRAW_TYPES.includes(type)){const m=meDrawTask(type,cfg,rng);challenge=task(m.prompt,m.answer,{measurement:m.measurement,solutionExplanation:m.solutionExplanation});mm=0;}
+ else if(type==='read-mark')challenge=task('What length does the orange marker show? Give your answer in centimetres.',cmText(mm)+' cm');
  else if(type==='place-mark'){
    const target=mm;mm=target<=limit/2?limit:0;
    challenge=task('Move the orange marker to '+cmText(target)+' cm.',cmText(target)+' cm',{freezeMarker:false,targetCm:target/10});
@@ -1172,7 +1253,9 @@ function meData(model){
  return {type:c?.type,settings:meSettings({...model,generationSettings:c?.generationSettings||model.generationSettings}),diagram,challenge:c};
 }
 function mePaper(data,teacher=false){
- const c=data.challenge,d=data.diagram,task=!!c,place=c?.type==='place-mark',distance=c?.type==='distance-between';
+ const c=data.challenge,d=data.diagram;
+ if(c?.measurement){const source=meDrawingSvg(c,{teacher,paper:true}),card=G.exportTools.composeWorksheetCardSvg(source,{title:ME_TEMPLATES.find(t=>t.id===c.type)?.title||'Measurement challenge',prompt:c.prompt+(teacher?'':' Use a real ruler. Print at 100%; check the 5 cm reference line.'),responseMode:'box',responseLabel:'Answer',paperStyle:'plain',answer:c.answer,showAnswer:teacher,printDiagramScale:1.8});if(!teacher&&card!==source)card.setAttribute('data-gd-mm-per-unit',String(10/(ME_DRAW_UNIT*1.8)));return card}
+ const task=!!c,place=c?.type==='place-mark',distance=c?.type==='distance-between';
  const states=task?[{cm:place?Number(c.targetCm):d.cm,scale:'metric'}]:[{cm:d.cm,scale:d.primaryScale||'metric'},...(d.secondRuler?[d.secondRuler]:[])];
  const W=1100,pad=60,cardH=task?172:220,H=states.length*cardH+12;
  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
@@ -1231,13 +1314,13 @@ function mePaper(data,teacher=false){
 G.measurePaperModel={settings:meSettings,types:meTypes,generate:meGenerate,render:mePaper};
 if(G.publishing)G.publishing.register('measurement',{
  label:'Ruler & measures',types:meTypes,title:item=>item.kind==='diagram'?'Ruler illustration':ME_TEMPLATES.find(t=>t.id===item.data.type)?.title||'Measurement challenge',
- signature:d=>JSON.stringify([d.type,d.challenge.prompt,d.challenge.answer,d.diagram.cm,d.challenge.secondaryCm,d.challenge.targetCm]),
+ signature:d=>JSON.stringify([d.type,d.challenge.prompt,d.challenge.answer,d.diagram.cm,d.challenge.secondaryCm,d.challenge.targetCm,d.challenge.measurement]),
  recipe:(model,type)=>({type,settings:meSettings(model)}),
  generate(recipe,rng){const ids=meTypes().map(t=>t.id);return meGenerate(recipe.type==='all'?ids[Math.floor(rng()*ids.length)]:recipe.type,recipe.settings,rng)},
  capture(model){const d=meData(model);return [G.publishing.record('measurement',d.challenge?'challenge':'diagram',d,d.challenge?{type:d.type,settings:d.settings}:null)]},
  answerSummary:item=>item.data.challenge.answer,
  answerGraphic:item=>G.exportTools.withAnswerDiagram(()=>mePaper(item.data,true)),
- answerNote:item=>{const c=item.data.challenge;if(c.type==='place-mark')return 'The mark must align with the stated scale division. Judge against the printed tick marks, not a physical ruler.';if(c.type==='distance-between')return 'Find the positive difference between the two readings (larger minus smaller). Accept equivalent working giving the requested unit.';if(c.type==='unit-misconception')return 'Accept equivalent explanations using 1 cm = 10 mm.';return ''},
+ answerNote:item=>{const c=item.data.challenge;if(c.measurement)return c.solutionExplanation+' Print at 100%; the pupil reference line must measure 5 cm.';if(c.type==='place-mark')return 'The mark must align with the stated scale division. Judge against the printed tick marks, not a physical ruler.';if(c.type==='distance-between')return 'Find the positive difference between the two readings (larger minus smaller). Accept equivalent working giving the requested unit.';if(c.type==='unit-misconception')return 'Accept equivalent explanations using 1 cm = 10 mm.';return ''},
  render(item,teacher){return mePaper(item.data,teacher)}
 });
 
@@ -1247,6 +1330,7 @@ function measurementTool(){
   const INCH_CM=2.54,IMPERIAL_MAX_CM=12*INCH_CM;
   const CHALLENGE_CATEGORIES=[
     {id:'read',label:'Read & place'},
+    {id:'measure',label:'Measure lines & shapes'},
     {id:'convert',label:'Convert units'},
     {id:'reason',label:'Reasoning'}
   ];
@@ -1696,17 +1780,12 @@ function measurementTool(){
     };
   }
   function ticksForScale(scale){
-    const imperial=scale==='imperial',count=imperial?192:300,majorStep=imperial?16:10;
-    // A single vector scale avoids individually rounded CSS boxes when a
-    // whiteboard object is enlarged or shrunk. Use identical stroke weight
-    // at every graduation, with length alone indicating its denomination.
-    let marks='',labels='';
-    for(let i=0;i<=count;i++){
-      const x=i/count*1000,major=i%majorStep===0,h=major?52:imperial?(i%8===0?40:i%4===0?31:i%2===0?23:15):i%5===0?33:17;
-      marks+='<line class="gd-ruler-tick" data-me-division="'+i+'" x1="'+x+'" x2="'+x+'" y1="'+(56-h)+'" y2="56" vector-effect="non-scaling-stroke" stroke="#344b52" stroke-width="1" stroke-linecap="butt"/>';
-      if(major)labels+='<span class="gd-ruler-num" style="left:'+(i/count*100)+'%">'+(i/majorStep)+'</span>';
-    }
-    return '<svg class="gd-ruler-scale-svg" viewBox="0 0 1000 56" preserveAspectRatio="none" aria-hidden="true" focusable="false">'+marks+'</svg>'+labels+'<span class="gd-ruler-unit">'+(imperial?'in':'cm')+'</span>';
+    const imperial=scale==='imperial',length=imperial?12:30;
+    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    svg.setAttribute('class','gd-ruler-scale-svg');svg.setAttribute('viewBox','0 0 1000 56');svg.setAttribute('preserveAspectRatio','none');svg.setAttribute('aria-hidden','true');svg.setAttribute('focusable','false');
+    G.instruments.ruler(svg,{x:0,y:56,width:1000,length,scale,side:-1,ticksOnly:true,tickHeight:52,labels:false});
+    const labels=G.instruments.rulerGraduations(scale,length).filter(t=>t.major).map(t=>'<span class="gd-ruler-num" style="left:'+(t.value/length*100)+'%">'+t.value+'</span>').join('');
+    return svg.outerHTML+labels+'<span class="gd-ruler-unit">'+(imperial?'in':'cm')+'</span>';
   }
   function rulerCardMarkup(index,state){
     const primary=index===0,imperial=state.scale==='imperial',maximum=maxCm(state.scale),hidden=primary&&readoutHidden(),frozen=primary&&markerFrozen();
@@ -1729,6 +1808,7 @@ function measurementTool(){
   function draw(){
     updateChallengeAnswer();
     const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Measurement challenge',pupil:(challenge.type==='place-mark'?CK.pupilSpec('model',{check:()=>Math.abs(cm-challenge.targetCm)<1e-8}):challenge.type==='unit-misconception'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:challenge.answer.startsWith('Yes')?'Yes':'No',explain:true}):CK.pupilSpec('unit',{unit:challenge.type==='cm-to-mm'?'mm':challenge.type==='cm-to-m'?'m':'cm'})),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
+    if(challenge?.mode==='standard'&&challenge.measurement){q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-me-drawing"></div>';mountMeasureDrawing(q('.gd-me-drawing',q('#gd-stage')),challenge);bindChallengeStageActions();return}
     const targetStatus='';
     const states=challenge?[rulerState(0)]:[rulerState(0),...(secondRuler?[rulerState(1)]:[])];
     const syncReadout=!challenge&&secondRuler&&syncRulers
