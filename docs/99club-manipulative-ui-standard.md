@@ -15,7 +15,7 @@ Use most of the available stage without clipping or excessive blank margins; SVG
 
 Mode changes use the widget's existing model. Preserve compatible content (for example the same chart data across representations); keep incompatible work separately where appropriate (for example timetable data). Mode changes that cannot preserve a model must be explicit and pedagogically sensible, not silently corrupt the lesson. Saved lessons and exports derive from the actual current model.
 
-## Catalogue audit (27 tools)
+## Catalogue audit (24 visible tools; legacy written-method IDs retained)
 
 | Tool | Primary mode or single-purpose decision |
 |---|---|
@@ -41,10 +41,7 @@ Mode changes use the widget's existing model. Preserve compatible content (for e
 | Angles & geometry | Protractor, turns, lines, angle facts, polygons, construction |
 | Function machines | One-stage or two-stage machine |
 | Sequences & rules | Sequence rule families |
-| Column addition | One written method |
-| Column subtraction | One written method |
-| Written multiplication | Short or long multiplication |
-| Written division | Short or long division |
+| Written Methods | Column addition/subtraction, short/long multiplication, short/long division |
 | Arithmetic Hub | Single arithmetic workspace; challenge families remain in Challenge |
 
 ## Release gate for new content
@@ -57,3 +54,7 @@ Mode changes use the widget's existing model. Preserve compatible content (for e
 6. Bump affected asset cache versions, run relevant CI and check the deployed build. Automated tests do not replace a real classroom visual review.
 
 The composition QA checks that every catalogue item has a mode contract or a single-purpose decision. Add tests for new modes and update this audit when adding tools.
+
+## Written Methods release gate
+
+All six methods use the same square-cell layout for teacher steps, pupil input overlays and printed working/answer diagrams. Retain the four historic IDs as loadable legacy aliases, but do not expose them as duplicate catalogue items. Generate independent worksheet blocks by method and settings; multiple blocks of the same method are allowed. Use exact scaled-integer arithmetic for decimal operands and quotient calculations. Decimal multipliers and decimal divisors are optional enrichment and not yet implemented. Rounded division currently uses final-answer assessment; complete rounded working requires a separate rounding step/response. Inspect actual desktop, touch and print output before declaring the rebuild complete.
