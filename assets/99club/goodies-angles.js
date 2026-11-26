@@ -259,7 +259,7 @@ function diagram(d,teacher=false,options={}){
  }
  if(mode==='circle'){
    const r=d.radius||5,x=400,y=210,R=explore?65+6*r:145,p=[x,y],left=[x-R,y],right=[x+R,y],top=[x,y-R];
-   const highlight=d.part||'Radius',isPart=type==='circle-part',rad=explore||type!=='circle-radius'&&!isPart||isPart&&highlight==='Radius',dia=explore||type==='circle-radius'||isPart&&highlight==='Diameter';
+   const highlight=d.part||'Radius',isPart=type==='circle-part',rad=explore||teacher&&!isPart||type!=='circle-radius'&&!isPart||isPart&&highlight==='Radius',dia=explore||teacher&&!isPart&&['circle-radius','circle-diameter'].includes(type)||type==='circle-radius'||isPart&&highlight==='Diameter';
    add('circle',{cx:x,cy:y,r:R,fill:'#e9f4f0',stroke:isPart&&highlight==='Circumference'?orange:ink,'stroke-width':isPart&&highlight==='Circumference'?6:3});
    if(dia){line(left,right,isPart?orange:teal,isPart?5:3,explore?{'stroke-dasharray':'7 5'}:{});if(!isPart)text(x,y-12,(explore?'Diameter = ':'')+(2*r)+' cm',24)}
    if(rad){const end=explore?polar(x,y,R,55):top;line(p,end,isPart?orange:teal,isPart?5:3);if(!isPart){const mid=[(p[0]+end[0])/2,(p[1]+end[1])/2];text(mid[0]+(explore?35:42),mid[1],(explore?'r = ':'')+r+' cm',22)}}
