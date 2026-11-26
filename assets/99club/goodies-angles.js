@@ -14,7 +14,51 @@ function constructionMethodGraphic(method,step=-1){
  return svg
 }
 const CONSTRUCTION_METHODS_BY_TASK={'shape-build':'triangle-sas','build-sss':'triangle-sss','build-equilateral':'triangle-equilateral','build-right':'triangle-right-legs','build-rectangle':'rectangle-sides','build-square':'square-on-side','build-midpoint':'midpoint','build-perpendicular':'perpendicular-at-point','build-circle':'circle-given-radius','build-asa':'triangle-asa','build-bisector':'midpoint','build-rhombus':'rhombus-side-angle'};
-function mountConstructionLibrary(owner,button,task=null){
+// Challenge-specific guidance is generated from the same dimensions as assessment.
+function challengeConstructionMethod(method,task){
+ if(!task||method.id!==CONSTRUCTION_METHODS_BY_TASK[task.type])return method;
+ const type=task.type,sol=labSolution(task),[A,B,C,E,M]=sol.points,mid=labAt(A,labSub(B,A),.5),length=task.length,fmt=n=>Number(n.toFixed(3)),L=(a,b,style='construction')=>({kind:'line',a,b,style}),P=(at,label,style='given')=>({kind:'point',at,label,style}),arc=(center,radius,p,span=22)=>{const t=Math.atan2(p[1]-center[1],p[0]-center[0])/D;return {kind:'arc',center,radius,start:t-span,end:t+span,style:'construction'}},circle=(center,radius,style='construction')=>({kind:'circle',center,radius,style});
+ const steps=[],frames=[],add=(instruction,...objects)=>{steps.push(instruction);frames.push({add:objects})},initial=[L(A,B,'given'),P(A,'A'),P(B,'B')];
+ if(type==='build-midpoint'||type==='build-bisector'){
+   const r=150,h=Math.sqrt(r*r-120*120),x=[mid[0],mid[1]-h],y=[mid[0],mid[1]+h];
+   add('Set the compass opening to more than 3 cm (for example 3.75 cm).',L(A,[A[0],A[1]-r]));
+   add('Draw equal arcs from A and B on both sides of AB.',arc(A,r,x),arc(A,r,y),arc(B,r,x),arc(B,r,y));
+   add('Join the intersections X and Y.',P(x,'X'),P(y,'Y'),L([mid[0],mid[1]-120],[mid[0],mid[1]+120],type==='build-bisector'?'result':'construction'));
+   add('Mark M where the perpendicular bisector crosses AB. AM = MB = 3 cm.',P(mid,'M','result'));
+ }else if(type==='build-circle'){
+   add('Set the compass opening to '+fmt(length)+' cm.',L(A,[A[0],A[1]-length*40]));
+   add('Place the compass at A and draw one full circle.',circle(A,length*40,'result'));
+ }else if(type==='build-perpendicular'||type==='build-right'){
+   add('Align the set square or protractor with AB at A. Draw a 90° ray.',L(A,[A[0],Math.max(10,C[1]-30)]));
+   add('Measure '+fmt(length)+' cm from A along the perpendicular and mark C.',arc(A,length*40,C),P(C,'C'),L(A,C,'result'));
+   if(type==='build-right')add('Join B to C.',L(B,C,'result'));
+ }else if(type==='build-sss'||type==='build-equilateral'){
+   add('Set the compass to '+fmt(length)+' cm and draw an arc from A.',arc(A,length*40,C,30));
+   add('Set the compass to '+fmt(task.rightLength)+' cm and draw an arc from B intersecting the first at C.',arc(B,task.rightLength*40,C,30),P(C,'C'));
+   add('Join A to C and B to C.',L(A,C,'result'),L(B,C,'result'));
+ }else if(type==='build-asa'){
+   add('At A construct the '+task.angle+'° ray from AB.',L(A,C));
+   add('At B construct the '+task.rightAngle+'° ray from BA on the same side.',L(B,C),P(C,'C'));
+   add('Join both remaining sides at C.',L(A,C,'result'),L(B,C,'result'));
+ }else if(type==='build-rectangle'||type==='build-square'){
+   add('At A draw a perpendicular to AB. Mark D '+fmt(length)+' cm from A.',L(A,[A[0],Math.max(10,E[1]-25)]),arc(A,length*40,E),P(E,'D'),L(A,E,'result'));
+   add('At B draw a perpendicular on the same side. Mark C '+fmt(length)+' cm from B.',L(B,[B[0],Math.max(10,C[1]-25)]),arc(B,length*40,C),P(C,'C'),L(B,C,'result'));
+   add('Join C to D to complete the shape.',L(C,E,'result'));
+ }else if(type==='build-rhombus'){
+   add('At A draw a ray making '+task.angle+'° with AB.',L(A,E));
+   add('Set the compass to 6 cm and mark D on the ray.',arc(A,240,E),P(E,'D'),L(A,E,'result'));
+   add('Draw arcs of radius 6 cm from B and D to intersect at C, other than A.',arc(B,240,C),arc(E,240,C),P(C,'C'));
+   add('Join B to C and C to D.',L(B,C,'result'),L(C,E,'result'));
+ }else{
+   add('At A use the protractor to draw the '+task.angle+'° ray from AB.',L(A,C));
+   add('Set the compass to '+fmt(length)+' cm and mark C on the ray.',arc(A,length*40,C),P(C,'C'),L(A,C,'result'));
+   add('Join B to C.',L(B,C,'result'));
+ }
+ const bounds=[];for(const o of [...initial,...frames.flatMap(f=>f.add)]){if(o.kind==='line')bounds.push(o.a,o.b);else if(o.kind==='point')bounds.push(o.at);else if(o.kind==='circle')bounds.push([o.center[0]-o.radius,o.center[1]-o.radius],[o.center[0]+o.radius,o.center[1]+o.radius]);else if(o.kind==='arc'){for(let t=o.start;t<o.end;t+=5)bounds.push([o.center[0]+o.radius*Math.cos(t*D),o.center[1]+o.radius*Math.sin(t*D)]);bounds.push([o.center[0]+o.radius*Math.cos(o.end*D),o.center[1]+o.radius*Math.sin(o.end*D)])}}
+ const xs=bounds.map(p=>p[0]),ys=bounds.map(p=>p[1]),x=Math.min(...xs)-28,y=Math.min(...ys)-28,w=Math.max(...xs)-x+28,h=Math.max(...ys)-y+28;
+ return {...method,challengeSpecific:true,steps,checks:[task.answer||method.checks.join('; ')],graphics:{viewBox:[x,y,w,h],initial,frames}};
+}
+function mountConstructionLibrary(owner,button,task=null,getDrawing=null){
  const panel=document.createElement('section');panel.className='gd-ag-method-panel';panel.dataset.agMethodPanel='1';panel.setAttribute('role','region');panel.setAttribute('aria-label','Construction library');panel.hidden=true;
  panel.style.cssText='position:fixed;z-index:2147483000;top:72px;right:16px;width:min(360px,calc(100vw - 24px));max-height:calc(100dvh - 90px);overflow:auto;box-sizing:border-box;padding:10px;background:#fff;color:#31434a;border:1px solid #abc6bd;border-radius:10px;box-shadow:0 5px 24px #183a3440;font-size:13px';
  const head=document.createElement('div');head.style.cssText='display:flex;gap:8px;align-items:center;cursor:move;touch-action:none';const title=document.createElement('strong');title.textContent='Construction library';title.style.flex='1';head.append(title);
@@ -25,7 +69,7 @@ function mountConstructionLibrary(owner,button,task=null){
  head.addEventListener('pointerdown',e=>{if(e.target.closest('button')||e.button!==0)return;const r=panel.getBoundingClientRect();drag={id:e.pointerId,x:e.clientX-r.left,y:e.clientY-r.top};try{head.setPointerCapture(e.pointerId)}catch(_){}e.preventDefault()});head.addEventListener('pointermove',e=>{if(drag?.id!==e.pointerId)return;panel.style.left=e.clientX-drag.x+'px';panel.style.top=e.clientY-drag.y+'px';panel.style.right='auto';clamp()});for(const t of ['pointerup','pointercancel','lostpointercapture'])head.addEventListener(t,()=>{drag=null});
  const resize=()=>{if(!panel.hidden)clamp()};window.addEventListener('resize',resize);
  const observer=new MutationObserver(()=>{if(!owner.isConnected||!button.isConnected){disposed=true;observer.disconnect();window.removeEventListener('resize',resize);panel.remove()}});observer.observe(document.body,{childList:true,subtree:true});
- function toggle(open=panel.hidden){if(disposed)return;panel.hidden=!open;panel.style.display=open?'block':'none';button.setAttribute('aria-expanded',String(open));if(!open)return;if(!methods.length&&!loading){loading=true;body.textContent='Loading construction methods…';loadConstructionLibrary().then(m=>{if(disposed)return;methods=m;loading=false;if(task&&!selected)selected=m.find(x=>x.id===CONSTRUCTION_METHODS_BY_TASK[task.type])||null;render()}).catch(e=>{if(disposed)return;loading=false;body.textContent=e.message;mk(body,'retry','Retry',()=>toggle(true))})}else if(methods.length)render();clamp()}
+ function toggle(open=panel.hidden){if(disposed)return;panel.hidden=!open;panel.style.display=open?'block':'none';button.setAttribute('aria-expanded',String(open));if(!open)return;if(!methods.length&&!loading){loading=true;body.textContent='Loading construction methods…';loadConstructionLibrary().then(m=>{if(disposed)return;methods=m.map(method=>challengeConstructionMethod(method,task));loading=false;if(task&&!selected)selected=methods.find(x=>x.id===CONSTRUCTION_METHODS_BY_TASK[task.type])||null;render()}).catch(e=>{if(disposed)return;loading=false;body.textContent=e.message;mk(body,'retry','Retry',()=>toggle(true))})}else if(methods.length)render();clamp()}
  function el(tag,parent,text,style){const e=document.createElement(tag);if(text!=null)e.textContent=text;if(style)e.style.cssText=style;parent.append(e);return e}
  function render(){
    body.replaceChildren();
@@ -35,13 +79,14 @@ function mountConstructionLibrary(owner,button,task=null){
      input.oninput=()=>{query=input.value;filter()};cat.onchange=()=>{category=cat.value;filter()};filter();return;
    }
    const top=el('div',body,null,'display:flex;gap:6px;align-items:center;flex-wrap:wrap');mk(top,'back',methodStack.length?'Back to construction':'All methods',()=>{if(methodStack.length){const last=methodStack.pop();selected=last.selected;step=last.step;graphic=last.graphic;verification=last.verification}else selected=null;render()});el('small',top,selected.category);
-   el('strong',body,selected.title,'font-size:16px;line-height:1.25');if(task){const context=el('div',body,null,'padding:7px;border:1px solid #abc6bd;border-radius:6px');context.dataset.agMethodTask='1';el('strong',context,'Current challenge');el('div',context,task.prompt);el('small',context,'Method diagrams are illustrative examples; use the dimensions and objective of your own challenge.')}el('div',body,'Given: '+selected.given.join('; '));el('div',body,selected.objective||selected.title);el('small',body,'Tools: '+selected.instruments.join(', '));el('small',body,selected.conditions);
+   el('strong',body,selected.title,'font-size:16px;line-height:1.25');if(task){const context=el('div',body,null,'padding:7px;border:1px solid #abc6bd;border-radius:6px');context.dataset.agMethodTask='1';el('strong',context,'Current challenge');el('div',context,task.prompt);el('small',context,selected.challengeSpecific?'This guide uses the dimensions of your current challenge. Reflected valid solutions may look different.':'This related method uses illustrative dimensions.')}el('div',body,'Given: '+selected.given.join('; '));el('div',body,selected.objective||selected.title);el('small',body,'Tools: '+selected.instruments.join(', '));el('small',body,selected.conditions);
    const modes=el('div',body,null,'display:flex;gap:6px;flex-wrap:wrap');const a=mk(modes,'instructions','Instructions',()=>{graphic=false;render()}),b=mk(modes,'graphics','Graphical guide',()=>{graphic=true;render()});for(const [el,active] of [[a,!graphic],[b,graphic]]){el.classList.toggle('gd-btn--primary',active);el.setAttribute('aria-pressed',String(active))}
    el('small',body,step<0?'Starting problem':'Step '+(step+1)+' of '+selected.steps.length);const instruction=el('div',body,step<0?'Prepare the given geometry, then begin the construction.':selected.steps[step],'padding:8px;border:1px solid #dbe7e3;border-radius:6px;line-height:1.4');instruction.dataset.agMethodStep=String(step);
    if(graphic)body.append(constructionMethodGraphic(selected,step));
    if(selected.prerequisites?.length){const details=el('details',body);el('summary',details,'Related techniques');const related=el('div',details,null,'display:grid;gap:4px;margin-top:5px');for(const id of selected.prerequisites){const m=methods.find(m=>m.id===id);if(!m)continue;const link=mk(related,'related',m.title,()=>{methodStack.push({selected,step,graphic,verification});selected=m;step=-1;graphic=false;verification=false;render()});link.dataset.agMethodRelated=id;link.style.cssText='white-space:normal;text-align:left'}}
    const nav=el('div',body,null,'display:flex;gap:5px;flex-wrap:wrap');const prev=mk(nav,'previous','Previous',()=>{step--;verification=false;render()});prev.disabled=step<0;mk(nav,'restart','Restart',()=>{step=-1;verification=false;render()});const next=mk(nav,'next',step<0?'Begin':'Next step',()=>{step++;verification=false;render()});next.disabled=step>=selected.steps.length-1;
    mk(body,'verify',verification?'Hide explanation':'Check construction / why it works',()=>{verification=!verification;render()});if(verification){el('div',body,selected.why);const list=el('ul',body);for(const c of selected.checks)el('li',list,c)}
+   if(task&&getDrawing&&selected.challengeSpecific){const feedback=el('div',body);feedback.dataset.agMethodFeedback='1';feedback.setAttribute('role','status');mk(body,'check-drawing','Check my drawing',()=>{const result=labCheck(getDrawing(),task);feedback.textContent=result.correct?'Correct — your drawing satisfies the challenge.':result.ready?'Not quite — check the required lengths and geometric relationships.':'Construction not complete yet — finish the required points, lines or circle.';feedback.style.color=result.correct?'#16796c':'#795520'})}
    if(!panel.hidden)clamp()
  }
  panel.style.display='none';button.setAttribute('aria-expanded','false');return {toggle}
@@ -548,7 +593,7 @@ function generate(s={},rng=Math.random){
    st.nodes.push(node);return id;
  }
  function customMove(st,id,p){const n=st.nodes.find(n=>n.id===id);if(!n||!CUSTOM_OPERATIONS[n.op]?.place)return false;const old=customResolve(st).points;n.at=p.slice();const next=customResolve(st).points;for(const name of st.traceNames||[]){if(old[name]&&next[name])traceAdd(st,name,next[name],old[name]);else if(st.traces[name]?.length&&st.traces[name].at(-1)!==null)st.traces[name].push(null)}return true}
- const model={CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labLabel,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,locusInitial,locusProject,locusPoints,traceParts,traceAdd,traceToggle,shapeGeometry,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
+ const model={challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labLabel,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,locusInitial,locusProject,locusPoints,traceParts,traceAdd,traceToggle,shapeGeometry,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
 if(typeof module==='object'&&module.exports){module.exports=model;return}
 const G=root.TT99Goodies;if(!G)return;G.angles=model;
 const {q,qa,esc,field,btn,setPanels}=G,CK=G.challengeKit;
@@ -867,7 +912,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
   if(free)button('trace','Clear traces','Remove recorded paths without changing the drawing',()=>{save();st.traces={};changed()}).dataset.agTool='clear-traces';
   const panButton=free?button('pan','Pan sheet','Move around the sheet without drawing',()=>{panMode=!panMode;first=null;aligned=null;hover=null;paint()}):null;
   const guideButton=button('help',free?'Help':'Tool help','Show instrument instructions',()=>{guideOpen=!guideOpen;guideStep=0;paint()});
-  if(free||CONSTRUCTION_METHODS_BY_TASK[task?.type]){const libraryButton=button('help',free?'Construction library':'Method guide',free?'Open searchable construction methods':'Open optional construction guidance',()=>library.toggle());libraryButton.dataset.agTool='construction-library';const library=mountConstructionLibrary(box,libraryButton,task)}
+  if(free||CONSTRUCTION_METHODS_BY_TASK[task?.type]){const libraryButton=button('help',free?'Construction library':'Method guide',free?'Open searchable construction methods':'Open optional construction guidance',()=>library.toggle());libraryButton.dataset.agTool='construction-library';const library=mountConstructionLibrary(box,libraryButton,task,()=>st)}
   for(const [id,label,get,set] of [['snap','Snap',()=>snap,v=>snap=v],...(free?[['measure','Measurements',()=>measure,v=>{measure=v;st.showMeasurements=v;onChange(clone(st))}]]:[]),...(free?[]:[['grid','Grid',()=>grid,v=>grid=v]])]){
    const l=document.createElement('label');l.className='gd-ag-lab-option';const input=document.createElement('input');input.type='checkbox';input.dataset.agOption=id;input.checked=get();input.onchange=()=>{set(input.checked);paint()};const t=document.createElement('span');t.textContent=label;l.append(input,icon(id),t);options.append(l);
   }
