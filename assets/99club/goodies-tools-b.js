@@ -1159,9 +1159,9 @@ function meDrawTask(type,cfg,rng){
   edge(pt(55,83),pt(55+a*4,83),a);edge(pt(85,208),pt(85+b*4,208),b);target=[0,1];answer=Math.abs(a-b);
   prompt='Measure AB and CD. How much longer is the longer line? Give the difference in centimetres.';method='Measure both lines from zero, then subtract the shorter length from the longer length.';
  }else{
-  const w=pick(40,Math.min(100,limit)),h=pick(20,Math.min(50,limit)),a=rand(-10,10)*Math.PI/180;
+  const w=pick(40,Math.min(100,limit)),h=pick(20,Math.min(50,limit)),a=rand(-8,8)*Math.PI/180;
   const coords=[[-w*2,-h*2],[w*2,-h*2],[w*2,h*2],[-w*2,h*2]];
-  coords.forEach(([x,y])=>pt(280+x*Math.cos(a)-y*Math.sin(a),135+x*Math.sin(a)+y*Math.cos(a)));
+  coords.forEach(([x,y])=>pt(280+x*Math.cos(a)-y*Math.sin(a),145+x*Math.sin(a)+y*Math.cos(a)));
   edge(0,1,w);edge(1,2,h);edge(2,3,w);edge(3,0,h);
   if(type==='measure-side'){const j=rand(0,3);target=[j];answer=edges[j].mm;prompt='Measure side '+String.fromCharCode(65+edges[j].i,65+edges[j].j)+' in centimetres.';method='Place zero at the start of the highlighted side and read its other endpoint.';}
   else{target=[0,1,2,3];answer=2*(w+h);prompt='Measure the sides of rectangle ABCD. Find its perimeter in centimetres.';method='Add all four side lengths, or double the sum of the length and width.';}
@@ -1279,9 +1279,10 @@ function mePaper(data,teacher=false){
    const span=!task&&states.length>1?30.48:hi-lo,scale=(W-2*pad)/span,endX=pad+(hi-lo)*scale;
    const px=cm=>pad+(cm-lo)*scale,divisions=Math.round((hi-lo)/step);
    add('rect',{x:pad,y,width:endX-pad,height:82,rx:4,fill:'#fbfcfc',stroke:'#9fb2b7','stroke-width':1.8});
+   const graduations=G.instruments.rulerGraduations(state.scale,imperial?12:hi-lo,imperial?0:lo);
    for(let i=0;i<=divisions;i++){
-     const v=lo+i*step,x=px(v),major=imperial?i%16===0:i%10===0,mid=imperial?i%8===0:i%5===0;
-     add('line',{x1:x,y1:base-(major?43:mid?31:19),x2:x,y2:base,stroke:'#344b52','stroke-width':major?1.8:1});
+     const graduation=graduations[i],v=lo+i*step,x=px(v),major=graduation.major;
+     add('line',{x1:x,y1:base-43*graduation.height,x2:x,y2:base,stroke:'#344b52','stroke-width':1});
      if(major)text(x,y+25,imperial?i/16:Math.round(v),span>20?17:20);
    }
    text(endX+10,y+25,imperial?'in':'cm',18,{'text-anchor':'start'});
