@@ -1321,6 +1321,12 @@ try {
    if(type==='pythagoras'&&Number(d.answer)**2!==d.baseLength**2+d.length**2)throw Error('Pythagoras answer');
    if(!d.prompt||!d.answer)throw Error('Empty reasoning challenge');
  }
+ for(const kind of ['circle','bisector'])for(let i=0;i<1000;i++){
+   const p=model.locusProject(kind,[(i*37)%800,(i*71)%440]),dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+   if(kind==='circle'&&Math.abs(dist(p,[400,220])-140)>1e-8||kind==='bisector'&&Math.abs(dist(p,[250,220])-dist(p,[550,220]))>1e-8)throw Error('Locus constraint lost');
+ }
+ const traceState=model.locusInitial();model.traceToggle(traceState,'P');model.traceAdd(traceState,'P',[1,1],[0,0]);model.traceToggle(traceState,'P');model.traceToggle(traceState,'P');model.traceAdd(traceState,'P',[6,6],[5,5]);
+ if(model.traceParts(traceState.traces.P).length!==2)throw Error('Trace incorrectly joins separated recording periods');
  const free=model.labEmpty(true);if(free.points.length||free.given!==false||model.labSnap(free,[100,100]).kind)throw Error('Free construction is not blank');
  ok('construction-lab',cases+' shape constructions plus reflected solutions, circle intersections and disabled snapping');
 }catch(e){fail('construction-lab','Geometry construction lab regression',e.stack||e.message);}
