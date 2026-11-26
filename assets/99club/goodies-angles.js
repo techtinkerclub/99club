@@ -151,6 +151,25 @@ function generate(s={},rng=Math.random){
    const p=polar(...o,r+55,dir+90);return {p,size:10,box:labelBox(p,0,label,10)};
  }
 
+ // Point names belong in the unmarked sector, including reflex angles.
+ function angleVertexPlacement(o,start,sweep,label='A',size=13){
+   const span=Math.max(0,Math.min(360,sweep)),gap=360-span,mid=start+span+gap/2;
+   const arms=[polar(...o,243,start),polar(...o,243,start+span)];
+   for(let radius=19;radius<=220;radius+=3){
+     const p=polar(...o,radius,mid),box=labelBox(p,0,label,size);
+     if(gap>0&&labelCorners(box).every(q=>mod(labAngle(o,q)-start-span)<gap)&&!arms.some(a=>labelIntersectsLine(box,o,a)))return {p,box,external:false};
+   }
+   // Full turns have no unmarked sector. Very narrow reflex complements
+   // cannot fit a legible label either: keep the name outside the arc and
+   // link it to its vertex, rather than writing over the angle marking.
+   const dir=gap===0?start+180:mid;
+   const p=polar(...o,Math.min(220,gap>0?145:77),dir);
+   for(const delta of [0,15,-15,30,-30,60,-60,90,-90]){
+     const q=polar(...o,Math.hypot(p[0]-o[0],p[1]-o[1]),dir+delta),box=labelBox(q,0,label,size);
+     if(!arms.some(a=>labelIntersectsLine(box,o,a)))return {p:q,box,external:true};
+   }
+   return {p,box:labelBox(p,0,label,size),external:true};
+ }
  function vertexLabel(p,prev,next,offset=22){
    const unit=v=>{const n=Math.hypot(...v)||1;return v.map(a=>a/n)};
    if(!prev&&!next)return [p[0]+offset,p[1]-offset*.6];
@@ -218,7 +237,7 @@ function generate(s={},rng=Math.random){
   return st;
  }
 
-const model={dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
+const model={angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
 if(typeof module==='object'&&module.exports){module.exports=model;return}
 const G=root.TT99Goodies;if(!G)return;G.angles=model;
 const {q,qa,esc,field,btn,setPanels}=G,CK=G.challengeKit;
@@ -280,7 +299,12 @@ function diagram(d,teacher=false,options={}){
      add('circle',{cx:p[0],cy:p[1],r:10,fill:'#d58c42',stroke:'#fff','stroke-width':2,'data-ag-angle-handle':'1'});
      add('circle',{cx:x,cy:y,r:r+25,fill:'transparent','data-ag-angle-target':'1',style:'cursor:grab;touch-action:none'});
    }
-   const named=[[polar(x,y,r+5,start),'B',start],[polar(x,y,r+5,start+shown),'C',start+shown]];text(x-12,y+17,'A',13,{'data-ag-point-label':'A','paint-order':'stroke',stroke:'#fff','stroke-width':3});for(const [p,name,dir] of named.slice(0,blank||shown===0?1:2)){const q=polar(...p,13,dir);text(q[0],q[1]+4,name,13,{'data-ag-point-label':name,'paint-order':'stroke',stroke:'#fff','stroke-width':3})}
+   const named=[[polar(x,y,r+5,start),'B',start],[polar(x,y,r+5,start+shown),'C',start+shown]];
+   const vertex=angleVertexPlacement([x,y],start,shown);
+   if(vertex.external){const v=labSub(vertex.p,[x,y]),len=Math.hypot(...v);line(labAt([x,y],v,6/len),labAt([x,y],v,1-13/len),'#829793',1,{'stroke-dasharray':'3 4','data-ag-point-leader':'A'})}
+   text(vertex.p[0],vertex.p[1],'A',13,{'dominant-baseline':'central','data-ag-point-label':'A','paint-order':'stroke',stroke:'#fff','stroke-width':3});
+   if(!options.measureWorkspace&&!full){const corners=labelCorners(vertex.box),lx=Math.min(minX,...corners.map(q=>q[0]-3)),ly=Math.min(minY,...corners.map(q=>q[1]-3)),rx=Math.max(maxX,...corners.map(q=>q[0]+3)),by=Math.max(maxY+targetH,...corners.map(q=>q[1]+3));frame(lx,ly,rx-lx,by-ly)}
+   for(const [p,name,dir] of named.slice(0,blank||shown===0?1:2)){const q=polar(...p,13,dir);text(q[0],q[1]+4,name,13,{'data-ag-point-label':name,'paint-order':'stroke',stroke:'#fff','stroke-width':3})}
    return svg
  }
  if(mode==='facts'){
