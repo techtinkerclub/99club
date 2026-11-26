@@ -2236,3 +2236,19 @@ html:not(.gd-embed-page) #tt99-goodies-root #gd-controls .gd-mc-five{min-height:
 #tt99-goodies-root .gd-mixed-board :is(.gd-board-palette,.gd-board-tool-picker,.gd-board-context-menu,.gd-board-floating-controls,.gd-board-quick-actions) button:active{outline:none!important;box-shadow:none!important}
 #tt99-goodies-root .gd-mixed-board :is(.gd-board-palette,.gd-board-tool-picker,.gd-board-context-menu,.gd-board-floating-controls,.gd-board-quick-actions) button:focus-visible{outline:2px solid #27877b!important;outline-offset:2px;box-shadow:none!important}
 #tt99-goodies-root .gd-board-tool-picker .gd-board-tool:focus-visible{outline-offset:-2px}
+
+/* Angle workspace: classroom readability at the same board scale as other tools.
+   Scope to the actual current diagram so switching standalone tools cannot leak styles. */
+#gd-stage:has(>.gd-ag-visual){gap:10px;justify-content:flex-start}
+#gd-stage:has(>.gd-ag-visual)>.gd-challenge-banner{padding:12px 15px!important;gap:9px!important;margin-bottom:8px!important}
+#gd-stage:has(>.gd-ag-visual) .gd-challenge-prompt{font-size:clamp(1.08rem,2.4vw,1.5rem)!important;line-height:1.32!important}
+#gd-stage:has(>.gd-ag-visual) :is(.gd-challenge-action,.gd-challenge-reveal,.gd-pupil-response button){font-size:1rem!important;min-height:42px!important}
+#gd-stage:has(>.gd-ag-visual) :is(.gd-pupil-feedback,.gd-pupil-instruction,.gd-pupil-field label,.gd-pupil-discuss){font-size:1rem!important}
+#gd-stage:has(>.gd-ag-visual) .gd-pupil-field input{font-size:1.2rem!important;min-height:42px}
+#gd-stage:has(>.gd-ag-visual)>.gd-row :is(button,select){font-size:1rem!important;min-height:42px!important;min-width:46px}
+#gd-stage:has(>.gd-ag-visual)>.gd-row strong{font-size:1.3rem;font-variant-numeric:tabular-nums}
+#gd-stage:has(>.gd-ag-visual) .gd-ag-visual{flex:0 0 auto;min-width:0}
+@media(max-width:520px){
+ #gd-stage:has(>.gd-ag-visual) .gd-challenge-prompt{font-size:1.1rem!important}
+ #gd-stage:has(>.gd-ag-visual)>.gd-challenge-banner{padding:9px!important}
+}
