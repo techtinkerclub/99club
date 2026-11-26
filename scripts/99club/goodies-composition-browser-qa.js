@@ -1172,7 +1172,7 @@ async function run(){
     doc.querySelector('[data-ag-tool="help"]').click();
     {
       const model=win.TT99Goodies.angles,methods=await model.loadConstructionLibrary();
-      assert(methods.length>=20,'Construction library has at least twenty methods');
+      assert(methods.length>=28,'Construction library has at least twenty-eight methods');
       assert(new Set(methods.map(m=>m.id)).size===methods.length,'Construction method IDs are unique');
       const finalPoints=id=>Object.fromEntries(model.constructionFrame(methods.find(m=>m.id===id),100).filter(o=>o.kind==='point').map(o=>[o.label,o.at])),dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]),near=(a,b)=>Math.abs(a-b)<1e-6,dot=(a,b,c)=>(a[0]-b[0])*(c[0]-b[0])+(a[1]-b[1])*(c[1]-b[1]);
       const eq=finalPoints('triangle-equilateral');assert(near(dist(eq.A,eq.B),dist(eq.A,eq.C))&&near(dist(eq.A,eq.B),dist(eq.B,eq.C)),'Equilateral example is exact');
@@ -1180,6 +1180,13 @@ async function run(){
       const sq=finalPoints('square-on-side');assert(near(dist(sq.A,sq.B),dist(sq.A,sq.D)),'Square has equal adjacent sides');
       const cc=finalPoints('triangle-circumcircle');assert(near(dist(cc.O,cc.A),dist(cc.O,cc.B))&&near(dist(cc.O,cc.A),dist(cc.O,cc.C)),'Circumcentre is equidistant from vertices');
       const ic=finalPoints('triangle-incircle'),lineDistance=(p,a,b)=>Math.abs((b[0]-a[0])*(p[1]-a[1])-(b[1]-a[1])*(p[0]-a[0]))/dist(a,b);assert([['A','B'],['B','C'],['C','A']].every(([a,b])=>near(lineDistance(ic.I,ic[a],ic[b]),dist(ic.I,ic.F))),'Incentre is equidistant from sides');
+      const rh=finalPoints('rhombus-side-angle');assert([dist(rh.B,rh.C),dist(rh.C,rh.D),dist(rh.D,rh.A)].every(v=>near(v,dist(rh.A,rh.B))),'Rhombus example has equal sides');
+      const tr=finalPoints('isosceles-trapezium');assert(near(dist(tr.A,tr.D),dist(tr.B,tr.C))&&near(tr.A[1],tr.B[1])&&near(tr.D[1],tr.C[1]),'Trapezium is symmetric with parallel bases');
+      for(const [mid,labels] of [['square-in-circle','ABCD'],['regular-octagon','ABCDEFGH']]){const p=finalPoints(mid),v=[...labels];assert(v.every((n,i)=>near(dist(p[n],p[v[(i+1)%v.length]]),dist(p.A,p.B))&&near(dist(p[n],p.O),dist(p.A,p.O))),'Inscribed regular polygon has equal sides and common radius: '+mid)}
+      const thirds=finalPoints('divide-segment-thirds');assert(near(dist(thirds.A,thirds.P),dist(thirds.P,thirds.Q))&&near(dist(thirds.P,thirds.Q),dist(thirds.Q,thirds.B)),'Segment is divided into exact thirds');
+      const rt=finalPoints('right-triangle-hypotenuse');assert(near(dot(rt.A,rt.C,rt.B),0),'Hypotenuse construction preserves right angle');
+      const cg=finalPoints('triangle-centroid');assert(near(dist(cg.C,cg.G),2*dist(cg.G,cg.M))&&near(dist(cg.A,cg.G),2*dist(cg.G,cg.N)),'Centroid divides medians 2:1');
+      const semi=finalPoints('angle-in-semicircle');assert(near(dot(semi.A,semi.T,semi.B),0),'Semicircle construction creates right angle');
       for(const m of methods){
         assert(m.objective&&m.steps.length===m.graphics.frames.length&&m.checks.length,'Method includes problem, matching written and graphical steps and checks: '+m.id);
         for(let i=-1;i<m.steps.length;i++){const svg=model.constructionMethodGraphic(m,i);assert(svg.querySelectorAll('[data-ag-method-primitive]').length===model.constructionFrame(m,i).length&&!svg.outerHTML.includes('NaN'),'Each construction step renders exact vector primitives: '+m.id)}
