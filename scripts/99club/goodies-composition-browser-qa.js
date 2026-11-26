@@ -1013,6 +1013,15 @@ async function run(){
     assert(inspectSvg.querySelector('[data-ag-inspection] [data-geometry-instrument="protractor"]'),'Investigation uses the shared dual-scale protractor');
     assert(doc.querySelector('.gd-ag-inspect-message').textContent.includes(deg+'°'),'Investigation protractor measures selected angle');
     doc.querySelector('[data-ag-inspect="clear"]').click();assert(!inspectSvg.querySelector('[data-ag-inspection]').children.length,'Clear removes inspection without changing question');
+    doc.querySelector('[data-ag-challenge-mode="diagonal-bisect"]').click();await tick();
+    const ds=doc.querySelector('.gd-ag-visual>svg'),dp=ds.querySelector('[data-ag-inspect-polygon]').points,intersection=ds.querySelector('[data-ag-inspect-point="O"]');
+    assert(intersection,'Diagonal intersection is a selectable inspection point');
+    const diagTap=p=>{const v=new win.DOMPoint(...p).matrixTransform(ds.getScreenCTM());ds.dispatchEvent(new win.PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerType:'touch',button:0,clientX:v.x,clientY:v.y}))};
+    const o=[Number(intersection.getAttribute('cx')),Number(intersection.getAttribute('cy'))],a0=[dp.getItem(0).x,dp.getItem(0).y],b0=[dp.getItem(1).x,dp.getItem(1).y];
+    doc.querySelector('[data-ag-inspect="ruler"]').click();diagTap(a0);diagTap(o);
+    assert(ds.querySelector('[data-ag-inspection] [data-geometry-instrument="ruler"]'),'Ruler can measure vertex to diagonal intersection');
+    doc.querySelector('[data-ag-inspect="angle"]').click();diagTap(o);diagTap(a0);diagTap(b0);
+    assert(ds.querySelector('[data-ag-inspection] [data-geometry-instrument="protractor"]'),'Protractor can measure the angle between diagonals at their intersection');
     const investigationPaper=TT99Goodies.publishing.createDocument();investigationPaper.addCurrent(id,cap());assert(!TT99Goodies.publishing.renderItem(investigationPaper.list()[0],false).querySelector('[data-ag-inspection]'),'Inspection overlays do not leak into pupil publication');
     doc.querySelector('[data-ag-challenge-mode="draw"]').click();await tick();
     assert(!doc.querySelector('.gd-ag-inspect-tools'),'Calculation and construction tasks do not get inspection shortcuts');
