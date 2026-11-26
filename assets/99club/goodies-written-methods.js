@@ -122,21 +122,22 @@ function available(raw){return METHODS.slice()}
 function generate(method,raw={},rng=Math.random){
  const s=settings(raw),maxDigits=s.operandDigits?Math.min(s.operandDigits,method.endsWith('division')||method.endsWith('multiplication')?4:7):PROFILES[s.year][method]||PROFILES[6][method];if(!maxDigits)throw Error('Unknown method.');
  if(s.exchange==='across-zero'&&method==='addition')throw Error('Exchange across zero applies to subtraction.');
+ if(method.endsWith('division')&&s.numberType!=='whole'&&s.resultPrecision<s.decimalPlaces)throw Error('Choose result precision at least as large as operand precision.');
  const r=(lo,hi)=>lo+Math.min(hi-lo,Math.floor(rng()*(hi-lo+1))),max=10**maxDigits-1,min=10**(maxDigits-1);
  for(let attempt=0;attempt<2000;attempt++){
    let a=r(min,max),b;
    if(s.numberType!=='whole'||method.endsWith('division')&&s.resultMode!=='remainder'||method==='short-division'&&s.twoDigitShort){
      const div=method.endsWith('division'),mult=method.endsWith('multiplication'),p=s.decimalPlaces,dp=s.numberType==='mixed'?r(0,p):p;
      const operand=(n,places)=>places?String(n)+'.'+String(r(0,10**places-1)).padStart(places,'0'):String(n);
-     if(div||mult)b=method.startsWith('short-')?(div&&s.twoDigitShort?r(2,99):r(2,9)):r(10,99);else b=r(1,10**Math.min(s.secondDigits||maxDigits,7)-1);
+     if(div||mult)b=method.startsWith('short-')?(div&&s.twoDigitShort?r(2,99):r(2,9)):r(10,99);else {const d=Math.min(s.secondDigits||maxDigits,7);b=r(s.secondDigits?10**(d-1):1,10**d-1)}
      let aa=s.numberType==='whole'?String(a):operand(a,dp),bb=div||mult?String(b):s.numberType==='whole'?String(b):operand(b,s.numberType==='mixed'?r(0,p):p);
-     if(method==='subtraction'&&Number(aa)<Number(bb))[aa,bb]=[bb,aa];
+     if(method==='subtraction'&&Number(aa)<Number(bb)){if(s.operandDigits||s.secondDigits)continue;[aa,bb]=[bb,aa]}
      const mode=div?(s.numberType!=='whole'&&s.resultMode==='remainder'?'decimal':s.resultMode):undefined;
      try{const m=calculate(method,aa,bb,{...s,resultMode:mode});const ex=m.steps.filter(x=>x.type==='exchange'||x.type==='add-column'&&x.carry);if(['addition','subtraction'].includes(method)&&(s.exchange==='with'&&!ex.length||s.exchange==='without'&&ex.length||s.exchange==='across-zero'&&ex.length<2))continue;if(div&&mode==='remainder'&&(s.remainders==='exact'&&m.remainder||s.remainders==='with'&&!m.remainder))continue;return m}catch(e){continue}
    }
    if(method==='addition'||method==='subtraction'){
-     b=r(1,10**Math.min(s.secondDigits||maxDigits,7)-1);
-     if(method==='subtraction'&&b>a)[a,b]=[b,a];
+     {const d=Math.min(s.secondDigits||maxDigits,7);b=r(s.secondDigits?10**(d-1):1,10**d-1)}
+     if(method==='subtraction'&&b>a){if(s.operandDigits||s.secondDigits)continue;[a,b]=[b,a]}
      if(method==='subtraction'&&s.exchange==='across-zero'){a=r(1,Math.floor(max/100))*100+r(0,8);b=r(1,9);if(b<=a%10)continue}
      // Construct non-exchange examples instead of relying on rare random matches.
      if(s.exchange==='without'){
