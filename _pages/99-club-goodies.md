@@ -16,7 +16,7 @@ robots: "noindex,nofollow,noarchive"
   </article>
 </div>
 
-<link rel="stylesheet" href="/assets/99club/goodies.css?v=110&amp;build={{ site.github.build_revision | default: site.time | url_encode }}">
+<link rel="stylesheet" href="/assets/99club/goodies.css?v=111&amp;build={{ site.github.build_revision | default: site.time | url_encode }}">
 <link rel="stylesheet" href="/assets/99club/goodies-abacus.css?v=22&amp;build={{ site.github.build_revision | default: site.time | url_encode }}">
 <link rel="stylesheet" href="/assets/99club/goodies-number-mobile.css?v=1&amp;build={{ site.github.build_revision | default: site.time | url_encode }}">
 <script>window.TT99_GOODIES_BUILD = {{ site.github.build_revision | default: site.time | jsonify }};</script>
@@ -39,4 +39,4 @@ robots: "noindex,nofollow,noarchive"
 <script src="/assets/99club/goodies-function-machine.js?v=3&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
 <script src="/assets/99club/goodies-angles.js?v=2&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
 <script src="/assets/99club/goodies-app.js?v=16&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
-<script src="/assets/99club/goodies-board.js?v=60&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
+<script src="/assets/99club/goodies-board.js?v=61&amp;build={{ site.github.build_revision | default: site.time | url_encode }}" defer></script>
