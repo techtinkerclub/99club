@@ -1114,6 +1114,10 @@ async function run(){
     const chooseShape=doc.getElementById('ag-shape-view');chooseShape.value='rectangle';chooseShape.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
     doc.querySelector('[data-ag-action="diagonal"]').click();await tick();
     assert(cap().demo.showDiagonals&&doc.querySelector('.gd-ag-visual svg').textContent.includes('Equal diagonals'),'Rectangle explorer displays its diagonal relationship');
+    const shapeHeightBefore=cap().demo.shapeHeight||180;
+    doc.querySelector('[data-ag-action="shape-taller"]').click();await tick();
+    assert(cap().demo.shapeHeight>shapeHeightBefore&&doc.querySelector('.gd-ag-visual svg').textContent.includes('Equal diagonals'),'Rectangle changes proportions while retaining its properties');
+
     const regionSvg=doc.querySelector('.gd-ag-visual>svg'),regionOutline=regionSvg.querySelector('[data-ag-region-points]'),regionPoints=JSON.parse(regionOutline.getAttribute('data-ag-region-points'));
     assert(regionPoints.length===5&&regionSvg.querySelectorAll('[data-ag-point-label]').length===5,'Polygon vertices and diagonal intersection have names');
     doc.querySelector('[data-ag-polygon-shade]').click();
