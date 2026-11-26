@@ -67,7 +67,14 @@ function diagram(d,teacher=false,options={}){
  const path=(p,extra={})=>add('path',{d:p,fill:'none',stroke:teal,'stroke-width':3,...extra});
  const circle=(p,r,fill=teal)=>add('circle',{cx:p[0],cy:p[1],r,fill});
  const arc=(x,y,r,start,a,extra={})=>{if(a>=360){add('circle',{cx:x,cy:y,r,fill:'none',stroke:teal,'stroke-width':3,...extra});return}if(a<=0)return;const p=polar(x,y,r,start),e=polar(x,y,r,start+a);path('M '+p.join(' ')+' A '+r+' '+r+' 0 '+(a>180?1:0)+' 0 '+e.join(' '),extra)};
- const labelArc=(x,y,r,start,a,label)=>{if(a===90){const p=polar(x,y,r*.75,start),v=polar(x,y,r*.75,start+90),u=[p[0]+v[0]-x,p[1]+v[1]-y];path('M '+p.join(' ')+' L '+u.join(' ')+' L '+v.join(' '))}else arc(x,y,r,start,a);if(label!=null){const p=polar(x,y,r+30,start+a/2);text(p[0],p[1]+9,label,32,{'font-weight':'600'})}};
+ // Angle labels sit on their own bisector; neighbouring sectors must not
+ // form a single continuous arc. Keep right-angle squares conventional.
+ const labelArc=(x,y,r,start,a,label,{labelSize=24,labelRadius=r+25}={})=>{
+   const meta={'data-ag-angle-mark':'1','data-ag-radius':r,'data-ag-start':start,'data-ag-sweep':a,'stroke-width':2.5};
+   if(a===90){const p=polar(x,y,r*.75,start),v=polar(x,y,r*.75,start+90),u=[p[0]+v[0]-x,p[1]+v[1]-y];path('M '+p.join(' ')+' L '+u.join(' ')+' L '+v.join(' '),meta)}
+   else arc(x,y,r,start,a,meta);
+   if(label!=null){const p=polar(x,y,labelRadius,start+a/2);text(p[0],p[1]+labelSize*.32,label,labelSize,{'font-weight':'500','data-ag-angle-label':'1'})}
+ };
  const ray=(x,y,r,a,color=ink)=>line([x,y],polar(x,y,r,a),color);
  const arrow=(x,y,r,a,color=ink)=>{const p=polar(x,y,r,a),l=polar(p[0],p[1],16,a+150),rr=polar(p[0],p[1],16,a-150);line([x,y],p,color,5);line(p,l,color,5);line(p,rr,color,5)};
  const background=add('rect',{width:W,height:H,fill:'#fff'});
@@ -111,7 +118,19 @@ function diagram(d,teacher=false,options={}){
  if(mode==='facts'){
    if(type==='parallel'){const y1=130,y2=310,dx=90/Math.tan(a*D),p=[400+dx,y1],u=[400-dx,y2];line([95,y1],[705,y1]);line([95,y2],[705,y2]);line(polar(...p,90/Math.sin(a*D),a),polar(...u,90/Math.sin(a*D),a+180),teal);const alt=d.relation==='alternate';labelArc(...p,44,alt?180:0,a,a+'°');labelArc(...u,44,0,a,teacher?a+'°':'x');return svg}
    const values=d.angles||[a,180-a],x=400,y=220,r=165;let at=rot;const count=type==='opposite'?4:values.length;
-   for(let i=0;i<count;i++){ray(x,y,r,at);const v=values[i],missing=type==='opposite'?i===2:i===count-1;labelArc(x,y,70,at,v,missing&&!teacher&&!explore?'x':type==='opposite'&&i%2===1&&!teacher?null:v+'°');at+=v}
+   // Give adjacent sectors different radii, including the last/first
+   // pair around a point. Opposite sectors retain matching radii.
+   for(let i=0;i<count;i++){
+     ray(x,y,r,at);const v=values[i],missing=type==='opposite'?i===2:i===count-1;
+     const label=missing&&!teacher&&!explore?'x':type==='opposite'&&i%2===1&&!teacher?null:v+'°';
+     const radius=count===3?[49,70,91][i]:i%2===0?70:49;
+     // Narrow sectors need additional space for multi-digit labels.
+     const halfWidth=(String(label??'').length*24*.56)/2;
+     const halfHeight=12,angle=Math.min(v,360-v)*D/2;
+     const clearance=(halfWidth+halfHeight*.5+5)/Math.max(.2,Math.sin(angle));
+     const labelRadius=Math.min(145,Math.max(radius+24,clearance));
+     labelArc(x,y,radius,at,v,label,{labelSize:24,labelRadius});at+=v
+   }
    if(type==='straight'||explore&&values.reduce((s,v)=>s+v,0)===180)ray(x,y,r,at);circle([x,y],4,ink);return frame(195,20,410,400)
  }
  function polygon(points){add('polygon',{points:points.map(p=>p.join(',')).join(' '),fill:'#e9f4f0',stroke:ink,'stroke-width':4,'stroke-linejoin':'round'});}
