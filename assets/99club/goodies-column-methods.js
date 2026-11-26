@@ -8,14 +8,21 @@ const LABEL={addition:'Column addition',subtraction:'Column subtraction',multipl
 const IDS={addition:'column-addition',subtraction:'column-subtraction',multiplication:'written-multiplication',division:'written-division'};
 const EXCHANGES=[['any','Mixed'],['with','With exchanges'],['without','Without exchanges'],['across-zero','Across zero']];
 const digits=n=>String(n).split('').reverse().map(Number);
+const operandDigits=(m,k)=>m['operand'+k]||digits(m[k.toLowerCase()]);
+const precision=m=>Number(m.precision)||0;
+const decimalDivision=m=>m.method.endsWith('division')&&['decimal','rounded'].includes(m.resultMode);
+const shortPlace=i=>i<0?['t','h','th'][-i-1]||'10⁻'+(-i):['O','T','H','Th','TTh','HTh','M','TM','HM'][i]||'10^'+i;
+const operandText=(m,k)=>m[k+'Text']??String(m[k]);
+const divisionFirst=m=>{const a=m.inputDigits||String(m.a).split('').map(Number),last=(m.wholePlaces||a.length)-1;let prefix=0;for(let i=0;i<=last;i++){prefix=prefix*10+a[i];if(prefix>=m.b||i===last)return i}return last};
+const answerLabel=m=>decimalDivision(m)?m.answerText:m.method.endsWith('division')?m.answer+' r '+m.remainder:m.answerText;
 // Shared square grid geometry, used by every renderer and every input overlay.
 // Coordinates are in SVG user units, independent of display or print scale.
 function layout(model){
- const {a,b,method,width}=model,A=digits(a),B=digits(b),division=method.endsWith('division'),mult=method.endsWith('multiplication'),long=method.startsWith('long-'),cell=82,top=42;
- const cols=division?A.length:mult?A.length+B.length:width+(method==='addition'?1:0);
+ const {a,b,method,width}=model,A=operandDigits(model,'A'),B=operandDigits(model,'B'),division=method.endsWith('division'),mult=method.endsWith('multiplication'),long=method.startsWith('long-'),cell=82,top=42;
+ const cols=division?(model.inputDigits?.length||A.length):mult?A.length+B.length:width+(method==='addition'?1:0);
  const left=division?164:82,right=left+cols*cell;
  const rows=division?(long?2+2*cols+1:3):mult&&long?7:4;
- const bottom=top+rows*cell,W=right+(division?126:24),H=bottom+34;
+ const bottom=top+rows*cell,W=right+(division&&!decimalDivision(model)?126:24),H=bottom+(model.resultMode==='rounded'?76:34);
  const x=i=>division?left+(i+.5)*cell:right-(i+.5)*cell,y=row=>top+(row+.5)*cell;
  return {cols,cell,top,left,right,bottom,rows,W,H,x,y,baseline:(row,size=46)=>y(row)+size*.34};
 }
@@ -24,7 +31,7 @@ function gridLines(add,L){
  for(let i=0;i<=L.rows;i++)add('line',{x1:L.left,x2:L.right,y1:L.top+i*L.cell,y2:L.top+i*L.cell,stroke:'#d8e3e1','stroke-width':1,'data-wm-grid':'horizontal'});
 }
 function multiplicationDiagram(model,{step=0,grid=true,labels=true,work=false}={}){
- const {a,b,method,steps}=model,A=digits(a),B=digits(b),long=method==='long-multiplication',L=layout(model),{cols,cell,W,H,left,right,x,y,baseline}=L;
+ const {a,b,method,steps}=model,A=operandDigits(model,'A'),B=operandDigits(model,'B'),long=method==='long-multiplication',L=layout(model),{cols,cell,W,H,left,right,x,y,baseline}=L;
  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
  const attrs=(n,a)=>{Object.entries(a).forEach(([k,v])=>n.setAttribute(k,String(v)));return n};
  attrs(svg,{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':LABEL[method]+' working'});
@@ -35,9 +42,11 @@ function multiplicationDiagram(model,{step=0,grid=true,labels=true,work=false}={
  add('rect',{width:W,height:H,fill:'#fff'});
  const active=current?.column??current?.sumStep?.column;
  if(!work&&active!==undefined)add('rect',{x:x(active)-cell/2+2,y:40,width:cell-4,height:H-62,rx:7,fill:'#e7f4f0'});
- if(labels)for(let i=0;i<cols;i++)text(x(i),30,['O','T','H','Th','TTh','HTh','M'][i],22,{fill:'#526970'});
+ if(labels)for(let i=0;i<cols;i++)text(x(i),30,shortPlace(i-precision(model)),22,{fill:'#526970'});
  if(grid)gridLines(add,L);
  A.forEach((v,i)=>text(x(i),baseline(1),v,46,{'data-wm-operand':'a'}));B.forEach((v,i)=>text(x(i),baseline(2),v,46,{'data-wm-operand':'b'}));text(left-40,baseline(2,40),'×',40);line(L.top+3*cell,true);
+ const p=precision(model),dot=p?x(p)+cell/2:null;
+ if(p)text(dot,baseline(1),'.',40,{'data-wm-decimal':'operand'});
  const partials=[],carryRows=[];
  for(const s of seen){
    if(s.partial)partials[s.row]=s.partial;
@@ -55,12 +64,13 @@ function multiplicationDiagram(model,{step=0,grid=true,labels=true,work=false}={
    const sum=current?.type==='sum-products'?current.sumStep:null;
    if(sum?.carries)sum.carries.forEach((v,i)=>{if(v)text(x(i),baseline(5,28),v,28,{fill:'#915638','data-wm-sum-carry':i})});
 
-   if(sum?.result)sum.result.forEach((v,i)=>{if(v!=null)text(x(i),baseline(6),v,46,{fill:'#23675d','data-wm-result':i})});
+   if(sum?.result)(seen.length===steps.length&&p?model.result:sum.result).forEach((v,i)=>{if(v!=null)text(x(i),baseline(6),v,46,{fill:'#23675d','data-wm-result':i})});
  }
+ if(p){if(!long&&seen.length===steps.length&&model.result.length>(partials[0]?.length||0))for(let i=partials[0]?.length||0;i<model.result.length;i++)text(x(i),baseline(3),model.result[i],46,{fill:'#23675d','data-wm-result':i});text(dot,baseline(long?6:3),'.',40,{'data-wm-decimal':'answer'});text(W/2,H-10,'Multiply digits; place the decimal point in the product.',20,{fill:'#526970'})}
  return svg;
 }
 function divisionDiagram(model,{step=0,grid=true,labels=true,work=false}={}){
- const {a,b,method,steps}=model,long=method==='long-division',A=String(a).split(''),L=layout(model),{cols,cell,left,right,W,H,x,y,baseline}=L;
+ const {a,b,method,steps}=model,long=method==='long-division',A=model.inputDigits||String(a).split(''),L=layout(model),{cols,cell,left,right,W,H,x,y,baseline}=L;
  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
  const attrs=(n,a)=>{Object.entries(a).forEach(([k,v])=>n.setAttribute(k,String(v)));return n};
  attrs(svg,{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':LABEL[method]+' working'});
@@ -71,15 +81,15 @@ function divisionDiagram(model,{step=0,grid=true,labels=true,work=false}={}){
  const seen=steps.slice(0,Math.max(0,Math.min(steps.length,step))),current=seen.at(-1),complete=seen.length===steps.length;
  add('rect',{width:W,height:H,fill:'#fff'});
  if(!work&&current)add('rect',{x:x(current.index)-cell/2+2,y:42,width:cell-4,height:H-76,rx:6,fill:'#e7f4f0'});
- if(labels)for(let i=0;i<cols;i++)text(x(i),30,['O','T','H','Th'][cols-1-i],21,{fill:'#526970'});
+ if(labels)for(let i=0;i<cols;i++)text(x(i),30,shortPlace((model.wholePlaces||cols)-1-i),21,{fill:'#526970'});
  if(grid)gridLines(add,L);
  text(left-55,baseline(1,43),b,43,{'data-wm-divisor':'1'});
  add('path',{d:'M '+(left-8)+' '+(L.top+2*cell)+' L '+(left-8)+' '+(L.top+cell)+' L '+(right+5)+' '+(L.top+cell),fill:'none',stroke:'#24343b','stroke-width':3,'stroke-linejoin':'round'});
  A.forEach((n,i)=>text(x(i),baseline(1,43),n,43,{'data-wm-dividend':i}));
  // Initial quotient zeros may be omitted; interior zeros must stay visible.
- const first=seen.findIndex(s=>s.digit!==0);
+ const first=divisionFirst(model);if(decimalDivision(model)){const dot=x(model.wholePlaces-1)+cell/2;text(dot,baseline(1,43),'.',40,{'data-wm-decimal':'operand'});text(dot,baseline(0,43),'.',40,{'data-wm-decimal':'answer'})}
  for(const s of seen){
-   if((first>=0&&s.index>=first)||(complete&&s.index===cols-1))text(x(s.index),baseline(0,43),s.digit,43,{fill:'#23675d','data-wm-quotient':s.index});
+   if(s.index>=first)text(x(s.index),baseline(0,43),s.digit,43,{fill:'#23675d','data-wm-quotient':s.index});
  }
  if(!long){
    for(const s of seen)if(s.incoming)text(x(s.index)-25,L.top+cell+21,s.incoming,25,{fill:'#915638','data-wm-remainder-carry':s.index});
@@ -88,7 +98,7 @@ function divisionDiagram(model,{step=0,grid=true,labels=true,work=false}={}){
    // Every following row is aligned with the next dividend digit.
    let row=0;
    for(const s of seen){
-     if(s.index<(first<0?cols-1:first))continue;
+     if(s.index<first)continue;
      const yy=baseline(2+row*2,36);
      const number=(n,yy,attr)=>String(n).split('').reverse().forEach((v,i)=>text(x(s.index-i),yy,v,36,{[attr]:s.index,'data-wm-column':s.index-i}));
      if(row)number(s.dividend,yy-cell,'data-wm-partial-dividend');
@@ -99,16 +109,14 @@ function divisionDiagram(model,{step=0,grid=true,labels=true,work=false}={}){
      row++;
    }
  }
- text(W-85,baseline(0,28),'r',28,{fill:'#526970'});
- add('rect',{x:W-65,y:L.top+12,width:54,height:58,rx:4,fill:'none',stroke:'#a8bdb9','stroke-width':1.5});
- if(complete)text(W-38,baseline(0,30),model.remainder,30,{fill:'#23675d','data-wm-final-remainder':'1'});
+ if(!decimalDivision(model)){text(W-85,baseline(0,28),'r',28,{fill:'#526970'});add('rect',{x:W-65,y:L.top+12,width:54,height:58,rx:4,fill:'none',stroke:'#a8bdb9','stroke-width':1.5});if(complete)text(W-38,baseline(0,30),model.remainder,30,{fill:'#23675d','data-wm-final-remainder':'1'})}else if(complete&&model.resultMode==='rounded')text(W/2,H-39,'Rounded to '+model.resultPrecision+' d.p.: '+model.answerText,27,{fill:'#23675d','data-wm-rounded-answer':'1'});
  if(work)text(W/2,H-19,long?'Show each subtraction and bring down the next digit.':'Write the quotient and carried remainders.',20,{fill:'#526970'});
  return svg;
 }
 function diagram(model,{step=0,grid=true,labels=true,work=false}={}){
  if(model.method.endsWith('division'))return divisionDiagram(model,{step,grid,labels,work});
  if(model.method.endsWith('multiplication'))return multiplicationDiagram(model,{step,grid,labels,work});
- const {a,b,method,steps,width}=model,shown=Math.max(0,Math.min(steps.length,step)),current=steps[shown-1],A=digits(a),B=digits(b);
+ const {a,b,method,steps,width}=model,shown=Math.max(0,Math.min(steps.length,step)),current=steps[shown-1],A=operandDigits(model,'A'),B=operandDigits(model,'B');
  // Reserve a possible extra place before showing any result; the blank grid
  // must not reveal whether the addition actually produces a carry.
  const L=layout(model),{cols,cell,W,H,left,right,x,y,baseline}=L;
@@ -121,26 +129,27 @@ function diagram(model,{step=0,grid=true,labels=true,work=false}={}){
  add('rect',{width:W,height:H,fill:'#fff'});
  const active=current?.column??current?.to;
  if(!work&&active!==undefined)add('rect',{x:x(active)-cell/2+2,y:42,width:cell-4,height:L.bottom-L.top,rx:7,fill:'#e7f4f0'});
- const placeShort=['O','T','H','Th','TTh','HTh','M','TM'];
- if(labels)for(let i=0;i<cols;i++)text(x(i),30,placeShort[i],20,{fill:'#526970','data-wm-place':i});
+ const p=precision(model),dot=p?x(p)+cell/2:null;
+ if(labels)for(let i=0;i<cols;i++)text(x(i),30,shortPlace(i-p),20,{fill:'#526970','data-wm-place':i});
  if(grid)gridLines(add,L);
  text(left-40,baseline(2,40),method==='addition'?'+':'−',40);
  for(let i=0;i<A.length;i++){
    text(x(i),baseline(1),A[i],46,{'data-wm-operand':'a','data-wm-column':i});
-   if(method==='subtraction'&&current?.top&&current.top[i]!==A[i]){
+   if(method==='subtraction'&&current?.top&&(current.top[i]??0)!==A[i]){
      add('line',{x1:x(i)-20,x2:x(i)+20,y1:y(1),y2:y(1),stroke:'#915638','stroke-width':3});
-     text(x(i),baseline(0,32),current.top[i],32,{fill:'#915638','data-wm-exchange':i});
+     text(x(i),baseline(0,32),current.top[i]??0,32,{fill:'#915638','data-wm-exchange':i});
    }
  }
  for(let i=0;i<B.length;i++)text(x(i),baseline(2),B[i],46,{'data-wm-operand':'b','data-wm-column':i});
  add('line',{x1:left-5,x2:right+4,y1:L.top+3*cell,y2:L.top+3*cell,stroke:'#24343b','stroke-width':3});
  if(method==='addition'&&current?.carries)current.carries.forEach((v,i)=>{if(v)text(x(i),baseline(0,32),v,32,{fill:'#915638','data-wm-carry':i})});
- if(current?.result)current.result.forEach((v,i)=>{if(v!==undefined&&v!==null)text(x(i),baseline(3),v,46,{fill:'#23675d','data-wm-result':i})});
+ if(current?.result)(shown===steps.length&&p?model.result:current.result).forEach((v,i)=>{if(v!==undefined&&v!==null)text(x(i),baseline(3),v,46,{fill:'#23675d','data-wm-result':i})});
+ if(p)for(const row of [1,2,3])text(dot,baseline(row),'.',40,{'data-wm-decimal':row===3?'answer':'operand'});
  if(work)text(W/2,H-10,'Show exchanges above the digits.',21,{fill:'#526970'});
  return svg;
 }
 function printDiagram(model,options){const svg=diagram(model,options);svg.querySelectorAll('text[font-size]').forEach(n=>{if(Number(n.getAttribute('font-size'))<28)n.setAttribute('font-size','28')});return svg}
-function paper(model,teacher){return G.exportTools.composeWorksheetCardSvg(printDiagram(model,{step:teacher?model.steps.length:0,work:!teacher}),{title:LABEL[model.method],prompt:'Calculate '+model.a+' '+(model.method==='addition'?'+':model.method==='subtraction'?'−':model.method.endsWith('division')?'÷':'×')+' '+model.b+' using the '+((model.method.endsWith('multiplication')||model.method.endsWith('division'))?LABEL[model.method].toLowerCase():'column method')+'. Show your working.',responseMode:'none',paperStyle:'plain',answer:model.answerText,showAnswer:teacher,diagramMaxHeight:600,printDiagramScale:0.65})}
+function paper(model,teacher){return G.exportTools.composeWorksheetCardSvg(printDiagram(model,{step:teacher?model.steps.length:0,work:!teacher}),{title:LABEL[model.method],prompt:'Calculate '+operandText(model,'a')+' '+(model.method==='addition'?'+':model.method==='subtraction'?'−':model.method.endsWith('division')?'÷':'×')+' '+operandText(model,'b')+' using the '+((model.method.endsWith('multiplication')||model.method.endsWith('division'))?LABEL[model.method].toLowerCase():'column method')+'. Show your working.'+(model.resultMode==='rounded'?' Round to '+model.resultPrecision+' decimal places.':''),responseMode:'none',paperStyle:'plain',answer:model.answerText,showAnswer:teacher,diagramMaxHeight:600,printDiagramScale:0.65})}
 function generationTypes(method,settings={}){if(['multiplication','division'].includes(method))return M.available(settings).filter(v=>v.endsWith(method)).map(id=>({id,label:LABEL[id]}));return EXCHANGES.filter(([id])=>id!=='across-zero'||method==='subtraction').map(([id,label])=>({id,label}))}
 function generate(method,settings,type,rng=Math.random){if(['multiplication','division'].includes(method)){const ids=generationTypes(method,settings).map(t=>t.id),choice=type==='all'?ids[Math.floor(rng()*ids.length)]:type;return {...M.generate(choice,settings,rng),type:choice}}return {...M.generate(method,{...settings,exchange:type==='all'?'any':type},rng),type:type==='all'?'any':type}}
 for(const method of Object.keys(IDS)){
@@ -162,13 +171,12 @@ for(const method of Object.keys(IDS)){
    Slot positions depend only on operands and the chosen method. Expected
    values stay in JS; pupil SVG and HTML contain no solution attributes. */
 function practiceCells(model){
- const {a,b,method,width,steps}=model,slots=[],A=digits(a),B=digits(b);
+ const {a,b,method,width,steps}=model,slots=[],A=operandDigits(model,'A'),B=operandDigits(model,'B');
  const add=(id,x,y,w,h,label,expected,optional=false)=>slots.push({id,x,y,w,h,label,expected,optional});
  const short=method==='short-division',longDiv=method==='long-division';
  if(short||longDiv){
    const L=layout(model),{cols,cell,left,W,x,y}=L;
-   let first=0,prefix=0;const input=String(a).split('').map(Number);
-   while(first<cols-1){prefix=prefix*10+input[first];if(prefix>=b)break;first++}
+   const first=divisionFirst(model);
    for(const s of steps)add('q'+s.index,x(s.index),y(0),64,60,'Quotient digit '+(s.index+1),s.digit,s.index<first);
    if(short){
      for(const s of steps.slice(1))add('carry'+s.index,x(s.index)-25,L.top+cell+13,36,26,'Carried remainder '+(s.index+1),s.incoming,s.incoming===0);
@@ -185,27 +193,27 @@ function practiceCells(model){
      const last=steps.at(-1),ds=digits(last.remainder),row=cols-1-first,yy=y(3+row*2);
      for(let j=0;j<Math.min(cols,String(b).length);j++)add('last-remainder'+j,x(cols-1-j),yy,65,60,'Final remainder digit '+(j+1),ds[j]??0,j>=ds.length);
    }
-   add('remainder',W-38,y(0),50,60,'Remainder',model.remainder);
+   if(!decimalDivision(model))add('remainder',W-38,y(0),50,60,'Remainder',model.remainder);
    return slots;
  }
  const mult=method.endsWith('multiplication'),long=method==='long-multiplication',L=layout(model),{cols,cell,x,y}=L;
- const expected=digits(model.answer);
- for(let i=0;i<cols;i++)add('result'+i,x(i),y(long?6:3),72,64,'Result '+M.place(i),expected[i]??0,i>=expected.length);
+ const expected=model.result||digits(model.answer);
+ for(let i=0;i<cols;i++)add('result'+i,x(i),y(long?6:3),72,64,'Result '+M.place(i-precision(model)),expected[i]??0,i>=expected.length);
  if(method==='addition'){
-   for(let i=1;i<cols;i++){const n=model.carries[i]||0;add('carry'+i,x(i),y(0),58,54,'Carry into '+M.place(i),n,!n)}
+   for(let i=1;i<cols;i++){const n=model.carries[i]||0;add('carry'+i,x(i),y(0),58,54,'Carry into '+M.place(i-precision(model)),n,!n)}
  }else if(method==='subtraction'){
-   for(let i=0;i<A.length;i++){const n=model.exchanged[i];add('exchange'+i,x(i),y(0),58,54,'Regrouped '+M.place(i),n,n===A[i])}
+   for(let i=0;i<A.length;i++){const n=model.exchanged[i]??0;add('exchange'+i,x(i),y(0),58,54,'Regrouped '+M.place(i-precision(model)),n,n===A[i])}
  }else if(mult){
    if(long){
      for(let r=0;r<2;r++){
        const ds=digits(model.partialProducts[r]);
-       for(let i=0;i<cols;i++)add('partial'+r+'-'+i,x(i),y(3+r),72,64,'Partial product '+(r+1)+', '+M.place(i),ds[i]??0,i>=ds.length);
+       for(let i=0;i<cols;i++)add('partial'+r+'-'+i,x(i),y(3+r),72,64,'Partial product '+(r+1)+', '+M.place(i-precision(model)),ds[i]??0,i>=ds.length);
      }
      const s=steps.filter(s=>s.type==='sum-products').at(-1)?.sumStep;
-     for(let i=1;i<cols;i++){const n=s?.carries?.[i]||0;add('sum-carry'+i,x(i),y(5),58,54,'Addition carry into '+M.place(i),n,!n)}
+     for(let i=1;i<cols;i++){const n=s?.carries?.[i]||0;add('sum-carry'+i,x(i),y(5),58,54,'Addition carry into '+M.place(i-precision(model)),n,!n)}
    }else{
      const s=steps.filter(s=>s.carries).at(-1);
-     for(let i=1;i<cols;i++){const n=s?.carries?.[i]||0;add('carry'+i,x(i),y(0),58,54,'Carry into '+M.place(i),n,!n)}
+     for(let i=1;i<cols;i++){const n=s?.carries?.[i]||0;add('carry'+i,x(i),y(0),58,54,'Carry into '+M.place(i-precision(model)),n,!n)}
    }
  }
  return slots;
