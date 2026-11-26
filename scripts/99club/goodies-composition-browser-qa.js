@@ -921,6 +921,33 @@ async function run(){
     assert(frame.classList.contains('is-ready'),'Lesson object is ready: '+id);await tick(50);
     return {record,frame,doc:frame.querySelector('iframe').contentDocument};
   }
+  // Shared mode picker: audit every catalogue item, dispatch real native mode
+  // handlers, and preserve chart data when changing representations.
+  const modeAudit=TT99Goodies.modeControl.audit();
+  assert(modeAudit.length===27&&modeAudit.every(t=>t.multi||t.reason),'Every widget declares primary modes or a single-purpose reason');
+  for(const item of modeAudit){
+    const fixture=await addForSave(item.id),bridge=fixture.doc.defaultView.TT99Goodies.modeControl,picker=fixture.frame.querySelector('[data-board-mode-picker]'),select=picker.querySelector('select');
+    const before=bridge.read();
+    if(!item.multi){assert(picker.hidden&&!before,'Single-purpose widget does not add a mode control: '+item.id);api.remove(fixture.record.id);continue}
+    assert(before&&before.options.length>=2&&!picker.hidden,'Shared mode control appears for '+item.id);
+    const alternate=before.options.find(o=>o.value!==before.value&&!o.disabled);
+    assert(alternate,'Alternative mode available: '+item.id);
+    const snapshot=()=>fixture.doc.defaultView.TT99Goodies.lessonState.capture(item.id).model;
+    const original=item.id==='statistics-table'?JSON.stringify(snapshot().data.rows):null;
+    select.value=alternate.value;select.dispatchEvent(new Event('change',{bubbles:true}));await tick(100);
+    assert(bridge.read().value===alternate.value&&select.value===alternate.value,'Mode switch is applied to actual widget: '+item.id);
+    if(item.id==='statistics-table'){
+      assert(JSON.stringify(snapshot().data.rows)===original,'Changing statistical representation preserves dataset');
+      assert(fixture.doc.querySelector('.gd-mode-hint')?.textContent===bridge.read().hint,'Data representation has its contextual teaching hint');
+      fixture.frame.querySelector('[data-board-context]').click();await tick();
+      fixture.frame.querySelector('[data-board-mode-hint]').click();await tick();
+      assert(!fixture.doc.querySelector('.gd-mode-hint'),'Teaching hint can be hidden');
+      fixture.frame.querySelector('[data-board-context]').click();await tick();
+      fixture.frame.querySelector('[data-board-mode-hint]').click();await tick();
+      assert(fixture.doc.querySelector('.gd-mode-hint'),'Teaching hint can be restored');
+    }
+    api.remove(fixture.record.id);
+  }
   // Angles: live construction, exact assessment and capture of revealed work.
   {
     const id='angles',fixture=await addForSave(id),doc=fixture.doc,G=doc.defaultView.TT99Goodies,M=G.angles,cap=()=>G.lessonState.capture(id).model;
@@ -1169,7 +1196,7 @@ async function run(){
     panel.querySelector('[data-gd-native-random="all"]').click();await tick(100);
     assert(!visible(panel),'Specialist quick generation closes launcher: '+id);
     if(['column-addition','column-subtraction','written-multiplication','written-division','statistics-table','function-machine','angles'].includes(id)){
-      challengeButton.click();await tick();
+      fixture.frame.querySelector('[data-board-quick-actions] button[aria-label="Choose a challenge"]').click();await tick();
       const specific=panel.querySelector('.gd-launch-native-type:not(:disabled)');
       assert(specific,'New widget has a specific question in the quick launcher: '+id);
       specific.click();await tick(100);
