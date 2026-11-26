@@ -2370,3 +2370,13 @@ html:not(.gd-embed-page) #tt99-goodies-root #gd-controls .gd-mc-five{min-height:
 #tt99-goodies-root .gd-ag-guide-example{flex:1 1 260px;min-width:0;max-width:100%}
 #tt99-goodies-root .gd-ag-guide-example .gd-row{justify-content:center;align-items:center;gap:8px;flex-wrap:wrap}
 #tt99-goodies-root .gd-ag-guide-example .gd-btn{min-height:40px;font-size:13px}
+
+/* Measurement ruler: one SVG scale, consistent line weights and exact marker alignment. */
+#tt99-goodies-root .gd-ruler-scale-svg{position:absolute;left:0;bottom:0;width:100%!important;height:56px!important;max-width:none!important;max-height:none!important;display:block;margin:0!important;overflow:visible;pointer-events:none}
+#tt99-goodies-root .gd-ruler-scale-svg .gd-ruler-tick{position:static;width:auto;background:none}
+#tt99-goodies-root .gd-ruler-num{bottom:62px;font:500 11px/1 Arial,sans-serif;white-space:nowrap;pointer-events:none}
+#tt99-goodies-root .gd-ruler-unit{position:absolute;top:5px;right:7px;color:#4d686b;font:600 10px/1 Arial,sans-serif;pointer-events:none}
+#tt99-goodies-root .gd-ruler-marker{height:calc(100% + 18px);transform:translateX(-50%);margin-left:0}
+#tt99-goodies-root .gd-ruler-marker.is-interactive{margin-left:0}
+#tt99-goodies-root .gd-ruler-marker.is-interactive:after{height:100%}
+#tt99-goodies-root .gd-ruler-card-head{margin-bottom:5px}
