@@ -13,7 +13,7 @@ const FAMILIES=[
  ['straight','Missing angle on a straight line','facts',5],['point','Missing angle around a point','facts',5],['opposite','Vertically opposite angles','facts',6],
  ['rectangle','Angles in rectangles','polygon',5],['rectangle-length','Missing length in a rectangle','polygon',5],['isosceles-angle','Missing base angle in an isosceles triangle','polygon',6],['diagonal-equal','Equal diagonals in quadrilaterals','polygon',5],['diagonal-bisect','Diagonals that bisect each other','polygon',6],['diagonal-perpendicular','Perpendicular diagonals','polygon',6],['side-count','Count sides of a polygon','polygon',2],['parallel-count','Count pairs of parallel sides','polygon',3],['shape-family','Recognise inclusive shape families','polygon',5],['circle-part','Name a circle part','circle',6],['circle-diameter','Find diameter from radius','circle',6],['circle-radius','Find radius from diameter','circle',6],['triangle-type','Classify a triangle','polygon',4],['quad-type','Classify a quadrilateral','polygon',4],['regularity','Regular or irregular polygon','polygon',5],
  ['triangle','Missing angle in a triangle','polygon',6],['quadrilateral','Missing angle in a quadrilateral','polygon',6],['regular','Interior angle of a regular polygon','polygon',6],
- ['shape-build','Construct a triangle from dimensions and an angle','construct',6],['build-sss','Construct a triangle from three sides','construct',6],['build-equilateral','Construct an equilateral triangle','construct',5],['build-right','Construct a right-angled triangle','construct',5],['build-rectangle','Construct a rectangle','construct',5],['build-square','Construct a square','construct',4],
+ ['shape-build','Construct a triangle from dimensions and an angle','construct',6],['build-sss','Construct a triangle from three sides','construct',6],['build-equilateral','Construct an equilateral triangle','construct',5],['build-right','Construct a right-angled triangle','construct',5],['build-rectangle','Construct a rectangle','construct',5],['build-square','Construct a square','construct',4],['build-midpoint','Locate the midpoint of a segment','construct',4],['build-perpendicular','Construct a perpendicular segment','construct',5],['build-circle','Construct a circle of given radius','construct',6],['build-asa','Construct a triangle from two angles and a side','construct',6],['build-bisector','Construct a perpendicular bisector','construct',7],['build-rhombus','Construct a rhombus from a side and angle','construct',7],
  ['exterior','Exterior angle of a regular polygon','polygon',7],['circle-circumference','Find circumference using π','circle',7],['circle-area','Find circle area using π','circle',7],['parallel','Corresponding and alternate angles','facts',7],['co-interior','Co-interior angles','facts',7],['similar-side','Missing length in similar triangles','polygon',7],['pythagoras','Find a hypotenuse','polygon',7],['polygon-sum','Interior angle sum of a polygon','polygon',7]
 ];
 const rand=(rng,a,b)=>a+Math.floor(rng()*(b-a+1)),pick=(rng,a)=>a[rand(rng,0,a.length-1)];
@@ -102,6 +102,12 @@ function generate(s={},rng=Math.random){
    const l=type==='build-square'?6:rand(rng,3,5);
    return task({angle:90,length:l},'Construct '+(type==='build-square'?'a square':'a rectangle')+' ABCD with AB = 6 cm and BC = '+l+' cm. Draw all four sides.','AB = CD = 6 cm; BC = DA = '+l+' cm; four right angles','Draw perpendiculars at A and B on the same side of AB. Measure '+l+' cm along each to locate D and C. Join C and D. Reflection is valid.');
  }
+ if(type==='build-midpoint')return task({},'Mark the midpoint M of AB, where AB = 6 cm.','AM = MB = 3 cm','Measure 3 cm from A along AB. M must lie on AB, not merely be equidistant from its endpoints.');
+ if(type==='build-perpendicular'){const l=rand(rng,2,5);return task({length:l,angle:90},'Draw AC perpendicular to AB, with AC = '+l+' cm.','AC = '+l+' cm; angle BAC = 90°','Place the set square along AB at A. Mark C '+l+' cm along the perpendicular and join A to C.');}
+ if(type==='build-circle'){const l=pick(rng,[1,1.5,2]);return task({length:l},'Draw a circle with centre A and radius '+l+' cm.','Centre A; radius '+l+' cm','Set the compass opening to '+l+' cm, place its centre on A and draw the circle.');}
+ if(type==='build-asa'){const a=pick(rng,[30,45,60,75]),b=pick(rng,[30,45,60,75]),l=6*Math.sin(b*D)/Math.sin((180-a-b)*D);return task({angle:a,rightAngle:b,length:l},'Construct triangle ABC with AB = 6 cm, angle BAC = '+a+'° and angle ABC = '+b+'°. Draw both remaining sides.','Angles A = '+a+'°, B = '+b+'°, C = '+(180-a-b)+'°','Construct the two angles at A and B on the same side of AB. Mark their intersection C and join the sides. Reflections are valid.');}
+ if(type==='build-bisector')return task({},'Construct a perpendicular bisector of AB. Make it cross AB and extend on both sides.','Crosses AB at its midpoint, at 90°','Draw equal compass arcs centred at A and B with opening greater than 3 cm. Join their intersections; the line passes through the midpoint at 90°.');
+ if(type==='build-rhombus'){const a=pick(rng,[30,45,60,120]);return task({angle:a,length:6},'Construct rhombus ABCD with AB = 6 cm and angle BAD = '+a+'°. Draw all four sides.','All four sides = 6 cm; angle BAD = '+a+'°','Draw AD = 6 cm at '+a+'° to AB. Use equal compass openings from B and D to locate C opposite A. Join BC and CD.');}
  if(type==='shape-build'){const a=angle(30,120),l=rand(rng,3,7);return task({angle:a,length:l,baseLength:6},'Use geometry instruments to construct triangle ABC with AB = 6 cm, AC = '+l+' cm and angle BAC = '+a+'°. Draw both remaining sides.',a+'°; '+l+' cm','Accept the triangle with AB = 6 cm, AC = '+l+' cm and included angle '+a+'°. Rotation or reflection is also valid on paper.')}
  throw Error('Unknown family');
 }
@@ -293,11 +299,17 @@ function generate(s={},rng=Math.random){
   for(const c of circles){const len=labDist(p,c.o);if(len>1e-7)guides.push({p:labAt(c.o,labSub(p,c.o),c.r/len),kind:'On circle'})}
   return closest(guides)||{p,kind:''};
  }
- const labTypes=['shape-build','build-sss','build-equilateral','build-right','build-rectangle','build-square'];
+ const labTypes=['shape-build','build-sss','build-equilateral','build-right','build-rectangle','build-square','build-midpoint','build-perpendicular','build-circle','build-asa','build-bisector','build-rhombus'];
  function labCheck(s,target){
   const linked=(i,j)=>s.segments.some(l=>l.includes(i)&&l.includes(j)),near=(a,b,t=.15)=>Math.abs(a-b)<=t,len=(a,b)=>labDist(a,b)/LAB_UNIT;
+  const A=s.points[0],B=s.points[1];if(!A||!B)return {ready:false,correct:false};const midpoint=labAt(A,labSub(B,A),.5),base=labAngle(A,B),diff=(p,q)=>Math.min(mod(p-q),mod(q-p));
+  if(target.type==='build-circle'){const ready=s.circles.length>0;return {ready,correct:s.circles.some(c=>labDist(s.points[c.i],A)<=6&&near(c.r/LAB_UNIT,target.length))}}
   if(s.points.length<3)return {ready:false,correct:false};
-  const A=s.points[0],B=s.points[1];
+  if(target.type==='build-midpoint')return {ready:true,correct:s.points.slice(2).some(p=>labDist(p,midpoint)<=6)};
+  if(target.type==='build-perpendicular'){const candidates=s.points.slice(2).filter((p,i)=>linked(0,i+2));return {ready:candidates.length>0,correct:candidates.some(p=>near(len(A,p),target.length)&&near(diff(labAngle(A,p),base),90,2))}}
+  if(target.type==='build-bisector'){const candidates=s.segments.map(([i,j])=>[s.points[i],s.points[j]]);return {ready:candidates.length>0,correct:candidates.some(([p,q])=>{const v=labSub(q,p),u=labSub(midpoint,p),n=labDot(v,v);if(n<1)return false;const t=labDot(u,v)/n;return t>0&&t<1&&labDist(midpoint,labAt(p,v,t))<=6&&near(diff(labAngle(p,q),base),90,2)})}}
+  if(target.type==='build-rhombus'){let ready=false,correct=false;for(let c=2;c<s.points.length;c++)for(let d=2;d<s.points.length;d++){if(c===d||!linked(1,c)||!linked(c,d)||!linked(d,0))continue;ready=true;const C=s.points[c],E=s.points[d],expect=labAt(B,labSub(E,A),1);if(near(len(A,E),6)&&near(len(B,C),6)&&near(len(C,E),6)&&labDist(C,expect)<=6&&near(diff(labAngle(A,E),base),target.angle,2))correct=true}return {ready,correct}}
+  if(target.type==='build-asa'){const candidates=s.points.slice(2).filter((p,i)=>linked(0,i+2)&&linked(1,i+2));return {ready:candidates.length>0,correct:candidates.some(p=>near(diff(labAngle(A,p),base),target.angle,2)&&near(diff(labAngle(B,p),labAngle(B,A)),target.rightAngle,2))}}
   if(target.type==='build-rectangle'||target.type==='build-square'){
     let ready=false,correct=false;
     for(let c=2;c<s.points.length;c++)for(let d=2;d<s.points.length;d++){
@@ -312,6 +324,11 @@ function generate(s={},rng=Math.random){
  }
  function labSolution(d){
   const st=labEmpty(),A=st.points[0],B=st.points[1];
+  if(d.type==='build-midpoint'){st.points.push(labAt(A,labSub(B,A),.5));return st}
+  if(d.type==='build-circle'){st.circles.push({i:0,r:40*d.length,construction:false});return st}
+  if(d.type==='build-perpendicular'){st.points.push(polar(...A,40*d.length,90));st.segments.push([0,2]);return st}
+  if(d.type==='build-bisector'){const m=labAt(A,labSub(B,A),.5);st.points.push([m[0],m[1]-155],[m[0],m[1]+65],m);st.segments.push([2,3]);return st}
+  if(d.type==='build-rhombus'){const E=polar(...A,240,d.angle),C=labAt(B,labSub(E,A),1);st.points.push(C,E);st.segments.push([1,2],[2,3],[3,0]);return st}
   if(d.type==='build-rectangle'||d.type==='build-square'){st.points.push([B[0],B[1]-40*d.length],[A[0],A[1]-40*d.length]);st.segments.push([1,2],[2,3],[3,0]);return st}
   st.points.push(polar(...A,40*d.length,d.angle));st.segments.push([0,2],[1,2]);
   if(d.type==='build-sss'||d.type==='build-equilateral')st.circles.push({i:0,r:40*d.length},{i:1,r:40*d.rightLength});
@@ -471,8 +488,8 @@ function diagram(d,teacher=false,options={}){
    for(const [i,j] of st.segments){const edge=[i,j];if(!labVisible(st,'segments',edge))continue;const a=st.points[i],b=st.points[j],construction=labConstruction(st,'segments',edge);line(a,b,construction?orange:teal,construction?1.8:3,{'stroke-dasharray':construction?'5 4':''});if(!construction&&(!free||st.showMeasurements===true)){const others=st.points.filter(p=>p!==a&&p!==b),mid=labAt(a,labSub(b,a),.5),c=others.length?others.reduce((v,p)=>labAt(v,p,1/others.length),[0,0]):null;dimension(a,b,round(labDist(a,b)/40)+' cm',{size:14,outside:labOutside(st,i,j)||(c?labAt(mid,labSub(mid,c),1):null),lines:dimLines,bounds:[0,0,ww,hh]})}}
    labNotation(st,(d,k)=>path(d,{stroke:teal,'stroke-width':1.8,'stroke-dasharray':k==='symmetry'?'8 4 2 4':'','data-ag-notation':k}));
    labAngleGraphics(st,(d,p,v)=>{path(d,{stroke:teal,'stroke-width':1.8,'data-ag-angle-mark':'1'});text(p[0],p[1],v,12,{'data-ag-angle-value':'1','paint-order':'stroke',stroke:'#fff','stroke-width':3})});
-    st.points.forEach((p,i)=>{circle(p,3,ink);const pos=labLabel(st,i);text(pos[0],pos[1]+4,st.names[i],16,{'data-ag-point-label':st.names[i],'paint-order':'stroke',stroke:'#fff','stroke-width':3})});
-   if(!free&&d.type==='shape-build'||!free&&d.type==='build-right')labelArc(...st.points[0],38,0,d.angle,d.angle+'°');
+    st.points.forEach((p,i)=>{circle(p,3,ink);const pos=labLabel(st,i);text(pos[0],pos[1]+4,d.type==='build-midpoint'&&i===2?'M':d.type==='build-bisector'&&i===4?'M':st.names[i],16,{'data-ag-point-label':st.names[i],'paint-order':'stroke',stroke:'#fff','stroke-width':3})});
+   if(!free&&['shape-build','build-right','build-perpendicular','build-asa','build-rhombus'].includes(d.type))labelArc(...st.points[0],38,0,d.angle,d.angle+'°');
    if(!free&&['build-rectangle','build-square'].includes(d.type)){for(let i=0;i<4;i++){const p=st.points[i],u=st.points[(i+1)%4],v=st.points[(i+3)%4],a=polar(...p,16,labAngle(p,u)),b=polar(...p,16,labAngle(p,v));path('M '+a.join(' ')+' L '+[a[0]+b[0]-p[0],a[1]+b[1]-p[1]].join(' ')+' L '+b.join(' '),{stroke:teal,'stroke-width':2})}}
    const out=frame(0,0,ww,hh);if(free){out.setAttribute('data-ag-workspace-mm',ww/4+' '+hh/4);out.setAttribute('width',ww/4+'mm');out.setAttribute('height',hh/4+'mm')}return out;
  }
@@ -1060,7 +1077,7 @@ G.anglesTool=function(){
  }
  function demoData(){if(demo.mode==='facts'){const f=demo.fact||'straight',a=Math.max(10,Math.min(170,demo.angle));return {...demo,type:f,angles:f==='straight'?[a,180-a]:f==='point'?[a,90,270-a]:[a,180-a,a,180-a]}}if(demo.mode==='lines')return {...demo,angle:demo.relation==='Parallel'?0:demo.relation==='Perpendicular'?90:Math.max(10,Math.min(80,demo.angle)),relation:demo.relation||'Neither'};if(demo.mode==='loci')return {...demo,locusState:locusState||locusInitial()};if(demo.mode==='free-explore')return {...demo,labDrawing:motionLab||labEmpty(true)};if(demo.mode==='construct')return {...demo,angle:Math.max(10,Math.min(170,demo.angle)),labDrawing:freeLab||labEmpty(true)};return demo}
  function stage(){const host=q('#gd-stage'),draw=['draw','draw-reflex'].includes(task?.type),build=labTypes.includes(task?.type),construct=draw||build,d=task?geometryTask(task):demoData(),teacher=!task||task.revealed;
-  const pupil=construct?CK.pupilSpec('model',{hint:draw?'Drag the orange arm to the correct graduation, then check.':'Use the geometry tools to complete the shape, then check.',ready:()=>build?labCheck(lab||labEmpty(),task).ready:attempt!==null,check:()=>build?labCheck(lab||labEmpty(),task).correct:Math.abs(attempt-task.angle)<=1}):task?.choices?CK.pupilSpec('choice',{choices:task.choices,expected:task.answer}):CK.pupilSpec('number');
+  const pupil=construct?CK.pupilSpec('model',{hint:draw?'Drag the orange arm to the correct graduation, then check.':'Use the geometry tools to complete the construction, then check.',ready:()=>build?labCheck(lab||labEmpty(),task).ready:attempt!==null,check:()=>build?labCheck(lab||labEmpty(),task).correct:Math.abs(attempt-task.angle)<=1}):task?.choices?CK.pupilSpec('choice',{choices:task.choices,expected:task.answer}):CK.pupilSpec('number');
   host.innerHTML=(task?CK.bannerHtml(task,{pupil,actions:[{action:'another',label:'Another'},{action:'end',label:'Exit challenge'}]}):'')+'<div class="gd-ag-visual" style="width:100%;max-width:920px;margin:0 auto"></div>';
   const box=q('.gd-ag-visual',host);
   // Capture on the persistent wrapper: the SVG may be replaced on every
