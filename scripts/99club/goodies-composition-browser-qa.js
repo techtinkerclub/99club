@@ -1321,6 +1321,27 @@ async function run(){
         const shapeDraft=P.createDocument();shapeDraft.addCurrent(id,cap());assert(P.renderItem(shapeDraft.list()[0],false).querySelector('[data-ag-constrained-shape="'+kind+'"]'),'Constrained shape publishes as vector graphic: '+kind);
       }
     }
+    {
+      const model=win.TT99Goodies.angles,dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]),near=(a,b)=>Math.abs(a-b)<1e-6,dot=(a,b,c)=>(a[0]-b[0])*(c[0]-b[0])+(a[1]-b[1])*(c[1]-b[1]);
+      for(const kind of ['tangent','externalTangents','circleChord','circleIntersection','circleTangency','internalTangency']){
+        for(const factor of [0,.5,1]){
+          const params=model.locusParameters(kind,Object.fromEntries(model.LOCUS_PARAMETERS[kind].map(([id,,min,max])=>[id,min+(max-min)*factor]))),st=model.locusInitial(kind,params),r=40*params.radius;
+          for(let x=100;x<=700;x+=100)for(let y=50;y<=400;y+=50){
+            st.p=model.locusProject(kind,[x,y],st.p,params);const p=model.locusPoints(st);
+            assert(Object.values(p).every(q=>q.every(Number.isFinite)),'Circle dependency remains finite: '+kind);
+            if(kind==='tangent')assert(near(dist(p.O,p.P),r)&&near(dot(p.O,p.P,p.A),0)&&near(dot(p.O,p.P,p.B),0),'Tangent stays perpendicular at contact');
+            if(kind==='externalTangents')assert(near(dist(p.O,p.T),r)&&near(dist(p.O,p.U),r)&&near(dist(p.P,p.T),dist(p.P,p.U))&&near(dot(p.O,p.T,p.P),0)&&near(dot(p.O,p.U,p.P),0),'Both external tangents are exact and equal');
+            if(kind==='circleChord')assert(near(dist(p.O,p.A),r)&&near(dist(p.O,p.B),r)&&near(dist(p.A,p.P),dist(p.B,p.P))&&near(dot(p.O,p.P,p.B),0),'Chord bisected by perpendicular');
+            if(kind==='circleIntersection')assert([p.T,p.U].every(q=>near(dist(p.O,q),r)&&near(dist(p.P,q),40*params.secondRadius)),'Both circle intersections lie on both boundaries');
+            if(['circleTangency','internalTangency'].includes(kind))assert(near(dist(p.O,p.T),r)&&near(dist(p.P,p.T),40*params.secondRadius)&&near(dist(p.O,p.P),kind==='internalTangency'?r-40*params.secondRadius:r+40*params.secondRadius),'Circle tangency preserves exact contact');
+          }
+        }
+        preset.value=kind;preset.dispatchEvent(new win.Event('change',{bubbles:true}));
+        assert(doc.querySelector('[data-ag-constraint-circle]'),'Circle relationship renders: '+kind);
+        if(kind==='tangent'||kind==='externalTangents')assert(doc.querySelector('[data-ag-constraint-right-angle]'),'Tangent radius right-angle notation renders');
+        const circleDraft=P.createDocument();circleDraft.addCurrent(id,cap());assert(P.renderItem(circleDraft.list()[0],false).querySelector('[data-ag-constraint-circle]'),'Circle relationship publishes as vector graphic: '+kind);
+      }
+    }
     const polygonMode=doc.getElementById('ag-mode');polygonMode.value='polygon';polygonMode.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
     const chooseShape=doc.getElementById('ag-shape-view');chooseShape.value='rectangle';chooseShape.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
     doc.querySelector('[data-ag-action="diagonal"]').click();await tick();
