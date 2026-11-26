@@ -61,7 +61,7 @@ function protractorInstrument(parent,{x=0,y=0,radius:r=247,start=0,direction=1,f
  for(let i=0;i<=range;i++){
   if(full&&i===360)break;const a=start+direction*i;
   line(polar(r,a),polar(r-(i%10===0?19:i%5===0?12:6)*k,a),i%10===0?2.1:1.05);
-  if(i%10===0){const edge=!full&&(i===0||i===180),offset=edge?[15*k*Math.cos((start-direction*90)*Math.PI/180),-15*k*Math.sin((start-direction*90)*Math.PI/180)]:[0,0];text(polar(r-35*k,a),i,Math.max(10,19*k),'#285f57',offset);if(!full)text(polar(r-(edge?75:62)*k,a),180-i,Math.max(9,17*k),'#80551d',offset)}
+  if(i%10===0){const edge=!full&&(i===0||i===180),offset=edge?[15*k*Math.cos((start-direction*90)*Math.PI/180),-15*k*Math.sin((start-direction*90)*Math.PI/180)]:[0,0];text(polar(r-35*k,a),i,Math.max(10,19*k),'#285f57',offset);if(!full)text(polar(r-(edge?75:62)*k,a),180-i,Math.max(r>=200?17:9,17*k),'#80551d',offset)}
  }
  line(polar(r,start),polar(r,start+180),1.5);instrumentEl(g,'circle',{cx:x,cy:y,r:4,fill:'#668d86'});
  return g;
