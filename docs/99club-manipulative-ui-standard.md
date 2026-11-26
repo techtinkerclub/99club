@@ -57,3 +57,7 @@ Mode changes use the widget's existing model. Preserve compatible content (for e
 6. Bump affected asset cache versions, run relevant CI and check the deployed build. Automated tests do not replace a real classroom visual review.
 
 The composition QA checks that every catalogue item has a mode contract or a single-purpose decision. Add tests for new modes and update this audit when adding tools.
+
+### One reveal action
+
+Never display both a frame Reveal/Hide answer action and its native challenge button. The board delegates presentation to the frame while the selected object's proxy is available; keep the original native handler and intrinsic hidden/disabled state intact. Restore native presentation when the proxy is unavailable, the object is deselected, or the context menu hides the frame rail. Standalone tools retain their own control. Test Reveal/Hide round trips and context-menu fallback for every delegated widget.
