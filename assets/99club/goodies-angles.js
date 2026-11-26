@@ -228,10 +228,13 @@ function generate(s={},rng=Math.random){
  function labStyleKey(s,i,j){return [s.names[i],s.names[j]].sort().join(':')}
  function labConstruction(s,kind,obj){return kind==='segments'?s.segmentStyles?.[labStyleKey(s,...obj)]===true:obj.construction!==false}
  function labVisible(s,kind,obj){return s.showConstruction!==false||!labConstruction(s,kind,obj)}
- function labLabel(s,i){const p=s.points[i],neighbours=s.segments.filter(e=>e.includes(i)).map(e=>s.points[e[0]===i?e[1]:e[0]]);if(s.given!==false&&i<2)neighbours.push(s.points[1-i]);return vertexLabel(p,neighbours[0],neighbours[1],20)}
+ function labRayAngle(s,r){const j=s.names?.indexOf(r.relativeTo);return j>=0&&j!==r.i?mod(labAngle(s.points[r.i],s.points[j])+r.relativeAngle):r.angle}
+ function labMarks(s,i){return s.rays.filter(r=>r.i===i&&r.mark&&s.names.includes(r.mark.base)&&r.mark.base!==s.names[i]).map(r=>{const j=s.names.indexOf(r.mark.base),base=labAngle(s.points[i],s.points[j]),a=labRayAngle(s,r),sweep=mod(r.mark.hand*(a-base));return {r,j,start:r.mark.hand===1?base:a,sweep}}).filter(m=>m.sweep>.01&&m.sweep<359.99)}
+ function labAngleGraphics(s,emit){for(let i=0;i<s.points.length;i++){const o=s.points[i];labMarks(s,i).forEach((m,k)=>{const radius=30+k*24,value=Math.round(m.sweep)+'°',p=polar(...o,radius,m.start),q=polar(...o,radius,m.start+m.sweep),right=Math.abs(m.sweep-90)<.01;const d=right?'M '+p.join(' ')+' L '+[p[0]+q[0]-o[0],p[1]+q[1]-o[1]].join(' ')+' L '+q.join(' '):'M '+p.join(' ')+' A '+radius+' '+radius+' 0 '+(m.sweep>180?1:0)+' 0 '+q.join(' ');const label=angleLabelPlacement(o,radius,m.start,m.sweep,value,12,radius+15);emit(d,label.p,value,i,k)})}}
+ function labLabel(s,i){const p=s.points[i],marks=labMarks(s,i);if(marks.length){const arms=marks.flatMap(m=>[m.start,mod(m.start+m.sweep)]),valid=a=>marks.every(m=>mod(a-m.start)>m.sweep+5&&mod(a-m.start)<355);let best=null;for(let a=0;a<360;a+=5){if(!valid(a))continue;const score=Math.min(...arms.map(b=>Math.min(mod(a-b),mod(b-a))));if(!best||score>best.score)best={a,score}}if(best)return polar(...p,25,best.a);const m=marks[0];return angleVertexPlacement(p,m.start,m.sweep,s.names[i],13).p}const neighbours=s.segments.filter(e=>e.includes(i)).map(e=>s.points[e[0]===i?e[1]:e[0]]);if(s.given!==false&&i<2)neighbours.push(s.points[1-i]);return vertexLabel(p,neighbours[0],neighbours[1],20)}
 
  function labEmpty(free=false){return {given:!free,points:free?[]:[LAB_A.slice(),LAB_B.slice()],segments:[],rays:[],circles:[],regions:[]}}
- function labLines(s,exclude=-1){return [...(s.given!==false&&s.points.length>=2?[{a:s.points[0],b:s.points[1],ray:false}]:[]),...s.segments.filter(l=>!l.includes(exclude)).map(([i,j])=>({a:s.points[i],b:s.points[j],ray:false})),...s.rays.filter(r=>r.i!==exclude).map(r=>({a:s.points[r.i],b:labAt(s.points[r.i],[Math.cos(r.angle*D),-Math.sin(r.angle*D)],1),ray:true}))].map(l=>({...l,v:labSub(l.b,l.a)}))}
+ function labLines(s,exclude=-1){return [...(s.given!==false&&s.points.length>=2?[{a:s.points[0],b:s.points[1],ray:false}]:[]),...s.segments.filter(l=>!l.includes(exclude)).map(([i,j])=>({a:s.points[i],b:s.points[j],ray:false})),...s.rays.filter(r=>r.i!==exclude).map(r=>({a:s.points[r.i],b:labAt(s.points[r.i],[Math.cos(labRayAngle(s,r)*D),-Math.sin(labRayAngle(s,r)*D)],1),ray:true}))].map(l=>({...l,v:labSub(l.b,l.a)}))}
  function labWithin(l,t){return t>=-1e-7&&(l.ray||t<=1+1e-7)}
  function labSnap(s,p,tol=16,enabled=true,exclude=-1){
   if(!enabled)return {p,kind:''};
@@ -327,7 +330,7 @@ function generate(s={},rng=Math.random){
    else state.traceNames.push(name)
  }
 
-const model={labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,locusInitial,locusProject,locusPoints,traceParts,traceAdd,traceToggle,shapeGeometry,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
+const model={labMarks,labRayAngle,labLabel,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,locusInitial,locusProject,locusPoints,traceParts,traceAdd,traceToggle,shapeGeometry,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
 if(typeof module==='object'&&module.exports){module.exports=model;return}
 const G=root.TT99Goodies;if(!G)return;G.angles=model;
 const {q,qa,esc,field,btn,setPanels}=G,CK=G.challengeKit;
@@ -390,11 +393,11 @@ function diagram(d,teacher=false,options={}){
      add('circle',{cx:x,cy:y,r:r+25,fill:'transparent','data-ag-angle-target':'1',style:'cursor:grab;touch-action:none'});
    }
    const named=[[polar(x,y,r+5,start),'B',start],[polar(x,y,r+5,start+shown),'C',start+shown]];
-   const vertex=angleVertexPlacement([x,y],start,shown);
+   const vertex=options.interactive&&!full?{p:polar(x,y,24,start+225),box:labelBox(polar(x,y,24,start+225),0,'A',13),external:false}:angleVertexPlacement([x,y],start,shown);
    if(vertex.external){const v=labSub(vertex.p,[x,y]),len=Math.hypot(...v);line(labAt([x,y],v,6/len),labAt([x,y],v,1-13/len),'#829793',1,{'stroke-dasharray':'3 4','data-ag-point-leader':'A'})}
    text(vertex.p[0],vertex.p[1],'A',13,{'dominant-baseline':'central','data-ag-point-label':'A','paint-order':'stroke',stroke:'#fff','stroke-width':3});
    if(!options.measureWorkspace&&!full){const corners=labelCorners(vertex.box),lx=Math.min(minX,...corners.map(q=>q[0]-3)),ly=Math.min(minY,...corners.map(q=>q[1]-3)),rx=Math.max(maxX,...corners.map(q=>q[0]+3)),by=Math.max(maxY+targetH,...corners.map(q=>q[1]+3));frame(lx,ly,rx-lx,by-ly)}
-   for(const [p,name,dir] of named.slice(0,blank||shown===0?1:2)){const q=polar(...p,13,dir);text(q[0],q[1]+4,name,13,{'data-ag-point-label':name,'paint-order':'stroke',stroke:'#fff','stroke-width':3})}
+   for(const [p,name,dir] of named.slice(0,blank||shown===0?1:2)){const q=options.interactive&&name==='C'?polar(x,y,r+9+21,dir):polar(...p,13,dir);text(q[0],q[1],name,13,{'data-ag-point-label':name,'paint-order':'stroke',stroke:'#fff','stroke-width':3})}
    return svg
  }
  if(mode==='facts'){
@@ -434,11 +437,12 @@ function diagram(d,teacher=false,options={}){
    if(mode==='free-explore')for(const trail of Object.values(st.traces||{}))for(const points of traceParts(trail)){add('polyline',{points:points.map(p=>p.join(',')).join(' '),fill:'none',stroke:orange,'stroke-width':1.8,'stroke-dasharray':'4 3','data-ag-trace':'1'})}
    for(const region of st.regions){if(validRegion(st.points,region.ids))add('polygon',{points:region.ids.map(i=>st.points[i].join(',')).join(' '),fill:REGION_COLOURS[region.colour]||REGION_COLOURS[0],'fill-opacity':.28,stroke:'none','data-ag-region':'1'})}
    for(const c of st.circles)if(labVisible(st,'circles',c))add('circle',{cx:st.points[c.i][0],cy:st.points[c.i][1],r:c.r,fill:'none',stroke:labConstruction(st,'circles',c)?orange:teal,'stroke-width':labConstruction(st,'circles',c)?1.8:3,'stroke-dasharray':labConstruction(st,'circles',c)?'5 4':''});
-   for(const r of st.rays)if(labVisible(st,'rays',r))line(st.points[r.i],polar(...st.points[r.i],1200,r.angle),teal,labConstruction(st,'rays',r)?1.8:3,{'stroke-dasharray':labConstruction(st,'rays',r)?'7 5':''});
+   for(const r of st.rays)if(labVisible(st,'rays',r))line(st.points[r.i],polar(...st.points[r.i],1200,labRayAngle(st,r)),teal,labConstruction(st,'rays',r)?1.8:3,{'stroke-dasharray':labConstruction(st,'rays',r)?'7 5':''});
    const dimLines=labLines(st).map(l=>[l.a,l.ray?labAt(l.a,l.v,1200):l.b]);
    if(!free){line(st.points[0],st.points[1],ink,4);dimension(st.points[0],st.points[1],'6 cm',{outside:[460,360],lines:dimLines,bounds:[0,0,ww,hh]})}
    for(const [i,j] of st.segments){const edge=[i,j];if(!labVisible(st,'segments',edge))continue;const a=st.points[i],b=st.points[j],construction=labConstruction(st,'segments',edge);line(a,b,construction?orange:teal,construction?1.8:3,{'stroke-dasharray':construction?'5 4':''});if(!construction&&(!free||st.showMeasurements===true)){const others=st.points.filter(p=>p!==a&&p!==b),mid=labAt(a,labSub(b,a),.5),c=others.length?others.reduce((v,p)=>labAt(v,p,1/others.length),[0,0]):null;dimension(a,b,round(labDist(a,b)/40)+' cm',{size:14,outside:labOutside(st,i,j)||(c?labAt(mid,labSub(mid,c),1):null),lines:dimLines,bounds:[0,0,ww,hh]})}}
-   st.points.forEach((p,i)=>{circle(p,3,ink);const pos=labLabel(st,i);text(pos[0],pos[1]+4,st.names[i],16,{'data-ag-point-label':st.names[i],'paint-order':'stroke',stroke:'#fff','stroke-width':3})});
+   labAngleGraphics(st,(d,p,v)=>{path(d,{stroke:teal,'stroke-width':1.8,'data-ag-angle-mark':'1'});text(p[0],p[1],v,12,{'data-ag-angle-value':'1','paint-order':'stroke',stroke:'#fff','stroke-width':3})});
+    st.points.forEach((p,i)=>{circle(p,3,ink);const pos=labLabel(st,i);text(pos[0],pos[1]+4,st.names[i],16,{'data-ag-point-label':st.names[i],'paint-order':'stroke',stroke:'#fff','stroke-width':3})});
    if(!free&&d.type==='shape-build'||!free&&d.type==='build-right')labelArc(...st.points[0],38,0,d.angle,d.angle+'°');
    if(!free&&['build-rectangle','build-square'].includes(d.type)){for(let i=0;i<4;i++){const p=st.points[i],u=st.points[(i+1)%4],v=st.points[(i+3)%4],a=polar(...p,16,labAngle(p,u)),b=polar(...p,16,labAngle(p,v));path('M '+a.join(' ')+' L '+[a[0]+b[0]-p[0],a[1]+b[1]-p[1]].join(' ')+' L '+b.join(' '),{stroke:teal,'stroke-width':2})}}
    const out=frame(0,0,ww,hh);if(free){out.setAttribute('data-ag-workspace-mm',ww/4+' '+hh/4);out.setAttribute('width',ww/4+'mm');out.setAttribute('height',hh/4+'mm')}return out;
@@ -569,14 +573,14 @@ function paper(item,teacher){const d=geometry(item.data);if(item.kind==='diagram
 if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>types(s),title:item=>FAMILIES.find(t=>t[0]===item.data.type)?.[1]||'Angle illustration',recipe:(s,type)=>({...settings(s),type}),generate,signature:d=>JSON.stringify([d.type,d.angle,d.angles,d.rotation,d.clockwise,d.n,d.regular,d.shape,d.relation,d.length,d.rightLength,d.radius,d.part,d.width,d.height,d.missingSide,d.claim,d.baseLength,d.factor,d.hypotenuse]),capture:s=>[G.publishing.record(ID,s.task?'challenge':'diagram',s.task?{...geometry(s.task),revealed:false}:s.demo)],render:paper,answerSummary:item=>item.data.answer,answerGraphic:item=>diagram(geometry(item.data),true,{paper:true,scale:['measure','draw','draw-reflex','reflex'].includes(item.data.type)}),answerNote:item=>item.data.note||''});
 
  function mountLab(box,initial,onChange,{free=false,motion=false}={}){
-  let st=labNames(initial||labEmpty(free)),ws=workspaceState(st),ww=free?ws.w:800,hh=free?ws.h:400,corner=0,hand=1,selection=null,tool=motion?'move':'segment',first=null,aligned=null,hover=null,history=[],snap=true,measure=free&&st.showMeasurements===true,grid=free?ws.gridMm>0:true,moving=null,sheetPan=null,panMode=false,aperture=null,keepOpening=false,guideOpen=false,guideStep=0,regionPick=[],regionColour=0,regionStatus='';
+  let st=labNames(initial||labEmpty(free)),ws=workspaceState(st),ww=free?ws.w:800,hh=free?ws.h:400,corner=0,hand=1,selection=null,tool=motion?'move':'segment',first=null,aligned=null,reference=null,hover=null,history=[],snap=true,measure=free&&st.showMeasurements===true,grid=free?ws.gridMm>0:true,moving=null,sheetPan=null,panMode=false,aperture=null,keepOpening=false,guideOpen=false,guideStep=0,regionPick=[],regionColour=0,regionStatus='';
   const clone=x=>JSON.parse(JSON.stringify(x)),save=()=>history.push(clone(st)),N='http://www.w3.org/2000/svg';
   const toolbar=document.createElement('div');toolbar.className='gd-ag-lab-toolbar';toolbar.setAttribute('aria-label','Construction tools');
   const instruments=document.createElement('div');instruments.className='gd-ag-lab-tools';instruments.setAttribute('role','group');instruments.setAttribute('aria-label','Drawing instruments');
   const helpers=document.createElement('div');helpers.className='gd-ag-lab-helpers';
   const actions=document.createElement('div');actions.className='gd-ag-lab-actions';actions.setAttribute('role','group');actions.setAttribute('aria-label','Drawing actions');
   const options=document.createElement('div');options.className='gd-ag-lab-options';options.setAttribute('role','group');options.setAttribute('aria-label','Drawing assistance');
-  helpers.append(actions,options);toolbar.append(instruments,helpers);
+  helpers.append(actions,options);toolbar.append(instruments,helpers);helpers.style.justifyContent='space-between';helpers.style.columnGap='8px';
   const svg=document.createElementNS(N,'svg');svg.setAttribute('viewBox','0 0 '+ww+' '+hh);svg.classList.add('gd-ag-lab-canvas');svg.style.cssText='width:100%;max-height:'+(free?'820':'620')+'px;display:block;touch-action:none;user-select:none;background:white;border:1px solid #cbded8;border-radius:8px';
   const hint=document.createElement('p');hint.className='gd-help';hint.dataset.agPaperConstruction='1';hint.style.cssText='text-align:center;min-height:24px;margin:5px 0';
   const guide=document.createElement('section');guide.className='gd-ag-lab-guide';guide.hidden=true;
@@ -624,9 +628,9 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    const l=document.createElement('label');l.className='gd-ag-lab-option';const input=document.createElement('input');input.type='checkbox';input.dataset.agOption=id;input.checked=get();input.onchange=()=>{set(input.checked);paint()};const t=document.createElement('span');t.textContent=label;l.append(input,icon(id),t);options.append(l);
   }
   const styleBar=document.createElement('div');styleBar.className='gd-ag-lab-helpers';toolbar.append(styleBar);
-  const styleText=document.createElement('span');styleBar.append(styleText);
+  const styleText=document.createElement('span');styleText.style.font='600 12px Arial,sans-serif';styleBar.append(styleText);
   const styleButtons=[false,true].map(value=>{const b=document.createElement('button');b.type='button';b.className='gd-btn';b.textContent=value?'Construction':'Normal';b.dataset.agStyle=String(value);b.onclick=()=>{if(!selection)return;const {kind,index}=selection,obj=st[kind][index];if(!obj)return;save();if(kind==='segments'){st.segmentStyles||={};st.segmentStyles[labStyleKey(st,...obj)]=value}else obj.construction=value;changed()};styleBar.append(b);return b});
-  const visibility=document.createElement('label');const visibleInput=document.createElement('input');visibleInput.type='checkbox';visibleInput.checked=st.showConstruction!==false;visibleInput.dataset.agOption='construction';visibleInput.onchange=()=>{save();st.showConstruction=visibleInput.checked;selection=null;changed()};visibility.append(visibleInput,' Construction lines');if(free)options.append(visibility);
+  const visibility=document.createElement('label');visibility.className='gd-ag-lab-option';const visibleInput=document.createElement('input');visibleInput.type='checkbox';visibleInput.checked=st.showConstruction!==false;visibleInput.dataset.agOption='construction';visibleInput.onchange=()=>{save();st.showConstruction=visibleInput.checked;selection=null;changed()};const visibilityText=document.createElement('span');visibilityText.textContent='Construction lines';visibility.append(visibleInput,visibilityText);if(free)options.append(visibility);
   const regionBar=document.createElement('div');regionBar.className='gd-ag-lab-helpers';regionBar.hidden=true;toolbar.append(regionBar);
   const colourButtons=REGION_COLOURS.map((c,i)=>{const b=document.createElement('button');b.type='button';b.className='gd-btn';b.style.cssText='width:34px;min-height:36px;background:'+c+';border:2px solid white';b.setAttribute('aria-label',['Green','Blue','Gold','Purple','Coral'][i]+' region');b.onclick=()=>{regionColour=i;paint()};regionBar.append(b);return b});
   const regionAction=(label,fn)=>{const b=document.createElement('button');b.type='button';b.className='gd-btn';b.textContent=label;b.onclick=fn;regionBar.append(b);return b};
@@ -752,20 +756,21 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    for(const region of st.regions){if(validRegion(st.points,region.ids))el('polygon',{points:region.ids.map(i=>st.points[i].join(',')).join(' '),fill:REGION_COLOURS[region.colour]||REGION_COLOURS[0],'fill-opacity':.32,stroke:'none','data-ag-region':'1'})}
    if(tool==='shade'&&regionPick.length>=2)el('polygon',{points:regionPick.map(i=>st.points[i].join(',')).join(' '),fill:validRegion(st.points,regionPick)?REGION_COLOURS[regionColour]:'none','fill-opacity':.15,stroke:REGION_COLOURS[regionColour],'stroke-width':2,'stroke-dasharray':'5 4'});
    for(const [k,c] of st.circles.entries())if(labVisible(st,'circles',c)){const cons=labConstruction(st,'circles',c);circle(st.points[c.i],c.r,selection?.kind==='circles'&&selection.index===k?'#b45309':cons?'#a97830':'#285c52','none',cons?'5 4':'')}
-   for(const [k,r] of st.rays.entries())if(labVisible(st,'rays',r)){const cons=labConstruction(st,'rays',r);line(st.points[r.i],polar(...st.points[r.i],1200,r.angle),selection?.kind==='rays'&&selection.index===k?'#b45309':'#63978a',cons?1.8:3,cons?'7 5':'')}
+   for(const [k,r] of st.rays.entries())if(labVisible(st,'rays',r)){const cons=labConstruction(st,'rays',r);line(st.points[r.i],polar(...st.points[r.i],1200,labRayAngle(st,r)),selection?.kind==='rays'&&selection.index===k?'#b45309':'#63978a',cons?1.8:3,cons?'7 5':'')}
    if(st.given!==false&&st.points.length>=2){line(st.points[0],st.points[1],'#283f3a',4);dim(st.points[0],st.points[1],'6 cm','#325a50',[460,360])}
    for(const [k,edge] of st.segments.entries()){if(!labVisible(st,'segments',edge))continue;const [i,j]=edge,cons=labConstruction(st,'segments',edge),color=selection?.kind==='segments'&&selection.index===k?'#b45309':cons?'#a97830':'#285c52';if(cons)line(st.points[i],st.points[j],color,1.8,'5 4');else segment(st.points[i],st.points[j],color,labOutside(st,i,j))}
-   if(angleTool()&&first!==null&&aligned!==null)instrument(st.points[first],aligned);
+   labAngleGraphics(st,(d,p,v)=>{el('path',{d,fill:'none',stroke:'#287f6c','stroke-width':1.8,'data-ag-angle-mark':'1'});el('text',{x:p[0],y:p[1],fill:'#325a50','font-size':12,'text-anchor':'middle','dominant-baseline':'central','paint-order':'stroke',stroke:'#fff','stroke-width':3,'data-ag-angle-value':'1'},v)});
+    if(angleTool()&&first!==null&&aligned!==null)instrument(st.points[first],aligned);
    if(hover){const hit=magnetic(hover),p=hit.p;
     if(tool==='compass'&&keepOpening&&aperture!==null&&first===null){circle(p,aperture,'#b77b32');circle(p,4,'#b77b32','#fff')}
     if(first!==null){const a=st.points[first];
-     if(angleTool()&&aligned!==null){const v=selectedAngle(a,p);line(a,polar(...a,190,v),'#b77b32',3);if(measure){const sweep=mod(hand*(v-aligned)),value=Math.round(sweep)+'°';const q=angleLabelPlacement(a,38,aligned,hand*sweep,value,13,65);text(q.p,value,'#996221',q.size)}}
+     if(angleTool()&&aligned!==null){const v=selectedAngle(a,p);line(a,polar(...a,190,v),'#b77b32',3);{const sweep=mod(hand*(v-aligned)),value=Math.round(sweep)+'°';const q=angleLabelPlacement(a,38,aligned,hand*sweep,value,13,65);text(q.p,value,'#996221',q.size)}}
      else if(tool==='compass'){const r=labDist(a,p);if(r>1){circle(a,r,'#b77b32');line(a,p,'#b77b32',1.5);dim(a,p,'r = '+(r/LAB_UNIT).toFixed(1)+' cm','#996221',null,true)}}
      else if(tool==='segment'){const len=labDist(a,p);if(len>1){const cm=30;G.instruments.ruler(svg,{x:a[0],y:a[1],width:cm*40,length:cm,height:44,tickHeight:23,angle:labAngle(a,p),labelSize:11});line(a,p,'#b77b32',2,'5 4');if(measure)dim(a,p,(len/40).toFixed(1)+' cm','#996221',polar(...a,70,labAngle(a,p)+90),true)}}else if(tool==='ray'||angleTool())line(a,p,'#b77b32',2,'5 4');
     }
     if(hit.kind){circle(p,12,'#2e9982','#d5eee5');circle(p,3,'#2e9982','#2e9982');text([p[0],p[1]-18],hit.kind,'#287b69',12)}
    }
-   st.points.forEach((p,i)=>{if(motion&&st.traceNames?.includes(st.names[i]))circle(p,10,'#b56d2c','none');if(regionPick.includes(i))circle(p,11,REGION_COLOURS[regionColour],'none');circle(p,i===first?6:4,'white',st.given!==false&&i<2?'#28413d':'#287f6c');const pos=labLabel(st,i);text([pos[0],pos[1]+4],st.names[i],'#325a50',13)});
+   st.points.forEach((p,i)=>{if(motion&&st.traceNames?.includes(st.names[i]))circle(p,10,'#b56d2c','none');if(regionPick.includes(i))circle(p,11,REGION_COLOURS[regionColour],'none');circle(p,i===first?6:4,'white',st.given!==false&&i<2?'#28413d':'#287f6c');const pos=labLabel(st,i);el('text',{x:pos[0],y:pos[1],fill:'#325a50','font-size':13,'text-anchor':'middle','dominant-baseline':'central','paint-order':'stroke',stroke:'#fff','stroke-width':3,'data-ag-point-label':st.names[i]},st.names[i])});
    hint.textContent=panMode?'Drag to move around the sheet. Select an instrument to resume drawing.':tool==='move'?'Drag a vertex freely. Its connected geometry will follow.':tool==='trace'?'Tap a point to toggle tracing, then select Move.':tool==='select'?'Tap a line, ray or circle to edit its style.':tool==='shade'?(regionStatus||'Tap vertices in perimeter order. '+regionPick.map(i=>st.names[i]).join(' → ')+(regionPick.length>=3&&!validRegion(st.points,regionPick)?' · Invalid or crossing region.':'')):angleTool()?(first===null?'Tap a vertex to place the instrument.':aligned===null?'Tap along the reference edge to align the instrument.':'Choose a direction on the instrument to draw a ray.'):tool==='compass'?(keepOpening?'Radius: '+(aperture/LAB_UNIT).toFixed(1)+' cm · Tap a new centre to transfer the opening.':first===null?'Tap the centre of the circle.':hover?'Radius: '+(labDist(st.points[first],magnetic(hover).p)/LAB_UNIT).toFixed(1)+' cm · Release to draw.':'Touch and slide to set the radius.'):tool==='point'?'Tap a point or a highlighted intersection.':tool==='erase'?'Tap a drawn point, line or circle to erase.':first===null?'Tap the starting point.':'Touch, slide to refine, then release to place.';
    if(unplaced.length)hint.textContent+=' · Measurements in crowded areas: '+unplaced.join(', ');
    hint.textContent+=motion?' · Free exploration: no geometric constraints are applied.':' · Drawn marks are fixed. Use Undo or Erase to correct them.';
@@ -777,23 +782,23 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    place(p,e);
   });
   function place(p,e){
-   if(tool==='select'){const dist=(a,b,ray=false)=>{const v=labSub(b,a),t=labDot(labSub(p,a),v)/(labDot(v,v)||1);return labDist(p,labAt(a,v,Math.max(0,ray?t:Math.min(1,t))))};const hits=[];for(const [kind,items] of [['segments',st.segments],['rays',st.rays],['circles',st.circles]])items.forEach((obj,index)=>{if(!labVisible(st,kind,obj))return;const d=kind==='segments'?dist(st.points[obj[0]],st.points[obj[1]]):kind==='rays'?dist(st.points[obj.i],polar(...st.points[obj.i],1,obj.angle),true):Math.abs(labDist(p,st.points[obj.i])-obj.r);if(d<=tolerance())hits.push({kind,index,d})});selection=hits.sort((a,b)=>a.d-b.d)[0]||null;paint();return}
+   if(tool==='select'){const dist=(a,b,ray=false)=>{const v=labSub(b,a),t=labDot(labSub(p,a),v)/(labDot(v,v)||1);return labDist(p,labAt(a,v,Math.max(0,ray?t:Math.min(1,t))))};const hits=[];for(const [kind,items] of [['segments',st.segments],['rays',st.rays],['circles',st.circles]])items.forEach((obj,index)=>{if(!labVisible(st,kind,obj))return;const d=kind==='segments'?dist(st.points[obj[0]],st.points[obj[1]]):kind==='rays'?dist(st.points[obj.i],polar(...st.points[obj.i],1,labRayAngle(st,obj)),true):Math.abs(labDist(p,st.points[obj.i])-obj.r);if(d<=tolerance())hits.push({kind,index,d})});selection=hits.sort((a,b)=>a.d-b.d)[0]||null;paint();return}
    if(motion&&tool==='trace'){const i=nearest(p);if(i>=0){save();const name=st.names[i];traceToggle(st,name);changed()}return}
    if(motion&&tool==='move'){const i=nearest(p);if(i>=0){save();moving={i,id:e.pointerId};try{svg.setPointerCapture(e.pointerId)}catch(_){}}return}
    if(tool==='shade'){const i=nearest(p);if(i>=0){regionPick=regionPick.includes(i)?regionPick.filter(j=>j!==i):[...regionPick,i];regionStatus='';paint()}return}
    if(tool==='erase'){const i=nearest(p);if(i>=(st.given===false?0:2)){save();const removed=st.names[i];if(st.traces)delete st.traces[removed];if(st.traceNames)st.traceNames=st.traceNames.filter(n=>n!==removed);st.points.splice(i,1);st.names.splice(i,1);st.regions=st.regions.filter(r=>!r.ids.includes(i)).map(r=>({...r,ids:r.ids.map(j=>j>i?j-1:j)}));regionPick=[];st.segments=st.segments.filter(l=>!l.includes(i)).map(l=>l.map(j=>j>i?j-1:j));for(const k of ['rays','circles'])st[k]=st[k].filter(r=>r.i!==i).map(r=>({...r,i:r.i>i?r.i-1:r.i}));changed();return}
     const distanceTo=(a,b,ray=false)=>{const v=labSub(b,a),t=labDot(labSub(p,a),v)/(labDot(v,v)||1);return labDist(p,labAt(a,v,Math.max(0,ray?t:Math.min(1,t))))};
-    let k=st.segments.findIndex(([i,j])=>distanceTo(st.points[i],st.points[j])<tolerance());if(k>=0){save();st.segments.splice(k,1)}else{k=st.rays.findIndex(r=>distanceTo(st.points[r.i],polar(...st.points[r.i],1,r.angle),true)<tolerance());if(k>=0){save();st.rays.splice(k,1)}else{k=st.circles.findIndex(c=>Math.abs(labDist(p,st.points[c.i])-c.r)<tolerance());if(k>=0){save();st.circles.splice(k,1)}}}changed();return;
+    let k=st.segments.findIndex(([i,j])=>distanceTo(st.points[i],st.points[j])<tolerance());if(k>=0){save();st.segments.splice(k,1)}else{k=st.rays.findIndex(r=>distanceTo(st.points[r.i],polar(...st.points[r.i],1,labRayAngle(st,r)),true)<tolerance());if(k>=0){save();st.rays.splice(k,1)}else{k=st.circles.findIndex(c=>Math.abs(labDist(p,st.points[c.i])-c.r)<tolerance());if(k>=0){save();st.circles.splice(k,1)}}}changed();return;
    }
    if(tool==='point'){save();point(p);changed();return}
    if(tool==='compass'&&keepOpening&&aperture!==null){save();const i=point(p);if(!st.circles.some(c=>c.i===i&&Math.abs(c.r-aperture)<1e-7))st.circles.push({i,r:aperture});hover=null;changed();return}
    if(first===null){save();first=point(p);changed();return}
    const o=st.points[first];if(labDist(o,p)<8)return;
-   if(angleTool()&&aligned===null){const target=magnetic(p).p;aligned=labAngle(o,target);paint();return}
+   if(angleTool()&&aligned===null){const target=magnetic(p).p;reference=target.slice();aligned=labAngle(o,target);paint();return}
    save();
    if(tool==='segment'){const j=point(p);if(j!==first&&!st.segments.some(l=>l.includes(first)&&l.includes(j)))st.segments.push([first,j])}
    else if(tool==='compass'){const r=labDist(o,magnetic(p).p);if(r>0){aperture=r;st.circles.push({i:first,r})}}
-   else if(tool==='ray'||angleTool()){const a=angleTool()?selectedAngle(o,p):Math.round(labAngle(o,magnetic(p).p));st.rays.push({i:first,angle:a})}
+   else if(tool==='ray'||angleTool()){const a=angleTool()?selectedAngle(o,p):Math.round(labAngle(o,magnetic(p).p));if(angleTool()){const distance=reference?labDist(o,reference):120;const target=polar(...o,Math.max(8,distance),aligned),j=point(target);if(j!==first){const base=labAngle(o,st.points[j]),relative=mod(a-base),given=st.given!==false&&[first,j].sort().join(':')==='0:1';if(!given&&!st.segments.some(l=>l.includes(first)&&l.includes(j))){st.segments.push([first,j]);st.segmentStyles||={};st.segmentStyles[labStyleKey(st,first,j)]=true}st.rays.push({i:first,angle:a,relativeTo:st.names[j],relativeAngle:relative,mark:{base:st.names[j],hand}})}else st.rays.push({i:first,angle:a})}else st.rays.push({i:first,angle:a})}
    first=null;aligned=null;hover=null;changed();
   }
   svg.addEventListener('pointermove',e=>{if(panMode&&viewport){if(sheetPan?.id===e.pointerId){viewport.scrollLeft=sheetPan.left+sheetPan.x-e.clientX;viewport.scrollTop=sheetPan.top+sheetPan.y-e.clientY}return}const z=coords(e);if(!z)return;hover=[z.x,z.y];if(motion&&moving?.id===e.pointerId){const p=[Math.max(5,Math.min(ww-5,z.x)),Math.max(5,Math.min(hh-5,z.y))],i=moving.i,name=st.names[i],old=st.points[i];traceAdd(st,name,p,old);st.points[i]=p;changed()}else paint()});
@@ -851,7 +856,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
   const bar=document.createElement('div');bar.className='gd-ag-inspect-tools';
   const message=document.createElement('span');message.className='gd-ag-inspect-message';message.setAttribute('role','status');
   const layer=document.createElementNS(N,'g');layer.setAttribute('data-ag-measure-overlay','1');layer.setAttribute('pointer-events','none');svg.append(layer);
-  function button(id,label,fn){const b=document.createElement('button');b.type='button';b.className='gd-btn gd-ag-inspect-btn';b.dataset.agMeasure=id;b.textContent=label;b.onclick=fn;bar.append(b);return b}
+  function button(id,label,fn){const b=document.createElement('button');b.type='button';b.className='gd-btn gd-ag-inspect-btn';b.dataset.agMeasure=id;const glyphs={show:'<path d="M2 17a10 10 0 0 1 20 0Z M12 7v4M5 10l3 3M19 10l-3 3"/>',format:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3v3M12 18v3"/>',flip:'<path d="M3 18l7-12v12ZM21 18L14 6v12ZM12 3v2m0 4v2m0 4v2m0 4v1"/>',left:'<path d="M8 5L3 10l5 5M3 10h11a6 6 0 0 1 0 12"/>',right:'<path d="m16 5 5 5-5 5m5-5H10a6 6 0 0 0 0 12"/>',reset:'<path d="M3 11a9 9 0 1 1 2.5 7M3 4v7h7"/>'};b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+glyphs[id]+'</svg><span></span>';b.querySelector('span').textContent=label;b.onclick=fn;bar.append(b);return b}
   const show=button('show','Protractor',()=>{active=!active;if(!active){centre=null;aligned=false;preview=null}paint()});
   const format=button('format','360° protractor',()=>{full=!full;paint()});
   const flip=button('flip','Flip',()=>{direction*=-1;paint()});
@@ -868,7 +873,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    layer.replaceChildren();show.setAttribute('aria-pressed',String(active));show.classList.toggle('gd-btn--primary',active);
    for(const b of [format,flip,left,right,reset])b.hidden=!active;
    for(const b of [flip,left,right])b.disabled=!centre;
-   format.textContent=full?'180° protractor':'360° protractor';flip.hidden=!active||full;
+   format.querySelector('span').textContent=full?'180° protractor':'360° protractor';flip.hidden=!active||full;
    svg.style.touchAction=active?'none':'auto';
    message.textContent=!active?'Select the protractor when you are ready to measure.':!centre?'Tap the angle vertex to position the centre.':!aligned?'Tap or slide along an arm to align the zero line.':'Read the correct scale. Drag a graduation to realign, or drag the centre to reposition.';
    if(!active)return;

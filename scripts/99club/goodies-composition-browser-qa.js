@@ -1149,6 +1149,17 @@ async function run(){
     assert(!work.querySelector('[data-ag-dimension]'),'Free construction defaults to reading actual instruments');
     doc.querySelector('[data-ag-option="measure"]').click();await tick();
     const dim=work.querySelector('[data-ag-dimension]');assert(dim&&Math.abs(+dim.getAttribute('transform').slice(7).split(' ')[0]-Math.atan2(200,150)*180/Math.PI)<.1,'Length label rotates parallel to its sloping segment');
+    // A constructed angle must have permanent marks, even with measurements disabled.
+    doc.querySelector('[data-ag-option="measure"]').click();
+    doc.querySelector('[data-ag-tool="protractor"]').click();
+    lineTap([450,150]);lineTap([650,150]);lineTap([590,10]);
+    const angleDrawing=cap().demo.labDrawing;
+    assert(angleDrawing.segments.some(e=>e.includes(1)&&e.includes(3)),'Protractor creates the missing baseline');
+    assert(work.querySelector('[data-ag-angle-mark]')&&work.querySelector('[data-ag-angle-value]')?.textContent==='45°','Protractor retains 45 degree notation with measurements disabled');
+    const vertex=work.querySelector('[data-ag-point-label="B"]');
+    assert(vertex&&(+vertex.getAttribute('x')<450||+vertex.getAttribute('y')>150),'Vertex B label is outside the marked sector');
+    const anglePaper=P.createDocument();anglePaper.addCurrent(id,cap());assert(P.renderItem(anglePaper.list()[0],false).querySelector('[data-ag-angle-mark]'),'Publishing retains construction angle notation');
+    doc.querySelector('[data-ag-option="measure"]').click();
     const paperDimensions=P.createDocument();paperDimensions.addCurrent(id,cap());assert(P.renderItem(paperDimensions.list()[0],false).querySelector('[data-ag-dimension]'),'Published free construction retains its offset length labels');
     const sheetPaper=P.renderItem(paperDimensions.list()[0],false);assert(sheetPaper.getAttribute('data-ag-workspace-mm')==='297 210'&&!sheetPaper.querySelector('[data-ag-grid]'),'Publishing retains A4 landscape dimensions and plain paper');
 
@@ -1166,7 +1177,7 @@ async function run(){
     const moved=cap().demo.labDrawing;assert(Math.hypot(moved.points[1][0]-400,moved.points[1][1]-300)<.1&&moved.segments.length===1,'Free drag changes connected geometry without enforcing its length');
     assert(motion.querySelector('[data-ag-trace]'),'Free movement leaves selected point trace');
     const motionDraft=P.createDocument();motionDraft.addCurrent(id,cap());assert(P.renderItem(motionDraft.list()[0],false).querySelector('[data-ag-trace]'),'Free trace survives publication');
-    setGeometryMode('construct');await tick();assert(!doc.querySelector('[data-ag-tool="move"]')&&cap().demo.labDrawing.points.length===3,'Construction stays fixed and separate from the free scene');
+    setGeometryMode('construct');await tick();assert(!doc.querySelector('[data-ag-tool="move"]')&&cap().demo.labDrawing.points.length===angleDrawing.points.length,'Construction stays fixed and separate from the free scene');
     setGeometryMode('loci');await tick();
     const locusTap=(type,p)=>{const surface=doc.querySelector('[data-ag-locus-point="P"]').closest('svg').parentElement,v=new win.DOMPoint(...p).matrixTransform(surface.querySelector('svg').getScreenCTM());surface.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:33,pointerType:'touch',button:0,buttons:type==='pointerup'?0:1,clientX:v.x,clientY:v.y}))};
     doc.querySelector('[data-ag-locus-action="midpoint"]').click();
