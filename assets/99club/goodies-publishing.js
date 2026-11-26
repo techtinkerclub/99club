@@ -115,13 +115,14 @@ function isolateSvgIds(svg,prefix){
 function pupilPages(items,title){
  const W=PAGE_W,H=PAGE_H,pad=28,top=92,bottom=H-40,gap=14,layouts=[];let entries=[],y=top;
  for(const [index,item] of items.entries()){
-   const svg=G.exportTools.withDocumentCardLayout(()=>renderItem(item,false),{denseDiagram:DENSE_DIAGRAMS.has(item.tool)}),v=dimensions(svg),width=W-2*pad-32,scale=Math.min(width/v.w,(bottom-top-gap)/v.h),h=v.h*scale;
+   const svg=G.exportTools.withDocumentCardLayout(()=>renderItem(item,false),{denseDiagram:DENSE_DIAGRAMS.has(item.tool)}),v=dimensions(svg),width=W-2*pad-32,physical=Number(svg.getAttribute('data-gd-mm-per-unit')),scale=physical>0?physical*W/182:Math.min(width/v.w,(bottom-top-gap)/v.h),h=v.h*scale;
+   if(physical>0&&(v.w*scale>width+.01||h>bottom-top-gap))throw Error('A true-size measurement question does not fit the printable page.');
    if(entries.length&&y+h>bottom){layouts.push(entries);entries=[];y=top}
    entries.push({svg,v,scale,h,y,index});y+=h+gap;
  }
  if(entries.length)layouts.push(entries);
  return layouts.map((entries,page)=>{
-   const out=svgElement('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':'Worksheet','data-gd-paper-ready':'sheet','data-gd-paper-label':'99 Club Studio','data-worksheet-answer':'pupil'});
+   const out=svgElement('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 '+W+' '+H,role:'img','aria-label':'Worksheet','data-gd-paper-ready':'sheet','data-gd-paper-label':'99 Club Studio','data-worksheet-answer':'pupil',...(entries.some(e=>Number(e.svg.getAttribute('data-gd-mm-per-unit'))>0)?{'data-gd-mm-per-unit':182/W}:{})});
    const add=(name,attrs,text)=>out.appendChild(svgElement(name,attrs,text));
    add('rect',{width:W,height:H,fill:'#fff'});
    const heading=title;
