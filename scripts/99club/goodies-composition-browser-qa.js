@@ -485,7 +485,7 @@ async function run(){
 
   const abSettings=abFrame.querySelector('[data-board-settings]');abSettings.click();await tick();
   const abFloating=document.getElementById('gd-board-floating-controls');
-  assert(visible(abFloating)&&abFloating.querySelector('#ab-rows')&&abFloating.querySelector('#ab-kind'),'Abacus exposes place-value column and instrument settings on the whiteboard');
+  assert(visible(abFloating)&&abFloating.querySelector('#ab-rows')&&!abFloating.querySelector('#ab-kind')&&abFrame.querySelector('[data-board-mode-picker] select').options.length===8,'Abacus exposes place-value column and instrument settings on the whiteboard');
   const visibleAbWorkflows=[...abFloating.querySelectorAll('[data-ab-workflow]')].filter(visible).map(b=>b.textContent.trim());
   assert(visibleAbWorkflows.includes('Setup')&&visibleAbWorkflows.includes('Teach / play')&&!visibleAbWorkflows.includes('Challenge')&&!visibleAbWorkflows.includes('Export'),'Embedded Abacus keeps Setup / Teach controls and removes duplicate Challenge / Export tabs');
   abSettings.click();await tick();
@@ -921,13 +921,51 @@ async function run(){
     assert(frame.classList.contains('is-ready'),'Lesson object is ready: '+id);await tick(50);
     return {record,frame,doc:frame.querySelector('iframe').contentDocument};
   }
+  // Shared mode picker: audit every catalogue item, dispatch real native mode
+  // handlers, and preserve chart data when changing representations.
+  const modeAudit=TT99Goodies.modeControl.audit();
+  assert(modeAudit.length===27&&modeAudit.every(t=>t.multi||t.reason),'Every widget declares primary modes or a single-purpose reason');
+  for(const item of modeAudit){
+    const fixture=await addForSave(item.id),bridge=fixture.doc.defaultView.TT99Goodies.modeControl,picker=fixture.frame.querySelector('[data-board-mode-picker]'),select=picker.querySelector('select');
+    const before=bridge.read();
+    if(!item.multi){assert(picker.hidden&&!before,'Single-purpose widget does not add a mode control: '+item.id);api.remove(fixture.record.id);continue}
+    assert(before&&before.options.length>=2&&!picker.hidden,'Shared mode control appears for '+item.id);
+    const alternate=before.options.find(o=>o.value!==before.value&&!o.disabled);
+    assert(alternate,'Alternative mode available: '+item.id);
+    const snapshot=()=>fixture.doc.defaultView.TT99Goodies.lessonState.capture(item.id).model;
+    const original=item.id==='statistics-table'?JSON.stringify(snapshot().data.rows):null;
+    select.value=alternate.value;select.dispatchEvent(new Event('change',{bubbles:true}));await tick(100);
+    assert(bridge.read().value===alternate.value&&select.value===alternate.value,'Mode switch is applied to actual widget: '+item.id);
+    if(item.id==='statistics-table'){
+      assert(JSON.stringify(snapshot().data.rows)===original,'Changing statistical representation preserves dataset');
+      assert(fixture.doc.querySelector('.gd-mode-hint')?.textContent===bridge.read().hint,'Data representation has its contextual teaching hint');
+      fixture.frame.querySelector('[data-board-context]').click();await tick();
+      fixture.frame.querySelector('[data-board-mode-hint]').click();await tick();
+      assert(!fixture.doc.querySelector('.gd-mode-hint'),'Teaching hint can be hidden');
+      fixture.frame.querySelector('[data-board-context]').click();await tick();
+      fixture.frame.querySelector('[data-board-mode-hint]').click();await tick();
+      assert(fixture.doc.querySelector('.gd-mode-hint'),'Teaching hint can be restored');
+    }
+    api.remove(fixture.record.id);
+  }
   // Angles: live construction, exact assessment and capture of revealed work.
   {
     const id='angles',fixture=await addForSave(id),doc=fixture.doc,G=doc.defaultView.TT99Goodies,M=G.angles,cap=()=>G.lessonState.capture(id).model;
     assert(doc.querySelector('#gd-stage svg'),'Angle explorer mounts a geometry diagram');
+    const svg=()=>doc.querySelector('#gd-stage svg'),bounds=()=>svg().getAttribute('viewBox').split(' ').map(Number);
+    assert(bounds()[2]<=550&&bounds()[3]<=310,'Default semicircular protractor uses a tight content viewBox');
+    const scaleLabels=[...svg().querySelectorAll('text')].filter(el=>/^[0-9]+$/.test(el.textContent));
+    assert(scaleLabels.length>=19&&scaleLabels.every(el=>+el.getAttribute('font-size')>=17),'Protractor numerals remain legible on both scales');
+    const rot=doc.getElementById('ag-rotation');rot.value='90';rot.dispatchEvent(new doc.defaultView.Event('change',{bubbles:true}));await tick();
+    assert(bounds()[2]<=310&&bounds()[3]<=550,'Rotated semicircle frames its geometry without clipping');
+    const value=doc.getElementById('ag-value');value.value='270';value.dispatchEvent(new doc.defaultView.Event('change',{bubbles:true}));await tick();
+    assert(bounds()[2]===bounds()[3]&&bounds()[2]<=550,'Reflex protractor uses a compact full-circle frame');
+    
     doc.querySelector('[data-ag-workflow="challenge"]').click();await tick();
     doc.querySelector('[data-ag-challenge-mode="draw"]').click();await tick();
     const t=cap().task;assert(t.type==='draw'&&doc.querySelector('[data-gd-pupil-check]').disabled,'Construction starts unanswered');
+    assert(parseFloat(doc.defaultView.getComputedStyle(doc.querySelector('.gd-challenge-prompt')).fontSize)>=17,'Angle question uses classroom-sized text');
+    assert(doc.querySelector('[data-gd-pupil-check]').getBoundingClientRect().height>=40,'Angle check action has a generous touch target');
     for(let i=0;i<Math.floor(t.angle/10);i++)doc.querySelector('[data-ag-adjust="10"]').click();
     for(let i=0;i<t.angle%10;i++)doc.querySelector('[data-ag-adjust="1"]').click();
     doc.querySelector('[data-gd-pupil-check]').click();await tick();
@@ -1142,7 +1180,7 @@ async function run(){
     api.remove(fixture.record.id);
   }
   // Specialist native engines must work through the same full and quick panels.
-  for(const id of ['place-value','abacus','maths-canvas','sequences']){
+  for(const id of ['place-value','abacus','maths-canvas','sequences','column-addition','column-subtraction','written-multiplication','written-division','statistics-table','function-machine','angles']){
     const fixture=await addForSave(id),panel=document.getElementById('gd-board-floating-controls');
     fixture.frame.querySelector('[data-board-settings]').click();await tick();
     assert(panel.dataset.panelMode==='settings'&&panel.querySelector('.gd-board-controls-proxy'),'Specialist teaching settings open: '+id);
@@ -1157,6 +1195,13 @@ async function run(){
     panel.querySelector('[data-board-launcher-back]').click();await tick();
     panel.querySelector('[data-gd-native-random="all"]').click();await tick(100);
     assert(!visible(panel),'Specialist quick generation closes launcher: '+id);
+    if(['column-addition','column-subtraction','written-multiplication','written-division','statistics-table','function-machine','angles'].includes(id)){
+      fixture.frame.querySelector('[data-board-quick-actions] button[aria-label="Choose a challenge"]').click();await tick();
+      const specific=panel.querySelector('.gd-launch-native-type:not(:disabled)');
+      assert(specific,'New widget has a specific question in the quick launcher: '+id);
+      specific.click();await tick(100);
+      assert(!visible(panel),'Specific question closes quick launcher: '+id);
+    }
     api.remove(fixture.record.id);
   }
   {

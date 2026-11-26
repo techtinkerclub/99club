@@ -203,7 +203,7 @@ function composeChallengeCardSvg(diagram,{title='Challenge',prompt='',responseLa
     out.appendChild(svgEl('text',{x:pad,y:y+i*31,'font-family':'Arial,sans-serif','font-size':24,'font-weight':650,fill:'#334a52'},line));
   });
 
-  const nested=svgEl('svg',{x:pad,y:diagramY,width:diagramW,height:diagramH,viewBox:`0 0 ${sourceW} ${sourceH}`,preserveAspectRatio:'xMidYMid meet'});
+  const nested=svgEl('svg',{x:pad,y:diagramY,width:diagramW,height:diagramH,viewBox:`${vb?.x||0} ${vb?.y||0} ${sourceW} ${sourceH}`,preserveAspectRatio:'xMidYMid meet'});
   [...source.childNodes].forEach(node=>nested.appendChild(node.cloneNode(true)));
   out.appendChild(nested);
 
@@ -272,7 +272,7 @@ function composeWorksheetCardSvg(diagram,{title='Challenge',prompt='',responseLa
     'font-family':'Arial,sans-serif','font-size':promptSize,'font-weight':700,fill:'#263f47'
   },line)));
 
-  const nested=svgEl('svg',{x:fixedScale?pad+(contentW-sourceW*fixedScale)/2:pad,y:diagramY,width:fixedScale?sourceW*fixedScale:contentW,height:diagramH,viewBox:`0 0 ${sourceW} ${sourceH}`,preserveAspectRatio:'xMidYMid meet'});
+  const nested=svgEl('svg',{x:fixedScale?pad+(contentW-sourceW*fixedScale)/2:pad,y:diagramY,width:fixedScale?sourceW*fixedScale:contentW,height:diagramH,viewBox:`${vb?.x||0} ${vb?.y||0} ${sourceW} ${sourceH}`,preserveAspectRatio:'xMidYMid meet'});
   [...source.childNodes].forEach(node=>nested.appendChild(node.cloneNode(true)));
   out.appendChild(nested);
 
