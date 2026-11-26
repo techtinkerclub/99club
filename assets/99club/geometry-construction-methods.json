@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "status": "foundation",
   "methods": [
     {
@@ -25,7 +25,147 @@
         "AM = MB",
         "XY is perpendicular to AB"
       ],
-      "conditions": "The compass opening must be greater than half AB."
+      "conditions": "The compass opening must be greater than half AB.",
+      "graphics": {
+        "viewBox": [
+          0,
+          0,
+          400,
+          280
+        ],
+        "initial": [
+          {
+            "kind": "line",
+            "a": [
+              110,
+              140
+            ],
+            "b": [
+              290,
+              140
+            ],
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              110,
+              140
+            ],
+            "label": "A",
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              290,
+              140
+            ],
+            "label": "B",
+            "style": "given"
+          }
+        ],
+        "frames": [
+          {
+            "add": []
+          },
+          {
+            "add": [
+              {
+                "kind": "arc",
+                "center": [
+                  110,
+                  140
+                ],
+                "radius": 120,
+                "start": 16.409622109270863,
+                "end": 66.40962210927086,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  110,
+                  140
+                ],
+                "radius": 120,
+                "start": -66.40962210927086,
+                "end": -16.409622109270856,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  290,
+                  140
+                ],
+                "radius": 120,
+                "start": 113.59037789072914,
+                "end": 163.59037789072914,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  290,
+                  140
+                ],
+                "radius": 120,
+                "start": -163.59037789072914,
+                "end": -113.59037789072914,
+                "style": "construction"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "point",
+                "at": [
+                  200,
+                  219.37253933193773
+                ],
+                "label": "X",
+                "style": "given"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  200,
+                  60.627460668062284
+                ],
+                "label": "Y",
+                "style": "given"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  200,
+                  219.37253933193773
+                ],
+                "b": [
+                  200,
+                  60.627460668062284
+                ],
+                "style": "result"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "point",
+                "at": [
+                  200,
+                  140
+                ],
+                "label": "M",
+                "style": "result"
+              }
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "perpendicular-at-point",
@@ -48,7 +188,122 @@
       "checks": [
         "PX perpendicular to l"
       ],
-      "conditions": "Choose an arc intersection away from l."
+      "conditions": "Choose an arc intersection away from l.",
+      "graphics": {
+        "viewBox": [
+          0,
+          0,
+          400,
+          280
+        ],
+        "initial": [
+          {
+            "kind": "line",
+            "a": [
+              45,
+              170
+            ],
+            "b": [
+              355,
+              170
+            ],
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              200,
+              170
+            ],
+            "label": "P",
+            "style": "given"
+          }
+        ],
+        "frames": [
+          {
+            "add": [
+              {
+                "kind": "circle",
+                "center": [
+                  200,
+                  170
+                ],
+                "radius": 60,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  140,
+                  170
+                ],
+                "label": "A",
+                "style": "given"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  260,
+                  170
+                ],
+                "label": "B",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "arc",
+                "center": [
+                  140,
+                  170
+                ],
+                "radius": 88,
+                "start": -72.01411391980963,
+                "end": -22.014113919809624,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  260,
+                  170
+                ],
+                "radius": 88,
+                "start": -157.9858860801904,
+                "end": -107.9858860801904,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  200,
+                  105.62609224227567
+                ],
+                "label": "X",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  200,
+                  170
+                ],
+                "b": [
+                  200,
+                  105.62609224227567
+                ],
+                "style": "result"
+              }
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "perpendicular-from-point",
@@ -72,7 +327,156 @@
         "PF perpendicular to l",
         "F lies on l"
       ],
-      "conditions": "The first circle must cross the line twice."
+      "conditions": "The first circle must cross the line twice.",
+      "graphics": {
+        "viewBox": [
+          0,
+          0,
+          400,
+          280
+        ],
+        "initial": [
+          {
+            "kind": "line",
+            "a": [
+              40,
+              170
+            ],
+            "b": [
+              360,
+              170
+            ],
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              200,
+              70
+            ],
+            "label": "P",
+            "style": "given"
+          }
+        ],
+        "frames": [
+          {
+            "add": [
+              {
+                "kind": "circle",
+                "center": [
+                  200,
+                  70
+                ],
+                "radius": 128.06248474865697,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  120,
+                  170
+                ],
+                "label": "A",
+                "style": "given"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  280,
+                  170
+                ],
+                "label": "B",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "arc",
+                "center": [
+                  120,
+                  170
+                ],
+                "radius": 100,
+                "start": 11.86989764584402,
+                "end": 61.86989764584402,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  120,
+                  170
+                ],
+                "radius": 100,
+                "start": -61.86989764584402,
+                "end": -11.86989764584402,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  280,
+                  170
+                ],
+                "radius": 100,
+                "start": 118.13010235415598,
+                "end": 168.13010235415598,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  280,
+                  170
+                ],
+                "radius": 100,
+                "start": -168.13010235415598,
+                "end": -118.13010235415598,
+                "style": "construction"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  200,
+                  230
+                ],
+                "b": [
+                  200,
+                  110
+                ],
+                "style": "construction"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "point",
+                "at": [
+                  200,
+                  170
+                ],
+                "label": "F",
+                "style": "given"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  200,
+                  70
+                ],
+                "b": [
+                  200,
+                  170
+                ],
+                "style": "result"
+              }
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "angle-bisector",
@@ -94,7 +498,154 @@
       "checks": [
         "Angle AOZ equals angle ZOB"
       ],
-      "conditions": "Use the intersection within the intended angle; the other direction bisects the opposite angle."
+      "conditions": "Use the intersection within the intended angle; the other direction bisects the opposite angle.",
+      "graphics": {
+        "viewBox": [
+          0,
+          0,
+          400,
+          280
+        ],
+        "initial": [
+          {
+            "kind": "line",
+            "a": [
+              65,
+              190
+            ],
+            "b": [
+              340,
+              190
+            ],
+            "style": "given"
+          },
+          {
+            "kind": "line",
+            "a": [
+              65,
+              190
+            ],
+            "b": [
+              185.45105163371971,
+              17.97807069931173
+            ],
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              65,
+              190
+            ],
+            "label": "O",
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              340,
+              190
+            ],
+            "label": "A",
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              185.45105163371971,
+              17.97807069931173
+            ],
+            "label": "B",
+            "style": "given"
+          }
+        ],
+        "frames": [
+          {
+            "add": [
+              {
+                "kind": "arc",
+                "center": [
+                  65,
+                  190
+                ],
+                "radius": 100,
+                "start": -57.5,
+                "end": 2.5,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  165,
+                  190
+                ],
+                "label": "X",
+                "style": "given"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  122.35764363510461,
+                  108.08479557110083
+                ],
+                "label": "Y",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "arc",
+                "center": [
+                  165,
+                  190
+                ],
+                "radius": 90,
+                "start": -83.36747110476199,
+                "end": -33.367471104762,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  122.35764363510461,
+                  108.08479557110083
+                ],
+                "radius": 90,
+                "start": -21.632528895238025,
+                "end": 28.367471104761975,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  212.2022440034345,
+                  113.37136200453361
+                ],
+                "label": "Z",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  65,
+                  190
+                ],
+                "b": [
+                  212.2022440034345,
+                  113.37136200453361
+                ],
+                "style": "result"
+              }
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "copy-angle",
@@ -118,7 +669,197 @@
       "checks": [
         "Angle QPS equals angle AOB"
       ],
-      "conditions": "Choose the intersection on the desired side of PQ."
+      "conditions": "Choose the intersection on the desired side of PQ.",
+      "graphics": {
+        "viewBox": [
+          0,
+          0,
+          400,
+          280
+        ],
+        "initial": [
+          {
+            "kind": "line",
+            "a": [
+              35,
+              115
+            ],
+            "b": [
+              175,
+              115
+            ],
+            "style": "given"
+          },
+          {
+            "kind": "line",
+            "a": [
+              35,
+              115
+            ],
+            "b": [
+              100.96129018037031,
+              20.79751490676594
+            ],
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              35,
+              115
+            ],
+            "label": "O",
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              175,
+              115
+            ],
+            "label": "A",
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              100.96129018037031,
+              20.79751490676594
+            ],
+            "label": "B",
+            "style": "given"
+          },
+          {
+            "kind": "line",
+            "a": [
+              205,
+              235
+            ],
+            "b": [
+              370,
+              235
+            ],
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              205,
+              235
+            ],
+            "label": "P",
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              370,
+              235
+            ],
+            "label": "Q",
+            "style": "given"
+          }
+        ],
+        "frames": [
+          {
+            "add": [
+              {
+                "kind": "arc",
+                "center": [
+                  35,
+                  115
+                ],
+                "radius": 65,
+                "start": -59.49999999999999,
+                "end": 4.500000000000007,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  100,
+                  115
+                ],
+                "label": "X",
+                "style": "given"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  72.28246836281801,
+                  61.755117121215534
+                ],
+                "label": "Y",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "arc",
+                "center": [
+                  205,
+                  235
+                ],
+                "radius": 65,
+                "start": -67.5,
+                "end": 12.5,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  270,
+                  235
+                ],
+                "label": "R",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "arc",
+                "center": [
+                  270,
+                  235
+                ],
+                "radius": 60.0273197205544,
+                "start": -142.5,
+                "end": -92.5,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  242.282468362818,
+                  181.75511712121553
+                ],
+                "label": "S",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  205,
+                  235
+                ],
+                "b": [
+                  242.282468362818,
+                  181.75511712121553
+                ],
+                "style": "result"
+              }
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "parallel-through-point",
@@ -141,7 +882,81 @@
         "New line passes through P",
         "New line parallel to l"
       ],
-      "conditions": "The first perpendicular is a construction line."
+      "conditions": "The first perpendicular is a construction line.",
+      "graphics": {
+        "viewBox": [
+          0,
+          0,
+          400,
+          280
+        ],
+        "initial": [
+          {
+            "kind": "line",
+            "a": [
+              40,
+              205
+            ],
+            "b": [
+              360,
+              205
+            ],
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              200,
+              85
+            ],
+            "label": "P",
+            "style": "given"
+          }
+        ],
+        "frames": [
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  200,
+                  30
+                ],
+                "b": [
+                  200,
+                  245
+                ],
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  200,
+                  205
+                ],
+                "label": "F",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  40,
+                  85
+                ],
+                "b": [
+                  360,
+                  85
+                ],
+                "style": "result"
+              }
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "triangle-sss",
@@ -169,7 +984,119 @@
         "AC = b",
         "BC = a"
       ],
-      "conditions": "The lengths must satisfy the strict triangle inequality. Reflections are valid."
+      "conditions": "The lengths must satisfy the strict triangle inequality. Reflections are valid.",
+      "graphics": {
+        "viewBox": [
+          0,
+          0,
+          400,
+          280
+        ],
+        "initial": [],
+        "frames": [
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  100,
+                  200
+                ],
+                "b": [
+                  300,
+                  200
+                ],
+                "style": "given"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  100,
+                  200
+                ],
+                "label": "A",
+                "style": "given"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  300,
+                  200
+                ],
+                "label": "B",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "arc",
+                "center": [
+                  100,
+                  200
+                ],
+                "radius": 156.92354826475216,
+                "start": -96.34933204294714,
+                "end": -22.349332042947132,
+                "style": "construction"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "arc",
+                "center": [
+                  300,
+                  200
+                ],
+                "radius": 180.62391868188442,
+                "start": -168.6335393365702,
+                "end": -94.63353933657021,
+                "style": "construction"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "point",
+                "at": [
+                  180,
+                  65
+                ],
+                "label": "C",
+                "style": "given"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  100,
+                  200
+                ],
+                "b": [
+                  180,
+                  65
+                ],
+                "style": "result"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  300,
+                  200
+                ],
+                "b": [
+                  180,
+                  65
+                ],
+                "style": "result"
+              }
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "triangle-asa",
@@ -195,7 +1122,121 @@
       "checks": [
         "Two given angles and AB match"
       ],
-      "conditions": "Both angles must be positive and sum to less than 180 degrees. Reflections are valid."
+      "conditions": "Both angles must be positive and sum to less than 180 degrees. Reflections are valid.",
+      "graphics": {
+        "viewBox": [
+          0,
+          0,
+          400,
+          280
+        ],
+        "initial": [],
+        "frames": [
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  95,
+                  215
+                ],
+                "b": [
+                  305,
+                  215
+                ],
+                "style": "given"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  95,
+                  215
+                ],
+                "label": "A",
+                "style": "given"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  305,
+                  215
+                ],
+                "label": "B",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  95,
+                  215
+                ],
+                "b": [
+                  196.65989542502552,
+                  54.48437564469657
+                ],
+                "style": "construction"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  305,
+                  215
+                ],
+                "b": [
+                  177.22937583200152,
+                  48.342664128697635
+                ],
+                "style": "construction"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "point",
+                "at": [
+                  190,
+                  65
+                ],
+                "label": "C",
+                "style": "given"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  95,
+                  215
+                ],
+                "b": [
+                  190,
+                  65
+                ],
+                "style": "result"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  305,
+                  215
+                ],
+                "b": [
+                  190,
+                  65
+                ],
+                "style": "result"
+              }
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "circle-centre",
@@ -218,7 +1259,128 @@
       "checks": [
         "OA = OB = OC"
       ],
-      "conditions": "Use well-separated points to avoid poorly conditioned intersections."
+      "conditions": "Use well-separated points to avoid poorly conditioned intersections.",
+      "graphics": {
+        "viewBox": [
+          0,
+          0,
+          400,
+          280
+        ],
+        "initial": [
+          {
+            "kind": "circle",
+            "center": [
+              200,
+              140
+            ],
+            "radius": 95,
+            "style": "given"
+          }
+        ],
+        "frames": [
+          {
+            "add": [
+              {
+                "kind": "point",
+                "at": [
+                  113.90076023151826,
+                  99.85126513463355
+                ],
+                "label": "A",
+                "style": "given"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  277.81944420745424,
+                  85.51023854665063
+                ],
+                "label": "B",
+                "style": "given"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  224.58780928473948,
+                  231.7629534974615
+                ],
+                "label": "C",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  113.90076023151826,
+                  99.85126513463355
+                ],
+                "b": [
+                  277.81944420745424,
+                  85.51023854665063
+                ],
+                "style": "construction"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  277.81944420745424,
+                  85.51023854665063
+                ],
+                "b": [
+                  224.58780928473948,
+                  231.7629534974615
+                ],
+                "style": "construction"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  195.86010221948624,
+                  92.68075184064209
+                ],
+                "b": [
+                  210.02291041598068,
+                  254.56239028055074
+                ],
+                "style": "construction"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  251.20362674609686,
+                  158.63659602205607
+                ],
+                "b": [
+                  91.93534860962055,
+                  100.66768351754808
+                ],
+                "style": "construction"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "point",
+                "at": [
+                  200,
+                  140
+                ],
+                "label": "O",
+                "style": "result"
+              }
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "tangent-at-point",
@@ -241,7 +1403,78 @@
         "T lies on circle",
         "Tangent perpendicular to OT"
       ],
-      "conditions": "There is exactly one tangent at T."
+      "conditions": "There is exactly one tangent at T.",
+      "graphics": {
+        "viewBox": [
+          0,
+          0,
+          400,
+          280
+        ],
+        "initial": [
+          {
+            "kind": "circle",
+            "center": [
+              170,
+              145
+            ],
+            "radius": 80,
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              170,
+              145
+            ],
+            "label": "O",
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              250,
+              145
+            ],
+            "label": "T",
+            "style": "given"
+          }
+        ],
+        "frames": [
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  170,
+                  145
+                ],
+                "b": [
+                  335,
+                  145
+                ],
+                "style": "construction"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  250,
+                  30
+                ],
+                "b": [
+                  250,
+                  250
+                ],
+                "style": "result"
+              }
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "tangents-external-point",
@@ -269,7 +1502,218 @@
         "OT2 perpendicular to PT2",
         "PT1 = PT2"
       ],
-      "conditions": "P must be strictly outside the circle. On the circumference there is one tangent; inside there are none."
+      "conditions": "P must be strictly outside the circle. On the circumference there is one tangent; inside there are none.",
+      "graphics": {
+        "viewBox": [
+          0,
+          0,
+          400,
+          280
+        ],
+        "initial": [
+          {
+            "kind": "circle",
+            "center": [
+              115,
+              140
+            ],
+            "radius": 75,
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              115,
+              140
+            ],
+            "label": "O",
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              315,
+              140
+            ],
+            "label": "P",
+            "style": "given"
+          }
+        ],
+        "frames": [
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  115,
+                  140
+                ],
+                "b": [
+                  315,
+                  140
+                ],
+                "style": "construction"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "arc",
+                "center": [
+                  115,
+                  140
+                ],
+                "radius": 120,
+                "start": 8.557309761920713,
+                "end": 58.55730976192071,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  115,
+                  140
+                ],
+                "radius": 120,
+                "start": -58.55730976192071,
+                "end": -8.557309761920713,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  315,
+                  140
+                ],
+                "radius": 120,
+                "start": 121.44269023807931,
+                "end": 171.4426902380793,
+                "style": "construction"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  315,
+                  140
+                ],
+                "radius": 120,
+                "start": -171.44269023807928,
+                "end": -121.44269023807928,
+                "style": "construction"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  215,
+                  206.332495807108
+                ],
+                "b": [
+                  215,
+                  73.667504192892
+                ],
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  215,
+                  140
+                ],
+                "label": "M",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "circle",
+                "center": [
+                  215,
+                  140
+                ],
+                "radius": 100,
+                "style": "construction"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "point",
+                "at": [
+                  143.125,
+                  70.47313918347815
+                ],
+                "label": "T₁",
+                "style": "given"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  143.125,
+                  209.52686081652183
+                ],
+                "label": "T₂",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  315,
+                  140
+                ],
+                "b": [
+                  143.125,
+                  70.47313918347815
+                ],
+                "style": "result"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  315,
+                  140
+                ],
+                "b": [
+                  143.125,
+                  209.52686081652183
+                ],
+                "style": "result"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  115,
+                  140
+                ],
+                "b": [
+                  143.125,
+                  70.47313918347815
+                ],
+                "style": "construction"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  115,
+                  140
+                ],
+                "b": [
+                  143.125,
+                  209.52686081652183
+                ],
+                "style": "construction"
+              }
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "regular-hexagon",
@@ -293,7 +1737,253 @@
         "Six equal sides",
         "Six central angles of 60 degrees"
       ],
-      "conditions": "Keep the compass opening fixed and progress consistently around the circle."
+      "conditions": "Keep the compass opening fixed and progress consistently around the circle.",
+      "graphics": {
+        "viewBox": [
+          0,
+          0,
+          400,
+          280
+        ],
+        "initial": [
+          {
+            "kind": "circle",
+            "center": [
+              200,
+              140
+            ],
+            "radius": 95,
+            "style": "given"
+          },
+          {
+            "kind": "point",
+            "at": [
+              200,
+              140
+            ],
+            "label": "O",
+            "style": "given"
+          }
+        ],
+        "frames": [
+          {
+            "add": [
+              {
+                "kind": "point",
+                "at": [
+                  200,
+                  45
+                ],
+                "label": "A",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  200,
+                  140
+                ],
+                "b": [
+                  200,
+                  45
+                ],
+                "style": "construction"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "arc",
+                "center": [
+                  200,
+                  45
+                ],
+                "radius": 95,
+                "start": 15.999999999999996,
+                "end": 44,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  282.2724133595217,
+                  92.5
+                ],
+                "label": "B",
+                "style": "given"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  282.2724133595217,
+                  92.5
+                ],
+                "radius": 95,
+                "start": 76,
+                "end": 104,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  282.2724133595217,
+                  187.5
+                ],
+                "label": "C",
+                "style": "given"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  282.2724133595217,
+                  187.5
+                ],
+                "radius": 95,
+                "start": 136.00000000000003,
+                "end": 164.00000000000003,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  200,
+                  235
+                ],
+                "label": "D",
+                "style": "given"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  200,
+                  235
+                ],
+                "radius": 95,
+                "start": -164.00000000000003,
+                "end": -136.00000000000003,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  117.72758664047832,
+                  187.5
+                ],
+                "label": "E",
+                "style": "given"
+              },
+              {
+                "kind": "arc",
+                "center": [
+                  117.72758664047832,
+                  187.5
+                ],
+                "radius": 95,
+                "start": -104,
+                "end": -76,
+                "style": "construction"
+              },
+              {
+                "kind": "point",
+                "at": [
+                  117.72758664047834,
+                  92.5
+                ],
+                "label": "F",
+                "style": "given"
+              }
+            ]
+          },
+          {
+            "add": [
+              {
+                "kind": "line",
+                "a": [
+                  200,
+                  45
+                ],
+                "b": [
+                  282.2724133595217,
+                  92.5
+                ],
+                "style": "result"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  282.2724133595217,
+                  92.5
+                ],
+                "b": [
+                  282.2724133595217,
+                  187.5
+                ],
+                "style": "result"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  282.2724133595217,
+                  187.5
+                ],
+                "b": [
+                  200,
+                  235
+                ],
+                "style": "result"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  200,
+                  235
+                ],
+                "b": [
+                  117.72758664047832,
+                  187.5
+                ],
+                "style": "result"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  117.72758664047832,
+                  187.5
+                ],
+                "b": [
+                  117.72758664047834,
+                  92.5
+                ],
+                "style": "result"
+              },
+              {
+                "kind": "line",
+                "a": [
+                  117.72758664047834,
+                  92.5
+                ],
+                "b": [
+                  200,
+                  45
+                ],
+                "style": "result"
+              }
+            ]
+          }
+        ]
+      }
     }
-  ]
+  ],
+  "presentation": {
+    "defaultMode": "instructions",
+    "optionalMode": "graphics",
+    "synchronisedSteps": true,
+    "initialGeometryOnly": true,
+    "showSolutionOnRequest": true
+  }
 }
