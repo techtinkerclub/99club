@@ -1153,7 +1153,7 @@ async function run(){
     api.remove(fixture.record.id);
   }
   // Specialist native engines must work through the same full and quick panels.
-  for(const id of ['place-value','abacus','maths-canvas','sequences']){
+  for(const id of ['place-value','abacus','maths-canvas','sequences','column-addition','column-subtraction','written-multiplication','written-division','statistics-table','function-machine','angles']){
     const fixture=await addForSave(id),panel=document.getElementById('gd-board-floating-controls');
     fixture.frame.querySelector('[data-board-settings]').click();await tick();
     assert(panel.dataset.panelMode==='settings'&&panel.querySelector('.gd-board-controls-proxy'),'Specialist teaching settings open: '+id);
@@ -1168,6 +1168,13 @@ async function run(){
     panel.querySelector('[data-board-launcher-back]').click();await tick();
     panel.querySelector('[data-gd-native-random="all"]').click();await tick(100);
     assert(!visible(panel),'Specialist quick generation closes launcher: '+id);
+    if(['column-addition','column-subtraction','written-multiplication','written-division','statistics-table','function-machine','angles'].includes(id)){
+      challengeButton.click();await tick();
+      const specific=panel.querySelector('.gd-launch-native-type:not(:disabled)');
+      assert(specific,'New widget has a specific question in the quick launcher: '+id);
+      specific.click();await tick(100);
+      assert(!visible(panel),'Specific question closes quick launcher: '+id);
+    }
     api.remove(fixture.record.id);
   }
   {
