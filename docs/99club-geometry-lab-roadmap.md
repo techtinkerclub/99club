@@ -103,3 +103,7 @@ Geometry Lab must remain usable by a primary teacher on an interactive whiteboar
 3. Group challenge families into clear curricular categories without hiding quick random generation; separate primary and optional KS3 content.
 4. Verify saved scenes, switching activities, responsive layouts and publishing on representative classroom screen sizes.
 5. Add further construction families, constraints, loci and investigations through the same UI system. Treat a newly crowded panel as a regression, not an acceptable consequence of more content.
+
+## Workspace formats and measurement investigations
+
+Replace ambiguous More space with Workspace settings: A5/A4/A3 portrait or landscape, custom width/height in mm, plain paper or 5/10/20 mm grid. Keep four drawing units per mm; preserve existing coordinates and viewport scale on sheet changes, allow pan without altering ink, prevent shrinking over existing geometry. Persist dimensions and grid in saved scenes and vector output. Exact physical print size still depends on the document placement/print calibration workflow. Inspectable diagonal problems expose intersection O to the same ruler/protractor as the vertices. A measured example supports exploration but does not prove a universal property; teacher notes should explain the general reasoning. Retain instrument restrictions for tasks that assess calculations or authentic constructions.
