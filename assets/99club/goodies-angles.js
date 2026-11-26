@@ -3,7 +3,7 @@
 'use strict';
 const ID='angles',D=Math.PI/180,mod=a=>(a%360+360)%360,round=v=>Math.round(v*1000)/1000;
 const LEVELS=[['easy','Gentle'],['medium','Standard'],['hard','Stretch']];
-const MODES=[['angle','Angle explorer & protractor'],['turn','Turns & direction'],['lines','Line relationships'],['facts','Angle facts'],['polygon','Triangles & polygons'],['circle','Circles'],['construct','Shape construction']];
+const MODES=[['angle','Angle explorer & protractor'],['turn','Turns & direction'],['lines','Line relationships'],['facts','Angle facts'],['polygon','Triangles & polygons'],['circle','Circles'],['construct','Shape construction'],['free-explore','Free exploration — move points'],['loci','Dynamic geometry — loci & traces']];
 const YEARS=[['custom','All / custom'],['1','Year 1'],['2','Year 2'],['3','Year 3'],['4','Year 4'],['5','Year 5'],['6','Year 6']];
 const FAMILIES=[
  ['turn','Describe a turn','turn',1],['direction','Clockwise or anticlockwise','turn',2],['right-turns','Count right-angle turns','turn',3],
@@ -362,8 +362,9 @@ function diagram(d,teacher=false,options={}){
  function corner(points,i,label){const p=points[i],prev=points[(i+points.length-1)%points.length],next=points[(i+1)%points.length],dir=v=>mod(Math.atan2(p[1]-v[1],v[0]-p[0])/D);let start=dir(prev),v=mod(dir(next)-start);if(v>180){start=dir(next);v=360-v}labelArc(...p,Math.min(38,Math.hypot(next[0]-p[0],next[1]-p[1])*.22,Math.hypot(prev[0]-p[0],prev[1]-p[1])*.22),start,v,label)}
  function fit(points){const xs=points.map(p=>p[0]),ys=points.map(p=>p[1]),minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys),s=Math.min(540/Math.max(1,maxX-minX),300/Math.max(1,maxY-minY));return points.map(([x,y])=>[400+(x-(minX+maxX)/2)*s,210+(y-(minY+maxY)/2)*s])}
  function polygonFrame(points,pad=76){const xs=points.map(p=>p[0]),ys=points.map(p=>p[1]),x=Math.min(...xs)-pad,y=Math.min(...ys)-pad;return frame(x,y,Math.max(...xs)-x+pad,Math.max(...ys)-y+pad)}
- if(mode==='construct'&&(d.labDrawing||teacher&&labTypes.includes(d.type))){
+ if((mode==='construct'||mode==='free-explore')&&(d.labDrawing||teacher&&labTypes.includes(d.type))){
    const st=labNames(JSON.parse(JSON.stringify(d.labDrawing||labSolution(d)))),free=st.given===false,ww=free?Math.max(1000,st.workspace?.w||1000):800,hh=free?Math.max(640,st.workspace?.h||640):400;for(let gx=20;gx<=ww-20;gx+=40)line([gx,22],[gx,hh-18],'#e0e9e6',1);for(let gy=22;gy<=hh-18;gy+=40)line([20,gy],[ww-20,gy],'#e0e9e6',1);
+   if(mode==='free-explore')for(const points of Object.values(st.traces||{})){if(points.length>1)add('polyline',{points:points.map(p=>p.join(',')).join(' '),fill:'none',stroke:orange,'stroke-width':1.8,'stroke-dasharray':'4 3','data-ag-trace':'1'})}
    for(const region of st.regions){if(validRegion(st.points,region.ids))add('polygon',{points:region.ids.map(i=>st.points[i].join(',')).join(' '),fill:REGION_COLOURS[region.colour]||REGION_COLOURS[0],'fill-opacity':.28,stroke:'none','data-ag-region':'1'})}
    for(const c of st.circles)add('circle',{cx:st.points[c.i][0],cy:st.points[c.i][1],r:c.r,fill:'none',stroke:orange,'stroke-width':1.8,'stroke-dasharray':'5 4'});
    for(const r of st.rays)line(st.points[r.i],polar(...st.points[r.i],1200,r.angle),teal,1.8,{'stroke-dasharray':'7 5'});
@@ -485,8 +486,8 @@ function geometry(t){return {...t,mode:t.geometryMode||FAMILIES.find(f=>f[0]===t
 function paper(item,teacher){const d=geometry(item.data);if(item.kind==='diagram')return diagram(d,true,{scale:d.scale,paper:true});let prompt=d.prompt;if(['measure','reflex'].includes(d.type))prompt+=' Use your own protractor.';if(inspectTypes.includes(d.type))prompt+=' You may use a ruler or protractor to investigate the diagram.';if(labTypes.includes(d.type))prompt+=' On paper, draw AB = 6 cm first using your ruler. Use your geometry set in the working space.';if(d.choices)prompt+=' Choices: '+d.choices.join(' / ')+'.';return G.exportTools.composeWorksheetCardSvg(diagram(d,teacher,{paper:true,scale:teacher&&['measure','reflex','draw','draw-reflex'].includes(d.type)}),{title:'Angles & geometry',prompt,responseMode:(['draw','draw-reflex'].includes(d.type)||labTypes.includes(d.type))?'none':d.choices?'lines':'box',responseLines:1,responseLabel:'Answer',paperStyle:'plain',answer:d.answer,showAnswer:teacher})}
 if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>types(s),title:item=>FAMILIES.find(t=>t[0]===item.data.type)?.[1]||'Angle illustration',recipe:(s,type)=>({...settings(s),type}),generate,signature:d=>JSON.stringify([d.type,d.angle,d.angles,d.rotation,d.clockwise,d.n,d.regular,d.shape,d.relation,d.length,d.rightLength,d.radius,d.part,d.width,d.height,d.missingSide,d.claim,d.baseLength,d.factor,d.hypotenuse]),capture:s=>[G.publishing.record(ID,s.task?'challenge':'diagram',s.task?{...geometry(s.task),revealed:false}:s.demo)],render:paper,answerSummary:item=>item.data.answer,answerGraphic:item=>diagram(geometry(item.data),true,{paper:true,scale:['measure','draw','draw-reflex','reflex'].includes(item.data.type)}),answerNote:item=>item.data.note||''});
 
- function mountLab(box,initial,onChange,{free=false}={}){
-  let st=labNames(initial||labEmpty(free)),ww=free?Math.max(1000,st.workspace?.w||1000):800,hh=free?Math.max(640,st.workspace?.h||640):400,corner=0,tool='segment',first=null,aligned=null,hover=null,history=[],snap=true,measure=free&&st.showMeasurements===true,grid=true,aperture=null,keepOpening=false,guideOpen=false,guideStep=0,regionPick=[],regionColour=0,regionStatus='';
+ function mountLab(box,initial,onChange,{free=false,motion=false}={}){
+  let st=labNames(initial||labEmpty(free)),ww=free?Math.max(1000,st.workspace?.w||1000):800,hh=free?Math.max(640,st.workspace?.h||640):400,corner=0,tool=motion?'move':'segment',first=null,aligned=null,hover=null,history=[],snap=true,measure=free&&st.showMeasurements===true,grid=true,moving=null,aperture=null,keepOpening=false,guideOpen=false,guideStep=0,regionPick=[],regionColour=0,regionStatus='';
   const clone=x=>JSON.parse(JSON.stringify(x)),save=()=>history.push(clone(st)),N='http://www.w3.org/2000/svg';
   const toolbar=document.createElement('div');toolbar.className='gd-ag-lab-toolbar';toolbar.setAttribute('aria-label','Construction tools');
   const instruments=document.createElement('div');instruments.className='gd-ag-lab-tools';instruments.setAttribute('role','group');instruments.setAttribute('aria-label','Drawing instruments');
@@ -498,6 +499,8 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
   const hint=document.createElement('p');hint.className='gd-help';hint.dataset.agPaperConstruction='1';hint.style.cssText='text-align:center;min-height:24px;margin:5px 0';
   const guide=document.createElement('section');guide.className='gd-ag-lab-guide';guide.hidden=true;box.replaceChildren(toolbar,svg,hint,guide);
   const icons={
+    move:'<path d="M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"/>',
+    trace:'<path d="M3 19C5 6 12 20 16 8S21 5 21 5" stroke-dasharray="2 3"/><circle cx="21" cy="5" r="2" fill="currentColor"/>',
     point:'<circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/><path d="M12 3v4m0 10v4M3 12h4m10 0h4"/>',
     segment:'<rect x="2.5" y="7.5" width="19" height="9" rx="1.5"/><path d="M6 8v4m4-4v2.5m4-2.5v4m4-4v2.5"/>',
     ray:'<path d="M5 19L20 4M13 4h7v7"/><circle cx="4" cy="20" r="1.6" fill="currentColor" stroke="none"/>',
@@ -517,7 +520,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
     grid:'<rect x="3" y="3" width="18" height="18" rx="1"/><path d="M9 3v18m6-18v18M3 9h18M3 15h18"/>',help:'<circle cx="12" cy="12" r="9"/><path d="M9 8a3 3 0 1 1 4 3c-1 .5-1 1-1 2m0 3v.2"/>'
   };
   function icon(id){const x=document.createElementNS(N,'svg');x.setAttribute('viewBox','0 0 24 24');x.setAttribute('fill','none');x.setAttribute('stroke','currentColor');x.setAttribute('stroke-width','1.65');x.setAttribute('stroke-linecap','round');x.setAttribute('stroke-linejoin','round');x.setAttribute('aria-hidden','true');x.setAttribute('focusable','false');x.innerHTML=icons[id];return x}
-  const controls=[['point','Point','Place a point'],['segment','Ruler','Draw a straight line with the ruler'],['ray','Ray','Draw a ray'],['protractor','Protractor','Measure and draw an angle'],['square45','45°','45° set square'],['square30','30°–60°','30°–60° set square'],['compass','Compass','Draw a compass circle'],['erase','Erase','Erase a drawn object']];if(free)controls.push(['shade','Shade','Select and shade a polygonal region']);
+  const controls=[['point','Point','Place a point'],['segment','Ruler','Draw a straight line with the ruler'],['ray','Ray','Draw a ray'],['protractor','Protractor','Measure and draw an angle'],['square45','45°','45° set square'],['square30','30°–60°','30°–60° set square'],['compass','Compass','Draw a compass circle'],['erase','Erase','Erase a drawn object']];if(free)controls.push(['shade','Shade','Select and shade a polygonal region']);if(motion){controls.unshift(['move','Move','Move vertices freely without preserving shape properties']);controls.push(['trace','Trace','Select a point to trace its movement'])}
   function button(id,label,description,fn,parent=actions){const b=document.createElement('button');b.type='button';b.className='gd-btn gd-ag-lab-button';b.dataset.agTool=id;b.title=description;b.setAttribute('aria-label',description);const t=document.createElement('span');t.textContent=label;b.append(icon(id),t);b.onclick=fn;parent.append(b);return b}
   const buttons=controls.map(([id,label,desc])=>[id,button(id,label,desc,()=>{tool=id;first=null;aligned=null;hover=null;guideStep=0;regionPick=[];regionStatus='';paint()},instruments)]);
   const cornerButton=button('corner','Corner','Change set square corner',()=>{corner=(corner+1)%3;paint()});
@@ -526,6 +529,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
   const undoButton=button('undo','Undo','Undo last drawing action',()=>{if(history.length){st=labNames(history.pop());if(free)st.workspace={w:ww,h:hh};first=null;aligned=null;regionPick=[];changed()}});
   button('reset','Reset','Reset construction',()=>{save();st=labNames(labEmpty(free));if(free)st.workspace={w:ww,h:hh};first=null;aligned=null;regionPick=[];aperture=null;keepOpening=false;changed()});
   const expandButton=free?button('expand','More space','Extend the workspace without enlarging the geometry',()=>resizeWorkspace(ww,hh+200)):null;
+  if(motion)button('trace','Clear traces','Remove recorded paths without changing the drawing',()=>{save();st.traces={};changed()}).dataset.agTool='clear-traces';
   const guideButton=button('help',free?'Help / demo':'Tool help','Show instrument instructions',()=>{guideOpen=!guideOpen;guideStep=0;paint()});
   for(const [id,label,get,set] of [['snap','Snap',()=>snap,v=>snap=v],...(free?[['measure','Measurements',()=>measure,v=>{measure=v;st.showMeasurements=v;onChange(clone(st))}]]:[]),['grid','Grid',()=>grid,v=>grid=v]]){
    const l=document.createElement('label');l.className='gd-ag-lab-option';const input=document.createElement('input');input.type='checkbox';input.dataset.agOption=id;input.checked=get();input.onchange=()=>{set(input.checked);paint()};const t=document.createElement('span');t.textContent=label;l.append(input,icon(id),t);options.append(l);
@@ -572,6 +576,8 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    const diff=(x,y)=>Math.min(mod(x-y),mod(y-x));return mod(base+choices.reduce((x,y)=>diff(y,relative)<diff(x,relative)?y:x));
   }
   const helpSteps={
+   move:['Select Move.','Drag a vertex; connected marks follow it, but equal sides or right angles may be lost.','Compare the altered shape with the original. Use Undo to restore it.'],
+   trace:['Select Trace.','Tap an existing point to switch its trace on or off.','Select Move and drag that point to record its path. Clear traces removes paths without altering geometry.'],
    point:['Select Point.','Touch near an endpoint or crossing. The magnetic highlight shows the exact snap position.','Place the point. You can now join other lines to it.'],
    segment:['Select Ruler.','Tap the starting point.','Touch the ending point, slide to refine the length, and release. A straight segment joins the two points.'],
    ray:['Select Ray.','Tap the starting point.','Touch in the direction you want the ray to extend, then release. A dashed construction ray appears.'],
@@ -621,6 +627,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    buttons.forEach(([id,b])=>{b.classList.toggle('gd-btn--primary',id===tool);b.setAttribute('aria-pressed',String(id===tool))});undoButton.disabled=history.length===0;
    svg.replaceChildren();dimLines=labLines(st).map(l=>[l.a,l.ray?labAt(l.a,l.v,1200):l.b]);dimBoxes=st.points.map((p,i)=>labelBox(labLabel(st,i),0,st.names[i],13));unplaced=[];el('rect',{width:ww,height:hh,fill:'#fff'});
    if(grid){for(let x=20;x<ww;x+=40)line([x,22],[x,hh-18],'#e1ebe6',1);for(let y=22;y<=hh-18;y+=40)line([20,y],[ww-20,y],'#e1ebe6',1)}
+   if(motion)for(const points of Object.values(st.traces||{})){if(points.length>1)el('polyline',{points:points.map(p=>p.join(',')).join(' '),fill:'none',stroke:'#b56d2c','stroke-width':2,'stroke-dasharray':'4 3','data-ag-trace':'1'})}
    for(const region of st.regions){if(validRegion(st.points,region.ids))el('polygon',{points:region.ids.map(i=>st.points[i].join(',')).join(' '),fill:REGION_COLOURS[region.colour]||REGION_COLOURS[0],'fill-opacity':.32,stroke:'none','data-ag-region':'1'})}
    if(tool==='shade'&&regionPick.length>=2)el('polygon',{points:regionPick.map(i=>st.points[i].join(',')).join(' '),fill:validRegion(st.points,regionPick)?REGION_COLOURS[regionColour]:'none','fill-opacity':.15,stroke:REGION_COLOURS[regionColour],'stroke-width':2,'stroke-dasharray':'5 4'});
    for(const c of st.circles)circle(st.points[c.i],c.r,'#a97830','none','5 4');
@@ -637,20 +644,22 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
     }
     if(hit.kind){circle(p,12,'#2e9982','#d5eee5');circle(p,3,'#2e9982','#2e9982');text([p[0],p[1]-18],hit.kind,'#287b69',12)}
    }
-   st.points.forEach((p,i)=>{if(regionPick.includes(i))circle(p,11,REGION_COLOURS[regionColour],'none');circle(p,i===first?6:4,'white',st.given!==false&&i<2?'#28413d':'#287f6c');const pos=labLabel(st,i);text([pos[0],pos[1]+4],st.names[i],'#325a50',13)});
-   hint.textContent=tool==='shade'?(regionStatus||'Tap vertices in perimeter order. '+regionPick.map(i=>st.names[i]).join(' → ')+(regionPick.length>=3&&!validRegion(st.points,regionPick)?' · Invalid or crossing region.':'')):angleTool()?(first===null?'Tap a vertex to place the instrument.':aligned===null?'Tap along the reference edge to align the instrument.':'Choose a direction on the instrument to draw a ray.'):tool==='compass'&&keepOpening?'Tap a new centre to draw a circle with the retained opening.':tool==='point'?'Tap a point or a highlighted intersection.':tool==='erase'?'Tap a drawn point, line or circle to erase.':first===null?'Tap the starting point.':'Touch, slide to refine, then release to place.';
+   st.points.forEach((p,i)=>{if(motion&&st.traceNames?.includes(st.names[i]))circle(p,10,'#b56d2c','none');if(regionPick.includes(i))circle(p,11,REGION_COLOURS[regionColour],'none');circle(p,i===first?6:4,'white',st.given!==false&&i<2?'#28413d':'#287f6c');const pos=labLabel(st,i);text([pos[0],pos[1]+4],st.names[i],'#325a50',13)});
+   hint.textContent=tool==='move'?'Drag a vertex freely. Its connected geometry will follow.':tool==='trace'?'Tap a point to toggle tracing, then select Move.':tool==='shade'?(regionStatus||'Tap vertices in perimeter order. '+regionPick.map(i=>st.names[i]).join(' → ')+(regionPick.length>=3&&!validRegion(st.points,regionPick)?' · Invalid or crossing region.':'')):angleTool()?(first===null?'Tap a vertex to place the instrument.':aligned===null?'Tap along the reference edge to align the instrument.':'Choose a direction on the instrument to draw a ray.'):tool==='compass'&&keepOpening?'Tap a new centre to draw a circle with the retained opening.':tool==='point'?'Tap a point or a highlighted intersection.':tool==='erase'?'Tap a drawn point, line or circle to erase.':first===null?'Tap the starting point.':'Touch, slide to refine, then release to place.';
    if(unplaced.length)hint.textContent+=' · Measurements in crowded areas: '+unplaced.join(', ');
-   hint.textContent+=' · Drawn marks are fixed. Use Undo or Erase to correct them.';
+   hint.textContent+=motion?' · Free exploration: no geometric constraints are applied.':' · Drawn marks are fixed. Use Undo or Erase to correct them.';
   }
   function coords(e){const m=svg.getScreenCTM();if(!m)return null;return new DOMPoint(e.clientX,e.clientY).matrixTransform(m.inverse())}
   let placing=null;
   svg.addEventListener('pointerdown',e=>{if(e.button!==0)return;const z=coords(e);if(!z)return;const p=[z.x,z.y];e.preventDefault();hover=p;
-   if(first!==null&&tool!=='erase'&&tool!=='point'){placing=e.pointerId;try{svg.setPointerCapture(e.pointerId)}catch(_){}paint();return}
+   if(first!==null&&!['erase','point','move','trace'].includes(tool)){placing=e.pointerId;try{svg.setPointerCapture(e.pointerId)}catch(_){}paint();return}
    place(p,e);
   });
   function place(p,e){
+   if(motion&&tool==='trace'){const i=nearest(p);if(i>=0){save();const name=st.names[i],names=st.traceNames||[];st.traceNames=names.includes(name)?names.filter(n=>n!==name):[...names,name];changed()}return}
+   if(motion&&tool==='move'){const i=nearest(p);if(i>=0){save();moving={i,id:e.pointerId};try{svg.setPointerCapture(e.pointerId)}catch(_){}}return}
    if(tool==='shade'){const i=nearest(p);if(i>=0){regionPick=regionPick.includes(i)?regionPick.filter(j=>j!==i):[...regionPick,i];regionStatus='';paint()}return}
-   if(tool==='erase'){const i=nearest(p);if(i>=(st.given===false?0:2)){save();st.points.splice(i,1);st.names.splice(i,1);st.regions=st.regions.filter(r=>!r.ids.includes(i)).map(r=>({...r,ids:r.ids.map(j=>j>i?j-1:j)}));regionPick=[];st.segments=st.segments.filter(l=>!l.includes(i)).map(l=>l.map(j=>j>i?j-1:j));for(const k of ['rays','circles'])st[k]=st[k].filter(r=>r.i!==i).map(r=>({...r,i:r.i>i?r.i-1:r.i}));changed();return}
+   if(tool==='erase'){const i=nearest(p);if(i>=(st.given===false?0:2)){save();const removed=st.names[i];if(st.traces)delete st.traces[removed];if(st.traceNames)st.traceNames=st.traceNames.filter(n=>n!==removed);st.points.splice(i,1);st.names.splice(i,1);st.regions=st.regions.filter(r=>!r.ids.includes(i)).map(r=>({...r,ids:r.ids.map(j=>j>i?j-1:j)}));regionPick=[];st.segments=st.segments.filter(l=>!l.includes(i)).map(l=>l.map(j=>j>i?j-1:j));for(const k of ['rays','circles'])st[k]=st[k].filter(r=>r.i!==i).map(r=>({...r,i:r.i>i?r.i-1:r.i}));changed();return}
     const distanceTo=(a,b,ray=false)=>{const v=labSub(b,a),t=labDot(labSub(p,a),v)/(labDot(v,v)||1);return labDist(p,labAt(a,v,Math.max(0,ray?t:Math.min(1,t))))};
     let k=st.segments.findIndex(([i,j])=>distanceTo(st.points[i],st.points[j])<tolerance());if(k>=0){save();st.segments.splice(k,1)}else{k=st.rays.findIndex(r=>distanceTo(st.points[r.i],polar(...st.points[r.i],1,r.angle),true)<tolerance());if(k>=0){save();st.rays.splice(k,1)}else{k=st.circles.findIndex(c=>Math.abs(labDist(p,st.points[c.i])-c.r)<tolerance());if(k>=0){save();st.circles.splice(k,1)}}}changed();return;
    }
@@ -665,9 +674,9 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    else if(tool==='ray'||angleTool()){const a=angleTool()?selectedAngle(o,p):Math.round(labAngle(o,magnetic(p).p));st.rays.push({i:first,angle:a})}
    first=null;aligned=null;hover=null;changed();
   }
-  svg.addEventListener('pointermove',e=>{const z=coords(e);if(!z)return;hover=[z.x,z.y];paint()});
-  svg.addEventListener('pointerup',e=>{if(placing===e.pointerId){placing=null;const z=coords(e);if(z)place([z.x,z.y],e)}paint()});
-  const cancel=()=>{placing=null;hover=null;paint()};svg.addEventListener('pointercancel',cancel);svg.addEventListener('lostpointercapture',cancel);
+  svg.addEventListener('pointermove',e=>{const z=coords(e);if(!z)return;hover=[z.x,z.y];if(motion&&moving?.id===e.pointerId){const p=[Math.max(5,Math.min(ww-5,z.x)),Math.max(5,Math.min(hh-5,z.y))],i=moving.i,name=st.names[i],old=st.points[i];if(st.traceNames?.includes(name)&&labDist(old,p)>.5){st.traces=st.traces||{};const path=st.traces[name]||(st.traces[name]=[old.slice()]);if(path.length<6000)path.push(p.slice())}st.points[i]=p;changed()}else paint()});
+  svg.addEventListener('pointerup',e=>{if(placing===e.pointerId){placing=null;const z=coords(e);if(z)place([z.x,z.y],e)}moving=null;paint()});
+  const cancel=()=>{placing=null;moving=null;hover=null;paint()};svg.addEventListener('pointercancel',cancel);svg.addEventListener('lostpointercapture',cancel);
   paint();
  }
 
@@ -800,8 +809,8 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
  }
 
 G.anglesTool=function(){
- let cfg=settings(),demo={type:'diagram',mode:'angle',angle:60,rotation:0,scale:true,clockwise:false,n:5,regular:true,length:5,baseLength:6},task=null,workflow='build',attempt=null,attemptLength=null,scope='',status='',draft=null,lab=null,freeLab=null;
- const snapshot=()=>({...cfg,demo:demoData(),task,workflow,attempt,attemptLength,scope,lab,freeLab,pupil:CK.capturePupil(task)});
+ let cfg=settings(),demo={type:'diagram',mode:'angle',angle:60,rotation:0,scale:true,clockwise:false,n:5,regular:true,length:5,baseLength:6},task=null,workflow='build',attempt=null,attemptLength=null,scope='',status='',draft=null,lab=null,freeLab=null,motionLab=null;
+ const snapshot=()=>({...cfg,demo:demoData(),task,workflow,attempt,attemptLength,scope,lab,freeLab,motionLab,pupil:CK.capturePupil(task)});
  const select=(id,opts,current)=>'<select class="gd-select" id="'+id+'">'+opts.map(([v,l])=>'<option value="'+esc(v)+'"'+(String(v)===String(current)?' selected':'')+'>'+esc(l)+'</option>').join('')+'</select>';
  const report=s=>{status=s;const el=q('#ag-status');if(el)el.textContent=s};
  function launch(type){try{const native=CK.nativeScope('ag');if(native)scope=native;const actual=type==='all'?pick(Math.random,types(cfg)).id:type;task=CK.normalise({...generate({...cfg,type:actual}),mode:'standard',answerMode:'manual',revealed:false});task.geometryMode=FAMILIES.find(t=>t[0]===actual)[2];attempt=null;attemptLength=null;lab=null;scope=CK.nativeScope('ag')||scope;workflow='challenge';render()}catch(e){report(e.message)}}
@@ -822,6 +831,8 @@ G.anglesTool=function(){
     turn:angleField()+rotationField+field('Turn direction',select('ag-direction',[['cw','Clockwise'],['ccw','Anticlockwise']],demo.clockwise?'cw':'ccw')),
     polygon:check('ag-fill','Shade whole shape (demonstration)',demo.showFill===true)+field('Shape',select('ag-shape-view',[['regular','General polygons'],['equilateral','Equilateral triangle'],['isosceles','Isosceles triangle'],['scalene','Scalene triangle'],['right-triangle','Right-angled triangle'],['kite','Kite'],['square','Square'],['rectangle','Rectangle'],['rhombus','Rhombus'],['parallelogram','Parallelogram'],['trapezium','Trapezium']],demo.shapeView||'regular'))+rotationField+(!demo.shapeView||demo.shapeView==='regular'?field('Sides',select('ag-sides',Array.from({length:10},(_,i)=>[i+3,i+3]),demo.n))+check('ag-regular','Regular polygon',demo.regular)+check('ag-triangulate','Show triangulation',demo.triangulate!==false):check('ag-sides-mark','Mark equal sides',demo.showSides!==false)+(['square','rectangle','rhombus','parallelogram','trapezium','kite'].includes(demo.shapeView)?check('ag-diagonals','Show diagonals',demo.showDiagonals===true)+check('ag-parallel','Mark parallel sides',demo.showParallel===true):''))+check('ag-corners','Show interior angles',demo.showCorners!==false)+(['equilateral','isosceles','scalene','right-triangle'].includes(demo.shapeView)?check('ag-height','Show perpendicular height',demo.showHeight===true):''),
     circle:check('ag-fill','Shade whole circle (demonstration)',demo.showFill===true)+field('Radius (cm)',select('ag-radius',Array.from({length:15},(_,i)=>[i+1,(i+1)+' cm']),demo.radius||5))+check('ag-circle-extension','Show KS3 formulae and working',demo.circleEnrichment===true),
+    'free-explore':'<p class="gd-help">Draw freely and move vertices to test what happens when a shape loses its properties. Trace any chosen point.</p>',
+    loci:'<p class="gd-help">Move a constrained point and record the path it follows.</p>',
     construct:check('ag-free-lab','Free construction workspace',demo.freeLab===true)+(!demo.freeLab?angleField(170,10)+field('AC length (cm)',select('ag-length',Array.from({length:7},(_,i)=>[i+1,i+1]),demo.length)):'') ,
     facts:angleField(170,10)+rotationField+field('Angle relationship',select('ag-fact',[['straight','Straight line'],['point','Around a point'],['opposite','Vertically opposite']],demo.fact||'straight')),
     lines:field('Line relationship',select('ag-relation',[['Parallel','Parallel'],['Perpendicular','Perpendicular'],['Neither','Neither']],demo.relation||'Neither'))+rotationField+(!demo.relation||demo.relation==='Neither'?angleField(80,10):'')
@@ -836,7 +847,7 @@ G.anglesTool=function(){
   for(const kind of ['copy','png','svg','print',...(task?['key-copy','key-print']:[])]){let el=q('#ag-'+kind,host);if(!el){el=document.createElement('button');el.hidden=true;el.type='button';host.appendChild(el)}el.setAttribute('data-gd-direct-export',kind);el.onclick=()=>exportAction(kind)}
   const ad=q('#ag-add',host);if(ad)ad.onclick=()=>publish(false);const ba=q('#ag-batch',host);if(ba)ba.onclick=()=>publish(true);const re=q('#ag-review',host);if(re)re.onclick=()=>{const P=G.publishing;if(P){draft=draft||P.createDocument();P.openEditor(draft)}};
  }
- function demoData(){if(demo.mode==='facts'){const f=demo.fact||'straight',a=Math.max(10,Math.min(170,demo.angle));return {...demo,type:f,angles:f==='straight'?[a,180-a]:f==='point'?[a,90,270-a]:[a,180-a,a,180-a]}}if(demo.mode==='lines')return {...demo,angle:demo.relation==='Parallel'?0:demo.relation==='Perpendicular'?90:Math.max(10,Math.min(80,demo.angle)),relation:demo.relation||'Neither'};if(demo.mode==='construct')return {...demo,angle:Math.max(10,Math.min(170,demo.angle)),labDrawing:demo.freeLab?freeLab||labEmpty(true):null};return demo}
+ function demoData(){if(demo.mode==='facts'){const f=demo.fact||'straight',a=Math.max(10,Math.min(170,demo.angle));return {...demo,type:f,angles:f==='straight'?[a,180-a]:f==='point'?[a,90,270-a]:[a,180-a,a,180-a]}}if(demo.mode==='lines')return {...demo,angle:demo.relation==='Parallel'?0:demo.relation==='Perpendicular'?90:Math.max(10,Math.min(80,demo.angle)),relation:demo.relation||'Neither'};if(demo.mode==='free-explore')return {...demo,labDrawing:motionLab||labEmpty(true)};if(demo.mode==='construct')return {...demo,angle:Math.max(10,Math.min(170,demo.angle)),labDrawing:demo.freeLab?freeLab||labEmpty(true):null};return demo}
  function stage(){const host=q('#gd-stage'),draw=['draw','draw-reflex'].includes(task?.type),build=labTypes.includes(task?.type),construct=draw||build,d=task?geometryTask(task):demoData(),teacher=!task||task.revealed;
   const pupil=construct?CK.pupilSpec('model',{hint:draw?'Drag the orange arm to the correct graduation, then check.':'Use the geometry tools to complete the shape, then check.',ready:()=>build?labCheck(lab||labEmpty(),task).ready:attempt!==null,check:()=>build?labCheck(lab||labEmpty(),task).correct:Math.abs(attempt-task.angle)<=1}):task?.choices?CK.pupilSpec('choice',{choices:task.choices,expected:task.answer}):CK.pupilSpec('number');
   host.innerHTML=(task?CK.bannerHtml(task,{pupil,actions:[{action:'another',label:'Another'},{action:'end',label:'Exit challenge'}]}):'')+'<div class="gd-ag-visual" style="width:100%;max-width:920px;margin:0 auto"></div>';
@@ -878,7 +889,7 @@ G.anglesTool=function(){
   function endDrag(e){if(!drag||e.pointerId!==drag.id)return;drag=null;try{if(box.hasPointerCapture(e.pointerId))box.releasePointerCapture(e.pointerId)}catch(_){}}
   box.addEventListener('pointerup',endDrag);box.addEventListener('pointercancel',endDrag);box.addEventListener('lostpointercapture',endDrag);
   function setAngle(v){attempt=Math.max(0,Math.min(task?.type==='draw-reflex'?360:180,Math.round(v)));drawSvg();const el=q('#ag-attempt',host);if(el)el.textContent=draw?'Arm positioned':attempt+'°';CK.refreshModelPupil(task)}
-  if(build&&!task.revealed){box.style.maxWidth='1200px';mountLab(box,lab,v=>{lab=v;CK.refreshModelPupil(task)})}else if(!task&&demo.mode==='construct'&&demo.freeLab){box.style.maxWidth='none';mountLab(box,freeLab,v=>{freeLab=v},{free:true})}else drawSvg();
+  if(build&&!task.revealed){box.style.maxWidth='1200px';mountLab(box,lab,v=>{lab=v;CK.refreshModelPupil(task)})}else if(!task&&demo.mode==='free-explore'){box.style.maxWidth='none';mountLab(box,motionLab,v=>{motionLab=v},{free:true,motion:true})}else if(!task&&demo.mode==='construct'&&demo.freeLab){box.style.maxWidth='none';mountLab(box,freeLab,v=>{freeLab=v},{free:true})}else drawSvg();
   if(draw&&!task.revealed){const row=document.createElement('div');row.className='gd-row';row.style.cssText='justify-content:center;flex-wrap:wrap;padding:8px;gap:8px';row.innerHTML='<span>Angle</span><button class="gd-btn" data-ag-adjust="-10">−10°</button><button class="gd-btn" data-ag-adjust="-1">−1°</button><strong id="ag-attempt">'+(draw?(attempt===null?'Move the arm':'Arm positioned'):(attempt===null?'—':attempt+'°'))+'</strong><button class="gd-btn" data-ag-adjust="1">+1°</button><button class="gd-btn" data-ag-adjust="10">+10°</button>'+(build?'<label>AC (cm) '+select('ag-attempt-length',[['','Choose'],...Array.from({length:7},(_,i)=>[i+1,i+1])],attemptLength??'')+'</label>':'');host.appendChild(row);qa('[data-ag-adjust]',row).forEach(b=>b.onclick=()=>setAngle((attempt??0)+Number(b.dataset.agAdjust)));const l=q('#ag-attempt-length',row);if(l)l.onchange=()=>{attemptLength=l.value===''?null:+l.value;drawSvg();CK.refreshModelPupil(task)}}
   if(task){q('[data-challenge-action="another"]',host).onclick=()=>{const current=task.type;if(scope==='all')launch('all');else if(scope.startsWith('category:')){const group=scope.slice(9),a=types(cfg).filter(t=>t.mode===group);launch(a.length?pick(Math.random,a).id:current)}else launch(current)};q('[data-challenge-action="end"]',host).onclick=()=>{task=null;attempt=null;scope='';workflow='build';render()};const reveal=q('[data-board-action="reveal"]',host);if(reveal)reveal.onclick=()=>{task.revealed=!task.revealed;stage()}}
   else {
@@ -924,6 +935,6 @@ G.anglesTool=function(){
   }
  }
  function render(){controls();stage()}
- setPanels('','');render();G.lessonState.register(ID,()=>({...snapshot(),demo:demoData()}),s=>{cfg=settings(s);demo={...demo,...s.demo,type:'diagram'};workflow=['build','challenge','export'].includes(s.workflow)?s.workflow:'build';task=s.task?CK.normalise(s.task):null;attempt=Number.isFinite(s.attempt)?s.attempt:null;attemptLength=Number.isFinite(s.attemptLength)?s.attemptLength:null;scope=String(s.scope||'');lab=s.lab||null;freeLab=s.freeLab||null;CK.restorePupil(task,s.pupil);render()});
+ setPanels('','');render();G.lessonState.register(ID,()=>({...snapshot(),demo:demoData()}),s=>{cfg=settings(s);demo={...demo,...s.demo,type:'diagram'};workflow=['build','challenge','export'].includes(s.workflow)?s.workflow:'build';task=s.task?CK.normalise(s.task):null;attempt=Number.isFinite(s.attempt)?s.attempt:null;attemptLength=Number.isFinite(s.attemptLength)?s.attemptLength:null;scope=String(s.scope||'');lab=s.lab||null;freeLab=s.freeLab||null;motionLab=s.motionLab||null;CK.restorePupil(task,s.pupil);render()});
 };
 })(typeof globalThis!=='undefined'?globalThis:this);
