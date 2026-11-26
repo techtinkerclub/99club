@@ -142,7 +142,13 @@ function generate(s={},rng=Math.random){
        return {p,size:font,box};
      }
    }
-   const p=polar(...o,Math.max(minimum,r+30),dir);return {p,size:10,box:labelBox(p,0,label,10)};
+   // Degenerate or exceptionally narrow sectors: put the annotation
+   // alongside the sector instead of laying text across its arms.
+   for(const delta of [15,-15,30,-30,45,-45,90,-90])for(const radius of [Math.max(minimum,r+36),Math.max(minimum,r+58),Math.max(minimum,r+80)]){
+     const p=polar(...o,radius,dir+delta),box=labelBox(p,0,label,12);
+     if(!arms.some(a=>labelIntersectsLine(box,o,a)))return {p,size:12,box};
+   }
+   const p=polar(...o,r+55,dir+90);return {p,size:10,box:labelBox(p,0,label,10)};
  }
 
  function vertexLabel(p,prev,next,offset=22){
@@ -457,7 +463,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
   button('reset','Reset','Reset construction',()=>{save();st=labNames(labEmpty(free));if(free)st.workspace={w:ww,h:hh};first=null;aligned=null;regionPick=[];changed()});
   const expandButton=free?button('expand','More space','Extend the workspace without enlarging the geometry',()=>resizeWorkspace(ww,hh+200)):null;
   const guideButton=button('help',free?'Help / demo':'Tool help','Show instrument instructions',()=>{guideOpen=!guideOpen;guideStep=0;paint()});
-  for(const [id,label,get,set] of [['snap','Snap',()=>snap,v=>snap=v],['measure','Measurements',()=>measure,v=>measure=v],['grid','Grid',()=>grid,v=>grid=v]]){
+  for(const [id,label,get,set] of [['snap','Snap',()=>snap,v=>snap=v],['measure','Measurements',()=>measure,v=>{measure=v;st.showMeasurements=v;onChange(clone(st))}],['grid','Grid',()=>grid,v=>grid=v]]){
    const l=document.createElement('label');l.className='gd-ag-lab-option';const input=document.createElement('input');input.type='checkbox';input.checked=get();input.onchange=()=>{set(input.checked);paint()};const t=document.createElement('span');t.textContent=label;l.append(input,icon(id),t);options.append(l);
   }
   const regionBar=document.createElement('div');regionBar.className='gd-ag-lab-helpers';regionBar.hidden=true;toolbar.append(regionBar);
@@ -479,7 +485,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
   function text(p,t,color='#325a50',size=15){el('text',{x:p[0],y:p[1],fill:color,'font-size':size,'font-family':'Arial,sans-serif','text-anchor':'middle','paint-order':'stroke',stroke:'white','stroke-width':3},t)}
   function circle(p,r,stroke,fill='none',dash=''){el('circle',{cx:p[0],cy:p[1],r,stroke,fill,'stroke-width':2,'stroke-dasharray':dash})}
   let dimBoxes=[],dimLines=[],unplaced=[];
-  function dim(a,b,value,color='#325a50',outside=null,preview=false){const q=dimensionPlacement(a,b,value,{size:13,offset:17,outside,lines:dimLines,occupied:dimBoxes,bounds:[5,5,ww-5,hh-5]});if(!q){if(!preview)unplaced.push(value);return}dimBoxes.push(q.box);el('text',{x:q.p[0],y:q.p[1],fill:color,'font-size':13,'font-family':'Arial,sans-serif','text-anchor':'middle','dominant-baseline':'central',transform:'rotate('+q.angle+' '+q.p.join(' ')+')','data-ag-dimension':'1'},value)}
+  function dim(a,b,value,color='#325a50',outside=null,preview=false){const q=dimensionPlacement(a,b,value,{size:13,offset:17,outside,lines:dimLines,occupied:dimBoxes,bounds:[5,5,ww-5,hh-5]});if(!q){if(!preview){const i=st.points.indexOf(a),j=st.points.indexOf(b);unplaced.push((i>=0&&j>=0?st.names[i]+st.names[j]+': ':'')+value)};return}dimBoxes.push(q.box);el('text',{x:q.p[0],y:q.p[1],fill:color,'font-size':13,'font-family':'Arial,sans-serif','text-anchor':'middle','dominant-baseline':'central',transform:'rotate('+q.angle+' '+q.p.join(' ')+')','data-ag-dimension':'1'},value)}
   function segment(a,b,color='#285c52'){line(a,b,color,3);if(measure)dim(a,b,(labDist(a,b)/LAB_UNIT).toFixed(1)+' cm',color)}
   // Instrument is anchored to the chosen vertex and aligned to a direction
   // selected by the pupil. The triangle edges, not target angles, determine rays.
