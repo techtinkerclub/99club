@@ -1051,6 +1051,20 @@ async function run(){
     assert(doc.querySelector('.gd-ag-guide-example svg'),'Free mode provides worked instrument demonstration');
     const next=[...doc.querySelectorAll('.gd-ag-guide-example button')].find(b=>b.textContent==='Next step');next.click();await tick();
     assert(doc.querySelector('.gd-ag-guide-example').textContent.includes('Step 2 / 3')&&cap().demo.labDrawing.points.length===0,'Demo advances without altering free drawing');
+    const polygonMode=doc.getElementById('ag-mode');polygonMode.value='polygon';polygonMode.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
+    const chooseShape=doc.getElementById('ag-shape-view');chooseShape.value='rectangle';chooseShape.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
+    doc.querySelector('[data-ag-action="diagonal"]').click();await tick();
+    assert(cap().demo.showDiagonals&&doc.querySelector('.gd-ag-visual svg').textContent.includes('Equal diagonals'),'Rectangle explorer displays its diagonal relationship');
+    const circleMode=doc.getElementById('ag-mode');circleMode.value='circle';circleMode.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
+    assert(doc.querySelector('.gd-ag-visual svg').textContent.includes('Diameter = 2 × radius'),'Circle explorer explains radius-diameter relationship');
+    const beforeRadius=cap().demo.radius||5;doc.querySelector('[data-ag-action="radius-up"]').click();await tick();
+    assert(cap().demo.radius===beforeRadius+1,'Circle radius adjusts interactively');
+    for(const [type,expected] of [['circle-diameter','cm'],['circle-radius','cm'],['rectangle-length','cm'],['isosceles-angle','°'],['diagonal-equal','diagonals']]){
+      const pack=P.createDocument();pack.generate(id,P.defaultSettings(id),1,type);const item=pack.list()[0];
+      assert(P.renderItem(item,false).querySelector('svg,polygon,circle'),'Relationship question has pupil diagram: '+type);
+      assert(P.answerGraphic(item).textContent.toLowerCase().includes(expected.toLowerCase()),'Relationship key displays relevant notation: '+type);
+    }
+
 
 
     api.remove(fixture.record.id);
