@@ -13,7 +13,7 @@ const FAMILIES=[
  ['straight','Missing angle on a straight line','facts',5],['point','Missing angle around a point','facts',5],['opposite','Vertically opposite angles','facts',6],
  ['rectangle','Angles in rectangles','polygon',5],['triangle-type','Classify a triangle','polygon',4],['quad-type','Classify a quadrilateral','polygon',4],['regularity','Regular or irregular polygon','polygon',5],
  ['triangle','Missing angle in a triangle','polygon',6],['quadrilateral','Missing angle in a quadrilateral','polygon',6],['regular','Interior angle of a regular polygon','polygon',6],
- ['shape-build','Construct a triangle from dimensions and an angle','construct',6],
+ ['shape-build','Construct a triangle from dimensions and an angle','construct',6],['build-sss','Construct a triangle from three sides','construct',6],['build-equilateral','Construct an equilateral triangle','construct',5],['build-right','Construct a right-angled triangle','construct',5],['build-rectangle','Construct a rectangle','construct',5],['build-square','Construct a square','construct',4],
  ['exterior','Exterior angle of a regular polygon','polygon',7],['parallel','Corresponding and alternate angles','facts',7],['polygon-sum','Interior angle sum of a polygon','polygon',7]
 ];
 const rand=(rng,a,b)=>a+Math.floor(rng()*(b-a+1)),pick=(rng,a)=>a[rand(rng,0,a.length-1)];
@@ -59,6 +59,17 @@ function generate(s={},rng=Math.random){
  if(type==='quadrilateral'){const a=angle(55,125),b=180-a;return task({angles:[a,b,a,b]},'Find the missing interior angle x in the parallelogram.',b,'The four interior angles total 360°. Subtract the three given angles.')}
  if(['regular','exterior','polygon-sum'].includes(type)){const n=pick(rng,[3,4,5,6,8,9,10,12]);return task({n,regular:true},type==='regular'?'Find one interior angle of this regular '+n+'-sided polygon.':type==='exterior'?'Find the exterior turning angle of this regular '+n+'-sided polygon.':'Find the sum of all interior angles of this '+n+'-sided polygon.',type==='regular'?polyInterior(n):type==='exterior'?polyExterior(n):180*(n-2),type==='regular'?'Divide the interior angle sum '+180*(n-2)+'° by '+n+'.':type==='exterior'?'One complete turn is 360°. Divide by '+n+'.':'Divide the polygon into '+(n-2)+' triangles, each with angle sum 180°.')}
  if(type==='parallel'){const a=angle(35,145),relation=pick(rng,['corresponding','alternate']);return task({angle:a,relation,rotation:0},'The lines are parallel. Find the marked '+relation+' angle x.',a,'Corresponding and alternate angles between parallel lines are equal.')}
+ if(type==='build-sss'||type==='build-equilateral'){
+   const l=type==='build-equilateral'?6:rand(rng,4,7),r=type==='build-equilateral'?6:rand(rng,4,7);
+   return task({length:l,rightLength:r,angle:Math.acos((36+l*l-r*r)/(12*l))/D},'Construct triangle ABC with AB = 6 cm, AC = '+l+' cm and BC = '+r+' cm. Draw the remaining sides.', 'AB = 6 cm; AC = '+l+' cm; BC = '+r+' cm','Use the compass to draw arcs of radius '+l+' cm from A and '+r+' cm from B. Their intersection is C. Join C to A and B. Reflection across AB is also valid.');
+ }
+ if(type==='build-right'){
+   const l=rand(rng,3,6);return task({angle:90,length:l},'Construct triangle ABC with AB = 6 cm, AC = '+l+' cm and a right angle at A. Join B to C.','AB = 6 cm; AC = '+l+' cm; angle BAC = 90°','Align the set square or protractor with AB, draw a perpendicular at A, measure '+l+' cm to C and join B to C. Reflection is valid.');
+ }
+ if(type==='build-rectangle'||type==='build-square'){
+   const l=type==='build-square'?6:rand(rng,3,5);
+   return task({angle:90,length:l},'Construct '+(type==='build-square'?'a square':'a rectangle')+' ABCD with AB = 6 cm and BC = '+l+' cm. Draw all four sides.','AB = CD = 6 cm; BC = DA = '+l+' cm; four right angles','Draw perpendiculars at A and B on the same side of AB. Measure '+l+' cm along each to locate D and C. Join C and D. Reflection is valid.');
+ }
  if(type==='shape-build'){const a=angle(30,120),l=rand(rng,3,7);return task({angle:a,length:l,baseLength:6},'Use geometry instruments to construct triangle ABC with AB = 6 cm, AC = '+l+' cm and angle BAC = '+a+'°. Draw both remaining sides.',a+'°; '+l+' cm','Accept the triangle with AB = 6 cm, AC = '+l+' cm and included angle '+a+'°. Rotation or reflection is also valid on paper.')}
  throw Error('Unknown family');
 }
@@ -70,8 +81,8 @@ function generate(s={},rng=Math.random){
  const labAngle=(a,b)=>mod(Math.atan2(a[1]-b[1],b[0]-a[0])/D);
  const labCross=(a,b)=>a[0]*b[1]-a[1]*b[0],labSub=(a,b)=>[a[0]-b[0],a[1]-b[1]],labDot=(a,b)=>a[0]*b[0]+a[1]*b[1];
  const labAt=(a,v,t)=>[a[0]+v[0]*t,a[1]+v[1]*t];
- function labEmpty(){return {points:[LAB_A.slice(),LAB_B.slice()],segments:[],rays:[],circles:[]}}
- function labLines(s,exclude=-1){return [{a:s.points[0],b:s.points[1],ray:false},...s.segments.filter(l=>!l.includes(exclude)).map(([i,j])=>({a:s.points[i],b:s.points[j],ray:false})),...s.rays.filter(r=>r.i!==exclude).map(r=>({a:s.points[r.i],b:labAt(s.points[r.i],[Math.cos(r.angle*D),-Math.sin(r.angle*D)],1),ray:true}))].map(l=>({...l,v:labSub(l.b,l.a)}))}
+ function labEmpty(free=false){return {given:!free,points:free?[]:[LAB_A.slice(),LAB_B.slice()],segments:[],rays:[],circles:[]}}
+ function labLines(s,exclude=-1){return [...(s.given!==false&&s.points.length>=2?[{a:s.points[0],b:s.points[1],ray:false}]:[]),...s.segments.filter(l=>!l.includes(exclude)).map(([i,j])=>({a:s.points[i],b:s.points[j],ray:false})),...s.rays.filter(r=>r.i!==exclude).map(r=>({a:s.points[r.i],b:labAt(s.points[r.i],[Math.cos(r.angle*D),-Math.sin(r.angle*D)],1),ray:true}))].map(l=>({...l,v:labSub(l.b,l.a)}))}
  function labWithin(l,t){return t>=-1e-7&&(l.ray||t<=1+1e-7)}
  function labSnap(s,p,tol=16,enabled=true,exclude=-1){
   if(!enabled)return {p,kind:''};
@@ -102,13 +113,32 @@ function generate(s={},rng=Math.random){
   for(const c of circles){const len=labDist(p,c.o);if(len>1e-7)guides.push({p:labAt(c.o,labSub(p,c.o),c.r/len),kind:'On circle'})}
   return closest(guides)||{p,kind:''};
  }
+ const labTypes=['shape-build','build-sss','build-equilateral','build-right','build-rectangle','build-square'];
  function labCheck(s,target){
-  const linked=(i,j)=>s.segments.some(l=>l.includes(i)&&l.includes(j));
-  const candidates=s.points.slice(2).map((p,k)=>{const i=k+2,angle=labAngle(s.points[0],p);return {i,length:labDist(s.points[0],p)/LAB_UNIT,angle:Math.min(angle,360-angle),joined:linked(0,i)&&linked(1,i)}});
-  return {ready:candidates.some(c=>c.joined),correct:candidates.some(c=>c.joined&&Math.abs(c.length-target.length)<=.15&&Math.abs(c.angle-target.angle)<=2)};
+  const linked=(i,j)=>s.segments.some(l=>l.includes(i)&&l.includes(j)),near=(a,b,t=.15)=>Math.abs(a-b)<=t,len=(a,b)=>labDist(a,b)/LAB_UNIT;
+  if(s.points.length<3)return {ready:false,correct:false};
+  const A=s.points[0],B=s.points[1];
+  if(target.type==='build-rectangle'||target.type==='build-square'){
+    let ready=false,correct=false;
+    for(let c=2;c<s.points.length;c++)for(let d=2;d<s.points.length;d++){
+     if(c===d||!linked(1,c)||!linked(c,d)||!linked(d,0))continue;ready=true;
+     const C=s.points[c],E=s.points[d],h=target.length*LAB_UNIT,sign=Math.sign(C[1]-B[1]);
+     if(sign&&labDist(C,[B[0],B[1]+sign*h])<=6&&labDist(E,[A[0],A[1]+sign*h])<=6&&near(len(C,E),6)&&near(len(B,C),target.length)&&near(len(A,E),target.length))correct=true;
+    }
+    return {ready,correct};
+  }
+  const candidates=s.points.slice(2).map((p,k)=>{const i=k+2,angle=labAngle(A,p);return {i,length:len(A,p),rightLength:len(B,p),angle:Math.min(angle,360-angle),joined:linked(0,i)&&linked(1,i)}});
+  return {ready:candidates.some(c=>c.joined),correct:candidates.some(c=>c.joined&&near(c.length,target.length)&&(['build-sss','build-equilateral'].includes(target.type)?near(c.rightLength,target.rightLength):near(c.angle,target.angle,2)))};
+ }
+ function labSolution(d){
+  const st=labEmpty(),A=st.points[0],B=st.points[1];
+  if(d.type==='build-rectangle'||d.type==='build-square'){st.points.push([B[0],B[1]-40*d.length],[A[0],A[1]-40*d.length]);st.segments.push([1,2],[2,3],[3,0]);return st}
+  st.points.push(polar(...A,40*d.length,d.angle));st.segments.push([0,2],[1,2]);
+  if(d.type==='build-sss'||d.type==='build-equilateral')st.circles.push({i:0,r:40*d.length},{i:1,r:40*d.rightLength});
+  return st;
  }
 
-const model={labEmpty,labSnap,labCheck,MODES,LEVELS,YEARS,FAMILIES,settings,types,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
+const model={labEmpty,labSnap,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
 if(typeof module==='object'&&module.exports){module.exports=model;return}
 const G=root.TT99Goodies;if(!G)return;G.angles=model;
 const {q,qa,esc,field,btn,setPanels}=G,CK=G.challengeKit;
@@ -199,14 +229,19 @@ function diagram(d,teacher=false,options={}){
  function corner(points,i,label){const p=points[i],prev=points[(i+points.length-1)%points.length],next=points[(i+1)%points.length],dir=v=>mod(Math.atan2(p[1]-v[1],v[0]-p[0])/D);let start=dir(prev),v=mod(dir(next)-start);if(v>180){start=dir(next);v=360-v}labelArc(...p,Math.min(38,Math.hypot(next[0]-p[0],next[1]-p[1])*.22,Math.hypot(prev[0]-p[0],prev[1]-p[1])*.22),start,v,label)}
  function fit(points){const xs=points.map(p=>p[0]),ys=points.map(p=>p[1]),minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys),s=Math.min(540/Math.max(1,maxX-minX),300/Math.max(1,maxY-minY));return points.map(([x,y])=>[400+(x-(minX+maxX)/2)*s,210+(y-(minY+maxY)/2)*s])}
  function polygonFrame(points,pad=76){const xs=points.map(p=>p[0]),ys=points.map(p=>p[1]),x=Math.min(...xs)-pad,y=Math.min(...ys)-pad;return frame(x,y,Math.max(...xs)-x+pad,Math.max(...ys)-y+pad)}
- if(mode==='construct'&&d.labDrawing){
-   const st=d.labDrawing;for(let gx=20;gx<=780;gx+=40)line([gx,22],[gx,342],'#e0e9e6',1);for(let gy=22;gy<=342;gy+=40)line([20,gy],[780,gy],'#e0e9e6',1);
+ if(mode==='construct'&&(d.labDrawing||teacher&&labTypes.includes(d.type))){
+   const st=d.labDrawing||labSolution(d),free=st.given===false,ww=free?1000:800,hh=free?640:400;for(let gx=20;gx<=ww-20;gx+=40)line([gx,22],[gx,hh-18],'#e0e9e6',1);for(let gy=22;gy<=hh-18;gy+=40)line([20,gy],[ww-20,gy],'#e0e9e6',1);
    for(const c of st.circles)add('circle',{cx:st.points[c.i][0],cy:st.points[c.i][1],r:c.r,fill:'none',stroke:orange,'stroke-width':1.8,'stroke-dasharray':'5 4'});
    for(const r of st.rays)line(st.points[r.i],polar(...st.points[r.i],1200,r.angle),teal,1.8,{'stroke-dasharray':'7 5'});
-   line(st.points[0],st.points[1],ink,4);text(460,330,'6 cm',20);
-   for(const [i,j] of st.segments)line(st.points[i],st.points[j],teal,3);
-   st.points.forEach((p,i)=>{circle(p,4);text(p[0]+(i===0?-14:i===1?14:0),p[1]+(i<2?17:-13),String.fromCharCode(65+i),20)});
-   return frame(0,0,800,400);
+   if(!free){line(st.points[0],st.points[1],ink,4);text(460,330,'6 cm',20)}
+   for(const [i,j] of st.segments){const a=st.points[i],b=st.points[j];line(a,b,teal,3);if(!free)text((a[0]+b[0])/2,(a[1]+b[1])/2-12,round(labDist(a,b)/40)+' cm',18,{'paint-order':'stroke',stroke:'#fff','stroke-width':4})}
+   st.points.forEach((p,i)=>{circle(p,4);text(p[0]+(!free&&i===0?-14:!free&&i===1?14:0),p[1]+(!free&&i<2?17:-13),String.fromCharCode(65+i),20)});
+   if(!free&&d.type==='shape-build'||!free&&d.type==='build-right')labelArc(...st.points[0],38,0,d.angle,d.angle+'°');
+   if(!free&&['build-rectangle','build-square'].includes(d.type)){for(let i=0;i<4;i++){const p=st.points[i],u=st.points[(i+1)%4],v=st.points[(i+3)%4],a=polar(...p,16,labAngle(p,u)),b=polar(...p,16,labAngle(p,v));path('M '+a.join(' ')+' L '+[a[0]+b[0]-p[0],a[1]+b[1]-p[1]].join(' ')+' L '+b.join(' '),{stroke:teal,'stroke-width':2})}}
+   return frame(0,0,ww,hh);
+ }
+ if(mode==='construct'&&labTypes.includes(d.type)&&!teacher){
+   add('rect',{x:24,y:24,width:752,height:370,fill:'#fff',stroke:'#dce8e4','stroke-width':1.5,'stroke-dasharray':'5 5'});return frame(0,0,800,420);
  }
  if(mode==='construct'){
    const show=teacher||explore||options.attempt!=null,aa=teacher||explore?a:options.attempt??0,l=teacher||explore?d.length:options.length??0;
@@ -242,11 +277,11 @@ function diagram(d,teacher=false,options={}){
  return svg
 }
 function geometry(t){return {...t,mode:t.geometryMode||FAMILIES.find(f=>f[0]===t.type)?.[2]||t.mode}}
-function paper(item,teacher){const d=geometry(item.data);if(item.kind==='diagram')return diagram(d,true,{scale:d.scale});let prompt=d.prompt;if(d.choices)prompt+=' Choices: '+d.choices.join(' / ')+'.';return G.exportTools.composeWorksheetCardSvg(diagram(d,teacher,{scale:['measure','reflex'].includes(d.type)||teacher&&['draw','draw-reflex'].includes(d.type)}),{title:'Angles & geometry',prompt,responseMode:['draw','draw-reflex','shape-build'].includes(d.type)?'none':d.choices?'lines':'box',responseLines:1,responseLabel:'Answer',paperStyle:'plain',answer:d.answer,showAnswer:teacher})}
-if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>types(s),title:item=>FAMILIES.find(t=>t[0]===item.data.type)?.[1]||'Angle illustration',recipe:(s,type)=>({...settings(s),type}),generate,signature:d=>JSON.stringify([d.type,d.angle,d.angles,d.rotation,d.clockwise,d.n,d.regular,d.shape,d.relation,d.length]),capture:s=>[G.publishing.record(ID,s.task?'challenge':'diagram',s.task?{...geometry(s.task),revealed:false}:s.demo)],render:paper,answerSummary:item=>item.data.answer,answerGraphic:item=>diagram(geometry(item.data),true,{scale:['measure','draw','draw-reflex','reflex'].includes(item.data.type)}),answerNote:item=>item.data.note||''});
+function paper(item,teacher){const d=geometry(item.data);if(item.kind==='diagram')return diagram(d,true,{scale:d.scale});let prompt=d.prompt;if(labTypes.includes(d.type))prompt+=' On paper, draw AB = 6 cm first using your ruler. Use your geometry set in the working space.';if(d.choices)prompt+=' Choices: '+d.choices.join(' / ')+'.';return G.exportTools.composeWorksheetCardSvg(diagram(d,teacher,{scale:['measure','reflex'].includes(d.type)||teacher&&['draw','draw-reflex'].includes(d.type)}),{title:'Angles & geometry',prompt,responseMode:(['draw','draw-reflex'].includes(d.type)||labTypes.includes(d.type))?'none':d.choices?'lines':'box',responseLines:1,responseLabel:'Answer',paperStyle:'plain',answer:d.answer,showAnswer:teacher})}
+if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>types(s),title:item=>FAMILIES.find(t=>t[0]===item.data.type)?.[1]||'Angle illustration',recipe:(s,type)=>({...settings(s),type}),generate,signature:d=>JSON.stringify([d.type,d.angle,d.angles,d.rotation,d.clockwise,d.n,d.regular,d.shape,d.relation,d.length,d.rightLength]),capture:s=>[G.publishing.record(ID,s.task?'challenge':'diagram',s.task?{...geometry(s.task),revealed:false}:s.demo)],render:paper,answerSummary:item=>item.data.answer,answerGraphic:item=>diagram(geometry(item.data),true,{scale:['measure','draw','draw-reflex','reflex'].includes(item.data.type)}),answerNote:item=>item.data.note||''});
 
- function mountLab(box,initial,onChange){
-  let st=initial||labEmpty(),corner=0,tool='segment',first=null,aligned=null,hover=null,history=[],snap=true,measure=true,grid=true,drag=null;
+ function mountLab(box,initial,onChange,{free=false}={}){
+  const ww=free?1000:800,hh=free?640:400;let st=initial||labEmpty(free),corner=0,tool='segment',first=null,aligned=null,hover=null,history=[],snap=true,measure=true,grid=true,drag=null;
   const clone=x=>JSON.parse(JSON.stringify(x)),save=()=>history.push(clone(st)),N='http://www.w3.org/2000/svg';
   const toolbar=document.createElement('div');toolbar.className='gd-ag-lab-toolbar';toolbar.setAttribute('aria-label','Construction tools');
   const instruments=document.createElement('div');instruments.className='gd-ag-lab-tools';instruments.setAttribute('role','group');instruments.setAttribute('aria-label','Drawing instruments');
@@ -254,7 +289,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
   const actions=document.createElement('div');actions.className='gd-ag-lab-actions';actions.setAttribute('role','group');actions.setAttribute('aria-label','Drawing actions');
   const options=document.createElement('div');options.className='gd-ag-lab-options';options.setAttribute('role','group');options.setAttribute('aria-label','Drawing assistance');
   helpers.append(actions,options);toolbar.append(instruments,helpers);
-  const svg=document.createElementNS(N,'svg');svg.setAttribute('viewBox','0 0 800 400');svg.style.cssText='width:100%;max-height:480px;display:block;touch-action:none;user-select:none;background:white;border:1px solid #cbded8;border-radius:8px';
+  const svg=document.createElementNS(N,'svg');svg.setAttribute('viewBox','0 0 '+ww+' '+hh);svg.classList.add('gd-ag-lab-canvas');svg.style.cssText='width:100%;max-height:'+(free?'820':'620')+'px;display:block;touch-action:none;user-select:none;background:white;border:1px solid #cbded8;border-radius:8px';
   const hint=document.createElement('p');hint.className='gd-help';hint.style.cssText='text-align:center;min-height:24px;margin:5px 0';
   box.replaceChildren(toolbar,svg,hint);
   const icons={
@@ -282,7 +317,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
   const cornerButton=button('corner','Corner','Change set square corner',()=>{corner=(corner+1)%3;paint()});
   button('flip','Flip','Flip instrument',()=>{if(aligned!==null){aligned=mod(aligned+180);paint()}}).dataset.agFlip='1';
   const undoButton=button('undo','Undo','Undo last drawing action',()=>{if(history.length){st=history.pop();first=null;aligned=null;changed()}});
-  button('reset','Reset','Reset construction',()=>{save();st=labEmpty();first=null;aligned=null;changed()});
+  button('reset','Reset','Reset construction',()=>{save();st=labEmpty(free);first=null;aligned=null;changed()});
   for(const [id,label,get,set] of [['snap','Snap',()=>snap,v=>snap=v],['measure','Measurements',()=>measure,v=>measure=v],['grid','Grid',()=>grid,v=>grid=v]]){
    const l=document.createElement('label');l.className='gd-ag-lab-option';const input=document.createElement('input');input.type='checkbox';input.checked=get();input.onchange=()=>{set(input.checked);paint()};const t=document.createElement('span');t.textContent=label;l.append(input,icon(id),t);options.append(l);
   }
@@ -322,11 +357,11 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
   function paint(){
    cornerButton.hidden=!tool.startsWith('square');const flip=toolbar.querySelector('[data-ag-flip]');flip.hidden=!angleTool()||aligned===null;
    buttons.forEach(([id,b])=>{b.classList.toggle('gd-btn--primary',id===tool);b.setAttribute('aria-pressed',String(id===tool))});undoButton.disabled=history.length===0;
-   svg.replaceChildren();el('rect',{width:800,height:400,fill:'#fff'});
-   if(grid){for(let x=20;x<800;x+=40)line([x,22],[x,342],'#e1ebe6',1);for(let y=22;y<=342;y+=40)line([20,y],[780,y],'#e1ebe6',1)}
+   svg.replaceChildren();el('rect',{width:ww,height:hh,fill:'#fff'});
+   if(grid){for(let x=20;x<ww;x+=40)line([x,22],[x,hh-18],'#e1ebe6',1);for(let y=22;y<=hh-18;y+=40)line([20,y],[ww-20,y],'#e1ebe6',1)}
    for(const c of st.circles)circle(st.points[c.i],c.r,'#a97830','none','5 4');
    for(const r of st.rays)line(st.points[r.i],polar(...st.points[r.i],1200,r.angle),'#63978a',1.8,'7 5');
-   line(st.points[0],st.points[1],'#283f3a',4);text([460,330],'6 cm');
+   if(st.given!==false&&st.points.length>=2){line(st.points[0],st.points[1],'#283f3a',4);text([460,330],'6 cm')}
    for(const [i,j] of st.segments)segment(st.points[i],st.points[j]);
    if(angleTool()&&first!==null&&aligned!==null)instrument(st.points[first],aligned);
    if(hover){const hit=magnetic(hover,drag??-1),p=hit.p;
@@ -337,7 +372,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
     }
     if(hit.kind){circle(p,12,'#2e9982','#d5eee5');circle(p,3,'#2e9982','#2e9982');text([p[0],p[1]-18],hit.kind,'#287b69',12)}
    }
-   st.points.forEach((p,i)=>{circle(p,i===first?7:5,'white',i<2?'#28413d':'#287f6c');text([p[0]+(i===0?-14:i===1?14:0),p[1]+(i<2?17:-13)],String.fromCharCode(65+i))});
+   st.points.forEach((p,i)=>{circle(p,i===first?7:5,'white',st.given!==false&&i<2?'#28413d':'#287f6c');text([p[0]+(i===0?-14:i===1?14:0),p[1]+(i<2?17:-13)],String.fromCharCode(65+i))});
    hint.textContent=angleTool()?(first===null?'Tap a vertex to place the instrument.':aligned===null?'Tap along the reference edge to align the instrument.':'Choose a direction on the instrument to draw a ray.'):tool==='move'?'Drag a movable point.':tool==='point'?'Tap a point or a highlighted intersection.':tool==='erase'?'Tap a drawn point, line or circle to erase.':first===null?'Tap the starting point.':'Touch, slide to refine, then release to place.';
   }
   function coords(e){const m=svg.getScreenCTM();if(!m)return null;return new DOMPoint(e.clientX,e.clientY).matrixTransform(m.inverse())}
@@ -347,8 +382,8 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    place(p,e);
   });
   function place(p,e){
-   if(tool==='move'){const i=nearest(p);if(i>=2){save();drag=i;try{svg.setPointerCapture(e.pointerId)}catch(_){}}return}
-   if(tool==='erase'){const i=nearest(p);if(i>=2){save();st.points.splice(i,1);st.segments=st.segments.filter(l=>!l.includes(i)).map(l=>l.map(j=>j>i?j-1:j));for(const k of ['rays','circles'])st[k]=st[k].filter(r=>r.i!==i).map(r=>({...r,i:r.i>i?r.i-1:r.i}));changed();return}
+   if(tool==='move'){const i=nearest(p);if(i>=(st.given===false?0:2)){save();drag=i;try{svg.setPointerCapture(e.pointerId)}catch(_){}}return}
+   if(tool==='erase'){const i=nearest(p);if(i>=(st.given===false?0:2)){save();st.points.splice(i,1);st.segments=st.segments.filter(l=>!l.includes(i)).map(l=>l.map(j=>j>i?j-1:j));for(const k of ['rays','circles'])st[k]=st[k].filter(r=>r.i!==i).map(r=>({...r,i:r.i>i?r.i-1:r.i}));changed();return}
     const distanceTo=(a,b,ray=false)=>{const v=labSub(b,a),t=labDot(labSub(p,a),v)/(labDot(v,v)||1);return labDist(p,labAt(a,v,Math.max(0,ray?t:Math.min(1,t))))};
     let k=st.segments.findIndex(([i,j])=>distanceTo(st.points[i],st.points[j])<tolerance());if(k>=0){save();st.segments.splice(k,1)}else{k=st.rays.findIndex(r=>distanceTo(st.points[r.i],polar(...st.points[r.i],1,r.angle),true)<tolerance());if(k>=0){save();st.rays.splice(k,1)}else{k=st.circles.findIndex(c=>Math.abs(labDist(p,st.points[c.i])-c.r)<tolerance());if(k>=0){save();st.circles.splice(k,1)}}}changed();return;
    }
@@ -362,7 +397,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    else if(tool==='ray'||angleTool()){const a=angleTool()?selectedAngle(o,p):Math.round(labAngle(o,magnetic(p).p));st.rays.push({i:first,angle:a})}
    first=null;aligned=null;hover=null;changed();
   }
-  svg.addEventListener('pointermove',e=>{const z=coords(e);if(!z)return;hover=[z.x,z.y];if(drag!==null){const p=[Math.max(5,Math.min(795,z.x)),Math.max(5,Math.min(395,z.y))];st.points[drag]=magnetic(p,drag).p.slice();changed()}else paint()});
+  svg.addEventListener('pointermove',e=>{const z=coords(e);if(!z)return;hover=[z.x,z.y];if(drag!==null){const p=[Math.max(5,Math.min(ww-5,z.x)),Math.max(5,Math.min(hh-5,z.y))];st.points[drag]=magnetic(p,drag).p.slice();changed()}else paint()});
   svg.addEventListener('pointerup',e=>{if(placing===e.pointerId){placing=null;const z=coords(e);if(z)place([z.x,z.y],e)}drag=null;paint()});
   const cancel=()=>{placing=null;drag=null;paint()};svg.addEventListener('pointercancel',cancel);svg.addEventListener('lostpointercapture',cancel);
   paint();
@@ -400,13 +435,13 @@ G.anglesTool=function(){
   qa('[data-ag-workflow]',host).forEach(b=>b.onclick=()=>{workflow=b.dataset.agWorkflow;if(workflow==='build'){task=null;attempt=null;scope=''}render()});
   qa('[data-ag-challenge-mode]',host).forEach(b=>b.onclick=()=>{scope='';launch(b.dataset.agChallengeMode)});
   const bind=(id,fn)=>{const el=q('#'+id,host);if(el)el.onchange=e=>{fn(e.target);render()}};
-  bind('ag-year',e=>cfg.year=e.value);bind('ag-level',e=>cfg.level=e.value);bind('ag-enrich',e=>cfg.enrichment=e.checked);bind('ag-mode',e=>{demo.mode=e.value;cfg.mode=e.value});bind('ag-value',e=>demo.angle=+e.value);bind('ag-rotation',e=>demo.rotation=+e.value);bind('ag-scale',e=>demo.scale=e.checked);bind('ag-direction',e=>demo.clockwise=e.value==='cw');bind('ag-sides',e=>demo.n=+e.value);bind('ag-regular',e=>demo.regular=e.checked);bind('ag-triangulate',e=>demo.triangulate=e.checked);bind('ag-corners',e=>demo.showCorners=e.checked);bind('ag-length',e=>demo.length=+e.value);bind('ag-free-lab',e=>demo.freeLab=e.checked);bind('ag-fact',e=>demo.fact=e.value);bind('ag-relation',e=>demo.relation=e.value);
+  bind('ag-year',e=>cfg.year=e.value);bind('ag-level',e=>cfg.level=e.value);bind('ag-enrich',e=>cfg.enrichment=e.checked);bind('ag-mode',e=>{demo.mode=e.value;cfg.mode=e.value;if(e.value==='construct'&&demo.freeLab==null)demo.freeLab=true});bind('ag-value',e=>demo.angle=+e.value);bind('ag-rotation',e=>demo.rotation=+e.value);bind('ag-scale',e=>demo.scale=e.checked);bind('ag-direction',e=>demo.clockwise=e.value==='cw');bind('ag-sides',e=>demo.n=+e.value);bind('ag-regular',e=>demo.regular=e.checked);bind('ag-triangulate',e=>demo.triangulate=e.checked);bind('ag-corners',e=>demo.showCorners=e.checked);bind('ag-length',e=>demo.length=+e.value);bind('ag-free-lab',e=>demo.freeLab=e.checked);bind('ag-fact',e=>demo.fact=e.value);bind('ag-relation',e=>demo.relation=e.value);
   for(const kind of ['copy','png','svg','print',...(task?['key-copy','key-print']:[])]){let el=q('#ag-'+kind,host);if(!el){el=document.createElement('button');el.hidden=true;el.type='button';host.appendChild(el)}el.setAttribute('data-gd-direct-export',kind);el.onclick=()=>exportAction(kind)}
   const ad=q('#ag-add',host);if(ad)ad.onclick=()=>publish(false);const ba=q('#ag-batch',host);if(ba)ba.onclick=()=>publish(true);const re=q('#ag-review',host);if(re)re.onclick=()=>{const P=G.publishing;if(P){draft=draft||P.createDocument();P.openEditor(draft)}};
  }
- function demoData(){if(demo.mode==='facts'){const f=demo.fact||'straight',a=Math.max(10,Math.min(170,demo.angle));return {...demo,type:f,angles:f==='straight'?[a,180-a]:f==='point'?[a,90,270-a]:[a,180-a,a,180-a]}}if(demo.mode==='lines')return {...demo,angle:demo.relation==='Parallel'?0:demo.relation==='Perpendicular'?90:Math.max(10,Math.min(80,demo.angle)),relation:demo.relation||'Neither'};if(demo.mode==='construct')return {...demo,angle:Math.max(10,Math.min(170,demo.angle)),labDrawing:demo.freeLab?freeLab||labEmpty():null};return demo}
- function stage(){const host=q('#gd-stage'),draw=['draw','draw-reflex'].includes(task?.type),build=task?.type==='shape-build',construct=draw||build,d=task?geometryTask(task):demoData(),teacher=!task||task.revealed;
-  const pupil=construct?CK.pupilSpec('model',{hint:draw?'Drag the orange arm to the correct graduation, then check.':'Use the geometry tools to construct the triangle, then check.',ready:()=>build?labCheck(lab||labEmpty(),task).ready:attempt!==null,check:()=>build?labCheck(lab||labEmpty(),task).correct:Math.abs(attempt-task.angle)<=1}):task?.choices?CK.pupilSpec('choice',{choices:task.choices,expected:task.answer}):CK.pupilSpec('number');
+ function demoData(){if(demo.mode==='facts'){const f=demo.fact||'straight',a=Math.max(10,Math.min(170,demo.angle));return {...demo,type:f,angles:f==='straight'?[a,180-a]:f==='point'?[a,90,270-a]:[a,180-a,a,180-a]}}if(demo.mode==='lines')return {...demo,angle:demo.relation==='Parallel'?0:demo.relation==='Perpendicular'?90:Math.max(10,Math.min(80,demo.angle)),relation:demo.relation||'Neither'};if(demo.mode==='construct')return {...demo,angle:Math.max(10,Math.min(170,demo.angle)),labDrawing:demo.freeLab?freeLab||labEmpty(true):null};return demo}
+ function stage(){const host=q('#gd-stage'),draw=['draw','draw-reflex'].includes(task?.type),build=labTypes.includes(task?.type),construct=draw||build,d=task?geometryTask(task):demoData(),teacher=!task||task.revealed;
+  const pupil=construct?CK.pupilSpec('model',{hint:draw?'Drag the orange arm to the correct graduation, then check.':'Use the geometry tools to complete the shape, then check.',ready:()=>build?labCheck(lab||labEmpty(),task).ready:attempt!==null,check:()=>build?labCheck(lab||labEmpty(),task).correct:Math.abs(attempt-task.angle)<=1}):task?.choices?CK.pupilSpec('choice',{choices:task.choices,expected:task.answer}):CK.pupilSpec('number');
   host.innerHTML=(task?CK.bannerHtml(task,{pupil,actions:[{action:'another',label:'Another'},{action:'end',label:'Exit challenge'}]}):'')+'<div class="gd-ag-visual" style="width:100%;max-width:920px;margin:0 auto"></div>';
   const box=q('.gd-ag-visual',host);
   // Capture on the persistent wrapper: the SVG may be replaced on every
@@ -445,7 +480,7 @@ G.anglesTool=function(){
   function endDrag(e){if(!drag||e.pointerId!==drag.id)return;drag=null;try{if(box.hasPointerCapture(e.pointerId))box.releasePointerCapture(e.pointerId)}catch(_){}}
   box.addEventListener('pointerup',endDrag);box.addEventListener('pointercancel',endDrag);box.addEventListener('lostpointercapture',endDrag);
   function setAngle(v){attempt=Math.max(0,Math.min(task?.type==='draw-reflex'?360:180,Math.round(v)));drawSvg();const el=q('#ag-attempt',host);if(el)el.textContent=draw?'Arm positioned':attempt+'°';CK.refreshModelPupil(task)}
-  if(build&&!task.revealed)mountLab(box,lab,v=>{lab=v;CK.refreshModelPupil(task)});else if(!task&&demo.mode==='construct'&&demo.freeLab)mountLab(box,freeLab,v=>{freeLab=v});else drawSvg();
+  if(build&&!task.revealed){box.style.maxWidth='1200px';mountLab(box,lab,v=>{lab=v;CK.refreshModelPupil(task)})}else if(!task&&demo.mode==='construct'&&demo.freeLab){box.style.maxWidth='none';mountLab(box,freeLab,v=>{freeLab=v},{free:true})}else drawSvg();
   if(draw&&!task.revealed){const row=document.createElement('div');row.className='gd-row';row.style.cssText='justify-content:center;flex-wrap:wrap;padding:8px;gap:8px';row.innerHTML='<span>Angle</span><button class="gd-btn" data-ag-adjust="-10">−10°</button><button class="gd-btn" data-ag-adjust="-1">−1°</button><strong id="ag-attempt">'+(draw?(attempt===null?'Move the arm':'Arm positioned'):(attempt===null?'—':attempt+'°'))+'</strong><button class="gd-btn" data-ag-adjust="1">+1°</button><button class="gd-btn" data-ag-adjust="10">+10°</button>'+(build?'<label>AC (cm) '+select('ag-attempt-length',[['','Choose'],...Array.from({length:7},(_,i)=>[i+1,i+1])],attemptLength??'')+'</label>':'');host.appendChild(row);qa('[data-ag-adjust]',row).forEach(b=>b.onclick=()=>setAngle((attempt??0)+Number(b.dataset.agAdjust)));const l=q('#ag-attempt-length',row);if(l)l.onchange=()=>{attemptLength=l.value===''?null:+l.value;drawSvg();CK.refreshModelPupil(task)}}
   if(task){q('[data-challenge-action="another"]',host).onclick=()=>{const current=task.type;if(scope==='all')launch('all');else if(scope.startsWith('category:')){const group=scope.slice(9),a=types(cfg).filter(t=>t.mode===group);launch(a.length?pick(Math.random,a).id:current)}else launch(current)};q('[data-challenge-action="end"]',host).onclick=()=>{task=null;attempt=null;scope='';workflow='build';render()};const reveal=q('[data-board-action="reveal"]',host);if(reveal)reveal.onclick=()=>{task.revealed=!task.revealed;stage()}}
   else {
