@@ -972,7 +972,7 @@ async function run(){
     const graphic=TT99Goodies.publishing.answerGraphic(straight.list()[0]);
     const marks=[...graphic.querySelectorAll('[data-ag-angle-mark]')],labels=[...graphic.querySelectorAll('[data-ag-angle-label]')];
     assert(marks.length===2&&marks[0].getAttribute('data-ag-radius')!==marks[1].getAttribute('data-ag-radius'),'Adjacent angle arcs have distinct radii');
-    assert(labels.length===2&&labels.every(n=>+n.getAttribute('font-size')===18),'Geometry labels use restrained consistent size');
+    assert(labels.length===2&&labels.every(n=>+n.getAttribute('font-size')===29),'Print geometry labels retain a consistent readable size');
 
     
     doc.querySelector('[data-ag-workflow="challenge"]').click();await tick();
