@@ -1680,7 +1680,10 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const M=win.TT99Goodies.angles,scene={...M.labEmpty(true),points:[[0,200],[200,200],[400,200],[100,300],[300,100],[500,200]],names:['A','E','D','B','C','F'],segments:[],rays:[{i:0,angle:0,construction:true},{i:3,angle:45,construction:true}],showConstruction:true};
       const sectors=M.labAngleSectors(scene,1);assert(sectors.length===4&&Math.abs(sectors.reduce((sum,x)=>sum+x.sweep,0)-360)<1e-6,'Crossing rays expose four adjacent sectors without duplicate collinear arms');
       scene.showConstruction=false;assert(!M.labAngleSectors(scene,1).length,'Hidden construction does not create ghost angles');
-      const initial=cap().demo.labDrawing;tapWork([150,150]);doc.querySelector('[data-ag-choose-angle]').click();
+      const beforeSector=cap().demo.labDrawing;assert(M.labAngleSectors(beforeSector,0).length===0,'A single connected arm does not offer an angle');
+      doc.querySelector('[data-ag-tool="segment"]').click();lineTap([150,150]);lineTap([450,150]);
+      const initial=cap().demo.labDrawing;assert(M.labAngleSectors(initial,0).length===1,'Explicitly connected baseline and diagonal form one minor angle');
+      doc.querySelector('[data-ag-tool="select"]').click();tapWork([150,150]);doc.querySelector('[data-ag-choose-angle]').click();
       const ghost=work.querySelector('[data-ag-ghost-angle]');assert(ghost&&work.querySelectorAll('[data-ag-angle-choice]').length===1,'Two connected arms offer one minor-angle choice');
       const pending=P.createDocument();pending.addCurrent(id,cap());assert(!P.renderItem(pending.list()[0],false).querySelector('[data-ag-ghost-angle]'),'Ghost sectors never enter published drawings');
       const sector=M.labAngleSectors(initial,0)[0],o=initial.points[0],r=42/G.instruments.screenScale(work),a=(sector.from+sector.sweep/2)*Math.PI/180;tapWork([o[0]+r*Math.cos(a),o[1]-r*Math.sin(a)]);
@@ -1690,6 +1693,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(work.querySelector('[data-ag-annotation-value]').textContent==='x','Selected angle supports symbolic label');
       doc.querySelector('[data-ag-tool="undo"]').click();doc.querySelector('[data-ag-tool="undo"]').click();
       assert(!cap().demo.labDrawing.angleNotation?.length&&JSON.stringify(cap().demo.labDrawing.points)===JSON.stringify(initial.points),'Undo restores original geometry');
+      doc.querySelector('[data-ag-tool="undo"]').click();assert(JSON.stringify(cap().demo.labDrawing.segments)===JSON.stringify(beforeSector.segments),'Remove temporary baseline to restore shared fixture');
     }
     // A ray through two named vertices must not round the exact direction.
     {
