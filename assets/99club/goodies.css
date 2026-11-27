@@ -2632,3 +2632,7 @@ html.gd-embed-page #tt99-goodies-root #gd-stage:has(>.gd-ag-shape-reference){ove
 
 #tt99-goodies-root :is([data-ag-basic-area-graphic],[data-ag-pythagoras-squares]){display:block;width:100%;max-width:500px;margin:8px auto}
 #tt99-goodies-root [data-ag-pythagoras-details]{margin-top:12px;border-top:1px solid #dbe7e3;padding-top:8px}
+
+#tt99-goodies-root [data-ag-classification-picture]{display:block;width:100%;max-width:420px;margin:0 auto}
+#tt99-goodies-root :is([data-ag-family-more],[data-ag-triangle-family-more]){margin-top:10px;border-top:1px solid #dbe7e3;padding-top:8px}
+#tt99-goodies-root :is([data-ag-family-key],[data-ag-triangle-family-result]){font-size:1.05rem;font-weight:700;text-align:center}
