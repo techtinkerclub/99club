@@ -1203,10 +1203,10 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
  }
  // A point is its exact mathematical centre, not the edge of its visual dot.
  // Draw a small screen-sized, non-interactive cue above transparent instruments.
- function pointCentreCue(svg,p,name){
+ function pointCentreCue(svg,p,name,angle=null){
    const m=svg.getScreenCTM(),scale=Math.max(.001,Math.hypot(m?.a||1,m?.b||0)),arm=4/scale;
-   const g=document.createElementNS('http://www.w3.org/2000/svg','g');g.setAttribute('data-ag-point-centre',name);g.setAttribute('transform','translate('+p[0]+' '+p[1]+')');g.setAttribute('pointer-events','none');g.setAttribute('aria-hidden','true');
-   for(const [stroke,width] of [['#fff',3],['#28413d',1.15]]){const line=document.createElementNS(g.namespaceURI,'path');line.setAttribute('d','M '+(-arm)+' 0 H '+arm+' M 0 '+(-arm)+' V '+arm);line.setAttribute('fill','none');line.setAttribute('stroke',stroke);line.setAttribute('stroke-width',width);line.setAttribute('vector-effect','non-scaling-stroke');line.setAttribute('stroke-linecap','round');g.append(line)}
+   const g=document.createElementNS('http://www.w3.org/2000/svg','g');g.setAttribute('data-ag-point-centre',name);g.setAttribute('transform','translate('+p[0]+' '+p[1]+') rotate('+(-(angle??0))+')');g.setAttribute('data-ag-centre-direction',angle===null?'neutral':String(angle));g.setAttribute('pointer-events','none');g.setAttribute('aria-hidden','true');
+   for(const [stroke,width] of [['#fff',3],['#28413d',1.15]]){const line=document.createElementNS(g.namespaceURI,'path');const along=angle===null?arm:arm*.45;line.setAttribute('d','M '+(-along)+' 0 H '+along+' M 0 '+(-arm)+' V '+arm);line.setAttribute('fill','none');line.setAttribute('stroke',stroke);line.setAttribute('stroke-width',width);line.setAttribute('vector-effect','non-scaling-stroke');line.setAttribute('stroke-linecap','round');g.append(line)}
    svg.append(g);
  }
  function measuringUtensils(parent,getSvg,onPaint,getDrawing){
@@ -1251,15 +1251,17 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    function finish(e){if(drag?.id!==e.pointerId)return;const {t,candidate}=drag;if(e.type==='pointerup'&&candidate){if(candidate.x!==undefined){t.x=candidate.x;t.y=candidate.y}if(candidate.angle!==undefined)t.angle=candidate.angle;if(candidate.reading!==undefined)t.reading=candidate.reading}drag=null;e.stopImmediatePropagation();onPaint()}
    const svg=getSvg();svg.addEventListener('pointerdown',down,true);svg.addEventListener('pointermove',move,true);for(const type of ['pointerup','pointercancel','lostpointercapture'])svg.addEventListener(type,finish,true);
    function nearMeasuringEdge(p){
-     if(!visible)return false;
-     const m=getSvg().getScreenCTM(),tol=Math.min(8,4/Math.max(.001,Math.hypot(m?.a||1,m?.b||0)));
-     return items.some(t=>{
+     if(!visible)return null;
+     const m=getSvg().getScreenCTM(),tol=Math.min(8,4/Math.max(.001,Math.hypot(m?.a||1,m?.b||0))),matches=[];
+     for(const t of items){
        const a=[t.x,t.y],b=polar(...a,t.size,t.angle);
-       const near=(u,v)=>{const d=labSub(v,u),k=Math.max(0,Math.min(1,labDot(labSub(p,u),d)/(labDot(d,d)||1)));return labDist(p,labAt(u,d,k))<=tol};
-       if(t.kind==='protractor')return near(polar(...a,t.size,t.angle+180),b);
-       if(t.kind.startsWith('square')){const c=polar(...a,t.size*(t.kind==='square30'?Math.sqrt(3):1),t.angle+90);return near(a,b)||near(a,c)||near(b,c)}
-       return near(a,b);
-     });
+       const near=(u,v)=>{const d=labSub(v,u),k=Math.max(0,Math.min(1,labDot(labSub(p,u),d)/(labDot(d,d)||1))),distance=labDist(p,labAt(u,d,k));if(distance<=tol)matches.push({angle:labAngle(u,v),distance,selected:t.id===selected})};
+       if(t.kind==='protractor')near(polar(...a,t.size,t.angle+180),b);
+       else if(t.kind.startsWith('square')){const c=polar(...a,t.size*(t.kind==='square30'?Math.sqrt(3):1),t.angle+90);near(a,b);near(a,c);near(b,c)}
+       else near(a,b);
+     }
+     matches.sort((a,b)=>Number(b.selected)-Number(a.selected)||a.distance-b.distance);
+     return matches[0]||null;
    }
    return {bar,paint,nearMeasuringEdge,toggle:()=>{opened=!opened;if(!opened)selected=null;onPaint()},isOpen:()=>opened};
  }
@@ -1508,14 +1510,20 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    st.points.forEach((p,i)=>{if(motion&&st.traceNames?.includes(st.names[i]))circle(p,10,'#b56d2c','none');if(regionPick.includes(i))circle(p,11,REGION_COLOURS[regionColour],'none');if(selection?.kind==='points'&&selection.index===i)circle(p,13,'#b45309','none');circle(p,i===first?6:4,'white',st.given!==false&&i<2?'#28413d':'#287f6c');const pos=labLabel(st,i);el('text',{x:pos[0],y:pos[1],fill:'#325a50','font-size':13,'text-anchor':'middle','dominant-baseline':'central','paint-order':'stroke',stroke:'#fff','stroke-width':3,'data-ag-point-label':st.names[i]},st.names[i])});
    if(utensils){utensils.paint(svg);utensilsButton.setAttribute('aria-expanded',String(utensils.isOpen()))}
    if(!panMode){
-     const activeIndices=new Set();
+     const activeIndices=new Set(),directions=new Map();
      if(first!==null)activeIndices.add(first);
      if(moving)activeIndices.add(moving.i);
      if(selection?.kind==='points')activeIndices.add(selection.index);
-     if(selection?.kind==='segments')for(const i of st.segments[selection.index]||[])activeIndices.add(i);
-     if(selection&&['rays','circles'].includes(selection.kind)){const item=st[selection.kind][selection.index];if(item)activeIndices.add(item.i)}
+     if(selection?.kind==='segments'){const edge=st.segments[selection.index];if(edge){const a=labAngle(st.points[edge[0]],st.points[edge[1]]);for(const i of edge){activeIndices.add(i);directions.set(i,a)}}}
+     if(selection&&['rays','circles'].includes(selection.kind)){const item=st[selection.kind][selection.index];if(item){activeIndices.add(item.i);if(selection.kind==='rays')directions.set(item.i,labRayAngle(st,item))}}
      if(hover){const i=nearest(hover);if(i>=0)activeIndices.add(i)}
-     st.points.forEach((p,i)=>{if(activeIndices.has(i)||utensils?.nearMeasuringEdge(p))pointCentreCue(svg,p,st.names[i])});
+     if(tool==='segment'&&first!==null&&hover){const p=magnetic(hover).p,a=st.points[first];if(labDist(a,p)>1e-7){const angle=labAngle(a,p);directions.set(first,angle);const i=st.points.findIndex(q=>labDist(q,p)<1e-7);if(i>=0){activeIndices.add(i);directions.set(i,angle)}else pointCentreCue(svg,p,'preview',angle)}}
+     st.points.forEach((p,i)=>{
+       const edge=utensils?.nearMeasuringEdge(p);if(!activeIndices.has(i)&&!edge)return;
+       let angle=directions.get(i)??edge?.angle??null;
+       if(angle===null){const incident=st.segments.filter(e=>e.includes(i)&&labVisible(st,'segments',e)).map(e=>labAngle(st.points[e[0]],st.points[e[1]]));if(st.given!==false&&i<2&&st.points.length>=2)incident.push(labAngle(st.points[0],st.points[1]));for(const ray of st.rays)if(ray.i===i&&labVisible(st,'rays',ray))incident.push(labRayAngle(st,ray));if(incident.length&&incident.every(a=>Math.abs(Math.sin((a-incident[0])*D))<1e-7))angle=incident[0]}
+       pointCentreCue(svg,p,st.names[i],angle);
+     });
    }
    G.instruments.adaptMarkings(svg);
    hint.textContent=panMode?'Drag to move around the drawing. Tap Pan again to resume '+(controls.find(c=>c[0]===tool)?.[1]||'drawing')+'.':tool==='move'?'Drag a vertex freely. Its connected geometry will follow.':tool==='trace'?'Tap a point to toggle tracing, then select Move.':tool==='select'?(notationMode?'Tap three points in order: arm, vertex, arm. '+notationPick.map(i=>st.names[i]).join(' → '):'Tap an object to select.'+(motion?' Drag points to move.':'')+(fullBoard?' Drag empty space to pan.':'')):tool==='shade'?(regionStatus||(shadeMode==='region'?'Tap inside a closed contour to shade or unshade.':'Tap vertices in perimeter order. ')+regionPick.map(i=>st.names[i]).join(' → ')+(regionPick.length>=3&&!validRegion(st.points,regionPick)?' · Invalid or crossing region.':'')):angleTool()?(first===null?'Tap a vertex to place the instrument.':aligned===null?'Tap along the reference edge to align the instrument.':'Choose a direction on the instrument to draw a ray.'):tool==='compass'?(arcMode?(first===null?'Tap arc centre.':arcStart===null?'Choose arc start and radius.':'Choose the arc end in the selected direction.'):keepOpening?'Radius: '+(aperture/LAB_UNIT).toFixed(1)+' cm · Tap a new centre to transfer the opening.':first===null?'Tap the centre of the circle.':hover?'Radius: '+(labDist(st.points[first],magnetic(hover).p)/LAB_UNIT).toFixed(1)+' cm · Release to draw.':'Touch and slide to set the radius.'):tool==='point'?'Tap a point or a highlighted intersection.':tool==='erase'?'Tap a drawn point, line or circle to erase.':first===null?'Tap the starting point.':'Touch, slide to refine, then release to place.';
