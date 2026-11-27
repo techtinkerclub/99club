@@ -2603,3 +2603,5 @@ html.gd-embed-page #tt99-goodies-root #gd-stage:has(>.gd-ag-shape-reference)::-w
 #tt99-goodies-root #gd-stage:has(>.gd-ag-shape-reference)>.gd-ag-visual>svg{max-height:clamp(240px,44vh,480px)!important}
 #tt99-goodies-root .gd-board-object.is-geometry-teaching-max>.gd-board-object-iframe{transform:none}
 @media(max-width:520px){#tt99-goodies-root [data-ag-teaching-tabs] button{flex-basis:110px;font-size:.78rem}#tt99-goodies-root [data-ag-shape-reference-body]{padding:0 6px 6px;gap:6px}}
+
+#tt99-goodies-root .gd-ag-polygon-proof{grid-column:1/-1}#tt99-goodies-root .gd-ag-polygon-proof [data-ag-polygon-proof-graphic]{width:100%;max-width:500px;display:block;margin:auto}#tt99-goodies-root .gd-ag-polygon-proof label{display:flex;align-items:center;gap:8px;flex-wrap:wrap}#tt99-goodies-root .gd-ag-polygon-proof p{font-size:15px;line-height:1.45;margin:8px 0}#tt99-goodies-root .gd-ag-polygon-proof .gd-row{justify-content:center;flex-wrap:wrap;gap:8px}
