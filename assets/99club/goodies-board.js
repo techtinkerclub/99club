@@ -491,33 +491,31 @@ function renderFloatingControls(obj){
       clone.prepend(back);
     }
   }
-  // Geometry's native catalogue is already grouped. Preserve local expansion
-  // without moving buttons out of their original category or losing proxy identity.
-  if(!compact&&obj.toolId==='angles'){
-    const previous=floatingControlsBody.firstElementChild;
-    if(previous?.dataset.agProxyObject===String(obj.id)){
-      const open=new Set([...previous.querySelectorAll('details[data-ag-section][open]')].map(el=>el.dataset.agSection));
-      clone.querySelectorAll('details[data-ag-section]').forEach(el=>el.open=open.has(el.dataset.agSection));
-    }
-    clone.dataset.agProxyObject=String(obj.id);
-  }
-  // Preserve locally opened sections on proxy refresh; controls still dispatch to the original.
-  if(!compact&&obj.toolId==='maths-canvas'&&floatingControlsBody.firstElementChild?.dataset.mcProxyObject===String(obj.id)){
-    const open=new Set([...floatingControlsBody.querySelectorAll('details[data-mc-section][open]')].map(el=>el.dataset.mcSection));
-    clone.querySelectorAll('details[data-mc-section]').forEach(el=>el.open=open.has(el.dataset.mcSection));
-  }
-  if(!compact&&obj.toolId==='maths-canvas')clone.dataset.mcProxyObject=String(obj.id);
+  // Keep disclosure state for the same object and inspector mode, without carrying
+  // it across unrelated widgets or hiding newly introduced sections by default.
+  const previous=floatingControlsBody.firstElementChild,samePanel=previous?.dataset.boardProxyObject===String(obj.id)&&previous?.dataset.boardProxyMode===floatingPanelMode;
+  const sections=host=>{
+    const counts=new Map();
+    return [...host.querySelectorAll('details')].map(el=>{
+      const summary=el.querySelector(':scope > summary'),stable=Object.entries(el.dataset).filter(([key])=>/section|group|topic/i.test(key)).sort(([a],[b])=>a.localeCompare(b));
+      const copy=summary?.cloneNode(true);copy?.querySelectorAll('small,span,[data-count]').forEach(n=>{if(/^\s*\(?\d+(?:\s*\/\s*\d+)?\)?\s*$/.test(n.textContent))n.remove()});
+      const key=el.id||JSON.stringify(stable.length?stable:[el.className,copy?.textContent.trim()||'']),index=counts.get(key)||0;counts.set(key,index+1);
+      return [key+'#'+index,el];
+    });
+  };
+  if(!compact&&samePanel){const states=new Map(sections(previous).map(([key,el])=>[key,el.open]));for(const [key,el] of sections(clone))if(states.has(key))el.open=states.get(key)}
+  clone.dataset.boardProxyObject=String(obj.id);clone.dataset.boardProxyMode=floatingPanelMode;
   // Use a signature that includes property values (not just innerHTML).
   const signature=JSON.stringify([obj.id,floatingPanelMode,isObjectPalette()?'object-palette':clone.innerHTML,sourceInputs.map(n=>[n.value,n.checked,n.disabled,n.isContentEditable?n.innerHTML:null])]);
   const structure=JSON.stringify(sourceInputs.map(n=>[n.tagName,n.id,n.type,n.name,{...n.dataset},n.tagName==='BUTTON'?n.textContent:null]));
   if(signature===floatingControlSignature&&floatingControlsBody.firstElementChild){floatingControlSources=sourceInputs;return}
   // Preserve an active input only when the new source has the same control identities.
   const active=document.activeElement;
-  if(structure===floatingControlStructure&&floatingControlsBody.contains(active)&&active.matches('input,textarea,[contenteditable="true"]')&&active.type!=='button'){
+  if(samePanel&&structure===floatingControlStructure&&floatingControlsBody.contains(active)&&active.matches('input,textarea,[contenteditable="true"]')&&active.type!=='button'){
     floatingControlSources=sourceInputs;return;
   }
   floatingControlSources=sourceInputs;floatingControlStructure=structure;
-  const scroll=floatingControlsBody.scrollTop;
+  const scroll=samePanel?floatingControlsBody.scrollTop:0;
   floatingControlsBody.replaceChildren(clone);
   floatingControlSignature=signature;
   floatingControlsBody.scrollTop=scroll;
