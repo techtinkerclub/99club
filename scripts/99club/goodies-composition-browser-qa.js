@@ -1350,6 +1350,22 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
     };
     {
       const N='http://www.w3.org/2000/svg',sample=doc.createElementNS(N,'svg');
+      sample.setAttribute('viewBox','-500 -500 1000 1000');sample.style.cssText='position:absolute;left:0;top:0;width:600px;height:600px;visibility:hidden;pointer-events:none';doc.body.append(sample);
+      const centreOf=n=>new win.DOMPoint(Number(n.getAttribute('x')),Number(n.getAttribute('y')));
+      for(const side of [-1,1]){const ruler=G.instruments.ruler(sample,{width:400,length:10,height:44,side,labelSize:11});for(const label of ruler.querySelectorAll('[data-me-ruler-label]')){const b=label.getBBox();assert(b.x>=-.1&&b.x+b.width<=400.1&&b.y>=Math.min(0,side*44)-.1&&b.y+b.height<=Math.max(0,side*44)+.1,'Ruler numerals fit inside physical body at both ends and on either side')}ruler.remove()}
+      for(const radius of [120,170,350])for(const direction of [-1,1]){
+        const g=G.instruments.protractor(sample,{radius,start:37,direction}),body=g.querySelector('path'),labels=[...g.querySelectorAll('[data-me-protractor-label]')];
+        assert(labels.length===38&&body.getAttribute('d').includes(' A '),'Protractor has a true circular outline and two complete scales');
+        for(const label of labels){const p=centreOf(label);assert(body.isPointInFill(p),'Protractor numeral centres lie within the semicircle on either side')}
+        g.remove();
+      }
+      for(const kind of ['square45','square30'])for(const corner of [0,1,2])for(const hand of [-1,1]){
+        const o=[0,0],{opening,other,last,v,w}=M.squareGeometry(o,37,kind,corner,hand),g=G.instruments.setSquare(sample,{points:[o,v,w],angles:[opening,other,last],kind,unitsPerCm:40}),body=g.querySelector('[data-me-square-body]');
+        for(const n of g.querySelectorAll('[data-me-square-label]'))assert(body.isPointInFill(centreOf(n))&&n.hasAttribute('transform'),'Set-square numerals sit on the solid rim and follow the edge');
+        for(const n of g.querySelectorAll('[data-me-square-mm]')){const x=Number(n.getAttribute('x1')),y=Number(n.getAttribute('y1')),xx=Number(n.getAttribute('x2')),yy=Number(n.getAttribute('y2'));if(Math.hypot(xx-x,yy-y)>1e-6)assert(body.isPointInFill(new win.DOMPoint(xx,yy)),'Set-square graduation ends remain inside the solid rim')}
+        g.remove();
+      }
+
       for(const [kind,pts,angles] of [['square45',[[0,0],[200,0],[0,200]],[90,45,45]],['square30',[[0,0],[200,0],[0,200*Math.sqrt(3)]],[90,60,30]]]){
         const g=G.instruments.setSquare(sample,{points:pts,angles,unitsPerCm:40,kind});
         assert(g.querySelector('[data-me-square-body]').getAttribute('fill-rule')==='evenodd','Set square has an open centre');
@@ -1359,6 +1375,16 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
           assert(Math.abs(Math.hypot(xy(ticks[1])[0]-xy(ticks[0])[0],xy(ticks[1])[1]-xy(ticks[0])[1])-4)<1e-6,'Set square tick spacing is exactly one millimetre');
         }
       }
+      sample.replaceChildren();
+      const ruler=G.instruments.ruler(sample,{width:400,length:10,height:44}),protractor=G.instruments.protractor(sample,{radius:170}),square=G.instruments.setSquare(sample,{points:[[0,0],[200,0],[0,-200]],angles:[90,45,45],kind:'square45',unitsPerCm:40});
+      const all=[...sample.querySelectorAll('[data-me-division],[data-me-protractor-degree],[data-me-square-mm]')],coordinates=all.map(n=>['x1','y1','x2','y2'].map(k=>n.getAttribute(k)).join(',')).join('|'),visible=(g,selector)=>[...g.querySelectorAll(selector)].filter(n=>n.getAttribute('display')!=='none').length;
+      G.instruments.adaptMarkings(sample,.1);
+      assert(visible(ruler,'[data-me-division]')<101&&visible(protractor,'[data-me-protractor-degree]')<181&&visible(square,'[data-me-square-mm]')<102,'Zoomed-out utensils suppress overcrowded minor marks');
+      assert(visible(ruler,'[data-me-ruler-label]')<11&&visible(protractor,'[data-me-protractor-label]')<38,'Zoomed-out utensils reduce numeral density');
+      G.instruments.adaptMarkings(sample,2);
+      assert(visible(ruler,'[data-me-division]')===101&&visible(protractor,'[data-me-protractor-degree]')===181&&visible(square,'[data-me-square-mm]')===102,'Zoom restores full calibrated graduations');
+      assert(all.map(n=>['x1','y1','x2','y2'].map(k=>n.getAttribute(k)).join(',')).join('|')===coordinates,'Adaptive markings never alter tick coordinates');
+      sample.remove();
     }
     {
       const scene=M.labEmpty(true);scene.points=[[100,100],[400,200],[100,350]];scene.segments=[[0,1]];

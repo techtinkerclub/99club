@@ -38,30 +38,30 @@ function rulerGraduations(scale='metric',length=scale==='imperial'?12:30,start=0
  });
 }
 function rulerInstrument(parent,{x=0,y=0,width=1000,height=56,scale='metric',length=scale==='imperial'?12:30,start=0,angle=0,side=1,ticksOnly=false,labelSize=12,tickHeight=height*.55,labels=true,unitLabel=true,nonScaling=true}={}){
- const g=instrumentEl(parent,'g',{'data-geometry-instrument':'ruler',transform:'translate('+x+' '+y+') rotate('+(-angle)+')'});
+ const g=instrumentEl(parent,'g',{'data-geometry-instrument':'ruler','data-me-major-step':scale==='imperial'?16:10,transform:'translate('+x+' '+y+') rotate('+(-angle)+')'});
  // The zero graduation and drawing edge coincide, with the instrument
  // extending to either side of the edge without mirroring its numerals.
- const marks=rulerGraduations(scale,length,start),n=marks.length-1;
+ const marks=rulerGraduations(scale,length,start),n=marks.length-1,inkSize=Math.min(labelSize,height*.27),majorHeight=Math.min(tickHeight,height*.49);
  if(!ticksOnly)instrumentEl(g,'rect',{x:0,y:side>0?0:-height,width,height,rx:3,fill:'#dceee9','fill-opacity':.72,stroke:'#82a69e','stroke-width':1.5});
  for(const t of marks){
   const xx=t.i/n*width;
-  instrumentEl(g,'line',{class:'gd-ruler-tick','data-me-division':t.i,x1:xx,x2:xx,y1:0,y2:side*tickHeight*t.height,stroke:'#344b52','stroke-width':1,'stroke-linecap':'butt',...(nonScaling?{'vector-effect':'non-scaling-stroke'}:{})});
-  if(labels&&t.major)instrumentEl(g,'text',{x:xx,y:side*(tickHeight+labelSize*.85)+(side<0?labelSize*.35:0),'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':labelSize,'font-weight':600,fill:'#285f57'},Number(t.value.toFixed(3)));
+  instrumentEl(g,'line',{class:'gd-ruler-tick','data-me-division':t.i,'data-me-ruler-index':Math.round(start*(scale==='imperial'?16:10))+t.i,x1:xx,x2:xx,y1:0,y2:side*majorHeight*t.height,stroke:'#344b52','stroke-width':1,'stroke-linecap':'butt',...(nonScaling?{'vector-effect':'non-scaling-stroke'}:{})});
+  if(labels&&t.major){const value=String(Number(t.value.toFixed(3))),half=inkSize*.32*value.length+2,pos=ticksOnly?xx:Math.max(half,Math.min(width-half,xx));instrumentEl(g,'text',{x:pos,y:side*(majorHeight+inkSize*.72),'dominant-baseline':'central','text-anchor':'middle','font-family':'Arial,sans-serif','font-size':inkSize,'font-weight':400,fill:'#344b52','data-me-ruler-label':t.i,'data-me-ruler-index':Math.round(start*(scale==='imperial'?16:10))+t.i},value)}
  }
- if(!ticksOnly&&unitLabel)instrumentEl(g,'text',{x:width/2,y:side*(height-4)+(side<0?labelSize:0),'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':Math.max(9,labelSize*.78),fill:'#285f57'},scale==='imperial'?'in':'cm');
+ if(!ticksOnly&&unitLabel&&width>=inkSize*5)instrumentEl(g,'text',{x:width/2,y:side*(height-inkSize*.3),'dominant-baseline':'central','text-anchor':'middle','font-family':'Arial,sans-serif','font-size':inkSize*.66,fill:'#52676b'},scale==='imperial'?'in':'cm');
  return g;
 }
 function protractorInstrument(parent,{x=0,y=0,radius:r=247,start=0,direction=1,full=false}={}){
- const g=instrumentEl(parent,'g',{'data-geometry-instrument':'protractor','data-instrument-direction':direction}),range=full?360:180,k=r/247;
+ const g=instrumentEl(parent,'g',{'data-geometry-instrument':'protractor','data-me-protractor-radius':r,'data-instrument-direction':direction}),range=full?360:180,k=r/247;
  const polar=(radius,angle)=>[x+radius*Math.cos(angle*Math.PI/180),y-radius*Math.sin(angle*Math.PI/180)];
- const pts=Array.from({length:range/5+1},(_,i)=>polar(r,start+direction*i*5));
- instrumentEl(g,'path',{d:'M '+x+' '+y+' L '+pts.map(p=>p.join(' ')).join(' L ')+' Z',fill:'#dceee9','fill-opacity':.48,stroke:'#82a69e','stroke-width':1.5});
- function line(a,b,w){instrumentEl(g,'line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:'#668d86','stroke-width':w,'stroke-linecap':'round'})}
- function text(p,v,size,fill,offset){instrumentEl(g,'text',{x:p[0]+offset[0],y:p[1]+offset[1]+size*.32,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':size,'font-weight':600,fill},v)}
+ const a=polar(r,start),b=polar(r,start+direction*180),sweep=direction>0?0:1,outline='M '+a.join(' ')+' A '+r+' '+r+' 0 0 '+sweep+' '+b.join(' ')+(full?' A '+r+' '+r+' 0 0 '+sweep+' '+a.join(' '):' L '+x+' '+y)+' Z';
+ instrumentEl(g,'path',{d:outline,fill:'#dceee9','fill-opacity':.48,stroke:'#82a69e','stroke-width':1.5});
+ function line(a,b,w,degree){instrumentEl(g,'line',{...(degree===undefined?{}:{'data-me-protractor-degree':degree}),x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:'#668d86','stroke-width':w,'stroke-linecap':'round'})}
+ function text(p,v,size,fill,angle,ring,degree){const rotation=!full&&(v===0||v===180)?-start:((90-angle+90)%180+180)%180-90;instrumentEl(g,'text',{x:p[0],y:p[1],'dominant-baseline':'central','text-anchor':'middle','font-family':'Arial,sans-serif','font-size':size,'font-weight':400,fill,transform:'rotate('+rotation+' '+p.join(' ')+')','data-me-protractor-label':ring,'data-me-protractor-label-degree':degree},v)}
  for(let i=0;i<=range;i++){
   if(full&&i===360)break;const a=start+direction*i;
-  line(polar(r,a),polar(r-(i%10===0?19:i%5===0?12:6)*k,a),i%10===0?2.1:1.05);
-  if(i%10===0){const edge=!full&&(i===0||i===180),offset=edge?[15*k*Math.cos((start-direction*90)*Math.PI/180),-15*k*Math.sin((start-direction*90)*Math.PI/180)]:[0,0];text(polar(r-35*k,a),i,Math.max(10,19*k),'#285f57',offset);if(!full)text(polar(r-(edge?75:62)*k,a),180-i,Math.max(r>=200?17:9,17*k),'#80551d',offset)}
+  line(polar(r,a),polar(r-(i%10===0?19:i%5===0?12:6)*k,a),i%10===0?2.1:1.05,i);
+  if(i%10===0){const aLabel=!full&&(i===0||i===180)?a+direction*(i===0?5:-5):a;text(polar(r*.84,aLabel),i,Math.max(r>=200?17:9,19*k),'#344b52',aLabel,'outer',i);if(!full)text(polar(r*.71,aLabel),180-i,Math.max(r>=200?17:9,17*k),'#80551d',aLabel,'inner',i)}
  }
  line(polar(r,start),polar(r,start+180),1.5);instrumentEl(g,'circle',{cx:x,cy:y,r:4,fill:'#668d86'});
  return g;
@@ -77,15 +77,44 @@ function setSquareInstrument(parent,{points,angles,unitsPerCm=40,kind='square45'
  for(const [edge,end] of ends.entries()){
   const v=[end[0]-origin[0],end[1]-origin[1]],length=Math.hypot(...v),u=v.map(x=>x/length),normal=[-u[1],u[0]],dot=(centre[0]-origin[0])*normal[0]+(centre[1]-origin[1])*normal[1];if(dot<0){normal[0]*=-1;normal[1]*=-1}
   const step=unitsPerCm/10,at=(d,h)=>[origin[0]+u[0]*d+normal[0]*h,origin[1]+u[1]*d+normal[1]*h];
+  // Intersect an inward normal with the outer and inner triangular outlines.
+  // This limits ink to the actual solid rim, even near acute corners.
+  const cross=(a,b)=>a[0]*b[1]-a[1]*b[0],depth=(poly,d)=>{const p=at(d,0),hits=[];for(let j=0;j<poly.length;j++){const a=poly[j],b=poly[(j+1)%poly.length],v=[b[0]-a[0],b[1]-a[1]],q=[a[0]-p[0],a[1]-p[1]],den=cross(normal,v);if(Math.abs(den)<1e-9)continue;const h=cross(q,v)/den,t=cross(q,normal)/den;if(h>=-1e-7&&t>=-1e-7&&t<=1+1e-7)hits.push(Math.max(0,h))}return hits};
+  const rim=d=>Math.min(Math.max(0,...depth(points,d)),...depth(inner,d).filter(h=>h>1e-7));
+  const rotation=((Math.atan2(u[1],u[0])*180/Math.PI+90)%180+180)%180-90;
   for(let i=0;i<=Math.floor((length+1e-7)/step);i++){
-   const a=at(i*step,0),b=at(i*step,i%10===0?12:i%5===0?8:4);
+   const d=i*step,a=at(d,0),available=rim(d),tick=i===0?0:Math.min(i%10===0?12:i%5===0?8:4,Math.max(0,available-1)),b=at(d,tick);
    instrumentEl(g,'line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:'#344b52','stroke-width':.85,'data-me-square-edge':edge,'data-me-square-mm':i});
-   if(i>0&&i%10===0&&i*step<length-8){const p=at(i*step,18);instrumentEl(g,'text',{x:p[0],y:p[1],'dominant-baseline':'central','text-anchor':'middle','font-family':'Arial,sans-serif','font-size':10,fill:'#285f57'},i/10)}
+   if(i>0&&i%10===0){const value=String(i/10),font=10,half=font*.32*value.length+2,band=Math.min(rim(d-half),rim(d),rim(d+half));if(d-half>0&&d+half<length&&band>=tick+font+3){const p=at(d,tick+font*.65+1);instrumentEl(g,'text',{x:p[0],y:p[1],transform:'rotate('+rotation+' '+p.join(' ')+')','dominant-baseline':'central','text-anchor':'middle','font-family':'Arial,sans-serif','font-size':font,'font-weight':400,fill:'#344b52','data-me-square-label':edge,'data-me-square-label-mm':i},value)}}
   }
  }
  return g;
 }
-const instruments={rulerGraduations,ruler:rulerInstrument,protractor:protractorInstrument,setSquare:setSquareInstrument};
+// Visual detail is adaptive, but tick coordinates, instrument size and measurement
+// values are never modified. Only live canvas rendering opts into this function.
+function markingInterval(spacing,choices,minimum){return choices.find(n=>n*spacing>=minimum)||choices.at(-1)}
+function adaptInstrumentMarkings(svg,pixelsPerUnit){
+ const m=svg.getScreenCTM?.(),scale=pixelsPerUnit??(m?Math.hypot(m.a,m.b):1);if(!Number.isFinite(scale)||scale<=0)return;
+ const show=(n,visible)=>{if(visible)n.removeAttribute('display');else n.setAttribute('display','none')};
+ for(const g of svg.querySelectorAll('[data-geometry-instrument]')){
+  const kind=g.getAttribute('data-geometry-instrument');
+  if(kind==='ruler'){
+   const ticks=[...g.querySelectorAll('[data-me-division]')],major=Number(g.getAttribute('data-me-major-step'))||10,step=ticks.length>1?Math.abs(Number(ticks[1].getAttribute('x1'))-Number(ticks[0].getAttribute('x1')))*scale:0;
+   const minor=markingInterval(step,major===16?[1,2,4,8,16]:[1,5,10],1.5),labelStep=markingInterval(step*major,[1,2,5,10],18)*major;
+   ticks.forEach(n=>show(n,Number(n.getAttribute('data-me-ruler-index'))%minor===0));
+   g.querySelectorAll('[data-me-ruler-label]').forEach(n=>show(n,Number(n.getAttribute('data-me-ruler-index'))%labelStep===0));
+  }else if(kind==='protractor'){
+   const radius=Number(g.getAttribute('data-me-protractor-radius')),spacing=radius*Math.PI/180*scale,minor=markingInterval(spacing,[1,5,10,30],1.5),labelStep=markingInterval(spacing*.71,[10,20,30,60,90],22);
+   g.querySelectorAll('[data-me-protractor-degree]').forEach(n=>show(n,Number(n.getAttribute('data-me-protractor-degree'))%minor===0));
+   g.querySelectorAll('[data-me-protractor-label-degree]').forEach(n=>{const a=Number(n.getAttribute('data-me-protractor-label-degree'));show(n,a===0||a===180||a%labelStep===0)});
+  }else if(kind==='square45'||kind==='square30'){
+   const ticks=[...g.querySelectorAll('[data-me-square-edge="0"]')],xy=n=>[Number(n.getAttribute('x1')),Number(n.getAttribute('y1'))],a=ticks[0]&&xy(ticks[0]),b=ticks[1]&&xy(ticks[1]),step=a&&b?Math.hypot(b[0]-a[0],b[1]-a[1])*scale:0,minor=markingInterval(step,[1,5,10],1.5),labelStep=markingInterval(step*10,[1,2,5,10],18)*10;
+   g.querySelectorAll('[data-me-square-mm]').forEach(n=>show(n,Number(n.getAttribute('data-me-square-mm'))%minor===0));
+   g.querySelectorAll('[data-me-square-label-mm]').forEach(n=>show(n,Number(n.getAttribute('data-me-square-label-mm'))%labelStep===0));
+  }
+ }
+}
+const instruments={rulerGraduations,ruler:rulerInstrument,protractor:protractorInstrument,setSquare:setSquareInstrument,adaptMarkings:adaptInstrumentMarkings};
 
 global.TT99Goodies={instruments,root,CATS,q,qa,esc,clamp,num,gcd,money,field,btn,setPanels,lessonState};
 })(window);
