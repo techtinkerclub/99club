@@ -705,7 +705,8 @@ function generate(s={},rng=Math.random){
   const points=s.points.map((p,i)=>({p,kind:'Vertex',i})).filter(x=>x.i!==exclude);
   const lines=labLines(s,exclude),circles=labIntersectionCircles(s,exclude),intersections=labIntersectionSettings(s).snap?labIntersections(s,{exclude,axes:true}):[];
   const closest=(list)=>list.map(c=>({...c,d:labDist(c.p,p)})).filter(c=>c.d<=tol).sort((a,b)=>a.d-b.d)[0];
-  const precise=closest(points)||closest(intersections);if(precise)return precise;
+  // Prefer the closest exact target; retain an existing vertex when coincident.
+  const precise=closest([...points,...intersections]);if(precise)return precise;
   const guides=[];
   for(const l of lines){const den=labDot(l.v,l.v);if(den<1e-8)continue;const t=labDot(labSub(p,l.a),l.v)/den;if(labWithin(l,t))guides.push({p:labAt(l.a,l.v,t),kind:'On line'})}
   for(const c of circles){const len=labDist(p,c.o);if(len>1e-7&&labArcContains(c,labAngle(c.o,p)))guides.push({p:labAt(c.o,labSub(p,c.o),c.r/len),kind:isLabArc(c)?'On arc':'On circle'});if(isLabArc(c))for(const a of [c.start,c.start+c.sweep])guides.push({p:polar(...c.o,c.r,a),kind:'Arc endpoint'})}
