@@ -1375,6 +1375,15 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
           assert(Math.abs(Math.hypot(xy(ticks[1])[0]-xy(ticks[0])[0],xy(ticks[1])[1]-xy(ticks[0])[1])-4)<1e-6,'Set square tick spacing is exactly one millimetre');
         }
       }
+      sample.replaceChildren();
+      const ruler=G.instruments.ruler(sample,{width:400,length:10,height:44}),protractor=G.instruments.protractor(sample,{radius:170}),square=G.instruments.setSquare(sample,{points:[[0,0],[200,0],[0,-200]],angles:[90,45,45],kind:'square45',unitsPerCm:40});
+      const all=[...sample.querySelectorAll('[data-me-division],[data-me-protractor-degree],[data-me-square-mm]')],coordinates=all.map(n=>['x1','y1','x2','y2'].map(k=>n.getAttribute(k)).join(',')).join('|'),visible=(g,selector)=>[...g.querySelectorAll(selector)].filter(n=>n.getAttribute('display')!=='none').length;
+      G.instruments.adaptMarkings(sample,.1);
+      assert(visible(ruler,'[data-me-division]')<101&&visible(protractor,'[data-me-protractor-degree]')<181&&visible(square,'[data-me-square-mm]')<102,'Zoomed-out utensils suppress overcrowded minor marks');
+      assert(visible(ruler,'[data-me-ruler-label]')<11&&visible(protractor,'[data-me-protractor-label]')<38,'Zoomed-out utensils reduce numeral density');
+      G.instruments.adaptMarkings(sample,2);
+      assert(visible(ruler,'[data-me-division]')===101&&visible(protractor,'[data-me-protractor-degree]')===181&&visible(square,'[data-me-square-mm]')===102,'Zoom restores full calibrated graduations');
+      assert(all.map(n=>['x1','y1','x2','y2'].map(k=>n.getAttribute(k)).join(',')).join('|')===coordinates,'Adaptive markings never alter tick coordinates');
       sample.remove();
     }
     {
