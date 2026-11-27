@@ -56,7 +56,20 @@ function challengeConstructionMethod(method,task){
  }
  const bounds=[];for(const o of [...initial,...frames.flatMap(f=>f.add)]){if(o.kind==='line')bounds.push(o.a,o.b);else if(o.kind==='point')bounds.push(o.at);else if(o.kind==='circle')bounds.push([o.center[0]-o.radius,o.center[1]-o.radius],[o.center[0]+o.radius,o.center[1]+o.radius]);else if(o.kind==='arc'){for(let t=o.start;t<o.end;t+=5)bounds.push([o.center[0]+o.radius*Math.cos(t*D),o.center[1]+o.radius*Math.sin(t*D)]);bounds.push([o.center[0]+o.radius*Math.cos(o.end*D),o.center[1]+o.radius*Math.sin(o.end*D)])}}
  const xs=bounds.map(p=>p[0]),ys=bounds.map(p=>p[1]),x=Math.min(...xs)-28,y=Math.min(...ys)-28,w=Math.max(...xs)-x+28,h=Math.max(...ys)-y+28;
- return {...method,challengeSpecific:true,objective:task.prompt,given:type==='build-circle'?['centre A','radius '+fmt(length)+' cm']:['AB = 6 cm'],steps,checks:[task.answer||method.checks.join('; ')],graphics:{viewBox:[x,y,w,h],initial,frames}};
+ const given=['AB = 6 cm'],cm=v=>fmt(v)+' cm',deg=v=>fmt(v)+'°';
+ let title=method.title;
+ switch(type){
+   case 'build-circle':given.splice(0,given.length,'Centre A','Radius = '+cm(length));break;
+   case 'build-midpoint':title='Construct the midpoint of AB';break;
+   case 'build-bisector':title='Construct the perpendicular bisector of AB';break;
+   case 'build-sss':case 'build-equilateral':given.push('AC = '+cm(length),'BC = '+cm(task.rightLength));break;
+   case 'build-right':case 'build-perpendicular':given.push('AC = '+cm(length),'Angle BAC = 90°');break;
+   case 'build-rectangle':case 'build-square':given.push('BC = '+cm(length),'Four right angles');break;
+   case 'build-asa':given.push('Angle BAC = '+deg(task.angle),'Angle ABC = '+deg(task.rightAngle));break;
+   case 'build-rhombus':given.push('All four sides = 6 cm','Angle BAD = '+deg(task.angle));break;
+   case 'shape-build':given.push('AC = '+cm(length),'Angle BAC = '+deg(task.angle));break;
+ }
+ return {...method,title,challengeSpecific:true,objective:task.prompt,given,steps,checks:[task.answer||method.checks.join('; ')],graphics:{viewBox:[x,y,w,h],initial,frames}};
 }
 // Independent construction checks use explicitly assigned point roles, never
 // a pixel comparison with the illustrated example. Length tolerance 0.15 cm;
