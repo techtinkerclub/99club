@@ -1524,6 +1524,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       tool('erase').click();tap(M.polar(...origin,240,30));const detached=cap().demo.labDrawing;
       assert(detached.rays.length===1&&!detached.rays[0].referenceArm&&Math.abs(M.labRayAngle(detached,detached.rays[0])-67)<.001&&!work.querySelector('[data-ag-angle-value]'),'Erase reference detaches remaining ray without changing its direction: '+label);
       tool('undo').click();const restored=cap().demo.labDrawing;assert(restored.rays.length===2&&restored.rays[1].referenceArm?.id===existing.rays[0].angleId,'Undo restores reference and geometry: '+label);
+      reset();tool('protractor').click();tap(origin);const datumX=work.querySelector('[data-ag-guided-action="datum-x"]');assert(datumX,'Guided instrument exposes explicit datum reference locally: '+label);datumX.dispatchEvent(new win.MouseEvent('click',{bubbles:true}));tap(aim);const absolute=cap().demo.labDrawing;assert(absolute.points.length===1&&absolute.segments.length===0&&absolute.rays.length===1&&M.labRayDefinition(absolute,absolute.rays[0]).kind==='absolute-angle'&&Math.abs(M.labRayAngle(absolute,absolute.rays[0])-67)<.001,'Datum reference makes absolute ray without phantom baseline: '+label);
       reset();assert(cap().demo.labDrawing.points.length===0,'Instrument verification leaves empty sheet: '+label);
     };
     checkRuler();verifyInstruments('A5 normal');
