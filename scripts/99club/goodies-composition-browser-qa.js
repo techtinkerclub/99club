@@ -1719,19 +1719,19 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const scene={...M.labEmpty(true),points:[origin,end(base)],names:['A','B'],segments:[[0,1]],rays:[{i:0,angle:base+angle,relativeTo:'B',relativeAngle:angle,mark:{base:'B',hand:1}}]};
       const ink=JSON.stringify([scene.points,scene.rays,scene.segments]),labels=()=>{const v=[];M.labAngleGraphics(scene,(_,p,text)=>v.push(text));return v.join(',')};
       assert(labels()==='37.4°','Automatic free construction mark uses tenth-degree precision');
-      assert(Math.abs(M.labProtractorDirection(scene,base,angle,1,true)-base-37.4)<1e-9,'Free construction uses tenth-degree increments relative to exact baseline');
+      assert(Math.abs(M.labProtractorDirection(scene,base,angle,1,true)-base-angle)<1e-9,'Free construction retains exact angle at tenth-degree display precision');
       scene.measurementPrecision=2;
-      assert(labels()==='37.43°'&&Math.abs(M.labProtractorDirection(scene,base,angle,1,true)-base-37.43)<1e-9,'Hundredth-degree display and construction increments agree');
-      assert(Math.abs(M.labProtractorDirection(scene,base,angle,-1,true)-((base-37.43+360)%360))<1e-9,'Mirrored protractor preserves fractional increments');
+      assert(labels()==='37.43°'&&Math.abs(M.labProtractorDirection(scene,base,angle,1,true)-base-angle)<1e-9,'Hundredth-degree display leaves construction angle unrounded');
+      assert(Math.abs(M.labProtractorDirection(scene,base,angle,-1,true)-((base-angle+360)%360))<1e-9,'Mirrored protractor preserves unrounded angle');
       assert(Math.abs(M.labProtractorDirection(scene,base,angle,1,false)-base-37)<1e-9,'Guided whole-degree challenge keeps original increment');
       assert(JSON.stringify([scene.points,scene.rays,scene.segments])===ink,'Changing display precision leaves existing mathematical geometry unchanged');
       const tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),tap=p=>{previewPointer('pointerdown',p);previewPointer('pointerup',p)},reset=()=>doc.querySelector('[aria-label="Reset construction"]').click(),precision=doc.querySelector('[data-ag-option="precision"]');
       reset();precision.value='2';precision.dispatchEvent(new win.Event('change',{bubbles:true}));tool('protractor').click();
       const o=[300,300],at=a=>[o[0]+160*Math.cos(a*Math.PI/180),o[1]-160*Math.sin(a*Math.PI/180)];
-      tap(o);tap(at(30));tap(at(67.43));
-      const drawing=cap().demo.labDrawing;assert(Math.abs(drawing.rays[0].relativeAngle-37.43)<1e-8&&work.querySelector('[data-ag-angle-value]')?.textContent==='37.43°','Actual free protractor gesture constructs a fractional angle and displays it consistently');
+      tap(o);tap(at(30));tap(at(67.426781));
+      const drawing=cap().demo.labDrawing;assert(Math.abs(drawing.rays[0].relativeAngle-37.426781)<1e-8&&work.querySelector('[data-ag-angle-value]')?.textContent==='37.43°','Actual free protractor gesture constructs a fractional angle and displays it consistently');
       const paper=P.createDocument();paper.addCurrent(id,cap());assert(P.renderItem(paper.list()[0],false).querySelector('[data-ag-angle-value]')?.textContent==='37.43°','Fractional construction label matches publication');
-      precision.value='1';precision.dispatchEvent(new win.Event('change',{bubbles:true}));assert(work.querySelector('[data-ag-angle-value]')?.textContent==='37.4°'&&Math.abs(cap().demo.labDrawing.rays[0].relativeAngle-37.43)<1e-8,'Changing display precision does not modify committed angle');
+      precision.value='1';precision.dispatchEvent(new win.Event('change',{bubbles:true}));assert(work.querySelector('[data-ag-angle-value]')?.textContent==='37.4°'&&Math.abs(cap().demo.labDrawing.rays[0].relativeAngle-37.426781)<1e-8,'Changing display precision does not modify committed angle');
       reset();if(tool('select').getAttribute('aria-pressed')!=='true')tool('select').click();
     }
     // Construct a bisector using only the board's actual drawing and compass gestures.
@@ -1880,6 +1880,19 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         const next=utensil(kind);assert(Number(next.dataset.agUtensilSize)===startSize+delta,'Endpoint resize adjusts '+kind+' size');
         if(kind.startsWith('square')){const tt=[...next.querySelectorAll('[data-me-square-edge="0"]')];assert(Math.abs(Number(tt[1].getAttribute('x1'))-Number(tt[0].getAttribute('x1'))-4)<1e-6,'Resized set square retains exact millimetre spacing')}
         else{assert(next.querySelectorAll('[data-geometry-instrument="protractor"] line').length===182,'Resized protractor retains every degree and baseline');const handle=next.querySelector('[data-ag-utensil-handle="measure"]'),rad=Number(next.dataset.agUtensilSize)*.68,atAngle=a=>[at[0]+rad*Math.cos(a*Math.PI/180),at[1]-rad*Math.sin(a*Math.PI/180)];event(handle,'pointerdown',atAngle(45),77);event(work,'pointermove',atAngle(72.34),77);event(work,'pointerup',atAngle(72.34),77);assert(utensil(kind).querySelector('[data-ag-protractor-reading]').textContent==='72.3°','Touch measuring arm shows tenth-degree angle');action('flip').click();assert(utensil(kind).querySelector('[data-instrument-direction]').getAttribute('data-instrument-direction')==='-1','Local flip reverses measuring side without moving centre');action('flip').click()}
+      }
+      // Display settings are not mathematical inputs to free instrument gestures.
+      {
+        const reading=72.3456789123,at=a=>[100+200*Math.cos(a*Math.PI/180),200-200*Math.sin(a*Math.PI/180)];
+        for(const precision of [1,2]){
+          const t={kind:'protractor',x:100,y:200,size:200,angle:0,reading:45,hand:1,snap:false};
+          let d=I.beginGesture(t,at(45),'measure',200);I.moveGesture(d,at(reading),1,{spec,precision,read:(pose,raw)=>I.readAngle({lines:[]},pose,raw,1)});I.finishGesture(d,true);
+          assert(Math.abs(t.reading-reading)<1e-9,'Unsnapped measuring arm stores unrounded angle at both display precisions');
+          d=I.beginGesture(t,at(0),'rotate',200);I.moveGesture(d,at(reading),1,{spec,precision});I.finishGesture(d,true);
+          assert(Math.abs(t.angle-reading)<1e-9,'Unsnapped rotation stores unrounded angle at both display precisions');
+          assert(Math.abs(I.readAngle({lines:[]},t,reading,1).reading-reading)<1e-9,'Unsnapped reading fallback does not round');
+        }
+        const solution=M.labSolution({type:'build-rhombus',angle:37.426781}),a=solution.points[0],d=solution.points[3];assert(Math.abs(Math.hypot(d[0]-a[0],d[1]-a[1])-240)<1e-9,'Construction model uses unrounded polar coordinates');
       }
       // Every interrupted gesture restores the entire original instrument pose.
       for(const kind of ['ruler','protractor','square45','square30'])for(const handle of [null,'rotate','resize',...(kind==='protractor'?['measure']:[])]){
