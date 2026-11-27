@@ -1981,9 +1981,9 @@ function diagram(d,teacher=false,options={}){
    // rendered label size rather than reusing the smaller screen offsets.
    const pointSize=options.paper?29:13,symbolSize=options.paper?29:17,pointGap=pointSize+4,symbolGap=symbolSize*.75+6;
    const pointLabel=(q,name)=>text(q[0],q[1],name,pointSize,{'dominant-baseline':'central','data-ag-point-label':name});
-   const symbolLabel=(q,name)=>text(q[0],q[1],name,symbolSize,{'dominant-baseline':'central','font-style':'italic','data-ag-circle-symbol':name});
-   if(dia){if(explore){line(left,p,teal,4,{'data-ag-diameter-half':'left'});line(p,right,orange,4,{'data-ag-diameter-half':'right'});for(const k of [-1,1]){const mx=x+k*R*.5;line([mx,y-7],[mx,y+7],ink,2,{'data-ag-radius-equal-mark':'1'})}symbolLabel([x-R*.55,y+symbolGap],'D')}else{line(left,right,isPart?orange:teal,isPart?4:2.5);if(!isPart)symbolLabel([x-R*.55,y+symbolGap],'D')}}
-   if(rad){const end=polar(x,y,R,55);line(p,end,isPart?orange:teal,isPart?4:2.5);if(!isPart){const mid=polar(x,y,R*.58,55),offset=polar(...mid,symbolGap,-35);symbolLabel(offset,'r')}}
+   const symbolLabel=(q,name,a,b)=>{let angle=Math.atan2(b[1]-a[1],b[0]-a[0])/D;if(angle>90)angle-=180;if(angle<=-90)angle+=180;text(q[0],q[1],name,symbolSize,{'dominant-baseline':'central','font-style':'italic','data-ag-circle-symbol':name,transform:'rotate('+angle+' '+q.join(' ')+')'})};
+   if(dia){if(explore){line(left,p,teal,4,{'data-ag-diameter-half':'left'});line(p,right,orange,4,{'data-ag-diameter-half':'right'});for(const k of [-1,1]){const mx=x+k*R*.5;line([mx,y-7],[mx,y+7],ink,2,{'data-ag-radius-equal-mark':'1'})}symbolLabel([x-R*.55,y+symbolGap],'D',left,right)}else{line(left,right,isPart?orange:teal,isPart?4:2.5);if(!isPart)symbolLabel([x-R*.55,y+symbolGap],'D',left,right)}}
+   if(rad){const end=polar(x,y,R,55);line(p,end,isPart?orange:teal,isPart?4:2.5);if(!isPart){const mid=polar(x,y,R*.58,55),offset=polar(...mid,symbolGap,-35);symbolLabel(offset,'r',p,end)}}
    add('circle',{cx:x,cy:y,r:isPart&&highlight==='Centre'?7:3.5,fill:isPart&&highlight==='Centre'?orange:ink,'data-ag-circle-centre':'1'});
    if(!isPart){pointLabel([x,y+pointGap],'O');if(dia){for(const [p,name,dx] of [[left,'A',-pointGap],[right,'B',pointGap]]){circle(p,2.8,ink);pointLabel([p[0]+dx,p[1]],name)}}if(rad){const end=polar(x,y,R,55),pos=polar(x,y,R+pointGap,55);circle(end,2.8,ink);pointLabel(pos,dia?'C':'A')}}
    let baseline=365;
