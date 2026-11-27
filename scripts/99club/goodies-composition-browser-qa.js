@@ -1693,6 +1693,10 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(work.querySelector('[data-ag-annotation-value]').textContent==='x','Selected angle supports symbolic label');
       doc.querySelector('[data-ag-tool="undo"]').click();doc.querySelector('[data-ag-tool="undo"]').click();
       assert(!cap().demo.labDrawing.angleNotation?.length&&JSON.stringify(cap().demo.labDrawing.points)===JSON.stringify(initial.points),'Undo restores original geometry');
+      tapWork([150,150]);doc.querySelector('[data-ag-choose-angle]').click();assert(work.querySelector('[data-ag-ghost-angle]'),'Angle preview can reopen after undo');
+      doc.querySelector('[data-ag-cancel-angle-pick]').click();assert(!work.querySelector('[data-ag-ghost-angle]'),'Cancel clears preview without changing geometry');
+      doc.querySelector('[data-ag-choose-angle]').click();doc.querySelector('[aria-label="Reset construction"]').click();assert(!work.querySelector('[data-ag-ghost-angle]')&&doc.querySelector('[data-ag-cancel-angle-pick]').hidden,'Reset exits angle selection');
+      doc.querySelector('[data-ag-tool="undo"]').click();assert(JSON.stringify(cap().demo.labDrawing.points)===JSON.stringify(initial.points)&&JSON.stringify(cap().demo.labDrawing.segments)===JSON.stringify(initial.segments),'Undo reset restores drawing without reopening angle selection');
       doc.querySelector('[data-ag-tool="undo"]').click();assert(JSON.stringify(cap().demo.labDrawing.segments)===JSON.stringify(beforeSector.segments),'Remove temporary baseline to restore shared fixture');
     }
     // A ray through two named vertices must not round the exact direction.
