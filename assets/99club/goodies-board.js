@@ -221,6 +221,7 @@ root.innerHTML='<div class="gd-mixed-board" id="gd-mixed-board">'+
   '<div class="gd-board-hint" id="gd-board-hint" role="status" aria-live="polite"></div>'+
   '<aside class="gd-board-floating-controls" id="gd-board-floating-controls" hidden aria-label="Manipulative settings">'+
     '<div class="gd-board-floating-controls-head" data-board-controls-drag>'+
+      '<span class="gd-board-controls-grip" aria-hidden="true">⠿</span>'+ 
       '<strong id="gd-board-floating-controls-title">Settings</strong>'+
       '<button type="button" data-board-controls-close aria-label="Close settings" title="Close">×</button>'+
     '</div>'+
@@ -349,8 +350,11 @@ function innerTarget(obj,selector,allowHidden=false){
 const CONTROL_SELECTOR='button,input,select,textarea,[contenteditable="true"]';
 let floatingControlSources=[],floatingControlSignature='',floatingControlStructure='';
 const innerConnections=new Map();
+if(typeof ResizeObserver!=='undefined')new ResizeObserver(()=>positionFloatingControls()).observe(board);
+window.addEventListener('resize',positionFloatingControls);
 function positionFloatingControls(){
-  if(!floatingControls)return;
+  if(!floatingControls||floatingControls.hidden)return;
+  floatingControls.style.setProperty('--gd-inspector-height',Math.max(0,board.clientHeight-16)+'px');
   const margin=8,maxX=Math.max(margin,board.clientWidth-floatingControls.offsetWidth-margin),maxY=Math.max(margin,board.clientHeight-floatingControls.offsetHeight-margin);
   floatingControlX=clamp(floatingControlX,margin,maxX);floatingControlY=clamp(floatingControlY,margin,maxY);
   floatingControls.style.left=floatingControlX+'px';floatingControls.style.top=floatingControlY+'px';
@@ -555,7 +559,7 @@ function renderFloatingHelp(obj,data){
 function openFloatingHelp(obj,data){
   if(!obj||!data)return;
   if(floatingControlObjectId!=null&&String(floatingControlObjectId)!==String(obj.id)){
-    const previous=objectById(floatingControlObjectId);if(previous)previous.settingsOpen=false;
+    const previous=objectById(floatingControlObjectId);if(previous){previous.settingsOpen=false;frameFor(previous.id)?.classList.remove('has-settings')}
   }
   floatingControlObjectId=obj.id;obj.settingsOpen=true;floatingPanelMode='help';floatingHelpData=data;
   const frame=frameFor(obj.id);frame?.classList.add('has-settings');
@@ -600,7 +604,7 @@ function openFloatingControls(obj,mode='settings'){
     else if(active==='challenge'||active==='export')source?.querySelector('[data-ab-workflow="setup"]')?.click();
   }
   if(floatingControlObjectId!=null&&String(floatingControlObjectId)!==String(obj.id)){
-    const previous=objectById(floatingControlObjectId);if(previous)previous.settingsOpen=false;
+    const previous=objectById(floatingControlObjectId);if(previous){previous.settingsOpen=false;frameFor(previous.id)?.classList.remove('has-settings')}
   }
   floatingControlObjectId=obj.id;obj.settingsOpen=true;
   const frame=frameFor(obj.id);frame?.classList.add('has-settings');
