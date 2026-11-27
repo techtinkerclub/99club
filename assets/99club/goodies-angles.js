@@ -1315,7 +1315,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    if(tool==='protractor'){
     G.instruments.protractor(svg,{x:o[0],y:o[1],radius:170,start:base,direction:hand});
    }else drawSquare(svg,o,base,tool,corner,hand);
-   localInstrumentActions(svg,o,tool==='protractor'?'Protractor':(tool==='square45'?[90,45,45]:[90,30,60])[corner]+'° corner',[[...(tool==='protractor'?[]:['corner','Change corner','corner',()=>{corner=(corner+1)%3;paint()}])].length?['corner','Change corner','corner',()=>{corner=(corner+1)%3;paint()}]:null,['mirror','Mirror','flip',()=>{hand=-hand;paint()}],['reverse','Rotate 180°','reset',()=>{aligned=mod(aligned+180);paint()}]].filter(Boolean),'agGuidedAction');
+   localInstrumentActions(svg,o,tool==='protractor'?'Protractor':(tool==='square45'?[90,45,45]:[90,30,60])[corner]+'° corner',[tool==='protractor'?null:['corner','Change corner','corner',()=>{corner=(corner+1)%3;paint()}],['mirror','Mirror','flip',()=>{hand=-hand;paint()}],['reverse','Rotate 180°','reset',()=>{aligned=mod(aligned+180);paint()}]].filter(Boolean),'agGuidedAction');
   }
   function selectedAngle(o,p){
    const a=labAngle(o,p),base=aligned??0,relative=mod(hand*(a-base));
