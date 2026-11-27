@@ -83,7 +83,7 @@ function setSquareInstrument(parent,{points,angles,unitsPerCm=40,kind='square45'
   const rim=d=>Math.min(Math.max(0,...depth(points,d)),...depth(inner,d).filter(h=>h>1e-7));
   const rotation=((Math.atan2(u[1],u[0])*180/Math.PI+90)%180+180)%180-90;
   for(let i=0;i<=Math.floor((length+1e-7)/step);i++){
-   const d=i*step,a=at(d,0),available=rim(d),tick=Math.min(i%10===0?12:i%5===0?8:4,Math.max(0,available-1)),b=at(d,tick);
+   const d=i*step,a=at(d,0),available=rim(d),tick=i===0?0:Math.min(i%10===0?12:i%5===0?8:4,Math.max(0,available-1)),b=at(d,tick);
    instrumentEl(g,'line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:'#344b52','stroke-width':.85,'data-me-square-edge':edge,'data-me-square-mm':i});
    if(i>0&&i%10===0){const value=String(i/10),font=10,half=font*.32*value.length+2,band=Math.min(rim(d-half),rim(d),rim(d+half));if(d-half>0&&d+half<length&&band>=tick+font+3){const p=at(d,tick+font*.65+1);instrumentEl(g,'text',{x:p[0],y:p[1],transform:'rotate('+rotation+' '+p.join(' ')+')','dominant-baseline':'central','text-anchor':'middle','font-family':'Arial,sans-serif','font-size':font,'font-weight':400,fill:'#344b52','data-me-square-label':edge,'data-me-square-label-mm':i},value)}}
   }
