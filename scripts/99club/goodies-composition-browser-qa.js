@@ -1982,6 +1982,28 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         }
         const solution=M.labSolution({type:'build-rhombus',angle:37.426781}),a=solution.points[0],d=solution.points[3];assert(Math.abs(Math.hypot(d[0]-a[0],d[1]-a[1])-240)<1e-9,'Construction model uses unrounded polar coordinates');
       }
+      // Retain only a real visible magnetic target, with an explicit release band.
+      {
+        const o=[200,200],at=(a,r=150)=>[o[0]+r*Math.cos(a*Math.PI/180),o[1]-r*Math.sin(a*Math.PI/180)],first=37.426781,second=42.1;
+        const lines=[first,second].map(a=>({a:o,b:at(a)})),scene={points:[o,at(first),at(second)],lines};
+        for(const scale of [.5,1,4]){
+          const pose={kind:'protractor',x:o[0],y:o[1],size:170,angle:0,reading:20,hand:1,snap:true},d=I.beginGesture(pose,at(20),'measure',501);
+          const read=(t,a,scale,prior)=>I.readAngle(scene,t,a,scale,prior);
+          I.moveGesture(d,at(first+.8),scale,{read});assert(Math.abs(pose.reading-first)<1e-8,'Acquire exact fractional arm');
+          I.moveGesture(d,at(first+3.8),scale,{read});assert(Math.abs(pose.reading-first)<1e-8&&pose.reading.toFixed(2)==='37.43','Retain acquired arm despite competing ray and jitter');
+          I.moveGesture(d,at(second+.5),scale,{read});assert(Math.abs(pose.reading-second)<1e-8,'Release old arm and acquire next real ray');
+          I.moveGesture(d,at(70),scale,{read});assert(!d.candidate&&Math.abs(pose.reading-70)<1e-8,'Dragging away restores unrestricted reading');
+          I.finishGesture(d,true);
+          const a=I.readAngle(scene,pose,first,scale),removed=I.readAngle({lines:[lines[1]]},pose,first+3.8,scale,a);
+          assert(Math.abs(removed.reading-second)<1e-8,'Removed geometry cannot retain a stale snap');
+          const ruler={kind:'ruler',x:o[0],y:o[1],size:200,angle:first+.8,snap:true},r1=I.align(scene,ruler,'rotate',scale);
+          assert(r1&&Math.abs(r1.angle-first)<1e-8,'Ruler acquires exact marked span');
+          ruler.angle=first+Math.min(3.8,Math.asin(Math.min(1,16/scale/150))*180/Math.PI);const r2=I.align(scene,ruler,'rotate',scale,r1);
+          assert(r2&&Math.abs(r2.angle-first)<1e-8,'Ruler retains acquired span during jitter');
+          ruler.angle=second+.5;const r3=I.align(scene,ruler,'rotate',scale,r2);
+          assert(r3&&Math.abs(r3.angle-second)<1e-8,'Ruler releases to next actual span');
+        }
+      }
       // Every interrupted gesture restores the entire original instrument pose.
       for(const kind of ['ruler','protractor','square45','square30'])for(const handle of [null,'rotate','resize',...(kind==='protractor'?['measure']:[])]){
         const pose={kind,x:100,y:200,angle:0,size:200,reading:45,hand:1,snap:true},before=JSON.stringify(pose),p=handle==='resize'&&kind==='protractor'?[100,0]:[300,200],q=handle==='rotate'?[100,0]:[350,150],d=I.beginGesture(pose,p,handle,100);

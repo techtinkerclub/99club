@@ -135,7 +135,7 @@ function instrumentMove(d,p,scale,{spec,step=4,align,read,precision=1}={}){
  else if(d.handle==='measure'){
   // Use the original gesture centre for hit testing to avoid snap feedback.
   t.x=d.x;t.y=d.y;
-  const raw=instrumentMod(t.hand*(instrumentAngle([d.x,d.y],p)-t.angle)),a=raw<=180?raw:raw<270?180:0,result=read?.(t,a,scale);
+  const raw=instrumentMod(t.hand*(instrumentAngle([d.x,d.y],p)-t.angle)),a=raw<=180?raw:raw<270?180:0,result=read?.(t,a,scale,d.candidate);
   d.rawReading=a;d.candidate=result?.kind?result:null;
   t.reading=d.candidate?.reading??d.rawReading;t.x=d.candidate?.x??d.x;t.y=d.candidate?.y??d.y;return true;
  }else if(d.handle==='resize'){
@@ -146,7 +146,7 @@ function instrumentMove(d,p,scale,{spec,step=4,align,read,precision=1}={}){
   if(guided){const a=(d.angle+(t.slideMode==='across'?90:0))*Math.PI/180,u=[Math.cos(a),-Math.sin(a)],k=dx*u[0]+dy*u[1];t.x=d.x+k*u[0];t.y=d.y+k*u[1];t.angle=d.angle;t.size=d.size;d.candidate=t.snap?align?.(t,'slide',scale)||null:null;return true}
   t.x=d.x+dx;t.y=d.y+dy;
  }
- d.candidate=t.snap?align?.(t,d.handle||'move',scale)||null:null;return true;
+ d.candidate=t.snap?align?.(t,d.handle||'move',scale,d.candidate)||null:null;return true;
 }
 function instrumentFinish(d,commit){
  const t=d.t;if(!commit){for(const key of ['x','y','angle','size','reading'])if(d[key]!==undefined)t[key]=d[key]}
@@ -273,7 +273,7 @@ const INSTRUMENT_ICONS={
 
 // Shared magnetic alignment accepts only visible points and straight edges.
 // No widget-specific model, challenge target or answer is consulted.
- function instrumentAlignment({points,lines},t,mode,scale){
+ function instrumentAlignment({points,lines},t,mode,scale,previous=null){
    const p=[t.x,t.y],tol=12/Math.max(.001,scale),diff=(a,b)=>Math.min(mod(a-b),mod(b-a));
    const nearest=lines.flatMap(l=>{const v=labSub(l.b,l.a),d=labDot(v,v);if(d<1e-8)return [];const u=labDot(labSub(p,l.a),v)/d,q=labAt(l.a,v,l.infinite?u:Math.max(0,l.ray?u:Math.min(1,u)));return [{q,d:labDist(p,q),angle:labAngle(l.a,l.b)}]}).sort((a,b)=>a.d-b.d);
    if(mode==='move'){
@@ -314,22 +314,26 @@ const INSTRUMENT_ICONS={
      return hit?{x:hit.q[0],y:hit.q[1],kind:'Edge'}:null;
    }
    if(mode==='rotate'){
+     // Retain a previously acquired exact direction until the pointer leaves a
+     // slightly wider release band. Recompute candidates from visible geometry.
+     const retained=c=>previous&&c.kind===previous.kind&&diff(c.angle,previous.angle)<1e-7&&(['x','y'].every(k=>c[k]===undefined&&previous[k]===undefined||Number.isFinite(c[k])&&Number.isFinite(previous[k])&&Math.abs(c[k]-previous[k])<1e-6));
      // The zero mark can act as a pivot for measuring any two named points,
      // even when no segment connects them. Require a nearby second point on the physical edge.
-     if(t.kind==='ruler'){const origin=points.map(q=>({q,d:labDist(p,q)})).filter(q=>q.d<=tol).sort((a,b)=>a.d-b.d)[0];if(origin){const pairs=points.flatMap(q=>{const length=labDist(origin.q,q);if(length<tol*2||length>(t.size||400)+tol)return [];const angle=labAngle(origin.q,q),error=diff(angle,t.angle);return error<=3&&length*Math.sin(error*D)<=tol?[{x:origin.q[0],y:origin.q[1],angle,kind:'Aligned points',error,length}]:[]}).sort((a,b)=>a.error-b.error||b.length-a.length);if(pairs.length){const {error,length,...result}=pairs[0];return result}}}
+     if(t.kind==='ruler'){const origin=points.map(q=>({q,d:labDist(p,q)})).filter(q=>q.d<=tol).sort((a,b)=>a.d-b.d)[0];if(origin){const pairs=points.flatMap(q=>{const length=labDist(origin.q,q);if(length<tol*2||length>(t.size||400)+tol)return [];const angle=labAngle(origin.q,q),error=diff(angle,t.angle);const candidate={x:origin.q[0],y:origin.q[1],angle,kind:'Aligned points',error,length},keep=retained(candidate);return error<=(keep?4.5:3)&&length*Math.sin(error*D)<=tol*(keep?1.5:1)?[candidate]:[]}).sort((a,b)=>Number(!!retained(b))-Number(!!retained(a))||a.error-b.error||b.length-a.length);if(pairs.length){const {error,length,...result}=pairs[0];return result}}}
      const offsets=t.kind.startsWith('square')?[0,90]:[0],choices=[];
      for(const l of nearest.filter(l=>l.d<=tol*2))for(const offset of offsets)for(const reverse of [0,180])choices.push({angle:mod(l.angle+offset+reverse),kind:'Edge',...(t.kind==='ruler'&&l.d<=tol?{x:l.q[0],y:l.q[1]}:{})});
      choices.push({angle:mod(Math.round(t.angle/15)*15),kind:'Angle'});
-     choices.sort((a,b)=>(a.kind==='Edge'?0:1)-(b.kind==='Edge'?0:1)||diff(a.angle,t.angle)-diff(b.angle,t.angle));
-     return choices.find(c=>diff(c.angle,t.angle)<=3)||null;
+     choices.sort((a,b)=>Number(!!retained(b))-Number(!!retained(a))||(a.kind==='Edge'?0:1)-(b.kind==='Edge'?0:1)||diff(a.angle,t.angle)-diff(b.angle,t.angle));
+     return choices.find(c=>diff(c.angle,t.angle)<=(retained(c)?4.5:3))||null;
    }
    return null;
  }
  // A reading is relative to the zero edge, not the global canvas axes.
  // Preserve exact snapped geometry internally; round only the displayed result.
- function instrumentReading({lines},t,raw,scale){
+ function instrumentReading({lines},t,raw,scale,previous=null){
    const hand=t.hand===-1?-1:1,origin=[t.x,t.y],relative=a=>mod(hand*(a-t.angle)),wanted=Math.max(0,Math.min(180,raw)),tol=12/Math.max(.001,scale),candidates=[];
    const fallback={reading:wanted,kind:''};if(!t.snap)return fallback;
+   const retained=c=>previous?.kind==='Edge'&&Math.abs(previous.reading-c.reading)<1e-7&&Math.hypot(previous.x-c.x,previous.y-c.y)<1e-6;
    const base=[Math.cos(t.angle*D),-Math.sin(t.angle*D)],cross=(a,b)=>a[0]*b[1]-a[1]*b[0];
    for(const {a,b,ray,infinite} of lines){
      const v=labSub(b,a),len=Math.hypot(...v);if(len<1e-8)continue;
@@ -345,9 +349,9 @@ const INSTRUMENT_ICONS={
      const k=labDot(labSub(q,a),u);
      if(!infinite&&(k< -1e-7||(!ray&&k>len+1e-7)))continue;
      const directions=[...(ray||k<len-1e-7?[labAngle(a,b)]:[]),...(infinite||k>1e-7?[labAngle(b,a)]:[])];
-     for(const dir of directions){let reading=relative(dir);if(reading>360-1e-7)reading=0;if(reading>180+1e-7)continue;reading=Math.min(180,reading);const error=Math.abs(reading-wanted);if(error<=3)candidates.push({reading,x:q[0],y:q[1],kind:'Edge',error,shift:labDist(q,origin)})}
+     for(const dir of directions){let reading=relative(dir);if(reading>360-1e-7)reading=0;if(reading>180+1e-7)continue;reading=Math.min(180,reading);const error=Math.abs(reading-wanted),candidate={reading,x:q[0],y:q[1],kind:'Edge',error,shift:labDist(q,origin)};if(error<=(retained(candidate)?4.5:3))candidates.push(candidate)}
    }
-   candidates.sort((a,b)=>a.error-b.error||a.shift-b.shift);if(!candidates.length)return fallback;
+   candidates.sort((a,b)=>Number(!!retained(b))-Number(!!retained(a))||a.error-b.error||a.shift-b.shift);if(!candidates.length)return fallback;
    const {error,shift,...result}=candidates[0];return result;
  }
 
