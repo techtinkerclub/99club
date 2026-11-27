@@ -1388,6 +1388,23 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
     doc.querySelector('[data-ag-locus-action="midpoint"]').click();
     doc.querySelector('[data-ag-locus-action="trace"]').click();locusTap('pointerdown',[540,220]);locusTap('pointerdown',[470,220]);doc.querySelector('[data-ag-locus-action="trace"]').click();
     locusTap('pointerdown',[540,220]);locusTap('pointermove',[400,70]);locusTap('pointermove',[260,220]);locusTap('pointerup',[260,220]);
+    {
+      const frame=fixture.frame,restore=frame.querySelector('[data-board-maximise]'),initial=JSON.stringify(cap().demo.locusState),hostViewport=document.getElementById('gd-board-viewport');
+      api.select(fixture.record.id);restore.click();await tick(150);
+      let surface=doc.querySelector('[data-ag-dynamic-workspace]'),svg=surface.querySelector('svg'),rect=svg.getBoundingClientRect(),vr=hostViewport.getBoundingClientRect(),matrix=svg.getScreenCTM();
+      assert(frame.classList.contains('is-geometry-board')&&surface.dataset.agFullActive==='true','Preset dynamic geometry enters dedicated drawing mode');
+      assert(Math.abs(rect.width-vr.width)<3&&Math.abs(rect.height-vr.height)<3&&Math.abs(matrix.a-matrix.d)<.001,'Dynamic board fills viewport without geometric distortion');
+      assert(JSON.stringify(cap().demo.locusState)===initial,'Maximising preserves dynamic state and traces');
+      const dock=doc.querySelector('[data-ag-full-panels]');dock.click();assert([...doc.querySelectorAll('[data-ag-dynamic-panel]')].every(p=>p.hidden),'Dynamic palettes can be hidden');dock.click();
+      const choose=doc.querySelector('[data-ag-locus-preset]');choose.value='custom';choose.dispatchEvent(new win.Event('change',{bubbles:true}));await tick(150);
+      surface=doc.querySelector('[data-ag-dynamic-workspace]');assert(surface.dataset.agFullActive==='true'&&frame.classList.contains('is-geometry-board'),'Switching to custom geometry retains full-board mode');
+      const customSvg=surface.querySelector('svg'),[x,y,w,h]=customSvg.getAttribute('viewBox').split(/\s+/).map(Number),p=[x+w-25,y+h-25],v=new win.DOMPoint(...p).matrixTransform(customSvg.getScreenCTM());doc.querySelector('[data-ag-custom-action="add"]').click();
+      surface.dispatchEvent(new win.PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerType:'touch',pointerId:45,button:0,clientX:v.x,clientY:v.y}));
+      const saved=cap().demo.locusState;assert(saved.nodes.length===1&&Math.hypot(saved.nodes[0].at[0]-p[0],saved.nodes[0].at[1]-p[1])<2,'Custom points can be placed near full-board edge');
+      const [bx,by,bw,bh]=M.customBounds(saved);assert(p[0]>=bx&&p[0]<=bx+bw&&p[1]>=by&&p[1]<=by+bh,'Saved custom geometry bounds retain edge point');
+      restore.click();await tick(150);assert(!frame.classList.contains('is-geometry-board')&&!doc.querySelector('[data-ag-dynamic-panel]')&&JSON.stringify(cap().demo.locusState)===JSON.stringify(saved),'Restoring custom geometry retains drawing and removes floating chrome');
+      G.lessonState.restore(id,{...G.lessonState.capture(id),model:{...cap(),locusState:JSON.parse(initial),demo:{...cap().demo,locusState:JSON.parse(initial)}}});await tick(100);
+    }
     const ls=cap().demo.locusState;
     assert(Math.abs(Math.hypot(ls.p[0]-400,ls.p[1]-220)-140)<1e-7,'Constrained point preserves exact radius');
     assert(doc.querySelector('[data-ag-locus-trace="P"]')&&doc.querySelector('[data-ag-locus-trace="M"]'),'Selected driver and dependent midpoint leave separate traces');
