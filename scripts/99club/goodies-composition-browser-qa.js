@@ -3442,7 +3442,22 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
           assert(!paper.querySelector('[data-ag-transform-drag],[data-ag-rotation-graphic]'),'Published diagram has no interactive handles or unrelated lessons');
         }
         lesson.querySelector('[data-ag-transform-reset]').click();assert(Number(lesson.querySelector('[data-ag-transform-field="factor"]').value)===1.5,'Reset restores scale factor');
+        const moveTransform=(kind,deltaX,deltaY,cancel=false)=>{
+          const svg=graphic(),surface=svg.parentElement,node=svg.querySelector('[data-ag-transform-drag="'+kind+'"]'),matrix=svg.getScreenCTM(),frame=svg._agTransformFrame;
+          const start=new win.DOMPoint(280,153).matrixTransform(matrix),end=new win.DOMPoint(280+deltaX*frame.s,153-deltaY*frame.s).matrixTransform(matrix);
+          const emit=(target,type,p)=>target.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:197,pointerType:'touch',button:0,clientX:p.x,clientY:p.y}));
+          assert(node,'Transformation has a draggable handle: '+kind);emit(node,'pointerdown',start);emit(surface,'pointermove',end);emit(surface,cancel?'pointercancel':'pointerup',end);
+        };
+        lesson.querySelector('[data-ag-transform-kind="translation"]').click();lesson.querySelector('[data-ag-transform-reset]').click();moveTransform('translation',40,40);
+        let state=cap().demo.transformationSettings;assert(state.dx===3&&state.dy===2,'Drag translation moves image by one centimetre in each axis');
+        moveTransform('translation',-80,0,true);assert(cap().demo.transformationSettings.dx===3,'Cancelled translation restores initial state');
+        lesson.querySelector('[data-ag-transform-kind="rotation"]').click();lesson.querySelector('[data-ag-transform-reset]').click();
+        const extent=M.transformationInvestigation(ref('equilateral'),{kind:'rotation'}).extent;
+        moveTransform('pivot',extent*.25,extent*.25);state=cap().demo.transformationSettings;assert(state.px===.25&&state.py===.25,'Centre drag follows pointer');
+        moveTransform('pivot',extent*.5,0,true);assert(cap().demo.transformationSettings.px===.25,'Cancelled centre drag restores initial state');
+
       }
+      result('pending','board','Geometry transformation checks complete; checking landscape teaching layout');
       // Real embedded layout: active tabs occupy space, inactive cards do not.
       const teaching=doc.querySelector('.gd-ag-shape-reference'),teachingStage=doc.getElementById('gd-stage'),teachingTab=key=>teaching.querySelector('[data-ag-teaching-tab="'+key+'"]');
       assert(teachingTab('properties')&&teachingTab('symmetry')&&teachingTab('families')&&teachingTab('proof'),'All triangle teaching groups directly accessible');
@@ -3515,6 +3530,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         }
       }finally{teachingIframe.style.cssText=priorTeachingStyle;await tick(60);win.TT99Goodies.modeControl.set('polygon:equilateral');await tick(40)}
       assert(!teachingAudit.length,'Landscape teaching audit overflow: '+JSON.stringify(teachingAudit));
+      result('pending','board','Landscape teaching audit complete; continuing composition QA');
       max.click();await tick(80);assert(!fixture.frame.classList.contains('is-geometry-teaching-max'),'Restoring leaves teaching maximisation cleanly');
       for(const m of [...Array.from({length:10},(_,i)=>ref('regular',{n:i+3})),...M.polygonInvestigationExamples().map(e=>ref('free-polygon',{n:e.points.length,polygonPoints:e.points}))]){
         for(let vertex=0;vertex<m.n;vertex++){
