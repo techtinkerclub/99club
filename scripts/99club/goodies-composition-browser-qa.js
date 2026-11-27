@@ -1421,24 +1421,24 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         const model={...M.labEmpty(true),points:[[160,208],[360,208]],names:['A','B'],segments:[[0,1]]};
         let controller,allowed=true,applied=0;
         const paint=()=>{svg.replaceChildren();controller.paint(svg)};
-        controller=G.instruments.movable(host,()=>svg,paint,{kinds:['ruler'],annotation:{target:(t,scale)=>allowed?M.labMeasurementTarget(model,t,scale):null,apply:target=>{if(M.labApplyMeasurement(model,target))applied++;paint()}}});
+        controller=G.instruments.movable(host,()=>svg,paint,{kinds:['ruler'],annotation:{target:(t,scale)=>allowed?M.labMeasurementTarget(model,t,scale):null,candidates:(t,scale)=>allowed?M.labRulerTargets(model,t,scale):[],apply:target=>{if(M.labApplyMeasurement(model,target))applied++;paint()}}});
         controller.add('ruler');
         const action=()=>svg.querySelector('[data-ag-utensil-action="annotate"]');
         assert(action()?.getAttribute('aria-label')==='Add length AB'&&svg.querySelectorAll('[data-ag-measurement-reference]').length===2,'Aligned instrument offers local annotation with reference preview');assert(action().textContent.includes('Add to drawing'),'Measurement saving action has a visible text label');
         action().click();assert(applied===1&&M.labDimensionText(model,0,1,false)==='5.0 cm','Local instrument button persists the measured segment');
-        allowed=false;paint();assert(!action()&&!svg.querySelector('[data-ag-measurement-reference]'),'Host can disable measurement annotation and preview');
+        model.points.push([260,208]);model.names.push('C');paint();const choose=()=>svg.querySelector('[data-ag-utensil-action="choose-distance"]');assert(choose()&&!action(),'Three aligned points require explicit pair choice');choose().click();assert(action()&&svg.querySelectorAll('[data-ag-measurement-reference]').length===2,'Explicit pair choice enables Add to drawing');action().click();assert(applied===2&&M.labIndependentDimensions(model).length===1,'A ruler can annotate a distance without a segment');allowed=false;paint();assert(!action()&&!svg.querySelector('[data-ag-measurement-reference]'),'Host can disable measurement annotation and preview');
         host.remove();
       }
       // Instrument annotations resolve named, visible geometric references.
       const measured={...M.labEmpty(true),points:[[100,100],[500,100],[240,100]],names:['A','B','C'],segments:[[0,1]]};
       const rulerPose={kind:'ruler',x:80,y:100,angle:0,size:480};
-      const target=M.labMeasurementTarget(measured,rulerPose,1);
+      const target=M.labRulerTargets(measured,rulerPose,1).find(t=>t.names.join('')==='AB');assert(!M.labMeasurementTarget(measured,rulerPose,1),'Multiple aligned points require explicit selection');
       assert(target?.kind==='length'&&target.names.join('')==='AB','Ruler resolves actual covered segment rather than ruler size');
       assert(M.labApplyMeasurement(measured,target)&&M.labDimensionText(measured,0,1,false)==='10.0 cm','Instrument adds persistent exact length independent of automatic measurements');
       measured.points[1]=[460,100];assert(M.labDimensionText(measured,0,1,false)==='9.0 cm','Pinned measured dimension follows geometry');
       assert(!M.labMeasurementTarget(measured,{...rulerPose,y:110},1)&&!M.labMeasurementTarget(measured,{...rulerPose,size:100},1),'Misaligned or too-short ruler cannot annotate');
       measured.segments.push([0,2]);assert(!M.labMeasurementTarget(measured,rulerPose,1),'Ambiguous overlapping measured segments are not guessed');
-      measured.segmentStyles={'A:C':true};measured.showConstruction=false;assert(M.labMeasurementTarget(measured,rulerPose,1)?.names.join('')==='AB','Hidden construction edges are excluded');
+      measured.segmentStyles={'A:C':true};measured.showConstruction=false;assert(M.labRulerTargets(measured,rulerPose,1).length===3,'Visible named points remain measurable independently of hidden edges');
       const theta=34.27*Math.PI/180,angleScene={...M.labEmpty(true),points:[[100,100],[300,100],[100+200*Math.cos(theta),100-200*Math.sin(theta)]],names:['A','B','C'],segments:[[0,1],[0,2]]};
       const anglePose={kind:'protractor',x:100,y:100,angle:0,reading:34.3,hand:1,size:170};
       const at=M.labMeasurementTarget(angleScene,anglePose,1);
