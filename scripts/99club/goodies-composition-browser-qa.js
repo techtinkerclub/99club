@@ -1369,6 +1369,23 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       reset();assert(cap().demo.labDrawing.points.length===0,'Instrument verification leaves empty sheet: '+label);
     };
     checkRuler(15,[460,160]);verifyInstruments('A5 normal');
+    {
+      const tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),tap=p=>{previewPointer('pointerdown',p);previewPointer('pointerup',p)},centre=[200,200];
+      tool('compass').click();tool('compass-arc').click();tap(centre);tap([320,200]);previewPointer('pointermove',[200,80]);
+      assert(work.querySelector('[data-ag-arc-preview]'),'Compass previews partial arc after choosing centre and radius');
+      tap([200,80]);const d=cap().demo.labDrawing,c=d.circles[0];
+      assert(M.isLabArc(c)&&Math.abs(c.r-120)<.001&&Math.abs(c.sweep-90)<.001&&work.querySelector('[data-ag-compass-arc]'),'Compass creates exact 3 cm quarter arc');
+      const bounds=M.labContentBounds(d);assert(Math.abs(bounds[0]-200)<.001&&Math.abs(bounds[1]-80)<.001&&Math.abs(bounds[2]-320)<.001&&Math.abs(bounds[3]-200)<.001,'Fit bounds include only drawn arc and centre');
+      const docDraft=P.createDocument();docDraft.addCurrent(id,cap());assert(P.renderItem(docDraft.list()[0],false).querySelector('[data-ag-compass-arc]'),'Partial arc survives vector publication');
+      tool('compass-opening').click();tool('arc-direction').click();tap([500,200]);tap([550,200]);tap([500,320]);
+      const transferred=cap().demo.labDrawing.circles[1];assert(M.isLabArc(transferred)&&Math.abs(transferred.r-120)<.001&&Math.abs(transferred.sweep+90)<.001,'Retained opening produces equal-radius clockwise arc');
+      doc.querySelector('[aria-label="Reset construction"]').click();tool('compass-arc').click();
+      const m=M.labEmpty(true);m.points=[[200,200],[320,200]];m.circles=[{i:0,r:120,start:0,sweep:120},{i:1,r:120,start:60,sweep:120}];
+      const upper=[260,200-60*Math.sqrt(3)],lower=[260,200+60*Math.sqrt(3)];
+      assert(M.labSnap(m,upper,.5).kind==='Intersection'&&M.labSnap(m,lower,.5).kind==='','Arc intersections snap only on visible sweeps');
+      m.points.push([0,200],[450,200]);m.segments=[[2,3]];assert(M.labSnap(m,[80,200],.5).kind==='On line','Invisible continuation of arc is not a line intersection');
+      assert(M.labSnap(m,[440,200],.5).kind==='On line','Other invisible arc continuation is not a line intersection');
+    }
     doc.querySelector('[data-ag-tool="expand"]').click();wsField('format').value='A4';wsField('apply').click();await tick();
     checkRuler(30,[460,160]);verifyInstruments('A4 normal');
     {
