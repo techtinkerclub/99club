@@ -143,7 +143,7 @@ function instrumentMove(d,p,scale,{spec,step=4,align,read,precision=1}={}){
   t.size=clamp(Math.round((d.size+delta)/step)*step,spec.min,spec.max);
  }else{
   const dx=p[0]-d.p[0],dy=p[1]-d.p[1],guided=t.kind.startsWith('square')&&['along','across'].includes(t.slideMode);
-  if(guided){const a=(d.angle+(t.slideMode==='across'?90:0))*Math.PI/180,u=[Math.cos(a),-Math.sin(a)],k=dx*u[0]+dy*u[1];t.x=d.x+k*u[0];t.y=d.y+k*u[1];t.angle=d.angle;t.size=d.size;d.candidate=t.snap?align?.(t,'slide',scale)||null:null;return true}
+  if(guided){const a=(d.angle+(t.slideMode==='across'?90:0))*Math.PI/180,u=[Math.cos(a),-Math.sin(a)],k=dx*u[0]+dy*u[1];t.x=d.x+k*u[0];t.y=d.y+k*u[1];t.angle=d.angle;t.size=d.size;d.candidate=t.snap?align?.(t,'slide',scale,d.candidate)||null:null;return true}
   t.x=d.x+dx;t.y=d.y+dy;
  }
  d.candidate=t.snap?align?.(t,d.handle||'move',scale,d.candidate)||null:null;return true;
@@ -275,13 +275,15 @@ const INSTRUMENT_ICONS={
 // No widget-specific model, challenge target or answer is consulted.
  function instrumentAlignment({points,lines},t,mode,scale,previous=null){
    const p=[t.x,t.y],tol=12/Math.max(.001,scale),diff=(a,b)=>Math.min(mod(a-b),mod(b-a));
-   const nearest=lines.flatMap(l=>{const v=labSub(l.b,l.a),d=labDot(v,v);if(d<1e-8)return [];const u=labDot(labSub(p,l.a),v)/d,q=labAt(l.a,v,l.infinite?u:Math.max(0,l.ray?u:Math.min(1,u)));return [{q,d:labDist(p,q),angle:labAngle(l.a,l.b)}]}).sort((a,b)=>a.d-b.d);
+   const lineKey=l=>JSON.stringify([l.a,l.b,!!l.ray,!!l.infinite]),pointKey=q=>JSON.stringify(q),held=key=>previous?.snapKey===key,band=key=>tol*(held(key)?1.5:1);
+   const nearest=lines.flatMap(l=>{const v=labSub(l.b,l.a),d=labDot(v,v);if(d<1e-8)return [];const u=labDot(labSub(p,l.a),v)/d,q=labAt(l.a,v,l.infinite?u:Math.max(0,l.ray?u:Math.min(1,u)));return [{q,d:labDist(p,q),angle:labAngle(l.a,l.b),key:'edge:'+lineKey(l)}]}).sort((a,b)=>a.d-b.d);
    if(mode==='move'){
      // Match finite measuring edges, not merely the utensil's origin.
      // Candidate geometry is computed from the unsnapped pose on every move.
      const edges=t.kind==='protractor'?[[0,t.size||170]]:t.kind==='ruler'?[[0,t.size||400]]:t.kind.startsWith('square')?[[0,t.size||200],[90,(t.size||200)*(t.kind==='square30'?Math.sqrt(3):1)]]:[];
      const vector=(a,d)=>[Math.cos(a*D)*d,-Math.sin(a*D)*d],matches=[];
-     const vertex=points.map(q=>({q,d:labDist(p,q)})).sort((a,b)=>a.d-b.d)[0];
+     const vertices=points.map(q=>({q,d:labDist(p,q),key:'point:'+pointKey(q)}));
+     const vertex=vertices.filter(v=>v.d<=band(v.key)).sort((a,b)=>Number(held(b.key))-Number(held(a.key))||a.d-b.d)[0];
      for(const [offset,len] of edges){
        const direction=t.angle+offset;
        // For a protractor its centre is the only translation anchor.
@@ -289,29 +291,33 @@ const INSTRUMENT_ICONS={
        for(const l of lines){
          const v=labSub(l.b,l.a),ll=labDot(v,v);if(ll<1e-8)continue;
          for(const reverse of [0,180]){
-           const angle=mod(labAngle(l.a,l.b)+reverse-offset),da=diff(angle,t.angle);if(da>5)continue;
+           const angle=mod(labAngle(l.a,l.b)+reverse-offset),da=diff(angle,t.angle),key='aligned:'+lineKey(l)+':'+offset+':'+reverse;
+           const vertexKey=vertex?'aligned-vertex:'+vertex.key+':'+key:null,keepVertex=vertexKey&&held(vertexKey);if(da>(held(key)||keepVertex?7.5:5))continue;
            // A short segment may lie between all three usual ruler anchors.
            // Intersect the projected measuring-edge interval with the actual object domain.
            let samples=fractions;if(t.kind==='ruler'){const start=labDot(labSub(p,l.a),v)/ll,delta=labDot(vector(direction,len),v)/ll;if(Math.abs(delta)>1e-12){let lo=0,hi=1;if(!l.infinite){const z=-start/delta;if(delta>0)lo=Math.max(lo,z);else hi=Math.min(hi,z);if(!l.ray){const e=(1-start)/delta;if(delta>0)hi=Math.min(hi,e);else lo=Math.max(lo,e)}}if(lo<=hi)samples=[...fractions,(lo+hi)/2]}}
            for(const fraction of samples){
              const a=vector(direction,len*fraction),sample=[p[0]+a[0],p[1]+a[1]],u=labDot(labSub(sample,l.a),v)/ll;
              if(!l.infinite&&(u<0||(!l.ray&&u>1)))continue;
-             const q=labAt(l.a,v,u),distance=labDist(sample,q);if(distance>tol)continue;
+             const q=labAt(l.a,v,u),distance=labDist(sample,q);if(distance>Math.max(band(key),keepVertex?tol*1.5:tol))continue;
              const b=vector(angle+offset,len*fraction),origin=[q[0]-b[0],q[1]-b[1]];
              // Do not shift the origin far away just to align a distant tip.
-             const shift=labDist(origin,p);if(shift>tol)continue;
-             matches.push({x:origin[0],y:origin[1],angle,kind:'Aligned edge',score:shift+da*.8});
-             if(vertex?.d<=tol){const vtx=vertex.q,k=labDot(labSub(vtx,l.a),v)/ll,project=labAt(l.a,v,k);if((l.infinite||k>=-1e-7&&(l.ray||k<=1+1e-7))&&labDist(vtx,project)<1e-6)matches.push({x:vtx[0],y:vtx[1],angle,kind:'Aligned vertex',score:vertex.d+da*.8-2*tol})}
+             const shift=labDist(origin,p);if(shift<=band(key))matches.push({x:origin[0],y:origin[1],angle,kind:'Aligned edge',score:shift+da*.8,snapKey:key});
+             if(vertex&&vertex.d<=band(vertexKey)){const vtx=vertex.q,k=labDot(labSub(vtx,l.a),v)/ll,project=labAt(l.a,v,k);if((l.infinite||k>=-1e-7&&(l.ray||k<=1+1e-7))&&labDist(vtx,project)<1e-6)matches.push({x:vtx[0],y:vtx[1],angle,kind:'Aligned vertex',score:vertex.d+da*.8-2*tol,snapKey:vertexKey})}
            }
          }
        }
        // A ruler or set-square tip can also snap to a point without rotating.
-       if(t.kind!=='protractor'){const a=vector(direction,len),tip=[p[0]+a[0],p[1]+a[1]],end=points.map(q=>({q,d:labDist(q,tip)})).sort((a,b)=>a.d-b.d)[0];if(end?.d<=tol)matches.push({x:end.q[0]-a[0],y:end.q[1]-a[1],kind:'Endpoint',score:end.d+tol})}
+       if(t.kind!=='protractor'){const a=vector(direction,len),tip=[p[0]+a[0],p[1]+a[1]],end=points.map(q=>({q,d:labDist(q,tip),key:'tip:'+offset+':'+pointKey(q)})).filter(q=>q.d<=band(q.key)).sort((a,b)=>Number(held(b.key))-Number(held(a.key))||a.d-b.d)[0];if(end)matches.push({x:end.q[0]-a[0],y:end.q[1]-a[1],kind:'Endpoint',score:end.d+tol,snapKey:end.key})}
      }
-     if(vertex?.d<=tol){const aligned=matches.filter(m=>m.kind==='Aligned vertex').sort((a,b)=>a.score-b.score)[0];return aligned?{x:aligned.x,y:aligned.y,angle:aligned.angle,kind:aligned.kind}:{x:vertex.q[0],y:vertex.q[1],kind:'Point'}}
+     // Prefer a still-valid acquired reference, but recompute its pose at the current pointer.
+     const heldMatch=matches.filter(m=>held(m.snapKey)).sort((a,b)=>a.score-b.score)[0];if(heldMatch){const {score,...result}=heldMatch;return result}
+     if(vertex&&held(vertex.key))return {x:vertex.q[0],y:vertex.q[1],kind:'Point',snapKey:vertex.key};
+     const heldEdge=nearest.find(n=>held(n.key)&&n.d<=band(n.key));if(heldEdge)return {x:heldEdge.q[0],y:heldEdge.q[1],kind:'Edge',snapKey:heldEdge.key};
+     if(vertex&&vertex.d<=tol){const aligned=matches.filter(m=>m.kind==='Aligned vertex').sort((a,b)=>a.score-b.score)[0];if(aligned){const {score,...result}=aligned;return result}return {x:vertex.q[0],y:vertex.q[1],kind:'Point',snapKey:vertex.key}}
      const match=matches.sort((a,b)=>a.score-b.score)[0];if(match){const {score,...result}=match;return result}
      const hit=nearest[0]?.d<=tol?nearest[0]:null;
-     return hit?{x:hit.q[0],y:hit.q[1],kind:'Edge'}:null;
+     return hit?{x:hit.q[0],y:hit.q[1],kind:'Edge',snapKey:hit.key}:null;
    }
    if(mode==='rotate'){
      // Retain a previously acquired exact direction until the pointer leaves a
