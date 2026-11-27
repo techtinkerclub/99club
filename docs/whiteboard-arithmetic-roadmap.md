@@ -227,3 +227,22 @@ Three levels: (1) publish the current challenge or non-challenge representation 
 - A new set is generated without carrying forward previous responses. Layout changes preserve questions and responses.
 - Export must not leak answers, even after reveal. Teacher-selected ranges and operations remain respected.
 - Avoid claiming visual or print verification until performed in a browser.
+
+
+## Cross-manipulative paper geometry audit — agreed 27 November 2026
+
+See [Geometry Lab roadmap](99club-geometry-lab-roadmap.md) for the full candidate list and provisional 6G–6M sequencing. This is an extension to, not a replacement for, the existing publishing, written arithmetic, statistics, individual widget QA and UI/UX workstreams.
+
+**Implementation gate:** inspect existing model, renderer, teaching controls, challenge catalogue and publishing adapter before implementing each candidate. Record whether it is already available, needs refinement, belongs in a different widget, should be shared, or is not worth implementing. Prefer one well-designed tool to several overlapping versions. All candidates remain recorded, but inclusion in this plan is not automatic approval to implement.
+
+| Owner | Candidate scope |
+|---|---|
+| Geometry Lab | Contextual style/colour and current instrument QA; trim/extend/split/join, protect givens, tracing paper and rigid/group transformations, accurate measurements of its own constructed geometry, construction guides/challenges/replay and optional KS3 scale/bearings. Maintain distinct fixed/free/constrained modes. |
+| Geoboard / shape tools | Audit existing area and perimeter, compound shapes, grid counting, conservation of area, decomposition and challenges. Evaluate cutting, joining, moving pieces, tangrams and tessellation; use an existing shape manipulative or dedicated pieces workspace if the peg lattice is inappropriate. |
+| Coordinate Grid | Already has six standard challenge families including reflection and translation; extend rather than recreate. Audit rotation, enlargement, arbitrary mirror lines, origin and scale controls, all four quadrants, linked points and graphical answers. Consider coordinate geometry versus graphs/functions as separate modes only when justified; coordinate plotting and transformations are geometry, function graphs are algebra. Coordinate mathematical engines with Geometry Lab; preserve distinct teaching interfaces. |
+| Statistics | Data-driven graphs, charts and tables remain in existing statistics plan, not a duplicate Coordinate Grid feature. |
+| Shared whiteboard | Reusable freehand pen, highlighter, text/math, arrows, annotation eraser, editable labels where applicable. Investigate current shared board capabilities before adding new tools. Annotations must not change mathematical answers or leak solutions. |
+| Shared publishing | Exact-size output where supported, optional calibration mark, grids, working space, cut/fold guides where relevant, monochrome legibility, vector diagrams and correct graphical annexes. Verify real printer limitations separately from mathematical scale. |
+| Deferred ideas | Faithful paper folding/origami only as a separate feasibility study if justified; simple fold-line reflection in transformations is enough for now. Extra physical utensils (French curve, parallel ruler, dividers, templates) not active scope; possible existing-protractor 360-degree mode only if a gap is verified. |
+
+Current priority remains completing 6G and PR #297, verifying deployment, and resolving #266 locus tracing. Do not let this research create an uncontrolled expansion or delay fixing defects. For each new feature, check educational need, reuse, implementation feasibility, touchscreen interaction, challenge and publication implications, and release quality before proceeding.
