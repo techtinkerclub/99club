@@ -3302,6 +3302,8 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const rotationPanel=doc.querySelector('[data-ag-rotation-reference]'),rotationSlider=rotationPanel.querySelector('[data-ag-rotation-slider]');
       rotationSlider.value=45;rotationSlider.dispatchEvent(new win.Event('input',{bubbles:true}));
       assert(rotationPanel.querySelector('[data-ag-rotation-graphic]').dataset.agRotationMatch==='false','45 degree square turn is not a match');
+      const arcGraphic=rotationPanel.querySelector('[data-ag-rotation-graphic]'),turnArc=arcGraphic.querySelector('[data-ag-rotation-turn-arc]'),rayDirection=n=>Math.atan2(Number(n.getAttribute('cy'))-120,Number(n.getAttribute('cx'))-210),arcDirection=p=>Math.atan2(p.y-120,p.x-210),angleError=(a,b)=>Math.abs(Math.atan2(Math.sin(a-b),Math.cos(a-b)));assert(turnArc&&angleError(arcDirection(turnArc.getPointAtLength(0)),rayDirection(arcGraphic.querySelector('[data-ag-rotation-start-vertex]')))<1e-5&&angleError(arcDirection(turnArc.getPointAtLength(turnArc.getTotalLength())),rayDirection(arcGraphic.querySelector('[data-ag-rotation-moving-vertex]')))<1e-5,'Rotation arc starts and ends on the actual corner rays');
+
       rotationPanel.querySelector('[data-ag-rotation-next-match]').click();assert(rotationPanel.querySelector('[data-ag-rotation-graphic]').dataset.agRotationMatch==='true'&&Number(rotationSlider.value)===90,'Next matching rotation moves to 90 degrees');
       rotationPanel.querySelector('[data-ag-rotation-reset]').click();assert(Number(rotationSlider.value)===0,'Rotation reset');
       doc.querySelector('[data-ag-teaching-tab="symmetry"]').click();await tick();
@@ -3334,7 +3336,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       reflectionPanel.querySelector('[data-ag-fold-play]').click();for(let j=0;j<60&&Number(reflectionPanel.querySelector('[data-ag-fold-progress]').dataset.agFoldProgress)!==1;j++)await tick(50);
       assert(Number(reflectionPanel.querySelector('[data-ag-fold-progress]').dataset.agFoldProgress)===1&&reflectionPanel.querySelector('[data-ag-reflection-result]').textContent.includes('fit exactly'),'Fold animation reaches exact matching half');
       reflectionPanel.querySelector('[data-ag-fold-play]').click();for(let j=0;j<60&&Number(reflectionPanel.querySelector('[data-ag-fold-progress]').dataset.agFoldProgress)!==0;j++)await tick(50);assert(Number(reflectionPanel.querySelector('[data-ag-fold-progress]').dataset.agFoldProgress)===0,'Fold is reversible');
-      assert(rotationPrint.querySelector('[data-ag-reflection-graphic]'),'Reflection illustration included in publication');
+      assert(rotationPrint.querySelector('[data-ag-reflection-graphic]'),'Reflection illustration included in publication');assert(rotationPrint.querySelectorAll('[data-ag-reflection-equal-distance]').length===2,'Printed mirror diagram marks equal perpendicular distances');
       for(const [shape,expected] of [['square',['Quadrilateral','Trapezium','Parallelogram','Rectangle','Kite','Rhombus','Square']],['rectangle',['Quadrilateral','Trapezium','Parallelogram','Rectangle']],['rhombus',['Quadrilateral','Trapezium','Parallelogram','Kite','Rhombus']],['parallelogram',['Quadrilateral','Trapezium','Parallelogram']],['kite',['Quadrilateral','Kite']],['trapezium',['Quadrilateral','Trapezium']]]){
         const f=M.quadrilateralFamilyModel(ref(shape).points);
         assert(f.members.length===expected.length&&expected.every(x=>f.members.includes(x)),'Inclusive family membership: '+shape);
