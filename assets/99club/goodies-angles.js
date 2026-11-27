@@ -1302,6 +1302,8 @@ function generate(s={},rng=Math.random){
    if(p.regular)properties.push(['Each interior / exterior angle',fmt(180*(n-2)/n)+'° / '+fmt(360/n)+'°']);
    if(quad)properties.push(['Opposite parallel pairs',String(quad.parallelPairs.length)],['Right angles',String(quad.right)],['Inclusive families',quad.families.join(', ')]);
    if(tri)properties.push(['Angle relationship',tri.sides==='Equilateral'?'All three angles are 60°.':tri.sides==='Isosceles'?'Angles opposite equal sides are equal.':'All three side lengths differ.']);
+   if(quad){const relationships={Square:'Four equal sides; opposite sides parallel; four right angles.',Rectangle:'Opposite sides equal and parallel; four right angles.',Rhombus:'Four equal sides; opposite angles equal.',Parallelogram:'Opposite sides equal and parallel; opposite angles equal.',Trapezium:'A pair of opposite sides is parallel.',Kite:'Two pairs of adjacent sides are equal.'};if(relationships[quad.kind])properties.splice(1,0,['Key relationship',relationships[quad.kind]]);}
+   if(tri?.kind==='Right-angled')properties.splice(1,0,['Key relationship','One angle is 90°; the other two add to 90°.']);
    const diagonals=[['Total diagonals',n+' × ('+n+' − 3) ÷ 2 = '+p.diagonalCount],['From each vertex',n+' − 3 = '+(n-3)],['Internal cuts in a triangulation',n+' − 3 = '+(n-3)],['Triangles in a triangulation',n+' − 2 = '+(n-2)]];
    if(quad){
      const u=labSub(pts[2],pts[0]),v=labSub(pts[3],pts[1]),I=quad.intersection,midAC=I&&labDist(I,labAt(pts[0],u,.5))<=1e-8*Math.max(...p.lengths),midBD=I&&labDist(I,labAt(pts[1],v,.5))<=1e-8*Math.max(...p.lengths);
@@ -2524,7 +2526,7 @@ function polygonFormulaGraphic(proof,index){
  }
  poly(v,{fill:'none',stroke:'#35565a','stroke-width':2});
  v.forEach((p,i)=>{const selected=i===proof.vertex,excluded=index===0&&(i===proof.prev||i===proof.next),delta=labSub(p,[250,119]),len=Math.max(1,Math.hypot(...delta)),q=labAt(p,delta,15/len);add('circle',{cx:p[0],cy:p[1],r:selected&&index===0?5:3.4,fill:selected&&index===0?'#277b70':excluded?'#b56d2c':'#35565a','data-ag-proof-vertex':i});label(q[0],q[1]+4,pointName(i),{'font-size':13,'font-weight':selected?700:400})});
- const equations=[n+' − 3 = '+proof.from.length+' diagonals from one vertex',n+' × '+(n-3)+' = '+proof.ordered.length+' counts',n+' × ('+n+' − 3) ÷ 2 = '+proof.all.length+' diagonals', '1 + '+proof.internal.length+' = '+proof.triangles.length+' triangles', '('+n+' − 2) × 180° = '+180*(n-2)+'°'];
+ const equations=[n+' − 3 = '+proof.from.length+' diagonals from one vertex',n+' × '+(n-3)+' = '+proof.ordered.length+' counts',n+' × ('+n+' − 3) ÷ 2 = '+proof.all.length+' diagonals', '1 + '+proof.internal.length+' = '+proof.triangles.length+' triangles', proof.triangles.length+' × 180° = '+180*(n-2)+'°'];
  label(250,257,equations[index],{'font-weight':700,'font-size':17,'data-ag-proof-equation':'1'});
  label(250,281,index===1?'Each segment is counted at both endpoints.':index===2?'Count each diagonal once.':index===4?'Every coloured triangle contributes 180°.':index===3?'The triangles fill the shape.':'The vertex and its neighbours are excluded.',{'font-size':13});
  return svg;
@@ -2558,6 +2560,7 @@ function mountPolygonFormulaProof(container,m,demo){
  select.onchange=()=>{vertex=Number(select.value);show()};q('[data-ag-polygon-proof-back]').onclick=()=>{index=Math.max(0,index-1);show()};q('[data-ag-polygon-proof-next]').onclick=()=>{index=Math.min(2,index+1);show()};q('[data-ag-polygon-proof-reset]').onclick=()=>{index=0;vertex=0;show()};container.appendChild(section);show();
 }
 
+function simpleReferenceRows(rows,includeExtra=false){const advanced=new Set(['Total diagonals','From each vertex','Internal cuts in a triangulation','Triangles in a triangulation','Exterior turns','Equilateral area','Apothem','Lengths','Regular polygon']);const core=[],extra=[];for(const [label,value] of rows){if(advanced.has(label)){extra.push([label,value]);continue}const match=value.match(/^(.*); diagonal = (.*)$/);if(match){core.push([label,match[1]]);extra.push(['Diagonal length','d = '+match[2]])}else core.push([label,value])}return includeExtra?[...core,...extra]:{core,extra}}
 function appendShapeReference(svg,d){
  const m=shapeTeachingReference(d);if(!m?.valid||d.showReference===false)return svg;
  const ns='http://www.w3.org/2000/svg',view=svg.getAttribute('viewBox').trim().split(/\s+/).map(Number),[x,y,w,h]=view;let at=y+h+20;
@@ -2567,7 +2570,7 @@ function appendShapeReference(svg,d){
  for(const [i,group] of m.groups.entries()){
    add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size+2,'font-weight':700,fill:'#285c55','data-ag-shape-reference-group':group.title},group.title);at+=size+12;
    const graphic=shapeReferenceGraphic(m,['symmetry','diagonals','area'][i]),gw=Math.min(w-40,390),gh=gw*200/320;graphic.setAttribute('x',x+(w-gw)/2);graphic.setAttribute('y',at);graphic.setAttribute('width',gw);graphic.setAttribute('height',gh);svg.append(graphic);at+=gh+8;
-   for(const [label,value] of group.rows){
+   for(const [label,value] of simpleReferenceRows(group.rows,true).filter(([label])=>d.showDiagonalEnrichment||!['Total diagonals','From each vertex','Internal cuts in a triangulation','Triangles in a triangulation','Exterior turns','Equilateral area','Apothem','Lengths','Regular polygon','Diagonal length'].includes(label))){
      const lines=G.exportTools.wrapPaperText(label+': '+value,w-2*margin,size,400);
      for(const line of lines){add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size,fill:'#263e43'},line);at+=size*1.32}
    }
@@ -3537,9 +3540,8 @@ G.anglesTool=function(){
   function updateReference(){
     if(!reference)return;const m=shapeTeachingReference(d),body=q('[data-ag-shape-reference-body]',reference);
     if(!m?.valid){body.innerHTML='<p>Move the vertices to form a simple, non-degenerate polygon before inspecting its properties.</p>';syncReferenceTabs();return}
-    const advancedRows=new Set(['Total diagonals','From each vertex','Internal cuts in a triangulation','Triangles in a triangulation','Exterior turns','Equilateral area','Apothem','Lengths','Regular polygon']);
     const renderRows=rows=>rows.map(([label,value])=>'<dt>'+esc(label)+'</dt><dd>'+esc(value)+'</dd>').join('');
-    body.innerHTML=m.groups.map((g,i)=>{const core=g.rows.filter(([label])=>!advancedRows.has(label)),advanced=g.rows.filter(([label])=>advancedRows.has(label)),title=['Shape & angles',m.n===4?'Diagonal relationships':'How the corners connect','Area & perimeter'][i];return '<section><h4>'+title+'</h4><dl>'+renderRows(core)+'</dl>'+(advanced.length?'<details data-ag-reference-extra><summary>More mathematical detail</summary><dl>'+renderRows(advanced)+'</dl></details>':'')+'</section>'}).join('');
+    body.innerHTML=m.groups.map((g,i)=>{const {core,extra:advanced}=simpleReferenceRows(g.rows),title=['Shape & angles',m.n===4?'Diagonal relationships':'How the corners connect','Area & perimeter'][i];return '<section><h4>'+title+'</h4><dl>'+renderRows(core)+'</dl>'+(advanced.length?'<details data-ag-reference-extra><summary>More mathematical detail</summary><dl>'+renderRows(advanced)+'</dl></details>':'')+'</section>'}).join('');
     [...body.querySelectorAll('section')].forEach((section,i)=>section.insertBefore(shapeReferenceGraphic(m,['symmetry','diagonals','area'][i]),section.querySelector('dl')));
     mountPolygonFormulaProof(body,m,demo);
     mountRotationReference(body,m,demo);
