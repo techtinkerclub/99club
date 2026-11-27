@@ -2700,3 +2700,31 @@ html.gd-embed-page #tt99-goodies-root #gd-stage:has(>.gd-ag-shape-reference){ove
   #tt99-goodies-root [data-ag-shape-reference-body][data-ag-teaching-active="symmetry"]>section:has(>details[open]) svg{max-height:clamp(170px,52vh,420px)}
   #tt99-goodies-root [data-ag-shape-reference-body][data-ag-teaching-active="symmetry"]>section:has(>details[open])>details[open]{grid-column:2}
 }
+
+
+/* Geometry classroom polish: reserve space for navigation and controls before
+   fitting the drawing, and keep text in a compact, aligned teaching column. */
+#tt99-goodies-root [data-ag-teaching-title]{margin:2px 0 8px;padding:0 2px;font:700 clamp(18px,2vw,27px)/1.2 Arial,sans-serif;color:#234c47}
+#tt99-goodies-root [data-ag-shape-reference-body] [hidden]{display:none!important}
+#tt99-goodies-root [data-ag-lesson-copy]{min-width:0;display:flex;flex-direction:column;gap:10px;align-items:stretch}
+#tt99-goodies-root [data-ag-lesson-copy] h4{font-size:clamp(17px,1.65vw,23px);margin:0 0 4px}
+#tt99-goodies-root [data-ag-lesson-copy] p{font-size:clamp(14px,1.2vw,18px);line-height:1.4;margin:0;min-height:0}
+#tt99-goodies-root [data-ag-lesson-copy] .gd-row{justify-content:flex-start;flex-wrap:wrap;margin:0;gap:6px}
+#tt99-goodies-root [data-ag-lesson-copy] label{min-width:0;max-width:100%}
+#tt99-goodies-root [data-ag-shape-measure-note]{font-weight:600}
+#tt99-goodies-root [data-ag-shape-explore-controls] .gd-ag-inspect-tools{border:0;background:transparent;margin:0;padding:0;gap:6px}
+#tt99-goodies-root [data-ag-shape-explore-controls] .gd-ag-inspect-tools .gd-ag-inspect-message{flex:1 1 100%;font-size:13px}
+#tt99-goodies-root [data-ag-shape-explore-controls] .gd-ag-inspect-tools .gd-ag-lab-helpers{display:flex;flex-wrap:wrap;justify-content:center;gap:4px}
+#tt99-goodies-root #gd-stage:has(>[data-ag-teaching-screen="explore"])>[data-ag-shape-explore-controls]{order:1;padding:0 4px!important;margin:0!important;gap:6px!important}
+#tt99-goodies-root #gd-stage:has(>[data-ag-teaching-screen="explore"])>.gd-ag-visual{order:2}
+@media (min-width:800px) and (min-height:480px) and (orientation:landscape){
+  html.gd-embed-page #tt99-goodies-root #gd-stage:has(>[data-ag-teaching-screen="explore"]){display:flex!important;flex-direction:column!important;gap:6px!important}
+  html.gd-embed-page #tt99-goodies-root #gd-stage:has(>[data-ag-teaching-screen="explore"])>.gd-ag-visual{flex:1 1 0!important;min-height:0!important;height:0!important;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  html.gd-embed-page #tt99-goodies-root #gd-stage:has(>[data-ag-teaching-screen="explore"])>.gd-ag-visual>svg{flex:1 1 0;min-height:0;width:100%!important;height:100%!important;max-height:none!important;max-width:none!important;margin:0!important}
+  #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]:not([hidden]):not(:has(>details[data-ag-lesson-detail="page"][open])){display:grid!important;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);grid-template-rows:auto auto;gap:8px 22px;align-items:center;align-content:start}
+  #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]>[data-ag-lesson-copy]{grid-column:2;grid-row:1;align-self:center}
+  #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]>:is([data-ag-angle-sum-picture],[data-ag-proof-picture],[data-ag-basic-area-picture],[data-ag-family-primary],[data-ag-triangle-family-primary],[data-ag-pythagoras-squares-picture],[data-ag-shape-measure-picture],[data-ag-area-comparison-picture],[data-ag-reasoning-picture]){grid-column:1;grid-row:1/span 2;align-self:center}
+  #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]>details{grid-column:2;grid-row:2;align-self:start}
+  #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]:not(:has(>details))>[data-ag-lesson-copy]{grid-row:1/span 2}
+  #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson] svg{max-height:clamp(150px,49vh,430px)}
+}

@@ -3180,6 +3180,14 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
     doc.querySelector('[data-ag-polygon-shade]').click();
     function shadeTap(svg,p){const v=new win.DOMPoint(...p).matrixTransform(svg.getScreenCTM());svg.dispatchEvent(new win.PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerType:'touch',button:0,clientX:v.x,clientY:v.y}))}
     const shadeApply=()=>[...doc.querySelectorAll('.gd-ag-inspect-tools button')].find(b=>b.textContent==='Shade selected');
+    const shadeBar=doc.querySelector('[data-ag-polygon-shade]').closest('.gd-ag-inspect-tools');assert(shadeBar.closest('[data-ag-shape-explore-controls]')&&shadeBar.querySelector('[data-ag-shade-method="inside"]').getAttribute('aria-pressed')==='true','Shading is grouped with explorer controls and defaults to click inside');
+    const centroid=ids=>ids.map(j=>regionPoints[j]).reduce((a,p)=>[a[0]+p[0]/ids.length,a[1]+p[1]/ids.length],[0,0]),topFace=centroid([0,1,4]),bottomFace=centroid([2,3,4]);
+    shadeTap(regionSvg,topFace);shadeTap(regionSvg,bottomFace);assert(regionSvg.querySelectorAll('[data-ag-region-face]').length===2,'Click inside shades two separate diagonal-bounded faces');
+    const directDraft=P.createDocument();directDraft.addCurrent(id,cap());assert(P.renderItem(directDraft.list()[0],false).querySelectorAll('[data-ag-region-face]').length===2,'Direct face shading is published from the same geometry');
+    shadeTap(regionSvg,topFace);assert(regionSvg.querySelectorAll('[data-ag-region-face]').length===1,'Clicking an already shaded face removes only that face');
+    shadeTap(regionSvg,[-100,-100]);assert(regionSvg.querySelectorAll('[data-ag-region-face]').length===1,'Outside click cannot shade an open exterior');
+    shadeTap(regionSvg,bottomFace);assert(!regionSvg.querySelector('[data-ag-region-face]'),'Both faces can be unshaded');
+    shadeBar.querySelector('[data-ag-shade-method="vertices"]').click();assert(shadeBar.querySelector('[data-ag-shade-method="vertices"]').getAttribute('aria-pressed')==='true','Manual vertex method remains available');
     for(const j of [0,1,4])shadeTap(regionSvg,regionPoints[j]);shadeApply().click();
     doc.querySelector('.gd-ag-inspect-tools button[aria-label="Blue region"]').click();
     for(const j of [2,3,4])shadeTap(regionSvg,regionPoints[j]);shadeApply().click();
@@ -3381,6 +3389,11 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const reflectionBottom=teaching.querySelector('[data-ag-reflection-reference]').getBoundingClientRect().bottom;
       assert(reflectionBottom<=teachingStage.getBoundingClientRect().bottom+3,'Reflection controls reachable in maximised teaching widget');
       if(win.matchMedia('(min-width:800px) and (min-height:480px) and (orientation:landscape)').matches){
+        teaching.querySelector('[data-ag-teaching-explore]').click();await tick(80);
+        const title=teaching.querySelector('[data-ag-teaching-title]'),exploreControls=teachingStage.querySelector('[data-ag-shape-explore-controls]'),exploreSvg=teachingStage.querySelector('.gd-ag-visual>svg');
+        assert(title.textContent==='Equilateral triangle'&&title.getBoundingClientRect().height>0,'Explorer has a descriptive visible shape title: '+title.textContent);
+        assert(teachingStage.scrollHeight<=teachingStage.clientHeight+3&&exploreControls.getBoundingClientRect().bottom<=teachingStage.getBoundingClientRect().bottom+3&&exploreSvg.getBoundingClientRect().bottom<=teachingStage.getBoundingClientRect().bottom+3,'Explorer diagram fits remaining landscape height: '+teachingStage.scrollHeight+'/'+teachingStage.clientHeight);
+        exploreControls.querySelector('[data-ag-polygon-shade]').click();await tick(60);assert(teachingStage.scrollHeight<=teachingStage.clientHeight+3,'Open shade tools do not cause explorer scrolling');exploreControls.querySelector('[data-ag-polygon-shade]').click();await tick(40);
         for(const key of ['properties','polygon-proof','symmetry','families','proof','shape-measures','area-comparison']){const tab=teachingTab(key);if(!tab)continue;tab.click();await tick(60);assert(teachingStage.scrollHeight<=teachingStage.clientHeight+3,'Landscape teaching fits a single screen: '+key+' '+teachingStage.scrollHeight+'/'+teachingStage.clientHeight);assert(teaching.querySelector('[data-ag-teaching-tabs]').getBoundingClientRect().top>=teachingStage.getBoundingClientRect().top-1,'Topic navigation remains at top: '+key);}
       }
       if(win.matchMedia('(min-width:800px) and (min-height:480px) and (orientation:landscape)').matches){
@@ -3471,7 +3484,9 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(piecePaper.querySelectorAll('[data-ag-measure-triangle]').length===Math.min(2,measures.triangles.length)&&!piecePaper.querySelector('[data-ag-area-comparison-graphic]'),'Selected area step printed without unrelated investigation');
       measurePanel.querySelector('[data-ag-shape-measure-all]').click();assert(measurePanel.querySelectorAll('[data-ag-measure-triangle]').length===measures.triangles.length,'Show all triangles');
       measurePanel.querySelector('[data-ag-shape-measure-mode="perimeter"]').click();assert(measurePanel.querySelector('[data-ag-measure-boundary]')&&!measurePanel.querySelector('[data-ag-measure-triangle]')&&measurePanel.querySelector('[data-ag-shape-measure-steps]').hidden,'Perimeter highlights only outside boundary');
+      assert(win.getComputedStyle(measurePanel.querySelector('[data-ag-shape-measure-steps]')).display==='none','Perimeter area controls are actually invisible, not just marked hidden');
       const perimeterPack=P.createDocument();perimeterPack.addCurrent(id,cap());assert(P.renderItem(perimeterPack.list()[0],false).querySelector('[data-ag-measure-boundary]'),'Perimeter selection captured in publication');
+      assert(win.TT99Goodies.modeControl.set('polygon:equilateral'),'Single triangle measurement lesson accessible');await tick();doc.querySelector('[data-ag-teaching-tab="shape-measures"]').click();await tick();const singleMeasure=doc.querySelector('[data-ag-shape-measures]');for(const mode of ['area','perimeter']){singleMeasure.querySelector('[data-ag-shape-measure-mode="'+mode+'"]').click();assert(win.getComputedStyle(singleMeasure.querySelector('[data-ag-shape-measure-steps]')).display==='none','Single triangle never displays decomposition controls: '+mode)}assert(singleMeasure.querySelectorAll('[data-ag-measure-side]').length===3,'Each triangle perimeter side has its length labelled');
       assert(win.TT99Goodies.modeControl.set('polygon:rectangle'),'Area comparison reachable');await tick();
       assert(doc.querySelector('[data-ag-teaching-tab="shape-measures"]').textContent==='Area & perimeter'&&doc.querySelector('[data-ag-teaching-tab="area-comparison"]').textContent==='Compare areas','Rectangle measurements and comparison are separate activities');
       doc.querySelector('[data-ag-teaching-tab="area-comparison"]').click();await tick();
