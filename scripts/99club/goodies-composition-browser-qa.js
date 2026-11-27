@@ -3247,6 +3247,15 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         const v=proof.target.map((p,i)=>p.map((x,k)=>proof.target[(i+1)%4][k]-x));
         assert(Math.hypot(v[0][0]+v[2][0],v[0][1]+v[2][1])<1e-6&&Math.hypot(v[1][0]+v[3][0],v[1][1]+v[3][1])<1e-6,'Final boundary is a parallelogram: '+shape);
       }
+      for(const shape of ['rectangle','square','kite']){
+        const m=ref(shape),a=M.basicAreaModel(m);assert(a&&Math.abs(a.area-m.area)<1e-8,'Basic area picture matches exact geometry: '+shape);
+        assert(win.TT99Goodies.modeControl.set('polygon:'+shape),'Basic area topic accessible');await tick();doc.querySelector('[data-ag-teaching-tab="proof"]').click();await tick();
+        const panel=doc.querySelector('[data-ag-basic-area]'),graphic=panel.querySelector('[data-ag-basic-area-graphic]');
+        assert(!panel.hidden&&graphic.dataset.agBasicAreaGraphic===a.kind,'Area picture shown');
+        assert(shape==='kite'?graphic.querySelectorAll('[data-ag-kite-inside]').length===4&&graphic.querySelectorAll('[data-ag-kite-outside]').length===4:graphic.querySelector('[data-ag-unit-square]'),'Meaningful area units or matched triangles');
+        panel.querySelector('[data-ag-basic-area-toggle]').click();assert(!panel.querySelector('[data-ag-unit-square],[data-ag-kite-box]'),'Can hide construction overlay');
+        const basicPack=P.createDocument();basicPack.addCurrent(id,cap());assert(P.renderItem(basicPack.list()[0],false).querySelector('[data-ag-basic-area-graphic]'),'Basic area picture published');
+      }
       assert(win.TT99Goodies.modeControl.set('polygon:parallelogram'),'Parallelogram proof accessible');await tick();
       const proofPanel=doc.querySelector('[data-ag-area-proof]');assert(proofPanel?.querySelector('[data-ag-proof-next]'),'Area proof has visible step controls');
       doc.querySelector('[data-ag-teaching-tab="proof"]').click();await tick();
@@ -3298,9 +3307,9 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       mirrorOffset.value=10;mirrorOffset.dispatchEvent(new win.Event('input',{bubbles:true}));assert(reflectionPanel.querySelector('[data-ag-reflection-graphic]').dataset.agReflectionMatch==='false','Moving mirror line away from centre changes match');
       reflectionPanel.querySelector('[data-ag-mirror-reset]').click();assert(Number(mirrorOffset.value)===0&&Number(mirrorAngle.value)===0,'Mirror investigation resets');
       assert(!reflectionPanel.querySelector('[data-ag-reflection-advanced]').open&&reflectionPanel.querySelector('[data-ag-fold-handle]'),'Physical fold is the default, exact mirror controls optional');
-      reflectionPanel.querySelector('[data-ag-fold-play]').click();await tick(1050);
+      reflectionPanel.querySelector('[data-ag-fold-play]').click();for(let j=0;j<60&&Number(reflectionPanel.querySelector('[data-ag-fold-progress]').dataset.agFoldProgress)!==1;j++)await tick(50);
       assert(Number(reflectionPanel.querySelector('[data-ag-fold-progress]').dataset.agFoldProgress)===1&&reflectionPanel.querySelector('[data-ag-reflection-result]').textContent.includes('fit exactly'),'Fold animation reaches exact matching half');
-      reflectionPanel.querySelector('[data-ag-fold-play]').click();await tick(1050);assert(Number(reflectionPanel.querySelector('[data-ag-fold-progress]').dataset.agFoldProgress)===0,'Fold is reversible');
+      reflectionPanel.querySelector('[data-ag-fold-play]').click();for(let j=0;j<60&&Number(reflectionPanel.querySelector('[data-ag-fold-progress]').dataset.agFoldProgress)!==0;j++)await tick(50);assert(Number(reflectionPanel.querySelector('[data-ag-fold-progress]').dataset.agFoldProgress)===0,'Fold is reversible');
       assert(rotationPrint.querySelector('[data-ag-reflection-graphic]'),'Reflection illustration included in publication');
       for(const [shape,expected] of [['square',['Quadrilateral','Trapezium','Parallelogram','Rectangle','Kite','Rhombus','Square']],['rectangle',['Quadrilateral','Trapezium','Parallelogram','Rectangle']],['rhombus',['Quadrilateral','Trapezium','Parallelogram','Kite','Rhombus']],['parallelogram',['Quadrilateral','Trapezium','Parallelogram']],['kite',['Quadrilateral','Kite']],['trapezium',['Quadrilateral','Trapezium']]]){
         const f=M.quadrilateralFamilyModel(ref(shape).points);
@@ -3395,7 +3404,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(win.TT99Goodies.modeControl.set('polygon:right-triangle'),'Pythagoras teaching accessible');await tick();
       doc.querySelector('[data-ag-teaching-tab="pythagoras"]').click();await tick();
       const pp=doc.querySelector('[data-ag-pythagoras-proof]'),pn=pp.querySelector('[data-ag-pythagoras-next]');
-      assert(!pp.hidden&&pp.querySelectorAll('[data-ag-pythagoras-piece]').length===4,'Four congruent triangles visible');
+      assert(!pp.hidden&&pp.querySelectorAll('[data-ag-pythagoras-side-square]').length===3&&!pp.querySelector('[data-ag-pythagoras-details]').open,'Three squares first, proof optional');pp.querySelector('[data-ag-pythagoras-details]').open=true;assert(pp.querySelectorAll('[data-ag-pythagoras-piece]').length===4,'Four congruent triangles available');
       pn.click();assert(pp.querySelector('[data-ag-pythagoras-square="c"]'),'Central hypotenuse square');
       pn.click();assert(pp.querySelectorAll('[data-ag-pythagoras-square]').length===2,'Two leg squares');
       pn.click();assert(pn.disabled&&pp.querySelectorAll('[data-ag-pythagoras-piece]').length===8&&pp.querySelectorAll('[data-ag-pythagoras-outer]').length===2,'Two equal-area arrangements compared');
