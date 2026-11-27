@@ -516,6 +516,39 @@ function generate(s={},rng=Math.random){
  function labFaceAt(s,p){return labFaces(s).filter(f=>labInFace(f,p)).sort((a,b)=>a.area-b.area)[0]||null}
  function labRegionShapes(s){const faces=s.regions.some(r=>r.seed)?labFaces(s):[];return s.regions.flatMap(r=>{if(r.seed){const matching=faces.filter(f=>f.key===r.faceKey),f=matching.find(f=>labInFace(f,r.seed))||(matching.length===1?matching[0]:null)||faces.filter(f=>labInFace(f,r.seed)).sort((a,b)=>a.area-b.area)[0];return f?[{path:f.path,colour:r.colour}]:[]}if(r.circle){const c=s.circles.find(c=>!isLabArc(c)&&s.names[c.i]===r.circle.name&&Math.abs(c.r-r.circle.radius)<1e-5);return c&&labVisible(s,'circles',c)?[{circle:{p:s.points[c.i],r:c.r},colour:r.colour}]:[]}return r.ids&&validRegion(s.points,r.ids)?[{points:r.ids.map(i=>s.points[i]),colour:r.colour}]:[]})}
  // Persistent annotations are teaching content, independent of transient measurements.
+ // Match the actual visible geometry, not the length of the physical ruler
+ // or a rounded protractor display. Never guess between multiple candidates.
+ function labMeasurementTarget(s,t,scale=1){
+   const origin=[t.x,t.y],tol=Math.min(2,4/Math.max(.001,scale)),direction=[Math.cos(t.angle*D),-Math.sin(t.angle*D)],points=s.points,names=s.names||points.map((_,i)=>pointName(i));
+   if(t.kind==='ruler'){
+     const matches=new Map();
+     for(const edge of s.segments){
+       if(!labVisible(s,'segments',edge))continue;
+       const [i,j]=edge,a=labSub(points[i],origin),b=labSub(points[j],origin),along=[labDot(a,direction),labDot(b,direction)];
+       if(labDist(points[i],points[j])<1e-8||[a,b].some(v=>Math.abs(labCross(direction,v))>tol)||Math.min(...along)<-tol||Math.max(...along)>t.size+tol)continue;
+       const key=[names[i],names[j]].sort().join(':');matches.set(key,{kind:'length',names:[names[i],names[j]],points:[points[i],points[j]],label:'Add length '+names[i]+names[j]});
+     }
+     return matches.size===1?[...matches.values()][0]:null;
+   }
+   if(t.kind!=='protractor'||!(t.reading>.01&&t.reading<179.99))return null;
+   const vertices=points.map((p,i)=>({p,i})).filter(v=>labDist(v.p,origin)<=tol);if(vertices.length!==1)return null;
+   const {p:o,i}=vertices[0],arms=new Set();
+   // Only named points on visible incident segments/rays qualify.
+   for(const edge of s.segments)if(edge.includes(i)&&labVisible(s,'segments',edge))arms.add(edge.find(j=>j!==i));
+   for(const ray of s.rays)if(ray.i===i&&labVisible(s,'rays',ray)){const a=labRayAngle(s,ray);points.forEach((p,j)=>{if(j!==i&&labDist(p,o)>1e-8&&Math.abs(Math.sin((labAngle(o,p)-a)*D/2))<1e-7)arms.add(j)})}
+   const diff=(a,b)=>Math.min(mod(a-b),mod(b-a)),hand=t.hand===-1?-1:1;
+   const armAt=a=>[...arms].filter(j=>labDist(points[j],o)>1e-8&&diff(labAngle(o,points[j]),a)<=.25);
+   const a=armAt(t.angle),b=armAt(t.angle+hand*t.reading);
+   if(a.length!==1||b.length!==1||a[0]===b[0])return null;
+   const ids=[a[0],i,b[0]];return {kind:'angle',names:ids.map(j=>names[j]),points:ids.map(j=>points[j]),label:'Add angle '+ids.map(j=>names[j]).join('')};
+ }
+ function labApplyMeasurement(s,target){
+   if(!target)return false;
+   const ids=target.names.map(n=>s.names.indexOf(n));if(ids.some(i=>i<0))return false;
+   if(target.kind==='length'){const key=labStyleKey(s,...ids);s.dimensionLabels||={};s.dimensionLabels[key]={mode:'measured'};return true}
+   if(target.kind==='angle'){const names=target.names.slice();s.angleNotation||=[];const existing=s.angleNotation.find(m=>m.names[1]===names[1]&&m.names.includes(names[0])&&m.names.includes(names[2]));if(existing){existing.labelMode='measured';delete existing.label}else s.angleNotation.push({names,kind:'angle1',labelMode:'measured'});return true}
+   return false;
+ }
  function labDimensionText(s,i,j,automatic){
    const entry=s.dimensionLabels?.[labStyleKey(s,i,j)];
    if(entry?.mode==='hidden')return '';
@@ -843,7 +876,7 @@ function generate(s={},rng=Math.random){
    }finally{n.at=p.slice()}
    return true;
  }
- const model={protractorReading,utensilAlignment,squareGeometry,isLabArc,labArcContains,labCircleExtents,labContentBounds,locusFitBounds,customBounds,fitGeometryBounds,INDEPENDENT_METHOD_DIMENSIONS,INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labDimensionText,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labDirectRay,rayEnd,labLabel,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,locusInitial,locusProject,locusPoints,locusTraceMove,traceParts,traceAdd,traceToggle,shapeGeometry,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
+ const model={protractorReading,utensilAlignment,squareGeometry,isLabArc,labArcContains,labCircleExtents,labContentBounds,locusFitBounds,customBounds,fitGeometryBounds,INDEPENDENT_METHOD_DIMENSIONS,INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labDimensionText,labMeasurementTarget,labApplyMeasurement,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labDirectRay,rayEnd,labLabel,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,locusInitial,locusProject,locusPoints,locusTraceMove,traceParts,traceAdd,traceToggle,shapeGeometry,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
 if(typeof module==='object'&&module.exports){module.exports=model;return}
 const G=root.TT99Goodies;if(!G)return;G.angles=model;
 const {q,qa,esc,field,btn,setPanels}=G,CK=G.challengeKit;
@@ -1188,7 +1221,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
  function protractorReading(st,t,raw,scale){return sharedInstrumentMath().readAngle(instrumentScene(st),t,raw,scale)}
  // A point is its exact mathematical centre, not the edge of its visual dot.
  // Draw a small screen-sized, non-interactive cue above transparent instruments.
- function measuringUtensils(parent,getSvg,onPaint,getDrawing){return G.instruments.movable(parent,getSvg,onPaint,{unitsPerCm:LAB_UNIT,align:(t,mode,scale)=>utensilAlignment(getDrawing(),t,mode,scale),read:(t,a,scale)=>protractorReading(getDrawing(),t,a,scale)})}
+ function measuringUtensils(parent,getSvg,onPaint,getDrawing,onAnnotation){return G.instruments.movable(parent,getSvg,onPaint,{unitsPerCm:LAB_UNIT,align:(t,mode,scale)=>utensilAlignment(getDrawing(),t,mode,scale),read:(t,a,scale)=>protractorReading(getDrawing(),t,a,scale),annotation:onAnnotation?{target:(t,scale)=>labMeasurementTarget(getDrawing(),t,scale),apply:onAnnotation}:null})}
  function mountLab(box,initial,onChange,{free=false,motion=false,task=null,publishMethod=null}={}){
   let st=labNames(initial||labEmpty(free)),ws=workspaceState(st),ww=free?ws.w:800,hh=free?ws.h:400,corner=0,hand=1,selection=null,tool=free?'select':'segment',first=null,aligned=null,reference=null,hover=null,history=[],snap=true,measure=free&&st.showMeasurements!==false,grid=free?ws.gridMm>0:true,moving=null,sheetPan=null,panMode=false,aperture=null,keepOpening=false,arcMode=false,arcStart=null,arcClockwise=false,guideOpen=false,guideStep=0,regionPick=[],regionColour=0,regionStatus='',shadeMode='region',notationMode='',notationPick=[],notationVertex=null;
   motion=free&&(st.allowMovement??motion);if(free){st.allowMovement=motion;st.showMeasurements=measure;}
@@ -1247,7 +1280,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
   const panButton=free?button('pan','Pan','Move around the drawing without changing geometry',()=>{panMode=!panMode;hover=null;paint()}):null;
   const navButtons=free?[button('zoom-out','−','Zoom out',()=>zoomBoard(.8)),button('zoom-in','+','Zoom in',()=>zoomBoard(1.25)),button('fit','Fit','Fit all finite geometry in view',fitBoard)]:[];navButtons.forEach(b=>b.hidden=true);
   const navigation=free?geometryNavigation():null;
-  const utensils=free?measuringUtensils(toolbar,()=>svg,()=>paint(),()=>st):null;
+  const utensils=free?measuringUtensils(toolbar,()=>svg,()=>paint(),()=>st,target=>{save();if(labApplyMeasurement(st,target))changed();else history.pop()}):null;
   const utensilsButton=free?button('segment','Measuring tools','Show independent measuring utensils',()=>utensils.toggle()):null;if(utensilsButton)utensilsButton.dataset.agTool='measuring-tools';
   const guideButton=button('help',free?'Help':'Tool help','Show instrument instructions',()=>{guideOpen=!guideOpen;guideStep=0;paint()});
   if(free||CONSTRUCTION_METHODS_BY_TASK[task?.type]){const libraryButton=button('help',free?'Construction library':'Method guide',free?'Open searchable construction methods':'Open optional construction guidance',()=>methodLibrary.toggle());libraryButton.dataset.agTool='construction-library';methodLibrary=mountConstructionLibrary(box,libraryButton,task,()=>st,publishMethod)}
