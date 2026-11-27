@@ -1886,6 +1886,26 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         if(p[I])assert(Math.abs((p[I][0]-p[P0][0])*(p[Q][1]-p[P0][1])-(p[I][1]-p[P0][1])*(p[Q][0]-p[P0][0]))<1e-6,'Line intersection lies on tangent');
       }
       assert(st.traces[M].length>20,'Dependent custom point traces follow movement');
+      const fast=model.customInitial(),o=model.customAppend(fast,'free',[],{at:[350,220]}),r=model.customAppend(fast,'free',[],{at:[450,220]}),driver=model.customAppend(fast,'onCircle',[o,r],{at:[450,220]}),mid=model.customAppend(fast,'midpoint',[o,driver]);fast.traceNames=[driver,mid];
+      const at=theta=>[350+100*Math.cos(theta*Math.PI/180),220+100*Math.sin(theta*Math.PI/180)];
+      for(let turn=0;turn<3;turn++)for(let theta=45;theta<=360;theta+=45)model.customMove(fast,driver,at(theta));
+      for(let theta=315;theta>=180;theta-=45)model.customMove(fast,driver,at(theta));
+      for(const [name,radius] of [[driver,100],[mid,50]]){
+        const parts=model.traceParts(fast.traces[name]);assert(parts.length===1&&parts[0].length>100,'Custom fast circular trajectory stays continuous');
+        for(const part of parts)for(let j=1;j<part.length;j++){const a=part[j-1],b=part[j],m=a.map((x,k)=>(x+b[k])/2);assert(near(dist(a,[350,220]),radius)&&radius-dist(m,[350,220])<.15,'Custom trace avoids false interior chords')}
+      }
+      const customTracePrint=P.renderItem(P.record(id,'diagram',{type:'diagram',mode:'loci',locusState:fast}),false);
+      assert(customTracePrint.querySelectorAll('[data-ag-locus-trace]').length===2,'Custom sampled traces survive vector publishing');
+      model.customMove(fast,driver,at(0));assert(fast.traces[driver].at(-1)===null,'Ambiguous custom half-turn breaks trace');
+      model.customMove(fast,driver,at(45));assert(model.traceParts(fast.traces[driver]).length===2,'Custom trace resumes after gap');
+      model.traceToggle(st,T);model.customMove(st,E,[570,220]);model.customMove(st,E,[100,220]);model.customMove(st,E,[80,220]);
+      const tangentParts=model.traceParts(st.traces[T]);assert(tangentParts.length>=2,'Undefined intermediate tangent separates otherwise valid endpoints');
+      assert(tangentParts.every(part=>part.slice(1).every((p,i)=>dist(p,part[i])<9)),'No false tangent jump across singularity');
+      const rolling={traceNames:['P'],traces:{}};
+      for(let i=1;i<=7000;i++)model.traceAdd(rolling,'P',[i,0],[i-1,0]);
+      assert(rolling.traces.P.length<=6000&&rolling.traces.P.at(-1)[0]===7000&&rolling.traces.P[0][0]>0,'Trace capacity retains recent motion instead of silently stopping');
+      model.customMove(st,E,[600,220]);
+
       model.customMove(st,E,[350,220]);assert(model.customResolve(st).invalid.includes(T),'Impossible tangent is marked undefined, not fabricated');model.customMove(st,E,[600,220]);assert(model.customResolve(st).points[T],'Tangent recovers when geometry becomes valid');
       const A=model.customAppend(st,'free',[],{at:[300,220]}),B=model.customAppend(st,'free',[],{at:[500,220]}),C=model.customAppend(st,'free',[],{at:[430,220]}),D=model.customAppend(st,'free',[],{at:[430,300]}),J=model.customAppend(st,'lineCircle',[A,B,O,R]),Z=model.customAppend(st,'circleCircle',[O,R,C,D]);const p=model.customResolve(st).points;
       assert(near(dist(p[J],p[O]),100)&&near(dist(p[Z],p[O]),100)&&near(dist(p[Z],p[C]),80),'Line/circle and circle/circle intersections exact');
