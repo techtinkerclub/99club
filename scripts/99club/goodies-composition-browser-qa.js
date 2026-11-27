@@ -3838,7 +3838,8 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
     assert(panel.querySelector('.gd-panel-native-random')&&panel.querySelector('[data-board-launcher-back]'),'Specialist full challenge settings: '+id);await tick(40);assertInspectorLayout(panel,id+' challenge settings');
     if(id==='angles'){
       const catalogue=panel.querySelector('.gd-ag-challenge-catalogue'),settings=panel.querySelector('details[data-ag-section="settings"]');
-      assert(catalogue&&catalogue.querySelectorAll('details[data-ag-section]').length===8&&!catalogue.querySelector('details[open]'),'Geometry full challenge panel starts with eight compact primary categories');
+      assert(catalogue&&catalogue.querySelectorAll('details[data-ag-section]').length===9&&!catalogue.querySelector('details[open]'),'Geometry full challenge panel starts with nine compact primary categories');
+      const linkedSection=catalogue.querySelector('details[data-ag-section="linked"]');assert(linkedSection&&[...linkedSection.querySelectorAll('[data-ag-challenge-mode]')].map(n=>n.dataset.agChallengeMode).sort().join(',')==='linked-isosceles,linked-l-area','Multi-step category contains only the two primary-level families before enrichment opt-in');
       const section=catalogue.querySelector('details[data-ag-section="properties"]');section.open=true;settings.open=true;
       const en=panel.querySelector('#ag-enrich');en.checked=true;en.dispatchEvent(new Event('change',{bubbles:true}));await tick(100);
       assert(panel.querySelector('details[data-ag-section="properties"]').open&&panel.querySelector('details[data-ag-section="settings"]').open,'Open geometry sections survive generation settings changes');
