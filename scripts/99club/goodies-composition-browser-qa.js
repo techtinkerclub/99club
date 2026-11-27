@@ -1523,12 +1523,20 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         assert(reference()?.getAttribute('aria-label')==='Set reference','Aligned square exposes local reference action');
         reference().click();assert(svg.querySelector('[data-ag-square-reference="locked"]'),'Locked reference is highlighted');
         const gesture=(node,type,p)=>{const q=new win.DOMPoint(...p).matrixTransform(svg.getScreenCTM());node.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:783,pointerType:'mouse',button:0,clientX:q.x,clientY:q.y}))};
-        gesture(svg.querySelector('[data-ag-utensil]'),'pointerdown',[180,188]);gesture(svg,'pointermove',[180,280]);gesture(svg,'pointerup',[180,280]);
+        const slide=()=>svg.querySelector('[data-ag-utensil-action="square-slide"]'),utensil=()=>svg.querySelector('[data-ag-utensil]');
+        assert(slide()?.getAttribute('aria-label')==='Slide: free','Default movement remains free');
+        slide().click();assert(svg.querySelector('[data-ag-square-slide-guide="along"]'),'Along-base mode exposes guide');
+        gesture(utensil(),'pointerdown',[180,188]);gesture(svg,'pointermove',[200,210]);gesture(svg,'pointerup',[200,210]);
+        let matrix=utensil().transform.baseVal.getItem(0).matrix;assert(Math.abs(matrix.e-180)<1e-6&&Math.abs(matrix.f-208)<1e-6,'Along-base slide ignores normal displacement');
+        slide().click();assert(svg.querySelector('[data-ag-square-slide-guide="across"]'),'Across-base mode exposes guide');
+        gesture(utensil(),'pointerdown',[200,188]);gesture(svg,'pointermove',[230,276]);gesture(svg,'pointerup',[230,276]);
+        matrix=utensil().transform.baseVal.getItem(0).matrix;assert(Math.abs(matrix.e-180)<1e-6&&Math.abs(matrix.f-300)<1e-6&&Number(utensil().dataset.agUtensilAngle)===0&&Number(utensil().dataset.agUtensilSize)===200,'Across slide snaps along its axis without rotating or resizing');
         assert(svg.querySelector('[data-ag-square-reference="candidate"]')&&svg.querySelector('[data-ag-local-instrument]').textContent.includes('Parallel'),'Dragging to a second segment reports parallel geometry');
         assert(!model.lineMarks||!Object.keys(model.lineMarks).length,'Comparison itself is read-only');
         const mark=()=>svg.querySelector('[data-ag-utensil-action="square-parallel"]');assert(mark(),'Verified comparison exposes explicit parallel arrows');mark().click();
         assert(M.labLineMarks(model,model.segments[0]).parallel===1&&M.labLineMarks(model,model.segments[1]).parallel===1&&!mark(),'Both segments receive the same arrow group; no duplicate action');
         reference().click();assert(!svg.querySelector('[data-ag-square-reference="locked"]'),'Local clear removes saved reference');
+        slide().click();assert(!svg.querySelector('[data-ag-square-slide-guide]')&&slide().getAttribute('aria-label')==='Slide: free','Free mode removes guide');
         host.remove();
       }
       // Reference comparison uses actual segment geometry, not the set square's pose.
@@ -1571,6 +1579,20 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         M.labSetLineMark(model,cd,'parallel',3);assert(!plan().group&&plan().reason==='Different existing arrow groups','Conflicting existing groups are never merged');
         M.labSetLineMark(model,ab,'parallel',0);M.labSetLineMark(model,cd,'parallel',0);M.labSetLineMark(model,ij,'parallel',3);assert(!plan().group&&plan().reason==='All three arrow groups in use','Exhausted notation groups cannot be reassigned');
         M.labSetLineMark(model,ij,'parallel',0);p=plan();model.segments.splice(1,1);assert(!apply(p),'Deleted segment invalidates pending parallel mark');
+      }
+      // Guided sliding is an exact rigid translation, even on a rotated baseline.
+      {
+        for(const kind of ['square45','square30'])for(const mode of ['along','across']){
+          const t={kind,x:100,y:200,angle:37.25,size:200,snap:true,slideMode:mode},p=[120,180],end=[153,231],a=(t.angle+(mode==='across'?90:0))*Math.PI/180,u=[Math.cos(a),-Math.sin(a)],k=33*u[0]+51*u[1],d=G.instruments.beginGesture(t,p,null,1);
+          G.instruments.moveGesture(d,end,1,{align:(pose,gesture)=>{assert(gesture==='slide','Guided motion never invokes unconstrained snap');return null}});
+          assert(Math.hypot(t.x-100-k*u[0],t.y-200-k*u[1])<1e-7&&t.angle===37.25&&t.size===200,'Rotated guided movement preserves angle and size');
+          G.instruments.finishGesture(d,false);assert(t.x===100&&t.y===200,'Cancelled slide restores its original pose');
+        }
+        const model={...M.labEmpty(true),points:[[0,100],[100,100],[0,200],[100,200]],names:['A','B','C','D'],segments:[[0,1],[2,3]]},t={kind:'square45',x:0,y:196,angle:0,size:200,slideMode:'across'};
+        assert(M.labSquareSlideSnap(model,t,2)?.y===200,'Across slide snaps to exact parallel supporting line');
+        assert(!M.labSquareSlideSnap(model,t,4),'Magnetic distance scales with zoom');
+        assert(!M.labSquareSlideSnap(model,{...t,slideMode:'along'},1),'Along-base slide cannot snap sideways');
+        model.points[3]=[100,200.01];assert(!M.labSquareSlideSnap(model,t,1),'Guided snap cannot rotate to a nearly parallel segment');
       }
       // Independent physical corner fixtures, including the acute corners away from the origin.
       for(const [kind,angles] of [['square45',[[0,90],[135,180],[270,315]]],['square30',[[0,90],[120,180],[270,300]]]]){
