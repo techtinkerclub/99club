@@ -2373,27 +2373,36 @@ function mountPythagorasProof(container,proof,demo){
  const q=s=>section.querySelector(s),show=()=>{demo.pythagorasProofStep=index;q('[data-ag-pythagoras-picture]').replaceChildren(pythagorasGraphic(proof,index));q('[data-ag-pythagoras-note]').textContent=proof.steps[index].note;q('[data-ag-pythagoras-count]').textContent=(index+1)+' / 4';q('[data-ag-pythagoras-back]').disabled=index===0;q('[data-ag-pythagoras-next]').disabled=index===3};
  q('[data-ag-pythagoras-back]').onclick=()=>{index=Math.max(0,index-1);show()};q('[data-ag-pythagoras-next]').onclick=()=>{index=Math.min(3,index+1);show()};q('[data-ag-pythagoras-reset]').onclick=()=>{index=0;show()};container.appendChild(section);show();
 }
-function areaProofGraphic(proof,index){
+function areaProofGraphic(proof,index,progress=1){
  const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),step=proof.steps[index],W=480,H=230;
  const all=proof.steps.flatMap(s=>s.pieces.flat()),xs=all.map(q=>q[0]),ys=all.map(q=>q[1]),minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys),scale=Math.min(410/(maxX-minX),150/(maxY-minY)),map=q=>[240+(q[0]-(minX+maxX)/2)*scale,101-(q[1]-(minY+maxY)/2)*scale];
  const add=(tag,attrs,value)=>{const el=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,v);if(value!=null)el.textContent=value;svg.append(el);return el};
  const poly=(pts,attrs)=>add('polygon',{points:pts.map(q=>map(q).join(',')).join(' '),...attrs});
  svg.setAttribute('viewBox','0 0 '+W+' '+H);svg.dataset.agAreaProofGraphic=String(index);svg.setAttribute('role','img');svg.setAttribute('aria-label',step.note);
  add('rect',{width:W,height:H,fill:'#fff'});
- step.pieces.forEach((piece,i)=>poly(piece,{fill:i?'#f3d9a8':'#d9eee6',stroke:i?'#a56a2e':'#277b70','stroke-width':2,'data-ag-proof-piece':i}));
- if(step.outline)poly(step.outline,{fill:'none',stroke:'#27494c','stroke-width':2,'stroke-dasharray':'5 3','data-ag-proof-outline':'1'});
+ step.pieces.forEach((piece,i)=>{const before=index===2?proof.steps[1].pieces[i]:null,drawn=before&&progress<1?piece.map((q,j)=>labAt(before[j],labSub(q,before[j]),progress)):piece;poly(drawn,{fill:i?'#f3d9a8':'#d9eee6',stroke:i?'#a56a2e':'#277b70','stroke-width':2,'data-ag-proof-piece':i})});
+ if(index===1&&proof.kind==='parallelogram'){const a=map(step.pieces[1][1]),b=map(step.pieces[1][2]);add('line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:'#a56a2e','stroke-width':2.5,'stroke-dasharray':'5 3','data-ag-proof-cut':'1'})}
+ if(step.outline&&progress===1)poly(step.outline,{fill:'none',stroke:'#27494c','stroke-width':2,'stroke-dasharray':'5 3','data-ag-proof-outline':'1'});
  const a=map([0,0]),b=map([proof.base,0]);if(index===0){add('line',{x1:a[0],y1:a[1]+9,x2:b[0],y2:b[1]+9,stroke:'#277b70','stroke-width':2});add('text',{x:(a[0]+b[0])/2,y:a[1]+24,'text-anchor':'middle',fill:'#27494c','font-size':13},'base');const h=map([0,proof.height]);add('line',{x1:a[0]-10,y1:a[1],x2:h[0]-10,y2:h[1],stroke:'#a56a2e','stroke-dasharray':'4 3','stroke-width':2});add('text',{x:a[0]-15,y:(a[1]+h[1])/2,'text-anchor':'end',fill:'#a56a2e','font-size':13},'h')}
- add('text',{x:240,y:217,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':16,'font-weight':700,fill:'#27494c'},index===2?'Same area per copy: '+Number((proof.originalArea/(LAB_UNIT*LAB_UNIT)).toFixed(2))+' cm²':'Step '+(index+1)+' of 3');
+ add('text',{x:240,y:217,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':16,'font-weight':700,fill:'#27494c'},index===2&&progress===1?(proof.copies===2?'Half the combined area: ':'Same area: ')+Number((proof.originalArea/(LAB_UNIT*LAB_UNIT)).toFixed(2))+' cm²':index===2?'Move the orange piece':index===1?(proof.copies===2?'Two identical shapes':'Cut along the height'):'Start with the original shape');
  return svg;
 }
+// All frames use the same geometric scale. Animation translates a rigid
+// piece; it never interpolates between non-congruent shapes.
 function mountAreaProof(container,proof,demo){
- let index=Math.max(0,Math.min(2,Math.round(Number(demo.areaProofStep)||0)));
+ let index=0,token=0;
  const section=document.createElement('section');section.className='gd-ag-area-proof';section.dataset.agAreaProof='1';
- section.innerHTML='<h4>Why the area formula works</h4><div data-ag-proof-picture></div><p data-ag-proof-note aria-live="polite"></p><div class="gd-row"><button type="button" class="gd-btn" data-ag-proof-back>Previous</button><strong data-ag-proof-count></strong><button type="button" class="gd-btn" data-ag-proof-next>Next step</button><button type="button" class="gd-btn" data-ag-proof-reset>Restart</button></div>';
- const show=()=>{demo.areaProofStep=index;section.querySelector('[data-ag-proof-picture]').replaceChildren(areaProofGraphic(proof,index));section.querySelector('[data-ag-proof-note]').textContent=proof.steps[index].note;section.querySelector('[data-ag-proof-count]').textContent=(index+1)+' / 3';section.querySelector('[data-ag-proof-back]').disabled=index===0;section.querySelector('[data-ag-proof-next]').disabled=index===2};
- section.querySelector('[data-ag-proof-back]').onclick=()=>{index=Math.max(0,index-1);show()};section.querySelector('[data-ag-proof-next]').onclick=()=>{index=Math.min(2,index+1);show()};section.querySelector('[data-ag-proof-reset]').onclick=()=>{index=0;show()};container.appendChild(section);show();
+ const formula=proof.kind==='triangle'?'Area = ½ × base × height':proof.kind==='trapezium'?'Area = ½ × (parallel side + parallel side) × height':'Area = base × height';
+ const why=proof.copies===2?'Two identical shapes fit together. The original has half the combined area.':'Cut and move the triangle. The pieces form a rectangle without changing their area.';
+ section.innerHTML='<h4>See where the area formula comes from</h4><strong class="gd-ag-teaching-formula">'+esc(formula)+'</strong><p>'+esc(why)+'</p><div data-ag-proof-picture></div><p data-ag-proof-note aria-live="polite"></p><div class="gd-row"><button type="button" class="gd-btn gd-btn--primary" data-ag-proof-play>Play demonstration</button><button type="button" class="gd-btn" data-ag-proof-final>Show result</button><button type="button" class="gd-btn" data-ag-proof-reset>Reset</button></div><details data-ag-proof-manual><summary>Go through each step</summary><div class="gd-row"><button type="button" class="gd-btn" data-ag-proof-back>Previous</button><strong data-ag-proof-count></strong><button type="button" class="gd-btn" data-ag-proof-next>Next step</button></div></details>';
+ const q=s=>section.querySelector(s),show=(progress=1)=>{demo.areaProofStep=index;q('[data-ag-proof-picture]').replaceChildren(areaProofGraphic(proof,index,progress));q('[data-ag-proof-note]').textContent=proof.steps[index].note;q('[data-ag-proof-count]').textContent=(index+1)+' / 3';q('[data-ag-proof-back]').disabled=index===0;q('[data-ag-proof-next]').disabled=index===2;};
+ const stop=()=>{token++;q('[data-ag-proof-play]').textContent='Play demonstration'};
+ const set=i=>{stop();index=i;show()};
+ const play=()=>{stop();const id=token,indexStart=performance.now(),reduced=global.matchMedia?.('(prefers-reduced-motion: reduce)').matches;if(reduced){index=2;show();return}index=0;show();q('[data-ag-proof-play]').textContent='Stop';const frame=now=>{if(id!==token||!section.isConnected)return;const t=now-indexStart,next=t<650?0:t<1350?1:2,p=next===2?Math.min(1,(t-1350)/1200):1;if(index!==next||next===2){index=next;show(p*p*(3-2*p))}if(t<2550)requestAnimationFrame(frame);else{show();q('[data-ag-proof-play]').textContent='Replay demonstration'}};requestAnimationFrame(frame)};
+ q('[data-ag-proof-play]').onclick=()=>q('[data-ag-proof-play]').textContent==='Stop'?stop():play();q('[data-ag-proof-final]').onclick=()=>set(2);q('[data-ag-proof-back]').onclick=()=>set(Math.max(0,index-1));q('[data-ag-proof-next]').onclick=()=>set(Math.min(2,index+1));q('[data-ag-proof-reset]').onclick=()=>set(0);container.appendChild(section);show();
 }
-function rotationReferenceGraphic(m,degrees){
+
+function rotationReferenceGraphic(m,degrees,interactive=false){
  const model=rotationInvestigation(m,degrees),ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),W=420,H=280,centre=model.centre,r=Math.max(...m.points.map(p=>labDist(p,centre))),s=103/r,map=p=>[210+(p[0]-centre[0])*s,120+(p[1]-centre[1])*s];
  const add=(tag,attrs,value)=>{const el=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,v);if(value!=null)el.textContent=value;svg.append(el);return el};
  const poly=(pts,attrs)=>add('polygon',{points:pts.map(p=>map(p).join(',')).join(' '),...attrs});
@@ -2404,18 +2413,23 @@ function rotationReferenceGraphic(m,degrees){
  poly(model.rotated,{fill:'#efbd72','fill-opacity':.24,stroke:'#b56d2c','stroke-width':2.5,'stroke-dasharray':'6 4','data-ag-rotation-overlay':'1'});
  const p=map(m.points[0]),q=map(model.rotated[0]);add('line',{x1:210,y1:120,x2:p[0],y2:p[1],stroke:'#277b70','stroke-dasharray':'3 3'});add('line',{x1:210,y1:120,x2:q[0],y2:q[1],stroke:'#b56d2c','stroke-width':1.5});
  add('circle',{cx:p[0],cy:p[1],r:5,fill:'#277b70','data-ag-rotation-start-vertex':'1'});
- add('circle',{cx:q[0],cy:q[1],r:5,fill:'#f6d6a4',stroke:'#b56d2c','stroke-width':2,'data-ag-rotation-moving-vertex':'1'});
+ add('circle',{cx:q[0],cy:q[1],r:interactive?12:5,fill:'#f6d6a4',stroke:'#b56d2c','stroke-width':2,'data-ag-rotation-moving-vertex':'1'});
  add('circle',{cx:210,cy:120,r:4,fill:'#263e43'});
  const arc=34,rad=model.angle*D;if(model.angle>0&&model.angle<360)add('path',{d:'M '+(210+arc)+' 120 A '+arc+' '+arc+' 0 '+(model.angle>180?1:0)+' 0 '+(210+arc*Math.cos(rad))+' '+(120-arc*Math.sin(rad)),fill:'none',stroke:'#a56a2e','stroke-width':1.5});
  label(210,249,Number(model.angle.toFixed(2))+'° — '+(model.matches?'Matches the original outline':'Does not match the original outline'),{'font-weight':700,fill:model.matches?'#175e55':'#85551f','data-ag-rotation-result':'1'});
- label(210,271,'Rotational order '+model.order+' · smallest positive turn '+Number(model.smallest.toFixed(2))+'°',{'font-size':13});
+ label(210,271,'Fits '+model.order+' time'+(model.order===1?'':'s')+' in one full turn',{'font-size':14});
  return svg;
 }
 function mountRotationReference(container,m,demo){
  let angle=Math.max(0,Math.min(360,Number(demo.symmetryRotation)||0));
  const section=document.createElement('section');section.className='gd-ag-rotation-reference';section.dataset.agRotationReference='1';
- section.innerHTML='<h4>Investigate rotational symmetry</h4><p>Rotate the orange outline. When does it coincide with the green original?</p><div data-ag-rotation-picture></div><label>Turn (degrees) <output data-ag-rotation-angle></output><input type="range" min="0" max="360" step="any" data-ag-rotation-slider aria-label="Rotation in degrees"></label><div class="gd-row"><button type="button" class="gd-btn" data-ag-rotation-reset>Reset</button><button type="button" class="gd-btn" data-ag-rotation-quarter>+ 90°</button><button type="button" class="gd-btn" data-ag-rotation-next-match>Next matching turn</button></div>';
- const input=section.querySelector('[data-ag-rotation-slider]'),show=()=>{demo.symmetryRotation=angle;input.value=angle;section.querySelector('[data-ag-rotation-angle]').textContent=Number(angle.toFixed(2))+'°';section.querySelector('[data-ag-rotation-picture]').replaceChildren(rotationReferenceGraphic(m,angle))};
+ section.innerHTML='<h4>Turn the shape</h4><p>Drag the orange corner around the centre. When does the shape fit its original outline?</p><div data-ag-rotation-picture></div><div class="gd-row"><button type="button" class="gd-btn" data-ag-rotation-reset>Reset</button><button type="button" class="gd-btn" data-ag-rotation-next-match>Turn until it fits</button></div><details><summary>Set an exact angle</summary><label>Turn (degrees) <output data-ag-rotation-angle></output><input type="range" min="0" max="360" step="any" data-ag-rotation-slider aria-label="Rotation in degrees"></label><button type="button" class="gd-btn" data-ag-rotation-quarter>+ 90°</button></details>';
+ const input=section.querySelector('[data-ag-rotation-slider]'),show=()=>{demo.symmetryRotation=angle;input.value=angle;section.querySelector('[data-ag-rotation-angle]').textContent=Number(angle.toFixed(2))+'°';section.querySelector('[data-ag-rotation-picture]').replaceChildren(rotationReferenceGraphic(m,angle,true))};
+ const picture=section.querySelector('[data-ag-rotation-picture]');let drag=null;
+ const pointerAngle=p=>Math.atan2(120-p.y,p.x-210)/D;
+ picture.addEventListener('pointerdown',e=>{const svg=picture.querySelector('svg'),matrix=svg?.getScreenCTM();if(!e.target.closest('[data-ag-rotation-moving-vertex]')||!matrix||e.button!==0)return;const inverse=matrix.inverse(),p=new DOMPoint(e.clientX,e.clientY).matrixTransform(inverse);drag={id:e.pointerId,inverse,last:pointerAngle(p)};e.preventDefault();try{picture.setPointerCapture(e.pointerId)}catch(_){}});
+ picture.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId)return;e.preventDefault();const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(drag.inverse),a=pointerAngle(p),delta=mod(a-drag.last+180)-180;drag.last=a;angle=mod(angle+delta);const step=360/m.symmetry.rotation,nearest=Math.round(angle/step)*step;if(Math.abs(angle-nearest)<1)angle=nearest;show()});
+ for(const event of ['pointerup','pointercancel','lostpointercapture'])picture.addEventListener(event,e=>{if(drag?.id===e.pointerId)drag=null});
  input.oninput=()=>{angle=Number(input.value);show()};
  section.querySelector('[data-ag-rotation-reset]').onclick=()=>{angle=0;show()};
  section.querySelector('[data-ag-rotation-quarter]').onclick=()=>{angle=angle===360?90:Math.min(360,angle+90);show()};
