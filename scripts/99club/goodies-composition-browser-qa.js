@@ -1750,6 +1750,27 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       pointer('pointerdown',[100,100],105);pointer('pointerup',[150,160],105);assert(Math.hypot(...cap().demo.labDrawing.points[0].map((v,i)=>v-[150,160][i]))<1e-6,'Release-only movement commits final point location');
       tool('undo').click();assert(geometry()===original,'Completed point gesture is one undoable action');tool('redo').click();assert(geometry()!==original,'Redo restores entire completed movement');
       tool('undo').click();tool('undo').click();assert(geometry()===empty,'Cancelled gesture did not leave an undo entry');
+      tool('redo').click();assert(geometry()===original,'Redo restores original segment after previous undo');
+      pointer('pointerdown',[100,100],106);pointer('pointermove',[170,180],106);tool('undo').click();assert(geometry()===original,'Undo during drag cancels gesture before committed history');
+      pointer('pointerup',[170,180],106);assert(geometry()===original,'Release after Undo cancellation cannot change geometry');
+      pointer('pointerdown',[100,100],107);pointer('pointermove',[170,180],107);movement.click();assert(geometry()===original&&!movement.checked,'Disabling point movement cancels drag before changing mode');
+      pointer('pointerup',[170,180],107);assert(geometry()===original,'Release after disabling movement is harmless');
+      movement.click();
+      tool('measuring-tools').click();doc.querySelector('[data-ag-utensil-add="ruler"]').click();
+      const ruler=()=>work.querySelector('[data-ag-utensil-kind="ruler"]'),pose=()=>ruler().getAttribute('transform'),initialPose=pose();
+      tool('segment').click();tap([400,100]);pointer('pointerdown',[500,100],108);
+      const matrix=ruler().transform.baseVal.consolidate().matrix,p=[matrix.e+10,matrix.f],q=new win.DOMPoint(...p).matrixTransform(work.getScreenCTM());
+      ruler().dispatchEvent(new win.PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerType:'touch',pointerId:109,button:0,clientX:q.x,clientY:q.y}));
+      pointer('pointermove',[p[0]+45,p[1]+20],109);pointer('pointerup',[p[0]+45,p[1]+20],109);
+      assert(pose()===initialPose,'Second pointer cannot start utensil movement during endpoint placement');pointer('pointerup',[500,100],108);
+      assert(cap().demo.labDrawing.segments.length===2,'Original drawing pointer retains ownership');
+      tool('cancel-tool').click();tool('undo').click();tool('undo').click();assert(geometry()===empty,'Fixture returns to empty geometry after conflict test');
+      // Hide and remove the temporary ruler so subsequent instrument fixtures start clean.
+      const r=ruler(),rp=r.transform.baseVal.consolidate().matrix,screen=new win.DOMPoint(rp.e+10,rp.f).matrixTransform(work.getScreenCTM());
+      r.dispatchEvent(new win.PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerType:'touch',pointerId:110,button:0,clientX:screen.x,clientY:screen.y}));pointer('pointerup',[rp.e+10,rp.f],110);
+      const remove=work.querySelector('[data-ag-utensil-action="remove"]');if(remove)remove.dispatchEvent(new win.MouseEvent('click',{bubbles:true}));
+      if(tool('measuring-tools').getAttribute('aria-expanded')==='true')tool('measuring-tools').click();
+
       if(movement.checked)movement.click();
 
     }
