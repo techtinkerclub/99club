@@ -533,12 +533,13 @@ function renderFloatingControls(obj){
 function renderFloatingHelp(obj,data){
   if(!floatingControls||!floatingControlsBody||!obj||!data)return;
   floatingPanelMode='help';floatingHelpData=data;floatingControlSignature='';floatingControlSources=[];floatingControlStructure='';
-  if(floatingControls)floatingControls.dataset.tool=obj.toolId||'';
+  floatingControls.dataset.tool=obj.toolId||'';floatingControls.dataset.panelMode='help';
   floatingControls.classList.remove('is-challenge-launcher','is-money-palette');floatingControls.classList.add('is-help');
   floatingControlsBody.replaceChildren();
   const wrap=document.createElement('div');wrap.className='gd-board-help-panel';
   const intro=document.createElement('p');intro.className='gd-board-help-intro';intro.textContent=String(data.intro||'');wrap.appendChild(intro);
   if(Array.isArray(data.steps)&&data.steps.length){
+    const heading=document.createElement('h3');heading.className='gd-board-help-heading';heading.textContent='How to use';wrap.appendChild(heading);
     const ol=document.createElement('ol');ol.className='gd-board-help-steps';
     data.steps.forEach(step=>{const li=document.createElement('li');li.textContent=String(step);ol.appendChild(li)});
     wrap.appendChild(ol);
@@ -555,9 +556,9 @@ function renderFloatingHelp(obj,data){
     const p=document.createElement('p');p.textContent=String(data.history);
     details.append(summary,p);wrap.appendChild(details);
   }
-  floatingControlsBody.appendChild(wrap);
+  floatingControlsBody.appendChild(wrap);floatingControlsBody.scrollTop=0;
   if(floatingControlsTitle)floatingControlsTitle.textContent=(data.title||'Manipulative')+' · How to use';
-  floatingControls.hidden=false;
+  floatingControls.hidden=false;floatingControls.setAttribute('aria-label','Manipulative help');
   requestAnimationFrame(positionFloatingControls);
 }
 function openFloatingHelp(obj,data){
@@ -581,7 +582,7 @@ function refreshFloatingControls(obj,delay=0){
 }
 function openFloatingControls(obj,mode='settings'){
   if(!obj)return;
-  floatingHelpData=null;floatingControls?.classList.remove('is-help');
+  floatingHelpData=null;floatingControls?.classList.remove('is-help');floatingControls?.setAttribute('aria-label','Manipulative settings');
   floatingPanelMode=['challenge','challenge-settings','money-palette','tile-palette','paper'].includes(mode)?mode:'settings';
   floatingControls?.classList.toggle('is-money-palette',isObjectPalette());
   floatingControls?.classList.toggle('is-challenge-launcher',floatingPanelMode==='challenge');
