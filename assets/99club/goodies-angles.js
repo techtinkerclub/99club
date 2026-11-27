@@ -2716,7 +2716,7 @@ function mountTriangleFamily(container,m,demo){
  const show=()=>{demo.triangleFamilyExample=select.value;const f=triangleFamilyModel(select.value==='current'?m.points:triangleFamilyExample(...select.value.split('|')));section.querySelector('[data-ag-triangle-family-primary]').replaceChildren(classificationPicture(f.points));section.querySelector('[data-ag-triangle-family-picture]').replaceChildren(triangleFamilyGraphic(f));section.querySelector('[data-ag-triangle-family-result]').textContent='By sides: '+f.sides+' · By angles: '+f.kind+'.';section.querySelector('[data-ag-triangle-family-measures]').textContent='Angles: '+f.angles.map(v=>Number(v.toFixed(2))+'°').join(' + ')+' = 180°. Side lengths (model cm): '+f.lengths.map(v=>Number((v/LAB_UNIT).toFixed(2))).join(', ')+'.';section.querySelector('[data-ag-triangle-family-explanation]').textContent=f.explanation};
  select.onchange=show;container.appendChild(section);show();
 }
-function polygonFormulaGraphic(proof,index){
+function polygonFormulaGraphic(proof,index,count=proof.triangles.length){
  const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),W=500,H=300,pts=proof.points,n=proof.n,xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]),loX=Math.min(...xs),hiX=Math.max(...xs),loY=Math.min(...ys),hiY=Math.max(...ys),scale=Math.min(335/(hiX-loX),172/(hiY-loY)),map=p=>[250+(p[0]-(loX+hiX)/2)*scale,119+(p[1]-(loY+hiY)/2)*scale],v=pts.map(map);
  const add=(tag,attrs,value)=>{const el=document.createElementNS(ns,tag);for(const [k,x] of Object.entries(attrs))el.setAttribute(k,x);if(value!=null)el.textContent=value;svg.append(el);return el};
  const poly=(points,attrs)=>add('polygon',{points:points.map(p=>p.join(',')).join(' '),...attrs});
@@ -2726,7 +2726,7 @@ function polygonFormulaGraphic(proof,index){
  add('rect',{width:W,height:H,fill:'#fff'});
  poly(v,{fill:'#f2f7f4',stroke:'none'});
  if(index>=3){
-   proof.triangles.forEach((tri,j)=>{const p=tri.map(i=>v[i]);poly(p,{fill:REGION_COLOURS[j%REGION_COLOURS.length],'fill-opacity':.45,stroke:'#fff','stroke-width':1,'data-ag-proof-triangle':j});const q=[0,1].map(k=>p.reduce((s,v)=>s+v[k],0)/3);label(q[0],q[1]+4,index===4?'180°':String(j+1),{'font-size':n>=9?11:14,'font-weight':700})});
+   proof.triangles.forEach((tri,j)=>{const p=tri.map(i=>v[i]),active=index!==4||j<count;poly(p,{fill:active?REGION_COLOURS[j%REGION_COLOURS.length]:'#f2f7f4','fill-opacity':active?.45:1,stroke:'#fff','stroke-width':1,'data-ag-proof-triangle':j,'data-ag-angle-sum-counted':String(active)});if(active){const q=[0,1].map(k=>p.reduce((s,v)=>s+v[k],0)/3);label(q[0],q[1]+4,index===4?'180°':String(j+1),{'font-size':n>=9?11:14,'font-weight':700})}});
    proof.internal.forEach(([a,b])=>line(a,b,{stroke:'#277b70','stroke-width':2,'stroke-dasharray':'5 3','data-ag-proof-internal-cut':a+':'+b}));
  }else{
    const edges=index===0?proof.from:proof.all;
@@ -2735,14 +2735,14 @@ function polygonFormulaGraphic(proof,index){
  }
  poly(v,{fill:'none',stroke:'#35565a','stroke-width':2});
  v.forEach((p,i)=>{const selected=i===proof.vertex,excluded=index===0&&(i===proof.prev||i===proof.next),delta=labSub(p,[250,119]),len=Math.max(1,Math.hypot(...delta)),q=labAt(p,delta,15/len);add('circle',{cx:p[0],cy:p[1],r:selected&&index===0?5:3.4,fill:selected&&index===0?'#277b70':excluded?'#b56d2c':'#35565a','data-ag-proof-vertex':i});label(q[0],q[1]+4,pointName(i),{'font-size':13,'font-weight':selected?700:400})});
- const equations=[n+' − 3 = '+proof.from.length+' diagonals from one vertex',n+' × '+(n-3)+' = '+proof.ordered.length+' counts',n+' × ('+n+' − 3) ÷ 2 = '+proof.all.length+' diagonals', '1 + '+proof.internal.length+' = '+proof.triangles.length+' triangles', proof.triangles.length+' × 180° = '+180*(n-2)+'°'];
+ const equations=[n+' − 3 = '+proof.from.length+' diagonals from one vertex',n+' × '+(n-3)+' = '+proof.ordered.length+' counts',n+' × ('+n+' − 3) ÷ 2 = '+proof.all.length+' diagonals', '1 + '+proof.internal.length+' = '+proof.triangles.length+' triangles', count+' × 180° = '+180*count+'°'];
  label(250,257,equations[index],{'font-weight':700,'font-size':17,'data-ag-proof-equation':'1'});
- label(250,281,index===1?'Each segment is counted at both endpoints.':index===2?'Count each diagonal once.':index===4?'Every coloured triangle contributes 180°.':index===3?'The triangles fill the shape.':'The vertex and its neighbours are excluded.',{'font-size':13});
+ label(250,281,index===1?'Each segment is counted at both endpoints.':index===2?'Count each diagonal once.':index===4?(count<proof.triangles.length?'Count the next triangle: add another 180°.':'Every coloured triangle contributes 180°.'):index===3?'The triangles fill the shape.':'The vertex and its neighbours are excluded.',{'font-size':13});
  return svg;
 }
 // A triangle's three angles fit together on a straight line. The exact
 // corner angles from the current shape determine both sets of coloured sectors.
-function triangleAngleSumGraphic(points){
+function triangleAngleSumGraphic(points,count=3){
  const p=triangleProperties(points),ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),W=500,H=270,colors=['#277b70','#b56d2c','#6c63a8'];
  const add=(tag,attrs,value)=>{const el=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,v);if(value!=null)el.textContent=value;svg.append(el);return el};
  const label=(x,y,value,attrs={})=>add('text',{x,y,'font-family':'Arial,sans-serif','font-size':15,'text-anchor':'middle',fill:'#263e43','paint-order':'stroke',stroke:'#fff','stroke-width':3,...attrs},value);
@@ -2753,18 +2753,22 @@ function triangleAngleSumGraphic(points){
  v.forEach((q,i)=>{const prev=v[(i+2)%3],next=v[(i+1)%3],a=Math.atan2(prev[1]-q[1],prev[0]-q[0]),b=Math.atan2(next[1]-q[1],next[0]-q[0]),delta=((b-a)%(2*Math.PI)+2*Math.PI)%(2*Math.PI),start=delta<=Math.PI?a:b,r=Math.min(29,labDist(q,prev)*.35,labDist(q,next)*.35);sector(q,r,start,p.angles[i]*D,colors[i],{'data-ag-angle-sum-corner':i})});
  label(250,170,'Fit the three coloured corners together',{'font-weight':700});
  const q=[250,244],r=52;let start=Math.PI;
- p.angles.forEach((a,i)=>{sector(q,r,start,a*D,colors[i],{'data-ag-angle-sum-piece':i});start+=a*D});
+ p.angles.forEach((a,i)=>{if(i<count)sector(q,r,start,a*D,colors[i],{'data-ag-angle-sum-piece':i});start+=a*D});
  add('line',{x1:174,y1:244,x2:326,y2:244,stroke:'#35565a','stroke-width':2});
- label(250,263,'A straight angle = 180°',{'font-weight':700});
+ label(250,263,count===3?'A straight angle = 180°':count+' of 3 corners fitted together',{'font-weight':700});
  return svg;
 }
 function mountPolygonFormulaProof(container,m,demo){
  let index=Math.max(0,Math.min(2,Math.floor(Number(demo.polygonDiagonalStep)||0))),vertex=Math.max(0,Math.min(m.n-1,Math.floor(Number(demo.polygonProofVertex)||0))),proof=polygonFormulaProof(m.points,vertex);
  const section=document.createElement('section');section.className='gd-ag-polygon-proof';section.dataset.agPolygonProof='1';
- section.innerHTML='<h4>Why do the angles add to '+180*(m.n-2)+'°?</h4><strong class="gd-ag-teaching-formula" data-ag-angle-sum-formula>'+ (m.n===3?'Interior angle sum = 180°':'Interior angle sum = (n − 2) × 180°') +'</strong><div data-ag-angle-sum-picture></div><p data-ag-angle-sum-note></p><details data-ag-diagonal-enrichment><summary>Explore further: how many diagonals?</summary><label>Start corner <select class="gd-select" data-ag-polygon-proof-vertex>'+m.points.map((_,i)=>'<option value="'+i+'">'+pointName(i)+'</option>').join('')+'</select></label><div data-ag-polygon-proof-picture></div><strong data-ag-polygon-proof-title></strong><p data-ag-polygon-proof-note aria-live="polite"></p><div class="gd-row"><button type="button" class="gd-btn" data-ag-polygon-proof-back>Previous</button><strong data-ag-polygon-proof-count></strong><button type="button" class="gd-btn" data-ag-polygon-proof-next>Next</button><button type="button" class="gd-btn" data-ag-polygon-proof-reset>Restart</button></div></details>';
+ section.innerHTML='<h4>Why do the angles add to '+180*(m.n-2)+'°?</h4><strong class="gd-ag-teaching-formula" data-ag-angle-sum-formula>'+ (m.n===3?'Interior angle sum = 180°':'Interior angle sum = (n − 2) × 180°') +'</strong><div data-ag-angle-sum-picture></div><p data-ag-angle-sum-note></p><button type="button" class="gd-btn gd-btn--primary" data-ag-angle-sum-play>Play demonstration</button><details data-ag-diagonal-enrichment><summary>Explore further: how many diagonals?</summary><label>Start corner <select class="gd-select" data-ag-polygon-proof-vertex>'+m.points.map((_,i)=>'<option value="'+i+'">'+pointName(i)+'</option>').join('')+'</select></label><div data-ag-polygon-proof-picture></div><strong data-ag-polygon-proof-title></strong><p data-ag-polygon-proof-note aria-live="polite"></p><div class="gd-row"><button type="button" class="gd-btn" data-ag-polygon-proof-back>Previous</button><strong data-ag-polygon-proof-count></strong><button type="button" class="gd-btn" data-ag-polygon-proof-next>Next</button><button type="button" class="gd-btn" data-ag-polygon-proof-reset>Restart</button></div></details>';
  const q=s=>section.querySelector(s),select=q('[data-ag-polygon-proof-vertex]'),extra=q('[data-ag-diagonal-enrichment]');extra.open=demo.showDiagonalEnrichment===true;extra.ontoggle=()=>{demo.showDiagonalEnrichment=extra.open};
- q('[data-ag-angle-sum-picture]').append(m.n===3?triangleAngleSumGraphic(m.points):polygonFormulaGraphic(proof,4));
- q('[data-ag-angle-sum-note]').textContent=m.n===3?'Imagine cutting off the three corners and fitting them together. They make a straight line. This works for every triangle.':'n is the number of sides. Split this shape into '+(m.n-2)+' triangles. Each triangle contributes 180°. '+(m.n-2)+' × 180° = '+180*(m.n-2)+'°. Each additional side adds one more triangle.';
+ const anglePicture=q('[data-ag-angle-sum-picture]'),play=q('[data-ag-angle-sum-play]'),total=m.n===3?3:proof.triangles.length;let token=0,count=total;
+ const drawCount=()=>{anglePicture.replaceChildren(m.n===3?triangleAngleSumGraphic(m.points,count):polygonFormulaGraphic(proof,4,count));anglePicture.dataset.agAngleSumCount=String(count)};
+ const stop=()=>{token++;count=total;drawCount();play.textContent='Play demonstration'};
+ play.onclick=()=>{if(count<total){stop();return}const id=++token;if(root.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches){stop();return}count=1;drawCount();play.textContent='Show result';const next=()=>{if(id!==token||!section.isConnected)return;count++;drawCount();if(count<total)root.setTimeout(next,Math.min(700,3000/total));else play.textContent='Replay demonstration'};root.setTimeout(next,Math.min(700,3000/total))};
+ extra.addEventListener('toggle',()=>{if(extra.open&&count<total)stop()});drawCount();
+ q('[data-ag-angle-sum-note]').textContent=m.n===3?'Imagine cutting off the three corners and fitting them together. They make a straight line. This works for every triangle.':'n is the number of sides. Split the shape into '+(m.n-2)+' non-overlapping triangles. Each contributes 180°. '+(m.n-2)+' × 180° = '+180*(m.n-2)+'°.';
  const show=()=>{proof=polygonFormulaProof(m.points,vertex);demo.polygonDiagonalStep=index;demo.polygonProofVertex=vertex;select.value=vertex;q('[data-ag-polygon-proof-picture]').replaceChildren(polygonFormulaGraphic(proof,index));q('[data-ag-polygon-proof-title]').textContent=proof.steps[index].title;q('[data-ag-polygon-proof-note]').textContent=proof.steps[index].note;q('[data-ag-polygon-proof-count]').textContent=(index+1)+' / 3';q('[data-ag-polygon-proof-back]').disabled=index===0;q('[data-ag-polygon-proof-next]').disabled=index===2};
  select.onchange=()=>{vertex=Number(select.value);show()};q('[data-ag-polygon-proof-back]').onclick=()=>{index=Math.max(0,index-1);show()};q('[data-ag-polygon-proof-next]').onclick=()=>{index=Math.min(2,index+1);show()};q('[data-ag-polygon-proof-reset]').onclick=()=>{index=0;vertex=0;show()};container.appendChild(section);show();
 }
