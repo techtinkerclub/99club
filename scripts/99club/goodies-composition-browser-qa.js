@@ -2712,6 +2712,28 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       doc.querySelector('[data-ag-action="reset-triangle"]').click();await tick();assert(points().every((p,i)=>dist(p,start[i])<1e-6),'Reset restores starting free triangle');
       const clear=doc.querySelector('#ag-triangle-centre');clear.value='none';clear.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
     }
+    {
+      const M=win.TT99Goodies.angles,dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+      for(const factor of [.5,1,1.5,2])for(const rotation of [0,45,135,270])for(const mirror of [false,true])for(const distort of [false,true]){
+        const [a,b]=M.triangleComparison({factor,rotation,mirror,distort}),expected=distort?'Neither':factor===1?'Congruent':'Similar, not congruent';
+        for(const order of [[0,1,2],[1,2,0],[2,1,0]]){const r=M.triangleComparisonResult(a,order.map(i=>b[i]));assert(r.label===expected,'Triangle relationship invariant under rotation, reflection and relabelling');if(!distort)assert(Math.abs(r.factor-factor)<1e-8,'Similarity scale is exact')}
+      }
+      assert(M.triangleComparisonResult([[0,0],[1,0],[2,0]],[[0,0],[1,0],[0,1]])===null,'Degenerate comparison rejected');
+      const select=doc.querySelector('#ag-shape-view');select.value='triangle-comparison';select.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
+      const svg=()=>doc.querySelector('.gd-ag-visual svg'),result=()=>svg().querySelector('[data-ag-comparison-result]')?.textContent;
+      const change=(id,value)=>{const node=doc.querySelector('#'+id);node.value=value;node.dispatchEvent(new win.Event('change',{bubbles:true}))};
+      assert(result()==='Congruent'&&svg().querySelectorAll('[data-ag-comparison-length]').length===6,'Comparison starts with equal side lengths and congruence');
+      change('ag-comparison-rotation','135');await tick();doc.querySelector('#ag-comparison-mirror').click();await tick();assert(result()==='Congruent','Rotating and reflecting preserve congruence');
+      change('ag-comparison-factor','2');await tick();assert(result()==='Similar, not congruent','Enlargement preserves similarity, not congruence');
+      const polys=[...svg().querySelectorAll('[data-ag-inspect-polygon]')].map(n=>n.getAttribute('points').split(' ').map(s=>s.split(',').map(Number)));assert(Math.abs(dist(polys[1][0],polys[1][1])/dist(polys[0][0],polys[0][1])-2)<1e-8,'Both rendered triangles share one scale');
+      doc.querySelector('#ag-comparison-distort').click();await tick();assert(result()==='Neither','Changed proportions break similarity');
+      doc.querySelector('[data-ag-action="comparison-reveal"]').click();await tick();assert(!result()&&!svg().querySelector('[data-ag-comparison-explanation]'),'Prediction mode conceals relationship');
+      const draft=P.createDocument();draft.addCurrent(id,cap());assert(!P.renderItem(draft.list()[0],false).querySelector('[data-ag-comparison-result]'),'Saved teaching illustration respects reveal setting');
+      doc.querySelector('[data-ag-action="comparison-reset"]').click();await tick();assert(result()==='Congruent','Reset restores comparison controls');
+      for(let i=0;i<40;i++){const t=M.generate({type:'triangle-comparison',enrichment:true}),p=M.triangleComparison(t.comparison);assert(t.answer===M.triangleComparisonResult(...p).label,'Generated comparison answer matches analytic model')}
+      const pack=P.createDocument();pack.generate(id,{...P.defaultSettings(id),enrichment:true},3,'triangle-comparison');
+      for(const item of pack.list()){const pupil=P.renderItem(item,false),key=P.answerGraphic(item);assert(pupil.querySelectorAll('[data-ag-comparison-length]').length===6&&!pupil.querySelector('[data-ag-comparison-result]'),'Pupil comparison shows givens but not answer');assert(key.querySelector('[data-ag-comparison-result]').textContent===item.data.answer,'Teacher comparison identifies correct relationship')}
+    }
     const shapeSelect=doc.getElementById('ag-shape-view');shapeSelect.value='rectangle';shapeSelect.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
     doc.querySelector('[data-ag-action="diagonal"]').click();await tick();
     assert(cap().demo.showDiagonals&&doc.querySelector('.gd-ag-visual svg').textContent.includes('Equal diagonals'),'Rectangle explorer displays its diagonal relationship');
