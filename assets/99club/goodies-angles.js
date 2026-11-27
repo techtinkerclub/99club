@@ -1390,7 +1390,7 @@ function generate(s={},rng=Math.random){
  }
  function measurementEnrichment(settings={}){
    const kind=['scale','units','compound'].includes(settings.kind)?settings.kind:'scale',int=(v,f,min,max)=>v==null||v===''||!Number.isFinite(Number(v))?f:Math.max(min,Math.min(max,Math.round(Number(v))));
-   const width=int(settings.width,6,3,12),height=int(settings.height,4,3,8),ratio=int(settings.ratio,50,10,100),notchWidth=int(settings.notchWidth,2,1,width-1),notchHeight=int(settings.notchHeight,2,1,height-1),method=settings.method==='subtract'?'subtract':'split',unit=settings.unit==='m'?'m':'cm',reveal=settings.reveal===true;
+   const width=int(settings.width,6,3,12),height=int(settings.height,4,3,8),ratio=[10,20,25,50,75,100].includes(Number(settings.ratio))?Number(settings.ratio):50,notchWidth=int(settings.notchWidth,2,1,width-1),notchHeight=int(settings.notchHeight,2,1,height-1),method=settings.method==='subtract'?'subtract':'split',unit=settings.unit==='m'?'m':'cm',reveal=settings.reveal===true;
    const planArea=width*height,actualWidth=width*ratio/100,actualHeight=height*ratio/100,actualArea=planArea*ratio*ratio/10000,missingArea=notchWidth*notchHeight,area=planArea-missingArea,perimeter=2*(width+height),parts=[width*(height-notchHeight),(width-notchWidth)*notchHeight],points=[[0,0],[width,0],[width,height-notchHeight],[width-notchWidth,height-notchHeight],[width-notchWidth,height],[0,height]];
    return {kind,width,height,ratio,notchWidth,notchHeight,method,unit,reveal,planArea,actualWidth,actualHeight,actualArea,missingArea,area,perimeter,parts,points,linearFactor:unit==='m'?100:10,areaFactor:unit==='m'?10000:100,smallUnit:unit==='m'?'cm':'mm'};
  }
@@ -2645,9 +2645,9 @@ function rotationReferenceGraphic(m,degrees,interactive=false){
  return svg;
 }
 function measurementText(m){
- const f=n=>Number(n.toFixed(2));
+ const f=n=>Math.abs(n-Number(n.toFixed(2)))>1e-9?'≈ '+Number(n.toFixed(2)):String(Number(n.toFixed(2)));
  if(m.kind==='scale')return {title:'Scale drawings',formula:'Actual length = drawing length × scale factor',prompt:'A plan uses a scale of 1 : '+m.ratio+'. How large is the real rectangle?',result:'Actual: '+f(m.actualWidth)+' m × '+f(m.actualHeight)+' m · Area = '+f(m.actualArea)+' m²',note:'Area scales by '+m.ratio+'² before converting cm² to m². A drawing is not necessarily printed at its labelled scale.'};
- if(m.kind==='units')return {title:'Square units',formula:'1 '+m.unit+'² = '+m.linearFactor+' × '+m.linearFactor+' '+m.smallUnit+'²',prompt:'How many '+m.smallUnit+'² fit inside 1 '+m.unit+'²?',result:'1 '+m.unit+'² = '+m.areaFactor+' '+m.smallUnit+'²',note:'Both dimensions change units. Multiply the length conversion factor by itself.'};
+ if(m.kind==='units')return {title:'Square units',formula:'Area conversion factor = (length conversion factor)²',prompt:'How many '+m.smallUnit+'² fit inside 1 '+m.unit+'²?',result:'1 '+m.unit+'² = '+m.areaFactor+' '+m.smallUnit+'²',note:'Both dimensions change units. Multiply the length conversion factor by itself.'};
  return {title:'Compound areas',formula:m.method==='split'?'Area = area 1 + area 2':'Area = outer rectangle − missing rectangle',prompt:'Find the area and perimeter of this L-shape.',result:m.method==='split'?m.parts.join(' + ')+' = '+m.area+' cm² · Perimeter = '+m.perimeter+' cm':m.planArea+' − '+m.missingArea+' = '+m.area+' cm² · Perimeter = '+m.perimeter+' cm',note:'Perimeter follows only the outside boundary. The two notch edges replace equal lengths on the outer rectangle.'};
 }
 function measurementGraphic(m){
@@ -2675,7 +2675,7 @@ function measurementGraphic(m){
    const dims=teachingDimensions(add,{bounds:[8,8,W-8,282],lines:edges,size:14});
    const lengths=m.kind==='scale'?[m.width,m.height,m.width,m.height]:[m.width,m.height-m.notchHeight,m.notchWidth,m.notchHeight,m.width-m.notchWidth,m.height];
    for(let i=0;i<edges.length;i++){if(m.kind==='scale'&&i>1)continue;const [a,b]=edges[i],u=labSub(b,a),n=Math.hypot(...u),mid=labAt(a,u,.5),outside=labAt(mid,[u[1]/n,-u[0]/n],22);dims(a,b,lengths[i]+' cm',{outside,attrs:{'data-ag-measurement-edge':i}});}
-   label(280,296,m.kind==='scale'?'Drawing dimensions in centimetres':'All boundary lengths in centimetres',{'font-weight':700});if(m.reveal)label(280,320,m.kind==='scale'?'Real area = '+Number(m.actualArea.toFixed(2))+' m²':'Area = '+m.area+' cm²',{'data-ag-measurement-answer':'1'});
+   label(280,296,m.kind==='scale'?'Drawing dimensions in centimetres':'All boundary lengths in centimetres',{'font-weight':700});if(m.reveal)label(280,320,m.kind==='scale'?'Real area '+(Math.abs(m.actualArea-Number(m.actualArea.toFixed(2)))>1e-9?'≈ ':'= ')+Number(m.actualArea.toFixed(2))+' m²':'Area = '+m.area+' cm²',{'data-ag-measurement-answer':'1'});
  }
  return svg;
 }
