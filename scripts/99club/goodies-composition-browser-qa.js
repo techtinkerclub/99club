@@ -1408,6 +1408,16 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(aligned.kind==='Aligned vertex'&&aligned.x===100&&aligned.y===100&&aligned.angle===0,'Ruler zero and measuring edge align together');
       const mid=M.utensilAlignment(exact,{kind:'ruler',x:-100,y:106,angle:0,size:400},'move',1);
       assert(mid.kind==='Aligned edge'&&Math.abs(mid.x+100)<1e-8&&mid.y===100&&mid.angle===0,'Ruler aligns by its measuring edge even with zero outside the segment');
+      const short=M.labEmpty(true);short.points=[[140,100],[170,100]];short.segments=[[0,1]];
+      const shortAligned=M.utensilAlignment(short,{kind:'ruler',x:100,y:106,angle:0,size:400},'move',1);
+      assert(shortAligned?.kind==='Aligned edge'&&Math.abs(shortAligned.y-100)<1e-8&&shortAligned.angle===0,'Ruler aligns to short segment between its usual anchor samples');
+      assert(M.utensilAlignment(short,{kind:'ruler',x:100,y:106,angle:0,size:400},'move',4)===null,'Continuous overlap still respects screen-space tolerance');
+      const pair=M.labEmpty(true);pair.points=[[100,100],[280,220]];
+      const pairAngle=Math.atan2(-120,180)*180/Math.PI+360;
+      const rotated=M.utensilAlignment(pair,{kind:'ruler',x:102,y:102,angle:pairAngle+1,size:400},'rotate',1);
+      assert(rotated?.kind==='Aligned points'&&rotated.x===100&&rotated.y===100&&Math.abs(rotated.angle-pairAngle)<1e-8,'Ruler rotates precisely through two named points without a segment');
+      assert(M.utensilAlignment(pair,{kind:'ruler',x:102,y:102,angle:pairAngle+1,size:100},'rotate',1)?.kind!=='Aligned points','Ruler does not snap to a point beyond its measuring edge');
+
       const tipScene=M.labEmpty(true);tipScene.points=[[500,100]];
       const tip=M.utensilAlignment(tipScene,{kind:'ruler',x:104,y:106,angle:0,size:400},'move',1);
       assert(tip.kind==='Endpoint'&&tip.x===100&&tip.y===100,'Ruler far endpoint can snap without changing length');
