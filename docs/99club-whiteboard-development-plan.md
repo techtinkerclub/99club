@@ -30,5 +30,23 @@ Update it with evidence and release revisions as the work progresses.
 - [ ] Curriculum coverage review across existing and new tools, refine difficulty and question variation.
 - [ ] Final integrated QA, usability review and production release.
 
+
+## 7. Integrated release acceptance (parallel regression checks; final gate deferred)
+
+Current main baseline: `58ee64af36a4a8ccc276c282f88e59b16dff338e` (#421). The user prefers no scrolling during landscape teaching, with persistent topic tabs and focused advanced pages. Apply the same principle to other teaching widgets when their actual content warrants it; do not remove accessible narrow-screen fallbacks or introduce redundant navigation.
+
+- [x] Merge the multi-step challenge work and contextual shape measurement lessons after focused QA (#417, #419).
+- [x] Merge top navigation and focused landscape detail pages after focused QA (#420, #421).
+- [x] Reconcile full audit changes from #418 on the current main baseline.
+- [ ] Verify the provisional-start ruler correction and the shared floating inspector sizing fix in the integrated suite at phone and desktop widths.
+- [ ] Run the full Studio QA workflow, including games, Custom Worksheets, printable catalogue, practice, security/privacy, SEO, help coverage, mathematical contracts and Goodies publication.
+- [ ] Resolve actual failures with evidence; retain meaningful assertions.
+- [ ] Review panel reachability, Help styling and landscape teaching across widgets; measure active lesson height against viewport height rather than hide overflow.
+- [ ] Reconcile remaining geometry, written-method, statistics and curriculum gaps (#369).
+- [ ] Verify live revision, physical touchscreen and representative physical prints; record exact revision/device/browser.
+- [ ] Record release decision with limitations.
+
+Passing CI is necessary but does not establish physical classroom acceptance or complete curriculum coverage. Keep #369 open until verified or explicitly deferred.
+
 ## Release discipline
 Keep implementation, automated verification, visual approval, merge and live deployment separate. Prefer coherent verified batches; avoid leaving usable features on a long-lived branch unnecessarily. Record outstanding limitations honestly.

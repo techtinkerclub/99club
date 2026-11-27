@@ -20,6 +20,16 @@ This section is the active execution order; earlier sections retain design histo
 
 Do not open new parallel feature streams simply because an idea arises. Record it under the appropriate gate and finish the current gate first, except for genuine blocking regressions. No timed worksheet presets or automatic selection by duration. Preserve the three existing geometry modes; coordinate visibility is a display setting, not a fourth mode. No claim of full general constraint solving, infinite-line support, or actual classroom verification until delivered and tested.
 
+## Reconciled delivery status — 27 November 2026, after #421
+
+**Main baseline:** `58ee64af36a4a8ccc276c282f88e59b16dff338e`. Focused QA passed before merging #416 (selected-topic publication), #417 (multi-step challenges), #419 (contextual polygon area/perimeter), #420 (top navigation and landscape teaching), and #421 (focused advanced pages). Physical acceptance and production deployment are not inferred from CI.
+
+**Classroom layout requirement:** persistent topic tabs, one active teaching screen, landscape-first (16:9 preferred), no vertical scrolling in normal landscape lessons including advanced material. Keep diagrams large and explanations alongside; use steps or focused pages rather than stacked panels. Narrow/short screens retain an accessible fallback until verified. Construction Studio remains a full paper-equivalent drawing board.
+
+**Integrated audit candidate:** carries forward #418's expanded workflow, corrected Pythagoras assertion and provisional-start ruler snap fix. The latter passed focused QA; the full audit progressed to a Maths Canvas inspector bounds failure at phone width. This candidate reclamps the shared inspector after rendering and size changes and adds explicit bounds regressions. Require new full and focused results.
+
+**Remaining scope:** reconcile [#369](https://github.com/techtinkerclub/99club/issues/369) with the implemented catalogue. Preserve full internal precision, display-only rounding, optional KS3 enrichment and no timed worksheets. Do not claim all curriculum or classroom acceptance from automated tests.
+
 ## Research basis
 
 - DfE national curriculum: https://www.gov.uk/government/publications/national-curriculum-in-england-mathematics-programmes-of-study/national-curriculum-in-england-mathematics-programmes-of-study
