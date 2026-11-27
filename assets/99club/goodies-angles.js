@@ -1495,6 +1495,8 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    guide.replaceChildren(header,body);
   }
   function paint(){
+   // A ghost sector is valid only while its selected vertex and visible arms remain available.
+   if(anglePicking!==null&&(tool!=='select'||selection?.kind!=='points'||selection.index!==anglePicking||!labAngleSectors(st,anglePicking).length))anglePicking=null;
    regionBar.hidden=tool!=='shade';regionBar.style.display=tool==='shade'?'flex':'none';shadeModeButton.textContent=shadeMode==='region'?'By enclosed region':'By vertices';applyRegion.hidden=clearRegion.hidden=shadeMode!=='vertices';applyRegion.disabled=!validRegion(st.points,regionPick);removeRegion.disabled=!st.regions.length;colourButtons.forEach((b,i)=>{b.setAttribute('aria-pressed',String(i===regionColour));b.style.outline=i===regionColour?'2px solid #263e43':'none'});
    if(panButton){panButton.setAttribute('aria-pressed',String(panMode));panButton.classList.toggle('gd-btn--primary',panMode);svg.style.cursor=panMode?'grab':''}
    openingButton.hidden=tool!=='compass';openingButton.disabled=aperture===null;openingButton.setAttribute('aria-pressed',String(keepOpening));openingButton.querySelector('span').textContent=keepOpening?'Change opening':'Keep opening';arcButton.hidden=tool!=='compass';arcButton.querySelector('span').textContent=arcMode?'Arc':'Full circle';arcButton.setAttribute('aria-pressed',String(arcMode));arcDirection.hidden=tool!=='compass'||!arcMode;arcDirection.querySelector('span').textContent=arcClockwise?'Clockwise':'Anticlockwise';
