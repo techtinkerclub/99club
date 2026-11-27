@@ -1601,6 +1601,30 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       select('segment');tap(pair[0]);tap(pair[1]);const done=model(),[p,q]=done.segments.at(-1).map(i=>done.points[i]);
       assert(Math.abs(delta(direction(p,q),angle)-90)<1e-6,'Constructed line perpendicular to baseline: '+label);
       assert(distance([(p[0]+q[0])/2,(p[1]+q[1])/2],mid)<1e-6,'Constructed perpendicular passes through midpoint: '+label);
+      // Add a circle centred at one baseline endpoint and passing through the exact midpoint.
+      // The already constructed perpendicular is then a tangent to that circle.
+      select('compass');if(tool('compass-opening').getAttribute('aria-pressed')==='true')tool('compass-opening').click();
+      tap(u);tap(mid);
+      const tangent=model(),circle=tangent.circles.at(-1),centre=tangent.points[circle.i];
+      const tangentPoint=[(p[0]+q[0])/2,(p[1]+q[1])/2];
+      assert(distance(centre,u)<1e-6&&Math.abs(circle.r-distance(centre,tangentPoint))<1e-6,'Constructed tangent touches the circle at the midpoint: '+label);
+      assert(Math.abs(delta(direction(centre,tangentPoint),direction(p,q))-90)<1e-6,'Tangent perpendicular to contact radius: '+label);
+      // Equal circles with radius AB produce an equilateral triangle, then a rhombus.
+      reset();select('segment');tap([340,340]);tap([500,300]);
+      const triangleBase=model(),[a,b]=triangleBase.segments[0].map(i=>triangleBase.points[i]),len=distance(a,b),dir=direction(a,b);
+      select('compass');tap(a);tap(b);tool('compass-opening').click();tap(b);
+      let drawing=model();assert(drawing.circles.length===2&&drawing.circles.every(c=>Math.abs(c.r-len)<1e-9),'Equilateral compass opening equals actual baseline: '+label);
+      const apex=exactPolar(...a,len,dir+60),nearest=(m,t)=>M.labIntersections(m).map(c=>c.p).sort((x,y)=>distance(x,t)-distance(y,t))[0],c=nearest(drawing,apex);
+      assert(distance(c,apex)<1e-6,'Equilateral apex is exact: '+label);
+      tap(c);drawing=model();assert(drawing.circles.length===3,'Third equal compass circle constructed: '+label);
+      const expectedFourth=[b[0]+c[0]-a[0],b[1]+c[1]-a[1]],d4=nearest(drawing,expectedFourth);
+      assert(distance(d4,expectedFourth)<1e-6,'Rhombus fourth vertex is exact: '+label);
+      select('segment');tap(a);tap(c);tap(b);tap(c);tap(b);tap(d4);tap(c);tap(d4);
+      drawing=model();
+      const actual=target=>drawing.points.slice().sort((x,y)=>distance(x,target)-distance(y,target))[0],aa=actual(a),bb=actual(b),cc=actual(c),dd=actual(d4);
+      assert([distance(aa,bb),distance(bb,cc),distance(cc,aa)].every(n=>Math.abs(n-len)<1e-6),'Constructed equilateral triangle has three equal sides: '+label);
+      assert(Math.abs(delta(direction(aa,cc),direction(bb,dd)))<1e-6&&Math.abs(delta(direction(aa,bb),direction(cc,dd)))<1e-6,'Both opposite sides of constructed rhombus are parallel: '+label);
+      assert([aa,bb,cc,dd].every((x,i)=>distance(x,[a,b,c,d4][i])<1e-6)&&drawing.segments.length===5,'All construction edges placed on exact vertices: '+label);
       reset();select('select');
     };
     verifyBisectors('A5 normal');
