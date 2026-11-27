@@ -1350,6 +1350,18 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         }
       }
     }
+    {
+      const scene=M.labEmpty(true);scene.points=[[100,100],[400,200],[100,350]];scene.segments=[[0,1]];
+      const p={kind:'ruler',x:104,y:110,angle:0,size:400};
+      const near=M.utensilAlignment(scene,p,'move',1);assert(near.kind==='Point'&&near.x===100&&near.y===100,'Utensil aligns precisely to nearby point');
+      assert(M.utensilAlignment(scene,p,'move',4)===null,'Magnet tolerance is measured in screen pixels rather than drawing units');
+      const q=M.utensilAlignment(scene,{...p,x:250,y:155},'move',1);assert(q.kind==='Edge'&&Math.abs((q.x-100)/3-(q.y-100))<1e-8,'Utensil origin snaps onto exact segment');
+      const a=Math.atan2(-100,300)*180/Math.PI+360,r=M.utensilAlignment(scene,{...p,x:250,y:150,angle:a+1},'rotate',1);
+      assert(r.kind==='Edge'&&Math.abs(r.angle-a)<1e-8,'Rotation aligns to nearby actual edge');
+      assert(M.utensilAlignment(scene,{...p,x:800,y:700,angle:46},'rotate',1).angle===45,'Rotation snaps gently to common angles');
+      assert(M.utensilAlignment(scene,{...p,x:800,y:700,angle:52},'rotate',1)===null,'Rotation stays free between snap tolerances');
+      assert(M.utensilAlignment(scene,p,'resize',1)===null,'Resize never changes origin or angle through snapping');
+    }
     // Every guided corner is a rigid orientation of the same physical triangle.
     for(const kind of ['square45','square30']){
       const sides=(corner,hand)=>{const o=[123,217],{v,w}=M.squareGeometry(o,37,kind,corner,hand);return [[o,v],[o,w],[v,w]].map(([a,b])=>Math.hypot(a[0]-b[0],a[1]-b[1])).sort((a,b)=>a-b)};
@@ -1426,7 +1438,9 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(JSON.stringify(cap().demo.labDrawing)===original,'Measuring utensils never mutate drawing state');
       const publication=P.createDocument();publication.addCurrent(id,cap());assert(!P.renderItem(publication.list()[0],false).querySelector('[data-ag-utensil]'),'Temporary utensils are excluded from publication');
       const local=work.querySelector('[data-ag-local-instrument]');
-      assert(local&&local.contains(action('remove'))&&local.contains(action('rotate'))&&!doc.querySelector('.gd-ag-utensils [data-ag-utensil-action="remove"]'),'Selected utensil actions are attached locally rather than in drawing options');
+      const snap=action('snap');assert(local.contains(snap)&&snap.getAttribute('aria-pressed')==='true','Magnetic alignment is available at the selected utensil');
+      snap.click();assert(action('snap').getAttribute('aria-pressed')==='false','Local snap can be disabled without entering settings');action('snap').click();
+      assert(work.querySelector('[data-ag-local-instrument]')?.contains(action('remove'))&&work.querySelector('[data-ag-local-instrument]')?.contains(action('rotate'))&&!doc.querySelector('.gd-ag-utensils [data-ag-utensil-action="remove"]'),'Selected utensil actions are attached locally rather than in drawing options');
       action('duplicate').click();assert(work.querySelectorAll('[data-ag-utensil-kind="ruler"]').length===2,'Local duplicate copies the selected calibrated instrument');
       action('remove').click();assert(work.querySelectorAll('[data-ag-utensil-kind="ruler"]').length===1,'Local removal affects only the duplicate');
       const remaining=utensil('ruler');event(remaining.querySelector('rect'),'pointerdown',[origin[0]+10,origin[1]-100],76);event(work,'pointerup',[origin[0]+10,origin[1]-100],76);

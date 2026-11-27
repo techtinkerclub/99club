@@ -2497,3 +2497,5 @@ html.gd-ag-full-page.gd-embed-page #gd-stage.gd-ag-full-stage>:not(.gd-ag-full-b
 #tt99-goodies-root .gd-ag-lab-canvas [data-geometry-instrument="ruler"]>rect:first-child,#tt99-goodies-root .gd-ag-lab-canvas [data-geometry-instrument="protractor"]>path:first-child,#tt99-goodies-root .gd-ag-lab-canvas [data-me-square-body]{fill:#ced6d8;fill-opacity:.66;stroke:#9baeb1;stroke-width:1}
 #tt99-goodies-root .gd-ag-lab-canvas [data-geometry-instrument] text{font-weight:400;fill:#334b50}
 #tt99-goodies-root .gd-ag-lab-canvas [data-geometry-instrument] line{stroke:#506368}
+
+#tt99-goodies-root .gd-ag-local-instrument button[aria-pressed="true"]{background:#e1efea;color:#17695e}
