@@ -1233,7 +1233,8 @@ async function run(){
       assert(expected.every(i=>indices('data-pub-answer-note').includes(i)),'Every construction answer includes marking guidance');
     }
     {
-      doc.querySelector('[data-ag-challenge-mode="build-bisector"]').click();await tick();
+      const enrichmentWasEnabled=doc.querySelector('#ag-enrich').checked;if(!enrichmentWasEnabled){doc.querySelector('#ag-enrich').click();await tick()}
+      const bisector=doc.querySelector('[data-ag-challenge-mode="build-bisector"]');assert(bisector,'Enrichment exposes perpendicular bisector challenge');bisector.click();await tick();
       const model=win.TT99Goodies.angles,svg=doc.querySelector('.gd-ag-visual>svg'),tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),view=()=>svg.getAttribute('viewBox').split(' ').map(Number),state=()=>JSON.stringify(cap().lab);
       const screen=p=>new win.DOMPoint(...p).matrixTransform(svg.getScreenCTM()),send=(type,p,id=161)=>svg.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:id,pointerType:'touch',button:0,buttons:type==='pointerup'?0:1,clientX:p.x,clientY:p.y})),tap=p=>{const q=screen(p);send('pointerdown',q);send('pointerup',q)};
       tool('compass').click();tap([340,302]);tap([520,302]);tool('compass-opening').click();tap([580,302]);
@@ -1250,6 +1251,7 @@ async function run(){
       tool('segment').click();tap(upper);tap(lower);assert(model.labCheck(cap().lab,cap().task).correct,'Perpendicular bisector constructed across original view edge is correctly assessed');
       const finished=state();tool('reset-view').click();assert(view().join(' ')==='0 0 800 400'&&state()===finished&&model.labCheck(cap().lab,cap().task).correct,'Reset view preserves geometry and assessment');
       tool('undo').click();assert(!model.labCheck(cap().lab,cap().task).correct,'Undo removes construction action, not camera movement');
+      if(!enrichmentWasEnabled){doc.querySelector('#ag-enrich').click();await tick()}
     }
     doc.querySelector('[data-ag-workflow="build"]').click();await tick();
     const mode=doc.getElementById('ag-mode');mode.value='construct';mode.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
