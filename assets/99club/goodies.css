@@ -2636,3 +2636,33 @@ html.gd-embed-page #tt99-goodies-root #gd-stage:has(>.gd-ag-shape-reference){ove
 #tt99-goodies-root [data-ag-classification-picture]{display:block;width:100%;max-width:420px;margin:0 auto}
 #tt99-goodies-root :is([data-ag-family-more],[data-ag-triangle-family-more]){margin-top:10px;border-top:1px solid #dbe7e3;padding-top:8px}
 #tt99-goodies-root :is([data-ag-family-key],[data-ag-triangle-family-result]){font-size:1.05rem;font-weight:700;text-align:center}
+
+
+/* Geometry lessons: persistent top navigation, one screen instead of a report beneath the drawing. */
+#tt99-goodies-root #gd-stage:has(>.gd-ag-shape-reference){gap:8px;align-items:stretch}
+#tt99-goodies-root .gd-ag-shape-reference[data-ag-teaching-screen]{border:0;background:transparent;margin:0;max-width:none}
+#tt99-goodies-root .gd-ag-shape-reference[data-ag-teaching-screen]>summary{display:none}
+#tt99-goodies-root [data-ag-teaching-tabs]{padding:0 0 6px;gap:5px}
+#tt99-goodies-root [data-ag-teaching-tabs] button{flex:1 1 100px;min-height:38px}
+#tt99-goodies-root [data-ag-teaching-screen="explore"]>[data-ag-shape-reference-body]{display:none!important}
+#tt99-goodies-root #gd-stage:has(>[data-ag-teaching-screen="lesson"])>:is(.gd-ag-visual,[data-ag-shape-explore-controls]){display:none!important}
+#tt99-goodies-root [data-ag-teaching-screen="lesson"]>[data-ag-shape-reference-body]{padding:0;gap:8px}
+#tt99-goodies-root [data-ag-teaching-screen="lesson"] section>p{margin:4px 0;min-height:0}
+#tt99-goodies-root [data-ag-teaching-screen="lesson"] section .gd-row{gap:5px;margin:4px 0}
+#tt99-goodies-root [data-ag-teaching-screen="lesson"] section .gd-btn{min-height:36px;padding:5px 9px}
+@media (min-width:800px) and (min-height:480px) and (orientation:landscape){
+  #tt99-goodies-root [data-ag-teaching-tabs] button{flex:1 1 85px}
+  #tt99-goodies-root [data-ag-shape-reference-body][data-ag-teaching-active="properties"]{grid-template-columns:repeat(3,minmax(0,1fr))}
+  #tt99-goodies-root [data-ag-shape-reference-body][data-ag-teaching-active="properties"] section>svg{width:100%;max-height:clamp(110px,24vh,210px);object-fit:contain}
+  #tt99-goodies-root [data-ag-shape-reference-body][data-ag-teaching-active="properties"] dl{font-size:clamp(13px,1.35vw,16px);line-height:1.3}
+  #tt99-goodies-root [data-ag-shape-reference-body][data-ag-teaching-active="properties"] dt{margin:5px 0 0}
+  #tt99-goodies-root [data-ag-shape-reference-body][data-ag-teaching-active="symmetry"]{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #tt99-goodies-root [data-ag-shape-reference-body][data-ag-teaching-active="symmetry"] svg{max-height:clamp(135px,36vh,340px);width:100%;object-fit:contain}
+  #tt99-goodies-root [data-ag-shape-reference-body]:not([data-ag-teaching-active="properties"]):not([data-ag-teaching-active="symmetry"])>section:not([hidden]){display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);column-gap:16px;row-gap:6px;align-content:start;align-items:start}
+  #tt99-goodies-root [data-ag-shape-reference-body]:not([data-ag-teaching-active="properties"]):not([data-ag-teaching-active="symmetry"])>section> *{grid-column:2;min-width:0}
+  #tt99-goodies-root [data-ag-shape-reference-body]:not([data-ag-teaching-active="properties"]):not([data-ag-teaching-active="symmetry"])>section>:is([data-ag-angle-sum-picture],[data-ag-proof-picture],[data-ag-basic-area-picture],[data-ag-family-primary],[data-ag-triangle-family-primary],[data-ag-pythagoras-squares-picture],[data-ag-shape-measure-picture],[data-ag-area-comparison-picture],[data-ag-reasoning-picture]){grid-column:1;grid-row:1/span 20;align-self:center;min-width:0}
+  #tt99-goodies-root [data-ag-shape-reference-body]:not([data-ag-teaching-active="properties"]):not([data-ag-teaching-active="symmetry"])>section>div>svg{width:100%;max-height:clamp(170px,55vh,480px);object-fit:contain;display:block;margin:auto}
+  #tt99-goodies-root [data-ag-shape-reference-body] section>details[open]{grid-column:1/-1}
+  #tt99-goodies-root [data-ag-shape-reference-body] section>details[open] svg{max-height:clamp(130px,38vh,320px)}
+  html.gd-embed-page #tt99-goodies-root #gd-stage:has(>[data-ag-teaching-screen="explore"])>.gd-ag-visual>svg{max-height:calc(100vh - 160px)!important}
+}
