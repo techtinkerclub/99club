@@ -2580,3 +2580,26 @@ html.gd-ag-full-page.gd-embed-page #gd-stage.gd-ag-full-stage>:not(.gd-ag-full-b
 #tt99-goodies-root .gd-ag-family-reference{grid-column:1/-1}#tt99-goodies-root .gd-ag-family-reference [data-ag-family-graphic]{width:100%;max-width:600px;display:block;margin:8px auto}#tt99-goodies-root .gd-ag-family-reference label{display:flex;gap:8px;align-items:center;flex-wrap:wrap}#tt99-goodies-root .gd-ag-family-reference .gd-ag-family-convention{font-size:13px;color:#49666a}
 
 #tt99-goodies-root .gd-ag-triangle-family{grid-column:1/-1}#tt99-goodies-root .gd-ag-triangle-family [data-ag-triangle-family-graphic]{width:100%;max-width:600px;display:block;margin:8px auto}#tt99-goodies-root .gd-ag-triangle-family label{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* Geometry teaching is a responsive panel, not a single long report.
+   Only the active teaching group occupies layout space. In an embedded
+   board, scroll is a deliberate fallback when the frame reaches its cap. */
+#tt99-goodies-root .gd-ag-shape-reference{max-width:none;margin:6px auto 4px}
+#tt99-goodies-root [data-ag-teaching-tabs]{display:flex;flex-wrap:wrap;gap:6px;padding:0 8px 8px;min-width:0}
+#tt99-goodies-root [data-ag-teaching-tabs] button{flex:1 1 130px;white-space:normal;min-height:38px;padding:6px 9px;font-size:.85rem}
+#tt99-goodies-root [data-ag-shape-reference-body]{gap:8px;padding:0 8px 8px;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));align-items:start}
+#tt99-goodies-root [data-ag-shape-reference-body] section{padding:10px;min-width:0;max-width:100%;box-sizing:border-box}
+#tt99-goodies-root [data-ag-shape-reference-body]>section[hidden],#tt99-goodies-root [data-ag-teaching-tabs][hidden],#tt99-goodies-root .gd-ag-shape-reference:not([open])>[data-ag-teaching-tabs],#tt99-goodies-root .gd-ag-shape-reference:not([open])>[data-ag-shape-reference-body]{display:none!important}
+#tt99-goodies-root [data-ag-shape-reference-body][data-ag-teaching-active="symmetry"]{grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr))}
+#tt99-goodies-root [data-ag-shape-reference-body][data-ag-teaching-active="symmetry"]>section{grid-column:auto}
+#tt99-goodies-root [data-ag-shape-reference-body] svg{max-width:100%;height:auto}
+#tt99-goodies-root [data-ag-shape-reference-body] :is(button,select,input){max-width:100%;box-sizing:border-box}
+#tt99-goodies-root [data-ag-shape-reference-body] .gd-row{flex-wrap:wrap}
+#tt99-goodies-root [data-ag-shape-reference-body] p{overflow-wrap:anywhere}
+html.gd-embed-page #tt99-goodies-root #gd-stage:has(>.gd-ag-shape-reference){overflow-y:auto!important;overflow-x:hidden!important;scrollbar-width:thin!important;overscroll-behavior:contain;padding:6px!important}
+html.gd-embed-page #tt99-goodies-root #gd-stage:has(>.gd-ag-shape-reference)::-webkit-scrollbar{display:block!important;width:8px}
+html.gd-embed-page #tt99-goodies-root #gd-stage:has(>.gd-ag-shape-reference)::-webkit-scrollbar-thumb{background:#acc5bd;border-radius:8px}
+#tt99-goodies-root #gd-stage:has(>.gd-ag-shape-reference)>.gd-ag-visual{max-width:100%!important}
+#tt99-goodies-root #gd-stage:has(>.gd-ag-shape-reference)>.gd-ag-visual>svg{max-height:clamp(240px,44vh,480px)!important}
+#tt99-goodies-root .gd-board-object.is-geometry-teaching-max>.gd-board-object-iframe{transform:none}
+@media(max-width:520px){#tt99-goodies-root [data-ag-teaching-tabs] button{flex-basis:110px;font-size:.78rem}#tt99-goodies-root [data-ag-shape-reference-body]{padding:0 6px 6px;gap:6px}}

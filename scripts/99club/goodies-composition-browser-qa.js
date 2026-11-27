@@ -3317,6 +3317,30 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(trianglePanel.querySelectorAll('[data-ag-family-possible="false"]').length===2,'Impossible equilateral right and obtuse cells explicitly shown');
       triangleSelect.value='current';triangleSelect.dispatchEvent(new win.Event('change',{bubbles:true}));
       const trianglePack=P.createDocument();trianglePack.addCurrent(id,cap());assert(P.renderItem(trianglePack.list()[0],false).querySelector('[data-ag-triangle-family-graphic]'),'Triangle classification grid printed');
+      // Real embedded layout: active tabs occupy space, inactive cards do not.
+      const teaching=doc.querySelector('.gd-ag-shape-reference'),teachingStage=doc.getElementById('gd-stage'),teachingTab=key=>teaching.querySelector('[data-ag-teaching-tab="'+key+'"]');
+      assert(teachingTab('properties')&&teachingTab('symmetry')&&teachingTab('families')&&teachingTab('proof'),'All triangle teaching groups directly accessible');
+      for(const key of ['properties','symmetry','families','proof']){
+        teachingTab(key).click();await tick(60);
+        const active=[...teaching.querySelectorAll('[data-ag-teaching-panel="'+key+'"]')];
+        assert(active.length&&active.every(el=>!el.hidden&&el.getBoundingClientRect().height>0),'Selected teaching group is visible: '+key);
+        assert([...teaching.querySelectorAll('[data-ag-teaching-panel]')].filter(el=>el.dataset.agTeachingPanel!==key).every(el=>el.hidden&&el.getBoundingClientRect().height===0),'Inactive sections take no layout space');
+        assert(teachingStage.scrollWidth<=teachingStage.clientWidth+2,'No horizontal teaching overflow: '+key);
+        assert(['auto','scroll'].includes(win.getComputedStyle(teachingStage).overflowY),'Embedded teaching stage has scroll fallback');
+        teachingStage.scrollTop=teachingStage.scrollHeight;await tick();
+        const bottom=Math.max(...active.map(el=>el.getBoundingClientRect().bottom));
+        assert(bottom<=teachingStage.getBoundingClientRect().bottom+3,'Last active teaching card can be reached: '+key);
+        teachingStage.scrollTop=0;
+      }
+      teachingTab('properties').click();
+      const max=fixture.frame.querySelector('[data-board-maximise]');max.click();await tick(80);
+      assert(fixture.frame.classList.contains('is-geometry-teaching-max')&&fixture.frame.style.getPropertyValue('--gd-board-scale')==='1','Maximised teaching uses actual viewport width instead of scaling down a tall report');
+      teachingTab('symmetry').click();await tick();
+      teachingStage.scrollTop=teachingStage.scrollHeight;await tick();
+      const reflectionBottom=teaching.querySelector('[data-ag-reflection-reference]').getBoundingClientRect().bottom;
+      assert(reflectionBottom<=teachingStage.getBoundingClientRect().bottom+3,'Reflection controls reachable in maximised teaching widget');
+      max.click();await tick(80);assert(!fixture.frame.classList.contains('is-geometry-teaching-max'),'Restoring leaves teaching maximisation cleanly');
+
 
 
 

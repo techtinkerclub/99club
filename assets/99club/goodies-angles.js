@@ -3205,7 +3205,7 @@ G.anglesTool=function(){
    },
    set(value){
      const row=topicRows.find(t=>t.value===value);if(!row||task)return false;
-     workflow='build';demo.areaProofStep=0;demo.symmetryRotation=0;demo.symmetryReflectionAngle=0;demo.symmetryReflectionOffset=0;demo.familyExample='current';demo.triangleFamilyExample='current';demo.mode=cfg.mode=row.mode;
+     workflow='build';demo.areaProofStep=0;demo.symmetryRotation=0;demo.symmetryReflectionAngle=0;demo.symmetryReflectionOffset=0;demo.familyExample='current';demo.triangleFamilyExample='current';demo.teachingTab='properties';demo.mode=cfg.mode=row.mode;
      if(row.mode==='construct')demo.freeLab=true;
      if(row.mode==='polygon'&&!value.startsWith('centre:')){demo.showMedians=false;demo.triangleCentre='none'}
      Object.assign(demo,row.extra);render();return true;
@@ -3259,9 +3259,26 @@ G.anglesTool=function(){
   host.innerHTML=(task?CK.bannerHtml(task,{pupil,actions:[{action:'another',label:'Another'},{action:'end',label:'Exit challenge'}]}):'')+'<div class="gd-ag-visual" style="width:100%;max-width:920px;margin:0 auto"></div>';
   const box=q('.gd-ag-visual',host);
   let reference=null;
+  function syncReferenceTabs(){
+    if(!reference)return;
+    const body=q('[data-ag-shape-reference-body]',reference),nav=q('[data-ag-teaching-tabs]',reference),sections=[...body.querySelectorAll(':scope > section')];
+    const tabs=[['properties','Properties & formulae'],['symmetry','Symmetry'],['families','Shape families'],['proof','Area proof']];
+    sections.forEach(section=>{section.dataset.agTeachingPanel=section.matches('[data-ag-rotation-reference],[data-ag-reflection-reference]')?'symmetry':section.matches('[data-ag-family-reference],[data-ag-triangle-family-reference]')?'families':section.matches('[data-ag-area-proof]')?'proof':'properties'});
+    const available=tabs.filter(([key])=>sections.some(s=>s.dataset.agTeachingPanel===key)),signature=available.map(([key])=>key).join(',');
+    const selected=available.some(([key])=>key===demo.teachingTab)?demo.teachingTab:'properties';
+    demo.teachingTab=selected;
+    if(nav.dataset.signature!==signature){
+      nav.dataset.signature=signature;nav.replaceChildren();
+      for(const [key,label] of available){const button=document.createElement('button');button.type='button';button.className='gd-btn';button.dataset.agTeachingTab=key;button.textContent=label;button.onclick=()=>{demo.teachingTab=key;syncReferenceTabs()};nav.appendChild(button)}
+    }
+    for(const button of nav.querySelectorAll('button')){const active=button.dataset.agTeachingTab===selected;button.setAttribute('aria-pressed',String(active));button.classList.toggle('gd-btn--primary',active)}
+    for(const section of sections)section.hidden=section.dataset.agTeachingPanel!==selected;
+    nav.hidden=!available.length;
+    body.dataset.agTeachingActive=selected;
+  }
   function updateReference(){
     if(!reference)return;const m=shapeTeachingReference(d),body=q('[data-ag-shape-reference-body]',reference);
-    if(!m?.valid){body.innerHTML='<p>Move the vertices to form a simple, non-degenerate polygon before inspecting its properties.</p>';return}
+    if(!m?.valid){body.innerHTML='<p>Move the vertices to form a simple, non-degenerate polygon before inspecting its properties.</p>';syncReferenceTabs();return}
     body.innerHTML=m.groups.map(g=>'<section><h4>'+esc(g.title)+'</h4><dl>'+g.rows.map(([label,value])=>'<dt>'+esc(label)+'</dt><dd>'+esc(value)+'</dd>').join('')+'</dl></section>').join('');
     [...body.querySelectorAll('section')].forEach((section,i)=>section.insertBefore(shapeReferenceGraphic(m,['symmetry','diagonals','area'][i]),section.querySelector('dl')));
     mountRotationReference(body,m,demo);
@@ -3269,6 +3286,7 @@ G.anglesTool=function(){
     if(m.quad)mountQuadrilateralFamily(body,m,demo);
     if(m.n===3)mountTriangleFamily(body,m,demo);
     const proof=shapeAreaProof(m);if(proof)mountAreaProof(body,proof,demo);
+    syncReferenceTabs();
   }
   // Capture on the persistent wrapper: the SVG may be replaced on every
   // snapped degree, but pointer capture and the coordinate transform survive.
@@ -3346,7 +3364,7 @@ G.anglesTool=function(){
     
     host.appendChild(row);
     if(m==='polygon'&&shapeTeachingReference(d)){
-      reference=document.createElement('details');reference.className='gd-ag-shape-reference';reference.dataset.agShapeReference='1';reference.open=demo.showReference!==false;reference.innerHTML='<summary>Properties, diagonals &amp; formulae</summary><div data-ag-shape-reference-body></div>';reference.ontoggle=()=>{demo.showReference=reference.open};host.appendChild(reference);updateReference();
+      reference=document.createElement('details');reference.className='gd-ag-shape-reference';reference.dataset.agShapeReference='1';reference.open=demo.showReference!==false;reference.innerHTML='<summary>Shape teaching &amp; investigations</summary><nav data-ag-teaching-tabs aria-label="Shape teaching sections"></nav><div data-ag-shape-reference-body></div>';reference.ontoggle=()=>{demo.showReference=reference.open};host.appendChild(reference);updateReference();
     }
     const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
     const cycle=(v,arr)=>arr[(arr.indexOf(v)+1)%arr.length];
