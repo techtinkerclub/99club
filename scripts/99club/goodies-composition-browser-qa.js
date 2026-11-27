@@ -1167,7 +1167,22 @@ async function run(){
         if(type==='build-rhombus')expected.push('All four sides = 6 cm','Angle BAD = '+deg(t.angle));
         assert(JSON.stringify(m.given)===JSON.stringify(expected)&&m.objective===t.prompt,'Method givens and task prompt agree: '+type);
         if(type==='build-midpoint'||type==='build-bisector')assert(m.title===(type==='build-midpoint'?'Construct the midpoint of AB':'Construct the perpendicular bisector of AB'),'Shared technique has challenge-specific title');
-        assert(model.labCheck(sol,t).correct,'Contextual method uses an assessed valid solution: '+type);
+        const verification=model.labCheck(sol,t);
+        assert(verification.correct&&verification.precise&&verification.precisionChecks.every(c=>c.ok),'Contextual method passes both practice and precision verification: '+type);
+        const rotated=JSON.parse(JSON.stringify(sol)),a=.371,cs=Math.cos(a),sn=Math.sin(a);
+        rotated.points=rotated.points.map(([x,y])=>[100+x*cs-y*sn,30+x*sn+y*cs]);
+        assert(model.labCheck(rotated,t).precise,'Precision verification uses relative geometry, not a horizontal baseline: '+type);
+        const mirrored=JSON.parse(JSON.stringify(sol));mirrored.points=mirrored.points.map(([x,y])=>[x,604-y]);
+        assert(model.labCheck(mirrored,t).precise,'Reflected exact solution passes precision verification: '+type);
+        const imperfect=JSON.parse(JSON.stringify(sol));
+        if(type==='build-circle')imperfect.circles[0].r+=.8;
+        else if(type==='build-bisector'){for(const j of imperfect.segments[0])imperfect.points[j][0]+=.8}
+        else if(type==='build-asa')imperfect.points[2][0]+=1.2;
+        else if(type==='build-midpoint')imperfect.points[2][0]+=.8;
+        else {const p=imperfect.points[2],o=type==='build-rectangle'||type==='build-square'||type==='build-rhombus'?imperfect.points[1]:imperfect.points[0],d=dist(p,o);p[0]+=.8*(p[0]-o[0])/d;p[1]+=.8*(p[1]-o[1])/d}
+        const negative=model.labCheck(imperfect,t);
+        assert(negative.correct&&!negative.precise&&negative.precisionChecks.some(c=>!c.ok),'Practice-level error is not mathematically verified: '+type);
+        for(const precision of [1,2]){imperfect.measurementPrecision=precision;assert(!model.labCheck(imperfect,t).precise,'Display rounding cannot convert an error into precise geometry')}
         if(type==='build-circle')assert(end.some(o=>o.kind==='circle'&&o.radius===40*t.length),'Guide circle has task radius');
         if(type==='build-midpoint'||type==='build-bisector')assert(dist(pts.A,pts.M)===120&&dist(pts.B,pts.M)===120,'Guide midpoint exact');
         if(pts.C&&type!=='build-bisector')assert(dist(pts.C,sol.points[2])<1e-7,'Guide C matches assessed solution');
@@ -1249,7 +1264,8 @@ async function run(){
       tool('pan').click();assert(tool('point').getAttribute('aria-pressed')==='true','Pan resumes previously selected instrument');tap(lower);
       assert(cap().lab.points.some(p=>Math.hypot(p[0]-lower[0],p[1]-lower[1])<1e-6),'Previously clipped intersection is reachable and snaps exactly');
       tool('segment').click();tap(upper);tap(lower);assert(model.labCheck(cap().lab,cap().task).correct,'Perpendicular bisector constructed across original view edge is correctly assessed');
-      const finished=state();tool('reset-view').click();assert(view().join(' ')==='0 0 800 400'&&state()===finished&&model.labCheck(cap().lab,cap().task).correct,'Reset view preserves geometry and assessment');
+      assert(model.labCheck(cap().lab,cap().task).precise,'User-constructed perpendicular bisector passes strict numerical verification');
+      const finished=state();tool('construction-library').click();await tick(50);const method=doc.querySelector('[data-ag-method-panel]');method.querySelector('[data-ag-method-action="check-drawing"]').click();assert(method.querySelector('[data-ag-method-feedback]').textContent.includes('Mathematically verified'),'Method guide reports strict verification separately');method.querySelector('[data-ag-method-action="close"]').click();tool('reset-view').click();assert(view().join(' ')==='0 0 800 400'&&state()===finished&&model.labCheck(cap().lab,cap().task).correct,'Reset view preserves geometry and assessment');
       tool('undo').click();assert(!model.labCheck(cap().lab,cap().task).correct,'Undo removes construction action, not camera movement');
       if(!enrichmentWasEnabled){doc.querySelector('#ag-enrich').click();await tick()}
     }
