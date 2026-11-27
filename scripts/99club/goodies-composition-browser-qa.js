@@ -1461,6 +1461,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const manual=M.protractorReading(scene,{...t,snap:false},37.46,1);assert(manual.reading===37.5&&!manual.kind,'Manual measurement resolves to a tenth of a degree');
       const away=M.protractorReading(scene,{...t,x:900,y:900},37.46,1);assert(away.reading===37.5&&!away.kind,'Remote geometry cannot snap measuring arm');
       scene.rays=[{i:0,angle:baseline+83.27,construction:false}];assert(Math.abs(M.protractorReading(scene,t,83,1).reading-83.27)<1e-8,'Exact ray direction is preserved for measurement');
+      {
       // A direction match alone is insufficient: the measuring arm must
       // share the actual ray's line, even when the centre is slightly offset.
       const I=G.instruments,theta=56.927*Math.PI/180,u=[Math.cos(theta),-Math.sin(theta)],ray={a:[200,200],b:[200+100*u[0],200+100*u[1]],ray:true},visible={points:[[200,200]],lines:[ray]},pose={kind:'protractor',x:202,y:200,angle:0,hand:1,size:170,reading:45,snap:true};
@@ -1480,6 +1481,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       I.moveGesture(manualDrag,[200+116*Math.cos(58.23*Math.PI/180),200-116*Math.sin(58.23*Math.PI/180)],4,{read:(t,a,scale)=>I.readAngle(visible,t,a,scale)});
       assert(manualDrag.t.reading===58.2&&!manualDrag.candidate,'Turning magnet off retains free tenth-degree measurement');
 
+      }
     }
     // Every guided corner is a rigid orientation of the same physical triangle.
     for(const kind of ['square45','square30']){
