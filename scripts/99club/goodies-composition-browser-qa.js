@@ -1618,7 +1618,19 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       change(doc.querySelector('[data-ag-angle-notation]'),'angle1');tapWork([450,150]);tapWork([300,350]);
       assert(work.querySelector('[data-ag-annotation-value]')?.textContent==='?','Vertex-first angle annotation adds custom label');
       const annotated=P.createDocument();annotated.addCurrent(id,cap());assert(P.renderItem(annotated.list()[0],false).querySelector('[data-ag-annotation-value]')?.textContent==='?','Angle annotation survives vector publication');
-      doc.querySelector('[data-ag-tool="undo"]').click();assert(!work.querySelector('[data-ag-annotation-value]'),'Undo removes angle annotation without altering geometry');
+      tapWork([150,150]);change(doc.querySelector('[data-ag-angle-existing]'),'0');
+      change(doc.querySelector('[data-ag-edit-angle-mode]'),'measured');doc.querySelector('[data-ag-edit-angle-action="apply"]').click();
+      assert(work.querySelector('[data-ag-annotation-value]').textContent==='53.1°','Existing angle can switch from unknown to actual measurement');
+      change(doc.querySelector('[data-ag-edit-angle-mode]'),'custom');doc.querySelector('[data-ag-edit-angle-text]').value='x';doc.querySelector('[data-ag-edit-angle-action="apply"]').click();
+      assert(work.querySelector('[data-ag-annotation-value]').textContent==='x'&&capture().angleNotation.length===1,'Editing existing angle does not duplicate annotation');
+      change(doc.querySelector('[data-ag-edit-angle-kind]'),'right');doc.querySelector('[data-ag-edit-angle-action="apply"]').click();assert(capture().angleNotation[0].kind==='angle1','Cannot falsely mark a non-right angle');
+      change(doc.querySelector('[data-ag-edit-angle-kind]'),'angle2');doc.querySelector('[data-ag-edit-angle-action="apply"]').click();assert(work.querySelectorAll('[data-ag-notation="angle2"]').length===2,'Existing arc style is editable');
+      doc.querySelector('[data-ag-edit-angle-action="position"]').click();tapWork([205,200]);
+      const edited=work.querySelector('[data-ag-annotation-value]');assert(Math.hypot(Number(edited.getAttribute('x'))-205,Number(edited.getAttribute('y'))-200)<.01,'Angle label can be positioned independently');
+      const revised=P.createDocument();revised.addCurrent(id,cap());const print=P.renderItem(revised.list()[0],false).querySelector('[data-ag-annotation-value]');assert(print.textContent==='x'&&Math.abs(Number(print.getAttribute('x'))-205)<.01,'Edited annotation position and unknown preserved in publication');
+      assert(JSON.stringify(capture().points)===before,'Editing angles never changes coordinates');
+      for(let i=0;i<5;i++)doc.querySelector('[data-ag-tool="undo"]').click();
+      assert(!work.querySelector('[data-ag-annotation-value]'),'Undo removes angle annotation without altering geometry');
     }
     // Point display names and positions are independent of stable geometry IDs.
     {
