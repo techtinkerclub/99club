@@ -1196,6 +1196,12 @@ async function run(){
       }
       const pupilPages=P.pages(mixedConstruction,{title:'Mixed construction practice'}),teacherPages=P.pages(mixedConstruction,{title:'Mixed construction practice',teacher:true}),annex=teacherPages.filter(page=>page.getAttribute('data-worksheet-answer')==='annex');
       assert(pupilPages.length>1&&pupilPages.every(page=>!page.querySelector('[data-pub-answer-graphic],[data-ag-construction-key]')),'Mixed construction pupil pages contain no answer graphics');
+      const areas=pupilPages.flatMap(page=>[...page.querySelectorAll('[data-ag-pupil-working]')].map(rect=>{
+        const inner=rect.closest('svg'),card=inner.closest('[data-pub-item]'),iv=inner.viewBox.baseVal,cv=card.viewBox.baseVal;
+        const scale=Math.min(Number(inner.getAttribute('width'))/iv.width,Number(inner.getAttribute('height'))/iv.height)*Math.min(Number(card.getAttribute('width'))/cv.width,Number(card.getAttribute('height'))/cv.height)*182/page.viewBox.baseVal.width;
+        return [Number(rect.getAttribute('width'))*scale,Number(rect.getAttribute('height'))*scale];
+      }));
+      assert(areas.length===mixedConstruction.length&&areas.every(([w,h])=>w>=140&&h>=100),'Every construction pupil workspace provides at least 140 x 100 mm in the intended A4 printable layout');
       const indices=attribute=>annex.flatMap(page=>[...page.querySelectorAll('['+attribute+']')].map(n=>Number(n.getAttribute(attribute))));
       const expected=mixedConstruction.map((_,i)=>i+1);
       assert(JSON.stringify(indices('data-pub-answer-number'))===JSON.stringify(expected)&&JSON.stringify(indices('data-pub-answer-graphic'))===JSON.stringify(expected),'Mixed construction annex has one numbered graphical answer per challenge in order');
@@ -1265,6 +1271,8 @@ async function run(){
           assert(pupil.dataset.agMethodPublication===publicationMode&&!pupil.outerHTML.includes('NaN'),'Method publication renders: '+m.id+' '+publicationMode);
           if(publicationMode==='exercise'){
             assert(item.kind==='challenge'&&pupil.querySelector('[data-ag-method-working]')&&pupil.querySelectorAll('[data-ag-method-primitive]').length===m.graphics.initial.length,'Exercise exposes only starting geometry');
+            const reference=pupil.querySelector('[data-ag-method-graphic]'),working=pupil.querySelector('[data-ag-method-working]');
+            assert(Number(reference.getAttribute('y'))+Number(reference.getAttribute('height'))<=Number(working.getAttribute('y'))&&Number(working.getAttribute('height'))>=460,'Method reference is separate from the blank drawing area: '+m.id);
             const key=P.answerGraphic(item);assert(key.querySelectorAll('[data-ag-method-primitive]').length===model.constructionFrame(m,m.steps.length-1).length&&P.answerSummary(item)===m.checks.join('; '),'Method answer annex shows complete construction and criteria');
           }else{assert(item.kind==='diagram'&&P.answerSummary(item)===null,'Instruction handouts do not duplicate the answer annex');assert(pupil.textContent.includes(m.steps[0]),'Handout contains written instructions');if(publicationMode==='illustrated')assert(pupil.querySelectorAll('[data-ag-method-graphic]').length===m.steps.length+1,'Illustrated handout contains every stage');else assert(!pupil.querySelector('[data-ag-method-graphic]'),'Text handout omits diagrams')}
           assert(P.pages([item],'Construction').length>0,'Method fits document pagination');
