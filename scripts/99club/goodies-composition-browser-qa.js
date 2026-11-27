@@ -3091,6 +3091,33 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         assert(key.querySelector('[data-ag-quad-reasoning-answer]').textContent===item.data.answer&&key.querySelectorAll('[data-ag-quad-reasoning-example]').length===item.data.quadExamples.length,'Teacher graphic includes matched geometric evidence');
       }
     }
+    {
+      const M=win.TT99Goodies.angles,area=pts=>Math.abs(pts.reduce((s,p,i)=>{const q=pts[(i+1)%pts.length];return s+p[0]*q[1]-p[1]*q[0]},0))/2;
+      for(let n=3;n<=12;n++)for(const concave of [false,true])for(const rotation of [0,37,151])for(const mirror of [-1,1]){
+        if(concave&&n===3)continue;
+        const pts=Array.from({length:n},(_,i)=>{const a=(rotation+i*360/n)*Math.PI/180,r=concave&&i===1?15:150;return [400+r*Math.cos(a),195+mirror*r*Math.sin(a)]}),m=M.polygonProperties(pts);
+        assert(m&&m.n===n&&m.regular===!concave&&m.convex===!concave,'Polygon classification survives reflection and rotation: '+n+' '+concave);
+        assert(m.triangles.length===n-2&&m.diagonals.length===n-3&&m.diagonalCount===n*(n-3)/2,'Correct triangulation and diagonal counts');
+        assert(Math.abs(m.triangles.reduce((sum,t)=>sum+area(t.map(i=>pts[i])),0)-area(pts))<1e-6,'Triangulation tiles exact polygon area');
+        assert(Math.abs(m.interiorSum-(n-2)*180)<1e-7&&Math.abs(m.turnSum-360)<1e-7,'Interior and signed exterior sum invariants');
+        assert(m.turns.some(t=>t<0)===concave&&m.angles.some(a=>a>180)===concave,'Concave vertex has a negative turn and reflex interior');
+      }
+      for(const pts of [[[0,0],[100,100],[0,100],[100,0]],[[0,0],[100,0],[200,0],[0,100]],[[0,0],[100,0],[100,0],[0,100]]])assert(M.polygonProperties(pts)===null,'Invalid polygon is not triangulated');
+      const change=(id,value)=>{const n=doc.querySelector('#'+id);n.value=value;n.dispatchEvent(new win.Event('change',{bubbles:true}))},svg=()=>doc.querySelector('.gd-ag-visual svg'),action=id=>doc.querySelector('[data-ag-action="'+id+'"]');
+      change('ag-shape-view','free-polygon');await tick();change('ag-sides','6');await tick();
+      if(!doc.querySelector('#ag-triangulate').checked)doc.querySelector('#ag-triangulate').click();await tick();
+      if(!doc.querySelector('#ag-polygon-turns').checked)doc.querySelector('#ag-polygon-turns').click();await tick();
+      if(!doc.querySelector('#ag-properties').checked)doc.querySelector('#ag-properties').click();await tick();
+      assert(svg().querySelectorAll('[data-ag-poly-vertex]').length===6&&svg().querySelectorAll('[data-ag-polygon-triangle]').length===4&&svg().querySelectorAll('[data-ag-polygon-diagonal]').length===3,'Free hexagon displays exact triangulation');
+      change('ag-polygon-vertex','1');await tick();
+      const move=(i,dest,cancel=false)=>{const p=svg().querySelector('[data-ag-poly-vertex="'+i+'"]'),surface=svg().parentElement,m=svg().getScreenCTM(),start=new win.DOMPoint(Number(p.getAttribute('cx')),Number(p.getAttribute('cy'))).matrixTransform(m),end=new win.DOMPoint(...dest).matrixTransform(m),emit=(node,type,q)=>node.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:185,pointerType:'touch',button:0,clientX:q.x,clientY:q.y}));emit(p,'pointerdown',start);emit(surface,'pointermove',end);emit(surface,cancel?'pointercancel':'pointerup',end)};
+      move(1,[400,185]);assert(svg().querySelector('[data-ag-polygon-classification]').textContent.startsWith('Concave')&&svg().querySelector('[data-ag-polygon-turn-value]').textContent.includes('−'),'Touch drag exposes a negative exterior turn');
+      assert(svg().querySelectorAll('[data-ag-polygon-triangle]').length===4&&svg().querySelector('[data-ag-polygon-sum]').textContent.includes('720°'),'Concave hexagon retains exact triangulation and angle sum');
+      const prior=JSON.stringify(cap().demo.polygonPoints);move(1,[670,300],true);assert(JSON.stringify(cap().demo.polygonPoints)===prior,'Cancelling drag preserves saved geometry');
+      const paper=P.createDocument();paper.addCurrent(id,cap());const printed=P.renderItem(paper.list()[0],false);assert(printed.querySelectorAll('[data-ag-polygon-triangle]').length===4&&!printed.querySelector('[data-ag-poly-vertex]')&&printed.querySelector('[data-ag-polygon-turn-value]').textContent.includes('−'),'Printed diagram preserves concavity and signed turn without handles');
+      action('reset-polygon').click();await tick();assert(svg().querySelector('[data-ag-polygon-classification]').textContent.startsWith('Regular'),'Reset restores regular reference polygon');
+      change('ag-sides','5');await tick();assert(svg().querySelectorAll('[data-ag-poly-vertex]').length===5,'Changing side count resets geometry and selected vertex');
+    }
     const shapeSelect=doc.getElementById('ag-shape-view');shapeSelect.value='rectangle';shapeSelect.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
     doc.querySelector('[data-ag-action="diagonal"]').click();await tick();
     assert(cap().demo.showDiagonals&&doc.querySelector('.gd-ag-visual svg').textContent.includes('Equal diagonals'),'Rectangle explorer displays its diagonal relationship');
