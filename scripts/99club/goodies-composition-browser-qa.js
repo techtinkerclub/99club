@@ -1520,6 +1520,10 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(Math.abs(M.labRayAngle(derived,linked)-67)<.001&&Math.abs(linked.relativeAngle-37)<.001&&work.querySelector('[data-ag-angle-value]')?.textContent==='37°','Referenced instrument construction preserves exact angle and label: '+label);
       const moved=JSON.parse(JSON.stringify(derived));moved.points[1]=M.polar(...origin,160,50);assert(Math.abs(M.labRayAngle(moved,moved.rays[1])-87)<.001,'Relative construction follows its reference direction in model');
       const hidden={...M.labEmpty(true),points:[[100,100],[200,100]],names:['A','B'],rays:[{i:0,angle:0,construction:true}],showConstruction:false};assert(!M.labSnap(hidden,[150,102],5).kind,'Hidden construction rays cannot attract magnetic snaps');
+      // Erasing the reference preserves the remaining ray and removes its now-invalid angle marking.
+      tool('erase').click();tap(M.polar(...origin,240,30));const detached=cap().demo.labDrawing;
+      assert(detached.rays.length===1&&!detached.rays[0].referenceArm&&Math.abs(M.labRayAngle(detached,detached.rays[0])-67)<.001&&!work.querySelector('[data-ag-angle-value]'),'Erase reference detaches remaining ray without changing its direction: '+label);
+      tool('undo').click();const restored=cap().demo.labDrawing;assert(restored.rays.length===2&&restored.rays[1].referenceArm?.id===existing.rays[0].angleId,'Undo restores reference and geometry: '+label);
       reset();assert(cap().demo.labDrawing.points.length===0,'Instrument verification leaves empty sheet: '+label);
     };
     checkRuler();verifyInstruments('A5 normal');
