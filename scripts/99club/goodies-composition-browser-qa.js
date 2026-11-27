@@ -3438,7 +3438,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
           if(kind==='reflection'){setField('angle',90);assert(graphic().querySelector('[data-ag-transform-mirror]'),'Reflection displays mirror line')}
           if(kind==='enlargement'){setField('factor',.5);assert(graphic().querySelectorAll('[data-ag-transform-ray]').length===3&&lesson.querySelector('[data-ag-transform-note]').textContent.includes('0.5:1'),'Reduction shows corresponding rays and ratio')}
           const item=P.createDocument();item.addCurrent(id,cap());const paper=P.renderItem(item.list()[0],false);
-          assert(paper.querySelector('[data-ag-transformation-graphic]').dataset.agTransformationGraphic===kind&&paper.textContent.includes(lesson.querySelector('[data-ag-transform-result]').textContent),'Published transformation preserves selected measurements: '+kind);
+          assert(paper.querySelector('[data-ag-transformation-graphic]').dataset.agTransformationGraphic===kind&&[...paper.querySelectorAll('text')].map(n=>n.textContent).join(' ').includes(lesson.querySelector('[data-ag-transform-result]').textContent),'Published transformation preserves selected measurements: '+kind);
           assert(!paper.querySelector('[data-ag-transform-drag],[data-ag-rotation-graphic]'),'Published diagram has no interactive handles or unrelated lessons');
         }
         lesson.querySelector('[data-ag-transform-reset]').click();assert(Number(lesson.querySelector('[data-ag-transform-field="factor"]').value)===1.5,'Reset restores scale factor');
