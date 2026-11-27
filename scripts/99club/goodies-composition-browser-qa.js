@@ -3332,6 +3332,13 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
 
       rotationPanel.querySelector('[data-ag-rotation-next-match]').click();assert(rotationPanel.querySelector('[data-ag-rotation-graphic]').dataset.agRotationMatch==='true'&&Number(rotationSlider.value)===90,'Next matching rotation moves to 90 degrees');
       rotationPanel.querySelector('[data-ag-rotation-reset]').click();assert(Number(rotationSlider.value)===0,'Rotation reset');
+      assert(rotationPanel.querySelector('[data-ag-rotation-order]').textContent.includes('360° ÷ 4 = 90°'),'Square order and smallest matching turn are explained');
+      doc.querySelector('[data-ag-teaching-tab="symmetry"]').click();await tick();assert(!rotationPanel.hidden,'Rotation lesson is visible before starting animation');
+      rotationPanel.querySelector('[data-ag-rotation-full-turn]').click();
+      if(!win.matchMedia('(prefers-reduced-motion: reduce)').matches){for(let j=0;j<40&&Number(rotationSlider.value)!==90;j++)await tick(50);assert(Number(rotationSlider.value)===90&&rotationPanel.querySelector('[data-ag-rotation-graphic]').dataset.agRotationMatch==='true','Full turn pauses at first exact square match')}
+      else assert(Number(rotationSlider.value)===360,'Reduced motion completes full revolution directly');
+      rotationPanel.querySelector('[data-ag-rotation-reset]').click();await tick(80);assert(Number(rotationSlider.value)===0,'Reset cancels full-turn animation');
+
       doc.querySelector('[data-ag-teaching-tab="symmetry"]').click();await tick();
       const turnPic=rotationPanel.querySelector('[data-ag-rotation-picture]'),turnSvg=turnPic.querySelector('svg'),turnHandle=turnSvg.querySelector('[data-ag-rotation-moving-vertex]'),turnMatrix=turnSvg.getScreenCTM(),turnX=Number(turnHandle.getAttribute('cx')),turnY=Number(turnHandle.getAttribute('cy')),turnStart=new win.DOMPoint(turnX,turnY).matrixTransform(turnMatrix),turnEnd=new win.DOMPoint(210+turnY-120,120-(turnX-210)).matrixTransform(turnMatrix);
       turnHandle.dispatchEvent(new win.PointerEvent('pointerdown',{bubbles:true,pointerId:84,pointerType:'touch',button:0,clientX:turnStart.x,clientY:turnStart.y}));turnPic.dispatchEvent(new win.PointerEvent('pointermove',{bubbles:true,pointerId:84,pointerType:'touch',clientX:turnEnd.x,clientY:turnEnd.y}));turnPic.dispatchEvent(new win.PointerEvent('pointerup',{bubbles:true,pointerId:84,pointerType:'touch'}));
@@ -3358,6 +3365,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       reflectionPanel.querySelector('[data-ag-mirror-next-axis]').click();assert(reflectionPanel.querySelector('[data-ag-reflection-graphic]').dataset.agReflectionMatch==='true','Next exact reflection axis matches');
       mirrorOffset.value=10;mirrorOffset.dispatchEvent(new win.Event('input',{bubbles:true}));assert(reflectionPanel.querySelector('[data-ag-reflection-graphic]').dataset.agReflectionMatch==='false','Moving mirror line away from centre changes match');
       reflectionPanel.querySelector('[data-ag-mirror-reset]').click();assert(Number(mirrorOffset.value)===0&&Number(mirrorAngle.value)===0,'Mirror investigation resets');
+      assert(reflectionPanel.querySelector('[data-ag-reflection-count]').textContent.includes('4 lines of symmetry'),'Square reflection lesson states the number of symmetry lines');
       assert(!reflectionPanel.querySelector('[data-ag-reflection-advanced]').open&&reflectionPanel.querySelector('[data-ag-fold-handle]'),'Physical fold is the default, exact mirror controls optional');
       reflectionPanel.querySelector('[data-ag-fold-play]').click();for(let j=0;j<60&&Number(reflectionPanel.querySelector('[data-ag-fold-progress]').dataset.agFoldProgress)!==1;j++)await tick(50);
       assert(Number(reflectionPanel.querySelector('[data-ag-fold-progress]').dataset.agFoldProgress)===1&&reflectionPanel.querySelector('[data-ag-reflection-result]').textContent.includes('fit exactly'),'Fold animation reaches exact matching half');
