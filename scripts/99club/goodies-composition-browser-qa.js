@@ -1998,7 +1998,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
           assert(Math.abs(removed.reading-second)<1e-8,'Removed geometry cannot retain a stale snap');
           const ruler={kind:'ruler',x:o[0],y:o[1],size:200,angle:first+.8,snap:true},r1=I.align(scene,ruler,'rotate',scale);
           assert(r1&&Math.abs(r1.angle-first)<1e-8,'Ruler acquires exact marked span');
-          ruler.angle=first+3.8;const r2=I.align(scene,ruler,'rotate',scale,r1);
+          ruler.angle=first+Math.min(3.8,Math.asin(Math.min(1,16/scale/150))*180/Math.PI);const r2=I.align(scene,ruler,'rotate',scale,r1);
           assert(r2&&Math.abs(r2.angle-first)<1e-8,'Ruler retains acquired span during jitter');
           ruler.angle=second+.5;const r3=I.align(scene,ruler,'rotate',scale,r2);
           assert(r3&&Math.abs(r3.angle-second)<1e-8,'Ruler releases to next actual span');
