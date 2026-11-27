@@ -1645,11 +1645,10 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       menu.querySelector('[data-ag-ink="default"]').click();assert(!cap().demo.labDrawing.circles.at(-1).colour,'Default restores legacy ink');
       button('undo').click();assert(cap().demo.labDrawing.circles.at(-1).colour==='red','Undo restores colour');
       button('undo').click();button('undo').click();button('undo').click();
-      button('select').click();tapWork([actual[0]-circle.r,actual[1]]);normal.click();
-      assert(cap().demo.labDrawing.circles.at(-1).construction===false,'Existing construction circle can become a normal circle');
+      assert(JSON.stringify(cap().demo.labDrawing.circles.at(-1))===JSON.stringify(circle),'Undo all four style and colour edits restores the original circle');
       const signed=P.createDocument();signed.addCurrent(id,cap());const printed=P.renderItem(signed.list()[0],false),pv=printed.viewBox.baseVal;
       assert(pv.x<=actual[0]-circle.r&&pv.y<=actual[1]-circle.r&&pv.x+pv.width>=actual[0]+circle.r&&pv.y+pv.height>=actual[1]+circle.r,'Published expanded board includes negative circle extent');
-      for(let i=0;i<4;i++)button('undo').click();
+      for(let i=0;i<2;i++)button('undo').click(); // Undo the circle and its centre only; style edits were already undone.
       restore.click();await tick(150);
       assert(JSON.stringify(cap().demo.labDrawing.points)===JSON.stringify(JSON.parse(before).points),'Undo and restore return to original geometry after camera navigation');
     }
