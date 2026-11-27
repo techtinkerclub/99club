@@ -688,6 +688,10 @@ function fitEmbeddedObject(obj,initial=false){
   if(obj?.maximised)return;
   const frame=frameFor(obj?.id),doc=innerDocument(obj);if(!frame||!doc)return;
   const stage=doc.getElementById('gd-stage');if(!stage)return;
+  // Geometry is a responsive viewport, not a content-sized report. Measuring
+  // its viewport-dependent children feeds height changes back into the iframe.
+  // Retain the allocated base size; explicit resize/maximise still works.
+  if(obj.toolId==='angles')return;
   const neededW=Math.ceil(Math.max(stage.clientWidth,stage.scrollWidth));
   const naturalH=AUTO_SHRINK_HEIGHT_TOOLS.has(obj.toolId)?measuredStageContentHeight(stage):Math.max(stage.clientHeight,stage.scrollHeight);
   const neededH=Math.ceil(Math.max(180,naturalH));
