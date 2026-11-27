@@ -616,6 +616,11 @@ async function run(){
     assert(dialog.querySelectorAll('[data-pub-add-source]').length===24,'Clearing search restores the full catalogue');
     dialog.querySelector('[data-pub-collapse-all]').click();
     assert([...dialog.querySelectorAll('.gd-pub-source-content')].every(el=>el.hidden),'Collapse all preserves sets while hiding settings');
+    assert(dialog.querySelector('[data-pub-collapse-all]').textContent==='Expand all','Collapsed question sets offer an explicit reverse action');
+    dialog.querySelector('[data-pub-collapse-all]').click();
+    assert([...dialog.querySelectorAll('.gd-pub-source-content')].every(el=>!el.hidden)&&dialog.querySelector('[data-pub-block] [data-pub-type-details]').open,'Expand all restores question sets and their previous disclosures');
+    assert(dialog.querySelectorAll('[data-pub-close]').length===1&&getComputedStyle(dialog.querySelector('.gd-pub-editor-header')).position==='sticky'&&getComputedStyle(dialog.querySelector('.gd-pub-builder-footer')).position==='sticky','Publisher has one dismissal control and persistent navigation and generation actions');
+    dialog.querySelector('[data-pub-collapse-all]').click();
     const counts=dialog.querySelectorAll('[data-pub-count]');counts[0].value='1';counts[0].dispatchEvent(new Event('change',{bubbles:true}));
     const second=dialog.querySelectorAll('[data-pub-count]')[1];second.value='1';second.dispatchEvent(new Event('change',{bubbles:true}));
     assert(dialog.querySelector('.gd-pub-draft-total').textContent.includes('2 / 80'),'Builder shows total capacity');
