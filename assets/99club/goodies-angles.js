@@ -3854,6 +3854,45 @@ G.anglesTool=function(){
   // snapped degree, but pointer capture and the coordinate transform survive.
   let drag=null,triangleDrag=null,circleDrag=null,factDrag=null;const freeFact=!task&&demo.mode==='facts',freeCircle=!task&&demo.mode==='circle'&&CIRCLE_VIEWS.slice(1).some(([k])=>k===demo.circleView),theoremCircle=freeCircle&&isCircleTheorem(demo.circleView);
   const freeTriangle=!task&&demo.mode==='polygon'&&demo.shapeView==='free-triangle',freeQuad=!task&&demo.mode==='polygon'&&demo.shapeView==='free-quadrilateral',freePoly=!task&&demo.mode==='polygon'&&demo.shapeView==='free-polygon',freeShape=freeTriangle||freeQuad||freePoly,shapePoints=freePoly?freePolygonPoints:freeQuad?freeQuadrilateralPoints:freeTrianglePoints,shapeKey=freePoly?'polygonPoints':freeQuad?'quadrilateralPoints':'trianglePoints';
+  // Screen-only teaching shell. Keep the original SVG and its annotations
+  // intact for publication; the screen uses a stable, geometry-only viewBox.
+  function mountCircleTeaching(svg){
+    const view=d.circleView||'overview',title=CIRCLE_VIEWS.find(([key])=>key===view)?.[1]||'Radius & diameter',r=Number(d.radius)||5;
+    const content={
+      overview:['D = 2r','The diameter passes through the centre and is twice the radius.','Change the radius. What happens to the diameter?'],
+      chord:['OM ⟂ AB ⇒ AM = MB','A perpendicular from the centre bisects a chord. If AB is a diameter, M and O coincide.','Move A or B. Compare the two halves.'],
+      sector:['Sector area = (θ ÷ 360°) × πr²','A sector is the region between two radii and their arc.','Move A or B to change the fraction of the circle.'],
+      segment:['Minor segment = minor sector − triangle','A segment is bounded by a chord and its arc. The major segment is the rest of the circle.','Move A or B to compare minor and major segments.'],
+      tangent:['Radius ⟂ tangent','A tangent touches a circle at one point and is perpendicular to the radius there.','Move the contact point A. Does the right angle change?'],
+      'centre-angle':['∠AOB = 2 × ∠ACB','The angle at the centre is twice the angle at the circumference standing on the same arc.','Move C around the circumference.'],
+      semicircle:['∠ACB = 90°','An angle subtended by a diameter at the circumference is a right angle.','Move C around the semicircle.'],
+      'same-segment':['∠ACB = ∠ADB','Angles standing on the same chord in the same segment are equal.','Move C and D and compare their angles.'],
+      'cyclic-quad':['∠ACB + ∠ADB = 180°','Opposite angles of a cyclic quadrilateral are supplementary.','Move C or D and add the opposite angles.'],
+      'alternate-segment':['∠TAB = ∠ACB','The angle between a tangent and chord equals the angle in the alternate segment.','Move C and compare the marked angles.'],
+      'equal-tangents':['PA = PB','Tangents from the same external point have equal lengths. OP also bisects the angle between them.','Drag P outside the circle and compare PA and PB.']
+    }[view];
+    if(!content)return;
+    const heading=document.createElement('header');heading.dataset.agCircleTeachingHeader='1';
+    const h=document.createElement('h3');h.textContent=title;const formula=document.createElement('strong');formula.textContent=content[0];heading.append(h,formula);
+    const notes=document.createElement('aside');notes.dataset.agCircleTeachingNotes='1';
+    const paragraph=(label,value)=>{const p=document.createElement('p'),b=document.createElement('strong');b.textContent=label;p.append(b,document.createTextNode(value));notes.append(p)};
+    paragraph('What do we know? ',content[1]);
+    const readouts=[...svg.querySelectorAll('[data-ag-circle-values],[data-ag-circle-formula],[data-ag-circle-working],[data-ag-circle-investigation-value],[data-ag-circle-investigation-formula],[data-ag-circle-investigation-general-formula],[data-ag-theorem-equation]')].map(n=>n.textContent);
+    if(view==='chord'){const m=circleInvestigation(d);readouts.push('OM = '+m.distance.toFixed(2)+' cm')}
+    if(view==='sector'&&d.circleEnrichment)readouts.unshift('Arc length = (θ ÷ 360°) × 2πr');
+    if(view==='segment'&&d.circleEnrichment)readouts.unshift('Major segment = circle − minor segment');
+    if(view==='equal-tangents'){const m=circleTheoremModel(d);readouts.push('∠APO = ∠OPB = '+m.halfA.toFixed(2)+'°')}
+    const values=document.createElement('div');values.dataset.agCircleTeachingValues='1';for(const value of new Set(readouts)){const line=document.createElement('div');line.textContent=value;values.append(line)}notes.append(values);
+    paragraph('Investigate: ',content[2]);
+    const metadata='[data-ag-circle-values],[data-ag-circle-rule],[data-ag-circle-formula],[data-ag-circle-working],[data-ag-circle-investigation-heading],[data-ag-circle-investigation-title],[data-ag-circle-investigation-general-formula],[data-ag-circle-investigation-rule],[data-ag-circle-investigation-value],[data-ag-circle-investigation-formula],[data-ag-circle-theorem],[data-ag-theorem-equation]';
+    for(const n of svg.querySelectorAll('text'))if(n.matches(metadata)||(isCircleTheorem(view)&&Number(n.getAttribute('y'))>=400&&!n.hasAttribute('data-ag-point-label')))n.style.display='none';
+    // Fixed bounds for each radius and view, independent of dragged angles.
+    // This keeps the pointer transform constant throughout a gesture.
+    const R=65+6*r,centreY=view==='overview'?180:isCircleTheorem(view)?205:190,pad=view==='tangent'||view==='alternate-segment'?110:65,extent=R+pad;
+    const bounds=view==='equal-tangents'?[100,-35,580,480]:[400-extent,centreY-extent,2*extent,2*extent];
+    svg.setAttribute('viewBox',bounds.join(' '));const bg=svg.querySelector(':scope > rect');if(bg)for(const [k,v] of Object.entries({x:bounds[0],y:bounds[1],width:bounds[2],height:bounds[3]}))bg.setAttribute(k,v);
+    box.prepend(heading);box.append(notes);
+  }
   function drawSvg(){
     const interactive=freeShape||freeCircle||freeFact||(!task&&demo.mode==='angle')||(draw&&!task.revealed);
     box.style.touchAction=interactive?'none':'auto';
@@ -3862,7 +3901,7 @@ G.anglesTool=function(){
     svg.style.cssText='width:100%;height:auto;max-height:560px;display:block;margin:auto';
     box.toggleAttribute('data-ag-circle-explorer',!task&&demo.mode==='circle');
     box.toggleAttribute('data-ag-fit-diagram',!measuring&&!(task&&!task.revealed&&inspectTypes.includes(task.type)));
-    box.replaceChildren(svg);updateReference();if(measuring)mountAngleMeasurement(box,svg,d);else if(task&&!task.revealed&&inspectTypes.includes(task.type))mountInvestigation(box,svg);else if(!task&&demo.mode==='polygon'&&!['triangle-comparison','triangle-criterion','triangle-inequality'].includes(demo.shapeView))mountPolygonRegions(box,svg,d,v=>demo.regionsByShape=v);const bar=q('[data-ag-polygon-shade]',box)?.closest('.gd-ag-inspect-tools'),tools=q('[data-ag-shape-explore-controls]',host);if(bar&&tools){q('[data-ag-polygon-shade]',tools)?.closest('.gd-ag-inspect-tools')?.remove();tools.append(bar)}
+    box.replaceChildren(svg);if(!task&&demo.mode==='circle')mountCircleTeaching(svg);updateReference();if(measuring)mountAngleMeasurement(box,svg,d);else if(task&&!task.revealed&&inspectTypes.includes(task.type))mountInvestigation(box,svg);else if(!task&&demo.mode==='polygon'&&!['triangle-comparison','triangle-criterion','triangle-inequality'].includes(demo.shapeView))mountPolygonRegions(box,svg,d,v=>demo.regionsByShape=v);const bar=q('[data-ag-polygon-shade]',box)?.closest('.gd-ag-inspect-tools'),tools=q('[data-ag-shape-explore-controls]',host);if(bar&&tools){q('[data-ag-polygon-shade]',tools)?.closest('.gd-ag-inspect-tools')?.remove();tools.append(bar)}
   }
   if(freeFact){
     const moveFact=e=>{if(factDrag?.id!==e.pointerId)return;const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(factDrag.inverse),trans=factDrag.kind==='transversal',raw=mod(Math.atan2((trans?190:220)-p.y,p.x-400)/D-(trans?0:d.rotation||0)),min=trans?35:10,max=trans?145:170,angle=Math.max(min,Math.min(max,Math.round(raw>270?0:raw>180?180:raw)));demo.angle=angle;Object.assign(d,demoData());const field=q('#ag-value');if(field)field.value=String(angle);const readout=q('[data-ag-demo-value]',host);if(readout)readout.textContent=angle+'°';drawSvg()};

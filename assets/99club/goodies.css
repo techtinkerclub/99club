@@ -2772,3 +2772,53 @@ html.gd-embed-page #tt99-goodies-root #gd-stage>[data-ag-fit-diagram]>svg{
   flex:1 1 0;min-height:0;width:100%!important;height:100%!important;
   max-width:none!important;max-height:none!important;margin:0!important;
 }
+
+
+/* Circle teaching: a stable diagram column and independent teaching copy.
+   The SVG retains its original coordinate system; only the screen viewBox
+   changes, and paper publication uses the untouched diagram renderer. */
+#tt99-goodies-root [data-ag-circle-explorer]{
+  display:grid!important;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);
+  grid-template-rows:auto minmax(0,1fr);gap:8px 20px;align-items:center;
+  max-width:none!important;padding:4px;box-sizing:border-box;
+}
+#tt99-goodies-root [data-ag-circle-teaching-header]{
+  grid-column:1/-1;text-align:center;padding:4px 6px 8px;
+  border-bottom:1px solid #d2e2de;line-height:1.2;
+}
+#tt99-goodies-root [data-ag-circle-teaching-header] h3{
+  color:#263e43;margin:0 0 5px;font-size:clamp(17px,2.4vw,25px);
+}
+#tt99-goodies-root [data-ag-circle-teaching-header] strong{
+  color:#175e55;font-size:clamp(17px,2.3vw,24px);display:block;
+}
+#tt99-goodies-root [data-ag-circle-explorer]>svg{
+  grid-column:1;grid-row:2;min-width:0;min-height:0;align-self:stretch;
+  width:100%!important;height:100%!important;max-height:440px!important;
+}
+#tt99-goodies-root [data-ag-circle-teaching-notes]{
+  grid-column:2;grid-row:2;min-width:0;min-height:0;max-height:100%;
+  align-self:center;overflow:auto;color:#263e43;
+  font:clamp(14px,1.8vw,20px)/1.35 Arial,sans-serif;padding:4px 12px 4px 4px;
+}
+#tt99-goodies-root [data-ag-circle-teaching-notes] p{margin:0 0 12px}
+#tt99-goodies-root [data-ag-circle-teaching-notes] p:last-child{margin-bottom:0}
+#tt99-goodies-root [data-ag-circle-teaching-notes] p>strong{display:block;margin-bottom:3px;color:#175e55}
+#tt99-goodies-root [data-ag-circle-teaching-values]{
+  font-size:clamp(13px,1.65vw,18px);font-weight:700;
+  font-variant-numeric:tabular-nums;border-block:1px solid #d2e2de;
+  padding:8px 0;margin-bottom:12px;
+}
+#tt99-goodies-root [data-ag-circle-teaching-values]>div+div{margin-top:4px}
+@media (max-width:699px){
+  #tt99-goodies-root [data-ag-circle-explorer]{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto;gap:4px}
+  #tt99-goodies-root [data-ag-circle-teaching-notes]{grid-column:1;grid-row:3;max-height:36vh;padding:3px;font-size:13px}
+  #tt99-goodies-root [data-ag-circle-teaching-notes] p{margin-bottom:5px}
+  #tt99-goodies-root [data-ag-circle-teaching-values]{padding:3px 0;margin-bottom:5px}
+}
+html.gd-embed-page #tt99-goodies-root #gd-stage>[data-ag-circle-explorer]{
+  display:grid!important;align-items:center;
+}
+html.gd-embed-page #tt99-goodies-root #gd-stage>[data-ag-circle-explorer]>svg{
+  max-height:none!important;
+}
