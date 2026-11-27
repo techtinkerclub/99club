@@ -3189,6 +3189,29 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
     verifyCircleClearance(circleSvg());
     doc.querySelector('[data-ag-action="circle-extension"]').click();await tick();
     assert(circleSvg().querySelectorAll('[data-ag-circle-formula]').length===2&&circleSvg().querySelectorAll('[data-ag-circle-working]').length===2,'KS3 extension shows general formulae and substituted numerical working');
+    {
+      const M=win.TT99Goodies.angles,dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]),sub=(a,b)=>[a[0]-b[0],a[1]-b[1]],dot=(a,b)=>a[0]*b[0]+a[1]*b[1];
+      for(const radius of [1,5,15])for(const circleStart of [0,31.234567,179.99,350])for(const circleSpan of [5,37.123456,90,180,270,355]){
+        const d={radius,circleStart,circleSpan},m=M.circleInvestigation(d),theta=circleSpan*Math.PI/180,op=M.circleInvestigation({...d,circleStart:circleStart+circleSpan,circleSpan:360-circleSpan});
+        assert(Math.abs(dist(m.O,m.A)-m.R)<1e-8&&Math.abs(dist(m.O,m.B)-m.R)<1e-8,'Boundary points remain exactly on circle');
+        assert(Math.abs(dist(m.A,m.M)-dist(m.B,m.M))<1e-8&&Math.abs(dot(sub(m.M,m.O),sub(m.B,m.A)))<1e-7,'Chord midpoint and perpendicular are exact');
+        assert(Math.abs(dist(m.A,m.B)*radius/m.R-m.chord)<1e-8&&Math.abs(dist(m.O,m.M)*radius/m.R-m.distance)<1e-8,'Measured chord and centre distance agree with geometry');
+        assert(Math.abs(dot(sub(m.A,m.O),sub(m.T,m.U)))<1e-7,'Tangent perpendicular to radius at contact');
+        assert(Math.abs(m.arc-radius*theta)<1e-8&&Math.abs(m.sector-radius*radius*theta/2)<1e-8&&Math.abs(m.segment-radius*radius*(theta-Math.sin(theta))/2)<1e-8,'Analytic arc, sector and segment formulas');
+        assert(Math.abs(m.arc+op.arc-2*Math.PI*radius)<1e-8&&Math.abs(m.segment+op.segment-Math.PI*radius*radius)<1e-8,'Complementary arcs and segments complete circle');
+      }
+      const select=view=>{const n=doc.querySelector('#ag-circle-view');n.value=view;n.dispatchEvent(new win.Event('change',{bubbles:true}))};
+      select('chord');await tick();assert(circleSvg().querySelector('[data-ag-circle-chord]')&&circleSvg().querySelector('[data-ag-circle-chord-bisector]')&&circleSvg().querySelectorAll('[data-ag-circle-handle]').length===2,'Chord explorer exposes draggable endpoints and midpoint');
+      const move=(which,angle,cancel=false)=>{const svg=circleSvg(),node=svg.querySelector('[data-ag-circle-handle="'+which+'"]'),surface=svg.parentElement,m=M.circleInvestigation(cap().demo),matrix=svg.getScreenCTM(),start=new win.DOMPoint(...m[which]).matrixTransform(matrix),end=new win.DOMPoint(m.O[0]+m.R*Math.cos(angle*Math.PI/180),m.O[1]-m.R*Math.sin(angle*Math.PI/180)).matrixTransform(matrix),emit=(target,type,p)=>target.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:186,pointerType:'touch',button:0,clientX:p.x,clientY:p.y}));emit(node,'pointerdown',start);emit(surface,'pointermove',end);emit(surface,cancel?'pointercancel':'pointerup',end)};
+      select('sector');await tick();let m=M.circleInvestigation(cap().demo);move('B',m.start+240.123456);m=M.circleInvestigation(cap().demo);assert(Math.abs(m.span-240.123456)<1e-6&&circleSvg().querySelector('[data-ag-circle-sector]').getAttribute('d').includes(' 0 1 0 '),'Dragging creates a major sector using unrounded angles');
+      const prior=m.span;move('B',m.start+45,true);assert(Math.abs(M.circleInvestigation(cap().demo).span-prior)<1e-8,'Cancelled circle drag restores exact angle');
+      select('segment');await tick();assert(circleSvg().querySelector('[data-ag-circle-segment]')&&circleSvg().textContent.includes('Major segment'),'Segment shares the selected arc');
+      const paper=P.createDocument();paper.addCurrent(id,cap());const printed=P.renderItem(paper.list()[0],false);assert(printed.querySelector('[data-ag-circle-segment]')&&!printed.querySelector('[data-ag-circle-handle]'),'Published investigation preserves selected geometry without interactive handles');
+      select('tangent');await tick();assert(circleSvg().querySelector('[data-ag-circle-tangent]')&&circleSvg().querySelectorAll('[data-ag-circle-handle]').length===1,'Tangent uses one contact point');
+      move('A',112.345678);assert(Math.abs(M.circleInvestigation(cap().demo).start-112.345678)<1e-6,'Tangent contact follows pointer at full precision');
+      doc.querySelector('[data-ag-action="circle-reset"]').click();await tick();assert(M.circleInvestigation(cap().demo).span===110,'Reset restores initial geometry');
+      select('overview');await tick();assert(circleSvg().textContent.includes('Diameter = 2 × radius'),'Existing overview remains available');
+    }
     for(const type of ['regularity','triangle-type','quad-type','circle-diameter','circle-radius','circle-part']){
       const pack=P.createDocument();pack.generate(id,P.defaultSettings(id),1,type);const item=pack.list()[0];
       for(const out of [P.renderItem(item,false),P.answerGraphic(item)]){
