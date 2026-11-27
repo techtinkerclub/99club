@@ -3723,6 +3723,11 @@ pp.querySelector('[data-ag-pythagoras-details]').open=true;assert(pp.querySelect
       move('A',112.345678);assert(Math.abs(M.circleInvestigation(cap().demo).start-112.345678)<1e-6,'Tangent contact follows pointer at full precision');verifyCircleRadiusClearance(circleSvg(),true);
       doc.querySelector('[data-ag-action="circle-reset"]').click();await tick();assert(M.circleInvestigation(cap().demo).span===110,'Reset restores initial geometry');
       select('overview');await tick();assert(circleSvg().textContent.includes('Diameter = 2 × radius'),'Existing overview remains available');
+      const circleFrameSize=()=>fixture.frame.style.width+'|'+fixture.frame.style.height;
+      const fitCircleViews=async()=>{const size=circleFrameSize();for(const view of ['overview','chord','sector','segment','tangent','centre-angle','semicircle','same-segment','cyclic-quad']){select(view);await tick(40);const stage=doc.getElementById('gd-stage'),svg=circleSvg(),a=stage.getBoundingClientRect(),b=svg.getBoundingClientRect();assert(circleFrameSize()===size,'Circle mode does not resize allocated widget: '+view);assert(b.width>0&&b.height>0&&b.top>=a.top-3&&b.bottom<=a.bottom+3,'Entire circle diagram fits stage: '+view)}};
+      await fitCircleViews();
+      const circleMax=fixture.frame.querySelector('[data-board-maximise]');circleMax.click();await tick(80);await fitCircleViews();circleMax.click();await tick(80);select('overview');await tick();
+
       for(const view of ['centre-angle','semicircle','same-segment','cyclic-quad'])for(const span of [45,90,120,180,225,285])for(const c of [.09,.25,.4]){
         const m=M.circleTheoremModel({circleView:view,theoremSpan:span,theoremC:c,theoremD:.7});
         assert(Math.abs(m.Cangle*2-m.span)<1e-8,'Centre and circumference angles agree: '+view);
