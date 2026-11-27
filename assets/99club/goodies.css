@@ -2609,7 +2609,11 @@ html.gd-embed-page #tt99-goodies-root #gd-stage:has(>.gd-ag-shape-reference)::-w
 #tt99-goodies-root .gd-ag-area-proof [data-ag-pythagoras-graphic]{width:100%;max-width:500px;display:block;margin:auto}
 
 #tt99-goodies-root .gd-ag-area-proof [data-ag-area-comparison-graphic]{width:100%;max-width:640px;display:block;margin:auto}
-#tt99-goodies-root [data-ag-area-comparison] [data-ag-area-comparison-value]{min-width:100px;max-width:100%;flex:1 1 130px;touch-action:pan-y}
+#tt99-goodies-root [data-ag-area-comparison] [data-ag-area-comparison-value]{width:5.5em;min-width:0;max-width:100%;flex:0 1 auto;text-align:center}
+#tt99-goodies-root [data-ag-area-comparison] [data-ag-comparison-handle]{cursor:ew-resize;touch-action:none}
+#tt99-goodies-root [data-ag-area-comparison-picture]{touch-action:none}
+#tt99-goodies-root [data-ag-area-comparison-summary]{display:block;text-align:center;font-size:16px;color:var(--gd-ink,#263e43)}
+#tt99-goodies-root [data-ag-area-comparison] [data-ag-area-comparison-instruction]{min-height:0}
 #tt99-goodies-root [data-ag-area-comparison] .gd-select{max-width:100%}
 
 #tt99-goodies-root [data-ag-geometry-reasoning] [data-ag-reasoning-graphic]{width:100%;max-width:640px;display:block;margin:auto}
