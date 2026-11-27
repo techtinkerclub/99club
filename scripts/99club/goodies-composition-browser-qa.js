@@ -1522,7 +1522,9 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
           assert(scene.angleNotation[0].kind===(expected===90?'right':'angle1'),'Only verified right angle receives square notation');
           const snap=M.utensilAlignment(scene,{...pose,x:pose.x+2,y:pose.y+2,angle:1},'move',1);
           assert(snap?.kind==='Aligned '+expected+'° corner'&&Math.hypot(snap.x-pose.x,snap.y-pose.y)<1e-6&&Math.abs(snap.angle)<1e-6,'Magnet aligns actual physical corner');
+          if(expected===90){scene.angleNotation[0].kind='angle1';assert(M.labApplyMeasurement(scene,target)&&scene.angleNotation.length===1&&scene.angleNotation[0].kind==='right','Verified right angle upgrades an existing mark without duplication');}
           scene.points[2]=end(pair[1]-.9);assert(!M.labMeasurementTarget(scene,pose,1),'Incorrect angle cannot be certified by set square');
+          const oldMarks=JSON.stringify(scene.angleNotation);assert(!M.labApplyMeasurement(scene,target)&&JSON.stringify(scene.angleNotation)===oldMarks,'Stale verified set-square target cannot mark changed geometry');
           scene.points[2]=end(pair[1]);assert(!M.labMeasurementTarget(scene,{...pose,x:pose.x+8,y:pose.y+8},1),'Displaced square cannot certify angle');
         }
       }
