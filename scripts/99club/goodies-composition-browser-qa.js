@@ -3095,7 +3095,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const M=win.TT99Goodies.angles,area=pts=>Math.abs(pts.reduce((s,p,i)=>{const q=pts[(i+1)%pts.length];return s+p[0]*q[1]-p[1]*q[0]},0))/2;
       for(let n=3;n<=12;n++)for(const concave of [false,true])for(const rotation of [0,37,151])for(const mirror of [-1,1]){
         if(concave&&n===3)continue;
-        const pts=Array.from({length:n},(_,i)=>{const a=(rotation+i*360/n)*Math.PI/180,r=concave&&i===1?15:150;return [400+r*Math.cos(a),195+mirror*r*Math.sin(a)]}),m=M.polygonProperties(pts);
+        const pts=Array.from({length:n},(_,i)=>{const a=(rotation+i*360/n)*Math.PI/180,r=concave&&i===1?(n===4?-30:15):150;return [400+r*Math.cos(a),195+mirror*r*Math.sin(a)]}),m=M.polygonProperties(pts);
         assert(m&&m.n===n&&m.regular===!concave&&m.convex===!concave,'Polygon classification survives reflection and rotation: '+n+' '+concave);
         assert(m.triangles.length===n-2&&m.diagonals.length===n-3&&m.diagonalCount===n*(n-3)/2,'Correct triangulation and diagonal counts');
         assert(Math.abs(m.triangles.reduce((sum,t)=>sum+area(t.map(i=>pts[i])),0)-area(pts))<1e-6,'Triangulation tiles exact polygon area');
