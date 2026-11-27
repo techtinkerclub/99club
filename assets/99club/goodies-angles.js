@@ -1670,8 +1670,9 @@ function diagram(d,teacher=false,options={}){
  const arc=(x,y,r,start,a,extra={})=>{if(a>=360){add('circle',{cx:x,cy:y,r,fill:'none',stroke:teal,'stroke-width':3,...extra});return}if(a<=0)return;const p=polar(x,y,r,start),e=polar(x,y,r,start+a);path('M '+p.join(' ')+' A '+r+' '+r+' 0 '+(a>180?1:0)+' 0 '+e.join(' '),extra)};
  // Angle labels sit on their own bisector; neighbouring sectors must not
  // form a single continuous arc. Keep right-angle squares conventional.
- const labelArc=(x,y,r,start,a,label,{labelSize=18,labelRadius=r+22}={})=>{
-   const meta={'data-ag-angle-mark':'1','data-ag-radius':r,'data-ag-start':start,'data-ag-sweep':a,'stroke-width':2.5};
+ const labelArc=(x,y,r,start,a,label,{labelSize=18,labelRadius=r+22,color=teal,shade=false}={})=>{
+   const meta={'data-ag-angle-mark':'1','data-ag-radius':r,'data-ag-start':start,'data-ag-sweep':a,'stroke-width':2.5,stroke:color};
+   if(shade&&a>0&&a<360){const p=polar(x,y,r,start),q=polar(x,y,r,start+a);path('M '+x+' '+y+' L '+p.join(' ')+' A '+r+' '+r+' 0 '+(a>180?1:0)+' 0 '+q.join(' ')+' Z',{fill:color,'fill-opacity':.16,stroke:'none','data-ag-angle-shade':'1'})}
    if(Math.abs(a-90)<.01){const p=polar(x,y,r*.75,start),v=polar(x,y,r*.75,start+90),u=[p[0]+v[0]-x,p[1]+v[1]-y];path('M '+p.join(' ')+' L '+u.join(' ')+' L '+v.join(' '),meta)}
    else arc(x,y,r,start,a,meta);
    if(label!=null){const q=angleLabelPlacement([x,y],r,start,a,label,labelSize,labelRadius);text(q.p[0],q.p[1],label,q.size,{'dominant-baseline':'central','font-weight':'500','data-ag-angle-label':'1'})}
@@ -1732,13 +1733,14 @@ function diagram(d,teacher=false,options={}){
      }
      line(exactPolar(...upper,52/Math.sin(angle*D),angle),exactPolar(...lower,52/Math.sin(angle*D),angle+180),teal,3,{'data-ag-transversal':'1'});
      for(const [p,v,key] of [[upper,first,'upper'],[lower,second,'lower']]){
-       const label=Number(v.sweep.toFixed(2))+'°';labelArc(...p,37,v.start,v.sweep,label,{labelSize:18,labelRadius:Math.abs(v.sweep-90)>50?82:60});
+       const label=Number(v.sweep.toFixed(2))+'°';labelArc(...p,37,v.start,v.sweep,label,{labelSize:18,labelRadius:Math.abs(v.sweep-90)>50?82:60,color:relation==='co-interior'&&key==='lower'?orange:teal,shade:!options.paper});
        circle(p,3,ink);
      }
      const name=FACT_VIEWS.find(([k])=>k===relation)[1],comparison=relation==='co-interior'?first.sweep+'° + '+second.sweep+'° = '+m.sum+'°':first.sweep+'° '+(m.match?'=':'≠')+' '+second.sweep+'°';
      text(400,370,name,20,{'data-ag-transversal-title':'1'});
      text(400,400,comparison,20,{'data-ag-transversal-comparison':'1'});
-     text(400,430,parallel?(relation==='co-interior'?'Parallel lines: the pair sums to 180°.':'Parallel lines: the marked angles are equal.'):'Non-parallel example: the rule is not guaranteed.',17,{'data-ag-transversal-condition':parallel?'parallel':'nonparallel'});
+     text(400,430,parallel?(relation==='co-interior'?'Parallel lines: the two angles make a straight angle.':'Parallel lines: the marked angles are equal.'):'Without parallel lines, this relationship need not hold.',17,{'data-ag-transversal-condition':parallel?'parallel':'nonparallel'});
+     if(options.interactive&&!options.paper){const p=exactPolar(...upper,52/Math.sin(angle*D),angle);add('circle',{cx:p[0],cy:p[1],r:11,fill:'#fff',stroke:orange,'stroke-width':3,'data-ag-fact-handle':'transversal','aria-label':'Drag to turn the crossing line',cursor:'grab'})}
      return frame(20,0,760,450);
    }
    if(type==='parallel'||type==='co-interior'){const y1=140,y2=300,dx=80/Math.tan(a*D),p=[400+dx,y1],u=[400-dx,y2];line([65,y1],[735,y1]);line([65,y2],[735,y2]);line(polar(...p,65/Math.sin(a*D),a),polar(...u,65/Math.sin(a*D),a+180),teal);const co=type==='co-interior',alt=d.relation==='alternate';labelArc(...u,42,0,a,a+'°');labelArc(...p,44,co?a+180:alt?180:0,co?180-a:a,teacher?(co?180-a:a)+'°':'x');return svg}
@@ -1754,9 +1756,10 @@ function diagram(d,teacher=false,options={}){
      const halfHeight=12,angle=Math.min(v,360-v)*D/2;
      const clearance=(halfWidth+halfHeight*.5+5)/Math.max(.2,Math.sin(angle));
      const labelRadius=Math.min(145,Math.max(radius+24,clearance));
-     labelArc(x,y,radius,at,v,label,{labelSize:18,labelRadius});at+=v
+     labelArc(x,y,radius,at,v,label,{labelSize:18,labelRadius,color:explore||teacher?([teal,orange,'#6c63a8'][type==='opposite'?i%2:i%3]):teal,shade:(explore||d.fact===type)&&!options.paper});at+=v
    }
-   if(type==='straight'||explore&&values.reduce((s,v)=>s+v,0)===180)ray(x,y,r,at);circle([x,y],4,ink);return frame(195,20,410,400)
+   if(type==='straight'||explore&&values.reduce((s,v)=>s+v,0)===180)ray(x,y,r,at);circle([x,y],4,ink);
+   if(explore||options.interactive||d.fact===type){const h=polar(x,y,r,rot+values[0]);if(options.interactive&&!options.paper)add('circle',{cx:h[0],cy:h[1],r:11,fill:'#fff',stroke:orange,'stroke-width':3,'data-ag-fact-handle':'ray','aria-label':'Drag the angle arm',cursor:'grab'});const fmt=v=>Number(v.toFixed(2))+'°',equation=type==='opposite'?fmt(values[0])+' = '+fmt(values[2]):values.map(fmt).join(' + ')+' = '+(type==='straight'?'180°':'360°');text(x,407,equation,20,{'data-ag-fact-equation':'1'});text(x,433,type==='straight'?'A straight line is half a turn.':type==='point'?'All the angles make one full turn.':'Opposite angles are equal.',17,{'data-ag-fact-rule':'1'});return frame(150,20,500,435)}return frame(195,20,410,400)
  }
  function polygon(points,pointNames=null){
    const outline=add('polygon',{'data-ag-inspect-polygon':'1',points:points.map(p=>p.join(',')).join(' '),fill:shapeFill,stroke:ink,'stroke-width':3,'stroke-linejoin':'round'});
@@ -1925,6 +1928,7 @@ function diagram(d,teacher=false,options={}){
    if(chordView)line(A,B,orange,3,{'data-ag-circle-chord':'1'});
    if(view==='sector'||view==='segment')path(arcPath,{stroke:orange,'stroke-width':4,'data-ag-circle-arc':'1'});
    if(view==='chord'){
+     for(const [p,q] of [[A,M],[M,B]]){const mid=labAt(p,labSub(q,p),.5),angle=labAngle(p,q);line(exactPolar(...mid,7,angle+90),exactPolar(...mid,7,angle-90),orange,2.7,{'data-ag-chord-equal-mark':'1'})}
      if(labDist(O,M)>1e-6){line(O,M,teal,2,{'stroke-dasharray':'5 4','data-ag-circle-chord-bisector':'1'});const a=labAngle(M,O),b=labAngle(M,A);let st=a;if(mod(b-a)>180)st=b;labelArc(...M,14,st,90,null)}
      circle(M,4,ink);text(M[0]+15,M[1]+18,'M',16,{'data-ag-point-label':'M','paint-order':'stroke',stroke:'#fff','stroke-width':3});
    }
@@ -1935,7 +1939,7 @@ function diagram(d,teacher=false,options={}){
      const q=exactPolar(...O,R+24,a);circle(p,5,teal);text(q[0],q[1]+5,name,19,{'data-ag-point-label':name,'paint-order':'stroke',stroke:'#fff','stroke-width':3});
      if(!paper)add('circle',{cx:p[0],cy:p[1],r:22,fill:'transparent',stroke:'none','data-ag-circle-handle':name,cursor:'grab','aria-label':'Move circle point '+name});
    }
-   const names={chord:'Chord AB joins two points on the circumference.',sector:'A sector is bounded by two radii and an arc.',segment:'A segment is bounded by a chord and an arc.',tangent:'The tangent is perpendicular to radius OA at A.'};
+   const names={chord:'A line from the centre at 90° cuts a chord in half.',sector:'A sector is a slice of the circle: two radii and an arc.',segment:'A segment is the region between a chord and its arc.',tangent:'A tangent touches the circle at one point, at 90° to the radius.'};
    text(400,395,names[view],19,{'data-ag-circle-investigation-rule':view});let y=425;
    const values=view==='chord'?'AM = MB = '+(m.chord/2).toFixed(2)+' cm · AB = '+m.chord.toFixed(2)+' cm':tangentView?'Angle between radius and tangent = 90°':(span>180?'Major':span===180?'Semicircle':'Minor')+' '+(view==='sector'?'sector':'segment')+' · Central angle = '+span.toFixed(2)+'°';
    text(400,y,values,18,{'data-ag-circle-investigation-value':view});
@@ -1951,7 +1955,7 @@ function diagram(d,teacher=false,options={}){
    const pointSize=options.paper?29:13,symbolSize=options.paper?29:17,pointGap=pointSize+4,symbolGap=symbolSize*.75+6;
    const pointLabel=(q,name)=>text(q[0],q[1],name,pointSize,{'dominant-baseline':'central','data-ag-point-label':name});
    const symbolLabel=(q,name)=>text(q[0],q[1],name,symbolSize,{'dominant-baseline':'central','font-style':'italic','data-ag-circle-symbol':name});
-   if(dia){line(left,right,isPart?orange:teal,isPart?4:2.5,explore?{'stroke-dasharray':'7 5'}:{});if(!isPart)symbolLabel([x-R*.55,y+symbolGap],'D')}
+   if(dia){if(explore){line(left,p,teal,4,{'data-ag-diameter-half':'left'});line(p,right,orange,4,{'data-ag-diameter-half':'right'});symbolLabel([x-R*.5,y-symbolGap],'r');symbolLabel([x+R*.5,y-symbolGap],'r');symbolLabel([x-R*.5,y+symbolGap],'D = 2r')}else{line(left,right,isPart?orange:teal,isPart?4:2.5);if(!isPart)symbolLabel([x-R*.55,y+symbolGap],'D')}}
    if(rad){const end=polar(x,y,R,55);line(p,end,isPart?orange:teal,isPart?4:2.5);if(!isPart){const mid=polar(x,y,R*.58,55),offset=polar(...mid,symbolGap,-35);symbolLabel(offset,'r')}}
    add('circle',{cx:x,cy:y,r:isPart&&highlight==='Centre'?7:3.5,fill:isPart&&highlight==='Centre'?orange:ink,'data-ag-circle-centre':'1'});
    if(!isPart){pointLabel([x,y+pointGap],'O');if(dia){for(const [p,name,dx] of [[left,'A',-pointGap],[right,'B',pointGap]]){circle(p,2.8,ink);pointLabel([p[0]+dx,p[1]],name)}}if(rad){const end=polar(x,y,R,55),pos=polar(x,y,R+pointGap,55);circle(end,2.8,ink);pointLabel(pos,dia?'C':'A')}}
@@ -3642,15 +3646,21 @@ G.anglesTool=function(){
   }
   // Capture on the persistent wrapper: the SVG may be replaced on every
   // snapped degree, but pointer capture and the coordinate transform survive.
-  let drag=null,triangleDrag=null,circleDrag=null;const freeCircle=!task&&demo.mode==='circle'&&CIRCLE_VIEWS.slice(1).some(([k])=>k===demo.circleView),theoremCircle=freeCircle&&isCircleTheorem(demo.circleView);
+  let drag=null,triangleDrag=null,circleDrag=null,factDrag=null;const freeFact=!task&&demo.mode==='facts',freeCircle=!task&&demo.mode==='circle'&&CIRCLE_VIEWS.slice(1).some(([k])=>k===demo.circleView),theoremCircle=freeCircle&&isCircleTheorem(demo.circleView);
   const freeTriangle=!task&&demo.mode==='polygon'&&demo.shapeView==='free-triangle',freeQuad=!task&&demo.mode==='polygon'&&demo.shapeView==='free-quadrilateral',freePoly=!task&&demo.mode==='polygon'&&demo.shapeView==='free-polygon',freeShape=freeTriangle||freeQuad||freePoly,shapePoints=freePoly?freePolygonPoints:freeQuad?freeQuadrilateralPoints:freeTrianglePoints,shapeKey=freePoly?'polygonPoints':freeQuad?'quadrilateralPoints':'trianglePoints';
   function drawSvg(){
-    const interactive=freeShape||freeCircle||(!task&&demo.mode==='angle')||(draw&&!task.revealed);
+    const interactive=freeShape||freeCircle||freeFact||(!task&&demo.mode==='angle')||(draw&&!task.revealed);
     box.style.touchAction=interactive?'none':'auto';
     const measuring=!!task&&['measure','reflex'].includes(task.type)&&!task.revealed;
     const svg=diagram(d,teacher,{attempt,length:attemptLength,scale:task?(task.revealed&&['measure','reflex'].includes(task.type)||['draw','draw-reflex'].includes(task.type)):demo.scale,measureWorkspace:measuring,interactive,...(drag?{full:drag.max===360}:{})});
     svg.style.cssText='width:100%;height:auto;max-height:560px;display:block;margin:auto';
     box.replaceChildren(svg);updateReference();if(measuring)mountAngleMeasurement(box,svg,d);else if(task&&!task.revealed&&inspectTypes.includes(task.type))mountInvestigation(box,svg);else if(!task&&demo.mode==='polygon'&&!['triangle-comparison','triangle-criterion','triangle-inequality'].includes(demo.shapeView))mountPolygonRegions(box,svg,d,v=>demo.regionsByShape=v);
+  }
+  if(freeFact){
+    const moveFact=e=>{if(factDrag?.id!==e.pointerId)return;const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(factDrag.inverse),trans=factDrag.kind==='transversal',raw=mod(Math.atan2((trans?190:220)-p.y,p.x-400)/D-(trans?0:d.rotation||0)),min=trans?35:10,max=trans?145:170,angle=Math.max(min,Math.min(max,Math.round(raw>270?0:raw>180?180:raw)));demo.angle=angle;Object.assign(d,demoData());const field=q('#ag-value');if(field)field.value=String(angle);const readout=q('[data-ag-demo-value]',host);if(readout)readout.textContent=angle+'°';drawSvg()};
+    box.addEventListener('pointerdown',e=>{const handle=e.target.closest('[data-ag-fact-handle]'),matrix=q('svg',box)?.getScreenCTM();if(!handle||!matrix||e.button!==0)return;factDrag={id:e.pointerId,kind:handle.dataset.agFactHandle,inverse:matrix.inverse(),prior:demo.angle};e.preventDefault();try{box.setPointerCapture(e.pointerId)}catch(_){}});
+    box.addEventListener('pointermove',e=>{if(factDrag?.id===e.pointerId){e.preventDefault();moveFact(e)}});
+    for(const type of ['pointerup','pointercancel','lostpointercapture'])box.addEventListener(type,e=>{if(factDrag?.id!==e.pointerId)return;if(type==='pointerup')moveFact(e);else{demo.angle=factDrag.prior;Object.assign(d,demoData());drawSvg()}factDrag=null});
   }
   if(freeCircle){
     const moveCircle=e=>{if(circleDrag?.id!==e.pointerId)return;const q=new DOMPoint(e.clientX,e.clientY).matrixTransform(circleDrag.inverse),values=(theoremCircle?circleTheoremMove:circleInvestigationMove)(d,circleDrag.which,[q.x+circleDrag.offset[0],q.y+circleDrag.offset[1]]);Object.assign(demo,values);Object.assign(d,values);drawSvg()};
