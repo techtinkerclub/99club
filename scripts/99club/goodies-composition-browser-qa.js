@@ -3359,6 +3359,32 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       nextProof.click();assert(nextProof.disabled&&polygonPanel.querySelector('[data-ag-proof-equation]').textContent.includes(String((polygonProof.n-2)*180)+'°'),'Final angle sum explained');
       polygonPanel.querySelector('[data-ag-polygon-proof-reset]').click();assert(polygonPanel.querySelector('[data-ag-polygon-proof-back]').disabled,'Polygon proof reset');
       const polygonPack=P.createDocument();polygonPack.addCurrent(id,cap());assert(P.renderItem(polygonPack.list()[0],false).querySelectorAll('[data-ag-polygon-proof-graphic]').length===5,'All polygon formula proof stages printable');
+      // Exact rearrangement of four congruent triangles; no rounding in model.
+      for(const a of [1.25,3,4,7.5,12])for(const b of [1.5,4,5,9.75]){
+        for(const angle of [0,.53,1.2]){
+          const pts=[[0,0],[40*a,0],[0,40*b]].map(([x,y])=>[100+x*Math.cos(angle)-y*Math.sin(angle),80+x*Math.sin(angle)+y*Math.cos(angle)]),p=M.pythagorasProof(pts);
+          const near=(x,y)=>Math.abs(x-y)<1e-8*Math.max(1,Math.abs(y));
+          assert(p&&near(p.a*p.a+p.b*p.b,p.c*p.c),'Pythagoras on rotated fractional geometry');
+          for(const layout of [p.around,p.together])for(const tri of layout){
+            const sides=tri.map((q,i)=>Math.hypot(q[0]-tri[(i+1)%3][0],q[1]-tri[(i+1)%3][1])).sort((x,y)=>x-y),expected=[p.a,p.b,p.c].sort((x,y)=>x-y);
+            assert(sides.every((v,i)=>near(v,expected[i]))&&near(M.polygonArea(tri),p.triangleArea),'All rearranged pieces congruent');
+          }
+          assert(near(M.polygonArea(p.centre),p.c*p.c)&&near(p.small.reduce((s,v)=>s+M.polygonArea(v),0),p.a*p.a+p.b*p.b),'Remaining squares match theorem');
+          assert(near(4*p.triangleArea+M.polygonArea(p.centre),p.L*p.L),'Pieces and uncovered area fill outer square');
+        }
+      }
+      assert(!M.pythagorasProof(ref('equilateral').points)&&!M.pythagorasProof(ref('square').points),'Proof only for right triangles');
+      assert(win.TT99Goodies.modeControl.set('polygon:right-triangle'),'Pythagoras teaching accessible');await tick();
+      doc.querySelector('[data-ag-teaching-tab="pythagoras"]').click();await tick();
+      const pp=doc.querySelector('[data-ag-pythagoras-proof]'),pn=pp.querySelector('[data-ag-pythagoras-next]');
+      assert(!pp.hidden&&pp.querySelectorAll('[data-ag-pythagoras-piece]').length===4,'Four congruent triangles visible');
+      pn.click();assert(pp.querySelector('[data-ag-pythagoras-square="c"]'),'Central hypotenuse square');
+      pn.click();assert(pp.querySelectorAll('[data-ag-pythagoras-square]').length===2,'Two leg squares');
+      pn.click();assert(pn.disabled&&pp.querySelectorAll('[data-ag-pythagoras-piece]').length===8&&pp.querySelectorAll('[data-ag-pythagoras-outer]').length===2,'Two equal-area arrangements compared');
+      pp.querySelector('[data-ag-pythagoras-reset]').click();assert(pp.querySelector('[data-ag-pythagoras-back]').disabled,'Proof reset');
+      const pythPack=P.createDocument();pythPack.addCurrent(id,cap());assert(P.renderItem(pythPack.list()[0],false).querySelectorAll('[data-ag-pythagoras-graphic]').length===4,'Pythagoras proof printable');
+      const missing=new Set();for(let i=0;i<60;i++){const t=M.generate({type:'pythagoras',enrichment:true},()=> (i+.5)/60);missing.add(t.missingSide);assert(Number(t.answer)===(t.missingSide==='base'?t.baseLength:t.missingSide==='height'?t.length:t.hypotenuse),'Missing leg or hypotenuse answer');assert(t.baseLength*t.baseLength+t.length*t.length===t.hypotenuse*t.hypotenuse,'Generated exact Pythagorean triple');const item=P.record(id,'challenge',t),pupil=P.renderItem(item,false),teacher=P.renderItem(item,true);assert(pupil.textContent.includes('x')&&teacher.textContent.includes(String(t.answer)),'Pupil unknown and teacher answer published');}assert(missing.size===3,'All three missing-side cases generated');
+
 
 
 
