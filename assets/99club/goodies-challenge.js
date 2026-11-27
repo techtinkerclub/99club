@@ -222,6 +222,7 @@ function pupilAnswerCorrect(spec,values,expected){
     case 'target-expression':return !!G.numberChallenges?.targetAnswerCorrect(spec.question,a);
     case 'choice':return cleanAnswer(a)===cleanAnswer(spec.expected??b);
     case 'number':return equal(numericAnswer(a),numericAnswer(b));
+    case 'ordered-parts':return Array.isArray(spec.parts)&&values.length===spec.parts.length&&spec.parts.every((part,i)=>equal(numericAnswer(values[i]),Number(part.answer)));
     case 'quotient-remainder':return equal(numericAnswer(a),spec.quotient)&&equal(numericAnswer(values[1]),spec.remainder);
     case 'multiplication-equation':{
       const parse=v=>{const sides=cleanAnswer(v).replace(/×|x/gi,'*').split('=');if(sides.length!==2)return null;const product=sides.find(s=>s.includes('*'));if(!product)return null;const factors=product.split('*').map(numericAnswer).sort((x,y)=>x-y),total=numericAnswer(sides[sides.indexOf(product)===0?1:0]);if(factors.length!==2||!equal(factors[0]*factors[1],total))return null;return{factors,total}};
@@ -392,6 +393,7 @@ function pupilFields(spec){
   if(spec.kind==='quotient-remainder')return [{label:'Quotient',hint:'Number'},{label:'Remainder',hint:'0 if exact'}];
   if(spec.kind==='coordinate')return [{label:'x',hint:'x'},{label:'y',hint:'y'}];
   if(spec.kind==='metrics')return [{label:'Perimeter',hint:'units'},{label:'Area',hint:'square units'}];
+  if(spec.kind==='ordered-parts')return spec.parts.map(p=>({label:p.label,hint:'Number',unit:p.unit}));
   if(spec.kind==='partials')return spec.products.map((_,i)=>({label:'Part '+(i+1),hint:'Product'})).concat({label:'Total',hint:'Total'});
   return [{label:'Answer',hint:spec.hint||({number:'Number',money:'e.g. £2.50',fraction:'e.g. 2/3','fraction-form':'e.g. 2/3',mixed:'e.g. 1 2/3','clock-face':'e.g. 3:25','clock-24':'e.g. 15:25','clock-12':'e.g. 3:25 pm',set:'e.g. 1, 2, 4'}[spec.kind]||'Type your answer'),unit:spec.unit}];
 }
@@ -414,7 +416,7 @@ function pupilResponseHtml(challenge,spec){
   }else{
     const defs=pupilFields(spec);
     s.values=defs.map((_,i)=>s.values[i]||'');
-    fields=defs.map((f,i)=>'<label class="gd-pupil-field"><span>'+esc(f.label)+'</span><input type="text" '+(['number','unit','coordinate','metrics','partials','quotient-remainder','money','fraction','fraction-form','mixed','clock-face','clock-24','clock-12','spoken','set','addition-equation','multiplication-equation','equation','expression','target-expression','fact','fact-family','multiplication'].includes(spec.kind)?'data-gd-keypad="'+esc(spec.kind)+'" inputmode="none"':'inputmode="text"')+' autocomplete="off" maxlength="240" data-gd-pupil-field="'+i+'" value="'+esc(s.values[i])+'" placeholder="'+esc(f.hint||'')+'"'+(s.correct||challenge.revealed?' disabled':'')+'>'+(f.unit?'<span>'+esc(f.unit)+'</span>':'')+'</label>').join('');
+    fields=defs.map((f,i)=>'<label class="gd-pupil-field"><span>'+esc(f.label)+'</span><input type="text" '+(['number','unit','coordinate','metrics','partials','ordered-parts','quotient-remainder','money','fraction','fraction-form','mixed','clock-face','clock-24','clock-12','spoken','set','addition-equation','multiplication-equation','equation','expression','target-expression','fact','fact-family','multiplication'].includes(spec.kind)?'data-gd-keypad="'+esc(spec.kind)+'" inputmode="none"':'inputmode="text"')+' autocomplete="off" maxlength="240" data-gd-pupil-field="'+i+'" value="'+esc(s.values[i])+'" placeholder="'+esc(f.hint||'')+'"'+(s.correct||challenge.revealed?' disabled':'')+'>'+(f.unit?'<span>'+esc(f.unit)+'</span>':'')+'</label>').join('');
   }
   return '<div class="gd-pupil-response">'+fields+'<button type="button" class="gd-btn gd-btn--primary" data-gd-pupil-check'+(!pupilReady(s)||s.correct||challenge.revealed?' disabled':'')+'>Check</button><span role="status" aria-live="polite" class="gd-pupil-feedback'+(s.correct?' is-correct':s.status&&s.status!=='Answer shown'?' is-wrong':'')+'">'+esc(s.status)+'</span></div>';
 }
@@ -440,7 +442,7 @@ function checkPupil(panel,s){
   if(!pupilReady(s)||s.correct||s.challenge.revealed)return;
   const ok=pupilAnswerCorrect(s.spec,s.values,s.challenge.answer);
   s.correct=ok;
-  s.status=ok?(s.spec.explain?'Correct choice. Now explain why.':'Correct ✓'):'Not quite — try again.';
+  s.status=ok?(s.spec.explain?'Correct choice. Now explain why.':'Correct ✓'):s.spec.kind==='ordered-parts'?(s.spec.parts.filter((part,i)=>Number.isFinite(numericAnswer(s.values[i]))&&Math.abs(numericAnswer(s.values[i])-Number(part.answer))<1e-8).length+' of '+s.spec.parts.length+' correct — check your working and try again.'):'Not quite — try again.';
   updatePupilUi(panel,s);
 }
 function pupilEvent(e){
