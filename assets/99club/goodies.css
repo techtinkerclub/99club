@@ -2756,3 +2756,19 @@ html.gd-embed-page #tt99-goodies-root #gd-stage:has(>.gd-ag-shape-reference){ove
   #tt99-goodies-root [data-ag-shape-reference-body][data-ag-teaching-active="properties"]>section[data-ag-property-card]>h4{margin-bottom:5px}
   #tt99-goodies-root [data-ag-shape-reference-body][data-ag-teaching-active="properties"]>section[data-ag-property-card]>details{margin-top:4px}
 }
+
+
+/* Geometry explorers fill the allocated viewport; intrinsic SVG dimensions
+   must not push the lower explanation out of the whiteboard frame. */
+html.gd-embed-page #tt99-goodies-root #gd-stage:has(>[data-ag-circle-explorer]){
+  display:flex!important;flex-direction:column!important;justify-content:flex-start!important;
+  gap:6px!important;min-height:0!important;overflow:auto!important;
+}
+html.gd-embed-page #tt99-goodies-root #gd-stage>[data-ag-circle-explorer]{
+  flex:1 1 0!important;min-height:0!important;height:0!important;
+  width:100%!important;max-width:none!important;display:flex;align-items:center;justify-content:center;
+}
+html.gd-embed-page #tt99-goodies-root #gd-stage>[data-ag-circle-explorer]>svg{
+  flex:1 1 0;min-height:0;width:100%!important;height:100%!important;
+  max-width:none!important;max-height:none!important;margin:0!important;
+}
