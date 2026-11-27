@@ -3030,6 +3030,34 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const pack=P.createDocument();pack.generate(id,{...P.defaultSettings(id),enrichment:true},6,'euler-ratio');
       for(const item of pack.list()){const pupil=P.renderItem(item,false),key=P.answerGraphic(item),unknown='[data-ag-euler-distance="'+item.data.eulerUnknown+'"]';assert(pupil.querySelector(unknown).textContent.endsWith('x')&&!pupil.querySelector('[data-ag-euler-rule]'),'Pupil Euler diagram withholds answer and rule');assert(key.querySelector(unknown).textContent.includes(item.data.answer+' cm')&&key.querySelector('[data-ag-euler-rule]'),'Euler teacher annex displays computed distance and rule')}
     }
+    {
+      const M=win.TT99Goodies.angles,properties=M.quadrilateralProperties;
+      const cases=[
+        ['Square',[[0,0],[4,0],[4,4],[0,4]],2,4,true,true,true],
+        ['Rectangle',[[0,0],[6,0],[6,4],[0,4]],2,4,true,false,true],
+        ['Rhombus',[[0,0],[5,0],[8,4],[3,4]],2,0,false,true,true],
+        ['Parallelogram',[[0,0],[6,0],[9,4],[3,4]],2,0,false,false,true],
+        ['Trapezium',[[0,0],[8,0],[6,4],[2,4]],1,0,true,false,false],
+        ['Kite',[[0,0],[3,4],[0,10],[-3,4]],0,0,false,true,false],
+        ['Concave quadrilateral',[[0,0],[6,0],[2,2],[0,6]],0,1,false,false,false]
+      ];
+      for(const [kind,points,pairs,right,eq,perp,bisect] of cases)for(const rotation of [0,37,151])for(const scale of [20,65])for(const mirror of [-1,1]){
+        const a=rotation*Math.PI/180,pts=points.map(([x,y])=>[300+scale*(x*Math.cos(a)-mirror*y*Math.sin(a)),200+scale*(x*Math.sin(a)+mirror*y*Math.cos(a))]),m=properties(pts);
+        assert(m&&m.kind===kind&&m.parallelPairs.length===pairs&&m.right===right,'Analytic quadrilateral classification invariant: '+kind+' '+JSON.stringify(m));
+        assert(m.diagonalEqual===eq&&m.diagonalPerpendicular===perp&&m.diagonalBisect===bisect,'Diagonal relationships invariant: '+kind);
+        assert(Math.abs(m.angles.reduce((a,b)=>a+b,0)-360)<1e-8,'Interior angles sum to 360 including concave cases');
+      }
+      assert(properties(cases[0][1].map(([x,y])=>[x*40,y*40])).families.includes('Rectangle')&&properties(cases[0][1].map(([x,y])=>[x*40,y*40])).families.includes('Rhombus'),'Square has inclusive family memberships');
+      for(const pts of [[[0,0],[100,100],[0,100],[100,0]],[[0,0],[100,0],[200,0],[0,100]],[[0,0],[100,0],[100,0],[0,100]]])assert(!properties(pts),'Crossed and degenerate quadrilaterals rejected');
+      const change=(id,value)=>{const n=doc.querySelector('#'+id);n.value=value;n.dispatchEvent(new win.Event('change',{bubbles:true}))},svg=()=>doc.querySelector('.gd-ag-visual svg'),action=id=>doc.querySelector('[data-ag-action="'+id+'"]');
+      change('ag-shape-view','free-quadrilateral');await tick();assert(svg().querySelectorAll('[data-ag-quad-vertex]').length===4&&svg().querySelector('[data-ag-quad-classification]').textContent.startsWith('Rectangle'),'Free quadrilateral starts with movable rectangle');
+      const move=(i,dest,cancel=false)=>{const p=svg().querySelector('[data-ag-quad-vertex="'+i+'"]'),surface=svg().parentElement,m=svg().getScreenCTM(),start=new win.DOMPoint(Number(p.getAttribute('cx')),Number(p.getAttribute('cy'))).matrixTransform(m),end=new win.DOMPoint(...dest).matrixTransform(m),emit=(node,type,q)=>node.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:184,pointerType:'touch',button:0,clientX:q.x,clientY:q.y}));emit(p,'pointerdown',start);emit(surface,'pointermove',end);emit(surface,cancel?'pointercancel':'pointerup',end)};
+      move(2,[300,200]);assert(svg().querySelector('[data-ag-quad-classification]').textContent.includes('Concave'),'Dragging produces a concave example');
+      const prior=JSON.stringify(cap().demo.quadrilateralPoints);move(2,[700,300],true);assert(JSON.stringify(cap().demo.quadrilateralPoints)===prior,'Cancelled drag restores saved vertices');
+      const paper=P.createDocument();paper.addCurrent(id,cap());const printed=P.renderItem(paper.list()[0],false);assert(printed.querySelector('[data-ag-quad-classification]').textContent.includes('Concave')&&!printed.querySelector('[data-ag-quad-vertex]'),'Published explorer retains actual geometry without handles');
+      action('reset-quad').click();await tick();assert(svg().querySelector('[data-ag-quad-classification]').textContent.startsWith('Rectangle'),'Reset restores initial rectangle');
+      if(cap().demo.showDiagonals)action('diagonal').click();if(cap().demo.showParallel)action('parallel-marks').click();
+    }
     const shapeSelect=doc.getElementById('ag-shape-view');shapeSelect.value='rectangle';shapeSelect.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
     doc.querySelector('[data-ag-action="diagonal"]').click();await tick();
     assert(cap().demo.showDiagonals&&doc.querySelector('.gd-ag-visual svg').textContent.includes('Equal diagonals'),'Rectangle explorer displays its diagonal relationship');
