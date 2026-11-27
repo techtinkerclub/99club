@@ -3861,6 +3861,7 @@ G.anglesTool=function(){
     const svg=diagram(d,teacher,{attempt,length:attemptLength,scale:task?(task.revealed&&['measure','reflex'].includes(task.type)||['draw','draw-reflex'].includes(task.type)):demo.scale,measureWorkspace:measuring,interactive,...(drag?{full:drag.max===360}:{})});
     svg.style.cssText='width:100%;height:auto;max-height:560px;display:block;margin:auto';
     box.toggleAttribute('data-ag-circle-explorer',!task&&demo.mode==='circle');
+    box.toggleAttribute('data-ag-fit-diagram',!measuring&&!(task&&!task.revealed&&inspectTypes.includes(task.type)));
     box.replaceChildren(svg);updateReference();if(measuring)mountAngleMeasurement(box,svg,d);else if(task&&!task.revealed&&inspectTypes.includes(task.type))mountInvestigation(box,svg);else if(!task&&demo.mode==='polygon'&&!['triangle-comparison','triangle-criterion','triangle-inequality'].includes(demo.shapeView))mountPolygonRegions(box,svg,d,v=>demo.regionsByShape=v);const bar=q('[data-ag-polygon-shade]',box)?.closest('.gd-ag-inspect-tools'),tools=q('[data-ag-shape-explore-controls]',host);if(bar&&tools){q('[data-ag-polygon-shade]',tools)?.closest('.gd-ag-inspect-tools')?.remove();tools.append(bar)}
   }
   if(freeFact){
