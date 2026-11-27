@@ -29,6 +29,7 @@ if(mode==='prepare'){
 <script src="/assets/99club/goodies-abacus.js"></script>
 <script src="/assets/99club/goodies-number-line-v6.js"></script>
 <script src="/assets/99club/goodies-tools-b.js"></script>
+<script src="/assets/99club/goodies-angles.js"></script>
 <script>
 (function(){
   function assert(value,message){if(!value)throw new Error(message)}
