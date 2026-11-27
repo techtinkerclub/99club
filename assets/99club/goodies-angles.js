@@ -618,7 +618,7 @@ function generate(s={},rng=Math.random){
    if(!target)return false;
    const ids=target.names.map(n=>s.names.indexOf(n));if(target.kind==='length'&&(ids.length!==2||ids[0]===ids[1]||ids.some(i=>i<0)))return false;
    if(target.kind==='length'){const key=labStyleKey(s,...ids);s.dimensionLabels||={};s.dimensionLabels[key]={...s.dimensionLabels[key],mode:'measured'};delete s.dimensionLabels[key].text;return true}
-   if(target.kind==='angle'){const mark={names:target.names.slice(),...(target.arms?{arms:target.arms,sweepMode:target.sweepMode}:{}),kind:Math.abs((target.squareAngle??0)-90)<.01?'right':'angle1',labelMode:'measured'};if(!labAngleAnnotation(s,mark))return false;s.angleNotation||=[];const existing=s.angleNotation.find(m=>labSameAngle(s,m,mark));if(existing){existing.labelMode='measured';delete existing.label}else s.angleNotation.push(mark);return true}
+   if(target.kind==='angle'){const mark={names:target.names.slice(),...(target.arms?{arms:target.arms,sweepMode:target.sweepMode}:{}),kind:Math.abs((target.squareAngle??0)-90)<.01?'right':'angle1',labelMode:'measured'};const resolved=labAngleAnnotation(s,mark);if(!resolved||(target.squareAngle!==undefined&&Math.abs(resolved.angle-target.squareAngle)>.01))return false;s.angleNotation||=[];const existing=s.angleNotation.find(m=>labSameAngle(s,m,mark));if(existing){if(mark.kind==='right')existing.kind='right';existing.labelMode='measured';delete existing.label}else s.angleNotation.push(mark);return true}
    return false;
  }
  function labMeasurementDigits(s){return s.measurementPrecision===2?2:1}
