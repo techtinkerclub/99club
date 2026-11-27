@@ -698,6 +698,34 @@ function generate(s={},rng=Math.random){
    if(!path.length||path.at(-1)===null)path.push(old.slice());
    if(path.length<6000)path.push(p.slice());
  }
+ // Never join disconnected branches or large angular jumps with a fictitious chord.
+ function traceBreak(state){for(const name of state.traceNames||[]){const path=state.traces?.[name];if(path?.length&&path.at(-1)!==null)path.push(null)}}
+ function locusTraceMove(state,target){
+   const preset=locusPreset(state.kind,state.params),old=locusPoints(state),end=preset.project(target,old.P),kind=state.kind;
+   const angular=['circle','ellipse','fixedAngle','tangent','externalTangents','circleIntersection','circleTangency','internalTangency','rhombus'].includes(kind);
+   const origin=kind==='rhombus'?preset.anchors.B:[400,220],u=labSub(old.P,origin),v=labSub(end,origin);
+   // For ellipse compare normalized parameter directions, not physical polar angles.
+   if(kind==='ellipse'){const [, ,a,b]=preset.guides[0].ellipse;u[0]/=a;u[1]/=b;v[0]/=a;v[1]/=b}
+   const ambiguous=angular&&labDot(u,v)<-1e-7*Math.hypot(...u)*Math.hypot(...v);
+   const switched=kind==='parallel'&&old.P[1]!==end[1]||kind==='fixedAngle'&&(old.P[1]-220)*(end[1]-220)<0;
+   let crossed=false;
+   if(kind==='angleBisector'){
+     const onFirst=p=>{const [a,b]=preset.guides[0].line;return Math.abs(labCross(labSub(b,a),labSub(p,a)))/labDist(a,b)<1e-6};
+     crossed=labDist(old.P,[400,220])>1e-6&&labDist(end,[400,220])>1e-6&&onFirst(old.P)!==onFirst(end);
+   }
+   if(ambiguous||switched||crossed){traceBreak(state);state.p=end;return}
+   if(!state.traceNames?.length){state.p=end;return}
+   // Reproject intermediate driver positions, then resolve every dependent point
+   // on that same constraint. Only bridge locally unambiguous motion.
+   const steps=Math.max(1,Math.min(160,Math.ceil(labDist(old.P,end)/4)));let previous=old;
+   for(let i=1;i<=steps;i++){
+     const p=i===steps?end:preset.project(labAt(old.P,labSub(end,old.P),i/steps),previous.P);
+     const next=locusPoints({...state,p});
+     for(const name of state.traceNames)if(previous[name]&&next[name])traceAdd(state,name,next[name],previous[name]);
+     previous=next;
+   }
+   state.p=end;
+ }
  function traceToggle(state,name){
    state.traceNames=state.traceNames||[];state.traces=state.traces||{};
    if(state.traceNames.includes(name)){state.traceNames=state.traceNames.filter(n=>n!==name);const path=state.traces[name];if(path?.length&&path.at(-1)!==null)path.push(null)}
@@ -771,7 +799,7 @@ function generate(s={},rng=Math.random){
    st.nodes.push(node);return id;
  }
  function customMove(st,id,p){const n=st.nodes.find(n=>n.id===id);if(!n||!CUSTOM_OPERATIONS[n.op]?.place)return false;const old=customResolve(st).points;n.at=p.slice();const next=customResolve(st).points;for(const name of st.traceNames||[]){if(old[name]&&next[name])traceAdd(st,name,next[name],old[name]);else if(st.traces[name]?.length&&st.traces[name].at(-1)!==null)st.traces[name].push(null)}return true}
- const model={protractorReading,utensilAlignment,squareGeometry,isLabArc,labArcContains,labCircleExtents,labContentBounds,locusFitBounds,customBounds,fitGeometryBounds,INDEPENDENT_METHOD_DIMENSIONS,INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labLabel,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,locusInitial,locusProject,locusPoints,traceParts,traceAdd,traceToggle,shapeGeometry,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
+ const model={protractorReading,utensilAlignment,squareGeometry,isLabArc,labArcContains,labCircleExtents,labContentBounds,locusFitBounds,customBounds,fitGeometryBounds,INDEPENDENT_METHOD_DIMENSIONS,INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labLabel,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,locusInitial,locusProject,locusPoints,locusTraceMove,traceParts,traceAdd,traceToggle,shapeGeometry,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
 if(typeof module==='object'&&module.exports){module.exports=model;return}
 const G=root.TT99Goodies;if(!G)return;G.angles=model;
 const {q,qa,esc,field,btn,setPanels}=G,CK=G.challengeKit;
@@ -1837,7 +1865,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
      if(selecting){const name=Object.keys(pts).filter(n=>!(n in locusPreset(st.kind,st.params).anchors)&&!locusPreset(st.kind,st.params).hiddenPoints?.includes(n)&&(n!=='M'||st.showMidpoint||st.traceNames?.includes('M')||st.traces?.M?.length)).sort((a,b)=>labDist(hit.p,pts[a])-labDist(hit.p,pts[b])).find(n=>labDist(hit.p,pts[n])<=hit.tol);if(name){traceToggle(st,name);changed()}return}
      if(labDist(hit.p,pts.P)>hit.tol)return;e.preventDefault();drag=e.pointerId;try{surface.setPointerCapture(e.pointerId)}catch(_){}
    });
-   surface.addEventListener('pointermove',e=>{if(drag!==e.pointerId)return;const hit=locate(e);if(!hit)return;e.preventDefault();const old=locusPoints(st);st.p=locusProject(st.kind,hit.p,old.P,st.params);const next=locusPoints(st);const jumped=st.kind==='parallel'&&old.P[1]!==next.P[1];for(const n of Object.keys(next))if(old[n]){if(jumped&&st.traceNames?.includes(n)&&st.traces?.[n]?.length&&st.traces[n].at(-1)!==null)st.traces[n].push(null);if(!jumped)traceAdd(st,n,next[n],old[n])}changed()});
+   surface.addEventListener('pointermove',e=>{if(drag!==e.pointerId)return;e.preventDefault();const samples=e.getCoalescedEvents?.()||[];for(const sample of [...samples,e]){const hit=locate(sample);if(hit)locusTraceMove(st,hit.p)}changed()});
    const finish=e=>{if(drag===e.pointerId)drag=null};for(const t of ['pointerup','pointercancel','lostpointercapture'])surface.addEventListener(t,finish);
    paint();
  }
