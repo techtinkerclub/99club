@@ -1305,9 +1305,34 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
     assert(work.viewBox.baseVal.width===840&&work.viewBox.baseVal.height===592,'A5 format can shrink the empty sheet below the old minimum');
     const previewPointer=(type,p)=>{const v=new win.DOMPoint(...p).matrixTransform(work.getScreenCTM());work.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerType:'touch',pointerId:47,button:0,clientX:v.x,clientY:v.y}))};
     const checkRuler=(cm,endpoint)=>{doc.querySelector('[data-ag-tool="segment"]').click();previewPointer('pointerdown',[60,160]);previewPointer('pointermove',endpoint);const ruler=work.querySelector('[data-geometry-instrument="ruler"]'),ticks=ruler.querySelectorAll('[data-me-division]');assert(ticks.length===cm*10+1&&Number(ticks[10].getAttribute('x1'))===40&&Number(ticks[1].getAttribute('x1'))===4&&Number(ticks[ticks.length-1].getAttribute('x1'))===cm*40,'Ruler has correct millimetre and centimetre graduations for '+cm+' cm');doc.querySelector('[data-ag-tool="undo"]').click();assert(cap().demo.labDrawing.points.length===0,'Ruler preview cleanup preserves empty sheet')};
-    checkRuler(15,[460,160]);
+    const verifyInstruments=label=>{
+      const tap=p=>{previewPointer('pointerdown',p);previewPointer('pointerup',p)},tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),reset=()=>doc.querySelector('[aria-label="Reset construction"]').click();
+      const c=[200,200],edge=[320,200],other=[500,200];
+      tool('compass').click();tap(c);previewPointer('pointermove',edge);
+      assert(work.textContent.includes('r = 3.0 cm')&&!work.querySelector('[data-geometry-instrument="ruler"]'),'Compass preview uses exact radius without a ruler: '+label);
+      tap(edge);tool('compass-opening').click();tap(other);
+      const circles=cap().demo.labDrawing.circles;
+      assert(circles.length===2&&circles.every(q=>Math.abs(q.r-120)<.001),'Compass preserves transferred 3 cm radius: '+label);
+      const paper=P.createDocument();paper.addCurrent(id,cap());const printed=P.renderItem(paper.list()[0],false);
+      assert([...printed.querySelectorAll('circle')].filter(q=>Math.abs(Number(q.getAttribute('r'))-120)<.001).length===2,'Both exact-radius circles survive publishing: '+label);
+      reset();tool('protractor').click();
+      const origin=[300,300],base=M.polar(...origin,160,30),aim=M.polar(...origin,180,67);
+      tap(origin);tap(base);assert(work.querySelector('[data-geometry-instrument="protractor"]'),'Protractor aligns to a rotated baseline: '+label);
+      tap(aim);const drawing=cap().demo.labDrawing,ray=drawing.rays[0];
+      assert(drawing.rays.length===1&&Math.abs(ray.relativeAngle-37)<.001&&Math.abs(M.labRayAngle(drawing,ray)-67)<.001,'Rotated baseline yields exact 37 degree relative angle: '+label);
+      assert(work.querySelector('[data-ag-angle-value]')?.textContent==='37°','Rendered angle annotation agrees with geometry: '+label);
+      reset();assert(cap().demo.labDrawing.points.length===0,'Instrument verification leaves empty sheet: '+label);
+    };
+    checkRuler(15,[460,160]);verifyInstruments('A5 normal');
     doc.querySelector('[data-ag-tool="expand"]').click();wsField('format').value='A4';wsField('apply').click();await tick();
-    checkRuler(30,[460,160]);
+    checkRuler(30,[460,160]);verifyInstruments('A4 normal');
+    {
+      const frame=fixture.frame,max=frame.querySelector('[data-board-maximise]');
+      api.select(fixture.record.id);max.click();await tick(150);
+      assert(frame.classList.contains('is-geometry-board'),'Full board entered for instrument scale checks');
+      verifyInstruments('A4 full board');max.click();await tick(150);
+      assert(work.viewBox.baseVal.width===1188&&work.viewBox.baseVal.height===840,'Instrument review restores selected paper');
+    }
     doc.querySelector('[data-ag-tool="point"]').click();
     const tapWork=(p)=>{const v=new win.DOMPoint(...p).matrixTransform(work.getScreenCTM());work.dispatchEvent(new win.PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerType:'touch',button:0,clientX:v.x,clientY:v.y}))};
     for(const p of [[150,150],[450,150],[300,350]])tapWork(p);
