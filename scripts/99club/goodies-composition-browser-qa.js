@@ -150,7 +150,7 @@ async function run(){
   assert(visible(floatingSettings)&&/UK money settings/i.test(floatingSettings.textContent),'Context Settings opens a whiteboard-level floating palette outside the widget');
   const assertInspectorLayout=(panel,label)=>{
     const bounds=board.getBoundingClientRect(),r=panel.getBoundingClientRect(),head=panel.querySelector('[data-board-controls-drag]'),close=panel.querySelector('[data-board-controls-close]'),body=panel.querySelector('.gd-board-floating-controls-body'),c=close.getBoundingClientRect();
-    assert(visible(panel)&&r.left>=bounds.left-2&&r.top>=bounds.top-2&&r.right<=bounds.right+2&&r.bottom<=bounds.bottom+2,'Inspector stays in available board: '+label);
+    assert(visible(panel)&&r.left>=bounds.left-2&&r.top>=bounds.top-2&&r.right<=bounds.right+2&&r.bottom<=bounds.bottom+2,'Inspector stays in available board: '+label+' '+JSON.stringify({board:[bounds.left,bounds.top,bounds.right,bounds.bottom],panel:[r.left,r.top,r.right,r.bottom],viewport:[innerWidth,innerHeight]}));
     assert(visible(close)&&c.left>=r.left-1&&c.right<=r.right+1&&c.top>=r.top-1&&c.bottom<=r.bottom+1,'Close control remains reachable: '+label);
     assert(head.querySelector('.gd-board-controls-grip')&&getComputedStyle(body).overflowY==='auto','Consistent drag header and scrolling body: '+label);
   };
@@ -3859,6 +3859,10 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
     const fixture=await addForSave(id),panel=document.getElementById('gd-board-floating-controls');
     fixture.frame.querySelector('[data-board-settings]').click();await tick();
     assert(panel.dataset.panelMode==='settings'&&panel.querySelector('.gd-board-controls-proxy'),'Specialist teaching settings open: '+id);await tick(40);assertInspectorLayout(panel,id+' teaching settings');
+    if(id==='maths-canvas'){
+      const head=panel.querySelector('[data-board-controls-drag]'),before=panel.getBoundingClientRect();pointer(head,'pointerdown',before.left+20,before.top+14,97);pointer(document,'pointermove',board.getBoundingClientRect().right+300,board.getBoundingClientRect().bottom+300,97);pointer(document,'pointerup',board.getBoundingClientRect().right+300,board.getBoundingClientRect().bottom+300,97);await tick(40);assertInspectorLayout(panel,id+' dragged settings');
+      const detail=panel.querySelector('details:not([open])');if(detail){detail.open=true;await tick(80);assertInspectorLayout(panel,id+' expanded settings');detail.open=false;await tick(40);}
+    }
     panel.querySelector('[data-board-controls-close]').click();await tick();
     const challengeButton=fixture.frame.querySelector('[data-board-quick-actions] button[aria-label="Choose a challenge"]');assert(challengeButton,'Frame Challenge action exists for '+id);challengeButton.click();await tick();
     assert(panel.querySelector('[data-gd-native-random="all"]'),'Specialist quick launcher: '+id);await tick(40);assertInspectorLayout(panel,id+' quick challenge');
