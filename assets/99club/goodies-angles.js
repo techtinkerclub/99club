@@ -693,6 +693,8 @@ function generate(s={},rng=Math.random){
   line:{label:'Draw straight line',refs:['Point A','Point B'],object:true},
   circle:{label:'Draw circle',refs:['Centre','Radius point'],object:true}
  };
+ function customBounds(st){let x=0,y=0,right=800,bottom=440;const include=(p,r=0)=>{if(!p||!p.every(Number.isFinite))return;x=Math.min(x,p[0]-r-24);y=Math.min(y,p[1]-r-24);right=Math.max(right,p[0]+r+24);bottom=Math.max(bottom,p[1]+r+24)};const {points}=customResolve(st);Object.values(points).forEach(p=>include(p));for(const o of st.objects||[])if(o.op==='circle'){const [a,b]=o.refs.map(n=>points[n]);if(a&&b)include(a,labDist(a,b))}for(const trail of Object.values(st.traces||{}))for(const p of trail)include(p);return [x,y,right-x,bottom-y]}
+ function fitGeometryBounds(bounds,width,height){const [x,y,w,h]=bounds,ratio=Math.max(1,width)/Math.max(1,height),nw=Math.max(w,h*ratio),nh=Math.max(h,w/ratio);return [x-(nw-w)/2,y-(nh-h)/2,nw,nh]}
  function customInitial(){return {kind:'custom',nodes:[],objects:[],nextId:0,traceNames:[],traces:{},grid:true}}
  function customName(i){let s='';for(i++;i>0;i=Math.floor((i-1)/26))s=String.fromCharCode(65+(i-1)%26)+s;return s}
  function customLineCircle(a,b,o,r){const v=labSub(b,a),w=labSub(a,o),aa=labDot(v,v);if(aa<1e-10||r<1e-8)return [];const bb=2*labDot(v,w),cc=labDot(w,w)-r*r,disc=bb*bb-4*aa*cc;if(disc< -1e-7)return [];const h=Math.sqrt(Math.max(0,disc));return [labAt(a,v,(-bb+h)/(2*aa)),labAt(a,v,(-bb-h)/(2*aa))]}
@@ -729,7 +731,7 @@ function generate(s={},rng=Math.random){
    st.nodes.push(node);return id;
  }
  function customMove(st,id,p){const n=st.nodes.find(n=>n.id===id);if(!n||!CUSTOM_OPERATIONS[n.op]?.place)return false;const old=customResolve(st).points;n.at=p.slice();const next=customResolve(st).points;for(const name of st.traceNames||[]){if(old[name]&&next[name])traceAdd(st,name,next[name],old[name]);else if(st.traces[name]?.length&&st.traces[name].at(-1)!==null)st.traces[name].push(null)}return true}
- const model={INDEPENDENT_METHOD_DIMENSIONS,INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labLabel,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,locusInitial,locusProject,locusPoints,traceParts,traceAdd,traceToggle,shapeGeometry,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
+ const model={customBounds,fitGeometryBounds,INDEPENDENT_METHOD_DIMENSIONS,INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labLabel,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,locusInitial,locusProject,locusPoints,traceParts,traceAdd,traceToggle,shapeGeometry,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
 if(typeof module==='object'&&module.exports){module.exports=model;return}
 const G=root.TT99Goodies;if(!G)return;G.angles=model;
 const {q,qa,esc,field,btn,setPanels}=G,CK=G.challengeKit;
@@ -864,7 +866,7 @@ function diagram(d,teacher=false,options={}){
 
  if(mode==='loci'&&d.locusState?.kind==='custom'){
    const st=d.locusState,{points}=customResolve(st),attrs={'data-ag-custom-object':'1'};
-   if(st.grid&&!options.paper)for(let x=40;x<800;x+=40){line([x,0],[x,440],'#e3ebe8',1);if(x<440)line([0,x],[800,x],'#e3ebe8',1)}
+   const bounds=options.dynamicBounds||customBounds(st);if(st.grid&&!options.paper){const [x,y,w,h]=bounds,defs=add('defs',{}),pattern=add('pattern',{id:'ag-custom-grid',width:40,height:40,patternUnits:'userSpaceOnUse'},null,defs);add('path',{d:'M40 0H0V40',fill:'none',stroke:'#e3ebe8','stroke-width':1},null,pattern);add('rect',{x,y,width:w,height:h,fill:'url(#ag-custom-grid)','data-ag-custom-grid':'1'})}
    for(const object of st.objects||[]){const [a,b]=object.refs.map(id=>points[id]);if(!a||!b||labDist(a,b)<1e-8)continue;
      if(object.op==='circle')add('circle',{cx:a[0],cy:a[1],r:labDist(a,b),fill:'none',stroke:teal,'stroke-width':2,...attrs});
      else if(object.op==='line'){const v=labSub(b,a),u=v.map(n=>n/Math.hypot(...v));line(labAt(a,u,-2000),labAt(a,u,2000),teal,2,attrs)}
@@ -872,7 +874,7 @@ function diagram(d,teacher=false,options={}){
    }
    for(const [name,trail] of Object.entries(st.traces||{}))for(const pts of traceParts(trail))add('polyline',{points:pts.map(p=>p.join(',')).join(' '),fill:'none',stroke:orange,'stroke-width':2,'data-ag-locus-trace':name});
    for(const n of st.nodes||[]){const p=points[n.id];if(!p)continue;const movable=CUSTOM_OPERATIONS[n.op]?.place;if(st.traceNames?.includes(n.id)&&!options.paper)add('circle',{cx:p[0],cy:p[1],r:10,fill:'none',stroke:orange,'stroke-width':2});add('circle',{cx:p[0],cy:p[1],r:movable?5.5:4,fill:movable?teal:ink,'data-ag-custom-point':n.id,'data-ag-custom-movable':String(!!movable)});text(p[0]+12,p[1]-10,n.id,15,{'paint-order':'stroke',stroke:'#fff','stroke-width':3})}
-   return frame(0,0,800,440);
+   return frame(...bounds);
  }
  if(mode==='loci'){
    const st=d.locusState||locusInitial(),preset=locusPreset(st.kind,st.params),points=locusPoints(st),P=points.P,showM=st.showMidpoint||st.traceNames?.includes('M')||st.traces?.M?.length,guideAttrs={fill:'none',stroke:'#83a99f','stroke-width':1.6,'stroke-dasharray':'6 5','data-ag-locus-guide':'1'};
@@ -886,10 +888,8 @@ function diagram(d,teacher=false,options={}){
    for(const [a,b] of preset.equalEdges||[]){const p=points[a],q=points[b],m=labAt(p,labSub(q,p),.5),angle=labAngle(p,q)+90;line(polar(...m,7,angle),polar(...m,7,angle+180),teal,2,{'data-ag-constraint-equal-side':'1'})}
    const namePoint=(p,name,movable=false)=>{if(st.traceNames?.includes(name)&&!options.paper)add('circle',{cx:p[0],cy:p[1],r:11,fill:'none',stroke:name==='P'?orange:'#5385c5','stroke-width':2});add('circle',{cx:p[0],cy:p[1],r:movable?6:4,fill:movable?teal:ink,'data-ag-locus-point':name});const neighbours=preset.links.filter(l=>l.includes(name)).map(l=>points[l.find(n=>n!==name)]),q=vertexLabel(p,neighbours[0],neighbours[1],18);text(q[0],q[1]+4,name,16,{'paint-order':'stroke',stroke:'#fff','stroke-width':3})};
    for(const name of Object.keys(points))if((name!=='M'||showM)&&(!preset.hiddenPoints?.includes(name)||st.traceNames?.includes(name)))namePoint(points[name],name,name==='P');
-   text(400,435,preset.summary(P),17);
-   text(400,462,preset.rule,16);
-   if(showM)text(400,484,'M is the midpoint of '+Object.keys(preset.anchors)[0]+'P.',15);
-   return frame(65,10,670,490)
+   if(!options.dynamicBounds){text(400,435,preset.summary(P),17);text(400,462,preset.rule,16);if(showM)text(400,484,'M is the midpoint of '+Object.keys(preset.anchors)[0]+'P.',15)}
+   return frame(...(options.dynamicBounds||[65,10,670,490]))
  }
  if(mode==='circle'){
    const r=d.radius||5,x=400,y=180,R=explore?65+6*r:145,p=[x,y],left=[x-R,y],right=[x+R,y],top=[x,y-R];
@@ -1424,6 +1424,27 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
  }
 
 
+ // Full-board dynamic workspaces keep the same controls and coordinate model.
+ function dynamicBoard(box,surface,groups,getBounds,redraw){
+   const originalStyle=surface.style.cssText;let active=false,bounds=null,overlay=null,dock=null,panels=[],hidden=false;
+   surface.dataset.agDynamicWorkspace='1';
+   const clamp=panel=>{if(panel.hidden||!overlay)return;const b=overlay.getBoundingClientRect(),r=panel.getBoundingClientRect();panel.style.left=Math.max(4,Math.min(r.left-b.left,b.width-r.width-4))+'px';panel.style.top=Math.max(4,Math.min(r.top-b.top,b.height-r.height-4))+'px'};
+   const resize=()=>{if(!active)return;const next=fitGeometryBounds(getBounds(),surface.clientWidth,surface.clientHeight);if(!bounds||next.some((v,i)=>Math.abs(v-bounds[i])>.01)){bounds=next;redraw()}panels.forEach(clamp)};
+   function makePanel(group,i){
+     const [title,node]=group,panel=document.createElement('section');panel.className='gd-ag-full-panel';panel.dataset.agDynamicPanel=title;panel.style.left=i?'calc(100% - 340px)':'10px';panel.style.top=i?'54px':'46px';
+     const header=document.createElement('div');header.className='gd-ag-full-panel-head';const name=document.createElement('strong');name.textContent=title;const toggle=document.createElement('button');toggle.type='button';toggle.className='gd-btn';toggle.textContent='−';toggle.setAttribute('aria-expanded','true');toggle.title='Collapse '+title;header.append(name,toggle);
+     const content=document.createElement('div');content.className='gd-ag-full-panel-content';content.append(node);panel.append(header,content);overlay.append(panel);panels.push(panel);
+     toggle.onclick=()=>{content.hidden=!content.hidden;toggle.textContent=content.hidden?'+':'−';toggle.title=(content.hidden?'Expand ':'Collapse ')+title;toggle.setAttribute('aria-expanded',String(!content.hidden));clamp(panel)};
+     let drag=null;header.addEventListener('pointerdown',e=>{if(e.button!==0||e.target.closest('button'))return;const r=panel.getBoundingClientRect();drag={id:e.pointerId,x:e.clientX-r.left,y:e.clientY-r.top};try{header.setPointerCapture(e.pointerId)}catch(_){}e.preventDefault()});header.addEventListener('pointermove',e=>{if(drag?.id!==e.pointerId)return;const b=overlay.getBoundingClientRect();panel.style.left=e.clientX-b.left-drag.x+'px';panel.style.top=e.clientY-b.top-drag.y+'px';clamp(panel)});for(const t of ['pointerup','pointercancel','lostpointercapture'])header.addEventListener(t,()=>{drag=null});
+     if(i&&surface.clientWidth<600)toggle.click();
+   }
+   surface._tt99SetFullBoard=value=>{value=!!value;if(value===active){if(value)resize();return}active=value;box.classList.toggle('gd-ag-full-board',active);box.closest('#gd-stage')?.classList.toggle('gd-ag-full-stage',active);document.documentElement.classList.toggle('gd-ag-full-page',active);
+     if(active){surface.style.cssText='position:absolute;inset:0;width:100%;height:100%;touch-action:none;background:white';overlay=document.createElement('div');overlay.className='gd-ag-lab-toolbar gd-ag-full-tools';box.append(overlay);groups.forEach(makePanel);dock=document.createElement('button');dock.type='button';dock.className='gd-btn gd-ag-full-dock';dock.dataset.agFullPanels='1';dock.textContent='Hide panels';dock.setAttribute('aria-expanded','true');hidden=false;dock.onclick=()=>{hidden=!hidden;panels.forEach(p=>p.hidden=hidden);dock.textContent=hidden?'Show panels':'Hide panels';dock.setAttribute('aria-expanded',String(!hidden));if(!hidden)panels.forEach(clamp)};overlay.append(dock);resize()
+     }else{for(const [,node] of groups)box.insertBefore(node,surface);overlay?.remove();overlay=null;panels=[];dock=null;bounds=null;surface.style.cssText=originalStyle;redraw()}
+   };
+   if(typeof ResizeObserver!=='undefined'){const observer=new ResizeObserver(()=>{if(!surface.isConnected){observer.disconnect();return}resize()});observer.observe(surface)}
+   return {bounds:()=>active?bounds:null,isFull:()=>active,refreshPanels:()=>{panels.forEach((panel,i)=>{if(groups[i][1].hidden)panel.style.display='none';else panel.style.display=''})},style:svg=>{svg.style.cssText=active?'width:100%;height:100%;display:block;max-height:none;max-width:none':'width:100%;height:auto;max-height:620px;display:block'}};
+ }
  function mountCustomGeometry(box,initial,onChange,onExit){
    let st=JSON.parse(JSON.stringify(initial||customInitial())),op='free',placing=null,drag=null,tracing=false,history=[],status='';
    const bar=document.createElement('div');bar.className='gd-ag-inspect-tools';
@@ -1441,7 +1462,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    makeButton(bar,'reset','Reset',()=>{remember();st=customInitial();placing=null;changed(true)});
    const hint=document.createElement('span');hint.className='gd-ag-inspect-message';hint.setAttribute('role','status');bar.append(hint);
    const addBtn=makeButton(panel,'add','Place point',()=>{try{const spec=CUSTOM_OPERATIONS[op],refs=[...fields.querySelectorAll('[data-ag-custom-ref]')].map(e=>e.value),value=Number(fields.querySelector('[data-ag-custom-value]')?.value),branch=Number(fields.querySelector('[data-ag-custom-branch]')?.value)||0;if(refs.some(id=>!id)||new Set(refs).size!==refs.length)throw Error('Choose the required distinct points.');tracing=false;if(spec.place){placing={op,refs,value,branch};status='Tap the workspace to position the point.';paint()}else{remember();customAppend(st,op,refs,{value,branch});placing=null;status='Relationship added.';changed(true)}}catch(e){status=e.message;paint()}});
-   const surface=document.createElement('div');surface.style.cssText='touch-action:none;width:100%;min-width:0';box.replaceChildren(bar,panel,surface);
+   const surface=document.createElement('div');surface.style.cssText='touch-action:none;width:100%;min-width:0';box.replaceChildren(bar,panel,surface);const boardView=dynamicBoard(box,surface,[['Dynamic geometry',bar],['Construction',panel]],()=>customBounds(st),()=>paint());
    function remember(){history.push(JSON.parse(JSON.stringify(st)));if(history.length>60)history.shift()}
    function buildFields(){const previous=[...fields.querySelectorAll('[data-ag-custom-ref]')].map(e=>e.value);fields.replaceChildren();const spec=CUSTOM_OPERATIONS[op];
      function field(label,options,data,index,current){const wrap=document.createElement('label');wrap.style.cssText='display:flex;align-items:center;gap:4px;font-size:11px';wrap.textContent=label;const el=document.createElement('select');el.className='gd-select';el.dataset[data]=index;el.setAttribute('aria-label',label);for(const [v,l] of options){const o=document.createElement('option');o.value=v;o.textContent=l;el.append(o)}if(options.some(x=>String(x[0])===String(current)))el.value=current;wrap.append(el);fields.append(wrap)}
@@ -1452,8 +1473,8 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    }
    select.onchange=()=>{op=select.value;placing=null;tracing=false;status='';buildFields();paint()};
    function changed(rebuild=false){if(rebuild)buildFields();onChange(JSON.parse(JSON.stringify(st)));paint()}
-   function paint(){const {invalid}=customResolve(st);trace.setAttribute('aria-pressed',String(tracing));grid.setAttribute('aria-pressed',String(st.grid));undo.disabled=!history.length;hint.textContent=(tracing?'Tap a point to toggle its trace.':placing?'Tap to position the new point.':status||'Drag green points; dependent dark points follow.')+(invalid.length?' Undefined relationships: '+invalid.join(', ')+'.':'');const svg=diagram({type:'diagram',mode:'loci',locusState:st});svg.style.cssText='width:100%;height:auto;max-height:620px;display:block';surface.replaceChildren(svg)}
-   function locate(e){const svg=surface.querySelector('svg'),m=svg?.getScreenCTM();if(!m)return null;const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(m.inverse());return {p:[locusClamp(p.x,8,792),locusClamp(p.y,8,432)],tol:Math.min(40,24/Math.hypot(m.a,m.b))}}
+   function paint(){const {invalid}=customResolve(st);trace.setAttribute('aria-pressed',String(tracing));grid.setAttribute('aria-pressed',String(st.grid));undo.disabled=!history.length;hint.textContent=(tracing?'Tap a point to toggle its trace.':placing?'Tap to position the new point.':status||'Drag green points; dependent dark points follow.')+(invalid.length?' Undefined relationships: '+invalid.join(', ')+'.':'');const svg=diagram({type:'diagram',mode:'loci',locusState:st},false,{dynamicBounds:boardView.bounds()});boardView.style(svg);surface.replaceChildren(svg)}
+   function locate(e){const svg=surface.querySelector('svg'),m=svg?.getScreenCTM();if(!m)return null;const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(m.inverse());const [x,y,w,h]=svg.getAttribute('viewBox').split(/\s+/).map(Number);return {p:[locusClamp(p.x,x+8,x+w-8),locusClamp(p.y,y+8,y+h-8)],tol:Math.min(40,24/Math.hypot(m.a,m.b))}}
    surface.addEventListener('pointerdown',e=>{if(e.button!==0)return;const hit=locate(e);if(!hit)return;e.preventDefault();const points=customResolve(st).points;
      const nearest=Object.keys(points).sort((a,b)=>labDist(points[a],hit.p)-labDist(points[b],hit.p)).find(n=>labDist(points[n],hit.p)<=hit.tol);
      if(tracing){if(nearest){traceToggle(st,nearest);changed()}return}
@@ -1471,14 +1492,14 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    const choice=document.createElement('select');choice.className='gd-select';choice.setAttribute('aria-label','Locus relationship');choice.dataset.agLocusPreset='1';
    for(const [title,filter] of [['Loci & relationships',k=>!Object.hasOwn(SHAPE_DEFAULTS,k)&&!Object.hasOwn(RELATION_DEFAULTS,k)],['Constrained shapes',k=>Object.hasOwn(SHAPE_DEFAULTS,k)],['Circles & tangents',k=>Object.hasOwn(RELATION_DEFAULTS,k)]]){const group=document.createElement('optgroup');group.label=title;for(const [value,{label}] of Object.entries(LOCUS_PRESETS).filter(([k])=>filter(k))){const o=document.createElement('option');o.value=value;o.textContent=label;group.append(o)}choice.append(group)}const customOption=document.createElement('option');customOption.value='custom';customOption.textContent='Custom construction';choice.append(customOption);choice.value=st.kind;bar.append(choice);
    const button=(id,label,fn)=>{const b=document.createElement('button');b.type='button';b.className='gd-btn';b.dataset.agLocusAction=id;b.textContent=label;b.onclick=fn;bar.append(b);return b};
-   const configure=button('settings','Dimensions',()=>{settingsBar.hidden=!settingsBar.hidden;configure.setAttribute('aria-pressed',String(!settingsBar.hidden))});
+   const configure=button('settings','Dimensions',()=>{settingsBar.hidden=!settingsBar.hidden;configure.setAttribute('aria-pressed',String(!settingsBar.hidden));boardView.refreshPanels()});
    const trace=button('trace','Select trace point',()=>{selecting=!selecting;paint()});
    const mid=button('midpoint','Show midpoint M',()=>{st.showMidpoint=!st.showMidpoint;changed()});
    const guide=button('guide','Reveal locus',()=>{st.showLocus=!st.showLocus;changed()});
    button('clear','Clear traces',()=>{st.traces={};changed()});
    button('reset','Reset',()=>{st=locusInitial(st.kind,st.params);selecting=false;changed()});
    const hint=document.createElement('span');hint.className='gd-ag-inspect-message';hint.setAttribute('role','status');bar.append(hint);
-   const settingsBar=document.createElement('div');settingsBar.className='gd-ag-inspect-tools';settingsBar.hidden=true;const surface=document.createElement('div');surface.style.cssText='touch-action:none;width:100%';box.replaceChildren(bar,settingsBar,surface);
+   const settingsBar=document.createElement('div');settingsBar.className='gd-ag-inspect-tools';settingsBar.hidden=true;const surface=document.createElement('div');surface.style.cssText='touch-action:none;width:100%';box.replaceChildren(bar,settingsBar,surface);const boardView=dynamicBoard(box,surface,[['Dynamic geometry',bar],['Dimensions',settingsBar]],()=>[0,0,800,440],()=>paint());
    function buildSettings(){settingsBar.replaceChildren();const values=locusParameters(st.kind,st.params);for(const [id,label,min,max,step] of LOCUS_PARAMETERS[st.kind]||[]){const wrap=document.createElement('label');wrap.style.cssText='display:flex;align-items:center;gap:6px;font-size:12px';wrap.textContent=label;const input=document.createElement('select');input.className='gd-select';input.style.width='76px';for(let v=min;v<=max+1e-8;v+=step){const option=document.createElement('option');option.value=v;option.textContent=v;input.append(option)}input.value=values[id];input.dataset.agLocusParameter=id;wrap.append(input);settingsBar.append(wrap)}const apply=instrumentButton(settingsBar,'reset','Apply','Apply dimensions and clear previous traces',()=>{const raw=Object.fromEntries([...settingsBar.querySelectorAll('[data-ag-locus-parameter]')].map(e=>[e.dataset.agLocusParameter,e.value]));const params=locusParameters(st.kind,raw),next=locusInitial(st.kind,params);next.showMidpoint=st.showMidpoint;next.showLocus=st.showLocus;next.traceNames=st.traceNames;st=next;buildSettings();changed()},'agLocusAction');apply.dataset.agLocusAction='apply';apply.classList.add('gd-ag-inspect-btn');const note=document.createElement('span');note.className='gd-ag-inspect-message';note.textContent='Applying new dimensions clears old traces.';settingsBar.append(note)}
    choice.onchange=()=>{if(choice.value==='custom'){const next=customInitial();onChange(next);mountLoci(box,next,onChange);return}st=locusInitial(choice.value);selecting=false;buildSettings();changed()};buildSettings();
    function changed(){onChange(JSON.parse(JSON.stringify(st)));paint()}
@@ -1486,7 +1507,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
      trace.setAttribute('aria-pressed',String(selecting));trace.classList.toggle('gd-btn--primary',selecting);configure.hidden=!(LOCUS_PARAMETERS[st.kind]?.length);if(configure.hidden){settingsBar.hidden=true;configure.setAttribute('aria-pressed','false')}guide.hidden=!locusPreset(st.kind,st.params).guides.length;
      mid.textContent=st.showMidpoint?'Hide midpoint M':'Show midpoint M';guide.textContent=st.showLocus?'Hide locus guide':'Reveal locus';
      hint.textContent=selecting?'Tap a moving or dependent point to toggle its trace.':('Drag P to investigate. Tracing: '+(st.traceNames?.join(', ')||'off')+'.');
-     const svg=diagram({type:'diagram',mode:'loci',locusState:st});svg.style.cssText='width:100%;height:auto;max-height:600px;display:block';surface.replaceChildren(svg)
+     if(boardView.isFull())hint.textContent+=' '+locusPreset(st.kind,st.params).summary(st.p)+' · '+locusPreset(st.kind,st.params).rule;const svg=diagram({type:'diagram',mode:'loci',locusState:st},false,{dynamicBounds:boardView.bounds()});boardView.style(svg);surface.replaceChildren(svg);boardView.refreshPanels()
    }
    function locate(e){const svg=surface.querySelector('svg'),m=svg?.getScreenCTM();if(!m)return null;const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(m.inverse());return {p:[p.x,p.y],tol:Math.min(45,28/Math.hypot(m.a,m.b))}}
    surface.addEventListener('pointerdown',e=>{if(e.button!==0)return;const hit=locate(e);if(!hit)return;const pts=locusPoints(st);
