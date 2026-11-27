@@ -3333,6 +3333,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       rotationPanel.querySelector('[data-ag-rotation-next-match]').click();assert(rotationPanel.querySelector('[data-ag-rotation-graphic]').dataset.agRotationMatch==='true'&&Number(rotationSlider.value)===90,'Next matching rotation moves to 90 degrees');
       rotationPanel.querySelector('[data-ag-rotation-reset]').click();assert(Number(rotationSlider.value)===0,'Rotation reset');
       assert(rotationPanel.querySelector('[data-ag-rotation-order]').textContent.includes('360° ÷ 4 = 90°'),'Square order and smallest matching turn are explained');
+      doc.querySelector('[data-ag-teaching-tab="symmetry"]').click();await tick();assert(!rotationPanel.hidden,'Rotation lesson is visible before starting animation');
       rotationPanel.querySelector('[data-ag-rotation-full-turn]').click();
       if(!win.matchMedia('(prefers-reduced-motion: reduce)').matches){for(let j=0;j<40&&Number(rotationSlider.value)!==90;j++)await tick(50);assert(Number(rotationSlider.value)===90&&rotationPanel.querySelector('[data-ag-rotation-graphic]').dataset.agRotationMatch==='true','Full turn pauses at first exact square match')}
       else assert(Number(rotationSlider.value)===360,'Reduced motion completes full revolution directly');
