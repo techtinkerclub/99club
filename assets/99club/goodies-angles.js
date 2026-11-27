@@ -1763,6 +1763,21 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    paint();
  }
 
+// Measurement hosts reuse the canonical geometry task model, diagrams and
+// publication adapter instead of maintaining duplicate angle question families.
+G.angleMeasurement={
+ types:()=>types().filter(t=>['measure','reflex','estimate','estimate-reflex'].includes(t.id)),
+ generate:(type,level,rng=Math.random)=>generate({type,level,mode:'angle'},rng),
+ record:task=>G.publishing.record(ID,'challenge',{...geometry(task),revealed:false},{...settings(task.cfg||{}),type:task.type}),
+ render(task,teacher=false){return paper(this.record(task),teacher)},
+ mount(host,task){
+   const d=geometry(task),teacher=!!task.revealed,measuring=['measure','reflex'].includes(d.type)&&!teacher;
+   const svg=diagram(d,teacher,{scale:teacher&&['measure','reflex'].includes(d.type),measureWorkspace:measuring});
+   svg.style.cssText='width:100%;height:auto;max-height:560px;display:block;margin:auto';host.replaceChildren(svg);
+   if(measuring)mountAngleMeasurement(host,svg,d);
+   return svg;
+ }
+};
 G.anglesTool=function(){
  let cfg=settings(),demo={type:'diagram',mode:'angle',angle:60,rotation:0,scale:true,clockwise:false,n:5,regular:true,length:5,baseLength:6},task=null,workflow='build',attempt=null,attemptLength=null,scope='',status='',draft=null,lab=null,freeLab=null,motionLab=null,locusState=null;
  const snapshot=()=>({...cfg,demo:demoData(),task,workflow,attempt,attemptLength,scope,lab,freeLab,motionLab,locusState,pupil:CK.capturePupil(task)});

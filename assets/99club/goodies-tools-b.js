@@ -1326,7 +1326,7 @@ if(G.publishing)G.publishing.register('measurement',{
  signature:d=>JSON.stringify([d.type,d.challenge.prompt,d.challenge.answer,d.diagram.cm,d.challenge.secondaryCm,d.challenge.targetCm,d.challenge.measurement]),
  recipe:(model,type)=>({type,settings:meSettings(model)}),
  generate(recipe,rng){const ids=meTypes().map(t=>t.id);return meGenerate(recipe.type==='all'?ids[Math.floor(rng()*ids.length)]:recipe.type,recipe.settings,rng)},
- capture(model){const d=meData(model);return [G.publishing.record('measurement',d.challenge?'challenge':'diagram',d,d.challenge?{type:d.type,settings:d.settings}:null)]},
+ capture(model){if(model.challenge?.angleMeasurement)return [G.angleMeasurement.record(model.challenge)];const d=meData(model);return [G.publishing.record('measurement',d.challenge?'challenge':'diagram',d,d.challenge?{type:d.type,settings:d.settings}:null)]},
  answerSummary:item=>item.data.challenge.answer,
  answerGraphic:item=>G.exportTools.withAnswerDiagram(()=>mePaper(item.data,true)),
  answerNote:item=>{const c=item.data.challenge;if(c.measurement)return c.solutionExplanation+' Print at 100%; the pupil reference line must measure 5 cm.';if(c.type==='place-mark')return 'The mark must align with the stated scale division. Judge against the printed tick marks, not a physical ruler.';if(c.type==='distance-between')return 'Find the positive difference between the two readings (larger minus smaller). Accept equivalent working giving the requested unit.';if(c.type==='unit-misconception')return 'Accept equivalent explanations using 1 cm = 10 mm.';return ''},
@@ -1340,12 +1340,13 @@ function measurementTool(){
   const CHALLENGE_CATEGORIES=[
     {id:'read',label:'Read & place'},
     {id:'measure',label:'Measure lines & shapes'},
+    {id:'angle',label:'Measure & estimate angles'},
     {id:'convert',label:'Convert units'},
     {id:'reason',label:'Reasoning'}
   ];
-  const CHALLENGE_TEMPLATES=ME_TEMPLATES;
+  const CHALLENGE_TEMPLATES=[...ME_TEMPLATES,...(G.angleMeasurement?.types()||[]).map(t=>({id:t.id,title:t.label,category:'angle',desc:'Use the same angle challenges as Geometry.'}))];
   let controlTab='explore',challengeTab='standard',challengeCategory='read',challengeType='read-mark',challenge=null,beforeChallenge=null;
-  let exportMode='diagram',responseLines=1,exportStatus='',generationSettings={precision:'tenth',maxCm:30};
+  let exportMode='diagram',responseLines=1,exportStatus='',generationSettings={precision:'tenth',maxCm:30},angleLevel='medium';
 
   function roundCm(value){return Math.round(clamp(Number(value)||0,0,30)*10)/10}
   function maxCm(scale){return scale==='imperial'?IMPERIAL_MAX_CM:30}
@@ -1476,8 +1477,8 @@ function measurementTool(){
     }
     const picker=CK.pickerHtml(CHALLENGE_TEMPLATES,CHALLENGE_CATEGORIES,challengeCategory,challengeType,'me');
     const repeat=!!(challenge&&challenge.mode==='standard'&&challenge.type===challengeType);
-    return tabs+field('Challenge precision','<select id="me-precision" class="gd-select">'+[['tenth','Millimetres (0.1 cm)'],['whole','Whole centimetres']].map(([v,l])=>'<option value="'+v+'"'+(generationSettings.precision===v?' selected':'')+'>'+l+'</option>').join('')+'</select>')+field('Maximum challenge length','<select id="me-max-length" class="gd-select">'+[10,20,30].map(n=>'<option value="'+n+'"'+(generationSettings.maxCm===n?' selected':'')+'>'+n+' cm</option>').join('')+'</select>')+picker+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="me-generate" type="button">'+(repeat?'Another like this':'Generate challenge')+'</button>'+
-      (challenge&&challenge.mode!=='custom'?'<button class="gd-btn" id="me-edit-challenge" type="button">Edit challenge</button>':'')+
+    return tabs+(challengeCategory==='angle'?field('Angle difficulty','<select class="gd-select" id="me-angle-level">'+[['easy','Easy — 15° intervals'],['medium','Medium — 5° intervals'],['hard','Hard — 1° intervals']].map(([v,l])=>'<option value="'+v+'"'+(angleLevel===v?' selected':'')+'>'+l+'</option>').join('')+'</select>'):field('Challenge precision','<select id="me-precision" class="gd-select">'+[['tenth','Millimetres (0.1 cm)'],['whole','Whole centimetres']].map(([v,l])=>'<option value="'+v+'"'+(generationSettings.precision===v?' selected':'')+'>'+l+'</option>').join('')+'</select>')+field('Maximum challenge length','<select id="me-max-length" class="gd-select">'+[10,20,30].map(n=>'<option value="'+n+'"'+(generationSettings.maxCm===n?' selected':'')+'>'+n+' cm</option>').join('')+'</select>'))+picker+'<div class="gd-row"><button class="gd-btn gd-btn--primary" id="me-generate" type="button">'+(repeat?'Another like this':'Generate challenge')+'</button>'+
+      (challenge&&challenge.mode!=='custom'&&!challenge.angleMeasurement?'<button class="gd-btn" id="me-edit-challenge" type="button">Edit challenge</button>':'')+
       (challenge&&challenge.answer?'<button class="gd-btn" id="me-reveal" type="button">'+(challenge.revealed?'Hide answer':'Reveal answer')+'</button>':'')+
       (challenge?'<button class="gd-btn" id="me-clear-challenge" type="button">'+(beforeChallenge?'Back to my setup':'End challenge')+'</button>':'')+'</div>';
   }
@@ -1580,6 +1581,7 @@ function measurementTool(){
     return svg;
   }
   function exportTargetSvg(){
+    if(challenge?.angleMeasurement)return G.angleMeasurement.render(challenge,false);
     if(challenge?.mode==='standard'&&exportMode==='challenge')return mePaper(meData({diagram:snapshot(),challenge,responseLines}));
     if(!challenge)return mePaper(meData({diagram:snapshot(),responseLines}));
     if(exportMode!=='challenge'||!challenge||!X?.composeChallengeCardSvg)return rulerExportSvg({pupil:false});
@@ -1611,6 +1613,7 @@ function measurementTool(){
   function controlsHtml(){return workflowTabs()+(controlTab==='challenge'?challengeControlsHtml():controlTab==='export'?exportControlsHtml():exploreControlsHtml())}
   function renderControls(){const panel=q('#gd-controls');if(panel)panel.innerHTML=controlsHtml();bindControls()}
   function enterCustomChallenge(){
+    if(challenge?.angleMeasurement){clearChallenge();}
     const wasCustom=challenge?.mode==='custom';
     if(!wasCustom&&!beforeChallenge)beforeChallenge=snapshot();
     if(!wasCustom){primaryScale='metric';activeRuler=0;cm=roundCm(cm)}
@@ -1637,7 +1640,7 @@ function measurementTool(){
   function generateChallenge(type){
     const template=CHALLENGE_TEMPLATES.find(t=>t.id===type);if(!template)return;
     if(!beforeChallenge)beforeChallenge=snapshot();else restoreSnapshot(beforeChallenge);
-    const data=meGenerate(type,{generationSettings,responseLines});restoreSnapshot(data.diagram);challenge=CK?CK.normalise(data.challenge):data.challenge;
+    if(template.category==='angle'){const task=G.angleMeasurement.generate(type,angleLevel);challenge=CK.normalise({...task,geometryMode:task.mode,mode:'standard',angleMeasurement:true,category:'angle',answerMode:'manual',revealed:false});}else{const data=meGenerate(type,{generationSettings,responseLines});restoreSnapshot(data.diagram);challenge=CK?CK.normalise(data.challenge):data.challenge;}
     challengeType=type;challengeCategory=template.category;challengeTab='standard';controlTab='challenge';
     exportMode='challenge';responseLines=template.category==='reason'?3:1;exportStatus='';renderControls();draw();
   }
@@ -1765,6 +1768,7 @@ function measurementTool(){
       renderControls();
     });
     qa('[data-me-challenge-type]',controls).forEach(button=>button.onclick=()=>{challengeType=button.dataset.meChallengeType;renderControls()});
+    const angleDifficulty=q('#me-angle-level',controls);if(angleDifficulty)angleDifficulty.onchange=()=>{angleLevel=angleDifficulty.value;renderControls()};
     const precision=q('#me-precision',controls),maximum=q('#me-max-length',controls);if(precision)precision.onchange=()=>{generationSettings.precision=precision.value;renderControls()};if(maximum)maximum.onchange=()=>{generationSettings.maxCm=Number(maximum.value);renderControls()};
     const generate=q('#me-generate',controls);if(generate)generate.onclick=()=>generateChallenge(challengeType);
     const edit=q('#me-edit-challenge',controls);if(edit)edit.onclick=enterCustomChallenge;
@@ -1815,6 +1819,7 @@ function measurementTool(){
     '</section>';
   }
   function draw(){
+    if(challenge?.angleMeasurement){const stage=q('#gd-stage'),pupil=challenge.choices?CK.pupilSpec('choice',{choices:challenge.choices,expected:challenge.answer}):CK.pupilSpec('number');stage.innerHTML=CK.bannerHtml(challenge,{label:'Angle measurement challenge',pupil,actions:[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]})+'<div class="gd-ag-visual" data-me-angle-stage="1"></div>';G.angleMeasurement.mount(q('[data-me-angle-stage]',stage),challenge);bindChallengeStageActions();return}
     updateChallengeAnswer();
     const banner=challenge&&CK?CK.bannerHtml(challenge,{label:'Measurement challenge',pupil:(challenge.type==='place-mark'?CK.pupilSpec('model',{check:()=>Math.abs(cm-challenge.targetCm)<1e-8}):challenge.type==='unit-misconception'?CK.pupilSpec('choice',{choices:['Yes','No'],expected:challenge.answer.startsWith('Yes')?'Yes':'No',explain:true}):CK.pupilSpec('unit',{unit:challenge.type==='cm-to-mm'?'mm':challenge.type==='cm-to-m'?'m':'cm'})),actions:challenge.mode==='standard'?[{action:'another',label:'Another like this'},{action:'end',label:'Back to setup'}]:[{action:'end',label:'End challenge'}]}):'';
     if(challenge?.mode==='standard'&&challenge.measurement){q('#gd-stage').innerHTML=banner+'<div class="gd-vis gd-me-drawing"></div>';mountMeasureDrawing(q('.gd-me-drawing',q('#gd-stage')),challenge);bindChallengeStageActions();return}
@@ -1834,8 +1839,8 @@ function measurementTool(){
   bindControls();
   draw();
   G.publishingLive=()=>{if(challenge&&challenge.mode!=='custom')return null;return G.publishing.captureLiveDiagram(pupil=>pupil?rulerExportSvg({pupil:true}):exploreRulersExportSvg(),challenge,responseLines)};
-  G.lessonState?.register('measurement',()=>({diagram:snapshot(),challenge,beforeChallenge,generationSettings:{...generationSettings},pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
-    restoreSnapshot(saved.diagram);const cfg=meSettings(saved);generationSettings={precision:cfg.precision,maxCm:cfg.maxCm};challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
+  G.lessonState?.register('measurement',()=>({diagram:snapshot(),challenge,beforeChallenge,generationSettings:{...generationSettings},angleLevel,pupil:CK?.capturePupil?.(challenge),controlTab,challengeTab,challengeCategory,challengeType,exportMode,responseLines}),saved=>{
+    restoreSnapshot(saved.diagram);angleLevel=['easy','medium','hard'].includes(saved.angleLevel)?saved.angleLevel:'medium';const cfg=meSettings(saved);generationSettings={precision:cfg.precision,maxCm:cfg.maxCm};challenge=saved.challenge?CK.normalise(saved.challenge):null;beforeChallenge=saved.beforeChallenge||null;
     if(Object.prototype.hasOwnProperty.call(saved,'controlTab'))controlTab=saved.controlTab;
     if(Object.prototype.hasOwnProperty.call(saved,'challengeTab'))challengeTab=saved.challengeTab;
     if(Object.prototype.hasOwnProperty.call(saved,'challengeCategory'))challengeCategory=saved.challengeCategory;

@@ -29,6 +29,7 @@ if(mode==='prepare'){
 <script src="/assets/99club/goodies-abacus.js"></script>
 <script src="/assets/99club/goodies-number-line-v6.js"></script>
 <script src="/assets/99club/goodies-tools-b.js"></script>
+<script src="/assets/99club/goodies-angles.js"></script>
 <script>
 (function(){
   function assert(value,message){if(!value)throw new Error(message)}
@@ -3773,6 +3774,30 @@ if(mode==='prepare'){
     assert(JSON.stringify([...ms.querySelectorAll('[data-me-measure-point]')].map(n=>[n.getAttribute('cx'),n.getAttribute('cy')]))===JSON.stringify(beforePoints),'Free measuring leaves challenge geometry untouched');
     const ticks=ruler().querySelectorAll('[data-me-division]');assert(Number(ticks[1].getAttribute('x1'))-Number(ticks[0].getAttribute('x1'))===4,'Shared independent ruler retains calibrated millimetres');
     document.querySelector('[data-me-free-ruler]').click();assert(!ruler()&&!ms.querySelector('[data-ag-local-instrument]'),'Returning to guided measurement removes free utensil controls');
+    }
+    {
+      const api=TT99Goodies.angleMeasurement,measurement=TT99Goodies.measurePaperModel,pub=TT99Goodies.publishing;
+      assert(api.types().length===4&&api.types().every(t=>!measurement.types().some(m=>m.id===t.id)),'Angle families are shared without duplicating the global measurement catalogue');
+      document.querySelector('[data-me-challenge-cat="angle"]').click();
+      document.querySelector('[data-me-challenge-type="measure"]').click();
+      document.getElementById('me-angle-level').value='hard';document.getElementById('me-angle-level').dispatchEvent(new Event('change',{bubbles:true}));
+      document.getElementById('me-generate').click();
+      const stage=document.querySelector('[data-me-angle-stage]');assert(stage&&stage.querySelector('[data-ag-measure="show"]'),'Measurement angle challenge reuses Geometry protractor workspace');
+      const snapshot=TT99Goodies.lessonState.capture('measurement'),task=snapshot.model.challenge;
+      assert(task.angleMeasurement&&task.type==='measure'&&task.cfg.level==='hard','Measurement angle task retains canonical model and difficulty');
+      const draft=pub.createDocument();draft.addCurrent('measurement',snapshot.model);
+      const item=draft.list()[0];assert(item.tool==='angles'&&item.data.angle===task.angle&&item.recipe.type==='measure','Current angle challenge publishes through original Geometry adapter');
+      const pupil=pub.renderItem(item,false);assert(!pupil.querySelector('[data-ag-measure-overlay]')&&!pupil.querySelector('[data-geometry-instrument]'),'Printed pupil angle has no temporary protractor');
+      assert(pub.answerSummary(item)===task.answer,'Canonical teacher answer agrees with measurement challenge');
+      draft.generate('angles',task.cfg,3,'measure');assert(draft.list().length===4,'Canonical angle batch generation works with the same difficulty');
+      const mix=pub.createDocument();mix.addCurrent('measurement',snapshot.model);mix.generate('measurement',{precision:'tenth',maxCm:10},2,'measure-line');assert(mix.list().length===3&&mix.list().some(x=>x.tool==='angles')&&mix.list().some(x=>x.tool==='measurement'),'Mixed angle and length worksheets retain canonical source IDs');
+      document.getElementById('me-reveal').click();assert(!document.querySelector('[data-ag-measure="show"]'),'Revealed angle removes temporary measuring tools');
+      const revealed=TT99Goodies.lessonState.capture('measurement'),clean=pub.createDocument();clean.addCurrent('measurement',revealed.model);assert(clean.list()[0].data.revealed===false,'Captured revealed angle is reset for pupils');
+      TT99Goodies.lessonState.restore('measurement',snapshot);assert(document.querySelector('[data-me-angle-stage]')&&document.getElementById('me-angle-level').value==='hard','Angle challenge survives saved measurement lesson restore');
+      document.querySelector('[data-me-challenge-type="reflex"]').click();document.getElementById('me-generate').click();assert(TT99Goodies.lessonState.capture('measurement').model.challenge.angle>180,'Reflex task uses canonical reflex generator');
+      document.querySelector('[data-me-challenge-type="estimate"]').click();document.getElementById('me-generate').click();assert(TT99Goodies.lessonState.capture('measurement').model.challenge.choices.length>1&&!document.querySelector('[data-ag-measure="show"]'),'Estimation does not offer a measuring shortcut');
+      document.getElementById('me-clear-challenge').click();assert(!document.querySelector('[data-me-angle-stage]'),'Exiting an angle challenge restores ruler setup');
+
     }
 
 
