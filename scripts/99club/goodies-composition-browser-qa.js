@@ -1131,6 +1131,18 @@ async function run(){
         const t=model.generate({type,enrichment:true}),base=methods.find(m=>m.id===model.CONSTRUCTION_METHODS_BY_TASK[type]),m=model.challengeConstructionMethod(base,t),sol=model.labSolution(t),end=model.constructionFrame(m,m.steps.length-1),pts=Object.fromEntries(end.filter(o=>o.kind==='point').map(o=>[o.label,o.at])),dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
         assert(m.challengeSpecific&&m.steps.length===m.graphics.frames.length&&model.constructionMethodGraphic(m,m.steps.length-1).outerHTML.indexOf('NaN')===-1,'Challenge-specific vector stages render: '+type);
         assert(dist(pts.A,pts.B)===240,'Challenge baseline remains exactly 6 cm: '+type);
+        const expected=[],cm=v=>Number(v.toFixed(3))+' cm',deg=v=>Number(v.toFixed(3))+'°';
+        if(type==='build-circle')expected.push('Centre A','Radius = '+cm(t.length));else expected.push('AB = 6 cm');
+        if(['shape-build','build-right','build-perpendicular','build-sss','build-equilateral'].includes(type))expected.push('AC = '+cm(t.length));
+        if(['build-sss','build-equilateral'].includes(type))expected.push('BC = '+cm(t.rightLength));
+        if(['build-right','build-perpendicular'].includes(type))expected.push('Angle BAC = 90°');
+        if(type==='shape-build'||type==='build-asa')expected.push('Angle BAC = '+deg(t.angle));
+        if(type==='build-asa')expected.push('Angle ABC = '+deg(t.rightAngle));
+        if(['build-square','build-rectangle'].includes(type))expected.push('BC = '+cm(t.length),'Four right angles');
+        if(type==='build-rhombus')expected.push('All four sides = 6 cm','Angle BAD = '+deg(t.angle));
+        assert(JSON.stringify(m.given)===JSON.stringify(expected)&&m.objective===t.prompt,'Method givens and task prompt agree: '+type);
+        if(type==='build-midpoint'||type==='build-bisector')assert(m.title===(type==='build-midpoint'?'Construct the midpoint of AB':'Construct the perpendicular bisector of AB'),'Shared technique has challenge-specific title');
+        assert(model.labCheck(sol,t).correct,'Contextual method uses an assessed valid solution: '+type);
         if(type==='build-circle')assert(end.some(o=>o.kind==='circle'&&o.radius===40*t.length),'Guide circle has task radius');
         if(type==='build-midpoint'||type==='build-bisector')assert(dist(pts.A,pts.M)===120&&dist(pts.B,pts.M)===120,'Guide midpoint exact');
         if(pts.C&&type!=='build-bisector')assert(dist(pts.C,sol.points[2])<1e-7,'Guide C matches assessed solution');
