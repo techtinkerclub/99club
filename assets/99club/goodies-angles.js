@@ -1206,6 +1206,41 @@ function generate(s={},rng=Math.random){
    formulas.push(['Lengths','Model centimetres; display may be rescaled.']);
    return {valid:true,kind,points:pts,n,area,perimeter,symmetry:sym,polygon:p,quad,groups:[{title:'Properties & angles',rows:properties},{title:'Diagonals & triangulation',rows:diagonals},{title:'Formulae & example values',rows:formulas}]};
  }
+ // Exact area-preserving demonstrations on the current shape.
+ function shapeAreaProof(m){
+   if(!m?.valid)return null;
+   const n=m.n,kind=n===3?'triangle':m.quad?.kind;
+   if(!['triangle','Parallelogram','Rhombus','Trapezium'].includes(kind))return null;
+   const original=m.points;
+   let i=n===4&&!m.quad.parallelPairs.includes(0)?1:0;
+   if(n===4&&m.quad.parallelPairs.length===2&&labDist(original[(i+1)%4],original[(i+2)%4])>labDist(original[i],original[(i+1)%4]))i=(i+1)%4;
+   const pts=Array.from({length:n},(_,j)=>original[(i+j)%n]),origin=pts[0],edge=labSub(pts[1],origin),b=Math.hypot(...edge),u=edge.map(x=>x/b),normal=[-u[1],u[0]],sign=Math.sign(labDot(labSub(pts[2],origin),normal));
+   let p=pts.map(q=>[labDot(labSub(q,origin),u),sign*labDot(labSub(q,origin),normal)]);
+   p[0]=[0,0];p[1]=[b,0];const h=p[2][1],eps=1e-8*Math.max(b,h);
+   if(h<=eps)return null;
+   const fmt=x=>Number((x/LAB_UNIT).toFixed(2)).toString(),area=x=>Number((x/(LAB_UNIT*LAB_UNIT)).toFixed(2)).toString(),originalArea=polygonArea(p);
+   if(kind==='Parallelogram'||kind==='Rhombus'){
+     if(p[3][0]<0)p=[p[1],p[0],p[3],p[2]].map(q=>[b-q[0],q[1]]);
+     const s=p[3][0];if(s<-eps||s>b+eps)return null;
+     const A=p[0],B=p[1],C=p[2],D=p[3],F=[s,0],cut=[A,F,D],rest=[F,B,C,D],moved=cut.map(q=>[q[0]+b,q[1]]),target=[F,[b+s,0],[b+s,h],D];
+     return {kind:'parallelogram',base:b,height:h,originalArea,finalArea:polygonArea(target),copies:1,target,steps:[
+       {pieces:[p],note:'Start with the parallelogram. Identify the base and perpendicular height.'},
+       {pieces:[rest,cut],note:'Cut along the perpendicular height to separate a triangular piece.'},
+       {pieces:[rest,moved],outline:target,note:'Slide the triangle across. The same pieces form a rectangle: A = b × h = '+area(originalArea)+' cm².'}]};
+   }
+   // Half-turn about the midpoint of the right sloping edge: the two
+   // congruent copies share that edge and form one parallelogram.
+   const C=p[2],B=p[1],mirror=q=>[B[0]+C[0]-q[0],B[1]+C[1]-q[1]],copy=p.map(mirror),shift=Math.max(...p.map(q=>q[0]))-Math.min(...p.map(q=>q[0]))+b*.24,apart=copy.map(q=>[q[0]+shift,q[1]]);
+   const target=n===3?[p[0],copy[0],C,B]:[p[0],copy[3],copy[0],p[3]];
+   // Boundary for triangle is A, B-copy(A), C? The shared edge B–C
+   // is internal; outer boundary runs A,B,copy(A),C.
+   const outer=n===3?[p[0],B,copy[0],C]:[p[0],copy[3],copy[0],p[3]];
+   const top=n===3?b:labDist(p[2],p[3]),sum=n===3?b:b+top;
+   return {kind:n===3?'triangle':'trapezium',base:b,otherBase:top,height:h,originalArea,finalArea:polygonArea(outer),copies:2,target:outer,steps:[
+     {pieces:[p],note:'Start with one '+kind.toLowerCase()+'. Identify its parallel base'+(n===3?'':'s')+' and perpendicular height.'},
+     {pieces:[p,apart],note:'Make an identical copy and turn it through 180°.'},
+     {pieces:[p,copy],outline:outer,note:'Fit the two identical shapes together. The parallelogram has base '+fmt(sum)+' cm and height '+fmt(h)+' cm. Half its area gives '+(n===3?'A = ½bh':'A = ½(a + b)h')+' = '+area(originalArea)+' cm².'}]};
+ }
  function shapeGeometry(d){
    const shape=d.shapeView,w=300,h=shape==='square'?300:Math.max(90,Math.min(280,d.shapeHeight||180)),theta=shape==='rectangle'||shape==='square'?90:Math.max(25,Math.min(85,d.shapeAngle||65)),base=shape==='scalene'?Math.max(20,Math.min(48,d.shapeBaseAngle||40)):Math.max(20,Math.min(75,d.shapeBaseAngle||50));
    if(shape==='trapezium')return [[0,0],[300,0],[240,-h],[65,-h]];
@@ -1445,7 +1480,7 @@ function generate(s={},rng=Math.random){
    }finally{n.at=p.slice()}
    return true;
  }
- const model={shapeTeachingReference,shapeSymmetry,transversalModel,protractorReading,utensilAlignment,squareGeometry,isLabArc,labArcContains,labCircleExtents,labContentBounds,locusFitBounds,customBounds,fitGeometryBounds,INDEPENDENT_METHOD_DIMENSIONS,INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labLineMarks,labSetLineMark,labAngleAnnotation,labSameAngle,labAngleArms,labAngleSectors,labAnglePair,labSectorMark,labSectorPreview,labDimensionText,labRulerTargets,labIndependentDimensions,labSquareBaseReferences,labSquareComparison,labParallelMarkPlan,labSquareSlideSnap,labMeasurementTarget,labApplyMeasurement,labAngleText,labProtractorDirection,labAngleGraphics,labAnnotationPlan,boxesOverlap,labelBox,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labRayDefinition,labAbsoluteRay,labDirectRay,labReferenceArm,labRelativeRay,labDetachReferences,labStraightEnds,rayEnd,labLabel,labPointText,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,datumState,datumCoordinates,datumPoint,datumSnap,datumDirection,datumGridStart,datumGraphic,locusInitial,locusProject,locusPoints,locusTraceMove,traceParts,traceAdd,traceToggle,shapeGeometry,freeTrianglePoints,triangleComparison,triangleComparisonResult,triangleCriterion,TRIANGLE_CRITERIA,triangleInequality,inequalitySettings,triangleProperties,triangleCentres,eulerLineModel,quadrilateralProperties,freeQuadrilateralPoints,circleInvestigation,circleInvestigationMove,CIRCLE_VIEWS,polygonProperties,freePolygonPoints,polygonInvestigationExamples,polygonInvestigationTurns,QUAD_REASONING,quadReasoningPoints,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labIntersections,labIntersectionSettings,labNewIntersections,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
+ const model={shapeAreaProof,shapeTeachingReference,shapeSymmetry,transversalModel,protractorReading,utensilAlignment,squareGeometry,isLabArc,labArcContains,labCircleExtents,labContentBounds,locusFitBounds,customBounds,fitGeometryBounds,INDEPENDENT_METHOD_DIMENSIONS,INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labLineMarks,labSetLineMark,labAngleAnnotation,labSameAngle,labAngleArms,labAngleSectors,labAnglePair,labSectorMark,labSectorPreview,labDimensionText,labRulerTargets,labIndependentDimensions,labSquareBaseReferences,labSquareComparison,labParallelMarkPlan,labSquareSlideSnap,labMeasurementTarget,labApplyMeasurement,labAngleText,labProtractorDirection,labAngleGraphics,labAnnotationPlan,boxesOverlap,labelBox,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labRayDefinition,labAbsoluteRay,labDirectRay,labReferenceArm,labRelativeRay,labDetachReferences,labStraightEnds,rayEnd,labLabel,labPointText,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,datumState,datumCoordinates,datumPoint,datumSnap,datumDirection,datumGridStart,datumGraphic,locusInitial,locusProject,locusPoints,locusTraceMove,traceParts,traceAdd,traceToggle,shapeGeometry,freeTrianglePoints,triangleComparison,triangleComparisonResult,triangleCriterion,TRIANGLE_CRITERIA,triangleInequality,inequalitySettings,triangleProperties,triangleCentres,eulerLineModel,quadrilateralProperties,freeQuadrilateralPoints,circleInvestigation,circleInvestigationMove,CIRCLE_VIEWS,polygonProperties,freePolygonPoints,polygonInvestigationExamples,polygonInvestigationTurns,QUAD_REASONING,quadReasoningPoints,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labIntersections,labIntersectionSettings,labNewIntersections,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
 if(typeof module==='object'&&module.exports){module.exports=model;return}
 const G=root.TT99Goodies;if(!G)return;G.angles=model;
 const {q,qa,esc,field,btn,setPanels}=G,CK=G.challengeKit;
@@ -2026,6 +2061,26 @@ function shapeReferenceGraphic(m,kind){
  }
  return svg;
 }
+function areaProofGraphic(proof,index){
+ const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),step=proof.steps[index],W=480,H=230;
+ const all=proof.steps.flatMap(s=>s.pieces.flat()),xs=all.map(q=>q[0]),ys=all.map(q=>q[1]),minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys),scale=Math.min(410/(maxX-minX),150/(maxY-minY)),map=q=>[240+(q[0]-(minX+maxX)/2)*scale,101-(q[1]-(minY+maxY)/2)*scale];
+ const add=(tag,attrs,value)=>{const el=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,v);if(value!=null)el.textContent=value;svg.append(el);return el};
+ const poly=(pts,attrs)=>add('polygon',{points:pts.map(q=>map(q).join(',')).join(' '),...attrs});
+ svg.setAttribute('viewBox','0 0 '+W+' '+H);svg.dataset.agAreaProofGraphic=String(index);svg.setAttribute('role','img');svg.setAttribute('aria-label',step.note);
+ add('rect',{width:W,height:H,fill:'#fff'});
+ step.pieces.forEach((piece,i)=>poly(piece,{fill:i?'#f3d9a8':'#d9eee6',stroke:i?'#a56a2e':'#277b70','stroke-width':2,'data-ag-proof-piece':i}));
+ if(step.outline)poly(step.outline,{fill:'none',stroke:'#27494c','stroke-width':2,'stroke-dasharray':'5 3','data-ag-proof-outline':'1'});
+ const a=map([0,0]),b=map([proof.base,0]);if(index===0){add('line',{x1:a[0],y1:a[1]+9,x2:b[0],y2:b[1]+9,stroke:'#277b70','stroke-width':2});add('text',{x:(a[0]+b[0])/2,y:a[1]+24,'text-anchor':'middle',fill:'#27494c','font-size':13},'base');const h=map([0,proof.height]);add('line',{x1:a[0]-10,y1:a[1],x2:h[0]-10,y2:h[1],stroke:'#a56a2e','stroke-dasharray':'4 3','stroke-width':2});add('text',{x:a[0]-15,y:(a[1]+h[1])/2,'text-anchor':'end',fill:'#a56a2e','font-size':13},'h')}
+ add('text',{x:240,y:217,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':16,'font-weight':700,fill:'#27494c'},index===2?'Same area per copy: '+Number((proof.originalArea/(LAB_UNIT*LAB_UNIT)).toFixed(2))+' cm²':'Step '+(index+1)+' of 3');
+ return svg;
+}
+function mountAreaProof(container,proof,demo){
+ let index=Math.max(0,Math.min(2,Math.round(Number(demo.areaProofStep)||0)));
+ const section=document.createElement('section');section.className='gd-ag-area-proof';section.dataset.agAreaProof='1';
+ section.innerHTML='<h4>Why the area formula works</h4><div data-ag-proof-picture></div><p data-ag-proof-note aria-live="polite"></p><div class="gd-row"><button type="button" class="gd-btn" data-ag-proof-back>Previous</button><strong data-ag-proof-count></strong><button type="button" class="gd-btn" data-ag-proof-next>Next step</button><button type="button" class="gd-btn" data-ag-proof-reset>Restart</button></div>';
+ const show=()=>{demo.areaProofStep=index;section.querySelector('[data-ag-proof-picture]').replaceChildren(areaProofGraphic(proof,index));section.querySelector('[data-ag-proof-note]').textContent=proof.steps[index].note;section.querySelector('[data-ag-proof-count]').textContent=(index+1)+' / 3';section.querySelector('[data-ag-proof-back]').disabled=index===0;section.querySelector('[data-ag-proof-next]').disabled=index===2};
+ section.querySelector('[data-ag-proof-back]').onclick=()=>{index=Math.max(0,index-1);show()};section.querySelector('[data-ag-proof-next]').onclick=()=>{index=Math.min(2,index+1);show()};section.querySelector('[data-ag-proof-reset]').onclick=()=>{index=0;show()};container.appendChild(section);show();
+}
 function appendShapeReference(svg,d){
  const m=shapeTeachingReference(d);if(!m?.valid||d.showReference===false)return svg;
  const ns='http://www.w3.org/2000/svg',view=svg.getAttribute('viewBox').split(/\\s+/).map(Number),[x,y,w,h]=view;let at=y+h+20;
@@ -2041,6 +2096,7 @@ function appendShapeReference(svg,d){
    }
    at+=12;
  }
+ const proof=shapeAreaProof(m);if(proof){add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size+2,'font-weight':700,fill:'#285c55'},'Why the area formula works');at+=size+12;for(let i=0;i<proof.steps.length;i++){const g=areaProofGraphic(proof,i),gw=Math.min(w-40,480),gh=gw*230/480;g.setAttribute('x',x+(w-gw)/2);g.setAttribute('y',at);g.setAttribute('width',gw);g.setAttribute('height',gh);svg.append(g);at+=gh+6;for(const line of G.exportTools.wrapPaperText(proof.steps[i].note,w-2*margin,size,400)){add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size,fill:'#263e43'},line);at+=size*1.32}at+=12}}
  bg.setAttribute('height',at-y-h+10);svg.setAttribute('viewBox',[x,y,w,at-y+10].join(' '));return svg;
 }
 function paper(item,teacher){if(item.data.constructionMethod)return methodPublication(item.data,teacher);const d=geometry(item.data);if(item.kind==='diagram')return appendShapeReference(diagram(d,true,{scale:d.scale,paper:true}),d);let prompt=d.prompt;if(['measure','reflex'].includes(d.type))prompt+=' Use your own protractor.';if(inspectTypes.includes(d.type))prompt+=' You may use a ruler or protractor to investigate the diagram.';if(labTypes.includes(d.type))prompt=(d.type==='build-circle'?'Mark centre A in the working space. ':'Draw AB = 6 cm first using your ruler. ')+prompt+' Use your geometry set in the working space.';if(d.choices)prompt+=' Choices: '+d.choices.join(' / ')+'.';return G.exportTools.composeWorksheetCardSvg(diagram(d,teacher,{paper:true,scale:teacher&&['measure','reflex','draw','draw-reflex'].includes(d.type)}),{title:'Angles & geometry',prompt,responseMode:(['draw','draw-reflex'].includes(d.type)||labTypes.includes(d.type))?'none':d.choices?'lines':'box',responseLines:1,responseLabel:'Answer',paperStyle:'plain',printDiagramScale:labTypes.includes(d.type)?null:['draw','draw-reflex','measure','reflex'].includes(d.type)?1.55:1.05,diagramMaxHeight:labTypes.includes(d.type)?830:380,answer:d.answer,showAnswer:teacher})}
@@ -2922,7 +2978,7 @@ G.anglesTool=function(){
    },
    set(value){
      const row=topicRows.find(t=>t.value===value);if(!row||task)return false;
-     workflow='build';demo.mode=cfg.mode=row.mode;
+     workflow='build';demo.areaProofStep=0;demo.mode=cfg.mode=row.mode;
      if(row.mode==='construct')demo.freeLab=true;
      if(row.mode==='polygon'&&!value.startsWith('centre:')){demo.showMedians=false;demo.triangleCentre='none'}
      Object.assign(demo,row.extra);render();return true;
@@ -2981,6 +3037,7 @@ G.anglesTool=function(){
     if(!m?.valid){body.innerHTML='<p>Move the vertices to form a simple, non-degenerate polygon before inspecting its properties.</p>';return}
     body.innerHTML=m.groups.map(g=>'<section><h4>'+esc(g.title)+'</h4><dl>'+g.rows.map(([label,value])=>'<dt>'+esc(label)+'</dt><dd>'+esc(value)+'</dd>').join('')+'</dl></section>').join('');
     [...body.querySelectorAll('section')].forEach((section,i)=>section.insertBefore(shapeReferenceGraphic(m,['symmetry','diagonals','area'][i]),section.querySelector('dl')));
+    const proof=shapeAreaProof(m);if(proof)mountAreaProof(body,proof,demo);
   }
   // Capture on the persistent wrapper: the SVG may be replaced on every
   // snapped degree, but pointer capture and the coordinate transform survive.

@@ -3239,6 +3239,21 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(doc.querySelector('.gd-ag-shape-reference').querySelectorAll('[data-ag-reflection-axis]').length===4,'Square reference shows four axes, not rectangle defaults');
       assert(win.TT99Goodies.modeControl.set('polygon:free-polygon'),'Free polygon visual reference accessible');await tick();
       assert(doc.querySelector('.gd-ag-shape-reference').querySelectorAll('[data-ag-reference-triangle]').length===cap().demo.n-2,'Polygon reference shows actual ear-clipped triangulation');
+      for(const shape of ['equilateral','isosceles','scalene','right-triangle','parallelogram','rhombus','trapezium']){
+        const m=ref(shape),proof=M.shapeAreaProof(m);assert(proof&&Math.abs(proof.originalArea/1600-m.area)<1e-7,'Area proof starts from actual model: '+shape);
+        assert(Math.abs(proof.finalArea-proof.originalArea*proof.copies)<1e-6,'Area proof preserves exact area: '+shape);
+        const area=pts=>Math.abs(pts.reduce((sum,p,i)=>sum+p[0]*pts[(i+1)%pts.length][1]-p[1]*pts[(i+1)%pts.length][0],0))/2;
+        assert(Math.abs(proof.steps[2].pieces.reduce((s,p)=>s+area(p),0)-proof.finalArea)<1e-6,'Final proof pieces have expected area: '+shape);
+        const v=proof.target.map((p,i)=>p.map((x,k)=>proof.target[(i+1)%4][k]-x));
+        assert(Math.hypot(v[0][0]+v[2][0],v[0][1]+v[2][1])<1e-6&&Math.hypot(v[1][0]+v[3][0],v[1][1]+v[3][1])<1e-6,'Final boundary is a parallelogram: '+shape);
+      }
+      assert(win.TT99Goodies.modeControl.set('polygon:parallelogram'),'Parallelogram proof accessible');await tick();
+      const proofPanel=doc.querySelector('[data-ag-area-proof]');assert(proofPanel?.querySelector('[data-ag-proof-next]'),'Area proof has visible step controls');
+      proofPanel.querySelector('[data-ag-proof-next]').click();proofPanel.querySelector('[data-ag-proof-next]').click();
+      assert(proofPanel.querySelector('[data-ag-proof-outline]')&&proofPanel.querySelector('[data-ag-proof-next]').disabled,'Area proof reaches completed dissection');
+      proofPanel.querySelector('[data-ag-proof-reset]').click();assert(proofPanel.querySelector('[data-ag-proof-back]').disabled,'Area proof restarts');
+      const proofPack=P.createDocument();proofPack.addCurrent(id,cap());assert(P.renderItem(proofPack.list()[0],false).querySelectorAll('[data-ag-area-proof-graphic]').length===3,'All proof stages included in print');
+
 
     }
     const circleMode=doc.getElementById('ag-mode');circleMode.value='circle';circleMode.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
