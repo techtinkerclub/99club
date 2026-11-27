@@ -2660,7 +2660,7 @@ html.gd-embed-page #tt99-goodies-root #gd-stage:has(>.gd-ag-shape-reference){ove
   #tt99-goodies-root [data-ag-shape-reference-body][data-ag-teaching-active="symmetry"] svg{max-height:clamp(135px,36vh,340px);width:100%;object-fit:contain}
   #tt99-goodies-root [data-ag-shape-reference-body]:not([data-ag-teaching-active="properties"]):not([data-ag-teaching-active="symmetry"])>section:not([hidden]){display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);column-gap:16px;row-gap:6px;align-content:start;align-items:start}
   #tt99-goodies-root [data-ag-shape-reference-body]:not([data-ag-teaching-active="properties"]):not([data-ag-teaching-active="symmetry"])>section> *{grid-column:2;min-width:0}
-  #tt99-goodies-root [data-ag-shape-reference-body]:not([data-ag-teaching-active="properties"]):not([data-ag-teaching-active="symmetry"])>section>:is([data-ag-angle-sum-picture],[data-ag-proof-picture],[data-ag-basic-area-picture],[data-ag-family-primary],[data-ag-triangle-family-primary],[data-ag-pythagoras-squares-picture],[data-ag-shape-measure-picture],[data-ag-area-comparison-picture],[data-ag-reasoning-picture]){grid-column:1;grid-row:1/span var(--gd-ag-lesson-rows,5);align-self:center;min-width:0}
+  #tt99-goodies-root [data-ag-shape-reference-body]:not([data-ag-teaching-active="properties"]):not([data-ag-teaching-active="symmetry"])>section>:is([data-ag-angle-sum-picture],[data-ag-proof-picture],[data-ag-basic-area-picture],[data-ag-family-primary],[data-ag-triangle-family-primary],[data-ag-pythagoras-squares-picture],[data-ag-shape-measure-picture],[data-ag-area-comparison-picture],[data-ag-reasoning-picture],[data-ag-transformation-picture]){grid-column:1;grid-row:1/span var(--gd-ag-lesson-rows,5);align-self:center;min-width:0}
   #tt99-goodies-root [data-ag-shape-reference-body]:not([data-ag-teaching-active="properties"]):not([data-ag-teaching-active="symmetry"])>section>div>svg{width:100%;max-height:clamp(170px,55vh,480px);object-fit:contain;display:block;margin:auto}
   #tt99-goodies-root [data-ag-shape-reference-body] section>details[open]{grid-column:1/-1}
   #tt99-goodies-root [data-ag-shape-reference-body] section>details[open] svg{max-height:clamp(130px,38vh,320px)}
@@ -2723,7 +2723,7 @@ html.gd-embed-page #tt99-goodies-root #gd-stage:has(>.gd-ag-shape-reference){ove
   html.gd-embed-page #tt99-goodies-root #gd-stage:has(>[data-ag-teaching-screen="explore"])>.gd-ag-visual>svg{flex:1 1 0;min-height:0;width:100%!important;height:100%!important;max-height:none!important;max-width:none!important;margin:0!important}
   #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]:not([hidden]):not(:has(>details[data-ag-lesson-detail="page"][open])){display:grid!important;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);grid-template-rows:auto auto;gap:8px 22px;align-items:center;align-content:start}
   #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]>[data-ag-lesson-copy]{grid-column:2;grid-row:1;align-self:center}
-  #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]>:is([data-ag-angle-sum-picture],[data-ag-proof-picture],[data-ag-basic-area-picture],[data-ag-family-primary],[data-ag-triangle-family-primary],[data-ag-pythagoras-squares-picture],[data-ag-shape-measure-picture],[data-ag-area-comparison-picture],[data-ag-reasoning-picture]){grid-column:1;grid-row:1/span 2;align-self:center}
+  #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]>:is([data-ag-angle-sum-picture],[data-ag-proof-picture],[data-ag-basic-area-picture],[data-ag-family-primary],[data-ag-triangle-family-primary],[data-ag-pythagoras-squares-picture],[data-ag-shape-measure-picture],[data-ag-area-comparison-picture],[data-ag-reasoning-picture],[data-ag-transformation-picture]){grid-column:1;grid-row:1/span 2;align-self:center}
   #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]>details{grid-column:2;grid-row:2;align-self:start}
   #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]:not(:has(>details))>[data-ag-lesson-copy]{grid-row:1/span 2}
   #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson] svg{max-height:clamp(150px,49vh,430px)}
@@ -2737,7 +2737,7 @@ html.gd-embed-page #tt99-goodies-root #gd-stage:has(>.gd-ag-shape-reference){ove
   #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]:has(>[data-ag-lesson-header]):not([hidden]):not(:has(>details[data-ag-lesson-detail="page"][open])){grid-template-rows:auto auto auto;row-gap:4px}
   #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]>[data-ag-lesson-header]{grid-column:1/-1;grid-row:1}
   #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]:has(>[data-ag-lesson-header])>[data-ag-lesson-copy]{grid-row:2;grid-column:2}
-  #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]:has(>[data-ag-lesson-header])>:is([data-ag-angle-sum-picture],[data-ag-proof-picture],[data-ag-basic-area-picture],[data-ag-pythagoras-squares-picture],[data-ag-shape-measure-picture],[data-ag-family-primary],[data-ag-triangle-family-primary],[data-ag-area-comparison-picture],[data-ag-reasoning-picture]){grid-row:2/span 2;grid-column:1}
+  #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]:has(>[data-ag-lesson-header])>:is([data-ag-angle-sum-picture],[data-ag-proof-picture],[data-ag-basic-area-picture],[data-ag-pythagoras-squares-picture],[data-ag-shape-measure-picture],[data-ag-family-primary],[data-ag-triangle-family-primary],[data-ag-area-comparison-picture],[data-ag-reasoning-picture],[data-ag-transformation-picture]){grid-row:2/span 2;grid-column:1}
   #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]:has(>[data-ag-lesson-header])>details{grid-row:3}
   #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]:has(>[data-ag-lesson-header]):not(:has(>details))>[data-ag-lesson-copy]{grid-row:2/span 2}
   #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]:has(>[data-ag-lesson-header]) svg{max-height:clamp(140px,45vh,390px)}
@@ -2828,3 +2828,21 @@ html.gd-embed-page #tt99-goodies-root #gd-stage>[data-ag-circle-explorer]>svg{
 #tt99-goodies-root [data-ag-measure-manual]{font-size:.85em;margin:0}
 #tt99-goodies-root [data-ag-measure-manual]>summary{cursor:pointer;color:#175e55}
 #tt99-goodies-root [data-ag-lesson-header]{border-bottom:1px solid #d2e2de;padding-bottom:4px}
+
+/* Transformations use the same landscape lesson shell as area and angle proofs. */
+#tt99-goodies-root [data-ag-transformation-picture]{width:100%;min-width:0;touch-action:none}
+#tt99-goodies-root [data-ag-transformation-picture]>svg{display:block;width:100%;height:auto;margin:auto}
+#tt99-goodies-root [data-ag-transformation-reference] [data-ag-lesson-copy]{display:grid;gap:7px;min-width:0;align-content:center}
+#tt99-goodies-root [data-ag-transformation-reference] [data-ag-transform-modes]{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+#tt99-goodies-root [data-ag-transform-modes] .gd-btn{padding:5px 6px;line-height:1.2;min-height:32px;font-size:clamp(12px,1.2vw,15px)}
+#tt99-goodies-root [data-ag-transform-controls]{display:grid;gap:5px}
+#tt99-goodies-root [data-ag-transform-controls] label{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 8px;font-size:13px;font-weight:700;line-height:1.2}
+#tt99-goodies-root [data-ag-transform-controls] input{grid-column:1/-1;width:100%;margin:0;accent-color:#277b70}
+#tt99-goodies-root [data-ag-transform-controls] output{font-variant-numeric:tabular-nums;color:#277b70}
+#tt99-goodies-root [data-ag-transformation-reference] p{min-height:0;margin:0;font-size:13px;line-height:1.25}
+#tt99-goodies-root [data-ag-transform-action]{font-weight:800;color:#285c55}
+#tt99-goodies-root [data-ag-transform-reset]{justify-self:start;padding:4px 10px;font-size:13px}
+@media(min-width:800px) and (min-height:480px) and (orientation:landscape){
+  #tt99-goodies-root [data-ag-transformation-reference] [data-ag-lesson-copy]{gap:5px}
+  #tt99-goodies-root [data-ag-transformation-reference] [data-ag-transform-controls]{gap:3px}
+}
