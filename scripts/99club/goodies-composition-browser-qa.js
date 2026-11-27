@@ -2672,6 +2672,24 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         for(const item of pack.list()){const pupil=P.renderItem(item,false),key=P.answerGraphic(item),selector=type==='triangle-angle-type'?'[data-ag-triangle-classification]':'[data-ag-centroid-rule]';assert(!pupil.querySelector(selector)&&key.querySelector(selector),'New triangle family has separate pupil and teacher vector graphics: '+type)}
       }
     }
+    {
+      const M=win.TT99Goodies.angles,dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]),sub=(a,b)=>[a[0]-b[0],a[1]-b[1]],dot=(a,b)=>a[0]*b[0]+a[1]*b[1],cross=(a,b)=>a[0]*b[1]-a[1]*b[0];
+      for(const [a,b] of [[60,60],[40,65],[30,40],[30,60],[20,65]])for(const rotation of [0,47,155])for(const scale of [0.5,2]){
+        const angle=rotation*Math.PI/180,pts=M.trianglePoints(a,b).map(([x,y])=>[100+scale*(x*Math.cos(angle)-y*Math.sin(angle)),80+scale*(x*Math.sin(angle)+y*Math.cos(angle))]),p=M.triangleCentres(pts);
+        assert(p&&pts.every(q=>Math.abs(dist(q,p.circumcentre)-p.circumradius)<1e-7),'Circumcentre is equidistant from all vertices');
+        for(let i=0;i<3;i++){const edge=sub(pts[(i+2)%3],pts[(i+1)%3]);assert(Math.abs(dot(sub(p.contacts[i],p.incentre),edge))<1e-6&&Math.abs(dist(p.contacts[i],p.incentre)-p.inradius)<1e-7,'Incircle touches all sides perpendicularly');assert(Math.abs(dot(sub(p.orthocentre,pts[i]),edge))<1e-6,'Orthocentre lies on all altitude lines');assert(Math.abs(cross(sub(p.bisectorFeet[i],pts[i]),sub(p.incentre,pts[i])))<1e-6,'Incentre lies on all angle bisectors')}
+      }
+      assert(M.triangleCentres([[0,0],[10,0],[20,0]])===null,'Collinear triangle has no finite centres');
+      for(const kind of ['circumcentre','incentre','orthocentre']){
+        const control=doc.querySelector('#ag-triangle-centre');control.value=kind;control.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
+        const svg=doc.querySelector('.gd-ag-visual svg');assert(svg.querySelector('[data-ag-triangle-centre="'+kind+'"]')&&svg.querySelector('[data-ag-centre-rule]'),'Teaching centre renders its construction evidence and explanation');
+        if(kind!=='orthocentre')assert(svg.querySelector('[data-ag-centre-circle="'+kind+'"]'),'Circle is shown for selected centre');
+        const draft=P.createDocument();draft.addCurrent(id,cap());assert(P.renderItem(draft.list()[0],false).querySelector('[data-ag-triangle-centre="'+kind+'"]'),'Centre teaching diagram publishes');
+      }
+      const pack=P.createDocument();pack.generate(id,{...P.defaultSettings(id),enrichment:true},8,'triangle-centre');
+      for(const item of pack.list()){const pupil=P.renderItem(item,false),key=P.answerGraphic(item);assert(pupil.querySelector('[data-ag-triangle-centre="unknown"]')&&!pupil.querySelector('[data-ag-centre-name]')&&!pupil.querySelector('[data-ag-centre-rule]'),'Centre question hides classification and explanation');assert(key.querySelector('[data-ag-centre-name]').textContent===item.data.answer&&key.querySelector('[data-ag-centre-rule]'),'Teacher centre key identifies and explains the answer')}
+      const control=doc.querySelector('#ag-triangle-centre');control.value='none';control.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
+    }
     const shapeSelect=doc.getElementById('ag-shape-view');shapeSelect.value='rectangle';shapeSelect.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
     doc.querySelector('[data-ag-action="diagonal"]').click();await tick();
     assert(cap().demo.showDiagonals&&doc.querySelector('.gd-ag-visual svg').textContent.includes('Equal diagonals'),'Rectangle explorer displays its diagonal relationship');
