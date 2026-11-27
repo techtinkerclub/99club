@@ -1019,6 +1019,14 @@ async function run(){
     assert(vertexDir>=namedTask.angle,'Vertex name is outside the marked angle sector');
     const namesPaper=TT99Goodies.publishing.createDocument();namesPaper.addCurrent(id,cap());
     assert(TT99Goodies.publishing.renderItem(namesPaper.list()[0],false).querySelector('[data-ag-point-label="A"]').getAttribute('x')===vertexName.getAttribute('x'),'Published angle uses the same exterior vertex placement');
+    doc.querySelector('[data-ag-challenge-mode="linked-isosceles"]').click();await tick();
+    {
+      const t=cap().task,inputs=[...doc.querySelectorAll('[data-gd-pupil-field]')],check=doc.querySelector('[data-gd-pupil-check]'),put=(i,v)=>{inputs[i].value=String(v);inputs[i].dispatchEvent(new doc.defaultView.Event('input',{bubbles:true}))};
+      assert(t.type==='linked-isosceles'&&inputs.length===3&&check.disabled,'Linked challenge starts with three independent answer fields');
+      t.parts.forEach((p,i)=>put(i,p.answer+(i===1?1:0)));assert(!check.disabled,'Check enabled when all parts attempted');
+      check.click();assert(doc.querySelector('.gd-pupil-feedback').textContent.includes('2 of 3 correct'),'Partial correctness feedback');
+      put(1,t.parts[1].answer);check.click();assert(doc.querySelector('.gd-pupil-feedback').textContent.includes('Correct'),'All three correct answers pass');
+    }
     for(const type of ['measure','reflex']){
       doc.querySelector('[data-ag-challenge-mode="'+type+'"]').click();await tick();
       const t=cap().task,ms=doc.querySelector('.gd-ag-visual>svg'),w=doc.defaultView;
@@ -3482,6 +3490,22 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         assert(pupil.querySelector('[data-ag-reasoning-space]')&&!pupil.querySelector('[data-ag-reasoning-witness]')&&teacher.getAttribute('data-ag-reasoning-graphic')===m.id&&teacher.querySelectorAll('[data-ag-reasoning-witness]').length===m.examples.length,'Pupil workspace separate from worked examples');
       }
       assert(generatedReasoning.size===M.GEOMETRY_REASONING.length,'All new reasoning statements generated');
+      const linkedGroups=M.challengeGroups({enrichment:true});for(const type of ['linked-isosceles','linked-l-area','linked-right-triangle'])assert(linkedGroups.filter(g=>g.ids.includes(type)).length===1,'Linked challenge appears in exactly one group: '+type);
+      for(const type of ['linked-isosceles','linked-l-area','linked-right-triangle'])for(let i=0;i<60;i++){
+        const t=M.generate({type,enrichment:true},()=> (i+.5)/60),m=M.linkedGeometry(t),parts=m.parts,near=(x,y)=>Math.abs(x-y)<1e-8;
+        assert(parts.length===3&&parts.every((p,j)=>near(p.answer,t.parts[j].answer)),'Linked challenge stores all three exact answers');
+        const p=M.polygonProperties(m.points);assert(p,'Valid linked challenge geometry');
+        if(type==='linked-isosceles')assert(near(p.angles[0],parts[0].answer)&&near(p.angles[1],parts[1].answer)&&near(parts[1].answer+parts[2].answer,180),'Linked angles agree with actual diagram');
+        else if(type==='linked-l-area')assert(near(M.polygonArea(m.points),parts[1].answer)&&near(p.lengths.reduce((a,b)=>a+b,0),parts[2].answer),'Compound area and perimeter agree with actual geometry');
+        else assert(near(p.lengths[1],parts[0].answer)&&near(p.lengths.reduce((a,b)=>a+b,0),parts[1].answer)&&near(M.polygonArea(m.points),parts[2].answer),'Right triangle calculations agree with geometry');
+        const ck=win.TT99Goodies.challengeKit,spec=ck.pupilSpec('ordered-parts',{parts}),answers=parts.map(p=>String(p.answer));
+        assert(ck.pupilAnswerCorrect(spec,answers,t.answer),'All ordered parts accepted');
+        const wrong=answers.slice();wrong[1]=String(Number(wrong[1])+1);assert(!ck.pupilAnswerCorrect(spec,wrong,t.answer),'A wrong subanswer cannot pass the whole problem');
+        const item=P.record(id,'challenge',t),pupil=P.renderItem(item,false),key=P.answerGraphic(item);
+        assert(pupil&&key&&!pupil.querySelector('[data-ag-linked-answer]'),'Linked task publishes a separate pupil diagram');
+        assert(type==='linked-isosceles'||key.querySelector('[data-ag-linked-answer]'),'Teacher diagram has the worked values');
+      }
+
 
 
 
@@ -3814,7 +3838,8 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
     assert(panel.querySelector('.gd-panel-native-random')&&panel.querySelector('[data-board-launcher-back]'),'Specialist full challenge settings: '+id);await tick(40);assertInspectorLayout(panel,id+' challenge settings');
     if(id==='angles'){
       const catalogue=panel.querySelector('.gd-ag-challenge-catalogue'),settings=panel.querySelector('details[data-ag-section="settings"]');
-      assert(catalogue&&catalogue.querySelectorAll('details[data-ag-section]').length===8&&!catalogue.querySelector('details[open]'),'Geometry full challenge panel starts with eight compact primary categories');
+      assert(catalogue&&catalogue.querySelectorAll('details[data-ag-section]').length===9&&!catalogue.querySelector('details[open]'),'Geometry full challenge panel starts with nine compact primary categories');
+      const linkedSection=catalogue.querySelector('details[data-ag-section="linked"]');assert(linkedSection&&[...linkedSection.querySelectorAll('[data-ag-challenge-mode]')].map(n=>n.dataset.agChallengeMode).sort().join(',')==='linked-isosceles,linked-l-area','Multi-step category contains only the two primary-level families before enrichment opt-in');
       const section=catalogue.querySelector('details[data-ag-section="properties"]');section.open=true;settings.open=true;
       const en=panel.querySelector('#ag-enrich');en.checked=true;en.dispatchEvent(new Event('change',{bubbles:true}));await tick(100);
       assert(panel.querySelector('details[data-ag-section="properties"]').open&&panel.querySelector('details[data-ag-section="settings"]').open,'Open geometry sections survive generation settings changes');
