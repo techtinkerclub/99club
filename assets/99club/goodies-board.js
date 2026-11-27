@@ -387,20 +387,23 @@ function compactChallengeControls(clone,obj){
     }
   }else if(native){
     const groups=JSON.parse(native.dataset.gdNativeGroups||'[]'),prefix=native.dataset.gdNativePrefix;
-    const selected=Math.max(0,Math.min(groups.length-1,Number(obj.launcherCategory)||0));
+    const groupKey=g=>String(g.id??g.label),requested=groups.findIndex(g=>groupKey(g)===obj.launcherCategoryKey),selected=requested>=0?requested:0;
+    if(groups[selected])obj.launcherCategoryKey=groupKey(groups[selected]);
     addButton(native.querySelector('[data-gd-native-random="all"]'),'gd-launch-all');
-    wrap.appendChild(label('Choose a category'));
-    const chips=doc.createElement('div');chips.className='gd-challenge-chips';
-    groups.forEach((group,index)=>{const chip=doc.createElement('button');chip.type='button';chip.className='gd-challenge-chip'+(index===selected?' is-active':'');chip.dataset.boardLauncherCategory=String(index);chip.textContent=group.label;chip.setAttribute('aria-pressed',String(index===selected));chips.appendChild(chip)});
-    wrap.appendChild(chips);
-    addButton(native.querySelector('[data-gd-native-random="'+selected+'"]'),'gd-launch-category-random');
-    wrap.appendChild(label('Or choose a question'));
+    if(groups.length){
+      wrap.appendChild(label('Choose a category'));
+      const chips=doc.createElement('div');chips.className='gd-challenge-chips';
+      groups.forEach((group,index)=>{const chip=doc.createElement('button');chip.type='button';chip.className='gd-challenge-chip'+(index===selected?' is-active':'');chip.dataset.boardLauncherCategory=groupKey(group);chip.textContent=group.label;chip.setAttribute('aria-pressed',String(index===selected));chips.appendChild(chip)});
+      wrap.appendChild(chips);
+      const random=native.querySelector('[data-gd-native-random="'+selected+'"]');
+      if(random){random.textContent='Random · '+groups[selected].label;addButton(random,'gd-launch-category-random')}
+    }
     const cards=doc.createElement('div');cards.className='gd-challenge-cards';
     for(const button of clone.querySelectorAll('[data-'+prefix+'-challenge-mode]')){
-      if(!groups[selected]?.ids.includes(button.getAttribute('data-'+prefix+'-challenge-mode')))continue;
+      if(groups.length&&!groups[selected]?.ids.includes(button.getAttribute('data-'+prefix+'-challenge-mode')))continue;
       button.classList.remove('gd-btn--primary');button.classList.add('gd-launch-native-type');cards.appendChild(button)
     }
-    wrap.appendChild(cards);
+    if(cards.children.length){wrap.appendChild(label('Or choose a question'));wrap.appendChild(cards)}
   }else if(clone.querySelector('#ab-history-challenge')){
     const button=clone.querySelector('#ab-history-challenge');button.textContent='Random challenge';addButton(button,'gd-launch-all');
     const ops=[...clone.querySelectorAll('[data-ab-history-operation]')];if(ops.length){wrap.appendChild(label('Or choose an operation'));const cards=doc.createElement('div');cards.className='gd-challenge-cards';ops.forEach(op=>{op.classList.add('gd-launch-native-type');cards.appendChild(op)});wrap.appendChild(cards)}
@@ -1174,7 +1177,7 @@ function bindObject(obj){
 if(floatingControlsBody){
   floatingControlsBody.addEventListener('click',e=>{
     const launcherAction=e.target.closest('[data-board-launcher-settings],[data-board-launcher-category],[data-board-launcher-back]');
-    if(launcherAction){e.preventDefault();e.stopPropagation();const obj=objectById(floatingControlObjectId);if(!obj)return;if(launcherAction.hasAttribute('data-board-launcher-settings'))openFloatingControls(obj,'challenge-settings');else if(launcherAction.hasAttribute('data-board-launcher-back'))openFloatingControls(obj,'challenge');else{obj.launcherCategory=Number(launcherAction.dataset.boardLauncherCategory);renderFloatingControls(obj)}return}
+    if(launcherAction){e.preventDefault();e.stopPropagation();const obj=objectById(floatingControlObjectId);if(!obj)return;if(launcherAction.hasAttribute('data-board-launcher-settings'))openFloatingControls(obj,'challenge-settings');else if(launcherAction.hasAttribute('data-board-launcher-back'))openFloatingControls(obj,'challenge');else{obj.launcherCategoryKey=launcherAction.dataset.boardLauncherCategory;renderFloatingControls(obj)}return}
     const control=e.target.closest('[data-board-control-index]');if(!control)return;
     if(control.tagName!=='BUTTON'&&!(control.tagName==='INPUT'&&/^(button|submit|reset)$/i.test(control.type||'')))return;
     e.preventDefault();e.stopPropagation();
