@@ -1175,7 +1175,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    if(st.given!==false&&st.points.length>=2)lines.push({a:st.points[0],b:st.points[1],ray:false});
    return {points:st.points,lines};
  }
- const sharedInstrumentMath=()=>typeof module==='object'&&module.exports?require('./goodies-core.js'):root.TT99Goodies.instruments;
+ function sharedInstrumentMath(){return typeof module==='object'&&module.exports?require('./goodies-core.js'):root.TT99Goodies.instruments}
  function utensilAlignment(st,t,mode,scale){return sharedInstrumentMath().align(instrumentScene(st),t,mode,scale)}
  function protractorReading(st,t,raw,scale){return sharedInstrumentMath().readAngle(instrumentScene(st),t,raw,scale)}
  // A point is its exact mathematical centre, not the edge of its visual dot.
