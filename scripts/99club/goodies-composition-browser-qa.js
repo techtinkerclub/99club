@@ -1384,9 +1384,23 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const start=[before.e+100,before.f+15];event(body,'pointerdown',start,70);event(work,'pointermove',[start[0]+60,start[1]-40],70);event(work,'pointerup',[start[0]+60,start[1]-40],70);
       const moved=utensil('ruler').transform.baseVal.getItem(0).matrix;
       assert(Math.abs(moved.e-before.e-60)<.01&&Math.abs(moved.f-before.f+40)<.01,'Independent ruler can be dragged without altering measurements');
-      const handle=utensil('ruler').querySelector('[data-ag-utensil-handle]'),origin=[moved.e,moved.f];event(handle,'pointerdown',[origin[0]+420,origin[1]],71);event(work,'pointermove',[origin[0],origin[1]-420],71);event(work,'pointerup',[origin[0],origin[1]-420],71);
+      const handle=utensil('ruler').querySelector('[data-ag-utensil-handle="rotate"]'),origin=[moved.e,moved.f],arm=Number(handle.getAttribute('cx'));event(handle,'pointerdown',[origin[0]+arm,origin[1]],71);event(work,'pointermove',[origin[0],origin[1]-arm],71);event(work,'pointerup',[origin[0],origin[1]-arm],71);
       assert(Number(utensil('ruler').dataset.agUtensilAngle)===90,'Touch rotation handle rotates ruler by 90 degrees');
       const ticks=[...utensil('ruler').querySelectorAll('[data-me-division]')];assert(ticks.length===101&&Number(ticks[1].getAttribute('x1'))-Number(ticks[0].getAttribute('x1'))===4,'Ruler remains exactly ten centimetres with one millimetre divisions after rotation');
+      const resize=utensil('ruler').querySelector('[data-ag-utensil-handle="resize"]');event(resize,'pointerdown',[origin[0],origin[1]-400],72);event(work,'pointermove',[origin[0],origin[1]-640],72);event(work,'pointerup',[origin[0],origin[1]-640],72);
+      const extended=utensil('ruler'),extendedTicks=[...extended.querySelectorAll('[data-me-division]')];
+      assert(Number(extended.dataset.agUtensilSize)===640&&extendedTicks.length===161&&Number(extendedTicks[1].getAttribute('x1'))===4&&Number(extendedTicks.at(-1).getAttribute('x1'))===640&&Number(extended.dataset.agUtensilAngle)===90,'Extending rotated ruler to 16 cm adds graduations without stretching or changing angle');
+      for(const [kind,delta] of [['square45',120],['square30',80],['protractor',70]]){
+        const old=utensil(kind),m=old.transform.baseVal.getItem(0).matrix,at=[m.e,m.f],startSize=Number(old.dataset.agUtensilSize);
+        event(old.querySelector('[data-geometry-instrument]'),'pointerdown',at,73);event(work,'pointerup',at,73);
+        const h=utensil(kind).querySelector('[data-ag-utensil-handle="resize"]'),p=kind==='protractor'?[at[0],at[1]-startSize]:[at[0]+startSize,at[1]],q=kind==='protractor'?[p[0],p[1]-delta]:[p[0]+delta,p[1]];
+        event(h,'pointerdown',p,74);event(work,'pointermove',q,74);event(work,'pointerup',q,74);
+        const next=utensil(kind);assert(Number(next.dataset.agUtensilSize)===startSize+delta,'Endpoint resize adjusts '+kind+' size');
+        if(kind.startsWith('square')){const tt=[...next.querySelectorAll('[data-me-square-edge="0"]')];assert(Math.abs(Number(tt[1].getAttribute('x1'))-Number(tt[0].getAttribute('x1'))-4)<1e-6,'Resized set square retains exact millimetre spacing')}
+        else{assert(next.querySelectorAll('[data-geometry-instrument="protractor"] line').length===182,'Resized protractor retains every degree and baseline')}
+      }
+      // Reselect the ruler to verify selected-only removal below.
+      const rr=utensil('ruler');event(rr.querySelector('rect'), 'pointerdown',[origin[0]+10,origin[1]-100],75);event(work,'pointerup',[origin[0]+10,origin[1]-100],75);
       assert(JSON.stringify(cap().demo.labDrawing)===original,'Measuring utensils never mutate drawing state');
       const publication=P.createDocument();publication.addCurrent(id,cap());assert(!P.renderItem(publication.list()[0],false).querySelector('[data-ag-utensil]'),'Temporary utensils are excluded from publication');
       action('remove').click();assert(!utensil('ruler')&&work.querySelectorAll('[data-ag-utensil]').length===3,'Remove affects only the selected measuring utensil');
