@@ -1843,6 +1843,18 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const edited=work.querySelector('[data-ag-annotation-value]');assert(Math.hypot(Number(edited.getAttribute('x'))-205,Number(edited.getAttribute('y'))-200)<.01,'Angle label can be positioned independently');
       const revised=P.createDocument();revised.addCurrent(id,cap());const print=P.renderItem(revised.list()[0],false).querySelector('[data-ag-annotation-value]');assert(print.textContent==='x'&&Math.abs(Number(print.getAttribute('x'))-205)<.01,'Edited annotation position and unknown preserved in publication');
       assert(JSON.stringify(capture().points)===before,'Editing angles never changes coordinates');
+      const geometry=()=>JSON.stringify([capture().points,capture().segments,capture().rays,capture().circles]),beforeRemoval=geometry();
+      const directTap=(node,p)=>{const v=new win.DOMPoint(...p).matrixTransform(work.getScreenCTM());node.dispatchEvent(new win.PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerType:'touch',button:0,clientX:v.x,clientY:v.y}))};
+      doc.querySelector('[data-ag-selection-close]').click();
+      const valueNode=work.querySelector('[data-ag-annotation-value]');directTap(valueNode,[205,200]);
+      assert(menu.dataset.agSelectionPage==='angle'&&doc.querySelector('[data-ag-edit-angle-text]').value==='x','Tap on angle value opens its exact editor');
+      doc.querySelector('[data-ag-selection-close]').click();
+      const arc=work.querySelector('path[data-ag-angle-annotation="0"]'),mid=arc.getPointAtLength(arc.getTotalLength()/2);directTap(arc,[mid.x,mid.y]);
+      assert(menu.dataset.agSelectionPage==='angle'&&doc.querySelector('[data-ag-edit-angle-kind]').value==='angle2','Tap on arc opens the existing double-arc editor');
+      work.dispatchEvent(new win.KeyboardEvent('keydown',{key:'Delete',bubbles:true,cancelable:true}));
+      assert(capture().angleNotation.length===0&&geometry()===beforeRemoval,'Delete removes only selected angle mark, not construction');
+      doc.querySelector('[data-ag-tool="undo"]').click();
+      assert(capture().angleNotation.length===1&&geometry()===beforeRemoval,'Undo restores removed angle annotation independently');
       for(let i=0;i<8;i++)doc.querySelector('[data-ag-tool="undo"]').click();
       assert(!work.querySelector('[data-ag-annotation-value]')&&capture().segments.length===1,'Undo removes angle annotation and temporary baseline but preserves original diagonal');
     }
