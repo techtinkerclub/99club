@@ -583,7 +583,7 @@ function generate(s={},rng=Math.random){
  }
  // Physical set-square corners: preserve the original triangle and its base size.
  function labSquareMatches(s,t,scale=1,snapping=false){
-   if(!['square45','square30'].includes(t.kind)||!(t.size>0))return [];
+   if(!['square45','square30'].includes(t.kind)||!(t.size>0)||!Array.isArray(s.names)||s.names.length!==s.points.length)return [];
    const local=[[0,0],[t.size,0],[0,-t.size*(t.kind==='square30'?Math.sqrt(3):1)]],origin=[t.x,t.y],tol=(snapping?12:4)/Math.max(.001,scale),angleTol=snapping?3:.25,diff=(a,b)=>Math.min(mod(a-b),mod(b-a)),rotate=(p,angle)=>[p[0]*Math.cos(angle*D)+p[1]*Math.sin(angle*D),-p[0]*Math.sin(angle*D)+p[1]*Math.cos(angle*D)],out=[];
    for(let corner=0;corner<3;corner++){
      const q=local[corner],offset=rotate(q,t.angle),world=labAt(origin,offset,1),others=local.filter((_,i)=>i!==corner),directions=others.map(p=>labAngle(q,p)),sweep=mod(directions[1]-directions[0]);if(sweep>180)directions.reverse();
