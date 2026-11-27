@@ -2742,3 +2742,17 @@ html.gd-embed-page #tt99-goodies-root #gd-stage:has(>.gd-ag-shape-reference){ove
   #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]:has(>[data-ag-lesson-header]):not(:has(>details))>[data-ag-lesson-copy]{grid-row:2/span 2}
   #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]:has(>[data-ag-lesson-header]) svg{max-height:clamp(140px,45vh,390px)}
 }
+
+/* Keep property names and their values together instead of stacking two
+   lines for each fact. Long optional family lists remain accessible. */
+#tt99-goodies-root [data-ag-property-row]{margin:0 0 6px;line-height:1.35}
+#tt99-goodies-root [data-ag-property-row] dt,
+#tt99-goodies-root [data-ag-property-row] dd{display:inline;margin:0}
+#tt99-goodies-root [data-ag-property-row] dt::after{content:": "}
+@media (min-width:800px) and (min-height:480px) and (orientation:landscape){
+  #tt99-goodies-root [data-ag-shape-reference-body][data-ag-teaching-active="properties"]>section[data-ag-property-card]:not(:has(>details[open])){padding:8px}
+  #tt99-goodies-root [data-ag-shape-reference-body][data-ag-teaching-active="properties"]>section[data-ag-property-card]:not(:has(>details[open]))>svg{max-height:clamp(95px,18vh,155px);margin:0 auto 5px}
+  #tt99-goodies-root [data-ag-shape-reference-body][data-ag-teaching-active="properties"] [data-ag-property-row]{margin-bottom:5px;line-height:1.32}
+  #tt99-goodies-root [data-ag-shape-reference-body][data-ag-teaching-active="properties"]>section[data-ag-property-card]>h4{margin-bottom:5px}
+  #tt99-goodies-root [data-ag-shape-reference-body][data-ag-teaching-active="properties"]>section[data-ag-property-card]>details{margin-top:4px}
+}
