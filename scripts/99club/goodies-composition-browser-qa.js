@@ -1691,7 +1691,14 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
     checkDynamicControls();
     const locusTap=(type,p)=>{const surface=doc.querySelector('[data-ag-locus-point="P"]').closest('svg').parentElement,v=new win.DOMPoint(...p).matrixTransform(surface.querySelector('svg').getScreenCTM());surface.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:33,pointerType:'touch',button:0,buttons:type==='pointerup'?0:1,clientX:v.x,clientY:v.y}))};
     doc.querySelector('[data-ag-locus-action="midpoint"]').click();assert(doc.querySelector('[data-ag-locus-action="midpoint"]').getAttribute('aria-pressed')==='true','Midpoint toggle exposes active state');
-    doc.querySelector('[data-ag-locus-action="trace"]').click();locusTap('pointerdown',[540,220]);locusTap('pointerdown',[470,220]);doc.querySelector('[data-ag-locus-action="trace"]').click();
+    const initialPoints=JSON.stringify(M.locusPoints(cap().demo.locusState));
+    for(const [name,p] of [['P',[540,220]],['M',[470,220]]]){
+      locusTap('pointerdown',p);locusTap('pointerup',p);
+      const local=doc.querySelector('[data-ag-point-trace="toggle"]');assert(local&&local.getAttribute('aria-label')==='Start tracing '+name,'Tap exposes local trace action: '+name);local.click();
+      assert(cap().demo.locusState.traceNames.includes(name)&&doc.querySelector('[data-ag-point-trace="toggle"]').getAttribute('aria-pressed')==='true','Local tracing activates without mode switch');
+    }
+    assert(JSON.stringify(M.locusPoints(cap().demo.locusState))===initialPoints,'Tapping points and activating trace does not move geometry');
+    assert(doc.querySelector('[data-ag-locus-action="trace"]').getAttribute('aria-pressed')==='false','Global trace mode is not needed');
     locusTap('pointerdown',[540,220]);locusTap('pointermove',[400,70]);locusTap('pointermove',[260,220]);locusTap('pointerup',[260,220]);
     {
       const frame=fixture.frame,restore=frame.querySelector('[data-board-maximise]'),initial=JSON.stringify(cap().demo.locusState),hostViewport=document.getElementById('gd-board-viewport');
@@ -1914,8 +1921,14 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       place(200,220);place(400,220);
       const operation=doc.querySelector('[data-ag-custom-operation]');operation.value='midpoint';operation.dispatchEvent(new win.Event('change',{bubbles:true}));doc.querySelector('[data-ag-custom-action="add"]').click();
       assert(doc.querySelector('[data-ag-custom-point="C"]')&&cap().demo.locusState.nodes.length===3,'Custom workspace places points and adds a dependent midpoint');
+      const customTap=(type,p)=>{const svg=doc.querySelector('.gd-ag-visual svg'),surface=svg.parentElement,v=new win.DOMPoint(...p).matrixTransform(svg.getScreenCTM());surface.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:84,pointerType:'touch',button:0,clientX:v.x,clientY:v.y}))};
+      const customBefore=JSON.stringify(model.customResolve(cap().demo.locusState).points);
+      customTap('pointerdown',[300,220]);customTap('pointerup',[300,220]);
+      const local=doc.querySelector('[data-ag-point-trace="toggle"]');assert(local&&local.getAttribute('aria-label')==='Start tracing C','Dependent custom point supports local trace action');local.click();
+      assert(cap().demo.locusState.traceNames.includes('C')&&JSON.stringify(model.customResolve(cap().demo.locusState).points)===customBefore,'Local trace toggle preserves custom geometry');
       const customDraft=P.createDocument();customDraft.addCurrent(id,cap());assert(customDraft.list()[0]&&P.renderItem(customDraft.list()[0],false).querySelector('[data-ag-custom-point="C"]'),'Custom construction publishes as a vector diagram');
-      doc.querySelector('[data-ag-custom-action="undo"]').click();assert(!doc.querySelector('[data-ag-custom-point="C"]'),'Custom construction undo restores graph');
+      assert(!P.renderItem(customDraft.list()[0],false).querySelector('[data-ag-point-trace]'),'Local trace controls are excluded from paper');
+      doc.querySelector('[data-ag-custom-action="undo"]').click();assert(!cap().demo.locusState.traceNames.includes('C'),'Undo restores trace toggle');doc.querySelector('[data-ag-custom-action="undo"]').click();assert(!doc.querySelector('[data-ag-custom-point="C"]'),'Custom construction undo restores graph');
       const customPreset=doc.querySelector('[data-ag-locus-preset]');customPreset.value='circle';customPreset.dispatchEvent(new win.Event('change',{bubbles:true}));assert(doc.querySelector('[data-ag-locus-point="P"]'),'Return to predefined investigations');
     }
     const polygonMode=doc.getElementById('ag-mode');polygonMode.value='polygon';polygonMode.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
