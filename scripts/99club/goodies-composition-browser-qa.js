@@ -1484,6 +1484,25 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
     assert(Math.abs(Math.hypot(ls.p[0]-400,ls.p[1]-220)-140)<1e-7,'Constrained point preserves exact radius');
     assert(doc.querySelector('[data-ag-locus-trace="P"]')&&doc.querySelector('[data-ag-locus-trace="M"]'),'Selected driver and dependent midpoint leave separate traces');
     const lociDraft=P.createDocument();lociDraft.addCurrent(id,cap());assert(P.renderItem(lociDraft.list()[0],false).querySelectorAll('[data-ag-locus-trace]').length===2,'Locus traces publish as vector graphics');
+    {
+      const model=win.TT99Goodies.angles;
+      for(const kind of Object.keys(model.LOCUS_PRESETS)){
+        const params=model.locusParameters(kind,Object.fromEntries((model.LOCUS_PARAMETERS[kind]||[]).map(([id,,min,max])=>[id,max]))),st=model.locusInitial(kind,params);st.showLocus=true;st.showMidpoint=true;
+        for(const target of [[700,50],[100,400],[400,50],[400,400]]){
+          st.p=model.locusProject(kind,target,st.p,params);
+          const svg=P.renderItem(P.record(id,'diagram',{type:'diagram',mode:'loci',locusState:st}),false),v=svg.viewBox.baseVal;
+          const captions=[...svg.querySelectorAll('[data-ag-locus-caption]')];assert(captions.length>=2,'Locus publication includes explanation: '+kind);
+          const capTop=Number(captions[0].getAttribute('y'))-29;
+          const inside=(x,y,rx=0,ry=rx)=>x-rx>=v.x&&x+rx<=v.x+v.width&&y-ry>=v.y&&y+ry<capTop;
+          for(const c of svg.querySelectorAll('circle,ellipse')){const n=k=>Number(c.getAttribute(k)),rx=c.tagName==='ellipse'?n('rx'):n('r'),ry=c.tagName==='ellipse'?n('ry'):rx;assert(inside(n('cx'),n('cy'),rx,ry),'Published locus circle/ellipse fits above captions: '+kind)}
+          for(const line of svg.querySelectorAll('line')){const n=k=>Number(line.getAttribute(k));assert(inside(n('x1'),n('y1'))&&inside(n('x2'),n('y2')),'Published locus line fits above captions: '+kind)}
+          assert(Number(captions.at(-1).getAttribute('y'))<v.y+v.height,'Locus caption fits printable bounds');
+        }
+      }
+      const st=model.customInitial();model.customAppend(st,'free',[],{at:[1050,620]});
+      const svg=P.renderItem(P.record(id,'diagram',{type:'diagram',mode:'loci',locusState:st}),false),v=svg.viewBox.baseVal;
+      assert(v.x+v.width>=1098&&v.y+v.height>=668&&svg.querySelector('[data-ag-custom-point]'),'Custom publication retains extended edge point and label margin');
+    }
     const preset=doc.querySelector('[data-ag-locus-preset]');preset.value='bisector';preset.dispatchEvent(new win.Event('change',{bubbles:true}));
     locusTap('pointerdown',[400,100]);locusTap('pointermove',[630,320]);locusTap('pointerup',[630,320]);
     assert(Math.abs(cap().demo.locusState.p[0]-400)<1e-7,'Equidistant point moves along its perpendicular bisector');
