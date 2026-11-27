@@ -3760,6 +3760,7 @@ if(mode==='prepare'){
     document.querySelector('[data-me-flip-ruler]').click();assert(ms.querySelectorAll('[data-me-point-centre]').length===2,'Flipping ruler retains exact endpoint cues');
     document.querySelector('[data-me-reset-ruler]').click();
     assert(!ms.querySelector('[data-geometry-instrument]')&&!ms.querySelector('[data-me-point-centre]'),'Ruler reset removes the instrument and temporary cues without changing the task');
+    {
     document.querySelector('[data-me-free-ruler]').click();
     const ruler=()=>ms.querySelector('[data-ag-utensil-kind="ruler"]');
     assert(ruler()&&document.querySelector('[data-me-free-ruler]').getAttribute('aria-pressed')==='true','Measurement challenge supports the shared independent ruler');
@@ -3772,6 +3773,7 @@ if(mode==='prepare'){
     assert(JSON.stringify([...ms.querySelectorAll('[data-me-measure-point]')].map(n=>[n.getAttribute('cx'),n.getAttribute('cy')]))===JSON.stringify(beforePoints),'Free measuring leaves challenge geometry untouched');
     const ticks=ruler().querySelectorAll('[data-me-division]');assert(Number(ticks[1].getAttribute('x1'))-Number(ticks[0].getAttribute('x1'))===4,'Shared independent ruler retains calibrated millimetres');
     document.querySelector('[data-me-free-ruler]').click();assert(!ruler()&&!ms.querySelector('[data-ag-local-instrument]'),'Returning to guided measurement removes free utensil controls');
+    }
 
 
   }
