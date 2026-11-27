@@ -967,6 +967,17 @@ async function run(){
     const original=item.id==='statistics-table'?JSON.stringify(snapshot().data.rows):null;
     select.value=alternate.value;select.dispatchEvent(new Event('change',{bubbles:true}));await tick(100);
     assert(bridge.read().value===alternate.value&&select.value===alternate.value,'Mode switch is applied to actual widget: '+item.id);
+    if(item.id==='angles'){
+      const targets=[['polygon:free-polygon','polygon','shapeView','free-polygon'],['polygon:free-quadrilateral','polygon','shapeView','free-quadrilateral'],['centre:euler','polygon','triangleCentre','euler'],['centre:centroid','polygon','showMedians',true],['circle:sector','circle','circleView','sector'],['circle:tangent','circle','circleView','tangent'],['construct','construct',null,null],['polygon:free-triangle','polygon','triangleCentre','none']];
+      assert(select.querySelectorAll('optgroup').length>=6&&select.options.length>=25,'Geometry header presents grouped teaching topics and workspaces directly');
+      for(const [value,mode,key,expected] of targets){
+        select.value=value;select.dispatchEvent(new Event('change',{bubbles:true}));await tick(100);
+        const d=snapshot().demo;
+        assert(select.value===value&&bridge.read().value===value&&d.mode===mode&&(!key||d[key]===expected),'Direct geometry topic opens without inspector: '+value);
+      }
+      const shape=fixture.doc.getElementById('ag-shape-view');shape.value='rectangle';shape.dispatchEvent(new fixture.doc.defaultView.Event('change',{bubbles:true}));await tick(100);
+      assert(select.value==='polygon:rectangle','Changes in geometry settings also synchronise the topic header');
+    }
     if(item.id==='statistics-table'){
       assert(JSON.stringify(snapshot().data.rows)===original,'Changing statistical representation preserves dataset');
       assert(fixture.doc.querySelector('.gd-mode-hint')?.textContent===bridge.read().hint,'Data representation has its contextual teaching hint');
