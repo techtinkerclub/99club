@@ -1133,6 +1133,24 @@ function generate(s={},rng=Math.random){
    const regular=convex&&lengths.every(l=>Math.abs(l-lengths[0])<=scale*1e-9)&&angles.every(a=>Math.abs(a-angles[0])<=1e-7);
    return {n,winding,lengths,angles,turns,convex,regular,triangles,diagonals:[...diagonals.values()],interiorSum:angles.reduce((s,v)=>s+v,0),turnSum:turns.reduce((s,v)=>s+v,0),diagonalCount:n*(n-3)/2};
  }
+ // Separate ALL vertex-pair diagonals from the non-crossing interior
+ // diagonals used in a triangulation. Concave polygons need not admit a fan.
+ function polygonFormulaProof(points,vertex=0){
+   const p=polygonProperties(points);if(!p)return null;
+   const n=p.n,i=Math.max(0,Math.min(n-1,Math.floor(Number(vertex)||0))),all=[];
+   for(let a=0;a<n;a++)for(let b=a+1;b<n;b++)if(b-a!==1&&b-a!==n-1)all.push([a,b]);
+   const from=all.filter(pair=>pair.includes(i)),ordered=all.flatMap(([a,b])=>[[a,b],[b,a]]),fan=Array.from({length:n-2},(_,j)=>[i,(i+j+1)%n,(i+j+2)%n]);
+   const triangles=p.convex?fan:p.triangles,internal=new Map();
+   for(const tri of triangles)for(let j=0;j<3;j++){const a=tri[j],b=tri[(j+1)%3],gap=Math.abs(a-b);if(gap!==1&&gap!==n-1)internal.set([a,b].sort((a,b)=>a-b).join(':'),[a,b])}
+   const prev=(i+n-1)%n,next=(i+1)%n,steps=[
+    {title:'Start at one vertex',note:'From vertex '+pointName(i)+', exclude the vertex itself and its two neighbours '+pointName(prev)+' and '+pointName(next)+'. A diagonal joins non-neighbouring vertices. That leaves '+n+' − 3 = '+(n-3)+' possible diagonals.'},
+    {title:'Count from every vertex',note:'Each of the '+n+' vertices has '+(n-3)+' possible diagonals. Multiplying gives '+n+' × '+(n-3)+' = '+ordered.length+' directed counts.'},
+    {title:'Remove the double counting',note:all.length?'For example, '+pointName(all[0][0])+pointName(all[0][1])+' and '+pointName(all[0][1])+pointName(all[0][0])+' are the same diagonal. Every diagonal was counted twice, so divide by 2. Total = '+n+' × ('+n+' − 3) ÷ 2 = '+all.length+'.':'A triangle has no non-neighbouring vertices. The same formula gives 3 × (3 − 3) ÷ 2 = 0.'},
+    {title:'Divide the polygon into triangles',note:(p.convex?'Draw the '+(n-3)+' non-crossing diagonals from the selected vertex.':'For a concave polygon, choose non-crossing diagonals inside the shape; a fan from an arbitrary vertex may leave the polygon.')+' Starting with one region, each of the '+internal.size+' cuts adds one region, giving 1 + ('+n+' − 3) = '+(n-2)+' triangles. Equivalently, removing one triangular ear reduces the side count by one until a final triangle remains.'},
+    {title:'Find the interior angle sum',note:'Every triangle contributes 180°. The triangles fill the polygon without overlap, and their corner angles together make the original interior angles. So ('+n+' − 2) × 180° = '+180*(n-2)+'°. This also works for simple concave polygons.'}
+   ];
+   return {points,n,vertex:i,prev,next,convex:p.convex,all,from,ordered,triangles,internal:[...internal.values()],interiorSum:p.interiorSum,steps};
+ }
  function freePolygonPoints(d){
    const n=Math.max(3,Math.min(12,Math.round(Number(d.n)||5))),p=d.polygonPoints;
    return Array.isArray(p)&&p.length===n&&p.every(q=>Array.isArray(q)&&q.length===2&&q.every(Number.isFinite))?p.map(q=>q.slice()):Array.from({length:n},(_,i)=>exactPolar(400,195,145,90+i*360/n));
@@ -1235,7 +1253,7 @@ function generate(s={},rng=Math.random){
    if(p.regular)properties.push(['Each interior / exterior angle',fmt(180*(n-2)/n)+'° / '+fmt(360/n)+'°']);
    if(quad)properties.push(['Opposite parallel pairs',String(quad.parallelPairs.length)],['Right angles',String(quad.right)],['Inclusive families',quad.families.join(', ')]);
    if(tri)properties.push(['Angle relationship',tri.sides==='Equilateral'?'All three angles are 60°.':tri.sides==='Isosceles'?'Angles opposite equal sides are equal.':'All three side lengths differ.']);
-   const diagonals=[['Total diagonals',n+' × ('+n+' − 3) ÷ 2 = '+p.diagonalCount],['From each vertex',String(n-3)],['Triangles in a triangulation',String(n-2)]];
+   const diagonals=[['Total diagonals',n+' × ('+n+' − 3) ÷ 2 = '+p.diagonalCount],['From each vertex',n+' − 3 = '+(n-3)],['Internal cuts in a triangulation',n+' − 3 = '+(n-3)],['Triangles in a triangulation',n+' − 2 = '+(n-2)]];
    if(quad){
      const u=labSub(pts[2],pts[0]),v=labSub(pts[3],pts[1]),I=quad.intersection,midAC=I&&labDist(I,labAt(pts[0],u,.5))<=1e-8*Math.max(...p.lengths),midBD=I&&labDist(I,labAt(pts[1],v,.5))<=1e-8*Math.max(...p.lengths);
      diagonals.push(['Diagonal lengths','AC = '+fmt(Math.hypot(...u)/LAB_UNIT)+' cm; BD = '+fmt(Math.hypot(...v)/LAB_UNIT)+' cm'],['Equal / perpendicular',(quad.diagonalEqual?'Equal':'Unequal')+'; '+(quad.diagonalPerpendicular?'perpendicular':'not perpendicular')],['Bisection',quad.diagonalBisect?'Bisect each other':midAC?'BD bisects AC only':midBD?'AC bisects BD only':'Do not bisect each other']);
@@ -1554,7 +1572,7 @@ function generate(s={},rng=Math.random){
    }finally{n.at=p.slice()}
    return true;
  }
- const model={circleTheoremModel,circleTheoremMove,triangleFamilyModel,triangleFamilyExample,quadrilateralFamilyModel,reflectionInvestigation,rotationInvestigation,shapeAreaProof,shapeTeachingReference,shapeSymmetry,transversalModel,protractorReading,utensilAlignment,squareGeometry,isLabArc,labArcContains,labCircleExtents,labContentBounds,locusFitBounds,customBounds,fitGeometryBounds,INDEPENDENT_METHOD_DIMENSIONS,INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labLineMarks,labSetLineMark,labAngleAnnotation,labSameAngle,labAngleArms,labAngleSectors,labAnglePair,labSectorMark,labSectorPreview,labDimensionText,labRulerTargets,labIndependentDimensions,labSquareBaseReferences,labSquareComparison,labParallelMarkPlan,labSquareSlideSnap,labMeasurementTarget,labApplyMeasurement,labAngleText,labProtractorDirection,labAngleGraphics,labAnnotationPlan,boxesOverlap,labelBox,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labRayDefinition,labAbsoluteRay,labDirectRay,labReferenceArm,labRelativeRay,labDetachReferences,labStraightEnds,rayEnd,labLabel,labPointText,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,datumState,datumCoordinates,datumPoint,datumSnap,datumDirection,datumGridStart,datumGraphic,locusInitial,locusProject,locusPoints,locusTraceMove,traceParts,traceAdd,traceToggle,shapeGeometry,freeTrianglePoints,triangleComparison,triangleComparisonResult,triangleCriterion,TRIANGLE_CRITERIA,triangleInequality,inequalitySettings,triangleProperties,triangleCentres,eulerLineModel,quadrilateralProperties,freeQuadrilateralPoints,circleInvestigation,circleInvestigationMove,CIRCLE_VIEWS,polygonProperties,freePolygonPoints,polygonInvestigationExamples,polygonInvestigationTurns,QUAD_REASONING,quadReasoningPoints,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labIntersections,labIntersectionSettings,labNewIntersections,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
+ const model={polygonFormulaProof,circleTheoremModel,circleTheoremMove,triangleFamilyModel,triangleFamilyExample,quadrilateralFamilyModel,reflectionInvestigation,rotationInvestigation,shapeAreaProof,shapeTeachingReference,shapeSymmetry,transversalModel,protractorReading,utensilAlignment,squareGeometry,isLabArc,labArcContains,labCircleExtents,labContentBounds,locusFitBounds,customBounds,fitGeometryBounds,INDEPENDENT_METHOD_DIMENSIONS,INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labLineMarks,labSetLineMark,labAngleAnnotation,labSameAngle,labAngleArms,labAngleSectors,labAnglePair,labSectorMark,labSectorPreview,labDimensionText,labRulerTargets,labIndependentDimensions,labSquareBaseReferences,labSquareComparison,labParallelMarkPlan,labSquareSlideSnap,labMeasurementTarget,labApplyMeasurement,labAngleText,labProtractorDirection,labAngleGraphics,labAnnotationPlan,boxesOverlap,labelBox,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labRayDefinition,labAbsoluteRay,labDirectRay,labReferenceArm,labRelativeRay,labDetachReferences,labStraightEnds,rayEnd,labLabel,labPointText,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,datumState,datumCoordinates,datumPoint,datumSnap,datumDirection,datumGridStart,datumGraphic,locusInitial,locusProject,locusPoints,locusTraceMove,traceParts,traceAdd,traceToggle,shapeGeometry,freeTrianglePoints,triangleComparison,triangleComparisonResult,triangleCriterion,TRIANGLE_CRITERIA,triangleInequality,inequalitySettings,triangleProperties,triangleCentres,eulerLineModel,quadrilateralProperties,freeQuadrilateralPoints,circleInvestigation,circleInvestigationMove,CIRCLE_VIEWS,polygonProperties,freePolygonPoints,polygonInvestigationExamples,polygonInvestigationTurns,QUAD_REASONING,quadReasoningPoints,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labIntersections,labIntersectionSettings,labNewIntersections,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
 if(typeof module==='object'&&module.exports){module.exports=model;return}
 const G=root.TT99Goodies;if(!G)return;G.angles=model;
 const {q,qa,esc,field,btn,setPanels}=G,CK=G.challengeKit;
@@ -2147,7 +2165,7 @@ function shapeReferenceGraphic(m,kind){
    if(n===4){line(v[0],v[2],{'data-ag-reference-diagonal':'AC','stroke-dasharray':'5 3'});line(v[1],v[3],{stroke:'#b56d2c','data-ag-reference-diagonal':'BD','stroke-dasharray':'5 3'});if(m.quad?.intersection){const q=map(m.quad.intersection);add('circle',{cx:q[0],cy:q[1],r:3,fill:'#263e43'})}}
    else if(n>3){for(const [j,tri] of p.triangles.entries())poly(tri.map(i=>v[i]),{fill:REGION_COLOURS[j%REGION_COLOURS.length],'fill-opacity':.22,stroke:'none','data-ag-reference-triangle':j});for(const [i,j] of p.diagonals)line(v[i],v[j],{'stroke-dasharray':'5 3','data-ag-reference-diagonal':i+':'+j});poly(v,{fill:'none'})}
    v.forEach((q,i)=>{const offset=labSub(q,[160,88]),k=Math.max(1,Math.hypot(...offset));label(labAt(q,offset,13/k),pointName(i),{'dominant-baseline':'central','font-size':12})});
-   label([160,174],p.diagonalCount+' possible diagonal'+(p.diagonalCount===1?'':'s'));
+   label([160,174],n>4?p.diagonals.length+' internal cuts shown · '+p.diagonalCount+' total':p.diagonalCount+' possible diagonal'+(p.diagonalCount===1?'':'s'));
    label([160,192],n===4?'Both vertex-to-vertex diagonals shown':(n-2)+' triangle'+(n===3?'':'s')+' in a triangulation');
  }else{
    if(altitude){
@@ -2304,6 +2322,37 @@ function mountTriangleFamily(container,m,demo){
  const show=()=>{demo.triangleFamilyExample=select.value;const f=triangleFamilyModel(select.value==='current'?m.points:triangleFamilyExample(...select.value.split('|')));section.querySelector('[data-ag-triangle-family-picture]').replaceChildren(triangleFamilyGraphic(f));section.querySelector('[data-ag-triangle-family-result]').textContent='Classification: '+f.sides+' · '+f.kind+'.';section.querySelector('[data-ag-triangle-family-measures]').textContent='Angles: '+f.angles.map(v=>Number(v.toFixed(2))+'°').join(' + ')+' = 180°. Side lengths (model cm): '+f.lengths.map(v=>Number((v/LAB_UNIT).toFixed(2))).join(', ')+'.';section.querySelector('[data-ag-triangle-family-explanation]').textContent=f.explanation};
  select.onchange=show;container.appendChild(section);show();
 }
+function polygonFormulaGraphic(proof,index){
+ const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),W=500,H=300,pts=proof.points,n=proof.n,xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]),loX=Math.min(...xs),hiX=Math.max(...xs),loY=Math.min(...ys),hiY=Math.max(...ys),scale=Math.min(335/(hiX-loX),172/(hiY-loY)),map=p=>[250+(p[0]-(loX+hiX)/2)*scale,119+(p[1]-(loY+hiY)/2)*scale],v=pts.map(map);
+ const add=(tag,attrs,value)=>{const el=document.createElementNS(ns,tag);for(const [k,x] of Object.entries(attrs))el.setAttribute(k,x);if(value!=null)el.textContent=value;svg.append(el);return el};
+ const poly=(points,attrs)=>add('polygon',{points:points.map(p=>p.join(',')).join(' '),...attrs});
+ const line=(a,b,attrs)=>add('line',{x1:v[a][0],y1:v[a][1],x2:v[b][0],y2:v[b][1],...attrs});
+ const label=(x,y,value,attrs={})=>add('text',{x,y,'font-family':'Arial,sans-serif','font-size':15,'text-anchor':'middle',fill:'#263e43','paint-order':'stroke',stroke:'#fff','stroke-width':3,...attrs},value);
+ svg.setAttribute('viewBox','0 0 '+W+' '+H);svg.setAttribute('role','img');svg.setAttribute('aria-label',proof.steps[index].title+'. '+proof.steps[index].note);svg.dataset.agPolygonProofGraphic=String(index);
+ add('rect',{width:W,height:H,fill:'#fff'});
+ poly(v,{fill:'#f2f7f4',stroke:'none'});
+ if(index>=3){
+   proof.triangles.forEach((tri,j)=>{const p=tri.map(i=>v[i]);poly(p,{fill:REGION_COLOURS[j%REGION_COLOURS.length],'fill-opacity':.45,stroke:'#fff','stroke-width':1,'data-ag-proof-triangle':j});const q=[0,1].map(k=>p.reduce((s,v)=>s+v[k],0)/3);label(q[0],q[1]+4,index===4?'180°':String(j+1),{'font-size':n>=9?11:14,'font-weight':700})});
+   proof.internal.forEach(([a,b])=>line(a,b,{stroke:'#277b70','stroke-width':2,'stroke-dasharray':'5 3','data-ag-proof-internal-cut':a+':'+b}));
+ }else{
+   const edges=index===0?proof.from:proof.all;
+   edges.forEach(([a,b])=>line(a,b,{stroke:index===0?'#277b70':'#789e97','stroke-opacity':index===0?.95:.48,'stroke-width':index===0?2.4:1.4,'data-ag-proof-counted-diagonal':a+':'+b}));
+   if(index===2&&proof.all.length){const [a,b]=proof.all[0];line(a,b,{stroke:'#b56d2c','stroke-width':3.4,'data-ag-proof-double-example':'1'});const q=labAt(v[a],labSub(v[b],v[a]),.5);label(q[0],q[1]-7,pointName(a)+pointName(b)+' = '+pointName(b)+pointName(a),{'font-size':13,'font-weight':700})}
+ }
+ poly(v,{fill:'none',stroke:'#35565a','stroke-width':2});
+ v.forEach((p,i)=>{const selected=i===proof.vertex,excluded=index===0&&(i===proof.prev||i===proof.next),delta=labSub(p,[250,119]),len=Math.max(1,Math.hypot(...delta)),q=labAt(p,delta,15/len);add('circle',{cx:p[0],cy:p[1],r:selected&&index===0?5:3.4,fill:selected&&index===0?'#277b70':excluded?'#b56d2c':'#35565a','data-ag-proof-vertex':i});label(q[0],q[1]+4,pointName(i),{'font-size':13,'font-weight':selected?700:400})});
+ const equations=[n+' − 3 = '+proof.from.length+' diagonals from one vertex',n+' × '+(n-3)+' = '+proof.ordered.length+' counts',n+' × ('+n+' − 3) ÷ 2 = '+proof.all.length+' diagonals', '1 + '+proof.internal.length+' = '+proof.triangles.length+' triangles', '('+n+' − 2) × 180° = '+180*(n-2)+'°'];
+ label(250,257,equations[index],{'font-weight':700,'font-size':17,'data-ag-proof-equation':'1'});
+ label(250,281,index===1?'Each segment is counted at both endpoints.':index===2?'A diagonal is an unordered pair of vertices.':index>=3?'Only non-crossing interior cuts are used.':'The vertex and its neighbours are excluded.',{'font-size':13});
+ return svg;
+}
+function mountPolygonFormulaProof(container,m,demo){
+ let index=Math.max(0,Math.min(4,Math.floor(Number(demo.polygonProofStep)||0))),vertex=Math.max(0,Math.min(m.n-1,Math.floor(Number(demo.polygonProofVertex)||0)));
+ const section=document.createElement('section');section.className='gd-ag-polygon-proof';section.dataset.agPolygonProof='1';
+ section.innerHTML='<h4>Why the polygon formulae work</h4><label>Start vertex <select class="gd-select" data-ag-polygon-proof-vertex>'+m.points.map((_,i)=>'<option value="'+i+'">'+pointName(i)+'</option>').join('')+'</select></label><div data-ag-polygon-proof-picture></div><strong data-ag-polygon-proof-title></strong><p data-ag-polygon-proof-note aria-live="polite"></p><div class="gd-row"><button type="button" class="gd-btn" data-ag-polygon-proof-back>Previous</button><strong data-ag-polygon-proof-count></strong><button type="button" class="gd-btn" data-ag-polygon-proof-next>Next step</button><button type="button" class="gd-btn" data-ag-polygon-proof-reset>Restart</button></div>';
+ const select=section.querySelector('[data-ag-polygon-proof-vertex]'),show=()=>{const proof=polygonFormulaProof(m.points,vertex);demo.polygonProofStep=index;demo.polygonProofVertex=vertex;select.value=vertex;section.querySelector('[data-ag-polygon-proof-picture]').replaceChildren(polygonFormulaGraphic(proof,index));section.querySelector('[data-ag-polygon-proof-title]').textContent=proof.steps[index].title;section.querySelector('[data-ag-polygon-proof-note]').textContent=proof.steps[index].note;section.querySelector('[data-ag-polygon-proof-count]').textContent=(index+1)+' / 5';section.querySelector('[data-ag-polygon-proof-back]').disabled=index===0;section.querySelector('[data-ag-polygon-proof-next]').disabled=index===4};
+ select.onchange=()=>{vertex=Number(select.value);show()};section.querySelector('[data-ag-polygon-proof-back]').onclick=()=>{index=Math.max(0,index-1);show()};section.querySelector('[data-ag-polygon-proof-next]').onclick=()=>{index=Math.min(4,index+1);show()};section.querySelector('[data-ag-polygon-proof-reset]').onclick=()=>{index=0;vertex=0;show()};container.appendChild(section);show();
+}
 function appendShapeReference(svg,d){
  const m=shapeTeachingReference(d);if(!m?.valid||d.showReference===false)return svg;
  const ns='http://www.w3.org/2000/svg',view=svg.getAttribute('viewBox').trim().split(/\s+/).map(Number),[x,y,w,h]=view;let at=y+h+20;
@@ -2319,6 +2368,7 @@ function appendShapeReference(svg,d){
    }
    at+=12;
  }
+ const polygonProof=polygonFormulaProof(m.points);if(polygonProof){add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size+2,'font-weight':700,fill:'#285c55'},'Why the polygon formulae work');at+=size+12;for(let i=0;i<polygonProof.steps.length;i++){const g=polygonFormulaGraphic(polygonProof,i),gw=Math.min(w-40,500),gh=gw*300/500;g.setAttribute('x',x+(w-gw)/2);g.setAttribute('y',at);g.setAttribute('width',gw);g.setAttribute('height',gh);svg.append(g);at+=gh+6;for(const line of G.exportTools.wrapPaperText(polygonProof.steps[i].note,w-2*margin,size,400)){add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size,fill:'#263e43'},line);at+=size*1.32}at+=12}}
  const rotation=rotationReferenceGraphic(m,360/m.symmetry.rotation),rw=Math.min(w-40,420),rh=rw*280/420;add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size+2,'font-weight':700,fill:'#285c55'},'Rotational symmetry');at+=size+12;rotation.setAttribute('x',x+(w-rw)/2);rotation.setAttribute('y',at);rotation.setAttribute('width',rw);rotation.setAttribute('height',rh);svg.append(rotation);at+=rh+16;
  const mirror=reflectionReferenceGraphic(m,reflectionInvestigation(m).axes[0]??0,0),mw=Math.min(w-40,420),mh=mw*310/420;add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size+2,'font-weight':700,fill:'#285c55'},'Reflection symmetry');at+=size+12;mirror.setAttribute('x',x+(w-mw)/2);mirror.setAttribute('y',at);mirror.setAttribute('width',mw);mirror.setAttribute('height',mh);svg.append(mirror);at+=mh+16;
  if(m.quad){const family=quadrilateralFamilyGraphic(quadrilateralFamilyModel(m.points)),fw=w-2*margin,fh=fw*356/600;add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size+2,'font-weight':700,fill:'#285c55'},'Quadrilateral family tree');at+=size+12;family.setAttribute('x',x+margin);family.setAttribute('y',at);family.setAttribute('width',fw);family.setAttribute('height',fh);svg.append(family);at+=fh+8;for(const line of G.exportTools.wrapPaperText('Inclusive definitions: a trapezium has at least one parallel pair; a kite has two pairs of adjacent equal sides.',w-2*margin,size,400)){add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size,fill:'#263e43'},line);at+=size*1.32}at+=12}
@@ -3205,7 +3255,7 @@ G.anglesTool=function(){
    },
    set(value){
      const row=topicRows.find(t=>t.value===value);if(!row||task)return false;
-     workflow='build';demo.areaProofStep=0;demo.symmetryRotation=0;demo.symmetryReflectionAngle=0;demo.symmetryReflectionOffset=0;demo.familyExample='current';demo.triangleFamilyExample='current';demo.teachingTab='properties';demo.mode=cfg.mode=row.mode;
+     workflow='build';demo.areaProofStep=0;demo.symmetryRotation=0;demo.symmetryReflectionAngle=0;demo.symmetryReflectionOffset=0;demo.familyExample='current';demo.triangleFamilyExample='current';demo.teachingTab='properties';demo.polygonProofStep=0;demo.polygonProofVertex=0;demo.mode=cfg.mode=row.mode;
      if(row.mode==='construct')demo.freeLab=true;
      if(row.mode==='polygon'&&!value.startsWith('centre:')){demo.showMedians=false;demo.triangleCentre='none'}
      Object.assign(demo,row.extra);render();return true;
@@ -3262,8 +3312,8 @@ G.anglesTool=function(){
   function syncReferenceTabs(){
     if(!reference)return;
     const body=q('[data-ag-shape-reference-body]',reference),nav=q('[data-ag-teaching-tabs]',reference),sections=[...body.querySelectorAll(':scope > section')];
-    const tabs=[['properties','Properties & formulae'],['symmetry','Symmetry'],['families','Shape families'],['proof','Area proof']];
-    sections.forEach(section=>{section.dataset.agTeachingPanel=section.matches('[data-ag-rotation-reference],[data-ag-reflection-reference]')?'symmetry':section.matches('[data-ag-family-reference],[data-ag-triangle-family-reference]')?'families':section.matches('[data-ag-area-proof]')?'proof':'properties'});
+    const tabs=[['properties','Properties & formulae'],['polygon-proof','Diagonals & angle sums'],['symmetry','Symmetry'],['families','Shape families'],['proof','Area proof']];
+    sections.forEach(section=>{section.dataset.agTeachingPanel=section.matches('[data-ag-rotation-reference],[data-ag-reflection-reference]')?'symmetry':section.matches('[data-ag-family-reference],[data-ag-triangle-family-reference]')?'families':section.matches('[data-ag-area-proof]')?'proof':section.matches('[data-ag-polygon-proof]')?'polygon-proof':'properties'});
     const available=tabs.filter(([key])=>sections.some(s=>s.dataset.agTeachingPanel===key)),signature=available.map(([key])=>key).join(',');
     const selected=available.some(([key])=>key===demo.teachingTab)?demo.teachingTab:'properties';
     demo.teachingTab=selected;
@@ -3281,6 +3331,7 @@ G.anglesTool=function(){
     if(!m?.valid){body.innerHTML='<p>Move the vertices to form a simple, non-degenerate polygon before inspecting its properties.</p>';syncReferenceTabs();return}
     body.innerHTML=m.groups.map(g=>'<section><h4>'+esc(g.title)+'</h4><dl>'+g.rows.map(([label,value])=>'<dt>'+esc(label)+'</dt><dd>'+esc(value)+'</dd>').join('')+'</dl></section>').join('');
     [...body.querySelectorAll('section')].forEach((section,i)=>section.insertBefore(shapeReferenceGraphic(m,['symmetry','diagonals','area'][i]),section.querySelector('dl')));
+    mountPolygonFormulaProof(body,m,demo);
     mountRotationReference(body,m,demo);
     mountReflectionReference(body,m,demo);
     if(m.quad)mountQuadrilateralFamily(body,m,demo);

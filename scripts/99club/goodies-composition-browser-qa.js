@@ -3229,7 +3229,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const rect=ref('rectangle'),pts=rect.points;assert(Math.abs(rect.area-300*180/1600)<1e-9&&Math.abs(rect.perimeter-2*(300+180)/40)<1e-9,'Rectangle model dimensions agree with numerical area/perimeter');
       assert(!ref('free-polygon',{n:4,polygonPoints:[[0,0],[80,80],[0,80],[80,0]]}).valid,'Invalid polygon does not claim valid properties');
       assert(win.TT99Goodies.modeControl.set('polygon:rectangle'),'Rectangle reference accessible directly');await tick();
-      const panel=doc.querySelector('.gd-ag-shape-reference');assert(panel?.open&&panel.querySelectorAll('section:not([data-ag-rotation-reference]):not([data-ag-reflection-reference]):not([data-ag-area-proof]):not([data-ag-family-reference])').length===3&&panel.querySelector('[data-ag-rotation-reference]')&&panel.textContent.includes('A = lw'),'Reference visible without opening settings');
+      const panel=doc.querySelector('.gd-ag-shape-reference');assert(panel?.open&&panel.querySelectorAll('section[data-ag-teaching-panel="properties"]').length===3&&panel.querySelector('[data-ag-rotation-reference]')&&panel.textContent.includes('A = lw'),'Reference visible without opening settings');
       const pack=P.createDocument();pack.addCurrent(id,cap());const printed=P.renderItem(pack.list()[0],false);
       assert(printed.querySelectorAll('[data-ag-shape-reference-group]').length===3&&printed.textContent.includes('A = lw'),'Published teaching diagram includes reference');
       assert(panel.querySelectorAll('[data-ag-reference-graphic]').length===3,'Reference contains three dedicated visual explanations');
@@ -3320,7 +3320,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       // Real embedded layout: active tabs occupy space, inactive cards do not.
       const teaching=doc.querySelector('.gd-ag-shape-reference'),teachingStage=doc.getElementById('gd-stage'),teachingTab=key=>teaching.querySelector('[data-ag-teaching-tab="'+key+'"]');
       assert(teachingTab('properties')&&teachingTab('symmetry')&&teachingTab('families')&&teachingTab('proof'),'All triangle teaching groups directly accessible');
-      for(const key of ['properties','symmetry','families','proof']){
+      for(const key of ['properties','polygon-proof','symmetry','families','proof']){
         teachingTab(key).click();await tick(60);
         const active=[...teaching.querySelectorAll('[data-ag-teaching-panel="'+key+'"]')];
         assert(active.length&&active.every(el=>!el.hidden&&el.getBoundingClientRect().height>0),'Selected teaching group is visible: '+key);
@@ -3340,6 +3340,26 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const reflectionBottom=teaching.querySelector('[data-ag-reflection-reference]').getBoundingClientRect().bottom;
       assert(reflectionBottom<=teachingStage.getBoundingClientRect().bottom+3,'Reflection controls reachable in maximised teaching widget');
       max.click();await tick(80);assert(!fixture.frame.classList.contains('is-geometry-teaching-max'),'Restoring leaves teaching maximisation cleanly');
+      for(const m of [...Array.from({length:10},(_,i)=>ref('regular',{n:i+3})),...M.polygonInvestigationExamples().map(e=>ref('free-polygon',{n:e.points.length,polygonPoints:e.points}))]){
+        for(let vertex=0;vertex<m.n;vertex++){
+          const p=M.polygonFormulaProof(m.points,vertex),n=m.n;
+          assert(p.from.length===n-3&&p.all.length===n*(n-3)/2&&p.ordered.length===2*p.all.length,'Diagonal counting and double counting');
+          assert(p.triangles.length===n-2&&p.internal.length===n-3,'Triangulation counts for convex and concave examples');
+          const total=p.triangles.reduce((sum,tri)=>sum+M.polygonArea(tri.map(i=>p.points[i])),0);
+          assert(Math.abs(total-M.polygonArea(p.points))<1e-6&&Math.abs(p.interiorSum-(n-2)*180)<1e-7,'Triangulation covers shape and explains angle sum');
+        }
+      }
+      assert(win.TT99Goodies.modeControl.set('polygon'),'Polygon proof accessible');await tick();
+      const polygonPanel=doc.querySelector('[data-ag-polygon-proof]');doc.querySelector('[data-ag-teaching-tab="polygon-proof"]').click();await tick();
+      const polygonProof=M.polygonFormulaProof(M.shapeTeachingReference(cap().demo).points),nextProof=polygonPanel.querySelector('[data-ag-polygon-proof-next]'),vertexChoice=polygonPanel.querySelector('[data-ag-polygon-proof-vertex]');
+      vertexChoice.value=2;vertexChoice.dispatchEvent(new win.Event('change',{bubbles:true}));assert(polygonPanel.querySelectorAll('[data-ag-proof-counted-diagonal]').length===polygonProof.n-3,'Selecting a different vertex shows its diagonals');
+      nextProof.click();assert(polygonPanel.querySelectorAll('[data-ag-proof-counted-diagonal]').length===polygonProof.all.length,'All unique diagonals shown when counting every vertex');
+      nextProof.click();assert(polygonPanel.querySelector('[data-ag-proof-double-example]'),'Double counting example shown');
+      nextProof.click();assert(polygonPanel.querySelectorAll('[data-ag-proof-triangle]').length===polygonProof.n-2&&polygonPanel.querySelectorAll('[data-ag-proof-internal-cut]').length===polygonProof.n-3,'Triangulation displayed separately');
+      nextProof.click();assert(nextProof.disabled&&polygonPanel.querySelector('[data-ag-proof-equation]').textContent.includes(String((polygonProof.n-2)*180)+'°'),'Final angle sum explained');
+      polygonPanel.querySelector('[data-ag-polygon-proof-reset]').click();assert(polygonPanel.querySelector('[data-ag-polygon-proof-back]').disabled,'Polygon proof reset');
+      const polygonPack=P.createDocument();polygonPack.addCurrent(id,cap());assert(P.renderItem(polygonPack.list()[0],false).querySelectorAll('[data-ag-polygon-proof-graphic]').length===5,'All polygon formula proof stages printable');
+
 
 
 
