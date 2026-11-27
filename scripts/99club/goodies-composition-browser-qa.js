@@ -1465,8 +1465,18 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
     assert(P.answerSummary(motionItem)===null,'Free motion remains an illustration rather than an assessed challenge');
     movement.click();await tick();assert(doc.querySelector('[data-ag-tool="move"]').hidden&&JSON.stringify(cap().demo.labDrawing.points)===JSON.stringify(moved.points),'Disabling movement preserves the same scene');
     setGeometryMode('loci');await tick();
+    const checkDynamicControls=()=>{
+      for(const bar of doc.querySelectorAll('.gd-ag-dynamic-controls')){
+        if(!bar.getBoundingClientRect().width||!bar.getBoundingClientRect().height)continue;
+        const r=bar.getBoundingClientRect(),choice=bar.querySelector(':scope > select'),hint=bar.querySelector(':scope > .gd-ag-inspect-message');
+        if(choice){const b=choice.getBoundingClientRect();assert(b.width>=r.width-24&&b.right<=r.right+1,'Dynamic selector occupies its own row without overflow')}
+        if(hint){const b=hint.getBoundingClientRect();assert(b.width>=r.width-24&&b.right<=r.right+1,'Dynamic instruction has a dedicated full-width row')}
+        for(const b of bar.querySelectorAll('.gd-ag-inspect-btn')){if(!b.getBoundingClientRect().height)continue;assert(b.classList.contains('gd-btn')&&b.getBoundingClientRect().right<=r.right+1,'Dynamic action uses shared compact button and remains within panel')}
+      }
+    };
+    checkDynamicControls();
     const locusTap=(type,p)=>{const surface=doc.querySelector('[data-ag-locus-point="P"]').closest('svg').parentElement,v=new win.DOMPoint(...p).matrixTransform(surface.querySelector('svg').getScreenCTM());surface.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:33,pointerType:'touch',button:0,buttons:type==='pointerup'?0:1,clientX:v.x,clientY:v.y}))};
-    doc.querySelector('[data-ag-locus-action="midpoint"]').click();
+    doc.querySelector('[data-ag-locus-action="midpoint"]').click();assert(doc.querySelector('[data-ag-locus-action="midpoint"]').getAttribute('aria-pressed')==='true','Midpoint toggle exposes active state');
     doc.querySelector('[data-ag-locus-action="trace"]').click();locusTap('pointerdown',[540,220]);locusTap('pointerdown',[470,220]);doc.querySelector('[data-ag-locus-action="trace"]').click();
     locusTap('pointerdown',[540,220]);locusTap('pointermove',[400,70]);locusTap('pointermove',[260,220]);locusTap('pointerup',[260,220]);
     {
@@ -1483,7 +1493,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const dock=doc.querySelector('[data-ag-full-panels]');dock.click();assert(dynamicPalettes.every(p=>p.hidden)&&dock.getAttribute('aria-expanded')==='false','Dynamic palettes can be hidden');dock.click();assert(dock.getAttribute('aria-expanded')==='true'&&!primary.hidden,'Dynamic palettes can be restored');
 
       const choose=doc.querySelector('[data-ag-locus-preset]');choose.value='custom';choose.dispatchEvent(new win.Event('change',{bubbles:true}));await tick(150);
-      surface=doc.querySelector('[data-ag-dynamic-workspace]');assert(surface.dataset.agFullActive==='true'&&frame.classList.contains('is-geometry-board'),'Switching to custom geometry retains full-board mode');
+      surface=doc.querySelector('[data-ag-dynamic-workspace]');assert(surface.dataset.agFullActive==='true'&&frame.classList.contains('is-geometry-board'),'Switching to custom geometry retains full-board mode');checkDynamicControls();
       const customSvg=surface.querySelector('svg'),{x,y,width:w,height:h}=customSvg.viewBox.baseVal,p=[x+w-25,y+h-25],v=new win.DOMPoint(...p).matrixTransform(customSvg.getScreenCTM());
       assert([x,y,w,h,v.x,v.y].every(Number.isFinite)&&w>50&&h>50,'Custom full-board SVG has valid bounds and screen coordinates');doc.querySelector('[data-ag-custom-action="add"]').click();
       surface.dispatchEvent(new win.PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerType:'touch',pointerId:45,button:0,clientX:v.x,clientY:v.y}));
