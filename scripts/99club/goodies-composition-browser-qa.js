@@ -3118,6 +3118,37 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       action('reset-polygon').click();await tick();assert(svg().querySelector('[data-ag-polygon-classification]').textContent.startsWith('Regular'),'Reset restores regular reference polygon');
       change('ag-sides','5');await tick();assert(svg().querySelectorAll('[data-ag-poly-vertex]').length===5,'Changing side count resets geometry and selected vertex');
     }
+    {
+      const M=win.TT99Goodies.angles,examples=M.polygonInvestigationExamples();
+      for(const ex of examples){
+        assert(M.validRegion(ex.points,ex.points.map((_,i)=>i)),'Investigation uses simple polygon: '+ex.name);
+        const turns=M.polygonInvestigationTurns(ex.points),angles=turns.map(t=>180-t);
+        assert(turns.reduce((a,b)=>a+b,0)===360&&angles.reduce((a,b)=>a+b,0)===(ex.points.length-2)*180,'Exact integer-angle examples satisfy both invariants');
+        for(const rot of [0,37,151])for(const mirror of [-1,1]){
+          const a=rot*Math.PI/180,pts=ex.points.map(([x,y])=>[100+20*(x*Math.cos(a)-mirror*y*Math.sin(a)),200+20*(x*Math.sin(a)+mirror*y*Math.cos(a))]);
+          assert(JSON.stringify(M.polygonInvestigationTurns(pts))===JSON.stringify(turns),'Signed turns preserved by similarity and reflection');
+        }
+      }
+      assert(examples.some(ex=>M.polygonInvestigationTurns(ex.points).some(t=>t<0)),'Concave investigations contain negative turns');
+      for(const type of ['polygon-missing','polygon-turn-missing','polygon-diagonal-count']){
+        const seen=new Set();
+        for(let i=0;i<60;i++){
+          const t=M.generate({type,enrichment:true},()=> (i+.5)/60);
+          if(type==='polygon-diagonal-count'){assert(Number(t.answer)===t.n*(t.n-3)/2,'Diagonal count is exact');continue}
+          const values=type==='polygon-missing'?t.investigationAngles:t.investigationTurns,sum=type==='polygon-missing'?180*(t.n-2):360;
+          assert(Number(t.answer)===sum-values.filter((_,j)=>j!==t.unknownVertex).reduce((a,b)=>a+b,0),'Missing angle/turn answers follow exact geometric values');
+          seen.add(JSON.stringify(t.investigationPoints));
+        }
+        if(type!=='polygon-diagonal-count')assert(seen.size===examples.length,'Every irregular example can be generated');
+        const pack=P.createDocument();pack.generate(id,{...P.defaultSettings(id),enrichment:true},8,type);
+        for(const item of pack.list()){
+          const pupil=P.renderItem(item,false),key=P.answerGraphic(item);
+          assert(!pupil.querySelector('[data-ag-polygon-investigation-answer]')&&key.querySelector('[data-ag-polygon-investigation-answer]'),'Only teacher diagram shows solution');
+          if(type==='polygon-diagonal-count')assert(!pupil.querySelector('[data-ag-counted-diagonal]')&&key.querySelectorAll('[data-ag-counted-diagonal]').length===Number(item.data.answer),'Teacher graphic enumerates every distinct diagonal');
+          else {const sel='[data-ag-polygon-investigation-value="'+item.data.unknownVertex+'"]';assert(pupil.querySelector(sel).textContent.endsWith('x')&&key.querySelector(sel).textContent.endsWith(item.data.answer+'°'),'Selected unknown is hidden on pupil sheet and correct on key')}
+        }
+      }
+    }
     const shapeSelect=doc.getElementById('ag-shape-view');shapeSelect.value='rectangle';shapeSelect.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
     doc.querySelector('[data-ag-action="diagonal"]').click();await tick();
     assert(cap().demo.showDiagonals&&doc.querySelector('.gd-ag-visual svg').textContent.includes('Equal diagonals'),'Rectangle explorer displays its diagonal relationship');
