@@ -2619,3 +2619,7 @@ html.gd-embed-page #tt99-goodies-root #gd-stage:has(>.gd-ag-shape-reference)::-w
 #tt99-goodies-root [data-ag-geometry-reasoning] [data-ag-reasoning-graphic]{width:100%;max-width:640px;display:block;margin:auto}
 #tt99-goodies-root [data-ag-geometry-reasoning] .gd-select{width:100%;max-width:100%;min-width:0}
 #tt99-goodies-root [data-ag-geometry-reasoning] .gd-row{flex-wrap:wrap}
+
+#tt99-goodies-root [data-ag-triangle-angle-sum]{display:block;width:100%;max-width:500px;margin:auto}
+#tt99-goodies-root [data-ag-diagonal-enrichment],#tt99-goodies-root [data-ag-reference-extra]{margin-top:10px;border-top:1px solid #dbe7e3;padding-top:8px;min-width:0}
+#tt99-goodies-root [data-ag-diagonal-enrichment]>summary,#tt99-goodies-root [data-ag-reference-extra]>summary{cursor:pointer;color:var(--gd-ink,#263e43);font-weight:600;font-size:.9rem;line-height:1.4;white-space:normal}
