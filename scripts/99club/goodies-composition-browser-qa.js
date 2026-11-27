@@ -1675,6 +1675,22 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       doc.querySelector('[data-ag-tool="undo"]').click();assert(label().textContent==='P₁'&&!model().pointLabels[name].offset,'Undo restores automatic positioning without losing edited name');
       doc.querySelector('[data-ag-tool="undo"]').click();assert(label().textContent===name,'Second undo restores original label');
     }
+    // Visual sector selection is a transient aid, not printed geometry.
+    {
+      const M=win.TT99Goodies.angles,scene={...M.labEmpty(true),points:[[0,200],[200,200],[400,200],[100,300],[300,100],[500,200]],names:['A','E','D','B','C','F'],segments:[],rays:[{i:0,angle:0,construction:true},{i:3,angle:45,construction:true}],showConstruction:true};
+      const sectors=M.labAngleSectors(scene,1);assert(sectors.length===4&&Math.abs(sectors.reduce((sum,x)=>sum+x.sweep,0)-360)<1e-6,'Crossing rays expose four adjacent sectors without duplicate collinear arms');
+      scene.showConstruction=false;assert(!M.labAngleSectors(scene,1).length,'Hidden construction does not create ghost angles');
+      const initial=cap().demo.labDrawing;tapWork([150,150]);doc.querySelector('[data-ag-choose-angle]').click();
+      const ghost=work.querySelector('[data-ag-ghost-angle]');assert(ghost&&work.querySelectorAll('[data-ag-angle-choice]').length===1,'Two connected arms offer one minor-angle choice');
+      const pending=P.createDocument();pending.addCurrent(id,cap());assert(!P.renderItem(pending.list()[0],false).querySelector('[data-ag-ghost-angle]'),'Ghost sectors never enter published drawings');
+      const sector=M.labAngleSectors(initial,0)[0],o=initial.points[0],r=42/G.instruments.screenScale(work),a=(sector.from+sector.sweep/2)*Math.PI/180;tapWork([o[0]+r*Math.cos(a),o[1]-r*Math.sin(a)]);
+      assert(!work.querySelector('[data-ag-ghost-angle]')&&cap().demo.labDrawing.angleNotation.length===1,'Choosing a sector adds exactly one mark and clears previews');
+      assert(!work.querySelector('[data-ag-annotation-value]')&&doc.querySelector('[data-ag-edit-angle-action="apply"]').offsetWidth>0,'New mark has no automatic numerical label and opens editor');
+      doc.querySelector('[data-ag-edit-angle-mode]').value='custom';doc.querySelector('[data-ag-edit-angle-mode]').dispatchEvent(new win.Event('change',{bubbles:true}));doc.querySelector('[data-ag-edit-angle-text]').value='x';doc.querySelector('[data-ag-edit-angle-action="apply"]').click();
+      assert(work.querySelector('[data-ag-annotation-value]').textContent==='x','Selected angle supports symbolic label');
+      doc.querySelector('[data-ag-tool="undo"]').click();doc.querySelector('[data-ag-tool="undo"]').click();
+      assert(!cap().demo.labDrawing.angleNotation?.length&&JSON.stringify(cap().demo.labDrawing.points)===JSON.stringify(initial.points),'Undo restores original geometry');
+    }
     // A ray through two named vertices must not round the exact direction.
     {
       const model=win.TT99Goodies.angles,check=(p,q,end)=>{const dx=q[0]-p[0],dy=q[1]-p[1];return Math.abs(dx*(end[1]-p[1])-dy*(end[0]-p[0]))/Math.hypot(dx,dy)<1e-6};
