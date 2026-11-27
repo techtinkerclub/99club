@@ -1352,7 +1352,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
     }
     {
       const scene=M.labEmpty(true);scene.points=[[100,100],[400,200],[100,350]];scene.segments=[[0,1]];
-      const p={kind:'ruler',x:104,y:103,angle:0,size:400};
+      const p={kind:'ruler',x:104,y:110,angle:0,size:400};
       const near=M.utensilAlignment(scene,p,'move',1);assert(near.kind==='Point'&&near.x===100&&near.y===100,'Utensil aligns precisely to nearby point');
       assert(M.utensilAlignment(scene,p,'move',4)===null,'Magnet tolerance is measured in screen pixels rather than drawing units');
       const q=M.utensilAlignment(scene,{...p,x:250,y:155},'move',1);assert(q.kind==='Edge'&&Math.abs((q.x-100)/3-(q.y-100))<1e-8,'Utensil origin snaps onto exact segment');
