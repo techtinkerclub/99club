@@ -2629,3 +2629,6 @@ html.gd-embed-page #tt99-goodies-root #gd-stage:has(>.gd-ag-shape-reference)::-w
 #tt99-goodies-root [data-ag-rotation-moving-vertex],#tt99-goodies-root [data-ag-fold-handle]{cursor:grab;touch-action:none}
 #tt99-goodies-root :is([data-ag-proof-manual],[data-ag-reflection-advanced]){margin-top:8px;font-size:.9rem}
 html.gd-embed-page #tt99-goodies-root #gd-stage:has(>.gd-ag-shape-reference){overflow-anchor:none;scroll-behavior:auto!important;justify-content:flex-start!important}
+
+#tt99-goodies-root :is([data-ag-basic-area-graphic],[data-ag-pythagoras-squares]){display:block;width:100%;max-width:500px;margin:8px auto}
+#tt99-goodies-root [data-ag-pythagoras-details]{margin-top:12px;border-top:1px solid #dbe7e3;padding-top:8px}
