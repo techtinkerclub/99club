@@ -769,7 +769,7 @@ function generate(s={},rng=Math.random){
    st.nodes.push(node);return id;
  }
  function customMove(st,id,p){const n=st.nodes.find(n=>n.id===id);if(!n||!CUSTOM_OPERATIONS[n.op]?.place)return false;const old=customResolve(st).points;n.at=p.slice();const next=customResolve(st).points;for(const name of st.traceNames||[]){if(old[name]&&next[name])traceAdd(st,name,next[name],old[name]);else if(st.traces[name]?.length&&st.traces[name].at(-1)!==null)st.traces[name].push(null)}return true}
- const model={squareGeometry,isLabArc,labArcContains,labCircleExtents,labContentBounds,locusFitBounds,customBounds,fitGeometryBounds,INDEPENDENT_METHOD_DIMENSIONS,INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labLabel,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,locusInitial,locusProject,locusPoints,traceParts,traceAdd,traceToggle,shapeGeometry,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
+ const model={utensilAlignment,squareGeometry,isLabArc,labArcContains,labCircleExtents,labContentBounds,locusFitBounds,customBounds,fitGeometryBounds,INDEPENDENT_METHOD_DIMENSIONS,INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labLabel,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,locusInitial,locusProject,locusPoints,traceParts,traceAdd,traceToggle,shapeGeometry,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
 if(typeof module==='object'&&module.exports){module.exports=model;return}
 const G=root.TT99Goodies;if(!G)return;G.angles=model;
 const {q,qa,esc,field,btn,setPanels}=G,CK=G.challengeKit;
@@ -1132,19 +1132,39 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    const bar=document.createElement('div');bar.className='gd-ag-local-instrument';bar.style.width=w*scale+'px';bar.style.height='40px';bar.style.transformOrigin='top left';
    // foreignObject content is in SVG units: compensate for zoom.
    bar.style.transform='scale('+unit+')';const name=document.createElement('span');name.textContent=label;bar.append(name);
-   for(const [id,desc,glyph,fn] of actions){const b=document.createElement('button');b.type='button';b.dataset[group]=id;b.title=desc;b.setAttribute('aria-label',desc);b.append(icon(glyph));b.onclick=e=>{e.stopPropagation();fn()};bar.append(b)}
+   for(const [id,desc,glyph,fn,pressed] of actions){const b=document.createElement('button');b.type='button';b.dataset[group]=id;b.title=desc;b.setAttribute('aria-label',desc);if(pressed!==undefined)b.setAttribute('aria-pressed',String(pressed));b.append(icon(glyph));b.onclick=e=>{e.stopPropagation();fn()};bar.append(b)}
    for(const type of ['pointerdown','pointermove','pointerup','click','wheel'])fo.addEventListener(type,e=>e.stopPropagation());fo.append(bar);svg.append(fo);return fo
  }
  // Temporary measuring utensils are separate from the mathematical drawing.
  // All positions and dimensions use the same world units as constructed marks.
- function measuringUtensils(parent,getSvg,onPaint){
+ // Snap in screen-pixel tolerances, with exact world coordinates.
+ // Translation and rotation are independent; snapping never changes size.
+ function utensilAlignment(st,t,mode,scale){
+   const p=[t.x,t.y],tol=12/Math.max(.001,scale),lines=[...st.segments.filter(o=>labVisible(st,'segments',o)).map(o=>({a:st.points[o[0]],b:st.points[o[1]],ray:false})),...st.rays.filter(o=>labVisible(st,'rays',o)).map(o=>({a:st.points[o.i],b:polar(...st.points[o.i],100,labRayAngle(st,o)),ray:true}))];
+   if(st.given!==false&&st.points.length>=2)lines.push({a:st.points[0],b:st.points[1],ray:false});
+   const nearest=lines.flatMap(l=>{const v=labSub(l.b,l.a),d=labDot(v,v);if(d<1e-8)return [];const u=labDot(labSub(p,l.a),v)/d,q=labAt(l.a,v,Math.max(0,l.ray?u:Math.min(1,u)));return [{q,d:labDist(p,q),angle:labAngle(l.a,l.b)}]}).sort((a,b)=>a.d-b.d);
+   if(mode==='move'){
+     const vertex=st.points.map(q=>({q,d:labDist(p,q)})).sort((a,b)=>a.d-b.d)[0];
+     const hit=vertex?.d<=tol?{...vertex,kind:'Point'}:nearest[0]?.d<=tol?{...nearest[0],kind:'Edge'}:null;
+     return hit?{x:hit.q[0],y:hit.q[1],kind:hit.kind}:null;
+   }
+   if(mode==='rotate'){
+     const diff=(a,b)=>Math.min(mod(a-b),mod(b-a)),offsets=t.kind.startsWith('square')?[0,90]:[0],choices=[];
+     for(const l of nearest.filter(l=>l.d<=tol*2))for(const offset of offsets)for(const reverse of [0,180])choices.push({angle:mod(l.angle+offset+reverse),kind:'Edge'});
+     choices.push({angle:mod(Math.round(t.angle/15)*15),kind:'Angle'});
+     choices.sort((a,b)=>diff(a.angle,t.angle)-diff(b.angle,t.angle));
+     return choices[0]&&diff(choices[0].angle,t.angle)<=3?choices[0]:null;
+   }
+   return null;
+ }
+ function measuringUtensils(parent,getSvg,onPaint,getDrawing){
    const N='http://www.w3.org/2000/svg',specs={ruler:{label:'Ruler',size:400,min:80,max:4000},protractor:{label:'Protractor',size:170,min:120,max:1200},square45:{label:'45° set square',size:200,min:80,max:2000},square30:{label:'30°–60° set square',size:200,min:80,max:2000}};
    let items=[],selected=null,next=1,drag=null,opened=false,visible=true;
    const bar=document.createElement('div');bar.className='gd-ag-utensils gd-ag-lab-helpers';bar.hidden=true;bar.setAttribute('role','group');bar.setAttribute('aria-label','Measuring utensils');parent.append(bar);
    const additions=document.createElement('div');additions.className='gd-ag-lab-actions';bar.append(additions);
    const actions=document.createElement('div');actions.className='gd-ag-lab-actions';bar.append(actions);
    const node=(p,tag,attrs,value)=>{const e=document.createElementNS(N,tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,v);if(value!==undefined)e.textContent=value;p.append(e);return e};
-   function add(kind){const svg=getSvg(),v=svg.viewBox.baseVal,k=items.length%5;visible=true;opened=true;const p={id:String(next++),kind,x:v.x+v.width*.32+k*18,y:v.y+v.height*.52+k*18,angle:0,size:specs[kind].size};items.push(p);selected=p.id;onPaint()}
+   function add(kind){const svg=getSvg(),v=svg.viewBox.baseVal,k=items.length%5;visible=true;opened=true;const p={id:String(next++),kind,x:v.x+v.width*.32+k*18,y:v.y+v.height*.52+k*18,angle:0,size:specs[kind].size,snap:true};items.push(p);selected=p.id;onPaint()}
    for(const [kind,spec] of Object.entries(specs))instrumentButton(additions,kind,spec.label,'Add '+spec.label,()=>add(kind),'agUtensilAdd');
    const hide=instrumentButton(actions,'select','Hide utensils','Hide or show measuring utensils',()=>{visible=!visible;selected=null;onPaint()},'agUtensilAction');hide.dataset.agUtensilAction='visibility';
    function removeSelected(){items=items.filter(t=>t.id!==selected);selected=null;onPaint()}
@@ -1169,12 +1189,13 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
          const [rx,ry]=resize;node(g,'path',{d:t.kind==='protractor'?'M '+rx+' '+(ry-r*.65)+' v '+(r*1.3)+' m '+(-r*.28)+' '+(-r*.28)+' l '+(r*.28)+' '+(r*.28)+' '+(r*.28)+' '+(-r*.28):'M '+(rx-r*.65)+' '+ry+' h '+(r*1.3)+' m '+(-r*.28)+' '+(-r*.28)+' l '+(r*.28)+' '+(r*.28)+' '+(-r*.28)+' '+(r*.28),stroke:'#16796e','stroke-width':1.8,fill:'none','pointer-events':'none'});
        }
      }
-     if(chosen){const angle=chosen.angle,anchor=polar(chosen.x,chosen.y,chosen.kind==='ruler'?chosen.size*.5:0,angle),size=Number((chosen.size/LAB_UNIT).toFixed(1));localInstrumentActions(svg,anchor,chosen.kind==='ruler'?size+' cm':chosen.kind==='protractor'?size+' cm radius':size+' cm base',[['rotate','Rotate 15°','reset',rotateSelected],['duplicate','Duplicate','point',()=>{const copy={...chosen,id:String(next++),x:chosen.x+24,y:chosen.y+24};items.push(copy);selected=copy.id;onPaint()}],['remove','Remove','erase',removeSelected]],'agUtensilAction')}
+     if(drag?.candidate){const c=drag.candidate,t=drag.t,q=[c.x??t.x,c.y??t.y],u=1/(Math.hypot(svg.getScreenCTM()?.a||1,svg.getScreenCTM()?.b||0));node(layer,'circle',{cx:q[0],cy:q[1],r:8*u,fill:'none',stroke:'#16796e','stroke-width':2*u,'pointer-events':'none','data-ag-utensil-snap-preview':c.kind});if(c.angle!==undefined){const end=polar(...q,t.size,c.angle);node(layer,'line',{x1:q[0],y1:q[1],x2:end[0],y2:end[1],stroke:'#16796e','stroke-width':2*u,'stroke-dasharray':(4*u)+' '+(3*u),'pointer-events':'none'})}}
+     if(chosen&&!drag){const angle=chosen.angle,anchor=polar(chosen.x,chosen.y,chosen.kind==='ruler'?chosen.size*.5:0,angle),size=Number((chosen.size/LAB_UNIT).toFixed(1));localInstrumentActions(svg,anchor,chosen.kind==='ruler'?size+' cm':chosen.kind==='protractor'?size+' cm radius':size+' cm base',[['snap',chosen.snap?'Turn magnetic alignment off':'Turn magnetic alignment on','snap',()=>{chosen.snap=!chosen.snap;onPaint()},chosen.snap],['rotate','Rotate 15°','reset',rotateSelected],['duplicate','Duplicate','point',()=>{const copy={...chosen,id:String(next++),x:chosen.x+24,y:chosen.y+24};items.push(copy);selected=copy.id;onPaint()}],['remove','Remove','erase',removeSelected]],'agUtensilAction')}
    }
    function locate(e){const svg=getSvg(),m=svg?.getScreenCTM();if(!m)return null;const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(m.inverse());return [p.x,p.y]}
-   function down(e){if(e.target.closest?.('[data-ag-local-instrument]'))return;if(e.button!==0||!visible)return;const target=e.target.closest?.('[data-ag-utensil]');if(!target){if(selected){selected=null;onPaint()}return}const t=items.find(t=>t.id===target.dataset.agUtensil),p=locate(e);if(!t||!p)return;e.preventDefault();e.stopImmediatePropagation();selected=t.id;opened=true;drag={id:e.pointerId,t,p,x:t.x,y:t.y,angle:t.angle,size:t.size,handle:e.target.closest('[data-ag-utensil-handle]')?.getAttribute('data-ag-utensil-handle'),startAngle:labAngle([t.x,t.y],p)};try{getSvg().setPointerCapture(e.pointerId)}catch(_){}onPaint()}
-   function move(e){if(drag?.id!==e.pointerId)return;const p=locate(e);if(!p)return;e.preventDefault();e.stopImmediatePropagation();const d=drag;if(d.handle==='rotate')d.t.angle=mod(Math.round(d.angle+labAngle([d.x,d.y],p)-d.startAngle));else if(d.handle==='resize'){const spec=specs[d.t.kind],axis=polar(0,0,1,d.angle+(d.t.kind==='protractor'?90:0)),delta=labDot(labSub(p,d.p),axis);d.t.size=Math.max(spec.min,Math.min(spec.max,Math.round((d.size+delta)/4)*4))}else{d.t.x=d.x+p[0]-d.p[0];d.t.y=d.y+p[1]-d.p[1]}onPaint()}
-   function finish(e){if(drag?.id!==e.pointerId)return;drag=null;e.stopImmediatePropagation()}
+   function down(e){if(e.target.closest?.('[data-ag-local-instrument]'))return;if(e.button!==0||!visible)return;const target=e.target.closest?.('[data-ag-utensil]');if(!target){if(selected){selected=null;onPaint()}return}const t=items.find(t=>t.id===target.dataset.agUtensil),p=locate(e);if(!t||!p)return;e.preventDefault();e.stopImmediatePropagation();selected=t.id;opened=true;drag={id:e.pointerId,t,p,x:t.x,y:t.y,angle:t.angle,size:t.size,handle:e.target.closest('[data-ag-utensil-handle]')?.getAttribute('data-ag-utensil-handle'),startAngle:labAngle([t.x,t.y],p),moved:false,candidate:null};try{getSvg().setPointerCapture(e.pointerId)}catch(_){}onPaint()}
+   function move(e){if(drag?.id!==e.pointerId)return;const p=locate(e);if(!p)return;e.preventDefault();e.stopImmediatePropagation();const d=drag,scale=Math.hypot(getSvg().getScreenCTM()?.a||1,getSvg().getScreenCTM()?.b||0);if(!d.moved&&labDist(p,d.p)*scale<4)return;d.moved=true;if(d.handle==='rotate')d.t.angle=mod(Math.round(d.angle+labAngle([d.x,d.y],p)-d.startAngle));else if(d.handle==='resize'){const spec=specs[d.t.kind],axis=polar(0,0,1,d.angle+(d.t.kind==='protractor'?90:0)),delta=labDot(labSub(p,d.p),axis);d.t.size=Math.max(spec.min,Math.min(spec.max,Math.round((d.size+delta)/4)*4))}else{d.t.x=d.x+p[0]-d.p[0];d.t.y=d.y+p[1]-d.p[1]}d.candidate=d.t.snap&&getDrawing?utensilAlignment(getDrawing(),d.t,d.handle||'move',scale):null;onPaint()}
+   function finish(e){if(drag?.id!==e.pointerId)return;const {t,candidate}=drag;if(e.type==='pointerup'&&candidate){if(candidate.x!==undefined){t.x=candidate.x;t.y=candidate.y}if(candidate.angle!==undefined)t.angle=candidate.angle}drag=null;e.stopImmediatePropagation();onPaint()}
    const svg=getSvg();svg.addEventListener('pointerdown',down,true);svg.addEventListener('pointermove',move,true);for(const type of ['pointerup','pointercancel','lostpointercapture'])svg.addEventListener(type,finish,true);
    return {bar,paint,toggle:()=>{opened=!opened;if(!opened)selected=null;onPaint()},isOpen:()=>opened};
  }
@@ -1236,7 +1257,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
   const panButton=free?button('pan','Pan','Move around the drawing without changing geometry',()=>{panMode=!panMode;hover=null;paint()}):null;
   const navButtons=free?[button('zoom-out','−','Zoom out',()=>zoomBoard(.8)),button('zoom-in','+','Zoom in',()=>zoomBoard(1.25)),button('fit','Fit','Fit all finite geometry in view',fitBoard)]:[];navButtons.forEach(b=>b.hidden=true);
   const navigation=free?geometryNavigation():null;
-  const utensils=free?measuringUtensils(toolbar,()=>svg,()=>paint()):null;
+  const utensils=free?measuringUtensils(toolbar,()=>svg,()=>paint(),()=>st):null;
   const utensilsButton=free?button('segment','Measuring tools','Show independent measuring utensils',()=>utensils.toggle()):null;if(utensilsButton)utensilsButton.dataset.agTool='measuring-tools';
   const guideButton=button('help',free?'Help':'Tool help','Show instrument instructions',()=>{guideOpen=!guideOpen;guideStep=0;paint()});
   if(free||CONSTRUCTION_METHODS_BY_TASK[task?.type]){const libraryButton=button('help',free?'Construction library':'Method guide',free?'Open searchable construction methods':'Open optional construction guidance',()=>methodLibrary.toggle());libraryButton.dataset.agTool='construction-library';methodLibrary=mountConstructionLibrary(box,libraryButton,task,()=>st,publishMethod)}
