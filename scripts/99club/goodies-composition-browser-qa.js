@@ -1346,6 +1346,28 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
     const sheetPaper=P.renderItem(paperDimensions.list()[0],false);assert(sheetPaper.getAttribute('data-ag-workspace-mm')==='297 210'&&!sheetPaper.querySelector('[data-ag-grid]'),'Publishing retains A4 landscape dimensions and plain paper');
 
 
+    {
+      const initial=JSON.stringify(cap().demo.labDrawing.points),frame=fixture.frame,hostBoard=document.getElementById('gd-mixed-board'),hostViewport=document.getElementById('gd-board-viewport'),restore=frame.querySelector('[data-board-maximise]');
+      api.select(fixture.record.id);restore.click();await tick(150);
+      assert(frame.classList.contains('is-geometry-board')&&hostBoard.classList.contains('is-geometry-drawing'),'Free geometry maximises into a dedicated board');
+      const rect=work.getBoundingClientRect(),vr=hostViewport.getBoundingClientRect(),matrix=work.getScreenCTM();
+      assert(Math.abs(rect.width-vr.width)<3&&Math.abs(rect.height-vr.height)<3,'Drawing surface fills the entire whiteboard viewport');
+      assert(Math.abs(matrix.a-matrix.d)<.001,'Full-screen geometry preserves equal horizontal and vertical scale');
+      assert(JSON.stringify(cap().demo.labDrawing.points)===initial,'Entering full board does not move drawing points');
+      const palettes=[...doc.querySelectorAll('[data-ag-full-panel]')];assert(palettes.length===3,'Instruments, options and help are separate floating panels');
+      const instrument=palettes[0],fold=instrument.querySelector('.gd-ag-full-panel-head button'),content=instrument.querySelector('.gd-ag-full-panel-content');fold.click();assert(content.hidden,'Floating panel collapses');fold.click();assert(!content.hidden,'Floating panel expands');
+      const head=instrument.querySelector('.gd-ag-full-panel-head'),start=head.getBoundingClientRect(),oldLeft=instrument.getBoundingClientRect().left;
+      for(const [type,x,y] of [['pointerdown',start.left+10,start.top+8],['pointermove',start.left+70,start.top+20],['pointerup',start.left+70,start.top+20]])head.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerType:'touch',pointerId:44,button:0,clientX:x,clientY:y}));
+      assert(instrument.getBoundingClientRect().left>oldLeft+20,'Floating instrument panel can be moved by touch');
+      doc.querySelector('[data-ag-tool="point"]').click();const dock=doc.querySelector('[data-ag-full-panels]');dock.click();assert(palettes.every(p=>p.hidden),'Hide panels clears the drawing area');
+      const edge=[work.viewBox.baseVal.width-25,work.viewBox.baseVal.height-25];tapWork(edge);
+      const drawn=cap().demo.labDrawing;assert(drawn.points.length===JSON.parse(initial).length+1&&Math.hypot(drawn.points.at(-1)[0]-edge[0],drawn.points.at(-1)[1]-edge[1])<2,'Draw near the far edge of the maximised board');
+      assert(M.workspaceFits(drawn,drawn.workspace.w,drawn.workspace.h),'Expanded drawing extent is retained in saved model');
+      dock.click();doc.querySelector('[data-ag-tool="undo"]').click();restore.click();await tick(150);
+      assert(!frame.classList.contains('is-geometry-board')&&!hostBoard.classList.contains('is-geometry-drawing'),'Restore leaves dedicated drawing mode');
+      assert(work.viewBox.baseVal.width===1188&&work.viewBox.baseVal.height===840&&JSON.stringify(cap().demo.labDrawing.points)===initial,'Restore retains original A4 format and unchanged drawing after undo');
+      assert(!doc.querySelector('[data-ag-full-panel]')&&doc.querySelector('[data-ag-tool="point"]'),'Normal toolbar restored without duplicated controls');
+    }
     const modePicker=doc.getElementById('ag-mode');
     assert(modePicker.querySelectorAll('optgroup').length===2&&modePicker.querySelector('optgroup[label="Geometry workspaces"]').children.length===2,'Geometry workspaces are unified construction and constrained loci');
     const setGeometryMode=value=>{const el=doc.getElementById('ag-mode');el.value=value;el.dispatchEvent(new win.Event('change',{bubbles:true}))};

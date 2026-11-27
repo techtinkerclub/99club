@@ -2425,3 +2425,33 @@ html:not(.gd-embed-page) #tt99-goodies-root #gd-controls .gd-mc-five{min-height:
 #tt99-goodies-root .gd-ag-inspect-btn,#tt99-goodies-root .gd-ag-inspect-tools .gd-select{min-height:34px!important;height:34px!important;margin:0!important;padding:4px 7px!important;font:600 11px/1.2 Arial,sans-serif!important;border-radius:6px;box-sizing:border-box}
 #tt99-goodies-root .gd-ag-inspect-btn svg{width:18px!important;height:18px!important}
 #tt99-goodies-root .gd-ag-inspect-message{font-size:11px;line-height:1.35}
+
+/* Dedicated geometry board: host fills the viewport; the iframe renders
+   actual-size UI instead of scaling the normal widget card. */
+#tt99-goodies-root .gd-mixed-board.is-geometry-drawing .gd-board-viewport{overflow:hidden;background:white;touch-action:none}
+#tt99-goodies-root .gd-mixed-board.is-geometry-drawing .gd-board-palette,
+#tt99-goodies-root .gd-mixed-board.is-geometry-drawing .gd-board-tool-picker,
+#tt99-goodies-root .gd-mixed-board.is-geometry-drawing .gd-board-global,
+#tt99-goodies-root .gd-mixed-board.is-geometry-drawing .gd-board-floating-controls,
+#tt99-goodies-root .gd-mixed-board.is-geometry-drawing .gd-board-object:not(.is-geometry-board){visibility:hidden;pointer-events:none}
+#tt99-goodies-root .gd-board-object.is-geometry-board{border:0;border-radius:0;background:white;box-shadow:none}
+#tt99-goodies-root .gd-board-object.is-geometry-board>.gd-board-object-iframe{border-radius:0;transform:none}
+#tt99-goodies-root .gd-board-object.is-geometry-board>:not(iframe):not(.gd-board-maximise){display:none!important}
+#tt99-goodies-root .gd-board-object.is-geometry-board>.gd-board-maximise{display:flex!important;position:absolute;right:10px;top:9px;width:38px;height:38px;border:1px solid #d1e1dd;border-radius:9px;z-index:100;box-shadow:0 2px 9px #294c5220}
+html.gd-ag-full-page.gd-embed-page #gd-stage.gd-ag-full-stage{padding:0!important;margin:0!important;overflow:hidden!important;background:white!important}
+html.gd-ag-full-page.gd-embed-page #gd-stage.gd-ag-full-stage>:not(.gd-ag-full-board){display:none!important}
+#tt99-goodies-root .gd-ag-visual.gd-ag-full-board{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;margin:0!important;padding:0!important;background:white}
+#tt99-goodies-root .gd-ag-full-board .gd-ag-lab-toolbar.gd-ag-full-tools{position:absolute;inset:0;z-index:30;display:block;pointer-events:none;padding:0;margin:0;border:0;background:none;max-width:none;border-radius:0}
+#tt99-goodies-root .gd-ag-full-panel{position:absolute;z-index:2;width:max-content;max-width:min(360px,calc(100% - 8px));max-height:calc(100% - 8px);overflow:auto;box-sizing:border-box;pointer-events:auto;background:rgba(255,255,255,.97);border:1px solid #c9ded7;border-radius:10px;box-shadow:0 3px 15px #284d461c;padding:5px;touch-action:auto}
+#tt99-goodies-root .gd-ag-full-panel[data-ag-full-panel="Instruments"]{max-width:min(250px,calc(100% - 8px))}
+#tt99-goodies-root .gd-ag-full-panel-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 4px 5px;cursor:grab;touch-action:none;font:600 12px/1.2 system-ui,sans-serif;color:#365e55}
+#tt99-goodies-root .gd-ag-full-panel-head button{min-height:28px!important;min-width:28px;padding:2px!important;font-size:15px!important}
+#tt99-goodies-root .gd-ag-full-panel-content{display:grid;gap:4px}
+#tt99-goodies-root .gd-ag-full-panel-content[hidden]{display:none!important}
+#tt99-goodies-root .gd-ag-full-panel .gd-ag-lab-tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px}
+#tt99-goodies-root .gd-ag-full-panel .gd-ag-lab-helpers,#tt99-goodies-root .gd-ag-full-panel .gd-ag-lab-actions,#tt99-goodies-root .gd-ag-full-panel .gd-ag-lab-options{display:flex;flex-wrap:wrap;justify-content:flex-start;gap:4px}
+#tt99-goodies-root .gd-ag-full-panel .gd-ag-lab-button{min-height:36px!important;padding:4px 6px!important;font-size:11px!important}
+#tt99-goodies-root .gd-ag-full-dock{position:absolute;left:10px;top:9px;z-index:4;pointer-events:auto;min-height:32px!important;padding:4px 9px!important;font-size:12px!important;box-shadow:0 2px 8px #294c521a}
+#tt99-goodies-root .gd-ag-full-board>[data-ag-paper-construction]{position:absolute;bottom:7px;left:50%;transform:translateX(-50%);max-width:calc(100% - 24px);width:max-content;z-index:10;padding:5px 10px;margin:0!important;min-height:0!important;background:#ffffffde;border-radius:7px;pointer-events:none;font-size:11px;line-height:1.25;color:#365e55}
+#tt99-goodies-root .gd-ag-full-board .gd-ag-full-help{position:absolute;right:10px;top:54px;width:min(310px,calc(100% - 20px));max-height:calc(100% - 65px);overflow:auto;z-index:35;background:#fff;border:1px solid #c9ded7;border-radius:9px;padding:8px;box-shadow:0 3px 15px #284d461c}
+@media(max-width:560px){#tt99-goodies-root .gd-ag-full-panel{max-width:min(270px,calc(100% - 8px))}#tt99-goodies-root .gd-ag-full-panel[data-ag-full-panel="Instruments"]{max-width:190px}#tt99-goodies-root .gd-ag-full-panel .gd-ag-lab-button{min-height:34px!important}}
