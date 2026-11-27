@@ -1443,6 +1443,12 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       tap(aim);const drawing=cap().demo.labDrawing,ray=drawing.rays[0];
       assert(drawing.rays.length===1&&Math.abs(ray.relativeAngle-37)<.001&&Math.abs(M.labRayAngle(drawing,ray)-67)<.001,'Rotated baseline yields exact 37 degree relative angle: '+label);
       assert(work.querySelector('[data-ag-angle-value]')?.textContent==='37°','Rendered angle annotation agrees with geometry: '+label);
+      reset();tool('protractor').click();tap(origin);tap(base);tap(M.polar(...origin,180,67.42));
+      const precise=cap().demo.labDrawing,pr=precise.rays[0];
+      assert(Math.abs(pr.relativeAngle-37.4)<1e-7,'Guided construction retains tenth-degree relative angle: '+label);
+      assert(work.querySelector('[data-ag-angle-value]')?.textContent==='37.4°','Guided angle label retains fractional value: '+label);
+      const fractionDoc=P.createDocument();fractionDoc.addCurrent(id,cap());assert(P.renderItem(fractionDoc.list()[0],false).querySelector('[data-ag-angle-value]')?.textContent==='37.4°','Published guided angle preserves fractional value: '+label);
+
       reset();assert(cap().demo.labDrawing.points.length===0,'Instrument verification leaves empty sheet: '+label);
     };
     checkRuler();verifyInstruments('A5 normal');
