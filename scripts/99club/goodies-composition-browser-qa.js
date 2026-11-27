@@ -1361,6 +1361,19 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(M.utensilAlignment(scene,{...p,x:800,y:700,angle:46},'rotate',1).angle===45,'Rotation snaps gently to common angles');
       assert(M.utensilAlignment(scene,{...p,x:800,y:700,angle:52},'rotate',1)===null,'Rotation stays free between snap tolerances');
       assert(M.utensilAlignment(scene,p,'resize',1)===null,'Resize never changes origin or angle through snapping');
+      const exact=M.labEmpty(true);exact.points=[[100,100],[500,100]];exact.segments=[[0,1]];
+      const aligned=M.utensilAlignment(exact,{kind:'ruler',x:97,y:106,angle:2,size:400},'move',1);
+      assert(aligned.kind==='Aligned vertex'&&aligned.x===100&&aligned.y===100&&aligned.angle===0,'Ruler zero and measuring edge align together');
+      const mid=M.utensilAlignment(exact,{kind:'ruler',x:-100,y:106,angle:0,size:400},'move',1);
+      assert(mid.kind==='Aligned edge'&&Math.abs(mid.x+100)<1e-8&&mid.y===100&&mid.angle===0,'Ruler aligns by its measuring edge even with zero outside the segment');
+      const tipScene=M.labEmpty(true);tipScene.points=[[500,100]];
+      const tip=M.utensilAlignment(tipScene,{kind:'ruler',x:104,y:106,angle:0,size:400},'move',1);
+      assert(tip.kind==='Endpoint'&&tip.x===100&&tip.y===100,'Ruler far endpoint can snap without changing length');
+      const pro=M.utensilAlignment(exact,{kind:'protractor',x:105,y:105,angle:3,size:170},'move',1);
+      assert(pro.kind==='Aligned vertex'&&pro.x===100&&pro.y===100&&pro.angle===0,'Protractor centre and baseline align in one gesture');
+      const square=M.utensilAlignment(exact,{kind:'square45',x:100,y:106,angle:92,size:200},'move',1);
+      assert(square.kind==='Aligned vertex'&&square.angle===90,'Set square can align perpendicular leg to existing edge');
+
     }
     {
       const scene=M.labEmpty(true),o=[200,200],angle=37.42,baseline=23.17,end=a=>[o[0]+200*Math.cos(a*Math.PI/180),o[1]-200*Math.sin(a*Math.PI/180)];
@@ -1449,6 +1462,8 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(JSON.stringify(cap().demo.labDrawing)===original,'Measuring utensils never mutate drawing state');
       const publication=P.createDocument();publication.addCurrent(id,cap());assert(!P.renderItem(publication.list()[0],false).querySelector('[data-ag-utensil]'),'Temporary utensils are excluded from publication');
       const local=work.querySelector('[data-ag-local-instrument]');
+      const localButton=local.querySelector('button'),hit=localButton.getBoundingClientRect();
+      assert(hit.width>=44&&hit.height>=44,'Local instrument controls have whiteboard-sized touch targets');
       const snap=action('snap');assert(local.contains(snap)&&snap.getAttribute('aria-pressed')==='true','Magnetic alignment is available at the selected utensil');
       snap.click();assert(action('snap').getAttribute('aria-pressed')==='false','Local snap can be disabled without entering settings');action('snap').click();
       assert(work.querySelector('[data-ag-local-instrument]')?.contains(action('remove'))&&work.querySelector('[data-ag-local-instrument]')?.contains(action('rotate'))&&!doc.querySelector('.gd-ag-utensils [data-ag-utensil-action="remove"]'),'Selected utensil actions are attached locally rather than in drawing options');
