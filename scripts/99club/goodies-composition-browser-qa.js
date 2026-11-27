@@ -1561,6 +1561,21 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
     for(const i of selectedEdge){const cue=work.querySelector('[data-ag-point-centre="'+selectedDrawing.names[i]+'"]');assert(cue&&cue.dataset.agCentreDirection!=='neutral','Selected diagonal endpoints use directional marks');const m=cue.transform.baseVal.getItem(1).matrix;assert(Math.abs((m.c*dx+m.d*dy)/len)<1e-5,'Long centre mark is perpendicular to diagonal segment');const p=cue.querySelector('path').getBBox();assert(p.height>p.width,'Perpendicular stroke is longer than longitudinal stroke')}
     const mark=doc.querySelector('[data-ag-notation]');mark.value='equal2';mark.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();assert(work.querySelectorAll('[data-ag-notation="equal2"]').length===2,'Double equality ticks render on selected segment');const markDraft=P.createDocument();markDraft.addCurrent(id,cap());assert(P.renderItem(markDraft.list()[0],false).querySelectorAll('[data-ag-notation="equal2"]').length===2,'Manual marks survive publishing');
     {const regionModel=win.TT99Goodies.angles,curves={given:false,points:[[250,250],[350,250]],names:['A','B'],segments:[],rays:[],circles:[{i:0,r:100},{i:1,r:100}],regions:[]};const lens=regionModel.labFaceAt(curves,[300,250]);assert(lens&&lens.path.includes('A ')&&regionModel.labFaces(curves).length===3,'Two overlapping circles form three bounded curved faces');assert(!regionModel.labFaceAt(curves,[50,50]),'Exterior remains unshaded');curves.regions.push({seed:[300,250],faceKey:lens.key,colour:0});assert(regionModel.labRegionShapes(curves)[0]?.path.includes('A '),'Curved region retains vector arcs');}
+    // A ray through two named vertices must not round the exact direction.
+    {
+      const model=win.TT99Goodies.angles,check=(p,q,end)=>{const dx=q[0]-p[0],dy=q[1]-p[1];return Math.abs(dx*(end[1]-p[1])-dy*(end[0]-p[0]))/Math.hypot(dx,dy)<1e-6};
+      doc.querySelector('[data-ag-tool="ray"]').click();lineTap([150,150]);lineTap([300,350]);
+      const drawing=cap().demo.labDrawing,r=drawing.rays.at(-1),p=drawing.points[0],q=drawing.points[2],angle=model.labRayAngle(drawing,r);
+      assert(r.relativeTo===drawing.names[2]&&r.relativeAngle===0&&Math.abs(angle-Math.round(angle))>.01,'Ray snapped to named vertex retains fractional direction and reference');
+      for(const bounds of [[0,0,1188,840],[-2000,-1000,10000,8000]])assert(check(p,q,model.rayEnd(p,angle,bounds)),'Ray remains collinear over arbitrary board extents');
+      const rayPaper=P.createDocument();rayPaper.addCurrent(id,cap());const graphic=P.renderItem(rayPaper.list()[0],false);
+      const lines=[...graphic.querySelectorAll('line')],n=(el,k)=>Number(el.getAttribute(k));
+      assert(lines.some(el=>Math.hypot(n(el,'x1')-p[0],n(el,'y1')-p[1])<.001&&Math.hypot(n(el,'x2')-p[0],n(el,'y2')-p[1])>Math.hypot(q[0]-p[0],q[1]-p[1])&&check(p,q,[n(el,'x2'),n(el,'y2')])),'Printed ray extends exactly through named vertex');
+      const moved=JSON.parse(JSON.stringify(drawing));moved.points[2]=[321,367];assert(check(p,moved.points[2],model.rayEnd(p,model.labRayAngle(moved,moved.rays.at(-1)),[0,0,1188,840])),'Ray follows its referenced point when moved');
+      const freeRay=model.labDirectRay(drawing,0,{p:[311,357],kind:''},false);assert(!freeRay.relativeTo&&check(p,[311,357],model.rayEnd(p,freeRay.angle,[0,0,1188,840])),'Free ray direction is exact without adding a reference');
+      doc.querySelector('[data-ag-tool="undo"]').click();doc.querySelector('[data-ag-tool="undo"]').click();
+      assert(cap().demo.labDrawing.rays.length===0,'Undo restores original geometry after ray regression');
+    }
     // A constructed angle must have permanent marks, even with measurements disabled.
     doc.querySelector('[data-ag-option="measure"]').click();
     doc.querySelector('[data-ag-tool="protractor"]').click();
