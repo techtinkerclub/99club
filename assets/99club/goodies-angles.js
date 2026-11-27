@@ -1134,7 +1134,18 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
     formatInput.onchange=()=>{customFields.hidden=formatInput.value!=='custom';customFields.style.display=formatInput.value==='custom'?'flex':'none';orientationInput.disabled=formatInput.value==='custom'};
     const apply=document.createElement('button');apply.type='button';apply.className='gd-btn gd-btn--primary';apply.textContent='Apply';apply.style.cssText='min-height:32px;padding:4px 10px;font-size:13px';apply.dataset.agWorkspace='apply';row.append(apply);
     sheetStatus=document.createElement('p');sheetStatus.className='gd-help';sheetStatus.setAttribute('role','status');sheetStatus.style.cssText='margin:3px 0 0;font-size:11px;text-align:center';sheetPanel.append(sheetStatus);
-    apply.onclick=()=>{const width=Number(widthInput.value),height=Number(heightInput.value);if(formatInput.value==='custom'&&(!Number.isFinite(width)||!Number.isFinite(height)||width<50||height<50||width>650||height>650)){sheetStatus.textContent='Enter dimensions between 50 and 650 mm.';return}const next={...workspaceSize(formatInput.value,orientationInput.value,width,height),gridMm:Number(gridInput.value)};if(resizeWorkspace(next)){sheetPanel.hidden=true;expandButton.setAttribute('aria-expanded','false')}};
+    apply.onclick=()=>{
+      const width=Number(widthInput.value),height=Number(heightInput.value),format=formatInput.value,orientation=orientationInput.value,gridMm=Number(gridInput.value);
+      const samePaper=format===ws.format&&(format==='custom'?width===ws.w/4&&height===ws.h/4:orientation===ws.orientation);
+      // Grid changes are presentation settings, not requests to crop the board.
+      // Keep the original paper and any expanded drawing extent, including on restore.
+      if(samePaper){ws={...ws,gridMm};grid=gridMm>0;st.workspace=fullBoard?boardWorkspace():{...ws};syncSheet();changed();}
+      else{
+        if(format==='custom'&&(!Number.isFinite(width)||!Number.isFinite(height)||width<50||height<50||width>650||height>650)){sheetStatus.textContent='Enter dimensions between 50 and 650 mm.';return}
+        if(!resizeWorkspace({...workspaceSize(format,orientation,width,height),gridMm}))return;
+      }
+      sheetPanel.hidden=true;expandButton.setAttribute('aria-expanded','false');
+    };
     svg.dataset.agFreeWorkspace='1';viewport.addEventListener('tt99-viewport-resize',e=>{if(fullBoard)return;const available=Math.max(120,e.detail.h-toolbar.offsetHeight-hint.offsetHeight-45);availableHeight=available;viewport.style.maxHeight=available+'px';sizeCanvas()});st.workspace={...ws};syncSheet();onChange(clone(st));if(typeof ResizeObserver!=='undefined'){const observer=new ResizeObserver(()=>{if(!svg.isConnected){observer.disconnect();return}sizeCanvas()});observer.observe(viewport)}
   }
   const angleTool=()=>['protractor','square45','square30'].includes(tool);
@@ -1287,7 +1298,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
       toolbar.classList.add('gd-ag-full-tools');floatingPanel('Instruments',[instruments],'10px','46px');const drawingPanel=floatingPanel('Drawing options',[helpers,styleBar,notationBar,regionBar,sheetPanel],'calc(100% - 365px)','54px');if(viewport.clientWidth<600)drawingPanel.querySelector('.gd-ag-full-panel-head button').click();helpPanel=floatingPanel('Instrument help',[guide],'calc(100% - 325px)','240px');helpPanel.hidden=!guideOpen;
       panelsHidden=false;dock=geometryPaletteDock(toolbar,hidden=>{panelsHidden=hidden;fullPanels.forEach(p=>p.hidden=hidden||(p===helpPanel&&!guideOpen));if(hidden)methodLibrary?.toggle(false);else fullResize()});
       // Instrument help floats independently of the tool palettes.
-      fullResize();
+      fullResize();syncSheet();
     }else{
       ws=boardWorkspace();ww=ws.w;hh=ws.h;st.workspace={...ws};toolbar.classList.remove('gd-ag-full-tools');toolbar.append(instruments,helpers,styleBar,notationBar,regionBar,sheetPanel);box.append(guide);helpPanel=null;fullPanels.forEach(p=>p.remove());fullPanels=[];dock?.remove();dock=null;viewport.style.cssText=normalViewportStyle;svg.style.cssText=normalSvgStyle;sizeCanvas();syncSheet();onChange(clone(st));
     }
