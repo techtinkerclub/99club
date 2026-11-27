@@ -304,7 +304,7 @@ const INSTRUMENT_ICONS={
    const hand=t.hand===-1?-1:1,origin=[t.x,t.y],relative=a=>mod(hand*(a-t.angle)),wanted=Math.max(0,Math.min(180,raw)),tol=12/Math.max(.001,scale),candidates=[];
    const fallback={reading:Math.round(wanted*10)/10,kind:''};if(!t.snap)return fallback;
    const base=[Math.cos(t.angle*D),-Math.sin(t.angle*D)],cross=(a,b)=>a[0]*b[1]-a[1]*b[0];
-   for(const {a,b,ray} of lines){
+   for(const {a,b,ray,infinite} of lines){
      const v=labSub(b,a),len=Math.hypot(...v);if(len<1e-8)continue;
      const u=v.map(n=>n/len),delta=labSub(a,origin),den=cross(base,u);
      // Exact intersection with the baseline: only allow a small translation
@@ -316,8 +316,8 @@ const INSTRUMENT_ICONS={
        q=labAt(origin,base,shift);
      }
      const k=labDot(labSub(q,a),u);
-     if(k< -1e-7||(!ray&&k>len+1e-7))continue;
-     const directions=[...(ray||k<len-1e-7?[labAngle(a,b)]:[]),...(!ray&&k>1e-7?[labAngle(b,a)]:[])];
+     if(!infinite&&(k< -1e-7||(!ray&&k>len+1e-7)))continue;
+     const directions=[...(ray||k<len-1e-7?[labAngle(a,b)]:[]),...(infinite||k>1e-7?[labAngle(b,a)]:[])];
      for(const dir of directions){let reading=relative(dir);if(reading>360-1e-7)reading=0;if(reading>180+1e-7)continue;reading=Math.min(180,reading);const error=Math.abs(reading-wanted);if(error<=3)candidates.push({reading,x:q[0],y:q[1],kind:'Edge',error,shift:labDist(q,origin)})}
    }
    candidates.sort((a,b)=>a.error-b.error||a.shift-b.shift);if(!candidates.length)return fallback;
