@@ -1567,6 +1567,25 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
     for(const i of selectedEdge){const cue=work.querySelector('[data-ag-point-centre="'+selectedDrawing.names[i]+'"]');assert(cue&&cue.dataset.agCentreDirection!=='neutral','Selected diagonal endpoints use directional marks');const m=cue.transform.baseVal.getItem(1).matrix;assert(Math.abs((m.c*dx+m.d*dy)/len)<1e-5,'Long centre mark is perpendicular to diagonal segment');const p=cue.querySelector('path').getBBox();assert(p.height>p.width,'Perpendicular stroke is longer than longitudinal stroke')}
     const mark=doc.querySelector('[data-ag-notation]');mark.value='equal2';mark.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();assert(work.querySelectorAll('[data-ag-notation="equal2"]').length===2,'Double equality ticks render on selected segment');const markDraft=P.createDocument();markDraft.addCurrent(id,cap());assert(P.renderItem(markDraft.list()[0],false).querySelectorAll('[data-ag-notation="equal2"]').length===2,'Manual marks survive publishing');
     {const regionModel=win.TT99Goodies.angles,curves={given:false,points:[[250,250],[350,250]],names:['A','B'],segments:[],rays:[],circles:[{i:0,r:100},{i:1,r:100}],regions:[]};const lens=regionModel.labFaceAt(curves,[300,250]);assert(lens&&lens.path.includes('A ')&&regionModel.labFaces(curves).length===3,'Two overlapping circles form three bounded curved faces');assert(!regionModel.labFaceAt(curves,[50,50]),'Exterior remains unshaded');curves.regions.push({seed:[300,250],faceKey:lens.key,colour:0});assert(regionModel.labRegionShapes(curves)[0]?.path.includes('A '),'Curved region retains vector arcs');}
+    {
+      // Explicit labels replace automatic numerical dimensions in live and printed geometry.
+      const capture=()=>cap().demo.labDrawing, mode=()=>doc.querySelector('[data-ag-dimension-mode]'),change=(el,v)=>{el.value=v;el.dispatchEvent(new win.Event('change',{bubbles:true}))};
+      const before=JSON.stringify(capture().points),key=win.TT99Goodies.angles.labStyleKey(capture(),0,2);
+      change(mode(),'custom');doc.querySelector('[data-ag-dimension-text]').value='x';doc.querySelector('[data-ag-dimension-apply]').click();
+      assert(capture().dimensionLabels[key].text==='x'&&work.querySelector('[data-ag-dimension]').textContent==='x','Custom dimension replaces measured value');
+      doc.querySelector('[data-ag-option="measure"]').click();assert(work.querySelector('[data-ag-dimension]').textContent==='x','Explicit unknown remains with automatic measurements disabled');
+      const draft=P.createDocument();draft.addCurrent(id,cap());assert(P.renderItem(draft.list()[0],false).querySelector('[data-ag-dimension]').textContent==='x','Unknown dimension is preserved in vector publication');
+      change(mode(),'measured');assert(work.querySelector('[data-ag-dimension]').textContent==='6.3 cm','Pinned measured length stays visible independently of automatic measurements');
+      change(mode(),'hidden');assert(!work.querySelector('[data-ag-dimension]'),'Hide dimension suppresses the automatic value');
+      change(mode(),'auto');doc.querySelector('[data-ag-option="measure"]').click();
+      assert(JSON.stringify(capture().points)===before,'Editing dimensions never changes geometry');
+      // Select a vertex, choose the mark and label, then choose two arms.
+      tapWork([150,150]);const labelMode=doc.querySelector('[data-ag-angle-label-mode]');change(labelMode,'custom');doc.querySelector('[data-ag-angle-label-text]').value='?';
+      change(doc.querySelector('[data-ag-angle-notation]'),'angle1');tapWork([450,150]);tapWork([300,350]);
+      assert(work.querySelector('[data-ag-annotation-value]')?.textContent==='?','Vertex-first angle annotation adds custom label');
+      const annotated=P.createDocument();annotated.addCurrent(id,cap());assert(P.renderItem(annotated.list()[0],false).querySelector('[data-ag-annotation-value]')?.textContent==='?','Angle annotation survives vector publication');
+      doc.querySelector('[data-ag-tool="undo"]').click();assert(!work.querySelector('[data-ag-annotation-value]'),'Undo removes angle annotation without altering geometry');
+    }
     // A ray through two named vertices must not round the exact direction.
     {
       const model=win.TT99Goodies.angles,check=(p,q,end)=>{const dx=q[0]-p[0],dy=q[1]-p[1];return Math.abs(dx*(end[1]-p[1])-dy*(end[0]-p[0]))/Math.hypot(dx,dy)<1e-6};
