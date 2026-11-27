@@ -1557,6 +1557,30 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       tap([100,100]);previewPointer('pointercancel',[100,100]);assert(geometry()===empty,'Pointer cancellation discards provisional centre');tool('cancel-tool').click();
       tool('point').click();tap([100,100]);assert(tool('redo').disabled,'New committed action clears redo history');tool('undo').click();tool('cancel-tool').click();assert(geometry()===empty,'Standalone point remains its own undoable action');
     }
+    // Construct a bisector using only the board's actual drawing and compass gestures.
+    {
+      const tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),tap=p=>{previewPointer('pointerdown',p);previewPointer('pointerup',p)},reset=()=>doc.querySelector('[aria-label="Reset construction"]').click(),model=()=>cap().demo.labDrawing;
+      const distance=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]),direction=(a,b)=>Math.atan2(a[1]-b[1],b[0]-a[0])*180/Math.PI,delta=(a,b)=>Math.abs(((a-b+540)%360)-180);
+      const select=id=>{if(tool(id).getAttribute('aria-pressed')!=='true')tool(id).click()};
+      for(const [start,sweep,radius] of [[18,72,100],[41,94,125],[110,60,85]]){
+        reset();const B=[410,310],A=M.polar(...B,200,start),C=M.polar(...B,200,start+sweep),G0=M.polar(...B,radius,start),H0=M.polar(...B,radius,start+sweep);
+        select('segment');tap(B);tap(A);tap(B);tap(C);
+        select('compass');tap(B);tap(G0);
+        assert(Math.abs(model().circles[0].r-radius)<1e-6,'First compass opening is exact');
+        const crossings=M.labIntersections(model());const near=p=>crossings.slice().sort((a,b)=>distance(a.p,p)-distance(b.p,p))[0].p;
+        const g=near(G0),h=near(H0);assert(distance(g,G0)<1e-6&&distance(h,H0)<1e-6,'Initial circle cuts both arms at equal distance');
+        tool('compass-opening').click();tap(g);tap(h);
+        const d=model();assert(d.circles.length===3&&d.circles.every(c=>Math.abs(c.r-radius)<1e-6),'Transferred compass circles preserve exact radius');
+        const expected=M.polar(...B,2*radius*Math.cos(sweep*Math.PI/360),start+sweep/2),I=M.labIntersections(d).map(c=>c.p).sort((a,b)=>distance(a,expected)-distance(b,expected))[0];
+        assert(distance(I,expected)<1e-6,'Analytic intersection lies on true bisector');
+        select('segment');tap(B);tap(I);
+        const final=model(),last=final.segments.at(-1),tip=final.points[last[1]],origin=final.points[last[0]],half1=delta(direction(origin,tip),start),half2=delta(direction(origin,tip),start+sweep);
+        assert(Math.abs(half1-half2)<1e-6&&Math.abs(half1-sweep/2)<1e-6,'Actual constructed segment bisects angle without rounding');
+        const competing=JSON.parse(JSON.stringify(d));competing.points.push([I[0]+3,I[1]]);competing.names.push('nearby');const hit=M.labSnap(competing,I,10);
+        assert(hit.kind==='Intersection'&&distance(hit.p,I)<1e-6,'Closer exact intersection wins over nearby unrelated point');
+      }
+      reset();select('select');
+    }
     verifyInstruments('A5 normal');
     {
       const tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),tap=p=>{previewPointer('pointerdown',p);previewPointer('pointerup',p)},centre=[200,200];
