@@ -1967,7 +1967,7 @@ function diagram(d,teacher=false,options={}){
      if(!paper)add('circle',{cx:p[0],cy:p[1],r:22,fill:'transparent',stroke:'none','data-ag-circle-handle':name,cursor:'grab','aria-label':'Move circle point '+name});
    }
    const names={chord:'A perpendicular from the centre cuts a chord in half.',sector:'A sector is bounded by two radii and an arc.',segment:'A segment is bounded by a chord and its arc.',tangent:'A tangent touches the circle at one point, at 90° to the radius.'};
-   const heading={chord:'AM = MB   ·   OM ⟂ AB',sector:'Arc length = (θ ÷ 360°) × 2πr',segment:'Minor segment = minor sector − triangle',tangent:'Radius ⟂ tangent'};
+   const heading={chord:labDist(O,M)<1e-6?'AM = MB   ·   AB is a diameter':'AM = MB   ·   OM ⟂ AB',sector:'Arc length = (θ ÷ 360°) × 2πr',segment:'Minor segment = minor sector − triangle',tangent:'Radius ⟂ tangent'};
    // Reserve a small formula band above the circle without moving its model
    // coordinates: the pointer transform remains based on the same geometry.
    const twoLines=show&&(view==='sector'||view==='segment'),top=twoLines?-65:-35;
