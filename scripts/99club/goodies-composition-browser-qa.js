@@ -1473,6 +1473,15 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const original=JSON.stringify(cap().demo.labDrawing),tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),add=kind=>doc.querySelector('[data-ag-utensil-add="'+kind+'"]').click(),action=id=>doc.querySelector('[data-ag-utensil-action="'+id+'"]'),utensil=kind=>work.querySelector('[data-ag-utensil-kind="'+kind+'"]');
       tool('measuring-tools').click();for(const kind of ['ruler','protractor','square45','square30'])add(kind);
       assert(work.querySelectorAll('[data-ag-utensil]').length===4,'Four independent measuring utensils can coexist');
+      // Exercise the host-independent gesture engine with a different world calibration.
+      const I=G.instruments,t={kind:'ruler',x:10,y:20,angle:0,size:200,snap:true},spec={min:20,max:600};
+      let d=I.beginGesture(t,[30,30],null,81);
+      assert(!I.moveGesture(d,[31,30],1,{spec,step:2}),'Shared gesture ignores incidental movement');
+      assert(I.moveGesture(d,[70,50],1,{spec,step:2,align:()=>({x:51,y:41,kind:'Point'})})&&t.x===50&&t.y===40,'Shared gesture translates without stretching');
+      I.finishGesture(d,true);assert(t.x===51&&t.y===41&&t.size===200,'Shared gesture commits host-supplied magnetic candidate');
+      d=I.beginGesture(t,[251,41],'rotate',82);I.moveGesture(d,[51,-159],1,{spec,step:2});assert(t.angle===90&&t.x===51&&t.y===41,'Shared rotation preserves origin');
+      d=I.beginGesture(t,[51,-159],'resize',83);I.moveGesture(d,[51,-222],1,{spec,step:2});assert(t.size===264&&t.angle===90,'Shared resize respects host calibration without changing angle');
+      d=I.beginGesture(t,[51,41],null,84);I.moveGesture(d,[61,41],1,{spec,step:2,align:()=>({x:99,kind:'Point'})});I.finishGesture(d,false);assert(t.x===61,'Cancelled gesture does not commit snap candidate');
       const ruler=utensil('ruler'),before=ruler.transform.baseVal.getItem(0).matrix,body=ruler.querySelector('rect'),worldToScreen=p=>new win.DOMPoint(...p).matrixTransform(work.getScreenCTM());
       const event=(target,type,p,id)=>{const q=worldToScreen(p);target.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:id,pointerType:'touch',button:0,clientX:q.x,clientY:q.y}))};
       const start=[before.e+100,before.f+15];event(body,'pointerdown',start,70);event(work,'pointermove',[start[0]+60,start[1]-40],70);event(work,'pointerup',[start[0]+60,start[1]-40],70);

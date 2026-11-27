@@ -125,7 +125,25 @@ function instrumentCentreCue(svg,p,name,angle=null,{parent=svg,span=8}={}){
  for(const [stroke,width] of [['#fff',3],['#28413d',1.15]])instrumentEl(g,'path',{d:'M '+(-along)+' 0 H '+along+' M 0 '+(-arm)+' V '+arm,fill:'none',stroke,'stroke-width':width,'vector-effect':'non-scaling-stroke','stroke-linecap':'round'});
  return g;
 }
-const instruments={rulerGraduations,ruler:rulerInstrument,protractor:protractorInstrument,setSquare:setSquareInstrument,adaptMarkings:adaptInstrumentMarkings,screenScale:instrumentScreenScale,worldPoint:instrumentWorldPoint,nearestPoint:instrumentNearestPoint,centreCue:instrumentCentreCue};
+// A gesture captures the original pose. Rotation and resize never alter its origin.
+// Hosts provide alignment/reading policies; the engine knows no challenge answer.
+const instrumentMod=a=>((a%360)+360)%360, instrumentAngle=(a,b)=>instrumentMod(Math.atan2(a[1]-b[1],b[0]-a[0])*180/Math.PI);
+function instrumentBegin(t,p,handle,id){return {id,t,p:p.slice(),x:t.x,y:t.y,angle:t.angle,size:t.size,handle,startAngle:instrumentAngle([t.x,t.y],p),moved:false,candidate:null}}
+function instrumentMove(d,p,scale,{spec,step=4,align,read}={}){
+ if(!d.moved&&Math.hypot(p[0]-d.p[0],p[1]-d.p[1])*scale<4)return false;
+ d.moved=true;const t=d.t;
+ if(d.handle==='rotate')t.angle=instrumentMod(Math.round((d.angle+instrumentAngle([d.x,d.y],p)-d.startAngle)*10)/10);
+ else if(d.handle==='measure'){
+  const raw=instrumentMod(t.hand*(instrumentAngle([d.x,d.y],p)-t.angle)),a=raw<=180?raw:raw<270?180:0,result=read?.(t,a,scale);
+  t.reading=Math.round(a*10)/10;d.candidate=result?.kind?result:null;return true;
+ }else if(d.handle==='resize'){
+  const axis=(d.angle+(t.kind==='protractor'?90*t.hand:0))*Math.PI/180,delta=(p[0]-d.p[0])*Math.cos(axis)-(p[1]-d.p[1])*Math.sin(axis);
+  t.size=clamp(Math.round((d.size+delta)/step)*step,spec.min,spec.max);
+ }else{t.x=d.x+p[0]-d.p[0];t.y=d.y+p[1]-d.p[1]}
+ d.candidate=t.snap?align?.(t,d.handle||'move',scale)||null:null;return true;
+}
+function instrumentFinish(d,commit){if(commit&&d.candidate)for(const key of ['x','y','angle','reading'])if(d.candidate[key]!==undefined)d.t[key]=d.candidate[key];return d.t}
+const instruments={rulerGraduations,ruler:rulerInstrument,protractor:protractorInstrument,setSquare:setSquareInstrument,adaptMarkings:adaptInstrumentMarkings,screenScale:instrumentScreenScale,worldPoint:instrumentWorldPoint,nearestPoint:instrumentNearestPoint,centreCue:instrumentCentreCue,beginGesture:instrumentBegin,moveGesture:instrumentMove,finishGesture:instrumentFinish};
 
 global.TT99Goodies={instruments,root,CATS,q,qa,esc,clamp,num,gcd,money,field,btn,setPanels,lessonState};
 })(window);
