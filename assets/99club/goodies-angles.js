@@ -1946,6 +1946,7 @@ function diagram(d,teacher=false,options={}){
  }
  if(mode==='circle'&&explore&&CIRCLE_VIEWS.slice(1).some(([k])=>k===d.circleView)){
    const m=circleInvestigation(d),{O,A,B,M,T,U,R,start,span,r}=m,view=d.circleView,show=d.circleEnrichment===true,paper=options.paper;
+   svg.setAttribute('data-ag-circle-investigation-view',view);
    const arcPath='M '+A.join(' ')+' A '+R+' '+R+' 0 '+(span>180?1:0)+' 0 '+B.join(' ');
    if(view==='sector')path('M '+O.join(' ')+' L '+A.join(' ')+' A '+R+' '+R+' 0 '+(span>180?1:0)+' 0 '+B.join(' ')+' Z',{fill:'#dcefe8',stroke:'none','data-ag-circle-sector':'1'});
    if(view==='segment')path(arcPath+' Z',{fill:'#f4e0be',stroke:'none','data-ag-circle-segment':'1'});
@@ -1957,7 +1958,7 @@ function diagram(d,teacher=false,options={}){
    if(view==='chord'){
      for(const [p,q] of [[A,M],[M,B]]){const mid=labAt(p,labSub(q,p),.5),angle=labAngle(p,q);line(exactPolar(...mid,7,angle+90),exactPolar(...mid,7,angle-90),orange,2.7,{'data-ag-chord-equal-mark':'1'})}
      if(labDist(O,M)>1e-6){line(O,M,teal,2,{'stroke-dasharray':'5 4','data-ag-circle-chord-bisector':'1'});const a=labAngle(M,O),b=labAngle(M,A);let st=a;if(mod(b-a)>180)st=b;labelArc(...M,14,st,90,null)}
-     circle(M,4,ink);text(M[0]+15,M[1]+18,'M',16,{'data-ag-point-label':'M','paint-order':'stroke',stroke:'#fff','stroke-width':3});
+     circle(M,4,ink);const midName=dimensionPlacement(O,M,'M',{size:paper?29:16,offset:22,lines:[[A,B],[O,A],[O,B]],bounds:[55,0,745,375]});const mp=midName?midName.p:[M[0]+25,M[1]+25];text(...mp,'M',16,{'data-ag-point-label':'M','paint-order':'stroke',stroke:'#fff','stroke-width':3});
    }
    if(tangentView){line(U,T,orange,3,{'data-ag-circle-tangent':'1'});labelArc(...A,17,mod(start+90),90,null);text(T[0]+12,T[1]+14,'t',18,{'paint-order':'stroke',stroke:'#fff','stroke-width':3})}
    else if(view==='sector'||view==='segment')labelArc(...O,Math.min(33,R*.35),start,span,span.toFixed(2)+'°',{labelSize:17});
@@ -1974,12 +1975,13 @@ function diagram(d,teacher=false,options={}){
    text(400,top+24,show||view==='chord'||tangentView?heading[view]:view==='sector'?'Sector: a fraction of a circle':'Segment: between a chord and an arc',22,{'font-weight':700,'data-ag-circle-investigation-heading':view});
    if(twoLines)text(400,top+50,view==='sector'?'Sector area = (θ ÷ 360°) × πr²':'Major segment = circle − minor segment',19,{'data-ag-circle-investigation-general-formula':view});
    const radiusLines=[[O,A],...(!tangentView?[[O,B]]:[]),...(chordView?[[A,B]]:[]),...(tangentView?[[U,T]]:[]),...(view==='chord'&&labDist(O,M)>1e-6?[[O,M]]:[])];
-   const occupied=[labelBox([O[0]-13,O[1]+20],0,'O',paper?29:16),...(!tangentView?[['A',start],['B',start+span]]:[['A',start]]).map(([name,a])=>{const q=exactPolar(...O,R+24,a);return labelBox([q[0],q[1]+5],0,name,paper?29:19)}),...(view==='chord'?[labelBox([M[0]+15,M[1]+18],0,'M',paper?29:16)]:[]),...(tangentView?[labelBox([T[0]+12,T[1]+14],0,'t',paper?29:18)]:[])];
+   const occupied=[labelBox([O[0]-13,O[1]+20],0,'O',paper?29:16),...(!tangentView?[['A',start],['B',start+span]]:[['A',start]]).map(([name,a])=>{const q=exactPolar(...O,R+24,a);return labelBox([q[0],q[1]+5],0,name,paper?29:19)}),...(view==='chord'?[labelBox([Number(svg.querySelector('[data-ag-point-label="M"]').getAttribute('x')),Number(svg.querySelector('[data-ag-point-label="M"]').getAttribute('y'))],0,'M',paper?29:16)]:[]),...(tangentView?[labelBox([T[0]+12,T[1]+14],0,'t',paper?29:18)]:[])];
    const radiusLabel=dimensionPlacement(O,A,'r = '+r+' cm',{size:paper?29:17,offset:22,lines:radiusLines,occupied,bounds:[55,0,745,375],outside:labAt(A,labSub(A,B),1)});
    if(radiusLabel)text(...radiusLabel.p,'r = '+r+' cm',paper?29:17,{'dominant-baseline':'central','paint-order':'stroke',stroke:'#fff','stroke-width':3,transform:'rotate('+radiusLabel.angle+' '+radiusLabel.p.join(' ')+')','data-ag-circle-investigation-radius-label':'1'});
    text(400,395,names[view],19,{'data-ag-circle-investigation-rule':view});let y=425;
    const values=view==='chord'?'AM = MB = '+(m.chord/2).toFixed(2)+' cm · AB = '+m.chord.toFixed(2)+' cm':tangentView?'Angle between radius and tangent = 90°':(span>180?'Major':span===180?'Semicircle':'Minor')+' '+(view==='sector'?'sector':'segment')+' · Central angle = '+span.toFixed(2)+'°';
    text(400,y,values,18,{'data-ag-circle-investigation-value':view});
+   if(view==='chord'){const dims=teachingDimensions(add,{bounds:[55,0,745,375],size:paper?29:17,lines:radiusLines,reserved:[...occupied,...(radiusLabel?[radiusLabel.box]:[])]});dims(A,B,'AB = '+m.chord.toFixed(2)+' cm',{outside:labAt(M,labSub(M,O),1),attrs:{'data-ag-circle-chord-dimension':'1'}});if(labDist(O,M)>1e-6)dims(O,M,'OM = '+m.distance.toFixed(2)+' cm',{outside:A,attrs:{'data-ag-circle-distance-dimension':'1'}})}
    if(show&&!tangentView){y+=30;const formula=view==='chord'?'OM = '+m.distance.toFixed(2)+' cm':view==='sector'?'Arc = '+m.arc.toFixed(2)+' cm · Sector area = '+m.sector.toFixed(2)+' cm²':'Arc = '+m.arc.toFixed(2)+' cm · Segment area = '+m.segment.toFixed(2)+' cm²';text(400,y,formula,18,{'data-ag-circle-investigation-formula':view})}
    return frame(45,top,710,y+30-top);
  }
@@ -3857,6 +3859,7 @@ G.anglesTool=function(){
     const measuring=!!task&&['measure','reflex'].includes(task.type)&&!task.revealed;
     const svg=diagram(d,teacher,{attempt,length:attemptLength,scale:task?(task.revealed&&['measure','reflex'].includes(task.type)||['draw','draw-reflex'].includes(task.type)):demo.scale,measureWorkspace:measuring,interactive,...(drag?{full:drag.max===360}:{})});
     svg.style.cssText='width:100%;height:auto;max-height:560px;display:block;margin:auto';
+    box.toggleAttribute('data-ag-circle-explorer',!task&&demo.mode==='circle');
     box.replaceChildren(svg);updateReference();if(measuring)mountAngleMeasurement(box,svg,d);else if(task&&!task.revealed&&inspectTypes.includes(task.type))mountInvestigation(box,svg);else if(!task&&demo.mode==='polygon'&&!['triangle-comparison','triangle-criterion','triangle-inequality'].includes(demo.shapeView))mountPolygonRegions(box,svg,d,v=>demo.regionsByShape=v);const bar=q('[data-ag-polygon-shade]',box)?.closest('.gd-ag-inspect-tools'),tools=q('[data-ag-shape-explore-controls]',host);if(bar&&tools){q('[data-ag-polygon-shade]',tools)?.closest('.gd-ag-inspect-tools')?.remove();tools.append(bar)}
   }
   if(freeFact){
