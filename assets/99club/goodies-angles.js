@@ -2278,6 +2278,17 @@ function methodPublication(data,teacher=false){
  para(m.conditions,15);svg.setAttribute('viewBox','0 0 '+W+' '+Math.ceil(y+12));return svg
 }
 // Small purpose-specific diagrams keep the main explorer uncluttered.
+// Teaching graphics share the same collision-aware, upright edge labels as geometry diagrams.
+function teachingDimensions(add,{bounds,lines=[],size=13}={}){
+ const occupied=[];
+ return (a,b,value,options={})=>{
+   const fontSize=options.size||size,placement=dimensionPlacement(a,b,value,{size:fontSize,offset:options.offset||16,outside:options.outside,lines:[...lines,...(options.lines||[])],occupied,bounds});
+   if(!placement)return null;
+   occupied.push(placement.box);
+   const [x,y]=placement.p;
+   return add('text',{x,y,'font-family':'Arial,sans-serif','font-size':fontSize,'text-anchor':'middle','dominant-baseline':'central',fill:'#263e43','paint-order':'stroke',stroke:'#fff','stroke-width':3,transform:'rotate('+placement.angle+' '+x+' '+y+')','data-ag-teaching-dimension':'1',...(options.attrs||{})},value);
+ };
+}
 function shapeReferenceGraphic(m,kind){
  const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),W=320,H=200,pts=m.points,n=pts.length,p=m.polygon;
  const add=(tag,attrs,value)=>{const el=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,v);if(value!=null)el.textContent=value;svg.append(el);return el};
@@ -2316,7 +2327,10 @@ function shapeReferenceGraphic(m,kind){
      const corner=[labAt(F,u1,8),labAt(labAt(F,u1,8),h1,8),labAt(F,h1,8)];
      add('polyline',{points:corner.map(v=>v.join(',')).join(' '),fill:'none',stroke:'#b56d2c','stroke-width':1.5,'data-ag-reference-right-angle':'1'});
      if(parallelSide)line(...parallelSide.map(map),{stroke:'#277b70','stroke-width':3,'data-ag-reference-parallel-base':'1'});
-     label([160,174],'Base = '+fmt(labDist(a,b)/LAB_UNIT)+' cm; height = '+fmt(labDist(q,f)/LAB_UNIT)+' cm');
+     const dimensions=teachingDimensions(add,{size:10,bounds:[3,3,W-3,163],lines:[...v.map((point,i)=>[point,v[(i+1)%n]]),[Q,F]]});
+     dimensions(A,B,'b = '+fmt(labDist(a,b)/LAB_UNIT)+' cm',{outside:labAt(mid(A,B),h1,-20)});
+     dimensions(F,Q,'h = '+fmt(labDist(q,f)/LAB_UNIT)+' cm',{outside:labAt(mid(F,Q),u1,labDot(labSub(F,A),u1)<ul/2?-20:20)});
+     label([160,174],n===3?'A = ½ × b × h':m.quad.parallelPairs.length===2?'A = b × h':'Area uses both parallel bases');
    }else if(m.quad?.kind==='Kite'){
      line(v[0],v[2],{'data-ag-reference-area-diagonal':'AC'});line(v[1],v[3],{stroke:'#b56d2c','data-ag-reference-area-diagonal':'BD'});
      label([160,174],'A = ½ × diagonal × diagonal');
@@ -2397,13 +2411,15 @@ function shapeMeasureGraphic(m,mode='area',count=m.triangles.length){
      if(t<0||t>len)line(t<0?a:b,p,{stroke:'#657c7e','stroke-width':1.5,'stroke-dasharray':'4 3'});
      line(c,p,{stroke:'#996221','stroke-width':2,'stroke-dasharray':'5 4','data-ag-measure-height':'1'});
      const r=labAt(p,side,mark),q=labAt(p,up,mark);add('path',{d:'M '+r.join(' ')+' L '+labAt(r,up,mark).join(' ')+' L '+q.join(' '),stroke:'#35565a',fill:'none','stroke-width':1.4,'data-ag-measure-right':'1'});
-     const baseLabel=labAt(labAt(a,u,.5),up,-15),heightLabel=labAt(labAt(p,h,.5),along,t<len/2?17:-17),style={'font-size':13,'dominant-baseline':'central','paint-order':'stroke',stroke:'#fff','stroke-width':4};
-     label(baseLabel[0],baseLabel[1],'b = '+fmt(m.edges[0].length)+' cm',style);label(heightLabel[0],heightLabel[1],'h = '+fmt(2*m.area/m.edges[0].length)+' cm',style);
+     const dimensions=teachingDimensions(add,{bounds:[4,4,W-4,239],lines:[...v.map((point,i)=>[point,v[(i+1)%n]]),[c,p]]});
+     dimensions(a,b,'b = '+fmt(m.edges[0].length)+' cm',{outside:labAt(labAt(a,u,.5),up,-20),attrs:{'data-ag-measure-base-label':'1'}});
+     dimensions(p,c,'h = '+fmt(2*m.area/m.edges[0].length)+' cm',{outside:labAt(labAt(p,h,.5),along,t<len/2?-20:20),attrs:{'data-ag-measure-height-label':'1'}});
    }
    const subtotal=m.triangles.slice(0,count).reduce((a,t)=>a+t.area,0);label(250,253,n===3?'Area is the space inside the triangle':count+' of '+m.triangles.length+' pieces counted');label(250,278,(count===m.triangles.length?'Total area: ':'Area so far: ')+fmt(subtotal)+' cm²',{'font-weight':700,'data-ag-measure-total':'area'});
  }else{
    poly(v,{fill:'none',stroke:'#b56d2c','stroke-width':5,'stroke-linejoin':'round','data-ag-measure-boundary':'1'});for(const [i,p] of v.entries()){const q=vertexLabel(p,v[(i+n-1)%n],v[(i+1)%n],16);label(q[0],q[1],pointName(i),{'font-size':14,'dominant-baseline':'central','paint-order':'stroke',stroke:'#fff','stroke-width':3})}
-   if(n<=6)for(const e of m.edges){const a=v[e.from],b=v[e.to],mid=labAt(a,labSub(b,a),.5),u=labSub(b,a),len=Math.hypot(...u),normal=[u[1]/len,-u[0]/len],probe=labAt(mid,normal,5),sign=labContains(v,probe)?-1:1,q=labAt(mid,normal,sign*16);label(q[0],q[1],fmt(e.length)+' cm',{'font-size':13,'dominant-baseline':'central','paint-order':'stroke',stroke:'#fff','stroke-width':4,'data-ag-measure-side':e.from})}
+   const dimensions=teachingDimensions(add,{bounds:[4,4,W-4,239],lines:v.map((point,i)=>[point,v[(i+1)%n]])});
+   if(n<=6)for(const e of m.edges){const a=v[e.from],b=v[e.to],mid=labAt(a,labSub(b,a),.5),u=labSub(b,a),len=Math.hypot(...u),normal=[u[1]/len,-u[0]/len],probe=labAt(mid,normal,5),sign=labContains(v,probe)?-1:1;dimensions(a,b,fmt(e.length)+' cm',{outside:labAt(mid,normal,sign*20),attrs:{'data-ag-measure-side':e.from}})}
    label(250,253,'Add the '+n+' outside sides');label(250,278,'Perimeter: '+fmt(m.perimeter)+' cm',{'font-weight':700,'data-ag-measure-total':'perimeter'});
  }
  return svg;
@@ -2470,7 +2486,14 @@ function basicAreaGraphic(m,show=true){
    if(show){for(let i=1;i<m.w;i++)line([i,0],[i,m.h],{stroke:'#87b8ae','stroke-width':1});for(let i=1;i<m.h;i++)line([0,i],[m.w,i],{stroke:'#87b8ae','stroke-width':1});if(m.w>=1&&m.h>=1)add('rect',{x,y,width:s,height:s,fill:'#f3d9a8',stroke:'#a56a2e','stroke-width':1.5,'data-ag-unit-square':'1'});}
    label(250,258,show?'Orange square = 1 cm²':'Cover the shape with square units');
  }
- label(250,y+m.h*s+22,fmt(m.w)+' cm',{'font-weight':700});label(x-10,y+m.h*s/2,fmt(m.h)+' cm',{'text-anchor':'end','font-size':14});label(250,294,m.formula+' = '+fmt(m.area)+' cm²',{'font-size':17,'font-weight':700});return svg;
+ const dims=teachingDimensions(add,{bounds:[4,4,W-4,246],size:14});
+ if(m.kind==='Kite'){
+   dims(pt(0,m.b),pt(m.w,m.b),'d₁ = '+fmt(m.w)+' cm',{outside:pt(m.w/2,m.b-.2)});
+   dims(pt(m.a,0),pt(m.a,m.h),'d₂ = '+fmt(m.h)+' cm',{outside:pt(m.a-.2,m.h/2)});
+ }else{
+   dims(pt(0,m.h),pt(m.w,m.h),fmt(m.w)+' cm',{outside:pt(m.w/2,m.h+1)});
+   dims(pt(0,0),pt(0,m.h),fmt(m.h)+' cm',{outside:pt(-1,m.h/2)});
+ }label(250,294,m.formula+' = '+fmt(m.area)+' cm²',{'font-size':17,'font-weight':700});return svg;
 }
 function mountBasicArea(container,m,demo){
  const section=document.createElement('section');section.className='gd-ag-area-proof';section.dataset.agAreaProof='1';section.dataset.agBasicArea='1';let show=true;
