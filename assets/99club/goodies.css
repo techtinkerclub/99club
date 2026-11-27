@@ -2607,3 +2607,7 @@ html.gd-embed-page #tt99-goodies-root #gd-stage:has(>.gd-ag-shape-reference)::-w
 #tt99-goodies-root .gd-ag-polygon-proof{grid-column:1/-1}#tt99-goodies-root .gd-ag-polygon-proof [data-ag-polygon-proof-graphic]{width:100%;max-width:500px;display:block;margin:auto}#tt99-goodies-root .gd-ag-polygon-proof label{display:flex;align-items:center;gap:8px;flex-wrap:wrap}#tt99-goodies-root .gd-ag-polygon-proof p{font-size:15px;line-height:1.45;margin:8px 0}#tt99-goodies-root .gd-ag-polygon-proof .gd-row{justify-content:center;flex-wrap:wrap;gap:8px}
 
 #tt99-goodies-root .gd-ag-area-proof [data-ag-pythagoras-graphic]{width:100%;max-width:500px;display:block;margin:auto}
+
+#tt99-goodies-root .gd-ag-area-proof [data-ag-area-comparison-graphic]{width:100%;max-width:640px;display:block;margin:auto}
+#tt99-goodies-root [data-ag-area-comparison] [data-ag-area-comparison-value]{min-width:100px;max-width:100%;flex:1 1 130px;touch-action:pan-y}
+#tt99-goodies-root [data-ag-area-comparison] .gd-select{max-width:100%}
