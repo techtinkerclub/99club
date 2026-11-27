@@ -1636,6 +1636,15 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const before=JSON.stringify(capture().points),key=win.TT99Goodies.angles.labStyleKey(capture(),0,2);
       change(mode(),'custom');doc.querySelector('[data-ag-dimension-text]').value='x';doc.querySelector('[data-ag-dimension-apply]').click();
       assert(capture().dimensionLabels[key].text==='x'&&work.querySelector('[data-ag-dimension]').textContent==='x','Custom dimension replaces measured value');
+      const pos=()=>{const e=work.querySelector('[data-ag-dimension]');return [Number(e.getAttribute('x')),Number(e.getAttribute('y'))]};
+      const action=n=>doc.querySelector('[data-ag-dimension-action="'+n+'"]'),destination=[320,215],samePos=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1])<.01;
+      assert(!action('position').hidden,'Selected segment exposes length positioning');
+      action('position').click();tapWork(destination);assert(samePos(pos(),destination)&&capture().dimensionLabels[key].offset,'Custom length label moves independently of geometry');
+      const positioned=P.createDocument();positioned.addCurrent(id,cap());const published=positioned.list()[0]&&P.renderItem(positioned.list()[0],false).querySelector('[data-ag-dimension]');assert(published&&samePos([Number(published.getAttribute('x')),Number(published.getAttribute('y'))],destination),'Moved length label preserves exact paper coordinates');
+      tapWork([225,250]);action('reset').click();assert(!capture().dimensionLabels[key].offset&&!samePos(pos(),destination),'Reset restores automatic length label positioning');
+      action('position').click();tapWork(destination);change(mode(),'measured');assert(samePos(pos(),destination)&&capture().dimensionLabels[key].mode==='measured','Changing label mode retains manual position');
+      action('reset').click();change(mode(),'custom');doc.querySelector('[data-ag-dimension-text]').value='x';doc.querySelector('[data-ag-dimension-apply]').click();
+
       doc.querySelector('[data-ag-option="measure"]').click();assert(work.querySelector('[data-ag-dimension]').textContent==='x','Explicit unknown remains with automatic measurements disabled');
       const draft=P.createDocument();draft.addCurrent(id,cap());assert(P.renderItem(draft.list()[0],false).querySelector('[data-ag-dimension]').textContent==='x','Unknown dimension is preserved in vector publication');
       change(mode(),'measured');assert(work.querySelector('[data-ag-dimension]').textContent==='6.3 cm','Pinned measured length stays visible independently of automatic measurements');
