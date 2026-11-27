@@ -1739,6 +1739,26 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
     const lociDraft=P.createDocument();lociDraft.addCurrent(id,cap());assert(P.renderItem(lociDraft.list()[0],false).querySelectorAll('[data-ag-locus-trace]').length===2,'Locus traces publish as vector graphics');
     {
       const model=win.TT99Goodies.angles;
+      const ellipse=model.locusInitial('ellipse',{major:5,minor:4});ellipse.traceNames=['P','M'];
+      const ellipseAt=a=>[400+200*Math.cos(a*Math.PI/180),220+160*Math.sin(a*Math.PI/180)];
+      for(let turn=0;turn<3;turn++)for(let a=45;a<=360;a+=45)model.locusTraceMove(ellipse,ellipseAt(a));
+      for(let a=315;a>=180;a-=45)model.locusTraceMove(ellipse,ellipseAt(a));
+      const ellipseParts=model.traceParts(ellipse.traces.P);assert(ellipseParts.length===1&&ellipseParts[0].length>100,'Repeated rapid ellipse revolutions and reversal retain a continuous sampled trace');
+      for(const part of ellipseParts)for(let i=1;i<part.length;i++){
+        const p=part[i-1],q=part[i],mid=p.map((x,j)=>(x+q[j])/2),error=Math.abs(((mid[0]-400)/200)**2+((mid[1]-220)/160)**2-1);
+        assert(error<.003,'Ellipse trace contains no long false interior chords');
+      }
+      const focus=model.locusPreset('ellipse',ellipse.params).anchors.A;
+      assert(ellipse.traces.M.every(p=>Math.abs(((2*p[0]-focus[0]-400)/200)**2+((2*p[1]-focus[1]-220)/160)**2-1)<1e-6),'Midpoint trace stays on its corresponding constrained locus');
+      model.locusTraceMove(ellipse,ellipseAt(0));assert(ellipse.traces.P.at(-1)===null,'Ambiguous half-turn ends trace rather than inventing a path');
+      model.locusTraceMove(ellipse,ellipseAt(45));assert(model.traceParts(ellipse.traces.P).length===2,'Tracing resumes after discontinuity');
+      const parallel=model.locusInitial('parallel');parallel.traceNames=['P'];model.locusTraceMove(parallel,[500,100]);model.locusTraceMove(parallel,[500,340]);model.locusTraceMove(parallel,[600,340]);assert(model.traceParts(parallel.traces.P).length===2&&model.traceParts(parallel.traces.P).every(part=>part.every(p=>p[1]===part[0][1])),'Parallel branches are never joined by false traces');
+      const bisector=model.locusInitial('angleBisector');bisector.traceNames=['P'];model.locusTraceMove(bisector,[450,170]);model.locusTraceMove(bisector,[500,320]);assert(bisector.traces.P.at(-1)===null,'Angle-bisector branch switch breaks trace');
+      for(const kind of Object.keys(model.LOCUS_PRESETS)){
+        const st=model.locusInitial(kind);st.traceNames=['P','M'];for(const target of [[700,50],[100,400],[400,50],[400,400],[500,300]])model.locusTraceMove(st,target);
+        assert(Object.values(st.traces).every(path=>path.every(p=>p===null||p.every(Number.isFinite))),'Rapid trace samples are finite: '+kind);
+        assert(Math.hypot(...model.locusPoints(st).P.map((x,i)=>x-st.p[i]))<1e-6,'Final driver remains on its constraint: '+kind);
+      }
       for(const kind of Object.keys(model.LOCUS_PRESETS)){
         const params=model.locusParameters(kind,Object.fromEntries((model.LOCUS_PARAMETERS[kind]||[]).map(([id,,min,max])=>[id,max]))),st=model.locusInitial(kind,params);st.showLocus=true;st.showMidpoint=true;
         for(const target of [[700,50],[100,400],[400,50],[400,400]]){
