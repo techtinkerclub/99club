@@ -1360,7 +1360,7 @@ function diagram(d,teacher=false,options={}){
    if(properties&&d.showMedians){for(let i=0;i<3;i++){line(pts[i],properties.midpoints[i],orange,2,{'stroke-dasharray':'6 4','data-ag-triangle-median':i});circle(properties.midpoints[i],3,orange)}circle(properties.centroid,5,teal);text(properties.centroid[0]+16,properties.centroid[1]-12,'G',17,{'data-ag-centroid':'1','paint-order':'stroke',stroke:'white','stroke-width':3})}
    if(properties){
      if(d.showProperties!==false){text(400,410,properties.sides+' · '+properties.kind,22,{'data-ag-triangle-classification':'1'});if(properties.alsoIsosceles)text(400,444,'Also isosceles: at least two equal sides',17,{'data-ag-triangle-family':'1'})}
-     if(d.showMedians)text(400,properties.alsoIsosceles&&d.showProperties!==false?478:444,'Medians meet at G · AG : GD = 2 : 1',17,{'data-ag-centroid-rule':'1'});
+     if(d.showMedians)text(400,properties.alsoIsosceles&&d.showProperties!==false?478:444,'Centroid G divides each median 2 : 1',17,{'data-ag-centroid-rule':'1'});
      return frame(55,0,690,d.showMedians?(properties.alsoIsosceles&&d.showProperties!==false?500:466):properties.alsoIsosceles&&d.showProperties!==false?466:440)
    }
    text(400,410,notes[shape]||'',18);return frame(75,0,650,440)
