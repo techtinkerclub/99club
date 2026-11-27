@@ -229,10 +229,10 @@ root.innerHTML='<div class="gd-mixed-board" id="gd-mixed-board">'+
   '</aside>'+
   '<dialog class="gd-board-library" id="gd-board-library" aria-labelledby="gd-board-library-title">'+
     '<div class="gd-board-library-head"><strong id="gd-board-library-title">Saved boards</strong><button type="button" data-board-library-close aria-label="Close saved boards">×</button></div>'+
-    '<p>Save editable lesson boards in this browser. No account required. Clearing browser data removes saved boards.</p>'+
+    '<div class="gd-board-library-body"><p>Saved boards are stored in this browser. Clearing browser data removes them.</p>'+
     '<label class="gd-field"><span>Board name</span><input id="gd-board-save-name" class="gd-input" maxlength="80" placeholder="e.g. Fractions lesson"></label>'+
     '<button type="button" class="gd-btn gd-btn--primary" id="gd-board-save-current">Save current board</button>'+
-    '<div id="gd-board-library-list"></div><p id="gd-board-library-status" role="status" aria-live="polite"></p>'+
+    '<h3 class="gd-board-library-section-title">Saved lessons</h3><div id="gd-board-library-list"></div></div><p id="gd-board-library-status" role="status" aria-live="polite"></p>'+
   '</dialog>'+
   '<div class="gd-board-global" aria-label="Whiteboard controls">'+
     '<button type="button" class="gd-board-global-button" id="gd-board-publishing" aria-label="Worksheet document" title="Worksheet document">'+iconSvg('export')+'</button>'+
@@ -994,7 +994,7 @@ function renderLibrary(){
     const title=document.createElement('span');title.textContent=entry.name;
     const info=document.createElement('small');info.textContent=(entry.board?.objects?.length||0)+' objects';
     const copy=document.createElement('div');copy.append(title,info);
-    const open=document.createElement('button');open.type='button';open.className='gd-btn';open.textContent='Open';
+    const open=document.createElement('button');open.type='button';open.className='gd-btn';open.textContent='Open';open.setAttribute('aria-label','Open saved board '+entry.name);
     open.onclick=async()=>{if(libraryBusy)return;if(objects.length&&!window.confirm('Replace the current board with "'+entry.name+'"?'))return;libraryMessage('Opening '+entry.name+'…');open.disabled=true;
       try{await restoreBoard(entry.board);libraryDialog.close();boardHint('Opened '+entry.name)}catch(err){libraryMessage(err.message+' Your previous board has been kept.')}finally{open.disabled=false}};
     const del=document.createElement('button');del.type='button';del.className='gd-btn';del.textContent='Delete';del.setAttribute('aria-label','Delete saved board '+entry.name);
@@ -1008,7 +1008,7 @@ libraryDialog.querySelector('[data-board-library-close]').onclick=()=>{if(!libra
 document.getElementById('gd-board-save-current').onclick=()=>{
   if(libraryBusy)return;
   const name=document.getElementById('gd-board-save-name').value.trim().slice(0,80);
-  if(!name){libraryMessage('Enter a name for your board.');return}if(!objects.length){libraryMessage('Add a manipulative before saving.');return}
+  if(!name){libraryMessage('Enter a name for your board.');document.getElementById('gd-board-save-name').focus();return}if(!objects.length){libraryMessage('Add a manipulative before saving.');return}
   try{const snapshot=captureBoard(),entries=readLibrary();if(entries.some(e=>e.name===name)&&!window.confirm('Replace the saved board "'+name+'"?'))return;
     writeLibrary([{name,board:snapshot},...entries.filter(e=>e.name!==name)]);renderLibrary();libraryMessage('Saved '+name+' in this browser.')}catch(err){libraryMessage(err.message)}
 };
