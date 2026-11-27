@@ -3351,14 +3351,18 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       }
       assert(win.TT99Goodies.modeControl.set('polygon'),'Polygon proof accessible');await tick();
       const polygonPanel=doc.querySelector('[data-ag-polygon-proof]');doc.querySelector('[data-ag-teaching-tab="polygon-proof"]').click();await tick();
-      const polygonProof=M.polygonFormulaProof(M.shapeTeachingReference(cap().demo).points),nextProof=polygonPanel.querySelector('[data-ag-polygon-proof-next]'),vertexChoice=polygonPanel.querySelector('[data-ag-polygon-proof-vertex]');
-      vertexChoice.value=2;vertexChoice.dispatchEvent(new win.Event('change',{bubbles:true}));assert(polygonPanel.querySelectorAll('[data-ag-proof-counted-diagonal]').length===polygonProof.n-3,'Selecting a different vertex shows its diagonals');
-      nextProof.click();assert(polygonPanel.querySelectorAll('[data-ag-proof-counted-diagonal]').length===polygonProof.all.length,'All unique diagonals shown when counting every vertex');
-      nextProof.click();assert(polygonPanel.querySelector('[data-ag-proof-double-example]'),'Double counting example shown');
-      nextProof.click();assert(polygonPanel.querySelectorAll('[data-ag-proof-triangle]').length===polygonProof.n-2&&polygonPanel.querySelectorAll('[data-ag-proof-internal-cut]').length===polygonProof.n-3,'Triangulation displayed separately');
-      nextProof.click();assert(nextProof.disabled&&polygonPanel.querySelector('[data-ag-proof-equation]').textContent.includes(String((polygonProof.n-2)*180)+'°'),'Final angle sum explained');
-      polygonPanel.querySelector('[data-ag-polygon-proof-reset]').click();assert(polygonPanel.querySelector('[data-ag-polygon-proof-back]').disabled,'Polygon proof reset');
-      const polygonPack=P.createDocument();polygonPack.addCurrent(id,cap());assert(P.renderItem(polygonPack.list()[0],false).querySelectorAll('[data-ag-polygon-proof-graphic]').length===5,'All polygon formula proof stages printable');
+      const polygonProof=M.polygonFormulaProof(M.shapeTeachingReference(cap().demo).points),nextProof=polygonPanel.querySelector('[data-ag-polygon-proof-next]'),vertexChoice=polygonPanel.querySelector('[data-ag-polygon-proof-vertex]'),extra=polygonPanel.querySelector('[data-ag-diagonal-enrichment]'),anglePicture=polygonPanel.querySelector('[data-ag-angle-sum-picture]');
+      assert(!extra.open&&anglePicture.querySelectorAll('[data-ag-proof-triangle]').length===polygonProof.n-2&&anglePicture.querySelector('[data-ag-proof-equation]').textContent.includes(String((polygonProof.n-2)*180)+'°'),'Default lesson immediately shows angle sum using coloured triangles');
+      assert(!anglePicture.querySelector('[data-ag-proof-counted-diagonal]'),'Diagonal counting is not part of the core lesson');
+      const polygonPack=P.createDocument();polygonPack.addCurrent(id,cap());assert(P.renderItem(polygonPack.list()[0],false).querySelectorAll('[data-ag-polygon-proof-graphic]').length===1,'Default publication contains angle sum only');
+      extra.open=true;await tick();vertexChoice.value=2;vertexChoice.dispatchEvent(new win.Event('change',{bubbles:true}));assert(extra.querySelectorAll('[data-ag-proof-counted-diagonal]').length===polygonProof.n-3,'Optional diagonal investigation retained');
+      nextProof.click();assert(extra.querySelectorAll('[data-ag-proof-counted-diagonal]').length===polygonProof.all.length,'All unique diagonals shown');
+      nextProof.click();assert(nextProof.disabled&&extra.querySelector('[data-ag-proof-double-example]'),'Optional double counting explanation');
+      polygonPanel.querySelector('[data-ag-polygon-proof-reset]').click();assert(polygonPanel.querySelector('[data-ag-polygon-proof-back]').disabled,'Diagonal investigation reset');
+      const extendedPack=P.createDocument();extendedPack.addCurrent(id,cap());assert(P.renderItem(extendedPack.list()[0],false).querySelectorAll('[data-ag-polygon-proof-graphic]').length===4,'Optional diagonal stages printable');
+      assert(win.TT99Goodies.modeControl.set('polygon:scalene'),'Triangle angle sum accessible');await tick();doc.querySelector('[data-ag-teaching-tab="polygon-proof"]').click();await tick();
+      const triangleSum=doc.querySelector('[data-ag-angle-sum-picture]');assert(triangleSum.querySelectorAll('[data-ag-angle-sum-corner]').length===3&&triangleSum.querySelectorAll('[data-ag-angle-sum-piece]').length===3&&triangleSum.textContent.includes('180°'),'Actual triangle corners rearranged on a straight line');
+      const trianglePack=P.createDocument();trianglePack.addCurrent(id,cap());assert(P.renderItem(trianglePack.list()[0],false).querySelector('[data-ag-triangle-angle-sum]'),'Triangle angle explanation printable');
       // Exact rearrangement of four congruent triangles; no rounding in model.
       for(const a of [1.25,3,4,7.5,12])for(const b of [1.5,4,5,9.75]){
         for(const angle of [0,.53,1.2]){
