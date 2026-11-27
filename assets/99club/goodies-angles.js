@@ -528,7 +528,7 @@ function generate(s={},rng=Math.random){
    return [...arms];
  }
  // Resolve actual half-lines at a vertex, even when no named point lies in that direction.
- function labRayIds(s){let next=Number.isInteger(s.nextAngleRayId)?s.nextAngleRayId:1;for(const r of s.rays){if(Number.isInteger(r.angleId))next=Math.max(next,r.angleId+1)}for(const r of s.rays)if(!Number.isInteger(r.angleId))r.angleId=next++;s.nextAngleRayId=next}
+ function labRayIds(s){if(!s.rays.length&&!Number.isInteger(s.nextAngleRayId))return;let next=Number.isInteger(s.nextAngleRayId)?s.nextAngleRayId:1;for(const r of s.rays){if(Number.isInteger(r.angleId))next=Math.max(next,r.angleId+1)}for(const r of s.rays)if(!Number.isInteger(r.angleId))r.angleId=next++;s.nextAngleRayId=next}
  function labAngleSupports(s,i){const o=s.points[i],out=[];if(!o)return out;labRayIds(s);
    const on=(a,v,limit,ref)=>{const len=Math.hypot(...v);if(len<1e-8)return;const u=v.map(x=>x/len),d=labSub(o,a),t=labDot(d,u);if(Math.abs(labCross(d,u))>1e-5||t< -1e-5||t>limit+1e-5)return;const angle=labAngle(a,labAt(a,u,1));if(t<limit-1e-5)out.push({ref:{...ref,side:1},angle});if(t>1e-5)out.push({ref:{...ref,side:-1},angle:mod(angle+180)})};
    const segment=(e,given=false)=>{if(!given&&!labVisible(s,'segments',e))return;const ids=e.slice().sort((a,b)=>s.names[a].localeCompare(s.names[b])),a=s.points[ids[0]],b=s.points[ids[1]],v=labSub(b,a);on(a,v,Math.hypot(...v),{kind:given?'given':'segment',ends:ids.map(j=>s.names[j])})};
@@ -548,7 +548,7 @@ function generate(s={},rng=Math.random){
  }
  function labSectorMark(s,sector){return {names:sector.ids.map(i=>i===null?null:s.names[i]),arms:sector.refs,sweepMode:'directed'}}
  function labSectorCaption(s,sector){return sector.ids.every(i=>i!==null)?'∠'+sector.ids.map(i=>labPointText(s,i)).join(''):'Angle at '+labPointText(s,sector.ids[1])}
- function labSectorPreview(sectors,i){const sector=sectors[i],multiple=sectors.length>2,outer=multiple&&sector.sweep>180,radius=outer?76:42,mid=sector.from+sector.sweep/2,pad=Math.min(4,sector.sweep*.12);return {radius,from:outer?mid-13:sector.from+pad,sweep:outer?26:sector.sweep-2*pad}}
+ function labSectorPreview(sectors,i){const sector=sectors[i],multiple=sectors.length>2,outer=multiple&&sector.sweep>180,radius=outer?76:42,mid=sector.from+sector.sweep/2,pad=Math.min(4,sector.sweep*.12);return {radius,from:mod(outer?mid-13:sector.from+pad),sweep:outer?26:sector.sweep-2*pad}}
  function labMeasurementTarget(s,t,scale=1){
    const origin=[t.x,t.y],tol=Math.min(2,4/Math.max(.001,scale)),direction=[Math.cos(t.angle*D),-Math.sin(t.angle*D)],points=s.points,names=s.names||points.map((_,i)=>pointName(i));
    if(t.kind==='ruler'){
@@ -561,29 +561,20 @@ function generate(s={},rng=Math.random){
      }
      return matches.size===1?[...matches.values()][0]:null;
    }
-   if(t.kind!=='protractor'||!(t.reading>.01&&t.reading<179.99))return null;
+   if(t.kind!=='protractor'||!(t.reading>.01&&t.reading<=180))return null;
    const vertices=points.map((p,i)=>({p,i})).filter(v=>labDist(v.p,origin)<=tol);if(vertices.length!==1)return null;
-   const {p:o,i}=vertices[0],arms=new Set();
-   for(const j of labNamedArms(s,i))arms.add(j);
-   const diff=(a,b)=>Math.min(mod(a-b),mod(b-a)),hand=t.hand===-1?-1:1;
-   const armAt=a=>{
-     const matching=[...arms].filter(j=>diff(labAngle(o,points[j]),a)<=.25).sort((j,k)=>diff(labAngle(o,points[j]),a)-diff(labAngle(o,points[k]),a)||labDist(points[j],o)-labDist(points[k],o));
-     if(!matching.length)return [];
-     const angle=labAngle(o,points[matching[0]]);
-     // Several named points on the same half-line identify one arm.
-     // Distinct nearby directions remain ambiguous.
-     if(matching.some(j=>diff(labAngle(o,points[j]),angle)>1e-6))return [];
-     return [matching.sort((j,k)=>labDist(points[j],o)-labDist(points[k],o))[0]];
-   };
-   const a=armAt(t.angle),b=armAt(t.angle+hand*t.reading);
-   if(a.length!==1||b.length!==1||a[0]===b[0])return null;
-   const ids=[a[0],i,b[0]];return {kind:'angle',names:ids.map(j=>names[j]),points:ids.map(j=>points[j]),label:'Add angle '+ids.map(j=>s.names?labPointText(s,j):names[j]).join('')};
+   const {p:o,i}=vertices[0],arms=labAngleArms(s,i),diff=(a,b)=>Math.min(mod(a-b),mod(b-a)),hand=t.hand===-1?-1:1;
+   const armAt=a=>{const matching=arms.filter(b=>diff(b.angle,a)<=.25);return matching.length===1?matching[0]:null};
+   const a=armAt(t.angle),b=armAt(t.angle+hand*t.reading);if(!a||!b||a===b)return null;
+   const sector=hand===1?labSector(i,a,b):labSector(i,b,a),mark=labSectorMark(s,sector);
+   return {kind:'angle',...mark,points:sector.ids.map((j,k)=>j===null?polar(...o,Math.min(t.size||100,100),k===0?sector.from:sector.from+sector.sweep):points[j]),label:sector.ids.every(j=>j!==null)?'Add angle '+sector.ids.map(j=>labPointText(s,j)).join(''):'Add angle at '+labPointText(s,i)};
+
  }
  function labApplyMeasurement(s,target){
    if(!target)return false;
-   const ids=target.names.map(n=>s.names.indexOf(n));if(ids.some(i=>i<0))return false;
+   const ids=target.names.map(n=>s.names.indexOf(n));if(target.kind==='length'&&ids.some(i=>i<0))return false;
    if(target.kind==='length'){const key=labStyleKey(s,...ids);s.dimensionLabels||={};s.dimensionLabels[key]={...s.dimensionLabels[key],mode:'measured'};delete s.dimensionLabels[key].text;return true}
-   if(target.kind==='angle'){const names=target.names.slice();s.angleNotation||=[];const existing=s.angleNotation.find(m=>labSameAngle(s,m,{names}));if(existing){existing.labelMode='measured';delete existing.label}else s.angleNotation.push({names,kind:'angle1',labelMode:'measured'});return true}
+   if(target.kind==='angle'){const mark={names:target.names.slice(),...(target.arms?{arms:target.arms,sweepMode:target.sweepMode}:{}),kind:'angle1',labelMode:'measured'};if(!labAngleAnnotation(s,mark))return false;s.angleNotation||=[];const existing=s.angleNotation.find(m=>labSameAngle(s,m,mark));if(existing){existing.labelMode='measured';delete existing.label}else s.angleNotation.push(mark);return true}
    return false;
  }
  function labDimensionText(s,i,j,automatic){
