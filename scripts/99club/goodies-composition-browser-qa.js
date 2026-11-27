@@ -3383,6 +3383,15 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       if(win.matchMedia('(min-width:800px) and (min-height:480px) and (orientation:landscape)').matches){
         for(const key of ['properties','polygon-proof','symmetry','families','proof','shape-measures','area-comparison']){const tab=teachingTab(key);if(!tab)continue;tab.click();await tick(60);assert(teachingStage.scrollHeight<=teachingStage.clientHeight+3,'Landscape teaching fits a single screen: '+key+' '+teachingStage.scrollHeight+'/'+teachingStage.clientHeight);assert(teaching.querySelector('[data-ag-teaching-tabs]').getBoundingClientRect().top>=teachingStage.getBoundingClientRect().top-1,'Topic navigation remains at top: '+key);}
       }
+      if(win.matchMedia('(min-width:800px) and (min-height:480px) and (orientation:landscape)').matches){
+        for(const [key,selector,core] of [['polygon-proof','[data-ag-diagonal-enrichment]','[data-ag-angle-sum-picture]'],['families','[data-ag-triangle-family-more]','[data-ag-triangle-family-primary]'],['symmetry','[data-ag-reflection-advanced]','[data-ag-rotation-reference]']]){
+          teachingTab(key).click();await tick(40);const detail=teaching.querySelector(selector),picture=teaching.querySelector(core);assert(detail&&picture,'Advanced page exists: '+key);
+          detail.querySelector('summary').click();await tick(60);assert(detail.open&&win.getComputedStyle(picture).display==='none','Advanced page replaces primary content: '+key);
+          assert(teachingStage.scrollHeight<=teachingStage.clientHeight+3,'Landscape detail fits a single screen: '+key+' '+teachingStage.scrollHeight+'/'+teachingStage.clientHeight);
+          assert(detail.querySelector('[data-ag-detail-back]').getBoundingClientRect().height>0,'Back to lesson is visible: '+key);
+          detail.querySelector('summary').click();await tick(40);assert(!detail.open&&win.getComputedStyle(picture).display!=='none','Returning restores the core lesson: '+key);
+        }
+      }
       max.click();await tick(80);assert(!fixture.frame.classList.contains('is-geometry-teaching-max'),'Restoring leaves teaching maximisation cleanly');
       for(const m of [...Array.from({length:10},(_,i)=>ref('regular',{n:i+3})),...M.polygonInvestigationExamples().map(e=>ref('free-polygon',{n:e.points.length,polygonPoints:e.points}))]){
         for(let vertex=0;vertex<m.n;vertex++){
@@ -3399,7 +3408,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(!extra.open&&anglePicture.querySelectorAll('[data-ag-proof-triangle]').length===polygonProof.n-2&&anglePicture.querySelector('[data-ag-proof-equation]').textContent.includes(String((polygonProof.n-2)*180)+'°'),'Default lesson immediately shows angle sum using coloured triangles');
       assert(!anglePicture.querySelector('[data-ag-proof-counted-diagonal]'),'Diagonal counting is not part of the core lesson');
       const polygonPack=P.createDocument();polygonPack.addCurrent(id,cap());assert(P.renderItem(polygonPack.list()[0],false).querySelectorAll('[data-ag-polygon-proof-graphic]').length===1,'Default publication contains angle sum only');
-      extra.open=true;await tick();vertexChoice.value=2;vertexChoice.dispatchEvent(new win.Event('change',{bubbles:true}));assert(extra.querySelectorAll('[data-ag-proof-counted-diagonal]').length===polygonProof.n-3,'Optional diagonal investigation retained');
+      extra.open=true;await tick();assert(win.getComputedStyle(anglePicture).display==='none'&&extra.querySelector('[data-ag-detail-back]').getBoundingClientRect().height>0,'Advanced diagonals replace angle sum and offer Back');vertexChoice.value=2;vertexChoice.dispatchEvent(new win.Event('change',{bubbles:true}));assert(extra.querySelectorAll('[data-ag-proof-counted-diagonal]').length===polygonProof.n-3,'Optional diagonal investigation retained');
       nextProof.click();assert(extra.querySelectorAll('[data-ag-proof-counted-diagonal]').length===polygonProof.all.length,'All unique diagonals shown');
       nextProof.click();assert(nextProof.disabled&&extra.querySelector('[data-ag-proof-double-example]'),'Optional double counting explanation');
       polygonPanel.querySelector('[data-ag-polygon-proof-reset]').click();assert(polygonPanel.querySelector('[data-ag-polygon-proof-back]').disabled,'Diagonal investigation reset');
@@ -3504,7 +3513,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(rq('[data-ag-reasoning-witness]').dataset.agReasoningWitness==='hidden','Prediction does not reveal answer');
       rq('[data-ag-reasoning-test]').click();assert(rq('[data-ag-reasoning-witness]').dataset.agReasoningWitness==='true','Example demonstrates possibility');
       rq('[data-ag-reasoning-next]').click();rq('[data-ag-reasoning-test]').click();assert(rq('[data-ag-reasoning-witness]').dataset.agReasoningWitness==='false','Counterexample checked independently');
-      rq('[data-ag-reasoning-reveal]').click();assert(rq('[data-ag-reasoning-result]').textContent.startsWith('Sometimes.'),'General reason revealed separately');
+      rq('[data-ag-reasoning-reveal]').click();assert(rq('[data-ag-reasoning-result]').textContent.startsWith('Sometimes.'),'General reason revealed separately');assert(rq('[data-ag-reasoning-picture]').querySelectorAll('[data-ag-reasoning-witness]').length===1,'Reasoning reveal keeps one example on screen');
       const rpack=P.createDocument();rpack.addCurrent(id,cap());const rp=P.renderItem(rpack.list()[0],false);assert(rp.querySelector('[data-ag-reasoning-graphic="isosceles-right"]')&&rp.querySelectorAll('[data-ag-reasoning-witness]').length===2,'Selected statement and witnesses published');
       rq('[data-ag-reasoning-reset]').click();assert(!cap().demo.reasoningReveal&&!cap().demo.reasoningPrediction,'Reasoning reset clears prediction');
       const generatedReasoning=new Set();
