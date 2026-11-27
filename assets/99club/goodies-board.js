@@ -775,7 +775,7 @@ function connectInnerObject(obj){
     function valid(){return !disposed&&frameFor(obj.id)===frame&&innerDocument(obj)===doc}
     function measure(){
       if(!valid())return;
-      if(obj.maximised&&obj.toolId==='angles'){const lab=doc.querySelector('[data-ag-free-workspace],[data-ag-dynamic-workspace]'),full=!!lab?._tt99SetFullBoard;if(full!==frame.classList.contains('is-geometry-board')||full&&!lab.closest('.gd-ag-full-board'))positionObject(obj)}
+      if(obj.maximised&&obj.toolId==='angles'){const lab=doc.querySelector('[data-ag-free-workspace],[data-ag-dynamic-workspace]'),full=!!lab?._tt99SetFullBoard;if(full!==frame.classList.contains('is-geometry-board')||full&&(lab.matches('[data-ag-dynamic-workspace]')?lab.dataset.agFullActive!=='true':!lab.closest('.gd-ag-full-board')))positionObject(obj)}
       fitEmbeddedObject(obj,initial);initial=false;
       syncQuickActions(obj);
       if(obj.settingsOpen&&floatingPanelMode!=='help')renderFloatingControls(obj);
@@ -855,7 +855,7 @@ function positionObject(obj){
   const frame=frameFor(obj.id);if(!frame)return;
   frame.classList.toggle('is-maximised',!!obj.maximised);const maxButton=frame.querySelector('[data-board-maximise]');if(maxButton){maxButton.innerHTML=iconSvg(obj.maximised?'restore':'full');maxButton.title=obj.maximised?'Restore widget':'Maximise widget';maxButton.setAttribute('aria-label',maxButton.title);maxButton.setAttribute('aria-pressed',String(!!obj.maximised))}
   const lab=obj.toolId==='angles'?innerDocument(obj)?.querySelector('[data-ag-free-workspace],[data-ag-dynamic-workspace]'):null,full=!!(obj.maximised&&lab?._tt99SetFullBoard);
-  if(frame.classList.contains('is-geometry-board')&&!full){frame.classList.remove('is-geometry-board');board.classList.remove('is-geometry-drawing');lab?._tt99SetFullBoard?.(false)}
+  if(frame.classList.contains('is-geometry-board')&&!full){frame.classList.remove('is-geometry-board');board.classList.remove('is-geometry-drawing');lab?._tt99SetFullBoard?.(false);const doc=innerDocument(obj);doc?.documentElement.classList.remove('gd-ag-full-page');doc?.getElementById('gd-stage')?.classList.remove('gd-ag-full-stage')}
   if(full){frame.classList.add('is-geometry-board');board.classList.add('is-geometry-drawing');const w=Math.max(1,viewport.clientWidth),h=Math.max(1,viewport.clientHeight);frame.style.left=viewport.scrollLeft+'px';frame.style.top=viewport.scrollTop+'px';frame.style.width=w+'px';frame.style.height=h+'px';frame.style.zIndex=String(obj.z);frame.style.setProperty('--gd-board-base-w',w+'px');frame.style.setProperty('--gd-board-base-h',h+'px');frame.style.setProperty('--gd-board-scale','1');lab._tt99SetFullBoard(true);return}
   if(obj.maximised){const vr=viewport.getBoundingClientRect(),rail=palette.getBoundingClientRect(),left=Math.max(16,rail.right-vr.left+12),w=Math.max(160,viewport.clientWidth-left-48),h=Math.max(120,viewport.clientHeight-82),scale=Math.min(w/obj.baseW,h/obj.baseH);frame.style.left=(viewport.scrollLeft+left+(w-obj.baseW*scale)/2)+'px';frame.style.top=(viewport.scrollTop+40+(h-obj.baseH*scale)/2)+'px';frame.style.width=Math.round(obj.baseW*scale)+'px';frame.style.height=Math.round(obj.baseH*scale)+'px';frame.style.zIndex=String(obj.z);frame.style.setProperty('--gd-board-base-w',obj.baseW+'px');frame.style.setProperty('--gd-board-base-h',obj.baseH+'px');frame.style.setProperty('--gd-board-scale',String(scale));return}
   frame.style.left=obj.x+'px';frame.style.top=obj.y+'px';
