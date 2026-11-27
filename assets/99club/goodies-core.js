@@ -180,13 +180,13 @@ const INSTRUMENT_ICONS={
 
  function localInstrumentActions(svg,anchor,label,actions,group){
    const N='http://www.w3.org/2000/svg',m=svg.getScreenCTM();if(!m)return;
-   const scale=Math.hypot(m.a,m.b)||1,v=svg.viewBox.baseVal,unit=1/scale,buttonSize=46,extra=actions.some(a=>a[0]==='annotate')?96:0,needed=Math.max(84,label.length*7)+actions.length*(buttonSize+4)+16+extra,rows=v.width*scale<needed?2:1,w=Math.min(v.width-8*unit,needed*unit),h=(rows===1?54:108)*unit;
+   const scale=Math.hypot(m.a,m.b)||1,v=svg.viewBox.baseVal,unit=1/scale,buttonSize=46,extra=(actions.some(a=>a[0]==='annotate')?96:0)+(actions.some(a=>a[0].startsWith('datum-'))?32:0),needed=Math.max(84,label.length*7)+actions.length*(buttonSize+4)+16+extra,rows=v.width*scale<needed?2:1,w=Math.min(v.width-8*unit,needed*unit),h=(rows===1?54:108)*unit;
    const x=Math.max(v.x+4*unit,Math.min(v.x+v.width-w-4*unit,anchor[0]-w/2)),y=Math.max(v.y+4*unit,Math.min(v.y+v.height-h-4*unit,anchor[1]+34*unit));
    const fo=document.createElementNS(N,'foreignObject');for(const [k,val] of Object.entries({x,y,width:w,height:h,'data-ag-local-instrument':'1'}))fo.setAttribute(k,val);
    const bar=document.createElement('div');bar.className='gd-ag-local-instrument';bar.style.width=w*scale+'px';bar.style.height=(h*scale)+'px';bar.style.flexWrap=rows===2?'wrap':'nowrap';bar.style.transformOrigin='top left';
    // foreignObject content is in SVG units: compensate for zoom.
    bar.style.transform='scale('+unit+')';const name=document.createElement('span');name.textContent=label;bar.append(name);
-   for(const [id,desc,glyph,fn,pressed] of actions){const b=document.createElement('button');b.type='button';b.dataset[group]=id;b.title=desc;b.setAttribute('aria-label',desc);if(pressed!==undefined)b.setAttribute('aria-pressed',String(pressed));b.append(icon(glyph));if(id==='annotate'){b.style.cssText='width:auto;min-width:132px;max-width:100%;gap:5px;padding:0 9px;flex-shrink:0';const caption=document.createElement('span');caption.textContent='Add to drawing';caption.style.cssText='white-space:nowrap;font-size:12px';b.append(caption)}b.onclick=e=>{e.stopPropagation();fn()};bar.append(b)}
+   for(const [id,desc,glyph,fn,pressed] of actions){const b=document.createElement('button');b.type='button';b.dataset[group]=id;b.title=desc;b.setAttribute('aria-label',desc);if(pressed!==undefined)b.setAttribute('aria-pressed',String(pressed));if(id.startsWith('datum-')){b.textContent=id==='datum-x'?'+x':'+y';b.style.cssText='font-size:14px;font-weight:600;min-width:46px'}else b.append(icon(glyph));if(id==='annotate'){b.style.cssText='width:auto;min-width:132px;max-width:100%;gap:5px;padding:0 9px;flex-shrink:0';const caption=document.createElement('span');caption.textContent='Add to drawing';caption.style.cssText='white-space:nowrap;font-size:12px';b.append(caption)}b.onclick=e=>{e.stopPropagation();fn()};bar.append(b)}
    for(const type of ['pointerdown','pointermove','pointerup','click','wheel'])fo.addEventListener(type,e=>e.stopPropagation());fo.append(bar);svg.append(fo);return fo
  }
 
