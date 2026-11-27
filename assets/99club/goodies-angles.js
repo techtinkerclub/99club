@@ -2333,12 +2333,14 @@ function shapeReferenceGraphic(m,kind){
    if(altitude){
      const {a,b,q,f}=altitude,A=map(a),B=map(b),Q=map(q),F=map(f),u=labSub(B,A),h=labSub(Q,F),ul=Math.hypot(...u),hl=Math.hypot(...h),u1=u.map(x=>x/ul),h1=h.map(x=>x/hl);
      line(A,B,{stroke:'#277b70','stroke-width':4,'data-ag-reference-base':'1'});
-     if(labDot(labSub(F,A),u)<0)line(F,A,{'stroke-dasharray':'3 4'});else if(labDot(labSub(F,B),u)>0)line(B,F,{'stroke-dasharray':'3 4'});
+     const t=labDot(labSub(F,A),u1),extension=t<0?[F,A]:t>ul?[B,F]:null;
+     if(extension)line(...extension,{'stroke-dasharray':'3 4','data-ag-reference-base-extension':'1'});
      line(Q,F,{stroke:'#b56d2c','stroke-dasharray':'5 3','data-ag-reference-height':'1'});
-     const corner=[labAt(F,u1,8),labAt(labAt(F,u1,8),h1,8),labAt(F,h1,8)];
+     const side=u1.map(x=>x*(t>ul?-1:1)),mark=Math.min(8,hl*.18,ul*.14);
+     const corner=[labAt(F,side,mark),labAt(labAt(F,side,mark),h1,mark),labAt(F,h1,mark)];
      add('polyline',{points:corner.map(v=>v.join(',')).join(' '),fill:'none',stroke:'#b56d2c','stroke-width':1.5,'data-ag-reference-right-angle':'1'});
      if(parallelSide)line(...parallelSide.map(map),{stroke:'#277b70','stroke-width':3,'data-ag-reference-parallel-base':'1'});
-     const dimensions=teachingDimensions(add,{size:10,bounds:[3,3,W-3,163],lines:[...v.map((point,i)=>[point,v[(i+1)%n]]),[Q,F]]});
+     const dimensions=teachingDimensions(add,{size:10,bounds:[3,3,W-3,163],lines:[...v.map((point,i)=>[point,v[(i+1)%n]]),[Q,F],...(extension?[extension]:[]),[corner[0],corner[1]],[corner[1],corner[2]]]});
      dimensions(A,B,'b = '+fmt(labDist(a,b)/LAB_UNIT)+' cm',{outside:labAt(mid(A,B),h1,-20)});
      dimensions(F,Q,'h = '+fmt(labDist(q,f)/LAB_UNIT)+' cm',{outside:labAt(mid(F,Q),u1,labDot(labSub(F,A),u1)<ul/2?-20:20)});
      const trapezium=n===4&&m.quad.parallelPairs.length===1;
