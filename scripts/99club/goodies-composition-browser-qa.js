@@ -1633,8 +1633,8 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const exact=M.protractorReading(scene,t,38,1);
       assert(exact.kind==='Edge'&&Math.abs(exact.reading-angle)<1e-8&&exact.reading.toFixed(1)==='37.4','Protractor snaps to exact fractional angle relative to rotated baseline');
       const flipped=M.protractorReading(scene,{...t,hand:-1},36,1);assert(Math.abs(flipped.reading-angle)<1e-8,'Flipped protractor reads opposite half-plane accurately');
-      const manual=M.protractorReading(scene,{...t,snap:false},37.46,1);assert(manual.reading===37.5&&!manual.kind,'Manual measurement resolves to a tenth of a degree');
-      const away=M.protractorReading(scene,{...t,x:900,y:900},37.46,1);assert(away.reading===37.5&&!away.kind,'Remote geometry cannot snap measuring arm');
+      const manual=M.protractorReading(scene,{...t,snap:false},37.46,1);assert(manual.reading===37.46&&manual.reading.toFixed(1)==='37.5'&&!manual.kind,'Manual measurement retains precision and displays tenths');
+      const away=M.protractorReading(scene,{...t,x:900,y:900},37.46,1);assert(away.reading===37.46&&!away.kind,'Remote geometry cannot snap measuring arm');
       scene.rays=[{i:0,angle:baseline+83.27,construction:false}];assert(Math.abs(M.protractorReading(scene,t,83,1).reading-83.27)<1e-8,'Exact ray direction is preserved for measurement');
       {
       // A direction match alone is insufficient: the measuring arm must
@@ -1654,7 +1654,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const behind=I.readAngle({points:[],lines:[{a:[300,200],b:[400,200],ray:true}]},pose,0,1);assert(!behind.kind,'Ray cannot snap through its invisible backward extension');
       const manualDrag=I.beginGesture({...pose,snap:false},pos(45),'measure',82);
       I.moveGesture(manualDrag,[200+116*Math.cos(58.23*Math.PI/180),200-116*Math.sin(58.23*Math.PI/180)],4,{read:(t,a,scale)=>I.readAngle(visible,t,a,scale)});
-      assert(manualDrag.t.reading===58.2&&!manualDrag.candidate,'Turning magnet off retains free tenth-degree measurement');
+      assert(Math.abs(manualDrag.t.reading-58.23)<1e-9&&manualDrag.t.reading.toFixed(1)==='58.2'&&!manualDrag.candidate,'Turning magnet off retains full precision and rounds only display');
 
       }
     }
