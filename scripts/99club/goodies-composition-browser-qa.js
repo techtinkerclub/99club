@@ -3526,6 +3526,35 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const edgeSvg=singleMeasure.querySelector('[data-ag-shape-measure-graphic]'),vertices=edgeSvg.querySelector('[data-ag-measure-boundary]').getAttribute('points').split(' ').map(p=>p.split(',').map(Number));for(const label of edgeSvg.querySelectorAll('[data-ag-measure-side]')){const i=Number(label.dataset.agMeasureSide);checkTeachingEdge(label,vertices[i],vertices[(i+1)%vertices.length])}
       singleMeasure.querySelector('[data-ag-shape-measure-mode="area"]').click();const measureFormula=singleMeasure.querySelector('[data-ag-shape-measure-formula]');assert(measureFormula?.textContent==='A = ½ × b × h'&&(measureFormula.compareDocumentPosition(singleMeasure.querySelector('[data-ag-shape-measure-picture]'))&4),'Triangle area formula precedes worked diagram');const triangleSvg=singleMeasure.querySelector('[data-ag-shape-measure-graphic]'),heightLine=triangleSvg.querySelector('[data-ag-measure-height]'),basePoints=triangleSvg.querySelector('[data-ag-measure-triangle]').getAttribute('points').split(' ').map(p=>p.split(',').map(Number));const heightEnds=[1,2].map(i=>[Number(heightLine.getAttribute('x'+i)),Number(heightLine.getAttribute('y'+i))]);checkTeachingEdge(triangleSvg.querySelector('[data-ag-measure-height-label]'),...heightEnds);const baseLabel=triangleSvg.querySelector('[data-ag-measure-base-label]');assert(baseLabel&&basePoints.some((a,i)=>{const b=basePoints[(i+1)%basePoints.length],rotation=Number(baseLabel.getAttribute('transform')?.slice(7).split(' ')[0]);return Math.abs(Math.sin(rotation*Math.PI/180-Math.atan2(b[1]-a[1],b[0]-a[0])))<1e-6}),'Triangle base label follows a side');
 
+      // Audit the same SVG renderer used by both the lesson and publication.
+      for(const [name,points,external] of [
+        ['external-left',[[220,280],[520,280],[120,110]],true],
+        ['external-right',[[220,280],[520,280],[640,110]],true],
+        ['rotated-external',[[250,100],[440,240],[110,210]],true],
+        ['thin',[[100,200],[650,201],[350,205]],false],
+        ['short-base',[[300,250],[303,250],[550,70]],true]
+      ]){
+        const reference=ref('free-triangle',{trianglePoints:points}),measure=M.shapeMeasureModel(reference),area=M.shapeMeasureGraphic(measure,'area'),p=area.querySelector('[data-ag-measure-triangle]').getAttribute('points').split(' ').map(q=>q.split(',').map(Number)),h=area.querySelector('[data-ag-measure-height]'),ends=[1,2].map(i=>[Number(h.getAttribute('x'+i)),Number(h.getAttribute('y'+i))]),u=p[1].map((x,i)=>x-p[0][i]),v=ends[1].map((x,i)=>x-ends[0][i]);
+        assert(Math.abs(u[0]*v[0]+u[1]*v[1])<1e-7*Math.hypot(...u)*Math.hypot(...v),'Perpendicular height stays exact: '+name);
+        assert(!!area.querySelector('[data-ag-measure-base-extension]')===external,'Base extension is shown only when needed: '+name);
+        assert(M.shapeMeasureNote(measure,'area').includes('outside the triangle')===external,'External altitude has a useful explanation: '+name);
+        assert(Math.abs(measure.area-reference.area)<1e-8,'Area remains exact: '+name);
+        for(const [selector,a,b] of [['[data-ag-measure-base-label]',p[0],p[1]],['[data-ag-measure-height-label]',...ends]]){
+          const label=area.querySelector(selector);if(label)checkTeachingEdge(label,a,b);else assert(name==='thin'||name==='short-base','Ordinary external altitude must retain both labels: '+name);
+        }
+      }
+      for(const points of [[[100,250],[650,250],[350,245]],[[100,100],[600,100],[600,300],[350,300],[350,150],[100,150]]]){
+        const reference=ref(points.length===3?'free-triangle':'free-polygon',points.length===3?{trianglePoints:points}:{n:points.length,polygonPoints:points}),measure=M.shapeMeasureModel(reference),svg=M.shapeMeasureGraphic(measure,'perimeter'),vertices=[...svg.querySelectorAll('[data-ag-measure-vertex]')].map(n=>M.labelBox([Number(n.getAttribute('x')),Number(n.getAttribute('y'))],0,n.textContent,14)),edges=svg.querySelector('[data-ag-measure-boundary]').getAttribute('points').split(' ').map(q=>q.split(',').map(Number)),placed=[];
+        for(const label of svg.querySelectorAll('[data-ag-measure-side]')){
+          const i=Number(label.dataset.agMeasureSide),angle=Number(label.getAttribute('transform').slice(7).split(' ')[0]),box=M.labelBox([Number(label.getAttribute('x')),Number(label.getAttribute('y'))],angle,label.textContent,Number(label.getAttribute('font-size')));
+          checkTeachingEdge(label,edges[i],edges[(i+1)%edges.length]);
+          assert(![...vertices,...placed].some(b=>M.boxesOverlap(box,b)),'Perimeter dimensions avoid vertices and other dimension labels');
+          assert(M.labelCorners(box).every(q=>q[0]>=4&&q[0]<=496&&q[1]>=4&&q[1]<=239),'Perimeter dimensions stay inside diagram');
+          placed.push(box);
+        }
+        assert(placed.length>0,'Difficult polygon retains useful perimeter dimensions');
+      }
+
       assert(win.TT99Goodies.modeControl.set('polygon:rectangle'),'Area comparison reachable');await tick();
       assert(doc.querySelector('[data-ag-teaching-tab="shape-measures"]').textContent==='Area & perimeter'&&doc.querySelector('[data-ag-teaching-tab="area-comparison"]').textContent==='Compare areas','Rectangle measurements and comparison are separate activities');
       doc.querySelector('[data-ag-teaching-tab="area-comparison"]').click();await tick();
