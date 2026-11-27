@@ -1279,7 +1279,7 @@ async function run(){
         const t=cap().task,svg=doc.querySelector('.gd-ag-visual>svg'),tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),option=id=>doc.querySelector('[data-ag-option="'+id+'"]'),set=(id,value)=>{const el=option(id);el.value=String(value);el.dispatchEvent(new win.Event('change',{bubbles:true}))},snap=on=>{if(option('snap').checked!==on)option('snap').click()},select=id=>{if(tool(id).getAttribute('aria-pressed')!=='true')tool(id).click()};
         const tap=p=>{const q=new win.DOMPoint(...p).matrixTransform(svg.getScreenCTM());for(const type of ['pointerdown','pointerup'])svg.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerType:'touch',pointerId:177,button:0,buttons:type==='pointerup'?0:1,clientX:q.x,clientY:q.y}))};
         const initial=cap().lab||M.labEmpty(),A=initial.points[0],B=initial.points[1],polar=(o,r,a)=>[o[0]+r*Math.cos(a*Math.PI/180),o[1]-r*Math.sin(a*Math.PI/180)],d=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]),near=(p,q)=>d(p,q)<1e-6;
-        const line=(a,b)=>{select('segment');tap(a);tap(b)},point=p=>{select('point');tap(p)},ray=(o,base,a)=>{select('protractor');set('angle-graduation',1);tap(o);tap(base);const direction=(Math.atan2(o[1]-base[1],base[0]-o[0])*180/Math.PI+360)%360;if((a-direction+360)%360>180)svg.querySelector('[data-ag-guided-action="mirror"]').click();tap(polar(o,180,a))};
+        const line=(a,b)=>{select('segment');tap(a);tap(b)},point=p=>{select('point');tap(p)},ray=(o,base,a)=>{select('protractor');set('angle-graduation',1);tap(o);tap(base);const direction=(Math.atan2(o[1]-base[1],base[0]-o[0])*180/Math.PI+360)%360;if((a-direction+360)%360>180)svg.querySelector('[data-ag-guided-action="mirror"]').click();snap(false);tap(polar(o,180,a));snap(true);const drawn=cap().lab.rays.at(-1),actual=M.labRayAngle(cap().lab,drawn);assert(Math.abs(((actual-a+540)%360)-180)<1e-8,'Guided graduated ray has exact direction: '+family+' expected '+a+' actual '+actual)};
         // Set an instrument opening using the chosen physical scale, with a
         // small off-graduation pointer error. Do not snap to unrelated ink.
         const circle=(o,r)=>{select('compass');if(tool('compass-opening').getAttribute('aria-pressed')==='true')tool('compass-opening').click();set('length-graduation',.1);tap(o);snap(false);tap(polar(o,r*40+.9,90));snap(true)};
@@ -1301,7 +1301,7 @@ async function run(){
           line(A,actual);if(family!=='build-perpendicular')line(B,actual);verify();
         }else if(family==='build-asa'){
           ray(A,B,t.angle);ray(B,A,180-t.rightAngle);
-          const C=polar(A,t.length*40,t.angle);point([C[0]+.6,C[1]-.6]);const actual=cap().lab.points.find(p=>near(p,C));assert(actual,'Two constructed angle arms meet at correct third vertex');line(A,actual);line(B,actual);verify();
+          const C=polar(A,t.length*40,t.angle);point([C[0]+.6,C[1]-.6]);const actual=cap().lab.points.find(p=>near(p,C));assert(actual,'Two constructed angle arms meet at correct third vertex '+JSON.stringify({expected:C,points:cap().lab.points,intersections:M.labIntersections(cap().lab),rays:cap().lab.rays,task:t}));line(A,actual);line(B,actual);verify();
         }else {
           // Complete the four required edges through independently computed
           // expected vertices, using exact geometric intersections where available.
