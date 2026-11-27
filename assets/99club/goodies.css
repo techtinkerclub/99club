@@ -2728,3 +2728,17 @@ html.gd-embed-page #tt99-goodies-root #gd-stage:has(>.gd-ag-shape-reference){ove
   #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]:not(:has(>details))>[data-ag-lesson-copy]{grid-row:1/span 2}
   #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson] svg{max-height:clamp(150px,49vh,430px)}
 }
+
+/* The formula is a lesson header, not part of the side controls. */
+#tt99-goodies-root [data-ag-lesson-header]{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 16px;min-width:0}
+#tt99-goodies-root [data-ag-lesson-header] h4{margin:0;font-size:clamp(16px,1.6vw,22px)}
+#tt99-goodies-root [data-ag-lesson-header] .gd-ag-teaching-formula{padding:2px 0;margin:0}
+@media (min-width:800px) and (min-height:480px) and (orientation:landscape){
+  #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]:has(>[data-ag-lesson-header]):not([hidden]):not(:has(>details[data-ag-lesson-detail="page"][open])){grid-template-rows:auto auto auto;row-gap:4px}
+  #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]>[data-ag-lesson-header]{grid-column:1/-1;grid-row:1}
+  #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]:has(>[data-ag-lesson-header])>[data-ag-lesson-copy]{grid-row:2;grid-column:2}
+  #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]:has(>[data-ag-lesson-header])>:is([data-ag-angle-sum-picture],[data-ag-proof-picture],[data-ag-basic-area-picture],[data-ag-pythagoras-squares-picture],[data-ag-shape-measure-picture]){grid-row:2/span 2;grid-column:1}
+  #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]:has(>[data-ag-lesson-header])>details{grid-row:3}
+  #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]:has(>[data-ag-lesson-header]):not(:has(>details))>[data-ag-lesson-copy]{grid-row:2/span 2}
+  #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]:has(>[data-ag-lesson-header]) svg{max-height:clamp(140px,45vh,390px)}
+}
