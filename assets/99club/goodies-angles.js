@@ -1380,7 +1380,7 @@ function generate(s={},rng=Math.random){
    }
    if(d.type==='linked-l-area'){
      const W=d.width,H=d.height,u=d.notchWidth,v=d.notchHeight,x=W-u,A=W*H-u*v,P=2*(W+H);
-     return {points:[[0,0],[W,0],[W,-(H-v)],[W-u,-(H-v)],[W-u,-H],[0,-H]],parts:[part('a) x',x,'cm'),part('b) Area',A,'cm²'),part('c) Perimeter',P,'cm')],prompt:'All corners of the L-shaped figure are right angles. Find (a) the missing length x in cm, (b) its area in cm² and (c) its perimeter in cm. Show your working.',note:'x = '+W+' − '+u+' = '+x+' cm. Subtract the missing rectangle: area = '+W+' × '+H+' − '+u+' × '+v+' = '+A+' cm². Perimeter = '+W+' + '+(H-v)+' + '+u+' + '+v+' + '+x+' + '+H+' = '+P+' cm.'};
+     return {points:[[0,0],[W,0],[W,-(H-v)],[W-u,-(H-v)],[W-u,-H],[0,-H]],parts:[part('a) x',x,'cm'),part('b) Area',A,'cm²'),part('c) Perimeter',P,'cm')],prompt:'Adjacent edges of the L-shaped figure are perpendicular. Find (a) the missing length x in cm, (b) its area in cm² and (c) its perimeter in cm. Show your working.',note:'x = '+W+' − '+u+' = '+x+' cm. Subtract the missing rectangle: area = '+W+' × '+H+' − '+u+' × '+v+' = '+A+' cm². Perimeter = '+W+' + '+(H-v)+' + '+u+' + '+v+' + '+x+' + '+H+' = '+P+' cm.'};
    }
    const a=d.baseLength,b=d.length,c=Math.hypot(a,b),P=a+b+c,A=a*b/2;
    return {points:[[0,0],[a,0],[0,-b]],parts:[part('a) x',c,'cm'),part('b) Perimeter',P,'cm'),part('c) Area',A,'cm²')],prompt:'Find (a) the hypotenuse x in cm, (b) the perimeter in cm and (c) the area in cm² of this right-angled triangle. Show your working.',note:'Pythagoras: x² = '+a+'² + '+b+'² = '+(a*a+b*b)+', so x = '+c+' cm. Perimeter = '+a+' + '+b+' + '+c+' = '+P+' cm. Area = ½ × '+a+' × '+b+' = '+A+' cm².'};
