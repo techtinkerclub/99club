@@ -1411,7 +1411,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
     assert(work.viewBox.baseVal.width===840&&work.viewBox.baseVal.height===592,'A5 format can shrink the empty sheet below the old minimum');
     const previewPointer=(type,p)=>{const v=new win.DOMPoint(...p).matrixTransform(work.getScreenCTM());work.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerType:'touch',pointerId:47,button:0,clientX:v.x,clientY:v.y}))};
     const checkRuler=()=>{
-      if(doc.querySelector('[data-ag-tool="segment"]').getAttribute('aria-pressed')!=='true')doc.querySelector('[data-ag-tool="segment"]').click();previewPointer('pointerdown',[60,160]);
+      if(doc.querySelector('[data-ag-tool="segment"]').getAttribute('aria-pressed')!=='true')doc.querySelector('[data-ag-tool="segment"]').click();previewPointer('pointerdown',[60,160]);previewPointer('pointerup',[60,160]);
       for(const endpoint of [[460,160],[97,160],[183,236],[660,160],[260,160]]){
         previewPointer('pointermove',endpoint);
         const ruler=work.querySelector('[data-geometry-instrument="ruler"]'),ticks=ruler.querySelectorAll('[data-me-division]'),width=Number(ruler.querySelector('rect').getAttribute('width')),len=Math.hypot(endpoint[0]-60,endpoint[1]-160);
@@ -1892,6 +1892,32 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert([aa,bb,cc,dd].every((x,i)=>distance(x,[a,b,c,d4][i])<1e-6)&&drawing.segments.length===5,'All construction edges placed on exact vertices: '+label);
       reset();select('select');
     };
+    const verifyDrawingSnap=label=>{
+      const tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),tap=p=>{previewPointer('pointerdown',p);previewPointer('pointerup',p)},reset=()=>doc.querySelector('[aria-label="Reset construction"]').click(),capture=()=>cap().demo.labDrawing;
+      const select=id=>{if(tool(id).getAttribute('aria-pressed')!=='true')tool(id).click()};
+      reset();select('segment');
+      // The two existing segments supply a true intersection, not a hidden answer.
+      tap([150,300]);tap([650,300]);tap([400,100]);tap([400,500]);
+      const before=JSON.stringify(capture()),cross=M.labIntersections(capture()).map(x=>x.p).find(p=>Math.hypot(p[0]-400,p[1]-300)<1e-6);
+      assert(cross,'Crossing fixture has exact analytic intersection: '+label);
+      const tol=Math.min(42,20/G.instruments.screenScale(work)),near=[cross[0]+tol*.1,cross[1]],jitter=[cross[0]+tol*1.25,cross[1]+tol*.1],far=[cross[0]+tol*2,cross[1]+tol*2];
+      const held=M.labSnap(capture(),near,tol,true),stable=M.labSnap(capture(),jitter,tol,true,-1,held);
+      assert(held.kind==='Intersection'&&stable.kind==='Intersection'&&Math.hypot(stable.p[0]-cross[0],stable.p[1]-cross[1])<1e-8,'Analytic intersection retained inside release band');
+      assert(M.labSnap(capture(),far,tol,true,-1,stable).kind!=='Intersection','Deliberate motion releases acquired intersection');
+      assert(M.labSnap({...capture(),segments:[]},jitter,tol,true,-1,held).kind!=='Intersection','Deleted crossing cannot remain magnetic');
+      select('point');previewPointer('pointerdown',near);previewPointer('pointermove',jitter);
+      assert(JSON.stringify(capture())===before&&work.querySelector('[data-ag-snap-cue="Intersection"]'),'Drag previews exact crossing without adding marks');
+      previewPointer('pointercancel',jitter);assert(JSON.stringify(capture())===before,'Cancelled placement creates no point');
+      previewPointer('pointerdown',near);previewPointer('pointermove',jitter);previewPointer('pointerup',jitter);
+      const points=capture().points;assert(points.length===5&&Math.hypot(points.at(-1)[0]-cross[0],points.at(-1)[1]-cross[1])<1e-8,'Release commits exact highlighted intersection');
+      select('segment');const start=[650,100];previewPointer('pointerdown',[600,70]);previewPointer('pointermove',start);previewPointer('pointerup',start);
+      previewPointer('pointerdown',near);previewPointer('pointermove',jitter);assert(work.querySelector('[data-ag-snap-cue="Vertex"]'),'Segment endpoint retains acquired named vertex');previewPointer('pointerup',jitter);
+      const d=capture(),last=d.segments.at(-1).map(i=>d.points[i]);
+      assert(Math.hypot(last[0][0]-start[0],last[0][1]-start[1])<1e-6&&Math.hypot(last[1][0]-cross[0],last[1][1]-cross[1])<1e-8,'Both line endpoints match their final preview: '+label);
+      tool('undo').click();assert(capture().segments.length===2&&capture().points.length===5,'Completed segment is one atomic undo');
+      reset();select('select');
+    };
+    verifyDrawingSnap('A5 normal');
     verifyBisectors('A5 normal');
     {
       const precision=doc.querySelector('[data-ag-option="precision"]');
@@ -1926,12 +1952,12 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(M.labSnap(m,[440,200],.5).kind==='On line','Other invisible arc continuation is not a line intersection');
     }
     doc.querySelector('[data-ag-tool="expand"]').click();wsField('format').value='A4';wsField('apply').click();await tick();
-    checkRuler();verifyInstruments('A4 normal');verifyBisectors('A4 normal');
+    checkRuler();verifyInstruments('A4 normal');verifyBisectors('A4 normal');verifyDrawingSnap('A4 normal');
     {
       const frame=fixture.frame,max=frame.querySelector('[data-board-maximise]');
       api.select(fixture.record.id);max.click();await tick(150);
       assert(frame.classList.contains('is-geometry-board'),'Full board entered for instrument scale checks');
-      checkRuler();verifyInstruments('A4 full board');verifyBisectors('A4 full board');
+      checkRuler();verifyInstruments('A4 full board');verifyBisectors('A4 full board');verifyDrawingSnap('A4 full board');
       doc.querySelector('[data-ag-tool="zoom-in"]').click();verifyBisectors('A4 full board zoomed in');doc.querySelector('[data-ag-tool="zoom-out"]').click();
       const original=JSON.stringify(cap().demo.labDrawing),tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),add=kind=>doc.querySelector('[data-ag-utensil-add="'+kind+'"]').click(),action=id=>doc.querySelector('[data-ag-utensil-action="'+id+'"]'),utensil=kind=>work.querySelector('[data-ag-utensil-kind="'+kind+'"]');
       tool('measuring-tools').click();
@@ -2084,7 +2110,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(work.viewBox.baseVal.width===1188&&work.viewBox.baseVal.height===840,'Instrument review restores selected paper');
     }
     doc.querySelector('[data-ag-tool="point"]').click();
-    const tapWork=(p)=>{const v=new win.DOMPoint(...p).matrixTransform(work.getScreenCTM());work.dispatchEvent(new win.PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerType:'touch',button:0,clientX:v.x,clientY:v.y}))};
+    const tapWork=(p)=>{const v=new win.DOMPoint(...p).matrixTransform(work.getScreenCTM());for(const type of ['pointerdown','pointerup'])work.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerType:'touch',button:0,clientX:v.x,clientY:v.y}))};
     for(const p of [[150,150],[450,150],[300,350]])tapWork(p);
     assert(doc.querySelector('[data-ag-tool="move"]').hidden&&doc.querySelector('[data-ag-option="measure"]').checked,'Free construction defaults to fixed marks with measurements enabled');
     const beforeInk=JSON.stringify(cap().demo.labDrawing.points);
