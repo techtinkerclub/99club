@@ -2734,6 +2734,29 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const pack=P.createDocument();pack.generate(id,{...P.defaultSettings(id),enrichment:true},3,'triangle-comparison');
       for(const item of pack.list()){const pupil=P.renderItem(item,false),key=P.answerGraphic(item);assert(pupil.querySelectorAll('[data-ag-comparison-length]').length===6&&!pupil.querySelector('[data-ag-comparison-result]'),'Pupil comparison shows givens but not answer');assert(key.querySelector('[data-ag-comparison-result]').textContent===item.data.answer,'Teacher comparison identifies correct relationship')}
     }
+    {
+      const M=win.TT99Goodies.angles;
+      for(const kind of ['SSS','SAS','ASA','RHS','SSA','AAA'])for(const size of [1,2,3]){
+        const m=M.triangleCriterion(kind,size),[a,b]=m.triangles.map(M.triangleProperties),result=M.triangleComparisonResult(...m.triangles);
+        assert(a&&b&&m.edges.every(i=>Math.abs(a.lengths[i]-b.lengths[i])<1e-8)&&m.angles.every(i=>Math.abs(a.angles[i]-b.angles[i])<1e-8),'Both examples satisfy every stated given for '+kind);
+        const unique=['SSS','SAS','ASA','RHS'].includes(kind);
+        assert(m.unique===unique&&result.label===(unique?'Congruent':kind==='AAA'?'Similar, not congruent':'Neither'),'Congruence criterion and counterexamples independently verified: '+kind);
+        if(kind==='SSA')assert(Math.abs(a.lengths[2]-b.lengths[2])>1&&Math.abs(a.angles[0]-30)<1e-8,'Ambiguous SSA gives two distinct triangles for the same non-included angle');
+      }
+      const select=doc.querySelector('#ag-shape-view');select.value='triangle-criterion';select.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
+      const svg=()=>doc.querySelector('.gd-ag-visual svg'),change=(id,value)=>{const n=doc.querySelector('#'+id);n.value=value;n.dispatchEvent(new win.Event('change',{bubbles:true}))};
+      for(const kind of ['SSS','SAS','ASA','RHS','SSA','AAA']){
+        change('ag-criterion',kind);await tick();
+        assert(svg().querySelectorAll('[data-ag-inspect-polygon]').length===1&&!svg().querySelector('[data-ag-criterion-result]'),'Prediction initially hides second solution and result');
+        doc.querySelector('[data-ag-action="criterion-reveal"]').click();await tick();
+        assert(svg().querySelectorAll('[data-ag-inspect-polygon]').length===2&&svg().querySelector('[data-ag-criterion-result]').getAttribute('data-ag-criterion-result')=== (['SSA','AAA'].includes(kind)?'no':'yes'),'Reveal shows both solutions and the correct conclusion');
+      }
+      change('ag-criterion-size','2');await tick();assert(!svg().querySelector('[data-ag-criterion-result]'),'New example returns to prediction mode');
+      const d=P.createDocument();d.addCurrent(id,cap());assert(!P.renderItem(d.list()[0],false).querySelector('[data-ag-criterion-result]'),'Teaching publication respects prediction state');
+      for(let i=0;i<48;i++){const t=M.generate({type:'triangle-criterion',enrichment:true});assert(t.answer===(M.triangleCriterion(t.criterion,t.criterionSize).unique?'Yes':'No'),'Generated answer matches criterion');}
+      const pack=P.createDocument();pack.generate(id,{...P.defaultSettings(id),enrichment:true},6,'triangle-criterion');
+      for(const item of pack.list()){const pupil=P.renderItem(item,false),key=P.answerGraphic(item);assert(pupil.querySelectorAll('[data-ag-inspect-polygon]').length===1&&!pupil.querySelector('[data-ag-criterion-result]'),'Pupil worksheet gives only stated evidence');assert(key.querySelectorAll('[data-ag-inspect-polygon]').length===2&&key.querySelector('[data-ag-criterion-result]')&&key.querySelector('[data-ag-criterion-explanation]'),'Teacher annex shows second valid triangle and explanation')}
+    }
     const shapeSelect=doc.getElementById('ag-shape-view');shapeSelect.value='rectangle';shapeSelect.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
     doc.querySelector('[data-ag-action="diagonal"]').click();await tick();
     assert(cap().demo.showDiagonals&&doc.querySelector('.gd-ag-visual svg').textContent.includes('Equal diagonals'),'Rectangle explorer displays its diagonal relationship');
