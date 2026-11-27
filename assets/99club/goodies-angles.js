@@ -1508,10 +1508,10 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
  }
  function mountCustomGeometry(box,initial,onChange,onExit){
    let st=JSON.parse(JSON.stringify(initial||customInitial())),op='free',placing=null,drag=null,tracing=false,history=[],status='';
-   const bar=document.createElement('div');bar.className='gd-ag-inspect-tools';
+   const bar=document.createElement('div');bar.className='gd-ag-inspect-tools gd-ag-dynamic-controls';
    const mode=document.createElement('select');mode.className='gd-select';mode.setAttribute('aria-label','Dynamic geometry workspace');mode.dataset.agLocusPreset='1';
    for(const [id,label] of [['custom','Custom construction'],...Object.entries(LOCUS_PRESETS).map(([k,v])=>[k,v.label])]){const o=document.createElement('option');o.value=id;o.textContent=label;mode.append(o)}mode.value='custom';mode.onchange=()=>onExit(mode.value);bar.append(mode);
-   const panel=document.createElement('div');panel.className='gd-ag-inspect-tools';
+   const panel=document.createElement('div');panel.className='gd-ag-inspect-tools gd-ag-dynamic-controls';
    const select=document.createElement('select');select.className='gd-select';select.dataset.agCustomOperation='1';select.setAttribute('aria-label','Construction operation');
    for(const [title,filter] of [['Points',k=>CUSTOM_OPERATIONS[k].place],['Dependent relationships',k=>!CUSTOM_OPERATIONS[k].place&&!CUSTOM_OPERATIONS[k].object],['Lines and circles',k=>CUSTOM_OPERATIONS[k].object]]){const group=document.createElement('optgroup');group.label=title;for(const [id,spec] of Object.entries(CUSTOM_OPERATIONS).filter(([k])=>filter(k))){const o=document.createElement('option');o.value=id;o.textContent=spec.label;group.append(o)}select.append(group)}panel.append(select);
    const fields=document.createElement('div');fields.style.cssText='display:flex;flex-wrap:wrap;align-items:center;gap:6px';panel.append(fields);
@@ -1549,10 +1549,10 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
  function mountLoci(box,initial,onChange){
    if(initial?.kind==='custom'){mountCustomGeometry(box,initial,onChange,kind=>{const st=locusInitial(kind);onChange(st);mountLoci(box,st,onChange)});return}
    let st=JSON.parse(JSON.stringify(initial||locusInitial())),drag=null,selecting=false;
-   const bar=document.createElement('div');bar.className='gd-ag-inspect-tools';
+   const bar=document.createElement('div');bar.className='gd-ag-inspect-tools gd-ag-dynamic-controls';
    const choice=document.createElement('select');choice.className='gd-select';choice.setAttribute('aria-label','Locus relationship');choice.dataset.agLocusPreset='1';
    for(const [title,filter] of [['Loci & relationships',k=>!Object.hasOwn(SHAPE_DEFAULTS,k)&&!Object.hasOwn(RELATION_DEFAULTS,k)],['Constrained shapes',k=>Object.hasOwn(SHAPE_DEFAULTS,k)],['Circles & tangents',k=>Object.hasOwn(RELATION_DEFAULTS,k)]]){const group=document.createElement('optgroup');group.label=title;for(const [value,{label}] of Object.entries(LOCUS_PRESETS).filter(([k])=>filter(k))){const o=document.createElement('option');o.value=value;o.textContent=label;group.append(o)}choice.append(group)}const customOption=document.createElement('option');customOption.value='custom';customOption.textContent='Custom construction';choice.append(customOption);choice.value=st.kind;bar.append(choice);
-   const button=(id,label,fn)=>{const b=document.createElement('button');b.type='button';b.className='gd-btn';b.dataset.agLocusAction=id;b.textContent=label;b.onclick=fn;bar.append(b);return b};
+   const button=(id,label,fn)=>{const b=document.createElement('button');b.type='button';b.className='gd-btn gd-ag-inspect-btn';b.dataset.agLocusAction=id;b.textContent=label;b.onclick=fn;bar.append(b);return b};
    const configure=button('settings','Dimensions',()=>{settingsBar.hidden=!settingsBar.hidden;configure.setAttribute('aria-pressed',String(!settingsBar.hidden));boardView.refreshPanels()});
    const trace=button('trace','Select trace point',()=>{selecting=!selecting;paint()});
    const mid=button('midpoint','Show midpoint M',()=>{st.showMidpoint=!st.showMidpoint;changed()});
@@ -1560,13 +1560,13 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    button('clear','Clear traces',()=>{st.traces={};changed()});
    button('reset','Reset',()=>{st=locusInitial(st.kind,st.params);selecting=false;changed()});
    const hint=document.createElement('span');hint.className='gd-ag-inspect-message';hint.setAttribute('role','status');bar.append(hint);
-   const settingsBar=document.createElement('div');settingsBar.className='gd-ag-inspect-tools';settingsBar.hidden=true;const surface=document.createElement('div');surface.style.cssText='touch-action:none;width:100%';box.replaceChildren(bar,settingsBar,surface);const boardView=dynamicBoard(box,surface,[['Dynamic geometry',bar],['Dimensions',settingsBar]],()=>[0,0,800,440],()=>paint());
+   const settingsBar=document.createElement('div');settingsBar.className='gd-ag-inspect-tools gd-ag-dynamic-controls';settingsBar.hidden=true;const surface=document.createElement('div');surface.style.cssText='touch-action:none;width:100%';box.replaceChildren(bar,settingsBar,surface);const boardView=dynamicBoard(box,surface,[['Dynamic geometry',bar],['Dimensions',settingsBar]],()=>[0,0,800,440],()=>paint());
    function buildSettings(){settingsBar.replaceChildren();const values=locusParameters(st.kind,st.params);for(const [id,label,min,max,step] of LOCUS_PARAMETERS[st.kind]||[]){const wrap=document.createElement('label');wrap.style.cssText='display:flex;align-items:center;gap:6px;font-size:12px';wrap.textContent=label;const input=document.createElement('select');input.className='gd-select';input.style.width='76px';for(let v=min;v<=max+1e-8;v+=step){const option=document.createElement('option');option.value=v;option.textContent=v;input.append(option)}input.value=values[id];input.dataset.agLocusParameter=id;wrap.append(input);settingsBar.append(wrap)}const apply=instrumentButton(settingsBar,'reset','Apply','Apply dimensions and clear previous traces',()=>{const raw=Object.fromEntries([...settingsBar.querySelectorAll('[data-ag-locus-parameter]')].map(e=>[e.dataset.agLocusParameter,e.value]));const params=locusParameters(st.kind,raw),next=locusInitial(st.kind,params);next.showMidpoint=st.showMidpoint;next.showLocus=st.showLocus;next.traceNames=st.traceNames;st=next;buildSettings();changed()},'agLocusAction');apply.dataset.agLocusAction='apply';apply.classList.add('gd-ag-inspect-btn');const note=document.createElement('span');note.className='gd-ag-inspect-message';note.textContent='Applying new dimensions clears old traces.';settingsBar.append(note)}
    choice.onchange=()=>{if(choice.value==='custom'){const next=customInitial();onChange(next);mountLoci(box,next,onChange);return}st=locusInitial(choice.value);selecting=false;buildSettings();changed()};buildSettings();
    function changed(){onChange(JSON.parse(JSON.stringify(st)));paint()}
    function paint(){
      trace.setAttribute('aria-pressed',String(selecting));trace.classList.toggle('gd-btn--primary',selecting);configure.hidden=!(LOCUS_PARAMETERS[st.kind]?.length);if(configure.hidden){settingsBar.hidden=true;configure.setAttribute('aria-pressed','false')}guide.hidden=!locusPreset(st.kind,st.params).guides.length;
-     mid.textContent=st.showMidpoint?'Hide midpoint M':'Show midpoint M';guide.textContent=st.showLocus?'Hide locus guide':'Reveal locus';
+     mid.textContent=st.showMidpoint?'Hide midpoint M':'Show midpoint M';mid.setAttribute('aria-pressed',String(!!st.showMidpoint));guide.textContent=st.showLocus?'Hide locus guide':'Reveal locus';guide.setAttribute('aria-pressed',String(!!st.showLocus));
      hint.textContent=selecting?'Tap a moving or dependent point to toggle its trace.':('Drag P to investigate. Tracing: '+(st.traceNames?.join(', ')||'off')+'.');
      if(boardView.isFull())hint.textContent+=' '+locusPreset(st.kind,st.params).summary(st.p)+' · '+locusPreset(st.kind,st.params).rule;const svg=diagram({type:'diagram',mode:'loci',locusState:st},false,{dynamicBounds:boardView.bounds()});boardView.style(svg);surface.replaceChildren(svg);boardView.refreshPanels()
    }
