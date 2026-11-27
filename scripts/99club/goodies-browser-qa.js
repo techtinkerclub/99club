@@ -3760,6 +3760,19 @@ if(mode==='prepare'){
     document.querySelector('[data-me-flip-ruler]').click();assert(ms.querySelectorAll('[data-me-point-centre]').length===2,'Flipping ruler retains exact endpoint cues');
     document.querySelector('[data-me-reset-ruler]').click();
     assert(!ms.querySelector('[data-geometry-instrument]')&&!ms.querySelector('[data-me-point-centre]'),'Ruler reset removes the instrument and temporary cues without changing the task');
+    document.querySelector('[data-me-free-ruler]').click();
+    const ruler=()=>ms.querySelector('[data-ag-utensil-kind="ruler"]');
+    assert(ruler()&&document.querySelector('[data-me-free-ruler]').getAttribute('aria-pressed')==='true','Measurement challenge supports the shared independent ruler');
+    const pose=ruler().transform.baseVal.getItem(0).matrix,size=Number(ruler().dataset.agUtensilSize),beforePoints=[...ms.querySelectorAll('[data-me-measure-point]')].map(n=>[n.getAttribute('cx'),n.getAttribute('cy')]);
+    const send=(target,type,p)=>{const v=new DOMPoint(...p).matrixTransform(ms.getScreenCTM());target.dispatchEvent(new PointerEvent(type,{bubbles:true,cancelable:true,pointerType:'touch',pointerId:92,button:0,buttons:type==='pointerup'?0:1,clientX:v.x,clientY:v.y}))};
+    const snap=ms.querySelector('[data-ag-utensil-action="snap"]');assert(snap,'Shared ruler has local magnetic control');snap.click();
+    const p=[pose.e+50,pose.f+15];send(ruler().querySelector('rect'),'pointerdown',p);send(ms,'pointermove',[p[0]+30,p[1]-20]);send(ms,'pointerup',[p[0]+30,p[1]-20]);
+    const after=ruler().transform.baseVal.getItem(0).matrix;
+    assert(Math.abs(after.e-pose.e-30)<.01&&Math.abs(after.f-pose.f+20)<.01&&Number(ruler().dataset.agUtensilSize)===size,'Free ruler moves independently without changing scale');
+    assert(JSON.stringify([...ms.querySelectorAll('[data-me-measure-point]')].map(n=>[n.getAttribute('cx'),n.getAttribute('cy')]))===JSON.stringify(beforePoints),'Free measuring leaves challenge geometry untouched');
+    const ticks=ruler().querySelectorAll('[data-me-division]');assert(Number(ticks[1].getAttribute('x1'))-Number(ticks[0].getAttribute('x1'))===4,'Shared independent ruler retains calibrated millimetres');
+    document.querySelector('[data-me-free-ruler]').click();assert(!ruler()&&!ms.querySelector('[data-ag-local-instrument]'),'Returning to guided measurement removes free utensil controls');
+
 
   }
 
