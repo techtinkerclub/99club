@@ -1207,6 +1207,14 @@ function generate(s={},rng=Math.random){
    return {valid:true,kind,points:pts,n,area,perimeter,symmetry:sym,polygon:p,quad,groups:[{title:'Properties & angles',rows:properties},{title:'Diagonals & triangulation',rows:diagonals},{title:'Formulae & example values',rows:formulas}]};
  }
  // Exact area-preserving demonstrations on the current shape.
+ // Compare the transformed vertices, not rounded displayed angles.
+ function rotationInvestigation(m,degrees=0){
+   if(!m?.valid)return null;
+   const pts=m.points,centre=m.symmetry.centre,n=pts.length,angle=Math.max(0,Math.min(360,Number(degrees)||0)),q=angle*D,co=Math.cos(q),si=Math.sin(q),scale=Math.max(...pts.map(p=>labDist(p,centre))),eps=scale*1e-8;
+   const rotated=pts.map(p=>{const [x,y]=labSub(p,centre);return [centre[0]+co*x+si*y,centre[1]-si*x+co*y]});
+   const offset=pts.findIndex((p,i)=>rotated.every((v,k)=>labDist(v,pts[(i+k)%n])<=eps));
+   return {angle,centre,rotated,matches:offset>=0,offset,order:m.symmetry.rotation,smallest:360/m.symmetry.rotation};
+ }
  function shapeAreaProof(m){
    if(!m?.valid)return null;
    const n=m.n,kind=n===3?'triangle':m.quad?.kind;
@@ -1480,7 +1488,7 @@ function generate(s={},rng=Math.random){
    }finally{n.at=p.slice()}
    return true;
  }
- const model={shapeAreaProof,shapeTeachingReference,shapeSymmetry,transversalModel,protractorReading,utensilAlignment,squareGeometry,isLabArc,labArcContains,labCircleExtents,labContentBounds,locusFitBounds,customBounds,fitGeometryBounds,INDEPENDENT_METHOD_DIMENSIONS,INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labLineMarks,labSetLineMark,labAngleAnnotation,labSameAngle,labAngleArms,labAngleSectors,labAnglePair,labSectorMark,labSectorPreview,labDimensionText,labRulerTargets,labIndependentDimensions,labSquareBaseReferences,labSquareComparison,labParallelMarkPlan,labSquareSlideSnap,labMeasurementTarget,labApplyMeasurement,labAngleText,labProtractorDirection,labAngleGraphics,labAnnotationPlan,boxesOverlap,labelBox,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labRayDefinition,labAbsoluteRay,labDirectRay,labReferenceArm,labRelativeRay,labDetachReferences,labStraightEnds,rayEnd,labLabel,labPointText,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,datumState,datumCoordinates,datumPoint,datumSnap,datumDirection,datumGridStart,datumGraphic,locusInitial,locusProject,locusPoints,locusTraceMove,traceParts,traceAdd,traceToggle,shapeGeometry,freeTrianglePoints,triangleComparison,triangleComparisonResult,triangleCriterion,TRIANGLE_CRITERIA,triangleInequality,inequalitySettings,triangleProperties,triangleCentres,eulerLineModel,quadrilateralProperties,freeQuadrilateralPoints,circleInvestigation,circleInvestigationMove,CIRCLE_VIEWS,polygonProperties,freePolygonPoints,polygonInvestigationExamples,polygonInvestigationTurns,QUAD_REASONING,quadReasoningPoints,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labIntersections,labIntersectionSettings,labNewIntersections,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
+ const model={rotationInvestigation,shapeAreaProof,shapeTeachingReference,shapeSymmetry,transversalModel,protractorReading,utensilAlignment,squareGeometry,isLabArc,labArcContains,labCircleExtents,labContentBounds,locusFitBounds,customBounds,fitGeometryBounds,INDEPENDENT_METHOD_DIMENSIONS,INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labLineMarks,labSetLineMark,labAngleAnnotation,labSameAngle,labAngleArms,labAngleSectors,labAnglePair,labSectorMark,labSectorPreview,labDimensionText,labRulerTargets,labIndependentDimensions,labSquareBaseReferences,labSquareComparison,labParallelMarkPlan,labSquareSlideSnap,labMeasurementTarget,labApplyMeasurement,labAngleText,labProtractorDirection,labAngleGraphics,labAnnotationPlan,boxesOverlap,labelBox,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labRayDefinition,labAbsoluteRay,labDirectRay,labReferenceArm,labRelativeRay,labDetachReferences,labStraightEnds,rayEnd,labLabel,labPointText,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,datumState,datumCoordinates,datumPoint,datumSnap,datumDirection,datumGridStart,datumGraphic,locusInitial,locusProject,locusPoints,locusTraceMove,traceParts,traceAdd,traceToggle,shapeGeometry,freeTrianglePoints,triangleComparison,triangleComparisonResult,triangleCriterion,TRIANGLE_CRITERIA,triangleInequality,inequalitySettings,triangleProperties,triangleCentres,eulerLineModel,quadrilateralProperties,freeQuadrilateralPoints,circleInvestigation,circleInvestigationMove,CIRCLE_VIEWS,polygonProperties,freePolygonPoints,polygonInvestigationExamples,polygonInvestigationTurns,QUAD_REASONING,quadReasoningPoints,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labIntersections,labIntersectionSettings,labNewIntersections,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
 if(typeof module==='object'&&module.exports){module.exports=model;return}
 const G=root.TT99Goodies;if(!G)return;G.angles=model;
 const {q,qa,esc,field,btn,setPanels}=G,CK=G.challengeKit;
@@ -2081,9 +2089,38 @@ function mountAreaProof(container,proof,demo){
  const show=()=>{demo.areaProofStep=index;section.querySelector('[data-ag-proof-picture]').replaceChildren(areaProofGraphic(proof,index));section.querySelector('[data-ag-proof-note]').textContent=proof.steps[index].note;section.querySelector('[data-ag-proof-count]').textContent=(index+1)+' / 3';section.querySelector('[data-ag-proof-back]').disabled=index===0;section.querySelector('[data-ag-proof-next]').disabled=index===2};
  section.querySelector('[data-ag-proof-back]').onclick=()=>{index=Math.max(0,index-1);show()};section.querySelector('[data-ag-proof-next]').onclick=()=>{index=Math.min(2,index+1);show()};section.querySelector('[data-ag-proof-reset]').onclick=()=>{index=0;show()};container.appendChild(section);show();
 }
+function rotationReferenceGraphic(m,degrees){
+ const model=rotationInvestigation(m,degrees),ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),W=420,H=280,centre=model.centre,r=Math.max(...m.points.map(p=>labDist(p,centre))),s=103/r,map=p=>[210+(p[0]-centre[0])*s,120+(p[1]-centre[1])*s];
+ const add=(tag,attrs,value)=>{const el=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,v);if(value!=null)el.textContent=value;svg.append(el);return el};
+ const poly=(pts,attrs)=>add('polygon',{points:pts.map(p=>map(p).join(',')).join(' '),...attrs});
+ const label=(x,y,value,attrs={})=>add('text',{x,y,'font-family':'Arial,sans-serif','font-size':15,'text-anchor':'middle',fill:'#264a49',...attrs},value);
+ svg.setAttribute('viewBox','0 0 '+W+' '+H);svg.setAttribute('role','img');svg.setAttribute('aria-label','Shape rotated by '+Number(model.angle.toFixed(2))+' degrees. '+(model.matches?'Matches original outline.':'Does not match original outline.'));svg.dataset.agRotationGraphic='1';svg.dataset.agRotationMatch=String(model.matches);
+ add('rect',{width:W,height:H,fill:'#fff'});
+ poly(m.points,{fill:'#e6f1ec',stroke:'#277b70','stroke-width':2.2,'data-ag-rotation-original':'1'});
+ poly(model.rotated,{fill:'#efbd72','fill-opacity':.24,stroke:'#b56d2c','stroke-width':2.5,'stroke-dasharray':'6 4','data-ag-rotation-overlay':'1'});
+ const p=map(m.points[0]),q=map(model.rotated[0]);add('line',{x1:210,y1:120,x2:p[0],y2:p[1],stroke:'#277b70','stroke-dasharray':'3 3'});add('line',{x1:210,y1:120,x2:q[0],y2:q[1],stroke:'#b56d2c','stroke-width':1.5});
+ add('circle',{cx:p[0],cy:p[1],r:5,fill:'#277b70','data-ag-rotation-start-vertex':'1'});
+ add('circle',{cx:q[0],cy:q[1],r:5,fill:'#f6d6a4',stroke:'#b56d2c','stroke-width':2,'data-ag-rotation-moving-vertex':'1'});
+ add('circle',{cx:210,cy:120,r:4,fill:'#263e43'});
+ const arc=34,rad=model.angle*D;if(model.angle>0&&model.angle<360)add('path',{d:'M '+(210+arc)+' 120 A '+arc+' '+arc+' 0 '+(model.angle>180?1:0)+' 0 '+(210+arc*Math.cos(rad))+' '+(120-arc*Math.sin(rad)),fill:'none',stroke:'#a56a2e','stroke-width':1.5});
+ label(210,249,Number(model.angle.toFixed(2))+'° — '+(model.matches?'Matches the original outline':'Does not match the original outline'),{'font-weight':700,fill:model.matches?'#175e55':'#85551f','data-ag-rotation-result':'1'});
+ label(210,271,'Rotational order '+model.order+' · smallest positive turn '+Number(model.smallest.toFixed(2))+'°',{'font-size':13});
+ return svg;
+}
+function mountRotationReference(container,m,demo){
+ let angle=Math.max(0,Math.min(360,Number(demo.symmetryRotation)||0));
+ const section=document.createElement('section');section.className='gd-ag-rotation-reference';section.dataset.agRotationReference='1';
+ section.innerHTML='<h4>Investigate rotational symmetry</h4><p>Rotate the orange outline. When does it coincide with the green original?</p><div data-ag-rotation-picture></div><label>Turn (degrees) <output data-ag-rotation-angle></output><input type="range" min="0" max="360" step="any" data-ag-rotation-slider aria-label="Rotation in degrees"></label><div class="gd-row"><button type="button" class="gd-btn" data-ag-rotation-reset>Reset</button><button type="button" class="gd-btn" data-ag-rotation-quarter>+ 90°</button><button type="button" class="gd-btn" data-ag-rotation-next-match>Next matching turn</button></div>';
+ const input=section.querySelector('[data-ag-rotation-slider]'),show=()=>{demo.symmetryRotation=angle;input.value=angle;section.querySelector('[data-ag-rotation-angle]').textContent=Number(angle.toFixed(2))+'°';section.querySelector('[data-ag-rotation-picture]').replaceChildren(rotationReferenceGraphic(m,angle))};
+ input.oninput=()=>{angle=Number(input.value);show()};
+ section.querySelector('[data-ag-rotation-reset]').onclick=()=>{angle=0;show()};
+ section.querySelector('[data-ag-rotation-quarter]').onclick=()=>{angle=angle===360?90:Math.min(360,angle+90);show()};
+ section.querySelector('[data-ag-rotation-next-match]').onclick=()=>{const step=360/m.symmetry.rotation;angle=angle>=360-1e-8?step:Math.min(360,(Math.floor((angle+1e-8)/step)+1)*step);show()};
+ container.appendChild(section);show();
+}
 function appendShapeReference(svg,d){
  const m=shapeTeachingReference(d);if(!m?.valid||d.showReference===false)return svg;
- const ns='http://www.w3.org/2000/svg',view=svg.getAttribute('viewBox').split(/\\s+/).map(Number),[x,y,w,h]=view;let at=y+h+20;
+ const ns='http://www.w3.org/2000/svg',view=svg.getAttribute('viewBox').trim().split(/\s+/).map(Number),[x,y,w,h]=view;let at=y+h+20;
  const add=(tag,attrs,value)=>{const el=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,v);if(value!=null)el.textContent=value;svg.append(el);return el};
  const bg=add('rect',{x,y:y+h,width:w,height:1,fill:'#fff','data-ag-shape-reference':'1'});
  const size=Math.max(15,Math.min(21,w/34)),margin=20;
@@ -2096,6 +2133,7 @@ function appendShapeReference(svg,d){
    }
    at+=12;
  }
+ const rotation=rotationReferenceGraphic(m,360/m.symmetry.rotation),rw=Math.min(w-40,420),rh=rw*280/420;add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size+2,'font-weight':700,fill:'#285c55'},'Rotational symmetry');at+=size+12;rotation.setAttribute('x',x+(w-rw)/2);rotation.setAttribute('y',at);rotation.setAttribute('width',rw);rotation.setAttribute('height',rh);svg.append(rotation);at+=rh+16;
  const proof=shapeAreaProof(m);if(proof){add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size+2,'font-weight':700,fill:'#285c55'},'Why the area formula works');at+=size+12;for(let i=0;i<proof.steps.length;i++){const g=areaProofGraphic(proof,i),gw=Math.min(w-40,480),gh=gw*230/480;g.setAttribute('x',x+(w-gw)/2);g.setAttribute('y',at);g.setAttribute('width',gw);g.setAttribute('height',gh);svg.append(g);at+=gh+6;for(const line of G.exportTools.wrapPaperText(proof.steps[i].note,w-2*margin,size,400)){add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size,fill:'#263e43'},line);at+=size*1.32}at+=12}}
  bg.setAttribute('height',at-y-h+10);svg.setAttribute('viewBox',[x,y,w,at-y+10].join(' '));return svg;
 }
@@ -2978,7 +3016,7 @@ G.anglesTool=function(){
    },
    set(value){
      const row=topicRows.find(t=>t.value===value);if(!row||task)return false;
-     workflow='build';demo.areaProofStep=0;demo.mode=cfg.mode=row.mode;
+     workflow='build';demo.areaProofStep=0;demo.symmetryRotation=0;demo.mode=cfg.mode=row.mode;
      if(row.mode==='construct')demo.freeLab=true;
      if(row.mode==='polygon'&&!value.startsWith('centre:')){demo.showMedians=false;demo.triangleCentre='none'}
      Object.assign(demo,row.extra);render();return true;
@@ -3037,6 +3075,7 @@ G.anglesTool=function(){
     if(!m?.valid){body.innerHTML='<p>Move the vertices to form a simple, non-degenerate polygon before inspecting its properties.</p>';return}
     body.innerHTML=m.groups.map(g=>'<section><h4>'+esc(g.title)+'</h4><dl>'+g.rows.map(([label,value])=>'<dt>'+esc(label)+'</dt><dd>'+esc(value)+'</dd>').join('')+'</dl></section>').join('');
     [...body.querySelectorAll('section')].forEach((section,i)=>section.insertBefore(shapeReferenceGraphic(m,['symmetry','diagonals','area'][i]),section.querySelector('dl')));
+    mountRotationReference(body,m,demo);
     const proof=shapeAreaProof(m);if(proof)mountAreaProof(body,proof,demo);
   }
   // Capture on the persistent wrapper: the SVG may be replaced on every

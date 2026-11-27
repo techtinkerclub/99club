@@ -3229,7 +3229,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const rect=ref('rectangle'),pts=rect.points;assert(Math.abs(rect.area-300*180/1600)<1e-9&&Math.abs(rect.perimeter-2*(300+180)/40)<1e-9,'Rectangle model dimensions agree with numerical area/perimeter');
       assert(!ref('free-polygon',{n:4,polygonPoints:[[0,0],[80,80],[0,80],[80,0]]}).valid,'Invalid polygon does not claim valid properties');
       assert(win.TT99Goodies.modeControl.set('polygon:rectangle'),'Rectangle reference accessible directly');await tick();
-      const panel=doc.querySelector('.gd-ag-shape-reference');assert(panel?.open&&panel.querySelectorAll('section').length===3&&panel.textContent.includes('A = lw'),'Reference visible without opening settings');
+      const panel=doc.querySelector('.gd-ag-shape-reference');assert(panel?.open&&panel.querySelectorAll('section:not([data-ag-rotation-reference]):not([data-ag-area-proof])').length===3&&panel.querySelector('[data-ag-rotation-reference]')&&panel.textContent.includes('A = lw'),'Reference visible without opening settings');
       const pack=P.createDocument();pack.addCurrent(id,cap());const printed=P.renderItem(pack.list()[0],false);
       assert(printed.querySelectorAll('[data-ag-shape-reference-group]').length===3&&printed.textContent.includes('A = lw'),'Published teaching diagram includes reference');
       assert(panel.querySelectorAll('[data-ag-reference-graphic]').length===3,'Reference contains three dedicated visual explanations');
@@ -3253,6 +3253,22 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(proofPanel.querySelector('[data-ag-proof-outline]')&&proofPanel.querySelector('[data-ag-proof-next]').disabled,'Area proof reaches completed dissection');
       proofPanel.querySelector('[data-ag-proof-reset]').click();assert(proofPanel.querySelector('[data-ag-proof-back]').disabled,'Area proof restarts');
       const proofPack=P.createDocument();proofPack.addCurrent(id,cap());assert(P.renderItem(proofPack.list()[0],false).querySelectorAll('[data-ag-area-proof-graphic]').length===3,'All proof stages included in print');
+      for(const [shape,order] of [['square',4],['rectangle',2],['equilateral',3],['scalene',1],['rhombus',2],['kite',1]]){
+        const m=ref(shape),step=360/order;
+        for(let i=0;i<=order;i++)assert(M.rotationInvestigation(m,i*step).matches,'Exact matching turn for '+shape);
+        assert(!M.rotationInvestigation(m,step/2).matches,'Nonmatching intermediate turn for '+shape);
+        assert(!M.rotationInvestigation(m,step-.001).matches,'Rounded near-match remains distinct: '+shape);
+      }
+      assert(win.TT99Goodies.modeControl.set('polygon:square'),'Rotation investigation accessible');await tick();
+      const rotationPanel=doc.querySelector('[data-ag-rotation-reference]'),rotationSlider=rotationPanel.querySelector('[data-ag-rotation-slider]');
+      rotationSlider.value=45;rotationSlider.dispatchEvent(new win.Event('input',{bubbles:true}));
+      assert(rotationPanel.querySelector('[data-ag-rotation-graphic]').dataset.agRotationMatch==='false','45 degree square turn is not a match');
+      rotationPanel.querySelector('[data-ag-rotation-next-match]').click();assert(rotationPanel.querySelector('[data-ag-rotation-graphic]').dataset.agRotationMatch==='true'&&Number(rotationSlider.value)===90,'Next matching rotation moves to 90 degrees');
+      rotationPanel.querySelector('[data-ag-rotation-reset]').click();assert(Number(rotationSlider.value)===0,'Rotation reset');
+      const rotationPack=P.createDocument();rotationPack.addCurrent(id,cap());const rotationPrint=P.renderItem(rotationPack.list()[0],false);
+      assert(rotationPrint.querySelector('[data-ag-rotation-graphic]'),'Rotational symmetry graphic printed');
+      const printedView=rotationPrint.viewBox.baseVal;assert([printedView.x,printedView.y,printedView.width,printedView.height].every(Number.isFinite)&&printedView.width>0&&printedView.height>0&&!rotationPrint.outerHTML.includes('NaN'),'Teaching publication has finite SVG geometry: '+rotationPrint.getAttribute('viewBox'));
+
 
 
     }
