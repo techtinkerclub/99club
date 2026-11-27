@@ -614,6 +614,24 @@ function generate(s={},rng=Math.random){
    }
    return out;
  }
+ // A visual comparison has a tolerance; permanent parallel notation requires mathematical agreement.
+ function labParallelMarkPlan(s,keys){
+   if(!Array.isArray(keys)||keys.length!==2||keys[0]===keys[1])return {reason:'Choose two distinct segments'};
+   const pair=keys.map(key=>s.segments.find(e=>labStyleKey(s,...e)===key&&labVisible(s,'segments',e)));
+   if(pair.some(e=>!e))return {reason:'Reference unavailable'};
+   const [a,b]=pair[0].map(i=>s.points[i]),v=labSub(b,a),len=Math.hypot(...v);
+   if(len<1e-8)return {reason:'Reference unavailable'};
+   const agrees=e=>{const [p,q]=e.map(i=>s.points[i]),w=labSub(q,p),l=Math.hypot(...w);return l>1e-8&&Math.atan2(Math.abs(labCross(v,w)),Math.abs(labDot(v,w)))/D<=1e-7};
+   if(!agrees(pair[1]))return {reason:'Not exactly parallel'};
+   if(pair[1].every(i=>Math.abs(labCross(v,labSub(s.points[i],a)))/len<=1e-7))return {reason:'Same supporting line'};
+   const counts=pair.map(e=>labLineMarks(s,e).parallel),used=new Set(s.segments.map(e=>labLineMarks(s,e).parallel).filter(Boolean));
+   if(counts[0]&&counts[1]&&counts[0]!==counts[1])return {reason:'Different existing arrow groups'};
+   const group=counts[0]||counts[1]||[1,2,3].find(n=>!used.has(n));
+   if(!group)return {reason:'All three arrow groups in use'};
+   if(s.segments.some(e=>labLineMarks(s,e).parallel===group&&!agrees(e)))return {reason:'Existing arrow group conflicts'};
+   if(counts.every(n=>n===group))return {reason:'Already marked'};
+   return {group,pair};
+ }
  function labSquareComparison(s,t,scale=1){
    const matches=labSquareBaseReferences(s,t,scale),ref=s.segments.find(e=>labStyleKey(s,...e)===t.squareReference&&labVisible(s,'segments',e));
    if(!t.squareReference)return {candidate:matches.length===1?matches[0]:null};
@@ -624,7 +642,8 @@ function generate(s={},rng=Math.random){
    const candidate=others[0],w=labSub(candidate.points[1],candidate.points[0]),wl=Math.hypot(...w),angle=Math.atan2(Math.abs(labCross(v,w)),Math.abs(labDot(v,w)))/D;
    const collinear=angle<=.01&&candidate.points.every(p=>Math.abs(labCross(v,labSub(p,a)))/len<1e-7);
    const relation=collinear?'Collinear':angle<=.01?'Parallel':90-angle<=.01?'Perpendicular':'Neither';
-   return {reference,candidate,angle,relation};
+   const marking=relation==='Parallel'?labParallelMarkPlan(s,[reference.key,candidate.key]):null;
+   return {reference,candidate,angle,relation,marking:marking?.group?{kind:'parallel',keys:[reference.key,candidate.key],group:marking.group}:null,markingReason:marking?.reason};
  }
  function labMeasurementTarget(s,t,scale=1){
    if(['square45','square30'].includes(t.kind)){const matches=labSquareMatches(s,t,scale);return matches.length===1?matches[0].target:null}
@@ -642,6 +661,7 @@ function generate(s={},rng=Math.random){
  }
  function labApplyMeasurement(s,target){
    if(!target)return false;
+   if(target.kind==='parallel'){const plan=labParallelMarkPlan(s,target.keys);if(!plan.group||plan.group!==target.group)return false;for(const e of plan.pair)labSetLineMark(s,e,'parallel',plan.group);return true}
    const ids=target.names.map(n=>s.names.indexOf(n));if(target.kind==='length'&&(ids.length!==2||ids[0]===ids[1]||ids.some(i=>i<0)))return false;
    if(target.kind==='length'){const key=labStyleKey(s,...ids);s.dimensionLabels||={};s.dimensionLabels[key]={...s.dimensionLabels[key],mode:'measured'};delete s.dimensionLabels[key].text;return true}
    if(target.kind==='angle'){const mark={names:target.names.slice(),...(target.arms?{arms:target.arms,sweepMode:target.sweepMode}:{}),kind:Math.abs((target.squareAngle??0)-90)<.01?'right':'angle1',labelMode:'measured'};const resolved=labAngleAnnotation(s,mark);if(!resolved||(target.squareAngle!==undefined&&Math.abs(resolved.angle-target.squareAngle)>.01))return false;s.angleNotation||=[];const existing=s.angleNotation.find(m=>labSameAngle(s,m,mark));if(existing){if(mark.kind==='right')existing.kind='right';existing.labelMode='measured';delete existing.label}else s.angleNotation.push(mark);return true}
@@ -1037,7 +1057,7 @@ function generate(s={},rng=Math.random){
    }finally{n.at=p.slice()}
    return true;
  }
- const model={protractorReading,utensilAlignment,squareGeometry,isLabArc,labArcContains,labCircleExtents,labContentBounds,locusFitBounds,customBounds,fitGeometryBounds,INDEPENDENT_METHOD_DIMENSIONS,INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labLineMarks,labSetLineMark,labAngleAnnotation,labSameAngle,labAngleArms,labAngleSectors,labAnglePair,labSectorMark,labSectorPreview,labDimensionText,labRulerTargets,labIndependentDimensions,labSquareBaseReferences,labSquareComparison,labMeasurementTarget,labApplyMeasurement,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labRayDefinition,labAbsoluteRay,labDirectRay,labReferenceArm,labRelativeRay,labDetachReferences,labStraightEnds,rayEnd,labLabel,labPointText,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,datumState,datumCoordinates,datumPoint,datumSnap,datumDirection,datumGridStart,datumGraphic,locusInitial,locusProject,locusPoints,locusTraceMove,traceParts,traceAdd,traceToggle,shapeGeometry,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labIntersections,labIntersectionSettings,labNewIntersections,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
+ const model={protractorReading,utensilAlignment,squareGeometry,isLabArc,labArcContains,labCircleExtents,labContentBounds,locusFitBounds,customBounds,fitGeometryBounds,INDEPENDENT_METHOD_DIMENSIONS,INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labLineMarks,labSetLineMark,labAngleAnnotation,labSameAngle,labAngleArms,labAngleSectors,labAnglePair,labSectorMark,labSectorPreview,labDimensionText,labRulerTargets,labIndependentDimensions,labSquareBaseReferences,labSquareComparison,labParallelMarkPlan,labMeasurementTarget,labApplyMeasurement,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labRayDefinition,labAbsoluteRay,labDirectRay,labReferenceArm,labRelativeRay,labDetachReferences,labStraightEnds,rayEnd,labLabel,labPointText,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,datumState,datumCoordinates,datumPoint,datumSnap,datumDirection,datumGridStart,datumGraphic,locusInitial,locusProject,locusPoints,locusTraceMove,traceParts,traceAdd,traceToggle,shapeGeometry,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labIntersections,labIntersectionSettings,labNewIntersections,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
 if(typeof module==='object'&&module.exports){module.exports=model;return}
 const G=root.TT99Goodies;if(!G)return;G.angles=model;
 const {q,qa,esc,field,btn,setPanels}=G,CK=G.challengeKit;
