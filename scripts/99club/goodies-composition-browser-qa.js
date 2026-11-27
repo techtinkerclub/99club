@@ -1287,6 +1287,18 @@ async function run(){
           assert(!model.independentConstructionCheck(st,'two-distance-locus',roles,{radius:2,solutionCount:count==='0'?'infinite':'0'}).correct,'Wrong solution count cannot pass: '+count);
           assert(!model.independentConstructionCheck(st,'two-distance-locus',roles,{solutionCount:count}).correct,'Missing radius cannot pass: '+count);
         }
+        // Unrounded residuals must reject geometrically incorrect work even when the displayed labels agree.
+        {
+          const make=(points,segments,circles=[])=>({...model.labEmpty(true),points,segments,circles,names:points.map((_,i)=>'P'+i)}),at=(a,r=200)=>[r*Math.cos(a*Math.PI/180),-r*Math.sin(a*Math.PI/180)],check=(st,id,roles)=>model.independentConstructionCheck(st,id,roles);
+          for(const [angle,expected] of [[44.55,true],[44.9,false],[44.556,false],[44.554,true]]){
+            const st=make([[0,0],at(0),at(89.1),at(angle)],[[0,1],[0,2],[0,3]]),roles={O:0,A:1,B:2,Z:3};
+            for(const precision of [1,2]){st.measurementPrecision=precision;const result=check(st,'angle-bisector',roles);assert(result.correct===expected,'Bisector checks raw half-angle difference independently of display precision: '+angle+' '+JSON.stringify(result));assert(result.checks.some(c=>c.detail?.includes('tolerance 0.01°')),'Bisector feedback exposes actual angular tolerance')}
+          }
+          const midpoint=make([[0,0],[200,0],[100.5,0]],[[0,1]]);assert(!check(midpoint,'midpoint',{A:0,B:1,M:2}).correct,'Midpoint outside 0.01 cm tolerance fails');midpoint.points[2]=[100.2,0];assert(check(midpoint,'midpoint',{A:0,B:1,M:2}).correct,'Midpoint within tolerance passes');
+          const parallel=make([[0,0],[200,0],[0,100],[200,100.07]],[[0,1],[2,3]]);assert(!check(parallel,'parallel-through-point',{A:0,B:1,P:2,Q:3}).correct,'Nearly parallel lines fail strict verification');parallel.points[3]=[200,100];assert(check(parallel,'parallel-through-point',{A:0,B:1,P:2,Q:3}).correct,'Exact parallel passes');
+          const tangent=make([[0,0],[100,0],[100.05,100]],[[1,2]],[{i:0,r:100}]);assert(!check(tangent,'tangent-at-point',{O:0,T:1,X:2}).correct,'Nearly perpendicular tangent fails');tangent.points[2]=[100,100];assert(check(tangent,'tangent-at-point',{O:0,T:1,X:2}).correct,'Exact tangent passes');tangent.circles[0].r=100.5;assert(!check(tangent,'tangent-at-point',{O:0,T:1,X:2}).correct,'Tangent contact must be on actual circle');
+          const triangle=make([[0,0],[200,0],[100,Math.sqrt(3)*100+.6]],[[0,1],[1,2],[2,0]]);assert(!check(triangle,'triangle-equilateral',{A:0,B:1,C:2}).correct,'Near-equilateral triangle fails');triangle.points[2][1]=Math.sqrt(3)*100;assert(check(triangle,'triangle-equilateral',{A:0,B:1,C:2}).correct,'Exact equilateral triangle passes');
+        }
         assert(!model.independentConstructionCheck(model.labEmpty(true),'unknown-method',{}).supported,'Unsupported checks are explicitly marked unavailable');
       }
       for(const m of methods){
