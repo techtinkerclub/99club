@@ -2690,6 +2690,28 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       for(const item of pack.list()){const pupil=P.renderItem(item,false),key=P.answerGraphic(item);assert(pupil.querySelector('[data-ag-triangle-centre="unknown"]')&&!pupil.querySelector('[data-ag-centre-name]')&&!pupil.querySelector('[data-ag-centre-rule]'),'Centre question hides classification and explanation');assert(key.querySelector('[data-ag-centre-name]').textContent===item.data.answer&&key.querySelector('[data-ag-centre-rule]'),'Teacher centre key identifies and explains the answer')}
       const control=doc.querySelector('#ag-triangle-centre');control.value='none';control.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
     }
+    {
+      const M=win.TT99Goodies.angles,control=doc.querySelector('#ag-shape-view');control.value='free-triangle';control.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
+      const svg=()=>doc.querySelector('.gd-ag-visual svg'),surface=()=>svg().parentElement,points=()=>M.freeTrianglePoints(cap().demo),dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+      const tap=(type,p,id,target=surface())=>{const v=new win.DOMPoint(...p).matrixTransform(svg().getScreenCTM());target.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:id,pointerType:'touch',button:0,clientX:v.x,clientY:v.y}))};
+      const start=points(),frame=svg().getAttribute('viewBox');assert(svg().querySelectorAll('[data-ag-triangle-vertex]').length===3,'Free triangle has three movable vertices');
+      tap('pointerdown',start[2],141,svg().querySelector('[data-ag-triangle-vertex="2"]'));tap('pointermove',[170,95],141);
+      assert(dist(points()[2],[170,95])<1e-6&&points().slice(0,2).every((p,i)=>dist(p,start[i])<1e-6),'Drag changes only the selected vertex');
+      assert(svg().getAttribute('viewBox')===frame&&svg().querySelector('[data-ag-triangle-classification]').textContent.includes('Right-angled'),'View remains stable and live classification follows geometry');
+      tap('pointerdown',start[0],142,svg().querySelector('[data-ag-triangle-vertex="0"]'));tap('pointermove',[200,200],142);tap('pointercancel',[200,200],142);
+      assert(dist(points()[0],start[0])<1e-6,'Competing pointer cannot move another vertex');
+      tap('pointercancel',[170,95],141);assert(points().every((p,i)=>dist(p,start[i])<1e-6),'Cancelled free triangle drag restores geometry');
+      tap('pointerdown',start[2],143,svg().querySelector('[data-ag-triangle-vertex="2"]'));tap('pointerup',[170,95],143);
+      assert(dist(points()[2],[170,95])<1e-6,'Release-only movement retains exact final vertex');
+      const centre=doc.querySelector('#ag-triangle-centre');centre.value='circumcentre';centre.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
+      assert(svg().querySelector('[data-ag-centre-circle="circumcentre"]'),'Centre follows the freely moved triangle');
+      const saved=points(),draft=P.createDocument();draft.addCurrent(id,cap());const out=P.renderItem(draft.list()[0],false);
+      assert(out.querySelector('[data-ag-centre-circle="circumcentre"]')&&!out.querySelector('[data-ag-triangle-vertex]'),'Publication includes actual centre geometry and excludes drag handles');
+      tap('pointerdown',saved[2],144,svg().querySelector('[data-ag-triangle-vertex="2"]'));tap('pointerup',[400,310],144);
+      assert(svg().querySelector('[data-ag-triangle-invalid]')&&!svg().querySelector('[data-ag-centre-circle]'),'Degenerate triangle suppresses undefined centre');
+      doc.querySelector('[data-ag-action="reset-triangle"]').click();await tick();assert(points().every((p,i)=>dist(p,start[i])<1e-6),'Reset restores starting free triangle');
+      const clear=doc.querySelector('#ag-triangle-centre');clear.value='none';clear.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
+    }
     const shapeSelect=doc.getElementById('ag-shape-view');shapeSelect.value='rectangle';shapeSelect.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
     doc.querySelector('[data-ag-action="diagonal"]').click();await tick();
     assert(cap().demo.showDiagonals&&doc.querySelector('.gd-ag-visual svg').textContent.includes('Equal diagonals'),'Rectangle explorer displays its diagonal relationship');
