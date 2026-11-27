@@ -1350,6 +1350,11 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         }
       }
     }
+    // Every guided corner is a rigid orientation of the same physical triangle.
+    for(const kind of ['square45','square30']){
+      const sides=(corner,hand)=>{const o=[123,217],{v,w}=M.squareGeometry(o,37,kind,corner,hand);return [[o,v],[o,w],[v,w]].map(([a,b])=>Math.hypot(a[0]-b[0],a[1]-b[1])).sort((a,b)=>a-b)};
+      const original=sides(0,1);for(const corner of [0,1,2])for(const hand of [-1,1])assert(sides(corner,hand).every((v,i)=>Math.abs(v-original[i])<1e-6),'Changing set square corner or mirroring preserves all three physical side lengths');
+    }
     const verifyInstruments=label=>{
       const tap=p=>{previewPointer('pointerdown',p);previewPointer('pointerup',p)},tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),reset=()=>doc.querySelector('[aria-label="Reset construction"]').click();
       const c=[200,200],edge=[320,200],other=[500,200];
@@ -1362,7 +1367,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert([...printed.querySelectorAll('circle')].filter(q=>Math.abs(Number(q.getAttribute('r'))-120)<.001).length===2,'Both exact-radius circles survive publishing: '+label);
       reset();tool('protractor').click();
       const origin=[300,300],base=M.polar(...origin,160,30),aim=M.polar(...origin,180,67);
-      tap(origin);tap(base);assert(work.querySelector('[data-geometry-instrument="protractor"]'),'Protractor aligns to a rotated baseline: '+label);
+      tap(origin);tap(base);assert(work.querySelector('[data-geometry-instrument="protractor"]'),'Protractor aligns to a rotated baseline: '+label);assert(work.querySelector('[data-ag-local-instrument] [data-ag-guided-action="mirror"]'),'Guided instrument mirror control appears on canvas');
       tap(aim);const drawing=cap().demo.labDrawing,ray=drawing.rays[0];
       assert(drawing.rays.length===1&&Math.abs(ray.relativeAngle-37)<.001&&Math.abs(M.labRayAngle(drawing,ray)-67)<.001,'Rotated baseline yields exact 37 degree relative angle: '+label);
       assert(work.querySelector('[data-ag-angle-value]')?.textContent==='37°','Rendered angle annotation agrees with geometry: '+label);
@@ -1420,6 +1425,11 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const rr=utensil('ruler');event(rr.querySelector('rect'), 'pointerdown',[origin[0]+10,origin[1]-100],75);event(work,'pointerup',[origin[0]+10,origin[1]-100],75);
       assert(JSON.stringify(cap().demo.labDrawing)===original,'Measuring utensils never mutate drawing state');
       const publication=P.createDocument();publication.addCurrent(id,cap());assert(!P.renderItem(publication.list()[0],false).querySelector('[data-ag-utensil]'),'Temporary utensils are excluded from publication');
+      const local=work.querySelector('[data-ag-local-instrument]');
+      assert(local&&local.contains(action('remove'))&&local.contains(action('rotate'))&&!doc.querySelector('.gd-ag-utensils [data-ag-utensil-action="remove"]'),'Selected utensil actions are attached locally rather than in drawing options');
+      action('duplicate').click();assert(work.querySelectorAll('[data-ag-utensil-kind="ruler"]').length===2,'Local duplicate copies the selected calibrated instrument');
+      action('remove').click();assert(work.querySelectorAll('[data-ag-utensil-kind="ruler"]').length===1,'Local removal affects only the duplicate');
+      const remaining=utensil('ruler');event(remaining.querySelector('rect'),'pointerdown',[origin[0]+10,origin[1]-100],76);event(work,'pointerup',[origin[0]+10,origin[1]-100],76);
       action('remove').click();assert(!utensil('ruler')&&work.querySelectorAll('[data-ag-utensil]').length===3,'Remove affects only the selected measuring utensil');
       action('visibility').click();assert(!work.querySelector('[data-ag-utensil]'),'Hide removes all utensil graphics without deleting them');
       action('visibility').click();assert(work.querySelectorAll('[data-ag-utensil]').length===3,'Show restores independently placed utensils');
