@@ -1901,8 +1901,8 @@ function diagram(d,teacher=false,options={}){
    path('M '+A.join(' ')+' A '+R+' '+R+' 0 '+(span>180?1:0)+' 0 '+B.join(' '),{stroke:orange,'stroke-width':4,'data-ag-theorem-arc':'1'});
    line(A,B,semi?orange:ink,2.2,{'data-ag-theorem-chord':'AB'});line(A,C,teal,2.4);line(B,C,teal,2.4);
    if(same||cyclic){line(A,Q,orange,2.4);line(B,Q,orange,2.4)}
-   if(central){line(O,A,orange,2.2);line(O,B,orange,2.2);labelArc(...O,35,start,span,fmt(span),{labelSize:18,labelRadius:57})}
-   const mark=(p,value)=>{const a=labAngle(p,A),b=labAngle(p,B),sweep=mod(b-a),st=sweep<=180?a:b;labelArc(...p,Math.min(26,R*.22),st,Math.min(sweep,360-sweep),fmt(value),{labelSize:17,labelRadius:Math.min(51,R*.44)})};
+   if(central){line(O,A,orange,2.2);line(O,B,orange,2.2);labelArc(...O,35,start,span,fmt(span),{labelSize:18,labelRadius:57,color:orange,shade:!options.paper})}
+   const mark=(p,value)=>{const a=labAngle(p,A),b=labAngle(p,B),sweep=mod(b-a),st=sweep<=180?a:b;labelArc(...p,Math.min(26,R*.22),st,Math.min(sweep,360-sweep),fmt(value),{labelSize:17,labelRadius:Math.min(51,R*.44),color:cyclic&&p===Q?orange:teal,shade:!options.paper})};
    mark(C,m.Cangle);if(same||cyclic)mark(Q,m.Dangle);
    if(alternate){line(m.U,m.T,orange,2.8,{'data-ag-theorem-tangent':'1'});const t=labAngle(A,m.T),b=labAngle(A,B),s=mod(b-t);labelArc(...A,24,s<=180?t:b,Math.min(s,360-s),fmt(m.tangentAngle),{labelSize:17,labelRadius:46});const q=exactPolar(...m.T,15,t);text(q[0],q[1],'T',17,{'data-ag-point-label':'T','paint-order':'stroke',stroke:'#fff','stroke-width':3})}
    if(central||semi){circle(O,4,ink);text(O[0],O[1]+19,'O',17,{'data-ag-point-label':'O','paint-order':'stroke',stroke:'#fff','stroke-width':3})}
@@ -1910,7 +1910,7 @@ function diagram(d,teacher=false,options={}){
      const p=m[name],q=exactPolar(...O,R+25,angles[name]);circle(p,5,teal);text(q[0],q[1]+5,name,18,{'data-ag-point-label':name,'paint-order':'stroke',stroke:'#fff','stroke-width':3});
      if(!options.paper&&['C','D'].includes(name))add('circle',{cx:p[0],cy:p[1],r:23,fill:'transparent',stroke:'none','data-ag-circle-handle':name,cursor:'grab','aria-label':'Move circle point '+name});
    }
-   const rule=central?'The angle at the centre is twice the angle at the circumference.':semi?'An angle subtended by a diameter is always a right angle.':same?'Angles subtended by the same chord in the same segment are equal.':alternate?'The tangent–chord angle equals the angle in the alternate segment.':'Opposite angles of a cyclic quadrilateral add to 180°.';
+   const rule=central?'The centre angle is twice the angle at the edge.':semi?'A triangle across a diameter always has a right angle.':same?'Angles looking at the same chord from the same side are equal.':alternate?'The tangent–chord angle equals the angle in the opposite segment.':'Opposite angles of a cyclic quadrilateral add to 180°.';
    const equation=central?fmt(span)+' = 2 × '+fmt(m.Cangle):semi?'Angle ACB = '+fmt(m.Cangle):same?'Angle ACB = angle ADB = '+fmt(m.Cangle):alternate?'Angle TAB = angle ACB = '+fmt(m.tangentAngle):fmt(m.Cangle)+' + '+fmt(m.Dangle)+' = 180°';
    text(400,410,rule,18,{'data-ag-circle-theorem':view});
    text(400,441,equation,21,{'data-ag-theorem-equation':'1'});
@@ -1955,7 +1955,7 @@ function diagram(d,teacher=false,options={}){
    const pointSize=options.paper?29:13,symbolSize=options.paper?29:17,pointGap=pointSize+4,symbolGap=symbolSize*.75+6;
    const pointLabel=(q,name)=>text(q[0],q[1],name,pointSize,{'dominant-baseline':'central','data-ag-point-label':name});
    const symbolLabel=(q,name)=>text(q[0],q[1],name,symbolSize,{'dominant-baseline':'central','font-style':'italic','data-ag-circle-symbol':name});
-   if(dia){if(explore){line(left,p,teal,4,{'data-ag-diameter-half':'left'});line(p,right,orange,4,{'data-ag-diameter-half':'right'});symbolLabel([x-R*.5,y-symbolGap],'r');symbolLabel([x+R*.5,y-symbolGap],'r');symbolLabel([x-R*.5,y+symbolGap],'D = 2r')}else{line(left,right,isPart?orange:teal,isPart?4:2.5);if(!isPart)symbolLabel([x-R*.55,y+symbolGap],'D')}}
+   if(dia){if(explore){line(left,p,teal,4,{'data-ag-diameter-half':'left'});line(p,right,orange,4,{'data-ag-diameter-half':'right'});for(const k of [-1,1]){const mx=x+k*R*.5;line([mx,y-7],[mx,y+7],ink,2,{'data-ag-radius-equal-mark':'1'})}symbolLabel([x-R*.55,y+symbolGap],'D')}else{line(left,right,isPart?orange:teal,isPart?4:2.5);if(!isPart)symbolLabel([x-R*.55,y+symbolGap],'D')}}
    if(rad){const end=polar(x,y,R,55);line(p,end,isPart?orange:teal,isPart?4:2.5);if(!isPart){const mid=polar(x,y,R*.58,55),offset=polar(...mid,symbolGap,-35);symbolLabel(offset,'r')}}
    add('circle',{cx:x,cy:y,r:isPart&&highlight==='Centre'?7:3.5,fill:isPart&&highlight==='Centre'?orange:ink,'data-ag-circle-centre':'1'});
    if(!isPart){pointLabel([x,y+pointGap],'O');if(dia){for(const [p,name,dx] of [[left,'A',-pointGap],[right,'B',pointGap]]){circle(p,2.8,ink);pointLabel([p[0]+dx,p[1]],name)}}if(rad){const end=polar(x,y,R,55),pos=polar(x,y,R+pointGap,55);circle(end,2.8,ink);pointLabel(pos,dia?'C':'A')}}
