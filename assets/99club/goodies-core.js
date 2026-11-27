@@ -57,7 +57,7 @@ function protractorInstrument(parent,{x=0,y=0,radius:r=247,start=0,direction=1,f
  const a=polar(r,start),b=polar(r,start+direction*180),sweep=direction>0?0:1,outline='M '+a.join(' ')+' A '+r+' '+r+' 0 0 '+sweep+' '+b.join(' ')+(full?' A '+r+' '+r+' 0 0 '+sweep+' '+a.join(' '):' L '+x+' '+y)+' Z';
  instrumentEl(g,'path',{d:outline,fill:'#dceee9','fill-opacity':.48,stroke:'#82a69e','stroke-width':1.5});
  function line(a,b,w){instrumentEl(g,'line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:'#668d86','stroke-width':w,'stroke-linecap':'round'})}
- function text(p,v,size,fill,angle,ring){const rotation=((90-angle+90)%180+180)%180-90;instrumentEl(g,'text',{x:p[0],y:p[1],'dominant-baseline':'central','text-anchor':'middle','font-family':'Arial,sans-serif','font-size':size,'font-weight':400,fill,transform:'rotate('+rotation+' '+p.join(' ')+')','data-me-protractor-label':ring},v)}
+ function text(p,v,size,fill,angle,ring){const rotation=!full&&(v===0||v===180)?-start:((90-angle+90)%180+180)%180-90;instrumentEl(g,'text',{x:p[0],y:p[1],'dominant-baseline':'central','text-anchor':'middle','font-family':'Arial,sans-serif','font-size':size,'font-weight':400,fill,transform:'rotate('+rotation+' '+p.join(' ')+')','data-me-protractor-label':ring},v)}
  for(let i=0;i<=range;i++){
   if(full&&i===360)break;const a=start+direction*i;
   line(polar(r,a),polar(r-(i%10===0?19:i%5===0?12:6)*k,a),i%10===0?2.1:1.05);
