@@ -3362,7 +3362,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const extendedPack=P.createDocument();extendedPack.addCurrent(id,cap());assert(P.renderItem(extendedPack.list()[0],false).querySelectorAll('[data-ag-polygon-proof-graphic]').length===4,'Optional diagonal stages printable');
       assert(win.TT99Goodies.modeControl.set('polygon:scalene'),'Triangle angle sum accessible');await tick();doc.querySelector('[data-ag-teaching-tab="polygon-proof"]').click();await tick();
       const triangleSum=doc.querySelector('[data-ag-angle-sum-picture]');assert(triangleSum.querySelectorAll('[data-ag-angle-sum-corner]').length===3&&triangleSum.querySelectorAll('[data-ag-angle-sum-piece]').length===3&&triangleSum.textContent.includes('180°'),'Actual triangle corners rearranged on a straight line');
-      const trianglePack=P.createDocument();trianglePack.addCurrent(id,cap());assert(P.renderItem(trianglePack.list()[0],false).querySelector('[data-ag-triangle-angle-sum]'),'Triangle angle explanation printable');
+      const triangleSumPack=P.createDocument();triangleSumPack.addCurrent(id,cap());assert(P.renderItem(triangleSumPack.list()[0],false).querySelector('[data-ag-triangle-angle-sum]'),'Triangle angle explanation printable');
       // Exact rearrangement of four congruent triangles; no rounding in model.
       for(const a of [1.25,3,4,7.5,12])for(const b of [1.5,4,5,9.75]){
         for(const angle of [0,.53,1.2]){
