@@ -3634,7 +3634,7 @@ G.anglesTool=function(){
    },
    set(value){
      const row=topicRows.find(t=>t.value===value);if(!row||task)return false;
-     workflow='build';demo.areaProofStep=0;delete demo.shapeMeasureCount;demo.shapeMeasureMode='area';delete demo.areaComparisonKind;delete demo.areaComparisonValue;demo.symmetryRotation=0;demo.symmetryReflectionAngle=0;demo.symmetryReflectionOffset=0;demo.familyExample='current';demo.triangleFamilyExample='current';demo.showFamilyDetail=false;demo.showPythagorasDetail=false;demo.teachingTab='properties';delete demo.reasoningId;demo.reasoningExample=0;demo.reasoningChecked=false;demo.reasoningReveal=false;demo.reasoningPrediction='';demo.polygonProofStep=0;demo.polygonDiagonalStep=0;demo.showDiagonalEnrichment=false;demo.polygonProofVertex=0;demo.mode=cfg.mode=row.mode;
+     workflow='build';demo.areaProofStep=0;delete demo.shapeMeasureCount;demo.shapeMeasureMode='area';delete demo.areaComparisonKind;delete demo.areaComparisonValue;demo.symmetryRotation=0;demo.symmetryReflectionAngle=0;demo.symmetryReflectionOffset=0;demo.familyExample='current';demo.triangleFamilyExample='current';demo.showFamilyDetail=false;demo.showPythagorasDetail=false;demo.teachingTab='properties';demo.teachingScreen='explore';delete demo.reasoningId;demo.reasoningExample=0;demo.reasoningChecked=false;demo.reasoningReveal=false;demo.reasoningPrediction='';demo.polygonProofStep=0;demo.polygonDiagonalStep=0;demo.showDiagonalEnrichment=false;demo.polygonProofVertex=0;demo.mode=cfg.mode=row.mode;
      if(row.mode==='construct')demo.freeLab=true;
      if(row.mode==='polygon'&&!value.startsWith('centre:')){demo.showMedians=false;demo.triangleCentre='none'}
      Object.assign(demo,row.extra);render();return true;
@@ -3696,11 +3696,13 @@ G.anglesTool=function(){
     const available=tabs.filter(([key])=>sections.some(s=>s.dataset.agTeachingPanel===key)),signature=available.map(([key])=>key).join(',');
     const selected=available.some(([key])=>key===demo.teachingTab)?demo.teachingTab:'properties';
     demo.teachingTab=selected;
+    const explore=demo.teachingScreen!=='lesson';reference.dataset.agTeachingScreen=explore?'explore':'lesson';
     if(nav.dataset.signature!==signature){
       nav.dataset.signature=signature;nav.replaceChildren();
-      for(const [key,label] of available){const button=document.createElement('button');button.type='button';button.className='gd-btn';button.dataset.agTeachingTab=key;button.textContent=label;button.onclick=()=>{demo.teachingTab=key;syncReferenceTabs();host.scrollTop=0};nav.appendChild(button)}
+      const overview=document.createElement('button');overview.type='button';overview.className='gd-btn';overview.dataset.agTeachingExplore='1';overview.textContent='Explore shape';overview.onclick=()=>{demo.teachingScreen='explore';demo.teachingTab='properties';syncReferenceTabs();host.scrollTop=0};nav.append(overview);
+      for(const [key,label] of available){const button=document.createElement('button');button.type='button';button.className='gd-btn';button.dataset.agTeachingTab=key;button.textContent=label;button.onclick=()=>{demo.teachingScreen='lesson';demo.teachingTab=key;syncReferenceTabs();host.scrollTop=0};nav.appendChild(button)}
     }
-    for(const button of nav.querySelectorAll('button')){const active=button.dataset.agTeachingTab===selected;button.setAttribute('aria-pressed',String(active));button.classList.toggle('gd-btn--primary',active)}
+    for(const button of nav.querySelectorAll('button')){const active=explore?button.hasAttribute('data-ag-teaching-explore'):button.dataset.agTeachingTab===selected;button.setAttribute('aria-pressed',String(active));button.classList.toggle('gd-btn--primary',active)}
     for(const section of sections)section.hidden=section.dataset.agTeachingPanel!==selected;
     nav.hidden=!available.length;
     body.dataset.agTeachingActive=selected;
@@ -3804,7 +3806,7 @@ G.anglesTool=function(){
     
     host.appendChild(row);
     if(m==='polygon'&&shapeTeachingReference(d)){
-      reference=document.createElement('details');reference.className='gd-ag-shape-reference';reference.dataset.agShapeReference='1';reference.open=demo.showReference!==false;reference.innerHTML='<summary>Shape teaching &amp; investigations</summary><nav data-ag-teaching-tabs aria-label="Shape teaching sections"></nav><div data-ag-shape-reference-body></div>';reference.ontoggle=()=>{demo.showReference=reference.open};host.appendChild(reference);updateReference();
+      reference=document.createElement('details');reference.className='gd-ag-shape-reference';reference.dataset.agShapeReference='1';reference.open=true;demo.showReference=true;if(!demo.teachingScreen)demo.teachingScreen=demo.teachingTab&&demo.teachingTab!=='properties'?'lesson':'explore';reference.innerHTML='<summary>Shape teaching &amp; investigations</summary><nav data-ag-teaching-tabs aria-label="Shape teaching sections"></nav><div data-ag-shape-reference-body></div>';reference.ontoggle=()=>{if(!reference.open){reference.open=true;demo.teachingScreen='explore';syncReferenceTabs()}};row.dataset.agShapeExploreControls='1';host.prepend(reference);updateReference();
     }
     const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
     const cycle=(v,arr)=>arr[(arr.indexOf(v)+1)%arr.length];
