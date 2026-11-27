@@ -3410,6 +3410,26 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
           detail.querySelector('summary').click();await tick(40);assert(!detail.open&&win.getComputedStyle(picture).display!=='none','Returning restores the core lesson: '+key);
         }
       }
+      // Exercise real iframe viewport sizes, not a CSS transform of a large lesson.
+      const teachingIframe=fixture.frame.querySelector('iframe'),priorTeachingStyle=teachingIframe.style.cssText;
+      const teachingAudit=[];
+      try{
+        for(const [width,height] of [[1280,720],[1024,600]]){
+          teachingIframe.style.setProperty('width',width+'px','important');teachingIframe.style.setProperty('height',height+'px','important');await tick(80);
+          assert(Math.abs(win.innerWidth-width)<=2&&Math.abs(win.innerHeight-height)<=2,'Teaching audit uses actual viewport '+width+'×'+height+' (got '+win.innerWidth+'×'+win.innerHeight+')');
+          for(const shape of ['equilateral','right-triangle','rectangle','square','parallelogram','trapezium','kite','free-polygon']){
+            assert(win.TT99Goodies.modeControl.set('polygon:'+shape),'Teaching audit shape accessible: '+shape);await tick(20);
+            const panel=doc.querySelector('.gd-ag-shape-reference'),stage=doc.getElementById('gd-stage');
+            for(const tab of [...panel.querySelectorAll('[data-ag-teaching-tab]')]){
+              const key=tab.dataset.agTeachingTab;if(tab.hidden||tab.disabled)continue;tab.click();await tick(20);
+              const bound=stage.getBoundingClientRect(),nav=panel.querySelector('[data-ag-teaching-tabs]').getBoundingClientRect();
+              const overflowX=stage.scrollWidth-stage.clientWidth,overflowY=stage.scrollHeight-stage.clientHeight;
+              if(overflowX>3||overflowY>3||nav.top<bound.top-2||nav.bottom>bound.bottom+2)teachingAudit.push({width,height,shape,key,overflowX,overflowY});
+            }
+          }
+        }
+      }finally{teachingIframe.style.cssText=priorTeachingStyle;await tick(60);win.TT99Goodies.modeControl.set('polygon:equilateral');await tick(40)}
+      assert(!teachingAudit.length,'Landscape teaching audit overflow: '+JSON.stringify(teachingAudit));
       max.click();await tick(80);assert(!fixture.frame.classList.contains('is-geometry-teaching-max'),'Restoring leaves teaching maximisation cleanly');
       for(const m of [...Array.from({length:10},(_,i)=>ref('regular',{n:i+3})),...M.polygonInvestigationExamples().map(e=>ref('free-polygon',{n:e.points.length,polygonPoints:e.points}))]){
         for(let vertex=0;vertex<m.n;vertex++){
