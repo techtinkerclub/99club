@@ -1362,6 +1362,17 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(M.utensilAlignment(scene,{...p,x:800,y:700,angle:52},'rotate',1)===null,'Rotation stays free between snap tolerances');
       assert(M.utensilAlignment(scene,p,'resize',1)===null,'Resize never changes origin or angle through snapping');
     }
+    {
+      const scene=M.labEmpty(true),o=[200,200],angle=37.42,baseline=23.17,end=a=>[o[0]+200*Math.cos(a*Math.PI/180),o[1]-200*Math.sin(a*Math.PI/180)];
+      scene.points=[o,end(baseline),end(baseline+angle),end(baseline-angle)];scene.segments=[[0,1],[0,2],[0,3]];
+      const t={kind:'protractor',x:o[0],y:o[1],angle:baseline,hand:1,snap:true};
+      const exact=M.protractorReading(scene,t,38,1);
+      assert(exact.kind==='Edge'&&Math.abs(exact.reading-angle)<1e-8&&exact.reading.toFixed(1)==='37.4','Protractor snaps to exact fractional angle relative to rotated baseline');
+      const flipped=M.protractorReading(scene,{...t,hand:-1},36,1);assert(Math.abs(flipped.reading-angle)<1e-8,'Flipped protractor reads opposite half-plane accurately');
+      const manual=M.protractorReading(scene,{...t,snap:false},37.46,1);assert(manual.reading===37.5&&!manual.kind,'Manual measurement resolves to a tenth of a degree');
+      const away=M.protractorReading(scene,{...t,x:900,y:900},37.46,1);assert(away.reading===37.5&&!away.kind,'Remote geometry cannot snap measuring arm');
+      scene.rays=[{i:0,angle:baseline+83.27,construction:false}];assert(Math.abs(M.protractorReading(scene,t,83,1).reading-83.27)<1e-8,'Exact ray direction is preserved for measurement');
+    }
     // Every guided corner is a rigid orientation of the same physical triangle.
     for(const kind of ['square45','square30']){
       const sides=(corner,hand)=>{const o=[123,217],{v,w}=M.squareGeometry(o,37,kind,corner,hand);return [[o,v],[o,w],[v,w]].map(([a,b])=>Math.hypot(a[0]-b[0],a[1]-b[1])).sort((a,b)=>a-b)};
@@ -1431,7 +1442,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         event(h,'pointerdown',p,74);event(work,'pointermove',q,74);event(work,'pointerup',q,74);
         const next=utensil(kind);assert(Number(next.dataset.agUtensilSize)===startSize+delta,'Endpoint resize adjusts '+kind+' size');
         if(kind.startsWith('square')){const tt=[...next.querySelectorAll('[data-me-square-edge="0"]')];assert(Math.abs(Number(tt[1].getAttribute('x1'))-Number(tt[0].getAttribute('x1'))-4)<1e-6,'Resized set square retains exact millimetre spacing')}
-        else{assert(next.querySelectorAll('[data-geometry-instrument="protractor"] line').length===182,'Resized protractor retains every degree and baseline')}
+        else{assert(next.querySelectorAll('[data-geometry-instrument="protractor"] line').length===182,'Resized protractor retains every degree and baseline');const handle=next.querySelector('[data-ag-utensil-handle="measure"]'),rad=Number(next.dataset.agUtensilSize)*.68,atAngle=a=>[at[0]+rad*Math.cos(a*Math.PI/180),at[1]-rad*Math.sin(a*Math.PI/180)];event(handle,'pointerdown',atAngle(45),77);event(work,'pointermove',atAngle(72.34),77);event(work,'pointerup',atAngle(72.34),77);assert(utensil(kind).querySelector('[data-ag-protractor-reading]').textContent==='72.3°','Touch measuring arm shows tenth-degree angle');action('flip').click();assert(utensil(kind).querySelector('[data-instrument-direction]').getAttribute('data-instrument-direction')==='-1','Local flip reverses measuring side without moving centre');action('flip').click()}
       }
       // Reselect the ruler to verify selected-only removal below.
       const rr=utensil('ruler');event(rr.querySelector('rect'), 'pointerdown',[origin[0]+10,origin[1]-100],75);event(work,'pointerup',[origin[0]+10,origin[1]-100],75);
