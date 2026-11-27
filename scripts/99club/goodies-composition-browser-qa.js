@@ -1560,22 +1560,24 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
     // Construct a bisector using only the board's actual drawing and compass gestures.
     {
       const tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),tap=p=>{previewPointer('pointerdown',p);previewPointer('pointerup',p)},reset=()=>doc.querySelector('[aria-label="Reset construction"]').click(),model=()=>cap().demo.labDrawing;
+      // Independent, unrounded mathematical oracle: production polar() rounds for graphics.
+      const exactPolar=(x,y,r,a)=>[x+r*Math.cos(a*Math.PI/180),y-r*Math.sin(a*Math.PI/180)];
       const distance=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]),direction=(a,b)=>Math.atan2(a[1]-b[1],b[0]-a[0])*180/Math.PI,delta=(a,b)=>Math.abs(((a-b+540)%360)-180);
       const select=id=>{if(tool(id).getAttribute('aria-pressed')!=='true')tool(id).click()};
       for(const [start,sweep,radius] of [[18,72,100],[41,94,125],[110,60,85]]){
-        reset();const B=[410,310],A=M.polar(...B,200,start),C=M.polar(...B,200,start+sweep);
+        reset();const B=[410,310],A=exactPolar(...B,200,start),C=exactPolar(...B,200,start+sweep);
         select('segment');tap(B);tap(A);tap(B);tap(C);
         const arms=model(),origin=arms.points[arms.segments[0][0]],armA=arms.points[arms.segments[0][1]],armC=arms.points[arms.segments[1][1]],a=direction(origin,armA),c=direction(origin,armC),actualSweep=((c-a)%360+360)%360;
         assert(arms.segments.length===2&&Math.abs(actualSweep-sweep)<2,'Pointer gestures establish the intended approximate angle');
-        select('compass');tap(origin);tap(M.polar(...origin,radius,a));
+        select('compass');tap(origin);tap(exactPolar(...origin,radius,a));
         const first=model(),r=first.circles[0].r;
         assert(Math.abs(r-radius)<Math.max(2,2/G.instruments.screenScale(work)),'First compass opening follows pointer placement');
-        const G0=M.polar(...origin,r,a),H0=M.polar(...origin,r,c),crossings=M.labIntersections(first),near=p=>crossings.slice().sort((a,b)=>distance(a.p,p)-distance(b.p,p))[0].p;
+        const G0=exactPolar(...origin,r,a),H0=exactPolar(...origin,r,c),crossings=M.labIntersections(first),near=p=>crossings.slice().sort((a,b)=>distance(a.p,p)-distance(b.p,p))[0].p;
         const g=near(G0),h=near(H0);assert(distance(g,G0)<1e-6&&distance(h,H0)<1e-6,'Initial circle cuts both actual arms at equal distance');
         tool('compass-opening').click();tap(g);tap(h);
         const d=model();assert(d.circles.length===3&&d.circles.every(q=>Math.abs(q.r-r)<1e-9),'Transferred compass circles preserve exact actual radius');
         assert(distance(d.points[d.circles[1].i],g)<1e-6&&distance(d.points[d.circles[2].i],h)<1e-6,'Both transferred centres snap to exact intersections');
-        const expected=M.polar(...origin,2*r*Math.cos(actualSweep*Math.PI/360),a+actualSweep/2),I=M.labIntersections(d).map(q=>q.p).sort((a,b)=>distance(a,expected)-distance(b,expected))[0];
+        const expected=exactPolar(...origin,2*r*Math.cos(actualSweep*Math.PI/360),a+actualSweep/2),I=M.labIntersections(d).map(q=>q.p).sort((a,b)=>distance(a,expected)-distance(b,expected))[0];
         assert(distance(I,expected)<1e-6,'Analytic intersection lies on true bisector');
         select('segment');tap(origin);tap(I);
         const final=model(),last=final.segments.at(-1),tip=final.points[last[1]],base=final.points[last[0]],half1=delta(direction(base,tip),a),half2=delta(direction(base,tip),c);
