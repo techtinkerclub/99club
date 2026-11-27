@@ -1766,6 +1766,21 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(!commit.disabled,'Exact direction can be committed after choosing origin');commit.click();const absolute=cap().demo.labDrawing,absRay=absolute.rays.at(-1);assert(model.labRayDefinition(absolute,absRay).kind==='absolute-angle'&&Math.abs(model.labRayAngle(absolute,absRay)-37.125)<1e-8&&JSON.stringify(absolute.points)===original,'Exact datum-referenced ray has no artificial reference point');
       const roundTrip=JSON.parse(JSON.stringify(absolute));assert(model.labRayAngle(roundTrip,roundTrip.rays.at(-1))===model.labRayAngle(absolute,absRay),'Absolute direction survives save and restore');
       doc.querySelector('[data-ag-tool="undo"]').click();doc.querySelector('[data-ag-tool="undo"]').click();assert(cap().demo.labDrawing.rays.length===0&&JSON.stringify(cap().demo.labDrawing.points)===original,'Undo absolute construction restores fixture');input.value='through';input.dispatchEvent(new win.Event('change',{bubbles:true}));
+      // Infinite line is not two unrelated rays: one identity, two directions.
+      doc.querySelector('[data-ag-tool="line"]').click();lineTap([150,150]);lineTap([450,150]);const straightLine=cap().demo.labDrawing,inf=straightLine.rays.at(-1);
+      assert(inf.infinite===true&&inf.relativeTo===straightLine.names[1]&&straightLine.rays.length===1,'Line has a single identity and two real defining points');
+      const ends=model.labStraightEnds(straightLine.points[0],model.labRayAngle(straightLine,inf),[0,0,1188,840],true);
+      assert(ends[0][0]<0&&ends[1][0]>1188&&Math.abs(ends[0][1]-150)<1e-6,'Infinite line extends beyond both paper edges');
+      doc.querySelector('[data-ag-tool="select"]').click();tapWork([70,150]);assert(doc.querySelector('[data-ag-ray-summary]').textContent.startsWith('Line '),'Backward extension selects the same line');
+      const printedLine=P.createDocument();printedLine.addCurrent(id,cap());const lineSvg=P.renderItem(printedLine.list()[0],false);assert([...lineSvg.querySelectorAll('line')].some(l=>Number(l.getAttribute('x1'))<0&&Number(l.getAttribute('x2'))>1188&&Math.abs(Number(l.getAttribute('y1'))-150)<1e-6),'Publication retains both infinite extensions');
+      doc.querySelector('[data-ag-tool="erase"]').click();tapWork([70,150]);assert(cap().demo.labDrawing.rays.length===0,'Erase on backward extension removes entire line');
+      for(let i=0;i<3;i++)doc.querySelector('[data-ag-tool="undo"]').click();assert(cap().demo.labDrawing.rays.length===0&&JSON.stringify(cap().demo.labDrawing.points)===original,'Undo restores original fixture after infinite line');
+      const crossLine={...model.labEmpty(true),points:[[200,200],[300,200],[100,300],[100,100]],names:['A','B','D','E'],segments:[[2,3]],rays:[{i:0,angle:0,infinite:true,relativeTo:'B',relativeAngle:0,construction:false}]};
+      const intersection=model.labSnap(crossLine,[100.7,199],5);assert(intersection.kind==='Intersection'&&Math.hypot(intersection.p[0]-100,intersection.p[1]-200)<1e-6,'Snap finds intersection behind first defining point');
+      crossLine.points.push(intersection.p);crossLine.names.push('C');assert(model.labAngleArms(crossLine,4).length===4&&model.labAngleSectors(crossLine,4).length===8,'Infinite-line crossing exposes all four directions and their reflex counterparts');
+      const measured=model.protractorReading(crossLine,{x:100,y:200,angle:90,hand:1,snap:true},89,1);assert(measured.kind==='Edge'&&Math.abs(measured.reading-90)<1e-6,'Protractor snaps to backward half of infinite line');
+      const target=model.labMeasurementTarget(crossLine,{kind:'protractor',x:100,y:200,angle:90,reading:90,hand:1,size:170},1);assert(target&&model.labApplyMeasurement(crossLine,target),'Measured angle can reference backward half of infinite line');
+
 
     }
     // A constructed angle must have permanent marks, even with measurements disabled.
