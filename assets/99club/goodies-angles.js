@@ -1246,7 +1246,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
     if(first!==null){const a=st.points[first];
      if(angleTool()&&aligned!==null){const v=selectedAngle(a,p);line(a,polar(...a,190,v),'#b77b32',3);{const sweep=mod(hand*(v-aligned)),value=Math.round(sweep)+'°';const q=angleLabelPlacement(a,38,aligned,hand*sweep,value,13,65);text(q.p,value,'#996221',q.size)}}
      else if(tool==='compass'){const r=labDist(a,p);if(r>1){circle(a,r,'#b77b32');line(a,p,'#b77b32',1.5);dim(a,p,'r = '+(r/LAB_UNIT).toFixed(1)+' cm','#996221',null,true)}}
-     else if(tool==='segment'){const len=labDist(a,p);if(len>1){const cm=30;G.instruments.ruler(svg,{x:a[0],y:a[1],width:cm*40,length:cm,height:44,tickHeight:23,angle:labAngle(a,p),labelSize:11});line(a,p,'#b77b32',2,'5 4');if(measure)dim(a,p,(len/40).toFixed(1)+' cm','#996221',polar(...a,70,labAngle(a,p)+90),true)}}else if(tool==='ray'||angleTool())line(a,p,'#b77b32',2,'5 4');
+     else if(tool==='segment'){const len=labDist(a,p);if(len>1){const nominal=free&&Math.max(ww,hh)<=840?15:30,cm=len<=nominal*LAB_UNIT?nominal:Math.max(30,Math.ceil(len/(10*LAB_UNIT))*10);G.instruments.ruler(svg,{x:a[0],y:a[1],width:cm*LAB_UNIT,length:cm,height:44,tickHeight:23,angle:labAngle(a,p),labelSize:11});line(a,p,'#b77b32',2,'5 4');if(measure)dim(a,p,(len/LAB_UNIT).toFixed(1)+' cm','#996221',polar(...a,70,labAngle(a,p)+90),true)}}else if(tool==='ray'||angleTool())line(a,p,'#b77b32',2,'5 4');
     }
     if(hit.kind){circle(p,12,'#2e9982','#d5eee5');circle(p,3,'#2e9982','#2e9982');text([p[0],p[1]-18],hit.kind,'#287b69',12)}
    }
