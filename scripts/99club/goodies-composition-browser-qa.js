@@ -1652,9 +1652,12 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       change(mode(),'hidden');assert(!work.querySelector('[data-ag-dimension]'),'Hide dimension suppresses the automatic value');
       change(mode(),'auto');doc.querySelector('[data-ag-option="measure"]').click();
       assert(JSON.stringify(capture().points)===before,'Editing dimensions never changes geometry');
-      // Select a vertex, choose the mark and label, then choose two arms.
-      tapWork([150,150]);assert(doc.querySelector('[data-ag-angle-notation]').hidden,'Manual angle controls stay hidden until requested');doc.querySelector('[data-ag-manual-angle]').click();assert(!doc.querySelector('[data-ag-angle-notation]').hidden,'Manual arm selection is available on demand');assert(doc.querySelector('[data-ag-selection-menu]').dataset.agSelectionPage==='manual'&&!doc.querySelector('[data-ag-selection-back]').hidden,'Manual angle selection has a distinct page and Back');doc.querySelector('[data-ag-selection-back]').click();assert(doc.querySelector('[data-ag-angle-notation]').hidden,'Back exits manual setup');doc.querySelector('[data-ag-manual-angle]').click();const labelMode=doc.querySelector('[data-ag-angle-label-mode]');change(labelMode,'custom');doc.querySelector('[data-ag-angle-label-text]').value='?';
-      change(doc.querySelector('[data-ag-angle-notation]'),'angle1');tapWork([450,150]);tapWork([300,350]);
+      // Create the second actual geometric arm; disconnected named points are not angle arms.
+      doc.querySelector('[data-ag-tool="segment"]').click();lineTap([150,150]);lineTap([450,150]);doc.querySelector('[data-ag-tool="select"]').click();tapWork([150,150]);
+      assert(!doc.querySelector('[data-ag-manual-angle]'),'Obsolete standalone Choose arms button is removed');
+      doc.querySelector('[data-ag-choose-angle]').click();const pickMenu=doc.querySelector('[data-ag-selection-menu]');assert(pickMenu.dataset.agSelectionPage==='pick-angle'&&pickMenu.offsetWidth>0&&pickMenu.contains(doc.querySelector('[data-ag-choose-directions]')),'Mark angle keeps a contextual page with arm selection');
+      doc.querySelector('[data-ag-choose-directions]').click();tapWork([400,150]);assert(work.querySelectorAll('[data-ag-selected-arm]').length===1,'First arm remains selected');tapWork([270,310]);assert(work.querySelectorAll('[data-ag-selected-arm]').length===2&&work.querySelectorAll('[data-ag-angle-choice]').length===2,'Both selected arms stay highlighted and expose both angular sides');doc.querySelector('[data-ag-reset-arms]').click();assert(!work.querySelector('[data-ag-selected-arm]'),'Clear arms restarts selection without editing geometry');doc.querySelector('[data-ag-selection-back]').click();assert(pickMenu.dataset.agSelectionPage==='root'&&!work.querySelector('[data-ag-direction-choice]'),'Back cancels picking and returns to vertex menu');
+      doc.querySelector('[data-ag-choose-angle]').click();const model=win.TT99Goodies.angles,sector=model.labAngleSectors(capture(),0).find(s=>s.sweep<180),r=42/G.instruments.screenScale(work),a=(sector.from+sector.sweep/2)*Math.PI/180;tapWork([150+r*Math.cos(a),150-r*Math.sin(a)]);change(doc.querySelector('[data-ag-edit-angle-mode]'),'custom');doc.querySelector('[data-ag-edit-angle-text]').value='?';doc.querySelector('[data-ag-edit-angle-action="apply"]').click();
       assert(work.querySelector('[data-ag-annotation-value]')?.textContent==='?','Vertex-first angle annotation adds custom label');
       const annotated=P.createDocument();annotated.addCurrent(id,cap());assert(P.renderItem(annotated.list()[0],false).querySelector('[data-ag-annotation-value]')?.textContent==='?','Angle annotation survives vector publication');
       tapWork([150,150]);change(doc.querySelector('[data-ag-angle-existing]'),'0');
@@ -1680,8 +1683,8 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const edited=work.querySelector('[data-ag-annotation-value]');assert(Math.hypot(Number(edited.getAttribute('x'))-205,Number(edited.getAttribute('y'))-200)<.01,'Angle label can be positioned independently');
       const revised=P.createDocument();revised.addCurrent(id,cap());const print=P.renderItem(revised.list()[0],false).querySelector('[data-ag-annotation-value]');assert(print.textContent==='x'&&Math.abs(Number(print.getAttribute('x'))-205)<.01,'Edited annotation position and unknown preserved in publication');
       assert(JSON.stringify(capture().points)===before,'Editing angles never changes coordinates');
-      for(let i=0;i<6;i++)doc.querySelector('[data-ag-tool="undo"]').click();
-      assert(!work.querySelector('[data-ag-annotation-value]'),'Undo removes angle annotation without altering geometry');
+      for(let i=0;i<9;i++)doc.querySelector('[data-ag-tool="undo"]').click();
+      assert(!work.querySelector('[data-ag-annotation-value]'),'Undo removes angle annotation and temporary baseline fixture');
     }
     // Point display names and positions are independent of stable geometry IDs.
     {
