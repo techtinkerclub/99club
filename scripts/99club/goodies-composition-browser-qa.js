@@ -3198,6 +3198,27 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         }
       }
     }
+    {
+      const M=win.TT99Goodies.angles,bridge=win.TT99Goodies.modeControl,relations=['corresponding','alternate','alternate-exterior','co-interior'];
+      for(const fact of relations)for(let angle=35;angle<=145;angle+=5){
+        const m=M.transversalModel({fact,angle}),n=M.transversalModel({fact,angle,transversalParallel:false});
+        assert(m.match&&m.parallel&&!n.match&&!n.parallel,'Parallel relationship and nonparallel counterexample: '+fact);
+        for(const [model,expected] of [[m,0],[n,15]]){
+          const dx=model.upper[0]-model.lower[0],dy=model.lower[1]-model.upper[1];
+          assert(Math.abs(Math.atan2(dy,dx)*180/Math.PI-angle)<1e-8&&model.tilt===expected,'Transversal geometry follows the actual two intersections');
+        }
+      }
+      for(const fact of relations){
+        assert(bridge.set('facts:'+fact),'Direct navigation opens '+fact);await tick();
+        let visual=doc.querySelector('.gd-ag-visual svg');
+        assert(visual.querySelectorAll('[data-ag-transversal-parallel]').length===2&&visual.querySelectorAll('[data-ag-angle-mark]').length===2,'Teaching shows matched angle arcs and parallel markings');
+        doc.querySelector('[data-ag-action="transversal-parallel"]').click();await tick();visual=doc.querySelector('.gd-ag-visual svg');
+        assert(!visual.querySelector('[data-ag-transversal-parallel]')&&visual.querySelector('[data-ag-transversal-condition]').dataset.agTransversalCondition==='nonparallel','Nonparallel counterexample is visible');
+        const pack=P.createDocument();pack.addCurrent(id,cap());const paper=P.renderItem(pack.list()[0],false);
+        assert(paper.querySelector('[data-ag-transversal-condition]').dataset.agTransversalCondition==='nonparallel','Published teaching diagram retains counterexample');
+        doc.querySelector('[data-ag-action="transversal-parallel"]').click();await tick();
+      }
+    }
     const circleMode=doc.getElementById('ag-mode');circleMode.value='circle';circleMode.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
     assert(doc.querySelector('.gd-ag-visual svg').textContent.includes('Diameter = 2 × radius'),'Circle explorer explains radius-diameter relationship');
     const beforeRadius=cap().demo.radius||5;doc.querySelector('[data-ag-action="radius-up"]').click();await tick();
