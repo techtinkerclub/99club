@@ -1464,6 +1464,24 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         model.points.push([260,208]);model.names.push('C');paint();const choose=()=>svg.querySelector('[data-ag-utensil-action="choose-distance"]');assert(choose()&&!action(),'Three aligned points require explicit pair choice');choose().click();assert(action()&&svg.querySelectorAll('[data-ag-measurement-reference]').length===2,'Explicit pair choice enables Add to drawing');action().click();assert(applied===2&&M.labIndependentDimensions(model).length===1,'A ruler can annotate a distance without a segment');allowed=false;paint();assert(!action()&&!svg.querySelector('[data-ag-measurement-reference]'),'Host can disable measurement annotation and preview');
         host.remove();
       }
+      // Exercise the real shared instrument pointer handlers and local mark action.
+      {
+        const host=doc.createElement('div'),svg=doc.createElementNS('http://www.w3.org/2000/svg','svg');
+        svg.setAttribute('viewBox','0 0 500 400');svg.style.cssText='width:500px;height:400px';host.append(svg);doc.body.append(host);
+        const model={...M.labEmpty(true),points:[[190,230],[290,230],[190,130]],names:['A','B','C'],segments:[[0,1],[0,2]]};
+        const original=JSON.stringify([model.points,model.segments]);let controller,applied=0;
+        const paint=()=>{svg.replaceChildren();controller.paint(svg)};
+        controller=G.instruments.movable(host,()=>svg,paint,{kinds:['square45'],align:(t,mode,scale)=>M.utensilAlignment(model,t,mode,scale),annotation:{target:(t,scale)=>M.labMeasurementTarget(model,t,scale),apply:t=>{if(M.labApplyMeasurement(model,t))applied++;paint()}}});
+        controller.add('square45');
+        const action=()=>svg.querySelector('[data-ag-utensil-action="annotate"]');
+        assert(!action(),'Misaligned square has no Add mark action');
+        const gesture=(node,type,p)=>{const q=new win.DOMPoint(...p).matrixTransform(svg.getScreenCTM());node.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:782,pointerType:'mouse',button:0,clientX:q.x,clientY:q.y}))};
+        gesture(svg.querySelector('[data-ag-utensil]'),'pointerdown',[180,188]);gesture(svg,'pointermove',[208,208]);gesture(svg,'pointerup',[208,208]);
+        assert(action()?.getAttribute('aria-label')==='Add 90° mark'&&svg.querySelectorAll('[data-ag-measurement-reference]').length===3,'Dragging square into aligned position exposes verified right angle');
+        action().click();
+        assert(applied===1&&model.angleNotation[0].kind==='right'&&JSON.stringify([model.points,model.segments])===original,'Local set square action creates only right angle annotation');
+        host.remove();
+      }
       // Instrument annotations resolve named, visible geometric references.
       const measured={...M.labEmpty(true),points:[[100,100],[500,100],[240,100]],names:['A','B','C'],segments:[[0,1]]};
       const rulerPose={kind:'ruler',x:80,y:100,angle:0,size:480};
