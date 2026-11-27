@@ -131,7 +131,7 @@ const INDEPENDENT_METHOD_DIMENSIONS={
 function independentConstructionCheck(st,id,assignment,targets={}){
  const roles=id==='two-distance-locus'&&['0','1','infinite'].includes(String(targets.solutionCount))?['A','B',...(String(targets.solutionCount)==='1'?['P₁']:[])]:INDEPENDENT_METHOD_ROLES[id];if(!roles)return {supported:false,ready:false,correct:false,checks:[]};
  const ids=roles.map(k=>assignment[k]);if(ids.some(i=>!Number.isInteger(i)||!st.points[i])||(id!=='two-distance-locus'||String(targets.solutionCount)!=='infinite')&&new Set(ids).size!==ids.length)return {supported:true,ready:false,correct:false,checks:[]};
- const p=Object.fromEntries(roles.map((k,i)=>[k,st.points[ids[i]]])),{A,B,C,D:Q,O,M,P:U,F,G,H,I,T,X,Z}=p,checks=[],preciseAngle=.01,preciseLength=.01*LAB_UNIT,eps=preciseLength;
+ const p=Object.fromEntries(roles.map((k,i)=>[k,st.points[ids[i]]])),{A,B,C,D:Q,O,M,P:U,F,G,H,I,T,X,Z}=p,checks=[],preciseAngle=LAB_ANGLE_TOLERANCE_DEG,preciseLength=LAB_LENGTH_TOLERANCE_CM*LAB_UNIT,eps=preciseLength;
  const d=labDist,v=labSub,dot=labDot,cross=labCross,near=(a,b)=>Math.abs(a-b)<=eps;
  const angle=(a,b)=>Math.hypot(...a)>1e-8&&Math.hypot(...b)>1e-8?Math.atan2(Math.abs(cross(a,b)),dot(a,b))/D:NaN;
  const lineDist=(q,a,b)=>d(a,b)>1e-8?Math.abs(cross(v(b,a),v(q,a)))/d(a,b):Infinity;
@@ -244,7 +244,7 @@ function mountConstructionLibrary(owner,button,task=null,getDrawing=null,publish
    const nav=el('div',body,null,'display:flex;gap:5px;flex-wrap:wrap');const prev=mk(nav,'previous','Previous',()=>{step--;verification=false;render()});prev.disabled=step<0;mk(nav,'restart','Restart',()=>{step=-1;verification=false;render()});const next=mk(nav,'next',step<0?'Begin':'Next step',()=>{step++;verification=false;render()});next.disabled=step>=selected.steps.length-1;
    mk(body,'verify',verification?'Hide explanation':'Check construction / why it works',()=>{verification=!verification;render()});if(verification){el('div',body,selected.why);const list=el('ul',body);for(const c of selected.checks)el('li',list,c)}
    if(publishMethod){const publishing=el('details',body);el('summary',publishing,'Add to document');const actions=el('div',publishing,null,'display:flex;flex-wrap:wrap;gap:5px;margin-top:6px');mk(actions,'publish-exercise','Exercise + answer key',()=>publishMethod(selected,'exercise'));mk(actions,'publish-instructions','Written instructions',()=>publishMethod(selected,'instructions'));mk(actions,'publish-illustrated','Illustrated instructions',()=>publishMethod(selected,'illustrated'))}
-   if(task&&getDrawing&&selected.challengeSpecific){const feedback=el('div',body);feedback.dataset.agMethodFeedback='1';feedback.setAttribute('role','status');mk(body,'check-drawing','Check my drawing',()=>{const result=labCheck(getDrawing(),task);feedback.textContent=result.correct?'Correct — your drawing satisfies the challenge.':result.ready?'Not quite — check the required lengths and geometric relationships.':'Construction not complete yet — finish the required points, lines or circle.';feedback.style.color=result.correct?'#16796c':'#795520'})}
+   if(task&&getDrawing&&selected.challengeSpecific){const feedback=el('div',body);feedback.dataset.agMethodFeedback='1';feedback.setAttribute('role','status');mk(body,'check-drawing','Check my drawing',()=>{const result=labCheck(getDrawing(),task);feedback.replaceChildren();el('strong',feedback,result.precise?'Mathematically verified — within 0.01 cm and 0.01°':result.correct?'Within practice tolerance, but not yet mathematically verified.':result.ready?'Not quite — check the required lengths and geometric relationships.':'Construction not complete yet — finish the required points, lines or circle.');feedback.style.color=result.precise?'#16796c':'#795520';if(result.precisionReady){const list=el('ul',feedback);for(const c of result.precisionChecks){const detail=c.tolerance?(Number.isFinite(c.error)?' — error '+(c.error===0?'0':c.error<.0001?c.error.toExponential(2):c.error.toFixed(4))+' '+c.unit+'; tolerance '+c.tolerance+' '+c.unit:' — undefined relationship'):'';el('li',list,(c.ok?'✓ ':'✗ ')+c.label+detail)}}})}
    if(!task&&getDrawing&&INDEPENDENT_METHOD_ROLES[selected.id]){const block=el('details',body);block.open=showIndependent;block.ontoggle=()=>{showIndependent=block.open};el('summary',block,'Verify my construction');el('small',block,'Assign the points in your drawing to the method labels. Checks use geometric relationships, not the example size or orientation. Enter any specified numerical givens below. The construction procedure itself is not assessed. Verification uses unrounded geometry: 0.01 cm distance tolerance and 0.01° angular tolerance. Numerical errors are shown where applicable.');const fields=el('div',block,null,'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;margin-top:6px');const selection=roleAssignments[selected.id]||(roleAssignments[selected.id]={}),targets=dimensionAssignments[selected.id]||(dimensionAssignments[selected.id]={});if(selected.id==='two-distance-locus'){const label=el('label',block,'Number of solutions');const count=el('select',label);count.className='gd-select';count.dataset.agMethodSolutionCount='1';for(const [value,text] of [['2','Two'],['1','One'],['0','None'],['infinite','Infinitely many']]){const option=el('option',count,text);option.value=value}count.value=targets.solutionCount??'2';count.onchange=()=>{targets.solutionCount=count.value;refresh()}}const refresh=()=>{const st=getDrawing();fields.replaceChildren();for(const role of (selected.id==='two-distance-locus'&&['0','1','infinite'].includes(String(targets.solutionCount))?['A','B',...(String(targets.solutionCount)==='1'?['P₁']:[])]:INDEPENDENT_METHOD_ROLES[selected.id])){const label=el('label',fields,role);const sel=el('select',label);sel.className='gd-select';sel.dataset.agMethodRole=role;sel.style.width='100%';sel.setAttribute('aria-label','Point '+role);const empty=el('option',sel,'Choose point');empty.value='';st.points.forEach((_,i)=>{const opt=el('option',sel,st.names?.[i]||pointName(i));opt.value=i});const saved=selection[role],named=st.names?.indexOf(role);sel.value=Number.isInteger(saved)&&st.points[saved]?String(saved):named>=0?String(named):'';sel.onchange=()=>{selection[role]=sel.value===''?null:Number(sel.value)}}};refresh();mk(block,'refresh-points','Refresh points',refresh);if(INDEPENDENT_METHOD_DIMENSIONS[selected.id]?.length){el('small',block,'Specified dimensions (from your problem)');const dimensions=el('div',block,null,'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px');for(const [id,title] of INDEPENDENT_METHOD_DIMENSIONS[selected.id]){const label=el('label',dimensions,title),input=el('input',label);input.type='text';input.dataset.gdKeypad='number';input.inputMode='none';input.autocomplete='off';input.style.width='100%';input.value=targets[id]??'';input.dataset.agMethodDimension=id;input.oninput=()=>{targets[id]=input.value}}}if(selected.id==='two-distance-locus')el('small',block,'Choose the number of solutions you believe exists. Assign only the points required for that case; for coincident circles assign A and B to the same centre.');const feedback=el('div',block);feedback.dataset.agMethodIndependentFeedback='1';feedback.setAttribute('role','status');mk(block,'check-independent','Check relationships',()=>{const assignment=Object.fromEntries([...fields.querySelectorAll('select')].map(e=>[e.dataset.agMethodRole,e.value===''?null:Number(e.value)])),result=independentConstructionCheck(getDrawing(),selected.id,assignment,targets);feedback.replaceChildren();if(!result.ready){el('p',feedback,'Assign a distinct existing point to every role.');return}el('strong',feedback,result.correct?'All checked relationships and specified dimensions satisfied':result.checks.every(c=>c.ok)&&result.pending?.length?'Relationships satisfied — enter missing dimensions to complete verification':'Some relationships need attention');if(result.pending?.length)el('small',feedback,'Missing: '+result.pending.join(', '));const list=el('ul',feedback);for(const c of result.checks){const li=el('li',list,(c.ok?'✓ ':'✗ ')+c.label+(c.detail?' — '+c.detail:''));li.style.color=c.ok?'#16796c':'#795520'}})}
    if(!panel.hidden)clamp()
  }
@@ -387,7 +387,7 @@ function generate(s={},rng=Math.random){
 
  // Construction Lab geometry uses SVG units: 40 units = 1 cm. No target
  // values enter snapping or instrument alignment.
- const LAB_UNIT=40,LAB_A=[340,302],LAB_B=[580,302];
+ const LAB_UNIT=40,LAB_A=[340,302],LAB_B=[580,302],LAB_LENGTH_TOLERANCE_CM=.01,LAB_ANGLE_TOLERANCE_DEG=.01;
  const labDist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
  const labAngle=(a,b)=>mod(Math.atan2(a[1]-b[1],b[0]-a[0])/D);
  const labCross=(a,b)=>a[0]*b[1]-a[1]*b[0],labSub=(a,b)=>[a[0]-b[0],a[1]-b[1]],labDot=(a,b)=>a[0]*b[0]+a[1]*b[1];
@@ -842,7 +842,7 @@ function generate(s={},rng=Math.random){
   return closest(guides)||{p,kind:''};
  }
  const labTypes=['shape-build','build-sss','build-equilateral','build-right','build-rectangle','build-square','build-midpoint','build-perpendicular','build-circle','build-asa','build-bisector','build-rhombus'];
- function labCheck(s,target){
+ function labPracticeCheck(s,target){
   const linked=(i,j)=>s.segments.some(l=>l.includes(i)&&l.includes(j)),near=(a,b,t=.15)=>Math.abs(a-b)<=t,len=(a,b)=>labDist(a,b)/LAB_UNIT;
   const A=s.points[0],B=s.points[1];if(!A||!B)return {ready:false,correct:false};const midpoint=labAt(A,labSub(B,A),.5),base=labAngle(A,B),diff=(p,q)=>Math.min(mod(p-q),mod(q-p));
   if(target.type==='build-circle'){const ready=s.circles.length>0;return {ready,correct:s.circles.some(c=>!isLabArc(c)&&labDist(s.points[c.i],A)<=6&&near(c.r/LAB_UNIT,target.length))}}
@@ -863,6 +863,62 @@ function generate(s={},rng=Math.random){
   }
   const candidates=s.points.slice(2).map((p,k)=>{const i=k+2,angle=labAngle(A,p);return {i,length:len(A,p),rightLength:len(B,p),angle:Math.min(angle,360-angle),joined:linked(0,i)&&linked(1,i)}});
   return {ready:candidates.some(c=>c.joined),correct:candidates.some(c=>c.joined&&near(c.length,target.length)&&(['build-sss','build-equilateral'].includes(target.type)?near(c.rightLength,target.rightLength):near(c.angle,target.angle,2)))};
+ }
+ // The older pupil practice check deliberately allows hand-drawn approximations.
+ // Precision verification is separate, uses raw geometry, and never changes the drawing.
+ function labPrecisionCheck(s,target){
+   const [A,B]=s.points,checks=[],lt=LAB_LENGTH_TOLERANCE_CM,at=LAB_ANGLE_TOLERANCE_DEG;
+   if(!A||(!B&&target.type!=='build-circle'))return {ready:false,correct:false,checks:[]};
+   const len=(a,b)=>labDist(a,b)/LAB_UNIT,linked=(i,j)=>s.segments.some(e=>e.includes(i)&&e.includes(j)),distance=(label,error)=>metric(label,error,lt,'cm'),angular=(label,error)=>metric(label,error,at,'°');
+   function metric(label,error,tolerance,unit){error=Math.abs(error);return {label,error,tolerance,unit,ok:Number.isFinite(error)&&error<=tolerance+1e-10}}
+   const angle=(a,o,b)=>{const u=labSub(a,o),v=labSub(b,o);return labDist(a,o)>1e-8&&labDist(b,o)>1e-8?Math.atan2(Math.abs(labCross(u,v)),labDot(u,v))/D:Infinity};
+   const angleBetween=(u,v)=>Math.hypot(...u)>1e-8&&Math.hypot(...v)>1e-8?Math.atan2(Math.abs(labCross(u,v)),labDot(u,v))/D:Infinity;
+   const requirement=(label,ok)=>({label,ok:!!ok});
+   const base=()=>distance('AB length',len(A,B)-6),mid=()=>labAt(A,labSub(B,A),.5);
+   const add=items=>checks.push(items);
+   if(target.type==='build-circle'){
+     for(const c of s.circles)if(!isLabArc(c)&&s.points[c.i])add([distance('Centre at A',len(s.points[c.i],A)),distance('Radius',c.r/LAB_UNIT-target.length)]);
+   }else if(target.type==='build-midpoint'){
+     for(const p of s.points.slice(2))add([base(),distance('Distance from the true midpoint',len(p,mid()))]);
+   }else if(target.type==='build-bisector'){
+     for(const [i,j] of s.segments){
+       const p=s.points[i],q=s.points[j],v=labSub(q,p),n=labDot(v,v);if(n<1e-12)continue;
+       const t=labDot(labSub(mid(),p),v)/n;
+       add([base(),requirement('Segment extends on both sides of AB',t>0&&t<1),distance('Distance from the midpoint to the line',len(mid(),labAt(p,v,t))),angular('Perpendicular angle',angleBetween(v,labSub(B,A))-90)]);
+     }
+   }else if(['build-rectangle','build-square','build-rhombus'].includes(target.type)){
+     for(let c=2;c<s.points.length;c++)for(let d=2;d<s.points.length;d++){
+       if(c===d||!linked(1,c)||!linked(c,d)||!linked(d,0))continue;
+       const C=s.points[c],E=s.points[d],pts=[A,B,C,E],h=target.type==='build-rhombus'?6:target.length;
+       const items=[base(),distance('BC length',len(B,C)-h),distance('CD length',len(C,E)-6),distance('DA length',len(E,A)-h),requirement('Simple, non-degenerate quadrilateral',validRegion(pts,[0,1,2,3]))];
+       if(target.type==='build-rhombus'){
+         items.push(angular('Angle BAD',angle(B,A,E)-target.angle),angular('AB parallel to CD',Math.min(angleBetween(labSub(B,A),labSub(E,C)),angleBetween(labSub(A,B),labSub(E,C)))),angular('AD parallel to BC',Math.min(angleBetween(labSub(E,A),labSub(C,B)),angleBetween(labSub(A,E),labSub(C,B)))));
+       }else for(let i=0;i<4;i++)items.push(angular('Right angle at '+['A','B','C','D'][i],angle(pts[(i+3)%4],pts[i],pts[(i+1)%4])-90));
+       add(items);
+     }
+   }else {
+     for(let i=2;i<s.points.length;i++){
+       const C=s.points[i],perpendicular=target.type==='build-perpendicular';
+       if(!linked(0,i)||(!perpendicular&&!linked(1,i)))continue;
+       const items=[base()];
+       if(!perpendicular)items.push(requirement('Non-degenerate triangle',Math.abs(labCross(labSub(B,A),labSub(C,A)))>1e-8));
+       if(target.type==='build-asa')items.push(angular('Angle BAC',angle(B,A,C)-target.angle),angular('Angle ABC',angle(A,B,C)-target.rightAngle));
+       else {
+         items.push(distance('AC length',len(A,C)-target.length));
+         if(['build-sss','build-equilateral'].includes(target.type))items.push(distance('BC length',len(B,C)-target.rightLength));
+         else items.push(angular('Angle BAC',angle(B,A,C)-(perpendicular?90:target.angle)));
+       }
+       add(items);
+     }
+   }
+   const score=items=>Math.max(...items.map(c=>c.tolerance?c.error/c.tolerance:c.ok?0:Infinity));
+   checks.sort((a,b)=>Number(b.every(c=>c.ok))-Number(a.every(c=>c.ok))||score(a)-score(b));
+   const best=checks[0]||[];
+   return {ready:best.length>0,correct:best.length>0&&best.every(c=>c.ok),checks:best};
+ }
+ function labCheck(s,target){
+   const practice=labPracticeCheck(s,target),precision=labPrecisionCheck(s,target);
+   return {...practice,precise:precision.correct,precisionReady:precision.ready,precisionChecks:precision.checks};
  }
  function labSolution(d){
   const st=labEmpty(),A=st.points[0],B=st.points[1];
