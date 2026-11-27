@@ -1194,6 +1194,50 @@ async function run(){
     {
       const model=win.TT99Goodies.angles,methods=await model.loadConstructionLibrary();
       assert(methods.length>=36,'Construction library has at least thirty-six methods');
+      {
+        const roleMap=model.INDEPENDENT_METHOD_ROLES;
+        assert(Object.keys(roleMap).length===methods.length&&methods.every(m=>roleMap[m.id]),'Every library method has independent verification');
+        for(const [methodId,roles] of Object.entries(roleMap)){
+          const m=methods.find(m=>m.id===methodId),items=model.constructionFrame(m,m.steps.length-1);
+          for(const [rotation,scale,reflect] of [[0,1,1],[.77,1.8,1],[1.2,1.4,-1]]){
+            const st=model.labEmpty(true),assignment={},transform=p=>[500+scale*(p[0]*Math.cos(rotation)-p[1]*reflect*Math.sin(rotation)),300+scale*(p[0]*Math.sin(rotation)+p[1]*reflect*Math.cos(rotation))];
+            function index(p){const q=transform(p),i=st.points.findIndex(v=>Math.hypot(v[0]-q[0],v[1]-q[1])<1e-6);if(i>=0)return i;st.points.push(q);return st.points.length-1}
+            for(const o of items)if(o.kind==='point'&&roles.includes(o.label))assignment[o.label]=index(o.at);
+            if(methodId==='parallel-through-point')assignment.Q=index(items.find(o=>o.kind==='line'&&o.style==='result').b);
+            for(const o of items){if(o.kind==='line')st.segments.push([index(o.a),index(o.b)]);if(o.kind==='circle')st.circles.push({i:index(o.center),r:o.radius*scale})}
+            const p=Object.fromEntries(roles.map(k=>[k,st.points[assignment[k]]])),d=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]),angle=(a,o,b)=>Math.acos(Math.max(-1,Math.min(1,((a[0]-o[0])*(b[0]-o[0])+(a[1]-o[1])*(b[1]-o[1]))/(d(a,o)*d(b,o)))))*180/Math.PI;
+            const targets={};
+            for(const [key] of model.INDEPENDENT_METHOD_DIMENSIONS[methodId]||[]){
+              if(['AB','AC','BC','AD','CD'].includes(key))targets[key]=d(p[key[0]],p[key[1]])/40;
+              else if(key==='angleA')targets[key]=angle(p.B,p.A,p.D||p.C);
+              else if(key==='angleB')targets[key]=angle(p.A,p.B,p.C);
+              else if(key==='height')targets[key]=Math.abs((p.B[0]-p.A[0])*(p.D[1]-p.A[1])-(p.B[1]-p.A[1])*(p.D[0]-p.A[0]))/d(p.A,p.B)/40;
+              else if(key==='radius')targets[key]=methodId==='circle-given-radius'?st.circles[0].r/40:methodId==='two-distance-locus'?d(p.A,p['P₁'])/40:d(p.M,p.P)/40;
+            }
+            const result=model.independentConstructionCheck(st,methodId,assignment,targets);
+            if(Object.keys(targets).length){
+              const missing=model.independentConstructionCheck(st,methodId,assignment,{});
+              assert(!missing.correct&&missing.pending.length===Object.keys(targets).length,'Missing dimensions cannot pass '+methodId);
+              const key=Object.keys(targets)[0],wrong={...targets,[key]:targets[key]+20};
+              assert(!model.independentConstructionCheck(st,methodId,assignment,wrong).correct,'Incorrect given dimension rejected '+methodId);
+            }
+            assert(result.ready&&result.correct,'Independent construction accepts exact transformed '+methodId+': '+JSON.stringify(result));
+            assert(!model.independentConstructionCheck(st,methodId,{}).ready,'Unassigned roles cannot pass '+methodId);
+            const broken=JSON.parse(JSON.stringify(st));if(methodId==='circle-given-radius')broken.circles=[];else broken.points[assignment[roles.at(-1)]]=[-5000,-4000];
+            assert(!model.independentConstructionCheck(broken,methodId,assignment,targets).correct,'Broken construction rejected '+methodId);
+          }
+        }
+        for(const [separation,count] of [[240,'0'],[160,'1'],[100,'2'],[0,'infinite']]){
+          const r=80,st=model.labEmpty(true),a=[100,200],b=[100+separation,200];st.points=[a,b];st.circles=[{i:0,r},{i:1,r}];const roles={A:0,B:1};
+          if(count==='1'){roles['P₁']=2;st.points.push([180,200])}
+          if(count==='2'){const h=Math.sqrt(r*r-separation*separation/4);roles['P₁']=2;roles['P₂']=3;st.points.push([150,200-h],[150,200+h])}
+          if(count==='infinite')roles.B=0;
+          assert(model.independentConstructionCheck(st,'two-distance-locus',roles,{radius:2,solutionCount:count}).correct,'Locus solution count verified: '+count);
+          assert(!model.independentConstructionCheck(st,'two-distance-locus',roles,{radius:2,solutionCount:count==='0'?'infinite':'0'}).correct,'Wrong solution count cannot pass: '+count);
+          assert(!model.independentConstructionCheck(st,'two-distance-locus',roles,{solutionCount:count}).correct,'Missing radius cannot pass: '+count);
+        }
+        assert(!model.independentConstructionCheck(model.labEmpty(true),'unknown-method',{}).supported,'Unsupported checks are explicitly marked unavailable');
+      }
       for(const m of methods){
         for(const publicationMode of ['exercise','instructions','illustrated']){
           const draft=P.createDocument();draft.addCurrent(id,{constructionPublication:{type:'construction-method',constructionMethod:m,publicationMode}});
@@ -1243,8 +1287,10 @@ async function run(){
       act('instructions').click();assert(!panel.querySelector('[data-ag-method-graphic]')&&panel.querySelector('[data-ag-method-step]').dataset.agMethodStep==='2','Returning to instructions preserves progress');
       act('verify').click();assert(panel.textContent.includes("Thales"),'Optional verification explains geometry');
       act('restart').click();assert(panel.querySelector('[data-ag-method-step]').dataset.agMethodStep==='-1','Restart returns to problem statement');
-      assert(JSON.stringify(cap().demo.labDrawing)===originalDrawing,'Guide never alters the actual drawing');
-      act('close').click();assert(panel.hidden,'Guide closes independently');
+            const independent=panel.querySelector('[data-ag-method-action="check-independent"]');assert(independent,'Independent method offers geometric verification');independent.click();assert(panel.querySelector('[data-ag-method-independent-feedback]').textContent.includes('Assign a distinct existing point'),'Independent checker reports missing assignments without revealing answers');
+assert(JSON.stringify(cap().demo.labDrawing)===originalDrawing,'Guide never alters the actual drawing');
+            act('back').click();const methodSearch=panel.querySelector('[data-ag-method-search]');methodSearch.value='given radius';methodSearch.dispatchEvent(new win.Event('input',{bubbles:true}));panel.querySelector('[data-ag-method-id="circle-given-radius"]').click();const field=panel.querySelector('[data-ag-method-dimension="radius"]');field.closest('details').open=true;field.click();await tick();const touch=doc.querySelector('.gd-touch-keypad');assert(touch&&field.dataset.gdKeypad==='number','Independent dimensions reuse shared whiteboard keypad');touch.querySelector('[data-gd-touch-key="2"]').click();assert(field.value==='2','Shared keypad enters dimension');touch.querySelector('[data-gd-touch-close]').click();
+act('close').click();assert(panel.hidden,'Guide closes independently');
     }
     const work=doc.querySelector('.gd-ag-lab-canvas'),beforeView=work.viewBox.baseVal.height,beforeScale=Math.hypot(work.getScreenCTM().a,work.getScreenCTM().b);
     doc.querySelector('[data-ag-tool="expand"]').click();await tick();
