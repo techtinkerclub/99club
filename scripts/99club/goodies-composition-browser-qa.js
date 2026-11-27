@@ -1413,6 +1413,24 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(tip.kind==='Endpoint'&&tip.x===100&&tip.y===100,'Ruler far endpoint can snap without changing length');
       const pro=M.utensilAlignment(exact,{kind:'protractor',x:105,y:105,angle:3,size:170},'move',1);
       assert(pro.kind==='Aligned vertex'&&pro.x===100&&pro.y===100&&pro.angle===0,'Protractor centre and baseline align in one gesture');
+      // Instrument annotations resolve named, visible geometric references.
+      const measured={...M.labEmpty(true),points:[[100,100],[500,100],[240,100]],names:['A','B','C'],segments:[[0,1]]};
+      const rulerPose={kind:'ruler',x:80,y:100,angle:0,size:480};
+      const target=M.labMeasurementTarget(measured,rulerPose,1);
+      assert(target?.kind==='length'&&target.names.join('')==='AB','Ruler resolves actual covered segment rather than ruler size');
+      assert(M.labApplyMeasurement(measured,target)&&M.labDimensionText(measured,0,1,false)==='10.0 cm','Instrument adds persistent exact length independent of automatic measurements');
+      measured.points[1]=[460,100];assert(M.labDimensionText(measured,0,1,false)==='9.0 cm','Pinned measured dimension follows geometry');
+      assert(!M.labMeasurementTarget(measured,{...rulerPose,y:110},1)&&!M.labMeasurementTarget(measured,{...rulerPose,size:100},1),'Misaligned or too-short ruler cannot annotate');
+      measured.segments.push([0,2]);assert(!M.labMeasurementTarget(measured,rulerPose,1),'Ambiguous overlapping measured segments are not guessed');
+      measured.segmentStyles={'A:C':true};measured.showConstruction=false;assert(M.labMeasurementTarget(measured,rulerPose,1)?.names.join('')==='AB','Hidden construction edges are excluded');
+      const theta=34.27*Math.PI/180,angleScene={...M.labEmpty(true),points:[[100,100],[300,100],[100+200*Math.cos(theta),100-200*Math.sin(theta)]],names:['A','B','C'],segments:[[0,1],[0,2]]};
+      const anglePose={kind:'protractor',x:100,y:100,angle:0,reading:34.3,hand:1,size:170};
+      const at=M.labMeasurementTarget(angleScene,anglePose,1);
+      assert(at?.names.join('')==='BAC'&&M.labApplyMeasurement(angleScene,at),'Protractor matches actual vertex and named arms');
+      const values=[];M.labNotation(angleScene,()=>{},(_,v)=>values.push(v));assert(values.join('')==='34.3°','Persistent angle uses exact geometry and display precision');
+      assert(!M.labMeasurementTarget(angleScene,{...anglePose,reading:40},1),'Unaligned measuring arm cannot annotate');
+      angleScene.segments=[[0,1]];angleScene.rays=[{i:0,angle:34.27,relativeTo:'C',relativeAngle:0,construction:false}];assert(M.labMeasurementTarget(angleScene,anglePose,1)?.names.join('')==='BAC','Referenced ray can serve as measured angle arm');
+      angleScene.angleNotation[0].labelMode='custom';angleScene.angleNotation[0].label='x';M.labApplyMeasurement(angleScene,at);assert(angleScene.angleNotation.length===1&&angleScene.angleNotation[0].labelMode==='measured','Reapplying measurement edits existing annotation rather than duplicating');
       const square=M.utensilAlignment(exact,{kind:'square45',x:100,y:106,angle:92,size:200},'move',1);
       assert(square.kind==='Aligned vertex'&&square.angle===90,'Set square can align perpendicular leg to existing edge');
 
