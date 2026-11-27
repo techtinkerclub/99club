@@ -3242,7 +3242,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const rect=ref('rectangle'),pts=rect.points;assert(Math.abs(rect.area-300*180/1600)<1e-9&&Math.abs(rect.perimeter-2*(300+180)/40)<1e-9,'Rectangle model dimensions agree with numerical area/perimeter');
       assert(!ref('free-polygon',{n:4,polygonPoints:[[0,0],[80,80],[0,80],[80,0]]}).valid,'Invalid polygon does not claim valid properties');
       assert(win.TT99Goodies.modeControl.set('polygon:rectangle'),'Rectangle reference accessible directly');await tick();
-      const panel=doc.querySelector('.gd-ag-shape-reference');assert(panel?.open&&panel.querySelectorAll('section[data-ag-teaching-panel="properties"]').length===3&&panel.querySelector('[data-ag-rotation-reference]')&&panel.textContent.includes('A = lw'),'Reference visible without opening settings');
+      const panel=doc.querySelector('.gd-ag-shape-reference');assert(panel?.dataset.agTeachingScreen==='explore'&&panel.querySelector('[data-ag-teaching-explore]').getAttribute('aria-pressed')==='true'&&panel.parentElement.firstElementChild===panel,'Explorer starts with persistent top navigation and no stacked lesson');assert(panel?.open&&panel.querySelectorAll('section[data-ag-teaching-panel="properties"]').length===3&&panel.querySelector('[data-ag-rotation-reference]')&&panel.textContent.includes('A = lw'),'Reference visible without opening settings');
       const pack=P.createDocument();pack.addCurrent(id,cap());const printed=P.renderItem(pack.list()[0],false);
       assert(printed.querySelectorAll('[data-ag-shape-reference-group]').length===3&&printed.textContent.includes('A = lw'),'Published teaching diagram includes reference');
       assert(panel.querySelectorAll('[data-ag-reference-graphic]').length===3,'Reference contains three dedicated visual explanations');
@@ -3373,12 +3373,16 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         teachingStage.scrollTop=0;
       }
       teachingTab('properties').click();
+      assert(teaching.dataset.agTeachingScreen==='lesson'&&win.getComputedStyle(doc.querySelector('.gd-ag-visual')).display==='none','Lesson replaces rather than stacks underneath the explorer');teaching.querySelector('[data-ag-teaching-explore]').click();assert(teaching.dataset.agTeachingScreen==='explore'&&win.getComputedStyle(doc.querySelector('.gd-ag-visual')).display!=='none','Explore returns to the actual shape');teachingTab('properties').click();
       const max=fixture.frame.querySelector('[data-board-maximise]');max.click();await tick(80);
       assert(fixture.frame.classList.contains('is-geometry-teaching-max')&&fixture.frame.style.getPropertyValue('--gd-board-scale')==='1','Maximised teaching uses actual viewport width instead of scaling down a tall report');
       teachingTab('symmetry').click();await tick();
       teachingStage.scrollTop=teachingStage.scrollHeight;await tick();
       const reflectionBottom=teaching.querySelector('[data-ag-reflection-reference]').getBoundingClientRect().bottom;
       assert(reflectionBottom<=teachingStage.getBoundingClientRect().bottom+3,'Reflection controls reachable in maximised teaching widget');
+      if(win.matchMedia('(min-width:800px) and (min-height:480px) and (orientation:landscape)').matches){
+        for(const key of ['properties','polygon-proof','symmetry','families','proof','shape-measures','area-comparison']){const tab=teachingTab(key);if(!tab)continue;tab.click();await tick(60);assert(teachingStage.scrollHeight<=teachingStage.clientHeight+3,'Landscape teaching fits a single screen: '+key+' '+teachingStage.scrollHeight+'/'+teachingStage.clientHeight);assert(teaching.querySelector('[data-ag-teaching-tabs]').getBoundingClientRect().top>=teachingStage.getBoundingClientRect().top-1,'Topic navigation remains at top: '+key);}
+      }
       max.click();await tick(80);assert(!fixture.frame.classList.contains('is-geometry-teaching-max'),'Restoring leaves teaching maximisation cleanly');
       for(const m of [...Array.from({length:10},(_,i)=>ref('regular',{n:i+3})),...M.polygonInvestigationExamples().map(e=>ref('free-polygon',{n:e.points.length,polygonPoints:e.points}))]){
         for(let vertex=0;vertex<m.n;vertex++){
