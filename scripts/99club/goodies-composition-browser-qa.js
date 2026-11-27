@@ -1933,6 +1933,19 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       tool('undo').click();assert(capture().segments.length===2&&capture().points.length===5,'Completed segment is one atomic undo');
       reset();select('select');
     };
+    const verifyGraduations=label=>{
+      const tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),tap=p=>{previewPointer('pointerdown',p);previewPointer('pointerup',p)},reset=()=>doc.querySelector('[aria-label="Reset construction"]').click(),capture=()=>cap().demo.labDrawing;
+      const select=id=>{if(tool(id).getAttribute('aria-pressed')!=='true')tool(id).click()},set=v=>{const input=doc.querySelector('[data-ag-option="length-graduation"]');input.value=String(v);input.dispatchEvent(new win.Event('change',{bubbles:true}))};
+      const distance=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]),lastLength=()=>{const d=capture(),[a,b]=d.segments.at(-1);return distance(d.points[a],d.points[b])/40};
+      reset();select('segment');set(.1);tap([150,150]);previewPointer('pointerdown',[270.9,150]);previewPointer('pointermove',[271.1,150]);assert(work.querySelector('[data-ag-snap-cue="Graduation"]')&&work.querySelector('[data-ag-snap-caption]').textContent==='3.0 cm · graduation','Physical millimetre mark preview: '+label);previewPointer('pointerup',[271.1,150]);assert(Math.abs(lastLength()-3)<1e-9,'Ruler commits exact selected millimetre');
+      select('compass');set(.01);tap([450,300]);previewPointer('pointerdown',[571.18,300]);previewPointer('pointermove',[571.23,300]);assert(work.querySelector('[data-ag-snap-caption]').textContent==='3.03 cm · graduation','Fine compass setting reads hundredths');previewPointer('pointerup',[571.23,300]);let d=capture();assert(Math.abs(d.circles[0].r/40-3.03)<1e-9,'Compass commits exact fine opening');tap([150,450]);assert(capture().circles[1].r===d.circles[0].r,'Compass transfers calibrated opening without rounding');
+      reset();select('segment');set(0);tap([150,150]);tap([350.53,150]);assert(Math.abs(lastLength()-200.53/40)<1e-7,'Free setting retains unrounded pointer length');
+      set(.1);tap([150,150]);tap([271.1,150]);assert(Math.abs(lastLength()-3)<1e-9,'Graduation along a real collinear reference preserves its line');
+      const actual=capture().points[1];tap([150,150]);tap(actual);assert(capture().segments.length===2,'Existing exact vertex takes priority over graduation, duplicate segment not added');
+      select('compass');set(.1);tap([150,150]);tap(actual);assert(Math.abs(capture().circles[0].r-200.53)<1e-7,'Compass preserves exact picked geometry instead of rounding its radius');
+      reset();select('segment');set(0);select('select');
+    };
+    verifyGraduations('A5 normal');
     verifyDrawingSnap('A5 normal');
     verifyBisectors('A5 normal');
     {
@@ -1968,12 +1981,12 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(M.labSnap(m,[440,200],.5).kind==='On line','Other invisible arc continuation is not a line intersection');
     }
     doc.querySelector('[data-ag-tool="expand"]').click();wsField('format').value='A4';wsField('apply').click();await tick();
-    checkRuler();verifyInstruments('A4 normal');verifyBisectors('A4 normal');verifyDrawingSnap('A4 normal');
+    checkRuler();verifyInstruments('A4 normal');verifyBisectors('A4 normal');verifyDrawingSnap('A4 normal');verifyGraduations('A4 normal');
     {
       const frame=fixture.frame,max=frame.querySelector('[data-board-maximise]');
       api.select(fixture.record.id);max.click();await tick(150);
       assert(frame.classList.contains('is-geometry-board'),'Full board entered for instrument scale checks');
-      checkRuler();verifyInstruments('A4 full board');verifyBisectors('A4 full board');verifyDrawingSnap('A4 full board');
+      checkRuler();verifyInstruments('A4 full board');verifyBisectors('A4 full board');verifyDrawingSnap('A4 full board');verifyGraduations('A4 full board');
       doc.querySelector('[data-ag-tool="zoom-in"]').click();verifyBisectors('A4 full board zoomed in');doc.querySelector('[data-ag-tool="zoom-out"]').click();
       const original=JSON.stringify(cap().demo.labDrawing),tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),add=kind=>doc.querySelector('[data-ag-utensil-add="'+kind+'"]').click(),action=id=>doc.querySelector('[data-ag-utensil-action="'+id+'"]'),utensil=kind=>work.querySelector('[data-ag-utensil-kind="'+kind+'"]');
       tool('measuring-tools').click();
