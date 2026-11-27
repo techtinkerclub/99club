@@ -1517,7 +1517,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         svg.setAttribute('viewBox','0 0 500 400');svg.style.cssText='width:500px;height:400px';host.append(svg);doc.body.append(host);
         const model={...M.labEmpty(true),points:[[160,208],[260,208],[160,300],[260,300]],names:['A','B','C','D'],segments:[[0,1],[2,3]]};
         let controller;const paint=()=>{svg.replaceChildren();controller.paint(svg)};
-        controller=G.instruments.movable(host,()=>svg,paint,{kinds:['square45'],align:(t,mode,scale)=>M.utensilAlignment(model,t,mode,scale),annotation:{target:(t,scale)=>M.labMeasurementTarget(model,t,scale),squareComparison:(t,scale)=>M.labSquareComparison(model,t,scale),apply:()=>{throw Error('Comparison must not annotate automatically')}}});
+        controller=G.instruments.movable(host,()=>svg,paint,{kinds:['square45'],align:(t,mode,scale)=>M.utensilAlignment(model,t,mode,scale),annotation:{target:(t,scale)=>M.labMeasurementTarget(model,t,scale),squareComparison:(t,scale)=>M.labSquareComparison(model,t,scale),apply:t=>{assert(M.labApplyMeasurement(model,t),'Local parallel action applies verified annotation');paint()}}});
         controller.add('square45');
         const reference=()=>svg.querySelector('[data-ag-utensil-action="square-reference"]');
         assert(reference()?.getAttribute('aria-label')==='Set reference','Aligned square exposes local reference action');
@@ -1525,6 +1525,9 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         const gesture=(node,type,p)=>{const q=new win.DOMPoint(...p).matrixTransform(svg.getScreenCTM());node.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:783,pointerType:'mouse',button:0,clientX:q.x,clientY:q.y}))};
         gesture(svg.querySelector('[data-ag-utensil]'),'pointerdown',[180,188]);gesture(svg,'pointermove',[180,280]);gesture(svg,'pointerup',[180,280]);
         assert(svg.querySelector('[data-ag-square-reference="candidate"]')&&svg.querySelector('[data-ag-local-instrument]').textContent.includes('Parallel'),'Dragging to a second segment reports parallel geometry');
+        assert(!model.lineMarks||!Object.keys(model.lineMarks).length,'Comparison itself is read-only');
+        const mark=()=>svg.querySelector('[data-ag-utensil-action="square-parallel"]');assert(mark(),'Verified comparison exposes explicit parallel arrows');mark().click();
+        assert(M.labLineMarks(model,model.segments[0]).parallel===1&&M.labLineMarks(model,model.segments[1]).parallel===1&&!mark(),'Both segments receive the same arrow group; no duplicate action');
         reference().click();assert(!svg.querySelector('[data-ag-square-reference="locked"]'),'Local clear removes saved reference');
         host.remove();
       }
@@ -1551,6 +1554,23 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
           model.segments.push([2,3]);assert(!M.labSquareComparison(model,parallel,1).candidate,'Ambiguous targets cannot certify geometry');model.segments.pop();
           model.segments.shift();assert(M.labSquareComparison(model,parallel,1).missing,'Deleted reference cannot certify geometry');model.segments.unshift([0,1]);
         }
+      }
+      // Parallel symbols must not merge or overwrite unrelated notation groups.
+      {
+        const model={...M.labEmpty(true),points:[[0,0],[100,0],[0,50],[100,50],[0,100],[100,100],[200,0],[200,100],[250,0],[250,100]],names:['A','B','C','D','E','F','G','H','I','J'],segments:[[0,1],[2,3],[4,5],[6,7],[8,9]]};
+        const [ab,cd,ef,gh,ij]=model.segments,keys=['A:B','C:D'];
+        const plan=()=>M.labParallelMarkPlan(model,keys),apply=p=>M.labApplyMeasurement(model,{kind:'parallel',keys,group:p.group});
+        M.labSetLineMark(model,ab,'equal',2);M.labSetLineMark(model,cd,'symmetry',true);M.labSetLineMark(model,gh,'parallel',1);M.labSetLineMark(model,ij,'parallel',1);
+        const geometry=JSON.stringify([model.points,model.segments]);let p=plan();assert(p.group===2,'An unused group is allocated instead of joining unrelated arrows');
+        model.points[3]=[100,50.001];assert(!plan().group&&!apply(p),'Near-parallel and stale targets cannot create permanent arrows');model.points[3]=[100,50];
+        assert(apply(p)&&M.labLineMarks(model,ab).parallel===2&&M.labLineMarks(model,cd).parallel===2,'Both verified segments get matching arrows');
+        assert(M.labLineMarks(model,ab).equal===2&&M.labLineMarks(model,cd).symmetry&&M.labLineMarks(model,gh).parallel===1&&JSON.stringify([model.points,model.segments])===geometry,'Geometry and independent markings are preserved');
+        assert(!plan().group&&plan().reason==='Already marked','Repeated annotation is a no-op');
+        M.labSetLineMark(model,cd,'parallel',0);assert(plan().group===2,'Existing compatible group can be extended');
+        M.labSetLineMark(model,ef,'parallel',2);model.points[5]=[100,105];assert(!plan().group&&plan().reason==='Existing arrow group conflicts','Inconsistent existing group cannot be extended');model.points[5]=[100,100];
+        M.labSetLineMark(model,cd,'parallel',3);assert(!plan().group&&plan().reason==='Different existing arrow groups','Conflicting existing groups are never merged');
+        M.labSetLineMark(model,ab,'parallel',0);M.labSetLineMark(model,cd,'parallel',0);M.labSetLineMark(model,ij,'parallel',3);assert(!plan().group&&plan().reason==='All three arrow groups in use','Exhausted notation groups cannot be reassigned');
+        M.labSetLineMark(model,ij,'parallel',0);p=plan();model.segments.splice(1,1);assert(!apply(p),'Deleted segment invalidates pending parallel mark');
       }
       // Independent physical corner fixtures, including the acute corners away from the origin.
       for(const [kind,angles] of [['square45',[[0,90],[135,180],[270,315]]],['square30',[[0,90],[120,180],[270,300]]]]){
