@@ -3229,7 +3229,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const rect=ref('rectangle'),pts=rect.points;assert(Math.abs(rect.area-300*180/1600)<1e-9&&Math.abs(rect.perimeter-2*(300+180)/40)<1e-9,'Rectangle model dimensions agree with numerical area/perimeter');
       assert(!ref('free-polygon',{n:4,polygonPoints:[[0,0],[80,80],[0,80],[80,0]]}).valid,'Invalid polygon does not claim valid properties');
       assert(win.TT99Goodies.modeControl.set('polygon:rectangle'),'Rectangle reference accessible directly');await tick();
-      const panel=doc.querySelector('.gd-ag-shape-reference');assert(panel?.open&&panel.querySelectorAll('section:not([data-ag-rotation-reference]):not([data-ag-reflection-reference]):not([data-ag-area-proof])').length===3&&panel.querySelector('[data-ag-rotation-reference]')&&panel.textContent.includes('A = lw'),'Reference visible without opening settings');
+      const panel=doc.querySelector('.gd-ag-shape-reference');assert(panel?.open&&panel.querySelectorAll('section:not([data-ag-rotation-reference]):not([data-ag-reflection-reference]):not([data-ag-area-proof]):not([data-ag-family-reference])').length===3&&panel.querySelector('[data-ag-rotation-reference]')&&panel.textContent.includes('A = lw'),'Reference visible without opening settings');
       const pack=P.createDocument();pack.addCurrent(id,cap());const printed=P.renderItem(pack.list()[0],false);
       assert(printed.querySelectorAll('[data-ag-shape-reference-group]').length===3&&printed.textContent.includes('A = lw'),'Published teaching diagram includes reference');
       assert(panel.querySelectorAll('[data-ag-reference-graphic]').length===3,'Reference contains three dedicated visual explanations');
@@ -3288,6 +3288,19 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       mirrorOffset.value=10;mirrorOffset.dispatchEvent(new win.Event('input',{bubbles:true}));assert(reflectionPanel.querySelector('[data-ag-reflection-graphic]').dataset.agReflectionMatch==='false','Moving mirror line away from centre changes match');
       reflectionPanel.querySelector('[data-ag-mirror-reset]').click();assert(Number(mirrorOffset.value)===0&&Number(mirrorAngle.value)===0,'Mirror investigation resets');
       assert(rotationPrint.querySelector('[data-ag-reflection-graphic]'),'Reflection illustration included in publication');
+      for(const [shape,expected] of [['square',['Quadrilateral','Trapezium','Parallelogram','Rectangle','Kite','Rhombus','Square']],['rectangle',['Quadrilateral','Trapezium','Parallelogram','Rectangle']],['rhombus',['Quadrilateral','Trapezium','Parallelogram','Kite','Rhombus']],['parallelogram',['Quadrilateral','Trapezium','Parallelogram']],['kite',['Quadrilateral','Kite']],['trapezium',['Quadrilateral','Trapezium']]]){
+        const f=M.quadrilateralFamilyModel(ref(shape).points);
+        assert(f.members.length===expected.length&&expected.every(x=>f.members.includes(x)),'Inclusive family membership: '+shape);
+        assert(f.links.every(e=>!f.members.includes(e.child)||f.members.includes(e.parent)),'All hierarchy implications hold: '+shape);
+      }
+      const familyPanel=doc.querySelector('[data-ag-family-reference]'),familySelect=familyPanel.querySelector('[data-ag-family-select]');
+      assert(familyPanel.querySelectorAll('[data-ag-family-member="true"]').length===7,'Square belongs to all seven inclusive families');
+      familySelect.value='Rectangle';familySelect.dispatchEvent(new win.Event('change',{bubbles:true}));
+      assert(familyPanel.querySelectorAll('[data-ag-family-member="true"]').length===4&&familyPanel.querySelector('[data-ag-family-node="Square"]').dataset.agFamilyMember==='false','Rectangle example is not necessarily square');
+      familySelect.value='Concave quadrilateral';familySelect.dispatchEvent(new win.Event('change',{bubbles:true}));assert(familyPanel.querySelectorAll('[data-ag-family-member="true"]').length===1,'Concave example belongs only to general quadrilateral family');
+      familySelect.value='current';familySelect.dispatchEvent(new win.Event('change',{bubbles:true}));assert(familyPanel.querySelectorAll('[data-ag-family-member="true"]').length===7,'Return to current square');
+      assert(rotationPrint.querySelector('[data-ag-family-graphic]'),'Current shape family hierarchy printed');
+
 
 
 
