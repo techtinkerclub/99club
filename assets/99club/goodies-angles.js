@@ -1049,7 +1049,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
   const hint=document.createElement('p');hint.className='gd-help';hint.dataset.agPaperConstruction='1';hint.style.cssText='text-align:center;min-height:24px;margin:5px 0';
   const guide=document.createElement('section');guide.className='gd-ag-lab-guide';guide.hidden=true;
   const viewport=free?document.createElement('div'):null;if(viewport){viewport.className='gd-ag-sheet-viewport';viewport.style.cssText='max-width:100%;max-height:680px;overflow:auto;overscroll-behavior:contain;border:1px solid #cbded8;border-radius:8px;background:#e4eae8;padding:8px;box-sizing:border-box';viewport.append(svg)}box.replaceChildren(toolbar,viewport||svg,hint,guide);
-  let screenUnit=1,availableHeight=680,fullBoard=false,fullPanels=[],dock=null,panelsHidden=false,boardReady=false;
+  let screenUnit=1,availableHeight=680,fullBoard=false,fullPanels=[],dock=null,panelsHidden=false,boardReady=false,helpPanel=null,methodLibrary=null;
   const normalViewportStyle=viewport?.style.cssText,normalSvgStyle=svg.style.cssText;
   function boardExtent(){let w=ws.w,h=ws.h;const include=(p,r=0)=>{w=Math.max(w,p[0]+r);h=Math.max(h,p[1]+r)};st.points.forEach(p=>include(p));st.circles.forEach(c=>{if(st.points[c.i])include(st.points[c.i],c.r)});Object.values(st.traces||{}).forEach(trail=>trail.forEach(p=>{if(p)include(p)}));return {w:Math.ceil(w),h:Math.ceil(h)}}
   function boardWorkspace(){const extent=boardExtent();return extent.w>ws.w||extent.h>ws.h?{...ws,format:'custom',expanded:true,w:Math.ceil(Math.max(ww,extent.w)/4)*4,h:Math.ceil(Math.max(hh,extent.h)/4)*4}:{...ws}}
@@ -1068,7 +1068,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
   if(free)button('trace','Clear traces','Remove recorded paths without changing the drawing',()=>{save();st.traces={};changed()}).dataset.agTool='clear-traces';
   const panButton=free?button('pan','Pan sheet','Move around the sheet without drawing',()=>{panMode=!panMode;first=null;aligned=null;hover=null;paint()}):null;
   const guideButton=button('help',free?'Help':'Tool help','Show instrument instructions',()=>{guideOpen=!guideOpen;guideStep=0;paint()});
-  if(free||CONSTRUCTION_METHODS_BY_TASK[task?.type]){const libraryButton=button('help',free?'Construction library':'Method guide',free?'Open searchable construction methods':'Open optional construction guidance',()=>library.toggle());libraryButton.dataset.agTool='construction-library';const library=mountConstructionLibrary(box,libraryButton,task,()=>st,publishMethod)}
+  if(free||CONSTRUCTION_METHODS_BY_TASK[task?.type]){const libraryButton=button('help',free?'Construction library':'Method guide',free?'Open searchable construction methods':'Open optional construction guidance',()=>methodLibrary.toggle());libraryButton.dataset.agTool='construction-library';methodLibrary=mountConstructionLibrary(box,libraryButton,task,()=>st,publishMethod)}
   for(const [id,label,get,set] of [['snap','Snap',()=>snap,v=>snap=v],...(free?[['measure','Measurements',()=>measure,v=>{measure=v;st.showMeasurements=v;onChange(clone(st))}]]:[]),...(free?[]:[['grid','Grid',()=>grid,v=>grid=v]])]){
    const l=document.createElement('label');l.className='gd-ag-lab-option';const input=document.createElement('input');input.type='checkbox';input.dataset.agOption=id;input.checked=get();input.onchange=()=>{set(input.checked);paint()};const t=document.createElement('span');t.textContent=label;l.append(input,icon(id),t);options.append(l);
   }
@@ -1176,7 +1176,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
   }
   let guideKey='';
   function paintGuide(){
-   guideButton.setAttribute('aria-expanded',String(guideOpen));guide.hidden=!guideOpen;
+   guideButton.setAttribute('aria-expanded',String(guideOpen));guide.hidden=!guideOpen;if(helpPanel)helpPanel.hidden=!guideOpen||panelsHidden;
    const key=[guideOpen,tool,guideStep,free].join(':');if(key===guideKey)return;guideKey=key;
    if(!guideOpen){guide.replaceChildren();return}
    const steps=helpSteps[tool],header=document.createElement('strong');header.textContent=controls.find(c=>c[0]===tool)?.[2]||'Using the tool';
@@ -1268,16 +1268,16 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
     const stage=box.closest('#gd-stage');stage?.classList.toggle('gd-ag-full-stage',active);document.documentElement.classList.toggle('gd-ag-full-page',active);
     if(active){
       viewport.style.cssText='position:absolute;inset:0;overflow:hidden;background:white;padding:0;border:0;border-radius:0;max-width:none;max-height:none';
-      toolbar.classList.add('gd-ag-full-tools');floatingPanel('Instruments',[instruments],'10px','46px');floatingPanel('Drawing options',[helpers,styleBar,notationBar,regionBar,sheetPanel],'10px','190px');
-      dock=document.createElement('button');dock.type='button';dock.className='gd-btn gd-ag-full-dock';dock.dataset.agFullPanels='1';dock.textContent='Hide panels';dock.setAttribute('aria-expanded','true');dock.onclick=()=>{panelsHidden=!panelsHidden;fullPanels.forEach(p=>p.hidden=panelsHidden);dock.textContent=panelsHidden?'Show panels':'Hide panels';dock.setAttribute('aria-expanded',String(!panelsHidden));if(!panelsHidden)fullResize()};toolbar.append(dock);panelsHidden=false;
+      toolbar.classList.add('gd-ag-full-tools');floatingPanel('Instruments',[instruments],'10px','46px');const drawingPanel=floatingPanel('Drawing options',[helpers,styleBar,notationBar,regionBar,sheetPanel],'calc(100% - 365px)','54px');if(viewport.clientWidth<600)drawingPanel.querySelector('.gd-ag-full-panel-head button').click();helpPanel=floatingPanel('Instrument help',[guide],'calc(100% - 325px)','240px');helpPanel.hidden=!guideOpen;
+      dock=document.createElement('button');dock.type='button';dock.className='gd-btn gd-ag-full-dock';dock.dataset.agFullPanels='1';dock.textContent='Hide panels';dock.setAttribute('aria-expanded','true');dock.onclick=()=>{panelsHidden=!panelsHidden;fullPanels.forEach(p=>p.hidden=panelsHidden||(p===helpPanel&&!guideOpen));if(panelsHidden)methodLibrary?.toggle(false);dock.textContent=panelsHidden?'Show panels':'Hide panels';dock.setAttribute('aria-expanded',String(!panelsHidden));if(!panelsHidden)fullResize()};toolbar.append(dock);panelsHidden=false;
       // Instrument help floats independently of the tool palettes.
-      guide.classList.add('gd-ag-full-help');fullResize();
+      fullResize();
     }else{
-      ws=boardWorkspace();ww=ws.w;hh=ws.h;st.workspace={...ws};toolbar.classList.remove('gd-ag-full-tools');toolbar.append(instruments,helpers,styleBar,notationBar,regionBar,sheetPanel);fullPanels.forEach(p=>p.remove());fullPanels=[];dock?.remove();dock=null;guide.classList.remove('gd-ag-full-help');viewport.style.cssText=normalViewportStyle;svg.style.cssText=normalSvgStyle;sizeCanvas();syncSheet();onChange(clone(st));
+      ws=boardWorkspace();ww=ws.w;hh=ws.h;st.workspace={...ws};toolbar.classList.remove('gd-ag-full-tools');toolbar.append(instruments,helpers,styleBar,notationBar,regionBar,sheetPanel);box.append(guide);helpPanel=null;fullPanels.forEach(p=>p.remove());fullPanels=[];dock?.remove();dock=null;viewport.style.cssText=normalViewportStyle;svg.style.cssText=normalSvgStyle;sizeCanvas();syncSheet();onChange(clone(st));
     }
     paint()
   };
-  if(free&&typeof ResizeObserver!=='undefined'){const fullObserver=new ResizeObserver(()=>{if(!svg.isConnected){fullObserver.disconnect();return}fullResize()});fullObserver.observe(viewport)}
+  if(free&&typeof ResizeObserver!=='undefined'){const fullObserver=new ResizeObserver(()=>{if(!svg.isConnected){fullObserver.disconnect();if(fullBoard&&!document.querySelector('.gd-ag-full-board')){document.documentElement.classList.remove('gd-ag-full-page');document.getElementById('gd-stage')?.classList.remove('gd-ag-full-stage')}return}fullResize()});fullObserver.observe(viewport)}
   boardReady=true;paint();
  }
 
