@@ -283,7 +283,8 @@ const INSTRUMENT_ICONS={
      const edges=t.kind==='protractor'?[[0,t.size||170]]:t.kind==='ruler'?[[0,t.size||400]]:t.kind.startsWith('square')?[[0,t.size||200],[90,(t.size||200)*(t.kind==='square30'?Math.sqrt(3):1)]]:[];
      const vector=(a,d)=>[Math.cos(a*D)*d,-Math.sin(a*D)*d],matches=[];
      const vertices=points.map(q=>({q,d:labDist(p,q),key:'point:'+pointKey(q)}));
-     const vertex=vertices.filter(v=>v.d<=band(v.key)).sort((a,b)=>Number(held(b.key))-Number(held(a.key))||a.d-b.d)[0];
+     const heldVertex=v=>held(v.key)||previous?.snapKey?.startsWith('aligned-vertex:'+v.key+':')===true;
+     const vertex=vertices.filter(v=>v.d<=tol*(heldVertex(v)?1.5:1)).sort((a,b)=>Number(heldVertex(b))-Number(heldVertex(a))||a.d-b.d)[0];
      for(const [offset,len] of edges){
        const direction=t.angle+offset;
        // For a protractor its centre is the only translation anchor.
@@ -303,7 +304,7 @@ const INSTRUMENT_ICONS={
              const b=vector(angle+offset,len*fraction),origin=[q[0]-b[0],q[1]-b[1]];
              // Do not shift the origin far away just to align a distant tip.
              const shift=labDist(origin,p);if(shift<=band(key))matches.push({x:origin[0],y:origin[1],angle,kind:'Aligned edge',score:shift+da*.8,snapKey:key});
-             if(vertex&&vertex.d<=band(vertexKey)){const vtx=vertex.q,k=labDot(labSub(vtx,l.a),v)/ll,project=labAt(l.a,v,k);if((l.infinite||k>=-1e-7&&(l.ray||k<=1+1e-7))&&labDist(vtx,project)<1e-6)matches.push({x:vtx[0],y:vtx[1],angle,kind:'Aligned vertex',score:vertex.d+da*.8-2*tol,snapKey:vertexKey})}
+             if(vertex&&vertex.d<=band(vertexKey)&&shift<=band(vertexKey)){const vtx=vertex.q,k=labDot(labSub(vtx,l.a),v)/ll,project=labAt(l.a,v,k);if((l.infinite||k>=-1e-7&&(l.ray||k<=1+1e-7))&&labDist(vtx,project)<1e-6)matches.push({x:vtx[0],y:vtx[1],angle,kind:'Aligned vertex',score:vertex.d+da*.8-2*tol,snapKey:vertexKey})}
            }
          }
        }
