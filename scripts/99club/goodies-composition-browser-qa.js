@@ -1827,7 +1827,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       I.finishGesture(d,true);assert(t.x===51&&t.y===41&&t.size===200,'Shared gesture commits host-supplied magnetic candidate');
       d=I.beginGesture(t,[251,41],'rotate',82);I.moveGesture(d,[51,-159],1,{spec,step:2});assert(t.angle===90&&t.x===51&&t.y===41,'Shared rotation preserves origin');
       d=I.beginGesture(t,[51,-159],'resize',83);I.moveGesture(d,[51,-222],1,{spec,step:2});assert(t.size===264&&t.angle===90,'Shared resize respects host calibration without changing angle');
-      d=I.beginGesture(t,[51,41],null,84);I.moveGesture(d,[61,41],1,{spec,step:2,align:()=>({x:99,kind:'Point'})});I.finishGesture(d,false);assert(t.x===61,'Cancelled gesture does not commit snap candidate');
+      d=I.beginGesture(t,[51,41],null,84);I.moveGesture(d,[61,41],1,{spec,step:2,align:()=>({x:99,kind:'Point'})});I.finishGesture(d,false);assert(t.x===51,'Cancelled gesture restores original position and does not commit snap candidate');
       const ruler=utensil('ruler'),before=ruler.transform.baseVal.getItem(0).matrix,body=ruler.querySelector('rect'),worldToScreen=p=>new win.DOMPoint(...p).matrixTransform(work.getScreenCTM());
       const event=(target,type,p,id)=>{const q=worldToScreen(p);target.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:id,pointerType:'touch',button:0,clientX:q.x,clientY:q.y}))};
       const start=[before.e+100,before.f+15];event(body,'pointerdown',start,70);event(work,'pointermove',[start[0]+60,start[1]-40],70);event(work,'pointerup',[start[0]+60,start[1]-40],70);
@@ -1847,6 +1847,29 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         const next=utensil(kind);assert(Number(next.dataset.agUtensilSize)===startSize+delta,'Endpoint resize adjusts '+kind+' size');
         if(kind.startsWith('square')){const tt=[...next.querySelectorAll('[data-me-square-edge="0"]')];assert(Math.abs(Number(tt[1].getAttribute('x1'))-Number(tt[0].getAttribute('x1'))-4)<1e-6,'Resized set square retains exact millimetre spacing')}
         else{assert(next.querySelectorAll('[data-geometry-instrument="protractor"] line').length===182,'Resized protractor retains every degree and baseline');const handle=next.querySelector('[data-ag-utensil-handle="measure"]'),rad=Number(next.dataset.agUtensilSize)*.68,atAngle=a=>[at[0]+rad*Math.cos(a*Math.PI/180),at[1]-rad*Math.sin(a*Math.PI/180)];event(handle,'pointerdown',atAngle(45),77);event(work,'pointermove',atAngle(72.34),77);event(work,'pointerup',atAngle(72.34),77);assert(utensil(kind).querySelector('[data-ag-protractor-reading]').textContent==='72.3°','Touch measuring arm shows tenth-degree angle');action('flip').click();assert(utensil(kind).querySelector('[data-instrument-direction]').getAttribute('data-instrument-direction')==='-1','Local flip reverses measuring side without moving centre');action('flip').click()}
+      }
+      // Every interrupted gesture restores the entire original instrument pose.
+      for(const kind of ['ruler','protractor','square45','square30'])for(const handle of [null,'rotate','resize',...(kind==='protractor'?['measure']:[])]){
+        const pose={kind,x:100,y:200,angle:0,size:200,reading:45,hand:1,snap:true},before=JSON.stringify(pose),p=handle==='resize'&&kind==='protractor'?[100,0]:[300,200],q=handle==='rotate'?[100,0]:[350,150],d=I.beginGesture(pose,p,handle,100);
+        I.moveGesture(d,q,1,{spec,step:2,align:()=>({x:105,y:205,angle:15,kind:'Edge'}),read:()=>({x:104,y:200,reading:63.4,kind:'Edge'})});
+        I.finishGesture(d,false);assert(JSON.stringify(pose)===before,'Cancelled '+kind+' '+handle+' restores all fields');
+      }
+      // Use real controller events, independently of the saved drawing.
+      {
+        const host=doc.createElement('div'),svg=doc.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 500 400');svg.style.cssText='width:500px;height:400px';host.append(svg);doc.body.append(host);
+        let ctrl;const paint=()=>{svg.replaceChildren();ctrl.paint(svg)},u=()=>svg.querySelector('[data-ag-utensil]'),pose=()=>u().transform.baseVal.getItem(0).matrix;
+        ctrl=I.movable(host,()=>svg,paint,{kinds:['ruler']});ctrl.add('ruler');
+        const gesture=(node,type,p,id)=>{const q=new win.DOMPoint(...p).matrixTransform(svg.getScreenCTM());node.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:id,pointerType:'touch',button:0,clientX:q.x,clientY:q.y}))};
+        const start=[pose().e,pose().f];
+        gesture(u(),'pointerdown',start,201);gesture(svg,'pointermove',[start[0]+30,start[1]+20],201);gesture(u(),'pointerdown',[start[0]+80,start[1]+80],202);gesture(svg,'pointermove',[start[0]+100,start[1]+100],202);gesture(svg,'pointerup',[start[0]+100,start[1]+100],202);
+        assert(Math.abs(pose().e-start[0]-30)<1e-7,'Second pointer cannot replace active gesture');
+        gesture(svg,'pointercancel',[start[0]+30,start[1]+20],201);assert(Math.hypot(pose().e-start[0],pose().f-start[1])<1e-7,'Pointer cancel restores original pose');
+        gesture(u(),'pointerdown',start,203);gesture(svg,'pointerup',[start[0]+40,start[1]+10],203);assert(Math.abs(pose().e-start[0]-40)<1e-7,'Release uses final pointer position even without move event');
+        for(const vb of ['0 0 500 400','0 0 125 100','0 0 2000 1600']){
+          svg.setAttribute('viewBox',vb);paint();const handle=u().querySelector('[data-ag-utensil-handle="rotate"]'),scale=I.screenScale(svg);
+          assert(Math.abs(Number(handle.getAttribute('r'))*scale-18)<1e-7&&handle.getAttribute('vector-effect')==='non-scaling-stroke','Rotation handle remains screen-sized across zoom');
+        }
+        host.remove();
       }
       // Reselect the ruler to verify selected-only removal below.
       const rr=utensil('ruler');event(rr.querySelector('rect'), 'pointerdown',[origin[0]+10,origin[1]-100],75);event(work,'pointerup',[origin[0]+10,origin[1]-100],75);
