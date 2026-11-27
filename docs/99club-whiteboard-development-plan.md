@@ -31,7 +31,7 @@ Update it with evidence and release revisions as the work progresses.
 - [ ] Final integrated QA, usability review and production release.
 
 
-## 7. Integrated release acceptance (active, 27 November 2026)
+## 7. Integrated release acceptance (parallel regression checks; final gate deferred)
 
 Geometry implementation baseline: `58b883bc29a176bbe954e7f53cff61194e9b3d6f` (PRs #352–367 merged). [Focused post-merge QA](https://github.com/techtinkerclub/99club/actions/runs/46041523166) and [Pages deployment](https://github.com/techtinkerclub/99club/actions/runs/46041522565) both succeeded. Direct production browser and physical classroom acceptance remain unverified.
 
@@ -43,7 +43,7 @@ Geometry implementation baseline: `58b883bc29a176bbe954e7f53cff61194e9b3d6f` (PR
 - [ ] Verify production revision, physical touchscreen and representative physical print outputs; record device/browser and exact tested revision.
 - [ ] Record a release decision with outstanding limitations and a reproducible regression checklist.
 
-Freeze speculative geometry-engine changes while undertaking this integrated audit; genuine reproducible defects remain in scope. Keep the public 99 Club worksheet workflow and the separate Custom Worksheets workspace independent.
+The tested geometry engine is a foundation, not a completed geometry product. The recovered expansion backlog is tracked in #369 and the geometry roadmap (G3–G7 and 6H–6L). Resume those gates before final catalogue acceptance. Run the integrated automated audit in parallel without diverting feature work. Do not freeze planned geometry capability or enrichment development. Keep the public 99 Club worksheet workflow and the separate Custom Worksheets workspace independent.
 
 ## Release discipline
 Keep implementation, automated verification, visual approval, merge and live deployment separate. Prefer coherent verified batches; avoid leaving usable features on a long-lived branch unnecessarily. Record outstanding limitations honestly.
