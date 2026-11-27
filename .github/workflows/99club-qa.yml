@@ -29,6 +29,7 @@ on:
       - 'index.md'
       - 'scripts/99club/**'
       - '.github/workflows/99club-qa.yml'
+      # Final teaching-module integration audit: retain focused path filtering.
       # Goodies/whiteboard changes use the much smaller Goodies Fast QA workflow.
       # A mixed change still matches any other positive path above and gets this full suite.
       - '!assets/99club/goodies*'
