@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'assets/99club/goodies*'
+      - 'assets/99club/geometry-construction-methods.json'
       - 'scripts/99club/goodies-*'
       - 'scripts/99club/number-mobile-browser-qa.js'
       - '_pages/99-club-goodies.md'
@@ -13,6 +14,7 @@ on:
     branches: [main]
     paths:
       - 'assets/99club/goodies*'
+      - 'assets/99club/geometry-construction-methods.json'
       - 'scripts/99club/goodies-*'
       - 'scripts/99club/number-mobile-browser-qa.js'
       - '_pages/99-club-goodies.md'
