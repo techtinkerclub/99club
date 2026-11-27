@@ -2436,7 +2436,7 @@ function mountRotationReference(container,m,demo){
  section.querySelector('[data-ag-rotation-next-match]').onclick=()=>{const step=360/m.symmetry.rotation;angle=angle>=360-1e-8?step:Math.min(360,(Math.floor((angle+1e-8)/step)+1)*step);show()};
  container.appendChild(section);show();
 }
-function reflectionReferenceGraphic(m,degrees,offset){
+function reflectionReferenceGraphic(m,degrees,offset,fold=null){
  const v=reflectionInvestigation(m,degrees,offset),ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),W=420,H=310,s=78/v.radius,map=p=>[210+(p[0]-v.centre[0])*s,137+(p[1]-v.centre[1])*s];
  const add=(tag,attrs,value)=>{const el=document.createElementNS(ns,tag);for(const [k,x] of Object.entries(attrs))el.setAttribute(k,x);if(value!=null)el.textContent=value;svg.append(el);return el};
  const poly=(pts,attrs)=>add('polygon',{points:pts.map(p=>map(p).join(',')).join(' '),...attrs});
@@ -2447,28 +2447,42 @@ function reflectionReferenceGraphic(m,degrees,offset){
  svg.setAttribute('aria-label','Reflection across a line at '+Number(v.angle.toFixed(2))+' degrees. '+(v.matches?'Matches original shape.':'Does not match original shape.'));
  add('rect',{width:W,height:H,fill:'#fff'});
  poly(m.points,{fill:'#d9eee6',stroke:'#277b70','stroke-width':2.2,'data-ag-reflection-original':'1'});
- poly(v.reflected,{fill:'#f3d9a8','fill-opacity':.35,stroke:'#b56d2c','stroke-width':2.2,'stroke-dasharray':'6 4','data-ag-reflection-image':'1'});
+ if(fold===null)poly(v.reflected,{fill:'#f3d9a8','fill-opacity':.35,stroke:'#b56d2c','stroke-width':2.2,'stroke-dasharray':'6 4','data-ag-reflection-image':'1'});
+ else {
+   // Local coordinates along and perpendicular to the proposed fold line.
+   // Clip one half of the original before projecting its hinge rotation.
+   const o=map(v.origin),u=v.u,n=v.normal,local=m.points.map(p=>{const delta=labSub(p,v.origin);return [labDot(delta,u)*s,labDot(delta,n)*s]}),id='ag-fold-'+Math.random().toString(36).slice(2),g=add('g',{transform:'matrix('+[u[0],u[1],n[0],n[1],o[0],o[1]].join(' ')+')','data-ag-fold-layer':'1'}),defs=document.createElementNS(ns,'defs'),clip=document.createElementNS(ns,'clipPath'),rect=document.createElementNS(ns,'rect');
+   clip.id=id;rect.setAttribute('x','-500');rect.setAttribute('y','0');rect.setAttribute('width','1000');rect.setAttribute('height','500');clip.append(rect);defs.append(clip);svg.prepend(defs);
+   const hinge=document.createElementNS(ns,'g'),piece=document.createElementNS(ns,'polygon');hinge.setAttribute('transform','scale(1 '+Math.cos(Math.PI*fold)+')');hinge.setAttribute('data-ag-fold-progress',String(fold));piece.setAttribute('points',local.map(p=>p.join(',')).join(' '));piece.setAttribute('clip-path','url(#'+id+')');piece.setAttribute('fill','#f3d9a8');piece.setAttribute('fill-opacity','.8');piece.setAttribute('stroke','#b56d2c');piece.setAttribute('stroke-width','2');hinge.append(piece);g.append(hinge);
+ }
  const ends=[labAt(v.origin,v.u,-v.radius*1.55),labAt(v.origin,v.u,v.radius*1.55)];
  line(...ends,{stroke:'#476e9f','stroke-width':2.5,'stroke-dasharray':'8 4','data-ag-reflection-mirror':'1'});
  const i=m.points.reduce((best,p,k)=>labDist(p,v.feet[k])>labDist(m.points[best],v.feet[best])?k:best,0);
- const p=m.points[i],q=v.reflected[i],f=v.feet[i];line(p,q,{stroke:'#476e9f','stroke-width':1.5,'stroke-dasharray':'3 3','data-ag-reflection-perpendicular':'1'});
+ const p=m.points[i],q=v.reflected[i],f=v.feet[i];if(fold===null){line(p,q,{stroke:'#476e9f','stroke-width':1.5,'stroke-dasharray':'3 3','data-ag-reflection-perpendicular':'1'});
  if(labDist(p,f)>v.radius*.02){const n=labSub(p,f).map(x=>x/labDist(p,f)),k=v.radius*.075,corner=[labAt(f,v.u,k),labAt(labAt(f,v.u,k),n,k),labAt(f,n,k)];add('polyline',{points:corner.map(x=>map(x).join(',')).join(' '),fill:'none',stroke:'#476e9f','stroke-width':1.4,'data-ag-reflection-right-angle':'1'})}
- dot(p,'#277b70');dot(q,'#b56d2c');dot(f,'#476e9f');
- label(210,278,v.matches?'The mirror line is an axis of symmetry':'The mirror line is not an axis of symmetry',{'font-weight':700,fill:v.matches?'#175e55':'#85551f','data-ag-reflection-result':'1'});
- label(210,300,v.axes.length+' reflection '+(v.axes.length===1?'axis':'axes')+' · corresponding points are equidistant');
+ dot(p,'#277b70');dot(q,'#b56d2c');dot(f,'#476e9f');}else{const h=map(ends[1]);add('circle',{cx:h[0],cy:h[1],r:10,fill:'#fff',stroke:'#476e9f','stroke-width':2,'data-ag-fold-handle':'1'});}
+ label(210,278,v.matches?'Both halves fit exactly':'The halves do not fit exactly',{'font-weight':700,fill:v.matches?'#175e55':'#85551f','data-ag-reflection-result':'1'});
+ label(210,300,v.axes.length+' possible line'+(v.axes.length===1?'':'s')+' of symmetry');
  return svg;
 }
 function mountReflectionReference(container,m,demo){
- let angle=Math.max(0,Math.min(180,Number(demo.symmetryReflectionAngle)||0)),offset=Math.max(-25,Math.min(25,Number(demo.symmetryReflectionOffset)||0));
+ let angle=Math.max(0,Math.min(180,Number(demo.symmetryReflectionAngle)||0)),offset=Math.max(-25,Math.min(25,Number(demo.symmetryReflectionOffset)||0)),fold=0,token=0,drag=null;
  const section=document.createElement('section');section.className='gd-ag-reflection-reference';section.dataset.agReflectionReference='1';
- section.innerHTML='<h4>Investigate reflection symmetry</h4><p>Change the mirror line. Does the reflected outline coincide with the original?</p><div data-ag-reflection-picture></div><label>Mirror direction <output data-ag-mirror-angle-value></output><input type="range" min="0" max="180" step="any" data-ag-mirror-angle aria-label="Mirror line direction in degrees"></label><label>Mirror position <output data-ag-mirror-offset-value></output><input type="range" min="-25" max="25" step="1" data-ag-mirror-offset aria-label="Mirror line displacement"></label><div class="gd-row"><button type="button" class="gd-btn" data-ag-mirror-reset>Reset</button><button type="button" class="gd-btn" data-ag-mirror-next-axis>Next symmetry axis</button></div>';
- const direction=section.querySelector('[data-ag-mirror-angle]'),position=section.querySelector('[data-ag-mirror-offset]'),axes=reflectionInvestigation(m).axes,show=()=>{demo.symmetryReflectionAngle=angle;demo.symmetryReflectionOffset=offset;direction.value=angle;position.value=offset;section.querySelector('[data-ag-mirror-angle-value]').textContent=Number(angle.toFixed(2))+'°';section.querySelector('[data-ag-mirror-offset-value]').textContent=offset===0?'Through centre':Math.abs(offset)+'% of radius '+(offset>0?'(+ side)':'(− side)');section.querySelector('[data-ag-reflection-picture]').replaceChildren(reflectionReferenceGraphic(m,angle,offset))};
- direction.oninput=()=>{angle=Number(direction.value);show()};position.oninput=()=>{offset=Number(position.value);show()};
- section.querySelector('[data-ag-mirror-reset]').onclick=()=>{angle=0;offset=0;show()};
- const next=section.querySelector('[data-ag-mirror-next-axis]');next.disabled=!axes.length;if(!axes.length)next.textContent='No symmetry axes';
- next.onclick=()=>{if(!axes.length)return;angle=offset!==0&&axes.some(v=>Math.abs(v-angle)<1e-8)?angle:axes.find(v=>v>angle+1e-8)??axes[0];offset=0;show()};
+ section.innerHTML='<h4>Fold the shape</h4><p>Drag the blue end of the fold line. Fold the orange half over the green shape. Do both halves fit?</p><div data-ag-reflection-picture></div><div class="gd-row"><button type="button" class="gd-btn gd-btn--primary" data-ag-fold-play>Fold shape</button><button type="button" class="gd-btn" data-ag-mirror-next-axis>Show a symmetry line</button><button type="button" class="gd-btn" data-ag-mirror-reset>Reset</button></div><details data-ag-reflection-advanced><summary>Explore an exact mirror line</summary><label>Mirror direction <output data-ag-mirror-angle-value></output><input type="range" min="0" max="180" step="any" data-ag-mirror-angle aria-label="Mirror line direction in degrees"></label><label>Mirror position <output data-ag-mirror-offset-value></output><input type="range" min="-25" max="25" step="1" data-ag-mirror-offset aria-label="Mirror line displacement"></label></details>';
+ const q=s=>section.querySelector(s),direction=q('[data-ag-mirror-angle]'),position=q('[data-ag-mirror-offset]'),axes=reflectionInvestigation(m).axes,picture=q('[data-ag-reflection-picture]'),advanced=q('[data-ag-reflection-advanced]'),play=q('[data-ag-fold-play]');
+ const show=()=>{demo.symmetryReflectionAngle=angle;demo.symmetryReflectionOffset=offset;direction.value=angle;position.value=offset;q('[data-ag-mirror-angle-value]').textContent=Number(angle.toFixed(2))+'°';q('[data-ag-mirror-offset-value]').textContent=offset===0?'Through centre':Math.abs(offset)+'% of radius '+(offset>0?'(+ side)':'(− side)');picture.replaceChildren(reflectionReferenceGraphic(m,angle,offset,advanced.open?null:fold));play.textContent=fold===1?'Unfold shape':'Fold shape'};
+ const resetFold=()=>{token++;fold=0};
+ const move=e=>{if(!drag||drag.id!==e.pointerId)return;e.preventDefault();const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(drag.inverse),a=mod(Math.atan2(137-p.y,p.x-210)/D+180)%180;angle=a;offset=0;const nearest=axes.find(v=>Math.min(Math.abs(v-a),180-Math.abs(v-a))<2);if(nearest!==undefined)angle=nearest;show()};
+ picture.addEventListener('pointerdown',e=>{const matrix=picture.querySelector('svg')?.getScreenCTM();if(!e.target.closest('[data-ag-fold-handle]')||!matrix||e.button!==0)return;resetFold();drag={id:e.pointerId,inverse:matrix.inverse()};e.preventDefault();try{picture.setPointerCapture(e.pointerId)}catch(_){}});
+ picture.addEventListener('pointermove',move);for(const event of ['pointerup','pointercancel','lostpointercapture'])picture.addEventListener(event,e=>{if(drag?.id===e.pointerId)drag=null});
+ play.onclick=()=>{const id=++token,from=fold,to=fold===1?0:1,start=performance.now();if(advanced.open)advanced.open=false;if(global.matchMedia?.('(prefers-reduced-motion: reduce)').matches){fold=to;show();return}const frame=now=>{if(id!==token||!section.isConnected)return;const t=Math.min(1,(now-start)/850);fold=from+(to-from)*t;show();if(t<1)requestAnimationFrame(frame)};requestAnimationFrame(frame)};
+ direction.oninput=()=>{resetFold();angle=Number(direction.value);show()};position.oninput=()=>{resetFold();offset=Number(position.value);show()};advanced.ontoggle=show;
+ q('[data-ag-mirror-reset]').onclick=()=>{resetFold();angle=0;offset=0;show()};
+ const next=q('[data-ag-mirror-next-axis]');next.disabled=!axes.length;if(!axes.length)next.textContent='No symmetry lines';
+ next.onclick=()=>{if(!axes.length)return;resetFold();angle=offset!==0&&axes.some(v=>Math.abs(v-angle)<1e-8)?angle:axes.find(v=>v>angle+1e-8)??axes[0];offset=0;show()};
  container.appendChild(section);show();
 }
+
 function quadrilateralFamilyGraphic(f){
  const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),W=600,H=356;
  const add=(tag,attrs,value)=>{const el=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,v);if(value!=null)el.textContent=value;svg.append(el);return el};
