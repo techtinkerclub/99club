@@ -162,6 +162,12 @@ async function run(){
   assert(Math.abs(floatingAfter.left-floatingBefore.left)>40||Math.abs(floatingAfter.top-floatingBefore.top)>30,'Floating settings palette can be dragged away from the manipulative');
   floatingSettings.querySelector('[data-board-controls-close]').click();await tick();
   assert(!visible(floatingSettings)&&!money.classList.contains('has-settings'),'Floating settings palette closes independently without removing the widget');
+  const helpFixture={title:'UK money',intro:'Count the coins.',steps:['Choose a coin','Add it to the board'],example:'Two 10p coins make 20p.',history:'UK currency uses pounds and pence.'};
+  window.dispatchEvent(new MessageEvent('message',{origin:location.origin,source:money.querySelector('iframe').contentWindow,data:{type:'tt99-board-help',help:helpFixture}}));await tick(70);
+  assert(visible(floatingSettings)&&floatingSettings.dataset.panelMode==='help'&&floatingSettings.getAttribute('aria-label')==='Manipulative help','Help opens through the shared board inspector with correct identity');
+  assert(floatingSettings.querySelectorAll('.gd-board-help-steps li').length===2&&floatingSettings.querySelector('.gd-board-help-example').textContent.includes(helpFixture.example)&&!floatingSettings.querySelector('.gd-board-help-history').open,'Help preserves steps and example with optional history collapsed');
+  floatingSettings.querySelector('[data-board-controls-close]').click();await tick();
+  assert(!visible(floatingSettings)&&!money.classList.contains('has-settings'),'Help closes independently');
   context.click();
   assert(money.classList.contains('has-context-menu'),'Context menu can be reopened while the object remains focused');
   context.click();
