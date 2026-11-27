@@ -1524,6 +1524,20 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const at=M.labMeasurementTarget(angleScene,anglePose,1);
       assert(at?.names.join('')==='BAC'&&M.labApplyMeasurement(angleScene,at),'Protractor matches actual vertex and named arms');
       const values=[];M.labNotation(angleScene,()=>{},(_,v)=>values.push(v));assert(values.join('')==='34.3°','Persistent angle uses exact geometry and display precision');
+      {
+        const o=[400,340],at=a=>[o[0]+240*Math.cos(a*Math.PI/180),o[1]-240*Math.sin(a*Math.PI/180)],s={...M.labEmpty(true),points:[o,at(0),at(44.55),at(89.1)],names:['O','A','Z','B'],segments:[[0,1],[0,2],[0,3]],measurementPrecision:2};
+        s.angleNotation=[['A','O','B'],['A','O','Z'],['Z','O','B']].map(names=>({names,kind:'angle1',labelMode:'measured'}));
+        const original=JSON.stringify(s),bounds=[0,0,800,680],plan=M.labAnnotationPlan(s,bounds),labels=plan.labels.map(([p,v])=>M.labelBox(p,0,v,13));
+        assert(plan.labels.map(a=>a[1]).join(',')==='89.10°,44.55°,44.55°','Bisector annotation plan preserves all three measured values');
+        assert(labels.every((box,i)=>labels.slice(i+1).every(other=>!M.boxesOverlap(box,other))),'Nested bisector labels reserve distinct positions');
+        const dim=M.dimensionPlacement(o,s.points[2],'6.00 cm',{occupied:plan.boxes,lines:s.segments.map(e=>e.map(i=>s.points[i])),bounds});
+        assert(dim&&labels.every(b=>!M.boxesOverlap(b,dim.box)),'Length label avoids reserved angle labels');
+        assert(JSON.stringify(s)===original,'Annotation layout never mutates construction');
+        assert(JSON.stringify(M.labAnnotationPlan(s,bounds).labels)===JSON.stringify(plan.labels),'Annotation plan is deterministic');
+        s.angleNotation[1].labelOffset=[120,75];const moved=M.labAnnotationPlan(s,bounds);assert(moved.labels[1][0].join(',')==='520,415','Manual label location is preserved');
+        s.rays=[{i:0,angle:110,relativeTo:'A',relativeAngle:110,mark:{base:'A',hand:1}}];
+        const mixed=M.labAnnotationPlan(s,bounds);assert(mixed.automatic.length===1&&/ A 75 75 /.test(mixed.automatic[0][0]),'Automatic construction arc reserves a separate radius from explicit marks');
+      }
       assert(!M.labMeasurementTarget(angleScene,{...anglePose,reading:40},1),'Unaligned measuring arm cannot annotate');
       angleScene.angleNotation[0].labelMode='custom';angleScene.angleNotation[0].label='x';M.labApplyMeasurement(angleScene,at);assert(angleScene.angleNotation.length===1&&angleScene.angleNotation[0].labelMode==='measured','Reapplying measurement edits existing annotation rather than duplicating');
       angleScene.segments=[[0,1]];angleScene.rays=[{i:0,angle:34.27,relativeTo:'C',relativeAngle:0,construction:false}];assert(M.labMeasurementTarget(angleScene,anglePose,1)?.names.join('')==='BAC','Referenced ray can serve as measured angle arm');
