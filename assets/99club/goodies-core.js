@@ -131,12 +131,12 @@ function instrumentBegin(t,p,handle,id){return {id,t,p:p.slice(),x:t.x,y:t.y,ang
 function instrumentMove(d,p,scale,{spec,step=4,align,read,precision=1}={}){
  if(!d.moved&&Math.hypot(p[0]-d.p[0],p[1]-d.p[1])*scale<4)return false;
  d.moved=true;const t=d.t;
- if(d.handle==='rotate')t.angle=instrumentMod(Number((d.angle+instrumentAngle([d.x,d.y],p)-d.startAngle).toFixed(precision)));
+ if(d.handle==='rotate')t.angle=instrumentMod(d.angle+instrumentAngle([d.x,d.y],p)-d.startAngle);
  else if(d.handle==='measure'){
   // Use the original gesture centre for hit testing to avoid snap feedback.
   t.x=d.x;t.y=d.y;
   const raw=instrumentMod(t.hand*(instrumentAngle([d.x,d.y],p)-t.angle)),a=raw<=180?raw:raw<270?180:0,result=read?.(t,a,scale);
-  d.rawReading=Number(a.toFixed(precision));d.candidate=result?.kind?result:null;
+  d.rawReading=a;d.candidate=result?.kind?result:null;
   t.reading=d.candidate?.reading??d.rawReading;t.x=d.candidate?.x??d.x;t.y=d.candidate?.y??d.y;return true;
  }else if(d.handle==='resize'){
   const axis=(d.angle+(t.kind==='protractor'?90*t.hand:0))*Math.PI/180,delta=(p[0]-d.p[0])*Math.cos(axis)-(p[1]-d.p[1])*Math.sin(axis);
@@ -154,7 +154,7 @@ function instrumentFinish(d,commit){
  return t;
 }
 // Shared movable utensil controller. All geometry and snapping rules are host supplied.
-const D=Math.PI/180,mod=instrumentMod,labAngle=instrumentAngle,labDist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]),labSub=(a,b)=>[a[0]-b[0],a[1]-b[1]],labDot=(a,b)=>a[0]*b[0]+a[1]*b[1],labAt=(a,v,t)=>[a[0]+v[0]*t,a[1]+v[1]*t],polar=(x,y,r,a)=>[Math.round((x+r*Math.cos(a*D))*1000)/1000,Math.round((y-r*Math.sin(a*D))*1000)/1000];
+const D=Math.PI/180,mod=instrumentMod,labAngle=instrumentAngle,labDist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]),labSub=(a,b)=>[a[0]-b[0],a[1]-b[1]],labDot=(a,b)=>a[0]*b[0]+a[1]*b[1],labAt=(a,v,t)=>[a[0]+v[0]*t,a[1]+v[1]*t],polar=(x,y,r,a)=>[x+r*Math.cos(a*D),y-r*Math.sin(a*D)];
 const INSTRUMENT_ICONS={
     duplicate:'<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>',
     select:'<path d="M4 3l15 10-7 1-3 7Z"/>',
@@ -329,7 +329,7 @@ const INSTRUMENT_ICONS={
  // Preserve exact snapped geometry internally; round only the displayed result.
  function instrumentReading({lines},t,raw,scale){
    const hand=t.hand===-1?-1:1,origin=[t.x,t.y],relative=a=>mod(hand*(a-t.angle)),wanted=Math.max(0,Math.min(180,raw)),tol=12/Math.max(.001,scale),candidates=[];
-   const fallback={reading:Math.round(wanted*10)/10,kind:''};if(!t.snap)return fallback;
+   const fallback={reading:wanted,kind:''};if(!t.snap)return fallback;
    const base=[Math.cos(t.angle*D),-Math.sin(t.angle*D)],cross=(a,b)=>a[0]*b[1]-a[1]*b[0];
    for(const {a,b,ray,infinite} of lines){
      const v=labSub(b,a),len=Math.hypot(...v);if(len<1e-8)continue;
