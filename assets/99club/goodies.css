@@ -2524,3 +2524,13 @@ html.gd-ag-full-page.gd-embed-page #gd-stage.gd-ag-full-stage>:not(.gd-ag-full-b
 #tt99-goodies-root .gd-board-controls-grip{flex:none;color:#5b8279;font-size:17px;line-height:1}
 #tt99-goodies-root .gd-board-floating-controls-body{min-width:0;min-height:0;overflow:auto;overscroll-behavior:contain}
 @media(pointer:coarse){#tt99-goodies-root .gd-board-floating-controls-head button{width:44px;height:44px;min-width:44px}}
+
+/* Publisher navigation remains reachable while long question sets are configured. */
+.gd-pub-editor-header{position:sticky;top:0;z-index:5;background:#fff}
+.gd-pub-editor-header .gd-pub-head{padding:8px 12px;gap:8px}
+.gd-pub-editor-header .gd-pub-head strong{font-size:16px}
+.gd-pub-editor-header .gd-pub-nav{padding:5px 10px;gap:5px}
+.gd-pub-editor-header .gd-pub-nav button{flex:1 1 auto;min-width:0}
+.gd-pub-builder-footer{position:sticky;bottom:0;z-index:4;background:#fff;border-top:1px solid #dce6e3;border-bottom:0;padding:8px 12px;box-shadow:0 -3px 12px #24343b0d}
+.gd-pub-config-head{flex-wrap:wrap}
+@media(max-width:680px){.gd-pub-builder{min-height:0}.gd-pub-editor-header .gd-pub-head{padding:6px 9px}.gd-pub-editor-header .gd-pub-nav{padding:4px 8px}.gd-pub-builder-footer{padding:6px 9px}}
