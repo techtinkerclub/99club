@@ -143,7 +143,107 @@ function instrumentMove(d,p,scale,{spec,step=4,align,read}={}){
  d.candidate=t.snap?align?.(t,d.handle||'move',scale)||null:null;return true;
 }
 function instrumentFinish(d,commit){if(commit&&d.candidate)for(const key of ['x','y','angle','reading'])if(d.candidate[key]!==undefined)d.t[key]=d.candidate[key];return d.t}
-const instruments={rulerGraduations,ruler:rulerInstrument,protractor:protractorInstrument,setSquare:setSquareInstrument,adaptMarkings:adaptInstrumentMarkings,screenScale:instrumentScreenScale,worldPoint:instrumentWorldPoint,nearestPoint:instrumentNearestPoint,centreCue:instrumentCentreCue,beginGesture:instrumentBegin,moveGesture:instrumentMove,finishGesture:instrumentFinish};
+// Shared movable utensil controller. All geometry and snapping rules are host supplied.
+const D=Math.PI/180,mod=instrumentMod,labAngle=instrumentAngle,labDist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]),labSub=(a,b)=>[a[0]-b[0],a[1]-b[1]],labDot=(a,b)=>a[0]*b[0]+a[1]*b[1],labAt=(a,v,t)=>[a[0]+v[0]*t,a[1]+v[1]*t],polar=(x,y,r,a)=>[Math.round((x+r*Math.cos(a*D))*1000)/1000,Math.round((y-r*Math.sin(a*D))*1000)/1000];
+const INSTRUMENT_ICONS={
+    duplicate:'<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>',
+    select:'<path d="M4 3l15 10-7 1-3 7Z"/>',
+    move:'<path d="M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"/>',
+    trace:'<path d="M3 19C5 6 12 20 16 8S21 5 21 5" stroke-dasharray="2 3"/><circle cx="21" cy="5" r="2" fill="currentColor"/>',
+    point:'<circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/><path d="M12 3v4m0 10v4M3 12h4m10 0h4"/>',
+    segment:'<rect x="2.5" y="7.5" width="19" height="9" rx="1.5"/><path d="M6 8v4m4-4v2.5m4-2.5v4m4-4v2.5"/>',
+    ray:'<path d="M5 19L20 4M13 4h7v7"/><circle cx="4" cy="20" r="1.6" fill="currentColor" stroke="none"/>',
+    protractor:'<path d="M2 17a10 10 0 0 1 20 0Z M12 7v4M5 10l2.5 3M19 10l-2.5 3M3 14l3 1M21 14l-3 1"/><circle cx="12" cy="17" r="1.2" fill="currentColor" stroke="none"/>',
+    square45:'<path d="M3 3v18h18Z M7 12v5h5Z M3 17h4v4"/>',
+    square30:'<path d="M2 20h20L2 8Z M6 14v3h5Z M2 16h4v4"/>',
+    compass:'<circle cx="12" cy="5" r="2.5"/><path d="M11 7L5 21M13 7l6 14M7.5 15h9M12 2V1"/>',
+    shade:'<path d="M3 19L13 3L21 19Z" fill="currentColor" fill-opacity=".22"/><circle cx="3" cy="19" r="1.5"/><circle cx="13" cy="3" r="1.5"/><circle cx="21" cy="19" r="1.5"/>',
+    'zoom-out':'<circle cx="10" cy="10" r="6"/><path d="M7 10h6m2 5 5 5"/>','zoom-in':'<circle cx="10" cy="10" r="6"/><path d="M7 10h6m-3-3v6m5 2 5 5"/>',fit:'<path d="M3 9V3h6m6 0h6v6M3 15v6h6m6 0h6v-6"/>',
+    pan:'<path d="M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"/>',
+    expand:'<path d="M3 9V3h6m6 0h6v6M3 15v6h6m6 0h6v-6M3 3l6 6m12-6-6 6M3 21l6-6m12 6-6-6"/>',
+    erase:'<path d="M3 14l10-10a2 2 0 0 1 3 0l5 5a2 2 0 0 1 0 3l-8 8H9L3 14ZM8 9l9 9M13 20h9"/>',
+    corner:'<path d="M4 4v16h16Z M4 15h5v5"/><path d="M12 2a8 8 0 0 1 9 8m-4-3 4 3 2-4"/>',
+    flip:'<path d="M3 18l7-12v12ZM21 18L14 6v12ZM12 3v2m0 4v2m0 4v2m0 4v1"/>',
+    undo:'<path d="M8 5L3 10l5 5M3 10h11a6 6 0 0 1 0 12h-3"/>',
+    reset:'<path d="M3 11a9 9 0 1 1 2.5 7M3 4v7h7"/>',
+    snap:'<path d="M5 3v10a7 7 0 0 0 14 0V3h-5v10a2 2 0 0 1-4 0V3ZM5 8h5m4 0h5"/>',
+    measure:'<path d="M3 18h18M3 15v6m18-6v6M4 8h16M4 8l4-4M4 8l4 4m12-4-4-4m4 4-4 4"/>',
+    grid:'<rect x="3" y="3" width="18" height="18" rx="1"/><path d="M9 3v18m6-18v18M3 9h18M3 15h18"/>',help:'<circle cx="12" cy="12" r="9"/><path d="M9 8a3 3 0 1 1 4 3c-1 .5-1 1-1 2m0 3v.2"/>'
+  };
+ Object.assign(INSTRUMENT_ICONS,{ruler:INSTRUMENT_ICONS.segment,angle:INSTRUMENT_ICONS.protractor,show:INSTRUMENT_ICONS.protractor,clear:'<path d="M6 6l12 12M18 6L6 18"/>',format:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3v3M12 18v3"/>',left:INSTRUMENT_ICONS.undo,right:'<path d="m16 5 5 5-5 5m5-5H10a6 6 0 0 0 0 12"/>'});
+ function icon(id){const x=document.createElementNS('http://www.w3.org/2000/svg','svg');for(const [k,v] of Object.entries({viewBox:'0 0 24 24',fill:'none',stroke:'currentColor','stroke-width':1.65,'stroke-linecap':'round','stroke-linejoin':'round','aria-hidden':'true',focusable:'false'}))x.setAttribute(k,v);x.innerHTML=INSTRUMENT_ICONS[id]||'';return x}
+ function instrumentButton(parent,id,label,description,fn,group='agTool'){const b=document.createElement('button');b.type='button';b.className='gd-btn gd-ag-lab-button';b.dataset[group]=id;b.title=description;b.setAttribute('aria-label',description);const t=document.createElement('span');t.textContent=label;b.append(icon(id),t);b.onclick=fn;parent.append(b);return b}
+
+ function localInstrumentActions(svg,anchor,label,actions,group){
+   const N='http://www.w3.org/2000/svg',m=svg.getScreenCTM();if(!m)return;
+   const scale=Math.hypot(m.a,m.b)||1,v=svg.viewBox.baseVal,unit=1/scale,buttonSize=46,rows=v.width*scale<Math.max(84,label.length*7)+actions.length*(buttonSize+4)+16?2:1,w=Math.min(v.width-8*unit,(Math.max(84,label.length*7)+actions.length*(buttonSize+4)+16)*unit),h=(rows===1?54:108)*unit;
+   const x=Math.max(v.x+4*unit,Math.min(v.x+v.width-w-4*unit,anchor[0]-w/2)),y=Math.max(v.y+4*unit,Math.min(v.y+v.height-h-4*unit,anchor[1]+34*unit));
+   const fo=document.createElementNS(N,'foreignObject');for(const [k,val] of Object.entries({x,y,width:w,height:h,'data-ag-local-instrument':'1'}))fo.setAttribute(k,val);
+   const bar=document.createElement('div');bar.className='gd-ag-local-instrument';bar.style.width=w*scale+'px';bar.style.height=(h*scale)+'px';bar.style.flexWrap=rows===2?'wrap':'nowrap';bar.style.transformOrigin='top left';
+   // foreignObject content is in SVG units: compensate for zoom.
+   bar.style.transform='scale('+unit+')';const name=document.createElement('span');name.textContent=label;bar.append(name);
+   for(const [id,desc,glyph,fn,pressed] of actions){const b=document.createElement('button');b.type='button';b.dataset[group]=id;b.title=desc;b.setAttribute('aria-label',desc);if(pressed!==undefined)b.setAttribute('aria-pressed',String(pressed));b.append(icon(glyph));b.onclick=e=>{e.stopPropagation();fn()};bar.append(b)}
+   for(const type of ['pointerdown','pointermove','pointerup','click','wheel'])fo.addEventListener(type,e=>e.stopPropagation());fo.append(bar);svg.append(fo);return fo
+ }
+
+ function measuringUtensils(parent,getSvg,onPaint,{unitsPerCm=40,align=null,read=null,kinds=['ruler','protractor','square45','square30'],initialOpen=false,showReadout=true}={}){
+   const N='http://www.w3.org/2000/svg',specs={ruler:{label:'Ruler',size:400,min:2*unitsPerCm,max:100*unitsPerCm},protractor:{label:'Protractor',size:170,min:3*unitsPerCm,max:30*unitsPerCm},square45:{label:'45° set square',size:200,min:2*unitsPerCm,max:50*unitsPerCm},square30:{label:'30°–60° set square',size:200,min:2*unitsPerCm,max:50*unitsPerCm}};
+   let items=[],selected=null,next=1,drag=null,opened=initialOpen,visible=true;
+   const bar=document.createElement('div');bar.className='gd-ag-utensils gd-ag-lab-helpers';bar.hidden=true;bar.setAttribute('role','group');bar.setAttribute('aria-label','Measuring utensils');parent.append(bar);
+   const additions=document.createElement('div');additions.className='gd-ag-lab-actions';bar.append(additions);
+   const actions=document.createElement('div');actions.className='gd-ag-lab-actions';bar.append(actions);
+   const node=(p,tag,attrs,value)=>{const e=document.createElementNS(N,tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,v);if(value!==undefined)e.textContent=value;p.append(e);return e};
+   function add(kind){const svg=getSvg(),v=svg.viewBox.baseVal,k=items.length%5;visible=true;opened=true;const p={id:String(next++),kind,x:v.x+v.width*.32+k*18,y:v.y+v.height*.52+k*18,angle:0,size:specs[kind].size*unitsPerCm/40,snap:true,reading:45,hand:1};items.push(p);selected=p.id;onPaint()}
+   for(const [kind,spec] of Object.entries(specs).filter(([kind])=>kinds.includes(kind)))instrumentButton(additions,kind,spec.label,'Add '+spec.label,()=>add(kind),'agUtensilAdd');
+   const hide=instrumentButton(actions,'select','Hide utensils','Hide or show measuring utensils',()=>{visible=!visible;selected=null;onPaint()},'agUtensilAction');hide.dataset.agUtensilAction='visibility';
+   function removeSelected(){items=items.filter(t=>t.id!==selected);selected=null;onPaint()}
+   function rotateSelected(){const t=items.find(t=>t.id===selected);if(t){t.angle=mod(t.angle+15);onPaint()}}
+   const label=document.createElement('span');label.className='gd-ag-inspect-message';bar.append(label);
+   function paint(svg){
+     bar.hidden=!opened;hide.hidden=!items.length;hide.querySelector('span').textContent=visible?'Hide utensils':'Show utensils';hide.setAttribute('aria-pressed',String(!visible));const chosen=items.find(t=>t.id===selected);label.textContent='Add a utensil. Select it on the board for its controls.';
+     if(!visible)return;
+     const layer=node(svg,'g',{'data-ag-utensil-layer':'1'});
+     for(const t of [...items.filter(t=>t.id!==selected),...items.filter(t=>t.id===selected)]){
+       const g=node(layer,'g',{'data-ag-utensil':t.id,'data-ag-utensil-kind':t.kind,'data-ag-utensil-angle':t.angle,'data-ag-utensil-size':t.size,'data-ag-utensil-selected':String(t.id===selected),transform:'translate('+t.x+' '+t.y+') rotate('+(-t.angle)+')',cursor:'move'});
+       if(t.kind==='ruler')instruments.ruler(g,{width:t.size,length:t.size/unitsPerCm,height:44,tickHeight:23,labelSize:11,nonScaling:false});
+       else if(t.kind==='protractor')instruments.protractor(g,{radius:t.size,direction:t.hand});
+       else instruments.setSquare(g,{points:[[0,0],[t.size,0],[0,-(t.kind==='square45'?t.size:t.size*Math.sqrt(3))]],angles:t.kind==='square45'?[90,45,45]:[90,60,30],kind:t.kind,unitsPerCm:unitsPerCm});
+       if(t.id===selected){
+         const scale=Math.hypot(svg.getScreenCTM()?.a||1,svg.getScreenCTM()?.b||0),r=Math.max(6,Math.min(400,18/scale)),arm=t.size+3*r,resize=t.kind==='protractor'?[0,-t.size*t.hand]:[t.size,0];
+         node(g,'line',{x1:t.size,y1:0,x2:arm,y2:0,stroke:'#b45309','stroke-width':1.5,'stroke-dasharray':'4 4','pointer-events':'none'});
+         node(g,'circle',{cx:0,cy:0,r:r*.45,fill:'#b45309','pointer-events':'none'});
+         node(g,'circle',{cx:arm,cy:0,r,fill:'#fff',stroke:'#b45309','stroke-width':2,'data-ag-utensil-handle':'rotate',cursor:'grab','aria-label':'Rotate utensil'});
+         node(g,'path',{d:'M '+(arm-r*.55)+' 0 a '+(r*.55)+' '+(r*.55)+' 0 1 1 '+(r*.55)+' '+(r*.55),fill:'none',stroke:'#b45309','stroke-width':1.5,'pointer-events':'none'});
+         node(g,'rect',{x:resize[0]-r,y:resize[1]-r,width:2*r,height:2*r,rx:r*.22,fill:'#fff',stroke:'#16796e','stroke-width':2,'data-ag-utensil-handle':'resize',cursor:'grab','aria-label':'Resize utensil'});
+         if(t.kind==='protractor'&&showReadout){const a=t.reading*t.hand*D,q=[Math.cos(a)*t.size,-Math.sin(a)*t.size],h=q.map(v=>v*.68),rr=Math.min(r,t.size*.12);node(g,'line',{x1:0,y1:0,x2:q[0],y2:q[1],stroke:'#16796e','stroke-width':1.8,'vector-effect':'non-scaling-stroke','pointer-events':'none','data-ag-protractor-arm':'1'});node(g,'circle',{cx:h[0],cy:h[1],r:rr,fill:'#fff',stroke:'#16796e','stroke-width':2,'data-ag-utensil-handle':'measure','aria-label':'Drag measuring arm',cursor:'grab'});const mid=t.hand*t.reading*.5*D,dist=t.size*.34;node(g,'text',{x:Math.cos(mid)*dist,y:-Math.sin(mid)*dist,'text-anchor':'middle','dominant-baseline':'central','font-size':Math.max(10,t.size*.095),fill:'#165e55','paint-order':'stroke',stroke:'#fff','stroke-width':3,'pointer-events':'none','data-ag-protractor-reading':'1'},t.reading.toFixed(1)+'°')}
+         const [rx,ry]=resize;node(g,'path',{d:t.kind==='protractor'?'M '+rx+' '+(ry-r*.65)+' v '+(r*1.3)+' m '+(-r*.28)+' '+(-r*.28)+' l '+(r*.28)+' '+(r*.28)+' '+(r*.28)+' '+(-r*.28):'M '+(rx-r*.65)+' '+ry+' h '+(r*1.3)+' m '+(-r*.28)+' '+(-r*.28)+' l '+(r*.28)+' '+(r*.28)+' '+(-r*.28)+' '+(r*.28),stroke:'#16796e','stroke-width':1.8,fill:'none','pointer-events':'none'});
+       }
+     }
+     if(drag?.candidate){const c=drag.candidate,t=drag.t,q=[c.x??t.x,c.y??t.y],u=1/(Math.hypot(svg.getScreenCTM()?.a||1,svg.getScreenCTM()?.b||0));node(layer,'circle',{cx:q[0],cy:q[1],r:8*u,fill:'none',stroke:'#16796e','stroke-width':2*u,'pointer-events':'none','data-ag-utensil-snap-preview':c.kind});if(c.angle!==undefined||c.reading!==undefined){const end=polar(...q,t.size,c.angle??t.angle+t.hand*c.reading);node(layer,'line',{x1:q[0],y1:q[1],x2:end[0],y2:end[1],stroke:'#16796e','stroke-width':2*u,'stroke-dasharray':(4*u)+' '+(3*u),'pointer-events':'none'})}}
+     if(chosen&&!drag){const angle=chosen.angle,anchor=polar(chosen.x,chosen.y,chosen.kind==='ruler'?chosen.size*.5:0,angle),size=Number((chosen.size/unitsPerCm).toFixed(1));localInstrumentActions(svg,anchor,chosen.kind==='ruler'?size+' cm':chosen.kind==='protractor'?(showReadout?chosen.reading.toFixed(1)+'°':'Protractor'):size+' cm base',[...(chosen.kind==='protractor'?[['flip','Flip measuring side','flip',()=>{chosen.hand*=-1;onPaint()}]]:[]),['snap',chosen.snap?'Turn magnetic alignment off':'Turn magnetic alignment on','snap',()=>{chosen.snap=!chosen.snap;onPaint()},chosen.snap],['rotate','Rotate 15°','reset',rotateSelected],['duplicate','Duplicate','duplicate',()=>{const copy={...chosen,id:String(next++),x:chosen.x+24,y:chosen.y+24};items.push(copy);selected=copy.id;onPaint()}],['remove','Remove','erase',removeSelected]],'agUtensilAction')}
+   }
+   function locate(e){return instruments.worldPoint(getSvg(),e)}
+   function down(e){if(e.target.closest?.('[data-ag-local-instrument]'))return;if(e.button!==0||!visible)return;const target=e.target.closest?.('[data-ag-utensil]');if(!target){if(selected){selected=null;onPaint()}return}const t=items.find(t=>t.id===target.dataset.agUtensil),p=locate(e);if(!t||!p)return;e.preventDefault();e.stopImmediatePropagation();selected=t.id;opened=true;drag=instruments.beginGesture(t,p,e.target.closest('[data-ag-utensil-handle]')?.getAttribute('data-ag-utensil-handle'),e.pointerId);try{getSvg().setPointerCapture(e.pointerId)}catch(_){}onPaint()}
+   function move(e){if(drag?.id!==e.pointerId)return;const p=locate(e);if(!p)return;e.preventDefault();e.stopImmediatePropagation();const changed=instruments.moveGesture(drag,p,instruments.screenScale(getSvg()),{spec:specs[drag.t.kind],step:unitsPerCm/10,align,read});if(changed)onPaint()}
+   function finish(e){if(drag?.id!==e.pointerId)return;instruments.finishGesture(drag,e.type==='pointerup');drag=null;e.stopImmediatePropagation();onPaint()}
+   const svg=getSvg();svg.addEventListener('pointerdown',down,true);svg.addEventListener('pointermove',move,true);for(const type of ['pointerup','pointercancel','lostpointercapture'])svg.addEventListener(type,finish,true);
+   function nearMeasuringEdge(p){
+     if(!visible)return null;
+     const m=getSvg().getScreenCTM(),tol=Math.min(8,4/Math.max(.001,Math.hypot(m?.a||1,m?.b||0))),matches=[];
+     for(const t of items){
+       const a=[t.x,t.y],b=polar(...a,t.size,t.angle);
+       const near=(u,v)=>{const d=labSub(v,u),k=Math.max(0,Math.min(1,labDot(labSub(p,u),d)/(labDot(d,d)||1))),distance=labDist(p,labAt(u,d,k));if(distance<=tol)matches.push({angle:labAngle(u,v),distance,selected:t.id===selected})};
+       if(t.kind==='protractor')near(polar(...a,t.size,t.angle+180),b);
+       else if(t.kind.startsWith('square')){const c=polar(...a,t.size*(t.kind==='square30'?Math.sqrt(3):1),t.angle+90);near(a,b);near(a,c);near(b,c)}
+       else near(a,b);
+     }
+     matches.sort((a,b)=>Number(b.selected)-Number(a.selected)||a.distance-b.distance);
+     return matches[0]||null;
+   }
+   return {bar,paint,nearMeasuringEdge,add,clear:()=>{items=[];selected=null;drag=null;onPaint()},toggle:()=>{opened=!opened;if(!opened)selected=null;onPaint()},isOpen:()=>opened};
+ }
+
+const instruments={rulerGraduations,ruler:rulerInstrument,protractor:protractorInstrument,setSquare:setSquareInstrument,adaptMarkings:adaptInstrumentMarkings,screenScale:instrumentScreenScale,worldPoint:instrumentWorldPoint,nearestPoint:instrumentNearestPoint,centreCue:instrumentCentreCue,beginGesture:instrumentBegin,moveGesture:instrumentMove,finishGesture:instrumentFinish,movable:measuringUtensils,icon,button:instrumentButton,localActions:localInstrumentActions};
 
 global.TT99Goodies={instruments,root,CATS,q,qa,esc,clamp,num,gcd,money,field,btn,setPanels,lessonState};
 })(window);

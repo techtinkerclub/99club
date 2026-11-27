@@ -1190,15 +1190,18 @@ function mountMeasureDrawing(host,c){
  const bar=document.createElement('div');bar.className='gd-row';bar.style.cssText='justify-content:center;align-items:center;flex-wrap:wrap;gap:8px';
  const clear=document.createElement('button');clear.type='button';clear.className='gd-btn';clear.textContent='Reset ruler';clear.dataset.meResetRuler='1';
  const flip=document.createElement('button');flip.type='button';flip.className='gd-btn';flip.textContent='Flip ruler';flip.dataset.meFlipRuler='1';
- const hint=document.createElement('span');hint.className='gd-help';hint.setAttribute('role','status');bar.append(clear,flip,hint);host.replaceChildren(bar,svg);
+ const hint=document.createElement('span');hint.className='gd-help';hint.setAttribute('role','status');const mode=document.createElement('button');mode.type='button';mode.className='gd-btn';mode.textContent='Free ruler';mode.dataset.meFreeRuler='1';mode.setAttribute('aria-pressed','false');
+ const utensilsHost=document.createElement('div');utensilsHost.hidden=true;bar.append(clear,flip,mode,hint);host.replaceChildren(bar,utensilsHost,svg);
  const N='http://www.w3.org/2000/svg',layer=document.createElementNS(N,'g');layer.setAttribute('pointer-events','none');layer.dataset.meRulerOverlay='1';svg.append(layer);
- let first=null,second=null,hover=null,side=1;
+ let first=null,second=null,hover=null,side=1,free=false,utensils=null;
  const points=c.measurement.points;
  const distance=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
  function node(name,attrs){const e=document.createElementNS(N,name);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,String(v)));layer.append(e);return e}
  function hit(e){const p=G.instruments.worldPoint(svg,e);if(!p)return null;return G.instruments.nearestPoint(points,p,Math.min(55,25/G.instruments.screenScale(svg)))||p}
  function paint(){
-  layer.replaceChildren();const end=second||hover;
+  layer.replaceChildren();svg.querySelectorAll(':scope > [data-ag-utensil-layer],:scope > [data-ag-local-instrument],:scope > [data-me-point-centre]').forEach(n=>n.remove());
+  if(free){hint.textContent='Drag and rotate the ruler to measure any visible edge. Read the graduations yourself.';utensils?.paint(svg);for(const [i,p] of points.entries()){const edge=utensils?.nearMeasuringEdge(p);if(edge)G.instruments.centreCue(svg,p,String(i),edge.angle)}return}
+  const end=second||hover;
   hint.textContent=first===null?'Tap the point where the ruler should start.':second===null?'Tap the other endpoint to align the ruler.':'Read the graduation at the endpoint, then enter your answer. Tap a new starting point to measure again.';
   if(first&&end&&distance(first,end)>2){
    const a=Math.atan2(first[1]-end[1],end[0]-first[0])*180/Math.PI;
@@ -1209,10 +1212,14 @@ function mountMeasureDrawing(host,c){
   const direction=first&&end&&distance(first,end)>2?Math.atan2(first[1]-end[1],end[0]-first[0])*180/Math.PI:null;
   for(const [i,p] of [first,end].entries())if(p){node('circle',{cx:p[0],cy:p[1],r:6,fill:'#fff',stroke:'#287c70','stroke-width':2});G.instruments.centreCue(svg,p,i===0?'start':'end',direction,{parent:layer})}
  }
- clear.onclick=()=>{first=second=hover=null;paint()};flip.onclick=()=>{side*=-1;paint()};
  if(c.revealed){bar.hidden=true;return}
- svg.addEventListener('pointermove',e=>{if(first&&!second){hover=hit(e);paint()}});
- svg.addEventListener('pointerdown',e=>{if(e.button!==0)return;e.preventDefault();const p=hit(e);if(!p)return;if(first===null||second){first=p;second=null;hover=null}else if(distance(first,p)>2){second=p;hover=null}paint()});
+ // Only visible geometry is passed to alignment: never the answer or target edge.
+ const scene={given:false,points,segments:c.measurement.edges.map(e=>[e.i,e.j]),rays:[],circles:[]};
+ utensils=G.instruments.movable(utensilsHost,()=>svg,paint,{unitsPerCm:ME_DRAW_UNIT,kinds:['ruler'],initialOpen:true,showReadout:false,align:(t,operation,scale)=>G.angles?.utensilAlignment(scene,t,operation,scale)});
+ mode.onclick=()=>{free=!free;mode.setAttribute('aria-pressed',String(free));mode.textContent=free?'Guided ruler':'Free ruler';utensilsHost.hidden=!free;flip.hidden=free;first=second=hover=null;utensils.clear();if(free)utensils.add('ruler');else paint()};
+ clear.onclick=()=>{first=second=hover=null;if(free){utensils.clear();utensils.add('ruler')}else paint()};flip.onclick=()=>{side*=-1;paint()};
+ svg.addEventListener('pointermove',e=>{if(!free&&first&&!second){hover=hit(e);paint()}});
+ svg.addEventListener('pointerdown',e=>{if(free||e.button!==0)return;e.preventDefault();const p=hit(e);if(!p)return;if(first===null||second){first=p;second=null;hover=null}else if(distance(first,p)>2){second=p;hover=null}paint()});
  paint();
 }
 
