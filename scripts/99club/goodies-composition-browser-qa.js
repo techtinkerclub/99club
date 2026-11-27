@@ -1633,6 +1633,18 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
     const circleSvg=()=>doc.querySelector('.gd-ag-visual svg');
     assert([...circleSvg().querySelectorAll('[data-ag-circle-symbol]')].map(n=>n.textContent).sort().join(',')==='D,r','Circle diagram uses only short mathematical symbols');
     assert(circleSvg().querySelector('[data-ag-circle-outline]').getAttribute('fill')==='none','Screen exploration defaults to clean outlines');
+    const verifyCircleClearance=out=>{
+      const centre=out.querySelector('[data-ag-circle-centre]'),outline=out.querySelector('[data-ag-circle-outline]'),cx=Number(centre.getAttribute('cx')),cy=Number(centre.getAttribute('cy')),r=Number(outline.getAttribute('r')),labels=[...out.querySelectorAll('[data-ag-point-label],[data-ag-circle-symbol]')],at=n=>[Number(n.getAttribute('x')),Number(n.getAttribute('y'))],size=n=>Number(n.getAttribute('font-size'));
+      for(const n of labels){const [x,y]=at(n),name=n.textContent;
+        assert(n.getAttribute('dominant-baseline')==='central','Circle labels have centred vertical alignment');
+        if(name==='O')assert(Math.hypot(x-cx,y-cy)>=size(n),'Centre label clears centre dot and diameter');
+        if(name==='D')assert(y-cy>=size(n)*.75,'Diameter symbol clears horizontal diameter');
+        if(n.hasAttribute('data-ag-point-label')&&name!=='O')assert(Math.hypot(x-cx,y-cy)-r>=size(n),'Boundary point label clears circumference');
+        if(name==='r'){const a=55*Math.PI/180;assert(Math.abs((x-cx)*Math.sin(a)+(y-cy)*Math.cos(a))>=size(n)*.75,'Radius symbol clears sloping radius')}
+      }
+      for(let i=0;i<labels.length;i++)for(let j=i+1;j<labels.length;j++){const a=at(labels[i]),b=at(labels[j]);assert(Math.hypot(a[0]-b[0],a[1]-b[1])>=(size(labels[i])+size(labels[j]))/2,'Circle label centres remain separated')}
+    };
+    verifyCircleClearance(circleSvg());
     doc.querySelector('[data-ag-action="circle-extension"]').click();await tick();
     assert(circleSvg().querySelectorAll('[data-ag-circle-formula]').length===2&&circleSvg().querySelectorAll('[data-ag-circle-working]').length===2,'KS3 extension shows general formulae and substituted numerical working');
     for(const type of ['regularity','triangle-type','quad-type','circle-diameter','circle-radius','circle-part']){
@@ -1642,6 +1654,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         assert(outline&&outline.getAttribute('fill')==='none','Printed geometry shape has no decorative shading: '+type);
       }
       if(type==='circle-diameter'||type==='circle-radius'){
+        verifyCircleClearance(P.renderItem(item,false));verifyCircleClearance(P.answerGraphic(item));
         const values=P.renderItem(item,false).querySelector('[data-ag-circle-values]').textContent;
         assert(type==='circle-diameter'?!values.includes('D ='):!values.includes('r ='),'Pupil print does not reveal missing circle dimension');
       }
