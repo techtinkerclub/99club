@@ -2487,3 +2487,13 @@ html.gd-ag-full-page.gd-embed-page #gd-stage.gd-ag-full-stage>:not(.gd-ag-full-b
 #tt99-goodies-root .gd-ag-utensils .gd-ag-lab-actions{display:flex;flex-wrap:wrap;justify-content:flex-start;gap:4px}
 #tt99-goodies-root .gd-ag-utensils .gd-ag-inspect-message{text-align:left;min-width:0;flex:none}
 @media(pointer:coarse){#tt99-goodies-root .gd-ag-utensils .gd-ag-lab-button{min-height:44px!important;height:auto!important}}
+
+/* Local, screen-sized instrument actions. Measuring scales remain in world units. */
+#tt99-goodies-root .gd-ag-local-instrument{box-sizing:border-box;display:flex;align-items:center;gap:2px;padding:3px 5px;border-radius:9px;background:#fff;border:1px solid #cbdad7;box-shadow:0 2px 8px #263e4326;color:#334b50;overflow:hidden;font:500 12px Arial,sans-serif;touch-action:none;pointer-events:auto}
+#tt99-goodies-root .gd-ag-local-instrument>span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 4px;font-variant-numeric:tabular-nums}
+#tt99-goodies-root .gd-ag-local-instrument button{flex:none;width:34px;height:34px;border:0;border-radius:6px;background:transparent;color:#334b50;display:grid;place-items:center;padding:6px;cursor:pointer}
+#tt99-goodies-root .gd-ag-local-instrument button:hover,#tt99-goodies-root .gd-ag-local-instrument button:focus-visible{background:#e6f0ed;outline:0}
+#tt99-goodies-root .gd-ag-local-instrument button svg{width:19px;height:19px}
+#tt99-goodies-root .gd-ag-lab-canvas [data-geometry-instrument="ruler"]>rect:first-child,#tt99-goodies-root .gd-ag-lab-canvas [data-geometry-instrument="protractor"]>path:first-child,#tt99-goodies-root .gd-ag-lab-canvas [data-me-square-body]{fill:#ced6d8;fill-opacity:.66;stroke:#9baeb1;stroke-width:1}
+#tt99-goodies-root .gd-ag-lab-canvas [data-geometry-instrument] text{font-weight:400;fill:#334b50}
+#tt99-goodies-root .gd-ag-lab-canvas [data-geometry-instrument] line{stroke:#506368}
