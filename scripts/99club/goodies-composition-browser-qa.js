@@ -1604,6 +1604,17 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       reset();select('select');
     };
     verifyBisectors('A5 normal');
+    {
+      const precision=doc.querySelector('[data-ag-option="precision"]');
+      const before=JSON.stringify(cap().demo.labDrawing.points);
+      precision.value='2';precision.dispatchEvent(new win.Event('change',{bubbles:true}));
+      assert(cap().demo.labDrawing.measurementPrecision===2&&JSON.stringify(cap().demo.labDrawing.points)===before,'Display precision persists without altering geometry');
+      const test={points:[[0,0],[100.52,0],[0,-100]],names:['A','B','C'],measurementPrecision:2,dimensionLabels:{'A:B':{mode:'measured'}},segments:[[0,1],[0,2]],rays:[],circles:[],given:false};
+      assert(M.labDimensionText(test,0,1,false)==='2.51 cm','Two-decimal length formatting');
+      assert(M.labAngleAnnotation(test,{names:['B','A','C'],labelMode:'measured'}).value==='90.00°','Two-decimal angle formatting including trailing zeros');
+      precision.value='1';precision.dispatchEvent(new win.Event('change',{bubbles:true}));
+      assert(cap().demo.labDrawing.measurementPrecision===1,'One-decimal display restored');
+    }
     verifyInstruments('A5 normal');
     {
       const tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),tap=p=>{previewPointer('pointerdown',p);previewPointer('pointerup',p)},centre=[200,200];
