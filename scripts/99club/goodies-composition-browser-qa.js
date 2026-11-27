@@ -3253,6 +3253,22 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(proofPanel.querySelector('[data-ag-proof-outline]')&&proofPanel.querySelector('[data-ag-proof-next]').disabled,'Area proof reaches completed dissection');
       proofPanel.querySelector('[data-ag-proof-reset]').click();assert(proofPanel.querySelector('[data-ag-proof-back]').disabled,'Area proof restarts');
       const proofPack=P.createDocument();proofPack.addCurrent(id,cap());assert(P.renderItem(proofPack.list()[0],false).querySelectorAll('[data-ag-area-proof-graphic]').length===3,'All proof stages included in print');
+      for(const [shape,order] of [['square',4],['rectangle',2],['equilateral',3],['scalene',1],['rhombus',2],['kite',1]]){
+        const m=ref(shape),step=360/order;
+        for(let i=0;i<=order;i++)assert(M.rotationInvestigation(m,i*step).matches,'Exact matching turn for '+shape);
+        assert(!M.rotationInvestigation(m,step/2).matches,'Nonmatching intermediate turn for '+shape);
+        assert(!M.rotationInvestigation(m,step-.001).matches,'Rounded near-match remains distinct: '+shape);
+      }
+      assert(win.TT99Goodies.modeControl.set('polygon:square'),'Rotation investigation accessible');await tick();
+      const rotationPanel=doc.querySelector('[data-ag-rotation-reference]'),rotationSlider=rotationPanel.querySelector('[data-ag-rotation-slider]');
+      rotationSlider.value=45;rotationSlider.dispatchEvent(new win.Event('input',{bubbles:true}));
+      assert(rotationPanel.querySelector('[data-ag-rotation-graphic]').dataset.agRotationMatch==='false','45 degree square turn is not a match');
+      rotationPanel.querySelector('[data-ag-rotation-match]').click();assert(rotationPanel.querySelector('[data-ag-rotation-graphic]').dataset.agRotationMatch==='true'&&Number(rotationSlider.value)===90,'Next matching rotation moves to 90 degrees');
+      rotationPanel.querySelector('[data-ag-rotation-reset]').click();assert(Number(rotationSlider.value)===0,'Rotation reset');
+      const rotationPack=P.createDocument();rotationPack.addCurrent(id,cap());const rotationPrint=P.renderItem(rotationPack.list()[0],false);
+      assert(rotationPrint.querySelector('[data-ag-rotation-graphic]'),'Rotational symmetry graphic printed');
+      assert(rotationPrint.getAttribute('viewBox').trim().split(/\s+/).every(v=>Number.isFinite(Number(v)))&&!rotationPrint.outerHTML.includes('NaN'),'Teaching publication has finite SVG geometry');
+
 
 
     }
