@@ -526,7 +526,7 @@ function generate(s={},rng=Math.random){
        if(!labVisible(s,'segments',edge))continue;
        const [i,j]=edge,a=labSub(points[i],origin),b=labSub(points[j],origin),along=[labDot(a,direction),labDot(b,direction)];
        if(labDist(points[i],points[j])<1e-8||[a,b].some(v=>Math.abs(labCross(direction,v))>tol)||Math.min(...along)<-tol||Math.max(...along)>t.size+tol)continue;
-       const key=[names[i],names[j]].sort().join(':');matches.set(key,{kind:'length',names:[names[i],names[j]],points:[points[i],points[j]],label:'Add length '+names[i]+names[j]});
+       const key=[names[i],names[j]].sort().join(':');matches.set(key,{kind:'length',names:[names[i],names[j]],points:[points[i],points[j]],label:'Add length '+(s.names?labPointText(s,i)+labPointText(s,j):names[i]+names[j])});
      }
      return matches.size===1?[...matches.values()][0]:null;
    }
@@ -540,7 +540,7 @@ function generate(s={},rng=Math.random){
    const armAt=a=>[...arms].filter(j=>labDist(points[j],o)>1e-8&&diff(labAngle(o,points[j]),a)<=.25);
    const a=armAt(t.angle),b=armAt(t.angle+hand*t.reading);
    if(a.length!==1||b.length!==1||a[0]===b[0])return null;
-   const ids=[a[0],i,b[0]];return {kind:'angle',names:ids.map(j=>names[j]),points:ids.map(j=>points[j]),label:'Add angle '+ids.map(j=>names[j]).join('')};
+   const ids=[a[0],i,b[0]];return {kind:'angle',names:ids.map(j=>names[j]),points:ids.map(j=>points[j]),label:'Add angle '+ids.map(j=>s.names?labPointText(s,j):names[j]).join('')};
  }
  function labApplyMeasurement(s,target){
    if(!target)return false;
