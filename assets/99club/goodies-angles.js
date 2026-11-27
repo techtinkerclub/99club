@@ -2500,7 +2500,7 @@ function basicAreaGraphic(m,show=true){
  }else{
    dims(pt(0,m.h),pt(m.w,m.h),(m.kind==='Square'?'s':'l')+' = '+fmt(m.w)+' cm',{outside:pt(m.w/2,m.h+1)});
    dims(pt(0,0),pt(0,m.h),(m.kind==='Square'?'s':'w')+' = '+fmt(m.h)+' cm',{outside:pt(-1,m.h/2)});
- }label(250,294,m.formula+' = '+fmt(m.area)+' cm²',{'font-size':17,'font-weight':700});return svg;
+ }label(250,294,'A = '+(m.kind==='Kite'?'½ × ':'')+fmt(m.w)+' × '+fmt(m.h)+' = '+fmt(m.area)+' cm²',{'font-size':17,'font-weight':700});return svg;
 }
 function mountBasicArea(container,m,demo){
  const section=document.createElement('section');section.className='gd-ag-area-proof';section.dataset.agAreaProof='1';section.dataset.agBasicArea='1';let show=true;
@@ -3794,7 +3794,12 @@ G.anglesTool=function(){
       detail.addEventListener('toggle',()=>{if(!detail.open||!detail.isConnected)return;for(const other of body.querySelectorAll('section > details[open]'))if(other!==detail&&other.parentElement.dataset.agTeachingPanel===section.dataset.agTeachingPanel)other.open=false;host.scrollTop=0});
     }
     const pictures='[data-ag-angle-sum-picture],[data-ag-proof-picture],[data-ag-basic-area-picture],[data-ag-family-primary],[data-ag-triangle-family-primary],[data-ag-pythagoras-squares-picture],[data-ag-shape-measure-picture],[data-ag-area-comparison-picture],[data-ag-reasoning-picture]';
-    for(const section of body.querySelectorAll(':scope > section')){const picture=section.querySelector(':scope > :is('+pictures+')');if(!picture)continue;const controls=document.createElement('div');controls.dataset.agLessonCopy='1';for(const node of [...section.children])if(node!==picture&&node.tagName!=='DETAILS')controls.append(node);section.append(controls);section.dataset.agSplitLesson='1'}
+    for(const section of body.querySelectorAll(':scope > section')){
+      const picture=section.querySelector(':scope > :is('+pictures+')');if(!picture)continue;
+      const formula=section.querySelector(':scope > .gd-ag-teaching-formula'),heading=section.querySelector(':scope > h4');
+      let header=null;if(formula){header=document.createElement('div');header.dataset.agLessonHeader='1';if(heading)header.append(heading);header.append(formula);section.prepend(header)}
+      const controls=document.createElement('div');controls.dataset.agLessonCopy='1';for(const node of [...section.children])if(node!==picture&&node!==header&&node.tagName!=='DETAILS')controls.append(node);section.append(controls);section.dataset.agSplitLesson='1'
+    }
     syncReferenceTabs();
   }
   // Capture on the persistent wrapper: the SVG may be replaced on every
