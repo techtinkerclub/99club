@@ -20,6 +20,14 @@ This section is the active execution order; earlier sections retain design histo
 
 Do not open new parallel feature streams simply because an idea arises. Record it under the appropriate gate and finish the current gate first, except for genuine blocking regressions. No timed worksheet presets or automatic selection by duration. Preserve the three existing geometry modes; coordinate visibility is a display setting, not a fourth mode. No claim of full general constraint solving, infinite-line support, or actual classroom verification until delivered and tested.
 
+## Reconciled delivery status — 27 November 2026, after #416
+
+**Current verified main:** `c2f81cd5dd3b5e23359aec53ed52b377d3a11a58` (merged #416). Relationship-first teaching, optional diagonal enrichment, animated area rearrangements, direct symmetry manipulation and selected-topic publication have landed. The #416 focused PR QA passed; post-merge deployment and physical acceptance are not asserted here.
+
+**Candidate:** #417 carries the linked-angle, compound-area and optional KS3 right-triangle multi-step challenge work forward from #412. Its first run passed the mathematical contracts, browser, whiteboard, layout and 24-widget publication audit (zero small-text observations), but failed a composition assertion expecting eight rather than nine primary categories. The updated test checks nine categories and the exact two primary multi-step families; its rerun is required before merge. Method credit for handwritten reasoning remains manual.
+
+**Remaining scope:** reconcile [#369](https://github.com/techtinkerclub/99club/issues/369) against the implemented catalogue before marking any G3–G7 gate complete. Maintain paper-equivalent construction, full internal precision and display-only rounding, no timed worksheets, optional KS3 enrichment and clear visual explanations. Avoid unnecessary new feature streams while consolidating and testing. The integrated audit is a parallel regression gate, not evidence that all curriculum, physical touchscreen or physical print requirements have been met.
+
 ## Research basis
 
 - DfE national curriculum: https://www.gov.uk/government/publications/national-curriculum-in-england-mathematics-programmes-of-study/national-curriculum-in-england-mathematics-programmes-of-study
