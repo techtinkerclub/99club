@@ -1371,7 +1371,17 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
     for(const p of [[150,150],[450,150],[300,350]])tapWork(p);
     assert(doc.querySelector('[data-ag-tool="move"]').hidden&&doc.querySelector('[data-ag-option="measure"]').checked,'Free construction defaults to fixed marks with measurements enabled');
     const beforeInk=JSON.stringify(cap().demo.labDrawing.points);
-    doc.querySelector('[data-ag-tool="expand"]').click();wsField('format').value='custom';wsField('format').dispatchEvent(new win.Event('change',{bubbles:true}));wsField('width').value='50';wsField('height').value='50';wsField('apply').click();await tick();
+    doc.querySelector('[data-ag-tool="expand"]').click();wsField('format').value='custom';wsField('format').dispatchEvent(new win.Event('change',{bubbles:true}));
+    const enterDimension=(id,digits)=>{
+      const input=wsField(id);input.click();const pad=doc.querySelector('.gd-touch-keypad');
+      assert(pad&&input.dataset.gdKeypad==='dimension'&&input.getAttribute('inputmode')==='none','Workspace dimensions use the shared touch keypad');
+      assert(!pad.querySelector('[data-gd-touch-check]'),'Settings keypad does not show pupil challenge Check');
+      pad.querySelector('[data-gd-touch-key="Clear"]').click();
+      for(const digit of digits)pad.querySelector('[data-gd-touch-key="'+digit+'"]').click();
+      assert(input.value===digits,'Touch keypad enters exact custom dimension');
+      pad.querySelectorAll('[data-gd-touch-close]')[1].click();assert(!doc.querySelector('.gd-touch-keypad'),'Done closes keypad without submitting the challenge or paper settings');
+    };
+    enterDimension('width','50.5');enterDimension('height','50');wsField('apply').click();await tick();
     assert(work.viewBox.baseVal.width===1188&&JSON.stringify(cap().demo.labDrawing.points)===beforeInk,'Smaller sheet cannot clip existing drawing');
     wsField('format').value='A4';wsField('grid').value='0';wsField('apply').click();await tick();assert(!work.querySelector('[data-ag-grid]'),'Plain paper removes the grid');
     assert(wsField('format').closest('.gd-ag-sheet-settings').hidden,'Successful paper settings close automatically');
