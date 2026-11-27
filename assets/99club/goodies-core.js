@@ -180,14 +180,22 @@ const INSTRUMENT_ICONS={
 
  function localInstrumentActions(svg,anchor,label,actions,group){
    const N='http://www.w3.org/2000/svg',m=svg.getScreenCTM();if(!m)return;
-   const scale=Math.hypot(m.a,m.b)||1,v=svg.viewBox.baseVal,unit=1/scale,buttonSize=46,extra=(actions.some(a=>a[0]==='annotate')?96:0)+(actions.some(a=>a[0].startsWith('datum-'))?32:0)+(actions.some(a=>a[0]==='choose-distance')?82:0),needed=Math.max(84,label.length*7)+actions.length*(buttonSize+4)+16+extra,rows=v.width*scale<needed?2:1,w=Math.min(v.width-8*unit,needed*unit),h=(rows===1?54:108)*unit;
-   const x=Math.max(v.x+4*unit,Math.min(v.x+v.width-w-4*unit,anchor[0]-w/2)),y=Math.max(v.y+4*unit,Math.min(v.y+v.height-h-4*unit,anchor[1]+34*unit));
-   const fo=document.createElementNS(N,'foreignObject');for(const [k,val] of Object.entries({x,y,width:w,height:h,'data-ag-local-instrument':'1'}))fo.setAttribute(k,val);
-   const bar=document.createElement('div');bar.className='gd-ag-local-instrument';bar.style.width=w*scale+'px';bar.style.height=(h*scale)+'px';bar.style.flexWrap=rows===2?'wrap':'nowrap';bar.style.transformOrigin='top left';
-   // foreignObject content is in SVG units: compensate for zoom.
-   bar.style.transform='scale('+unit+')';const name=document.createElement('span');name.textContent=label;bar.append(name);
+   const scale=Math.hypot(m.a,m.b)||1,v=svg.viewBox.baseVal,unit=1/scale;
+   const rect=svg.getBoundingClientRect(),win=svg.ownerDocument.defaultView;
+   let left=rect.left,top=rect.top,right=rect.right,bottom=rect.bottom;
+   // Normal widgets live in a scrollable document: keep their controls mounted even when offscreen.
+   // Clamp to clipping containers, not the browser window, unless the board itself is maximised.
+   for(let parent=svg.parentElement;parent&&parent!==svg.ownerDocument.body&&parent!==svg.ownerDocument.documentElement;parent=parent.parentElement){const css=win.getComputedStyle(parent),r=parent.getBoundingClientRect();if(/auto|scroll|hidden|clip/.test(css.overflowX)){left=Math.max(left,r.left+parent.clientLeft);right=Math.min(right,r.left+parent.clientLeft+parent.clientWidth)}if(/auto|scroll|hidden|clip/.test(css.overflowY)){top=Math.max(top,r.top+parent.clientTop);bottom=Math.min(bottom,r.top+parent.clientTop+parent.clientHeight)}}
+   // If an ancestor is scrolled away, keep a board-local menu rather than dropping controls.
+   if(right-left<56||bottom-top<56){left=rect.left;top=rect.top;right=rect.right;bottom=rect.bottom}
+   const inverse=m.inverse(),toWorld=(x,y)=>new win.DOMPoint(x,y).matrixTransform(inverse),lo=toWorld(left,top),hi=toWorld(right,bottom),minX=Math.max(v.x,lo.x)+4*unit,minY=Math.max(v.y,lo.y)+4*unit,maxX=Math.min(v.x+v.width,hi.x)-4*unit,maxY=Math.min(v.y+v.height,hi.y)-4*unit;
+   const availableWidth=(maxX-minX)*scale,availableHeight=(maxY-minY)*scale;if(availableWidth<48||availableHeight<48)return;
+   const needed=Math.max(84,label.length*7)+actions.reduce((n,a)=>n+(a[0]==='annotate'?136:a[0]==='choose-distance'?124:50),16),width=Math.min(availableWidth,needed),w=width*unit;
+   const fo=document.createElementNS(N,'foreignObject');for(const [k,val] of Object.entries({x:minX,y:minY,width:w,height:availableHeight*unit,'data-ag-local-instrument':'1'}))fo.setAttribute(k,val);
+   const bar=document.createElement('div');bar.className='gd-ag-local-instrument';bar.style.cssText='width:'+width+'px;max-height:'+availableHeight+'px;flex-wrap:wrap;overflow:auto;overscroll-behavior:contain;transform-origin:top left;transform:scale('+unit+');touch-action:pan-y';
+   const name=document.createElement('span');name.textContent=label;if(width<needed)name.style.flexBasis='100%';bar.append(name);
    for(const [id,desc,glyph,fn,pressed] of actions){const b=document.createElement('button');b.type='button';b.dataset[group]=id;b.title=desc;b.setAttribute('aria-label',desc);if(pressed!==undefined)b.setAttribute('aria-pressed',String(pressed));if(id.startsWith('datum-')){b.textContent=id==='datum-x'?'+x':'+y';b.style.cssText='font-size:14px;font-weight:600;min-width:46px'}else b.append(icon(glyph));if(id==='choose-distance'){b.style.cssText='width:auto;min-width:120px;padding:0 8px;flex-shrink:0';const caption=document.createElement('span');caption.textContent='Choose distance';caption.style.cssText='font-size:11px;white-space:nowrap';b.append(caption)}if(id==='annotate'){b.style.cssText='width:auto;min-width:132px;max-width:100%;gap:5px;padding:0 9px;flex-shrink:0';const caption=document.createElement('span');caption.textContent='Add to drawing';caption.style.cssText='white-space:nowrap;font-size:12px';b.append(caption)}b.onclick=e=>{e.stopPropagation();fn()};bar.append(b)}
-   for(const type of ['pointerdown','pointermove','pointerup','click','wheel'])fo.addEventListener(type,e=>e.stopPropagation());fo.append(bar);svg.append(fo);return fo
+   for(const type of ['pointerdown','pointermove','pointerup','click','wheel'])fo.addEventListener(type,e=>e.stopPropagation());fo.append(bar);svg.append(fo);const h=Math.min(availableHeight,bar.offsetHeight+1)*unit,x=Math.max(minX,Math.min(maxX-w,anchor[0]-w/2)),below=anchor[1]+34*unit,above=anchor[1]-h-20*unit,y=Math.max(minY,Math.min(maxY-h,below+h<=maxY?below:above>=minY?above:below));fo.setAttribute('x',x);fo.setAttribute('y',y);fo.setAttribute('height',h);return fo
  }
 
  function measuringUtensils(parent,getSvg,onPaint,{unitsPerCm=40,align=null,read=null,kinds=['ruler','protractor','square45','square30'],initialOpen=false,showReadout=true,annotation=null,onAdd=null,precision=()=>1}={}){
