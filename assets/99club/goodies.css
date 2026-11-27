@@ -2679,13 +2679,13 @@ html.gd-embed-page #tt99-goodies-root #gd-stage:has(>.gd-ag-shape-reference){ove
 #tt99-goodies-root [data-ag-lesson-detail][open]>summary{margin-bottom:8px;border-bottom:1px solid #dbe7e3}
 #tt99-goodies-root [data-ag-shape-reference-body]:has(>section:not([hidden])>details[data-ag-lesson-detail][open]){grid-template-columns:minmax(0,1fr)}
 #tt99-goodies-root [data-ag-shape-reference-body]:has(>section:not([hidden])>details[data-ag-lesson-detail][open])>section:not(:has(>details[data-ag-lesson-detail][open])){display:none!important}
-#tt99-goodies-root [data-ag-shape-reference-body]>section:has(>details[data-ag-lesson-detail="page"][open]){display:block;grid-column:1/-1}
+#tt99-goodies-root [data-ag-shape-reference-body]>section:not([hidden]):has(>details[data-ag-lesson-detail="page"][open]){display:block!important;grid-column:1/-1}
 #tt99-goodies-root [data-ag-shape-reference-body]>section:has(>details[data-ag-lesson-detail="page"][open])>:not(h4):not(details[open]){display:none!important}
 #tt99-goodies-root [data-ag-lesson-detail][open]>:not(summary){min-width:0}
 #tt99-goodies-root [data-ag-lesson-detail][open] p{margin:6px 0}
 #tt99-goodies-root [data-ag-lesson-detail][open] dl{margin:0}
 @media (min-width:800px) and (min-height:480px) and (orientation:landscape){
-  #tt99-goodies-root [data-ag-shape-reference-body]>section:has(>details[data-ag-lesson-detail="page"][open]){display:block}
+  #tt99-goodies-root [data-ag-shape-reference-body]>section:not([hidden]):has(>details[data-ag-lesson-detail="page"][open]){display:block!important}
   #tt99-goodies-root [data-ag-lesson-detail="page"][open]>summary{grid-column:1/-1}
   #tt99-goodies-root :is([data-ag-diagonal-enrichment],[data-ag-pythagoras-details],[data-ag-family-more],[data-ag-triangle-family-more])[open]{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:8px 18px;align-items:start;align-content:start}
   #tt99-goodies-root :is([data-ag-diagonal-enrichment],[data-ag-pythagoras-details],[data-ag-family-more],[data-ag-triangle-family-more])[open]>:not(summary){grid-column:2}
