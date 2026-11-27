@@ -1446,6 +1446,14 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const values=[];M.labNotation(angleScene,()=>{},(_,v)=>values.push(v));assert(values.join('')==='34.3°','Persistent angle uses exact geometry and display precision');
       assert(!M.labMeasurementTarget(angleScene,{...anglePose,reading:40},1),'Unaligned measuring arm cannot annotate');
       angleScene.segments=[[0,1]];angleScene.rays=[{i:0,angle:34.27,relativeTo:'C',relativeAngle:0,construction:false}];assert(M.labMeasurementTarget(angleScene,anglePose,1)?.names.join('')==='BAC','Referenced ray can serve as measured angle arm');
+      // Named intersection E is internal to both rays, not their origin.
+      const crossing={...M.labEmpty(true),points:[[0,200],[200,200],[400,200],[100,300],[300,100]],names:['A','E','D','B','C'],segments:[],rays:[{i:0,angle:0,construction:true},{i:3,angle:45,construction:true}],showConstruction:true};
+      const crossPose={kind:'protractor',x:200,y:200,angle:0,reading:45,hand:1,size:170};
+      const crossTarget=M.labMeasurementTarget(crossing,crossPose,2);
+      assert(crossTarget?.names.join('')==='DEC','Intersection on two rays can be annotated without new geometry');
+      assert(M.labApplyMeasurement(crossing,crossTarget)&&crossing.points.length===5,'Intersection annotation persists without artificial points');
+      crossing.showConstruction=false;assert(!M.labMeasurementTarget(crossing,crossPose,2),'Hidden intersecting rays cannot create annotations');
+      crossing.showConstruction=true;crossing.points.push([500,200]);crossing.names.push('F');assert(M.labMeasurementTarget(crossing,crossPose,2)?.names.join('')==='DEC','Collinear named points on one arm use nearest reference');
       angleScene.angleNotation[0].labelMode='custom';angleScene.angleNotation[0].label='x';M.labApplyMeasurement(angleScene,at);assert(angleScene.angleNotation.length===1&&angleScene.angleNotation[0].labelMode==='measured','Reapplying measurement edits existing annotation rather than duplicating');
       const square=M.utensilAlignment(exact,{kind:'square45',x:100,y:106,angle:92,size:200},'move',1);
       assert(square.kind==='Aligned vertex'&&square.angle===90,'Set square can align perpendicular leg to existing edge');
@@ -1461,6 +1469,27 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const manual=M.protractorReading(scene,{...t,snap:false},37.46,1);assert(manual.reading===37.5&&!manual.kind,'Manual measurement resolves to a tenth of a degree');
       const away=M.protractorReading(scene,{...t,x:900,y:900},37.46,1);assert(away.reading===37.5&&!away.kind,'Remote geometry cannot snap measuring arm');
       scene.rays=[{i:0,angle:baseline+83.27,construction:false}];assert(Math.abs(M.protractorReading(scene,t,83,1).reading-83.27)<1e-8,'Exact ray direction is preserved for measurement');
+      {
+      // A direction match alone is insufficient: the measuring arm must
+      // share the actual ray's line, even when the centre is slightly offset.
+      const I=G.instruments,theta=56.927*Math.PI/180,u=[Math.cos(theta),-Math.sin(theta)],ray={a:[200,200],b:[200+100*u[0],200+100*u[1]],ray:true},visible={points:[[200,200]],lines:[ray]},pose={kind:'protractor',x:202,y:200,angle:0,hand:1,size:170,reading:45,snap:true};
+      const aligned=I.readAngle(visible,pose,56.9,4);
+      assert(aligned.kind==='Edge'&&Math.abs(aligned.reading-56.927)<1e-8&&Math.hypot(aligned.x-200,aligned.y-200)<1e-8,'Magnified offset centre corrects along baseline to exact ray intersection');
+      const pos=a=>[202+116*Math.cos(a*Math.PI/180),200-116*Math.sin(a*Math.PI/180)];
+      const drag=I.beginGesture(pose,pos(45),'measure',81);
+      I.moveGesture(drag,pos(56.9),4,{read:(t,a,scale)=>I.readAngle(visible,t,a,scale)});
+      assert(Math.abs(pose.reading-56.927)<1e-8&&pose.x===aligned.x&&pose.y===aligned.y,'Measuring arm aligns exactly during drag, not only at release');
+      I.finishGesture(drag,true);
+      const end=[pose.x+pose.size*Math.cos(pose.reading*Math.PI/180),pose.y-pose.size*Math.sin(pose.reading*Math.PI/180)];
+      assert(Math.abs(u[0]*(end[1]-200)-u[1]*(end[0]-200))<1e-8&&pose.reading.toFixed(1)==='56.9','Committed arm is collinear with ray; only displayed number is rounded');
+      const remote=I.readAngle(visible,{...pose,x:207},56.9,4);assert(!remote.kind,'Centre shift outside screen tolerance is not silently applied');
+      const parallel=I.readAngle({points:[],lines:[{a:[100,201],b:[300,201],ray:true}]},pose,0,4);assert(!parallel.kind,'Parallel displaced ray is not falsely marked aligned');
+      const behind=I.readAngle({points:[],lines:[{a:[300,200],b:[400,200],ray:true}]},pose,0,1);assert(!behind.kind,'Ray cannot snap through its invisible backward extension');
+      const manualDrag=I.beginGesture({...pose,snap:false},pos(45),'measure',82);
+      I.moveGesture(manualDrag,[200+116*Math.cos(58.23*Math.PI/180),200-116*Math.sin(58.23*Math.PI/180)],4,{read:(t,a,scale)=>I.readAngle(visible,t,a,scale)});
+      assert(manualDrag.t.reading===58.2&&!manualDrag.candidate,'Turning magnet off retains free tenth-degree measurement');
+
+      }
     }
     // Every guided corner is a rigid orientation of the same physical triangle.
     for(const kind of ['square45','square30']){

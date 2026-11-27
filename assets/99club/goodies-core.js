@@ -133,15 +133,18 @@ function instrumentMove(d,p,scale,{spec,step=4,align,read}={}){
  d.moved=true;const t=d.t;
  if(d.handle==='rotate')t.angle=instrumentMod(Math.round((d.angle+instrumentAngle([d.x,d.y],p)-d.startAngle)*10)/10);
  else if(d.handle==='measure'){
+  // Use the original gesture centre for hit testing to avoid snap feedback.
+  t.x=d.x;t.y=d.y;
   const raw=instrumentMod(t.hand*(instrumentAngle([d.x,d.y],p)-t.angle)),a=raw<=180?raw:raw<270?180:0,result=read?.(t,a,scale);
-  t.reading=Math.round(a*10)/10;d.candidate=result?.kind?result:null;return true;
+  d.rawReading=Math.round(a*10)/10;d.candidate=result?.kind?result:null;
+  t.reading=d.candidate?.reading??d.rawReading;t.x=d.candidate?.x??d.x;t.y=d.candidate?.y??d.y;return true;
  }else if(d.handle==='resize'){
   const axis=(d.angle+(t.kind==='protractor'?90*t.hand:0))*Math.PI/180,delta=(p[0]-d.p[0])*Math.cos(axis)-(p[1]-d.p[1])*Math.sin(axis);
   t.size=clamp(Math.round((d.size+delta)/step)*step,spec.min,spec.max);
  }else{t.x=d.x+p[0]-d.p[0];t.y=d.y+p[1]-d.p[1]}
  d.candidate=t.snap?align?.(t,d.handle||'move',scale)||null:null;return true;
 }
-function instrumentFinish(d,commit){if(commit&&d.candidate)for(const key of ['x','y','angle','reading'])if(d.candidate[key]!==undefined)d.t[key]=d.candidate[key];return d.t}
+function instrumentFinish(d,commit){if(!commit&&d.handle==='measure'&&d.moved){d.t.x=d.x;d.t.y=d.y;d.t.reading=d.rawReading}if(commit&&d.candidate)for(const key of ['x','y','angle','reading'])if(d.candidate[key]!==undefined)d.t[key]=d.candidate[key];return d.t}
 // Shared movable utensil controller. All geometry and snapping rules are host supplied.
 const D=Math.PI/180,mod=instrumentMod,labAngle=instrumentAngle,labDist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]),labSub=(a,b)=>[a[0]-b[0],a[1]-b[1]],labDot=(a,b)=>a[0]*b[0]+a[1]*b[1],labAt=(a,v,t)=>[a[0]+v[0]*t,a[1]+v[1]*t],polar=(x,y,r,a)=>[Math.round((x+r*Math.cos(a*D))*1000)/1000,Math.round((y-r*Math.sin(a*D))*1000)/1000];
 const INSTRUMENT_ICONS={
@@ -167,6 +170,7 @@ const INSTRUMENT_ICONS={
     reset:'<path d="M3 11a9 9 0 1 1 2.5 7M3 4v7h7"/>',
     snap:'<path d="M5 3v10a7 7 0 0 0 14 0V3h-5v10a2 2 0 0 1-4 0V3ZM5 8h5m4 0h5"/>',
     measure:'<path d="M3 18h18M3 15v6m18-6v6M4 8h16M4 8l4-4M4 8l4 4m12-4-4-4m4 4-4 4"/>',
+    annotate:'<path d="M4 20V4h16M4 20l8-8M14 17h8m-4-4v8"/>',
     grid:'<rect x="3" y="3" width="18" height="18" rx="1"/><path d="M9 3v18m6-18v18M3 9h18M3 15h18"/>',help:'<circle cx="12" cy="12" r="9"/><path d="M9 8a3 3 0 1 1 4 3c-1 .5-1 1-1 2m0 3v.2"/>'
   };
  Object.assign(INSTRUMENT_ICONS,{ruler:INSTRUMENT_ICONS.segment,angle:INSTRUMENT_ICONS.protractor,show:INSTRUMENT_ICONS.protractor,clear:'<path d="M6 6l12 12M18 6L6 18"/>',format:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3v3M12 18v3"/>',left:INSTRUMENT_ICONS.undo,right:'<path d="m16 5 5 5-5 5m5-5H10a6 6 0 0 0 0 12"/>'});
@@ -222,12 +226,12 @@ const INSTRUMENT_ICONS={
      if(chosen&&!drag){const target=annotation?.target(chosen,instruments.screenScale(svg))||null;
        if(annotation&&['ruler','protractor'].includes(chosen.kind)){label.textContent=target?'Aligned measurement: '+target.names.join('')+'. Use Add measurement beside the instrument.':'Align the measuring edge or protractor with one identifiable line or angle to add its value.'}
        if(target){const scale=instruments.screenScale(svg);for(const p of target.points)node(layer,'circle',{cx:p[0],cy:p[1],r:8/scale,fill:'none',stroke:'#b45309','stroke-width':1.5/scale,'pointer-events':'none','data-ag-measurement-reference':'1'})}
-       const angle=chosen.angle,anchor=polar(chosen.x,chosen.y,chosen.kind==='ruler'?chosen.size*.5:0,angle),size=Number((chosen.size/unitsPerCm).toFixed(1));localInstrumentActions(svg,anchor,chosen.kind==='ruler'?size+' cm':chosen.kind==='protractor'?(showReadout?chosen.reading.toFixed(1)+'°':'Protractor'):size+' cm base',[...(target?[['annotate',target.label,'measure',()=>{const current=annotation.target(chosen,instruments.screenScale(svg));if(current)annotation.apply(current)}]]:[]),...(chosen.kind==='protractor'?[['flip','Flip measuring side','flip',()=>{chosen.hand*=-1;onPaint()}]]:[]),['snap',chosen.snap?'Turn magnetic alignment off':'Turn magnetic alignment on','snap',()=>{chosen.snap=!chosen.snap;onPaint()},chosen.snap],['rotate','Rotate 15°','reset',rotateSelected],['duplicate','Duplicate','duplicate',()=>{const copy={...chosen,id:String(next++),x:chosen.x+24,y:chosen.y+24};items.push(copy);selected=copy.id;onPaint()}],['remove','Remove','erase',removeSelected]],'agUtensilAction')}
+       const angle=chosen.angle,anchor=polar(chosen.x,chosen.y,chosen.kind==='ruler'?chosen.size*.5:0,angle),size=Number((chosen.size/unitsPerCm).toFixed(1));localInstrumentActions(svg,anchor,chosen.kind==='ruler'?size+' cm':chosen.kind==='protractor'?(showReadout?chosen.reading.toFixed(1)+'°':'Protractor'):size+' cm base',[...(target?[['annotate',target.label,'annotate',()=>{const current=annotation.target(chosen,instruments.screenScale(svg));if(current)annotation.apply(current)}]]:[]),...(chosen.kind==='protractor'?[['flip','Flip measuring side','flip',()=>{chosen.hand*=-1;onPaint()}]]:[]),['snap',chosen.snap?'Turn magnetic alignment off':'Turn magnetic alignment on','snap',()=>{chosen.snap=!chosen.snap;onPaint()},chosen.snap],['rotate','Rotate 15°','reset',rotateSelected],['duplicate','Duplicate','duplicate',()=>{const copy={...chosen,id:String(next++),x:chosen.x+24,y:chosen.y+24};items.push(copy);selected=copy.id;onPaint()}],['remove','Remove','erase',removeSelected]],'agUtensilAction')}
    }
    function locate(e){return instruments.worldPoint(getSvg(),e)}
    function down(e){if(e.target.closest?.('[data-ag-local-instrument]'))return;if(e.button!==0||!visible)return;const target=e.target.closest?.('[data-ag-utensil]');if(!target){if(selected){selected=null;onPaint()}return}const t=items.find(t=>t.id===target.dataset.agUtensil),p=locate(e);if(!t||!p)return;e.preventDefault();e.stopImmediatePropagation();selected=t.id;opened=true;drag=instruments.beginGesture(t,p,e.target.closest('[data-ag-utensil-handle]')?.getAttribute('data-ag-utensil-handle'),e.pointerId);try{getSvg().setPointerCapture(e.pointerId)}catch(_){}onPaint()}
    function move(e){if(drag?.id!==e.pointerId)return;const p=locate(e);if(!p)return;e.preventDefault();e.stopImmediatePropagation();const changed=instruments.moveGesture(drag,p,instruments.screenScale(getSvg()),{spec:specs[drag.t.kind],step:unitsPerCm/10,align,read});if(changed)onPaint()}
-   function finish(e){if(drag?.id!==e.pointerId)return;instruments.finishGesture(drag,e.type==='pointerup');drag=null;e.stopImmediatePropagation();onPaint()}
+   function finish(e){if(drag?.id!==e.pointerId)return;if(e.type==='pointerup'&&drag.handle==='measure'&&drag.moved){const p=locate(e);if(p)instruments.moveGesture(drag,p,instruments.screenScale(getSvg()),{spec:specs[drag.t.kind],step:unitsPerCm/10,align,read})}instruments.finishGesture(drag,e.type==='pointerup');drag=null;e.stopImmediatePropagation();onPaint()}
    const svg=getSvg();svg.addEventListener('pointerdown',down,true);svg.addEventListener('pointermove',move,true);for(const type of ['pointerup','pointercancel','lostpointercapture'])svg.addEventListener(type,finish,true);
    function nearMeasuringEdge(p){
      if(!visible)return null;
@@ -296,12 +300,27 @@ const INSTRUMENT_ICONS={
  // A reading is relative to the zero edge, not the global canvas axes.
  // Preserve exact snapped geometry internally; round only the displayed result.
  function instrumentReading({lines},t,raw,scale){
-   const hand=t.hand===-1?-1:1,origin=[t.x,t.y],relative=a=>mod(hand*(a-t.angle)),wanted=Math.max(0,Math.min(180,raw)),tol=12/Math.max(.001,scale),rays=[];
-   const add=(a,b,both=false)=>{const v=labSub(b,a),len=Math.hypot(...v);if(len<1e-8)return;const u=labDot(labSub(origin,a),v)/(len*len),q=labAt(a,v,Math.max(0,both?Math.min(1,u):u));if(labDist(q,origin)>tol)return;
-     if(both&&u>1e-7)rays.push(relative(labAngle(b,a)));if(!both||u<1-1e-7)rays.push(relative(labAngle(a,b)))};
-   for(const line of lines)add(line.a,line.b,!line.ray);
-   const candidates=rays.map(a=>a>360-1e-7?0:a).filter(a=>a<=180+1e-7).sort((a,b)=>Math.abs(a-wanted)-Math.abs(b-wanted));
-   const exact=candidates[0];return t.snap&&exact!==undefined&&Math.abs(exact-wanted)<=3?{reading:Math.min(180,exact),kind:'Edge'}:{reading:Math.round(wanted*10)/10,kind:''}
+   const hand=t.hand===-1?-1:1,origin=[t.x,t.y],relative=a=>mod(hand*(a-t.angle)),wanted=Math.max(0,Math.min(180,raw)),tol=12/Math.max(.001,scale),candidates=[];
+   const fallback={reading:Math.round(wanted*10)/10,kind:''};if(!t.snap)return fallback;
+   const base=[Math.cos(t.angle*D),-Math.sin(t.angle*D)],cross=(a,b)=>a[0]*b[1]-a[1]*b[0];
+   for(const {a,b,ray} of lines){
+     const v=labSub(b,a),len=Math.hypot(...v);if(len<1e-8)continue;
+     const u=v.map(n=>n/len),delta=labSub(a,origin),den=cross(base,u);
+     // Exact intersection with the baseline: only allow a small translation
+     // along that baseline, never claim a parallel-offset arm is aligned.
+     let q=origin;
+     if(Math.abs(cross(delta,u))>1e-8){
+       if(Math.abs(den)<1e-8)continue;
+       const shift=cross(delta,u)/den;if(Math.abs(shift)>tol)continue;
+       q=labAt(origin,base,shift);
+     }
+     const k=labDot(labSub(q,a),u);
+     if(k< -1e-7||(!ray&&k>len+1e-7))continue;
+     const directions=[...(ray||k<len-1e-7?[labAngle(a,b)]:[]),...(!ray&&k>1e-7?[labAngle(b,a)]:[])];
+     for(const dir of directions){let reading=relative(dir);if(reading>360-1e-7)reading=0;if(reading>180+1e-7)continue;reading=Math.min(180,reading);const error=Math.abs(reading-wanted);if(error<=3)candidates.push({reading,x:q[0],y:q[1],kind:'Edge',error,shift:labDist(q,origin)})}
+   }
+   candidates.sort((a,b)=>a.error-b.error||a.shift-b.shift);if(!candidates.length)return fallback;
+   const {error,shift,...result}=candidates[0];return result;
  }
 
 const instruments={rulerGraduations,ruler:rulerInstrument,protractor:protractorInstrument,setSquare:setSquareInstrument,adaptMarkings:adaptInstrumentMarkings,screenScale:instrumentScreenScale,worldPoint:instrumentWorldPoint,nearestPoint:instrumentNearestPoint,centreCue:instrumentCentreCue,beginGesture:instrumentBegin,moveGesture:instrumentMove,finishGesture:instrumentFinish,movable:measuringUtensils,icon,button:instrumentButton,localActions:localInstrumentActions,align:instrumentAlignment,readAngle:instrumentReading};
