@@ -1021,7 +1021,7 @@ async function run(){
     assert(TT99Goodies.publishing.renderItem(namesPaper.list()[0],false).querySelector('[data-ag-point-label="A"]').getAttribute('x')===vertexName.getAttribute('x'),'Published angle uses the same exterior vertex placement');
     doc.querySelector('[data-ag-challenge-mode="linked-isosceles"]').click();await tick();
     {
-      const t=cap().task,inputs=[...doc.querySelectorAll('[data-gd-pupil-field]')],check=doc.querySelector('[data-gd-pupil-check]'),put=(i,v)=>{inputs[i].value=String(v);inputs[i].dispatchEvent(new win.Event('input',{bubbles:true}))};
+      const t=cap().task,inputs=[...doc.querySelectorAll('[data-gd-pupil-field]')],check=doc.querySelector('[data-gd-pupil-check]'),put=(i,v)=>{inputs[i].value=String(v);inputs[i].dispatchEvent(new doc.defaultView.Event('input',{bubbles:true}))};
       assert(t.type==='linked-isosceles'&&inputs.length===3&&check.disabled,'Linked challenge starts with three independent answer fields');
       t.parts.forEach((p,i)=>put(i,p.answer+(i===1?1:0)));assert(!check.disabled,'Check enabled when all parts attempted');
       check.click();assert(doc.querySelector('.gd-pupil-feedback').textContent.includes('2 of 3 correct'),'Partial correctness feedback');
