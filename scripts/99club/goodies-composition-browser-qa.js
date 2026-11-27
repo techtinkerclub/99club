@@ -3412,6 +3412,31 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         const key=type==='perimeter-same-area'?'perimeter':'area',selector='[data-ag-area-comparison-'+key+'="1"]';
         assert(pupil.querySelector(selector).textContent.includes('?')&&!teacher.querySelector(selector).textContent.includes('?'),'Pupil unknown separated from teacher result');
       }
+      const reasoningRows=[...M.GEOMETRY_REASONING,...M.QUAD_REASONING];
+      for(const row of reasoningRows){
+        const m=M.geometryReasoning(row.id),truth=m.examples.map(ex=>ex.truth);
+        assert(m.note&&m.examples.every(ex=>ex.points.every(p=>M.polygonProperties(p))&&ex.evidence),'Each reasoning witness has valid geometry and evidence');
+        assert(row.answer==='Always'?truth.every(Boolean):row.answer==='Never'?truth.every(v=>!v):truth.includes(true)&&truth.includes(false),'Witnesses consistent with general reasoning: '+row.id);
+      }
+      assert(win.TT99Goodies.modeControl.set('polygon:rectangle'),'Reasoning teaching accessible');await tick();
+      doc.querySelector('[data-ag-teaching-tab="reasoning"]').click();await tick();
+      const rs=doc.querySelector('[data-ag-geometry-reasoning]'),rq=s=>rs.querySelector(s),rsel=rq('[data-ag-reasoning-select]');
+      rsel.value='isosceles-right';rsel.dispatchEvent(new win.Event('change',{bubbles:true}));
+      rq('[data-ag-reasoning-predict="Sometimes"]').click();
+      assert(rq('[data-ag-reasoning-witness]').dataset.agReasoningWitness==='hidden','Prediction does not reveal answer');
+      rq('[data-ag-reasoning-test]').click();assert(rq('[data-ag-reasoning-witness]').dataset.agReasoningWitness==='true','Example demonstrates possibility');
+      rq('[data-ag-reasoning-next]').click();rq('[data-ag-reasoning-test]').click();assert(rq('[data-ag-reasoning-witness]').dataset.agReasoningWitness==='false','Counterexample checked independently');
+      rq('[data-ag-reasoning-reveal]').click();assert(rq('[data-ag-reasoning-result]').textContent.startsWith('Sometimes.'),'General reason revealed separately');
+      const rpack=P.createDocument();rpack.addCurrent(id,cap());const rp=P.renderItem(rpack.list()[0],false);assert(rp.querySelector('[data-ag-reasoning-graphic="isosceles-right"]')&&rp.querySelectorAll('[data-ag-reasoning-witness]').length===2,'Selected statement and witnesses published');
+      rq('[data-ag-reasoning-reset]').click();assert(!cap().demo.reasoningReveal&&!cap().demo.reasoningPrediction,'Reasoning reset clears prediction');
+      const generatedReasoning=new Set();
+      for(let i=0;i<80;i++){
+        const t=M.generate({type:'geometry-reasoning'},()=> (i+.5)/80),m=M.geometryReasoning(t.reasoningId),item=P.record(id,'challenge',t),pupil=P.renderItem(item,false),teacher=P.renderItem(item,true);
+        generatedReasoning.add(t.reasoningId);assert(t.answer===m.answer&&t.note===m.note,'Generated reasoning answer and explanation match catalogue');
+        assert(pupil.querySelector('[data-ag-reasoning-space]')&&!pupil.querySelector('[data-ag-reasoning-witness]')&&teacher.querySelector('[data-ag-reasoning-graphic]'),'Pupil workspace separate from worked examples');
+      }
+      assert(generatedReasoning.size===M.GEOMETRY_REASONING.length,'All new reasoning statements generated');
+
 
 
 
