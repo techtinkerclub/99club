@@ -3273,9 +3273,23 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         assert(win.TT99Goodies.modeControl.set('polygon:'+shape),'Basic area topic accessible');await tick();doc.querySelector('[data-ag-teaching-tab="proof"]').click();await tick();
         const panel=doc.querySelector('[data-ag-basic-area]'),graphic=panel.querySelector('[data-ag-basic-area-graphic]');const basicFormula=panel.querySelector('[data-ag-basic-area-formula]');assert(basicFormula?.textContent.startsWith('A =')&&(basicFormula.compareDocumentPosition(graphic)&4),'Basic area formula precedes the diagram');const formulaBox=basicFormula.getBoundingClientRect(),graphicBox=graphic.getBoundingClientRect();assert(formulaBox.height>0&&graphicBox.height>0&&formulaBox.bottom<=graphicBox.top+1,'Formula visually appears above area diagram');
         assert(!panel.hidden&&graphic.dataset.agBasicAreaGraphic===a.kind,'Area picture shown');
+        const verifyBasicDimensions=svg=>{
+          const rectangle=[[0,0],[a.w,0],[a.w,a.h],[0,a.h]],s=Math.min(340/a.w,190/a.h),pt=p=>[250-a.w*s/2+p[0]*s,130-a.h*s/2+p[1]*s],outline=shape==='kite'?[[0,a.b],[a.a,0],[a.w,a.b],[a.a,a.h]]:rectangle,segments=points=>points.map((p,i)=>[pt(p),pt(points[(i+1)%points.length])]),measured=shape==='kite'?[[pt([0,a.b]),pt([a.w,a.b])],[pt([a.a,0]),pt([a.a,a.h])]]:[[pt([0,a.h]),pt([a.w,a.h])],[pt([0,0]),pt([0,a.h])]],lines=[...segments(outline),...measured,...(svg.querySelector('[data-ag-kite-box]')?segments(rectangle):[])],labels=[...svg.querySelectorAll('[data-ag-teaching-dimension]')],occupied=[];
+          assert(labels.length===2,'Both basic area dimensions are visible: '+shape);
+          for(const [i,label] of labels.entries()){
+            checkTeachingEdge(label,...measured[i]);
+            const angle=Number(label.getAttribute('transform').slice(7).split(' ')[0]),box=M.labelBox([Number(label.getAttribute('x')),Number(label.getAttribute('y'))],angle,label.textContent,Number(label.getAttribute('font-size')));
+            assert(!lines.some(([p,q])=>M.labelIntersectsLine(box,p,q)),'Basic area dimensions avoid outlines and crossed diagonals: '+shape);
+            assert(!occupied.some(b=>M.boxesOverlap(box,b)),'Basic area dimensions do not overlap: '+shape);
+            occupied.push(box);
+          }
+        };
+        verifyBasicDimensions(graphic);
+
         assert(shape==='kite'?graphic.querySelectorAll('[data-ag-kite-inside]').length===4&&graphic.querySelectorAll('[data-ag-kite-outside]').length===4:graphic.querySelector('[data-ag-unit-square]'),'Meaningful area units or matched triangles');
         panel.querySelector('[data-ag-basic-area-toggle]').click();assert(!panel.querySelector('[data-ag-unit-square],[data-ag-kite-box]'),'Can hide construction overlay');
-        const basicPack=P.createDocument();basicPack.addCurrent(id,cap());assert(P.renderItem(basicPack.list()[0],false).querySelector('[data-ag-basic-area-graphic]'),'Basic area picture published');
+        verifyBasicDimensions(panel.querySelector('[data-ag-basic-area-graphic]'));
+        const basicPack=P.createDocument();basicPack.addCurrent(id,cap());const publishedBasic=P.renderItem(basicPack.list()[0],false).querySelector('[data-ag-basic-area-graphic]');assert(publishedBasic,'Basic area picture published');verifyBasicDimensions(publishedBasic);
       }
       assert(win.TT99Goodies.modeControl.set('polygon:parallelogram'),'Parallelogram proof accessible');await tick();
       const proofPanel=doc.querySelector('[data-ag-area-proof]');assert(proofPanel?.querySelector('[data-ag-proof-next]'),'Area proof has visible step controls');
