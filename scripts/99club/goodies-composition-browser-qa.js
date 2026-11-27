@@ -1583,7 +1583,11 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(frame.classList.contains('is-geometry-board'),'Full board entered for instrument scale checks');
       checkRuler();verifyInstruments('A4 full board');
       const original=JSON.stringify(cap().demo.labDrawing),tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),add=kind=>doc.querySelector('[data-ag-utensil-add="'+kind+'"]').click(),action=id=>doc.querySelector('[data-ag-utensil-action="'+id+'"]'),utensil=kind=>work.querySelector('[data-ag-utensil-kind="'+kind+'"]');
-      tool('measuring-tools').click();for(const kind of ['ruler','protractor','square45','square30'])add(kind);
+      tool('measuring-tools').click();
+      for(const kind of ['ruler','protractor','square45','square30']){
+        tool('segment').click();previewPointer('pointerdown',[70,120]);previewPointer('pointerup',[70,120]);assert(tool('segment').getAttribute('aria-pressed')==='true','Construction tool can be selected while measuring palette is open');
+        add(kind);assert(tool('select').getAttribute('aria-pressed')==='true'&&JSON.stringify(cap().demo.labDrawing)===original,'Adding '+kind+' cancels construction without committing provisional points');
+      }
       assert(work.querySelectorAll('[data-ag-utensil]').length===4,'Four independent measuring utensils can coexist');
       // Exercise the host-independent gesture engine with a different world calibration.
       const I=G.instruments,t={kind:'ruler',x:10,y:20,angle:0,size:200,snap:true},spec={min:20,max:600};
