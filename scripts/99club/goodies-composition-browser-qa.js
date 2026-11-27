@@ -2494,6 +2494,11 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
     locusTap('pointerdown',[400,100]);locusTap('pointermove',[630,320]);locusTap('pointerup',[630,320]);
     assert(Math.abs(cap().demo.locusState.p[0]-400)<1e-7,'Equidistant point moves along its perpendicular bisector');
     {
+      const prior=JSON.stringify(cap().demo.locusState),p=cap().demo.locusState.p;
+      locusTap('pointerdown',p);locusTap('pointermove',[400,180]);locusTap('pointercancel',[400,180]);assert(JSON.stringify(cap().demo.locusState)===prior,'Interrupted locus drag restores position and traces');
+      locusTap('pointerdown',p);locusTap('pointerup',[400,180]);assert(Math.abs(cap().demo.locusState.p[1]-180)<1e-6,'Locus release-only movement updates exact constrained position');
+    }
+    {
       const model=win.TT99Goodies.angles,dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]),near=(a,b)=>Math.abs(a-b)<1e-6;
       for(const kind of Object.keys(model.LOCUS_PRESETS)){
         const state=model.locusInitial(kind);preset.value=kind;preset.dispatchEvent(new win.Event('change',{bubbles:true}));
@@ -2629,6 +2634,12 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const operation=doc.querySelector('[data-ag-custom-operation]');operation.value='midpoint';operation.dispatchEvent(new win.Event('change',{bubbles:true}));doc.querySelector('[data-ag-custom-action="add"]').click();
       assert(doc.querySelector('[data-ag-custom-point="C"]')&&cap().demo.locusState.nodes.length===3,'Custom workspace places points and adds a dependent midpoint');
       const customTap=(type,p)=>{const svg=doc.querySelector('.gd-ag-visual svg'),surface=svg.parentElement,v=new win.DOMPoint(...p).matrixTransform(svg.getScreenCTM());surface.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:84,pointerType:'touch',button:0,clientX:v.x,clientY:v.y}))};
+      {
+        const prior=JSON.stringify(cap().demo.locusState);
+        customTap('pointerdown',[200,220]);customTap('pointermove',[230,180]);customTap('pointercancel',[230,180]);assert(JSON.stringify(cap().demo.locusState)===prior,'Interrupted custom drag restores original graph and traces');
+        customTap('pointerdown',[200,220]);customTap('pointerup',[230,180]);const q=model.customResolve(cap().demo.locusState).points;assert(dist(q.A,[230,180])<1e-6&&dist(q.C,[315,200])<1e-6,'Custom release-only movement updates driver and dependent midpoint');
+        doc.querySelector('[data-ag-custom-action="undo"]').click();assert(JSON.stringify(cap().demo.locusState)===prior,'Custom completed movement is one history transaction');
+      }
       const customBefore=JSON.stringify(model.customResolve(cap().demo.locusState).points);
       customTap('pointerdown',[300,220]);customTap('pointerup',[300,220]);
       const local=doc.querySelector('[data-ag-point-trace="toggle"]');assert(local&&local.getAttribute('aria-label')==='Start tracing C','Dependent custom point supports local trace action');local.click();
