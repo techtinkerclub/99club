@@ -3579,6 +3579,8 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         assert(n.getAttribute('dominant-baseline')==='central','Circle labels have centred vertical alignment');
         if(name==='O')assert(Math.hypot(x-cx,y-cy)>=size(n),'Centre label clears centre dot and diameter');
         if(name==='D')assert(y-cy>=size(n)*.75,'Diameter symbol clears horizontal diameter');
+        if(name==='D'||name==='r'){const transform=n.getAttribute('transform'),angle=Number(transform?.slice(7).split(' ')[0]);assert(transform?.startsWith('rotate(')&&Number.isFinite(angle)&&Math.abs(Math.sin((angle-(name==='D'?0:-55))*Math.PI/180))<1e-8,'Circle dimension follows its measurement line')}
+
         if(n.hasAttribute('data-ag-point-label')&&name!=='O')assert(Math.hypot(x-cx,y-cy)-r>=size(n),'Boundary point label clears circumference');
         if(name==='r'){const a=55*Math.PI/180;assert(Math.abs((x-cx)*Math.sin(a)+(y-cy)*Math.cos(a))>=size(n)*.75,'Radius symbol clears sloping radius')}
       }
