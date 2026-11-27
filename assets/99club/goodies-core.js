@@ -269,7 +269,10 @@ const INSTRUMENT_ICONS={
          const v=labSub(l.b,l.a),ll=labDot(v,v);if(ll<1e-8)continue;
          for(const reverse of [0,180]){
            const angle=mod(labAngle(l.a,l.b)+reverse-offset),da=diff(angle,t.angle);if(da>5)continue;
-           for(const fraction of fractions){
+           // A short segment may lie between all three usual ruler anchors.
+           // Intersect the projected measuring-edge interval with the actual object domain.
+           let samples=fractions;if(t.kind==='ruler'){const start=labDot(labSub(p,l.a),v)/ll,delta=labDot(vector(direction,len),v)/ll;if(Math.abs(delta)>1e-12){let lo=0,hi=1;if(!l.infinite){const z=-start/delta;if(delta>0)lo=Math.max(lo,z);else hi=Math.min(hi,z);if(!l.ray){const e=(1-start)/delta;if(delta>0)hi=Math.min(hi,e);else lo=Math.max(lo,e)}}if(lo<=hi)samples=[...fractions,(lo+hi)/2]}}
+           for(const fraction of samples){
              const a=vector(direction,len*fraction),sample=[p[0]+a[0],p[1]+a[1]],u=labDot(labSub(sample,l.a),v)/ll;
              if(!l.infinite&&(u<0||(!l.ray&&u>1)))continue;
              const q=labAt(l.a,v,u),distance=labDist(sample,q);if(distance>tol)continue;
@@ -290,8 +293,11 @@ const INSTRUMENT_ICONS={
      return hit?{x:hit.q[0],y:hit.q[1],kind:'Edge'}:null;
    }
    if(mode==='rotate'){
+     // The zero mark can act as a pivot for measuring any two named points,
+     // even when no segment connects them. Require a nearby second point on the physical edge.
+     if(t.kind==='ruler'){const origin=points.map(q=>({q,d:labDist(p,q)})).filter(q=>q.d<=tol).sort((a,b)=>a.d-b.d)[0];if(origin){const pairs=points.flatMap(q=>{const length=labDist(origin.q,q);if(length<tol*2||length>(t.size||400)+tol)return [];const angle=labAngle(origin.q,q),error=diff(angle,t.angle);return error<=3&&length*Math.sin(error*D)<=tol?[{x:origin.q[0],y:origin.q[1],angle,kind:'Aligned points',error,length}]:[]}).sort((a,b)=>a.error-b.error||b.length-a.length);if(pairs.length){const {error,length,...result}=pairs[0];return result}}}
      const offsets=t.kind.startsWith('square')?[0,90]:[0],choices=[];
-     for(const l of nearest.filter(l=>l.d<=tol*2))for(const offset of offsets)for(const reverse of [0,180])choices.push({angle:mod(l.angle+offset+reverse),kind:'Edge'});
+     for(const l of nearest.filter(l=>l.d<=tol*2))for(const offset of offsets)for(const reverse of [0,180])choices.push({angle:mod(l.angle+offset+reverse),kind:'Edge',...(t.kind==='ruler'&&l.d<=tol?{x:l.q[0],y:l.q[1]}:{})});
      choices.push({angle:mod(Math.round(t.angle/15)*15),kind:'Angle'});
      choices.sort((a,b)=>(a.kind==='Edge'?0:1)-(b.kind==='Edge'?0:1)||diff(a.angle,t.angle)-diff(b.angle,t.angle));
      return choices.find(c=>diff(c.angle,t.angle)<=3)||null;
