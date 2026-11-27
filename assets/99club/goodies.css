@@ -2558,3 +2558,13 @@ html.gd-ag-full-page.gd-embed-page #gd-stage.gd-ag-full-stage>:not(.gd-ag-full-b
 #gd-board-library-status{flex:none;margin:0;padding:6px 12px;border-top:1px solid #e2e9e8}
 #gd-board-library-status:empty{display:none}
 @media(pointer:coarse){.gd-board-library-head button{min-width:44px;min-height:44px}}
+
+/* Geometry teaching reference: visible content, not inspector configuration. */
+#tt99-goodies-root .gd-ag-shape-reference{width:100%;box-sizing:border-box;max-width:920px;margin:12px auto 4px;border:1px solid #c9ded8;border-radius:10px;background:#f7fbf9;color:#263e43;text-align:left;flex:0 0 auto}
+#tt99-goodies-root .gd-ag-shape-reference>summary{padding:10px 14px;font:700 16px/1.4 Arial,sans-serif;cursor:pointer;color:#175e55;list-style-position:inside}
+#tt99-goodies-root [data-ag-shape-reference-body]{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px;padding:0 12px 12px}
+#tt99-goodies-root [data-ag-shape-reference-body] section{border:1px solid #dce8e4;border-radius:8px;padding:12px;background:#fff;min-width:0}
+#tt99-goodies-root [data-ag-shape-reference-body] h4{font:700 15px/1.3 Arial,sans-serif;margin:0 0 8px;color:#175e55}
+#tt99-goodies-root [data-ag-shape-reference-body] dl{margin:0;font:500 14px/1.4 Arial,sans-serif}
+#tt99-goodies-root [data-ag-shape-reference-body] dt{margin:8px 0 1px;font-weight:700;color:#49666a}
+#tt99-goodies-root [data-ag-shape-reference-body] dd{margin:0;overflow-wrap:anywhere}

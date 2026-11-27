@@ -3219,6 +3219,20 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         doc.querySelector('[data-ag-action="transversal-parallel"]').click();await tick();
       }
     }
+    {
+      const M=win.TT99Goodies.angles,ref=(shapeView,extra={})=>M.shapeTeachingReference({mode:'polygon',shapeView,...extra});
+      for(const [shape,axes,order] of [['square',4,4],['rectangle',2,2],['rhombus',2,2],['parallelogram',0,2],['kite',1,1],['equilateral',3,3],['isosceles',1,1],['scalene',0,1],['right-triangle',0,1]]){
+        const m=ref(shape);assert(m.valid&&m.symmetry.reflection===axes&&m.symmetry.rotation===order,'Shape reference correctly calculates symmetry: '+shape);
+        assert(m.groups.length===3&&m.area>0&&m.perimeter>0,'Shape reference exposes properties, diagonals and formulae: '+shape);
+      }
+      for(let n=3;n<=12;n++){const m=ref('regular',{n});assert(m.symmetry.reflection===n&&m.symmetry.rotation===n,'Regular polygon symmetry: '+n);assert(m.groups[1].rows[0][1].endsWith('= '+n*(n-3)/2),'General diagonal formula: '+n)}
+      const rect=ref('rectangle'),pts=rect.points;assert(Math.abs(rect.area-300*180/1600)<1e-9&&Math.abs(rect.perimeter-2*(300+180)/40)<1e-9,'Rectangle model dimensions agree with numerical area/perimeter');
+      assert(!ref('free-polygon',{n:4,polygonPoints:[[0,0],[80,80],[0,80],[80,0]]}).valid,'Invalid polygon does not claim valid properties');
+      assert(win.TT99Goodies.modeControl.set('polygon:rectangle'),'Rectangle reference accessible directly');await tick();
+      const panel=doc.querySelector('.gd-ag-shape-reference');assert(panel?.open&&panel.querySelectorAll('section').length===3&&panel.textContent.includes('A = lw'),'Reference visible without opening settings');
+      const pack=P.createDocument();pack.addCurrent(id,cap());const printed=P.renderItem(pack.list()[0],false);
+      assert(printed.querySelectorAll('[data-ag-shape-reference-group]').length===3&&printed.textContent.includes('A = lw'),'Published teaching diagram includes reference');
+    }
     const circleMode=doc.getElementById('ag-mode');circleMode.value='circle';circleMode.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
     assert(doc.querySelector('.gd-ag-visual svg').textContent.includes('Diameter = 2 × radius'),'Circle explorer explains radius-diameter relationship');
     const beforeRadius=cap().demo.radius||5;doc.querySelector('[data-ag-action="radius-up"]').click();await tick();
