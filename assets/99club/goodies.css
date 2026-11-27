@@ -2728,3 +2728,13 @@ html.gd-embed-page #tt99-goodies-root #gd-stage:has(>.gd-ag-shape-reference){ove
   #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]:not(:has(>details))>[data-ag-lesson-copy]{grid-row:1/span 2}
   #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson] svg{max-height:clamp(150px,49vh,430px)}
 }
+
+
+/* Formula → labelled diagram → worked substitution. */
+#tt99-goodies-root [data-ag-lesson-copy] .gd-ag-teaching-formula{font:700 clamp(21px,2.35vw,34px)/1.25 Arial,sans-serif;color:#175e55;text-align:left;padding:8px 0;overflow-wrap:anywhere;border-bottom:2px solid #b9d9d0}
+#tt99-goodies-root .gd-ag-worked-example{font:700 clamp(14px,1.45vw,20px)/1.35 Arial,sans-serif;color:#27494c;overflow-wrap:anywhere}
+#tt99-goodies-root [data-ag-comparison-examples]{display:grid;gap:5px}
+#tt99-goodies-root [data-ag-comparison-examples][hidden]{display:none!important}
+#tt99-goodies-root [data-ag-lesson-copy]:has([data-ag-comparison-formula]){gap:6px}
+#tt99-goodies-root [data-ag-lesson-copy]:has([data-ag-comparison-formula]) .gd-ag-teaching-formula{font-size:clamp(19px,1.9vw,29px)}
+#tt99-goodies-root [data-ag-lesson-copy]:has([data-ag-comparison-formula]) .gd-ag-worked-example{font-size:clamp(13px,1.15vw,17px)}
