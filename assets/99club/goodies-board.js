@@ -350,7 +350,11 @@ function innerTarget(obj,selector,allowHidden=false){
 const CONTROL_SELECTOR='button,input,select,textarea,[contenteditable="true"]';
 let floatingControlSources=[],floatingControlSignature='',floatingControlStructure='';
 const innerConnections=new Map();
-if(typeof ResizeObserver!=='undefined')new ResizeObserver(()=>positionFloatingControls()).observe(board);
+if(typeof ResizeObserver!=='undefined'){
+  const inspectorObserver=new ResizeObserver(positionFloatingControls);
+  inspectorObserver.observe(board);
+  if(floatingControls)inspectorObserver.observe(floatingControls);
+}
 window.addEventListener('resize',positionFloatingControls);
 function positionFloatingControls(){
   if(!floatingControls||floatingControls.hidden)return;
@@ -528,6 +532,7 @@ function renderFloatingControls(obj){
   const tool=tools.find(t=>t.id===obj.toolId);
   if(floatingControlsTitle)floatingControlsTitle.textContent=floatingPanelMode==='tile-palette'?'Add tiles':floatingPanelMode==='money-palette'?'Add money':(tool?.title||'Manipulative')+(floatingPanelMode==='challenge'?' · Challenge':floatingPanelMode==='challenge-settings'?' · Challenge settings':floatingPanelMode==='paper'?' · Paper settings':' settings');
   floatingControls.hidden=false;
+  positionFloatingControls();
   requestAnimationFrame(positionFloatingControls);
 }
 function renderFloatingHelp(obj,data){
@@ -559,6 +564,7 @@ function renderFloatingHelp(obj,data){
   floatingControlsBody.appendChild(wrap);floatingControlsBody.scrollTop=0;
   if(floatingControlsTitle)floatingControlsTitle.textContent=(data.title||'Manipulative')+' · How to use';
   floatingControls.hidden=false;floatingControls.setAttribute('aria-label','Manipulative help');
+  positionFloatingControls();
   requestAnimationFrame(positionFloatingControls);
 }
 function openFloatingHelp(obj,data){
