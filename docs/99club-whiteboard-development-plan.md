@@ -30,5 +30,20 @@ Update it with evidence and release revisions as the work progresses.
 - [ ] Curriculum coverage review across existing and new tools, refine difficulty and question variation.
 - [ ] Final integrated QA, usability review and production release.
 
+
+## 7. Integrated release acceptance (parallel regression checks; final gate deferred)
+
+Geometry implementation baseline: `58b883bc29a176bbe954e7f53cff61194e9b3d6f` (PRs #352–367 merged). [Focused post-merge QA](https://github.com/techtinkerclub/99club/actions/runs/46041523166) and [Pages deployment](https://github.com/techtinkerclub/99club/actions/runs/46041522565) both succeeded. Direct production browser and physical classroom acceptance remain unverified.
+
+- [x] Consolidate geometry implementation and regression evidence; keep specific outstanding acceptance issues open (#266, #283, #330–333, #336).
+- [ ] Run the full Studio QA workflow on the current release candidate, including games, Custom Worksheets, printable catalogue, practice, security/privacy, SEO, help coverage, and Goodies at phone and desktop sizes. Include written-method and statistics contracts and Goodies publication.
+- [ ] Resolve actual failures before adding further features; distinguish legacy failures from regressions using evidence.
+- [ ] Review standalone Help, whole-app panel reachability, compact layout, action consistency and publication controls (see #331). Desktop and phone automation is not equivalent to a physical whiteboard review.
+- [ ] Reconcile remaining written-method, statistics and curriculum gaps against the current implemented catalogue; no implied full statutory coverage and no timed worksheet presets.
+- [ ] Verify production revision, physical touchscreen and representative physical print outputs; record device/browser and exact tested revision.
+- [ ] Record a release decision with outstanding limitations and a reproducible regression checklist.
+
+The tested geometry engine is a foundation, not a completed geometry product. The recovered expansion backlog is tracked in #369 and the geometry roadmap (G3–G7 and 6H–6L). Resume those gates before final catalogue acceptance. Run the integrated automated audit in parallel without diverting feature work. Do not freeze planned geometry capability or enrichment development. Keep the public 99 Club worksheet workflow and the separate Custom Worksheets workspace independent.
+
 ## Release discipline
 Keep implementation, automated verification, visual approval, merge and live deployment separate. Prefer coherent verified batches; avoid leaving usable features on a long-lived branch unnecessarily. Record outstanding limitations honestly.
