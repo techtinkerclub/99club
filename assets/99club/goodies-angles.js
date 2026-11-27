@@ -2502,15 +2502,18 @@ function basicAreaGraphic(m,show=true){
  if(m.kind==='Kite'){
    const corners=[[0,0],[m.w,0],[m.w,m.h],[0,m.h]],k=[[0,m.b],[m.a,0],[m.w,m.b],[m.a,m.h]],o=[m.a,m.b],colors=['#c9e8db','#f5dcac','#c9e1ef','#e2d6ef'];
    if(show)corners.forEach((p,i)=>{const next=k[(i+1)%4];poly([p,k[i],next],{fill:colors[i],stroke:'#78908d','stroke-dasharray':'4 3','fill-opacity':.55,'data-ag-kite-outside':i});poly([o,k[i],next],{fill:colors[i],stroke:'#277b70','data-ag-kite-inside':i})});
-   else poly(k,{fill:'#d9eee6',stroke:'#277b70','stroke-width':2});
+   else poly(k,{fill:'#d9eee6',stroke:'#277b70','stroke-width':2,'data-ag-basic-outline':'kite'});
    if(show)add('rect',{x,y,width:m.w*s,height:m.h*s,fill:'none',stroke:'#52676e','stroke-dasharray':'5 3','data-ag-kite-box':'1'});
-   line(k[0],k[2],{'stroke-width':2});line(k[1],k[3],{'stroke-width':2});label(250,258,'Rectangle area = '+fmt(m.w*m.h)+' cm²');
+   line(k[0],k[2],{'stroke-width':2,'data-ag-basic-diagonal':'d1'});line(k[1],k[3],{'stroke-width':2,'data-ag-basic-diagonal':'d2'});label(250,258,'Rectangle area = '+fmt(m.w*m.h)+' cm²');
  }else{
-   add('rect',{x,y,width:m.w*s,height:m.h*s,fill:'#d9eee6',stroke:'#277b70','stroke-width':2});
+   add('rect',{x,y,width:m.w*s,height:m.h*s,fill:'#d9eee6',stroke:'#277b70','stroke-width':2,'data-ag-basic-outline':'rectangle'});
    if(show){for(let i=1;i<m.w;i++)line([i,0],[i,m.h],{stroke:'#87b8ae','stroke-width':1});for(let i=1;i<m.h;i++)line([0,i],[m.w,i],{stroke:'#87b8ae','stroke-width':1});if(m.w>=1&&m.h>=1)add('rect',{x,y,width:s,height:s,fill:'#f3d9a8',stroke:'#a56a2e','stroke-width':1.5,'data-ag-unit-square':'1'});}
    label(250,258,show?'Orange square = 1 cm²':'Cover the shape with square units');
  }
- const dims=teachingDimensions(add,{bounds:[4,4,W-4,246],size:14});
+ const rectangle=[[0,0],[m.w,0],[m.w,m.h],[0,m.h]],outline=m.kind==='Kite'?[[0,m.b],[m.a,0],[m.w,m.b],[m.a,m.h]]:rectangle;
+ const segments=points=>points.map((p,i)=>[pt(...p),pt(...points[(i+1)%points.length])]);
+ const lines=[...segments(outline),...(m.kind==='Kite'?[[pt(0,m.b),pt(m.w,m.b)],[pt(m.a,0),pt(m.a,m.h)],...(show?segments(rectangle):[])]:[])];
+ const dims=teachingDimensions(add,{bounds:[4,4,W-4,246],size:14,lines});
  if(m.kind==='Kite'){
    dims(pt(0,m.b),pt(m.w,m.b),'d₁ = '+fmt(m.w)+' cm',{outside:pt(m.w/2,m.b-.2)});
    dims(pt(m.a,0),pt(m.a,m.h),'d₂ = '+fmt(m.h)+' cm',{outside:pt(m.a-.2,m.h/2)});
