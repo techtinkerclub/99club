@@ -190,14 +190,14 @@ const INSTRUMENT_ICONS={
    for(const type of ['pointerdown','pointermove','pointerup','click','wheel'])fo.addEventListener(type,e=>e.stopPropagation());fo.append(bar);svg.append(fo);return fo
  }
 
- function measuringUtensils(parent,getSvg,onPaint,{unitsPerCm=40,align=null,read=null,kinds=['ruler','protractor','square45','square30'],initialOpen=false,showReadout=true,annotation=null}={}){
+ function measuringUtensils(parent,getSvg,onPaint,{unitsPerCm=40,align=null,read=null,kinds=['ruler','protractor','square45','square30'],initialOpen=false,showReadout=true,annotation=null,onAdd=null}={}){
    const N='http://www.w3.org/2000/svg',specs={ruler:{label:'Ruler',size:400,min:2*unitsPerCm,max:100*unitsPerCm},protractor:{label:'Protractor',size:170,min:3*unitsPerCm,max:30*unitsPerCm},square45:{label:'45° set square',size:200,min:2*unitsPerCm,max:50*unitsPerCm},square30:{label:'30°–60° set square',size:200,min:2*unitsPerCm,max:50*unitsPerCm}};
    let items=[],selected=null,next=1,drag=null,opened=initialOpen,visible=true;
    const bar=document.createElement('div');bar.className='gd-ag-utensils gd-ag-lab-helpers';bar.hidden=true;bar.setAttribute('role','group');bar.setAttribute('aria-label','Measuring utensils');parent.append(bar);
    const additions=document.createElement('div');additions.className='gd-ag-lab-actions';bar.append(additions);
    const actions=document.createElement('div');actions.className='gd-ag-lab-actions';bar.append(actions);
    const node=(p,tag,attrs,value)=>{const e=document.createElementNS(N,tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,v);if(value!==undefined)e.textContent=value;p.append(e);return e};
-   function add(kind){const svg=getSvg(),v=svg.viewBox.baseVal,k=items.length%5;visible=true;opened=true;const p={id:String(next++),kind,x:v.x+v.width*.32+k*18,y:v.y+v.height*.52+k*18,angle:0,size:specs[kind].size*unitsPerCm/40,snap:true,reading:45,hand:1};items.push(p);selected=p.id;onPaint()}
+   function add(kind){onAdd?.(kind);const svg=getSvg(),v=svg.viewBox.baseVal,k=items.length%5;visible=true;opened=true;const p={id:String(next++),kind,x:v.x+v.width*.32+k*18,y:v.y+v.height*.52+k*18,angle:0,size:specs[kind].size*unitsPerCm/40,snap:true,reading:45,hand:1};items.push(p);selected=p.id;onPaint()}
    for(const [kind,spec] of Object.entries(specs).filter(([kind])=>kinds.includes(kind)))instrumentButton(additions,kind,spec.label,'Add '+spec.label,()=>add(kind),'agUtensilAdd');
    const hide=instrumentButton(actions,'select','Hide utensils','Hide or show measuring utensils',()=>{visible=!visible;selected=null;onPaint()},'agUtensilAction');hide.dataset.agUtensilAction='visibility';
    function removeSelected(){items=items.filter(t=>t.id!==selected);selected=null;onPaint()}
