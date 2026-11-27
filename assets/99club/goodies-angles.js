@@ -912,10 +912,15 @@ function diagram(d,teacher=false,options={}){
    const r=d.radius||5,x=400,y=180,R=explore?65+6*r:145,p=[x,y],left=[x-R,y],right=[x+R,y],top=[x,y-R];
    const highlight=d.part||'Radius',isPart=type==='circle-part',rad=explore||teacher&&!isPart||type!=='circle-radius'&&!isPart||isPart&&highlight==='Radius',dia=explore||teacher&&!isPart&&['circle-radius','circle-diameter'].includes(type)||type==='circle-radius'||isPart&&highlight==='Diameter';
    add('circle',{cx:x,cy:y,r:R,fill:shapeFill,stroke:isPart&&highlight==='Circumference'?orange:ink,'stroke-width':isPart&&highlight==='Circumference'?5:3,'data-ag-circle-outline':'1'});
-   if(dia){line(left,right,isPart?orange:teal,isPart?4:2.5,explore?{'stroke-dasharray':'7 5'}:{});if(!isPart)text(x-R*.45,y+21,'D',17,{'font-style':'italic','data-ag-circle-symbol':'D'})}
-   if(rad){const end=polar(x,y,R,55);line(p,end,isPart?orange:teal,isPart?4:2.5);if(!isPart){const mid=polar(x,y,R*.58,55),offset=polar(...mid,15,-35);text(offset[0],offset[1]+4,'r',17,{'font-style':'italic','data-ag-circle-symbol':'r'})}}
-   add('circle',{cx:x,cy:y,r:isPart&&highlight==='Centre'?7:3.5,fill:isPart&&highlight==='Centre'?orange:ink});
-   if(!isPart){text(x-11,y+14,'O',13,{'data-ag-point-label':'O'});if(dia){for(const [p,name,dx] of [[left,'A',-12],[right,'B',12]]){circle(p,2.8,ink);text(p[0]+dx,p[1]+4,name,13,{'data-ag-point-label':name})}}if(rad){const end=polar(x,y,R,55),pos=polar(x,y,R+15,55);circle(end,2.8,ink);text(pos[0],pos[1]+3,dia?'C':'A',13,{'data-ag-point-label':dia?'C':'A'})}}
+   // Paper rendering enlarges small text to 29 units. Allow for the actual
+   // rendered label size rather than reusing the smaller screen offsets.
+   const pointSize=options.paper?29:13,symbolSize=options.paper?29:17,pointGap=pointSize+4,symbolGap=symbolSize*.75+6;
+   const pointLabel=(q,name)=>text(q[0],q[1],name,pointSize,{'dominant-baseline':'central','data-ag-point-label':name});
+   const symbolLabel=(q,name)=>text(q[0],q[1],name,symbolSize,{'dominant-baseline':'central','font-style':'italic','data-ag-circle-symbol':name});
+   if(dia){line(left,right,isPart?orange:teal,isPart?4:2.5,explore?{'stroke-dasharray':'7 5'}:{});if(!isPart)symbolLabel([x-R*.55,y+symbolGap],'D')}
+   if(rad){const end=polar(x,y,R,55);line(p,end,isPart?orange:teal,isPart?4:2.5);if(!isPart){const mid=polar(x,y,R*.58,55),offset=polar(...mid,symbolGap,-35);symbolLabel(offset,'r')}}
+   add('circle',{cx:x,cy:y,r:isPart&&highlight==='Centre'?7:3.5,fill:isPart&&highlight==='Centre'?orange:ink,'data-ag-circle-centre':'1'});
+   if(!isPart){pointLabel([x,y+pointGap],'O');if(dia){for(const [p,name,dx] of [[left,'A',-pointGap],[right,'B',pointGap]]){circle(p,2.8,ink);pointLabel([p[0]+dx,p[1]],name)}}if(rad){const end=polar(x,y,R,55),pos=polar(x,y,R+pointGap,55);circle(end,2.8,ink);pointLabel(pos,dia?'C':'A')}}
    let baseline=365;
    if(isPart){if(teacher)text(x,baseline,highlight,19);return frame(200,12,400,teacher?380:338)}
    const given=explore||teacher?'r = '+r+' cm     ·     D = '+2*r+' cm':type==='circle-radius'?'D = '+2*r+' cm':'r = '+r+' cm';
