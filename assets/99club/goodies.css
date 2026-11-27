@@ -2447,6 +2447,7 @@ html.gd-ag-full-page.gd-embed-page #gd-stage.gd-ag-full-stage>:not(.gd-ag-full-b
 #tt99-goodies-root .gd-ag-full-panel-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 4px 5px;cursor:grab;touch-action:none;font:600 12px/1.2 system-ui,sans-serif;color:#365e55}
 #tt99-goodies-root .gd-ag-full-panel-head button{min-height:28px!important;min-width:28px;padding:2px!important;font-size:15px!important}
 #tt99-goodies-root .gd-ag-full-panel-content{display:grid;gap:4px}
+#tt99-goodies-root .gd-ag-full-panel[hidden]{display:none!important;pointer-events:none!important}
 #tt99-goodies-root .gd-ag-full-panel-content[hidden]{display:none!important}
 #tt99-goodies-root .gd-ag-full-panel .gd-ag-lab-tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px}
 #tt99-goodies-root .gd-ag-full-panel .gd-ag-lab-helpers,#tt99-goodies-root .gd-ag-full-panel .gd-ag-lab-actions,#tt99-goodies-root .gd-ag-full-panel .gd-ag-lab-options{display:flex;flex-wrap:wrap;justify-content:flex-start;gap:4px}
