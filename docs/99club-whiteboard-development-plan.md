@@ -33,18 +33,20 @@ Update it with evidence and release revisions as the work progresses.
 
 ## 7. Integrated release acceptance (parallel regression checks; final gate deferred)
 
-Current main baseline: `c2f81cd5dd3b5e23359aec53ed52b377d3a11a58` (#416 merged after successful focused QA). This audit candidate includes #417 at `de12230adb9acb661a7301bc61a7c78ccc3a57da` and depends on its focused QA and merge. Previous full Studio run [46042380060](https://github.com/techtinkerclub/99club/actions/runs/46042380060) passed 12 of 13 jobs; mixed Goodies composition failed on its older baseline. Do not carry that result forward as current acceptance.
+Current main baseline: `58ee64af36a4a8ccc276c282f88e59b16dff338e` (#421). The user prefers no scrolling during landscape teaching, with persistent topic tabs and focused advanced pages. Apply the same principle to other teaching widgets when their actual content warrants it; do not remove accessible narrow-screen fallbacks or introduce redundant navigation.
 
-- [x] Rebuild the audit on the current teaching and linked-challenge candidate rather than the obsolete #368 branch.
-- [ ] Verify #417's final focused QA, merge it independently, then verify the integrated audit candidate.
-- [ ] Run the full Studio QA workflow, including games, Custom Worksheets, printable catalogue, practice, security/privacy, SEO, help coverage, mathematical contracts and Goodies publication at phone and desktop sizes.
-- [ ] Resolve actual failures with evidence. Do not weaken mathematical or layout assertions merely to make CI green.
-- [ ] Review whole-app panel reachability, Help styling, controls and publication usability (see #331).
-- [ ] Reconcile remaining geometry, written-method, statistics and curriculum gaps against the implemented catalogue; no implied full statutory coverage or timed presets.
-- [ ] Verify production revision, physical touchscreen and representative physical printed pages; record device/browser and exact tested revision.
-- [ ] Record a release decision with limitations and reproducible regression evidence.
+- [x] Merge the multi-step challenge work and contextual shape measurement lessons after focused QA (#417, #419).
+- [x] Merge top navigation and focused landscape detail pages after focused QA (#420, #421).
+- [x] Reconcile full audit changes from #418 on the current main baseline.
+- [ ] Verify the provisional-start ruler correction and the shared floating inspector sizing fix in the integrated suite at phone and desktop widths.
+- [ ] Run the full Studio QA workflow, including games, Custom Worksheets, printable catalogue, practice, security/privacy, SEO, help coverage, mathematical contracts and Goodies publication.
+- [ ] Resolve actual failures with evidence; retain meaningful assertions.
+- [ ] Review panel reachability, Help styling and landscape teaching across widgets; measure active lesson height against viewport height rather than hide overflow.
+- [ ] Reconcile remaining geometry, written-method, statistics and curriculum gaps (#369).
+- [ ] Verify live revision, physical touchscreen and representative physical prints; record exact revision/device/browser.
+- [ ] Record release decision with limitations.
 
-Passing the automated suite is necessary but does not establish physical classroom acceptance or complete geometry coverage. Keep the recovered backlog (#369) open until each requirement is verified or explicitly deferred.
+Passing CI is necessary but does not establish physical classroom acceptance or complete curriculum coverage. Keep #369 open until verified or explicitly deferred.
 
 ## Release discipline
 Keep implementation, automated verification, visual approval, merge and live deployment separate. Prefer coherent verified batches; avoid leaving usable features on a long-lived branch unnecessarily. Record outstanding limitations honestly.
