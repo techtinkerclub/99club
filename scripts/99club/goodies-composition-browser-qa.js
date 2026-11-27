@@ -1299,6 +1299,21 @@ async function run(){
           const tangent=make([[0,0],[100,0],[100.05,100]],[[1,2]],[{i:0,r:100}]);assert(!check(tangent,'tangent-at-point',{O:0,T:1,X:2}).correct,'Nearly perpendicular tangent fails');tangent.points[2]=[100,100];assert(check(tangent,'tangent-at-point',{O:0,T:1,X:2}).correct,'Exact tangent passes');tangent.circles[0].r=100.5;assert(!check(tangent,'tangent-at-point',{O:0,T:1,X:2}).correct,'Tangent contact must be on actual circle');
           const triangle=make([[0,0],[200,0],[100,Math.sqrt(3)*100+.6]],[[0,1],[1,2],[2,0]]);assert(!check(triangle,'triangle-equilateral',{A:0,B:1,C:2}).correct,'Near-equilateral triangle fails');triangle.points[2][1]=Math.sqrt(3)*100;assert(check(triangle,'triangle-equilateral',{A:0,B:1,C:2}).correct,'Exact equilateral triangle passes');
         }
+        // Remaining library checks must reject near misses rather than old 2° / 0.15 cm tolerances.
+        {
+          const make=(points,segments,circles=[])=>({...model.labEmpty(true),points,segments,circles,names:points.map((_,i)=>'P'+i)}),check=(st,id,roles,targets={})=>model.independentConstructionCheck(st,id,roles,targets);
+          const square=make([[0,0],[200,0],[200.6,200],[.6,200]],[[0,1],[1,2],[2,3],[3,0]]),roles={A:0,B:1,C:2,D:3};
+          assert(!check(square,'square-on-side',roles).correct,'Slightly skewed square fails angular residual check');
+          square.points[2][0]=200;square.points[3][0]=0;assert(check(square,'square-on-side',roles).correct,'Exact square passes');
+          assert(!check(square,'rectangle-sides',roles,{AB:5.02,AD:5}).correct,'Specified lengths outside 0.01 cm fail');
+          assert(check(square,'rectangle-sides',roles,{AB:5.005,AD:5}).correct,'Specified lengths within tolerance pass');
+          const radius=100,at=a=>[radius*Math.cos(a*Math.PI/180),radius*Math.sin(a*Math.PI/180)],hex=make([[0,0],...Array.from({length:6},(_,i)=>at(i*60))],Array.from({length:6},(_,i)=>[i+1,(i+1)%6+1]),[{i:0,r:radius}]),hexRoles={O:0,A:1,B:2,C:3,D:4,E:5,F:6};
+          assert(check(hex,'regular-hexagon',hexRoles).correct,'Exact regular polygon passes');
+          hex.points[2]=at(60.02);assert(!check(hex,'regular-hexagon',hexRoles).correct,'Central-angle deviation outside tolerance fails');
+          const centre=make([[0,0]],[],[{i:0,r:100}]);assert(check(centre,'circle-given-radius',{A:0},{radius:2.5}).correct,'Exact circle radius passes');
+          assert(!check(centre,'circle-given-radius',{A:0},{radius:2.52}).correct,'Incorrect given circle radius fails');
+          centre.circles[0].construction=true;centre.showConstruction=false;assert(!check(centre,'circle-given-radius',{A:0},{radius:2.5}).correct,'Hidden circle cannot satisfy given radius');
+        }
         assert(!model.independentConstructionCheck(model.labEmpty(true),'unknown-method',{}).supported,'Unsupported checks are explicitly marked unavailable');
       }
       for(const m of methods){
