@@ -693,13 +693,17 @@ function generate(s={},rng=Math.random){
  function locusPoints(state){const preset=locusPreset(state.kind,state.params),p=locusProject(state.kind,state.p||preset.initial,state.p||preset.initial,state.params),anchor=Object.values(preset.anchors)[0];return {...preset.anchors,P:p,M:labAt(anchor,labSub(p,anchor),.5),...(preset.dependent?preset.dependent(p):{})}}
  function traceParts(points){const parts=[];let part=[];for(const p of points||[]){if(p===null){if(part.length>1)parts.push(part);part=[]}else part.push(p)}if(part.length>1)parts.push(part);return parts}
  function traceAdd(state,name,p,old){
-   if(!state.traceNames?.includes(name)||labDist(p,old)<.35)return;
-   state.traces=state.traces||{};const path=state.traces[name]||(state.traces[name]=[]);
-   if(!path.length||path.at(-1)===null)path.push(old.slice());
-   if(path.length<6000)path.push(p.slice());
+   if(!state.traceNames?.includes(name))return;
+   state.traces=state.traces||{};const path=state.traces[name]||(state.traces[name]=[]),last=path.at(-1);
+   if(labDist(p,last||old)<.35)return;
+   if(!last)path.push(old.slice());
+   // Bounded rolling history: never silently stop recording new movement.
+   if(path.length>=6000)path.splice(0,path.length-5500);
+   path.push(p.slice());
  }
+ function traceBreakPoint(state,name){const path=state.traces?.[name];if(path?.length&&path.at(-1)!==null)path.push(null)}
  // Never join disconnected branches or large angular jumps with a fictitious chord.
- function traceBreak(state){for(const name of state.traceNames||[]){const path=state.traces?.[name];if(path?.length&&path.at(-1)!==null)path.push(null)}}
+ function traceBreak(state){for(const name of state.traceNames||[])traceBreakPoint(state,name)}
  function locusTraceMove(state,target){
    const preset=locusPreset(state.kind,state.params),old=locusPoints(state),end=preset.project(target,old.P),kind=state.kind;
    const angular=['circle','ellipse','fixedAngle','tangent','externalTangents','circleIntersection','circleTangency','internalTangency','rhombus'].includes(kind);
@@ -798,7 +802,38 @@ function generate(s={},rng=Math.random){
    const id=customName(st.nextId++),node={id,op,refs:refs.slice()};if(spec.place){if(!Array.isArray(options.at)||!options.at.every(Number.isFinite))throw Error('Choose a location.');node.at=options.at.slice()}if(spec.values)node.value=spec.values.includes(Number(options.value))?Number(options.value):spec.values[0];if(spec.branches)node.branch=options.branch===1?1:0;
    st.nodes.push(node);return id;
  }
- function customMove(st,id,p){const n=st.nodes.find(n=>n.id===id);if(!n||!CUSTOM_OPERATIONS[n.op]?.place)return false;const old=customResolve(st).points;n.at=p.slice();const next=customResolve(st).points;for(const name of st.traceNames||[]){if(old[name]&&next[name])traceAdd(st,name,next[name],old[name]);else if(st.traces[name]?.length&&st.traces[name].at(-1)!==null)st.traces[name].push(null)}return true}
+ function customMove(st,id,p){
+   const n=st.nodes.find(n=>n.id===id);if(!n||!CUSTOM_OPERATIONS[n.op]?.place||!Array.isArray(p)||p.length!==2||!p.every(Number.isFinite))return false;
+   const names=st.traceNames||[],old=customResolve(st).points,from=n.at.slice();n.at=p.slice();const end=customResolve(st).points;
+   if(!names.length)return true;
+   // For a constrained driver on a circle interpolate between resolved points,
+   // not raw cursor positions (which can pass through the circle centre).
+   let startAt=from,endAt=p;
+   if(n.op==='onCircle'&&old[id]&&end[id]&&old[n.refs[0]]){
+     const o=old[n.refs[0]],u=labSub(old[id],o),v=labSub(end[id],o);
+     if(labDot(u,v)<-1e-7*Math.hypot(...u)*Math.hypot(...v)){traceBreak(st);return true}
+     startAt=old[id];endAt=end[id];
+   }
+   const resolveAt=t=>{n.at=labAt(startAt,labSub(endAt,startAt),t);return customResolve(st).points};
+   let budget=256;
+   // Adaptive midpoint checks detect curved dependents and undefined/singular
+   // relationships; unresolved intervals are gaps, never long fictitious chords.
+   function visit(t0,a,t1,b,depth){
+     const tm=(t0+t1)/2,mid=budget>0?(budget--,resolveAt(tm)):null;
+     const needs=names.some(name=>{const x=a[name],y=b[name],m=mid?.[name];if(!x&&!y&&!m)return false;if(!x||!y||!m)return true;return labDist(x,y)>8||labDist(m,labAt(x,labSub(y,x),.5))>.2});
+     if(needs&&mid&&depth<9&&budget>0){visit(t0,a,tm,mid,depth+1);visit(tm,mid,t1,b,depth+1);return}
+     for(const name of names){
+       const x=a[name],y=b[name],m=mid?.[name];
+       if(!x||!y||!m||labDist(x,y)>8||labDist(m,labAt(x,labSub(y,x),.5))>.2)traceBreakPoint(st,name);
+       else traceAdd(st,name,y,x);
+     }
+   }
+   try{
+     const steps=Math.max(1,Math.min(32,Math.ceil(labDist(startAt,endAt)/16)));let a=old;
+     for(let i=1;i<=steps;i++){const b=i===steps?end:resolveAt(i/steps);visit((i-1)/steps,a,i/steps,b,0);a=b}
+   }finally{n.at=p.slice()}
+   return true;
+ }
  const model={protractorReading,utensilAlignment,squareGeometry,isLabArc,labArcContains,labCircleExtents,labContentBounds,locusFitBounds,customBounds,fitGeometryBounds,INDEPENDENT_METHOD_DIMENSIONS,INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labLabel,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,locusInitial,locusProject,locusPoints,locusTraceMove,traceParts,traceAdd,traceToggle,shapeGeometry,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
 if(typeof module==='object'&&module.exports){module.exports=model;return}
 const G=root.TT99Goodies;if(!G)return;G.angles=model;
@@ -1832,7 +1867,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
      if(placing){try{remember();customAppend(st,placing.op,placing.refs,{...placing,at:hit.p});placing=null;status='Point added.';changed(true)}catch(e){status=e.message;paint()}return}
      if(!nearest||!CUSTOM_OPERATIONS[st.nodes.find(n=>n.id===nearest)?.op]?.place)return;remember();drag={id:e.pointerId,name:nearest};try{surface.setPointerCapture(e.pointerId)}catch(_){}
    });
-   surface.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId)return;const hit=locate(e);if(!hit)return;e.preventDefault();customMove(st,drag.name,hit.p);changed()});
+   surface.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId)return;e.preventDefault();for(const sample of [...(e.getCoalescedEvents?.()||[]),e]){const hit=locate(sample);if(hit)customMove(st,drag.name,hit.p)}changed()});
    const finish=e=>{if(drag?.id===e.pointerId)drag=null};for(const t of ['pointerup','pointercancel','lostpointercapture'])surface.addEventListener(t,finish);
    buildFields();paint();
  }
