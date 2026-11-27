@@ -1973,8 +1973,9 @@ function diagram(d,teacher=false,options={}){
    const twoLines=show&&(view==='sector'||view==='segment'),top=twoLines?-65:-35;
    text(400,top+24,show||view==='chord'||tangentView?heading[view]:view==='sector'?'Sector: a fraction of a circle':'Segment: between a chord and an arc',22,{'font-weight':700,'data-ag-circle-investigation-heading':view});
    if(twoLines)text(400,top+50,view==='sector'?'Sector area = (θ ÷ 360°) × πr²':'Major segment = circle − minor segment',19,{'data-ag-circle-investigation-general-formula':view});
-   const radiusLines=[[O,A],...(!tangentView?[[O,B]]:[]),...(chordView?[[A,B]]:[])];
-   const radiusLabel=dimensionPlacement(O,A,'r = '+r+' cm',{size:paper?29:17,offset:22,lines:radiusLines,bounds:[55,0,745,375],outside:labAt(A,labSub(A,B),1)});
+   const radiusLines=[[O,A],...(!tangentView?[[O,B]]:[]),...(chordView?[[A,B]]:[]),...(tangentView?[[U,T]]:[]),...(view==='chord'&&labDist(O,M)>1e-6?[[O,M]]:[])];
+   const occupied=[labelBox([O[0]-13,O[1]+20],0,'O',paper?29:16),...(!tangentView?[['A',start],['B',start+span]]:[['A',start]]).map(([name,a])=>{const q=exactPolar(...O,R+24,a);return labelBox([q[0],q[1]+5],0,name,paper?29:19)}),...(view==='chord'?[labelBox([M[0]+15,M[1]+18],0,'M',paper?29:16)]:[]),...(tangentView?[labelBox([T[0]+12,T[1]+14],0,'t',paper?29:18)]:[])];
+   const radiusLabel=dimensionPlacement(O,A,'r = '+r+' cm',{size:paper?29:17,offset:22,lines:radiusLines,occupied,bounds:[55,0,745,375],outside:labAt(A,labSub(A,B),1)});
    if(radiusLabel)text(...radiusLabel.p,'r = '+r+' cm',paper?29:17,{'dominant-baseline':'central','paint-order':'stroke',stroke:'#fff','stroke-width':3,transform:'rotate('+radiusLabel.angle+' '+radiusLabel.p.join(' ')+')','data-ag-circle-investigation-radius-label':'1'});
    text(400,395,names[view],19,{'data-ag-circle-investigation-rule':view});let y=425;
    const values=view==='chord'?'AM = MB = '+(m.chord/2).toFixed(2)+' cm · AB = '+m.chord.toFixed(2)+' cm':tangentView?'Angle between radius and tangent = 90°':(span>180?'Major':span===180?'Semicircle':'Minor')+' '+(view==='sector'?'sector':'segment')+' · Central angle = '+span.toFixed(2)+'°';
