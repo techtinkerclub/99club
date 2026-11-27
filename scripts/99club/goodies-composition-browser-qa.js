@@ -3058,6 +3058,39 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       action('reset-quad').click();await tick();assert(svg().querySelector('[data-ag-quad-classification]').textContent.startsWith('Rectangle'),'Reset restores initial rectangle');
       if(cap().demo.showDiagonals)action('diagonal').click();if(cap().demo.showParallel)action('parallel-marks').click();
     }
+    {
+      const M=win.TT99Goodies.angles,rows=M.QUAD_REASONING;
+      const checks={
+        'square-rectangle':m=>m.families.includes('Rectangle'),
+        'rectangle-rhombus':m=>m.families.includes('Rhombus'),
+        'rhombus-equal-diagonals':m=>m.diagonalEqual,
+        'parallelogram-bisect':m=>m.diagonalBisect,
+        'rectangle-perp':m=>m.diagonalPerpendicular,
+        'one-pair-square':m=>m.families.includes('Square'),
+        'equal-diagonals-rectangle':m=>m.families.includes('Rectangle'),
+        'three-right':m=>m.right===3,
+        'kite-parallel':m=>m.parallelPairs.length===2,
+        'concave-square':m=>m.families.includes('Square')
+      };
+      for(const row of rows){
+        const ms=row.examples.map(name=>M.quadrilateralProperties(M.quadReasoningPoints(name)));
+        assert(ms.every(Boolean),'Every reasoning example is a valid quadrilateral: '+row.id);
+        const results=ms.map(checks[row.id]);
+        assert(row.answer==='Sometimes'?results.includes(true)&&results.includes(false):row.answer==='Always'?results.every(Boolean):results.every(x=>!x),'Examples support reasoning classification: '+row.id);
+      }
+      const seen=new Set();
+      for(let i=0;i<rows.length;i++){
+        const t=M.generate({type:'quad-reasoning'},()=> (i+.5)/rows.length),row=rows.find(r=>r.id===t.quadStatement);seen.add(t.quadStatement);
+        assert(t.answer===row.answer&&t.choices.join(',')==='Always,Sometimes,Never'&&t.note===row.note,'Generated reasoning has matching proof or counterexample');
+      }
+      assert(seen.size===rows.length,'Every reasoning statement is generated');
+      const pack=P.createDocument();pack.generate(id,P.defaultSettings(id),10,'quad-reasoning');
+      for(const item of pack.list()){
+        const pupil=P.renderItem(item,false),key=P.answerGraphic(item);
+        assert(pupil.querySelector('[data-ag-quad-reasoning-space]')&&!pupil.querySelector('[data-ag-quad-reasoning-answer],[data-ag-quad-reasoning-example]'),'Pupil investigation withholds evidence and answer');
+        assert(key.querySelector('[data-ag-quad-reasoning-answer]').textContent===item.data.answer&&key.querySelectorAll('[data-ag-quad-reasoning-example]').length===item.data.quadExamples.length,'Teacher graphic includes matched geometric evidence');
+      }
+    }
     const shapeSelect=doc.getElementById('ag-shape-view');shapeSelect.value='rectangle';shapeSelect.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
     doc.querySelector('[data-ag-action="diagonal"]').click();await tick();
     assert(cap().demo.showDiagonals&&doc.querySelector('.gd-ag-visual svg').textContent.includes('Equal diagonals'),'Rectangle explorer displays its diagonal relationship');
