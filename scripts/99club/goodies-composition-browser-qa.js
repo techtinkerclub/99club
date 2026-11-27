@@ -3436,6 +3436,21 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         assert(pupil.querySelector('[data-ag-reasoning-space]')&&!pupil.querySelector('[data-ag-reasoning-witness]')&&teacher.getAttribute('data-ag-reasoning-graphic')===m.id&&teacher.querySelectorAll('[data-ag-reasoning-witness]').length===m.examples.length,'Pupil workspace separate from worked examples');
       }
       assert(generatedReasoning.size===M.GEOMETRY_REASONING.length,'All new reasoning statements generated');
+      for(const type of ['linked-isosceles','linked-l-area','linked-right-triangle'])for(let i=0;i<60;i++){
+        const t=M.generate({type,enrichment:true},()=> (i+.5)/60),m=M.linkedGeometry(t),parts=m.parts,near=(x,y)=>Math.abs(x-y)<1e-8;
+        assert(parts.length===3&&parts.every((p,j)=>near(p.answer,t.parts[j].answer)),'Linked challenge stores all three exact answers');
+        const p=M.polygonProperties(m.points);assert(p,'Valid linked challenge geometry');
+        if(type==='linked-isosceles')assert(near(p.angles[0],parts[0].answer)&&near(p.angles[1],parts[1].answer)&&near(parts[1].answer+parts[2].answer,180),'Linked angles agree with actual diagram');
+        else if(type==='linked-l-area')assert(near(M.polygonArea(m.points),parts[1].answer)&&near(p.lengths.reduce((a,b)=>a+b,0),parts[2].answer),'Compound area and perimeter agree with actual geometry');
+        else assert(near(p.lengths[1],parts[0].answer)&&near(p.lengths.reduce((a,b)=>a+b,0),parts[1].answer)&&near(M.polygonArea(m.points),parts[2].answer),'Right triangle calculations agree with geometry');
+        const ck=win.TT99Goodies.challengeKit,spec=ck.pupilSpec('ordered-parts',{parts}),answers=parts.map(p=>String(p.answer));
+        assert(ck.pupilAnswerCorrect(spec,answers,t.answer),'All ordered parts accepted');
+        const wrong=answers.slice();wrong[1]=String(Number(wrong[1])+1);assert(!ck.pupilAnswerCorrect(spec,wrong,t.answer),'A wrong subanswer cannot pass the whole problem');
+        const item=P.record(id,'challenge',t),pupil=P.renderItem(item,false),key=P.answerGraphic(item);
+        assert(pupil&&key&&!pupil.querySelector('[data-ag-linked-answer]'),'Linked task publishes a separate pupil diagram');
+        assert(type==='linked-isosceles'||key.querySelector('[data-ag-linked-answer]'),'Teacher diagram has the worked values');
+      }
+
 
 
 
