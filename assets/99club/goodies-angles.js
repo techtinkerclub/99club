@@ -2341,10 +2341,14 @@ function shapeReferenceGraphic(m,kind){
      const dimensions=teachingDimensions(add,{size:10,bounds:[3,3,W-3,163],lines:[...v.map((point,i)=>[point,v[(i+1)%n]]),[Q,F]]});
      dimensions(A,B,'b = '+fmt(labDist(a,b)/LAB_UNIT)+' cm',{outside:labAt(mid(A,B),h1,-20)});
      dimensions(F,Q,'h = '+fmt(labDist(q,f)/LAB_UNIT)+' cm',{outside:labAt(mid(F,Q),u1,labDot(labSub(F,A),u1)<ul/2?-20:20)});
-     label([160,174],n===3?'A = ½ × b × h':m.quad.parallelPairs.length===2?'A = b × h':'Area uses both parallel bases');
+     const trapezium=n===4&&m.quad.parallelPairs.length===1;
+     if(trapezium&&parallelSide){const [C,D]=parallelSide.map(map);dimensions(C,D,'a = '+fmt(labDist(...parallelSide)/LAB_UNIT)+' cm',{outside:labAt(mid(C,D),h1,20),attrs:{'data-ag-reference-second-base':'1'}})}
+     label([160,174],n===3?'A = ½ × b × h':trapezium?'A = ½ × (a + b) × h':'A = b × h');
    }else if(m.quad?.kind==='Kite'){
      line(v[0],v[2],{'data-ag-reference-area-diagonal':'AC'});line(v[1],v[3],{stroke:'#b56d2c','data-ag-reference-area-diagonal':'BD'});
-     label([160,174],'A = ½ × diagonal × diagonal');
+     const dims=teachingDimensions(add,{size:10,bounds:[3,3,W-3,163],lines:[...v.map((q,i)=>[q,v[(i+1)%n]]),[v[0],v[2]],[v[1],v[3]]]});
+     for(const [i,j,name] of [[0,2,'d₁'],[1,3,'d₂']])dims(v[i],v[j],name+' = '+fmt(labDist(pts[i],pts[j])/LAB_UNIT)+' cm',{attrs:{'data-ag-reference-diagonal-dimension':name}});
+     label([160,174],'A = ½ × d₁ × d₂');
    }else{
      for(const [j,tri] of p.triangles.entries())poly(tri.map(i=>v[i]),{fill:REGION_COLOURS[j%REGION_COLOURS.length],'fill-opacity':.28,stroke:'#fff','stroke-width':1,'data-ag-reference-area-triangle':j});
      poly(v,{fill:'none'});label([160,174],'Area = sum of the triangle areas');
