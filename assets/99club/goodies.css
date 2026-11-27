@@ -2545,3 +2545,16 @@ html.gd-ag-full-page.gd-embed-page #gd-stage.gd-ag-full-stage>:not(.gd-ag-full-b
 #tt99-goodies-root .gd-board-help-history{padding:0;border:1px solid #dce6e3;border-radius:7px}
 #tt99-goodies-root .gd-board-help-history summary{padding:8px;font:600 12px/1.3 Arial,sans-serif;color:#365e55}
 #tt99-goodies-root .gd-board-help-history p{padding:0 8px 8px;margin:0;font:12px/1.5 Arial,sans-serif}
+
+/* Saved-board library follows the shared modal layout, with one scrollable body. */
+.gd-board-library[open]{display:flex;flex-direction:column;max-height:calc(100dvh - 28px);padding:0;border-radius:13px;overflow:hidden;font:13px/1.45 Arial,sans-serif}
+.gd-board-library-head{flex:none;padding:8px 12px;gap:8px;border-bottom:1px solid #e2e9e8;background:#f7faf9;font:600 16px/1.3 Arial,sans-serif}
+.gd-board-library-body{min-height:0;min-width:0;overflow:auto;overscroll-behavior:contain;padding:10px 12px}
+.gd-board-library-body>p{margin:0;color:#526970;font:13px/1.45 Arial,sans-serif}
+.gd-board-library .gd-field{margin:8px 0}
+.gd-board-library-section-title{font:600 13px/1.3 Arial,sans-serif;color:#365e55;margin:16px 0 4px}
+#gd-board-library-list{margin-top:4px;gap:3px}
+.gd-board-library-row{padding:7px 0;gap:5px}
+#gd-board-library-status{flex:none;margin:0;padding:6px 12px;border-top:1px solid #e2e9e8}
+#gd-board-library-status:empty{display:none}
+@media(pointer:coarse){.gd-board-library-head button{min-width:44px;min-height:44px}}
