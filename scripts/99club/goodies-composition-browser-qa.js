@@ -596,8 +596,10 @@ async function run(){
   // Automatic builder supports search, independent sets and visible validation.
   {
     const P=TT99Goodies.publishing,draft=P.createDocument();
-    P.openEditor(draft,{mode:'builder'});
+    P.openEditor(draft,{mode:'review'});
     const dialog=document.getElementById('gd-publishing-editor');
+    assert(dialog.querySelectorAll('[data-pub-close]').length===1&&dialog.getAttribute('aria-labelledby')==='gd-pub-editor-title','Empty publisher has one exit and accessible title');
+    dialog.querySelector('.gd-pub-empty [data-pub-builder]').click();
     const search=dialog.querySelector('[data-pub-search]');
     search.value='geoboard';search.dispatchEvent(new Event('input',{bubbles:true}));
     assert(dialog.querySelectorAll('[data-pub-add-source]').length===1,'Catalogue search filters widgets');
@@ -621,7 +623,8 @@ async function run(){
     assert([...dialog.querySelectorAll('.gd-pub-source-content')].every(el=>!el.hidden)&&dialog.querySelector('[data-pub-block] [data-pub-type-details]').open,'Expand all restores question sets and their previous disclosures');
     assert(dialog.querySelectorAll('[data-pub-close]').length===1&&getComputedStyle(dialog.querySelector('.gd-pub-editor-header')).position==='sticky'&&getComputedStyle(dialog.querySelector('.gd-pub-builder-footer')).position==='sticky','Publisher has one dismissal control and persistent navigation and generation actions');
     dialog.querySelector('[data-pub-collapse-all]').click();
-    const counts=dialog.querySelectorAll('[data-pub-count]');counts[0].value='1';counts[0].dispatchEvent(new Event('change',{bubbles:true}));
+    const counts=dialog.querySelectorAll('[data-pub-count]');counts[0].focus();counts[0].value='1';counts[0].dispatchEvent(new Event('change',{bubbles:true}));
+    assert(document.activeElement===dialog.querySelector('[data-pub-count]'),'Publisher restores keyboard focus to the same question set control');
     const second=dialog.querySelectorAll('[data-pub-count]')[1];second.value='1';second.dispatchEvent(new Event('change',{bubbles:true}));
     assert(dialog.querySelector('.gd-pub-draft-total').textContent.includes('2 / 80'),'Builder shows total capacity');
     dialog.querySelector('[data-pub-generate]').click();await tick();
