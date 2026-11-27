@@ -1620,6 +1620,20 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const annotated=P.createDocument();annotated.addCurrent(id,cap());assert(P.renderItem(annotated.list()[0],false).querySelector('[data-ag-annotation-value]')?.textContent==='?','Angle annotation survives vector publication');
       doc.querySelector('[data-ag-tool="undo"]').click();assert(!work.querySelector('[data-ag-annotation-value]'),'Undo removes angle annotation without altering geometry');
     }
+    // Point display names and positions are independent of stable geometry IDs.
+    {
+      const M=win.TT99Goodies.angles,model=()=>cap().demo.labDrawing,original=model(),name=original.names[0],label=()=>work.querySelector('[data-ag-point-label="'+name+'"]');
+      tapWork(original.points[0]);doc.querySelector('[data-ag-point-label-edit]').click();
+      doc.querySelector('[data-ag-point-label-text]').value='P₁';doc.querySelector('[data-ag-point-label-action="apply"]').click();
+      assert(label().textContent==='P₁'&&M.labPointText(model(),0)==='P₁','Edited name renders on board');
+      assert(JSON.stringify(model().names)===JSON.stringify(original.names)&&JSON.stringify(model().points)===JSON.stringify(original.points),'Renaming never changes point identity or coordinates');
+      doc.querySelector('[data-ag-point-label-action="position"]').click();const p=[original.points[0][0]+35,original.points[0][1]-40];tapWork(p);
+      assert(Math.hypot(Number(label().getAttribute('x'))-p[0],Number(label().getAttribute('y'))-p[1])<.01,'Point label can be positioned separately from point');
+      const moved=JSON.parse(JSON.stringify(model()));moved.points[0]=[original.points[0][0]+20,original.points[0][1]+15];const follow=M.labLabel(moved,0);assert(Math.hypot(follow[0]-p[0]-20,follow[1]-p[1]-15)<.01,'Label offset follows its point when moved');
+      const draft=P.createDocument();draft.addCurrent(id,cap());const printed=P.renderItem(draft.list()[0],false).querySelector('[data-ag-point-label="'+name+'"]');assert(printed.textContent==='P₁'&&Math.abs(Number(printed.getAttribute('x'))-p[0])<.01,'Custom point label and position survive vector publication');
+      doc.querySelector('[data-ag-tool="undo"]').click();assert(label().textContent==='P₁'&&!model().pointLabels[name].offset,'Undo restores automatic positioning without losing edited name');
+      doc.querySelector('[data-ag-tool="undo"]').click();assert(label().textContent===name,'Second undo restores original label');
+    }
     // A ray through two named vertices must not round the exact direction.
     {
       const model=win.TT99Goodies.angles,check=(p,q,end)=>{const dx=q[0]-p[0],dy=q[1]-p[1];return Math.abs(dx*(end[1]-p[1])-dy*(end[0]-p[0]))/Math.hypot(dx,dy)<1e-6};
