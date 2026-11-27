@@ -3384,6 +3384,35 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       pp.querySelector('[data-ag-pythagoras-reset]').click();assert(pp.querySelector('[data-ag-pythagoras-back]').disabled,'Proof reset');
       const pythPack=P.createDocument();pythPack.addCurrent(id,cap());assert(P.renderItem(pythPack.list()[0],false).querySelectorAll('[data-ag-pythagoras-graphic]').length===4,'Pythagoras proof printable');
       const missing=new Set();for(let i=0;i<60;i++){const t=M.generate({type:'pythagoras',enrichment:true},()=> (i+.5)/60);missing.add(t.missingSide);assert(Number(t.answer)===(t.missingSide==='base'?t.baseLength:t.missingSide==='height'?t.length:t.hypotenuse),'Missing leg or hypotenuse answer');assert(t.baseLength*t.baseLength+t.length*t.length===t.hypotenuse*t.hypotenuse,'Generated exact Pythagorean triple');const item=P.record(id,'challenge',t),pupil=P.renderItem(item,false),teacher=P.renderItem(item,true);assert(pupil.textContent.includes('x')&&teacher.textContent.includes(String(t.answer)),'Pupil unknown and teacher answer published');}assert(missing.size===3,'All three missing-side cases generated');
+      for(const kind of ['base-height','perimeter','area'])for(const base of [3,6,7.5])for(const height of [3,4,6.25]){
+        const limits=M.areaComparison(kind,undefined,base,height);
+        for(let value=limits.min;value<=limits.max;value+=.5){
+          const m=M.areaComparison(kind,value,base,height),[a,b]=m.shapes,near=(x,y)=>Math.abs(x-y)<1e-8;
+          assert(m.shapes.every(s=>near(M.polygonArea(s.points),s.area)&&s.height>0&&s.width>0),'Comparison exact positive geometry');
+          assert(kind==='perimeter'?near(a.perimeter,b.perimeter):near(a.area,b.area),'Area/perimeter invariant across parameter range');
+          if(kind==='base-height')assert(near(a.width,b.width)&&near(a.height,b.height),'Same perpendicular height including external altitude');
+        }
+      }
+      const cases=[['base-height',8],['perimeter',2],['area',3]];
+      for(const [kind,value] of cases){const [a,b]=M.areaComparison(kind,value).shapes;assert(kind==='perimeter'?a.area!==b.area:Math.abs(a.perimeter-b.perimeter)>1e-6,'Concrete counterexamples change the non-invariant quantity')}
+      assert(win.TT99Goodies.modeControl.set('polygon:rectangle'),'Area comparison reachable');await tick();
+      doc.querySelector('[data-ag-teaching-tab="area-comparison"]').click();await tick();
+      const cmp=doc.querySelector('[data-ag-area-comparison]'),cs=cmp.querySelector('[data-ag-area-comparison-kind]'),cr=cmp.querySelector('[data-ag-area-comparison-value]'),revealCmp=cmp.querySelector('[data-ag-area-comparison-reveal]');
+      assert(!cmp.hidden&&cmp.querySelectorAll('[data-ag-area-comparison-shape]').length===2,'Two shapes compared at common scale');
+      for(const [kind,value] of cases){
+        cs.value=kind;cs.dispatchEvent(new win.Event('change',{bubbles:true}));cr.value=value;cr.dispatchEvent(new win.Event('input',{bubbles:true}));
+        assert(cmp.querySelector('[data-ag-area-comparison-area="1"]').textContent==='Area = ?','Prediction hides measurements');
+        revealCmp.click();const snap=cap().demo;assert(snap.areaComparisonKind===kind&&snap.areaComparisonValue===value&&snap.areaComparisonReveal,'Comparison state captured');
+        assert(cmp.querySelector('[data-ag-area-comparison-area="1"]').textContent!=='Area = ?','Reveal displays measurements');
+        const pack=P.createDocument();pack.addCurrent(id,cap());assert(P.renderItem(pack.list()[0],false).querySelector('[data-ag-area-comparison-graphic="'+kind+'"]'),'Chosen investigation printable');
+      }
+      for(const type of ['area-same-base','area-same-perimeter','perimeter-same-area'])for(let i=0;i<40;i++){
+        const t=M.generate({type},()=> (i+.5)/40),m=M.areaComparison(t.areaComparisonKind,t.areaComparisonValue,t.baseLength,t.height),b=m.shapes[1],item=P.record(id,'challenge',t),pupil=P.renderItem(item,false),teacher=P.renderItem(item,true);
+        assert(Number(t.answer)===(type==='perimeter-same-area'?b.perimeter:b.area),'Generated comparison answer agrees with model');
+        const key=type==='perimeter-same-area'?'perimeter':'area',selector='[data-ag-area-comparison-'+key+'="1"]';
+        assert(pupil.querySelector(selector).textContent.includes('?')&&!teacher.querySelector(selector).textContent.includes('?'),'Pupil unknown separated from teacher result');
+      }
+
 
 
 
