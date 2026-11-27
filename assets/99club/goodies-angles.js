@@ -533,11 +533,20 @@ function generate(s={},rng=Math.random){
    if(t.kind!=='protractor'||!(t.reading>.01&&t.reading<179.99))return null;
    const vertices=points.map((p,i)=>({p,i})).filter(v=>labDist(v.p,origin)<=tol);if(vertices.length!==1)return null;
    const {p:o,i}=vertices[0],arms=new Set();
-   // Only named points on visible incident segments/rays qualify.
-   for(const edge of s.segments)if(edge.includes(i)&&labVisible(s,'segments',edge))arms.add(edge.find(j=>j!==i));
-   for(const ray of s.rays)if(ray.i===i&&labVisible(s,'rays',ray)){const a=labRayAngle(s,ray);points.forEach((p,j)=>{if(j!==i&&labDist(p,o)>1e-8&&Math.abs(Math.sin((labAngle(o,p)-a)*D/2))<1e-7)arms.add(j)})}
+   // A named vertex may lie inside an existing segment or on a ray
+   // whose origin is elsewhere. Use the visible extent, never its imaginary extension.
+   const on=(p,line)=>{const v=labSub(line.b,line.a),len=Math.hypot(...v);if(len<1e-8)return false;const u=v.map(x=>x/len),d=labSub(p,line.a),k=labDot(d,u);return Math.abs(labCross(d,u))<1e-6&&k>=-1e-6&&(line.ray||k<=len+1e-6)};
+   for(const line of instrumentScene(s).lines)if(on(o,line))points.forEach((p,j)=>{if(j!==i&&labDist(p,o)>1e-8&&on(p,line))arms.add(j)});
    const diff=(a,b)=>Math.min(mod(a-b),mod(b-a)),hand=t.hand===-1?-1:1;
-   const armAt=a=>[...arms].filter(j=>labDist(points[j],o)>1e-8&&diff(labAngle(o,points[j]),a)<=.25);
+   const armAt=a=>{
+     const matching=[...arms].filter(j=>diff(labAngle(o,points[j]),a)<=.25).sort((j,k)=>diff(labAngle(o,points[j]),a)-diff(labAngle(o,points[k]),a)||labDist(points[j],o)-labDist(points[k],o));
+     if(!matching.length)return [];
+     const angle=labAngle(o,points[matching[0]]);
+     // Several named points on the same half-line identify one arm.
+     // Distinct nearby directions remain ambiguous.
+     if(matching.some(j=>diff(labAngle(o,points[j]),angle)>1e-6))return [];
+     return [matching.sort((j,k)=>labDist(points[j],o)-labDist(points[k],o))[0]];
+   };
    const a=armAt(t.angle),b=armAt(t.angle+hand*t.reading);
    if(a.length!==1||b.length!==1||a[0]===b[0])return null;
    const ids=[a[0],i,b[0]];return {kind:'angle',names:ids.map(j=>names[j]),points:ids.map(j=>points[j]),label:'Add angle '+ids.map(j=>s.names?labPointText(s,j):names[j]).join('')};
