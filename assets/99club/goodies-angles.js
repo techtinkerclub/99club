@@ -344,7 +344,7 @@ function generate(s={},rng=Math.random){
    return task({comparison},'Compare triangles ABC and DEF using the stated side lengths. Which description is correct?',answer,'Compare the three corresponding side-length ratios. All equal to 1 means congruent; all equal but not 1 means similar but not congruent; unequal ratios mean neither. Rotation and reflection do not affect these relationships.',['Congruent','Similar, not congruent','Neither']);
  }
  if(type==='similar-side'){const base=rand(rng,3,7),height=rand(rng,2,5),factor=pick(rng,[2,3,4]);return task({baseLength:base,length:height,factor},'The two triangles are similar. Find the missing side x in centimetres.',height*factor,'The scale factor is '+factor+'. Corresponding lengths are multiplied by the same factor.')}
- if(type==='pythagoras'){const [u,v,h]=pick(rng,[[3,4,5],[5,12,13],[6,8,10],[8,15,17],[9,12,15]]);return task({baseLength:u,length:v,hypotenuse:h},'Find the hypotenuse x in centimetres.',h,'Pythagoras: x² = '+u+'² + '+v+'² = '+h*h+'. Therefore x = '+h+' cm.')}
+ if(type==='pythagoras'){const [u,v,h]=pick(rng,[[3,4,5],[5,12,13],[6,8,10],[8,15,17],[9,12,15]]),missingSide=pick(rng,['hypotenuse','base','height']),answer=missingSide==='base'?u:missingSide==='height'?v:h,other=missingSide==='base'?v:u,note=missingSide==='hypotenuse'?'x² = '+u+'² + '+v+'² = '+h*h:'x² = '+h+'² − '+other+'² = '+answer*answer;return task({baseLength:u,length:v,hypotenuse:h,missingSide},'Find the '+(missingSide==='hypotenuse'?'hypotenuse':'missing shorter side')+' x in centimetres.',answer,'Pythagoras: '+note+'. Therefore x = '+answer+' cm.')}
  if(type==='diagonal-equal'){const shape=pick(rng,['Square','Rectangle','Rhombus (not square)','Parallelogram (not rectangle)']);return task({shape},'For this type of '+(shape.startsWith('Parallelogram')?'parallelogram':'quadrilateral')+', are the two diagonals always equal in length?',shape==='Square'||shape==='Rectangle'?'Yes':'No','A rectangle (including a square) always has equal diagonals. A non-square rhombus or non-rectangular parallelogram does not.',['Yes','No'])}
  if(type==='circle-part'){const part=pick(rng,['Radius','Diameter','Circumference','Centre']);return task({part,radius:5},'Name the highlighted part of the circle.',part,'The radius runs from the centre to the boundary, the diameter crosses the centre between two boundary points, and the circumference is the boundary.',['Radius','Diameter','Circumference','Centre'])}
  if(type==='circle-diameter'||type==='circle-radius'){const r=rand(rng,2,15);return task({radius:r},type==='circle-diameter'?'Find the diameter in centimetres.':'Find the radius in centimetres.',type==='circle-diameter'?2*r:r,'Diameter = 2 × radius. Radius = diameter ÷ 2.')}
@@ -1299,6 +1299,22 @@ function generate(s={},rng=Math.random){
    const offset=pts.findIndex((p,i)=>rotated.every((v,k)=>labDist(v,pts[(i+k)%n])<=eps));
    return {angle,centre,rotated,matches:offset>=0,offset,order:m.symmetry.rotation,smallest:360/m.symmetry.rotation};
  }
+ // Two equal outer squares, each containing four congruent right triangles.
+ function pythagorasProof(points){
+   const p=triangleProperties(points);if(p?.kind!=='Right-angled')return null;
+   const i=p.angles.indexOf(Math.max(...p.angles)),a=labDist(points[i],points[(i+1)%3])/LAB_UNIT,b=labDist(points[i],points[(i+2)%3])/LAB_UNIT,c=labDist(points[(i+1)%3],points[(i+2)%3])/LAB_UNIT,L=a+b;
+   const turn=q=>[L-q[1],q[0]],around=[[[0,0],[a,0],[0,b]]];
+   for(let j=1;j<4;j++)around.push(around[j-1].map(turn));
+   const centre=[[a,0],[L,a],[b,L],[0,b]],square=(x,y,s)=>[[x,y],[x+s,y],[x+s,y+s],[x,y+s]];
+   const together=[[[a,0],[L,0],[a,a]],[[L,a],[a,a],[L,0]],[[0,a],[a,a],[0,L]],[[a,L],[0,L],[a,a]]];
+   const small=[square(0,0,a),square(a,a,b)],fmt=v=>Number(v.toFixed(2)).toString();
+   return {a,b,c,L,triangleArea:a*b/2,around,together,centre,small,steps:[
+     {title:'Four congruent triangles',note:'Place four copies of the same right-angled triangle, with perpendicular sides a and b and hypotenuse c, at the corners of a square of side a + b.'},
+     {title:'The first arrangement leaves c²',note:'The four hypotenuses form the central square. Its angles are 90° because the two acute angles of a right triangle add to 90°. The uncovered area is c².'},
+     {title:'Rearrange the same triangles',note:'Put the same four triangles into two rectangles in an identical outer square. The uncovered regions are squares of sides a and b, with combined area a² + b².'},
+     {title:'Equal remaining areas',note:'Both outer squares have the same area and contain the same four triangles. Subtract those equal triangle areas: a² + b² = c². Here '+fmt(a*a)+' + '+fmt(b*b)+' ≈ '+fmt(c*c)+' cm² (displayed values rounded). This proof applies to right-angled triangles.'}
+   ]};
+ }
  function shapeAreaProof(m){
    if(!m?.valid)return null;
    const n=m.n,kind=n===3?'triangle':m.quad?.kind;
@@ -1572,7 +1588,7 @@ function generate(s={},rng=Math.random){
    }finally{n.at=p.slice()}
    return true;
  }
- const model={polygonFormulaProof,circleTheoremModel,circleTheoremMove,triangleFamilyModel,triangleFamilyExample,quadrilateralFamilyModel,reflectionInvestigation,rotationInvestigation,shapeAreaProof,shapeTeachingReference,shapeSymmetry,transversalModel,protractorReading,utensilAlignment,squareGeometry,isLabArc,labArcContains,labCircleExtents,labContentBounds,locusFitBounds,customBounds,fitGeometryBounds,INDEPENDENT_METHOD_DIMENSIONS,INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labLineMarks,labSetLineMark,labAngleAnnotation,labSameAngle,labAngleArms,labAngleSectors,labAnglePair,labSectorMark,labSectorPreview,labDimensionText,labRulerTargets,labIndependentDimensions,labSquareBaseReferences,labSquareComparison,labParallelMarkPlan,labSquareSlideSnap,labMeasurementTarget,labApplyMeasurement,labAngleText,labProtractorDirection,labAngleGraphics,labAnnotationPlan,boxesOverlap,labelBox,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labRayDefinition,labAbsoluteRay,labDirectRay,labReferenceArm,labRelativeRay,labDetachReferences,labStraightEnds,rayEnd,labLabel,labPointText,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,datumState,datumCoordinates,datumPoint,datumSnap,datumDirection,datumGridStart,datumGraphic,locusInitial,locusProject,locusPoints,locusTraceMove,traceParts,traceAdd,traceToggle,shapeGeometry,freeTrianglePoints,triangleComparison,triangleComparisonResult,triangleCriterion,TRIANGLE_CRITERIA,triangleInequality,inequalitySettings,triangleProperties,triangleCentres,eulerLineModel,quadrilateralProperties,freeQuadrilateralPoints,circleInvestigation,circleInvestigationMove,CIRCLE_VIEWS,polygonProperties,freePolygonPoints,polygonInvestigationExamples,polygonInvestigationTurns,QUAD_REASONING,quadReasoningPoints,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labIntersections,labIntersectionSettings,labNewIntersections,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
+ const model={pythagorasProof,polygonFormulaProof,circleTheoremModel,circleTheoremMove,triangleFamilyModel,triangleFamilyExample,quadrilateralFamilyModel,reflectionInvestigation,rotationInvestigation,shapeAreaProof,shapeTeachingReference,shapeSymmetry,transversalModel,protractorReading,utensilAlignment,squareGeometry,isLabArc,labArcContains,labCircleExtents,labContentBounds,locusFitBounds,customBounds,fitGeometryBounds,INDEPENDENT_METHOD_DIMENSIONS,INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labLineMarks,labSetLineMark,labAngleAnnotation,labSameAngle,labAngleArms,labAngleSectors,labAnglePair,labSectorMark,labSectorPreview,labDimensionText,labRulerTargets,labIndependentDimensions,labSquareBaseReferences,labSquareComparison,labParallelMarkPlan,labSquareSlideSnap,labMeasurementTarget,labApplyMeasurement,labAngleText,labProtractorDirection,labAngleGraphics,labAnnotationPlan,boxesOverlap,labelBox,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labRayDefinition,labAbsoluteRay,labDirectRay,labReferenceArm,labRelativeRay,labDetachReferences,labStraightEnds,rayEnd,labLabel,labPointText,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,datumState,datumCoordinates,datumPoint,datumSnap,datumDirection,datumGridStart,datumGraphic,locusInitial,locusProject,locusPoints,locusTraceMove,traceParts,traceAdd,traceToggle,shapeGeometry,freeTrianglePoints,triangleComparison,triangleComparisonResult,triangleCriterion,TRIANGLE_CRITERIA,triangleInequality,inequalitySettings,triangleProperties,triangleCentres,eulerLineModel,quadrilateralProperties,freeQuadrilateralPoints,circleInvestigation,circleInvestigationMove,CIRCLE_VIEWS,polygonProperties,freePolygonPoints,polygonInvestigationExamples,polygonInvestigationTurns,QUAD_REASONING,quadReasoningPoints,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labIntersections,labIntersectionSettings,labNewIntersections,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
 if(typeof module==='object'&&module.exports){module.exports=model;return}
 const G=root.TT99Goodies;if(!G)return;G.angles=model;
 const {q,qa,esc,field,btn,setPanels}=G,CK=G.challengeKit;
@@ -1964,7 +1980,7 @@ function diagram(d,teacher=false,options={}){
    }
    const pts=fit([[0,0],[d.baseLength,0],[0,-d.length]]),edges=pts.map((p,i)=>[p,pts[(i+1)%3]]);
    polygon(pts);corner(pts,0,null);
-   for(const [i,j,label] of [[0,1,d.baseLength+' cm'],[0,2,d.length+' cm'],[1,2,teacher?d.answer+' cm':'x']]){const a=pts[i],b=pts[j],m=labAt(a,labSub(b,a),.5),c=pts[3-i-j];dimension(a,b,label,{outside:labAt(m,labSub(m,c),1),size:16,lines:edges})}
+   for(const [i,j,label] of [[0,1,!teacher&&d.missingSide==='base'?'x':d.baseLength+' cm'],[0,2,!teacher&&d.missingSide==='height'?'x':d.length+' cm'],[1,2,!teacher&&(!d.missingSide||d.missingSide==='hypotenuse')?'x':(d.hypotenuse??d.answer)+' cm']]){const a=pts[i],b=pts[j],m=labAt(a,labSub(b,a),.5),c=pts[3-i-j];dimension(a,b,label,{outside:labAt(m,labSub(m,c),1),size:16,lines:edges})}
    return polygonFrame(pts,95)
  }
  // Centre diagrams share the same analytic model in teaching, pupil and teacher output.
@@ -2188,6 +2204,33 @@ function shapeReferenceGraphic(m,kind){
  }
  return svg;
 }
+function pythagorasGraphic(p,index){
+ const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),W=500,H=265,scale=190/p.L;
+ const add=(tag,attrs,value)=>{const el=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,v);if(value!=null)el.textContent=value;svg.append(el);return el};
+ const label=(x,y,v,attrs={})=>add('text',{x,y,'font-family':'Arial,sans-serif','font-size':15,'text-anchor':'middle',fill:'#27494c',...attrs},v);
+ const colors=['#d9eee6','#c7e2ec','#f3d9a8','#e7dcf1'];
+ const layout=(x,y,which)=>{
+   const map=q=>[x+q[0]*scale,y+q[1]*scale],poly=(pts,attrs)=>add('polygon',{points:pts.map(q=>map(q).join(',')).join(' '),...attrs});
+   add('rect',{x,y,width:190,height:190,fill:'#fff',stroke:'#27494c','stroke-width':2,'data-ag-pythagoras-outer':which});
+   (which==='c'?p.around:p.together).forEach((tri,i)=>poly(tri,{fill:colors[i],stroke:'#41636a','stroke-width':1.5,'data-ag-pythagoras-piece':i}));
+   const regions=which==='c'?[p.centre]:p.small;
+   if(index>0)regions.forEach((region,i)=>{poly(region,{fill:'#fff5ce',stroke:'#a56a2e','stroke-width':1.5,'data-ag-pythagoras-square':which==='c'?'c':i?'b':'a'});const q=map([0,1].map(k=>region.reduce((s,v)=>s+v[k],0)/4));label(q[0],q[1]+5,which==='c'?'c²':i?'b²':'a²',{'font-weight':700,'font-size':Math.min(17,Math.max(9,(which==='c'?p.c:i?p.b:p.a)*scale*.22))})});
+   label(x+95,y-9,'a + b',{'font-size':13});label(x+95,y+210,which==='c'?'Four triangles around c²':'Same four triangles around a² + b²',{'font-size':12});
+   if(index===0){label(x+p.a*scale/2,y+14,'a',{'font-size':13});label(x+13,y+p.b*scale/2,'b',{'font-size':13});label(x+p.a*scale/2+12,y+p.b*scale/2+12,'c',{'font-size':13})}
+ };
+ svg.setAttribute('viewBox','0 0 '+W+' '+H);svg.setAttribute('role','img');svg.setAttribute('aria-label',p.steps[index].note);svg.dataset.agPythagorasGraphic=String(index);
+ add('rect',{width:W,height:H,fill:'#fff'});
+ if(index===3){layout(34,24,'c');layout(276,24,'ab');label(250,128,'=',{'font-size':23,'font-weight':700})}
+ else layout(155,24,index===2?'ab':'c');
+ label(250,257,index===3?'a² + b² = c²':p.steps[index].title,{'font-size':17,'font-weight':700,'data-ag-pythagoras-equation':'1'});return svg;
+}
+function mountPythagorasProof(container,proof,demo){
+ let index=Math.max(0,Math.min(3,Math.floor(Number(demo.pythagorasProofStep)||0)));
+ const section=document.createElement('section');section.className='gd-ag-area-proof';section.dataset.agPythagorasProof='1';
+ section.innerHTML='<h4>Why Pythagoras works</h4><div data-ag-pythagoras-picture></div><p data-ag-pythagoras-note aria-live="polite"></p><div class="gd-row"><button type="button" class="gd-btn" data-ag-pythagoras-back>Previous</button><strong data-ag-pythagoras-count></strong><button type="button" class="gd-btn" data-ag-pythagoras-next>Next step</button><button type="button" class="gd-btn" data-ag-pythagoras-reset>Restart</button></div>';
+ const q=s=>section.querySelector(s),show=()=>{demo.pythagorasProofStep=index;q('[data-ag-pythagoras-picture]').replaceChildren(pythagorasGraphic(proof,index));q('[data-ag-pythagoras-note]').textContent=proof.steps[index].note;q('[data-ag-pythagoras-count]').textContent=(index+1)+' / 4';q('[data-ag-pythagoras-back]').disabled=index===0;q('[data-ag-pythagoras-next]').disabled=index===3};
+ q('[data-ag-pythagoras-back]').onclick=()=>{index=Math.max(0,index-1);show()};q('[data-ag-pythagoras-next]').onclick=()=>{index=Math.min(3,index+1);show()};q('[data-ag-pythagoras-reset]').onclick=()=>{index=0;show()};container.appendChild(section);show();
+}
 function areaProofGraphic(proof,index){
  const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),step=proof.steps[index],W=480,H=230;
  const all=proof.steps.flatMap(s=>s.pieces.flat()),xs=all.map(q=>q[0]),ys=all.map(q=>q[1]),minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys),scale=Math.min(410/(maxX-minX),150/(maxY-minY)),map=q=>[240+(q[0]-(minX+maxX)/2)*scale,101-(q[1]-(minY+maxY)/2)*scale];
@@ -2374,6 +2417,7 @@ function appendShapeReference(svg,d){
  if(m.quad){const family=quadrilateralFamilyGraphic(quadrilateralFamilyModel(m.points)),fw=w-2*margin,fh=fw*356/600;add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size+2,'font-weight':700,fill:'#285c55'},'Quadrilateral family tree');at+=size+12;family.setAttribute('x',x+margin);family.setAttribute('y',at);family.setAttribute('width',fw);family.setAttribute('height',fh);svg.append(family);at+=fh+8;for(const line of G.exportTools.wrapPaperText('Inclusive definitions: a trapezium has at least one parallel pair; a kite has two pairs of adjacent equal sides.',w-2*margin,size,400)){add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size,fill:'#263e43'},line);at+=size*1.32}at+=12}
  if(m.n===3){const family=triangleFamilyGraphic(triangleFamilyModel(m.points)),fw=w-2*margin,fh=fw*385/600;add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size+2,'font-weight':700,fill:'#285c55'},'Triangle classifications');at+=size+12;family.setAttribute('x',x+margin);family.setAttribute('y',at);family.setAttribute('width',fw);family.setAttribute('height',fh);svg.append(family);at+=fh+16}
  const proof=shapeAreaProof(m);if(proof){add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size+2,'font-weight':700,fill:'#285c55'},'Why the area formula works');at+=size+12;for(let i=0;i<proof.steps.length;i++){const g=areaProofGraphic(proof,i),gw=Math.min(w-40,480),gh=gw*230/480;g.setAttribute('x',x+(w-gw)/2);g.setAttribute('y',at);g.setAttribute('width',gw);g.setAttribute('height',gh);svg.append(g);at+=gh+6;for(const line of G.exportTools.wrapPaperText(proof.steps[i].note,w-2*margin,size,400)){add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size,fill:'#263e43'},line);at+=size*1.32}at+=12}}
+ const pyth=pythagorasProof(m.points);if(pyth){add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size+2,'font-weight':700,fill:'#285c55'},'Why Pythagoras works');at+=size+12;for(let i=0;i<pyth.steps.length;i++){const g=pythagorasGraphic(pyth,i),gw=Math.min(w-40,500),gh=gw*265/500;g.setAttribute('x',x+(w-gw)/2);g.setAttribute('y',at);g.setAttribute('width',gw);g.setAttribute('height',gh);svg.append(g);at+=gh+6;for(const line of G.exportTools.wrapPaperText(pyth.steps[i].note,w-2*margin,size,400)){add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size,fill:'#263e43'},line);at+=size*1.32}at+=12}}
  bg.setAttribute('height',at-y-h+10);svg.setAttribute('viewBox',[x,y,w,at-y+10].join(' '));return svg;
 }
 function paper(item,teacher){if(item.data.constructionMethod)return methodPublication(item.data,teacher);const d=geometry(item.data);if(item.kind==='diagram')return appendShapeReference(diagram(d,true,{scale:d.scale,paper:true}),d);let prompt=d.prompt;if(['measure','reflex'].includes(d.type))prompt+=' Use your own protractor.';if(inspectTypes.includes(d.type))prompt+=' You may use a ruler or protractor to investigate the diagram.';if(labTypes.includes(d.type))prompt=(d.type==='build-circle'?'Mark centre A in the working space. ':'Draw AB = 6 cm first using your ruler. ')+prompt+' Use your geometry set in the working space.';if(d.choices)prompt+=' Choices: '+d.choices.join(' / ')+'.';return G.exportTools.composeWorksheetCardSvg(diagram(d,teacher,{paper:true,scale:teacher&&['measure','reflex','draw','draw-reflex'].includes(d.type)}),{title:'Angles & geometry',prompt,responseMode:(['draw','draw-reflex'].includes(d.type)||labTypes.includes(d.type))?'none':d.choices?'lines':'box',responseLines:1,responseLabel:'Answer',paperStyle:'plain',printDiagramScale:labTypes.includes(d.type)?null:['draw','draw-reflex','measure','reflex'].includes(d.type)?1.55:1.05,diagramMaxHeight:labTypes.includes(d.type)?830:380,answer:d.answer,showAnswer:teacher})}
@@ -3312,8 +3356,8 @@ G.anglesTool=function(){
   function syncReferenceTabs(){
     if(!reference)return;
     const body=q('[data-ag-shape-reference-body]',reference),nav=q('[data-ag-teaching-tabs]',reference),sections=[...body.querySelectorAll(':scope > section')];
-    const tabs=[['properties','Properties & formulae'],['polygon-proof','Diagonals & angle sums'],['symmetry','Symmetry'],['families','Shape families'],['proof','Area proof']];
-    sections.forEach(section=>{section.dataset.agTeachingPanel=section.matches('[data-ag-rotation-reference],[data-ag-reflection-reference]')?'symmetry':section.matches('[data-ag-family-reference],[data-ag-triangle-family-reference]')?'families':section.matches('[data-ag-area-proof]')?'proof':section.matches('[data-ag-polygon-proof]')?'polygon-proof':'properties'});
+    const tabs=[['properties','Properties & formulae'],['polygon-proof','Diagonals & angle sums'],['symmetry','Symmetry'],['families','Shape families'],['proof','Area proof'],['pythagoras','Pythagoras']];
+    sections.forEach(section=>{section.dataset.agTeachingPanel=section.matches('[data-ag-rotation-reference],[data-ag-reflection-reference]')?'symmetry':section.matches('[data-ag-family-reference],[data-ag-triangle-family-reference]')?'families':section.matches('[data-ag-pythagoras-proof]')?'pythagoras':section.matches('[data-ag-area-proof]')?'proof':section.matches('[data-ag-polygon-proof]')?'polygon-proof':'properties'});
     const available=tabs.filter(([key])=>sections.some(s=>s.dataset.agTeachingPanel===key)),signature=available.map(([key])=>key).join(',');
     const selected=available.some(([key])=>key===demo.teachingTab)?demo.teachingTab:'properties';
     demo.teachingTab=selected;
@@ -3336,7 +3380,7 @@ G.anglesTool=function(){
     mountReflectionReference(body,m,demo);
     if(m.quad)mountQuadrilateralFamily(body,m,demo);
     if(m.n===3)mountTriangleFamily(body,m,demo);
-    const proof=shapeAreaProof(m);if(proof)mountAreaProof(body,proof,demo);
+    const proof=shapeAreaProof(m);if(proof)mountAreaProof(body,proof,demo);const pyth=pythagorasProof(m.points);if(pyth)mountPythagorasProof(body,pyth,demo);
     syncReferenceTabs();
   }
   // Capture on the persistent wrapper: the SVG may be replaced on every
