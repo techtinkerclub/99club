@@ -1269,6 +1269,50 @@ async function run(){
       tool('undo').click();assert(!model.labCheck(cap().lab,cap().task).correct,'Undo removes construction action, not camera movement');
       if(!enrichmentWasEnabled){doc.querySelector('#ag-enrich').click();await tick()}
     }
+    // Complete assessed constructions using the real instrument gestures,
+    // not a pre-filled solution. Check independently calculated residuals.
+    {
+      const M=win.TT99Goodies.angles;
+      for(const family of ['build-midpoint','build-circle','build-sss','build-equilateral','build-perpendicular','build-right','build-rectangle','build-square','build-asa','build-rhombus','shape-build']){
+        const enrich=doc.querySelector('#ag-enrich');if(!doc.querySelector('[data-ag-challenge-mode="'+family+'"]')&&!enrich.checked){enrich.click();await tick()}
+        const choice=doc.querySelector('[data-ag-challenge-mode="'+family+'"]');assert(choice,'Assessed construction family available: '+family);choice.click();await tick();
+        const t=cap().task,svg=doc.querySelector('.gd-ag-visual>svg'),tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),option=id=>doc.querySelector('[data-ag-option="'+id+'"]'),set=(id,value)=>{const el=option(id);el.value=String(value);el.dispatchEvent(new win.Event('change',{bubbles:true}))},snap=on=>{if(option('snap').checked!==on)option('snap').click()},select=id=>{if(tool(id).getAttribute('aria-pressed')!=='true')tool(id).click()};
+        const tap=p=>{const q=new win.DOMPoint(...p).matrixTransform(svg.getScreenCTM());for(const type of ['pointerdown','pointerup'])svg.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerType:'touch',pointerId:177,button:0,buttons:type==='pointerup'?0:1,clientX:q.x,clientY:q.y}))};
+        const initial=cap().lab||M.labEmpty(),A=initial.points[0],B=initial.points[1],polar=(o,r,a)=>[o[0]+r*Math.cos(a*Math.PI/180),o[1]-r*Math.sin(a*Math.PI/180)],d=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]),near=(p,q)=>d(p,q)<1e-6;
+        const line=(a,b)=>{select('segment');tap(a);tap(b)},point=p=>{select('point');tap(p)},ray=(o,base,a)=>{select('protractor');set('angle-graduation',1);tap(o);tap(base);const direction=(Math.atan2(o[1]-base[1],base[0]-o[0])*180/Math.PI+360)%360;if((a-direction+360)%360>180)svg.querySelector('[data-ag-guided-action="mirror"]').click();snap(false);tap(polar(o,180,a));snap(true);const drawn=cap().lab.rays.at(-1),actual=M.labRayAngle(cap().lab,drawn);assert(Math.abs(((actual-a+540)%360)-180)<1e-8,'Guided graduated ray has exact direction: '+family+' expected '+a+' actual '+actual)};
+        // Set an instrument opening using the chosen physical scale, with a
+        // small off-graduation pointer error. Do not snap to unrelated ink.
+        const circle=(o,r)=>{select('compass');if(tool('compass-opening').getAttribute('aria-pressed')==='true')tool('compass-opening').click();set('length-graduation',.1);tap(o);snap(false);tap(polar(o,r*40+.9,90));snap(true)};
+        const verify=()=>{const result=M.labCheck(cap().lab,t);assert(result.precise,'Actual instrument construction meets 0.01 precision: '+family+' '+JSON.stringify(result.precisionChecks));return result};
+        assert(t.type===family,'Correct generated task selected');
+        if(family==='build-midpoint'){
+          select('point');tap([(A[0]+B[0])/2,A[1]]);verify();
+        }else if(family==='build-circle'){
+          circle(A,t.length);assert(Math.abs(cap().lab.circles[0].r-t.length*40)<1e-8,'Calibrated compass sets assessed radius');verify();
+        }else if(['build-sss','build-equilateral'].includes(family)){
+          circle(A,t.length);circle(B,t.rightLength);
+          const x=(d(A,B)**2+(40*t.length)**2-(40*t.rightLength)**2)/(2*d(A,B)),y=Math.sqrt((40*t.length)**2-x*x),C=[A[0]+x,A[1]-y];
+          // Acquire the analytic crossing from a deliberately offset tap.
+          point([C[0]+.8,C[1]-.8]);const actual=cap().lab.points.find(p=>near(p,C));assert(actual,'Compass intersection matches independent circle oracle');line(A,actual);line(B,actual);verify();
+        }else if(family==='build-perpendicular'||family==='build-right'||family==='shape-build'){
+          const a=family==='shape-build'?t.angle:90,C=polar(A,t.length*40,a);
+          ray(A,B,a);circle(A,t.length);point([C[0]+.7,C[1]-.7]);
+          const actual=cap().lab.points.find(p=>near(p,C));assert(actual,'Ray/circle intersection matches independent polar oracle: '+family);
+          line(A,actual);if(family!=='build-perpendicular')line(B,actual);verify();
+        }else if(family==='build-asa'){
+          ray(A,B,t.angle);ray(B,A,180-t.rightAngle);
+          const C=polar(A,t.length*40,t.angle);point([C[0]+.6,C[1]-.6]);const actual=cap().lab.points.find(p=>near(p,C));assert(actual,'Two constructed angle arms meet at correct third vertex '+JSON.stringify({expected:C,points:cap().lab.points,intersections:M.labIntersections(cap().lab),rays:cap().lab.rays,task:t}));line(A,actual);line(B,actual);verify();
+        }else {
+          // Complete the four required edges through independently computed
+          // expected vertices, using exact geometric intersections where available.
+          const a=family==='build-rhombus'?t.angle:90,h=family==='build-rhombus'?6:t.length,D=polar(A,h*40,a),C=[B[0]+D[0]-A[0],B[1]+D[1]-A[1]];
+          ray(A,B,a);circle(A,h);point([D[0]+.6,D[1]-.6]);const actualD=cap().lab.points.find(p=>near(p,D));assert(actualD,'Constructed AD has exact opening and angle: '+family);
+          circle(B,h);circle(actualD,6);point([C[0]+.6,C[1]-.6]);const actualC=cap().lab.points.find(p=>near(p,C));assert(actualC,'Fourth vertex acquired from exact compass crossings: '+family);
+          line(A,actualD);line(actualD,actualC);line(actualC,B);verify();
+        }
+        const result=verify(),paper=P.createDocument();paper.addCurrent(id,cap());const item=paper.list()[0];assert(result.precise&&P.answerGraphic(item),'Verified assessed construction retains teacher answer publication: '+family);
+      }
+    }
     doc.querySelector('[data-ag-workflow="build"]').click();await tick();
     const mode=doc.getElementById('ag-mode');mode.value='construct';mode.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
     const freeSvg=doc.querySelector('.gd-ag-lab-canvas');
