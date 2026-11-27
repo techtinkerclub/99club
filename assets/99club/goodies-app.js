@@ -92,6 +92,10 @@ function activeChallenge(){const stage=q('#gd-stage');if(!stage)return false;ret
 function modeNodes(spec){const base=q('#gd-controls'),stage=q('#gd-stage');if(!spec||!base||!stage)return [];if(spec.prefer){const target=stage.querySelector(spec.prefer);if(target)return [target]}if(spec.buttons)return [...base.querySelectorAll(spec.buttons)];const node=base.querySelector(spec.select||spec.check);return node?[node]:[]}
 function modeRead(){
  const spec=MODE_CONTRACTS[currentToolId];if(!spec)return null;
+ if(currentToolId==='angles'&&G.geometryTopics){
+   const topics=G.geometryTopics.read();
+   if(topics){const base=topics.value.startsWith('centre:')?'polygon':topics.value.split(':')[0];const data={tool:currentToolId,...topics,hint:spec.hints?.[base]||''};lastMode=data;return {...data,locked:activeChallenge(),hintVisible:modeHintVisible}}
+ }
  const nodes=modeNodes(spec),n=nodes[0];let data=null;
  if(n){let options,value;if(spec.buttons){options=nodes.map(b=>({value:b.getAttribute(spec.attr),label:b.textContent.trim(),disabled:b.disabled}));value=nodes.find(b=>b.classList.contains('gd-btn--primary')||b.classList.contains('is-active')||b.getAttribute('aria-selected')==='true'||b.getAttribute('aria-pressed')==='true')?.getAttribute(spec.attr)}
  else if(spec.check){options=spec.choices.map(([value,label])=>({value,label,disabled:n.disabled}));value=options[n.checked?1:0].value}
@@ -104,6 +108,7 @@ function modeRead(){
 function modeSet(value){
  const spec=MODE_CONTRACTS[currentToolId],data=modeRead();if(!spec||!data||data.locked||!data.options.some(o=>o.value===value&&!o.disabled))return false;
  if(data.value===value)return true;
+ if(currentToolId==='angles'&&G.geometryTopics){const changed=G.geometryTopics.set(value);syncModeHint();return changed&&modeRead()?.value===value}
  let nodes=modeNodes(spec);
  if(!nodes.length){const teaching=[...q('#gd-controls').querySelectorAll('button')].find(b=>[...b.attributes].some(a=>/^data-[a-z]+-workflow$/.test(a.name)&&['build','explore','setup','model'].includes(a.value)));if(!teaching)return false;teaching.click();nodes=modeNodes(spec)}
  const n=nodes[0];if(!n)return false;
