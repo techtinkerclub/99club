@@ -3263,7 +3263,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const rotationPanel=doc.querySelector('[data-ag-rotation-reference]'),rotationSlider=rotationPanel.querySelector('[data-ag-rotation-slider]');
       rotationSlider.value=45;rotationSlider.dispatchEvent(new win.Event('input',{bubbles:true}));
       assert(rotationPanel.querySelector('[data-ag-rotation-graphic]').dataset.agRotationMatch==='false','45 degree square turn is not a match');
-      rotationPanel.querySelector('[data-ag-rotation-match]').click();assert(rotationPanel.querySelector('[data-ag-rotation-graphic]').dataset.agRotationMatch==='true'&&Number(rotationSlider.value)===90,'Next matching rotation moves to 90 degrees');
+      rotationPanel.querySelector('[data-ag-rotation-next-match]').click();assert(rotationPanel.querySelector('[data-ag-rotation-graphic]').dataset.agRotationMatch==='true'&&Number(rotationSlider.value)===90,'Next matching rotation moves to 90 degrees');
       rotationPanel.querySelector('[data-ag-rotation-reset]').click();assert(Number(rotationSlider.value)===0,'Rotation reset');
       const rotationPack=P.createDocument();rotationPack.addCurrent(id,cap());const rotationPrint=P.renderItem(rotationPack.list()[0],false);
       assert(rotationPrint.querySelector('[data-ag-rotation-graphic]'),'Rotational symmetry graphic printed');

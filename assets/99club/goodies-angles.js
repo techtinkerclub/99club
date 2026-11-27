@@ -2110,12 +2110,12 @@ function rotationReferenceGraphic(m,degrees){
 function mountRotationReference(container,m,demo){
  let angle=Math.max(0,Math.min(360,Number(demo.symmetryRotation)||0));
  const section=document.createElement('section');section.className='gd-ag-rotation-reference';section.dataset.agRotationReference='1';
- section.innerHTML='<h4>Investigate rotational symmetry</h4><p>Rotate the orange outline. When does it coincide with the green original?</p><div data-ag-rotation-picture></div><label>Turn (degrees) <output data-ag-rotation-angle></output><input type="range" min="0" max="360" step="any" data-ag-rotation-slider aria-label="Rotation in degrees"></label><div class="gd-row"><button type="button" class="gd-btn" data-ag-rotation-reset>Reset</button><button type="button" class="gd-btn" data-ag-rotation-quarter>+ 90°</button><button type="button" class="gd-btn" data-ag-rotation-match>Next matching turn</button></div>';
+ section.innerHTML='<h4>Investigate rotational symmetry</h4><p>Rotate the orange outline. When does it coincide with the green original?</p><div data-ag-rotation-picture></div><label>Turn (degrees) <output data-ag-rotation-angle></output><input type="range" min="0" max="360" step="any" data-ag-rotation-slider aria-label="Rotation in degrees"></label><div class="gd-row"><button type="button" class="gd-btn" data-ag-rotation-reset>Reset</button><button type="button" class="gd-btn" data-ag-rotation-quarter>+ 90°</button><button type="button" class="gd-btn" data-ag-rotation-next-match>Next matching turn</button></div>';
  const input=section.querySelector('[data-ag-rotation-slider]'),show=()=>{demo.symmetryRotation=angle;input.value=angle;section.querySelector('[data-ag-rotation-angle]').textContent=Number(angle.toFixed(2))+'°';section.querySelector('[data-ag-rotation-picture]').replaceChildren(rotationReferenceGraphic(m,angle))};
  input.oninput=()=>{angle=Number(input.value);show()};
  section.querySelector('[data-ag-rotation-reset]').onclick=()=>{angle=0;show()};
  section.querySelector('[data-ag-rotation-quarter]').onclick=()=>{angle=angle===360?90:Math.min(360,angle+90);show()};
- section.querySelector('[data-ag-rotation-match]').onclick=()=>{const step=360/m.symmetry.rotation;angle=angle>=360-1e-8?step:Math.min(360,(Math.floor((angle+1e-8)/step)+1)*step);show()};
+ section.querySelector('[data-ag-rotation-next-match]').onclick=()=>{const step=360/m.symmetry.rotation;angle=angle>=360-1e-8?step:Math.min(360,(Math.floor((angle+1e-8)/step)+1)*step);show()};
  container.appendChild(section);show();
 }
 function appendShapeReference(svg,d){
